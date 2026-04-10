@@ -1,6 +1,6 @@
 <mujoco model="morphohand_scene">
   <compiler angle="radian" autolimits="true"/>
-  <option timestep="0.002" gravity="0 0 -9.81" integrator="RK4"/>
+  <option timestep="0.002" gravity="0 0 -9.81" integrator="implicitfast"/>
 
   <visual>
     <headlight ambient=".4 .4 .4" diffuse=".8 .8 .8" specular="0.1 0.1 0.1"/>
@@ -10,9 +10,19 @@
   </visual>
 
   <default>
-    <joint damping="0.5"/>
-    <geom friction="1.0 0.05 0.001" solref="0.004 1" solimp="0.95 0.99 0.001"/>
+    <geom friction="1.0 0.05 0.001" solref="0.01 1" solimp="0.95 0.99 0.001"/>
     <motor ctrlrange="-1 1" ctrllimited="true"/>
+
+    <!-- Morphology joints are configured via qpos and left unactuated. -->
+    <default class="morph">
+      <joint damping="2000" armature="0.0001"/>
+    </default>
+
+    <!-- Finger control joints are actively tracked with position actuators. -->
+    <default class="ctrl">
+      <joint damping="0.5" armature="0.001"/>
+      <position kp="30" kv="0.5" gear="1" forcerange="-10 10" ctrlrange="-1 1"/>
+    </default>
   </default>
 
   <asset>
@@ -51,19 +61,19 @@
 
       <body name="thumb_mount" pos="-0.03 -0.028 0.0">
         <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6"/>
-        <joint name="thumb_x" type="slide" axis="1 0 0" range="-0.03 0.03"/>
-        <joint name="thumb_y" type="slide" axis="0 1 0" range="-0.03 0.03"/>
+        <joint class="morph" name="thumb_x" type="slide" axis="1 0 0" range="-0.03 0.03"/>
+        <joint class="morph" name="thumb_y" type="slide" axis="0 1 0" range="-0.03 0.03"/>
         <body name="thumb_yaw_frame">
           <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6"/>
-          <joint name="thumb_yaw" type="hinge" axis="1 0 0" range="-1.1 1.1"/>
+          <joint class="ctrl" name="thumb_yaw" type="hinge" axis="1 0 0" range="-1.1 1.1"/>
           <body name="thumb_mcp_frame">
-            <joint name="thumb_mcp" type="hinge" axis="0 1 0" range="0 3.14"/>
+            <joint class="ctrl" name="thumb_mcp" type="hinge" axis="0 1 0" range="0 3.14"/>
             <geom type="capsule" fromto="0 0 0 0.05 0 0" size="0.010" material="finger_mat"/>
             <body name="thumb_len_frame" pos="0.05 0 0">
-              <joint name="thumb_len" type="slide" axis="1 0 0" range="0.0 0.035"/>
+              <joint class="morph" name="thumb_len" type="slide" axis="1 0 0" range="0.0 0.035"/>
               <geom type="capsule" fromto="0 0 0 0.04 0 0" size="0.0085" material="finger_mat"/>
               <body name="thumb_pip_frame" pos="0.04 0 0">
-                <joint name="thumb_pip" type="hinge" axis="0 1 0" range="-1.2 0.5"/>
+                <joint class="ctrl" name="thumb_pip" type="hinge" axis="0 1 0" range="-1.2 0.5"/>
                 <geom type="capsule" fromto="0 0 0 0.03 0 0" size="0.0075" material="finger_mat"/>
                 <body name="thumb_tip" pos="0.03 0 0">
                   <geom type="sphere" size="0.010" material="finger_mat"/>
@@ -76,19 +86,19 @@
 
       <body name="index_mount" pos="0.00 0.03 0.0">
         <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6"/>
-        <joint name="index_x" type="slide" axis="1 0 0" range="-0.03 0.03"/>
-        <joint name="index_y" type="slide" axis="0 1 0" range="-0.03 0.03"/>
+        <joint class="morph" name="index_x" type="slide" axis="1 0 0" range="-0.03 0.03"/>
+        <joint class="morph" name="index_y" type="slide" axis="0 1 0" range="-0.03 0.03"/>
         <body name="index_yaw_frame">
           <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6"/>
-          <joint name="index_yaw" type="hinge" axis="1 0 0" range="-1.1 1.1"/>
+          <joint class="ctrl" name="index_yaw" type="hinge" axis="1 0 0" range="-1.1 1.1"/>
           <body name="index_mcp_frame">
-            <joint name="index_mcp" type="hinge" axis="0 1 0" range="0 2.5"/>
+            <joint class="ctrl" name="index_mcp" type="hinge" axis="0 1 0" range="0 2.5"/>
             <geom type="capsule" fromto="0 0 0 0.05 0 0" size="0.010" material="finger_mat"/>
             <body name="index_len_frame" pos="0.05 0 0">
-              <joint name="index_len" type="slide" axis="1 0 0" range="0.0 0.035"/>
+              <joint class="morph" name="index_len" type="slide" axis="1 0 0" range="0.0 0.035"/>
               <geom type="capsule" fromto="0 0 0 0.04 0 0" size="0.0085" material="finger_mat"/>
               <body name="index_pip_frame" pos="0.04 0 0">
-                <joint name="index_pip" type="hinge" axis="0 1 0" range="-1.2 1.57"/>
+                <joint class="ctrl" name="index_pip" type="hinge" axis="0 1 0" range="-1.2 1.57"/>
                 <geom type="capsule" fromto="0 0 0 0.03 0 0" size="0.0075" material="finger_mat"/>
                 <body name="index_tip" pos="0.03 0 0">
                   <geom type="sphere" size="0.010" material="finger_mat"/>
@@ -101,19 +111,19 @@
 
       <body name="middle_mount" pos="0.00 -0.03 0.0">
         <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6"/>
-        <joint name="middle_x" type="slide" axis="1 0 0" range="-0.03 0.03"/>
-        <joint name="middle_y" type="slide" axis="0 1 0" range="-0.03 0.03"/>
+        <joint class="morph" name="middle_x" type="slide" axis="1 0 0" range="-0.03 0.03"/>
+        <joint class="morph" name="middle_y" type="slide" axis="0 1 0" range="-0.03 0.03"/>
         <body name="middle_yaw_frame">
           <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6"/>
-          <joint name="middle_yaw" type="hinge" axis="1 0 0" range="-1.1 1.1"/>
+          <joint class="ctrl" name="middle_yaw" type="hinge" axis="1 0 0" range="-1.1 1.1"/>
           <body name="middle_mcp_frame">
-            <joint name="middle_mcp" type="hinge" axis="0 1 0" range="0 2.5"/>
+            <joint class="ctrl" name="middle_mcp" type="hinge" axis="0 1 0" range="0 2.5"/>
             <geom type="capsule" fromto="0 0 0 0.05 0 0" size="0.010" material="finger_mat"/>
             <body name="middle_len_frame" pos="0.05 0 0">
-              <joint name="middle_len" type="slide" axis="1 0 0" range="0.0 0.035"/>
+              <joint class="morph" name="middle_len" type="slide" axis="1 0 0" range="0.0 0.035"/>
               <geom type="capsule" fromto="0 0 0 0.04 0 0" size="0.0085" material="finger_mat"/>
               <body name="middle_pip_frame" pos="0.04 0 0">
-                <joint name="middle_pip" type="hinge" axis="0 1 0" range="-1.2 1.57"/>
+                <joint class="ctrl" name="middle_pip" type="hinge" axis="0 1 0" range="-1.2 1.57"/>
                 <geom type="capsule" fromto="0 0 0 0.03 0 0" size="0.0075" material="finger_mat"/>
                 <body name="middle_tip" pos="0.03 0 0">
                   <geom type="sphere" size="0.010" material="finger_mat"/>
@@ -134,26 +144,17 @@
     <motor name="a_palm_ry" joint="palm_ry" gear="20"/>
     <motor name="a_palm_rz" joint="palm_rz" gear="20"/>
 
-    <motor name="a_thumb_x" joint="thumb_x" gear="60"/>
-    <motor name="a_thumb_y" joint="thumb_y" gear="60"/>
-    <motor name="a_thumb_yaw" joint="thumb_yaw" gear="25"/>
-    <motor name="a_thumb_mcp" joint="thumb_mcp" gear="20"/>
-    <motor name="a_thumb_len" joint="thumb_len" gear="40"/>
-    <motor name="a_thumb_pip" joint="thumb_pip" gear="20"/>
+    <position class="ctrl" name="a_thumb_yaw" joint="thumb_yaw" ctrlrange="-1.1 1.1"/>
+    <position class="ctrl" name="a_thumb_mcp" joint="thumb_mcp" ctrlrange="0 3.14"/>
+    <position class="ctrl" name="a_thumb_pip" joint="thumb_pip" ctrlrange="-1.2 0.5"/>
 
-    <motor name="a_index_x" joint="index_x" gear="60"/>
-    <motor name="a_index_y" joint="index_y" gear="60"/>
-    <motor name="a_index_yaw" joint="index_yaw" gear="25"/>
-    <motor name="a_index_mcp" joint="index_mcp" gear="20"/>
-    <motor name="a_index_len" joint="index_len" gear="40"/>
-    <motor name="a_index_pip" joint="index_pip" gear="20"/>
+    <position class="ctrl" name="a_index_yaw" joint="index_yaw" ctrlrange="-1.1 1.1"/>
+    <position class="ctrl" name="a_index_mcp" joint="index_mcp" ctrlrange="0 2.5"/>
+    <position class="ctrl" name="a_index_pip" joint="index_pip" ctrlrange="-1.2 1.57"/>
 
-    <motor name="a_middle_x" joint="middle_x" gear="60"/>
-    <motor name="a_middle_y" joint="middle_y" gear="60"/>
-    <motor name="a_middle_yaw" joint="middle_yaw" gear="25"/>
-    <motor name="a_middle_mcp" joint="middle_mcp" gear="20"/>
-    <motor name="a_middle_len" joint="middle_len" gear="40"/>
-    <motor name="a_middle_pip" joint="middle_pip" gear="20"/>
+    <position class="ctrl" name="a_middle_yaw" joint="middle_yaw" ctrlrange="-1.1 1.1"/>
+    <position class="ctrl" name="a_middle_mcp" joint="middle_mcp" ctrlrange="0 2.5"/>
+    <position class="ctrl" name="a_middle_pip" joint="middle_pip" ctrlrange="-1.2 1.57"/>
   </actuator>
 
   <keyframe>
