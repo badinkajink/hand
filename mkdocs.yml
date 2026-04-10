@@ -1,0 +1,24 @@
+site_name: MorphoHand
+site_description: Multi-backend morphology optimization research stack
+repo_name: hand
+nav:
+  - Home: index.md
+  - Architecture:
+      - Overview: architecture/overview.md
+      - Optimization Pipeline: architecture/optimization_pipeline.md
+  - Simulators:
+      - Backend Strategy: simulators/backends.md
+      - DiffMJX Plan: simulators/diffmjx_plan.md
+  - Roadmap:
+      - Milestones: roadmap/phases.md
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.expand
+    - content.code.copy
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true

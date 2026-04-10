@@ -1,0 +1,49 @@
+[project]
+name = "morphohand"
+version = "0.1.0"
+description = "Morphology optimization research scaffold with multiple MuJoCo backends"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy>=1.26",
+  "mujoco>=3.2.6",
+  "jax>=0.4.30",
+  "jaxlib>=0.4.30",
+  "tyro>=0.8.5",
+  "pyyaml>=6.0.2",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3",
+  "ruff>=0.6.9",
+  "mypy>=1.11",
+  "mkdocs>=1.6",
+  "mkdocs-material>=9.5",
+]
+mjwarp = [
+  "warp-lang>=1.4.0",
+]
+comfree = [
+  "warp-lang>=1.4.0",
+]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.uv]
+managed = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
