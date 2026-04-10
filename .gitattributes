@@ -1,0 +1,17 @@
+docs/**/*.mp4 filter=lfs diff=lfs merge=lfs -text
+docs/**/*.gif filter=lfs diff=lfs merge=lfs -text
+docs/**/*.webm filter=lfs diff=lfs merge=lfs -text
+docs/**/*.mov filter=lfs diff=lfs merge=lfs -text
+docs/**/*.png filter=lfs diff=lfs merge=lfs -text
+docs/**/*.jpg filter=lfs diff=lfs merge=lfs -text
+docs/**/*.jpeg filter=lfs diff=lfs merge=lfs -text
+docs/**/*.pdf filter=lfs diff=lfs merge=lfs -text
+docs/**/*.npz filter=lfs diff=lfs merge=lfs -text
+docs/**/*.npy filter=lfs diff=lfs merge=lfs -text
+docs/**/*.zip filter=lfs diff=lfs merge=lfs -text
+docs/**/*.jsonl filter=lfs diff=lfs merge=lfs -text
+docs/**/*.csv filter=lfs diff=lfs merge=lfs -text
+docs/**/*.json filter=lfs diff=lfs merge=lfs -text
+docs/experiments/**/*.html filter=lfs diff=lfs merge=lfs -text
+docs/experiments/20260906-turn_elev/ur5 filter=lfs diff=lfs merge=lfs -text
+docs/experiments/20261009-contact_overview/20261009-sphere_pad_contact_model.html !text -filter -merge -diff
