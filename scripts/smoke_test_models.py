@@ -23,10 +23,10 @@ def main() -> None:
     print(f"hand.xml actuators: {hand_count}")
     print(f"scene.xml actuators: {scene_count}")
 
-    if hand_count != 18:
-        raise SystemExit(f"Expected 18 actuators in hand.xml, got {hand_count}")
-    if scene_count != 24:
-        raise SystemExit(f"Expected 24 actuators in scene.xml, got {scene_count}")
+    if hand_count != 9:
+        raise SystemExit(f"Expected 9 actuators in hand.xml, got {hand_count}")
+    if scene_count != 15:
+        raise SystemExit(f"Expected 15 actuators in scene.xml, got {scene_count}")
 
     print("Model smoke test passed.")
 

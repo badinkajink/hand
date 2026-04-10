@@ -49,7 +49,7 @@
       <geom type="box" size="0.02 0.02 0.02" density="500" material="object_mat"/>
     </body>
 
-    <body name="palm_pose" pos="0 0 -0.15">
+    <body name="palm_pose" pos="0 0 0.134">
       <joint name="palm_px" type="slide" axis="1 0 0" range="-0.20 0.20"/>
       <joint name="palm_py" type="slide" axis="0 1 0" range="-0.20 0.20"/>
       <joint name="palm_pz" type="slide" axis="0 0 1" range="-0.15 0.35"/>
