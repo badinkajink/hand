@@ -10,6 +10,10 @@
   <default>
     <geom friction="1.0 0.05 0.001" solref="0.01 1" solimp="0.95 0.99 0.001" />
     <motor ctrlrange="-1 1" ctrllimited="true" />
+    <default class="pose">
+      <joint damping="2.0" armature="0.01" />
+      <position kp="4000" kv="100" forcerange="-1000 1000" />
+    </default>
     <default class="ctrl">
       <joint damping="0.5" armature="0.001" />
       <position kp="30" kv="0.5" gear="1" forcerange="-10 10" ctrlrange="-1 1" />
@@ -33,13 +37,13 @@
       <freejoint />
       <geom type="box" size="0.02 0.02 0.02" density="500" material="object_mat" />
     </body>
-    <body name="palm_pose" pos="0 0 0.134">
-      <joint name="palm_px" type="slide" axis="1 0 0" range="-0.20 0.20" />
-      <joint name="palm_py" type="slide" axis="0 1 0" range="-0.20 0.20" />
-      <joint name="palm_pz" type="slide" axis="0 0 1" range="-0.15 0.35" />
-      <joint name="palm_rx" type="hinge" axis="1 0 0" range="-1.57 1.57" />
-      <joint name="palm_ry" type="hinge" axis="0 1 0" range="-1.57 1.57" />
-      <joint name="palm_rz" type="hinge" axis="0 0 1" range="-3.14 3.14" />
+    <body gravcomp="1" name="palm_pose" pos="0 0 0.134">
+      <joint class="pose" name="palm_px" type="slide" axis="1 0 0" range="-0.20 0.20" />
+      <joint class="pose" name="palm_py" type="slide" axis="0 1 0" range="-0.20 0.20" />
+      <joint class="pose" name="palm_pz" type="slide" axis="0 0 1" range="-0.15 0.35" />
+      <joint class="pose" name="palm_rx" type="hinge" axis="1 0 0" range="-1.57 1.57" />
+      <joint class="pose" name="palm_ry" type="hinge" axis="0 1 0" range="-1.57 1.57" />
+      <joint class="pose" name="palm_rz" type="hinge" axis="0 0 1" range="-3.14 3.14" />
       <geom type="box" size="0.06 0.045 0.001" material="palm_mat" />
       <body name="thumb_mount" pos="-0.03 -0.008 0">
         <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
@@ -107,12 +111,12 @@
     </body>
   </worldbody>
   <actuator>
-    <motor name="a_palm_px" joint="palm_px" gear="100" />
-    <motor name="a_palm_py" joint="palm_py" gear="100" />
-    <motor name="a_palm_pz" joint="palm_pz" gear="100" />
-    <motor name="a_palm_rx" joint="palm_rx" gear="20" />
-    <motor name="a_palm_ry" joint="palm_ry" gear="20" />
-    <motor name="a_palm_rz" joint="palm_rz" gear="20" />
+    <position class="pose" name="a_palm_px" joint="palm_px" ctrlrange="-0.20 0.20" />
+    <position class="pose" name="a_palm_py" joint="palm_py" ctrlrange="-0.20 0.20" />
+    <position class="pose" name="a_palm_pz" joint="palm_pz" ctrlrange="-0.15 0.35" />
+    <position class="pose" name="a_palm_rx" joint="palm_rx" ctrlrange="-1.57 1.57" />
+    <position class="pose" name="a_palm_ry" joint="palm_ry" ctrlrange="-1.57 1.57" />
+    <position class="pose" name="a_palm_rz" joint="palm_rz" ctrlrange="-3.14 3.14" />
     <position class="ctrl" name="a_thumb_yaw" joint="thumb_yaw" ctrlrange="-1.1 1.1" />
     <position class="ctrl" name="a_thumb_mcp" joint="thumb_mcp" ctrlrange="0 3.14" />
     <position class="ctrl" name="a_thumb_pip" joint="thumb_pip" ctrlrange="-1.2 0.5" />
@@ -124,6 +128,6 @@
     <position class="ctrl" name="a_middle_pip" joint="middle_pip" ctrlrange="-1.2 1.57" />
   </actuator>
   <keyframe>
-    <key name="open" qpos="&#10;        0 0 0.02 1 0 0 0 0.02 0 0 0 0 0 0 2 -0.707 0 1.25 1 0 1.25 1&#10;      " ctrl="&#10;        0 2 -0.707 0 1.25 1 0 1.25 1&#10;      " />
+    <key name="open" qpos="&#10;        0 0 0.02 1 0 0 0 0.02 0 0 0 0 0 0 2 -0.707 0 1.25 1 0 1.25 1&#10;      " ctrl="&#10;        0.02 0 0 0 0 0 0 2 -0.707 0 1.25 1 0 1.25 1&#10;      " />
   </keyframe>
 </mujoco>
