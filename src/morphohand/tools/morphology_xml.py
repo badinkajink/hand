@@ -111,11 +111,20 @@ def _remove_defaults_by_class(root: ET.Element, class_names: set[str]) -> None:
                     parent.remove(child)
 
 
+def _is_scene_model(root: ET.Element) -> bool:
+    return any(j.get("name") == "palm_px" for j in root.iter("joint"))
+
+
+def _default_scene_prefix_qpos() -> list[float]:
+    # cube freejoint + palm 6DOF
+    return [0.0, 0.0, 0.02, 1.0, 0.0, 0.0, 0.0, 0.02, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+
 def _scene_prefix_qpos_values(root: ET.Element) -> list[float]:
     """Return qpos for free joints before the finger chain (cube + palm pose in scene.xml)."""
     keyframe = root.find("keyframe")
     if keyframe is None:
-        return []
+        return _default_scene_prefix_qpos()
 
     open_key = None
     for key in keyframe.findall("key"):
@@ -124,14 +133,24 @@ def _scene_prefix_qpos_values(root: ET.Element) -> list[float]:
             break
 
     if open_key is None or open_key.get("qpos") is None:
-        return []
+        return _default_scene_prefix_qpos()
 
     all_vals = [float(v) for v in open_key.get("qpos", "").split()]
     if len(all_vals) < 13:
-        return []
+        return _default_scene_prefix_qpos()
 
     # Scene layout: first 13 qpos entries are cube freejoint (7) + palm pose (6).
     return all_vals[:13]
+
+
+def _default_finger_ctrl_values() -> list[float]:
+    vals = []
+    for finger in FINGER_ORDER:
+        if finger == "thumb":
+            vals.extend([0.0, 2.0, -0.707])
+        else:
+            vals.extend([0.0, 1.25, 1.0])
+    return vals
 
 
 def _write_open_keyframe(root: ET.Element) -> None:
@@ -147,21 +166,32 @@ def _write_open_keyframe(root: ET.Element) -> None:
     if open_key is None:
         open_key = ET.SubElement(keyframe, "key", name="open")
 
-    ctrl_joint_values = []
-    for finger in FINGER_ORDER:
-        # Keep finger controls at a neutral but valid open posture by default.
-        if finger == "thumb":
-            ctrl_joint_values.extend([0.0, 2.0, -0.707])
-        else:
-            ctrl_joint_values.extend([0.0, 1.25, 1.0])
-
-    prefix_vals = _scene_prefix_qpos_values(root)
+    ctrl_joint_values = _default_finger_ctrl_values()
+    prefix_vals = _scene_prefix_qpos_values(root) if _is_scene_model(root) else []
     qpos_vals = prefix_vals + ctrl_joint_values
     open_key.set("qpos", "\n        " + " ".join(f"{v:g}" for v in qpos_vals) + "\n      ")
 
     actuator = root.find("actuator")
-    if actuator is not None and any(a.tag == "position" for a in actuator):
-        open_key.set("ctrl", "\n        " + " ".join(f"{v:g}" for v in ctrl_joint_values) + "\n      ")
+    if actuator is not None:
+        ctrl_lookup = {
+            "palm_px": 0.02,
+            "palm_py": 0.0,
+            "palm_pz": 0.0,
+            "palm_rx": 0.0,
+            "palm_ry": 0.0,
+            "palm_rz": 0.0,
+            "thumb_yaw": 0.0,
+            "thumb_mcp": 2.0,
+            "thumb_pip": -0.707,
+            "index_yaw": 0.0,
+            "index_mcp": 1.25,
+            "index_pip": 1.0,
+            "middle_yaw": 0.0,
+            "middle_mcp": 1.25,
+            "middle_pip": 1.0,
+        }
+        ctrl_vals = [ctrl_lookup.get(a.get("joint", ""), 0.0) for a in list(actuator)]
+        open_key.set("ctrl", "\n        " + " ".join(f"{v:g}" for v in ctrl_vals) + "\n      ")
 
 
 def create_rigid_morphology_xml(

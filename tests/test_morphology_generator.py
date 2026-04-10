@@ -24,6 +24,20 @@ def _actuator_joint_names(path: Path) -> set[str]:
     return {a.get("joint", "") for a in actuator}
 
 
+def _open_key_qpos_len(path: Path) -> int:
+    root = ET.parse(path).getroot()
+    keyframe = root.find("keyframe")
+    assert keyframe is not None
+    open_key = None
+    for key in keyframe.findall("key"):
+        if key.get("name") == "open":
+            open_key = key
+            break
+    assert open_key is not None
+    qpos_raw = open_key.get("qpos", "")
+    return len(qpos_raw.split())
+
+
 def test_create_rigid_hand_xml_removes_morph_joints(tmp_path: Path) -> None:
     root = Path(__file__).resolve().parents[1]
     base = root / "assets" / "mjcf" / "hand.xml"
@@ -69,6 +83,7 @@ def test_create_rigid_hand_xml_removes_morph_joints(tmp_path: Path) -> None:
         "middle_mcp",
         "middle_pip",
     }
+    assert _open_key_qpos_len(out) == 9
 
 
 def test_create_rigid_hand_and_scene_xmls(tmp_path: Path) -> None:
@@ -99,6 +114,8 @@ def test_create_rigid_hand_and_scene_xmls(tmp_path: Path) -> None:
     assert scene_out.exists()
     assert hand_out.name.startswith("hand_")
     assert scene_out.name.startswith("scene_")
+    assert _open_key_qpos_len(hand_out) == 9
+    assert _open_key_qpos_len(scene_out) == 22
 
 
 def test_apply_morphology_to_qpos_in_place() -> None:

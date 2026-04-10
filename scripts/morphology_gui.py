@@ -50,6 +50,8 @@ class MorphologyEditor:
         self.viewer_lock = threading.Lock()
         self.viewer_thread: threading.Thread | None = None
         self.viewer_running = False
+        self.auto_stream = tk.BooleanVar(value=False)
+        self._auto_apply_after: str | None = None
 
         self.triples: dict[str, SliderTriplet] = {}
 
@@ -119,6 +121,11 @@ class MorphologyEditor:
         ttk.Button(actions, text="Save Hand+Scene XML", command=self._save).grid(row=0, column=3, padx=6)
         ttk.Button(actions, text="Close Viewer", command=self._stop_viewer).grid(row=0, column=4, padx=6)
         ttk.Button(actions, text="Reset", command=self._reset).grid(row=0, column=5, padx=6)
+        ttk.Checkbutton(
+            actions,
+            text="Auto-stream sliders to viewer",
+            variable=self.auto_stream,
+        ).grid(row=0, column=6, padx=6)
 
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
 
@@ -141,8 +148,21 @@ class MorphologyEditor:
             resolution=0.0005,
             showvalue=True,
             variable=var,
+            command=lambda _v: self._on_slider_changed(),
             length=220,
         ).grid(row=row, column=col + 1, sticky="w")
+
+    def _on_slider_changed(self) -> None:
+        if not self.auto_stream.get() or not self.viewer_running:
+            return
+
+        if self._auto_apply_after is not None:
+            self.root.after_cancel(self._auto_apply_after)
+        self._auto_apply_after = self.root.after(40, self._auto_apply_to_viewer)
+
+    def _auto_apply_to_viewer(self) -> None:
+        self._auto_apply_after = None
+        self._apply_to_viewer(show_errors=False)
 
     def _browse_hand_base(self) -> None:
         selected = filedialog.askopenfilename(
@@ -274,9 +294,10 @@ class MorphologyEditor:
 
         self.viewer_running = False
 
-    def _apply_to_viewer(self) -> None:
+    def _apply_to_viewer(self, show_errors: bool = True) -> None:
         if not self.viewer_running or self.viewer_model is None or self.viewer_data is None:
-            messagebox.showerror("Live Viewer", "Viewer is not running.")
+            if show_errors:
+                messagebox.showerror("Live Viewer", "Viewer is not running.")
             return
 
         try:
@@ -284,7 +305,8 @@ class MorphologyEditor:
                 apply_morphology_to_qpos(self.viewer_data.qpos, self._morphology(), has_scene_prefix=True)
                 mujoco.mj_forward(self.viewer_model, self.viewer_data)
         except Exception as exc:  # noqa: BLE001
-            messagebox.showerror("Live Viewer", str(exc))
+            if show_errors:
+                messagebox.showerror("Live Viewer", str(exc))
             return
 
     def _read_from_viewer(self) -> None:

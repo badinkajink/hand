@@ -104,7 +104,7 @@
     <position class="ctrl" name="a_middle_mcp" joint="middle_mcp" ctrlrange="0 2.5" />
     <position class="ctrl" name="a_middle_pip" joint="middle_pip" ctrlrange="-1.2 1.57" />
   </actuator>
-  <!-- <keyframe>
-    <key name="open" qpos="&#10;        0 0.02 0 2 0 -0.707 0.01 -0.0123 0 1.25 0 1 0.01 0 2 -0.707 0 1.25 1 0 1.25 1&#10;      " ctrl="&#10;        0 2 -0.707 0 1.25 1 0 1.25 1&#10;      " />
-  </keyframe> -->
+  <keyframe>
+    <key name="open" qpos="&#10;        0 2 -0.707 0 1.25 1 0 1.25 1&#10;      " ctrl="&#10;        0 2 -0.707 0 1.25 1 0 1.25 1&#10;      " />
+  </keyframe>
 </mujoco>
