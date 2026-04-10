@@ -20,8 +20,8 @@ This repository is now structured to support a staged build-out of the morpholog
 ```text
 assets/
   mjcf/
-    hand.xml                  # 18 actuator model (3 fingers x 6 joints)
-    scene.xml                 # 24 actuator model (hand + 6-DoF palm pose)
+    hand.xml                  # 9 actuator model (3 fingers x yaw/mcp/pip)
+    scene.xml                 # 15 actuator model (hand + 6-DoF palm pose)
 
 docs/
   index.md
@@ -98,10 +98,27 @@ Run tests:
 ./scripts/test.sh
 ```
 
+Generate a rigid morphology XML (no morph joints, only control joints remain):
+
+```bash
+uv run python scripts/generate_morphology_xml.py \
+  --base-hand-xml assets/mjcf/hand.xml \
+  --base-scene-xml assets/mjcf/scene.xml \
+  --thumb 0.01 0.00 0.01 \
+  --index 0.00 0.01 0.005 \
+  --middle -0.01 0.00 0.00
+```
+
+Launch the Tkinter morphology editor (sliders + qpos paste + save):
+
+```bash
+uv run python scripts/morphology_gui.py
+```
+
 Expected output includes:
 
-- `hand.xml` actuator count: `18`
-- `scene.xml` actuator count: `24`
+- `hand.xml` actuator count: `9`
+- `scene.xml` actuator count: `15`
 
 ## Modeling Baseline (Implemented)
 

@@ -1,7 +1,7 @@
-"""MorphoHand simulation and optimization package."""
+"""Utility tools for morphology model generation."""
 
-from morphohand.backends.factory import create_backend
 from morphohand.tools.morphology_xml import (
+    FINGER_ORDER,
     MorphologyValues,
     apply_morphology_to_qpos,
     build_morphology_suffix,
@@ -12,7 +12,7 @@ from morphohand.tools.morphology_xml import (
 )
 
 __all__ = [
-    "create_backend",
+    "FINGER_ORDER",
     "MorphologyValues",
     "apply_morphology_to_qpos",
     "build_morphology_suffix",
