@@ -1,0 +1,46 @@
+{
+  "scene_xml": "/home/humanoid/Programs/hand/assets/mjcf/generated/scene_tp0d0000p0d0200p0d0000_ip0d0100n0d0123p0d0000_mp0d0100p0d0153p0d0000.xml",
+  "keyframe": "open",
+  "best_score": 3.420744010616641,
+  "best_finger_ctrl": [
+    -0.08337202103895916,
+    1.8605319144286032,
+    -0.7166528214956971,
+    -0.20232549634829014,
+    1.3752276270028914,
+    1.0099071845942287,
+    -0.027513999795058437,
+    1.4670317022980226,
+    0.9865984519932638
+  ],
+  "best_metrics": {
+    "score": 3.420744010616641,
+    "mean_tip_distance": 0.009298558239746813,
+    "tip_distance_thumb": 0.009055860246837445,
+    "tip_distance_index": 0.009761234859112468,
+    "tip_distance_middle": 0.009078579613290528,
+    "cube_tip_contacts": 3.0,
+    "cube_z_before_lift": 0.02054184418181218,
+    "cube_z_peak": 0.08473942027099202,
+    "cube_z_after_hold": 0.08435995634930823,
+    "cube_lift": 0.06419757608917984,
+    "cube_vel_norm": 0.05049357350106538
+  },
+  "config_eval": {
+    "settle_steps": 240,
+    "lift_steps": 220,
+    "hold_steps": 140,
+    "lift_delta_z": 0.05,
+    "objective_weight_distance": 2.0,
+    "objective_weight_contact": 0.4,
+    "objective_weight_lift": 35.0,
+    "objective_weight_velocity_penalty": 0.15
+  },
+  "config_opt": {
+    "iterations": 20,
+    "population": 36,
+    "elite_fraction": 0.2,
+    "sigma_init": 0.2,
+    "seed": 0
+  }
+}

@@ -12,6 +12,7 @@ This documentation tracks implementation details for the simulation-first morpho
 
 - Architecture overview: `architecture/overview.md`
 - Optimization pipeline: `architecture/optimization_pipeline.md`
+- Phase 1 inner-loop implementation: `architecture/phase1_inner_loop.md`
 - Backend strategy: `simulators/backends.md`
 - DiffMJX implementation plan: `simulators/diffmjx_plan.md`
 - Milestones: `roadmap/phases.md`

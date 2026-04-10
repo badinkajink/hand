@@ -6,6 +6,7 @@ nav:
   - Architecture:
       - Overview: architecture/overview.md
       - Optimization Pipeline: architecture/optimization_pipeline.md
+      - Phase 1 Inner Loop: architecture/phase1_inner_loop.md
   - Simulators:
       - Backend Strategy: simulators/backends.md
       - DiffMJX Plan: simulators/diffmjx_plan.md

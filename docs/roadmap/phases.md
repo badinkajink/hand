@@ -9,9 +9,10 @@
 
 ## Phase 1
 
-- implement real MJX stepping
-- define cube grasp quality metric
-- add inner-loop gradient optimization
+- implement real inner-loop grasp synthesis runner on generated scenes
+- define practical cube-grasp proxy metric (distance + contacts + lift + stability)
+- add optimization trace, plots, trajectory export, and rollout animation
+- keep MJX-native autodiff wiring as next Phase 1 extension
 
 ## Phase 2
 

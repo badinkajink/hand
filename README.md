@@ -92,6 +92,16 @@ Run the baseline model smoke test:
 uv run python scripts/smoke_test_models.py
 ```
 
+Run Phase 1 inner-loop grasp synthesis on a generated rigid scene:
+
+```bash
+uv run python scripts/phase1_optimize_grasp.py \
+  --scene-xml assets/mjcf/generated/scene_tp0d0000p0d0200p0d0000_ip0d0100n0d0123p0d0000_mp0d0100p0d0153p0d0000.xml
+```
+
+This creates run artifacts under `results/phase1/<run_tag>/` including optimization trace CSV,
+plots, trajectory arrays, and an animated best-rollout GIF.
+
 Run tests:
 
 ```bash
@@ -179,10 +189,10 @@ All backends implement `PhysicsBackend` in `src/morphohand/backends/base.py`:
 
 ### Phase 1: Inner-loop baseline (MJX)
 
-- [ ] Implement differentiable state and control tensors for `(yaw, mcp, pip)`.
-- [ ] Add epsilon-style grasp quality proxy (start simple, robust surrogate).
-- [ ] Implement gradient ascent + bounds + step schedule.
-- [ ] Add yaw-in-inner-loop ablation flag.
+- [x] Implement a real inner-loop grasp synthesis runner over `(yaw, mcp, pip)`.
+- [x] Add practical grasp objective proxy (distance + contacts + lift + stability).
+- [x] Add optimizer, trace logging, plots, and rollout visualization artifact generation.
+- [ ] Add MJX-native autodiff path and compare against CEM baseline.
 
 ### Phase 2: Outer-loop baseline (MAP-Elites)
 
