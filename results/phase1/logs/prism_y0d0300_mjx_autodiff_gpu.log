@@ -1,0 +1,8 @@
+[start] y=0.0300 tag=y0d0300
+Traceback (most recent call last):
+  File "/home/humanoid/Programs/hand/scripts/phase1_optimize_grasp.py", line 18, in <module>
+    from morphohand.optimization.phase1_grasp import (  # noqa: E402
+  File "/home/humanoid/Programs/hand/src/morphohand/optimization/phase1_grasp.py", line 12, in <module>
+    import mujoco.mjx as mjx
+ModuleNotFoundError: No module named 'mujoco.mjx'
+[done] y=0.0300

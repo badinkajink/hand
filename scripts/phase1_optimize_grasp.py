@@ -16,9 +16,11 @@ if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
 from morphohand.optimization.phase1_grasp import (  # noqa: E402
+    Phase1AutodiffConfig,
     Phase1EvalConfig,
     Phase1GraspEvaluator,
     Phase1OptimizationConfig,
+    optimize_finger_controls_autodiff,
     optimize_finger_controls,
 )
 
@@ -35,15 +37,32 @@ def build_parser() -> argparse.ArgumentParser:
         / "scene_tp0d0000p0d0200p0d0000_ip0d0100n0d0123p0d0000_mp0d0100p0d0153p0d0000.xml",
     )
     parser.add_argument("--keyframe", default="open")
+    parser.add_argument(
+        "--optimizer",
+        choices=["cem", "mjx-autodiff"],
+        default="cem",
+        help="Optimization strategy for Phase 1 finger controls.",
+    )
     parser.add_argument("--iterations", type=int, default=24)
     parser.add_argument("--population", type=int, default=40)
     parser.add_argument("--elite-fraction", type=float, default=0.2)
     parser.add_argument("--sigma-init", type=float, default=0.20)
+    parser.add_argument("--learning-rate", type=float, default=0.04)
+    parser.add_argument("--grad-clip-norm", type=float, default=5.0)
+    parser.add_argument("--contact-distance-threshold", type=float, default=0.01)
+    parser.add_argument("--contact-distance-sharpness", type=float, default=0.003)
+    parser.add_argument("--score-weight-contact-proxy", type=float, default=0.4)
+    parser.add_argument("--score-weight-ctrl-l2", type=float, default=0.02)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--settle-steps", type=int, default=240)
     parser.add_argument("--lift-steps", type=int, default=220)
     parser.add_argument("--hold-steps", type=int, default=140)
     parser.add_argument("--lift-delta-z", type=float, default=0.05)
+    parser.add_argument(
+        "--skip-gif",
+        action="store_true",
+        help="Skip rollout GIF generation (useful in headless SSH environments).",
+    )
     parser.add_argument("--output-dir", type=Path, default=PROJECT_ROOT / "results" / "phase1")
     parser.add_argument("--tag", default=None)
     return parser
@@ -117,7 +136,7 @@ def _plot_rollout(cube_z: np.ndarray, contacts: np.ndarray, out_dir: Path) -> No
     plt.close()
 
 
-def _write_report(out_dir: Path, summary: dict, best_metrics: dict[str, float], gif_path: Path) -> None:
+def _write_report(out_dir: Path, summary: dict, best_metrics: dict[str, float], gif_name: str | None) -> None:
     report_path = out_dir / "report.md"
     lines = [
         "# Phase 1 Inner-Loop Grasp Report",
@@ -134,7 +153,7 @@ def _write_report(out_dir: Path, summary: dict, best_metrics: dict[str, float], 
         "- Grasp metrics trace: grasp_metrics_trace.png",
         "- Cube z trajectory: best_rollout_cube_z.png",
         "- Contact trajectory: best_rollout_contacts.png",
-        f"- Rollout animation: {gif_path.name}",
+        f"- Rollout animation: {gif_name if gif_name is not None else 'skipped'}",
     ]
     report_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
@@ -159,16 +178,36 @@ def main() -> None:
         sigma_init=args.sigma_init,
         seed=args.seed,
     )
+    autodiff_cfg = Phase1AutodiffConfig(
+        iterations=args.iterations,
+        learning_rate=args.learning_rate,
+        grad_clip_norm=args.grad_clip_norm,
+        contact_distance_threshold=args.contact_distance_threshold,
+        contact_distance_sharpness=args.contact_distance_sharpness,
+        score_weight_contact_proxy=args.score_weight_contact_proxy,
+        score_weight_ctrl_l2=args.score_weight_ctrl_l2,
+        seed=args.seed,
+    )
 
     evaluator = Phase1GraspEvaluator(scene_xml=args.scene_xml, keyframe=args.keyframe, cfg=eval_cfg)
 
-    result = optimize_finger_controls(evaluator=evaluator, cfg=opt_cfg)
+    if args.optimizer == "mjx-autodiff":
+        result = optimize_finger_controls_autodiff(evaluator=evaluator, cfg=autodiff_cfg)
+        optimizer_config = vars(autodiff_cfg)
+    else:
+        result = optimize_finger_controls(evaluator=evaluator, cfg=opt_cfg)
+        optimizer_config = vars(opt_cfg)
     best_ctrl = np.asarray(result["best_finger_ctrl"], dtype=np.float64)
     best_metrics = dict(result["best_metrics"])
     history = list(result["history"])
 
     rollout = evaluator.rollout(best_ctrl)
-    gif_path = evaluator.render_rollout_gif(best_ctrl, out_dir / "best_rollout.gif")
+    gif_path: Path | None = None
+    if not args.skip_gif:
+        try:
+            gif_path = evaluator.render_rollout_gif(best_ctrl, out_dir / "best_rollout.gif")
+        except Exception as exc:  # pragma: no cover - environment dependent rendering
+            print(f"GIF render skipped due to runtime error: {exc}")
 
     np.savez_compressed(
         out_dir / "best_rollout.npz",
@@ -186,14 +225,15 @@ def main() -> None:
         "best_finger_ctrl": best_ctrl.tolist(),
         "best_metrics": best_metrics,
         "config_eval": vars(eval_cfg),
-        "config_opt": vars(opt_cfg),
+        "optimizer": args.optimizer,
+        "config_opt": optimizer_config,
     }
 
     (out_dir / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
     _write_history_csv(history, out_dir / "optimization_trace.csv")
     _plot_history(history, out_dir)
     _plot_rollout(rollout["cube_z"], rollout["contacts"], out_dir)
-    _write_report(out_dir, summary, best_metrics, gif_path)
+    _write_report(out_dir, summary, best_metrics, gif_path.name if gif_path is not None else None)
 
     print(f"Phase 1 run complete: {out_dir}")
     print(f"Best score: {result['best_score']:.6f}")

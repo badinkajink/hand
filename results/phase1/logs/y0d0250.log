@@ -1,0 +1,4 @@
+nohup: ignoring input
+An NVIDIA GPU may be present on this machine, but a CUDA-enabled jaxlib is not installed. Falling back to cpu.
+/home/humanoid/Programs/hand/.venv/lib/python3.12/site-packages/jax/_src/abstract_arrays.py:193: RuntimeWarning: overflow encountered in cast
+  return literals.TypedNdArray(np.asarray(x, dtype), weak_type=False)
