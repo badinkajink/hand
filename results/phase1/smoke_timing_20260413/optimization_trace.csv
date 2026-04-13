@@ -1,0 +1,2 @@
+iteration,iter_best_score,iter_mean_score,elite_mean_score,best_score_so_far,best_cube_lift_so_far,best_contacts_so_far,mean_sigma,iteration_seconds
+0.0,-0.03289640626383555,-0.0477531811328609,-0.03585556224478138,-0.03289640626383555,0.0,0.0,0.04552825011058673,0.02440901700174436
