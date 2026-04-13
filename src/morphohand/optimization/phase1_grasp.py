@@ -20,6 +20,7 @@ class Phase1EvalConfig:
     lift_steps: int = 220
     hold_steps: int = 140
     lift_delta_z: float = 0.05
+    lift_ramp_steps: int = 80
     objective_weight_distance: float = 2.0
     objective_weight_contact: float = 0.4
     objective_weight_lift: float = 35.0
@@ -27,6 +28,10 @@ class Phase1EvalConfig:
     objective_weight_xy_drift_penalty: float = 6.0
     objective_weight_drop_penalty: float = 12.0
     objective_weight_contact_persistence: float = 0.8
+    objective_weight_min_finger_persistence: float = 2.0
+    objective_weight_finger_persistence_imbalance_penalty: float = 1.0
+    objective_weight_finger_yaw_drift_penalty: float = 0.8
+    objective_weight_finger_flex_drift_penalty: float = 0.4
 
 
 @dataclass
@@ -82,9 +87,36 @@ class Phase1GraspEvaluator:
             "a_middle_mcp",
             "a_middle_pip",
         ]
+        self.finger_joint_names = [
+            "thumb_yaw",
+            "thumb_mcp",
+            "thumb_pip",
+            "index_yaw",
+            "index_mcp",
+            "index_pip",
+            "middle_yaw",
+            "middle_mcp",
+            "middle_pip",
+        ]
 
         self.pose_actuator_ids = self._actuator_ids(self.pose_actuator_names)
         self.finger_actuator_ids = self._actuator_ids(self.finger_actuator_names)
+        self.finger_joint_qpos_ids = self._joint_qpos_ids(self.finger_joint_names)
+        self.finger_yaw_qpos_ids = np.asarray(
+            [self.finger_joint_qpos_ids[0], self.finger_joint_qpos_ids[3], self.finger_joint_qpos_ids[6]],
+            dtype=np.int32,
+        )
+        self.finger_flex_qpos_ids = np.asarray(
+            [
+                self.finger_joint_qpos_ids[1],
+                self.finger_joint_qpos_ids[2],
+                self.finger_joint_qpos_ids[4],
+                self.finger_joint_qpos_ids[5],
+                self.finger_joint_qpos_ids[7],
+                self.finger_joint_qpos_ids[8],
+            ],
+            dtype=np.int32,
+        )
 
         self.cube_body_id = self._require_body("cube")
         self.tip_body_ids = [
@@ -114,6 +146,15 @@ class Phase1GraspEvaluator:
         if idx < 0:
             raise ValueError(f"Body '{name}' not found in scene")
         return int(idx)
+
+    def _joint_qpos_ids(self, names: list[str]) -> np.ndarray:
+        ids = []
+        for name in names:
+            jnt_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, name)
+            if jnt_id < 0:
+                raise ValueError(f"Joint '{name}' not found in scene")
+            ids.append(int(self.model.jnt_qposadr[jnt_id]))
+        return np.asarray(ids, dtype=np.int32)
 
     def _infer_cube_half_extents(self) -> np.ndarray:
         # Read size directly from the cube geom so non-cube prisms are handled correctly.
@@ -150,6 +191,12 @@ class Phase1GraspEvaluator:
             ctrl[self.pose_actuator_ids[2]] = self.initial_palm_pz_target + self.cfg.lift_delta_z
         return ctrl
 
+    def _build_lift_ctrl(self, finger_ctrl: np.ndarray, lift_scale: float) -> np.ndarray:
+        ctrl = self.initial_ctrl.copy()
+        ctrl[self.finger_actuator_ids] = finger_ctrl
+        ctrl[self.pose_actuator_ids[2]] = self.initial_palm_pz_target + lift_scale * self.cfg.lift_delta_z
+        return ctrl
+
     def _step_with_ctrl(self, ctrl: np.ndarray, steps: int) -> None:
         for _ in range(steps):
             self.data.ctrl[:] = ctrl
@@ -184,6 +231,23 @@ class Phase1GraspEvaluator:
                 count += 1
         return count
 
+    def _finger_contact_flags(self) -> np.ndarray:
+        flags = np.zeros(3, dtype=np.float64)
+        tip_lookup = {
+            self.tip_body_ids[0]: 0,
+            self.tip_body_ids[1]: 1,
+            self.tip_body_ids[2]: 2,
+        }
+        for i in range(self.data.ncon):
+            contact = self.data.contact[i]
+            b1 = int(self.model.geom_bodyid[contact.geom1])
+            b2 = int(self.model.geom_bodyid[contact.geom2])
+            if b1 == self.cube_body_id and b2 in tip_lookup:
+                flags[tip_lookup[b2]] = 1.0
+            elif b2 == self.cube_body_id and b1 in tip_lookup:
+                flags[tip_lookup[b1]] = 1.0
+        return flags
+
     def evaluate(self, finger_ctrl: np.ndarray) -> tuple[float, dict[str, float]]:
         finger_ctrl = np.asarray(finger_ctrl, dtype=np.float64)
         finger_ctrl = np.clip(finger_ctrl, self.finger_ctrl_min, self.finger_ctrl_max)
@@ -196,27 +260,40 @@ class Phase1GraspEvaluator:
         distances = self._tip_distances_to_cube()
         contact_count = self._cube_tip_contact_count()
         cube_pos_before = self.data.xpos[self.cube_body_id].copy()
+        finger_qpos_settle = self.data.qpos[self.finger_joint_qpos_ids].copy()
         z_before = float(self.data.xpos[self.cube_body_id, 2])
 
-        lift_ctrl = self._build_full_ctrl(finger_ctrl, lift=True)
         peak_z = z_before
         contact_active_steps = 0
+        finger_contact_steps = np.zeros(3, dtype=np.float64)
+        all_finger_contact_steps = 0.0
         total_dynamic_steps = self.cfg.lift_steps + self.cfg.hold_steps
         for _ in range(self.cfg.lift_steps):
-            self.data.ctrl[:] = lift_ctrl
+            ramp_denom = max(1, int(self.cfg.lift_ramp_steps))
+            lift_scale = min(1.0, float((_ + 1) / ramp_denom))
+            self.data.ctrl[:] = self._build_lift_ctrl(finger_ctrl, lift_scale=lift_scale)
             mujoco.mj_step(self.model, self.data)
             peak_z = max(peak_z, float(self.data.xpos[self.cube_body_id, 2]))
-            if self._cube_tip_contact_count() >= 2:
+            finger_flags = self._finger_contact_flags()
+            finger_contact_steps += finger_flags
+            if float(np.min(finger_flags)) > 0.5:
+                all_finger_contact_steps += 1.0
+            if float(np.sum(finger_flags)) >= 2.0:
                 contact_active_steps += 1
 
         for _ in range(self.cfg.hold_steps):
-            self.data.ctrl[:] = lift_ctrl
+            self.data.ctrl[:] = self._build_lift_ctrl(finger_ctrl, lift_scale=1.0)
             mujoco.mj_step(self.model, self.data)
-            if self._cube_tip_contact_count() >= 2:
+            finger_flags = self._finger_contact_flags()
+            finger_contact_steps += finger_flags
+            if float(np.min(finger_flags)) > 0.5:
+                all_finger_contact_steps += 1.0
+            if float(np.sum(finger_flags)) >= 2.0:
                 contact_active_steps += 1
 
         z_after_hold = float(self.data.xpos[self.cube_body_id, 2])
         cube_pos_after = self.data.xpos[self.cube_body_id].copy()
+        finger_qpos_after = self.data.qpos[self.finger_joint_qpos_ids].copy()
         cube_vel_norm = float(np.linalg.norm(self.data.qvel[:6]))
 
         lift_amount = peak_z - z_before
@@ -224,6 +301,14 @@ class Phase1GraspEvaluator:
         cube_xy_drift = float(np.linalg.norm(cube_pos_after[:2] - cube_pos_before[:2]))
         cube_z_drop_from_peak = float(max(0.0, peak_z - z_after_hold))
         contact_persistence = float(contact_active_steps / max(1, total_dynamic_steps))
+        finger_contact_persistence = finger_contact_steps / max(1, total_dynamic_steps)
+        min_finger_contact_persistence = float(np.min(finger_contact_persistence))
+        finger_persistence_imbalance = float(np.max(finger_contact_persistence) - np.min(finger_contact_persistence))
+        all_finger_contact_persistence = float(all_finger_contact_steps / max(1, total_dynamic_steps))
+
+        finger_qpos_delta = np.abs(finger_qpos_after - finger_qpos_settle)
+        finger_yaw_drift = float(np.mean(finger_qpos_delta[[0, 3, 6]]))
+        finger_flex_drift = float(np.mean(finger_qpos_delta[[1, 2, 4, 5, 7, 8]]))
 
         score = (
             self.cfg.objective_weight_lift * lift_amount
@@ -233,6 +318,10 @@ class Phase1GraspEvaluator:
             - self.cfg.objective_weight_xy_drift_penalty * cube_xy_drift
             - self.cfg.objective_weight_drop_penalty * cube_z_drop_from_peak
             + self.cfg.objective_weight_contact_persistence * contact_persistence
+            + self.cfg.objective_weight_min_finger_persistence * min_finger_contact_persistence
+            - self.cfg.objective_weight_finger_persistence_imbalance_penalty * finger_persistence_imbalance
+            - self.cfg.objective_weight_finger_yaw_drift_penalty * finger_yaw_drift
+            - self.cfg.objective_weight_finger_flex_drift_penalty * finger_flex_drift
         )
 
         metrics = {
@@ -250,6 +339,14 @@ class Phase1GraspEvaluator:
             "cube_xy_drift": cube_xy_drift,
             "cube_z_drop_from_peak": cube_z_drop_from_peak,
             "contact_persistence": contact_persistence,
+            "thumb_contact_persistence": float(finger_contact_persistence[0]),
+            "index_contact_persistence": float(finger_contact_persistence[1]),
+            "middle_contact_persistence": float(finger_contact_persistence[2]),
+            "all_finger_contact_persistence": all_finger_contact_persistence,
+            "min_finger_contact_persistence": min_finger_contact_persistence,
+            "finger_persistence_imbalance": finger_persistence_imbalance,
+            "finger_yaw_drift": finger_yaw_drift,
+            "finger_flex_drift": finger_flex_drift,
         }
         return float(score), metrics
 
@@ -259,8 +356,6 @@ class Phase1GraspEvaluator:
         self._reset_to_keyframe()
 
         settle_ctrl = self._build_full_ctrl(finger_ctrl, lift=False)
-        lift_ctrl = self._build_full_ctrl(finger_ctrl, lift=True)
-
         total_steps = self.cfg.settle_steps + self.cfg.lift_steps + self.cfg.hold_steps
         qpos = np.zeros((total_steps, self.model.nq), dtype=np.float64)
         qvel = np.zeros((total_steps, self.model.nv), dtype=np.float64)
@@ -271,7 +366,13 @@ class Phase1GraspEvaluator:
             if t < self.cfg.settle_steps:
                 self.data.ctrl[:] = settle_ctrl
             else:
-                self.data.ctrl[:] = lift_ctrl
+                lift_t = t - self.cfg.settle_steps
+                if lift_t < self.cfg.lift_steps:
+                    ramp_denom = max(1, int(self.cfg.lift_ramp_steps))
+                    lift_scale = min(1.0, float((lift_t + 1) / ramp_denom))
+                else:
+                    lift_scale = 1.0
+                self.data.ctrl[:] = self._build_lift_ctrl(finger_ctrl, lift_scale=lift_scale)
             mujoco.mj_step(self.model, self.data)
             qpos[t] = self.data.qpos
             qvel[t] = self.data.qvel
@@ -299,8 +400,6 @@ class Phase1GraspEvaluator:
         self._reset_to_keyframe()
 
         settle_ctrl = self._build_full_ctrl(finger_ctrl, lift=False)
-        lift_ctrl = self._build_full_ctrl(finger_ctrl, lift=True)
-
         max_width = int(self.model.vis.global_.offwidth)
         max_height = int(self.model.vis.global_.offheight)
         render_width = min(width, max_width)
@@ -313,7 +412,13 @@ class Phase1GraspEvaluator:
             if t < self.cfg.settle_steps:
                 self.data.ctrl[:] = settle_ctrl
             else:
-                self.data.ctrl[:] = lift_ctrl
+                lift_t = t - self.cfg.settle_steps
+                if lift_t < self.cfg.lift_steps:
+                    ramp_denom = max(1, int(self.cfg.lift_ramp_steps))
+                    lift_scale = min(1.0, float((lift_t + 1) / ramp_denom))
+                else:
+                    lift_scale = 1.0
+                self.data.ctrl[:] = self._build_lift_ctrl(finger_ctrl, lift_scale=lift_scale)
             mujoco.mj_step(self.model, self.data)
             if t % frame_stride == 0:
                 renderer.update_scene(self.data)

@@ -59,6 +59,18 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--lift-steps", type=int, default=220)
     parser.add_argument("--hold-steps", type=int, default=140)
     parser.add_argument("--lift-delta-z", type=float, default=0.05)
+    parser.add_argument("--lift-ramp-steps", type=int, default=80)
+    parser.add_argument("--objective-weight-xy-drift-penalty", type=float, default=6.0)
+    parser.add_argument("--objective-weight-drop-penalty", type=float, default=12.0)
+    parser.add_argument("--objective-weight-contact-persistence", type=float, default=0.8)
+    parser.add_argument("--objective-weight-min-finger-persistence", type=float, default=2.0)
+    parser.add_argument(
+        "--objective-weight-finger-persistence-imbalance-penalty",
+        type=float,
+        default=1.0,
+    )
+    parser.add_argument("--objective-weight-finger-yaw-drift-penalty", type=float, default=0.8)
+    parser.add_argument("--objective-weight-finger-flex-drift-penalty", type=float, default=0.4)
     parser.add_argument(
         "--skip-gif",
         action="store_true",
@@ -177,6 +189,16 @@ def main() -> None:
         lift_steps=args.lift_steps,
         hold_steps=args.hold_steps,
         lift_delta_z=args.lift_delta_z,
+        lift_ramp_steps=args.lift_ramp_steps,
+        objective_weight_xy_drift_penalty=args.objective_weight_xy_drift_penalty,
+        objective_weight_drop_penalty=args.objective_weight_drop_penalty,
+        objective_weight_contact_persistence=args.objective_weight_contact_persistence,
+        objective_weight_min_finger_persistence=args.objective_weight_min_finger_persistence,
+        objective_weight_finger_persistence_imbalance_penalty=(
+            args.objective_weight_finger_persistence_imbalance_penalty
+        ),
+        objective_weight_finger_yaw_drift_penalty=args.objective_weight_finger_yaw_drift_penalty,
+        objective_weight_finger_flex_drift_penalty=args.objective_weight_finger_flex_drift_penalty,
     )
     opt_cfg = Phase1OptimizationConfig(
         iterations=args.iterations,

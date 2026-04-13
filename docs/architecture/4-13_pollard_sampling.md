@@ -264,3 +264,188 @@ What changed in response to this concern:
 4. Top-ranked morphologies are re-solved locally (short CEM) per morphology before GIF generation.
 
 This is a practical intermediate step toward force-closure-aware optimization, but not a full closure solver yet.
+
+## Run 3 (Three-Finger Stability and Twist Suppression)
+
+### Motivation
+
+Run 2 improved gross stability, but qualitative review still showed post-lift finger yaw/flex drift in many scenes, especially outside prism1. Run 3 targeted this directly.
+
+### Run 3 Method Changes
+
+1. Evaluator upgrades in [src/morphohand/optimization/phase1_grasp.py](src/morphohand/optimization/phase1_grasp.py):
+   - Lift ramp in dynamics and rollout (`lift_ramp_steps`) instead of abrupt palm raise.
+   - Per-finger contact tracking across dynamic phase:
+     - `thumb_contact_persistence`
+     - `index_contact_persistence`
+     - `middle_contact_persistence`
+     - `min_finger_contact_persistence`
+     - `all_finger_contact_persistence`
+     - `finger_persistence_imbalance`
+   - Finger-joint twist/flex drift metrics from end-of-settle to end-of-hold:
+     - `finger_yaw_drift`
+     - `finger_flex_drift`
+   - Objective terms added:
+     - reward on `min_finger_contact_persistence`
+     - penalty on persistence imbalance
+     - penalties on yaw/flex drift
+2. Foundational and multiscene script knobs:
+   - [scripts/phase1_optimize_grasp.py](scripts/phase1_optimize_grasp.py) now exposes all Run 3 evaluator weights.
+   - [scripts/phase1_pollard_multiscene.py](scripts/phase1_pollard_multiscene.py) adds strict feasibility gates:
+     - min per-finger persistence threshold
+     - max finger-yaw drift threshold
+3. Top-k local refinement retained:
+   - Top candidates are re-solved per morphology before GIF rendering (`refined_for_topk=True`).
+
+### Run 3 Commands
+
+Generate Run 3 prism scenes:
+
+```bash
+uv run python scripts/generate_prism_scene.py --base-scene-xml assets/mjcf/scene.xml --size-x 0.02 --size-y 0.025 --size-z 0.02 --output-scene-xml assets/mjcf/generated/scene_prism_run3_x0.0200_y0.0250_z0.0200.xml
+uv run python scripts/generate_prism_scene.py --base-scene-xml assets/mjcf/scene.xml --size-x 0.02 --size-y 0.030 --size-z 0.02 --output-scene-xml assets/mjcf/generated/scene_prism_run3_x0.0200_y0.0300_z0.0200.xml
+uv run python scripts/generate_prism_scene.py --base-scene-xml assets/mjcf/scene.xml --size-x 0.02 --size-y 0.035 --size-z 0.02 --output-scene-xml assets/mjcf/generated/scene_prism_run3_x0.0200_y0.0350_z0.0200.xml
+```
+
+Cube foundational CEM (Run 3 objective):
+
+```bash
+MUJOCO_GL=egl bash -lc 'for seed in 0 1 2; do
+  uv run python scripts/phase1_optimize_grasp.py \
+    --scene-xml assets/mjcf/scene.xml \
+    --optimizer cem \
+    --iterations 40 \
+    --population 72 \
+    --elite-fraction 0.2 \
+    --sigma-init 0.2 \
+    --seed "$seed" \
+    --lift-ramp-steps 100 \
+    --objective-weight-min-finger-persistence 2.4 \
+    --objective-weight-finger-persistence-imbalance-penalty 1.2 \
+    --objective-weight-finger-yaw-drift-penalty 1.0 \
+    --objective-weight-finger-flex-drift-penalty 0.5 \
+    --skip-gif \
+    --output-dir results/phase1/run_20260413_run3_cube_foundational_cem \
+    --tag "cube_s${seed}"
+done'
+```
+
+Prism foundational CEM (Run 3 objective):
+
+```bash
+MUJOCO_GL=egl bash -lc 'for y in 0.0250 0.0300 0.0350; do
+  for seed in 0 1 2; do
+    ytag="y$(echo "$y" | tr "." "d")"
+    uv run python scripts/phase1_optimize_grasp.py \
+      --scene-xml "assets/mjcf/generated/scene_prism_run3_x0.0200_y${y}_z0.0200.xml" \
+      --optimizer cem \
+      --iterations 40 \
+      --population 72 \
+      --elite-fraction 0.2 \
+      --sigma-init 0.2 \
+      --seed "$seed" \
+      --lift-ramp-steps 100 \
+      --objective-weight-min-finger-persistence 2.4 \
+      --objective-weight-finger-persistence-imbalance-penalty 1.2 \
+      --objective-weight-finger-yaw-drift-penalty 1.0 \
+      --objective-weight-finger-flex-drift-penalty 0.5 \
+      --skip-gif \
+      --output-dir results/phase1/run_20260413_run3_prism_foundational_cem \
+      --tag "${ytag}_s${seed}"
+  done
+done'
+```
+
+Run 3 full multiscene sampling (500) with strict gates and top-k refinement:
+
+```bash
+MUJOCO_GL=egl uv run python scripts/phase1_pollard_multiscene.py \
+  --samples 500 \
+  --top-k-gifs 5 \
+  --refine-top-k \
+  --refine-pool-size 15 \
+  --refine-iterations 10 \
+  --refine-population 28 \
+  --cube-foundational-run-dir results/phase1/run_20260413_run3_cube_foundational_cem \
+  --prism-foundational-run-dir results/phase1/run_20260413_run3_prism_foundational_cem \
+  --cube-min-contacts 4 \
+  --prism-min-contacts 4 \
+  --cube-min-finger-contact-persistence 0.55 \
+  --prism-min-finger-contact-persistence 0.45 \
+  --cube-max-finger-yaw-drift 0.30 \
+  --prism-max-finger-yaw-drift 0.40 \
+  --cube-max-mean-tip-distance 0.012 \
+  --prism-max-mean-tip-distance 0.02 \
+  --lift-ramp-steps 100 \
+  --objective-weight-min-finger-persistence 2.4 \
+  --objective-weight-finger-persistence-imbalance-penalty 1.2 \
+  --objective-weight-finger-yaw-drift-penalty 1.0 \
+  --objective-weight-finger-flex-drift-penalty 0.5 \
+  --tag run_20260413_pollard_multiscene_500_run3
+```
+
+### Run 3 Artifacts
+
+- Main run: [results/phase1/run_20260413_pollard_multiscene_500_run3](results/phase1/run_20260413_pollard_multiscene_500_run3)
+- Summary: [results/phase1/run_20260413_pollard_multiscene_500_run3/summary.json](results/phase1/run_20260413_pollard_multiscene_500_run3/summary.json)
+- Cube top-5: [results/phase1/run_20260413_pollard_multiscene_500_run3/cube/top5_with_gifs.csv](results/phase1/run_20260413_pollard_multiscene_500_run3/cube/top5_with_gifs.csv)
+- Prism1 top-5: [results/phase1/run_20260413_pollard_multiscene_500_run3/prism1/top5_with_gifs.csv](results/phase1/run_20260413_pollard_multiscene_500_run3/prism1/top5_with_gifs.csv)
+- Prism2 top-5: [results/phase1/run_20260413_pollard_multiscene_500_run3/prism2/top5_with_gifs.csv](results/phase1/run_20260413_pollard_multiscene_500_run3/prism2/top5_with_gifs.csv)
+- Prism3 top-5: [results/phase1/run_20260413_pollard_multiscene_500_run3/prism3/top5_with_gifs.csv](results/phase1/run_20260413_pollard_multiscene_500_run3/prism3/top5_with_gifs.csv)
+
+### Run 3 Results Snapshot
+
+Feasible counts (strict gates):
+
+- Cube: 420/500 (84.0%), Pareto size 62
+- Prism1: 317/500 (63.4%), Pareto size 37
+- Prism2: 293/500 (58.6%), Pareto size 38
+- Prism3: 412/500 (82.4%), Pareto size 41
+
+Comparison to Run 2 refined feasibility (same 500 samples):
+
+- Cube: 491 -> 420
+- Prism1: 491 -> 317
+- Prism2: 485 -> 293
+- Prism3: 496 -> 412
+
+This drop is expected because Run 3 intentionally enforced stricter three-finger persistence and yaw-drift requirements.
+
+Top-5 aggregate metrics by scene (Run 3):
+
+- Cube top-5 average:
+  - score 7.991, lift 0.0538, contacts 8.0
+  - `min_finger_contact_persistence` 0.9994
+  - `all_finger_contact_persistence` 0.9994
+  - `finger_yaw_drift` 0.1230
+- Prism1 top-5 average:
+  - score 7.690, lift 0.0496, contacts 7.0
+  - `min_finger_contact_persistence` 1.0000
+  - `all_finger_contact_persistence` 1.0000
+  - `finger_yaw_drift` 0.0108
+- Prism2 top-5 average:
+  - score 7.455, lift 0.0535, contacts 6.4
+  - `min_finger_contact_persistence` 1.0000
+  - `all_finger_contact_persistence` 1.0000
+  - `finger_yaw_drift` 0.0538
+- Prism3 top-5 average:
+  - score 7.423, lift 0.0517, contacts 6.2
+  - `min_finger_contact_persistence` 1.0000
+  - `all_finger_contact_persistence` 1.0000
+  - `finger_yaw_drift` 0.0248
+
+### Run 3 Analysis
+
+1. The new optimization pressure is doing the intended thing:
+   - Top-ranked grasps strongly maintain all three-finger contact through lift/hold.
+   - Most top rows show very low drop-from-peak and high persistence metrics.
+2. The stricter gates significantly filter out unstable or imbalanced grasps:
+   - Feasibility reduced relative to Run 2, but retained candidates are higher quality under the new stability definition.
+3. Prism1 remains the cleanest qualitatively and quantitatively for low yaw drift.
+4. Cube still shows higher residual yaw drift than prism1, suggesting next tuning should target cube-specific anti-twist weighting or actuator stiffness for yaw channels.
+
+### Run 3 Next Tweaks (if needed)
+
+1. Increase yaw-drift penalty for cube only and re-run cube lane quickly.
+2. Add direct per-finger actuator delta penalty between settle and lift phases.
+3. Add explicit force-closure proxy term (wrench-balance surrogate) in evaluator to complement persistence metrics.
