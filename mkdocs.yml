@@ -7,13 +7,14 @@ nav:
       - Overview: architecture/overview.md
       - Optimization Pipeline: architecture/optimization_pipeline.md
       - Phase 1 Inner Loop: architecture/phase1_inner_loop.md
+      - GPU MJX Usage: architecture/gpu_mjx_usage.md
   - Simulators:
       - Backend Strategy: simulators/backends.md
       - DiffMJX Plan: simulators/diffmjx_plan.md
   - Roadmap:
       - Milestones: roadmap/phases.md
 theme:
-  name: material
+  name: mkdocs
   features:
     - navigation.sections
     - navigation.expand
