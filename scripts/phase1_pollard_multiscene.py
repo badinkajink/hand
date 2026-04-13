@@ -62,6 +62,8 @@ class SceneSpec:
     foundational_poses: list[FoundationalPose]
     max_mean_tip_distance: float
     min_contacts: float
+    min_finger_contact_persistence: float
+    max_finger_yaw_drift: float
 
 
 @dataclass(frozen=True)
@@ -94,12 +96,25 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--len-max", type=float, default=0.035)
     parser.add_argument("--cube-max-mean-tip-distance", type=float, default=0.012)
     parser.add_argument("--cube-min-contacts", type=float, default=2.0)
+    parser.add_argument("--cube-min-finger-contact-persistence", type=float, default=0.55)
+    parser.add_argument("--cube-max-finger-yaw-drift", type=float, default=0.30)
     parser.add_argument("--prism-max-mean-tip-distance", type=float, default=0.03)
     parser.add_argument("--prism-min-contacts", type=float, default=1.0)
+    parser.add_argument("--prism-min-finger-contact-persistence", type=float, default=0.45)
+    parser.add_argument("--prism-max-finger-yaw-drift", type=float, default=0.40)
     parser.add_argument("--settle-steps", type=int, default=240)
     parser.add_argument("--lift-steps", type=int, default=220)
     parser.add_argument("--hold-steps", type=int, default=140)
     parser.add_argument("--lift-delta-z", type=float, default=0.05)
+    parser.add_argument("--lift-ramp-steps", type=int, default=100)
+    parser.add_argument("--objective-weight-min-finger-persistence", type=float, default=2.4)
+    parser.add_argument(
+        "--objective-weight-finger-persistence-imbalance-penalty",
+        type=float,
+        default=1.2,
+    )
+    parser.add_argument("--objective-weight-finger-yaw-drift-penalty", type=float, default=1.0)
+    parser.add_argument("--objective-weight-finger-flex-drift-penalty", type=float, default=0.5)
     parser.add_argument("--top-k-gifs", type=int, default=5)
     parser.add_argument("--refine-top-k", action="store_true")
     parser.add_argument("--refine-pool-size", type=int, default=15)
@@ -248,8 +263,12 @@ def _load_scene_specs(
     prism_run_dir: Path,
     cube_max_mean_tip_distance: float,
     cube_min_contacts: float,
+    cube_min_finger_contact_persistence: float,
+    cube_max_finger_yaw_drift: float,
     prism_max_mean_tip_distance: float,
     prism_min_contacts: float,
+    prism_min_finger_contact_persistence: float,
+    prism_max_finger_yaw_drift: float,
 ) -> tuple[list[SceneSpec], MorphologyValues]:
     cube_poses, base_morphology = _load_cube_foundational_poses(cube_run_dir)
     prism25 = _load_best_prism_pose(prism_run_dir, prefix="y0d0250", label="prism_y0d0250")
@@ -266,6 +285,8 @@ def _load_scene_specs(
             foundational_poses=cube_poses,
             max_mean_tip_distance=cube_max_mean_tip_distance,
             min_contacts=cube_min_contacts,
+            min_finger_contact_persistence=cube_min_finger_contact_persistence,
+            max_finger_yaw_drift=cube_max_finger_yaw_drift,
         ),
         SceneSpec(
             scene_key="prism1",
@@ -276,6 +297,8 @@ def _load_scene_specs(
             foundational_poses=[prism25],
             max_mean_tip_distance=prism_max_mean_tip_distance,
             min_contacts=prism_min_contacts,
+            min_finger_contact_persistence=prism_min_finger_contact_persistence,
+            max_finger_yaw_drift=prism_max_finger_yaw_drift,
         ),
         SceneSpec(
             scene_key="prism2",
@@ -286,6 +309,8 @@ def _load_scene_specs(
             foundational_poses=[prism30],
             max_mean_tip_distance=prism_max_mean_tip_distance,
             min_contacts=prism_min_contacts,
+            min_finger_contact_persistence=prism_min_finger_contact_persistence,
+            max_finger_yaw_drift=prism_max_finger_yaw_drift,
         ),
         SceneSpec(
             scene_key="prism3",
@@ -296,6 +321,8 @@ def _load_scene_specs(
             foundational_poses=[prism35],
             max_mean_tip_distance=prism_max_mean_tip_distance,
             min_contacts=prism_min_contacts,
+            min_finger_contact_persistence=prism_min_finger_contact_persistence,
+            max_finger_yaw_drift=prism_max_finger_yaw_drift,
         ),
     ]
     return specs, base_morphology
@@ -401,10 +428,18 @@ def _make_scene_for_spec(
     return scene_output_path
 
 
-def _is_feasible(metrics: dict[str, float], max_mean_tip_distance: float, min_contacts: float) -> bool:
+def _is_feasible(
+    metrics: dict[str, float],
+    max_mean_tip_distance: float,
+    min_contacts: float,
+    min_finger_contact_persistence: float,
+    max_finger_yaw_drift: float,
+) -> bool:
     return (
         float(metrics.get("mean_tip_distance", np.inf)) <= max_mean_tip_distance
         and float(metrics.get("cube_tip_contacts", 0.0)) >= min_contacts
+        and float(metrics.get("min_finger_contact_persistence", 0.0)) >= min_finger_contact_persistence
+        and float(metrics.get("finger_yaw_drift", np.inf)) <= max_finger_yaw_drift
     )
 
 
@@ -564,8 +599,12 @@ def main() -> None:
         args.prism_foundational_run_dir,
         cube_max_mean_tip_distance=args.cube_max_mean_tip_distance,
         cube_min_contacts=args.cube_min_contacts,
+        cube_min_finger_contact_persistence=args.cube_min_finger_contact_persistence,
+        cube_max_finger_yaw_drift=args.cube_max_finger_yaw_drift,
         prism_max_mean_tip_distance=args.prism_max_mean_tip_distance,
         prism_min_contacts=args.prism_min_contacts,
+        prism_min_finger_contact_persistence=args.prism_min_finger_contact_persistence,
+        prism_max_finger_yaw_drift=args.prism_max_finger_yaw_drift,
     )
     bounds = MorphologyBounds(
         x_min=args.x_min,
@@ -590,6 +629,13 @@ def main() -> None:
         lift_steps=args.lift_steps,
         hold_steps=args.hold_steps,
         lift_delta_z=args.lift_delta_z,
+        lift_ramp_steps=args.lift_ramp_steps,
+        objective_weight_min_finger_persistence=args.objective_weight_min_finger_persistence,
+        objective_weight_finger_persistence_imbalance_penalty=(
+            args.objective_weight_finger_persistence_imbalance_penalty
+        ),
+        objective_weight_finger_yaw_drift_penalty=args.objective_weight_finger_yaw_drift_penalty,
+        objective_weight_finger_flex_drift_penalty=args.objective_weight_finger_flex_drift_penalty,
     )
 
     global_rows: list[dict[str, float | str]] = []
@@ -622,6 +668,8 @@ def main() -> None:
                     metrics,
                     spec.max_mean_tip_distance,
                     spec.min_contacts,
+                    spec.min_finger_contact_persistence,
+                    spec.max_finger_yaw_drift,
                 )
                 pose_evals.append((pose, score, metrics, feasible))
 
@@ -651,6 +699,10 @@ def main() -> None:
                 "feasible": str(is_feasible),
                 "feasibility_max_mean_tip_distance": float(spec.max_mean_tip_distance),
                 "feasibility_min_contacts": float(spec.min_contacts),
+                "feasibility_min_finger_contact_persistence": float(
+                    spec.min_finger_contact_persistence
+                ),
+                "feasibility_max_finger_yaw_drift": float(spec.max_finger_yaw_drift),
                 "feasible_pose_count": float(len(feasible_hits)),
                 "foundational_pose_count": float(len(spec.foundational_poses)),
                 "score": float(chosen_score),
@@ -661,6 +713,20 @@ def main() -> None:
                 "cube_xy_drift": float(chosen_metrics.get("cube_xy_drift", 0.0)),
                 "cube_z_drop_from_peak": float(chosen_metrics.get("cube_z_drop_from_peak", 0.0)),
                 "contact_persistence": float(chosen_metrics.get("contact_persistence", 0.0)),
+                "thumb_contact_persistence": float(chosen_metrics.get("thumb_contact_persistence", 0.0)),
+                "index_contact_persistence": float(chosen_metrics.get("index_contact_persistence", 0.0)),
+                "middle_contact_persistence": float(chosen_metrics.get("middle_contact_persistence", 0.0)),
+                "all_finger_contact_persistence": float(
+                    chosen_metrics.get("all_finger_contact_persistence", 0.0)
+                ),
+                "min_finger_contact_persistence": float(
+                    chosen_metrics.get("min_finger_contact_persistence", 0.0)
+                ),
+                "finger_persistence_imbalance": float(
+                    chosen_metrics.get("finger_persistence_imbalance", 0.0)
+                ),
+                "finger_yaw_drift": float(chosen_metrics.get("finger_yaw_drift", 0.0)),
+                "finger_flex_drift": float(chosen_metrics.get("finger_flex_drift", 0.0)),
                 "thumb_x": float(morphology.thumb_x),
                 "thumb_y": float(morphology.thumb_y),
                 "thumb_len": float(morphology.thumb_len),
@@ -715,6 +781,26 @@ def main() -> None:
                 updated["cube_xy_drift"] = float(metrics_refined.get("cube_xy_drift", 0.0))
                 updated["cube_z_drop_from_peak"] = float(metrics_refined.get("cube_z_drop_from_peak", 0.0))
                 updated["contact_persistence"] = float(metrics_refined.get("contact_persistence", 0.0))
+                updated["thumb_contact_persistence"] = float(
+                    metrics_refined.get("thumb_contact_persistence", 0.0)
+                )
+                updated["index_contact_persistence"] = float(
+                    metrics_refined.get("index_contact_persistence", 0.0)
+                )
+                updated["middle_contact_persistence"] = float(
+                    metrics_refined.get("middle_contact_persistence", 0.0)
+                )
+                updated["all_finger_contact_persistence"] = float(
+                    metrics_refined.get("all_finger_contact_persistence", 0.0)
+                )
+                updated["min_finger_contact_persistence"] = float(
+                    metrics_refined.get("min_finger_contact_persistence", 0.0)
+                )
+                updated["finger_persistence_imbalance"] = float(
+                    metrics_refined.get("finger_persistence_imbalance", 0.0)
+                )
+                updated["finger_yaw_drift"] = float(metrics_refined.get("finger_yaw_drift", 0.0))
+                updated["finger_flex_drift"] = float(metrics_refined.get("finger_flex_drift", 0.0))
                 updated["chosen_ctrl_json"] = json.dumps(ctrl_refined.tolist())
                 updated["refined_for_topk"] = "True"
                 refined_rows.append(updated)

@@ -1,0 +1,73 @@
+{
+  "scene_xml": "assets/mjcf/generated/scene_prism_run3_x0.0200_y0.0250_z0.0200.xml",
+  "keyframe": "open",
+  "best_score": 8.65018843914272,
+  "best_finger_ctrl": [
+    0.06571773588309823,
+    1.3117440765357968,
+    -1.1813564164573502,
+    -0.12985874659592142,
+    1.5170470803650187,
+    0.9982478671826719,
+    0.04277702646506835,
+    1.4779214743869291,
+    1.2243988335894025
+  ],
+  "best_metrics": {
+    "score": 8.65018843914272,
+    "mean_tip_distance": 0.004215624152345552,
+    "tip_distance_thumb": 0.002950149267357959,
+    "tip_distance_index": 0.004868924204219154,
+    "tip_distance_middle": 0.004827798985459543,
+    "cube_tip_contacts": 9.0,
+    "cube_z_before_lift": 0.020503491096375476,
+    "cube_z_peak": 0.0750713411241788,
+    "cube_z_after_hold": 0.07744728294843424,
+    "cube_lift": 0.05456785002780333,
+    "cube_vel_norm": 0.022377202661680435,
+    "cube_xy_drift": 6.744401280036855e-05,
+    "cube_z_drop_from_peak": 0.0,
+    "contact_persistence": 1.0,
+    "thumb_contact_persistence": 1.0,
+    "index_contact_persistence": 1.0,
+    "middle_contact_persistence": 1.0,
+    "all_finger_contact_persistence": 1.0,
+    "min_finger_contact_persistence": 1.0,
+    "finger_persistence_imbalance": 0.0,
+    "finger_yaw_drift": 0.008380398101695651,
+    "finger_flex_drift": 0.0782268418959071
+  },
+  "config_eval": {
+    "settle_steps": 240,
+    "lift_steps": 220,
+    "hold_steps": 140,
+    "lift_delta_z": 0.05,
+    "lift_ramp_steps": 100,
+    "objective_weight_distance": 2.0,
+    "objective_weight_contact": 0.4,
+    "objective_weight_lift": 35.0,
+    "objective_weight_velocity_penalty": 0.15,
+    "objective_weight_xy_drift_penalty": 6.0,
+    "objective_weight_drop_penalty": 12.0,
+    "objective_weight_contact_persistence": 0.8,
+    "objective_weight_min_finger_persistence": 2.4,
+    "objective_weight_finger_persistence_imbalance_penalty": 1.2,
+    "objective_weight_finger_yaw_drift_penalty": 1.0,
+    "objective_weight_finger_flex_drift_penalty": 0.5
+  },
+  "optimizer": "cem",
+  "config_opt": {
+    "iterations": 40,
+    "population": 72,
+    "elite_fraction": 0.2,
+    "sigma_init": 0.2,
+    "seed": 2
+  },
+  "timing": {
+    "optimization_wall_time_seconds": 49.77556670899503,
+    "mean_iteration_seconds": 1.2443879444763297,
+    "rollout_wall_time_seconds": 0.021233223960734904,
+    "gif_render_wall_time_seconds": 0.0,
+    "total_run_wall_time_seconds": 49.809677741955966
+  }
+}
