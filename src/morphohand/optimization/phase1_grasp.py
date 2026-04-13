@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+import time
 from typing import Any
 
 import imageio.v2 as imageio
@@ -322,8 +323,10 @@ def optimize_finger_controls(
     best_ctrl = mean.copy()
     best_metrics: dict[str, float] = {}
     history: list[dict[str, float]] = []
+    optimization_start = time.perf_counter()
 
     for it in range(cfg.iterations):
+        iteration_start = time.perf_counter()
         samples = rng.normal(loc=mean, scale=sigma, size=(cfg.population, mean.size))
         samples = np.clip(samples, lo, hi)
 
@@ -363,14 +366,22 @@ def optimize_finger_controls(
                 "best_cube_lift_so_far": float(best_metrics.get("cube_lift", 0.0)),
                 "best_contacts_so_far": float(best_metrics.get("cube_tip_contacts", 0.0)),
                 "mean_sigma": float(np.mean(sigma)),
+                "iteration_seconds": float(time.perf_counter() - iteration_start),
             }
         )
+
+    optimization_seconds = float(time.perf_counter() - optimization_start)
+    mean_iteration_seconds = (
+        float(np.mean([row["iteration_seconds"] for row in history])) if history else 0.0
+    )
 
     return {
         "best_finger_ctrl": best_ctrl,
         "best_score": float(best_score),
         "best_metrics": best_metrics,
         "history": history,
+        "optimization_wall_time_seconds": optimization_seconds,
+        "mean_iteration_seconds": mean_iteration_seconds,
     }
 
 
@@ -483,9 +494,11 @@ def optimize_finger_controls_autodiff(
     best_ctrl = q.copy()
     best_metrics: dict[str, float] = {}
     history: list[dict[str, float]] = []
+    optimization_start = time.perf_counter()
 
     q_j = jnp.asarray(q, dtype=jnp.float32)
     for it in range(cfg.iterations):
+        iteration_start = time.perf_counter()
         surrogate_value = score_fn(q_j)
         grad = grad_fn(q_j)
         grad_norm = jnp.linalg.norm(grad)
@@ -513,12 +526,20 @@ def optimize_finger_controls_autodiff(
                 "best_cube_lift_so_far": float(best_metrics.get("cube_lift", 0.0)),
                 "best_contacts_so_far": float(best_metrics.get("cube_tip_contacts", 0.0)),
                 "mean_sigma": float(grad_norm),
+                "iteration_seconds": float(time.perf_counter() - iteration_start),
             }
         )
+
+    optimization_seconds = float(time.perf_counter() - optimization_start)
+    mean_iteration_seconds = (
+        float(np.mean([row["iteration_seconds"] for row in history])) if history else 0.0
+    )
 
     return {
         "best_finger_ctrl": best_ctrl,
         "best_score": float(best_score),
         "best_metrics": best_metrics,
         "history": history,
+        "optimization_wall_time_seconds": optimization_seconds,
+        "mean_iteration_seconds": mean_iteration_seconds,
     }

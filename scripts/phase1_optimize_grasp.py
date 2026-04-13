@@ -6,6 +6,7 @@ import json
 from datetime import datetime
 from pathlib import Path
 import sys
+import time
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -146,6 +147,11 @@ def _write_report(out_dir: Path, summary: dict, best_metrics: dict[str, float], 
         f"- best_score: {summary['best_score']:.6f}",
         f"- best_cube_lift: {best_metrics.get('cube_lift', 0.0):.6f}",
         f"- best_contacts: {best_metrics.get('cube_tip_contacts', 0.0):.1f}",
+        f"- optimization_wall_time_seconds: {summary.get('timing', {}).get('optimization_wall_time_seconds', 0.0):.3f}",
+        f"- mean_iteration_seconds: {summary.get('timing', {}).get('mean_iteration_seconds', 0.0):.3f}",
+        f"- rollout_wall_time_seconds: {summary.get('timing', {}).get('rollout_wall_time_seconds', 0.0):.3f}",
+        f"- gif_render_wall_time_seconds: {summary.get('timing', {}).get('gif_render_wall_time_seconds', 0.0):.3f}",
+        f"- total_run_wall_time_seconds: {summary.get('timing', {}).get('total_run_wall_time_seconds', 0.0):.3f}",
         "",
         "## Artifacts",
         "",
@@ -160,6 +166,7 @@ def _write_report(out_dir: Path, summary: dict, best_metrics: dict[str, float], 
 
 def main() -> None:
     args = build_parser().parse_args()
+    run_start = time.perf_counter()
 
     tag = args.tag or datetime.now().strftime("run_%Y%m%d_%H%M%S")
     out_dir = args.output_dir / tag
@@ -201,13 +208,20 @@ def main() -> None:
     best_metrics = dict(result["best_metrics"])
     history = list(result["history"])
 
+    rollout_start = time.perf_counter()
     rollout = evaluator.rollout(best_ctrl)
+    rollout_seconds = float(time.perf_counter() - rollout_start)
     gif_path: Path | None = None
+    gif_render_seconds = 0.0
     if not args.skip_gif:
         try:
+            gif_start = time.perf_counter()
             gif_path = evaluator.render_rollout_gif(best_ctrl, out_dir / "best_rollout.gif")
+            gif_render_seconds = float(time.perf_counter() - gif_start)
         except Exception as exc:  # pragma: no cover - environment dependent rendering
             print(f"GIF render skipped due to runtime error: {exc}")
+
+    total_run_seconds = float(time.perf_counter() - run_start)
 
     np.savez_compressed(
         out_dir / "best_rollout.npz",
@@ -227,6 +241,13 @@ def main() -> None:
         "config_eval": vars(eval_cfg),
         "optimizer": args.optimizer,
         "config_opt": optimizer_config,
+        "timing": {
+            "optimization_wall_time_seconds": float(result.get("optimization_wall_time_seconds", 0.0)),
+            "mean_iteration_seconds": float(result.get("mean_iteration_seconds", 0.0)),
+            "rollout_wall_time_seconds": rollout_seconds,
+            "gif_render_wall_time_seconds": gif_render_seconds,
+            "total_run_wall_time_seconds": total_run_seconds,
+        },
     }
 
     (out_dir / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")

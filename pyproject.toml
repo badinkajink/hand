@@ -6,9 +6,10 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
   "numpy>=1.26",
-  "mujoco>=3.2.6",
-  "jax>=0.4.30",
-  "jaxlib>=0.4.30",
+  "mujoco>=3.6.0,<3.7",
+  "mujoco-mjx>=3.6.0,<3.7",
+  "jax>=0.4.30,<0.5",
+  "jaxlib>=0.4.30,<0.5",
   "tyro>=0.8.5",
   "pyyaml>=6.0.2",
   "matplotlib>=3.8",
