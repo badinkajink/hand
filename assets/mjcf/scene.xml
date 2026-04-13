@@ -10,7 +10,7 @@
   </visual>
 
   <default>
-    <geom friction="1.0 0.05 0.001" solref="0.01 1" solimp="0.95 0.99 0.001"/>
+    <geom friction="1.8 0.15 0.01" solref="0.006 1" solimp="0.97 0.995 0.0005"/>
     <motor ctrlrange="-1 1" ctrllimited="true"/>
 
     <!-- Palm 6DOF is servoed in pose-space so the hand holds its target pose. -->
@@ -52,7 +52,7 @@
     <!-- box rests directly on floor; half-size=0.02 so centre at z=0.02 -->
     <body name="cube" pos="0.0 0.0 0.02">
       <freejoint/>
-      <geom type="box" size="0.02 0.02 0.02" density="500" material="object_mat"/>
+      <geom type="box" size="0.02 0.02 0.02" density="500" material="object_mat" friction="2.4 0.2 0.02"/>
     </body>
 
     <body gravcomp="1" name="palm_pose" pos="0 0 0.134">
@@ -82,7 +82,9 @@
                 <joint class="ctrl" name="thumb_pip" type="hinge" axis="0 1 0" range="-1.2 0.5"/>
                 <geom type="capsule" fromto="0 0 0 0.03 0 0" size="0.0075" material="finger_mat"/>
                 <body name="thumb_tip" pos="0.03 0 0">
-                  <geom type="sphere" size="0.010" material="finger_mat"/>
+                  <geom type="sphere" size="0.010" material="finger_mat" friction="2.4 0.2 0.02"/>
+                  <geom type="sphere" pos="0 0.004 0" size="0.005" material="finger_mat" friction="2.4 0.2 0.02"/>
+                  <geom type="sphere" pos="0 -0.004 0" size="0.005" material="finger_mat" friction="2.4 0.2 0.02"/>
                 </body>
               </body>
             </body>
@@ -107,7 +109,9 @@
                 <joint class="ctrl" name="index_pip" type="hinge" axis="0 1 0" range="-1.2 1.57"/>
                 <geom type="capsule" fromto="0 0 0 0.03 0 0" size="0.0075" material="finger_mat"/>
                 <body name="index_tip" pos="0.03 0 0">
-                  <geom type="sphere" size="0.010" material="finger_mat"/>
+                  <geom type="sphere" size="0.010" material="finger_mat" friction="2.4 0.2 0.02"/>
+                  <geom type="sphere" pos="0 0.004 0" size="0.005" material="finger_mat" friction="2.4 0.2 0.02"/>
+                  <geom type="sphere" pos="0 -0.004 0" size="0.005" material="finger_mat" friction="2.4 0.2 0.02"/>
                 </body>
               </body>
             </body>
@@ -132,7 +136,9 @@
                 <joint class="ctrl" name="middle_pip" type="hinge" axis="0 1 0" range="-1.2 1.57"/>
                 <geom type="capsule" fromto="0 0 0 0.03 0 0" size="0.0075" material="finger_mat"/>
                 <body name="middle_tip" pos="0.03 0 0">
-                  <geom type="sphere" size="0.010" material="finger_mat"/>
+                  <geom type="sphere" size="0.010" material="finger_mat" friction="2.4 0.2 0.02"/>
+                  <geom type="sphere" pos="0 0.004 0" size="0.005" material="finger_mat" friction="2.4 0.2 0.02"/>
+                  <geom type="sphere" pos="0 -0.004 0" size="0.005" material="finger_mat" friction="2.4 0.2 0.02"/>
                 </body>
               </body>
             </body>

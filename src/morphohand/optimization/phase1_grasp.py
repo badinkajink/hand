@@ -24,6 +24,9 @@ class Phase1EvalConfig:
     objective_weight_contact: float = 0.4
     objective_weight_lift: float = 35.0
     objective_weight_velocity_penalty: float = 0.15
+    objective_weight_xy_drift_penalty: float = 6.0
+    objective_weight_drop_penalty: float = 12.0
+    objective_weight_contact_persistence: float = 0.8
 
 
 @dataclass
@@ -192,27 +195,44 @@ class Phase1GraspEvaluator:
 
         distances = self._tip_distances_to_cube()
         contact_count = self._cube_tip_contact_count()
+        cube_pos_before = self.data.xpos[self.cube_body_id].copy()
         z_before = float(self.data.xpos[self.cube_body_id, 2])
 
         lift_ctrl = self._build_full_ctrl(finger_ctrl, lift=True)
         peak_z = z_before
+        contact_active_steps = 0
+        total_dynamic_steps = self.cfg.lift_steps + self.cfg.hold_steps
         for _ in range(self.cfg.lift_steps):
             self.data.ctrl[:] = lift_ctrl
             mujoco.mj_step(self.model, self.data)
             peak_z = max(peak_z, float(self.data.xpos[self.cube_body_id, 2]))
+            if self._cube_tip_contact_count() >= 2:
+                contact_active_steps += 1
 
-        self._step_with_ctrl(lift_ctrl, self.cfg.hold_steps)
+        for _ in range(self.cfg.hold_steps):
+            self.data.ctrl[:] = lift_ctrl
+            mujoco.mj_step(self.model, self.data)
+            if self._cube_tip_contact_count() >= 2:
+                contact_active_steps += 1
+
         z_after_hold = float(self.data.xpos[self.cube_body_id, 2])
+        cube_pos_after = self.data.xpos[self.cube_body_id].copy()
         cube_vel_norm = float(np.linalg.norm(self.data.qvel[:6]))
 
         lift_amount = peak_z - z_before
         mean_dist = float(np.mean(distances))
+        cube_xy_drift = float(np.linalg.norm(cube_pos_after[:2] - cube_pos_before[:2]))
+        cube_z_drop_from_peak = float(max(0.0, peak_z - z_after_hold))
+        contact_persistence = float(contact_active_steps / max(1, total_dynamic_steps))
 
         score = (
             self.cfg.objective_weight_lift * lift_amount
             - self.cfg.objective_weight_distance * mean_dist
             + self.cfg.objective_weight_contact * float(contact_count)
             - self.cfg.objective_weight_velocity_penalty * cube_vel_norm
+            - self.cfg.objective_weight_xy_drift_penalty * cube_xy_drift
+            - self.cfg.objective_weight_drop_penalty * cube_z_drop_from_peak
+            + self.cfg.objective_weight_contact_persistence * contact_persistence
         )
 
         metrics = {
@@ -227,6 +247,9 @@ class Phase1GraspEvaluator:
             "cube_z_after_hold": z_after_hold,
             "cube_lift": lift_amount,
             "cube_vel_norm": cube_vel_norm,
+            "cube_xy_drift": cube_xy_drift,
+            "cube_z_drop_from_peak": cube_z_drop_from_peak,
+            "contact_persistence": contact_persistence,
         }
         return float(score), metrics
 

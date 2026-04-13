@@ -220,6 +220,35 @@ Success criteria:
 - better throughput per useful candidate,
 - stable trade-off front trends across object subsets.
 
+### Plan A.1: First executable block experiment
+
+Run Pollard-style sampling directly on the block using foundational controls from the
+historical CEM run:
+
+```bash
+MUJOCO_GL=egl uv run python scripts/phase1_pollard_sampling.py \
+  --foundational-run-dir results/phase1/run_20260410_163959 \
+  --samples 120 \
+  --max-mean-tip-distance 0.012 \
+  --min-contacts 2 \
+  --feasible-rule any \
+  --tag run_20260413_pollard_block
+```
+
+Primary artifacts for analysis:
+
+- `all_candidates.csv`
+- `feasible_candidates.csv`
+- `pareto_front.csv`
+- `feasible_scatter_lift_vs_distance.png`
+- `feasible_scatter_lift_vs_contacts.png`
+
+Interpretation flow:
+
+1. Use `feasible_candidates.csv` to verify foundational-pose reachability retention.
+2. Use `pareto_front.csv` to select morphology trade-offs across lift/contact/stability.
+3. Promote selected morphologies to prism scenes for the next sweep.
+
 ### Plan B: Improve differentiable lane (DiffMJX-style direction)
 
 Goal: recover useful gradients for contact-rich grasping.
