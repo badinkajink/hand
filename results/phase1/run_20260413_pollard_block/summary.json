@@ -1,0 +1,49 @@
+{
+  "tag": "run_20260413_pollard_block",
+  "foundational_run_dir": "results/phase1/run_20260410_163959",
+  "foundational_scene_xml": "/home/humanoid/Programs/hand/assets/mjcf/generated/scene_tp0d0000p0d0200p0d0000_ip0d0100n0d0123p0d0000_mp0d0100p0d0153p0d0000.xml",
+  "foundational_pose_labels": [
+    "phase1_generated_scene",
+    "sanity_phase1"
+  ],
+  "foundational_pose_scores": {
+    "phase1_generated_scene": 3.420744010616641,
+    "sanity_phase1": 2.958089498061409
+  },
+  "base_morphology": {
+    "thumb_x": 0.0,
+    "thumb_y": 0.02,
+    "thumb_len": 0.0,
+    "index_x": 0.01,
+    "index_y": -0.0123,
+    "index_len": 0.0,
+    "middle_x": 0.01,
+    "middle_y": 0.0153,
+    "middle_len": 0.0
+  },
+  "bounds": {
+    "x_min": -0.03,
+    "x_max": 0.03,
+    "y_min": -0.03,
+    "y_max": 0.03,
+    "len_min": 0.0,
+    "len_max": 0.035
+  },
+  "sampling": {
+    "samples": 120,
+    "seed": 0,
+    "x_perturb": 0.012,
+    "y_perturb": 0.012,
+    "len_perturb": 0.012
+  },
+  "feasibility": {
+    "max_mean_tip_distance": 0.012,
+    "min_contacts": 2.0,
+    "rule": "any"
+  },
+  "counts": {
+    "total_candidates": 120,
+    "feasible_candidates": 88,
+    "pareto_size": 9
+  }
+}

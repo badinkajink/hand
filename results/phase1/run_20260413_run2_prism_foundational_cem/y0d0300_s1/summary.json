@@ -1,0 +1,60 @@
+{
+  "scene_xml": "assets/mjcf/generated/scene_prism_run2_x0.0200_y0.0300_z0.0200.xml",
+  "keyframe": "open",
+  "best_score": 4.973040374065321,
+  "best_finger_ctrl": [
+    0.08186841605052923,
+    1.3296121593128771,
+    -0.9169810751328097,
+    -0.12018774143227982,
+    1.46351412054692,
+    0.9586544245005768,
+    -0.008254330686258186,
+    1.6190988018312513,
+    0.9082517781613004
+  ],
+  "best_metrics": {
+    "score": 4.973040374065321,
+    "mean_tip_distance": 0.005804189997996608,
+    "tip_distance_thumb": 0.004415883057475485,
+    "tip_distance_index": 0.0060089003216327215,
+    "tip_distance_middle": 0.006987786614881618,
+    "cube_tip_contacts": 6.0,
+    "cube_z_before_lift": 0.02079675277256507,
+    "cube_z_peak": 0.07259514676372783,
+    "cube_z_after_hold": 0.07295258272998237,
+    "cube_lift": 0.05179839399116276,
+    "cube_vel_norm": 0.079554489477495,
+    "cube_xy_drift": 0.002726977034626279,
+    "cube_z_drop_from_peak": 0.0,
+    "contact_persistence": 1.0
+  },
+  "config_eval": {
+    "settle_steps": 240,
+    "lift_steps": 220,
+    "hold_steps": 140,
+    "lift_delta_z": 0.05,
+    "objective_weight_distance": 2.0,
+    "objective_weight_contact": 0.4,
+    "objective_weight_lift": 35.0,
+    "objective_weight_velocity_penalty": 0.15,
+    "objective_weight_xy_drift_penalty": 6.0,
+    "objective_weight_drop_penalty": 12.0,
+    "objective_weight_contact_persistence": 0.8
+  },
+  "optimizer": "cem",
+  "config_opt": {
+    "iterations": 36,
+    "population": 64,
+    "elite_fraction": 0.2,
+    "sigma_init": 0.2,
+    "seed": 1
+  },
+  "timing": {
+    "optimization_wall_time_seconds": 34.556568027008325,
+    "mean_iteration_seconds": 0.9599031870004384,
+    "rollout_wall_time_seconds": 0.02007032895926386,
+    "gif_render_wall_time_seconds": 0.0,
+    "total_run_wall_time_seconds": 34.59028292802395
+  }
+}

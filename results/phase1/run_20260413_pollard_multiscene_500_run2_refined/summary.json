@@ -1,0 +1,40 @@
+{
+  "tag": "run_20260413_pollard_multiscene_500_run2_refined",
+  "samples": 500,
+  "seed": 0,
+  "scene_summaries": {
+    "cube": {
+      "total_candidates": 500,
+      "feasible_candidates": 491,
+      "pareto_size": 48,
+      "gif_count": 5,
+      "gif_ranking_source": "feasible"
+    },
+    "prism1": {
+      "total_candidates": 500,
+      "feasible_candidates": 491,
+      "pareto_size": 48,
+      "gif_count": 5,
+      "gif_ranking_source": "feasible"
+    },
+    "prism2": {
+      "total_candidates": 500,
+      "feasible_candidates": 485,
+      "pareto_size": 44,
+      "gif_count": 5,
+      "gif_ranking_source": "feasible"
+    },
+    "prism3": {
+      "total_candidates": 500,
+      "feasible_candidates": 496,
+      "pareto_size": 63,
+      "gif_count": 5,
+      "gif_ranking_source": "feasible"
+    }
+  },
+  "paths": {
+    "out_dir": "/home/humanoid/Programs/hand/results/phase1/run_20260413_pollard_multiscene_500_run2_refined",
+    "cube_foundational_run_dir": "results/phase1/run_20260413_run2_cube_foundational_cem",
+    "prism_foundational_run_dir": "results/phase1/run_20260413_run2_prism_foundational_cem"
+  }
+}

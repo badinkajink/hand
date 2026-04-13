@@ -1,0 +1,40 @@
+{
+  "tag": "run_20260413_pollard_multiscene_smoke2",
+  "samples": 12,
+  "seed": 0,
+  "scene_summaries": {
+    "cube": {
+      "total_candidates": 12,
+      "feasible_candidates": 10,
+      "pareto_size": 4,
+      "gif_count": 2,
+      "gif_ranking_source": "feasible"
+    },
+    "prism1": {
+      "total_candidates": 12,
+      "feasible_candidates": 11,
+      "pareto_size": 3,
+      "gif_count": 2,
+      "gif_ranking_source": "feasible"
+    },
+    "prism2": {
+      "total_candidates": 12,
+      "feasible_candidates": 12,
+      "pareto_size": 6,
+      "gif_count": 2,
+      "gif_ranking_source": "feasible"
+    },
+    "prism3": {
+      "total_candidates": 12,
+      "feasible_candidates": 11,
+      "pareto_size": 4,
+      "gif_count": 2,
+      "gif_ranking_source": "feasible"
+    }
+  },
+  "paths": {
+    "out_dir": "/home/humanoid/Programs/hand/results/phase1/run_20260413_pollard_multiscene_smoke2",
+    "cube_foundational_run_dir": "/home/humanoid/Programs/hand/results/phase1/run_20260410_163959",
+    "prism_foundational_run_dir": "/home/humanoid/Programs/hand/results/phase1/run_20260413_prism_y_sweep_mjx_autodiff"
+  }
+}
