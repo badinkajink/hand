@@ -256,6 +256,8 @@ Success criteria:
 
 ## Dependency Hardening Across `uv run`
 
+For the separate GPU experiment lane setup, see: `docs/architecture/gpu_mjx_usage.md`.
+
 To avoid missing MJX module and version drift, dependencies were tightened in `pyproject.toml`:
 
 - `mujoco>=3.6.0,<3.7`
