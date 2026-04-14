@@ -44,6 +44,10 @@ class Phase1GraspEvaluator:
         backend_nworld: int = 1,
         backend_nconmax: int = 200,
         backend_njmax: int = 2000,
+        backend_sync_interval: int = 1,
+        metric_sample_interval: int = 1,
+        speed_mode: str = "accurate",
+        metric_collection_mode: str = "sampled",
     ) -> None:
         self.scene_xml = Path(scene_xml)
         self.cfg = cfg or Phase1EvalConfig()
@@ -53,6 +57,26 @@ class Phase1GraspEvaluator:
         self.backend_nworld = int(backend_nworld)
         self.backend_nconmax = int(backend_nconmax)
         self.backend_njmax = int(backend_njmax)
+        self.speed_mode = speed_mode
+        self.metric_collection_mode = metric_collection_mode
+        self.backend_sync_interval = max(1, int(backend_sync_interval))
+        self.metric_sample_interval = max(1, int(metric_sample_interval))
+
+        if self.speed_mode == "accurate":
+            self.backend_sync_interval = 1
+            self.metric_sample_interval = 1
+            self.metric_collection_mode = "sampled"
+        elif self.speed_mode == "balanced":
+            self.backend_sync_interval = max(4, self.backend_sync_interval)
+            self.metric_sample_interval = max(4, self.metric_sample_interval)
+            self.metric_collection_mode = "sampled"
+        elif self.speed_mode == "aggressive":
+            self.backend_sync_interval = max(16, self.backend_sync_interval)
+            self.metric_sample_interval = max(16, self.metric_sample_interval)
+            self.metric_collection_mode = "terminal"
+
+        if self.metric_collection_mode not in {"sampled", "terminal"}:
+            raise ValueError("metric_collection_mode must be 'sampled' or 'terminal'")
         self.model = mujoco.MjModel.from_xml_path(str(self.scene_xml))
         self.data = mujoco.MjData(self.model)
 
@@ -62,6 +86,7 @@ class Phase1GraspEvaluator:
         self._backend_model: Any = None
         self._backend_data: Any = None
         self._backend_step_fn: Any = None
+        self._backend_steps_since_sync = 0
 
         self.keyframe_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_KEY, keyframe)
         if self.keyframe_id < 0:
@@ -172,6 +197,7 @@ class Phase1GraspEvaluator:
             nconmax=self.backend_nconmax,
             njmax=self.backend_njmax,
         )
+        self._backend_steps_since_sync = 0
         # Warm up kernels once to avoid first-step overhead in timing.
         self._backend_step_fn(self._backend_model, self._backend_data)
         self._backend_step_fn(self._backend_model, self._backend_data)
@@ -182,16 +208,33 @@ class Phase1GraspEvaluator:
         assert self._wp is not None and self._backend_data is not None
         wp = self._wp
         wp.copy(self._backend_data.ctrl, wp.array([self.data.ctrl.astype(np.float32)]))
-        wp.copy(self._backend_data.act, wp.array([self.data.act.astype(np.float32)]))
         wp.copy(
             self._backend_data.xfrc_applied,
             wp.array([self.data.xfrc_applied.astype(np.float32)]),
         )
+
+    def _sync_backend_full_state_from_mujoco(self) -> None:
+        if self.backend == "mujoco":
+            return
+        assert self._wp is not None and self._backend_data is not None
+        wp = self._wp
+        self._sync_backend_from_mujoco()
         wp.copy(self._backend_data.qpos, wp.array([self.data.qpos.astype(np.float32)]))
         wp.copy(self._backend_data.qvel, wp.array([self.data.qvel.astype(np.float32)]))
+        wp.copy(self._backend_data.act, wp.array([self.data.act.astype(np.float32)]))
         wp.copy(self._backend_data.time, wp.array([self.data.time], dtype=wp.float32))
 
-    def _step_dynamics(self) -> None:
+    def _sync_mujoco_from_backend(self) -> None:
+        if self.backend == "mujoco":
+            return
+        assert self._wp is not None
+        assert self._mjwarp_mod is not None
+        assert self._backend_data is not None
+        self._wp.synchronize()
+        self._mjwarp_mod.get_data_into(self.data, self.model, self._backend_data, world_id=0)
+        self._backend_steps_since_sync = 0
+
+    def _step_dynamics(self, force_sync: bool = False) -> None:
         if self.backend == "mujoco":
             mujoco.mj_step(self.model, self.data)
             return
@@ -203,9 +246,10 @@ class Phase1GraspEvaluator:
         assert self._mjwarp_mod is not None
         self._sync_backend_from_mujoco()
         self._backend_step_fn(self._backend_model, self._backend_data)
-        self._wp.synchronize()
-        self._mjwarp_mod.get_data_into(self.data, self.model, self._backend_data, world_id=0)
-        mujoco.mj_forward(self.model, self.data)
+        self._backend_steps_since_sync += 1
+        needs_sync = force_sync or self._backend_steps_since_sync >= self.backend_sync_interval
+        if needs_sync:
+            self._sync_mujoco_from_backend()
 
     def _actuator_ids(self, names: list[str]) -> np.ndarray:
         ids = []
@@ -258,6 +302,9 @@ class Phase1GraspEvaluator:
     def _reset_to_keyframe(self) -> None:
         mujoco.mj_resetDataKeyframe(self.model, self.data, self.keyframe_id)
         mujoco.mj_forward(self.model, self.data)
+        if self.backend != "mujoco" and self._backend_data is not None:
+            self._sync_backend_full_state_from_mujoco()
+            self._backend_steps_since_sync = 0
 
     def _build_full_ctrl(self, finger_ctrl: np.ndarray, lift: bool = False) -> np.ndarray:
         ctrl = self.initial_ctrl.copy()
@@ -275,7 +322,14 @@ class Phase1GraspEvaluator:
     def _step_with_ctrl(self, ctrl: np.ndarray, steps: int) -> None:
         for _ in range(steps):
             self.data.ctrl[:] = ctrl
-            self._step_dynamics()
+            self._step_dynamics(force_sync=False)
+        self._sync_mujoco_from_backend()
+
+    def _step_chunk_with_ctrl(self, ctrl: np.ndarray, steps: int) -> None:
+        for _ in range(steps):
+            self.data.ctrl[:] = ctrl
+            self._step_dynamics(force_sync=False)
+        self._sync_mujoco_from_backend()
 
     def _cube_pose(self) -> tuple[np.ndarray, np.ndarray]:
         pos = self.data.xpos[self.cube_body_id].copy()
@@ -296,8 +350,13 @@ class Phase1GraspEvaluator:
     def _cube_tip_contact_count(self) -> int:
         count = 0
         tip_bodies = set(self.tip_body_ids)
+        ngeom = int(self.model.ngeom)
         for i in range(self.data.ncon):
             contact = self.data.contact[i]
+            g1 = int(contact.geom1)
+            g2 = int(contact.geom2)
+            if g1 < 0 or g2 < 0 or g1 >= ngeom or g2 >= ngeom:
+                continue
             b1 = int(self.model.geom_bodyid[contact.geom1])
             b2 = int(self.model.geom_bodyid[contact.geom2])
             if b1 == self.cube_body_id and b2 in tip_bodies:
@@ -308,6 +367,7 @@ class Phase1GraspEvaluator:
 
     def _finger_contact_flags(self) -> np.ndarray:
         flags = np.zeros(3, dtype=np.float64)
+        ngeom = int(self.model.ngeom)
         tip_lookup = {
             self.tip_body_ids[0]: 0,
             self.tip_body_ids[1]: 1,
@@ -315,6 +375,10 @@ class Phase1GraspEvaluator:
         }
         for i in range(self.data.ncon):
             contact = self.data.contact[i]
+            g1 = int(contact.geom1)
+            g2 = int(contact.geom2)
+            if g1 < 0 or g2 < 0 or g1 >= ngeom or g2 >= ngeom:
+                continue
             b1 = int(self.model.geom_bodyid[contact.geom1])
             b2 = int(self.model.geom_bodyid[contact.geom2])
             if b1 == self.cube_body_id and b2 in tip_lookup:
@@ -343,28 +407,63 @@ class Phase1GraspEvaluator:
         finger_contact_steps = np.zeros(3, dtype=np.float64)
         all_finger_contact_steps = 0.0
         total_dynamic_steps = self.cfg.lift_steps + self.cfg.hold_steps
-        for t in range(self.cfg.lift_steps):
-            ramp_denom = max(1, int(self.cfg.lift_ramp_steps))
-            lift_scale = min(1.0, float((t + 1) / ramp_denom))
-            self.data.ctrl[:] = self._build_lift_ctrl(finger_ctrl, lift_scale=lift_scale)
-            self._step_dynamics()
-            peak_z = max(peak_z, float(self.data.xpos[self.cube_body_id, 2]))
-            finger_flags = self._finger_contact_flags()
-            finger_contact_steps += finger_flags
-            if float(np.min(finger_flags)) > 0.5:
-                all_finger_contact_steps += 1.0
-            if float(np.sum(finger_flags)) >= 2.0:
-                contact_active_steps += 1
 
-        for _ in range(self.cfg.hold_steps):
-            self.data.ctrl[:] = self._build_lift_ctrl(finger_ctrl, lift_scale=1.0)
-            self._step_dynamics()
+        if self.metric_collection_mode == "terminal" and self.backend != "mujoco":
+            for t in range(self.cfg.lift_steps):
+                ramp_denom = max(1, int(self.cfg.lift_ramp_steps))
+                lift_scale = min(1.0, float((t + 1) / ramp_denom))
+                self.data.ctrl[:] = self._build_lift_ctrl(finger_ctrl, lift_scale=lift_scale)
+                self._step_dynamics(force_sync=False)
+            for _ in range(self.cfg.hold_steps):
+                self.data.ctrl[:] = self._build_lift_ctrl(finger_ctrl, lift_scale=1.0)
+                self._step_dynamics(force_sync=False)
+            self._sync_mujoco_from_backend()
+
+            z_after_terminal = float(self.data.xpos[self.cube_body_id, 2])
+            peak_z = max(z_before, z_after_terminal)
             finger_flags = self._finger_contact_flags()
-            finger_contact_steps += finger_flags
-            if float(np.min(finger_flags)) > 0.5:
-                all_finger_contact_steps += 1.0
-            if float(np.sum(finger_flags)) >= 2.0:
-                contact_active_steps += 1
+            finger_contact_steps = finger_flags * float(total_dynamic_steps)
+            all_finger_contact_steps = float(total_dynamic_steps) if float(np.min(finger_flags)) > 0.5 else 0.0
+            contact_active_steps = total_dynamic_steps if float(np.sum(finger_flags)) >= 2.0 else 0
+        else:
+            sample_stride = 1 if self.backend == "mujoco" else self.metric_sample_interval
+
+            lift_t = 0
+            while lift_t < self.cfg.lift_steps:
+                remaining = self.cfg.lift_steps - lift_t
+                chunk = max(1, min(sample_stride, remaining))
+                for k in range(chunk):
+                    t = lift_t + k
+                    ramp_denom = max(1, int(self.cfg.lift_ramp_steps))
+                    lift_scale = min(1.0, float((t + 1) / ramp_denom))
+                    self.data.ctrl[:] = self._build_lift_ctrl(finger_ctrl, lift_scale=lift_scale)
+                    self._step_dynamics(force_sync=False)
+                self._sync_mujoco_from_backend()
+                peak_z = max(peak_z, float(self.data.xpos[self.cube_body_id, 2]))
+                finger_flags = self._finger_contact_flags()
+                finger_contact_steps += finger_flags * float(chunk)
+                if float(np.min(finger_flags)) > 0.5:
+                    all_finger_contact_steps += float(chunk)
+                if float(np.sum(finger_flags)) >= 2.0:
+                    contact_active_steps += int(chunk)
+                lift_t += chunk
+
+            hold_t = 0
+            while hold_t < self.cfg.hold_steps:
+                remaining = self.cfg.hold_steps - hold_t
+                chunk = max(1, min(sample_stride, remaining))
+                for _ in range(chunk):
+                    self.data.ctrl[:] = self._build_lift_ctrl(finger_ctrl, lift_scale=1.0)
+                    self._step_dynamics(force_sync=False)
+                self._sync_mujoco_from_backend()
+                peak_z = max(peak_z, float(self.data.xpos[self.cube_body_id, 2]))
+                finger_flags = self._finger_contact_flags()
+                finger_contact_steps += finger_flags * float(chunk)
+                if float(np.min(finger_flags)) > 0.5:
+                    all_finger_contact_steps += float(chunk)
+                if float(np.sum(finger_flags)) >= 2.0:
+                    contact_active_steps += int(chunk)
+                hold_t += chunk
 
         z_after_hold = float(self.data.xpos[self.cube_body_id, 2])
         cube_pos_after = self.data.xpos[self.cube_body_id].copy()
@@ -448,7 +547,9 @@ class Phase1GraspEvaluator:
                 else:
                     lift_scale = 1.0
                 self.data.ctrl[:] = self._build_lift_ctrl(finger_ctrl, lift_scale=lift_scale)
-            self._step_dynamics()
+            self._step_dynamics(force_sync=False)
+            if self.backend == "mujoco" or ((t + 1) % self.metric_sample_interval == 0) or (t == total_steps - 1):
+                self._sync_mujoco_from_backend()
             qpos[t] = self.data.qpos
             qvel[t] = self.data.qvel
             cube_z[t] = self.data.xpos[self.cube_body_id, 2]
@@ -494,7 +595,9 @@ class Phase1GraspEvaluator:
                 else:
                     lift_scale = 1.0
                 self.data.ctrl[:] = self._build_lift_ctrl(finger_ctrl, lift_scale=lift_scale)
-            self._step_dynamics()
+            self._step_dynamics(force_sync=False)
+            if self.backend == "mujoco" or ((t + 1) % self.metric_sample_interval == 0) or (t == total_steps - 1):
+                self._sync_mujoco_from_backend()
             if t % frame_stride == 0:
                 renderer.update_scene(self.data)
                 frames.append(renderer.render().copy())

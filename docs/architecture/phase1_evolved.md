@@ -2,6 +2,11 @@
 
 Date: 2026-04-13
 
+Related updates:
+
+- Warp throughput/fidelity experiment report (2026-04-14): `4-14_experiments.md`
+- Warp-MuJoCo synchronization bottleneck note: `warp_mujoco_bottleneck.md`
+
 ## Why this pivot
 
 Pollard-style feasibility sampling delivered strong candidates, but now we want a cleaner answer to:

@@ -43,6 +43,21 @@ For CEM specifically, the optimization loop remains:
 4. update mean and variance,
 5. repeat for N iterations.
 
+## Backend speed controls
+
+Phase 1 runners support explicit backend/runtime controls for large sweeps:
+
+- `--backend {mujoco,mjwarp,comfree-warp}`
+- `--speed-mode {accurate,balanced,aggressive}`
+- `--metric-collection-mode {sampled,terminal}`
+- `--backend-sync-interval N`
+- `--metric-sample-interval N`
+
+`accurate` corresponds to frequent synchronization/metric sampling (`N=1`).
+`balanced` and `aggressive` reduce synchronization frequency to improve throughput.
+
+For fixed foundational controls in current open-loop Phase 1 runs, `mjwarp` with moderate intervals preserved core metrics while reducing wall time. See `4-14_experiments.md` for measurements.
+
 ## Artifacts
 
 The runner emits:

@@ -7,6 +7,10 @@ nav:
       - Overview: architecture/overview.md
       - Optimization Pipeline: architecture/optimization_pipeline.md
       - Phase 1 Inner Loop: architecture/phase1_inner_loop.md
+      - Phase 1 Evolved Plan: architecture/phase1_evolved.md
+      - 4-13 Pollard Sampling: architecture/4-13_pollard_sampling.md
+      - 4-14 Experiments: architecture/4-14_experiments.md
+      - Warp Sync Bottleneck: architecture/warp_mujoco_bottleneck.md
       - GPU MJX Usage: architecture/gpu_mjx_usage.md
   - Simulators:
       - Backend Strategy: simulators/backends.md

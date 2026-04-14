@@ -52,6 +52,30 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--backend-nconmax", type=int, default=200)
     parser.add_argument("--backend-njmax", type=int, default=2000)
     parser.add_argument(
+        "--backend-sync-interval",
+        type=int,
+        default=1,
+        help="For warp backends, synchronize state back to MuJoCo every N simulation steps.",
+    )
+    parser.add_argument(
+        "--metric-sample-interval",
+        type=int,
+        default=1,
+        help="For warp backends, sample dynamic metrics every N steps.",
+    )
+    parser.add_argument(
+        "--speed-mode",
+        choices=["accurate", "balanced", "aggressive"],
+        default="accurate",
+        help="Runtime/fidelity preset for warp backends.",
+    )
+    parser.add_argument(
+        "--metric-collection-mode",
+        choices=["sampled", "terminal"],
+        default="sampled",
+        help="Dynamic metric collection mode (preset may override).",
+    )
+    parser.add_argument(
         "--optimizer",
         choices=["cem", "mjx-autodiff", "diffmjx-mvp"],
         default="cem",
@@ -74,6 +98,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="For diffmjx-mvp: run full MuJoCo evaluation every N gradient iterations.",
     )
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument(
+        "--log-every",
+        type=int,
+        default=1,
+        help="Print CEM progress every N iterations (0 disables).",
+    )
     parser.add_argument("--settle-steps", type=int, default=240)
     parser.add_argument("--lift-steps", type=int, default=220)
     parser.add_argument("--hold-steps", type=int, default=140)
@@ -226,6 +256,7 @@ def main() -> None:
         elite_fraction=args.elite_fraction,
         sigma_init=args.sigma_init,
         seed=args.seed,
+        log_every=args.log_every,
     )
     autodiff_cfg = Phase1AutodiffConfig(
         iterations=args.iterations,
@@ -259,6 +290,10 @@ def main() -> None:
         backend_nworld=args.backend_nworld,
         backend_nconmax=args.backend_nconmax,
         backend_njmax=args.backend_njmax,
+        backend_sync_interval=args.backend_sync_interval,
+        metric_sample_interval=args.metric_sample_interval,
+        speed_mode=args.speed_mode,
+        metric_collection_mode=args.metric_collection_mode,
     )
 
     if args.optimizer == "mjx-autodiff":
@@ -315,6 +350,10 @@ def main() -> None:
             "backend_nworld": args.backend_nworld,
             "backend_nconmax": args.backend_nconmax,
             "backend_njmax": args.backend_njmax,
+            "backend_sync_interval": args.backend_sync_interval,
+            "metric_sample_interval": args.metric_sample_interval,
+            "speed_mode": args.speed_mode,
+            "metric_collection_mode": args.metric_collection_mode,
         },
         "timing": {
             "optimization_wall_time_seconds": float(result.get("optimization_wall_time_seconds", 0.0)),
