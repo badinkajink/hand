@@ -144,7 +144,7 @@ Observed issue from Run 1: many top GIFs still slipped during lift despite good 
    - Higher default friction and tighter contact solver settings (`solref`, `solimp`).
    - Higher cube geom friction.
    - Extra fingertip contact geoms (small side spheres) on thumb/index/middle tips.
-2. Stability-aware objective in [src/morphohand/optimization/phase1_grasp.py](src/morphohand/optimization/phase1_grasp.py):
+2. Stability-aware objective in [src/morphohand/optimization/phase1_common.py](src/morphohand/optimization/phase1_common.py) and optimizer-specific logic in [src/morphohand/optimization/phase1_strategy_cem.py](src/morphohand/optimization/phase1_strategy_cem.py):
    - Added penalties for XY drift and drop-from-peak height.
    - Added reward for contact persistence through lift/hold.
    - Exported metrics:
@@ -273,7 +273,7 @@ Run 2 improved gross stability, but qualitative review still showed post-lift fi
 
 ### Run 3 Method Changes
 
-1. Evaluator upgrades in [src/morphohand/optimization/phase1_grasp.py](src/morphohand/optimization/phase1_grasp.py):
+1. Evaluator upgrades in [src/morphohand/optimization/phase1_common.py](src/morphohand/optimization/phase1_common.py) (with strategy modules in `phase1_strategy_*.py`):
    - Lift ramp in dynamics and rollout (`lift_ramp_steps`) instead of abrupt palm raise.
    - Per-finger contact tracking across dynamic phase:
      - `thumb_contact_persistence`
