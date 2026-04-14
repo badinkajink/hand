@@ -17,6 +17,7 @@ class Phase1OptimizationConfig:
     elite_fraction: float = 0.2
     sigma_init: float = 0.20
     seed: int = 0
+    log_every: int = 1
 
 
 def optimize_finger_controls(
@@ -87,6 +88,19 @@ def optimize_finger_controls(
                 "iteration_seconds": float(time.perf_counter() - iteration_start),
             }
         )
+
+        if cfg.log_every > 0 and ((it + 1) % cfg.log_every == 0 or it == cfg.iterations - 1):
+            iter_seconds = float(history[-1]["iteration_seconds"])
+            elapsed = float(time.perf_counter() - optimization_start)
+            eta = float((cfg.iterations - (it + 1)) * (elapsed / max(1, it + 1)))
+            print(
+                "[CEM] "
+                f"iter={it + 1}/{cfg.iterations} "
+                f"iter_best={iter_best:.4f} "
+                f"best_so_far={best_score:.4f} "
+                f"iter_s={iter_seconds:.2f} "
+                f"eta_s={eta:.1f}"
+            )
 
     optimization_seconds = float(time.perf_counter() - optimization_start)
     mean_iteration_seconds = (

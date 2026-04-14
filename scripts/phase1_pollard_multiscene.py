@@ -97,6 +97,18 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--backend-nworld", type=int, default=1)
     parser.add_argument("--backend-nconmax", type=int, default=200)
     parser.add_argument("--backend-njmax", type=int, default=2000)
+    parser.add_argument("--backend-sync-interval", type=int, default=1)
+    parser.add_argument("--metric-sample-interval", type=int, default=1)
+    parser.add_argument(
+        "--speed-mode",
+        choices=["accurate", "balanced", "aggressive"],
+        default="accurate",
+    )
+    parser.add_argument(
+        "--metric-collection-mode",
+        choices=["sampled", "terminal"],
+        default="sampled",
+    )
     parser.add_argument("--x-perturb", type=float, default=0.012)
     parser.add_argument("--y-perturb", type=float, default=0.012)
     parser.add_argument("--len-perturb", type=float, default=0.012)
@@ -626,6 +638,10 @@ def _make_evaluator(args: argparse.Namespace, scene_xml: Path, eval_cfg: Phase1E
         backend_nworld=args.backend_nworld,
         backend_nconmax=args.backend_nconmax,
         backend_njmax=args.backend_njmax,
+        backend_sync_interval=args.backend_sync_interval,
+        metric_sample_interval=args.metric_sample_interval,
+        speed_mode=args.speed_mode,
+        metric_collection_mode=args.metric_collection_mode,
     )
 
 
@@ -1003,6 +1019,8 @@ def main() -> None:
         "samples": args.samples,
         "seed": args.seed,
         "backend": args.backend,
+        "speed_mode": args.speed_mode,
+        "metric_collection_mode": args.metric_collection_mode,
         "fp_adaptation": args.fp_adaptation,
         "fp_refresh_interval": args.fp_refresh_interval,
         "fp_adapt_config": {
@@ -1018,6 +1036,10 @@ def main() -> None:
             "backend_nworld": args.backend_nworld,
             "backend_nconmax": args.backend_nconmax,
             "backend_njmax": args.backend_njmax,
+            "backend_sync_interval": args.backend_sync_interval,
+            "metric_sample_interval": args.metric_sample_interval,
+            "speed_mode": args.speed_mode,
+            "metric_collection_mode": args.metric_collection_mode,
         },
         "scene_summaries": scene_summaries,
         "paths": {
