@@ -19,9 +19,23 @@ The objective combines:
 
 This is a practical proxy for force-closure style grasp quality in the current setup.
 
-## Optimizer
+## Optimizers
 
-Phase 1 uses CEM over the 9-dimensional control vector:
+Phase 1 now supports three strategy lanes over the 9-dimensional finger control vector:
+
+1. `cem`: derivative-free cross-entropy search.
+2. `mjx-autodiff`: MJX smooth surrogate optimized with gradient ascent.
+3. `diffmjx-mvp`: differentiable MVP lane with contact-from-distance proxies and periodic full MuJoCo evaluation.
+
+Implementation modules:
+
+- Evaluator and shared config: `src/morphohand/optimization/phase1_common.py`
+- CEM strategy: `src/morphohand/optimization/phase1_strategy_cem.py`
+- MJX autodiff strategy: `src/morphohand/optimization/phase1_strategy_mjx_autodiff.py`
+- DiffMJX MVP strategy: `src/morphohand/optimization/phase1_strategy_diffmjx.py`
+- Backward-compatible re-export shim: `src/morphohand/optimization/phase1_grasp.py`
+
+For CEM specifically, the optimization loop remains:
 
 1. sample control candidates,
 2. rollout each candidate,
@@ -43,5 +57,7 @@ The runner emits:
 
 ```bash
 uv run python scripts/phase1_optimize_grasp.py \
-  --scene-xml assets/mjcf/generated/scene_tp0d0000p0d0200p0d0000_ip0d0100n0d0123p0d0000_mp0d0100p0d0153p0d0000.xml
+  --scene-xml assets/mjcf/generated/scene_tp0d0000p0d0200p0d0000_ip0d0100n0d0123p0d0000_mp0d0100p0d0153p0d0000.xml \
+  --optimizer diffmjx-mvp \
+  --iterations 12
 ```

@@ -18,9 +18,11 @@ if str(SRC_ROOT) not in sys.path:
 
 from morphohand.optimization.phase1_grasp import (  # noqa: E402
     Phase1AutodiffConfig,
+    Phase1DiffMJXMVPConfig,
     Phase1EvalConfig,
     Phase1GraspEvaluator,
     Phase1OptimizationConfig,
+    optimize_finger_controls_diffmjx_mvp,
     optimize_finger_controls_autodiff,
     optimize_finger_controls,
 )
@@ -39,8 +41,19 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--keyframe", default="open")
     parser.add_argument(
+        "--backend",
+        choices=["mujoco", "mjwarp", "comfree-warp"],
+        default="mujoco",
+        help="Physics backend for rollout/evaluation in CEM lane and reporting rollouts.",
+    )
+    parser.add_argument("--comfree-stiffness", type=float, default=0.2)
+    parser.add_argument("--comfree-damping", type=float, default=0.001)
+    parser.add_argument("--backend-nworld", type=int, default=1)
+    parser.add_argument("--backend-nconmax", type=int, default=200)
+    parser.add_argument("--backend-njmax", type=int, default=2000)
+    parser.add_argument(
         "--optimizer",
-        choices=["cem", "mjx-autodiff"],
+        choices=["cem", "mjx-autodiff", "diffmjx-mvp"],
         default="cem",
         help="Optimization strategy for Phase 1 finger controls.",
     )
@@ -54,6 +67,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--contact-distance-sharpness", type=float, default=0.003)
     parser.add_argument("--score-weight-contact-proxy", type=float, default=0.4)
     parser.add_argument("--score-weight-ctrl-l2", type=float, default=0.02)
+    parser.add_argument(
+        "--diffmjx-eval-interval",
+        type=int,
+        default=1,
+        help="For diffmjx-mvp: run full MuJoCo evaluation every N gradient iterations.",
+    )
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--settle-steps", type=int, default=240)
     parser.add_argument("--lift-steps", type=int, default=220)
@@ -156,6 +175,7 @@ def _write_report(out_dir: Path, summary: dict, best_metrics: dict[str, float], 
         "",
         f"- scene_xml: {summary['scene_xml']}",
         f"- keyframe: {summary['keyframe']}",
+        f"- backend: {summary['backend']}",
         f"- best_score: {summary['best_score']:.6f}",
         f"- best_cube_lift: {best_metrics.get('cube_lift', 0.0):.6f}",
         f"- best_contacts: {best_metrics.get('cube_tip_contacts', 0.0):.1f}",
@@ -217,12 +237,36 @@ def main() -> None:
         score_weight_ctrl_l2=args.score_weight_ctrl_l2,
         seed=args.seed,
     )
+    diffmjx_cfg = Phase1DiffMJXMVPConfig(
+        iterations=args.iterations,
+        learning_rate=args.learning_rate,
+        grad_clip_norm=args.grad_clip_norm,
+        contact_distance_threshold=args.contact_distance_threshold,
+        contact_distance_sharpness=args.contact_distance_sharpness,
+        score_weight_contact_proxy=args.score_weight_contact_proxy,
+        score_weight_ctrl_l2=args.score_weight_ctrl_l2,
+        eval_interval=args.diffmjx_eval_interval,
+        seed=args.seed,
+    )
 
-    evaluator = Phase1GraspEvaluator(scene_xml=args.scene_xml, keyframe=args.keyframe, cfg=eval_cfg)
+    evaluator = Phase1GraspEvaluator(
+        scene_xml=args.scene_xml,
+        keyframe=args.keyframe,
+        cfg=eval_cfg,
+        backend=args.backend,
+        comfree_stiffness=args.comfree_stiffness,
+        comfree_damping=args.comfree_damping,
+        backend_nworld=args.backend_nworld,
+        backend_nconmax=args.backend_nconmax,
+        backend_njmax=args.backend_njmax,
+    )
 
     if args.optimizer == "mjx-autodiff":
         result = optimize_finger_controls_autodiff(evaluator=evaluator, cfg=autodiff_cfg)
         optimizer_config = vars(autodiff_cfg)
+    elif args.optimizer == "diffmjx-mvp":
+        result = optimize_finger_controls_diffmjx_mvp(evaluator=evaluator, cfg=diffmjx_cfg)
+        optimizer_config = vars(diffmjx_cfg)
     else:
         result = optimize_finger_controls(evaluator=evaluator, cfg=opt_cfg)
         optimizer_config = vars(opt_cfg)
@@ -257,12 +301,21 @@ def main() -> None:
     summary = {
         "scene_xml": str(args.scene_xml),
         "keyframe": args.keyframe,
+        "backend": args.backend,
         "best_score": float(result["best_score"]),
         "best_finger_ctrl": best_ctrl.tolist(),
         "best_metrics": best_metrics,
         "config_eval": vars(eval_cfg),
         "optimizer": args.optimizer,
         "config_opt": optimizer_config,
+        "config_backend": {
+            "backend": args.backend,
+            "comfree_stiffness": args.comfree_stiffness,
+            "comfree_damping": args.comfree_damping,
+            "backend_nworld": args.backend_nworld,
+            "backend_nconmax": args.backend_nconmax,
+            "backend_njmax": args.backend_njmax,
+        },
         "timing": {
             "optimization_wall_time_seconds": float(result.get("optimization_wall_time_seconds", 0.0)),
             "mean_iteration_seconds": float(result.get("mean_iteration_seconds", 0.0)),

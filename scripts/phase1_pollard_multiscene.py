@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 import sys
+import time
 import xml.etree.ElementTree as ET
 
 import matplotlib.pyplot as plt
@@ -85,6 +86,17 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--samples", type=int, default=500)
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument(
+        "--backend",
+        choices=["mujoco", "mjwarp", "comfree-warp"],
+        default="mujoco",
+        help="Physics backend used by evaluator rollouts.",
+    )
+    parser.add_argument("--comfree-stiffness", type=float, default=0.2)
+    parser.add_argument("--comfree-damping", type=float, default=0.001)
+    parser.add_argument("--backend-nworld", type=int, default=1)
+    parser.add_argument("--backend-nconmax", type=int, default=200)
+    parser.add_argument("--backend-njmax", type=int, default=2000)
     parser.add_argument("--x-perturb", type=float, default=0.012)
     parser.add_argument("--y-perturb", type=float, default=0.012)
     parser.add_argument("--len-perturb", type=float, default=0.012)
@@ -123,6 +135,23 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--refine-elite-fraction", type=float, default=0.25)
     parser.add_argument("--refine-sigma-init", type=float, default=0.08)
     parser.add_argument("--refine-seed", type=int, default=0)
+    parser.add_argument(
+        "--fp-adaptation",
+        choices=["none", "interval-open", "interval-initial-fp", "sparse-per-morph"],
+        default="none",
+        help="Adapt foundational pose strategy while traversing morphology samples.",
+    )
+    parser.add_argument(
+        "--fp-refresh-interval",
+        type=int,
+        default=40,
+        help="For interval modes, refresh foundational pose every N morphologies.",
+    )
+    parser.add_argument("--fp-adapt-iterations", type=int, default=12)
+    parser.add_argument("--fp-adapt-population", type=int, default=24)
+    parser.add_argument("--fp-adapt-elite-fraction", type=float, default=0.25)
+    parser.add_argument("--fp-adapt-sigma-init", type=float, default=0.08)
+    parser.add_argument("--fp-adapt-seed", type=int, default=0)
     parser.add_argument(
         "--base-scene-xml",
         type=Path,
@@ -586,6 +615,59 @@ def _plot_scene_results(feasible_rows: list[dict[str, float | str]], pareto_indi
     plt.close()
 
 
+def _make_evaluator(args: argparse.Namespace, scene_xml: Path, eval_cfg: Phase1EvalConfig) -> Phase1GraspEvaluator:
+    return Phase1GraspEvaluator(
+        scene_xml=scene_xml,
+        keyframe="open",
+        cfg=eval_cfg,
+        backend=args.backend,
+        comfree_stiffness=args.comfree_stiffness,
+        comfree_damping=args.comfree_damping,
+        backend_nworld=args.backend_nworld,
+        backend_nconmax=args.backend_nconmax,
+        backend_njmax=args.backend_njmax,
+    )
+
+
+def _adapt_foundational_ctrl(
+    args: argparse.Namespace,
+    evaluator: Phase1GraspEvaluator,
+    candidate_idx: int,
+    baseline_ctrl: np.ndarray,
+    interval_ctrl: np.ndarray,
+    adapt_cfg: Phase1OptimizationConfig,
+) -> tuple[np.ndarray, bool, float, str]:
+    mode = args.fp_adaptation
+    if mode == "none":
+        return interval_ctrl, False, 0.0, "none"
+
+    should_refresh = False
+    if mode in {"interval-open", "interval-initial-fp"}:
+        interval = max(1, int(args.fp_refresh_interval))
+        should_refresh = candidate_idx % interval == 0
+    elif mode == "sparse-per-morph":
+        should_refresh = True
+
+    if not should_refresh:
+        return interval_ctrl, False, 0.0, "reuse"
+
+    if mode == "interval-open":
+        init_ctrl = None
+        source = "open"
+    elif mode == "interval-initial-fp":
+        init_ctrl = interval_ctrl
+        source = "interval_fp"
+    else:
+        init_ctrl = baseline_ctrl
+        source = "baseline_fp"
+
+    t0 = time.perf_counter()
+    refined = optimize_finger_controls(evaluator=evaluator, cfg=adapt_cfg, initial_finger_ctrl=init_ctrl)
+    elapsed = float(time.perf_counter() - t0)
+    ctrl = np.asarray(refined["best_finger_ctrl"], dtype=np.float64)
+    return ctrl, True, elapsed, source
+
+
 def main() -> None:
     args = build_parser().parse_args()
     rng = np.random.default_rng(args.seed)
@@ -637,6 +719,13 @@ def main() -> None:
         objective_weight_finger_yaw_drift_penalty=args.objective_weight_finger_yaw_drift_penalty,
         objective_weight_finger_flex_drift_penalty=args.objective_weight_finger_flex_drift_penalty,
     )
+    fp_adapt_cfg = Phase1OptimizationConfig(
+        iterations=args.fp_adapt_iterations,
+        population=args.fp_adapt_population,
+        elite_fraction=args.fp_adapt_elite_fraction,
+        sigma_init=args.fp_adapt_sigma_init,
+        seed=args.fp_adapt_seed,
+    )
 
     global_rows: list[dict[str, float | str]] = []
     scene_summaries: dict[str, dict[str, int]] = {}
@@ -649,6 +738,13 @@ def main() -> None:
 
         all_rows: list[dict[str, float | str]] = []
         feasible_rows: list[dict[str, float | str]] = []
+        scene_eval_seconds_total = 0.0
+        scene_adapt_seconds_total = 0.0
+        scene_adapt_count = 0
+
+        default_pose = max(spec.foundational_poses, key=lambda p: p.score)
+        baseline_fp_ctrl = np.asarray(default_pose.finger_ctrl, dtype=np.float64)
+        interval_fp_ctrl = baseline_fp_ctrl.copy()
 
         for idx, morphology in enumerate(candidates):
             suffix = build_morphology_suffix(morphology)
@@ -660,28 +756,70 @@ def main() -> None:
                 spec=spec,
             )
 
-            evaluator = Phase1GraspEvaluator(scene_xml=scene_xml, keyframe="open", cfg=eval_cfg)
-            pose_evals: list[tuple[FoundationalPose, float, dict[str, float], bool]] = []
-            for pose in spec.foundational_poses:
-                score, metrics = evaluator.evaluate(pose.finger_ctrl)
-                feasible = _is_feasible(
-                    metrics,
+            evaluator = _make_evaluator(args=args, scene_xml=scene_xml, eval_cfg=eval_cfg)
+
+            fp_adapt_triggered = False
+            fp_adapt_seconds = 0.0
+            fp_adapt_source = "none"
+            chosen_ctrl: np.ndarray
+            chosen_pose_label = ""
+            feasible_pose_count = 0
+
+            if args.fp_adaptation == "none":
+                pose_evals: list[tuple[FoundationalPose, float, dict[str, float], bool]] = []
+                eval_t0 = time.perf_counter()
+                for pose in spec.foundational_poses:
+                    score, metrics = evaluator.evaluate(pose.finger_ctrl)
+                    feasible = _is_feasible(
+                        metrics,
+                        spec.max_mean_tip_distance,
+                        spec.min_contacts,
+                        spec.min_finger_contact_persistence,
+                        spec.max_finger_yaw_drift,
+                    )
+                    pose_evals.append((pose, score, metrics, feasible))
+                eval_seconds = float(time.perf_counter() - eval_t0)
+                feasible_hits = [p for p in pose_evals if p[3]]
+                feasible_pose_count = len(feasible_hits)
+                is_feasible = len(feasible_hits) > 0
+                chosen_pool = feasible_hits if feasible_hits else pose_evals
+                chosen_pose, chosen_score, chosen_metrics, _ = max(chosen_pool, key=lambda t: t[1])
+                chosen_pose_label = chosen_pose.label
+                chosen_ctrl = np.asarray(chosen_pose.finger_ctrl, dtype=np.float64)
+            else:
+                ctrl, fp_adapt_triggered, fp_adapt_seconds, fp_adapt_source = _adapt_foundational_ctrl(
+                    args=args,
+                    evaluator=evaluator,
+                    candidate_idx=idx,
+                    baseline_ctrl=baseline_fp_ctrl,
+                    interval_ctrl=interval_fp_ctrl,
+                    adapt_cfg=fp_adapt_cfg,
+                )
+                if args.fp_adaptation in {"interval-open", "interval-initial-fp"} and fp_adapt_triggered:
+                    interval_fp_ctrl = ctrl.copy()
+
+                eval_t0 = time.perf_counter()
+                chosen_score, chosen_metrics = evaluator.evaluate(ctrl)
+                eval_seconds = float(time.perf_counter() - eval_t0)
+                is_feasible = _is_feasible(
+                    chosen_metrics,
                     spec.max_mean_tip_distance,
                     spec.min_contacts,
                     spec.min_finger_contact_persistence,
                     spec.max_finger_yaw_drift,
                 )
-                pose_evals.append((pose, score, metrics, feasible))
+                feasible_pose_count = 1 if is_feasible else 0
+                chosen_pose_label = f"adapted_{args.fp_adaptation}"
+                chosen_ctrl = ctrl
 
-            feasible_hits = [p for p in pose_evals if p[3]]
-            is_feasible = len(feasible_hits) > 0
-            chosen_pool = feasible_hits if feasible_hits else pose_evals
-            chosen_pose, chosen_score, chosen_metrics, _ = max(chosen_pool, key=lambda t: t[1])
+            scene_eval_seconds_total += eval_seconds
+            scene_adapt_seconds_total += fp_adapt_seconds
+            scene_adapt_count += int(fp_adapt_triggered)
 
             qpos_foundational, ctrl_foundational = _simulate_settle_qpos(
                 scene_xml=scene_xml,
                 keyframe_name="open",
-                finger_ctrl=chosen_pose.finger_ctrl,
+                finger_ctrl=chosen_ctrl,
                 settle_steps=args.settle_steps,
             )
             _add_foundational_keyframe(
@@ -695,15 +833,21 @@ def main() -> None:
                 "scene_key": spec.scene_key,
                 "candidate_id": str(idx),
                 "scene_xml": str(scene_xml),
-                "selected_foundational_pose": chosen_pose.label,
+                "selected_foundational_pose": chosen_pose_label,
                 "feasible": str(is_feasible),
+                "backend": args.backend,
+                "fp_adaptation": args.fp_adaptation,
+                "fp_adapt_triggered": str(fp_adapt_triggered),
+                "fp_adapt_source": fp_adapt_source,
+                "fp_adapt_seconds": float(fp_adapt_seconds),
+                "evaluation_seconds": float(eval_seconds),
                 "feasibility_max_mean_tip_distance": float(spec.max_mean_tip_distance),
                 "feasibility_min_contacts": float(spec.min_contacts),
                 "feasibility_min_finger_contact_persistence": float(
                     spec.min_finger_contact_persistence
                 ),
                 "feasibility_max_finger_yaw_drift": float(spec.max_finger_yaw_drift),
-                "feasible_pose_count": float(len(feasible_hits)),
+                "feasible_pose_count": float(feasible_pose_count),
                 "foundational_pose_count": float(len(spec.foundational_poses)),
                 "score": float(chosen_score),
                 "cube_lift": float(chosen_metrics.get("cube_lift", 0.0)),
@@ -736,7 +880,7 @@ def main() -> None:
                 "middle_x": float(morphology.middle_x),
                 "middle_y": float(morphology.middle_y),
                 "middle_len": float(morphology.middle_len),
-                "chosen_ctrl_json": json.dumps(chosen_pose.finger_ctrl.tolist()),
+                "chosen_ctrl_json": json.dumps(chosen_ctrl.tolist()),
             }
             all_rows.append(row)
             global_rows.append(row)
@@ -766,7 +910,11 @@ def main() -> None:
             ]
             refined_rows: list[dict[str, float | str]] = []
             for row in candidate_pool:
-                evaluator = Phase1GraspEvaluator(scene_xml=Path(str(row["scene_xml"])), keyframe="open", cfg=eval_cfg)
+                evaluator = _make_evaluator(
+                    args=args,
+                    scene_xml=Path(str(row["scene_xml"])),
+                    eval_cfg=eval_cfg,
+                )
                 init_ctrl = np.asarray(json.loads(str(row["chosen_ctrl_json"])), dtype=np.float64)
                 refined = optimize_finger_controls(evaluator=evaluator, cfg=refine_cfg, initial_finger_ctrl=init_ctrl)
                 ctrl_refined = np.asarray(refined["best_finger_ctrl"], dtype=np.float64)
@@ -813,7 +961,11 @@ def main() -> None:
 
         top_rows_export: list[dict[str, float | str]] = []
         for rank, row in enumerate(top_rows, start=1):
-            evaluator = Phase1GraspEvaluator(scene_xml=Path(str(row["scene_xml"])), keyframe="open", cfg=eval_cfg)
+            evaluator = _make_evaluator(
+                args=args,
+                scene_xml=Path(str(row["scene_xml"])),
+                eval_cfg=eval_cfg,
+            )
             ctrl = np.asarray(json.loads(str(row["chosen_ctrl_json"])), dtype=np.float64)
             gif_path = gif_dir / f"rank{rank:02d}_candidate{int(row['candidate_id']):04d}.gif"
             evaluator.render_rollout_gif(ctrl, gif_path)
@@ -832,6 +984,12 @@ def main() -> None:
             "pareto_size": len(pareto_rows),
             "gif_count": len(top_rows_export),
             "gif_ranking_source": "feasible" if feasible_rows else "all_candidates",
+            "backend": args.backend,
+            "fp_adaptation": args.fp_adaptation,
+            "fp_adapt_count": scene_adapt_count,
+            "fp_adapt_seconds_total": scene_adapt_seconds_total,
+            "evaluation_seconds_total": scene_eval_seconds_total,
+            "mean_evaluation_seconds": scene_eval_seconds_total / max(1, len(all_rows)),
         }
 
         print(
@@ -844,6 +1002,23 @@ def main() -> None:
         "tag": tag,
         "samples": args.samples,
         "seed": args.seed,
+        "backend": args.backend,
+        "fp_adaptation": args.fp_adaptation,
+        "fp_refresh_interval": args.fp_refresh_interval,
+        "fp_adapt_config": {
+            "iterations": args.fp_adapt_iterations,
+            "population": args.fp_adapt_population,
+            "elite_fraction": args.fp_adapt_elite_fraction,
+            "sigma_init": args.fp_adapt_sigma_init,
+            "seed": args.fp_adapt_seed,
+        },
+        "backend_config": {
+            "comfree_stiffness": args.comfree_stiffness,
+            "comfree_damping": args.comfree_damping,
+            "backend_nworld": args.backend_nworld,
+            "backend_nconmax": args.backend_nconmax,
+            "backend_njmax": args.backend_njmax,
+        },
         "scene_summaries": scene_summaries,
         "paths": {
             "out_dir": str(out_dir),
