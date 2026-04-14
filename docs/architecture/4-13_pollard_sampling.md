@@ -449,3 +449,48 @@ Top-5 aggregate metrics by scene (Run 3):
 1. Increase yaw-drift penalty for cube only and re-run cube lane quickly.
 2. Add direct per-finger actuator delta penalty between settle and lift phases.
 3. Add explicit force-closure proxy term (wrench-balance surrogate) in evaluator to complement persistence metrics.
+
+## Run 5 (Foundational Pose Adaptation)
+
+Date: 2026-04-10
+
+### Motivation
+
+Run 3's strict feasibility gates exposed a problem: the fixed FPs (optimized for the base morphology) become suboptimal as sampled morphologies diverge. Prism2 dropped to 58.6% feasibility. Full CEM per morphology is too expensive (~51s), so Run 5 tested lightweight FP adaptation strategies.
+
+### Method Changes
+
+1. Bug fixes in [scripts/phase1_pollard_multiscene.py](scripts/phase1_pollard_multiscene.py):
+   - Added `--morph-sort distance` to sort candidates by L2 distance from base before evaluation (makes interval refresh spatially coherent)
+   - Adaptation path now also evaluates original FPs and picks overall best (prevents regression)
+   - `sparse-per-morph` now warm-starts from latest interval FP, not the immutable baseline
+2. New `local-perturbation` mode: systematically try +/- delta on each of 9 control dimensions (19 evals per morphology)
+3. New `morph_distance_from_base` column in CSV output for post-hoc distance analysis
+
+### Run 5 Results
+
+Six sub-runs with identical seed/samples, different FP strategies. Full details in [4-14_experiments.md](4-14_experiments.md).
+
+Summary of feasibility (out of 500 per scene):
+
+| Run | Mode | Cube | Prism1 | Prism2 | Prism3 | Total | Extra Time |
+|-----|------|------|--------|--------|--------|-------|------------|
+| 5a | baseline | 420 | 317 | 293 | 412 | 1442 | -- |
+| 5b | interval-fp i=50 | 434 | 387 | 443 | 489 | 1753 | +243s |
+| 5e | sparse-5 | 431 | 436 | 412 | 479 | 1758 | +223s |
+| 5f | local-perturb | 454 | 436 | 436 | 474 | 1800 | +739s |
+
+### Run 5 Key Takeaway
+
+Cheap per-morphology FP adaptation recovers 300+ feasible candidates (+22%) for minimal extra cost. Prism2 jumps from 58.6% to 88.6% feasibility with interval-fp. **Recommended default for future runs: `sparse-per-morph` with 5 samples** (best cost-effectiveness at 1.42 gain/sec).
+
+### Progression Summary (Runs 1-5)
+
+| Aspect | Run 1 | Run 2 | Run 3 | Run 5 |
+|--------|-------|-------|-------|-------|
+| Contact model | Basic | Enriched (extra tip geoms, friction) | Same | Same |
+| Objective | Lift + distance + contacts | + XY drift, drop, persistence | + per-finger persistence, yaw/flex drift | Same |
+| FP strategy | Fixed (1 per scene) | Fixed (multi-seed) | Fixed (multi-seed, strict gates) | **Adaptive** (per-morph) |
+| Cube feasible | 324/500 | 491/500 | 420/500 | 454/500 |
+| Prism2 feasible | 500/500 | 485/500 | 293/500 | 436/500 |
+| Top-5 quality | Slipping during lift | Stable but some drift | Stable, low drift | Same quality, more feasible |

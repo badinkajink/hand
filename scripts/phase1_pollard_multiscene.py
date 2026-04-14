@@ -149,9 +149,15 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--refine-seed", type=int, default=0)
     parser.add_argument(
         "--fp-adaptation",
-        choices=["none", "interval-open", "interval-initial-fp", "sparse-per-morph"],
+        choices=["none", "interval-open", "interval-initial-fp", "sparse-per-morph", "local-perturbation"],
         default="none",
         help="Adapt foundational pose strategy while traversing morphology samples.",
+    )
+    parser.add_argument(
+        "--morph-sort",
+        choices=["none", "distance"],
+        default="none",
+        help="Sort morphology candidates before evaluation. 'distance' sorts by L2 distance from base.",
     )
     parser.add_argument(
         "--fp-refresh-interval",
@@ -431,6 +437,37 @@ def _sample_morphologies(
     return candidates
 
 
+def _morph_to_array(m: MorphologyValues) -> np.ndarray:
+    return np.array([
+        m.thumb_x, m.thumb_y, m.thumb_len,
+        m.index_x, m.index_y, m.index_len,
+        m.middle_x, m.middle_y, m.middle_len,
+    ])
+
+
+def _morph_distance(a: MorphologyValues, b: MorphologyValues) -> float:
+    return float(np.linalg.norm(_morph_to_array(a) - _morph_to_array(b)))
+
+
+def _local_perturb_fp(
+    evaluator: Phase1GraspEvaluator,
+    baseline_ctrl: np.ndarray,
+    delta: float,
+) -> tuple[np.ndarray, float]:
+    """Try +/- delta on each of 9 control dims, return best ctrl and score."""
+    best_ctrl = baseline_ctrl.copy()
+    best_score, _ = evaluator.evaluate(baseline_ctrl)
+    for dim in range(len(baseline_ctrl)):
+        for sign in (+1, -1):
+            candidate = baseline_ctrl.copy()
+            candidate[dim] += sign * delta
+            score, _ = evaluator.evaluate(candidate)
+            if score > best_score:
+                best_score = score
+                best_ctrl = candidate.copy()
+    return best_ctrl, best_score
+
+
 def _make_scene_for_spec(
     base_scene_xml: Path,
     scene_output_path: Path,
@@ -661,11 +698,17 @@ def _adapt_foundational_ctrl(
     if mode in {"interval-open", "interval-initial-fp"}:
         interval = max(1, int(args.fp_refresh_interval))
         should_refresh = candidate_idx % interval == 0
-    elif mode == "sparse-per-morph":
+    elif mode in {"sparse-per-morph", "local-perturbation"}:
         should_refresh = True
 
     if not should_refresh:
         return interval_ctrl, False, 0.0, "reuse"
+
+    if mode == "local-perturbation":
+        t0 = time.perf_counter()
+        ctrl, _ = _local_perturb_fp(evaluator, interval_ctrl, adapt_cfg.sigma_init)
+        elapsed = float(time.perf_counter() - t0)
+        return ctrl, True, elapsed, "local_perturb"
 
     if mode == "interval-open":
         init_ctrl = None
@@ -674,8 +717,8 @@ def _adapt_foundational_ctrl(
         init_ctrl = interval_ctrl
         source = "interval_fp"
     else:
-        init_ctrl = baseline_ctrl
-        source = "baseline_fp"
+        init_ctrl = interval_ctrl
+        source = "interval_fp"
 
     t0 = time.perf_counter()
     refined = optimize_finger_controls(evaluator=evaluator, cfg=adapt_cfg, initial_finger_ctrl=init_ctrl)
@@ -721,6 +764,12 @@ def main() -> None:
         y_perturb=args.y_perturb,
         len_perturb=args.len_perturb,
     )
+
+    if args.morph_sort == "distance":
+        candidates.sort(key=lambda m: _morph_distance(m, base_morphology))
+        print(f"[morph-sort] Sorted {len(candidates)} candidates by distance from base "
+              f"(min={_morph_distance(candidates[0], base_morphology):.6f}, "
+              f"max={_morph_distance(candidates[-1], base_morphology):.6f})")
 
     eval_cfg = Phase1EvalConfig(
         settle_steps=args.settle_steps,
@@ -815,18 +864,31 @@ def main() -> None:
                     interval_fp_ctrl = ctrl.copy()
 
                 eval_t0 = time.perf_counter()
-                chosen_score, chosen_metrics = evaluator.evaluate(ctrl)
-                eval_seconds = float(time.perf_counter() - eval_t0)
-                is_feasible = _is_feasible(
-                    chosen_metrics,
+                # Evaluate adapted ctrl AND all original foundational poses, pick best
+                all_evals: list[tuple[str, np.ndarray, float, dict[str, float], bool]] = []
+                adapted_score, adapted_metrics = evaluator.evaluate(ctrl)
+                adapted_feasible = _is_feasible(
+                    adapted_metrics,
                     spec.max_mean_tip_distance,
                     spec.min_contacts,
                     spec.min_finger_contact_persistence,
                     spec.max_finger_yaw_drift,
                 )
-                feasible_pose_count = 1 if is_feasible else 0
-                chosen_pose_label = f"adapted_{args.fp_adaptation}"
-                chosen_ctrl = ctrl
+                all_evals.append((f"adapted_{args.fp_adaptation}", ctrl, adapted_score, adapted_metrics, adapted_feasible))
+                for pose in spec.foundational_poses:
+                    s, m = evaluator.evaluate(pose.finger_ctrl)
+                    f = _is_feasible(m, spec.max_mean_tip_distance, spec.min_contacts,
+                                     spec.min_finger_contact_persistence, spec.max_finger_yaw_drift)
+                    all_evals.append((pose.label, np.asarray(pose.finger_ctrl, dtype=np.float64), s, m, f))
+                eval_seconds = float(time.perf_counter() - eval_t0)
+
+                feasible_hits = [e for e in all_evals if e[4]]
+                feasible_pose_count = len(feasible_hits)
+                is_feasible = len(feasible_hits) > 0
+                pick_pool = feasible_hits if feasible_hits else all_evals
+                chosen_pose_label, chosen_ctrl, chosen_score, chosen_metrics, _ = max(
+                    pick_pool, key=lambda t: t[2]
+                )
 
             scene_eval_seconds_total += eval_seconds
             scene_adapt_seconds_total += fp_adapt_seconds
@@ -896,6 +958,7 @@ def main() -> None:
                 "middle_x": float(morphology.middle_x),
                 "middle_y": float(morphology.middle_y),
                 "middle_len": float(morphology.middle_len),
+                "morph_distance_from_base": float(_morph_distance(morphology, base_morphology)),
                 "chosen_ctrl_json": json.dumps(chosen_ctrl.tolist()),
             }
             all_rows.append(row)
@@ -1023,6 +1086,7 @@ def main() -> None:
         "metric_collection_mode": args.metric_collection_mode,
         "fp_adaptation": args.fp_adaptation,
         "fp_refresh_interval": args.fp_refresh_interval,
+        "morph_sort": args.morph_sort,
         "fp_adapt_config": {
             "iterations": args.fp_adapt_iterations,
             "population": args.fp_adapt_population,
