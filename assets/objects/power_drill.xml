@@ -1,0 +1,18 @@
+<mujoco model="power_drill">
+  <!-- YCB 035 Power Drill
+       Uses mesh from external/035_power_drill/poisson/nontextured.stl
+       Mass: 1.5 kg
+       Power grasp: index finger over trigger, middle and thumb wrap around neck
+  -->
+  <asset>
+    <mesh name="drill_mesh" file="../../external/035_power_drill/poisson/nontextured.stl" scale="1 1 1"/>
+  </asset>
+
+  <worldbody>
+    <body name="power_drill" pos="0 0 0">
+      <freejoint/>
+      <inertial diaginertia="0.0015 0.0015 0.0003" mass="1.5" pos="0 0 0"/>
+      <geom type="mesh" mesh="drill_mesh" density="500" friction="2.4 0.2 0.02" rgba="0.4 0.4 0.4 1"/>
+    </body>
+  </worldbody>
+</mujoco>

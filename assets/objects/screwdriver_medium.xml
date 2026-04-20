@@ -1,0 +1,14 @@
+<mujoco model="screwdriver_medium">
+  <!-- Medium screwdriver approximation
+       25mm diameter, 100mm length
+       Mass: 0.3 kg
+       Radius: 0.0125m, half-length: 0.05m
+  -->
+  <worldbody>
+    <body name="screwdriver_medium" pos="0 0 0">
+      <freejoint/>
+      <inertial diaginertia="0.00001042 0.00001042 0.00000469" mass="0.3" pos="0 0 0"/>
+      <geom type="cylinder" size="0.0125 0.05" density="500" friction="2.4 0.2 0.02" rgba="0.6 0.6 0.6 1"/>
+    </body>
+  </worldbody>
+</mujoco>

@@ -276,20 +276,37 @@ class Phase1GraspEvaluator:
         return np.asarray(ids, dtype=np.int32)
 
     def _infer_cube_half_extents(self) -> np.ndarray:
-        # Read size directly from the cube geom so non-cube prisms are handled correctly.
-        box_geoms = []
+        # Approximate object extents from its geoms in body-local coordinates.
+        # This keeps distance/contact proxy metrics usable for cylinders/capsules/meshes too.
+        half = np.zeros(3, dtype=np.float64)
+        found = False
         for geom_id in range(self.model.ngeom):
             if int(self.model.geom_bodyid[geom_id]) != self.cube_body_id:
                 continue
-            if int(self.model.geom_type[geom_id]) != int(mujoco.mjtGeom.mjGEOM_BOX):
-                continue
-            box_geoms.append(geom_id)
+            found = True
 
-        if not box_geoms:
-            raise ValueError("Cube body does not contain a box geom")
+            gtype = int(self.model.geom_type[geom_id])
+            gsize = np.asarray(self.model.geom_size[geom_id, :3], dtype=np.float64)
+            if gtype == int(mujoco.mjtGeom.mjGEOM_BOX):
+                ext = gsize
+            elif gtype in (int(mujoco.mjtGeom.mjGEOM_CYLINDER), int(mujoco.mjtGeom.mjGEOM_CAPSULE)):
+                ext = np.array([gsize[0], gsize[0], gsize[1]], dtype=np.float64)
+            elif gtype == int(mujoco.mjtGeom.mjGEOM_SPHERE):
+                ext = np.array([gsize[0], gsize[0], gsize[0]], dtype=np.float64)
+            elif gtype == int(mujoco.mjtGeom.mjGEOM_ELLIPSOID):
+                ext = gsize
+            else:
+                # Fallback: bounding sphere radius for mesh/other geoms.
+                r = float(self.model.geom_rbound[geom_id])
+                ext = np.array([r, r, r], dtype=np.float64)
 
-        geom_id = box_geoms[0]
-        return np.asarray(self.model.geom_size[geom_id, :3], dtype=np.float64)
+            gpos = np.asarray(self.model.geom_pos[geom_id, :3], dtype=np.float64)
+            half = np.maximum(half, np.abs(gpos) + ext)
+
+        if not found:
+            raise ValueError("Object body has no geoms; cannot infer extents")
+
+        return half
 
     def _finger_ctrl_bounds(self) -> tuple[np.ndarray, np.ndarray]:
         mins = []
