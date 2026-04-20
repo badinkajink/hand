@@ -1,0 +1,14 @@
+<mujoco model="screwdriver_small">
+  <!-- Small screwdriver approximation
+       8mm diameter, 80mm length
+       Mass: 0.075 kg
+       Radius: 0.004m, half-length: 0.04m
+  -->
+  <worldbody>
+    <body name="screwdriver_small" pos="0 0 0">
+      <freejoint/>
+      <inertial diaginertia="0.00000200 0.00000200 0.00000120" mass="0.075" pos="0 0 0"/>
+      <geom type="cylinder" size="0.004 0.04" density="500" friction="2.4 0.2 0.02" rgba="0.6 0.6 0.6 1"/>
+    </body>
+  </worldbody>
+</mujoco>

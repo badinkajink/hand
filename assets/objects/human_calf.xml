@@ -1,0 +1,35 @@
+<mujoco model="human_calf">
+  <!-- Human calf + ankle + foot assembly with pivoted lift trajectory.
+       Calf: tapered circular cone (110mm -> 70mm) over 300mm, approximated by two capsules.
+       Ankle: 70mm diameter x 70mm length cylinder.
+       Foot: 90mm wide x 250mm long box with heel extension.
+       Total mass: 5.0kg distributed across calf/ankle/foot.
+       Hinge axis is 1.0m from the proximal (110mm diameter) side.
+  -->
+  <worldbody>
+    <body name="calf_pivot" pos="0 1.0 0.055">
+      <joint name="calf_rotate" type="hinge" axis="1 0 0" range="-0.4 1.2" damping="12"/>
+
+      <!-- Proximal calf start sits 1m away from pivot. Calf axis is world +Y at zero angle. -->
+      <body name="calf" pos="0 -1.0 0">
+        <inertial mass="3.0" pos="0 0.15 0" diaginertia="0.030 0.016 0.030"/>
+
+        <!-- Tapered cone approximation in two longitudinal segments. -->
+        <geom type="capsule" fromto="0 0.00 0  0 0.15 0" size="0.055" friction="2.4 0.2 0.02" rgba="0.95 0.82 0.69 1"/>
+        <geom type="capsule" fromto="0 0.15 0  0 0.30 0" size="0.035" friction="2.4 0.2 0.02" rgba="0.95 0.82 0.69 1"/>
+
+        <body name="ankle" pos="0 0.30 0">
+          <inertial mass="1.0" pos="0 0.035 0" diaginertia="0.0013 0.0006 0.0013"/>
+          <geom type="cylinder" pos="0 0.035 0" size="0.035 0.035" euler="1.5708 0 0" friction="2.4 0.2 0.02" rgba="0.95 0.82 0.69 1"/>
+
+          <!-- Foot runs mostly in +Y, with a rear heel extension in -Y. -->
+          <body name="foot" pos="0 0.035 -0.055">
+            <inertial mass="1.0" pos="0 0.07 0" diaginertia="0.006 0.002 0.006"/>
+            <geom type="box" pos="0 0.07 0" size="0.045 0.125 0.015" friction="2.4 0.2 0.02" rgba="0.32 0.32 0.36 1"/>
+            <geom type="box" pos="0 -0.03 0" size="0.045 0.045 0.015" friction="2.4 0.2 0.02" rgba="0.32 0.32 0.36 1"/>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+</mujoco>

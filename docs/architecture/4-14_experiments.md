@@ -220,3 +220,142 @@ All sub-runs under `results/phase1/`:
 - [run5d_interval_open_i50](results/phase1/run5d_interval_open_i50)
 - [run5e_sparse_5](results/phase1/run5e_sparse_5)
 - [run5f_local_perturb](results/phase1/run5f_local_perturb)
+
+## 2026-04-15 Evaluation Object-Set Expansion
+
+Date: 2026-04-15
+
+### Added/updated object XMLs
+
+- `assets/objects/prism.xml`
+  - 22.5 x 67.5 x 18 mm prism, mass 0.2 kg.
+- `assets/objects/screwdriver_medium.xml`
+  - 25 mm diameter, 100 mm length cylinder, mass 0.3 kg.
+- `assets/objects/screwdriver_small.xml`
+  - 8 mm diameter, 80 mm length cylinder, mass 0.075 kg.
+- `assets/objects/power_drill.xml`
+  - YCB drill mesh source retained; corrected relative mesh path.
+  - Total mass 1.5 kg.
+- `assets/objects/human_calf.xml`
+  - Reworked to a connected kinematic chain:
+    - tapered calf approximation (110 mm -> 70 mm over 300 mm),
+    - ankle cylinder (70 mm x 70 mm),
+    - foot box with rear heel extension,
+    - hinge pivot 1.0 m from proximal calf side.
+
+### Added scene XMLs
+
+- `assets/mjcf/scene_screwdriver_medium.xml`
+  - keyframes:
+    - `open_flat`: near-contact pickup pose for horizontal tool.
+    - `open_vertical`: near-contact wielding pose for vertical tool.
+    - `open_90vertical`: near-contact pickup pose for 90-degree vertical orientation.
+- `assets/mjcf/scene_screwdriver_small.xml`
+  - keyframes:
+    - `open_flat`
+    - `open_vertical`
+- `assets/mjcf/scene_power_drill.xml`
+  - keyframes:
+    - `open_flat`: index-forward support + thumb/middle wrapping posture.
+    - `open_vertical`: vertical wielding-oriented pre-grasp posture.
+  - palm plate thickness increased (`0.001` -> `0.003`) to improve palm-side contact stability studies.
+- `assets/mjcf/scene_human_calf.xml`
+  - keyframes:
+    - `open_under_ankle`: under-ankle power-grasp initialization.
+    - `open_lifted`: same grasp family with elevated calf hinge angle.
+  - includes explicit calf hinge joint (`calf_rotate`) to represent trajectory-like lift behavior.
+
+`assets/mjcf/scene_prism.xml` remains the prism baseline scene and already matches the requested prism dimensions and mass profile.
+
+### Validation
+
+Ran MuJoCo model-load smoke checks with `uv run python` across:
+
+- all five object XMLs above, and
+- `scene_prism.xml`, `scene_screwdriver_medium.xml`, `scene_screwdriver_small.xml`, `scene_power_drill.xml`, `scene_human_calf.xml`.
+
+Result: all listed models load successfully with no XML or compile-time MuJoCo errors.
+
+### Notes and current limitations
+
+- Screwdriver and drill scenes include separate flat and vertical pre-grasp keyframes but do not yet implement a continuous in-scene transition controller between those poses.
+- The calf scene models hinge-based lifting kinematics; full controller synthesis for dynamic anti-slip support (thumb-over / fingers-under through motion) is deferred to evaluation scripts.
+- The drill still uses the raw YCB mesh, so practical grasp quality may benefit from future convex decomposition or a dual-cylinder proxy for faster contact tuning.
+
+## Run 6: Standalone Pose Morphology Sweep (Screwdriver Medium)
+
+Date: 2026-04-20
+
+### Goal
+
+Evaluate morphology robustness on `scene_screwdriver_medium.xml` for three standalone keyframes (no transition trajectory), using two FP adaptation modes:
+
+- `sparse-per-morph` (sparse5)
+- `interval-initial-fp` with `--fp-refresh-interval 50` and morphology-distance sorting
+
+### Pipeline updates used by Run 6
+
+1. Corrected keyframe controls for `open_flat`, `open_vertical`, and `open_90vertical` in `scene_screwdriver_medium.xml`.
+2. Kept evaluator object-body compatibility by using object body name `cube` in the screwdriver scene.
+3. Extended object extent inference in `src/morphohand/optimization/phase1_common.py` so distance proxies work for non-box geoms (cylinder/capsule/sphere/mesh fallback).
+4. Added Run 6 utilities:
+   - `scripts/run6_screwdriver_multikey_sampling.py`
+   - `scripts/run6_analysis.py`
+
+### Foundational pose search (quality grasps)
+
+Per keyframe CEM was run with 2 seeds (`16` iterations, `48` population):
+
+| Keyframe | Best seed score | Lift | Contacts |
+|---|---:|---:|---:|
+| `open_flat` | 5.7028 | 0.0496 | 3 |
+| `open_vertical` | 6.9068 | 0.0501 | 6 |
+| `open_90vertical` | 7.0911 | 0.0696 | 5 |
+
+Artifacts: `results/phase1/run6_foundational/<keyframe>/seed_{0,1}/summary.json`
+
+### Morphology sweep setup
+
+- Samples per keyframe: `240`
+- Keyframes: `open_flat`, `open_vertical`, `open_90vertical`
+- Feasibility gates:
+  - `mean_tip_distance <= 0.022`
+  - `cube_tip_contacts >= 2`
+- Morphology ordering: `--morph-sort distance`
+- Modes:
+  - `run6_sparse5`: `--fp-adaptation sparse-per-morph`
+  - `run6_interval50`: `--fp-adaptation interval-initial-fp --fp-refresh-interval 50`
+
+### Run 6 results
+
+| Mode | Keyframe | Total | Feasible | Feasible rate | Mean score | Max score |
+|---|---|---:|---:|---:|---:|---:|
+| sparse-per-morph | open_flat | 240 | 213 | 0.887 | 4.3686 | 6.2963 |
+| sparse-per-morph | open_vertical | 240 | 230 | 0.958 | 4.0126 | 7.3066 |
+| sparse-per-morph | open_90vertical | 240 | 224 | 0.933 | 4.1554 | 7.4742 |
+| interval-initial-fp | open_flat | 240 | 227 | 0.946 | 4.7423 | 7.2212 |
+| interval-initial-fp | open_vertical | 240 | 223 | 0.929 | 3.5406 | 7.3075 |
+| interval-initial-fp | open_90vertical | 240 | 213 | 0.887 | 3.3777 | 7.8153 |
+
+### Interpretation
+
+1. Both adaptation modes produce high standalone-pose feasibility across all three keyframes.
+2. `interval-initial-fp` is more compute-efficient in adaptation frequency (5 adaptations per keyframe vs 240), while preserving competitive feasible counts.
+3. `sparse-per-morph` gives stronger consistency on `open_vertical` and `open_90vertical` feasible-rate metrics in this run.
+4. `open_90vertical` reaches the highest observed max score (7.8153 with interval mode), indicating high-quality but narrower high-performing regions.
+
+### Analysis outputs
+
+Run 6 includes:
+
+- t-SNE embeddings over 9D morphology vectors (color by score)
+- 2D thumb feature heat maps (`thumb_x`, `thumb_y`) for:
+  - `cube_xy_drift`
+  - `finger_flex_drift`
+- 3D surface plots for the same two metrics
+
+Artifacts:
+
+- `results/phase1/run6_sparse5/analysis/`
+- `results/phase1/run6_interval50/analysis/`
+- `results/phase1/run6_sparse5/analysis/run6_analysis_summary.md`

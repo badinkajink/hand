@@ -1,0 +1,14 @@
+<mujoco model="prism">
+  <!-- Prism: 22.5 x 67.5 x 18 mm (w x l x h)
+       To grasp along the width (22.5mm) side
+       Mass: 0.2 kg
+       Half-sizes in meters: 0.01125 x 0.03375 x 0.009
+  -->
+  <worldbody>
+    <body name="prism" pos="0 0 0">
+      <freejoint/>
+      <inertial diaginertia="0.00000167 0.00000267 0.00000267" mass="0.2" pos="0 0 0"/>
+      <geom type="box" size="0.01125 0.03375 0.009" density="500" friction="2.4 0.2 0.02" rgba="0.18 0.5 0.9 1"/>
+    </body>
+  </worldbody>
+</mujoco>

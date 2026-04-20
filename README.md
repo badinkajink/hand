@@ -143,6 +143,96 @@ Current MJCF baseline is intentionally simple and differentiability-friendly:
 
 This supports your requested workflow: manually define 3-5 canonical palm poses per object class, then optimize morphology+grasp on top of fixed coarse setup.
 
+## Evaluation Scene Set (Current)
+
+Scene assets now include object-specific evaluation templates with near-contact open keyframes:
+
+- `assets/mjcf/scene_prism.xml`
+- `assets/mjcf/scene_screwdriver_medium.xml` (`open_flat`, `open_vertical`, `open_90vertical`)
+- `assets/mjcf/scene_screwdriver_small.xml` (`open_flat`, `open_vertical`)
+- `assets/mjcf/scene_power_drill.xml` (`open_flat`, `open_vertical`)
+- `assets/mjcf/scene_human_calf.xml` (`open_under_ankle`, `open_lifted`)
+
+Corresponding object XMLs are under `assets/objects/`:
+
+- `prism.xml`
+- `screwdriver_medium.xml`
+- `screwdriver_small.xml`
+- `power_drill.xml`
+- `human_calf.xml`
+
+## Run 6: Screwdriver Standalone-Pose Sweep
+
+Run 6 evaluates medium screwdriver keyframes independently (no transition), using two foundational-pose adaptation modes across a few hundred sampled morphologies.
+
+### 1) Foundational pose search per keyframe
+
+```bash
+for kf in open_flat open_vertical open_90vertical; do
+  for seed in 0 1; do
+    uv run python scripts/phase1_optimize_grasp.py \
+      --scene-xml assets/mjcf/scene_screwdriver_medium.xml \
+      --keyframe "$kf" \
+      --iterations 16 \
+      --population 48 \
+      --elite-fraction 0.2 \
+      --sigma-init 0.18 \
+      --seed "$seed" \
+      --skip-gif \
+      --output-dir "results/phase1/run6_foundational/$kf" \
+      --tag "seed_${seed}"
+  done
+done
+```
+
+### 2) Morphology sweep (sparse5)
+
+```bash
+uv run python scripts/run6_screwdriver_multikey_sampling.py \
+  --scene-xml assets/mjcf/scene_screwdriver_medium.xml \
+  --foundational-root results/phase1/run6_foundational \
+  --samples 240 \
+  --seed 6 \
+  --fp-adaptation sparse-per-morph \
+  --morph-sort distance \
+  --max-mean-tip-distance 0.022 \
+  --min-contacts 2 \
+  --output-dir results/phase1 \
+  --tag run6_sparse5
+```
+
+### 3) Morphology sweep (interval refresh 50)
+
+```bash
+uv run python scripts/run6_screwdriver_multikey_sampling.py \
+  --scene-xml assets/mjcf/scene_screwdriver_medium.xml \
+  --foundational-root results/phase1/run6_foundational \
+  --samples 240 \
+  --seed 6 \
+  --fp-adaptation interval-initial-fp \
+  --fp-refresh-interval 50 \
+  --morph-sort distance \
+  --max-mean-tip-distance 0.022 \
+  --min-contacts 2 \
+  --output-dir results/phase1 \
+  --tag run6_interval50
+```
+
+### 4) Embedding + feature analysis
+
+```bash
+uv run python scripts/run6_analysis.py \
+  --run-dirs results/phase1/run6_sparse5 results/phase1/run6_interval50 \
+  --embedding tsne \
+  --metrics cube_xy_drift finger_flex_drift
+```
+
+Primary outputs:
+
+- `results/phase1/run6_sparse5/`
+- `results/phase1/run6_interval50/`
+- `results/phase1/run6_sparse5/analysis/run6_analysis_summary.md`
+
 ## Backend Plan
 
 ### Backend contract
