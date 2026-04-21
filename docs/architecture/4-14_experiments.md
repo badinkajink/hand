@@ -314,48 +314,77 @@ Per keyframe CEM was run with 2 seeds (`16` iterations, `48` population):
 
 Artifacts: `results/phase1/run6_foundational/<keyframe>/seed_{0,1}/summary.json`
 
-### Morphology sweep setup
+### Combined multi-task sweep setup
 
-- Samples per keyframe: `240`
-- Keyframes: `open_flat`, `open_vertical`, `open_90vertical`
+- Run command: `SAMPLES=1000 TAG=run6_combined_1000 TOPK_GIFS=5 ./scripts/run6_all_in_one.sh`
+- Samples: `1000`
+- Tasks per sample: `3` (`open_flat`, `open_vertical`, `open_90vertical`)
 - Feasibility gates:
   - `mean_tip_distance <= 0.022`
   - `cube_tip_contacts >= 2`
 - Morphology ordering: `--morph-sort distance`
-- Modes:
-  - `run6_sparse5`: `--fp-adaptation sparse-per-morph`
-  - `run6_interval50`: `--fp-adaptation interval-initial-fp --fp-refresh-interval 50`
+- Adaptation in one run:
+  - interval refresh every 50 samples (`interval-initial-fp` style)
+  - sparse local adaptation on each sample (`sparse-per-morph` style)
+- Rolling efficiency: window size `100` over the full 1000-sample stream
 
-### Run 6 results
+### Run 6 combined results
 
-| Mode | Keyframe | Total | Feasible | Feasible rate | Mean score | Max score |
+Overall (`results/phase1/run6_combined_1000/summary.json`):
+
+- all-task-feasible candidates: `603 / 1000` (`60.3%`)
+- mean feasible tasks per sample: `2.574 / 3`
+- mean aggregate score: `3.9619`
+- wall time: `762.13 s`
+
+Per-task feasibility (`results/phase1/run6_combined_1000/analysis/run6_analysis_summary.md`):
+
+| Run | Keyframe | Total | Feasible | Feasible rate | Mean score | Max score |
 |---|---|---:|---:|---:|---:|---:|
-| sparse-per-morph | open_flat | 240 | 213 | 0.887 | 4.3686 | 6.2963 |
-| sparse-per-morph | open_vertical | 240 | 230 | 0.958 | 4.0126 | 7.3066 |
-| sparse-per-morph | open_90vertical | 240 | 224 | 0.933 | 4.1554 | 7.4742 |
-| interval-initial-fp | open_flat | 240 | 227 | 0.946 | 4.7423 | 7.2212 |
-| interval-initial-fp | open_vertical | 240 | 223 | 0.929 | 3.5406 | 7.3075 |
-| interval-initial-fp | open_90vertical | 240 | 213 | 0.887 | 3.3777 | 7.8153 |
+| run6_combined_1000 | open_flat | 1000 | 994 | 0.994 | 5.4831 | 7.6332 |
+| run6_combined_1000 | open_vertical | 1000 | 884 | 0.884 | 3.9379 | 13.6251 |
+| run6_combined_1000 | open_90vertical | 1000 | 696 | 0.696 | 2.4647 | 384.5552 |
 
-### Interpretation
+Top-5 multiobjective candidates (all 3 tasks feasible):
 
-1. Both adaptation modes produce high standalone-pose feasibility across all three keyframes.
-2. `interval-initial-fp` is more compute-efficient in adaptation frequency (5 adaptations per keyframe vs 240), while preserving competitive feasible counts.
-3. `sparse-per-morph` gives stronger consistency on `open_vertical` and `open_90vertical` feasible-rate metrics in this run.
-4. `open_90vertical` reaches the highest observed max score (7.8153 with interval mode), indicating high-quality but narrower high-performing regions.
+| Rank | Candidate ID | Aggregate mean score | Aggregate min score |
+|---:|---:|---:|---:|
+| 1 | 750 | 7.3156 | 7.0185 |
+| 2 | 250 | 7.2070 | 7.0573 |
+| 3 | 776 | 7.0241 | 6.9627 |
+| 4 | 885 | 6.9773 | 6.6742 |
+| 5 | 720 | 6.8250 | 6.3599 |
 
-### Analysis outputs
+### Rolling sampling efficiency (window = 100)
 
-Run 6 includes:
+From `results/phase1/run6_combined_1000/rolling_efficiency.csv`:
 
-- t-SNE embeddings over 9D morphology vectors (color by score)
-- 2D thumb feature heat maps (`thumb_x`, `thumb_y`) for:
-  - `cube_xy_drift`
-  - `finger_flex_drift`
-- 3D surface plots for the same two metrics
+| Window | Task-feasibility efficiency | All-task feasibility rate |
+|---|---:|---:|
+| 0-99 | 0.9667 | 0.90 |
+| 100-199 | 0.9200 | 0.76 |
+| 200-299 | 0.9567 | 0.88 |
+| 300-399 | 0.8100 | 0.45 |
+| 400-499 | 0.8233 | 0.50 |
+| 500-599 | 0.8033 | 0.49 |
+| 600-699 | 0.8233 | 0.53 |
+| 700-799 | 0.8033 | 0.45 |
+| 800-899 | 0.8367 | 0.54 |
+| 900-999 | 0.8367 | 0.53 |
 
-Artifacts:
+Interpretation:
 
-- `results/phase1/run6_sparse5/analysis/`
-- `results/phase1/run6_interval50/analysis/`
-- `results/phase1/run6_sparse5/analysis/run6_analysis_summary.md`
+1. Combined adaptation in one run maintains high early-window feasibility, then stabilizes around ~0.80-0.84 task-feasibility efficiency.
+2. Cross-task robustness is strong: over 60% of morphologies satisfy all three tasks simultaneously.
+3. Top-ranked candidates remain all-task feasible with strong worst-task scores (`aggregate_min_score >= 6.36` for top-5).
+
+### Artifact map
+
+- `results/phase1/run6_combined_1000/summary.json`
+- `results/phase1/run6_combined_1000/all_candidates_multitask.csv`
+- `results/phase1/run6_combined_1000/all_task_results.csv`
+- `results/phase1/run6_combined_1000/top5_candidates.csv`
+- `results/phase1/run6_combined_1000/rolling_efficiency.csv`
+- `results/phase1/run6_combined_1000/rolling_efficiency.png`
+- `results/phase1/run6_combined_1000/top5_gifs/gif_manifest.json`
+- `results/phase1/run6_combined_1000/top5_gifs/rank01_open_flat.gif` ... `rank05_open_90vertical.gif`
