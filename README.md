@@ -1,27 +1,40 @@
-# MorphoHand Simulation Stack (Scaffold)
+# MorphoHand
 
-This repository is now structured to support a staged build-out of the morphology optimization pipeline described in the proposal in `hand/main.tex`.
+MorphoHand is a simulation-first hand morphology evaluation stack for a 3-finger hand.
+The current codebase focuses on Phase 1: fixed-scene grasp synthesis, foundational pose
+search, morphology sampling, adaptation, and result analysis.
 
-## Proposal Alignment (What this scaffold assumes)
+The key design split is:
 
-- Research objective: compare morphology families over object distributions, not just a single best hand.
-- Optimization structure: bi-level optimization.
-  - Outer loop: MAP-Elites over morphology.
-  - Inner loop: gradient-based grasp synthesis.
-- Updated DOF split (from `yaw_inner_loop.md`):
-  - Outer loop morphology variables: per finger `(x, y, l)`.
-  - Inner loop control variables: per finger `(yaw, mcp, pip)`.
-- Backend strategy from `simulator_backends.md`:
-  - `mjx-native` and `diffmjx-lite` for differentiable inner loop.
-  - `mjwarp` and `comfree-warp` for high-throughput outer loop evaluation.
+- 9D morphology parameters: per finger `(x, y, len)`
+- 9D control parameters: per finger `(yaw, mcp, pip)`
+
+That split is reflected directly in the package layout and in the current evaluation scripts.
+
+## What Is Implemented
+
+- `src/morphohand/sampling/`: morphology sampling, foundational pose loading, feasibility
+  gating, scene XML patching, and CSV/plot helpers.
+- `src/morphohand/optimization/phase1_common.py`: shared Phase 1 evaluator and objective.
+- `src/morphohand/optimization/phase1_strategy_cem.py`: CEM grasp optimizer.
+- `src/morphohand/optimization/phase1_strategy_mjx_autodiff.py`: MJX autodiff lane.
+- `src/morphohand/optimization/phase1_strategy_diffmjx.py`: DiffMJX-style MVP lane.
+- `src/morphohand/tools/morphology_xml.py`: morphology encoding, parsing, and XML generation.
+- `assets/mjcf/`: base hand/scene templates plus object-specific scenes.
+- `scripts/`: runnable Phase 1 sweeps and analysis tools.
+
+The outer-loop MAP-Elites modules are still skeletons; the working system today is the
+sampling-and-evaluation pipeline around Phase 1.
 
 ## Repository Layout
 
 ```text
 assets/
   mjcf/
-    hand.xml                  # 9 actuator model (3 fingers x yaw/mcp/pip)
-    scene.xml                 # 15 actuator model (hand + 6-DoF palm pose)
+    hand.xml                  # 3-finger hand template
+    scene.xml                 # base scene with palm pose actuators
+    scene_*.xml               # object-specific evaluation scenes
+  objects/                    # object XMLs used by the scenes
 
 docs/
   index.md
@@ -30,202 +43,72 @@ docs/
   roadmap/
 
 scripts/
-  smoke_test_models.py        # validates actuator counts and basic model loading
+  phase1_optimize_grasp.py    # single-scene Phase 1 optimizer
+  phase1_pollard_multiscene.py# cube + prism morphology sampling sweep
+  run6_combined_multitask.py  # screwdriver multi-keyframe combined run
+  run6_analysis.py            # embeddings and feature-metric plots
+  smoke_test_models.py        # sanity checks for the MJCF models
 
 src/morphohand/
-  backends/
-    base.py                   # common backend protocol
-    factory.py                # backend registry + constructor
-    mjx_native.py             # MJX autodiff backend skeleton
-    diffmjx.py                # DiffMJX-compatible backend skeleton
-    mjwarp_backend.py         # MJWarp backend skeleton
-    comfree_backend.py        # ComFree backend skeleton
-  optimization/
-    inner_loop.py             # gradient-based grasp optimizer skeleton
-    outer_loop.py             # MAP-Elites skeleton
-
-tests/
-  test_model_layout.py        # static XML validation tests
+  sampling/                   # morphology, FP, feasibility, scene, IO
+  optimization/               # Phase 1 evaluator and strategy lanes
+  tools/                      # morphology XML helpers
+  backends/                   # backend protocol and adapter shells
 ```
 
-## Environment and Build (uv)
+## Environment
 
-### 1) Create environment
+The repo is configured for Python 3.10.
 
 ```bash
 uv venv --python 3.10
 source .venv/bin/activate
-```
-
-Note: `uv sync` can pick a different interpreter if multiple Python versions are available. If ROS Humble integration is expected later, stay on Python 3.10 for compatibility.
-
-### 2) Install project
-
-```bash
 uv sync --extra dev
 ```
 
-### 3) Optional backend extras
+Optional backend extras:
 
 ```bash
-# Warp prerequisites for mjwarp/comfree integration
 uv sync --extra mjwarp --extra comfree
 ```
 
-### 4) Install backend repos (editable local checkouts)
-
-The Python package names and install paths for `mujoco_warp` and `comfree_warp` can vary by upstream state. Keep these in sibling directories and install with `uv pip`:
-
-```bash
-./scripts/setup_backends.sh
-
-# Install if/when setup metadata is available in those repos
-uv pip install -e external/mujoco_warp
-uv pip install -e external/comfree_warp
-```
+If you use the local Warp checkouts under `external/`, install them with the helper script
+and then editable `uv pip` installs when the upstream metadata is available.
 
 ## Quick Start
 
-Run the baseline model smoke test:
+Smoke-test the model layout:
 
 ```bash
 uv run python scripts/smoke_test_models.py
 ```
 
-Run Phase 1 inner-loop grasp synthesis on a generated rigid scene:
+Run the default Phase 1 grasp optimizer on a single scene/keyframe:
 
 ```bash
 uv run python scripts/phase1_optimize_grasp.py \
-  --scene-xml assets/mjcf/generated/scene_tp0d0000p0d0200p0d0000_ip0d0100n0d0123p0d0000_mp0d0100p0d0153p0d0000.xml
-```
-
-This creates run artifacts under `results/phase1/<run_tag>/` including optimization trace CSV,
-plots, trajectory arrays, and an animated best-rollout GIF.
-
-Run tests:
-
-```bash
-./scripts/test.sh
-```
-
-Generate a rigid morphology XML (no morph joints, only control joints remain):
-
-```bash
-uv run python scripts/generate_morphology_xml.py \
-  --base-hand-xml assets/mjcf/hand.xml \
-  --base-scene-xml assets/mjcf/scene.xml \
-  --thumb 0.01 0.00 0.01 \
-  --index 0.00 0.01 0.005 \
-  --middle -0.01 0.00 0.00
-```
-
-Launch the Tkinter morphology editor (sliders + qpos paste + save):
-
-```bash
-uv run python scripts/morphology_gui.py
-```
-
-Expected output includes:
-
-- `hand.xml` actuator count: `9`
-- `scene.xml` actuator count: `15`
-
-## Modeling Baseline (Implemented)
-
-Current MJCF baseline is intentionally simple and differentiability-friendly:
-
-- Three fingers: `thumb`, `index`, `middle`.
-- Per finger joints (6):
-  - Morphology: `x` slide, `y` slide, `len` slide.
-  - Control: `yaw` hinge, `mcp` hinge, `pip` hinge.
-- Geometry: capsule links + sphere fingertip, cube object on tabletop.
-- `scene.xml` adds palm pose joints (`px, py, pz, rx, ry, rz`) for manual canonical placements.
-
-This supports your requested workflow: manually define 3-5 canonical palm poses per object class, then optimize morphology+grasp on top of fixed coarse setup.
-
-## Evaluation Scene Set (Current)
-
-Scene assets now include object-specific evaluation templates with near-contact open keyframes:
-
-- `assets/mjcf/scene_prism.xml`
-- `assets/mjcf/scene_screwdriver_medium.xml` (`open_flat`, `open_vertical`, `open_90vertical`)
-- `assets/mjcf/scene_screwdriver_small.xml` (`open_flat`, `open_vertical`)
-- `assets/mjcf/scene_power_drill.xml` (`open_flat`, `open_vertical`)
-- `assets/mjcf/scene_human_calf.xml` (`open_under_ankle`, `open_lifted`)
-
-Corresponding object XMLs are under `assets/objects/`:
-
-- `prism.xml`
-- `screwdriver_medium.xml`
-- `screwdriver_small.xml`
-- `power_drill.xml`
-- `human_calf.xml`
-
-## Run 6: Screwdriver Combined Multi-Task Sweep
-
-Run 6 now evaluates all three medium-screwdriver keyframes per sampled morphology in one unified run:
-
-- `open_flat`
-- `open_vertical`
-- `open_90vertical`
-
-Each sampled morphology is scored as a 3-task multiobjective candidate, using both adaptation paths together:
-
-- interval FP refresh every 50 samples (`interval-initial-fp` behavior)
-- sparse per-morph local adaptation (`sparse-per-morph` behavior)
-
-### 1) Foundational pose search per keyframe (if needed)
-
-```bash
-for kf in open_flat open_vertical open_90vertical; do
-  for seed in 0 1; do
-    uv run python scripts/phase1_optimize_grasp.py \
-      --scene-xml assets/mjcf/scene_screwdriver_medium.xml \
-      --keyframe "$kf" \
-      --iterations 16 \
-      --population 48 \
-      --elite-fraction 0.2 \
-      --sigma-init 0.18 \
-      --seed "$seed" \
-      --skip-gif \
-      --output-dir "results/phase1/run6_foundational/$kf" \
-      --tag "seed_${seed}"
-  done
-done
-```
-
-### 2) One-command combined run (1000 samples, top-5 GIFs)
-
-```bash
-SAMPLES=1000 TAG=run6_combined_1000 TOPK_GIFS=5 ./scripts/run6_all_in_one.sh
-```
-
-Notes:
-
-- Uses `scripts/run6_combined_multitask.py` under the hood.
-- Set `RUN_FOUNDATIONAL=1` to rerun foundational search before the combined sweep.
-- Rolling efficiency is computed over windows of 100 samples, with 3 tasks per sample.
-
-### 3) Direct combined run (advanced)
-
-```bash
-/home/humanoid/Programs/hand/.venv/bin/python scripts/run6_combined_multitask.py \
   --scene-xml assets/mjcf/scene_screwdriver_medium.xml \
-  --keyframes open_flat open_vertical open_90vertical \
-  --foundational-root results/phase1/run6_foundational \
-  --samples 1000 \
-  --seed 6 \
-  --fp-refresh-interval 50 \
-  --morph-sort distance \
-  --window 100 \
-  --max-mean-tip-distance 0.022 \
-  --min-contacts 2 \
-  --top-k-gifs 5 \
-  --output-dir results/phase1 \
-  --tag run6_combined_1000
+  --keyframe open_flat \
+  --optimizer cem
 ```
 
-### 4) Analysis (combined-run compatible)
+Run the current morphology sweep used in the docs and results folders:
+
+```bash
+uv run python scripts/phase1_pollard_multiscene.py \
+  --samples 500 \
+  --fp-adaptation sparse-per-morph
+```
+
+Run the combined screwdriver multi-keyframe experiment:
+
+```bash
+uv run python scripts/run6_combined_multitask.py \
+  --samples 1000 \
+  --keyframes open_flat open_vertical open_90vertical
+```
+
+Analyze a run:
 
 ```bash
 uv run python scripts/run6_analysis.py \
@@ -234,29 +117,60 @@ uv run python scripts/run6_analysis.py \
   --metrics cube_xy_drift finger_flex_drift
 ```
 
-Primary outputs:
+## Current Benchmark Composition
 
-- `results/phase1/run6_combined_1000/summary.json`
-- `results/phase1/run6_combined_1000/all_candidates_multitask.csv`
-- `results/phase1/run6_combined_1000/all_task_results.csv`
-- `results/phase1/run6_combined_1000/rolling_efficiency.csv`
-- `results/phase1/run6_combined_1000/rolling_efficiency.png`
-- `results/phase1/run6_combined_1000/top5_candidates.csv`
-- `results/phase1/run6_combined_1000/top5_gifs/`
-- `results/phase1/run6_combined_1000/analysis/run6_analysis_summary.md`
+The repository currently centers on these scene/object pairs:
 
-## Backend Plan
+- `assets/mjcf/scene_prism.xml`
+- `assets/mjcf/scene_screwdriver_medium.xml`
+- `assets/mjcf/scene_screwdriver_small.xml`
+- `assets/mjcf/scene_power_drill.xml`
+- `assets/mjcf/scene_human_calf.xml`
 
-### Backend contract
+The medium screwdriver scene is the most developed benchmark. It uses three keyframes:
 
-All backends implement `PhysicsBackend` in `src/morphohand/backends/base.py`:
+- `open_flat`
+- `open_vertical`
+- `open_90vertical`
 
-- `load_model(xml_path)`
-- `reset(seed)`
-- `step(control)`
-- `rollout(controls)`
-- `metrics()`
-- `supports_autodiff` flag
+## Current Results
+
+Foundational pose search on the medium screwdriver scene produced the following best
+scores:
+
+- `open_flat`: `5.702777`
+- `open_vertical`: `6.906849`
+- `open_90vertical`: `7.091068`
+
+The combined screwdriver multitask run then confirmed that the pipeline can score all
+three keyframes per morphology in one pass. In the current 1000-sample sweep, feasible
+rates were:
+
+- `open_flat`: `0.994`
+- `open_vertical`: `0.884`
+- `open_90vertical`: `0.696`
+
+This is the main signal the docs and paper now track: pose choice matters, and the same
+morphology distribution behaves differently across the three screwdriver orientations.
+
+## Artifacts
+
+Phase 1 runs write their outputs under `results/phase1/<run_tag>/`.
+Common artifacts include:
+
+- `summary.json`
+- `all_candidates.csv` or `all_candidates_multitask.csv`
+- `all_task_results.csv`
+- `rolling_efficiency.csv`
+- `objective_trace.png`
+- `grasp_metrics_trace.png`
+- `top5_gifs/`
+
+## Notes on Backend Support
+
+The evaluator supports `mujoco`, `mjwarp`, and `comfree-warp` runtime backends.
+MuJoCo is the default and most reliable option for the current Phase 1 loop.
+The Warp-backed paths remain optional and are best treated as throughput experiments.
 
 ### Initial backend targets
 
