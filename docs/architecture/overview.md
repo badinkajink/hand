@@ -3,58 +3,56 @@
 ## Design Principles
 
 1. Separate morphology and control optimization concerns.
-2. Keep backend adapters thin and interchangeable.
-3. Prefer one codebase with optional backend dependencies.
-4. Keep model definitions inspectable and reproducible.
+2. Keep the working Phase 1 pipeline explicit and reproducible.
+3. Treat backend adapters as optional runtime lanes, not the main abstraction.
+4. Keep model definitions inspectable and generated from the same morphology data.
 
 ## Core Modules
 
-- `morphohand.backends`: simulator abstraction and backend-specific adapters.
-- `morphohand.optimization.inner_loop`: gradient-based grasp synthesis.
-- `morphohand.optimization.outer_loop`: MAP-Elites morphology search.
-- `morphohand.optimization.phase1_common`: grasp evaluator, objective function, and metrics.
-- `morphohand.optimization.phase1_strategy_cem`: CEM optimizer for foundational poses and FP adaptation.
+- `morphohand.sampling`: morphology perturbation, foundational pose loading, feasibility gating,
+  scene patching, and CSV / plot helpers.
+- `morphohand.optimization.phase1_common`: shared Phase 1 evaluator, objective, and metrics.
+- `morphohand.optimization.phase1_strategy_cem`: CEM lane for foundational poses and adaptation.
+- `morphohand.optimization.phase1_strategy_mjx_autodiff`: MJX autodiff lane.
+- `morphohand.optimization.phase1_strategy_diffmjx`: DiffMJX-style MVP lane.
 - `morphohand.tools.morphology_xml`: MJCF generation and morphology parameter handling.
-- `assets/mjcf`: canonical hand and scene XML assets.
-- `scripts/phase1_pollard_multiscene.py`: main morphology sampling pipeline with FP adaptation.
+- `morphohand.backends`: backend protocol plus adapter shells.
+- `assets/mjcf`: canonical hand, scene, and task-specific evaluation XML assets.
+- `scripts/phase1_pollard_multiscene.py`: cube + prism morphology sampling pipeline.
+- `scripts/run6_combined_multitask.py`: screwdriver multi-keyframe combined evaluation.
 
 ## DOF Split
 
 Per finger DOFs:
 
-- Morphology (outer loop): `x`, `y`, `len` — 3 DOF/finger, 9D total
-- Control (inner loop): `yaw`, `mcp`, `pip` — 3 DOF/finger, 9D total
+- Morphology (sampling space): `x`, `y`, `len` — 3 DOF/finger, 9D total
+- Control (foundational pose / grasp control): `yaw`, `mcp`, `pip` — 3 DOF/finger, 9D total
 
-This supports object classes where approach angle sensitivity is high (elongated and flat objects).
-
-## Backend Decision
-
-CPU MuJoCo is the production backend for Phase 1 evaluation. GPU backends (mjwarp, comfree-warp) were benchmarked but provide no advantage for the current host-driven per-morphology evaluation loop. See `4-14_experiments.md` for details.
+This supports object classes where approach angle sensitivity is high, especially elongated
+objects and the screwdriver orientations used in run6.
 
 ## Current Pipeline
 
-```
-1. Foundational Pose Search (one-time per scene)
-   CEM: 40 iter × 72 pop × 3 seeds → best finger controls per object
+1. Foundational pose search per keyframe using `scripts/phase1_optimize_grasp.py`.
+2. Morphology sampling around a base morphology using `morphohand.sampling.sample_morphologies`.
+3. FP adaptation per morphology using the chosen strategy lane.
+4. Feasibility gating and ranking with the shared Phase 1 evaluator.
+5. Post-hoc analysis and visualization using `scripts/run6_analysis.py`.
 
-2. Morphology Sampling (500 candidates)
-   9D perturbation around base → optional distance-sort
+MuJoCo is the default runtime backend for this loop. Warp-backed evaluation paths remain
+available as throughput experiments, but they are not required for the current workflow.
 
-3. Per-Morphology Evaluation
-   For each morphology × each scene:
-   a. Generate scene XML with morphology
-   b. Adapt FP (sparse-per-morph recommended: 5 random perturbations)
-   c. Also evaluate original FPs, pick best feasible
-   d. Run settle → lift → hold simulation (600 steps)
-   e. Score: lift + contacts + persistence - drift penalties
-   f. Gate: min contacts, min persistence, max drift, max tip distance
+## Current Status
 
-4. Ranking & Refinement
-   Feasibility filtering → Pareto front → top-k CEM refinement → GIF export
-```
+- Phase 1 sampling and evaluation are implemented.
+- Outer-loop MAP-Elites remains a skeleton.
+- Backend adapter modules are present, but the default documented path is still MuJoCo.
 
 ## Recent Findings
 
-- 2026-04-10: FP adaptation study (Run 5): cheap per-morphology FP refinement recovers +22% feasibility. See `4-14_experiments.md`.
-- 2026-04-14: Warp throughput/fidelity comparison. CPU MuJoCo preferred. See `4-14_experiments.md`.
-- 2026-04-13: Pollard sampling progression (Runs 1-3). See `4-13_pollard_sampling.md`.
+- 2026-04-13: Foundational pose search on the medium screwdriver scene produced distinct
+  best scores for `open_flat`, `open_vertical`, and `open_90vertical`.
+- 2026-04-21: Run6 combined multitask sweeps show that feasibility depends strongly on
+  screwdriver orientation, with `open_flat` highest and `open_90vertical` lowest among the
+  current 1000-sample sweep.
+- See [Phase 1 results summary](phase1_results.md) for the current numbers.

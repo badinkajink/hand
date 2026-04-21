@@ -2,15 +2,19 @@
 
 ## Roles
 
-- `mjx-native`: default autodiff backend for the inner loop.
+- `mujoco`: default backend for the current Phase 1 evaluation loop.
+- `mjwarp`: optional high-throughput backend for throughput experiments.
+- `comfree-warp`: optional Warp-backed backend for analytical-contact experiments.
+- `mjx-native`: autodiff lane for the optimizer, not the default runtime backend.
 - `diffmjx-lite`: planned MJX variant with smooth collision and CFD gradient path.
-- `mjwarp`: high-throughput non-diff fallback backend.
-- `comfree-warp`: high-throughput analytical-contact backend candidate.
 
 ## Recommended Usage
 
-- Inner loop: `mjx-native` first, then compare with `diffmjx-lite`.
-- Outer loop: `comfree-warp` if stable; otherwise `mjwarp` fallback.
+- Current docs and runs: use `mujoco` first.
+- Optimization experiments: compare `mjx-native` and `diffmjx-lite` only when the gradient
+	path is the focus.
+- Throughput experiments: try `mjwarp` or `comfree-warp` only if you need GPU-backed batch
+	evaluation.
 
 ## Failure Handling
 
@@ -19,3 +23,6 @@ When a morphology causes instability on `comfree-warp`:
 1. mark evaluation as unstable,
 2. rerun same morphology in `mjwarp`,
 3. record backend used in experiment logs.
+
+When comparing backends in the docs, treat MuJoCo as the reference implementation for the
+current Phase 1 reports.
