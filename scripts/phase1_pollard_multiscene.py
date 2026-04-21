@@ -1,17 +1,14 @@
 from __future__ import annotations
+# pyright: reportMissingImports=false
 
 import argparse
-import csv
 import json
-from dataclasses import dataclass
-from datetime import datetime
-from pathlib import Path
 import sys
 import time
-import xml.etree.ElementTree as ET
+from dataclasses import asdict, dataclass
+from datetime import datetime
+from pathlib import Path
 
-import matplotlib.pyplot as plt
-import mujoco
 import numpy as np
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -20,37 +17,31 @@ if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
 from morphohand.optimization.phase1_grasp import (  # noqa: E402
-    Phase1OptimizationConfig,
     Phase1EvalConfig,
     Phase1GraspEvaluator,
+    Phase1OptimizationConfig,
     optimize_finger_controls,
 )
-from morphohand.tools.morphology_xml import (  # noqa: E402
-    MorphologyValues,
-    build_morphology_suffix,
-    create_rigid_morphology_xml,
-    extract_morphology_from_qpos,
+from morphohand.sampling import (  # noqa: E402
+    FeasibilityCriteria,
+    FoundationalPose,
+    MorphologyBounds,
+    adapt_foundational_ctrl,
+    add_foundational_keyframe,
+    is_feasible,
+    load_base_morphology,
+    load_best_pose_with_prefix,
+    load_foundational_poses_with_scene,
+    morph_distance,
+    morph_row_fields,
+    morph_suffix,
+    pareto_front_indices,
+    plot_feasible_scatter,
+    sample_morphologies,
+    simulate_settle_qpos,
+    write_csv,
+    write_rigid_scene_with_object_size,
 )
-
-
-FINGER_ACTUATOR_NAMES = [
-    "a_thumb_yaw",
-    "a_thumb_mcp",
-    "a_thumb_pip",
-    "a_index_yaw",
-    "a_index_mcp",
-    "a_index_pip",
-    "a_middle_yaw",
-    "a_middle_mcp",
-    "a_middle_pip",
-]
-
-
-@dataclass(frozen=True)
-class FoundationalPose:
-    label: str
-    finger_ctrl: np.ndarray
-    score: float
 
 
 @dataclass(frozen=True)
@@ -61,20 +52,7 @@ class SceneSpec:
     size_y: float
     size_z: float
     foundational_poses: list[FoundationalPose]
-    max_mean_tip_distance: float
-    min_contacts: float
-    min_finger_contact_persistence: float
-    max_finger_yaw_drift: float
-
-
-@dataclass(frozen=True)
-class MorphologyBounds:
-    x_min: float
-    x_max: float
-    y_min: float
-    y_max: float
-    len_min: float
-    len_max: float
+    criteria: FeasibilityCriteria
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -151,20 +129,13 @@ def build_parser() -> argparse.ArgumentParser:
         "--fp-adaptation",
         choices=["none", "interval-open", "interval-initial-fp", "sparse-per-morph", "local-perturbation"],
         default="none",
-        help="Adapt foundational pose strategy while traversing morphology samples.",
     )
     parser.add_argument(
         "--morph-sort",
         choices=["none", "distance"],
         default="none",
-        help="Sort morphology candidates before evaluation. 'distance' sorts by L2 distance from base.",
     )
-    parser.add_argument(
-        "--fp-refresh-interval",
-        type=int,
-        default=40,
-        help="For interval modes, refresh foundational pose every N morphologies.",
-    )
+    parser.add_argument("--fp-refresh-interval", type=int, default=40)
     parser.add_argument("--fp-adapt-iterations", type=int, default=12)
     parser.add_argument("--fp-adapt-population", type=int, default=24)
     parser.add_argument("--fp-adapt-elite-fraction", type=float, default=0.25)
@@ -194,474 +165,34 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _decode_token(token: str) -> float:
-    if token.startswith("p"):
-        sign = 1.0
-        body = token[1:]
-    elif token.startswith("n"):
-        sign = -1.0
-        body = token[1:]
-    else:
-        raise ValueError(f"Invalid morphology token sign: {token}")
-    return sign * float(body.replace("d", ".", 1))
+def _build_scene_specs(args: argparse.Namespace):
+    cube_poses, cube_scene = load_foundational_poses_with_scene(args.cube_foundational_run_dir)
+    base_morphology = load_base_morphology(cube_scene, keyframe_name="open")
 
+    prism25 = load_best_pose_with_prefix(args.prism_foundational_run_dir, "y0d0250", "prism_y0d0250")
+    prism30 = load_best_pose_with_prefix(args.prism_foundational_run_dir, "y0d0300", "prism_y0d0300")
+    prism35 = load_best_pose_with_prefix(args.prism_foundational_run_dir, "y0d0350", "prism_y0d0350")
 
-def _parse_morphology_from_generated_filename(scene_xml: Path) -> MorphologyValues:
-    parts = scene_xml.stem.split("_")
-    t_part = next((p for p in parts if p.startswith("t")), None)
-    i_part = next((p for p in parts if p.startswith("i")), None)
-    m_part = next((p for p in parts if p.startswith("m")), None)
-    if t_part is None or i_part is None or m_part is None:
-        raise ValueError(f"Scene filename missing t/i/m morphology groups: {scene_xml.name}")
-
-    def split_triplet(group: str) -> tuple[float, float, float]:
-        payload = group[1:]
-        chunks = [payload[k : k + 7] for k in range(0, 21, 7)]
-        return (_decode_token(chunks[0]), _decode_token(chunks[1]), _decode_token(chunks[2]))
-
-    tx, ty, tl = split_triplet(t_part)
-    ix, iy, il = split_triplet(i_part)
-    mx, my, ml = split_triplet(m_part)
-    return MorphologyValues(tx, ty, tl, ix, iy, il, mx, my, ml)
-
-
-def _parse_morphology_from_open_keyframe(scene_xml: Path) -> MorphologyValues:
-    root = ET.parse(scene_xml).getroot()
-    keyframe = root.find("keyframe")
-    if keyframe is None:
-        raise ValueError(f"No keyframe section in {scene_xml}")
-
-    open_key = None
-    for key in keyframe.findall("key"):
-        if key.get("name") == "open":
-            open_key = key
-            break
-    if open_key is None:
-        raise ValueError(f"No open keyframe in {scene_xml}")
-
-    qpos_raw = open_key.get("qpos") or ""
-    qpos = [float(v) for v in qpos_raw.replace("\n", " ").split()]
-    return extract_morphology_from_qpos(qpos=qpos, has_scene_prefix=True)
-
-
-def _load_base_morphology(scene_xml: Path) -> MorphologyValues:
-    try:
-        return _parse_morphology_from_generated_filename(scene_xml)
-    except Exception:
-        return _parse_morphology_from_open_keyframe(scene_xml)
-
-
-def _load_cube_foundational_poses(run_dir: Path) -> tuple[list[FoundationalPose], MorphologyValues]:
-    poses: list[FoundationalPose] = []
-    scene_path: Path | None = None
-    for subdir in sorted(run_dir.iterdir()):
-        if not subdir.is_dir():
-            continue
-        summary_path = subdir / "summary.json"
-        if not summary_path.exists():
-            continue
-        payload = json.loads(summary_path.read_text(encoding="utf-8"))
-        poses.append(
-            FoundationalPose(
-                label=subdir.name,
-                finger_ctrl=np.asarray(payload["best_finger_ctrl"], dtype=np.float64),
-                score=float(payload.get("best_score", float("-inf"))),
-            )
-        )
-        scene_path = Path(payload["scene_xml"])
-
-    if not poses or scene_path is None:
-        raise ValueError(f"No cube foundational summaries found in {run_dir}")
-
-    poses = sorted(poses, key=lambda p: p.score, reverse=True)
-    base_morphology = _load_base_morphology(scene_path)
-    return poses, base_morphology
-
-
-def _load_prism_pose(summary_path: Path, label: str) -> FoundationalPose:
-    payload = json.loads(summary_path.read_text(encoding="utf-8"))
-    return FoundationalPose(
-        label=label,
-        finger_ctrl=np.asarray(payload["best_finger_ctrl"], dtype=np.float64),
-        score=float(payload.get("best_score", float("-inf"))),
+    cube_criteria = FeasibilityCriteria(
+        max_mean_tip_distance=args.cube_max_mean_tip_distance,
+        min_contacts=args.cube_min_contacts,
+        min_finger_contact_persistence=args.cube_min_finger_contact_persistence,
+        max_finger_yaw_drift=args.cube_max_finger_yaw_drift,
     )
-
-
-def _load_best_prism_pose(prism_run_dir: Path, prefix: str, label: str) -> FoundationalPose:
-    candidates: list[tuple[float, Path]] = []
-    for subdir in sorted(prism_run_dir.iterdir()):
-        if not subdir.is_dir() or not subdir.name.startswith(prefix):
-            continue
-        summary_path = subdir / "summary.json"
-        if not summary_path.exists():
-            continue
-        payload = json.loads(summary_path.read_text(encoding="utf-8"))
-        candidates.append((float(payload.get("best_score", float("-inf"))), summary_path))
-
-    if not candidates:
-        raise ValueError(f"No prism foundational runs matching prefix '{prefix}' in {prism_run_dir}")
-
-    _, best_summary = max(candidates, key=lambda item: item[0])
-    return _load_prism_pose(best_summary, label)
-
-
-def _load_scene_specs(
-    cube_run_dir: Path,
-    prism_run_dir: Path,
-    cube_max_mean_tip_distance: float,
-    cube_min_contacts: float,
-    cube_min_finger_contact_persistence: float,
-    cube_max_finger_yaw_drift: float,
-    prism_max_mean_tip_distance: float,
-    prism_min_contacts: float,
-    prism_min_finger_contact_persistence: float,
-    prism_max_finger_yaw_drift: float,
-) -> tuple[list[SceneSpec], MorphologyValues]:
-    cube_poses, base_morphology = _load_cube_foundational_poses(cube_run_dir)
-    prism25 = _load_best_prism_pose(prism_run_dir, prefix="y0d0250", label="prism_y0d0250")
-    prism30 = _load_best_prism_pose(prism_run_dir, prefix="y0d0300", label="prism_y0d0300")
-    prism35 = _load_best_prism_pose(prism_run_dir, prefix="y0d0350", label="prism_y0d0350")
+    prism_criteria = FeasibilityCriteria(
+        max_mean_tip_distance=args.prism_max_mean_tip_distance,
+        min_contacts=args.prism_min_contacts,
+        min_finger_contact_persistence=args.prism_min_finger_contact_persistence,
+        max_finger_yaw_drift=args.prism_max_finger_yaw_drift,
+    )
 
     specs = [
-        SceneSpec(
-            scene_key="cube",
-            display_name="cube",
-            size_x=0.02,
-            size_y=0.02,
-            size_z=0.02,
-            foundational_poses=cube_poses,
-            max_mean_tip_distance=cube_max_mean_tip_distance,
-            min_contacts=cube_min_contacts,
-            min_finger_contact_persistence=cube_min_finger_contact_persistence,
-            max_finger_yaw_drift=cube_max_finger_yaw_drift,
-        ),
-        SceneSpec(
-            scene_key="prism1",
-            display_name="prism_y0d0250",
-            size_x=0.02,
-            size_y=0.025,
-            size_z=0.02,
-            foundational_poses=[prism25],
-            max_mean_tip_distance=prism_max_mean_tip_distance,
-            min_contacts=prism_min_contacts,
-            min_finger_contact_persistence=prism_min_finger_contact_persistence,
-            max_finger_yaw_drift=prism_max_finger_yaw_drift,
-        ),
-        SceneSpec(
-            scene_key="prism2",
-            display_name="prism_y0d0300",
-            size_x=0.02,
-            size_y=0.03,
-            size_z=0.02,
-            foundational_poses=[prism30],
-            max_mean_tip_distance=prism_max_mean_tip_distance,
-            min_contacts=prism_min_contacts,
-            min_finger_contact_persistence=prism_min_finger_contact_persistence,
-            max_finger_yaw_drift=prism_max_finger_yaw_drift,
-        ),
-        SceneSpec(
-            scene_key="prism3",
-            display_name="prism_y0d0350",
-            size_x=0.02,
-            size_y=0.035,
-            size_z=0.02,
-            foundational_poses=[prism35],
-            max_mean_tip_distance=prism_max_mean_tip_distance,
-            min_contacts=prism_min_contacts,
-            min_finger_contact_persistence=prism_min_finger_contact_persistence,
-            max_finger_yaw_drift=prism_max_finger_yaw_drift,
-        ),
+        SceneSpec("cube", "cube", 0.02, 0.02, 0.02, cube_poses, cube_criteria),
+        SceneSpec("prism1", "prism_y0d0250", 0.02, 0.025, 0.02, [prism25], prism_criteria),
+        SceneSpec("prism2", "prism_y0d0300", 0.02, 0.03, 0.02, [prism30], prism_criteria),
+        SceneSpec("prism3", "prism_y0d0350", 0.02, 0.035, 0.02, [prism35], prism_criteria),
     ]
     return specs, base_morphology
-
-
-def _clip_morphology(values: MorphologyValues, bounds: MorphologyBounds) -> MorphologyValues:
-    return MorphologyValues(
-        thumb_x=float(np.clip(values.thumb_x, bounds.x_min, bounds.x_max)),
-        thumb_y=float(np.clip(values.thumb_y, bounds.y_min, bounds.y_max)),
-        thumb_len=float(np.clip(values.thumb_len, bounds.len_min, bounds.len_max)),
-        index_x=float(np.clip(values.index_x, bounds.x_min, bounds.x_max)),
-        index_y=float(np.clip(values.index_y, bounds.y_min, bounds.y_max)),
-        index_len=float(np.clip(values.index_len, bounds.len_min, bounds.len_max)),
-        middle_x=float(np.clip(values.middle_x, bounds.x_min, bounds.x_max)),
-        middle_y=float(np.clip(values.middle_y, bounds.y_min, bounds.y_max)),
-        middle_len=float(np.clip(values.middle_len, bounds.len_min, bounds.len_max)),
-    )
-
-
-def _sample_morphologies(
-    base: MorphologyValues,
-    sample_count: int,
-    rng: np.random.Generator,
-    bounds: MorphologyBounds,
-    x_perturb: float,
-    y_perturb: float,
-    len_perturb: float,
-) -> list[MorphologyValues]:
-    candidates: list[MorphologyValues] = [base]
-    seen: set[tuple[float, ...]] = set()
-
-    def key_for(v: MorphologyValues) -> tuple[float, ...]:
-        return (
-            round(v.thumb_x, 6),
-            round(v.thumb_y, 6),
-            round(v.thumb_len, 6),
-            round(v.index_x, 6),
-            round(v.index_y, 6),
-            round(v.index_len, 6),
-            round(v.middle_x, 6),
-            round(v.middle_y, 6),
-            round(v.middle_len, 6),
-        )
-
-    seen.add(key_for(base))
-    while len(candidates) < sample_count:
-        proposal = MorphologyValues(
-            thumb_x=base.thumb_x + float(rng.uniform(-x_perturb, x_perturb)),
-            thumb_y=base.thumb_y + float(rng.uniform(-y_perturb, y_perturb)),
-            thumb_len=base.thumb_len + float(rng.uniform(-len_perturb, len_perturb)),
-            index_x=base.index_x + float(rng.uniform(-x_perturb, x_perturb)),
-            index_y=base.index_y + float(rng.uniform(-y_perturb, y_perturb)),
-            index_len=base.index_len + float(rng.uniform(-len_perturb, len_perturb)),
-            middle_x=base.middle_x + float(rng.uniform(-x_perturb, x_perturb)),
-            middle_y=base.middle_y + float(rng.uniform(-y_perturb, y_perturb)),
-            middle_len=base.middle_len + float(rng.uniform(-len_perturb, len_perturb)),
-        )
-        proposal = _clip_morphology(proposal, bounds)
-        k = key_for(proposal)
-        if k in seen:
-            continue
-        seen.add(k)
-        candidates.append(proposal)
-
-    return candidates
-
-
-def _morph_to_array(m: MorphologyValues) -> np.ndarray:
-    return np.array([
-        m.thumb_x, m.thumb_y, m.thumb_len,
-        m.index_x, m.index_y, m.index_len,
-        m.middle_x, m.middle_y, m.middle_len,
-    ])
-
-
-def _morph_distance(a: MorphologyValues, b: MorphologyValues) -> float:
-    return float(np.linalg.norm(_morph_to_array(a) - _morph_to_array(b)))
-
-
-def _local_perturb_fp(
-    evaluator: Phase1GraspEvaluator,
-    baseline_ctrl: np.ndarray,
-    delta: float,
-) -> tuple[np.ndarray, float]:
-    """Try +/- delta on each of 9 control dims, return best ctrl and score."""
-    best_ctrl = baseline_ctrl.copy()
-    best_score, _ = evaluator.evaluate(baseline_ctrl)
-    for dim in range(len(baseline_ctrl)):
-        for sign in (+1, -1):
-            candidate = baseline_ctrl.copy()
-            candidate[dim] += sign * delta
-            score, _ = evaluator.evaluate(candidate)
-            if score > best_score:
-                best_score = score
-                best_ctrl = candidate.copy()
-    return best_ctrl, best_score
-
-
-def _make_scene_for_spec(
-    base_scene_xml: Path,
-    scene_output_path: Path,
-    morphology: MorphologyValues,
-    spec: SceneSpec,
-) -> Path:
-    create_rigid_morphology_xml(
-        base_xml_path=base_scene_xml,
-        morphology=morphology,
-        output_xml_path=scene_output_path,
-        model_name=scene_output_path.stem,
-    )
-
-    root = ET.parse(scene_output_path).getroot()
-    cube_body = None
-    for body in root.iter("body"):
-        if body.get("name") == "cube":
-            cube_body = body
-            break
-    if cube_body is None:
-        raise ValueError(f"Could not find cube body in {scene_output_path}")
-
-    cube_geom = None
-    for geom in cube_body.findall("geom"):
-        if geom.get("type") == "box":
-            cube_geom = geom
-            break
-    if cube_geom is None:
-        raise ValueError(f"Could not find cube box geom in {scene_output_path}")
-
-    cube_geom.set("size", f"{spec.size_x:.6f} {spec.size_y:.6f} {spec.size_z:.6f}")
-    cube_body.set("pos", f"0.000000 0.000000 {spec.size_z:.6f}")
-
-    ET.indent(root, space="  ")
-    ET.ElementTree(root).write(scene_output_path, encoding="utf-8", xml_declaration=False)
-    return scene_output_path
-
-
-def _is_feasible(
-    metrics: dict[str, float],
-    max_mean_tip_distance: float,
-    min_contacts: float,
-    min_finger_contact_persistence: float,
-    max_finger_yaw_drift: float,
-) -> bool:
-    return (
-        float(metrics.get("mean_tip_distance", np.inf)) <= max_mean_tip_distance
-        and float(metrics.get("cube_tip_contacts", 0.0)) >= min_contacts
-        and float(metrics.get("min_finger_contact_persistence", 0.0)) >= min_finger_contact_persistence
-        and float(metrics.get("finger_yaw_drift", np.inf)) <= max_finger_yaw_drift
-    )
-
-
-def _add_foundational_keyframe(scene_xml: Path, key_name: str, qpos: np.ndarray, ctrl: np.ndarray) -> None:
-    root = ET.parse(scene_xml).getroot()
-    keyframe = root.find("keyframe")
-    if keyframe is None:
-        keyframe = ET.SubElement(root, "keyframe")
-
-    existing = None
-    for key in keyframe.findall("key"):
-        if key.get("name") == key_name:
-            existing = key
-            break
-
-    qpos_text = "\n        " + " ".join(f"{v:.10g}" for v in qpos.tolist()) + "\n      "
-    ctrl_text = "\n        " + " ".join(f"{v:.10g}" for v in ctrl.tolist()) + "\n      "
-
-    if existing is None:
-        ET.SubElement(keyframe, "key", name=key_name, qpos=qpos_text, ctrl=ctrl_text)
-    else:
-        existing.set("qpos", qpos_text)
-        existing.set("ctrl", ctrl_text)
-
-    ET.indent(root, space="  ")
-    ET.ElementTree(root).write(scene_xml, encoding="utf-8", xml_declaration=False)
-
-
-def _simulate_settle_qpos(scene_xml: Path, keyframe_name: str, finger_ctrl: np.ndarray, settle_steps: int) -> tuple[np.ndarray, np.ndarray]:
-    model = mujoco.MjModel.from_xml_path(str(scene_xml))
-    data = mujoco.MjData(model)
-
-    key_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_KEY, keyframe_name)
-    if key_id < 0:
-        raise ValueError(f"Keyframe '{keyframe_name}' not found in {scene_xml}")
-
-    actuator_ids = []
-    for name in FINGER_ACTUATOR_NAMES:
-        idx = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_ACTUATOR, name)
-        if idx < 0:
-            raise ValueError(f"Actuator '{name}' not found in {scene_xml}")
-        actuator_ids.append(int(idx))
-
-    mujoco.mj_resetDataKeyframe(model, data, key_id)
-    mujoco.mj_forward(model, data)
-    ctrl = data.ctrl.copy()
-    ctrl[np.asarray(actuator_ids, dtype=np.int32)] = finger_ctrl
-
-    for _ in range(settle_steps):
-        data.ctrl[:] = ctrl
-        mujoco.mj_step(model, data)
-
-    return data.qpos.copy(), ctrl.copy()
-
-
-def _write_csv(rows: list[dict[str, float | str]], path: Path) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if not rows:
-        path.write_text("", encoding="utf-8")
-        return
-    fieldnames = list(rows[0].keys())
-    with path.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writeheader()
-        for row in rows:
-            writer.writerow(row)
-
-
-def _pareto_front_indices(rows: list[dict[str, float | str]]) -> list[int]:
-    if not rows:
-        return []
-
-    max_keys = ("score", "cube_lift", "cube_tip_contacts")
-    min_keys = ("mean_tip_distance", "cube_vel_norm")
-    dominated = [False] * len(rows)
-
-    for i, a in enumerate(rows):
-        if dominated[i]:
-            continue
-        for j, b in enumerate(rows):
-            if i == j or dominated[i]:
-                continue
-            b_not_worse = all(float(b[k]) >= float(a[k]) for k in max_keys) and all(
-                float(b[k]) <= float(a[k]) for k in min_keys
-            )
-            b_strict = any(float(b[k]) > float(a[k]) for k in max_keys) or any(
-                float(b[k]) < float(a[k]) for k in min_keys
-            )
-            if b_not_worse and b_strict:
-                dominated[i] = True
-
-    return [i for i, is_dominated in enumerate(dominated) if not is_dominated]
-
-
-def _plot_scene_results(feasible_rows: list[dict[str, float | str]], pareto_indices: list[int], out_dir: Path) -> None:
-    if not feasible_rows:
-        return
-
-    lift = np.asarray([float(r["cube_lift"]) for r in feasible_rows], dtype=np.float64)
-    dist = np.asarray([float(r["mean_tip_distance"]) for r in feasible_rows], dtype=np.float64)
-    contacts = np.asarray([float(r["cube_tip_contacts"]) for r in feasible_rows], dtype=np.float64)
-    score = np.asarray([float(r["score"]) for r in feasible_rows], dtype=np.float64)
-
-    plt.figure(figsize=(8, 4.8))
-    scatter = plt.scatter(dist, lift, c=score, s=24, alpha=0.85, cmap="viridis")
-    if pareto_indices:
-        plt.scatter(
-            dist[pareto_indices],
-            lift[pareto_indices],
-            facecolors="none",
-            edgecolors="red",
-            s=75,
-            linewidths=1.2,
-            label="Pareto front",
-        )
-        plt.legend()
-    plt.xlabel("Mean tip distance")
-    plt.ylabel("Cube/prism lift")
-    plt.title("Feasible Morphologies")
-    plt.grid(True, alpha=0.25)
-    cbar = plt.colorbar(scatter)
-    cbar.set_label("Score")
-    plt.tight_layout()
-    plt.savefig(out_dir / "feasible_scatter_lift_vs_distance.png", dpi=180)
-    plt.close()
-
-    plt.figure(figsize=(8, 4.8))
-    plt.scatter(contacts, lift, c=score, s=24, alpha=0.85, cmap="plasma")
-    if pareto_indices:
-        plt.scatter(
-            contacts[pareto_indices],
-            lift[pareto_indices],
-            facecolors="none",
-            edgecolors="black",
-            s=75,
-            linewidths=1.2,
-        )
-    plt.xlabel("Contacts")
-    plt.ylabel("Cube/prism lift")
-    plt.title("Lift vs Contacts")
-    plt.grid(True, alpha=0.25)
-    plt.tight_layout()
-    plt.savefig(out_dir / "feasible_scatter_lift_vs_contacts.png", dpi=180)
-    plt.close()
 
 
 def _make_evaluator(args: argparse.Namespace, scene_xml: Path, eval_cfg: Phase1EvalConfig) -> Phase1GraspEvaluator:
@@ -682,49 +213,29 @@ def _make_evaluator(args: argparse.Namespace, scene_xml: Path, eval_cfg: Phase1E
     )
 
 
-def _adapt_foundational_ctrl(
-    args: argparse.Namespace,
+_METRIC_KEYS: tuple[str, ...] = (
+    "cube_lift", "cube_tip_contacts", "mean_tip_distance", "cube_vel_norm",
+    "cube_xy_drift", "cube_z_drop_from_peak", "contact_persistence",
+    "thumb_contact_persistence", "index_contact_persistence", "middle_contact_persistence",
+    "all_finger_contact_persistence", "min_finger_contact_persistence",
+    "finger_persistence_imbalance", "finger_yaw_drift", "finger_flex_drift",
+)
+
+
+def _metric_fields(metrics: dict[str, float]) -> dict[str, float]:
+    return {k: float(metrics.get(k, 0.0)) for k in _METRIC_KEYS}
+
+
+def _evaluate_pool(
     evaluator: Phase1GraspEvaluator,
-    candidate_idx: int,
-    baseline_ctrl: np.ndarray,
-    interval_ctrl: np.ndarray,
-    adapt_cfg: Phase1OptimizationConfig,
-) -> tuple[np.ndarray, bool, float, str]:
-    mode = args.fp_adaptation
-    if mode == "none":
-        return interval_ctrl, False, 0.0, "none"
-
-    should_refresh = False
-    if mode in {"interval-open", "interval-initial-fp"}:
-        interval = max(1, int(args.fp_refresh_interval))
-        should_refresh = candidate_idx % interval == 0
-    elif mode in {"sparse-per-morph", "local-perturbation"}:
-        should_refresh = True
-
-    if not should_refresh:
-        return interval_ctrl, False, 0.0, "reuse"
-
-    if mode == "local-perturbation":
-        t0 = time.perf_counter()
-        ctrl, _ = _local_perturb_fp(evaluator, interval_ctrl, adapt_cfg.sigma_init)
-        elapsed = float(time.perf_counter() - t0)
-        return ctrl, True, elapsed, "local_perturb"
-
-    if mode == "interval-open":
-        init_ctrl = None
-        source = "open"
-    elif mode == "interval-initial-fp":
-        init_ctrl = interval_ctrl
-        source = "interval_fp"
-    else:
-        init_ctrl = interval_ctrl
-        source = "interval_fp"
-
-    t0 = time.perf_counter()
-    refined = optimize_finger_controls(evaluator=evaluator, cfg=adapt_cfg, initial_finger_ctrl=init_ctrl)
-    elapsed = float(time.perf_counter() - t0)
-    ctrl = np.asarray(refined["best_finger_ctrl"], dtype=np.float64)
-    return ctrl, True, elapsed, source
+    pool: list[tuple[str, np.ndarray]],
+    criteria: FeasibilityCriteria,
+) -> list[tuple[str, np.ndarray, float, dict[str, float], bool]]:
+    out: list[tuple[str, np.ndarray, float, dict[str, float], bool]] = []
+    for label, ctrl in pool:
+        score, metrics = evaluator.evaluate(ctrl)
+        out.append((label, ctrl, score, metrics, is_feasible(metrics, criteria)))
+    return out
 
 
 def main() -> None:
@@ -735,27 +246,14 @@ def main() -> None:
     out_dir = args.output_dir / tag
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    specs, base_morphology = _load_scene_specs(
-        args.cube_foundational_run_dir,
-        args.prism_foundational_run_dir,
-        cube_max_mean_tip_distance=args.cube_max_mean_tip_distance,
-        cube_min_contacts=args.cube_min_contacts,
-        cube_min_finger_contact_persistence=args.cube_min_finger_contact_persistence,
-        cube_max_finger_yaw_drift=args.cube_max_finger_yaw_drift,
-        prism_max_mean_tip_distance=args.prism_max_mean_tip_distance,
-        prism_min_contacts=args.prism_min_contacts,
-        prism_min_finger_contact_persistence=args.prism_min_finger_contact_persistence,
-        prism_max_finger_yaw_drift=args.prism_max_finger_yaw_drift,
-    )
+    specs, base_morphology = _build_scene_specs(args)
+
     bounds = MorphologyBounds(
-        x_min=args.x_min,
-        x_max=args.x_max,
-        y_min=args.y_min,
-        y_max=args.y_max,
-        len_min=args.len_min,
-        len_max=args.len_max,
+        x_min=args.x_min, x_max=args.x_max,
+        y_min=args.y_min, y_max=args.y_max,
+        len_min=args.len_min, len_max=args.len_max,
     )
-    candidates = _sample_morphologies(
+    candidates = sample_morphologies(
         base=base_morphology,
         sample_count=args.samples,
         rng=rng,
@@ -764,12 +262,13 @@ def main() -> None:
         y_perturb=args.y_perturb,
         len_perturb=args.len_perturb,
     )
-
     if args.morph_sort == "distance":
-        candidates.sort(key=lambda m: _morph_distance(m, base_morphology))
-        print(f"[morph-sort] Sorted {len(candidates)} candidates by distance from base "
-              f"(min={_morph_distance(candidates[0], base_morphology):.6f}, "
-              f"max={_morph_distance(candidates[-1], base_morphology):.6f})")
+        candidates.sort(key=lambda m: morph_distance(m, base_morphology))
+        print(
+            f"[morph-sort] {len(candidates)} candidates by distance from base "
+            f"(min={morph_distance(candidates[0], base_morphology):.6f}, "
+            f"max={morph_distance(candidates[-1], base_morphology):.6f})"
+        )
 
     eval_cfg = Phase1EvalConfig(
         settle_steps=args.settle_steps,
@@ -792,17 +291,16 @@ def main() -> None:
         seed=args.fp_adapt_seed,
     )
 
-    global_rows: list[dict[str, float | str]] = []
-    scene_summaries: dict[str, dict[str, int]] = {}
+    global_rows: list[dict[str, object]] = []
+    scene_summaries: dict[str, dict[str, object]] = {}
 
     for spec in specs:
         scene_dir = out_dir / spec.scene_key
-        scene_dir.mkdir(parents=True, exist_ok=True)
         generated_dir = scene_dir / "generated_mjcf"
         generated_dir.mkdir(parents=True, exist_ok=True)
 
-        all_rows: list[dict[str, float | str]] = []
-        feasible_rows: list[dict[str, float | str]] = []
+        all_rows: list[dict[str, object]] = []
+        feasible_rows: list[dict[str, object]] = []
         scene_eval_seconds_total = 0.0
         scene_adapt_seconds_total = 0.0
         scene_adapt_count = 0
@@ -812,167 +310,103 @@ def main() -> None:
         interval_fp_ctrl = baseline_fp_ctrl.copy()
 
         for idx, morphology in enumerate(candidates):
-            suffix = build_morphology_suffix(morphology)
-            scene_xml = generated_dir / f"scene_{spec.scene_key}_{suffix}.xml"
-            _make_scene_for_spec(
+            scene_xml = generated_dir / f"scene_{spec.scene_key}_{morph_suffix(morphology)}.xml"
+            write_rigid_scene_with_object_size(
                 base_scene_xml=args.base_scene_xml,
-                scene_output_path=scene_xml,
+                output_scene_xml=scene_xml,
                 morphology=morphology,
-                spec=spec,
+                object_body_name="cube",
+                object_geom_type="box",
+                size_xyz=(spec.size_x, spec.size_y, spec.size_z),
             )
 
-            evaluator = _make_evaluator(args=args, scene_xml=scene_xml, eval_cfg=eval_cfg)
+            evaluator = _make_evaluator(args, scene_xml, eval_cfg)
 
-            fp_adapt_triggered = False
-            fp_adapt_seconds = 0.0
-            fp_adapt_source = "none"
-            chosen_ctrl: np.ndarray
-            chosen_pose_label = ""
-            feasible_pose_count = 0
+            ctrl_adapted, triggered, adapt_secs, adapt_source = adapt_foundational_ctrl(
+                mode=args.fp_adaptation,
+                candidate_idx=idx,
+                interval_ctrl=interval_fp_ctrl,
+                evaluator=evaluator,
+                adapt_cfg=fp_adapt_cfg,
+                refresh_interval=args.fp_refresh_interval,
+            )
+            if args.fp_adaptation in {"interval-open", "interval-initial-fp"} and triggered:
+                interval_fp_ctrl = ctrl_adapted.copy()
+            scene_adapt_seconds_total += adapt_secs
+            scene_adapt_count += int(triggered)
 
+            t0 = time.perf_counter()
             if args.fp_adaptation == "none":
-                pose_evals: list[tuple[FoundationalPose, float, dict[str, float], bool]] = []
-                eval_t0 = time.perf_counter()
-                for pose in spec.foundational_poses:
-                    score, metrics = evaluator.evaluate(pose.finger_ctrl)
-                    feasible = _is_feasible(
-                        metrics,
-                        spec.max_mean_tip_distance,
-                        spec.min_contacts,
-                        spec.min_finger_contact_persistence,
-                        spec.max_finger_yaw_drift,
-                    )
-                    pose_evals.append((pose, score, metrics, feasible))
-                eval_seconds = float(time.perf_counter() - eval_t0)
-                feasible_hits = [p for p in pose_evals if p[3]]
-                feasible_pose_count = len(feasible_hits)
-                is_feasible = len(feasible_hits) > 0
-                chosen_pool = feasible_hits if feasible_hits else pose_evals
-                chosen_pose, chosen_score, chosen_metrics, _ = max(chosen_pool, key=lambda t: t[1])
-                chosen_pose_label = chosen_pose.label
-                chosen_ctrl = np.asarray(chosen_pose.finger_ctrl, dtype=np.float64)
+                pool = [(p.label, np.asarray(p.finger_ctrl, dtype=np.float64)) for p in spec.foundational_poses]
             else:
-                ctrl, fp_adapt_triggered, fp_adapt_seconds, fp_adapt_source = _adapt_foundational_ctrl(
-                    args=args,
-                    evaluator=evaluator,
-                    candidate_idx=idx,
-                    baseline_ctrl=baseline_fp_ctrl,
-                    interval_ctrl=interval_fp_ctrl,
-                    adapt_cfg=fp_adapt_cfg,
+                pool = [(f"adapted_{args.fp_adaptation}", ctrl_adapted)]
+                pool.extend(
+                    (p.label, np.asarray(p.finger_ctrl, dtype=np.float64)) for p in spec.foundational_poses
                 )
-                if args.fp_adaptation in {"interval-open", "interval-initial-fp"} and fp_adapt_triggered:
-                    interval_fp_ctrl = ctrl.copy()
-
-                eval_t0 = time.perf_counter()
-                # Evaluate adapted ctrl AND all original foundational poses, pick best
-                all_evals: list[tuple[str, np.ndarray, float, dict[str, float], bool]] = []
-                adapted_score, adapted_metrics = evaluator.evaluate(ctrl)
-                adapted_feasible = _is_feasible(
-                    adapted_metrics,
-                    spec.max_mean_tip_distance,
-                    spec.min_contacts,
-                    spec.min_finger_contact_persistence,
-                    spec.max_finger_yaw_drift,
-                )
-                all_evals.append((f"adapted_{args.fp_adaptation}", ctrl, adapted_score, adapted_metrics, adapted_feasible))
-                for pose in spec.foundational_poses:
-                    s, m = evaluator.evaluate(pose.finger_ctrl)
-                    f = _is_feasible(m, spec.max_mean_tip_distance, spec.min_contacts,
-                                     spec.min_finger_contact_persistence, spec.max_finger_yaw_drift)
-                    all_evals.append((pose.label, np.asarray(pose.finger_ctrl, dtype=np.float64), s, m, f))
-                eval_seconds = float(time.perf_counter() - eval_t0)
-
-                feasible_hits = [e for e in all_evals if e[4]]
-                feasible_pose_count = len(feasible_hits)
-                is_feasible = len(feasible_hits) > 0
-                pick_pool = feasible_hits if feasible_hits else all_evals
-                chosen_pose_label, chosen_ctrl, chosen_score, chosen_metrics, _ = max(
-                    pick_pool, key=lambda t: t[2]
-                )
-
+            evals = _evaluate_pool(evaluator, pool, spec.criteria)
+            eval_seconds = float(time.perf_counter() - t0)
             scene_eval_seconds_total += eval_seconds
-            scene_adapt_seconds_total += fp_adapt_seconds
-            scene_adapt_count += int(fp_adapt_triggered)
 
-            qpos_foundational, ctrl_foundational = _simulate_settle_qpos(
+            feasible_hits = [e for e in evals if e[4]]
+            feasible_pose_count = len(feasible_hits)
+            any_feasible = feasible_pose_count > 0
+            chosen_label, chosen_ctrl, chosen_score, chosen_metrics, _ = max(
+                feasible_hits if feasible_hits else evals, key=lambda e: e[2]
+            )
+
+            qpos_foundational, ctrl_foundational = simulate_settle_qpos(
                 scene_xml=scene_xml,
                 keyframe_name="open",
                 finger_ctrl=chosen_ctrl,
                 settle_steps=args.settle_steps,
             )
-            _add_foundational_keyframe(
+            add_foundational_keyframe(
                 scene_xml=scene_xml,
                 key_name="foundational",
                 qpos=qpos_foundational,
                 ctrl=ctrl_foundational,
             )
 
-            row = {
+            row: dict[str, object] = {
                 "scene_key": spec.scene_key,
                 "candidate_id": str(idx),
                 "scene_xml": str(scene_xml),
-                "selected_foundational_pose": chosen_pose_label,
-                "feasible": str(is_feasible),
+                "selected_foundational_pose": chosen_label,
+                "feasible": str(any_feasible),
                 "backend": args.backend,
                 "fp_adaptation": args.fp_adaptation,
-                "fp_adapt_triggered": str(fp_adapt_triggered),
-                "fp_adapt_source": fp_adapt_source,
-                "fp_adapt_seconds": float(fp_adapt_seconds),
+                "fp_adapt_triggered": str(triggered),
+                "fp_adapt_source": adapt_source,
+                "fp_adapt_seconds": float(adapt_secs),
                 "evaluation_seconds": float(eval_seconds),
-                "feasibility_max_mean_tip_distance": float(spec.max_mean_tip_distance),
-                "feasibility_min_contacts": float(spec.min_contacts),
+                "feasibility_max_mean_tip_distance": float(spec.criteria.max_mean_tip_distance),
+                "feasibility_min_contacts": float(spec.criteria.min_contacts),
                 "feasibility_min_finger_contact_persistence": float(
-                    spec.min_finger_contact_persistence
+                    spec.criteria.min_finger_contact_persistence or 0.0
                 ),
-                "feasibility_max_finger_yaw_drift": float(spec.max_finger_yaw_drift),
+                "feasibility_max_finger_yaw_drift": float(
+                    spec.criteria.max_finger_yaw_drift or 0.0
+                ),
                 "feasible_pose_count": float(feasible_pose_count),
                 "foundational_pose_count": float(len(spec.foundational_poses)),
                 "score": float(chosen_score),
-                "cube_lift": float(chosen_metrics.get("cube_lift", 0.0)),
-                "cube_tip_contacts": float(chosen_metrics.get("cube_tip_contacts", 0.0)),
-                "mean_tip_distance": float(chosen_metrics.get("mean_tip_distance", 0.0)),
-                "cube_vel_norm": float(chosen_metrics.get("cube_vel_norm", 0.0)),
-                "cube_xy_drift": float(chosen_metrics.get("cube_xy_drift", 0.0)),
-                "cube_z_drop_from_peak": float(chosen_metrics.get("cube_z_drop_from_peak", 0.0)),
-                "contact_persistence": float(chosen_metrics.get("contact_persistence", 0.0)),
-                "thumb_contact_persistence": float(chosen_metrics.get("thumb_contact_persistence", 0.0)),
-                "index_contact_persistence": float(chosen_metrics.get("index_contact_persistence", 0.0)),
-                "middle_contact_persistence": float(chosen_metrics.get("middle_contact_persistence", 0.0)),
-                "all_finger_contact_persistence": float(
-                    chosen_metrics.get("all_finger_contact_persistence", 0.0)
-                ),
-                "min_finger_contact_persistence": float(
-                    chosen_metrics.get("min_finger_contact_persistence", 0.0)
-                ),
-                "finger_persistence_imbalance": float(
-                    chosen_metrics.get("finger_persistence_imbalance", 0.0)
-                ),
-                "finger_yaw_drift": float(chosen_metrics.get("finger_yaw_drift", 0.0)),
-                "finger_flex_drift": float(chosen_metrics.get("finger_flex_drift", 0.0)),
-                "thumb_x": float(morphology.thumb_x),
-                "thumb_y": float(morphology.thumb_y),
-                "thumb_len": float(morphology.thumb_len),
-                "index_x": float(morphology.index_x),
-                "index_y": float(morphology.index_y),
-                "index_len": float(morphology.index_len),
-                "middle_x": float(morphology.middle_x),
-                "middle_y": float(morphology.middle_y),
-                "middle_len": float(morphology.middle_len),
-                "morph_distance_from_base": float(_morph_distance(morphology, base_morphology)),
+                **_metric_fields(chosen_metrics),
+                **morph_row_fields(morphology),
+                "morph_distance_from_base": float(morph_distance(morphology, base_morphology)),
                 "chosen_ctrl_json": json.dumps(chosen_ctrl.tolist()),
             }
             all_rows.append(row)
             global_rows.append(row)
-            if is_feasible:
+            if any_feasible:
                 feasible_rows.append(row)
 
-        pareto_idx = _pareto_front_indices(feasible_rows)
+        pareto_idx = pareto_front_indices(feasible_rows)
         pareto_rows = [feasible_rows[i] for i in pareto_idx]
 
-        _write_csv(all_rows, scene_dir / "all_candidates.csv")
-        _write_csv(feasible_rows, scene_dir / "feasible_candidates.csv")
-        _write_csv(pareto_rows, scene_dir / "pareto_front.csv")
-        _plot_scene_results(feasible_rows, pareto_idx, scene_dir)
+        write_csv(all_rows, scene_dir / "all_candidates.csv")
+        write_csv(feasible_rows, scene_dir / "feasible_candidates.csv")
+        write_csv(pareto_rows, scene_dir / "pareto_front.csv")
+        plot_feasible_scatter(feasible_rows, pareto_idx, scene_dir, title=f"{spec.display_name}: Feasible Morphologies")
 
         ranking_pool = feasible_rows if feasible_rows else all_rows
 
@@ -987,47 +421,19 @@ def main() -> None:
             candidate_pool = sorted(ranking_pool, key=lambda r: float(r["score"]), reverse=True)[
                 : max(args.top_k_gifs, args.refine_pool_size)
             ]
-            refined_rows: list[dict[str, float | str]] = []
+            refined_rows: list[dict[str, object]] = []
             for row in candidate_pool:
-                evaluator = _make_evaluator(
-                    args=args,
-                    scene_xml=Path(str(row["scene_xml"])),
-                    eval_cfg=eval_cfg,
-                )
+                evaluator = _make_evaluator(args, Path(str(row["scene_xml"])), eval_cfg)
                 init_ctrl = np.asarray(json.loads(str(row["chosen_ctrl_json"])), dtype=np.float64)
-                refined = optimize_finger_controls(evaluator=evaluator, cfg=refine_cfg, initial_finger_ctrl=init_ctrl)
+                refined = optimize_finger_controls(
+                    evaluator=evaluator, cfg=refine_cfg, initial_finger_ctrl=init_ctrl
+                )
                 ctrl_refined = np.asarray(refined["best_finger_ctrl"], dtype=np.float64)
                 score_refined, metrics_refined = evaluator.evaluate(ctrl_refined)
 
                 updated = dict(row)
                 updated["score"] = float(score_refined)
-                updated["cube_lift"] = float(metrics_refined.get("cube_lift", 0.0))
-                updated["cube_tip_contacts"] = float(metrics_refined.get("cube_tip_contacts", 0.0))
-                updated["mean_tip_distance"] = float(metrics_refined.get("mean_tip_distance", 0.0))
-                updated["cube_vel_norm"] = float(metrics_refined.get("cube_vel_norm", 0.0))
-                updated["cube_xy_drift"] = float(metrics_refined.get("cube_xy_drift", 0.0))
-                updated["cube_z_drop_from_peak"] = float(metrics_refined.get("cube_z_drop_from_peak", 0.0))
-                updated["contact_persistence"] = float(metrics_refined.get("contact_persistence", 0.0))
-                updated["thumb_contact_persistence"] = float(
-                    metrics_refined.get("thumb_contact_persistence", 0.0)
-                )
-                updated["index_contact_persistence"] = float(
-                    metrics_refined.get("index_contact_persistence", 0.0)
-                )
-                updated["middle_contact_persistence"] = float(
-                    metrics_refined.get("middle_contact_persistence", 0.0)
-                )
-                updated["all_finger_contact_persistence"] = float(
-                    metrics_refined.get("all_finger_contact_persistence", 0.0)
-                )
-                updated["min_finger_contact_persistence"] = float(
-                    metrics_refined.get("min_finger_contact_persistence", 0.0)
-                )
-                updated["finger_persistence_imbalance"] = float(
-                    metrics_refined.get("finger_persistence_imbalance", 0.0)
-                )
-                updated["finger_yaw_drift"] = float(metrics_refined.get("finger_yaw_drift", 0.0))
-                updated["finger_flex_drift"] = float(metrics_refined.get("finger_flex_drift", 0.0))
+                updated.update(_metric_fields(metrics_refined))
                 updated["chosen_ctrl_json"] = json.dumps(ctrl_refined.tolist())
                 updated["refined_for_topk"] = "True"
                 refined_rows.append(updated)
@@ -1035,16 +441,13 @@ def main() -> None:
             top_rows = sorted(refined_rows, key=lambda r: float(r["score"]), reverse=True)[: args.top_k_gifs]
         else:
             top_rows = sorted(ranking_pool, key=lambda r: float(r["score"]), reverse=True)[: args.top_k_gifs]
+
         gif_dir = scene_dir / "top_gifs"
         gif_dir.mkdir(parents=True, exist_ok=True)
 
-        top_rows_export: list[dict[str, float | str]] = []
+        top_rows_export: list[dict[str, object]] = []
         for rank, row in enumerate(top_rows, start=1):
-            evaluator = _make_evaluator(
-                args=args,
-                scene_xml=Path(str(row["scene_xml"])),
-                eval_cfg=eval_cfg,
-            )
+            evaluator = _make_evaluator(args, Path(str(row["scene_xml"])), eval_cfg)
             ctrl = np.asarray(json.loads(str(row["chosen_ctrl_json"])), dtype=np.float64)
             gif_path = gif_dir / f"rank{rank:02d}_candidate{int(row['candidate_id']):04d}.gif"
             evaluator.render_rollout_gif(ctrl, gif_path)
@@ -1055,7 +458,7 @@ def main() -> None:
                 item["refined_for_topk"] = "False"
             top_rows_export.append(item)
 
-        _write_csv(top_rows_export, scene_dir / "top5_with_gifs.csv")
+        write_csv(top_rows_export, scene_dir / "top5_with_gifs.csv")
 
         scene_summaries[spec.scene_key] = {
             "total_candidates": len(all_rows),
@@ -1072,10 +475,11 @@ def main() -> None:
         }
 
         print(
-            f"[{spec.scene_key}] total={len(all_rows)} feasible={len(feasible_rows)} pareto={len(pareto_rows)} gifs={len(top_rows_export)}"
+            f"[{spec.scene_key}] total={len(all_rows)} feasible={len(feasible_rows)} "
+            f"pareto={len(pareto_rows)} gifs={len(top_rows_export)}"
         )
 
-    _write_csv(global_rows, out_dir / "all_scenes_candidates.csv")
+    write_csv(global_rows, out_dir / "all_scenes_candidates.csv")
 
     summary = {
         "tag": tag,
@@ -1087,13 +491,8 @@ def main() -> None:
         "fp_adaptation": args.fp_adaptation,
         "fp_refresh_interval": args.fp_refresh_interval,
         "morph_sort": args.morph_sort,
-        "fp_adapt_config": {
-            "iterations": args.fp_adapt_iterations,
-            "population": args.fp_adapt_population,
-            "elite_fraction": args.fp_adapt_elite_fraction,
-            "sigma_init": args.fp_adapt_sigma_init,
-            "seed": args.fp_adapt_seed,
-        },
+        "bounds": asdict(bounds),
+        "fp_adapt_config": asdict(fp_adapt_cfg),
         "backend_config": {
             "comfree_stiffness": args.comfree_stiffness,
             "comfree_damping": args.comfree_damping,
