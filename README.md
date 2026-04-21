@@ -161,11 +161,20 @@ Corresponding object XMLs are under `assets/objects/`:
 - `power_drill.xml`
 - `human_calf.xml`
 
-## Run 6: Screwdriver Standalone-Pose Sweep
+## Run 6: Screwdriver Combined Multi-Task Sweep
 
-Run 6 evaluates medium screwdriver keyframes independently (no transition), using two foundational-pose adaptation modes across a few hundred sampled morphologies.
+Run 6 now evaluates all three medium-screwdriver keyframes per sampled morphology in one unified run:
 
-### 1) Foundational pose search per keyframe
+- `open_flat`
+- `open_vertical`
+- `open_90vertical`
+
+Each sampled morphology is scored as a 3-task multiobjective candidate, using both adaptation paths together:
+
+- interval FP refresh every 50 samples (`interval-initial-fp` behavior)
+- sparse per-morph local adaptation (`sparse-per-morph` behavior)
+
+### 1) Foundational pose search per keyframe (if needed)
 
 ```bash
 for kf in open_flat open_vertical open_90vertical; do
@@ -185,53 +194,56 @@ for kf in open_flat open_vertical open_90vertical; do
 done
 ```
 
-### 2) Morphology sweep (sparse5)
+### 2) One-command combined run (1000 samples, top-5 GIFs)
 
 ```bash
-uv run python scripts/run6_screwdriver_multikey_sampling.py \
-  --scene-xml assets/mjcf/scene_screwdriver_medium.xml \
-  --foundational-root results/phase1/run6_foundational \
-  --samples 240 \
-  --seed 6 \
-  --fp-adaptation sparse-per-morph \
-  --morph-sort distance \
-  --max-mean-tip-distance 0.022 \
-  --min-contacts 2 \
-  --output-dir results/phase1 \
-  --tag run6_sparse5
+SAMPLES=1000 TAG=run6_combined_1000 TOPK_GIFS=5 ./scripts/run6_all_in_one.sh
 ```
 
-### 3) Morphology sweep (interval refresh 50)
+Notes:
+
+- Uses `scripts/run6_combined_multitask.py` under the hood.
+- Set `RUN_FOUNDATIONAL=1` to rerun foundational search before the combined sweep.
+- Rolling efficiency is computed over windows of 100 samples, with 3 tasks per sample.
+
+### 3) Direct combined run (advanced)
 
 ```bash
-uv run python scripts/run6_screwdriver_multikey_sampling.py \
+/home/humanoid/Programs/hand/.venv/bin/python scripts/run6_combined_multitask.py \
   --scene-xml assets/mjcf/scene_screwdriver_medium.xml \
+  --keyframes open_flat open_vertical open_90vertical \
   --foundational-root results/phase1/run6_foundational \
-  --samples 240 \
+  --samples 1000 \
   --seed 6 \
-  --fp-adaptation interval-initial-fp \
   --fp-refresh-interval 50 \
   --morph-sort distance \
+  --window 100 \
   --max-mean-tip-distance 0.022 \
   --min-contacts 2 \
+  --top-k-gifs 5 \
   --output-dir results/phase1 \
-  --tag run6_interval50
+  --tag run6_combined_1000
 ```
 
-### 4) Embedding + feature analysis
+### 4) Analysis (combined-run compatible)
 
 ```bash
 uv run python scripts/run6_analysis.py \
-  --run-dirs results/phase1/run6_sparse5 results/phase1/run6_interval50 \
+  --run-dirs results/phase1/run6_combined_1000 \
   --embedding tsne \
   --metrics cube_xy_drift finger_flex_drift
 ```
 
 Primary outputs:
 
-- `results/phase1/run6_sparse5/`
-- `results/phase1/run6_interval50/`
-- `results/phase1/run6_sparse5/analysis/run6_analysis_summary.md`
+- `results/phase1/run6_combined_1000/summary.json`
+- `results/phase1/run6_combined_1000/all_candidates_multitask.csv`
+- `results/phase1/run6_combined_1000/all_task_results.csv`
+- `results/phase1/run6_combined_1000/rolling_efficiency.csv`
+- `results/phase1/run6_combined_1000/rolling_efficiency.png`
+- `results/phase1/run6_combined_1000/top5_candidates.csv`
+- `results/phase1/run6_combined_1000/top5_gifs/`
+- `results/phase1/run6_combined_1000/analysis/run6_analysis_summary.md`
 
 ## Backend Plan
 

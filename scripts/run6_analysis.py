@@ -141,6 +141,62 @@ def _mode_name(run_dir: Path) -> str:
     return run_dir.name
 
 
+def _load_keyframe_rows(run_dir: Path, keyframe: str) -> list[dict[str, Any]]:
+    # Legacy layout: run_dir/<keyframe>/all_candidates.csv
+    legacy_csv = run_dir / keyframe / "all_candidates.csv"
+    legacy_rows = _read_rows(legacy_csv)
+    if legacy_rows:
+        return legacy_rows
+
+    # Combined layout:
+    # - run_dir/all_candidates_multitask.csv: morphology + aggregate stats
+    # - run_dir/all_task_results.csv: per-keyframe task metrics per candidate
+    morph_rows = _read_rows(run_dir / "all_candidates_multitask.csv")
+    task_rows = _read_rows(run_dir / "all_task_results.csv")
+    if not morph_rows or not task_rows:
+        return []
+
+    morph_by_id: dict[int, dict[str, Any]] = {}
+    for r in morph_rows:
+        try:
+            cid = int(r.get("candidate_id", -1))
+        except (TypeError, ValueError):
+            continue
+        morph_by_id[cid] = r
+
+    merged: list[dict[str, Any]] = []
+    for r in task_rows:
+        if str(r.get("keyframe", "")) != keyframe:
+            continue
+        try:
+            cid = int(r.get("candidate_id", -1))
+        except (TypeError, ValueError):
+            continue
+        m = morph_by_id.get(cid)
+        if m is None:
+            continue
+        merged.append(
+            {
+                "candidate_id": cid,
+                "thumb_x": m.get("thumb_x", 0.0),
+                "thumb_y": m.get("thumb_y", 0.0),
+                "thumb_len": m.get("thumb_len", 0.0),
+                "index_x": m.get("index_x", 0.0),
+                "index_y": m.get("index_y", 0.0),
+                "index_len": m.get("index_len", 0.0),
+                "middle_x": m.get("middle_x", 0.0),
+                "middle_y": m.get("middle_y", 0.0),
+                "middle_len": m.get("middle_len", 0.0),
+                "score": r.get("score", 0.0),
+                "feasible": r.get("feasible", False),
+                "cube_xy_drift": r.get("cube_xy_drift", 0.0),
+                "finger_flex_drift": r.get("finger_flex_drift", 0.0),
+            }
+        )
+
+    return merged
+
+
 def main() -> None:
     args = build_parser().parse_args()
 
@@ -151,8 +207,7 @@ def main() -> None:
         out_root = run_dir / args.output_subdir
 
         for keyframe in args.keyframes:
-            csv_path = run_dir / keyframe / "all_candidates.csv"
-            rows = _read_rows(csv_path)
+            rows = _load_keyframe_rows(run_dir, keyframe)
             if not rows:
                 continue
 
