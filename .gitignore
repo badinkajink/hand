@@ -1,4 +1,5 @@
 .venv/
+.venv-gpu/
 __pycache__/
 *.pyc
 .pytest_cache/
@@ -8,3 +9,9 @@ site/
 .external/
 *.egg-info/
 external/
+
+# MuJoCo runtime dumps
+MJDATA.TXT
+MUJOCO_LOG.TXT
+*_MJDATA.TXT
+*_MUJOCO_LOG.TXT

@@ -1,14 +1,13 @@
 from __future__ import annotations
+# pyright: reportMissingImports=false
 
 import argparse
-import csv
 import json
+import sys
+import time
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
-import sys
-import time
-import xml.etree.ElementTree as ET
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -24,28 +23,20 @@ from morphohand.optimization.phase1_grasp import (  # noqa: E402
     Phase1OptimizationConfig,
     optimize_finger_controls,
 )
-from morphohand.tools.morphology_xml import (  # noqa: E402
-    MorphologyValues,
-    apply_morphology_to_qpos,
-    extract_morphology_from_qpos,
+from morphohand.sampling import (  # noqa: E402
+    FeasibilityCriteria,
+    FoundationalPose,
+    MorphologyBounds,
+    is_feasible,
+    load_foundational_poses,
+    morph_distance,
+    morph_row_fields,
+    morph_suffix,
+    parse_morphology_from_keyframe,
+    sample_morphologies,
+    write_csv,
+    write_scene_with_morphology,
 )
-
-
-@dataclass(frozen=True)
-class FoundationalPose:
-    label: str
-    finger_ctrl: np.ndarray
-    score: float
-
-
-@dataclass(frozen=True)
-class MorphologyBounds:
-    x_min: float
-    x_max: float
-    y_min: float
-    y_max: float
-    len_min: float
-    len_max: float
 
 
 @dataclass(frozen=True)
@@ -65,7 +56,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
             "Run6 combined multitask sampler: evaluate 3 screwdriver keyframes per morphology, "
-            "combine sparse+interval adaptation in one run, track rolling efficiency, and render top-5 gifs."
+            "combine sparse+interval adaptation in one run, track rolling efficiency, render top-5 gifs."
         )
     )
     parser.add_argument(
@@ -73,11 +64,7 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         default=PROJECT_ROOT / "assets" / "mjcf" / "scene_screwdriver_medium.xml",
     )
-    parser.add_argument(
-        "--keyframes",
-        nargs="+",
-        default=["open_flat", "open_vertical", "open_90vertical"],
-    )
+    parser.add_argument("--keyframes", nargs="+", default=["open_flat", "open_vertical", "open_90vertical"])
     parser.add_argument(
         "--foundational-root",
         type=Path,
@@ -106,9 +93,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--lift-ramp-steps", type=int, default=100)
     parser.add_argument("--objective-weight-min-finger-persistence", type=float, default=2.4)
     parser.add_argument(
-        "--objective-weight-finger-persistence-imbalance-penalty",
-        type=float,
-        default=1.2,
+        "--objective-weight-finger-persistence-imbalance-penalty", type=float, default=1.2,
     )
     parser.add_argument("--objective-weight-finger-yaw-drift-penalty", type=float, default=1.0)
     parser.add_argument("--objective-weight-finger-flex-drift-penalty", type=float, default=0.5)
@@ -131,177 +116,6 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _write_csv(rows: list[dict[str, object]], path: Path) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if not rows:
-        path.write_text("", encoding="utf-8")
-        return
-    fieldnames = list(rows[0].keys())
-    with path.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(rows)
-
-
-def _read_keyframe_qpos(scene_xml: Path, keyframe_name: str) -> list[float]:
-    root = ET.parse(scene_xml).getroot()
-    keyframe = root.find("keyframe")
-    if keyframe is None:
-        raise ValueError(f"No <keyframe> section in {scene_xml}")
-    for key in keyframe.findall("key"):
-        if key.get("name") == keyframe_name:
-            qpos_raw = key.get("qpos") or ""
-            values = [float(v) for v in qpos_raw.replace("\n", " ").split()]
-            if len(values) < 31:
-                raise ValueError(f"Keyframe '{keyframe_name}' in {scene_xml} has short qpos ({len(values)})")
-            return values
-    raise ValueError(f"Keyframe '{keyframe_name}' not found in {scene_xml}")
-
-
-def _extract_keyframe_morphology(scene_xml: Path, keyframe_name: str) -> MorphologyValues:
-    qpos = _read_keyframe_qpos(scene_xml=scene_xml, keyframe_name=keyframe_name)
-    return extract_morphology_from_qpos(qpos=qpos, has_scene_prefix=True)
-
-
-def _write_scene_with_morphology(base_scene_xml: Path, output_scene_xml: Path, morphology: MorphologyValues) -> None:
-    root = ET.parse(base_scene_xml).getroot()
-    keyframe = root.find("keyframe")
-    if keyframe is None:
-        raise ValueError(f"No <keyframe> section in {base_scene_xml}")
-
-    for key in keyframe.findall("key"):
-        qpos_raw = key.get("qpos")
-        if not qpos_raw:
-            continue
-        qpos = [float(v) for v in qpos_raw.replace("\n", " ").split()]
-        if len(qpos) < 31:
-            continue
-        apply_morphology_to_qpos(qpos=qpos, morphology=morphology, has_scene_prefix=True)
-        key.set("qpos", "\n        " + " ".join(f"{v:.10g}" for v in qpos) + "\n      ")
-
-    root.set("model", output_scene_xml.stem)
-    ET.indent(root, space="  ")
-    output_scene_xml.parent.mkdir(parents=True, exist_ok=True)
-    ET.ElementTree(root).write(output_scene_xml, encoding="utf-8", xml_declaration=False)
-
-
-def _morph_to_array(m: MorphologyValues) -> np.ndarray:
-    return np.array(
-        [
-            m.thumb_x,
-            m.thumb_y,
-            m.thumb_len,
-            m.index_x,
-            m.index_y,
-            m.index_len,
-            m.middle_x,
-            m.middle_y,
-            m.middle_len,
-        ],
-        dtype=np.float64,
-    )
-
-
-def _morph_distance(a: MorphologyValues, b: MorphologyValues) -> float:
-    return float(np.linalg.norm(_morph_to_array(a) - _morph_to_array(b)))
-
-
-def _clip_morphology(values: MorphologyValues, bounds: MorphologyBounds) -> MorphologyValues:
-    return MorphologyValues(
-        thumb_x=float(np.clip(values.thumb_x, bounds.x_min, bounds.x_max)),
-        thumb_y=float(np.clip(values.thumb_y, bounds.y_min, bounds.y_max)),
-        thumb_len=float(np.clip(values.thumb_len, bounds.len_min, bounds.len_max)),
-        index_x=float(np.clip(values.index_x, bounds.x_min, bounds.x_max)),
-        index_y=float(np.clip(values.index_y, bounds.y_min, bounds.y_max)),
-        index_len=float(np.clip(values.index_len, bounds.len_min, bounds.len_max)),
-        middle_x=float(np.clip(values.middle_x, bounds.x_min, bounds.x_max)),
-        middle_y=float(np.clip(values.middle_y, bounds.y_min, bounds.y_max)),
-        middle_len=float(np.clip(values.middle_len, bounds.len_min, bounds.len_max)),
-    )
-
-
-def _sample_morphologies(
-    base: MorphologyValues,
-    sample_count: int,
-    rng: np.random.Generator,
-    bounds: MorphologyBounds,
-    x_perturb: float,
-    y_perturb: float,
-    len_perturb: float,
-) -> list[MorphologyValues]:
-    if sample_count < 1:
-        raise ValueError("sample_count must be >= 1")
-
-    def key_for(v: MorphologyValues) -> tuple[float, ...]:
-        return (
-            round(v.thumb_x, 6),
-            round(v.thumb_y, 6),
-            round(v.thumb_len, 6),
-            round(v.index_x, 6),
-            round(v.index_y, 6),
-            round(v.index_len, 6),
-            round(v.middle_x, 6),
-            round(v.middle_y, 6),
-            round(v.middle_len, 6),
-        )
-
-    candidates: list[MorphologyValues] = [base]
-    seen: set[tuple[float, ...]] = {key_for(base)}
-
-    while len(candidates) < sample_count:
-        proposal = MorphologyValues(
-            thumb_x=base.thumb_x + float(rng.uniform(-x_perturb, x_perturb)),
-            thumb_y=base.thumb_y + float(rng.uniform(-y_perturb, y_perturb)),
-            thumb_len=base.thumb_len + float(rng.uniform(-len_perturb, len_perturb)),
-            index_x=base.index_x + float(rng.uniform(-x_perturb, x_perturb)),
-            index_y=base.index_y + float(rng.uniform(-y_perturb, y_perturb)),
-            index_len=base.index_len + float(rng.uniform(-len_perturb, len_perturb)),
-            middle_x=base.middle_x + float(rng.uniform(-x_perturb, x_perturb)),
-            middle_y=base.middle_y + float(rng.uniform(-y_perturb, y_perturb)),
-            middle_len=base.middle_len + float(rng.uniform(-len_perturb, len_perturb)),
-        )
-        proposal = _clip_morphology(proposal, bounds)
-        key = key_for(proposal)
-        if key in seen:
-            continue
-        seen.add(key)
-        candidates.append(proposal)
-
-    return candidates
-
-
-def _load_foundational_poses(foundational_run_dir: Path, keyframe_name: str) -> list[FoundationalPose]:
-    poses: list[FoundationalPose] = []
-    for subdir in sorted(foundational_run_dir.iterdir()):
-        if not subdir.is_dir():
-            continue
-        summary_path = subdir / "summary.json"
-        if not summary_path.exists():
-            continue
-        payload = json.loads(summary_path.read_text(encoding="utf-8"))
-        if str(payload.get("keyframe")) != keyframe_name:
-            continue
-        poses.append(
-            FoundationalPose(
-                label=subdir.name,
-                finger_ctrl=np.asarray(payload["best_finger_ctrl"], dtype=np.float64),
-                score=float(payload.get("best_score", float("-inf"))),
-            )
-        )
-
-    if not poses:
-        raise ValueError(f"No foundational summaries for keyframe '{keyframe_name}' under {foundational_run_dir}")
-
-    return sorted(poses, key=lambda p: p.score, reverse=True)
-
-
-def _is_feasible(metrics: dict[str, float], max_mean_tip_distance: float, min_contacts: float) -> bool:
-    return (
-        float(metrics.get("mean_tip_distance", np.inf)) <= max_mean_tip_distance
-        and float(metrics.get("cube_tip_contacts", 0.0)) >= min_contacts
-    )
-
-
 def _adapt_ctrl(
     evaluator: Phase1GraspEvaluator,
     initial_ctrl: np.ndarray,
@@ -321,17 +135,12 @@ def _select_best(
     return max(pool, key=lambda e: e[2])
 
 
-def _rolling_efficiency(
-    rows: list[dict[str, object]],
-    window: int,
-) -> list[dict[str, float]]:
-    out: list[dict[str, float]] = []
+def _rolling_efficiency(rows: list[dict[str, object]], window: int) -> list[dict[str, float]]:
     n = len(rows)
     if n == 0:
-        return out
-
+        return []
     total_tasks = float(len(json.loads(str(rows[0]["task_score_json"]))))
-
+    out: list[dict[str, float]] = []
     for start in range(0, n, window):
         chunk = rows[start : start + window]
         sample_count = len(chunk)
@@ -353,8 +162,7 @@ def _plot_rolling_efficiency(rolling_rows: list[dict[str, float]], out_dir: Path
     if not rolling_rows:
         return
     centers = np.asarray(
-        [(r["window_start"] + r["window_end"]) * 0.5 for r in rolling_rows],
-        dtype=np.float64,
+        [(r["window_start"] + r["window_end"]) * 0.5 for r in rolling_rows], dtype=np.float64
     )
     task_eff = np.asarray([r["rolling_task_feasibility_efficiency"] for r in rolling_rows], dtype=np.float64)
     all_eff = np.asarray([r["rolling_all_task_feasibility_rate"] for r in rolling_rows], dtype=np.float64)
@@ -383,12 +191,13 @@ def main() -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     bounds = MorphologyBounds(
-        x_min=args.x_min,
-        x_max=args.x_max,
-        y_min=args.y_min,
-        y_max=args.y_max,
-        len_min=args.len_min,
-        len_max=args.len_max,
+        x_min=args.x_min, x_max=args.x_max,
+        y_min=args.y_min, y_max=args.y_max,
+        len_min=args.len_min, len_max=args.len_max,
+    )
+    criteria = FeasibilityCriteria(
+        max_mean_tip_distance=args.max_mean_tip_distance,
+        min_contacts=args.min_contacts,
     )
 
     eval_cfg = Phase1EvalConfig(
@@ -419,14 +228,14 @@ def main() -> None:
 
     foundational_by_keyframe: dict[str, list[FoundationalPose]] = {}
     interval_ctrl_by_keyframe: dict[str, np.ndarray] = {}
-    base_morph = _extract_keyframe_morphology(args.scene_xml, keyframe_name=args.keyframes[0])
+    base_morph = parse_morphology_from_keyframe(args.scene_xml, keyframe_name=args.keyframes[0])
 
     for keyframe in args.keyframes:
-        poses = _load_foundational_poses(args.foundational_root / keyframe, keyframe)
+        poses = load_foundational_poses(args.foundational_root / keyframe, keyframe_name=keyframe)
         foundational_by_keyframe[keyframe] = poses
         interval_ctrl_by_keyframe[keyframe] = np.asarray(poses[0].finger_ctrl, dtype=np.float64).copy()
 
-    candidates = _sample_morphologies(
+    candidates = sample_morphologies(
         base=base_morph,
         sample_count=args.samples,
         rng=rng,
@@ -436,13 +245,12 @@ def main() -> None:
         len_perturb=args.len_perturb,
     )
     if args.morph_sort == "distance":
-        candidates.sort(key=lambda m: _morph_distance(m, base_morph))
+        candidates.sort(key=lambda m: morph_distance(m, base_morph))
 
     gen_dir = out_dir / "generated_mjcf"
     gen_dir.mkdir(parents=True, exist_ok=True)
 
     rows: list[dict[str, object]] = []
-    top_rows: list[dict[str, object]] = []
     task_rows: list[dict[str, object]] = []
 
     interval_adapt_count = {k: 0 for k in args.keyframes}
@@ -451,13 +259,8 @@ def main() -> None:
     task_eval_seconds = {k: 0.0 for k in args.keyframes}
 
     for idx, morphology in enumerate(candidates):
-        suffix = (
-            f"t{morphology.thumb_x:+0.4f}_{morphology.thumb_y:+0.4f}_{morphology.thumb_len:+0.4f}_"
-            f"i{morphology.index_x:+0.4f}_{morphology.index_y:+0.4f}_{morphology.index_len:+0.4f}_"
-            f"m{morphology.middle_x:+0.4f}_{morphology.middle_y:+0.4f}_{morphology.middle_len:+0.4f}"
-        ).replace("+", "p").replace("-", "n").replace(".", "d")
-        scene_xml = gen_dir / f"scene_multi_{suffix}.xml"
-        _write_scene_with_morphology(args.scene_xml, scene_xml, morphology)
+        scene_xml = gen_dir / f"scene_multi_{morph_suffix(morphology)}.xml"
+        write_scene_with_morphology(args.scene_xml, scene_xml, morphology)
 
         task_results: list[TaskResult] = []
 
@@ -480,17 +283,22 @@ def main() -> None:
             evals: list[tuple[str, np.ndarray, float, dict[str, float], bool]] = []
 
             s_interval, m_interval = evaluator.evaluate(interval_ctrl)
-            f_interval = _is_feasible(m_interval, args.max_mean_tip_distance, args.min_contacts)
-            evals.append(("interval", interval_ctrl, s_interval, m_interval, f_interval))
+            evals.append(("interval", interval_ctrl, s_interval, m_interval, is_feasible(m_interval, criteria)))
 
             s_sparse, m_sparse = evaluator.evaluate(sparse_ctrl)
-            f_sparse = _is_feasible(m_sparse, args.max_mean_tip_distance, args.min_contacts)
-            evals.append(("sparse", sparse_ctrl, s_sparse, m_sparse, f_sparse))
+            evals.append(("sparse", sparse_ctrl, s_sparse, m_sparse, is_feasible(m_sparse, criteria)))
 
             for pose in foundational_by_keyframe[keyframe]:
                 s_pose, m_pose = evaluator.evaluate(pose.finger_ctrl)
-                f_pose = _is_feasible(m_pose, args.max_mean_tip_distance, args.min_contacts)
-                evals.append((pose.label, np.asarray(pose.finger_ctrl, dtype=np.float64), s_pose, m_pose, f_pose))
+                evals.append(
+                    (
+                        pose.label,
+                        np.asarray(pose.finger_ctrl, dtype=np.float64),
+                        s_pose,
+                        m_pose,
+                        is_feasible(m_pose, criteria),
+                    )
+                )
 
             task_eval_seconds[keyframe] += float(time.perf_counter() - t_eval)
             best = _select_best(evals)
@@ -528,17 +336,13 @@ def main() -> None:
 
         feasible_task_count = int(sum(1 for t in task_results if t.feasible))
         all_tasks_feasible = feasible_task_count == len(task_results)
-        aggregate_score_sum = float(sum(t.score for t in task_results))
+        scores = [t.score for t in task_results]
+        aggregate_score_sum = float(sum(scores))
         aggregate_score_mean = aggregate_score_sum / float(len(task_results))
-        aggregate_min_score = float(min(t.score for t in task_results))
+        aggregate_min_score = float(min(scores))
         aggregate_lift_sum = float(sum(float(t.metrics.get("cube_lift", 0.0)) for t in task_results))
 
-        task_score_json = {t.keyframe: t.score for t in task_results}
-        task_feasible_json = {t.keyframe: bool(t.feasible) for t in task_results}
-        task_choice_json = {t.keyframe: t.chosen_label for t in task_results}
-        task_ctrl_json = {t.keyframe: t.chosen_ctrl.tolist() for t in task_results}
-
-        row = {
+        row: dict[str, object] = {
             "candidate_id": idx,
             "scene_xml": str(scene_xml),
             "all_tasks_feasible": all_tasks_feasible,
@@ -547,20 +351,12 @@ def main() -> None:
             "aggregate_score_mean": aggregate_score_mean,
             "aggregate_min_score": aggregate_min_score,
             "aggregate_lift_sum": aggregate_lift_sum,
-            "thumb_x": float(morphology.thumb_x),
-            "thumb_y": float(morphology.thumb_y),
-            "thumb_len": float(morphology.thumb_len),
-            "index_x": float(morphology.index_x),
-            "index_y": float(morphology.index_y),
-            "index_len": float(morphology.index_len),
-            "middle_x": float(morphology.middle_x),
-            "middle_y": float(morphology.middle_y),
-            "middle_len": float(morphology.middle_len),
-            "morph_distance_from_base": float(_morph_distance(morphology, base_morph)),
-            "task_score_json": json.dumps(task_score_json),
-            "task_feasible_json": json.dumps(task_feasible_json),
-            "task_choice_json": json.dumps(task_choice_json),
-            "task_ctrl_json": json.dumps(task_ctrl_json),
+            **morph_row_fields(morphology),
+            "morph_distance_from_base": float(morph_distance(morphology, base_morph)),
+            "task_score_json": json.dumps({t.keyframe: t.score for t in task_results}),
+            "task_feasible_json": json.dumps({t.keyframe: bool(t.feasible) for t in task_results}),
+            "task_choice_json": json.dumps({t.keyframe: t.chosen_label for t in task_results}),
+            "task_ctrl_json": json.dumps({t.keyframe: t.chosen_ctrl.tolist() for t in task_results}),
         }
         rows.append(row)
 
@@ -570,7 +366,6 @@ def main() -> None:
                 f"all_tasks_feasible={all_tasks_feasible} agg_mean={aggregate_score_mean:.4f}"
             )
 
-    # Multiobjective ranking: prioritize all-task feasibility, then mean score, then worst-task score.
     rows_sorted = sorted(
         rows,
         key=lambda r: (
@@ -621,11 +416,13 @@ def main() -> None:
     rolling_rows = _rolling_efficiency(rows, args.window)
     _plot_rolling_efficiency(rolling_rows, out_dir)
 
-    _write_csv(rows, out_dir / "all_candidates_multitask.csv")
-    _write_csv(task_rows, out_dir / "all_task_results.csv")
-    _write_csv(top_rows, out_dir / "top5_candidates.csv")
-    _write_csv(rolling_rows, out_dir / "rolling_efficiency.csv")
-    (out_dir / "top5_gifs" / "gif_manifest.json").write_text(json.dumps(gif_manifest, indent=2), encoding="utf-8")
+    write_csv(rows, out_dir / "all_candidates_multitask.csv")
+    write_csv(task_rows, out_dir / "all_task_results.csv")
+    write_csv(top_rows, out_dir / "top5_candidates.csv")
+    write_csv(rolling_rows, out_dir / "rolling_efficiency.csv")
+    (out_dir / "top5_gifs" / "gif_manifest.json").write_text(
+        json.dumps(gif_manifest, indent=2), encoding="utf-8"
+    )
 
     summary = {
         "tag": tag,
@@ -637,11 +434,7 @@ def main() -> None:
         "fp_refresh_interval": args.fp_refresh_interval,
         "morph_sort": args.morph_sort,
         "bounds": asdict(bounds),
-        "perturb": {
-            "x": args.x_perturb,
-            "y": args.y_perturb,
-            "len": args.len_perturb,
-        },
+        "perturb": {"x": args.x_perturb, "y": args.y_perturb, "len": args.len_perturb},
         "feasibility": {
             "max_mean_tip_distance": args.max_mean_tip_distance,
             "min_contacts": args.min_contacts,
@@ -658,9 +451,15 @@ def main() -> None:
         "task_eval_seconds": task_eval_seconds,
         "overall": {
             "all_task_feasible_count": int(sum(1 for r in rows if bool(r["all_tasks_feasible"]))),
-            "mean_feasible_tasks_per_sample": float(np.mean([int(r["feasible_task_count"]) for r in rows])) if rows else 0.0,
-            "mean_aggregate_score": float(np.mean([float(r["aggregate_score_mean"]) for r in rows])) if rows else 0.0,
-            "max_aggregate_score": float(np.max([float(r["aggregate_score_mean"]) for r in rows])) if rows else 0.0,
+            "mean_feasible_tasks_per_sample": (
+                float(np.mean([int(r["feasible_task_count"]) for r in rows])) if rows else 0.0
+            ),
+            "mean_aggregate_score": (
+                float(np.mean([float(r["aggregate_score_mean"]) for r in rows])) if rows else 0.0
+            ),
+            "max_aggregate_score": (
+                float(np.max([float(r["aggregate_score_mean"]) for r in rows])) if rows else 0.0
+            ),
         },
         "top5": [
             {
