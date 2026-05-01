@@ -3,13 +3,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import imageio.v2 as imageio
 import mujoco
 import numpy as np
 
-from .phase1_trajectory import TrajectoryInterpolator, build_trajectory_interpolator
+from .phase1_trajectory import build_trajectory_interpolator
 
 
 @dataclass
@@ -360,12 +360,6 @@ class Phase1GraspEvaluator:
             ctrl[self.pose_actuator_ids[2]] = self.initial_palm_pz_target + self.cfg.lift_delta_z
         return ctrl
 
-    def _build_lift_ctrl(self, finger_ctrl: np.ndarray, lift_scale: float) -> np.ndarray:
-        ctrl = self.initial_ctrl.copy()
-        ctrl[self.finger_actuator_ids] = finger_ctrl
-        ctrl[self.pose_actuator_ids[2]] = self.initial_palm_pz_target + lift_scale * self.cfg.lift_delta_z
-        return ctrl
-
     def _build_pose_ctrl(
         self,
         finger_ctrl: np.ndarray,
@@ -381,12 +375,6 @@ class Phase1GraspEvaluator:
         return ctrl
 
     def _step_with_ctrl(self, ctrl: np.ndarray, steps: int) -> None:
-        for _ in range(steps):
-            self.data.ctrl[:] = ctrl
-            self._step_dynamics(force_sync=False)
-        self._sync_mujoco_from_backend()
-
-    def _step_chunk_with_ctrl(self, ctrl: np.ndarray, steps: int) -> None:
         for _ in range(steps):
             self.data.ctrl[:] = ctrl
             self._step_dynamics(force_sync=False)
@@ -469,120 +457,51 @@ class Phase1GraspEvaluator:
                 flags[tip_lookup[b1]] = 1.0
         return flags
 
-    def evaluate(self, finger_ctrl: np.ndarray) -> tuple[float, dict[str, float]]:
-        finger_ctrl = np.asarray(finger_ctrl, dtype=np.float64)
-        finger_ctrl = np.clip(finger_ctrl, self.finger_ctrl_min, self.finger_ctrl_max)
+    def _pose_scales_for_dynamic_step(self, dynamic_t: int) -> tuple[float, float]:
+        """Map a dynamic-phase step index to (lift_scale, pivot_scale) for `_build_pose_ctrl`."""
+        if dynamic_t < self.cfg.lift_steps:
+            ramp_denom = max(1, int(self.cfg.lift_ramp_steps))
+            return min(1.0, float((dynamic_t + 1) / ramp_denom)), 0.0
+        if dynamic_t < self.cfg.lift_steps + self.cfg.pivot_steps:
+            pivot_local = dynamic_t - self.cfg.lift_steps
+            ramp_denom = max(1, int(self.cfg.pivot_ramp_steps))
+            return 1.0, min(1.0, float((pivot_local + 1) / ramp_denom))
+        return 1.0, (1.0 if self.cfg.pivot_steps > 0 else 0.0)
 
-        self._reset_to_keyframe()
+    def _ctrl_for_dynamic_step(
+        self,
+        dynamic_t: int,
+        get_finger_ctrl: Callable[[int], np.ndarray],
+    ) -> np.ndarray:
+        lift_scale, pivot_scale = self._pose_scales_for_dynamic_step(dynamic_t)
+        return self._build_pose_ctrl(
+            get_finger_ctrl(dynamic_t),
+            lift_scale=lift_scale,
+            pivot_scale=pivot_scale,
+        )
 
-        settle_ctrl = self._build_full_ctrl(finger_ctrl, lift=False)
-        self._step_with_ctrl(settle_ctrl, self.cfg.settle_steps)
-
-        distances = self._tip_distances_to_cube()
-        contact_count = self._cube_tip_contact_count()
-        cube_pos_before = self.data.xpos[self.cube_body_id].copy()
-        cube_rot_before = self.data.xmat[self.cube_body_id].reshape(3, 3).copy()
-        cube_yaw_before = self._cube_yaw(cube_rot_before)
-        finger_qpos_settle = self.data.qpos[self.finger_joint_qpos_ids].copy()
-        z_before = float(self.data.xpos[self.cube_body_id, 2])
-
-        peak_z = z_before
-        contact_active_steps = 0
-        finger_contact_steps = np.zeros(3, dtype=np.float64)
-        all_finger_contact_steps = 0.0
-        total_dynamic_steps = self.cfg.lift_steps + self.cfg.pivot_steps + self.cfg.hold_steps
-
-        if self.metric_collection_mode == "terminal" and self.backend != "mujoco":
-            for t in range(self.cfg.lift_steps):
-                ramp_denom = max(1, int(self.cfg.lift_ramp_steps))
-                lift_scale = min(1.0, float((t + 1) / ramp_denom))
-                self.data.ctrl[:] = self._build_pose_ctrl(finger_ctrl, lift_scale=lift_scale, pivot_scale=0.0)
-                self._step_dynamics(force_sync=False)
-            for t in range(self.cfg.pivot_steps):
-                ramp_denom = max(1, int(self.cfg.pivot_ramp_steps))
-                pivot_scale = min(1.0, float((t + 1) / ramp_denom))
-                self.data.ctrl[:] = self._build_pose_ctrl(finger_ctrl, lift_scale=1.0, pivot_scale=pivot_scale)
-                self._step_dynamics(force_sync=False)
-            for _ in range(self.cfg.hold_steps):
-                final_pivot = 1.0 if self.cfg.pivot_steps > 0 else 0.0
-                self.data.ctrl[:] = self._build_pose_ctrl(finger_ctrl, lift_scale=1.0, pivot_scale=final_pivot)
-                self._step_dynamics(force_sync=False)
-            self._sync_mujoco_from_backend()
-
-            z_after_terminal = float(self.data.xpos[self.cube_body_id, 2])
-            peak_z = max(z_before, z_after_terminal)
-            finger_flags = self._finger_contact_flags()
-            finger_contact_steps = finger_flags * float(total_dynamic_steps)
-            all_finger_contact_steps = float(total_dynamic_steps) if float(np.min(finger_flags)) > 0.5 else 0.0
-            contact_active_steps = total_dynamic_steps if float(np.sum(finger_flags)) >= 2.0 else 0
-        else:
-            sample_stride = 1 if self.backend == "mujoco" else self.metric_sample_interval
-
-            lift_t = 0
-            while lift_t < self.cfg.lift_steps:
-                remaining = self.cfg.lift_steps - lift_t
-                chunk = max(1, min(sample_stride, remaining))
-                for k in range(chunk):
-                    t = lift_t + k
-                    ramp_denom = max(1, int(self.cfg.lift_ramp_steps))
-                    lift_scale = min(1.0, float((t + 1) / ramp_denom))
-                    self.data.ctrl[:] = self._build_pose_ctrl(finger_ctrl, lift_scale=lift_scale, pivot_scale=0.0)
-                    self._step_dynamics(force_sync=False)
-                self._sync_mujoco_from_backend()
-                peak_z = max(peak_z, float(self.data.xpos[self.cube_body_id, 2]))
-                finger_flags = self._finger_contact_flags()
-                finger_contact_steps += finger_flags * float(chunk)
-                if float(np.min(finger_flags)) > 0.5:
-                    all_finger_contact_steps += float(chunk)
-                if float(np.sum(finger_flags)) >= 2.0:
-                    contact_active_steps += int(chunk)
-                lift_t += chunk
-
-            pivot_t = 0
-            while pivot_t < self.cfg.pivot_steps:
-                remaining = self.cfg.pivot_steps - pivot_t
-                chunk = max(1, min(sample_stride, remaining))
-                for k in range(chunk):
-                    t = pivot_t + k
-                    ramp_denom = max(1, int(self.cfg.pivot_ramp_steps))
-                    pivot_scale = min(1.0, float((t + 1) / ramp_denom))
-                    self.data.ctrl[:] = self._build_pose_ctrl(finger_ctrl, lift_scale=1.0, pivot_scale=pivot_scale)
-                    self._step_dynamics(force_sync=False)
-                self._sync_mujoco_from_backend()
-                peak_z = max(peak_z, float(self.data.xpos[self.cube_body_id, 2]))
-                finger_flags = self._finger_contact_flags()
-                finger_contact_steps += finger_flags * float(chunk)
-                if float(np.min(finger_flags)) > 0.5:
-                    all_finger_contact_steps += float(chunk)
-                if float(np.sum(finger_flags)) >= 2.0:
-                    contact_active_steps += int(chunk)
-                pivot_t += chunk
-
-            hold_t = 0
-            while hold_t < self.cfg.hold_steps:
-                remaining = self.cfg.hold_steps - hold_t
-                chunk = max(1, min(sample_stride, remaining))
-                for _ in range(chunk):
-                    final_pivot = 1.0 if self.cfg.pivot_steps > 0 else 0.0
-                    self.data.ctrl[:] = self._build_pose_ctrl(finger_ctrl, lift_scale=1.0, pivot_scale=final_pivot)
-                    self._step_dynamics(force_sync=False)
-                self._sync_mujoco_from_backend()
-                peak_z = max(peak_z, float(self.data.xpos[self.cube_body_id, 2]))
-                finger_flags = self._finger_contact_flags()
-                finger_contact_steps += finger_flags * float(chunk)
-                if float(np.min(finger_flags)) > 0.5:
-                    all_finger_contact_steps += float(chunk)
-                if float(np.sum(finger_flags)) >= 2.0:
-                    contact_active_steps += int(chunk)
-                hold_t += chunk
-
-        z_after_hold = float(self.data.xpos[self.cube_body_id, 2])
-        cube_pos_after = self.data.xpos[self.cube_body_id].copy()
-        cube_rot_after = self.data.xmat[self.cube_body_id].reshape(3, 3).copy()
-        cube_yaw_after = self._cube_yaw(cube_rot_after)
-        finger_qpos_after = self.data.qpos[self.finger_joint_qpos_ids].copy()
-        cube_vel_norm = float(np.linalg.norm(self.data.qvel[:6]))
-
+    def _compute_score_and_metrics(
+        self,
+        *,
+        distances: np.ndarray,
+        contact_count: int,
+        z_before: float,
+        peak_z: float,
+        z_after_hold: float,
+        cube_pos_before: np.ndarray,
+        cube_pos_after: np.ndarray,
+        cube_rot_before: np.ndarray,
+        cube_rot_after: np.ndarray,
+        cube_yaw_before: float,
+        cube_yaw_after: float,
+        cube_vel_norm: float,
+        contact_active_steps: int,
+        finger_contact_steps: np.ndarray,
+        all_finger_contact_steps: float,
+        total_dynamic_steps: int,
+        finger_qpos_settle: np.ndarray,
+        finger_qpos_after: np.ndarray,
+    ) -> tuple[float, dict[str, float]]:
         lift_amount = peak_z - z_before
         mean_dist = float(np.mean(distances))
         cube_xy_drift = float(np.linalg.norm(cube_pos_after[:2] - cube_pos_before[:2]))
@@ -646,129 +565,91 @@ class Phase1GraspEvaluator:
         }
         return float(score), metrics
 
-    def evaluate_trajectory(self, finger_ctrl_traj: np.ndarray) -> tuple[float, dict[str, float]]:
-        """Evaluate a small trajectory of finger control keypoints.
+    def _run_dynamic_loop_sampled(
+        self,
+        get_finger_ctrl: Callable[[int], np.ndarray],
+    ) -> tuple[float, int, np.ndarray, float]:
+        """Run lift→pivot→hold with sampled metric collection.
 
-        Supports time-varying finger control over the grasp→lift→pivot→hold sequence.
-        This enables dynamic grip adjustment during reorientation maneuvers.
-
-        Args:
-            finger_ctrl_traj: Shape (phases, n_f). Phases typically = 4:
-              - Index 0: settle phase control.
-              - Index 1: target control at end of lift.
-              - Index 2: target control at end of pivot.
-              - Index 3: target control at end of hold.
-
-        Returns:
-            (score, metrics) tuple with full evaluation results.
-
-        Note: Uses phase1_trajectory.TrajectoryInterpolator for clean phase-to-phase mapping.
+        Returns (peak_z, contact_active_steps, finger_contact_steps, all_finger_contact_steps).
         """
-        finger_ctrl_traj = np.asarray(finger_ctrl_traj, dtype=np.float64)
-        phases, n_f = finger_ctrl_traj.shape
-        if n_f != self.finger_actuator_ids.size:
-            raise ValueError("Trajectory finger control size mismatch")
-
-        interp = build_trajectory_interpolator(finger_ctrl_traj, self)
-
-        self._reset_to_keyframe()
-
-        # settle
-        settle_ctrl = self.initial_ctrl.copy()
-        settle_ctrl[self.finger_actuator_ids] = finger_ctrl_traj[0]
-        self._step_with_ctrl(settle_ctrl, self.cfg.settle_steps)
-
-        distances = self._tip_distances_to_cube()
-        contact_count = self._cube_tip_contact_count()
-        cube_pos_before = self.data.xpos[self.cube_body_id].copy()
-        cube_rot_before = self.data.xmat[self.cube_body_id].reshape(3, 3).copy()
-        cube_yaw_before = self._cube_yaw(cube_rot_before)
-        finger_qpos_settle = self.data.qpos[self.finger_joint_qpos_ids].copy()
-        z_before = float(self.data.xpos[self.cube_body_id, 2])
-
-        peak_z = z_before
-        contact_active_steps = 0
-        finger_contact_steps = np.zeros(3, dtype=np.float64)
-        all_finger_contact_steps = 0.0
-        total_dynamic_steps = self.cfg.lift_steps + self.cfg.pivot_steps + self.cfg.hold_steps
-
         sample_stride = 1 if self.backend == "mujoco" else self.metric_sample_interval
 
-        # dynamic phases: lift, pivot, hold
-        dynamic_t = 0
-        # lift
-        while dynamic_t < self.cfg.lift_steps:
-            chunk = max(1, min(sample_stride, int(self.cfg.lift_steps - dynamic_t)))
-            for k in range(chunk):
-                t = dynamic_t + k
-                lift_scale = min(1.0, float((t + 1) / max(1, int(self.cfg.lift_ramp_steps))))
-                pivot_scale = 0.0
-                finger_ctrl = interp.at_dynamic_step(t)
-                ctrl = self.initial_ctrl.copy()
-                ctrl[self.finger_actuator_ids] = finger_ctrl
-                ctrl[self.pose_actuator_ids[2]] = self.initial_palm_pz_target + lift_scale * self.cfg.lift_delta_z
-                self.data.ctrl[:] = ctrl
-                self._step_dynamics(force_sync=False)
-            self._sync_mujoco_from_backend()
-            peak_z = max(peak_z, float(self.data.xpos[self.cube_body_id, 2]))
-            finger_flags = self._finger_contact_flags()
-            finger_contact_steps += finger_flags * float(chunk)
-            if float(np.min(finger_flags)) > 0.5:
-                all_finger_contact_steps += float(chunk)
-            if float(np.sum(finger_flags)) >= 2.0:
-                contact_active_steps += int(chunk)
-            dynamic_t += chunk
+        peak_z = float(self.data.xpos[self.cube_body_id, 2])
+        contact_active_steps = 0
+        finger_contact_steps = np.zeros(3, dtype=np.float64)
+        all_finger_contact_steps = 0.0
 
-        # pivot
-        pivot_t = 0
-        while pivot_t < self.cfg.pivot_steps:
-            chunk = max(1, min(sample_stride, int(self.cfg.pivot_steps - pivot_t)))
-            for k in range(chunk):
-                t = pivot_t + k
-                pivot_scale = min(1.0, float((t + 1) / max(1, int(self.cfg.pivot_ramp_steps))))
-                finger_ctrl = interp.at_dynamic_step(int(self.cfg.lift_steps + t))
-                ctrl = self.initial_ctrl.copy()
-                ctrl[self.finger_actuator_ids] = finger_ctrl
-                ctrl[self.pose_actuator_ids[2]] = self.initial_palm_pz_target + self.cfg.lift_delta_z
-                ctrl[self.pose_actuator_ids[3]] = self.initial_ctrl[self.pose_actuator_ids[3]] + pivot_scale * self.cfg.pivot_delta_rx
-                ctrl[self.pose_actuator_ids[4]] = self.initial_ctrl[self.pose_actuator_ids[4]] + pivot_scale * self.cfg.pivot_delta_ry
-                ctrl[self.pose_actuator_ids[5]] = self.initial_ctrl[self.pose_actuator_ids[5]] + pivot_scale * self.cfg.pivot_delta_rz
-                self.data.ctrl[:] = ctrl
-                self._step_dynamics(force_sync=False)
-            self._sync_mujoco_from_backend()
-            peak_z = max(peak_z, float(self.data.xpos[self.cube_body_id, 2]))
-            finger_flags = self._finger_contact_flags()
-            finger_contact_steps += finger_flags * float(chunk)
-            if float(np.min(finger_flags)) > 0.5:
-                all_finger_contact_steps += float(chunk)
-            if float(np.sum(finger_flags)) >= 2.0:
-                contact_active_steps += int(chunk)
-            pivot_t += chunk
+        phases = (
+            (self.cfg.lift_steps, 0),
+            (self.cfg.pivot_steps, self.cfg.lift_steps),
+            (self.cfg.hold_steps, self.cfg.lift_steps + self.cfg.pivot_steps),
+        )
+        for phase_steps, phase_offset in phases:
+            local_t = 0
+            while local_t < phase_steps:
+                chunk = max(1, min(sample_stride, int(phase_steps - local_t)))
+                for k in range(chunk):
+                    dynamic_t = phase_offset + local_t + k
+                    self.data.ctrl[:] = self._ctrl_for_dynamic_step(dynamic_t, get_finger_ctrl)
+                    self._step_dynamics(force_sync=False)
+                self._sync_mujoco_from_backend()
+                peak_z = max(peak_z, float(self.data.xpos[self.cube_body_id, 2]))
+                finger_flags = self._finger_contact_flags()
+                finger_contact_steps += finger_flags * float(chunk)
+                if float(np.min(finger_flags)) > 0.5:
+                    all_finger_contact_steps += float(chunk)
+                if float(np.sum(finger_flags)) >= 2.0:
+                    contact_active_steps += int(chunk)
+                local_t += chunk
 
-        # hold
-        hold_t = 0
-        while hold_t < self.cfg.hold_steps:
-            chunk = max(1, min(sample_stride, int(self.cfg.hold_steps - hold_t)))
-            for k in range(chunk):
-                t = hold_t + k
-                finger_ctrl = interp.at_dynamic_step(int(self.cfg.lift_steps + self.cfg.pivot_steps + t))
-                ctrl = self.initial_ctrl.copy()
-                ctrl[self.finger_actuator_ids] = finger_ctrl
-                ctrl[self.pose_actuator_ids[2]] = self.initial_palm_pz_target + self.cfg.lift_delta_z
-                ctrl[self.pose_actuator_ids[3]] = self.initial_ctrl[self.pose_actuator_ids[3]] + self.cfg.pivot_delta_rx
-                ctrl[self.pose_actuator_ids[4]] = self.initial_ctrl[self.pose_actuator_ids[4]] + self.cfg.pivot_delta_ry
-                ctrl[self.pose_actuator_ids[5]] = self.initial_ctrl[self.pose_actuator_ids[5]] + self.cfg.pivot_delta_rz
-                self.data.ctrl[:] = ctrl
-                self._step_dynamics(force_sync=False)
-            self._sync_mujoco_from_backend()
-            peak_z = max(peak_z, float(self.data.xpos[self.cube_body_id, 2]))
-            finger_flags = self._finger_contact_flags()
-            finger_contact_steps += finger_flags * float(chunk)
-            if float(np.min(finger_flags)) > 0.5:
-                all_finger_contact_steps += float(chunk)
-            if float(np.sum(finger_flags)) >= 2.0:
-                contact_active_steps += int(chunk)
-            hold_t += chunk
+        return peak_z, contact_active_steps, finger_contact_steps, all_finger_contact_steps
+
+    def _run_dynamic_loop_terminal(
+        self,
+        get_finger_ctrl: Callable[[int], np.ndarray],
+        z_before: float,
+    ) -> tuple[float, int, np.ndarray, float]:
+        """Run lift→pivot→hold without per-chunk sync; collect metrics from the terminal state only."""
+        total_dynamic_steps = self.cfg.lift_steps + self.cfg.pivot_steps + self.cfg.hold_steps
+        for dynamic_t in range(total_dynamic_steps):
+            self.data.ctrl[:] = self._ctrl_for_dynamic_step(dynamic_t, get_finger_ctrl)
+            self._step_dynamics(force_sync=False)
+        self._sync_mujoco_from_backend()
+
+        peak_z = max(z_before, float(self.data.xpos[self.cube_body_id, 2]))
+        finger_flags = self._finger_contact_flags()
+        finger_contact_steps = finger_flags * float(total_dynamic_steps)
+        all_finger_contact_steps = float(total_dynamic_steps) if float(np.min(finger_flags)) > 0.5 else 0.0
+        contact_active_steps = total_dynamic_steps if float(np.sum(finger_flags)) >= 2.0 else 0
+        return peak_z, contact_active_steps, finger_contact_steps, all_finger_contact_steps
+
+    def _evaluate_with_provider(
+        self,
+        settle_finger_ctrl: np.ndarray,
+        get_finger_ctrl: Callable[[int], np.ndarray],
+    ) -> tuple[float, dict[str, float]]:
+        """Shared evaluation body for scalar and trajectory paths."""
+        self._reset_to_keyframe()
+        settle_ctrl = self._build_full_ctrl(settle_finger_ctrl, lift=False)
+        self._step_with_ctrl(settle_ctrl, self.cfg.settle_steps)
+
+        distances = self._tip_distances_to_cube()
+        contact_count = self._cube_tip_contact_count()
+        cube_pos_before = self.data.xpos[self.cube_body_id].copy()
+        cube_rot_before = self.data.xmat[self.cube_body_id].reshape(3, 3).copy()
+        cube_yaw_before = self._cube_yaw(cube_rot_before)
+        finger_qpos_settle = self.data.qpos[self.finger_joint_qpos_ids].copy()
+        z_before = float(self.data.xpos[self.cube_body_id, 2])
+
+        if self.metric_collection_mode == "terminal" and self.backend != "mujoco":
+            peak_z, contact_active_steps, finger_contact_steps, all_finger_contact_steps = (
+                self._run_dynamic_loop_terminal(get_finger_ctrl, z_before)
+            )
+        else:
+            peak_z, contact_active_steps, finger_contact_steps, all_finger_contact_steps = (
+                self._run_dynamic_loop_sampled(get_finger_ctrl)
+            )
 
         z_after_hold = float(self.data.xpos[self.cube_body_id, 2])
         cube_pos_after = self.data.xpos[self.cube_body_id].copy()
@@ -776,88 +657,56 @@ class Phase1GraspEvaluator:
         cube_yaw_after = self._cube_yaw(cube_rot_after)
         finger_qpos_after = self.data.qpos[self.finger_joint_qpos_ids].copy()
         cube_vel_norm = float(np.linalg.norm(self.data.qvel[:6]))
+        total_dynamic_steps = self.cfg.lift_steps + self.cfg.pivot_steps + self.cfg.hold_steps
 
-        lift_amount = peak_z - z_before
-        mean_dist = float(np.mean(distances))
-        cube_xy_drift = float(np.linalg.norm(cube_pos_after[:2] - cube_pos_before[:2]))
-        cube_yaw_drift = float(np.abs(self._wrap_to_pi(cube_yaw_after - cube_yaw_before)))
-        cube_axis_tilt = self._cube_axis_tilt(cube_rot_before, cube_rot_after)
-        cube_ang_drift = self._cube_total_angle_drift(cube_rot_before, cube_rot_after)
-        cube_z_drop_from_peak = float(max(0.0, peak_z - z_after_hold))
-        contact_persistence = float(contact_active_steps / max(1, total_dynamic_steps))
-        finger_contact_persistence = finger_contact_steps / max(1, total_dynamic_steps)
-        min_finger_contact_persistence = float(np.min(finger_contact_persistence))
-        finger_persistence_imbalance = float(np.max(finger_contact_persistence) - np.min(finger_contact_persistence))
-        all_finger_contact_persistence = float(all_finger_contact_steps / max(1, total_dynamic_steps))
-
-        finger_qpos_delta = np.abs(finger_qpos_after - finger_qpos_settle)
-        finger_yaw_drift = float(np.mean(finger_qpos_delta[[0, 3, 6]]))
-        finger_flex_drift = float(np.mean(finger_qpos_delta[[1, 2, 4, 5, 7, 8]]))
-
-        score = (
-            self.cfg.objective_weight_lift * lift_amount
-            - self.cfg.objective_weight_distance * mean_dist
-            + self.cfg.objective_weight_contact * float(contact_count)
-            - self.cfg.objective_weight_velocity_penalty * cube_vel_norm
-            - self.cfg.objective_weight_xy_drift_penalty * cube_xy_drift
-            - self.cfg.objective_weight_cube_yaw_drift_penalty * cube_yaw_drift
-            - self.cfg.objective_weight_cube_axis_tilt_penalty * cube_axis_tilt
-            - self.cfg.objective_weight_cube_ang_drift_penalty * cube_ang_drift
-            - self.cfg.objective_weight_drop_penalty * cube_z_drop_from_peak
-            + self.cfg.objective_weight_contact_persistence * contact_persistence
-            + self.cfg.objective_weight_min_finger_persistence * min_finger_contact_persistence
-            - self.cfg.objective_weight_finger_persistence_imbalance_penalty * finger_persistence_imbalance
-            - self.cfg.objective_weight_finger_yaw_drift_penalty * finger_yaw_drift
-            - self.cfg.objective_weight_finger_flex_drift_penalty * finger_flex_drift
+        return self._compute_score_and_metrics(
+            distances=distances,
+            contact_count=contact_count,
+            z_before=z_before,
+            peak_z=peak_z,
+            z_after_hold=z_after_hold,
+            cube_pos_before=cube_pos_before,
+            cube_pos_after=cube_pos_after,
+            cube_rot_before=cube_rot_before,
+            cube_rot_after=cube_rot_after,
+            cube_yaw_before=cube_yaw_before,
+            cube_yaw_after=cube_yaw_after,
+            cube_vel_norm=cube_vel_norm,
+            contact_active_steps=contact_active_steps,
+            finger_contact_steps=finger_contact_steps,
+            all_finger_contact_steps=all_finger_contact_steps,
+            total_dynamic_steps=total_dynamic_steps,
+            finger_qpos_settle=finger_qpos_settle,
+            finger_qpos_after=finger_qpos_after,
         )
 
-        metrics = {
-            "score": float(score),
-            "mean_tip_distance": mean_dist,
-            "tip_distance_thumb": float(distances[0]),
-            "tip_distance_index": float(distances[1]),
-            "tip_distance_middle": float(distances[2]),
-            "cube_tip_contacts": float(contact_count),
-            "cube_z_before_lift": z_before,
-            "cube_z_peak": peak_z,
-            "cube_z_after_hold": z_after_hold,
-            "cube_lift": lift_amount,
-            "cube_vel_norm": cube_vel_norm,
-            "cube_xy_drift": cube_xy_drift,
-            "cube_yaw_drift": cube_yaw_drift,
-            "cube_axis_tilt": cube_axis_tilt,
-            "cube_ang_drift": cube_ang_drift,
-            "cube_z_drop_from_peak": cube_z_drop_from_peak,
-            "contact_persistence": contact_persistence,
-            "thumb_contact_persistence": float(finger_contact_persistence[0]),
-            "index_contact_persistence": float(finger_contact_persistence[1]),
-            "middle_contact_persistence": float(finger_contact_persistence[2]),
-            "all_finger_contact_persistence": all_finger_contact_persistence,
-            "min_finger_contact_persistence": min_finger_contact_persistence,
-            "finger_persistence_imbalance": finger_persistence_imbalance,
-            "finger_yaw_drift": finger_yaw_drift,
-            "finger_flex_drift": finger_flex_drift,
-        }
-        return float(score), metrics
+    def evaluate(self, finger_ctrl: np.ndarray) -> tuple[float, dict[str, float]]:
+        finger_ctrl = np.clip(
+            np.asarray(finger_ctrl, dtype=np.float64),
+            self.finger_ctrl_min,
+            self.finger_ctrl_max,
+        )
+        return self._evaluate_with_provider(finger_ctrl, lambda _t: finger_ctrl)
 
-    def rollout_trajectory(self, finger_ctrl_traj: np.ndarray) -> dict[str, np.ndarray]:
-        """Generate full (qpos, qvel, cube_z, contacts) rollout for a trajectory.
-
-        Args:
-            finger_ctrl_traj: Shape (phases, n_f).
-
-        Returns:
-            Dictionary with keys: qpos, qvel, cube_z, contacts.
-        """
+    def evaluate_trajectory(self, finger_ctrl_traj: np.ndarray) -> tuple[float, dict[str, float]]:
+        """Evaluate a piecewise-linear finger control trajectory across grasp→lift→pivot→hold."""
         finger_ctrl_traj = np.asarray(finger_ctrl_traj, dtype=np.float64)
-        phases, n_f = finger_ctrl_traj.shape
-        if n_f != self.finger_actuator_ids.size:
+        if finger_ctrl_traj.ndim != 2 or finger_ctrl_traj.shape[1] != self.finger_actuator_ids.size:
             raise ValueError("Trajectory finger control size mismatch")
-
         interp = build_trajectory_interpolator(finger_ctrl_traj, self)
-        self._reset_to_keyframe()
+        return self._evaluate_with_provider(finger_ctrl_traj[0], interp.at_dynamic_step)
 
-        total_steps = int(self.cfg.settle_steps + self.cfg.lift_steps + self.cfg.pivot_steps + self.cfg.hold_steps)
+    def _rollout_with_provider(
+        self,
+        settle_finger_ctrl: np.ndarray,
+        get_finger_ctrl: Callable[[int], np.ndarray],
+    ) -> dict[str, np.ndarray]:
+        self._reset_to_keyframe()
+        settle_ctrl = self._build_full_ctrl(settle_finger_ctrl, lift=False)
+
+        total_steps = int(
+            self.cfg.settle_steps + self.cfg.lift_steps + self.cfg.pivot_steps + self.cfg.hold_steps
+        )
         qpos = np.zeros((total_steps, self.model.nq), dtype=np.float64)
         qvel = np.zeros((total_steps, self.model.nv), dtype=np.float64)
         cube_z = np.zeros(total_steps, dtype=np.float64)
@@ -865,30 +714,9 @@ class Phase1GraspEvaluator:
 
         for t in range(total_steps):
             if t < self.cfg.settle_steps:
-                ctrl = self.initial_ctrl.copy()
-                ctrl[self.finger_actuator_ids] = finger_ctrl_traj[0]
+                self.data.ctrl[:] = settle_ctrl
             else:
-                dynamic_t = t - self.cfg.settle_steps
-                if dynamic_t < self.cfg.lift_steps:
-                    ramp_denom = max(1, int(self.cfg.lift_ramp_steps))
-                    lift_scale = min(1.0, float((dynamic_t + 1) / ramp_denom))
-                    pivot_scale = 0.0
-                elif dynamic_t < (self.cfg.lift_steps + self.cfg.pivot_steps):
-                    pivot_t = dynamic_t - self.cfg.lift_steps
-                    ramp_denom = max(1, int(self.cfg.pivot_ramp_steps))
-                    lift_scale = 1.0
-                    pivot_scale = min(1.0, float((pivot_t + 1) / ramp_denom))
-                else:
-                    lift_scale = 1.0
-                    pivot_scale = 1.0 if self.cfg.pivot_steps > 0 else 0.0
-                finger_ctrl = interp.at_dynamic_step(dynamic_t)
-                ctrl = self.initial_ctrl.copy()
-                ctrl[self.finger_actuator_ids] = finger_ctrl
-                ctrl[self.pose_actuator_ids[2]] = self.initial_palm_pz_target + lift_scale * self.cfg.lift_delta_z
-                ctrl[self.pose_actuator_ids[3]] = self.initial_ctrl[self.pose_actuator_ids[3]] + pivot_scale * self.cfg.pivot_delta_rx
-                ctrl[self.pose_actuator_ids[4]] = self.initial_ctrl[self.pose_actuator_ids[4]] + pivot_scale * self.cfg.pivot_delta_ry
-                ctrl[self.pose_actuator_ids[5]] = self.initial_ctrl[self.pose_actuator_ids[5]] + pivot_scale * self.cfg.pivot_delta_rz
-            self.data.ctrl[:] = ctrl
+                self.data.ctrl[:] = self._ctrl_for_dynamic_step(t - self.cfg.settle_steps, get_finger_ctrl)
             self._step_dynamics(force_sync=False)
             if self.backend == "mujoco" or ((t + 1) % self.metric_sample_interval == 0) or (t == total_steps - 1):
                 self._sync_mujoco_from_backend()
@@ -897,76 +725,53 @@ class Phase1GraspEvaluator:
             cube_z[t] = self.data.xpos[self.cube_body_id, 2]
             contacts[t] = self._cube_tip_contact_count()
 
-        return {
-            "qpos": qpos,
-            "qvel": qvel,
-            "cube_z": cube_z,
-            "contacts": contacts,
-        }
+        return {"qpos": qpos, "qvel": qvel, "cube_z": cube_z, "contacts": contacts}
 
-    def render_rollout_gif_trajectory(
-        self,
-        finger_ctrl_traj: np.ndarray,
-        output_gif: Path,
-        width: int = 720,
-        height: int = 540,
-        fps: int = 25,
-        frame_stride: int = 4,
-    ) -> Path:
-        """Render full trajectory rollout as GIF animation.
+    def rollout(self, finger_ctrl: np.ndarray) -> dict[str, np.ndarray]:
+        finger_ctrl = np.clip(
+            np.asarray(finger_ctrl, dtype=np.float64),
+            self.finger_ctrl_min,
+            self.finger_ctrl_max,
+        )
+        return self._rollout_with_provider(finger_ctrl, lambda _t: finger_ctrl)
 
-        Args:
-            finger_ctrl_traj: Shape (phases, n_f).
-            output_gif: Output path for GIF file.
-            width, height: Video dimensions.
-            fps: Frames per second.
-            frame_stride: Render every Nth frame.
-
-        Returns:
-            Path to created GIF.
-        """
+    def rollout_trajectory(self, finger_ctrl_traj: np.ndarray) -> dict[str, np.ndarray]:
         finger_ctrl_traj = np.asarray(finger_ctrl_traj, dtype=np.float64)
-        phases, n_f = finger_ctrl_traj.shape
-        if n_f != self.finger_actuator_ids.size:
+        if finger_ctrl_traj.ndim != 2 or finger_ctrl_traj.shape[1] != self.finger_actuator_ids.size:
             raise ValueError("Trajectory finger control size mismatch")
-
         interp = build_trajectory_interpolator(finger_ctrl_traj, self)
+        return self._rollout_with_provider(finger_ctrl_traj[0], interp.at_dynamic_step)
+
+    def _render_rollout_gif_with_provider(
+        self,
+        settle_finger_ctrl: np.ndarray,
+        get_finger_ctrl: Callable[[int], np.ndarray],
+        output_gif: Path,
+        width: int,
+        height: int,
+        fps: int,
+        frame_stride: int,
+    ) -> Path:
         self._reset_to_keyframe()
+        settle_ctrl = self._build_full_ctrl(settle_finger_ctrl, lift=False)
 
         max_width = int(self.model.vis.global_.offwidth)
         max_height = int(self.model.vis.global_.offheight)
-        render_width = min(width, max_width)
-        render_height = min(height, max_height)
-        renderer = mujoco.Renderer(self.model, height=render_height, width=render_width)
-        total_steps = int(self.cfg.settle_steps + self.cfg.lift_steps + self.cfg.pivot_steps + self.cfg.hold_steps)
+        renderer = mujoco.Renderer(
+            self.model,
+            height=min(height, max_height),
+            width=min(width, max_width),
+        )
+        total_steps = int(
+            self.cfg.settle_steps + self.cfg.lift_steps + self.cfg.pivot_steps + self.cfg.hold_steps
+        )
         frames: list[np.ndarray] = []
 
         for t in range(total_steps):
             if t < self.cfg.settle_steps:
-                ctrl = self.initial_ctrl.copy()
-                ctrl[self.finger_actuator_ids] = finger_ctrl_traj[0]
+                self.data.ctrl[:] = settle_ctrl
             else:
-                dynamic_t = t - self.cfg.settle_steps
-                if dynamic_t < self.cfg.lift_steps:
-                    ramp_denom = max(1, int(self.cfg.lift_ramp_steps))
-                    lift_scale = min(1.0, float((dynamic_t + 1) / ramp_denom))
-                    pivot_scale = 0.0
-                elif dynamic_t < (self.cfg.lift_steps + self.cfg.pivot_steps):
-                    pivot_t = dynamic_t - self.cfg.lift_steps
-                    ramp_denom = max(1, int(self.cfg.pivot_ramp_steps))
-                    lift_scale = 1.0
-                    pivot_scale = min(1.0, float((pivot_t + 1) / ramp_denom))
-                else:
-                    lift_scale = 1.0
-                    pivot_scale = 1.0 if self.cfg.pivot_steps > 0 else 0.0
-                finger_ctrl = interp.at_dynamic_step(dynamic_t)
-                ctrl = self.initial_ctrl.copy()
-                ctrl[self.finger_actuator_ids] = finger_ctrl
-                ctrl[self.pose_actuator_ids[2]] = self.initial_palm_pz_target + lift_scale * self.cfg.lift_delta_z
-                ctrl[self.pose_actuator_ids[3]] = self.initial_ctrl[self.pose_actuator_ids[3]] + pivot_scale * self.cfg.pivot_delta_rx
-                ctrl[self.pose_actuator_ids[4]] = self.initial_ctrl[self.pose_actuator_ids[4]] + pivot_scale * self.cfg.pivot_delta_ry
-                ctrl[self.pose_actuator_ids[5]] = self.initial_ctrl[self.pose_actuator_ids[5]] + pivot_scale * self.cfg.pivot_delta_rz
-            self.data.ctrl[:] = ctrl
+                self.data.ctrl[:] = self._ctrl_for_dynamic_step(t - self.cfg.settle_steps, get_finger_ctrl)
             self._step_dynamics(force_sync=False)
             if self.backend == "mujoco" or ((t + 1) % self.metric_sample_interval == 0) or (t == total_steps - 1):
                 self._sync_mujoco_from_backend()
@@ -977,51 +782,6 @@ class Phase1GraspEvaluator:
         output_gif.parent.mkdir(parents=True, exist_ok=True)
         imageio.mimsave(output_gif, frames, fps=fps)
         return output_gif
-
-    def rollout(self, finger_ctrl: np.ndarray) -> dict[str, np.ndarray]:
-        finger_ctrl = np.asarray(finger_ctrl, dtype=np.float64)
-        finger_ctrl = np.clip(finger_ctrl, self.finger_ctrl_min, self.finger_ctrl_max)
-        self._reset_to_keyframe()
-
-        settle_ctrl = self._build_full_ctrl(finger_ctrl, lift=False)
-        total_steps = self.cfg.settle_steps + self.cfg.lift_steps + self.cfg.pivot_steps + self.cfg.hold_steps
-        qpos = np.zeros((total_steps, self.model.nq), dtype=np.float64)
-        qvel = np.zeros((total_steps, self.model.nv), dtype=np.float64)
-        cube_z = np.zeros(total_steps, dtype=np.float64)
-        contacts = np.zeros(total_steps, dtype=np.float64)
-
-        for t in range(total_steps):
-            if t < self.cfg.settle_steps:
-                self.data.ctrl[:] = settle_ctrl
-            else:
-                dynamic_t = t - self.cfg.settle_steps
-                if dynamic_t < self.cfg.lift_steps:
-                    ramp_denom = max(1, int(self.cfg.lift_ramp_steps))
-                    lift_scale = min(1.0, float((dynamic_t + 1) / ramp_denom))
-                    pivot_scale = 0.0
-                elif dynamic_t < (self.cfg.lift_steps + self.cfg.pivot_steps):
-                    pivot_t = dynamic_t - self.cfg.lift_steps
-                    ramp_denom = max(1, int(self.cfg.pivot_ramp_steps))
-                    lift_scale = 1.0
-                    pivot_scale = min(1.0, float((pivot_t + 1) / ramp_denom))
-                else:
-                    lift_scale = 1.0
-                    pivot_scale = 1.0 if self.cfg.pivot_steps > 0 else 0.0
-                self.data.ctrl[:] = self._build_pose_ctrl(finger_ctrl, lift_scale=lift_scale, pivot_scale=pivot_scale)
-            self._step_dynamics(force_sync=False)
-            if self.backend == "mujoco" or ((t + 1) % self.metric_sample_interval == 0) or (t == total_steps - 1):
-                self._sync_mujoco_from_backend()
-            qpos[t] = self.data.qpos
-            qvel[t] = self.data.qvel
-            cube_z[t] = self.data.xpos[self.cube_body_id, 2]
-            contacts[t] = self._cube_tip_contact_count()
-
-        return {
-            "qpos": qpos,
-            "qvel": qvel,
-            "cube_z": cube_z,
-            "contacts": contacts,
-        }
 
     def render_rollout_gif(
         self,
@@ -1032,44 +792,28 @@ class Phase1GraspEvaluator:
         fps: int = 25,
         frame_stride: int = 4,
     ) -> Path:
-        finger_ctrl = np.asarray(finger_ctrl, dtype=np.float64)
-        finger_ctrl = np.clip(finger_ctrl, self.finger_ctrl_min, self.finger_ctrl_max)
-        self._reset_to_keyframe()
+        finger_ctrl = np.clip(
+            np.asarray(finger_ctrl, dtype=np.float64),
+            self.finger_ctrl_min,
+            self.finger_ctrl_max,
+        )
+        return self._render_rollout_gif_with_provider(
+            finger_ctrl, lambda _t: finger_ctrl, output_gif, width, height, fps, frame_stride,
+        )
 
-        settle_ctrl = self._build_full_ctrl(finger_ctrl, lift=False)
-        max_width = int(self.model.vis.global_.offwidth)
-        max_height = int(self.model.vis.global_.offheight)
-        render_width = min(width, max_width)
-        render_height = min(height, max_height)
-        renderer = mujoco.Renderer(self.model, height=render_height, width=render_width)
-        total_steps = self.cfg.settle_steps + self.cfg.lift_steps + self.cfg.pivot_steps + self.cfg.hold_steps
-        frames: list[np.ndarray] = []
-
-        for t in range(total_steps):
-            if t < self.cfg.settle_steps:
-                self.data.ctrl[:] = settle_ctrl
-            else:
-                dynamic_t = t - self.cfg.settle_steps
-                if dynamic_t < self.cfg.lift_steps:
-                    ramp_denom = max(1, int(self.cfg.lift_ramp_steps))
-                    lift_scale = min(1.0, float((dynamic_t + 1) / ramp_denom))
-                    pivot_scale = 0.0
-                elif dynamic_t < (self.cfg.lift_steps + self.cfg.pivot_steps):
-                    pivot_t = dynamic_t - self.cfg.lift_steps
-                    ramp_denom = max(1, int(self.cfg.pivot_ramp_steps))
-                    lift_scale = 1.0
-                    pivot_scale = min(1.0, float((pivot_t + 1) / ramp_denom))
-                else:
-                    lift_scale = 1.0
-                    pivot_scale = 1.0 if self.cfg.pivot_steps > 0 else 0.0
-                self.data.ctrl[:] = self._build_pose_ctrl(finger_ctrl, lift_scale=lift_scale, pivot_scale=pivot_scale)
-            self._step_dynamics(force_sync=False)
-            if self.backend == "mujoco" or ((t + 1) % self.metric_sample_interval == 0) or (t == total_steps - 1):
-                self._sync_mujoco_from_backend()
-            if t % frame_stride == 0:
-                renderer.update_scene(self.data)
-                frames.append(renderer.render().copy())
-
-        output_gif.parent.mkdir(parents=True, exist_ok=True)
-        imageio.mimsave(output_gif, frames, fps=fps)
-        return output_gif
+    def render_rollout_gif_trajectory(
+        self,
+        finger_ctrl_traj: np.ndarray,
+        output_gif: Path,
+        width: int = 720,
+        height: int = 540,
+        fps: int = 25,
+        frame_stride: int = 4,
+    ) -> Path:
+        finger_ctrl_traj = np.asarray(finger_ctrl_traj, dtype=np.float64)
+        if finger_ctrl_traj.ndim != 2 or finger_ctrl_traj.shape[1] != self.finger_actuator_ids.size:
+            raise ValueError("Trajectory finger control size mismatch")
+        interp = build_trajectory_interpolator(finger_ctrl_traj, self)
+        return self._render_rollout_gif_with_provider(
+            finger_ctrl_traj[0], interp.at_dynamic_step, output_gif, width, height, fps, frame_stride,
+        )
