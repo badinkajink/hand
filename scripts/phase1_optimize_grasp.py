@@ -7,6 +7,8 @@ from datetime import datetime
 from pathlib import Path
 import sys
 import time
+import shutil
+import xml.etree.ElementTree as ET
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -25,6 +27,13 @@ from morphohand.optimization.phase1_grasp import (  # noqa: E402
     optimize_finger_controls_diffmjx_mvp,
     optimize_finger_controls_autodiff,
     optimize_finger_controls,
+)
+from morphohand.optimization.phase1_strategy_cem import (
+    optimize_finger_control_trajectory,
+)
+from morphohand.tools.morphology_xml import (  # noqa: E402
+    create_rigid_morphology_xml,
+    extract_morphology_from_qpos,
 )
 
 
@@ -109,6 +118,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--hold-steps", type=int, default=140)
     parser.add_argument("--lift-delta-z", type=float, default=0.05)
     parser.add_argument("--lift-ramp-steps", type=int, default=80)
+    parser.add_argument("--pivot-steps", type=int, default=0)
+    parser.add_argument("--pivot-ramp-steps", type=int, default=80)
+    parser.add_argument("--pivot-delta-rx", type=float, default=0.0)
+    parser.add_argument("--pivot-delta-ry", type=float, default=0.0)
+    parser.add_argument("--pivot-delta-rz", type=float, default=0.0)
     parser.add_argument("--objective-weight-xy-drift-penalty", type=float, default=6.0)
     parser.add_argument("--objective-weight-drop-penalty", type=float, default=12.0)
     parser.add_argument("--objective-weight-contact-persistence", type=float, default=0.8)
@@ -120,6 +134,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--objective-weight-finger-yaw-drift-penalty", type=float, default=0.8)
     parser.add_argument("--objective-weight-finger-flex-drift-penalty", type=float, default=0.4)
+    parser.add_argument("--objective-weight-cube-yaw-drift-penalty", type=float, default=4.0)
+    parser.add_argument("--objective-weight-cube-axis-tilt-penalty", type=float, default=6.0)
+    parser.add_argument("--objective-weight-cube-ang-drift-penalty", type=float, default=2.0)
     parser.add_argument(
         "--skip-gif",
         action="store_true",
@@ -127,6 +144,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--output-dir", type=Path, default=PROJECT_ROOT / "results" / "phase1")
     parser.add_argument("--tag", default=None)
+    parser.add_argument("--traj-phases", type=int, default=1, help="Number of finger-control keypoints to optimize (1 = constant)")
     return parser
 
 
@@ -226,6 +244,37 @@ def _write_report(out_dir: Path, summary: dict, best_metrics: dict[str, float], 
     report_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def _freeze_scene_xml(scene_xml: Path, keyframe: str, frozen_scene_xml: Path) -> Path:
+    root = ET.parse(scene_xml).getroot()
+    has_morph_joints = any(j.get("name") == "thumb_x" for j in root.iter("joint"))
+    if not has_morph_joints:
+        frozen_scene_xml.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(scene_xml, frozen_scene_xml)
+        return frozen_scene_xml
+
+    keyframe_elem = root.find("keyframe")
+    if keyframe_elem is None:
+        raise ValueError(f"No <keyframe> section in {scene_xml}")
+
+    selected_key = None
+    for key in keyframe_elem.findall("key"):
+        if key.get("name") == keyframe:
+            selected_key = key
+            break
+    if selected_key is None or not selected_key.get("qpos"):
+        raise ValueError(f"Keyframe '{keyframe}' not found or has no qpos in {scene_xml}")
+
+    qpos = [float(v) for v in selected_key.get("qpos", "").replace("\n", " ").split()]
+    morphology = extract_morphology_from_qpos(qpos, has_scene_prefix=True)
+    create_rigid_morphology_xml(
+        base_xml_path=scene_xml,
+        morphology=morphology,
+        output_xml_path=frozen_scene_xml,
+        model_name=frozen_scene_xml.stem,
+    )
+    return frozen_scene_xml
+
+
 def main() -> None:
     args = build_parser().parse_args()
     run_start = time.perf_counter()
@@ -234,12 +283,23 @@ def main() -> None:
     out_dir = args.output_dir / tag
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    frozen_scene_xml = _freeze_scene_xml(
+        scene_xml=args.scene_xml,
+        keyframe=args.keyframe,
+        frozen_scene_xml=out_dir / "frozen_scene.xml",
+    )
+
     eval_cfg = Phase1EvalConfig(
         settle_steps=args.settle_steps,
         lift_steps=args.lift_steps,
         hold_steps=args.hold_steps,
         lift_delta_z=args.lift_delta_z,
         lift_ramp_steps=args.lift_ramp_steps,
+        pivot_steps=args.pivot_steps,
+        pivot_ramp_steps=args.pivot_ramp_steps,
+        pivot_delta_rx=args.pivot_delta_rx,
+        pivot_delta_ry=args.pivot_delta_ry,
+        pivot_delta_rz=args.pivot_delta_rz,
         objective_weight_xy_drift_penalty=args.objective_weight_xy_drift_penalty,
         objective_weight_drop_penalty=args.objective_weight_drop_penalty,
         objective_weight_contact_persistence=args.objective_weight_contact_persistence,
@@ -249,6 +309,9 @@ def main() -> None:
         ),
         objective_weight_finger_yaw_drift_penalty=args.objective_weight_finger_yaw_drift_penalty,
         objective_weight_finger_flex_drift_penalty=args.objective_weight_finger_flex_drift_penalty,
+        objective_weight_cube_yaw_drift_penalty=args.objective_weight_cube_yaw_drift_penalty,
+        objective_weight_cube_axis_tilt_penalty=args.objective_weight_cube_axis_tilt_penalty,
+        objective_weight_cube_ang_drift_penalty=args.objective_weight_cube_ang_drift_penalty,
     )
     opt_cfg = Phase1OptimizationConfig(
         iterations=args.iterations,
@@ -281,7 +344,7 @@ def main() -> None:
     )
 
     evaluator = Phase1GraspEvaluator(
-        scene_xml=args.scene_xml,
+        scene_xml=frozen_scene_xml,
         keyframe=args.keyframe,
         cfg=eval_cfg,
         backend=args.backend,
@@ -303,21 +366,35 @@ def main() -> None:
         result = optimize_finger_controls_diffmjx_mvp(evaluator=evaluator, cfg=diffmjx_cfg)
         optimizer_config = vars(diffmjx_cfg)
     else:
-        result = optimize_finger_controls(evaluator=evaluator, cfg=opt_cfg)
-        optimizer_config = vars(opt_cfg)
-    best_ctrl = np.asarray(result["best_finger_ctrl"], dtype=np.float64)
+        # CEM path: support optional time-varying finger-control trajectories
+        if int(args.traj_phases) > 1:
+            traj_phases = int(args.traj_phases)
+            result = optimize_finger_control_trajectory(evaluator=evaluator, cfg=opt_cfg, phases=traj_phases)
+            optimizer_config = dict(vars(opt_cfg), traj_phases=traj_phases)
+            best_ctrl_traj = np.asarray(result.get("best_finger_ctrl_traj"), dtype=np.float64)
+            best_ctrl = best_ctrl_traj.reshape(-1)  # flattened for saving; rollout will use trajectory API
+        else:
+            result = optimize_finger_controls(evaluator=evaluator, cfg=opt_cfg)
+            optimizer_config = vars(opt_cfg)
+            best_ctrl = np.asarray(result["best_finger_ctrl"], dtype=np.float64)
     best_metrics = dict(result["best_metrics"])
     history = list(result["history"])
 
     rollout_start = time.perf_counter()
-    rollout = evaluator.rollout(best_ctrl)
+    if int(args.traj_phases) > 1:
+        rollout = evaluator.rollout_trajectory(best_ctrl_traj)
+    else:
+        rollout = evaluator.rollout(best_ctrl)
     rollout_seconds = float(time.perf_counter() - rollout_start)
     gif_path: Path | None = None
     gif_render_seconds = 0.0
     if not args.skip_gif:
         try:
             gif_start = time.perf_counter()
-            gif_path = evaluator.render_rollout_gif(best_ctrl, out_dir / "best_rollout.gif")
+            if int(args.traj_phases) > 1:
+                gif_path = evaluator.render_rollout_gif_trajectory(best_ctrl_traj, out_dir / "best_rollout.gif")
+            else:
+                gif_path = evaluator.render_rollout_gif(best_ctrl, out_dir / "best_rollout.gif")
             gif_render_seconds = float(time.perf_counter() - gif_start)
         except Exception as exc:  # pragma: no cover - environment dependent rendering
             print(f"GIF render skipped due to runtime error: {exc}")
@@ -330,15 +407,16 @@ def main() -> None:
         qvel=rollout["qvel"],
         cube_z=rollout["cube_z"],
         contacts=rollout["contacts"],
-        best_finger_ctrl=best_ctrl,
+        best_finger_ctrl=(best_ctrl_traj if int(args.traj_phases) > 1 else best_ctrl),
     )
 
     summary = {
         "scene_xml": str(args.scene_xml),
+        "frozen_scene_xml": str(frozen_scene_xml),
         "keyframe": args.keyframe,
         "backend": args.backend,
         "best_score": float(result["best_score"]),
-        "best_finger_ctrl": best_ctrl.tolist(),
+        "best_finger_ctrl": (best_ctrl_traj.tolist() if int(args.traj_phases) > 1 else best_ctrl.tolist()),
         "best_metrics": best_metrics,
         "config_eval": vars(eval_cfg),
         "optimizer": args.optimizer,

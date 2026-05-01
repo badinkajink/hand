@@ -34,7 +34,7 @@ from morphohand.sampling import (  # noqa: E402
     plot_feasible_scatter,
     sample_morphologies,
     write_csv,
-    write_scene_with_morphology,
+    write_rigid_scene_with_object_size,
 )
 
 
@@ -189,7 +189,12 @@ def main() -> None:
 
         for idx, morphology in enumerate(candidates):
             scene_xml = gen_dir / f"scene_{spec.keyframe}_{morph_suffix(morphology)}.xml"
-            write_scene_with_morphology(args.scene_xml, scene_xml, morphology)
+            write_rigid_scene_with_object_size(
+                base_scene_xml=args.scene_xml,
+                output_scene_xml=scene_xml,
+                morphology=morphology,
+                size_xyz=None,
+            )
 
             evaluator = Phase1GraspEvaluator(scene_xml=scene_xml, keyframe=spec.keyframe, cfg=eval_cfg)
 

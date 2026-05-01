@@ -1,6 +1,6 @@
 #!/bin/bash
 # Run 12: Trajectory Control with Contact-Focused Objectives
-# 
+#
 # Key Improvements over Run 11:
 # 1. Increased contact_persistence from 0.8 to 6.0 (penalize lost contacts)
 # 2. Increased min_finger_persistence from 2.0 to 10.0 (require each finger to stay)
