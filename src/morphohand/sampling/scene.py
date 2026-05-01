@@ -11,6 +11,7 @@ from morphohand.tools.morphology_xml import (
     MorphologyValues,
     apply_morphology_to_qpos,
     create_rigid_morphology_xml,
+    rebase_asset_file_paths,
 )
 
 from .morphology import FINGER_ACTUATOR_NAMES
@@ -38,6 +39,7 @@ def write_scene_with_morphology(
         apply_morphology_to_qpos(qpos=qpos, morphology=morphology, has_scene_prefix=True)
         key.set("qpos", "\n        " + " ".join(f"{v:.10g}" for v in qpos) + "\n      ")
 
+    rebase_asset_file_paths(root=root, source_xml=base_scene_xml, output_xml=output_scene_xml)
     root.set("model", output_scene_xml.stem)
     ET.indent(root, space="  ")
     output_scene_xml.parent.mkdir(parents=True, exist_ok=True)

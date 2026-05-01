@@ -111,6 +111,23 @@ def _remove_defaults_by_class(root: ET.Element, class_names: set[str]) -> None:
                     parent.remove(child)
 
 
+def rebase_asset_file_paths(root: ET.Element, source_xml: Path, output_xml: Path) -> None:
+    """Rewrite `file=` attributes (mesh/texture) so they resolve from the new XML path."""
+    src_dir = source_xml.resolve().parent
+    out_dir = output_xml.resolve().parent
+    for elem in root.iter():
+        file_attr = elem.get("file")
+        if not file_attr:
+            continue
+        src_path = (src_dir / file_attr).resolve() if not Path(file_attr).is_absolute() else Path(file_attr)
+        if not src_path.exists():
+            continue
+        try:
+            elem.set("file", str(src_path.relative_to(out_dir)))
+        except ValueError:
+            elem.set("file", str(src_path))
+
+
 def _is_scene_model(root: ET.Element) -> bool:
     return any(j.get("name") == "palm_px" for j in root.iter("joint"))
 
@@ -194,6 +211,26 @@ def _write_open_keyframe(root: ET.Element) -> None:
         open_key.set("ctrl", "\n        " + " ".join(f"{v:g}" for v in ctrl_vals) + "\n      ")
 
 
+def _strip_scene_morph_qpos(qpos_values: list[float]) -> list[float]:
+    """Remove morphology qpos entries from a scene qpos vector."""
+    if len(qpos_values) < 31:
+        return qpos_values
+
+    rigid_prefix = qpos_values[:13]
+    rigid_fingers = [
+        qpos_values[15],
+        qpos_values[16],
+        qpos_values[18],
+        qpos_values[21],
+        qpos_values[22],
+        qpos_values[24],
+        qpos_values[27],
+        qpos_values[28],
+        qpos_values[30],
+    ]
+    return rigid_prefix + rigid_fingers
+
+
 def create_rigid_morphology_xml(
     base_xml_path: Path,
     morphology: MorphologyValues,
@@ -235,6 +272,18 @@ def create_rigid_morphology_xml(
     _remove_actuators_for_joints(root, removed_joint_names)
     _remove_defaults_by_class(root, {"morph"})
     _write_open_keyframe(root)
+
+    keyframe = root.find("keyframe")
+    if keyframe is not None:
+        for key in keyframe.findall("key"):
+            qpos_raw = key.get("qpos")
+            if not qpos_raw:
+                continue
+            qpos_values = [float(v) for v in qpos_raw.replace("\n", " ").split()]
+            rigid_qpos = _strip_scene_morph_qpos(qpos_values)
+            key.set("qpos", "\n        " + " ".join(f"{v:.10g}" for v in rigid_qpos) + "\n      ")
+
+    rebase_asset_file_paths(root, base_xml_path, output_xml_path)
 
     ET.indent(root, space="  ")
     output_xml_path.parent.mkdir(parents=True, exist_ok=True)

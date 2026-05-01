@@ -12,6 +12,10 @@ class FeasibilityCriteria:
     min_contacts: float = 0.0
     min_finger_contact_persistence: float | None = None
     max_finger_yaw_drift: float | None = None
+    max_cube_xy_drift: float | None = None
+    max_cube_yaw_drift: float | None = None
+    max_cube_axis_tilt: float | None = None
+    max_cube_ang_drift: float | None = None
 
 
 def is_feasible(metrics: dict[str, float], criteria: FeasibilityCriteria) -> bool:
@@ -27,6 +31,18 @@ def is_feasible(metrics: dict[str, float], criteria: FeasibilityCriteria) -> boo
             return False
     if criteria.max_finger_yaw_drift is not None:
         if float(metrics.get("finger_yaw_drift", np.inf)) > criteria.max_finger_yaw_drift:
+            return False
+    if criteria.max_cube_xy_drift is not None:
+        if float(metrics.get("cube_xy_drift", np.inf)) > criteria.max_cube_xy_drift:
+            return False
+    if criteria.max_cube_yaw_drift is not None:
+        if float(metrics.get("cube_yaw_drift", np.inf)) > criteria.max_cube_yaw_drift:
+            return False
+    if criteria.max_cube_axis_tilt is not None:
+        if float(metrics.get("cube_axis_tilt", np.inf)) > criteria.max_cube_axis_tilt:
+            return False
+    if criteria.max_cube_ang_drift is not None:
+        if float(metrics.get("cube_ang_drift", np.inf)) > criteria.max_cube_ang_drift:
             return False
     return True
 
