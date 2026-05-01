@@ -48,6 +48,17 @@ available as throughput experiments, but they are not required for the current w
 - Outer-loop MAP-Elites remains a skeleton.
 - Backend adapter modules are present, but the default documented path is still MuJoCo.
 
+## Trajectory-Based Optimization (April 30, 2026)
+
+Recent work added **time-varying finger-control trajectories** to Phase 1 evaluation:
+
+- `Phase1GraspEvaluator.evaluate_trajectory()` — Evaluates piecewise-linear finger control trajectories (N keypoints) over grasp→lift→pivot→hold phases.
+- `Phase1GraspEvaluator.rollout_trajectory()` and `render_rollout_gif_trajectory()` — Generate full rollout data and visualization.
+- `optimize_finger_control_trajectory()` in `phase1_strategy_cem` — CEM-based search over trajectory parameter space (flattened N×9 controls).
+- CLI flag `--traj-phases` in `phase1_optimize_grasp.py` — Activates trajectory optimization when > 1.
+
+This enables dynamic finger control adaptation during reorientation maneuvers. See [4-30 Experiments](4-30_experiments.md) for debugging history, results, and next steps on contact-count optimization.
+
 ## Recent Findings
 
 - 2026-04-13: Foundational pose search on the medium screwdriver scene produced distinct
@@ -55,4 +66,5 @@ available as throughput experiments, but they are not required for the current w
 - 2026-04-21: Run6 combined multitask sweeps show that feasibility depends strongly on
   screwdriver orientation, with `open_flat` highest and `open_90vertical` lowest among the
   current 1000-sample sweep.
-- See [Phase 1 results summary](phase1_results.md) for the current numbers.
+- 2026-04-30: Trajectory-based optimization enables palm reorientation (rz=90°) with full contact persistence through lift and tilt phases. See [4-30 Experiments](4-30_experiments.md) for the current numbers.
+- See [Phase 1 results summary](phase1_results.md) for earlier milestone numbers.

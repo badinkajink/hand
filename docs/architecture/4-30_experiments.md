@@ -15,8 +15,8 @@ This document captures the iterative debugging and refinement of the Phase 1 gra
    - Impact: Grasps appeared to succeed but the roll/tilt direction was incorrect.
 
 3. **Low fingertip contact count** — Despite optimization, only 6 contacts achieved (out of max 9):
-   - Thumb: contacted  
-   - Index: contacted  
+   - Thumb: contacted
+   - Index: contacted
    - Middle: **not contacted** throughout dynamic phases (lift/pivot/hold).
    - Root cause: Objective function weights did not strongly penalize missing contacts during pivot. Finger control was static and did not adapt.
 
@@ -114,6 +114,18 @@ Changes:
   - Lift significantly increased (positive side effect).
   - Hypothesis: Optimizer prioritized lift over contact persistence; flexibility in finger control during pivot caused fingers to disengage to reduce grip forces.
 
+### Run 12 (Trajectory Control, Contact-Focused Weights)
+- Scene: Frozen from Run 11
+- Iterations: 120, Population: 160
+- **Settings:**
+  - `traj_phases = 4`, `pivot_delta_rz = 1.5708`, `lift_delta_z = 0.060`
+  - Boosted contact weights: `contact_persistence = 6.0`, `min_finger_persistence = 10.0`
+  - Reduced cube-orientation penalties: `cube_yaw_drift = 3.0`, `cube_axis_tilt = 2.0`, `cube_ang_drift = 1.0`
+
+- **Result:** Best score = 16.287, contacts = 4.0, lift = 0.117
+- **What improved:** all-finger persistence reached 1.0 (every fingertip stays in contact for 100% of dynamic steps). `mean_tip_distance ≈ 0`, `finger_persistence_imbalance = 0`.
+- **What did not:** raw contact count is still 4, and `cube_axis_tilt = 1.166 rad (~67°)` plus `cube_xy_drift = 0.083 m`. With the new sphere-shell power-drill collision proxy (8 spheres on one body), "contacts = 4" no longer means "fingers detached" — the persistence metrics show all three tips engaged throughout. The drill itself is rolling under the grip during the pivot. **The contact-count metric is now ambiguous for multi-sphere objects and should be retired in favor of per-finger persistence.**
+
 ## Current Status
 
 ✅ **Achieved:**
@@ -124,45 +136,42 @@ Changes:
 - Modular trajectory evaluation and CEM routines.
 
 ⚠️ **Outstanding:**
-- **Contact count degradation in Run 11:** Despite higher finger-persistence weights, trajectory optimization led to fewer simultaneous contacts. Likely causes:
-  - Objective function balance: lift reward (35×) vastly outweighs contact penalties.
-  - Finger control flexibility: Allowing per-phase adjustments may admit solutions that reduce grip mid-trajectory.
-  - Elite selection: Population of 160 may be too large; convergence slower.
+- **Contact-count metric is ambiguous** under the new sphere-shell collision proxy on the power drill. Per-finger persistence is the truer signal and reads 1.0 for all tips in Run 12.
+- **Drill is rotating under the grip during pivot** (`cube_axis_tilt ≈ 67°`, `cube_xy_drift ≈ 8 cm`). The objective prioritized hand-side persistence; the cube-orientation penalties were intentionally reduced and need to come back up.
+- **No smoothness constraint on the finger trajectory** — adjacent phase keypoints can diverge sharply, which encourages mid-pivot grip changes that destabilize the object.
 
 🔧 **Next Steps:**
-1. **Rebalance objectives** — Increase penalty on finger-persistence imbalance; reduce lift reward during non-lift phases.
-2. **Constrain trajectory smoothness** — Add regularization/smoothness term to prevent wild finger control changes across phases.
-3. **Tune CEM parameters** — Try smaller population + longer iterations (exploration vs. exploitation trade-off).
-4. **Increase minimum contact target** — Use explicit contact-count objective (e.g., penalty for < 9 contacts).
-5. **Scene geometry inspection** — Verify that open_flat pose actually permits 9-contact stable grasp.
+1. **Retire raw contact count from the score**; keep it as a diagnostic but score on per-finger persistence + cube tilt.
+2. **Rebalance objectives** — push `cube_axis_tilt_penalty` and `cube_ang_drift_penalty` back up while keeping high finger-persistence weights.
+3. **Add trajectory smoothness regularizer** — penalize `||traj[i+1] - traj[i]||` to suppress mid-pivot grip jumps.
+4. **Inspect drill collision shell** — the 8-sphere approximation may be letting fingertips slip into seams; check sphere coverage near the grip ring.
 
-## Code Quality: Completed Refactoring
+## Code Quality: Completed Refactoring (post-cleanup pass)
 
-✅ **Refactoring Completed:**
-1. **`TrajectoryInterpolator` utility** (in `phase1_trajectory.py`) — Moved interpolation logic from the embedded `_interp_finger_ctrl_for_dynamic()` method into a dedicated, reusable class.
-2. **Factory function** `build_trajectory_interpolator()` — Creates interpolators from evaluator configs for clean initialization.
-3. **Removed embedding** — Deleted `_interp_finger_ctrl_for_dynamic()` from `Phase1GraspEvaluator`; all dynamic phases now use `interp.at_dynamic_step(t)`.
+After the initial trajectory work, the evaluator and CEM strategy carried significant
+duplication between scalar and trajectory paths. Cleaned up:
 
-### Benefits
-- **Testable:** TrajectoryInterpolator can be unit-tested independently.
-- **Reusable:** Can be imported and used in other optimization strategies or analysis tools.
-- **Decoupled:** Interpolation logic no longer mixed with evaluator state management.
-- **Cleaner:** Phase loops in `execute_sequential()` are more readable without interpolation branching.
-
-### Remaining Challenges
-- `Phase1GraspEvaluator` still ~1500+ lines with both scalar and trajectory evaluation paths.
-- Branching in `phase1_optimize_grasp.py` for trajectory vs. scalar control could use strategy pattern.
-
-### Future Refactoring (if needed)
-1. Extract trajectory-specific evaluator logic into a `Phase1TrajectoryEvaluator` subclass.
-2. Create a `TrajectoryCEM` strategy module to keep trajectory-specific optimizer separate.
-3. Simplify `phase1_optimize_grasp.py` with cleaner branching using strategy pattern.
+1. **`Phase1GraspEvaluator` deduped** (was ~1075 lines, now ~819):
+   - `_pose_scales_for_dynamic_step(dynamic_t)` — single source of truth for lift/pivot ramping.
+   - `_ctrl_for_dynamic_step(dynamic_t, get_finger_ctrl)` — combines scales + `_build_pose_ctrl`.
+   - `_compute_score_and_metrics(...)` — single scoring formula (was duplicated in `evaluate` and `evaluate_trajectory`).
+   - `_run_dynamic_loop_sampled(get_finger_ctrl)` — single sampled lift→pivot→hold loop.
+   - `_run_dynamic_loop_terminal(get_finger_ctrl, z_before)` — preserves the warp-backend terminal-mode optimization.
+   - `_evaluate_with_provider`, `_rollout_with_provider`, `_render_rollout_gif_with_provider` — three shared bodies; the public `evaluate*`, `rollout*`, `render_rollout_gif*` methods are thin wrappers that pass either a constant `lambda _t: finger_ctrl` or `interp.at_dynamic_step` as the provider.
+   - Numerically equivalent: `evaluate(fc) == evaluate_trajectory(tile(fc, (4,1)))` to <1e-9 on score and all metrics; rollouts agree to ~1e-12.
+2. **CEM deduped** — `_run_cem(evaluate_sample, ...)` is the shared loop; the two public optimizers reshape inputs/outputs around it.
+3. **Asset-path rebaser deduped** — `rebase_asset_file_paths` lives once in `morphohand.tools.morphology_xml` and is reused by `morphohand.sampling.scene`.
+4. **Dead code removed** — unused `_build_lift_ctrl`, `_step_chunk_with_ctrl`, `TrajectoryInterpolator.lift_ramp_steps`/`pivot_ramp_steps` (never read), and a dangling `dims = n_f * phases` in CEM.
 
 ## Files Modified
 
-- `src/morphohand/optimization/phase1_common.py` — Added trajectory evaluation methods.
-- `src/morphohand/optimization/phase1_strategy_cem.py` — Added `optimize_finger_control_trajectory()`.
-- `scripts/phase1_optimize_grasp.py` — Added `--traj-phases` argument; integrated trajectory branch.
-- `scripts/run8_power_drill_all_in_one.sh` — Updated pivot axis and signs.
-- `README.md` — Updated protocol to require frozen-scene XML.
-- `docs/architecture/4-30_experiments.md` (this file) — New documentation.
+- `src/morphohand/optimization/phase1_common.py` — Trajectory evaluation methods, then deduped against scalar path via shared providers.
+- `src/morphohand/optimization/phase1_strategy_cem.py` — Trajectory CEM, then collapsed onto shared `_run_cem` loop.
+- `src/morphohand/optimization/phase1_trajectory.py` — `TrajectoryInterpolator` extracted into its own module; unused ramp params removed.
+- `src/morphohand/sampling/{scene.py,feasibility.py,foundational.py}` — Cube-orientation drift fields, vertical-keyframe criteria, recursive seed-folder traversal.
+- `src/morphohand/tools/morphology_xml.py` — Promoted `rebase_asset_file_paths`, added `_strip_scene_morph_qpos` for rigid keyframes.
+- `scripts/phase1_optimize_grasp.py` — `--traj-phases`, frozen-scene generation, pivot/cube-drift CLI flags.
+- `scripts/run6_combined_multitask.py`, `scripts/run6_screwdriver_multikey_sampling.py`, `scripts/run6_analysis.py` — Per-keyframe feasibility criteria, pivot/cube-drift flags, rigid-scene emission.
+- `scripts/run12_contact_focused_traj.sh` — Contact-focused weight sweep.
+- `assets/mjcf/scene_power_drill.xml` — Sphere-shell collision proxy and `hand`/`object` collision classes.
+- `README.md`, `docs/architecture/overview.md`, `docs/architecture/4-30_experiments.md` (this file).

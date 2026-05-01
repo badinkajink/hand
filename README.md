@@ -166,6 +166,29 @@ Common artifacts include:
 - `grasp_metrics_trace.png`
 - `top5_gifs/`
 
+## Grasp Run Protocol
+
+When running a grasp experiment, always generate a frozen scene XML in the run output
+directory and run the grasp against that frozen scene.
+
+The frozen scene artifact should capture:
+
+- the exact scene XML used for the run,
+- the keyframe name,
+- the frozen morphology setting or frozen morphology scene variant,
+- the tuned `open_flat` qpos/qctrl pair when a manual pregrasp is being carried forward,
+- the pivot convention used for the lift-and-tilt pass,
+- and whether all three fingertips actually made contact.
+
+Keep a short run note in the README only when it helps future debugging, but the frozen
+scene XML is the artifact that must be used for the actual grasp run.
+
+For the power-drill runs in particular:
+
+- the short-proximal scene is the current manual-tuning target,
+- the drill should tilt from the forward pose toward facing down, not the reverse direction,
+- and a result with only six contacts usually means the middle finger never engaged.
+
 ## Notes on Backend Support
 
 The evaluator supports `mujoco`, `mjwarp`, and `comfree-warp` runtime backends.
