@@ -1,4 +1,4 @@
-<mujoco model="morphohand_scene_power_drill">
+<mujoco model="morphohand_scene_power_drill_short_proximal">
   <compiler angle="radian" autolimits="true"/>
   <option timestep="0.002" gravity="0 0 -9.81" integrator="implicitfast"/>
 
@@ -92,8 +92,8 @@
           <joint class="ctrl" name="thumb_yaw" type="hinge" axis="1 0 0" range="-1.1 1.1"/>
           <body name="thumb_mcp_frame">
             <joint class="ctrl" name="thumb_mcp" type="hinge" axis="0 1 0" range="0 3.14"/>
-            <geom class="hand" type="capsule" fromto="0 0 0 0.05 0 0" size="0.010" material="finger_mat"/>
-            <body name="thumb_len_frame" pos="0.05 0 0">
+            <geom class="hand" type="capsule" fromto="0 0 0 0.025 0 0" size="0.010" material="finger_mat"/>
+            <body name="thumb_len_frame" pos="0.025 0 0">
               <joint class="morph" name="thumb_len" type="slide" axis="1 0 0" range="0.0 0.035"/>
               <geom class="hand" type="capsule" fromto="0 0 0 0.04 0 0" size="0.0085" material="finger_mat"/>
               <body name="thumb_pip_frame" pos="0.04 0 0">
@@ -119,8 +119,8 @@
           <joint class="ctrl" name="index_yaw" type="hinge" axis="1 0 0" range="-1.1 1.1"/>
           <body name="index_mcp_frame">
             <joint class="ctrl" name="index_mcp" type="hinge" axis="0 1 0" range="0 2.5"/>
-            <geom class="hand" type="capsule" fromto="0 0 0 0.05 0 0" size="0.010" material="finger_mat"/>
-            <body name="index_len_frame" pos="0.05 0 0">
+            <geom class="hand" type="capsule" fromto="0 0 0 0.025 0 0" size="0.010" material="finger_mat"/>
+            <body name="index_len_frame" pos="0.025 0 0">
               <joint class="morph" name="index_len" type="slide" axis="1 0 0" range="0.0 0.035"/>
               <geom class="hand" type="capsule" fromto="0 0 0 0.04 0 0" size="0.0085" material="finger_mat"/>
               <body name="index_pip_frame" pos="0.04 0 0">
@@ -146,8 +146,8 @@
           <joint class="ctrl" name="middle_yaw" type="hinge" axis="1 0 0" range="-1.1 1.1"/>
           <body name="middle_mcp_frame">
             <joint class="ctrl" name="middle_mcp" type="hinge" axis="0 1 0" range="0 2.5"/>
-            <geom class="hand" type="capsule" fromto="0 0 0 0.05 0 0" size="0.010" material="finger_mat"/>
-            <body name="middle_len_frame" pos="0.05 0 0">
+            <geom class="hand" type="capsule" fromto="0 0 0 0.025 0 0" size="0.010" material="finger_mat"/>
+            <body name="middle_len_frame" pos="0.025 0 0">
               <joint class="morph" name="middle_len" type="slide" axis="1 0 0" range="0.0 0.035"/>
               <geom class="hand" type="capsule" fromto="0 0 0 0.04 0 0" size="0.0085" material="finger_mat"/>
               <body name="middle_pip_frame" pos="0.04 0 0">
@@ -209,44 +209,46 @@
     -->
     <key name="open_flat"
       qpos="
-  -0.0071
-  -0.046
-   0.0044
-   0.33
-  -0.0071
-   0.063
-   0.94
-    0.052
-    -0.038
-    -0.05
-    1.6
-    1.4
-    -0.031
-  -0.028
-   0.018
-   0.066
-   1.4
-   0
-  -1.2
-   0.009
-  -0.012
-   0.13
-   1.5
-   0
-   1
-   0.022
-   0.015
-  -0.088
-   1.9
-   0
+  -0.0025
+  -0.049
+   0.0098
+   0.42
+   0.021
+   0.1
+   0.9
+   0.052
+  -0.038
+  -0.051
    1.6
+   1.4
+  -0.031
+  -0.021
+   0.027
+   0.21
+   1.4
+  -0.00022
+  -1.2
+   0.019
+  -0.016
+   0.31
+   1.5
+   0.00088
+   1.1
+   0.017
+   0.015
+   0.033
+   1.7
+   0.0039
+   1.4
+
+
 
         "
       ctrl="
-        0.052 -0.038 -0.05 1.6 1.4 -0.031
-        0.066 1.4 -1.2
-        0.13 1.5 1.0
-        -0.088 1.9 1.6
+        0.052 -0.038 -0.051 1.6 1.4 -0.031
+        0.21 1.4 -1.2
+        0.31 1.5 1.1
+        0.033 1.7 1.4
       "/>
 
     <key name="open_vertical"

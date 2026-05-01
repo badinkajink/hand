@@ -33,7 +33,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--metrics",
         nargs="+",
-        default=["cube_xy_drift", "finger_flex_drift"],
+        default=["cube_xy_drift", "cube_yaw_drift", "cube_axis_tilt", "cube_ang_drift", "finger_flex_drift"],
     )
     parser.add_argument("--output-subdir", default="analysis")
     return parser
@@ -190,6 +190,9 @@ def _load_keyframe_rows(run_dir: Path, keyframe: str) -> list[dict[str, Any]]:
                 "score": r.get("score", 0.0),
                 "feasible": r.get("feasible", False),
                 "cube_xy_drift": r.get("cube_xy_drift", 0.0),
+                "cube_yaw_drift": r.get("cube_yaw_drift", 0.0),
+                "cube_axis_tilt": r.get("cube_axis_tilt", 0.0),
+                "cube_ang_drift": r.get("cube_ang_drift", 0.0),
                 "finger_flex_drift": r.get("finger_flex_drift", 0.0),
             }
         )

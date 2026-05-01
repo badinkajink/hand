@@ -35,7 +35,7 @@ from morphohand.sampling import (  # noqa: E402
     parse_morphology_from_keyframe,
     sample_morphologies,
     write_csv,
-    write_scene_with_morphology,
+    write_rigid_scene_with_object_size,
 )
 
 
@@ -50,6 +50,22 @@ class TaskResult:
     sparse_adapt_seconds: float
     interval_adapt_seconds: float
     interval_triggered: bool
+
+
+def _criteria_for_keyframe(args: argparse.Namespace, keyframe: str) -> FeasibilityCriteria:
+    is_vertical = keyframe in set(args.vertical_keyframes)
+    max_xy = args.vertical_max_cube_xy_drift if is_vertical else args.max_cube_xy_drift
+    max_yaw = args.vertical_max_cube_yaw_drift if is_vertical else args.max_cube_yaw_drift
+    max_tilt = args.vertical_max_cube_axis_tilt if is_vertical else args.max_cube_axis_tilt
+    max_ang = args.vertical_max_cube_ang_drift if is_vertical else args.max_cube_ang_drift
+    return FeasibilityCriteria(
+        max_mean_tip_distance=args.max_mean_tip_distance,
+        min_contacts=args.min_contacts,
+        max_cube_xy_drift=max_xy,
+        max_cube_yaw_drift=max_yaw,
+        max_cube_axis_tilt=max_tilt,
+        max_cube_ang_drift=max_ang,
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -86,17 +102,34 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--len-max", type=float, default=0.035)
     parser.add_argument("--max-mean-tip-distance", type=float, default=0.022)
     parser.add_argument("--min-contacts", type=float, default=2.0)
+    parser.add_argument("--max-cube-xy-drift", type=float, default=0.018)
+    parser.add_argument("--max-cube-yaw-drift", type=float, default=0.30)
+    parser.add_argument("--max-cube-axis-tilt", type=float, default=0.22)
+    parser.add_argument("--max-cube-ang-drift", type=float, default=0.50)
+    parser.add_argument("--vertical-keyframes", nargs="+", default=["open_vertical", "open_90vertical"])
+    parser.add_argument("--vertical-max-cube-xy-drift", type=float, default=0.010)
+    parser.add_argument("--vertical-max-cube-yaw-drift", type=float, default=0.12)
+    parser.add_argument("--vertical-max-cube-axis-tilt", type=float, default=0.10)
+    parser.add_argument("--vertical-max-cube-ang-drift", type=float, default=0.22)
     parser.add_argument("--settle-steps", type=int, default=240)
     parser.add_argument("--lift-steps", type=int, default=220)
     parser.add_argument("--hold-steps", type=int, default=140)
     parser.add_argument("--lift-delta-z", type=float, default=0.05)
     parser.add_argument("--lift-ramp-steps", type=int, default=100)
+    parser.add_argument("--pivot-steps", type=int, default=0)
+    parser.add_argument("--pivot-ramp-steps", type=int, default=80)
+    parser.add_argument("--pivot-delta-rx", type=float, default=0.0)
+    parser.add_argument("--pivot-delta-ry", type=float, default=0.0)
+    parser.add_argument("--pivot-delta-rz", type=float, default=0.0)
     parser.add_argument("--objective-weight-min-finger-persistence", type=float, default=2.4)
     parser.add_argument(
         "--objective-weight-finger-persistence-imbalance-penalty", type=float, default=1.2,
     )
     parser.add_argument("--objective-weight-finger-yaw-drift-penalty", type=float, default=1.0)
     parser.add_argument("--objective-weight-finger-flex-drift-penalty", type=float, default=0.5)
+    parser.add_argument("--objective-weight-cube-yaw-drift-penalty", type=float, default=4.0)
+    parser.add_argument("--objective-weight-cube-axis-tilt-penalty", type=float, default=6.0)
+    parser.add_argument("--objective-weight-cube-ang-drift-penalty", type=float, default=2.0)
     parser.add_argument("--interval-adapt-iterations", type=int, default=12)
     parser.add_argument("--interval-adapt-population", type=int, default=24)
     parser.add_argument("--interval-adapt-elite-fraction", type=float, default=0.25)
@@ -195,10 +228,9 @@ def main() -> None:
         y_min=args.y_min, y_max=args.y_max,
         len_min=args.len_min, len_max=args.len_max,
     )
-    criteria = FeasibilityCriteria(
-        max_mean_tip_distance=args.max_mean_tip_distance,
-        min_contacts=args.min_contacts,
-    )
+    criteria_by_keyframe: dict[str, FeasibilityCriteria] = {
+        keyframe: _criteria_for_keyframe(args, keyframe) for keyframe in args.keyframes
+    }
 
     eval_cfg = Phase1EvalConfig(
         settle_steps=args.settle_steps,
@@ -206,10 +238,18 @@ def main() -> None:
         hold_steps=args.hold_steps,
         lift_delta_z=args.lift_delta_z,
         lift_ramp_steps=args.lift_ramp_steps,
+        pivot_steps=args.pivot_steps,
+        pivot_ramp_steps=args.pivot_ramp_steps,
+        pivot_delta_rx=args.pivot_delta_rx,
+        pivot_delta_ry=args.pivot_delta_ry,
+        pivot_delta_rz=args.pivot_delta_rz,
         objective_weight_min_finger_persistence=args.objective_weight_min_finger_persistence,
         objective_weight_finger_persistence_imbalance_penalty=args.objective_weight_finger_persistence_imbalance_penalty,
         objective_weight_finger_yaw_drift_penalty=args.objective_weight_finger_yaw_drift_penalty,
         objective_weight_finger_flex_drift_penalty=args.objective_weight_finger_flex_drift_penalty,
+        objective_weight_cube_yaw_drift_penalty=args.objective_weight_cube_yaw_drift_penalty,
+        objective_weight_cube_axis_tilt_penalty=args.objective_weight_cube_axis_tilt_penalty,
+        objective_weight_cube_ang_drift_penalty=args.objective_weight_cube_ang_drift_penalty,
     )
     interval_cfg = Phase1OptimizationConfig(
         iterations=args.interval_adapt_iterations,
@@ -260,13 +300,19 @@ def main() -> None:
 
     for idx, morphology in enumerate(candidates):
         scene_xml = gen_dir / f"scene_multi_{morph_suffix(morphology)}.xml"
-        write_scene_with_morphology(args.scene_xml, scene_xml, morphology)
+        write_rigid_scene_with_object_size(
+            base_scene_xml=args.scene_xml,
+            output_scene_xml=scene_xml,
+            morphology=morphology,
+            size_xyz=None,
+        )
 
         task_results: list[TaskResult] = []
 
         for keyframe in args.keyframes:
             evaluator = Phase1GraspEvaluator(scene_xml=scene_xml, keyframe=keyframe, cfg=eval_cfg)
             interval_ctrl = interval_ctrl_by_keyframe[keyframe]
+            criteria = criteria_by_keyframe[keyframe]
 
             interval_triggered = (idx % max(1, args.fp_refresh_interval)) == 0
             interval_secs = 0.0
@@ -327,6 +373,9 @@ def main() -> None:
                     "cube_tip_contacts": float(task_result.metrics.get("cube_tip_contacts", 0.0)),
                     "mean_tip_distance": float(task_result.metrics.get("mean_tip_distance", 0.0)),
                     "cube_xy_drift": float(task_result.metrics.get("cube_xy_drift", 0.0)),
+                    "cube_yaw_drift": float(task_result.metrics.get("cube_yaw_drift", 0.0)),
+                    "cube_axis_tilt": float(task_result.metrics.get("cube_axis_tilt", 0.0)),
+                    "cube_ang_drift": float(task_result.metrics.get("cube_ang_drift", 0.0)),
                     "finger_flex_drift": float(task_result.metrics.get("finger_flex_drift", 0.0)),
                     "interval_triggered": task_result.interval_triggered,
                     "interval_adapt_seconds": task_result.interval_adapt_seconds,
@@ -438,6 +487,9 @@ def main() -> None:
         "feasibility": {
             "max_mean_tip_distance": args.max_mean_tip_distance,
             "min_contacts": args.min_contacts,
+            "criteria_by_keyframe": {
+                keyframe: asdict(criteria_by_keyframe[keyframe]) for keyframe in args.keyframes
+            },
         },
         "interval_adaptation": {
             "count": interval_adapt_count,
