@@ -9,6 +9,11 @@ import imageio.v2 as imageio
 import mujoco
 import numpy as np
 
+from .contact_targets import ContactTargetSet, score_contact_targets
+from .force_closure import (
+    extract_finger_contacts,
+    force_closure_metrics,
+)
 from .phase1_trajectory import build_trajectory_interpolator
 
 
@@ -38,6 +43,13 @@ class Phase1EvalConfig:
     objective_weight_cube_yaw_drift_penalty: float = 4.0
     objective_weight_cube_axis_tilt_penalty: float = 6.0
     objective_weight_cube_ang_drift_penalty: float = 2.0
+    objective_weight_contact_target_reward: float = 0.0
+    objective_weight_contact_target_distance_penalty: float = 0.0
+    objective_weight_force_closure: float = 0.0
+    force_closure_friction_mu: float = 0.5
+    force_closure_cone_edges: int = 4
+    force_closure_weight_balance: float = 0.5
+    force_closure_weight_q1: float = 1.0
 
 
 class Phase1GraspEvaluator:
@@ -58,9 +70,11 @@ class Phase1GraspEvaluator:
         metric_sample_interval: int = 1,
         speed_mode: str = "accurate",
         metric_collection_mode: str = "sampled",
+        contact_target_set: ContactTargetSet | None = None,
     ) -> None:
         self.scene_xml = Path(scene_xml)
         self.cfg = cfg or Phase1EvalConfig()
+        self.contact_target_set = contact_target_set
         self.backend = backend
         self.comfree_stiffness = float(comfree_stiffness)
         self.comfree_damping = float(comfree_damping)
@@ -501,6 +515,8 @@ class Phase1GraspEvaluator:
         total_dynamic_steps: int,
         finger_qpos_settle: np.ndarray,
         finger_qpos_after: np.ndarray,
+        tip_positions_settle: np.ndarray | None = None,
+        fc_metrics: Any = None,
     ) -> tuple[float, dict[str, float]]:
         lift_amount = peak_z - z_before
         mean_dist = float(np.mean(distances))
@@ -519,6 +535,28 @@ class Phase1GraspEvaluator:
         finger_yaw_drift = float(np.mean(finger_qpos_delta[[0, 3, 6]]))
         finger_flex_drift = float(np.mean(finger_qpos_delta[[1, 2, 4, 5, 7, 8]]))
 
+        contact_target_reward = 0.0
+        contact_target_mean_distance = 0.0
+        contact_target_assignment: list[int | None] = []
+        if (
+            self.contact_target_set is not None
+            and self.contact_target_set.patches
+            and tip_positions_settle is not None
+        ):
+            breakdown = score_contact_targets(
+                self.contact_target_set,
+                tip_positions_settle,
+                cube_pos_before,
+                cube_rot_before,
+            )
+            contact_target_reward = breakdown.total_reward
+            contact_target_mean_distance = breakdown.mean_distance
+            contact_target_assignment = breakdown.assignment
+
+        fc_contribution = 0.0
+        if fc_metrics is not None and np.isfinite(fc_metrics.score):
+            fc_contribution = self.cfg.objective_weight_force_closure * fc_metrics.score
+
         score = (
             self.cfg.objective_weight_lift * lift_amount
             - self.cfg.objective_weight_distance * mean_dist
@@ -534,6 +572,9 @@ class Phase1GraspEvaluator:
             - self.cfg.objective_weight_finger_persistence_imbalance_penalty * finger_persistence_imbalance
             - self.cfg.objective_weight_finger_yaw_drift_penalty * finger_yaw_drift
             - self.cfg.objective_weight_finger_flex_drift_penalty * finger_flex_drift
+            + self.cfg.objective_weight_contact_target_reward * contact_target_reward
+            - self.cfg.objective_weight_contact_target_distance_penalty * contact_target_mean_distance
+            + fc_contribution
         )
 
         metrics = {
@@ -562,7 +603,16 @@ class Phase1GraspEvaluator:
             "finger_persistence_imbalance": finger_persistence_imbalance,
             "finger_yaw_drift": finger_yaw_drift,
             "finger_flex_drift": finger_flex_drift,
+            "contact_target_reward": float(contact_target_reward),
+            "contact_target_mean_distance": float(contact_target_mean_distance),
         }
+        if contact_target_assignment:
+            for i, tip in enumerate(contact_target_assignment):
+                metrics[f"contact_target_assignment_{i}"] = (
+                    float(tip) if tip is not None else float("nan")
+                )
+        if fc_metrics is not None:
+            metrics.update(fc_metrics.to_dict())
         return float(score), metrics
 
     def _run_dynamic_loop_sampled(
@@ -640,7 +690,22 @@ class Phase1GraspEvaluator:
         cube_rot_before = self.data.xmat[self.cube_body_id].reshape(3, 3).copy()
         cube_yaw_before = self._cube_yaw(cube_rot_before)
         finger_qpos_settle = self.data.qpos[self.finger_joint_qpos_ids].copy()
+        tip_positions_settle = self._tip_positions().copy()
         z_before = float(self.data.xpos[self.cube_body_id, 2])
+
+        fc_metrics = None
+        if self.cfg.objective_weight_force_closure != 0.0:
+            wrenches = extract_finger_contacts(
+                self.data, self.model, self.tip_body_ids, self.cube_body_id
+            )
+            fc_metrics = force_closure_metrics(
+                wrenches,
+                object_com=cube_pos_before,
+                mu=self.cfg.force_closure_friction_mu,
+                n_edges=self.cfg.force_closure_cone_edges,
+                weight_balance=self.cfg.force_closure_weight_balance,
+                weight_q1=self.cfg.force_closure_weight_q1,
+            )
 
         if self.metric_collection_mode == "terminal" and self.backend != "mujoco":
             peak_z, contact_active_steps, finger_contact_steps, all_finger_contact_steps = (
@@ -678,6 +743,8 @@ class Phase1GraspEvaluator:
             total_dynamic_steps=total_dynamic_steps,
             finger_qpos_settle=finger_qpos_settle,
             finger_qpos_after=finger_qpos_after,
+            tip_positions_settle=tip_positions_settle,
+            fc_metrics=fc_metrics,
         )
 
     def evaluate(self, finger_ctrl: np.ndarray) -> tuple[float, dict[str, float]]:
