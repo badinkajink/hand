@@ -1,0 +1,30 @@
+# Contact target patches for scene_power_drill_short_proximal.xml.
+#
+# Coordinates are body-local to the power_drill body, so patches move with the
+# drill when it tilts during the lift/pivot phases. Authored near the
+# proximal/grip region (z ~ 0.06-0.08 in body frame), informed by the hand
+# tip positions at the "open" keyframe:
+#   thumb_tip  -> body-local (0.065, -0.028, 0.074)
+#   index_tip  -> body-local (0.095,  0.030, 0.074)
+#   middle_tip -> body-local (0.095, -0.030, 0.074)
+# i.e. roughly a 3-finger wrap around the proximal barrel.
+object_body: power_drill
+
+patches:
+  - name: thumb_proximal_left
+    finger: thumb
+    local_pos: [0.060, -0.025, 0.070]
+    local_normal: [0.0, -1.0, 0.0]
+    radius: 0.012
+
+  - name: index_proximal_right
+    finger: index
+    local_pos: [0.085, 0.030, 0.070]
+    local_normal: [0.0, 1.0, 0.0]
+    radius: 0.012
+
+  - name: middle_proximal_below
+    finger: middle
+    local_pos: [0.085, -0.025, 0.060]
+    local_normal: [0.0, -1.0, -0.3]
+    radius: 0.014
