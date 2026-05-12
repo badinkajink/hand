@@ -1,0 +1,24 @@
+# Contact targets for scene_screwdriver_medium.xml @ open_flat keyframe.
+# Object is a 12mm radius x 100mm long cylinder lying along body-local Z, body
+# name "cube" (legacy from earlier scene templating, despite the cylinder shape).
+# Wrap grip in the middle of the shaft: thumb on -X, index/middle on +X.
+object_body: cube
+
+patches:
+  - name: thumb_shaft_neg
+    finger: thumb
+    local_pos: [-0.012, 0.000, 0.000]
+    local_normal: [-1.0, 0.0, 0.0]
+    radius: 0.010
+
+  - name: index_shaft_pos_top
+    finger: index
+    local_pos: [0.012, 0.000, 0.020]
+    local_normal: [1.0, 0.0, 0.0]
+    radius: 0.010
+
+  - name: middle_shaft_pos_bot
+    finger: middle
+    local_pos: [0.012, 0.000, -0.020]
+    local_normal: [1.0, 0.0, 0.0]
+    radius: 0.010

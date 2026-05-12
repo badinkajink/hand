@@ -1,0 +1,23 @@
+# Contact targets for scene_prism.xml: 22 x 68 x 18 mm prism (long along Y).
+# Pinch grip across X: thumb on -X face, index/middle straddling +X face along Y.
+# Patches sit slightly above the prism's midline to clear the table.
+object_body: prism
+
+patches:
+  - name: thumb_negx
+    finger: thumb
+    local_pos: [-0.011, 0.000, 0.005]
+    local_normal: [-1.0, 0.0, 0.0]
+    radius: 0.010
+
+  - name: index_posx_fwd
+    finger: index
+    local_pos: [0.011, 0.020, 0.005]
+    local_normal: [1.0, 0.0, 0.0]
+    radius: 0.012
+
+  - name: middle_posx_bwd
+    finger: middle
+    local_pos: [0.011, -0.020, 0.005]
+    local_normal: [1.0, 0.0, 0.0]
+    radius: 0.012

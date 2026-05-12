@@ -1,0 +1,24 @@
+# Contact targets for scene_screwdriver_medium.xml @ open_vertical keyframe.
+# Same 12mm x 100mm cylinder; hand approaches with shaft vertical.
+# Probed tip body-local Z spans roughly [-0.035, +0.033], so anchor patches
+# near the body-local origin to keep them within the shaft.
+object_body: cube
+
+patches:
+  - name: thumb_shaft_neg
+    finger: thumb
+    local_pos: [-0.012, 0.000, -0.018]
+    local_normal: [-1.0, 0.0, 0.0]
+    radius: 0.010
+
+  - name: index_shaft_pos_top
+    finger: index
+    local_pos: [0.012, 0.000, -0.030]
+    local_normal: [1.0, 0.0, 0.0]
+    radius: 0.012
+
+  - name: middle_shaft_pos_bot
+    finger: middle
+    local_pos: [0.012, 0.000, 0.030]
+    local_normal: [1.0, 0.0, 0.0]
+    radius: 0.012

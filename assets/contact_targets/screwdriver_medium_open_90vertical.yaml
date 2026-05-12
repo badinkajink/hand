@@ -1,0 +1,23 @@
+# Contact targets for scene_screwdriver_medium.xml @ open_90vertical keyframe.
+# 12mm radius x 100mm shaft, hand approaches at 90 deg vertical orientation.
+# Probed tips cluster near body-local z = [0.003, 0.030].
+object_body: cube
+
+patches:
+  - name: thumb_shaft_neg
+    finger: thumb
+    local_pos: [-0.012, 0.000, 0.015]
+    local_normal: [-1.0, 0.0, 0.0]
+    radius: 0.010
+
+  - name: index_shaft_pos_top
+    finger: index
+    local_pos: [0.012, 0.000, 0.025]
+    local_normal: [1.0, 0.0, 0.0]
+    radius: 0.012
+
+  - name: middle_shaft_pos_bot
+    finger: middle
+    local_pos: [0.012, 0.000, 0.005]
+    local_normal: [1.0, 0.0, 0.0]
+    radius: 0.012

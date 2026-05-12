@@ -1,0 +1,24 @@
+# Contact targets for scene_power_drill.xml @ open_flat keyframe.
+# Drill body extents ~ (0.087, 0.080, 0.189), authored at the proximal grip
+# region a bit lower on the barrel than the short_proximal variant since the
+# tips at open_flat sit around body-local z ~ 0.05-0.11.
+object_body: power_drill
+
+patches:
+  - name: thumb_proximal
+    finger: thumb
+    local_pos: [0.020, -0.025, 0.080]
+    local_normal: [0.0, -1.0, 0.0]
+    radius: 0.014
+
+  - name: index_proximal
+    finger: index
+    local_pos: [0.040, 0.030, 0.110]
+    local_normal: [0.0, 1.0, 0.0]
+    radius: 0.014
+
+  - name: middle_proximal
+    finger: middle
+    local_pos: [0.010, 0.030, 0.060]
+    local_normal: [0.0, 1.0, 0.0]
+    radius: 0.014
