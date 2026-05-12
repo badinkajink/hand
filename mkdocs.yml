@@ -12,6 +12,15 @@ nav:
       - 4-14 Experiments: architecture/4-14_experiments.md
       - Warp Sync Bottleneck: architecture/warp_mujoco_bottleneck.md
       - GPU MJX Usage: architecture/gpu_mjx_usage.md
+  - Grasp Methods:
+      - Overview: grasp_methods.md
+      - Eigengrasp / Synergy CEM: eigengrasp.md
+      - Contact-Target Patches: contact_targets.md
+      - Force-Closure Energy: force_closure.md
+      - Comparison on Drill Scene: method_comparison.md
+  - Evaluation:
+      - Eval Suite: eval_suite.md
+      - Frozen-Scene Protocol: frozen_scene_protocol.md
   - Simulators:
       - Backend Strategy: simulators/backends.md
       - DiffMJX Plan: simulators/diffmjx_plan.md

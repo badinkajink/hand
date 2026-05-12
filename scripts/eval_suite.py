@@ -57,6 +57,7 @@ from morphohand.optimization.phase1_strategy_cem import (
 from morphohand.optimization.phase1_strategy_synergy_cem import (
     optimize_finger_controls_synergy,
 )
+from morphohand.sampling.scene import freeze_scene_for_eval
 
 
 # ---------- benchmarks ---------------------------------------------------------
@@ -215,8 +216,10 @@ def _make_evaluator(
     cfg: Phase1EvalConfig,
     contact_targets: ContactTargetSet | None,
 ) -> Phase1GraspEvaluator:
+    # Always evaluate against the frozen scene — morph DOFs in the base XML
+    # would drift otherwise. _frozen_scene_for caches per (scene, keyframe).
     return Phase1GraspEvaluator(
-        scene_xml=bench.scene_xml,
+        scene_xml=_frozen_scene_for(bench),
         keyframe=bench.keyframe,
         cfg=cfg,
         contact_target_set=contact_targets,
@@ -340,6 +343,39 @@ def _benchmark_by_name(name: str) -> Benchmark:
         if b.name == name:
             return b
     raise KeyError(name)
+
+
+# REQUIRED: every scene path that reaches Phase1GraspEvaluator goes through
+# this resolver, which guarantees a frozen XML (morph joints baked out).
+# Pointing the evaluator at a raw base scene lets the morph DOFs drift and
+# silently invalidates the experiment. See feedback memory
+# "Always freeze the scene before grasp evaluation".
+_FROZEN_SCENE_CACHE: dict[tuple[Path, str], Path] = {}
+_FROZEN_DIR: Path | None = None
+
+
+def _set_frozen_scenes_dir(path: Path) -> None:
+    global _FROZEN_DIR
+    _FROZEN_DIR = Path(path)
+    _FROZEN_DIR.mkdir(parents=True, exist_ok=True)
+    _FROZEN_SCENE_CACHE.clear()
+
+
+def _frozen_scene_for(bench: Benchmark) -> Path:
+    if _FROZEN_DIR is None:
+        raise RuntimeError(
+            "Frozen-scene cache dir not initialized; call _set_frozen_scenes_dir() "
+            "before constructing any evaluator. (Frozen scenes are mandatory — see "
+            "feedback memory 'Always freeze the scene before grasp evaluation'.)"
+        )
+    key = (bench.scene_xml.resolve(), bench.keyframe)
+    cached = _FROZEN_SCENE_CACHE.get(key)
+    if cached is not None and cached.exists():
+        return cached
+    frozen_path = _FROZEN_DIR / f"{bench.name}.frozen.xml"
+    freeze_scene_for_eval(bench.scene_xml, bench.keyframe, frozen_path)
+    _FROZEN_SCENE_CACHE[key] = frozen_path
+    return frozen_path
 
 
 # ---------- aggregation + reporting -------------------------------------------
@@ -642,6 +678,12 @@ def main() -> None:
     run_tag = args.run_tag or datetime.utcnow().strftime("run_%Y%m%dT%H%M%S")
     out_dir = args.output_root / run_tag
     (out_dir / "gifs").mkdir(parents=True, exist_ok=True)
+    # MANDATORY: prepare frozen scenes for every benchmark before any
+    # evaluator is constructed. See feedback memory on frozen-scene protocol.
+    _set_frozen_scenes_dir(out_dir / "frozen_scenes")
+    for bench in benches:
+        _frozen_scene_for(bench)  # populate cache up-front so log is clean
+    print(f"frozen scenes -> {out_dir / 'frozen_scenes'}")
 
     print(f"run_tag = {run_tag}")
     print(f"benchmarks ({len(benches)}): {[b.name for b in benches]}")

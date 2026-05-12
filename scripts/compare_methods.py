@@ -41,6 +41,39 @@ from morphohand.optimization.phase1_strategy_cem import (
 from morphohand.optimization.phase1_strategy_synergy_cem import (
     optimize_finger_controls_synergy,
 )
+from morphohand.sampling.scene import freeze_scene_for_eval
+
+
+# All scene paths that reach Phase1GraspEvaluator below go through this cache,
+# which guarantees a frozen XML (morph joints baked out). See feedback memory
+# "Always freeze the scene before grasp evaluation".
+_FROZEN_SCENE_CACHE: dict[tuple[Path, str], Path] = {}
+_FROZEN_DIR: Path | None = None
+
+
+def _set_frozen_scenes_dir(path: Path) -> None:
+    global _FROZEN_DIR
+    _FROZEN_DIR = Path(path)
+    _FROZEN_DIR.mkdir(parents=True, exist_ok=True)
+    _FROZEN_SCENE_CACHE.clear()
+
+
+def _frozen_scene_for(scene_xml: Path, keyframe: str) -> Path:
+    if _FROZEN_DIR is None:
+        raise RuntimeError(
+            "Frozen-scene cache dir not initialized; call _set_frozen_scenes_dir() "
+            "before constructing any evaluator. Frozen scenes are mandatory — see "
+            "feedback memory 'Always freeze the scene before grasp evaluation'."
+        )
+    scene_xml = Path(scene_xml).resolve()
+    key = (scene_xml, keyframe)
+    cached = _FROZEN_SCENE_CACHE.get(key)
+    if cached is not None and cached.exists():
+        return cached
+    out = _FROZEN_DIR / f"{scene_xml.stem}__{keyframe}.frozen.xml"
+    freeze_scene_for_eval(scene_xml, keyframe, out)
+    _FROZEN_SCENE_CACHE[key] = out
+    return out
 
 
 @dataclass
@@ -90,8 +123,9 @@ def _make_evaluator(
     cfg: Phase1EvalConfig,
     contact_targets: ContactTargetSet | None = None,
 ) -> Phase1GraspEvaluator:
+    # Always use a frozen XML — morph joints in the base scene would drift.
     return Phase1GraspEvaluator(
-        scene_xml=scene_xml,
+        scene_xml=_frozen_scene_for(scene_xml, keyframe),
         keyframe=keyframe,
         cfg=cfg,
         contact_target_set=contact_targets,
@@ -436,6 +470,8 @@ def main() -> None:
     args = parser.parse_args()
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
+    # MANDATORY: prepare frozen scenes before any evaluator construction.
+    _set_frozen_scenes_dir(args.output_dir / "frozen_scenes")
 
     global _OPTIM_ITERATIONS, _OPTIM_POPULATION
     _OPTIM_ITERATIONS = int(args.iterations)

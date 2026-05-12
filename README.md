@@ -14,17 +14,46 @@ That split is reflected directly in the package layout and in the current evalua
 ## What Is Implemented
 
 - `src/morphohand/sampling/`: morphology sampling, foundational pose loading, feasibility
-  gating, scene XML patching, and CSV/plot helpers.
+  gating, scene XML patching, frozen-scene baking, and CSV/plot helpers.
 - `src/morphohand/optimization/phase1_common.py`: shared Phase 1 evaluator and objective.
 - `src/morphohand/optimization/phase1_strategy_cem.py`: CEM grasp optimizer.
+- `src/morphohand/optimization/phase1_strategy_synergy_cem.py`: CEM in a low-dim
+  (eigengrasp) coefficient subspace — see [docs/eigengrasp.md](docs/eigengrasp.md).
 - `src/morphohand/optimization/phase1_strategy_mjx_autodiff.py`: MJX autodiff lane.
 - `src/morphohand/optimization/phase1_strategy_diffmjx.py`: DiffMJX-style MVP lane.
+- `src/morphohand/optimization/contact_targets.py`: hand-authorable contact patches as
+  an objective term — see [docs/contact_targets.md](docs/contact_targets.md).
+- `src/morphohand/optimization/force_closure.py`: continuous Ferrari-Canny / DFC grasp
+  quality energy — see [docs/force_closure.md](docs/force_closure.md).
+- `src/morphohand/optimization/eigengrasp.py`: PCA basis fit on historical grasps,
+  hand-designed fallback basis.
 - `src/morphohand/tools/morphology_xml.py`: morphology encoding, parsing, and XML generation.
 - `assets/mjcf/`: base hand/scene templates plus object-specific scenes.
-- `scripts/`: runnable Phase 1 sweeps and analysis tools.
+- `assets/contact_targets/`: per-(scene, keyframe) target patch specs (YAML).
+- `scripts/`: runnable Phase 1 sweeps, analysis tools, and the cross-object
+  [eval suite](docs/eval_suite.md).
 
 The outer-loop MAP-Elites modules are still skeletons; the working system today is the
 sampling-and-evaluation pipeline around Phase 1.
+
+### Grasp specification methods at a glance
+
+Three orthogonal approaches, all opt-in via config knobs (default off):
+
+| Method | Toggle | When to use |
+|---|---|---|
+| Eigengrasp / synergy CEM | call `optimize_finger_controls_synergy` with a fitted basis | sample-efficient search when you have historical runs |
+| Contact-target patches | `objective_weight_contact_target_reward` / `_distance_penalty` | object-specific intent: "thumb here, index there" |
+| Force-closure energy | `objective_weight_force_closure` | grasp-quality signal beyond contact count |
+
+Full overview and empirical comparison: [docs/grasp_methods.md](docs/grasp_methods.md).
+
+### Eval suite
+
+Cross-object benchmark harness at [scripts/eval_suite.py](scripts/eval_suite.py) — 8
+benchmarks × N methods × seeds, with oracle re-scoring under the baseline objective,
+auto-generated GIFs per `(benchmark, method)`, and per-benchmark markdown reports.
+See [docs/eval_suite.md](docs/eval_suite.md) for adding new benchmarks / methods.
 
 ## Repository Layout
 
@@ -168,8 +197,16 @@ Common artifacts include:
 
 ## Grasp Run Protocol
 
-When running a grasp experiment, always generate a frozen scene XML in the run output
-directory and run the grasp against that frozen scene.
+**Every grasp experiment must run against a frozen scene XML.** The base scenes under
+`assets/mjcf/` still carry morphology DOFs as joints, which drift during the rollout
+and silently invalidate any cross-method comparison. Full rationale, the canonical
+helper (`morphohand.sampling.scene.freeze_scene_for_eval`), DOF-count sanity check,
+and a before/after numbers table for the eval suite are in
+[docs/frozen_scene_protocol.md](docs/frozen_scene_protocol.md).
+
+The eval-suite harnesses (`scripts/eval_suite.py`, `scripts/compare_methods.py`) and
+`scripts/phase1_optimize_grasp.py` enforce this automatically. New scripts that
+construct a `Phase1GraspEvaluator` should freeze first.
 
 The frozen scene artifact should capture:
 
@@ -179,9 +216,6 @@ The frozen scene artifact should capture:
 - the tuned `open_flat` qpos/qctrl pair when a manual pregrasp is being carried forward,
 - the pivot convention used for the lift-and-tilt pass,
 - and whether all three fingertips actually made contact.
-
-Keep a short run note in the README only when it helps future debugging, but the frozen
-scene XML is the artifact that must be used for the actual grasp run.
 
 For the power-drill runs in particular:
 

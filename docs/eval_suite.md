@@ -5,6 +5,11 @@ every supported object. New methods plug in by registering a function in
 [`scripts/eval_suite.py`](../scripts/eval_suite.py); new objects plug in
 by appending to `BENCHMARKS` and writing a contact-target YAML.
 
+**All scenes are frozen before evaluation** — see
+[`frozen_scene_protocol.md`](frozen_scene_protocol.md). The harness will
+refuse to run otherwise. Any older results predating this enforcement
+should be treated as suspect.
+
 ## Layout
 
 - `scripts/eval_suite.py` — driver. Runs `methods × benchmarks × seeds` at
@@ -85,30 +90,36 @@ results/eval_suite/<tag>/
 └─ gifs/                 # best-grasp rollout per (benchmark, method)
 ```
 
-## Reference run: baseline vs contact_map
+## Reference run: baseline vs contact_map (frozen scenes)
 
 Budget: 24 iter × 40 pop = 960 evals/seed, 3 seeds per (benchmark, method).
-Wall time for the full sweep: about 6 min on this box.
+Wall time for the full sweep: about 6 min on this box. Scenes are frozen
+before eval (see protocol doc).
 
-![scores](../results/eval_suite/full_baseline_vs_contact_map/scores.png)
+![scores](../results/eval_suite/full_frozen_baseline_vs_contact_map/scores.png)
 
-![deltas](../results/eval_suite/full_baseline_vs_contact_map/deltas.png)
+![deltas](../results/eval_suite/full_frozen_baseline_vs_contact_map/deltas.png)
 
 ### Leaderboard (oracle = re-scored under baseline objective)
 
 | Benchmark | baseline | contact_map | Δ |
 |---|---:|---:|---:|
-| `prism` | **1.00 ± 0.17** | **4.16 ± 1.96** | **+3.16** |
-| `power_drill_short_proximal` | 8.46 ± 0.29 | 8.76 ± 0.36 | +0.30 |
-| `cube` | 6.64 ± 0.13 | 6.82 ± 0.31 | +0.18 |
-| `screwdriver_medium_vertical` | 5.70 ± 0.00 | 5.71 ± 0.00 | +0.01 |
-| `screwdriver_small_flat` | −0.06 ± 0.01 | −0.08 ± 0.01 | −0.01 (both fail) |
-| `screwdriver_medium_90vertical` | 6.24 ± 0.41 | 6.21 ± 0.11 | −0.04 |
-| `screwdriver_medium_flat` | 5.67 ± 0.00 | 5.39 ± 0.32 | −0.28 |
-| `power_drill` | 7.39 ± 0.16 | 7.06 ± 0.17 | −0.33 |
+| `prism` | **2.31 ± 1.10** | **5.57 ± 0.08** | **+3.26** |
+| `screwdriver_medium_flat` | 5.52 ± 0.22 | 5.85 ± 0.31 | +0.33 |
+| `cube` | 6.70 ± 0.17 | 6.98 ± 0.19 | +0.28 |
+| `screwdriver_medium_90vertical` | 6.20 ± 0.52 | 6.27 ± 0.57 | +0.07 |
+| `screwdriver_small_flat` | −0.06 ± 0.00 | −0.07 ± 0.01 | −0.01 (both fail) |
+| `power_drill_short_proximal` | 7.89 ± 0.47 | 7.84 ± 0.42 | −0.05 |
+| `screwdriver_medium_vertical` | 5.83 ± 0.17 | 5.72 ± 0.01 | −0.11 |
+| `power_drill` | 7.37 ± 0.62 | 6.20 ± 0.48 | −1.17 |
 
-**Mean Δ = +0.37, median Δ ≈ 0, wins 4 of 8 benchmarks** — but the headline
+**Mean Δ = +0.32, median Δ = +0.03, wins 4 of 8 benchmarks** — headline
 average is almost entirely carried by `prism`.
+
+The prior (unfrozen) run reported some different numbers; the comparison
+of frozen vs unfrozen results — including a sign flip on
+`screwdriver_medium_flat` and a 4× larger `power_drill` loss — is in
+[`frozen_scene_protocol.md`](frozen_scene_protocol.md).
 
 ### Where contact_map clearly wins: `prism`
 
@@ -116,21 +127,22 @@ This is the story of the eval suite.
 
 | Metric | baseline | contact_map |
 |---|---:|---:|
-| oracle score | 1.00 | **4.16** |
-| `cube_lift` (m) | 0.008 | **0.033** (4×) |
+| oracle score | 2.31 | **5.57** |
+| `cube_lift` (m) | 0.031 | **0.049** |
 | `cube_tip_contacts` (avg) | 2.7 | 3.0 |
-| `all_finger_contact_persistence` | **0.02** | **0.69** |
+| `all_finger_contact_persistence` | **0.26** | **1.00** |
 
-The baseline CEM essentially fails to grasp the prism: tip-object collisions
-do happen, but no configuration keeps all three fingers in contact long
-enough for a stable lift (2% persistence vs the 69% with contact_map). The
-prism is long along the Y axis with small extent along X (22mm wide), and
-the baseline's `mean_tip_distance` term — which uses the prism's axis-
-aligned bounding box — is flat in the Y direction near the prism, so CEM
-doesn't get a directional gradient toward a proper opposed-finger pinch.
-The contact_map specifies "thumb on −X, index on +X-forward, middle on
-+X-back" in body-local coordinates, and that directional signal drives
-CEM to the pinch configuration.
+The baseline CEM only intermittently grasps the prism: tip-object
+collisions do happen but persistence is just 26%, and per-seed scores
+vary widely (std 1.10). contact_map gets all three fingers engaged
+through 100% of the dynamic phase with std 0.08 — i.e. it's both better
+and far more consistent. The prism is long along the Y axis with small
+extent along X (22mm wide), and the baseline's `mean_tip_distance` term —
+which uses the prism's axis-aligned bounding box — is flat in the Y
+direction near the prism, so CEM doesn't get a directional gradient
+toward a proper opposed-finger pinch. The contact_map specifies "thumb
+on −X, index on +X-forward, middle on +X-back" in body-local coordinates,
+and that directional signal drives CEM to the pinch configuration.
 
 This is the failure mode the contact-map representation is *designed* to
 fix: when the object geometry doesn't yield a useful gradient under the
@@ -140,27 +152,25 @@ a usable signal.
 ### Where contact_map ≈ baseline
 
 `cube`, all three `screwdriver_medium_*` variants, and
-`power_drill_short_proximal` — six of eight benchmarks land within ±0.3
+`power_drill_short_proximal` — six of eight benchmarks land within ±0.35
 oracle score. The baseline already finds a near-optimal grasp under its
 own objective; the contact map neither helps nor hurts much.
 
 ### Where contact_map slightly loses
 
-`power_drill` (−0.33) and `screwdriver_medium_flat` (−0.28). In both cases
-the baseline pins all three fingers down through the full hold phase
-(persistence = 1.0 for both methods), but the contact_map's authored patch
-locations are not quite where the baseline finds its best grasp. The patch
-prior is therefore mildly *misleading* relative to the unconstrained
-optimum. Notable diagnostic: lift, contact count, and persistence are
-all within noise — only the score differs slightly. This is the cost
-side of "specify where contact should land": if your patches aren't
-quite right, you pay a small penalty for the constraint.
+`power_drill` (−1.17). The baseline pins all three fingers down through
+the full hold phase, while contact_map's authored patches mildly disagree
+with where the baseline naturally converges (the patches were placed
+around the proximal grip but the baseline finds a slightly different
+contact pattern higher up the barrel). This is the cost side of "specify
+where contact should land": if your patches aren't quite right, you pay
+a penalty for the constraint.
 
 Authoring tip: place patches toward the *center of the grip surface* of
-the object, not at the tip positions of the open keyframe. The two drill
-benchmarks both have hand-relative patches; re-authoring them as
-geometry-relative (e.g., "150mm down the barrel, ±20mm on the surface")
-would likely reduce the loss.
+the object, not at the tip positions of the open keyframe.
+[`assets/contact_targets/power_drill_open_flat.yaml`](../assets/contact_targets/power_drill_open_flat.yaml)
+is a candidate for re-authoring against the baseline's natural grasp
+location.
 
 ### Where both methods fail
 
