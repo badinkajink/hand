@@ -1,0 +1,26 @@
+# Contact targets for scene_screwdriver_small.xml @ open_flat keyframe.
+# Object is a 4mm radius x 80mm long screwdriver lying along body-local Z.
+# The shaft is *very thin* — patches use small radii so gradient is sharp.
+# Tip positions cluster around body-local x ~ 0.097, y ~ -0.057 (the hand
+# starts displaced); we place patches at the shaft surface near a sensible
+# mid-shaft grip.
+object_body: screwdriver_small
+
+patches:
+  - name: thumb_shaft_neg
+    finger: thumb
+    local_pos: [-0.004, 0.000, 0.000]
+    local_normal: [-1.0, 0.0, 0.0]
+    radius: 0.008
+
+  - name: index_shaft_pos_top
+    finger: index
+    local_pos: [0.004, 0.000, 0.012]
+    local_normal: [1.0, 0.0, 0.0]
+    radius: 0.008
+
+  - name: middle_shaft_pos_bot
+    finger: middle
+    local_pos: [0.004, 0.000, -0.012]
+    local_normal: [1.0, 0.0, 0.0]
+    radius: 0.008

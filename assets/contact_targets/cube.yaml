@@ -1,0 +1,24 @@
+# Contact targets for scene.xml: 40mm cube at world origin.
+# Pinch grip across the X axis: thumb on -X face, index+middle on +X face
+# straddling the Y midline. Patches sit at the centroid of each face so the
+# fingers wrap onto opposing faces with good moment arms.
+object_body: cube
+
+patches:
+  - name: thumb_negx
+    finger: thumb
+    local_pos: [-0.020, 0.000, 0.000]
+    local_normal: [-1.0, 0.0, 0.0]
+    radius: 0.010
+
+  - name: index_posx_top
+    finger: index
+    local_pos: [0.020, 0.010, 0.005]
+    local_normal: [1.0, 0.0, 0.0]
+    radius: 0.010
+
+  - name: middle_posx_bot
+    finger: middle
+    local_pos: [0.020, -0.010, 0.005]
+    local_normal: [1.0, 0.0, 0.0]
+    radius: 0.010
