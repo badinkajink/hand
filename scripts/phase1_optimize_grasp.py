@@ -35,6 +35,7 @@ from morphohand.tools.morphology_xml import (  # noqa: E402
     create_rigid_morphology_xml,
     extract_morphology_from_qpos,
 )
+from morphohand.sampling.scene import freeze_scene_for_eval  # noqa: E402
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -245,34 +246,9 @@ def _write_report(out_dir: Path, summary: dict, best_metrics: dict[str, float], 
 
 
 def _freeze_scene_xml(scene_xml: Path, keyframe: str, frozen_scene_xml: Path) -> Path:
-    root = ET.parse(scene_xml).getroot()
-    has_morph_joints = any(j.get("name") == "thumb_x" for j in root.iter("joint"))
-    if not has_morph_joints:
-        frozen_scene_xml.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(scene_xml, frozen_scene_xml)
-        return frozen_scene_xml
-
-    keyframe_elem = root.find("keyframe")
-    if keyframe_elem is None:
-        raise ValueError(f"No <keyframe> section in {scene_xml}")
-
-    selected_key = None
-    for key in keyframe_elem.findall("key"):
-        if key.get("name") == keyframe:
-            selected_key = key
-            break
-    if selected_key is None or not selected_key.get("qpos"):
-        raise ValueError(f"Keyframe '{keyframe}' not found or has no qpos in {scene_xml}")
-
-    qpos = [float(v) for v in selected_key.get("qpos", "").replace("\n", " ").split()]
-    morphology = extract_morphology_from_qpos(qpos, has_scene_prefix=True)
-    create_rigid_morphology_xml(
-        base_xml_path=scene_xml,
-        morphology=morphology,
-        output_xml_path=frozen_scene_xml,
-        model_name=frozen_scene_xml.stem,
-    )
-    return frozen_scene_xml
+    # Thin wrapper retained for backwards compatibility — the canonical helper
+    # is `morphohand.sampling.scene.freeze_scene_for_eval`.
+    return freeze_scene_for_eval(scene_xml, keyframe, frozen_scene_xml)
 
 
 def main() -> None:

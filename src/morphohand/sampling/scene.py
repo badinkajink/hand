@@ -1,6 +1,7 @@
 from __future__ import annotations
 # pyright: reportMissingImports=false
 
+import shutil
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -11,6 +12,7 @@ from morphohand.tools.morphology_xml import (
     MorphologyValues,
     apply_morphology_to_qpos,
     create_rigid_morphology_xml,
+    extract_morphology_from_qpos,
     rebase_asset_file_paths,
 )
 
@@ -94,6 +96,62 @@ def write_rigid_scene_with_object_size(
     ET.indent(root, space="  ")
     ET.ElementTree(root).write(output_scene_xml, encoding="utf-8", xml_declaration=False)
     return output_scene_xml
+
+
+def freeze_scene_for_eval(
+    scene_xml: Path,
+    keyframe: str,
+    frozen_scene_xml: Path,
+) -> Path:
+    """Produce a frozen scene XML suitable for grasp/morphology evaluation.
+
+    REQUIRED before constructing any `Phase1GraspEvaluator` against a scene
+    that still has morph joints (e.g. anything under ``assets/mjcf/``
+    except the pre-generated rigid ones). The morph joints
+    (``thumb_x``, ``thumb_y``, ``thumb_len``, ...) are not actuated but they
+    will drift during the rollout, so the "fixed" morphology silently
+    changes and ruins the experiment.
+
+    Behaviour:
+    - If the source scene already has no morph joints, the file is copied
+      verbatim to ``frozen_scene_xml`` (the contract is "frozen path, ready
+      to evaluate", regardless of starting point).
+    - Otherwise, the morphology is extracted from the qpos of the requested
+      keyframe and baked into body transforms via
+      ``create_rigid_morphology_xml``.
+    """
+    frozen_scene_xml = Path(frozen_scene_xml)
+    frozen_scene_xml.parent.mkdir(parents=True, exist_ok=True)
+
+    root = ET.parse(scene_xml).getroot()
+    has_morph_joints = any(j.get("name") == "thumb_x" for j in root.iter("joint"))
+    if not has_morph_joints:
+        shutil.copyfile(scene_xml, frozen_scene_xml)
+        return frozen_scene_xml
+
+    keyframe_elem = root.find("keyframe")
+    if keyframe_elem is None:
+        raise ValueError(f"No <keyframe> section in {scene_xml}")
+
+    selected_key = None
+    for key in keyframe_elem.findall("key"):
+        if key.get("name") == keyframe:
+            selected_key = key
+            break
+    if selected_key is None or not selected_key.get("qpos"):
+        raise ValueError(
+            f"Keyframe '{keyframe}' not found or missing qpos in {scene_xml}"
+        )
+
+    qpos = [float(v) for v in selected_key.get("qpos", "").replace("\n", " ").split()]
+    morphology = extract_morphology_from_qpos(qpos, has_scene_prefix=True)
+    create_rigid_morphology_xml(
+        base_xml_path=Path(scene_xml),
+        morphology=morphology,
+        output_xml_path=frozen_scene_xml,
+        model_name=frozen_scene_xml.stem,
+    )
+    return frozen_scene_xml
 
 
 def simulate_settle_qpos(
