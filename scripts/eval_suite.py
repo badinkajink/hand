@@ -9,7 +9,7 @@ Outputs
 - ``results/eval_suite/<run_tag>/summary.json``       per-run details
 - ``results/eval_suite/<run_tag>/leaderboard.md``     cross-benchmark table
 - ``results/eval_suite/<run_tag>/per_benchmark.md``   one section per benchmark
-- ``results/eval_suite/<run_tag>/gifs/``              best-grasp rollouts
+- ``results/eval_suite/<run_tag>/videos/``            best-grasp rollouts (MP4)
 - ``results/eval_suite/<run_tag>/oracle_scores.png``  cross-benchmark bar chart
 
 Usage
@@ -309,13 +309,13 @@ def oracle_rescore(results: list[RunResult]) -> None:
         r.oracle_score = float(s)
 
 
-def render_best_gifs(
+def render_best_videos(
     results: list[RunResult],
     output_dir: Path,
     frame_stride: int = 6,
 ) -> dict[tuple[str, str], Path]:
-    """Render a GIF rollout for the best seed of each (benchmark, method)."""
-    gifs: dict[tuple[str, str], Path] = {}
+    """Render an MP4 rollout for the best seed of each (benchmark, method)."""
+    videos: dict[tuple[str, str], Path] = {}
     best_per_pair: dict[tuple[str, str], RunResult] = {}
     for r in results:
         if r.best_finger_ctrl is None:
@@ -328,14 +328,14 @@ def render_best_gifs(
     for (bench_name, method_name), r in sorted(best_per_pair.items()):
         bench = _benchmark_by_name(bench_name)
         ev = _make_evaluator(bench, _baseline_cfg(), None)
-        out_path = output_dir / f"{bench_name}__{method_name}.gif"
+        out_path = output_dir / f"{bench_name}__{method_name}.mp4"
         try:
-            ev.render_rollout_gif(r.best_finger_ctrl, out_path, frame_stride=frame_stride)
-            gifs[(bench_name, method_name)] = out_path
+            ev.render_rollout(r.best_finger_ctrl, out_path, frame_stride=frame_stride)
+            videos[(bench_name, method_name)] = out_path
             print(f"  rendered {out_path.name}")
         except Exception as exc:
-            print(f"  GIF render failed for {bench_name}/{method_name}: {exc}")
-    return gifs
+            print(f"  video render failed for {bench_name}/{method_name}: {exc}")
+    return videos
 
 
 def _benchmark_by_name(name: str) -> Benchmark:
@@ -506,7 +506,7 @@ def write_leaderboard(agg: dict[str, Any], path: Path) -> None:
 
 def write_per_benchmark(
     agg: dict[str, Any],
-    gifs: dict[tuple[str, str], Path],
+    videos: dict[tuple[str, str], Path],
     path: Path,
 ) -> None:
     rows = agg["rows"]
@@ -539,14 +539,16 @@ def write_per_benchmark(
                 f"| {d.get('fc_q1_distance', float('nan')):.3f} |\n"
             )
 
-        gif_lines: list[str] = []
+        video_lines: list[str] = []
         for m in method_names:
             key = (b, m)
-            if key in gifs:
-                rel = gifs[key].relative_to(path.parent)
-                gif_lines.append(f"![{b}/{m}]({rel})")
-        if gif_lines:
-            lines.append("\n" + " ".join(gif_lines) + "\n\n")
+            if key in videos:
+                rel = videos[key].relative_to(path.parent)
+                video_lines.append(
+                    f'<video src="{rel}" width="280" autoplay loop muted playsinline></video>'
+                )
+        if video_lines:
+            lines.append("\n" + " ".join(video_lines) + "\n\n")
         lines.append("\n")
 
     path.write_text("".join(lines))
@@ -677,7 +679,7 @@ def main() -> None:
 
     run_tag = args.run_tag or datetime.utcnow().strftime("run_%Y%m%dT%H%M%S")
     out_dir = args.output_root / run_tag
-    (out_dir / "gifs").mkdir(parents=True, exist_ok=True)
+    (out_dir / "videos").mkdir(parents=True, exist_ok=True)
     # MANDATORY: prepare frozen scenes for every benchmark before any
     # evaluator is constructed. See feedback memory on frozen-scene protocol.
     _set_frozen_scenes_dir(out_dir / "frozen_scenes")
@@ -755,13 +757,13 @@ def main() -> None:
     write_summary_chart(agg, out_dir / "scores.png")
     write_delta_chart(agg, out_dir / "deltas.png")
 
-    gifs: dict[tuple[str, str], Path] = {}
+    videos: dict[tuple[str, str], Path] = {}
     if not args.no_gifs:
-        print("Rendering GIFs...")
-        gifs = render_best_gifs(results, out_dir / "gifs", frame_stride=args.gif_stride)
+        print("Rendering rollout videos...")
+        videos = render_best_videos(results, out_dir / "videos", frame_stride=args.gif_stride)
 
     write_leaderboard(agg, out_dir / "leaderboard.md")
-    write_per_benchmark(agg, gifs, out_dir / "per_benchmark.md")
+    write_per_benchmark(agg, videos, out_dir / "per_benchmark.md")
     print(f"\nWrote outputs under {out_dir}")
 
 

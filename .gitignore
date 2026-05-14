@@ -10,6 +10,7 @@ site/
 *.egg-info/
 external/
 *__init__.py
+results/
 
 # platformio lib, drivers, vscode
 src/morphohand/driver/hand/.pio

@@ -53,7 +53,7 @@ available as throughput experiments, but they are not required for the current w
 Recent work added **time-varying finger-control trajectories** to Phase 1 evaluation:
 
 - `Phase1GraspEvaluator.evaluate_trajectory()` — Evaluates piecewise-linear finger control trajectories (N keypoints) over grasp→lift→pivot→hold phases.
-- `Phase1GraspEvaluator.rollout_trajectory()` and `render_rollout_gif_trajectory()` — Generate full rollout data and visualization.
+- `Phase1GraspEvaluator.rollout_trajectory()` and `render_rollout_trajectory()` — Generate full rollout data and visualization.
 - `optimize_finger_control_trajectory()` in `phase1_strategy_cem` — CEM-based search over trajectory parameter space (flattened N×9 controls).
 - CLI flag `--traj-phases` in `phase1_optimize_grasp.py` — Activates trajectory optimization when > 1.
 
