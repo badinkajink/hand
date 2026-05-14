@@ -9,6 +9,11 @@ site/
 .external/
 *.egg-info/
 external/
+*__init__.py
+
+# platformio lib, drivers, vscode
+src/morphohand/driver/hand/.pio
+src/morphohand/driver/hand/.vscode
 
 # MuJoCo runtime dumps
 MJDATA.TXT
