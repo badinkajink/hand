@@ -46,8 +46,8 @@ Added methods to `Phase1GraspEvaluator`:
 - Computes the same contact, persistence, and kinematic metrics.
 - **Note:** The interpolation logic was previously embedded in `_interp_finger_ctrl_for_dynamic()` but has been refactored into a dedicated `TrajectoryInterpolator` class for reusability and testability.
 
-**`rollout_trajectory(finger_ctrl_traj)` & `render_rollout_gif_trajectory(...)`**
-- Produce full trajectory data and GIF animation using interpolated finger controls.
+**`rollout_trajectory(finger_ctrl_traj)` & `render_rollout_trajectory(...)`**
+- Produce full trajectory data and MP4 animation using interpolated finger controls.
 - Essential for final visualization and metric collection.
 
 ### 3. Trajectory-Capable CEM Optimizer
@@ -64,7 +64,7 @@ Added `optimize_finger_control_trajectory()` function:
 Changes:
 - Added `--traj-phases` argument (default=1 for backward compatibility).
 - When `traj_phases > 1`, routes to `optimize_finger_control_trajectory()`.
-- Automatically selects `rollout_trajectory()` and `render_rollout_gif_trajectory()` for multi-phase runs.
+- Automatically selects `rollout_trajectory()` and `render_rollout_trajectory()` for multi-phase runs.
 - Saves trajectory as shape `(phases, n_f)` in summary.json.
 
 ### 5. Launcher & Pivot Axis Fix
@@ -157,7 +157,7 @@ duplication between scalar and trajectory paths. Cleaned up:
    - `_compute_score_and_metrics(...)` — single scoring formula (was duplicated in `evaluate` and `evaluate_trajectory`).
    - `_run_dynamic_loop_sampled(get_finger_ctrl)` — single sampled lift→pivot→hold loop.
    - `_run_dynamic_loop_terminal(get_finger_ctrl, z_before)` — preserves the warp-backend terminal-mode optimization.
-   - `_evaluate_with_provider`, `_rollout_with_provider`, `_render_rollout_gif_with_provider` — three shared bodies; the public `evaluate*`, `rollout*`, `render_rollout_gif*` methods are thin wrappers that pass either a constant `lambda _t: finger_ctrl` or `interp.at_dynamic_step` as the provider.
+   - `_evaluate_with_provider`, `_rollout_with_provider`, `_render_rollout_with_provider` — three shared bodies; the public `evaluate*`, `rollout*`, `render_rollout*` methods are thin wrappers that pass either a constant `lambda _t: finger_ctrl` or `interp.at_dynamic_step` as the provider.
    - Numerically equivalent: `evaluate(fc) == evaluate_trajectory(tile(fc, (4,1)))` to <1e-9 on score and all metrics; rollouts agree to ~1e-12.
 2. **CEM deduped** — `_run_cem(evaluate_sample, ...)` is the shared loop; the two public optimizers reshape inputs/outputs around it.
 3. **Asset-path rebaser deduped** — `rebase_asset_file_paths` lives once in `morphohand.tools.morphology_xml` and is reused by `morphohand.sampling.scene`.

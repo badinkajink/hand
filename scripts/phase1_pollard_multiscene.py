@@ -442,30 +442,30 @@ def main() -> None:
         else:
             top_rows = sorted(ranking_pool, key=lambda r: float(r["score"]), reverse=True)[: args.top_k_gifs]
 
-        gif_dir = scene_dir / "top_gifs"
-        gif_dir.mkdir(parents=True, exist_ok=True)
+        video_dir = scene_dir / "top_videos"
+        video_dir.mkdir(parents=True, exist_ok=True)
 
         top_rows_export: list[dict[str, object]] = []
         for rank, row in enumerate(top_rows, start=1):
             evaluator = _make_evaluator(args, Path(str(row["scene_xml"])), eval_cfg)
             ctrl = np.asarray(json.loads(str(row["chosen_ctrl_json"])), dtype=np.float64)
-            gif_path = gif_dir / f"rank{rank:02d}_candidate{int(row['candidate_id']):04d}.gif"
-            evaluator.render_rollout_gif(ctrl, gif_path)
+            video_path = video_dir / f"rank{rank:02d}_candidate{int(row['candidate_id']):04d}.mp4"
+            evaluator.render_rollout(ctrl, video_path)
             item = dict(row)
             item["rank"] = float(rank)
-            item["gif_path"] = str(gif_path)
+            item["video_path"] = str(video_path)
             if "refined_for_topk" not in item:
                 item["refined_for_topk"] = "False"
             top_rows_export.append(item)
 
-        write_csv(top_rows_export, scene_dir / "top5_with_gifs.csv")
+        write_csv(top_rows_export, scene_dir / "top5_with_videos.csv")
 
         scene_summaries[spec.scene_key] = {
             "total_candidates": len(all_rows),
             "feasible_candidates": len(feasible_rows),
             "pareto_size": len(pareto_rows),
-            "gif_count": len(top_rows_export),
-            "gif_ranking_source": "feasible" if feasible_rows else "all_candidates",
+            "video_count": len(top_rows_export),
+            "video_ranking_source": "feasible" if feasible_rows else "all_candidates",
             "backend": args.backend,
             "fp_adaptation": args.fp_adaptation,
             "fp_adapt_count": scene_adapt_count,
@@ -476,7 +476,7 @@ def main() -> None:
 
         print(
             f"[{spec.scene_key}] total={len(all_rows)} feasible={len(feasible_rows)} "
-            f"pareto={len(pareto_rows)} gifs={len(top_rows_export)}"
+            f"pareto={len(pareto_rows)} videos={len(top_rows_export)}"
         )
 
     write_csv(global_rows, out_dir / "all_scenes_candidates.csv")

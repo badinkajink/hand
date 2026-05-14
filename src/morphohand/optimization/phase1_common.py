@@ -1,6 +1,7 @@
 from __future__ import annotations
 # pyright: reportMissingImports=false
 
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
@@ -809,11 +810,11 @@ class Phase1GraspEvaluator:
         interp = build_trajectory_interpolator(finger_ctrl_traj, self)
         return self._rollout_with_provider(finger_ctrl_traj[0], interp.at_dynamic_step)
 
-    def _render_rollout_gif_with_provider(
+    def _render_rollout_with_provider(
         self,
         settle_finger_ctrl: np.ndarray,
         get_finger_ctrl: Callable[[int], np.ndarray],
-        output_gif: Path,
+        output_path: Path,
         width: int,
         height: int,
         fps: int,
@@ -846,14 +847,20 @@ class Phase1GraspEvaluator:
                 renderer.update_scene(self.data)
                 frames.append(renderer.render().copy())
 
-        output_gif.parent.mkdir(parents=True, exist_ok=True)
-        imageio.mimsave(output_gif, frames, fps=fps)
-        return output_gif
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        suffix = output_path.suffix.lower()
+        if suffix == ".gif":
+            imageio.mimsave(output_path, frames, fps=fps)
+        elif suffix in (".mp4", ".m4v", ".mov"):
+            _write_mp4(output_path, frames, fps)
+        else:
+            raise ValueError(f"Unsupported rollout output extension: {output_path.suffix!r}")
+        return output_path
 
-    def render_rollout_gif(
+    def render_rollout(
         self,
         finger_ctrl: np.ndarray,
-        output_gif: Path,
+        output_path: Path,
         width: int = 720,
         height: int = 540,
         fps: int = 25,
@@ -864,14 +871,14 @@ class Phase1GraspEvaluator:
             self.finger_ctrl_min,
             self.finger_ctrl_max,
         )
-        return self._render_rollout_gif_with_provider(
-            finger_ctrl, lambda _t: finger_ctrl, output_gif, width, height, fps, frame_stride,
+        return self._render_rollout_with_provider(
+            finger_ctrl, lambda _t: finger_ctrl, output_path, width, height, fps, frame_stride,
         )
 
-    def render_rollout_gif_trajectory(
+    def render_rollout_trajectory(
         self,
         finger_ctrl_traj: np.ndarray,
-        output_gif: Path,
+        output_path: Path,
         width: int = 720,
         height: int = 540,
         fps: int = 25,
@@ -881,6 +888,35 @@ class Phase1GraspEvaluator:
         if finger_ctrl_traj.ndim != 2 or finger_ctrl_traj.shape[1] != self.finger_actuator_ids.size:
             raise ValueError("Trajectory finger control size mismatch")
         interp = build_trajectory_interpolator(finger_ctrl_traj, self)
-        return self._render_rollout_gif_with_provider(
-            finger_ctrl_traj[0], interp.at_dynamic_step, output_gif, width, height, fps, frame_stride,
+        return self._render_rollout_with_provider(
+            finger_ctrl_traj[0], interp.at_dynamic_step, output_path, width, height, fps, frame_stride,
         )
+
+
+def _write_mp4(output_path: Path, frames: list[np.ndarray], fps: int) -> None:
+    if not frames:
+        raise ValueError("No frames to write")
+    h, w, _ = frames[0].shape
+    # libx264 + yuv420p requires even dimensions; pad up by one row/col if needed.
+    pad_w = w + (w % 2)
+    pad_h = h + (h % 2)
+    vf = "null" if (pad_w == w and pad_h == h) else f"pad={pad_w}:{pad_h}:0:0"
+    cmd = [
+        "ffmpeg", "-y", "-loglevel", "error",
+        "-f", "rawvideo", "-pix_fmt", "rgb24",
+        "-s", f"{w}x{h}", "-r", str(fps), "-i", "-",
+        "-vf", vf, "-pix_fmt", "yuv420p",
+        "-c:v", "libx264", "-crf", "28", "-preset", "slow",
+        "-movflags", "+faststart",
+        str(output_path),
+    ]
+    proc = subprocess.Popen(cmd, stdin=subprocess.PIPE)
+    assert proc.stdin is not None
+    try:
+        for frame in frames:
+            proc.stdin.write(np.ascontiguousarray(frame, dtype=np.uint8).tobytes())
+    finally:
+        proc.stdin.close()
+    rc = proc.wait()
+    if rc != 0:
+        raise RuntimeError(f"ffmpeg exited with code {rc} while writing {output_path}")

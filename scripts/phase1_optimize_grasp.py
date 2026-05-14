@@ -217,7 +217,7 @@ def _plot_rollout(cube_z: np.ndarray, contacts: np.ndarray, out_dir: Path) -> No
     plt.close()
 
 
-def _write_report(out_dir: Path, summary: dict, best_metrics: dict[str, float], gif_name: str | None) -> None:
+def _write_report(out_dir: Path, summary: dict, best_metrics: dict[str, float], video_name: str | None) -> None:
     report_path = out_dir / "report.md"
     lines = [
         "# Phase 1 Inner-Loop Grasp Report",
@@ -231,7 +231,7 @@ def _write_report(out_dir: Path, summary: dict, best_metrics: dict[str, float], 
         f"- optimization_wall_time_seconds: {summary.get('timing', {}).get('optimization_wall_time_seconds', 0.0):.3f}",
         f"- mean_iteration_seconds: {summary.get('timing', {}).get('mean_iteration_seconds', 0.0):.3f}",
         f"- rollout_wall_time_seconds: {summary.get('timing', {}).get('rollout_wall_time_seconds', 0.0):.3f}",
-        f"- gif_render_wall_time_seconds: {summary.get('timing', {}).get('gif_render_wall_time_seconds', 0.0):.3f}",
+        f"- video_render_wall_time_seconds: {summary.get('timing', {}).get('video_render_wall_time_seconds', 0.0):.3f}",
         f"- total_run_wall_time_seconds: {summary.get('timing', {}).get('total_run_wall_time_seconds', 0.0):.3f}",
         "",
         "## Artifacts",
@@ -240,7 +240,7 @@ def _write_report(out_dir: Path, summary: dict, best_metrics: dict[str, float], 
         "- Grasp metrics trace: grasp_metrics_trace.png",
         "- Cube z trajectory: best_rollout_cube_z.png",
         "- Contact trajectory: best_rollout_contacts.png",
-        f"- Rollout animation: {gif_name if gif_name is not None else 'skipped'}",
+        f"- Rollout animation: {video_name if video_name is not None else 'skipped'}",
     ]
     report_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
@@ -362,18 +362,18 @@ def main() -> None:
     else:
         rollout = evaluator.rollout(best_ctrl)
     rollout_seconds = float(time.perf_counter() - rollout_start)
-    gif_path: Path | None = None
-    gif_render_seconds = 0.0
+    video_path: Path | None = None
+    video_render_seconds = 0.0
     if not args.skip_gif:
         try:
-            gif_start = time.perf_counter()
+            video_start = time.perf_counter()
             if int(args.traj_phases) > 1:
-                gif_path = evaluator.render_rollout_gif_trajectory(best_ctrl_traj, out_dir / "best_rollout.gif")
+                video_path = evaluator.render_rollout_trajectory(best_ctrl_traj, out_dir / "best_rollout.mp4")
             else:
-                gif_path = evaluator.render_rollout_gif(best_ctrl, out_dir / "best_rollout.gif")
-            gif_render_seconds = float(time.perf_counter() - gif_start)
+                video_path = evaluator.render_rollout(best_ctrl, out_dir / "best_rollout.mp4")
+            video_render_seconds = float(time.perf_counter() - video_start)
         except Exception as exc:  # pragma: no cover - environment dependent rendering
-            print(f"GIF render skipped due to runtime error: {exc}")
+            print(f"Rollout video render skipped due to runtime error: {exc}")
 
     total_run_seconds = float(time.perf_counter() - run_start)
 
@@ -413,7 +413,7 @@ def main() -> None:
             "optimization_wall_time_seconds": float(result.get("optimization_wall_time_seconds", 0.0)),
             "mean_iteration_seconds": float(result.get("mean_iteration_seconds", 0.0)),
             "rollout_wall_time_seconds": rollout_seconds,
-            "gif_render_wall_time_seconds": gif_render_seconds,
+            "video_render_wall_time_seconds": video_render_seconds,
             "total_run_wall_time_seconds": total_run_seconds,
         },
     }
@@ -422,7 +422,7 @@ def main() -> None:
     _write_history_csv(history, out_dir / "optimization_trace.csv")
     _plot_history(history, out_dir)
     _plot_rollout(rollout["cube_z"], rollout["contacts"], out_dir)
-    _write_report(out_dir, summary, best_metrics, gif_path.name if gif_path is not None else None)
+    _write_report(out_dir, summary, best_metrics, video_path.name if video_path is not None else None)
 
     print(f"Phase 1 run complete: {out_dir}")
     print(f"Best score: {result['best_score']:.6f}")

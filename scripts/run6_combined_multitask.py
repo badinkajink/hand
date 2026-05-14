@@ -428,28 +428,28 @@ def main() -> None:
     )
     top_rows = rows_sorted[: max(0, args.top_k_gifs)]
 
-    gifs_dir = out_dir / "top5_gifs"
-    gifs_dir.mkdir(parents=True, exist_ok=True)
-    gif_manifest: list[dict[str, object]] = []
+    videos_dir = out_dir / "top5_videos"
+    videos_dir.mkdir(parents=True, exist_ok=True)
+    video_manifest: list[dict[str, object]] = []
 
     for rank, r in enumerate(top_rows, start=1):
         scene_xml = Path(str(r["scene_xml"]))
         ctrl_map = json.loads(str(r["task_ctrl_json"]))
-        task_gifs: dict[str, str] = {}
+        task_videos: dict[str, str] = {}
         for keyframe in args.keyframes:
             ctrl = np.asarray(ctrl_map[keyframe], dtype=np.float64)
             evaluator = Phase1GraspEvaluator(scene_xml=scene_xml, keyframe=keyframe, cfg=eval_cfg)
-            gif_path = gifs_dir / f"rank{rank:02d}_{keyframe}.gif"
-            evaluator.render_rollout_gif(
+            video_path = videos_dir / f"rank{rank:02d}_{keyframe}.mp4"
+            evaluator.render_rollout(
                 ctrl,
-                gif_path,
+                video_path,
                 width=args.gif_width,
                 height=args.gif_height,
                 fps=args.gif_fps,
                 frame_stride=args.gif_frame_stride,
             )
-            task_gifs[keyframe] = str(gif_path)
-        gif_manifest.append(
+            task_videos[keyframe] = str(video_path)
+        video_manifest.append(
             {
                 "rank": rank,
                 "candidate_id": int(r["candidate_id"]),
@@ -458,7 +458,7 @@ def main() -> None:
                 "feasible_task_count": int(r["feasible_task_count"]),
                 "aggregate_score_mean": float(r["aggregate_score_mean"]),
                 "aggregate_min_score": float(r["aggregate_min_score"]),
-                "task_gifs": task_gifs,
+                "task_videos": task_videos,
             }
         )
 
@@ -469,8 +469,8 @@ def main() -> None:
     write_csv(task_rows, out_dir / "all_task_results.csv")
     write_csv(top_rows, out_dir / "top5_candidates.csv")
     write_csv(rolling_rows, out_dir / "rolling_efficiency.csv")
-    (out_dir / "top5_gifs" / "gif_manifest.json").write_text(
-        json.dumps(gif_manifest, indent=2), encoding="utf-8"
+    (out_dir / "top5_videos" / "video_manifest.json").write_text(
+        json.dumps(video_manifest, indent=2), encoding="utf-8"
     )
 
     summary = {
