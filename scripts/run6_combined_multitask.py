@@ -17,6 +17,7 @@ SRC_ROOT = PROJECT_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
+from morphohand.optimization.contact_targets import ContactTargetSet  # noqa: E402
 from morphohand.optimization.phase1_grasp import (  # noqa: E402
     Phase1EvalConfig,
     Phase1GraspEvaluator,
@@ -130,6 +131,24 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--objective-weight-cube-yaw-drift-penalty", type=float, default=4.0)
     parser.add_argument("--objective-weight-cube-axis-tilt-penalty", type=float, default=6.0)
     parser.add_argument("--objective-weight-cube-ang-drift-penalty", type=float, default=2.0)
+    parser.add_argument(
+        "--contact-targets-yaml",
+        type=Path,
+        default=None,
+        help="Optional contact-patch YAML; enables contact_map-style targeting on every evaluator built in the sweep.",
+    )
+    parser.add_argument(
+        "--objective-weight-contact-target-reward",
+        type=float,
+        default=0.0,
+        help="Reward weight for hitting contact-target patches (only used when --contact-targets-yaml is set).",
+    )
+    parser.add_argument(
+        "--objective-weight-contact-target-distance-penalty",
+        type=float,
+        default=0.0,
+        help="Penalty weight for mean tip-to-patch distance (only used when --contact-targets-yaml is set).",
+    )
     parser.add_argument("--interval-adapt-iterations", type=int, default=12)
     parser.add_argument("--interval-adapt-population", type=int, default=24)
     parser.add_argument("--interval-adapt-elite-fraction", type=float, default=0.25)
@@ -250,6 +269,13 @@ def main() -> None:
         objective_weight_cube_yaw_drift_penalty=args.objective_weight_cube_yaw_drift_penalty,
         objective_weight_cube_axis_tilt_penalty=args.objective_weight_cube_axis_tilt_penalty,
         objective_weight_cube_ang_drift_penalty=args.objective_weight_cube_ang_drift_penalty,
+        objective_weight_contact_target_reward=args.objective_weight_contact_target_reward,
+        objective_weight_contact_target_distance_penalty=args.objective_weight_contact_target_distance_penalty,
+    )
+    contact_target_set = (
+        ContactTargetSet.from_yaml(args.contact_targets_yaml)
+        if args.contact_targets_yaml is not None
+        else None
     )
     interval_cfg = Phase1OptimizationConfig(
         iterations=args.interval_adapt_iterations,
@@ -310,7 +336,12 @@ def main() -> None:
         task_results: list[TaskResult] = []
 
         for keyframe in args.keyframes:
-            evaluator = Phase1GraspEvaluator(scene_xml=scene_xml, keyframe=keyframe, cfg=eval_cfg)
+            evaluator = Phase1GraspEvaluator(
+                scene_xml=scene_xml,
+                keyframe=keyframe,
+                cfg=eval_cfg,
+                contact_target_set=contact_target_set,
+            )
             interval_ctrl = interval_ctrl_by_keyframe[keyframe]
             criteria = criteria_by_keyframe[keyframe]
 
@@ -438,7 +469,12 @@ def main() -> None:
         task_videos: dict[str, str] = {}
         for keyframe in args.keyframes:
             ctrl = np.asarray(ctrl_map[keyframe], dtype=np.float64)
-            evaluator = Phase1GraspEvaluator(scene_xml=scene_xml, keyframe=keyframe, cfg=eval_cfg)
+            evaluator = Phase1GraspEvaluator(
+                scene_xml=scene_xml,
+                keyframe=keyframe,
+                cfg=eval_cfg,
+                contact_target_set=contact_target_set,
+            )
             video_path = videos_dir / f"rank{rank:02d}_{keyframe}.mp4"
             evaluator.render_rollout(
                 ctrl,
@@ -484,6 +520,12 @@ def main() -> None:
         "morph_sort": args.morph_sort,
         "bounds": asdict(bounds),
         "perturb": {"x": args.x_perturb, "y": args.y_perturb, "len": args.len_perturb},
+        "contact_targets": {
+            "yaml": str(args.contact_targets_yaml) if args.contact_targets_yaml else None,
+            "weight_reward": float(args.objective_weight_contact_target_reward),
+            "weight_distance_penalty": float(args.objective_weight_contact_target_distance_penalty),
+            "patch_count": (len(contact_target_set.patches) if contact_target_set else 0),
+        },
         "feasibility": {
             "max_mean_tip_distance": args.max_mean_tip_distance,
             "min_contacts": args.min_contacts,
