@@ -35,6 +35,7 @@ from morphohand.tools.morphology_xml import (  # noqa: E402
     create_rigid_morphology_xml,
     extract_morphology_from_qpos,
 )
+from morphohand.optimization.contact_targets import ContactTargetSet  # noqa: E402
 from morphohand.sampling.scene import freeze_scene_for_eval  # noqa: E402
 
 
@@ -138,6 +139,24 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--objective-weight-cube-yaw-drift-penalty", type=float, default=4.0)
     parser.add_argument("--objective-weight-cube-axis-tilt-penalty", type=float, default=6.0)
     parser.add_argument("--objective-weight-cube-ang-drift-penalty", type=float, default=2.0)
+    parser.add_argument(
+        "--contact-targets-yaml",
+        type=Path,
+        default=None,
+        help="Optional contact-patch YAML; enables contact_map-style targeting on the evaluator.",
+    )
+    parser.add_argument(
+        "--objective-weight-contact-target-reward",
+        type=float,
+        default=0.0,
+        help="Reward weight for hitting contact-target patches (only used when --contact-targets-yaml is set).",
+    )
+    parser.add_argument(
+        "--objective-weight-contact-target-distance-penalty",
+        type=float,
+        default=0.0,
+        help="Penalty weight for mean tip-to-patch distance (only used when --contact-targets-yaml is set).",
+    )
     parser.add_argument(
         "--skip-gif",
         action="store_true",
@@ -288,6 +307,13 @@ def main() -> None:
         objective_weight_cube_yaw_drift_penalty=args.objective_weight_cube_yaw_drift_penalty,
         objective_weight_cube_axis_tilt_penalty=args.objective_weight_cube_axis_tilt_penalty,
         objective_weight_cube_ang_drift_penalty=args.objective_weight_cube_ang_drift_penalty,
+        objective_weight_contact_target_reward=args.objective_weight_contact_target_reward,
+        objective_weight_contact_target_distance_penalty=args.objective_weight_contact_target_distance_penalty,
+    )
+    contact_target_set = (
+        ContactTargetSet.from_yaml(args.contact_targets_yaml)
+        if args.contact_targets_yaml is not None
+        else None
     )
     opt_cfg = Phase1OptimizationConfig(
         iterations=args.iterations,
@@ -333,6 +359,7 @@ def main() -> None:
         metric_sample_interval=args.metric_sample_interval,
         speed_mode=args.speed_mode,
         metric_collection_mode=args.metric_collection_mode,
+        contact_target_set=contact_target_set,
     )
 
     if args.optimizer == "mjx-autodiff":
