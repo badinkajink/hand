@@ -1,4 +1,4 @@
-<mujoco model="morphohand_scene_power_drill_short_proximal">
+<mujoco model="scene_power_drill_short_proximal_rigid_capsuletips">
   <compiler angle="radian" autolimits="true" />
   <option timestep="0.002" gravity="0 0 -9.81" integrator="implicitfast" />
   <visual>
@@ -13,9 +13,6 @@
     <default class="pose">
       <joint damping="2.0" armature="0.01" />
       <position kp="4000" kv="100" forcerange="-1000 1000" />
-    </default>
-    <default class="morph">
-      <joint damping="2000" armature="0.0001" />
     </default>
     <default class="ctrl">
       <joint damping="0.5" armature="0.001" />
@@ -62,18 +59,15 @@
       <joint class="pose" name="palm_ry" type="hinge" axis="0 1 0" range="-1.57 1.57" />
       <joint class="pose" name="palm_rz" type="hinge" axis="0 0 1" range="-3.14 3.14" />
       <geom class="hand" type="box" size="0.06 0.045 0.003" material="palm_mat" />
-      <body name="thumb_mount" pos="-0.03 -0.028 0.0">
+      <body name="thumb_mount" pos="-0.051 -0.001 0">
         <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
-        <joint class="morph" name="thumb_x" type="slide" axis="1 0 0" range="-0.03 0.03" />
-        <joint class="morph" name="thumb_y" type="slide" axis="0 1 0" range="-0.03 0.03" />
         <body name="thumb_yaw_frame">
           <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
           <joint class="ctrl" name="thumb_yaw" type="hinge" axis="1 0 0" range="-1.1 1.1" />
           <body name="thumb_mcp_frame">
             <joint class="ctrl" name="thumb_mcp" type="hinge" axis="0 1 0" range="0 3.14" />
             <geom class="hand" type="capsule" fromto="0 0 0 0.025 0 0" size="0.010" material="finger_mat" />
-            <body name="thumb_len_frame" pos="0.025 0 0">
-              <joint class="morph" name="thumb_len" type="slide" axis="1 0 0" range="0.0 0.035" />
+            <body name="thumb_len_frame" pos="0.02478 0 0">
               <geom class="hand" type="capsule" fromto="0 0 0 0.04 0 0" size="0.0085" material="finger_mat" />
               <body name="thumb_pip_frame" pos="0.04 0 0">
                 <joint class="ctrl" name="thumb_pip" type="hinge" axis="0 1 0" range="-1.8 0.6" />
@@ -86,18 +80,15 @@
           </body>
         </body>
       </body>
-      <body name="index_mount" pos="0.00 0.03 0.0">
+      <body name="index_mount" pos="0.019 0.014 0">
         <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
-        <joint class="morph" name="index_x" type="slide" axis="1 0 0" range="-0.03 0.03" />
-        <joint class="morph" name="index_y" type="slide" axis="0 1 0" range="-0.03 0.03" />
         <body name="index_yaw_frame">
           <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
           <joint class="ctrl" name="index_yaw" type="hinge" axis="1 0 0" range="-1.1 1.1" />
           <body name="index_mcp_frame">
             <joint class="ctrl" name="index_mcp" type="hinge" axis="0 1 0" range="0 2.5" />
             <geom class="hand" type="capsule" fromto="0 0 0 0.025 0 0" size="0.010" material="finger_mat" />
-            <body name="index_len_frame" pos="0.025 0 0">
-              <joint class="morph" name="index_len" type="slide" axis="1 0 0" range="0.0 0.035" />
+            <body name="index_len_frame" pos="0.02588 0 0">
               <geom class="hand" type="capsule" fromto="0 0 0 0.04 0 0" size="0.0085" material="finger_mat" />
               <body name="index_pip_frame" pos="0.04 0 0">
                 <joint class="ctrl" name="index_pip" type="hinge" axis="0 1 0" range="-1.2 2.2" />
@@ -110,18 +101,15 @@
           </body>
         </body>
       </body>
-      <body name="middle_mount" pos="0.00 -0.03 0.0">
+      <body name="middle_mount" pos="0.017 -0.015 0">
         <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
-        <joint class="morph" name="middle_x" type="slide" axis="1 0 0" range="-0.03 0.03" />
-        <joint class="morph" name="middle_y" type="slide" axis="0 1 0" range="-0.03 0.03" />
         <body name="middle_yaw_frame">
           <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
           <joint class="ctrl" name="middle_yaw" type="hinge" axis="1 0 0" range="-1.1 1.1" />
           <body name="middle_mcp_frame">
             <joint class="ctrl" name="middle_mcp" type="hinge" axis="0 1 0" range="0 2.5" />
             <geom class="hand" type="capsule" fromto="0 0 0 0.025 0 0" size="0.010" material="finger_mat" />
-            <body name="middle_len_frame" pos="0.025 0 0">
-              <joint class="morph" name="middle_len" type="slide" axis="1 0 0" range="0.0 0.035" />
+            <body name="middle_len_frame" pos="0.0289 0 0">
               <geom class="hand" type="capsule" fromto="0 0 0 0.04 0 0" size="0.0085" material="finger_mat" />
               <body name="middle_pip_frame" pos="0.04 0 0">
                 <joint class="ctrl" name="middle_pip" type="hinge" axis="0 1 0" range="-1.2 2.2" />
@@ -154,8 +142,39 @@
     <position class="ctrl" name="a_middle_pip" joint="middle_pip" ctrlrange="-1.2 2.2" />
   </actuator>
   <keyframe>
-    <key name="open_flat" qpos="   -0.0025   -0.049    0.0098    0.42    0.021    0.1    0.9    0.052   -0.038   -0.051    1.6    1.4   -0.031   -0.021    0.027    0.21    1.4   -0.00022   -1.2    0.019   -0.016    0.31    1.5    0.00088    1.1    0.017    0.015    0.033    1.7    0.0039    1.4            " ctrl="         0.052 -0.038 -0.051 1.6 1.4 -0.031         0.21 1.4 -1.2         0.31 1.5 1.1         0.033 1.7 1.4       " />
-    <key name="open_vertical" qpos="         0 0 0.06  1 0 0 0         0.012 0.0 0.13  0.90 -0.20 -0.10         0 0.02             -0.40             2.25             0             -0.85         0.01 -0.0123             0.20             0.45             0             0.15         0.01 0.0153             -0.30             1.70             0             1.20         " ctrl="         0.012 0.0 0.13 0.90 -0.20 -0.10         -0.40 2.25 -0.85         0.20 0.45 0.15         -0.30 1.70 1.20       " />
-    <key name="open_flat_gripping" qpos="&#10;        -0.002600 -0.048000 0.020000 0.160000 0.053000 0.077000 0.980000 0.052000 -0.038000 -0.051000 1.600000 1.400000 -0.031000 -0.021000 0.027000 0.220000 1.500000 -0.000220 -1.700000 0.019000 -0.016000 0.290000 1.700000 0.000880 1.500000 0.017000 0.015000 -0.013000 1.600000 0.003900 2.000000&#10;      " ctrl="&#10;        0.052000 -0.038000 -0.051000 1.600000 1.400000 -0.031000 0.220000 1.500000 -1.700000 0.290000 1.700000 1.500000 -0.013000 1.600000 2.000000&#10;      " />
+    <key name="open_flat" qpos="&#10;        -0.0025 -0.049 0.0098 0.42 0.021 0.1 0.9 0.052 -0.038 -0.051 1.6 1.4 -0.031 0.21 1.4 -1.2 0.31 1.5 1.1 0.033 1.7 1.4&#10;      " ctrl="         0.052 -0.038 -0.051 1.6 1.4 -0.031         0.21 1.4 -1.2         0.31 1.5 1.1         0.033 1.7 1.4       " />
+    <key name="open_vertical" qpos="&#10;        0 0 0.06 1 0 0 0 0.012 0 0.13 0.9 -0.2 -0.1 -0.4 2.25 -0.85 0.2 0.45 0.15 -0.3 1.7 1.2&#10;      " ctrl="         0.012 0.0 0.13 0.90 -0.20 -0.10         -0.40 2.25 -0.85         0.20 0.45 0.15         -0.30 1.70 1.20       " />
+    <key name="open" qpos="&#10;        0 0 0.02 1 0 0 0 0.02 0 0 0 0 0 0 2 -0.707 0 1.25 1 0 1.25 1&#10;      " ctrl="&#10;        0.02 0 0 0 0 0 0 2 -0.707 0 1.25 1 0 1.25 1&#10;      " />
+    <key name="open_flat_gripping"
+     qpos="  -0.0026
+  -0.048
+   0.02
+   0.16
+   0.053
+   0.077
+   0.98
+   0.052
+  -0.038
+  -0.051
+   1.6
+   1.4
+  -0.031
+   0.22
+   1.5
+  -1.7
+   0.29
+   1.7
+   1.5
+  -0.013
+   1.6
+   2
+  "
+  ctrl="  0.052
+  -0.038
+  -0.051
+   1.6
+   1.4
+  -0.031  0.22  1.5 -1.7   0.29   1.7   1.5  -0.013   1.6   2 "
+    />
   </keyframe>
 </mujoco>
