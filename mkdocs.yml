@@ -24,10 +24,15 @@ nav:
   - Simulators:
       - Backend Strategy: simulators/backends.md
       - DiffMJX Plan: simulators/diffmjx_plan.md
+  - Reinforcement Learning:
+      - Overview: rl/index.md
+      - Architecture: rl/architecture.md
+      - Training: rl/training.md
+      - Results: rl/results.md
   - Roadmap:
       - Milestones: roadmap/phases.md
 theme:
-  name: mkdocs
+  name: material
   features:
     - navigation.sections
     - navigation.expand
