@@ -1,13 +1,13 @@
 [project]
 name = "morphohand"
 version = "0.1.0"
-description = "Morphology optimization research scaffold with multiple MuJoCo backends"
+description = "Multi-backend morphology optimization + RL stack for a 3-finger hand"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.14"
 dependencies = [
   "numpy>=1.26",
-  "mujoco>=3.6.0,<3.7",
-  "mujoco-mjx>=3.6.0,<3.7",
+  "mujoco==3.6.0",
+  "mujoco-mjx==3.6.0",
   "jax>=0.4.30,<0.5",
   "jaxlib>=0.4.30,<0.5",
   "tyro>=0.8.5",
@@ -18,18 +18,35 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# GPU-backed simulation: MuJoCo Warp + ComFree Warp (editable from external/),
+# plus warp-lang. Install with `uv sync --extra gpu`.
+gpu = [
+  # warp-lang 1.13 dropped wp.context.runtime.driver_version which mjlab 1.2
+  # still uses. Pin <1.13 until mjlab updates its sim.py.
+  "warp-lang>=1.12,<1.13",
+  "mujoco-warp",
+  "comfree_warp",
+]
+
+# RL training stack on top of mjlab (Isaac Lab manager API + MuJoCo Warp).
+# Pulls torch via mjlab[cu128]; requires NVIDIA GPU + CUDA >= 12.8.
+# Install with `uv sync --extra gpu --extra rl`.
+rl = [
+  # mjlab 1.3+ requires mujoco>=3.7, which breaks our external/mujoco_warp 3.6.0.
+  # 1.2.0 supports mujoco>=3.5; revisit when external is bumped to 3.7+.
+  "mjlab[cu128]==1.2.0",
+  # cu128 PyTorch wheels exist only up to 2.11; mjlab requires >=2.7.
+  "torch>=2.7.0,<2.12",
+  "torchvision",
+  "gymnasium>=0.29",
+]
+
 dev = [
   "pytest>=8.3",
   "ruff>=0.6.9",
   "mypy>=1.11",
   "mkdocs>=1.6",
   "mkdocs-material>=9.5",
-]
-mjwarp = [
-  "warp-lang>=1.4.0",
-]
-comfree = [
-  "warp-lang>=1.4.0",
 ]
 
 [build-system]
@@ -44,6 +61,28 @@ where = ["src"]
 
 [tool.uv]
 managed = true
+
+# Override the dev-mujoco index inherited from external/mujoco_warp/pyproject.toml
+# so `mujoco==3.6.0` resolves from PyPI (py.mujoco.org only serves 3.7.0.dev pre-releases).
+[[tool.uv.index]]
+name = "pypi"
+url = "https://pypi.org/simple/"
+default = true
+
+# PyTorch CUDA 12.8 wheels (driver here is 12.8). Without this, uv resolves
+# torch from PyPI which currently ships +cu130 wheels — too new for our driver.
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+mujoco = { index = "pypi" }
+mujoco-mjx = { index = "pypi" }
+mujoco-warp = { path = "external/mujoco_warp", editable = true }
+comfree_warp = { path = "external/comfree_warp", editable = true }
+torch = { index = "pytorch-cu128" }
+torchvision = { index = "pytorch-cu128" }
 
 [tool.ruff]
 line-length = 100
