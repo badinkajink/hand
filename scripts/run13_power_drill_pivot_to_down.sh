@@ -112,7 +112,8 @@ foundational_common_args=(
   --population 52
   --elite-fraction 0.25
   --sigma-init 0.10
-  --skip-gif
+  # No --skip-gif: render the foundational best grasp so issues (finger
+  # drift, drill-ground collision, etc.) surface before we burn a sweep.
   --lift-delta-z 0.060
   --lift-ramp-steps 100
   --pivot-steps "$PIVOT_STEPS"

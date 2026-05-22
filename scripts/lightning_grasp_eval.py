@@ -120,6 +120,11 @@ def parse_args():
     ap.add_argument("--hold-steps", type=int, default=40)
     ap.add_argument("--lift-delta-z", type=float, default=0.05)
     ap.add_argument("--lift-ramp-steps", type=int, default=40)
+    ap.add_argument("--pivot-steps", type=int, default=0)
+    ap.add_argument("--pivot-ramp-steps", type=int, default=80)
+    ap.add_argument("--pivot-delta-rx", type=float, default=0.0)
+    ap.add_argument("--pivot-delta-ry", type=float, default=0.0)
+    ap.add_argument("--pivot-delta-rz", type=float, default=0.0)
     ap.add_argument("--max-grasps", type=int, default=0, help="0 = all")
     ap.add_argument("--mode", choices=["ctrl_only", "init_pose"], default="ctrl_only")
     return ap.parse_args()
@@ -139,6 +144,11 @@ def main():
         hold_steps=args.hold_steps,
         lift_delta_z=args.lift_delta_z,
         lift_ramp_steps=args.lift_ramp_steps,
+        pivot_steps=args.pivot_steps,
+        pivot_ramp_steps=args.pivot_ramp_steps,
+        pivot_delta_rx=args.pivot_delta_rx,
+        pivot_delta_ry=args.pivot_delta_ry,
+        pivot_delta_rz=args.pivot_delta_rz,
     )
 
     frozen = _frozen_scene(args.scene_xml, args.keyframe, args.output_json.parent / "frozen_scenes")

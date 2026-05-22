@@ -2,28 +2,43 @@
 
 Lightning Grasp needs a URDF; our hand lives in MJCF. The morphology (mount
 positions and segment lengths) is frozen at the keyframe morphology of the
-target scene -- in our MVP, the cube scene's `open` keyframe. Capsules are
-expressed as cylinder + 2 spheres (URDF has no capsule primitive but
-Lightning supports cylinder/sphere via trimesh.creation primitives).
+target scene. By default we bake the cube/prism `open` keyframe morphology,
+but `--scene-xml` + `--keyframe` derives the morphology from any scene so
+the URDF kinematics match the scene's frozen geometry exactly.
+
+Capsules are expressed as cylinder + 2 spheres (URDF has no capsule
+primitive but Lightning supports cylinder/sphere via trimesh primitives).
 
 Outputs:
-  external/lightning-grasp/assets/hand/morphohand/morphohand.urdf
+  external/lightning-grasp/assets/hand/morphohand/morphohand.urdf  (default)
 """
 
 from __future__ import annotations
 
 import argparse
 import math
+import sys
 from pathlib import Path
+import xml.etree.ElementTree as ET
 
-# Baked morphology = cube/prism `open` keyframe values
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+SRC_ROOT = PROJECT_ROOT / "src"
+if str(SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(SRC_ROOT))
+
+# Default baked morphology = cube/prism `open` keyframe values.
 # (matches results/.../prism.frozen.xml; same morph for cube scene)
-BAKED_MOUNT = {
-    "thumb":  (-0.03,   -0.008,  0.0),   # base (-0.03, -0.028, 0) + y=0.020
-    "index":  ( 0.01,    0.0177, 0.0),   # base (0.0,   0.030,  0) + (x=0.01, y=-0.0123)
-    "middle": ( 0.01,   -0.0147, 0.0),   # base (0.0,  -0.030,  0) + (x=0.01, y= 0.0153)
+DEFAULT_BAKED_MOUNT = {
+    "thumb":  (-0.03,   -0.008,  0.0),
+    "index":  ( 0.01,    0.0177, 0.0),
+    "middle": ( 0.01,   -0.0147, 0.0),
 }
-BAKED_LEN = 0.0  # all `*_len` morph slides are zero in this keyframe
+DEFAULT_BAKED_LEN = 0.0
+DEFAULT_MCP_LEN = 0.05
+
+# Mutated at runtime when --scene-xml is provided.
+BAKED_MOUNT = dict(DEFAULT_BAKED_MOUNT)
+BAKED_LEN = DEFAULT_BAKED_LEN
 
 # Joint limits mirror MJCF ranges
 JOINT_LIMITS = {
@@ -38,13 +53,16 @@ JOINT_LIMITS = {
     "middle_pip": (-1.2, 1.57),
 }
 
-# Capsule segment dimensions from MJCF (fromto length × size = radius)
-MCP_LEN, MCP_R = 0.05,  0.010
+# Capsule segment dimensions from MJCF (fromto length × size = radius).
+# MCP_LEN is mutated when --scene-xml is provided (e.g. short-proximal
+# scenes use 0.025 instead of 0.05).
+MCP_LEN, MCP_R = DEFAULT_MCP_LEN,  0.010
 PRX_LEN, PRX_R = 0.04,  0.0085
 PIP_LEN, PIP_R = 0.03,  0.0075
-TIP_R          = 0.010
+TIP_R          = 0.005
 TIP_AUX_R      = 0.005
 TIP_AUX_DY     = 0.004
+TIP_CAPSULE_HALF_LENGTH = 0.006  # matches scene capsule fromto -0.006..0.006
 
 PALM_HALF = (0.06, 0.045, 0.001)
 
@@ -84,18 +102,21 @@ def _capsule_collision_x(length: float, radius: float) -> str:
 
 
 def _tip_collision() -> str:
+    """Matches the MJCF tip capsule: fromto -HL..+HL along x, radius=TIP_R."""
+    half = TIP_CAPSULE_HALF_LENGTH
+    rpy_y90 = f"0 {math.pi/2:.6f} 0"
     return (
         f'    <collision>\n'
-        f'      <origin rpy="0 0 0" xyz="0 0 0"/>\n'
+        f'      <origin rpy="{rpy_y90}" xyz="0 0 0"/>\n'
+        f'      <geometry><cylinder radius="{TIP_R}" length="{2*half}"/></geometry>\n'
+        f'    </collision>\n'
+        f'    <collision>\n'
+        f'      <origin rpy="0 0 0" xyz="{-half:.6f} 0 0"/>\n'
         f'      <geometry><sphere radius="{TIP_R}"/></geometry>\n'
         f'    </collision>\n'
         f'    <collision>\n'
-        f'      <origin rpy="0 0 0" xyz="0 {TIP_AUX_DY} 0"/>\n'
-        f'      <geometry><sphere radius="{TIP_AUX_R}"/></geometry>\n'
-        f'    </collision>\n'
-        f'    <collision>\n'
-        f'      <origin rpy="0 0 0" xyz="0 {-TIP_AUX_DY} 0"/>\n'
-        f'      <geometry><sphere radius="{TIP_AUX_R}"/></geometry>\n'
+        f'      <origin rpy="0 0 0" xyz="{half:.6f} 0 0"/>\n'
+        f'      <geometry><sphere radius="{TIP_R}"/></geometry>\n'
         f'    </collision>\n'
     )
 
@@ -193,6 +214,60 @@ def build_urdf() -> str:
     )
 
 
+def _derive_morphology_from_scene(scene_xml: Path, keyframe: str) -> tuple[dict[str, tuple[float, float, float]], float, float]:
+    """Return (BAKED_MOUNT, BAKED_LEN, MCP_LEN) for the given scene+keyframe.
+
+    Reads mount base positions from the MJCF body tags, morph offsets from
+    the keyframe qpos, and the proximal segment length from the *_len_frame
+    body pos.
+    """
+    import mujoco  # pyright: ignore[reportMissingImports]
+
+    m = mujoco.MjModel.from_xml_path(str(scene_xml))
+    key_id = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_KEY, keyframe)
+    if key_id < 0:
+        raise ValueError(f"Keyframe '{keyframe}' not found in {scene_xml}")
+    qpos = m.key_qpos[key_id]
+
+    def _qpos_of_joint(joint_name: str) -> float:
+        jid = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_JOINT, joint_name)
+        if jid < 0:
+            raise ValueError(f"Joint '{joint_name}' not found in {scene_xml}")
+        return float(qpos[m.jnt_qposadr[jid]])
+
+    root = ET.parse(scene_xml).getroot()
+
+    def _body_pos(body_name: str) -> tuple[float, float, float]:
+        for body in root.iter("body"):
+            if body.get("name") == body_name:
+                parts = body.get("pos", "0 0 0").split()
+                return (float(parts[0]), float(parts[1]), float(parts[2]))
+        raise ValueError(f"Body '{body_name}' not found in {scene_xml}")
+
+    mount: dict[str, tuple[float, float, float]] = {}
+    len_frame_x: list[float] = []
+    len_qpos: list[float] = []
+    for finger in ("thumb", "index", "middle"):
+        bx, by, bz = _body_pos(f"{finger}_mount")
+        mx = _qpos_of_joint(f"{finger}_x")
+        my = _qpos_of_joint(f"{finger}_y")
+        mount[finger] = (bx + mx, by + my, bz)
+        lf_x, _, _ = _body_pos(f"{finger}_len_frame")
+        len_frame_x.append(lf_x)
+        len_qpos.append(_qpos_of_joint(f"{finger}_len"))
+
+    # MCP_LEN derived from len_frame x offset. All three fingers share the
+    # same MCP segment design; if they differ at the MJCF level the URDF
+    # builder would need per-finger MCP_LEN, but we don't support that yet.
+    if len(set(round(x, 6) for x in len_frame_x)) != 1:
+        raise NotImplementedError(
+            f"Per-finger MCP_LEN differs: {len_frame_x}; URDF builder assumes uniform"
+        )
+    mcp_len = float(len_frame_x[0])
+    baked_len = float(sum(len_qpos)) / 3.0  # near-zero in practice; mean if not
+    return mount, baked_len, mcp_len
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument(
@@ -200,7 +275,26 @@ def main() -> None:
         type=Path,
         default=Path("external/lightning-grasp/assets/hand/morphohand/morphohand.urdf"),
     )
+    ap.add_argument(
+        "--scene-xml",
+        type=Path,
+        default=None,
+        help="If provided, derive morphology (mount offsets + MCP_LEN) from this MJCF scene at --keyframe instead of using the default cube/prism `open` values.",
+    )
+    ap.add_argument("--keyframe", default="open_flat")
     args = ap.parse_args()
+
+    global BAKED_MOUNT, BAKED_LEN, MCP_LEN
+    if args.scene_xml is not None:
+        BAKED_MOUNT, BAKED_LEN, MCP_LEN = _derive_morphology_from_scene(
+            args.scene_xml, args.keyframe
+        )
+        print(
+            f"Derived morphology from {args.scene_xml}@{args.keyframe}:\n"
+            f"  MCP_LEN={MCP_LEN:.4f}  BAKED_LEN={BAKED_LEN:+.4f}\n"
+            f"  mounts={BAKED_MOUNT}"
+        )
+
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(build_urdf())
     print(f"Wrote {args.out}")

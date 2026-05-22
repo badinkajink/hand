@@ -158,6 +158,30 @@ def build_parser() -> argparse.ArgumentParser:
         help="Penalty weight for mean tip-to-patch distance (only used when --contact-targets-yaml is set).",
     )
     parser.add_argument(
+        "--objective-weight-finger-ctrl-anchor",
+        type=float,
+        default=0.0,
+        help="Anchor penalty on |finger_ctrl - keyframe_finger_ctrl|. Closes the CEM loophole where the optimizer picks a ctrl that places fingers away from the keyframe pose and pays zero drift cost.",
+    )
+    parser.add_argument(
+        "--trajectory-fc-sample-count",
+        type=int,
+        default=8,
+        help="Number of FC samples taken evenly across the dynamic phase (lift+pivot+hold). Only fires when at least one trajectory-fc weight is nonzero.",
+    )
+    parser.add_argument(
+        "--objective-weight-trajectory-fc-q1-penalty",
+        type=float,
+        default=0.0,
+        help="Penalty on the worst-case Ferrari-Canny Q1 distance sampled along the trajectory. Larger Q1 = farther from force closure; this term penalizes losing FC anywhere during lift/pivot/hold.",
+    )
+    parser.add_argument(
+        "--objective-weight-trajectory-fc-min-fingers-reward",
+        type=float,
+        default=0.0,
+        help="Reward on min(fingers_engaged) across trajectory samples. Pushes for 3-finger grip maintained throughout the rollout.",
+    )
+    parser.add_argument(
         "--skip-gif",
         action="store_true",
         help="Skip rollout GIF generation (useful in headless SSH environments).",
@@ -309,6 +333,10 @@ def main() -> None:
         objective_weight_cube_ang_drift_penalty=args.objective_weight_cube_ang_drift_penalty,
         objective_weight_contact_target_reward=args.objective_weight_contact_target_reward,
         objective_weight_contact_target_distance_penalty=args.objective_weight_contact_target_distance_penalty,
+        objective_weight_finger_ctrl_anchor=args.objective_weight_finger_ctrl_anchor,
+        trajectory_fc_sample_count=args.trajectory_fc_sample_count,
+        objective_weight_trajectory_fc_q1_penalty=args.objective_weight_trajectory_fc_q1_penalty,
+        objective_weight_trajectory_fc_min_fingers_reward=args.objective_weight_trajectory_fc_min_fingers_reward,
     )
     contact_target_set = (
         ContactTargetSet.from_yaml(args.contact_targets_yaml)
