@@ -46,11 +46,25 @@ class Phase1EvalConfig:
     objective_weight_cube_ang_drift_penalty: float = 2.0
     objective_weight_contact_target_reward: float = 0.0
     objective_weight_contact_target_distance_penalty: float = 0.0
+    # Penalty on |finger_ctrl - keyframe_finger_ctrl| (mean abs). Closes a CEM
+    # loophole: finger_yaw_drift / finger_flex_drift only measure qpos motion
+    # during rollout, so the optimizer can pick a ctrl that places the
+    # fingers away from the keyframe pose and pay zero drift cost as long as
+    # the rollout stays at that pose.
+    objective_weight_finger_ctrl_anchor: float = 0.0
     objective_weight_force_closure: float = 0.0
     force_closure_friction_mu: float = 0.5
     force_closure_cone_edges: int = 4
     force_closure_weight_balance: float = 0.5
     force_closure_weight_q1: float = 1.0
+    # Trajectory-FC sampling: the Phase1 objective measures FC only at settle,
+    # but the paper proposes a GWS-quality oracle enforced throughout the
+    # rollout. These weights enable sampling FC at multiple timesteps across
+    # lift -> pivot -> hold and penalizing the worst-case Q1 distance
+    # (Ferrari-Canny FC residual) seen along the trajectory.
+    trajectory_fc_sample_count: int = 8
+    objective_weight_trajectory_fc_q1_penalty: float = 0.0
+    objective_weight_trajectory_fc_min_fingers_reward: float = 0.0
 
 
 class Phase1GraspEvaluator:
@@ -450,6 +464,39 @@ class Phase1GraspEvaluator:
                 count += 1
         return count
 
+    # When the grasp loses all contact during the dynamic phase, the FC
+    # residual q1 is undefined. We cap it at this value so a totally
+    # airborne sample ranks "as bad as" the worst with-contact case rather
+    # than nan/inf-poisoning the aggregate.
+    _TRAJECTORY_FC_NO_CONTACT_PENALTY = 2.0
+
+    def _sample_fc_now(self) -> tuple[float, int]:
+        """Compute (q1_distance, fingers_engaged) for the current MjData state.
+
+        Used by trajectory-FC sampling. Treats no-contact instants as the
+        worst-case q1=_TRAJECTORY_FC_NO_CONTACT_PENALTY with 0 fingers
+        engaged.
+        """
+        wrenches = extract_finger_contacts(
+            self.data, self.model, self.tip_body_ids, self.cube_body_id
+        )
+        if not wrenches:
+            return self._TRAJECTORY_FC_NO_CONTACT_PENALTY, 0
+        # object_com: use the inertial COM (xipos), not the body frame origin.
+        com = np.asarray(self.data.xipos[self.cube_body_id], dtype=np.float64)
+        fc = force_closure_metrics(
+            wrenches,
+            object_com=com,
+            mu=self.cfg.force_closure_friction_mu,
+            n_edges=self.cfg.force_closure_cone_edges,
+            weight_balance=self.cfg.force_closure_weight_balance,
+            weight_q1=self.cfg.force_closure_weight_q1,
+        )
+        q1 = float(fc.q1_distance)
+        if not np.isfinite(q1):
+            q1 = self._TRAJECTORY_FC_NO_CONTACT_PENALTY
+        return q1, int(fc.fingers_engaged)
+
     def _finger_contact_flags(self) -> np.ndarray:
         flags = np.zeros(3, dtype=np.float64)
         ngeom = int(self.model.ngeom)
@@ -516,6 +563,7 @@ class Phase1GraspEvaluator:
         total_dynamic_steps: int,
         finger_qpos_settle: np.ndarray,
         finger_qpos_after: np.ndarray,
+        settle_finger_ctrl: np.ndarray,
         tip_positions_settle: np.ndarray | None = None,
         fc_metrics: Any = None,
     ) -> tuple[float, dict[str, float]]:
@@ -535,6 +583,29 @@ class Phase1GraspEvaluator:
         finger_qpos_delta = np.abs(finger_qpos_after - finger_qpos_settle)
         finger_yaw_drift = float(np.mean(finger_qpos_delta[[0, 3, 6]]))
         finger_flex_drift = float(np.mean(finger_qpos_delta[[1, 2, 4, 5, 7, 8]]))
+
+        # Anchor penalty: how far the chosen finger ctrl deviates from the
+        # keyframe finger ctrl. See objective_weight_finger_ctrl_anchor in
+        # Phase1EvalConfig for rationale.
+        keyframe_finger_ctrl = self.initial_ctrl[self.finger_actuator_ids]
+        finger_ctrl_anchor_dist = float(np.mean(np.abs(settle_finger_ctrl - keyframe_finger_ctrl)))
+
+        # Trajectory-FC aggregates. Populated by the dynamic loop when either
+        # trajectory-FC weight is nonzero (else empty). max(q1) is the
+        # worst FC margin seen during the trajectory; min(fingers) is the
+        # minimum number of fingers in contact at any sampled instant.
+        traj_fc_q1_samples = getattr(self, "_traj_fc_q1", []) or []
+        traj_fc_fingers_samples = getattr(self, "_traj_fc_fingers", []) or []
+        if traj_fc_q1_samples:
+            trajectory_fc_max_q1 = float(np.max(traj_fc_q1_samples))
+            trajectory_fc_mean_q1 = float(np.mean(traj_fc_q1_samples))
+            trajectory_fc_min_fingers = float(np.min(traj_fc_fingers_samples))
+            trajectory_fc_mean_fingers = float(np.mean(traj_fc_fingers_samples))
+        else:
+            trajectory_fc_max_q1 = 0.0
+            trajectory_fc_mean_q1 = 0.0
+            trajectory_fc_min_fingers = 0.0
+            trajectory_fc_mean_fingers = 0.0
 
         contact_target_reward = 0.0
         contact_target_mean_distance = 0.0
@@ -575,6 +646,9 @@ class Phase1GraspEvaluator:
             - self.cfg.objective_weight_finger_flex_drift_penalty * finger_flex_drift
             + self.cfg.objective_weight_contact_target_reward * contact_target_reward
             - self.cfg.objective_weight_contact_target_distance_penalty * contact_target_mean_distance
+            - self.cfg.objective_weight_finger_ctrl_anchor * finger_ctrl_anchor_dist
+            - self.cfg.objective_weight_trajectory_fc_q1_penalty * trajectory_fc_max_q1
+            + self.cfg.objective_weight_trajectory_fc_min_fingers_reward * trajectory_fc_min_fingers
             + fc_contribution
         )
 
@@ -604,6 +678,12 @@ class Phase1GraspEvaluator:
             "finger_persistence_imbalance": finger_persistence_imbalance,
             "finger_yaw_drift": finger_yaw_drift,
             "finger_flex_drift": finger_flex_drift,
+            "finger_ctrl_anchor_dist": finger_ctrl_anchor_dist,
+            "trajectory_fc_max_q1": trajectory_fc_max_q1,
+            "trajectory_fc_mean_q1": trajectory_fc_mean_q1,
+            "trajectory_fc_min_fingers": trajectory_fc_min_fingers,
+            "trajectory_fc_mean_fingers": trajectory_fc_mean_fingers,
+            "trajectory_fc_sample_count_taken": float(len(traj_fc_q1_samples)),
             "contact_target_reward": float(contact_target_reward),
             "contact_target_mean_distance": float(contact_target_mean_distance),
         }
@@ -631,6 +711,27 @@ class Phase1GraspEvaluator:
         finger_contact_steps = np.zeros(3, dtype=np.float64)
         all_finger_contact_steps = 0.0
 
+        # Trajectory FC sampling: precompute the dynamic-step indices we'll
+        # sample FC at, evenly spread across the full lift+pivot+hold span.
+        # No allocation unless either trajectory-FC weight is nonzero.
+        traj_fc_enabled = (
+            self.cfg.objective_weight_trajectory_fc_q1_penalty != 0.0
+            or self.cfg.objective_weight_trajectory_fc_min_fingers_reward != 0.0
+        )
+        if traj_fc_enabled:
+            total_steps = (
+                self.cfg.lift_steps + self.cfg.pivot_steps + self.cfg.hold_steps
+            )
+            n_samples = max(1, int(self.cfg.trajectory_fc_sample_count))
+            fc_sample_steps = set(
+                int(round(i * (total_steps - 1) / max(1, n_samples - 1)))
+                for i in range(n_samples)
+            )
+        else:
+            fc_sample_steps = set()
+        self._traj_fc_q1: list[float] = []
+        self._traj_fc_fingers: list[int] = []
+
         phases = (
             (self.cfg.lift_steps, 0),
             (self.cfg.pivot_steps, self.cfg.lift_steps),
@@ -652,6 +753,17 @@ class Phase1GraspEvaluator:
                     all_finger_contact_steps += float(chunk)
                 if float(np.sum(finger_flags)) >= 2.0:
                     contact_active_steps += int(chunk)
+                # Trajectory-FC sample: if any dynamic_t within this chunk is
+                # one of our sample points, take an FC reading at the current
+                # (post-chunk) state. We're after worst-case along the path,
+                # so over-/under-sampling by chunk granularity is fine.
+                if fc_sample_steps:
+                    chunk_start = phase_offset + local_t
+                    chunk_end = chunk_start + chunk
+                    if any(chunk_start <= t < chunk_end for t in fc_sample_steps):
+                        q1, n_eng = self._sample_fc_now()
+                        self._traj_fc_q1.append(q1)
+                        self._traj_fc_fingers.append(n_eng)
                 local_t += chunk
 
         return peak_z, contact_active_steps, finger_contact_steps, all_finger_contact_steps
@@ -744,6 +856,7 @@ class Phase1GraspEvaluator:
             total_dynamic_steps=total_dynamic_steps,
             finger_qpos_settle=finger_qpos_settle,
             finger_qpos_after=finger_qpos_after,
+            settle_finger_ctrl=settle_finger_ctrl,
             tip_positions_settle=tip_positions_settle,
             fc_metrics=fc_metrics,
         )
