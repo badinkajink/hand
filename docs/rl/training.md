@@ -18,10 +18,6 @@ uv sync --extra gpu --extra rl
 uv sync --extra dev
 ```
 
-`uv` resolves `torch` from the PyTorch cu128 index and `mujoco` from PyPI
-(overriding the dev index inherited from `external/mujoco_warp`). See
-`pyproject.toml [tool.uv.sources]`.
-
 ### Verify the install
 
 ```bash
@@ -36,32 +32,82 @@ print('mujoco_warp:', mujoco_warp.__version__)
 Expected: `cuda: True` + a GPU name, mujoco_warp `3.6.0` (editable),
 torch `2.11.0+cu128`.
 
-## Launching a training run
+## Launching the canonical run
+
+The MVP that reproduces the CEM lift with **fingertip contact**:
 
 ```bash
-uv run --extra gpu --extra rl python scripts/rl_train_cube.py \
+uv run python scripts/rl_train_cube.py \
     --morphology-run results/phase1/run18_final/foundational/cube/run_20260521_161817 \
-    --tag cube_mvp_v1
+    --tag cube_lerp_grasp \
+    --num-envs 1024 \
+    --init-noise-std 0.05 \
+    --entropy-coef 0.0 \
+    --freeze-actor-std \
+    --total-timesteps 50000000 \
+    --wandb-project morphohand-rl \
+    --eval-video-interval 25 \
+    --eval-video-length 70
 ```
 
-Recommended bring-up sequence:
+~2 hr on RTX 4070 Ti Super. Peak reward ~57 by iter 125; rest of the run
+is just stability checking.
 
-```bash
-# 1. Dry-run: validate env cfg construction without launching PPO.
-uv run python scripts/rl_train_cube.py \
-    --morphology-run results/phase1/run18_final/foundational/cube/run_20260521_161817 \
-    --tag cube_mvp_smoke --dry-run
+## CLI flags on `scripts/rl_train_cube.py`
 
-# 2. Tiny run: 256 envs, ~5 min, sanity-check that PPO actually steps.
-uv run python scripts/rl_train_cube.py \
-    --morphology-run results/phase1/run18_final/foundational/cube/run_20260521_161817 \
-    --tag cube_mvp_tiny --num-envs 256
+| Flag | Default | Role |
+|---|---|---|
+| `--morphology-run PATH` | required | Phase 1 foundational dir (provides best_rollout, summary.json, frozen_scene.xml) |
+| `--tag STR` | `cube_mvp_v1` | output subdir under `results/rl/` |
+| `--num-envs INT` | 1024 | parallel envs; drop to 256 on <16 GB VRAM |
+| `--seed INT` | 42 | |
+| `--wandb` / `--no-wandb` | enabled | wandb logging vs tensorboard-only |
+| `--wandb-project STR` | `morphohand-rl` | |
+| `--wandb-tags STR ...` | `()` | |
+| `--upload-model` / `--no-upload-model` | off | push checkpoints to wandb |
+| `--record-videos` / `--no-record-videos` | enabled | eval video recording during training |
+| `--eval-video-interval INT` | 50 | iters between eval videos |
+| `--eval-video-length INT` | 70 | frames per eval video |
+| `--init-noise-std FLOAT` | None | overrides PPO `init_noise_std` (default 0.3 in PPOConfig; **set to 0.01–0.05 for cube**) |
+| `--entropy-coef FLOAT` | None | overrides PPO entropy bonus (**set to 0 for cube** — the optimum is near-deterministic) |
+| `--total-timesteps INT` | None | overrides PPOConfig (default 200M) |
+| `--lift-target-z-above-init FLOAT` | 0.05 | clip ceiling for `lift_height` reward |
+| `--reward-mode {full,tracking_only}` | full | `tracking_only` zeros all task rewards |
+| `--obs-mode {full,ref_only}` | full | `ref_only` is just `ref_finger_qpos` (9-d) |
+| `--init-actor-checkpoint PATH` | None | warm-start actor weights from a prior `model_*.pt` |
+| `--freeze-actor-std` | off | `requires_grad=False` on actor's `distribution.std_param` — pins exploration noise |
 
-# 3. Full run: defaults below.
-uv run python scripts/rl_train_cube.py \
-    --morphology-run results/phase1/run18_final/foundational/cube/run_20260521_161817 \
-    --tag cube_mvp_v1
-```
+For the cube task the trio `--init-noise-std 0.05 --entropy-coef 0.0
+--freeze-actor-std` is what stops the slow-decay pathology where PPO's
+learnable std drifts upward and eventually breaks the grip.
+
+## Key `MorphoHandEnvCfg` fields
+
+These don't have CLI flags yet; edit `src/morphohand/rl/env_cfg.py` or
+construct a custom cfg in your launcher:
+
+| Field | Default | Role |
+|---|---|---|
+| `frozen_scene_xml` | required | frozen MJCF (must include `keyframe_name`) |
+| `keyframe_name` | `"open_short_manual"` | provides palm pose + finger keyframe + cube initial qpos |
+| `foundational_run_dir` | required | for ReferenceTrajectory |
+| `finger_default_ctrl` | run18 cube grip ctrl | position-controller target at the end of the lerp; passed by `rl_train_cube.py` from the npz |
+| `num_envs` | 1024 | |
+| `sim_timestep` | 0.002 (500 Hz) | |
+| `decimation` | 10 → 50 Hz policy | |
+| `episode_length_s` | 1.4 → 70 policy steps | |
+| `object_size` | 0.02 | cube half-extent |
+| `object_mass` | 0.016 | density 500 → kg |
+| `object_friction` | (2.4, 0.2, 0.02) | |
+| `lift_target_z_above_init` | 0.05 | |
+| `settle_steps` | 240 | sim steps before palm starts lifting |
+| `lift_ramp_steps` | 80 | duration of palm_pz ramp |
+| `lift_delta_z` | 0.05 | total palm_pz rise |
+| `finger_close_sim_steps` | 80 | duration of the open→grip finger lerp; ≤ settle_steps |
+| `open_finger_qpos` | `(0, 3.14, 0, 0, 0, 0, 0, 0, 0)` | open-hand pose; thumb mcp is inverted |
+| `reward_mode` | `"full"` | |
+| `obs_mode` | `"full"` | |
+| `viewer_distance` | 0.6 | viewer cam zoom |
 
 ## Outputs
 
@@ -69,64 +115,40 @@ uv run python scripts/rl_train_cube.py \
 results/rl/<tag>/
   config.yaml          # MorphoHandEnvCfg + PPOConfig snapshot
   rsl_rl_cfg.json      # RSL-RL hyperparameters
-  checkpoints/         # model_<iter>.pt + model_latest.pt
-  tensorboard/         # rsl-rl event files
-  eval_videos/         # rendered every PPOConfig.eval_video_interval iters
-  rollouts/            # deterministic-policy npz at end of training
+  tensorboard/
+    model_<iter>.pt    # save_interval = 50 iters
+    events.out.tfevents.*
+  eval_videos/
+    <tag>-step-<N>.mp4 # one per eval_video_interval iters (stochastic policy)
 ```
 
-Tensorboard:
+## Bring-up checklist
 
-```bash
-uv run tensorboard --logdir results/rl/<tag>/tensorboard
-```
-
-## Default hyperparameters
-
-| Knob | Default | Notes |
-|---|---|---|
-| `num_envs` | 2048 | RTX 4070 16 GB ≈ 2048 fits; bump to 4096 on ≥24 GB |
-| `num_steps_per_env` | 24 | ~ 49 k transitions / update |
-| `total_timesteps` | 200 M | ≈ 1.5–4 h on RTX 4090 (Isaac Lab benchmarks) |
-| Network | `[512, 256, 128]` ELU | actor + critic |
-| `lr` | 5e-4 adaptive KL | target_kl=0.01 |
-| `clip_param` | 0.2 | PPO clip |
-| `gamma`, `lam` | 0.99, 0.95 | GAE |
-| `entropy_coef` | 5e-3 | |
-| `init_noise_std` | 0.3 | action space is normalized |
-
-Override via `PPOConfig(...)` in a custom entry script, or via CLI on
-`scripts/rl_train_cube.py` (currently only `--num-envs` is exposed —
-extend `Args` for more).
-
-## Bring-up checklist (first run)
-
-1. **Dry-run succeeds** — `--dry-run` produces `config.yaml` + `rsl_rl_cfg.json`.
-2. **mjlab env constructs** — `ManagerBasedRlEnv(cfg=...)` doesn't raise.
-   Most common failure: actuator name mismatch between
-   `morphohand.rl.scene_loader.FINGER_ACTUATOR_NAMES` and the frozen MJCF.
-   Fix: update the constant or rebuild the frozen scene.
-3. **PPO actually steps** — tensorboard shows `iter > 0`. If it dies on
-   step 0, usually VRAM OOM (drop `--num-envs`).
-4. **Reward signal is real** — `info["episode/reward"]` should rise above
-   `bonus_alive * episode_length` (= 0.1 × 70 ≈ 7) within the first 50
-   iters. If it stays flat, the `lift_height` command is too aggressive
-   relative to the policy's initial std — drop `lift_target_z_above_init`
-   to 0.02 m.
-5. **Open-loop reference scores high** — run
-   `pytest tests/test_rl_reward_on_reference.py` (offline test). If the
-   reference scores < 0.5 on the tracking reward, the
-   `best_rollout.npz` was generated by a different sim backend than the
-   one we're tracking against (re-roll through Warp; see open question
-   in [index.md](index.md)).
+1. **Dry-run** — `--dry-run` produces `config.yaml` + `rsl_rl_cfg.json`. Skips PPO launch.
+2. **Pre-flight zero-action sanity** — run `/tmp/preflight_lerp.py` (or equivalent: 16 envs, zero action, 70 steps). Expect cube z=0.02 at step 0, `contact_min` reaching 1.0 by step 15, cube z=0.069 at step 60. If contact_min stays 0 or cube floats off the floor, the env is broken — fix before training. The most common breakage is one of the entries in the bug catalogue in `architecture.md`.
+3. **PPO actually steps** — tensorboard shows `iter > 0`. If it dies on step 0, usually VRAM OOM (drop `--num-envs`).
+4. **Reward signal is real** — `Mean reward` should rise to ~50+ within the first 25 iters (well above the `bonus_alive = 0.1 × 70 ≈ 7` floor). If it stays under 15, the contact rewards aren't firing — re-run pre-flight to find the env bug.
 
 ## Troubleshooting
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| `CUDA initialization: The NVIDIA driver on your system is too old` | torch installed cu130 wheels but driver is 12.8 | confirm `pyproject.toml [tool.uv.sources]` routes `torch` through `pytorch-cu128`; re-sync |
-| `actuator '...' not found in frozen_*.xml` | scene_loader's `FINGER_ACTUATOR_NAMES` ≠ scene XML | edit one to match; both should be cube scene's actuator order |
-| `VRAM OOM` at env init | `num_envs` too high | drop to 1024 or 512 |
-| `NaN` in obs / rewards | physics blowup (object slipping at high velocity) | reduce `lift_target_z_above_init`; increase `solref` stiffness in scene |
-| `keyframe 'open_short_manual' not found` | running against a different scene's foundational dir | pass the correct `--morphology-run` |
-| Tracking reward stays < 0.5 | reference was rolled on `backend="mujoco"`, env uses Warp | re-roll the reference through Warp (Phase 2 follow-up); for now expect a structurally capped tracking term |
+| `CUDA initialization: driver too old` | torch installed cu130 wheels but driver is 12.8 | confirm `pyproject.toml [tool.uv.sources]` routes torch through `pytorch-cu128`; re-sync |
+| `actuator '...' not found` | scene_loader's `FINGER_ACTUATOR_NAMES` ≠ scene XML | edit one to match |
+| `VRAM OOM` at env init | `num_envs` too high | drop to 512 or 256 |
+| Cube spawns at z=0.06, fingers never grip | `LiftingCommand.object_pose_range.z` set to lift target instead of spawn | set to `(cube_size, cube_size)` |
+| Closing motion sweeps cube sideways | thumb mcp set to qpos=0 (closed across palm) | use `open_finger_qpos = (0, 3.14, 0, …)` |
+| All parallel hands stacked at world origin | `reset_base` event was removed | keep `reset_base` (mocap shift) |
+| Mean reward decays slowly after peaking | learnable std drifting up | `--freeze-actor-std --entropy-coef 0` |
+| `contact_min` stuck at 0 even with grip | grip ctrl positions fingertips past the cube (cage, not pinch) | use bigger cube OR LerpFingerAction with `open_finger_qpos` — see architecture.md |
+| `Mean reward` huge but cube doesn't lift in video | the cube is being lifted but the contact sensor is firing on `body=cube` against the wrong body — check `ContactSensorCfg.secondary.pattern` |
+
+## Quick deterministic eval
+
+```bash
+# minimal eval — replace CHECKPOINT and tag, runs 64 envs det, saves env-0 video
+python /tmp/eval_model400.py
+```
+
+The template script is at `/tmp/eval_model400.py` (treat as starting
+point; eventually live in `scripts/rl_eval_cube.py`).
