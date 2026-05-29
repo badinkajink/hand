@@ -30,6 +30,7 @@ nav:
       - Training: rl/training.md
       - Results: rl/results.md
       - Phases: rl/phases.md
+      - Multi-Morphology: rl/multimorphology.md
   - Roadmap:
       - Milestones: roadmap/phases.md
 theme:

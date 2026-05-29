@@ -16,10 +16,11 @@ transfer and in-hand manipulation work.
 | MVP env wired (mjlab + PPO + warm-start) | ✅ | `cube_lerp_grasp` |
 | Replicate CEM caged-lift in RL env | ✅ | `cube_full_warmstart_frozenstd/model_400` |
 | Replicate CEM lift with **fingertip contact** | ✅ | `cube_lerp_grasp/model_150` — `contact_min` reward 24.81 (~59% of max); peak cube z 0.069 m |
-| Robust pickup under cube pose noise | 🚧 | next |
-| Robust pickup under friction / mass noise | 🚧 | next |
-| Cross-morphology transfer | 🔲 | gated on robustness above |
-| New objects (drill, screwdrivers) | 🔲 | gated on robustness above |
+| Robust pickup under cube pose noise | ✅ | `cube_stable_v1/model_1400` — 100% lift ≥6cm, contact_min hold 0.999, sub-mm xy drift, 1.3° orient drift |
+| Stable recipe ported to other objects | ✅ | `prism_stable_v1/model_800` (98 % lift ≥6cm, 0.45mm drift) + `screwdriver_vertical_stable_v1/model_550` (100 % lift ≥6cm, 0.37mm drift) |
+| Cross-morphology transfer | 🚧 | see [Multi-Morphology](multimorphology.md) — eval-and-finetune approach in progress |
+| Robust pickup under friction / mass noise | 🔲 | deferred — needs custom raw-warp event |
+| New objects (drill, more screwdrivers) | 🔲 | gated on per-object foundational CEM (drill blocked on keyframe issue) |
 
 Reading order:
 1. [Architecture](architecture.md) — modules, env composition, what each
