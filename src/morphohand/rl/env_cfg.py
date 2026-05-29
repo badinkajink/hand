@@ -160,12 +160,15 @@ def make_object_spec_from_frozen(frozen_scene_xml, object_body_name: str,
     return spec
 
 
-def _read_keyframe_object_pos(frozen_scene_xml, keyframe_name: str,
-                               object_body_name: str) -> tuple[float, float, float]:
-    """Pull the object body's freejoint xyz from the keyframe qpos.
+def _read_keyframe_object_pose(
+    frozen_scene_xml, keyframe_name: str, object_body_name: str,
+) -> tuple[tuple[float, float, float], tuple[float, float, float, float]]:
+    """Pull the object body's freejoint pose (xyz, wxyz quat) from the keyframe qpos.
 
-    Used as the default `init_state.pos` for the object entity, so each
-    object spawns where CEM tuned it in the frozen scene."""
+    Used as the default `init_state.pos`/`init_state.rot` for the object
+    entity, so each object spawns where CEM tuned it in the frozen scene.
+    Quat matters for objects whose body has a non-identity rest quat
+    (e.g. flat-laying cylinders use quat=0.707 0.707 0 0)."""
     import mujoco
     model = mujoco.MjModel.from_xml_path(str(frozen_scene_xml))
     kf_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_KEY, keyframe_name)
@@ -174,11 +177,15 @@ def _read_keyframe_object_pos(frozen_scene_xml, keyframe_name: str,
     bid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, object_body_name)
     if bid < 0:
         raise KeyError(f"body '{object_body_name}' not in {frozen_scene_xml}")
-    # The object's freejoint is the joint attached to that body.
     jadr = int(model.body_jntadr[bid])
     qadr = int(model.jnt_qposadr[jadr])
     qpos = model.key_qpos[kf_id]
-    return float(qpos[qadr]), float(qpos[qadr + 1]), float(qpos[qadr + 2])
+    pos = (float(qpos[qadr]), float(qpos[qadr + 1]), float(qpos[qadr + 2]))
+    quat = (
+        float(qpos[qadr + 3]), float(qpos[qadr + 4]),
+        float(qpos[qadr + 5]), float(qpos[qadr + 6]),
+    )
+    return pos, quat
 
 
 # ----------------------------------------------------------------------
@@ -447,18 +454,21 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
     )
 
     # Extract the object body from the frozen scene XML (works for any
-    # object: cube, prism, screwdriver, ...). init_state.pos defaults to
-    # the keyframe qpos so the object spawns where CEM tuned it.
+    # object: cube, prism, screwdriver, ...). init_state.pos/rot default to
+    # the keyframe qpos so the object spawns where CEM tuned it. Quat is
+    # required for flat-laying cylinders whose source body has a non-identity
+    # rest quat — without it the extracted body resets to identity and the
+    # cylinder spawns standing up.
     # `reset_cube` event in the events dict below writes default_root_state
     # to sim each reset, ensuring the init pose actually applies.
-    obj_init_xyz = _read_keyframe_object_pos(
+    obj_init_xyz, obj_init_quat = _read_keyframe_object_pose(
         cfg.frozen_scene_xml, cfg.keyframe_name, cfg.object_body_name
     )
     cube_entity = EntityCfg(
         spec_fn=lambda: make_object_spec_from_frozen(
             cfg.frozen_scene_xml, cfg.object_body_name
         ),
-        init_state=EntityCfg.InitialStateCfg(pos=obj_init_xyz),
+        init_state=EntityCfg.InitialStateCfg(pos=obj_init_xyz, rot=obj_init_quat),
     )
 
     # ---- actions: linear-interp finger closing + scripted palm lift ----
@@ -678,8 +688,9 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
         init_xj, init_yj, init_yawj = 0.0, 0.0, 0.0
     else:
         init_xj, init_yj, init_yawj = x_j, y_j, yaw_j
+    from morphohand.rl.lifting_command import LiftingCommandWithBaseQuatCfg
     commands = {
-        "lift_height": manipulation_mdp.LiftingCommandCfg(
+        "lift_height": LiftingCommandWithBaseQuatCfg(
             entity_name="cube",
             resampling_time_range=(8.0, 12.0),
             debug_vis=True,
@@ -690,6 +701,7 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
                 z=(obj_init_xyz[2], obj_init_xyz[2]),  # keep cube on floor at its keyframe z
                 yaw=(-init_yawj, init_yawj),
             ),
+            base_quat=obj_init_quat,  # preserves flat orientation under yaw DR
         ),
     }
 
