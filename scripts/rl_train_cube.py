@@ -60,8 +60,84 @@ class Args:
     """Record env[0] rollout videos under results/rl/<tag>/eval_videos/."""
     eval_video_interval: int = 50
     """PPO iterations between eval video recordings."""
+    eval_video_length: int = 70
+    """Number of frames per eval video clip."""
+    init_noise_std: float | None = None
+    """Override PPO policy initial action std (lower reduces jitter)."""
+    entropy_coef: float | None = None
+    """Override PPO entropy bonus weight. Set to 0 to pin the policy when the
+    optimal action is near-deterministic (our case: action=0 reproduces CEM)."""
     total_timesteps: int | None = None
     """Override PPOConfig.total_timesteps. e.g. 1_000_000 for a 30-iter smoke test."""
+    lift_target_z_above_init: float = 0.05
+    """Target lift height (m) above the settled cube position."""
+    reward_mode: str = "full"
+    """Reward mode: full | tracking_only."""
+    obs_mode: str = "full"
+    """Observation mode: full | ref_only."""
+    init_actor_checkpoint: Path | None = None
+    """Optional checkpoint to initialize the actor weights."""
+    freeze_actor_std: bool = False
+    """Freeze the policy's std_param (requires_grad=False). Use to pin
+    exploration noise when the optimal policy is near-deterministic."""
+    object_body_name: str = "cube"
+    """Name of the object body in the frozen scene to extract.
+    'cube' for cube run; 'prism', 'screwdriver_medium', etc. for those."""
+    cube_spawn_xy_jitter: float = 0.0
+    """Symmetric uniform xy noise (m, ±). Used for BOTH x and y unless
+    --cube-spawn-x-jitter / --cube-spawn-y-jitter override."""
+    cube_spawn_x_jitter: float | None = None
+    """Symmetric uniform x noise (m, ±). None = inherit cube_spawn_xy_jitter."""
+    cube_spawn_y_jitter: float | None = None
+    """Symmetric uniform y noise (m, ±). None = inherit cube_spawn_xy_jitter."""
+    cube_spawn_x_center: float = 0.0
+    """Spawn x offset (m). Use to recenter DR on the reachable region."""
+    cube_spawn_y_center: float = 0.0
+    """Spawn y offset (m). Use to recenter DR on the reachable region."""
+    cube_spawn_yaw_jitter: float = 0.0
+    """Symmetric uniform yaw noise (rad, ±). 0 = no jitter."""
+    dr_anneal_iters: int = 0
+    """PPO iters over which spawn jitter linearly ramps 0 → max. 0 disables curriculum."""
+    tracking_anneal_iters: int = 0
+    """PPO iters over which tracking-from-CEM reward weights linearly
+    scale from initial → `tracking_final_scale` x initial. 0 disables.
+    Pair with --dr-anneal-iters: tracking helps keep us in the CEM basin
+    early; under full DR the CEM ref object_pos is the wrong signal."""
+    tracking_final_scale: float = 0.0
+    """Multiplier applied to tracking weights at end of anneal.
+    0.0 = tracking off post-anneal."""
+    object_xy_drift_weight: float = -3.0
+    """Penalty weight on cube xy drift from spawn. Larger negative = more stable."""
+    object_orientation_drift_weight: float = -3.0
+    """Penalty weight on cube quat drift from spawn. Larger negative = more stable."""
+    finger_drift_weight: float = -2.0
+    """Penalty weight on finger qpos drift from grip ctrl."""
+    finger_residual_scale: float = 0.2
+    """Scale on policy finger residual atop the LerpFinger setpoint.
+    Increase under DR so the policy can compensate for cube offset."""
+    finger_close_easing: str = "linear"
+    """Easing curve for the LerpFinger setpoint. linear | ease_out_quad |
+    ease_out_cubic. ease_out_* = fast approach + slow contact."""
+    contact_gate_stability_rewards: bool = False
+    """If set, xy_drift / orientation_drift / finger_drift penalties only
+    fire once >= --contact-gate-min fraction of tips touch the cube."""
+    contact_gate_min: float = 0.5
+    """Contact-mean threshold above which the stability gate opens."""
+    enable_lift_terminations: bool = False
+    """Enable early terminations during the lift hold phase
+    (slip / drop / tip-loss / finger-slip). Off by default for back-compat."""
+    lift_phase_start_step: int = 40
+    """Policy step from which lift-phase terminations engage."""
+    term_object_slip_xy: float = 0.015
+    """xy drift (m) above which we terminate during lift phase."""
+    term_object_slip_yaw: float = 0.5
+    """Quat geodesic drift (rad) above which we terminate during lift phase."""
+    term_object_drop: float = 0.02
+    """Drop threshold (m below spawn) above which we terminate during lift phase."""
+    term_tip_lost_steps: int = 3
+    """Consecutive policy steps any tip can be off before we terminate."""
+    term_finger_slip: float = 0.3
+    """Finger qpos L2 drift (rad) from grip above which we terminate."""
 
 
 def main() -> None:
@@ -89,6 +165,20 @@ def main() -> None:
         summary = json.load(f)
     keyframe = summary.get("keyframe", "open_short_manual")
 
+    import numpy as np
+    npz = np.load(run / "best_rollout.npz")
+    best_finger_ctrl = tuple(float(v) for v in np.asarray(npz["best_finger_ctrl"]).reshape(-1))
+    if len(best_finger_ctrl) != 9:
+        raise ValueError(f"best_finger_ctrl has {len(best_finger_ctrl)} dims; expected 9")
+
+    # Prepend YYYYMMDD-HHMM so runs sort chronologically on disk + in
+    # wandb. Can be skipped by passing a tag that already starts with
+    # 8 digits + dash.
+    from datetime import datetime
+    if not (len(args.tag) >= 9 and args.tag[:8].isdigit() and args.tag[8] == "-"):
+        stamp = datetime.now().strftime("%Y%m%d-%H%M")
+        args.tag = f"{stamp}-{args.tag}"
+
     out_dir = args.output_root / args.tag
     out_dir.mkdir(parents=True, exist_ok=True)
     video_dir = out_dir / "eval_videos"
@@ -103,7 +193,35 @@ def main() -> None:
         frozen_scene_xml=frozen,
         keyframe_name=keyframe,
         foundational_run_dir=run,
+        finger_default_ctrl=best_finger_ctrl,
         num_envs=args.num_envs,
+        lift_target_z_above_init=args.lift_target_z_above_init,
+        reward_mode=args.reward_mode,
+        obs_mode=args.obs_mode,
+        object_body_name=args.object_body_name,
+        cube_spawn_xy_jitter=args.cube_spawn_xy_jitter,
+        cube_spawn_x_jitter=args.cube_spawn_x_jitter,
+        cube_spawn_y_jitter=args.cube_spawn_y_jitter,
+        cube_spawn_x_center=args.cube_spawn_x_center,
+        cube_spawn_y_center=args.cube_spawn_y_center,
+        cube_spawn_yaw_jitter=args.cube_spawn_yaw_jitter,
+        dr_anneal_iters=args.dr_anneal_iters,
+        tracking_anneal_iters=args.tracking_anneal_iters,
+        tracking_final_scale=args.tracking_final_scale,
+        finger_residual_scale=args.finger_residual_scale,
+        object_xy_drift_weight=args.object_xy_drift_weight,
+        object_orientation_drift_weight=args.object_orientation_drift_weight,
+        finger_drift_weight=args.finger_drift_weight,
+        finger_close_easing=args.finger_close_easing,
+        contact_gate_stability_rewards=args.contact_gate_stability_rewards,
+        contact_gate_min=args.contact_gate_min,
+        enable_lift_terminations=args.enable_lift_terminations,
+        lift_phase_start_step=args.lift_phase_start_step,
+        term_object_slip_xy=args.term_object_slip_xy,
+        term_object_slip_yaw=args.term_object_slip_yaw,
+        term_object_drop=args.term_object_drop,
+        term_tip_lost_steps=args.term_tip_lost_steps,
+        term_finger_slip=args.term_finger_slip,
     )
     ppo_kwargs = dict(
         num_envs=args.num_envs,
@@ -112,7 +230,12 @@ def main() -> None:
         wandb_tags=args.wandb_tags,
         upload_model=args.upload_model,
         eval_video_interval=args.eval_video_interval,
+        eval_video_length=args.eval_video_length,
     )
+    if args.init_noise_std is not None:
+        ppo_kwargs["init_noise_std"] = args.init_noise_std
+    if args.entropy_coef is not None:
+        ppo_kwargs["entropy_coef"] = args.entropy_coef
     if args.total_timesteps is not None:
         ppo_kwargs["total_timesteps"] = args.total_timesteps
     ppo_cfg = PPOConfig(**ppo_kwargs)
@@ -143,8 +266,9 @@ def main() -> None:
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA not available — PPO training requires GPU.")
 
+    render_mode = "rgb_array" if args.record_videos and args.eval_video_interval > 0 else None
     print(f"[rl_train_cube] booting mjlab env ({args.num_envs} parallel) ...")
-    env = ManagerBasedRlEnv(cfg=mj_env_cfg, device="cuda:0")
+    env = ManagerBasedRlEnv(cfg=mj_env_cfg, device="cuda:0", render_mode=render_mode)
 
     # Wrap in VideoRecorder before RslRlVecEnvWrapper so frame capture
     # sees the raw step() calls. step_trigger fires once per PPO iteration
@@ -172,11 +296,30 @@ def main() -> None:
         device="cuda:0",
     )
 
+    if args.init_actor_checkpoint is not None:
+        ckpt = torch.load(str(args.init_actor_checkpoint), map_location="cpu", weights_only=False)
+        actor_state = ckpt.get("actor_state_dict")
+        if actor_state is None:
+            raise KeyError("checkpoint missing actor_state_dict")
+        runner.alg.actor.load_state_dict(actor_state, strict=True)
+        print(f"[rl_train_cube] loaded actor weights from {args.init_actor_checkpoint}")
+
+    if args.freeze_actor_std:
+        std_param = runner.alg.actor.distribution.std_param
+        std_param.requires_grad_(False)
+        print(f"[rl_train_cube] froze actor std_param at {std_param.detach().cpu().numpy()}")
+
     if args.wandb:
         print(f"[rl_train_cube] wandb logger -> project={args.wandb_project}  "
               f"tags={args.wandb_tags}  upload_model={args.upload_model}")
     print(f"[rl_train_cube] starting PPO for {ppo_cfg.iters_for_timesteps()} iters ...")
-    runner.learn(num_learning_iterations=ppo_cfg.iters_for_timesteps())
+    try:
+        runner.learn(num_learning_iterations=ppo_cfg.iters_for_timesteps())
+    finally:
+        for obj in (wrapped, env):
+            close = getattr(obj, "close", None)
+            if callable(close):
+                close()
     print(f"[rl_train_cube] DONE; artefacts under {out_dir}")
 
 
