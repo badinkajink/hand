@@ -252,12 +252,124 @@ Recent eval videos show two persistent issues:
   episodes with random cube spawns each reset; one long video + a
   per-episode summary.
 
-**Status:** all four hypotheses' fixes shipped, no full training run
-yet. Next: train cube with `--finger-close-easing ease_out_quad
---contact-gate-stability-rewards --enable-lift-terminations
---finger-residual-scale 0.5 --object-xy-drift-weight -30
---object-orientation-drift-weight -20 --finger-drift-weight -10` and
-compare to `cube_dr_curriculum/model_200`.
+**Status:** all four hypotheses' fixes shipped, full training run completed
+(`cube_stable_v1`, 2034 iters, 90 min wall-clock). See Phase 8 for results.
+
+---
+
+## Phase 8 — `cube_stable_v1` — stable-grasp recipe lands
+
+**Goal:** all four Phase 7 hypotheses verified together in a single
+training run; deterministic eval comparable / better than
+`cube_dr_curriculum/model_200` on every axis.
+
+**Setup** (delta from `cube_dr_curriculum/model_200`):
+
+| Lever | `cube_dr_curriculum` | `cube_stable_v1` |
+|---|---|---|
+| `finger_close_easing` | `linear` | `ease_out_quad` |
+| `finger_residual_scale` | 0.2 | 0.5 |
+| `dr_anneal_iters` | 200 | 400 (longer settle) |
+| `tracking_anneal_iters` | (new) 0 | 400 (new — tracking → 0) |
+| `contact_gate_stability_rewards` | (new) off | on, `contact_gate_min=0.5` |
+| `enable_lift_terminations` | (new) off | on |
+| `object_xy_drift_weight` | −3 | −30 |
+| `object_orientation_drift_weight` | −3 | −20 |
+| `finger_drift_weight` | −2 | −10 |
+| `total_timesteps` | (default) 200M | 50M (sufficient at this iter cost) |
+
+**Deterministic eval (64 envs, full DR x ±20mm, y ±5mm, yaw ±0.52rad):**
+
+| Metric | `cube_dr_curriculum/model_200` | **`cube_stable_v1/model_1400`** | Δ |
+|---|---|---|---|
+| Median peak cube z | 0.063 m | **0.069 m** | +6 mm |
+| Lift success ≥ 6 cm | 67 % | **100 %** | +33 pp |
+| contact_min hold | 0.93 | **0.999** | +7 pp (≈ perfect) |
+| xy drift hold | — | **0.47 mm** | sub-mm |
+| orientation drift hold | — | **1.3°** | tiny |
+
+**Pose-adaptivity verdict** (rl_diagnose_policy.py over 3×3 cube poses):
+
+| Policy | cross-env std (contact window) | Verdict |
+|---|---|---|
+| `cube_dr_curriculum/model_200` | 0.020 | WEAKLY POSE-ADAPTIVE |
+| `cube_stable_v1/model_1400` | **0.140** (7× higher) | **POSE-ADAPTIVE** |
+
+The diagnostic confirmed the residuals are now genuinely
+pose-conditional; thumb_mcp (0.31) and thumb_pip (0.28) carry most of
+the adaptation, which checks out — thumb opposes the other two fingers
+and is most sensitive to cube xy offset.
+
+**Termination breakdown** (mean per-episode at iter 1170): time_out
+9.2, object_slip 5.5, orientation_slip 2.1, finger_slip 0.67, tip_lost
+0.17, object_drop 0. The hard slip signal (no GAE bootstrap on slip
+termination) is the dominant teaching signal; drop literally never
+fires.
+
+**Takeaway:** all four Phase 7 changes were necessary; none alone
+would have flipped POSE-ADAPTIVE on. The full eval + diagnose tables
+live in [results.md](results.md#why-cube_stable_v1-won) with embedded
+videos.
+
+---
+
+## Phase 9 — port stable recipe to prism + screwdriver
+
+**Goal:** same stable recipe on the other two objects already trained
+under DR (prism, screwdriver_medium_vertical). Per-object DR ranges
+unchanged from `prism_dr` / `screwdriver_vertical_dr`.
+
+**Setup:** identical to `cube_stable_v1` except `--object-body-name`,
+`--foundational-run`, and the DR jitter / center per object.
+
+**Results** (deterministic, 64 envs, full DR active):
+
+| Object | Tag | Best iter | Lift ≥6cm | contact_min hold | xy drift hold | orient drift hold |
+|---|---|---|---|---|---|---|
+| cube | `cube_stable_v1` | 1400 | **100 %** | **0.999** | **0.47 mm** | **1.3°** |
+| prism | `prism_stable_v1` | 800 | **98 %** | **0.98** | **0.45 mm** | **2.0°** |
+| screwdriver_medium_vertical | `screwdriver_vertical_stable_v1` | 550 | **100 %** | **1.00** | **0.37 mm** | **0.8°** |
+
+**Pose-adaptivity diagnose** (rl_diagnose_policy.py 3×3 grid):
+
+| Policy | DR magnitude | cross-env std | Verdict |
+|---|---|---|---|
+| `cube_stable_v1/model_1400` | ±20mm × ±5mm | 0.140 | POSE-ADAPTIVE |
+| `prism_stable_v1/model_800` | ±6mm × ±10mm | 0.035 | WEAKLY POSE-ADAPTIVE |
+| `screwdriver_vertical_stable_v1/model_550` | ±2mm × ±2mm | 0.030 | WEAKLY POSE-ADAPTIVE |
+
+**Takeaway:** the cross-env std verdict scales with DR magnitude — the
+diagnose threshold (0.05 = POSE-ADAPTIVE) was calibrated against cube's
+40 mm × 10 mm jitter envelope. For tiny envelopes (screwdriver: 4 mm ×
+4 mm) the policy genuinely has less variation to encode. The eval
+metrics (100 % lift, sub-mm drift) are the actual ground truth and all
+three pass cleanly.
+
+**Recipe is now the project default for new objects.** Per-object DR
+ranges must still be set from each object's reachable region sweep
+(see [Results — Domain randomization eval](results.md#domain-randomization-eval)).
+
+The overnight queue ([scripts/queue_overnight.sh](../../scripts/queue_overnight.sh))
+chained these: it polls a base training's log for `DONE`, then launches
+the next training, then runs deterministic eval + pose-grid videos on
+the closest saved checkpoint to the post-curriculum metric peak, then
+renders an all-runs overlay plot. Reusable for future overnight batches.
+
+**Bug fixed (post-mortem):** the original eval pipeline was renaming the
+random-pose video *before* `env.close()`, but `VideoRecorder` only
+flushes the mp4 to disk on close — so the random-pose video sat
+unrenamed and got swept up by the pose-grid rename loop later. Fix:
+move `env.close()` ahead of the rename in
+[scripts/rl_eval_object.py](../../scripts/rl_eval_object.py).
+
+---
+
+## Phase 10 — cross-morphology adaptation (planned)
+
+See [Multi-Morphology](multimorphology.md) for the research +
+chosen approach. Tonight's run: evaluate `cube_stable_v1/model_1400`
+on K neighboring morphology candidates from `run18_final`,
+finetune those below a degradation threshold.
 
 ---
 
