@@ -29,6 +29,7 @@ nav:
       - Architecture: rl/architecture.md
       - Training: rl/training.md
       - Results: rl/results.md
+      - Phases: rl/phases.md
   - Roadmap:
       - Milestones: roadmap/phases.md
 theme:
