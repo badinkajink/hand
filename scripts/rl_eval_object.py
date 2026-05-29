@@ -57,6 +57,18 @@ def main():
     npz = np.load(RUN / "best_rollout.npz")
     bfc = tuple(float(v) for v in np.asarray(npz["best_finger_ctrl"]).reshape(-1))
 
+    # Read the keyframe object quat so we can preserve it when overriding the
+    # cube pose manually. Without this, the pose-grid videos would spawn the
+    # object with identity-yawed quat — flat-laying cylinders end up standing.
+    from morphohand.rl.env_cfg import _read_keyframe_object_pose
+    _, base_quat = _read_keyframe_object_pose(
+        RUN / "frozen_scene.xml",
+        summary.get("keyframe", "open_short_manual"),
+        args.object_body_name,
+    )
+    base_quat_t = torch.tensor(base_quat, dtype=torch.float32, device="cuda:0")
+    from mjlab.utils.lab_api.math import quat_mul
+
     iter_num = args.checkpoint.stem.split("_")[-1]
     out_dir = args.checkpoint.parent.parent / f"eval_{iter_num}"
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -139,10 +151,13 @@ def main():
     )
     print(json.dumps(metrics, indent=2))
     (out_dir / "metrics.json").write_text(json.dumps(metrics, indent=2))
-    # Rename the video
+    # IMPORTANT: env.close() must run BEFORE the rename — VideoRecorder
+    # only flushes the mp4 to disk on close(). Renaming before close()
+    # silently skips because the file doesn't exist yet, and the file
+    # then gets caught by the pose-grid rename loop later.
+    env.close()
     for v in out_dir.glob("tmp-step-*.mp4"):
         v.rename(out_dir / "random_pose_eval.mp4")
-    env.close()
 
     # --- (2) pose-grid videos ------------------------------------------
     gx, gy, gyaw = map(int, args.pose_grid.lower().split("x"))
@@ -170,15 +185,19 @@ def main():
                 names.append(f"x{ix}_y{iy}_yaw{iyaw}")
 
     obs_td, _ = wrapped.reset()
-    # Override cube pose per env
+    # Override cube pose per env. Compose the yaw rotation with the keyframe
+    # base_quat so flat-laying cylinders stay flat (their rest quat is a 90°
+    # X-rotation; identity-yawed quat would flip them upright).
     init_pose = cube.data.root_link_pose_w.clone()
     pose = init_pose.clone()
+    yaw_quats = torch.zeros(len(poses_xy), 4, device=pose.device, dtype=pose.dtype)
     for i, (x, y, yaw) in enumerate(poses_xy):
         pose[i, 0] = args.x_center + x + env.unwrapped.scene.env_origins[i, 0]
         pose[i, 1] = args.y_center + y + env.unwrapped.scene.env_origins[i, 1]
-        # quat: yaw rotation around z (wxyz)
         cw, sw = float(np.cos(yaw / 2)), float(np.sin(yaw / 2))
-        pose[i, 3] = cw; pose[i, 4] = 0.0; pose[i, 5] = 0.0; pose[i, 6] = sw
+        yaw_quats[i, 0] = cw; yaw_quats[i, 3] = sw
+    composed = quat_mul(yaw_quats, base_quat_t.unsqueeze(0).expand_as(yaw_quats))
+    pose[:, 3:7] = composed
     cube.write_root_link_pose_to_sim(pose)
     env.unwrapped.scene.write_data_to_sim()
     env.unwrapped.sim.forward()
@@ -207,7 +226,9 @@ def main():
         cw, sw = float(np.cos(yaw / 2)), float(np.sin(yaw / 2))
         init_pose[0, 0] = args.x_center + x + env_inner.scene.env_origins[0, 0]
         init_pose[0, 1] = args.y_center + y + env_inner.scene.env_origins[0, 1]
-        init_pose[0, 3] = cw; init_pose[0, 4] = 0; init_pose[0, 5] = 0; init_pose[0, 6] = sw
+        # Compose yaw with keyframe base_quat (preserves flat orientation).
+        yaw_q = torch.tensor([[cw, 0.0, 0.0, sw]], device=init_pose.device, dtype=init_pose.dtype)
+        init_pose[0, 3:7] = quat_mul(yaw_q, base_quat_t.unsqueeze(0))[0]
         cube.write_root_link_pose_to_sim(init_pose)
         env_inner.scene.write_data_to_sim()
         env_inner.sim.forward()
