@@ -19,6 +19,7 @@ transfer and in-hand manipulation work.
 | Robust pickup under cube pose noise | ✅ | `cube_stable_v1/model_1400` — 100% lift ≥6cm, contact_min hold 0.999, sub-mm xy drift, 1.3° orient drift |
 | Stable recipe ported to other objects | ✅ | `prism_stable_v1/model_800` (98 % lift ≥6cm, 0.45mm drift) + `screwdriver_vertical_stable_v1/model_550` (100 % lift ≥6cm, 0.37mm drift) |
 | Cross-morphology transfer | 🚧 | see [Multi-Morphology](multimorphology.md) — eval-and-finetune approach in progress |
+| In-hand reorientation (flat → vertical) | 🚧 | see [Reorientation](reorientation.md) — Policy B (two-policy split) achieves +0.253 target_axis_progress vs v4's +0.125 peak; sim-to-real smoothness work remaining |
 | Robust pickup under friction / mass noise | 🔲 | deferred — needs custom raw-warp event |
 | New objects (drill, more screwdrivers) | 🔲 | gated on per-object foundational CEM (drill blocked on keyframe issue) |
 
@@ -29,6 +30,10 @@ Reading order:
    flags, troubleshooting.
 3. [Results](results.md) — scoreboard, eval videos, deterministic rollout
    stats per checkpoint.
+4. [Phases](phases.md) — chronological log of the grasp work
+   (Phase 1 MVP → Phase 9 stable recipe).
+5. [Reorientation](reorientation.md) — chronological log of the in-hand
+   reorientation work (v2 → v3 → v4 floor-bracing → v5 → Policy B).
 
 ## What we actually learned getting to MVP
 
