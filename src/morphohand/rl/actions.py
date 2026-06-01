@@ -27,11 +27,17 @@ if TYPE_CHECKING:
 class ScriptedPalmActionCfg(ActionTermCfg):
     """Config for the scripted palm action.
 
-    The schedule mirrors `Phase1GraspEvaluator`:
+    Default schedule mirrors `Phase1GraspEvaluator`:
       - sim_step < settle_steps:                lift_scale = 0
       - settle_steps <= sim_step < settle+ramp: lift_scale = (sim_step - settle + 1) / ramp
       - sim_step >= settle + ramp:              lift_scale = 1
     Other palm dims (px, py, rx, ry, rz) hold at `palm_default_ctrl`.
+
+    If `palm_rotation_residual_scale > 0`, the action term takes 3 policy
+    inputs (rx, ry, rz residuals) and adds `residual_scale * action` to the
+    default rotation ctrl. Used by the in-hand reorient task to give the
+    policy wrist control on top of the scripted pz-lift. Default scale 0
+    keeps the term backwards-compatible (action_dim = 0, palm fully scripted).
     """
     joint_names: tuple[str, ...]
     """Six palm joint names, in the order matching `palm_default_ctrl`."""
@@ -39,9 +45,17 @@ class ScriptedPalmActionCfg(ActionTermCfg):
     """Length-6 default position targets (from the keyframe key_ctrl)."""
     palm_pz_index: int = 2
     """Index into `joint_names` for palm_pz (the dimension we ramp)."""
+    palm_rot_indices: tuple[int, int, int] = (3, 4, 5)
+    """Indices into `joint_names` for palm rx/ry/rz."""
     settle_steps: int = 240
     lift_ramp_steps: int = 80
     lift_delta_z: float = 0.05
+    palm_rotation_residual_scale: float = 0.0
+    """If >0, policy outputs 3 dims (rx, ry, rz residuals); each is scaled by
+    this and added to the default rotation ctrl. Use ~0.3-0.5 rad."""
+    rotation_active_from_sim_step: int | None = None
+    """If set, palm-rotation residuals are zeroed before this sim step
+    (during settle/grasp). Default: settle_steps (grasp finishes first)."""
 
     def build(self, env: "ManagerBasedRlEnv") -> "ScriptedPalmAction":
         return ScriptedPalmAction(self, env)
@@ -62,20 +76,26 @@ class ScriptedPalmAction(ActionTerm):
                 f"palm_default_ctrl has {default.numel()} entries; expected {len(cfg.joint_names)}"
             )
         self._default_palm = default
+        self._rot_idx = torch.as_tensor(cfg.palm_rot_indices, device=self.device, dtype=torch.long)
+        self._action_dim = 3 if cfg.palm_rotation_residual_scale > 0.0 else 0
+        self._rot_active_from = (cfg.rotation_active_from_sim_step
+                                 if cfg.rotation_active_from_sim_step is not None
+                                 else int(cfg.settle_steps))
 
         self._sim_step = torch.zeros(self.num_envs, device=self.device, dtype=torch.long)
-        self._raw_actions = torch.zeros(self.num_envs, 0, device=self.device)
+        self._raw_actions = torch.zeros(self.num_envs, self._action_dim, device=self.device)
 
     @property
     def action_dim(self) -> int:
-        return 0
+        return self._action_dim
 
     @property
     def raw_action(self) -> torch.Tensor:
         return self._raw_actions
 
     def process_actions(self, actions: torch.Tensor) -> None:
-        del actions  # zero-dim slice; nothing to store
+        if self._action_dim > 0:
+            self._raw_actions[:] = actions
 
     def apply_actions(self) -> None:
         dynamic_t = self._sim_step.to(torch.float32) - float(self.cfg.settle_steps)
@@ -86,6 +106,13 @@ class ScriptedPalmAction(ActionTerm):
         pz_idx = int(self.cfg.palm_pz_index)
         target[:, pz_idx] = self._default_palm[pz_idx] + lift_scale * float(self.cfg.lift_delta_z)
 
+        if self._action_dim > 0:
+            # Gate residuals to fire only after the grasp/lift phase finishes,
+            # so warmstarted policies don't perturb the existing grip trajectory.
+            active = (self._sim_step >= self._rot_active_from).float().unsqueeze(-1)
+            scaled = self._raw_actions * float(self.cfg.palm_rotation_residual_scale) * active
+            target[:, self._rot_idx] = self._default_palm[self._rot_idx].unsqueeze(0) + scaled
+
         encoder_bias = self._entity.data.encoder_bias[:, self._target_ids]
         self._entity.set_joint_position_target(target - encoder_bias, joint_ids=self._target_ids)
 
@@ -94,8 +121,10 @@ class ScriptedPalmAction(ActionTerm):
     def reset(self, env_ids: torch.Tensor | slice | None = None) -> None:
         if env_ids is None:
             self._sim_step.zero_()
+            self._raw_actions.zero_()
         else:
             self._sim_step[env_ids] = 0
+            self._raw_actions[env_ids] = 0.0
 
 
 @dataclass(kw_only=True)

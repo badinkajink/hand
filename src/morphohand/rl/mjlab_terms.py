@@ -281,6 +281,203 @@ def object_drop_indicator(env: "ManagerBasedRlEnv",
     return (z < settle_z - drop_threshold).float()
 
 
+def target_axis_alignment(env: "ManagerBasedRlEnv",
+                           object_name: str = "cube",
+                           object_axis_local: tuple[float, float, float] = (0.0, 0.0, 1.0),
+                           target_axis_world: tuple[float, float, float] = (0.0, 0.0, 1.0),
+                           alpha: float = 4.0,
+                           reorient_start_step: int = 0) -> torch.Tensor:
+    """Reward for aligning the object's body-local axis with a world-frame
+    target axis. Returns exp(-alpha * (1 - cos(theta))^2) where theta is
+    the angle between the rotated object axis and the target.
+
+    Defaults: cylinder's long axis is body-local +Z (Mujoco cylinder
+    convention); target = world +Z (vertical). exp shaping gives a sharp
+    reward near alignment (cos = 1) and a long tail far from it.
+
+    Gated by `reorient_start_step` so the reward fires only after the
+    scripted lift completes (don't push the policy to reorient mid-grasp).
+    """
+    obj = env.scene[object_name]
+    quat = obj.data.root_link_pose_w[:, 3:7]  # (B, 4) wxyz
+    qw, qx, qy, qz = quat.unbind(dim=-1)
+    ax, ay, az = object_axis_local
+    # Rotate (ax, ay, az) by quat — full formula for body axis in world.
+    # body_z_world = R @ (0,0,1) for the default axis; generalize below.
+    # Using rotation matrix columns:
+    # R[:,0] = (1 - 2(y²+z²), 2(xy+wz), 2(xz-wy))
+    # R[:,1] = (2(xy-wz), 1 - 2(x²+z²), 2(yz+wx))
+    # R[:,2] = (2(xz+wy), 2(yz-wx), 1 - 2(x²+y²))
+    r00 = 1 - 2 * (qy * qy + qz * qz);  r01 = 2 * (qx * qy - qw * qz);  r02 = 2 * (qx * qz + qw * qy)
+    r10 = 2 * (qx * qy + qw * qz);      r11 = 1 - 2 * (qx * qx + qz * qz); r12 = 2 * (qy * qz - qw * qx)
+    r20 = 2 * (qx * qz - qw * qy);      r21 = 2 * (qy * qz + qw * qx);  r22 = 1 - 2 * (qx * qx + qy * qy)
+    bx = r00 * ax + r01 * ay + r02 * az
+    by = r10 * ax + r11 * ay + r12 * az
+    bz = r20 * ax + r21 * ay + r22 * az
+    tx, ty, tz = target_axis_world
+    cos_theta = (bx * tx + by * ty + bz * tz).clamp(-1.0, 1.0)
+    reward = torch.exp(-alpha * (1.0 - cos_theta).pow(2))
+    if reorient_start_step > 0:
+        active = (env.episode_length_buf >= int(reorient_start_step)).float()
+        reward = reward * active
+    return reward
+
+
+def target_axis_misalignment(env: "ManagerBasedRlEnv",
+                              object_name: str = "cube",
+                              object_axis_local: tuple[float, float, float] = (0.0, 0.0, 1.0),
+                              target_axis_world: tuple[float, float, float] = (0.0, 0.0, 1.0)
+                              ) -> torch.Tensor:
+    """Raw angle (rad) between object's body-local axis and a world target
+    axis. For observation use — gives the policy a vector to "drive to zero".
+    Returns shape (num_envs,)."""
+    obj = env.scene[object_name]
+    quat = obj.data.root_link_pose_w[:, 3:7]
+    qw, qx, qy, qz = quat.unbind(dim=-1)
+    ax, ay, az = object_axis_local
+    bx = (1 - 2 * (qy * qy + qz * qz)) * ax + 2 * (qx * qy - qw * qz) * ay + 2 * (qx * qz + qw * qy) * az
+    by = 2 * (qx * qy + qw * qz) * ax + (1 - 2 * (qx * qx + qz * qz)) * ay + 2 * (qy * qz - qw * qx) * az
+    bz = 2 * (qx * qz - qw * qy) * ax + 2 * (qy * qz + qw * qx) * ay + (1 - 2 * (qx * qx + qy * qy)) * az
+    tx, ty, tz = target_axis_world
+    cos_theta = (bx * tx + by * ty + bz * tz).clamp(-1.0, 1.0)
+    return torch.acos(cos_theta).unsqueeze(-1)
+
+
+def _alignment_cos(env: "ManagerBasedRlEnv", object_name: str,
+                    object_axis_local: tuple[float, float, float],
+                    target_axis_world: tuple[float, float, float]) -> torch.Tensor:
+    """Shared helper: cos(theta) between object's body-local axis (rotated
+    into world frame) and the world target axis. Returns shape (num_envs,).
+    Used by both `target_axis_alignment` (state reward), `target_axis_progress`
+    (delta reward), and the velocity-based termination."""
+    obj = env.scene[object_name]
+    quat = obj.data.root_link_pose_w[:, 3:7]
+    qw, qx, qy, qz = quat.unbind(dim=-1)
+    ax, ay, az = object_axis_local
+    bx = (1 - 2 * (qy * qy + qz * qz)) * ax + 2 * (qx * qy - qw * qz) * ay + 2 * (qx * qz + qw * qy) * az
+    by = 2 * (qx * qy + qw * qz) * ax + (1 - 2 * (qx * qx + qz * qz)) * ay + 2 * (qy * qz - qw * qx) * az
+    bz = 2 * (qx * qz - qw * qy) * ax + 2 * (qy * qz + qw * qx) * ay + (1 - 2 * (qx * qx + qy * qy)) * az
+    tx, ty, tz = target_axis_world
+    return (bx * tx + by * ty + bz * tz).clamp(-1.0, 1.0)
+
+
+def target_axis_progress(env: "ManagerBasedRlEnv",
+                          object_name: str = "cube",
+                          object_axis_local: tuple[float, float, float] = (0.0, 0.0, 1.0),
+                          target_axis_world: tuple[float, float, float] = (0.0, 0.0, 1.0),
+                          reorient_start_step: int = 50,
+                          clamp_negative: bool = False) -> torch.Tensor:
+    """Reward = current_cos - previous_cos. Dense gradient for any rotation
+    *toward* the target axis, even when state-based reward is small. The
+    per-env previous-step alignment is tracked in an attribute buffer.
+
+    With clamp_negative=True, only positive progress is rewarded (no penalty
+    for slipping backward). With False, signed delta — penalizes regression.
+
+    Gated by `reorient_start_step` so the reward fires only after the
+    scripted lift completes.
+    """
+    cur = _alignment_cos(env, object_name, object_axis_local, target_axis_world)
+    if not hasattr(env, "_morphohand_prev_alignment"):
+        env._morphohand_prev_alignment = cur.detach().clone()
+    prev = env._morphohand_prev_alignment
+
+    just_started = env.episode_length_buf <= 1
+    if just_started.any():
+        prev[just_started] = cur[just_started]
+
+    delta = cur - prev
+    env._morphohand_prev_alignment = cur.detach().clone()
+
+    if clamp_negative:
+        delta = delta.clamp(min=0.0)
+
+    active = (env.episode_length_buf >= int(reorient_start_step)).float()
+    return delta * active
+
+
+def anneal_target_axis_alpha(env: "ManagerBasedRlEnv", env_ids,
+                              alpha_start: float, alpha_end: float,
+                              anneal_iters: int,
+                              num_steps_per_env: int = 24,
+                              reward_term_name: str = "target_axis_alignment") -> float:
+    """Anneal the target_axis_alignment reward's alpha from `alpha_start` to
+    `alpha_end` linearly over the first `anneal_iters` PPO iterations.
+    Soft start (alpha_start ~ 0.5) → broad reward basin, gradient at large
+    tilts. Sharp end (alpha_end ~ 4.0) → focused reward near target.
+    """
+    del env_ids
+    if anneal_iters <= 0:
+        return float(alpha_end)
+    iters = int(env.common_step_counter) // max(1, int(num_steps_per_env))
+    progress = float(min(1.0, max(0.0, iters / float(anneal_iters))))
+    alpha = float(alpha_start) + (float(alpha_end) - float(alpha_start)) * progress
+    try:
+        cfg = env.reward_manager.get_term_cfg(reward_term_name)
+        cfg.params["alpha"] = alpha
+    except (ValueError, AttributeError, KeyError):
+        pass
+    return alpha
+
+
+def terminate_low_tilt_velocity(env: "ManagerBasedRlEnv",
+                                 object_name: str = "cube",
+                                 object_axis_local: tuple[float, float, float] = (0.0, 0.0, 1.0),
+                                 target_axis_world: tuple[float, float, float] = (0.0, 0.0, 1.0),
+                                 reorient_start_step: int = 50,
+                                 window_steps: int = 20,
+                                 min_progress: float = 0.05) -> torch.Tensor:
+    """Terminate envs whose alignment hasn't improved by at least
+    `min_progress` over the last `window_steps` policy steps during the
+    reorient phase. Kills "just hold the lift" local optima.
+
+    Tracks per-env alignment from `window_steps` ago in a buffer. Fires
+    only after `reorient_start_step + window_steps` (need history first).
+    """
+    cur = _alignment_cos(env, object_name, object_axis_local, target_axis_world)
+    if not hasattr(env, "_morphohand_alignment_history"):
+        # Ring buffer: (num_envs, window_steps)
+        env._morphohand_alignment_history = torch.zeros(
+            env.num_envs, int(window_steps), device=env.device
+        )
+        env._morphohand_alignment_history_idx = 0
+
+    buf = env._morphohand_alignment_history
+    idx = env._morphohand_alignment_history_idx
+    old = buf[:, idx].clone()  # value from window_steps ago
+    buf[:, idx] = cur.detach()
+    env._morphohand_alignment_history_idx = (idx + 1) % int(window_steps)
+
+    just_started = env.episode_length_buf <= 1
+    if just_started.any():
+        # On episode reset, fill the buffer with current value so we don't
+        # falsely fire termination on the first window_steps after reset.
+        buf[just_started] = cur[just_started].unsqueeze(-1)
+
+    progress = cur - old
+    # Fire only after we have history AND we're in reorient phase.
+    in_phase = env.episode_length_buf >= int(reorient_start_step) + int(window_steps)
+    insufficient = progress < float(min_progress)
+    return in_phase & insufficient
+
+
+def terminate_any_tip_lost(env: "ManagerBasedRlEnv",
+                            lift_phase_start_step: int = 40,
+                            sensor_name: str = "fingertip_cube_contact",
+                            ) -> torch.Tensor:
+    """Terminate if ANY single tip is off the object for one step during
+    the lift/manipulation phase. Stricter version of `terminate_tip_lost`
+    (no consecutive-step grace). Use for the in-hand reorient task where
+    contact maintenance is a hard requirement."""
+    sensor = env.scene.sensors[sensor_name]
+    found = sensor.data.found
+    if found is None:
+        return torch.zeros(env.num_envs, device=env.device, dtype=torch.bool)
+    any_tip_lost = (found <= 0).any(dim=-1)
+    in_phase = _in_lift_phase(env, lift_phase_start_step)
+    return any_tip_lost & in_phase
+
+
 def object_xy_drift(env: "ManagerBasedRlEnv",
                      object_name: str = "cube") -> torch.Tensor:
     """L2 drift of the object in the xy plane since episode start."""
@@ -451,6 +648,35 @@ def terminate_object_orientation_slip(env: "ManagerBasedRlEnv",
     return _in_lift_phase(env, lift_phase_start_step) & (drift > orientation_drift_threshold)
 
 
+def object_ang_acc_l2(env: "ManagerBasedRlEnv",
+                       object_name: str = "cube",
+                       phase_start_step: int = 0) -> torch.Tensor:
+    """Penalty proportional to L2 norm² of object angular-velocity *change*
+    between consecutive policy steps (proxy for angular acceleration /
+    jerkiness). Discourages high-frequency vibration of the cylinder
+    that's a sim-only exploit.
+
+    The cylinder is free to rotate — what we penalize is the OSCILLATION,
+    not the rotation itself. Smooth rotation has small Δω; jittery
+    rotation has large Δω.
+    """
+    obj = env.scene[object_name]
+    cur = obj.data.root_link_ang_vel_w  # (B, 3) world-frame angular velocity
+    if not hasattr(env, "_morphohand_prev_ang_vel"):
+        env._morphohand_prev_ang_vel = cur.detach().clone()
+    prev = env._morphohand_prev_ang_vel
+
+    just_started = env.episode_length_buf <= 1
+    if just_started.any():
+        prev[just_started] = cur[just_started]
+
+    delta = cur - prev
+    env._morphohand_prev_ang_vel = cur.detach().clone()
+
+    active = (env.episode_length_buf >= int(phase_start_step)).float()
+    return (delta * delta).sum(dim=-1) * active
+
+
 def terminate_object_drop(env: "ManagerBasedRlEnv",
                             lift_phase_start_step: int = 40,
                             drop_threshold: float = 0.02,
@@ -459,6 +685,20 @@ def terminate_object_drop(env: "ManagerBasedRlEnv",
     z = obj.data.root_link_pose_w[:, 2]
     spawn_z = _spawn_pose(env, object_name)[:, 2]
     return _in_lift_phase(env, lift_phase_start_step) & (z < spawn_z - drop_threshold)
+
+
+def terminate_object_floor_proximity(env: "ManagerBasedRlEnv",
+                                       phase_start_step: int = 40,
+                                       min_z: float = 0.05,
+                                       object_name: str = "cube") -> torch.Tensor:
+    """Terminate if object center z falls below `min_z` (world frame)
+    during the post-lift phase. Used for reorient tasks to forbid
+    floor-bracing strategies — the policy must hold the object high
+    enough that no body extent can touch the ground."""
+    obj = env.scene[object_name]
+    z = obj.data.root_link_pose_w[:, 2]
+    in_phase = env.episode_length_buf >= int(phase_start_step)
+    return in_phase & (z < float(min_z))
 
 
 def terminate_tip_lost(env: "ManagerBasedRlEnv",

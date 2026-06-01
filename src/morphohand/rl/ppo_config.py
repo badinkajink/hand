@@ -39,7 +39,7 @@ class PPOConfig:
     # logging
     save_interval: int = 50         # checkpoints / N iterations
     eval_video_interval: int = 50   # record env[0] rollout video / N iterations
-    eval_video_length: int = 70     # max frames per recording (~1.4 s @ 50 Hz)
+    eval_video_length: int = 250    # max frames per recording (~5 s @ 50 Hz)
     log_dir_root: str = "results/rl"
 
     # wandb
