@@ -60,8 +60,9 @@ class Args:
     """Record env[0] rollout videos under results/rl/<tag>/eval_videos/."""
     eval_video_interval: int = 50
     """PPO iterations between eval video recordings."""
-    eval_video_length: int = 70
-    """Number of frames per eval video clip."""
+    eval_video_length: int = 250
+    """Number of frames per eval video clip (~5 s @ 50 Hz). Bump for
+    longer-episode tasks (e.g. reorient @ 8 s = 400 policy steps)."""
     init_noise_std: float | None = None
     """Override PPO policy initial action std (lower reduces jitter)."""
     entropy_coef: float | None = None
@@ -71,6 +72,11 @@ class Args:
     """Override PPOConfig.total_timesteps. e.g. 1_000_000 for a 30-iter smoke test."""
     lift_target_z_above_init: float = 0.05
     """Target lift height (m) above the settled cube position."""
+    lift_delta_z: float = 0.05
+    """How high the scripted palm raises during the lift ramp (m).
+    Should match `lift_target_z_above_init`, since the policy doesn't
+    control the wrist height directly — if delta_z < target, the policy
+    gets an unreachable goal."""
     reward_mode: str = "full"
     """Reward mode: full | tracking_only."""
     obs_mode: str = "full"
@@ -157,6 +163,49 @@ class Args:
     """Policy step from which target_axis reward fires (after lift completes)."""
     strict_tip_lost_termination: bool = False
     """If True, terminate immediately on any single-step tip loss in lift phase."""
+    contact_min_weight: float = 30.0
+    """Weight on contact_min reward. Default 30 strongly incentivizes 3-finger
+    grip; drop to 10-15 for reorient tasks where occasional regrip is needed."""
+    target_axis_progress_weight: float = 0.0
+    """Weight on dense Δ(alignment)-per-step reward (gain shaping)."""
+    target_axis_alpha_curriculum_iters: int = 0
+    """If >0, anneal target_axis_alpha from start to end linearly."""
+    target_axis_alpha_start: float = 0.5
+    """Initial alpha (soft, wide reward basin) for the curriculum."""
+    terminate_low_tilt_velocity: bool = False
+    """Terminate envs not making reorient progress (kills stationary local optima)."""
+    tilt_velocity_window: int = 20
+    """Window (policy steps) over which to measure tilt progress."""
+    tilt_velocity_min_progress: float = 0.05
+    """Min Δ(alignment) over the window; below → terminate."""
+    enable_floor_proximity_termination: bool = False
+    """Terminate during reorient phase when object center z < object_min_z.
+    Forbids floor-bracing reorient strategies (see v4 finding)."""
+    object_min_z: float = 0.05
+    """Min world z (m) for object center during reorient phase. For an
+    8 cm cylinder, 0.05 gives ~1 cm clearance in worst-case orientation."""
+    floor_proximity_phase_start_step: int | None = None
+    """Policy step from which floor-proximity termination engages.
+    None = same as reorient_start_step (gate kicks in after the lift)."""
+    skip_lift_phase: bool = False
+    """Skip the lift phase entirely (Policy B mode). Cylinder spawns
+    at lifted-and-gripped pose; fingers at CEM grip; palm at lift height.
+    Pair with --reorient-start-step 10 (grace for grip to settle),
+    --lift-phase-start-step 10, --floor-proximity-phase-start-step 10,
+    --episode-length-s 4.0, --lift-target-z-above-init 0.0."""
+    skip_lift_drop_offset: float = 0.005
+    """In skip-lift mode, spawn cylinder this many meters ABOVE the
+    palm's lifted z so it falls into the pre-closed grip and establishes
+    contact force. 5 mm is enough to settle in ~10 sim steps."""
+    action_rate_weight: float = -0.005
+    """Weight on the action_rate_l2 smoothness penalty. Policy B used -0.1
+    (20x normal) to suppress sim-only finger jitter."""
+    object_ang_acc_weight: float = 0.0
+    """Weight on the object_ang_acc_l2 smoothness penalty (L2 of cylinder
+    Δω/step). Policy B used -0.05. 0 disables the term."""
+    object_ang_acc_phase_start_step: int = 0
+    """Policy step from which the object_ang_acc penalty engages (gate so
+    the initial grip settle doesn't get penalized for transient spin-up)."""
 
 
 def main() -> None:
@@ -215,6 +264,7 @@ def main() -> None:
         finger_default_ctrl=best_finger_ctrl,
         num_envs=args.num_envs,
         lift_target_z_above_init=args.lift_target_z_above_init,
+        lift_delta_z=args.lift_delta_z,
         reward_mode=args.reward_mode,
         obs_mode=args.obs_mode,
         object_body_name=args.object_body_name,
@@ -250,6 +300,21 @@ def main() -> None:
         target_axis_alpha=args.target_axis_alpha,
         reorient_start_step=args.reorient_start_step,
         strict_tip_lost_termination=args.strict_tip_lost_termination,
+        contact_min_weight=args.contact_min_weight,
+        target_axis_progress_weight=args.target_axis_progress_weight,
+        target_axis_alpha_curriculum_iters=args.target_axis_alpha_curriculum_iters,
+        target_axis_alpha_start=args.target_axis_alpha_start,
+        terminate_low_tilt_velocity=args.terminate_low_tilt_velocity,
+        tilt_velocity_window=args.tilt_velocity_window,
+        tilt_velocity_min_progress=args.tilt_velocity_min_progress,
+        enable_floor_proximity_termination=args.enable_floor_proximity_termination,
+        object_min_z=args.object_min_z,
+        floor_proximity_phase_start_step=args.floor_proximity_phase_start_step,
+        skip_lift_phase=args.skip_lift_phase,
+        skip_lift_drop_offset=args.skip_lift_drop_offset,
+        action_rate_weight=args.action_rate_weight,
+        object_ang_acc_weight=args.object_ang_acc_weight,
+        object_ang_acc_phase_start_step=args.object_ang_acc_phase_start_step,
     )
     ppo_kwargs = dict(
         num_envs=args.num_envs,
