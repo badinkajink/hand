@@ -351,6 +351,103 @@ class MorphoHandEnvCfg:
     obs_mode: str = "full"
     viewer_distance: float = 0.6
     """Viewer camera distance; larger values zoom out."""
+    # ---- in-hand reorient task -----------------------------------------
+    enable_palm_rotation_residual: bool = False
+    """If True, expand action space by 3 dims (palm rx/ry/rz residuals)
+    on top of the scripted palm. Required for in-hand reorientation —
+    the fingers alone can't apply enough torque on a smooth cylinder."""
+    palm_rotation_residual_scale: float = 0.3
+    """Scale on policy palm rotation residual (rad). 0.3 ~= 17deg."""
+    palm_rotation_active_from_sim_step: int | None = None
+    """If set, palm rotation residuals are zeroed before this sim step.
+    Default: settle_steps (rotation begins after grasp/lift completes)."""
+    enable_target_axis_reward: bool = False
+    """If True, add a `target_axis_alignment` reward term for in-hand
+    reorientation. Reward fires only after `reorient_start_step`."""
+    target_axis_object_local: tuple[float, float, float] = (0.0, 0.0, 1.0)
+    """Object body-local axis that should align with the world target.
+    Default = body-local +Z (cylinder long axis in MuJoCo convention)."""
+    target_axis_world: tuple[float, float, float] = (0.0, 0.0, 1.0)
+    """World-frame target axis. Default = vertical (cylinder stands up)."""
+    target_axis_weight: float = 0.0
+    """Reward weight for `target_axis_alignment`. Should be substantial
+    once enabled (e.g. 50.0) since the lift reward is up to 80."""
+    target_axis_alpha: float = 4.0
+    """Sharpness of the alignment reward. exp(-alpha * (1 - cos)^2)."""
+    reorient_start_step: int = 30
+    """Policy step from which the target_axis reward fires. Should be
+    after the scripted lift completes."""
+    strict_tip_lost_termination: bool = False
+    """If True, terminate immediately on any single-step tip loss during
+    the lift phase (no consecutive-step grace). Required for in-hand
+    reorientation where dropping the object is unrecoverable."""
+    contact_min_weight: float = 30.0
+    """Weight on fingertip_contact_min reward. Default 30 strongly
+    incentivizes 3-finger grip; drop to 10-15 for reorient tasks where
+    occasional regrip needs to be allowed."""
+    target_axis_progress_weight: float = 0.0
+    """Reward weight on positive Δ(alignment) per step. Provides dense
+    gradient toward 'rotating in the right direction' even when state
+    alignment reward is small. Typical: 200-500 (rewards small per-step
+    changes ~0.01 to amount of ~2-5)."""
+    target_axis_alpha_curriculum_iters: int = 0
+    """If >0, anneal target_axis_alpha from `target_axis_alpha_start` to
+    `target_axis_alpha` linearly over this many iters. Soft early shaping
+    gives gradient at large tilts; sharp late shaping focuses on near-target."""
+    target_axis_alpha_start: float = 0.5
+    """Initial alpha for curriculum (soft / wide reward basin)."""
+    terminate_low_tilt_velocity: bool = False
+    """If True, terminate episodes where the cylinder isn't actively
+    reorienting during the reorient phase. Kills 'just hold the lift'
+    local optima."""
+    tilt_velocity_window: int = 20
+    """Number of policy steps over which to measure tilt progress."""
+    tilt_velocity_min_progress: float = 0.05
+    """Minimum Δ(alignment) over the window. Below this triggers termination
+    during reorient phase. 0.05 ~= ~3° change over the window."""
+    enable_floor_proximity_termination: bool = False
+    """If True, terminate during the reorient phase when the object center
+    z falls below `object_min_z`. Forbids floor-bracing strategies that
+    the v4 reorient policy discovered — the cylinder must stay clear of
+    the ground for the rotation to count as in-hand."""
+    object_min_z: float = 0.05
+    """Minimum world-frame z (m) for the object center during the
+    reorient phase. For an 8 cm cylinder, 0.05 m gives ~1 cm clearance
+    to the floor in worst-case (vertical) orientation. Pair with
+    `--lift-target-z-above-init 0.10` so the lift target is above this
+    threshold by a comfortable margin."""
+    floor_proximity_phase_start_step: int | None = None
+    """Policy step from which the floor-proximity termination engages.
+    If None, defaults to `reorient_start_step` so the check kicks in
+    only after the lift completes."""
+    skip_lift_phase: bool = False
+    """If True, skip the settle/lift phases entirely: cylinder spawns
+    already at lifted position (z = keyframe_z + lift_delta_z), fingers
+    spawn at finger_default_ctrl (CEM grip pose), palm spawns at lifted
+    height. Used for training a 'Policy B' that focuses exclusively on
+    reorientation, assuming a prior 'Policy A' has already executed the
+    lift. When True, settle_steps and lift_ramp_steps are forced to 0/1
+    inside ScriptedPalm so the lift is a no-op."""
+    action_rate_weight: float = -0.005
+    """L2 penalty weight on action rate (Δa per step). Bump to -0.05 or
+    lower for in-hand reorient runs that produce jittery finger motion;
+    higher penalty enforces smooth control that's more sim-to-real safe."""
+    object_ang_acc_weight: float = 0.0
+    """L2 penalty weight on object angular-velocity CHANGE (Δω per step,
+    proxy for angular jerk). Penalizes oscillatory rotation that's a
+    sim-only exploit. Typical reorient value: -0.5 to -2.0 (cylinder
+    moment of inertia is ~1e-5 kg·m², so Δω in rad/s is small per step
+    and the penalty scales accordingly)."""
+    object_ang_acc_phase_start_step: int = 0
+    """Policy step from which the angular-acceleration penalty engages."""
+    skip_lift_drop_offset: float = 0.005
+    """In skip-lift mode, spawn the cylinder this many meters ABOVE the
+    palm's lifted z so it falls into the pre-closed grip and establishes
+    contact force. With fingers spawned exactly at finger_default_ctrl
+    and cylinder right between them, position-controller equilibrium is
+    zero-force — fingers can't grip. A small drop produces the contact
+    pressure CEM had at lift-end. 5 mm is enough to settle in ~10 sim
+    steps without bouncing."""
 
 
 # ----------------------------------------------------------------------
@@ -432,8 +529,21 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
             f"open_finger_qpos length {len(cfg.open_finger_qpos)} != "
             f"{len(FINGER_JOINT_NAMES)} (must match FINGER_JOINT_NAMES order)"
         )
-    init_joint_pos = dict(zip(PALM_JOINT_NAMES, kf_state["palm_joint_pos"]))
-    init_joint_pos.update(zip(FINGER_JOINT_NAMES, (float(v) for v in cfg.open_finger_qpos)))
+    palm_pz_idx = PALM_JOINT_NAMES.index("palm_pz")
+    palm_joint_pos = list(kf_state["palm_joint_pos"])
+    palm_default_ctrl = list(kf_state["palm_default_ctrl"])
+    finger_init_pos = cfg.open_finger_qpos
+    if cfg.skip_lift_phase:
+        # Spawn palm + cylinder at the post-lift pose; fingers at the CEM grip.
+        # Equilibrium grip force is small (actuators at setpoint), so the first
+        # few sim steps are unstable — pair with --lift-phase-start-step >= 5
+        # and a warmstart from the source lift policy, which has learned to
+        # actively maintain the grip.
+        palm_joint_pos[palm_pz_idx] = palm_joint_pos[palm_pz_idx] + float(cfg.lift_delta_z)
+        palm_default_ctrl[palm_pz_idx] = palm_default_ctrl[palm_pz_idx] + float(cfg.lift_delta_z)
+        finger_init_pos = cfg.finger_default_ctrl
+    init_joint_pos = dict(zip(PALM_JOINT_NAMES, palm_joint_pos))
+    init_joint_pos.update(zip(FINGER_JOINT_NAMES, (float(v) for v in finger_init_pos)))
 
     hand_entity = EntityCfg(
         spec_fn=lambda: make_hand_spec(cfg.frozen_scene_xml, cfg.object_body_name),
@@ -464,6 +574,10 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
     obj_init_xyz, obj_init_quat = _read_keyframe_object_pose(
         cfg.frozen_scene_xml, cfg.keyframe_name, cfg.object_body_name
     )
+    if cfg.skip_lift_phase:
+        obj_init_xyz = (obj_init_xyz[0], obj_init_xyz[1],
+                        obj_init_xyz[2] + float(cfg.lift_delta_z)
+                        + float(cfg.skip_lift_drop_offset))
     cube_entity = EntityCfg(
         spec_fn=lambda: make_object_spec_from_frozen(
             cfg.frozen_scene_xml, cfg.object_body_name
@@ -479,12 +593,24 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
     # is a hold-at-grip phase (until `settle_steps`) so the cube has time
     # to seat, then the palm scripted action ramps palm_pz by
     # `lift_delta_z` over `lift_ramp_steps`.
-    start_ctrl = tuple(float(v) for v in cfg.open_finger_qpos)
+    if cfg.skip_lift_phase:
+        # Fingers start AT the grip pose — no closing motion. lerp(start, target, alpha)
+        # is constant = finger_default_ctrl.
+        finger_start = tuple(float(v) for v in cfg.finger_default_ctrl)
+        # Palm holds at lifted height (palm_default_ctrl already offset above).
+        scripted_settle = 0
+        scripted_ramp = 1
+        scripted_lift_delta = 0.0
+    else:
+        finger_start = tuple(float(v) for v in cfg.open_finger_qpos)
+        scripted_settle = cfg.settle_steps
+        scripted_ramp = cfg.lift_ramp_steps
+        scripted_lift_delta = cfg.lift_delta_z
     actions = {
         "finger_ctrl": LerpFingerActionCfg(
             entity_name="robot",
             joint_names=tuple(FINGER_JOINT_NAMES),
-            start_ctrl=start_ctrl,
+            start_ctrl=finger_start,
             target_ctrl=tuple(float(v) for v in cfg.finger_default_ctrl),
             settle_sim_steps=cfg.finger_close_sim_steps,
             residual_scale=cfg.finger_residual_scale,
@@ -493,11 +619,21 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
         "palm_ctrl": ScriptedPalmActionCfg(
             entity_name="robot",
             joint_names=tuple(PALM_JOINT_NAMES),
-            palm_default_ctrl=kf_state["palm_default_ctrl"],
-            palm_pz_index=PALM_JOINT_NAMES.index("palm_pz"),
-            settle_steps=cfg.settle_steps,
-            lift_ramp_steps=cfg.lift_ramp_steps,
-            lift_delta_z=cfg.lift_delta_z,
+            palm_default_ctrl=tuple(palm_default_ctrl),
+            palm_pz_index=palm_pz_idx,
+            palm_rot_indices=(
+                PALM_JOINT_NAMES.index("palm_rx"),
+                PALM_JOINT_NAMES.index("palm_ry"),
+                PALM_JOINT_NAMES.index("palm_rz"),
+            ),
+            settle_steps=scripted_settle,
+            lift_ramp_steps=scripted_ramp,
+            lift_delta_z=scripted_lift_delta,
+            palm_rotation_residual_scale=(
+                float(cfg.palm_rotation_residual_scale)
+                if cfg.enable_palm_rotation_residual else 0.0
+            ),
+            rotation_active_from_sim_step=cfg.palm_rotation_active_from_sim_step,
         ),
     }
 
@@ -543,6 +679,18 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
             ),
             "actions": ObservationTermCfg(func=velocity_mdp.last_action),
         }
+        if cfg.enable_target_axis_reward:
+            # Give the policy a scalar "how off from vertical" so it can
+            # learn the reorient direction. exp-shaped reward alone is too
+            # sparse without an axis-error obs.
+            actor_terms["target_axis_misalign"] = ObservationTermCfg(
+                func=mjlab_terms.target_axis_misalignment,
+                params={
+                    "object_name": "cube",
+                    "object_axis_local": cfg.target_axis_object_local,
+                    "target_axis_world": cfg.target_axis_world,
+                },
+            )
     elif cfg.obs_mode == "ref_only":
         actor_terms = {
             "ref_finger_qpos": ObservationTermCfg(
@@ -618,7 +766,8 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
             params={"sensor_name": "fingertip_cube_contact"},
         ),
         "contact_min": RewardTermCfg(
-            func=mjlab_terms.fingertip_contact_min, weight=30.0 * task_scale,
+            func=mjlab_terms.fingertip_contact_min,
+            weight=float(cfg.contact_min_weight) * task_scale,
             params={"sensor_name": "fingertip_cube_contact"},
         ),
         "lift_height": RewardTermCfg(
@@ -661,13 +810,52 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
             params={"object_name": "cube"},
         ),
         "action_rate_l2": RewardTermCfg(
-            func=velocity_mdp.action_rate_l2, weight=-0.005 * task_scale,
+            func=velocity_mdp.action_rate_l2,
+            weight=float(cfg.action_rate_weight) * task_scale,
         ),
         "joint_pos_limits": RewardTermCfg(
             func=velocity_mdp.joint_pos_limits, weight=-2.0 * task_scale,
             params={"asset_cfg": SceneEntityCfg("robot", joint_names=(".*",))},
         ),
     }
+    if cfg.object_ang_acc_weight != 0.0:
+        rewards["object_ang_acc_l2"] = RewardTermCfg(
+            func=mjlab_terms.object_ang_acc_l2,
+            weight=float(cfg.object_ang_acc_weight) * task_scale,
+            params={
+                "object_name": "cube",
+                "phase_start_step": int(cfg.object_ang_acc_phase_start_step),
+            },
+        )
+    if cfg.enable_target_axis_reward and cfg.target_axis_weight > 0:
+        # If alpha curriculum is enabled, start at the soft alpha; curriculum
+        # term will mutate the param each iter.
+        init_alpha = (float(cfg.target_axis_alpha_start)
+                      if cfg.target_axis_alpha_curriculum_iters > 0
+                      else float(cfg.target_axis_alpha))
+        rewards["target_axis_alignment"] = RewardTermCfg(
+            func=mjlab_terms.target_axis_alignment,
+            weight=float(cfg.target_axis_weight) * task_scale,
+            params={
+                "object_name": "cube",
+                "object_axis_local": cfg.target_axis_object_local,
+                "target_axis_world": cfg.target_axis_world,
+                "alpha": init_alpha,
+                "reorient_start_step": int(cfg.reorient_start_step),
+            },
+        )
+    if cfg.enable_target_axis_reward and cfg.target_axis_progress_weight > 0:
+        rewards["target_axis_progress"] = RewardTermCfg(
+            func=mjlab_terms.target_axis_progress,
+            weight=float(cfg.target_axis_progress_weight) * task_scale,
+            params={
+                "object_name": "cube",
+                "object_axis_local": cfg.target_axis_object_local,
+                "target_axis_world": cfg.target_axis_world,
+                "reorient_start_step": int(cfg.reorient_start_step),
+                "clamp_negative": False,
+            },
+        )
 
     # ---- commands ------------------------------------------------------
     # `object_pose_range` is the cube SPAWN range — `LiftingCommand`
@@ -771,14 +959,23 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
                 object_name="cube",
             ),
         )
-        terminations["tip_lost"] = TerminationTermCfg(
-            func=mjlab_terms.terminate_tip_lost,
-            params=dict(
-                lift_phase_start_step=int(cfg.lift_phase_start_step),
-                consecutive_steps=int(cfg.term_tip_lost_steps),
-                sensor_name="fingertip_cube_contact",
-            ),
-        )
+        if cfg.strict_tip_lost_termination:
+            terminations["tip_lost"] = TerminationTermCfg(
+                func=mjlab_terms.terminate_any_tip_lost,
+                params=dict(
+                    lift_phase_start_step=int(cfg.lift_phase_start_step),
+                    sensor_name="fingertip_cube_contact",
+                ),
+            )
+        else:
+            terminations["tip_lost"] = TerminationTermCfg(
+                func=mjlab_terms.terminate_tip_lost,
+                params=dict(
+                    lift_phase_start_step=int(cfg.lift_phase_start_step),
+                    consecutive_steps=int(cfg.term_tip_lost_steps),
+                    sensor_name="fingertip_cube_contact",
+                ),
+            )
         terminations["finger_slip"] = TerminationTermCfg(
             func=mjlab_terms.terminate_finger_slip,
             params=dict(
@@ -786,6 +983,30 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
                 finger_drift_threshold=float(cfg.term_finger_slip),
             ),
         )
+        if cfg.terminate_low_tilt_velocity and cfg.enable_target_axis_reward:
+            terminations["low_tilt_velocity"] = TerminationTermCfg(
+                func=mjlab_terms.terminate_low_tilt_velocity,
+                params=dict(
+                    object_name="cube",
+                    object_axis_local=cfg.target_axis_object_local,
+                    target_axis_world=cfg.target_axis_world,
+                    reorient_start_step=int(cfg.reorient_start_step),
+                    window_steps=int(cfg.tilt_velocity_window),
+                    min_progress=float(cfg.tilt_velocity_min_progress),
+                ),
+            )
+        if cfg.enable_floor_proximity_termination:
+            phase_start = (int(cfg.floor_proximity_phase_start_step)
+                           if cfg.floor_proximity_phase_start_step is not None
+                           else int(cfg.reorient_start_step))
+            terminations["object_floor_proximity"] = TerminationTermCfg(
+                func=mjlab_terms.terminate_object_floor_proximity,
+                params=dict(
+                    object_name="cube",
+                    phase_start_step=phase_start,
+                    min_z=float(cfg.object_min_z),
+                ),
+            )
 
     # ---- sensors -------------------------------------------------------
     fingertip_cube_sensor = ContactSensorCfg(
@@ -830,6 +1051,17 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
                 base_weights=track_base_weights,
                 final_scale=float(cfg.tracking_final_scale),
                 anneal_iters=int(cfg.tracking_anneal_iters),
+            ),
+        )
+    if (cfg.enable_target_axis_reward and cfg.target_axis_weight > 0
+            and cfg.target_axis_alpha_curriculum_iters > 0):
+        curriculum["target_axis_alpha_anneal"] = CurriculumTermCfg(
+            func=mjlab_terms.anneal_target_axis_alpha,
+            params=dict(
+                alpha_start=float(cfg.target_axis_alpha_start),
+                alpha_end=float(cfg.target_axis_alpha),
+                anneal_iters=int(cfg.target_axis_alpha_curriculum_iters),
+                reward_term_name="target_axis_alignment",
             ),
         )
 

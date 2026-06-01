@@ -138,6 +138,25 @@ class Args:
     """Consecutive policy steps any tip can be off before we terminate."""
     term_finger_slip: float = 0.3
     """Finger qpos L2 drift (rad) from grip above which we terminate."""
+    # ---- in-hand reorient task knobs -----------------------------------
+    episode_length_s: float = 1.4
+    """Episode length in seconds. Bump to 2.5+ for in-hand reorient."""
+    enable_palm_rotation_residual: bool = False
+    """Add 3 policy outputs for palm rx/ry/rz residuals (wrist control)."""
+    palm_rotation_residual_scale: float = 0.3
+    """Scale (rad) on palm rotation residuals."""
+    palm_rotation_active_from_sim_step: int | None = None
+    """Sim step at which palm rotation residuals turn on (default: settle_steps)."""
+    enable_target_axis_reward: bool = False
+    """Add target-axis alignment reward for in-hand reorient."""
+    target_axis_weight: float = 0.0
+    """Weight for target_axis_alignment reward (try 50)."""
+    target_axis_alpha: float = 4.0
+    """Sharpness of the axis-alignment reward."""
+    reorient_start_step: int = 30
+    """Policy step from which target_axis reward fires (after lift completes)."""
+    strict_tip_lost_termination: bool = False
+    """If True, terminate immediately on any single-step tip loss in lift phase."""
 
 
 def main() -> None:
@@ -222,6 +241,15 @@ def main() -> None:
         term_object_drop=args.term_object_drop,
         term_tip_lost_steps=args.term_tip_lost_steps,
         term_finger_slip=args.term_finger_slip,
+        episode_length_s=args.episode_length_s,
+        enable_palm_rotation_residual=args.enable_palm_rotation_residual,
+        palm_rotation_residual_scale=args.palm_rotation_residual_scale,
+        palm_rotation_active_from_sim_step=args.palm_rotation_active_from_sim_step,
+        enable_target_axis_reward=args.enable_target_axis_reward,
+        target_axis_weight=args.target_axis_weight,
+        target_axis_alpha=args.target_axis_alpha,
+        reorient_start_step=args.reorient_start_step,
+        strict_tip_lost_termination=args.strict_tip_lost_termination,
     )
     ppo_kwargs = dict(
         num_envs=args.num_envs,
@@ -301,8 +329,46 @@ def main() -> None:
         actor_state = ckpt.get("actor_state_dict")
         if actor_state is None:
             raise KeyError("checkpoint missing actor_state_dict")
-        runner.alg.actor.load_state_dict(actor_state, strict=True)
-        print(f"[rl_train_cube] loaded actor weights from {args.init_actor_checkpoint}")
+        # Partial load: when action_dim or obs_dim grows, the actor's first/last
+        # MLP layer and std_param have new slots. Copy the overlap; ZERO out the
+        # new slots (instead of leaving them at random init). This is critical:
+        # random weights on new input columns let new observations contribute
+        # random first-hidden-layer activations that then propagate through the
+        # trained layers and can blow up to NaN within a few iters. With zero
+        # init, iter 0 produces bit-identical behavior to the source policy
+        # (new obs contribute 0 to hidden layers; new action dims output 0).
+        own_state = runner.alg.actor.state_dict()
+        loaded, partial, skipped = [], [], []
+        for k, v in actor_state.items():
+            if k not in own_state:
+                skipped.append((k, "key not in target"))
+                continue
+            own = own_state[k]
+            if own.shape == v.shape:
+                own_state[k] = v
+                loaded.append(k)
+            elif own.dim() == v.dim() and all(o >= s for o, s in zip(own.shape, v.shape)):
+                # Partial copy: zero everywhere, then write checkpoint into leading slice.
+                # Exception: std_param's new entries stay at the existing init value
+                # (so PPO has nonzero exploration on the new action dims).
+                if "std" in k:
+                    new = own.clone()  # keep init std for new dims
+                else:
+                    new = torch.zeros_like(own)
+                slices = tuple(slice(0, s) for s in v.shape)
+                new[slices] = v
+                own_state[k] = new
+                partial.append((k, v.shape, own.shape))
+            else:
+                skipped.append((k, f"incompatible shapes target={tuple(own.shape)} ckpt={tuple(v.shape)}"))
+        runner.alg.actor.load_state_dict(own_state, strict=False)
+        print(f"[rl_train_cube] warmstart from {args.init_actor_checkpoint}")
+        print(f"  {len(loaded)} tensors fully copied")
+        for k, vs, os in partial:
+            zeroed = "init-kept" if "std" in k else "zero-init"
+            print(f"  PARTIAL: {k}  ckpt={tuple(vs)} -> target={tuple(os)}  ({zeroed} for new)")
+        for k, reason in skipped:
+            print(f"  SKIP   : {k}  ({reason})")
 
     if args.freeze_actor_std:
         std_param = runner.alg.actor.distribution.std_param
