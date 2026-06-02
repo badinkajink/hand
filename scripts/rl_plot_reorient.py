@@ -41,6 +41,7 @@ V2_RUNS = [
     ("v2 s1-10x",       RL / "20260601-2311-policyB_v2_smooth10x",        "tab:cyan"),
     ("v2 s2-5x-quick",  RL / "20260602-0024-policyB_v2_smooth5x_quick",   "tab:purple"),
     ("v2 s2-10x-quick", RL / "20260602-0024-policyB_v2_smooth10x_quick",  "magenta"),
+    ("v2.1 decenter",   RL / "20260602-1323-policyB_v21_decenter_w40.0",  "tab:brown"),
 ]
 
 # Panel sets. The historical figure tracks floor_proximity (the v4/v5 story);

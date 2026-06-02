@@ -561,13 +561,59 @@ engineering notes from this pass:
    (`WARP_CACHE_PATH=$(mktemp -d)`) — a shared cache races and NaNs. See
    `scripts/queue_reorient_smooth_sweep.sh` and `scripts/overnight_autonomy.sh`.
 
-**Phase 3 (planned): bracing.** Promote bracing the cylinder's lower end flat against the
-palm (a power/pinch grip, consistent with real screwdriver use). Human strategy: reorient
-as far as the fingers allow, then a small grip adjustment pushes the end into the palm to
-brace, then (for humans) the wrist finishes to vertical. We won't hew exactly to that — we'll
-reward both reorientation **and** bracing (palm normal-force opposition + grip/force-closure
-strength) and see where the policy lands. Open question: extend Policy B or add a Policy C.
-Design in progress.
+### Phase Policy B v2.1 — de-centering fix (workstream A) ✅
+
+Resolves observation 1. Added `object_lateral_drift`: the object's **palm-frame** xy
+displacement from spawn, penalised past a 1 cm deadband, **quadratic** beyond,
+contact-gated (the deadband leaves the small regrip translations rotation needs free).
+Finetuned the recommended s2-10×-quick policy (smoothness held flat at the converged
+10× level, no alpha re-anneal) and swept the penalty weight −15 vs −40 (20 M ts each).
+
+| Metric | warmstart (s2-10×-quick) | −15 | **−40 (winner)** |
+|---|---|---|---|
+| `object_xy_drift` (→ drift) | −0.174 (≈0.058 m) | −0.099 | **−0.112 (≈0.037 m, −36%)** |
+| `target_axis_alignment` | 75.2 | 45.9 | **76.6** (preserved) |
+| `target_axis_progress` | +0.331 | +1.03 | +0.348 |
+| `tip_lost`/iter | 0.63 | 7.5 | **0.25** (best grip) |
+
+**Takeaway — the *stronger* penalty (−40) is the clear winner**, and counterintuitively
+gives *better* grip and alignment than −15: the strong centering pressure steers the
+policy into a better-centered, more stable optimum, whereas −15 got stuck (tip_lost 7.5,
+alignment 46). −40 cuts lateral drift ~36% while *preserving* rotation (align 76 ≈ 75) and
+*improving* grip (tip_lost 0.25 vs 0.63). Winner ckpt:
+`results/rl/20260602-1323-policyB_v21_decenter_w40.0/tensorboard/model_812.pt`. This is the
+new recommended reorient policy and the warmstart for Phase 3.
+
+### Continuous A→B handoff (workstream B) — mechanism ✅, distribution gap ⚠
+
+Resolves observation 2's *mechanism*. `scripts/rl_demo_handoff_continuous.py` runs ONE env
+with **no reset**: it builds the env in B-mode (66-dim) and feeds Policy A `obs[:, :65]`
+(A is 65-dim; B's extra `target_axis_misalign` obs is appended last) through a real lift to
+0.10 m, then switches to Policy B's actions on the same physics state — no teleport.
+
+**Finding:** the handoff is seamless but **Policy B drops the cylinder shortly after the
+switch** (z = 0.097 at handoff, object gone by ~step 75). This is a *real* train/deploy
+distribution gap: B was trained spawning at a precise skip-lift pose (with a 5 mm
+drop-into-grip establishing contact force), so A's genuinely-lifted state is off-distribution.
+**Fix (future):** train B's successor in the normal-lift env (reorient rewards gated after
+the real lift) so it experiences A's actual terminal state.
+
+### Phase 3 (in progress): bracing.
+
+Promote bracing the cylinder's lower end flat against the palm (power/pinch grip, consistent
+with real screwdriver use), co-trained with reorientation in the skip-lift env (warmstart the
+v2.1 de-centering winner). Sensing added: a `palm_cube_contact` sensor (palm_pose body) and
+fingertip **force** readout. Rewards (gated on alignment ≥ 0.7, so reorient-then-brace):
+`grip_force` (pinch-to-power), `palm_brace_force` (palm normal force), and — critically —
+`palm_brace_distance`, a **dense** exp(−gap/scale) shaping term.
+
+**Why dense shaping is required (diagnostic):** in the de-centering winner's rollout the
+cylinder reorients to cos 0.90 but its nearer end **never gets within 7.7 cm of the palm
+plate** (palm contact found = 0). The gripped cylinder simply sits ~8 cm below the palm, so
+the sparse force reward can never fire — bracing is undiscoverable without a gradient pulling
+the end toward the palm. The running sweep tests whether that ~8 cm gap can be closed at all
+(dense-distance weight 8 vs 20). Open risk: with fingers-only control the gap may not be
+closable, in which case bracing needs a grip/geometry change (documented if so).
 
 ---
 
