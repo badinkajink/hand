@@ -401,6 +401,14 @@ before the full run.
   good rotation, the smoothness weights need to be 5–10× higher and
   retrained (at the cost of slower rotation rate).
 
+> **⚠️ CORRECTION (read first):** every v2 result below (Stage 1, Stage 2,
+> v2.1 de-centering) was produced by a finetune that **warmstarted only the actor
+> and discarded the checkpoint's critic** — a bug that silently wrecked
+> verticality. The reward-SUM metrics in these sections (e.g. "alignment 76 ≈ v1")
+> are misleading; on the honest deterministic metric (held-vertical cos) all v2
+> runs were 0.83–0.87 vs v1's 0.97. See **"Phase Policy B v2 — CRITICAL CORRECTION"**
+> below. Treat the per-section "winners" as provisional pending re-runs with the fix.
+
 ### Phase Policy B v2 — Stage 1 (smoothness ramp + signed progress)
 
 The v1 takeaway above predicted the experiment: dial the smoothness
@@ -628,6 +636,52 @@ out of the morphology's reach.
 adjustment; (b) allow limited palm motion during a brace phase (relaxes the fingers-only
 constraint); (c) brace against the finger structure instead of the top palm plate. This needs
 a grasp-design decision upstream of RL; deferred pending that choice.
+
+### Phase Policy B v2 — CRITICAL CORRECTION: the critic-warmstart bug
+
+After a user flagged that the v2 policies "looked worse" than v1, a deterministic
+behavioral comparison (held-vertical cos = body +Z · world +Z averaged over the last
+50 of 200 steps, `/tmp/cmp.py`) exposed that **the v2 reward-SUM metrics were
+misleading**: v1 holds cos **0.97**, every v2 finetune only **0.83–0.87**. The world-
+and palm-frame root-xy drift is ~0 for *all* policies including v1, so the earlier
+"de-centering −36%" claim was also not real (the lateral motion seen on video is the
+long cylinder's far **end** swinging during rotation, not a root translation).
+
+**Root cause (found by ablation):** finetuning v1 with its *own* config and **no
+changes** — the control — itself collapsed verticality to **0.66**. The bug:
+`rl_train_cube.py`'s warmstart loaded only `actor_state_dict` and **discarded the
+checkpoint's `critic_state_dict`**, so every finetune started with a *fresh random
+value function*. The garbage early advantages knock the converged actor off its
+optimum, and ~800 finetune iters can't recover. v1 only looked good because it trained
+2000+ iters from scratch. **This single procedural bug — not any reward — caused the
+entire v2 verticality regression.**
+
+**Fix (commit `8830b27`):** also warmstart the critic (and optional optimizer), same
+grow/zero-init partial-load as the actor (`--warmstart-critic`, default on). Validation
+(held cos, 10M-ts finetunes from v1):
+
+| finetune | without critic (bug) | **with critic (fix)** |
+|---|---|---|
+| control (v1-faithful, no change) | 0.66 | **0.96** |
+| signed progress | 0.84 | **0.978** |
+
+The control fully recovers to ≈ v1, confirming the diagnosis. And **signed progress,
+once the critic isn't sabotaging it, holds vertical *best* (0.978 > v1)** — penalizing
+slip-back is genuinely good, the opposite of what the buggy runs implied.
+
+**Remaining real tradeoff (smoothness ↔ verticality).** With the fix, verticality is
+restored (0.94–0.98) but the 5× smoothness ramp barely dented object jerk (≈42, ≈ v1).
+The OLD v2-10×-quick was 5× *smoother* (jerk 8.3) — but largely by **under-rotating**
+(it stopped at 0.83, ~34° short; the last ~17° to true vertical is where the jerky
+finger corrections live). So smooth-vs-vertical is a genuine frontier to navigate, now
+explorable cleanly with the critic fix. A proper 5×/10× smoothness sweep (signed +
+critic, from v1) is running to map it.
+
+**Implication:** all per-section "winners" above (Stage-1 5×, Stage-2 10×-quick, v2.1
+de-center w40) were chosen under the bug and on misleading reward sums — they need
+re-running with the critic fix and re-judging on held-cos + jerk. The genuinely durable
+results from this work are: the **critic-warmstart fix**, that **signed progress helps**,
+and the **honest held-cos/jerk evaluation harness**.
 
 ---
 
