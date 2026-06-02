@@ -17,11 +17,15 @@ ROOT = Path(__file__).resolve().parents[1]
 RL = ROOT / "results" / "rl"
 
 RUNS = [
-    ("v2",      RL / "20260529-1929-inhand_reorient_v2_fingeronly", "tab:gray"),
-    ("v3",      RL / "20260529-2311-inhand_reorient_v3",            "tab:olive"),
-    ("v4",      RL / "20260530-2159-inhand_reorient_v4",            "tab:orange"),
-    ("v5",      RL / "20260531-1739-inhand_reorient_v5",            "tab:red"),
-    ("PolicyB", RL / "20260601-1033-policyB_v1",                    "tab:green"),
+    ("v2",            RL / "20260529-1929-inhand_reorient_v2_fingeronly", "tab:gray"),
+    ("v3",            RL / "20260529-2311-inhand_reorient_v3",            "tab:olive"),
+    ("v4",            RL / "20260530-2159-inhand_reorient_v4",            "tab:orange"),
+    ("v5",            RL / "20260531-1739-inhand_reorient_v5",            "tab:red"),
+    ("PolicyB v1",    RL / "20260601-1033-policyB_v1",                    "tab:green"),
+    ("v2 s1-5x",      RL / "20260601-2310-policyB_v2_smooth5x",           "tab:blue"),
+    ("v2 s1-10x",     RL / "20260601-2311-policyB_v2_smooth10x",          "tab:cyan"),
+    ("v2 s2-5x-quick",  RL / "20260602-0024-policyB_v2_smooth5x_quick",   "tab:purple"),
+    ("v2 s2-10x-quick", RL / "20260602-0024-policyB_v2_smooth10x_quick",  "magenta"),
 ]
 
 TAGS = [
@@ -34,7 +38,7 @@ TAGS = [
     ("Episode_Reward/action_rate_l2",                "Σ action_rate_l2 (penalty)",   "action_rate"),
     ("Episode_Reward/object_ang_acc_l2",             "Σ object_ang_acc_l2 (penalty)","ang_acc"),
     ("Episode_Termination/tip_lost",                 "tip_lost terminations/iter",   "tip_lost"),
-    ("Episode_Termination/object_floor_proximity",   "floor_proximity terms/iter",   "floor"),
+    ("Episode_Termination/alignment_success",        "alignment_success terms/iter (v2 quick)", "align_succ"),
     ("Policy/mean_std",                              "action std",                    "std"),
     ("Loss/value_function",                          "value loss",                    "vloss"),
 ]
@@ -93,7 +97,7 @@ def main():
     for j in range(len(TAGS), len(axes)):
         axes[j].axis("off")
 
-    fig.suptitle("In-hand reorientation runs: v2 → v3 → v4 → v5 → Policy B", fontsize=14, y=1.00)
+    fig.suptitle("In-hand reorientation: v2 → v5 → Policy B v1 → v2 (Stage 1 smooth / Stage 2 quick)", fontsize=14, y=1.00)
     fig.tight_layout()
 
     out_dir = ROOT / "docs" / "rl" / "img"

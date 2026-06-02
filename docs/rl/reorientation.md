@@ -457,6 +457,82 @@ reorientation, no floor-bracing.
   or better.
 - **→ Stage 2 warmstarts from 5× `model_1219.pt`.**
 
+### Phase Policy B v2 — Stage 2 (warmstart + "quick" mechanisms)
+
+Stage 2 warmstarts the Stage-1 **5× winner** (`20260601-2310-policyB_v2_smooth5x/model_1219.pt`)
+and layers on the three "quick / shorter-trajectory" mechanisms, to test whether
+reorientation can be made *faster* without losing the Stage-1 smoothness or grip:
+
+1. **`alignment_success` termination + one-shot bonus** — once axis alignment
+   crosses the threshold the episode ends and pays a bonus (success-bonus 30).
+2. **Per-step `reorient_time_cost`** (−0.02/step) — a standing pressure to finish.
+3. **`alignment_speed_bonus`** (15, thresh 0.9) — rewards crossing the line *early*.
+
+To protect the warmstart's hard-won grip, the smoothness ramp **base** was anchored
+at the warmstart level (`−0.5 / −0.25`) rather than v1's base, and the quick rewards
+were softened from their first (tip_lost-spiking) values. Two runs swept the final
+smoothness target: **5×** (flat `−0.5 / −0.25`) and **10×** (ramp to `−1.0 / −0.5`).
+Both: 30M ts, 1024 envs, 1220 iters, warmstart from the same 5× ckpt. (`policyB_v2_5x.log`,
+`policyB_v2_10x.log` were reused for these Stage-2 runs; the Stage-1 numbers below are
+preserved from `STAGE1_RESULTS.txt`.)
+
+Comparable raw jitter = `reward / |weight|` (in parens). Final converged block:
+
+| Metric | v1 | v2 s1-5× (Stage-1 best) | v2 s2-5×-quick | **v2 s2-10×-quick (recommended)** |
+|---|---|---|---|---|
+| Mean reward | 402.7 | 369.2 | 300.9 | 360.6 |
+| Mean episode length (/200) | ~188 | ~173 | **155** | 188 |
+| `target_axis_alignment` | 87.2 | 80.0 | 64.4 | **75.2** |
+| `target_axis_progress` | +0.253 | **+0.499** | +0.009 | +0.331 |
+| `tip_lost`/iter | 1.17 | 0.96–1.6 | 2.58 | **0.63** (best) |
+| `object_drop` term/iter | — | 0.17 | 0.04 | 0.21 |
+| `action_rate_l2` (Σ → raw) | −0.134 (1.3) | −0.616 (1.23) | −0.778 (**1.56**) | −1.147 (**1.15**, smoothest) |
+| `object_ang_acc_l2` (Σ → raw) | −2.53 (50) | −6.12 (24.5) | −3.37 (13.5*) | −4.52 (**9.0**, smoothest) |
+| `alignment_success` term/iter | n/a | n/a | **1.00** | 0.17 |
+| quick bonuses (succ / speed) | — | — | 0.022 / 0.024 | 0.004 / 0.005 |
+| min object-center z (eval) | — | 0.111 | 0.115 | **0.120** (highest) |
+
+\*5×-quick's object jerk looks low only because the object barely rotates (progress ≈ 0).
+
+Verification videos (single deterministic 4 s rollout from `model_1219.pt`, via
+`scripts/rl_render_reorient.py`):
+
+- [policyB_v2_smooth10x_quick.mp4](videos/reorient/policyB_v2_smooth10x_quick.mp4) — **recommended final Policy B v2**
+- [policyB_v2_smooth5x_quick.mp4](videos/reorient/policyB_v2_smooth5x_quick.mp4) — the "quick" variant (regressed; see below)
+
+Both stay aloft the whole rollout (min center-z 0.120 / 0.115 m ≫ the 0.05 m
+floor-proximity threshold) — genuine in-hand reorientation, no floor-bracing.
+
+**Takeaway — the "quick" mechanisms did NOT deliver a clean win; the best policy
+came out of Stage 2 almost incidentally:**
+
+- **The quick mechanisms only fire at 5× — and there they backfire.** s2-5×-quick *is*
+  ~10% shorter (ep-len 173 → 155, driven by `alignment_success` terminations at 1.0/iter),
+  but it bought that speed badly: hand actions got **jerkier** under the *same* smoothness
+  weights (raw `action_rate` 1.23 → 1.56), grip **degraded** (tip_lost 1.6 → 2.58), and
+  `target_axis_progress` **collapsed to ≈ 0** while `alignment_success` terminations
+  spiked. That signature — barely-positive progress + many success terminations — is
+  **threshold-gaming**: the policy learned to snap just past the 0.9 alignment line to
+  collect the bonus and end the episode, not to reorient robustly. Not shippable.
+- **At 10× the quick terms are near-inert** (success/speed bonuses 0.004/0.005, episodes
+  run to ~188 → time_out): the stronger smoothness penalty suppresses the fast snapping.
+  The real win at 10× is that **warmstarting the good 5× ckpt + gently ramping to 10×
+  rescued the 10× regime that collapsed in Stage 1** (Stage-1 10× from scratch: align 43,
+  tip_lost 4.4). s2-10×-quick is the **smoothest** policy on both axes (raw `action_rate`
+  1.15, raw `object_ang_acc` 9.0), has the **best grip** (tip_lost 0.63), **holds vertical
+  highest** (min-z 0.120), and **still rotates well** (align 75, progress +0.33).
+- **Recommended final Policy B v2 = s2-10×-quick**
+  (`results/rl/20260602-0024-policyB_v2_smooth10x_quick/tensorboard/model_1219.pt`).
+  It is the best smooth-AND-grippy-AND-holds-vertical policy in the whole sweep. Caveat:
+  it is **not** actually "quicker" than v1, and its quality edge does **not** come from the
+  quick mechanisms — those should be removed or redesigned (a no-terminate success bonus,
+  to avoid threshold-gaming). If sustained **rotation quality** matters more than grip,
+  Stage-1 5× (align 80, progress +0.50) remains a strong alternative.
+- **"Quick" remains an open problem.** Episode-termination on success conflates "finished
+  fast" with "failed fast" (s1-10× had the shortest episodes purely because it dropped the
+  object), and the success-bonus invites threshold-gaming. Next attempt should decouple
+  speed shaping from termination.
+
 ---
 
 ## Results
