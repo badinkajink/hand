@@ -29,10 +29,13 @@ LAT_W="${LAT_W:--15.0}"           # lateral-drift weight carried from the de-cen
 TOTAL_TS=${TOTAL_TS:-30000000}
 SMOKE=${SMOKE:-0}
 [ "$SMOKE" = "1" ] && TOTAL_TS=1000000
-# Brace strengths to sweep (one run each).
-BRACE_A=${BRACE_A:-10.0}
-BRACE_B=${BRACE_B:-25.0}
+# Sweep the DENSE brace-distance weight (the ingredient that makes bracing
+# discoverable; diagnostic showed the gripped cylinder sits ~8cm from the palm,
+# so the sparse force reward never fires on its own). Sparse force + grip fixed.
+BRACE_A=${BRACE_A:-8.0}
+BRACE_B=${BRACE_B:-20.0}
 GRIP_W=${GRIP_W:-5.0}             # fingertip grip-force reward (both runs)
+BRACE_FORCE_W=${BRACE_FORCE_W:-15.0}  # sparse palm-contact-force reward (both runs)
 
 for f in "$WARMSTART" "$ROOT/$MORPH/best_rollout.npz"; do
   [ -e "$f" ] || { echo "FATAL: missing $f"; exit 1; }
@@ -55,19 +58,21 @@ COMMON_ARGS=(
   --action-rate-weight=-1.0 --object-ang-acc-weight=-0.5 --object-ang-acc-phase-start-step 10
   --smoothness-curriculum-iters 0
   --lateral-drift-weight="$LAT_W" --lateral-drift-deadband 0.01 --lateral-drift-power 2.0
-  # bracing (gated on alignment): reorient first, then push end into palm
+  # bracing (gated on alignment): reorient first, then push end into palm.
+  # dense distance shaping (swept) + sparse force + grip force.
   --grip-force-weight="$GRIP_W" --grip-force-max 3.0 --grip-force-reduce mean
   --brace-align-thresh 0.7 --brace-max-force 3.0
+  --brace-force-weight="$BRACE_FORCE_W" --brace-distance-scale 0.04
   --init-noise-std 0.05 --no-wandb
 )
 
 LAST_PID=""
-launch() {  # $1=tag $2=brace_weight $3=logfile
+launch() {  # $1=tag $2=brace_distance_weight $3=logfile
   local tag="$1" bw="$2" logf="$3"; local cache; cache=$(mktemp -d)
-  echo "[launch] $tag brace=$bw grip=$GRIP_W lat=$LAT_W WARP_CACHE=$cache log=$logf"
+  echo "[launch] $tag brace_dist=$bw brace_force=$BRACE_FORCE_W grip=$GRIP_W lat=$LAT_W WARP_CACHE=$cache log=$logf"
   WARP_CACHE_PATH="$cache" MUJOCO_GL=egl \
     uv run --extra rl --extra gpu python "$ROOT/scripts/rl_train_cube.py" \
-      "${COMMON_ARGS[@]}" --tag "$tag" --brace-force-weight="$bw" \
+      "${COMMON_ARGS[@]}" --tag "$tag" --brace-distance-weight="$bw" \
       > "$logf" 2>&1 &
   LAST_PID=$!
 }
