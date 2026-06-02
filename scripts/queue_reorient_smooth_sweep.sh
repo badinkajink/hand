@@ -24,7 +24,9 @@ ROOT=/home/humanoid/Programs/hand
 cd "$ROOT"
 
 MORPH=results/phase1/run18_multi_object_adapt/foundational/screwdriver_medium_flat/run_20260521_150259
-WARMSTART="$ROOT/results/rl/20260601-1033-policyB_v1/tensorboard/model_2033.pt"
+# Warmstart checkpoint. Default = Policy B v1 (Stage 1). Override via env for
+# Stage 2 (warmstart from the best Stage-1 checkpoint).
+WARMSTART="${WARMSTART:-$ROOT/results/rl/20260601-1033-policyB_v1/tensorboard/model_2033.pt}"
 TOTAL_TS=${TOTAL_TS:-30000000}
 SMOKE=${SMOKE:-0}
 if [ "$SMOKE" = "1" ]; then TOTAL_TS=1000000; fi
@@ -54,14 +56,24 @@ COMMON_ARGS=(
   --skip-lift-phase --skip-lift-drop-offset 0.005
   --action-rate-weight=-0.1 --object-ang-acc-weight=-0.05 --object-ang-acc-phase-start-step 10
   --init-noise-std 0.05 --no-wandb
-  # smooth & quick curriculum:
+  # Stage 1 (default): smoothness ramp + signed progress (default), NO quick
+  # mechanisms — keep the warmstart grip stable while we dial up smoothness.
   --smoothness-curriculum-start-iter 200 --smoothness-curriculum-iters 400
-  # signed progress is the default (penalize slip-back); quick mechanisms:
-  --enable-alignment-success-termination --success-align-thresh 0.9 --success-hold-steps 10
-  --success-bonus-weight 50.0
-  --time-cost-weight=-0.05
-  --speed-bonus-weight 20.0 --speed-bonus-align-thresh 0.9
 )
+
+# Stage 2 quick-mechanism args, appended only when QUICK=1. Run after a
+# Stage-1 policy has converged (warmstart Stage-2 from its checkpoint).
+QUICK=${QUICK:-0}
+QUICK_ARGS=()
+if [ "$QUICK" = "1" ]; then
+  QUICK_ARGS=(
+    --enable-alignment-success-termination --success-align-thresh 0.9 --success-hold-steps 10
+    --success-bonus-weight 50.0
+    --time-cost-weight=-0.05
+    --speed-bonus-weight 20.0 --speed-bonus-align-thresh 0.9
+  )
+fi
+COMMON_ARGS+=("${QUICK_ARGS[@]}")
 
 LAST_PID=""
 launch() {  # $1=tag  $2=action_rate_final  $3=ang_acc_final  $4=logfile
@@ -94,12 +106,13 @@ LOG5="$ROOT/policyB_v2_5x.log"
 LOG10="$ROOT/policyB_v2_10x.log"
 
 echo "================ Policy B v2 smooth&quick sweep (SMOKE=$SMOKE, ts=$TOTAL_TS) ================"
-launch "policyB_v2_smooth5x" -0.5 -0.25 "$LOG5"; PID5=$LAST_PID
-echo "[run A] policyB_v2_smooth5x pid=$PID5; waiting for kernel compile before launching run B..."
+SUF=${TAG_SUFFIX:-}
+launch "policyB_v2_smooth5x${SUF}" -0.5 -0.25 "$LOG5"; PID5=$LAST_PID
+echo "[run A] policyB_v2_smooth5x${SUF} pid=$PID5; waiting for kernel compile before launching run B..."
 wait_for_ppo "$LOG5" "$PID5"
 
-launch "policyB_v2_smooth10x" -1.0 -0.5 "$LOG10"; PID10=$LAST_PID
-echo "[run B] policyB_v2_smooth10x pid=$PID10"
+launch "policyB_v2_smooth10x${SUF}" -1.0 -0.5 "$LOG10"; PID10=$LAST_PID
+echo "[run B] policyB_v2_smooth10x${SUF} pid=$PID10"
 
 echo "[sweep] waiting for both runs..."
 wait "$PID5"; RC5=$?
