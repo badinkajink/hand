@@ -35,6 +35,19 @@ for f in "$WARMSTART" "$ROOT/$MORPH/best_rollout.npz"; do
   [ -e "$f" ] || { echo "FATAL: missing $f"; exit 1; }
 done
 
+QUICK=${QUICK:-0}
+
+# ---- smoothness BASE weights (start of the ramp) -------------------------
+# Stage 1 starts the ramp at the v1 base (-0.1 / -0.05) and climbs to the
+# per-run final (-0.5/-0.25 for 5x, -1.0/-0.5 for 10x).
+# Stage 2 (QUICK=1) warmstarts from the Stage-1 5x FINAL policy, which is
+# already smooth at action_rate=-0.5, object_ang_acc=-0.25. If we restarted
+# the ramp from -0.1/-0.05, the smoothness penalty would briefly DROP at
+# iter 0, un-penalizing jitter and letting the hard-won grip regress before
+# the ramp climbs back. So Stage 2 starts the base AT the warmstart's level.
+AR_BASE=-0.1; AA_BASE=-0.05
+if [ "$QUICK" = "1" ]; then AR_BASE=-0.5; AA_BASE=-0.25; fi
+
 # ---- Policy B base args + the smooth&quick curriculum (shared) ----
 COMMON_ARGS=(
   --morphology-run "$MORPH"
@@ -54,7 +67,7 @@ COMMON_ARGS=(
   --target-axis-alpha-curriculum-iters 300 --target-axis-alpha-start 0.5
   --enable-floor-proximity-termination --object-min-z 0.05 --floor-proximity-phase-start-step 10
   --skip-lift-phase --skip-lift-drop-offset 0.005
-  --action-rate-weight=-0.1 --object-ang-acc-weight=-0.05 --object-ang-acc-phase-start-step 10
+  --action-rate-weight=$AR_BASE --object-ang-acc-weight=$AA_BASE --object-ang-acc-phase-start-step 10
   --init-noise-std 0.05 --no-wandb
   # Stage 1 (default): smoothness ramp + signed progress (default), NO quick
   # mechanisms — keep the warmstart grip stable while we dial up smoothness.
@@ -63,14 +76,21 @@ COMMON_ARGS=(
 
 # Stage 2 quick-mechanism args, appended only when QUICK=1. Run after a
 # Stage-1 policy has converged (warmstart Stage-2 from its checkpoint).
-QUICK=${QUICK:-0}
+#
+# SOFTENED vs the original (success_bonus 50, time_cost -0.05, speed_bonus 20):
+# the earlier all-quick-from-iter-0 run spiked tip_lost to ~22/iter — the
+# quick incentives pressured the policy to rush and shed its grip. Stage-1 5x
+# leaves a healthy grip (tip_lost ~1.0), but to keep it we both (a) warmstart
+# from that stable policy and (b) dial the quick rewards down so they nudge
+# toward speed without overpowering the rotation/grip terms:
+#   success_bonus 50 -> 30, time_cost -0.05 -> -0.02, speed_bonus 20 -> 15.
 QUICK_ARGS=()
 if [ "$QUICK" = "1" ]; then
   QUICK_ARGS=(
     --enable-alignment-success-termination --success-align-thresh 0.9 --success-hold-steps 10
-    --success-bonus-weight 50.0
-    --time-cost-weight=-0.05
-    --speed-bonus-weight 20.0 --speed-bonus-align-thresh 0.9
+    --success-bonus-weight 30.0
+    --time-cost-weight=-0.02
+    --speed-bonus-weight 15.0 --speed-bonus-align-thresh 0.9
   )
 fi
 COMMON_ARGS+=("${QUICK_ARGS[@]}")
