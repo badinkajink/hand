@@ -234,6 +234,14 @@ class Args:
     """Weight on the one-shot alignment_speed_bonus (early-crossing). 0 disables."""
     speed_bonus_align_thresh: float = 0.9
     """Alignment cos threshold whose first crossing triggers the speed bonus."""
+    # ---- de-centering penalty (Policy B v2.1) ---------------------------
+    lateral_drift_weight: float = 0.0
+    """Penalty on object palm-frame lateral drift from spawn (quadratic past a
+    deadband). Discourages the v2 slide-sideways de-centering. Try -10 to -40."""
+    lateral_drift_deadband: float = 0.01
+    """Free lateral movement (m) before the penalty engages."""
+    lateral_drift_power: float = 2.0
+    """Exponent on (drift - deadband); 2.0 = quadratic."""
 
 
 def main() -> None:
@@ -355,6 +363,9 @@ def main() -> None:
         time_cost_weight=args.time_cost_weight,
         speed_bonus_weight=args.speed_bonus_weight,
         speed_bonus_align_thresh=args.speed_bonus_align_thresh,
+        lateral_drift_weight=args.lateral_drift_weight,
+        lateral_drift_deadband=args.lateral_drift_deadband,
+        lateral_drift_power=args.lateral_drift_power,
     )
     ppo_kwargs = dict(
         num_envs=args.num_envs,
