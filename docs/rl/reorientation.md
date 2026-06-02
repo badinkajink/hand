@@ -533,20 +533,65 @@ came out of Stage 2 almost incidentally:**
   object), and the success-bonus invites threshold-gaming. Next attempt should decouple
   speed shaping from termination.
 
+### Phase Policy B v2 — observations & open issues (→ motivate Phase 3)
+
+Two behaviors surfaced on review of the v2 videos that the metrics didn't flag, plus the
+engineering notes from this pass:
+
+1. **De-centering / large lateral translation (undesirable, new in v2).** All v2 runs
+   reorient by *sliding the cylinder sideways* as much as rotating it: the index/middle
+   MCP+PIP flex strongly *inward* while the thumb MCP+PIP push *outward*, so the cylinder
+   both tilts up **and** translates a long way to one side. Earlier policies (v1) rotated
+   with minimal lateral shift. The existing `object_xy_drift` penalty (−3.0) is clearly
+   being out-voted by the alignment/progress rewards under the larger smoothness penalties.
+   **Fix candidates:** raise `object_xy_drift` weight and/or switch it to a tighter
+   (e.g. quadratic past a deadband) penalty; consider penalizing object-center translation
+   *in the palm frame* specifically; possibly penalize asymmetric finger excursion directly.
+2. **Handoff "teleport" (A→B discontinuity).** In the handoff demo the cylinder appears to
+   jump straight to a half-reoriented pose at the A→B switch — because the demo **resets the
+   env** to load Policy B (skip-lift spawn), rather than continuing the same physics state.
+   We never see B start from a *stable horizontal* grip. **Fix:** load BOTH policies into one
+   env and gate which one's actions are applied by phase (A until lift+settle done, then B),
+   with **no reset** — a single continuous rollout. This also stress-tests that B's spawn
+   distribution actually matches A's terminal state (any residual jump = real distribution
+   mismatch to close).
+3. **Engineering (this pass).** The reorient pipeline had been lost from git (uncommitted)
+   and was recovered from dangling blobs; **commit experiment code promptly.** Parallel
+   training on one GPU works only with a per-process Warp kernel-cache
+   (`WARP_CACHE_PATH=$(mktemp -d)`) — a shared cache races and NaNs. See
+   `scripts/queue_reorient_smooth_sweep.sh` and `scripts/overnight_autonomy.sh`.
+
+**Phase 3 (planned): bracing.** Promote bracing the cylinder's lower end flat against the
+palm (a power/pinch grip, consistent with real screwdriver use). Human strategy: reorient
+as far as the fingers allow, then a small grip adjustment pushes the end into the palm to
+brace, then (for humans) the wrist finishes to vertical. We won't hew exactly to that — we'll
+reward both reorientation **and** bracing (palm normal-force opposition + grip/force-closure
+strength) and see where the policy lands. Open question: extend Policy B or add a Policy C.
+Design in progress.
+
 ---
 
 ## Results
 
-### Cross-run comparison plot
+### Cross-run comparison plots
+
+Two figures (the historical journey got too crowded once the v2 sweep landed,
+so it's split):
+
+**The journey — v2 → v3 → v4 → v5 → Policy B v1:**
 
 ![comparison](img/reorient_comparison.png)
 
-12-panel comparison across all five runs (v2, v3, v4, v5, Policy B):
-mean reward, episode length, alignment / progress, object_height,
-contact_min, action_rate (smoothness), angular acceleration (smoothness),
-tip_lost / floor_proximity terminations, action std, value loss.
+**The v2 finetune zoom — Policy B v1 → Stage-1 (5×/10× smooth) → Stage-2 (quick):**
 
-Regenerate with `uv run python scripts/rl_plot_reorient.py`.
+![comparison v2](img/reorient_comparison_v2.png)
+
+Each is a 12-panel comparison (mean reward, episode length, alignment / progress,
+object_height, contact_min, action_rate + angular-acceleration smoothness, a
+termination panel — floor_proximity for the journey, alignment_success for v2 —
+action std, value loss). Regenerate with `uv run python scripts/rl_plot_reorient.py`
+(`--only v2` to refresh just the zoom; append new v2+ runs to `V2_RUNS`, leave the
+historical figure frozen).
 
 ### Headline videos
 
@@ -593,6 +638,12 @@ Regenerate with `uv run python scripts/rl_plot_reorient.py`.
 | **v4** | 2h02 | 27.1 (peak 32) | +0.029 (peak +0.125) | 0.045 | 12.8 | **floor-bracing emerges** |
 | v5 | ~2h | 9.6 (peak ~22) | −0.112 | 0.101 | 15 | no floor → no rotation |
 | **Policy B v1** | **2h59** | **87.15** (3.2× v4) | **+0.253** (2× v4) | 0.114 | **1.17** | **two-policy split unlocks it** |
+| v2 s1-5× | ~1h (ft) | 80.0 | **+0.499** | 0.111 | ~1.0 | **smoothness ramp halves jerk, holds rotation** |
+| v2 s1-10× | ~1h (ft) | 43.3 | +0.135 | 0.114 | 4.4 | over-penalized → stopped rotating |
+| v2 s2-5×-quick | ~1h (ft) | 64.4 | +0.009 | 0.115 | 2.58 | quick mechanisms → threshold-gaming |
+| **v2 s2-10×-quick** | ~1h (ft) | 75.2 | +0.331 | **0.120** | **0.63** | **recommended: smoothest + grippiest + holds vertical** |
+
+(ft = finetune from a warmstart; ~1h each at 1024 envs / 30M ts.)
 
 ---
 
