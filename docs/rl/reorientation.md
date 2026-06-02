@@ -611,9 +611,23 @@ fingertip **force** readout. Rewards (gated on alignment ≥ 0.7, so reorient-th
 cylinder reorients to cos 0.90 but its nearer end **never gets within 7.7 cm of the palm
 plate** (palm contact found = 0). The gripped cylinder simply sits ~8 cm below the palm, so
 the sparse force reward can never fire — bracing is undiscoverable without a gradient pulling
-the end toward the palm. The running sweep tests whether that ~8 cm gap can be closed at all
-(dense-distance weight 8 vs 20). Open risk: with fingers-only control the gap may not be
-closable, in which case bracing needs a grip/geometry change (documented if so).
+the end toward the palm.
+
+**Result — NEGATIVE: bracing is not reachable with fingers-only control + this grip.** A
+sweep (dense-distance weight 8 vs 20, warmstart the v2.1 winner) was run to ~330 iters and
+killed. The dense shaping barely moved the end (min end→palm distance 7.7 → ~7.1 cm), palm
+contact force stayed **0** the whole time, and the brace objective *degraded* reorientation
+(alignment 76 → 18–33). Root cause is geometric, not reward-tuning: the CEM grasp holds the
+cylinder ~7–8 cm below the palm plate, and ±0.5 rad finger residuals cannot translate it that
+far up to the palm. The sensing + reward scaffolding (`palm_cube_contact`, `grip_force`,
+`palm_brace_force`, `palm_brace_distance`) is in place and correct — the task as posed is just
+out of the morphology's reach.
+
+**To actually enable bracing, the geometry must change** (one of): (a) re-grip the cylinder
+**higher**, near the palm, via a different CEM grasp / keyframe, so bracing is a small
+adjustment; (b) allow limited palm motion during a brace phase (relaxes the fingers-only
+constraint); (c) brace against the finger structure instead of the top palm plate. This needs
+a grasp-design decision upstream of RL; deferred pending that choice.
 
 ---
 
