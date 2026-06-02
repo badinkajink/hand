@@ -724,6 +724,46 @@ def object_xy_drift_gated(env: "ManagerBasedRlEnv",
     return object_xy_drift(env, object_name) * _contact_gate(env, sensor_name, contact_gate_min)
 
 
+def object_lateral_drift(env: "ManagerBasedRlEnv",
+                          object_name: str = "cube",
+                          palm_body: str = "palm_pose",
+                          deadband: float = 0.01,
+                          power: float = 2.0) -> torch.Tensor:
+    """Penalty on the object's **palm-frame lateral (xy) displacement** from
+    its spawn, with a deadband (free movement up to `deadband` m) and a power
+    (>1 → quadratic past the deadband).
+
+    Targets the v2 "slide the cylinder sideways to reorient" de-centering: the
+    index/middle MCP+PIP flex inward while the thumb pushes outward, translating
+    the object far to one side. The deadband leaves the small regrip
+    translations rotation legitimately needs unpenalised, while the quadratic
+    tail bites hard on the large slide. Palm frame (vs world xy) is robust to
+    any palm motion. Shape (num_envs,)."""
+    rel = object_pose_rel_palm(env, object_name, palm_body)  # (B, 7)
+    xy = rel[:, :2]
+    if not hasattr(env, "_morphohand_spawn_palm_xy"):
+        env._morphohand_spawn_palm_xy = xy.detach().clone()
+    spawn = env._morphohand_spawn_palm_xy
+    just_started = env.episode_length_buf <= 1
+    if just_started.any():
+        spawn[just_started] = xy[just_started]
+    d = (xy - spawn).norm(dim=-1)
+    d = (d - float(deadband)).clamp(min=0.0)
+    return d.pow(float(power))
+
+
+def object_lateral_drift_gated(env: "ManagerBasedRlEnv",
+                                object_name: str = "cube",
+                                palm_body: str = "palm_pose",
+                                deadband: float = 0.01,
+                                power: float = 2.0,
+                                contact_gate_min: float = 0.5,
+                                sensor_name: str = "fingertip_cube_contact"
+                                ) -> torch.Tensor:
+    return (object_lateral_drift(env, object_name, palm_body, deadband, power)
+            * _contact_gate(env, sensor_name, contact_gate_min))
+
+
 def object_orientation_drift_gated(env: "ManagerBasedRlEnv",
                                      object_name: str = "cube",
                                      contact_gate_min: float = 0.5,

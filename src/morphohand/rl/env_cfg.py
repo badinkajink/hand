@@ -487,6 +487,17 @@ class MorphoHandEnvCfg:
     when alignment first crosses speed_bonus_align_thresh). 0 disables."""
     speed_bonus_align_thresh: float = 0.9
     """Alignment cos threshold whose first crossing triggers the speed bonus."""
+    # ---- de-centering penalty (Policy B v2.1) ---------------------------
+    lateral_drift_weight: float = 0.0
+    """Penalty weight on the object's palm-frame lateral (xy) displacement
+    from spawn, past a deadband (quadratic). Discourages the v2
+    'slide-sideways' de-centering. 0 disables. Try -10 to -40."""
+    lateral_drift_deadband: float = 0.01
+    """Free lateral movement (m) before the penalty engages — leaves the
+    small regrip translations rotation needs unpenalised."""
+    lateral_drift_power: float = 2.0
+    """Exponent on (drift − deadband): 2.0 = quadratic tail (bites the big
+    slide much harder than a small one)."""
 
 
 # ----------------------------------------------------------------------
@@ -865,6 +876,19 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
                 "object_name": "cube",
                 "phase_start_step": int(cfg.object_ang_acc_phase_start_step),
             },
+        )
+    if cfg.lateral_drift_weight != 0.0:
+        _lat_params = dict(object_name="cube",
+                           deadband=float(cfg.lateral_drift_deadband),
+                           power=float(cfg.lateral_drift_power))
+        if cfg.contact_gate_stability_rewards:
+            _lat_params.update(contact_gate_min=cfg.contact_gate_min,
+                               sensor_name="fingertip_cube_contact")
+        rewards["object_lateral_drift"] = RewardTermCfg(
+            func=(mjlab_terms.object_lateral_drift_gated if cfg.contact_gate_stability_rewards
+                  else mjlab_terms.object_lateral_drift),
+            weight=float(cfg.lateral_drift_weight) * task_scale,
+            params=_lat_params,
         )
     if cfg.enable_target_axis_reward and cfg.target_axis_weight > 0:
         # If alpha curriculum is enabled, start at the soft alpha; curriculum
