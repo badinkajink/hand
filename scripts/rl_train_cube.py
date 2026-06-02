@@ -83,6 +83,16 @@ class Args:
     """Observation mode: full | ref_only."""
     init_actor_checkpoint: Path | None = None
     """Optional checkpoint to initialize the actor weights."""
+    warmstart_critic: bool = True
+    """Also warmstart the CRITIC (value function) from the checkpoint, not just
+    the actor. CRITICAL for finetuning: with a fresh random critic the value
+    estimates are garbage for hundreds of iters, producing bad advantages that
+    push the converged actor OFF its optimum (this silently regressed every v2
+    reorient finetune — held-vertical cos 0.97 -> 0.66). Same partial-load rule
+    as the actor when obs dims differ."""
+    warmstart_optimizer: bool = False
+    """Also restore the optimizer state. Off by default (param groups must match
+    exactly); the critic warmstart is the load-bearing fix."""
     freeze_actor_std: bool = False
     """Freeze the policy's std_param (requires_grad=False). Use to pin
     exploration noise when the optimal policy is near-deterministic."""
@@ -467,49 +477,51 @@ def main() -> None:
 
     if args.init_actor_checkpoint is not None:
         ckpt = torch.load(str(args.init_actor_checkpoint), map_location="cpu", weights_only=False)
-        actor_state = ckpt.get("actor_state_dict")
-        if actor_state is None:
-            raise KeyError("checkpoint missing actor_state_dict")
-        # Partial load: when action_dim or obs_dim grows, the actor's first/last
-        # MLP layer and std_param have new slots. Copy the overlap; ZERO out the
-        # new slots (instead of leaving them at random init). This is critical:
-        # random weights on new input columns let new observations contribute
-        # random first-hidden-layer activations that then propagate through the
-        # trained layers and can blow up to NaN within a few iters. With zero
-        # init, iter 0 produces bit-identical behavior to the source policy
-        # (new obs contribute 0 to hidden layers; new action dims output 0).
-        own_state = runner.alg.actor.state_dict()
-        loaded, partial, skipped = [], [], []
-        for k, v in actor_state.items():
-            if k not in own_state:
-                skipped.append((k, "key not in target"))
-                continue
-            own = own_state[k]
-            if own.shape == v.shape:
-                own_state[k] = v
-                loaded.append(k)
-            elif own.dim() == v.dim() and all(o >= s for o, s in zip(own.shape, v.shape)):
-                # Partial copy: zero everywhere, then write checkpoint into leading slice.
-                # Exception: std_param's new entries stay at the existing init value
-                # (so PPO has nonzero exploration on the new action dims).
-                if "std" in k:
-                    new = own.clone()  # keep init std for new dims
+
+        def _partial_load(module, src_state, label):
+            """Copy src_state into `module`, full-copy where shapes match and
+            zero-init-into-leading-slice where the target grew (new obs/action
+            dims). std_param keeps its init for new dims so exploration stays
+            nonzero. Returns (n_full, partial_list, skipped_list)."""
+            if src_state is None:
+                raise KeyError(f"checkpoint missing {label} state")
+            own_state = module.state_dict()
+            n_full, partial, skipped = 0, [], []
+            for k, v in src_state.items():
+                if k not in own_state:
+                    skipped.append((k, "key not in target")); continue
+                own = own_state[k]
+                if own.shape == v.shape:
+                    own_state[k] = v; n_full += 1
+                elif own.dim() == v.dim() and all(o >= s for o, s in zip(own.shape, v.shape)):
+                    new = own.clone() if "std" in k else torch.zeros_like(own)
+                    new[tuple(slice(0, s) for s in v.shape)] = v
+                    own_state[k] = new; partial.append((k, v.shape, own.shape))
                 else:
-                    new = torch.zeros_like(own)
-                slices = tuple(slice(0, s) for s in v.shape)
-                new[slices] = v
-                own_state[k] = new
-                partial.append((k, v.shape, own.shape))
-            else:
-                skipped.append((k, f"incompatible shapes target={tuple(own.shape)} ckpt={tuple(v.shape)}"))
-        runner.alg.actor.load_state_dict(own_state, strict=False)
+                    skipped.append((k, f"incompatible target={tuple(own.shape)} ckpt={tuple(v.shape)}"))
+            module.load_state_dict(own_state, strict=False)
+            return n_full, partial, skipped
+
         print(f"[rl_train_cube] warmstart from {args.init_actor_checkpoint}")
-        print(f"  {len(loaded)} tensors fully copied")
+        nf, partial, skipped = _partial_load(runner.alg.actor, ckpt.get("actor_state_dict"), "actor_state_dict")
+        print(f"  actor: {nf} tensors fully copied")
         for k, vs, os in partial:
-            zeroed = "init-kept" if "std" in k else "zero-init"
-            print(f"  PARTIAL: {k}  ckpt={tuple(vs)} -> target={tuple(os)}  ({zeroed} for new)")
+            print(f"  actor PARTIAL: {k}  {tuple(vs)} -> {tuple(os)}  ({'init-kept' if 'std' in k else 'zero-init'})")
         for k, reason in skipped:
-            print(f"  SKIP   : {k}  ({reason})")
+            print(f"  actor SKIP: {k}  ({reason})")
+        # CRITIC warmstart — the load-bearing fix: a fresh value function emits
+        # garbage advantages that knock the converged actor off its optimum.
+        if args.warmstart_critic and hasattr(runner.alg, "critic"):
+            nf_c, partial_c, _ = _partial_load(runner.alg.critic, ckpt.get("critic_state_dict"), "critic_state_dict")
+            print(f"  critic: {nf_c} tensors fully copied, {len(partial_c)} partial")
+        elif args.warmstart_critic:
+            print("  critic: WARN runner.alg has no .critic attribute; skipped")
+        if args.warmstart_optimizer and ckpt.get("optimizer_state_dict") is not None:
+            try:
+                runner.alg.optimizer.load_state_dict(ckpt["optimizer_state_dict"])
+                print("  optimizer: restored")
+            except Exception as e:
+                print(f"  optimizer: SKIP ({e})")
 
     if args.freeze_actor_std:
         std_param = runner.alg.actor.distribution.std_param
