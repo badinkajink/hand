@@ -448,6 +448,45 @@ class MorphoHandEnvCfg:
     zero-force — fingers can't grip. A small drop produces the contact
     pressure CEM had at lift-end. 5 mm is enough to settle in ~10 sim
     steps without bouncing."""
+    # ---- "smooth & quick" finetune curriculum (Policy B v2) -------------
+    target_axis_progress_clamp_negative: bool = False
+    """If True, only positive Δ(alignment) is rewarded (no penalty for
+    slipping back down). If False (default), signed delta — rotating back
+    toward flat is penalized symmetrically, which discourages the slip-back
+    seen in Policy B v1."""
+    action_rate_weight_final: float | None = None
+    """Final action_rate_l2 weight for the smoothness curriculum. None =
+    no ramp (weight stays at action_rate_weight)."""
+    object_ang_acc_weight_final: float | None = None
+    """Final object_ang_acc_l2 weight for the smoothness curriculum. None =
+    no ramp."""
+    smoothness_curriculum_start_iter: int = 0
+    """PPO iter at which the smoothness-weight ramp begins (weights held at
+    their base values before this). Use a small consolidation window when
+    warmstarting so the base rotation settles before penalties dial up."""
+    smoothness_curriculum_iters: int = 0
+    """Number of PPO iters over which smoothness weights ramp base→final.
+    0 disables the curriculum."""
+    enable_alignment_success_termination: bool = False
+    """Terminate (success) once alignment cos >= success_align_thresh is
+    held for success_hold_steps consecutive steps. Earlier success → higher
+    discounted return (rewards quickness) and locks in the result."""
+    success_align_thresh: float = 0.9
+    """Alignment cos threshold counted as 'aligned' for the success
+    termination AND alignment_success_bonus reward."""
+    success_hold_steps: int = 10
+    """Consecutive aligned policy steps required to declare success."""
+    success_bonus_weight: float = 0.0
+    """Weight on the one-shot alignment_success_bonus reward (fires the step
+    success is reached). 0 disables the bonus term."""
+    time_cost_weight: float = 0.0
+    """Weight on the per-step reorient_time_cost (constant during reorient
+    phase). Small negative pressures shorter trajectories. 0 disables."""
+    speed_bonus_weight: float = 0.0
+    """Weight on the one-shot alignment_speed_bonus (∝ episode time remaining
+    when alignment first crosses speed_bonus_align_thresh). 0 disables."""
+    speed_bonus_align_thresh: float = 0.9
+    """Alignment cos threshold whose first crossing triggers the speed bonus."""
 
 
 # ----------------------------------------------------------------------
@@ -818,7 +857,7 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
             params={"asset_cfg": SceneEntityCfg("robot", joint_names=(".*",))},
         ),
     }
-    if cfg.object_ang_acc_weight != 0.0:
+    if cfg.object_ang_acc_weight != 0.0 or cfg.object_ang_acc_weight_final is not None:
         rewards["object_ang_acc_l2"] = RewardTermCfg(
             func=mjlab_terms.object_ang_acc_l2,
             weight=float(cfg.object_ang_acc_weight) * task_scale,
@@ -853,7 +892,39 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
                 "object_axis_local": cfg.target_axis_object_local,
                 "target_axis_world": cfg.target_axis_world,
                 "reorient_start_step": int(cfg.reorient_start_step),
-                "clamp_negative": False,
+                "clamp_negative": bool(cfg.target_axis_progress_clamp_negative),
+            },
+        )
+    # ---- "quick / shorter trajectory" incentives (Policy B v2) ---------
+    if cfg.enable_target_axis_reward and cfg.success_bonus_weight != 0.0:
+        rewards["alignment_success_bonus"] = RewardTermCfg(
+            func=mjlab_terms.alignment_success_bonus,
+            weight=float(cfg.success_bonus_weight) * task_scale,
+            params={
+                "object_name": "cube",
+                "object_axis_local": cfg.target_axis_object_local,
+                "target_axis_world": cfg.target_axis_world,
+                "align_thresh": float(cfg.success_align_thresh),
+                "hold_steps": int(cfg.success_hold_steps),
+                "reorient_start_step": int(cfg.reorient_start_step),
+            },
+        )
+    if cfg.time_cost_weight != 0.0:
+        rewards["reorient_time_cost"] = RewardTermCfg(
+            func=mjlab_terms.reorient_time_cost,
+            weight=float(cfg.time_cost_weight) * task_scale,
+            params={"reorient_start_step": int(cfg.reorient_start_step)},
+        )
+    if cfg.enable_target_axis_reward and cfg.speed_bonus_weight != 0.0:
+        rewards["alignment_speed_bonus"] = RewardTermCfg(
+            func=mjlab_terms.alignment_speed_bonus,
+            weight=float(cfg.speed_bonus_weight) * task_scale,
+            params={
+                "object_name": "cube",
+                "object_axis_local": cfg.target_axis_object_local,
+                "target_axis_world": cfg.target_axis_world,
+                "align_thresh": float(cfg.speed_bonus_align_thresh),
+                "reorient_start_step": int(cfg.reorient_start_step),
             },
         )
 
@@ -1007,6 +1078,18 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
                     min_z=float(cfg.object_min_z),
                 ),
             )
+    if cfg.enable_alignment_success_termination and cfg.enable_target_axis_reward:
+        terminations["alignment_success"] = TerminationTermCfg(
+            func=mjlab_terms.terminate_alignment_success,
+            params=dict(
+                object_name="cube",
+                object_axis_local=cfg.target_axis_object_local,
+                target_axis_world=cfg.target_axis_world,
+                align_thresh=float(cfg.success_align_thresh),
+                hold_steps=int(cfg.success_hold_steps),
+                reorient_start_step=int(cfg.reorient_start_step),
+            ),
+        )
 
     # ---- sensors -------------------------------------------------------
     fingertip_cube_sensor = ContactSensorCfg(
@@ -1062,6 +1145,29 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
                 alpha_end=float(cfg.target_axis_alpha),
                 anneal_iters=int(cfg.target_axis_alpha_curriculum_iters),
                 reward_term_name="target_axis_alignment",
+            ),
+        )
+    # ---- smoothness-weight ramp (Policy B v2: learn it, then make it smooth)
+    smooth_names: list[str] = []
+    smooth_base: list[float] = []
+    smooth_final: list[float] = []
+    if cfg.action_rate_weight_final is not None and "action_rate_l2" in rewards:
+        smooth_names.append("action_rate_l2")
+        smooth_base.append(float(rewards["action_rate_l2"].weight))
+        smooth_final.append(float(cfg.action_rate_weight_final) * task_scale)
+    if cfg.object_ang_acc_weight_final is not None and "object_ang_acc_l2" in rewards:
+        smooth_names.append("object_ang_acc_l2")
+        smooth_base.append(float(rewards["object_ang_acc_l2"].weight))
+        smooth_final.append(float(cfg.object_ang_acc_weight_final) * task_scale)
+    if cfg.smoothness_curriculum_iters > 0 and smooth_names:
+        curriculum["smoothness_anneal"] = CurriculumTermCfg(
+            func=mjlab_terms.anneal_smoothness_weights,
+            params=dict(
+                term_names=tuple(smooth_names),
+                base_weights=tuple(smooth_base),
+                final_weights=tuple(smooth_final),
+                start_iter=int(cfg.smoothness_curriculum_start_iter),
+                anneal_iters=int(cfg.smoothness_curriculum_iters),
             ),
         )
 

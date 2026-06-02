@@ -206,6 +206,34 @@ class Args:
     object_ang_acc_phase_start_step: int = 0
     """Policy step from which the object_ang_acc penalty engages (gate so
     the initial grip settle doesn't get penalized for transient spin-up)."""
+    # ---- "smooth & quick" finetune curriculum (Policy B v2) -------------
+    target_axis_progress_clamp_negative: bool = False
+    """If set, only positive Δ(alignment) is rewarded. Default (unset) =
+    signed progress, which penalizes slipping back down (v2 slip fix)."""
+    action_rate_weight_final: float | None = None
+    """Final action_rate_l2 weight for the smoothness ramp (e.g. -0.5 for 5x,
+    -1.0 for 10x). None = no ramp."""
+    object_ang_acc_weight_final: float | None = None
+    """Final object_ang_acc_l2 weight for the smoothness ramp (e.g. -0.25 for
+    5x, -0.5 for 10x). None = no ramp."""
+    smoothness_curriculum_start_iter: int = 200
+    """PPO iter at which the smoothness ramp begins (consolidation window)."""
+    smoothness_curriculum_iters: int = 0
+    """Iters over which smoothness weights ramp base->final. 0 disables."""
+    enable_alignment_success_termination: bool = False
+    """Terminate (success) once alignment is held; rewards quickness + locks in."""
+    success_align_thresh: float = 0.9
+    """Alignment cos threshold for success / success-bonus."""
+    success_hold_steps: int = 10
+    """Consecutive aligned steps required to declare success."""
+    success_bonus_weight: float = 0.0
+    """Weight on the one-shot alignment_success_bonus reward. 0 disables."""
+    time_cost_weight: float = 0.0
+    """Weight on per-step reorient_time_cost (small negative pressures speed)."""
+    speed_bonus_weight: float = 0.0
+    """Weight on the one-shot alignment_speed_bonus (early-crossing). 0 disables."""
+    speed_bonus_align_thresh: float = 0.9
+    """Alignment cos threshold whose first crossing triggers the speed bonus."""
 
 
 def main() -> None:
@@ -315,6 +343,18 @@ def main() -> None:
         action_rate_weight=args.action_rate_weight,
         object_ang_acc_weight=args.object_ang_acc_weight,
         object_ang_acc_phase_start_step=args.object_ang_acc_phase_start_step,
+        target_axis_progress_clamp_negative=args.target_axis_progress_clamp_negative,
+        action_rate_weight_final=args.action_rate_weight_final,
+        object_ang_acc_weight_final=args.object_ang_acc_weight_final,
+        smoothness_curriculum_start_iter=args.smoothness_curriculum_start_iter,
+        smoothness_curriculum_iters=args.smoothness_curriculum_iters,
+        enable_alignment_success_termination=args.enable_alignment_success_termination,
+        success_align_thresh=args.success_align_thresh,
+        success_hold_steps=args.success_hold_steps,
+        success_bonus_weight=args.success_bonus_weight,
+        time_cost_weight=args.time_cost_weight,
+        speed_bonus_weight=args.speed_bonus_weight,
+        speed_bonus_align_thresh=args.speed_bonus_align_thresh,
     )
     ppo_kwargs = dict(
         num_envs=args.num_envs,

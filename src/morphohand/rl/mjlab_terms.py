@@ -396,6 +396,130 @@ def target_axis_progress(env: "ManagerBasedRlEnv",
     return delta * active
 
 
+def _alignment_hold_counter(env: "ManagerBasedRlEnv", attr: str,
+                            object_name: str,
+                            object_axis_local: tuple[float, float, float],
+                            target_axis_world: tuple[float, float, float],
+                            align_thresh: float,
+                            reorient_start_step: int) -> torch.Tensor:
+    """Per-env count of *consecutive* policy steps with alignment cos >=
+    `align_thresh` during the reorient phase. Resets on episode start and
+    whenever alignment drops below threshold. Stored under `attr` so the
+    success reward and success termination can keep independent (but
+    identical) counters without double-incrementing a shared one.
+    """
+    cos = _alignment_cos(env, object_name, object_axis_local, target_axis_world)
+    if not hasattr(env, attr):
+        setattr(env, attr, torch.zeros(env.num_envs, device=env.device, dtype=torch.long))
+    counter = getattr(env, attr)
+    just_started = env.episode_length_buf <= 1
+    if just_started.any():
+        counter[just_started] = 0
+    in_phase = env.episode_length_buf >= int(reorient_start_step)
+    aligned = (cos >= float(align_thresh)) & in_phase
+    counter[aligned] += 1
+    counter[~aligned] = 0
+    return counter
+
+
+def terminate_alignment_success(env: "ManagerBasedRlEnv",
+                                object_name: str = "cube",
+                                object_axis_local: tuple[float, float, float] = (0.0, 0.0, 1.0),
+                                target_axis_world: tuple[float, float, float] = (0.0, 0.0, 1.0),
+                                align_thresh: float = 0.9,
+                                hold_steps: int = 10,
+                                reorient_start_step: int = 0) -> torch.Tensor:
+    """Terminate (success) when the object axis has been within `align_thresh`
+    cos of the target for `hold_steps` consecutive policy steps. Ending the
+    episode on success means earlier success → higher discounted return
+    (rewards quick reorientation), and locks in the result (discourages
+    slipping back down)."""
+    counter = _alignment_hold_counter(
+        env, "_morphohand_align_hold_term", object_name,
+        object_axis_local, target_axis_world, align_thresh, reorient_start_step)
+    return counter >= int(hold_steps)
+
+
+def alignment_success_bonus(env: "ManagerBasedRlEnv",
+                            object_name: str = "cube",
+                            object_axis_local: tuple[float, float, float] = (0.0, 0.0, 1.0),
+                            target_axis_world: tuple[float, float, float] = (0.0, 0.0, 1.0),
+                            align_thresh: float = 0.9,
+                            hold_steps: int = 10,
+                            reorient_start_step: int = 0) -> torch.Tensor:
+    """One-shot reward of 1.0 on the single step the alignment-hold counter
+    reaches `hold_steps` (i.e. the moment success is achieved). Pair with a
+    positive weight to give an explicit terminal bonus for reaching and
+    holding vertical. Fires once per episode."""
+    counter = _alignment_hold_counter(
+        env, "_morphohand_align_hold_rew", object_name,
+        object_axis_local, target_axis_world, align_thresh, reorient_start_step)
+    return (counter == int(hold_steps)).float()
+
+
+def reorient_time_cost(env: "ManagerBasedRlEnv",
+                       reorient_start_step: int = 0) -> torch.Tensor:
+    """Constant 1.0 each policy step during the reorient phase (0 before).
+    Pair with a small negative weight to pressure the policy to finish the
+    reorientation quickly (shorter trajectories)."""
+    return (env.episode_length_buf >= int(reorient_start_step)).float()
+
+
+def alignment_speed_bonus(env: "ManagerBasedRlEnv",
+                          object_name: str = "cube",
+                          object_axis_local: tuple[float, float, float] = (0.0, 0.0, 1.0),
+                          target_axis_world: tuple[float, float, float] = (0.0, 0.0, 1.0),
+                          align_thresh: float = 0.9,
+                          reorient_start_step: int = 0) -> torch.Tensor:
+    """One-shot reward proportional to the fraction of the episode remaining
+    when the alignment cos *first* crosses `align_thresh`. Crossing early
+    (lots of time left) pays more than crossing late → rewards quick
+    reorientation. Fires once per episode."""
+    cos = _alignment_cos(env, object_name, object_axis_local, target_axis_world)
+    if not hasattr(env, "_morphohand_speed_bonus_fired"):
+        env._morphohand_speed_bonus_fired = torch.zeros(
+            env.num_envs, device=env.device, dtype=torch.bool)
+    fired = env._morphohand_speed_bonus_fired
+    just_started = env.episode_length_buf <= 1
+    if just_started.any():
+        fired[just_started] = False
+    in_phase = env.episode_length_buf >= int(reorient_start_step)
+    crossing = (cos >= float(align_thresh)) & in_phase & (~fired)
+    fired[crossing] = True
+    max_steps = float(getattr(env, "max_episode_length", 0) or 0)
+    if max_steps <= 0:
+        max_steps = float(int(env.episode_length_buf.max().item()) + 1)
+    remaining = (max_steps - env.episode_length_buf.to(torch.float32)).clamp(min=0.0) / max_steps
+    return crossing.float() * remaining
+
+
+def anneal_smoothness_weights(env: "ManagerBasedRlEnv", env_ids,
+                              term_names: tuple[str, ...],
+                              base_weights: tuple[float, ...],
+                              final_weights: tuple[float, ...],
+                              start_iter: int,
+                              anneal_iters: int,
+                              num_steps_per_env: int = 24) -> float:
+    """Linearly ramp the weights of named smoothness reward terms from
+    `base_weights` to `final_weights`, held flat before `start_iter` and
+    after `start_iter + anneal_iters`. Lets a warmstarted policy keep its
+    learned rotation while smoothness penalties are dialed up over training
+    ("learn it first, then make it smooth").
+    """
+    del env_ids
+    if anneal_iters <= 0 or not term_names:
+        return 1.0
+    iters = int(env.common_step_counter) // max(1, int(num_steps_per_env))
+    progress = float(min(1.0, max(0.0, (iters - int(start_iter)) / float(anneal_iters))))
+    for name, base, final in zip(term_names, base_weights, final_weights, strict=False):
+        try:
+            cfg = env.reward_manager.get_term_cfg(name)
+        except (ValueError, AttributeError):
+            continue
+        cfg.weight = float(base) + (float(final) - float(base)) * progress
+    return progress
+
+
 def anneal_target_axis_alpha(env: "ManagerBasedRlEnv", env_ids,
                               alpha_start: float, alpha_end: float,
                               anneal_iters: int,
