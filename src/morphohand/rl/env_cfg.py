@@ -498,6 +498,23 @@ class MorphoHandEnvCfg:
     lateral_drift_power: float = 2.0
     """Exponent on (drift − deadband): 2.0 = quadratic tail (bites the big
     slide much harder than a small one)."""
+    # ---- Phase 3: bracing (palm normal force + grip strength) -----------
+    brace_force_weight: float = 0.0
+    """Reward weight for palm<->cylinder contact force (the cylinder's lower
+    end pressed flat into the palm). GATED on alignment (brace_align_thresh)
+    so it only fires once reoriented. 0 disables. Try +5 to +20."""
+    brace_align_thresh: float = 0.7
+    """Alignment cos at/above which the brace reward turns on (reorient first,
+    then brace — mirrors the human 'reorient, then push into palm' motion)."""
+    brace_max_force: float = 3.0
+    """Palm contact force (N) that saturates the brace reward to 1.0."""
+    grip_force_weight: float = 0.0
+    """Reward weight for normalised fingertip grip force (pinch-to-power,
+    consistent with screwdriver use). 0 disables. Try +2 to +10."""
+    grip_force_max: float = 3.0
+    """Fingertip contact force (N) that saturates the grip reward to 1.0."""
+    grip_force_reduce: str = "mean"
+    """'mean' (overall grip) or 'min' (worst finger) over the 3 fingertips."""
 
 
 # ----------------------------------------------------------------------
@@ -890,6 +907,25 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
             weight=float(cfg.lateral_drift_weight) * task_scale,
             params=_lat_params,
         )
+    if cfg.grip_force_weight != 0.0:
+        rewards["grip_force"] = RewardTermCfg(
+            func=mjlab_terms.grip_force,
+            weight=float(cfg.grip_force_weight) * task_scale,
+            params=dict(sensor_name="fingertip_cube_contact",
+                        max_force=float(cfg.grip_force_max),
+                        reduce=str(cfg.grip_force_reduce)),
+        )
+    if cfg.brace_force_weight != 0.0 and cfg.enable_target_axis_reward:
+        rewards["palm_brace_force"] = RewardTermCfg(
+            func=mjlab_terms.palm_brace_force,
+            weight=float(cfg.brace_force_weight) * task_scale,
+            params=dict(sensor_name="palm_cube_contact", object_name="cube",
+                        object_axis_local=cfg.target_axis_object_local,
+                        target_axis_world=cfg.target_axis_world,
+                        align_thresh=float(cfg.brace_align_thresh),
+                        reorient_start_step=int(cfg.reorient_start_step),
+                        max_force=float(cfg.brace_max_force)),
+        )
     if cfg.enable_target_axis_reward and cfg.target_axis_weight > 0:
         # If alpha curriculum is enabled, start at the soft alpha; curriculum
         # term will mutate the param each iter.
@@ -1124,7 +1160,19 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
             entity="robot",
         ),
         secondary=ContactMatch(mode="body", pattern="cube", entity="cube"),
-        fields=("found",),
+        fields=("found", "force"),  # force added for grip-strength (Phase 3 brace) reward
+        reduce="none",
+        num_slots=1,
+        history_length=0,
+    )
+    # Palm plate <-> cylinder contact (the flat palm_mat geom lives on the
+    # palm_pose body). Used by the Phase-3 bracing reward to detect/score the
+    # cylinder's lower end pressing flat into the palm.
+    palm_cube_sensor = ContactSensorCfg(
+        name="palm_cube_contact",
+        primary=ContactMatch(mode="body", pattern="palm_pose", entity="robot"),
+        secondary=ContactMatch(mode="body", pattern="cube", entity="cube"),
+        fields=("found", "force"),
         reduce="none",
         num_slots=1,
         history_length=0,
@@ -1201,7 +1249,7 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
             num_envs=cfg.num_envs,
             env_spacing=cfg.env_spacing,
             entities={"robot": hand_entity, "cube": cube_entity},
-            sensors=(fingertip_cube_sensor,),
+            sensors=(fingertip_cube_sensor, palm_cube_sensor),
         ),
         observations=observations,
         actions=actions,

@@ -233,6 +233,52 @@ def fingertip_contact_min(env: "ManagerBasedRlEnv",
     return (found > 0).float().min(dim=-1).values
 
 
+def _contact_force_mag(env: "ManagerBasedRlEnv", sensor_name: str) -> torch.Tensor:
+    """Per-slot contact force magnitude for a contact sensor with a `force`
+    field. Returns shape (num_envs, n_slots); the contact `force` field is a
+    3-vector per slot, so we take its L2 norm. Zeros if unavailable."""
+    sensor = env.scene.sensors[sensor_name]
+    force = getattr(sensor.data, "force", None)
+    if force is None:
+        return torch.zeros(env.num_envs, 1, device=env.device)
+    if force.dim() == 2:            # (B, 3) single slot
+        return force.norm(dim=-1, keepdim=True)
+    return force.norm(dim=-1)       # (B, n_slots, 3) -> (B, n_slots)
+
+
+def grip_force(env: "ManagerBasedRlEnv",
+               sensor_name: str = "fingertip_cube_contact",
+               max_force: float = 3.0,
+               reduce: str = "mean") -> torch.Tensor:
+    """Normalised fingertip grip force in [0, 1] — a "pinch-to-power" signal
+    for the screwdriver bracing posture. Each fingertip's contact-force
+    magnitude is clamped at `max_force` and normalised; `reduce` selects mean
+    (overall grip) or min (worst finger). Shape (num_envs,)."""
+    mag = _contact_force_mag(env, sensor_name)              # (B, n_tips)
+    norm = (mag / float(max_force)).clamp(0.0, 1.0)
+    return norm.min(dim=-1).values if reduce == "min" else norm.mean(dim=-1)
+
+
+def palm_brace_force(env: "ManagerBasedRlEnv",
+                     sensor_name: str = "palm_cube_contact",
+                     object_name: str = "cube",
+                     object_axis_local: tuple[float, float, float] = (0.0, 0.0, 1.0),
+                     target_axis_world: tuple[float, float, float] = (0.0, 0.0, 1.0),
+                     align_thresh: float = 0.7,
+                     reorient_start_step: int = 0,
+                     max_force: float = 3.0) -> torch.Tensor:
+    """Normalised palm<->cylinder contact force in [0, 1], GATED so it only
+    pays once the cylinder is substantially reoriented (alignment cos >=
+    `align_thresh`) and past `reorient_start_step`. Promotes the bracing
+    posture — pressing the cylinder's lower end flat into the palm — without
+    fighting the reorientation early. Shape (num_envs,)."""
+    mag = _contact_force_mag(env, sensor_name).amax(dim=-1)  # (B,) strongest palm contact
+    norm = (mag / float(max_force)).clamp(0.0, 1.0)
+    cos = _alignment_cos(env, object_name, object_axis_local, target_axis_world)
+    gate = (cos >= float(align_thresh)) & (env.episode_length_buf >= int(reorient_start_step))
+    return norm * gate.float()
+
+
 def _spawn_pose(env: "ManagerBasedRlEnv", object_name: str = "cube"):
     """Per-env cube spawn pose, refreshed on episode reset.
 
