@@ -515,6 +515,14 @@ class MorphoHandEnvCfg:
     """Fingertip contact force (N) that saturates the grip reward to 1.0."""
     grip_force_reduce: str = "mean"
     """'mean' (overall grip) or 'min' (worst finger) over the 3 fingertips."""
+    brace_distance_weight: float = 0.0
+    """Reward weight for DENSE brace shaping exp(-gap/scale): pulls the
+    cylinder's nearer end toward the palm plate, gated on alignment. Needed
+    because the gripped cylinder sits ~8cm from the palm, so the sparse
+    brace-force reward never fires on its own. 0 disables. Try +5 to +20."""
+    brace_distance_scale: float = 0.04
+    """Length scale (m) of the dense brace-distance reward (smaller = sharper,
+    must close more gap to earn reward)."""
 
 
 # ----------------------------------------------------------------------
@@ -914,6 +922,17 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
             params=dict(sensor_name="fingertip_cube_contact",
                         max_force=float(cfg.grip_force_max),
                         reduce=str(cfg.grip_force_reduce)),
+        )
+    if cfg.brace_distance_weight != 0.0 and cfg.enable_target_axis_reward:
+        rewards["palm_brace_distance"] = RewardTermCfg(
+            func=mjlab_terms.palm_brace_distance,
+            weight=float(cfg.brace_distance_weight) * task_scale,
+            params=dict(object_name="cube",
+                        object_axis_local=cfg.target_axis_object_local,
+                        target_axis_world=cfg.target_axis_world,
+                        scale=float(cfg.brace_distance_scale),
+                        align_thresh=float(cfg.brace_align_thresh),
+                        reorient_start_step=int(cfg.reorient_start_step)),
         )
     if cfg.brace_force_weight != 0.0 and cfg.enable_target_axis_reward:
         rewards["palm_brace_force"] = RewardTermCfg(

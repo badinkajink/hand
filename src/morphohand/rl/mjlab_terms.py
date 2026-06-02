@@ -279,6 +279,41 @@ def palm_brace_force(env: "ManagerBasedRlEnv",
     return norm * gate.float()
 
 
+def palm_brace_distance(env: "ManagerBasedRlEnv",
+                        object_name: str = "cube",
+                        palm_body: str = "palm_pose",
+                        object_axis_local: tuple[float, float, float] = (0.0, 0.0, 1.0),
+                        target_axis_world: tuple[float, float, float] = (0.0, 0.0, 1.0),
+                        cylinder_half_len: float = 0.04,
+                        scale: float = 0.04,
+                        align_thresh: float = 0.7,
+                        reorient_start_step: int = 0) -> torch.Tensor:
+    """DENSE shaping toward bracing: exp(-gap/scale) in (0,1], where `gap` is the
+    distance from the cylinder's NEARER end to the palm-plate origin, gated on
+    alignment + reorient phase. The sparse `palm_brace_force` reward can never
+    fire on its own — the gripped cylinder sits ~8 cm from the palm — so this
+    provides the gradient to draw the end up into the palm once reoriented."""
+    robot = env.scene["robot"]
+    obj = env.scene[object_name]
+    palm_id = robot.body_names.index(palm_body)
+    palm = robot.data.body_link_pose_w[:, palm_id, :3]
+    op = obj.data.root_link_pose_w[:, :3]
+    qw, qx, qy, qz = obj.data.root_link_pose_w[:, 3:7].unbind(-1)
+    ax, ay, az = object_axis_local
+    bz = torch.stack([
+        (1 - 2*(qy*qy + qz*qz))*ax + 2*(qx*qy - qw*qz)*ay + 2*(qx*qz + qw*qy)*az,
+        2*(qx*qy + qw*qz)*ax + (1 - 2*(qx*qx + qz*qz))*ay + 2*(qy*qz - qw*qx)*az,
+        2*(qx*qz - qw*qy)*ax + 2*(qy*qz + qw*qx)*ay + (1 - 2*(qx*qx + qy*qy))*az,
+    ], dim=-1)
+    gap_p = (op + float(cylinder_half_len)*bz - palm).norm(dim=-1)
+    gap_m = (op - float(cylinder_half_len)*bz - palm).norm(dim=-1)
+    gap = torch.minimum(gap_p, gap_m)
+    rew = torch.exp(-gap / float(scale))
+    cos = _alignment_cos(env, object_name, object_axis_local, target_axis_world)
+    gate = (cos >= float(align_thresh)) & (env.episode_length_buf >= int(reorient_start_step))
+    return rew * gate.float()
+
+
 def _spawn_pose(env: "ManagerBasedRlEnv", object_name: str = "cube"):
     """Per-env cube spawn pose, refreshed on episode reset.
 

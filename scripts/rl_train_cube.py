@@ -255,6 +255,10 @@ class Args:
     """Fingertip force (N) saturating the grip reward."""
     grip_force_reduce: str = "mean"
     """'mean' or 'min' over the 3 fingertips."""
+    brace_distance_weight: float = 0.0
+    """Dense brace shaping exp(-gap/scale) pulling cylinder end to palm. 0 off. Try +5..+20."""
+    brace_distance_scale: float = 0.04
+    """Length scale (m) of the dense brace-distance reward."""
 
 
 def main() -> None:
@@ -385,6 +389,8 @@ def main() -> None:
         grip_force_weight=args.grip_force_weight,
         grip_force_max=args.grip_force_max,
         grip_force_reduce=args.grip_force_reduce,
+        brace_distance_weight=args.brace_distance_weight,
+        brace_distance_scale=args.brace_distance_scale,
     )
     ppo_kwargs = dict(
         num_envs=args.num_envs,
