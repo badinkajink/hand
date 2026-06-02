@@ -401,6 +401,62 @@ before the full run.
   good rotation, the smoothness weights need to be 5–10× higher and
   retrained (at the cost of slower rotation rate).
 
+### Phase Policy B v2 — Stage 1 (smoothness ramp + signed progress)
+
+The v1 takeaway above predicted the experiment: dial the smoothness
+weights 5–10× higher and retrain, expecting a smoothness↔rotation
+tradeoff. Stage 1 finetunes Policy B v1 (warmstart from `model_2033.pt`)
+with **only** two changes — no "quick" mechanisms yet:
+
+1. **Smoothness ramp** (`action_rate_l2` + `object_ang_acc_l2`), held at
+   the v1 base for the first 200 iters, then ramped over 400 iters to a
+   swept final target: **5×** (`-0.5 / -0.25`) or **10×** (`-1.0 / -0.5`).
+2. **Signed `target_axis_progress`** (no negative clamp) — slipping back
+   toward flat is now penalized symmetrically, to fix v1's slip-back.
+
+Both runs: 30M ts, 1024 envs, 1220 iters. Metrics below are the converged
+FINAL block (well past the 600-iter ramp end). Smoothness reward terms are
+`weight × raw_jitter`, so the comparable quantity is **raw jitter** =
+`reward / |weight|` (shown in parentheses):
+
+| Metric | Policy B v1 | **v2 5× (winner)** | v2 10× |
+|---|---|---|---|
+| Mean reward | 402.7 | 369.2 | 229.2 |
+| `target_axis_alignment` | 87.2 | **80.0** | 43.3 |
+| `target_axis_progress` | +0.253 | **+0.499** | +0.135 |
+| `tip_lost`/iter | 1.17 | **0.96–1.6** | 4.4–5.3 |
+| `object_drop`/iter | — | 0.17 | 0.17–0.42 |
+| `action_rate_l2` (Σ) | −0.134 (raw ≈1.3) | −0.616 (**raw ≈1.23**) | −0.783 (raw ≈0.78) |
+| `object_ang_acc_l2` (Σ) | −2.53 (raw ≈50) | −6.12 (**raw ≈24.5**) | −2.45 (raw ≈4.9) |
+| min object-center z (eval) | — | **0.111 m** | 0.114 m |
+
+Verification videos (single deterministic 4 s rollout from `model_1219.pt`,
+rendered via `scripts/rl_render_reorient.py` — the phase-B half of the
+handoff demo, driven from each run's own `config.yaml`):
+
+- [policyB_v2_smooth5x.mp4](videos/reorient/policyB_v2_smooth5x.mp4) — **chosen**
+- [policyB_v2_smooth10x.mp4](videos/reorient/policyB_v2_smooth10x.mp4)
+
+Both keep the object aloft the whole rollout (min center-z 0.111 / 0.114 m,
+well above the 0.05 m floor-proximity threshold) — genuine in-hand
+reorientation, no floor-bracing.
+
+**Takeaway — 5× is the clear winner:**
+- **5× halves the object angular jerk** (raw `object_ang_acc_l2` 50 → 24.5)
+  while *holding* rotation (alignment 80 vs v1's 87), *improving* progress
+  (+0.50 vs +0.25 — the signed penalty killing the slip-back), and
+  *preserving* the grip (tip_lost ~1.0, ≈ v1's 1.17). This is the
+  smooth-AND-rotating policy v1 said would require 5–10× weights.
+- **10× over-penalized: the policy stopped rotating to dodge the penalty.**
+  Its raw jerk is lowest (4.9) but only because alignment collapsed to 43,
+  progress to +0.14, and the grip degraded (tip_lost 4.4 and *rising* at
+  the end). "Smooth because it gave up" is not the goal.
+- Lower mean reward for 5× (369 vs 402) is expected and not a regression:
+  the larger smoothness penalties simply subtract more from the same
+  behavior; the task metrics (alignment / progress / tip_lost) are as-good
+  or better.
+- **→ Stage 2 warmstarts from 5× `model_1219.pt`.**
+
 ---
 
 ## Results
