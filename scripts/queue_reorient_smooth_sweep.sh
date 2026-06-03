@@ -64,7 +64,7 @@ COMMON_ARGS=(
   --term-object-slip-xy 0.5 --term-object-slip-yaw 10.0 --term-tip-lost-steps 10 --term-finger-slip 100.0
   --enable-target-axis-reward --target-axis-weight 100.0 --target-axis-alpha 4.0 --reorient-start-step 10
   --contact-min-weight 15.0 --target-axis-progress-weight 300.0
-  --target-axis-alpha-curriculum-iters 300 --target-axis-alpha-start 0.5
+  --target-axis-alpha-curriculum-iters 0
   --enable-floor-proximity-termination --object-min-z 0.05 --floor-proximity-phase-start-step 10
   --skip-lift-phase --skip-lift-drop-offset 0.005
   --action-rate-weight=$AR_BASE --object-ang-acc-weight=$AA_BASE --object-ang-acc-phase-start-step 10
