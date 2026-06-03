@@ -211,6 +211,10 @@ class Args:
     """In skip-lift mode, spawn cylinder this many meters ABOVE the
     palm's lifted z so it falls into the pre-closed grip and establishes
     contact force. 5 mm is enough to settle in ~10 sim steps."""
+    skip_lift_spawn_tilt_jitter: float = 0.0
+    """Handoff-robustness DR: roll/pitch jitter (rad,±) on the lifted spawn. Try 0.1-0.25."""
+    skip_lift_spawn_z_jitter: float = 0.0
+    """Handoff-robustness DR: z jitter (m,±) on the lifted spawn height. Try 0.02-0.04."""
     action_rate_weight: float = -0.005
     """Weight on the action_rate_l2 smoothness penalty. Policy B used -0.1
     (20x normal) to suppress sim-only finger jitter."""
@@ -380,6 +384,8 @@ def main() -> None:
         floor_proximity_phase_start_step=args.floor_proximity_phase_start_step,
         skip_lift_phase=args.skip_lift_phase,
         skip_lift_drop_offset=args.skip_lift_drop_offset,
+        skip_lift_spawn_tilt_jitter=args.skip_lift_spawn_tilt_jitter,
+        skip_lift_spawn_z_jitter=args.skip_lift_spawn_z_jitter,
         action_rate_weight=args.action_rate_weight,
         object_ang_acc_weight=args.object_ang_acc_weight,
         object_ang_acc_phase_start_step=args.object_ang_acc_phase_start_step,
