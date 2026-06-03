@@ -712,11 +712,18 @@ A longer (30M) run from v1 would likely polish it further but isn't required.
 - *Smoothness:* not achievable via jerk penalties (the corrective jerk **is** the
   stabilisation). For sim-to-real, use a non-reward lever — action low-pass filter at
   deployment, or motor-delay/observation-noise domain randomisation during training.
-- *De-centering:* not a real root-translation problem (deterministic root xy-drift ≈ 0 for
-  all policies, v1 included); the lateral motion on video is the long cylinder's far **end**
-  swinging during rotation, not a translating grip.
-- *Bracing:* geometry-limited (the gripped cylinder sits ~7–8 cm below the palm; ±0.5 rad
-  finger residuals can't lift it to brace) — needs a grasp redesign, not a reward.
+- *De-centering:* **REAL** (corrected — an earlier "≈0 drift" claim was a measurement bug).
+  Object-center lateral excursion, deterministic: v1 **2.9 cm**, signed+critic **5.1 cm** —
+  signed+critic de-centers *more* than v1. Worth addressing (it inflates the end→palm 3D gap
+  below), but the `object_lateral_drift` penalty as tried degraded the policy; needs a
+  gentler formulation or to be applied during a longer-from-scratch run.
+- *Bracing:* **closer than first reported** (an intermediate "0 cm" reading was also buggy).
+  Ground-truthed: signed+critic holds the cylinder at **cos 0.99** with its top end only
+  **~3 cm below the palm vertically** (≈8 cm in 3D — the extra is the lateral de-centering
+  offset), **no palm contact yet**. So it's "almost bracing" — the *vertical* shortfall is
+  ~3 cm, not the ~7–8 cm implied earlier. Closing it likely needs the de-centering fixed
+  first (so the end is under the palm) plus a gentle upward nudge; reward-only attempts so
+  far degraded the reorient. Not a hard geometric wall, but unsolved.
 
 ---
 
