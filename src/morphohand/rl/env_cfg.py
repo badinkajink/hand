@@ -461,6 +461,10 @@ class MorphoHandEnvCfg:
     """Skip-lift handoff-robustness DR: uniform z jitter (m, ±) on the lifted
     spawn height each reset (Policy A may lift to a different height than the
     nominal skip-lift spawn). Try 0.02-0.04."""
+    handoff_dr_curriculum_iters: int = 0
+    """If >0, ramp the skip-lift spawn tilt/z jitter from 0 to the configured
+    max over this many PPO iters (gradual, so the warmstart grip adapts instead
+    of being shocked — high fixed DR collapsed the grasp). 0 = fixed jitter."""
     # ---- "smooth & quick" finetune curriculum (Policy B v2) -------------
     target_axis_progress_clamp_negative: bool = False
     """If True, only positive Δ(alignment) is rewarded (no penalty for
@@ -1040,6 +1044,11 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
         init_xj, init_yj, init_yawj = 0.0, 0.0, 0.0
     else:
         init_xj, init_yj, init_yawj = x_j, y_j, yaw_j
+    # Handoff-DR curriculum ramps tilt/z from 0 — start them at 0 here.
+    if cfg.handoff_dr_curriculum_iters > 0:
+        init_tilt, init_zj = 0.0, 0.0
+    else:
+        init_tilt, init_zj = float(cfg.skip_lift_spawn_tilt_jitter), float(cfg.skip_lift_spawn_z_jitter)
     from morphohand.rl.lifting_command import LiftingCommandWithBaseQuatCfg
     commands = {
         "lift_height": LiftingCommandWithBaseQuatCfg(
@@ -1050,13 +1059,11 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
             object_pose_range=manipulation_mdp.LiftingCommandCfg.ObjectPoseRangeCfg(
                 x=(x_c - init_xj, x_c + init_xj),
                 y=(y_c - init_yj, y_c + init_yj),
-                z=(obj_init_xyz[2] - float(cfg.skip_lift_spawn_z_jitter),
-                   obj_init_xyz[2] + float(cfg.skip_lift_spawn_z_jitter)),
+                z=(obj_init_xyz[2] - init_zj, obj_init_xyz[2] + init_zj),
                 yaw=(-init_yawj, init_yawj),
             ),
             base_quat=obj_init_quat,  # preserves flat orientation under yaw DR
-            spawn_tilt_range=(-float(cfg.skip_lift_spawn_tilt_jitter),
-                              float(cfg.skip_lift_spawn_tilt_jitter)),
+            spawn_tilt_range=(-init_tilt, init_tilt),
         ),
     }
 
@@ -1224,6 +1231,17 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
                 x_max=x_j, y_max=y_j, yaw_max=yaw_j,
                 x_center=x_c, y_center=y_c,
                 anneal_iters=int(cfg.dr_anneal_iters),
+                command_name="lift_height",
+            ),
+        )
+    if cfg.skip_lift_phase and cfg.handoff_dr_curriculum_iters > 0:
+        curriculum["handoff_dr_anneal"] = CurriculumTermCfg(
+            func=mjlab_terms.anneal_spawn_tilt_z,
+            params=dict(
+                tilt_max=float(cfg.skip_lift_spawn_tilt_jitter),
+                z_max=float(cfg.skip_lift_spawn_z_jitter),
+                z_center=float(obj_init_xyz[2]),
+                anneal_iters=int(cfg.handoff_dr_curriculum_iters),
                 command_name="lift_height",
             ),
         )
