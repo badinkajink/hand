@@ -233,6 +233,33 @@ def fingertip_contact_min(env: "ManagerBasedRlEnv",
     return (found > 0).float().min(dim=-1).values
 
 
+def reset_from_handoff_bank(env: "ManagerBasedRlEnv", env_ids, bank_path: str) -> None:
+    """Reset event (train-the-handoff): spawn the object + hand from a randomly
+    sampled state in Policy A's recorded terminal-state bank, so Policy B trains
+    on the EXACT physically-valid grips A hands off (not synthetic spawn jitter).
+    Writes object root pose (rel-pos + env origin) + velocity, and robot joint
+    qpos. Pair with LiftingCommand object_pose_range=None so it isn't overwritten."""
+    if not hasattr(env, "_handoff_bank"):
+        import numpy as np
+        d = np.load(bank_path)
+        env._handoff_bank = (
+            torch.as_tensor(d["obj_pose"], device=env.device, dtype=torch.float32),
+            torch.as_tensor(d["obj_vel"], device=env.device, dtype=torch.float32),
+            torch.as_tensor(d["robot_qpos"], device=env.device, dtype=torch.float32),
+        )
+    obj_pose, obj_vel, robot_qpos = env._handoff_bank
+    if isinstance(env_ids, slice):
+        env_ids = torch.arange(env.num_envs, device=env.device)[env_ids]
+    n = int(len(env_ids)); N = int(obj_pose.shape[0])
+    idx = torch.randint(0, N, (n,), device=env.device)
+    obj = env.scene["cube"]; robot = env.scene["robot"]
+    pose = obj_pose[idx].clone()
+    pose[:, :3] = pose[:, :3] + env.scene.env_origins[env_ids]
+    obj.write_root_link_pose_to_sim(pose, env_ids=env_ids)
+    obj.write_root_link_velocity_to_sim(obj_vel[idx], env_ids=env_ids)
+    robot.write_joint_position_to_sim(robot_qpos[idx], env_ids=env_ids)
+
+
 def _contact_force_mag(env: "ManagerBasedRlEnv", sensor_name: str) -> torch.Tensor:
     """Per-slot contact force magnitude for a contact sensor with a `force`
     field. Returns shape (num_envs, n_slots); the contact `force` field is a

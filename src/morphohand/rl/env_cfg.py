@@ -465,6 +465,10 @@ class MorphoHandEnvCfg:
     """If >0, ramp the skip-lift spawn tilt/z jitter from 0 to the configured
     max over this many PPO iters (gradual, so the warmstart grip adapts instead
     of being shocked — high fixed DR collapsed the grasp). 0 = fixed jitter."""
+    handoff_state_bank: str | None = None
+    """Path to a Policy-A terminal-state bank (npz from rl_record_handoff_states.py).
+    When set (skip-lift), object+hand spawn from sampled bank states each reset
+    (train-the-handoff); the LiftingCommand's object pose write is disabled."""
     # ---- "smooth & quick" finetune curriculum (Policy B v2) -------------
     target_axis_progress_clamp_negative: bool = False
     """If True, only positive Δ(alignment) is rewarded (no penalty for
@@ -1056,12 +1060,13 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
             resampling_time_range=(8.0, 12.0),
             debug_vis=True,
             difficulty="dynamic",
-            object_pose_range=manipulation_mdp.LiftingCommandCfg.ObjectPoseRangeCfg(
-                x=(x_c - init_xj, x_c + init_xj),
-                y=(y_c - init_yj, y_c + init_yj),
-                z=(obj_init_xyz[2] - init_zj, obj_init_xyz[2] + init_zj),
-                yaw=(-init_yawj, init_yawj),
-            ),
+            object_pose_range=(None if cfg.handoff_state_bank else
+                manipulation_mdp.LiftingCommandCfg.ObjectPoseRangeCfg(
+                    x=(x_c - init_xj, x_c + init_xj),
+                    y=(y_c - init_yj, y_c + init_yj),
+                    z=(obj_init_xyz[2] - init_zj, obj_init_xyz[2] + init_zj),
+                    yaw=(-init_yawj, init_yawj),
+                )),
             base_quat=obj_init_quat,  # preserves flat orientation under yaw DR
             spawn_tilt_range=(-init_tilt, init_tilt),
         ),
@@ -1102,6 +1107,14 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
             },
         ),
     }
+    # train-the-handoff: spawn from Policy A's recorded terminal states. Added
+    # LAST so it overrides reset_cube/reset_robot_joints (dict-insertion order).
+    if cfg.skip_lift_phase and cfg.handoff_state_bank:
+        events["reset_from_bank"] = EventTermCfg(
+            func=mjlab_terms.reset_from_handoff_bank,
+            mode="reset",
+            params={"bank_path": str(cfg.handoff_state_bank)},
+        )
 
     terminations = {
         "time_out": TerminationTermCfg(func=velocity_mdp.time_out, time_out=True),

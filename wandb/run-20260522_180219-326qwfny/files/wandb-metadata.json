@@ -1,0 +1,61 @@
+{
+  "os": "Linux-6.8.0-111-generic-x86_64-with-glibc2.35",
+  "python": "CPython 3.12.2",
+  "startedAt": "2026-05-23T00:02:19.311940Z",
+  "args": [
+    "--morphology-run",
+    "results/phase1/run18_final/foundational/cube/run_20260521_161817",
+    "--tag",
+    "cube_full_warmstart_frozenstd",
+    "--num-envs",
+    "1024",
+    "--init-noise-std",
+    "0.01",
+    "--entropy-coef",
+    "0.0",
+    "--init-actor-checkpoint",
+    "results/rl/cube_full_lownoise/tensorboard/model_200.pt",
+    "--freeze-actor-std",
+    "--wandb-project",
+    "morphohand-rl",
+    "--eval-video-interval",
+    "50",
+    "--eval-video-length",
+    "70"
+  ],
+  "program": "/home/humanoid/Programs/hand/scripts/rl_train_cube.py",
+  "codePath": "scripts/rl_train_cube.py",
+  "codePathLocal": "scripts/rl_train_cube.py",
+  "git": {
+    "remote": "git@github.com:badinkajink/hand.git",
+    "commit": "32be73a0c730f53e678c77c319a7e189286ef8e2"
+  },
+  "email": "williamxie00@gmail.com",
+  "root": "/home/humanoid/Programs/hand",
+  "host": "humanoid",
+  "executable": "/home/humanoid/Programs/hand/.venv/bin/python3",
+  "cpu_count": 20,
+  "cpu_count_logical": 20,
+  "gpu": "NVIDIA GeForce RTX 4070 Ti SUPER",
+  "gpu_count": 1,
+  "disk": {
+    "/": {
+      "total": "1967317549056",
+      "used": "985338241024"
+    }
+  },
+  "memory": {
+    "total": "33255555072"
+  },
+  "gpu_nvidia": [
+    {
+      "name": "NVIDIA GeForce RTX 4070 Ti SUPER",
+      "memoryTotal": "17171480576",
+      "cudaCores": 8448,
+      "architecture": "Ada",
+      "uuid": "GPU-7b3d69ca-87b8-aa83-5fd8-3e453207fda9"
+    }
+  ],
+  "cudaVersion": "12.8",
+  "writerId": "8vjtlbc0prdynqo0jizr6625qrztqus5"
+}

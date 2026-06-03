@@ -1,0 +1,1036 @@
+_wandb:
+    value:
+        cli_version: 0.27.0
+        e:
+            vc5fbo7o24jx2ong5wa23jah8407elck:
+                args:
+                    - --morphology-run
+                    - results/phase1/run18_final/foundational/cube/run_20260521_161817
+                    - --tag
+                    - cube_real_grasp
+                    - --num-envs
+                    - "1024"
+                    - --init-noise-std
+                    - "0.01"
+                    - --entropy-coef
+                    - "0.0"
+                    - --freeze-actor-std
+                    - --total-timesteps
+                    - "50000000"
+                    - --wandb-project
+                    - morphohand-rl
+                    - --eval-video-interval
+                    - "25"
+                    - --eval-video-length
+                    - "70"
+                codePath: scripts/rl_train_cube.py
+                codePathLocal: scripts/rl_train_cube.py
+                cpu_count: 20
+                cpu_count_logical: 20
+                cudaVersion: "12.8"
+                disk:
+                    /:
+                        total: "1967317549056"
+                        used: "986011271168"
+                email: williamxie00@gmail.com
+                executable: /home/humanoid/Programs/hand/.venv/bin/python3
+                git:
+                    commit: 32be73a0c730f53e678c77c319a7e189286ef8e2
+                    remote: git@github.com:badinkajink/hand.git
+                gpu: NVIDIA GeForce RTX 4070 Ti SUPER
+                gpu_count: 1
+                gpu_nvidia:
+                    - architecture: Ada
+                      cudaCores: 8448
+                      memoryTotal: "17171480576"
+                      name: NVIDIA GeForce RTX 4070 Ti SUPER
+                      uuid: GPU-7b3d69ca-87b8-aa83-5fd8-3e453207fda9
+                host: humanoid
+                memory:
+                    total: "33255555072"
+                os: Linux-6.8.0-111-generic-x86_64-with-glibc2.35
+                program: /home/humanoid/Programs/hand/scripts/rl_train_cube.py
+                python: CPython 3.12.2
+                root: /home/humanoid/Programs/hand
+                startedAt: "2026-05-23T19:41:25.605871Z"
+                writerId: vc5fbo7o24jx2ong5wa23jah8407elck
+        m: []
+        python_version: 3.12.2
+        t:
+            "1":
+                - 1
+                - 12
+            "2":
+                - 1
+                - 12
+            "3":
+                - 2
+                - 3
+                - 13
+                - 16
+                - 61
+            "4": 3.12.2
+            "5": 0.27.0
+            "12": 0.27.0
+            "13": linux-x86_64
+env_cfg:
+    value:
+        actions:
+            finger_ctrl:
+                actuator_names:
+                    - thumb_yaw
+                    - thumb_mcp
+                    - thumb_pip
+                    - index_yaw
+                    - index_mcp
+                    - index_pip
+                    - middle_yaw
+                    - middle_mcp
+                    - middle_pip
+                clip: null
+                entity_name: robot
+                offset:
+                    index_mcp: 1.3706685481151153
+                    index_pip: 1.1002339852800402
+                    index_yaw: -0.08608717554811532
+                    middle_mcp: 1.3748824923483998
+                    middle_pip: 1.1120150174711103
+                    middle_yaw: 0.034436015719659444
+                    thumb_mcp: 1.8961928227525993
+                    thumb_pip: -0.9321440346768486
+                    thumb_yaw: 0.08347471233338331
+                preserve_order: false
+                scale: 1
+                transmission_type: JOINT
+                use_default_offset: false
+            palm_ctrl:
+                clip: null
+                entity_name: robot
+                joint_names:
+                    - palm_px
+                    - palm_py
+                    - palm_pz
+                    - palm_rx
+                    - palm_ry
+                    - palm_rz
+                lift_delta_z: 0.05
+                lift_ramp_steps: 80
+                palm_default_ctrl:
+                    - 0.02
+                    - 0
+                    - -0.02
+                    - 0
+                    - 0
+                    - 0
+                palm_pz_index: 2
+                settle_steps: 240
+        commands:
+            lift_height:
+                debug_vis: true
+                difficulty: dynamic
+                entity_name: cube
+                object_pose_range:
+                    x:
+                        - -0.003
+                        - 0.003
+                    "y":
+                        - -0.003
+                        - 0.003
+                    yaw:
+                        - -0.17
+                        - 0.17
+                    z:
+                        - 0.05
+                        - 0.07
+                resampling_time_range:
+                    - 8
+                    - 12
+                success_threshold: 0.05
+                target_position_range:
+                    x:
+                        - 0.3
+                        - 0.5
+                    "y":
+                        - -0.2
+                        - 0.2
+                    z:
+                        - 0.2
+                        - 0.4
+                viz:
+                    target_color:
+                        - 1
+                        - 0.5
+                        - 0
+                        - 0.3
+        decimation: 10
+        episode_length_s: 1.4
+        events:
+            reset_base:
+                func: mjlab.envs.mdp.events.reset_root_state_uniform
+                interval_range_s: null
+                is_global_time: false
+                min_step_count_between_reset: 0
+                mode: reset
+            reset_cube:
+                func: mjlab.envs.mdp.events.reset_root_state_uniform
+                interval_range_s: null
+                is_global_time: false
+                min_step_count_between_reset: 0
+                mode: reset
+                params:
+                    asset_cfg:
+                        actuator_ids:
+                            slice_start: null
+                            slice_step: null
+                            slice_stop: null
+                        actuator_names: null
+                        body_ids:
+                            slice_start: null
+                            slice_step: null
+                            slice_stop: null
+                        body_names: null
+                        camera_ids:
+                            slice_start: null
+                            slice_step: null
+                            slice_stop: null
+                        camera_names: null
+                        geom_ids:
+                            slice_start: null
+                            slice_step: null
+                            slice_stop: null
+                        geom_names: null
+                        joint_ids:
+                            slice_start: null
+                            slice_step: null
+                            slice_stop: null
+                        joint_names: null
+                        light_ids:
+                            slice_start: null
+                            slice_step: null
+                            slice_stop: null
+                        light_names: null
+                        material_ids:
+                            slice_start: null
+                            slice_step: null
+                            slice_stop: null
+                        material_names: null
+                        name: cube
+                        preserve_order: false
+                        site_ids:
+                            slice_start: null
+                            slice_step: null
+                            slice_stop: null
+                        site_names: null
+                        tendon_ids:
+                            slice_start: null
+                            slice_step: null
+                            slice_stop: null
+                        tendon_names: null
+            reset_robot_joints:
+                func: mjlab.envs.mdp.events.reset_joints_by_offset
+                interval_range_s: null
+                is_global_time: false
+                min_step_count_between_reset: 0
+                mode: reset
+                params:
+                    asset_cfg:
+                        actuator_ids:
+                            slice_start: null
+                            slice_step: null
+                            slice_stop: null
+                        actuator_names: null
+                        body_ids:
+                            slice_start: null
+                            slice_step: null
+                            slice_stop: null
+                        body_names: null
+                        camera_ids:
+                            slice_start: null
+                            slice_step: null
+                            slice_stop: null
+                        camera_names: null
+                        geom_ids:
+                            slice_start: null
+                            slice_step: null
+                            slice_stop: null
+                        geom_names: null
+                        joint_ids:
+                            slice_start: null
+                            slice_step: null
+                            slice_stop: null
+                        joint_names:
+                            - .*
+                        light_ids:
+                            slice_start: null
+                            slice_step: null
+                            slice_stop: null
+                        light_names: null
+                        material_ids:
+                            slice_start: null
+                            slice_step: null
+                            slice_stop: null
+                        material_names: null
+                        name: robot
+                        preserve_order: false
+                        site_ids:
+                            slice_start: null
+                            slice_step: null
+                            slice_stop: null
+                        site_names: null
+                        tendon_ids:
+                            slice_start: null
+                            slice_step: null
+                            slice_stop: null
+                        tendon_names: null
+                    position_range:
+                        - 0
+                        - 0
+                    velocity_range:
+                        - 0
+                        - 0
+        is_finite_horizon: false
+        observations:
+            actor:
+                concatenate_dim: -1
+                concatenate_terms: true
+                enable_corruption: true
+                flatten_history_dim: true
+                history_length: null
+                nan_check_per_term: true
+                nan_policy: disabled
+                terms:
+                    actions:
+                        clip: null
+                        delay_hold_prob: 0
+                        delay_max_lag: 0
+                        delay_min_lag: 0
+                        delay_per_env: true
+                        delay_per_env_phase: true
+                        delay_update_period: 0
+                        flatten_history_dim: true
+                        func: mjlab.envs.mdp.observations.last_action
+                        history_length: 0
+                        noise: null
+                        scale: null
+                    joint_pos:
+                        clip: null
+                        delay_hold_prob: 0
+                        delay_max_lag: 0
+                        delay_min_lag: 0
+                        delay_per_env: true
+                        delay_per_env_phase: true
+                        delay_update_period: 0
+                        flatten_history_dim: true
+                        func: mjlab.envs.mdp.observations.joint_pos_rel
+                        history_length: 0
+                        noise:
+                            n_max: 0.01
+                            n_min: -0.01
+                            operation: add
+                        scale: null
+                    joint_vel:
+                        clip: null
+                        delay_hold_prob: 0
+                        delay_max_lag: 0
+                        delay_min_lag: 0
+                        delay_per_env: true
+                        delay_per_env_phase: true
+                        delay_update_period: 0
+                        flatten_history_dim: true
+                        func: mjlab.envs.mdp.observations.joint_vel_rel
+                        history_length: 0
+                        noise:
+                            n_max: 0.5
+                            n_min: -0.5
+                            operation: add
+                        scale: null
+                    object_pos:
+                        clip: null
+                        delay_hold_prob: 0
+                        delay_max_lag: 0
+                        delay_min_lag: 0
+                        delay_per_env: true
+                        delay_per_env_phase: true
+                        delay_update_period: 0
+                        flatten_history_dim: true
+                        func: mjlab.tasks.manipulation.mdp.observations.ee_to_object_distance
+                        history_length: 0
+                        noise:
+                            n_max: 0.005
+                            n_min: -0.005
+                            operation: add
+                        params:
+                            asset_cfg:
+                                actuator_ids:
+                                    slice_start: null
+                                    slice_step: null
+                                    slice_stop: null
+                                actuator_names: null
+                                body_ids:
+                                    slice_start: null
+                                    slice_step: null
+                                    slice_stop: null
+                                body_names: null
+                                camera_ids:
+                                    slice_start: null
+                                    slice_step: null
+                                    slice_stop: null
+                                camera_names: null
+                                geom_ids:
+                                    slice_start: null
+                                    slice_step: null
+                                    slice_stop: null
+                                geom_names: null
+                                joint_ids:
+                                    slice_start: null
+                                    slice_step: null
+                                    slice_stop: null
+                                joint_names: null
+                                light_ids:
+                                    slice_start: null
+                                    slice_step: null
+                                    slice_stop: null
+                                light_names: null
+                                material_ids:
+                                    slice_start: null
+                                    slice_step: null
+                                    slice_stop: null
+                                material_names: null
+                                name: robot
+                                preserve_order: false
+                                site_ids:
+                                    slice_start: null
+                                    slice_step: null
+                                    slice_stop: null
+                                site_names:
+                                    - palm_pose_site
+                                tendon_ids:
+                                    slice_start: null
+                                    slice_step: null
+                                    slice_stop: null
+                                tendon_names: null
+                            object_name: cube
+                        scale: null
+                    ref_finger_qpos:
+                        clip: null
+                        delay_hold_prob: 0
+                        delay_max_lag: 0
+                        delay_min_lag: 0
+                        delay_per_env: true
+                        delay_per_env_phase: true
+                        delay_update_period: 0
+                        flatten_history_dim: true
+                        func: morphohand.rl.mjlab_terms.ref_finger_qpos
+                        history_length: 0
+                        noise: null
+                        params:
+                            frozen_scene_xml: /home/humanoid/Programs/hand/results/phase1/run18_final/foundational/cube/run_20260521_161817/frozen_scene.xml
+                            run_dir: /home/humanoid/Programs/hand/results/phase1/run18_final/foundational/cube/run_20260521_161817
+                        scale: null
+                    ref_object_pose:
+                        clip: null
+                        delay_hold_prob: 0
+                        delay_max_lag: 0
+                        delay_min_lag: 0
+                        delay_per_env: true
+                        delay_per_env_phase: true
+                        delay_update_period: 0
+                        flatten_history_dim: true
+                        func: morphohand.rl.mjlab_terms.ref_object_pose
+                        history_length: 0
+                        noise: null
+                        params:
+                            frozen_scene_xml: /home/humanoid/Programs/hand/results/phase1/run18_final/foundational/cube/run_20260521_161817/frozen_scene.xml
+                            run_dir: /home/humanoid/Programs/hand/results/phase1/run18_final/foundational/cube/run_20260521_161817
+                        scale: null
+            critic:
+                concatenate_dim: -1
+                concatenate_terms: true
+                enable_corruption: false
+                flatten_history_dim: true
+                history_length: null
+                nan_check_per_term: true
+                nan_policy: disabled
+                terms:
+                    actions:
+                        clip: null
+                        delay_hold_prob: 0
+                        delay_max_lag: 0
+                        delay_min_lag: 0
+                        delay_per_env: true
+                        delay_per_env_phase: true
+                        delay_update_period: 0
+                        flatten_history_dim: true
+                        func: mjlab.envs.mdp.observations.last_action
+                        history_length: 0
+                        noise: null
+                        scale: null
+                    joint_pos:
+                        clip: null
+                        delay_hold_prob: 0
+                        delay_max_lag: 0
+                        delay_min_lag: 0
+                        delay_per_env: true
+                        delay_per_env_phase: true
+                        delay_update_period: 0
+                        flatten_history_dim: true
+                        func: mjlab.envs.mdp.observations.joint_pos_rel
+                        history_length: 0
+                        noise:
+                            n_max: 0.01
+                            n_min: -0.01
+                            operation: add
+                        scale: null
+                    joint_vel:
+                        clip: null
+                        delay_hold_prob: 0
+                        delay_max_lag: 0
+                        delay_min_lag: 0
+                        delay_per_env: true
+                        delay_per_env_phase: true
+                        delay_update_period: 0
+                        flatten_history_dim: true
+                        func: mjlab.envs.mdp.observations.joint_vel_rel
+                        history_length: 0
+                        noise:
+                            n_max: 0.5
+                            n_min: -0.5
+                            operation: add
+                        scale: null
+                    object_pos:
+                        clip: null
+                        delay_hold_prob: 0
+                        delay_max_lag: 0
+                        delay_min_lag: 0
+                        delay_per_env: true
+                        delay_per_env_phase: true
+                        delay_update_period: 0
+                        flatten_history_dim: true
+                        func: mjlab.tasks.manipulation.mdp.observations.ee_to_object_distance
+                        history_length: 0
+                        noise:
+                            n_max: 0.005
+                            n_min: -0.005
+                            operation: add
+                        params:
+                            asset_cfg:
+                                actuator_ids:
+                                    slice_start: null
+                                    slice_step: null
+                                    slice_stop: null
+                                actuator_names: null
+                                body_ids:
+                                    slice_start: null
+                                    slice_step: null
+                                    slice_stop: null
+                                body_names: null
+                                camera_ids:
+                                    slice_start: null
+                                    slice_step: null
+                                    slice_stop: null
+                                camera_names: null
+                                geom_ids:
+                                    slice_start: null
+                                    slice_step: null
+                                    slice_stop: null
+                                geom_names: null
+                                joint_ids:
+                                    slice_start: null
+                                    slice_step: null
+                                    slice_stop: null
+                                joint_names: null
+                                light_ids:
+                                    slice_start: null
+                                    slice_step: null
+                                    slice_stop: null
+                                light_names: null
+                                material_ids:
+                                    slice_start: null
+                                    slice_step: null
+                                    slice_stop: null
+                                material_names: null
+                                name: robot
+                                preserve_order: false
+                                site_ids:
+                                    slice_start: null
+                                    slice_step: null
+                                    slice_stop: null
+                                site_names:
+                                    - palm_pose_site
+                                tendon_ids:
+                                    slice_start: null
+                                    slice_step: null
+                                    slice_stop: null
+                                tendon_names: null
+                            object_name: cube
+                        scale: null
+                    ref_finger_qpos:
+                        clip: null
+                        delay_hold_prob: 0
+                        delay_max_lag: 0
+                        delay_min_lag: 0
+                        delay_per_env: true
+                        delay_per_env_phase: true
+                        delay_update_period: 0
+                        flatten_history_dim: true
+                        func: morphohand.rl.mjlab_terms.ref_finger_qpos
+                        history_length: 0
+                        noise: null
+                        params:
+                            frozen_scene_xml: /home/humanoid/Programs/hand/results/phase1/run18_final/foundational/cube/run_20260521_161817/frozen_scene.xml
+                            run_dir: /home/humanoid/Programs/hand/results/phase1/run18_final/foundational/cube/run_20260521_161817
+                        scale: null
+                    ref_object_pose:
+                        clip: null
+                        delay_hold_prob: 0
+                        delay_max_lag: 0
+                        delay_min_lag: 0
+                        delay_per_env: true
+                        delay_per_env_phase: true
+                        delay_update_period: 0
+                        flatten_history_dim: true
+                        func: morphohand.rl.mjlab_terms.ref_object_pose
+                        history_length: 0
+                        noise: null
+                        params:
+                            frozen_scene_xml: /home/humanoid/Programs/hand/results/phase1/run18_final/foundational/cube/run_20260521_161817/frozen_scene.xml
+                            run_dir: /home/humanoid/Programs/hand/results/phase1/run18_final/foundational/cube/run_20260521_161817
+                        scale: null
+        rewards:
+            action_rate_l2:
+                func: mjlab.envs.mdp.rewards.action_rate_l2
+                weight: -0.005
+            contact_mean:
+                func: morphohand.rl.mjlab_terms.fingertip_contact_mean
+                params:
+                    sensor_name: fingertip_cube_contact
+                weight: 10
+            contact_min:
+                func: morphohand.rl.mjlab_terms.fingertip_contact_min
+                params:
+                    sensor_name: fingertip_cube_contact
+                weight: 30
+            fingertip_to_object:
+                func: morphohand.rl.mjlab_terms.fingertip_to_object_distance
+                params:
+                    object_name: cube
+                weight: -3
+            joint_pos_limits:
+                func: mjlab.envs.mdp.rewards.joint_pos_limits
+                params:
+                    asset_cfg:
+                        actuator_ids:
+                            slice_start: null
+                            slice_step: null
+                            slice_stop: null
+                        actuator_names: null
+                        body_ids:
+                            slice_start: null
+                            slice_step: null
+                            slice_stop: null
+                        body_names: null
+                        camera_ids:
+                            slice_start: null
+                            slice_step: null
+                            slice_stop: null
+                        camera_names: null
+                        geom_ids:
+                            slice_start: null
+                            slice_step: null
+                            slice_stop: null
+                        geom_names: null
+                        joint_ids:
+                            slice_start: null
+                            slice_step: null
+                            slice_stop: null
+                        joint_names:
+                            - .*
+                        light_ids:
+                            slice_start: null
+                            slice_step: null
+                            slice_stop: null
+                        light_names: null
+                        material_ids:
+                            slice_start: null
+                            slice_step: null
+                            slice_stop: null
+                        material_names: null
+                        name: robot
+                        preserve_order: false
+                        site_ids:
+                            slice_start: null
+                            slice_step: null
+                            slice_stop: null
+                        site_names: null
+                        tendon_ids:
+                            slice_start: null
+                            slice_step: null
+                            slice_stop: null
+                        tendon_names: null
+                weight: -2
+            lift_height:
+                func: morphohand.rl.mjlab_terms.object_lift_height
+                params:
+                    object_name: cube
+                    target_lift: 0.05
+                weight: 80
+            object_drop:
+                func: morphohand.rl.mjlab_terms.object_drop_indicator
+                params:
+                    drop_threshold: 0.02
+                    object_name: cube
+                weight: -12
+            object_xy_drift:
+                func: morphohand.rl.mjlab_terms.object_xy_drift
+                params:
+                    object_name: cube
+                weight: -3
+            track_finger_ctrl_anchor:
+                func: morphohand.rl.mjlab_terms.track_finger_ctrl_anchor
+                params:
+                    alpha: 4
+                    frozen_scene_xml: /home/humanoid/Programs/hand/results/phase1/run18_final/foundational/cube/run_20260521_161817/frozen_scene.xml
+                    run_dir: /home/humanoid/Programs/hand/results/phase1/run18_final/foundational/cube/run_20260521_161817
+                weight: 1
+            track_finger_qpos:
+                func: morphohand.rl.mjlab_terms.track_finger_qpos
+                params:
+                    alpha: 20
+                    frozen_scene_xml: /home/humanoid/Programs/hand/results/phase1/run18_final/foundational/cube/run_20260521_161817/frozen_scene.xml
+                    run_dir: /home/humanoid/Programs/hand/results/phase1/run18_final/foundational/cube/run_20260521_161817
+                weight: 4
+            track_object_pos:
+                func: morphohand.rl.mjlab_terms.track_object_pos
+                params:
+                    alpha: 200
+                    frozen_scene_xml: /home/humanoid/Programs/hand/results/phase1/run18_final/foundational/cube/run_20260521_161817/frozen_scene.xml
+                    run_dir: /home/humanoid/Programs/hand/results/phase1/run18_final/foundational/cube/run_20260521_161817
+                weight: 6
+            track_object_quat:
+                func: morphohand.rl.mjlab_terms.track_object_quat
+                params:
+                    alpha: 10
+                    frozen_scene_xml: /home/humanoid/Programs/hand/results/phase1/run18_final/foundational/cube/run_20260521_161817/frozen_scene.xml
+                    run_dir: /home/humanoid/Programs/hand/results/phase1/run18_final/foundational/cube/run_20260521_161817
+                weight: 2
+        scale_rewards_by_dt: true
+        scene:
+            entities:
+                cube:
+                    articulation: null
+                    cameras: []
+                    collisions: []
+                    init_state:
+                        ang_vel:
+                            - 0
+                            - 0
+                            - 0
+                        joint_pos:
+                            .*: 0
+                        joint_vel:
+                            .*: 0
+                        lin_vel:
+                            - 0
+                            - 0
+                            - 0
+                        pos:
+                            - 0
+                            - 0
+                            - 0.025
+                        rot:
+                            - 1
+                            - 0
+                            - 0
+                            - 0
+                    lights: []
+                    materials: []
+                    sort_actuators: false
+                    spec_fn: morphohand.rl.env_cfg.to_mjlab_cfg.<locals>.<lambda>
+                    textures: []
+                robot:
+                    articulation:
+                        actuators:
+                            - armature: 0
+                              frictionloss: 0
+                              target_names_expr:
+                                - thumb_yaw
+                                - thumb_mcp
+                                - thumb_pip
+                                - index_yaw
+                                - index_mcp
+                                - index_pip
+                                - middle_yaw
+                                - middle_mcp
+                                - middle_pip
+                                - palm_px
+                                - palm_py
+                                - palm_pz
+                                - palm_rx
+                                - palm_ry
+                                - palm_rz
+                              transmission_type: JOINT
+                        soft_joint_pos_limit_factor: 0.95
+                    cameras: []
+                    collisions: []
+                    init_state:
+                        ang_vel:
+                            - 0
+                            - 0
+                            - 0
+                        joint_pos:
+                            index_mcp: 1.3706685481151153
+                            index_pip: 1.1002339852800402
+                            index_yaw: -0.08608717554811532
+                            middle_mcp: 1.3748824923483998
+                            middle_pip: 1.1120150174711103
+                            middle_yaw: 0.034436015719659444
+                            palm_px: 0.02
+                            palm_py: -1.10471e-15
+                            palm_pz: -0.0203096
+                            palm_rx: 1.9739e-07
+                            palm_ry: -4.72707e-07
+                            palm_rz: -9.41207e-17
+                            thumb_mcp: 1.8961928227525993
+                            thumb_pip: -0.9321440346768486
+                            thumb_yaw: 0.08347471233338331
+                        joint_vel:
+                            .*: 0
+                        lin_vel:
+                            - 0
+                            - 0
+                            - 0
+                        pos:
+                            - 0
+                            - 0
+                            - 0
+                        rot:
+                            - 1
+                            - 0
+                            - 0
+                            - 0
+                    lights: []
+                    materials: []
+                    sort_actuators: false
+                    spec_fn: morphohand.rl.env_cfg.to_mjlab_cfg.<locals>.<lambda>
+                    textures: []
+            env_spacing: 0.5
+            extent: null
+            num_envs: 1024
+            sensors:
+                - debug: false
+                  fields:
+                    - found
+                  global_frame: false
+                  history_length: 0
+                  name: fingertip_cube_contact
+                  num_slots: 1
+                  primary:
+                    entity: robot
+                    exclude: []
+                    mode: body
+                    pattern:
+                        - thumb_tip
+                        - index_tip
+                        - middle_tip
+                  reduce: none
+                  secondary:
+                    entity: cube
+                    exclude: []
+                    mode: body
+                    pattern: cube
+                  secondary_policy: first
+                  track_air_time: false
+            spec_fn: null
+            terrain:
+                articulation: null
+                cameras: []
+                collisions: []
+                env_spacing: 0.5
+                init_state:
+                    ang_vel:
+                        - 0
+                        - 0
+                        - 0
+                    joint_pos:
+                        .*: 0
+                    joint_vel:
+                        .*: 0
+                    lin_vel:
+                        - 0
+                        - 0
+                        - 0
+                    pos:
+                        - 0
+                        - 0
+                        - 0
+                    rot:
+                        - 1
+                        - 0
+                        - 0
+                        - 0
+                lights:
+                    - body: world
+                      castshadow: true
+                      cutoff: 45
+                      dir:
+                        - 0
+                        - 0
+                        - -1
+                      exponent: 10
+                      mode: fixed
+                      name: sun
+                      pos:
+                        - 0
+                        - 0
+                        - 1.5
+                      target: null
+                      type: directional
+                materials:
+                    - geom_names_expr:
+                        - terrain$
+                      name: groundplane
+                      reflectance: 0.2
+                      rgba:
+                        - 1
+                        - 1
+                        - 1
+                        - 1
+                      texrepeat:
+                        - 4
+                        - 4
+                      texture: groundplane
+                      texuniform: true
+                max_init_terrain_level: null
+                num_envs: 1024
+                sort_actuators: false
+                spec_fn: mjlab.entity.entity.EntityCfg.<lambda>.<locals>.<lambda>
+                terrain_generator: null
+                terrain_type: plane
+                textures:
+                    - builtin: checker
+                      height: 300
+                      mark: edge
+                      markrgb:
+                        - 0.8
+                        - 0.8
+                        - 0.8
+                      name: groundplane
+                      rgb1:
+                        - 0.2
+                        - 0.3
+                        - 0.4
+                      rgb2:
+                        - 0.1
+                        - 0.2
+                        - 0.3
+                      type: 2d
+                      width: 300
+        seed: null
+        sim:
+            contact_sensor_maxmatch: 64
+            ls_parallel: true
+            mujoco:
+                ccd_iterations: 50
+                cone: elliptic
+                gravity:
+                    - 0
+                    - 0
+                    - -9.81
+                impratio: 10
+                integrator: implicitfast
+                iterations: 10
+                jacobian: auto
+                ls_iterations: 20
+                ls_tolerance: 0.01
+                multiccd: false
+                solver: newton
+                timestep: 0.002
+                tolerance: 1e-08
+            nan_guard:
+                buffer_size: 100
+                enabled: false
+                max_envs_to_dump: 5
+                output_dir: /tmp/mjlab/nan_dumps
+            nconmax: 64
+            njmax: 400
+        terminations:
+            time_out:
+                func: mjlab.envs.mdp.terminations.time_out
+                time_out: true
+        viewer:
+            azimuth: 120
+            body_name: palm_pose
+            distance: 0.6
+            elevation: -15
+            enable_reflections: true
+            enable_shadows: true
+            entity_name: robot
+            env_idx: 0
+            fovy: null
+            height: 240
+            lookat:
+                - 0
+                - 0
+                - 0
+            max_extra_envs: 2
+            origin_type: ASSET_BODY
+            width: 320
+log_dir:
+    value: /home/humanoid/Programs/hand/results/rl/cube_real_grasp/tensorboard
+train_cfg:
+    value:
+        actor:
+            activation: elu
+            distribution_cfg:
+                init_std: 0.01
+                std_type: scalar
+            hidden_dims:
+                - 512
+                - 256
+                - 128
+            obs_normalization: false
+        algorithm:
+            clip_param: 0.2
+            desired_kl: 0.01
+            entropy_coef: 0
+            gamma: 0.99
+            lam: 0.95
+            learning_rate: 0.0005
+            max_grad_norm: 1
+            normalize_advantage_per_mini_batch: false
+            num_learning_epochs: 5
+            num_mini_batches: 4
+            optimizer: adam
+            rnd_cfg: null
+            schedule: adaptive
+            symmetry_cfg: null
+            use_clipped_value_loss: true
+            value_loss_coef: 1
+        class_name: OnPolicyRunner
+        clip_actions: null
+        critic:
+            activation: elu
+            hidden_dims:
+                - 512
+                - 256
+                - 128
+            obs_normalization: false
+        experiment_name: cube_real_grasp
+        load_checkpoint: model_.*.pt
+        load_run: .*
+        logger: wandb
+        max_iterations: 2034
+        multi_gpu: null
+        num_steps_per_env: 24
+        obs_groups:
+            actor:
+                - actor
+            critic:
+                - critic
+        resume: false
+        run_name: cube_real_grasp
+        save_interval: 50
+        seed: 42
+        upload_model: false
+        wandb_project: morphohand-rl
+        wandb_tags: []

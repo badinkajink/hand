@@ -1,0 +1,94 @@
+########## 5x  (policyB_v2_5x.log) ##########
+iters logged: 1220   NaN/traceback: 0
+--- tip_lost trend (every ~50 iters) ---
+  iter~1: 1.5000
+  iter~51: 11.2917
+  iter~101: 5.8750
+  iter~151: 4.9167
+  iter~201: 5.1667
+  iter~251: 3.1250
+  iter~301: 2.1667
+  iter~351: 2.0833
+  iter~401: 2.3750
+  iter~451: 2.3750
+  iter~501: 3.6667
+  iter~551: 4.0000
+  iter~601: 3.0000
+  iter~651: 1.8750
+  iter~701: 1.2500
+  iter~751: 1.8333
+  iter~801: 3.2083
+  iter~851: 2.3750
+  iter~901: 2.1667
+  iter~951: 2.8750
+  iter~1001: 2.5000
+  iter~1051: 1.7500
+  iter~1101: 1.8333
+  iter~1151: 1.5000
+  iter~1201: 1.6667
+--- alignment_success trend ---
+--- FINAL metrics block ---
+    Episode_Reward/target_axis_progress: 0.4970
+           Curriculum/smoothness_anneal: 1.0000
+      Metrics/lift_height/object_height: 0.1237
+           Episode_Termination/time_out: 3.7083
+        Episode_Termination/object_drop: 0.3750
+           Episode_Termination/tip_lost: 1.6250
+                            Mean reward: 369.18
+          Episode_Reward/action_rate_l2: -0.6155
+       Episode_Reward/object_ang_acc_l2: -6.1161
+   Episode_Reward/target_axis_alignment: 79.9738
+    Episode_Reward/target_axis_progress: 0.4988
+           Curriculum/smoothness_anneal: 1.0000
+      Metrics/lift_height/object_height: 0.1251
+           Episode_Termination/time_out: 4.6250
+        Episode_Termination/object_drop: 0.1667
+           Episode_Termination/tip_lost: 0.9583
+
+########## 10x  (policyB_v2_10x.log) ##########
+iters logged: 1220   NaN/traceback: 0
+--- tip_lost trend (every ~50 iters) ---
+  iter~1: 0.2917
+  iter~51: 12.4167
+  iter~101: 8.2083
+  iter~151: 4.3750
+  iter~201: 2.7500
+  iter~251: 1.3750
+  iter~301: 1.2083
+  iter~351: 1.5000
+  iter~401: 2.0000
+  iter~451: 3.7083
+  iter~501: 2.3333
+  iter~551: 3.4167
+  iter~601: 2.6667
+  iter~651: 3.6250
+  iter~701: 3.2917
+  iter~751: 3.5000
+  iter~801: 3.2500
+  iter~851: 3.5000
+  iter~901: 2.7500
+  iter~951: 3.4583
+  iter~1001: 3.4583
+  iter~1051: 4.0417
+  iter~1101: 4.4167
+  iter~1151: 5.1250
+  iter~1201: 4.5000
+--- alignment_success trend ---
+--- FINAL metrics block ---
+    Episode_Reward/target_axis_progress: 0.1291
+           Curriculum/smoothness_anneal: 1.0000
+      Metrics/lift_height/object_height: 0.1408
+           Episode_Termination/time_out: 2.2083
+        Episode_Termination/object_drop: 0.4167
+           Episode_Termination/tip_lost: 5.3333
+                            Mean reward: 229.24
+          Episode_Reward/action_rate_l2: -0.7834
+       Episode_Reward/object_ang_acc_l2: -2.4512
+   Episode_Reward/target_axis_alignment: 43.2985
+    Episode_Reward/target_axis_progress: 0.1350
+           Curriculum/smoothness_anneal: 1.0000
+      Metrics/lift_height/object_height: 0.1425
+           Episode_Termination/time_out: 2.1250
+        Episode_Termination/object_drop: 0.1667
+           Episode_Termination/tip_lost: 4.4167
+
