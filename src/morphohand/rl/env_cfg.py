@@ -453,6 +453,14 @@ class MorphoHandEnvCfg:
     zero-force — fingers can't grip. A small drop produces the contact
     pressure CEM had at lift-end. 5 mm is enough to settle in ~10 sim
     steps without bouncing."""
+    skip_lift_spawn_tilt_jitter: float = 0.0
+    """Skip-lift handoff-robustness DR: uniform roll/pitch jitter (rad, ±) on
+    the lifted spawn each reset, so a reorient policy tolerates the varied
+    tilted pose a real Policy-A lift hands off. Try 0.1-0.25."""
+    skip_lift_spawn_z_jitter: float = 0.0
+    """Skip-lift handoff-robustness DR: uniform z jitter (m, ±) on the lifted
+    spawn height each reset (Policy A may lift to a different height than the
+    nominal skip-lift spawn). Try 0.02-0.04."""
     # ---- "smooth & quick" finetune curriculum (Policy B v2) -------------
     target_axis_progress_clamp_negative: bool = False
     """If True, only positive Δ(alignment) is rewarded (no penalty for
@@ -1042,10 +1050,13 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
             object_pose_range=manipulation_mdp.LiftingCommandCfg.ObjectPoseRangeCfg(
                 x=(x_c - init_xj, x_c + init_xj),
                 y=(y_c - init_yj, y_c + init_yj),
-                z=(obj_init_xyz[2], obj_init_xyz[2]),  # keep cube on floor at its keyframe z
+                z=(obj_init_xyz[2] - float(cfg.skip_lift_spawn_z_jitter),
+                   obj_init_xyz[2] + float(cfg.skip_lift_spawn_z_jitter)),
                 yaw=(-init_yawj, init_yawj),
             ),
             base_quat=obj_init_quat,  # preserves flat orientation under yaw DR
+            spawn_tilt_range=(-float(cfg.skip_lift_spawn_tilt_jitter),
+                              float(cfg.skip_lift_spawn_tilt_jitter)),
         ),
     }
 

@@ -73,6 +73,16 @@ class LiftingCommandWithBaseQuat(LiftingCommand):
             # final = yaw_quat (world) * base_quat (intrinsic).
             base = self._base_quat_full[env_ids]
             quat = quat_mul(yaw_quat, base)
+            # Optional spawn TILT jitter (roll/pitch) — handoff-robustness DR: lets the
+            # object spawn slightly off-vertical/tilted so a reorient policy trained here
+            # tolerates the varied lifted pose a real Policy-A lift delivers. Applied as a
+            # small world-frame rotation on top of the yaw+base spawn quat.
+            tlo, thi = self.cfg.spawn_tilt_range
+            if thi > 0.0 or tlo < 0.0:
+                roll = sample_uniform(tlo, thi, (n,), device=self.device)
+                pitch = sample_uniform(tlo, thi, (n,), device=self.device)
+                tilt_quat = quat_from_euler_xyz(roll, pitch, torch.zeros(n, device=self.device))
+                quat = quat_mul(tilt_quat, quat)
 
             pose = torch.cat([pos, quat], dim=-1)
             velocity = torch.zeros(n, 6, device=self.device)
@@ -85,6 +95,9 @@ class LiftingCommandWithBaseQuatCfg(LiftingCommandCfg):
     base_quat: tuple[float, float, float, float] = (1.0, 0.0, 0.0, 0.0)
     """wxyz quat applied to the object before the yaw sample. Identity =
     drop-in replacement for parent class."""
+    spawn_tilt_range: tuple[float, float] = (0.0, 0.0)
+    """Uniform roll/pitch jitter (rad) added to the spawn quat each reset.
+    Handoff-robustness DR for skip-lift training. (0,0) = no tilt."""
 
     def build(self, env) -> LiftingCommandWithBaseQuat:
         return LiftingCommandWithBaseQuat(self, env)
