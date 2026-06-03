@@ -171,6 +171,10 @@ class Args:
     """Sharpness of the axis-alignment reward."""
     reorient_start_step: int = 30
     """Policy step from which target_axis reward fires (after lift completes)."""
+    finger_residual_active_from_step: int = 0
+    """Policy step from which the policy's finger residual applies (zeroed before;
+    scripted grasp runs undisturbed). Set ~reorient_start_step in normal-lift to keep
+    a reorient warmstart from blowing up the flat-object grasp."""
     strict_tip_lost_termination: bool = False
     """If True, terminate immediately on any single-step tip loss in lift phase."""
     contact_min_weight: float = 30.0
@@ -362,6 +366,7 @@ def main() -> None:
         target_axis_weight=args.target_axis_weight,
         target_axis_alpha=args.target_axis_alpha,
         reorient_start_step=args.reorient_start_step,
+        finger_residual_active_from_step=args.finger_residual_active_from_step,
         strict_tip_lost_termination=args.strict_tip_lost_termination,
         contact_min_weight=args.contact_min_weight,
         target_axis_progress_weight=args.target_axis_progress_weight,
