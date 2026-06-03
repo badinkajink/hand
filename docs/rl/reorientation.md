@@ -599,12 +599,31 @@ with **no reset**: it builds the env in B-mode (66-dim) and feeds Policy A `obs[
 (A is 65-dim; B's extra `target_axis_misalign` obs is appended last) through a real lift to
 0.10 m, then switches to Policy B's actions on the same physics state — no teleport.
 
-**Finding:** the handoff is seamless but **Policy B drops the cylinder shortly after the
-switch** (z = 0.097 at handoff, object gone by ~step 75). This is a *real* train/deploy
-distribution gap: B was trained spawning at a precise skip-lift pose (with a 5 mm
-drop-into-grip establishing contact force), so A's genuinely-lifted state is off-distribution.
-**Fix (future):** train B's successor in the normal-lift env (reorient rewards gated after
-the real lift) so it experiences A's actual terminal state.
+**Finding:** the handoff is seamless mechanically but **Policy B's fingers "freak out"
+(erratic high-frequency motion) right after the switch and fail to articulate** — it then
+drops the cylinder (z = 0.097 at handoff, gone by ~step 75). Root cause: B was trained on
+its *exact* skip-lift spawn (object pre-placed at the lifted pose, 5 mm drop-into-grip, B
+acting from step 0); A's *real* lift delivers a different contact/pose state and B starts at
+step ~45, so B is **out-of-distribution** at the seam and emits garbage. (B is fine when run
+alone — it spawns into exactly its training state.)
+
+**Failed fix attempt — retrain a single normal-lift B (catch-22).** Finetuning B in the
+normal-lift env (real lift, reorient gated after) hit a dead end:
+- residual ON during the lift → the reorient-trained policy is OOD on the flat-object grasp
+  and blows up the physics (**NaN at iter 0**);
+- residual OFF during the lift (`--finger-residual-active-from-step`, added in this attempt)
+  → the *scripted* grip alone is too weak, the object slips to only 0.06 m (not 0.10), and B
+  then faces a too-low OOD object → **alignment stuck ~1.7, no reorientation**.
+A lifts cleanly only *because* its residuals actively hold the grip through the lift, so one
+policy can't both lift-grip and reorient without becoming the monolithic policy the
+two-policy split was created to avoid.
+
+**Correct fix (next, keeps the two-policy split + no-reset script):** make B robust to A's
+terminal state — either (a) **train-the-handoff**: run A's lift inside B's training env so B
+learns reorient from A's *actual* terminal state; or (b) **domain-randomise B's skip-lift
+spawn** (jitter lifted height / orientation / contact) so it tolerates the handoff variation.
+(b) is the simpler first try. The `residual_active_from_sim_step` knob and the continuous
+handoff script remain useful building blocks.
 
 ### Phase 3 (in progress): bracing.
 
