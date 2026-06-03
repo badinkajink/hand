@@ -217,6 +217,8 @@ class Args:
     """Handoff-robustness DR: z jitter (m,±) on the lifted spawn height. Try 0.02-0.04."""
     handoff_dr_curriculum_iters: int = 0
     """If >0, ramp spawn tilt/z jitter 0->max over this many iters (gradual grip adaptation)."""
+    handoff_state_bank: str | None = None
+    """Path to a Policy-A terminal-state bank npz; spawn B from sampled states (train-the-handoff)."""
     action_rate_weight: float = -0.005
     """Weight on the action_rate_l2 smoothness penalty. Policy B used -0.1
     (20x normal) to suppress sim-only finger jitter."""
@@ -389,6 +391,7 @@ def main() -> None:
         skip_lift_spawn_tilt_jitter=args.skip_lift_spawn_tilt_jitter,
         skip_lift_spawn_z_jitter=args.skip_lift_spawn_z_jitter,
         handoff_dr_curriculum_iters=args.handoff_dr_curriculum_iters,
+        handoff_state_bank=args.handoff_state_bank,
         action_rate_weight=args.action_rate_weight,
         object_ang_acc_weight=args.object_ang_acc_weight,
         object_ang_acc_phase_start_step=args.object_ang_acc_phase_start_step,

@@ -71,8 +71,7 @@
 \begin{document}
 % ============================================================
 
-\title{A Reconfigurable Hand Platform
-for Physical Validation of Simulation-Optimized Morphologies}
+\title{A Reconfigurable Hand for Validation of Simulation-Optimized Morphologies}
 % \large{\textit{(Working Paper / Research Proposal --- v2)}}}
 
 \author{
@@ -133,15 +132,14 @@ backlash and compliance not present in a purpose-built hand, which could confoun
 
 \smallskip
 \textbf{H6. How much will it cost?}\\
-Hardware (motors, rails, custom mounts, fingertip tooling): approximately \$8{,}000--\$15{,}000.
-Compute (GPU time for parallel simulation and quality-diversity search): \$5{,}000--\$10{,}000
+Hardware (motors, rails, custom mounts, fingertip tooling): approximately \$800--\$1{,}500.
+Compute (GPU time for parallel simulation and quality-diversity search): \$500--\$1000
 in cloud credits or equivalent on-premise GPU time.
 
 \smallskip
 \textbf{H7. How long will it take?}\\
-Eighteen to twenty-four months: six months for hardware design and fabrication,
-six months for the simulation and optimization framework, six months for experiments
-and writing.
+Twelve months hopefully: six-to-nine months for hardware design and fabrication,
+six-to-nine concurrent months for the simulation and optimization framework, three months for thorough experiments and writing.
 
 \smallskip
 \textbf{H8. What are the mid-term and final ``exams'' to check for success?}\\
@@ -200,17 +198,9 @@ bi-level optimization, surrogate-assisted illumination
 \label{sec:intro}
 % ============================================================
 
-\subsection{The Core Problem}
-
-A robot hand is not a neutral tool.
+No two human hands are made the same.
 The positions of finger bases on the palm, the lengths of each phalange segment, the range
-of side-to-side spread at each knuckle---these choices are baked into the hardware at
-manufacturing time and determine, fundamentally, what the hand can and cannot grasp.
-A hand with widely spaced, long fingers excels at enveloping large cylinders but struggles
-to pinch small flat objects.
-A hand with convergent, short fingers achieves stable precision grasps on small parts but
-cannot wrap around larger objects without slipping.
-These are not controller failures; they are consequences of morphology.
+of side-to-side spread at each knuckle---these quantities determine how well a hand can grasp something, or whether it can grasp it at all.
 
 Despite this, robotic hand design is still largely driven by:
 \begin{itemize}
@@ -225,7 +215,7 @@ All three approaches share a critical limitation: they produce one or a few phys
 instantiations of a hand and evaluate them, but they do not systematically compare many
 morphologies under identical hardware conditions.
 As a result, the question ``how much does morphology matter, and which morphology should
-I choose for my task distribution?'' remains largely unanswered at the hardware level.
+I choose for my task distribution?'' remains largely unanswered in the real, physical world.
 
 \subsection{Why Hardware Validation is Necessary}
 
@@ -383,7 +373,7 @@ No existing reconfigurable hand platform:
   \item Provides a 2D Cartesian gantry for continuous repositioning of finger base frames
     in the palm plane;
   \item Is explicitly designed as a \emph{measurement instrument} for morphology
-    evaluation rather than as an operational end-effector.
+    evaluation, in addition to an operational end-effector.
 \end{enumerate}
 MorphoHand addresses all three gaps.
 
@@ -811,21 +801,16 @@ precomputed contact region library is feasible).
 
 \subsection{Design Philosophy and Scope}
 
-MorphoHand is a measurement instrument, not an operational robot hand.
-This distinction drives every design decision.
+The primary design intent is for the platform to be a measurement instrument, then an operational robot hand.
+This distinction drives some key design decisions.
 An operational hand must be fast, compact, strong, and reliable across thousands of
 operating cycles.
 MorphoHand must be \emph{reconfigurable}, \emph{consistent} (same morphology = same
 experimental conditions every time), and \emph{transparent} (morphological parameters
 must map cleanly to the variables the optimizer controls).
 
-This means we accept tradeoffs that would be unacceptable in an operational hand:
-the gantry mechanism adds bulk and weight; the telescoping phalange actuator adds
-compliance not present in a rigid link; the total DOF count (18) makes dynamic grasping
-impractical.
-These are features, not bugs: the gantry enables the morphology space we want to explore;
-the compliance is characterized and compensated in the MJCF model; the high DOF count
-is exactly what gives us the coverage of the design space we need.
+Thus, the platform makes several compromises: the gantry mechanism adds bulk and weight; the telescoping phalange actuator adds
+minor compliance not present in a rigid link (\textit{wx: while true we hope to minimize this}); the total DOF count (18) and accompanying mechanical complexity will make highly dynamic manipulation likely impractical.
 
 All grasps are evaluated under \textbf{quasi-static conditions}: the hand moves slowly
 to a target pose, waits for contact forces to stabilize, and then we record the grasp
@@ -847,10 +832,8 @@ results directly comparable.
 Each finger has two actuated phalanges: a variable-length proximal phalange (flex/ext at
 the MCP joint) and a fixed-length distal segment (flex/ext at the PIP joint).
 We do not include a DIP (distal interphalangeal) joint: the distal-most joint of the human
-finger contributes primarily to fine dexterity in tool use, not to gross grasp
-morphology.
-Omitting it reduces DOF count by 3 (one per finger) without meaningfully reducing the
-morphology space we can explore.
+finger is coupled to the PIP joint during natural flexion and extension, and omitting it reduces DOF count by 3 (one per finger) without meaningfully reducing the
+control and morphology space we can explore.
 
 \subsection{Degrees of Freedom}
 
@@ -866,12 +849,12 @@ Figure~\ref{fig:schematic}.
     \toprule
     \textbf{DOF} & \textbf{Symbol} & \textbf{Range} & \textbf{Actuator} & \textbf{Role} \\
     \midrule
-    Base X (lateral)  & $x_i$    & $\pm$60\,mm & Stepper+leadscrew & Finger triangulation \\
-    Base Y (fore-aft) & $y_i$    & $\pm$40\,mm & Stepper+leadscrew & Reach offset \\
-    Yaw (ABD/ADD)     & $\psi_i$ & $\pm$45$^\circ$ & Servo & Finger splay \\
-    MCP flex/ext      & $q^p_i$  & 0--110$^\circ$ & Dynamixel & Proximal curl \\
-    Prox.\ length     & $l_i$    & 40--90\,mm  & Linear actuator & Reach / workspace \\
-    PIP flex/ext      & $q^d_i$  & 0--100$^\circ$ & Dynamixel & Distal curl \\
+    Base X (lateral)  & $x_i$    & $\pm$60\,mm & Stepper+leadscrew & Morphology \\
+    Base Y (fore-aft) & $y_i$    & $\pm$40\,mm & Stepper+leadscrew & Morphology \\
+    Yaw (ABD/ADD)     & $\psi_i$ & $\pm$45$^\circ$ & Servo & Control \\
+    MCP flex/ext      & $q^p_i$  & 0--110$^\circ$ & Servo & Control \\
+    Prox.\ length     & $l_i$    & 40--90\,mm  & Linear act./stepper & Morphology \\
+    PIP flex/ext      & $q^d_i$  & 0--100$^\circ$ & Servo & Control \\
     \midrule
     \multicolumn{4}{l}{\textbf{Per-finger subtotal}} & \textbf{6 DOF} \\
     \multicolumn{4}{l}{\textbf{Platform total (3 fingers)}} & \textbf{18 DOF} \\
@@ -879,16 +862,14 @@ Figure~\ref{fig:schematic}.
   \end{tabular}}
 \end{table}
 
-The 18 DOF split cleanly into two categories:
+The 18 DOFs are split into two categories:
 \begin{itemize}
-  \item \textbf{Morphological DOFs} (12 total: $x_i, y_i, \psi_i, l_i$ for $i \in \{T,I,M\}$):
+  \item \textbf{Morphological DOFs} (9 total: $x_i, y_i, l_i$ for $i \in \{T,I,M\}$):
     these define the hand's \emph{shape} and are the variables the outer morphology
-    optimizer controls. They are slow to change (seconds) and define the hand configuration
-    that is held fixed during a grasp evaluation.
-  \item \textbf{Control DOFs} (6 total: $q^p_i, q^d_i$ for $i \in \{T,I,M\}$):
+    optimizer controls. Practically, they are not ``control" DoFs because they are lead-screw driven to achieve holding torque across a large motion range and are thus slow to change, and because they would not typically be available for on-the-fly change in a robotic hand.
+  \item \textbf{Control DOFs} (9 total: $\psi_i, q^p_i, q^d_i$ for $i \in \{T,I,M\}$):
     these define the joint angles during the grasp and are the variables the inner grasp
     optimizer controls. They are fast to change (sub-second) and are adjusted per grasp trial.
-    \item Yaw $\psi_i$ should maybe be a control dof.
 \end{itemize}
 This clean separation between morphology and control is a deliberate design choice that
 makes the bi-level optimization tractable.

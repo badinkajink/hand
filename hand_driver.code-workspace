@@ -1,0 +1,12 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"name": "hand",
+			"path": "src/morphohand/driver/hand"
+		}
+	],
+	"settings": {}
+}
