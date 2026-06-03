@@ -683,6 +683,41 @@ re-running with the critic fix and re-judging on held-cos + jerk. The genuinely 
 results from this work are: the **critic-warmstart fix**, that **signed progress helps**,
 and the **honest held-cos/jerk evaluation harness**.
 
+#### Definitive re-runs WITH the critic fix (held-cos / object-jerk)
+
+All warmstart v1, critic ON, alpha-curriculum OFF, evaluated deterministically:
+
+| policy | held cos | obj jerk | verdict |
+|---|---|---|---|
+| v1 (baseline) | 0.96 | 41 | jittery but vertical |
+| **signed + critic** | **0.978** | 52 | **best — vertical + slip-back fixed** |
+| + 5× smoothness | 0.69 | 91 | ✗ destabilises the hold (slips + wobbles) |
+| + 10× smoothness | 0.92 | 70 | ✗ worse than base on both |
+| + quick mechanisms | 0.78 | 63 | ✗ degrades |
+| + de-centering (−40) | 0.78 | 61 | ✗ degrades |
+
+**Every reward elaboration on top of `signed + critic` makes it worse** — the precise
+vertical hold is a fragile optimum and any competing objective pulls the policy off it.
+The buggy-critic runs had *masked* this (they couldn't reach the vertical optimum in the
+first place, so adding terms looked harmless/helpful).
+
+**RECOMMENDED reorientation policy: `signed + critic`** =
+`results/rl/20260602-1636-policyB_abl_signed/tensorboard/model_405.pt`
+(v1 recipe + signed `target_axis_progress` + critic warmstart; no smoothness / quick /
+de-centering / lateral terms). Holds cos 0.978 (beats v1's 0.96), fixes slip-back, stays
+aloft (min-z 0.11 m). Video: [policyB_signed_critic.mp4](videos/reorient/policyB_signed_critic.mp4).
+A longer (30M) run from v1 would likely polish it further but isn't required.
+
+**Smoothness / de-centering / bracing — where they stand:**
+- *Smoothness:* not achievable via jerk penalties (the corrective jerk **is** the
+  stabilisation). For sim-to-real, use a non-reward lever — action low-pass filter at
+  deployment, or motor-delay/observation-noise domain randomisation during training.
+- *De-centering:* not a real root-translation problem (deterministic root xy-drift ≈ 0 for
+  all policies, v1 included); the lateral motion on video is the long cylinder's far **end**
+  swinging during rotation, not a translating grip.
+- *Bracing:* geometry-limited (the gripped cylinder sits ~7–8 cm below the palm; ±0.5 rad
+  finger residuals can't lift it to brace) — needs a grasp redesign, not a reward.
+
 ---
 
 ## Results
