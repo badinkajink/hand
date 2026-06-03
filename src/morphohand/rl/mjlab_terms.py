@@ -774,6 +774,28 @@ def anneal_cube_spawn_jitter(env: "ManagerBasedRlEnv", env_ids,
     return progress
 
 
+def anneal_spawn_tilt_z(env: "ManagerBasedRlEnv", env_ids,
+                        tilt_max: float, z_max: float, z_center: float,
+                        anneal_iters: int, num_steps_per_env: int = 24,
+                        command_name: str = "lift_height") -> float:
+    """Linearly ramp the skip-lift spawn TILT (roll/pitch) and HEIGHT jitter
+    from 0 to ±(tilt_max, z_max) over the first `anneal_iters` PPO iters. The
+    gradual ramp lets a warmstarted grip ADAPT to handoff-pose variation
+    instead of being shocked at iter 0 (which collapsed the high-DR run:
+    152 drops/iter). Mutates the LiftingCommand's spawn_tilt_range + z range."""
+    del env_ids
+    cmd = env.command_manager.get_term(command_name)
+    if anneal_iters <= 0:
+        cmd.cfg.spawn_tilt_range = (-tilt_max, tilt_max)
+        cmd.cfg.object_pose_range.z = (z_center - z_max, z_center + z_max)
+        return 1.0
+    iters = int(env.common_step_counter) // max(1, int(num_steps_per_env))
+    progress = float(min(1.0, max(0.0, iters / float(anneal_iters))))
+    cmd.cfg.spawn_tilt_range = (-tilt_max * progress, tilt_max * progress)
+    cmd.cfg.object_pose_range.z = (z_center - z_max * progress, z_center + z_max * progress)
+    return progress
+
+
 # ----------------------------------------------------------------------
 # Contact-gated stability rewards
 # ----------------------------------------------------------------------
