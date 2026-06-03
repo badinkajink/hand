@@ -30,6 +30,7 @@ WARP_CACHE_PATH=$(mktemp -d) MUJOCO_GL=egl uv run --extra rl --extra gpu python 
   --enable-lift-terminations --lift-phase-start-step 35 \
   --term-object-slip-xy 0.5 --term-object-slip-yaw 10.0 --term-tip-lost-steps 10 --term-finger-slip 100.0 \
   --enable-target-axis-reward --target-axis-weight 100.0 --target-axis-alpha 4.0 --reorient-start-step 35 \
+  --finger-residual-active-from-step 35 \
   --contact-min-weight 15.0 --target-axis-progress-weight 300.0 --target-axis-alpha-curriculum-iters 0 \
   --enable-floor-proximity-termination --object-min-z 0.05 --floor-proximity-phase-start-step 35 \
   --action-rate-weight=-0.1 --object-ang-acc-weight=-0.05 --object-ang-acc-phase-start-step 35 \

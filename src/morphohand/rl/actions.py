@@ -155,6 +155,12 @@ class LerpFingerActionCfg(ActionTermCfg):
     settle_sim_steps: int = 240
     residual_scale: float = 0.2
     easing: str = "linear"
+    residual_active_from_sim_step: int = 0
+    """Zero the policy's finger residual before this sim step — the scripted
+    LerpFinger grasp runs undisturbed during the grasp/lift, then the policy
+    takes over. Needed when warmstarting a reorient policy into the normal-lift
+    env: a lifted-object policy is out-of-distribution on the flat-object grasp
+    and its raw residuals blow up the physics (NaN). 0 = always active."""
 
     def build(self, env: "ManagerBasedRlEnv") -> "LerpFingerAction":
         return LerpFingerAction(self, env)
@@ -207,7 +213,8 @@ class LerpFingerAction(ActionTerm):
             raise ValueError(f"Unknown easing '{easing}'")
         alpha = alpha.unsqueeze(-1)  # (B, 1)
         offset = (1.0 - alpha) * self._start.unsqueeze(0) + alpha * self._target.unsqueeze(0)  # (B, N)
-        target = self._raw_actions * float(self.cfg.residual_scale) + offset
+        active = (self._sim_step >= int(self.cfg.residual_active_from_sim_step)).float().unsqueeze(-1)
+        target = self._raw_actions * float(self.cfg.residual_scale) * active + offset
 
         encoder_bias = self._entity.data.encoder_bias[:, self._target_ids]
         self._entity.set_joint_position_target(target - encoder_bias, joint_ids=self._target_ids)

@@ -377,6 +377,11 @@ class MorphoHandEnvCfg:
     reorient_start_step: int = 30
     """Policy step from which the target_axis reward fires. Should be
     after the scripted lift completes."""
+    finger_residual_active_from_step: int = 0
+    """Policy step from which the policy's finger residual is applied (zeroed
+    before — the scripted LerpFinger grasp runs undisturbed). 0 = always on.
+    Set to ~reorient_start_step in the normal-lift env so a reorient-trained
+    warmstart doesn't destabilise the flat-object grasp (NaN)."""
     strict_tip_lost_termination: bool = False
     """If True, terminate immediately on any single-step tip loss during
     the lift phase (no consecutive-step grace). Required for in-hand
@@ -690,6 +695,7 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
             settle_sim_steps=cfg.finger_close_sim_steps,
             residual_scale=cfg.finger_residual_scale,
             easing=cfg.finger_close_easing,
+            residual_active_from_sim_step=int(cfg.finger_residual_active_from_step) * int(cfg.decimation),
         ),
         "palm_ctrl": ScriptedPalmActionCfg(
             entity_name="robot",
