@@ -1,0 +1,15 @@
+# P1/P2/P3 results (2026-06-04 10:09:35)
+## deterministic held-cos / jerk / min_z / drop
+policy                held_cos    peak  obj_jerk   min_z   drop
+signed+critic            0.979   0.989   52.3499   0.109   0.00
+P1_handoffDR             0.959   0.995   57.8350   0.115   0.00
+P2_lateral               0.988   0.997   26.9707   0.117   0.00
+P3_statebank             0.933   0.946    8.1423   0.114   0.00
+## handoff-hold (min-z>0.05 = B holds A's delivery)
+### policyB_p1_handoff_dronly
+[hc] object z at handoff step 45: 0.10088988393545151
+[hc] min object-center z over rollout: 0.0029 m
+### policyB_p3_statebank
+[hc] object z at handoff step 45: 0.09931647777557373
+[hc] min object-center z over rollout: 0.0075 m
+## de-centering note: compare P2 xy-drift to signed+critic 5.1cm (use /tmp/diag2.py pattern).
