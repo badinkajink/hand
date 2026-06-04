@@ -100,6 +100,9 @@ def main():
                     default=ROOT / "results/phase1/run18_multi_object_adapt/foundational/screwdriver_medium_flat/run_20260521_150259")
     ap.add_argument("--output", type=Path, default=ROOT / "docs/rl/videos/reorient/handoff_continuous.mp4")
     ap.add_argument("--handoff-step", type=int, default=40, help="policy step to switch A->B (after lift+settle)")
+    ap.add_argument("--blend-steps", type=int, default=0,
+                    help="ramp A->B actions over N steps from handoff-step (0 = hard switch). "
+                         "Eases B in so it is never shocked by an OOD obs at the seam.")
     ap.add_argument("--total-steps", type=int, default=240)
     args = ap.parse_args()
 
@@ -156,6 +159,12 @@ def main():
         for step in range(args.total_steps):
             if step < args.handoff_step:
                 actions = act(actor_a, obs[:, :A_OBS_DIM])
+            elif args.blend_steps > 0 and step < args.handoff_step + args.blend_steps:
+                # linear A->B action ramp: alpha 0->1 over the blend window
+                alpha = (step - args.handoff_step + 1) / float(args.blend_steps)
+                a_a = act(actor_a, obs[:, :A_OBS_DIM])
+                a_b = act(actor_b, obs)
+                actions = (1.0 - alpha) * a_a + alpha * a_b
             else:
                 actions = act(actor_b, obs)
             obs_td, *_ = wrapped.step(actions)
