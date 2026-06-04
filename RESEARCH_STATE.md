@@ -1,4 +1,4 @@
-# In-hand reorientation — research state & handoff (2026-06-03)
+# In-hand reorientation — research state & handoff (2026-06-04)
 
 Living handoff doc for a FRESH session. Full chronological log: `docs/rl/reorientation.md`.
 Task: flat-laying `screwdriver_medium` cylinder → vertical, finger-only (9 DOF), in-hand.
@@ -26,12 +26,16 @@ Task: flat-laying `screwdriver_medium` cylinder → vertical, finger-only (9 DOF
     statebank** (P3: 3.0/3.1 cm ≈ 4.3 cm 3D) — training on A's real centered grips keeps it
     centered — but P3 reorients worse (0.930). Still: stacking diverges; add ONE at a time.
   - *Bracing:* unchanged; reaches cos 0.99 ~3 cm below palm (vertically), no contact.
-  - *Seamless A→B handoff:* **DIAGNOSED + fix validated, converging (2026-06-04).** Seam drop is
-    an OBSERVATION-DISCONTINUITY shock (skip-lift B is OOD on A's normal-lift delivery), not a grip
-    problem. Fix = train B in the normal-lift env with a **grace window** (hold-first, reorient
-    later). v2 (no grace) collapsed; **v3 grace held reward flat ~10 but NaN'd at iter 60/750**;
-    hold-only control proves B survives the handoff. **v3b** reruns grace to completion
-    (NaN-resilient, 2× parallel) — see "Normal-lift B history" below.
+  - *Seamless A→B handoff:* **DIAGNOSED, still OPEN (2026-06-04).** Seam drop is an
+    OBSERVATION-DISCONTINUITY shock (skip-lift B is OOD on A's normal-lift delivery), not a grip
+    problem. Tried fix = train B in the normal-lift env with a **grace window** (hold-first,
+    reorient later). v2 (no grace) collapsed; v3 grace held reward flat ~10 but NaN'd at 60/750;
+    **v3b reran grace to completion (NaN-resilient) and BOTH variants COLLAPSED** — held-cos
+    −0.035/−0.078, 100% drop, handoff min-z 0.004/0.007 ≪ 0.05. The grace window prevented the
+    v2 *training* collapse but locked B in a hold-during-grace / drop-at-reorient-onset local
+    optimum (reward flat ~9.3, never learned). **A grace window does NOT make the skip-lift P2
+    warmstart robust to the seam in 40M ts.** Best untried next step: **warmstart the *hold-only*
+    control (proven to survive the takeover), not P2** — see "Normal-lift B history" below.
 
 ## P1/P2/P3 — DONE (2026-06-03, 40M ts / 3072 envs each). Authoritative deterministic eval:
 | policy | held_cos | peak | obj_jerk | min_z | drop | world Δlat |
@@ -59,23 +63,32 @@ used at deploy. B never saw the seam obs in training. **PROOF:** the (undertrain
 activate at step 35 — held **z≈0.09 for ~10–15 steps past the seam** (vs instant collapse), then
 dropped (undertrained). So normal-lift training removes the shock; it just needs convergence.
 
-### Normal-lift B history: v2 collapsed → v3 grace WORKS (NaN'd) → **v3b IN TRAINING NOW**
+### Normal-lift B history: v2 collapsed → v3 grace (NaN'd) → **v3b ran to completion, BOTH COLLAPSED**
 - **v2_fromP2 (normal-lift, warmstart P2): COLLAPSED** — held-cos 0.029, 100% drop, handoff
   min-z 0.005. Step-35 fired residual+terminations+full-reorient at once; OOD warmstart fumbles,
   terminations kill episodes → reward 12→3 → never learns.
-- **v3 grace window: the fix, and it WORKED** — B takes over (residual) at step 35 but only HOLDS
-  until step 50, when terminations+reorient engage. Reward stayed healthy/flat (~10) for 60 iters
-  (no v2 collapse), then **NaN-crashed at iter ~60/750** (transient warp env blowup; rsl_rl
-  check_nan kills the run on any NaN — no retry). Only model_50 (undertrained, still drops).
+- **v3 grace window: looked promising, NaN'd before it could be judged** — B takes over (residual)
+  at step 35 but only HOLDS until step 50, when terminations+reorient engage. Reward stayed
+  flat (~10) for 60 iters (no v2 *training* collapse), then **NaN-crashed at iter ~60/750**.
+  Only model_50 (undertrained, drops).
 - **v3 hold-only control (reorient OFF): completed, PROVES B survives the handoff** — tip_lost
   humped to ~44 then recovered to ~1–4. (65-dim, not deployable; isolation control only.)
-- **→ IN TRAINING NOW: `policyB_normallift_v3b_{repro,soft}` (2× parallel, 40M/3072, ~70 min).**
-  `scripts/train_normallift_B_v3b_gracewindow.sh` reruns the grace window to completion,
-  NaN-resilient via two variants: **R** = exact repro (residual 0.5), **S** = soft onset
-  (residual 0.4 + basin curriculum α 0.5→4.0 / 150 iters). Both warmstart P2. Logs
-  `normallift_v3b_{repro,soft}_train.log`. Early health OK (critic copied, reward ~9.5/~15.6, no
-  NaN). **Want post-handoff min-z > 0.05 at held-cos ≈ P2's 0.988.** Follow-on:
-  `scripts/v3b_eval_trigger.sh` waits → evals → renders seamless video → STATE_HANDOFF_RESULTS.txt.
+  **→ this is the warmstart to use next.**
+- **v3b (`policyB_normallift_v3b_{repro,soft}`, 40M/3072, completed 2026-06-04): BOTH COLLAPSED.**
+  NaN-resilience worked (both ran the full 542 iters, no crash), but that *revealed* the v3 "flat
+  ~10 reward" was a degenerate plateau, not learning: reward stayed flat ~9.3 (R)/~9.0 (S) the
+  whole run. Deterministic held-cos **−0.035 (R) / −0.078 (S)**, **100% drop**; handoff min-z
+  **0.0037 / 0.0069** (≪ 0.05). Training at convergence: floor_proximity term 95.9/58.9,
+  object_height 0.012/0.015 m, success 0. **Mechanism:** grace window stopped the v2 collapse but
+  locked B in a *hold-during-grace, drop-at-reorient-onset* local optimum — it can't cross from
+  "hold" into a working post-seam reorient from the OOD skip-lift P2 prior. Soft onset (S) bought
+  nothing. Videos `handoff_v3b_{repro,soft}.mp4` (show the drop). Full writeup: reorientation.md
+  "v3b OUTCOME".
+- **Best untried next experiment (NOT run, budget spent):** finetune the **v3 hold-only**
+  checkpoint toward reorient (it already holds A's delivery → grace→reorient transition is
+  in-distribution), instead of the OOD skip-lift P2. Backup: add P3's handoff **state-bank** to
+  the normal-lift env (train on A's real seam states). Longer training is least promising (reward
+  was *flat*, i.e. a local optimum, not undertraining).
 
 ## How to EVALUATE (the honest metrics)
 ```
