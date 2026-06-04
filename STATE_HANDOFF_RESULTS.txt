@@ -14,3 +14,41 @@ v3b_soft                -0.078   0.121   41.9194   0.005   1.00
 [hc] min object-center z over rollout: 0.0069 m
 ## NOTE: best holder's video = docs/rl/videos/reorient/handoff_v3b_{repro,soft}.mp4;
 ## if min-z>0.05 that is the SEAMLESS HANDOFF (the goal). Judge held-cos vs P2 0.988.
+
+================================================================================
+VERDICT (2026-06-04, document-and-synthesize pass) — SEAMLESS A->B HANDOFF: OPEN
+================================================================================
+Status: PARTIALLY SOLVED / mostly OPEN.
+  SOLVED earlier: the seam drop is DIAGNOSED (observation-discontinuity OOD shock,
+    not grip weakness) and the no-reset continuous-handoff mechanism works.
+  OPEN: no policy holds A's delivery through the seam. Best handoff min-z to date
+    = 0.0069 m (v3b_soft) vs the 0.05 threshold. Nothing crosses it.
+
+v3b result: BOTH variants COLLAPSED. NaN-resilience worked (both ran the full
+542 iters, no crash) but that only revealed the v3 "flat ~10 reward" was a
+DEGENERATE PLATEAU, not learning. Reward stayed flat ~9.3 (repro)/~9.0 (soft)
+the whole run; deterministic held-cos went NEGATIVE (-0.035 / -0.078), 100% drop;
+handoff min-z 0.004 / 0.007. Training at convergence: object on the floor
+(floor_proximity term 95.9/58.9, object_height 0.012/0.015 m, success 0).
+Repro vs soft: no material difference; soft onset bought nothing (slightly less
+floor contact, still collapsed). NO seamless-handoff policy to name/promote.
+The handoff_v3b_*.mp4 videos show the drop (kept as evidence, NOT a headline).
+
+Mechanism: the grace window (hold 35..50, reorient+terminations from 50) stops
+the v2-style TRAINING collapse but replaces it with a stuck local optimum —
+B learns to hold during grace and drop the instant the reorient phase engages.
+It never crosses from "hold" into a working post-seam reorient from the OOD
+skip-lift P2 prior. => A grace window does NOT make the skip-lift P2 warmstart
+robust to the seam in 40M ts.
+
+SINGLE BEST NEXT EXPERIMENT (not run; autonomy budget spent):
+  Warmstart the v3 HOLD-ONLY control instead of P2, then finetune toward reorient
+  in the normal-lift env with the grace window. The hold-only control already
+  PROVED it survives the scripted-lift -> takeover (tip_lost 44 -> 1-4), so the
+  grace -> reorient transition starts in-distribution rather than from the OOD
+  skip-lift prior. (Backup: add P3's handoff state-bank to the normal-lift env.
+  Longer training is least promising -- reward was flat = local optimum, not
+  undertraining.)
+Best standalone reorienter is UNCHANGED: P2 lateral-only (held-cos 0.988),
+results/rl/20260603-1746-policyB_p2_lateral_only/tensorboard/model_541.pt.
+Full writeup: RESEARCH_STATE.md + docs/rl/reorientation.md "v3b OUTCOME".
