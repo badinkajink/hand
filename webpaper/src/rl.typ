@@ -279,10 +279,10 @@ Then open branch B by un-freezing Policy A. The best *standalone* reorienter is 
 *B4*, held-cosine 0.988.
 
 #refbox[
-  *Sources.* Lee et al., \_Adversarial Skill Chaining via Terminal State Regularization\_,
-  CoRL 2021 (arXiv:2111.07999). Chen et al., \_Sequential Dexterity\_, CoRL 2023
-  (arXiv:2309.00987). Röstel et al., \_Composing Dexterous Grasping and In-hand
-  Manipulation via Scoring with an RL Critic\_, 2025 (arXiv:2505.13253). Mysore et al.,
-  \_CAPS\_, ICRA 2021. Full analysis: `docs/rl/policy_switching_literature.md`; research
+  *Sources.* Lee et al., _Adversarial Skill Chaining via Terminal State Regularization_,
+  CoRL 2021 (arXiv:2111.07999). Chen et al., _Sequential Dexterity_, CoRL 2023
+  (arXiv:2309.00987). Röstel et al., _Composing Dexterous Grasping and In-hand
+  Manipulation via Scoring with an RL Critic_, 2025 (arXiv:2505.13253). Mysore et al.,
+  _CAPS_, ICRA 2021. Full analysis: `docs/rl/policy_switching_literature.md`; research
   log: `RESEARCH_STATE.md`, `docs/rl/reorientation.md`.
 ]

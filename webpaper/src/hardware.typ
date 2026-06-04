@@ -98,7 +98,7 @@ Five experiments, to port in full from `hand_paper/main.tex` §"Experimental Met
 ]
 
 #refbox[
-  *Source.* `hand_paper/main.tex` — \_A Reconfigurable Hand for Validation of
-  Simulation-Optimized Morphologies\_. Related background (GWS, co-design, quality-diversity)
+  *Source.* `hand_paper/main.tex` — _A Reconfigurable Hand for Validation of
+  Simulation-Optimized Morphologies_. Related background (GWS, co-design, quality-diversity)
   is shared with the #link("morphology.html")[Morphology & Grasp Optimization] pillar.
 ]

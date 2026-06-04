@@ -178,19 +178,172 @@ The production sweep uses bounds x, y ∈ [-0.03, 0.03] m, ℓ ∈ [0, 0.035] m 
 half-widths (δ\_x, δ\_y, δ\_ℓ) = (0.012, 0.012, 0.012) m. Each sampled
 θ is materialized as a *frozen* scene before evaluation.
 
-== Results (to expand)
+== Results
 
-#callout(tag: "Stub", kind: "warn")[
-  Results media and numbers to port from `paper/main.tex` §Experiments: the
-  pre-grasp baselines, the 1000-morphology combined sweep, the foundational-pose
-  adaptation ablation, the eval-suite (contact-target patches vs. baseline 9-D CEM
-  across the object set), the frozen-scene quantification, and the power-drill
-  pivot-to-down case study. The eval-suite comparison videos above are representative;
-  the full per-object grid lives in `docs/overview_gifs.md`.
+Five preliminary result blocks. The headline: the pipeline runs end-to-end on CPU
+MuJoCo at a usable cadence (1000 morphologies in 762 s), keyframe choice *alone* reshapes
+the quality landscape before any morphology variation, per-morphology pre-grasp
+adaptation buys +22% feasibility, and contact-target patches turn a near-failure (the
+long prism) into a reliable grasp while leaving already-easy benchmarks unchanged.
+
+=== Pre-grasp baselines (fixed base morphology)
+
+CEM (population 48, 16 iterations, two-seed best) on each medium-screwdriver keyframe.
+Even with the morphology fixed, the three keyframes produce distinct quality
+profiles — `open_90vertical` favors deeper lifts but fewer contact pairs.
+
+#table(
+  columns: (auto, auto, auto, auto),
+  table.header([*Keyframe*], [*Best score*], [*Best lift (m)*], [*Best contacts*]),
+  [`open_flat`], [5.70], [0.0496], [3],
+  [`open_vertical`], [6.91], [0.0501], [6],
+  [`open_90vertical`], [7.09], [0.0696], [5],
+)
+
+=== 1000-morphology combined sweep
+
+All three keyframes evaluated on every sampled morphology, per-morphology pre-grasp
+adaptation on, 1000 samples in *762 s* (CPU MuJoCo). Feasibility under the production
+gate (mean tip-distance ≤ 0.022 m, ≥ 2 contacts):
+
+#table(
+  columns: (auto, auto, auto, auto, auto),
+  table.header([*Keyframe*], [*Total*], [*Feasible*], [*Rate*], [*Mean score*]),
+  [`open_flat`], [1000], [994], [0.994], [5.48],
+  [`open_vertical`], [1000], [884], [0.884], [3.94],
+  [`open_90vertical`], [1000], [696], [0.696], [2.46],
+)
+
+Two stable findings: the *same* morphology distribution is far easier to satisfy in
+`open_flat` (99.4%) than `open_90vertical` (69.6%); and 60.3% of morphologies are
+*simultaneously* feasible across all three keyframes (top-5 multitask candidates score
+≥ 6.36 on their worst keyframe). So the design space is rich enough to support
+pose-specific specialization while still leaving a broad robust family.
+
+=== Foundational-pose adaptation ablation
+
+500-sample cube + 3-prism sweep under all five adaptation modes (identical seed, order,
+gates). Gain is feasible-count delta vs. the fixed-pose baseline (out of 2000):
+
+#table(
+  columns: (auto, auto, auto, auto, auto),
+  table.header([*Mode*], [*Feasible*], [*Gain*], [*Extra s*], [*Gain/s*]),
+  [`none` (baseline)], [1442], [—], [—], [—],
+  [`interval-open`], [1465], [+23], [165], [0.14],
+  [`interval-initial-fp` (i=50)], [1753], [+311], [243], [1.28],
+  [`sparse-per-morph` (5)], [1758], [+316], [223], [*1.42*],
+  [`local-perturbation`], [1800], [*+358*], [739], [0.48],
+)
+
+Adaptation matters (+22% feasibility); *warm-starting* matters (re-running CEM from the
+current best pose recovers +311, restarting from a uniform sample only +23); and
+`sparse-per-morph` is the cost-effectiveness winner (+316 at +223 s), while
+`local-perturbation` buys the absolute maximum at 3× the cost.
+
+=== Eval suite: contact-target patches vs. baseline 9-D CEM
+
+Matched budget (960 evaluations/seed, 3 seeds, frozen scenes). Each best grasp is
+re-scored under the *baseline* objective to give an *oracle score* comparable across
+methods. Δ is contact-map minus baseline.
+
+#table(
+  columns: (auto, auto, auto, auto),
+  table.header([*Benchmark*], [*baseline*], [*contact-map*], [*Δ*]),
+  [`prism`], [2.31 ± 1.10], [*5.57 ± 0.08*], [*+3.26*],
+  [`screwdriver_medium_flat`], [5.52 ± 0.22], [5.85 ± 0.31], [+0.33],
+  [`cube`], [6.70 ± 0.17], [6.98 ± 0.19], [+0.28],
+  [`screwdriver_medium_90vertical`], [6.20 ± 0.52], [6.27 ± 0.57], [+0.07],
+  [`screwdriver_small_flat`], [−0.06 ± 0.00], [−0.07 ± 0.01], [−0.01],
+  [`power_drill_short_proximal`], [7.89 ± 0.47], [7.84 ± 0.42], [−0.05],
+  [`screwdriver_medium_vertical`], [5.83 ± 0.17], [5.72 ± 0.01], [−0.11],
+  [`power_drill`], [7.37 ± 0.62], [6.20 ± 0.48], [−1.17],
+  [*Mean Δ*], [], [], [*+0.32*],
+)
+
+Mean Δ +0.32, median +0.03, wins 4/8.
+
+#fig("assets/scores.png", label: [Per-benchmark oracle scores.],
+  caption: [Baseline vs. contact-map (error bars min/max over 3 seeds). Contact-target
+    patches retain baseline quality on six benchmarks and convert the long-prism
+    near-failure into a stable grasp.])
+#fig("assets/deltas.png", label: [Contact-target Δ over baseline.],
+  caption: [The eval-suite headline average is almost entirely carried by the prism.])
+
+#det([Reading the eval suite: the prism win is the whole story], kind: "extended results")[
+  *The prism win.* On the long prism the baseline gets only L = 0.031 m lift,
+  all-three-fingers persistence 0.26, high variance (σ = 1.10). Contact-map jumps to
+  L = 0.049 m, persistence 1.00, σ = 0.08. The mechanism is geometric: the prism is long
+  along y with 22 mm extent along x, so the baseline's closest-point distance term is
+  *flat in y* and CEM has no gradient toward an opposed-finger pinch; three target
+  patches (thumb −x, index +x-forward, middle +x-back) install a direction-aware
+  attractor and the optimizer converges to the pinch reliably.
+
+  *Most benchmarks are ties.* Six of eight land within ±0.35 — the AABB-distance signal
+  is already informative there, so the prior neither helps nor hurts.
+
+  *Two slightly lose.* `power_drill` (−1.17) and `screwdriver_medium_flat` (−0.28 unfrozen,
+  *+0.33 once frozen*) lose where the authored patches disagree with the unconstrained
+  optimum — the cost of specifying intent when the patches are not quite right.
+
+  *Both fail the small screwdriver.* An 8 mm shaft plus a 110 mm hand-to-target
+  displacement at the open keyframe leaves both methods at zero contacts/lift — an
+  included known floor.
+]
+
+=== Quantifying the frozen-scene protocol
+
+Running the suite with and without frozen-scene enforcement (else identical) shows the
+protocol is not cosmetic — several per-benchmark numbers shift *sign*:
+
+#table(
+  columns: (auto, auto, auto, auto, auto),
+  table.header([*Benchmark*], [*Δ unfrozen*], [*Δ frozen*], [*base unfr.*], [*base fr.*]),
+  [`prism`], [+3.16], [*+3.26*], [1.00], [2.31],
+  [`screwdriver_medium_flat`], [−0.28], [*+0.33*], [5.67], [5.52],
+  [`power_drill_short_proximal`], [+0.30], [−0.05], [8.46], [7.89],
+  [`power_drill`], [−0.33], [−1.17], [7.39], [7.37],
+  [`cube`], [+0.18], [+0.28], [6.64], [6.70],
+)
+
+`screwdriver_medium_flat` flips −0.28 → +0.33 (the apparent contact-map *loss was a drift
+artifact*), and `power_drill_short_proximal`'s baseline falls 8.46 → 7.89 once the morph
+DOFs are pinned — drift had been quietly rearranging the fingertips into a tighter grip.
+*All results in this work post-date the protocol fix*; pre-fix numbers (e.g. the
+single-scene drill runs at 8.5+) are suspect for cross-method ranking.
+
+=== Case study: power-drill pivot-to-down (the hardest scene)
+
+#det([Three failure modes, and why the keyframe is the blocker], kind: "case study")[
+  The drill must be grasped at `open_flat` and rotated 90° to down-pointing while held —
+  the only benchmark where baseline CEM consistently fails. Three diagnosed modes:
+
+  + *Wrong pivot deltas* — early runs drove only one of three wrist axes; setting all of
+    `pivot-delta-rx/ry/rz` to rotate the wrist to (0, 0, π/2) recovered the intended
+    3-axis motion.
+  + *Contact persistence at zero* — corrected pivot still gave all-finger persistence 0:
+    tips touched at settle but lost contact at dynamic step 1. CEM had chosen a pose
+    *more open* than the keyframe; the baseline drift penalties measure motion *during*
+    the rollout, not deviation from the keyframe at start. An anchor penalty
+    (w = 2.0) pulled the pose back to within 0.06–0.16 of the keyframe — but persistence
+    stayed 0.
+  + *The keyframe is not a grip pose* — the trajectory force-closure metric (K = 8 samples)
+    read max Q₁ = 2.0 (no-contact cap) with min F = 0 at 5/6 seeds: no q in the σ = 0.15
+    basin around `open_flat` has a closing grasp, because `open_flat` places the
+    fingertips *tangent* to the barrel (index PIP straight, pointing past the drill).
+
+  *Cross-method check:* Lightning Grasp on the same scene (31 candidates in 18.4 s) also
+  produces *every* grasp with persistence 0 (best 3.8 cm lift, 19° partial pivot) — a
+  geometrically different pipeline converging to the same non-gripping family confirms the
+  keyframe, not the search method, is the blocker.
+
+  *Resolution (open):* author an `open_flat_gripping` keyframe with inward-flexed PIPs, or
+  add a CEM start-control override decoupled from the keyframe. The run-15 objective shape
+  (anchor + trajectory-FC + boosted min-persistence) was correct, just not sufficient on
+  this keyframe.
 ]
 
 #refbox[
-  *Sources.* Ferrari & Canny, \_Planning optimal grasps\_, ICRA 1992. Mouret & Clune,
-  \_Illuminating search spaces (MAP-Elites)\_, 2015. Gaier et al., \_SAIL\_, 2017. Fontaine
-  et al., \_CMA-ME\_, 2020. Full method + experiments: `paper/main.tex`, `hand_paper/main.tex`.
+  *Sources.* Ferrari & Canny, _Planning optimal grasps_, ICRA 1992. Mouret & Clune,
+  _Illuminating search spaces (MAP-Elites)_, 2015. Gaier et al., _SAIL_, 2017. Fontaine
+  et al., _CMA-ME_, 2020. Full method + experiments: `paper/main.tex`, `hand_paper/main.tex`.
 ]
