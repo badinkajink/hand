@@ -817,6 +817,48 @@ post-handoff min-z > 0.05 (holds) at held-cos near P2's 0.988.** A follow-on tri
 (`scripts/v3b_eval_trigger.sh`) waits for both → evals → renders the seamless video → writes
 `STATE_HANDOFF_RESULTS.txt`.
 
+#### v3b OUTCOME (2026-06-04): ran to completion, but BOTH variants COLLAPSED — the grace window did not solve the handoff.
+
+NaN-resilience succeeded — **both R and S ran the full 40M / 542 iters with no crash** (the
+v3 NaN was bad luck, not a systemic bug). But running to completion *revealed* that the
+"healthy flat ~10 reward" that looked promising at v3's 60 iters was **not learning — it was a
+degenerate plateau.** Reward stayed flat at **~9.3 (R) / ~9.0 (S) for all 542 iters** and never
+climbed. Authoritative deterministic eval (`rl_eval_reorient_metrics.py`, own normal-lift env):
+
+| policy | held_cos | peak | obj_jerk | min_z | drop | handoff min-z (step 40, blend 8) |
+|---|---|---|---|---|---|---|
+| P2_lateral (ref) | 0.987 | 0.997 | 27.6 | 0.117 | 0.00 | (A's deliverer) |
+| signed+critic (ref) | 0.979 | 0.988 | 51.7 | 0.109 | 0.00 | — |
+| **v3b_repro (541)** | **−0.035** | 0.121 | 103.1 | 0.004 | **1.00** | **0.0037** |
+| **v3b_soft (541)** | **−0.078** | 0.121 | 41.9 | 0.005 | **1.00** | **0.0069** |
+
+Both held-cos are **negative** (object flat/random, not vertical) with **100 % drop**; both
+handoff min-z (**0.004 / 0.007 m**) are far below the 0.05 threshold → **NO seamless handoff.**
+Videos `handoff_v3b_{repro,soft}.mp4` show the object dropping at the seam, same as before.
+
+**Mechanism (why the grace window failed):** the window successfully prevented the *v2-style
+training collapse* (reward never crashed to 3) — but it did so by letting B settle into a
+**hold-during-grace, drop-at-the-reorient-onset** local optimum. Training termination stats at
+convergence: `object_floor_proximity` **95.9 (R) / 58.9 (S)**, `object_height` **0.012 / 0.015 m**
+(on the floor), `episode_success` **0**. The reorient phase (step ≥50) never learned: episodes
+accumulate ~50 steps of grace-window hold reward (→ the flat ~9.3) and then the object hits the
+floor the moment reorient pressure + floor termination engage. The soft onset (S) bought nothing
+material (slightly less floor-proximity, but still −0.078 / drop 1.0). **Confirmed conclusion: the
+skip-lift-prior P2 warmstart is not made robust to the seam by a grace window in 40M ts** — the
+grace window keeps training *alive* but also keeps it *stuck*, so it can't cross from "hold" into
+a working post-seam reorient.
+
+**Candidate next experiments (NOT run — autonomy budget spent; documented for the next session):**
+1. **Warmstart the hold-only control, not P2.** The v3 hold-only run *proved* a normal-lift B can
+   survive the takeover (tip_lost recovered to ~1–4). Finetuning *that* checkpoint toward reorient
+   (instead of the OOD skip-lift P2) starts from a policy that already holds A's delivery, so the
+   grace→reorient transition is in-distribution. **Most promising.**
+2. **Add the P3 handoff state-bank to the normal-lift env.** Train B on A's *real* recorded
+   post-delivery states (the seam obs) directly, so the seam is no longer OOD. (P3's state-bank was
+   the best de-centering lever; here it would target the seam distribution.)
+3. **Longer training** (≥80M) — least likely to help: reward was *flat*, not slowly climbing, so
+   this is a local optimum, not undertraining. Deprioritize.
+
 ---
 
 ## Results
