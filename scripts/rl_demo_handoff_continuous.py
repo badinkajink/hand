@@ -104,6 +104,19 @@ def main():
                     help="ramp A->B actions over N steps from handoff-step (0 = hard switch). "
                          "Eases B in so it is never shocked by an OOD obs at the seam.")
     ap.add_argument("--total-steps", type=int, default=240)
+    # ---- Branch D: critic-gated switch -------------------------------------
+    # Instead of a human picking --handoff-step, let B's value function choose
+    # the moment to take over: switch when V_B(obs) peaks during A's delivery
+    # (B is most confident it can succeed from here). Removes the arbitrary
+    # clock as a source of seam variance.
+    ap.add_argument("--switch-on-critic", action="store_true",
+                    help="pick the A->B switch step online from B's critic value peak")
+    ap.add_argument("--min-switch-step", type=int, default=25,
+                    help="earliest step the critic gate may switch (let the lift settle)")
+    ap.add_argument("--max-switch-step", type=int, default=90,
+                    help="hard cap: switch here even if no clear V_B peak")
+    ap.add_argument("--critic-patience", type=int, default=5,
+                    help="switch after V_B fails to beat its running max for this many steps")
     args = ap.parse_args()
 
     os.environ.setdefault("MUJOCO_GL", "egl")
@@ -149,19 +162,51 @@ def main():
     runner_b.alg.actor.eval()
     actor_b = runner_b.alg.actor
 
+    # Branch D: B's critic (value function), used only to time the switch.
+    critic_b = None
+    if args.switch_on_critic:
+        critic_b = runner_b.alg.critic
+        critic_b.load_state_dict(ckpt["critic_state_dict"], strict=True)
+        critic_b.eval()
+
+    def value_b(obs_dict):
+        # rsl_rl critic indexes the obs by group (e.g. obs["critic"]), so it
+        # needs the full TensorDict, not the raw actor tensor.
+        if hasattr(critic_b, "evaluate"):
+            return float(critic_b.evaluate(obs_dict).reshape(-1)[0])
+        return float(critic_b(obs_dict).reshape(-1)[0])
+
     # 3) Single continuous rollout, NO reset at the handoff.
     print(f"[hc] rolling out: A for steps 0..{args.handoff_step}, then B (no reset)...")
     obs_td, _ = wrapped.reset()
     obs = obs_td["actor"]
     align_at_handoff = None
     min_z = float("inf")
+    # Resolved switch step: fixed clock, or chosen online by the critic gate.
+    switch_step = None if args.switch_on_critic else args.handoff_step
+    vmax, t_star, no_improve, vtrace = float("-inf"), None, 0, []
     with torch.no_grad():
         for step in range(args.total_steps):
-            if step < args.handoff_step:
+            # ---- Branch D: decide the switch step from B's value peak --------
+            if args.switch_on_critic and switch_step is None:
+                v = value_b(obs_td)
+                vtrace.append((step, v))
+                if v > vmax:
+                    vmax, t_star, no_improve = v, step, 0
+                elif step >= args.min_switch_step:
+                    no_improve += 1
+                if step >= args.min_switch_step and (
+                        no_improve >= args.critic_patience or step >= args.max_switch_step):
+                    switch_step = step
+                    print(f"[hc] critic-gated switch at step {step} "
+                          f"(V_B peak at step {t_star}, V={vmax:.3f})")
+
+            # ---- action selection -------------------------------------------
+            if switch_step is None or step < switch_step:
                 actions = act(actor_a, obs[:, :A_OBS_DIM])
-            elif args.blend_steps > 0 and step < args.handoff_step + args.blend_steps:
+            elif args.blend_steps > 0 and step < switch_step + args.blend_steps:
                 # linear A->B action ramp: alpha 0->1 over the blend window
-                alpha = (step - args.handoff_step + 1) / float(args.blend_steps)
+                alpha = (step - switch_step + 1) / float(args.blend_steps)
                 a_a = act(actor_a, obs[:, :A_OBS_DIM])
                 a_b = act(actor_b, obs)
                 actions = (1.0 - alpha) * a_a + alpha * a_b
@@ -172,11 +217,14 @@ def main():
             try:
                 z = float(env.unwrapped.scene["cube"].data.root_link_pose_w[0, 2])
                 min_z = min(min_z, z)
-                if step == args.handoff_step:
+                if switch_step is not None and step == switch_step:
                     align_at_handoff = z
             except Exception:
                 pass
     env.close()
+    if args.switch_on_critic and vtrace:
+        print("[hc] V_B trajectory (step:value): "
+              + " ".join(f"{s}:{v:.2f}" for s, v in vtrace))
 
     # 4) Move the recorded clip to the output.
     import shutil
@@ -186,7 +234,7 @@ def main():
     args.output.parent.mkdir(parents=True, exist_ok=True)
     shutil.move(str(matches[-1]), str(args.output))
     print(f"[hc] DONE: {args.output}")
-    print(f"[hc] object z at handoff step {args.handoff_step}: {align_at_handoff}")
+    print(f"[hc] object z at handoff step {switch_step}: {align_at_handoff}")
     print(f"[hc] min object-center z over rollout: {min_z:.4f} m")
 
 
