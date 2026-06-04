@@ -26,8 +26,12 @@ Task: flat-laying `screwdriver_medium` cylinder → vertical, finger-only (9 DOF
     statebank** (P3: 3.0/3.1 cm ≈ 4.3 cm 3D) — training on A's real centered grips keeps it
     centered — but P3 reorients worse (0.930). Still: stacking diverges; add ONE at a time.
   - *Bracing:* unchanged; reaches cos 0.99 ~3 cm below palm (vertically), no contact.
-  - *Seamless A→B handoff:* **DIAGNOSED (2026-06-03), fix in training.** The seam drop is an
-    OBSERVATION-DISCONTINUITY shock, not a grip problem — see next section.
+  - *Seamless A→B handoff:* **DIAGNOSED + fix validated, converging (2026-06-04).** Seam drop is
+    an OBSERVATION-DISCONTINUITY shock (skip-lift B is OOD on A's normal-lift delivery), not a grip
+    problem. Fix = train B in the normal-lift env with a **grace window** (hold-first, reorient
+    later). v2 (no grace) collapsed; **v3 grace held reward flat ~10 but NaN'd at iter 60/750**;
+    hold-only control proves B survives the handoff. **v3b** reruns grace to completion
+    (NaN-resilient, 2× parallel) — see "Normal-lift B history" below.
 
 ## P1/P2/P3 — DONE (2026-06-03, 40M ts / 3072 envs each). Authoritative deterministic eval:
 | policy | held_cos | peak | obj_jerk | min_z | drop | world Δlat |
@@ -55,13 +59,23 @@ used at deploy. B never saw the seam obs in training. **PROOF:** the (undertrain
 activate at step 35 — held **z≈0.09 for ~10–15 steps past the seam** (vs instant collapse), then
 dropped (undertrained). So normal-lift training removes the shock; it just needs convergence.
 
-### → IN TRAINING NOW: `policyB_normallift_v2_fromP2` (40M ts / 3072 envs, ~70 min)
-Combines the two things that each worked: (a) normal-lift training (fixes seam) + (b) warmstart
-from **P2** (best reorienter; lateral-drift -8 kept so the warmstarted critic stays valid).
-Launch: `scripts/train_normallift_B_v2_fromP2.sh` (detached). Logs `normallift_v2_train.log`;
-auto-renders `docs/rl/videos/reorient/handoff_seamless_v2.mp4` and prints `min object z` at the end
-(**want min-z > 0.05** post-handoff = held). Early health verified: critic warmstart fully copied,
-no NaN, zero drops at iter 0.
+### Normal-lift B history: v2 collapsed → v3 grace WORKS (NaN'd) → **v3b IN TRAINING NOW**
+- **v2_fromP2 (normal-lift, warmstart P2): COLLAPSED** — held-cos 0.029, 100% drop, handoff
+  min-z 0.005. Step-35 fired residual+terminations+full-reorient at once; OOD warmstart fumbles,
+  terminations kill episodes → reward 12→3 → never learns.
+- **v3 grace window: the fix, and it WORKED** — B takes over (residual) at step 35 but only HOLDS
+  until step 50, when terminations+reorient engage. Reward stayed healthy/flat (~10) for 60 iters
+  (no v2 collapse), then **NaN-crashed at iter ~60/750** (transient warp env blowup; rsl_rl
+  check_nan kills the run on any NaN — no retry). Only model_50 (undertrained, still drops).
+- **v3 hold-only control (reorient OFF): completed, PROVES B survives the handoff** — tip_lost
+  humped to ~44 then recovered to ~1–4. (65-dim, not deployable; isolation control only.)
+- **→ IN TRAINING NOW: `policyB_normallift_v3b_{repro,soft}` (2× parallel, 40M/3072, ~70 min).**
+  `scripts/train_normallift_B_v3b_gracewindow.sh` reruns the grace window to completion,
+  NaN-resilient via two variants: **R** = exact repro (residual 0.5), **S** = soft onset
+  (residual 0.4 + basin curriculum α 0.5→4.0 / 150 iters). Both warmstart P2. Logs
+  `normallift_v3b_{repro,soft}_train.log`. Early health OK (critic copied, reward ~9.5/~15.6, no
+  NaN). **Want post-handoff min-z > 0.05 at held-cos ≈ P2's 0.988.** Follow-on:
+  `scripts/v3b_eval_trigger.sh` waits → evals → renders seamless video → STATE_HANDOFF_RESULTS.txt.
 
 ## How to EVALUATE (the honest metrics)
 ```
