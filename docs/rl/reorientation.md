@@ -746,6 +746,79 @@ A longer (30M) run from v1 would likely polish it further but isn't required.
 
 ---
 
+## Phase: de-centering + seamless A→B handoff (2026-06-03 → 06-04)
+
+Two coupled workstreams: (1) curb the real de-centering, and (2) make Policy B hold the
+object through a **continuous, no-reset** handoff from Policy A's lift. All judged on the
+honest deterministic metrics (`scripts/rl_eval_reorient_metrics.py`: held-cos / obj_jerk /
+min_z / drop) + the continuous-handoff hold test (`scripts/rl_demo_handoff_continuous.py`:
+post-handoff `min-z`; **hold ⇔ min-z > 0.05**), never reward sums.
+
+### P1 / P2 / P3 — three single-variable runs (40M ts, 3072 envs, warmstart signed+critic)
+
+| policy | held_cos | peak | obj_jerk | min_z | drop | world Δlat |
+|---|---|---|---|---|---|---|
+| baseline signed+critic (405) | 0.979 | 0.989 | 52.3 | 0.109 | 0 | 3.8/5.2 cm |
+| P1 handoff-DR alone (541) | 0.959 | 0.995 | 57.8 | 0.115 | 0 | — |
+| **P2 lateral-only −8 (541)** | **0.988** | **0.997** | **26.9** | 0.117 | 0 | 5.6/4.8 cm |
+| P3 statebank (541) | 0.933 | 0.946 | **8.1** | 0.114 | 0 | **3.0/3.1 cm** |
+
+- **P2 (`--lateral-drift-weight=-8` alone) = best reorienter:** held-cos **0.988** (> baseline
+  0.979) and obj_jerk **HALVED** (26.9 vs 52). Surprise: the lateral penalty did **not** reduce
+  de-centering (it drifted ~1 cm *more*) — it acts as a **smoothing regulariser**. So a
+  *position* penalty smooths where velocity/accel jerk penalties (which destabilise the hold)
+  failed. New recommended **standalone** reorienter:
+  `results/rl/20260603-1746-policyB_p2_lateral_only/tensorboard/model_541.pt`.
+- **P3 (handoff state-bank) = best de-centerer (3.0/3.1 cm) + smoothest (jerk 8.1) but weakest
+  reorienter (0.933).** Training on A's real centered grips keeps it centered; trades verticality.
+- **P1 (handoff-DR alone) = worse, discard** — DR alone destabilises the grip (gotcha #4).
+
+### Handoff seam drop — DIAGNOSED: an observation-discontinuity OOD shock, not grip weakness
+
+Instrumented the continuous A→B rollout (object-z every step). The drop is **instantaneous at
+the seam**, identical for P2 / P3 / baseline (all skip-lift-trained): z 0.094 → 0.073 → 0.022 →
+floor within **3–5 steps** of the switch. B collapses the grip the moment it takes over → it is
+**out-of-distribution** at the seam: a skip-lift B never saw the normal-lift env's lift-command
+phase / `ref_object_pose` schedule that A delivers. That's why **neither DR (P1) nor the
+state-bank (P3) helped** — both still trained B in the *skip-lift* env. The handoff demo's
+`--blend-steps` (linear A→B action ramp) extends the hold ~6 → 18 steps and the object even
+rises, but every skip-lift B still drops once in full control. **The fix must be in training:
+train B in the normal-lift env so it sees the seam.**
+
+### Normal-lift B — v2 collapse → v3 grace window (works, NaN'd) → v3b relaunch
+
+- **v2 (`policyB_normallift_v2_fromP2`, warmstart P2, normal-lift): COLLAPSED.** Standalone
+  held-cos **0.029**, **100 % drop**, training reward fell 12 → 3 by iter ~5. Cause: at step 35
+  **everything fired at once** — B's residual activates, lift + floor terminations engage, *and*
+  the full reorient reward (100 align + 300 progress). The skip-lift-prior warmstart is OOD on
+  the post-scripted-lift state, fumbles, and the terminations kill OOD episodes short → reward
+  collapse → never learns. Continuous-handoff min-z **0.005 m** (dropped).
+- **v3 grace window (`policyB_normallift_v3_grace`): the candidate fix — and it WORKED.** Give B
+  a **grace window**: it takes over (residual) at step 35 but only has to **HOLD** until step 50;
+  terminations + reorient pressure engage at 50. Reward stayed **healthy and flat (~10) for 60
+  iters** — the grace window prevented the v2 collapse. It then **NaN-crashed at iter ~60/750**
+  (a transient warp env blowup; rsl_rl's `check_nan` raises on *any* env NaN and kills the whole
+  run, no retry) → only `model_50` saved (undertrained → still drops, min-z 0.003). So the
+  approach is sound; it died to bad luck at 60/750.
+- **v3 hold-only control (`policyB_normallift_v3_holdonly`, grace window, reorient DISABLED):
+  completed 40M and PROVES B can survive the scripted-lift → takeover.** `tip_lost` rose to a
+  mid-training hump (~44) then **recovered to ~1–4** by the end — B learns to hold A's delivery
+  in the normal-lift env. (Not deployable: 65-dim / no reorient, so it can't run in the 66-dim
+  handoff demo; it's a pure isolation control.)
+
+**→ v3b (in training): relaunch the grace window TO COMPLETION, NaN-resilient.**
+`scripts/train_normallift_B_v3b_gracewindow.sh` runs two parallel variants (so a stochastic
+single-env NaN doesn't waste the 70-min run): **R** = byte-identical repro (finger-residual
+0.5, hard reorient onset at 50); **S** = soft onset (finger-residual 0.4 + basin-width
+curriculum α 0.5→4.0 over 150 iters) to lower the step-50 OOD/physics shock. Both warmstart P2,
+40M / 3072, staggered, per-process Warp cache. Early health verified: critic fully warmstarted
+(actor 9 + critic 8 tensors copied), no NaN, reward ~9.5 (R) / ~15.6 (S, wider basin). **Want:
+post-handoff min-z > 0.05 (holds) at held-cos near P2's 0.988.** A follow-on trigger
+(`scripts/v3b_eval_trigger.sh`) waits for both → evals → renders the seamless video → writes
+`STATE_HANDOFF_RESULTS.txt`.
+
+---
+
 ## Results
 
 ### Cross-run comparison plots
