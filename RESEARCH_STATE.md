@@ -62,6 +62,42 @@ Task: flat-laying `screwdriver_medium` cylinder → vertical, finger-only (9 DOF
     survival on continuous-handoff min-z, not standalone drop. Full write-up: `webpaper/src/rl.typ`;
     eval: `STATE_HANDOFF_RESULTS.txt`.
 
+## BRANCH B v1 (un-freeze A) — RAN 2026-06-04 eve, FAILED (collapsed A's grasp); v2 corrected, NOT YET RUN
+Branch B was implemented + launched (commits f6abb13/14a22db/c920706): keep B10 frozen, warmstart A,
+add a seam-gated (steps 33-37) dense reward (`handoff_target_proximity`) pulling A's finger qpos onto
+B10's recorded step-35 grip (`results/rl/b10_initiation_bank_s35.npz`). Sweep grip weight 4/8/16
+(`scripts/{train_handoff_branchB_unfreezeA,sweep_branchB_unfreezeA}.sh`).
+**Hypothesis (still UNTESTED):** the seam OOD is the GRIP (finger qpos), not object pose — at handoff
+A's grip is ~0.16 rad/joint off B10's holding grip (A scores 0.347 vs B10-self 1.0 at tol 0.05).
+
+**v1 OUTCOME — all 3 runs (`20260604-22{05,06,10}-policyA_unfreezeA_gripw{4,8,16}`) FAILED two ways:**
+1. **FATAL — destabilized A's grasp; collapse to floor.** Identical curve across weights: A lifts
+   fine early (object_height ~0.09, contact_min 6.6 at iter ~15) then **collapses at iter ~25**
+   (object_height → 0.012-0.018, contact_min → 0.008) and **never recovers**. Root cause: the launch
+   script **stripped ALL of A's lift-phase terminations** (never passed `--enable-lift-terminations`)
+   on the theory lift_height+track_object rewards hold the grasp — they DON'T. With no drop
+   termination (only `time_out` ever fired) and no drop penalty (`object_drop` reward 0.0),
+   **object-on-floor is a stable non-terminating attractor**; PPO + the finger-perturbing proximity
+   reward slid A into it in 25 iters. (= gotcha #4 + new lesson #7 below.)
+2. **OOM kill (rc=137).** All 3 SIGKILLed at ~8-16 min (ETA 30-44 min left), never reached 20M ts.
+   Three parallel 3072-env runs over-subscribed memory → **run ONE at a time.**
+**Crucially the hypothesis was NEVER tested:** `handoff_target_proximity` stayed at ~0.014-0.05 the
+whole time (once the object is on the floor the fingers aren't near B10's grip), so v1 only proved
+*this env destabilizes A*, nothing about whether grip-matching closes the seam.
+
+**v2 FIX (`scripts/train_handoff_branchB_v2.sh`, written, NOT launched) — change ONE thing vs A's
+own training env:** A was TRAINED with `enable_lift_terminations:true, term_object_drop 0.02,
+term_finger_slip 0.3, lift_phase_start_step 40`. v2 **restores all of it** (floor can't be an
+attractor) and relaxes **only** `term_finger_slip` 0.3→2.0 (so A may migrate its grip ~0.48 rad L2
+toward B10's without the slip-term killing it — the one real tension v1 spotted but "fixed" by
+deleting every guardrail). Worst case now = "A keeps its grip, proximity stays low" (safe), never "A
+learns to drop". Weight MODEST (2.0, not 4/16); SINGLE run (OOM fix); baked-in **collapse watchdog**
+kills the run if object_height < 0.045 at iter ≥ 24. Bank verified sane (512 samples, 9 finger
+joints, target grip deterministic std≈1e-4). After it holds: eval seam with frozen B10 via
+`rl_demo_handoff_continuous.py --policy-a <A_v2> --policy-b <B10>` → min-z > 0.05 = SURVIVES.
+**Fallback if A is too fragile to nudge:** don't touch A — record A's REAL delivered grip and
+fine-tune B with its onset grip domain-randomized over A's delivery distribution.
+
 ## P1/P2/P3 — DONE (2026-06-03, 40M ts / 3072 envs each). Authoritative deterministic eval:
 | policy | held_cos | peak | obj_jerk | min_z | drop | world Δlat |
 |---|---|---|---|---|---|---|
@@ -153,6 +189,12 @@ degraded base. **min_z<0.05 ⇒ floor contact/drop.**
 6. **The "revert gremlin":** SSH reconnects have reverted tracked files (env_cfg.py / rl_train_cube.py)
    to stale versions mid-session. **Commit after every change**, and if a file looks short/old,
    `git checkout HEAD -- <file>` to restore. HEAD is the source of truth.
+7. **NEVER strip the grasp guardrails (drop/tip-loss terminations) when adding a finger-perturbing
+   reward** (branch-B v1, 2026-06-04). Without a drop termination AND with episodes not ending on
+   floor-contact, "object on the floor" is a stable non-terminating attractor and PPO collapses into
+   it within ~25 iters. If a new reward conflicts with a *specific* guardrail (here `term_finger_slip`
+   vs grip migration), relax ONLY that one — keep `--enable-lift-terminations` + `term_object_drop`.
+   Warmstart finetunes can also collapse silently: watch `Metrics/lift_height/object_height` live.
 
 ## Reproduce the in-progress launches
 The exact P1/P2/P3 commands are in `scripts/queue_reorient_handoff_dr.sh` / the run dirs'
