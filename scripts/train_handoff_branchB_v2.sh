@@ -40,6 +40,20 @@ A_CKPT="${A_CKPT:-$ROOT/results/rl/20260529-1219-screwdriver_medium_flat_short_p
 BANK="${BANK:-$ROOT/results/rl/b10_initiation_bank_s35.npz}"
 WEIGHT="${WEIGHT:-2.0}"
 FINGER_SLIP_TOL="${FINGER_SLIP_TOL:-2.0}"   # relaxed (A trained at 0.3) so grip can migrate
+# v2 attempt-1 (gripw2.0, 20260605-1530) collapsed @iter25 — but NOT v1's floor-drop:
+# --enable-lift-terminations also turned on A's TIGHT object-slip guards
+# (term_object_slip_xy 0.015 m, term_object_slip_yaw 0.5 rad). Migrating the grip
+# nudges the object past 1.5 cm, so object_slip fired 100+/iter from iter 1 and
+# killed every episode before A could learn. FIX: keep the DROP guard tight (the
+# real "don't lose it"), relax the precision OBJECT-SLIP guards so grip migration
+# is allowed. The drop term (0.02 m) still forbids actually losing the object.
+SLIP_XY_TOL="${SLIP_XY_TOL:-0.05}"          # was A's 0.015 — allow object motion during re-grip
+SLIP_YAW_TOL="${SLIP_YAW_TOL:-1.0}"         # was A's 0.5  — allow some yaw during re-grip
+# v2 attempt-2 (gripw2_slip5) FIXED the collapse (object_height held ~0.088 to iter 55) but the
+# grip-proximity reward stayed FLAT at ~0.002: with qpos_tol 0.05 and A's grip ~0.16 rad/joint off
+# B10's, A sits ~3σ out in the Gaussian tail where reward≈0 AND gradient≈0 — nothing pulls A toward
+# B10's grip. FIX: WIDEN the basin so there's a gradient at the real gap (tol 0.15 -> 0.57/step).
+QPOS_TOL="${QPOS_TOL:-0.15}"                 # was 0.05 (too sharp; no gradient at the 0.16-rad gap)
 TOTAL_TS=${TOTAL_TS:-20000000}; SMOKE=${SMOKE:-0}; [ "$SMOKE" = "1" ] && TOTAL_TS=1000000
 TAG="${TAG:-policyA_unfreezeA_v2_gripw${WEIGHT}}"
 for f in "$A_CKPT" "$BANK" "$ROOT/$MORPH/best_rollout.npz"; do
@@ -61,10 +75,11 @@ ARGS=(
   # --- GUARDRAILS RESTORED (this is the v1 fix) ---
   --enable-lift-terminations
   --term-object-drop 0.02 --term-tip-lost-steps 3 --term-finger-slip "$FINGER_SLIP_TOL"
+  --term-object-slip-xy "$SLIP_XY_TOL" --term-object-slip-yaw "$SLIP_YAW_TOL"
   --lift-phase-start-step 40
   # --- the ONE intended change: nudge A's delivered grip onto B10's (65-d A space) ---
   --handoff-target-bank "$BANK" --handoff-target-weight "$WEIGHT"
-  --handoff-target-seam-lo 33 --handoff-target-seam-hi 37 --handoff-target-qpos-tol 0.05
+  --handoff-target-seam-lo 33 --handoff-target-seam-hi 37 --handoff-target-qpos-tol "$QPOS_TOL"
   --tag "$TAG" --no-wandb
 )
 c=$(mktemp -d)
