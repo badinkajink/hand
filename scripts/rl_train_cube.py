@@ -219,6 +219,16 @@ class Args:
     """If >0, ramp spawn tilt/z jitter 0->max over this many iters (gradual grip adaptation)."""
     handoff_state_bank: str | None = None
     """Path to a Policy-A terminal-state bank npz; spawn B from sampled states (train-the-handoff)."""
+    handoff_target_bank: str | None = None
+    """Branch B (un-freeze A): path to B10's initiation-set bank npz; A gets a seam-gated
+    dense reward for delivering the object into B10's reorient-onset distribution."""
+    handoff_target_weight: float = 0.0
+    """Weight on the handoff_target_proximity reward (try ~4). 0 disables."""
+    handoff_target_seam_lo: int = 35
+    handoff_target_seam_hi: int = 45
+    """Policy-step window the proximity reward fires over (the delivery window)."""
+    handoff_target_scale_mult: float = 1.0
+    """Multiplier on per-dim feature tolerance (>1 = looser match)."""
     action_rate_weight: float = -0.005
     """Weight on the action_rate_l2 smoothness penalty. Policy B used -0.1
     (20x normal) to suppress sim-only finger jitter."""
@@ -392,6 +402,11 @@ def main() -> None:
         skip_lift_spawn_z_jitter=args.skip_lift_spawn_z_jitter,
         handoff_dr_curriculum_iters=args.handoff_dr_curriculum_iters,
         handoff_state_bank=args.handoff_state_bank,
+        handoff_target_bank=args.handoff_target_bank,
+        handoff_target_weight=args.handoff_target_weight,
+        handoff_target_seam_lo=args.handoff_target_seam_lo,
+        handoff_target_seam_hi=args.handoff_target_seam_hi,
+        handoff_target_scale_mult=args.handoff_target_scale_mult,
         action_rate_weight=args.action_rate_weight,
         object_ang_acc_weight=args.object_ang_acc_weight,
         object_ang_acc_phase_start_step=args.object_ang_acc_phase_start_step,

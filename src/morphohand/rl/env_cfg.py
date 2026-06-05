@@ -469,6 +469,22 @@ class MorphoHandEnvCfg:
     """Path to a Policy-A terminal-state bank (npz from rl_record_handoff_states.py).
     When set (skip-lift), object+hand spawn from sampled bank states each reset
     (train-the-handoff); the LiftingCommand's object pose write is disabled."""
+    # ---- Branch B (un-freeze Policy A): terminal-state reg toward B10's set --
+    handoff_target_bank: str | None = None
+    """Path to Policy B10's INITIATION-set bank (npz from rl_record_initiation_bank.py).
+    When set with a non-zero weight, Policy A's finetune gets a seam-gated dense
+    reward for delivering the object into the object-state distribution B10
+    reorients from (see mjlab_terms.handoff_target_proximity)."""
+    handoff_target_weight: float = 0.0
+    """Weight on the handoff_target_proximity reward (try ~4; comparable to a
+    tracking term). 0 disables. Keep modest so A's grasp/lift reward stays in
+    charge and the grip is protected."""
+    handoff_target_seam_lo: int = 35
+    handoff_target_seam_hi: int = 45
+    """Policy-step window the proximity reward is active over (the delivery /
+    handoff window — default brackets the step-40 handoff)."""
+    handoff_target_scale_mult: float = 1.0
+    """Multiplier on the per-dim feature tolerance (>1 = looser match)."""
     # ---- "smooth & quick" finetune curriculum (Policy B v2) -------------
     target_axis_progress_clamp_negative: bool = False
     """If True, only positive Δ(alignment) is rewarded (no penalty for
@@ -944,6 +960,16 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
             params=dict(sensor_name="fingertip_cube_contact",
                         max_force=float(cfg.grip_force_max),
                         reduce=str(cfg.grip_force_reduce)),
+        )
+    if cfg.handoff_target_bank and cfg.handoff_target_weight != 0.0:
+        rewards["handoff_target_proximity"] = RewardTermCfg(
+            func=mjlab_terms.handoff_target_proximity,
+            weight=float(cfg.handoff_target_weight) * task_scale,
+            params=dict(bank_path=str(cfg.handoff_target_bank),
+                        seam_lo=int(cfg.handoff_target_seam_lo),
+                        seam_hi=int(cfg.handoff_target_seam_hi),
+                        object_name="cube",
+                        scale_mult=float(cfg.handoff_target_scale_mult)),
         )
     if cfg.brace_distance_weight != 0.0 and cfg.enable_target_axis_reward:
         rewards["palm_brace_distance"] = RewardTermCfg(
