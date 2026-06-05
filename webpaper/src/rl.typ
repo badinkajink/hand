@@ -270,13 +270,63 @@ at step 29; the object still drops (min-z 0.006).
   has now hit its ceiling; meeting in the middle is what a ∼0-margin hand needs.
 ]
 
-== Next experiment
+== The hold-only warm-start — the seam, broken (B10)
 
-Stay in branch A but fix the *initialization*: warm-start from the *hold-only control* —
-which already proved it survives A's delivery (`tip_lost` 44 → 1–4) — instead of the
-OOD skip-lift reorienter, so the grace→reorient transition begins *in*-distribution.
-Then open branch B by un-freezing Policy A. The best *standalone* reorienter is unchanged:
-*B4*, held-cosine 0.988.
+The fix that branch A had been missing: warm-start B not from the OOD skip-lift reorienter
+but from the *hold-only control* — which already proved it survives A's delivery
+(`tip_lost` 44 → 1–4) — so the grace→reorient transition begins *in-distribution*. The
+hold-only policy is 65-d (no reorient obs); the run is 66-d, so it is a partial warm-start
+that zero-inits the new column for *both* actor and critic.
+
+*It worked.* `B10` (hold-only warm-start, hard reorient onset) is the *first policy to both
+survive the A→B handoff and reorient* — standalone held-cos *0.977*. Two tells confirmed the
+in-distribution init landed in a better basin: reward started at ∼12 and climbed (vs the v3b
+plateau's flat ∼9), and B10's *critic is no longer OOD* on the delivery.
+
+But B10 reorients *violently* — `obj_jerk` *108*, four times the skip-lift reference B4's 27.
+And `B11` (the soft variant: residual 0.4, basin curriculum α 0.5→4 over 150 iters) holds the
+object but *never tilts* (held-cos −0.137): the 150-iter curriculum was so dilute the policy
+settled into a hold-only optimum before the reorient signal sharpened.
+
+#table(
+  columns: (auto, auto, auto, 1fr),
+  table.header([*ID*], [*held-cos*], [*obj-jerk*], [*Handoff behavior*]),
+  [B4 (skip-lift ref)], [0.990], [27], [great standalone, but drops at the seam],
+  [*B10* hold-only, hard], [*0.977*], [*108*], [*survives seam + reorients — but violent*],
+  [B11 hold-only, soft], [−0.137], [10.8], [survives, holds, never tilts (too dilute)],
+)
+
+#callout(tag: "Where this leaves us", kind: "note")[
+  The hold-only warm-start *closed the seam* — survival + reorientation through a continuous
+  handoff, for the first time. The remaining problem narrowed from "does it work at all" to
+  "make the transition *smooth*" — find the point between B10 (commits, but violent) and B11
+  (smooth, but never commits). The standalone skip-lift metric env is OOD for these
+  normal-lift Bs (its `drop=1.0` is an artifact); survival is judged on the *continuous-handoff*
+  `min-z` and the rendered video, quality on held-cos, violence on `obj_jerk`.
+]
+
+== Iteration 2: smooth the seam, keep the tilt (B12 / B13 — in training)
+
+#det([The two candidates], kind: "method")[
+  - *B12 — smoothness finetune of B10.* Warm-start B10 (which already reorients), then ramp the
+    action-rate and object-angular-acceleration penalties in *late* (curriculum starts iter 40)
+    so it learns to tilt first, then smooths the seam — the "learn it, then make it smooth"
+    recipe that worked for the v2 smoothness finetunes (B2). Targets the `obj_jerk` 108 directly;
+    risk (the sim-only-jitter gotcha) is that smoothing re-breaks the tilt, so the ramp is gentle.
+  - *B13 — soft-but-committing onset.* Same hold-only warm-start, but residual 0.5 (full
+    authority, unlike B11's 0.4) and a basin curriculum α 0.5→4 over just *40* iters (commits
+    fast, unlike B11's 150). Eases the first few iterations of the reorient onset without
+    diluting it into a hold-only optimum.
+]
+
+Both are normal-lift grace-window runs warm-started in-distribution, 40M / 3072, NaN-resilient.
+Target: continuous-handoff `min-z > 0.05` (survives) *and* held-cos near B4's 0.988 (reaches
+vertical) *and* `obj_jerk` well below 108 (smooth seam). Results — plus deploy-time levers
+(an action-blend window and a critic-gated switch on B10, now that its critic is in-distribution)
+— are evaluated and written up by the follow-on trigger; see `STATE_HANDOFF_RESULTS.txt`.
+
+Still open after this iteration, regardless: *branch B* — un-freeze Policy A and fine-tune its
+delivery toward B's basin (terminal-state regularization, or B's value as A's reward).
 
 #refbox[
   *Sources.* Lee et al., _Adversarial Skill Chaining via Terminal State Regularization_,
