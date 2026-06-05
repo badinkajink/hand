@@ -138,6 +138,10 @@ them.
   [B7], [first normal-lift finetune (`v2_fromP2`)], [collapsed (held-cos 0.029, 100% drop)],
   [B8], [normal-lift *grace window* (`v3_grace`)], [stable but NaN-crashed at iter 60/750],
   [B9], [grace window to completion (`v3b` repro/soft)], [collapsed to a degenerate plateau],
+  [B10], [*hold-only warm-start*, hard onset], [reorients (held-cos 0.977) but violent (jerk 108); drops in continuous handoff],
+  [B11], [hold-only warm-start, soft (residual 0.4, 150-it α)], [holds but never tilts (held-cos −0.137; too dilute)],
+  [B12], [smoothness finetune *of B10*], [smoothing destroyed the tilt (held-cos 0.086, jerk 550)],
+  [B13], [soft-but-committing onset (residual 0.5, 40-it α)], [smooth seam (jerk 21) but half-tilt (held-cos 0.462)],
 )
 
 == The reorientation journey
@@ -305,7 +309,7 @@ settled into a hold-only optimum before the reorient signal sharpened.
   `min-z` and the rendered video, quality on held-cos, violence on `obj_jerk`.
 ]
 
-== Iteration 2: smooth the seam, keep the tilt (B12 / B13 — in training)
+== Iteration 2: smooth the seam, keep the tilt (B12 / B13)
 
 #det([The two candidates], kind: "method")[
   - *B12 — smoothness finetune of B10.* Warm-start B10 (which already reorients), then ramp the
@@ -321,12 +325,82 @@ settled into a hold-only optimum before the reorient signal sharpened.
 
 Both are normal-lift grace-window runs warm-started in-distribution, 40M / 3072, NaN-resilient.
 Target: continuous-handoff `min-z > 0.05` (survives) *and* held-cos near B4's 0.988 (reaches
-vertical) *and* `obj_jerk` well below 108 (smooth seam). Results — plus deploy-time levers
-(an action-blend window and a critic-gated switch on B10, now that its critic is in-distribution)
-— are evaluated and written up by the follow-on trigger; see `STATE_HANDOFF_RESULTS.txt`.
+vertical) *and* `obj_jerk` well below 108 (smooth seam).
 
-Still open after this iteration, regardless: *branch B* — un-freeze Policy A and fine-tune its
-delivery toward B's basin (terminal-state regularization, or B's value as A's reward).
+== Iteration 2 outcome: smoothing broke the tilt, and the seam is still open
+
+Neither candidate met the bar, and the honest deterministic numbers also *retire the earlier
+optimism about B10*. Two findings:
+
+*Smoothing B10 was catastrophic (B12).* Ramping the action-rate / angular-acceleration penalties
+into B10 did not gently smooth a working reorient — it *destroyed* it: held-cos collapsed to
+*0.086* (no tilt) while `obj_jerk` *tripled to 550* (worse than B10's own 108). This is the
+sim-only-jitter gotcha at full strength — the corrective finger jerk *is* the stabilization, so
+penalizing it makes the policy thrash. "Learn it, then smooth it" worked for the standalone
+reorienter (B2) but not across the seam.
+
+*Soft-commit is smooth but timid (B13).* The residual-0.5 / fast-α-curriculum onset gave a
+genuinely *smooth* seam — `obj_jerk` *21*, below even B4's 27 — but it under-commits: held-cos only
+*0.462*, a half-tilt that never reaches vertical. The soft onset trades the tilt away.
+
+#table(
+  columns: (auto, auto, auto, auto, 1fr),
+  table.header([*ID*], [*held-cos*], [*obj-jerk*], [*cont. min-z*], [*Verdict*]),
+  [B4 (skip-lift ref)], [0.988], [27.7], [0.117\*], [great standalone; drops at the seam],
+  [B10 hold-only, hard], [0.975], [117], [0.0029], [reorients, but violent — and drops in the continuous handoff],
+  [B12 smooth-of-B10], [0.086], [550], [0.0026], [smoothing destroyed the tilt *and* the jerk],
+  [B13 soft-commit], [0.462], [21.3], [−0.0007], [smooth seam, but only half-tilts],
+)
+
+#det([Why the continuous `min-z` is the decisive number], kind: "note")[
+  The held-cos / obj-jerk columns come from the standalone metric env, which resets to a clean
+  held state — so they measure *reorient quality from a good start*. The `cont. min-z` column is
+  the full A-lift → B-takeover rollout with no reset (handoff at step 40): the lowest object-center
+  height over 240 steps. `min-z > 0.05` means B *kept the object off the floor* through the seam.
+  *Every normal-lift B fails it* — B10 0.0029, B12 0.0026, B13 −0.0007 — i.e. the object reaches the
+  floor in the continuous handoff even when standalone held-cos looks good. (\*B4's 0.117 is in its
+  *own* skip-lift env; in the continuous normal-lift handoff B4 also drops.) The earlier "B10 survives
+  the seam" read was from looser evidence; under this strict continuous bar, *no variant clears it.*
+]
+
+*Deploy-time levers (branch E) are exhausted.* With no retraining we tried, on B10, a deploy-time
+action-blend window (ramp B's action in over 8–12 steps) and a critic-gated switch (let B10's
+now-in-distribution critic pick the switch step). Neither rescued survival: blend-12 `min-z`
+*0.0063*, critic-gate (fired at step 29) *0.0044*, B12/B13 blend-8 *0.0026 / −0.0007*. Softening
+*when* or *how fast* B takes over does not fix *what* B does once it has the object.
+
+#media("assets/handoff_B12_smooth.mp4",
+  label: [B12 — smoothing finetune of B10.],
+  caption: [The smoothness penalties destroyed the reorient: the object barely tilts and the grip
+    thrashes (held-cos 0.086, jerk 550). The object reaches the floor.])
+
+#media("assets/handoff_B13_softcommit.mp4",
+  label: [B13 — soft-but-committing onset.],
+  caption: [A smooth seam (jerk 21) but a timid half-tilt (held-cos 0.462); the object still settles
+    to the floor in the continuous handoff (min-z −0.0007).])
+
+#callout(tag: "Verdict", kind: "warn")[
+  Iteration 2 did not close the seam, and it sharpened the diagnosis. *Moving B alone is not
+  enough.* B10 (commits hard), B13 (commits soft), and B12 (over-smoothed) span the entire
+  commit/smoothness axis, and *all three drop the object in the continuous handoff* — as do the
+  deploy-time blend and critic-gate levers. The failure is not B's onset schedule or its
+  smoothness; it is that B, handed A's *actual* delivered state, cannot maintain the grip while it
+  reorients. The remaining untried lever is the one that moves *A*.
+]
+
+== The single best next experiment — branch B: co-adapt Policy A
+
+Un-freeze Policy A and fine-tune *its* delivery toward a state B can reorient from, rather than
+forcing B to absorb a fixed delivery. Concretely: keep B10 frozen as the reorienter and fine-tune
+A in the continuous env with a *terminal-state-regularization* term (Lee et al. 2021) — penalize A
+for ending its lift in states outside B10's initiation set, using B10's critic value at the seam as
+the reward signal (Röstel et al. 2025). This directly attacks the one thing every B-side experiment
+left untouched: the seam state itself. It is preferred over more B-side tuning because the data now
+shows the commit/smoothness axis is fully explored and saturated on the wrong side of `min-z`, and
+over branch E because the deploy-time blend/gate levers already failed to rescue survival. A cheaper
+fallback worth pairing in: record A's *real* delivered seam states with `rl_record_handoff_states.py`
+and reset B's normal-lift training from that bank (`--handoff-state-bank`), closing the residual gap
+between B's training reset and A's actual hand-off.
 
 #refbox[
   *Sources.* Lee et al., _Adversarial Skill Chaining via Terminal State Regularization_,

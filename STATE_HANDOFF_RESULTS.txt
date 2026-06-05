@@ -1,54 +1,28 @@
-# v3b grace-window handoff results (2026-06-04 11:33:37)
-## deterministic held-cos / jerk / min_z / drop (standalone, own normal-lift env)
+# Handoff iter2 results (B12 smooth / B13 soft-commit) (2026-06-04 19:46:31)
+## standalone held-cos / peak / obj_jerk / min_z / drop
+## (NOTE: standalone env is SKIP-LIFT = OOD for normal-lift Bs; drop here is an artifact.
+##  Judge survival on the continuous-handoff min-z below, quality on held-cos, violence on obj_jerk.)
+## reference: B4_lateral held-cos 0.990 jerk 27 ; B10_repro held-cos 0.977 jerk 108 (violent)
 policy                held_cos    peak  obj_jerk   min_z   drop
-signed+critic            0.979   0.988   51.6566   0.109   0.00
-P2_lateral               0.987   0.997   27.6268   0.117   0.00
-v3b_repro               -0.035   0.121  103.0792   0.004   1.00
-v3b_soft                -0.078   0.121   41.9194   0.005   1.00
-## continuous A->B handoff hold (min-z>0.05 = B holds A's delivery; handoff-step 40, blend 8)
-### v3b_repro  (/home/humanoid/Programs/hand/results/rl/20260604-1018-policyB_normallift_v3b_repro/tensorboard/model_541.pt)
-[hc] object z at handoff step 40: 0.10799390822649002
-[hc] min object-center z over rollout: 0.0037 m
-### v3b_soft  (/home/humanoid/Programs/hand/results/rl/20260604-1019-policyB_normallift_v3b_soft/tensorboard/model_541.pt)
-[hc] object z at handoff step 40: 0.10845301300287247
-[hc] min object-center z over rollout: 0.0069 m
-## NOTE: best holder's video = docs/rl/videos/reorient/handoff_v3b_{repro,soft}.mp4;
-## if min-z>0.05 that is the SEAMLESS HANDOFF (the goal). Judge held-cos vs P2 0.988.
-
-================================================================================
-VERDICT (2026-06-04, document-and-synthesize pass) — SEAMLESS A->B HANDOFF: OPEN
-================================================================================
-Status: PARTIALLY SOLVED / mostly OPEN.
-  SOLVED earlier: the seam drop is DIAGNOSED (observation-discontinuity OOD shock,
-    not grip weakness) and the no-reset continuous-handoff mechanism works.
-  OPEN: no policy holds A's delivery through the seam. Best handoff min-z to date
-    = 0.0069 m (v3b_soft) vs the 0.05 threshold. Nothing crosses it.
-
-v3b result: BOTH variants COLLAPSED. NaN-resilience worked (both ran the full
-542 iters, no crash) but that only revealed the v3 "flat ~10 reward" was a
-DEGENERATE PLATEAU, not learning. Reward stayed flat ~9.3 (repro)/~9.0 (soft)
-the whole run; deterministic held-cos went NEGATIVE (-0.035 / -0.078), 100% drop;
-handoff min-z 0.004 / 0.007. Training at convergence: object on the floor
-(floor_proximity term 95.9/58.9, object_height 0.012/0.015 m, success 0).
-Repro vs soft: no material difference; soft onset bought nothing (slightly less
-floor contact, still collapsed). NO seamless-handoff policy to name/promote.
-The handoff_v3b_*.mp4 videos show the drop (kept as evidence, NOT a headline).
-
-Mechanism: the grace window (hold 35..50, reorient+terminations from 50) stops
-the v2-style TRAINING collapse but replaces it with a stuck local optimum —
-B learns to hold during grace and drop the instant the reorient phase engages.
-It never crosses from "hold" into a working post-seam reorient from the OOD
-skip-lift P2 prior. => A grace window does NOT make the skip-lift P2 warmstart
-robust to the seam in 40M ts.
-
-SINGLE BEST NEXT EXPERIMENT (not run; autonomy budget spent):
-  Warmstart the v3 HOLD-ONLY control instead of P2, then finetune toward reorient
-  in the normal-lift env with the grace window. The hold-only control already
-  PROVED it survives the scripted-lift -> takeover (tip_lost 44 -> 1-4), so the
-  grace -> reorient transition starts in-distribution rather than from the OOD
-  skip-lift prior. (Backup: add P3's handoff state-bank to the normal-lift env.
-  Longer training is least promising -- reward was flat = local optimum, not
-  undertraining.)
-Best standalone reorienter is UNCHANGED: P2 lateral-only (held-cos 0.988),
-results/rl/20260603-1746-policyB_p2_lateral_only/tensorboard/model_541.pt.
-Full writeup: RESEARCH_STATE.md + docs/rl/reorientation.md "v3b OUTCOME".
+B4_lateral               0.988   0.998   27.6982   0.117   0.00
+B10_repro                0.975   0.990  117.1419   0.012   1.00
+B12_smooth               0.086   0.744  550.1617  -0.002   1.00
+B13_softcommit           0.462   0.520   21.3201   0.012   1.00
+## continuous A->B handoff (normal-lift, no reset). min-z>0.05 = B SURVIVES the seam.
+### B10_repro  hard switch @40
+[hc] object z at handoff step 40: 0.1120198592543602
+[hc] min object-center z over rollout: 0.0029 m
+### B10_repro  blend-12 (deploy-time action ramp — does blending tame the violence?)
+[hc] object z at handoff step 40: 0.11075625568628311
+[hc] min object-center z over rollout: 0.0063 m
+### B10_repro  critic-gated switch (B10 critic is IN-dist now — does it pick a clean seam?)
+[hc] critic-gated switch at step 29 (V_B peak at step 2, V=124.128)
+[hc] object z at handoff step 29: 0.07612989842891693
+[hc] min object-center z over rollout: 0.0044 m
+### B12_smooth  blend-8
+[hc] object z at handoff step 40: 0.11094408482313156
+[hc] min object-center z over rollout: 0.0026 m
+### B13_softcommit  blend-8
+[hc] object z at handoff step 40: 0.11052142083644867
+[hc] min object-center z over rollout: -0.0007 m
+## videos in /home/humanoid/Programs/hand/docs/rl/videos/reorient/handoff_B1*.mp4 ; copy the keepers into webpaper/src/assets/ when documenting.
