@@ -473,18 +473,20 @@ class MorphoHandEnvCfg:
     handoff_target_bank: str | None = None
     """Path to Policy B10's INITIATION-set bank (npz from rl_record_initiation_bank.py).
     When set with a non-zero weight, Policy A's finetune gets a seam-gated dense
-    reward for delivering the object into the object-state distribution B10
-    reorients from (see mjlab_terms.handoff_target_proximity)."""
+    reward for delivering B10's holding GRIP (finger qpos) — the only measured gap
+    between A's delivery and B10's set (see mjlab_terms.handoff_target_proximity)."""
     handoff_target_weight: float = 0.0
     """Weight on the handoff_target_proximity reward (try ~4; comparable to a
     tracking term). 0 disables. Keep modest so A's grasp/lift reward stays in
     charge and the grip is protected."""
-    handoff_target_seam_lo: int = 35
-    handoff_target_seam_hi: int = 45
-    """Policy-step window the proximity reward is active over (the delivery /
-    handoff window — default brackets the step-40 handoff)."""
+    handoff_target_seam_lo: int = 33
+    handoff_target_seam_hi: int = 37
+    """Policy-step window the grip-proximity reward is active over (the delivery /
+    handoff window — default brackets the step-35 residual-onset handoff)."""
+    handoff_target_qpos_tol: float = 0.05
+    """Per-joint tolerance (rad) on the finger-qpos match."""
     handoff_target_scale_mult: float = 1.0
-    """Multiplier on the per-dim feature tolerance (>1 = looser match)."""
+    """Multiplier on the per-joint tolerance (>1 = looser match)."""
     # ---- "smooth & quick" finetune curriculum (Policy B v2) -------------
     target_axis_progress_clamp_negative: bool = False
     """If True, only positive Δ(alignment) is rewarded (no penalty for
@@ -968,7 +970,7 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
             params=dict(bank_path=str(cfg.handoff_target_bank),
                         seam_lo=int(cfg.handoff_target_seam_lo),
                         seam_hi=int(cfg.handoff_target_seam_hi),
-                        object_name="cube",
+                        qpos_tol=float(cfg.handoff_target_qpos_tol),
                         scale_mult=float(cfg.handoff_target_scale_mult)),
         )
     if cfg.brace_distance_weight != 0.0 and cfg.enable_target_axis_reward:

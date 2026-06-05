@@ -224,11 +224,13 @@ class Args:
     dense reward for delivering the object into B10's reorient-onset distribution."""
     handoff_target_weight: float = 0.0
     """Weight on the handoff_target_proximity reward (try ~4). 0 disables."""
-    handoff_target_seam_lo: int = 35
-    handoff_target_seam_hi: int = 45
-    """Policy-step window the proximity reward fires over (the delivery window)."""
+    handoff_target_seam_lo: int = 33
+    handoff_target_seam_hi: int = 37
+    """Policy-step window the grip-proximity reward fires over (the delivery window)."""
+    handoff_target_qpos_tol: float = 0.05
+    """Per-joint tolerance (rad) on the finger-qpos match."""
     handoff_target_scale_mult: float = 1.0
-    """Multiplier on per-dim feature tolerance (>1 = looser match)."""
+    """Multiplier on per-joint tolerance (>1 = looser match)."""
     action_rate_weight: float = -0.005
     """Weight on the action_rate_l2 smoothness penalty. Policy B used -0.1
     (20x normal) to suppress sim-only finger jitter."""
@@ -406,6 +408,7 @@ def main() -> None:
         handoff_target_weight=args.handoff_target_weight,
         handoff_target_seam_lo=args.handoff_target_seam_lo,
         handoff_target_seam_hi=args.handoff_target_seam_hi,
+        handoff_target_qpos_tol=args.handoff_target_qpos_tol,
         handoff_target_scale_mult=args.handoff_target_scale_mult,
         action_rate_weight=args.action_rate_weight,
         object_ang_acc_weight=args.object_ang_acc_weight,

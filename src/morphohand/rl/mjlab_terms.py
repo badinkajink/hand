@@ -260,46 +260,45 @@ def reset_from_handoff_bank(env: "ManagerBasedRlEnv", env_ids, bank_path: str) -
     robot.write_joint_position_to_sim(robot_qpos[idx], env_ids=env_ids)
 
 
-# Per-dim tolerance (m / quat-units / m·s⁻¹ / rad·s⁻¹) for the 13-d object-state
-# feature [pos_rel(3), quat(4), lin_vel(3), ang_vel(3)]. Fixed scales (NOT bank
-# std, which is ~0 on the near-constant quat dims and would blow the reward to 0)
-# define how tight "near B10's delivery" is.
-_HANDOFF_FEAT_SCALE = (0.02, 0.02, 0.02, 0.15, 0.15, 0.15, 0.15, 0.10, 0.10, 0.10, 0.50, 0.50, 0.50)
-
-
 def handoff_target_proximity(env: "ManagerBasedRlEnv",
                              bank_path: str,
-                             seam_lo: int = 35,
-                             seam_hi: int = 45,
-                             object_name: str = "cube",
+                             seam_lo: int = 33,
+                             seam_hi: int = 37,
+                             qpos_tol: float = 0.05,
                              scale_mult: float = 1.0) -> torch.Tensor:
     """Branch-B (un-freeze Policy A): dense reward in (0, 1] for delivering the
-    object into Policy B10's INITIATION SET — the object-state distribution B10
-    actually sits in at reorient-onset, where it reorients to held-cos 0.977.
+    GRIP that Policy B10 reorients from.
 
-    Reward = exp(-0.5 * mean_dim ((f - mu) / scale)^2) on the 13-d object-state
-    feature f = [pos_rel(3), quat(4), lin_vel(3), ang_vel(3)], where `mu` is the
-    per-dim MEAN of B10's recorded reorient-onset states (a diagonal-Gaussian
-    regulariser pulling A's delivery toward the centre of B10's set) and `scale`
-    is a fixed per-dim tolerance (`_HANDOFF_FEAT_SCALE * scale_mult`).
+    Diagnostic (2026-06-04): at the residual-onset / handoff step (~35) B10's
+    OBJECT state (pose + velocity, ~settled) is already ~identical to A's flat
+    delivery; the only measured gap is the FINGER configuration (A's grasp vs
+    B10's holding grip — up to 0.16 rad per finger joint). Even matching the
+    object state and handing off early still drops the object, so the OOD is the
+    grip. So this targets the finger qpos only; A's native grasp/lift/centering
+    rewards keep the object pose good (clean separation of concerns).
 
-    GATED to the seam window [seam_lo, seam_hi] so it only shapes the DELIVERED
-    held state (what B takes over), not the whole lift — keeping A's grasp/lift
-    reward in charge everywhere else. Shape (num_envs,)."""
+    Reward = exp(-0.5 * mean_j ((q_j - mu_j) / (qpos_tol * scale_mult))^2) over
+    the actuated FINGER joints (joint names not starting with 'palm'), where mu
+    is the per-joint mean of B10's recorded step-`record_step` grip. GATED to the
+    seam window [seam_lo, seam_hi] so it only shapes the DELIVERED grip, not the
+    grasp/lift everywhere else. Shape (num_envs,)."""
+    robot = env.scene["robot"]
     if not hasattr(env, "_handoff_target_stats"):
         d = np.load(bank_path)
-        feat = np.concatenate([d["obj_pose"], d["obj_vel"]], axis=1)  # (N, 13)
-        mu = torch.as_tensor(feat.mean(0), device=env.device, dtype=torch.float32)
-        scale = torch.tensor(_HANDOFF_FEAT_SCALE, device=env.device,
-                             dtype=torch.float32) * float(scale_mult)
-        env._handoff_target_stats = (mu, scale)
-    mu, scale = env._handoff_target_stats
-    obj = env.scene[object_name]
-    pose = obj.data.root_link_pose_w.clone()                 # (B, 7) world
-    pose[:, :3] = pose[:, :3] - env.scene.env_origins        # pos rel env origin
-    vel = obj.data.root_link_velocity_w                      # (B, 6)
-    f = torch.cat([pose, vel], dim=1)                        # (B, 13)
-    d2 = (((f - mu) / scale) ** 2).mean(dim=1)               # (B,)
+        bank_names = [str(n) for n in d["joint_names"]]
+        finger_bank_ids = [i for i, n in enumerate(bank_names) if not n.startswith("palm")]
+        finger_names = [bank_names[i] for i in finger_bank_ids]
+        # map those joint names onto THIS env's robot joint order
+        env_names = list(robot.joint_names)
+        env_ids = [env_names.index(n) for n in finger_names]
+        mu = torch.as_tensor(d["robot_qpos"][:, finger_bank_ids].mean(0),
+                             device=env.device, dtype=torch.float32)
+        scale = float(qpos_tol) * float(scale_mult)
+        env._handoff_target_stats = (
+            torch.as_tensor(env_ids, device=env.device, dtype=torch.long), mu, scale)
+    env_ids, mu, scale = env._handoff_target_stats
+    q = robot.data.joint_pos[:, env_ids]                     # (B, n_finger)
+    d2 = (((q - mu) / scale) ** 2).mean(dim=1)               # (B,)
     prox = torch.exp(-0.5 * d2)
     step = env.episode_length_buf
     gate = (step >= int(seam_lo)) & (step <= int(seam_hi))
