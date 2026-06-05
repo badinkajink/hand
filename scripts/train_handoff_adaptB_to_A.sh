@@ -57,12 +57,15 @@ WARP_CACHE_PATH="$c" MUJOCO_GL=egl setsid uv run --extra rl --extra gpu \
 RUNPID=$!
 echo "[adaptB] trainer pid(group)=$RUNPID"
 
-# collapse watchdog: object spawns lifted (~0.11) and reorient should keep it up.
-COLLAPSE_Z=0.04; GUARD_FROM_ITER=30
+# collapse watchdog. NB SKIP-LIFT: lift_target_z_above_init=0, so object_height is
+# measured ABOVE the (already-lifted) spawn — it reads ~0.00 when held and goes
+# NEGATIVE (~ -0.10) only if B drops the object toward the floor. So the collapse
+# signal here is object_height < -0.06 (NOT the normal-lift <0.045). Grep keeps the sign.
+COLLAPSE_Z=-0.06; GUARD_FROM_ITER=30
 while kill -0 "$RUNPID" 2>/dev/null; do
   sleep 30
   IT=$(grep -oE "Learning iteration [0-9]+" "$LOG" 2>/dev/null | tail -1 | grep -oE "[0-9]+$")
-  OH=$(grep "lift_height/object_height" "$LOG" 2>/dev/null | tail -1 | grep -oE "[0-9.]+$")
+  OH=$(grep "lift_height/object_height" "$LOG" 2>/dev/null | tail -1 | grep -oE "\-?[0-9.]+$")
   [ -n "$IT" ] && [ -n "$OH" ] || continue
   if [ "$IT" -ge "$GUARD_FROM_ITER" ] 2>/dev/null && awk "BEGIN{exit !($OH < $COLLAPSE_Z)}"; then
     echo "[watchdog] COLLAPSE: object_height=$OH < $COLLAPSE_Z at iter $IT — B dropped. Killing."
