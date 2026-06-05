@@ -35,13 +35,32 @@ Task: flat-laying `screwdriver_medium` cylinder → vertical, finger-only (9 DOF
     (held-cos **0.977**) — but **VIOLENT** (obj_jerk **108** vs B4's 27). **B11** (soft, residual
     0.4, α-curric 0.5→4/150it) holds but **never tilts** (held-cos −0.137: too dilute). Now a
     smoothness problem: find the point between B10 (commits, violent) and B11 (smooth, won't
-    commit). **IN TRAINING: B12** (smoothness finetune OF B10 — learn-then-smooth, like B2) **+
-    B13** (soft-but-committing: residual 0.5, α 0.5→4/40it). Trigger
-    `scripts/handoff_iter2_eval_trigger.sh` waits → evals (held-cos/jerk + continuous-handoff min-z,
-    + deploy-time blend & critic-gate on B10) → writes STATE_HANDOFF_RESULTS.txt → spawns a fresh
-    Claude to document. Still open after: **branch B** (un-freeze Policy A toward B's basin). NOTE:
-    standalone skip-lift eval env is OOD for normal-lift Bs (drop=1.0 is an artifact); judge
-    survival on continuous-handoff min-z, not standalone drop. Full write-up: `webpaper/src/rl.typ`.
+    commit). **ITER2 RAN (B12/B13) — BOTH FAILED, and it retired the "B10 survives" optimism.**
+    - **B12** (smoothness finetune OF B10, learn-then-smooth like B2): **catastrophic** — held-cos
+      **0.086** (tilt destroyed), obj_jerk **550** (3× B10, *worse*). The sim-jitter gotcha at full
+      force: the corrective finger jerk IS the stabilization; penalizing it makes B thrash.
+    - **B13** (soft-but-committing, residual 0.5, α 0.5→4/40it): **smooth but timid** — obj_jerk
+      **21.3** (below B4's 27, great!) but held-cos **0.462** (half-tilt, never reaches vertical).
+    - **THE decisive new number — continuous-handoff min-z (>0.05 = survives): EVERYTHING FAILS.**
+      B10 hard **0.0029**, B10 blend-12 **0.0063**, B10 critic-gate@29 **0.0044**, B12 blend-8
+      **0.0026**, B13 blend-8 **−0.0007**. So **B10 does NOT survive the continuous handoff** either
+      — the earlier "B10 survives" read (held-cos 0.977) was from the *standalone* env (resets to a
+      good held state); under the strict continuous A→B rollout B10 drops the object to the floor.
+    - **Branch E (deploy-time levers) is EXHAUSTED:** action-blend window (8–12 step ramp) and
+      critic-gated switch on B10 both leave min-z ≪ 0.05. Softening *when/how-fast* B takes over does
+      not fix *what* B does once holding.
+    - **DIAGNOSIS sharpened:** B10 (hard commit), B13 (soft commit), B12 (over-smoothed) span the
+      whole commit/smoothness axis and ALL drop in the continuous handoff → moving B alone is not
+      enough. The seam state itself (A's actual delivery) is the unfixed variable.
+    - **THE single best next experiment = branch B (un-freeze Policy A).** Keep B10 frozen as the
+      reorienter; fine-tune A in the continuous env with terminal-state regularization — penalize A
+      for ending its lift outside B10's initiation set, using B10's critic value at the seam as the
+      reward (Lee 2021 / Röstel 2025). Cheaper pairing: record A's REAL delivered seam states
+      (`rl_record_handoff_states.py`) and reset B's normal-lift training from that bank
+      (`--handoff-state-bank`) to close the train-reset-vs-real-delivery gap. Budget spent; NOT run.
+    NOTE: standalone skip-lift eval env is OOD for normal-lift Bs (drop=1.0 is an artifact); judge
+    survival on continuous-handoff min-z, not standalone drop. Full write-up: `webpaper/src/rl.typ`;
+    eval: `STATE_HANDOFF_RESULTS.txt`.
 
 ## P1/P2/P3 — DONE (2026-06-03, 40M ts / 3072 envs each). Authoritative deterministic eval:
 | policy | held_cos | peak | obj_jerk | min_z | drop | world Δlat |
