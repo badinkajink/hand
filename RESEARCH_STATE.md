@@ -26,16 +26,22 @@ Task: flat-laying `screwdriver_medium` cylinder → vertical, finger-only (9 DOF
     statebank** (P3: 3.0/3.1 cm ≈ 4.3 cm 3D) — training on A's real centered grips keeps it
     centered — but P3 reorients worse (0.930). Still: stacking diverges; add ONE at a time.
   - *Bracing:* unchanged; reaches cos 0.99 ~3 cm below palm (vertically), no contact.
-  - *Seamless A→B handoff:* **DIAGNOSED, still OPEN (2026-06-04).** Seam drop is an
-    OBSERVATION-DISCONTINUITY shock (skip-lift B is OOD on A's normal-lift delivery), not a grip
-    problem. Tried fix = train B in the normal-lift env with a **grace window** (hold-first,
-    reorient later). v2 (no grace) collapsed; v3 grace held reward flat ~10 but NaN'd at 60/750;
-    **v3b reran grace to completion (NaN-resilient) and BOTH variants COLLAPSED** — held-cos
-    −0.035/−0.078, 100% drop, handoff min-z 0.004/0.007 ≪ 0.05. The grace window prevented the
-    v2 *training* collapse but locked B in a hold-during-grace / drop-at-reorient-onset local
-    optimum (reward flat ~9.3, never learned). **A grace window does NOT make the skip-lift P2
-    warmstart robust to the seam in 40M ts.** Best untried next step: **warmstart the *hold-only*
-    control (proven to survive the takeover), not P2** — see "Normal-lift B history" below.
+  - *Seamless A→B handoff:* **SEAM BROKEN — now a SMOOTHNESS problem (2026-06-04 eve).** Diagnosis
+    held: seam drop was an observation-discontinuity OOD shock (skip-lift B OOD on A's normal-lift
+    delivery). The grace-window-from-P2 attempts (v2/v3/v3b = B7/B8/B9) all collapsed because they
+    warmstarted the OOD skip-lift reorienter. **THE FIX: warmstart the HOLD-ONLY control** (proven
+    to survive the takeover), partial-load 65→66-d (zero-init reorient col, actor+critic).
+    **B10** (hold-only ws, hard onset) = **first policy to SURVIVE the handoff AND reorient**
+    (held-cos **0.977**) — but **VIOLENT** (obj_jerk **108** vs B4's 27). **B11** (soft, residual
+    0.4, α-curric 0.5→4/150it) holds but **never tilts** (held-cos −0.137: too dilute). Now a
+    smoothness problem: find the point between B10 (commits, violent) and B11 (smooth, won't
+    commit). **IN TRAINING: B12** (smoothness finetune OF B10 — learn-then-smooth, like B2) **+
+    B13** (soft-but-committing: residual 0.5, α 0.5→4/40it). Trigger
+    `scripts/handoff_iter2_eval_trigger.sh` waits → evals (held-cos/jerk + continuous-handoff min-z,
+    + deploy-time blend & critic-gate on B10) → writes STATE_HANDOFF_RESULTS.txt → spawns a fresh
+    Claude to document. Still open after: **branch B** (un-freeze Policy A toward B's basin). NOTE:
+    standalone skip-lift eval env is OOD for normal-lift Bs (drop=1.0 is an artifact); judge
+    survival on continuous-handoff min-z, not standalone drop. Full write-up: `webpaper/src/rl.typ`.
 
 ## P1/P2/P3 — DONE (2026-06-03, 40M ts / 3072 envs each). Authoritative deterministic eval:
 | policy | held_cos | peak | obj_jerk | min_z | drop | world Δlat |
