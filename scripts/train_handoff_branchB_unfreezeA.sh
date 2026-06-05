@@ -23,20 +23,22 @@ TAG="${TAG:-policyA_unfreezeA_gripw${WEIGHT}}"
 for f in "$A_CKPT" "$BANK" "$ROOT/$MORPH/best_rollout.npz"; do
   [ -e "$f" ] || { echo "FATAL missing $f"; exit 1; }; done
 
+# Deploy-matched env = the continuous-handoff main env (make_env_cfg, A-side):
+# normal lift to 0.10, residual 0.5, contact-gate, NO lift terminations, NO spawn
+# jitter (B10's bank was recorded at yaw=0, so the target grip is a single yaw).
+# Crucially we DROP A's tight finger-slip terminations + finger-drift penalty:
+# they fire on every env because the grip-proximity reward MOVES the fingers (the
+# SMOKE collapsed at term_finger_slip 0.3 — finger_slip 3064/3072). A's grasp is
+# held instead by the strong lift_height + track_object rewards (object can't stay
+# up unless gripped), so the grip is free to migrate onto B10's holding pose.
 ARGS=(
   --morphology-run "$MORPH" --object-body-name screwdriver_medium
   --num-envs 3072 --total-timesteps "$TOTAL_TS"
   --init-actor-checkpoint "$A_CKPT" --init-noise-std 0.05
-  # deploy-matched lift (B10/continuous-handoff env lifts the cylinder to 0.10):
   --episode-length-s 5.0 --lift-target-z-above-init 0.10 --lift-delta-z 0.10
   --finger-residual-scale 0.5 --finger-close-easing ease_out_quad
-  # A's grasp discipline (keep the working grip healthy):
-  --object-xy-drift-weight=-30.0 --object-orientation-drift-weight=-20.0 --finger-drift-weight=-10.0
   --contact-gate-stability-rewards --contact-min-weight 15.0
-  --cube-spawn-x-jitter 0.003 --cube-spawn-y-jitter 0.003 --cube-spawn-yaw-jitter 0.26
-  --enable-lift-terminations --lift-phase-start-step 40
-  --term-object-slip-xy 0.015 --term-object-slip-yaw 0.5 --term-object-drop 0.02
-  --term-tip-lost-steps 3 --term-finger-slip 0.3
+  --object-xy-drift-weight=-30.0 --object-orientation-drift-weight=-20.0
   # Branch-B grip-proximity reward (NO --enable-target-axis-reward => 65-d A space):
   --handoff-target-bank "$BANK" --handoff-target-weight "$WEIGHT"
   --handoff-target-seam-lo 33 --handoff-target-seam-hi 37 --handoff-target-qpos-tol 0.05
