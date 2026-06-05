@@ -98,6 +98,30 @@ joints, target grip deterministic std≈1e-4). After it holds: eval seam with fr
 **Fallback if A is too fragile to nudge:** don't touch A — record A's REAL delivered grip and
 fine-tune B with its onset grip domain-randomized over A's delivery distribution.
 
+**v2 RAN TO COMPLETION 2026-06-05 (`20260605-1608/1609-policyA_unfreezeA_v2_w2_tol{15,20}`,
+20M/3072) — TRAINS CLEAN, BUT SEAM STILL OPEN.** Took THREE fixes to get a trainable run:
+(1) restore A's drop/tip-loss terminations (v1 stripped them → floor attractor); (2) relax ONLY the
+object-slip guards 0.015→0.05 m (enabling terminations re-introduced A's tight 1.5 cm slip term,
+which fired 100+/iter on the grip migration → killed every episode @iter1); (3) widen the proximity
+basin qpos_tol 0.05→0.15/0.20 (at 0.05 the reward was ~3σ-flat at the 0.16-rad grip gap → no
+gradient, proximity stuck at 0.002). With all three: **both runs held the object the whole run**
+(object_height ~0.10) and migrated their grip PARTWAY (proximity 0.002→0.026 tol15 / 0.037 tol20,
+then plateaued). **Continuous-handoff eval vs FROZEN B10 (model_541, handoff@40):**
+| A policy | z@handoff | min-z | survives(>0.05) |
+|---|---|---|---|
+| B10 alone (baseline) | 0.112 | 0.0029 | ✗ |
+| tol15 | 0.109 | 0.0049 | ✗ |
+| tol20 | 0.108 | 0.0073 | ✗ |
+Survival rose monotonically with migration (0.0029→0.0049→0.0073) but only ~2.5× on a number that
+needs ~7× — object still hits the floor (~7 mm). **VERDICT: grip-match is REAL but INSUFFICIENT.**
+A resists fully adopting B10's grip (proximity plateaued despite 271 iters — moving further off A's
+own grasp drops the object; A's lift/contact rewards outweigh a modest grip nudge), and pushing the
+weight harder re-invites collapse. Videos `docs/rl/videos/reorient/handoff_branchB_tol{15,20}.mp4`.
+**RECOMMENDED next (the symmetric move, leave A's good grasp alone): adapt B to A's delivery** —
+record A's REAL delivered seam states+grip (`rl_record_handoff_states.py`) and fine-tune B10 with
+resets / onset-grip DR drawn from that bank, so B becomes robust to A's actual grip instead of
+forcing A onto B's. Data now favors this over more A-side pushing (A won't migrate further).
+
 ## P1/P2/P3 — DONE (2026-06-03, 40M ts / 3072 envs each). Authoritative deterministic eval:
 | policy | held_cos | peak | obj_jerk | min_z | drop | world Δlat |
 |---|---|---|---|---|---|---|
