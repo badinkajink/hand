@@ -1,7 +1,43 @@
-# In-hand reorientation — research state & handoff (2026-06-04)
+# In-hand reorientation — research state & handoff (updated 2026-06-08)
 
 Living handoff doc for a FRESH session. Full chronological log: `docs/rl/reorientation.md`.
 Task: flat-laying `screwdriver_medium` cylinder → vertical, finger-only (9 DOF), in-hand.
+
+## ⚡ FRESH SESSION — START HERE (updated 2026-06-08)
+**The open problem is the A→B handoff seam (the reorienter B drops the object when A hands it
+over). Standalone pieces both work; the seam between them does not.** Two adaptation directions
+have been tried; both train cleanly but neither closes the seam yet. A third run is BUILT, VERIFIED,
+and READY but never actually trained (infra failure, below).
+
+**IMMEDIATE NEXT ACTION (≤5 min to start):** re-launch the *adapt-B-to-A* run — it failed only on a
+transient CUDA-context error, not on logic:
+```
+# 1. Verify the GPU is truly idle first (no leftover Warp procs; mem ~1 GB):
+nvidia-smi
+# 2. Launch (detached). The bank + script are committed and validated:
+nohup setsid bash scripts/train_handoff_adaptB_to_A.sh > adaptB.run.log 2>&1 </dev/null & disown
+# 3. Watch: tail -f adaptB_policyB_adaptToA_bankA_s40.trainer.log   (object_height ~0 = held; <-0.06 = dropped)
+# 4. When done (~35 min), the DECISIVE eval (frozen A -> new B, min-z>0.05 = seam CLOSED):
+WARP_CACHE_PATH=$(mktemp -d) MUJOCO_GL=egl uv run --extra rl --extra gpu python \
+  scripts/rl_demo_handoff_continuous.py \
+  --policy-a results/rl/20260529-1219-screwdriver_medium_flat_short_proximal_stable_v1/tensorboard/model_500.pt \
+  --policy-b results/rl/<NEWEST_adaptToA_bankA_s40 dir>/tensorboard/model_270.pt \
+  --morphology-run results/phase1/run18_multi_object_adapt/foundational/screwdriver_medium_flat/run_20260521_150259 \
+  --handoff-step 40 --total-steps 240 --output docs/rl/videos/reorient/handoff_adaptB.mp4
+```
+**Reference numbers to beat:** B10-alone min-z 0.0029; best so far (branch-B tol20) 0.0073; **bar = 0.05**.
+
+**Pieces (all paths real, verified):**
+- Frozen Policy A (lift+deliver, GOOD — keep frozen): `results/rl/20260529-1219-screwdriver_medium_flat_short_proximal_stable_v1/tensorboard/model_500.pt`
+- B4 = best standalone reorienter (0.988): `results/rl/20260603-1746-policyB_p2_lateral_only/tensorboard/model_541.pt`
+- B10 = first to survive delivery + reorient but violent: `results/rl/20260604-1642-policyB_holdonlyws_repro/tensorboard/model_541.pt`
+- A's real-delivery state bank (grip+pose, 2048 states, z=0.111): `results/rl/handoff_state_bank_A_s40.npz`
+
+**If adapt-B (skip-lift bank) ALSO drops at the seam:** that confirms the skip-lift *observation*
+schedule is the binding constraint (the known B6 obs-OOD), and the next experiment needs NEW CODE —
+a **normal-lift onset-grip injection** (train B in the normal-lift env, but at the seam set the hand
+qpos to a sample from A's delivery bank, keeping the obs schedule in-distribution). See branch-B
+section below.
 
 ## TL;DR — what's true now
 - **Best reorientation policy = `p2_lateral`** (held-vertical cos **0.988**, peak **0.999**,
@@ -122,6 +158,26 @@ record A's REAL delivered seam states+grip (`rl_record_handoff_states.py`) and f
 resets / onset-grip DR drawn from that bank, so B becomes robust to A's actual grip instead of
 forcing A onto B's. Data now favors this over more A-side pushing (A won't migrate further).
 
+## ADAPT B TO A — BUILT + VALIDATED, but NEVER TRAINED (infra failure, 2026-06-05→08)
+The chosen next direction (leave A frozen, make B robust to A's real delivered grip). Everything is
+ready; the run just never executed.
+- **DONE:** recorded A's real delivered states from FROZEN A model_500 in the normal-lift env @step40
+  → `results/rl/handoff_state_bank_A_s40.npz` (2048/2048 kept, object z med 0.111, `robot_qpos`
+  (2048,15) = includes the grip). Verified sane.
+- **DONE:** launch script `scripts/train_handoff_adaptB_to_A.sh` (committed). Recipe = warmstart B4
+  (best reorienter 0.988) + B4's exact knobs (skip-lift, target-axis 100 / progress 300, lateral
+  −8) + `--handoff-state-bank handoff_state_bank_A_s40.npz` (activates bank reset in skip-lift). =
+  "B6 done right" (better warmstart + verified fresh bank). Skip-lift-appropriate collapse watchdog
+  (object_height < −0.06).
+- **NOT DONE — the run crashed at startup, twice over, never trained a single iter:** first launch
+  killed by ME (watchdog had a normal-lift threshold; fixed). Relaunch (4 s later) died with
+  `RuntimeError: Failed to allocate 339849216 bytes on device 'cuda:0'` — i.e. a 340 MB alloc failed
+  while the GPU had ~14 GB FREE. NOT real OOM: the just-killed Warp process hadn't released its CUDA
+  context. The monitor then polled a dead log for 20 cycles. **So "nothing ran."** Run dirs
+  `20260605-174{2,4}-policyB_adaptToA_bankA_s40` are empty/aborted.
+- **FIX = the IMMEDIATE NEXT ACTION at the top of this file** (verify GPU idle, relaunch clean). The
+  logic is sound; only the relaunch timing was wrong.
+
 ## P1/P2/P3 — DONE (2026-06-03, 40M ts / 3072 envs each). Authoritative deterministic eval:
 | policy | held_cos | peak | obj_jerk | min_z | drop | world Δlat |
 |---|---|---|---|---|---|---|
@@ -219,6 +275,31 @@ degraded base. **min_z<0.05 ⇒ floor contact/drop.**
    it within ~25 iters. If a new reward conflicts with a *specific* guardrail (here `term_finger_slip`
    vs grip migration), relax ONLY that one — keep `--enable-lift-terminations` + `term_object_drop`.
    Warmstart finetunes can also collapse silently: watch `Metrics/lift_height/object_height` live.
+   NB `--enable-lift-terminations` also re-arms the TIGHT object-slip guards (`term_object_slip_xy`
+   0.015 m / `_yaw` 0.5 rad) — these fire on any reward that moves the object; relax them too
+   (e.g. 0.05 m / 1.0 rad) if your reward perturbs the grasp.
+
+## INFRA / LOGISTICS GOTCHAS (run-starting — cost real time this session)
+8. **CUDA-context not released after killing a Warp run → next launch fails with a bogus alloc error.**
+   `RuntimeError: Failed to allocate <small> bytes on device 'cuda:0'` while `nvidia-smi` shows GB
+   free is NOT real OOM — the just-killed Warp process still holds the context. After killing a run,
+   **wait until `nvidia-smi` memory drops back to baseline (~1 GB) AND no python/warp procs remain**
+   before relaunching (a `sleep 4` is too short; give 15–30 s and verify). This is the bug that made
+   "nothing run" on 2026-06-05.
+9. **Do NOT `pkill -f "<pattern>"` when `<pattern>` also appears in the killing command's own line** —
+   `pkill -f` matches the parent shell running your command (its cmdline contains the pattern) and
+   kills YOUR shell (seen as exit 144). Kill by explicit PID, or by the process *group* of a known
+   PID (`kill -TERM -<pgid>`), never by a self-matching `-f` pattern.
+10. **Watchdog/collapse thresholds are LIFT-MODE-SPECIFIC.** Normal-lift: object spawns on the floor
+    and lifts, so `Metrics/lift_height/object_height` (height ABOVE init) is ~0.09 when held → drop =
+    `< 0.045`. Skip-lift (`lift_target_z_above_init=0`): object spawns already lifted, so the same
+    metric is ~0.00 when held and goes NEGATIVE (~−0.10) on a drop → drop = `< −0.06`. A normal-lift
+    threshold on a skip-lift run false-fires and kills a healthy run. Also: when grepping the value,
+    keep the sign (`grep -oE "\-?[0-9.]+$"`), or you can't see negatives.
+11. **Parallelism: ≤2 concurrent 3072-env runs.** THREE killed each other via OOM (rc=137, branch-B
+    v1). Two fit (~8 GB / 16 GB). Each needs its OWN `WARP_CACHE_PATH=$(mktemp -d)` and a staggered
+    launch (gotcha #2). The baked-in object_height watchdog (in the train scripts) auto-kills a
+    collapsing run in ~3 min so you don't burn 40 — keep using it.
 
 ## Reproduce the in-progress launches
 The exact P1/P2/P3 commands are in `scripts/queue_reorient_handoff_dr.sh` / the run dirs'
