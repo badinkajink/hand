@@ -65,9 +65,15 @@ WARP_CACHE_PATH="$c" MUJOCO_GL=egl setsid uv run --extra rl --extra gpu \
 RUNPID=$!
 echo "[onset] trainer pid(group)=$RUNPID"
 
-# NORMAL-lift collapse watchdog (gotcha #10): object_height is height ABOVE init, ~0.09
-# when held after the lift; a sustained < 0.045 past the warmup = B dropped to the floor.
-COLLAPSE_Z=0.045; GUARD_FROM_ITER=30
+# NORMAL-lift collapse watchdog (gotcha #10): object_height is height ABOVE init.
+# CAUTION (onset-inject calibration): in THIS env the reported object_height is the
+# EPISODE AVERAGE, and steps 0..onset are the weak SCRIPTED lift (~0.05) which drags
+# the mean down into the 0.043-0.066 band even when B holds fine post-inject. The old
+# 0.045 threshold sat dead-center in that band -> it false-fired on a single noisy iter
+# (killed a healthy run at iter 34 whose neighbours were 0.05-0.066). A TRUE floor drop
+# gives object_height ~0.01, so the threshold must be well BELOW the operating band.
+# Overridable; default 0.030 / guard from iter 50.
+COLLAPSE_Z=${COLLAPSE_Z:-0.030}; GUARD_FROM_ITER=${GUARD_FROM_ITER:-50}
 while kill -0 "$RUNPID" 2>/dev/null; do
   sleep 30
   IT=$(grep -oE "Learning iteration [0-9]+" "$LOG" 2>/dev/null | tail -1 | grep -oE "[0-9]+$")
