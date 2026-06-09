@@ -35,17 +35,22 @@ is ~7× above the best result — this is not a tuning gap, it is an unsolved pr
 A): trains clean, A migrates its grip only partway, seam stays open. (b) Move **B → A's delivery**
 (adapt-B, state bank): trains clean, still drops — which *proved* the binding constraint is the
 **observation schedule**, not the state. (c) Deploy-time blends / critic-gated switching: exhausted,
-no effect. **The one combination never tried** is the current next step: train B in the *normal-lift*
-env (obs schedule matches deploy) **and** inject A's real delivered grip at the onset (state matches
-deploy) — see START HERE.
+no effect. (d) **Onset-grip injection** — train B in the *normal-lift* env (obs schedule matches
+deploy) **and** inject A's delivered state at the onset (state matches deploy): the combination
+adapt-B/branch-B couldn't reach. RAN 2026-06-09 → **min-z 0.0081, a new best but seam still open.**
+The residual gap is now narrowed to the *teleport* (we inject a STATIC snapshot — the bank has zero
+velocities — while deploy hands off a moving state); the next step injects A's REAL velocities. See
+START HERE.
 
 Task object/scene: flat-laying `screwdriver_medium` cylinder; morphology run
 `results/phase1/run18_multi_object_adapt/foundational/screwdriver_medium_flat/run_20260521_150259`.
 
 ## ⚡ FRESH SESSION — START HERE (updated 2026-06-09)
 **The open problem is the A→B handoff seam (the reorienter B drops the object when A hands it
-over). Standalone pieces both work; the seam between them does not.** THREE adaptation directions
-have now been tried; ALL train cleanly, NONE closes the seam.
+over). Standalone pieces both work; the seam between them does not.** FOUR adaptation directions
+have now been tried; ALL train cleanly, NONE closes the seam. **Latest + best = onset-grip injection
+(min-z 0.0081); the residual gap is the static-snapshot teleport — see the IMMEDIATE NEXT ACTION
+just below.** (adapt-B history retained underneath for the record.)
 
 **adapt-B-to-A HAS NOW RUN (2026-06-08 eve) — RESULT: SEAM STILL OPEN.** Trained clean to iter 270
 (`results/rl/20260608-1738-policyB_adaptToA_bankA_s40/tensorboard/model_270.pt`, object held +0.012
@@ -62,34 +67,38 @@ distribution (via the bank) is NOT enough. So the binding constraint is NOT the 
 different lift-command / ref_object_pose obs trajectory than the normal-lift continuous deploy, even
 when the underlying physical state matches. That obs discontinuity at the seam is what drops it.
 
-**IMMEDIATE NEXT ACTION — normal-lift onset-grip injection: CODE BUILT + VALIDATED (2026-06-09),
-ready to launch.** Train B in the *normal-lift* env (obs schedule == deploy) AND inject A's real
-delivered state at the handoff onset (state == deploy) — the one combination never tried. The
-mechanism is NEW code, committed and smoke-validated (event registers as `inject_onset_bank`,
-training steps clean through the injection):
-- `mjlab_terms.inject_handoff_bank_at_onset` — step-mode event; once per episode at
-  `episode_length_buf == onset_step` it overwrites object pose+vel + robot qpos from a sampled bank
-  state, and zeroes finger joint velocities (settled delivery). Distinct from the skip-lift
-  reset-time `reset_from_handoff_bank`.
-- `env_cfg` flags `handoff_onset_bank` / `handoff_onset_step`; CLI `--handoff-onset-bank` /
-  `--handoff-onset-step` in `rl_train_cube.py`.
-- Launch: `scripts/train_handoff_onset_inject.sh` (warmstart **B10** holdonlyws_repro — normal-lift
-  native, already reorients 0.977, drops continuous ONLY for lack of A's real onset state; the
-  injection targets exactly that gap). Schedule (tunable): onset/inject @40 (matches s40 bank +
-  deploy handoff@40), residual from 40, reorient reward from 45 (5-step grace).
-```
-nohup setsid bash scripts/train_handoff_onset_inject.sh > onset.run.log 2>&1 </dev/null & disown
-# ~35 min; then the decisive eval (frozen A -> new B; min-z>0.05 = seam closed):
-WARP_CACHE_PATH=$(mktemp -d) MUJOCO_GL=egl uv run --extra rl --extra gpu python \
-  scripts/rl_demo_handoff_continuous.py \
-  --policy-a results/rl/20260529-1219-screwdriver_medium_flat_short_proximal_stable_v1/tensorboard/model_500.pt \
-  --policy-b results/rl/<NEWEST policyB_onsetInject dir>/tensorboard/model_<N>.pt \
-  --morphology-run results/phase1/run18_multi_object_adapt/foundational/screwdriver_medium_flat/run_20260521_150259 \
-  --handoff-step 40 --total-steps 240 --output docs/rl/videos/reorient/handoff_onset.mp4
-```
-If this ALSO drops, the remaining suspect is the teleport artifact (deploy has no teleport) → the
-fallback is **trajectory replay** (drive the hand along A's real 0→onset trajectory; needs a
-trajectory bank, not terminal-only).
+**onset-grip injection RAN 2026-06-09 — min-z 0.0081 = NEW BEST, but SEAM STILL OPEN.** Mechanism
+built + committed (56b8361): train B in the *normal-lift* env (obs schedule == deploy) AND inject A's
+delivered state at the onset (state == deploy) — `mjlab_terms.inject_handoff_bank_at_onset`
+(step-mode event), `env_cfg.handoff_onset_bank/_step`, `scripts/train_handoff_onset_inject.sh`
+(warmstart B10). Ran clean to iter 270 (`results/rl/20260609-1113-policyB_onsetInject_bankA_s40/
+tensorboard/model_270.pt`; in training B HELD + reoriented from the injected state — object_height
+0.068, align 18.3). Continuous-handoff eval (frozen A → this B, handoff@40): z@40 0.113,
+**min-z 0.0081** — beats branch-B tol20 (0.0073), adapt-B (0.0028), B10-alone (0.0029), but still
+≪ 0.05; object reaches the floor (~8 mm). Video `docs/rl/videos/reorient/handoff_onset.mp4`.
+
+**THE SHARPENED GAP (next step lives here).** B holds+reorients fine from the INJECTED state in
+training, yet drops at the ORGANIC deploy handoff. The only remaining train/deploy difference is the
+teleport: **we inject a fully STATIC snapshot** — and worse, the bank itself is static by accident.
+`results/rl/handoff_state_bank_A_s40.npz` has `obj_vel` **exactly 0.0** across all 2048 states
+(recorder `rl_record_handoff_states.py:76` reads `obj.data.root_link_velocity_w`, an attribute that
+misses → silent `torch.zeros` fallback) and **no `robot_qvel` at all** (finger velocities never
+recorded); the injection then also zeroes finger vel. So in training B always sees a motionless
+seam, while at deploy A hands off a state still in motion with a continuous contact history.
+
+**IMMEDIATE NEXT ACTION (cheap, well-motivated): inject A's REAL delivery velocities.**
+1. Fix `rl_record_handoff_states.py` to capture the real object velocity (correct attribute — check
+   `root_com_vel_w` / `data.root_vel_w`; verify it's nonzero) AND `robot.data.joint_vel` → add
+   `robot_qvel` to the npz. Re-record the bank from frozen A model_500 @step40.
+2. Extend `inject_handoff_bank_at_onset` to write the bank's real `obj_vel` and `robot_qvel`
+   (instead of zeroing finger vel). Re-run `train_handoff_onset_inject.sh`, re-eval.
+This tests whether the static-snapshot velocity mismatch is the residual OOD. **If A's real delivery
+velocities turn out tiny** (genuinely settled) and the seam STILL drops, the culprit is the
+teleport's contact-history transient → fall back to **trajectory replay** (drive the hand along A's
+real 0→onset trajectory so B arrives organically; needs a trajectory bank, not terminal-only).
+
+Schedule used (tunable): onset/inject @40 (matches s40 bank + deploy handoff@40), residual from 40,
+reorient reward from 45 (5-step grace).
 
 **Reference numbers to beat:** B10-alone min-z 0.0029; adapt-B 0.0028; best-ever (branch-B tol20)
 0.0073; **bar = 0.05**.
