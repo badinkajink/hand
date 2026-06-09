@@ -275,16 +275,39 @@ def inject_handoff_bank_at_onset(env: "ManagerBasedRlEnv", env_ids, bank_path: s
     we also zero the finger joint velocities (A's delivery is settled) to avoid a
     spurious velocity transient that B could otherwise learn to expect.
 
+    Markov-COMPLETE injection (2026-06-09): since the env has no differenced/history
+    observations and position actuators carry no `act` state, the ONLY non-physical
+    quantity a teleport corrupts is the history-dependent `last_action` obs. So we
+    inject A's REAL object velocity + REAL finger/palm qvel from the bank AND overwrite
+    the action manager's `last_action` with A's delivered action — making the injected
+    seam physically indistinguishable from A's organic deploy hand-off. (Earlier this
+    zeroed velocities and left last_action as B's gated value: a STATIC, OOD seam.)
+
     mjlab calls "step" events every step with env_ids=None; this self-gates on the
-    step, so the equality fires exactly once per episode (episode_length_buf is +1/step)."""
+    step, so the equality fires exactly once per episode (episode_length_buf is +1/step).
+    Step-mode events fire BEFORE the obs is recomputed, so the last_action override lands
+    in the very obs B reads for its first post-seam decision."""
     if not hasattr(env, "_handoff_onset_bank"):
         d = np.load(bank_path)
+        N = int(d["obj_pose"].shape[0])
+        # Back-compat: old banks lack robot_qvel / a_last -> fall back to zeros (the
+        # prior static behavior) rather than crash, but warn so it's never silent.
+        if "robot_qvel" not in d or "a_last" not in d:
+            print(f"[onset-inject] WARN bank {bank_path} missing robot_qvel/a_last "
+                  f"-> falling back to STATIC injection (zero finger vel, no last_action override). "
+                  f"Re-record with the fixed rl_record_handoff_states.py for the complete-state seam.")
+        qvel = (d["robot_qvel"] if "robot_qvel" in d
+                else np.zeros_like(d["robot_qpos"]))
+        a_last = (d["a_last"] if "a_last" in d
+                  else np.zeros((N, env.action_manager.total_action_dim), dtype=np.float32))
         env._handoff_onset_bank = (
             torch.as_tensor(d["obj_pose"], device=env.device, dtype=torch.float32),
             torch.as_tensor(d["obj_vel"], device=env.device, dtype=torch.float32),
             torch.as_tensor(d["robot_qpos"], device=env.device, dtype=torch.float32),
+            torch.as_tensor(qvel, device=env.device, dtype=torch.float32),
+            torch.as_tensor(a_last, device=env.device, dtype=torch.float32),
         )
-    obj_pose, obj_vel, robot_qpos = env._handoff_onset_bank
+    obj_pose, obj_vel, robot_qpos, robot_qvel, a_last = env._handoff_onset_bank
     at_onset = (env.episode_length_buf == int(onset_step)).nonzero().flatten()
     if at_onset.numel() == 0:
         return
@@ -294,9 +317,15 @@ def inject_handoff_bank_at_onset(env: "ManagerBasedRlEnv", env_ids, bank_path: s
     pose = obj_pose[idx].clone()
     pose[:, :3] = pose[:, :3] + env.scene.env_origins[at_onset]
     obj.write_root_link_pose_to_sim(pose, env_ids=at_onset)
-    obj.write_root_link_velocity_to_sim(obj_vel[idx], env_ids=at_onset)
+    obj.write_root_link_velocity_to_sim(obj_vel[idx], env_ids=at_onset)   # REAL obj velocity
     robot.write_joint_position_to_sim(robot_qpos[idx], env_ids=at_onset)
-    robot.write_joint_velocity_to_sim(torch.zeros_like(robot_qpos[idx]), env_ids=at_onset)
+    robot.write_joint_velocity_to_sim(robot_qvel[idx], env_ids=at_onset)  # REAL finger/palm vel
+    # Override the history-dependent `last_action` obs so B's first post-seam decision
+    # reads A's delivered action (as at deploy), not B's gated-off lift action.
+    am = env.action_manager
+    adim = a_last.shape[1]
+    am._action[at_onset, :adim] = a_last[idx]
+    am._prev_action[at_onset, :adim] = a_last[idx]
 
 
 def handoff_target_proximity(env: "ManagerBasedRlEnv",
