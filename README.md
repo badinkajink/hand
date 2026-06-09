@@ -307,13 +307,30 @@ Only split when needed.
 
 ## Documentation
 
-Docs are in `docs/` and wired for MkDocs. The README remains the high-level execution plan; docs hold detailed architecture and backend notes.
+There are two doc surfaces, serving different purposes:
 
-Build docs locally:
+**1. Reference docs (`docs/`) — MkDocs.** Detailed architecture, backend notes, and the full RL
+research log (`docs/rl/`). The README stays the high-level execution plan; `docs/` holds the depth.
 
 ```bash
-uv run mkdocs serve
+uv run mkdocs serve          # live-reload server at http://localhost:8000
 ```
+
+**2. Project site (`webpaper/`) — Typst → static HTML.** A research-paper-grade, media-rich
+write-up (morphology/grasp optimization, RL manipulation + policy switching, hardware validation).
+Authored in Typst so it carries paper-quality math *and* embedded video. Requires `typst` on PATH.
+
+```bash
+webpaper/build.sh                                 # compiles src/*.typ -> webpaper/build/*.html
+python3 -m http.server -d webpaper/build 8080     # then open http://localhost:8080
+```
+
+See [webpaper/README.md](webpaper/README.md) for authoring (adding a page, the math→SVG show rule,
+and Typst-HTML export gotchas).
+
+**RL research state.** The canonical living handoff for the in-hand reorientation work is
+[RESEARCH_STATE.md](RESEARCH_STATE.md) at the repo root (self-contained problem statement + current
+state + open problems); the full chronological log is [docs/rl/reorientation.md](docs/rl/reorientation.md).
 
 ## Immediate Next Tasks
 

@@ -1,43 +1,84 @@
-# In-hand reorientation — research state & handoff (updated 2026-06-08)
+# In-hand reorientation — research state & handoff (updated 2026-06-09)
 
-Living handoff doc for a FRESH session. Full chronological log: `docs/rl/reorientation.md`.
-Task: flat-laying `screwdriver_medium` cylinder → vertical, finger-only (9 DOF), in-hand.
+Living handoff doc for a FRESH session **and a self-contained brief for an external analyst.**
+Full chronological log: `docs/rl/reorientation.md`. Published narrative: `webpaper/src/rl.typ`.
 
-## ⚡ FRESH SESSION — START HERE (updated 2026-06-08)
+## Problem & goal (read first — no repo context assumed)
+**System.** A 3-finger robot hand, **9 DOF, finger-only** (the palm is fixed — no arm, no wrist
+translation). Simulated in MuJoCo-Warp; policies are PPO (rsl_rl). **Task:** a screwdriver-shaped
+**cylinder lying flat** on a surface must be brought **upright (vertical)**, entirely **in-hand**.
+
+**Why two policies.** A single end-to-end policy never learned grasp→lift→reorient together. We
+decomposed it into two PPO policies that run in sequence at deploy:
+- **Policy A — lift + deliver.** Grasps the flat cylinder, lifts it clear, and holds it at a
+  delivery pose. Works well; **kept FROZEN** (`...20260529-1219...stable_v1/.../model_500.pt`).
+- **Policy B — reorient.** Takes the held cylinder and rotates it to vertical. Best standalone
+  reorienter B4 reaches held-vertical cosine **0.988** — but only when its *training* env resets it
+  into a good, centered, already-held state at the start of every episode.
+
+**The handoff "seam" = THE open problem.** At deploy we run A for ~40 steps, then switch control to
+B with no reset ("continuous handoff"). **B drops the object within 3–5 steps of taking over.** The
+two pieces are each excellent in isolation; the *seam between them* is not solved.
+
+**Why it's hard (the crux).** B is excellent on its training distribution (a clean held start) and
+useless just off it (A's *actual* delivered state: a slightly off-center grip, and — decisively — a
+different **observation schedule**, because B trains in a "skip-lift" env whose lift-command /
+reference-pose observations differ from the normal-lift continuous deploy). It is the textbook
+off-distribution collapse.
+
+**Success metric.** Continuous A→B rollout (no reset); take the **minimum object-center height**
+over the whole rollout. **`min-z > 0.05 m` = the object stayed in the hand = seam closed.** Best
+achieved so far is **0.0073** (branch-B); everything else is ~0.003 (object on the floor). The bar
+is ~7× above the best result — this is not a tuning gap, it is an unsolved problem.
+
+**What's been tried (one line each; details below).** (a) Move **A → B's grip** (branch-B, un-freeze
+A): trains clean, A migrates its grip only partway, seam stays open. (b) Move **B → A's delivery**
+(adapt-B, state bank): trains clean, still drops — which *proved* the binding constraint is the
+**observation schedule**, not the state. (c) Deploy-time blends / critic-gated switching: exhausted,
+no effect. **The one combination never tried** is the current next step: train B in the *normal-lift*
+env (obs schedule matches deploy) **and** inject A's real delivered grip at the onset (state matches
+deploy) — see START HERE.
+
+Task object/scene: flat-laying `screwdriver_medium` cylinder; morphology run
+`results/phase1/run18_multi_object_adapt/foundational/screwdriver_medium_flat/run_20260521_150259`.
+
+## ⚡ FRESH SESSION — START HERE (updated 2026-06-09)
 **The open problem is the A→B handoff seam (the reorienter B drops the object when A hands it
-over). Standalone pieces both work; the seam between them does not.** Two adaptation directions
-have been tried; both train cleanly but neither closes the seam yet. A third run is BUILT, VERIFIED,
-and READY but never actually trained (infra failure, below).
+over). Standalone pieces both work; the seam between them does not.** THREE adaptation directions
+have now been tried; ALL train cleanly, NONE closes the seam.
 
-**IMMEDIATE NEXT ACTION (≤5 min to start):** re-launch the *adapt-B-to-A* run — it failed only on a
-transient CUDA-context error, not on logic:
-```
-# 1. Verify the GPU is truly idle first (no leftover Warp procs; mem ~1 GB):
-nvidia-smi
-# 2. Launch (detached). The bank + script are committed and validated:
-nohup setsid bash scripts/train_handoff_adaptB_to_A.sh > adaptB.run.log 2>&1 </dev/null & disown
-# 3. Watch: tail -f adaptB_policyB_adaptToA_bankA_s40.trainer.log   (object_height ~0 = held; <-0.06 = dropped)
-# 4. When done (~35 min), the DECISIVE eval (frozen A -> new B, min-z>0.05 = seam CLOSED):
-WARP_CACHE_PATH=$(mktemp -d) MUJOCO_GL=egl uv run --extra rl --extra gpu python \
-  scripts/rl_demo_handoff_continuous.py \
-  --policy-a results/rl/20260529-1219-screwdriver_medium_flat_short_proximal_stable_v1/tensorboard/model_500.pt \
-  --policy-b results/rl/<NEWEST_adaptToA_bankA_s40 dir>/tensorboard/model_270.pt \
-  --morphology-run results/phase1/run18_multi_object_adapt/foundational/screwdriver_medium_flat/run_20260521_150259 \
-  --handoff-step 40 --total-steps 240 --output docs/rl/videos/reorient/handoff_adaptB.mp4
-```
-**Reference numbers to beat:** B10-alone min-z 0.0029; best so far (branch-B tol20) 0.0073; **bar = 0.05**.
+**adapt-B-to-A HAS NOW RUN (2026-06-08 eve) — RESULT: SEAM STILL OPEN.** Trained clean to iter 270
+(`results/rl/20260608-1738-policyB_adaptToA_bankA_s40/tensorboard/model_270.pt`, object held +0.012
+throughout its own skip-lift env, no collapse). But the decisive continuous-handoff eval gave
+**min-z = 0.0028 m** (object z=0.0999 at handoff step 40, then falls to floor) — essentially tied
+with B10-alone (0.0029), WORSE than branch-B tol20 (0.0073), ≪ 0.05 bar. Video:
+`docs/rl/videos/reorient/handoff_adaptB.mp4`. (Infra note: it had failed twice at startup on a
+wedged-`nvidia_uvm` CUDA-context error — NOT a too-fast-relaunch transient; needed a module reload,
+see gotcha #12. Don't waste relaunches on it.)
+
+**WHAT THIS PROVES (the diagnosis is now sharp):** putting A's real delivery STATE into B's training
+distribution (via the bank) is NOT enough. So the binding constraint is NOT the state — it's the
+**skip-lift OBSERVATION SCHEDULE** (the known B6 obs-OOD). adapt-B trained in skip-lift sees a
+different lift-command / ref_object_pose obs trajectory than the normal-lift continuous deploy, even
+when the underlying physical state matches. That obs discontinuity at the seam is what drops it.
+
+**IMMEDIATE NEXT ACTION — needs NEW CODE: normal-lift onset-grip injection.** Train B in the
+*normal-lift* env (so its obs schedule matches the continuous deploy), but at the reorient onset set
+the hand qpos (+ object pose/vel) to a sample from A's delivery bank `handoff_state_bank_A_s40.npz`.
+This keeps BOTH the state in-distribution (bank) AND the obs schedule in-distribution (normal-lift) —
+the one combination not yet tried. Mechanism today only injects the bank in skip-lift
+(`env_cfg.py: if cfg.skip_lift_phase and cfg.handoff_state_bank`); the new code path must inject the
+bank at onset within the normal-lift env instead. This is the experiment to build next.
+
+**Reference numbers to beat:** B10-alone min-z 0.0029; adapt-B 0.0028; best-ever (branch-B tol20)
+0.0073; **bar = 0.05**.
 
 **Pieces (all paths real, verified):**
 - Frozen Policy A (lift+deliver, GOOD — keep frozen): `results/rl/20260529-1219-screwdriver_medium_flat_short_proximal_stable_v1/tensorboard/model_500.pt`
 - B4 = best standalone reorienter (0.988): `results/rl/20260603-1746-policyB_p2_lateral_only/tensorboard/model_541.pt`
 - B10 = first to survive delivery + reorient but violent: `results/rl/20260604-1642-policyB_holdonlyws_repro/tensorboard/model_541.pt`
 - A's real-delivery state bank (grip+pose, 2048 states, z=0.111): `results/rl/handoff_state_bank_A_s40.npz`
-
-**If adapt-B (skip-lift bank) ALSO drops at the seam:** that confirms the skip-lift *observation*
-schedule is the binding constraint (the known B6 obs-OOD), and the next experiment needs NEW CODE —
-a **normal-lift onset-grip injection** (train B in the normal-lift env, but at the seam set the hand
-qpos to a sample from A's delivery bank, keeping the obs schedule in-distribution). See branch-B
-section below.
+- adapt-B (skip-lift bank) result that just closed off this branch: `results/rl/20260608-1738-policyB_adaptToA_bankA_s40/tensorboard/model_270.pt` (min-z 0.0028)
 
 ## TL;DR — what's true now
 - **Best reorientation policy = `p2_lateral`** (held-vertical cos **0.988**, peak **0.999**,
@@ -158,25 +199,30 @@ record A's REAL delivered seam states+grip (`rl_record_handoff_states.py`) and f
 resets / onset-grip DR drawn from that bank, so B becomes robust to A's actual grip instead of
 forcing A onto B's. Data now favors this over more A-side pushing (A won't migrate further).
 
-## ADAPT B TO A — BUILT + VALIDATED, but NEVER TRAINED (infra failure, 2026-06-05→08)
-The chosen next direction (leave A frozen, make B robust to A's real delivered grip). Everything is
-ready; the run just never executed.
-- **DONE:** recorded A's real delivered states from FROZEN A model_500 in the normal-lift env @step40
-  → `results/rl/handoff_state_bank_A_s40.npz` (2048/2048 kept, object z med 0.111, `robot_qpos`
-  (2048,15) = includes the grip). Verified sane.
-- **DONE:** launch script `scripts/train_handoff_adaptB_to_A.sh` (committed). Recipe = warmstart B4
-  (best reorienter 0.988) + B4's exact knobs (skip-lift, target-axis 100 / progress 300, lateral
-  −8) + `--handoff-state-bank handoff_state_bank_A_s40.npz` (activates bank reset in skip-lift). =
-  "B6 done right" (better warmstart + verified fresh bank). Skip-lift-appropriate collapse watchdog
-  (object_height < −0.06).
-- **NOT DONE — the run crashed at startup, twice over, never trained a single iter:** first launch
-  killed by ME (watchdog had a normal-lift threshold; fixed). Relaunch (4 s later) died with
-  `RuntimeError: Failed to allocate 339849216 bytes on device 'cuda:0'` — i.e. a 340 MB alloc failed
-  while the GPU had ~14 GB FREE. NOT real OOM: the just-killed Warp process hadn't released its CUDA
-  context. The monitor then polled a dead log for 20 cycles. **So "nothing ran."** Run dirs
-  `20260605-174{2,4}-policyB_adaptToA_bankA_s40` are empty/aborted.
-- **FIX = the IMMEDIATE NEXT ACTION at the top of this file** (verify GPU idle, relaunch clean). The
-  logic is sound; only the relaunch timing was wrong.
+## ADAPT B TO A — RAN TO COMPLETION 2026-06-09, SEAM STILL OPEN (this branch is now CLOSED)
+The chosen direction: leave A frozen, make B robust to A's real delivered grip. Built, validated,
+and now run. **Result: it does NOT close the seam — and that is the informative finding.**
+- **Setup:** recorded A's real delivered states from FROZEN A model_500 in the normal-lift env
+  @step40 → `results/rl/handoff_state_bank_A_s40.npz` (2048/2048 kept, object z med 0.111,
+  `robot_qpos` (2048,15) incl. grip; verified). Launch `scripts/train_handoff_adaptB_to_A.sh`:
+  warmstart B4 (0.988) + B4's exact skip-lift knobs (target-axis 100 / progress 300, lateral −8) +
+  `--handoff-state-bank` (activates bank reset in skip-lift) = "B6 done right".
+- **Result (run dir `20260608-1738-policyB_adaptToA_bankA_s40`, iter 270):** trains perfectly clean
+  — object held +0.012 in its own skip-lift env the whole run, no collapse. But continuous-handoff
+  eval (frozen A → this B, handoff@40) gives **min-z = 0.0028** (z=0.0999 at the seam, then floor):
+  tied with B10-alone (0.0029), worse than branch-B tol20 (0.0073), ≪ 0.05. Video
+  `docs/rl/videos/reorient/handoff_adaptB.mp4`.
+- **WHAT IT PROVES → the next experiment.** Putting A's real delivery *state* into B's training
+  distribution (the bank) is NOT enough, because the bank only fires in **skip-lift** (env_cfg.py
+  l.1140 gates `reset_from_handoff_bank` on `skip_lift_phase and handoff_state_bank`). So B still
+  trained under the skip-lift OBSERVATION schedule, which differs from the normal-lift deploy even
+  when the physical state matches. **The binding constraint is the obs schedule, not the state.**
+  The one untried combination — **state in-distribution AND obs in-distribution** — is the
+  normal-lift onset-grip injection (see START HERE). adapt-B + branch-B together rule out moving
+  either policy under the OLD mechanisms; the next step changes the mechanism.
+- **Infra footnote:** the run failed twice at startup before this on a **wedged `nvidia_uvm`**
+  (`CUDA unknown error`, `torch.cuda.is_available()` False while nvidia-smi works) — NOT the
+  context-after-kill transient (#8); needs a module reload (gotcha #12), which fixed it.
 
 ## P1/P2/P3 — DONE (2026-06-03, 40M ts / 3072 envs each). Authoritative deterministic eval:
 | policy | held_cos | peak | obj_jerk | min_z | drop | world Δlat |
@@ -300,6 +346,18 @@ degraded base. **min_z<0.05 ⇒ floor contact/drop.**
     v1). Two fit (~8 GB / 16 GB). Each needs its OWN `WARP_CACHE_PATH=$(mktemp -d)` and a staggered
     launch (gotcha #2). The baked-in object_height watchdog (in the train scripts) auto-kills a
     collapsing run in ~3 min so you don't burn 40 — keep using it.
+12. **`CUDA unknown error` after a hard-killed Warp run = wedged `nvidia_uvm`, NOT a wait-it-out
+    transient.** Distinct from #8 (#8 clears with time; this does NOT). Symptom: `nvidia-smi` works
+    and `torch.cuda.device_count()` returns 1, but `torch.cuda.is_available()` is **False** with
+    `UserWarning: CUDA initialization: CUDA unknown error` — persists even with
+    `CUDA_VISIBLE_DEVICES=0`, no Xid/ECC errors (GPU hardware is fine). The `nvidia_uvm` kernel
+    module is wedged; only a RELOAD (or reboot) fixes it — waiting never does. This killed the
+    adapt-B run twice at startup (`RuntimeError: CUDA not available`) on 2026-06-08 with the GPU idle.
+    Fix (needs sudo; `gnome-remote-desktop` is a USER service holding `/dev/nvidia-uvm` open, so stop
+    it first or `modprobe -r` fails "in use"):
+    `systemctl --user stop gnome-remote-desktop && sudo modprobe -r nvidia_uvm && sudo modprobe
+    nvidia_uvm && systemctl --user start gnome-remote-desktop`. Probe before relaunching:
+    `uv run --extra gpu python -c "import torch; print(torch.cuda.is_available())"`.
 
 ## Reproduce the in-progress launches
 The exact P1/P2/P3 commands are in `scripts/queue_reorient_handoff_dr.sh` / the run dirs'
