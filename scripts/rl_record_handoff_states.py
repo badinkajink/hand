@@ -1,7 +1,9 @@
 """Record Policy A's ACTUAL terminal states (post-lift) into a 'handoff state
 bank' for train-the-handoff. Runs A in the normal-lift env (real lift to 0.10),
-and at `--record-step` captures, per env: the object root pose (pos RELATIVE to
-the env origin + quat), object root velocity, and the robot joint qpos. Policy B
+and at `--record-step` captures, per env the FULL Markov state: the object root
+pose (pos RELATIVE to the env origin + quat), object root velocity (REAL, 6-d),
+the robot joint qpos AND qvel, plus A's last applied action (`a_last`, the value
+B reads as `last_action` at the deploy seam). Policy B
 then trains spawning from sampled bank states (see env_cfg handoff_state_bank),
 so it learns reorient from exactly the physically-valid grips A delivers — no
 synthetic/unrealistic spawn jitter.
@@ -66,25 +68,36 @@ def main():
     obj = env.scene["cube"]; robot = env.scene["robot"]
 
     obs = wrapped.reset()[0]["actor"]
+    a_last = None
     with torch.no_grad():
         for t in range(args.record_step):
             a = actor.mlp(obs[:, :A_OBS_DIM]) if hasattr(actor, "mlp") else actor(obs[:, :A_OBS_DIM])
+            a_last = a.detach().clone()  # A's last applied action -> the seam's `last_action` obs at deploy
             obs = wrapped.step(a)[0]["actor"]
-    # snapshot
+    # snapshot — FULL physical state (Markov-complete: pose + REAL velocities + grip + finger vel)
     pose_w = obj.data.root_link_pose_w.detach().clone()          # (N,7) world
     pose_rel = pose_w.clone(); pose_rel[:, :3] -= env.scene.env_origins  # pos relative to env origin
-    vel = obj.data.root_link_velocity_w.detach().clone() if hasattr(obj.data, "root_link_velocity_w") else torch.zeros(args.num_envs, 6, device="cuda:0")
+    # Object velocity: the correct mjlab attribute is `root_link_vel_w` (N,6 = lin(3)+ang(3)).
+    # The old `root_link_velocity_w` does NOT exist -> the prior bank silently zeroed it, so B
+    # always trained on a MOTIONLESS seam while deploy hands off a moving state.
+    vel = obj.data.root_link_vel_w.detach().clone()              # (N,6) REAL world velocity
     qpos = robot.data.joint_pos.detach().clone()                 # (N, njoints)
+    qvel = robot.data.joint_vel.detach().clone()                 # (N, njoints) REAL finger/palm vel
     z = pose_w[:, 2]
     # keep only envs whose object actually lifted (didn't drop) — valid handoff states
     keep = (z > (z.median() - 0.05))
+    vmag = vel[keep, :3].norm(dim=1)
     print(f"[rec] object z at record step: median={float(z.median()):.3f} kept {int(keep.sum())}/{args.num_envs}")
+    print(f"[rec] obj |lin_vel| at record step: mean={float(vmag.mean()):.4f} max={float(vmag.max()):.4f} m/s "
+          f"(nonzero confirms the velocity-attr fix)")
+    print(f"[rec] |a_last| mean={float(a_last[keep].abs().mean()):.4f} (A's delivered action -> seam last_action)")
     args.output.parent.mkdir(parents=True, exist_ok=True)
     np.savez(args.output,
              obj_pose=pose_rel[keep].cpu().numpy(), obj_vel=vel[keep].cpu().numpy(),
-             robot_qpos=qpos[keep].cpu().numpy(),
+             robot_qpos=qpos[keep].cpu().numpy(), robot_qvel=qvel[keep].cpu().numpy(),
+             a_last=a_last[keep].cpu().numpy(),
              joint_names=np.array(list(robot.joint_names)))
-    print(f"[rec] saved {int(keep.sum())} handoff states -> {args.output}")
+    print(f"[rec] saved {int(keep.sum())} handoff states (pose+vel+qpos+qvel+a_last) -> {args.output}")
     env.close()
 
 
