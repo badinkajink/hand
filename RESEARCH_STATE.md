@@ -62,13 +62,34 @@ distribution (via the bank) is NOT enough. So the binding constraint is NOT the 
 different lift-command / ref_object_pose obs trajectory than the normal-lift continuous deploy, even
 when the underlying physical state matches. That obs discontinuity at the seam is what drops it.
 
-**IMMEDIATE NEXT ACTION — needs NEW CODE: normal-lift onset-grip injection.** Train B in the
-*normal-lift* env (so its obs schedule matches the continuous deploy), but at the reorient onset set
-the hand qpos (+ object pose/vel) to a sample from A's delivery bank `handoff_state_bank_A_s40.npz`.
-This keeps BOTH the state in-distribution (bank) AND the obs schedule in-distribution (normal-lift) —
-the one combination not yet tried. Mechanism today only injects the bank in skip-lift
-(`env_cfg.py: if cfg.skip_lift_phase and cfg.handoff_state_bank`); the new code path must inject the
-bank at onset within the normal-lift env instead. This is the experiment to build next.
+**IMMEDIATE NEXT ACTION — normal-lift onset-grip injection: CODE BUILT + VALIDATED (2026-06-09),
+ready to launch.** Train B in the *normal-lift* env (obs schedule == deploy) AND inject A's real
+delivered state at the handoff onset (state == deploy) — the one combination never tried. The
+mechanism is NEW code, committed and smoke-validated (event registers as `inject_onset_bank`,
+training steps clean through the injection):
+- `mjlab_terms.inject_handoff_bank_at_onset` — step-mode event; once per episode at
+  `episode_length_buf == onset_step` it overwrites object pose+vel + robot qpos from a sampled bank
+  state, and zeroes finger joint velocities (settled delivery). Distinct from the skip-lift
+  reset-time `reset_from_handoff_bank`.
+- `env_cfg` flags `handoff_onset_bank` / `handoff_onset_step`; CLI `--handoff-onset-bank` /
+  `--handoff-onset-step` in `rl_train_cube.py`.
+- Launch: `scripts/train_handoff_onset_inject.sh` (warmstart **B10** holdonlyws_repro — normal-lift
+  native, already reorients 0.977, drops continuous ONLY for lack of A's real onset state; the
+  injection targets exactly that gap). Schedule (tunable): onset/inject @40 (matches s40 bank +
+  deploy handoff@40), residual from 40, reorient reward from 45 (5-step grace).
+```
+nohup setsid bash scripts/train_handoff_onset_inject.sh > onset.run.log 2>&1 </dev/null & disown
+# ~35 min; then the decisive eval (frozen A -> new B; min-z>0.05 = seam closed):
+WARP_CACHE_PATH=$(mktemp -d) MUJOCO_GL=egl uv run --extra rl --extra gpu python \
+  scripts/rl_demo_handoff_continuous.py \
+  --policy-a results/rl/20260529-1219-screwdriver_medium_flat_short_proximal_stable_v1/tensorboard/model_500.pt \
+  --policy-b results/rl/<NEWEST policyB_onsetInject dir>/tensorboard/model_<N>.pt \
+  --morphology-run results/phase1/run18_multi_object_adapt/foundational/screwdriver_medium_flat/run_20260521_150259 \
+  --handoff-step 40 --total-steps 240 --output docs/rl/videos/reorient/handoff_onset.mp4
+```
+If this ALSO drops, the remaining suspect is the teleport artifact (deploy has no teleport) → the
+fallback is **trajectory replay** (drive the hand along A's real 0→onset trajectory; needs a
+trajectory bank, not terminal-only).
 
 **Reference numbers to beat:** B10-alone min-z 0.0029; adapt-B 0.0028; best-ever (branch-B tol20)
 0.0073; **bar = 0.05**.

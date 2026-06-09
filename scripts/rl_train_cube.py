@@ -219,6 +219,14 @@ class Args:
     """If >0, ramp spawn tilt/z jitter 0->max over this many iters (gradual grip adaptation)."""
     handoff_state_bank: str | None = None
     """Path to a Policy-A terminal-state bank npz; spawn B from sampled states (train-the-handoff)."""
+    handoff_onset_bank: str | None = None
+    """Normal-lift ONSET-grip injection: path to A's delivery bank npz. In the normal-lift env
+    (no --skip-lift-phase), a step-mode event overwrites object pose+vel + robot qpos from a
+    sampled bank state ONCE per episode at --handoff-onset-step, so B trains on A's REAL delivered
+    grip under the normal-lift obs schedule (the deploy-matching combination). Distinct from
+    --handoff-state-bank, which only does a reset-time spawn in skip-lift."""
+    handoff_onset_step: int | None = None
+    """Step to inject the onset bank state. None -> --lift-phase-start-step (match the deploy handoff step)."""
     handoff_target_bank: str | None = None
     """Branch B (un-freeze A): path to B10's initiation-set bank npz; A gets a seam-gated
     dense reward for delivering the object into B10's reorient-onset distribution."""
@@ -404,6 +412,8 @@ def main() -> None:
         skip_lift_spawn_z_jitter=args.skip_lift_spawn_z_jitter,
         handoff_dr_curriculum_iters=args.handoff_dr_curriculum_iters,
         handoff_state_bank=args.handoff_state_bank,
+        handoff_onset_bank=args.handoff_onset_bank,
+        handoff_onset_step=args.handoff_onset_step,
         handoff_target_bank=args.handoff_target_bank,
         handoff_target_weight=args.handoff_target_weight,
         handoff_target_seam_lo=args.handoff_target_seam_lo,
