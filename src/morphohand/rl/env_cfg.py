@@ -469,6 +469,18 @@ class MorphoHandEnvCfg:
     """Path to a Policy-A terminal-state bank (npz from rl_record_handoff_states.py).
     When set (skip-lift), object+hand spawn from sampled bank states each reset
     (train-the-handoff); the LiftingCommand's object pose write is disabled."""
+    handoff_onset_bank: str | None = None
+    """Path to Policy A's delivery state bank (same npz format as handoff_state_bank).
+    When set in the NORMAL-lift env (skip_lift_phase=False), a step-mode event
+    (mjlab_terms.inject_handoff_bank_at_onset) overwrites the object pose+vel and robot
+    qpos from a sampled bank state ONCE per episode at `handoff_onset_step` — so B trains
+    on A's REAL delivered grip AND under the normal-lift observation schedule (the one
+    combination that matches the continuous deploy). Distinct from handoff_state_bank,
+    which only does a reset-time spawn in skip-lift; the normal-lift reset spawn (flat on
+    floor) is left intact so the pre-onset lift obs schedule stays in-distribution."""
+    handoff_onset_step: int | None = None
+    """Episode step at which to inject the onset bank state. None -> lift_phase_start_step
+    (and should match the deploy handoff step, e.g. 40 for the s40 bank)."""
     # ---- Branch B (un-freeze Policy A): terminal-state reg toward B10's set --
     handoff_target_bank: str | None = None
     """Path to Policy B10's INITIATION-set bank (npz from rl_record_initiation_bank.py).
@@ -1142,6 +1154,18 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
             func=mjlab_terms.reset_from_handoff_bank,
             mode="reset",
             params={"bank_path": str(cfg.handoff_state_bank)},
+        )
+    # normal-lift ONSET-grip injection: mid-episode (step-mode) overwrite of the object
+    # pose+vel + robot qpos from A's real delivery bank, at the handoff onset. This keeps
+    # the normal-lift obs schedule (unlike skip-lift reset_from_bank above) while putting
+    # B into A's real delivered state -> the one combination that matches deploy.
+    if (not cfg.skip_lift_phase) and cfg.handoff_onset_bank:
+        onset = (int(cfg.handoff_onset_step) if cfg.handoff_onset_step is not None
+                 else int(cfg.lift_phase_start_step))
+        events["inject_onset_bank"] = EventTermCfg(
+            func=mjlab_terms.inject_handoff_bank_at_onset,
+            mode="step",
+            params={"bank_path": str(cfg.handoff_onset_bank), "onset_step": onset},
         )
 
     terminations = {

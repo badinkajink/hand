@@ -260,6 +260,45 @@ def reset_from_handoff_bank(env: "ManagerBasedRlEnv", env_ids, bank_path: str) -
     robot.write_joint_position_to_sim(robot_qpos[idx], env_ids=env_ids)
 
 
+def inject_handoff_bank_at_onset(env: "ManagerBasedRlEnv", env_ids, bank_path: str,
+                                 onset_step: int) -> None:
+    """Step-mode event (normal-lift ONSET-grip injection): ONCE per episode, on the
+    step where `episode_length_buf == onset_step`, overwrite the object pose+vel and
+    robot qpos with a randomly sampled state from Policy A's REAL delivery bank.
+
+    Unlike `reset_from_handoff_bank` (reset-mode, skip-lift only), this fires
+    MID-EPISODE in the NORMAL-lift env, so Policy B trains on A's actual delivered
+    grip+pose (state in-distribution) AND under the normal-lift observation schedule
+    (obs in-distribution) — the one combination that matches the continuous deploy and
+    that neither branch-B nor adapt-B achieved. The teleport is just how training puts
+    B into A's delivery state; at deploy B arrives there organically (no teleport), so
+    we also zero the finger joint velocities (A's delivery is settled) to avoid a
+    spurious velocity transient that B could otherwise learn to expect.
+
+    mjlab calls "step" events every step with env_ids=None; this self-gates on the
+    step, so the equality fires exactly once per episode (episode_length_buf is +1/step)."""
+    if not hasattr(env, "_handoff_onset_bank"):
+        d = np.load(bank_path)
+        env._handoff_onset_bank = (
+            torch.as_tensor(d["obj_pose"], device=env.device, dtype=torch.float32),
+            torch.as_tensor(d["obj_vel"], device=env.device, dtype=torch.float32),
+            torch.as_tensor(d["robot_qpos"], device=env.device, dtype=torch.float32),
+        )
+    obj_pose, obj_vel, robot_qpos = env._handoff_onset_bank
+    at_onset = (env.episode_length_buf == int(onset_step)).nonzero().flatten()
+    if at_onset.numel() == 0:
+        return
+    n = int(at_onset.numel()); N = int(obj_pose.shape[0])
+    idx = torch.randint(0, N, (n,), device=env.device)
+    obj = env.scene["cube"]; robot = env.scene["robot"]
+    pose = obj_pose[idx].clone()
+    pose[:, :3] = pose[:, :3] + env.scene.env_origins[at_onset]
+    obj.write_root_link_pose_to_sim(pose, env_ids=at_onset)
+    obj.write_root_link_velocity_to_sim(obj_vel[idx], env_ids=at_onset)
+    robot.write_joint_position_to_sim(robot_qpos[idx], env_ids=at_onset)
+    robot.write_joint_velocity_to_sim(torch.zeros_like(robot_qpos[idx]), env_ids=at_onset)
+
+
 def handoff_target_proximity(env: "ManagerBasedRlEnv",
                              bank_path: str,
                              seam_lo: int = 33,
