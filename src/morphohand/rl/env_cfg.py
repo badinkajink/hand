@@ -481,6 +481,12 @@ class MorphoHandEnvCfg:
     handoff_onset_step: int | None = None
     """Episode step at which to inject the onset bank state. None -> lift_phase_start_step
     (and should match the deploy handoff step, e.g. 40 for the s40 bank)."""
+    handoff_inject_velocity: bool = True
+    """Onset-inject ablation: write A's REAL obj_vel + finger/palm qvel from the bank. False
+    -> zero finger vel (the pre-2026-06-09 STATIC behavior). Markov-completeness lever."""
+    handoff_inject_last_action: bool = True
+    """Onset-inject ablation: override the seam `last_action` obs with A's delivered action
+    (the only history-dependent obs). False -> leave B's gated value (the OOD static behavior)."""
     # ---- Branch B (un-freeze Policy A): terminal-state reg toward B10's set --
     handoff_target_bank: str | None = None
     """Path to Policy B10's INITIATION-set bank (npz from rl_record_initiation_bank.py).
@@ -1165,7 +1171,9 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
         events["inject_onset_bank"] = EventTermCfg(
             func=mjlab_terms.inject_handoff_bank_at_onset,
             mode="step",
-            params={"bank_path": str(cfg.handoff_onset_bank), "onset_step": onset},
+            params={"bank_path": str(cfg.handoff_onset_bank), "onset_step": onset,
+                    "inject_velocity": bool(cfg.handoff_inject_velocity),
+                    "inject_last_action": bool(cfg.handoff_inject_last_action)},
         )
 
     terminations = {

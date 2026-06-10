@@ -261,7 +261,8 @@ def reset_from_handoff_bank(env: "ManagerBasedRlEnv", env_ids, bank_path: str) -
 
 
 def inject_handoff_bank_at_onset(env: "ManagerBasedRlEnv", env_ids, bank_path: str,
-                                 onset_step: int) -> None:
+                                 onset_step: int, inject_velocity: bool = True,
+                                 inject_last_action: bool = True) -> None:
     """Step-mode event (normal-lift ONSET-grip injection): ONCE per episode, on the
     step where `episode_length_buf == onset_step`, overwrite the object pose+vel and
     robot qpos with a randomly sampled state from Policy A's REAL delivery bank.
@@ -317,15 +318,20 @@ def inject_handoff_bank_at_onset(env: "ManagerBasedRlEnv", env_ids, bank_path: s
     pose = obj_pose[idx].clone()
     pose[:, :3] = pose[:, :3] + env.scene.env_origins[at_onset]
     obj.write_root_link_pose_to_sim(pose, env_ids=at_onset)
-    obj.write_root_link_velocity_to_sim(obj_vel[idx], env_ids=at_onset)   # REAL obj velocity
     robot.write_joint_position_to_sim(robot_qpos[idx], env_ids=at_onset)
-    robot.write_joint_velocity_to_sim(robot_qvel[idx], env_ids=at_onset)  # REAL finger/palm vel
+    if inject_velocity:
+        obj.write_root_link_velocity_to_sim(obj_vel[idx], env_ids=at_onset)   # REAL obj velocity
+        robot.write_joint_velocity_to_sim(robot_qvel[idx], env_ids=at_onset)  # REAL finger/palm vel
+    else:  # STATIC ablation: zero velocities (the pre-2026-06-09 behavior)
+        obj.write_root_link_velocity_to_sim(torch.zeros_like(obj_vel[idx]), env_ids=at_onset)
+        robot.write_joint_velocity_to_sim(torch.zeros_like(robot_qvel[idx]), env_ids=at_onset)
     # Override the history-dependent `last_action` obs so B's first post-seam decision
     # reads A's delivered action (as at deploy), not B's gated-off lift action.
-    am = env.action_manager
-    adim = a_last.shape[1]
-    am._action[at_onset, :adim] = a_last[idx]
-    am._prev_action[at_onset, :adim] = a_last[idx]
+    if inject_last_action:
+        am = env.action_manager
+        adim = a_last.shape[1]
+        am._action[at_onset, :adim] = a_last[idx]
+        am._prev_action[at_onset, :adim] = a_last[idx]
 
 
 def handoff_target_proximity(env: "ManagerBasedRlEnv",
