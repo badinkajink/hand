@@ -124,6 +124,12 @@ def main():
     ap.add_argument("--finger-close-easing", type=str, default="ease_out_quad")
     ap.add_argument("--no-contact-gate", action="store_true",
                     help="set contact_gate_stability_rewards=False (match a B trained without it)")
+    ap.add_argument("--action-lowpass", type=float, default=1.0,
+                    help="EMA low-pass on B's actions at deploy (1.0=off; 0.5=smooth). "
+                         "The NON-REWARD smoothness lever: jerk penalties backfire (the "
+                         "corrective finger jerk IS the stabilization), but a deploy-time "
+                         "filter removes high-freq jitter without retraining. Applied "
+                         "post-handoff only; A's lift is unfiltered.")
     ap.add_argument("--stochastic-b", action="store_true",
                     help="sample Policy B's action from its distribution instead of the "
                          "deterministic mean (tests whether the corrective exploration "
@@ -211,6 +217,7 @@ def main():
     min_z_post = float("inf")  # min object-z AFTER the handoff (the honest hold metric;
     # whole-rollout min_z is dominated by the pre-lift floor phase z~0.012)
     held_cos_tail = []  # held-vertical cos post-handoff (reorientation quality)
+    prev_action = None  # for the optional action low-pass filter
     # Resolved switch step: fixed clock, or chosen online by the critic gate.
     switch_step = None if args.switch_on_critic else args.handoff_step
     vmax, t_star, no_improve, vtrace = float("-inf"), None, 0, []
@@ -241,6 +248,12 @@ def main():
                 actions = (1.0 - alpha) * a_a + alpha * a_b
             else:
                 actions = act_b(actor_b, obs_td, args.stochastic_b)
+            # NON-REWARD smoothness lever: EMA low-pass on B's deploy actions.
+            if args.action_lowpass < 1.0 and switch_step is not None and step >= switch_step:
+                a_lp = float(args.action_lowpass)
+                actions = a_lp * actions + (1.0 - a_lp) * (
+                    prev_action if prev_action is not None else actions)
+            prev_action = actions
             obs_td, *_ = wrapped.step(actions)
             obs = obs_td["actor"]
             try:
