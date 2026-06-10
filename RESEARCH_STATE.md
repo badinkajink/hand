@@ -76,8 +76,46 @@ lengthened ~5×), align 0.45→58.9, tip_lost 51→8, episodes ran to time_out. 
 > (dominated by the pre-lift floor phase z~0.012; the bar 0.05 is unreachable by it). Use the new
 > **POST-HANDOFF min-z** + held-cos that `rl_demo_handoff_continuous.py` now prints.
 
+### 2026-06-10 eve — REORIENTATION QUALITY is the open problem (hold is solved). User feedback: "still jittery + doesn't reorient well."
+The live-A reset HOLDS the seam (min-z 0.105) but the reorientation is **mediocre (held-cos ~0.74,
+≈42° off vertical) AND jittery** — both inherited from the **B10 warmstart** ("the violent
+survivor"). Three things tried tonight, all confirming the diagnosis:
+- **Continuation (40M, warmstart B10-live-A model_270, scale 0.2):** `20260610-1355-
+  policyB_liveAreset_cont40M/model_541`. Reorientation **PLATEAUED** — held-cos **0.742** (peak
+  0.817) ≈ identical to the original 0.751; align reward bounced 47-59 and ended ~55, no climb.
+  **So the 0.74 ceiling is the B10 warmstart, NOT undertraining.** Hold still solid (min-z 0.105).
+- **Warmstart B4 instead (the smooth 0.988 reorienter) → COLLAPSES.** `policyB_liveAreset_fromB4`
+  (killed): B4 applies *reorienting* actions the instant it takes over → destabilizes A's
+  delivery grip → object drops ~3 steps post-seam, BEFORE the reorient reward (gate@45) fires →
+  zero reorient gradient → no escape (ep-len stuck 43, tip_lost 3072/iter, align 0). **The
+  catch-22 that forced the hold-only B10 warmstart in the first place: a policy must SURVIVE the
+  seam before it can be taught to reorient there, and B4's reorient-from-step-0 behavior can't.**
+- **Deploy action low-pass (the documented non-reward jitter lever) → DROPS the object.**
+  `--action-lowpass 0.5` on cont40M: post-handoff min-z **0.0027** (dropped), cos ~0. Confirms the
+  smoothness gotcha at DEPLOY too: B10's high-freq corrective jerk IS the stabilization; filtering
+  it breaks the hold. So jitter is NOT removable by a deploy filter on a B10-derived policy either.
+
+**→ BOTH user complaints (jitter + poor reorient) have the SAME root (B10) and SAME fix: get B4's
+SMOOTH, FULL-reorient quality to SURVIVE the seam.** The blocker is the B4 catch-22. **THE next
+experiment (untried, needs supervised runner surgery): a TRAINING-TIME seam action-ramp-in** — in
+`live_a_runner.py`, for the first ~8-12 steps after onset, step the env with `alpha*B + (1-alpha)*A`
+ramping alpha 0→1 (the training analog of the demo's `--blend-steps`), and mask those blend steps
+from PPO too. This eases B4 into A's grip gently instead of shocking it, so B4 survives long enough
+to get reorient gradient while KEEPING its smooth full reorientation. Warmstart B4. (Alt levers:
+handoff-DR curriculum that starts B's takeover state near B4's skip-lift comfort zone and anneals
+toward A's real delivery; or a brief hold-grace where B4's residual scale ramps up post-seam.)
+Eval everything at the policy's matched scale + POST-HANDOFF metric (gotcha #13).
+
+**INFRA NOTE (2026-06-10 eve):** another user's `legged_gym h1_2_rma_magpie` run (4096 envs, ~8 GB)
+is on cuda:0 — leave room / don't kill it. Also: a `pgrep -f "<pattern>"` watcher whose OWN cmdline
+contains `<pattern>` deadlocks (it matches itself) — `liveA_cont_eval_trigger.sh` hung this way;
+kill stuck waiters by PID, or grep a pattern that can't appear in the watcher's own command line.
+
 **NEXT (in priority order):**
-1. **CANONICAL 0.5 RETRAIN IS RUNNING** (`policyB_liveAreset_fromB10_s05`, launched 2026-06-10,
+0. **(2026-06-10 — DONE/superseded)** ~~CANONICAL 0.5 RETRAIN~~ killed (B10 path is the quality
+   ceiling; the scale-0.2 lineage from model_270 is the working one). See the eve section above:
+   the live priority is now BREAKING THE B4 CATCH-22 (seam action-ramp-in), not more B10 training.
+1. **CANONICAL 0.5 RETRAIN** (`policyB_liveAreset_fromB10_s05`, launched 2026-06-10,
    scale 0.5 / ease_out_quad / contact-gate ON = deploy parity; warmstart B10 at its native
    scale). When done: eval with `rl_demo_handoff_continuous.py --policy-b <ckpt>` (defaults now
    0.5) → post-handoff min-z + cos. This is the deployable, lineage-comparable version. **CHECK
