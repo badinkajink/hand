@@ -14,3 +14,9 @@
 |---|---|---|---|---|---|
 
 _(the wave-2 header above this line was an aborted launch — run 1 relaunched with lenient watchdog)_
+
+## Batch run 2026-06-09 21:21 — wave 2 (proper co-adapt, STATIC inject)
+| run | warmstart | eval pairing | min-z (bar .05) | z@handoff | status |
+|---|---|---|---|---|---|
+| coadapt_B10_Atol20_static | B10 | Atol20×NEW | 0.0113 | 0.10365995019674301 | ok |
+| coadapt_Badapt_Atol20_static | Badapt | Atol20×NEW | 0.0118 | 0.10567375272512436 | ok |

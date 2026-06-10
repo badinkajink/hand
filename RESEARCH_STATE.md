@@ -104,12 +104,28 @@ FIRST next session.**
 > ~neutral. (This is why the "Markov-complete" 0.0027 < static 0.0081 — the velocity made it worse.)
 > **Nothing trained beats the free co-adapt pairing 0.0114.**
 >
-> **WAVE 2 RUNNING (launched ~21:16, `scripts/overnight_batch_wave2.sh`):** the *proper* co-adapt B,
-> fixing both wave-1 mistakes — **warmstart B10 (not Badapt) + STATIC inject of Atol20's migrated
-> delivery**; eval Atol20×NEW should beat 0.0114. (1) `coadapt_B10_Atol20_static` [KEY]; (2)
-> `coadapt_Badapt_Atol20_static` [does static rescue the Badapt-can't-catch stuck?]. ⚠ run-1's early
-> object_height is ~0.03 (B10 catching the migrated grip is harder than frozen-A's) — if the
-> watchdog culls it at iter 50, **relaunch with `COLLAPSE_Z=0.012 GUARD_FROM_ITER=100`**.
+> **WAVE 2 COMPLETE (2026-06-09 ~23:00) — VERDICT: the injection paradigm is CAPPED at ~0.011.**
+> The proper co-adapt B (B10 ws + STATIC inject of Atol20's migrated delivery, lenient watchdog so it
+> had room to learn): `coadapt_B10_Atol20_static` **0.0113**, `coadapt_Badapt_Atol20_static` **0.0118**
+> — both essentially TIED with the free pairing 0.0114, i.e. **training B on the migrated delivery did
+> NOT improve over the untrained cross-pairing.** Run-1's object_height stayed **FLAT at 0.031 the whole
+> run** (never climbed → B does NOT learn to *hold* the teleported delivery; it sags ~3 cm and the eval
+> reads a drop). **CONCLUSION (definitive): every teleport-based B-side approach — skip-lift bank /
+> normal-lift static / complete / co-adapt, any warmstart, any A — converges to "B sags off the
+> injected state, min-z 0.002–0.012." The TELEPORT ITSELF is the ceiling.** Co-adaptation is the best
+> *direction* (0.0114) but cannot be pushed past the cap by more injection training.
+>
+> **➡️ THE PATH IS NOW THE LIVE-A RESET (no more injection variants — that family is exhausted).**
+> Run frozen Policy A LIVE for steps 0..40 of every B training episode (real physics / real contacts /
+> real `last_action`, zero teleport), then B's PPO rollout begins at the organic seam. **Implementation
+> (the one design decision to make first):** rsl_rl stores the *policy's* output action, so to keep the
+> stored transition consistent, **wrap B's policy** so it emits A's action while `episode_length_buf <
+> onset` (B then *imitates* A pre-onset and reorients post-onset — a clean teacher-forced lift, no
+> storage surgery), OR do the heavier **mask** (store B's own action pre-onset but zero those steps'
+> advantages). Start with the wrapper (simpler). SMOKE-TEST FIRST (1M ts, ~3 min): confirm A lifts
+> during the reset window (object_height climbs to ~0.10 by step 40), B trains without NaN, and the
+> post-onset reorient reward fires. Sanity check that motivates it: eval B10 starting from a live-A
+> delivery vs its skip-lift spawn — if it holds longer from live-A, the seam IS the train/deploy gap.
 
 **TOMORROW — TWO PRIORITIES:**
 - **A. Design wave 2 from `BATCH_RESULTS.md`.** If `coadapt_B_toAtol20` beats 0.0114, iterate the
