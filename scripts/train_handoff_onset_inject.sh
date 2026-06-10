@@ -56,6 +56,10 @@ ARGS=(
   --lateral-drift-weight=-8.0 --lateral-drift-deadband 0.01 --lateral-drift-power 2.0
   --tag "$TAG" --no-wandb
 )
+# Ablation toggles (default both ON = complete-state injection). INJECT_VEL=0 -> zero
+# velocities (static); INJECT_LASTACT=0 -> don't override the seam last_action obs.
+[ "${INJECT_VEL:-1}" = "0" ]     && ARGS+=( --no-handoff-inject-velocity )
+[ "${INJECT_LASTACT:-1}" = "0" ] && ARGS+=( --no-handoff-inject-last-action )
 c=$(mktemp -d)
 LOG="${LOG:-$ROOT/onset_${TAG}.trainer.log}"
 echo "[onset] TAG=$TAG ts=$TOTAL_TS onset_step=$ONSET_STEP reorient_start=$REORIENT_START"
