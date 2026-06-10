@@ -402,6 +402,61 @@ fallback worth pairing in: record A's *real* delivered seam states with `rl_reco
 and reset B's normal-lift training from that bank (`--handoff-state-bank`), closing the residual gap
 between B's training reset and A's actual hand-off.
 
+== What the seam sweep showed: both sides saturate alone, co-adaptation is the lever
+
+That program was carried out. Both one-sided moves were pushed to their limit, and the result is a
+clean structural finding.
+
+*Adapt B → A (branch A) saturates.* Training B on A's delivery via a state bank (`--handoff-state-bank`)
+trains cleanly but still drops (min-z 0.0028). The diagnosis sharpened: the bank fires only in the
+*skip-lift* env, so B still trains under the skip-lift *observation schedule* — different from the
+normal-lift deploy even when the physical state matches. The binding constraint is the *obs schedule*,
+not the state. Closing that — train B in the normal-lift env *and* inject A's real delivered state at
+the seam onset (`inject_handoff_bank_at_onset`) — reached a new best of *0.0081*, but still a drop.
+
+*Making the teleport Markov-complete does not help.* The residual gap looked like the *teleport*:
+the injected snapshot was static (a recorder bug had silently zeroed the bank velocities). Following
+an external analysis we made the injection physically complete — A's real object + finger velocities,
+and an override of the one history-dependent observation (`last_action`, which A delivers at a
+substantial 0.23 rad while B had always trained expecting ≈ 0). Since the observation space has no
+differenced or stacked-history terms and the position actuators carry no activation state, this makes
+the injected seam *Markov-indistinguishable* from organic arrival. *It did not close the seam* —
+min-z *0.0027*, no better than the static inject. The conclusion is load-bearing: the seam is *not a
+missing-state-information problem*, and the entire *inject-A's-state-into-B* family is saturated
+(0.0028 / 0.0081 / 0.0027, all far below the 0.05 bar).
+
+#table(
+  columns: (auto, auto, 1fr),
+  table.header([*Pairing (handoff\@40)*], [*min-z*], [*Reading*]),
+  [baseline frozen-A × B10], [\~0.0029], [either piece frozen — drops],
+  [A-migrated × B10 (A alone)], [−0.0001], [moving A alone, B frozen — no better],
+  [frozen-A × B-adapted (B alone)], [0.0075], [moving B alone — modest],
+  [*A-migrated × B-adapted (BOTH)*], [*0.0114*], [*co-adaptation — new best*],
+)
+
+*Co-adaptation is the lever.* Pairing the independently-migrated A (fine-tuned toward B's grip) with
+the independently-adapted B (trained on A's delivery) — neither aware of the other's move — gives the
+best min-z yet, *0.0114*, beating either side alone. Moving *both* terminal and initiation
+distributions toward each other is exactly the adversarial-skill-chaining prescription (Lee 2021 /
+Röstel 2025), and here it is the first thing to clear the prior best by a clear margin.
+
+#callout(tag: "Honest status", kind: "warn")[
+  *The seam is still open.* 0.0114 is the best *relative* min-z, but it is still a drop, not a hold
+  (the bar is 0.05). And the adapted B has no stable post-seam holding grip — it drops by \~step 48 —
+  so the weak link is *B catching*, not A delivering. Co-adaptation is a direction, not a solution.
+]
+
+#callout(tag: "The untried mechanism", kind: "note")[
+  Every adaptation so far trains B on a *teleport* into the seam (a bank or an injection); the deploy
+  seam is *organic* (A runs live). Even the Markov-complete injection did not close it — the remaining
+  suspect is the contact-solver warm-start / one-step contact-force ramp that no instantaneous
+  teleport reproduces. The next mechanism removes the teleport entirely: run *frozen Policy A live*
+  for the first \~40 steps of every B training episode (real physics, real contacts, real
+  `last_action`), then begin B's PPO rollout at the seam. It is a training-loop change, not a reward
+  knob — A drives the pre-onset steps and those steps are masked from the PPO update — which is why it
+  is the deliberate next build rather than another swept run.
+]
+
 #refbox[
   *Sources.* Lee et al., _Adversarial Skill Chaining via Terminal State Regularization_,
   CoRL 2021 (arXiv:2111.07999). Chen et al., _Sequential Dexterity_, CoRL 2023

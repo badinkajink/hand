@@ -1,0 +1,13 @@
+=== meet-in-the-middle free evals Tue Jun  9 06:06:40 PM MDT 2026 ===
+Atol20_x_Badapt | A=20260605-1609-policyA_unfreezeA_v2_w2_tol20/model_270.pt | B=20260609-1113-policyB_onsetInject_bankA_s40/model_270.pt
+   [hc] object z at handoff step 40: 0.104005828499794
+[hc] min object-center z over rollout: 0.0114 m
+Atol15_x_Badapt | A=20260605-1608-policyA_unfreezeA_v2_w2_tol15/model_270.pt | B=20260609-1113-policyB_onsetInject_bankA_s40/model_270.pt
+   [hc] object z at handoff step 40: 0.10904999822378159
+[hc] min object-center z over rollout: 0.0104 m
+Atol20_x_B10 | A=20260605-1609-policyA_unfreezeA_v2_w2_tol20/model_270.pt | B=20260604-1642-policyB_holdonlyws_repro/model_541.pt
+   [hc] object z at handoff step 40: 0.1085040420293808
+[hc] min object-center z over rollout: -0.0001 m
+Afrozen_x_Badapt | A=20260529-1219-screwdriver_medium_flat_short_proximal_stable_v1/model_500.pt | B=20260609-1113-policyB_onsetInject_bankA_s40/model_270.pt
+   [hc] object z at handoff step 40: 0.1136326938867569
+[hc] min object-center z over rollout: 0.0075 m
