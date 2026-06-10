@@ -57,8 +57,12 @@ do_run () {
   echo "[w2] === $tag DONE $(date '+%H:%M') ==="; }
 
 # (1) KEY: B10 warmstart + STATIC inject of the MIGRATED A's (Atol20) delivery.
+# LENIENT watchdog (0.012/iter100): catching the migrated grip is harder than frozen-A's,
+# so object_height starts low (~0.03) — give it room to LEARN to catch before culling.
+# A true floor-drop is ~0.005-0.01; 0.012 still catches that late.
 do_run coadapt_B10_Atol20_static B10 "$A_TOL20" -- \
   env BANK="$BANK_ATOL20" B_CKPT="$ROOT/$B10" INJECT_VEL=0 INJECT_LASTACT=0 \
+  COLLAPSE_Z=0.012 GUARD_FROM_ITER=100 \
   TAG=coadapt_B10_Atol20_static bash scripts/train_handoff_onset_inject.sh
 
 # (2) Badapt warmstart + STATIC inject of Atol20 (does static rescue what complete-state
