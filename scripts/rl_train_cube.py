@@ -227,6 +227,10 @@ class Args:
     --handoff-state-bank, which only does a reset-time spawn in skip-lift."""
     handoff_onset_step: int | None = None
     """Step to inject the onset bank state. None -> --lift-phase-start-step (match the deploy handoff step)."""
+    handoff_inject_velocity: bool = True
+    """Onset-inject ablation: write A's REAL obj_vel + finger/palm qvel from the bank (vs zeros)."""
+    handoff_inject_last_action: bool = True
+    """Onset-inject ablation: override the seam `last_action` obs with A's delivered action (vs B's gated value)."""
     handoff_target_bank: str | None = None
     """Branch B (un-freeze A): path to B10's initiation-set bank npz; A gets a seam-gated
     dense reward for delivering the object into B10's reorient-onset distribution."""
@@ -414,6 +418,8 @@ def main() -> None:
         handoff_state_bank=args.handoff_state_bank,
         handoff_onset_bank=args.handoff_onset_bank,
         handoff_onset_step=args.handoff_onset_step,
+        handoff_inject_velocity=args.handoff_inject_velocity,
+        handoff_inject_last_action=args.handoff_inject_last_action,
         handoff_target_bank=args.handoff_target_bank,
         handoff_target_weight=args.handoff_target_weight,
         handoff_target_seam_lo=args.handoff_target_seam_lo,
