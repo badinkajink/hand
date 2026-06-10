@@ -85,13 +85,31 @@ delivery]; (2) B_complete_fromBadapt; (3,4) branchB w6/w4 A-migration pushes (ev
 (5,6) complete-state 2×2 ablation (velocity-only / last_action-only). **CHECK `BATCH_RESULTS.md`
 FIRST next session.**
 
-> **EARLY READ (run 1):** `coadapt_B_toAtol20` **stuck** — object_height FLAT at ~0.02 for all 53
-> iters (not climbing toward a hold, not floor-collapsed), align stayed 0 → a drop-post-inject local
-> optimum; the watchdog culled it at iter 50 (correctly — flat, not learning). Undertrained ckpt
-> still evaled **0.0076**. **Hypothesis (the ablations test it): warmstarting the fragile static-adapted
-> `Badapt` + injecting the 0.31-rad `last_action` override shocks B into dropping.** So runs (5,6) —
-> does removing the `last_action` override recover holding? — are now the **most informative** runs.
-> Likely **wave 2**: retry coadapt with `INJECT_LASTACT=0` and/or warmstart B10 (not Badapt).
+> **WAVE 1 COMPLETE (2026-06-09 ~20:49). Key finding: the VELOCITY injection is harmful, NOT
+> last_action (my earlier hypothesis was BACKWARDS).** Results (continuous min-z, handoff@40):
+>
+> | run | warmstart | inject | min-z | reading |
+> |---|---|---|---|---|
+> | coadapt_B_toAtol20 | Badapt | complete, Atol20 deliv | 0.0076 | stuck (flat 0.02), culled — Badapt can't catch *migrated* delivery |
+> | B_complete_fromBadapt | Badapt | complete, frozenA deliv | 0.0022 | held in train (0.073) but evals WORST — converged complete-state confirms it hurts |
+> | branchB_w6_tol20 | frozenA | (A-side, w6) | 0.0042 | collapsed A's grasp (z@handoff 0.012) — weight too high |
+> | branchB_w4_tol15 | frozenA | (A-side, w4) | 0.0073 | held; ×Badapt 0.0073 < w2's 0.0114 — migration non-monotonic |
+> | **inject_velOnly** | B10 | vel ON, lastact OFF | **0.0023** | velocity ON → BAD |
+> | **inject_lastactOnly** | B10 | vel OFF, lastact ON | **0.0073** | velocity OFF → good (≈ static) |
+>
+> **The 2×2 (velocity / last_action):** velocity-OFF holds ~0.007–0.008 (static 0.0081, lastactOnly
+> 0.0073); velocity-ON drops ~0.002 (velOnly 0.0023, complete 0.0027). **Injecting A's real finger
+> qvel at the teleport gives the fingers momentum the position setpoint doesn't expect → grip-
+> perturbing transient.** So *static (zero-vel) injection is the best B-side variant*; last_action is
+> ~neutral. (This is why the "Markov-complete" 0.0027 < static 0.0081 — the velocity made it worse.)
+> **Nothing trained beats the free co-adapt pairing 0.0114.**
+>
+> **WAVE 2 RUNNING (launched ~21:16, `scripts/overnight_batch_wave2.sh`):** the *proper* co-adapt B,
+> fixing both wave-1 mistakes — **warmstart B10 (not Badapt) + STATIC inject of Atol20's migrated
+> delivery**; eval Atol20×NEW should beat 0.0114. (1) `coadapt_B10_Atol20_static` [KEY]; (2)
+> `coadapt_Badapt_Atol20_static` [does static rescue the Badapt-can't-catch stuck?]. ⚠ run-1's early
+> object_height is ~0.03 (B10 catching the migrated grip is harder than frozen-A's) — if the
+> watchdog culls it at iter 50, **relaunch with `COLLAPSE_Z=0.012 GUARD_FROM_ITER=100`**.
 
 **TOMORROW — TWO PRIORITIES:**
 - **A. Design wave 2 from `BATCH_RESULTS.md`.** If `coadapt_B_toAtol20` beats 0.0114, iterate the
