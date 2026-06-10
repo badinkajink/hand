@@ -51,7 +51,7 @@ ARGS=(
   --init-actor-checkpoint "$B_CKPT" --warmstart-critic
   --live-a-checkpoint "$A_CKPT" --live-a-onset "$ONSET_STEP"
   --episode-length-s 5.0 --lift-target-z-above-init 0.1 --lift-delta-z 0.1
-  --finger-residual-scale 0.5 --finger-close-easing ease_out_quad --contact-gate-stability-rewards
+  --finger-residual-scale "${RESID_SCALE:-0.5}" --finger-close-easing "${EASING:-ease_out_quad}"
   --lift-phase-start-step "$ONSET_STEP"
   --reorient-start-step "$REORIENT_START"
   --enable-lift-terminations
@@ -62,10 +62,13 @@ ARGS=(
   --lateral-drift-weight=-8.0 --lateral-drift-deadband 0.01 --lateral-drift-power 2.0
   --tag "$TAG" --no-wandb
 )
+# Contact-gate stability rewards: ON by default (deploy/B10 parity). Set CONTACT_GATE=0
+# to match a policy trained without it (the scale-0.2 live-A lineage from model_270).
+[ "${CONTACT_GATE:-1}" = "1" ] && ARGS+=( --contact-gate-stability-rewards )
 c=$(mktemp -d)
 LOG="${LOG:-$ROOT/liveA_${TAG}.trainer.log}"
 echo "[liveA] TAG=$TAG ts=$TOTAL_TS onset=$ONSET_STEP reorient_start=$REORIENT_START"
-echo "[liveA] A=$A_CKPT warmstart=B10 WARP_CACHE=$c trainer-log=$LOG"
+echo "[liveA] A=$A_CKPT warmstart-B=$B_CKPT WARP_CACHE=$c trainer-log=$LOG"
 WARP_CACHE_PATH="$c" MUJOCO_GL=egl setsid uv run --extra rl --extra gpu \
   python "$ROOT/scripts/rl_train_cube.py" "${ARGS[@]}" > "$LOG" 2>&1 &
 RUNPID=$!
