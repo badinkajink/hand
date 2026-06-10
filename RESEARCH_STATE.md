@@ -80,11 +80,18 @@ link is B CATCHING**, not A delivering (A's migrated grip holds fine through 0-4
 
 **OVERNIGHT BATCH IS RUNNING (launched 2026-06-09 18:13).** `scripts/overnight_batch.sh` (detached;
 `overnight_batch.run.log`) runs a co-adaptation wave 1 ONE-AT-A-TIME, auto-evals each on continuous
-min-z, appends to **`BATCH_RESULTS.md`**: (1) **coadapt_B_toAtol20** [KEY: B warmstart Badapt,
-trained on the MIGRATED A's real delivery → should beat 0.0114]; (2) B_complete_fromBadapt
-[converged complete-state, Badapt warmstart]; (3,4) branchB w6/w4 A-migration pushes (eval vs
-Badapt); (5,6) complete-state 2×2 ablation (velocity-only / last_action-only, to explain why
-0.0027<0.0081). **CHECK `BATCH_RESULTS.md` FIRST next session.**
+min-z, appends to **`BATCH_RESULTS.md`**: (1) coadapt_B_toAtol20 [B warmstart Badapt + MIGRATED A's
+delivery]; (2) B_complete_fromBadapt; (3,4) branchB w6/w4 A-migration pushes (eval vs Badapt);
+(5,6) complete-state 2×2 ablation (velocity-only / last_action-only). **CHECK `BATCH_RESULTS.md`
+FIRST next session.**
+
+> **EARLY READ (run 1):** `coadapt_B_toAtol20` **stuck** — object_height FLAT at ~0.02 for all 53
+> iters (not climbing toward a hold, not floor-collapsed), align stayed 0 → a drop-post-inject local
+> optimum; the watchdog culled it at iter 50 (correctly — flat, not learning). Undertrained ckpt
+> still evaled **0.0076**. **Hypothesis (the ablations test it): warmstarting the fragile static-adapted
+> `Badapt` + injecting the 0.31-rad `last_action` override shocks B into dropping.** So runs (5,6) —
+> does removing the `last_action` override recover holding? — are now the **most informative** runs.
+> Likely **wave 2**: retry coadapt with `INJECT_LASTACT=0` and/or warmstart B10 (not Badapt).
 
 **TOMORROW — TWO PRIORITIES:**
 - **A. Design wave 2 from `BATCH_RESULTS.md`.** If `coadapt_B_toAtol20` beats 0.0114, iterate the
