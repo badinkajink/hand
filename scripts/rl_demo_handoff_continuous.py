@@ -39,20 +39,26 @@ A_OBS_DIM = 65  # Policy A trained without the target_axis_misalign obs term.
 
 
 def make_env_cfg(frozen, keyframe, morph, bfc, *, enable_target_axis: bool,
-                 num_steps: int):
+                 num_steps: int, finger_residual_scale: float = 0.5,
+                 finger_close_easing: str = "ease_out_quad",
+                 contact_gate_stability_rewards: bool = True):
     """One env cfg. enable_target_axis=False -> 65-dim (Policy A's space);
     True -> 66-dim normal-lift reorient env (Policy B's space + dynamics).
     skip_lift_phase is always False here: the cylinder starts flat and is
-    really lifted, so the handoff is a continuous physical rollout."""
+    really lifted, so the handoff is a continuous physical rollout.
+
+    NB the residual-scale / easing / contact-gate knobs MUST match the
+    evaluated policy's TRAINING env or B is OOD (a B finetuned at scale 0.2 and
+    deployed at 0.5 emits 2.5x-too-large residuals and blows up the grip)."""
     from morphohand.rl.env_cfg import MorphoHandEnvCfg
     common = dict(
         frozen_scene_xml=frozen, keyframe_name=keyframe,
         foundational_run_dir=morph, finger_default_ctrl=bfc,
         object_body_name="screwdriver_medium", num_envs=1,
         episode_length_s=float(num_steps) / 50.0 + 0.5,
-        finger_residual_scale=0.5, finger_close_easing="ease_out_quad",
+        finger_residual_scale=finger_residual_scale, finger_close_easing=finger_close_easing,
         lift_target_z_above_init=0.10, lift_delta_z=0.10,
-        contact_gate_stability_rewards=True, enable_lift_terminations=False,
+        contact_gate_stability_rewards=contact_gate_stability_rewards, enable_lift_terminations=False,
     )
     if not enable_target_axis:
         return MorphoHandEnvCfg(**common)
@@ -90,6 +96,14 @@ def act(actor, obs):
     return actor.act_inference(obs) if hasattr(actor, "act_inference") else actor.mlp(obs)
 
 
+def act_b(actor, obs_td, stochastic):
+    """Policy B's action. obs_td is the full TensorDict (B is the native policy,
+    so use its proper forward/normalizer path, not the raw-.mlp A shortcut)."""
+    if stochastic:
+        return actor(obs_td, stochastic_output=True)
+    return actor(obs_td)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--policy-a", type=Path,
@@ -104,6 +118,16 @@ def main():
                     help="ramp A->B actions over N steps from handoff-step (0 = hard switch). "
                          "Eases B in so it is never shocked by an OOD obs at the seam.")
     ap.add_argument("--total-steps", type=int, default=240)
+    ap.add_argument("--finger-residual-scale", type=float, default=0.5,
+                    help="MUST match the evaluated B's training env (B10/B4 used 0.5; "
+                         "the rl_train_cube default is 0.2 — a mismatch puts B OOD).")
+    ap.add_argument("--finger-close-easing", type=str, default="ease_out_quad")
+    ap.add_argument("--no-contact-gate", action="store_true",
+                    help="set contact_gate_stability_rewards=False (match a B trained without it)")
+    ap.add_argument("--stochastic-b", action="store_true",
+                    help="sample Policy B's action from its distribution instead of the "
+                         "deterministic mean (tests whether the corrective exploration "
+                         "jitter is load-bearing for the post-seam hold)")
     # ---- Branch D: critic-gated switch -------------------------------------
     # Instead of a human picking --handoff-step, let B's value function choose
     # the moment to take over: switch when V_B(obs) peaks during A's delivery
@@ -134,7 +158,8 @@ def main():
     # 1) Throwaway 65-dim A-env just to instantiate + load Policy A's actor.
     print("[hc] building A-env (65-dim) to load Policy A...")
     env_a, _wa, actor_a = build_actor(
-        make_env_cfg(frozen, keyframe, args.morphology_run, bfc, enable_target_axis=False, num_steps=10),
+        make_env_cfg(frozen, keyframe, args.morphology_run, bfc, enable_target_axis=False, num_steps=10,
+                     finger_residual_scale=args.finger_residual_scale, finger_close_easing=args.finger_close_easing, contact_gate_stability_rewards=not args.no_contact_gate),
         args.policy_a, work)
     env_a.close()
     print("[hc] Policy A loaded.")
@@ -149,7 +174,8 @@ def main():
     from morphohand.rl.ppo_runner import build_runner_cfg
 
     print("[hc] building main env (66-dim, normal lift to 0.10) + Policy B...")
-    cfg_b = make_env_cfg(frozen, keyframe, args.morphology_run, bfc, enable_target_axis=True, num_steps=args.total_steps)
+    cfg_b = make_env_cfg(frozen, keyframe, args.morphology_run, bfc, enable_target_axis=True, num_steps=args.total_steps,
+                         finger_residual_scale=args.finger_residual_scale, finger_close_easing=args.finger_close_easing, contact_gate_stability_rewards=not args.no_contact_gate)
     env = ManagerBasedRlEnv(cfg=to_mjlab_cfg(cfg_b), device="cuda:0", render_mode="rgb_array")
     env = VideoRecorder(env, video_folder=str(work), step_trigger=lambda s: s == 1,
                         video_length=args.total_steps, name_prefix=args.output.stem)
@@ -182,6 +208,9 @@ def main():
     obs = obs_td["actor"]
     align_at_handoff = None
     min_z = float("inf")
+    min_z_post = float("inf")  # min object-z AFTER the handoff (the honest hold metric;
+    # whole-rollout min_z is dominated by the pre-lift floor phase z~0.012)
+    held_cos_tail = []  # held-vertical cos post-handoff (reorientation quality)
     # Resolved switch step: fixed clock, or chosen online by the critic gate.
     switch_step = None if args.switch_on_critic else args.handoff_step
     vmax, t_star, no_improve, vtrace = float("-inf"), None, 0, []
@@ -208,17 +237,27 @@ def main():
                 # linear A->B action ramp: alpha 0->1 over the blend window
                 alpha = (step - switch_step + 1) / float(args.blend_steps)
                 a_a = act(actor_a, obs[:, :A_OBS_DIM])
-                a_b = act(actor_b, obs)
+                a_b = act_b(actor_b, obs_td, args.stochastic_b)
                 actions = (1.0 - alpha) * a_a + alpha * a_b
             else:
-                actions = act(actor_b, obs)
+                actions = act_b(actor_b, obs_td, args.stochastic_b)
             obs_td, *_ = wrapped.step(actions)
             obs = obs_td["actor"]
             try:
-                z = float(env.unwrapped.scene["cube"].data.root_link_pose_w[0, 2])
+                pose = env.unwrapped.scene["cube"].data.root_link_pose_w[0]
+                z = float(pose[2])
                 min_z = min(min_z, z)
+                # held-cos = world-z component of the object's body +Z (long axis):
+                # 1 - 2(qx^2+qy^2) for quat (w,x,y,z). flat ~0, vertical ~1.
+                qw, qx, qy, qz = (float(pose[3]), float(pose[4]), float(pose[5]), float(pose[6]))
+                held_cos = 1.0 - 2.0 * (qx * qx + qy * qy)
+                if switch_step is not None and step >= switch_step:
+                    min_z_post = min(min_z_post, z)
+                    held_cos_tail.append(held_cos)
                 if switch_step is not None and step == switch_step:
                     align_at_handoff = z
+                if os.environ.get("HC_ZTRACE") and (step % 5 == 0 or (switch_step is not None and abs(step - switch_step) <= 6)):
+                    print(f"[ztrace] step={step} z={z:.4f}")
             except Exception:
                 pass
     env.close()
@@ -236,6 +275,12 @@ def main():
     print(f"[hc] DONE: {args.output}")
     print(f"[hc] object z at handoff step {switch_step}: {align_at_handoff}")
     print(f"[hc] min object-center z over rollout: {min_z:.4f} m")
+    print(f"[hc] min object-center z POST-HANDOFF (honest hold metric): {min_z_post:.4f} m "
+          f"({'HELD >0.05' if min_z_post > 0.05 else 'dropped'})")
+    if held_cos_tail:
+        tail = held_cos_tail[-50:]
+        print(f"[hc] held-vertical cos POST-HANDOFF (last 50 steps mean): {sum(tail)/len(tail):.3f} "
+              f"(peak {max(held_cos_tail):.3f})")
 
 
 if __name__ == "__main__":
