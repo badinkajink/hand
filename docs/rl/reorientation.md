@@ -861,6 +861,87 @@ a working post-seam reorient.
 
 ---
 
+## Phase: closing the seam — A-side, B-side, and co-adaptation (2026-06-05 → 06-09)
+
+This phase systematically swept *which policy to move* to close the seam. The blow-by-blow
+(commands, infra gotchas, exact run dirs) lives in `RESEARCH_STATE.md`; this is the condensed
+arc and its one durable conclusion. **Success metric throughout: continuous-handoff min-z
+(`scripts/rl_demo_handoff_continuous.py`, handoff@40); hold ⇔ min-z > 0.05.** Everything below
+still *drops* (min-z ≪ 0.05) — the seam is **not closed** — but the trend finally points somewhere.
+
+### Branch B — un-freeze Policy A, migrate its grip onto B's (06-05)
+
+**Goal:** leave B frozen; fine-tune A to *deliver* the grip B reorients from (the measured seam
+gap was the finger config, ~0.16 rad/joint off B10's hold). **Changed:** seam-gated dense
+`handoff_target_proximity` reward pulling A's finger qpos onto B10's recorded grip; v1 collapsed
+(stripped A's drop terminations → floor became an attractor — see lesson 7), v2 restored every
+guardrail and relaxed *only* the slip terms + widened the proximity basin. **Result:** trains
+clean, A migrates its grip *partway* (proximity plateaus), survival rises **monotonically** with
+migration (0.0029 → 0.0049 → 0.0073) — but plateaus; A resists fully adopting B's grip and pushing
+the weight harder re-invites collapse. **Takeaway:** grip-match is **real but insufficient** alone.
+
+### Adapt B → A (skip-lift state bank) and the obs-schedule diagnosis (06-08)
+
+**Goal:** the symmetric move — leave A frozen, make B robust to A's *real* delivered state via a
+recorded state bank. **Result:** trains clean, still drops (min-z 0.0028). **Takeaway (sharp):**
+the bank only fires in the **skip-lift** env, so B still trained under the skip-lift *observation
+schedule* — which differs from the normal-lift deploy even when the physical state matches. **The
+binding constraint is the obs schedule, not the state.**
+
+### Onset-grip injection — state AND obs in-distribution (06-09)
+
+**Goal:** the one combination adapt-B/branch-B couldn't reach — train B in the *normal-lift* env
+(obs schedule == deploy) **and** inject A's real delivered state at the seam onset (state ==
+deploy), via a new step-mode event `inject_handoff_bank_at_onset`. **Result:** min-z **0.0081** —
+a new best, but still a drop. **Takeaway:** matching state + obs schedule helps, but the *teleport*
+remains: the injected snapshot was static (the bank had zero velocities — a recorder bug).
+
+### Complete-state injection — make the teleport Markov-complete (06-09 eve)
+
+**Goal (from the Opus-4.8 analysis):** remove the last teleport artifacts. **Changed:** fixed the
+recorder's silent velocity bug (`root_link_velocity_w`, a nonexistent attribute → zeros; correct is
+`root_link_vel_w`), added `robot_qvel`, captured A's last action; the inject now writes A's REAL
+obj_vel + finger/palm qvel AND overrides the seam `last_action` obs (the only history-dependent obs;
+there are no differenced/stacked-history obs, and position actuators carry no `act` state, so this
+makes the injected seam *Markov-equivalent* to organic arrival). Measured: A's delivery velocity is
+tiny (1.6 cm/s, settled) but `a_last` is substantial (**0.23 rad**) — the `last_action` mismatch was
+the larger unaddressed OOD. **Result: min-z 0.0027 — WORSE than the static 0.0081** (run NaN-crashed
+@iter221 after holding healthily; model_200 a fair late ckpt). **Takeaway (load-bearing):** making
+the teleport more faithful did **not** help → the seam is **not a missing-state-info problem**, and
+the entire *inject-A's-state-into-B* family is **saturated** (0.0028 / 0.0081 / 0.0027, all ≪ 0.05).
+
+### Co-adaptation — move BOTH policies (06-09 eve, the new lever)
+
+**Goal:** with each one-sided move saturated, test *moving both*. **Changed:** nothing new trained —
+a *free* eval pairing the independently-migrated A (`Atol20`, A→B10 grip) with the independently-
+adapted B (`Badapt`, B→frozen-A delivery). **Result:**
+
+| pairing | min-z (handoff@40) |
+|---|---|
+| baseline frozen-A × B10 | ~0.0029 |
+| A-moved × B10 (A alone) | −0.0001 |
+| frozen-A × Badapt (B alone) | 0.0075 |
+| **Atol20 × Badapt (BOTH moved)** | **0.0114** ← new best |
+
+**Takeaway:** **co-adaptation — both policies migrating toward each other — beats either side
+alone** (Lee 2021 / Röstel 2025, confirmed empirically). *Honest caveat:* 0.0114 is still a **drop**,
+not a hold; and `Badapt` has no stable post-seam holding grip (drops by ~step 48), so the **weak link
+is B catching**, not A delivering. An overnight **co-adaptation batch** (`scripts/overnight_batch.sh`
+→ `BATCH_RESULTS.md`) was launched to specialize B to the migrated A's delivery and push A-migration
+further.
+
+### Where this leaves the seam (→ next: the live-A reset)
+
+Every adaptation so far trains B on a **teleport** into the seam (bank / inject); the deploy seam is
+**organic** (A runs live). Even Markov-complete injection didn't close it — the remaining suspect is
+the contact-solver warmstart / one-step contact-force ramp that no instantaneous teleport reproduces.
+**The untried mechanism: run frozen Policy A LIVE during B's training reset** (steps 0..40, real
+physics, zero teleport), then B's PPO rollout begins at the seam. This needs rsl_rl integration
+(apply A's action pre-onset per-env and *mask those steps from the PPO update*), so it is a build,
+not a flag — deferred as tomorrow's priority. Plus the co-adaptation loop (alternate A/B migration).
+
+---
+
 ## Results
 
 ### Cross-run comparison plots

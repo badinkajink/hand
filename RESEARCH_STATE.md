@@ -1,4 +1,4 @@
-# In-hand reorientation — research state & handoff (updated 2026-06-09)
+# In-hand reorientation — research state & handoff (updated 2026-06-09 eve)
 
 Living handoff doc for a FRESH session **and a self-contained brief for an external analyst.**
 Full chronological log: `docs/rl/reorientation.md`. Published narrative: `webpaper/src/rl.typ`.
@@ -45,12 +45,65 @@ START HERE.
 Task object/scene: flat-laying `screwdriver_medium` cylinder; morphology run
 `results/phase1/run18_multi_object_adapt/foundational/screwdriver_medium_flat/run_20260521_150259`.
 
-## ⚡ FRESH SESSION — START HERE (updated 2026-06-09)
+## ⚡ FRESH SESSION — START HERE (updated 2026-06-09 eve)
 **The open problem is the A→B handoff seam (the reorienter B drops the object when A hands it
-over). Standalone pieces both work; the seam between them does not.** FOUR adaptation directions
-have now been tried; ALL train cleanly, NONE closes the seam. **Latest + best = onset-grip injection
-(min-z 0.0081); the residual gap is the static-snapshot teleport — see the IMMEDIATE NEXT ACTION
-just below.** (adapt-B history retained underneath for the record.)
+over). Standalone pieces both work; the seam between them does not.** Bar = continuous-handoff
+**min-z > 0.05**; everything so far drops to the floor.
+
+**TWO NEW RESULTS TONIGHT (2026-06-09 eve):**
+
+**(1) Complete-state onset injection → min-z 0.0027 (WORSE than static 0.0081). The B-side
+injection paradigm is SATURATED.** Following the Opus-4.8 analysis, I made the onset teleport
+*Markov-complete*: fixed the recorder's silent velocity bug (it read a nonexistent attribute
+`root_link_velocity_w` → zeros; correct is `root_link_vel_w`), added `robot_qvel`, captured A's
+last action `a_last`, and made the inject write A's REAL obj_vel + finger/palm qvel AND override
+the seam `last_action` obs. Measured: A's delivery velocity is TINY (1.6 cm/s, settled) but
+`a_last` is SUBSTANTIAL (0.23 rad) — so the `last_action` mismatch (Opus's new finding) was the
+bigger unaddressed OOD. **Yet fixing both gave 0.0027, not better.** (Run `20260609-1313-
+policyB_onsetInjectFull_bankA_s40`, NaN-crashed @iter221 after holding healthily — object_height
+0.067, align 38 — so model_200 is a fair late ckpt.) Since the env has no differenced/history obs
+and position actuators carry no `act` state, the injected seam IS Markov-equivalent to organic
+arrival — so **making the teleport more faithful does not close the seam → the seam is NOT a
+missing-state-info problem.** This kills the "inject A's state into B" family (skip-lift bank
+0.0028, static onset 0.0081, complete onset 0.0027 — all saturated ≪ 0.05).
+
+**(2) CO-ADAPTATION is the new best — 0.0114 (free eval, existing ckpts).** Pairing the
+independently-**migrated A** (`Atol20` = frozen-A finetuned toward B10's grip) with the
+independently-**adapted B** (`Badapt` = B10 adapted to frozen-A's delivery) gives continuous
+min-z **0.0114** at handoff@40 — a new best, beating EITHER SIDE ALONE: A-moved×B10 **−0.0001**,
+frozenA×Badapt **0.0075**, baseline ~0.0029. **Moving BOTH toward each other is the lever**
+(Lee 2021 / Röstel 2025 co-adaptation, confirmed empirically for free). ⚠️ HONEST CAVEAT: 0.0114
+is still a DROP (≪ 0.05), not a hold — it's the best *relative* min-z, the object falls slightly
+less far. And `Badapt` has NO stable post-seam holding grip (it drops by ~step 48), so the **weak
+link is B CATCHING**, not A delivering (A's migrated grip holds fine through 0-40). Results in
+`MEET_IN_MIDDLE_EVALS.txt`; videos `docs/rl/videos/reorient/meet_*.mp4`.
+
+**OVERNIGHT BATCH IS RUNNING (launched 2026-06-09 18:13).** `scripts/overnight_batch.sh` (detached;
+`overnight_batch.run.log`) runs a co-adaptation wave 1 ONE-AT-A-TIME, auto-evals each on continuous
+min-z, appends to **`BATCH_RESULTS.md`**: (1) **coadapt_B_toAtol20** [KEY: B warmstart Badapt,
+trained on the MIGRATED A's real delivery → should beat 0.0114]; (2) B_complete_fromBadapt
+[converged complete-state, Badapt warmstart]; (3,4) branchB w6/w4 A-migration pushes (eval vs
+Badapt); (5,6) complete-state 2×2 ablation (velocity-only / last_action-only, to explain why
+0.0027<0.0081). **CHECK `BATCH_RESULTS.md` FIRST next session.**
+
+**TOMORROW — TWO PRIORITIES:**
+- **A. Design wave 2 from `BATCH_RESULTS.md`.** If `coadapt_B_toAtol20` beats 0.0114, iterate the
+  co-adaptation loop (record the new B's catch, re-migrate A to it, repeat — alternating A/B).
+- **B. BUILD THE LIVE-A RESET (the one untried mechanism that removes ALL teleport artifacts).**
+  Every adaptation so far trains B on a *teleport* into the seam (bank/inject); the deploy seam is
+  *organic* (A runs live). Even Markov-complete injection (result 1) didn't close it — the remaining
+  suspect is the contact-solver warmstart / one-step contact-force ramp that NO instantaneous
+  teleport reproduces. The fix: B's training env runs **frozen Policy A LIVE** for steps 0..40
+  (real physics, real contacts, real `last_action` — zero teleport), then B's PPO rollout begins at
+  the seam. IMPLEMENTATION (needs rsl_rl integration, NOT a flag — that's why it's a build, not a
+  queued run): load A's actor in the training process; per-env, while `episode_length_buf < onset`,
+  apply A's action instead of B's; **MASK those pre-onset steps from PPO** (zero their advantages/
+  returns in the rollout storage, else PPO trains B toward A's lift actions). Sanity check first:
+  eval B10 with its episode STARTING from a live-A delivery vs from skip-lift spawn — if it holds
+  longer from live-A, that's direct proof the seam is the train/deploy distribution. (Opus's
+  central recommendation; deferred tonight because unattended rsl_rl surgery is too bug-prone.)
+
+**(adapt-B / onset-inject history retained underneath for the record.)**
 
 **adapt-B-to-A HAS NOW RUN (2026-06-08 eve) — RESULT: SEAM STILL OPEN.** Trained clean to iter 270
 (`results/rl/20260608-1738-policyB_adaptToA_bankA_s40/tensorboard/model_270.pt`, object held +0.012
@@ -86,29 +139,34 @@ misses → silent `torch.zeros` fallback) and **no `robot_qvel` at all** (finger
 recorded); the injection then also zeroes finger vel. So in training B always sees a motionless
 seam, while at deploy A hands off a state still in motion with a continuous contact history.
 
-**IMMEDIATE NEXT ACTION (cheap, well-motivated): inject A's REAL delivery velocities.**
-1. Fix `rl_record_handoff_states.py` to capture the real object velocity (correct attribute — check
-   `root_com_vel_w` / `data.root_vel_w`; verify it's nonzero) AND `robot.data.joint_vel` → add
-   `robot_qvel` to the npz. Re-record the bank from frozen A model_500 @step40.
-2. Extend `inject_handoff_bank_at_onset` to write the bank's real `obj_vel` and `robot_qvel`
-   (instead of zeroing finger vel). Re-run `train_handoff_onset_inject.sh`, re-eval.
-This tests whether the static-snapshot velocity mismatch is the residual OOD. **If A's real delivery
-velocities turn out tiny** (genuinely settled) and the seam STILL drops, the culprit is the
-teleport's contact-history transient → fall back to **trajectory replay** (drive the hand along A's
-real 0→onset trajectory so B arrives organically; needs a trajectory bank, not terminal-only).
+**~~IMMEDIATE NEXT ACTION: inject A's REAL delivery velocities~~ — DONE 2026-06-09 eve (see the
+two new results at the top).** Both halves ran: (1) recorder fixed (`root_link_vel_w` + `robot_qvel`
++ `a_last`), inject writes real velocities AND overrides `last_action`; result min-z **0.0027**
+(worse than static 0.0081 — A's velocities were tiny/settled, the `last_action` mismatch was real
+but fixing it didn't help → injection paradigm saturated). The flagged fallback (trajectory replay /
+organic arrival) generalizes to the **LIVE-A RESET**, now tomorrow's priority B. Tooling left in
+place: `--handoff-inject-velocity` / `--handoff-inject-last-action` toggles ablate the two variables
+(queued in the batch).
 
 Schedule used (tunable): onset/inject @40 (matches s40 bank + deploy handoff@40), residual from 40,
 reorient reward from 45 (5-step grace).
 
-**Reference numbers to beat:** B10-alone min-z 0.0029; adapt-B 0.0028; best-ever (branch-B tol20)
-0.0073; **bar = 0.05**.
+**Reference numbers to beat (continuous-handoff min-z, handoff@40, bar = 0.05):**
+baseline frozenA×B10 0.0029; adapt-B 0.0028; static onset 0.0081; complete-state onset 0.0027;
+A-migration alone (Atol20×B10) −0.0001; **CO-ADAPT cross-pairing (Atol20×Badapt) 0.0114 = BEST**.
 
 **Pieces (all paths real, verified):**
 - Frozen Policy A (lift+deliver, GOOD — keep frozen): `results/rl/20260529-1219-screwdriver_medium_flat_short_proximal_stable_v1/tensorboard/model_500.pt`
 - B4 = best standalone reorienter (0.988): `results/rl/20260603-1746-policyB_p2_lateral_only/tensorboard/model_541.pt`
 - B10 = first to survive delivery + reorient but violent: `results/rl/20260604-1642-policyB_holdonlyws_repro/tensorboard/model_541.pt`
 - A's real-delivery state bank (grip+pose, 2048 states, z=0.111): `results/rl/handoff_state_bank_A_s40.npz`
+  (OLD, static/zero-vel) — **use the COMPLETE bank now: `results/rl/handoff_state_bank_A_s40_full.npz`**
+  (real obj_vel + robot_qvel + a_last, 2048 states).
 - adapt-B (skip-lift bank) result that just closed off this branch: `results/rl/20260608-1738-policyB_adaptToA_bankA_s40/tensorboard/model_270.pt` (min-z 0.0028)
+- **Atol20** = migrated A (frozen-A → B10's grip, branchB tol20): `results/rl/20260605-1609-policyA_unfreezeA_v2_w2_tol20/tensorboard/model_270.pt`
+- **Badapt** = adapted B (B10 → frozen-A delivery, static onset): `results/rl/20260609-1113-policyB_onsetInject_bankA_s40/tensorboard/model_270.pt`
+- **Atol20's delivery bank** (complete, for co-adapting B to the migrated A): `results/rl/handoff_state_bank_Atol20_s40_full.npz`
+- ⚠️ `results/rl/badapt_initiation_s48.npz` is GARBAGE (Badapt drops by step 48 → recorded a floor grip; do not use as a branchB target).
 
 ## TL;DR — what's true now
 - **Best reorientation policy = `p2_lateral`** (held-vertical cos **0.988**, peak **0.999**,
@@ -133,7 +191,10 @@ reorient reward from 45 (5-step grace).
     statebank** (P3: 3.0/3.1 cm ≈ 4.3 cm 3D) — training on A's real centered grips keeps it
     centered — but P3 reorients worse (0.930). Still: stacking diverges; add ONE at a time.
   - *Bracing:* unchanged; reaches cos 0.99 ~3 cm below palm (vertically), no contact.
-  - *Seamless A→B handoff:* **SEAM BROKEN — now a SMOOTHNESS problem (2026-06-04 eve).** Diagnosis
+  - *Seamless A→B handoff:* **STILL OPEN. Latest (2026-06-09 eve): injection paradigm SATURATED
+    (complete-state onset 0.0027); CO-ADAPTATION is the new lever (0.0114 best). See START HERE +
+    `BATCH_RESULTS.md`. The history below (smoothness framing, 2026-06-04) is superseded.**
+    Diagnosis
     held: seam drop was an observation-discontinuity OOD shock (skip-lift B OOD on A's normal-lift
     delivery). The grace-window-from-P2 attempts (v2/v3/v3b = B7/B8/B9) all collapsed because they
     warmstarted the OOD skip-lift reorienter. **THE FIX: warmstart the HOLD-ONLY control** (proven
