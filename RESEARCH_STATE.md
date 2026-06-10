@@ -118,14 +118,23 @@ FIRST next session.**
 > **➡️ THE PATH IS NOW THE LIVE-A RESET (no more injection variants — that family is exhausted).**
 > Run frozen Policy A LIVE for steps 0..40 of every B training episode (real physics / real contacts /
 > real `last_action`, zero teleport), then B's PPO rollout begins at the organic seam. **Implementation
-> (the one design decision to make first):** rsl_rl stores the *policy's* output action, so to keep the
-> stored transition consistent, **wrap B's policy** so it emits A's action while `episode_length_buf <
-> onset` (B then *imitates* A pre-onset and reorients post-onset — a clean teacher-forced lift, no
-> storage surgery), OR do the heavier **mask** (store B's own action pre-onset but zero those steps'
-> advantages). Start with the wrapper (simpler). SMOKE-TEST FIRST (1M ts, ~3 min): confirm A lifts
-> during the reset window (object_height climbs to ~0.10 by step 40), B trains without NaN, and the
-> post-onset reorient reward fires. Sanity check that motivates it: eval B10 starting from a live-A
-> delivery vs its skip-lift spawn — if it holds longer from live-A, the seam IS the train/deploy gap.
+> — RECOMMENDED = advantage-masking (I scoped it tonight; the obvious "wrapper" has a trap). The
+> rollout loop is `actions = alg.act(obs); env.step(actions); alg.process_env_step(...)`
+> (`.venv/.../rsl_rl/runners/on_policy_runner.py:85`). Tempting fix — wrap the policy to *emit A's
+> action* pre-onset — is WRONG: `alg.act` also stores the action's **log-prob under B**, so swapping in
+> A's action leaves a stale log-prob → corrupt PPO ratio (you'd have to recompute log π_B(a_A),
+> PPO-internal surgery). **Cleaner: (1) ENV applies A's action while `episode_length_buf < onset`** —
+> hold frozen A's actor on the env, in a pre-physics hook compute A's action from `env.obs_buf[:, :65]`
+> and write it to the finger actuators, ignoring B's passed action; **(2) MASK pre-onset steps from the
+> PPO update** — zero their advantages+returns in the rollout storage before `alg.update()` (A drove
+> those steps, so B mustn't be trained on them; their stored action/log-prob then don't matter). B
+> trains ONLY on post-onset steps from A's organically-arrived state. SMOKE-TEST FIRST (1M ts, ~3 min):
+> A lifts in the reset window (object_height → ~0.10 by step 40), B trains without NaN, post-onset
+> reorient reward fires, pre-onset advantages ≈ 0. **DO THIS CHEAP CHECK BEFORE BUILDING** (no training,
+> ~5 min): eval B10/B4 with its episode STARTING from a live-A delivery vs its skip-lift spawn — if it
+> holds materially longer from live-A, that's direct proof the seam is the train/deploy gap and masking
+> is the only work left. (Deferred tonight: PPO-internal surgery must be built + validated SUPERVISED;
+> a silent log-prob/masking bug would waste an unattended run — not worth the risk while idle.)
 
 **TOMORROW — TWO PRIORITIES:**
 - **A. Design wave 2 from `BATCH_RESULTS.md`.** If `coadapt_B_toAtol20` beats 0.0114, iterate the
