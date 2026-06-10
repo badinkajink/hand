@@ -45,12 +45,52 @@ START HERE.
 Task object/scene: flat-laying `screwdriver_medium` cylinder; morphology run
 `results/phase1/run18_multi_object_adapt/foundational/screwdriver_medium_flat/run_20260521_150259`.
 
-## ⚡ FRESH SESSION — START HERE (updated 2026-06-09 eve)
-**The open problem is the A→B handoff seam (the reorienter B drops the object when A hands it
-over). Standalone pieces both work; the seam between them does not.** Bar = continuous-handoff
-**min-z > 0.05**; everything so far drops to the floor.
+## ⚡ FRESH SESSION — START HERE (updated 2026-06-10)
 
-**TWO NEW RESULTS TONIGHT (2026-06-09 eve):**
+### 🎉 2026-06-10: THE LIVE-A RESET CLOSES THE SEAM. (first time — held + reoriented)
+The handoff seam is **SOLVED in principle.** Built the live-A reset (the one untried mechanism,
+scoped 06-09): frozen Policy A drives B's training env LIVE for steps 0..40 of every episode
+(real physics, zero teleport), then B's PPO rollout begins at the organic seam; the A-driven
+pre-onset steps are **masked** from the PPO update (advantages zeroed + renormalized; returns
+kept). Code: `src/morphohand/rl/live_a_runner.py` (`LiveAOnPolicyRunner`),
+`scripts/rl_train_cube.py --live-a-checkpoint/--live-a-onset`, `scripts/train_handoff_liveA_reset.sh`.
+
+**Result (run `20260610-1046-policyB_liveAreset_fromB10`, model_270, 20M/3072, warmstart B10):**
+continuous handoff@40, **post-handoff min-z 0.110 m (HELD ≫ 0.05)**, held-vertical **cos 0.751
+(peak 0.816)**. B holds A's organic delivery at full height for the ENTIRE post-seam rollout and
+reorients — the FIRST policy to do both. Every prior teleport approach dropped in 3-5 steps
+(min-z 0.003-0.011). Training signature confirmed it: masked frac fell 0.95→0.20 (episodes
+lengthened ~5×), align 0.45→58.9, tip_lost 51→8, episodes ran to time_out. Video
+`docs/rl/videos/reorient/handoff_liveAreset_scale02.mp4`.
+
+> **⚠️ CONFIG-PARITY GOTCHA (cost the first eval — now gotcha #13).** That run trained at
+> `finger_residual_scale=0.2` (the rl_train_cube DEFAULT) while B10 (warmstart) AND the deploy
+> demo use **0.5**. B relearned to hold at 0.2; the 0.5 eval applied its residuals **2.5× too
+> large** → instant seam collapse — an **artifact, not a failure**. Re-eval at the matched scale
+> 0.2 (`rl_demo_handoff_continuous.py --finger-residual-scale 0.2 --finger-close-easing linear
+> --no-contact-gate`) gave the 0.110/0.75 hold. **The TRAINING env must match the DEPLOY env on
+> scale/easing/contact-gate.** NB the *every prior B-finetune* (onset-inject, adapt-B, branch-B,
+> co-adapt) ALSO trained at 0.2 and was eval'd at 0.5 — so the "injection capped at 0.011"
+> verdict was drawn under the same mismatch and may be partly confounded; the live-A win is real
+> regardless (held at its own matched scale). **Also: whole-rollout min-z is the WRONG metric**
+> (dominated by the pre-lift floor phase z~0.012; the bar 0.05 is unreachable by it). Use the new
+> **POST-HANDOFF min-z** + held-cos that `rl_demo_handoff_continuous.py` now prints.
+
+**NEXT (in priority order):**
+1. **CANONICAL 0.5 RETRAIN IS RUNNING** (`policyB_liveAreset_fromB10_s05`, launched 2026-06-10,
+   scale 0.5 / ease_out_quad / contact-gate ON = deploy parity; warmstart B10 at its native
+   scale). When done: eval with `rl_demo_handoff_continuous.py --policy-b <ckpt>` (defaults now
+   0.5) → post-handoff min-z + cos. This is the deployable, lineage-comparable version. **CHECK
+   the trainer log / `BATCH_RESULTS.md` FIRST.**
+2. **Push the reorientation FURTHER** (cos 0.75 < B4 standalone 0.988): longer training (40M),
+   or warmstart B4 (best reorienter) instead of B10, or anneal the reorient-reward onset.
+3. **Re-examine the "injection capped" runs at matched scale** — cheap re-evals (no retrain) of
+   Badapt/co-adapt at scale 0.2 may show they were better than recorded. Lower priority now that
+   live-A works.
+
+### History below: the teleport/injection era (2026-06-09 eve) — SUPERSEDED by the live-A win above.
+
+**TWO RESULTS 2026-06-09 eve:**
 
 **(1) Complete-state onset injection → min-z 0.0027 (WORSE than static 0.0081). The B-side
 injection paradigm is SATURATED.** Following the Opus-4.8 analysis, I made the onset teleport
@@ -499,6 +539,18 @@ degraded base. **min_z<0.05 ⇒ floor contact/drop.**
     `systemctl --user stop gnome-remote-desktop && sudo modprobe -r nvidia_uvm && sudo modprobe
     nvidia_uvm && systemctl --user start gnome-remote-desktop`. Probe before relaunching:
     `uv run --extra gpu python -c "import torch; print(torch.cuda.is_available())"`.
+13. **TRAIN/DEPLOY CONFIG PARITY — a B finetuned at one `finger_residual_scale` and eval'd at
+    another is OOD (silently).** `rl_train_cube.py` defaults `finger_residual_scale=0.2`,
+    `finger_close_easing=linear`, `contact_gate_stability_rewards=off`; but B10/B4 AND
+    `rl_demo_handoff_continuous.py` (deploy) use **0.5 / ease_out_quad / on**. A B trained at 0.2
+    relearns its grip for 0.2; eval at 0.5 applies its residuals **2.5× too large** → instant
+    grip blowup that LOOKS like a seam failure but is an artifact (cost the first live-A eval,
+    2026-06-10). ALWAYS pass `--finger-residual-scale 0.5 --finger-close-easing ease_out_quad
+    --contact-gate-stability-rewards` when finetuning a B for the continuous-handoff deploy, OR
+    eval at the policy's own training config (the demo now takes `--finger-residual-scale` etc.).
+    Corollary: **continuous-handoff `min-z` must be measured POST-HANDOFF** — whole-rollout min-z
+    is dominated by the pre-lift floor phase (z~0.012), so the 0.05 bar is unreachable by it;
+    the demo now prints the honest post-handoff min-z + held-cos.
 
 ## Reproduce the in-progress launches
 The exact P1/P2/P3 commands are in `scripts/queue_reorient_handoff_dr.sh` / the run dirs'
