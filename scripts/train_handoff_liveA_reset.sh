@@ -18,6 +18,14 @@
 # Single-variable vs train_handoff_onset_inject.sh: same warmstart (B10), same
 # reorient recipe, same schedule — ONLY the reset changes (live-A vs inject-bank).
 #
+# CONFIG-PARITY (load-bearing — this bit the first run): the TRAINING env must
+# match the continuous-handoff DEPLOY env (rl_demo_handoff_continuous.py), or B
+# is OOD at eval. The trainer defaults finger_residual_scale=0.2 / easing=linear
+# / contact_gate=off, but B10 AND the deploy demo use 0.5 / ease_out_quad / on.
+# The first run trained at 0.2 -> B held in training but the 0.5 eval applied its
+# residuals 2.5x too large -> instant seam collapse (an artifact, not a failure;
+# re-eval at 0.2 held post-handoff min-z 0.110, cos 0.75). So pin all three here.
+#
 # Launch (detached): nohup setsid bash scripts/train_handoff_liveA_reset.sh > liveA.run.log 2>&1 </dev/null & disown
 # SMOKE=1 -> 1M ts (~13 iters, ~3 min) supervised sanity. Knobs: TOTAL_TS, B_CKPT,
 # A_CKPT, ONSET_STEP, REORIENT_START, TAG.
@@ -43,6 +51,7 @@ ARGS=(
   --init-actor-checkpoint "$B_CKPT" --warmstart-critic
   --live-a-checkpoint "$A_CKPT" --live-a-onset "$ONSET_STEP"
   --episode-length-s 5.0 --lift-target-z-above-init 0.1 --lift-delta-z 0.1
+  --finger-residual-scale 0.5 --finger-close-easing ease_out_quad --contact-gate-stability-rewards
   --lift-phase-start-step "$ONSET_STEP"
   --reorient-start-step "$REORIENT_START"
   --enable-lift-terminations
