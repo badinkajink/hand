@@ -243,6 +243,17 @@ class Args:
     """Per-joint tolerance (rad) on the finger-qpos match."""
     handoff_target_scale_mult: float = 1.0
     """Multiplier on per-joint tolerance (>1 = looser match)."""
+    live_a_checkpoint: Path | None = None
+    """LIVE-A RESET: path to FROZEN Policy A's checkpoint. When set, A drives the
+    env live for the first `--live-a-onset` steps of EVERY B episode (real
+    physics — zero teleport), then B's PPO rollout proceeds from the organic
+    seam; the A-driven (pre-onset) steps are MASKED from the PPO update. Removes
+    every teleport artifact that capped the injection paradigm at min-z ~0.011.
+    Train in the NORMAL-lift env (obs schedule == deploy); residual active from
+    step 0 (A's action IS the residual). See morphohand.rl.live_a_runner."""
+    live_a_onset: int | None = None
+    """Step to hand A->B in the live-A reset. None -> --lift-phase-start-step
+    (match the deploy continuous-handoff step)."""
     action_rate_weight: float = -0.005
     """Weight on the action_rate_l2 smoothness penalty. Policy B used -0.1
     (20x normal) to suppress sim-only finger jitter."""
@@ -496,6 +507,36 @@ def main() -> None:
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA not available — PPO training requires GPU.")
 
+    # ---- LIVE-A RESET: load frozen Policy A's actor (built sequentially BEFORE
+    # the main env, mirroring rl_demo_handoff_continuous.py's safe pattern: build
+    # a throwaway 65-dim A-env, load A's actor, close it, then build the big main
+    # env — the two never coexist). A's actor (an MLP) persists after close. -----
+    live_a_actor = None
+    if args.live_a_checkpoint is not None:
+        from morphohand.rl.env_cfg import to_mjlab_cfg
+        print(f"[live-a] loading frozen Policy A from {args.live_a_checkpoint}")
+        a_cfg = MorphoHandEnvCfg(
+            frozen_scene_xml=frozen, keyframe_name=keyframe,
+            foundational_run_dir=run, finger_default_ctrl=best_finger_ctrl,
+            object_body_name=args.object_body_name, num_envs=1,
+            lift_target_z_above_init=args.lift_target_z_above_init,
+            lift_delta_z=args.lift_delta_z,
+            enable_target_axis_reward=False,  # 65-dim = Policy A's obs space
+        )
+        a_env = ManagerBasedRlEnv(cfg=to_mjlab_cfg(a_cfg), device="cuda:0", render_mode=None)
+        a_wrapped = RslRlVecEnvWrapper(a_env)
+        a_runner = ManipulationOnPolicyRunner(
+            env=a_wrapped,
+            train_cfg=dataclasses.asdict(build_runner_cfg(PPOConfig(num_envs=1), out_dir, run_name="liveA")),
+            log_dir=str(out_dir / "_liveA_tmp"), device="cuda:0")
+        a_ckpt = torch.load(str(args.live_a_checkpoint), map_location="cpu", weights_only=False)
+        a_runner.alg.actor.load_state_dict(a_ckpt["actor_state_dict"], strict=True)
+        a_runner.alg.actor.eval()
+        live_a_actor = a_runner.alg.actor
+        a_obs_dim = 65  # Policy A's obs space (enable_target_axis_reward=False); == demo's A_OBS_DIM
+        a_env.close()
+        print(f"[live-a] Policy A loaded (obs dim {a_obs_dim}); throwaway A-env closed.")
+
     render_mode = "rgb_array" if args.record_videos and args.eval_video_interval > 0 else None
     print(f"[rl_train_cube] booting mjlab env ({args.num_envs} parallel) ...")
     env = ManagerBasedRlEnv(cfg=mj_env_cfg, device="cuda:0", render_mode=render_mode)
@@ -519,7 +560,12 @@ def main() -> None:
     wrapped = RslRlVecEnvWrapper(env)
 
     train_cfg = dataclasses.asdict(runner_cfg)
-    runner = ManipulationOnPolicyRunner(
+    if live_a_actor is not None:
+        from morphohand.rl.live_a_runner import LiveAOnPolicyRunner
+        runner_cls = LiveAOnPolicyRunner
+    else:
+        runner_cls = ManipulationOnPolicyRunner
+    runner = runner_cls(
         env=wrapped,
         train_cfg=train_cfg,
         log_dir=str(log_dir),
@@ -578,6 +624,10 @@ def main() -> None:
         std_param = runner.alg.actor.distribution.std_param
         std_param.requires_grad_(False)
         print(f"[rl_train_cube] froze actor std_param at {std_param.detach().cpu().numpy()}")
+
+    if live_a_actor is not None:
+        onset = args.live_a_onset if args.live_a_onset is not None else int(env_cfg.lift_phase_start_step)
+        runner.setup_live_a(live_a_actor, onset=onset, a_obs_dim=a_obs_dim)
 
     if args.wandb:
         print(f"[rl_train_cube] wandb logger -> project={args.wandb_project}  "
