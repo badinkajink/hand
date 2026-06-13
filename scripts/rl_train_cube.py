@@ -254,6 +254,22 @@ class Args:
     live_a_onset: int | None = None
     """Step to hand A->B in the live-A reset. None -> --lift-phase-start-step
     (match the deploy continuous-handoff step)."""
+    reorient_schedule_path: Path | None = None
+    """ON-POLICY TRAJECTORY TRACKING (live-A only): path to a teacher's held-cos-
+    vs-time schedule npz (record with rl_record_reorient_schedule.py from B3).
+    When set, B is pulled to MEET-OR-EXCEED that curve on its OWN rollout states
+    (one-sided penalty for being below it), aligned to the handoff onset — tracks
+    the target TRAJECTORY, not the teacher's OOD raw actions. Use to push b29's
+    reorientation quality past its 0.78 ceiling toward B3's 0.98."""
+    reorient_schedule_weight: float = 30.0
+    """Weight on the schedule-tracking penalty (reward -= w*relu(target-cos))."""
+    live_a_blend_steps: int = 0
+    """LIVE-A SEAM RAMP-IN (breaks the B4 catch-22). For this many steps AFTER
+    onset, step the env with a blend `alpha*B + (1-alpha)*A`, alpha ramping 0->1,
+    so a reorient-from-step-0 policy (B4) eases into A's grip instead of shocking
+    it and dropping before the reorient reward fires. These blend steps are ALSO
+    masked from the PPO update (only fully-B post-blend steps train B). 0 = off
+    (legacy hard onset, the B10 path)."""
     action_rate_weight: float = -0.005
     """Weight on the action_rate_l2 smoothness penalty. Policy B used -0.1
     (20x normal) to suppress sim-only finger jitter."""
@@ -312,6 +328,15 @@ class Args:
     """Fingertip force (N) saturating the grip reward."""
     grip_force_reduce: str = "mean"
     """'mean' or 'min' over the 3 fingertips."""
+    grip_force_penalty_weight: float = 0.0
+    """Penalty for fingertip force ABOVE grip_force_penalty_thresh (quadratic).
+    NEGATIVE. Counters the death-grip without touching the reward. 0 off. Try -3..-10."""
+    grip_force_penalty_thresh: float = 4.0
+    """Fingertip force (N) above which the over-grip penalty engages."""
+    grip_force_penalty_scale: float = 4.0
+    """Normalisation (N): penalty = ((force-thresh)/scale)**2."""
+    grip_force_penalty_reduce: str = "mean"
+    """'mean' or 'max' over the 3 fingertips."""
     brace_distance_weight: float = 0.0
     """Dense brace shaping exp(-gap/scale) pulling cylinder end to palm. 0 off. Try +5..+20."""
     brace_distance_scale: float = 0.04
@@ -461,6 +486,10 @@ def main() -> None:
         grip_force_weight=args.grip_force_weight,
         grip_force_max=args.grip_force_max,
         grip_force_reduce=args.grip_force_reduce,
+        grip_force_penalty_weight=args.grip_force_penalty_weight,
+        grip_force_penalty_thresh=args.grip_force_penalty_thresh,
+        grip_force_penalty_scale=args.grip_force_penalty_scale,
+        grip_force_penalty_reduce=args.grip_force_penalty_reduce,
         brace_distance_weight=args.brace_distance_weight,
         brace_distance_scale=args.brace_distance_scale,
     )
@@ -627,7 +656,14 @@ def main() -> None:
 
     if live_a_actor is not None:
         onset = args.live_a_onset if args.live_a_onset is not None else int(env_cfg.lift_phase_start_step)
-        runner.setup_live_a(live_a_actor, onset=onset, a_obs_dim=a_obs_dim)
+        runner.setup_live_a(live_a_actor, onset=onset, a_obs_dim=a_obs_dim,
+                            blend_steps=args.live_a_blend_steps)
+        if args.reorient_schedule_path is not None:
+            import numpy as _np
+            _sched = _np.load(str(args.reorient_schedule_path))["schedule"]
+            # align phase to the handoff onset (when B receives the flat object)
+            runner.setup_schedule_tracking(_sched, weight=args.reorient_schedule_weight,
+                                           reorient_start=onset)
 
     if args.wandb:
         print(f"[rl_train_cube] wandb logger -> project={args.wandb_project}  "

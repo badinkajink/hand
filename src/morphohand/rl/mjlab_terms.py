@@ -405,6 +405,23 @@ def grip_force(env: "ManagerBasedRlEnv",
     return norm.min(dim=-1).values if reduce == "min" else norm.mean(dim=-1)
 
 
+def grip_force_excess(env: "ManagerBasedRlEnv",
+                      sensor_name: str = "fingertip_cube_contact",
+                      thresh: float = 4.0,
+                      scale: float = 4.0,
+                      reduce: str = "mean") -> torch.Tensor:
+    """Positive penalty magnitude for fingertip force ABOVE `thresh` Newtons,
+    quadratic in the normalised excess ((force - thresh) / scale)**2. Reward
+    weight should be NEGATIVE. `reduce` = 'mean' (overall over-grip) or 'max'
+    (worst finger). This is the counter-lever to the learned "death-grip"
+    (b32 clamps ~11 N): it leaves the `grip_force` REWARD (which saturates at
+    grip_force_max) untouched below `thresh` — the two only overlap above
+    `thresh`, where extra force earns nothing but now costs. Shape (num_envs,)."""
+    mag = _contact_force_mag(env, sensor_name)                       # (B, n_tips)
+    excess = ((mag - float(thresh)).clamp(min=0.0) / float(scale)).pow(2)
+    return excess.amax(dim=-1) if reduce == "max" else excess.mean(dim=-1)
+
+
 def palm_brace_force(env: "ManagerBasedRlEnv",
                      sensor_name: str = "palm_cube_contact",
                      object_name: str = "cube",
