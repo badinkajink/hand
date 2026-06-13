@@ -111,6 +111,16 @@ is on cuda:0 — leave room / don't kill it. Also: a `pgrep -f "<pattern>"` watc
 contains `<pattern>` deadlocks (it matches itself) — `liveA_cont_eval_trigger.sh` hung this way;
 kill stuck waiters by PID, or grep a pattern that can't appear in the watcher's own command line.
 
+**KNOWN VISUAL ARTIFACT — thumb penetrates the screwdriver (do NOT fix yet, 2026-06-10).** In
+the `cont40M` rollout (`20260610-1355`) and many prior runs the **thumb visibly phases into the
+screwdriver geometry** during the grip. Believed to be the deliberately *soft contact solver*
+this task uses: `impratio=10`, `cone="elliptic"` (`env_cfg.py:1399-1405`) + soft scene geom
+`solref="0.006 1" solimp="0.97 0.995 0.0005"` (`scene_screwdriver_medium_flat_short_proximal.xml:11`),
+which trade some interpenetration for a stable non-explosive grip. It's somewhat bad
+(cosmetics + sim-to-real fidelity) but **DO NOT retune impratio/solimp/solref until a better
+policy lands** — changing them perturbs every policy's grip force and invalidates the A/B
+lineage + all the seam comparisons. Revisit as a sim-to-real hardening pass after quality is solved.
+
 **NEXT (in priority order):**
 0. **(2026-06-10 — DONE/superseded)** ~~CANONICAL 0.5 RETRAIN~~ killed (B10 path is the quality
    ceiling; the scale-0.2 lineage from model_270 is the working one). See the eve section above:
@@ -120,11 +130,190 @@ kill stuck waiters by PID, or grep a pattern that can't appear in the watcher's 
    scale). When done: eval with `rl_demo_handoff_continuous.py --policy-b <ckpt>` (defaults now
    0.5) → post-handoff min-z + cos. This is the deployable, lineage-comparable version. **CHECK
    the trainer log / `BATCH_RESULTS.md` FIRST.**
-2. **Push the reorientation FURTHER** (cos 0.75 < B4 standalone 0.988): longer training (40M),
-   or warmstart B4 (best reorienter) instead of B10, or anneal the reorient-reward onset.
+2. **Push the reorientation FURTHER** (cos 0.75 < B4 standalone 0.988). UPDATE 2026-06-11 (see the
+   06-11 section below for the full verdict): warmstart-B4 is DEAD (won't hold A's delivery, NaN-prone).
+   The working lever is **commit-bonus + basin re-anneal on the B10-live-A lineage** → best is now **b29**
+   (held-cos 0.784, up from 0.75). Iterate FROM b29; to break past ~0.8 needs a NEW mechanism (distill
+   B4's reorientation into a seam-surviving policy), not more reward tuning.
 3. **Re-examine the "injection capped" runs at matched scale** — cheap re-evals (no retrain) of
    Badapt/co-adapt at scale 0.2 may show they were better than recorded. Lower priority now that
    live-A works.
+
+### 2026-06-12 — b32 registered (firmest+smoothest handoff yet); diagnostics now measure slip/jitter; the real gap is GRIP QUALITY not verticality
+Iterated from b30 (the schedtrackB3 run, renamed b30_; its continuous-handoff eval DROPS —
+held-cos 0.95 was **gamed** by a precarious near-vertical hold, post-handoff min-z 0.007). Two
+follow-ups, both warmstart b30/model_405, live-A reset @ scale 0.2:
+
+- **b31 cand** (`brace_d12f4_schedw8`, UNREGISTERED — rejected): schedule w20→8 + `brace_distance 12`
+  / `brace_force 4`. Eval read held-cos 0.95 / min-z 0.078 (HELD) — looked like a win, but the
+  **new diagnostics exposed it**: ang-jerk **449** (B4 ref ~27), 99cm horizontal path while netting
+  0.2cm (violent vibration in place), 18 rad/s peak. User confirmed visually: "slips/jitters the
+  entire time." Lesson: cos+min-z are blind to jitter; a frantically-shaking object still averages
+  near-vertical.
+- **b32** (`policyB_b30iter_gripSmooth_w4`, REGISTERED = new best handoff): `grip_force 6` +
+  `action_rate −0.05` + `object_ang_acc −0.05` (gated step 45) + `brace_distance_scale 0.025`,
+  schedule **w4**, `target_axis_alpha 4` (ease off vertical reach → firm-first). Eval: **min-z 0.1085**
+  (firmest hold of ANY run, ties b29), **held-cos 0.891**, 4–5× smoother than b31 — ang-jerk
+  **113**, lin-jerk **3.6**, wander 99→**23cm**. Video `docs/rl/videos/reorient/b32_gripSmooth_w4_cont.mp4`.
+
+**New eval diagnostics** (`rl_demo_handoff_continuous.py`, no reward cost): per-20-step heartbeat
+(`[diag] step z lat_drift cos`) + end summary (lateral drift, horizontal path/wander, z sink-rate,
+lin/ang speed, **lin/ang jerk**, auto VERDICT flagging SLIP/SINKING/JITTER). The honest judge now —
+use it, not cos/min-z alone.
+
+**Two findings that redirect the effort:**
+1. **Deploy-time `--action-lowpass` is DEAD.** lp 0.5/0.3 smooth perfectly (ang-jerk →16/10) but the
+   object FALLS OFF (lateral 83–99cm, min-z 0.003). The jitter is **load-bearing corrective action** —
+   the high-freq finger corrections ARE the stabilization of a marginal grip. Can't filter our way to B3.
+2. **Penetration = grip-force readout; the gap is grip QUALITY not verticality.** b32 and B3
+   (`b03_…_abl_signed`) use the **same frozen scene / contact model** — so the thumb-into-screwdriver
+   penetration the user sees in b32 (and NOT in B3) is purely **higher normal force**: b32 over-clamps a
+   tense fingertip grip (we even rewarded `grip_force` → harder press → more penetration + jitter),
+   while B3 holds a gentle **seated** grip (low force → stays on surface → smooth). b32 is already
+   near-vertical (cos 0.89 ≈ B3); what's missing is B3's relaxed seated grip. **`palm_brace_force`
+   never fired in any run — the object is held at the fingertips ~8cm BELOW the palm, never seats.**
+
+**NEXT (proposed, not launched):** stop pushing verticality; target grip quality — get the object to
+**seat up into the palm** so the fingers can relax (gentle grip → no penetration → low corrective
+jitter). Candidate diagnostic to add: object↔finger contact-force (penetration proxy) in the eval.
+Open question the user raised: how to move b32→B3 grip without breaking the handoff (every
+verticality-push attempt has broken the hold).
+
+### 2026-06-12 (eve) — B3 path RULED OUT by render; force-regularize b32 (b33) LAUNCHED
+**B3/B4 render dead-end (documented).** Rendered the gentle standalone reorienters B3
+(`b03_…_abl_signed`) and B4 (lateral-only) on the CONTINUOUS handoff
+(`docs/rl/videos/reorient/B3_signed_critic.mp4`, `B4_lateral_only.mp4`): both **drop the real
+terminus** — B3/B4's relaxed seated grip survives only their own clean training reset, not A's
+organic delivery. So "just deploy B3's gentle grip" is dead: the gentleness is inseparable from
+the precarious start it was trained on. This closes the "move b32→B3 by swapping in B3" idea —
+the only remaining grip-quality lever is to make b32 ITSELF gentler in place.
+
+**b33 = force-regularize b32 (LAUNCHED 2026-06-12, `policyB_b32iter_forcereg_w6`).** The one
+untested, high-information lever. b32 holds with an ~11 N fingertip **death-grip** (the source of
+BOTH the thumb-into-screwdriver penetration AND the residual jitter — high-freq corrections of a
+tense grip; verticality is already cos 0.89 ≈ B3). Question: is 11 N **necessary, or learned
+laziness?** New code (commit pending): `mjlab_terms.grip_force_excess` + cfg
+`grip_force_penalty_{weight,thresh,scale,reduce}` + CLI — a **quadratic penalty on fingertip force
+ABOVE thresh** (`((force-thresh)/scale)**2`). The existing `grip_force` REWARD saturates at 3 N, so
+the two only overlap above thresh: below it grip is still rewarded, above it extra force now COSTS.
+Run `scripts/train_handoff_b33_forcereg.sh`: **single variable vs b32** — warmstart b32/model_405
+(actor+critic), keep EVERY b32 term (grip_force +6, brace, smoothness −0.05, live-A reset @ scale
+0.2, contact-gate OFF), ADD only the penalty (w −6, thresh 4 N, scale 4). Smoke confirmed the term
+fires hard on warmstart (`grip_force_excess` −0.39 at iter 1). 20M ts / 2048 envs, ~40 min.
+**Decision rule** — judge on FULL diagnostics (`rl_demo_handoff_continuous.py`: hold min-z + lin/ang
+jerk + contact force), NOT cos/min-z (b31 lesson):
+  - **still holds at 2–3 N** ⇒ jitter + penetration fall out together; B3-like gentleness on a
+    policy that SURVIVES the handoff. WIN.
+  - **drops** ⇒ the fingertip grip is fundamentally marginal; the real lever is **A's
+    delivery/centering**, not the grip weights. Clean negative result, redirects effort.
+(Prior turn's "seat up into the palm" proposal is deferred — `palm_brace_force` still never fired;
+revisit only if b33 is inconclusive.)
+
+### 2026-06-11 — SEAM ACTION-RAMP-IN built to break the B4 catch-22; layered diagnosis + 3 runs in flight
+Built the documented next experiment: a **training-time seam action-ramp-in** in `live_a_runner.py`
+(`--live-a-blend-steps N`): for N steps after onset, step the env with `alpha*B+(1-alpha)*A`
+(alpha 0->1), masked from PPO like the pre-onset steps (B trains only on fully-B steps >=
+onset+N). Also exposed `--term-tip-lost-steps` and auto `LIFT_TERM_START=onset+BLEND` +
+`NUM_ENVS`/`EXTRA_ARGS` in `scripts/train_handoff_liveA_reset.sh`. **Layered smoke diagnosis
+(1M ts each), each peeling one blocker:**
+1. ramp=10/20 alone → object stays UP during ramp (obj_h 0.10) but `tip_lost` kills @~48
+   (terminations engage at onset=40, grace 3) BEFORE keep_from → **mask frac stuck 1.0 = zero
+   trainable steps.** Ramp length is NOT the constraint.
+2. + delay terminations to B-takeover (`LIFT_TERM_START=keep_from`) → frac 1.0→0.92, ep-len→62
+   ✓ trainable steps! BUT B4 drops at takeover (obj_h 0.10→0.055, tip_lost ALL envs, align 0).
+3. + survival window (`--term-tip-lost-steps 20`) → ep-len→69 but object falls to FLOOR (0.012),
+   align ~0. **B4, un-finetuned, drops A's flat delivery the instant it has authority — it has
+   NO hold fallback (exactly why B10/hold-only was the warmstart that worked).**
+**Conclusion: the ramp-in is NECESSARY but NOT SUFFICIENT.** It keeps the object up during the
+ramp and now yields trainable steps, but whether PPO can climb from "drop→floor" to "hold+reorient"
+in 20M is the open gamble (every prior B4-warmstart live-A attempt collapsed).
+
+**3 RUNS LAUNCHED 2026-06-11 (20M ts, 2048 envs each, parallel, per-process Warp cache):**
+- **Run A** `policyB_liveAreset_fromB4_survwin` — B4 + ramp(20) + tip-lost-steps 20, reorient@65,
+  lift-term@60. Watchdog OFF (starts on floor by design). Tests exp-1 directly. Log
+  `liveA_b4_survwin.trainer.log`.
+- **Run B** `policyB_liveAreset_fromB4_easein` — B4 + GENTLER ease-in: ramp(30) + tip-lost-steps 30,
+  reorient gated LATE (@95), lift-term@70 → big hold window before reorient pressure. Watchdog OFF.
+  Log `liveA_b4_easein.trainer.log`.
+- **Run C** `policyB_liveAreset_B10qual_commitbonus` — the INVERSE strategy: continue B10-live-A
+  (warmstart **b24** model_270) at its NATIVE config (scale 0.2 / linear / contact-gate OFF —
+  gotcha #13!) + a NON-terminating commit+speed bonus (`--success-bonus-weight 30 --speed-bonus-weight
+  15`, thresh 0.85; NO success-termination → avoids the documented threshold-gaming) to push the
+  0.74 held-cos ceiling toward B4's 0.99. Hard onset (BLEND=0, like b24). Watchdog ON. Log
+  `liveA_b10_commitbonus.trainer.log`.
+**WATCH:** Run A/B success = mask frac keeps falling + align reward CLIMBS + obj_h recovers off the
+floor (the gamble paying off). Run C success = held-cos > 0.74 at eval. Eval each with
+`rl_demo_handoff_continuous.py` (post-handoff min-z + cos, gotcha #13 — match each policy's scale).
+
+**INTERIM RESULTS (2026-06-11, ~iter 30):**
+- **Runs A & B (B4 warmstart) are FAILING — the B4 hypothesis looks dead.** Both NaN-crashed early
+  (transient Warp NaN, check_nan fatal — not systemic) AND were not learning: Run B (gentler ease-in)
+  reached ep-len 95+ but the object sat **on the FLOOR (obj_h 0.012)** with align reward ~0.04 — i.e.
+  B4 drops A's flat delivery and the long episodes are just "sitting on the floor," not holding. Run A's
+  frac stayed ~0.99 (≈no trainable steps). **Confirms (again): B4 has no hold prior, can't learn one
+  from a dropping start.** A relaunched once (`_survwin_r2`) and **NaN'd AGAIN at iter 13 → B4 path ABANDONED** (3 crashes +
+floor-drop non-learning; B won't hold A's flat delivery). B NOT relaunched.
+- **Run C (B10-live-A + non-terminating commit bonus) is WORKING — the promising lever.** frac
+  1.0→0.417→**0.242**, episodes run to **time_out (ep-len 209)**, object **HELD (obj_h 0.110)**, align
+  reward **57**, and the **commit bonus fires non-terminating** (`alignment_success_bonus` 0.30,
+  `alignment_speed_bonus` 0.037 — proves the bonus computes WITHOUT enabling the terminating success,
+  so no threshold-gaming). Whether it lifts held-cos > 0.74 at eval is TBD (run completing).
+- **Run C2** (`_B10qual_commit60`) launched in B's freed slot: same b24 warmstart, STRONGER commit
+  (success 60 / speed 30) + sharper basin re-anneal (alpha 1→6 over 150 it) — hedge on the working lever.
+- **FINAL VERDICT (all 3 ran to completion; eval = `rl_demo_handoff_continuous.py` @ scale 0.2, matched):**
+
+  | policy | held-cos | peak | post-handoff min-z |
+  |---|---|---|---|
+  | b24 baseline (B10-live-A) | 0.751 | 0.816 | 0.110 |
+  | b27 cont40M | 0.742 | 0.817 | 0.105 |
+  | **b28** Run C (commit-bonus 30) | 0.759 | **0.891** | 0.110 |
+  | **b29** Run C2 (commit 60 + α re-anneal 1→6) | **0.784** | 0.866 | 0.108 |
+
+  The non-terminating commit bonus + sharper near-vertical basin **moved the quality ceiling 0.75→0.78**
+  (real but modest, ~5° closer to vertical) and the HOLD stays solid (~0.11). It did **NOT** break through
+  to B4's standalone 0.988. **Conclusion: the B10-warmstart basin is a stubborn quality ceiling that
+  reward-shaping only nudges; the B4 path is dead (won't hold A's flat delivery).** Best handoff policy now
+  = **b29** (`results/rl/b29_20260611-1152-policyB_liveAreset_B10qual_commit60/tensorboard/model_405.pt`),
+  video `docs/rl/videos/reorient/handoff_B10qual_commit60.mp4`.
+- **NEXT to break past ~0.8 (needs a NEW mechanism, not reward tuning):** distill B4's full reorientation
+  into a seam-surviving policy — e.g. behavior-clone B4's actions onto the held post-seam states b29 visits,
+  or a teacher-student where B10 holds and B4 advises; or push the b29 recipe harder (even sharper basin /
+  goal-tilt curriculum / longer training) for incremental gains. The commit+re-anneal direction (b29) is the
+  current best lever; iterate from b29, not b24.
+
+### 2026-06-11 (later) — ROOT CAUSE of the quality ceiling = the reorienter's BRITTLENESS, not orientation
+User asked WHY full reorientation from live-A is hard, hypothesizing the object starts more horizontal
+than B3/B4 trained on. **Measured it — the hypothesis is wrong on orientation but right that the start
+condition differs:** at the handoff A delivers the object essentially identical to B3/B4's skip-lift
+training spawn on every axis — held-cos (tilt) 0.00 vs −0.009 (both FLAT), object z ~0.11 both, palm_pz
+0.067 both (the skip-lift spawn raises the palm by lift_delta_z, env_cfg ~L669-675). The ONLY deltas:
+**object xy off-center ~0.8 cm** (A delivers (0.005,−0.007) vs B's centered (0,0)) + **finger grip differs
+~2–8°/joint** + **live contact velocities** vs a settled drop.
+**Sensitivity probe (NEW eval path — `rl_eval_reorient_metrics.py name=run:ckpt:handoff_state_bank=…,skip_lift_phase=True`
+spawns the reorienter from A's REAL delivery bank under its OWN matched obs schedule):**
+
+  | policy | held-cos | jerk | (clean baseline) |
+  |---|---|---|---|
+  | B3 from A's delivery | **0.261** | 354 | (clean 0.980, jerk 53) |
+  | B4 from A's delivery | **0.514** | 35 | (clean 0.989, jerk 27) |
+
+  **That sub-cm off-center + few-° grip CRATERS B3 0.980→0.261 (7× jerk), B4 0.989→0.514 — with matched
+  obs, flat orientation, and the object not even dropping (min-z 0.076/0.095).** So the ceiling is NOT
+  orientation, NOT obs-schedule alone (matched here), NOT a drop — it's that the reorienter memorized a
+  RAZOR-THIN basin around its one pristine centered spawn. (B4 is notably MORE robust than B3, opposite the
+  visual preference.) This also explains the distillation discontinuity the user flagged: raw-B3 imitation
+  onto b29 is DOUBLY OOD (B3 is garbage on A's-grip states AND b29's normal-lift obs ≠ B3's skip-lift obs),
+  so distillation needs a HARDENED B3 teacher first.
+
+**2 HARDENING RUNS LAUNCHED (20M, skip-lift, spawn from A's FULL delivery bank w/ real velocities, warmstart
+the reorienter, its full reorient recipe — `scripts/train_handoff_adaptB_to_A.sh`):**
+- `policyB_adaptB3_fromAbank` (warmstart B3, user's preferred) — log `adaptB3_fromAbank.trainer.log`.
+- `policyB_adaptB4_fromAbank_full` (warmstart B4, more-robust base = hedge) — log `adaptB4_fromAbank.trainer.log`.
+**WATCH:** held-cos recovering toward ~0.9 from the bank = brittleness is trainable away. Then (a) eval the
+hardened policy via continuous live-A deploy (does fixing the grip alone close the seam, or does the
+skip-lift→normal-lift obs gap still bite?), and (b) THEN it's a valid teacher for the on-policy
+distillation onto b29 (the user's idea, now correctly sequenced). NOTE: the bank reset overrides
+`reset_robot_joints`, so synthetic grip-jitter DR can't stack with the bank (would need clean-spawn + jitter).
 
 ### History below: the teleport/injection era (2026-06-09 eve) — SUPERSEDED by the live-A win above.
 
@@ -234,7 +423,7 @@ FIRST next session.**
 **(adapt-B / onset-inject history retained underneath for the record.)**
 
 **adapt-B-to-A HAS NOW RUN (2026-06-08 eve) — RESULT: SEAM STILL OPEN.** Trained clean to iter 270
-(`results/rl/20260608-1738-policyB_adaptToA_bankA_s40/tensorboard/model_270.pt`, object held +0.012
+(`results/rl/b14_20260608-1738-policyB_adaptToA_bankA_s40/tensorboard/model_270.pt`, object held +0.012
 throughout its own skip-lift env, no collapse). But the decisive continuous-handoff eval gave
 **min-z = 0.0028 m** (object z=0.0999 at handoff step 40, then falls to floor) — essentially tied
 with B10-alone (0.0029), WORSE than branch-B tol20 (0.0073), ≪ 0.05 bar. Video:
@@ -252,7 +441,7 @@ when the underlying physical state matches. That obs discontinuity at the seam i
 built + committed (56b8361): train B in the *normal-lift* env (obs schedule == deploy) AND inject A's
 delivered state at the onset (state == deploy) — `mjlab_terms.inject_handoff_bank_at_onset`
 (step-mode event), `env_cfg.handoff_onset_bank/_step`, `scripts/train_handoff_onset_inject.sh`
-(warmstart B10). Ran clean to iter 270 (`results/rl/20260609-1113-policyB_onsetInject_bankA_s40/
+(warmstart B10). Ran clean to iter 270 (`results/rl/b15_20260609-1113-policyB_onsetInject_bankA_s40/
 tensorboard/model_270.pt`; in training B HELD + reoriented from the injected state — object_height
 0.068, align 18.3). Continuous-handoff eval (frozen A → this B, handoff@40): z@40 0.113,
 **min-z 0.0081** — beats branch-B tol20 (0.0073), adapt-B (0.0028), B10-alone (0.0029), but still
@@ -284,22 +473,22 @@ baseline frozenA×B10 0.0029; adapt-B 0.0028; static onset 0.0081; complete-stat
 A-migration alone (Atol20×B10) −0.0001; **CO-ADAPT cross-pairing (Atol20×Badapt) 0.0114 = BEST**.
 
 **Pieces (all paths real, verified):**
-- Frozen Policy A (lift+deliver, GOOD — keep frozen): `results/rl/20260529-1219-screwdriver_medium_flat_short_proximal_stable_v1/tensorboard/model_500.pt`
-- B4 = best standalone reorienter (0.988): `results/rl/20260603-1746-policyB_p2_lateral_only/tensorboard/model_541.pt`
-- B10 = first to survive delivery + reorient but violent: `results/rl/20260604-1642-policyB_holdonlyws_repro/tensorboard/model_541.pt`
+- Frozen Policy A (lift+deliver, GOOD — keep frozen): `results/rl/a01_20260529-1219-screwdriver_medium_flat_short_proximal_stable_v1/tensorboard/model_500.pt`
+- B4 = best standalone reorienter (0.988): `results/rl/b04_20260603-1746-policyB_p2_lateral_only/tensorboard/model_541.pt`
+- B10 = first to survive delivery + reorient but violent: `results/rl/b10_20260604-1642-policyB_holdonlyws_repro/tensorboard/model_541.pt`
 - A's real-delivery state bank (grip+pose, 2048 states, z=0.111): `results/rl/handoff_state_bank_A_s40.npz`
   (OLD, static/zero-vel) — **use the COMPLETE bank now: `results/rl/handoff_state_bank_A_s40_full.npz`**
   (real obj_vel + robot_qvel + a_last, 2048 states).
-- adapt-B (skip-lift bank) result that just closed off this branch: `results/rl/20260608-1738-policyB_adaptToA_bankA_s40/tensorboard/model_270.pt` (min-z 0.0028)
-- **Atol20** = migrated A (frozen-A → B10's grip, branchB tol20): `results/rl/20260605-1609-policyA_unfreezeA_v2_w2_tol20/tensorboard/model_270.pt`
-- **Badapt** = adapted B (B10 → frozen-A delivery, static onset): `results/rl/20260609-1113-policyB_onsetInject_bankA_s40/tensorboard/model_270.pt`
+- adapt-B (skip-lift bank) result that just closed off this branch: `results/rl/b14_20260608-1738-policyB_adaptToA_bankA_s40/tensorboard/model_270.pt` (min-z 0.0028)
+- **Atol20** = migrated A (frozen-A → B10's grip, branchB tol20): `results/rl/a07_20260605-1609-policyA_unfreezeA_v2_w2_tol20/tensorboard/model_270.pt`
+- **Badapt** = adapted B (B10 → frozen-A delivery, static onset): `results/rl/b15_20260609-1113-policyB_onsetInject_bankA_s40/tensorboard/model_270.pt`
 - **Atol20's delivery bank** (complete, for co-adapting B to the migrated A): `results/rl/handoff_state_bank_Atol20_s40_full.npz`
 - ⚠️ `results/rl/badapt_initiation_s48.npz` is GARBAGE (Badapt drops by step 48 → recorded a floor grip; do not use as a branchB target).
 
 ## TL;DR — what's true now
 - **Best reorientation policy = `p2_lateral`** (held-vertical cos **0.988**, peak **0.999**,
   obj_jerk **25.8** = HALF the prior best, no drop):
-  `results/rl/20260603-1746-policyB_p2_lateral_only/tensorboard/model_541.pt`.
+  `results/rl/b04_20260603-1746-policyB_p2_lateral_only/tensorboard/model_541.pt`.
   Recipe = signed+critic + `--lateral-drift-weight=-8` ALONE (one constraint at a time).
   Surprise: the lateral penalty did NOT reduce de-centering (it actually drifted ~1 cm more);
   what it DID do was act as a **smoothing regularizer** — halving object jerk while pushing
@@ -593,4 +782,4 @@ degraded base. **min_z<0.05 ⇒ floor contact/drop.**
 ## Reproduce the in-progress launches
 The exact P1/P2/P3 commands are in `scripts/queue_reorient_handoff_dr.sh` / the run dirs'
 `config.yaml`. All three: `--num-envs 3072 --total-timesteps 40000000 --init-actor-checkpoint
-results/rl/20260602-1636-policyB_abl_signed/tensorboard/model_405.pt` + the per-path knobs above.
+results/rl/b03_20260602-1636-policyB_abl_signed/tensorboard/model_405.pt` + the per-path knobs above.

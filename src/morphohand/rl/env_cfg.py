@@ -572,6 +572,17 @@ class MorphoHandEnvCfg:
     """Fingertip contact force (N) that saturates the grip reward to 1.0."""
     grip_force_reduce: str = "mean"
     """'mean' (overall grip) or 'min' (worst finger) over the 3 fingertips."""
+    grip_force_penalty_weight: float = 0.0
+    """Penalty weight for fingertip force ABOVE grip_force_penalty_thresh
+    (quadratic in normalised excess). NEGATIVE. Counters the learned death-grip
+    (b32 over-clamps ~11 N) without touching the grip_force reward below thresh.
+    0 disables. Try -3 to -10."""
+    grip_force_penalty_thresh: float = 4.0
+    """Fingertip force (N) above which the over-grip penalty engages."""
+    grip_force_penalty_scale: float = 4.0
+    """Normalisation (N) for the excess: penalty = ((force-thresh)/scale)**2."""
+    grip_force_penalty_reduce: str = "mean"
+    """'mean' (overall over-grip) or 'max' (worst finger) over the 3 fingertips."""
     brace_distance_weight: float = 0.0
     """Reward weight for DENSE brace shaping exp(-gap/scale): pulls the
     cylinder's nearer end toward the palm plate, gated on alignment. Needed
@@ -980,6 +991,15 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
             params=dict(sensor_name="fingertip_cube_contact",
                         max_force=float(cfg.grip_force_max),
                         reduce=str(cfg.grip_force_reduce)),
+        )
+    if cfg.grip_force_penalty_weight != 0.0:
+        rewards["grip_force_excess"] = RewardTermCfg(
+            func=mjlab_terms.grip_force_excess,
+            weight=float(cfg.grip_force_penalty_weight) * task_scale,
+            params=dict(sensor_name="fingertip_cube_contact",
+                        thresh=float(cfg.grip_force_penalty_thresh),
+                        scale=float(cfg.grip_force_penalty_scale),
+                        reduce=str(cfg.grip_force_penalty_reduce)),
         )
     if cfg.handoff_target_bank and cfg.handoff_target_weight != 0.0:
         rewards["handoff_target_proximity"] = RewardTermCfg(
