@@ -17,9 +17,9 @@
 set -u
 ROOT=/home/humanoid/Programs/hand; cd "$ROOT"
 RES="$ROOT/BATCH_RESULTS.md"
-B10=results/rl/20260604-1642-policyB_holdonlyws_repro/tensorboard/model_541.pt
-BADAPT=results/rl/20260609-1113-policyB_onsetInject_bankA_s40/tensorboard/model_270.pt
-A_TOL20=results/rl/20260605-1609-policyA_unfreezeA_v2_w2_tol20/tensorboard/model_270.pt
+B10=results/rl/b10_20260604-1642-policyB_holdonlyws_repro/tensorboard/model_541.pt
+BADAPT=results/rl/b15_20260609-1113-policyB_onsetInject_bankA_s40/tensorboard/model_270.pt
+A_TOL20=results/rl/a07_20260605-1609-policyA_unfreezeA_v2_w2_tol20/tensorboard/model_270.pt
 BANK_ATOL20="$ROOT/results/rl/handoff_state_bank_Atol20_s40_full.npz"
 
 echo "" >> "$RES"; echo "## Batch run $(date '+%Y-%m-%d %H:%M') — wave 2 (proper co-adapt, STATIC inject)" >> "$RES"

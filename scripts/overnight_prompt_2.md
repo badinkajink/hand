@@ -14,7 +14,7 @@ metrics: `STAGE2_RESULTS.txt`. Logs: policyB_v2_5x.log, policyB_v2_10x.log (thes
 reused for Stage 2; check timestamps / tags inside). Stage-1 assessment + the
 "Phase Policy B v2 — Stage 1" section are already in docs/rl/reorientation.md.
 
-Reference — Policy B v1 (results/rl/20260601-1033-policyB_v1): mean_reward 402,
+Reference — Policy B v1 (results/rl/b01_20260601-1033-policyB_v1): mean_reward 402,
 target_axis_alignment 87, target_axis_progress +0.25, tip_lost 1.17, object_ang_acc_l2
 ~-2.5, action_rate_l2 ~-0.13.
 

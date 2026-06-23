@@ -27,7 +27,7 @@
 set -u
 ROOT=/home/humanoid/Programs/hand; cd "$ROOT"
 MORPH=results/phase1/run18_multi_object_adapt/foundational/screwdriver_medium_flat/run_20260521_150259
-B_CKPT="${B_CKPT:-$ROOT/results/rl/20260604-1642-policyB_holdonlyws_repro/tensorboard/model_541.pt}"  # B10
+B_CKPT="${B_CKPT:-$ROOT/results/rl/b10_20260604-1642-policyB_holdonlyws_repro/tensorboard/model_541.pt}"  # B10
 BANK="${BANK:-$ROOT/results/rl/handoff_state_bank_A_s40.npz}"
 ONSET_STEP=${ONSET_STEP:-40}; REORIENT_START=${REORIENT_START:-45}
 TOTAL_TS=${TOTAL_TS:-20000000}; SMOKE=${SMOKE:-0}; [ "$SMOKE" = "1" ] && TOTAL_TS=1000000

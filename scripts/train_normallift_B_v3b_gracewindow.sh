@@ -24,7 +24,7 @@
 set -u
 ROOT=/home/humanoid/Programs/hand; cd "$ROOT"
 MORPH=results/phase1/run18_multi_object_adapt/foundational/screwdriver_medium_flat/run_20260521_150259
-WARMSTART="$ROOT/results/rl/20260603-1746-policyB_p2_lateral_only/tensorboard/model_541.pt"
+WARMSTART="$ROOT/results/rl/b04_20260603-1746-policyB_p2_lateral_only/tensorboard/model_541.pt"
 TOTAL_TS=${TOTAL_TS:-40000000}
 NUM_ENVS=${NUM_ENVS:-3072}
 GRACE_TERM=50   # terminations + reorient engage here; B takes over (residual) at 35

@@ -23,7 +23,7 @@ set -u
 ROOT=/home/humanoid/Programs/hand
 cd "$ROOT"
 MORPH=results/phase1/run18_multi_object_adapt/foundational/screwdriver_medium_flat/run_20260521_150259
-WARMSTART="$ROOT/results/rl/20260601-1033-policyB_v1/tensorboard/model_2033.pt"
+WARMSTART="$ROOT/results/rl/b01_20260601-1033-policyB_v1/tensorboard/model_2033.pt"
 TOTAL_TS=${TOTAL_TS:-20000000}
 SMOKE=${SMOKE:-0}; [ "$SMOKE" = "1" ] && TOTAL_TS=1000000
 SMOOTH=${SMOOTH:-0}   # round 2: add 5x smoothness ramp to both runs

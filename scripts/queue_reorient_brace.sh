@@ -24,7 +24,7 @@ cd "$ROOT"
 
 MORPH=results/phase1/run18_multi_object_adapt/foundational/screwdriver_medium_flat/run_20260521_150259
 # Default warmstart = recommended v2 (override with the de-centering winner).
-WARMSTART="${WARMSTART:-$ROOT/results/rl/20260602-0024-policyB_v2_smooth10x_quick/tensorboard/model_1219.pt}"
+WARMSTART="${WARMSTART:-$ROOT/results/rl/b02_20260602-0024-policyB_v2_smooth10x_quick/tensorboard/model_1219.pt}"
 LAT_W="${LAT_W:--15.0}"           # lateral-drift weight carried from the de-centering winner
 TOTAL_TS=${TOTAL_TS:-30000000}
 SMOKE=${SMOKE:-0}

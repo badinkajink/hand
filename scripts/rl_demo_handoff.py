@@ -117,9 +117,9 @@ def ffmpeg_concat_with_labels(phase_a_mp4: Path, phase_b_mp4: Path, output: Path
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--policy-a", type=Path,
-                    default=ROOT / "results/rl/20260529-1219-screwdriver_medium_flat_short_proximal_stable_v1/tensorboard/model_500.pt")
+                    default=ROOT / "results/rl/a01_20260529-1219-screwdriver_medium_flat_short_proximal_stable_v1/tensorboard/model_500.pt")
     ap.add_argument("--policy-b", type=Path,
-                    default=ROOT / "results/rl/20260601-1033-policyB_v1/tensorboard/model_2000.pt")
+                    default=ROOT / "results/rl/b01_20260601-1033-policyB_v1/tensorboard/model_2000.pt")
     ap.add_argument("--morphology-run", type=Path,
                     default=ROOT / "results/phase1/run18_multi_object_adapt/foundational/screwdriver_medium_flat/run_20260521_150259")
     ap.add_argument("--output", type=Path,

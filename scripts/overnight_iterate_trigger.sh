@@ -27,7 +27,7 @@ ck(){ ls -t "$1"/tensorboard/model_*.pt 2>/dev/null | head -1; }
   echo "# P1/P2/P3 results ($(date '+%F %T'))"
   echo "## deterministic held-cos / jerk / min_z / drop"
   WARP_CACHE_PATH=$(mktemp -d) MUJOCO_GL=egl uv run --extra rl --extra gpu python "$ROOT/scripts/rl_eval_reorient_metrics.py" \
-    "signed+critic=$ROOT/results/rl/20260602-1636-policyB_abl_signed:model_405.pt" \
+    "signed+critic=$ROOT/results/rl/b03_20260602-1636-policyB_abl_signed:model_405.pt" \
     "P1_handoffDR=$P1:$(basename "$(ck "$P1")")" \
     "P2_lateral=$P2:$(basename "$(ck "$P2")")" \
     "P3_statebank=$P3:$(basename "$(ck "$P3")")" 2>&1 | grep -E "policy|signed|P[123]_|ERROR" | grep -vE "VIRTUAL|Recording|Saved|INFO|cuda"

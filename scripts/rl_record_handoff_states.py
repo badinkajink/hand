@@ -10,7 +10,7 @@ synthetic/unrealistic spawn jitter.
 
 Usage:
   uv run python scripts/rl_record_handoff_states.py \
-      --policy-a results/rl/20260529-1219-screwdriver_medium_flat_short_proximal_stable_v1/tensorboard/model_500.pt \
+      --policy-a results/rl/a01_20260529-1219-screwdriver_medium_flat_short_proximal_stable_v1/tensorboard/model_500.pt \
       --num-envs 1024 --record-step 45 --output results/rl/handoff_state_bank.npz
 """
 from __future__ import annotations
@@ -26,7 +26,7 @@ A_OBS_DIM = 65  # Policy A: no target_axis_misalign obs term.
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--policy-a", type=Path,
-                    default=ROOT / "results/rl/20260529-1219-screwdriver_medium_flat_short_proximal_stable_v1/tensorboard/model_500.pt")
+                    default=ROOT / "results/rl/a01_20260529-1219-screwdriver_medium_flat_short_proximal_stable_v1/tensorboard/model_500.pt")
     ap.add_argument("--morphology-run", type=Path,
                     default=ROOT / "results/phase1/run18_multi_object_adapt/foundational/screwdriver_medium_flat/run_20260521_150259")
     ap.add_argument("--num-envs", type=int, default=1024)

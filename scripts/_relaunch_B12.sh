@@ -3,7 +3,7 @@
 set -u
 ROOT=/home/humanoid/Programs/hand; cd "$ROOT"
 MORPH=results/phase1/run18_multi_object_adapt/foundational/screwdriver_medium_flat/run_20260521_150259
-B10="$ROOT/results/rl/20260604-1642-policyB_holdonlyws_repro/tensorboard/model_541.pt"
+B10="$ROOT/results/rl/b10_20260604-1642-policyB_holdonlyws_repro/tensorboard/model_541.pt"
 LOG="$ROOT/handoff_iter2_B12_smooth_train.log"
 for attempt in 1 2 3 4; do
   echo "[B12] attempt $attempt $(date '+%T')" >> "$LOG"

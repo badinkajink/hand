@@ -1,0 +1,36 @@
+[b34-eval] waiting for trainers to finish...
+[b34-eval] all trainers exited Sat Jun 13 09:51:44 AM MDT 2026
+=== t30 (thresh 3.0)  ckpt=model_405.pt ===
+  [hc] min object-center z over rollout: 0.0116 m
+  [hc] min object-center z POST-HANDOFF (honest hold metric): 0.1104 m (HELD >0.05)
+  [hc] held-vertical cos POST-HANDOFF (last 50 steps mean): 0.747 (peak 0.879)
+  [diag]  lateral drift from handoff:  mean   1.6cm   max   1.8cm   net   1.7cm
+  [diag]  horizontal path length:       11.7cm (wander; >>net ⇒ sliding around)
+  [diag]  JITTER:  lin-jerk   1.79 m/s²   ang-jerk  85.34 1/s²  (lower = smoother)
+  [diag]  CONTACT FORCE (penetration proxy):  fingertip mean  7.5N peak 36.7N   palm mean  0.0N peak  0.0N
+  [diag]      (grip_force reward saturates at 3N; fingertip ≫3N ⇒ over-clamp/penetration. palm≈0 ⇒ never seats into palm.)
+  [diag]  VERDICT: ANG-JITTER(85)  OVER-CLAMP(7.5N)
+
+=== t25 (thresh 2.5)  ckpt=model_405.pt ===
+  [hc] min object-center z over rollout: 0.0116 m
+  [hc] min object-center z POST-HANDOFF (honest hold metric): 0.1119 m (HELD >0.05)
+  [hc] held-vertical cos POST-HANDOFF (last 50 steps mean): 0.771 (peak 0.856)
+  [diag]  lateral drift from handoff:  mean   1.8cm   max   2.0cm   net   1.9cm
+  [diag]  horizontal path length:       15.3cm (wander; >>net ⇒ sliding around)
+  [diag]  JITTER:  lin-jerk   2.15 m/s²   ang-jerk  69.22 1/s²  (lower = smoother)
+  [diag]  CONTACT FORCE (penetration proxy):  fingertip mean  6.7N peak 25.5N   palm mean  0.0N peak  0.0N
+  [diag]      (grip_force reward saturates at 3N; fingertip ≫3N ⇒ over-clamp/penetration. palm≈0 ⇒ never seats into palm.)
+  [diag]  VERDICT: ANG-JITTER(69)  LIN-JITTER(2.1)  OVER-CLAMP(6.7N)
+
+=== t20 (thresh 2.0)  ckpt=model_405.pt ===
+  [hc] min object-center z over rollout: 0.0115 m
+  [hc] min object-center z POST-HANDOFF (honest hold metric): 0.1117 m (HELD >0.05)
+  [hc] held-vertical cos POST-HANDOFF (last 50 steps mean): 0.782 (peak 0.846)
+  [diag]  lateral drift from handoff:  mean   1.8cm   max   2.0cm   net   1.9cm
+  [diag]  horizontal path length:       14.2cm (wander; >>net ⇒ sliding around)
+  [diag]  JITTER:  lin-jerk   1.99 m/s²   ang-jerk  75.76 1/s²  (lower = smoother)
+  [diag]  CONTACT FORCE (penetration proxy):  fingertip mean  6.6N peak 28.3N   palm mean  0.0N peak  0.0N
+  [diag]      (grip_force reward saturates at 3N; fingertip ≫3N ⇒ over-clamp/penetration. palm≈0 ⇒ never seats into palm.)
+  [diag]  VERDICT: ANG-JITTER(76)  OVER-CLAMP(6.6N)
+
+[b34-eval] DONE — results in /home/humanoid/Programs/hand/b34_EVAL_RESULTS.txt

@@ -20,7 +20,7 @@ in this normal-lift env).
 
 Usage:
   uv run python scripts/rl_demo_handoff_continuous.py \
-      --policy-b results/rl/20260602-0024-policyB_v2_smooth10x_quick/tensorboard/model_1219.pt \
+      --policy-b results/rl/b02_20260602-0024-policyB_v2_smooth10x_quick/tensorboard/model_1219.pt \
       --output docs/rl/videos/reorient/handoff_continuous.mp4
 """
 from __future__ import annotations
@@ -92,6 +92,23 @@ def build_actor(env_cfg, checkpoint: Path, work_dir: Path):
     return env, wrapped, runner.alg.actor
 
 
+def read_contact_force(env_unwrapped, sensor_name):
+    """(mean, max) contact-force magnitude in N for env 0 of a contact sensor.
+    Penetration depth scales with normal force under MuJoCo soft contact, so this
+    is the tractable, faithful 'how hard is it clamping' readout (the thumb-into-
+    screwdriver artifact = high fingertip force). 0,0 if the sensor is missing."""
+    try:
+        s = env_unwrapped.scene.sensors[sensor_name]
+        f = getattr(s.data, "force", None)
+        if f is None:
+            return 0.0, 0.0
+        mag = f.norm(dim=-1, keepdim=True) if f.dim() == 2 else f.norm(dim=-1)  # (B,slots)
+        m = mag[0]
+        return float(m.mean()), float(m.max())
+    except Exception:
+        return 0.0, 0.0
+
+
 def act(actor, obs):
     return actor.act_inference(obs) if hasattr(actor, "act_inference") else actor.mlp(obs)
 
@@ -107,9 +124,9 @@ def act_b(actor, obs_td, stochastic):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--policy-a", type=Path,
-                    default=ROOT / "results/rl/20260529-1219-screwdriver_medium_flat_short_proximal_stable_v1/tensorboard/model_500.pt")
+                    default=ROOT / "results/rl/a01_20260529-1219-screwdriver_medium_flat_short_proximal_stable_v1/tensorboard/model_500.pt")
     ap.add_argument("--policy-b", type=Path,
-                    default=ROOT / "results/rl/20260602-0024-policyB_v2_smooth10x_quick/tensorboard/model_1219.pt")
+                    default=ROOT / "results/rl/b02_20260602-0024-policyB_v2_smooth10x_quick/tensorboard/model_1219.pt")
     ap.add_argument("--morphology-run", type=Path,
                     default=ROOT / "results/phase1/run18_multi_object_adapt/foundational/screwdriver_medium_flat/run_20260521_150259")
     ap.add_argument("--output", type=Path, default=ROOT / "docs/rl/videos/reorient/handoff_continuous.mp4")
@@ -134,6 +151,26 @@ def main():
                     help="sample Policy B's action from its distribution instead of the "
                          "deterministic mean (tests whether the corrective exploration "
                          "jitter is load-bearing for the post-seam hold)")
+    # ---- 3-stage handoff: A (lift) -> B (catch+stabilize) -> C (finish reorient) ----
+    # B4 reorients to 0.988 but only from a CLEAN start (drops A's raw delivery).
+    # Idea: let the seam-survivor B (b32) convert A's messy delivery into a clean,
+    # stable held state, THEN hand off a 2nd time to C=B4 to finish 0.78 -> 0.98.
+    # Uses the survivor to MANUFACTURE the start C needs. No new training.
+    ap.add_argument("--policy-c", type=Path, default=None,
+                    help="3rd-stage policy (e.g. B4). If set, B catches then C finishes.")
+    ap.add_argument("--handoff-step-2", type=int, default=90,
+                    help="policy step to switch B->C (give B time to stabilize the catch)")
+    ap.add_argument("--policy-c-residual-scale", type=float, default=0.5,
+                    help="C's NATIVE finger_residual_scale (B4=0.5). C's action is rescaled "
+                         "by (this / --finger-residual-scale) so its effective residual matches "
+                         "its training even though the env runs at B's scale (gotcha #13).")
+    ap.add_argument("--blend-steps-2", type=int, default=None,
+                    help="B->C action ramp length at the 2nd seam (default = --blend-steps). "
+                         "Set independently to ease C in without touching the A->B seam.")
+    ap.add_argument("--diag-every", type=int, default=20,
+                    help="heartbeat: print object z / lateral-drift / cos every N "
+                         "post-handoff steps (0 = off). A full slip+jitter+drift "
+                         "summary always prints at the end.")
     # ---- Branch D: critic-gated switch -------------------------------------
     # Instead of a human picking --handoff-step, let B's value function choose
     # the moment to take over: switch when V_B(obs) peaks during A's delivery
@@ -194,6 +231,23 @@ def main():
     runner_b.alg.actor.eval()
     actor_b = runner_b.alg.actor
 
+    # 3-stage: load Policy C (e.g. B4) into its own runner. C is a native B-policy
+    # (same 66-dim obs), so it consumes obs_td via act_b just like B.
+    actor_c = None
+    c_rescale = 1.0
+    if args.policy_c is not None:
+        runner_c = ManipulationOnPolicyRunner(
+            env=wrapped, train_cfg=dataclasses.asdict(build_runner_cfg(PPOConfig(num_envs=1), work, run_name="hcC")),
+            log_dir=str(work / "tb_tmpC"), device="cuda:0")
+        ckpt_c = torch.load(str(args.policy_c), map_location="cpu", weights_only=False)
+        runner_c.alg.actor.load_state_dict(ckpt_c["actor_state_dict"], strict=True)
+        runner_c.alg.actor.eval()
+        actor_c = runner_c.alg.actor
+        c_rescale = float(args.policy_c_residual_scale) / float(args.finger_residual_scale)
+        print(f"[hc] Policy C loaded (3-stage): B->C at step {args.handoff_step_2}, "
+              f"C action rescale x{c_rescale:.2f} (native scale {args.policy_c_residual_scale} "
+              f"/ env scale {args.finger_residual_scale}).")
+
     # Branch D: B's critic (value function), used only to time the switch.
     critic_b = None
     if args.switch_on_critic:
@@ -217,6 +271,13 @@ def main():
     min_z_post = float("inf")  # min object-z AFTER the handoff (the honest hold metric;
     # whole-rollout min_z is dominated by the pre-lift floor phase z~0.012)
     held_cos_tail = []  # held-vertical cos post-handoff (reorientation quality)
+    # Full per-step trajectory for the slip/jitter/drift diagnostics (the things
+    # we kept having to verify by eye): (step, x, y, z, axisX, axisY, axisZ) where
+    # axis is the object's body +Z (long axis) direction in world.
+    traj = []
+    handoff_xy = None
+    tip_force = []   # (mean, max) fingertip-cube contact force [N], post-handoff
+    palm_force = []  # max palm-cube contact force [N], post-handoff (does it ever seat?)
     prev_action = None  # for the optional action low-pass filter
     # Resolved switch step: fixed clock, or chosen online by the critic gate.
     switch_step = None if args.switch_on_critic else args.handoff_step
@@ -238,6 +299,8 @@ def main():
                           f"(V_B peak at step {t_star}, V={vmax:.3f})")
 
             # ---- action selection -------------------------------------------
+            # 3-stage: once past handoff_step_2, Policy C (B4) takes over from B.
+            c_active = actor_c is not None and switch_step is not None and step >= args.handoff_step_2
             if switch_step is None or step < switch_step:
                 actions = act(actor_a, obs[:, :A_OBS_DIM])
             elif args.blend_steps > 0 and step < switch_step + args.blend_steps:
@@ -246,6 +309,14 @@ def main():
                 a_a = act(actor_a, obs[:, :A_OBS_DIM])
                 a_b = act_b(actor_b, obs_td, args.stochastic_b)
                 actions = (1.0 - alpha) * a_a + alpha * a_b
+            elif c_active and (_blend2 := (args.blend_steps_2 if args.blend_steps_2 is not None else args.blend_steps)) > 0 and step < args.handoff_step_2 + _blend2:
+                # linear B->C action ramp at the 2nd seam (eases B4 into B's grip)
+                alpha = (step - args.handoff_step_2 + 1) / float(_blend2)
+                a_b = act_b(actor_b, obs_td, args.stochastic_b)
+                a_c = act_b(actor_c, obs_td, args.stochastic_b) * c_rescale
+                actions = (1.0 - alpha) * a_b + alpha * a_c
+            elif c_active:
+                actions = act_b(actor_c, obs_td, args.stochastic_b) * c_rescale
             else:
                 actions = act_b(actor_b, obs_td, args.stochastic_b)
             # NON-REWARD smoothness lever: EMA low-pass on B's deploy actions.
@@ -258,15 +329,30 @@ def main():
             obs = obs_td["actor"]
             try:
                 pose = env.unwrapped.scene["cube"].data.root_link_pose_w[0]
-                z = float(pose[2])
+                x, y, z = float(pose[0]), float(pose[1]), float(pose[2])
                 min_z = min(min_z, z)
                 # held-cos = world-z component of the object's body +Z (long axis):
                 # 1 - 2(qx^2+qy^2) for quat (w,x,y,z). flat ~0, vertical ~1.
                 qw, qx, qy, qz = (float(pose[3]), float(pose[4]), float(pose[5]), float(pose[6]))
                 held_cos = 1.0 - 2.0 * (qx * qx + qy * qy)
+                # object body +Z direction in world (the long axis), for jitter/wobble.
+                ax_x = 2.0 * (qx * qz + qw * qy)
+                ax_y = 2.0 * (qy * qz - qw * qx)
+                ax_z = held_cos
                 if switch_step is not None and step >= switch_step:
                     min_z_post = min(min_z_post, z)
                     held_cos_tail.append(held_cos)
+                    traj.append((step, x, y, z, ax_x, ax_y, ax_z))
+                    tf_mean, tf_max = read_contact_force(env.unwrapped, "fingertip_cube_contact")
+                    _, pf_max = read_contact_force(env.unwrapped, "palm_cube_contact")
+                    tip_force.append((tf_mean, tf_max))
+                    palm_force.append(pf_max)
+                    if handoff_xy is None:
+                        handoff_xy = (x, y)
+                    if args.diag_every and (step - switch_step) % args.diag_every == 0:
+                        lat = ((x - handoff_xy[0]) ** 2 + (y - handoff_xy[1]) ** 2) ** 0.5
+                        print(f"[diag] step={step:3d}  z={z:.3f}  lat_drift={lat * 100:5.1f}cm  "
+                              f"cos={held_cos:+.3f}  tipF={tf_mean:4.1f}N  palmF={pf_max:4.1f}N")
                 if switch_step is not None and step == switch_step:
                     align_at_handoff = z
                 if os.environ.get("HC_ZTRACE") and (step % 5 == 0 or (switch_step is not None and abs(step - switch_step) <= 6)):
@@ -294,6 +380,51 @@ def main():
         tail = held_cos_tail[-50:]
         print(f"[hc] held-vertical cos POST-HANDOFF (last 50 steps mean): {sum(tail)/len(tail):.3f} "
               f"(peak {max(held_cos_tail):.3f})")
+
+    # ---- slip / jitter / drift diagnostics (the eye-only artifacts) ----------
+    # dt per policy step = decimation(10) * sim_timestep(0.002) = 0.02 s.
+    if len(traj) >= 3:
+        DT = 0.02
+        a = np.asarray(traj, dtype=np.float64)
+        pos, axis = a[:, 1:4], a[:, 4:7]
+        hx, hy = handoff_xy
+        lat = np.hypot(pos[:, 0] - hx, pos[:, 1] - hy)          # horiz drift from handoff
+        horiz_path = float(np.abs(np.diff(pos[:, :2], axis=0)).sum())
+        z_net = float(pos[-1, 2] - pos[0, 2])
+        zt = pos[-min(50, len(pos)):, 2]
+        z_slope = float(np.polyfit(np.arange(len(zt)), zt, 1)[0] / DT)  # m/s sink/rise
+        lin_v = np.diff(pos, axis=0) / DT
+        lin_speed = np.linalg.norm(lin_v, axis=1)
+        lin_jerk = np.linalg.norm(np.diff(pos, n=2, axis=0) / DT ** 2, axis=1)  # |d2pos/dt2|
+        dots = np.clip((axis[1:] * axis[:-1]).sum(1), -1.0, 1.0)
+        ang_speed = np.arccos(dots) / DT                        # rad/s of the long axis
+        ang_jerk = np.linalg.norm(np.diff(axis, n=2, axis=0) / DT ** 2, axis=1)
+        print("[diag] ===== POST-HANDOFF slip / jitter / drift =====")
+        print(f"[diag]  lateral drift from handoff:  mean {lat.mean()*100:5.1f}cm   "
+              f"max {lat.max()*100:5.1f}cm   net {lat[-1]*100:5.1f}cm")
+        print(f"[diag]  horizontal path length:      {horiz_path*100:5.1f}cm "
+              f"(wander; >>net ⇒ sliding around)")
+        print(f"[diag]  vertical:  net Δz {z_net*100:+5.1f}cm   tail z-slope {z_slope*100:+5.1f}cm/s "
+              f"({'SINKING' if z_slope < -0.003 else 'stable'})")
+        print(f"[diag]  object speed:  lin mean {lin_speed.mean()*100:5.1f} max {lin_speed.max()*100:5.1f} cm/s   "
+              f"ang mean {ang_speed.mean():4.2f} max {ang_speed.max():4.2f} rad/s")
+        print(f"[diag]  JITTER:  lin-jerk {lin_jerk.mean():6.2f} m/s²   "
+              f"ang-jerk {ang_jerk.mean():6.2f} 1/s²  (lower = smoother)")
+        tfa = np.asarray(tip_force)  # (T,2) mean,max per step
+        pfa = np.asarray(palm_force)
+        tip_mean = float(tfa[:, 0].mean()); tip_peak = float(tfa[:, 1].max())
+        palm_mean = float(pfa.mean()); palm_peak = float(pfa.max())
+        print(f"[diag]  CONTACT FORCE (penetration proxy):  fingertip mean {tip_mean:4.1f}N "
+              f"peak {tip_peak:4.1f}N   palm mean {palm_mean:4.1f}N peak {palm_peak:4.1f}N")
+        print(f"[diag]      (grip_force reward saturates at 3N; fingertip ≫3N ⇒ over-clamp/penetration. "
+              f"palm≈0 ⇒ never seats into palm.)")
+        flags = []
+        if lat.max() > 0.03: flags.append(f"SLIP(lat {lat.max()*100:.0f}cm)")
+        if z_slope < -0.003: flags.append("SINKING")
+        if ang_jerk.mean() > 30: flags.append(f"ANG-JITTER({ang_jerk.mean():.0f})")
+        if lin_jerk.mean() > 2.0: flags.append(f"LIN-JITTER({lin_jerk.mean():.1f})")
+        if tip_mean > 3.5: flags.append(f"OVER-CLAMP({tip_mean:.1f}N)")
+        print(f"[diag]  VERDICT: {'  '.join(flags) if flags else 'clean (held firm + smooth)'}")
 
 
 if __name__ == "__main__":
