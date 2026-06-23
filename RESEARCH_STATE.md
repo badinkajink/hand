@@ -136,6 +136,38 @@ negative over iters (force dropping), `tip_lost` settles low. A `*.COLLAPSED` si
 aborted (grasp dropped). Run dirs land under `results/rl/<TAG>/tensorboard/`. **Eval at each policy's OWN
 config (gotcha #13); judge on the full diagnostics, never cos/min-z alone (b31 lesson).**
 
+### RESULTS + PIVOT TO MORPHOLOGY (2026-06-22 later) — the grip defect is STRUCTURAL
+Both runs landed; then a per-finger probe + a spread-penalty run + a contact-hardening probe
+together showed the excess force is a **geometry** problem, not a reward one → **morphology is the
+active direction.** Full plan: **`docs/rl/morphology_optimization_plan.md`**.
+- **gentleB** (relaxed verticality) WORKED as intended: vs b34_t20, ang-jerk **74→57** (smoother),
+  fingertip force **6.8→5.3 N** (lower), at lower held-cos (0.77→0.64) — the smooth+low-force trade
+  the user asked for. Ckpt `results/rl/20260622-1738-policyB_gentleLowforce/tensorboard/model_405.pt`.
+- **lowforceA** ran to completion (A held the grasp, no collapse); the force-probe eval vs a01 is
+  still pending (`results/rl/20260622-1740-policyA_lowforce`).
+- **PER-FINGER FINDING (the key one).** Added per-finger instrumentation (`probe_grip_balance.py` +
+  per-finger output in `rl_demo_handoff_continuous.py`; slot order verified [thumb,index,middle]).
+  The grip is a **degenerate pinch**: **thumb idle ~1.6 N** while **index+middle clamp ~8 N each**
+  (all three touch). B4 (the good reorienter) is a **balanced** tripod (7/10/10 N) — balance tracks
+  reorient QUALITY, and our total force (~20 N) is already *below* B4's (~27 N). So "excessive" =
+  **lopsided**, not over-clamped.
+- **SPREAD PENALTY FAILED (built `grip_force_spread`, ran `policyB_spreadBalance`):** thumb 1.6→**1.8 N**
+  (still idle), index 8.0→7.1. The policy **cannot recruit the thumb** — its placement can't oppose
+  the other two against this object → **structural, not reward-fixable.** (New term + `--frozen-scene-xml`
+  override committed; reusable.)
+- **CONTACT-HARDENING FAILED informatively:** stiffening the contact even mildly (solimp 0.97/0.995→
+  0.985/0.999) broke **frozen Policy A's grasp** (object never left the floor). The soft contact is
+  **functionally load-bearing**; penetration is a symptom of the marginal grip. ⇒ a hard-contact run
+  needs retraining A+B from scratch (the deferred sim-to-real pass), not a warmstart.
+- **→ MORPHOLOGY.** The two structural defects map onto the **existing 9-param design space**
+  (`src/morphohand/sampling/morphology.py`: per-finger x/y/length): (i) reposition the **thumb** for
+  true opposition (recruit it → balanced, lower-peak grip); (ii) **seat** the object into the palm
+  (lengths/palm → palm bears load → fingers relax to ~3 N). The "Shape Your Body"/VGDS value-gradient
+  approach is the wrong tool here (needs a morphology-conditioned universal critic; our task is too
+  brittle for the value to generalize across designs) — evaluate designs by **rollout**, not value
+  gradient. **RECOMMENDED FIRST EXPERIMENT:** Stage 1(a) — reposition the thumb, retrain B, measure
+  per-finger balance/force (~1 h). See the plan doc for the staged details.
+
 ---
 
 ## ⚡ FRESH SESSION — START HERE (updated 2026-06-10)
