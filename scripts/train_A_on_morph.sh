@@ -21,7 +21,7 @@ ARGS=(
   --morphology-run "$MORPH_RUN" --object-body-name screwdriver_medium
   --num-envs "${NUM_ENVS:-2048}" --total-timesteps "$TOTAL_TS"
   --init-actor-checkpoint "$WARMSTART" --warmstart-critic --init-noise-std 0.05
-  --episode-length-s 1.4 --lift-target-z-above-init 0.05 --lift-delta-z 0.05 --lift-ramp-steps 80
+  --episode-length-s 1.4 --lift-target-z-above-init 0.05 --lift-delta-z 0.05
   --finger-residual-scale 0.5 --finger-close-easing ease_out_quad
   --contact-gate-stability-rewards --contact-min-weight 15.0
   --enable-lift-terminations --lift-phase-start-step 40
