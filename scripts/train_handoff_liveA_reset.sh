@@ -32,9 +32,23 @@
 set -u
 ROOT=/home/humanoid/Programs/hand; cd "$ROOT"
 MORPH=results/phase1/run18_multi_object_adapt/foundational/screwdriver_medium_flat/run_20260521_150259
-A_CKPT="${A_CKPT:-$ROOT/results/rl/20260529-1219-screwdriver_medium_flat_short_proximal_stable_v1/tensorboard/model_500.pt}"
-B_CKPT="${B_CKPT:-$ROOT/results/rl/20260604-1642-policyB_holdonlyws_repro/tensorboard/model_541.pt}"  # B10
-ONSET_STEP=${ONSET_STEP:-40}; REORIENT_START=${REORIENT_START:-45}
+A_CKPT="${A_CKPT:-$ROOT/results/rl/a01_20260529-1219-screwdriver_medium_flat_short_proximal_stable_v1/tensorboard/model_500.pt}"
+B_CKPT="${B_CKPT:-$ROOT/results/rl/b10_20260604-1642-policyB_holdonlyws_repro/tensorboard/model_541.pt}"  # B10
+# BLEND>0 = SEAM RAMP-IN (breaks the B4 catch-22): after onset, blend
+# alpha*B+(1-alpha)*A over BLEND steps (alpha 0->1) so a reorient-from-step-0
+# policy (B4) eases into A's grip instead of shocking it and dropping before the
+# reorient reward fires. Those blend steps are masked from PPO too (B trains only
+# on fully-B steps >= onset+BLEND). With BLEND set, reorient grading should begin
+# at/after B takes full control: REORIENT_START defaults to onset+BLEND+5.
+ONSET_STEP=${ONSET_STEP:-40}; BLEND=${BLEND:-0}
+# Terminations (tip_lost/drop/floor) engage at LIFT_TERM_START. With a seam
+# ramp-in, engaging at onset kills every episode via tip_lost at ~onset+10 —
+# BEFORE B reaches full control (keep_from=onset+BLEND) — so no trainable steps
+# ever accumulate (mask frac stuck at 1.0). Default it to keep_from so A's lift +
+# the ramp run termination-free (the object stays up there) and terminations
+# engage exactly when B takes full control. Legacy hard-onset (BLEND=0) => onset.
+LIFT_TERM_START=${LIFT_TERM_START:-$(( ONSET_STEP + BLEND ))}
+REORIENT_START=${REORIENT_START:-$(( ONSET_STEP + BLEND + 5 ))}
 TOTAL_TS=${TOTAL_TS:-20000000}; SMOKE=${SMOKE:-0}; [ "$SMOKE" = "1" ] && TOTAL_TS=1000000
 TAG="${TAG:-policyB_liveAreset_fromB10}"
 for f in "$A_CKPT" "$B_CKPT" "$ROOT/$MORPH/best_rollout.npz"; do
@@ -47,27 +61,30 @@ for f in "$A_CKPT" "$B_CKPT" "$ROOT/$MORPH/best_rollout.npz"; do
 # so A's action lifts; reorient reward gated to REORIENT_START as a catch grace).
 ARGS=(
   --morphology-run "$MORPH" --object-body-name screwdriver_medium
-  --num-envs 3072 --total-timesteps "$TOTAL_TS"
+  --num-envs "${NUM_ENVS:-3072}" --total-timesteps "$TOTAL_TS"
   --init-actor-checkpoint "$B_CKPT" --warmstart-critic
-  --live-a-checkpoint "$A_CKPT" --live-a-onset "$ONSET_STEP"
+  --live-a-checkpoint "$A_CKPT" --live-a-onset "$ONSET_STEP" --live-a-blend-steps "$BLEND"
   --episode-length-s 5.0 --lift-target-z-above-init 0.1 --lift-delta-z 0.1
   --finger-residual-scale "${RESID_SCALE:-0.5}" --finger-close-easing "${EASING:-ease_out_quad}"
-  --lift-phase-start-step "$ONSET_STEP"
+  --lift-phase-start-step "$LIFT_TERM_START"
   --reorient-start-step "$REORIENT_START"
   --enable-lift-terminations
   --term-object-drop 0.02 --term-object-slip-xy 0.5 --term-object-slip-yaw 10.0
-  --term-finger-slip 100.0
+  --term-finger-slip 100.0 --term-tip-lost-steps "${TIP_LOST_STEPS:-3}"
   --enable-target-axis-reward --target-axis-weight 100.0 --target-axis-alpha 4.0
   --target-axis-progress-weight 300.0 --contact-min-weight 15.0
   --lateral-drift-weight=-8.0 --lateral-drift-deadband 0.01 --lateral-drift-power 2.0
   --tag "$TAG" --no-wandb
 )
+# EXTRA_ARGS: space-separated trainer flags appended verbatim (e.g. a commit bonus
+# --success-bonus-weight / --speed-bonus-weight, or --target-axis-alpha-curriculum-iters).
+[ -n "${EXTRA_ARGS:-}" ] && ARGS+=( $EXTRA_ARGS )
 # Contact-gate stability rewards: ON by default (deploy/B10 parity). Set CONTACT_GATE=0
 # to match a policy trained without it (the scale-0.2 live-A lineage from model_270).
 [ "${CONTACT_GATE:-1}" = "1" ] && ARGS+=( --contact-gate-stability-rewards )
 c=$(mktemp -d)
 LOG="${LOG:-$ROOT/liveA_${TAG}.trainer.log}"
-echo "[liveA] TAG=$TAG ts=$TOTAL_TS onset=$ONSET_STEP reorient_start=$REORIENT_START"
+echo "[liveA] TAG=$TAG ts=$TOTAL_TS onset=$ONSET_STEP blend=$BLEND lift_term_start=$LIFT_TERM_START reorient_start=$REORIENT_START"
 echo "[liveA] A=$A_CKPT warmstart-B=$B_CKPT WARP_CACHE=$c trainer-log=$LOG"
 WARP_CACHE_PATH="$c" MUJOCO_GL=egl setsid uv run --extra rl --extra gpu \
   python "$ROOT/scripts/rl_train_cube.py" "${ARGS[@]}" > "$LOG" 2>&1 &

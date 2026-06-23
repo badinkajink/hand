@@ -12,8 +12,8 @@ set -u
 ROOT=/home/humanoid/Programs/hand; cd "$ROOT"
 CLAUDE=/home/humanoid/.local/bin/claude
 RESULTS="$ROOT/STATE_HANDOFF_RESULTS.txt"
-BASE="$ROOT/results/rl/20260602-1636-policyB_abl_signed:model_405.pt"
-P2="$ROOT/results/rl/20260603-1746-policyB_p2_lateral_only:model_541.pt"
+BASE="$ROOT/results/rl/b03_20260602-1636-policyB_abl_signed:model_405.pt"
+P2="$ROOT/results/rl/b04_20260603-1746-policyB_p2_lateral_only:model_541.pt"
 log(){ echo "[$(date '+%F %T')] $*"; }
 ck(){ ls -t "$1"/tensorboard/model_*.pt 2>/dev/null | head -1; }
 

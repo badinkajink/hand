@@ -11,7 +11,7 @@ the per-dim MEAN of this object-state distribution over the seam window.
 
 Usage:
   uv run --extra rl --extra gpu python scripts/rl_record_initiation_bank.py \
-      --policy-b results/rl/20260604-1642-policyB_holdonlyws_repro:model_541.pt \
+      --policy-b results/rl/b10_20260604-1642-policyB_holdonlyws_repro:model_541.pt \
       --num-envs 512 --record-step 40 \
       --output results/rl/b10_initiation_bank.npz
 """
@@ -27,7 +27,7 @@ sys.path.insert(0, str(ROOT / "src"))
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--policy-b", type=str,
-                    default="results/rl/20260604-1642-policyB_holdonlyws_repro:model_541.pt",
+                    default="results/rl/b10_20260604-1642-policyB_holdonlyws_repro:model_541.pt",
                     help="run_dir:model_N.pt for B10 (its config.yaml defines the env)")
     ap.add_argument("--num-envs", type=int, default=512)
     ap.add_argument("--record-step", type=int, default=40,

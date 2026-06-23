@@ -10,7 +10,7 @@
 set -u
 ROOT=/home/humanoid/Programs/hand; cd "$ROOT"
 MORPH=results/phase1/run18_multi_object_adapt/foundational/screwdriver_medium_flat/run_20260521_150259
-WARMSTART="${WARMSTART:-$ROOT/results/rl/20260602-1636-policyB_abl_signed/tensorboard/model_405.pt}"
+WARMSTART="${WARMSTART:-$ROOT/results/rl/b03_20260602-1636-policyB_abl_signed/tensorboard/model_405.pt}"
 TOTAL_TS=${TOTAL_TS:-15000000}; SMOKE=${SMOKE:-0}; [ "$SMOKE" = "1" ] && TOTAL_TS=1000000
 for f in "$WARMSTART" "$ROOT/$MORPH/best_rollout.npz"; do [ -e "$f" ] || { echo "FATAL missing $f"; exit 1; }; done
 

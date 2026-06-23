@@ -9,7 +9,7 @@ any v2 finetune (5x / 10x / quick) without env drift.
 
 Usage:
   uv run python scripts/rl_render_reorient.py \
-      --run results/rl/20260601-2310-policyB_v2_smooth5x \
+      --run results/rl/bx_20260601-2310-policyB_v2_smooth5x \
       --checkpoint model_1219.pt \
       --output docs/rl/videos/reorient/policyB_v2_smooth5x.mp4
 """

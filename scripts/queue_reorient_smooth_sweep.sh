@@ -26,7 +26,7 @@ cd "$ROOT"
 MORPH=results/phase1/run18_multi_object_adapt/foundational/screwdriver_medium_flat/run_20260521_150259
 # Warmstart checkpoint. Default = Policy B v1 (Stage 1). Override via env for
 # Stage 2 (warmstart from the best Stage-1 checkpoint).
-WARMSTART="${WARMSTART:-$ROOT/results/rl/20260601-1033-policyB_v1/tensorboard/model_2033.pt}"
+WARMSTART="${WARMSTART:-$ROOT/results/rl/b01_20260601-1033-policyB_v1/tensorboard/model_2033.pt}"
 TOTAL_TS=${TOTAL_TS:-30000000}
 SMOKE=${SMOKE:-0}
 if [ "$SMOKE" = "1" ]; then TOTAL_TS=1000000; fi

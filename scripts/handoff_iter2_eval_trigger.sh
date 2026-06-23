@@ -12,8 +12,8 @@ CLAUDE=/home/humanoid/.local/bin/claude
 RESULTS="$ROOT/STATE_HANDOFF_RESULTS.txt"
 VID="$ROOT/docs/rl/videos/reorient"
 ASSETS="$ROOT/webpaper/src/assets"
-B4="$ROOT/results/rl/20260603-1746-policyB_p2_lateral_only"
-B10="$ROOT/results/rl/20260604-1642-policyB_holdonlyws_repro"
+B4="$ROOT/results/rl/b04_20260603-1746-policyB_p2_lateral_only"
+B10="$ROOT/results/rl/b10_20260604-1642-policyB_holdonlyws_repro"
 log(){ echo "[$(date '+%F %T')] $*"; }
 ck(){ ls -t "$1"/tensorboard/model_*.pt 2>/dev/null | head -1; }
 render(){ # $1 ckpt  $2 out  $3... extra flags ; prints min-z line

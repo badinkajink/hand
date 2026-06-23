@@ -13,7 +13,7 @@
 set -u
 ROOT=/home/humanoid/Programs/hand; cd "$ROOT"
 MORPH=results/phase1/run18_multi_object_adapt/foundational/screwdriver_medium_flat/run_20260521_150259
-WARMSTART="$ROOT/results/rl/20260602-1636-policyB_abl_signed/tensorboard/model_405.pt"
+WARMSTART="$ROOT/results/rl/b03_20260602-1636-policyB_abl_signed/tensorboard/model_405.pt"
 TOTAL_TS=${TOTAL_TS:-15000000}
 TAG="policyB_normallift"
 LOG="$ROOT/normallift_train.log"

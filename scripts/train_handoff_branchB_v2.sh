@@ -36,7 +36,7 @@
 set -u
 ROOT=/home/humanoid/Programs/hand; cd "$ROOT"
 MORPH=results/phase1/run18_multi_object_adapt/foundational/screwdriver_medium_flat/run_20260521_150259
-A_CKPT="${A_CKPT:-$ROOT/results/rl/20260529-1219-screwdriver_medium_flat_short_proximal_stable_v1/tensorboard/model_500.pt}"
+A_CKPT="${A_CKPT:-$ROOT/results/rl/a01_20260529-1219-screwdriver_medium_flat_short_proximal_stable_v1/tensorboard/model_500.pt}"
 BANK="${BANK:-$ROOT/results/rl/b10_initiation_bank_s35.npz}"
 WEIGHT="${WEIGHT:-2.0}"
 FINGER_SLIP_TOL="${FINGER_SLIP_TOL:-2.0}"   # relaxed (A trained at 0.3) so grip can migrate

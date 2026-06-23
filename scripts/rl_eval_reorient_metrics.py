@@ -12,7 +12,7 @@ out N envs deterministically for T steps, and reports:
 
 Usage:
   uv run python scripts/rl_eval_reorient_metrics.py \
-      v1=results/rl/20260601-1033-policyB_v1:model_2033.pt \
+      v1=results/rl/b01_20260601-1033-policyB_v1:model_2033.pt \
       signed=results/rl/<dir>:model_405.pt
 """
 from __future__ import annotations
@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 
-def run_one(run_dir: Path, ckpt_name: str, N=32, T=200):
+def run_one(run_dir: Path, ckpt_name: str, N=32, T=200, overrides=None):
     from morphohand.rl.env_cfg import MorphoHandEnvCfg, to_mjlab_cfg
     from mjlab.envs import ManagerBasedRlEnv
     from mjlab.rl import RslRlVecEnvWrapper
@@ -42,6 +42,13 @@ def run_one(run_dir: Path, ckpt_name: str, N=32, T=200):
                "target_axis_object_local", "target_axis_world"):
         if isinstance(kw.get(tk), list): kw[tk] = tuple(kw[tk])
     kw["num_envs"] = N; kw["episode_length_s"] = T / 50.0 + 0.5
+    # Optional cfg overrides (e.g. spawn B from A's delivery bank to probe its
+    # robustness to the real off-center/grip perturbation): name=run:ckpt:key=val,...
+    if overrides:
+        for k, v in overrides.items():
+            if isinstance(v, str) and (k.endswith(("_bank", "_xml", "_dir"))):
+                v = Path(v)
+            kw[k] = v
     env = ManagerBasedRlEnv(cfg=to_mjlab_cfg(MorphoHandEnvCfg(**kw)), device="cuda:0", render_mode=None)
     wrapped = RslRlVecEnvWrapper(env)
     runner = ManipulationOnPolicyRunner(env=wrapped,
@@ -76,11 +83,23 @@ def main():
     if not specs:
         print(__doc__); return
     print(f"{'policy':20s} {'held_cos':>9s} {'peak':>7s} {'obj_jerk':>9s} {'min_z':>7s} {'drop':>6s}")
+    def _coerce(s):
+        if s in ("True", "False"): return s == "True"
+        if s in ("None",): return None
+        try: return int(s)
+        except ValueError:
+            try: return float(s)
+            except ValueError: return s
     for spec in specs:
         name, rest = spec.split("=", 1)
-        run, ck = rest.split(":")
+        parts = rest.split(":")
+        run, ck = parts[0], parts[1]
+        overrides = None
+        if len(parts) > 2 and parts[2]:
+            overrides = {kv.split("=", 1)[0]: _coerce(kv.split("=", 1)[1])
+                         for kv in parts[2].split(",")}
         try:
-            h, p, jk, mz, dr = run_one(Path(run), ck)
+            h, p, jk, mz, dr = run_one(Path(run), ck, overrides=overrides)
             print(f"{name:20s} {h:9.3f} {p:7.3f} {jk:9.4f} {mz:7.3f} {dr:6.2f}")
         except Exception as e:
             print(f"{name:20s} ERROR {e}")

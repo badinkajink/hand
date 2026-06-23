@@ -50,13 +50,49 @@ class LiveAOnPolicyRunner(ManipulationOnPolicyRunner):
   If never called, `learn` behaves exactly like the base runner.
   """
 
-  def setup_live_a(self, actor_a, onset: int, a_obs_dim: int = 65) -> None:
+  def setup_live_a(self, actor_a, onset: int, a_obs_dim: int = 65,
+                   blend_steps: int = 0) -> None:
     self.live_a_actor = actor_a
     self.live_a_onset = int(onset)
     self.live_a_obs_dim = int(a_obs_dim)
+    self.live_a_blend = max(0, int(blend_steps))
     self.live_a_actor.eval()
-    print(f"[live-a] enabled: frozen A drives steps 0..{onset} of every episode "
-          f"(A obs dim {a_obs_dim}); pre-onset steps masked from PPO update.")
+    if self.live_a_blend > 0:
+      print(f"[live-a] enabled: frozen A drives steps 0..{onset} of every episode "
+            f"(A obs dim {a_obs_dim}); then a {self.live_a_blend}-step SEAM RAMP-IN "
+            f"alpha*B+(1-alpha)*A (alpha 0->1) eases B into the grip. All A-driven "
+            f"AND blend steps masked from PPO; B trains only on fully-B steps "
+            f">= {onset + self.live_a_blend}.")
+    else:
+      print(f"[live-a] enabled: frozen A drives steps 0..{onset} of every episode "
+            f"(A obs dim {a_obs_dim}); pre-onset steps masked from PPO update.")
+
+  def setup_schedule_tracking(self, schedule, weight: float, reorient_start: int) -> None:
+    """On-policy trajectory tracking: pull B to MEET-OR-EXCEED a teacher's
+    held-cos-vs-time `schedule` (e.g. B3's reorientation curve from its clean
+    spawn). One-sided — reward = -weight * relu(schedule[phase] - cos) — so B is
+    pulled UP toward the teacher curve and never penalized for exceeding it.
+    Added to the env reward on B-driven reorient steps only (phase indexes from
+    reorient_start). Tracks the target TRAJECTORY, not the teacher's raw actions
+    (which are OOD on A's delivered grip — measured: B3 craters 0.98->0.26)."""
+    self._sched = torch.as_tensor(schedule, dtype=torch.float32, device=self.device)
+    self._sched_w = float(weight)
+    self._sched_rs = int(reorient_start)
+    self._sched_K = int(self._sched.numel())
+    e = getattr(self.env, "unwrapped", self.env)
+    self._sched_obj = e.scene["cube"]
+    print(f"[sched-track] enabled: weight={weight} reorient_start={reorient_start} "
+          f"len={self._sched_K} target cos {float(self._sched[0]):.3f}->{float(self._sched[-1]):.3f}")
+
+  def _schedule_reward(self, step_in_ep: torch.Tensor) -> torch.Tensor:
+    """Per-env one-sided below-curve penalty on B-driven reorient steps; 0 else."""
+    q = self._sched_obj.data.root_link_pose_w[:, 3:7]
+    qx, qy = q[:, 1], q[:, 2]
+    cos = (1.0 - 2.0 * (qx * qx + qy * qy)).clamp(-1.0, 1.0)
+    phase = (step_in_ep - self._sched_rs).clamp(0, self._sched_K - 1)
+    target = self._sched[phase]
+    active = (step_in_ep >= self._sched_rs).to(cos.dtype)
+    return self._sched_w * (-(target - cos).clamp(min=0.0)) * active
 
   def _a_action(self, obs_td) -> torch.Tensor:
     # Match rl_demo_handoff_continuous.py's deploy path EXACTLY so the seam B
@@ -84,6 +120,8 @@ class LiveAOnPolicyRunner(ManipulationOnPolicyRunner):
     self.logger.init_logging_writer()
 
     onset = self.live_a_onset
+    blend = getattr(self, "live_a_blend", 0)
+    keep_from = onset + blend          # first step where B fully drives = trainable
     num_envs = self.env.num_envs
     # Per-env step-in-episode counter (mirrors the deploy clock in
     # rl_demo_handoff_continuous.py: A acts steps 0..onset-1, B from onset).
@@ -95,22 +133,37 @@ class LiveAOnPolicyRunner(ManipulationOnPolicyRunner):
       start = time.time()
       keep_masks = []  # (num_envs,) bool per rollout step; True = B drove = trainable
       n_pre = 0
+      sched_rew_sum = 0.0
       with torch.inference_mode():
         for _ in range(self.cfg["num_steps_per_env"]):
           # B's sampled action (also stores B's action/log-prob/value/obs).
           actions = self.alg.act(obs)
-          pre = step_in_ep < onset           # envs still in A's live-lift window
-          keep = ~pre                        # post-onset = B drove = trainable
+          pre = step_in_ep < onset              # A's live-lift window (full A)
+          in_blend = (step_in_ep >= onset) & (step_in_ep < keep_from)  # ramp-in
+          keep = step_in_ep >= keep_from        # B fully drove = trainable
           stepped = actions.clone()
-          if bool(pre.any()):
+          need_a = pre | in_blend
+          if bool(need_a.any()):
             a_act = self._a_action(obs).to(stepped.dtype)
             stepped = torch.where(pre.unsqueeze(1), a_act, stepped)
-            n_pre += int(pre.sum())
+            if blend > 0 and bool(in_blend.any()):
+              # alpha ramps 0->1 across the blend window: at the first blend step
+              # (step==onset) alpha=1/(blend+1) (mostly A), approaching 1 at the
+              # last. Keeps the reorienter from shocking A's grip at the seam.
+              alpha = ((step_in_ep - onset + 1).to(stepped.dtype)
+                       / float(blend + 1)).clamp_(0.0, 1.0).unsqueeze(1)
+              blended = alpha * actions + (1.0 - alpha) * a_act
+              stepped = torch.where(in_blend.unsqueeze(1), blended, stepped)
+            n_pre += int(need_a.sum())
           obs, rewards, dones, extras = self.env.step(stepped.to(self.env.device))
           if self.cfg.get("check_for_nan", True):
             check_nan(obs, rewards, dones)
           obs, rewards, dones = (
             obs.to(self.device), rewards.to(self.device), dones.to(self.device))
+          if getattr(self, "_sched", None) is not None:
+            sr = self._schedule_reward(step_in_ep).to(rewards.dtype).reshape(rewards.shape)
+            rewards = rewards + sr
+            sched_rew_sum += float(sr.sum())
           self.alg.process_env_step(obs, rewards, dones, extras)
           intrinsic_rewards = self.alg.intrinsic_rewards if self.cfg["algorithm"]["rnd_cfg"] else None
           self.logger.process_env_step(rewards, dones, extras, intrinsic_rewards)
@@ -144,7 +197,11 @@ class LiveAOnPolicyRunner(ManipulationOnPolicyRunner):
         rnd_weight=self.alg.rnd.weight if self.cfg["algorithm"]["rnd_cfg"] else None,
       )
       if it % 10 == 0:
-        print(f"[live-a] it={it} A-driven(masked) frac={frac_pre:.3f}")
+        sched_msg = ""
+        if getattr(self, "_sched", None) is not None:
+          per = sched_rew_sum / float(self.cfg["num_steps_per_env"] * num_envs)
+          sched_msg = f" sched_rew/step={per:.4f} (<0 = below B3 curve)"
+        print(f"[live-a] it={it} A-driven(masked) frac={frac_pre:.3f}{sched_msg}")
 
       if self.logger.writer is not None and it % self.cfg["save_interval"] == 0:
         self.save(f"{self.logger.log_dir}/model_{it}.pt")

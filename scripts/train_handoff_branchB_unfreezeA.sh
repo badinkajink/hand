@@ -15,7 +15,7 @@
 set -u
 ROOT=/home/humanoid/Programs/hand; cd "$ROOT"
 MORPH=results/phase1/run18_multi_object_adapt/foundational/screwdriver_medium_flat/run_20260521_150259
-A_CKPT="${A_CKPT:-$ROOT/results/rl/20260529-1219-screwdriver_medium_flat_short_proximal_stable_v1/tensorboard/model_500.pt}"
+A_CKPT="${A_CKPT:-$ROOT/results/rl/a01_20260529-1219-screwdriver_medium_flat_short_proximal_stable_v1/tensorboard/model_500.pt}"
 BANK="${BANK:-$ROOT/results/rl/b10_initiation_bank_s35.npz}"
 WEIGHT="${WEIGHT:-4.0}"
 TOTAL_TS=${TOTAL_TS:-15000000}; SMOKE=${SMOKE:-0}; [ "$SMOKE" = "1" ] && TOTAL_TS=1000000

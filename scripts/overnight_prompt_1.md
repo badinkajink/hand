@@ -24,7 +24,7 @@ mechanisms. Two runs swept the smoothness target:
 - 10x: run dir matching results/rl/*-policyB_v2_smooth10x
 Log-derived metrics: `STAGE1_RESULTS.txt`. Logs: policyB_v2_5x.log, policyB_v2_10x.log.
 Read `docs/rl/reorientation.md` for full history. Reference — Policy B v1 converged
-(results/rl/20260601-1033-policyB_v1): mean_reward 402, target_axis_alignment 87,
+(results/rl/b01_20260601-1033-policyB_v1): mean_reward 402, target_axis_alignment 87,
 target_axis_progress +0.25, tip_lost 1.17/iter, object_ang_acc_l2 sum ~-2.5,
 action_rate_l2 ~-0.13. v2 goal: SMOOTHER + holds-vertical, without wrecking rotation/grip.
 
