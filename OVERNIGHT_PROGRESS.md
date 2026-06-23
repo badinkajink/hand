@@ -24,11 +24,34 @@ tripod that still lifts. `thumb_len` is the key knob. Grasp video:
   - **Success looks like:** all three fingers share load (thumb no longer ~1.6 N idle), lower
     per-finger force than old gentleB (thumb 1.6 / index 8.0 / mid 6.4 N).
 
-## What I'll do when that result lands (autonomously)
-- If balanced + lower force → **morphology confirmed**: commit, then (a) widen the sweep toward
-  *seating* (longer fingers / palm → palm bears load → ~3 N fingers — the true low-force unlock),
-  and/or (b) retrain Policy A on the winner for the full A→B handoff.
-- If not → document the gap and iterate the design (index/middle reposition, fingertip size).
+## Morning update (2026-06-23 ~10:30) — what the overnight runs showed
+
+**The morphology fixes the static GRASP, but the REORIENT grip is a warmstart-transfer problem.**
+
+1. **Grasp (CEM): SOLVED.** Thumb (+.02,+.02,+.02) → balanced tripod (persist 1/1/1, imbalance 0).
+2. **Reorient on the new morphology still idles a finger** — but a *different* one (index, not
+   middle), for *every* recipe tried (B4-recipe, and gentle+spread):
+   - newmorph_B4recipe: cos 0.81, thumb 8.9 / **index 0.0** / mid 17.1 (over-clamp)
+   - newmorph_gentle+spread: cos 0.51, thumb 0.2 / **index 0.0** / mid 1.9 (barely grips)
+   - oldmorph_B4 (ref): cos 0.99, 7/10/10 — **all 3 engaged**
+3. **Diagnosis:** B4 keeps all three fingers engaged *on its own morphology* but idles one when
+   warmstarted onto a different geometry → the reorient grip balance needs a warmstart that **matches
+   the morphology**, not just a balanced grasp. The spread penalty couldn't recruit the idle finger
+   (same as on the old morphology — it's still structural at the policy/warmstart level).
+4. **Policy A retrained fine** on the new morphology (lifts to 0.060).
+
+**Running now:** a reorienter **warmstarted from the NEW A** (native to the balanced morphology)
+instead of B4 — the clean test of the warmstart-match hypothesis. Waiter → `MORPH_FROMA_EVAL.txt`.
+
+## Throughput (measured) — `docs/rl/morphology_throughput.md`
+~8.9k steps/s per 2048-env run, ~17.8k for 2 parallel (near-linear), GPU only 18–31% util →
+headroom for 4–6 parallel. Funnel: CEM grasp screen ~36–130 designs/hr → A+B retrain ~16–24/night.
+
+## Open decision for you
+If the from-A reorienter *also* idles a finger, the reorient task itself wants an asymmetric
+2-finger roll and the lever shifts to either (a) a stronger all-finger-contact constraint during
+reorient, or (b) the **seating** morphology direction (longer fingers/palm → palm bears load), which
+is the orthogonal low-force unlock and the next thing I'd sweep.
 
 ## Key files
 - `docs/rl/morphology_optimization_plan.md` — the full plan + the honest VGDS read.
