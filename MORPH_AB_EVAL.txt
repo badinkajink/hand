@@ -1,0 +1,9 @@
+=== A+B on thumb-balanced morphology — eval Tue Jun 23 10:32:04 AM MDT 2026 ===
+B(gentle+spread)=results/rl/20260623-0931-policyB_reorient_thumbBalanced_gentle  ckpt=model_405.pt
+A(lift)=results/rl/20260623-0936-policyA_thumbBalanced
+A final object_height: 0.0602 (held ~0.09 = lifts)
+policy       held_cos |  thumbF  indexF    midF | thumb% | contact-found:  thumb  index    mid
+newmorph_gentle    0.509 |    0.24    0.00    1.91 |    11% | contact-found:   0.07   0.00   0.93
+newmorph_B4recipe    0.813 |    8.87    0.00   17.10 |    34% | contact-found:   0.60   0.00   0.86
+oldmorph_B4     0.986 |    7.10   10.19   10.30 |    26% | contact-found:   1.00   1.00   0.93
+[waiter] done -> /home/humanoid/Programs/hand/MORPH_AB_EVAL.txt
