@@ -25,3 +25,5 @@ MUJOCO_LOG.TXT
 .claude
 hand_paper/*
 paper/*
+# autonomous morphology sweep — generated scenes (reproducible)
+assets/mjcf/experimental/morph_sweep/
