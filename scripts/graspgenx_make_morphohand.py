@@ -46,8 +46,6 @@ sys.path.insert(0, str(GRASPGENX_ROOT / "scripts"))
 import build_morphohand_urdf as bmu  # noqa: E402
 from gripper_config_wizard import (  # noqa: E402
     compute_gripper_bbox,
-    detect_finger_geoms,
-    estimate_inner_sweep_volume,
     export_merged_mesh,
 )
 
@@ -133,18 +131,53 @@ def main() -> None:
     print(f"Actuated joints ({len(joint_names)}): {joint_names}")
 
     open_js, close_js = build_open_close(joint_names)
-
-    # 3. sweep volumes + bbox in the canonical (base_rotation) frame
-    finger_geoms = detect_finger_geoms(robot, open_js)
-    sv_extents, sv_offset, closing_axis = estimate_inner_sweep_volume(
-        robot, open_js, finger_geoms, base_T=BASE_ROTATION
-    )
     half_js = {k: open_js[k] + 0.5 * (close_js[k] - open_js[k]) for k in open_js}
-    sv2_extents, sv2_offset, _ = estimate_inner_sweep_volume(
-        robot, half_js, finger_geoms, base_T=BASE_ROTATION
-    )
+
+    # 3. sweep volumes from the actual fingertip arc, in the canonical frame.
+    #
+    # The wizard's auto-estimator assumes an opposed gripper and a single
+    # closing axis; our 3 fingers curl together (non-opposed), so its boxes
+    # came out spanning the whole finger length. Instead we bound the region
+    # the fingertips actually enclose as they sweep open->close, centred on
+    # the grasp "pocket" (where the flexed fingers converge), so the model
+    # places objects where the hand can wrap them rather than at the
+    # fully-extended fingertips.
+    R = BASE_ROTATION[:3, :3]
+
+    def tip_positions(js: dict) -> np.ndarray:
+        robot.update_cfg(js)
+        pts = []
+        for f in ("thumb", "index", "middle"):
+            T = robot.get_transform(frame_to=f + "_tip_link", frame_from="base_link")
+            pts.append(R @ T[:3, 3])
+        return np.array(pts)
+
+    tips_open = tip_positions(open_js)
+    tips_half = tip_positions(half_js)
+    tips_close = tip_positions(close_js)
+
+    MARGIN = 0.012  # ~finger radius, so the box wraps finger thickness
+    FLOOR = np.array([0.04, 0.04, 0.04])  # min graspable box
+
+    def box(point_sets: list[np.ndarray]) -> tuple[list, list]:
+        pts = np.vstack(point_sets)
+        lo, hi = pts.min(0), pts.max(0)
+        extents = np.maximum((hi - lo) + 2 * MARGIN, FLOOR)
+        offset = (lo + hi) / 2.0
+        return extents.tolist(), offset.tolist()
+
+    # pocket = where the half/closed fingertips converge (object rests here)
+    pocket = 0.5 * (tips_half.mean(0) + tips_close.mean(0))
+    # open box: from the open fingertips down into the pocket (max aperture)
+    sv_extents, sv_offset = box([tips_open, pocket[None, :]])
+    # half box: the tighter region between half and closed fingertips
+    sv2_extents, sv2_offset = box([tips_half, tips_close])
+
     bbox_min, bbox_max = compute_gripper_bbox(robot, open_js, base_T=BASE_ROTATION)
-    print(f"closing_axis(detected, 0=x/1=y/2=z) = {closing_axis}")
+    print(f"tips_open  centroid={np.round(tips_open.mean(0),4)}")
+    print(f"tips_half  centroid={np.round(tips_half.mean(0),4)}")
+    print(f"tips_close centroid={np.round(tips_close.mean(0),4)}")
+    print(f"pocket={np.round(pocket,4)}")
     print(f"open  sweep extents={np.round(sv_extents,4)} offset={np.round(sv_offset,4)}")
     print(f"half  sweep extents={np.round(sv2_extents,4)} offset={np.round(sv2_offset,4)}")
     print(f"bbox  min={np.round(bbox_min,4)} max={np.round(bbox_max,4)}")
