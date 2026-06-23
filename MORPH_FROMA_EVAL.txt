@@ -1,0 +1,6 @@
+=== reorienter warmstart-newA eval Tue Jun 23 11:11:05 AM MDT 2026 ===
+run=results/rl/20260623-1033-policyB_reorient_thumbBalanced_fromA ckpt=model_405.pt
+policy       held_cos |  thumbF  indexF    midF | thumb% | contact-found:  thumb  index    mid
+newmorph_fromA    0.571 |    2.83    0.00    0.50 |    85% | contact-found:   0.26   0.00   0.09
+oldmorph_B4     0.988 |    7.08   10.14    9.84 |    26% | contact-found:   1.00   1.00   0.92
+[waiter] done
