@@ -1165,6 +1165,34 @@ grip relax and smooth out for free.
 **Then:** morphology optimisation (the real low-force lever — re-grip higher / seat into palm /
 fingertip geometry), which deliberately breaks the A/B lineage and so comes after this round.
 
+### Results: the grip defect is STRUCTURAL → pivot to morphology
+
+**gentleB worked** (the smooth/low-force trade): vs b34_t20, ang-jerk **74→57**, fingertip force
+**6.8→5.3 N**, at lower held-cos (0.77→0.64). Relaxing verticality does let the grip relax.
+
+**But per-finger instrumentation** (`probe_grip_balance.py` + per-finger output added to
+`rl_demo_handoff_continuous.py`) exposed the real defect: the grip is a **degenerate pinch** — the
+**thumb is idle (~1.6 N)** while index+middle clamp ~8 N each (all three touch). B4 (the best
+reorienter) is a **balanced** tripod (7/10/10 N), and our *total* force (~20 N) is already below
+B4's (~27 N) — so "excessive force" is really a **lopsided** grip.
+
+**The spread penalty could not fix it.** A new `grip_force_spread` reward term (penalise per-finger
+max−min) + switching the over-grip penalty to `reduce=max`, warmstart gentleB → thumb 1.6→**1.8 N**
+(still idle), index 8.0→7.1. **The policy cannot recruit the thumb** into a load-bearing opposition —
+its *placement* can't oppose the other two against this object. That is geometry, not reward.
+
+**Contact-hardening confirmed the grip is marginal.** A per-run `--frozen-scene-xml` override + a
+stiffened scene showed that hardening the contact even mildly **breaks frozen Policy A's grasp** (the
+object never leaves the floor). The soft contact is functionally load-bearing; the visible
+penetration is a symptom of the marginal grip — a hard-contact run needs retraining A+B from scratch.
+
+**Conclusion → morphology.** Both structural defects (idle thumb, no seating) map onto the existing
+**9-param design space** (per-finger x/y/length, `src/morphohand/sampling/morphology.py`). The plan,
+including an honest read on why the "Shape Your Body"/VGDS value-gradient method is the wrong tool for
+a task this brittle (evaluate designs by rollout, not value gradient), is in
+**`docs/rl/morphology_optimization_plan.md`**. First experiment: reposition the thumb for true
+opposition, retrain B, measure per-finger balance.
+
 ---
 
 ## Results
