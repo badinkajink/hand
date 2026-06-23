@@ -1,0 +1,6 @@
+=== reorient-on-balanced-morphology eval Mon Jun 22 11:40:16 PM MDT 2026 ===
+run=results/rl/20260622-2303-policyB_reorient_thumbBalanced  ckpt=model_405.pt
+policy       held_cos |  thumbF  indexF    midF | thumb% | contact-found:  thumb  index    mid
+newmorph        0.815 |    9.20    0.00   17.32 |    35% | contact-found:   0.62   0.00   0.87
+oldmorph_B4     0.990 |    7.05   10.22    9.54 |    26% | contact-found:   1.00   1.00   0.91
+[waiter] done -> /home/humanoid/Programs/hand/MORPH_REORIENT_EVAL.txt
