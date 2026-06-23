@@ -583,6 +583,13 @@ class MorphoHandEnvCfg:
     """Normalisation (N) for the excess: penalty = ((force-thresh)/scale)**2."""
     grip_force_penalty_reduce: str = "mean"
     """'mean' (overall over-grip) or 'max' (worst finger) over the 3 fingertips."""
+    grip_force_spread_weight: float = 0.0
+    """Penalty weight for grip IMBALANCE: per-finger force spread (max-min)/scale over
+    the 3 fingertips. NEGATIVE. Pushes toward a balanced tripod (B4-like, all fingers
+    sharing load) so no single finger carries the grip — targets the user-observed
+    lopsided grip (thumb idle, index/middle ~8 N). 0 disables. Try -2 to -8."""
+    grip_force_spread_scale: float = 4.0
+    """Normalisation (N) for the spread penalty: penalty = (maxF - minF) / scale."""
     brace_distance_weight: float = 0.0
     """Reward weight for DENSE brace shaping exp(-gap/scale): pulls the
     cylinder's nearer end toward the palm plate, gated on alignment. Needed
@@ -1000,6 +1007,13 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
                         thresh=float(cfg.grip_force_penalty_thresh),
                         scale=float(cfg.grip_force_penalty_scale),
                         reduce=str(cfg.grip_force_penalty_reduce)),
+        )
+    if cfg.grip_force_spread_weight != 0.0:
+        rewards["grip_force_spread"] = RewardTermCfg(
+            func=mjlab_terms.grip_force_spread,
+            weight=float(cfg.grip_force_spread_weight) * task_scale,
+            params=dict(sensor_name="fingertip_cube_contact",
+                        scale=float(cfg.grip_force_spread_scale)),
         )
     if cfg.handoff_target_bank and cfg.handoff_target_weight != 0.0:
         rewards["handoff_target_proximity"] = RewardTermCfg(

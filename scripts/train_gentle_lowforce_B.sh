@@ -87,14 +87,19 @@ ARGS=(
   --brace-force-weight 4.0 --brace-align-thresh 0.7 --brace-max-force 3.0
   --brace-distance-weight 12.0 --brace-distance-scale 0.025
   --grip-force-penalty-weight="$PEN_WEIGHT" --grip-force-penalty-thresh "$PEN_THRESH"
-  --grip-force-penalty-scale "$PEN_SCALE" --grip-force-penalty-reduce mean
+  --grip-force-penalty-scale "$PEN_SCALE" --grip-force-penalty-reduce "${PEN_REDUCE:-mean}"
   --tag "$TAG" --no-wandb
 )
+# EXTRA_ARGS: append experiment-specific flags (e.g. --grip-force-spread-weight,
+# --frozen-scene-xml for the hard-contact variant). B_CKPT overrides the warmstart.
+read -r -a _extra <<< "${EXTRA_ARGS:-}"
+ARGS+=("${_extra[@]}")
 c=$(mktemp -d)
 LOG="${LOG:-$ROOT/gentleB_${TAG}.trainer.log}"
 echo "[gentleB] TAG=$TAG ts=$TOTAL_TS  ALIGN_W=$ALIGN_W ALPHA=$ALPHA PROG_W=$PROG_W"
-echo "[gentleB] GRIP_REW=$GRIP_REW  PENALTY thresh=$PEN_THRESH w=$PEN_WEIGHT  LATERAL=$LATERAL_W"
-echo "[gentleB] warmstart-B(b34_t20)=$B_CKPT  A=$A_CKPT  onset=$ONSET_STEP reorient_start=$REORIENT_START"
+echo "[gentleB] GRIP_REW=$GRIP_REW  PENALTY thresh=$PEN_THRESH w=$PEN_WEIGHT reduce=${PEN_REDUCE:-mean}  LATERAL=$LATERAL_W"
+echo "[gentleB] warmstart-B=$B_CKPT  A=$A_CKPT  onset=$ONSET_STEP reorient_start=$REORIENT_START"
+echo "[gentleB] EXTRA_ARGS=${EXTRA_ARGS:-<none>}"
 echo "[gentleB] WARP_CACHE=$c trainer-log=$LOG"
 WARP_CACHE_PATH="$c" MUJOCO_GL=egl setsid uv run --extra rl --extra gpu \
   python "$ROOT/scripts/rl_train_cube.py" "${ARGS[@]}" > "$LOG" 2>&1 &
