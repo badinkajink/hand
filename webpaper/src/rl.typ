@@ -142,7 +142,21 @@ them.
   [B11], [hold-only warm-start, soft (residual 0.4, 150-it α)], [holds but never tilts (held-cos −0.137; too dilute)],
   [B12], [smoothness finetune *of B10*], [smoothing destroyed the tilt (held-cos 0.086, jerk 550)],
   [B13], [soft-but-committing onset (residual 0.5, 40-it α)], [smooth seam (jerk 21) but half-tilt (held-cos 0.462)],
+  [B14], [adapt-B skip-lift bank (`adaptToA`)], [trains clean, still drops (min-z 0.0028)],
+  [B15], [`Badapt` — static onset-inject], [new best at the time (min-z 0.0081), still drops],
+  [B19/B22], [co-adaptation pairings (B→Atol delivery)], [B22 = best relative min-z 0.0114],
+  [*B24*], [*live-A reset, warm-start B10*], [*🎉 first to HOLD the continuous seam (post-handoff min-z 0.110) + reorient (cos 0.751)*],
+  [B25], [live-A canonical 0.5 retrain (deploy parity)], [lineage-comparable deployable version],
+  [B26], [live-A, warm-start B4], [collapses — the B4 catch-22 (reorients from step 0, drops first)],
+  [B27], [live-A B24 continuation, +40M], [reorient PLATEAUED (cos 0.742) — the B10 warm-start is the ceiling],
 )
+
+The lift/deliver side has its own registry: *A1* is the frozen deliverer
+(`...stable_v1/model_500`); *A2–A9* are the un-freeze-A grip-migration runs (the `unfreezeA`
+and `branchB` series, of which *A7* = `Atol20` is the canonical migrated A). Run directories
+now carry their ID as a prefix (e.g. `b04_…p2_lateral_only`); intermediate Policy-B explorations
+that were never canonized are prefixed `bx_`. The full directory↔ID map is the single source of
+truth in `scripts/rename_results_bids.sh`.
 
 == The reorientation journey
 
@@ -455,6 +469,159 @@ Röstel 2025), and here it is the first thing to clear the prior best by a clear
   `last_action`), then begin B's PPO rollout at the seam. It is a training-loop change, not a reward
   knob — A drives the pre-onset steps and those steps are masked from the PPO update — which is why it
   is the deliberate next build rather than another swept run.
+]
+
+== The live-A reset closes the seam
+
+The build worked. The live-A reset is the first mechanism to make a single policy *both
+survive the continuous A→B handoff and reorient* — the seam is solved in principle. Frozen
+Policy A drives B's training env live for steps 0..40 of every episode (real physics, real
+contacts, real `last_action`); B's PPO rollout then begins at the *organic* seam, and the
+A-driven pre-onset steps are masked from the PPO update (advantages zeroed and renormalized,
+returns kept — masking *advantages*, not log-probs, avoids the log-prob trap).
+
+Warm-started from B10, 20M / 3072 (`policyB_liveAreset_fromB10`, model 270): the continuous
+handoff now holds at **post-handoff min-z 0.110 m** (`≫` the 0.05 bar) at held-cos *0.751* —
+where every prior teleport approach dropped within 3–5 steps (min-z 0.003–0.011). The training
+signature confirmed it: masked-frac fell 0.95→0.20 (episodes lengthened `~5×`), alignment
+climbed 0.45→58.9, `tip_lost` fell 51→8, and episodes ran to time-out.
+
+#media("assets/handoff_liveAreset_scale02.mp4", label: [The live-A reset — seam held.],
+  caption: [Policy A delivers live, B takes over at the organic seam with no teleport and holds
+    the object at full height through the whole post-seam rollout while reorienting. First policy
+    to both survive the continuous handoff and reorient.])
+
+#callout(tag: "Config-parity gotcha", kind: "warn")[
+  That run trained at `finger_residual_scale = 0.2` (the trainer default) while B10 and the deploy
+  demo use *0.5*. Evaluating it at 0.5 applies its residuals 2.5× too large and the seam collapses
+  instantly — an *artifact, not a failure*. The training env must match the deploy env on
+  scale / easing / contact-gate. And the decisive number is *post-handoff* min-z: whole-rollout
+  min-z is dominated by the pre-lift floor phase (`z ~ 0.012`), so the 0.05 bar is unreachable by it.
+]
+
+== What is still open: reorientation *quality*
+
+The hold is solved; the *quality* is not. Asked to judge the result, the verdict was "still
+jittery, and it doesn't reorient well" — and both flaws trace to the same root, the *B10
+warm-start* (the "violent survivor": held-cos 0.977 but `obj_jerk` 108, four times B4's 27).
+Three tests pinned it down:
+
+#table(
+  columns: (auto, auto, 1fr),
+  table.header([*Attempt*], [*Result*], [*Takeaway*]),
+  [+40M more training (from B10-live-A)], [held-cos 0.742, no climb],
+    [the 0.74 reorient ceiling is the *warm-start*, not undertraining],
+  [warm-start *B4* (smooth, 0.988) instead], [collapses at the seam (align 0)],
+    [B4's reorient-from-step-0 actions shock A's grip → it drops before the reorient gate fires → zero gradient],
+  [deploy action low-pass], [drops the object (min-z 0.0027)],
+    [B10's corrective jerk *is* the stabilization — it cannot be filtered out],
+)
+
+Both complaints share one fix: get B4's smooth, full-vertical reorientation to *survive the
+seam*. The blocker is the *B4 catch-22* — a policy must survive the seam before it can be
+taught to reorient there, but B4 reorients from step 0 and drops first (it is exactly the
+catch-22 that forced the hold-only B10 warm-start in the first place). The next experiment —
+a build, not a knob — is a *training-time seam action-ramp-in*: in `live_a_runner.py`, ease B
+into control over the first `~8–12` steps after onset (`α·B + (1−α)·A`, α ramping 0→1, those
+blend steps masked from PPO), warm-starting B4. This is the training analog of the demo's
+action-blend, applied where it can actually teach.
+
+== Outcome: the B4 path is dead; the win is lifting B10's quality (B24→B29)
+
+The ramp-in was built and tested. A layered diagnosis showed it is *necessary but not sufficient*:
+the ramp keeps the object aloft *during* the blend, and delaying the terminations to B's takeover does
+let trainable B-steps accumulate — but the instant B4 has authority it drops A's flat delivery to the
+floor and never recovers, because *B4 has no hold prior* (precisely why B10/hold-only was the warm-start
+that worked). All three B4-warm-start runs failed (floor-drop + transient NaN). *B4 cannot be made to
+survive the seam.*
+
+The productive move is the *inverse*: keep the already-surviving B10-live-A policy (B24) and lift its
+*quality* with a *non-terminating commit + speed bonus* (the no-terminate success bonus the v2 sweep had
+recommended, so no threshold-gaming) plus a sharper near-vertical basin re-anneal.
+
+#table(
+  columns: (auto, 1fr, auto, auto, auto),
+  table.header([*ID*], [*recipe*], [*held-cos*], [*peak*], [*min-z*]),
+  [B24], [B10-live-A baseline], [0.751], [0.816], [0.110],
+  [B27], [+40M continuation], [0.742], [0.817], [0.105],
+  [B28], [+ commit-bonus 30], [0.759], [*0.891*], [0.110],
+  [*B29*], [+ commit 60 + basin re-anneal (α 1→6)], [*0.784*], [0.866], [0.108],
+)
+
+The commit bonus + sharper basin *moved the quality ceiling 0.75 → 0.78* (real but modest, `~5°` closer to
+vertical; the hold stays solid `~0.11`) — but did *not* reach B4's standalone 0.988. *The B10-warm-start
+basin is a stubborn quality ceiling that reward-shaping only nudges.* B29 is the new best handoff policy.
+Breaking past `~0.8` likely needs a *new mechanism* — distilling B4's full reorientation onto the held
+post-seam states B29 visits (behavior cloning / teacher-student) — not more reward tuning.
+
+== The force chase, and the phantom it was chasing (B30→B34)
+
+From B29 the work turned to the grip. B32 (`gripSmooth_w4`) became the *firmest and smoothest handoff
+yet* — post-handoff min-z 0.1085, held-cos *0.891*, and 4–5× smoother than a rejected jittery candidate
+that the new eval diagnostics had exposed (a near-vertical policy can still be *frantically shaking* in
+place; cos and min-z are blind to it, so the eval now reports lin/ang *jerk*, wander, and contact force).
+But B32 held with an `~11 N` fingertip clamp — believed to be the source of both the thumb penetration
+and the residual jitter. So we added an over-grip *penalty* (`grip_force_excess`, a quadratic cost on
+fingertip force above a threshold) and swept the threshold down (B33→B34) to find the floor.
+
+#table(
+  columns: (auto, auto, auto, auto, auto, auto),
+  table.header([*thresh*], [*force*], [*held-cos*], [*min-z*], [*ang-jerk*], [*palm force*]),
+  [4.0 (B33)], [7.5 N], [0.845], [0.111], [49], [*0.0 N*],
+  [2.5],       [6.7 N], [0.771], [0.112], [69], [*0.0 N*],
+  [2.0 (t20)], [6.6 N], [0.782], [0.112], [76], [*0.0 N*],
+)
+
+Halving the penalty knee moved the force `< 1 N`: a fingertip hold of this rod floors at `~6.6 N`, palm
+force is *0.0 N in every run* (the object never seats into the palm), and held-cos stays flat. It looked
+like gentleness was a *seating* problem — until we verified the premise the whole arc rested on.
+
+#callout(tag: "The premise was a phantom", kind: "warn")[
+  "B3 is gentle because it holds a `~3 N` seated grip" is *false*. Direct measurement
+  (`probe_grip_force.py`, each policy's own standalone rollout) gives *B3 = 7.04 N*, *B4 = 8.77 N* —
+  as hard or *harder* than our handoff (6.6 N). Nobody seats (palm force 0.00 N everywhere). Force does
+  *not* cause jitter — B4 is the *smoothest* policy at the *highest* force. Penetration is universal (the
+  same soft solver). The "`~3 N`" figure was a misread of `grip_force_max = 3.0`, the grip-force
+  *reward's saturation cap* — not B3's real force. *B30→B34 optimised a non-problem.* The sweep was still
+  informative: it proved force is *decoupled* from both the hold and the smoothness — the real remaining
+  gaps are *verticality* and *smoothness* from the seam, ceilinged by the B10 warm-start basin and the
+  marginal fingertip grip, not the grip force.
+]
+
+A 3-stage composition (A → B32 → B4) was also ruled out: B32 handed B4 a rock-stable cos-0.90 pose and
+*B4 still dropped it* — the catch-22 is the *grip basin*, not the object pose, so naive action-distillation
+would hit the same wall. B32 is therefore reframed as *already a good handoff reorienter* (holds + cos 0.895).
+
+== Where it stands, and the 2026-06-22 pivot
+
+The seam is solved (the policy holds the continuous handoff at min-z `~0.11`); B32 reorients to cos 0.895.
+Reaching B4's 0.988 *and* its smoothness from a live-A handoff is blocked by the grip-basin catch-22 and
+the B10 jitter ceiling, which reward-tuning only nudges. At this point the user reprioritised:
+
+#callout(tag: "The user's call", kind: "note")[
+  "I don't care about a close-to-brace pullup or a close-to-vertical reorientation — I just want a
+  *smooth, low-force* grasp and reorient. Then we can think about morphology optimization."
+]
+
+The honest constraint: genuinely *low* force (below the `~6.6 N` fingertip floor) needs the object to
+*seat into the palm* so the palm bears the load and the fingers relax — which *this morphology cannot do*
+(the object sits 7–8 cm below the palm). That is the *morphology* step. But one lever is untried *within*
+the current morphology: every run so far *maximised verticality* (alignment +100), which is exactly what
+forces the tense corrective clamp and the jitter. A *gentle partial reorient* may relax the grip and
+smooth out for free. Two runs test this: (1) a *gentle low-force reorienter* (warm-start the gentlest
+survivor B34-t20, relax verticality, lower the grip reward, raise the lateral smoother), and (2) a
+*re-opened Policy A* fine-tuned with an over-grip penalty to deliver with less force. Morphology
+optimization — the real low-force lever — follows, and deliberately breaks the A/B lineage, so it comes last.
+
+#callout(tag: "Known artifact — thumb penetration", kind: "note")[
+  In the live-A rollouts and many prior runs the *thumb visibly phases into the screwdriver*
+  during the grip. This is a consequence of the deliberately soft contact solver this task uses
+  (`impratio = 10`, elliptic friction cone, and a soft `solref = 0.006` / `solimp = 0.97 0.995`
+  geom default), which trades some interpenetration for a stable, non-explosive grip. It is
+  cosmetically and physically imperfect, but the contact parameters are *deliberately left
+  unchanged* until reorientation quality is solved — retuning them would perturb every policy's
+  grip force and invalidate the A/B lineage and the seam comparisons above. It is deferred to a
+  sim-to-real hardening pass.
 ]
 
 #refbox[

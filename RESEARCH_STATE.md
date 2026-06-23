@@ -1,7 +1,17 @@
-# In-hand reorientation — research state & handoff (updated 2026-06-09 eve)
+# In-hand reorientation — research state & handoff (updated 2026-06-22)
 
 Living handoff doc for a FRESH session **and a self-contained brief for an external analyst.**
 Full chronological log: `docs/rl/reorientation.md`. Published narrative: `webpaper/src/rl.typ`.
+
+> **⚠️ STATUS BANNER (read before the problem statement below).** The A→B handoff "seam"
+> that the *Problem & goal* section frames as "THE open problem" was **SOLVED on 2026-06-10**
+> (the live-A reset — the policy now holds the handoff at post-handoff min-z ~0.11 m). The
+> later force/grip-quality work (b32→b34, 2026-06-12/13) chased a **phantom** (B3/B4 are NOT
+> gentle — see the correction below). As of **2026-06-22** the project has **pivoted** to the
+> user's actual goal — a *smooth, LOW-FORCE* grasp+reorient (verticality de-prioritised) — with
+> two runs in flight, then morphology optimisation. **The authoritative current state is the
+> `2026-06-22` section immediately below;** everything under the older `START HERE` dates is
+> retained as the historical record.
 
 ## Problem & goal (read first — no repo context assumed)
 **System.** A 3-finger robot hand, **9 DOF, finger-only** (the palm is fixed — no arm, no wrist
@@ -27,9 +37,12 @@ reference-pose observations differ from the normal-lift continuous deploy). It i
 off-distribution collapse.
 
 **Success metric.** Continuous A→B rollout (no reset); take the **minimum object-center height**
-over the whole rollout. **`min-z > 0.05 m` = the object stayed in the hand = seam closed.** Best
-achieved so far is **0.0073** (branch-B); everything else is ~0.003 (object on the floor). The bar
-is ~7× above the best result — this is not a tuning gap, it is an unsolved problem.
+*post-handoff* (the honest hold metric — whole-rollout min-z is dominated by the pre-lift floor
+phase; gotcha #13). **`min-z > 0.05 m` = the object stayed in the hand = seam closed.**
+*(Historical note: pre-2026-06-10 the best was 0.0073 and every teleport approach dropped — this
+paragraph framed it as unsolved. The **live-A reset closed it on 2026-06-10**: post-handoff
+min-z ~0.11 m, held continuously. The open problem is no longer the hold; see the 2026-06-22
+section.)*
 
 **What's been tried (one line each; details below).** (a) Move **A → B's grip** (branch-B, un-freeze
 A): trains clean, A migrates its grip only partway, seam stays open. (b) Move **B → A's delivery**
@@ -44,6 +57,86 @@ START HERE.
 
 Task object/scene: flat-laying `screwdriver_medium` cylinder; morphology run
 `results/phase1/run18_multi_object_adapt/foundational/screwdriver_medium_flat/run_20260521_150259`.
+
+## ⚡ FRESH SESSION — START HERE (2026-06-22) — PIVOT TO SMOOTH / LOW-FORCE
+
+### Where the project actually is (one screen, honest)
+1. **The handoff seam is SOLVED** (2026-06-10, live-A reset). Policy B holds A's organic delivery
+   at full height through the continuous handoff and reorients — post-handoff min-z ~**0.11 m**
+   (≫ 0.05 bar). Every prior teleport approach dropped in 3–5 steps. *This is no longer open.*
+2. **Best handoff reorienters (all hold; the trade is verticality ↔ smoothness ↔ force):**
+   - **b32** (`b32_…gripSmooth_w4/model_405`): held-cos **0.895** (~25° off vertical) — but **jittery**
+     (ang-jerk ~112) and clamps ~**11 N**.
+   - **b29** (`b29_…commit60/model_405`): held-cos 0.78, gentler.
+   - **b34_t20** (`20260613-0909-…forcefloor_t20/model_405`): the **gentlest** — fingertip **6.6 N**,
+     ang-jerk 76, held-cos 0.78. This is the warmstart for the new gentle-B run.
+3. **THE GRIP-QUALITY PREMISE WAS A PHANTOM (2026-06-13 correction — load-bearing).** We spent
+   b32→b34 trying to make the grip "gentle like B3." **Direct measurement (`scripts/probe_grip_force.py`)
+   demolished it:** B3 grips **7.04 N**, B4 **8.77 N** — *harder* than our handoff (6.6 N). Nobody
+   "seats" (palm force = 0.00 N in ALL policies). Force does **not** cause jitter (B4 is the smoothest
+   AND highest-force). Penetration is universal (the deliberately-soft contact solver, frozen —
+   [[feedback_thumb_penetration_soft_contact]]). The "B3 ≈ 3 N" benchmark was a **misread of
+   `grip_force_max=3.0`** (the reward saturation cap), not B3's real force. **So the entire force arc
+   optimised a non-problem.** It was still informative: it proved force is **decoupled** from both hold
+   and smoothness, and that for a **fingertip grip of this rod the force floor is ~6.6 N** — you cannot
+   reward your way below it.
+4. **The genuine remaining gaps** (vs B4 standalone 0.988 / smooth) are **verticality** (handoff ~0.78–0.90)
+   and **smoothness** (handoff ang-jerk ~76–112 vs B4 ~26), both ceilinged by the **B10-warmstart basin**
+   ("the violent survivor" — every seam-survivor descends from B10 because B10 is the only thing that
+   survived the seam; B10 is inherently twitchy) plus the **marginal fingertip grip** of a 10 cm rod on
+   3 smooth tips. Reward-shaping plateaus here (b29 nudged 0.75→0.78; jerk-penalty backfires; deploy
+   low-pass drops it; force-penalty trades verticality).
+
+### THE 2026-06-22 PIVOT (user directive — supersedes the verticality/brace push)
+> *"i still don't love our best grasp and am still very frustrated that we can't train a seamless
+> handoff that doesn't use excess force. at this point i don't care about a super close-to-brace
+> pullup or a close-to-vertical reorientation, i just want a SMOOTH, LOW-FORCE grasp and reorient.
+> … then we can start thinking about morphology optimization."*
+
+**Reprioritisation:** drop the verticality and brace ambitions; optimise **smooth + low-force** for
+both the grasp (A) and the reorient (B). **Honest framing the user accepted:** genuinely *low* force
+(below the ~6.6 N fingertip floor) needs the object to **seat into the palm** so the palm bears load
+→ fingers relax — which **this morphology can't do** (object sits 7–8 cm below the palm; `palm_brace_force`
+has fired in 0 of all runs). **That is the morphology step, queued next.** What IS untried within the
+current morphology: **nobody has ever relaxed verticality** — every run held alignment at +100,
+maximising vertical, which is exactly what forces the tense corrective clamp + jitter. A *gentle
+partial* reorient may relax the grip and smooth out for free. That is what this round tests.
+
+### TWO RUNS IN FLIGHT (launched 2026-06-22) — both detached, watchdog'd, ≤2 concurrent (gotcha #11)
+**Run 1 — gentle low-force REORIENT (Policy B).** `scripts/train_gentle_lowforce_B.sh`
+(TAG `policyB_gentleLowforce`, log `gentleB_policyB_gentleLowforce.trainer.log`). Warmstart **b34_t20**;
+live-A reset @ scale 0.2 (gotcha #13). Single coherent change-set vs b34: **relax verticality**
+(target-axis-weight 100→40, alpha 4.0→**1.5** = wide basin so partial tilt already rewards, progress
+300→120); **lower force** (grip-force REWARD 6→2, keep the over-grip PENALTY at thresh **2.5**); **smoother**
+(lateral-drift −8→**−12**, the proven smoothing regulariser). Smoke = healthy (object held 0.111, penalty
+fires −9, no NaN). **Eval:** `rl_demo_handoff_continuous.py --policy-b results/rl/<dir>/tensorboard/model_<N>.pt
+--finger-residual-scale 0.2 --finger-close-easing linear --no-contact-gate` → post-handoff min-z + lin/ang
+JERK + fingertip FORCE + held-cos. **WIN = holds (min-z>0.05) at materially lower force AND lower ang-jerk
+than b34_t20, even at a lower held-cos** (that's the point — buying smooth+gentle WITH a lower cos).
+
+**Run 2 — lower-force GRASP (re-open Policy A).** `scripts/train_lowforce_A.sh` (TAG `policyA_lowforce`,
+log `lowforceA_policyA_lowforce.trainer.log`). User chose to re-open A (branch-B territory). Objective =
+**can A lift+deliver with less fingertip force?** (A was trained force-unaware.) Warmstart a01; A's full
+lift recipe; **add ONLY the over-grip penalty** (thresh **6.0** — milder; the smoke at thresh 5.0 showed
+tip_lost volatility, so we shave the top first and sweep lower later). **Lesson #7 honoured:** keep ALL
+grasp guardrails (drop/tip-loss terms), relax ONLY the precision-slip guards (finger-slip 0.3→2.0,
+slip-xy/yaw) so the grip may re-shape; collapse watchdog kills it if object_height < 0.045 at iter ≥ 24.
+**Eval:** `scripts/probe_grip_force.py` on the new A vs the a01 baseline (did force drop?); then seam-eval
+the gentler A with a frozen reorienter. **Risk:** A keeps its grip (force floors — informative, the b34
+finding on the A side) or collapses (watchdog catches, ~12 min lost).
+
+**Round 2 (natural follow-up, NOT launched):** co-adapt — once a lower-force A lands, retrain gentle-B
+against the *new* A's delivery (live-A reset uses whatever A checkpoint we pass). Run 1 trains against the
+CURRENT frozen A, so its B is not yet matched to Run 2's A.
+
+### HOW TO CHECK THE RUNS
+`tail -f gentleB_policyB_gentleLowforce.trainer.log` / `lowforceA_policyA_lowforce.trainer.log`. Healthy =
+`Metrics/lift_height/object_height` stays ~0.09–0.11 (held), `grip_force_excess` reward becomes *less*
+negative over iters (force dropping), `tip_lost` settles low. A `*.COLLAPSED` sidecar file ⇒ the watchdog
+aborted (grasp dropped). Run dirs land under `results/rl/<TAG>/tensorboard/`. **Eval at each policy's OWN
+config (gotcha #13); judge on the full diagnostics, never cos/min-z alone (b31 lesson).**
+
+---
 
 ## ⚡ FRESH SESSION — START HERE (updated 2026-06-10)
 
@@ -208,6 +301,163 @@ jerk + contact force), NOT cos/min-z (b31 lesson):
     delivery/centering**, not the grip weights. Clean negative result, redirects effort.
 (Prior turn's "seat up into the palm" proposal is deferred — `palm_brace_force` still never fired;
 revisit only if b33 is inconclusive.)
+
+**b33 RESULT (2026-06-12 eve) — REGISTERED. Verdict: the third case — neither clean WIN nor DROP.
+It HOLDS, gets measurably gentler+smoother, but stalls well short of B3.** The 11 N was *partly*
+learned laziness — it compressed for free — but the floor is well above the 2–3 N B3 target, and the
+residual force still penetrates.
+
+| metric | b32 | **b33 (force-reg)** | B3/B4 ref |
+|---|---|---|---|
+| post-handoff min-z | 0.1085 | **0.1114** (HELD) | — |
+| held-cos | 0.891 | **0.845** | ~0.98 |
+| ang-jerk | 113 | **49** | ~27 (B4) |
+| lin-jerk | 3.6 | **1.17** | — |
+| fingertip force (mean) | ~11 N | **7.5 N** (settles ~5–6 N) | ~3 N (B3) |
+| wander | 23 cm | **8.9 cm** | — |
+
+- **Grip was NOT fatally marginal** (rules out the "drops ⇒ A's delivery is the lever" branch): the
+  penalty took force 11→7.5 N (steady-state ~5–6 N; trace decays 19 N at the catch → ~5 N by end),
+  ang-jerk 113→49 (2.3×), lin-jerk 3.6→1.17 (3×), wander 23→8.9 cm (2.6×) — all for free, still holding.
+- **But it did NOT reach the WIN branch either:** 7.5 N ≫ 3 N so it **still over-clamps and still
+  penetrates**; still jitters (49 vs B4's 27); and it cost a little verticality (cos 0.891→0.845).
+- **It's a partial, diminishing-returns move in the right direction, not a B3-level transformation.**
+  Visually confirmed: gentler and smoother, but the thumb still phases in. Video
+  `docs/rl/videos/reorient/b33_forcereg_w6_cont.mp4`.
+
+**NEXT (open, not launched):** the obvious untried lever is to **push the penalty harder** (lower
+thresh 4→2–3 N and/or raise weight) to find where the grip actually breaks — i.e. locate the true
+force floor this morphology+contact-model can hold A's delivery at. If it holds gentler, win; if it
+drops, that pins the floor and redirects to A's delivery/centering. (Deferred alts unchanged: seat
+into palm; B3 distillation for the verticality gap.)
+
+**b34 FORCE-FLOOR SWEEP RESULT (2026-06-13) — GRIP-PENALTY LEVER IS DEAD. The floor is flat at
+~6.6–7.5 N; gentleness is a SEATING problem, not a force-reward problem.** Ran 3 runs continuing
+from b33/model_405, weight −6 fixed, only the penalty threshold varied (`scripts/sweep_b34_thresh.sh`
+→ `scripts/b34_eval_on_done.sh` → `b34_EVAL_RESULTS.txt`; all eval'd at matched parity scale 0.2 /
+linear / contact-gate OFF). **Halving the penalty knee 4→2 N moved fingertip force <1 N:**
+
+| thresh | fingertip force | held-cos | post-min-z | ang-jerk | palm force |
+|---|---|---|---|---|---|
+| 4.0 (b33) | 7.5 N | 0.845 | 0.111 | 49 | **0.0 N** |
+| 3.0 (t30) | 7.5 N | 0.747 | 0.110 | 85 | **0.0 N** |
+| 2.5 (t25) | 6.7 N | 0.771 | 0.112 | 69 | **0.0 N** |
+| 2.0 (t20) | 6.6 N | 0.782 | 0.112 | 76 | **0.0 N** |
+
+All HOLD (~0.11), all over-clamp (~7 N), all jitter (ang-jerk 69–85), held-cos flat ~0.75–0.78,
+and **palm force is 0.0 N in EVERY run** — the object is held at a fingertip pinch ~8 cm below the
+palm and NEVER seats. **Mechanistic verdict:** B3's gentleness IS the seated grip (palm bears load →
+fingers relax to ~3 N); a fingertip-only hold of this object at this pose has a physical minimum
+force ≈7 N (fingers alone resist gravity+torque by friction) — **you cannot reward your way below
+it.** The lever was never grip force; it's the **contact configuration** (seated vs fingertip),
+set upstream by A's fingertip delivery + a morphology that (geometry note: object sits 7–8 cm below
+palm) likely **can't lift the object to the palm to seat it at all.** ⇒ **B3-gentle from a live-A
+fingertip delivery is likely physically UNAVAILABLE, not under-tuned.** Caveats: (1) ~6.6 N may be
+the honest optimum for the fingertip-catch REGIME (≠ B3's seated-reset regime — we've been measuring
+against an unreachable benchmark); (2) visible penetration is partly the deliberately-soft contact
+solver ([[feedback_thumb_penetration_soft_contact]]) — at 6.6 N a firmer solimp would penetrate less,
+so "force" and "penetration" are partly decoupled. **STOP the grip-penalty line.** Remaining levers
+are all bigger than reward tuning (in rough order of odds×effort): (A) accept the floor, register
+t20/t25 as the gentlest live-A handoff, move on; (B) re-seat into palm — quick feasibility probe
+first (can ANY scripted finger motion bring object→palm contact? `palm_brace_force` has fired in 0
+runs, geometry note says no); (C) change A's DELIVERY to hand off a higher/seated pose (touches A,
+branch-B territory, may hit the same morphology wall); (D) morphology change (longer/non-smooth
+fingertips) — the true root if seating is geometrically impossible, but breaks the A/B lineage.
+
+### 2026-06-13 (later) — ⚠️ CORRECTION: THE GRIP-QUALITY PREMISE WAS A PHANTOM. B3/B4 are NOT gentle; grip force was never the lever. The whole b32→b34 arc optimized a non-problem.
+Before committing to a big swing (seat/change-A/morphology), VERIFIED the premise it rests on —
+"B3 is gentle because it holds a ~3 N seated grip." It is FALSE. Direct measurement
+(`scripts/probe_grip_force.py`, fingertip+palm contact force in each policy's own standalone
+held+reorient rollout, steady-state after settle):
+
+| policy | regime | held-cos | fingertip force | palm force |
+|---|---|---|---|---|
+| **B3** (b03 signed) | standalone | 0.978 | **7.04 N** | **0.00 N** |
+| **B4** (b04 lateral) | standalone | 0.988 | **8.77 N** | **0.00 N** |
+| **b34_t20** (ours)   | live-A seam | 0.782 | **6.6 N** | **0.00 N** |
+
+**FOUR facts that demolish the grip-quality framing:**
+1. **B3/B4 are NOT gentle — they grip 7–9 N, AS HARD OR HARDER than our handoff policy (6.6 N).**
+   "Make the grip gentle like B3" was chasing a behavior that does not exist.
+2. **Nobody seats. Palm force = 0.00 in ALL policies incl. the two "good" ones.** Seating was never
+   the differentiator. (The 2026-06-13 "gentleness is a SEATING problem" verdict above is WRONG.)
+3. **Force does NOT cause jitter.** B4 is the SMOOTHEST policy we have (obj-jerk ~26) at the HIGHEST
+   force (8.77 N). Squeezing force could never have fixed smoothness.
+4. **Penetration is universal.** B3/B4 hold at the same ~7 N on the same soft contact model ⇒ they
+   penetrate the same. Any visual "B3 looks cleaner" is a contact ANGLE/pose effect, not lower force;
+   it's the deliberately-soft `solimp` we froze ([[feedback_thumb_penetration_soft_contact]]),
+   affecting every policy equally — orthogonal to the policy, deferred sim2real hardening.
+
+**ROOT OF THE ERROR:** the "B3 ≈ 3 N" benchmark = `grip_force_max=3.0` (rl_train_cube.py:327 /
+env_cfg.py:571), the grip-force REWARD's saturation cap, misread as B3's actual force. (Plausibly
+compounded by reading B3's force on the continuous handoff where B3 DROPS → holds nothing → low force.)
+So b32 (`grip_force` reward), b33 (force-penalty), b34 (force-floor sweep) all optimized toward a
+phantom target. NB: the b34 sweep was still INFORMATIVE — it proved force is decoupled from hold
+(6.6–8.8 N all hold) and from smoothness — it just wasn't the problem we thought.
+
+**THE REAL, UNCHANGED GAP = reorientation QUALITY from the seam, NOT grip.** Two coherent deficits,
+both about operating from A's delivered configuration under the B10 warmstart, NOT force:
+- **Verticality:** handoff 0.78 vs B3/B4 standalone 0.98 (~38° off vertical).
+- **Smoothness:** handoff ang-jerk ~76 vs B4 standalone smooth — jitter from the seam start-state.
+These are exactly the B10-warmstart CEILING + B4-CATCH-22 documented pre-b32 (06-10/06-11 sections).
+The lever is to get B4's smooth 0.988 reorientation to SURVIVE the seam, which reward tuning on the
+B10 lineage plateaus at ~0.78–0.80. **NEXT (real mechanism, not reward tuning):**
+1. **DISTILL B4 → a seam-surviving student** (teacher-student/DAgger): roll out the live-A handoff
+   with a seam-surviving base (b29/b32 — they HOLD post-seam); at the post-seam held states query
+   B4 (the smooth 0.988 teacher) for its reorienting action; train the student by BC(+RL finetune)
+   to imitate B4's reorientation while keeping the hold. The only path with headroom past ~0.80.
+2. Cheap first: RENDER B3/B4 standalone vs the handoff side-by-side to SEE whether penetration/jitter
+   are actually worse in the handoff or universal (settles the last visual question for ~0 cost).
+**STOP the grip-force line entirely.** `scripts/probe_grip_force.py` is the reusable grip-config probe.
+
+### 2026-06-13 (later still) — 3-STAGE A→b32→B4 IS DEAD: the catch-22 is about GRIP BASIN, not object pose. + b32 reframed as a GOOD reorienter.
+Tested the cheap "use the survivor to manufacture B4's start" idea: A lifts → b32 catches+stabilizes
+→ hand off a 2nd time to B4 to finish the reorientation. Built it into `rl_demo_handoff_continuous.py`
+(`--policy-c`, `--handoff-step-2`, `--policy-c-residual-scale`, `--blend-steps-2`; C's action is
+rescaled ×2.5 so B4's native 0.5 residual matches the env's 0.2 — gotcha #13). RESULTS:
+- **b32 baseline (hard switch, my harness):** HELD, cos **0.895** (peak 0.923), min-z 0.108 —
+  reproduces b32's registered 0.891. (First 3-stage attempt's drop was an artifact of a `--blend-steps 8`
+  at the A→b32 seam; b32 was trained with a HARD live-A switch, so the ramp put it OOD. Lesson: eval
+  b32-lineage with blend 0.)
+- **3-stage, HARD seam2:** b32 reorients to cos **0.909 @step60 / 0.903 @step80, rock-stable** (z 0.111,
+  lat 0.8cm) — an almost-ideal near-vertical held start. B4 takes over @step90 → **dropped by step100**
+  (z 0.007, lat 31cm).
+- **3-stage, seam2 BLENDED (ease B4 in over 15 steps):** same — b32 holds 0.898, B4 eases in, **drops
+  by step120** (z 0.012). The blend only slowed the fall.
+
+**VERDICT — composition is DEAD, and the WHY is the keeper:** b32 handed B4 a clean, stable, cos-0.90
+object pose — exactly the "clean start" the idea assumed B4 needs — and **B4 still dropped it within
+10–30 steps, gently or hard.** So the B4 catch-22 is **NOT about the object pose; it's about the GRIP
+configuration.** B4's competence is inseparable from B4's own finger placement / hand pose; you cannot
+drop it into b32's grip any more than into A's raw delivery. **Policies that don't share a grip basin
+cannot be composed.** COROLLARY: naive **action-distillation (DAgger with B4 as the action teacher)
+will hit the SAME wall** — B4's actions are wrong for any other grip. Distillation, if attempted, must
+transfer the OUTCOME/trajectory, not B4's actions (≈ what `target_axis` reward already does → likely
+marginal over current reward tuning).
+
+**THE REFRAME (drop the phantom and look again): b32 is already a GOOD handoff reorienter.** It HOLDS
+the seam AND reaches cos **0.895** (~25° off vertical) with lat-drift <1cm. The grip-force chase
+obscured this. The true remaining gaps vs B4 (0.988) are: (1) **JITTER** (b32 ang-jerk ~112 vs B4 ~26),
+(2) a **modest verticality** gap (0.90 vs 0.99). Both trace to the **B10 warmstart basin** ("the
+violent survivor"): every seam-survivor is warmstarted from B10 because B10 is the only thing that
+survives the seam (catch-22), and B10 is inherently twitchy. Within the lineage there's a
+force/jitter/verticality TRADE: b32 (11N / jerk 112 / cos 0.90) vs b34_t20 (6.6N / jerk 76 / cos 0.78)
+— neither dominates. Reward jerk-penalty backfires (jitter is load-bearing for a marginal grip),
+deploy low-pass drops it, force-penalty trades verticality. **The jitter is the B10 basin + the
+fundamentally marginal fingertip grip of a 10cm rod on 3 smooth tips.**
+
+**HONEST STATE OF THE HANDOFF (2026-06-13):** the seam is SOLVED (holds) and b32 reorients to cos 0.90.
+Reaching B4's 0.988+smoothness from a live-A handoff is blocked by the grip-basin catch-22 (composition
+dead, naive distillation predicted dead) and the B10 jitter ceiling (reward tuning plateaued). **PATHS:**
+1. **ACCEPT b32 as the deliverable handoff policy** (holds + cos 0.90; jitter is high-freq finger
+   correction, object stays put). Defensible, honest stopping point. **[recommended]**
+2. **From-scratch (no-B10) live-A training** — the ONLY untried way to escape B10's jittery basin: train
+   a fresh policy with the live-A reset + strong lateral/smoothing regularizer, no B10 warmstart. HIGH
+   RISK (B10 warmstart exists precisely because holding the seam from scratch is hard) but it's the one
+   lever that could find a SMOOTH seam-surviving basin. The real research bet if we keep pushing.
+3. **Accept the jitter as morphology-limited** (marginal smooth-fingertip grip on a long rod) and, if
+   sim2real fidelity matters, revisit `solimp` hardening + possibly fingertip geometry — a separate
+   morphology pass that breaks the A/B lineage.
 
 ### 2026-06-11 — SEAM ACTION-RAMP-IN built to break the B4 catch-22; layered diagnosis + 3 runs in flight
 Built the documented next experiment: a **training-time seam action-ramp-in** in `live_a_runner.py`
