@@ -422,6 +422,21 @@ def grip_force_excess(env: "ManagerBasedRlEnv",
     return excess.amax(dim=-1) if reduce == "max" else excess.mean(dim=-1)
 
 
+def grip_force_spread(env: "ManagerBasedRlEnv",
+                      sensor_name: str = "fingertip_cube_contact",
+                      scale: float = 4.0) -> torch.Tensor:
+    """Penalty for an IMBALANCED grip: the per-finger force spread (max - min) over
+    the 3 fingertips, normalised by `scale`. Reward weight should be NEGATIVE. A
+    balanced tripod (all fingers sharing the load, like B4: ~7/10/10 N) scores low; a
+    degenerate grip where one finger carries the load and another is idle (the
+    user-observed lopsided grip — thumb ~2 N idle while index/middle clamp ~8 N) scores
+    high. Targets the imbalance that the magnitude penalty (reduce=mean) is BLIND to.
+    Shape (num_envs,)."""
+    mag = _contact_force_mag(env, sensor_name)                       # (B, n_tips)
+    spread = (mag.amax(dim=-1) - mag.amin(dim=-1)) / float(scale)
+    return spread
+
+
 def palm_brace_force(env: "ManagerBasedRlEnv",
                      sensor_name: str = "palm_cube_contact",
                      object_name: str = "cube",

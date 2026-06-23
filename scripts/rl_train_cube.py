@@ -337,6 +337,15 @@ class Args:
     """Normalisation (N): penalty = ((force-thresh)/scale)**2."""
     grip_force_penalty_reduce: str = "mean"
     """'mean' or 'max' over the 3 fingertips."""
+    grip_force_spread_weight: float = 0.0
+    """Penalty for grip IMBALANCE: per-finger force spread (max-min)/scale. NEGATIVE.
+    Pushes toward a balanced tripod so no single finger carries the load. 0 off. Try -2..-8."""
+    grip_force_spread_scale: float = 4.0
+    """Normalisation (N) for the spread penalty: (maxF - minF) / scale."""
+    frozen_scene_xml: Path | None = None
+    """Override the morphology-run's frozen_scene.xml (e.g. a hardened-contact variant).
+    None = use <morphology_run>/frozen_scene.xml. Lets a run change the contact physics
+    (solref/solimp = less penetration) WITHOUT editing the canonical lineage scene."""
     brace_distance_weight: float = 0.0
     """Dense brace shaping exp(-gap/scale) pulling cylinder end to palm. 0 off. Try +5..+20."""
     brace_distance_scale: float = 0.04
@@ -351,7 +360,13 @@ def main() -> None:
         raise FileNotFoundError(f"missing best_rollout.npz under {run}")
     if not (run / "summary.json").exists():
         raise FileNotFoundError(f"missing summary.json under {run}")
-    frozen = run / "frozen_scene.xml"
+    if args.frozen_scene_xml is not None:
+        frozen = Path(args.frozen_scene_xml).resolve()
+        if not frozen.exists():
+            raise FileNotFoundError(f"--frozen-scene-xml not found: {frozen}")
+        print(f"[rl_train_cube] OVERRIDE frozen_scene_xml = {frozen} (custom contact physics)")
+    else:
+        frozen = run / "frozen_scene.xml"
     if not frozen.exists():
         # Re-freeze from summary's base scene as a fallback.
         with (run / "summary.json").open() as f:
@@ -490,6 +505,8 @@ def main() -> None:
         grip_force_penalty_thresh=args.grip_force_penalty_thresh,
         grip_force_penalty_scale=args.grip_force_penalty_scale,
         grip_force_penalty_reduce=args.grip_force_penalty_reduce,
+        grip_force_spread_weight=args.grip_force_spread_weight,
+        grip_force_spread_scale=args.grip_force_spread_scale,
         brace_distance_weight=args.brace_distance_weight,
         brace_distance_scale=args.brace_distance_scale,
     )
