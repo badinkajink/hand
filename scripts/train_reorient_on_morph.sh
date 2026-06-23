@@ -31,15 +31,17 @@ ARGS=(
   --skip-lift-phase --skip-lift-drop-offset 0.005
   --episode-length-s 4.0 --lift-target-z-above-init 0.0
   --finger-residual-scale 0.5 --finger-close-easing ease_out_quad --contact-gate-stability-rewards
-  --enable-target-axis-reward --target-axis-weight 100.0 --target-axis-alpha 4.0
-  --target-axis-progress-weight 300.0 --reorient-start-step 10 --contact-min-weight 15.0
-  --lateral-drift-weight=-8.0 --lateral-drift-deadband 0.01 --lateral-drift-power 2.0
+  --enable-target-axis-reward --target-axis-weight "${ALIGN_W:-100.0}" --target-axis-alpha "${ALPHA:-4.0}"
+  --target-axis-progress-weight "${PROG_W:-300.0}" --reorient-start-step 10 --contact-min-weight 15.0
+  --lateral-drift-weight="${LATERAL_W:--8.0}" --lateral-drift-deadband 0.01 --lateral-drift-power 2.0
   --enable-lift-terminations
   --term-object-drop 0.02 --term-object-slip-xy 0.5 --term-object-slip-yaw 10.0
   --term-finger-slip 100.0 --term-tip-lost-steps 10
   --enable-floor-proximity-termination --object-min-z 0.05 --floor-proximity-phase-start-step 10
   --tag "$TAG" --no-wandb
 )
+read -r -a _extra <<< "${EXTRA_ARGS:-}"   # gentle+spread overrides etc.
+ARGS+=("${_extra[@]}")
 c=$(mktemp -d)
 LOG="${LOG:-$ROOT/reorientMorph_${TAG}.trainer.log}"
 echo "[reorientMorph] TAG=$TAG ts=$TOTAL_TS  MORPH=$MORPH_RUN"
