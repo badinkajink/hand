@@ -109,6 +109,29 @@ def read_contact_force(env_unwrapped, sensor_name):
         return 0.0, 0.0
 
 
+def read_per_finger(env_unwrapped, sensor_name):
+    """Per-finger (force_mag, found) for env 0, ordered [thumb, index, middle] (the
+    fingertip_cube_contact primary body pattern). Returns ([f,f,f], [g,g,g]) or (None,None).
+    The aggregate read_contact_force() means over fingers and HIDES a degenerate grip where
+    one finger loses contact and the thumb carries the load."""
+    try:
+        s = env_unwrapped.scene.sensors[sensor_name]
+        f = getattr(s.data, "force", None)
+        found = getattr(s.data, "found", None)
+        if f is None:
+            return None, None
+        mag = f.norm(dim=-1)                       # (B, n_bodies[, slots])
+        if mag.dim() == 3:
+            mag = mag.amax(dim=-1)
+        if found is not None and found.dim() == 3:
+            found = found.amax(dim=-1)
+        m = mag[0].detach().cpu().numpy().tolist()
+        g = (found[0].float().detach().cpu().numpy().tolist() if found is not None else [float("nan")] * len(m))
+        return m, g
+    except Exception:
+        return None, None
+
+
 def act(actor, obs):
     return actor.act_inference(obs) if hasattr(actor, "act_inference") else actor.mlp(obs)
 
@@ -278,6 +301,8 @@ def main():
     handoff_xy = None
     tip_force = []   # (mean, max) fingertip-cube contact force [N], post-handoff
     palm_force = []  # max palm-cube contact force [N], post-handoff (does it ever seat?)
+    finger_force = []  # per-finger [thumb,index,middle] contact force [N], post-handoff
+    finger_found = []  # per-finger [thumb,index,middle] contact-found (0/1), post-handoff
     prev_action = None  # for the optional action low-pass filter
     # Resolved switch step: fixed clock, or chosen online by the critic gate.
     switch_step = None if args.switch_on_critic else args.handoff_step
@@ -347,6 +372,10 @@ def main():
                     _, pf_max = read_contact_force(env.unwrapped, "palm_cube_contact")
                     tip_force.append((tf_mean, tf_max))
                     palm_force.append(pf_max)
+                    pf_force, pf_found = read_per_finger(env.unwrapped, "fingertip_cube_contact")
+                    if pf_force is not None:
+                        finger_force.append(pf_force)
+                        finger_found.append(pf_found)
                     if handoff_xy is None:
                         handoff_xy = (x, y)
                     if args.diag_every and (step - switch_step) % args.diag_every == 0:
@@ -418,6 +447,19 @@ def main():
               f"peak {tip_peak:4.1f}N   palm mean {palm_mean:4.1f}N peak {palm_peak:4.1f}N")
         print(f"[diag]      (grip_force reward saturates at 3N; fingertip ≫3N ⇒ over-clamp/penetration. "
               f"palm≈0 ⇒ never seats into palm.)")
+        if finger_force:
+            ff = np.asarray(finger_force)   # (T,3) [thumb,index,middle]
+            fg = np.asarray(finger_found)   # (T,3)
+            fmean = ff.mean(0); gfrac = fg.mean(0)
+            names = ("thumb", "index", "mid")
+            print(f"[diag]  GRIP BALANCE (per finger):  "
+                  + "  ".join(f"{names[i]} {fmean[i]:4.1f}N (touch {gfrac[i]:.2f})" for i in range(3)))
+            lo = int(np.argmin(fmean)); hi = int(np.argmax(fmean))
+            share = fmean[hi] / (fmean.sum() or 1.0)
+            # degenerate grip = a finger barely touches AND one finger carries the load
+            if gfrac.min() < 0.5 or share > 0.5:
+                print(f"[diag]      ⇒ DEGENERATE GRIP: '{names[lo]}' lost (touch {gfrac[lo]:.2f}); "
+                      f"'{names[hi]}' carries {100*share:.0f}% of the load. A balanced tripod would need far less force.")
         flags = []
         if lat.max() > 0.03: flags.append(f"SLIP(lat {lat.max()*100:.0f}cm)")
         if z_slope < -0.003: flags.append("SINKING")
