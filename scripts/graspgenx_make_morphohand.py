@@ -103,6 +103,14 @@ def main() -> None:
         "defaults to the canonical cube/prism open morphology.",
     )
     ap.add_argument("--keyframe", default="open_flat")
+    # Direct morphology overrides (absolute mount x y z); defaults keep the
+    # canonical cube/prism morphology. Lets us sweep distinct hand shapes
+    # without first generating MJCF scenes.
+    ap.add_argument("--thumb", nargs=3, type=float, metavar=("X", "Y", "Z"))
+    ap.add_argument("--index", nargs=3, type=float, metavar=("X", "Y", "Z"))
+    ap.add_argument("--middle", nargs=3, type=float, metavar=("X", "Y", "Z"))
+    ap.add_argument("--baked-len", type=float, default=None,
+                    help="Override the frozen proximal-extension length for all fingers.")
     args = ap.parse_args()
 
     # 1. morphology -> URDF text
@@ -111,6 +119,12 @@ def main() -> None:
             args.scene_xml, args.keyframe
         )
         print(f"Derived morphology from {args.scene_xml}@{args.keyframe}")
+    for finger, val in (("thumb", args.thumb), ("index", args.index), ("middle", args.middle)):
+        if val is not None:
+            bmu.BAKED_MOUNT[finger] = tuple(val)
+    if args.baked_len is not None:
+        bmu.BAKED_LEN = args.baked_len
+    print(f"Morphology mounts={bmu.BAKED_MOUNT} baked_len={bmu.BAKED_LEN}")
     urdf_text = add_visual_geoms(bmu.build_urdf())
 
     dest = args.out / args.name
