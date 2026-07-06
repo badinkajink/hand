@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  macOS launchd agent: run a claude-pulse tick every 10 minutes.
+
+  Install:
+    cp deploy/com.claude-pulse.plist ~/Library/LaunchAgents/
+    # edit the claude-pulse path below to `which claude-pulse`
+    launchctl load ~/Library/LaunchAgents/com.claude-pulse.plist
+    launchctl start com.claude-pulse
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.claude-pulse</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/env</string>
+        <string>claude-pulse</string>
+        <string>tick</string>
+    </array>
+    <key>StartInterval</key>
+    <integer>600</integer>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/tmp/claude-pulse.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/claude-pulse.err</string>
+</dict>
+</plist>

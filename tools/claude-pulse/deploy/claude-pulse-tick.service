@@ -1,0 +1,16 @@
+# systemd *user* oneshot: evaluate once and poke if eligible.
+# Pair with claude-pulse.timer for a cron-free, timer-driven setup.
+#
+# Install (both files):
+#   cp deploy/claude-pulse-tick.service deploy/claude-pulse.timer ~/.config/systemd/user/
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now claude-pulse.timer
+#   loginctl enable-linger "$USER"
+
+[Unit]
+Description=claude-pulse single tick (poke if idle window has room)
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/claude-pulse tick
+# Environment=CLAUDE_PULSE_CONFIG=%h/.config/claude-pulse/config.toml
