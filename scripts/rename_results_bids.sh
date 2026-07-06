@@ -30,6 +30,7 @@ MAP=(
   "20260605-1609-policyA_unfreezeA_v2_w2_tol20|a07"                      # Atol20 (canonical migrated A)
   "20260609-1901-branchB_w4_tol15|a08"                                   # branch-B = un-freeze A
   "20260609-1857-branchB_w6_tol20|a09"
+  "20260702-1256-policyA_m05_ik10|a10"                                   # native A on co-designed m05 (from-scratch, open-finger-from-keyframe, deliver@0.10) — CLEAN health-gated lift
   # ---- Policy B registry (FIXED b01-b13, matches webpaper rl.typ) ----------
   "20260601-1033-policyB_v1|b01"
   "20260602-0024-policyB_v2_smooth10x_quick|b02"
@@ -64,6 +65,7 @@ MAP=(
   "20260610-1355-policyB_liveAreset_cont40M|b27"                         # 40M continuation
   "20260611-1147-policyB_liveAreset_B10qual_commitbonus|b28"             # B10 quality + commit bonus (held-cos 0.759)
   "20260611-1152-policyB_liveAreset_B10qual_commit60|b29"                # *best quality so far: commit60 + basin re-anneal, held-cos 0.784*
+  "20260702-1353-policyB_m05_reorient_ik10|b33"                          # *** CLEAN m05 reorient (live-A reset from a10) — health-gated pickup→reorient, handoff_m05_FIXED.mp4 *** (b30-b32 pre-existing off-MAP)
   # ---- Policy B explorations, NOT canonized (bx_) --------------------------
   "20260601-2310-policyB_v2_smooth5x|bx"
   "20260601-2311-policyB_v2_smooth10x|bx"
@@ -108,6 +110,8 @@ declare -A DESC=(
   [b10]="hold-only warmstart, first to survive delivery but violent"
   [b24]="live-A reset (warmstart B10) — FIRST to HOLD the continuous seam (min-z 0.110, cos 0.751)"
   [b29]="live-A + commit60 + basin re-anneal — BEST handoff policy so far (held-cos 0.784)"
+  [a10]="native A on CO-DESIGNED m05 (from-scratch, open-finger-from-keyframe, deliver@0.10) — CLEAN health-gated 3-finger lift"
+  [b33]="CLEAN m05 reorient (live-A reset, warmstart a10) — first health-gated pickup→reorient on a co-designed hand; handoff_m05_FIXED.mp4"
   [bx]="uncanonized exploration / superseded / failed (see dir name)"
 )
 
@@ -168,14 +172,19 @@ REG="$RL/REGISTRY.md"
   echo
   echo "| ID | run dir | description |"
   echo "|----|---------|-------------|"
+  declare -A _seen=()   # new names already listed via the MAP (avoid double-listing bx_)
   for entry in "${MAP[@]}"; do
-    old="${entry%%|*}"; pref="${entry#*|}"; new="${pref}_${old}"
+    old="${entry%%|*}"; pref="${entry#*|}"; new="${pref}_${old}"; _seen[$new]=1
     d="${DESC[$pref]:-}"
     [[ -z "$d" ]] && d=$(echo "$old" | sed -E 's/^[0-9]{8}-[0-9]{4}-//; s/^policy[AB]_//; s/_/ /g')
     mark=""; [[ -d "$RL/$new" ]] || mark=" ⚠missing"
     echo "| \`$pref\` | \`$new\`$mark | $d |"
   done
-  for new in "${AUTOBX[@]}"; do
+  # Every bx_ dir on disk (idempotent — not just the ones auto-bx'd THIS run), so the
+  # REGISTRY is complete regardless of how many times --apply has run. Skip MAP-listed ones.
+  for d in "$RL"/bx_*/; do
+    [[ -d "$d" ]] || continue
+    new=$(basename "$d"); [[ -n "${_seen[$new]:-}" ]] && continue
     desc=$(echo "$new" | sed -E 's/^bx_[0-9]{8}-[0-9]{4}-//; s/^policy[AB]_//; s/_/ /g')
     echo "| \`bx\` | \`$new\` | $desc (auto-bx — promote via MAP if canonical) |"
   done
