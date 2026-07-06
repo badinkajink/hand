@@ -15,7 +15,7 @@
 # Warp kernel compiles don't thundering-herd the GPU. 2048 envs each; 3x fits 16 GB.
 set -u
 ROOT=/home/humanoid/Programs/hand; cd "$ROOT"
-B33="$ROOT/results/rl/20260612-1750-policyB_b32iter_forcereg_w6/tensorboard/model_405.pt"
+B33="$ROOT/results/rl/bx_20260612-1750-policyB_b32iter_forcereg_w6/tensorboard/model_405.pt"
 [ -e "$B33" ] || { echo "FATAL missing b33 ckpt $B33"; exit 1; }
 
 launch () { # $1=thresh  $2=tagsuffix

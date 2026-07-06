@@ -9,7 +9,7 @@ order, reduce="none" -> per-finger force is directly available.
 
 Usage:
   uv run python scripts/probe_grip_balance.py \
-    b34_t20=results/rl/20260613-0909-policyB_b33iter_forcefloor_t20:model_405.pt \
+    b34_t20=results/rl/bx_20260613-0909-policyB_b33iter_forcefloor_t20:model_405.pt \
     B4=results/rl/b04_20260603-1746-policyB_p2_lateral_only:model_541.pt
 """
 from __future__ import annotations

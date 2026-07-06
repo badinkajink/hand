@@ -41,7 +41,7 @@ ROOT=/home/humanoid/Programs/hand; cd "$ROOT"
 MORPH=results/phase1/run18_multi_object_adapt/foundational/screwdriver_medium_flat/run_20260521_150259
 A_CKPT="${A_CKPT:-$ROOT/results/rl/a01_20260529-1219-screwdriver_medium_flat_short_proximal_stable_v1/tensorboard/model_500.pt}"
 # warmstart = b34_t20 (gentlest + lowest-force live-A seam-survivor)
-B_CKPT="${B_CKPT:-$ROOT/results/rl/20260613-0909-policyB_b33iter_forcefloor_t20/tensorboard/model_405.pt}"
+B_CKPT="${B_CKPT:-$ROOT/results/rl/bx_20260613-0909-policyB_b33iter_forcefloor_t20/tensorboard/model_405.pt}"
 
 # live-A reset wiring (b34 lineage: onset 40, no blend, scale 0.2, contact-gate OFF)
 ONSET_STEP=${ONSET_STEP:-40}; BLEND=${BLEND:-0}

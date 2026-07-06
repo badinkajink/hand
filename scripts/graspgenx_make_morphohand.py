@@ -1,232 +1,220 @@
-"""Non-interactive GraspGenX gripper exporter for the morphohand.
+"""Non-interactive GraspGenX gripper exporter for the morphohand (MuJoCo-based).
 
-GraspGenX normally onboards a new gripper through an interactive Viser GUI
-(scripts/gripper_config_wizard.py). That wizard only produces config.json +
-vis_mesh.obj; the point-cloud / tsdf / vae caches fall back to dummy values
-at inference and the model (gripper=sweep_volume_v2) conditions on the
-sweep-volume boxes + gripper type + bbox in config.json. get_gripper_info()
-never reads the URDF at inference.
+GraspGenX onboards a gripper from a URDF via an interactive Viser wizard that
+writes config.json (sweep-volume boxes + open/close joint states + gripper
+type); at inference `get_gripper_info` reads ONLY config.json (+ meshes), never
+the URDF, and the released model conditions on the sweep_volume_v2 boxes.
 
-This script reproduces the wizard's save step head-less for our parametric
-3-finger hand:
-  1. builds the morphohand URDF via our existing builder (scripts/build_morphohand_urdf.py),
-  2. mirrors each <collision> as a <visual> so yourdfpy can load a scene,
-  3. picks open/close joint poses + a base_rotation that aligns the hand to
-     GraspGenX's canonical frame (+Z = approach, +X = closing),
-  4. computes the open/half sweep-volume boxes and the gripper bbox with the
-     wizard's own geometry helpers,
-  5. writes config.json + gripper.urdf + vis_mesh.obj + coll_mesh.obj into
-     <out>/<name>/ (an x_grippers-style directory GraspGenX can resolve).
+This reproduces the wizard head-less straight from our real MuJoCo hand, so the
+gripper GraspGenX sees is the ACTUAL actuated morphohand, not a flat URDF:
 
-Run it inside the GraspGenX uv env so yourdfpy/trimesh are importable:
-    cd external/GraspGenX
-    uv run python /abs/path/scripts/graspgenx_make_morphohand.py \
-        --out assets/x_grippers --name morphohand
+  * morphology (thumb/index/middle x/y mounts) is whatever the source scene's
+    keyframe encodes and is FROZEN here (we never mutate it),
+  * the gripper "open" config is the scene's ready keyframe posture (fingers
+    pre-flexed), NOT all-zeros (that produced degenerate, unactuated grasps),
+  * "close" flexes yaw/mcp/pip further AND extends `len` (the per-finger
+    Z-actuation joint) so the swept volume reflects a real grasp,
+  * base_rotation = diag(-1,1,-1) maps the palm frame into GraspGenX's canonical
+    convention: palm -z -> +Z approach (the hand cups downward), palm -x -> +X
+    closing (thumb opposes index+middle along x).
+
+Outputs into <out>/<name>/: config.json, coll_mesh.obj, vis_mesh.obj, and a
+sidecar morphohand_grasp.json (close finger ctrl + base_rotation + scene) that
+graspgenx_eval_phase1.py uses to score the generated poses on the real hand.
+
+Run in the project uv env (mujoco 3.6):
+    uv run python scripts/graspgenx_make_morphohand.py \
+        --scene-xml assets/mjcf/scene.xml --keyframe open --name morphohand
 """
 
 from __future__ import annotations
 
 import argparse
 import json
-import sys
-import xml.etree.ElementTree as ET
 from pathlib import Path
 
+import mujoco
 import numpy as np
 import trimesh
-import yourdfpy
 
-HAND_REPO_ROOT = Path(__file__).resolve().parents[1]
-GRASPGENX_ROOT = HAND_REPO_ROOT / "external" / "GraspGenX"
+ROOT = Path(__file__).resolve().parents[1]
+GRASPGENX_ROOT = ROOT / "external" / "GraspGenX"
 
-# Our URDF builder (stdlib-only) + the wizard geometry helpers.
-sys.path.insert(0, str(HAND_REPO_ROOT / "scripts"))
-sys.path.insert(0, str(GRASPGENX_ROOT / "scripts"))
+# palm-frame -> GraspGenX canonical (+Z approach, +X closing). 180 deg about Y.
+BASE_ROTATION = np.diag([-1.0, 1.0, -1.0])
 
-import build_morphohand_urdf as bmu  # noqa: E402
-from gripper_config_wizard import (  # noqa: E402
-    compute_gripper_bbox,
-    export_merged_mesh,
-)
+FINGERS = ("thumb", "index", "middle")
+# Finger DOF read/written per finger. yaw/mcp/pip are the actuated grasp joints;
+# len is the Z-actuation morphology slide (extends during close).
+DOF = ("yaw", "mcp", "pip", "len")
 
-
-def add_visual_geoms(urdf_text: str) -> str:
-    """yourdfpy builds its scene from <visual> geometry; our builder only
-    emits <collision>. Mirror each collision element as a visual one."""
-    root = ET.fromstring(urdf_text)
-    for link in root.findall("link"):
-        for coll in list(link.findall("collision")):
-            vis = ET.fromstring(ET.tostring(coll))
-            vis.tag = "visual"
-            link.append(vis)
-    return ET.tostring(root, encoding="unicode")
+# The scene `open` keyframe IS the closed grasp: the fingertips already
+# surround the object (thumb opposes index+middle, each tip ~4 cm from the
+# cube centre). The grasp CLOSES by the index/middle tips swinging down onto
+# the object while the thumb holds the opposing wall. So the GraspGenX
+# open->close motion is keyframe-with-mcp-reduced (spread) -> keyframe (cup);
+# flexing PAST the keyframe drives every tip ~10 cm away from the object.
+OPEN_MCP_DELTA = -0.8  # subtract from each finger's keyframe mcp to spread for the pre-grasp pose
 
 
-# base_rotation maps the morphohand's native URDF frame into GraspGenX's
-# canonical convention. Native: fingers extend along +X, splay along Y, palm
-# normal +Z. Canonical: +Z = approach (along finger length), +X = closing
-# (the inter-finger spread axis). R sends old +X->+Z, old +Y->+X, old +Z->+Y.
-BASE_ROTATION = np.array(
-    [
-        [0.0, 1.0, 0.0, 0.0],
-        [0.0, 0.0, 1.0, 0.0],
-        [1.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 1.0],
-    ]
-)
+def jadr(model, name):
+    return model.jnt_qposadr[mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, name)]
 
 
-def build_open_close(joint_names: list[str]) -> tuple[dict, dict]:
-    """Open = fingers extended (all joints ~0). Close = MCP/PIP flexed so the
-    fingertips converge toward the palm centerline."""
-    open_js = {j: 0.0 for j in joint_names}
-    close_js = {}
-    for j in joint_names:
-        if j.endswith("_mcp"):
-            close_js[j] = 1.3
-        elif j.endswith("_pip"):
-            close_js[j] = 0.9
-        else:  # yaw
-            close_js[j] = 0.0
-    return open_js, close_js
+def read_open_posture(model, data, key_id) -> dict:
+    """Finger DOF values at the ready keyframe."""
+    mujoco.mj_resetDataKeyframe(model, data, key_id)
+    out = {}
+    for f in FINGERS:
+        out[f] = {d: float(data.qpos[jadr(model, f"{f}_{d}")]) for d in DOF}
+    return out
 
 
-def main() -> None:
+def set_posture(model, data, key_id, posture):
+    mujoco.mj_resetDataKeyframe(model, data, key_id)
+    for f in FINGERS:
+        for d in DOF:
+            data.qpos[jadr(model, f"{f}_{d}")] = posture[f][d]
+    mujoco.mj_forward(model, data)
+
+
+def palm_frame(model, data):
+    bid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "palm_pose")
+    if bid < 0:
+        bid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "palm")
+    return bid, data.xpos[bid].copy(), data.xmat[bid].reshape(3, 3).copy()
+
+
+def tip_positions_canonical(model, data):
+    _, pp, pR = palm_frame(model, data)
+    pts = []
+    for f in FINGERS:
+        b = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, f"{f}_tip")
+        pts.append(BASE_ROTATION @ (pR.T @ (data.xpos[b] - pp)))
+    return np.array(pts)
+
+
+def box_from_points(point_sets, margin=0.012, floor=(0.04, 0.04, 0.04)):
+    pts = np.vstack(point_sets)
+    lo, hi = pts.min(0), pts.max(0)
+    extents = np.maximum((hi - lo) + 2 * margin, np.array(floor))
+    offset = (lo + hi) / 2.0
+    return extents.tolist(), offset.tolist()
+
+
+def export_hand_mesh(model, data, out_path: Path):
+    """Build a trimesh of the palm+finger geoms at the current posture, expressed
+    in the GraspGenX canonical frame (palm-relative, base_rotation applied)."""
+    _, pp, pR = palm_frame(model, data)
+    Rc = BASE_ROTATION
+    meshes = []
+    for gi in range(model.ngeom):
+        bid = model.geom_bodyid[gi]
+        bname = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_BODY, bid) or ""
+        if not (bname.startswith(FINGERS) or "palm" in bname):
+            continue
+        gtype = model.geom_type[gi]
+        size = model.geom_size[gi]
+        gpos = pR.T @ (data.geom_xpos[gi] - pp)            # palm frame
+        gR = pR.T @ data.geom_xmat[gi].reshape(3, 3)
+        if gtype == mujoco.mjtGeom.mjGEOM_CAPSULE:
+            m = trimesh.creation.capsule(height=2 * size[1], radius=size[0])
+        elif gtype == mujoco.mjtGeom.mjGEOM_SPHERE:
+            m = trimesh.creation.icosphere(radius=size[0])
+        elif gtype == mujoco.mjtGeom.mjGEOM_BOX:
+            m = trimesh.creation.box(extents=2 * size[:3])
+        else:
+            continue
+        T = np.eye(4); T[:3, :3] = gR; T[:3, 3] = gpos     # geom -> palm
+        Tc = np.eye(4); Tc[:3, :3] = Rc                    # palm -> canonical
+        m.apply_transform(Tc @ T)
+        meshes.append(m)
+    merged = trimesh.util.concatenate(meshes)
+    merged.export(str(out_path))
+    return merged
+
+
+def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--out", type=Path, default=GRASPGENX_ROOT / "assets" / "x_grippers")
+    ap.add_argument("--scene-xml", type=Path, default=ROOT / "assets" / "mjcf" / "scene.xml")
+    ap.add_argument("--keyframe", default="open")
     ap.add_argument("--name", default="morphohand")
-    ap.add_argument(
-        "--scene-xml",
-        type=Path,
-        default=None,
-        help="Optional MJCF scene to derive the baked morphology from; "
-        "defaults to the canonical cube/prism open morphology.",
-    )
-    ap.add_argument("--keyframe", default="open_flat")
-    # Direct morphology overrides (absolute mount x y z); defaults keep the
-    # canonical cube/prism morphology. Lets us sweep distinct hand shapes
-    # without first generating MJCF scenes.
-    ap.add_argument("--thumb", nargs=3, type=float, metavar=("X", "Y", "Z"))
-    ap.add_argument("--index", nargs=3, type=float, metavar=("X", "Y", "Z"))
-    ap.add_argument("--middle", nargs=3, type=float, metavar=("X", "Y", "Z"))
-    ap.add_argument("--baked-len", type=float, default=None,
-                    help="Override the frozen proximal-extension length for all fingers.")
+    ap.add_argument("--out", type=Path, default=GRASPGENX_ROOT / "assets" / "x_grippers")
     args = ap.parse_args()
 
-    # 1. morphology -> URDF text
-    if args.scene_xml is not None:
-        bmu.BAKED_MOUNT, bmu.BAKED_LEN, bmu.MCP_LEN = bmu._derive_morphology_from_scene(
-            args.scene_xml, args.keyframe
-        )
-        print(f"Derived morphology from {args.scene_xml}@{args.keyframe}")
-    for finger, val in (("thumb", args.thumb), ("index", args.index), ("middle", args.middle)):
-        if val is not None:
-            bmu.BAKED_MOUNT[finger] = tuple(val)
-    if args.baked_len is not None:
-        bmu.BAKED_LEN = args.baked_len
-    print(f"Morphology mounts={bmu.BAKED_MOUNT} baked_len={bmu.BAKED_LEN}")
-    urdf_text = add_visual_geoms(bmu.build_urdf())
+    model = mujoco.MjModel.from_xml_path(str(args.scene_xml))
+    data = mujoco.MjData(model)
+    key_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_KEY, args.keyframe)
+    if key_id < 0:
+        raise SystemExit(f"keyframe '{args.keyframe}' not in {args.scene_xml}")
 
+    # close (grasp) = keyframe posture; open (pre-grasp) = keyframe with mcp
+    # reduced so the index/middle tips swing up/out (fingers spread).
+    close_p = read_open_posture(model, data, key_id)
+    open_p = {f: dict(close_p[f]) for f in FINGERS}
+    for f in FINGERS:
+        jid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, f"{f}_mcp")
+        lo, hi = model.jnt_range[jid]
+        open_p[f]["mcp"] = float(np.clip(close_p[f]["mcp"] + OPEN_MCP_DELTA, lo, hi))
+    half_p = {f: {d: 0.5 * (open_p[f][d] + close_p[f][d]) for d in DOF} for f in FINGERS}
+
+    set_posture(model, data, key_id, open_p);  tips_open = tip_positions_canonical(model, data)
+    set_posture(model, data, key_id, half_p);  tips_half = tip_positions_canonical(model, data)
+    set_posture(model, data, key_id, close_p); tips_close = tip_positions_canonical(model, data)
+
+    # The object is held in the CLOSE (cup) region. Centre the sweep boxes
+    # there. open box = spread->cup region (max aperture), mid box = half->cup.
+    # Depth toward the palm comes from including the palm origin.
+    palm0 = np.zeros((1, 3))
+    sv_extents, sv_offset = box_from_points([tips_open, tips_close, palm0])
+    sv2_extents, sv2_offset = box_from_points([tips_half, tips_close, palm0])
+
+    # bbox of the whole hand in canonical frame at open posture
     dest = args.out / args.name
     dest.mkdir(parents=True, exist_ok=True)
-    urdf_path = dest / "gripper.urdf"
-    urdf_path.write_text(urdf_text)
-    print(f"Wrote URDF: {urdf_path}")
+    set_posture(model, data, key_id, open_p)
+    mesh = export_hand_mesh(model, data, dest / "coll_mesh.obj")
+    mesh.export(str(dest / "vis_mesh.obj"))
+    bbox_min, bbox_max = mesh.bounds.tolist()
 
-    # 2. load + actuated joints
-    robot = yourdfpy.URDF.load(
-        str(urdf_path),
-        build_scene_graph=True,
-        load_meshes=True,
-        force_mesh=False,
-    )
-    joint_names = [j.name for j in robot.robot.joints if j.type != "fixed"]
-    link_names = [l.name for l in robot.robot.links]
-    print(f"Actuated joints ({len(joint_names)}): {joint_names}")
-
-    open_js, close_js = build_open_close(joint_names)
-    half_js = {k: open_js[k] + 0.5 * (close_js[k] - open_js[k]) for k in open_js}
-
-    # 3. sweep volumes from the actual fingertip arc, in the canonical frame.
-    #
-    # The wizard's auto-estimator assumes an opposed gripper and a single
-    # closing axis; our 3 fingers curl together (non-opposed), so its boxes
-    # came out spanning the whole finger length. Instead we bound the region
-    # the fingertips actually enclose as they sweep open->close, centred on
-    # the grasp "pocket" (where the flexed fingers converge), so the model
-    # places objects where the hand can wrap them rather than at the
-    # fully-extended fingertips.
-    R = BASE_ROTATION[:3, :3]
-
-    def tip_positions(js: dict) -> np.ndarray:
-        robot.update_cfg(js)
-        pts = []
-        for f in ("thumb", "index", "middle"):
-            T = robot.get_transform(frame_to=f + "_tip_link", frame_from="base_link")
-            pts.append(R @ T[:3, 3])
-        return np.array(pts)
-
-    tips_open = tip_positions(open_js)
-    tips_half = tip_positions(half_js)
-    tips_close = tip_positions(close_js)
-
-    MARGIN = 0.012  # ~finger radius, so the box wraps finger thickness
-    FLOOR = np.array([0.04, 0.04, 0.04])  # min graspable box
-
-    def box(point_sets: list[np.ndarray]) -> tuple[list, list]:
-        pts = np.vstack(point_sets)
-        lo, hi = pts.min(0), pts.max(0)
-        extents = np.maximum((hi - lo) + 2 * MARGIN, FLOOR)
-        offset = (lo + hi) / 2.0
-        return extents.tolist(), offset.tolist()
-
-    # pocket = where the half/closed fingertips converge (object rests here)
-    pocket = 0.5 * (tips_half.mean(0) + tips_close.mean(0))
-    # open box: from the open fingertips down into the pocket (max aperture)
-    sv_extents, sv_offset = box([tips_open, pocket[None, :]])
-    # half box: the tighter region between half and closed fingertips
-    sv2_extents, sv2_offset = box([tips_half, tips_close])
-
-    bbox_min, bbox_max = compute_gripper_bbox(robot, open_js, base_T=BASE_ROTATION)
     print(f"tips_open  centroid={np.round(tips_open.mean(0),4)}")
-    print(f"tips_half  centroid={np.round(tips_half.mean(0),4)}")
     print(f"tips_close centroid={np.round(tips_close.mean(0),4)}")
-    print(f"pocket={np.round(pocket,4)}")
-    print(f"open  sweep extents={np.round(sv_extents,4)} offset={np.round(sv_offset,4)}")
-    print(f"half  sweep extents={np.round(sv2_extents,4)} offset={np.round(sv2_offset,4)}")
-    print(f"bbox  min={np.round(bbox_min,4)} max={np.round(bbox_max,4)}")
+    print(f"open sweep  extents={np.round(sv_extents,4)} offset={np.round(sv_offset,4)}")
+    print(f"half sweep  extents={np.round(sv2_extents,4)} offset={np.round(sv2_offset,4)}")
+    print(f"bbox min={np.round(bbox_min,4)} max={np.round(bbox_max,4)}")
+
+    # config.json — joints keyed by name so they FK-match the URDF if ever used;
+    # the released model only consumes the sweep boxes + type though.
+    def jdict(p):
+        return {f"{f}_{d}": p[f][d] for f in FINGERS for d in DOF}
 
     config = {
-        "open": open_js,
-        "close": close_js,
+        "open": jdict(open_p),
+        "close": jdict(close_p),
         "fingertip": list(sv_offset),
-        "sweep_volume": {
-            "extents": sv_extents,
-            "offset": sv_offset,
-            "extents2": sv2_extents,
-            "offset2": sv2_offset,
-        },
-        "links": link_names,
-        "standoff": [0.0, sv_extents[2] / 2],
-        "symmetric": False,
-        "type": "revolute_3f",
+        "sweep_volume": {"extents": sv_extents, "offset": sv_offset,
+                         "extents2": sv2_extents, "offset2": sv2_offset},
+        "links": [], "standoff": [0.0, sv_extents[2] / 2],
+        "symmetric": False, "type": "revolute_3f",
         "bbox": [bbox_min, bbox_max],
-        "base_rotation": BASE_ROTATION.tolist(),
+        "base_rotation": np.eye(4).tolist(),  # mesh already baked in canonical frame
     }
     (dest / "config.json").write_text(json.dumps(config, indent=4))
-    print(f"Wrote config: {dest/'config.json'}")
 
-    # 4. merged meshes (canonical frame) for collision filtering + viz
-    export_merged_mesh(robot, open_js, str(dest / "vis_mesh.obj"), base_T=BASE_ROTATION)
-    export_merged_mesh(robot, open_js, str(dest / "coll_mesh.obj"), base_T=BASE_ROTATION)
-    print(f"Wrote vis_mesh.obj + coll_mesh.obj")
-    print("\nDone. Run inference with:")
-    print(
-        f"  uv run python scripts/demo_object_mesh.py --gripper_name {args.name} "
-        f"--mesh_file assets/sample_data/object_mesh/banana.obj --mesh_scale 1.0 "
-        f"--grasp_threshold -1.0 --return_topk --topk_num_grasps 50 "
-        f"--no-visualization --output_file /tmp/morphohand_grasps.yml"
-    )
+    # sidecar for Phase1 eval: close finger ctrl (9, in finger_joint order) + the
+    # palm<-canonical base_rotation used to convert GraspGenX poses.
+    finger_order = ["thumb_yaw", "thumb_mcp", "thumb_pip",
+                    "index_yaw", "index_mcp", "index_pip",
+                    "middle_yaw", "middle_mcp", "middle_pip"]
+    close_ctrl = [close_p[j.split("_")[0]][j.split("_")[1]] for j in finger_order]
+    R4 = np.eye(4); R4[:3, :3] = BASE_ROTATION
+    sidecar = {
+        "scene_xml": str(args.scene_xml), "keyframe": args.keyframe,
+        "finger_joint_names": finger_order, "close_finger_ctrl": close_ctrl,
+        "base_rotation": R4.tolist(),
+    }
+    (dest / "morphohand_grasp.json").write_text(json.dumps(sidecar, indent=4))
+    print(f"Wrote {dest}/config.json, coll_mesh.obj, vis_mesh.obj, morphohand_grasp.json")
 
 
 if __name__ == "__main__":

@@ -270,6 +270,24 @@ class Args:
     it and dropping before the reorient reward fires. These blend steps are ALSO
     masked from the PPO update (only fully-B post-blend steps train B). 0 = off
     (legacy hard onset, the B10 path)."""
+    open_finger_from_keyframe: bool = False
+    """Start fingers from the KEYFRAME's finger angles (not the baseline hardcoded
+    open pose). REQUIRED for IK-retargeted morphologies (keyframe=open_ik) so the RL
+    LerpFinger closes from the same pose CEM optimized the grip from — else a finger
+    arrives late (2-then-3-finger grasp). See env_cfg.open_finger_from_keyframe."""
+    learning_rate: float | None = None
+    """Override PPOConfig.learning_rate (default 5e-4). Use a LOW value (e.g. 5e-5)
+    for the B->A co-refinement so A's lift is nudged, not overwritten."""
+    lr_schedule: str | None = None
+    """Override PPOConfig.schedule ('adaptive' default | 'fixed'). Use 'fixed' with a
+    low --learning-rate to keep the co-refinement gentle (adaptive can ramp LR back up)."""
+    live_a_drive_post: bool = False
+    """B->A CO-REFINEMENT. Invert the live-A roles: the LEARNER (warmstart Policy A
+    via --init-actor-checkpoint) drives the lift 0..onset (trainable), while the
+    FROZEN reorienter (--live-a-checkpoint) drives >= onset (masked from the update).
+    A's lift steps then receive discounted DOWNSTREAM credit for the frozen B's
+    reorient reward via GAE, so A learns to deliver a grip that reorients better.
+    Pair with a LOW --learning-rate and few iters ('slow gradient updates B->A')."""
     action_rate_weight: float = -0.005
     """Weight on the action_rate_l2 smoothness penalty. Policy B used -0.1
     (20x normal) to suppress sim-only finger jitter."""
@@ -410,6 +428,7 @@ def main() -> None:
     env_cfg = MorphoHandEnvCfg(
         frozen_scene_xml=frozen,
         keyframe_name=keyframe,
+        open_finger_from_keyframe=args.open_finger_from_keyframe,
         foundational_run_dir=run,
         finger_default_ctrl=best_finger_ctrl,
         num_envs=args.num_envs,
@@ -525,6 +544,10 @@ def main() -> None:
         ppo_kwargs["entropy_coef"] = args.entropy_coef
     if args.total_timesteps is not None:
         ppo_kwargs["total_timesteps"] = args.total_timesteps
+    if args.learning_rate is not None:
+        ppo_kwargs["learning_rate"] = args.learning_rate
+    if args.lr_schedule is not None:
+        ppo_kwargs["schedule"] = args.lr_schedule
     ppo_cfg = PPOConfig(**ppo_kwargs)
 
     print(f"[rl_train_cube] building mjlab env cfg ...")
@@ -561,13 +584,16 @@ def main() -> None:
     if args.live_a_checkpoint is not None:
         from morphohand.rl.env_cfg import to_mjlab_cfg
         print(f"[live-a] loading frozen Policy A from {args.live_a_checkpoint}")
+        # drive_post (B->A co-refinement): the frozen actor is the 66-dim REORIENTER,
+        # so build a 66-dim env to load it. Classic live-A: frozen A is 65-dim.
+        frozen_is_reorienter = args.live_a_drive_post
         a_cfg = MorphoHandEnvCfg(
             frozen_scene_xml=frozen, keyframe_name=keyframe,
             foundational_run_dir=run, finger_default_ctrl=best_finger_ctrl,
             object_body_name=args.object_body_name, num_envs=1,
             lift_target_z_above_init=args.lift_target_z_above_init,
             lift_delta_z=args.lift_delta_z,
-            enable_target_axis_reward=False,  # 65-dim = Policy A's obs space
+            enable_target_axis_reward=frozen_is_reorienter,  # 65-dim A vs 66-dim reorienter
         )
         a_env = ManagerBasedRlEnv(cfg=to_mjlab_cfg(a_cfg), device="cuda:0", render_mode=None)
         a_wrapped = RslRlVecEnvWrapper(a_env)
@@ -579,7 +605,8 @@ def main() -> None:
         a_runner.alg.actor.load_state_dict(a_ckpt["actor_state_dict"], strict=True)
         a_runner.alg.actor.eval()
         live_a_actor = a_runner.alg.actor
-        a_obs_dim = 65  # Policy A's obs space (enable_target_axis_reward=False); == demo's A_OBS_DIM
+        # 66 if the frozen actor is the reorienter (co-refinement), else 65 (Policy A)
+        a_obs_dim = 66 if frozen_is_reorienter else 65
         a_env.close()
         print(f"[live-a] Policy A loaded (obs dim {a_obs_dim}); throwaway A-env closed.")
 
@@ -674,7 +701,8 @@ def main() -> None:
     if live_a_actor is not None:
         onset = args.live_a_onset if args.live_a_onset is not None else int(env_cfg.lift_phase_start_step)
         runner.setup_live_a(live_a_actor, onset=onset, a_obs_dim=a_obs_dim,
-                            blend_steps=args.live_a_blend_steps)
+                            blend_steps=args.live_a_blend_steps,
+                            drive_post=args.live_a_drive_post)
         if args.reorient_schedule_path is not None:
             import numpy as _np
             _sched = _np.load(str(args.reorient_schedule_path))["schedule"]

@@ -31,7 +31,7 @@
 # A_CKPT, ONSET_STEP, REORIENT_START, TAG.
 set -u
 ROOT=/home/humanoid/Programs/hand; cd "$ROOT"
-MORPH=results/phase1/run18_multi_object_adapt/foundational/screwdriver_medium_flat/run_20260521_150259
+MORPH="${MORPH:-results/phase1/run18_multi_object_adapt/foundational/screwdriver_medium_flat/run_20260521_150259}"
 A_CKPT="${A_CKPT:-$ROOT/results/rl/a01_20260529-1219-screwdriver_medium_flat_short_proximal_stable_v1/tensorboard/model_500.pt}"
 B_CKPT="${B_CKPT:-$ROOT/results/rl/b10_20260604-1642-policyB_holdonlyws_repro/tensorboard/model_541.pt}"  # B10
 # BLEND>0 = SEAM RAMP-IN (breaks the B4 catch-22): after onset, blend
@@ -64,15 +64,15 @@ ARGS=(
   --num-envs "${NUM_ENVS:-3072}" --total-timesteps "$TOTAL_TS"
   --init-actor-checkpoint "$B_CKPT" --warmstart-critic
   --live-a-checkpoint "$A_CKPT" --live-a-onset "$ONSET_STEP" --live-a-blend-steps "$BLEND"
-  --episode-length-s 5.0 --lift-target-z-above-init 0.1 --lift-delta-z 0.1
+  --episode-length-s 5.0 --lift-target-z-above-init "${LIFT_DELTA:-0.1}" --lift-delta-z "${LIFT_DELTA:-0.1}"
   --finger-residual-scale "${RESID_SCALE:-0.5}" --finger-close-easing "${EASING:-ease_out_quad}"
   --lift-phase-start-step "$LIFT_TERM_START"
   --reorient-start-step "$REORIENT_START"
   --enable-lift-terminations
   --term-object-drop 0.02 --term-object-slip-xy 0.5 --term-object-slip-yaw 10.0
   --term-finger-slip 100.0 --term-tip-lost-steps "${TIP_LOST_STEPS:-3}"
-  --enable-target-axis-reward --target-axis-weight 100.0 --target-axis-alpha 4.0
-  --target-axis-progress-weight 300.0 --contact-min-weight 15.0
+  --enable-target-axis-reward --target-axis-weight "${TAXIS_W:-100.0}" --target-axis-alpha 4.0
+  --target-axis-progress-weight "${TPROG_W:-300.0}" --contact-min-weight 15.0
   --lateral-drift-weight=-8.0 --lateral-drift-deadband 0.01 --lateral-drift-power 2.0
   --tag "$TAG" --no-wandb
 )

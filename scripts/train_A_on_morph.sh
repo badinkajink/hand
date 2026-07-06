@@ -13,15 +13,22 @@ MORPH_RUN="${MORPH_RUN:-$ROOT/results/phase1/morph_winner/thumb_opposed_balanced
 WARMSTART="${WARMSTART:-$ROOT/results/rl/a01_20260529-1219-screwdriver_medium_flat_short_proximal_stable_v1/tensorboard/model_500.pt}"
 TOTAL_TS=${TOTAL_TS:-30000000}; SMOKE=${SMOKE:-0}; [ "$SMOKE" = "1" ] && TOTAL_TS=1000000
 TAG="${TAG:-policyA_thumbBalanced}"
-for f in "$MORPH_RUN/best_rollout.npz" "$MORPH_RUN/frozen_scene.xml" "$WARMSTART"; do
-  [ -e "$f" ] || { echo "FATAL missing $f"; exit 1; }; done
+# WARMSTART=none => train from scratch (no --init-actor-checkpoint). Needed on a new
+# morphology whose grip differs enough that a01's baseline-tuned residual EJECTS the object
+# (the open-loop CEM grip+scripted-lift already lifts, so residual~0 from scratch lifts too).
+FROM_SCRATCH=0; [ "$WARMSTART" = "none" ] && FROM_SCRATCH=1
+CHECK=("$MORPH_RUN/best_rollout.npz" "$MORPH_RUN/frozen_scene.xml")
+[ "$FROM_SCRATCH" = "0" ] && CHECK+=("$WARMSTART")
+for f in "${CHECK[@]}"; do [ -e "$f" ] || { echo "FATAL missing $f"; exit 1; }; done
 
 # a01's lift recipe (normal lift, no reorient), on the new morphology.
 ARGS=(
   --morphology-run "$MORPH_RUN" --object-body-name screwdriver_medium
   --num-envs "${NUM_ENVS:-2048}" --total-timesteps "$TOTAL_TS"
-  --init-actor-checkpoint "$WARMSTART" --warmstart-critic --init-noise-std 0.05
-  --episode-length-s 1.4 --lift-target-z-above-init 0.05 --lift-delta-z 0.05
+  --init-noise-std "${INIT_NOISE_STD:-0.05}")
+[ "$FROM_SCRATCH" = "0" ] && ARGS+=(--init-actor-checkpoint "$WARMSTART" --warmstart-critic)
+ARGS+=(
+  --episode-length-s 1.4 --lift-target-z-above-init "${LIFT_DELTA_A:-0.05}" --lift-delta-z "${LIFT_DELTA_A:-0.05}"
   --finger-residual-scale 0.5 --finger-close-easing ease_out_quad
   --contact-gate-stability-rewards --contact-min-weight 15.0
   --enable-lift-terminations --lift-phase-start-step 40
@@ -51,5 +58,19 @@ while kill -0 "$RUNPID" 2>/dev/null; do
   fi
 done
 wait "$RUNPID" 2>/dev/null; RC=$?
-[ -e "${LOG}.COLLAPSED" ] && echo "[A_morph] ABORTED — A failed to lift on the new morphology." \
-  || echo "[A_morph] DONE rc=$RC — A retrained on the new morphology."
+if [ -e "${LOG}.COLLAPSED" ]; then
+  echo "[A_morph] ABORTED — A failed to lift on the new morphology."
+else
+  echo "[A_morph] DONE rc=$RC — A retrained on the new morphology."
+  # BAKED-IN trajectory-health gate: flag a degenerate lift (late finger / idle finger /
+  # drop / jitter / de-centering / over-clamp) that aggregate reward hides. Non-fatal.
+  CKPT=$(ls -t "$ROOT"/results/rl/*"$TAG"*/tensorboard/model_*.pt 2>/dev/null | head -1)
+  if [ -n "$CKPT" ]; then
+    OFK=""; case "${EXTRA_ARGS:-}" in *open-finger-from-keyframe*) OFK="--open-finger-from-keyframe";; esac
+    echo "[A_morph] running trajectory-health gate on $CKPT ..."
+    WARP_CACHE_PATH=$(mktemp -d) MUJOCO_GL=egl uv run --extra rl --extra gpu \
+      python "$ROOT/scripts/policy_healthcheck.py" --policy "$CKPT" \
+      --morphology-run "$MORPH_RUN" --lift-delta "${LIFT_DELTA_A:-0.05}" $OFK \
+      --title "$TAG" 2>&1 | grep -E "policy health|PASS|WARN|FAIL|health ->" || true
+  fi
+fi

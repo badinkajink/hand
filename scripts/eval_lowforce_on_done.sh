@@ -12,10 +12,10 @@
 set -u
 ROOT=/home/humanoid/Programs/hand; cd "$ROOT"
 OUT="$ROOT/LOWFORCE_EVAL_RESULTS.txt"
-GB_DIR="${GB_DIR:-results/rl/20260622-1738-policyB_gentleLowforce}"
-A_DIR="${A_DIR:-results/rl/20260622-1740-policyA_lowforce}"
+GB_DIR="${GB_DIR:-results/rl/bx_20260622-1738-policyB_gentleLowforce}"
+A_DIR="${A_DIR:-results/rl/bx_20260622-1740-policyA_lowforce}"
 A_BASE="results/rl/a01_20260529-1219-screwdriver_medium_flat_short_proximal_stable_v1/tensorboard/model_500.pt"
-B34_T20="results/rl/20260613-0909-policyB_b33iter_forcefloor_t20/tensorboard/model_405.pt"
+B34_T20="results/rl/bx_20260613-0909-policyB_b33iter_forcefloor_t20/tensorboard/model_405.pt"
 GB_LOG="$ROOT/gentleB_policyB_gentleLowforce.trainer.log"
 A_LOG="$ROOT/lowforceA_policyA_lowforce.trainer.log"
 

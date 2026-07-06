@@ -41,7 +41,8 @@ A_OBS_DIM = 65  # Policy A trained without the target_axis_misalign obs term.
 def make_env_cfg(frozen, keyframe, morph, bfc, *, enable_target_axis: bool,
                  num_steps: int, finger_residual_scale: float = 0.5,
                  finger_close_easing: str = "ease_out_quad",
-                 contact_gate_stability_rewards: bool = True):
+                 contact_gate_stability_rewards: bool = True,
+                 lift_delta: float = 0.10, open_finger_from_keyframe: bool = False):
     """One env cfg. enable_target_axis=False -> 65-dim (Policy A's space);
     True -> 66-dim normal-lift reorient env (Policy B's space + dynamics).
     skip_lift_phase is always False here: the cylinder starts flat and is
@@ -57,8 +58,9 @@ def make_env_cfg(frozen, keyframe, morph, bfc, *, enable_target_axis: bool,
         object_body_name="screwdriver_medium", num_envs=1,
         episode_length_s=float(num_steps) / 50.0 + 0.5,
         finger_residual_scale=finger_residual_scale, finger_close_easing=finger_close_easing,
-        lift_target_z_above_init=0.10, lift_delta_z=0.10,
+        lift_target_z_above_init=lift_delta, lift_delta_z=lift_delta,
         contact_gate_stability_rewards=contact_gate_stability_rewards, enable_lift_terminations=False,
+        open_finger_from_keyframe=open_finger_from_keyframe,
     )
     if not enable_target_axis:
         return MorphoHandEnvCfg(**common)
@@ -154,6 +156,13 @@ def main():
                     default=ROOT / "results/phase1/run18_multi_object_adapt/foundational/screwdriver_medium_flat/run_20260521_150259")
     ap.add_argument("--output", type=Path, default=ROOT / "docs/rl/videos/reorient/handoff_continuous.mp4")
     ap.add_argument("--handoff-step", type=int, default=40, help="policy step to switch A->B (after lift+settle)")
+    ap.add_argument("--lift-delta", type=float, default=0.10,
+                    help="scripted palm lift height (m). MUST match the evaluated A/B training "
+                         "(baseline lineage=0.10; m05 native A+B trained at 0.05).")
+    ap.add_argument("--open-finger-from-keyframe", action="store_true",
+                    help="start fingers from the keyframe (open_ik) pose; REQUIRED for "
+                         "IK-retargeted morphologies (else the LerpFinger starts from the "
+                         "baseline open pose and a finger arrives late).")
     ap.add_argument("--blend-steps", type=int, default=0,
                     help="ramp A->B actions over N steps from handoff-step (0 = hard switch). "
                          "Eases B in so it is never shocked by an OOD obs at the seam.")
@@ -221,11 +230,17 @@ def main():
     work = args.output.parent / "_hc_tmp"
     work.mkdir(parents=True, exist_ok=True)
 
-    # 1) Throwaway 65-dim A-env just to instantiate + load Policy A's actor.
-    print("[hc] building A-env (65-dim) to load Policy A...")
+    # 1) Throwaway A-env to instantiate + load Policy A's actor. Detect A's obs dim
+    # from the checkpoint: a native lift Policy A is 65-dim, but a B->A CO-REFINED A
+    # (warmstart-A finetuned in the 66-dim reorient env) is 66-dim. Build the A-env to
+    # match, and feed A obs[:, :a_obs_dim] in the rollout.
+    import torch as _torch
+    _sd = _torch.load(str(args.policy_a), map_location="cpu", weights_only=False)["actor_state_dict"]
+    a_obs_dim = int(next(_sd[k] for k in _sd if k.endswith("weight")).shape[1])
+    print(f"[hc] building A-env ({a_obs_dim}-dim) to load Policy A...")
     env_a, _wa, actor_a = build_actor(
-        make_env_cfg(frozen, keyframe, args.morphology_run, bfc, enable_target_axis=False, num_steps=10,
-                     finger_residual_scale=args.finger_residual_scale, finger_close_easing=args.finger_close_easing, contact_gate_stability_rewards=not args.no_contact_gate),
+        make_env_cfg(frozen, keyframe, args.morphology_run, bfc, enable_target_axis=(a_obs_dim == 66), num_steps=10,
+                     finger_residual_scale=args.finger_residual_scale, finger_close_easing=args.finger_close_easing, contact_gate_stability_rewards=not args.no_contact_gate, lift_delta=args.lift_delta, open_finger_from_keyframe=args.open_finger_from_keyframe),
         args.policy_a, work)
     env_a.close()
     print("[hc] Policy A loaded.")
@@ -241,7 +256,7 @@ def main():
 
     print("[hc] building main env (66-dim, normal lift to 0.10) + Policy B...")
     cfg_b = make_env_cfg(frozen, keyframe, args.morphology_run, bfc, enable_target_axis=True, num_steps=args.total_steps,
-                         finger_residual_scale=args.finger_residual_scale, finger_close_easing=args.finger_close_easing, contact_gate_stability_rewards=not args.no_contact_gate)
+                         finger_residual_scale=args.finger_residual_scale, finger_close_easing=args.finger_close_easing, contact_gate_stability_rewards=not args.no_contact_gate, lift_delta=args.lift_delta, open_finger_from_keyframe=args.open_finger_from_keyframe)
     env = ManagerBasedRlEnv(cfg=to_mjlab_cfg(cfg_b), device="cuda:0", render_mode="rgb_array")
     env = VideoRecorder(env, video_folder=str(work), step_trigger=lambda s: s == 1,
                         video_length=args.total_steps, name_prefix=args.output.stem)
@@ -298,6 +313,10 @@ def main():
     # we kept having to verify by eye): (step, x, y, z, axisX, axisY, axisZ) where
     # axis is the object's body +Z (long axis) direction in world.
     traj = []
+    # FULL-rollout log (from step 0) for the baked-in trajectory-health scorecard —
+    # the grasp phase is needed to catch a LATE finger, which post-handoff-only logging
+    # (the old diag) structurally could not see.
+    full = {"found": [], "force": [], "z": [], "cos": [], "x": [], "y": [], "axis": []}
     handoff_xy = None
     tip_force = []   # (mean, max) fingertip-cube contact force [N], post-handoff
     palm_force = []  # max palm-cube contact force [N], post-handoff (does it ever seat?)
@@ -327,11 +346,11 @@ def main():
             # 3-stage: once past handoff_step_2, Policy C (B4) takes over from B.
             c_active = actor_c is not None and switch_step is not None and step >= args.handoff_step_2
             if switch_step is None or step < switch_step:
-                actions = act(actor_a, obs[:, :A_OBS_DIM])
+                actions = act(actor_a, obs[:, :a_obs_dim])
             elif args.blend_steps > 0 and step < switch_step + args.blend_steps:
                 # linear A->B action ramp: alpha 0->1 over the blend window
                 alpha = (step - switch_step + 1) / float(args.blend_steps)
-                a_a = act(actor_a, obs[:, :A_OBS_DIM])
+                a_a = act(actor_a, obs[:, :a_obs_dim])
                 a_b = act_b(actor_b, obs_td, args.stochastic_b)
                 actions = (1.0 - alpha) * a_a + alpha * a_b
             elif c_active and (_blend2 := (args.blend_steps_2 if args.blend_steps_2 is not None else args.blend_steps)) > 0 and step < args.handoff_step_2 + _blend2:
@@ -364,6 +383,12 @@ def main():
                 ax_x = 2.0 * (qx * qz + qw * qy)
                 ax_y = 2.0 * (qy * qz - qw * qx)
                 ax_z = held_cos
+                # FULL-rollout log (every step, incl. the grasp phase) for the scorecard.
+                _ff, _fg = read_per_finger(env.unwrapped, "fingertip_cube_contact")
+                full["found"].append(_fg if _fg is not None else [0.0, 0.0, 0.0])
+                full["force"].append(_ff if _ff is not None else [0.0, 0.0, 0.0])
+                full["z"].append(z); full["cos"].append(held_cos)
+                full["x"].append(x); full["y"].append(y); full["axis"].append((ax_x, ax_y, ax_z))
                 if switch_step is not None and step >= switch_step:
                     min_z_post = min(min_z_post, z)
                     held_cos_tail.append(held_cos)
@@ -467,6 +492,24 @@ def main():
         if lin_jerk.mean() > 2.0: flags.append(f"LIN-JITTER({lin_jerk.mean():.1f})")
         if tip_mean > 3.5: flags.append(f"OVER-CLAMP({tip_mean:.1f}N)")
         print(f"[diag]  VERDICT: {'  '.join(flags) if flags else 'clean (held firm + smooth)'}")
+
+    # ---- BAKED-IN trajectory-health scorecard (flags LATE FINGER, drop, jitter, ------
+    # idle-finger, de-centering, over-clamp — the degenerate patterns the old aggregate
+    # metrics masked). Runs on EVERY handoff eval; writes JSON next to the video.
+    if len(full["z"]) >= 5:
+        from morphohand.rl.trajectory_health import characterize_trajectory, format_scorecard
+        import json as _json
+        axis = np.asarray(full["axis"])
+        dots = np.clip((axis[1:] * axis[:-1]).sum(1), -1.0, 1.0)
+        angvel = np.concatenate([[0.0], np.arccos(dots) / 0.02])  # rad/s from long-axis turn
+        ho = switch_step if switch_step is not None else args.handoff_step
+        sc = characterize_trajectory(
+            finger_found=full["found"], finger_force=full["force"], obj_z=full["z"],
+            obj_cos=full["cos"], obj_xy=np.stack([full["x"], full["y"]], axis=1),
+            obj_angvel=angvel, grasp_end=ho, hold_start=min(ho + 15, len(full["z"]) - 1))
+        print(format_scorecard(sc, title=args.output.stem))
+        (args.output.with_suffix(".health.json")).write_text(_json.dumps(sc.as_dict(), indent=1))
+        print(f"[health] scorecard -> {args.output.with_suffix('.health.json')}")
 
 
 if __name__ == "__main__":
