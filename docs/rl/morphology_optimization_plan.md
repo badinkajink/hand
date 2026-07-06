@@ -1,5 +1,26 @@
 # Morphology optimization for a low-force, smooth, in-hand reorient — plan (2026-06-22)
 
+> **STATUS (2026-06-25):** Stage 1 ran as a **12-design landscape sweep** rather than the
+> single hand-picked thumb reposition. Result: **morphology is a strong lever** (reorient
+> held-cos −0.68 … +0.93), grasp balance does **not** predict reorient, and the winner
+> **`m05`** (lengthen all fingers + middle out — *not* the intuited thumb fix) is a verified
+> genuine in-hand reorient (cos 0.933, jerk 21.5, all three fingers loaded). Full write-up +
+> training-dynamics analysis + plots/videos in **`reorientation.md` → "Phase: morphology
+> LANDSCAPE"**. Open: m05 is single-seed + firm (low-force still unmet) → Stage 2 = local CEM
+> refine around m05, scored on the reorient rollout.
+>
+> **UPDATE (2026-07-01):** the landscape scoring had **two measurement artifacts** (found while
+> rebuilding the FAIR per-morphology pipeline): (1) it transferred the grasp keyframe in
+> **joint space** → under-scored graspability everywhere (IK-retargeting recovers a 3-finger
+> grip on **10/12** designs, incl. all 3 "ungraspable" — see
+> [[feedback_ik_keyframe_retarget_across_morphologies]]); (2) it scored reorient on a skip-lift
+> **teleport** grip (no Policy A). The honest per-morphology pipeline (native A → two-phase
+> live-reset B → continuous handoff) now gives the **first genuine pickup→reorient handoff on a
+> co-designed hand** (m05: seam clean, reorients to cos 0.94), and a **B→A gradient
+> co-refinement** (new `drive_post` mode) measurably improves it. Full write-up in
+> `reorientation.md` → "Phase: the FAIR per-morphology A→B pipeline". So Stage 2's design search
+> must (a) IK-retarget per design and (b) score on the full A→B rollout, not the skip-lift proxy.
+
 The RL side has reached a **structural** ceiling: no reward lever removes the excess grip
 force, because the cause is the hand's geometry, not the policy. This document lays out how
 to optimize the morphology to get a smooth, low-force, balanced grasp+reorient, using the

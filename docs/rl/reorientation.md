@@ -1195,6 +1195,436 @@ opposition, retrain B, measure per-finger balance.
 
 ---
 
+## Phase: morphology LANDSCAPE — does the hand geometry move the task? (2026-06-25)
+
+The thumb-opposition Stage-1(a) hand-pick (`m01_thumbWinner`) gave a *perfectly balanced
+grasp* — and then **failed to reorient** (held-cos −0.68). That single result reframed the
+question away from "find the one fix" toward the original co-synthesis goal: **does task
+quality actually vary across the morphology landscape, or are all designs roughly
+equivalent?** If equivalent, the lever is control; if not, morphology matters and we get a
+map of the good region.
+
+### Method — decompose the task to avoid the handoff confound
+
+`scripts/morph_landscape_sweep.py` evaluates **12 morphologies** (the baseline, the
+thumb-opposition winner, and 10 Latin-hypercube samples over the 9-param x/y/length space).
+Each design is scored on **both halves of A→B separately**, so a handoff-control failure can't
+be mistaken for a morphology failure:
+
+- **GRASP / lift half (A):** CEM grasp optimizer (`phase1_optimize_grasp.py`, ~28 s) →
+  graspability (`cube_lift`) + per-finger contact persistence balance.
+- **REORIENT half (B):** a **skip-lift reorienter retrained on that grasp** (warmstart B4,
+  15 M ts, ~25 min each) → deterministic held-cos + per-finger force/contact.
+
+So **we did train a policy per morphology** — eight skip-lift Policy-B reorienters under one
+*identical* recipe, morphology the only variable. The sweep is resumable (per-design JSON
+checkpoint), sequential, and try/except-per-design so one blowup never sinks the run. Raw
+results live in `MORPH_LANDSCAPE.{json,txt}`.
+
+### Landscape verdict — morphology matters STRONGLY, and grasp does not predict reorient
+
+![morphology landscape summary](img/morph_landscape_summary.png)
+
+| | finding |
+|---|---|
+| **Spread** | reorient held-cos ranges **−0.68 … +0.93** across 12 designs — designs are emphatically **not** equivalent. |
+| **Graspability** | ~3/12 are ungraspable outright (`cube_lift < 0.02`); the CEM screen prunes them in 28 s before wasting a 25-min B run. |
+| **Grasp ⊥ reorient** | **grasp balance does NOT predict reorient quality** (middle panel): `m01` has a *perfect* grasp balance and reorients *worst* (−0.68); `m05` has a *poor* grasp persistence and reorients *best* (+0.93). The cheap grasp screen is a graspability filter, **not** a reorient proxy. |
+| **In-hand vs floor-brace** | held-cos alone is fooled: `m03` reaches cos 0.90 with **~0 N on all three fingers** — it floor-braces (cf. Phase v4). The per-finger force panel is what separates a genuine grip from a cheat: **only `m05` loads all three fingers** (11.7 / 12.7 / 9.3 N, contact 0.95 / 0.95 / 0.83). |
+
+### Training dynamics — the designs train *differently*, not just to different endpoints
+
+![morphology training dynamics](img/morph_landscape_training.png)
+
+Overlaying all eight per-design trainer logs (regenerate with
+`scripts/morph_landscape_plots.py`) shows the morphology gates learning from the very first
+iterations, under one identical recipe:
+
+- **Only `m05` ever finds the gradient.** Its mean reward climbs ~10 → **200**, alignment
+  0 → ~42, and `target_axis_progress` ramps positive — the classic signature of a policy that
+  *discovers* in-hand rotation. Every other graspable design stays pinned near its warmstart
+  (reward flat ≲ 30, alignment flat), i.e. the morphology offers **no learnable rotation
+  affordance**, not an undertraining artifact.
+- **The floor-proximity termination is the tell.** All designs start with `object_floor_proximity`
+  pegged at the cap (object sitting low at the skip-lift spawn). On `m05`/`m03` it collapses to
+  ~0 within ~25 iters (the policy learns to hold the object up); on the idle-finger designs it
+  stays high — they never even get the object reliably clear of the floor.
+- **`m01`'s grip is *too* stable to articulate.** Its `tip_lost` sits high (~40/iter) and its
+  reward never moves — the thumb-opposition geometry that made the grasp balanced also clamps
+  the object so symmetrically that the ±0.5 rad finger residuals can't roll it. Balanced-for-grasp
+  and articulable-for-reorient are **different geometric objectives** — the central surprise of
+  the sweep.
+
+### m05 — verified genuine smooth in-hand reorient
+
+Authoritative deterministic eval (`rl_eval_reorient_metrics.py`, m05's own scene) confirms `m05`
+is real, not floor-braced like `m03`:
+
+| metric | m05 | reference (B4) |
+|---|---|---|
+| held-cos | **0.933** (peak 0.983) | 0.988 |
+| object jerk | **21.5** (smoother) | 27 |
+| min center-z | **0.064 m** (> 0.05 floor) | 0.117 |
+| drop | **0.00** | 0.00 |
+| per-finger force | 11.7 / 12.7 / 9.3 N (all loaded) | balanced tripod |
+
+Video: [morph_landscape_grid.mp4](videos/reorient/morph_landscape_grid.mp4) — a 2×3 grid of
+six designs' trained rollouts (m05 winner, m03 floor-brace, m07/m11 partial, m06 idle,
+m01 thumb-grasp-fails), which makes the failure modes legible at a glance; and
+[m05_landscape_winner.mp4](videos/reorient/m05_landscape_winner.mp4) — m05's clean
+deterministic reorient on its own.
+
+**m05's design:** thumb (+.015, +.005, +.011), index (+.004, +.002, +.012),
+middle (+.025, +.024, +.016) — it **lengthens all three fingers and moves the middle outward**.
+Notably this is the *opposite* of the hand-picked thumb-only reposition that failed: the lever
+turned out to be finger *length* + middle placement, not thumb opposition.
+
+**Takeaways.**
+1. **Morphology is a real, strong lever for reorient** (cos span 1.6). The structural-ceiling
+   diagnosis from the pivot was correct — but the fix is not the intuited thumb reposition.
+2. **Grasp quality is not a reorient surrogate.** Optimizing the cheap grasp screen would have
+   selected `m01` (the worst reorienter). Any morphology search must score on a **reorient
+   rollout**, exactly as the plan argued.
+3. **Balanced-grasp and articulable-grip are distinct geometric goals** — a too-symmetric grip
+   can't be rolled with bounded residuals.
+
+**Caveats / next:** `m05` is a **single training seed** and a **firm** grip (~11 N, not the
+low-force goal); the project's smooth+low-force+balanced objective is only partly met (smooth ✓,
+balanced ✓, low-force ✗). Next: re-seed `m05` to rule out a lucky run, then a local CEM refine
+around it (Stage 2 of `morphology_optimization_plan.md`) scored on the reorient rollout, with
+seating (palm contact) as the remaining low-force unlock.
+
+---
+
+## Phase: the FAIR per-morphology A→B pipeline — two artifacts corrected, first co-designed handoff (2026-07-01)
+
+The landscape (above) had two confounds flagged on review: (1) it warmstarted the *baseline*
+reorienter (B4) onto every design, and (2) it scored REORIENT on a **skip-lift teleport grip**
+— Policy A never ran, so a design's "reorient quality" was never conditioned on whether a real
+A could *achieve* its grip. Rebuilding the pipeline honestly on the winner (`m05`) surfaced two
+**measurement artifacts** that overturn parts of the landscape read, and produced the first
+genuine pickup→reorient handoff on a co-designed hand.
+
+### Artifact 1 — graspability was gated by JOINT-SPACE keyframe transfer (not geometry)
+
+Training a *native* Policy A on `m05` failed repeatedly: A never lifted (object pinned on the
+floor, watchdog-killed). Root cause: the `open_short_manual` keyframe is **joint-space**, so on
+`m05`'s repositioned/lengthened thumb the same joint angles put the fingertip at the wrong
+**world** position — CEM seeded the thumb off-target and scored `m05` a "2-finger design"
+(thumb contact persistence **0.0** across two CEM budgets).
+
+**Fix — IK-retarget the keyframe in WORLD space** (`scripts/retarget_keyframe_ik.py`, plain
+`mj_jacBody` damped-least-squares, no mink): read the baseline's 3 fingertip world XYZ, IK each
+finger of the target morphology to those positions (<0.1 mm residual), inject an `open_ik`
+keyframe, re-CEM from it. `m05`'s thumb persistence went **0.0 → 1.0** — a full persistent
+tripod. Re-running this across the whole landscape (`scripts/ik_recem_landscape.py`):
+
+![IK re-CEM graspability](img/ik_recem_graspability.png)
+
+**10 of 12 designs form a full 3-finger tripod once the keyframe is retargeted — including all
+three the landscape had declared "ungraspable" (m02/m04/m09).** The IK residual cleanly flags
+the two genuine exceptions (m06/m08, fingertip physically can't reach the contact point). **The
+landscape's graspability verdicts were overwhelmingly keyframe-transfer artifacts**; any
+cross-morphology grasp comparison must IK-retarget per design first. See
+[[feedback_ik_keyframe_retarget_across_morphologies]].
+
+### The honest per-morphology pipeline (native A, two-phase B, live handoff)
+
+With `m05`'s real 3-finger grip in hand, the fair pipeline is: **native A** (lift) → **live-A
+reset B** (reorient from A's *organic* delivery, no teleport) → **continuous handoff eval**.
+
+- **Native A_m05** (`scripts/train_A_on_morph.sh`, from **scratch** — the baseline `a01`
+  warmstart is baseline-specific and *ejects* the tighter 3-finger grip; residual≈0 from scratch
+  preserves the working open-loop lift). Result: stable lift to 0.062 m, tip_lost ~5, **zero
+  drops**.
+- **B_m05 — two phases** (the single-shot reorienter warmstart FAILS: it is a
+  *reorient-from-step-0* policy, so on takeover it rotates immediately, disrupts A's grip, every
+  episode dies at the seam via tip_lost → PPO advantage-normalisation over the near-empty kept
+  set explodes the actor std → NaN crash. This is exactly the v3b lesson: **warmstart a
+  hold-first policy, not the reorienter.**):
+  1. **Phase 1 hold-only** — warmstart B **from A_m05 itself** (A *is* a holder, so B takes over
+     seamlessly), reorient reward off. B learns to hold A's live delivery: tip_lost **3072 → ~22**,
+     object held at 0.082, A-driven frac 1.0 → 0.36.
+  2. **Phase 2 reorient** — finetune the hold-only ckpt with the target-axis reward on. B
+     reorients *while holding*: alignment 0 → ~40, tip_lost → ~12, no collapse.
+  (A robustness guard was added to `live_a_runner._mask_pre_onset_advantages` so a near-empty
+  trainable set zeroes advantages that iter instead of NaN-crashing the run.)
+
+### First genuine pickup→reorient handoff on a co-designed morphology
+
+Deterministic continuous handoff (`rl_demo_handoff_continuous.py --lift-delta 0.05`, A drives
+0..40 then B, no reset). **The seam is clean** — B takes over at cos 0.89 / z 0.066 with no
+collapse (contrast: every prior attempt, incl. the baseline lineage, dropped *at* the seam,
+min-z 0.003–0.008). B then **holds and reorients to cos 0.94 (peak 0.987) for ~120 steps.** The
+remaining failure is a **late de-centering slip** (lateral drift creeps up, grip migrates off,
+object drops ~step 190) — a qualitatively milder, different problem than the seam drop.
+Video: [handoff_m05_continuous.mp4](videos/reorient/handoff_m05_continuous.mp4).
+
+### B→A co-refinement — moving A (by B's downstream reward) reduces the slip
+
+The never-before-built lever: instead of a hand-crafted grip-match reward, train **A** by B's
+**actual downstream reorient reward**. Implemented as an inverted live-A mode
+(`live_a_runner` `drive_post`: A is the learner driving the lift 0..onset; a **frozen** B drives
+the reorient; A's lift steps get discounted downstream credit for B's reorient reward via GAE;
+low fixed LR = a gentle "slow" nudge). `scripts/train_corefine_BtoA.sh`. One 15M-step pass,
+then re-eval the handoff with the co-refined A:
+
+![m05 handoff co-refine](img/m05_handoff_corefine.png)
+
+| post-handoff metric | frozen A | **co-refined A** |
+|---|---|---|
+| lateral drift @ step 160 | 3.3 cm | **1.2 cm** (~3× less) |
+| object-z @ step 200 | 0.012 (dropped) | **0.047 (held)** |
+| cos sustained to | ~step 160 | **~step 200** (peak 0.966) |
+| held-cos (last-50 mean) | 0.022 | **0.235** |
+| drop onset | ~step 190 | **~step 210** |
+
+**Moving A — trained purely by B's downstream reorient signal — cut the de-centering drift ~3×
+and extended the hold ~30 steps**, directly attacking the exact failure mode. It does not yet
+eliminate the eventual drop; a longer / alternating co-adaptation (move A, refreeze, refinetune
+B, repeat) is the natural next step. Video:
+[handoff_m05_corefined.mp4](videos/reorient/handoff_m05_corefined.mp4).
+
+**Takeaways.**
+1. **Cross-morphology grasp transfer must be world-frame (IK), not joint-space** — the single
+   biggest correction; it flips the landscape's graspability map.
+2. **Per-morphology A→B is buildable and the seam is closable on a new design** via native-A +
+   two-phase (hold-first) live-reset B — the documented baseline playbook transfers.
+3. **B→A gradient co-refinement works** (first implementation): A's lift is genuinely optimizable
+   for downstream reorient quality, measurably reducing de-centering. This is the "slow gradient
+   updates from B to A" lever, distinct from the earlier grip-match proxy.
+4. Open: the **late de-centering slip** (both A variants eventually drop ~step 210) and the
+   low-force goal (grip still firm) remain; alternating co-adaptation + a lateral-drift term are
+   the next levers.
+
+### ⚠️ CORRECTION (2026-07-02): the lift was a LATE-FINGER 2-finger grasp; "cos 0.94" was degenerate
+
+Reviewing the handoff videos, the user caught what every aggregate metric (tip_lost, object-held,
+mean reward, held-cos) had **masked**: the initial grasp was a **2-finger grip with a LATE third
+finger**, unstable throughout, and the whole handoff was **jittery**. Root cause — *not* the IK
+(the IK grip is a valid persistent tripod, verified open-loop) — but a **downstream env bug**: the
+RL env reset the fingers to the hardcoded **baseline** `open_finger_qpos` (thumb mcp = 3.14, flung
+out) for *both* the reset pose and the LerpFinger interpolation start, while CEM optimized the grip
+resetting to the **`open_ik`** keyframe. So the LerpFinger closed from the wrong open pose and the
+repositioned thumb/middle arrived late.
+
+**Fix — `open_finger_from_keyframe`** (`env_cfg.py` → `rl_train_cube.py` → the handoff eval;
+opt-in, baseline lineage byte-identical): start the fingers (reset AND LerpFinger start) from the
+keyframe angles, matching CEM. Verified by a zero-policy scripted rollout: old open pose = **2
+contacts at step 20 → drop**; fixed = **3 contacts from step 20, held**. Re-trained native A_m05
+(`policyA_m05_ikopen`) is now a genuine holder: **all three fingers loaded (touch 1.00), 0 cm
+drift, held 195 steps**.
+
+### Trajectory-health monitoring — baked in, so this can't hide again
+
+The deeper lesson (user): our metrics should have flagged this. New
+`src/morphohand/rl/trajectory_health.py` turns a logged rollout into an explicit PASS/WARN/FAIL
+scorecard for the degenerate patterns that reward hid: **late_finger** (per-finger first-contact
+spread), **idle_finger** (2-finger / degenerate pinch), **drop**, **jitter** (object angular
+jerk), **de_centering** (net drift + slide ratio), **over_clamp**. It is **baked into the handoff
+eval by default** (writes a `.health.json`), available standalone as `scripts/policy_healthcheck.py`,
+and **auto-runs at the end of `train_A_on_morph.sh`** as an acceptance gate.
+
+Characterizing the m05 policies with it (![health](img/m05_health_characterization.png)):
+
+| check | A_m05 DEFECTIVE | **A_m05 FIXED** | A→B "cos 0.94" (def lineage) |
+|---|---|---|---|
+| late_finger | borderline (spread 12) | ✓ **PASS (spread 1)** | ✗ FAIL (spread 14, mid@20) |
+| idle_finger | ✗ FAIL (mid 2.4 N/0.35) | ✓ **PASS (all loaded)** | ▲ WARN (2.45 contacts) |
+| drop | ✗ FAIL (0.049) | ✓ **PASS (0.055)** | ✓ PASS |
+| jitter (ang-jerk) | ✗ FAIL (46) | ✓ **PASS (6.2)** | ✗ **FAIL (156!)** |
+| verdict | **FAIL** | **WARN** (firm + micro-slide only) | **FAIL** |
+
+**The previously-"recommended" cos-0.94 handoff is degenerate** (late finger + violent jitter 156
++ 2-finger) — its high held-cos hid all of it. Only the fixed A is genuinely clean. **All m05 B /
+handoff / co-refinement numbers above (trained on the defective lift) are superseded**; the
+pipeline is being re-run on the fixed A and every policy now passes through the health gate before
+being called a result.
+
+### The CLEAN, health-gated m05 pipeline (2026-07-02) — the real result
+
+Re-running the full pipeline on the fixed A, plus one more fix found by *characterizing* the B
+collapse (not reward-tuning): the earlier B's collapsed because reorienting the **8 cm** screwdriver
+from a **0.05 m** lift swings its far end into the floor. **Delivering at 0.10 m** (the clearance
+the baseline reorient lineage always used; `train_A_on_morph.sh` had hardcoded 0.05) gives the room:
+
+- **A_m05 @ 0.10** (`policyA_m05_ik10`, from scratch + `open_finger_from_keyframe`): health gate
+  PASS — instant 3-finger (thumb@1/index@0/mid@1), all loaded, held **0.123 m**, jitter 21.
+- **B_m05 reorient** (`policyB_m05_reorient_ik10`, live-A reset, warmstart the hold-first A): held
+  0.126 m, alignment ~60, tip_lost ~4 — no collapse (vs the 0.05-lift runs that dropped to floor).
+- **Continuous A→B handoff** — the honest, health-gated result:
+
+  | metric | "cos 0.94" (def lineage, SUPERSEDED) | **CLEAN m05 (this)** |
+  |---|---|---|
+  | post-handoff min-z | 0.008 (dropped ~step190) | **0.121 m (HELD whole rollout)** |
+  | held-cos (last-50) | — | **0.898 (peak 0.911)** |
+  | late_finger | ✗ FAIL (spread 14) | ✓ **PASS (spread 1)** |
+  | idle_finger | ▲ WARN (2.45) | ✓ **PASS (9.7/5.7/6.4 N, all touch 1.00)** |
+  | jitter (ang-jerk) | ✗ **FAIL (156)** | ✓ **PASS (9.6, 16× smoother)** |
+  | drop | ✓ | ✓ **PASS (0.127)** |
+  | **verdict** | **FAIL** | **WARN** (firm grip + micro-slide only) |
+
+  Video: [handoff_m05_FIXED.mp4](videos/reorient/handoff_m05_FIXED.mp4). This is the **first
+  health-gated genuine pickup→reorient on a co-designed morphology**: instant balanced 3-finger
+  grasp, held aloft the whole rollout, reoriented to cos ~0.90, smooth (jitter 9.6). The remaining
+  WARNs are the known firm grip (~7 N, the low-force goal) and a benign micro-slide.
+
+- **B→A co-refinement on the CLEAN pipeline** (`corefine_BtoA_m05_fixed`, `drive_post`, low-LR nudge
+  of A by B's downstream reorient reward) — now a real validation (the earlier co-refine "gain" was
+  on a degenerate policy). It **improved every axis while staying health-clean**: held-cos
+  0.898→**0.974** (peak 0.981), post-handoff min-z 0.121→**0.139**, jitter 9.6→**5.9**, net drift
+  0.8→**0.2 cm**, still 4/4 hard checks PASS. Video:
+  [handoff_m05_FIXED_corefined.mp4](videos/reorient/handoff_m05_FIXED_corefined.mp4). Confirms A's
+  lift is genuinely optimizable for downstream reorient quality via gradient — the "slow gradient
+  updates B→A" lever, validated on a healthy base.
+
+**The three fixes that mattered — all found by characterizing failures, none by reward-tuning:**
+(1) IK-retarget the keyframe (world-frame fingertips) → real 3-finger grip; (2)
+`open_finger_from_keyframe` → close from the right open pose (no late finger); (3) deliver at 0.10
+→ floor clearance for the long object to reorient. Each was invisible to aggregate reward and
+visible on video / to the health scorecard — hence the monitoring is now baked in by default.
+
+---
+
+## Phase: co-design morphology sweep on the CLEAN pipeline (2026-07-03)
+
+Goal (user): explore morphologies with the blessed policy (`handoff_m05_FIXED.mp4` = **a10** native
+lift → **b33** live-A reset reorient) — a full per-design A→B pipeline, health-gated, no cheap
+skip-lift proxy. Orchestrator `scripts/morph_pipeline_sweep.py` (resumable; per design: generate →
+IK-retarget `open_ik` → CEM grasp gate → native A → live-A-reset B → continuous handoff +
+trajectory-health scorecard). Analysis `scripts/morph_pipeline_plots.py`. Runbook +
+resume/monitor commands: `morph_sweep_STATUS.md`.
+
+### initial8 (from-scratch A, warmstart B from A) — the honest result is FRAGILITY
+
+Eight interpretable coordinate moves around m05 (`s00` m05-anchor, `s01` m00-baseline ref, `s02–s07`
+thumb-opposition / seating hypotheses; exact Δ in `MORPH_PIPELINE_initial8_TABLE.md`). Summary +
+training figures: `img/morph_pipeline_initial8_summary.png`, `..._training.png`.
+
+| design | grasp (CEM lift/persist) | A→B outcome | verdict |
+|---|---|---|---|
+| **s05_shortgrasp** (index+mid len−4mm) | 0.054 / 1·1·1 | held cos 0.73, min-z 0.11, **jerk 47, force 12** | FAIL (jitter+clamp) |
+| s02_thumbreach (thumb_x+6mm) | 0.054 / 1·1·1 | idle fingers, dropped (cos −0.1, drift 16cm) | FAIL |
+| s00_m05anchor (= m05) | 0.054 / 1·1·1 | **A collapsed at iter 55** (0.127→0.026 in one iter) | A abort |
+| s01_baseline | 0.051 / 1·1·1 | B held 0.147 to iter 204 then collapsed | B abort |
+| s03/s04/s06/s07 | ~0.05 / 1·1·1 | B never lifted (A-driver can't lift perturbed grip) | B abort |
+
+**Two load-bearing findings:**
+1. **The 9-param designs are grasp-EQUIVALENT under the honest pipeline.** IK-retarget gives *every*
+   design a persistent 3-finger tripod (CEM lift ~0.05, persistence 1.0/1.0/1.0). Graspability is
+   **not** the differentiator here — contrary to how the 2026-06-25 skip-lift landscape read (which
+   was confounded by the joint-space keyframe artifact).
+2. **The bottleneck is RL-training ROBUSTNESS, not morphology.** 6/8 aborted in A or B training, and
+   critically **the m05 anchor `s00` collapsed in A training** — the from-scratch A lifted cleanly to
+   0.127 m through iter 54 then catastrophically dropped to 0.026 in a single iteration. This
+   **confirms the standing caveat that a10/m05 was a lucky single seed**: from-scratch PPO on this
+   contact-rich lift is seed-fragile, and a fresh per-design A frequently produces a policy that
+   can't reliably lift (so the live-A driver drops the object and B never learns). The one design
+   that held+reoriented (`s05`) fails only on **jitter/over-clamp — a policy-quality issue, not a
+   design flaw**.
+
+### Root-causing the failures (the first "fix" was a misdiagnosis — kept as a lesson)
+
+Attempt 1 warmstarted **A from a10** ("adapt the blessed policy"). It **FAILED on the m05 anchor**:
+A never lifted (object 0.0 from iter 0). This reproduces the *documented* reason A must train from
+scratch — a warmstarted A loads a **grip-specific residual that EJECTS the re-CEM'd object**; only
+from scratch is the residual ≈ 0, so the open-loop CEM grip + scripted lift does the lifting. So
+**warmstart-A is wrong**; the real failures had two separate causes, found by reading configs/logs:
+
+1. **B drops (`s03/s04/s06/s07`) = a genuine ORCHESTRATOR BUG, not a bad design.** Those designs'
+   A's trained fine (lift 0.11, clean). But the B config showed **`open_finger_from_keyframe:
+   false`** vs the good b33's `true` — the live-A-reset script never passes
+   `--open-finger-from-keyframe`, so B reset to the **baseline flung-out-thumb open pose**, the
+   LerpFinger closed from the wrong pose → wrong grip → the live-A driver dropped the object → B
+   never learned (and NaN'd). Exactly the "late-finger/wrong-open-pose" bug the m05 work already
+   fixed, silently reintroduced in the sweep's B wiring.
+2. **A/B mid-training collapse (`s00` A @ iter 55, `s01` B @ iter 205) = from-scratch PPO
+   instability**, not morphology. Both had a *healthy earlier* checkpoint (A model_50 @ 0.127; B
+   model_200 @ 0.147) that the watchdog-abort discarded.
+
+**The correct fix (in the orchestrator):** from-scratch A **+ use the FINAL A checkpoint on clean
+completion** (salvage the best pre-collapse ckpt ONLY on a watchdog abort — an early model_50 lifts
+marginally higher but has an under-refined grip → idle finger; `valfix2` FAILed exactly this way,
+picking model_50 over model_609) **+ pass `--open-finger-from-keyframe` to B + salvage-eval the last
+B checkpoint on abort**.
+
+**Validation (m05 anchor, corrected pipeline):** `valfix3` (A model_609 + B open-finger) →
+**WARN**, all three fingers loaded (16.8/10.5/9.6 N, idle-finger PASS), held aloft (min-z 0.111),
+smooth (jitter 15) — the same health class as b33. Reorients less fully (cos 0.66) and grips
+firmer (12 N) than a10→b33 (cos 0.90, 7 N) — **from-scratch seed variance**, the expected cost of
+per-design retraining. Genuine, non-degenerate pickup→reorient → the pipeline is sound for ranking
+designs. **Larger sweep launched:** 16 local designs around m05 (`--morph-set local --n 16 --center
+m05 --seed 1`, `MORPH_PIPELINE_large16.*`).
+
+### large16 results — a clean map, but SEED VARIANCE dominates the ranking
+
+All 16 ran (design 0 = m05 anchor). **14/16 held the object and reoriented — no drops**; 1
+(`L01_03`) had a from-scratch A collapse (never lifted, auto-gated in 8 min, B skipped); 1
+(`L01_05`) reoriented the wrong way. Every design is again grasp-equivalent (CEM 0.05 / 1·1·1).
+Ranked by held-cos (figures `morph_pipeline_large16_summary.png` / `_training.png`, table
+`MORPH_PIPELINE_large16_TABLE.md`):
+
+| design | Δm05 (biggest) | held-cos | force N | jerk | verdict | note |
+|---|---|---|---|---|---|---|
+| **L01_06** | ~m05 (all <5mm) | **0.899** (peak 0.984) | 11.9 | 23 | WARN | best cos — but ≈ m05 geometrically → likely seed |
+| L01_00 (m05 anchor) | — | 0.779 | 10.9 | 12.5 | WARN | the in-sweep reference |
+| **L01_13** | **thumb_x +9mm** | 0.761 | **7.4** | **6.0** | WARN | m05-level cos at LOWER force + HALF the jerk — best design lead |
+| L01_10 | thumb_y −8mm | 0.587 | 9.3 | **5.0** | WARN | smoothest |
+| L01_01 | index_x −6mm | 0.511 | **6.0** | 6.2 | WARN | low-force + smooth, under-reorients |
+| L01_02 | — | 0.385 | **2.0** | 13 | **FAIL** | lowest force but by IDLING a finger (degenerate — scorecard caught it) |
+| L01_05 / L01_09 | — | −0.45 / −0.40 | 5.5 / 13.5 | — | FAIL/WARN | reoriented the wrong way |
+
+**Findings:**
+1. **Seed variance dominates — no design is a CONFIRMED winner.** m05 alone spans held-cos **0.66
+   (valfix3) → 0.78 (L01_00) → 0.90 (L01_06 ≈ m05)** across seeds — a ~0.24 spread from *seed
+   alone*. So L01_06's 0.90 is within m05's own seed band, not a design win. This quantifies the
+   plan's "re-seed m05 to rule out a lucky run" caveat: **single-seed per-design scoring cannot
+   separate design effect from seed luck for held-cos.**
+2. **The health monitor earns its keep:** `L01_02` posts the lowest force (2.0 N, toward the goal)
+   but is **degenerate** — it FAILs `idle_finger` (low force by unloading a finger). Aggregate
+   "low force" would have called it a win; the scorecard correctly rejects it. Genuine *balanced*
+   low force bottoms out ~6–7 N (`L01_01`/`L01_13`), consistent with the standing ~6.6 N floor.
+3. **Best design lead = `L01_13`** (`thumb_x +9 mm`, a real thumb reposition toward opposition):
+   m05-level verticality (0.76) at **lower force (7.4 vs 10.9) and half the object jerk (6.0 vs
+   12.5)**. If replicated across seeds, this is a smoother, lower-force design at equal verticality.
+   Videos: [L01_13](videos/reorient/sweep/L01_13_handoff.mp4),
+   [L01_06](videos/reorient/sweep/L01_06_handoff.mp4),
+   [L01_00 (m05)](videos/reorient/sweep/L01_00_center_handoff.mp4).
+
+### Multi-seed confirmation — NEGATIVE: seed variance swamps any local design effect
+
+Re-ran `L01_13` and `m05` ×3 fresh seeds each. Pooling with the earlier runs of each exact vector
+(`MORPH_PIPELINE_confirm.*`; figure `img/morph_confirm_seedbands.png`):
+
+| design | held-cos (mean ± sd, range, n) | force N | jerk |
+|---|---|---|---|
+| **m05** | **+0.32 ± 0.38, [−0.29, 0.78], n=5** | 10.5 ± 4.0 | 17.6 ± 8.0 |
+| **L01_13** | **+0.38 ± 0.44, [−0.36, 0.76], n=4** | 8.5 ± 3.5 | 14.6 ± 9.7 |
+
+**The held-cos gap is 0.07 against a pooled seed sd of 0.41 → `L01_13` is statistically
+INDISTINGUISHABLE from `m05`** on every axis (cos, force, jerk). The large16 "L01_13 lead" (0.76 /
+7.4 N / jerk 6.0) was **one lucky draw** — its other seeds gave 0.63 / −0.36 / 0.51 and force 11.8 /
+3.3 / 11.4. The same design reorients anywhere from *backwards* (−0.36) to *near-vertical* (0.76)
+depending only on the training seed.
+
+**Definitive conclusion (load-bearing).** Under the honest per-design from-scratch A→B pipeline,
+**reorient quality has enormous run-to-run seed variance (held-cos sd ≈ 0.4, spanning negative to
+0.8) that completely swamps any local morphology design effect.** No design in the m05 neighborhood
+is distinguishable from m05. **The bottleneck is the RL training's seed-sensitivity, not the
+9-param geometry** — consistent with the earlier finding that every design is grasp-equivalent.
+Single-shot (even 3-shot) per-design scoring **cannot** resolve local design differences here.
+
+**Implication for co-design.** Before any design search over this neighborhood can find a real
+winner, the *evaluator's variance must be reduced* — e.g. (a) many seeds per design + report the
+mean (expensive: the variance needs ≥5–10 seeds to pin a 0.1 cos difference); (b) a
+variance-reduced / more-stable reorient trainer (fix the seed-fragility — warmstart a *shared*
+reorient prior rather than each design's own noisy A); or (c) score on a cheaper, lower-variance
+proxy than a full from-scratch A→B rollout. m05 remains the reference design; **the sweep's real
+deliverable is this methodological finding + the health-gated pipeline + the honest variance
+characterization**, not a new winning morphology. No design was promoted.
+
+---
+
 ## Results
 
 ### Cross-run comparison plots
