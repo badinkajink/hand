@@ -51,13 +51,25 @@ class LiveAOnPolicyRunner(ManipulationOnPolicyRunner):
   """
 
   def setup_live_a(self, actor_a, onset: int, a_obs_dim: int = 65,
-                   blend_steps: int = 0) -> None:
+                   blend_steps: int = 0, drive_post: bool = False) -> None:
     self.live_a_actor = actor_a
     self.live_a_onset = int(onset)
     self.live_a_obs_dim = int(a_obs_dim)
     self.live_a_blend = max(0, int(blend_steps))
+    # drive_post=False (default): frozen actor drives PRE-onset (the classic live-A
+    #   reset — frozen A lifts, learner B reorients from the organic seam).
+    # drive_post=True: frozen actor drives POST-onset (B→A CO-REFINEMENT — the learner
+    #   is Policy A driving the lift 0..onset; a FROZEN reorienter B drives >=onset; we
+    #   mask the B-driven steps but keep the whole reward stream, so A's lift steps get
+    #   discounted downstream credit for B's reorient reward via GAE → A learns to
+    #   deliver a grip that reorients better. Slow it with a low --learning-rate.
+    self.live_a_drive_post = bool(drive_post)
     self.live_a_actor.eval()
-    if self.live_a_blend > 0:
+    if self.live_a_drive_post:
+      print(f"[live-a] CO-REFINEMENT: learner (Policy A) drives lift 0..{onset}; frozen "
+            f"reorienter drives >= {onset} (obs dim {a_obs_dim}); B-driven steps masked "
+            f"from the update. A's lift steps get downstream reorient credit via returns.")
+    elif self.live_a_blend > 0:
       print(f"[live-a] enabled: frozen A drives steps 0..{onset} of every episode "
             f"(A obs dim {a_obs_dim}); then a {self.live_a_blend}-step SEAM RAMP-IN "
             f"alpha*B+(1-alpha)*A (alpha 0->1) eases B into the grip. All A-driven "
@@ -136,25 +148,35 @@ class LiveAOnPolicyRunner(ManipulationOnPolicyRunner):
       sched_rew_sum = 0.0
       with torch.inference_mode():
         for _ in range(self.cfg["num_steps_per_env"]):
-          # B's sampled action (also stores B's action/log-prob/value/obs).
+          # learner's sampled action (also stores its action/log-prob/value/obs).
           actions = self.alg.act(obs)
-          pre = step_in_ep < onset              # A's live-lift window (full A)
-          in_blend = (step_in_ep >= onset) & (step_in_ep < keep_from)  # ramp-in
-          keep = step_in_ep >= keep_from        # B fully drove = trainable
           stepped = actions.clone()
-          need_a = pre | in_blend
-          if bool(need_a.any()):
-            a_act = self._a_action(obs).to(stepped.dtype)
-            stepped = torch.where(pre.unsqueeze(1), a_act, stepped)
-            if blend > 0 and bool(in_blend.any()):
-              # alpha ramps 0->1 across the blend window: at the first blend step
-              # (step==onset) alpha=1/(blend+1) (mostly A), approaching 1 at the
-              # last. Keeps the reorienter from shocking A's grip at the seam.
-              alpha = ((step_in_ep - onset + 1).to(stepped.dtype)
-                       / float(blend + 1)).clamp_(0.0, 1.0).unsqueeze(1)
-              blended = alpha * actions + (1.0 - alpha) * a_act
-              stepped = torch.where(in_blend.unsqueeze(1), blended, stepped)
-            n_pre += int(need_a.sum())
+          if getattr(self, "live_a_drive_post", False):
+            # CO-REFINEMENT: learner (A) drives the lift 0..onset (trainable); the frozen
+            # reorienter drives >= onset (masked). No blend in this mode.
+            keep = step_in_ep < onset            # A drove the lift = trainable
+            need_a = step_in_ep >= onset         # frozen reorienter drives (masked)
+            if bool(need_a.any()):
+              a_act = self._a_action(obs).to(stepped.dtype)
+              stepped = torch.where(need_a.unsqueeze(1), a_act, stepped)
+              n_pre += int(need_a.sum())
+          else:
+            pre = step_in_ep < onset              # A's live-lift window (full A)
+            in_blend = (step_in_ep >= onset) & (step_in_ep < keep_from)  # ramp-in
+            keep = step_in_ep >= keep_from        # B fully drove = trainable
+            need_a = pre | in_blend
+            if bool(need_a.any()):
+              a_act = self._a_action(obs).to(stepped.dtype)
+              stepped = torch.where(pre.unsqueeze(1), a_act, stepped)
+              if blend > 0 and bool(in_blend.any()):
+                # alpha ramps 0->1 across the blend window: at the first blend step
+                # (step==onset) alpha=1/(blend+1) (mostly A), approaching 1 at the
+                # last. Keeps the reorienter from shocking A's grip at the seam.
+                alpha = ((step_in_ep - onset + 1).to(stepped.dtype)
+                         / float(blend + 1)).clamp_(0.0, 1.0).unsqueeze(1)
+                blended = alpha * actions + (1.0 - alpha) * a_act
+                stepped = torch.where(in_blend.unsqueeze(1), blended, stepped)
+              n_pre += int(need_a.sum())
           obs, rewards, dones, extras = self.env.step(stepped.to(self.env.device))
           if self.cfg.get("check_for_nan", True):
             check_nan(obs, rewards, dones)
@@ -221,7 +243,19 @@ class LiveAOnPolicyRunner(ManipulationOnPolicyRunner):
     m = keep.to(st.returns.device).unsqueeze(-1)          # (T, N, 1) bool
     adv = st.returns - st.values                          # raw advantages (T, N, 1)
     kept = adv[m]
-    if kept.numel() > 0:
-      adv = (adv - kept.mean()) / (kept.std() + 1e-8)
+    # ROBUSTNESS: if almost every episode dies at the seam (kept-set tiny or
+    # ~constant), normalising over it produces huge/NaN advantages -> the PPO update
+    # explodes the actor std -> `normal expects std >= 0` crash. Guard by zeroing ALL
+    # advantages that iter (skip the policy update) so a transient bad seam can't kill
+    # the whole run; the critic still learns from returns. Needs a healthy trainable
+    # fraction to make progress (fix the warmstart/grace, not just this guard).
+    frac = float(m.to(torch.float32).mean())
+    if kept.numel() < 64 or float(kept.std()) < 1e-5 or frac < 0.02:
+      print(f"[live-a] WARN: trainable frac={frac:.3f} kept={kept.numel()} "
+            f"std={float(kept.std()) if kept.numel() else 0:.2e} -> zeroing advantages "
+            f"(skipping policy update this iter to avoid a std-NaN blowup).")
+      st.advantages = torch.zeros_like(adv)
+      return
+    adv = (adv - kept.mean()) / (kept.std() + 1e-8)
     adv = adv * m.to(adv.dtype)                            # zero pre-onset
     st.advantages = adv

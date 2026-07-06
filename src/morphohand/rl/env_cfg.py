@@ -253,6 +253,15 @@ class MorphoHandEnvCfg:
         0.0, 0.0,  0.0,    # index_yaw, index_mcp, index_pip
         0.0, 0.0,  0.0,    # middle_yaw, middle_mcp, middle_pip
     )
+    open_finger_from_keyframe: bool = False
+    """If True, start the fingers (both the reset pose AND the LerpFinger
+    interpolation START) from the KEYFRAME's finger angles instead of the
+    hardcoded `open_finger_qpos`. REQUIRED for IK-retargeted morphologies: CEM
+    resets to the keyframe (e.g. `open_ik`) and optimizes the grip from THERE, so
+    the RL env must close from the same pose — otherwise the LerpFinger starts
+    from the baseline open pose (thumb flung to mcp=3.14) and a finger arrives
+    late, giving a 2-then-3-finger grasp that never stabilises. Default False
+    keeps the baseline lineage (a01/B-registry) byte-identical."""
     # ---- domain randomization (cube spawn) -----------------------------
     # Separate x and y because the reachable region is asymmetric for
     # this morphology (see /tmp/sweep_reachable2.py): full x reach
@@ -682,7 +691,13 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
     palm_pz_idx = PALM_JOINT_NAMES.index("palm_pz")
     palm_joint_pos = list(kf_state["palm_joint_pos"])
     palm_default_ctrl = list(kf_state["palm_default_ctrl"])
-    finger_init_pos = cfg.open_finger_qpos
+    # IK-retargeted morphologies: start fingers from the keyframe (== the pose CEM
+    # optimized the grip from), not the baseline hardcoded open pose. Used for BOTH
+    # the reset pose (finger_init_pos) and the LerpFinger interpolation start below.
+    open_finger_qpos = (tuple(kf_state["finger_joint_pos"])
+                        if cfg.open_finger_from_keyframe
+                        else tuple(cfg.open_finger_qpos))
+    finger_init_pos = open_finger_qpos
     if cfg.skip_lift_phase:
         # Spawn palm + cylinder at the post-lift pose; fingers at the CEM grip.
         # Equilibrium grip force is small (actuators at setpoint), so the first
@@ -752,7 +767,7 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
         scripted_ramp = 1
         scripted_lift_delta = 0.0
     else:
-        finger_start = tuple(float(v) for v in cfg.open_finger_qpos)
+        finger_start = tuple(float(v) for v in open_finger_qpos)
         scripted_settle = cfg.settle_steps
         scripted_ramp = cfg.lift_ramp_steps
         scripted_lift_delta = cfg.lift_delta_z
