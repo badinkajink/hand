@@ -481,7 +481,7 @@ A-driven pre-onset steps are masked from the PPO update (advantages zeroed and r
 returns kept — masking *advantages*, not log-probs, avoids the log-prob trap).
 
 Warm-started from B10, 20M / 3072 (`policyB_liveAreset_fromB10`, model 270): the continuous
-handoff now holds at **post-handoff min-z 0.110 m** (`≫` the 0.05 bar) at held-cos *0.751* —
+handoff now holds at *post-handoff min-z 0.110 m* (`≫` the 0.05 bar) at held-cos *0.751* —
 where every prior teleport approach dropped within 3–5 steps (min-z 0.003–0.011). The training
 signature confirmed it: masked-frac fell 0.95→0.20 (episodes lengthened `~5×`), alignment
 climbed 0.45→58.9, `tip_lost` fell 51→8, and episodes ran to time-out.
@@ -622,6 +622,139 @@ optimization — the real low-force lever — follows, and deliberately breaks t
   unchanged* until reorientation quality is solved — retuning them would perturb every policy's
   grip force and invalidate the A/B lineage and the seam comparisons above. It is deferred to a
   sim-to-real hardening pass.
+]
+
+= Morphology co-design: can the hand *shape* help?
+
+The RL side reached a *structural* ceiling: no reward lever removes the excess grip force, because
+the cause is the hand's geometry, not the policy (the fingertip force floors at `~6.6 N`; the grip
+is a lopsided pinch the policy cannot rebalance; genuinely low force needs the object to *seat into
+the palm*, which this morphology cannot do). So the remaining lever is the *9-param finger
+geometry* (per-finger base x, y, and length). The question this section answers: *does changing the
+hand shape measurably improve the lift-and-reorient — and can we even tell?*
+
+== The honest per-design pipeline
+
+An earlier landscape sweep hinted that morphology matters (one design, `m05`, reoriented best), but
+its scoring had two artifacts: it transferred the grasp keyframe in *joint* space (mis-placing
+fingertips on repositioned fingers) and scored reorientation on a *teleport* grip with no real
+Policy A. The honest evaluator fixes both and runs the *full* chain per design:
+
+#det([The per-design A→B pipeline, step by step], kind: "method")[
+  For a 9-param design vector: (1) `generate_morphology_xml` bakes it into fixed geometry; (2)
+  `retarget_keyframe_ik` writes an `open_ik` keyframe by IK-ing the *world* fingertip positions of
+  the known-good baseline onto the new fingers; (3) CEM grasp synthesis from `open_ik` (a
+  graspability gate skips hopeless designs); (4) a *native Policy A* trained *from scratch* (a
+  warmstarted A ejects the re-CEM'd object); (5) *Policy B* via the *live-A reset* (frozen A
+  drives the real lift, B learns reorient from the organic seam) — and it *must* pass
+  `--open-finger-from-keyframe`, or B resets to the wrong open pose and drops the object; (6) a
+  continuous A→B handoff scored by the trajectory-health scorecard. Orchestrated, resumable, in
+  `scripts/morph_pipeline_sweep.py`. This is the reusable unit every design is scored by.
+]
+
+On the co-designed `m05` hand this yields the first *health-gated* genuine pickup→reorient on a
+co-designed morphology: an instant balanced 3-finger grasp, held aloft the whole rollout (min-z
+`0.12`), reoriented to cos `~0.90`, smooth. Reference policies *a10* (its lift) → *b33* (its
+reorient).
+
+#media("assets/handoff_m05_FIXED.mp4", label: [a10 → b33 on the co-designed m05 hand.],
+  caption: [The health-gated pickup→reorient. Instant 3-finger grasp, held aloft, reoriented toward
+  vertical. This is the "blessed" reference policy the sweep explores around.])
+
+== Trajectory-health monitoring — so degeneracy cannot hide
+
+The deeper lesson: our headline metrics (reward, tip-lost, object-held, even held-cos) *masked*
+real defects visible only on video — a 2-finger grasp with a *late* third finger, high-frequency
+jitter, de-centering slides, idle-finger pinches. A single logged rollout now becomes an explicit
+PASS/WARN/FAIL scorecard, baked into every eval by default.
+
+#det([The six health checks (`src/morphohand/rl/trajectory_health.py`)], kind: "detail")[
+  *late_finger* — spread in per-finger first-contact step; *idle_finger* — a finger touching too
+  little or carrying `< 1 N` (degenerate pinch); *drop* — object-center below the floor threshold in
+  the hold window; *jitter* — object angular jerk; *de_centering* — net lateral drift + slide ratio;
+  *over_clamp* — mean fingertip force above `~5 N`. Verdict = worst check. It runs inside the handoff
+  eval (writes a `.health.json`), standalone as `scripts/policy_healthcheck.py`, and as an
+  acceptance gate at the end of A-training. It earns its keep below: it flagged a "cos 0.94" handoff
+  we had called a win as degenerate (late finger + jitter 156 + 2-finger), and it correctly rejected
+  a sweep design whose `2 N` "low force" was achieved by *idling a finger*.
+]
+
+#fig("assets/m05_health_characterization.png", label: [Health scorecard.],
+  caption: [The monitor cleanly separates a degenerate lift (idle/late finger, jitter) from the
+  fixed, balanced one — a separation the aggregate reward could not see.])
+
+== The sweep — and three bugs it surfaced before any science
+
+An initial 8-design sweep around `m05` looked like a disaster (6/8 aborted). Reading the *logs* (not
+the reward) showed it was not eight bad designs — it was three bugs in the evaluator, each a
+concrete lesson:
+
+#det([The three pipeline bugs (all fixed)], kind: "analysis")[
+  (1) *Policy B was missing `--open-finger-from-keyframe`* → it reset to the baseline flung-out-thumb
+  open pose, closed from the wrong grip, and dropped the object (sank four designs; verified
+  `open_finger_from_keyframe: false` in their configs vs `true` in `b33`). (2) *Checkpoint
+  selection*: on a clean run, use the *final* A checkpoint — an early one lifts marginally higher
+  but has an under-refined grip → idle finger; salvage an earlier checkpoint *only* when training
+  actually collapsed. (3) *Warmstarting A ejects the object* (a grip-specific residual on a
+  re-CEM'd grasp) — A must train from scratch. With the fixes, the `m05` anchor reproduced a clean,
+  balanced, held reorientation (all three fingers loaded).
+]
+
+The corrected pipeline then ran a *16-design* local search around `m05`. Fourteen of sixteen held
+the object and reoriented — no drops. But ranking them surfaced the real result.
+
+#det([The large16 ranking (held-cos / force / jerk)], kind: "results")[
+  Best cos `L01_06` 0.90 (but geometrically ≈ `m05`); anchor `m05` 0.78; `L01_13` (thumb moved 9 mm
+  outward) 0.76 at *lower* force (7.4 vs 10.9 N) and *half* the jerk (6.0 vs 12.5) — the apparent
+  "design lead"; `L01_02` posted the lowest force (2.0 N) but *by idling a finger* → the scorecard
+  correctly FAILed it. Full table `MORPH_PIPELINE_large16_TABLE.md`; figure
+  `morph_pipeline_large16_summary.png`.
+]
+
+== The result: seed variance swamps the design effect
+
+The "design lead" `L01_13` was tested against `m05` with three fresh seeds each. It *did not
+replicate*. Pooling every run of each exact design:
+
+#callout(tag: "The finding", kind: "warn")[
+  `m05`: held-cos *0.32 ± 0.38* (range −0.29 … 0.78, n = 5). `L01_13`: *0.38 ± 0.44* (range
+  −0.36 … 0.76, n = 4). The between-design gap is *0.07 against a pooled seed noise of 0.41* —
+  indistinguishable, on cos *and* force *and* jerk. The *same* hand reorients anywhere from
+  *backwards* to *near-vertical* depending only on the training seed.
+]
+
+#fig("assets/morph_confirm_seedbands.png", label: [Multi-seed confirmation.],
+  caption: [`L01_13` vs `m05`, several seeds each. The bands overlap almost completely — the design
+  difference is far smaller than the seed-to-seed spread. No design was promoted.])
+
+#det([Why so wide? It is *training-convergence* variance, not rollout noise], kind: "analysis")[
+  The tell is *peak* cos, not just the held tail: across seeds the peak reorientation itself ranges
+  0.02 → 0.81. Different seeds converge to *qualitatively different policies* — some discover the
+  "roll the cylinder up to vertical" strategy, many get stuck at "hold, barely rotate," a few
+  collapse in training. Reorientation is a *hard-exploration* target (the reward is only reachable
+  once the policy stumbles into the rolling motion), and from-scratch PPO on a non-convex,
+  contact-rich landscape finds it or not depending on early exploration. `m05`'s original 0.90 was
+  a *seed that found it*; it is a lottery, not a property of the geometry.
+]
+
+== What it means for co-design
+
+The 9-param designs here are *grasp-equivalent* (IK-retarget gives every one a persistent tripod),
+and their reorientation quality is dominated by RL-training seed luck. So a single (even 3-seed) run
+per design cannot resolve morphology differences. *To search designs meaningfully we must first
+reduce the evaluator's variance*, by one of:
+
+#det([Three ways to cut the evaluator variance (and what "shared warm-start" means)], kind: "method")[
+  (a) *Many seeds averaged* — brute force; the `~0.4` cos spread needs `≥ 5–10` seeds to pin a `0.1`
+  difference. (b) *A shared reorient warm-start* — warm-start *every design's Policy B from the one
+  proven reorienter (`b33`)*, which already knows the rolling motion, instead of from each design's
+  freshly-trained *holder* A. This removes the per-seed re-discovery lottery: every design starts
+  knowing *how* to reorient and only adapts that behavior to its grip, so what varies is the design,
+  not the seed's luck in re-inventing the skill. (Distinct from warm-starting *Policy A*, which
+  ejects the object — the shared prior belongs on the *reorienter*, the skill that is hard to
+  discover.) (c) *A cheaper, lower-variance proxy* than a full from-scratch A→B rollout. Until one of
+  these is in place, `m05` (a10 → b33) remains the reference design, and the sweep's real deliverable
+  is the *health-gated pipeline* + this *variance characterization*, not a new winning hand.
 ]
 
 #refbox[
