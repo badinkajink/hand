@@ -114,6 +114,13 @@ class Args:
     """Symmetric uniform yaw noise (rad, ±). 0 = no jitter."""
     dr_anneal_iters: int = 0
     """PPO iters over which spawn jitter linearly ramps 0 → max. 0 disables curriculum."""
+    compliance_dr: bool = False
+    """Per-env contact solimp DR: one softness draw per env per reset, dmin+dmax
+    lerped jointly soft → hard (docs/rl/compliance_dr_plan.md)."""
+    compliance_dr_dmin: tuple[float, float] = (0.97, 0.985)
+    """(soft, hard) bounds for solimp dmin."""
+    compliance_dr_dmax: tuple[float, float] = (0.995, 0.999)
+    """(soft, hard) bounds for solimp dmax."""
     tracking_anneal_iters: int = 0
     """PPO iters over which tracking-from-CEM reward weights linearly
     scale from initial → `tracking_final_scale` x initial. 0 disables.
@@ -452,6 +459,9 @@ def main() -> None:
         cube_spawn_y_center=args.cube_spawn_y_center,
         cube_spawn_yaw_jitter=args.cube_spawn_yaw_jitter,
         dr_anneal_iters=args.dr_anneal_iters,
+        compliance_dr=args.compliance_dr,
+        compliance_dr_dmin=args.compliance_dr_dmin,
+        compliance_dr_dmax=args.compliance_dr_dmax,
         tracking_anneal_iters=args.tracking_anneal_iters,
         tracking_final_scale=args.tracking_final_scale,
         finger_residual_scale=args.finger_residual_scale,

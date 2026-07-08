@@ -15,6 +15,8 @@ from typing import TYPE_CHECKING
 import numpy as np
 import torch
 
+from mjlab.managers.event_manager import requires_model_fields
+
 from morphohand.rl.reference_trajectory import ReferenceTrajectory
 
 if TYPE_CHECKING:
@@ -231,6 +233,30 @@ def fingertip_contact_min(env: "ManagerBasedRlEnv",
     if found is None:
         return torch.zeros(env.num_envs, device=env.device)
     return (found > 0).float().min(dim=-1).values
+
+
+@requires_model_fields("geom_solimp")
+def randomize_geom_solimp(env: "ManagerBasedRlEnv", env_ids,
+                          dmin_range: tuple[float, float] = (0.97, 0.985),
+                          dmax_range: tuple[float, float] = (0.995, 0.999)) -> None:
+    """Reset event: per-env contact-compliance DR (docs/rl/compliance_dr_plan.md).
+
+    Samples ONE softness u ~ U(0,1) per env and lerps BOTH solimp dmin and dmax
+    from it — a joint draw keeps the pair correlated and ordered (independent
+    draws can pair a soft dmin with a hard dmax, a contact regime the
+    compliance-robustness sweep never validated). Writes ALL geoms in the env's
+    world, matching the whole-scene solimp edit the sweep evaluates against.
+    solref and solimp width/midpoint/power are left at scene values.
+    """
+    if env_ids is None:
+        env_ids = torch.arange(env.num_envs, device=env.device)
+    elif isinstance(env_ids, slice):
+        env_ids = torch.arange(env.num_envs, device=env.device)[env_ids]
+    env_ids = env_ids.to(device=env.device, dtype=torch.long)
+    u = torch.rand(len(env_ids), 1, device=env.device)
+    solimp = env.sim.model.geom_solimp  # (nworld, ngeom, 5): dmin dmax width mid power
+    solimp[env_ids, :, 0] = dmin_range[0] + (dmin_range[1] - dmin_range[0]) * u
+    solimp[env_ids, :, 1] = dmax_range[0] + (dmax_range[1] - dmax_range[0]) * u
 
 
 def reset_from_handoff_bank(env: "ManagerBasedRlEnv", env_ids, bank_path: str) -> None:

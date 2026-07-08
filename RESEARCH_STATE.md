@@ -3,6 +3,13 @@
 Living handoff doc for a FRESH session **and a self-contained brief for an external analyst.**
 Full chronological log: `docs/rl/reorientation.md`. Published narrative: `webpaper/src/rl.typ`.
 
+> **ACTIVE (2026-07-08): compliance domain randomization.** Per-env contact solimp DR is built
+> (`mjlab_terms.randomize_geom_solimp`, `--compliance-dr`) and the retrain pipeline
+> (`scripts/compliance_dr_pipeline.py`: DR-A → 2× imitation-B → robustness sweep) is running
+> detached; logs in `logs/compliance_dr/`. See reorientation.md "compliance DOMAIN RANDOMIZATION"
+> phase (2026-07-08). Workspace note: top-level run logs now live under `logs/` (gitignored) and
+> experiment summaries under `docs/experiments/` — scripts write there directly now.
+
 > **⚠️ STATUS BANNER (read before the problem statement below).** The A→B handoff "seam"
 > that the *Problem & goal* section frames as "THE open problem" was **SOLVED on 2026-06-10**
 > (the live-A reset — the policy now holds the handoff at post-handoff min-z ~0.11 m). The
@@ -254,7 +261,7 @@ lineage + all the seam comparisons. Revisit as a sim-to-real hardening pass afte
    scale 0.5 / ease_out_quad / contact-gate ON = deploy parity; warmstart B10 at its native
    scale). When done: eval with `rl_demo_handoff_continuous.py --policy-b <ckpt>` (defaults now
    0.5) → post-handoff min-z + cos. This is the deployable, lineage-comparable version. **CHECK
-   the trainer log / `BATCH_RESULTS.md` FIRST.**
+   the trainer log / `docs/experiments/BATCH_RESULTS.md` FIRST.**
 2. **Push the reorientation FURTHER** (cos 0.75 < B4 standalone 0.988). UPDATE 2026-06-11 (see the
    06-11 section below for the full verdict): warmstart-B4 is DEAD (won't hold A's delivery, NaN-prone).
    The working lever is **commit-bonus + basin re-anneal on the B10-live-A lineage** → best is now **b29**
@@ -366,7 +373,7 @@ into palm; B3 distillation for the verticality gap.)
 **b34 FORCE-FLOOR SWEEP RESULT (2026-06-13) — GRIP-PENALTY LEVER IS DEAD. The floor is flat at
 ~6.6–7.5 N; gentleness is a SEATING problem, not a force-reward problem.** Ran 3 runs continuing
 from b33/model_405, weight −6 fixed, only the penalty threshold varied (`scripts/sweep_b34_thresh.sh`
-→ `scripts/b34_eval_on_done.sh` → `b34_EVAL_RESULTS.txt`; all eval'd at matched parity scale 0.2 /
+→ `scripts/b34_eval_on_done.sh` → `docs/experiments/b34_EVAL_RESULTS.txt`; all eval'd at matched parity scale 0.2 /
 linear / contact-gate OFF). **Halving the penalty knee 4→2 N moved fingertip force <1 N:**
 
 | thresh | fingertip force | held-cos | post-min-z | ang-jerk | palm force |
@@ -625,13 +632,13 @@ frozenA×Badapt **0.0075**, baseline ~0.0029. **Moving BOTH toward each other is
 is still a DROP (≪ 0.05), not a hold — it's the best *relative* min-z, the object falls slightly
 less far. And `Badapt` has NO stable post-seam holding grip (it drops by ~step 48), so the **weak
 link is B CATCHING**, not A delivering (A's migrated grip holds fine through 0-40). Results in
-`MEET_IN_MIDDLE_EVALS.txt`; videos `docs/rl/videos/reorient/meet_*.mp4`.
+`docs/experiments/MEET_IN_MIDDLE_EVALS.txt`; videos `docs/rl/videos/reorient/meet_*.mp4`.
 
 **OVERNIGHT BATCH IS RUNNING (launched 2026-06-09 18:13).** `scripts/overnight_batch.sh` (detached;
 `overnight_batch.run.log`) runs a co-adaptation wave 1 ONE-AT-A-TIME, auto-evals each on continuous
-min-z, appends to **`BATCH_RESULTS.md`**: (1) coadapt_B_toAtol20 [B warmstart Badapt + MIGRATED A's
+min-z, appends to **`docs/experiments/BATCH_RESULTS.md`**: (1) coadapt_B_toAtol20 [B warmstart Badapt + MIGRATED A's
 delivery]; (2) B_complete_fromBadapt; (3,4) branchB w6/w4 A-migration pushes (eval vs Badapt);
-(5,6) complete-state 2×2 ablation (velocity-only / last_action-only). **CHECK `BATCH_RESULTS.md`
+(5,6) complete-state 2×2 ablation (velocity-only / last_action-only). **CHECK `docs/experiments/BATCH_RESULTS.md`
 FIRST next session.**
 
 > **WAVE 1 COMPLETE (2026-06-09 ~20:49). Key finding: the VELOCITY injection is harmful, NOT
@@ -686,7 +693,7 @@ FIRST next session.**
 > a silent log-prob/masking bug would waste an unattended run — not worth the risk while idle.)
 
 **TOMORROW — TWO PRIORITIES:**
-- **A. Design wave 2 from `BATCH_RESULTS.md`.** If `coadapt_B_toAtol20` beats 0.0114, iterate the
+- **A. Design wave 2 from `docs/experiments/BATCH_RESULTS.md`.** If `coadapt_B_toAtol20` beats 0.0114, iterate the
   co-adaptation loop (record the new B's catch, re-migrate A to it, repeat — alternating A/B).
 - **B. BUILD THE LIVE-A RESET (the one untried mechanism that removes ALL teleport artifacts).**
   Every adaptation so far trains B on a *teleport* into the seam (bank/inject); the deploy seam is
@@ -792,7 +799,7 @@ A-migration alone (Atol20×B10) −0.0001; **CO-ADAPT cross-pairing (Atol20×Bad
   - *Bracing:* unchanged; reaches cos 0.99 ~3 cm below palm (vertically), no contact.
   - *Seamless A→B handoff:* **STILL OPEN. Latest (2026-06-09 eve): injection paradigm SATURATED
     (complete-state onset 0.0027); CO-ADAPTATION is the new lever (0.0114 best). See START HERE +
-    `BATCH_RESULTS.md`. The history below (smoothness framing, 2026-06-04) is superseded.**
+    `docs/experiments/BATCH_RESULTS.md`. The history below (smoothness framing, 2026-06-04) is superseded.**
     Diagnosis
     held: seam drop was an observation-discontinuity OOD shock (skip-lift B OOD on A's normal-lift
     delivery). The grace-window-from-P2 attempts (v2/v3/v3b = B7/B8/B9) all collapsed because they
@@ -827,7 +834,7 @@ A-migration alone (Atol20×B10) −0.0001; **CO-ADAPT cross-pairing (Atol20×Bad
       (`--handoff-state-bank`) to close the train-reset-vs-real-delivery gap. Budget spent; NOT run.
     NOTE: standalone skip-lift eval env is OOD for normal-lift Bs (drop=1.0 is an artifact); judge
     survival on continuous-handoff min-z, not standalone drop. Full write-up: `webpaper/src/rl.typ`;
-    eval: `STATE_HANDOFF_RESULTS.txt`.
+    eval: `docs/experiments/STATE_HANDOFF_RESULTS.txt`.
 
 ## BRANCH B v1 (un-freeze A) — RAN 2026-06-04 eve, FAILED (collapsed A's grasp); v2 corrected, NOT YET RUN
 Branch B was implemented + launched (commits f6abb13/14a22db/c920706): keep B10 frozen, warmstart A,
