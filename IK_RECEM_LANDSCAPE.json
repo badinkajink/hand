@@ -1,0 +1,326 @@
+[
+ {
+  "id": "m00_baseline",
+  "morph": [
+   0.0,
+   0.02,
+   0.0,
+   0.01,
+   -0.0123,
+   0.0,
+   0.01,
+   0.0153,
+   0.0
+  ],
+  "lift": 0.05067055201774184,
+  "tips": 3.0,
+  "pt": 1.0,
+  "pi": 1.0,
+  "pm": 1.0,
+  "all3": 1.0,
+  "ik_resid": {
+   "thumb": 0.1,
+   "index": 0.09,
+   "middle": 0.1
+  },
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/landscape/scene_tp0d0000p0d0200p0d0000_ip0d0100n0d0123p0d0000_mp0d0100p0d0153p0d0000.xml",
+  "secs": 258
+ },
+ {
+  "id": "m01_thumbWinner",
+  "morph": [
+   0.02,
+   0.02,
+   0.02,
+   0.01,
+   -0.0123,
+   0.0,
+   0.01,
+   0.0153,
+   0.0
+  ],
+  "lift": 0.04929184024040142,
+  "tips": 3.0,
+  "pt": 1.0,
+  "pi": 1.0,
+  "pm": 1.0,
+  "all3": 1.0,
+  "ik_resid": {
+   "thumb": 2.49,
+   "index": 0.09,
+   "middle": 0.1
+  },
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/landscape/scene_tp0d0200p0d0200p0d0200_ip0d0100n0d0123p0d0000_mp0d0100p0d0153p0d0000.xml",
+  "secs": 260
+ },
+ {
+  "id": "m02_lhs",
+  "morph": [
+   -0.002,
+   -0.0118,
+   0.0131,
+   -0.0033,
+   0.0105,
+   0.0112,
+   0.0024,
+   -0.0224,
+   0.0047
+  ],
+  "lift": 0.052282395139967644,
+  "tips": 3.0,
+  "pt": 1.0,
+  "pi": 1.0,
+  "pm": 1.0,
+  "all3": 1.0,
+  "ik_resid": {
+   "thumb": 0.1,
+   "index": 0.09,
+   "middle": 0.1
+  },
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/landscape/scene_tn0d0020n0d0118p0d0131_in0d0033p0d0105p0d0112_mp0d0024n0d0224p0d0047.xml",
+  "secs": 281
+ },
+ {
+  "id": "m03_lhs",
+  "morph": [
+   0.0086,
+   0.0081,
+   0.0197,
+   -0.0092,
+   -0.0069,
+   0.0021,
+   0.0062,
+   0.0046,
+   0.0084
+  ],
+  "lift": 0.04856687212643949,
+  "tips": 3.0,
+  "pt": 0.9583333333333334,
+  "pi": 1.0,
+  "pm": 1.0,
+  "all3": 0.9583333333333334,
+  "ik_resid": {
+   "thumb": 4.66,
+   "index": 0.09,
+   "middle": 0.09
+  },
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/landscape/scene_tp0d0086p0d0081p0d0197_in0d0092n0d0069p0d0021_mp0d0062p0d0046p0d0084.xml",
+  "secs": 180
+ },
+ {
+  "id": "m04_lhs",
+  "morph": [
+   -0.0123,
+   -0.0081,
+   0.007,
+   0.0223,
+   -0.0204,
+   0.0178,
+   -0.016,
+   -0.0197,
+   0.0107
+  ],
+  "lift": 0.0540274427759488,
+  "tips": 3.0,
+  "pt": 1.0,
+  "pi": 1.0,
+  "pm": 1.0,
+  "all3": 1.0,
+  "ik_resid": {
+   "thumb": 0.1,
+   "index": 0.09,
+   "middle": 0.1
+  },
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/landscape/scene_tn0d0123n0d0081p0d0070_ip0d0223n0d0204p0d0178_mn0d0160n0d0197p0d0107.xml",
+  "secs": 277
+ },
+ {
+  "id": "m05_lhs",
+  "morph": [
+   0.0147,
+   0.005,
+   0.0108,
+   0.004,
+   0.0022,
+   0.0123,
+   0.0246,
+   0.0242,
+   0.0159
+  ],
+  "lift": 0.05357209203890561,
+  "tips": 3.0,
+  "pt": 1.0,
+  "pi": 1.0,
+  "pm": 1.0,
+  "all3": 1.0,
+  "ik_resid": {
+   "thumb": 0.09,
+   "index": 0.09,
+   "middle": 0.1
+  },
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/landscape/scene_tp0d0147p0d0050p0d0108_ip0d0040p0d0022p0d0123_mp0d0246p0d0242p0d0159.xml",
+  "secs": 251
+ },
+ {
+  "id": "m06_lhs",
+  "morph": [
+   -0.0059,
+   0.0149,
+   0.025,
+   0.0062,
+   0.0098,
+   0.0232,
+   -0.0037,
+   0.0053,
+   0.0132
+  ],
+  "lift": 0.03668136620216465,
+  "tips": 2.0,
+  "pt": 0.9833333333333333,
+  "pi": 0.9027777777777778,
+  "pm": 1.0,
+  "all3": 0.9027777777777778,
+  "ik_resid": {
+   "thumb": 15.2,
+   "index": 3.3,
+   "middle": 0.08
+  },
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/landscape/scene_tn0d0059p0d0149p0d0250_ip0d0062p0d0098p0d0232_mn0d0037p0d0053p0d0132.xml",
+  "secs": 178
+ },
+ {
+  "id": "m07_lhs",
+  "morph": [
+   0.0,
+   -0.0016,
+   0.0222,
+   -0.0247,
+   0.0175,
+   0.0208,
+   -0.0123,
+   -0.0133,
+   0.0235
+  ],
+  "lift": 0.049900012842742425,
+  "tips": 3.0,
+  "pt": 1.0,
+  "pi": 1.0,
+  "pm": 1.0,
+  "all3": 1.0,
+  "ik_resid": {
+   "thumb": 6.83,
+   "index": 0.07,
+   "middle": 0.09
+  },
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/landscape/scene_tp0d0000n0d0016p0d0222_in0d0247p0d0175p0d0208_mn0d0123n0d0133p0d0235.xml",
+  "secs": 262
+ },
+ {
+  "id": "m08_lhs",
+  "morph": [
+   0.0243,
+   -0.0167,
+   0.0297,
+   -0.018,
+   -0.0029,
+   0.0299,
+   0.0172,
+   0.0122,
+   0.0019
+  ],
+  "lift": 0.05164725749357393,
+  "tips": 2.0,
+  "pt": 0.0,
+  "pi": 0.013888888888888888,
+  "pm": 0.9277777777777778,
+  "all3": 0.0,
+  "ik_resid": {
+   "thumb": 0.06,
+   "index": 11.0,
+   "middle": 0.09
+  },
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/landscape/scene_tp0d0243n0d0167p0d0297_in0d0180n0d0029p0d0299_mp0d0172p0d0122p0d0019.xml",
+  "secs": 180
+ },
+ {
+  "id": "m09_lhs",
+  "morph": [
+   -0.0248,
+   -0.0216,
+   0.0007,
+   0.016,
+   -0.0169,
+   0.006,
+   0.0147,
+   -0.0052,
+   0.0299
+  ],
+  "lift": 0.04741920311257583,
+  "tips": 3.0,
+  "pt": 1.0,
+  "pi": 1.0,
+  "pm": 1.0,
+  "all3": 1.0,
+  "ik_resid": {
+   "thumb": 5.67,
+   "index": 0.09,
+   "middle": 5.99
+  },
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/landscape/scene_tn0d0248n0d0216p0d0007_ip0d0160n0d0169p0d0060_mp0d0147n0d0052p0d0299.xml",
+  "secs": 269
+ },
+ {
+  "id": "m10_lhs",
+  "morph": [
+   0.0186,
+   0.0169,
+   0.0049,
+   0.0105,
+   0.025,
+   0.0056,
+   -0.0248,
+   0.0178,
+   0.0191
+  ],
+  "lift": 0.05095067076727535,
+  "tips": 3.0,
+  "pt": 1.0,
+  "pi": 1.0,
+  "pm": 1.0,
+  "all3": 1.0,
+  "ik_resid": {
+   "thumb": 0.1,
+   "index": 0.1,
+   "middle": 0.09
+  },
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/landscape/scene_tp0d0186p0d0169p0d0049_ip0d0105p0d0250p0d0056_mn0d0248p0d0178p0d0191.xml",
+  "secs": 298
+ },
+ {
+  "id": "m11_lhs",
+  "morph": [
+   -0.0191,
+   0.0207,
+   0.0153,
+   -0.0121,
+   -0.0103,
+   0.0269,
+   -0.0063,
+   -0.0037,
+   0.0257
+  ],
+  "lift": 0.04919302658944867,
+  "tips": 3.0,
+  "pt": 1.0,
+  "pi": 1.0,
+  "pm": 1.0,
+  "all3": 1.0,
+  "ik_resid": {
+   "thumb": 7.77,
+   "index": 9.47,
+   "middle": 3.82
+  },
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/landscape/scene_tn0d0191p0d0207p0d0153_in0d0121n0d0103p0d0269_mn0d0063n0d0037p0d0257.xml",
+  "secs": 247
+ }
+]

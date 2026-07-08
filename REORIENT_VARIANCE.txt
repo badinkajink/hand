@@ -1,0 +1,30 @@
+# reorient variance study  2026-07-06 11:32  n=3/cell
+# fixed A per design; B warm-start: self=own A, shared=b33 (proven reorienter)
+m05_self_k0            cos  0.649 peak  0.755 force   7.4 jerk  13.4 WARN  (2304s)
+m05_self_k1            cos  0.845 peak    0.9 force   8.2 jerk   9.2 WARN  (2304s)
+m05_self_k2            cos  0.832 peak  0.874 force   6.2 jerk   9.3 WARN  (2303s)
+m05_shared_k0          cos  0.913 peak  0.992 force   9.5 jerk  26.2 WARN  (2243s)
+m05_shared_k1          cos  0.805 peak  0.872 force   5.4 jerk  25.4 WARN  (2213s)
+m05_shared_k2          cos  0.876 peak  0.909 force  10.7 jerk  25.0 WARN  (2251s)
+L01_13_self_k0         cos  0.778 peak  0.784 force   8.0 jerk   6.9 WARN  (2242s)
+L01_13_self_k1         cos  0.771 peak  0.811 force  11.9 jerk   8.0 WARN  (2212s)
+L01_13_self_k2         cos  0.717 peak  0.751 force  10.8 jerk  10.8 WARN  (2212s)
+L01_13_shared_k0       cos  0.769 peak  0.827 force  10.6 jerk  38.2 WARN  (2241s)
+L01_13_shared_k1       cos  0.698 peak  0.781 force  11.9 jerk  29.0 WARN  (2243s)
+L01_13_shared_k2       cos  0.705 peak  0.794 force  12.0 jerk  22.6 WARN  (2212s)
+
+# --- bands (held-cos mean ± sd, range, n) ---
+m05      self   : cos +0.78 ± 0.09  [+0.65,+0.84]  n=3
+m05      shared : cos +0.86 ± 0.04  [+0.81,+0.91]  n=3
+L01_13   self   : cos +0.76 ± 0.03  [+0.72,+0.78]  n=3
+L01_13   shared : cos +0.72 ± 0.03  [+0.70,+0.77]  n=3
+m05_imit_k0            cos  0.853 peak  0.886 force   4.5 jerk   6.7 WARN  (2273s)
+m05_imit_k1            cos  0.809 peak  0.889 force   9.2 jerk  11.5 WARN  (2272s)
+m05_imit_k2            cos  0.796 peak  0.865 force   7.6 jerk  12.6 WARN  (2275s)
+L01_13_imit_k0         cos  0.737 peak  0.762 force   9.3 jerk   6.0 WARN  (2303s)
+L01_13_imit_k1         cos  0.698 peak  0.743 force   7.3 jerk   7.6 WARN  (2334s)
+L01_13_imit_k2         cos  0.722 peak  0.733 force   7.9 jerk   5.8 WARN  (2304s)
+
+# --- bands (held-cos mean ± sd, range, n) ---
+m05      imit   : cos +0.82 ± 0.02  [+0.80,+0.85]  n=3
+L01_13   imit   : cos +0.72 ± 0.02  [+0.70,+0.74]  n=3

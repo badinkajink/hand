@@ -171,6 +171,14 @@ class Args:
     """Sharpness of the axis-alignment reward."""
     reorient_start_step: int = 30
     """Policy step from which target_axis reward fires (after lift completes)."""
+    imitation_ref_npz: str = ""
+    """Object-relative fingertip trajectory (.npz from rl_demo_handoff_continuous.py
+    --record-fingertip-traj) to imitate — a morphology-transferable reorient prior."""
+    imitation_weight: float = 0.0
+    imitation_alpha: float = 300.0
+    imitation_curriculum_iters: int = 0
+    """If >0, anneal imitation_weight -> imitation_weight_final over this many iters."""
+    imitation_weight_final: float = 0.0
     finger_residual_active_from_step: int = 0
     """Policy step from which the policy's finger residual applies (zeroed before;
     scripted grasp runs undisturbed). Set ~reorient_start_step in normal-lift to keep
@@ -468,6 +476,11 @@ def main() -> None:
         target_axis_weight=args.target_axis_weight,
         target_axis_alpha=args.target_axis_alpha,
         reorient_start_step=args.reorient_start_step,
+        imitation_ref_npz=args.imitation_ref_npz,
+        imitation_weight=args.imitation_weight,
+        imitation_alpha=args.imitation_alpha,
+        imitation_curriculum_iters=args.imitation_curriculum_iters,
+        imitation_weight_final=args.imitation_weight_final,
         finger_residual_active_from_step=args.finger_residual_active_from_step,
         strict_tip_lost_termination=args.strict_tip_lost_termination,
         contact_min_weight=args.contact_min_weight,

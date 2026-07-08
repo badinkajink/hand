@@ -410,6 +410,20 @@ class MorphoHandEnvCfg:
     gives gradient at large tilts; sharp late shaping focuses on near-target."""
     target_axis_alpha_start: float = 0.5
     """Initial alpha for curriculum (soft / wide reward basin)."""
+
+    # ---- object-relative fingertip IMITATION (morphology-transferable reorient prior) ----
+    imitation_ref_npz: str = ""
+    """Path to a recorded object-relative fingertip trajectory (T,3,3) from a good reorientation
+    (scripts/rl_demo_handoff_continuous.py --record-fingertip-traj). Empty = disabled. Adds a
+    `track_fingertip_obj` reward that pulls this design's fingertips (in the screwdriver frame)
+    toward the reference motion — a DESIGN-NEUTRAL, morphology-transferable reorient prior (unlike
+    joint-space imitation). See src/morphohand/rl/imitation.py."""
+    imitation_weight: float = 0.0
+    imitation_alpha: float = 300.0
+    imitation_curriculum_iters: int = 0
+    """If >0, anneal imitation_weight -> imitation_weight_final over this many iters (learn the
+    motion from the demo first, then let the task reward refine it)."""
+    imitation_weight_final: float = 0.0
     terminate_low_tilt_velocity: bool = False
     """If True, terminate episodes where the cylinder isn't actively
     reorienting during the reorient phase. Kills 'just hold the lift'
@@ -1091,6 +1105,19 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
                 "clamp_negative": bool(cfg.target_axis_progress_clamp_negative),
             },
         )
+    # ---- object-relative fingertip IMITATION prior (morphology-transferable) ----
+    if cfg.imitation_ref_npz and cfg.imitation_weight != 0.0:
+        from morphohand.rl.imitation import track_fingertip_obj
+        rewards["track_fingertip_obj"] = RewardTermCfg(
+            func=track_fingertip_obj,
+            weight=float(cfg.imitation_weight) * task_scale,
+            params={
+                "ref_path": str(cfg.imitation_ref_npz),
+                "alpha": float(cfg.imitation_alpha),
+                "object_name": "cube",
+                "reorient_start_step": int(cfg.reorient_start_step),
+            },
+        )
     # ---- "quick / shorter trajectory" incentives (Policy B v2) ---------
     if cfg.enable_target_axis_reward and cfg.success_bonus_weight != 0.0:
         rewards["alignment_success_bonus"] = RewardTermCfg(
@@ -1416,6 +1443,18 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
                 final_weights=tuple(smooth_final),
                 start_iter=int(cfg.smoothness_curriculum_start_iter),
                 anneal_iters=int(cfg.smoothness_curriculum_iters),
+            ),
+        )
+    # anneal the imitation weight down ("learn the demo motion first, then let the task refine")
+    if cfg.imitation_curriculum_iters > 0 and "track_fingertip_obj" in rewards:
+        curriculum["imitation_anneal"] = CurriculumTermCfg(
+            func=mjlab_terms.anneal_smoothness_weights,   # generic reward-weight annealer
+            params=dict(
+                term_names=("track_fingertip_obj",),
+                base_weights=(float(cfg.imitation_weight) * task_scale,),
+                final_weights=(float(cfg.imitation_weight_final) * task_scale,),
+                start_iter=0,
+                anneal_iters=int(cfg.imitation_curriculum_iters),
             ),
         )
 

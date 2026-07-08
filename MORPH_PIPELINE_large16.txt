@@ -1,0 +1,18 @@
+# full A->B pipeline sweep 'large16'  2026-07-04 00:04  16 designs
+# per design: gen -> IK open_ik -> CEM (grasp gate) -> native A -> live-A reset B -> continuous handoff + trajectory-health scorecard.
+L01_00_center    | lift 0.054 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1131 cos  0.779 jerk  12.5 force  10.9 drift  0.3cm | WARN   (5842s)
+L01_01           | lift 0.052 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1153 cos  0.511 jerk   6.2 force   6.0 drift  0.1cm | WARN   (5749s)
+L01_02           | lift 0.055 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1188 cos  0.385 jerk  13.0 force   2.0 drift  2.3cm | FAIL   (5782s)
+L01_03           | lift 0.052 tip 3.0 pers 1.00/1.00/1.00 | minZ      — cos      — jerk     — force     — drift    —cm | A never lifted (best objheight 0.0 < 0.06)   (491s)
+L01_04           | lift 0.051 tip 3.0 pers 1.00/1.00/1.00 | minZ  0.116 cos  0.476 jerk   7.5 force   9.6 drift  0.0cm | WARN   (5777s)
+L01_05           | lift 0.056 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1117 cos -0.446 jerk  15.5 force   5.5 drift  0.3cm | FAIL   (2828s)
+L01_06           | lift 0.051 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1099 cos  0.899 jerk  23.1 force  11.9 drift  0.4cm | WARN   (5782s)
+L01_07           | lift 0.054 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1158 cos  0.353 jerk   9.3 force   8.1 drift  0.8cm | WARN   (5748s)
+L01_08           | lift 0.055 tip 3.0 pers 1.00/1.00/1.00 | minZ  0.112 cos  0.579 jerk  19.5 force  11.9 drift  0.0cm | WARN   (5749s)
+L01_09           | lift 0.051 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1172 cos -0.397 jerk  25.6 force  13.5 drift  1.0cm | WARN   (5746s)
+L01_10           | lift 0.050 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1167 cos  0.587 jerk   5.0 force   9.3 drift  0.8cm | WARN   (5807s)
+L01_11           | lift 0.050 tip 3.0 pers 1.00/1.00/1.00 | minZ   0.12 cos  0.708 jerk  33.0 force   9.6 drift  0.4cm | WARN   (5782s)
+L01_12           | lift 0.053 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1208 cos  0.562 jerk   9.5 force   7.4 drift  0.5cm | WARN   (5782s)
+L01_13           | lift 0.051 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1116 cos  0.761 jerk   6.0 force   7.4 drift  0.8cm | WARN   (5813s)
+L01_14           | lift 0.054 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1085 cos  0.565 jerk  16.2 force   5.8 drift  0.1cm | WARN   (5847s)
+L01_15           | lift 0.055 tip 3.0 pers 1.00/1.00/1.00 | minZ  0.113 cos  0.692 jerk  27.8 force  10.5 drift  0.1cm | WARN   (5780s)

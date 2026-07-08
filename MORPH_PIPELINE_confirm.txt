@@ -1,0 +1,8 @@
+# full A->B pipeline sweep 'confirm'  2026-07-04 23:34  6 designs
+# per design: gen -> IK open_ik -> CEM (grasp gate) -> native A -> live-A reset B -> continuous handoff + trajectory-health scorecard.
+cf_m05_s0        | lift 0.054 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1226 cos  0.214 jerk   9.8 force   2.6 drift  0.2cm | FAIL   (5813s)
+cf_l13_s0        | lift 0.051 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1135 cos  0.626 jerk   5.1 force  11.8 drift  0.7cm | WARN   (5750s)
+cf_m05_s1        | lift 0.054 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1027 cos  0.226 jerk  18.0 force  14.0 drift  0.4cm | WARN   (5810s)
+cf_l13_s1        | lift 0.051 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1146 cos -0.357 jerk  28.6 force   3.3 drift  0.1cm | FAIL   (1808s)
+cf_m05_s2        | lift 0.054 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1114 cos -0.291 jerk  32.5 force  12.5 drift  1.1cm | WARN   (5785s)
+cf_l13_s2        | lift 0.051 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1088 cos  0.505 jerk  18.6 force  11.4 drift  1.6cm | WARN   (5810s)
