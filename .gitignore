@@ -30,3 +30,10 @@ paper/*
 assets/mjcf/experimental/morph_sweep/
 
 assets/mjcf/experimental/landscape/
+
+# run logs / runtime markers (workspace hygiene, 2026-07-08)
+logs/*
+!logs/.gitkeep
+wandb/
+*.DONE
+*.pid

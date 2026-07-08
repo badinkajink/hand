@@ -19,7 +19,7 @@
 # (Bar = 0.05; prior best 0.0081; co-adapt cross-pairing already 0.0114.)
 #
 # Launch detached:
-#   nohup setsid bash scripts/overnight_batch.sh > overnight_batch.run.log 2>&1 </dev/null & disown
+#   nohup setsid bash scripts/overnight_batch.sh > logs/overnight_batch.run.log 2>&1 </dev/null & disown
 set -u
 ROOT=/home/humanoid/Programs/hand; cd "$ROOT"
 RES="$ROOT/BATCH_RESULTS.md"

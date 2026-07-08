@@ -83,7 +83,7 @@ ARGS=(
   --tag "$TAG" --no-wandb
 )
 c=$(mktemp -d)
-LOG="${LOG:-$ROOT/branchB_v2_${TAG}.trainer.log}"
+LOG="${LOG:-$ROOT/logs/branchB_v2_${TAG}.trainer.log}"
 echo "[branchB-v2] TAG=$TAG ts=$TOTAL_TS weight=$WEIGHT finger_slip_tol=$FINGER_SLIP_TOL"
 echo "[branchB-v2] WARP_CACHE=$c  trainer-log=$LOG"
 

@@ -12,7 +12,7 @@
 # Order (frozen-first, then co-refine): run AFTER a frozen-A live-reset B exists, so B is a
 # competent reorienter of A's delivery; co-refinement then closes the last gap by moving A.
 #
-# Launch: nohup setsid bash scripts/train_corefine_BtoA.sh > corefine.run.log 2>&1 </dev/null & disown
+# Launch: nohup setsid bash scripts/train_corefine_BtoA.sh > logs/corefine.run.log 2>&1 </dev/null & disown
 # SMOKE=1 -> 1M ts (~code-path validation). Knobs: A_CKPT, B_CKPT, MORPH, LIFT_DELTA, LR, ONSET, TAG.
 set -u
 ROOT=/home/humanoid/Programs/hand; cd "$ROOT"
@@ -49,7 +49,7 @@ ARGS=(
 )
 [ -n "${EXTRA_ARGS:-}" ] && ARGS+=( $EXTRA_ARGS )
 c=$(mktemp -d)
-LOG="${LOG:-$ROOT/corefine_${TAG}.trainer.log}"
+LOG="${LOG:-$ROOT/logs/corefine_${TAG}.trainer.log}"
 echo "[corefine] TAG=$TAG ts=$TOTAL_TS onset=$ONSET LR=$LR lift=$LIFT_DELTA"
 echo "[corefine] learner-A=$A_CKPT  frozen-B=$B_CKPT  MORPH=$MORPH  WARP_CACHE=$c"
 WARP_CACHE_PATH="$c" MUJOCO_GL=egl setsid uv run --extra rl --extra gpu \

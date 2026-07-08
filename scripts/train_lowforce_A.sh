@@ -28,7 +28,7 @@
 # a01 baseline — did it drop?  (3) does the gentler A still hand off cleanly to a frozen
 # reorienter (rl_demo_handoff_continuous.py --policy-a <new A> --policy-b b34_t20)?
 #
-# Launch (single run, detached): nohup setsid bash scripts/train_lowforce_A.sh > lowforceA.run.log 2>&1 </dev/null & disown
+# Launch (single run, detached): nohup setsid bash scripts/train_lowforce_A.sh > logs/lowforceA.run.log 2>&1 </dev/null & disown
 # SMOKE=1 -> 1M ts plumbing/NaN/penalty-fires check. Knobs: PEN_THRESH, PEN_WEIGHT,
 #            FINGER_SLIP_TOL, TOTAL_TS, NUM_ENVS, TAG.
 set -u
@@ -68,7 +68,7 @@ ARGS=(
   --tag "$TAG" --no-wandb
 )
 c=$(mktemp -d)
-LOG="${LOG:-$ROOT/lowforceA_${TAG}.trainer.log}"
+LOG="${LOG:-$ROOT/logs/lowforceA_${TAG}.trainer.log}"
 echo "[lowforceA] TAG=$TAG ts=$TOTAL_TS  PENALTY thresh=$PEN_THRESH w=$PEN_WEIGHT  finger_slip_tol=$FINGER_SLIP_TOL"
 echo "[lowforceA] warmstart-A=$A_CKPT"
 echo "[lowforceA] WARP_CACHE=$c trainer-log=$LOG"

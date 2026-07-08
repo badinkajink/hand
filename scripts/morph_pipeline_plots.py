@@ -151,7 +151,7 @@ def table_md(data, tag):
             hm.get("held_cos_tail", "—"), ho.get("min_z_post", "—"), hm.get("ang_jerk", "—"),
             "/".join(str(v) for v in fm), hm.get("net_drift_cm", "—"),
             r.get("note") or r.get("error") or ""))
-    out = ROOT / f"MORPH_PIPELINE_{tag}_TABLE.md"
+    out = ROOT / f"docs/experiments/MORPH_PIPELINE_{tag}_TABLE.md"
     out.write_text("\n".join(rows) + "\n")
     return out
 
@@ -160,7 +160,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--tag", default="initial8")
     args = ap.parse_args()
-    data = json.loads((ROOT / f"MORPH_PIPELINE_{args.tag}.json").read_text())
+    data = json.loads((ROOT / f"docs/experiments/MORPH_PIPELINE_{args.tag}.json").read_text())
     print("summary  ->", summary_fig(data, args.tag))
     print("training ->", training_fig(data, args.tag))
     print("table    ->", table_md(data, args.tag))
@@ -169,7 +169,7 @@ def main():
     ranked.sort(key=lambda r: _hm(r).get("held_cos_tail", -1), reverse=True)
     if ranked:
         best = ranked[0]
-        (ROOT / "MORPH_PIPELINE_best_center.json").write_text(json.dumps(best["morph"]))
+        (ROOT / "docs/experiments/MORPH_PIPELINE_best_center.json").write_text(json.dumps(best["morph"]))
         print(f"best (non-FAIL) design = {best['id']}  held-cos {_hm(best).get('held_cos_tail')}  "
               f"-> MORPH_PIPELINE_best_center.json")
 

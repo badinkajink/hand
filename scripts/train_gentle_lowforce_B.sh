@@ -33,7 +33,7 @@
 #   WIN  = holds (min-z > 0.05) at materially lower force AND lower ang-jerk than b34_t20,
 #          even at a lower held-cos. That is exactly what the user asked for.
 #
-# Launch (detached): nohup setsid bash scripts/train_gentle_lowforce_B.sh > gentleB.run.log 2>&1 </dev/null & disown
+# Launch (detached): nohup setsid bash scripts/train_gentle_lowforce_B.sh > logs/gentleB.run.log 2>&1 </dev/null & disown
 # SMOKE=1 -> 1M ts (~13 iters) plumbing/NaN/term-fires check. Knobs: ALIGN_W, ALPHA, PROG_W,
 #            GRIP_REW, PEN_THRESH, PEN_WEIGHT, LATERAL_W, TOTAL_TS, NUM_ENVS, TAG.
 set -u
@@ -95,7 +95,7 @@ ARGS=(
 read -r -a _extra <<< "${EXTRA_ARGS:-}"
 ARGS+=("${_extra[@]}")
 c=$(mktemp -d)
-LOG="${LOG:-$ROOT/gentleB_${TAG}.trainer.log}"
+LOG="${LOG:-$ROOT/logs/gentleB_${TAG}.trainer.log}"
 echo "[gentleB] TAG=$TAG ts=$TOTAL_TS  ALIGN_W=$ALIGN_W ALPHA=$ALPHA PROG_W=$PROG_W"
 echo "[gentleB] GRIP_REW=$GRIP_REW  PENALTY thresh=$PEN_THRESH w=$PEN_WEIGHT reduce=${PEN_REDUCE:-mean}  LATERAL=$LATERAL_W"
 echo "[gentleB] warmstart-B=$B_CKPT  A=$A_CKPT  onset=$ONSET_STEP reorient_start=$REORIENT_START"

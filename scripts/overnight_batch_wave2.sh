@@ -13,7 +13,7 @@
 # (If it does, wave 3 = the alternating loop: record this B's catch, re-migrate A to it.)
 #
 # Launch detached:
-#   nohup setsid bash scripts/overnight_batch_wave2.sh > overnight_batch_wave2.run.log 2>&1 </dev/null & disown
+#   nohup setsid bash scripts/overnight_batch_wave2.sh > logs/overnight_batch_wave2.run.log 2>&1 </dev/null & disown
 set -u
 ROOT=/home/humanoid/Programs/hand; cd "$ROOT"
 RES="$ROOT/BATCH_RESULTS.md"

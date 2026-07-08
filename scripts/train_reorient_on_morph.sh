@@ -12,7 +12,7 @@
 # force. WIN = all three fingers share load (thumb no longer idle ~1.6 N) at lower per-finger force
 # than the old-morphology gentleB (thumb 1.6 / index 8.0 / mid 6.4 N).
 #
-# Launch (detached): nohup setsid bash scripts/train_reorient_on_morph.sh > reorientMorph.run.log 2>&1 </dev/null & disown
+# Launch (detached): nohup setsid bash scripts/train_reorient_on_morph.sh > logs/reorientMorph.run.log 2>&1 </dev/null & disown
 # SMOKE=1 -> 1M ts. Knobs: MORPH_RUN, WARMSTART, TOTAL_TS, NUM_ENVS, TAG.
 set -u
 ROOT=/home/humanoid/Programs/hand; cd "$ROOT"
@@ -43,7 +43,7 @@ ARGS=(
 read -r -a _extra <<< "${EXTRA_ARGS:-}"   # gentle+spread overrides etc.
 ARGS+=("${_extra[@]}")
 c=$(mktemp -d)
-LOG="${LOG:-$ROOT/reorientMorph_${TAG}.trainer.log}"
+LOG="${LOG:-$ROOT/logs/reorientMorph_${TAG}.trainer.log}"
 echo "[reorientMorph] TAG=$TAG ts=$TOTAL_TS  MORPH=$MORPH_RUN"
 echo "[reorientMorph] warmstart-B4=$WARMSTART  WARP_CACHE=$c  log=$LOG"
 WARP_CACHE_PATH="$c" MUJOCO_GL=egl setsid uv run --extra rl --extra gpu \

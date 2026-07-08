@@ -27,8 +27,8 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 BASE_SCENE = ROOT / "assets/mjcf/scene_screwdriver_medium_flat_short_proximal.xml"
 CEM_OUT = ROOT / "results/phase1/landscape_ik"
-JSON = ROOT / "IK_RECEM_LANDSCAPE.json"
-TXT = ROOT / "IK_RECEM_LANDSCAPE.txt"
+JSON = ROOT / "docs/experiments/IK_RECEM_LANDSCAPE.json"
+TXT = ROOT / "docs/experiments/IK_RECEM_LANDSCAPE.txt"
 PALM_JOINTS = ["palm_px", "palm_py", "palm_pz", "palm_rx", "palm_ry", "palm_rz"]
 
 
