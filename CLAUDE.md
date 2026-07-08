@@ -89,3 +89,7 @@ and **RL manipulation** (lift → in-hand reorient of a flat screwdriver to vert
   everywhere, never the old P1/P2/v2 schemes.
 - Morphology co-design pipeline: `scripts/morph_pipeline_sweep.py` (health-gated per-design A→B,
   resumable) + `scripts/morph_pipeline_plots.py`.
+- **Workspace layout (2026-07-08):** run logs / sentinels / pids → `logs/` (gitignored; never the
+  repo root), experiment summaries (.txt/.json/tables) → `docs/experiments/` (tracked), free-form
+  notes → `docs/notes/`. `scripts/` holds only the ~36 active scripts (map: `scripts/README.md`);
+  superseded ones live in `scripts/archive/` — resurrect by moving back, don't run in place.
