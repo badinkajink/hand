@@ -1,0 +1,10 @@
+# full A->B pipeline sweep 'initial8'  2026-07-03 12:04  8 designs
+# per design: gen -> IK open_ik -> CEM (grasp gate) -> native A -> live-A reset B -> continuous handoff + trajectory-health scorecard.
+s00_m05anchor    | lift 0.054 tip 3.0 pers 1.00/1.00/1.00 | minZ      — cos      — jerk     — force     — drift    —cm | A aborted (never lifted)   (583s)
+s01_baseline     | lift 0.051 tip 3.0 pers 1.00/1.00/1.00 | minZ      — cos      — jerk     — force     — drift    —cm | B aborted (dropped)   (5295s)
+s02_thumbreach   | lift 0.054 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.0073 cos -0.107 jerk  12.0 force   0.1 drift 15.6cm | FAIL   (5716s)
+s03_thumblong    | lift 0.051 tip 3.0 pers 1.00/1.00/1.00 | minZ      — cos      — jerk     — force     — drift    —cm | B aborted (dropped)   (3991s)
+s04_seat_allen   | lift 0.054 tip 3.0 pers 1.00/1.00/1.00 | minZ      — cos      — jerk     — force     — drift    —cm | B aborted (dropped)   (3994s)
+s05_shortgrasp   | lift 0.054 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1093 cos  0.728 jerk  46.7 force  12.1 drift  0.5cm | FAIL   (5781s)
+s06_middlein     | lift 0.055 tip 3.0 pers 1.00/1.00/1.00 | minZ      — cos      — jerk     — force     — drift    —cm | B aborted (dropped)   (3968s)
+s07_thumb_opp    | lift 0.053 tip 3.0 pers 1.00/1.00/1.00 | minZ      — cos      — jerk     — force     — drift    —cm | B aborted (dropped)   (3993s)

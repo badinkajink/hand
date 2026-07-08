@@ -1,0 +1,693 @@
+[
+ {
+  "id": "cf_m05_s0",
+  "morph": [
+   0.0147,
+   0.005,
+   0.0108,
+   0.004,
+   0.0022,
+   0.0123,
+   0.0246,
+   0.0242,
+   0.0159
+  ],
+  "delta_m05": [
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "ik_resid": {
+   "thumb": 0.09,
+   "index": 0.09,
+   "middle": 0.1
+  },
+  "lift": 0.05357209203890561,
+  "tips": 3.0,
+  "pt": 1.0,
+  "pi": 1.0,
+  "pm": 1.0,
+  "g_imbal": 0.0,
+  "A": {
+   "run": "20260704-2339-policyA_cf_m05_s0",
+   "aborted": false,
+   "best_ckpt": "model_609.pt",
+   "best_objheight": 0.1248,
+   "health_verdict": "FAIL"
+  },
+  "B": {
+   "run": "20260705-0034-policyB_cf_m05_s0_reorient",
+   "aborted": false
+  },
+  "handoff": {
+   "video": "/home/humanoid/Programs/hand/docs/rl/videos/reorient/sweep/cf_m05_s0_handoff.mp4",
+   "min_z_post": 0.1226,
+   "health": {
+    "verdict": "FAIL",
+    "checks": {
+     "late_finger": {
+      "status": "PASS",
+      "value": 0.0,
+      "detail": "(thumb@1, index@1, middle@1)"
+     },
+     "idle_finger": {
+      "status": "FAIL",
+      "value": 0.0,
+      "detail": "idle: thumb | thumb=0.0N/0.00 index=3.6N/1.00 middle=4.1N/1.00"
+     },
+     "drop": {
+      "status": "PASS",
+      "value": 0.1237,
+      "detail": "min hold-phase obj-z 0.124 m (floor<0.05)"
+     },
+     "jitter": {
+      "status": "PASS",
+      "value": 9.845,
+      "detail": "ang-jerk 9.8 1/s^2"
+     },
+     "de_centering": {
+      "status": "WARN",
+      "value": 17.0336,
+      "detail": "sliding: path 3.1cm >> net 0.2cm"
+     },
+     "over_clamp": {
+      "status": "PASS",
+      "value": 2.5658,
+      "detail": "mean fingertip 2.6 N (reward saturates ~3N)"
+     }
+    },
+    "metrics": {
+     "first_contact": [
+      1,
+      1,
+      1
+     ],
+     "contact_spread": 0.0,
+     "touch_frac": [
+      0.0,
+      1.0,
+      1.0
+     ],
+     "force_mean": [
+      0.0,
+      3.6,
+      4.1
+     ],
+     "contact_count": 2.0,
+     "min_z_hold": 0.1237,
+     "ang_jerk": 9.8,
+     "net_drift_cm": 0.2,
+     "slide_ratio": 17.0,
+     "tip_force": 2.6,
+     "held_cos_tail": 0.214,
+     "peak_cos": 0.395
+    }
+   },
+   "b_aborted": false,
+   "a_aborted": false
+  },
+  "secs": 5813
+ },
+ {
+  "id": "cf_l13_s0",
+  "morph": [
+   0.0235,
+   0.0044,
+   0.008,
+   0.0047,
+   0.0012,
+   0.0157,
+   0.0248,
+   0.0243,
+   0.013
+  ],
+  "delta_m05": [
+   0.0088,
+   -0.0006,
+   -0.0028,
+   0.0007,
+   -0.001,
+   0.0034,
+   0.0002,
+   0.0001,
+   -0.0029
+  ],
+  "ik_resid": {
+   "thumb": 0.1,
+   "index": 0.08,
+   "middle": 0.09
+  },
+  "lift": 0.05148716459005292,
+  "tips": 3.0,
+  "pt": 1.0,
+  "pi": 1.0,
+  "pm": 1.0,
+  "g_imbal": 0.0,
+  "A": {
+   "run": "20260705-0115-policyA_cf_l13_s0",
+   "aborted": false,
+   "best_ckpt": "model_609.pt",
+   "best_objheight": 0.113,
+   "health_verdict": "WARN"
+  },
+  "B": {
+   "run": "20260705-0210-policyB_cf_l13_s0_reorient",
+   "aborted": false
+  },
+  "handoff": {
+   "video": "/home/humanoid/Programs/hand/docs/rl/videos/reorient/sweep/cf_l13_s0_handoff.mp4",
+   "min_z_post": 0.1135,
+   "health": {
+    "verdict": "WARN",
+    "checks": {
+     "late_finger": {
+      "status": "PASS",
+      "value": 0.0,
+      "detail": "(thumb@1, index@1, middle@1)"
+     },
+     "idle_finger": {
+      "status": "PASS",
+      "value": 3.0,
+      "detail": "thumb=10.6N/1.00 index=13.7N/1.00 middle=11.2N/1.00"
+     },
+     "drop": {
+      "status": "PASS",
+      "value": 0.1135,
+      "detail": "min hold-phase obj-z 0.113 m (floor<0.05)"
+     },
+     "jitter": {
+      "status": "PASS",
+      "value": 5.0804,
+      "detail": "ang-jerk 5.1 1/s^2"
+     },
+     "de_centering": {
+      "status": "WARN",
+      "value": 6.4031,
+      "detail": "sliding: path 4.2cm >> net 0.7cm"
+     },
+     "over_clamp": {
+      "status": "WARN",
+      "value": 11.8281,
+      "detail": "mean fingertip 11.8 N (reward saturates ~3N)"
+     }
+    },
+    "metrics": {
+     "first_contact": [
+      1,
+      1,
+      1
+     ],
+     "contact_spread": 0.0,
+     "touch_frac": [
+      1.0,
+      1.0,
+      1.0
+     ],
+     "force_mean": [
+      10.6,
+      13.7,
+      11.2
+     ],
+     "contact_count": 3.0,
+     "min_z_hold": 0.1135,
+     "ang_jerk": 5.1,
+     "net_drift_cm": 0.7,
+     "slide_ratio": 6.4,
+     "tip_force": 11.8,
+     "held_cos_tail": 0.626,
+     "peak_cos": 0.754
+    }
+   },
+   "b_aborted": false,
+   "a_aborted": false
+  },
+  "secs": 5750
+ },
+ {
+  "id": "cf_m05_s1",
+  "morph": [
+   0.0147,
+   0.005,
+   0.0108,
+   0.004,
+   0.0022,
+   0.0123,
+   0.0246,
+   0.0242,
+   0.0159
+  ],
+  "delta_m05": [
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "ik_resid": {
+   "thumb": 0.09,
+   "index": 0.09,
+   "middle": 0.1
+  },
+  "lift": 0.05357209203890561,
+  "tips": 3.0,
+  "pt": 1.0,
+  "pi": 1.0,
+  "pm": 1.0,
+  "g_imbal": 0.0,
+  "A": {
+   "run": "20260705-0251-policyA_cf_m05_s1",
+   "aborted": false,
+   "best_ckpt": "model_609.pt",
+   "best_objheight": 0.1111,
+   "health_verdict": "FAIL"
+  },
+  "B": {
+   "run": "20260705-0347-policyB_cf_m05_s1_reorient",
+   "aborted": false
+  },
+  "handoff": {
+   "video": "/home/humanoid/Programs/hand/docs/rl/videos/reorient/sweep/cf_m05_s1_handoff.mp4",
+   "min_z_post": 0.1027,
+   "health": {
+    "verdict": "WARN",
+    "checks": {
+     "late_finger": {
+      "status": "PASS",
+      "value": 1.0,
+      "detail": "(thumb@0, index@1, middle@1)"
+     },
+     "idle_finger": {
+      "status": "PASS",
+      "value": 3.0,
+      "detail": "thumb=15.8N/1.00 index=15.9N/1.00 middle=10.3N/1.00"
+     },
+     "drop": {
+      "status": "PASS",
+      "value": 0.1027,
+      "detail": "min hold-phase obj-z 0.103 m (floor<0.05)"
+     },
+     "jitter": {
+      "status": "PASS",
+      "value": 18.0246,
+      "detail": "ang-jerk 18.0 1/s^2"
+     },
+     "de_centering": {
+      "status": "WARN",
+      "value": 19.0208,
+      "detail": "sliding: path 6.7cm >> net 0.4cm"
+     },
+     "over_clamp": {
+      "status": "WARN",
+      "value": 14.0199,
+      "detail": "mean fingertip 14.0 N (reward saturates ~3N)"
+     }
+    },
+    "metrics": {
+     "first_contact": [
+      0,
+      1,
+      1
+     ],
+     "contact_spread": 1.0,
+     "touch_frac": [
+      1.0,
+      1.0,
+      1.0
+     ],
+     "force_mean": [
+      15.8,
+      15.9,
+      10.3
+     ],
+     "contact_count": 3.0,
+     "min_z_hold": 0.1027,
+     "ang_jerk": 18.0,
+     "net_drift_cm": 0.4,
+     "slide_ratio": 19.0,
+     "tip_force": 14.0,
+     "held_cos_tail": 0.226,
+     "peak_cos": 0.296
+    }
+   },
+   "b_aborted": false,
+   "a_aborted": false
+  },
+  "secs": 5810
+ },
+ {
+  "id": "cf_l13_s1",
+  "morph": [
+   0.0235,
+   0.0044,
+   0.008,
+   0.0047,
+   0.0012,
+   0.0157,
+   0.0248,
+   0.0243,
+   0.013
+  ],
+  "delta_m05": [
+   0.0088,
+   -0.0006,
+   -0.0028,
+   0.0007,
+   -0.001,
+   0.0034,
+   0.0002,
+   0.0001,
+   -0.0029
+  ],
+  "ik_resid": {
+   "thumb": 0.1,
+   "index": 0.08,
+   "middle": 0.09
+  },
+  "lift": 0.05148716459005292,
+  "tips": 3.0,
+  "pt": 1.0,
+  "pi": 1.0,
+  "pm": 1.0,
+  "g_imbal": 0.0,
+  "A": {
+   "run": "20260705-0428-policyA_cf_l13_s1",
+   "aborted": true,
+   "best_ckpt": "model_50.pt",
+   "best_objheight": 0.075,
+   "health_verdict": null
+  },
+  "B": {
+   "run": "20260705-0436-policyB_cf_l13_s1_reorient",
+   "aborted": true
+  },
+  "b_aborted": true,
+  "handoff": {
+   "video": "/home/humanoid/Programs/hand/docs/rl/videos/reorient/sweep/cf_l13_s1_handoff.mp4",
+   "min_z_post": 0.1146,
+   "health": {
+    "verdict": "FAIL",
+    "checks": {
+     "late_finger": {
+      "status": "PASS",
+      "value": 1.0,
+      "detail": "(thumb@1, index@0, middle@1)"
+     },
+     "idle_finger": {
+      "status": "FAIL",
+      "value": 0.0,
+      "detail": "idle: middle | thumb=5.1N/1.00 index=4.7N/0.80 middle=0.0N/0.00"
+     },
+     "drop": {
+      "status": "PASS",
+      "value": 0.1146,
+      "detail": "min hold-phase obj-z 0.115 m (floor<0.05)"
+     },
+     "jitter": {
+      "status": "WARN",
+      "value": 28.5777,
+      "detail": "ang-jerk 28.6 1/s^2"
+     },
+     "de_centering": {
+      "status": "WARN",
+      "value": 57.9336,
+      "detail": "sliding: path 8.5cm >> net 0.1cm"
+     },
+     "over_clamp": {
+      "status": "PASS",
+      "value": 3.2553,
+      "detail": "mean fingertip 3.3 N (reward saturates ~3N)"
+     }
+    },
+    "metrics": {
+     "first_contact": [
+      1,
+      0,
+      1
+     ],
+     "contact_spread": 1.0,
+     "touch_frac": [
+      1.0,
+      0.8,
+      0.0
+     ],
+     "force_mean": [
+      5.1,
+      4.7,
+      0.0
+     ],
+     "contact_count": 1.8,
+     "min_z_hold": 0.1146,
+     "ang_jerk": 28.6,
+     "net_drift_cm": 0.1,
+     "slide_ratio": 57.9,
+     "tip_force": 3.3,
+     "held_cos_tail": -0.357,
+     "peak_cos": 0.286
+    }
+   },
+   "b_aborted": true,
+   "a_aborted": true
+  },
+  "secs": 1808
+ },
+ {
+  "id": "cf_m05_s2",
+  "morph": [
+   0.0147,
+   0.005,
+   0.0108,
+   0.004,
+   0.0022,
+   0.0123,
+   0.0246,
+   0.0242,
+   0.0159
+  ],
+  "delta_m05": [
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "ik_resid": {
+   "thumb": 0.09,
+   "index": 0.09,
+   "middle": 0.1
+  },
+  "lift": 0.05357209203890561,
+  "tips": 3.0,
+  "pt": 1.0,
+  "pi": 1.0,
+  "pm": 1.0,
+  "g_imbal": 0.0,
+  "A": {
+   "run": "20260705-0458-policyA_cf_m05_s2",
+   "aborted": false,
+   "best_ckpt": "model_609.pt",
+   "best_objheight": 0.1231,
+   "health_verdict": "FAIL"
+  },
+  "B": {
+   "run": "20260705-0554-policyB_cf_m05_s2_reorient",
+   "aborted": false
+  },
+  "handoff": {
+   "video": "/home/humanoid/Programs/hand/docs/rl/videos/reorient/sweep/cf_m05_s2_handoff.mp4",
+   "min_z_post": 0.1114,
+   "health": {
+    "verdict": "WARN",
+    "checks": {
+     "late_finger": {
+      "status": "PASS",
+      "value": 1.0,
+      "detail": "(thumb@1, index@1, middle@0)"
+     },
+     "idle_finger": {
+      "status": "PASS",
+      "value": 3.0,
+      "detail": "thumb=15.5N/1.00 index=10.2N/1.00 middle=11.7N/1.00"
+     },
+     "drop": {
+      "status": "PASS",
+      "value": 0.1114,
+      "detail": "min hold-phase obj-z 0.111 m (floor<0.05)"
+     },
+     "jitter": {
+      "status": "WARN",
+      "value": 32.5461,
+      "detail": "ang-jerk 32.5 1/s^2"
+     },
+     "de_centering": {
+      "status": "WARN",
+      "value": 25.0773,
+      "detail": "sliding: path 28.8cm >> net 1.1cm"
+     },
+     "over_clamp": {
+      "status": "WARN",
+      "value": 12.4673,
+      "detail": "mean fingertip 12.5 N (reward saturates ~3N)"
+     }
+    },
+    "metrics": {
+     "first_contact": [
+      1,
+      1,
+      0
+     ],
+     "contact_spread": 1.0,
+     "touch_frac": [
+      1.0,
+      1.0,
+      1.0
+     ],
+     "force_mean": [
+      15.5,
+      10.2,
+      11.7
+     ],
+     "contact_count": 3.0,
+     "min_z_hold": 0.1114,
+     "ang_jerk": 32.5,
+     "net_drift_cm": 1.1,
+     "slide_ratio": 25.1,
+     "tip_force": 12.5,
+     "held_cos_tail": -0.291,
+     "peak_cos": 0.023
+    }
+   },
+   "b_aborted": false,
+   "a_aborted": false
+  },
+  "secs": 5785
+ },
+ {
+  "id": "cf_l13_s2",
+  "morph": [
+   0.0235,
+   0.0044,
+   0.008,
+   0.0047,
+   0.0012,
+   0.0157,
+   0.0248,
+   0.0243,
+   0.013
+  ],
+  "delta_m05": [
+   0.0088,
+   -0.0006,
+   -0.0028,
+   0.0007,
+   -0.001,
+   0.0034,
+   0.0002,
+   0.0001,
+   -0.0029
+  ],
+  "ik_resid": {
+   "thumb": 0.1,
+   "index": 0.08,
+   "middle": 0.09
+  },
+  "lift": 0.05148716459005292,
+  "tips": 3.0,
+  "pt": 1.0,
+  "pi": 1.0,
+  "pm": 1.0,
+  "g_imbal": 0.0,
+  "A": {
+   "run": "20260705-0635-policyA_cf_l13_s2",
+   "aborted": false,
+   "best_ckpt": "model_609.pt",
+   "best_objheight": 0.1144,
+   "health_verdict": "WARN"
+  },
+  "B": {
+   "run": "20260705-0731-policyB_cf_l13_s2_reorient",
+   "aborted": false
+  },
+  "handoff": {
+   "video": "/home/humanoid/Programs/hand/docs/rl/videos/reorient/sweep/cf_l13_s2_handoff.mp4",
+   "min_z_post": 0.1088,
+   "health": {
+    "verdict": "WARN",
+    "checks": {
+     "late_finger": {
+      "status": "PASS",
+      "value": 1.0,
+      "detail": "(thumb@0, index@1, middle@1)"
+     },
+     "idle_finger": {
+      "status": "PASS",
+      "value": 3.0,
+      "detail": "thumb=8.1N/1.00 index=14.8N/1.00 middle=11.3N/1.00"
+     },
+     "drop": {
+      "status": "PASS",
+      "value": 0.1088,
+      "detail": "min hold-phase obj-z 0.109 m (floor<0.05)"
+     },
+     "jitter": {
+      "status": "PASS",
+      "value": 18.5821,
+      "detail": "ang-jerk 18.6 1/s^2"
+     },
+     "de_centering": {
+      "status": "WARN",
+      "value": 4.496,
+      "detail": "sliding: path 7.1cm >> net 1.6cm"
+     },
+     "over_clamp": {
+      "status": "WARN",
+      "value": 11.4089,
+      "detail": "mean fingertip 11.4 N (reward saturates ~3N)"
+     }
+    },
+    "metrics": {
+     "first_contact": [
+      0,
+      1,
+      1
+     ],
+     "contact_spread": 1.0,
+     "touch_frac": [
+      1.0,
+      1.0,
+      1.0
+     ],
+     "force_mean": [
+      8.1,
+      14.8,
+      11.3
+     ],
+     "contact_count": 3.0,
+     "min_z_hold": 0.1088,
+     "ang_jerk": 18.6,
+     "net_drift_cm": 1.6,
+     "slide_ratio": 4.5,
+     "tip_force": 11.4,
+     "held_cos_tail": 0.505,
+     "peak_cos": 0.543
+    }
+   },
+   "b_aborted": false,
+   "a_aborted": false
+  },
+  "secs": 5810
+ }
+]

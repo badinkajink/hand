@@ -142,9 +142,9 @@ together showed the excess force is a **geometry** problem, not a reward one →
 active direction.** Full plan: **`docs/rl/morphology_optimization_plan.md`**.
 - **gentleB** (relaxed verticality) WORKED as intended: vs b34_t20, ang-jerk **74→57** (smoother),
   fingertip force **6.8→5.3 N** (lower), at lower held-cos (0.77→0.64) — the smooth+low-force trade
-  the user asked for. Ckpt `results/rl/20260622-1738-policyB_gentleLowforce/tensorboard/model_405.pt`.
+  the user asked for. Ckpt `results/rl/bx_20260622-1738-policyB_gentleLowforce/tensorboard/model_405.pt`.
 - **lowforceA** ran to completion (A held the grasp, no collapse); the force-probe eval vs a01 is
-  still pending (`results/rl/20260622-1740-policyA_lowforce`).
+  still pending (`results/rl/bx_20260622-1740-policyA_lowforce`).
 - **PER-FINGER FINDING (the key one).** Added per-finger instrumentation (`probe_grip_balance.py` +
   per-finger output in `rl_demo_handoff_continuous.py`; slot order verified [thumb,index,middle]).
   The grip is a **degenerate pinch**: **thumb idle ~1.6 N** while **index+middle clamp ~8 N each**

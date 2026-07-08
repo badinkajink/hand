@@ -1,0 +1,502 @@
+[
+ {
+  "id": "s00_m05anchor",
+  "morph": [
+   0.0147,
+   0.005,
+   0.0108,
+   0.004,
+   0.0022,
+   0.0123,
+   0.0246,
+   0.0242,
+   0.0159
+  ],
+  "delta_m05": [
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "ik_resid": {
+   "thumb": 0.09,
+   "index": 0.09,
+   "middle": 0.1
+  },
+  "lift": 0.05357209203890561,
+  "tips": 3.0,
+  "pt": 1.0,
+  "pi": 1.0,
+  "pm": 1.0,
+  "g_imbal": 0.0,
+  "A": {
+   "run": "20260703-1208-policyA_s00_m05anchor",
+   "aborted": true,
+   "health_verdict": null
+  },
+  "note": "A aborted (never lifted)",
+  "secs": 583
+ },
+ {
+  "id": "s01_baseline",
+  "morph": [
+   0.0,
+   0.02,
+   0.0,
+   0.01,
+   -0.0123,
+   0.0,
+   0.01,
+   0.0153,
+   0.0
+  ],
+  "delta_m05": [
+   -0.0147,
+   0.015,
+   -0.0108,
+   0.006,
+   -0.0145,
+   -0.0123,
+   -0.0146,
+   -0.0089,
+   -0.0159
+  ],
+  "ik_resid": {
+   "thumb": 0.1,
+   "index": 0.09,
+   "middle": 0.1
+  },
+  "lift": 0.05067055201774184,
+  "tips": 3.0,
+  "pt": 1.0,
+  "pi": 1.0,
+  "pm": 1.0,
+  "g_imbal": 0.0,
+  "A": {
+   "run": "20260703-1218-policyA_s01_baseline",
+   "aborted": false,
+   "health_verdict": "WARN"
+  },
+  "B": {
+   "run": "20260703-1313-policyB_s01_baseline_reorient",
+   "aborted": true
+  },
+  "note": "B aborted (dropped)",
+  "secs": 5295
+ },
+ {
+  "id": "s02_thumbreach",
+  "morph": [
+   0.0207,
+   0.005,
+   0.0108,
+   0.004,
+   0.0022,
+   0.0123,
+   0.0246,
+   0.0242,
+   0.0159
+  ],
+  "delta_m05": [
+   0.006,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "ik_resid": {
+   "thumb": 0.09,
+   "index": 0.09,
+   "middle": 0.1
+  },
+  "lift": 0.0539086250197955,
+  "tips": 3.0,
+  "pt": 1.0,
+  "pi": 1.0,
+  "pm": 1.0,
+  "g_imbal": 0.0,
+  "A": {
+   "run": "20260703-1346-policyA_s02_thumbreach",
+   "aborted": false,
+   "health_verdict": "WARN"
+  },
+  "B": {
+   "run": "20260703-1441-policyB_s02_thumbreach_reorient",
+   "aborted": false
+  },
+  "handoff": {
+   "video": "/home/humanoid/Programs/hand/docs/rl/videos/reorient/sweep/s02_thumbreach_handoff.mp4",
+   "min_z_post": 0.0073,
+   "health": {
+    "verdict": "FAIL",
+    "checks": {
+     "late_finger": {
+      "status": "PASS",
+      "value": 0.0,
+      "detail": "(thumb@1, index@1, middle@1)"
+     },
+     "idle_finger": {
+      "status": "FAIL",
+      "value": 0.0,
+      "detail": "idle: thumb,index,middle | thumb=0.2N/0.08 index=0.1N/0.08 middle=0.0N/0.00"
+     },
+     "drop": {
+      "status": "FAIL",
+      "value": 0.0073,
+      "detail": "min hold-phase obj-z 0.007 m (floor<0.05)"
+     },
+     "jitter": {
+      "status": "PASS",
+      "value": 11.9684,
+      "detail": "ang-jerk 12.0 1/s^2"
+     },
+     "de_centering": {
+      "status": "FAIL",
+      "value": 15.5881,
+      "detail": "net lateral drift 15.6 cm (path 19.5)"
+     },
+     "over_clamp": {
+      "status": "PASS",
+      "value": 0.1081,
+      "detail": "mean fingertip 0.1 N (reward saturates ~3N)"
+     }
+    },
+    "metrics": {
+     "first_contact": [
+      1,
+      1,
+      1
+     ],
+     "contact_spread": 0.0,
+     "touch_frac": [
+      0.08,
+      0.08,
+      0.0
+     ],
+     "force_mean": [
+      0.2,
+      0.1,
+      0.0
+     ],
+     "contact_count": 0.15,
+     "min_z_hold": 0.0073,
+     "ang_jerk": 12.0,
+     "net_drift_cm": 15.6,
+     "slide_ratio": 1.3,
+     "tip_force": 0.1,
+     "held_cos_tail": -0.107,
+     "peak_cos": 0.085
+    }
+   }
+  },
+  "secs": 5716
+ },
+ {
+  "id": "s03_thumblong",
+  "morph": [
+   0.0147,
+   0.005,
+   0.0168,
+   0.004,
+   0.0022,
+   0.0123,
+   0.0246,
+   0.0242,
+   0.0159
+  ],
+  "delta_m05": [
+   0.0,
+   0.0,
+   0.006,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "ik_resid": {
+   "thumb": 0.08,
+   "index": 0.09,
+   "middle": 0.1
+  },
+  "lift": 0.05096340577130504,
+  "tips": 3.0,
+  "pt": 1.0,
+  "pi": 1.0,
+  "pm": 1.0,
+  "g_imbal": 0.0,
+  "A": {
+   "run": "20260703-1521-policyA_s03_thumblong",
+   "aborted": false,
+   "health_verdict": "WARN"
+  },
+  "B": {
+   "run": "20260703-1617-policyB_s03_thumblong_reorient",
+   "aborted": true
+  },
+  "note": "B aborted (dropped)",
+  "secs": 3991
+ },
+ {
+  "id": "s04_seat_allen",
+  "morph": [
+   0.0147,
+   0.005,
+   0.0148,
+   0.004,
+   0.0022,
+   0.0163,
+   0.0246,
+   0.0242,
+   0.0199
+  ],
+  "delta_m05": [
+   0.0,
+   0.0,
+   0.004,
+   0.0,
+   0.0,
+   0.004,
+   0.0,
+   0.0,
+   0.004
+  ],
+  "ik_resid": {
+   "thumb": 0.09,
+   "index": 0.08,
+   "middle": 0.09
+  },
+  "lift": 0.053956010501753505,
+  "tips": 3.0,
+  "pt": 1.0,
+  "pi": 1.0,
+  "pm": 1.0,
+  "g_imbal": 0.0,
+  "A": {
+   "run": "20260703-1628-policyA_s04_seat_allen",
+   "aborted": false,
+   "health_verdict": "WARN"
+  },
+  "B": {
+   "run": "20260703-1723-policyB_s04_seat_allen_reorient",
+   "aborted": true
+  },
+  "note": "B aborted (dropped)",
+  "secs": 3994
+ },
+ {
+  "id": "s05_shortgrasp",
+  "morph": [
+   0.0147,
+   0.005,
+   0.0108,
+   0.004,
+   0.0022,
+   0.0083,
+   0.0246,
+   0.0242,
+   0.0119
+  ],
+  "delta_m05": [
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   -0.004,
+   0.0,
+   0.0,
+   -0.004
+  ],
+  "ik_resid": {
+   "thumb": 0.09,
+   "index": 0.08,
+   "middle": 0.09
+  },
+  "lift": 0.053953069861070596,
+  "tips": 3.0,
+  "pt": 1.0,
+  "pi": 1.0,
+  "pm": 1.0,
+  "g_imbal": 0.0,
+  "A": {
+   "run": "20260703-1734-policyA_s05_shortgrasp",
+   "aborted": false,
+   "health_verdict": "WARN"
+  },
+  "B": {
+   "run": "20260703-1830-policyB_s05_shortgrasp_reorient",
+   "aborted": false
+  },
+  "handoff": {
+   "video": "/home/humanoid/Programs/hand/docs/rl/videos/reorient/sweep/s05_shortgrasp_handoff.mp4",
+   "min_z_post": 0.1093,
+   "health": {
+    "verdict": "FAIL",
+    "checks": {
+     "late_finger": {
+      "status": "PASS",
+      "value": 1.0,
+      "detail": "(thumb@1, index@0, middle@1)"
+     },
+     "idle_finger": {
+      "status": "PASS",
+      "value": 3.0,
+      "detail": "thumb=11.7N/1.00 index=13.9N/1.00 middle=10.7N/1.00"
+     },
+     "drop": {
+      "status": "PASS",
+      "value": 0.1093,
+      "detail": "min hold-phase obj-z 0.109 m (floor<0.05)"
+     },
+     "jitter": {
+      "status": "FAIL",
+      "value": 46.6837,
+      "detail": "ang-jerk 46.7 1/s^2"
+     },
+     "de_centering": {
+      "status": "WARN",
+      "value": 16.4327,
+      "detail": "sliding: path 8.6cm >> net 0.5cm"
+     },
+     "over_clamp": {
+      "status": "WARN",
+      "value": 12.0824,
+      "detail": "mean fingertip 12.1 N (reward saturates ~3N)"
+     }
+    },
+    "metrics": {
+     "first_contact": [
+      1,
+      0,
+      1
+     ],
+     "contact_spread": 1.0,
+     "touch_frac": [
+      1.0,
+      1.0,
+      1.0
+     ],
+     "force_mean": [
+      11.7,
+      13.9,
+      10.7
+     ],
+     "contact_count": 3.0,
+     "min_z_hold": 0.1093,
+     "ang_jerk": 46.7,
+     "net_drift_cm": 0.5,
+     "slide_ratio": 16.4,
+     "tip_force": 12.1,
+     "held_cos_tail": 0.728,
+     "peak_cos": 0.871
+    }
+   }
+  },
+  "secs": 5781
+ },
+ {
+  "id": "s06_middlein",
+  "morph": [
+   0.0147,
+   0.005,
+   0.0108,
+   0.004,
+   0.0022,
+   0.0123,
+   0.0186,
+   0.0182,
+   0.0159
+  ],
+  "delta_m05": [
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   -0.006,
+   -0.006,
+   0.0
+  ],
+  "ik_resid": {
+   "thumb": 0.09,
+   "index": 0.09,
+   "middle": 0.08
+  },
+  "lift": 0.055372714067000936,
+  "tips": 3.0,
+  "pt": 1.0,
+  "pi": 1.0,
+  "pm": 1.0,
+  "g_imbal": 0.0,
+  "A": {
+   "run": "20260703-1911-policyA_s06_middlein",
+   "aborted": false,
+   "health_verdict": "FAIL"
+  },
+  "B": {
+   "run": "20260703-2006-policyB_s06_middlein_reorient",
+   "aborted": true
+  },
+  "note": "B aborted (dropped)",
+  "secs": 3968
+ },
+ {
+  "id": "s07_thumb_opp",
+  "morph": [
+   0.0197,
+   0.013,
+   0.0108,
+   0.004,
+   0.0022,
+   0.0123,
+   0.0246,
+   0.0242,
+   0.0159
+  ],
+  "delta_m05": [
+   0.005,
+   0.008,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "ik_resid": {
+   "thumb": 0.09,
+   "index": 0.09,
+   "middle": 0.1
+  },
+  "lift": 0.05345933408678833,
+  "tips": 3.0,
+  "pt": 1.0,
+  "pi": 1.0,
+  "pm": 1.0,
+  "g_imbal": 0.0,
+  "A": {
+   "run": "20260703-2017-policyA_s07_thumb_opp",
+   "aborted": false,
+   "health_verdict": "FAIL"
+  },
+  "B": {
+   "run": "20260703-2112-policyB_s07_thumb_opp_reorient",
+   "aborted": true
+  },
+  "note": "B aborted (dropped)",
+  "secs": 3993
+ }
+]

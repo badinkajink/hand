@@ -1,0 +1,17 @@
+# compliance-robustness sweep 2026-07-08 13:31
+# fixed trained policies x solimp range; eval-only. held-cos / min-z / force.
+soft_b33@soft              dmax 0.995   cos   0.939 peak   0.947 min_z  0.1248 force    9.5 ANG
+soft_imitB@soft            dmax 0.995   cos   0.838 peak   0.851 min_z  0.1183 force    8.9 ANG
+hard_retrained@soft        dmax 0.995   cos    -0.0 peak     0.0 min_z  0.0123 force    0.0 SLIP
+soft_b33@c997              dmax 0.997   cos  -0.187 peak    0.18 min_z  0.0076 force    3.8 SLIP
+soft_imitB@c997            dmax 0.997   cos   0.298 peak   0.465 min_z  0.1091 force    0.8 ANG
+hard_retrained@c997        dmax 0.997   cos  -0.236 peak   0.497 min_z  0.1191 force    6.1 ANG
+soft_b33@c998              dmax 0.998   cos     0.9 peak   0.909 min_z  0.1222 force    0.0 ANG
+soft_imitB@c998            dmax 0.998   cos   0.614 peak   0.693 min_z  0.1153 force    1.3 FAIL
+hard_retrained@c998        dmax 0.998   cos  -0.023 peak    0.45 min_z  0.1199 force    6.7 ANG
+soft_b33@c999              dmax 0.999   cos  -0.265 peak   0.174 min_z  0.1064 force   10.2 OVER
+soft_imitB@c999            dmax 0.999   cos    -0.0 peak   0.062 min_z  0.0033 force    1.0 SLIP
+hard_retrained@c999        dmax 0.999   cos    0.29 peak   0.425 min_z  0.1176 force    7.1 ANG
+soft_b33@c9995             dmax 0.9995  cos    -0.0 peak   0.076 min_z  0.0042 force    0.0 SLIP
+soft_imitB@c9995           dmax 0.9995  cos    -0.0 peak   0.002 min_z  0.0036 force    0.0 SLIP
+hard_retrained@c9995       dmax 0.9995  cos    -0.0 peak   0.243 min_z  0.0035 force    1.3 SLIP

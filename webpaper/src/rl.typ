@@ -757,6 +757,58 @@ reduce the evaluator's variance*, by one of:
   is the *health-gated pipeline* + this *variance characterization*, not a new winning hand.
 ]
 
+== Variance reduction — solved (three levers), and m05 validated
+
+We tested the levers in a controlled study (2 designs × warm-start mode × seeds, *fixed A per
+design*). The seed variance is *reducible*: fixing A cut the held-cos sd `~4×` (0.38 → 0.09);
+warm-starting B from a *shared reorient prior* cut it again (→ 0.04). Best of all is an
+*object-relative fingertip imitation* prior — record the blessed a10→b33 reorient's fingertip
+trajectory *in the screwdriver frame* (morphology-transferable, unlike joint angles) and imitate it
+with a weight curriculum. It gives the *tightest* bands (`±0.02`), is *design-neutral* (fair), and
+yields the *smoothest, lowest-force* policies.
+
+#fig("assets/variance_reduction_bands.png", label: [Variance collapse + the imitation win.],
+  caption: [Held-cos band per design/mode: from `±0.38` (vary-A) to `±0.02` (imitation). The
+  imitation prior (★) is tightest and smoothest, and cleanly separates the designs.])
+
+With variance under control, the designs finally *separate*: under the fair imitation prior *m05
+reorients to 0.82 vs L01_13's 0.72* (gap 0.10 ≫ noise 0.02), and m05 is *lower-force* on every fair
+comparison. So *`m05` (a10 → b33) is validated as the reference design* — L01_13's earlier
+single-seed "lead" was a seed artifact, the sharpest possible warning against 1-shot design scoring.
+
+#det([The imitation prior, concretely], kind: "method")[
+  `src/morphohand/rl/imitation.py`: `track_fingertip_obj` rewards `exp(-α ‖p_tip^obj − p_ref^obj‖²)`
+  over the 3 fingertips in the object frame, versus a recorded reference sampled at the current
+  episode time, with a curriculum that fades the imitation weight as the task reward takes over
+  (learn the motion, then refine). Record the reference with `rl_demo_handoff_continuous.py
+  --record-fingertip-traj`. Because the target is *object-relative*, one recording transfers to any
+  hand. Study: `scripts/reorient_variance_study.py`.
+]
+
+== Sim-to-real: contact hardening and compliance robustness
+
+The task's contacts were deliberately soft (`solimp="0.97 0.995"`, `impratio=10`/elliptic) for a
+stable grip, at the cost of fingertip interpenetration. The deferred sim-to-real pass hardens them
+*slightly* (`solimp → 0.985 0.999`, which permits `~10×` less penetration) and asks what survives.
+
+*The grasp transfers; the reorient does not.* Zero-shot under harder contact the soft-tuned policy
+*drops* (it leaned on compliance); a from-scratch *retrain recovers a clean, balanced, held grasp* —
+the lift is not compliance-dependent. But the *reorient barely rotates* even with the imitation prior
+(alignment 13 vs 48 soft): the reorient-by-*rolling* of a smooth cylinder needs contact compliance;
+a stiffer, high-friction contact grips it too rigidly to roll.
+
+#fig("assets/compliance_robustness.png", label: [Compliance-robustness of trained policies.],
+  caption: [Held-cos and hold (min-z) vs contact stiffness for fixed trained policies (eval-only).
+  The response is *non-monotonic and fragile* — no policy reorients reliably across the range; a
+  policy tuned to one contact model can fail at a nearby one.])
+
+#callout(tag: "Sim-to-real takeaway", kind: "note")[
+  Policies trained at a *single* contact stiffness are *fragile* to it (success flips non-monotonically
+  across `solimp`; single-stiffness training overfits). The fix is *compliance domain randomization*
+  — sample `solimp` per episode over a range so the policy sees the whole band. Spec:
+  `docs/rl/compliance_dr_plan.md`.
+]
+
 #refbox[
   *Sources.* Lee et al., _Adversarial Skill Chaining via Terminal State Regularization_,
   CoRL 2021 (arXiv:2111.07999). Chen et al., _Sequential Dexterity_, CoRL 2023

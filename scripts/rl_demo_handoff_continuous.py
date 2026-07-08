@@ -216,6 +216,10 @@ def main():
                     help="hard cap: switch here even if no clear V_B peak")
     ap.add_argument("--critic-patience", type=int, default=5,
                     help="switch after V_B fails to beat its running max for this many steps")
+    ap.add_argument("--record-fingertip-traj", type=Path, default=None,
+                    help="also record the OBJECT-RELATIVE fingertip trajectory (post-handoff) to "
+                         "this .npz — the imitation reference for morphology-transferable reorient "
+                         "(src/morphohand/rl/imitation.py).")
     args = ap.parse_args()
 
     os.environ.setdefault("MUJOCO_GL", "egl")
@@ -318,6 +322,7 @@ def main():
     # (the old diag) structurally could not see.
     full = {"found": [], "force": [], "z": [], "cos": [], "x": [], "y": [], "axis": []}
     handoff_xy = None
+    ft_rec = []      # (step, (3,3)) object-relative fingertip positions, for --record-fingertip-traj
     tip_force = []   # (mean, max) fingertip-cube contact force [N], post-handoff
     palm_force = []  # max palm-cube contact force [N], post-handoff (does it ever seat?)
     finger_force = []  # per-finger [thumb,index,middle] contact force [N], post-handoff
@@ -393,6 +398,9 @@ def main():
                     min_z_post = min(min_z_post, z)
                     held_cos_tail.append(held_cos)
                     traj.append((step, x, y, z, ax_x, ax_y, ax_z))
+                    if args.record_fingertip_traj is not None:
+                        from morphohand.rl.imitation import fingertips_in_object_frame
+                        ft_rec.append(fingertips_in_object_frame(env.unwrapped)[0].cpu().numpy())
                     tf_mean, tf_max = read_contact_force(env.unwrapped, "fingertip_cube_contact")
                     _, pf_max = read_contact_force(env.unwrapped, "palm_cube_contact")
                     tip_force.append((tf_mean, tf_max))
@@ -510,6 +518,14 @@ def main():
         print(format_scorecard(sc, title=args.output.stem))
         (args.output.with_suffix(".health.json")).write_text(_json.dumps(sc.as_dict(), indent=1))
         print(f"[health] scorecard -> {args.output.with_suffix('.health.json')}")
+
+    # ---- optional: dump the object-relative fingertip trajectory (imitation reference) ----------
+    if args.record_fingertip_traj is not None and ft_rec:
+        args.record_fingertip_traj.parent.mkdir(parents=True, exist_ok=True)
+        np.savez(args.record_fingertip_traj, fingertip_obj=np.stack(ft_rec).astype(np.float32),
+                 dt=0.02, t0=0.0, source=str(args.policy_b))
+        print(f"[imitation] object-relative fingertip trajectory ({len(ft_rec)} steps) -> "
+              f"{args.record_fingertip_traj}")
 
 
 if __name__ == "__main__":

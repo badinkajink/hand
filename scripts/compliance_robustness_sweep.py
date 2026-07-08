@@ -1,0 +1,122 @@
+"""Compliance-robustness sweep — how sensitive are TRAINED policies to contact stiffness? (2026-07-08)
+
+The sim2real retrains showed single runs are seed-noisy. This measures robustness cleanly with NO
+training: take fixed trained policies and evaluate each across a RANGE of contact compliances
+(geom solimp), recording held-cos / min-z (drop) / fingertip force at each. Produces a
+compliance-response curve per policy — the honest "how much contact hardening does this policy
+tolerate" measure. Eval-only, deterministic, ~1-2 min per (policy, compliance) point.
+
+Run: MUJOCO_GL=egl uv run --extra rl --extra gpu python scripts/compliance_robustness_sweep.py
+"""
+from __future__ import annotations
+import json, os, re, shutil, subprocess, sys, time
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+RL = ROOT / "results/rl"
+SOFT_REF = ROOT / "results/phase1/landscape/m05_ik_cem"     # m05 CEM (best_rollout for the obs ref)
+OUT = ROOT / "results/phase1/sim2real/compliance"
+JSON = ROOT / "COMPLIANCE_ROBUSTNESS.json"
+TXT = ROOT / "COMPLIANCE_ROBUSTNESS.txt"
+
+
+def latest(glob):
+    ds = sorted(RL.glob(glob), key=lambda p: p.stat().st_mtime)
+    return ds[-1] if ds else None
+
+
+def final_ckpt(run: Path):
+    cks = sorted((run / "tensorboard").glob("model_*.pt"), key=lambda p: int(p.stem.split("_")[1]))
+    return cks[-1] if cks else None
+
+
+# fixed trained policies to probe (all m05-design). (name, A_ckpt, B_ckpt)
+def policies():
+    a10 = RL / "a10_20260702-1256-policyA_m05_ik10/tensorboard/model_609.pt"
+    b33 = RL / "b33_20260702-1353-policyB_m05_reorient_ik10/tensorboard/model_270.pt"
+    a_hard = final_ckpt(latest("*policyA_m05_hardcontact"))
+    b_hard = final_ckpt(latest("*policyB_m05_hard_imit_k1"))
+    imitB_run = latest("*vstudy_m05_imit_k0")
+    out = [("soft_b33", a10, b33), ("soft_imitB", a10, final_ckpt(imitB_run) if imitB_run else None)]
+    if a_hard and b_hard:
+        out.append(("hard_retrained", a_hard, b_hard))
+    return [(n, a, b) for n, a, b in out if a and b and a.exists() and b.exists()]
+
+
+# compliance levels: geom solimp (dmin, dmax). dmax↑ = harder (less penetration). soft is the m05 default.
+COMPLIANCES = [
+    (0.97, 0.995, "soft"),      # the training default (softest)
+    (0.98, 0.997, "c997"),
+    (0.983, 0.998, "c998"),
+    (0.985, 0.999, "c999"),     # the "mild-hard" step
+    (0.99, 0.9995, "c9995"),    # harder
+]
+
+
+def make_scene_dir(dmin, dmax, label):
+    d = OUT / f"m05_{label}"
+    d.mkdir(parents=True, exist_ok=True)
+    for f in ("best_rollout.npz", "summary.json"):
+        shutil.copy(SOFT_REF / f, d / f)
+    src = (SOFT_REF / "frozen_scene.xml").read_text()
+    src = re.sub(r'solimp="[^"]*"', f'solimp="{dmin} {dmax} 0.0004"', src)
+    (d / "frozen_scene.xml").write_text(src)
+    return d
+
+
+def evaluate(name, a_ck, b_ck, scene_dir, env):
+    e = dict(env); e["WARP_CACHE_PATH"] = subprocess.run(["mktemp", "-d"], capture_output=True, text=True).stdout.strip()
+    out_mp4 = OUT / f"{name}_{scene_dir.name}.mp4"
+    r = subprocess.run([sys.executable, str(ROOT / "scripts/rl_demo_handoff_continuous.py"),
+                        "--policy-a", str(a_ck), "--policy-b", str(b_ck),
+                        "--morphology-run", str(scene_dir), "--lift-delta", "0.10",
+                        "--open-finger-from-keyframe", "--output", str(out_mp4)],
+                       check=False, capture_output=True, text=True, env=e, timeout=900)
+    s = r.stdout or ""
+    def grab(pat, i=1):
+        m = re.search(pat, s)
+        return float(m.group(i)) if m else None
+    return dict(
+        held_cos=grab(r"held-vertical cos POST-HANDOFF \(last 50 steps mean\): ([-\d.]+)"),
+        peak_cos=grab(r"\(peak ([-\d.]+)\)"),
+        min_z=grab(r"POST-HANDOFF \(honest hold metric\): ([-\d.]+) m"),
+        force=grab(r"fingertip mean\s+([-\d.]+)N"),
+        verdict=(re.search(r"VERDICT: ([A-Z]+)", s) or [None, None])[1] if "policy health" in s else None,
+    )
+
+
+def main():
+    env = dict(os.environ); env.setdefault("MUJOCO_GL", "egl")
+    OUT.mkdir(parents=True, exist_ok=True)
+    done = {d["key"]: d for d in json.loads(JSON.read_text())} if JSON.exists() else {}
+    pols = policies()
+    print("policies:", [p[0] for p in pols])
+    if not TXT.exists():
+        TXT.write_text(f"# compliance-robustness sweep {time.strftime('%Y-%m-%d %H:%M')}\n"
+                       f"# fixed trained policies x solimp range; eval-only. held-cos / min-z / force.\n")
+    results = list(done.values())
+    for dmin, dmax, label in COMPLIANCES:
+        scene = make_scene_dir(dmin, dmax, label)
+        for name, a_ck, b_ck in pols:
+            key = f"{name}@{label}"
+            if key in done:
+                print(f"[skip] {key}"); continue
+            t0 = time.time()
+            try:
+                m = evaluate(name, a_ck, b_ck, scene, env)
+            except Exception as ex:
+                m = {"error": f"{type(ex).__name__}: {str(ex)[:120]}"}
+            rec = {"key": key, "policy": name, "label": label, "dmax": dmax, **m, "secs": round(time.time() - t0)}
+            done[key] = rec; results = list(done.values())
+            JSON.write_text(json.dumps(results, indent=1))
+            line = (f"{key:26} dmax {dmax:<7} cos {str(rec.get('held_cos')):>7} peak {str(rec.get('peak_cos')):>7} "
+                    f"min_z {str(rec.get('min_z')):>7} force {str(rec.get('force')):>6} {rec.get('verdict') or rec.get('error','')}")
+            print(line, flush=True)
+            with TXT.open("a") as f:
+                f.write(line + "\n")
+    (ROOT / "COMPLIANCE_ROBUSTNESS.DONE").write_text(time.strftime("%Y-%m-%d %H:%M:%S") + "\n")
+    print(f"[compliance-sweep] COMPLETE -> {TXT}")
+
+
+if __name__ == "__main__":
+    main()

@@ -120,6 +120,27 @@ Outputs: `MORPH_PIPELINE_<tag>.{json,txt}`, `sweep_{A,B}_<id>.trainer.log`, run 
   (shared warmstart prior, not each design's noisy A); (c) cheaper low-variance proxy score; OR
   accept m05 + do the deferred hard-contact sim2real pass. GPU idle; nothing running.
 
+## Variance-reduction experiments (2026-07-06) — toward statistically separating morphologies
+
+The large16/confirm finding was that per-design reorient held-cos has sd ≈ 0.4 (spans negative to
+0.8), from training-convergence luck (peak cos varies 0.02→0.81 by seed), so designs can't be
+separated. Three levers, per the user:
+
+- **#1 shared-warmstart-B + #2 N-seed — DONE (2026-07-06): VARIANCE SOLVED.** `reorient_variance_study.py`.
+  **Fix-A cut cos sd 4× (0.38→0.09); shared-warmstart-B halved again (→0.04), ~8× total.** Delineates
+  m05 vs L01_13: cos equivalent (fair self mode) but **m05 lower-force (7–8 vs 10–12 N, separable)** →
+  L01_13's single-seed "lead" was a seed artifact, **m05 validated as reference.** Shared mode's cos
+  separation is confounded (b33 = m05's own reorienter). Recommended evaluator: **fixed-A +
+  self-warmstart-B + ~3 seeds**. Fig `img/variance_reduction_bands.png`; writeup in `reorientation.md`.
+- **#3 object-relative fingertip imitation (CORE BUILT, pending GPU-free smoke-test).** Record the
+  blessed a10→b33 reorient's **object-frame** fingertip trajectory (transferable across morphologies,
+  unlike joint angles) and imitate it with a curriculum. Built: `src/morphohand/rl/imitation.py`
+  (reference loader + `track_fingertip_obj` reward, math-validated) + `--record-fingertip-traj` in
+  `rl_demo_handoff_continuous.py`. TODO (needs GPU to smoke-test, so queued behind #1+#2): wire the
+  reward into `env_cfg`/`rl_train_cube` CLI + a weight curriculum + a training script; record the
+  reference; train B on m05 (+ L01_13 to test transfer); measure the band. Design/priority may
+  update from #1+#2's outcome.
+
 ## FINAL STATE (2026-07-05)
 
 Nothing running, GPU idle. Deliverables from this autonomous run:
@@ -131,3 +152,23 @@ Nothing running, GPU idle. Deliverables from this autonomous run:
   handoff videos in `docs/rl/videos/reorient/sweep/`.
 - **Result:** honest NEGATIVE — no local design beats m05 within seed noise; the win is the
   pipeline + variance characterization. m05 (a10→b33) remains the reference.
+
+## FINAL STATE (2026-07-08) — variance solved, sim2real characterized
+
+Nothing running, GPU idle. Since 07-05:
+- **Variance SOLVED** (`scripts/reorient_variance_study.py`): fix-A cuts held-cos sd 4×
+  (0.38→0.09); a design-neutral **object-relative fingertip imitation** prior
+  (`src/morphohand/rl/imitation.py`, recorded via `--record-fingertip-traj`) cuts it to ±0.02 and
+  gives the smoothest/lowest-force policies. Designs now separate: **m05 0.82 > L01_13 0.72**,
+  m05 lower-force → **m05 validated as reference**. Fig `img/variance_reduction_bands.png`.
+- **Sim2real contact hardening** (`solimp 0.97/0.995 → 0.985/0.999`): **grasp transfers** (retrain
+  holds), **reorient does NOT** (rolling needs compliance; align 13 vs 48). Eval-only
+  **compliance-robustness sweep** (`scripts/compliance_robustness_sweep.py`): trained policies are
+  **fragile/non-monotonic** to stiffness; single-stiffness training overfits; imitation degrades
+  most gracefully. Figs `img/compliance_robustness.png`; scenes `assets/mjcf/experimental/sim2real/`.
+- **Docs updated:** `reorientation.md` (full arc), webpaper `rl.typ` (co-design + variance + sim2real
+  sections, builds clean), `paper/main.tex` (Method/Experiments/appendix incl. app:variance,
+  app:sim2real; also fixed a pre-existing `\labelindent` preamble breakage). `CLAUDE.md` created.
+- **NEXT (spec written, not run): compliance domain randomization** — `docs/rl/compliance_dr_plan.md`.
+  Randomize `solimp` per episode over [soft, hard] → a stiffness-robust policy; retrain A +
+  imitation-B, re-run the compliance sweep, expect a flat curve.

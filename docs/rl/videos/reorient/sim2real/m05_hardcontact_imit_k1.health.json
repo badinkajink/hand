@@ -1,0 +1,61 @@
+{
+ "verdict": "WARN",
+ "checks": {
+  "late_finger": {
+   "status": "PASS",
+   "value": 1.0,
+   "detail": "(thumb@2, index@2, middle@1)"
+  },
+  "idle_finger": {
+   "status": "PASS",
+   "value": 2.9946,
+   "detail": "thumb=9.0N/0.99 index=8.3N/1.00 middle=14.1N/1.00"
+  },
+  "drop": {
+   "status": "PASS",
+   "value": 0.1164,
+   "detail": "min hold-phase obj-z 0.116 m (floor<0.05)"
+  },
+  "jitter": {
+   "status": "PASS",
+   "value": 13.5366,
+   "detail": "ang-jerk 13.5 1/s^2"
+  },
+  "de_centering": {
+   "status": "WARN",
+   "value": 9.0207,
+   "detail": "sliding: path 2.3cm >> net 0.3cm"
+  },
+  "over_clamp": {
+   "status": "WARN",
+   "value": 10.4541,
+   "detail": "mean fingertip 10.5 N (reward saturates ~3N)"
+  }
+ },
+ "metrics": {
+  "first_contact": [
+   2,
+   2,
+   1
+  ],
+  "contact_spread": 1.0,
+  "touch_frac": [
+   0.99,
+   1.0,
+   1.0
+  ],
+  "force_mean": [
+   9.0,
+   8.3,
+   14.1
+  ],
+  "contact_count": 2.99,
+  "min_z_hold": 0.1164,
+  "ang_jerk": 13.5,
+  "net_drift_cm": 0.3,
+  "slide_ratio": 9.0,
+  "tip_force": 10.5,
+  "held_cos_tail": -0.041,
+  "peak_cos": 0.165
+ }
+}
