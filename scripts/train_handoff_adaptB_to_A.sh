@@ -50,7 +50,7 @@ ARGS=(
   --tag "$TAG" --no-wandb
 )
 c=$(mktemp -d)
-LOG="${LOG:-$ROOT/adaptB_${TAG}.trainer.log}"
+LOG="${LOG:-$ROOT/logs/adaptB_${TAG}.trainer.log}"
 echo "[adaptB] TAG=$TAG ts=$TOTAL_TS bank=$BANK warmstart=B4 WARP_CACHE=$c trainer-log=$LOG"
 WARP_CACHE_PATH="$c" MUJOCO_GL=egl setsid uv run --extra rl --extra gpu \
   python "$ROOT/scripts/rl_train_cube.py" "${ARGS[@]}" > "$LOG" 2>&1 &

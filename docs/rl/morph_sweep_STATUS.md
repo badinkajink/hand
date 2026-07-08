@@ -39,7 +39,7 @@ try/except, DONE sentinel). Analysis: `scripts/morph_pipeline_plots.py`.
 ## Staged plan + triggers
 
 1. **initial8 sweep** (~11–13 h) — running/queued. Detached process + a `run_in_background` waiter
-   on the `MORPH_PIPELINE_initial8.DONE` sentinel re-invokes the session on completion (or crash).
+   on the `docs/experiments/MORPH_PIPELINE_initial8.DONE` sentinel re-invokes the session on completion (or crash).
 2. On completion → **analysis**: `morph_pipeline_plots.py --tag initial8` (summary + training
    figures + markdown table), render a comparison of the best handoffs, write up in
    `reorientation.md`, update memory.
@@ -51,9 +51,9 @@ try/except, DONE sentinel). Analysis: `scripts/morph_pipeline_plots.py`.
 ```bash
 cd /home/humanoid/Programs/hand
 # progress (one line per finished design):
-cat MORPH_PIPELINE_initial8.txt
+cat docs/experiments/MORPH_PIPELINE_initial8.txt
 tail -f sweep_initial8.run.log            # live stage markers ([HH:MM:SS] <id>: ...)
-python3 -c "import json;print(len(json.load(open('MORPH_PIPELINE_initial8.json'))),'designs done')"
+python3 -c "import json;print(len(json.load(open('docs/experiments/MORPH_PIPELINE_initial8.json'))),'designs done')"
 nvidia-smi                                 # is a trainer running?
 
 # RESUME after any crash/kill (skips finished designs — safe to re-run):
@@ -64,7 +64,7 @@ MUJOCO_GL=egl uv run --extra rl --extra gpu \
 pkill -f morph_pipeline_sweep.py ; pkill -f rl_train_cube.py   # (never pkill from inside its own cmd)
 ```
 
-Outputs: `MORPH_PIPELINE_<tag>.{json,txt}`, `sweep_{A,B}_<id>.trainer.log`, run dirs
+Outputs: `docs/experiments/MORPH_PIPELINE_<tag>.{json,txt}`, `sweep_{A,B}_<id>.trainer.log`, run dirs
 `results/rl/<ts>-policy{A,B}_<id>*` (auto-`bx_`'d by `rename_results_bids.sh`), handoff videos +
 `.health.json` in `docs/rl/videos/reorient/sweep/`.
 
@@ -77,7 +77,7 @@ Outputs: `MORPH_PIPELINE_<tag>.{json,txt}`, `sweep_{A,B}_<id>.trainer.log`, run 
   grasp-equivalent (CEM 0.05 / 1·1·1); but 6/8 aborted in A or B training, incl. the m05 anchor
   `s00` (A collapsed 0.127→0.026 at iter 55 → confirms a10/m05 was a lucky single seed). Only
   `s05_shortgrasp` held+reoriented (FAIL on jitter/clamp only — policy quality). Analysis:
-  `morph_pipeline_initial8_summary.png` / `..._training.png` / `MORPH_PIPELINE_initial8_TABLE.md`;
+  `morph_pipeline_initial8_summary.png` / `..._training.png` / `docs/experiments/MORPH_PIPELINE_initial8_TABLE.md`;
   writeup in `reorientation.md` → "co-design morphology sweep". **Diagnosis: bottleneck is RL
   robustness, not morphology.**
 - **2026-07-03 21:25 — fix attempt 1 (warmstart a10/b33) → canary `valfix` FAILED.** a10-warmstart
@@ -106,7 +106,7 @@ Outputs: `MORPH_PIPELINE_<tag>.{json,txt}`, `sweep_{A,B}_<id>.trainer.log`, run 
   (≈m05 geometry → seed luck), m05-anchor 0.78, **L01_13 0.76 @ force 7.4 / jerk 6.0 = best design
   lead** (thumb_x +9mm; lower force + half the jerk of m05). Health monitor caught L01_02's 2.0N as
   degenerate (idle-finger FAIL). **m05 across seeds = 0.66/0.78/0.90 → single-seed can't separate
-  design from luck.** Analysis: `morph_pipeline_large16_*.png`, `MORPH_PIPELINE_large16_TABLE.md`;
+  design from luck.** Analysis: `morph_pipeline_large16_*.png`, `docs/experiments/MORPH_PIPELINE_large16_TABLE.md`;
   writeup in `reorientation.md`. Videos `docs/rl/videos/reorient/sweep/L01_{06,13,00_center}_handoff.mp4`.
 - **2026-07-04 23:34 — CONFIRM sweep launched** (m05 ×3 + L01_13 ×3 fresh seeds).
 - **2026-07-05 ~06:00 — CONFIRM DONE → NEGATIVE (definitive).** Pooled seed bands: **m05 cos
@@ -148,7 +148,7 @@ Nothing running, GPU idle. Deliverables from this autonomous run:
 - **Pipeline:** `scripts/morph_pipeline_sweep.py` (health-gated per-design A→B, resumable) +
   `morph_pipeline_plots.py`; 3 bugs found+fixed (B open-finger, final-vs-early ckpt, no warmstart).
 - **Sweeps:** initial8 (fragility→bugs), large16 (16 designs ranked), confirm (6-run seed test).
-  Data: `MORPH_PIPELINE_{initial8,large16,confirm}.{json,txt}`, `*_TABLE.md`, figs in `docs/rl/img/`,
+  Data: `docs/experiments/MORPH_PIPELINE_{initial8,large16,confirm}.{json,txt}`, `*_TABLE.md`, figs in `docs/rl/img/`,
   handoff videos in `docs/rl/videos/reorient/sweep/`.
 - **Result:** honest NEGATIVE — no local design beats m05 within seed noise; the win is the
   pipeline + variance characterization. m05 (a10→b33) remains the reference.

@@ -26,7 +26,7 @@
 # residuals 2.5x too large -> instant seam collapse (an artifact, not a failure;
 # re-eval at 0.2 held post-handoff min-z 0.110, cos 0.75). So pin all three here.
 #
-# Launch (detached): nohup setsid bash scripts/train_handoff_liveA_reset.sh > liveA.run.log 2>&1 </dev/null & disown
+# Launch (detached): nohup setsid bash scripts/train_handoff_liveA_reset.sh > logs/liveA.run.log 2>&1 </dev/null & disown
 # SMOKE=1 -> 1M ts (~13 iters, ~3 min) supervised sanity. Knobs: TOTAL_TS, B_CKPT,
 # A_CKPT, ONSET_STEP, REORIENT_START, TAG.
 set -u
@@ -83,7 +83,7 @@ ARGS=(
 # to match a policy trained without it (the scale-0.2 live-A lineage from model_270).
 [ "${CONTACT_GATE:-1}" = "1" ] && ARGS+=( --contact-gate-stability-rewards )
 c=$(mktemp -d)
-LOG="${LOG:-$ROOT/liveA_${TAG}.trainer.log}"
+LOG="${LOG:-$ROOT/logs/liveA_${TAG}.trainer.log}"
 echo "[liveA] TAG=$TAG ts=$TOTAL_TS onset=$ONSET_STEP blend=$BLEND lift_term_start=$LIFT_TERM_START reorient_start=$REORIENT_START"
 echo "[liveA] A=$A_CKPT warmstart-B=$B_CKPT WARP_CACHE=$c trainer-log=$LOG"
 WARP_CACHE_PATH="$c" MUJOCO_GL=egl setsid uv run --extra rl --extra gpu \

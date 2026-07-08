@@ -23,7 +23,7 @@
 # (lin/ang jerk) + the new contact-force readout — NOT cos/min-z alone (b31 lesson).
 #
 # Launch (detached):
-#   nohup setsid bash scripts/train_handoff_b33_forcereg.sh > b33.run.log 2>&1 </dev/null & disown
+#   nohup setsid bash scripts/train_handoff_b33_forcereg.sh > logs/b33.run.log 2>&1 </dev/null & disown
 # SMOKE=1 -> 1M ts (~13 iters) sanity. Knobs: PEN_WEIGHT, PEN_THRESH, PEN_SCALE, TOTAL_TS, TAG.
 set -u
 ROOT=/home/humanoid/Programs/hand; cd "$ROOT"
@@ -76,7 +76,7 @@ ARGS=(
   --tag "$TAG" --no-wandb
 )
 c=$(mktemp -d)
-LOG="${LOG:-$ROOT/b33_${TAG}.trainer.log}"
+LOG="${LOG:-$ROOT/logs/b33_${TAG}.trainer.log}"
 echo "[b33] TAG=$TAG ts=$TOTAL_TS  PENALTY w=$PEN_WEIGHT thresh=$PEN_THRESH scale=$PEN_SCALE"
 echo "[b33] warmstart-B(b32)=$B_CKPT  A=$A_CKPT  onset=$ONSET_STEP reorient_start=$REORIENT_START"
 echo "[b33] WARP_CACHE=$c trainer-log=$LOG"

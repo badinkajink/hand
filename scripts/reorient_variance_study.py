@@ -26,9 +26,9 @@ B33 = ROOT / "results/rl/b33_20260702-1353-policyB_m05_reorient_ik10/tensorboard
 # design-NEUTRAL imitation reference: the object-relative fingertip trajectory of the blessed
 # a10->b33 reorient (recorded once), imitated on ANY design -> a fair shared reorient prior.
 IMIT_REF = ROOT / "results/reorient_ref/m05_a10b33_fingertip_obj.npz"
-JSON = ROOT / "REORIENT_VARIANCE.json"
-TXT = ROOT / "REORIENT_VARIANCE.txt"
-SENTINEL = ROOT / "REORIENT_VARIANCE.DONE"
+JSON = ROOT / "docs/experiments/REORIENT_VARIANCE.json"
+TXT = ROOT / "docs/experiments/REORIENT_VARIANCE.txt"
+SENTINEL = ROOT / "logs/REORIENT_VARIANCE.DONE"
 
 # design -> (fixed A ckpt, morphology-run [rel to ROOT])
 DESIGNS = {
@@ -45,7 +45,7 @@ def _tmp():
 
 def train_B(design, a_ck: Path, cem_rel: str, mode: str, k: int, env):
     tag = f"vstudy_{design}_{mode}_k{k}"
-    log = ROOT / f"vstudy_{design}_{mode}_k{k}.trainer.log"
+    log = ROOT / f"logs/vstudy_{design}_{mode}_k{k}.trainer.log"
     # shared = warmstart b33; self/imit = warmstart the design's own (holder) A.
     b_ck = str(B33 if mode == "shared" else a_ck)
     extra = "--open-finger-from-keyframe"

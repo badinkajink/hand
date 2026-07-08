@@ -23,9 +23,9 @@ launch () { # $1=thresh  $2=tagsuffix
   echo "[sweep] launching thresh=$th tag=$tag $(date +%H:%M:%S)"
   B_CKPT="$B33" PEN_THRESH="$th" PEN_WEIGHT=-6.0 PEN_SCALE=4.0 \
     TAG="policyB_b33iter_forcefloor_${tag}" \
-    LOG="$ROOT/b34_${tag}.trainer.log" \
+    LOG="$ROOT/logs/b34_${tag}.trainer.log" \
     nohup setsid bash "$ROOT/scripts/train_handoff_b33_forcereg.sh" \
-    > "$ROOT/b34_${tag}.run.log" 2>&1 </dev/null &
+    > "$ROOT/logs/b34_${tag}.run.log" 2>&1 </dev/null &
   disown
 }
 

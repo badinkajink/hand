@@ -5,7 +5,7 @@
 # Needed because changing the hand geometry changes the grasp, so A must relearn the lift/deliver.
 # Pairs with train_reorient_on_morph.sh (B); together they give a full handoff on the new design.
 #
-# Launch (detached): nohup setsid bash scripts/train_A_on_morph.sh > A_morph.run.log 2>&1 </dev/null & disown
+# Launch (detached): nohup setsid bash scripts/train_A_on_morph.sh > logs/A_morph.run.log 2>&1 </dev/null & disown
 # SMOKE=1 -> 1M ts. Knobs: MORPH_RUN, WARMSTART, TOTAL_TS, NUM_ENVS, TAG.
 set -u
 ROOT=/home/humanoid/Programs/hand; cd "$ROOT"
@@ -38,7 +38,7 @@ ARGS+=(
 )
 read -r -a _extra <<< "${EXTRA_ARGS:-}"; ARGS+=("${_extra[@]}")
 c=$(mktemp -d)
-LOG="${LOG:-$ROOT/A_morph_${TAG}.trainer.log}"
+LOG="${LOG:-$ROOT/logs/A_morph_${TAG}.trainer.log}"
 echo "[A_morph] TAG=$TAG ts=$TOTAL_TS  MORPH=$MORPH_RUN  warmstart-a01=$WARMSTART  WARP_CACHE=$c"
 WARP_CACHE_PATH="$c" MUJOCO_GL=egl setsid uv run --extra rl --extra gpu \
   python "$ROOT/scripts/rl_train_cube.py" "${ARGS[@]}" > "$LOG" 2>&1 &

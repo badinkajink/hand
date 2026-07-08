@@ -206,7 +206,7 @@ def train_A(cem_dir: Path, mid: str, env, smoke: bool):
     # EJECTS the re-CEM'd object (confirmed: a10-warmstart canary never lifted, obj 0.0 from iter
     # 0). From scratch the residual~0, so the open-loop CEM grip + scripted lift does the lifting.
     tag = f"policyA_{mid}"
-    log = ROOT / f"sweep_A_{mid}.trainer.log"
+    log = ROOT / f"logs/sweep_A_{mid}.trainer.log"
     e = dict(env)
     e.update(MORPH_RUN=str(cem_dir), WARMSTART="none", LIFT_DELTA_A="0.10",
              EXTRA_ARGS="--open-finger-from-keyframe --lift-phase-start-step 60",
@@ -246,7 +246,7 @@ def train_B(cem_rel: str, a_ck: Path, mid: str, env, smoke: bool):
     # live-A script omits it → B resets to the baseline flung-out-thumb open pose → wrong grip →
     # the driver drops the object → B never learns; this sank s03/s04/s06/s07 in the initial8).
     tag = f"policyB_{mid}_reorient"
-    log = ROOT / f"sweep_B_{mid}.trainer.log"
+    log = ROOT / f"logs/sweep_B_{mid}.trainer.log"
     e = dict(env)
     e.update(MORPH=cem_rel, A_CKPT=str(a_ck), B_CKPT=str(a_ck), LIFT_DELTA="0.10",
              EXTRA_ARGS="--open-finger-from-keyframe",
@@ -319,15 +319,15 @@ def main():
     env = dict(os.environ); env.setdefault("MUJOCO_GL", "egl")
 
     tag = args.tag or args.morph_set
-    JSON = ROOT / f"MORPH_PIPELINE_{tag}.json"
-    TXT = ROOT / f"MORPH_PIPELINE_{tag}.txt"
-    SENTINEL = ROOT / f"MORPH_PIPELINE_{tag}.DONE"
+    JSON = ROOT / f"docs/experiments/MORPH_PIPELINE_{tag}.json"
+    TXT = ROOT / f"docs/experiments/MORPH_PIPELINE_{tag}.txt"
+    SENTINEL = ROOT / f"logs/MORPH_PIPELINE_{tag}.DONE"
     if SENTINEL.exists():
         SENTINEL.unlink()
 
     center = M05
-    if args.center == "best" and (ROOT / "MORPH_PIPELINE_best_center.json").exists():
-        center = tuple(json.loads((ROOT / "MORPH_PIPELINE_best_center.json").read_text()))
+    if args.center == "best" and (ROOT / "docs/experiments/MORPH_PIPELINE_best_center.json").exists():
+        center = tuple(json.loads((ROOT / "docs/experiments/MORPH_PIPELINE_best_center.json").read_text()))
     elif "," in args.center:
         center = tuple(float(x) for x in args.center.split(","))
     items = morph_set(args.morph_set, args.n, args.seed, center)

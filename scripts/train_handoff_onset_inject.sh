@@ -22,7 +22,7 @@
 # handoff@40); B's residual active from 40 (B controls at the seam, like deploy);
 # reorient reward from 45 (5-step grace to stabilize the catch before tilting).
 #
-# Launch (detached): nohup setsid bash scripts/train_handoff_onset_inject.sh > onset.run.log 2>&1 </dev/null & disown
+# Launch (detached): nohup setsid bash scripts/train_handoff_onset_inject.sh > logs/onset.run.log 2>&1 </dev/null & disown
 # Knobs: TOTAL_TS (20M), SMOKE=1 (1M), BANK, B_CKPT, ONSET_STEP, REORIENT_START.
 set -u
 ROOT=/home/humanoid/Programs/hand; cd "$ROOT"
@@ -61,7 +61,7 @@ ARGS=(
 [ "${INJECT_VEL:-1}" = "0" ]     && ARGS+=( --no-handoff-inject-velocity )
 [ "${INJECT_LASTACT:-1}" = "0" ] && ARGS+=( --no-handoff-inject-last-action )
 c=$(mktemp -d)
-LOG="${LOG:-$ROOT/onset_${TAG}.trainer.log}"
+LOG="${LOG:-$ROOT/logs/onset_${TAG}.trainer.log}"
 echo "[onset] TAG=$TAG ts=$TOTAL_TS onset_step=$ONSET_STEP reorient_start=$REORIENT_START"
 echo "[onset] bank=$BANK warmstart=B10 WARP_CACHE=$c trainer-log=$LOG"
 WARP_CACHE_PATH="$c" MUJOCO_GL=egl setsid uv run --extra rl --extra gpu \

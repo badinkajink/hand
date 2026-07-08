@@ -73,7 +73,7 @@ deterministic rollout per point).
 - Contact params: geom default `solimp/solref` in `frozen_scene.xml` (m05:
   `results/phase1/landscape/m05_ik_cem/`); env also sets `impratio=10`/elliptic (`env_cfg.py` ~L1399).
 - DR precedent: `env_cfg.py` `reset_cube`, `dr_anneal` (spawn DR only — no physics DR yet).
-- Robustness sweep + curves: `scripts/compliance_robustness_sweep.py`, `COMPLIANCE_ROBUSTNESS.txt`,
+- Robustness sweep + curves: `scripts/compliance_robustness_sweep.py`, `docs/experiments/COMPLIANCE_ROBUSTNESS.txt`,
   `docs/rl/img/compliance_robustness.png`.
 - Reference policies: a10 (lift) / b33 (reorient) on m05; imitation prior
   `results/reorient_ref/m05_a10b33_fingertip_obj.npz` + `src/morphohand/rl/imitation.py`.

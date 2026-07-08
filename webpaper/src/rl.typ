@@ -707,7 +707,7 @@ the object and reoriented — no drops. But ranking them surfaced the real resul
   Best cos `L01_06` 0.90 (but geometrically ≈ `m05`); anchor `m05` 0.78; `L01_13` (thumb moved 9 mm
   outward) 0.76 at *lower* force (7.4 vs 10.9 N) and *half* the jerk (6.0 vs 12.5) — the apparent
   "design lead"; `L01_02` posted the lowest force (2.0 N) but *by idling a finger* → the scorecard
-  correctly FAILed it. Full table `MORPH_PIPELINE_large16_TABLE.md`; figure
+  correctly FAILed it. Full table `docs/experiments/MORPH_PIPELINE_large16_TABLE.md`; figure
   `morph_pipeline_large16_summary.png`.
 ]
 
