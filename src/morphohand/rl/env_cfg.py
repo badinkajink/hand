@@ -281,6 +281,17 @@ class MorphoHandEnvCfg:
     """Mean offset (m) added to the cube spawn y."""
     cube_spawn_yaw_jitter: float = 0.0
     """Symmetric uniform yaw noise (rad, ±) on cube spawn each reset."""
+    # ---- contact-compliance DR (sim2real robustness) --------------------
+    compliance_dr: bool = False
+    """Per-env contact solimp DR: each reset samples one softness per env and
+    lerps every geom's solimp (dmin, dmax) jointly between the bounds below,
+    soft -> hard. Single-stiffness training overfits the contact model
+    (fragile, non-monotonic robustness curve — docs/rl/compliance_dr_plan.md)."""
+    compliance_dr_dmin: tuple[float, float] = (0.97, 0.985)
+    """(soft, hard) bounds for solimp dmin."""
+    compliance_dr_dmax: tuple[float, float] = (0.995, 0.999)
+    """(soft, hard) bounds for solimp dmax — the range over which the
+    compliance-robustness sweep found the task at least sometimes feasible."""
     # ---- curriculum on DR jitter ---------------------------------------
     dr_anneal_iters: int = 0
     """Number of PPO iters over which jitter linearly ramps from 0 to
@@ -1229,6 +1240,17 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
             },
         ),
     }
+    # contact-compliance DR: resample every geom's solimp per env on each reset
+    # so the policy can't overfit one contact stiffness (the measured failure —
+    # docs/rl/compliance_dr_plan.md). Eval envs leave this off: they pin the
+    # stiffness via the frozen-scene xml.
+    if cfg.compliance_dr:
+        events["randomize_compliance"] = EventTermCfg(
+            func=mjlab_terms.randomize_geom_solimp,
+            mode="reset",
+            params={"dmin_range": tuple(cfg.compliance_dr_dmin),
+                    "dmax_range": tuple(cfg.compliance_dr_dmax)},
+        )
     # train-the-handoff: spawn from Policy A's recorded terminal states. Added
     # LAST so it overrides reset_cube/reset_robot_joints (dict-insertion order).
     if cfg.skip_lift_phase and cfg.handoff_state_bank:

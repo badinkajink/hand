@@ -482,7 +482,7 @@ were softened from their first (tip_lost-spiking) values. Two runs swept the fin
 smoothness target: **5×** (flat `−0.5 / −0.25`) and **10×** (ramp to `−1.0 / −0.5`).
 Both: 30M ts, 1024 envs, 1220 iters, warmstart from the same 5× ckpt. (`policyB_v2_5x.log`,
 `policyB_v2_10x.log` were reused for these Stage-2 runs; the Stage-1 numbers below are
-preserved from `STAGE1_RESULTS.txt`.)
+preserved from `docs/experiments/STAGE1_RESULTS.txt`.)
 
 Comparable raw jitter = `reward / |weight|` (in parens). Final converged block:
 
@@ -815,7 +815,7 @@ curriculum α 0.5→4.0 over 150 iters) to lower the step-50 OOD/physics shock. 
 (actor 9 + critic 8 tensors copied), no NaN, reward ~9.5 (R) / ~15.6 (S, wider basin). **Want:
 post-handoff min-z > 0.05 (holds) at held-cos near P2's 0.988.** A follow-on trigger
 (`scripts/v3b_eval_trigger.sh`) waits for both → evals → renders the seamless video → writes
-`STATE_HANDOFF_RESULTS.txt`.
+`docs/experiments/STATE_HANDOFF_RESULTS.txt`.
 
 #### v3b OUTCOME (2026-06-04): ran to completion, but BOTH variants COLLAPSED — the grace window did not solve the handoff.
 
@@ -927,7 +927,7 @@ adapted B (`Badapt`, B→frozen-A delivery). **Result:**
 alone** (Lee 2021 / Röstel 2025, confirmed empirically). *Honest caveat:* 0.0114 is still a **drop**,
 not a hold; and `Badapt` has no stable post-seam holding grip (drops by ~step 48), so the **weak link
 is B catching**, not A delivering. An overnight **co-adaptation batch** (`scripts/overnight_batch.sh`
-→ `BATCH_RESULTS.md`) was launched to specialize B to the migrated A's delivery and push A-migration
+→ `docs/experiments/BATCH_RESULTS.md`) was launched to specialize B to the migrated A's delivery and push A-migration
 further.
 
 ### Where this leaves the seam (→ next: the live-A reset)
@@ -1219,7 +1219,7 @@ be mistaken for a morphology failure:
 So **we did train a policy per morphology** — eight skip-lift Policy-B reorienters under one
 *identical* recipe, morphology the only variable. The sweep is resumable (per-design JSON
 checkpoint), sequential, and try/except-per-design so one blowup never sinks the run. Raw
-results live in `MORPH_LANDSCAPE.{json,txt}`.
+results live in `docs/experiments/MORPH_LANDSCAPE.{json,txt}`.
 
 ### Landscape verdict — morphology matters STRONGLY, and grasp does not predict reorient
 
@@ -1498,7 +1498,7 @@ resume/monitor commands: `morph_sweep_STATUS.md`.
 ### initial8 (from-scratch A, warmstart B from A) — the honest result is FRAGILITY
 
 Eight interpretable coordinate moves around m05 (`s00` m05-anchor, `s01` m00-baseline ref, `s02–s07`
-thumb-opposition / seating hypotheses; exact Δ in `MORPH_PIPELINE_initial8_TABLE.md`). Summary +
+thumb-opposition / seating hypotheses; exact Δ in `docs/experiments/MORPH_PIPELINE_initial8_TABLE.md`). Summary +
 training figures: `img/morph_pipeline_initial8_summary.png`, `..._training.png`.
 
 | design | grasp (CEM lift/persist) | A→B outcome | verdict |
@@ -1554,7 +1554,7 @@ smooth (jitter 15) — the same health class as b33. Reorients less fully (cos 0
 firmer (12 N) than a10→b33 (cos 0.90, 7 N) — **from-scratch seed variance**, the expected cost of
 per-design retraining. Genuine, non-degenerate pickup→reorient → the pipeline is sound for ranking
 designs. **Larger sweep launched:** 16 local designs around m05 (`--morph-set local --n 16 --center
-m05 --seed 1`, `MORPH_PIPELINE_large16.*`).
+m05 --seed 1`, `docs/experiments/MORPH_PIPELINE_large16.*`).
 
 ### large16 results — a clean map, but SEED VARIANCE dominates the ranking
 
@@ -1562,7 +1562,7 @@ All 16 ran (design 0 = m05 anchor). **14/16 held the object and reoriented — n
 (`L01_03`) had a from-scratch A collapse (never lifted, auto-gated in 8 min, B skipped); 1
 (`L01_05`) reoriented the wrong way. Every design is again grasp-equivalent (CEM 0.05 / 1·1·1).
 Ranked by held-cos (figures `morph_pipeline_large16_summary.png` / `_training.png`, table
-`MORPH_PIPELINE_large16_TABLE.md`):
+`docs/experiments/MORPH_PIPELINE_large16_TABLE.md`):
 
 | design | Δm05 (biggest) | held-cos | force N | jerk | verdict | note |
 |---|---|---|---|---|---|---|
@@ -1594,7 +1594,7 @@ Ranked by held-cos (figures `morph_pipeline_large16_summary.png` / `_training.pn
 ### Multi-seed confirmation — NEGATIVE: seed variance swamps any local design effect
 
 Re-ran `L01_13` and `m05` ×3 fresh seeds each. Pooling with the earlier runs of each exact vector
-(`MORPH_PIPELINE_confirm.*`; figure `img/morph_confirm_seedbands.png`):
+(`docs/experiments/MORPH_PIPELINE_confirm.*`; figure `img/morph_confirm_seedbands.png`):
 
 | design | held-cos (mean ± sd, range, n) | force N | jerk |
 |---|---|---|---|
@@ -1683,7 +1683,7 @@ better; L01_13 never wins on any fair footing. Figure `img/variance_reduction_ba
 indistinguishable is *solved* (fix-A cuts it 4×; a design-neutral imitation prior cuts it to ±0.02
 and yields smooth/low-force policies). Under proper measurement **m05 (a10→b33) is validated as the
 reference design**, and the imitation prior is the recommended evaluator + warm-start for any future
-design search. Study: `scripts/reorient_variance_study.py`, data `REORIENT_VARIANCE.{json,txt}`.
+design search. Study: `scripts/reorient_variance_study.py`, data `docs/experiments/REORIENT_VARIANCE.{json,txt}`.
 
 ---
 
@@ -1731,7 +1731,7 @@ The single-stiffness retrains above were seed-noisy (a gentle-step B trained to 
 one run, 14.8 in another). The clean way to ask "how robust is a policy to compliance" is
 *eval-only*: fix a trained policy and sweep the contact stiffness. `scripts/compliance_robustness_sweep.py`
 evaluates each policy across `solimp` dmax 0.995→0.9995 (soft→hard); figure
-`img/compliance_robustness.png`, data `COMPLIANCE_ROBUSTNESS.txt`.
+`img/compliance_robustness.png`, data `docs/experiments/COMPLIANCE_ROBUSTNESS.txt`.
 
 | policy \ dmax | 0.995 (soft) | 0.997 | 0.998 | 0.999 | 0.9995 |
 |---|---|---|---|---|---|
@@ -1754,6 +1754,34 @@ evaluates each policy across `solimp` dmax 0.995→0.9995 (soft→hard); figure
 
 *Caveat:* one deterministic rollout per (policy, stiffness); the non-monotonicity is a genuine
 contact-mode effect, but a rigorous success-*rate* would average over spawn/noise per point.
+
+---
+
+## Phase: compliance DOMAIN RANDOMIZATION — per-env solimp DR built + retrain launched (2026-07-08)
+
+**The fix from the sweep above, implemented as Approach A (true per-env DR) from
+`docs/rl/compliance_dr_plan.md`.** mjwarp stores `geom_solimp` with a per-world leading dim, and
+mjlab's DR framework (`mjlab/envs/mdp/dr/`) auto-expands any model field named by a
+`@requires_model_fields` event term — so per-env physics DR needed no engine changes.
+
+**Implementation** (`mjlab_terms.randomize_geom_solimp` + `env_cfg.compliance_dr*` +
+`rl_train_cube --compliance-dr`):
+- Reset-mode event; each resetting env draws ONE softness `u ~ U(0,1)` and lerps **both** solimp
+  dmin ∈ [0.97, 0.985] and dmax ∈ [0.995, 0.999] from it. The **joint** draw keeps (dmin, dmax)
+  correlated/ordered — independent draws could pair a soft dmin with a hard dmax, a regime the
+  sweep never validated. Writes ALL geoms (matches the whole-scene sed the sweep evaluates with);
+  solref stays 0.006 (0.003 sits on the 2·dt stability edge).
+- **Verified by probe** (scratchpad `probe_compliance_dr.py`): `geom_solimp` expanded to
+  (num_envs, ngeom, 5); per-env values distinct, in-range, rank-correlated; envs re-draw on
+  mid-run resets; 20 steps finite. SMOKE A-train (1M ts) clean — `randomize_compliance`
+  registered, object held ~0.111 m.
+
+**Retrain launched** (`scripts/compliance_dr_pipeline.py`, detached, resumable, logs under
+`logs/compliance_dr/`): (1) m05 A from scratch + DR (morph-pipeline recipe), (2) 2× imitation-B
+seeds off that A via live-A reset + same DR (imitation = the most stiffness-graceful base),
+(3) re-run the compliance-robustness sweep — `policies()` now auto-picks-up `*_m05_cdr*` runs as
+`cdr_imitB_k{0,1}`. **Success bar: a FLAT, high held-cos curve across dmax 0.995→0.999** vs the
+fragile single-stiffness curves above.
 
 ---
 

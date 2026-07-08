@@ -16,8 +16,8 @@ ROOT = Path(__file__).resolve().parents[1]
 RL = ROOT / "results/rl"
 SOFT_REF = ROOT / "results/phase1/landscape/m05_ik_cem"     # m05 CEM (best_rollout for the obs ref)
 OUT = ROOT / "results/phase1/sim2real/compliance"
-JSON = ROOT / "COMPLIANCE_ROBUSTNESS.json"
-TXT = ROOT / "COMPLIANCE_ROBUSTNESS.txt"
+JSON = ROOT / "docs/experiments/COMPLIANCE_ROBUSTNESS.json"
+TXT = ROOT / "docs/experiments/COMPLIANCE_ROBUSTNESS.txt"
 
 
 def latest(glob):
@@ -40,6 +40,14 @@ def policies():
     out = [("soft_b33", a10, b33), ("soft_imitB", a10, final_ckpt(imitB_run) if imitB_run else None)]
     if a_hard and b_hard:
         out.append(("hard_retrained", a_hard, b_hard))
+    # compliance-DR retrains (scripts/compliance_dr_pipeline.py) — the success test is a
+    # FLAT high held-cos curve here, vs the fragile single-stiffness policies above.
+    a_cdr = final_ckpt(latest("*policyA_m05_cdr"))
+    if a_cdr:
+        for k in (0, 1):
+            b_cdr = final_ckpt(latest(f"*policyB_m05_cdr_imit_k{k}"))
+            if b_cdr:
+                out.append((f"cdr_imitB_k{k}", a_cdr, b_cdr))
     return [(n, a, b) for n, a, b in out if a and b and a.exists() and b.exists()]
 
 
@@ -114,7 +122,7 @@ def main():
             print(line, flush=True)
             with TXT.open("a") as f:
                 f.write(line + "\n")
-    (ROOT / "COMPLIANCE_ROBUSTNESS.DONE").write_text(time.strftime("%Y-%m-%d %H:%M:%S") + "\n")
+    (ROOT / "logs/COMPLIANCE_ROBUSTNESS.DONE").write_text(time.strftime("%Y-%m-%d %H:%M:%S") + "\n")
     print(f"[compliance-sweep] COMPLETE -> {TXT}")
 
 
