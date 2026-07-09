@@ -28,11 +28,13 @@ Run (detached):
 Smoke (validate the glue, ~10 min, tiny ts):  add --smoke
 """
 from __future__ import annotations
-import argparse, json, os, subprocess, sys, time
+import argparse, json, subprocess, sys, time
 from pathlib import Path
 import numpy as np
 
-ROOT = Path(__file__).resolve().parents[1]
+from morphohand.studies import runlib
+from morphohand.studies.runlib import ROOT, best_a_ckpt, final_ckpt, iter_objheight, latest_run
+
 sys.path.insert(0, str(ROOT / "scripts"))
 from retarget_keyframe_ik import tip_targets, ik_finger, _has_joint, _inject_keyframe, FINGERS  # noqa: E402
 import mujoco  # noqa: E402
@@ -139,7 +141,7 @@ def ik_retarget(scene: Path):
 
 
 def run_cem(scene: Path, tag: str, env, iters: int) -> dict:
-    e = dict(env); e["WARP_CACHE_PATH"] = _tmp()
+    e = runlib.warp_cache_env(env)
     subprocess.run([sys.executable, str(ROOT / "scripts/phase1_optimize_grasp.py"),
                     "--scene-xml", str(scene), "--keyframe", "open_ik",
                     "--iterations", str(iters), "--population", "80", "--skip-gif",
@@ -148,57 +150,6 @@ def run_cem(scene: Path, tag: str, env, iters: int) -> dict:
                     "--output-dir", str(CEM_OUT), "--tag", tag],
                    check=True, capture_output=True, text=True, env=e, timeout=1800)
     return json.loads((CEM_OUT / tag / "summary.json").read_text())["best_metrics"]
-
-
-def _tmp() -> str:
-    return subprocess.run(["mktemp", "-d"], capture_output=True, text=True).stdout.strip()
-
-
-def _latest_run(tag: str) -> Path | None:
-    runs = sorted((ROOT / "results/rl").glob(f"*{tag}"), key=lambda p: p.stat().st_mtime)
-    return runs[-1] if runs else None
-
-
-def _final_ckpt(run: Path) -> Path | None:
-    cks = sorted((run / "tensorboard").glob("model_*.pt"),
-                 key=lambda p: int(p.stem.split("_")[1]))
-    return cks[-1] if cks else None
-
-
-def _iter_objheight(log: Path) -> dict[int, float]:
-    """Parse the trainer log -> {iter: mean object_height}. For picking A's best lift ckpt."""
-    import re
-    if not log.exists():
-        return {}
-    text = log.read_text(errors="ignore")
-    iters = [int(m.group(1)) for m in re.finditer(r"Learning iteration\s+(\d+)/", text)]
-    chunks = re.split(r"Learning iteration\s+\d+/", text)
-    oh = {}
-    for chunk, it in zip(chunks[1:], iters):
-        mm = re.search(r"lift_height/object_height:\s+([-\d.]+)", chunk)
-        if mm:
-            oh[it] = float(mm.group(1))
-    return oh
-
-
-def _best_a_ckpt(run: Path, log: Path):
-    """A's BEST-lifting saved checkpoint (robust to a late mid-training collapse — the final ckpt
-    may be post-collapse). Returns (ckpt, best_objheight). Falls back to final if no log data."""
-    cks = {int(p.stem.split("_")[1]): p for p in (run / "tensorboard").glob("model_*.pt")}
-    if not cks:
-        return None, None
-    oh = _iter_objheight(log)
-    if not oh:
-        return _final_ckpt(run), None
-    best, best_oh = None, -1.0
-    for n in sorted(cks):
-        v = oh.get(n)
-        if v is None:                       # ckpt iter has no logged oh -> nearest earlier iter
-            earlier = [i for i in oh if i <= n]
-            v = oh[max(earlier)] if earlier else -1.0
-        if v > best_oh:
-            best_oh, best = v, cks[n]
-    return best, round(best_oh, 3)
 
 
 def train_A(cem_dir: Path, mid: str, env, smoke: bool):
@@ -215,23 +166,23 @@ def train_A(cem_dir: Path, mid: str, env, smoke: bool):
         e["TOTAL_TS"] = "30000000"
     subprocess.run(["bash", str(ROOT / "scripts/train_A_on_morph.sh")],
                    check=False, capture_output=True, text=True, env=e, timeout=9000)
-    run = _latest_run(tag)
+    run = latest_run(f"*{tag}")
     aborted = Path(str(log) + ".COLLAPSED").exists() or run is None
     # Checkpoint choice: on CLEAN completion use the FINAL ckpt (fully trained -> best-BALANCED
     # grip; early ckpts lift marginally HIGHER but have an under-refined grip -> idle-finger, which
     # sank valfix2). Only on a watchdog ABORT (mid-training collapse) salvage the best pre-collapse
     # ckpt by object-height. `best_oh` is that ckpt's logged lift, for the a-lift-floor gate.
-    oh_map = _iter_objheight(log) if run else {}
+    oh_map = iter_objheight(log) if run else {}
     if run and aborted:
-        ck, best_oh = _best_a_ckpt(run, log)
+        ck, best_oh = best_a_ckpt(run, log)
     elif run:
-        ck = _final_ckpt(run)
+        ck = final_ckpt(run)
         best_oh = oh_map.get(int(ck.stem.split("_")[1])) if ck and oh_map else None
     else:
         ck, best_oh = None, None
     health = None
     if ck:
-        hj = (_final_ckpt(run) or ck).with_suffix(".health.json")
+        hj = (final_ckpt(run) or ck).with_suffix(".health.json")
         if hj.exists():
             try:
                 health = json.loads(hj.read_text())
@@ -256,15 +207,15 @@ def train_B(cem_rel: str, a_ck: Path, mid: str, env, smoke: bool):
         e["TOTAL_TS"] = "20000000"
     subprocess.run(["bash", str(ROOT / "scripts/train_handoff_liveA_reset.sh")],
                    check=False, capture_output=True, text=True, env=e, timeout=7200)
-    run = _latest_run(tag)
+    run = latest_run(f"*{tag}")
     aborted = Path(str(log) + ".COLLAPSED").exists() or run is None
-    return run, (_final_ckpt(run) if run else None), aborted
+    return run, final_ckpt(run), aborted
 
 
 def eval_handoff(a_ck: Path, b_ck: Path, cem_dir: Path, mid: str, env):
     VID_OUT.mkdir(parents=True, exist_ok=True)
     out = VID_OUT / f"{mid}_handoff.mp4"
-    e = dict(env); e["WARP_CACHE_PATH"] = _tmp()
+    e = runlib.warp_cache_env(env)
     r = subprocess.run([sys.executable, str(ROOT / "scripts/rl_demo_handoff_continuous.py"),
                         "--policy-a", str(a_ck), "--policy-b", str(b_ck),
                         "--morphology-run", str(cem_dir), "--lift-delta", "0.10",
@@ -316,14 +267,11 @@ def main():
     ap.add_argument("--a-lift-floor", type=float, default=0.06,
                     help="A's best-ckpt object_height below this => A never lifted, skip B")
     args = ap.parse_args()
-    env = dict(os.environ); env.setdefault("MUJOCO_GL", "egl")
+    env = runlib.base_env()
 
     tag = args.tag or args.morph_set
-    JSON = ROOT / f"docs/experiments/MORPH_PIPELINE_{tag}.json"
-    TXT = ROOT / f"docs/experiments/MORPH_PIPELINE_{tag}.txt"
-    SENTINEL = ROOT / f"logs/MORPH_PIPELINE_{tag}.DONE"
-    if SENTINEL.exists():
-        SENTINEL.unlink()
+    sentinel = runlib.Sentinel(ROOT / f"logs/MORPH_PIPELINE_{tag}.DONE")
+    sentinel.clear()
 
     center = M05
     if args.center == "best" and (ROOT / "docs/experiments/MORPH_PIPELINE_best_center.json").exists():
@@ -332,17 +280,17 @@ def main():
         center = tuple(float(x) for x in args.center.split(","))
     items = morph_set(args.morph_set, args.n, args.seed, center)
 
-    done = {d["id"]: d for d in json.loads(JSON.read_text())} if JSON.exists() else {}
-    if not TXT.exists():
-        TXT.write_text(
-            f"# full A->B pipeline sweep '{tag}'  {time.strftime('%Y-%m-%d %H:%M')}  "
-            f"{len(items)} designs{'  [SMOKE]' if args.smoke else ''}\n"
-            f"# per design: gen -> IK open_ik -> CEM (grasp gate) -> native A -> live-A reset B "
-            f"-> continuous handoff + trajectory-health scorecard.\n")
-    results = list(done.values())
+    store = runlib.RecordStore(ROOT / f"docs/experiments/MORPH_PIPELINE_{tag}.json", key_field="id")
+    report = runlib.TxtReport(
+        ROOT / f"docs/experiments/MORPH_PIPELINE_{tag}.txt",
+        f"# full A->B pipeline sweep '{tag}'  {time.strftime('%Y-%m-%d %H:%M')}  "
+        f"{len(items)} designs{'  [SMOKE]' if args.smoke else ''}\n"
+        f"# per design: gen -> IK open_ik -> CEM (grasp gate) -> native A -> live-A reset B "
+        f"-> continuous handoff + trajectory-health scorecard.\n")
     cem_iters = 12 if args.smoke else args.cem_iters
     for mid, m in items:
-        if mid in done and "handoff" in done[mid]:
+        prev = store.get(mid)
+        if prev is not None and "handoff" in prev:
             print(f"[skip] {mid} (done)"); continue
         t0 = time.time(); rec = {"id": mid, "morph": list(m),
                                  "delta_m05": [round(a - b, 4) for a, b in zip(m, M05)]}
@@ -400,15 +348,11 @@ def main():
         except Exception as e:
             rec["error"] = f"{type(e).__name__}: {str(e)[:160]}"
         rec["secs"] = round(time.time() - t0)
-        done[mid] = rec
-        results = list(done.values())
-        JSON.write_text(json.dumps(results, indent=1))
-        line = _row(rec) + f"   ({rec['secs']}s)"
-        print(line, flush=True)
-        with TXT.open("a") as f:
-            f.write(line + "\n")
-    SENTINEL.write_text(time.strftime("%Y-%m-%d %H:%M:%S") + f"  {len(results)} designs\n")
-    print(f"[pipeline-sweep] COMPLETE — {len(results)} designs -> {TXT}  (sentinel {SENTINEL.name})")
+        store.put(rec)
+        report.line(_row(rec) + f"   ({rec['secs']}s)")
+    sentinel.write(f"{len(store)} designs")
+    print(f"[pipeline-sweep] COMPLETE — {len(store)} designs -> {report.path}  "
+          f"(sentinel {sentinel.path.name})")
 
 
 if __name__ == "__main__":

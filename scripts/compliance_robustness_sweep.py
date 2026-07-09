@@ -9,43 +9,32 @@ tolerate" measure. Eval-only, deterministic, ~1-2 min per (policy, compliance) p
 Run: MUJOCO_GL=egl uv run --extra rl --extra gpu python scripts/compliance_robustness_sweep.py
 """
 from __future__ import annotations
-import json, os, re, shutil, subprocess, sys, time
-from pathlib import Path
+import re, shutil, subprocess, sys, time
 
-ROOT = Path(__file__).resolve().parents[1]
-RL = ROOT / "results/rl"
+from morphohand.studies import runlib
+from morphohand.studies.runlib import ROOT, RESULTS_RL as RL, final_ckpt, latest_run
+
 SOFT_REF = ROOT / "results/phase1/landscape/m05_ik_cem"     # m05 CEM (best_rollout for the obs ref)
 OUT = ROOT / "results/phase1/sim2real/compliance"
 JSON = ROOT / "docs/experiments/COMPLIANCE_ROBUSTNESS.json"
 TXT = ROOT / "docs/experiments/COMPLIANCE_ROBUSTNESS.txt"
 
 
-def latest(glob):
-    ds = sorted(RL.glob(glob), key=lambda p: p.stat().st_mtime)
-    return ds[-1] if ds else None
-
-
-def final_ckpt(run: Path):
-    cks = sorted((run / "tensorboard").glob("model_*.pt"), key=lambda p: int(p.stem.split("_")[1]))
-    return cks[-1] if cks else None
-
-
 # fixed trained policies to probe (all m05-design). (name, A_ckpt, B_ckpt)
 def policies():
     a10 = RL / "a10_20260702-1256-policyA_m05_ik10/tensorboard/model_609.pt"
     b33 = RL / "b33_20260702-1353-policyB_m05_reorient_ik10/tensorboard/model_270.pt"
-    a_hard = final_ckpt(latest("*policyA_m05_hardcontact"))
-    b_hard = final_ckpt(latest("*policyB_m05_hard_imit_k1"))
-    imitB_run = latest("*vstudy_m05_imit_k0")
-    out = [("soft_b33", a10, b33), ("soft_imitB", a10, final_ckpt(imitB_run) if imitB_run else None)]
+    a_hard = final_ckpt(latest_run("*policyA_m05_hardcontact"))
+    b_hard = final_ckpt(latest_run("*policyB_m05_hard_imit_k1"))
+    out = [("soft_b33", a10, b33), ("soft_imitB", a10, final_ckpt(latest_run("*vstudy_m05_imit_k0")))]
     if a_hard and b_hard:
         out.append(("hard_retrained", a_hard, b_hard))
     # compliance-DR retrains (scripts/compliance_dr_pipeline.py) — the success test is a
     # FLAT high held-cos curve here, vs the fragile single-stiffness policies above.
-    a_cdr = final_ckpt(latest("*policyA_m05_cdr"))
+    a_cdr = final_ckpt(latest_run("*policyA_m05_cdr"))
     if a_cdr:
         for k in (0, 1):
-            b_cdr = final_ckpt(latest(f"*policyB_m05_cdr_imit_k{k}"))
+            b_cdr = final_ckpt(latest_run(f"*policyB_m05_cdr_imit_k{k}"))
             if b_cdr:
                 out.append((f"cdr_imitB_k{k}", a_cdr, b_cdr))
     return [(n, a, b) for n, a, b in out if a and b and a.exists() and b.exists()]
@@ -73,7 +62,7 @@ def make_scene_dir(dmin, dmax, label):
 
 
 def evaluate(name, a_ck, b_ck, scene_dir, env):
-    e = dict(env); e["WARP_CACHE_PATH"] = subprocess.run(["mktemp", "-d"], capture_output=True, text=True).stdout.strip()
+    e = runlib.warp_cache_env(env)
     out_mp4 = OUT / f"{name}_{scene_dir.name}.mp4"
     r = subprocess.run([sys.executable, str(ROOT / "scripts/rl_demo_handoff_continuous.py"),
                         "--policy-a", str(a_ck), "--policy-b", str(b_ck),
@@ -94,20 +83,19 @@ def evaluate(name, a_ck, b_ck, scene_dir, env):
 
 
 def main():
-    env = dict(os.environ); env.setdefault("MUJOCO_GL", "egl")
+    env = runlib.base_env()
     OUT.mkdir(parents=True, exist_ok=True)
-    done = {d["key"]: d for d in json.loads(JSON.read_text())} if JSON.exists() else {}
+    store = runlib.RecordStore(JSON, key_field="key")
     pols = policies()
     print("policies:", [p[0] for p in pols])
-    if not TXT.exists():
-        TXT.write_text(f"# compliance-robustness sweep {time.strftime('%Y-%m-%d %H:%M')}\n"
-                       f"# fixed trained policies x solimp range; eval-only. held-cos / min-z / force.\n")
-    results = list(done.values())
+    report = runlib.TxtReport(
+        TXT, f"# compliance-robustness sweep {time.strftime('%Y-%m-%d %H:%M')}\n"
+             f"# fixed trained policies x solimp range; eval-only. held-cos / min-z / force.\n")
     for dmin, dmax, label in COMPLIANCES:
         scene = make_scene_dir(dmin, dmax, label)
         for name, a_ck, b_ck in pols:
             key = f"{name}@{label}"
-            if key in done:
+            if key in store:
                 print(f"[skip] {key}"); continue
             t0 = time.time()
             try:
@@ -115,14 +103,10 @@ def main():
             except Exception as ex:
                 m = {"error": f"{type(ex).__name__}: {str(ex)[:120]}"}
             rec = {"key": key, "policy": name, "label": label, "dmax": dmax, **m, "secs": round(time.time() - t0)}
-            done[key] = rec; results = list(done.values())
-            JSON.write_text(json.dumps(results, indent=1))
-            line = (f"{key:26} dmax {dmax:<7} cos {str(rec.get('held_cos')):>7} peak {str(rec.get('peak_cos')):>7} "
-                    f"min_z {str(rec.get('min_z')):>7} force {str(rec.get('force')):>6} {rec.get('verdict') or rec.get('error','')}")
-            print(line, flush=True)
-            with TXT.open("a") as f:
-                f.write(line + "\n")
-    (ROOT / "logs/COMPLIANCE_ROBUSTNESS.DONE").write_text(time.strftime("%Y-%m-%d %H:%M:%S") + "\n")
+            store.put(rec)
+            report.line(f"{key:26} dmax {dmax:<7} cos {str(rec.get('held_cos')):>7} peak {str(rec.get('peak_cos')):>7} "
+                        f"min_z {str(rec.get('min_z')):>7} force {str(rec.get('force')):>6} {rec.get('verdict') or rec.get('error','')}")
+    runlib.Sentinel(ROOT / "logs/COMPLIANCE_ROBUSTNESS.DONE").write()
     print(f"[compliance-sweep] COMPLETE -> {TXT}")
 
 

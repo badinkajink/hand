@@ -18,17 +18,18 @@ Resumable (per-run JSON checkpoint), DONE sentinel. ~36 min per B-run.
 Run: MUJOCO_GL=egl uv run --extra rl --extra gpu python scripts/reorient_variance_study.py [--n 3]
 """
 from __future__ import annotations
-import argparse, json, os, subprocess, sys, time, statistics as st
+import argparse, json, subprocess, sys, time, statistics as st
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+from morphohand.studies import runlib
+from morphohand.studies.runlib import ROOT, final_ckpt, latest_run
+
 B33 = ROOT / "results/rl/b33_20260702-1353-policyB_m05_reorient_ik10/tensorboard/model_270.pt"
 # design-NEUTRAL imitation reference: the object-relative fingertip trajectory of the blessed
 # a10->b33 reorient (recorded once), imitated on ANY design -> a fair shared reorient prior.
 IMIT_REF = ROOT / "results/reorient_ref/m05_a10b33_fingertip_obj.npz"
 JSON = ROOT / "docs/experiments/REORIENT_VARIANCE.json"
 TXT = ROOT / "docs/experiments/REORIENT_VARIANCE.txt"
-SENTINEL = ROOT / "logs/REORIENT_VARIANCE.DONE"
 
 # design -> (fixed A ckpt, morphology-run [rel to ROOT])
 DESIGNS = {
@@ -37,10 +38,6 @@ DESIGNS = {
     "L01_13": (ROOT / "results/rl/20260704-1843-policyA_L01_13/tensorboard/model_609.pt",
                "results/phase1/morph_sweep/L01_13_cem"),
 }
-
-
-def _tmp():
-    return subprocess.run(["mktemp", "-d"], capture_output=True, text=True).stdout.strip()
 
 
 def train_B(design, a_ck: Path, cem_rel: str, mode: str, k: int, env):
@@ -59,16 +56,13 @@ def train_B(design, a_ck: Path, cem_rel: str, mode: str, k: int, env):
              TAG=tag, LOG=str(log), NUM_ENVS="3072", TOTAL_TS="20000000")
     subprocess.run(["bash", str(ROOT / "scripts/train_handoff_liveA_reset.sh")],
                    check=False, capture_output=True, text=True, env=e, timeout=7200)
-    runs = sorted((ROOT / "results/rl").glob(f"*{tag}"), key=lambda p: p.stat().st_mtime)
-    if not runs:
-        return None, Path(str(log) + ".COLLAPSED").exists()
-    cks = sorted((runs[-1] / "tensorboard").glob("model_*.pt"), key=lambda p: int(p.stem.split("_")[1]))
-    return (cks[-1] if cks else None), Path(str(log) + ".COLLAPSED").exists()
+    run = latest_run(f"*{tag}")
+    return final_ckpt(run), Path(str(log) + ".COLLAPSED").exists()
 
 
 def eval_handoff(design, a_ck: Path, b_ck: Path, cem_rel: str, tag: str, env):
     out = ROOT / f"docs/rl/videos/reorient/sweep/{tag}.mp4"
-    e = dict(env); e["WARP_CACHE_PATH"] = _tmp()
+    e = runlib.warp_cache_env(env)
     subprocess.run([sys.executable, str(ROOT / "scripts/rl_demo_handoff_continuous.py"),
                     "--policy-a", str(a_ck), "--policy-b", str(b_ck),
                     "--morphology-run", str(ROOT / cem_rel), "--lift-delta", "0.10",
@@ -83,28 +77,29 @@ def main():
     ap.add_argument("--n", type=int, default=3, help="re-runs per (design, mode)")
     ap.add_argument("--modes", default="self,shared")
     args = ap.parse_args()
-    env = dict(os.environ); env.setdefault("MUJOCO_GL", "egl")
-    if SENTINEL.exists():
-        SENTINEL.unlink()
-    done = {d["id"]: d for d in json.loads(JSON.read_text())} if JSON.exists() else {}
-    if not TXT.exists():
-        TXT.write_text(f"# reorient variance study  {time.strftime('%Y-%m-%d %H:%M')}  n={args.n}/cell\n"
-                       f"# fixed A per design; B warm-start: self=own A, shared=b33 (proven reorienter)\n")
+    env = runlib.base_env()
+    sentinel = runlib.Sentinel(ROOT / "logs/REORIENT_VARIANCE.DONE")
+    sentinel.clear()
+    store = runlib.RecordStore(JSON, key_field="id")
+    report = runlib.TxtReport(
+        TXT, f"# reorient variance study  {time.strftime('%Y-%m-%d %H:%M')}  n={args.n}/cell\n"
+             f"# fixed A per design; B warm-start: self=own A, shared=b33 (proven reorienter)\n")
     jobs = [(d, m, k) for d in DESIGNS for m in args.modes.split(",") for k in range(args.n)]
     for design, mode, k in jobs:
         rid = f"{design}_{mode}_k{k}"
-        if rid in done and "cos" in done[rid]:
+        prev = store.get(rid)
+        if prev is not None and "cos" in prev:
             print(f"[skip] {rid}"); continue
         a_ck, cem_rel = DESIGNS[design]
         t0 = time.time(); rec = {"id": rid, "design": design, "mode": mode, "k": k}
         try:
-            print(f"[{time.strftime('%H:%M:%S')}] {rid}: train B ({mode} warmstart) ...", flush=True)
+            runlib.log(f"{rid}: train B ({mode} warmstart) ...")
             b_ck, aborted = train_B(design, a_ck, cem_rel, mode, k, env)
             rec["b_aborted"] = aborted
             if b_ck is None:
                 rec["note"] = "no B checkpoint"
             else:
-                print(f"[{time.strftime('%H:%M:%S')}] {rid}: eval handoff ...", flush=True)
+                runlib.log(f"{rid}: eval handoff ...")
                 h = eval_handoff(design, a_ck, b_ck, cem_rel, f"vstudy_{rid}", env) or {}
                 m = h.get("metrics") or {}
                 rec.update(cos=m.get("held_cos_tail"), peak=m.get("peak_cos"),
@@ -113,27 +108,21 @@ def main():
         except Exception as e:
             rec["error"] = f"{type(e).__name__}: {str(e)[:150]}"
         rec["secs"] = round(time.time() - t0)
-        done[rid] = rec
-        JSON.write_text(json.dumps(list(done.values()), indent=1))
-        line = (f"{rid:22} cos {str(rec.get('cos','—')):>6} peak {str(rec.get('peak','—')):>6} "
-                f"force {str(rec.get('force','—')):>5} jerk {str(rec.get('jerk','—')):>5} "
-                f"{rec.get('verdict', rec.get('note', rec.get('error','')))}  ({rec['secs']}s)")
-        print(line, flush=True)
-        with TXT.open("a") as f:
-            f.write(line + "\n")
+        store.put(rec)
+        report.line(f"{rid:22} cos {str(rec.get('cos','—')):>6} peak {str(rec.get('peak','—')):>6} "
+                    f"force {str(rec.get('force','—')):>5} jerk {str(rec.get('jerk','—')):>5} "
+                    f"{rec.get('verdict', rec.get('note', rec.get('error','')))}  ({rec['secs']}s)")
     # summary: per (design, mode) band
     print("\n=== BANDS (held-cos mean ± sd) ===", flush=True)
-    with TXT.open("a") as f:
-        f.write("\n# --- bands (held-cos mean ± sd, range, n) ---\n")
-        for design in DESIGNS:
-            for mode in args.modes.split(","):
-                xs = [r["cos"] for r in done.values()
-                      if r.get("design") == design and r.get("mode") == mode and r.get("cos") is not None]
-                if xs:
-                    s = (f"{design:8} {mode:7}: cos {st.mean(xs):+.2f} ± "
-                         f"{(st.pstdev(xs) if len(xs)>1 else 0):.2f}  [{min(xs):+.2f},{max(xs):+.2f}]  n={len(xs)}")
-                    print(s, flush=True); f.write(s + "\n")
-    SENTINEL.write_text(time.strftime("%Y-%m-%d %H:%M:%S") + "\n")
+    report.line("\n# --- bands (held-cos mean ± sd, range, n) ---", echo=False)
+    for design in DESIGNS:
+        for mode in args.modes.split(","):
+            xs = [r["cos"] for r in store.values()
+                  if r.get("design") == design and r.get("mode") == mode and r.get("cos") is not None]
+            if xs:
+                report.line(f"{design:8} {mode:7}: cos {st.mean(xs):+.2f} ± "
+                            f"{(st.pstdev(xs) if len(xs)>1 else 0):.2f}  [{min(xs):+.2f},{max(xs):+.2f}]  n={len(xs)}")
+    sentinel.write()
     print(f"[variance-study] COMPLETE -> {TXT}")
 
 
