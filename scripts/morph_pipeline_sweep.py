@@ -34,10 +34,7 @@ import numpy as np
 
 from morphohand.studies import runlib
 from morphohand.studies.runlib import ROOT, best_a_ckpt, final_ckpt, iter_objheight, latest_run
-
-sys.path.insert(0, str(ROOT / "scripts"))
-from retarget_keyframe_ik import tip_targets, ik_finger, _has_joint, _inject_keyframe, FINGERS  # noqa: E402
-import mujoco  # noqa: E402
+from morphohand.tools.keyframe_ik import retarget_scene
 
 BASE_HAND = ROOT / "assets/mjcf/hand.xml"
 BASE_SCENE = ROOT / "assets/mjcf/scene_screwdriver_medium_flat_short_proximal.xml"
@@ -113,31 +110,6 @@ def gen_scene(m, env) -> Path:
                    check=True, capture_output=True, text=True, env=env, timeout=120)
     scenes = sorted(GEN.glob("scene_*.xml"), key=lambda p: p.stat().st_mtime)
     return scenes[-1]
-
-
-def ik_retarget(scene: Path):
-    """Inject an `open_ik` keyframe: fingertip world positions from the baseline keyframe, IK'd
-    onto this morphology's (repositioned/lengthened) fingers. Returns per-finger mm residuals."""
-    tips, palm, obj_qpos = tip_targets(str(BASE_SCENE), "open_short_manual")
-    m = mujoco.MjModel.from_xml_path(str(scene))
-    d = mujoco.MjData(m)
-    try:
-        mujoco.mj_resetDataKeyframe(m, d, m.key("open_short_manual").id)
-    except Exception:
-        pass
-    for j, v in palm.items():
-        if _has_joint(m, j):
-            d.qpos[m.jnt_qposadr[m.joint(j).id]] = v
-    d.qpos[:7] = obj_qpos
-    mujoco.mj_forward(m, d)
-    errs = {f: ik_finger(m, d, f, tips[f]) for f in FINGERS}
-    ctrl = []
-    for a in range(m.nu):
-        jid = m.actuator_trnid[a, 0]
-        ctrl.append(float(d.qpos[m.jnt_qposadr[jid]]) if jid >= 0 else 0.0)
-    _inject_keyframe(scene, "open_ik", " ".join(f"{v:.6g}" for v in d.qpos),
-                     " ".join(f"{v:.6g}" for v in ctrl))
-    return {f: round(errs[f] * 1000, 2) for f in FINGERS}
 
 
 def run_cem(scene: Path, tag: str, env, iters: int) -> dict:
@@ -301,7 +273,7 @@ def main():
         try:
             log("gen scene + IK retarget ...")
             scene = gen_scene(m, env)
-            rec["ik_resid"] = ik_retarget(scene)
+            rec["ik_resid"] = retarget_scene(scene, BASE_SCENE)
             log(f"CEM grasp ({cem_iters} iters) ...")
             g = run_cem(scene, f"{mid}_cem", env, cem_iters)
             log(f"CEM done: lift={g['cube_lift']:.3f} persist "
