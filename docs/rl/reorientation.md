@@ -1783,6 +1783,35 @@ seeds off that A via live-A reset + same DR (imitation = the most stiffness-grac
 `cdr_imitB_k{0,1}`. **Success bar: a FLAT, high held-cos curve across dmax 0.995→0.999** vs the
 fragile single-stiffness curves above.
 
+### RESULT (2026-07-09): hold is now robust; reorient quality is not — two separable failures
+
+Pipeline completed clean (A `20260708-1509-policyA_m05_cdr` obj-height 0.115; both B seeds
+model_270, no watchdog aborts; B's final `target_axis_alignment` 33–40 vs 49 for the known-good
+non-DR imit run — the reorient signal is genuinely depressed under DR). Sweep rows
+`cdr_imitB_k*` in `docs/experiments/COMPLIANCE_ROBUSTNESS.txt`:
+
+- **WIN — the DR grasp/hold is stiffness-robust.** Wherever the grip lands, post-handoff min-z is
+  0.12–0.137 across c997→c9995 — including **dmax 0.9995, where every single-stiffness policy
+  drops**. Forces are low (0.1–1 N), de-centering ~1–2 cm.
+- **FAIL 1 — DR-A whiffs the grasp at the SOFT EDGE (dmax 0.995) of its own training band:** zero
+  fingertip contact ever, object slides 32.6 cm away (both seeds identically; it's the shared A).
+  Cross-pairing confirms: **DR-A + b33 @ soft still drops** (min-z 0.0065), so A owns it. Reading:
+  the per-env-average PPO objective sacrificed the band edge; eval-soft must be *interior* to the
+  training band (classic DR practice), or the A gate needs a per-stiffness eval.
+- **FAIL 2 — DR-B holds but cannot STABILIZE at vertical:** from a good delivery
+  (**a10 + DR-B @ soft: held 0.127, peak cos 0.759 → settles −0.582**) it swings through/near
+  vertical and falls past it; across the band held-cos ends ~0 to −0.7 with idle-finger verdicts
+  (contact_count ~0.4 — a gingerly, minimal-contact hold). Reading: full-band DR from iter 0
+  degrades the hard-exploration rolling gait into "hold gingerly, don't commit"; the annealed-to-0
+  imitation prior wasn't enough to preserve the *stabilize-at-vertical* endgame.
+
+**Next levers (in order):** (1) retrain A with the DR band widened so 0.995 is interior
+(dmax ∈ [0.993, 0.999], dmin ∈ [0.965, 0.985]) — pure CLI change, launched as `policyA_m05_cdr2`;
+(2) for B, keep a nonzero imitation floor (`--imitation-weight-final 12` ≈ 20%) instead of
+annealing to 0, and/or (3) a stiffness *curriculum* (narrow-at-soft → widen to full band over
+training) so the reorient skill is learned before it is robustified. Caveat as before: one
+deterministic rollout per point.
+
 ---
 
 ## Results
