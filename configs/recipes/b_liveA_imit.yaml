@@ -1,0 +1,31 @@
+# b_liveA_imit — b_liveA + the design-neutral IMITATION prior (variance-study `imit`
+# mode; the compliance-DR pipeline's B recipe). Adds the object-relative fingertip
+# imitation of the blessed a10->b33 reorient, annealed out over 150 iters so the
+# task reward takes over. See src/morphohand/rl/imitation.py.
+# Same run-specific knobs as b_liveA.
+object_body_name: screwdriver_medium
+warmstart_critic: true
+episode_length_s: 5.0
+finger_residual_scale: 0.5
+finger_close_easing: ease_out_quad
+contact_gate_stability_rewards: true
+enable_lift_terminations: true
+term_object_drop: 0.02
+term_object_slip_xy: 0.5
+term_object_slip_yaw: 10.0
+term_finger_slip: 100.0
+term_tip_lost_steps: 3
+enable_target_axis_reward: true
+target_axis_weight: 100.0
+target_axis_alpha: 4.0
+target_axis_progress_weight: 300.0
+contact_min_weight: 15.0
+lateral_drift_weight: -8.0
+lateral_drift_deadband: 0.01
+lateral_drift_power: 2.0
+imitation_ref_npz: results/reorient_ref/m05_a10b33_fingertip_obj.npz
+imitation_weight: 60.0
+imitation_alpha: 300.0
+imitation_curriculum_iters: 150
+imitation_weight_final: 0.0
+wandb: false
