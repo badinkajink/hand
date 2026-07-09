@@ -21,15 +21,9 @@ from pathlib import Path
 import numpy as np
 import torch
 
+from morphohand.rl.math import quat_rotate_inv as _quat_rotate_inv
+
 TIP_BODIES = ("thumb_tip", "index_tip", "middle_tip")
-
-
-def _quat_rotate_inv(q: torch.Tensor, v: torch.Tensor) -> torch.Tensor:
-    """Rotate vectors v (..,3) by the INVERSE of wxyz quats q (..,4) -> world->body frame."""
-    qw, qx, qy, qz = q.unbind(-1)
-    qvec = torch.stack([-qx, -qy, -qz], dim=-1)          # conjugate = inverse (unit quat)
-    t = 2.0 * torch.linalg.cross(qvec, v, dim=-1)
-    return v + qw.unsqueeze(-1) * t + torch.linalg.cross(qvec, t, dim=-1)
 
 
 def fingertips_in_object_frame(env, object_name: str = "cube",
