@@ -16,16 +16,15 @@ Run:
     --open-finger-from-keyframe --lift-delta 0.05 [--grasp-end 48 --hold-start 63]
 """
 from __future__ import annotations
-import argparse, json, sys
+import argparse, json
 from pathlib import Path
 import numpy as np
 import torch
 
+from morphohand.rl.deploy import act, act_b, build_actor, ckpt_obs_dim, make_env_cfg, read_per_finger
+from morphohand.rl.trajectory_health import characterize_trajectory, format_scorecard
+
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
-sys.path.insert(0, str(ROOT / "scripts"))
-from rl_demo_handoff_continuous import make_env_cfg, build_actor, act, act_b, read_per_finger  # noqa: E402
-from morphohand.rl.trajectory_health import characterize_trajectory, format_scorecard  # noqa: E402
 
 
 def main():
@@ -51,8 +50,7 @@ def main():
     bfc = tuple(float(v) for v in np.load(run / "best_rollout.npz")["best_finger_ctrl"].reshape(-1))
 
     # detect obs dim: 65 = Policy A (lift), 66 = a reorienter (target_axis obs)
-    sd = torch.load(str(args.policy), map_location="cpu", weights_only=False)["actor_state_dict"]
-    obs_dim = int(next(sd[k] for k in sd if k.endswith("weight")).shape[1])
+    obs_dim = ckpt_obs_dim(args.policy)
     is_b = obs_dim == 66
     work = ROOT / "docs/rl/videos/reorient/_hc_tmp"; work.mkdir(parents=True, exist_ok=True)
 
@@ -60,13 +58,7 @@ def main():
                        num_steps=args.total_steps, finger_residual_scale=args.finger_residual_scale,
                        lift_delta=args.lift_delta,
                        open_finger_from_keyframe=args.open_finger_from_keyframe)
-    from mjlab.envs import ManagerBasedRlEnv
-    from mjlab.rl import RslRlVecEnvWrapper
-    from morphohand.rl.env_cfg import to_mjlab_cfg
-    env = ManagerBasedRlEnv(cfg=to_mjlab_cfg(cfg), device="cuda:0", render_mode=None)
-    _, _, actor = build_actor(cfg, args.policy, work)
-
-    wrapped = RslRlVecEnvWrapper(env)
+    env, wrapped, actor = build_actor(cfg, args.policy, work)
     obs_td, _ = wrapped.reset()
     obs = obs_td["actor"]
     full = {"found": [], "force": [], "z": [], "cos": [], "x": [], "y": [], "axis": []}
