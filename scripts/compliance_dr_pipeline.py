@@ -20,31 +20,15 @@ Run (detached):
       > logs/compliance_dr/pipeline.run.log 2>&1 </dev/null & disown
 """
 from __future__ import annotations
-import argparse, json, os, subprocess, sys, time
+import argparse, subprocess, sys, time
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-RL = ROOT / "results/rl"
+from morphohand.studies import runlib
+from morphohand.studies.runlib import ROOT, final_ckpt, latest_run, log
+
 M05 = ROOT / "results/phase1/landscape/m05_ik_cem"
 IMIT_REF = ROOT / "results/reorient_ref/m05_a10b33_fingertip_obj.npz"
 LOGDIR = ROOT / "logs/compliance_dr"
-STATE = LOGDIR / "COMPLIANCE_DR_PIPELINE.json"
-SENTINEL = LOGDIR / "COMPLIANCE_DR_PIPELINE.DONE"
-
-
-def log(msg):
-    print(f"[{time.strftime('%H:%M:%S')}] {msg}", flush=True)
-
-
-def _latest(glob):
-    ds = sorted(RL.glob(glob), key=lambda p: p.stat().st_mtime)
-    return ds[-1] if ds else None
-
-
-def _final_ckpt(run: Path):
-    cks = sorted((run / "tensorboard").glob("model_*.pt"),
-                 key=lambda p: int(p.stem.split("_")[1]))
-    return cks[-1] if cks else None
 
 
 def train_A_cdr(env) -> tuple[Path | None, bool]:
@@ -57,9 +41,9 @@ def train_A_cdr(env) -> tuple[Path | None, bool]:
              TAG=tag, LOG=str(logf), NUM_ENVS="2048", TOTAL_TS="30000000")
     subprocess.run(["bash", str(ROOT / "scripts/train_A_on_morph.sh")],
                    check=False, capture_output=True, text=True, env=e, timeout=12000)
-    run = _latest(f"*{tag}")
+    run = latest_run(f"*{tag}")
     aborted = Path(str(logf) + ".COLLAPSED").exists()
-    return (_final_ckpt(run) if run else None), aborted
+    return final_ckpt(run), aborted
 
 
 def train_B_cdr(a_ck: Path, k: int, env) -> tuple[Path | None, bool]:
@@ -78,9 +62,9 @@ def train_B_cdr(a_ck: Path, k: int, env) -> tuple[Path | None, bool]:
              TAG=tag, LOG=str(logf), NUM_ENVS="3072", TOTAL_TS="20000000")
     subprocess.run(["bash", str(ROOT / "scripts/train_handoff_liveA_reset.sh")],
                    check=False, capture_output=True, text=True, env=e, timeout=10000)
-    run = _latest(f"*{tag}")
+    run = latest_run(f"*{tag}")
     aborted = Path(str(logf) + ".COLLAPSED").exists()
-    return (_final_ckpt(run) if run else None), aborted
+    return final_ckpt(run), aborted
 
 
 def main():
@@ -88,14 +72,10 @@ def main():
     ap.add_argument("--n-b-seeds", type=int, default=2)
     args = ap.parse_args()
     LOGDIR.mkdir(parents=True, exist_ok=True)
-    env = dict(os.environ)
-    env.setdefault("MUJOCO_GL", "egl")
-    if SENTINEL.exists():
-        SENTINEL.unlink()
-    state = json.loads(STATE.read_text()) if STATE.exists() else {}
-
-    def save():
-        STATE.write_text(json.dumps(state, indent=1))
+    env = runlib.base_env()
+    sentinel = runlib.Sentinel(LOGDIR / "COMPLIANCE_DR_PIPELINE.DONE")
+    sentinel.clear()
+    state = runlib.JsonState(LOGDIR / "COMPLIANCE_DR_PIPELINE.json")
 
     # ---- stage 1: DR-trained A -----------------------------------------
     if not state.get("a_ckpt"):
@@ -105,9 +85,9 @@ def main():
             log("FATAL: no A checkpoint produced; see logs/compliance_dr/A_m05_cdr.trainer.log")
             sys.exit(1)
         state.update(a_ckpt=str(a_ck), a_aborted=aborted)
-        save()
+        state.save()
         log(f"stage 1 done: {a_ck} (watchdog-aborted={aborted})")
-    a_ck = Path(state["a_ckpt"])
+    a_ck = Path(state.get("a_ckpt"))
 
     # ---- stage 2: n imitation-B seeds, same DR --------------------------
     for k in range(args.n_b_seeds):
@@ -116,20 +96,19 @@ def main():
             continue
         log(f"stage 2: train imitation-B seed k{k} off DR-A (~40min) ...")
         b_ck, aborted = train_B_cdr(a_ck, k, env)
-        state[key] = str(b_ck) if b_ck else None
-        state[f"b_aborted_k{k}"] = aborted
-        save()
+        state.update(**{key: str(b_ck) if b_ck else None, f"b_aborted_k{k}": aborted})
+        state.save()
         log(f"stage 2 k{k} done: {b_ck} (watchdog-aborted={aborted})")
 
     # ---- stage 3: compliance-robustness sweep (the success test) --------
     log("stage 3: compliance-robustness sweep over the DR policies ...")
     r = subprocess.run([sys.executable, str(ROOT / "scripts/compliance_robustness_sweep.py")],
                        check=False, capture_output=True, text=True, env=env, timeout=14400)
-    state["sweep_rc"] = r.returncode
-    save()
+    state.update(sweep_rc=r.returncode)
+    state.save()
     log(f"stage 3 done (rc={r.returncode}); curves in docs/experiments/COMPLIANCE_ROBUSTNESS.txt")
 
-    SENTINEL.write_text(time.strftime("%Y-%m-%d %H:%M\n"))
+    sentinel.write()
     log("PIPELINE COMPLETE")
 
 
