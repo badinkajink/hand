@@ -1,0 +1,23 @@
+# a_lift — the blessed Policy-A lift/deliver recipe (a01 lineage; a10 = this on m05).
+# The pinned block from scripts/train_A_on_morph.sh. Run-specific knobs stay on the
+# CLI / launcher env vars: --morphology-run, --tag, --num-envs, --total-timesteps,
+# --init-noise-std, warmstart (--init-actor-checkpoint), lift height
+# (--lift-target-z-above-init / --lift-delta-z), --open-finger-from-keyframe (IK
+# morphologies), --lift-phase-start-step overrides, --compliance-dr.
+#
+# PARITY (gotcha #13): finger_residual_scale / finger_close_easing / contact gate
+# here MUST match the deploy env (morphohand.rl.deploy.make_env_cfg defaults).
+object_body_name: screwdriver_medium
+episode_length_s: 1.4
+finger_residual_scale: 0.5
+finger_close_easing: ease_out_quad
+contact_gate_stability_rewards: true
+contact_min_weight: 15.0
+enable_lift_terminations: true
+lift_phase_start_step: 40
+term_object_drop: 0.02
+term_tip_lost_steps: 3
+term_finger_slip: 0.3
+term_object_slip_xy: 0.015
+term_object_slip_yaw: 0.5
+wandb: false

@@ -59,29 +59,30 @@ for f in "$A_CKPT" "$B_CKPT" "$ROOT/$MORPH/best_rollout.npz"; do
 # matching the continuous-handoff deploy), B10's relaxed slip guards, warmstart
 # B10 actor+critic, + LIVE Policy A driving steps 0..ONSET (residual active from 0
 # so A's action lifts; reorient reward gated to REORIENT_START as a catch grace).
+# The pinned block lives in configs/recipes/b_liveA.yaml (--recipe; RECIPE=b_liveA_imit
+# adds the design-neutral imitation prior). Explicit flags override recipe values,
+# so the env-var knobs behave as before.
 ARGS=(
-  --morphology-run "$MORPH" --object-body-name screwdriver_medium
+  --recipe "${RECIPE:-b_liveA}"
+  --morphology-run "$MORPH"
   --num-envs "${NUM_ENVS:-3072}" --total-timesteps "$TOTAL_TS"
-  --init-actor-checkpoint "$B_CKPT" --warmstart-critic
+  --init-actor-checkpoint "$B_CKPT"
   --live-a-checkpoint "$A_CKPT" --live-a-onset "$ONSET_STEP" --live-a-blend-steps "$BLEND"
-  --episode-length-s 5.0 --lift-target-z-above-init "${LIFT_DELTA:-0.1}" --lift-delta-z "${LIFT_DELTA:-0.1}"
+  --lift-target-z-above-init "${LIFT_DELTA:-0.1}" --lift-delta-z "${LIFT_DELTA:-0.1}"
   --finger-residual-scale "${RESID_SCALE:-0.5}" --finger-close-easing "${EASING:-ease_out_quad}"
   --lift-phase-start-step "$LIFT_TERM_START"
   --reorient-start-step "$REORIENT_START"
-  --enable-lift-terminations
-  --term-object-drop 0.02 --term-object-slip-xy 0.5 --term-object-slip-yaw 10.0
-  --term-finger-slip 100.0 --term-tip-lost-steps "${TIP_LOST_STEPS:-3}"
-  --enable-target-axis-reward --target-axis-weight "${TAXIS_W:-100.0}" --target-axis-alpha 4.0
-  --target-axis-progress-weight "${TPROG_W:-300.0}" --contact-min-weight 15.0
-  --lateral-drift-weight=-8.0 --lateral-drift-deadband 0.01 --lateral-drift-power 2.0
-  --tag "$TAG" --no-wandb
+  --term-tip-lost-steps "${TIP_LOST_STEPS:-3}"
+  --target-axis-weight "${TAXIS_W:-100.0}"
+  --target-axis-progress-weight "${TPROG_W:-300.0}"
+  --tag "$TAG"
 )
 # EXTRA_ARGS: space-separated trainer flags appended verbatim (e.g. a commit bonus
 # --success-bonus-weight / --speed-bonus-weight, or --target-axis-alpha-curriculum-iters).
 [ -n "${EXTRA_ARGS:-}" ] && ARGS+=( $EXTRA_ARGS )
-# Contact-gate stability rewards: ON by default (deploy/B10 parity). Set CONTACT_GATE=0
+# Contact-gate stability rewards: ON via the recipe (deploy/B10 parity). Set CONTACT_GATE=0
 # to match a policy trained without it (the scale-0.2 live-A lineage from model_270).
-[ "${CONTACT_GATE:-1}" = "1" ] && ARGS+=( --contact-gate-stability-rewards )
+[ "${CONTACT_GATE:-1}" = "1" ] || ARGS+=( --no-contact-gate-stability-rewards )
 c=$(mktemp -d)
 LOG="${LOG:-$ROOT/logs/liveA_${TAG}.trainer.log}"
 echo "[liveA] TAG=$TAG ts=$TOTAL_TS onset=$ONSET_STEP blend=$BLEND lift_term_start=$LIFT_TERM_START reorient_start=$REORIENT_START"

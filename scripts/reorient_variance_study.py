@@ -25,9 +25,6 @@ from morphohand.studies import runlib
 from morphohand.studies.runlib import ROOT, final_ckpt, latest_run
 
 B33 = ROOT / "results/rl/b33_20260702-1353-policyB_m05_reorient_ik10/tensorboard/model_270.pt"
-# design-NEUTRAL imitation reference: the object-relative fingertip trajectory of the blessed
-# a10->b33 reorient (recorded once), imitated on ANY design -> a fair shared reorient prior.
-IMIT_REF = ROOT / "results/reorient_ref/m05_a10b33_fingertip_obj.npz"
 JSON = ROOT / "docs/experiments/REORIENT_VARIANCE.json"
 TXT = ROOT / "docs/experiments/REORIENT_VARIANCE.txt"
 
@@ -45,13 +42,12 @@ def train_B(design, a_ck: Path, cem_rel: str, mode: str, k: int, env):
     log = ROOT / f"logs/vstudy_{design}_{mode}_k{k}.trainer.log"
     # shared = warmstart b33; self/imit = warmstart the design's own (holder) A.
     b_ck = str(B33 if mode == "shared" else a_ck)
-    extra = "--open-finger-from-keyframe"
-    if mode == "imit":   # design-neutral reorient prior via object-relative fingertip imitation
-        extra += (f" --imitation-ref-npz {IMIT_REF} --imitation-weight 60 --imitation-alpha 300"
-                  f" --imitation-curriculum-iters 150 --imitation-weight-final 0")
     e = dict(env)
+    # imit = design-neutral reorient prior via object-relative fingertip imitation
+    # (recipe b_liveA_imit pins the imitation block; b_liveA is the plain recipe).
     e.update(MORPH=cem_rel, A_CKPT=str(a_ck), B_CKPT=b_ck, LIFT_DELTA="0.10",
-             EXTRA_ARGS=extra,
+             RECIPE="b_liveA_imit" if mode == "imit" else "b_liveA",
+             EXTRA_ARGS="--open-finger-from-keyframe",
              ONSET_STEP="40", BLEND="8", LIFT_TERM_START="58", REORIENT_START="58",
              TAG=tag, LOG=str(log), NUM_ENVS="3072", TOTAL_TS="20000000")
     subprocess.run(["bash", str(ROOT / "scripts/train_handoff_liveA_reset.sh")],

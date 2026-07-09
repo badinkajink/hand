@@ -1,0 +1,35 @@
+# b_liveA — the blessed Policy-B reorient recipe via the LIVE-A RESET (b33 lineage).
+# The pinned block from scripts/train_handoff_liveA_reset.sh: B10's reorient shaping
+# (target-axis 100 / progress 300, lateral -8, contact-min 15), NORMAL-lift env,
+# relaxed slip guards (only drop/tip-lost bite), deploy-parity residual scale 0.5 +
+# ease_out_quad + contact gate ON.
+# Run-specific knobs stay on the CLI / launcher env vars: --morphology-run, --tag,
+# --num-envs, --total-timesteps, --init-actor-checkpoint (B warmstart),
+# --live-a-checkpoint / --live-a-onset / --live-a-blend-steps,
+# --lift-phase-start-step / --reorient-start-step (onset-derived),
+# --lift-target-z-above-init / --lift-delta-z, --open-finger-from-keyframe.
+#
+# PARITY (gotcha #13): finger_residual_scale / easing / contact gate here MUST match
+# the continuous-handoff deploy env (rl_demo_handoff_continuous.py) or B is OOD at
+# eval — a B trained at 0.2 and deployed at 0.5 emits 2.5x residuals and drops.
+object_body_name: screwdriver_medium
+warmstart_critic: true
+episode_length_s: 5.0
+finger_residual_scale: 0.5
+finger_close_easing: ease_out_quad
+contact_gate_stability_rewards: true
+enable_lift_terminations: true
+term_object_drop: 0.02
+term_object_slip_xy: 0.5
+term_object_slip_yaw: 10.0
+term_finger_slip: 100.0
+term_tip_lost_steps: 3
+enable_target_axis_reward: true
+target_axis_weight: 100.0
+target_axis_alpha: 4.0
+target_axis_progress_weight: 300.0
+contact_min_weight: 15.0
+lateral_drift_weight: -8.0
+lateral_drift_deadband: 0.01
+lateral_drift_power: 2.0
+wandb: false

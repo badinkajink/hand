@@ -21,20 +21,18 @@ CHECK=("$MORPH_RUN/best_rollout.npz" "$MORPH_RUN/frozen_scene.xml")
 [ "$FROM_SCRATCH" = "0" ] && CHECK+=("$WARMSTART")
 for f in "${CHECK[@]}"; do [ -e "$f" ] || { echo "FATAL missing $f"; exit 1; }; done
 
-# a01's lift recipe (normal lift, no reorient), on the new morphology.
+# a01's lift recipe (normal lift, no reorient), on the new morphology. The pinned
+# block lives in configs/recipes/a_lift.yaml (--recipe); only run-specific knobs here.
+# Explicit flags override recipe values, so the env-var knobs behave as before.
 ARGS=(
-  --morphology-run "$MORPH_RUN" --object-body-name screwdriver_medium
+  --recipe "${RECIPE:-a_lift}"
+  --morphology-run "$MORPH_RUN"
   --num-envs "${NUM_ENVS:-2048}" --total-timesteps "$TOTAL_TS"
   --init-noise-std "${INIT_NOISE_STD:-0.05}")
 [ "$FROM_SCRATCH" = "0" ] && ARGS+=(--init-actor-checkpoint "$WARMSTART" --warmstart-critic)
 ARGS+=(
-  --episode-length-s 1.4 --lift-target-z-above-init "${LIFT_DELTA_A:-0.05}" --lift-delta-z "${LIFT_DELTA_A:-0.05}"
-  --finger-residual-scale 0.5 --finger-close-easing ease_out_quad
-  --contact-gate-stability-rewards --contact-min-weight 15.0
-  --enable-lift-terminations --lift-phase-start-step 40
-  --term-object-drop 0.02 --term-tip-lost-steps 3 --term-finger-slip 0.3
-  --term-object-slip-xy 0.015 --term-object-slip-yaw 0.5
-  --tag "$TAG" --no-wandb
+  --lift-target-z-above-init "${LIFT_DELTA_A:-0.05}" --lift-delta-z "${LIFT_DELTA_A:-0.05}"
+  --tag "$TAG"
 )
 read -r -a _extra <<< "${EXTRA_ARGS:-}"; ARGS+=("${_extra[@]}")
 c=$(mktemp -d)

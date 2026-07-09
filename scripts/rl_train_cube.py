@@ -17,11 +17,8 @@ from __future__ import annotations
 
 import dataclasses
 import json
-import os
 import sys
 from pathlib import Path
-
-import tyro
 
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src"
@@ -33,6 +30,7 @@ from morphohand.rl.ppo_config import PPOConfig  # noqa: E402
 from morphohand.rl.ppo_runner import (  # noqa: E402
     build_env_cfg_and_dump, build_runner_cfg, dump_runner_cfg,
 )
+from morphohand.rl.recipes import cli_with_recipe  # noqa: E402
 from morphohand.rl.scene_loader import prepare_scene  # noqa: E402
 
 
@@ -40,6 +38,11 @@ from morphohand.rl.scene_loader import prepare_scene  # noqa: E402
 class Args:
     morphology_run: Path
     """Directory containing best_rollout.npz + summary.json + frozen_scene.xml."""
+    recipe: str | None = None
+    """Named recipe (configs/recipes/<name>.yaml) or a YAML path pinning a block of
+    these args as DEFAULTS (explicit CLI flags still win). The single place train/
+    deploy parity knobs live — see morphohand.rl.recipes. Blessed: a_lift, b_liveA,
+    b_liveA_imit."""
     tag: str = "cube_mvp_v1"
     """Output subdir under results/rl/."""
     output_root: Path = ROOT / "results" / "rl"
@@ -386,7 +389,7 @@ class Args:
 
 
 def main() -> None:
-    args = tyro.cli(Args)
+    args = cli_with_recipe(Args)
 
     run = Path(args.morphology_run).resolve()
     if not (run / "best_rollout.npz").exists():

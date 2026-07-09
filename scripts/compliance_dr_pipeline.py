@@ -27,7 +27,6 @@ from morphohand.studies import runlib
 from morphohand.studies.runlib import ROOT, final_ckpt, latest_run, log
 
 M05 = ROOT / "results/phase1/landscape/m05_ik_cem"
-IMIT_REF = ROOT / "results/reorient_ref/m05_a10b33_fingertip_obj.npz"
 LOGDIR = ROOT / "logs/compliance_dr"
 
 
@@ -47,17 +46,14 @@ def train_A_cdr(env) -> tuple[Path | None, bool]:
 
 
 def train_B_cdr(a_ck: Path, k: int, env) -> tuple[Path | None, bool]:
-    """Imitation-B off the DR-trained A, live-A reset, same DR (variance-study imit recipe)."""
+    """Imitation-B off the DR-trained A, live-A reset, same DR (recipe b_liveA_imit)."""
     tag = f"policyB_m05_cdr_imit_k{k}"
     logf = LOGDIR / f"B_m05_cdr_imit_k{k}.trainer.log"
-    extra = ("--open-finger-from-keyframe"
-             f" --imitation-ref-npz {IMIT_REF} --imitation-weight 60 --imitation-alpha 300"
-             " --imitation-curriculum-iters 150 --imitation-weight-final 0"
-             " --compliance-dr")
     e = dict(env)
     e.update(MORPH="results/phase1/landscape/m05_ik_cem",
              A_CKPT=str(a_ck), B_CKPT=str(a_ck), LIFT_DELTA="0.10",
-             EXTRA_ARGS=extra,
+             RECIPE="b_liveA_imit",
+             EXTRA_ARGS="--open-finger-from-keyframe --compliance-dr",
              ONSET_STEP="40", BLEND="8", LIFT_TERM_START="58", REORIENT_START="58",
              TAG=tag, LOG=str(logf), NUM_ENVS="3072", TOTAL_TS="20000000")
     subprocess.run(["bash", str(ROOT / "scripts/train_handoff_liveA_reset.sh")],
