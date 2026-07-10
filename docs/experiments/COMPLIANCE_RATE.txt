@@ -1,0 +1,22 @@
+# compliance RATE sweep 2026-07-10 12:07  n=32/point, deterministic actions, solver-noise spread
+# hold-rate / reorient-rate(cos>0.7) / median held cos
+soft_b33@soft                dmax 0.995   hold  0.969 reorient  0.938 cos|held   0.905 
+cdr1_imitB@soft              dmax 0.995   hold   0.25 reorient    0.0 cos|held  -0.316 
+cdr2_imitfloor@soft          dmax 0.995   hold   0.25 reorient    0.0 cos|held  -0.276 
+cdr2A_b33@soft               dmax 0.995   hold  0.219 reorient    0.0 cos|held  -0.103 
+soft_b33@c997                dmax 0.997   hold  0.531 reorient  0.062 cos|held   0.099 
+cdr1_imitB@c997              dmax 0.997   hold  0.188 reorient    0.0 cos|held  -0.626 
+cdr2_imitfloor@c997          dmax 0.997   hold    0.5 reorient    0.0 cos|held   -0.15 
+cdr2A_b33@c997               dmax 0.997   hold  0.469 reorient    0.0 cos|held  -0.091 
+soft_b33@c998                dmax 0.998   hold  0.625 reorient   0.25 cos|held   0.637 
+cdr1_imitB@c998              dmax 0.998   hold    0.5 reorient    0.0 cos|held  -0.602 
+cdr2_imitfloor@c998          dmax 0.998   hold  0.812 reorient    0.0 cos|held  -0.016 
+cdr2A_b33@c998               dmax 0.998   hold  0.812 reorient  0.031 cos|held   0.153 
+soft_b33@c999                dmax 0.999   hold   0.25 reorient    0.0 cos|held  -0.371 
+cdr1_imitB@c999              dmax 0.999   hold    1.0 reorient  0.094 cos|held   0.244 
+cdr2_imitfloor@c999          dmax 0.999   hold    1.0 reorient    0.0 cos|held   0.179 
+cdr2A_b33@c999               dmax 0.999   hold  0.938 reorient  0.031 cos|held   0.178 
+soft_b33@c9995               dmax 0.9995  hold    0.0 reorient    0.0 cos|held    None 
+cdr1_imitB@c9995             dmax 0.9995  hold  0.938 reorient    0.0 cos|held   0.141 
+cdr2_imitfloor@c9995         dmax 0.9995  hold  0.812 reorient    0.0 cos|held   0.134 
+cdr2A_b33@c9995              dmax 0.9995  hold   0.75 reorient    0.0 cos|held   0.143 
