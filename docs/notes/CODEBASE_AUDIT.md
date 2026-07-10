@@ -13,6 +13,30 @@ prioritized plan for the rest.
   `scripts/archive/` (see its README for the era map). Verified nothing active imports them.
   Active map: `scripts/README.md`.
 
+## Done 2026-07-09 — all 5 prioritized steps executed
+
+1. **`morphohand/studies/runlib.py`**: latest-run/final-ckpt lookup, trainer-log object-height
+   parsing + best-pre-collapse-ckpt salvage, RecordStore/JsonState resumable state, TxtReport,
+   Sentinel, warp-cache envs. The 4 study scripts rewired (behavior-preserving).
+2. **`morphohand/rl/deploy.py`** (make_env_cfg / build_actor / ckpt_obs_dim / contact readers /
+   act / act_b) + **`morphohand/tools/keyframe_ik.py`** (tip_targets / ik_finger / inject_keyframe
+   / retarget_scene). rl_demo_handoff_continuous, policy_healthcheck, retarget_keyframe_ik are
+   thin CLIs; morph_pipeline_sweep + ik_recem_landscape import the package, not scripts.
+3. **Splits**: `env_cfg.py` (495, dataclass only; PEP 562 forwarder keeps old imports working) +
+   `env_build.py` (spec factories + per-manager `_build_*` builders). `mjlab_terms.py` = facade
+   over `terms_obs/terms_reward/terms_event/terms_common` + `math.py` (quat ops, also dedups
+   imitation.py). Verified byte-identical to_mjlab_cfg output on 4 representative configs.
+4. **Recipe YAML layer**: `--recipe <name>` on the trainer loads `configs/recipes/<name>.yaml`
+   as tyro DEFAULTS (CLI wins; unknown keys fatal). Blessed recipes: `a_lift`, `b_liveA`,
+   `b_liveA_imit`. Launchers + studies pass `--recipe` + run knobs; verified byte-identical
+   dry-run config dumps vs the old flag soup. Parity knobs (gotcha #13) live in ONE place now.
+5. **Trainer-side collapse watchdog** (`morphohand/rl/watchdog.py`, `--watchdog-collapse-z`):
+   wraps rsl_rl Logger.log; bash grep-loops retired from both launchers; same
+   `<log>.COLLAPSED` sentinel contract.
+
+Tests 63 → 90 (runlib / keyframe_ik / recipes / watchdog). Gate: pytest + smoke A-train +
+policy_healthcheck on a10/b33.
+
 ## src/ assessment (8.7k lines, mostly sound modularity)
 
 Layout: `morphohand/{rl, optimization, sampling, tools, backends, driver, config}`. Tests: 9 files,
