@@ -89,6 +89,13 @@ and **RL manipulation** (lift → in-hand reorient of a flat screwdriver to vert
   everywhere, never the old P1/P2/v2 schemes.
 - Morphology co-design pipeline: `scripts/morph_pipeline_sweep.py` (health-gated per-design A→B,
   resumable) + `scripts/morph_pipeline_plots.py`.
+- **Trainer recipes (2026-07-09):** `rl_train_cube.py --recipe <name>` loads
+  `configs/recipes/<name>.yaml` (blessed: `a_lift`, `b_liveA`, `b_liveA_imit`) as defaults — CLI
+  flags still win, unknown keys are fatal. The train/deploy parity knobs (gotcha #13:
+  `finger_residual_scale`, easing, contact gate) live THERE; never re-type them as flag soup.
+  The object-height collapse watchdog is trainer-side (`--watchdog-collapse-z`, writes
+  `<log>.COLLAPSED`); shared study plumbing = `morphohand.studies.runlib`; deploy-time env/actor
+  builders = `morphohand.rl.deploy`.
 - **Workspace layout (2026-07-08):** run logs / sentinels / pids → `logs/` (gitignored; never the
   repo root), experiment summaries (.txt/.json/tables) → `docs/experiments/` (tracked), free-form
   notes → `docs/notes/`. `scripts/` holds only the ~36 active scripts (map: `scripts/README.md`);

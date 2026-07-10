@@ -18,9 +18,9 @@ the `.sh` launchers handle both).
 
 | script | role |
 |---|---|
-| `rl_train_cube.py` | THE trainer (PPO via mjlab/rsl_rl). All env knobs = CLI flags (`--compliance-dr`, `--imitation-ref-npz`, `--live-a-checkpoint`, …) |
-| `train_A_on_morph.sh` | launcher: Policy A on a morphology run dir (from scratch per design — never warmstart A), baked-in collapse watchdog |
-| `train_handoff_liveA_reset.sh` | launcher: Policy B via the LIVE-A reset (frozen A drives 0..onset organically; pre-onset PPO-masked). The validated B recipe |
+| `rl_train_cube.py` | THE trainer (PPO via mjlab/rsl_rl). All env knobs = CLI flags; `--recipe <name>` loads a pinned block from `configs/recipes/*.yaml` (a_lift, b_liveA, b_liveA_imit — the parity knobs live there); trainer-side collapse watchdog via `--watchdog-collapse-z` |
+| `train_A_on_morph.sh` | launcher: Policy A on a morphology run dir (from scratch per design — never warmstart A); recipe `a_lift` + trainer-side collapse watchdog |
+| `train_handoff_liveA_reset.sh` | launcher: Policy B via the LIVE-A reset (frozen A drives 0..onset organically; pre-onset PPO-masked). Recipe `b_liveA` (RECIPE=b_liveA_imit adds the imitation prior) |
 | `train_reorient_on_morph.sh` | launcher: standalone reorient B on a new morphology |
 | `train_corefine_BtoA.sh` | launcher: B→A co-refinement (train A on B's downstream reorient reward) |
 
