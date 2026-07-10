@@ -1847,6 +1847,35 @@ that dwells at vertical. Evaluate ONLY via the rate sweep.
 
 ---
 
+## Phase: POLICY-BOTTLENECK probes — is the morphology landscape gated by the optimizer? (2026-07-10, launched)
+
+User directive on signing off: the compliance tangent is closed (DR mirrors, doesn't dominate);
+back to the core problem — the joint performance×morphology landscape needs **>16 designs**, but
+"many of the morphologies sampled never learned at all … even after fixing the initial keyframe
+retargeting," so first **validate that the bottleneck is the policy optimizer, not the designs**.
+This is the training-time twin of the rate-sweep lesson above (n=1 deterministic evals mis-score
+marginal *policies*; here n=1 training draws mis-score *morphologies*).
+
+The existing data already decomposes the noise: confirm gave joint A+B retrain sd 0.41 (m05 itself
+spans −0.29..0.78, n=5), while the variance study's fixed-A B-only bands are 0.09 (self) / 0.02
+(imit) — **Policy A's from-scratch draw is the dominant evaluator noise**, and indeed *every*
+large16 failure had an A-side event (L01_03 iter-0 collapse; L01_05 late-collapse → undertrained
+salvage; L01_02/07/09 delivery health-FAIL).
+
+**Probes queued** (`scripts/probe_queue.sh`, detached; plan + decision tree in
+`morph_sweep_STATUS.md` §POLICY-BOTTLENECK PROBES): **P1 rescue** — the 5 large16 failures under a
+strong evaluator (A best-of-2 with all attempts recorded, then imit-B AND self-B *paired on the
+same A*) → H1 failure-flip rate + H3 imitation-prior fairness off-m05; **P2 avar** — raw
+(uncensored) A-draw cells av_m05×3 + av_L01_05×2 → H2 per-design collapse / health-FAIL rates and
+cos spread. **P4 ready:** `--morph-set global` = Latin hypercube over the full 9-param box — the
+honest-pipeline replacement for the 06-25 teleport-proxy global map — to fire once P1/P2 pick the
+evaluator. Sweep upgrades: `--a-attempts` (best-of-N A with per-attempt records), `--b-recipe
+plain|imit|both`, `--only`, stale-`.COLLAPSED`-sentinel clearing. Monitoring: waiter on the stage
+sentinels + **claude-pulse deployed** (cron `*/15`, idle ≥75 min → autonomous session pointed at
+the runbook decision tree).
+
+---
+
 ## Results
 
 ### Cross-run comparison plots

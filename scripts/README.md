@@ -41,6 +41,7 @@ the `.sh` launchers handle both).
 | script | role |
 |---|---|
 | `morph_pipeline_sweep.py` (+`_plots`) | co-design sweep: per design XML→IK→CEM→A→B→handoff eval, health-gated. Runbook: `docs/rl/morph_sweep_STATUS.md` |
+| `probe_queue.sh` | policy-bottleneck probe queue (P1 rescue → P2 avar): A best-of-N + paired imit/self B. Plan+decision tree: `morph_sweep_STATUS.md` §probes |
 | `morph_landscape_sweep.py` (+`_plots`) | earlier grasp-only morphology landscape (kept: source of landscape figures) |
 | `ik_recem_landscape.py` | IK-retarget + re-CEM over the landscape designs |
 | `reorient_variance_study.py` | seed-variance study: fixed-A × {self, shared, imit} B warm-starts |

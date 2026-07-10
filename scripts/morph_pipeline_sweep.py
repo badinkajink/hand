@@ -22,6 +22,19 @@ Robust for an unattended machine (the design goal): per-morphology checkpoint to
 (one failure never sinks the sweep), generous subprocess timeouts, a DONE sentinel on completion.
 Sequential (one GPU) — A ~55 min + B ~36 min + CEM/eval ~5 min ~= 100 min/graspable design.
 
+POLICY-BOTTLENECK PROBES (2026-07-10, docs/rl/morph_sweep_STATUS.md §probes): the confirm/variance
+studies showed the evaluator noise is dominated by Policy A's from-scratch training draw (joint
+sd 0.41 vs B-only 0.09 self / 0.02 imit), and every large16 failure had an A-side event. Hence:
+  --a-attempts N   A best-of-N: retry on collapse / health-FAIL / never-lift; EVERY attempt is
+                   recorded in the JSON (raw draw data for the A-variance analysis).
+  --b-recipe       plain = b_liveA (self warmstart, legacy)  |  imit = b_liveA_imit (the
+                   design-neutral object-frame fingertip prior, the variance-solved evaluator)
+                   |  both = imit AND plain on the SAME kept A (paired prior-fairness test).
+  --morph-set rescue  the 5 large16 failures (flip rate = is the bottleneck the policy?)
+  --morph-set avar    raw A-draw distribution cells (run with --a-attempts 1)
+  --morph-set global  Latin-hypercube over the FULL 9-param box (the >16-design landscape)
+  --only id1,id2      run a subset of the set (smoke / surgical re-runs)
+
 Run (detached):
   nohup setsid env MUJOCO_GL=egl uv run --extra rl --extra gpu \
     python scripts/morph_pipeline_sweep.py --morph-set initial8 > sweep_initial8.run.log 2>&1 &
@@ -64,6 +77,19 @@ def _perturb(center, deltas):
     return _clip(v)
 
 
+# The five large16 designs that "never learned" / FAILed, verbatim vectors from
+# MORPH_PIPELINE_large16.json. Every one of them had an A-side event (collapse or
+# health-FAIL delivery) — the rescue probe asks whether a better OPTIMIZER draw
+# (A best-of-2 + imitation-B) flips them, i.e. whether the verdicts were policy noise.
+RESCUE = {
+    "rs_L01_02": (0.0162, 0.0051, 0.013, 0.0003, 0.0014, 0.0104, 0.025, 0.0244, 0.0147),    # idle-finger FAIL (1.2/2.5/2.2 N)
+    "rs_L01_03": (0.0108, 0.0037, 0.0108, 0.0026, 0.0087, 0.0163, 0.011, 0.0148, 0.0152),   # A collapsed at iter 0 — "never lifted"
+    "rs_L01_05": (0.0121, -0.0032, 0.0115, 0.0045, -0.0039, 0.0096, 0.0242, 0.0195, 0.0155),  # A late-collapse salvage -> cos -0.45 FAIL
+    "rs_L01_07": (0.0191, -0.0004, 0.0145, 0.0039, -0.004, 0.011, 0.0249, 0.025, 0.012),    # A health-FAIL -> cos 0.35
+    "rs_L01_09": (0.0106, 0.0088, 0.0118, 0.0085, 0.0005, 0.0064, 0.024, 0.022, 0.019),     # A health-FAIL -> wrong-way cos -0.40
+}
+
+
 def morph_set(name: str, n: int, seed: int, center):
     """Return [(id, 9-vector), ...]. `initial8` = interpretable coordinate moves around m05."""
     if name == "initial8":
@@ -90,6 +116,22 @@ def morph_set(name: str, n: int, seed: int, center):
             out.append((f"cf_m05_s{k}", M05))
             out.append((f"cf_l13_s{k}", L01_13))
         return out
+    if name == "rescue":
+        return list(RESCUE.items())
+    if name == "avar":
+        # RAW A-draw distribution (run with --a-attempts 1 — retries would censor the draws):
+        # k independent full-pipeline (CEM+A) draws per design, imit-B rides each viable A.
+        # m05 = known-good control; L01_05 = a large16 FAIL (its rescue attempts pool in too).
+        return ([(f"av_m05_k{k}", M05) for k in range(3)]
+                + [(f"av_L01_05_k{k}", RESCUE["rs_L01_05"]) for k in range(2)])
+    if name == "global":
+        # Latin hypercube over the FULL 9-param box — the honest-pipeline GLOBAL landscape
+        # (the 2026-06-25 global map used the superseded teleport proxy; this replaces it).
+        rng = np.random.default_rng(seed)
+        strata = (rng.permuted(np.tile(np.arange(n), (9, 1)), axis=1).T + rng.random((n, 9))) / n
+        lo = np.array([b[0] for b in BND]); hi = np.array([b[1] for b in BND])
+        return [(f"G{seed:02d}_{k:02d}", _clip(tuple(lo + strata[k] * (hi - lo))))
+                for k in range(n)]
     # local quasi-random (Gaussian) search around `center`, seeded + reproducible.
     rng = np.random.default_rng(seed)
     sig = np.array([0.005, 0.005, 0.004] * 3)                              # per-axis step
@@ -124,18 +166,22 @@ def run_cem(scene: Path, tag: str, env, iters: int) -> dict:
     return json.loads((CEM_OUT / tag / "summary.json").read_text())["best_metrics"]
 
 
-def train_A(cem_dir: Path, mid: str, env, smoke: bool):
+VERDICT_RANK = {"PASS": 3, "WARN": 2, "FAIL": 1, None: 0}
+
+
+def _train_A_once(cem_dir: Path, mid: str, t: int, env, smoke: bool) -> dict:
     # ALWAYS from scratch: warmstarting A (from a01 OR a10) loads a grip-specific residual that
     # EJECTS the re-CEM'd object (confirmed: a10-warmstart canary never lifted, obj 0.0 from iter
     # 0). From scratch the residual~0, so the open-loop CEM grip + scripted lift does the lifting.
-    tag = f"policyA_{mid}"
-    log = ROOT / f"logs/sweep_A_{mid}.trainer.log"
+    tag = f"policyA_{mid}_t{t}"
+    log = ROOT / f"logs/sweep_A_{mid}_t{t}.trainer.log"
     e = dict(env)
     e.update(MORPH_RUN=str(cem_dir), WARMSTART="none", LIFT_DELTA_A="0.10",
              EXTRA_ARGS="--open-finger-from-keyframe --lift-phase-start-step 60",
              TAG=tag, LOG=str(log), NUM_ENVS="2048", SMOKE="1" if smoke else "0")
     if not smoke:
         e["TOTAL_TS"] = "30000000"
+    Path(str(log) + ".COLLAPSED").unlink(missing_ok=True)   # stale sentinel = false abort
     subprocess.run(["bash", str(ROOT / "scripts/train_A_on_morph.sh")],
                    check=False, capture_output=True, text=True, env=e, timeout=9000)
     run = latest_run(f"*{tag}")
@@ -160,23 +206,49 @@ def train_A(cem_dir: Path, mid: str, env, smoke: bool):
                 health = json.loads(hj.read_text())
             except Exception:
                 pass
-    return run, ck, aborted, health, best_oh
+    return {"run": run, "ck": ck, "aborted": aborted, "health": health, "oh": best_oh}
 
 
-def train_B(cem_rel: str, a_ck: Path, mid: str, env, smoke: bool):
+def train_A(cem_dir: Path, mid: str, env, smoke: bool, attempts: int = 1,
+            lift_floor: float = 0.06):
+    """From-scratch A, best-of-`attempts` draws. Retry on collapse / health-FAIL / never-lift;
+    EVERY attempt is returned (raw A-draw data for the variance probes). Kept attempt = best of
+    (non-aborted > health PASS>WARN>FAIL>unknown > objheight)."""
+    tried = []
+    for t in range(1 if smoke else max(1, attempts)):
+        a = _train_A_once(cem_dir, mid, t, env, smoke)
+        tried.append(a)
+        verdict = (a["health"] or {}).get("verdict")
+        lifted = smoke or a["oh"] is None or a["oh"] >= lift_floor
+        if (not a["aborted"]) and a["ck"] is not None and lifted and verdict != "FAIL":
+            break                                # good draw — no retry needed
+
+    def rank(a):
+        return (0 if a["aborted"] else 1,
+                VERDICT_RANK.get((a["health"] or {}).get("verdict"), 0),
+                a["oh"] if a["oh"] is not None else -1.0)
+
+    return max(tried, key=rank), tried
+
+
+def train_B(cem_rel: str, a_ck: Path, mid: str, env, smoke: bool,
+            recipe: str = "b_liveA", tag_suffix: str = ""):
     # live-A DRIVER = this design's own A (lift matches the design) AND B WARMSTART = the same A
     # (the hold-first prior — the m05/b33 recipe). CRITICAL: --open-finger-from-keyframe (the
     # live-A script omits it → B resets to the baseline flung-out-thumb open pose → wrong grip →
     # the driver drops the object → B never learns; this sank s03/s04/s06/s07 in the initial8).
-    tag = f"policyB_{mid}_reorient"
-    log = ROOT / f"logs/sweep_B_{mid}.trainer.log"
+    # recipe: b_liveA = plain (self warmstart only) | b_liveA_imit = + the design-neutral
+    # object-frame fingertip imitation prior (the variance-solved evaluator, sd ±0.02).
+    tag = f"policyB_{mid}_reorient{tag_suffix}"
+    log = ROOT / f"logs/sweep_B{tag_suffix}_{mid}.trainer.log"
     e = dict(env)
     e.update(MORPH=cem_rel, A_CKPT=str(a_ck), B_CKPT=str(a_ck), LIFT_DELTA="0.10",
-             EXTRA_ARGS="--open-finger-from-keyframe",
+             RECIPE=recipe, EXTRA_ARGS="--open-finger-from-keyframe",
              ONSET_STEP="40", BLEND="8", LIFT_TERM_START="58", REORIENT_START="58",
              TAG=tag, LOG=str(log), NUM_ENVS="3072", SMOKE="1" if smoke else "0")
     if not smoke:
         e["TOTAL_TS"] = "20000000"
+    Path(str(log) + ".COLLAPSED").unlink(missing_ok=True)   # stale sentinel = false abort
     subprocess.run(["bash", str(ROOT / "scripts/train_handoff_liveA_reset.sh")],
                    check=False, capture_output=True, text=True, env=e, timeout=7200)
     run = latest_run(f"*{tag}")
@@ -184,9 +256,16 @@ def train_B(cem_rel: str, a_ck: Path, mid: str, env, smoke: bool):
     return run, final_ckpt(run), aborted
 
 
-def eval_handoff(a_ck: Path, b_ck: Path, cem_dir: Path, mid: str, env):
+B_RECIPES = {                       # --b-recipe -> [(recipe yaml, tag/video suffix, record key)]
+    "plain": [("b_liveA", "", "handoff")],
+    "imit": [("b_liveA_imit", "", "handoff")],
+    "both": [("b_liveA_imit", "", "handoff"), ("b_liveA", "SELF", "handoff_self")],
+}
+
+
+def eval_handoff(a_ck: Path, b_ck: Path, cem_dir: Path, mid: str, env, suffix: str = ""):
     VID_OUT.mkdir(parents=True, exist_ok=True)
-    out = VID_OUT / f"{mid}_handoff.mp4"
+    out = VID_OUT / f"{mid}_handoff{suffix}.mp4"
     e = runlib.warp_cache_env(env)
     r = subprocess.run([sys.executable, str(ROOT / "scripts/rl_demo_handoff_continuous.py"),
                         "--policy-a", str(a_ck), "--policy-b", str(b_ck),
@@ -219,17 +298,27 @@ def _row(rec: dict) -> str:
     r = rec.get("handoff") or {}
     hm = (r.get("health") or {}).get("metrics", {}) if r else {}
     verdict = (r.get("health") or {}).get("verdict", "—") if r else rec.get("note", "—")
-    return (f"{rec['id']:16} | lift {g.get('lift', float('nan')):.3f} "
-            f"tip {g.get('tips', '-')} pers {g.get('pt', 0):.2f}/{g.get('pi', 0):.2f}/{g.get('pm', 0):.2f}"
-            f" | minZ {str(r.get('min_z_post', '—')):>6} cos {str(hm.get('held_cos_tail', '—')):>6}"
-            f" jerk {str(hm.get('ang_jerk', '—')):>5} force {str(hm.get('tip_force', '—')):>5}"
-            f" drift {str(hm.get('net_drift_cm', '—')):>4}cm | {verdict}")
+    row = (f"{rec['id']:16} | lift {g.get('lift', float('nan')):.3f} "
+           f"tip {g.get('tips', '-')} pers {g.get('pt', 0):.2f}/{g.get('pi', 0):.2f}/{g.get('pm', 0):.2f}"
+           f" | minZ {str(r.get('min_z_post', '—')):>6} cos {str(hm.get('held_cos_tail', '—')):>6}"
+           f" jerk {str(hm.get('ang_jerk', '—')):>5} force {str(hm.get('tip_force', '—')):>5}"
+           f" drift {str(hm.get('net_drift_cm', '—')):>4}cm | {verdict}")
+    a = rec.get("A") or {}
+    if len(a.get("attempts") or []) > 1:
+        row += f" | A×{len(a['attempts'])}"
+    s = rec.get("handoff_self") or {}
+    if s:
+        shm = (s.get("health") or {}).get("metrics", {})
+        row += (f" | selfB cos {str(shm.get('held_cos_tail', '—')):>6} "
+                f"({(s.get('health') or {}).get('verdict', '—')})")
+    return row
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--morph-set", default="initial8", help="initial8 | local")
-    ap.add_argument("--n", type=int, default=16, help="designs for --morph-set local")
+    ap.add_argument("--morph-set", default="initial8",
+                    help="initial8 | local | confirm | rescue | avar | global")
+    ap.add_argument("--n", type=int, default=16, help="designs for --morph-set local/global")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--center", default="m05", help="local-search center: m05 | best | 9 comma-floats")
     ap.add_argument("--lift-thresh", type=float, default=0.03, help="cube_lift below this => ungraspable")
@@ -238,6 +327,12 @@ def main():
     ap.add_argument("--tag", default=None, help="output tag (default = morph-set)")
     ap.add_argument("--a-lift-floor", type=float, default=0.06,
                     help="A's best-ckpt object_height below this => A never lifted, skip B")
+    ap.add_argument("--a-attempts", type=int, default=1,
+                    help="A best-of-N: retry on collapse/health-FAIL/never-lift (all draws recorded)")
+    ap.add_argument("--b-recipe", default="plain", choices=sorted(B_RECIPES),
+                    help="plain=b_liveA | imit=b_liveA_imit | both=imit AND plain on the same A")
+    ap.add_argument("--only", default=None,
+                    help="comma-separated design ids: run only this subset of the morph-set")
     args = ap.parse_args()
     env = runlib.base_env()
 
@@ -251,6 +346,12 @@ def main():
     elif "," in args.center:
         center = tuple(float(x) for x in args.center.split(","))
     items = morph_set(args.morph_set, args.n, args.seed, center)
+    if args.only:
+        keep = {s.strip() for s in args.only.split(",")}
+        missing = keep - {i[0] for i in items}
+        if missing:
+            sys.exit(f"--only ids not in morph-set '{args.morph_set}': {sorted(missing)}")
+        items = [i for i in items if i[0] in keep]
 
     store = runlib.RecordStore(ROOT / f"docs/experiments/MORPH_PIPELINE_{tag}.json", key_field="id")
     report = runlib.TxtReport(
@@ -260,9 +361,12 @@ def main():
         f"# per design: gen -> IK open_ik -> CEM (grasp gate) -> native A -> live-A reset B "
         f"-> continuous handoff + trajectory-health scorecard.\n")
     cem_iters = 12 if args.smoke else args.cem_iters
+    b_jobs = B_RECIPES[args.b_recipe]
     for mid, m in items:
         prev = store.get(mid)
-        if prev is not None and "handoff" in prev:
+        # done = all requested handoffs present, OR a terminal domain verdict ("note":
+        # ungraspable / never lifted / no ckpt). "error" (exception) is transient -> retried.
+        if prev is not None and (all(k in prev for _, _, k in b_jobs) or "note" in prev):
             print(f"[skip] {mid} (done)"); continue
         t0 = time.time(); rec = {"id": mid, "morph": list(m),
                                  "delta_m05": [round(a - b, 4) for a, b in zip(m, M05)]}
@@ -287,36 +391,48 @@ def main():
             if g["cube_lift"] < args.lift_thresh:
                 rec["note"] = f"ungraspable (lift {g['cube_lift']:.3f} < {args.lift_thresh})"
             else:
-                log("train Policy A (from scratch, open-finger-from-keyframe) ...")
-                a_run, a_ck, a_abort, a_health, a_oh = train_A(cem_dir, mid, env, args.smoke)
-                rec["A"] = {"run": a_run.name if a_run else None, "aborted": a_abort,
+                log(f"train Policy A (from scratch, best-of-{args.a_attempts}, "
+                    f"open-finger-from-keyframe) ...")
+                a, a_tried = train_A(cem_dir, mid, env, args.smoke,
+                                     attempts=args.a_attempts, lift_floor=args.a_lift_floor)
+                a_ck, a_abort, a_oh = a["ck"], a["aborted"], a["oh"]
+                rec["A"] = {"run": a["run"].name if a["run"] else None, "aborted": a_abort,
                             "best_ckpt": a_ck.name if a_ck else None, "best_objheight": a_oh,
-                            "health_verdict": (a_health or {}).get("verdict")}
+                            "health_verdict": (a["health"] or {}).get("verdict"),
+                            "attempts": [{"run": x["run"].name if x["run"] else None,
+                                          "aborted": x["aborted"], "objheight": x["oh"],
+                                          "health_verdict": (x["health"] or {}).get("verdict")}
+                                         for x in a_tried]}
                 if a_ck is None:
-                    rec["note"] = "A produced no checkpoint"
+                    rec["note"] = f"A produced no checkpoint ({len(a_tried)} attempts)"
                     log("A produced no checkpoint — skipping B")
                 elif (a_oh is not None) and (not args.smoke) and (a_oh < args.a_lift_floor):
-                    rec["note"] = f"A never lifted (best objheight {a_oh} < {args.a_lift_floor})"
+                    rec["note"] = (f"A never lifted (best objheight {a_oh} < {args.a_lift_floor}, "
+                                   f"{len(a_tried)} attempts)")
                     log(f"A never lifted (best objheight {a_oh}) — skipping B")
                 else:
-                    log(f"A ok (best {a_ck.name}, objheight {a_oh}, abort {a_abort}); "
-                        f"train Policy B (live-A reset, from-A warmstart) ...")
-                    b_run, b_ck, b_abort = train_B(cem_rel, a_ck, mid, env, args.smoke)
-                    rec["B"] = {"run": b_run.name if b_run else None, "aborted": b_abort}
-                    if b_ck is None:
-                        rec["note"] = "B produced no checkpoint"
-                        log("B produced no checkpoint")
-                    else:
+                    log(f"A ok (best {a_ck.name}, objheight {a_oh}, abort {a_abort}, "
+                        f"{len(a_tried)} attempt(s))")
+                    for b_recipe, sfx, key in b_jobs:
+                        log(f"train Policy B [{b_recipe}] (live-A reset, from-A warmstart) ...")
+                        b_run, b_ck, b_abort = train_B(cem_rel, a_ck, mid, env, args.smoke,
+                                                       recipe=b_recipe, tag_suffix=sfx)
+                        rec["B" + sfx] = {"run": b_run.name if b_run else None,
+                                          "aborted": b_abort, "recipe": b_recipe}
+                        if b_ck is None:
+                            rec["note"] = f"B[{b_recipe}] produced no checkpoint"
+                            log(f"B[{b_recipe}] produced no checkpoint")
+                            continue
                         # SALVAGE: eval the last saved ckpt even if the watchdog aborted mid-run
                         # (a late collapse leaves a healthy earlier ckpt) — let the scorecard judge.
                         if b_abort:
-                            rec["b_aborted"] = True
-                            log(f"B watchdog-aborted; SALVAGE-eval last ckpt {b_ck.name} ...")
+                            log(f"B[{b_recipe}] watchdog-aborted; SALVAGE-eval last ckpt {b_ck.name} ...")
                         else:
-                            log(f"B done ({b_ck.name}); continuous handoff eval ...")
-                        vid, minz, health = eval_handoff(a_ck, b_ck, cem_dir, mid, env)
-                        rec["handoff"] = {"video": vid, "min_z_post": minz, "health": health,
-                                          "b_aborted": bool(b_abort), "a_aborted": bool(a_abort)}
+                            log(f"B[{b_recipe}] done ({b_ck.name}); continuous handoff eval ...")
+                        vid, minz, health = eval_handoff(a_ck, b_ck, cem_dir, mid, env,
+                                                         suffix="_self" if sfx else "")
+                        rec[key] = {"video": vid, "min_z_post": minz, "health": health,
+                                    "b_aborted": bool(b_abort), "a_aborted": bool(a_abort)}
         except Exception as e:
             rec["error"] = f"{type(e).__name__}: {str(e)[:160]}"
         rec["secs"] = round(time.time() - t0)

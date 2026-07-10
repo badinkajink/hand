@@ -172,3 +172,91 @@ Nothing running, GPU idle. Since 07-05:
 - **NEXT (spec written, not run): compliance domain randomization** — `docs/rl/compliance_dr_plan.md`.
   Randomize `solimp` per episode over [soft, hard] → a stiffness-robust policy; retrain A +
   imitation-B, re-run the compliance sweep, expect a flat curve.
+
+## POLICY-BOTTLENECK PROBES (2026-07-10) — is the landscape gated by the optimizer, not the designs?
+
+**User directive (2026-07-10, signing off):** validate the intuition that the bottleneck on
+morphology exploration is *the policy itself* — "many of the morphologies sampled never learned at
+all to pick up and reorient the screwdriver, even after fixing the initial keyframe retargeting."
+Compliance/DR tangent is CLOSED (rate sweep: DR mirrors, doesn't dominate, baseline). Core problem
+resumed: characterize the joint performance×morphology landscape (>16 designs), which first needs
+an evaluator whose verdicts aren't optimizer noise.
+
+**Evidence already in hand (why the intuition is probably right):**
+- confirm sweep: m05 — the *best known* design — spans held-cos **−0.29..0.78 over 5 joint A+B
+  retrains** (sd 0.41). Under n=1 evaluation, even m05 "never learns" ~40% of the time.
+- variance study: with A fixed, B-only sd = 0.09 (self) / **0.02 (imit)** ⇒ **Policy A's
+  from-scratch draw is the dominant noise term**, not B.
+- ALL 5 large16 failures had an A-side event: L01_03 collapsed at iter 0; L01_05 late-collapse
+  (salvaged an undertrained model_50 — the known-bad valfix2 mode); L01_02/07/09 completed but
+  delivery health-FAIL. **No large16 failure is yet evidence about the morphology itself.**
+- Caveat that keeps this falsifiable: collapse/health-FAIL rates could themselves be
+  design-dependent (geometry → bad A basin). That is exactly what P2 measures.
+
+**Hypotheses:**
+- **H1 (headline):** most "never learned" verdicts flip under a stronger optimizer draw
+  (A best-of-2 + imitation-B) ⇒ bottleneck = policy optimization, verdicts were Type-II noise.
+- **H2:** with collapse-retry, the residual A-draw variance is small enough that
+  **CEM → A(best-of-2) → imit-B ×1** is a sound per-design landscape evaluator (~2 h/design).
+- **H3:** the m05-recorded object-frame imitation prior is *fair* off-m05 (it anneals out over
+  150 iters): per-design Δcos(imit − self) on the SAME A is ≥ −0.05. If it handicaps distant
+  designs, the imit landscape would be an "m05-similarity map", not a capability map.
+
+**Queue (launched 2026-07-10 eve, detached):** `scripts/probe_queue.sh` → `logs/PROBE_QUEUE.log`
+- **P1 `rescue`** (~12–16 h): 5 large16 failures (`rs_L01_{02,03,05,07,09}`), A best-of-2 (every
+  attempt recorded in the JSON = raw draw data), then **both** B recipes on the same kept A
+  (`b_liveA_imit` → `handoff`, `b_liveA` → `handoff_self`). Flip = held (min-z>0.05) + cos ≥ 0.5
+  + verdict ≠ FAIL.
+- **P2 `avar`** (~8 h): raw A draws, NO retry: `av_m05_k{0..2}` + `av_L01_05_k{0,1}` (+ pool
+  rs_L01_05's P1 attempts), imit-B per viable A. Yields per-design P(collapse), P(health-FAIL),
+  and cos spread across A draws.
+- Outputs: `docs/experiments/MORPH_PIPELINE_{rescue,avar}.{json,txt}` (JSON has per-attempt A
+  records), videos `docs/rl/videos/reorient/sweep/rs_*_handoff{,_self}.mp4`, sentinels
+  `logs/MORPH_PIPELINE_{rescue,avar}.DONE`, `logs/PROBE_QUEUE.DONE`.
+- **P4 ready to fire (do NOT start until the decision tree says so):** `--morph-set global`
+  = Latin hypercube over the FULL 9-param box (the honest-pipeline replacement for the 06-25
+  teleport-proxy global map).
+
+**DECISION TREE for the next session (pulse- or waiter-triggered) — execute, don't re-derive:**
+1. **Safety first:** if `pgrep -f "[m]orph_pipeline_sweep|[r]l_train_cube|[p]robe_queue"` shows a
+   live worker → analysis/docs/commit work ONLY, never launch GPU jobs (single 16 GB GPU).
+2. **Crashed/stuck queue** (no worker, no `PROBE_QUEUE.DONE`, stale run logs >30 min):
+   relaunch `nohup setsid bash scripts/probe_queue.sh > logs/PROBE_QUEUE.log 2>&1 &` (resumable);
+   log the incident here.
+3. **P1 done → score H1:** flip fraction of 5. ≥3/5 ⇒ H1 CONFIRMED (write up + memory).
+   ≤1/5 ⇒ failures are real geometry effects ⇒ landscape resolvable already ⇒ jump to (5).
+4. **P1 done → score H3:** per-design Δcos(imit−self, same A). If Δ ≥ −0.05 everywhere ⇒ imit-B
+   stays THE evaluator. If imit systematically loses off-m05 ⇒ evaluator = self-B, and P4 needs
+   ≥2 B seeds/design (halve `--n`).
+5. **P2 done → score H2:** if non-collapsed draws are tight (cos sd ≤ 0.10) and collapse is
+   design-independent luck ⇒ evaluator = CEM → A(best-of-2) → imit-B ×1. If A quality varies
+   continuously per design ⇒ P4 uses `--a-attempts 2` AND averages 2 full draws/design (halve n).
+   If L01_05's draws are *systematically* bad (e.g. ≥4/5 collapse or all cos<0.3 while m05's are
+   fine) ⇒ **the design effect on TRAINABILITY is real** — that is itself a landscape axis; keep
+   per-design collapse rate as a first-class output in P4.
+6. **Launch P4** (once 3–5 answered, GPU free):
+   `nohup setsid env MUJOCO_GL=egl uv run --extra rl --extra gpu python
+   scripts/morph_pipeline_sweep.py --morph-set global --n 24 --seed 2 --tag global24
+   --b-recipe imit --a-attempts 2 > logs/sweep_global24.run.log 2>&1 &`
+   (~2 days; resumable; analyze with `morph_pipeline_plots.py --tag global24`; extend with
+   `--seed 3` batches in later windows).
+7. **Every touchpoint:** update this STATUS log (dated bullet), append results to
+   `docs/rl/reorientation.md`, commit code+docs (never `results/`), refresh
+   `~/.claude/.../memory/` if a durable conclusion landed.
+8. **Idle-GPU fallback** (queue done, P4 not yet justified): (a) timeboxed feasibility spike —
+   mjwarp per-env geometry batching (body_pos/geom_size per world) for a
+   **morphology-CONDITIONED policy** (one policy conditioned on the 9-vector across randomized
+   morphologies = the fundamental fix to the evaluate-requires-optimize chicken-and-egg; write
+   findings to `docs/notes/morph_conditioned_policy_spike.md`); (b) render/inspect `rs_*` videos;
+   (c) L01_03 forensics (its CEM said graspable-1.0 — watch its A attempts' first 50 iters).
+
+**Monitoring:**
+```bash
+tail -f logs/PROBE_QUEUE.log                     # stage banners
+tail -f logs/sweep_rescue.run.log                # live per-design stage markers
+cat docs/experiments/MORPH_PIPELINE_rescue.txt   # finished-design rows
+pgrep -af "morph_pipeline_sweep|probe_queue"; nvidia-smi
+ls logs/*.DONE
+```
+claude-pulse (deployed 2026-07-10): config `~/.config/claude-pulse/config.toml`, cron `*/15`
+tick; pokes an autonomous session pointed at THIS section when a usage window idles ≥75 min.
