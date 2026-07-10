@@ -1814,6 +1814,39 @@ deterministic rollout per point.
 
 ---
 
+## Phase: RATE-based sweep — two measurement artifacts corrected; the DR trade-off measured honestly (2026-07-10)
+
+Round 2 executed the two levers: `policyA_m05_cdr2` (widened band) + `policyB_m05_cdr2_imitfloor_k0`
+(recipe `b_liveA_imit` + `--imitation-weight-final 12`, same band). Training looked like a
+breakthrough (final `target_axis_alignment` 66–72 vs 33–40 round-1, 49 non-DR). Deploy said
+otherwise — and diagnosing the gap exposed that our **evaluator, not just the policies, was broken**:
+
+1. **n=1 deterministic sweeps mis-score marginal policies.** cdr2-A still "failed" at soft — but a
+   32-env identical-conditions probe showed the soft grasp is a **knife-edge decided by Warp solver
+   noise** (13/32 grasp with the SAME mean actions; video shows the object squirted out during the
+   close). And the baseline's famous "non-monotonic" stiffness response (works 0.995+0.998, fails
+   0.997) resolves under n=32 into a **smooth fragility gradient** (hold 0.97 → 0.53 → 0.63 → 0.25
+   → 0.0) — the non-monotonicity was coin-flip sampling of mid rates. **New standard:
+   `scripts/compliance_rate_sweep.py`** (batched N=32 continuous handoffs per point → hold-rate /
+   reorient-rate / median held-cos; `docs/experiments/COMPLIANCE_RATE.txt`).
+2. **The honest DR verdict (rate curves):** DR **mirrors** the baseline instead of dominating it.
+   Baseline a10+b33: hold 0.97 / reorient 0.94 at soft, decaying to 0 at 0.9995. All DR pairs:
+   hold 0.22–0.25 at soft rising to 0.94–1.0 at c999/c9995 (where the baseline is dead), but
+   **reorient-rate ≈ 0 everywhere at deploy**. Band-widening (cdr2) did NOT fix the soft end.
+3. **The training/deploy reorient gap is a DETERMINISTIC-MEAN collapse, B-side edition.** At c999,
+   imitfloor-B with mean actions peaks at cos 0.44; with `--stochastic-b` it reaches **peak 0.991**
+   — the full rolling gait to vertical lives in the policy but is under-driven by the mean action,
+   AND vertical is still never *stabilized* (drops right after the stochastic peak). The imitation
+   floor did teach the gait under DR (real progress vs round-1: the skill now exists); the two
+   remaining defects are (a) mean-action under-drive, (b) no hold-at-vertical endgame.
+
+**Open next levers:** A-side: soft-biased `u` sampling in `randomize_geom_solimp` (band widening
+is proven insufficient). B-side: anneal/pin the action std late in training so competence moves
+from the noise into the mean; endgame: a hold-at-vertical bonus window or an imitation reference
+that dwells at vertical. Evaluate ONLY via the rate sweep.
+
+---
+
 ## Results
 
 ### Cross-run comparison plots
