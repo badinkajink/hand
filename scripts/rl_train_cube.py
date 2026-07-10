@@ -382,6 +382,16 @@ class Args:
     """Override the morphology-run's frozen_scene.xml (e.g. a hardened-contact variant).
     None = use <morphology_run>/frozen_scene.xml. Lets a run change the contact physics
     (solref/solimp = less penetration) WITHOUT editing the canonical lineage scene."""
+    watchdog_collapse_z: float | None = None
+    """Trainer-side collapse watchdog (gotcha #10): abort the run when the episode-mean
+    object height (Metrics/lift_height/object_height) sits below this (m) after
+    --watchdog-from-iter. None disables. Replaces the launchers' bash log-grep loops.
+    Normal lift: 0.045; live-A reorient: 0.030 (the episode mean includes A's ramp)."""
+    watchdog_from_iter: int = 40
+    """PPO iteration from which the collapse watchdog may fire (let training start up)."""
+    watchdog_sentinel: Path | None = None
+    """File written on a watchdog abort. Launchers pass <trainer-log>.COLLAPSED so the
+    pipelines' existing sentinel checks keep working."""
     brace_distance_weight: float = 0.0
     """Dense brace shaping exp(-gap/scale) pulling cylinder end to palm. 0 off. Try +5..+20."""
     brace_distance_scale: float = 0.04
@@ -736,17 +746,31 @@ def main() -> None:
             runner.setup_schedule_tracking(_sched, weight=args.reorient_schedule_weight,
                                            reorient_start=onset)
 
+    from morphohand.rl.watchdog import TrainingCollapseError, attach_collapse_watchdog
+    if args.watchdog_collapse_z is not None:
+        attach_collapse_watchdog(
+            runner, collapse_z=float(args.watchdog_collapse_z),
+            guard_from_iter=int(args.watchdog_from_iter),
+            sentinel=Path(args.watchdog_sentinel) if args.watchdog_sentinel else None)
+
     if args.wandb:
         print(f"[rl_train_cube] wandb logger -> project={args.wandb_project}  "
               f"tags={args.wandb_tags}  upload_model={args.upload_model}")
     print(f"[rl_train_cube] starting PPO for {ppo_cfg.iters_for_timesteps()} iters ...")
+    collapsed = None
     try:
         runner.learn(num_learning_iterations=ppo_cfg.iters_for_timesteps())
+    except TrainingCollapseError as e:
+        collapsed = e
     finally:
         for obj in (wrapped, env):
             close = getattr(obj, "close", None)
             if callable(close):
                 close()
+    if collapsed is not None:
+        print(f"[watchdog] COLLAPSE — run aborted: {collapsed}")
+        print(f"[rl_train_cube] ABORTED; pre-collapse checkpoints under {out_dir}")
+        sys.exit(3)
     print(f"[rl_train_cube] DONE; artefacts under {out_dir}")
 
 

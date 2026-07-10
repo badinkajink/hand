@@ -85,28 +85,19 @@ ARGS=(
 [ "${CONTACT_GATE:-1}" = "1" ] || ARGS+=( --no-contact-gate-stability-rewards )
 c=$(mktemp -d)
 LOG="${LOG:-$ROOT/logs/liveA_${TAG}.trainer.log}"
+# NORMAL-lift collapse watchdog (gotcha #10), now TRAINER-SIDE (morphohand.rl.watchdog):
+# object_height is height ABOVE init, reported as the EPISODE AVERAGE. Steps 0..onset
+# are A's live lift (ramping 0->0.10), so the mean sits ~0.07-0.09 when B holds
+# post-seam; a true floor drop gives ~0.01. Threshold well below the operating band.
+# Default 0.030 / from iter 50; aborts and writes ${LOG}.COLLAPSED.
+ARGS+=(
+  --watchdog-collapse-z "${COLLAPSE_Z:-0.030}" --watchdog-from-iter "${GUARD_FROM_ITER:-50}"
+  --watchdog-sentinel "${LOG}.COLLAPSED"
+)
 echo "[liveA] TAG=$TAG ts=$TOTAL_TS onset=$ONSET_STEP blend=$BLEND lift_term_start=$LIFT_TERM_START reorient_start=$REORIENT_START"
 echo "[liveA] A=$A_CKPT warmstart-B=$B_CKPT WARP_CACHE=$c trainer-log=$LOG"
-WARP_CACHE_PATH="$c" MUJOCO_GL=egl setsid uv run --extra rl --extra gpu \
-  python "$ROOT/scripts/rl_train_cube.py" "${ARGS[@]}" > "$LOG" 2>&1 &
-RUNPID=$!
-echo "[liveA] trainer pid(group)=$RUNPID"
-
-# NORMAL-lift collapse watchdog (gotcha #10): object_height is height ABOVE init,
-# reported as the EPISODE AVERAGE. Steps 0..onset are A's live lift (ramping
-# 0->0.10), so the mean sits ~0.07-0.09 when B holds post-seam; a true floor drop
-# gives ~0.01. Threshold well below the operating band. Default 0.030 / from iter 50.
-COLLAPSE_Z=${COLLAPSE_Z:-0.030}; GUARD_FROM_ITER=${GUARD_FROM_ITER:-50}
-while kill -0 "$RUNPID" 2>/dev/null; do
-  sleep 30
-  IT=$(grep -oE "Learning iteration [0-9]+" "$LOG" 2>/dev/null | tail -1 | grep -oE "[0-9]+$")
-  OH=$(grep "lift_height/object_height" "$LOG" 2>/dev/null | tail -1 | grep -oE "\-?[0-9.]+$")
-  [ -n "$IT" ] && [ -n "$OH" ] || continue
-  if [ "$IT" -ge "$GUARD_FROM_ITER" ] 2>/dev/null && awk "BEGIN{exit !($OH < $COLLAPSE_Z)}"; then
-    echo "[watchdog] COLLAPSE: object_height=$OH < $COLLAPSE_Z at iter $IT — B dropped. Killing."
-    touch "${LOG}.COLLAPSED"; kill -TERM -"$RUNPID" 2>/dev/null; sleep 5; kill -KILL -"$RUNPID" 2>/dev/null; break
-  fi
-done
-wait "$RUNPID" 2>/dev/null; RC=$?
+WARP_CACHE_PATH="$c" MUJOCO_GL=egl uv run --extra rl --extra gpu \
+  python "$ROOT/scripts/rl_train_cube.py" "${ARGS[@]}" > "$LOG" 2>&1
+RC=$?
 [ -e "${LOG}.COLLAPSED" ] && echo "[liveA] ABORTED — B dropped the object." \
   || echo "[liveA] DONE rc=$RC. NEXT: continuous-handoff eval vs FROZEN A (min-z>0.05 = seam closed)."
