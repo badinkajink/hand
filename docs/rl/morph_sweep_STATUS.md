@@ -385,3 +385,16 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   global12x2` (group by stripping the `_r\d` suffix). **Standing idle-tick CPU task:** A-side
   predictor of B fate from the ~20 accumulated (A scorecard, B outcome) pairs →
   `docs/notes/a_quality_predictor.md` (a predictive gate would restore single-draw eval).
+- **2026-07-11 ~10:50 tick — P4 healthy (design 1/24 G02_00_r0: CEM lift 0.052, A first-draw
+  clean model_609 objheight 0.1156, imit-B training since 10:20). Standing CPU task DONE:
+  A-side predictor analyzed over 26 (A scorecard, B outcome) pairs → NO usable single-draw
+  predictor; P4's 2-replica design stands.** Best A metric (mean tip force) rho +0.44 vs B
+  held-cos, but within-m05 (5 same-geometry draws) the relation is non-monotone ⇒ the "grip
+  richness" trend is the geometry landscape itself, not an evaluator shortcut. Two cheap
+  adoptables: (a) idle-finger veto at A-accept (`min(force_mean) < 0.5 N` — the only scored
+  B-collapse pair, rs_L01_05, had fmin=0.0/tfmin=0.0); (b) the A scorecard's drop check FAILs
+  spuriously on a pre-lift-window min-z artifact (4/26 kept As at minz≈0.007; 3/4 produced
+  good Bs) — part of why gate verdicts can't rank draws. Full note
+  `docs/notes/a_quality_predictor.md`; rerunnable `scripts/a_quality_predictor.py` (re-run
+  with `--tags … global12x2` after P4 → n≈50). Committed avar stragglers (av_L01_05_k0
+  video+health, global12x2 table header). GPU busy — no launches this tick.

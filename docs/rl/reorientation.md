@@ -2150,6 +2150,22 @@ pairs from rescue/avar/vstudy for an A-side feature that predicts B fate (the cu
 blind to it); a predictive gate would restore cheap single-draw evaluation →
 `docs/notes/a_quality_predictor.md`.
 
+### A-quality predictor: DONE, negative (2026-07-11 ~10:50 tick) — no A metric restores single-draw eval
+
+Mined all 26 (kept-A scorecard, B outcome) pairs still on disk across confirm/large16/rescue/avar
+(`scripts/a_quality_predictor.py`). Best predictor of B held-cos is A's mean tip force at
+rho +0.44 (n=25, at the p≈0.05 boundary), with the whole "grip richness" family (per-finger force
+min/max, touch fraction, contact count) trending +0.3–0.4 — but within m05's 5 same-geometry
+draws the relation is non-monotone (7.0 N→0.49, 8.1 N→−0.16, 11.3 N→0.23), so the cross-design
+correlation is the geometry landscape itself (firm-grip-affording designs also reorient), not a
+draw-quality shortcut. Hold min-z, ang-jerk, drift, slide: rho ≈ 0. **P4's 2-replica design
+stands; the structural fix remains the step-8a conditioned-policy spike.** Side-findings worth
+adopting: (1) the only scored B-collapse pair (rs_L01_05) is the only A with an idle finger at
+delivery (min force 0.0 N) → a free `min(force_mean) < 0.5 N` retry-trigger for `--a-attempts`;
+(2) 4/26 A scorecards FAIL their drop check on a pre-lift-window min-z artifact (minz≈0.007,
+the known floor-z trap) yet 3/4 fed good Bs — the A gate's verdicts are partly artifact, which
+is why they can't rank draws. Details: `docs/notes/a_quality_predictor.md`.
+
 ---
 
 ## Results
