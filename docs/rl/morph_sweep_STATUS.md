@@ -309,3 +309,22 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   design-dependent — the step-5 clause; P2 `avar` (av_L01_05_k{0,1} + pooled attempts) decides.
   Interim tallies: H1 strict 0/3, capability 1/3; H3 design-3 pending self-B. Analysis in
   reorientation.md §P1 interim design 3/5. Queue healthy; GPU busy (self-B) — no launches.
+- **2026-07-11 ~03:0x tick — designs 3+4 COMPLETE, design 5/5 (rs_L01_09) on its last leg.
+  H1 strict is DECIDED: 0/4 complete ⇒ ≤1/5 ⇒ step-3 branch "failures are real geometry
+  effects" — but axis-split (see below).** rs_L01_05 finished trainability-hostile: self-B
+  ALSO watchdog-collapsed; salvage = no-grip drop (all fingers 0 N, min-z 0.0441, cos −0.969).
+  Design ledger: 4 training legs, 3 collapses, 0 viable policies. H3 there: Δ=+0.50 pro-imit
+  but salvage-garbage ⇒ uninformative. rs_L01_07 (7769 s): A first-draw clean; BOTH B recipes
+  hold beautifully (min-z ~0.112, 3 fingers 8–12 N) and neither reorients (imit cos 0.032 /
+  self 0.059, peaks ≤0.10) — second **holds-but-static** design after L01_03; H3 Δ=−0.027
+  fair (strike did not repeat; H3 tally fair 2 / strike 1 / uninformative 1 ⇒ imit-B stays
+  the evaluator, pending design 5). rs_L01_09 in flight: BOTH A attempts aborted (kept =
+  salvaged t1 model_150, objheight 0.128 — best-of-2's first total miss); imit-B collapsed
+  iter ~100 (salvage: thumb-idle 2-finger pinch, cos 0.249, FAIL) ⇒ **second
+  trainability-hostile design**; self-B running (last P1 leg). Emerging class map within
+  ±8 mm of m05: reorients (L01_02) / holds-but-static (L01_03, L01_07) /
+  trainability-hostile (L01_05, L01_09?). Next per tree: P1 DONE → final H1/H3 writeup;
+  P2 avar auto-starts (queue); step-5 (H2 + design-dependent collapse) is now the pivotal
+  question — P4 shape hinges on it (collapse rate as first-class output; likely
+  --a-attempts 2 + salvage-A quality gate). Full analysis in reorientation.md §P1 designs
+  3–5. Queue healthy; GPU busy (self-B rs_L01_09) — no launches this tick.

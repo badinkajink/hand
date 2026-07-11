@@ -1959,6 +1959,71 @@ it. If it holds, P4 must report per-design collapse rate alongside cos, and rs_L
 
 H3 for this design: pending self-B completion.
 
+### P1 design 3/5 rs_L01_05 COMPLETE: trainability-hostile confirmed — self-B ALSO collapses; every leg of the pipeline fails on this geometry (2026-07-11 early)
+
+The paired self-B run finished the picture (design total 7041 s):
+
+- **self-B: watchdog-aborted too** (second B-side collapse, same design). Salvage eval of
+  model_150: the policy learned *nothing* that survives deployment — **all three fingers idle**
+  (0.0 N, touch-frac ≤ 0.02), the object slides off (post-handoff min-z **0.0441** < 0.05 =
+  drop-FAIL), held-cos **−0.969**, peak-cos 0.004. The low ang-jerk (6.6) is vacuous — nothing
+  is being manipulated.
+- Final design ledger: A t0 collapse → A t1 clean (health-FAIL) → imit-B collapse (salvage:
+  one-finger pin, cos −0.469) → self-B collapse (salvage: no-grip drop, cos −0.969). **Four
+  training legs, three collapses, zero viable policies.** Combined with its large16 history
+  (late-collapse), rs_L01_05's record is 3 collapses in 4 A/B-adjacent draws.
+- Scoring: **H1 strict 0/3, capability 0-for-this-design** (nothing holds with a real grip).
+  **H3: Δcos(imit−self) = +0.50** — imit *better*, the opposite sign of the L01_03 strike, but
+  both values are salvage-garbage so this design is best treated as H3-uninformative. What it
+  IS is the strongest step-5 evidence yet: **collapse propensity follows the design**, across
+  stage (A vs B), recipe (imit vs self), and draw. P2 `avar` (av_L01_05_k{0,1} + these pooled
+  attempts) will quantify it; P4 must carry per-design collapse rate as a first-class output.
+
+Notably its 9-vector sits ≤ 8.2 mm from m05 on every param (max |Δ| on index-y) — if P2
+confirms, trainability cliffs exist *within* a sub-centimeter ball around the best known design.
+
+### P1 design 4/5 rs_L01_07: second "holds-but-static" design — clean training, healthy 3-finger grip, zero reorient under BOTH recipes (2026-07-11 ~02:15)
+
+rs_L01_07 was a large16 delivery health-FAIL. Under the rescue evaluator (7769 s):
+
+- **Policy A: rescued on the first fresh draw** (model_609, objheight 0.1153, WARN, no retry).
+  A-side tally: 3/4 designs so far rescued A on the first draw (all but L01_05).
+- **imit-B: trains clean, holds well, does not reorient.** Post-handoff min-z 0.1123, all three
+  fingers engaged from step 1 (thumb 12.1 / index 9.9 / middle 9.3 N, touch-frac 0.94–1.0),
+  verdict WARN (over-clamp 10.4 N, sliding path 10.1 cm vs net 0.6 cm). But held-cos **0.032**,
+  peak-cos 0.051 — a static clamp, no rotation at all.
+- **self-B (same A, paired): the same story** — min-z 0.1129, balanced 8–10 N grip, WARN, and
+  held-cos **0.059** / peak 0.096. More micro-slip (path 23.1 cm, de-centering 63.5) but no gait.
+
+Scoring: **H1 strict 0/4; capability flip YES** (lift+hold fully rescued → capability 2/4 as a
+design count, 3/4 counting L01_03's hold). **H3 Δcos = −0.027 ≥ −0.05 ⇒ imit-fair** — the
+L01_03 fairness strike did NOT repeat (H3 tally: fair 2, strike 1, uninformative 1). rs_L01_07
+lands squarely in the L01_03 class: **holds-but-static**. Both recipes converge to a hard
+symmetric clamp with saturated forces and near-zero angular progress — consistent with
+reorient-hostile geometry (the grip is *too* stable to roll) rather than optimizer noise,
+with the standing n=1-per-recipe caveat.
+
+### P1 design 5/5 rs_L01_09 (in flight): second trainability-hostile design — both A draws abort, imit-B collapses; self-B running (2026-07-11 ~03:00)
+
+- CEM fine (lift 0.051, persist 1/1/1). **Policy A consumed both attempts and BOTH aborted**;
+  the kept checkpoint is a *salvaged* undertrained model_150 from t1 (objheight 0.128 at that
+  checkpoint — the same known-risk salvage mode as large16's L01_05). First design where
+  best-of-2 failed to produce a clean A.
+- **imit-B: watchdog-collapsed at iter ~100** (third B-side collapse, second design). Salvage
+  model_100: holds min-z 0.1211 but with an idle thumb (0.0 N; index 4.0 / middle 4.7 N —
+  the degenerate 2-finger pinch), held-cos 0.249, peak 0.373, verdict FAIL (idle_finger).
+- self-B on the same salvaged A is training now (last leg of P1).
+
+Interim tallies with one leg outstanding: **H1 strict 0/4 complete (max possible 1/5)** — the
+decision-tree step-3 branch "≤1/5 ⇒ failures are real geometry effects" is already decided on
+the strict bar. The honest decomposition, though, is axis-dependent: **lift/hold failures were
+mostly draw noise** (3/5 designs rescued to a healthy hold: L01_02/03/07), while **reorient
+failures persisted in every case** (0/8 B runs reached cos 0.5 except L01_02's imit at 0.561),
+and **two designs (L01_05, L01_09) are trainability-hostile** — collapse chases them across
+stages, recipes, and draws. Landscape classes emerging within a ±8 mm ball around m05:
+*reorients* (L01_02) / *holds-but-static* (L01_03, L01_07) / *trainability-hostile* (L01_05,
+L01_09 pending its self-B).
+
 ---
 
 ## Results
