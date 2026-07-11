@@ -274,3 +274,14 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   failed large16 via delivery health-FAIL, yet a fresh from-scratch A draw passed the gate
   immediately — consistent with A-draw noise, pending the B verdict. imit-B near done (ETA ~7 min
   at check), self-B next. No collapse sentinel; GPU normal.
+- **2026-07-10 ~20:20 tick — rs_L01_02 COMPLETE (7856 s): partial flip; H1 strict 0/1, capability
+  flip 1/1; H3 1/1 imit-fair.** imit-B **holds and reorients** (post-handoff min-z 0.1115,
+  held-cos 0.561, peak 0.678, 3-finger 9–10 N contact) — verdict FAIL on **jitter only**
+  (ang-jerk 44.1 vs bar 40; b33 ref 9.6), WARN sliding (path 22 cm/net 1.3) + over-clamp 9.7 N.
+  Paired self-B on the SAME A **drops** (min-z 0.0062; its peak-cos 0.999 is floor-bracing).
+  H3: Δcos −0.02 ≥ −0.05 AND imit held where self dropped ⇒ prior not a handicap here. Emerging
+  split to score across the remaining 4: **trainability flips** (stronger draw rescues lift+hold+
+  reorient) vs **quality residual** (jitter) — if jitter FAILs persist, consider whether the
+  strict flip bar conflates the two axes. Queue healthy, now on rs_L01_03 (the iter-0 collapse
+  design) — its A t0 draw training since 20:03; watchdog armed. Full analysis appended to
+  reorientation.md §P1 interim.
