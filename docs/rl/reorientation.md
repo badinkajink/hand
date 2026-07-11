@@ -2024,6 +2024,47 @@ stages, recipes, and draws. Landscape classes emerging within a ±8 mm ball arou
 *reorients* (L01_02) / *holds-but-static* (L01_03, L01_07) / *trainability-hostile* (L01_05,
 L01_09 pending its self-B).
 
+### P1 rescue CLOSED (5/5, 2026-07-11 03:32, 9h44m wall): pick-up failures were optimizer noise (5/5 rescued), reorient failures are real geometry signal (0/5 rescued), and trainability itself is a design property
+
+Design 5 finished the set. rs_L01_09's paired self-B — on the same *salvaged* A — **trained
+clean** (its only clean B leg; softens the interim "trainability-hostile" call to *A-fragile*)
+yet converged to the familiar static grip: held min-z 0.1249, forces 4.1/3.9/12.2 N
+(middle-heavy, thumb touch-frac 0.45), held-cos **−0.014**, peak 0.048, FAIL.
+
+**Final P1 scoreboard (5 designs, 10 paired B evals, every clean large16 failure re-run):**
+
+- **H1 strict flip rate: 0/5** (bar: held + cos ≥ 0.5 + verdict ≠ FAIL; L01_02 came closest —
+  0.561 with a jitter-only FAIL, 44.1 vs bar 40).
+- **Pick-up/hold axis: 5/5 RESCUED.** Every design — including L01_03 ("A never lifted" in
+  large16) and L01_09 (both fresh A draws aborted) — delivers and holds post-handoff min-z
+  0.109–0.125 in BOTH paired evals. "Never learned to pick it up" was **pure optimizer draw
+  noise**, fully repaired by best-of-2 + watchdog + salvage.
+- **Reorient axis: 0/5 rescued, and the paired recipes AGREE per design** — two independent B
+  draws converging on the same verdict makes these *measurements, not noise*: within ±8.2 mm of
+  m05 (imit cos 0.82±0.02), reorientability under the same evaluator lands at 0.56 (L01_02),
+  ~0.0 static (L01_03/07/09), −0.5 (L01_05). **The landscape has real, resolvable structure on
+  the reorient axis once A-draw noise is removed.**
+- **Trainability axis (unplanned, emergent):** collapse propensity clusters by design —
+  L01_02/03/07: 0 collapses in 6 training legs; L01_05: 3 in 4; L01_09: 3 in 4. Pending P2's
+  m05 control, per-design collapse rate becomes a first-class landscape output (tree step 5).
+- **H3 fairness: KEEP imit-B as the evaluator.** Δcos(imit−self) = −0.020 / −0.221 / +0.500 /
+  −0.027 / +0.263 — one strike (L01_03), three fair, one salvage-garbage; informative-mean ≈ 0
+  ⇒ no systematic off-m05 handicap, and imit produced the set's only real reorient AND held
+  where self dropped (L01_02).
+
+**Verdict on the user's intuition: confirmed where it was aimed, sharpened where it wasn't.**
+The evaluator WAS policy-bottlenecked — n=1 from-scratch verdicts were dominated by A-draw luck,
+and every "couldn't even pick it up" dissolves under best-of-2. With that noise removed, the
+residual failures do NOT dissolve: reorient capability varies by geometry at sub-centimeter
+scale, and collapse-during-training follows the design. Caveat bounding the claim:
+"reorient-hostile" means *under the b_liveA/b_liveA_imit recipe family at 20M ts* — a different
+curriculum/architecture might still unlock these geometries; what we can now map honestly is
+"capability under the blessed recipe," which is the actionable object for co-design.
+
+Next per the tree: P2 `avar` auto-started 03:32 (m05 ×3 raw draws = the control deciding whether
+L01_05-class fragility is design-dependent or endemic); on completion score H2 → fix P4's
+evaluator shape → launch `global24`.
+
 ---
 
 ## Results
