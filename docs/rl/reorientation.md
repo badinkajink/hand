@@ -2065,6 +2065,54 @@ Next per the tree: P2 `avar` auto-started 03:32 (m05 ×3 raw draws = the control
 L01_05-class fragility is design-dependent or endemic); on completion score H2 → fix P4's
 evaluator shape → launch `global24`.
 
+### P2 avar interim (2026-07-11 ~08:10) — m05 control COMPLETE (3/3 raw draws); H2's tightness clause is dead early
+
+All three m05 raw A draws (`--a-attempts 1`, no retry — each row is one uncensored
+CEM→A→imit-B pipeline draw on the *identical* 9-vector):
+
+| draw | Policy A | A gate (objheight / verdict) | imit-B handoff | held-cos (peak) | jerk | notes |
+|---|---|---|---|---|---|---|
+| av_m05_k0 | clean, model_609 | 0.1176 / WARN | holds, min-z 0.1173 | **0.488** (0.612) | **9.8** | genuine moderate reorienter, b33-class smoothness |
+| av_m05_k1 | clean, model_609 | 0.1175 / WARN | holds, min-z 0.1162, 3 fingers 7–8 N | **−0.158** (0.112) | 64.6 FAIL | holds-but-static + thrash (slide path 19 cm, net 0.2) |
+| av_m05_k2 | **COLLAPSED** (salvage model_150) | 0.124 @150 / — | **drops**, min-z 0.0017 | −0.188 | 108 | salvage-A garbage; expected given no retry |
+
+**Finding 1 — H2's tightness clause is already decided (dead), before L01_05's draws even land.**
+The two *clean* m05 draws span held-cos 0.488 → −0.158 under the sd-0.02 imit-B evaluator
+(range 0.65 ≫ the 0.10 bar). Pooling the historical a10→b33 reference (0.82, same recipe
+family), m05's clean-A-draw distribution is {0.82, 0.49, −0.16} — sd ≈ 0.49. Step-5's middle
+branch ("A quality varies continuously per design") is selected on the control alone.
+
+**Finding 2 — the A health gate cannot see the variance that matters.** k0 and k1 are
+gate-indistinguishable: same kept checkpoint index, objheight 0.1176 vs 0.1175, both WARN —
+yet their deliveries send the same B recipe to cos 0.49 vs −0.16. Best-of-N *by the gate*
+buys collapse insurance only; it cannot select for downstream reorientability. Averaging
+multiple **full A→B draws** is the only variance reduction available under this evaluator.
+
+**Finding 3 — this partially reopens P1's reorient-axis conclusion.** P1's "real sub-cm
+geometry signal" rested on paired B recipes agreeing per design — which controls B-seed noise
+but NOT A-draw noise (both recipes rode the *same* A). The m05 control now shows a single
+clean A draw lands anywhere in {reorients ≈ 0.5–0.8, static ≈ −0.2..0} on the *best known
+design* — a range that covers every P1 verdict except L01_05's salvage garbage. So
+"L01_03/07/09 hold-but-static" is, per design, a single Bernoulli draw from a distribution
+whose m05 version already produces "static" ~1/3 of the time. Weak counterpoint keeping the
+geometry hypothesis alive: 3-of-4 completed P1 designs drawing static (and none drawing
+≥0.6) is jointly unlikely (~4%) if they were all m05-equivalent — the signal is *weakened,
+not overturned*, but per-design verdicts need ≥2–3 full draws to be measurements.
+
+**Finding 4 — collapse tally: m05 = 1/3 raw draws.** Even the best design collapses without
+retry, so collapse-retry stays mandatory in P4 and per-design collapse *rate* will be
+statistically soft at feasible n (m05 1/3 vs L01_05 pooled 2/3 pre-avar doesn't separate);
+keep it descriptive, not decisive.
+
+**Trending P4 shape (formalize when the queue's L01_05 rows land):** `global` set at
+`--n 12` with each LHS point emitted twice (`_r0/_r1` replica suffixes — ~3-line change in
+`morph_set()`'s `"global"` branch, same trick the avar set uses) + `--a-attempts 2`, scoring
+per-design **mean cos over 2 full draws** with collapse count as a side channel. Caveat to
+carry into the writeup: with per-draw sd ≈ 0.45, a 2-draw mean still has sd ≈ 0.32 — the
+landscape will resolve only coarse structure (reorients-sometimes vs never), which raises the
+priority of the step-8a morphology-conditioned-policy spike as the fundamental fix to
+evaluate-requires-optimize.
+
 ---
 
 ## Results

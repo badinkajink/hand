@@ -350,3 +350,20 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   L01_05's pooled 2-of-3 A-side (H2/step-5 scoring waits for all 3 m05 + 2 L01_05 draws).
   Committed the P1 stragglers that landed after the 03:32 close-out commit (rs_L01_09 self-B
   video + health JSON, avar table header). GPU busy — no launches this tick.
+- **2026-07-11 ~08:10 tick — m05 control COMPLETE (3/3 raw draws): H2's tightness clause is
+  DEAD early; step-5 middle branch effectively selected.** k0 A clean → imit-B WARN cos 0.488
+  jerk 9.8 (real reorienter); k1 A clean and *gate-identical to k0* (objheight 0.1175 vs
+  0.1176, both WARN, same ckpt index) → holds-but-static cos −0.158 jerk-FAIL 64.6; k2 A
+  COLLAPSED (1/3 raw-draw collapse on the best design; salvage-B drops, uninformative). Clean
+  m05 draws + the a10→b33 reference give a per-draw cos distribution {0.82, 0.49, −0.16},
+  sd ≈ 0.49 ≫ the 0.10 tightness bar — and the A health gate can't see the difference, so
+  best-of-N-by-gate is collapse insurance only. **Consequence: P1's reorient-axis "real
+  geometry signal" is WEAKENED (not overturned)** — paired-recipe agreement controlled B-seed
+  noise, not A-draw noise; m05's own draw spread covers every P1 verdict except L01_05's
+  salvage (counterpoint: 3/4 completed designs all drawing static ≈ 4% likely if
+  m05-equivalent). Trending P4 shape: `--n 12` × 2 full-draw replicas (`_r0/_r1` in
+  `morph_set()` "global" branch, ~3 lines) + `--a-attempts 2`, per-design mean cos, collapse
+  count descriptive; step-8a morph-conditioned-policy spike gains priority (2-draw mean sd
+  still ≈ 0.32). Formal H2 close-out + P4 launch when av_L01_05_k{0,1} land (queue on
+  av_L01_05_k0's A leg, ETA ~12:00). Full analysis in reorientation.md §P2 avar interim.
+  GPU busy — no launches this tick.

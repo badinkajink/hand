@@ -1,2 +1,5 @@
 # full A->B pipeline sweep 'avar'  2026-07-11 03:32  5 designs
 # per design: gen -> IK open_ik -> CEM (grasp gate) -> native A -> live-A reset B -> continuous handoff + trajectory-health scorecard.
+av_m05_k0        | lift 0.054 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1173 cos  0.488 jerk   9.8 force   8.9 drift  0.6cm | WARN   (5621s)
+av_m05_k1        | lift 0.054 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1162 cos -0.158 jerk  64.6 force   7.6 drift  0.2cm | FAIL   (5610s)
+av_m05_k2        | lift 0.054 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.0017 cos -0.188 jerk 108.0 force   3.1 drift 10.6cm | FAIL   (3250s)
