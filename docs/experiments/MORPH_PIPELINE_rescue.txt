@@ -1,0 +1,2 @@
+# full A->B pipeline sweep 'rescue'  2026-07-10 17:48  5 designs
+# per design: gen -> IK open_ik -> CEM (grasp gate) -> native A -> live-A reset B -> continuous handoff + trajectory-health scorecard.

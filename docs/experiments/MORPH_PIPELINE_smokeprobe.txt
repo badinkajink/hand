@@ -1,0 +1,3 @@
+# full A->B pipeline sweep 'smokeprobe'  2026-07-10 17:39  1 designs  [SMOKE]
+# per design: gen -> IK open_ik -> CEM (grasp gate) -> native A -> live-A reset B -> continuous handoff + trajectory-health scorecard.
+rs_L01_05        | lift 0.053 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1159 cos -0.359 jerk   9.1 force   8.8 drift  0.6cm | FAIL | selfB cos -0.368 (FAIL)   (451s)
