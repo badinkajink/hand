@@ -1899,6 +1899,36 @@ imit**: Δcos(imit−self) = −0.02 is within the −0.05 tolerance, and the ho
 stronger — on the same A, imit held while self dropped, so the m05 prior is not handicapping this
 (near-m05) design; it is the difference between hold and drop.
 
+### P1 interim — design 2/5 rs_L01_03: the iter-0 collapse rescues to lift+hold, but reorient never emerges under EITHER B recipe (2026-07-10 night)
+
+rs_L01_03 was the large16 design whose Policy A **collapsed at iter 0** — the cleanest "never
+learned" verdict in the set. Under the rescue evaluator (7775 s):
+
+- **Policy A: rescued on the FIRST fresh draw** (model_609, objheight 0.1115, WARN, no collapse;
+  best-of-2 short-circuited). That makes it **2/2 designs whose large16 A-side failure did not
+  reproduce** on a fresh draw — the iter-0 collapse was draw luck, not geometry. Strong
+  H1-direction evidence on the *A/trainability* axis.
+- **imit-B: holds but does NOT reorient** — post-handoff min-z 0.1092, all three fingers engaged
+  the entire hold (thumb 14.6 / index 17.6 / middle 8.5 N — no idle-thumb pinch), but held-cos
+  **−0.047, peak-cos 0.109**: the hand clamps hard and static. Verdict WARN (jitter 31.6,
+  over-clamp 13.6 N, sliding path 8 cm vs net 0.2 cm — micro-slip in place, no gait).
+- **self-B (same A, paired): also holds, also no reorient** — min-z 0.1126, held-cos 0.174,
+  peak 0.309, verdict FAIL on jitter (ang-jerk 114, worst in the sweep so far).
+
+Scoring: **H1 strict flip 0/2** (cos −0.05 ≪ 0.5), and unlike rs_L01_02 the **capability count
+also stays 1/2** — lift+hold is rescued but reorientation is absent. Crucially, BOTH recipes fail
+to reorient on the same delivered A state, which leans *real design effect* (reorient-hostile
+geometry: the object seats into a static full-force clamp that the m05-recorded gait can't roll)
+rather than B-seed luck — though at n=1 per recipe it isn't conclusive. This is the first P1
+data point *against* pure H1 on the reorient axis, and it sharpens the emerging split: the
+**trainability axis flips readily** (A draws), while the **capability/quality axis may be
+genuinely morphology-dependent** (L01_02: reorients-but-jitters; L01_03: holds-but-static).
+
+**H3 1/2 for imit-fairness**: Δcos(imit−self) = −0.22 < −0.05, the first strike. Caveats: both
+values sit in "no reorient" territory, self-B's edge comes with ang-jerk 114, and a single self-B
+draw carries sd ≈ 0.09 — so the Δ is marginal, but per the decision tree, if this pattern
+repeats across the remaining designs the P4 evaluator must switch to self-B ×2 seeds.
+
 ---
 
 ## Results
