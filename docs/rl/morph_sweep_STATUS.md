@@ -342,3 +342,11 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   step-5/6 and P4's `--a-attempts`/collapse-rate-output shape. NOTE for P4 scoring: consider a
   softened flip bar (cos ≥ 0.5 + held, jitter graded separately) so the quality axis doesn't
   mask capability — L01_02 was a capability flip hidden by a jitter-only FAIL.
+- **2026-07-11 ~05:00 tick — P2 avar healthy, design 1/5 (av_m05_k0) on its B leg. First H2
+  raw-draw data point: m05 draw 1 trained A CLEAN** (CEM lift 0.054 persist 1/1/1; A model_609,
+  objheight 0.1176, no abort/collapse — 54 min). imit-B in flight since 04:30: iter 232/271,
+  object_height 0.128 (≫ 0.030 watchdog bar), only 2 trainable-frac guard hits (L01_05's
+  struggling leg had 22) — no collapse sentinel. Running m05 collapse tally: 0/1 raw draws vs
+  L01_05's pooled 2-of-3 A-side (H2/step-5 scoring waits for all 3 m05 + 2 L01_05 draws).
+  Committed the P1 stragglers that landed after the 03:32 close-out commit (rs_L01_09 self-B
+  video + health JSON, avar table header). GPU busy — no launches this tick.
