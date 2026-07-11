@@ -1,3 +1,4 @@
 # full A->B pipeline sweep 'rescue'  2026-07-10 17:48  5 designs
 # per design: gen -> IK open_ik -> CEM (grasp gate) -> native A -> live-A reset B -> continuous handoff + trajectory-health scorecard.
 rs_L01_02        | lift 0.055 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1115 cos  0.561 jerk  44.1 force   9.7 drift  1.3cm | FAIL | selfB cos  0.581 (FAIL)   (7856s)
+rs_L01_03        | lift 0.052 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1092 cos -0.047 jerk  31.6 force  13.6 drift  0.2cm | WARN | selfB cos  0.174 (FAIL)   (7775s)

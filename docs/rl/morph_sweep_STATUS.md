@@ -285,3 +285,17 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   strict flip bar conflates the two axes. Queue healthy, now on rs_L01_03 (the iter-0 collapse
   design) — its A t0 draw training since 20:03; watchdog armed. Full analysis appended to
   reorientation.md §P1 interim.
+- **2026-07-10 ~22:20 tick — rs_L01_03 COMPLETE (7775 s): A rescued (2/2), but NO reorient under
+  EITHER B recipe; H1 strict 0/2, capability 1/2; H3 1/2.** The iter-0-collapse design trained A
+  clean on its **first** fresh draw (model_609, objheight 0.1115, WARN) — both large16 A-side
+  failures so far were draw luck. imit-B holds (min-z 0.1092, all 3 fingers 8.5–17.6 N, thumb
+  engaged) but held-cos **−0.047** (peak 0.109): a static hard clamp, verdict WARN (jitter 31.6 /
+  over-clamp 13.6 N / micro-slip 8 cm path, 0.2 net). Paired self-B also holds (min-z 0.1126) and
+  also fails to reorient (cos 0.174, peak 0.309, jitter-FAIL 114). Both recipes failing on the
+  same A leans **real reorient-hostile geometry** — first data point against pure H1 on the
+  reorient axis; the trainability/capability split sharpens (L01_02 reorients-but-jitters,
+  L01_03 holds-but-static). H3: Δcos(imit−self) = −0.22 < −0.05 — first fairness strike, but
+  marginal (both cos in no-reorient territory, self edge rides jerk 114, single-draw sd ~0.09);
+  if it repeats, P4 evaluator → self-B ×2 seeds. Queue healthy, now on rs_L01_05 (the
+  late-collapse design): CEM lift 0.056 persist 1/1/1, A t0 training since 22:13. Full analysis
+  in reorientation.md §P1 interim design 2/5.
