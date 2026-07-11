@@ -1,0 +1,198 @@
+[
+ {
+  "id": "rs_L01_05",
+  "morph": [
+   0.0121,
+   -0.0032,
+   0.0115,
+   0.0045,
+   -0.0039,
+   0.0096,
+   0.0242,
+   0.0195,
+   0.0155
+  ],
+  "delta_m05": [
+   -0.0026,
+   -0.0082,
+   0.0007,
+   0.0005,
+   -0.0061,
+   -0.0027,
+   -0.0004,
+   -0.0047,
+   -0.0004
+  ],
+  "ik_resid": {
+   "thumb": 0.1,
+   "index": 0.08,
+   "middle": 0.1
+  },
+  "lift": 0.05312212384926408,
+  "tips": 3.0,
+  "pt": 1.0,
+  "pi": 1.0,
+  "pm": 1.0,
+  "g_imbal": 0.0,
+  "A": {
+   "run": "20260710-1740-policyA_rs_L01_05_t0",
+   "aborted": false,
+   "best_ckpt": "model_19.pt",
+   "best_objheight": 0.1155,
+   "health_verdict": "FAIL",
+   "attempts": [
+    {
+     "run": "20260710-1740-policyA_rs_L01_05_t0",
+     "aborted": false,
+     "objheight": 0.1155,
+     "health_verdict": "FAIL"
+    }
+   ]
+  },
+  "B": {
+   "run": "20260710-1742-policyB_rs_L01_05_reorient",
+   "aborted": false,
+   "recipe": "b_liveA_imit"
+  },
+  "handoff": {
+   "video": "/home/humanoid/Programs/hand/docs/rl/videos/reorient/sweep/rs_L01_05_handoff.mp4",
+   "min_z_post": 0.1159,
+   "health": {
+    "verdict": "FAIL",
+    "checks": {
+     "late_finger": {
+      "status": "PASS",
+      "value": 1.0,
+      "detail": "(thumb@1, index@2, middle@1)"
+     },
+     "idle_finger": {
+      "status": "FAIL",
+      "value": 0.752,
+      "detail": "idle: index | thumb=13.8N/1.00 index=0.8N/0.28 middle=11.8N/1.00"
+     },
+     "drop": {
+      "status": "PASS",
+      "value": 0.1159,
+      "detail": "min hold-phase obj-z 0.116 m (floor<0.05)"
+     },
+     "jitter": {
+      "status": "PASS",
+      "value": 9.0524,
+      "detail": "ang-jerk 9.1 1/s^2"
+     },
+     "de_centering": {
+      "status": "WARN",
+      "value": 3.8613,
+      "detail": "sliding: path 2.4cm >> net 0.6cm"
+     },
+     "over_clamp": {
+      "status": "WARN",
+      "value": 8.785,
+      "detail": "mean fingertip 8.8 N (reward saturates ~3N)"
+     }
+    },
+    "metrics": {
+     "first_contact": [
+      1,
+      2,
+      1
+     ],
+     "contact_spread": 1.0,
+     "touch_frac": [
+      1.0,
+      0.28,
+      1.0
+     ],
+     "force_mean": [
+      13.8,
+      0.8,
+      11.8
+     ],
+     "contact_count": 2.28,
+     "min_z_hold": 0.1159,
+     "ang_jerk": 9.1,
+     "net_drift_cm": 0.6,
+     "slide_ratio": 3.9,
+     "tip_force": 8.8,
+     "held_cos_tail": -0.359,
+     "peak_cos": 0.016
+    }
+   },
+   "b_aborted": false,
+   "a_aborted": false
+  },
+  "BSELF": {
+   "run": "20260710-1745-policyB_rs_L01_05_reorientSELF",
+   "aborted": false,
+   "recipe": "b_liveA"
+  },
+  "handoff_self": {
+   "video": "/home/humanoid/Programs/hand/docs/rl/videos/reorient/sweep/rs_L01_05_handoff_self.mp4",
+   "min_z_post": 0.1154,
+   "health": {
+    "verdict": "FAIL",
+    "checks": {
+     "late_finger": {
+      "status": "PASS",
+      "value": 1.0,
+      "detail": "(thumb@1, index@2, middle@1)"
+     },
+     "idle_finger": {
+      "status": "FAIL",
+      "value": 0.7786,
+      "detail": "idle: index | thumb=13.7N/1.00 index=0.8N/0.27 middle=11.6N/1.00"
+     },
+     "drop": {
+      "status": "PASS",
+      "value": 0.1154,
+      "detail": "min hold-phase obj-z 0.115 m (floor<0.05)"
+     },
+     "jitter": {
+      "status": "PASS",
+      "value": 8.729,
+      "detail": "ang-jerk 8.7 1/s^2"
+     },
+     "de_centering": {
+      "status": "WARN",
+      "value": 4.4107,
+      "detail": "sliding: path 2.7cm >> net 0.6cm"
+     },
+     "over_clamp": {
+      "status": "WARN",
+      "value": 8.7033,
+      "detail": "mean fingertip 8.7 N (reward saturates ~3N)"
+     }
+    },
+    "metrics": {
+     "first_contact": [
+      1,
+      2,
+      1
+     ],
+     "contact_spread": 1.0,
+     "touch_frac": [
+      1.0,
+      0.27,
+      1.0
+     ],
+     "force_mean": [
+      13.7,
+      0.8,
+      11.6
+     ],
+     "contact_count": 2.27,
+     "min_z_hold": 0.1154,
+     "ang_jerk": 8.7,
+     "net_drift_cm": 0.6,
+     "slide_ratio": 4.4,
+     "tip_force": 8.7,
+     "held_cos_tail": -0.368,
+     "peak_cos": 0.005
+    }
+   },
+   "b_aborted": false,
+   "a_aborted": false
+  },
+  "secs": 451
+ }
+]

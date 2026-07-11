@@ -260,3 +260,17 @@ ls logs/*.DONE
 ```
 claude-pulse (deployed 2026-07-10): config `~/.config/claude-pulse/config.toml`, cron `*/15`
 tick; pokes an autonomous session pointed at THIS section when a usage window idles ≥75 min.
+
+**Probe progress log:**
+- **2026-07-10 17:39–17:47 — smoke PASSED (mechanics).** `MORPH_PIPELINE_smokeprobe.*`: full
+  pipeline on rs_L01_05 with truncated training (A stopped at model_19; 451 s total). Verdict FAIL
+  cos −0.36 is expected at that training length and is NOT evidence about the design. What it
+  proved: `--b-recipe both` runs imit+self B on the same kept A, both handoff evals produce
+  scorecards + videos (`rs_L01_05_handoff{,_self}.mp4`), and the JSON records per-attempt A draws.
+  (These smoke videos will be overwritten when the real rescue stage reaches rs_L01_05.)
+- **2026-07-10 ~19:15 tick — queue healthy, P1 in flight on design 1/5 (rs_L01_02).** CEM lift
+  0.055 persist 1/1/1 (4 min). Policy A accepted on its **first** draw (kept model_609, objheight
+  0.117, no abort, no health-FAIL → best-of-2 short-circuited). Early H1-relevant note: rs_L01_02
+  failed large16 via delivery health-FAIL, yet a fresh from-scratch A draw passed the gate
+  immediately — consistent with A-draw noise, pending the B verdict. imit-B near done (ETA ~7 min
+  at check), self-B next. No collapse sentinel; GPU normal.
