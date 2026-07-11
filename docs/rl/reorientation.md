@@ -2113,6 +2113,43 @@ landscape will resolve only coarse structure (reorients-sometimes vs never), whi
 priority of the step-8a morphology-conditioned-policy spike as the fundamental fix to
 evaluate-requires-optimize.
 
+### P2 avar CLOSED (2026-07-11 09:15) → P4 global12×2 LAUNCHED (09:22): L01_05's clean draw scores 0.48 — the P1 class map was draw-dominated; probes conclude the policy draw is THE landscape bottleneck
+
+The queue's last two rows sealed H2:
+
+- **av_L01_05_k0: A clean first draw (objheight 0.1156, WARN) → imit-B WARN, holds min-z
+  0.1155, held-cos 0.480, jerk 12.5** — statistically identical to m05's best raw draw
+  (0.488/9.8). The design that went 0-viable-policies-in-4-legs during P1 produced a
+  moderate reorienter on its very next uncensored draw.
+- av_L01_05_k1: A iter-0 collapse (objheight 0.0) — the raw collapse tally lands at m05 1/3
+  vs L01_05 2/4 pooled (avar + rescue attempts): direction design-dependent, n too small to
+  separate; collapse rate stays a descriptive P4 output, with retry mandatory.
+
+**Formal H2 verdict (decision-tree step 5, middle branch):** the per-design evaluator —
+CEM → from-scratch A (health-gated) → imit-B — has per-draw held-cos sd ≈ 0.3–0.5 that is
+**gate-invisible** (k0/k1 As identical on every recorded gate metric, 0.65 apart in B outcome)
+and **design-overlapping** (L01_05's clean draw ≈ m05's). Single full-pipeline draws are not
+measurements; retries help only against collapse. P4 therefore scores **mean cos over 2
+independent full draws** per design.
+
+**Probe-suite conclusion (P1+P2 together, revising P1's close-out):** the user's intuition is
+confirmed at full depth. (1) "Never learned to pick up" — optimizer noise, 5/5 rescued, still
+solid. (2) "Never learned to reorient" — *also unresolvable per-draw*: P1's static/hostile
+classes dissolve under the m05 control's own draw spread and L01_05's 0.48 (the ~4%-joint-static
+counterpoint stands as the only surviving hint of sub-cm geometry signal). (3) The honest object
+to map is **P(reorient | design) under the blessed recipe**, estimated by replicated full draws —
+exactly what P4 now does. The deeper fix (make evaluation cheap instead of replicated) remains
+the morphology-conditioned policy spike (step 8a).
+
+**P4 LAUNCHED 09:22** (detached, resumable, ETA ~44 h → ~07-13 morning):
+`--morph-set global --n 12 --seed 2 --replicas 2 --tag global12x2 --b-recipe imit
+--a-attempts 2` — 12-point LHS over the FULL 9-param box, replica-major (complete r0 pass ≈
+n=1 map at ~20 h, then the r1 pass), 24 pipeline runs. Waiter fires at r0-complete / crash /
+done. **Standing CPU task for idle ticks:** mine the ~20 accumulated (A scorecard, B outcome)
+pairs from rescue/avar/vstudy for an A-side feature that predicts B fate (the current gate is
+blind to it); a predictive gate would restore cheap single-draw evaluation →
+`docs/notes/a_quality_predictor.md`.
+
 ---
 
 ## Results

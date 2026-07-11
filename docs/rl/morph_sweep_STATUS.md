@@ -367,3 +367,21 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   still ≈ 0.32). Formal H2 close-out + P4 launch when av_L01_05_k{0,1} land (queue on
   av_L01_05_k0's A leg, ETA ~12:00). Full analysis in reorientation.md §P2 avar interim.
   GPU busy — no launches this tick.
+- **2026-07-11 09:15 — PROBE QUEUE COMPLETE (rescue+avar, all rc=0); 09:22 — P4 LAUNCHED.**
+  Final avar rows: **av_L01_05_k0 = clean A → imit-B cos 0.480/jerk 12.5 WARN** — matches m05's
+  best raw draw (0.488/9.8); the P1 "trainability-hostile" class for L01_05 is contradicted by
+  one uncensored draw. av_L01_05_k1 = iter-0 A collapse (raw tallies: m05 1/3, L01_05 2/4 —
+  design-dependence unresolved, keep descriptive). **Formal H2: step-5 middle branch** —
+  per-draw cos sd 0.3–0.5, gate-invisible (k0/k1), design-overlapping (L01_05≈m05) ⇒ single
+  draws are not measurements; score designs on mean cos over replicated full draws. **P1
+  REVISION recorded** (reorientation.md §P2 avar CLOSED): pick-up rescue stands 5/5; the
+  reorient class map is draw-dominated (only the ~4% joint-static counterpoint survives);
+  probe-suite conclusion = the policy DRAW is THE landscape bottleneck (user's intuition,
+  full depth). **P4 global12x2 RUNNING** (`--morph-set global --n 12 --seed 2 --replicas 2
+  --tag global12x2 --b-recipe imit --a-attempts 2`, launched 09:22, ETA ~44 h): replica-major
+  → complete r0/n=1 map ~20 h, then r1; waiter armed (r0-complete ≥12 records / crash / DONE;
+  NOTE: after the r0 event, re-arm with DONE-only — the ≥12 condition stays true). Analysis on
+  events: pool `_r0/_r1` (mean/max cos, collapse count), `morph_pipeline_plots.py --tag
+  global12x2` (group by stripping the `_r\d` suffix). **Standing idle-tick CPU task:** A-side
+  predictor of B fate from the ~20 accumulated (A scorecard, B outcome) pairs →
+  `docs/notes/a_quality_predictor.md` (a predictive gate would restore single-draw eval).

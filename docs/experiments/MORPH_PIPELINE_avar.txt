@@ -3,3 +3,5 @@
 av_m05_k0        | lift 0.054 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1173 cos  0.488 jerk   9.8 force   8.9 drift  0.6cm | WARN   (5621s)
 av_m05_k1        | lift 0.054 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1162 cos -0.158 jerk  64.6 force   7.6 drift  0.2cm | FAIL   (5610s)
 av_m05_k2        | lift 0.054 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.0017 cos -0.188 jerk 108.0 force   3.1 drift 10.6cm | FAIL   (3250s)
+av_L01_05_k0     | lift 0.056 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1155 cos   0.48 jerk  12.5 force   8.7 drift  0.1cm | WARN   (5623s)
+av_L01_05_k1     | lift 0.056 tip 3.0 pers 1.00/1.00/1.00 | minZ      — cos      — jerk     — force     — drift    —cm | A never lifted (best objheight 0.0 < 0.06, 1 attempts)   (505s)
