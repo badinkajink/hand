@@ -1874,6 +1874,31 @@ plain|imit|both`, `--only`, stale-`.COLLAPSED`-sentinel clearing. Monitoring: wa
 sentinels + **claude-pulse deployed** (cron `*/15`, idle ≥75 min → autonomous session pointed at
 the runbook decision tree).
 
+### P1 interim — design 1/5 rs_L01_02: capability flips, quality doesn't; imit holds where self drops (2026-07-10 late)
+
+rs_L01_02 failed large16 via **delivery health-FAIL**. Under the rescue evaluator it is a
+**partial flip**:
+
+- **Policy A: accepted on the FIRST fresh draw** (model_609, objheight 0.117, WARN; best-of-2
+  short-circuited). The large16 A-side failure did not reproduce — direct evidence the earlier
+  verdict was an A-draw event, not geometry.
+- **imit-B: genuinely holds and reorients** — post-handoff min-z 0.1115, held-cos 0.561 (peak
+  0.678), all three fingertips in contact the whole hold (9–10 N each). Scorecard verdict is
+  still FAIL, but on **jitter alone**: ang-jerk 44.1 vs the FAIL bar 40 (b33 reference: 9.6,
+  corefined: 5.9); plus WARNs for sliding (path 22 cm vs net drift 1.3 cm) and over-clamp 9.7 N.
+- **self-B (same A, paired): DROPS** — post-handoff min-z 0.0062. Its peak-cos 0.999 is
+  floor-bracing, and its held-cos tail 0.581 is object-on-floor, not in-hand. FAILs drop +
+  jitter + de-centering.
+
+Scoring: **H1 strict flip 0/1** (the flip bar requires verdict ≠ FAIL and jitter blocks it), but
+the *capability* claim — "never learned to pick up and reorient" — flipped: held + cos ≥ 0.5 is
+1/1. Worth tracking both counts across the remaining 4 designs; if the pattern holds, the
+landscape story splits into a **trainability axis** (rescued by a stronger optimizer draw) and a
+**quality axis** (jitter/smoothness, possibly genuinely morphology-dependent). **H3 1/1 for
+imit**: Δcos(imit−self) = −0.02 is within the −0.05 tolerance, and the honest paired read is
+stronger — on the same A, imit held while self dropped, so the m05 prior is not handicapping this
+(near-m05) design; it is the difference between hold and drop.
+
 ---
 
 ## Results
