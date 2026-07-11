@@ -4,3 +4,4 @@ rs_L01_02        | lift 0.055 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1115 cos  0.5
 rs_L01_03        | lift 0.052 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1092 cos -0.047 jerk  31.6 force  13.6 drift  0.2cm | WARN | selfB cos  0.174 (FAIL)   (7775s)
 rs_L01_05        | lift 0.056 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1215 cos -0.469 jerk  14.8 force   2.5 drift  0.4cm | FAIL | A×2 | selfB cos -0.969 (FAIL)   (7041s)
 rs_L01_07        | lift 0.054 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1123 cos  0.032 jerk  13.9 force  10.4 drift  0.6cm | WARN | selfB cos  0.059 (WARN)   (7769s)
+rs_L01_09        | lift 0.051 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1211 cos  0.249 jerk  17.1 force   2.9 drift  0.1cm | FAIL | A×2 | selfB cos -0.014 (FAIL)   (4611s)

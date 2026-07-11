@@ -328,3 +328,17 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   question — P4 shape hinges on it (collapse rate as first-class output; likely
   --a-attempts 2 + salvage-A quality gate). Full analysis in reorientation.md §P1 designs
   3–5. Queue healthy; GPU busy (self-B rs_L01_09) — no launches this tick.
+- **2026-07-11 03:32 — P1 rescue CLOSED (5/5, rc=0, 9h44m); avar auto-started (waiter fired).**
+  rs_L01_09's self-B trained CLEAN (softens it to *A-fragile*, not fully hostile) but static:
+  min-z 0.1249, cos −0.014, FAIL. **FINAL: H1 strict 0/5** (tree step-3 low branch) with the
+  axis split now definitive — **pick-up/hold 5/5 rescued** (min-z 0.109–0.125 both evals, every
+  design) = the "never learned to pick up" claims were pure A-draw noise; **reorient 0/5**
+  rescued, paired recipes agree per design ⇒ real sub-cm geometry signal (m05 0.82 → 0.56 /
+  ~0.0×3 / −0.5 within ±8.2 mm); **trainability clusters by design** (0/6 collapse legs on
+  L01_02/03/07 vs 3/4 on L01_05 and 3/4 on L01_09). **H3 CLOSED: keep imit-B** (fair 3 /
+  strike 1 / uninformative 1, informative-mean Δ≈0, imit gave the only reorient + held where
+  self dropped). Full close-out in reorientation.md §P1 CLOSED. **Next: score H2 on avar**
+  (running; ETA ~12:00–14:00): m05 raw-draw collapse rate vs L01_05's pooled 3-of-4 → decides
+  step-5/6 and P4's `--a-attempts`/collapse-rate-output shape. NOTE for P4 scoring: consider a
+  softened flip bar (cos ≥ 0.5 + held, jitter graded separately) so the quality axis doesn't
+  mask capability — L01_02 was a capability flip hidden by a jitter-only FAIL.
