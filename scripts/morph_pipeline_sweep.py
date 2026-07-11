@@ -90,8 +90,9 @@ RESCUE = {
 }
 
 
-def morph_set(name: str, n: int, seed: int, center):
-    """Return [(id, 9-vector), ...]. `initial8` = interpretable coordinate moves around m05."""
+def morph_set(name: str, n: int, seed: int, center, replicas: int = 1):
+    """Return [(id, 9-vector), ...]. `initial8` = interpretable coordinate moves around m05.
+    `replicas` (global set only) emits each design as independent `_rj` full-pipeline draws."""
     if name == "initial8":
         # s00 m05 anchor (reproduce the known winner under the honest pipeline);
         # s01 baseline m00 (a full A->B on the base design — a calibration reference);
@@ -127,11 +128,19 @@ def morph_set(name: str, n: int, seed: int, center):
     if name == "global":
         # Latin hypercube over the FULL 9-param box — the honest-pipeline GLOBAL landscape
         # (the 2026-06-25 global map used the superseded teleport proxy; this replaces it).
+        # `replicas` re-emits every design as `_r0/_r1/...` = INDEPENDENT full-pipeline draws
+        # (avar verdict: per-draw cos sd ≈ 0.3-0.5 and gate-invisible ⇒ n=1 draws are
+        # uninterpretable; score designs on mean/max over replicas + collapse count).
+        # Replica-major order: a full r0 pass over all designs first (complete n=1 map early),
+        # then the r1 refinement pass.
         rng = np.random.default_rng(seed)
         strata = (rng.permuted(np.tile(np.arange(n), (9, 1)), axis=1).T + rng.random((n, 9))) / n
         lo = np.array([b[0] for b in BND]); hi = np.array([b[1] for b in BND])
-        return [(f"G{seed:02d}_{k:02d}", _clip(tuple(lo + strata[k] * (hi - lo))))
-                for k in range(n)]
+        designs = [(f"G{seed:02d}_{k:02d}", _clip(tuple(lo + strata[k] * (hi - lo))))
+                   for k in range(n)]
+        if replicas <= 1:
+            return designs
+        return [(f"{mid}_r{j}", v) for j in range(replicas) for mid, v in designs]
     # local quasi-random (Gaussian) search around `center`, seeded + reproducible.
     rng = np.random.default_rng(seed)
     sig = np.array([0.005, 0.005, 0.004] * 3)                              # per-axis step
@@ -333,6 +342,8 @@ def main():
                     help="plain=b_liveA | imit=b_liveA_imit | both=imit AND plain on the same A")
     ap.add_argument("--only", default=None,
                     help="comma-separated design ids: run only this subset of the morph-set")
+    ap.add_argument("--replicas", type=int, default=1,
+                    help="global set: independent full-pipeline draws per design (_r0/_r1/...)")
     args = ap.parse_args()
     env = runlib.base_env()
 
@@ -345,7 +356,7 @@ def main():
         center = tuple(json.loads((ROOT / "docs/experiments/MORPH_PIPELINE_best_center.json").read_text()))
     elif "," in args.center:
         center = tuple(float(x) for x in args.center.split(","))
-    items = morph_set(args.morph_set, args.n, args.seed, center)
+    items = morph_set(args.morph_set, args.n, args.seed, center, replicas=args.replicas)
     if args.only:
         keep = {s.strip() for s in args.only.split(",")}
         missing = keep - {i[0] for i in items}
