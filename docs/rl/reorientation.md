@@ -1929,6 +1929,36 @@ values sit in "no reorient" territory, self-B's edge comes with ang-jerk 114, an
 draw carries sd ≈ 0.09 — so the Δ is marginal, but per the decision tree, if this pattern
 repeats across the remaining designs the P4 evaluator must switch to self-B ×2 seeds.
 
+### P1 interim — design 3/5 rs_L01_05 (in flight): first design where trainability itself resists — A needs its retry AND imit-B collapses (2026-07-10 ~23:45)
+
+rs_L01_05 was the large16 late-collapse design (its old A was salvaged as an undertrained
+model_50). Interim state, self-B still training:
+
+- **CEM fine** (lift 0.056, persist 1/1/1) — the grasp gate is not the problem.
+- **Policy A: first design to consume the best-of-2 retry.** t0 draw COLLAPSED (watchdog:
+  object-height 0.0123 < 0.045 at iter 98); t1 trained clean (kept model_609, objheight 0.1236,
+  no abort). Cumulative A-draw record for this design: **2 collapses in 3 draws** (large16
+  late-collapse, t0 collapse, t1 clean) vs 0 collapses in 2 first draws for L01_02/L01_03.
+- **imit-B: watchdog-aborted** (object-height 0.0275 < 0.03 at iter 194) — the **first B-side
+  collapse in the whole program**. Salvage eval of model_150: verdict FAIL on idle_finger —
+  a degenerate ONE-finger pin (middle 7.4 N; thumb and index 0.0 N, touch-frac 0) that
+  nonetheless keeps min-z at 0.1217; held-cos −0.469, peak-cos 0.001. No reorient, no real grip.
+- **self-B (same A) training now**, and struggling at the start: 22 "trainable frac=0.000 →
+  zeroing advantages" live-A guard hits in its first ~34 iters (envs terminating around onset),
+  vs clean starts on the previous designs.
+
+Interim scoring. **H1 strict: 0/3.** Capability flips: still **1/3** (only L01_02). But the
+sharper story is that rs_L01_05 breaks the pattern of designs 1–2: there, A-failures flipped
+instantly and only *reorient quality* stayed bad; here **collapse follows the design across
+stages and draws** — A t0, imit-B, and (early signal) self-B all struggle to keep the object
+off the floor. This is exactly the decision-tree step-5 clause ("L01_05's draws systematically
+bad while m05's are fine ⇒ the design effect on TRAINABILITY is real — a first-class landscape
+axis"). P2 `avar` (which pools these attempts and adds av_L01_05_k{0,1} raw draws) will decide
+it. If it holds, P4 must report per-design collapse rate alongside cos, and rs_L01_05's
+"rescue" verdict should be read as *trainability-hostile*, not merely reorient-hostile.
+
+H3 for this design: pending self-B completion.
+
 ---
 
 ## Results
