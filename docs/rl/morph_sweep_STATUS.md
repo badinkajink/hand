@@ -299,3 +299,13 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   if it repeats, P4 evaluator → self-B ×2 seeds. Queue healthy, now on rs_L01_05 (the
   late-collapse design): CEM lift 0.056 persist 1/1/1, A t0 training since 22:13. Full analysis
   in reorientation.md §P1 interim design 2/5.
+- **2026-07-10 ~23:45 tick — rs_L01_05 IN FLIGHT: first trainability-hostile design. A t0
+  COLLAPSED (iter 98), t1 clean (kept model_609, objheight 0.1236 — first best-of-2 retry
+  actually used); then imit-B ALSO watchdog-collapsed (iter 194, first B-side collapse in the
+  program).** Salvaged imit model_150: FAIL idle_finger — one-finger pin (middle 7.4 N, thumb+
+  index 0 N), min-z 0.1217, cos −0.469. Self-B (same A) training since 23:41 and struggling
+  (22 live-A "trainable frac=0" guard hits in ~34 iters). Cumulative A-draw record for this
+  design: 2 collapses/3 draws vs 0/2 first-draws for L01_02/03 ⇒ collapse propensity looks
+  design-dependent — the step-5 clause; P2 `avar` (av_L01_05_k{0,1} + pooled attempts) decides.
+  Interim tallies: H1 strict 0/3, capability 1/3; H3 design-3 pending self-B. Analysis in
+  reorientation.md §P1 interim design 3/5. Queue healthy; GPU busy (self-B) — no launches.
