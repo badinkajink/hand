@@ -2166,6 +2166,31 @@ delivery (min force 0.0 N) → a free `min(force_mean) < 0.5 N` retry-trigger fo
 the known floor-z trap) yet 3/4 fed good Bs — the A gate's verdicts are partly artifact, which
 is why they can't rank draws. Details: `docs/notes/a_quality_predictor.md`.
 
+### P4 global12×2 interim — designs 1–2/24 (2026-07-11 ~12:45 tick): first full-box LHS point is a REORIENTER
+
+First two r0 records landed (~94 min/design each — ahead of the ~110 min/design estimate;
+r0/n=1 map ETA now ~07-12 early AM, full 24 ETA ~07-12 late night):
+
+- **G02_00_r0 — cos 0.504, WARN**: A first-draw clean (model_609, objheight 0.1156); imit-B
+  holds (post-handoff min-z 0.114, all 3 fingers 5.4–8.2 N) and **reorients** at m05's
+  clean-draw level (held-cos 0.504 / peak 0.524 / jerk 9.3 — cf. m05 av_k0 0.488/9.8). WARN
+  is sliding (path 5.1 cm vs net 0.2 cm) + over-clamp 7.1 N only; every capability check
+  PASSes. Notably this design sits **well outside the ±8 mm local box** (delta-to-m05 up to
+  3.9 cm on two placement params; thumb IK residual 4.4 mm, worst accepted so far) — the
+  first honest-pipeline evidence that reorient capability isn't confined to m05's immediate
+  neighborhood. Per H2 discipline this is one draw, not a measurement — its `_r1` replica
+  decides whether it's a real hotspot or draw luck.
+- **G02_01_r0 — cos −0.134, WARN**: same clean profile through A (first draw, objheight
+  0.1142) and hold (min-z 0.1214, forces 7.9–11.6 N), but holds-but-static (peak 0.147),
+  the familiar failure phenotype. Max delta-to-m05 4.5 cm.
+
+Trainability tally so far: **2/2 A first-draw clean, 0 collapse legs** — consistent with
+collapse being sparse across the full box rather than the norm (L01_05/09 remain the
+concentrated cases). Both A health verdicts WARN; the gate again can't distinguish the
+reorienter's A from the static design's A — the 2-replica pooling carries the inference
+load, as designed. No conclusions until `_r1` pairs land; next analysis window at the
+r0-complete waiter event (≥12 records).
+
 ---
 
 ## Results
