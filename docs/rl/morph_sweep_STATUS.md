@@ -408,4 +408,11 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   m05's neighborhood. Pace ~94 min/design ⇒ r0 map ETA ~07-12 early AM, full 24 ~07-12
   late night (ahead of the 44 h estimate). Design 3 (G02_02_r0) on its A leg since 12:36.
   Committed rows + videos + health JSONs + this analysis (reorientation.md §P4 interim).
-  GPU busy — no launches this tick.
+  Also ran the step-8a CPU spike: **morphology-conditioned policy is FEASIBLE with zero
+  mjwarp changes** — all mjwarp kernels read model fields `[worldid % shape[0]]` (batched
+  geometry native) and mjlab already ships `Simulation.expand_model_fields()` +
+  `recompute_constants()` with CUDA-graph recapture handled. Remaining work is project-side
+  plumbing (per-design field scatter from CPU-compiled MjModels, per-world open_ik reset
+  table, 9-vector in obs; est. 2–4 days; conditioned-A-before-conditioned-B ordering).
+  Full note: `docs/notes/morph_conditioned_policy_spike.md`. GPU busy — no launches this
+  tick.
