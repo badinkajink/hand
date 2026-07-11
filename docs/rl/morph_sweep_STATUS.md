@@ -398,3 +398,14 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   `docs/notes/a_quality_predictor.md`; rerunnable `scripts/a_quality_predictor.py` (re-run
   with `--tags … global12x2` after P4 → n≈50). Committed avar stragglers (av_L01_05_k0
   video+health, global12x2 table header). GPU busy — no launches this tick.
+- **2026-07-11 ~12:45 tick — P4 designs 1–2/24 complete; FIRST FULL-BOX POINT REORIENTS.**
+  G02_00_r0: A first-draw clean → imit-B holds AND reorients (cos 0.504 / peak 0.524 /
+  jerk 9.3, WARN sliding+over-clamp only) at m05-clean-draw level — despite sitting up to
+  3.9 cm from m05 (far outside the ±8 mm local box) with the worst accepted thumb IK
+  residual (4.4 mm). G02_01_r0: same clean A/hold profile but static (cos −0.134, peak
+  0.147, max delta 4.5 cm). Trainability: 2/2 first-draw-clean As, 0 collapses. Per H2, no
+  single-draw conclusions — `_r1` replicas decide; but capability clearly extends beyond
+  m05's neighborhood. Pace ~94 min/design ⇒ r0 map ETA ~07-12 early AM, full 24 ~07-12
+  late night (ahead of the 44 h estimate). Design 3 (G02_02_r0) on its A leg since 12:36.
+  Committed rows + videos + health JSONs + this analysis (reorientation.md §P4 interim).
+  GPU busy — no launches this tick.

@@ -1,2 +1,4 @@
 # full A->B pipeline sweep 'global12x2'  2026-07-11 09:22  24 designs
 # per design: gen -> IK open_ik -> CEM (grasp gate) -> native A -> live-A reset B -> continuous handoff + trajectory-health scorecard.
+G02_00_r0        | lift 0.052 tip 3.0 pers 1.00/1.00/1.00 | minZ  0.114 cos  0.504 jerk   9.3 force   7.1 drift  0.2cm | WARN   (5645s)
+G02_01_r0        | lift 0.052 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1174 cos -0.134 jerk  12.9 force  10.2 drift  1.0cm | WARN   (5645s)
