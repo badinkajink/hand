@@ -416,3 +416,19 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   table, 9-vector in obs; est. 2–4 days; conditioned-A-before-conditioned-B ordering).
   Full note: `docs/notes/morph_conditioned_policy_spike.md`. GPU busy — no launches this
   tick.
+- **2026-07-11 ~17:30 tick — P4 designs 3–5/24 complete (rows 3–5 analyzed; the ~15:00 tick's
+  design-3 writeup was in the tree but uncommitted — committed now).** G02_02_r0 = **A-defect
+  row** (A t0 idle-index FAIL kept after t1 collapsed; worst index IK residual 6.76 mm; B
+  static, cos −0.388) — score it as A-defect, not geometry; its `_r1` is the arbiter.
+  G02_03_r0 = **best P4 cos so far (0.568, peak 0.765) from the WORST inputs** — thumb-dead
+  CEM grasp (persist 0.00), thumb IK residual 11.06 mm, A t0 collapse; B reorients on a
+  2-finger grip, verdict FAIL on idle-thumb only ⇒ second capability-flip-behind-a-FAIL
+  (L01_02 pattern; softened flip bar keeps earning its place). This kills the ~15:00
+  hypothesis "degraded grasp input ⇒ hostile design" (it survives only as collapse
+  propensity). G02_04_r0 = **first clean-sheet PASS of the honest sweeps — and static**
+  (cos 0.148, all 6 health checks PASS, jerk 6.5): health⊥capability now demonstrated in
+  both directions same-day. r0 tally 5/12: cos {0.504, −0.134, −0.388ᴬᵈᵉᶠ, 0.568, 0.148},
+  2/5 ≥ 0.5 ≈ m05's clean-draw hit rate, at 3–4 cm from m05 ⇒ reorienters are NOT rare in
+  the full box (pending r1 pooling). A-leg collapses 2/7. Design 6 (G02_05_r0) A training
+  since ~17:25; pace ~95 min/design; r0 ETA ~07-12 04:30, full 24 ~07-12 ~23:30. GPU busy —
+  analysis/commit only; waiter armed. Full analysis reorientation.md §P4 interim designs 4–5.
