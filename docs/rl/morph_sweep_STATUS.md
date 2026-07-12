@@ -513,3 +513,18 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   object_height 0.123, no collapse sentinel — row lands ~04:55. Cumulative A-leg collapses
   8/19. No new rows since the 03:12 r0 close-out; committed the G02_10_r0 video+health
   stragglers. GPU busy — analysis/commit only; waiter armed (DONE-only).
+- **2026-07-12 ~07:00 tick — r1 designs 13–16 landed: G02_00 = FIRST replica-consistent
+  reorienter (0.504/0.635, both held, jerk 9.3/9.9); G02_03_r1 peaked cos 0.999 then DROPPED;
+  G02_01_r1 + G02_02_r1 double-A-collapse where their r0s lifted.** G02_00_r1 WARN cos 0.635
+  (min-z 0.1119) on a kept-FAIL A — verdict survives the A draw, top confirm-candidate.
+  G02_03_r1 FAIL: thumb-dead seed reached peak cos 0.999 (sweep-program record) on a salvaged
+  undertrained model_50 A, then dropped (hold min-z 0.0463, drift 4.2 cm, jerk 229.6) — replica
+  pair 0.568-held/0.333-dropped, both replicas ATTEMPT big reorients (peaks 0.678/0.999);
+  G02_03 + G02_00 = the only 2 designs with reorient signal in both replicas. G02_01/G02_02 r1
+  double-collapses (~12 min each) prove best-of-2 total miss is draw luck, not design fate ⇒
+  G02_11 lift-hostility verdict must wait for its r1. Evaluator cost: A-leg aborts 14/26 (54%),
+  3/16 legs lost entirely ⇒ argue --a-attempts 3 or collapse-rate-as-output for P5. r1 opened
+  7/8 attempts aborted (~1% under r0's 41% if i.i.d.) — flagged, then cleared: G02_04_r1 t0
+  (design 17) completed a clean full run this tick; watch whether the rate reverts. ETA full-24
+  ~07-13 early AM. GPU busy — analysis/commit only. Full analysis reorientation.md §P4 r0
+  close-out + r1 designs 13–16 (also backfills the r0 12/12 close-out there).

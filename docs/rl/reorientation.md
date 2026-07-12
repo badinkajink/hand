@@ -2422,6 +2422,60 @@ Pace ~96 min/design + the retry ⇒ r0 map ETA ~07-12 ~06:00, full 24
 
 ---
 
+### P4 global12×2 — r0 close-out + r1 designs 13–16 (2026-07-12 ~07:00 tick): first replica-consistent reorienter; peak cos 0.999 that couldn't hold; r1 opens with an A-collapse cluster
+
+**r0 close-out (backfill of the 03:12 STATUS entry).** G02_10_r0 cos 0.117
+(jerk 36.3, WARN; A t0 watchdog-collapsed, t1 clean — fifth clean-static row).
+G02_11_r0 = the program's first lift-level best-of-2 total miss: BOTH A draws
+collapsed at objheight 0.0 (753 s) despite clean CEM (lift 0.055, persist
+1/1/1). r0 finishes 11/12 evaluable, hold min-z ≥ 0.105 on all 11 — pick-up
+solved across the full box whenever A trains at all.
+
+**G02_00_r1 — cos 0.635 (peak 0.653), WARN, A×2 (5887 s). G02_00 is the
+sweep's first replica-consistent reorienter.** r0 0.504 / r1 0.635 — both
+replicas hold (min-z 0.114/0.112), reorient ≥ 0.5, with the cleanest jerk in
+the sweep (9.3/9.9). The two replicas got different-grade A's (r0: first-draw
+WARN; r1: kept-FAIL t0 after the t1 retry watchdog-collapsed) and the verdict
+survived anyway — the first design whose reorient capability is robust to the
+A draw. At 3.9 cm from m05 (thumb-x −0.029 the dominant axis) it is a genuine
+far-from-m05 capability point. Under H2 rules n=2 is still not a ranking, but
+G02_00 is now the top candidate for any post-sweep confirm replication.
+
+**G02_01_r1, G02_02_r1 — double A collapse (724/754 s each), no B.** Both
+designs LIFTED at r0 (cos −0.134 / −0.388). Best-of-2 total miss is therefore
+not design fate for these two — it's draw luck; symmetrically, G02_11's r0
+double-miss cannot be read as lift-hostile geometry until its r1 (last in the
+queue) lands. Running cost of the evaluator: best-of-2 has now totally missed
+3/16 design-legs, with the A-leg per-attempt abort rate at 14/26 = 54%. At
+that rate ~21% of legs vanish entirely — an H2 cost that argues for
+`--a-attempts 3` (or keeping per-design collapse rate as a first-class
+landscape output, per the P2 clause) in any follow-on sweep.
+
+**G02_03_r1 — tail cos 0.333 but PEAK COS 0.999, FAIL (dropped: hold-phase
+min-z 0.0463, drift 4.2 cm, jerk 229.6; 2851 s).** The thumb-dead grasp seed
+(persist 0.00/0.97/0.99, thumb resid 11.06 mm) reached essentially full
+vertical — peak cos 0.999, the highest instantaneous reorient in the entire
+sweep program — then lost retention and dropped. Confounder: its A was a
+salvaged undertrained model_50 (t0 aborted at objheight 0.098, t1 collapsed) —
+the known-bad valfix2-style salvage mode — so the drop is at least as
+attributable to A quality as to the 2-finger topology. Replica pair: r0
+0.568-held vs r1 0.333-dropped — same softened-bar family, same index+middle
+gait, opposite retention (H2 spread) — but BOTH replicas attempt large
+reorients (peaks 0.678 / 0.999) where most of the box never tries. G02_03 +
+G02_00 are now the only designs with reorient-attempt signal in both replicas.
+
+**r1 A-collapse cluster (flagged, then cleared).** r1 legs opened 7/8 A
+attempts aborted (G02_00 t1; G02_01 ×2; G02_02 ×2; G02_03 ×2-with-salvage) —
+~1% likely under r0's 41% per-attempt rate if draws were i.i.d. Checked live
+at this tick: G02_04_r1 t0 (design 17) completed a full clean training run, so
+it is not a wedged-GPU artifact; if the elevated rate persists through r1,
+suspect a replica-seed-offset interaction rather than luck.
+
+Pace: designs 13–16 took ~2.9 h total (collapsed legs are cheap), so full-24
+ETA holds at ~07-13 early AM or slightly earlier.
+
+---
+
 ## Results
 
 ### Cross-run comparison plots
