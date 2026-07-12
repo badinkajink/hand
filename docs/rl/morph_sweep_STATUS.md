@@ -583,3 +583,18 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   flattest-clamp −0.099) A training since ~13:25; then G02_09/G02_10/G02_11_r1 (the
   lift-hostility arbiter). Full-24 ETA ~07-12 ~20:30–22:00. GPU busy — analysis/commit
   only; waiter armed (DONE-only). Full analysis reorientation.md §P4 r1 design 20.
+- **2026-07-12 ~17:20 tick — r1 design 21 landed: G02_08 = FOURTH replica-consistent design,
+  second consistent STATIC (tails −0.099/0.074, peaks ≤ 0.11) — and the only design so far
+  whose A passed FIRST-draw in BOTH replicas (0 aborts/2 draws vs ~48% program abort rate).**
+  r1 holds clean (min-z 0.1098, 3 fingers 6.4–8.7 N, jerk 13.8 PASS) but never reorients.
+  Convergent-verdict-from-different-grips repeats (r0 thumb-heavy clamp 12.2 N jerk-WARN vs
+  r1 balanced jerk-PASS): grip style is a draw property, the capability tail is geometry.
+  New decoupling: easiest-trainability design is capability-static — trainability, health,
+  input cleanliness, and reorient capability are now ALL pairwise-decoupled axes. Consistent
+  set: G02_00 reorienter / G02_07 partial / G02_06+G02_08 static = 4 of 7 both-evaluable
+  designs resolve at n=2 (G02_04/G02_05 the proven exceptions). Tallies 21/24: A-leg aborts
+  16/34 (47%); hold 17/18 evaluable. Reboot 15:53 already logged; sweep resumed clean. In
+  flight: G02_09_r1 — t0 completed but gate-rejected, t1 training since ~16:56; then
+  G02_10_r1, G02_11_r1 (lift-hostility arbiter). Full-24 ETA ~07-12 ~21:30–23:00. GPU busy —
+  analysis/commit only; waiter armed (DONE-only). Full analysis reorientation.md §P4 r1
+  design 21.
