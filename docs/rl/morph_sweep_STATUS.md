@@ -492,3 +492,17 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   Design 11 (G02_10_r0) on A t1 since ~01:30 (t0 watchdog-collapsed); r0 ETA ~07-12 ~06:00,
   full 24 ~07-13 early AM; waiter armed (fires at ≥12 records). GPU busy — analysis/commit
   only. Full analysis reorientation.md §P4 interim designs 9–10.
+- **2026-07-12 03:12 — r0 PASS COMPLETE (12/12); r1 pass auto-continuing (G02_00_r1 in CEM).**
+  Final two rows: **G02_10_r0** cos 0.117 jerk 36.3 WARN (A t0 collapsed → t1 clean; fifth
+  clean-static); **G02_11_r0 = the program's FIRST lift-level best-of-2 total miss** — BOTH A
+  draws collapsed at objheight 0.0 (753 s) despite clean CEM (lift 0.055, persist 1/1/1). Watch
+  its r1: 4/4 all-collapse ⇒ first genuinely lift-hostile geometry candidate (vs L01_05's
+  2-clean-of-5); 1+ clean ⇒ draw luck again. **r0 tally (n=1 pass, NOT rankings — H2):**
+  evaluable cos {0.504, −0.134, −0.388ᴬᵈᵉᶠ, 0.568, 0.148, −0.499ᴬᵈᵉᶠ, 0.127, 0.333, −0.099,
+  −0.102ᴬᵈᵉᶠ, 0.117}; softened-bar 2/11 (G02_00, G02_03 — both 3–4 cm from m05: reorient
+  capability EXISTS far from m05); A-defect 3, clean-static 5, partial 1; A-leg collapses 7/17;
+  **every policy that trained held (11/11 min-z ≥ 0.105)** — pick-up solved across the full box
+  *when A trains*, G02_11 the lone train-failure. r1 ETA ~07-12 ~22:30 → full-24 analysis:
+  pool `_r0/_r1` per design (mean/max cos, collapse count), `morph_pipeline_plots.py --tag
+  global12x2`, rank vs m05 draw-band, promote nothing on n=2 without a confirm. Waiter re-armed
+  DONE-only. GPU busy (r1) — no launches.

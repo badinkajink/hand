@@ -1262,5 +1262,194 @@
    "a_aborted": false
   },
   "secs": 5880
+ },
+ {
+  "id": "G02_10_r0",
+  "morph": [
+   0.0109,
+   0.0196,
+   0.0022,
+   -0.024,
+   0.0173,
+   0.0035,
+   -0.0226,
+   -0.0085,
+   0.0168
+  ],
+  "delta_m05": [
+   -0.0038,
+   0.0146,
+   -0.0086,
+   -0.028,
+   0.0151,
+   -0.0088,
+   -0.0472,
+   -0.0327,
+   0.0009
+  ],
+  "ik_resid": {
+   "thumb": 0.09,
+   "index": 0.09,
+   "middle": 0.09
+  },
+  "lift": 0.05018547112460464,
+  "tips": 3.0,
+  "pt": 1.0,
+  "pi": 1.0,
+  "pm": 1.0,
+  "g_imbal": 0.0,
+  "A": {
+   "run": "20260712-0129-policyA_G02_10_r0_t1",
+   "aborted": false,
+   "best_ckpt": "model_609.pt",
+   "best_objheight": 0.1131,
+   "health_verdict": "WARN",
+   "attempts": [
+    {
+     "run": "20260712-0124-policyA_G02_10_r0_t0",
+     "aborted": true,
+     "objheight": 0.122,
+     "health_verdict": null
+    },
+    {
+     "run": "20260712-0129-policyA_G02_10_r0_t1",
+     "aborted": false,
+     "objheight": 0.1131,
+     "health_verdict": "WARN"
+    }
+   ]
+  },
+  "B": {
+   "run": "20260712-0223-policyB_G02_10_r0_reorient",
+   "aborted": false,
+   "recipe": "b_liveA_imit"
+  },
+  "handoff": {
+   "video": "/home/humanoid/Programs/hand/docs/rl/videos/reorient/sweep/G02_10_r0_handoff.mp4",
+   "min_z_post": 0.1143,
+   "health": {
+    "verdict": "WARN",
+    "checks": {
+     "late_finger": {
+      "status": "PASS",
+      "value": 1.0,
+      "detail": "(thumb@1, index@0, middle@0)"
+     },
+     "idle_finger": {
+      "status": "PASS",
+      "value": 3.0,
+      "detail": "thumb=10.2N/1.00 index=10.5N/1.00 middle=13.3N/1.00"
+     },
+     "drop": {
+      "status": "PASS",
+      "value": 0.1159,
+      "detail": "min hold-phase obj-z 0.116 m (floor<0.05)"
+     },
+     "jitter": {
+      "status": "WARN",
+      "value": 36.2508,
+      "detail": "ang-jerk 36.3 1/s^2"
+     },
+     "de_centering": {
+      "status": "WARN",
+      "value": 48.5189,
+      "detail": "sliding: path 9.0cm >> net 0.2cm"
+     },
+     "over_clamp": {
+      "status": "WARN",
+      "value": 11.3437,
+      "detail": "mean fingertip 11.3 N (reward saturates ~3N)"
+     }
+    },
+    "metrics": {
+     "first_contact": [
+      1,
+      0,
+      0
+     ],
+     "contact_spread": 1.0,
+     "touch_frac": [
+      1.0,
+      1.0,
+      1.0
+     ],
+     "force_mean": [
+      10.2,
+      10.5,
+      13.3
+     ],
+     "contact_count": 3.0,
+     "min_z_hold": 0.1159,
+     "ang_jerk": 36.3,
+     "net_drift_cm": 0.2,
+     "slide_ratio": 48.5,
+     "tip_force": 11.3,
+     "held_cos_tail": 0.117,
+     "peak_cos": 0.178
+    }
+   },
+   "b_aborted": false,
+   "a_aborted": false
+  },
+  "secs": 6025
+ },
+ {
+  "id": "G02_11_r0",
+  "morph": [
+   -0.0178,
+   -0.0209,
+   0.0207,
+   0.0094,
+   -0.0066,
+   0.0157,
+   0.0027,
+   -0.0127,
+   0.0129
+  ],
+  "delta_m05": [
+   -0.0325,
+   -0.0259,
+   0.0099,
+   0.0054,
+   -0.0088,
+   0.0034,
+   -0.0219,
+   -0.0369,
+   -0.003
+  ],
+  "ik_resid": {
+   "thumb": 0.1,
+   "index": 0.09,
+   "middle": 0.09
+  },
+  "lift": 0.05528243890355093,
+  "tips": 3.0,
+  "pt": 1.0,
+  "pi": 1.0,
+  "pm": 1.0,
+  "g_imbal": 0.0,
+  "A": {
+   "run": "20260712-0304-policyA_G02_11_r0_t0",
+   "aborted": true,
+   "best_ckpt": "model_0.pt",
+   "best_objheight": 0.0,
+   "health_verdict": null,
+   "attempts": [
+    {
+     "run": "20260712-0304-policyA_G02_11_r0_t0",
+     "aborted": true,
+     "objheight": 0.0,
+     "health_verdict": null
+    },
+    {
+     "run": "20260712-0308-policyA_G02_11_r0_t1",
+     "aborted": true,
+     "objheight": 0.0,
+     "health_verdict": null
+    }
+   ]
+  },
+  "note": "A never lifted (best objheight 0.0 < 0.06, 2 attempts)",
+  "secs": 753
  }
 ]
