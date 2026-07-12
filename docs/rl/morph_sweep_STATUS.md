@@ -432,3 +432,17 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   the full box (pending r1 pooling). A-leg collapses 2/7. Design 6 (G02_05_r0) A training
   since ~17:25; pace ~95 min/design; r0 ETA ~07-12 04:30, full 24 ~07-12 ~23:30. GPU busy —
   analysis/commit only; waiter armed. Full analysis reorientation.md §P4 interim designs 4–5.
+- **2026-07-11 ~19:30 tick — P4 design 6/24 complete: G02_05_r0 = second A-defect row; the
+  index-IK-residual→idle-index pairing repeats.** Clean CEM grasp (persist 1/1/1, imbal 0.0)
+  but the **worst accepted index IK residual yet (12.84 mm)**; A t0 watchdog-collapsed iter 40,
+  kept t1 FAILs idle-index (0.9 N) with a thumb+middle clamp; imit-B trains clean, holds
+  (min-z 0.105) but static — tail cos −0.499 ≈ A's delivery −0.529 (held unmoved, not
+  anti-reoriented), idle thumb+index FAIL. Pairing ledger: index-resid→idle-index now 2/2
+  (G02_02 6.76 mm, G02_05 12.84 mm), thumb-resid 11 mm did NOT block (G02_03) — candidate
+  asymmetry (index-dead leaves thumb+middle pinch = no rolling pair; thumb-dead leaves
+  index+middle gait); n=2 descriptive; possible P5 fix = IK-residual acceptance bar or
+  re-CEM on the retargeted keyframe. r0 tally 6/12: cos {0.504, −0.134, −0.388ᴬᵈᵉᶠ, 0.568,
+  0.148, −0.499ᴬᵈᵉᶠ}, softened-bar 2/6, A-defect 2/6 (= the two worst index residuals);
+  A-leg collapses 3/9. Design 7 (G02_06_r0) A training since 19:03; pace ~96 min/design; r0
+  ETA ~07-12 ~04:40, full 24 ~07-13 ~00:00. GPU busy — analysis/commit only; waiter armed.
+  Full analysis reorientation.md §P4 interim design 6.

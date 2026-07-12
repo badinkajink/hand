@@ -2270,6 +2270,40 @@ suspicious pairing; thumb-residual 11 mm did NOT block reorienting (G02_03). Pac
 min/design holds; design 6 (G02_05_r0) A-leg training since ~17:25; r0 map (12) ETA
 ~07-12 ~04:30, full 24 ~07-12 ~23:30. Waiter armed (r0-complete ≥12 / crash / DONE).
 
+### P4 global12×2 interim — design 6/24 (2026-07-11 ~19:30 tick): second A-defect row; the index-residual→idle-index pairing repeats
+
+**G02_05_r0 — cos −0.499 / peak 0.25, verdict FAIL (idle thumb+index), A×2 (5877 s).
+Score it as the second A-defect row (G02_02 pattern), not geometry; `_r1` is the
+arbiter.** The headline number needs decoding: −0.499 is NOT an active anti-reorient —
+the kept A *delivers* at cos −0.529 (flat-ish, awkward face), and B's tail −0.499 with
+peak 0.25 means B held that delivery essentially unmoved. It's a holds-but-static row
+whose static orientation happened to start negative.
+
+- Input signal was clean on the CEM axis (lift 0.050, tips 3.0, persist 1/1/1,
+  grasp-imbalance 0.0) but carries the **worst accepted index IK residual of the
+  program: 12.84 mm** (thumb 2.64, middle 0.1). A t0 watchdog-collapsed at iter 40
+  (objheight 0.0405 < 0.045); the kept t1 health-FAILs on **idle index** (0.9 N /
+  touch-frac 0.25) while thumb+middle clamp 9.4/12.3 N — a two-finger A grip on the
+  exact finger the IK seed placed worst.
+- imit-B trained clean (2 trainable-frac guard hits, no collapse) and holds (min-z
+  0.105) but the grip degrades to middle-dominated (5.6 N/1.00 vs thumb 4.1/0.38,
+  index 1.8/0.32 → idle thumb+index FAIL), jerk WARN 35.3, and no reorient attempt.
+- **The IK-residual→idle-finger pairing now has two same-finger data points:** G02_02
+  (index resid 6.76 mm → idle-index A, static B) and G02_05 (index 12.84 mm →
+  idle-index A, static B), while G02_03's thumb 11.06 mm did *not* block reorienting
+  (2-finger index+middle roll). A speculative asymmetry worth one line: a thumb-dead
+  grip still admits an index+middle gait, but an index-dead grip leaves thumb+middle —
+  geometrically a pinch across the object, maybe no rolling pair. n=2, descriptive
+  only; if the pooled analysis confirms it, the actionable fix is an IK-residual
+  acceptance bar (or re-CEM on the retargeted keyframe) rather than any policy change.
+
+**Running r0 tally after 6/12:** cos = {0.504, −0.134, −0.388 (A-defect), 0.568,
+0.148, −0.499 (A-defect)}; softened-bar reorienters 2/6; A-defect rows 2/6 — the
+defect rate is becoming its own column (both defect rows are the two worst index
+residuals). A-leg raw tally: 3 collapses / 9 legs. Pace ~96 min/design; design 7
+(G02_06_r0) CEM clean (lift 0.049, persist 1/1/1), A training since 19:03; r0 map ETA
+~07-12 ~04:40, full 24 ~07-13 ~00:00.
+
 ---
 
 ## Results
