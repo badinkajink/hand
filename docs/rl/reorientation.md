@@ -2513,6 +2513,67 @@ G02_00 (both), G02_03 (both attempt), **G02_04 (r1 only, pooled mean 0.338)**.
 Hold min-z ≥ 0.105 on every evaluable leg (14/14). Design 18 (G02_05_r1,
 whose r0 was the second A-defect row) on its A leg since 08:33.
 
+### P4 global12×2 — r1 designs 18–19 (2026-07-12 ~12:00 tick): G02_05 posts the PROGRAM-BEST reorient (cos 0.887) on the design its r0 wrote off as an A-defect; G02_06 becomes the first replica-consistent static design
+
+**G02_05_r1 — cos 0.887 (peak 0.927), WARN, A first-draw clean (5658 s).**
+The best deterministic held-cos of the entire honest-pipeline program — above
+m05's best clean draw (0.82, a10→b33) and every P1/P2/P4 row to date. The
+rollout is also *clean*: min-z 0.1063, all three fingers engaged (thumb
+9.2 N / index 10.8 N / middle 5.7 N, touch-frac 1.00/0.90/1.00), ang-jerk
+7.8 **PASS** (below the b33 reference 9.6 — the first reorienter of the sweep
+that doesn't buy rotation with jitter); WARNs are sliding (3.8 cm path vs
+1.0 cm net — a rolling artifact) and over-clamp 8.6 N.
+
+Three reads:
+
+1. **The r0 "A-defect" classification is superseded, as designed.** r0 kept
+   an idle-index FAIL A (after a t0 collapse) and produced cos −0.499; the
+   protocol said "score it as A-defect, its `_r1` is the arbiter" — the
+   arbiter arrived and says the geometry is the program's strongest
+   reorienter so far. Replica span −0.499 → 0.887 (Δ = 1.386, widest of the
+   sweep; G02_04's "sharpest inconsistency" was Δ 0.380) — but this pair is
+   supersession, not contradiction: the r0 leg measured a defective A, not
+   the design.
+2. **The index-residual→idle-index pairing BREAKS.** IK residuals are
+   deterministic per design — both replicas carry the sweep's worst accepted
+   index residual, 12.84 mm. r0 drew an idle-index A (0.9 N); r1 drew an A
+   whose index carries 10.8 N at touch-frac 0.90. Same residual, opposite
+   index fates ⇒ the pairing (previously 2/2: G02_02 6.76 mm, G02_05
+   12.84 mm) drops to 2/3 and the residual is exonerated as a *cause* —
+   consistent with the design-9–10 conclusion that residual magnitude is not
+   the axis; finger identity + draw luck are.
+3. **Existence proof, not a ranking.** n=1 draw at cos 0.887 says capability
+   ≥ 0.887 exists at this point (max |Δ| from m05 = 3.2 cm, param 8) — H2
+   forbids reading it as "G02_05 > m05". Pooled mean over evaluable
+   geometry-measuring legs is meaningless here because r0 measured a broken
+   A; G02_05 joins the confirm-candidate list on the r1 leg alone and wants
+   a dedicated replica set (or the morph-conditioned policy) before any
+   promotion.
+
+**G02_06_r1 — cos −0.018 (peak 0.043), FAIL (jerk 48.7), A×2 kept-FAIL
+(5876 s).** A t0 completed but health-FAILed, t1 watchdog-collapsed →
+kept-FAIL t0 by default (third kept-FAIL-A leg; the gate again spent its full
+budget without ranking power). B holds (min-z 0.1036 — new sweep floor,
+still ≫ the 0.05 drop bar) but never attempts a reorient (peak 0.043) and
+churns (slide path 30.6 cm vs 1.4 net, jerk-FAIL 48.7).
+
+Pooled G02_06: tails {0.127, −0.018}, peaks {0.397, 0.043} — the **first
+design with both replicas evaluable and both static**, the null counterpart
+of G02_00's both-replica reorienter. Caveat before calling it
+reorient-hostile geometry: under m05-equivalence (clean-draw band {0.82,
+0.49, −0.16} ⇒ ~1/3 static per draw) a both-static pair is ~11% likely, and
+the r1 leg rode a kept-FAIL A — suggestive, not conclusive; it ranks as the
+sweep's weakest reorient candidate rather than a proven null.
+
+Tallies at 19/24 legs, r1 7/12: reorient-signal designs = G02_00 (both),
+G02_03 (both attempt), G02_04 (r1), **G02_05 (r1, program-best 0.887)**;
+replica-consistent static = G02_06. A-leg attempts 15/31 aborted (48%;
+in-flight G02_07_r1 t0 also collapsed → trending 16/32 = 50%). Hold: every
+evaluable leg except the G02_03_r1 drop held, min-z ≥ 0.1036 (15/16) —
+pick-up remains a solved constant of the box. Design 20 (G02_07_r1 — r0 was
+the sustained-partial 0.333 from the cleanest inputs) on its A t1 since
+~11:50; full-24 ETA ~07-12 ~20:30–22:00.
+
 ---
 
 ## Results
