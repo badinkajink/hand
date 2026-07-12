@@ -2191,6 +2191,85 @@ reorienter's A from the static design's A — the 2-replica pooling carries the 
 load, as designed. No conclusions until `_r1` pairs land; next analysis window at the
 r0-complete waiter event (≥12 records).
 
+### P4 global12×2 interim — design 3/24 (2026-07-11 ~15:00 tick): first A-defect row; flag it, don't read it as geometry
+
+**G02_02_r0 — cos −0.388 (peak 0.001), WARN, A×2 (6072 s).** The first P4 design to burn
+the A best-of-2, and the kept A is defective:
+
+- **A t0 completed but health-FAILed on idle_finger**: index 0.0 N / touch-frac 0.05 — a
+  thumb+middle 2-finger pinch (thumb 1.3 N, middle 10.7 N). **A t1 watchdog-collapsed**
+  (first A-side collapse in P4), so the pipeline kept the FAIL-grade t0, exactly the
+  "best-of-N-by-gate is collapse insurance only" regime established in P2.
+- Plausible mechanism, not just draw luck: this design has the **worst accepted per-finger
+  IK residual so far — index 6.76 mm** (G02_00's worst was thumb 4.4 mm, and that design
+  reoriented). An `open_ik` index tip seeded ~7 mm off is a candidate cause for A never
+  recruiting the index. One pair is anecdote; the (per-finger residual → same finger idle
+  in A) correlation is now a standing thing to score once more rows land.
+- **B inherited the defect**: it re-recruits the index to full touch (1.7 N, touch 1.0 —
+  better than A delivered) but stays middle-dominant (11.2 N) and makes **zero reorient
+  attempt** (peak-cos 0.001; held-cos −0.388). Verdict WARN (over-clamp only) because all
+  capability checks pass — the row *looks* like the familiar holds-but-static phenotype,
+  but the kept-A defect confounds it.
+- **Scoring note for the pooled analysis:** treat G02_02_r0 as an **A-defect row**, not a
+  geometry-static row. Its `_r1` replica is unusually informative: a clean-A draw there
+  that reorients would pin the r0 verdict on the A defect; a repeat idle-index A would
+  point at the geometry/IK-seed. This is also the second live datapoint for the
+  a-quality-predictor note's **idle-finger veto** (min force_mean < 0.5 N at A-accept):
+  the veto would have rejected t0, and with t1 collapsed the design would have been
+  A-starved at 2 attempts — a veto needs a "spend a 3rd attempt" rule, not just rejection.
+
+Live next-design note: **G02_03_r0's CEM passed the grasp gate with thumb persist 0.00**
+(lift 0.047, persist 0.00/0.97/0.99) — the first thumb-dead grasp entering A training —
+and its A t0 watchdog-collapsed; t1 in flight. P4 A-leg raw tally is now **2 collapses /
+5 legs** after a 0-collapse start, and both collapse designs have a degraded input signal
+(worst index residual; thumb-dead CEM grasp) — consistent with P1/P2's hint that
+trainability-hostility tracks impoverished grasp/recruitment rather than being uniform
+luck. Pace: ~95 min/design average (6072 s for the A×2 design); r0-map ETA still ~07-12
+early AM.
+
+### P4 global12×2 interim — designs 4–5/24 (2026-07-11 ~17:30 tick): best cos yet from the WORST grasp seed; first PASS verdict is static
+
+**G02_03_r0 — cos 0.568 / peak 0.765, verdict FAIL (idle thumb), A×2 (5705 s). The best
+reorient of P4 so far came from the most degraded input signal of P4 so far** — which
+overturns the working hypothesis from the design-3 note ("trainability-hostility tracks
+impoverished grasp/recruitment"):
+
+- Input signal was the worst in the sweep on every axis: CEM grasp passed the gate
+  **thumb-dead** (persist 0.00/0.97/0.99, tips 2.0, grasp-imbalance 0.99) and the IK
+  seed has the **worst thumb residual accepted so far, 11.06 mm** (index 5.83). A t0
+  watchdog-collapsed; the kept t1 health-FAILed on the predictable axis (idle thumb).
+- imit-B inherited the 2-finger character (thumb 0.7 N / touch-frac 0.5, index 8.0 /
+  middle 11.1 N) and **still reorients**: held-cos 0.568, peak 0.765, jerk 10.5, min-z
+  0.117. The FAIL verdict is idle-finger only; every capability check passes. This is
+  the L01_02 pattern again — **a capability flip hidden behind a non-capability FAIL** —
+  and the strongest case yet for the softened flip bar (cos + held scored separately
+  from health grades) in the pooled analysis.
+- Two readings, r1 decides: (a) the geometry is a genuine reorienter that succeeds
+  despite a crippled grip — under the softened bar it currently *beats* G02_00 (0.568
+  vs 0.504); (b) a 2-finger roll may be a narrower skill than the 3-finger gait, and a
+  clean-thumb draw could land anywhere. Either way "thumb-dead CEM grasp ⇒ hostile
+  design" is dead: that design produced P4's best cos.
+
+**G02_04_r0 — cos 0.148 / peak 0.205, verdict PASS (5620 s) — the first clean-sheet
+PASS of the honest-pipeline sweeps, and it's static.** A first-draw clean (WARN,
+objheight 0.1118); B holds with textbook health — all 6 checks PASS, 3-finger touch
+1.0 each (1.3/2.8/9.6 N), jerk 6.5 (best of P4), drift 0.3 cm, force 4.5 N — and makes
+no real reorient attempt. Health and capability are now demonstrated fully orthogonal
+in BOTH directions within one afternoon: G02_03 FAILs health while reorienting; G02_04
+PASSes everything while static. The scorecard is a *gate* (is this policy's hold
+real?), never a *rank*; cos remains the only capability metric. (Per H2, single-draw
+static ≠ static design — r1 decides.)
+
+**Running r0 tally after 5/12:** cos = {0.504, −0.134, −0.388 (A-defect row), 0.568,
+0.148}; 2/5 reorient ≥ 0.5 under the softened bar — the full-box LHS is finding
+reorienters at a rate consistent with m05's own clean-draw rate (~1/2), at 3–4 cm from
+m05. A-leg raw tally: 2 collapses / 7 legs, and the "degraded input ⇒ collapse" pattern
+now reads as collapse-propensity-only (G02_03 collapsed once, then reoriented).
+IK-residual ledger: index-residual→idle-index (G02_02) still stands as the one
+suspicious pairing; thumb-residual 11 mm did NOT block reorienting (G02_03). Pace ~95
+min/design holds; design 6 (G02_05_r0) A-leg training since ~17:25; r0 map (12) ETA
+~07-12 ~04:30, full 24 ~07-12 ~23:30. Waiter armed (r0-complete ≥12 / crash / DONE).
+
 ---
 
 ## Results

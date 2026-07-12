@@ -2,3 +2,6 @@
 # per design: gen -> IK open_ik -> CEM (grasp gate) -> native A -> live-A reset B -> continuous handoff + trajectory-health scorecard.
 G02_00_r0        | lift 0.052 tip 3.0 pers 1.00/1.00/1.00 | minZ  0.114 cos  0.504 jerk   9.3 force   7.1 drift  0.2cm | WARN   (5645s)
 G02_01_r0        | lift 0.052 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1174 cos -0.134 jerk  12.9 force  10.2 drift  1.0cm | WARN   (5645s)
+G02_02_r0        | lift 0.050 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1097 cos -0.388 jerk  11.4 force   5.2 drift  0.2cm | WARN | A×2   (6072s)
+G02_03_r0        | lift 0.047 tip 2.0 pers 0.00/0.97/0.99 | minZ 0.1128 cos  0.568 jerk  10.5 force   6.6 drift  0.7cm | FAIL | A×2   (5705s)
+G02_04_r0        | lift 0.051 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1118 cos  0.148 jerk   6.5 force   4.5 drift  0.3cm | PASS   (5620s)
