@@ -506,6 +506,11 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   pool `_r0/_r1` per design (mean/max cos, collapse count), `morph_pipeline_plots.py --tag
   global12x2`, rank vs m05 draw-band, promote nothing on n=2 without a confirm. Waiter re-armed
   DONE-only. GPU busy (r1) — no launches.
+- **2026-07-12 15:53 — machine CRASHED + rebooted (user); sweep RESUMED 15:54 clean.** 21/24
+  records survived (per-design checkpointing worked as designed); only G02_09_r1 (killed
+  mid-A), G02_10_r1, G02_11_r1 remain (~4.5 h, ETA ~20:30). CUDA healthy post-reboot
+  (torch.cuda True), resume correctly skipped all 21; pulse crontab intact (window-capped 2/2,
+  resumes next window). Waiter re-armed DONE-only.
 - **2026-07-12 ~04:45 tick — r1 pass healthy, design 13/24 (G02_00_r1) on its last B leg.**
   CEM clean (lift 0.052, persist 1/1/1); A ran both attempts — t1 watchdog-collapsed iter 45
   (objheight 0.021), kept t0 model_609 objheight 0.1139 (r0's G02_00 was first-draw clean:
