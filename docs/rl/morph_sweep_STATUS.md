@@ -543,3 +543,22 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   18 (G02_05_r1 — r0 was A-defect idle-index) A training since 08:33; full-24 ETA ~07-12 late
   night–07-13 early AM. GPU busy — analysis/commit only; waiter armed (DONE-only). Full
   analysis reorientation.md §P4 r1 design 17.
+- **2026-07-12 ~12:00 tick — r1 designs 18–19 landed: G02_05_r1 = PROGRAM-BEST reorient
+  (cos 0.887 / peak 0.927, jerk 7.8 PASS — first sweep reorienter smoother than the b33
+  reference 9.6), on the design r0 scored as A-defect; G02_06 = first replica-consistent
+  STATIC design (both legs evaluable, tails 0.127/−0.018).** G02_05_r1: A first-draw clean,
+  full 3-finger grip (9.2/10.8/5.7 N), min-z 0.1063, WARN sliding+over-clamp only; beats
+  m05's best clean draw 0.82 at 3.2 cm from m05 — existence proof (n=1, H2 forbids ranking),
+  joins G02_00 atop the confirm-candidate list. **Index-residual→idle-index pairing BREAKS:**
+  same deterministic 12.84 mm residual both replicas, r0 index idle 0.9 N vs r1 index 10.8 N
+  ⇒ pairing 2/3, residual exonerated as cause (finger identity + draw luck stand). Replica
+  span −0.499→0.887 (Δ1.386, widest) = supersession not contradiction (r0 measured a broken
+  A). G02_06_r1: A t0 kept-FAIL after t1 collapse (third kept-FAIL leg, gate spent full
+  budget rankless); holds (min-z 0.1036, new sweep floor, ≫0.05) but static + jitter-FAIL
+  48.7; both-static pair ~11% likely under m05-equivalence ⇒ weakest reorient candidate,
+  not a proven null. Tallies 19/24: reorient-signal G02_00 (both) / G02_03 (both attempt) /
+  G02_04 (r1) / G02_05 (r1 best); A-leg aborts 15/31 = 48% (in-flight G02_07_r1 t0 also
+  collapsed → 16/32 trending 50%); hold 15/16 evaluable (G02_03_r1 the lone drop). Design 20
+  (G02_07_r1, r0 = sustained-partial 0.333) on A t1 since ~11:50; full-24 ETA ~07-12
+  ~20:30–22:00. GPU busy — analysis/commit only; waiter armed (DONE-only). Full analysis
+  reorientation.md §P4 r1 designs 18–19.
