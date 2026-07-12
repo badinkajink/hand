@@ -2304,6 +2304,38 @@ residuals). A-leg raw tally: 3 collapses / 9 legs. Pace ~96 min/design; design 7
 (G02_06_r0) CEM clean (lift 0.049, persist 1/1/1), A training since 19:03; r0 map ETA
 ~07-12 ~04:40, full 24 ~07-13 ~00:00.
 
+### P4 global12×2 interim — design 7/24 (2026-07-11 ~21:00 tick): cleanest input row yet is still static; thumb-residual harmlessness repeats
+
+**G02_06_r0 — cos 0.127 / peak 0.397, verdict WARN, A first-draw clean (5646 s).**
+Third holds-but-static row (after G02_01, G02_04), and the most instructive of the
+three because every input and health signal is clean — this is what "the pipeline
+did everything right and the draw still didn't find the gait" looks like.
+
+- **Inputs:** CEM grasp clean (lift 0.049, tips 3.0, persist 1/1/1, imbalance 0.0);
+  index IK residual **0.09 mm** (near-perfect seed), middle 2.01 mm, thumb 9.66 mm.
+  A accepted on its first draw (model_609, objheight 0.1119, WARN), no collapse.
+- **Outcome:** B holds rock-solid — min-z 0.108, all three fingers engaged at
+  touch-frac 1.00 (thumb 8.3 / index 10.3 / middle 6.7 N), jerk 10.0 PASS, net
+  drift **0.0 cm**. Only WARNs are micro-slip (path 3.8 cm vs net 0.0) and
+  over-clamp 8.4 N. Peak cos 0.397 vs tail 0.127: it *attempts* a partial
+  reorient and settles back — not a frozen clamp like G02_03's peak 0.001.
+- **Residual-asymmetry ledger grows, same direction.** Thumb residual 9.66 mm
+  produced full thumb engagement here (and G02_03's thumb 11.06 mm produced P4's
+  best reorienter, thumb-dead route); index residuals 6.76 / 12.84 mm both produced
+  idle-index A-defect rows (G02_02, G02_05). Index-side seed error keeps looking
+  like the harmful one; thumb-side keeps looking tolerable. Still n=2 vs n=2,
+  descriptive.
+- Geometry is far from m05 (max |Δ| 3.4 cm on middle-x; thumb-x −1.6 cm,
+  index-x −1.3 cm) — another mid-box point that trains, lifts, and holds cleanly.
+
+**Running r0 tally after 7/12:** cos = {0.504, −0.134, −0.388 (A-defect), 0.568,
+0.148, −0.499 (A-defect), 0.127}; softened-bar reorienters 2/7; A-defect rows 2/7;
+holds-but-static clean rows 3/7. A-leg raw tally: 3 collapses / 10 legs. Every
+design so far holds ≥0.105 min-z — the pick-up/hold axis is a solved constant of
+the full box, exactly as P1 predicted; all remaining variance is on the reorient
+axis. Pace ~96 min/design; design 8 (G02_07_r0) CEM clean (lift 0.050, persist
+1/1/1), A training since 20:37; r0 map ETA ~07-12 ~04:40, full 24 ~07-12 ~23:45.
+
 ---
 
 ## Results
