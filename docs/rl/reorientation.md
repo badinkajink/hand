@@ -2368,6 +2368,58 @@ constant of the box. Pace ~94 min/design; design 9 (G02_08_r0) CEM clean (lift
 0.050, persist 1/1/1), A training since 22:11; r0 map ETA ~07-12 ~04:30, full 24
 ~07-12 ~23:30.
 
+### P4 global12×2 interim — designs 9–10/24 (2026-07-12 ~02:00 tick): flattest clamp yet; third A-defect row is the first idle-THUMB one
+
+**G02_08_r0 — cos −0.099 (peak 0.041), WARN (5668 s).** Fourth clean
+holds-but-static row, and the flattest: peak cos 0.041 is the lowest of r0 — a
+genuinely frozen clamp that never even attempts a reorient (contrast G02_06's
+attempt-and-settle peak 0.397, G02_09's 0.342).
+
+- **Inputs clean:** CEM lift 0.050, tips 3.0, persist 0.997³, imbalance 0.0;
+  IK residuals thumb 2.99 / index 0.09 / middle 0.56 mm. A accepted on its
+  first draw (model_609, objheight 0.1149, WARN) — no collapse.
+- **Outcome:** textbook hold — min-z 0.1151 (hold-phase 0.1169), all three
+  fingers touch-frac 1.00 from step 1 (thumb 12.2 / index 3.8 / middle 8.2 N),
+  jerk 21.7 WARN, net drift 0.7 cm. All the health machinery is happy; the
+  reorient axis is simply absent.
+- **Geometry:** among the farther LHS points (max |Δ| from m05 = 4.6 cm) — but
+  after G02_00 (reorienter at 3.9 cm) and G02_07 (mid-grade at 2.2 cm), r0
+  distance-to-m05 still shows no monotone story.
+
+**G02_09_r0 — cos −0.102 (peak 0.342), FAIL, A×2 (5880 s).** Third A-defect
+row — and the first whose defect is an idle **thumb** rather than an idle
+index. CEM clean (persist 1/1/1, imbalance 0.0) but thumb IK residual 6.77 mm
+(index/middle 0.09). A t0 completed with health-FAIL; the t1 retry
+watchdog-collapsed (objheight 0.0), so the pipeline kept the FAIL-grade t0 —
+the same kept-FAIL signature as G02_02/G02_05. B trains clean and holds
+(min-z 0.1158) on a thumb-idle two-finger clamp: thumb 1.3 N / touch-frac 0.24
+vs index 10.8 / middle 16.3 N; jerk 112.4 = worst FAIL of r0; peak 0.342 →
+tail −0.102 is attempt-and-settle on the two-finger grip.
+
+- **Residual-asymmetry ledger gets its first split.** Index side stays 2/2
+  (residual ≥ 6.8 mm → idle-index A-defect → static). Thumb side now splits:
+  resid 9.66/11.06 mm tolerated (G02_06 full engagement; G02_03 thumb-dead yet
+  P4's best cos 0.568 on an index+middle gait) vs 6.77 mm here → idle-thumb
+  AND static. Note G02_03 and G02_09 had the *same* grip topology (thumb-idle,
+  index+middle engaged) with opposite outcomes (0.568 vs −0.102) — per H2
+  that's within single-draw spread, so the "thumb-dead leaves a rolling pair"
+  reading survives only as a tendency, and the residual→idle-finger pairing
+  stays descriptive (index-harmful 2/2, thumb 2 tolerated / 1 not).
+- Magnitude ordering is now clearly NOT the axis (6.77 mm thumb hurt where
+  11.06 mm didn't); if anything matters it's *which* finger the residual sits
+  on plus draw luck.
+
+**Running r0 tally after 10/12:** cos = {0.504, −0.134, −0.388 (A-defect),
+0.568, 0.148, −0.499 (A-defect), 0.127, 0.333, −0.099, −0.102 (A-defect)};
+softened-bar reorienters 2/10; partial 1/10; A-defect rows 3/10;
+holds-but-static clean rows 4/10. A-leg raw tally: 4 collapses / 14 legs
+(plus the in-flight G02_10 t0 collapse → 5/15). Hold min-z ≥ 0.105 on 10/10 —
+pick-up/hold remains a solved constant of the full box; every point of
+variance is still the reorient axis. Design 11 (G02_10_r0) CEM clean (lift
+0.050, persist 1/1/1) but A t0 watchdog-collapsed; t1 training since ~01:30.
+Pace ~96 min/design + the retry ⇒ r0 map ETA ~07-12 ~06:00, full 24
+~07-13 early AM.
+
 ---
 
 ## Results

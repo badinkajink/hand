@@ -475,3 +475,20 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   training since 22:11; pace ~94 min/design; r0 ETA ~07-12 ~04:30, full 24 ~07-12 ~23:30.
   GPU busy — analysis/commit only; waiter armed. Full analysis reorientation.md §P4 interim
   design 8.
+- **2026-07-12 ~02:00 tick — P4 designs 9–10/24 complete: G02_08_r0 = flattest clamp of r0
+  (peak cos 0.041); G02_09_r0 = third A-defect row, the FIRST idle-THUMB one — the
+  residual-asymmetry ledger gets its first split.** G02_08: clean inputs (resid ≤ 3 mm, CEM
+  clean, A first-draw), textbook hold (3× touch-frac 1.00, min-z 0.1151) but peak 0.041 —
+  never even attempts a reorient; fourth clean-static row. G02_09: thumb resid 6.77 mm →
+  A t0 kept-FAIL (t1 collapsed; same kept-FAIL signature as G02_02/G02_05); B holds on a
+  thumb-idle 2-finger clamp (1.3 vs 10.8/16.3 N), jerk-FAIL 112.4 (worst of r0), peak 0.342
+  settle-back. Ledger: index-harmful stays 2/2; thumb splits (9.66/11.06 mm tolerated vs
+  6.77 mm → idle+static) ⇒ residual MAGNITUDE is not the axis, finger identity + draw luck
+  are; G02_03 vs G02_09 = same thumb-idle grip topology, opposite outcomes (0.568 vs −0.102)
+  — within H2 single-draw spread. r0 tally 10/12: cos {0.504, −0.134, −0.388ᴬᵈᵉᶠ, 0.568,
+  0.148, −0.499ᴬᵈᵉᶠ, 0.127, 0.333, −0.099, −0.102ᴬᵈᵉᶠ}, softened-bar 2/10, partial 1/10,
+  A-defect 3/10, clean-static 4/10; A-leg collapses 4/14 (+ in-flight G02_10 t0 → 5/15);
+  hold min-z ≥0.105 on 10/10 — pick-up solved across the box, all variance reorient-axis.
+  Design 11 (G02_10_r0) on A t1 since ~01:30 (t0 watchdog-collapsed); r0 ETA ~07-12 ~06:00,
+  full 24 ~07-13 early AM; waiter armed (fires at ≥12 records). GPU busy — analysis/commit
+  only. Full analysis reorientation.md §P4 interim designs 9–10.
