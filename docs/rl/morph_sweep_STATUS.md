@@ -460,3 +460,18 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   (G02_07_r0) A training since 20:37; pace ~96 min/design; r0 ETA ~07-12 ~04:40, full 24
   ~07-12 ~23:45. GPU busy — analysis/commit only; waiter armed. Full analysis
   reorientation.md §P4 interim design 7.
+- **2026-07-11 ~23:05 tick — P4 design 8/24 complete: G02_07_r0 = first PARTIAL reorienter
+  (cos 0.333 / peak 0.493, WARN), from the cleanest inputs of the sweep.** All three IK
+  residuals ≤ 0.1 mm (only such row), CEM clean, A first-draw clean — and it's the closest
+  LHS point to m05 (max |Δ| 2.18 cm). Sustained partial reorient (tail = 68% of peak, unlike
+  G02_06's settle-back), full 3-finger grip (8.1/13.1/11.5 N, touch-frac 1.00), min-z 0.1104,
+  jerk PASS; WARNs are sliding (rolling artifact) + over-clamp 10.9 N (highest tip force of
+  r0 — grip-richness trend direction). Reading: near-m05 geometry + perfect seeds + clean A
+  lands mid-distribution, exactly where m05's own draw spread {0.82, 0.49, −0.16} predicts —
+  reinforces H2 (single draws aren't measurements) rather than any input→outcome story.
+  r0 tally 8/12: cos {0.504, −0.134, −0.388ᴬᵈᵉᶠ, 0.568, 0.148, −0.499ᴬᵈᵉᶠ, 0.127, 0.333},
+  softened-bar 2/8, partial 1/8, A-defect 2/8, clean-static 3/8; A-leg collapses 3/11;
+  hold min-z ≥0.105 on 8/8. Design 9 (G02_08_r0) CEM clean (lift 0.050, persist 1/1/1), A
+  training since 22:11; pace ~94 min/design; r0 ETA ~07-12 ~04:30, full 24 ~07-12 ~23:30.
+  GPU busy — analysis/commit only; waiter armed. Full analysis reorientation.md §P4 interim
+  design 8.
