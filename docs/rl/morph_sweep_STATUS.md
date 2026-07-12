@@ -562,3 +562,19 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   (G02_07_r1, r0 = sustained-partial 0.333) on A t1 since ~11:50; full-24 ETA ~07-12
   ~20:30–22:00. GPU busy — analysis/commit only; waiter armed (DONE-only). Full analysis
   reorientation.md §P4 r1 designs 18–19.
+- **2026-07-12 ~14:30 tick — r1 design 20 landed: G02_07 = THIRD replica-consistent design,
+  a sustained-partial reorienter (tails 0.333/0.366, Δ 0.033 — tightest replica pair of the
+  sweep) — and the smoothest leg yet (ang-jerk 6.6 PASS, below G02_05_r1's 7.8 and b33's
+  9.6).** A t0 collapsed → t1 clean (textbook best-of-2 rescue, not a kept-FAIL). The
+  replica-consistent set now spans the outcome axis: G02_00 reorienter (0.504/0.635) /
+  G02_07 partial (0.333/0.366) / G02_06 static (0.127/−0.018) ⇒ at n=2 the evaluator CAN
+  resolve some designs — while G02_04 (Δ0.380) and G02_05 (Δ1.386) prove it can't resolve
+  all, and the class isn't knowable in advance. Agreement came from DIFFERENT grips (r0
+  hard-clamp 8–13 N jerk 11.7 vs r1 light 3.8–9 N jerk 6.6): convergent capability, not a
+  repeated policy — the number belongs to the geometry. Cleanest-inputs design (resid
+  0.09–0.10 mm) stays sub-bar both replicas: input cleanliness neither predicts (design 7)
+  nor caps (G02_05, 12.84 mm → 0.887) reorient capability. Tallies 20/24: A-leg aborts
+  16/33 (48%); hold 16/17 evaluable (min-z ≥ 0.1036). Design 21 (G02_08_r1, r0
+  flattest-clamp −0.099) A training since ~13:25; then G02_09/G02_10/G02_11_r1 (the
+  lift-hostility arbiter). Full-24 ETA ~07-12 ~20:30–22:00. GPU busy — analysis/commit
+  only; waiter armed (DONE-only). Full analysis reorientation.md §P4 r1 design 20.

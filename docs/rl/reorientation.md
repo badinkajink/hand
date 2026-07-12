@@ -2574,6 +2574,51 @@ pick-up remains a solved constant of the box. Design 20 (G02_07_r1 — r0 was
 the sustained-partial 0.333 from the cleanest inputs) on its A t1 since
 ~11:50; full-24 ETA ~07-12 ~20:30–22:00.
 
+### P4 global12×2 — r1 design 20 (2026-07-12 ~14:30 tick): G02_07 is the third replica-consistent design — a sustained-partial reorienter whose replicas agree to Δcos 0.033, the tightest pair of the sweep
+
+**G02_07_r1 — cos 0.366 (peak 0.386), WARN, A×2 (t0 collapsed, t1 clean;
+5939 s).** A's t0 watchdog-collapsed at objheight 0.0; t1 trained clean
+(model_609, objheight 0.1151, WARN) — a textbook best-of-2 rescue, unlike
+the recent kept-FAIL legs. imit-B holds (hold-phase min-z 0.1161) with all
+three fingers engaged (thumb 3.8 N / index 7.4 N / middle 9.0 N, touch-frac
+1.00 each) and posts **ang-jerk 6.6 PASS — the smoothest leg of the entire
+sweep** (below G02_05_r1's 7.8 and the b33 reference 9.6). WARNs are the
+usual pair: sliding (3.9 cm path vs 0.1 cm net) and over-clamp 6.7 N.
+
+Three reads:
+
+1. **Third replica-consistent design, and it fills in the middle of the
+   outcome range.** Pooled G02_07: tails {0.333, 0.366}, Δ 0.033 — the
+   tightest replica agreement of the sweep (G02_00's reorienter pair spans
+   0.131, G02_06's static pair 0.145). The replica-consistent set now spans
+   the whole verdict axis: G02_00 reorienter (0.504/0.635), **G02_07
+   sustained-partial (0.333/0.366)**, G02_06 static (0.127/−0.018). At n=2
+   the evaluator *can* resolve some designs cleanly — the H2 caveat is that
+   G02_04 (0.148→0.528) and G02_05 (−0.499→0.887) prove it cannot resolve
+   all of them; which class a design falls into is not knowable in advance.
+2. **Verdict agreement despite different grips.** r0's B clamps hard
+   (8.1/13.1/11.5 N, all fingers at contact from step 0, jerk 11.7); r1's B
+   grips light (3.8/7.4/9.0 N, staggered contact, jerk 6.6). Two different
+   policies, same capability tail (0.33 vs 0.37) — convergent capability
+   rather than a repeated policy, which is stronger evidence the number
+   belongs to the geometry. Notably r1's tail ≈ its peak (0.366/0.386):
+   it *sustains* its partial angle rather than decaying from a higher one
+   (r0 peaked 0.493 and gave some back).
+3. **Cleanest-inputs design stays sub-bar.** G02_07 carries near-zero IK
+   residuals (0.09–0.10 mm, the sweep's cleanest retarget) and 4.1 cm
+   distance from m05, yet both replicas plateau at ~0.35 — input cleanliness
+   neither predicts reorient capability (design 7 conclusion, now
+   replica-confirmed) nor caps it (G02_05 reorients 0.887 through a
+   12.84 mm residual).
+
+Tallies at 20/24 legs, r1 8/12: reorient-signal designs = G02_00 (both),
+G02_03 (both attempt), G02_04 (r1), G02_05 (r1, program-best 0.887), plus
+G02_07 as consistent-partial; replica-consistent = G02_00 / G02_07 / G02_06.
+A-leg attempts 16/33 aborted (48%). Hold: 16/17 evaluable legs min-z
+≥ 0.1036 (G02_03_r1 the lone drop). Remaining: G02_08_r1 (A training since
+~13:25; r0 was the flattest-clamp −0.099), G02_09_r1, G02_10_r1, and
+G02_11_r1 — the lift-hostility arbiter. Full-24 ETA ~07-12 ~20:30–22:00.
+
 ---
 
 ## Results
