@@ -2336,6 +2336,38 @@ the full box, exactly as P1 predicted; all remaining variance is on the reorient
 axis. Pace ~96 min/design; design 8 (G02_07_r0) CEM clean (lift 0.050, persist
 1/1/1), A training since 20:37; r0 map ETA ~07-12 ~04:40, full 24 ~07-12 ~23:45.
 
+**G02_07_r0 — cos 0.333 / peak 0.493, verdict WARN, A first-draw clean (5630 s).**
+Third-best r0 cos, sitting just under the softened 0.5 bar — the first *partial*
+reorienter (sustained, not transient: tail 0.333 is 68% of peak 0.493, unlike
+G02_06's attempt-and-settle 0.127/0.397).
+
+- **Inputs are the cleanest of the entire sweep:** CEM grasp clean (lift 0.050,
+  tips 3.0, persist 1/1/1, imbalance 0.0) AND all three IK residuals ≤ 0.1 mm
+  (thumb 0.10 / index 0.09 / middle 0.09) — every other r0 design has at least one
+  residual ≥ 1 mm. A accepted on its first draw (model_609, objheight 0.1153,
+  WARN), no collapse.
+- **Geometry:** the closest r0 point to m05 (max |Δ| 2.18 cm on thumb-y; all nine
+  params within ±2.2 cm) — the LHS point most "in m05's basin", and it produces a
+  mid-grade reorient, not a standout.
+- **Outcome:** full three-finger engagement from step 0 (touch-frac 1.00 each,
+  thumb 8.1 / index 13.1 / middle 11.5 N), min-z 0.1104, jerk 11.7 PASS, net drift
+  0.4 cm. WARNs: sliding (path 3.9 cm ≫ net 0.4 — consistent with rolling the
+  object, which is how reorients look to this check) and over-clamp 10.9 N mean
+  tip force — the highest of the eight r0 rows, mildly consistent with the
+  A-predictor's grip-richness trend (tip-force rho +0.44 vs held-cos).
+- **Residual-asymmetry ledger unchanged** (all residuals trivial here, no new
+  index/thumb data point). The row instead sharpens the H2 point: near-m05
+  geometry + perfect seeds + clean A still lands mid-distribution — exactly where
+  m05's own draw spread {0.82, 0.49, −0.16} says a single draw can land.
+
+**Running r0 tally after 8/12:** cos = {0.504, −0.134, −0.388 (A-defect), 0.568,
+0.148, −0.499 (A-defect), 0.127, 0.333}; softened-bar reorienters 2/8; partial
+1/8; A-defect rows 2/8; holds-but-static clean rows 3/8. A-leg raw tally: 3
+collapses / 11 legs. Hold min-z ≥ 0.105 on 8/8 — pick-up/hold still a solved
+constant of the box. Pace ~94 min/design; design 9 (G02_08_r0) CEM clean (lift
+0.050, persist 1/1/1), A training since 22:11; r0 map ETA ~07-12 ~04:30, full 24
+~07-12 ~23:30.
+
 ---
 
 ## Results
