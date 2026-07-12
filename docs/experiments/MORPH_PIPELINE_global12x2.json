@@ -1451,5 +1451,383 @@
   },
   "note": "A never lifted (best objheight 0.0 < 0.06, 2 attempts)",
   "secs": 753
+ },
+ {
+  "id": "G02_00_r1",
+  "morph": [
+   -0.0146,
+   0.0109,
+   0.0138,
+   0.0164,
+   0.0115,
+   0.0064,
+   -0.0141,
+   0.0229,
+   0.0124
+  ],
+  "delta_m05": [
+   -0.0293,
+   0.0059,
+   0.003,
+   0.0124,
+   0.0093,
+   -0.0059,
+   -0.0387,
+   -0.0013,
+   -0.0035
+  ],
+  "ik_resid": {
+   "thumb": 4.4,
+   "index": 0.09,
+   "middle": 0.1
+  },
+  "lift": 0.05162241964165913,
+  "tips": 3.0,
+  "pt": 1.0,
+  "pi": 1.0,
+  "pm": 1.0,
+  "g_imbal": 0.0,
+  "A": {
+   "run": "20260712-0316-policyA_G02_00_r1_t0",
+   "aborted": false,
+   "best_ckpt": "model_609.pt",
+   "best_objheight": 0.1139,
+   "health_verdict": "FAIL",
+   "attempts": [
+    {
+     "run": "20260712-0316-policyA_G02_00_r1_t0",
+     "aborted": false,
+     "objheight": 0.1139,
+     "health_verdict": "FAIL"
+    },
+    {
+     "run": "20260712-0410-policyA_G02_00_r1_t1",
+     "aborted": true,
+     "objheight": 0.0,
+     "health_verdict": null
+    }
+   ]
+  },
+  "B": {
+   "run": "20260712-0414-policyB_G02_00_r1_reorient",
+   "aborted": false,
+   "recipe": "b_liveA_imit"
+  },
+  "handoff": {
+   "video": "/home/humanoid/Programs/hand/docs/rl/videos/reorient/sweep/G02_00_r1_handoff.mp4",
+   "min_z_post": 0.1119,
+   "health": {
+    "verdict": "WARN",
+    "checks": {
+     "late_finger": {
+      "status": "PASS",
+      "value": 0.0,
+      "detail": "(thumb@1, index@1, middle@1)"
+     },
+     "idle_finger": {
+      "status": "PASS",
+      "value": 3.0,
+      "detail": "thumb=13.5N/1.00 index=13.1N/1.00 middle=6.5N/1.00"
+     },
+     "drop": {
+      "status": "PASS",
+      "value": 0.113,
+      "detail": "min hold-phase obj-z 0.113 m (floor<0.05)"
+     },
+     "jitter": {
+      "status": "PASS",
+      "value": 9.9343,
+      "detail": "ang-jerk 9.9 1/s^2"
+     },
+     "de_centering": {
+      "status": "WARN",
+      "value": 7.1112,
+      "detail": "sliding: path 3.3cm >> net 0.5cm"
+     },
+     "over_clamp": {
+      "status": "WARN",
+      "value": 11.0291,
+      "detail": "mean fingertip 11.0 N (reward saturates ~3N)"
+     }
+    },
+    "metrics": {
+     "first_contact": [
+      1,
+      1,
+      1
+     ],
+     "contact_spread": 0.0,
+     "touch_frac": [
+      1.0,
+      1.0,
+      1.0
+     ],
+     "force_mean": [
+      13.5,
+      13.1,
+      6.5
+     ],
+     "contact_count": 3.0,
+     "min_z_hold": 0.113,
+     "ang_jerk": 9.9,
+     "net_drift_cm": 0.5,
+     "slide_ratio": 7.1,
+     "tip_force": 11.0,
+     "held_cos_tail": 0.635,
+     "peak_cos": 0.653
+    }
+   },
+   "b_aborted": false,
+   "a_aborted": false
+  },
+  "secs": 5887
+ },
+ {
+  "id": "G02_01_r1",
+  "morph": [
+   -0.0241,
+   -0.0096,
+   0.0089,
+   -0.0207,
+   -0.0113,
+   0.0198,
+   0.0199,
+   -0.0208,
+   0.0082
+  ],
+  "delta_m05": [
+   -0.0388,
+   -0.0146,
+   -0.0019,
+   -0.0247,
+   -0.0135,
+   0.0075,
+   -0.0047,
+   -0.045,
+   -0.0077
+  ],
+  "ik_resid": {
+   "thumb": 0.09,
+   "index": 1.28,
+   "middle": 0.1
+  },
+  "lift": 0.052030504355594386,
+  "tips": 3.0,
+  "pt": 1.0,
+  "pi": 1.0,
+  "pm": 1.0,
+  "g_imbal": 0.0,
+  "A": {
+   "run": "20260712-0454-policyA_G02_01_r1_t0",
+   "aborted": true,
+   "best_ckpt": "model_0.pt",
+   "best_objheight": 0.0,
+   "health_verdict": null,
+   "attempts": [
+    {
+     "run": "20260712-0454-policyA_G02_01_r1_t0",
+     "aborted": true,
+     "objheight": 0.0,
+     "health_verdict": null
+    },
+    {
+     "run": "20260712-0458-policyA_G02_01_r1_t1",
+     "aborted": true,
+     "objheight": 0.0,
+     "health_verdict": null
+    }
+   ]
+  },
+  "note": "A never lifted (best objheight 0.0 < 0.06, 2 attempts)",
+  "secs": 724
+ },
+ {
+  "id": "G02_02_r1",
+  "morph": [
+   0.0125,
+   -0.0007,
+   0.0028,
+   0.0169,
+   -0.0209,
+   0.0261,
+   -0.0195,
+   0.0127,
+   0.0185
+  ],
+  "delta_m05": [
+   -0.0022,
+   -0.0057,
+   -0.008,
+   0.0129,
+   -0.0231,
+   0.0138,
+   -0.0441,
+   -0.0115,
+   0.0026
+  ],
+  "ik_resid": {
+   "thumb": 0.97,
+   "index": 6.76,
+   "middle": 0.08
+  },
+  "lift": 0.04999321169684577,
+  "tips": 3.0,
+  "pt": 1.0,
+  "pi": 1.0,
+  "pm": 1.0,
+  "g_imbal": 0.0,
+  "A": {
+   "run": "20260712-0507-policyA_G02_02_r1_t0",
+   "aborted": true,
+   "best_ckpt": "model_0.pt",
+   "best_objheight": 0.0,
+   "health_verdict": null,
+   "attempts": [
+    {
+     "run": "20260712-0507-policyA_G02_02_r1_t0",
+     "aborted": true,
+     "objheight": 0.0,
+     "health_verdict": null
+    },
+    {
+     "run": "20260712-0511-policyA_G02_02_r1_t1",
+     "aborted": true,
+     "objheight": 0.0,
+     "health_verdict": null
+    }
+   ]
+  },
+  "note": "A never lifted (best objheight 0.0 < 0.06, 2 attempts)",
+  "secs": 754
+ },
+ {
+  "id": "G02_03_r1",
+  "morph": [
+   0.0182,
+   0.023,
+   0.0275,
+   0.0006,
+   0.0009,
+   0.0236,
+   0.0221,
+   -0.0016,
+   0.0257
+  ],
+  "delta_m05": [
+   0.0035,
+   0.018,
+   0.0167,
+   -0.0034,
+   -0.0013,
+   0.0113,
+   -0.0025,
+   -0.0258,
+   0.0098
+  ],
+  "ik_resid": {
+   "thumb": 11.06,
+   "index": 5.83,
+   "middle": 1.01
+  },
+  "lift": 0.046687016902124914,
+  "tips": 2.0,
+  "pt": 0.0,
+  "pi": 0.975,
+  "pm": 0.9944444444444445,
+  "g_imbal": 0.9944444444444445,
+  "A": {
+   "run": "20260712-0518-policyA_G02_03_r1_t0",
+   "aborted": true,
+   "best_ckpt": "model_50.pt",
+   "best_objheight": 0.098,
+   "health_verdict": null,
+   "attempts": [
+    {
+     "run": "20260712-0518-policyA_G02_03_r1_t0",
+     "aborted": true,
+     "objheight": 0.098,
+     "health_verdict": null
+    },
+    {
+     "run": "20260712-0522-policyA_G02_03_r1_t1",
+     "aborted": true,
+     "objheight": 0.0,
+     "health_verdict": null
+    }
+   ]
+  },
+  "B": {
+   "run": "20260712-0526-policyB_G02_03_r1_reorient",
+   "aborted": false,
+   "recipe": "b_liveA_imit"
+  },
+  "handoff": {
+   "video": "/home/humanoid/Programs/hand/docs/rl/videos/reorient/sweep/G02_03_r1_handoff.mp4",
+   "min_z_post": 0.0463,
+   "health": {
+    "verdict": "FAIL",
+    "checks": {
+     "late_finger": {
+      "status": "PASS",
+      "value": 5.0,
+      "detail": "(thumb@4, index@0, middle@5)"
+     },
+     "idle_finger": {
+      "status": "WARN",
+      "value": 2.2595,
+      "detail": "mean tip-contacts 2.26<3 | thumb=19.5N/0.90 index=7.2N/0.65 middle=4.9N/0.71"
+     },
+     "drop": {
+      "status": "FAIL",
+      "value": 0.0463,
+      "detail": "min hold-phase obj-z 0.046 m (floor<0.05)"
+     },
+     "jitter": {
+      "status": "FAIL",
+      "value": 229.6381,
+      "detail": "ang-jerk 229.6 1/s^2"
+     },
+     "de_centering": {
+      "status": "FAIL",
+      "value": 4.199,
+      "detail": "net lateral drift 4.2 cm (path 58.3)"
+     },
+     "over_clamp": {
+      "status": "WARN",
+      "value": 10.5124,
+      "detail": "mean fingertip 10.5 N (reward saturates ~3N)"
+     }
+    },
+    "metrics": {
+     "first_contact": [
+      4,
+      0,
+      5
+     ],
+     "contact_spread": 5.0,
+     "touch_frac": [
+      0.9,
+      0.65,
+      0.71
+     ],
+     "force_mean": [
+      19.5,
+      7.2,
+      4.9
+     ],
+     "contact_count": 2.26,
+     "min_z_hold": 0.0463,
+     "ang_jerk": 229.6,
+     "net_drift_cm": 4.2,
+     "slide_ratio": 13.9,
+     "tip_force": 10.5,
+     "held_cos_tail": 0.333,
+     "peak_cos": 0.999
+    }
+   },
+   "b_aborted": false,
+   "a_aborted": true
+  },
+  "secs": 2851
  }
 ]
