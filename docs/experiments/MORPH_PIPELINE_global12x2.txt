@@ -16,3 +16,4 @@ G02_00_r1        | lift 0.052 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1119 cos  0.6
 G02_01_r1        | lift 0.052 tip 3.0 pers 1.00/1.00/1.00 | minZ      — cos      — jerk     — force     — drift    —cm | A never lifted (best objheight 0.0 < 0.06, 2 attempts) | A×2   (724s)
 G02_02_r1        | lift 0.050 tip 3.0 pers 1.00/1.00/1.00 | minZ      — cos      — jerk     — force     — drift    —cm | A never lifted (best objheight 0.0 < 0.06, 2 attempts) | A×2   (754s)
 G02_03_r1        | lift 0.047 tip 2.0 pers 0.00/0.97/0.99 | minZ 0.0463 cos  0.333 jerk 229.6 force  10.5 drift  4.2cm | FAIL | A×2   (2851s)
+G02_04_r1        | lift 0.051 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1115 cos  0.528 jerk  26.1 force   9.2 drift  0.2cm | WARN | A×2   (8819s)

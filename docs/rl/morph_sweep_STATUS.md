@@ -528,3 +528,18 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   (design 17) completed a clean full run this tick; watch whether the rate reverts. ETA full-24
   ~07-13 early AM. GPU busy — analysis/commit only. Full analysis reorientation.md §P4 r0
   close-out + r1 designs 13–16 (also backfills the r0 12/12 close-out there).
+- **2026-07-12 ~09:00 tick — r1 design 17 landed: G02_04 flips PASS-static → reorienter, the
+  sharpest replica inconsistency yet (r0 cos 0.148 all-PASS / r1 cos 0.528 peak 0.710 WARN).**
+  Identical clean inputs (resid 3.7–4.9 mm, CEM 1/1/1), opposite capability verdicts — H2's
+  cleanest head-to-head; the r0 "clean-static" class was a draw artifact. Health⊥capability
+  inside ONE design: the PASS draw is static, the WARN draw on a kept-FAIL A reorients (second
+  reorient on a kept-FAIL A after G02_00_r1). Grip-richness direction repeats (reorienting
+  replica: thumb 6.6 N recruited, tip mean 9.2 N vs r0's 1.3 N idle-ish thumb / 4.5 N). New
+  evaluator-cost mode: BOTH A attempts completed but BOTH health-FAILed ⇒ best-of-2 spent its
+  full budget (8819 s, longest leg) then picked between two FAILs by objheight — the gate can't
+  rank draws it can't pass. r1 abort-cluster further cleared (G02_04_r1 0 aborts; r1 attempts
+  7/10, cumulative 14/28 = 50%). Reorient-signal designs now G02_00 (both), G02_03 (both
+  attempt), G02_04 (r1 only; pooled mean 0.338); hold min-z ≥ 0.105 on 14/14 evaluable. Design
+  18 (G02_05_r1 — r0 was A-defect idle-index) A training since 08:33; full-24 ETA ~07-12 late
+  night–07-13 early AM. GPU busy — analysis/commit only; waiter armed (DONE-only). Full
+  analysis reorientation.md §P4 r1 design 17.

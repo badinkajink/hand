@@ -2474,6 +2474,45 @@ suspect a replica-seed-offset interaction rather than luck.
 Pace: designs 13–16 took ~2.9 h total (collapsed legs are cheap), so full-24
 ETA holds at ~07-13 early AM or slightly earlier.
 
+### P4 global12×2 — r1 design 17 (2026-07-12 ~09:00 tick): G02_04 flips from clean-sheet PASS-static to reorienter — the sharpest replica inconsistency yet
+
+**G02_04_r1 — cos 0.528 (peak 0.710), WARN, A×2 (8819 s, longest leg of the
+sweep).** The replica pair is the sweep's cleanest head-to-head demonstration
+of H2 (single draws are not measurements): identical geometry, identical clean
+inputs (CEM lift 0.051 persist 1/1/1, IK residuals 3.7–4.9 mm), opposite
+capability verdicts:
+
+- **r0**: the sweep's only clean-sheet PASS (all 6 health checks) — and
+  static (cos 0.148, peak 0.205), gentle grip (1.3/2.8/9.6 N, tip mean
+  4.5 N).
+- **r1**: WARN (jerk 26.1, sliding path 12.5 cm, over-clamp 9.2 N) — and a
+  real sustained reorienter: cos 0.528, peak 0.710, tail = 74% of peak,
+  min-z 0.1115, all three fingers engaged (6.6/11.0/10.1 N).
+
+The r0 "clean-static" classification was a draw artifact. Health⊥capability
+now demonstrated in both directions *within a single design*: the PASS draw
+is static, the WARN draw (riding a kept-FAIL A) reorients. This is also the
+second reorient-level result on a kept-FAIL A (after G02_00_r1) — the A
+health gate keeps proving unable to predict B fate.
+
+Two secondary reads. (1) **Grip richness**: the reorienting replica carries
+~2× the fingertip force and a recruited thumb (6.6 N vs r0's near-idle
+1.3 N) — same direction as the a_quality_predictor rho +0.44 mean-tip-force
+trend, still descriptive. (2) **Evaluator cost, new mode**: both A attempts
+completed but both health-FAILed (t0 objheight 0.1126 / t1 0.1089), so
+best-of-2 ran its full budget and then chose between two FAILs by objheight —
+essentially a coin flip. The gate can't rank draws it can't pass; this is the
+most expensive leg type (~2.5 h) and it bought no draw-quality information.
+
+The r1 abort-cluster flag from designs 13–16 is further cleared: G02_04_r1
+had **zero** aborted attempts (r1 attempt tally 7/10 aborted, cumulative
+A-leg 14/28 = 50%).
+
+Tallies at 17/24 legs, r1 5/12: designs with reorient signal in ≥1 replica =
+G02_00 (both), G02_03 (both attempt), **G02_04 (r1 only, pooled mean 0.338)**.
+Hold min-z ≥ 0.105 on every evaluable leg (14/14). Design 18 (G02_05_r1,
+whose r0 was the second A-defect row) on its A leg since 08:33.
+
 ---
 
 ## Results
