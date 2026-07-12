@@ -760,5 +760,129 @@
    "a_aborted": false
   },
   "secs": 5877
+ },
+ {
+  "id": "G02_06_r0",
+  "morph": [
+   -0.0016,
+   0.0016,
+   0.0236,
+   -0.0091,
+   0.0076,
+   0.0089,
+   -0.0092,
+   0.0059,
+   0.0224
+  ],
+  "delta_m05": [
+   -0.0163,
+   -0.0034,
+   0.0128,
+   -0.0131,
+   0.0054,
+   -0.0034,
+   -0.0338,
+   -0.0183,
+   0.0065
+  ],
+  "ik_resid": {
+   "thumb": 9.66,
+   "index": 0.09,
+   "middle": 2.01
+  },
+  "lift": 0.04923720408704309,
+  "tips": 3.0,
+  "pt": 1.0,
+  "pi": 1.0,
+  "pm": 1.0,
+  "g_imbal": 0.0,
+  "A": {
+   "run": "20260711-1903-policyA_G02_06_r0_t0",
+   "aborted": false,
+   "best_ckpt": "model_609.pt",
+   "best_objheight": 0.1119,
+   "health_verdict": "WARN",
+   "attempts": [
+    {
+     "run": "20260711-1903-policyA_G02_06_r0_t0",
+     "aborted": false,
+     "objheight": 0.1119,
+     "health_verdict": "WARN"
+    }
+   ]
+  },
+  "B": {
+   "run": "20260711-1957-policyB_G02_06_r0_reorient",
+   "aborted": false,
+   "recipe": "b_liveA_imit"
+  },
+  "handoff": {
+   "video": "/home/humanoid/Programs/hand/docs/rl/videos/reorient/sweep/G02_06_r0_handoff.mp4",
+   "min_z_post": 0.1079,
+   "health": {
+    "verdict": "WARN",
+    "checks": {
+     "late_finger": {
+      "status": "PASS",
+      "value": 2.0,
+      "detail": "(thumb@3, index@2, middle@1)"
+     },
+     "idle_finger": {
+      "status": "PASS",
+      "value": 3.0,
+      "detail": "thumb=8.3N/1.00 index=10.3N/1.00 middle=6.7N/1.00"
+     },
+     "drop": {
+      "status": "PASS",
+      "value": 0.1081,
+      "detail": "min hold-phase obj-z 0.108 m (floor<0.05)"
+     },
+     "jitter": {
+      "status": "PASS",
+      "value": 9.957,
+      "detail": "ang-jerk 10.0 1/s^2"
+     },
+     "de_centering": {
+      "status": "WARN",
+      "value": 37.9395,
+      "detail": "sliding: path 3.8cm >> net 0.0cm"
+     },
+     "over_clamp": {
+      "status": "WARN",
+      "value": 8.4391,
+      "detail": "mean fingertip 8.4 N (reward saturates ~3N)"
+     }
+    },
+    "metrics": {
+     "first_contact": [
+      3,
+      2,
+      1
+     ],
+     "contact_spread": 2.0,
+     "touch_frac": [
+      1.0,
+      1.0,
+      1.0
+     ],
+     "force_mean": [
+      8.3,
+      10.3,
+      6.7
+     ],
+     "contact_count": 3.0,
+     "min_z_hold": 0.1081,
+     "ang_jerk": 10.0,
+     "net_drift_cm": 0.0,
+     "slide_ratio": 37.9,
+     "tip_force": 8.4,
+     "held_cos_tail": 0.127,
+     "peak_cos": 0.397
+    }
+   },
+   "b_aborted": false,
+   "a_aborted": false
+  },
+  "secs": 5646
  }
 ]

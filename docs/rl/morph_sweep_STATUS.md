@@ -446,3 +446,17 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   A-leg collapses 3/9. Design 7 (G02_06_r0) A training since 19:03; pace ~96 min/design; r0
   ETA ~07-12 ~04:40, full 24 ~07-13 ~00:00. GPU busy — analysis/commit only; waiter armed.
   Full analysis reorientation.md §P4 interim design 6.
+- **2026-07-11 ~21:00 tick — P4 design 7/24 complete: G02_06_r0 = cleanest input row yet,
+  still static (third holds-but-static).** CEM clean (persist 1/1/1, imbal 0.0), index IK
+  residual 0.09 mm (near-perfect), A first-draw clean — and B holds perfectly (min-z 0.108,
+  3 fingers touch-frac 1.00 at 6.7–10.3 N, jerk 10.0 PASS, net drift 0.0 cm) but tail cos
+  0.127 (peak 0.397 = attempts a partial reorient, settles back; not a frozen clamp).
+  Residual asymmetry repeats in the same direction: thumb resid 9.66 mm harmless here
+  (full engagement) vs index resids 6.76/12.84 mm → idle-index A-defects 2/2; ledger now
+  thumb-tolerable n=2 / index-harmful n=2, still descriptive. r0 tally 7/12: cos {0.504,
+  −0.134, −0.388ᴬᵈᵉᶠ, 0.568, 0.148, −0.499ᴬᵈᵉᶠ, 0.127}, softened-bar 2/7, A-defect 2/7,
+  clean-static 3/7; A-leg collapses 3/10; **hold min-z ≥0.105 on 7/7 — pick-up/hold is a
+  solved constant of the full box, all variance is the reorient axis.** Design 8
+  (G02_07_r0) A training since 20:37; pace ~96 min/design; r0 ETA ~07-12 ~04:40, full 24
+  ~07-12 ~23:45. GPU busy — analysis/commit only; waiter armed. Full analysis
+  reorientation.md §P4 interim design 7.
