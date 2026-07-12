@@ -2619,6 +2619,49 @@ A-leg attempts 16/33 aborted (48%). Hold: 16/17 evaluable legs min-z
 ~13:25; r0 was the flattest-clamp −0.099), G02_09_r1, G02_10_r1, and
 G02_11_r1 — the lift-hostility arbiter. Full-24 ETA ~07-12 ~20:30–22:00.
 
+### P4 global12×2 — r1 design 21 (2026-07-12 ~17:20 tick): G02_08 is the fourth replica-consistent design (second consistent static) — and the first design whose Policy A passed on the FIRST draw in BOTH replicas
+
+**G02_08_r1 — cos 0.074 (peak 0.108), WARN, no A retry (5686 s).** A trained
+clean on its first draw (model_609, objheight 0.1156, WARN) — and since r0's
+A also passed first-draw, **G02_08 is the only design of the sweep so far with
+zero A-leg aborts across both replicas** (against a program-wide attempt-abort
+rate of ~48%): whatever drives collapse propensity, this geometry sits at the
+benign end of it. imit-B holds (post-handoff min-z 0.1098, all three fingers
+touch-frac 1.00 at 8.7/7.5/6.4 N) with **ang-jerk 13.8 PASS**; WARNs are the
+usual sliding (13.4 cm path vs 1.2 cm net) + over-clamp 7.5 N. But it never
+reorients: tail 0.074, peak 0.108.
+
+Three reads:
+
+1. **Fourth replica-consistent design; the static bin now has two members.**
+   Pooled G02_08: tails {−0.099, 0.074}, Δ 0.173, both peaks ≤ 0.11 — deep in
+   no-reorient territory both replicas, like G02_06 (0.127/−0.018). The
+   consistent set is now G02_00 reorienter (0.504/0.635) / G02_07 partial
+   (0.333/0.366) / G02_06 + G02_08 static — 4 of the 7 both-legs-evaluable
+   designs resolve at n=2, vs the 2 proven irresolvable (G02_04 Δ0.380,
+   G02_05 Δ1.386) and G02_03 (both attempt, r1 dropped).
+2. **Convergent verdict from different grips, again.** r0's B is a
+   thumb-dominant clamp (12.2/3.8/8.2 N, near-idle index, jerk 21.7 WARN);
+   r1's is balanced and smoother (8.7/7.5/6.4 N, jerk 13.8 PASS). Same
+   pattern as G02_07: grip style and smoothness are draw properties, the
+   capability tail is a geometry property.
+3. **Static despite the easiest trainability of the sweep.** G02_08 pairs
+   the best A-trainability record (0 aborts / 2 draws) with a static
+   capability verdict — one more axis-decoupling data point alongside
+   health⊥capability (G02_04) and input-cleanliness⊥capability (G02_07).
+   Its largest m05 offset is middle-finger y −4.6 cm (total distance
+   ~6.5 cm, one of the more distant designs).
+
+Tallies at 21/24 legs, r1 9/12: replica-consistent = G02_00 / G02_07 /
+G02_06 / G02_08; irresolvable-at-n=2 = G02_04 / G02_05. A-leg attempts 16/34
+aborted (47%). Hold: 17/18 evaluable legs min-z ≥ 0.1036 (G02_03_r1 the lone
+drop). Context: machine rebooted 15:53 (see crash-recovery note); sweep
+resumed clean, 21/24 records intact. In flight: G02_09_r1 (r0 = jitter-FAIL
+112.4 static) — A t0 completed 16:54 but was gate-rejected (no collapse
+sentinel ⇒ health/objheight reject), t1 training since ~16:56. Remaining:
+G02_10_r1, G02_11_r1 (the lift-hostility arbiter). Full-24 ETA ~07-12
+~21:30–23:00 (pushed by the reboot + G02_09 retry).
+
 ---
 
 ## Results
