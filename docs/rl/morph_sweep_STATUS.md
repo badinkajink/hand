@@ -506,3 +506,10 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   pool `_r0/_r1` per design (mean/max cos, collapse count), `morph_pipeline_plots.py --tag
   global12x2`, rank vs m05 draw-band, promote nothing on n=2 without a confirm. Waiter re-armed
   DONE-only. GPU busy (r1) — no launches.
+- **2026-07-12 ~04:45 tick — r1 pass healthy, design 13/24 (G02_00_r1) on its last B leg.**
+  CEM clean (lift 0.052, persist 1/1/1); A ran both attempts — t1 watchdog-collapsed iter 45
+  (objheight 0.021), kept t0 model_609 objheight 0.1139 (r0's G02_00 was first-draw clean:
+  replica-level draw variance on the same geometry, as H2 predicts). imit-B iter 235/271,
+  object_height 0.123, no collapse sentinel — row lands ~04:55. Cumulative A-leg collapses
+  8/19. No new rows since the 03:12 r0 close-out; committed the G02_10_r0 video+health
+  stragglers. GPU busy — analysis/commit only; waiter armed (DONE-only).
