@@ -648,3 +648,17 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   → if means ≥0.5 hold, head-to-head vs m05 with matched draws before promotion; else the
   irresolvable verdict extends and the **morphology-conditioned policy build is the default
   next move (user decision pending)**. Waiter re-armed (DONE reappears when confirm ends).
+- **2026-07-13 ~00:00 tick — confirm leg 1/4 landed: G02_00_r2 = cos 0.107 (peak 0.159) —
+  the sweep's only "replica-consistent reorienter" BREAKS at n=3 (draws 0.504/0.635/0.107);
+  the consistent bin was itself draw luck.** A passed first-draw (WARN, objh 0.110); B holds
+  clean (min-z 0.1108, 3×100% touch) but never attempts — the static draw is also the
+  design's hardest clamp (thumb 18.0 N, mean tip 12.1 N over-clamp WARN, vs lighter grips on
+  both expressing draws). THIRD same-grade-A flip datum (r0 WARN 0.504 vs r2 WARN 0.107,
+  Δ0.397) after G02_10 — A-grade-not-a-sufficient-statistic hardens. Fallout: the 5/12
+  consistent census is optimistic by construction (consistency-at-n=2 is a draw-luck
+  observable); P(express|design) framing strengthens (G02_00 expresses 2/3). Confirm-bar
+  math: G02_00 mean 0.415 over 3 ⇒ needs r3 ≥ 0.754 for the ≥0.5 promotion bar — trending
+  toward irresolvable-verdict-extends (⇒ conditioned-policy default). Hold streak 21/21
+  legs ≥ 0.103. In flight: G02_05_r2 A t0 since 23:57 (leg ETA ~01:30, batch ETA ~04:40).
+  GPU busy — analysis/commit only; waiter armed (DONE-only). Full analysis
+  reorientation.md §P4 confirm leg 1/4.
