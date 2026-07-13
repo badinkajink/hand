@@ -712,3 +712,17 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   or accept m05 + return to sim2real. **Idle-tick CPU tasks while undecided:** sync the
   probe+P4 arc into webpaper/rl.typ + paper/main.tex appendix (CLAUDE.md three-doc rule);
   render/inspect the G02_00_r3 + G02_05_r1 videos vs b33.
+- **2026-07-13 ~08:00 tick — DOC SYNC DONE (idle-tick task 1/2; program stays CLOSED, GPU
+  free, no launches).** webpaper/src/rl.typ: appended the compliance-DR closure verdict +
+  a new top-level section "The policy-bottleneck program" (probes H1–H3 with the P2 draw
+  distribution, A-predictor negative, global12x2 pooled table as a dropdown, n=4 confirm
+  bands, close-out + conditioned-policy recommendation); builds clean, HTML verified.
+  paper/main.tex: durable-findings paragraph appended to §codesign-results (body) + new
+  App. "Policy-bottleneck probes and the global landscape sweep" (label app:bottleneck)
+  with probe/sweep detail per the body/appendix split; also fixed FIVE pre-existing compile
+  errors while verifying (missing \R \bX \bt \bw macro defs, a \xml typo, and the
+  li2024lightninggrasp cite key → the real yin2025lightninggrasp entry appended to
+  references.bib from the upstream README) — paper now compiles rc=0 (was rc=1 for a
+  while; paper/ is gitignored so these fixes are local-only by design). Remaining
+  idle-tick task: render/inspect G02_00_r3 + G02_05_r1 videos vs b33. Conditioned-policy
+  build decision still with the user.
