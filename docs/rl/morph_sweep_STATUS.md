@@ -662,3 +662,19 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   legs ≥ 0.103. In flight: G02_05_r2 A t0 since 23:57 (leg ETA ~01:30, batch ETA ~04:40).
   GPU busy — analysis/commit only; waiter armed (DONE-only). Full analysis
   reorientation.md §P4 confirm leg 1/4.
+- **2026-07-13 ~02:00 tick — confirm leg 2/4 landed: G02_05_r2 = cos −0.079 (peak 0.046,
+  fully static) — the program-best design's ≥0.5 promotion bar is now MATHEMATICALLY
+  unreachable (draws −0.499/0.887/−0.079, mean 0.103 ⇒ r3 would need 1.69 > 1).** A passed
+  first-draw (WARN, objh 0.1064); B holds clean (min-z 0.107, 3×100% touch, jerk 13.9
+  PASS) but never attempts. FOURTH same-grade-A flip and the LARGEST (r1 vs r2 both
+  WARN first-draw As, objh 0.106 both, Δcos 0.966) ⇒ A-grade-not-a-sufficient-statistic
+  is settled. With leg 1's G02_00 needing r3 ≥ 0.754 (above all 3 observed draws), BOTH
+  candidates now need a better-than-any-observed draw ⇒ head-to-head-vs-m05 branch
+  effectively dead; **irresolvable-verdict-extends ⇒ conditioned-policy default is all but
+  confirmed** (r3 legs now measure bands/expression, not promotion). Within-design note:
+  expression tracks index recruitment 3/3 in G02_05 (index 0.9 N static / 10.8 N cos 0.887 /
+  3.9 N static; same 12.84 mm residual) — the design's load-bearing finger is the index and
+  draws flip on whether they recruit it. Expression census: G02_00 2/3, G02_05 1/3. Hold
+  streak 22/22 legs ≥ 0.103. In flight: G02_00_r3 A t0 since 01:32; G02_05_r3 last; batch
+  ETA ~04:40. GPU busy — analysis/commit only; waiter armed (DONE-only). Full analysis
+  reorientation.md §P4 confirm leg 2/4.
