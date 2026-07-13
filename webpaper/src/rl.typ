@@ -881,6 +881,21 @@ two leading designs then got two more full draws each (n = 4).
   P(express | design).
 ]
 
+#media("assets/global12_lift_grid.mp4",
+  label: [The lift axis, everywhere at once.],
+  caption: [Best draw per design across the full 9-parameter box, lift-and-handoff phase
+    (slowed 2×): every geometry grasps, lifts, and delivers. This is the co-design axis
+    that geometry does not gate.],
+  loop: true)
+
+#media("assets/global12_reorient_grid.mp4",
+  label: [The reorient axis — where everything varies.],
+  caption: [The same twelve best draws from the handoff onward (real time), each labeled
+    with the design's best held-cos: full rolls toward vertical (G02_05 at +0.89),
+    sustained partials, static clamps, and wrong-way drifts — the spread that draw noise
+    and geometry jointly produce.],
+  loop: true)
+
 #det([Pooled per-design table (r0/r1 held-cos, bins)], kind: "extended results", open: false)[
   #table(
     columns: (auto, auto, auto, auto, 1fr),
@@ -917,6 +932,13 @@ finished at mean 0.482, expressing on 3/4 draws — the program's best expressio
 statistically inseparable from m05 (band mean 0.383, SEM ≈ 0.13). `G02_05` finished at 0.210
 but owns the program's best single policy (held-cos 0.887 at ang-jerk 7.8 — smoother than the
 b33 reference). *m05 (a10 → b33) remains the reference design.*
+
+#media("assets/global12_highlights.mp4",
+  label: [Reference vs the two candidates.],
+  caption: [m05's blessed a10→b33 policy (held-cos +0.90) beside G02_00's best draw (+0.68,
+    the only design expressing on 3 of 4 draws) and G02_05's program-best draw (+0.89 at
+    ang-jerk 7.8 — smoother than the reference itself).],
+  loop: true)
 
 What the program actually bought:
 
