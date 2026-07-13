@@ -2892,6 +2892,53 @@ Hold streak: min-z 0.107 ⇒ **22/22 policy-producing legs ≥ 0.103**. In fligh
 (A t0 training since 01:32, CEM lift 0.052); G02_05_r3 last; batch ETA ~04:40. Video
 `docs/rl/videos/reorient/sweep/G02_05_r2_handoff.mp4` (+ `.health.json`).
 
+### P4 confirm — leg 3/4 (2026-07-13 ~05:00 tick): G02_00_r3 reorients at its design-best (0.681) — and still misses the promotion bar by 0.018; the confirm question is formally CLOSED
+
+**Result (confirm leg 3/4, 8904 s — longest confirm leg):** `G02_00_r3` — both A attempts
+ran to completion and **both health-FAILed** (t0 objheight 0.1166 kept, t1 0.1126; third
+both-FAIL best-of-2 leg after G02_04/G02_09 — full budget spent, gate picked by objheight
+among draws it can't rank). imit-B on the kept t0 **holds** (post-handoff min-z 0.1156) and
+**reorients at the design's best**: held-cos tail **0.681**, peak **0.734**, ang-jerk 9.8
+PASS, net drift 1.1 cm. Verdict **FAIL on idle_finger alone** (thumb 3.8 N / 0.31 touch,
+middle 2.4 N / 0.26 — the index carries the roll at 6.7 N / 1.00): the fourth
+capability-behind-a-FAIL row (L01_02, G02_03_r0, G02_10_r1 pattern; the softened flip bar
+keeps earning its place).
+
+**The headline: the confirm is decided — both candidates miss.** G02_00's four draws are
+{0.504, 0.635, 0.107, **0.681**}: mean **0.482**, sd 0.26. The bar needed r3 ≥ 0.754; the
+design answered with its best-ever draw and still fell 0.018 short. Honest caveat recorded:
+with SEM ≈ 0.13 a 0.482-vs-0.5 miss is not a statistical distinction — but the bar was
+pre-registered exactly so a near-miss wouldn't get relitigated on draw luck, and the band
+read doesn't change the story: G02_00 is **m05-class** (m05's 3-draw band {0.82, 0.49,
+−0.16}, mean 0.383) at 3.9 cm from m05 — a second sample of the same expression-gated
+capability, not a dominator. With G02_05's bar already unreachable (leg 2), **the
+head-to-head-vs-m05 branch is dead on both legs ⇒ irresolvable-verdict-extends is now the
+formal confirm outcome; the morphology-conditioned policy build is the default next move
+(user decision pending).** G02_05_r3 (last leg) measures its band only.
+
+**A-grade inversion inside one design (n=4).** G02_00's two WARN-grade As delivered cos
+0.504 and 0.107 (mean 0.31); its two FAIL-grade As delivered **0.635 and 0.681** (mean
+0.66). The grade doesn't just fail to order outcomes — on this design it anti-orders them.
+Small n, but stacked on the four same-grade flips it closes the case: P5 must not gate or
+rank per-draw results through the A health grade.
+
+**Grip note — G02_00's coin is clamp intensity, not index identity.** The design's one
+static draw (r2) is its hardest clamp (thumb 18.0 N, mean tip 12.1 N, the design's only
+over-clamp WARN, jerk 17.4); its best draw (r3) is its lightest grip (mean tip 4.3 N,
+index-led with thumb/middle only intermittently touching). G02_05's expression tracked
+index recruitment 3/3; G02_00's tracks (inversely) clamp force. Common factor across both
+candidates: **the draw picks a grip style, and the grip style decides expression** — which
+finger/force axis matters is design-specific, so no single scalar (residual, force, grade)
+will predict it program-wide.
+
+**Census updates:** G02_00 expresses 3/4 — the strongest expression fraction in the
+program (m05 2/3, G02_05 1/3). Hold streak: min-z 0.1156 ⇒ **23/23 policy-producing legs
+≥ 0.103**. In flight: G02_05_r3 — CEM clean (lift 0.050, persist 1/1/1), A t0 completed
+but health-FAILed → t1 training since ~04:56 (objheight 0.1106, healthy); batch ETA
+~07:30 (both r3 legs spent the full best-of-2 budget). On completion: n=4/n=4 band
+close-out + program synthesis; GPU goes free. Video
+`docs/rl/videos/reorient/sweep/G02_00_r3_handoff.mp4` (+ `.health.json`).
+
 ---
 
 ## Results
