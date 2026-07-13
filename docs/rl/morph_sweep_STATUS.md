@@ -723,6 +723,13 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   errors while verifying (missing \R \bX \bt \bw macro defs, a \xml typo, and the
   li2024lightninggrasp cite key → the real yin2025lightninggrasp entry appended to
   references.bib from the upstream README) — paper now compiles rc=0 (was rc=1 for a
-  while; paper/ is gitignored so these fixes are local-only by design). Remaining
-  idle-tick task: render/inspect G02_00_r3 + G02_05_r1 videos vs b33. Conditioned-policy
-  build decision still with the user.
+  while; paper/ is gitignored so these fixes are local-only by design). **Idle-tick task
+  2/2 also done — video frame inspection (ffmpeg strips + final-frame crops) of
+  G02_00_r3 / G02_05_r1 vs the b33 reference: all three visually consistent with their
+  deterministic held-cos.** G02_05_r1's cylinder ends near-vertical in a full 3-finger
+  wrap well off the floor (matches 0.887); G02_00_r3 sustains a ~45° tilt on its
+  index-led light grip (matches 0.681, cos⁻¹≈47°); b33 shows the familiar slightly-tilted
+  vertical (0.82). No floor contact in any final frame; existing sweep videos were
+  sufficient (no re-render needed). Both idle-tick close-out tasks complete;
+  conditioned-policy build decision still with the user — next tick has no queued work
+  beyond that decision.
