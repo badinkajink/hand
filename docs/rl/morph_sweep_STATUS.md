@@ -697,3 +697,18 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   row = band estimation only. On DONE: n=4 close-out + program synthesis, GPU free. GPU
   busy — analysis/commit only; waiter armed (DONE-only). Full analysis reorientation.md
   §P4 confirm leg 3/4.
+- **2026-07-13 06:09 — CONFIRM COMPLETE (4/4) → PROBE+P4 PROGRAM CLOSED; GPU FREE.**
+  G02_05_r3 = cos 0.532 / jerk 44.9 FAIL (A t0 completed-FAIL → t1; expressing draw with a
+  thrashy grip; min-z 0.0903 — first sub-0.103 hold of the program, still ≫ 0.05 held-bar).
+  **Final n=4 bands: G02_00 {0.504, 0.635, 0.107, 0.681} mean 0.482, expresses 3/4;
+  G02_05 {−0.499, 0.887, −0.079, 0.532} mean 0.210, expresses 2/4; m05 reference {0.82,
+  0.49, −0.16} mean 0.383.** Verdict per the pre-registered bar: NO promotion — G02_00 is
+  m05-class (its 3/4 expression fraction is the program's best; a real design 3.9 cm from
+  m05 that matches the reference), G02_05 stays the program-best-single-draw wide-band
+  design. Program synthesis in reorientation.md §PROGRAM CLOSE-OUT; pooled table updated.
+  **NEXT (user decision):** morphology-conditioned policy build (~2–4 days; spike-verified
+  zero-mjwarp-changes) = the default recommendation; alternatives: P5 replication redesign
+  (--a-attempts 3, expression-fraction observable, capability probes on delivered state)
+  or accept m05 + return to sim2real. **Idle-tick CPU tasks while undecided:** sync the
+  probe+P4 arc into webpaper/rl.typ + paper/main.tex appendix (CLAUDE.md three-doc rule);
+  render/inspect the G02_00_r3 + G02_05_r1 videos vs b33.
