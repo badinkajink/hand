@@ -2811,6 +2811,43 @@ on candidates — what the confirm leg does), or (b) the **morphology-conditione
 plumbing) which amortizes training across designs and turns evaluation into rollouts. Given
 capability-is-common + expression-is-draw-gated, (b) is now the principled next build.
 
+### P4 confirm — leg 1/4 (2026-07-13 ~00:00 tick): G02_00_r2 breaks the design's replica-consistency — the "consistent reorienter" bin was itself draw luck
+
+**Result (confirm leg 1/4, 5684 s):** `G02_00_r2` — A passed on its **first** draw (WARN,
+objheight 0.110, no abort); imit-B trained clean and **holds** (post-handoff min-z 0.1108, all
+3 fingers 100% touch-frac) but **never attempts a reorient**: held-cos tail **0.107**, peak
+**0.159**, verdict WARN (de-centering 6.1 cm path / 0.1 cm net + over-clamp 12.1 N; jitter
+17.4 PASS). The grip is the hardest of G02_00's three draws — thumb-dominant clamp
+18.0/13.0/5.4 N — where both expressing draws had lighter grips: within this design the
+static draw is also the over-clamp draw, consistent with the hard-clamp↔static pairing seen
+in G02_06 but not universal (G02_09 went static at 4.1 N), so it stays an observation, not a
+rule.
+
+**The headline: G02_00's replica-consistency dissolves at n=3.** Draws now
+{0.504, 0.635, **0.107**}. The sweep's only "replica-consistent reorienter" — the label that
+made it confirm-candidate #1 — was a coincidence of two expressing draws. Three consequences:
+
+1. **The n=2 census is optimistic by construction.** 5/12 designs binned "consistent" at
+   n=2, but consistency-at-n=2 is itself a draw-luck observable: G02_00 shows a design can
+   pass it and still be expression-gated. The static bins (G02_06/G02_08/G02_09, 6 static
+   tails) are more robust than the single reorienter bin was, but none are proven.
+2. **Second same-grade-A flip** (after G02_10): r0 and r2 both kept health-WARN first-draw
+   As (objheight 0.116/0.110), Δcos 0.397. Reinforces the P5 lesson — A health grade is a
+   gate, not a sufficient statistic of the delivered state.
+3. **P(express | design) framing strengthens:** G02_00 expresses in 2/3 draws. Under the
+   n=2 sweep it looked like a *reliable* reorienter; the honest read was always "expresses
+   more often than most" — a fraction, not a scalar.
+
+**Confirm-bar math:** G02_00 mean over 3 draws = **0.415**; it needs r3 ≥ 0.754 to reach the
+≥0.5 promotion bar at n=4. Unless r3 lands near the design's best draws, G02_00 resolves as
+"expression-gated like everything else" and the irresolvable-verdict branch (⇒
+morphology-conditioned policy build as the default next step) gains its first confirm-side
+evidence. G02_05's r2/r3 remain the open half — its A (r2 t0) is training now.
+
+Hold streak intact: min-z 0.1108 ⇒ **21/21 policy-producing legs ≥ 0.103** — pick-up/hold
+stays solved through the confirm draws. Video
+`docs/rl/videos/reorient/sweep/G02_00_r2_handoff.mp4` (+ `.health.json`).
+
 ---
 
 ## Results
