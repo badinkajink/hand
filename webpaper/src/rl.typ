@@ -809,6 +809,135 @@ a stiffer, high-friction contact grips it too rigidly to roll.
   `docs/rl/compliance_dr_plan.md`.
 ]
 
+Compliance DR was then built and tested — and *closed as a tangent*. Judged the only fair way
+(a fixed-policy eval sweep over `N = 32` contact rates), the DR-trained policy *mirrors* the
+baseline's fragility curve rather than dominating it, and its deployed reorientation is ≈ 0.
+The reorienter's gait lives partly in its training-time action noise, so randomizing the
+contact band does not buy the robustness the plan hoped for. The thread stays closed unless a
+better base policy lands.
+
+= The policy-bottleneck program: probe the evaluator, then map the box
+
+The co-design sweeps above all share one silent assumption: that a per-design
+lift-and-reorient rollout *measures the design*. The variance studies said otherwise, and in
+July 2026 this became the explicit program: first *probe* whether the landscape verdicts were
+optimizer noise (hypotheses H1–H3 below), then — with the evaluator's limits characterized —
+run the first honest *global* landscape sweep over the full 9-parameter box. The program ran
+~70 GPU-hours across 40 pipeline legs (5 rescue designs, 2 variance controls, 12 global
+designs × 2 replicas, plus 4 confirmation draws) and closed 2026-07-13.
+
+== The probes: "never learned to pick up" was pure optimizer noise
+
+Three hypotheses were pre-registered. *H1:* most "never learned" verdicts flip under a
+stronger optimizer draw (Policy A best-of-2 + imitation-B). *H2:* with collapse-retry, one
+draw per design is a sound evaluator. *H3:* the m05-recorded imitation prior is fair off-m05.
+
+P1 *rescued* the five failures of the earlier 16-design local sweep with A best-of-2 and both
+B recipes on the same kept A. Result: *pick-up and hold were rescued 5/5* — every design that
+had "failed to lift" lifted and held (post-handoff min-z 0.109–0.125 under both recipes) once
+A got a fresh draw. Not one lift failure was a property of the geometry. The reorient axis
+looked design-clustered at first (a class map of reorients / holds-but-static /
+trainability-hostile within ±8 mm of m05) — until P2 dissolved it.
+
+P2 drew raw, no-retry A draws on m05 itself. The best known design produced a per-draw
+held-cos distribution of *{0.82, 0.49, −0.16}* — a spread of `σ ≈ 0.49` that the A health
+gate *cannot see* (two gate-identical A draws fed Bs at 0.49 and −0.16), and that covers
+almost every "class" verdict P1 had assigned to other designs. A supposedly
+trainability-hostile design drew a clean 0.48 on its first uncensored attempt.
+
+#callout(tag: "Probe verdict", kind: "warn")[
+  *A single training draw is not a measurement.* Per-draw reorient sd is 0.3–0.5,
+  gate-invisible, and design-overlapping. H1 held in sharpened form (pick-up failures were
+  100% draw noise), H2 died (single draws cannot score designs; use means over replicated
+  full draws), H3 held (the imitation prior stays the evaluator: fair 3 / strike 1 /
+  uninformative 1, and it produced the only reorient where self-B dropped).
+]
+
+#det([The A-side predictor hunt — why we could not shortcut the replication], kind: "analysis")[
+  If some Policy-A scorecard metric predicted B's fate, a single-draw evaluator could be
+  restored by gating on it. Over 26 accumulated (A scorecard, B outcome) pairs: *no usable
+  predictor*. Mean tip force correlates weakly (ρ ≈ +0.44) but is non-monotone within
+  same-geometry draws; the health grade itself later *anti-ordered* outcomes inside one design
+  (its health-FAIL A draws produced its two best reorients, WARN draws its worst). The A grade
+  is a collapse gate, not a sufficient statistic of the delivered state. Note:
+  `docs/notes/a_quality_predictor.md`.
+]
+
+== The global sweep: 12 designs × 2 replicas over the full box, then n = 4 confirms
+
+With the evaluator's honest cost known, the global sweep (`global12x2`) Latin-hypercube
+sampled 12 designs over the *full* 9-parameter box (the earlier local sweeps stayed within
+±8 mm of m05; these points sit up to ~4 cm away) and ran the complete pipeline — CEM grasp →
+A best-of-2 → imitation-B → continuous-handoff eval — *twice independently per design*. The
+two leading designs then got two more full draws each (n = 4).
+
+#callout(tag: "Landscape headline", kind: "note")[
+  *Pick-up and hold are solved everywhere in the box.* Every leg that produced a policy held
+  the object (min-z ≥ 0.103 on all 23 evaluable legs; the one "never lifted" design lifted
+  and partially reoriented in its other replica). No lift-hostile geometry exists in the
+  9-parameter space. *All* landscape variance lives on the reorient axis — and most of that
+  is the draw, not the design: reorient *capability* showed up in 6 of 10 both-evaluable
+  designs, but *expression* is a per-draw coin. The observable a design truly owns is
+  P(express | design).
+]
+
+#det([Pooled per-design table (r0/r1 held-cos, bins)], kind: "extended results", open: false)[
+  #table(
+    columns: (auto, auto, auto, auto, 1fr),
+    table.header([*design*], [*r0*], [*r1*], [*mean*], [*n = 2 bin*]),
+    [`G02_00`], [0.504], [0.635], [*0.570*], [confirmed at n = 4: {0.504, 0.635, 0.107, 0.681} mean *0.482*, expresses 3/4 — m05-class],
+    [`G02_05`], [−0.499], [*0.887*], [0.194], [confirmed at n = 4: {−0.499, 0.887, −0.079, 0.532} mean 0.210 — program-best single draw, wide band],
+    [`G02_03`], [0.568], [0.333], [0.451], [both replicas attempt (r1 peaked 0.999, then dropped)],
+    [`G02_07`], [0.333], [0.366], [0.350], [replica-consistent sustained partial (Δ 0.033, tightest pair)],
+    [`G02_10`], [0.117], [0.576], [0.346], [irresolvable: same-grade-A flip],
+    [`G02_04`], [0.148], [0.528], [0.338], [irresolvable: PASS-static → reorienter flip],
+    [`G02_11`], [—], [0.445], [0.445], [r0 double-collapse was draw luck (r1 lifted + partial)],
+    [`G02_06`], [0.127], [−0.018], [0.054], [replica-consistent static],
+    [`G02_09`], [−0.102], [0.149], [0.024], [replica-consistent static; every completed A health-FAILed],
+    [`G02_08`], [−0.099], [0.074], [−0.013], [replica-consistent static; only zero-abort design],
+    [`G02_01`], [−0.134], [—], [−0.134], [static draw + never-lifted draw],
+    [`G02_02`], [−0.388], [—], [−0.388], [A-defect draw + never-lifted draw],
+  )
+  Reference: m05's own clean-draw band under the same evaluator family is {0.82, 0.49, −0.16},
+  mean ≈ 0.38. A-leg abort rate ran ~47% program-wide and is *uncorrelated with capability*
+  (the zero-abort design is static; the program-best design aborted). Full table:
+  `docs/experiments/MORPH_PIPELINE_global12x2_POOLED.md`.
+]
+
+The n = 2 census: 5 of 12 designs are replica-consistent (one reorienter, one partial, three
+static), 3 are *irresolvable at n = 2* (replica spans 0.38–1.39 — and this bin contains the
+best draws of the sweep), the rest were luck-censored (a replica lost to collapses). The
+confirmation draws then broke even the "consistent" bin: the lone consistent reorienter
+(`G02_00`) drew 0.107 on its third draw. Consistency-at-n=2 is itself a draw-luck observable.
+
+== Close-out: no promotion — and why the next step is architectural
+
+Neither candidate cleared the pre-registered promotion bar (n = 4 mean ≥ 0.5). `G02_00`
+finished at mean 0.482, expressing on 3/4 draws — the program's best expression fraction, and
+statistically inseparable from m05 (band mean 0.383, SEM ≈ 0.13). `G02_05` finished at 0.210
+but owns the program's best single policy (held-cos 0.887 at ang-jerk 7.8 — smoother than the
+b33 reference). *m05 (a10 → b33) remains the reference design.*
+
+What the program actually bought:
+
++ *The intuition that launched it was right, measured precisely:* the evaluation bottleneck is
+  the per-design policy draw. Pick-up "failures" were 100% optimizer noise; reorient outcomes
+  carry per-draw sd 0.3–0.5 that no available gate can see, overlapping designs 4 cm apart.
++ *The landscape's honest structure:* graspable ⇒ liftable ⇒ holdable everywhere (this axis of
+  co-design is closed — geometry does not gate pick-up); reorient capability is widespread but
+  expression is draw-gated, so the real design property is expression *probability* — which
+  needs many replicas (sd ≈ 0.25 at n = 4) or a fundamentally cheaper evaluator.
++ *A validated plateau:* `G02_00` is a second m05-class region 3.9 cm from m05 — useful for
+  hardware, since it says the design optimum is a plateau, not a knife-edge peak.
++ *The path forward is architectural, not statistical.* The A-predictor came up negative,
+  replication is cost-capped, the gates are saturated. The proposed resolution is a
+  *morphology-conditioned policy*: one policy trained across per-environment randomized
+  geometries, conditioned on the 9-vector, so per-design evaluation becomes cheap rollouts and
+  the draw noise is amortized across the whole box. A feasibility spike verified this needs
+  *zero MuJoCo-Warp changes* (all kernels already index model fields per-world; mjlab ships
+  `expand_model_fields` + constant recomputation) — the remaining work is project-side
+  plumbing, estimated 2–4 days. Note: `docs/notes/morph_conditioned_policy_spike.md`.
+
 #refbox[
   *Sources.* Lee et al., _Adversarial Skill Chaining via Terminal State Regularization_,
   CoRL 2021 (arXiv:2111.07999). Chen et al., _Sequential Dexterity_, CoRL 2023
