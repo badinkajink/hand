@@ -2467,5 +2467,135 @@
    "a_aborted": false
   },
   "secs": 5686
+ },
+ {
+  "id": "G02_09_r1",
+  "morph": [
+   -0.0043,
+   -0.0127,
+   0.0256,
+   0.0235,
+   0.014,
+   0.0142,
+   0.0045,
+   0.002,
+   0.004
+  ],
+  "delta_m05": [
+   -0.019,
+   -0.0177,
+   0.0148,
+   0.0195,
+   0.0118,
+   0.0019,
+   -0.0201,
+   -0.0222,
+   -0.0119
+  ],
+  "ik_resid": {
+   "thumb": 6.77,
+   "index": 0.09,
+   "middle": 0.09
+  },
+  "lift": 0.05086707294415509,
+  "tips": 3.0,
+  "pt": 1.0,
+  "pi": 1.0,
+  "pm": 1.0,
+  "g_imbal": 0.0,
+  "A": {
+   "run": "20260712-1655-policyA_G02_09_r1_t1",
+   "aborted": false,
+   "best_ckpt": "model_609.pt",
+   "best_objheight": 0.1169,
+   "health_verdict": "FAIL",
+   "attempts": [
+    {
+     "run": "20260712-1558-policyA_G02_09_r1_t0",
+     "aborted": false,
+     "objheight": 0.1084,
+     "health_verdict": "FAIL"
+    },
+    {
+     "run": "20260712-1655-policyA_G02_09_r1_t1",
+     "aborted": false,
+     "objheight": 0.1169,
+     "health_verdict": "FAIL"
+    }
+   ]
+  },
+  "B": {
+   "run": "20260712-1749-policyB_G02_09_r1_reorient",
+   "aborted": false,
+   "recipe": "b_liveA_imit"
+  },
+  "handoff": {
+   "video": "/home/humanoid/Programs/hand/docs/rl/videos/reorient/sweep/G02_09_r1_handoff.mp4",
+   "min_z_post": 0.1141,
+   "health": {
+    "verdict": "FAIL",
+    "checks": {
+     "late_finger": {
+      "status": "PASS",
+      "value": 4.0,
+      "detail": "(thumb@1, index@4, middle@0)"
+     },
+     "idle_finger": {
+      "status": "FAIL",
+      "value": 2.6242,
+      "detail": "idle: thumb,index | thumb=5.5N/0.42 index=2.6N/0.47 middle=4.3N/0.56"
+     },
+     "drop": {
+      "status": "PASS",
+      "value": 0.1178,
+      "detail": "min hold-phase obj-z 0.118 m (floor<0.05)"
+     },
+     "jitter": {
+      "status": "PASS",
+      "value": 10.1898,
+      "detail": "ang-jerk 10.2 1/s^2"
+     },
+     "de_centering": {
+      "status": "PASS",
+      "value": 1.0337,
+      "detail": "net 1.0cm path 2.8cm"
+     },
+     "over_clamp": {
+      "status": "PASS",
+      "value": 4.144,
+      "detail": "mean fingertip 4.1 N (reward saturates ~3N)"
+     }
+    },
+    "metrics": {
+     "first_contact": [
+      1,
+      4,
+      0
+     ],
+     "contact_spread": 4.0,
+     "touch_frac": [
+      0.42,
+      0.47,
+      0.56
+     ],
+     "force_mean": [
+      5.5,
+      2.6,
+      4.3
+     ],
+     "contact_count": 1.45,
+     "min_z_hold": 0.1178,
+     "ang_jerk": 10.2,
+     "net_drift_cm": 1.0,
+     "slide_ratio": 2.7,
+     "tip_force": 4.1,
+     "held_cos_tail": 0.149,
+     "peak_cos": 0.204
+    }
+   },
+   "b_aborted": false,
+   "a_aborted": false
+  },
+  "secs": 9076
  }
 ]

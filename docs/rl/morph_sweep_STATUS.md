@@ -598,3 +598,20 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   G02_10_r1, G02_11_r1 (lift-hostility arbiter). Full-24 ETA ~07-12 ~21:30–23:00. GPU busy —
   analysis/commit only; waiter armed (DONE-only). Full analysis reorientation.md §P4 r1
   design 21.
+- **2026-07-12 ~19:00 tick — r1 design 22 landed: G02_09 = FIFTH replica-consistent design,
+  third consistent STATIC (tails −0.102/0.149, peaks 0.342/0.204) — and the only design
+  whose every completed A draw is health-FAIL (3/3 + 1 abort; the anti-G02_08).** r1 spent
+  the full best-of-2 budget on two FAIL-grade As (second both-FAIL leg after G02_04_r0;
+  9076 s = longest leg) and still held (min-z 0.1141) on a NEW failure flavor: loose
+  intermittent low-force grip (touch-frac 0.42–0.56, 4.1 N mean = lowest-force evaluable
+  leg, jerk 10.2 PASS). Fourth convergent-verdict-from-different-grips instance, the
+  starkest: r0 hard 2-finger clamp jerk-112 vs r1 light 3-finger juggle — same static
+  verdict. Residual→idle-finger pairing degrades again: same 6.77 mm thumb residual, r0
+  idle-thumb vs r1 weakest-is-index. Trainability axis SPLITS: collapse propensity ⊥
+  delivery health (G02_09 abort-normal/health-hostile; G02_08 the clean pole) ⇒ P5 should
+  emit per-design health-FAIL rate alongside collapse rate. Consistent set = G02_00
+  reorienter / G02_07 partial / G02_06+G02_08+G02_09 static ⇒ 5 of 8 both-evaluable resolve
+  at n=2. Tallies 22/24: A-leg aborts 16/36 (44%); hold 18/19 evaluable (min-z ≥ 0.1036).
+  In flight: G02_10_r1 A t0 since 18:30 (r0 WARN 0.117 via abort→WARN); then G02_11_r1 =
+  lift-hostility arbiter. Full-24 ETA ~20:15–23:00. GPU busy — analysis/commit only; waiter
+  armed (DONE-only). Full analysis reorientation.md §P4 r1 design 22.
