@@ -2771,6 +2771,46 @@ twice the design is a 4/4 never-lift and lift-hostility gets its first
 replica-consistent member; if it lifts, total-miss-as-draw-luck gains its
 strongest case. Sweep DONE waiter armed (DONE-only).
 
+### P4 global12×2 COMPLETE (24/24, 2026-07-12 22:13, ~37 h GPU incl. crash-resume): no lift-hostile geometry exists in the box; reorient capability is common but draw-gated; two candidates advance to confirm
+
+**G02_11_r1 arbitrated lift-hostility: it doesn't exist.** After r0's 2/2 never-lift, r1 (one
+A retry) delivered and held (min-z 0.1197) and attempted a reorient (cos 0.445, peak > held,
+jitter-FAIL 32.5). Every "never lifted" leg in the program now has a sibling draw that lifted
+— **pick-up/hold is solved across the entire 9-param design box** (min-z ≥ 0.103 on all 20
+policy-producing legs), the strongest and cleanest landscape result of the program.
+
+**Pooled table:** `docs/experiments/MORPH_PIPELINE_global12x2_POOLED.md` (figs
+`img/morph_pipeline_global12x2_{summary,training}.png`). The n=2 census: 5/12 designs bin
+replica-consistently (G02_00 reorienter 0.504/0.635; G02_07 sustained-partial 0.333/0.366;
+G02_06/G02_08/G02_09 static), 3/12 are irresolvable at n=2 with Δcos 0.38–1.39
+(G02_04/G02_05/G02_10 — and this class contains the sweep's best draws), the rest are
+luck-censored (a never-lift or defect leg). **6/10 both-evaluable designs attempt a reorient
+in ≥1 replica ⇒ the landscape's honest observable is P(express | design), not a scalar cos.**
+
+**Candidates advancing (confirm r2/r3 LAUNCHED 22:19, same tag/store, ETA ~04:40):**
+- **G02_00** — the only replica-consistent reorienter; mean 0.570 over 2 draws vs m05's
+  draw-band mean ≈ 0.38; 3.9 cm from m05.
+- **G02_05** — program-best single draw **0.887 / jerk 7.8** (beats m05's best draw 0.82,
+  smoother than b33) on the design r0 scored −0.499 as an A-defect; 3.2 cm from m05.
+At n=4 each: consistent ≥0.5 means ⇒ genuine better-than-m05-band candidates (then promote
+via a proper head-to-head vs m05 with matched draw counts); a reversion to the wide band ⇒
+the irresolvable class verdict extends to the candidates and replication alone cannot rank
+designs at feasible cost.
+
+**Evaluator lessons carried to P5:** A health grade is a *gate*, not a sufficient statistic
+of delivery (G02_10 flipped 0.117→0.576 between same-grade WARN As); collapse propensity ⊥
+delivery health ⊥ capability (G02_08 zero-abort static, G02_09 all-FAIL-A static, G02_05
+aborting program-best); best-of-2 can't rank two-FAIL draws → `--a-attempts 3` or
+collapse-rate-as-output; report per-design health-FAIL rate alongside.
+
+**Strategic read (for the user):** replication at n=2 leaves a third of designs unbinnable
+and the interesting ones live there; the A-predictor came back negative, so there is no cheap
+gate that restores single-draw ranking. The two escapes are (a) brute replication (n≥4 only
+on candidates — what the confirm leg does), or (b) the **morphology-conditioned policy**
+(spike verdict: feasible with zero mjwarp changes via mjlab `expand_model_fields`, ~2–4 days
+plumbing) which amortizes training across designs and turns evaluation into rollouts. Given
+capability-is-common + expression-is-draw-gated, (b) is now the principled next build.
+
 ---
 
 ## Results

@@ -635,3 +635,16 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   20:05 = lift-hostility arbiter (r0 0/2 lifts; abort×2 ⇒ first consistent never-lift,
   lift ⇒ total-miss=draw-luck confirmed). GPU busy — analysis/commit only; waiter armed
   (DONE-only). Full analysis reorientation.md §P4 r1 design 23.
+- **2026-07-12 22:13 — P4 global12x2 COMPLETE (24/24); 22:19 — CONFIRM r2/r3 LAUNCHED for
+  G02_00 + G02_05 (same tag/store via `--replicas 4 --only …`, 4 runs, ETA ~04:40).**
+  G02_11_r1 arbitrated: lifted + held 0.1197 + cos 0.445 ⇒ **no lift-hostile geometry in the
+  box; pick-up/hold solved everywhere** (min-z ≥ 0.103 on all 20 policy legs). Census: 5/12
+  replica-consistent (G02_00 reorienter, G02_07 partial, G02_06/G02_08/G02_09 static), 3/12
+  irresolvable at n=2 (Δ 0.38–1.39; contains the best draws incl. G02_05's 0.887), rest
+  luck-censored. Pooled table `docs/experiments/MORPH_PIPELINE_global12x2_POOLED.md`; figs
+  `img/morph_pipeline_global12x2_*.png`; synthesis reorientation.md §P4 COMPLETE. NOTE:
+  `MORPH_PIPELINE_best_center.json` now points at G02_05 (plots side-effect) — do NOT chain
+  `--center best` off a single draw. **On confirm completion:** n=4 bands for both candidates
+  → if means ≥0.5 hold, head-to-head vs m05 with matched draws before promotion; else the
+  irresolvable verdict extends and the **morphology-conditioned policy build is the default
+  next move (user decision pending)**. Waiter re-armed (DONE reappears when confirm ends).
