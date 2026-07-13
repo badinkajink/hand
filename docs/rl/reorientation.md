@@ -2975,6 +2975,14 @@ confirm; ~70 h GPU, 40 pipeline legs, 12 global designs + 5 rescue designs + 2 c
    evaluate-requires-optimize loop this program was launched to characterize. **Build decision
    is with the user.** GPU free as of 06:09.
 
+**Comparison videos (2026-07-13, `scripts/make_sweep_video_grids.py`):**
+[global12_lift_grid.mp4](videos/reorient/global12_lift_grid.mp4) (best draw per design,
+lift phase 2×-slowed — all 12 geometries deliver),
+[global12_reorient_grid.mp4](videos/reorient/global12_reorient_grid.mp4) (same draws
+post-handoff — the axis where everything varies),
+[global12_highlights.mp4](videos/reorient/global12_highlights.mp4) (m05 a10→b33 +0.90 vs
+G02_00 r3 +0.68 vs G02_05 r1 +0.89). Also embedded in webpaper `rl.typ` §policy-bottleneck.
+
 ---
 
 ## Results
