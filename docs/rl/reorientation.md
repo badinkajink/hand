@@ -2848,6 +2848,50 @@ Hold streak intact: min-z 0.1108 ⇒ **21/21 policy-producing legs ≥ 0.103** �
 stays solved through the confirm draws. Video
 `docs/rl/videos/reorient/sweep/G02_00_r2_handoff.mp4` (+ `.health.json`).
 
+### P4 confirm — leg 2/4 (2026-07-13 ~02:00 tick): G02_05_r2 goes fully static — the program-best design's promotion bar is now mathematically unreachable
+
+**Result (confirm leg 2/4, 5678 s):** `G02_05_r2` — A passed on its **first** draw (WARN,
+objheight 0.1064, no abort; G02_05's second consecutive clean first-draw A after r0's
+double-abort FAIL). imit-B trained clean and **holds** (post-handoff min-z 0.107, all 3
+fingers 100% touch-frac, jitter 13.9 PASS, net drift 0.1 cm) but **never attempts**:
+held-cos tail **−0.079**, peak **0.046** — the flattest peak of any G02_05 draw and in the
+range of the sweep's proven statics (G02_08 peaks ≤ 0.11). Verdict WARN on sliding
+(3.5 cm path / 0.1 cm net) + over-clamp (8.2 N).
+
+**The headline: the promotion bar is decided one leg early.** G02_05's draws are now
+{−0.499, 0.887, **−0.079**}, mean **0.103** — reaching a ≥0.5 mean at n=4 would need
+r3 ≥ **1.69**, above the cosine ceiling. The program-best design **cannot** be promoted
+under the confirm bar regardless of its last draw. Even on the charitable reading that
+excludes r0 (it measured a broken A), the clean-draw mean is 0.404 and r3 must clear 0.692
+— higher than 2 of the 3 observed draws. Combined with leg 1 (G02_00 needs r3 ≥ 0.754,
+above ALL three of its observed draws), **both confirm candidates now require a
+better-than-any-observed draw to survive**: the head-to-head-vs-m05 branch is effectively
+dead, and the irresolvable-verdict-extends branch (⇒ morphology-conditioned policy as the
+default next move, user decision pending) is all but confirmed with two legs still to land.
+The remaining value of r3×2 is band/expression estimation, not promotion.
+
+**FOURTH same-grade-A flip — and the largest.** r1 and r2 both kept health-WARN
+first-draw As (objheight 0.106 both), yet Δcos = **0.966** (0.887 → −0.079). After G02_10
+(Δ0.459), G02_00 r0↔r2 (Δ0.397), and G02_04, the pattern is now beyond doubt: with imit-B
+sd ≈ 0.02 on a fixed A, essentially the entire outcome spread lives in delivered-state
+differences that the A health grade cannot see. Whatever P5 ranks on, it cannot be
+per-draw cos through an A-grade gate.
+
+**Within-design grip note — expression tracks index recruitment 3/3.** G02_05 carries the
+sweep's largest IK residual (index 12.84 mm, identical across replicas). Its three draws:
+r0 index **0.9 N** (idle) → static; r1 index **10.8 N** (recruited) → 0.887; r2 index
+**3.9 N** (weakest finger; thumb 9.1 / middle 11.7) → static. Expression has now co-moved
+with index engagement in every G02_05 draw. Still an observation, not a rule (n=3, one
+design), but it sharpens the "idle-finger identity" thread: for THIS geometry the index is
+the load-bearing finger for reorient, and whether a draw recruits it is the coin being
+flipped.
+
+**Census updates:** G02_05 expresses 1/3 (was "program-best" on the n=2 sweep read);
+expression-fraction framing now covers both confirm candidates (G02_00 2/3, G02_05 1/3).
+Hold streak: min-z 0.107 ⇒ **22/22 policy-producing legs ≥ 0.103**. In flight: G02_00_r3
+(A t0 training since 01:32, CEM lift 0.052); G02_05_r3 last; batch ETA ~04:40. Video
+`docs/rl/videos/reorient/sweep/G02_05_r2_handoff.mp4` (+ `.health.json`).
+
 ---
 
 ## Results
