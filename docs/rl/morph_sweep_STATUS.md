@@ -615,3 +615,23 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   In flight: G02_10_r1 A t0 since 18:30 (r0 WARN 0.117 via abort→WARN); then G02_11_r1 =
   lift-hostility arbiter. Full-24 ETA ~20:15–23:00. GPU busy — analysis/commit only; waiter
   armed (DONE-only). Full analysis reorientation.md §P4 r1 design 22.
+- **2026-07-12 ~20:45 tick — r1 design 23 landed: G02_10 = THIRD irresolvable-at-n=2 design
+  (tails 0.117→0.576, Δ0.459) — and the first replica flip between SAME-grade A draws (both
+  kept As health-WARN, objheight 0.1131/0.1166).** r1 is a genuine sustained reorienter
+  (peak 0.657, min-z 0.1167, 3 fingers 5.9–13.0 N) failing on jitter alone (ang-jerk 44.5 vs
+  bar 40) — near-twin of P1's rs_L01_02 (0.561/44.1), the reorients-but-jitters signature
+  again. G02_04's flip rode WARN→FAIL-A (inverted — the FAIL A fed the better B), G02_05's
+  rode broken→clean; G02_10 removes the excuse entirely: with imit-B sd 0.02 on a FIXED A,
+  the Δ0.459 must live in delivery-state differences between same-grade draws that the
+  scorecard grade doesn't see ⇒ A health grade = gate, NOT a sufficient statistic of
+  delivery; P5 ranking needs capability probes on the delivered state (or A-draw pooling),
+  not better A grading. Ledger at 9 both-evaluable: consistent 5 (G02_00/G02_07/
+  G02_06+G02_08+G02_09) / irresolvable 3 (G02_04 Δ0.380, G02_05 Δ1.386, G02_10 Δ0.459) /
+  ambiguous 1 (G02_03) — a third of designs can't be binned at n=2, and the irresolvable
+  class keeps producing the sweep's best reorients. Reorient-signal census: 6 of 10
+  any-evaluable designs attempt in ≥1 replica ⇒ capability is common, EXPRESSION is
+  draw-gated — the landscape's real observable is fraction-of-draws-that-express. Tallies
+  23/24: A-leg aborts 16/37 (43%); hold 19/20 evaluable. In flight: G02_11_r1 A t0 since
+  20:05 = lift-hostility arbiter (r0 0/2 lifts; abort×2 ⇒ first consistent never-lift,
+  lift ⇒ total-miss=draw-luck confirmed). GPU busy — analysis/commit only; waiter armed
+  (DONE-only). Full analysis reorientation.md §P4 r1 design 23.

@@ -2716,6 +2716,61 @@ lift-hostility arbiter (r0: both A attempts never lifted). Full-24 ETA
 ~07-12 ~20:15 (if G02_10_r1 accepts t0 and G02_11_r1 fast-aborts like r0)
 to ~23:00 (if retries / G02_11 lifts and runs a full leg).
 
+### P4 global12×2 — r1 design 23 (2026-07-12 ~20:45 tick): G02_10 becomes the THIRD irresolvable-at-n=2 design — and the first whose replica flip happened between SAME-health-grade A draws
+
+**G02_10_r1 — cos 0.576 (peak 0.657), FAIL on jitter only, first-draw A
+(5677 s).** A t0 accepted immediately (WARN, objheight 0.1166 — no retry
+spent). imit-B holds cleanly (post-handoff min-z 0.1167, hold-phase 0.124,
+all three fingers engaged 13.0/5.9/10.9 N, touch-frac 1.0 each) and posts a
+genuine sustained reorient: tail 0.576, peak 0.657, net drift 0.7 cm. The
+verdict FAILs on **ang-jerk 44.5** (bar 40; b33 ref 9.6), with WARN sliding
+(path 10.1 cm vs net 0.7) and WARN over-clamp (9.9 N mean) — the
+*reorients-but-jitters* signature, numerically almost a twin of P1's
+rs_L01_02 (0.561 / jerk 44.1).
+
+Three reads:
+
+1. **Third proven irresolvable-at-n=2 design.** Pooled G02_10: tails
+   {0.117, 0.576}, Δ 0.459 — r0 read static-with-a-hard-clamp
+   (10.2/10.5/13.3 N, peak 0.178), r1 reorients past every static-bin
+   member's *peak* on its tail alone. The both-legs-evaluable ledger at
+   9 designs: **consistent 5** (G02_00 reorienter / G02_07 partial /
+   G02_06+G02_08+G02_09 static), **irresolvable 3** (G02_04 Δ0.380,
+   G02_05 Δ1.386, G02_10 Δ0.459), ambiguous 1 (G02_03, both attempt).
+   A third of evaluable designs cannot be binned by a 2-draw evaluator,
+   and the irresolvable class keeps producing the sweep's best reorients
+   (0.887, 0.71-peak, now 0.576/0.657).
+2. **The flip no longer needs an A-grade excuse.** G02_05's flip rode a
+   broken-vs-clean A (FAIL→WARN) and G02_04's rode WARN→FAIL (inverted:
+   the FAIL-graded A fed the better reorienter). G02_10 closes the loop:
+   both kept As are health-WARN at near-identical objheight (0.1131 vs
+   0.1166), yet the B outcomes differ by Δ0.459. With the avar result that
+   imit-B on a *fixed* A has sd ≈ 0.02, the variance must live in
+   delivery-state differences between same-grade A draws that the
+   scorecard grade does not see — the health grade is a *gate*, not a
+   sufficient statistic of the delivery. This is the sharpest form yet of
+   health ⊥ capability, and a concrete P5 implication: ranking designs
+   needs capability probes on the delivered state (or A-draw pooling),
+   not better A grading.
+3. **Reorient-signal census favors "capability is common, expression is
+   draw-gated".** Designs showing a real reorient attempt in ≥1 replica:
+   G02_00 (both), G02_03 (both), G02_04 (r1), G02_05 (r1), G02_07
+   (partial, both), G02_10 (r1) — 6 of 10 designs with any evaluable leg.
+   Under the n=1 evaluator the sweep would have called G02_04/G02_05/G02_10
+   static/defective with a coin-flip's luck; the landscape's real shape is
+   *fraction of draws that express*, which only shows up with draws ≥ 2.
+
+Tallies at 23/24 legs, r1 11/12: A-leg attempts 16/37 aborted (43%);
+hold 19/20 evaluable legs min-z ≥ 0.1036 (G02_03_r1 the lone drop);
+jitter-FAIL now the only thing separating G02_10_r1 from a WARN pass —
+the strict health verdict keeps conflating delivery quality with reorient
+quality (P1's known axis-conflation, unresolved). In flight: G02_11_r1 —
+the lift-hostility arbiter (r0: 2/2 A attempts never lifted, 753 s leg) —
+A t0 training since 20:05 with the collapse watchdog armed; if it aborts
+twice the design is a 4/4 never-lift and lift-hostility gets its first
+replica-consistent member; if it lifts, total-miss-as-draw-luck gains its
+strongest case. Sweep DONE waiter armed (DONE-only).
+
 ---
 
 ## Results
