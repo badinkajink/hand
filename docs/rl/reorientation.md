@@ -2662,6 +2662,60 @@ sentinel ⇒ health/objheight reject), t1 training since ~16:56. Remaining:
 G02_10_r1, G02_11_r1 (the lift-hostility arbiter). Full-24 ETA ~07-12
 ~21:30–23:00 (pushed by the reboot + G02_09 retry).
 
+### P4 global12×2 — r1 design 22 (2026-07-12 ~19:00 tick): G02_09 is the fifth replica-consistent design (third consistent static) — and the only design whose every completed A draw is health-FAIL
+
+**G02_09_r1 — cos 0.149 (peak 0.204), FAIL, A×2 (9076 s — longest leg of the
+sweep, two full A trainings).** A t0 completed but health-FAIL (objheight
+0.1084, gate-rejected); t1 also completed health-FAIL (0.1169); the pipeline
+kept t1 by objheight — the second both-FAIL best-of-2 leg after G02_04_r0,
+where the full retry budget is spent and the gate cannot rank the draws.
+imit-B holds (post-handoff min-z 0.1141, hold-phase 0.1178) but the verdict
+FAILs on **idle-finger of a new flavor**: not one dead finger but a *loose
+intermittent* grip — touch-frac 0.42/0.47/0.56 (contact_count 1.45 of 3),
+forces 5.5/2.6/4.3 N, mean tip force 4.1 N = the lowest-force evaluable leg
+of the sweep. Jerk 10.2 PASSes; net drift 1.0 cm. Tail 0.149, peak 0.204 —
+static.
+
+Three reads:
+
+1. **Fifth replica-consistent design; the static bin now has three members.**
+   Pooled G02_09: tails {−0.102, 0.149} (Δ 0.251, the widest inside the
+   static bin but both deep sub-bar), peaks 0.342/0.204 — no reorient either
+   replica. Consistent set: G02_00 reorienter (0.504/0.635) / G02_07 partial
+   (0.333/0.366) / G02_06 + G02_08 + G02_09 static — **5 of the 8
+   both-legs-evaluable designs resolve at n=2** (G02_04 Δ0.380 and G02_05
+   Δ1.386 the proven exceptions, G02_03 the both-attempt ambiguous case).
+2. **Convergent verdict from maximally different grips — the fourth and
+   starkest instance.** r0 is a thumb-idle two-finger HARD clamp
+   (1.3/10.8/16.3 N, jerk 112.4 = worst FAIL of r0); r1 is a loose,
+   intermittent, low-force three-finger juggle (4.1 N mean, jerk 10.2 PASS).
+   Opposite ends of the force/smoothness spectrum, same static verdict —
+   the capability tail keeps belonging to the geometry, not the policy draw.
+   The residual→idle-finger pairing degrades further: the same deterministic
+   6.77 mm thumb residual produced an idle thumb in r0 but a
+   weakest-is-INDEX grip in r1 (2.6 N) — finger identity is draw luck, as
+   G02_05 already showed on the index side.
+3. **A-health hostility is its own pole.** Across both replicas G02_09 went
+   FAIL, ABORT, FAIL, FAIL — the **only design in the sweep whose every
+   completed A draw (3/3) is health-FAIL** (G02_02/G02_03/G02_11 are also
+   zero-clean but abort-dominated). It is the exact opposite pole from
+   G02_08 (clean first draw both replicas, zero aborts), splitting the
+   trainability axis in two: *collapse propensity* (does A finish?) and
+   *delivery health* (does a finished A deliver clean?) — G02_09 is
+   abort-normal but health-hostile. Yet all three of its finished As
+   delivered a holdable object (every leg min-z ≥ 0.114): one more point for
+   hold-robustness ⊥ health, and a concrete P5 argument that health-FAIL
+   rate — not just collapse rate — belongs in the per-design output vector.
+
+Tallies at 22/24 legs, r1 10/12: replica-consistent = G02_00 / G02_07 /
+G02_06 / G02_08 / G02_09; irresolvable-at-n=2 = G02_04 / G02_05. A-leg
+attempts 16/36 aborted (44%). Hold: 18/19 evaluable legs min-z ≥ 0.1036
+(G02_03_r1 the lone drop). In flight: G02_10_r1 (A t0 training since 18:30;
+r0 = WARN 0.117 after an abort→WARN rescue). Then G02_11_r1 — the
+lift-hostility arbiter (r0: both A attempts never lifted). Full-24 ETA
+~07-12 ~20:15 (if G02_10_r1 accepts t0 and G02_11_r1 fast-aborts like r0)
+to ~23:00 (if retries / G02_11 lifts and runs a full leg).
+
 ---
 
 ## Results

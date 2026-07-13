@@ -21,3 +21,4 @@ G02_05_r1        | lift 0.050 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1063 cos  0.8
 G02_06_r1        | lift 0.049 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1036 cos -0.018 jerk  48.7 force   6.4 drift  1.4cm | FAIL | A×2   (5876s)
 G02_07_r1        | lift 0.050 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1139 cos  0.366 jerk   6.6 force   6.7 drift  0.1cm | WARN | A×2   (5939s)
 G02_08_r1        | lift 0.050 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1098 cos  0.074 jerk  13.8 force   7.5 drift  1.2cm | WARN   (5686s)
+G02_09_r1        | lift 0.051 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1141 cos  0.149 jerk  10.2 force   4.1 drift  1.0cm | FAIL | A×2   (9076s)
