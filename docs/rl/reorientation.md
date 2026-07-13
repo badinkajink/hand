@@ -2939,6 +2939,42 @@ but health-FAILed → t1 training since ~04:56 (objheight 0.1106, healthy); batc
 close-out + program synthesis; GPU goes free. Video
 `docs/rl/videos/reorient/sweep/G02_00_r3_handoff.mp4` (+ `.health.json`).
 
+### PROGRAM CLOSE-OUT (2026-07-13 06:09): confirm 4/4 done, no promotion — the policy-bottleneck program's answer, in full
+
+G02_05_r3 landed cos 0.532 / jerk 44.9 FAIL (an expressing draw on a thrashy grip; min-z
+0.0903 — the program's first sub-0.103 hold, still ≫ the 0.05 held bar). Final bands:
+
+| design | draws | mean | expresses | read |
+|---|---|---|---|---|
+| m05 (ref) | 0.82 / 0.49 / −0.16 | 0.383 | 2/3 | the reference's own draw reality |
+| **G02_00** | 0.504 / 0.635 / 0.107 / 0.681 | **0.482** | **3/4** | m05-class at 3.9 cm; best expression fraction in the program; misses the pre-registered ≥0.5 bar by 0.018 (SEM ≈ 0.13 ⇒ inseparable from m05) |
+| **G02_05** | −0.499 / 0.887 / −0.079 / 0.532 | 0.210 | 2/4 | wide-band; still owns the program-best single policy (0.887 / jerk 7.8) |
+
+**What the 2026-07-10 directive bought, end to end** (P1 rescue → P2 avar → P4 global12×2 →
+confirm; ~70 h GPU, 40 pipeline legs, 12 global designs + 5 rescue designs + 2 controls):
+
+1. **The user's intuition was right, and we measured *how* right.** The evaluation bottleneck
+   is the per-design policy draw: pick-up "failures" were 100% optimizer noise (rescued
+   everywhere, ultimately including every double-collapse design), and reorient outcomes carry
+   per-draw sd 0.3–0.5 that no gate we possess can see (A grade even *anti-orders* outcomes
+   within G02_00), overlapping designs 4 cm apart in the box.
+2. **The landscape's honest structure:** graspable ⇒ liftable ⇒ holdable everywhere in the
+   9-param box (this part of morphology co-design is CLOSED — geometry doesn't gate pick-up);
+   reorient *capability* is widespread (6/10 designs express somewhere) but *expression* is a
+   per-draw coin whose bias — the real design property — needs either many replicas
+   (P(express|design), sd ~0.25 at n=4) or a fundamentally cheaper evaluator.
+3. **No promotion:** m05 (a10→b33) remains the reference. G02_00 is a validated second
+   m05-class region (useful for hardware robustness arguments: the design optimum is a
+   plateau, not a peak); G02_05_r1 is the best single reorient policy the program has produced
+   (0.887/7.8, video `G02_05_r1_handoff.mp4`).
+4. **The path forward is architectural, not statistical:** A-predictor negative, replication
+   cost-capped, gates saturated. The **morphology-conditioned policy** (one policy conditioned
+   on the 9-vector across per-env randomized geometry; spike-verified zero-mjwarp-changes via
+   mjlab `expand_model_fields`, ~2–4 days plumbing) turns per-design evaluation into rollouts
+   and amortizes the draw noise across the whole box — the principled resolution of the
+   evaluate-requires-optimize loop this program was launched to characterize. **Build decision
+   is with the user.** GPU free as of 06:09.
+
 ---
 
 ## Results
