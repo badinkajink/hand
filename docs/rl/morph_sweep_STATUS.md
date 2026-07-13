@@ -678,3 +678,22 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   streak 22/22 legs ≥ 0.103. In flight: G02_00_r3 A t0 since 01:32; G02_05_r3 last; batch
   ETA ~04:40. GPU busy — analysis/commit only; waiter armed (DONE-only). Full analysis
   reorientation.md §P4 confirm leg 2/4.
+- **2026-07-13 ~05:00 tick — confirm leg 3/4 landed: G02_00_r3 = cos 0.681 (peak 0.734,
+  jerk 9.8 PASS) — the design's BEST draw, and still 0.018 short: n=4 mean 0.482 < 0.5 ⇒
+  the confirm question is formally CLOSED, both candidates miss, irresolvable-verdict-extends
+  ⇒ conditioned-policy build = default next (user decision pending).** Leg detail: both A
+  attempts completed and both health-FAILed (third both-FAIL leg; 8904 s); B holds
+  (min-z 0.1156) and reorients on an index-led light grip (6.7 N/1.00 touch vs thumb 3.8/
+  middle 2.4 intermittent); verdict FAIL on idle_finger alone = fourth
+  capability-behind-a-FAIL row. **A-grade inversion inside one design:** G02_00's WARN As
+  → cos 0.504/0.107, FAIL As → 0.635/0.681 — the grade anti-orders outcomes at n=4.
+  **Grip coin is design-specific:** G02_00's static draw = its hardest clamp (thumb 18 N,
+  over-clamp WARN) and its best = its lightest grip (tip mean 4.3 N); G02_05's coin was
+  index recruitment ⇒ draw picks a grip style, grip style decides expression, the deciding
+  axis varies per design (no program-wide scalar predictor). Band read: G02_00 = m05-class
+  at 3.9 cm (mean 0.482 vs m05 0.383), expresses 3/4 = best expression fraction in the
+  program. Hold streak 23/23 legs ≥ 0.103. In flight: G02_05_r3 (last leg) — A t0
+  completed-FAIL → t1 training since ~04:56 (objh 0.1106 healthy); batch ETA ~07:30; its
+  row = band estimation only. On DONE: n=4 close-out + program synthesis, GPU free. GPU
+  busy — analysis/commit only; waiter armed (DONE-only). Full analysis reorientation.md
+  §P4 confirm leg 3/4.
