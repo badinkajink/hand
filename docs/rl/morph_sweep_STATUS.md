@@ -745,3 +745,12 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   build be greenlit. Only remaining move = the morphology-conditioned policy build, which needs the
   user's go-ahead (2–4 day GPU job) — not launched autonomously. No STATUS/reorientation.md content
   change beyond this bullet.
+- **2026-07-14 ~00:00 tick — no-op confirmation across the day boundary; program stays CLOSED, no
+  launches.** Decision tree re-run: no morph worker (`pgrep` clean — only the pulse process), both
+  `PROBE_QUEUE.DONE` + `MORPH_PIPELINE_global12x2.DONE` present, working tree clean (only the
+  pre-existing `external/mujoco_warp` submodule-pointer diff). All step-8 idle-GPU CPU tasks remain
+  done+committed (doc sync 6f94dbe, A-predictor note, video inspection d5a8f0e, comparison grids
+  c3ce813, prior no-op ec9caf3). GPU still NOT free: ~7.4 GB held by the unrelated ROS jobs
+  (`graspgen_server`/`sam_server`, PIDs 423341/423345 under another team) — not our workers. Only
+  remaining move = the morphology-conditioned policy build (2–4 day GPU job), awaiting the user's
+  go-ahead — not launched autonomously. No reorientation.md content change beyond this bullet.
