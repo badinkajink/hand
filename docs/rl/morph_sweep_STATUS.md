@@ -733,3 +733,15 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   sufficient (no re-render needed). Both idle-tick close-out tasks complete;
   conditioned-policy build decision still with the user — next tick has no queued work
   beyond that decision.
+- **2026-07-13 ~10:00 tick — no-op confirmation; program stays CLOSED, no launches.** Decision
+  tree re-run top to bottom: no morph worker (`pgrep` clean), both `PROBE_QUEUE.DONE` +
+  `MORPH_PIPELINE_global12x2.DONE` present, working tree clean (only the pre-existing
+  `external/mujoco_warp` submodule-pointer diff, untouched). All step-8 idle-GPU fallback CPU
+  tasks are already done+committed (doc sync 6f94dbe, A-predictor note, video inspection d5a8f0e,
+  sweep comparison videos c3ce813). **GPU note for future ticks:** ~9.2 GB is in use, but by
+  UNRELATED external ROS jobs (`sam_server` + `graspgen_server` under `/home/code/core_ws`, PIDs
+  423341/423345) — NOT our workers; do not misread that as an in-flight sweep, and note the GPU is
+  effectively NOT free (~7 GB headroom, another team's processes) should the conditioned-policy
+  build be greenlit. Only remaining move = the morphology-conditioned policy build, which needs the
+  user's go-ahead (2–4 day GPU job) — not launched autonomously. No STATUS/reorientation.md content
+  change beyond this bullet.
