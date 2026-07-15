@@ -873,3 +873,13 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   GPU free (1170 MiB / 16 GB used, only gnome-remote-desktop-daemon; ROS jobs still exited). Decision
   unchanged: the only remaining move = the morphology-conditioned policy build (2–4 day GPU job), a
   USER decision — not launched autonomously. No reorientation.md content change beyond this bullet.
+- **2026-07-15 11:00 MDT tick — no-op confirmation; program stays CLOSED, no launches. GPU FREE.**
+  Decision tree re-run top to bottom: no morph worker (`pgrep -f "[m]orph_pipeline_sweep|[r]l_train_cube|[p]robe_queue"`
+  matches only the pulse invocation itself), both `PROBE_QUEUE.DONE` (07-11 09:15) +
+  `MORPH_PIPELINE_global12x2.DONE` (07-13 06:09, 28 records) present, working tree clean (only the
+  pre-existing `external/mujoco_warp` submodule-pointer diff). All step-8 idle-GPU CPU tasks remain
+  done+committed (doc sync 6f94dbe, A-predictor note, video inspection d5a8f0e, comparison grids
+  c3ce813). GPU free (1220 MiB / 16 GB used, only gnome-remote-desktop-daemon; ROS jobs still exited).
+  Decision unchanged: the only remaining move = the morphology-conditioned policy build (2–4 day GPU
+  job), a USER decision — not launched autonomously. No reorientation.md content change beyond this
+  bullet.
