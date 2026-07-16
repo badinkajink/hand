@@ -903,3 +903,10 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   Decision unchanged: the only remaining move = the morphology-conditioned policy build (2–4 day GPU
   job), a USER decision — not launched autonomously. No reorientation.md content change beyond this
   bullet.
+- **2026-07-15 18:01 MDT tick — no-op confirmation; program stays CLOSED, no launches. GPU FREE.**
+  (Terse by design — substantive state unchanged from the 16:15 bullet; see it for the full
+  decision-tree walk.) No morph worker, `PROBE_QUEUE.DONE`+`MORPH_PIPELINE_global12x2.DONE` present,
+  all step-8 idle-GPU tasks done+committed, spike doc `docs/notes/morph_conditioned_policy_spike.md`
+  intact. GPU free (1.8 GB used). Working tree clean bar the pre-existing `external/mujoco_warp`
+  submodule-pointer diff. Only remaining move = the morphology-conditioned policy build, a USER
+  decision — not launched autonomously.
