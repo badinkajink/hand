@@ -976,3 +976,14 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   unrelated ROS jobs still exited). Working tree clean bar the pre-existing `external/mujoco_warp`
   submodule-pointer diff. Only remaining move = the morphology-conditioned policy build (2–4 day GPU
   job), a USER decision — not launched autonomously.
+- **2026-07-16 05:30 MDT tick — no-op confirmation; program stays CLOSED, no launches. GPU FREE.**
+  (Terse by design — substantive state unchanged from the 16:15 bullet; see it for the full
+  decision-tree walk.) Bracketed `pgrep -f "[m]orph_pipeline_sweep|[r]l_train_cube|[p]robe_queue"`
+  matches only the pulse invocation itself → no morph worker; both `PROBE_QUEUE.DONE` (07-11 09:15)
+  + `MORPH_PIPELINE_global12x2.DONE` (07-13 06:09, 28 records) present; POOLED table + n=4 confirm
+  close-out intact (G02_00 mean 0.482 = m05-class, misses ≥0.5 bar by 0.018; G02_05 program-best
+  single draw 0.887; nothing promoted); spike doc `docs/notes/morph_conditioned_policy_spike.md`
+  intact; pulse cron alive (`*/15`). GPU free (1525 MiB used, only gnome-remote-desktop-daemon;
+  unrelated ROS jobs still exited). Working tree clean bar the pre-existing `external/mujoco_warp`
+  submodule-pointer diff. Only remaining move = the morphology-conditioned policy build (2–4 day GPU
+  job), a USER decision — not launched autonomously.
