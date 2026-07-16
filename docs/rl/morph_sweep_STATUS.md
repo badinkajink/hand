@@ -920,3 +920,13 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   gnome-remote-desktop-daemon). Working tree clean bar the pre-existing `external/mujoco_warp`
   submodule-pointer diff. Only remaining move = the morphology-conditioned policy build, a USER
   decision — not launched autonomously.
+- **2026-07-15 21:00 MDT tick — no-op confirmation; program stays CLOSED, no launches. GPU FREE.**
+  (Terse by design — substantive state unchanged from the 16:15 bullet; see it for the full
+  decision-tree walk.) Bracketed `pgrep -f "[m]orph_pipeline_sweep|[r]l_train_cube|[p]robe_queue"`
+  matches only the pulse invocation itself (its prompt text contains the pattern strings) → no morph
+  worker; both `PROBE_QUEUE.DONE` (07-11 09:15) + `MORPH_PIPELINE_global12x2.DONE` (07-13 06:09, 28
+  records) present; all step-8 idle-GPU CPU tasks done+committed; spike doc
+  `docs/notes/morph_conditioned_policy_spike.md` intact. GPU free (1532 MiB used, only
+  gnome-remote-desktop-daemon). Working tree clean bar the pre-existing `external/mujoco_warp`
+  submodule-pointer diff. Only remaining move = the morphology-conditioned policy build, a USER
+  decision — not launched autonomously.
