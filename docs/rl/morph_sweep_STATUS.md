@@ -1059,3 +1059,19 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   = the morphology-conditioned policy build (2–4 day GPU job), a USER decision — not launched
   autonomously. **>3 days idle; sole blocker is the user go/no-go — surfacing it explicitly this
   tick rather than only logging (see session response).**
+- **2026-07-16 17:46 MDT tick — no-op confirmation; program stays CLOSED, no launches. GPU FREE.**
+  Decision tree re-run top to bottom and it terminates at the pending user decision (nothing new to
+  execute): bracketed `pgrep -f "[m]orph_pipeline_sweep|[r]l_train_cube|[p]robe_queue"` matches only
+  the pulse invocation itself → no morph worker; both `PROBE_QUEUE.DONE` (07-11 09:15) +
+  `MORPH_PIPELINE_global12x2.DONE` (07-13 06:09, 28 records) present; POOLED table (3375 B) + n=4
+  confirm close-out intact (G02_00 mean 0.482 = m05-class, misses ≥0.5 bar by 0.018; G02_05
+  program-best single draw 0.887; nothing promoted); spike doc
+  `docs/notes/morph_conditioned_policy_spike.md` (4668 B) intact. GPU free (1604 MiB used, only
+  gnome-remote-desktop-daemon; unrelated ROS jobs still exited). Working tree clean bar the
+  pre-existing `external/mujoco_warp` submodule-pointer diff. **This tick posted the go/no-go as an
+  explicit `AskUserQuestion` (4 options: conditioned-policy build [default] / P5 replication
+  redesign / accept m05 + sim2real / stay idle) — returned unanswered (no interactive user in the
+  pulse context), consistent with the 3-day silence.** No P4 global24 to launch: the tree's old P4
+  pointer was superseded by the completed global12x2 + n=4 confirm. Only remaining move = the
+  morphology-conditioned policy build (2–4 day GPU job), a USER decision — not launched
+  autonomously.
