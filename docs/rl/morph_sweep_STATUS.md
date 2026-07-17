@@ -1101,3 +1101,22 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   launch (superseded by the completed `global12x2` + n=4 confirm). Only remaining move = the
   morphology-conditioned policy build (2–4 day GPU job), a USER decision — not launched
   autonomously.
+- **2026-07-17 00:19 MDT tick — NOT a no-op: completed the queued A-predictor re-run at n≈50
+  (the last outstanding idle-GPU CPU task); program stays CLOSED, no launches, GPU FREE (1.4 GB).**
+  Decision tree re-run: no morph worker (`pgrep -f "[m]orph_pipeline_sweep|[r]l_train_cube|[p]robe_queue"`
+  matches only the pulse process), both `PROBE_QUEUE.DONE` (07-11 09:15) +
+  `MORPH_PIPELINE_global12x2.DONE` (07-13 06:09, 28 records) present. Found the one genuinely-unfinished
+  CPU task: `scripts/a_quality_predictor.py`'s note (943835d, n=25 while P4 still ran) explicitly
+  queued a re-run at n≈50 once P4 landed, and the P4 A-run scorecards survive on disk. Ran it
+  (CPU-only, reads `.health.json`; no Warp/GPU): **50 (A,B) pairs, 49 completed-B.** Result — the
+  "no usable single-draw A→B predictor" verdict **STRENGTHENS**: the n=25 front-runners were
+  small-sample artifacts (mean tip force +0.44→**+0.18**, max finger force +0.41→**+0.03**), best rho
+  now fmin **+0.31**, nothing clears 0.31 ⇒ P4's 2-replica design + the "draw is the bottleneck"
+  close-out hold at 2× data. **Side-finding 1 (idle-finger veto) is REFUTED** — at n=50 `fmin<0.5 N`
+  flags 5 As of which 3 gave GOOD reorienters (cos 0.528/0.445/0.681); a veto would discard capability
+  ⇒ 07-11 "cheap adoptable (a)" withdrawn. Side-finding 2 (pre-lift drop-FAIL scorecard artifact)
+  confirms at scale (6/50, 5/6 good B). Updated `docs/notes/a_quality_predictor.md` (revisit trigger
+  now CLOSED). **Net for the pending decision: no A-scorecard shortcut exists to restore single-draw
+  eval ⇒ the morphology-conditioned policy remains the fundamental fix** (still a USER decision, 2–4
+  day GPU job, not launched autonomously). With this, all step-8 idle-GPU CPU tasks are exhausted;
+  future ticks have no queued work beyond the user's go/no-go.
