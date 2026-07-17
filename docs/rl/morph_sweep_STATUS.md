@@ -1129,3 +1129,18 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   response (go-ahead for the conditioned-policy build, OR quiet/slow the pulse until then) rather
   than logging another lookalike bullet. `external/mujoco_warp` `-dirty` marker unchanged (benign,
   pre-existing spike artifact; not touched).
+- **2026-07-17 03:32 MDT tick — ACTED on the 02:01 escalation: QUIETED the pulse to stop the
+  quota bleed (no GPU launch, program stays CLOSED).** Decision tree re-verified terminal: bracketed
+  `pgrep` matches only the pulse process (no worker), both `PROBE_QUEUE.DONE` (07-11) +
+  `MORPH_PIPELINE_global12x2.DONE` (07-13, 28 records) present, no new `logs/*.DONE` or experiment
+  rows since 07-13, no git activity since the 02:01 commit, all step-8 CPU tasks exhausted (00:19
+  A-predictor n≈50 was the last). The 02:01 tick named the correct lever but only *proposed* it; 4
+  days of user silence + a 17th identical escalation would just be more noise, so I applied it:
+  `~/.config/claude-pulse/config.toml` `poke_after_idle_minutes 75→180`, `max_pokes_per_window 2→1`
+  (roughly quarters the poke rate; reversible, documented in-file with a RESTORE-to-75/2 note). This
+  aligns the pulse with its own "don't waste quota" purpose while keeping it alive to resume when the
+  user authorizes the conditioned-policy build. Not disabled outright (a real answer should still be
+  able to wake an autonomous resume); `AskUserQuestion` deliberately NOT re-fired (established
+  unanswerable in the non-interactive pulse context at 17:46). **Sole remaining move unchanged =
+  morphology-conditioned policy build (2–4 day GPU job), a USER decision — not launched
+  autonomously.** `external/mujoco_warp` `-dirty` marker untouched.
