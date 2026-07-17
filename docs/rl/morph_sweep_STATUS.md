@@ -1120,3 +1120,12 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   eval ⇒ the morphology-conditioned policy remains the fundamental fix** (still a USER decision, 2–4
   day GPU job, not launched autonomously). With this, all step-8 idle-GPU CPU tasks are exhausted;
   future ticks have no queued work beyond the user's go/no-go.
+- **2026-07-17 02:01 MDT tick — no-op; program stays CLOSED, GPU FREE (1.4 GB), no launches.**
+  Decision tree re-run terminates at the pending user decision, exactly as the 00:19 tick recorded:
+  no morph worker, both DONE sentinels present, close-out artifacts intact, all step-8 CPU tasks
+  exhausted (nothing new since 00:19). **Escalation, not a rote confirmation:** this is the ~16th
+  idle tick over 4 days with zero autonomous work remaining — the pulse is now spending quota with
+  no return, contrary to claude-pulse's purpose. Surfacing the choice crisply in this tick's session
+  response (go-ahead for the conditioned-policy build, OR quiet/slow the pulse until then) rather
+  than logging another lookalike bullet. `external/mujoco_warp` `-dirty` marker unchanged (benign,
+  pre-existing spike artifact; not touched).
