@@ -5,6 +5,40 @@
 `--tags confirm large16 rescue avar global12x2` once P4 lands; needs the runs still in
 `results/rl/` — results is gitignored, scorecards vanish if runs are pruned).*
 
+## Update 2026-07-17 — re-run at n≈50 (P4 `global12x2` complete): verdict STRENGTHENED, side-finding 1 REFUTED
+
+Re-ran on the full tag set (`confirm large16 rescue avar global12x2`) now that P4 landed and its
+run dirs still hold their A scorecards: **50 (A, B) pairs, 49 completed-B, 1 B-collapse** (double
+the 07-11 n=25). Bottom line: **no usable single-draw A→B predictor — the conclusion is stronger,
+not weaker, at 2× the data.** Spearman(A metric → B held-cos), n=49:
+
+| A metric | rho (n=49) | vs n=25 | | A metric | rho (n=49) | vs n=25 |
+|---|---|---|---|---|---|---|
+| min finger force (fmin) | **+0.31** | +0.36 | | min touch frac (tfmin) | +0.20 | +0.32 |
+| ang-jerk | +0.26 | ≈0 | | mean tip force (tipF) | +0.18 | **+0.44** |
+| contact count | +0.13 | +0.29 | | max finger force (fmax) | +0.03 | +0.41 |
+
+- **The n=25 front-runners were small-sample artifacts.** mean tip force +0.44 → **+0.18** and
+  max finger force +0.41 → **+0.03** as n doubled; nothing now clears |rho| 0.31. The "grip
+  richness predicts reorient" trend — already suspected to be a geometry confound at n=25 — does
+  not survive out-of-neighborhood designs. P4's 2-replica design and the "the draw is the
+  landscape bottleneck" close-out both hold at n≈50.
+- **Side-finding 1 (idle-finger veto) is now REFUTED — do NOT adopt.** At n=50, `fmin < 0.5 N`
+  flags 5 kept As, of which **3 produced good reorienters** (G02_04_r1 cos 0.528, G02_11_r1 0.445,
+  G02_00_r3 0.681); only rs_L01_05 (the original n=1 datum) and G02_02_r0 were bad. A retry/veto
+  on min-force would discard capability — an idle-finger delivery is recoverable by B, not a
+  degenerate-by-construction reject. The 07-11 "cheap adoptable (a)" is withdrawn.
+- **Side-finding 2 (pre-lift-window drop-FAIL artifact) confirms at scale — still worth the cheap
+  fix.** 6/50 kept As show `min_z_hold` ≈ 0.006–0.044 (floor) → spurious drop-FAIL, yet **5 of 6
+  produced fine/good Bs** (0.214, 0.226, 0.899, 0.565, 0.635, 0.528). This is the whole-rollout
+  min-z pre-lift-floor trap leaking into the A-side hold window; it explains part of why coarse
+  gate verdicts can't rank draws. Fix (clamp the hold-window start to scripted-lift completion in
+  `trajectory_health.py`) stands, low priority given the program is closed.
+
+The re-run confirms the structural read: single-draw eval cannot be restored by A-scorecard
+inspection, so the **morphology-conditioned policy** remains the fundamental fix. Verdict/tables
+below are the original 07-11 n=25 pass, retained for the trajectory.
+
 ## Question
 
 P2 `avar` showed per-draw B held-cos sd ≈ 0.3–0.5 with the A health gate blind to the difference
@@ -39,7 +73,7 @@ Spearman(A metric → B held-cos), n=25 completed pairs:
 - Coarse A verdict is already known-uninformative (A-FAIL → B 0.899 on L01_06; A-WARN → −0.16 on
   m05 k1). Confirmed here in the fine metrics too.
 
-## Two actionable side-findings (cheap, adopt)
+## Two actionable side-findings (cheap, adopt) — ⚠️ #1 REFUTED at n≈50, see the 2026-07-17 update above
 
 1. **Idle-finger veto at A-accept.** The single scored B-collapse pair (rs_L01_05 kept A t1) is
    the only A in the whole set with `min force = 0.0 N` / `min touch frac = 0.0` — a delivery
@@ -61,3 +95,7 @@ Re-run after P4 `global12x2` (+24 pairs incl. per-attempt collapse records, 2 dr
 within-design pairs at scale). If a predictor emerges there at n≈50, wire it as a gate; until
 then the replication cost stands and the step-8a morphology-conditioned-policy spike remains the
 structural fix.
+
+**DONE 2026-07-17 (see the update section at the top of this note):** re-ran at n≈50 — no
+predictor emerged (best rho fell to +0.31; the n=25 front-runners were artifacts), so no gate was
+wired; the conditioned-policy fix stands. This revisit trigger is now closed.

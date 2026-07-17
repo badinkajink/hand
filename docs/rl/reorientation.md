@@ -2166,6 +2166,19 @@ delivery (min force 0.0 N) → a free `min(force_mean) < 0.5 N` retry-trigger fo
 the known floor-z trap) yet 3/4 fed good Bs — the A gate's verdicts are partly artifact, which
 is why they can't rank draws. Details: `docs/notes/a_quality_predictor.md`.
 
+**Re-run at n≈50 (2026-07-17, P4 `global12x2` complete — the note's queued revisit, now CLOSED):**
+50 (A,B) pairs / 49 completed-B, double the n=25 above. The verdict **strengthens**: the n=25
+front-runners were small-sample artifacts — mean tip force **+0.44→+0.18**, max finger force
+**+0.41→+0.03** as n doubled; best rho is now fmin **+0.31**, nothing clears 0.31. So the earlier
+"grip richness rho +0.44" is retired as a shortcut (it was a thin, geometry-confounded, tail-driven
+signal that did not generalize to out-of-neighborhood designs). **Side-finding (1) is REFUTED:** at
+n=50 `fmin<0.5 N` flags 5 As of which **3 gave good reorienters** (cos 0.528/0.445/0.681) — an
+idle-finger delivery is B-recoverable, not a degenerate reject, so the min-force veto would discard
+capability (withdrawn). Side-finding (2) confirms at scale (6/50 pre-lift drop-FAIL artifacts, 5/6
+good B). **Net: no A-scorecard shortcut restores single-draw eval at 2× data ⇒ the conditioned
+policy remains the fundamental fix** (§PROGRAM CLOSE-OUT point 4 stands, reinforced). Full update:
+`docs/notes/a_quality_predictor.md`.
+
 ### P4 global12×2 interim — designs 1–2/24 (2026-07-11 ~12:45 tick): first full-box LHS point is a REORIENTER
 
 First two r0 records landed (~94 min/design each — ahead of the ~110 min/design estimate;
