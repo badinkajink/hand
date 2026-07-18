@@ -1144,3 +1144,22 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   unanswerable in the non-interactive pulse context at 17:46). **Sole remaining move unchanged =
   morphology-conditioned policy build (2–4 day GPU job), a USER decision — not launched
   autonomously.** `external/mujoco_warp` `-dirty` marker untouched.
+- **2026-07-18 07:03 MDT tick — PAUSED the pulse (dry_run); the 07-17 4x cut didn't stop the bleed.
+  Program stays CLOSED, GPU FREE (1.1 GB), no launches.** Decision tree re-verified terminal: no
+  morph worker (`pgrep` matches only the pulse invocation), both `PROBE_QUEUE.DONE` (07-11) +
+  `MORPH_PIPELINE_global12x2.DONE` (07-13, 28 records) present, no new `logs/*.DONE` or experiment
+  rows since 07-13 (newest txt mtimes 07-11/07-13), working tree clean bar the pre-existing
+  `external/mujoco_warp` submodule-pointer diff, all step-8 CPU tasks exhausted. This 07:03 poke was
+  no-op #17 — the 07-17 03:32 cadence quartering (75→180 / 2→1) slowed but did not stop the bleed, so
+  I applied the terminal lever: set `dry_run = true` in `~/.config/claude-pulse/config.toml` (verified
+  loads: `Config.dry_run == True`). Under dry_run the cron + window monitoring stay live
+  (`state.json`/`cron.log` keep tracking, log "[DRY-RUN]") but `run_trigger` short-circuits before
+  spawning `claude -p`, so **zero quota is spent per tick**. Fully reversible in one edit —
+  **RESTORE: set `dry_run = false` (and cadence back to 75 / 2) the moment the conditioned-policy build
+  is authorized.** Not deleting the cron (keeps the pulse able to resume instantly on go-ahead).
+  **↳ USER GO/NO-GO STILL PENDING — the one decision that unblocks everything:** authorize the
+  morphology-conditioned policy build (2–4 day GPU job; spike-verified zero mjwarp changes via mjlab
+  `expand_model_fields`, see `docs/notes/morph_conditioned_policy_spike.md`) — the fundamental fix to
+  the evaluate-requires-optimize chicken-and-egg — OR pick an alternative from the 07-13 close-out
+  (P5 replication redesign, or accept m05=a10→b33 and return to sim2real). Until then the pulse is
+  quiet by design.
