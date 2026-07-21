@@ -83,6 +83,16 @@ pgrep -af "morph_pipeline_sweep"; nvidia-smi ; ls logs/*.DONE
   (negative)* paragraph) + `webpaper/src/rl.typ` (extended the A-predictor dropdown + close-out
   clause) — the CLAUDE.md three-doc sync; rl.typ recompiles clean (typst exit 0). Committed docs
   only (held the header-only `.txt` until it has data rows). Next tick: append H06 rows as legs land.
+- **2026-07-20 ~23:30 MDT — pulse tick (docs-only, no GPU launch).** Worker HEALTHY & running (tree
+  step 1): **design 1/24 `H06_00_r0` COMPLETE** (first data row), worker now on `H06_01_r0`'s Policy B
+  (A done in 2 attempts, held; log fresh at 23:13). GPU 4.5 GB. **H06_00_r0** = textbook static hold:
+  CEM lift 0.050 (pers 1/1/1), Policy A held on the **1st draw** (`model_609`, objheight 0.117, WARN,
+  no collapse), imit-B `model_270` → handoff **minZ 0.116 / cos −0.044 / peak 0.02 / jerk 9.0 / force
+  12.1 / drift 0.1 cm, WARN** (over-clamp + de-centering; all 3 fingers touch, no idle/pinch). Reads as
+  the *low* end of the m05 draw-band {0.82,0.49,−0.16} — a static draw, the draw-gated pattern intact;
+  one weak positive for the freeze-len question (no A-collapse). 96 min end-to-end. Appended tree
+  step 3: `reorientation.md` §"6-dim interim — design 1/24" + committed docs incl. handoff video +
+  `.health.json` (never `results/`). Next tick: append H06_01+ as legs land; pool at DONE (step 4).
 
 ---
 

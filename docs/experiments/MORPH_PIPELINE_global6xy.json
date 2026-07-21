@@ -1,0 +1,126 @@
+[
+ {
+  "id": "H06_00_r0",
+  "morph": [
+   0.0177,
+   -0.0134,
+   0.0108,
+   0.006,
+   -0.025,
+   0.0123,
+   -0.0013,
+   -0.0133,
+   0.0159
+  ],
+  "delta_m05": [
+   0.003,
+   -0.0184,
+   0.0,
+   0.002,
+   -0.0272,
+   0.0,
+   -0.0259,
+   -0.0375,
+   0.0
+  ],
+  "ik_resid": {
+   "thumb": 0.1,
+   "index": 0.1,
+   "middle": 0.1
+  },
+  "lift": 0.050070472430477166,
+  "tips": 3.0,
+  "pt": 1.0,
+  "pi": 1.0,
+  "pm": 1.0,
+  "g_imbal": 0.0,
+  "A": {
+   "run": "20260720-2037-policyA_H06_00_r0_t0",
+   "aborted": false,
+   "best_ckpt": "model_609.pt",
+   "best_objheight": 0.1168,
+   "health_verdict": "WARN",
+   "attempts": [
+    {
+     "run": "20260720-2037-policyA_H06_00_r0_t0",
+     "aborted": false,
+     "objheight": 0.1168,
+     "health_verdict": "WARN"
+    }
+   ]
+  },
+  "B": {
+   "run": "20260720-2132-policyB_H06_00_r0_reorient",
+   "aborted": false,
+   "recipe": "b_liveA_imit"
+  },
+  "handoff": {
+   "video": "/home/humanoid/Programs/hand/docs/rl/videos/reorient/sweep/H06_00_r0_handoff.mp4",
+   "min_z_post": 0.1163,
+   "health": {
+    "verdict": "WARN",
+    "checks": {
+     "late_finger": {
+      "status": "PASS",
+      "value": 1.0,
+      "detail": "(thumb@1, index@1, middle@0)"
+     },
+     "idle_finger": {
+      "status": "PASS",
+      "value": 3.0,
+      "detail": "thumb=12.0N/1.00 index=7.4N/1.00 middle=16.7N/1.00"
+     },
+     "drop": {
+      "status": "PASS",
+      "value": 0.1164,
+      "detail": "min hold-phase obj-z 0.116 m (floor<0.05)"
+     },
+     "jitter": {
+      "status": "PASS",
+      "value": 9.0437,
+      "detail": "ang-jerk 9.0 1/s^2"
+     },
+     "de_centering": {
+      "status": "WARN",
+      "value": 57.037,
+      "detail": "sliding: path 7.9cm >> net 0.1cm"
+     },
+     "over_clamp": {
+      "status": "WARN",
+      "value": 12.0555,
+      "detail": "mean fingertip 12.1 N (reward saturates ~3N)"
+     }
+    },
+    "metrics": {
+     "first_contact": [
+      1,
+      1,
+      0
+     ],
+     "contact_spread": 1.0,
+     "touch_frac": [
+      1.0,
+      1.0,
+      1.0
+     ],
+     "force_mean": [
+      12.0,
+      7.4,
+      16.7
+     ],
+     "contact_count": 3.0,
+     "min_z_hold": 0.1164,
+     "ang_jerk": 9.0,
+     "net_drift_cm": 0.1,
+     "slide_ratio": 57.0,
+     "tip_force": 12.1,
+     "held_cos_tail": -0.044,
+     "peak_cos": 0.02
+    }
+   },
+   "b_aborted": false,
+   "a_aborted": false
+  },
+  "secs": 5774
+ }
+]
