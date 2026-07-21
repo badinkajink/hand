@@ -3304,3 +3304,38 @@ H06_02 0/1, H06_03 2/3, H06_04 2/3 → **5 of 10 A attempts collapsed (~50%)**, 
 `--a-attempts 3` best-of-3 rescue (QF2) is doing the work, not a len-freeze reduction in intrinsic
 A-collapse propensity. The len-freeze "more-trainable" hypothesis has **no** support at 5 legs; the
 pooled r0/r1 collapse column at DONE is the real test.
+
+### 6-dim interim — designs 6–7/24 H06_05_r0 (partial reorient, scorecard-FAIL) + H06_06_r0 (FIRST DESIGN-ABORT of the 6-dim sweep: A never lifts) (2026-07-21 ~07:15 MDT tick)
+Rows 6–7 of `global6xy.txt` (worker healthy, now on H06_07_r0's Policy A, t2). Committing H06_05's
+handoff media pair (`H06_05_r0_handoff.{mp4,health.json}`) that the 6/24 milestone commit left
+untracked (same orphaning as H06_01/02/03/04). H06_06 produced **no handoff media** — its A never lifted.
+
+- **H06_05_r0** — CEM lift 0.052 (persist 1/1/1); Policy A held on the **1st draw** (objheight 0.118,
+  no abort, `model_609`). Handoff HELD (**minZ 0.1155** ≫ 0.05) but verdict **FAIL** — the scorecard's
+  jitter check FAILs at **ang-jerk 46.4 1/s²** (the thrashiest leg of the sweep) and de-centering WARNs
+  at slide-ratio 18.2 (path 14.0 cm ≫ net 0.8 cm). Held-cos-tail **0.34**, **peak-cos 0.468** → the
+  policy got the object *partway* to vertical then oscillated. This is exactly why we **judge on the
+  scorecard, not reward or raw cos**: a bare +0.34 cos looks like "partial success," but the trajectory
+  is a thrash, not a controlled reorient — the FAIL is correct. So the 6-dim r0 series to date is
+  {−0.044, −0.048, −0.119, +0.006, **0.852**, +0.34(FAIL), [abort]}: **one clean strong reorient
+  (H06_04), one thrashy partial (H06_05), four static** — the same draw-gated-expression shape as
+  9-dim. Video `docs/rl/videos/reorient/sweep/H06_05_r0_handoff.mp4`.
+- **H06_06_r0 — FIRST DESIGN-LEVEL ABORT of the 6-dim sweep.** CEM found a **graspable** grip (lift
+  0.055, persist 1/1/1) — the open-loop CEM grip + scripted lift holds — but **Policy A never lifted**:
+  all **3 attempts collapsed** (`sweep_A_H06_06_r0_t{0,1,2}.trainer.log.COLLAPSED` all present, best
+  objheight **0.0** < the 0.06 gate). Best-of-3 rescue (QF2) **failed outright** here → the design is
+  skipped, no B, no reorient measurement. **Interpretation:** this is an **A-trainability-hostile** XY
+  placement, *not* a graspability-hostile geometry — CEM's static grip is fine, but the learned
+  lift-from-onset policy can't be trained on it in 3 seeds. It's the first concrete crack in the 9-dim
+  program's "pick-up/hold solved everywhere, no lift-hostile geometry" verdict: freezing the lengths
+  and moving only XY *can* land a placement where RL-A fails 3/3 even though a hand-tuned grasp holds.
+
+**Trainability watch (7 designs) — len-freeze hope now NEGATIVE with a hard counterexample.** Per-attempt
+COLLAPSED sentinels: H06_00 0/1, H06_01 1/2, H06_02 0/1, H06_03 2/3, H06_04 2/3, H06_05 0/1, **H06_06
+3/3** → **8 of 14 A attempts collapsed (~57%)**, now **above** the 9-dim global12x2 ~47% and climbing
+(43%→50%→57% at 4→5→7 designs). **Design-abort 1/7 (~14%)** — the first one, H06_06, where best-of-3
+could not rescue. This is the clearest evidence yet that **freezing the proximal-phalange lengths does
+NOT calm Policy-A training** (the original motivation for the 6-dim sweep); if anything the intrinsic
+A-collapse propensity in the XY-only box is comparable-to-worse. The pooled r0/r1 collapse column at
+DONE remains the definitive test, but the direction is set. Continuing docs/commit-only per the STATUS
+tree (worker owns the GPU).

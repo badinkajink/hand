@@ -772,5 +772,70 @@
    "a_aborted": false
   },
   "secs": 5763
+ },
+ {
+  "id": "H06_06_r0",
+  "morph": [
+   -0.0123,
+   -0.0053,
+   0.0108,
+   -0.0091,
+   0.012,
+   0.0123,
+   0.0229,
+   -0.0064,
+   0.0159
+  ],
+  "delta_m05": [
+   -0.027,
+   -0.0103,
+   0.0,
+   -0.0131,
+   0.0098,
+   0.0,
+   -0.0017,
+   -0.0306,
+   0.0
+  ],
+  "ik_resid": {
+   "thumb": 0.09,
+   "index": 0.09,
+   "middle": 0.1
+  },
+  "lift": 0.05507961251297742,
+  "tips": 3.0,
+  "pt": 1.0,
+  "pi": 1.0,
+  "pm": 1.0,
+  "g_imbal": 0.0,
+  "A": {
+   "run": "20260721-0656-policyA_H06_06_r0_t0",
+   "aborted": true,
+   "best_ckpt": "model_0.pt",
+   "best_objheight": 0.0,
+   "health_verdict": null,
+   "attempts": [
+    {
+     "run": "20260721-0656-policyA_H06_06_r0_t0",
+     "aborted": true,
+     "objheight": 0.0,
+     "health_verdict": null
+    },
+    {
+     "run": "20260721-0700-policyA_H06_06_r0_t1",
+     "aborted": true,
+     "objheight": 0.0,
+     "health_verdict": null
+    },
+    {
+     "run": "20260721-0704-policyA_H06_06_r0_t2",
+     "aborted": true,
+     "objheight": 0.0,
+     "health_verdict": null
+    }
+   ]
+  },
+  "note": "A never lifted (best objheight 0.0 < 0.06, 3 attempts)",
+  "secs": 955
  }
 ]
