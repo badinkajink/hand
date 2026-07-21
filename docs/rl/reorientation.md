@@ -3411,3 +3411,39 @@ H06_01..05/07); H06_09 is brand-new this tick. Both are non-expressing draws tha
 (~10%).** Freezing the proximal-phalange lengths still does not calm Policy-A training. The r0 pass is
 **10/12 done** (H06_10, H06_11 remain, then the r1 replica pass begins). Continuing docs/commit-only per
 the STATUS tree (worker owns the GPU).
+
+### 6-dim interim — designs 11–12/24 (H06_10_r0 + H06_11_r0): r0 PASS COMPLETE (12/12) (2026-07-21 ~16:46 MDT tick)
+Rows 11–12 of `global6xy.txt` close the r0 map; the r1 replica pass has begun (worker on **H06_00_r1's
+Policy A, 2nd attempt**, ETA ~30 min at 16:46 — GPU busy). Committing the two orphaned handoff media
+pairs (`H06_1{0,1}_r0_handoff.{mp4,health.json}`) + this note — the 15:22 r0-complete commit shipped
+json/txt/STATUS only, so both these media and the `reorientation.md` narrative were 2 rows behind.
+
+- **H06_10_r0** — CEM lift 0.051 (persist 1/1/1); Policy A held on the **1st draw** (best `model_609`,
+  objheight 0.116, no collapse). Handoff **minZ 0.111 / held-cos −0.274 / peak-cos 0.01**, verdict
+  **FAIL**. A **thrashy static** draw: all three fingers grip firmly and balanced (8.6/9.4/7.7 N,
+  touch_frac 0.83/0.98/0.97 — no idle/late finger) yet the object never rotates (peak 0.01) and the
+  tail drifts slightly adverse (−0.274) while the hand **jitters hardest of the whole box** (ang-jerk
+  **41.0**, FAIL) and slides it (path 20.2 ≫ net 0.7cm). Firm grip, zero productive rotation — a
+  non-expresser in the H06_02 mold but jerkier.
+
+- **H06_11_r0** — CEM lift 0.052 (persist 1/1/1), but the **weakest leg of the r0 pass**: Policy A
+  **aborted** (best-of-3 exhausted, salvaged `model_150`, objheight 0.121, abort flag set) and Policy
+  **B watchdog-aborted** (salvage-eval of last ckpt `model_50`). Handoff **minZ 0.132 / held-cos 0.054 /
+  peak-cos 0.251**, verdict **FAIL** on **idle-grip** — all three fingertips read **0.0 N / touch_frac
+  0.0**: the object is *cradled/balanced* (minZ 0.132, highest of the box) rather than gripped, and
+  reorient is ~static (0.054). A degenerate salvaged leg, counted as a produced FAIL row (not a full
+  skip like H06_06).
+
+**r0 PASS COMPLETE — the XY-only landscape verdict (n=1 map).** 12/12 legs; 11 evaluable (H06_06 =
+lift-miss skip). Held-cos series {−0.044, −0.048, −0.119, +0.006, **0.852**, +0.34 (FAIL), [abort],
+**0.547**, +0.204, −0.282, −0.274, +0.054}: **mean +0.112, sd 0.333, max 0.852, 2/11 express ≥0.5**
+(H06_04 strong-forceful, H06_07 gentle-smooth). **Held 11/12** (minZ 0.103–0.132; only H06_06 fails to
+hold). **A-collapse final = 13/24 attempts (54%)**; **design-abort 1/12** (H06_06). ⇒ **On every axis
+the 6-XY box is statistically indistinguishable from the 9-dim global12x2 landscape:** pick-up/hold
+solved everywhere (11/12), reorient common-but-draw-gated (same sd ~0.33 wall, express ~2/11 ≈ 9-dim's
+~1/4), and Policy A fragile at the **same** rate (54% vs ~47%). **Freezing the proximal-phalange length
+neither calms A-training nor sharpens the reorient landscape — it is not a special axis.** The lone
+lift-miss H06_06 mirrors 9-dim G02_11 (all A draws → objheight 0.0). Still n=1/design; the r1 replica
+pass now underway (and the pooled r0/r1 mean at DONE) decides whether the two standouts (H06_04 0.852,
+H06_07 0.547) replicate or were lucky draws. Continuing docs/commit-only per the STATUS tree (worker
+owns the GPU).
