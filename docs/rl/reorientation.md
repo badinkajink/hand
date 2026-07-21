@@ -3247,3 +3247,27 @@ holds. So the early read is the opposite of the tempting one — **best-of-3 is 
 trainability, not len-freezing**; freezing the proximal lengths shows no clear reduction in intrinsic
 per-attempt A-collapse yet. Far too small to conclude (n=4 designs); the pooled r0/r1 table at DONE,
 with attempt-collapse counted per-attempt not per-design, decides.
+
+### 6-dim interim — design 4/24 H06_03_r0 (2026-07-21 ~03:30 MDT tick): 4th XY-only leg holds — first non-negative held-cos, still functionally STATIC; lightest-clamp leg
+Row 4 of `global6xy.txt` (worker healthy, now on H06_04_r0's Policy A — its t0 already collapsed at
+iter 54/objheight 0.015, on t1). H06_03_r0 completed 03:26, just after the 03:00 tick's snapshot;
+committing its handoff media pair (`H06_03_r0_handoff.{mp4,health.json}`) that landed untracked.
+
+- **H06_03_r0** — CEM lift 0.051 (persist 1/1/1); Policy A held only on the **3rd draw** (best
+  `model_609`, objheight 0.118, no abort) — **2 of its 3 attempts collapsed** (t0 iter 220 @0.012,
+  t2 iter 40 @0.030; t1 held), the worst A-leg of the four and the reason it logged `A×3`. Handoff
+  **minZ 0.116 / cos +0.006 / peak 0.114** — the **first non-negative held-cos of the sweep**, but
+  still ~0 (peak barely 0.11) = functionally static, not a reorient. Scorecard WARN: **lightest clamp
+  of the four legs** (mean tip **5.6 N** vs 7.5/10.2/12.1), jitter PASS (17.3), de-centering WARN
+  (slide path 13.0 cm vs net 1.0 cm), and an **idle-finger WARN** — mean tip-contacts 2.32<3 with the
+  **index under-recruited** (index 2.9 N/touch 0.75 vs thumb 6.7 N/0.74, middle 7.2 N/0.83); not a
+  true idle/pinch (all three touch) but the index carries least here. late-finger PASS, drop PASS.
+
+**Reading (still n=1 per design).** Four straight static r0 draws now: held-cos −0.044 / −0.048 /
+−0.119 / **+0.006**. H06_03's +0.006 is marginally the "best" of the four but functionally identical
+to static — the draw-gated-expression wall is intact through 4/24 legs, exactly as H2 predicts (the
+`_r1` replicas decide expression, not these singletons). The one *interpretable* XY signal so far is
+that H06_03 is the **lightest-clamp** leg (5.6 N) — a small hint that XY placement moves the clamp
+regime even when reorient stays unexpressed; worth confirming against the pooled clamp-force column at
+DONE, not actionable now. Trainability unchanged: H06_03's 2/3-collapse (and H06_04's t0 collapse
+already) keep the attempt-level rate near the ~43% flagged above — no len-freeze benefit visible.
