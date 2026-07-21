@@ -119,6 +119,20 @@ pgrep -af "morph_pipeline_sweep"; nvidia-smi ; ls logs/*.DONE
   one weak positive for the freeze-len question (no A-collapse). 96 min end-to-end. Appended tree
   step 3: `reorientation.md` §"6-dim interim — design 1/24" + committed docs incl. handoff video +
   `.health.json` (never `results/`). Next tick: append H06_01+ as legs land; pool at DONE (step 4).
+- **2026-07-21 ~03:30 MDT — pulse tick (docs-only, no GPU launch).** Worker HEALTHY & running (tree
+  step 1): on **H06_04_r0's Policy A** (t1; its t0 collapsed at iter 54/objheight 0.015). **NEW
+  completed row since the 03:00 tick: `H06_03_r0`** (row 4 of `global6xy.txt`, done 03:26). Appended
+  tree step 3: `reorientation.md` §"6-dim interim — design 4/24" + committing the untracked
+  `H06_03_r0_handoff.{mp4,health.json}`. **H06_03_r0** = CEM lift 0.051 (pers 1/1/1); Policy A held
+  only on the **3rd draw** (`A×3`, best `model_609`, objheight 0.118 — **2 of 3 attempts collapsed**,
+  worst A-leg of the four); handoff **minZ 0.116 / cos +0.006 / peak 0.114 / jerk 17.3 / force 5.6 /
+  drift net 1.0 cm (slide 13.0)**, WARN (idle-finger: index under-recruited 2.9 N; de-centering;
+  over-clamp — but the **lightest clamp of the four legs** at 5.6 N). The **first non-negative
+  held-cos of the sweep** yet still functionally static → **4/4 r0 draws static** (−0.044/−0.048/
+  −0.119/+0.006), draw-gate intact (the `_r1` replicas decide). Trainability watch holds at the
+  ~43% attempt-level collapse (H06_03 2/3 + H06_04 t0 already) — no len-freeze reduction visible;
+  design-abort still 0/4 via best-of-3. GPU busy — analysis/commit only. Waiter still armed at
+  milestone 6.
 
 ---
 
