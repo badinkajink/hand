@@ -3214,3 +3214,36 @@ sharpens resolvability. Note H06_01_r0's A already needed **2 attempts** (still 
 term is live here too. Video `docs/rl/videos/reorient/sweep/H06_00_r0_handoff.mp4`; scorecard
 `…H06_00_r0_handoff.health.json`. Continuing to accumulate legs per the STATUS tree (docs/commit only
 while the worker runs).
+
+### 6-dim interim — designs 2–3/24 H06_01–02_r0 (2026-07-21 ~03:00 MDT tick): two more XY-only legs — both HELD, both STATIC (draw-gate intact)
+
+Rows 2–3 of `global6xy.txt` (worker healthy, now on H06_03_r0's Policy B). Both cleared the grasp
+gate and held post-handoff, both static — the same pattern as design 1, reinforcing the 3/24
+milestone the STATUS log already flagged. Committing the two handoff media pairs the last tick's
+milestone commit left untracked (`H06_01_r0_handoff.{mp4,health.json}`, `H06_02_r0_handoff.*`).
+
+- **H06_01_r0** — CEM lift 0.055 (persist 1/1/1); Policy A held on the **2nd draw** (`model_609`,
+  objheight 0.115, no abort). Handoff **minZ 0.110 / cos −0.048 / peak 0.056** — static. All three
+  fingers touch (touch-frac 0.89/1.0/1.0, forces 7.9/5.6/9.2 N — no idle, no pinch); WARNs are the
+  usual over-clamp (mean tip 7.5 N) + de-centering (slide path 12.1 cm vs net 1.3 cm). Verdict WARN.
+- **H06_02_r0** — CEM lift 0.051 (persist 1/1/1); Policy A held on the **1st draw** (objheight 0.118,
+  no abort). Handoff **minZ 0.118 / cos −0.119 / peak 0.088** — static, and the **jerkiest** leg so
+  far (ang-jerk 26.8, WARN) with the heaviest slide (path 21.4 cm vs net 0.3 cm, slide-ratio 69) and
+  over-clamp 10.2 N. Verdict WARN. No drop, no degenerate pinch — clamp+slide again.
+
+**Reading (still n=1 per design — not verdicts).** All three r0 held-cos land at the *low* end of the
+m05 draw-band {0.82, 0.49, −0.16}: −0.044 / −0.048 / −0.119, i.e. three straight static-hold draws —
+exactly the draw-gated-expression wall (m05 itself draws static ~1/3 the time; the `_r1` replicas are
+what decide expression).
+
+**Trainability watch — measured at the ATTEMPT level (the honest number).** The question freezing len
+was meant to answer is "does the XY-only box have less lift-hostile geometry → fewer A-collapses?"
+Checking the per-attempt `logs/sweep_A_H06_*_t*.trainer.log.COLLAPSED` watchdog sentinels: across the
+first 4 designs, **3 of 7 A attempts collapsed (~43%)** — H06_00 0/1, H06_01 1/2 (t0 collapsed then
+t1 held), H06_02 0/1, H06_03 2/3 (t0+t2 collapsed, t1 held). That is **comparable to the 9-dim
+global12x2 ~47% abort rate, NOT lower.** What *does* differ is the design-level outcome: **0 of 4
+designs aborted**, because this run adds `--a-attempts 3` (QF2, best-of-3) and one of the three shots
+holds. So the early read is the opposite of the tempting one — **best-of-3 is what's carrying
+trainability, not len-freezing**; freezing the proximal lengths shows no clear reduction in intrinsic
+per-attempt A-collapse yet. Far too small to conclude (n=4 designs); the pooled r0/r1 table at DONE,
+with attempt-collapse counted per-attempt not per-design, decides.
