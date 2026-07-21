@@ -1,3 +1,5 @@
 # full A->B pipeline sweep 'global6xy'  2026-07-20 20:33  24 designs
 # per design: gen -> IK open_ik -> CEM (grasp gate) -> native A -> live-A reset B -> continuous handoff + trajectory-health scorecard.
 H06_00_r0        | lift 0.050 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1163 cos -0.044 jerk   9.0 force  12.1 drift  0.1cm | WARN   (5774s)
+H06_01_r0        | lift 0.055 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1104 cos -0.048 jerk  13.8 force   7.5 drift  1.3cm | WARN | A×2   (6030s)
+H06_02_r0        | lift 0.051 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1168 cos -0.119 jerk  26.8 force  10.2 drift  0.3cm | WARN   (5764s)

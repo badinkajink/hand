@@ -1,6 +1,6 @@
-# Policy-learning bottleneck: decomposition + quick fixes (2026-07-19)
+# Policy-learning bottleneck: decomposition + quick fixes (2026-07-20)
 
-User ask (2026-07-19, heading out overnight): run a sweep like global12x2 but **freeze the
+User ask (2026-07-20, heading out overnight): run a sweep like global12x2 but **freeze the
 proximal-phalange lengths** → morphology exploration over the **6 XY placement dims only**; AND
 "analyse our past results and policy performance and see if there's any quick fixes we can apply
 now to make policy learning — which we established as the real bottleneck limiting understanding
@@ -112,4 +112,4 @@ scripts/morph_pipeline_sweep.py --morph-set global --freeze-len --n 12 --seed 6 
 likely hit the same wall as 9-dim. Its real scientific yield is: (a) does removing the len axis lower
 the A-collapse / hostile-geometry incidence (were len extremes causing some collapses?), and (b) is
 an XY-only landscape any more resolvable at fixed n? Monitoring + decision tree: `morph_sweep_STATUS.md`
-§"6-DIM XY-ONLY SWEEP (2026-07-19)".
+§"6-DIM XY-ONLY SWEEP (2026-07-20)".

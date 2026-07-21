@@ -6,9 +6,9 @@ running, what was decided, and how to continue/intervene. Updated as stages comp
 
 ---
 
-## 6-DIM XY-ONLY SWEEP (2026-07-19) — ACTIVE. This section supersedes the CLOSED state below.
+## 6-DIM XY-ONLY SWEEP (2026-07-20) — ACTIVE. This section supersedes the CLOSED state below.
 
-**User directive (2026-07-19 eve, heading out until ~09:00):** (1) run a sweep like global12x2 but
+**User directive (2026-07-20 eve, heading out until ~09:00):** (1) run a sweep like global12x2 but
 **freeze the proximal-phalange lengths** → explore the **6 XY placement dims only**; (2) analyse
 past results/policy performance for **quick fixes to make policy learning more robust / reach its
 potential** (policy learning is the established bottleneck); (3) "take as much action as you need,
@@ -26,7 +26,7 @@ and/or use pulse to trigger analysis until I come in at ~9am."
 - Applied bumps that ARE blessed: **`--b-recipe imit`** (QF3) + **`--a-attempts 3`** (QF2, the confirm
   close-out's explicit ask). No unvalidated change baked in.
 
-**LAUNCHED 2026-07-19 ~20:33 MDT (detached, resumable, waiter-armed):**
+**LAUNCHED 2026-07-20 ~20:33 MDT (detached, resumable, waiter-armed):**
 ```
 nohup setsid env MUJOCO_GL=egl uv run --extra rl --extra gpu python scripts/morph_pipeline_sweep.py \
   --morph-set global --freeze-len --n 12 --seed 6 --replicas 2 --tag global6xy \
@@ -70,9 +70,19 @@ pgrep -af "morph_pipeline_sweep"; nvidia-smi ; ls logs/*.DONE
 ```
 
 **6-DIM STATUS LOG:**
-- **2026-07-19 ~20:33 MDT — LAUNCHED (see above).** Quick-fix probe QF1 ran first (negative,
+- **2026-07-20 ~20:33 MDT — LAUNCHED (see above).** Quick-fix probe QF1 ran first (negative,
   committed); 6-dim sweep started on H06_00_r0. GPU was free (~1.5 GB). Waiter armed (milestone 3
   designs / DONE / crash). Pulse re-enabled + re-pointed at THIS section.
+- **2026-07-21 ~01:30 MDT — MILESTONE 3/24 legs (r0 H06_00..02): all HELD, all STATIC.** Every design
+  cleared the grasp gate (lift 0.050–0.055, persist 1/1/1) and HELD post-handoff (minZ 0.110–0.117 ≫
+  0.05) → **pick-up/hold is solved in the XY-only box too**, as expected. All three r0 draws are
+  **static/near-zero reorient** (held-cos **−0.044 / −0.048 / −0.119**, all WARN; force 7.5–12.1 N,
+  jerk 9–27). Per H2 these n=1 draws are NOT measurements — three straight static draws is exactly the
+  draw-gated-expression wall (m05 itself draws static ~1/3 the time; the `_r1` replicas decide).
+  **Trainability watch** (the thing freezing len might improve): 0 true A-collapses, 1 retry
+  (H06_01 A×2) across 4 A-legs so far — vs 9-dim global12x2's ~47% A-leg abort rate; far too small to
+  claim but the signal to track. Worker healthy on H06_03_r0; pace ~1.9 h/design; waiter re-armed at
+  milestone 6. GPU busy — analysis/commit only.
 - **2026-07-20 ~22:05 MDT — pulse tick (docs-only, no GPU launch).** Worker HEALTHY & running (tree
   step 1): still on the FIRST leg `H06_00_r0` — CEM graspable (lift 0.050, persist 1/1/1), Policy A
   ok in **1 attempt** (`model_609.pt`, objheight 0.1168, no abort), Policy B `b_liveA_imit` ~end of
