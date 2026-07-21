@@ -90,9 +90,11 @@ RESCUE = {
 }
 
 
-def morph_set(name: str, n: int, seed: int, center, replicas: int = 1):
+def morph_set(name: str, n: int, seed: int, center, replicas: int = 1, freeze_len: bool = False):
     """Return [(id, 9-vector), ...]. `initial8` = interpretable coordinate moves around m05.
-    `replicas` (global set only) emits each design as independent `_rj` full-pipeline draws."""
+    `replicas` (global set only) emits each design as independent `_rj` full-pipeline draws.
+    `freeze_len` (global set only): explore ONLY the 6 XY placement dims per finger, holding the
+    three proximal-phalange lengths FROZEN at m05 (ids prefixed `H` not `G`)."""
     if name == "initial8":
         # s00 m05 anchor (reproduce the known winner under the honest pipeline);
         # s01 baseline m00 (a full A->B on the base design — a calibration reference);
@@ -134,10 +136,19 @@ def morph_set(name: str, n: int, seed: int, center, replicas: int = 1):
         # Replica-major order: a full r0 pass over all designs first (complete n=1 map early),
         # then the r1 refinement pass.
         rng = np.random.default_rng(seed)
-        strata = (rng.permuted(np.tile(np.arange(n), (9, 1)), axis=1).T + rng.random((n, 9))) / n
-        lo = np.array([b[0] for b in BND]); hi = np.array([b[1] for b in BND])
-        designs = [(f"G{seed:02d}_{k:02d}", _clip(tuple(lo + strata[k] * (hi - lo))))
-                   for k in range(n)]
+        # freeze_len => LHS over the 6 XY dims only; proximal lengths (idx 2,5,8) held at m05.
+        xy_idx = [0, 1, 3, 4, 6, 7]
+        dims = xy_idx if freeze_len else list(range(9))
+        prefix = "H" if freeze_len else "G"          # H = XY-only (frozen proximal len)
+        D = len(dims)
+        strata = (rng.permuted(np.tile(np.arange(n), (D, 1)), axis=1).T + rng.random((n, D))) / n
+        lo = np.array([BND[j][0] for j in dims]); hi = np.array([BND[j][1] for j in dims])
+        designs = []
+        for k in range(n):
+            v = list(M05) if freeze_len else [0.0] * 9   # frozen dims keep m05's len
+            for col, j in enumerate(dims):
+                v[j] = lo[col] + strata[k, col] * (hi[col] - lo[col])
+            designs.append((f"{prefix}{seed:02d}_{k:02d}", _clip(tuple(v))))
         if replicas <= 1:
             return designs
         return [(f"{mid}_r{j}", v) for j in range(replicas) for mid, v in designs]
@@ -344,6 +355,9 @@ def main():
                     help="comma-separated design ids: run only this subset of the morph-set")
     ap.add_argument("--replicas", type=int, default=1,
                     help="global set: independent full-pipeline draws per design (_r0/_r1/...)")
+    ap.add_argument("--freeze-len", action="store_true",
+                    help="global set: explore only the 6 XY placement dims, freezing the three "
+                         "proximal-phalange lengths at m05 (design ids prefixed H not G)")
     args = ap.parse_args()
     env = runlib.base_env()
 
@@ -356,7 +370,8 @@ def main():
         center = tuple(json.loads((ROOT / "docs/experiments/MORPH_PIPELINE_best_center.json").read_text()))
     elif "," in args.center:
         center = tuple(float(x) for x in args.center.split(","))
-    items = morph_set(args.morph_set, args.n, args.seed, center, replicas=args.replicas)
+    items = morph_set(args.morph_set, args.n, args.seed, center, replicas=args.replicas,
+                      freeze_len=args.freeze_len)
     if args.only:
         keep = {s.strip() for s in args.only.split(",")}
         missing = keep - {i[0] for i in items}
