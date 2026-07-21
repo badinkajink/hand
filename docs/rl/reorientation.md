@@ -3187,3 +3187,30 @@ blessed, comparable evaluator + the one bump the confirm close-out endorsed —
 expectation: with the A-draw term unfixed, the XY-only landscape likely hits the same draw-noise wall
 as 9-dim; the yield is whether freezing len lowers the A-collapse/hostile-geometry rate and whether an
 XY-only map is any more resolvable. Analysis on completion per the STATUS decision tree.
+
+### 6-dim interim — design 1/24 H06_00_r0 (2026-07-20 ~23:30 MDT tick): first XY-only leg holds cleanly but is STATIC — the draw-gate is unchanged by freezing len
+
+First completed leg of the 6-dim sweep (`global6xy.txt` row 1; worker healthy, now on H06_01_r0's
+Policy B). H06_00's XY placement is a moderate in/down move off m05 (Δm05 thumb −1.8 cm y, index
+−2.7 cm y, middle −2.6 cm x / −3.8 cm y; the three proximal lens **confirmed frozen at m05**, Δ 0.0).
+Pipeline ran clean end-to-end in **96 min**: CEM graspable (lift 0.050, persist 1/1/1), Policy A held
+on the **FIRST draw** (`model_609`, objheight 0.117, WARN, no abort — no A-collapse), imit-B trained
+to `model_270`.
+
+**Handoff = a textbook static hold.** Post-handoff min-z **0.116** (≫0.05 floor — holds beautifully),
+but held-cos **−0.044** with peak-cos **0.02**: the object never even transiently rotated toward
+vertical. All three fingers touch (touch-frac 1/1/1, forces thumb 12.0 / index 7.4 / middle 16.7 N —
+**no idle-finger, no degenerate pinch**), so the two WARNs are the familiar pair: over-clamp (mean tip
+12.1 N ≫ 3 N sat) and de-centering (slide-ratio 57, path 7.9 cm vs net 0.1 cm — the object slides in
+place rather than being carried). Net verdict **WARN**, driven entirely by clamp+slide, not by a drop
+or a defect.
+
+**Reading (n=1, one draw — not a design verdict).** This is the *low* end of the m05 draw-band
+{0.82, 0.49, −0.16}: a static-hold draw, exactly the draw-gated-expression pattern the 9-dim program
+closed on. One early, weakly-positive signal for the freeze-len question: **no A-collapse here** (A
+held on draw 1 of an allowed 3), consistent with "no lift-hostile geometry in the box" carrying over
+to the XY-only slice — but n=1 says nothing yet about whether len-freezing lowers the collapse rate or
+sharpens resolvability. Note H06_01_r0's A already needed **2 attempts** (still held), so the A-draw
+term is live here too. Video `docs/rl/videos/reorient/sweep/H06_00_r0_handoff.mp4`; scorecard
+`…H06_00_r0_handoff.health.json`. Continuing to accumulate legs per the STATUS tree (docs/commit only
+while the worker runs).
