@@ -108,6 +108,20 @@ pgrep -af "morph_pipeline_sweep"; nvidia-smi ; ls logs/*.DONE
   like the full 9-param box (pick-up solved, reorient draw-gated, A-fragile at the same rate) — the
   length dimension was not a special noise/hostility source. Worker on H06_09_r0; waiter → milestone
   12 (r0 pass complete). GPU busy — analysis/commit only.
+- **2026-07-21 15:22 MDT — r0 PASS COMPLETE (12/12); r1 auto-continuing (H06_00_r1 in CEM).** Full
+  r0 map, cos (11 evaluable; H06_06 lift-miss) {−0.044, −0.048, −0.119, 0.006, **0.852**, 0.34,
+  **0.547**, 0.204, −0.282, −0.274, 0.054}: **mean +0.112, sd 0.333, max 0.852, 2/11 express ≥0.5.**
+  Held **11/12** (only H06_06's lift-miss fails). **A-collapse final r0 = 13/24 legs (54%).** New
+  rows 10–12: H06_09 wrong-way −0.282, H06_10 wrong-way −0.274 (FAIL jerk 41), H06_11 cos 0.054 FAIL
+  (0.0 N idle-grip). **VERDICT (n=1 r0 map): the 6-XY landscape is statistically indistinguishable
+  from the 9-dim global12x2 landscape on every axis** — pick-up/hold solved (11/12), reorient
+  common-but-draw-gated (sd 0.33, same wall), A-fragile at the SAME rate (54% vs ~47%). Freezing the
+  proximal length neither helps nor hurts; it is not a special axis. The lone lift-miss H06_06
+  mirrors 9-dim G02_11 (both: all A draws collapse to objheight 0.0) — `_r1` decides draw-luck vs
+  lift-hostile. **Two standouts to watch in r1** (H2: single draws are not measurements): H06_04
+  (0.852) and H06_07 (0.547 @ 5.0 N/jerk 10.4, the smoothest expresser) — do they replicate or were
+  they lucky draws? Waiter → milestone 18 (mid-r1, first r0/r1 pairs). Full pooled r0/r1 analysis +
+  9-dim comparison + memory update at DONE. GPU busy — analysis/commit only.
 - **2026-07-21 ~13:05 MDT — pulse tick (docs-only, no GPU launch). MILESTONE 10/24 legs (r0 through
   H06_09); r0 pass 10/12 done.** Worker HEALTHY (tree step 1): finished H06_09_r0's B + continuous
   handoff eval at 13:01, now on H06_10_r0's CEM. Two new rows since the 9/24 commit, both **held but
