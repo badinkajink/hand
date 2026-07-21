@@ -3153,7 +3153,7 @@ In priority order, if revisiting:
 
 ---
 
-## 6-DIM XY-ONLY SWEEP + policy-learning quick-fix analysis (2026-07-19)
+## 6-DIM XY-ONLY SWEEP + policy-learning quick-fix analysis (2026-07-20)
 
 User (heading out overnight, ~until 09:00): run a global12x2-style sweep but **freeze the proximal
 phalange lengths** → explore the **6 XY placement dims only**; and analyse past results for **quick
@@ -3180,7 +3180,7 @@ downstream zero-shot probes too. **There is no cheap A-selector shortcut; A-draw
 intrinsic — which is exactly why the morphology-conditioned policy remains the real fix.** Data:
 `docs/experiments/PROBE_A_REORIENTABILITY.{json,txt}`.
 
-**Launched (2026-07-19 ~20:33 MDT, detached/resumable/waiter-armed):** the 6-dim sweep with the
+**Launched (2026-07-20 ~20:33 MDT, detached/resumable/waiter-armed):** the 6-dim sweep with the
 blessed, comparable evaluator + the one bump the confirm close-out endorsed —
 `morph_pipeline_sweep.py --morph-set global --freeze-len --n 12 --seed 6 --replicas 2
 --tag global6xy --b-recipe imit --a-attempts 3` (designs H06_00…H06_11, lens frozen at m05). Honest
