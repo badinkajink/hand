@@ -108,6 +108,20 @@ pgrep -af "morph_pipeline_sweep"; nvidia-smi ; ls logs/*.DONE
   like the full 9-param box (pick-up solved, reorient draw-gated, A-fragile at the same rate) — the
   length dimension was not a special noise/hostility source. Worker on H06_09_r0; waiter → milestone
   12 (r0 pass complete). GPU busy — analysis/commit only.
+- **2026-07-21 ~13:05 MDT — pulse tick (docs-only, no GPU launch). MILESTONE 10/24 legs (r0 through
+  H06_09); r0 pass 10/12 done.** Worker HEALTHY (tree step 1): finished H06_09_r0's B + continuous
+  handoff eval at 13:01, now on H06_10_r0's CEM. Two new rows since the 9/24 commit, both **held but
+  non-expressing**: **H06_08_r0** held-cos **0.204** (partial-thrash — peak 0.43 but jerk 32.1, slide
+  path 8.5≫net 0.4cm, 11.3 N; WARN, A×1) and **H06_09_r0** held-cos **−0.282** (static/adverse — peak
+  0.06, drifts the wrong way; WARN, jerk 14.7, 10.2 N, A×2). r0 series (9 evaluable) now
+  {−.044,−.048,−.119,+.006,**0.852**,+0.34(FAIL),[abort],**0.547**,+0.204,−0.282}, non-abort mean
+  **+0.16** sd **0.34**, **2/9 express ≥0.5** — same draw-gated wall as 9-dim; mean eased down from
+  +0.22 as the two new draws landed static/partial (shape unchanged). **Held 9/10** (only H06_06
+  lift-miss fails; minZ 0.106–0.117). **Trainability watch → still NEGATIVE:** A-collapse **11/20 legs
+  = 55%** (H06_08 0/1, H06_09 1/2), design-abort **1/10** — freezing len does not calm A-training.
+  Committed BOTH orphaned handoff media pairs (H06_08 left untracked by the 9/24 commit; H06_09 new) +
+  a `reorientation.md` interim note covering designs 9–10. Waiter → milestone 12 (r0 complete) → r1
+  pass begins. GPU busy — analysis/commit only.
 - **2026-07-21 ~07:15 MDT — pulse tick (docs-only, no GPU launch). 7/24 legs: FIRST DESIGN-ABORT
   (H06_06_r0 — A never lifts) + len-freeze trainability hope now NEGATIVE with a hard counterexample.**
   Worker HEALTHY (tree step 1): on H06_07_r0's Policy A (t2). One new completed row since the 6/24

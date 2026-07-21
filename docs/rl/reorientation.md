@@ -3375,3 +3375,39 @@ media pair (`H06_07_r0_handoff.{mp4,health.json}`).
 collapsed (~59%)**, holding **above** the 9-dim ~47%. **Design-abort 1/8 (~13%).** Freezing the
 proximal-phalange lengths continues to NOT calm Policy-A training. Continuing docs/commit-only per the
 STATUS tree (worker owns the GPU).
+
+### 6-dim interim — designs 9–10/24 (H06_08_r0 + H06_09_r0) (2026-07-21 ~13:05 MDT tick): two more draw-gated non-expressers close the r0 pass to 10/12
+Rows 9–10 of `global6xy.txt` (worker healthy, advanced to H06_10_r0's CEM at 13:01). Committing the
+H06_08 **and** H06_09 handoff media pairs (`H06_0{8,9}_r0_handoff.{mp4,health.json}`) — the 9/24
+milestone commit narrated H06_08's numbers but left its media untracked (same orphaning as
+H06_01..05/07); H06_09 is brand-new this tick. Both are non-expressing draws that **held cleanly**.
+
+- **H06_08_r0** — CEM lift 0.052 (persist 1/1/1); Policy A held on the **1st draw** (best `model_609`,
+  objheight 0.110, **1 attempt, no collapse**). Handoff **minZ 0.106 / held-cos 0.204 / peak-cos
+  0.432**, verdict **WARN**. A **partial-but-thrashy** draw in the H06_05 mold: the object rotates
+  part-way (peak 0.43) but the tail settles at only 0.20 with **ang-jerk 32.1** (WARN) and
+  **de-centering by sliding** (path 8.5 ≫ net 0.4cm, slide-ratio 19.8) at **11.3 N** clamp — it jitters
+  the object rather than controlling it. Not an expresser (0.204 < 0.5).
+
+- **H06_09_r0** — CEM lift 0.054 (persist 1/1/1); Policy A held on the **2nd draw** (best `model_609`,
+  objheight 0.114; 1st attempt collapsed). Handoff **minZ 0.111 / held-cos −0.282 / peak-cos 0.064**,
+  verdict **WARN**. A **static/adverse** draw — the object never rotates toward vertical (peak 0.06) and
+  the tail drifts slightly the wrong way; ang-jerk 14.7, clamp 10.2 N, drift 0.1cm. Held cleanly but no
+  reorient — the **modal draw outcome** of both the 6-XY box and 9-dim.
+
+- **What the box now shows (10 r0 legs, 9 evaluable).** r0 held-cos series
+  {−0.044, −0.048, −0.119, +0.006, **0.852**, +0.34 (FAIL), [abort], **0.547**, +0.204, −0.282};
+  non-abort mean **+0.16**, sd **0.34** — the mean eased down from +0.22 as the two new draws landed
+  static/partial, but the **shape is unchanged**: same draw-noise wall as 9-dim (per-draw sd 0.3–0.5),
+  **2/9 express ≥0.5** (H06_04 strong-forceful 0.852; H06_07 gentle-smooth 0.547), the rest
+  static-to-partial. **9/10 held** (minZ 0.106–0.117; only the H06_06 lift-miss fails). ⇒ Reorient
+  capability + quality exist in the XY-only box; the binding constraint is **expression draw**
+  P(express | design), exactly the 9-dim story. Still n=1/design — the `_r1` replicas (and the pooled
+  r0/r1 mean at DONE) decide whether these XY placements are reorient-capable or merely lucky draws.
+
+**Trainability watch (10 designs) — unchanged NEGATIVE.** Per-attempt A-collapses: H06_00 0/1, H06_01
+1/2, H06_02 0/1, H06_03 2/3, H06_04 2/3, H06_05 0/1, H06_06 3/3, H06_07 2/3, H06_08 0/1, **H06_09 1/2**
+→ **11 of 20 A attempts collapsed (~55%)**, holding **above** the 9-dim ~47%. **Design-abort 1/10
+(~10%).** Freezing the proximal-phalange lengths still does not calm Policy-A training. The r0 pass is
+**10/12 done** (H06_10, H06_11 remain, then the r1 replica pass begins). Continuing docs/commit-only per
+the STATUS tree (worker owns the GPU).
