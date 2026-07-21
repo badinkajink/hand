@@ -83,6 +83,18 @@ pgrep -af "morph_pipeline_sweep"; nvidia-smi ; ls logs/*.DONE
   (H06_01 A×2) across 4 A-legs so far — vs 9-dim global12x2's ~47% A-leg abort rate; far too small to
   claim but the signal to track. Worker healthy on H06_03_r0; pace ~1.9 h/design; waiter re-armed at
   milestone 6. GPU busy — analysis/commit only.
+- **2026-07-21 ~06:53 MDT — MILESTONE 6/24 legs (r0 H06_03..05): the box HAS a strong reorienter;
+  the "freezing len calms A-training" hope is looking NEGATIVE.** r0 cos now {−0.044, −0.048, −0.119,
+  0.006, **0.852**, 0.34}, mean +0.165 sd 0.341 — same draw-noise wall as 9-dim, BUT **H06_04_r0
+  reorients at cos 0.852** (WARN, jerk 17.9, force 13.0 N; video `H06_04_r0_handoff.mp4`), near the
+  program-best 0.887 ⇒ **reorient capability clearly exists in the XY-only box too.** H06_05_r0 =
+  partial 0.34 but FAIL (jerk 46 thrash); the other four r0 draws static. **6/6 held** (minZ
+  0.103–0.117). **Trainability watch → NEGATIVE (interim, n=6):** 5/11 A-legs aborted (~45%), 3/6
+  designs needed retries (H06_03 & H06_04 = A×3) — essentially the 9-dim ~47% rate, so **freezing the
+  length axis does NOT calm A-training**; the clean first-3 was small-n luck. **Anti-ordering repeats
+  live:** H06_04's kept A was a health-**FAIL** draw (its two non-FAIL attempts BOTH collapsed) yet
+  produced the best reorient — the health gate still can't pick the good-for-reorient A (the quick-fix
+  finding, in the wild). Worker on H06_06_r0; waiter re-armed at milestone 9. GPU busy — analysis/commit only.
 - **2026-07-21 ~03:00 MDT — pulse tick (docs-only, no GPU launch).** Worker HEALTHY & running (tree
   step 1): on **H06_03_r0's Policy B** (`b_liveA_imit`, started 02:49); its A took **3 attempts**
   (held, no true collapse). `global6xy.txt` unchanged at 3 data rows (H06_00..02) → **no NEW completed
