@@ -3271,3 +3271,36 @@ that H06_03 is the **lightest-clamp** leg (5.6 N) — a small hint that XY place
 regime even when reorient stays unexpressed; worth confirming against the pooled clamp-force column at
 DONE, not actionable now. Trainability unchanged: H06_03's 2/3-collapse (and H06_04's t0 collapse
 already) keep the attempt-level rate near the ~43% flagged above — no len-freeze benefit visible.
+
+### 6-dim interim — design 5/24 H06_04_r0 (2026-07-21 ~06:00 MDT tick): FIRST DYNAMIC REORIENT of the 6-dim sweep — held-cos 0.852, breaks the 4/4-static streak
+Row 5 of `global6xy.txt` (worker healthy, now on H06_05_r0's Policy A, t0). H06_04_r0 completed
+05:15, the first leg of the sweep to **express reorientation** — committing its untracked handoff
+media pair (`H06_04_r0_handoff.{mp4,health.json}`).
+
+- **H06_04_r0** — CEM lift 0.050 (persist 1/1/1); Policy A held on the **3rd draw** (best `model_609`,
+  objheight 0.109, no abort) — **2 of its 3 attempts collapsed** (t0, t2; t1 held), logging `A×3` like
+  H06_03. Handoff **minZ 0.103 / held-cos 0.852 / peak-cos 0.889** — a **genuinely dynamic reorient**,
+  the object rotated toward vertical and stayed there. Scorecard WARN (2 soft checks): drop PASS
+  (0.103≫0.05), jitter PASS (17.9), late-finger PASS, **idle-finger PASS** (all three recruited —
+  thumb 9.8 N/1.00, index 13.5 N/1.00, middle 15.6 N/1.00; no pinch), de-centering WARN (slide path
+  4.9 cm vs net 0.1 cm), over-clamp WARN (mean tip **13.0 N**, the heaviest-clamp leg). So this draw
+  is a *hard-gripping* reorient — clamps hard, slides in place, but rotates the screwdriver up.
+
+**Reading — the draw-gate breaks, exactly as H2 predicts.** Five r0 draws now: held-cos −0.044 /
+−0.048 / −0.119 / +0.006 / **0.852**. The first four were static; H06_04 is the **first strong
+positive**, landing **at/above the m05 draw-band high** ({0.82, 0.49, −0.16}). This is the expected
+signature of **draw-gated expression**, not of a special design: freezing the proximal lengths did
+**not** remove reorient capability from the 6-dim XY box, and a single lucky draw expresses it near
+the program ceiling (cf. 9-dim G02_05_r1 0.887). It is emphatically **not** a promotion signal at
+n=1 — H06_04's `_r1` replica (and the pooled r0/r1 mean at DONE) decide whether *this XY placement*
+expresses more reliably than the static four, or whether it merely drew well once. Note the contrast
+with the static legs: this dynamic draw is the **heaviest-clamp** leg (13.0 N) while the "best" static
+leg H06_03 was the **lightest** (5.6 N) — i.e. clamp force is not (yet) predictive of reorient
+expression across these singletons; that's a pooled-column question for DONE.
+
+**Trainability watch (5 designs).** Per-attempt COLLAPSED sentinels now: H06_00 0/1, H06_01 1/2,
+H06_02 0/1, H06_03 2/3, H06_04 2/3 → **5 of 10 A attempts collapsed (~50%)**, at/slightly-above the
+9-dim global12x2 ~47% and up from the ~43% at 4 designs. **Design-abort stays 0/5** — the
+`--a-attempts 3` best-of-3 rescue (QF2) is doing the work, not a len-freeze reduction in intrinsic
+A-collapse propensity. The len-freeze "more-trainable" hypothesis has **no** support at 5 legs; the
+pooled r0/r1 collapse column at DONE is the real test.

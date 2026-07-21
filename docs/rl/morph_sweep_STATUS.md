@@ -133,6 +133,23 @@ pgrep -af "morph_pipeline_sweep"; nvidia-smi ; ls logs/*.DONE
   ~43% attempt-level collapse (H06_03 2/3 + H06_04 t0 already) — no len-freeze reduction visible;
   design-abort still 0/4 via best-of-3. GPU busy — analysis/commit only. Waiter still armed at
   milestone 6.
+- **2026-07-21 ~06:00 MDT — MILESTONE 5/24 legs: FIRST DYNAMIC REORIENT (H06_04_r0, held-cos 0.852).**
+  Worker HEALTHY (tree step 1), now on **H06_05_r0's Policy A** (t0; GPU 3.5 GB). **NEW completed row
+  since 03:30: `H06_04_r0`** (row 5, done 05:15) — the sweep's **first genuinely dynamic reorient**,
+  breaking the 4/4-static streak: CEM lift 0.050 (pers 1/1/1); Policy A held on the **3rd draw** (`A×3`,
+  best `model_609`, objheight 0.109, 2/3 attempts collapsed t0+t2); handoff **minZ 0.103 / cos 0.852 /
+  peak 0.889 / jerk 17.9 / force 13.0 / drift net 0.1 cm**, WARN (de-centering slide 4.9 cm + over-clamp
+  13 N; **idle-finger PASS** — all 3 recruited 9.8/13.5/15.6 N, no pinch; drop/jitter/late PASS). Held-cos
+  lands **at/above the m05 draw-band high** {0.82,0.49,−0.16} → the **draw-gate breaks exactly as H2
+  predicts** (freezing len did NOT remove reorient capability; one lucky draw expresses near the
+  program ceiling, cf. 9-dim G02_05_r1 0.887). **NOT a promotion signal at n=1** — H06_04's `_r1`
+  replica + pooled r0/r1 mean at DONE decide. Contrast: this dynamic leg is the **heaviest-clamp**
+  (13 N) vs the "best" static leg H06_03 (**lightest**, 5.6 N) → clamp force not predictive across
+  singletons (pooled-column Q for DONE). **Trainability watch (5 designs):** COLLAPSED sentinels
+  H06_00 0/1, H06_01 1/2, H06_02 0/1, H06_03 2/3, H06_04 2/3 → **5/10 attempts (~50%)**, at/above 9-dim
+  ~47%, no len-freeze benefit; **design-abort still 0/5** via best-of-3 (QF2). Appended tree step 3:
+  `reorientation.md` §"6-dim interim — design 5/24" + committing untracked `H06_04_r0_handoff.{mp4,health.json}`.
+  GPU busy — analysis/commit only. Waiter still armed at milestone 6.
 
 ---
 
