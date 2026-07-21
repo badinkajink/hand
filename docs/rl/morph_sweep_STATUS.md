@@ -95,6 +95,19 @@ pgrep -af "morph_pipeline_sweep"; nvidia-smi ; ls logs/*.DONE
   live:** H06_04's kept A was a health-**FAIL** draw (its two non-FAIL attempts BOTH collapsed) yet
   produced the best reorient — the health gate still can't pick the good-for-reorient A (the quick-fix
   finding, in the wild). Worker on H06_06_r0; waiter re-armed at milestone 9. GPU busy — analysis/commit only.
+- **2026-07-21 ~11:21 MDT — MILESTONE 9/24 legs (r0 H06_06..08): the XY-only box is reproducing the
+  9-dim story faithfully; the trainability hypothesis is now REFUTED.** Adds H06_06_r0 = **first
+  lift-level total miss** (all 3 A attempts collapsed to objheight 0.0 despite a clean CEM grasp —
+  cf. 9-dim G02_11; its `_r1` decides draw-luck vs genuinely lift-hostile), H06_07_r0 = **smooth
+  expresser cos 0.547** @ 5.0 N / jerk 10.4 (WARN), H06_08_r0 = partial 0.204. r0 cos (8 evaluable)
+  {−0.044, −0.048, −0.119, 0.006, 0.852, 0.34, 0.547, 0.204}, mean +0.217 sd 0.321, **2/8 express
+  ≥0.5** (0.852, 0.547) ⇒ reorient capability common-but-draw-gated, same as 9-dim. **Held 8/9**
+  (only the lift-miss fails to hold). **A-collapse now 9/18 legs = 50%** (5/9 designs retried) ⇒
+  **freezing the length axis does NOT reduce A-fragility — it matches/edges 9-dim's ~47%; the
+  "freezing len calms A-training" hypothesis is refuted.** Net so far: the 6-XY box behaves exactly
+  like the full 9-param box (pick-up solved, reorient draw-gated, A-fragile at the same rate) — the
+  length dimension was not a special noise/hostility source. Worker on H06_09_r0; waiter → milestone
+  12 (r0 pass complete). GPU busy — analysis/commit only.
 - **2026-07-21 ~07:15 MDT — pulse tick (docs-only, no GPU launch). 7/24 legs: FIRST DESIGN-ABORT
   (H06_06_r0 — A never lifts) + len-freeze trainability hope now NEGATIVE with a hard counterexample.**
   Worker HEALTHY (tree step 1): on H06_07_r0's Policy A (t2). One new completed row since the 6/24
