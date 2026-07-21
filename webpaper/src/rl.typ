@@ -861,6 +861,21 @@ trainability-hostile design drew a clean 0.48 on its first uncensored attempt.
   (its health-FAIL A draws produced its two best reorients, WARN draws its worst). The A grade
   is a collapse gate, not a sufficient statistic of the delivered state. Note:
   `docs/notes/a_quality_predictor.md`.
+
+  A stronger, *downstream* predictor was tried next (2026-07-19) and also failed. Instead of a
+  scorecard metric, run the proven reorienter `b33` *zero-shot* (no training) as Policy B on each
+  A's delivered grip through the full continuous-handoff eval (≈10 s), and keep the A whose
+  zero-shot held-cos is highest. Over all 31 on-disk (kept-A, known trained-imitation-B outcome)
+  pairs the probe is only weakly predictive (within-design Spearman ρ ≈ +0.35, correct best-A in
+  6/11 designs) and *fails on exactly the standout draws*: `G02_00`'s best trained draw (0.681)
+  drew the *lowest* probe (0.14), and `G02_05`'s program-best policy (0.887) was dropped by the
+  probe (0.00). Only a coarse signal survives (designs that trained to ≥ 0.5 average probe +0.39
+  vs +0.07 for the static ones). Stated plainly: *zero-shot reorientability ≠ trainable
+  reorientability* — the best trainable grips are precisely the ones a fixed reorienter cannot roll
+  cold, so the probe systematically discards the top performers. There is no cheap A-selector
+  shortcut; the A-draw variance is intrinsic, which is exactly why the resolution is architectural.
+  Data `docs/experiments/PROBE_A_REORIENTABILITY.json`; note
+  `docs/notes/policy_bottleneck_quickfixes.md`.
 ]
 
 == The global sweep: 12 designs × 2 replicas over the full box, then n = 4 confirms
@@ -951,7 +966,8 @@ What the program actually bought:
   needs many replicas (sd ≈ 0.25 at n = 4) or a fundamentally cheaper evaluator.
 + *A validated plateau:* `G02_00` is a second m05-class region 3.9 cm from m05 — useful for
   hardware, since it says the design optimum is a plateau, not a knife-edge peak.
-+ *The path forward is architectural, not statistical.* The A-predictor came up negative,
++ *The path forward is architectural, not statistical.* The A-predictor came up negative (both a
+  scorecard hunt and a downstream zero-shot reorientability probe — see the dropdown above),
   replication is cost-capped, the gates are saturated. The proposed resolution is a
   *morphology-conditioned policy*: one policy trained across per-environment randomized
   geometries, conditioned on the 9-vector, so per-design evaluation becomes cheap rollouts and

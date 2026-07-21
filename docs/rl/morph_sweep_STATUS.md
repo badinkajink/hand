@@ -73,6 +73,16 @@ pgrep -af "morph_pipeline_sweep"; nvidia-smi ; ls logs/*.DONE
 - **2026-07-19 ~20:33 MDT — LAUNCHED (see above).** Quick-fix probe QF1 ran first (negative,
   committed); 6-dim sweep started on H06_00_r0. GPU was free (~1.5 GB). Waiter armed (milestone 3
   designs / DONE / crash). Pulse re-enabled + re-pointed at THIS section.
+- **2026-07-20 ~22:05 MDT — pulse tick (docs-only, no GPU launch).** Worker HEALTHY & running (tree
+  step 1): still on the FIRST leg `H06_00_r0` — CEM graspable (lift 0.050, persist 1/1/1), Policy A
+  ok in **1 attempt** (`model_609.pt`, objheight 0.1168, no abort), Policy B `b_liveA_imit` ~end of
+  training (target_axis_alignment 1.81, object held 0.115, no drops, tip_lost ~2.7). GPU 4.7 GB.
+  **No completed design rows yet** (step 3 n/a; `global6xy.txt` still header-only). Did the sanctioned
+  step-5 idle work: landed the **QF1 downstream-probe negative** ("zero-shot reorientability ≠
+  trainable reorientability") into `paper/main.tex` §app:bottleneck (new *Downstream A-selector
+  (negative)* paragraph) + `webpaper/src/rl.typ` (extended the A-predictor dropdown + close-out
+  clause) — the CLAUDE.md three-doc sync; rl.typ recompiles clean (typst exit 0). Committed docs
+  only (held the header-only `.txt` until it has data rows). Next tick: append H06 rows as legs land.
 
 ---
 
