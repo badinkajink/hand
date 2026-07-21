@@ -111,6 +111,24 @@ pgrep -af "morph_pipeline_sweep"; nvidia-smi ; ls logs/*.DONE
   interim note synthesizing H06_05 (partial reorient cos 0.34 but scorecard-**FAIL** — jitter 46.4
   thrash, peak-cos 0.468: judge on scorecard not raw cos) and the H06_06 abort. r0 series
   {−.044,−.048,−.119,+.006,**0.852**,+0.34(FAIL),[abort]}. Waiter still armed at milestone 9. GPU busy.
+- **2026-07-21 ~09:45 MDT — pulse tick (docs-only, no GPU launch). 8/24 legs: SECOND clean reorienter
+  (H06_07_r0, cos 0.547) — and the cleanest-QUALITY reorienting draw of the box so far.** Worker
+  HEALTHY (tree step 1): started H06_08_r0's CEM 09:44 (log mtime 1 min ago). One new completed row
+  since the 7/24 commit: **H06_07_r0** — CEM lift 0.052 (persist 1/1/1); Policy A held on the **3rd
+  draw** (best `model_609`, objheight 0.115, 2 attempts collapsed first). Handoff **minZ 0.117 /
+  held-cos 0.547 / peak-cos 0.629**, verdict **WARN** (jerk **10.4** PASS = smoothest reorienter yet;
+  force **5.0 N** = gentlest; drift 0.7cm). Scorecard is unusually clean: **all 3 fingers engage at
+  step 1** (late_finger PASS) with a **BALANCED grip** — thumb 4.8 / index 5.3 / middle 5.0 N, i.e.
+  the thumb is **fully recruited** (contrast the historic m05 degenerate pinch, idle thumb ~1.6 N);
+  only WARN on contact-count (1.67<3), de-centering slide (path 3.6 >> net 0.7cm), and mild over-clamp
+  (5.0 N). So the XY box now holds **two WARN reorienters — H06_04 strong-but-forceful (0.852, 13 N,
+  jerk 17.9) and H06_07 gentle-and-smooth (0.547, 5.0 N, jerk 10.4)** — plus the thrashy FAIL partial
+  (H06_05, 0.34). Reorient capability AND quality both clearly present in the 6-dim box. **8/8 held**
+  (minZ 0.103–0.117). **Trainability watch (8 designs):** per-attempt collapses now **10/17 (~59%)**
+  (H06_07 2/3), still **above** the 9-dim ~47% — len-freeze does NOT calm A-training, unchanged.
+  **Design-abort 1/8 (~13%).** r0 series {−.044,−.048,−.119,+.006,**0.852**,+0.34(FAIL),[abort],**0.547**},
+  non-abort mean +0.219 sd 0.34 (same draw-noise wall as 9-dim). Committed H06_07's handoff media +
+  a `reorientation.md` interim note. Waiter still armed at milestone 9. GPU busy — analysis/commit only.
 - **2026-07-21 ~03:00 MDT — pulse tick (docs-only, no GPU launch).** Worker HEALTHY & running (tree
   step 1): on **H06_03_r0's Policy B** (`b_liveA_imit`, started 02:49); its A took **3 attempts**
   (held, no true collapse). `global6xy.txt` unchanged at 3 data rows (H06_00..02) → **no NEW completed

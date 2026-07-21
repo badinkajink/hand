@@ -837,5 +837,141 @@
   },
   "note": "A never lifted (best objheight 0.0 < 0.06, 3 attempts)",
   "secs": 955
+ },
+ {
+  "id": "H06_07_r0",
+  "morph": [
+   0.0147,
+   -0.0035,
+   0.0108,
+   0.0207,
+   -0.0001,
+   0.0123,
+   -0.0156,
+   0.0082,
+   0.0159
+  ],
+  "delta_m05": [
+   0.0,
+   -0.0085,
+   0.0,
+   0.0167,
+   -0.0023,
+   0.0,
+   -0.0402,
+   -0.016,
+   0.0
+  ],
+  "ik_resid": {
+   "thumb": 0.1,
+   "index": 0.08,
+   "middle": 0.1
+  },
+  "lift": 0.05246627035226248,
+  "tips": 3.0,
+  "pt": 1.0,
+  "pi": 1.0,
+  "pm": 1.0,
+  "g_imbal": 0.0,
+  "A": {
+   "run": "20260721-0716-policyA_H06_07_r0_t1",
+   "aborted": false,
+   "best_ckpt": "model_609.pt",
+   "best_objheight": 0.1151,
+   "health_verdict": "FAIL",
+   "attempts": [
+    {
+     "run": "20260721-0712-policyA_H06_07_r0_t0",
+     "aborted": true,
+     "objheight": 0.0,
+     "health_verdict": null
+    },
+    {
+     "run": "20260721-0716-policyA_H06_07_r0_t1",
+     "aborted": false,
+     "objheight": 0.1151,
+     "health_verdict": "FAIL"
+    },
+    {
+     "run": "20260721-0811-policyA_H06_07_r0_t2",
+     "aborted": false,
+     "objheight": 0.1066,
+     "health_verdict": "FAIL"
+    }
+   ]
+  },
+  "B": {
+   "run": "20260721-0906-policyB_H06_07_r0_reorient",
+   "aborted": false,
+   "recipe": "b_liveA_imit"
+  },
+  "handoff": {
+   "video": "/home/humanoid/Programs/hand/docs/rl/videos/reorient/sweep/H06_07_r0_handoff.mp4",
+   "min_z_post": 0.117,
+   "health": {
+    "verdict": "WARN",
+    "checks": {
+     "late_finger": {
+      "status": "PASS",
+      "value": 0.0,
+      "detail": "(thumb@1, index@1, middle@1)"
+     },
+     "idle_finger": {
+      "status": "WARN",
+      "value": 1.6703,
+      "detail": "mean tip-contacts 1.67<3 | thumb=4.8N/0.54 index=5.3N/0.57 middle=5.0N/0.57"
+     },
+     "drop": {
+      "status": "PASS",
+      "value": 0.1172,
+      "detail": "min hold-phase obj-z 0.117 m (floor<0.05)"
+     },
+     "jitter": {
+      "status": "PASS",
+      "value": 10.3977,
+      "detail": "ang-jerk 10.4 1/s^2"
+     },
+     "de_centering": {
+      "status": "WARN",
+      "value": 5.0498,
+      "detail": "sliding: path 3.6cm >> net 0.7cm"
+     },
+     "over_clamp": {
+      "status": "WARN",
+      "value": 5.0018,
+      "detail": "mean fingertip 5.0 N (reward saturates ~3N)"
+     }
+    },
+    "metrics": {
+     "first_contact": [
+      1,
+      1,
+      1
+     ],
+     "contact_spread": 0.0,
+     "touch_frac": [
+      0.54,
+      0.57,
+      0.57
+     ],
+     "force_mean": [
+      4.8,
+      5.3,
+      5.0
+     ],
+     "contact_count": 1.67,
+     "min_z_hold": 0.1172,
+     "ang_jerk": 10.4,
+     "net_drift_cm": 0.7,
+     "slide_ratio": 5.0,
+     "tip_force": 5.0,
+     "held_cos_tail": 0.547,
+     "peak_cos": 0.629
+    }
+   },
+   "b_aborted": false,
+   "a_aborted": false
+  },
+  "secs": 9372
  }
 ]
