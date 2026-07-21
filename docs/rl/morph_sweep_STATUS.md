@@ -95,6 +95,22 @@ pgrep -af "morph_pipeline_sweep"; nvidia-smi ; ls logs/*.DONE
   live:** H06_04's kept A was a health-**FAIL** draw (its two non-FAIL attempts BOTH collapsed) yet
   produced the best reorient — the health gate still can't pick the good-for-reorient A (the quick-fix
   finding, in the wild). Worker on H06_06_r0; waiter re-armed at milestone 9. GPU busy — analysis/commit only.
+- **2026-07-21 ~07:15 MDT — pulse tick (docs-only, no GPU launch). 7/24 legs: FIRST DESIGN-ABORT
+  (H06_06_r0 — A never lifts) + len-freeze trainability hope now NEGATIVE with a hard counterexample.**
+  Worker HEALTHY (tree step 1): on H06_07_r0's Policy A (t2). One new completed row since the 6/24
+  commit: **H06_06_r0** — CEM found a **graspable** grip (lift 0.055, persist 1/1/1) but **Policy A
+  never lifted**: all **3 attempts collapsed** (t0/t1/t2 `.COLLAPSED` sentinels present, best objheight
+  **0.0** < 0.06) → best-of-3 rescue **failed outright**, design skipped (no B, no reorient). This is
+  an **A-trainability-hostile** XY placement, not a graspability-hostile geometry (CEM's static grip
+  holds) — the **first concrete crack** in the 9-dim "no lift-hostile geometry / pick-up solved
+  everywhere" verdict. **Trainability watch (7 designs):** per-attempt collapses now **8/14 (~57%)**
+  (H06_06 3/3), **above** the 9-dim ~47% and climbing (43→50→57% at 4→5→7 designs); **design-abort 1/7
+  (~14%)** — the first. ⇒ **Freezing the proximal-phalange lengths does NOT calm Policy-A training**
+  (the sweep's motivation); intrinsic A-collapse is comparable-to-worse in the XY-only box. Also
+  committed H06_05's orphaned handoff media (`H06_05_r0_handoff.{mp4,health.json}`) + a `reorientation.md`
+  interim note synthesizing H06_05 (partial reorient cos 0.34 but scorecard-**FAIL** — jitter 46.4
+  thrash, peak-cos 0.468: judge on scorecard not raw cos) and the H06_06 abort. r0 series
+  {−.044,−.048,−.119,+.006,**0.852**,+0.34(FAIL),[abort]}. Waiter still armed at milestone 9. GPU busy.
 - **2026-07-21 ~03:00 MDT — pulse tick (docs-only, no GPU launch).** Worker HEALTHY & running (tree
   step 1): on **H06_03_r0's Policy B** (`b_liveA_imit`, started 02:49); its A took **3 attempts**
   (held, no true collapse). `global6xy.txt` unchanged at 3 data rows (H06_00..02) → **no NEW completed
