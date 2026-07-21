@@ -122,6 +122,18 @@ pgrep -af "morph_pipeline_sweep"; nvidia-smi ; ls logs/*.DONE
   (0.852) and H06_07 (0.547 @ 5.0 N/jerk 10.4, the smoothest expresser) — do they replicate or were
   they lucky draws? Waiter → milestone 18 (mid-r1, first r0/r1 pairs). Full pooled r0/r1 analysis +
   9-dim comparison + memory update at DONE. GPU busy — analysis/commit only.
+- **2026-07-21 ~16:46 MDT — pulse tick (docs-only, no GPU launch). r1 pass underway; reconciled the
+  docs lag from the 15:22 r0-complete commit.** Worker HEALTHY (tree step 1): r0 done (12/12); r1 began
+  15:21, now on **H06_00_r1's Policy A (2nd attempt, ETA ~30 min)**; GPU busy (~3.6 GB, 20% util). **No
+  new completed r1 rows this tick.** The 15:22 r0-complete commit shipped json/txt/STATUS only, so two
+  things were behind: committed the untracked **H06_10_r0** (thrashy static **FAIL**, cos −0.274, jerk
+  41 = box-worst, all-3 firm balanced grip 8.6/9.4/7.7 N but peak-cos 0.01 = zero rotation) and
+  **H06_11_r0** (idle-grip salvage **FAIL**, cos 0.054, A-aborted → `model_150` salvage + B
+  watchdog-aborted → `model_50`; 0.0 N/touch_frac 0.0 = object cradled not gripped) handoff media
+  pairs, and appended the **r0-PASS-COMPLETE** synthesis note to `reorientation.md` (was 2 rows behind).
+  No re-analysis change — r0 verdict stands: 6-XY landscape ≈ 9-dim on every axis (held 11/12, mean
+  +0.112 / sd 0.333, 2/11 express ≥0.5, A-collapse final 13/24 = 54%, design-abort 1/12). Waiter still
+  → milestone 18 (mid-r1). GPU busy — analysis/commit only.
 - **2026-07-21 ~13:05 MDT — pulse tick (docs-only, no GPU launch). MILESTONE 10/24 legs (r0 through
   H06_09); r0 pass 10/12 done.** Worker HEALTHY (tree step 1): finished H06_09_r0's B + continuous
   handoff eval at 13:01, now on H06_10_r0's CEM. Two new rows since the 9/24 commit, both **held but
