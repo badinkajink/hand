@@ -3150,3 +3150,40 @@ In priority order, if revisiting:
    constraint, v4's policy is interesting — a learned ground-assisted
    manipulation strategy. Could be a starting point for table-edge
    tricks or place-then-pick research.
+
+---
+
+## 6-DIM XY-ONLY SWEEP + policy-learning quick-fix analysis (2026-07-19)
+
+User (heading out overnight, ~until 09:00): run a global12x2-style sweep but **freeze the proximal
+phalange lengths** → explore the **6 XY placement dims only**; and analyse past results for **quick
+fixes to make policy learning more robust / reach its potential** (policy learning = the established
+bottleneck). Full standalone note: `docs/notes/policy_bottleneck_quickfixes.md`; live runbook:
+`morph_sweep_STATUS.md` §"6-DIM XY-ONLY SWEEP".
+
+**Quick-fix analysis (zero GPU-training cost).** Decomposed the evaluator noise: B-side variance is
+already SOLVED by the imit prior (sd ±0.02); the DOMINANT open term is the **Policy-A draw** (sd
+0.3–0.5), which the A health gate cannot select on — gate-invisible and mildly *anti-ordering*
+(health-FAIL As gave G02_00 its best draws, per §P2 avar). The highest-leverage candidate fix was a
+**cheap downstream A-selector**: run the proven reorienter b33 **zero-shot** on each A's delivered
+grip and keep the most reorientable (`scripts/probe_a_reorientability.py`, tested on all 31 on-disk
+kept-A → known-trained-imit-B pairs from global12x2 + confirm).
+
+**Result: NEGATIVE (an honest, useful one).** Within-design Spearman +0.345, best-A-hit 6/11, and it
+**fails on exactly the standout draws** — G02_00_r3 (trained **0.681**, probe 0.14) and G02_05_r1
+(trained **0.887**, probe **0.00**, b33 dropped it); cf_m05/cf_l13 mildly anti-correlate (rho −0.50).
+Only a *coarse* signal survives (trained ≥0.5 designs avg probe +0.39 vs +0.07 for static, gap +0.31).
+**Finding: zero-shot reorientability ≠ trainable reorientability** — the best trainable grips are
+precisely the ones a *fixed* reorienter cannot roll cold, so the probe would discard the top designs.
+This extends `a_quality_predictor.md` (no cheap A-quality predictor from scorecard metrics) to
+downstream zero-shot probes too. **There is no cheap A-selector shortcut; A-draw variance is
+intrinsic — which is exactly why the morphology-conditioned policy remains the real fix.** Data:
+`docs/experiments/PROBE_A_REORIENTABILITY.{json,txt}`.
+
+**Launched (2026-07-19 ~20:33 MDT, detached/resumable/waiter-armed):** the 6-dim sweep with the
+blessed, comparable evaluator + the one bump the confirm close-out endorsed —
+`morph_pipeline_sweep.py --morph-set global --freeze-len --n 12 --seed 6 --replicas 2
+--tag global6xy --b-recipe imit --a-attempts 3` (designs H06_00…H06_11, lens frozen at m05). Honest
+expectation: with the A-draw term unfixed, the XY-only landscape likely hits the same draw-noise wall
+as 9-dim; the yield is whether freezing len lowers the A-collapse/hostile-geometry rate and whether an
+XY-only map is any more resolvable. Analysis on completion per the STATUS decision tree.

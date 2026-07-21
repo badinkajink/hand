@@ -4,6 +4,78 @@ Live status + resume commands for the co-design morphology sweep launched 2026-0
 for the day; "build on top of whatever we get"). This file is the single place to see what is
 running, what was decided, and how to continue/intervene. Updated as stages complete.
 
+---
+
+## 6-DIM XY-ONLY SWEEP (2026-07-19) — ACTIVE. This section supersedes the CLOSED state below.
+
+**User directive (2026-07-19 eve, heading out until ~09:00):** (1) run a sweep like global12x2 but
+**freeze the proximal-phalange lengths** → explore the **6 XY placement dims only**; (2) analyse
+past results/policy performance for **quick fixes to make policy learning more robust / reach its
+potential** (policy learning is the established bottleneck); (3) "take as much action as you need,
+and/or use pulse to trigger analysis until I come in at ~9am."
+
+**Quick-fix analysis (done, zero GPU-training cost) — full note `docs/notes/policy_bottleneck_quickfixes.md`:**
+- Bottleneck decomposed: B-side variance is SOLVED (imit-B sd ±0.02); the DOMINANT open term is the
+  **Policy-A draw** (sd 0.3–0.5), and the A health gate **cannot** select good-for-reorient draws —
+  it is gate-invisible and mildly **anti-orders** them (health-FAIL As gave G02_00 its best draws).
+- Tested the highest-leverage candidate fix **QF1** (`scripts/probe_a_reorientability.py`): use b33
+  **zero-shot** as a cheap A-reorientability selector. **NEGATIVE** — within-design Spearman +0.345,
+  best-A-hit 6/11, and it FAILS on the standout draws (G02_00_r3 t0.68/probe0.14; G02_05_r1
+  t0.887/probe0.00). Finding: *zero-shot reorientability ≠ trainable reorientability* → no cheap
+  A-selector shortcut; the A-draw variance is intrinsic (reinforces the conditioned-policy fix).
+- Applied bumps that ARE blessed: **`--b-recipe imit`** (QF3) + **`--a-attempts 3`** (QF2, the confirm
+  close-out's explicit ask). No unvalidated change baked in.
+
+**LAUNCHED 2026-07-19 ~20:33 MDT (detached, resumable, waiter-armed):**
+```
+nohup setsid env MUJOCO_GL=egl uv run --extra rl --extra gpu python scripts/morph_pipeline_sweep.py \
+  --morph-set global --freeze-len --n 12 --seed 6 --replicas 2 --tag global6xy \
+  --b-recipe imit --a-attempts 3 > logs/sweep_global6xy.run.log 2>&1 &
+```
+Designs H06_00…H06_11 (proximal lens frozen at m05 0.0108/0.0123/0.0159; 6 XY dims LHS'd). Outputs:
+`docs/experiments/MORPH_PIPELINE_global6xy.{json,txt}`, sentinel `logs/MORPH_PIPELINE_global6xy.DONE`,
+run dirs `results/rl/*_H06_*`, handoff videos + `.health.json` in `docs/rl/videos/reorient/sweep/`.
+Replica-major (a full r0 pass first). Pace ~1.5–2 h/design → ~6–7 r0 designs by 09:00; full 24 legs
+~1.5–2 days (resumable across reboots/windows).
+
+**DECISION TREE for overnight/pulse sessions (execute top-to-bottom; do NOT re-derive):**
+1. **Safety:** `pgrep -f "[m]orph_pipeline_sweep|[r]l_train_cube"` shows a live worker ⇒ this sweep is
+   running: **analysis/docs/commit ONLY, never launch a GPU job** (single 16 GB GPU; each Warp proc
+   needs its own `WARP_CACHE_PATH=$(mktemp -d)`).
+2. **Crashed/stuck** (no worker, no `MORPH_PIPELINE_global6xy.DONE`, `logs/sweep_global6xy.run.log`
+   stale >30 min): RESUME (skips finished designs) —
+   `nohup setsid env MUJOCO_GL=egl uv run --extra rl --extra gpu python scripts/morph_pipeline_sweep.py
+   --morph-set global --freeze-len --n 12 --seed 6 --replicas 2 --tag global6xy --b-recipe imit
+   --a-attempts 3 > logs/sweep_global6xy.run.log 2>&1 &` ; log the incident below.
+3. **New completed rows since last tick** (`docs/experiments/MORPH_PIPELINE_global6xy.txt`): append a
+   dated STATUS bullet + a `reorientation.md` interim note (per-design cos / hold / A-collapse count vs
+   the m05 draw-band {0.82,0.49,−0.16} and the 9-dim global12x2 pooled table), commit code+docs (NEVER
+   `results/`). Judge on deterministic held-cos + the trajectory-health scorecard, never reward sums.
+4. **Sweep DONE** (sentinel present): pool r0/r1 per design (`morph_pipeline_plots.py --tag global6xy`,
+   groups by stripping `_r\d`), write `docs/experiments/MORPH_PIPELINE_global6xy_POOLED.md`, compare
+   the XY-only landscape to the 9-dim result (is A-collapse lower with len frozen? more resolvable?),
+   render the top handoffs, full writeup in `reorientation.md`, refresh memory if a durable conclusion
+   lands. **Do NOT auto-launch the next program** — promotion or the conditioned-policy build is the
+   user's 09:00 decision.
+5. **Idle CPU while the sweep runs** (all above current): re-run `scripts/probe_a_reorientability.py`
+   after new H06 A's exist (it auto-discovers from the JSON → grows n toward ~50, firms the QF1
+   negative); or sync the quick-fix note + 6-dim result into `webpaper/rl.typ` + `paper/main.tex`
+   appendix (CLAUDE.md three-doc rule).
+
+**Monitoring:**
+```bash
+tail -f logs/sweep_global6xy.run.log            # live per-design stage markers
+cat docs/experiments/MORPH_PIPELINE_global6xy.txt
+pgrep -af "morph_pipeline_sweep"; nvidia-smi ; ls logs/*.DONE
+```
+
+**6-DIM STATUS LOG:**
+- **2026-07-19 ~20:33 MDT — LAUNCHED (see above).** Quick-fix probe QF1 ran first (negative,
+  committed); 6-dim sweep started on H06_00_r0. GPU was free (~1.5 GB). Waiter armed (milestone 3
+  designs / DONE / crash). Pulse re-enabled + re-pointed at THIS section.
+
+---
+
 ## What this is
 
 Explore hand morphologies using the **clean, health-gated m05 pipeline** (the policy in
