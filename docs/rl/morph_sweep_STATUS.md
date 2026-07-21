@@ -83,6 +83,22 @@ pgrep -af "morph_pipeline_sweep"; nvidia-smi ; ls logs/*.DONE
   (H06_01 A×2) across 4 A-legs so far — vs 9-dim global12x2's ~47% A-leg abort rate; far too small to
   claim but the signal to track. Worker healthy on H06_03_r0; pace ~1.9 h/design; waiter re-armed at
   milestone 6. GPU busy — analysis/commit only.
+- **2026-07-21 ~03:00 MDT — pulse tick (docs-only, no GPU launch).** Worker HEALTHY & running (tree
+  step 1): on **H06_03_r0's Policy B** (`b_liveA_imit`, started 02:49); its A took **3 attempts**
+  (held, no true collapse). `global6xy.txt` unchanged at 3 data rows (H06_00..02) → **no NEW completed
+  rows since the 01:30 milestone** (step 3 n/a for new data). Found the 01:30 milestone commit had
+  left the **H06_01/H06_02 handoff videos + `.health.json` untracked** (it committed only the
+  json/txt/STATUS); committed those two media pairs now + a `reorientation.md` interim note (§"6-dim
+  interim — designs 2–3/24") synthesizing both static-hold legs from their scorecards (H06_01
+  cos −0.048, H06_02 cos −0.119 / jerk 26.8 — jerkiest+heaviest-slide leg so far). **Trainability
+  watch — CORRECTED (checked the per-attempt COLLAPSED sentinels).** The earlier "0 A-collapses"
+  reading was design-level and misleading: at the **attempt** level **3 of 7 A attempts collapsed
+  (~43%)** — H06_00 0/1, H06_01 1/2 (t0 collapsed), H06_02 0/1, H06_03 2/3 (t0+t2 collapsed). That is
+  **comparable to the 9-dim global12x2 ~47%**, not lower. The **0/4 design-abort** rate is the
+  `--a-attempts 3` best-of-3 **rescue** (QF2), NOT evidence that freezing len reduces intrinsic
+  A-collapse propensity. Early read: best-of-3 is carrying trainability; len-freeze shows **no** clear
+  reduction yet (pooled r0/r1 table at DONE decides). GPU 4.5 GB, busy. Waiter still armed at
+  milestone 6.
 - **2026-07-20 ~22:05 MDT — pulse tick (docs-only, no GPU launch).** Worker HEALTHY & running (tree
   step 1): still on the FIRST leg `H06_00_r0` — CEM graspable (lift 0.050, persist 1/1/1), Policy A
   ok in **1 attempt** (`model_609.pt`, objheight 0.1168, no abort), Policy B `b_liveA_imit` ~end of
