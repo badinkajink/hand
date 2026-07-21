@@ -7,3 +7,4 @@ H06_03_r0        | lift 0.051 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1155 cos  0.0
 H06_04_r0        | lift 0.050 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1031 cos  0.852 jerk  17.9 force  13.0 drift  0.1cm | WARN | A×3   (6585s)
 H06_05_r0        | lift 0.052 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1155 cos   0.34 jerk  46.4 force   7.9 drift  0.8cm | FAIL   (5763s)
 H06_06_r0        | lift 0.055 tip 3.0 pers 1.00/1.00/1.00 | minZ      — cos      — jerk     — force     — drift    —cm | A never lifted (best objheight 0.0 < 0.06, 3 attempts) | A×3   (955s)
+H06_07_r0        | lift 0.052 tip 3.0 pers 1.00/1.00/1.00 | minZ  0.117 cos  0.547 jerk  10.4 force   5.0 drift  0.7cm | WARN | A×3   (9372s)

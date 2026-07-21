@@ -3339,3 +3339,39 @@ NOT calm Policy-A training** (the original motivation for the 6-dim sweep); if a
 A-collapse propensity in the XY-only box is comparable-to-worse. The pooled r0/r1 collapse column at
 DONE remains the definitive test, but the direction is set. Continuing docs/commit-only per the STATUS
 tree (worker owns the GPU).
+
+### 6-dim interim — design 8/24 H06_07_r0 (2026-07-21 ~09:45 MDT tick): SECOND clean reorienter (cos 0.547) — and the cleanest-QUALITY reorienting draw of the box
+Row 8 of `global6xy.txt` (worker healthy, started H06_08_r0's CEM 09:44). Committing H06_07's handoff
+media pair (`H06_07_r0_handoff.{mp4,health.json}`).
+
+- **H06_07_r0** — CEM lift 0.052 (persist 1/1/1); Policy A held on the **3rd draw** (best `model_609`,
+  objheight 0.115; the first 2 attempts collapsed — same 2/3 as H06_03/H06_04). Handoff **minZ 0.117 /
+  held-cos 0.547 / peak-cos 0.629**, verdict **WARN**. What makes this draw notable is not the
+  magnitude (0.547 < H06_04's 0.852) but the **quality**: it is the **smoothest** reorienting leg of
+  the sweep (ang-jerk **10.4**, PASS — vs H06_04's 17.9 and H06_05's 46.4-thrash) at the **lowest
+  clamp force** (5.0 N — vs H06_04's 13.0), with **all three fingers engaging at step 1** (late_finger
+  PASS) and a **balanced grip**: thumb 4.8 / index 5.3 / middle 5.0 N. The **thumb is fully recruited
+  here** (~4.8 N), in contrast to the historic m05 degenerate pinch where the thumb idled ~1.6 N while
+  index+middle clamped ~8 N (see [[project_policyB_v2_overnight]]). Remaining WARNs are mild:
+  contact-count 1.67<3, de-centering (path 3.6 >> net 0.7cm = sliding not translating), over-clamp
+  5.0 N (reward saturates ~3 N). So this is a **genuine controlled partial reorient**, the opposite
+  failure mode from H06_05's thrash — where H06_05 scored a similar raw cos (0.34) by jittering the
+  object, H06_07 rotates it smoothly and gently to ~0.55.
+
+- **What the box now shows (8 r0 legs).** r0 held-cos series
+  {−0.044, −0.048, −0.119, +0.006, **0.852**, +0.34 (FAIL), [abort], **0.547**}; non-abort mean
+  **+0.219**, sd **0.34** — statistically the **same draw-noise wall** as the 9-dim global12x2 result
+  (per-draw sd 0.3–0.5). But the *content* of the reorienting tail is now richer: **two WARN
+  reorienters** span the quality axis — H06_04 **strong-but-forceful** (0.852, 13 N, jerk 17.9) and
+  H06_07 **gentle-and-smooth** (0.547, 5.0 N, jerk 10.4) — plus one **thrashy FAIL** partial (H06_05,
+  0.34). ⇒ Reorient **capability and quality both clearly exist** in the XY-only box; as in 9-dim the
+  binding constraint is **expression draw** (P(express | design)), not geometry. **8/8 held** (minZ
+  0.103–0.117): pick-up/hold still solved at every non-abort placement. These remain n=1 per design —
+  the `_r1` replicas (and the pooled r0/r1 mean at DONE) decide whether *these XY placements* are
+  reorient-capable or merely lucky draws.
+
+**Trainability watch (8 designs) — unchanged NEGATIVE.** Per-attempt A-collapses: H06_00 0/1, H06_01
+1/2, H06_02 0/1, H06_03 2/3, H06_04 2/3, H06_05 0/1, H06_06 3/3, **H06_07 2/3** → **10 of 17 A attempts
+collapsed (~59%)**, holding **above** the 9-dim ~47%. **Design-abort 1/8 (~13%).** Freezing the
+proximal-phalange lengths continues to NOT calm Policy-A training. Continuing docs/commit-only per the
+STATUS tree (worker owns the GPU).
