@@ -3188,6 +3188,22 @@ expectation: with the A-draw term unfixed, the XY-only landscape likely hits the
 as 9-dim; the yield is whether freezing len lowers the A-collapse/hostile-geometry rate and whether an
 XY-only map is any more resolvable. Analysis on completion per the STATUS decision tree.
 
+**RESULT (2026-07-22, 24/24 done; pooled `MORPH_PIPELINE_global6xy_POOLED.md`).** Freezing the
+proximal length **narrows the landscape UPWARD but does NOT touch the wall.** 6-dim vs 9-dim
+design-means: floor **−0.105 vs −0.388**, median +0.224 vs +0.274, peak **+0.796 vs +0.482**,
+#(mean ≥ 0.5) **1 vs 0**. Removing the length axis eliminated the worst designs (it contributed
+mostly downside) and the XY box holds a peak above any 9-dim design — **H06_04 mean 0.796 (draws
+0.852/0.741), the program's strongest reorienter** — while the *typical* design (median), the
+per-draw expression wall (sd 0.33; 8/23 draws express ≥0.5), and A-training fragility (~49% leg-abort
+≈ 9-dim's 47%, clustering by design: H06_06/H06_11 5/6 aborts vs H06_02/05/10 0/2) are all unchanged.
+The A-collapse rate matching (49% ≈ 47%) directly refutes "the length axis was a special
+noise/hostility source." **H06_06** is the program's clearest lift-hostile candidate (r0 all-A-collapse
+to objheight 0.0, r1 barely lifts). **No promotion:** H06_04 is n=2 (9-dim G02_00 regressed 0.57→0.48
+at n=4), so an **n=4 confirm** on H06_04 + H06_08 is running (same geometry, `--replicas 4 --only`).
+Structural conclusion reinforced: the landscape is draw-gated, not geometry-flat; the
+morphology-conditioned policy remains the real fix, and freezing len is a terrain improvement, not a
+bottleneck fix.
+
 ### 6-dim interim — design 1/24 H06_00_r0 (2026-07-20 ~23:30 MDT tick): first XY-only leg holds cleanly but is STATIC — the draw-gate is unchanged by freezing len
 
 First completed leg of the 6-dim sweep (`global6xy.txt` row 1; worker healthy, now on H06_01_r0's
