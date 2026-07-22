@@ -3508,3 +3508,17 @@ running count is **15 of 29 A attempts collapsed (~52%)** — flat vs last tick'
 9-dim ~47% and refuting the "freezing len calms A-training" hope. Standouts H06_04 (0.852) / H06_07
 (0.547) remain un-replicated (their r1 legs are later in the pass). Worker healthy on **H06_03_r1's
 Policy A**. Continuing docs/commit-only per the STATUS tree; pooled r0/r1 means + memory update at DONE.
+
+### 6-dim interim — H06_03_r1 A landed A×3; no new B row yet; A-collapse holds ~53% (2026-07-21 ~23:15 MDT tick)
+Docs/commit-only tick (worker RUNNING — never launch a GPU job). **No new completed B row** since the
+last tick: H06_02_r1 is still the last row in `MORPH_PIPELINE_global6xy.txt`. The only progress is
+**H06_03_r1's Policy A**, which finished at **23:05 after 3 attempts** (2 watchdog collapses, sentinel
+`sweep_A_H06_03_r1_t2.trainer.log.COLLAPSED` @23:05; best `model_609.pt`, objheight 0.116, no design
+abort). Its **Policy B is now training healthily** (`sweep_B_H06_03_r1.trainer.log`, ~10 min in / ETA
+~24 min, no COLLAPSED sentinel, GPU 4.6 GB) → the H06_03_r1 row should land ~23:40 for the next tick.
+
+**Trainability watch.** Adding H06_03_r1's A×3 bumps the running count to **17 of 32 A attempts collapsed
+(~53%)** — flat vs last tick's 15/29 (~52%), still hugging the 9-dim global12x2 ~47% band. Five consecutive
+ticks now show len-freeze does **not** calm A-training; the trainability hope that motivated the XY-only
+box remains unsupported at 16/24 legs. Reorient standouts H06_04 (0.852) / H06_07 (0.547) are still
+un-replicated (r1 legs later in the pass); the pooled r0/r1 verdict + memory refresh come at DONE.
