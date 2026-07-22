@@ -3479,3 +3479,32 @@ r1 = 2 collapses / 4 attempts, so combined **15 of 28 A attempts collapsed (~54%
 matching/edging the 9-dim ~47% and refuting the "freezing len calms A-training" hope. Worker healthy on
 **H06_02_r1's Policy A** (~37 min in). Continuing docs/commit-only per the STATUS tree (worker owns the
 GPU); pooled r0/r1 means + memory update at DONE.
+
+### 6-dim interim — THIRD pair H06_02: the FIRST design STATIC in BOTH draws (draw-gate is per-design) (2026-07-21 ~21:46 MDT tick)
+The r1 pass added **H06_02_r1** — the sweep's third completed r0/r1 pair, and the first one that does
+**not** flip. It sharpens the previous tick's headline: "both static-r0 designs flip" was premature (it
+was only H06_00/01); H06_02 is the counterexample.
+
+- **H06_02** — r0 **−0.119** (static, WARN, peak-cos 0.088) → **r1 −0.091** (WARN, static, peak-cos
+  0.165, `H06_02_r1_handoff.mp4`). **Pair {−0.119, −0.091}: mean −0.105, range 0.028** — both draws
+  land in nearly the *same* static place. r1's grip is lopsided (index 13.3 / thumb 9.7 / middle 3.0 N;
+  over-clamp 8.7 N + de-centering slide 3.5≫0.4cm both WARN) but smoother than r0 (jitter **PASS**
+  ang-jerk 12.7 vs r0's WARN 26.8, which slid 21.4 cm). Held both draws (minZ 0.117 / 0.120). Neither
+  draw achieves rotation (peak-cos ≤ 0.17).
+
+**Reading — the draw-gate is per-design, not uniform.** Three completed pairs now split **2 express /
+1 non-express by design** (pooled max 0.611, 0.51, **−0.091**). Crucially the within-design draw spread
+is itself **heterogeneous**: huge for the flippers (H06_00 range 0.655, H06_01 0.558) but near-zero for
+H06_02 (0.028, both static). That is exactly the closed-program model — expression is *P(express|design)*
+and that probability **varies by design**: H06_00/01 sit high (flip by n=2), H06_02 sits low (0/2, both
+draws barely rotate). So a design that reads static at r0 is *usually* just draw-unlucky (H06_00/01), but
+some designs are **reliably** low-expression (H06_02) — and n≤2 still cannot tell a genuinely-poor design
+from a run of bad luck (m05 itself draws static ~1/3 of the time; H06_02 at 0/2 is only weak evidence).
+This reproduces the 9-dim finding faithfully in the len-frozen box and reinforces that a **morphology-
+conditioned policy** (which learns to *express reliably per design*) is the lever, not more replicas.
+
+**Trainability watch (running).** H06_02_r1's A was a clean **1-attempt** leg (no collapse), so the
+running count is **15 of 29 A attempts collapsed (~52%)** — flat vs last tick's 15/28, still matching the
+9-dim ~47% and refuting the "freezing len calms A-training" hope. Standouts H06_04 (0.852) / H06_07
+(0.547) remain un-replicated (their r1 legs are later in the pass). Worker healthy on **H06_03_r1's
+Policy A**. Continuing docs/commit-only per the STATUS tree; pooled r0/r1 means + memory update at DONE.
