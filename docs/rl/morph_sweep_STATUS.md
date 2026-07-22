@@ -199,6 +199,18 @@ pgrep -af "morph_pipeline_sweep"; nvidia-smi ; ls logs/*.DONE
   (0.852) and H06_07 (0.547 @ 5.0 N/jerk 10.4, the smoothest expresser) — do they replicate or were
   they lucky draws? Waiter → milestone 18 (mid-r1, first r0/r1 pairs). Full pooled r0/r1 analysis +
   9-dim comparison + memory update at DONE. GPU busy — analysis/commit only.
+- **2026-07-22 03:45 MDT — MID-r1 (18/24; first 6 r0/r1 pairs): H06_04 REPLICATES as the program's
+  strongest reorienter (0.852 / 0.741, mean 0.796).** Pairs: H06_00 −0.044/+0.611, H06_01
+  −0.048/+0.510, H06_02 −0.119/−0.091, H06_03 +0.006/+0.556, **H06_04 +0.852/+0.741 (mean 0.796)**,
+  H06_05 +0.340/+0.092. Three reads: (1) **H06_04 expresses on BOTH draws at high cos — a stronger
+  2-draw result than any 9-dim design** (9-dim pooled bests: G02_00 0.482, G02_05 0.210; G02_00 at
+  n=2 was 0.570 but a static draw dragged it to 0.482 by n=4, so H06_04 still needs an n=4 confirm
+  before any promotion — same discipline). (2) **3 designs static-in-r0 express in r1**
+  (H06_00/01/03) → draw-gated expression live; the r0-only mean (+0.112) understated the box, with
+  several designs settling near mean ~0.28 = "expresses ~1-of-2 draws." (3) H06_02 consistently
+  static (both draws agree) — a genuine low design. Same draw-noise wall (expression is the coin),
+  but H06_04's 2/2 high-cos is the sharpest positive the program has produced. Worker on H06_06_r1;
+  waiter → DONE (24). GPU busy — analysis/commit only.
 - **2026-07-21 ~16:46 MDT — pulse tick (docs-only, no GPU launch). r1 pass underway; reconciled the
   docs lag from the 15:22 r0-complete commit.** Worker HEALTHY (tree step 1): r0 done (12/12); r1 began
   15:21, now on **H06_00_r1's Policy A (2nd attempt, ETA ~30 min)**; GPU busy (~3.6 GB, 20% util). **No
