@@ -302,6 +302,25 @@ pgrep -af "morph_pipeline_sweep"; nvidia-smi ; ls logs/*.DONE
   static (both draws agree) — a genuine low design. Same draw-noise wall (expression is the coin),
   but H06_04's 2/2 high-cos is the sharpest positive the program has produced. Worker on H06_06_r1;
   waiter → DONE (24). GPU busy — analysis/commit only.
+- **2026-07-22 14:50 MDT — global6xy DONE (24/24); n=4 CONFIRM auto-launched on H06_04 + H06_08.**
+  Pooled table `docs/experiments/MORPH_PIPELINE_global6xy_POOLED.md`. **Headline: freezing the
+  proximal length narrows the landscape UPWARD but does NOT touch the wall.** 6-dim vs 9-dim
+  design-means: **floor −0.105 vs −0.388, median +0.224 vs +0.274, peak +0.796 vs +0.482, #≥0.5:
+  1 vs 0.** So constraining to XY removed the worst designs (length axis = mostly downside) and
+  surfaced a peak above any 9-dim design (**H06_04 mean 0.796**, both draws 0.74–0.85), while the
+  typical design + the per-draw expression wall (sd 0.33, 8/23 express) + A-fragility (~49% ≈ 9-dim's
+  47%, clustering by design) are unchanged. **H06_06 = the program's clearest lift-hostile candidate**
+  (r0 all-A-collapse to 0.0, r1 barely lifts, 5/6 aborts — worse than 9-dim G02_11). **No promotion
+  yet:** H06_04 is n=2 and 9-dim G02_00 regressed 0.57→0.48 at n=4, so **CONFIRM launched**
+  (`--replicas 4 --only H06_04_r2,H06_04_r3,H06_08_r2,H06_08_r3`, same geometry, ~8 h, resumable) to
+  reach n=4 before any claim; m05 stays reference until it clears. This confirm is the sweep's own
+  completion step (mirrors the 9-dim workflow), NOT a new program — the conditioned-policy build is
+  still the user's decision. **DECISION-TREE UPDATE:** while the confirm worker runs, step 1 applies
+  (commit/analyse only). On confirm DONE (28 records): pool H06_04/H06_08 at n=4 vs the ≥0.5
+  promotion bar + m05 band; if H06_04 clears at n=4 → propose promotion to the user (do NOT
+  auto-promote/rename); refresh memory + `webpaper/rl.typ` + `paper/main.tex`; then the program is
+  CLOSED pending the user's conditioned-policy decision (RE-PAUSE pulse). Waiter re-armed (28 / new
+  DONE / crash). GPU busy — analysis/commit only.
 - **2026-07-21 ~16:46 MDT — pulse tick (docs-only, no GPU launch). r1 pass underway; reconciled the
   docs lag from the 15:22 r0-complete commit.** Worker HEALTHY (tree step 1): r0 done (12/12); r1 began
   15:21, now on **H06_00_r1's Policy A (2nd attempt, ETA ~30 min)**; GPU busy (~3.6 GB, 20% util). **No

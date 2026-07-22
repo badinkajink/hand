@@ -22,3 +22,5 @@ H06_06_r1        | lift 0.055 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1091 cos  0.0
 H06_07_r1        | lift 0.052 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.0452 cos -0.268 jerk 149.8 force   5.3 drift  4.9cm | FAIL | A×3   (12091s)
 H06_08_r1        | lift 0.052 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1045 cos   0.78 jerk  19.9 force   0.3 drift  1.0cm | FAIL | A×3   (2475s)
 H06_09_r1        | lift 0.054 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1092 cos  0.356 jerk  44.0 force  10.3 drift  0.5cm | FAIL | A×3   (7613s)
+H06_10_r1        | lift 0.051 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1113 cos  0.223 jerk   9.9 force   9.8 drift  1.1cm | WARN   (5660s)
+H06_11_r1        | lift 0.052 tip 3.0 pers 1.00/1.00/1.00 | minZ 0.1129 cos  0.671 jerk  23.2 force  11.8 drift  0.5cm | WARN | A×3   (6240s)
