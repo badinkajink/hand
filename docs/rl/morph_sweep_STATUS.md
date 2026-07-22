@@ -70,6 +70,29 @@ pgrep -af "morph_pipeline_sweep"; nvidia-smi ; ls logs/*.DONE
 ```
 
 **6-DIM STATUS LOG:**
+- **2026-07-22 ~11:00 MDT — pulse tick (docs-only, no GPU launch). TWO NEW ROWS since the 07:30 tick,
+  both health-FAILs and each instructive: H06_07_r1 = a genuine DROP that makes the sweep's 2nd-best
+  design a NON-REPLICATOR; H06_08_r1 = a PHANTOM cos 0.78 that the scorecard correctly rejects as a
+  1-finger degenerate.** Worker HEALTHY (tree step 1): H06_07_r1's B landed 08:44, H06_08_r1's
+  (salvaged) 09:25, and the worker is now on **H06_09_r1's Policy B** (its A landed A×3 at 10:56, GPU
+  4.6 GB, PID 3056134 sweep). r1 pass = **9/12** (H06_00…H06_08). **H06_07_r1** cos **−0.268** (peak
+  0.515, **FAIL**): minZ 0.045 < 0.05 hold floor = **drop**, ang-jerk 149.8 (jitter FAIL), drift 4.9 cm
+  (de-centering FAIL), force 5.3, idle_finger WARN (2.06 contacts). A was **A×3 health-FAIL-driven** (no
+  r1 COLLAPSED sentinel — only `…H06_07_r0_t0…`), matching the 07:30 prediction. **→ H06_07 does NOT
+  replicate: r0 0.547 (2nd-best design) → r1 drop; pooled mean 0.547→0.140.** Only H06_04 now expresses
+  in both draws. **H06_08_r1** cos **0.78** (peak 0.994, **FAIL**) but a *phantom*: A collapsed all 3
+  attempts (`…H06_08_r1_t0/t1/t2…COLLAPSED`, salvaged model_100 abort=True), B **watchdog-aborted** at
+  iter 90 (objheight 0.0126 < 0.03), salvage-eval'd model_50 → the scorecard shows a **1-finger
+  degenerate**: thumb 0.0 N + middle 0.0 N idle, only index 1.0 N, force 0.3 N (idle_finger **FAIL**).
+  Naive pooled would rank H06_08 2nd (0.492); the health gate correctly rejects it — textbook CLAUDE.md
+  #1 (aggregate cos hides degeneracy). **Does NOT count as an expresser.** Pooled means now {H06_00
+  0.284, H06_01 0.231, H06_02 −0.105, H06_03 0.281, **H06_04 0.797**, H06_05 0.216, H06_06 0.055(r1),
+  **H06_07 0.140**, H06_08 0.492\*(phantom)} — **H06_04 unchallenged, ~2.8× next valid, only 2/2-express**.
+  **A-collapse 23/44 = 52%** (H06_07_r1 A×3 = 0 collapse all-health-FAIL; H06_08_r1 A×3 = 3 collapse) —
+  dead flat; len-freeze STILL not calming A-training (9-dim ~47% band); XY-only trainability motivation
+  unsupported at 21/24 legs. Remaining: H06_09_r1 (B now) → H06_10_r1 → H06_11_r1 close the sweep.
+  Committed the H06_07_r1 + H06_08_r1 handoff media pairs + json/txt/STATUS + a `reorientation.md`
+  interim note; `results/` untouched; do NOT auto-launch the promotion/conditioned-policy program.
 - **2026-07-22 ~07:30 MDT — pulse tick (docs-only, no GPU launch). NO new B row since the 05:30 tick;
   worker HEALTHY on H06_07_r1's Policy A, the r1 pass's most RETRY-HEAVY A: t0 + t1 both trained to a
   clean non-collapsing lift (objheight 0.118 / 0.111) yet BOTH drew a trajectory-health FAIL verdict →
