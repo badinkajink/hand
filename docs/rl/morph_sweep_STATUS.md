@@ -70,6 +70,28 @@ pgrep -af "morph_pipeline_sweep"; nvidia-smi ; ls logs/*.DONE
 ```
 
 **6-DIM STATUS LOG:**
+- **2026-07-22 ~07:30 MDT — pulse tick (docs-only, no GPU launch). NO new B row since the 05:30 tick;
+  worker HEALTHY on H06_07_r1's Policy A, the r1 pass's most RETRY-HEAVY A: t0 + t1 both trained to a
+  clean non-collapsing lift (objheight 0.118 / 0.111) yet BOTH drew a trajectory-health FAIL verdict →
+  the best-of-3 rejected them and is grinding the final attempt t2 (16 min in / ETA ~37 min; then B
+  ~35 min → H06_07_r1's row lands ~09:00, right at the user's return).** Worker check (tree step 1):
+  PID 3056134 sweep + 3436029 `rl_train_cube …policyA_H06_07_r1_t2`, GPU 3.5 GB, no COLLAPSED sentinel
+  for any r1 attempt. **Why the retries are health-FAIL, not collapse:** the sweep's A-acceptance
+  (`train_A`, sweep L243) early-stops iff `not-aborted ∧ ckpt ∧ lifted ∧ verdict≠FAIL`; t0/t1
+  satisfied the first three (both lifted, neither aborted), so the only reason they were rejected is a
+  **health-FAIL on the A trajectory** — and note t0's objheight 0.118 > H06_05_r1's *accepted* 0.112,
+  so this is not an objheight bar, it's the health gate. **This makes H06_07 the most A-hostile design
+  of the sweep across BOTH replicas**: r0 was also A×3 (there partly collapse-driven — `sweep_A_H06_07
+  _r0_t0.trainer.log.COLLAPSED` is the only H06_07 collapse sentinel), r1 is heading to A×3 via
+  health-FAILs. Yet **H06_07_r0 still reoriented to 0.547** (the sweep's 2nd-best design). That is a
+  clean per-design instance of the gate-invisible / mildly-anti-ordering A-health finding (CLAUDE.md #1
+  + QF quick-fix note): *the hardest A to train to health-PASS is among the best reorienters* — one
+  more reason a health-based A-selector cannot pre-pick good-for-reorient draws. Pooled standings
+  UNCHANGED: H06_04 0.797 standout (~2.8× next-best, only 2/2-express design); A-collapse 20/38 = 53%,
+  dead flat — len-freeze STILL not calming A-training (9-dim ~47% band); XY-only trainability
+  motivation unsupported at 19/24 legs. **H06_07 (r0 0.547) is the LAST big-reorient design still
+  resolving** before the user's 09:00 promotion / conditioned-policy decision. Committed STATUS +
+  reorientation.md interim note; `results/` untouched; do NOT auto-launch the next program.
 - **2026-07-22 ~05:30 MDT — pulse tick (docs-only, no GPU launch). TWO NEW ROWS H06_05_r1 (0.092) +
   H06_06_r1 (0.055), both clean-HOLD NON-EXPRESSERS; they BREAK any "r1 flips to express" read —
   the flip is pure draw-luck, not replica-order.** Worker HEALTHY (tree step 1): H06_05_r1's B landed

@@ -3585,6 +3585,44 @@ does **not** calm A-training (9-dim ~47% band); the XY-only trainability motivat
 17/24 legs. Remaining reorient standout H06_07 (0.547) is still un-replicated (r1 later in the pass).
 Worker healthy on H06_05_r1's Policy A. Pooled r0/r1 verdict + memory refresh come at DONE.
 
+### 2026-07-22 ~07:30 MDT — global6xy interim: no new row; H06_07_r1's A is the pass's most retry-heavy (health-FAIL, not collapse) — the anti-ordering finding in one design
+
+**Goal.** Idle pulse tick while the sweep worker runs (single GPU; analysis/commit only). No B row
+has closed since the 05:30 tick — the worker has spent the whole window on **H06_07_r1's Policy A**,
+which is the r1 pass's most retry-heavy A. Documenting *why*, because it is a clean per-design
+illustration of the gate-invisible A-health finding rather than mere noise.
+
+**Observation — H06_07_r1's A trains to a lift every attempt but keeps drawing health-FAIL.** The
+sweep's best-of-3 A-acceptance (`train_A`, `morph_pipeline_sweep.py` L243) early-stops iff
+`not-aborted ∧ ckpt ∧ lifted ∧ verdict ≠ FAIL`. Attempts t0 and t1 both:
+- trained to a clean, **non-collapsing** lift (final eval objheight **0.118** / **0.111**; no
+  `.COLLAPSED` sentinel for either — the collapse watchdog never fired), and
+- were nonetheless **rejected**, so by the acceptance predicate their trajectory-health verdict was
+  **FAIL** (the only unmet condition). Decisively *not* an objheight bar: t0's 0.118 exceeds
+  H06_05_r1's **accepted** 0.112. The health gate is doing the rejecting.
+
+So the worker is grinding the full best-of-3 (now on t2, ~16 min in / ETA ~37 min → H06_07_r1's B +
+handoff land ~09:00, at the user's return).
+
+**Why it matters — H06_07 is the sweep's most A-hostile design across BOTH replicas, yet its best
+reorienter.** r0 was also **A×3** (there partly collapse-driven — `sweep_A_H06_07_r0_t0…COLLAPSED` is
+the lone H06_07 collapse sentinel); r1 is heading to A×3 via repeated **health-FAILs**. Different
+mechanism, same outcome: H06_07's Policy A is the hardest in the sweep to land at health-PASS. And
+yet **H06_07_r0 reoriented to 0.547** — the program's 2nd-strongest 6xy design. This is exactly the
+gate-invisible / mildly-anti-ordering A-health result (CLAUDE.md lesson #1; QF quick-fix note): *the
+A draws that are hardest to certify healthy are among the ones that reorient best*. It is one more
+concrete reason a health-based A-selector cannot pre-pick good-for-reorient draws, reinforcing the
+morphology-conditioned policy as the real fix over any cheaper A-evaluator.
+
+**Standings + trainability watch (unchanged).** Pooled per-design means hold — {H06_00 0.284, H06_01
+0.231, H06_02 −0.105, H06_03 0.281, **H06_04 0.797**, H06_05 0.216, H06_06 0.055 (r1-only)} — H06_04
+still ~2.8× the next-best and the only 2/2-express design. **A-collapse 20/38 (~53%)**, dead flat
+across eight ticks; len-freeze continues to *not* calm A-training (9-dim ~47% band), leaving the
+XY-only trainability motivation unsupported at 19/24 legs. **H06_07 (r0 0.547) is the last big-reorient
+design still resolving** — its r1 closes just as the user returns. Pooled r0/r1 verdict + memory
+refresh land at DONE; do **not** auto-launch the promotion / conditioned-policy program (user's
+09:00 call).
+
 ### 2026-07-22 ~05:30 MDT — global6xy interim (H06_05_r1 + H06_06_r1): two clean-hold NON-EXPRESSERS break the "r1 flips to express" read
 
 **Goal.** Idle-tick docs pass while the sweep worker runs (single GPU; analysis/commit only). Two rows
