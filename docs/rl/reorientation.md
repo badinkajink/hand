@@ -3522,3 +3522,32 @@ abort). Its **Policy B is now training healthily** (`sweep_B_H06_03_r1.trainer.l
 ticks now show len-freeze does **not** calm A-training; the trainability hope that motivated the XY-only
 box remains unsupported at 16/24 legs. Reorient standouts H06_04 (0.852) / H06_07 (0.547) are still
 un-replicated (r1 legs later in the pass); the pooled r0/r1 verdict + memory refresh come at DONE.
+
+### 6-dim interim — H06_03_r1 = 3rd static-r0→express-r1 FLIPPER (4th pair); A-collapse holds 53% (2026-07-22 ~01:01 MDT tick)
+Docs/commit-only tick (worker RUNNING on H06_04_r1's Policy A — never launch a GPU job). The predicted
+H06_03_r1 row landed **23:40**, so a 4th pair is now complete.
+
+- **H06_03** — r0 **0.006** (static, WARN, jerk 17.3, peak-cos ~0) → **r1 0.556** (WARN, peak-cos
+  **0.832**, `H06_03_r1_handoff.mp4`). **Pair {0.006, 0.556}: mean 0.281, range 0.550.** r1 is a genuine
+  expresser: all three fingers recruited early (thumb@1 / index@0 / middle@1 → late_finger + idle_finger
+  both **PASS**, held minZ 0.108), real rotation to peak-cos 0.83. It is *not* clean, though: **WARN** on
+  jitter (ang-jerk 23.4), de-centering (slide path 8.0 cm ≫ net 0.9 cm) and over-clamp (11.0 N), with an
+  index-dominant grip (index 15.6 / thumb 11.7 / middle 5.7 N). So the geometry can rotate but the drawn
+  policy rolls/slides rather than pivoting cleanly — the usual WARN-tier expresser.
+
+**Reading — the flip is now the rule, not the exception.** Four completed pairs split **3 express / 1
+non-express by design**: pooled max {H06_00 0.611, H06_01 0.51, H06_02 −0.091, H06_03 0.556}, pooled mean
+{0.284, 0.231, −0.105, 0.281}. Decisively, **every static-r0 design whose r1 has closed has FLIPPED to an
+expresser** — H06_00/01/03 all read static at r0 (−0.044 / −0.048 / +0.006) and all cross ≥0.51 at r1.
+The lone static-both design (H06_02, r1 −0.091) is the one design where P(express|design) is genuinely
+low; its within-design draw spread (0.028) is near-zero while the three flippers span 0.55–0.66. This is
+the draw-gated-expression model reproduced a 4th time in the len-frozen 6-XY box: the observable is
+*P(express|design)*, it varies by design, and an r0 static verdict is (empirically 3/3 here) just
+draw-luck rather than a design property. The lever remains a **morphology-conditioned policy** that
+learns to express reliably per design, not more replicas per r0 static.
+
+**Trainability watch (running).** No new completed A since the 23:15 tick (H06_04_r1's A is training), so
+the count holds at **17 of 32 A attempts collapsed (~53%)**. Five+ ticks in, freezing the proximal lengths
+still does **not** calm A-training — it hugs the 9-dim global12x2 ~47% band — so the original trainability
+motivation for the XY-only box remains unsupported. Reorient standouts H06_04 (0.852) / H06_07 (0.547) are
+still un-replicated; H06_04_r1's A is the current leg. Pooled r0/r1 verdict + memory refresh come at DONE.

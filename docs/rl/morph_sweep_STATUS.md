@@ -70,6 +70,26 @@ pgrep -af "morph_pipeline_sweep"; nvidia-smi ; ls logs/*.DONE
 ```
 
 **6-DIM STATUS LOG:**
+- **2026-07-22 ~01:01 MDT — pulse tick (docs-only, no GPU launch). NEW ROW H06_03_r1 = the THIRD
+  static-r0→expressing-r1 FLIPPER (4th completed pair); flippers now 3/3 of the static-r0 designs
+  whose r1 has closed.** Worker HEALTHY (tree step 1): H06_03_r1's B landed 23:40, worker now on
+  **H06_04_r1's Policy A** (`sweep_A_H06_04_r1_t1`, ~21 min in / ETA ~31 min, no COLLAPSED sentinel,
+  GPU 3.7 GB). **H06_03**: r0 **0.006** (static, jerk 17.3) → **r1 0.556** (WARN, peak-cos 0.832) —
+  pair mean **0.281, range 0.550**. r1 is a genuine expresser: all 3 fingers recruited early
+  (thumb@1/index@0/middle@1, late_finger+idle_finger PASS), real rotation, but WARN on jitter (23.4),
+  slide (path 8.0cm ≫ net 0.9cm) and over_clamp (11.0 N); grip index-dominant (index 15.6 / thumb 11.7
+  / middle 5.7 N). Four completed pairs now split **3 express / 1 non-express by design** — pooled max
+  {H06_00 0.611, H06_01 0.51, H06_02 −0.091, H06_03 0.556}, pooled mean {0.284, 0.231, −0.105, 0.281}.
+  Sharpened claim: **every static-r0 design with a closed r1 has FLIPPED to an expresser** (H06_00/01/03,
+  r1 ≥ 0.51), while the lone static-both design (H06_02, range 0.028) shows P(express|design) genuinely
+  is low for *that* geometry — the within-design draw spread is huge for the 3 flippers (0.55–0.66),
+  near-zero for H06_02. Exactly the draw-gated-expression model (observable = P(express|design), varying
+  by design), now reproduced a 4th time in the len-frozen 6-XY box; r0 static verdicts remain pure
+  draw-luck. **A-collapse UNCHANGED 17/32 = 53%** (H06_03_r1's A×3 was already counted at 23:15;
+  H06_04_r1's A still training, not yet a row) — len-freeze still not calming A-training (9-dim ~47%).
+  Standouts H06_04 (0.852) / H06_07 (0.547) still un-replicated — H06_04_r1's A is training now.
+  Committed the orphaned H06_03_r1 handoff media pair + json/txt/STATUS + a `reorientation.md` interim
+  note. Waiter → milestone 18 (mid-r1). GPU busy — analysis/commit only.
 - **2026-07-21 ~23:15 MDT — pulse tick (docs-only, no GPU launch). NO new B row; H06_03_r1's Policy A
   landed A×3, B now training.** Worker HEALTHY (tree step 1): B on **H06_03_r1** (`sweep_B_H06_03_r1`,
   ~10 min in / ETA ~24 min, no COLLAPSED sentinel, GPU 4.6 GB) — row expected ~23:40. Last row in the
