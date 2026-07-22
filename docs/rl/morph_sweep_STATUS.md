@@ -70,6 +70,29 @@ pgrep -af "morph_pipeline_sweep"; nvidia-smi ; ls logs/*.DONE
 ```
 
 **6-DIM STATUS LOG:**
+- **2026-07-22 ~12:35 MDT — pulse tick (docs-only, no GPU launch). ONE NEW ROW H06_09_r1 = a THIRD
+  distinct r1 FAIL mode in a row: a genuine 3-finger grip that partially reoriented (cos 0.356) but
+  FAILs on JITTER — not a drop (H06_07_r1), not a phantom 1-finger (H06_08_r1).** Worker HEALTHY (tree
+  step 1): H06_09_r1's B landed 11:32; worker now on **H06_10_r1's Policy A** (t0 training, PID 4007980,
+  GPU 3.8 GB, sweep PID 3056134). r1 pass = **10/12** (H06_00…H06_09). **H06_09_r1** cos **0.356** (peak
+  0.545, **FAIL**): the ONLY failing check is **jitter** (ang-jerk 44.0 > floor); everything else is clean
+  — idle_finger **PASS** (all three touch: thumb 13.1 N / index 9.1 N / middle 8.5 N, no idle finger),
+  drop **PASS** (minZ 0.109 ≫ 0.05), late_finger PASS; de_centering WARN (slide path 13 cm ≫ net 0.5 cm),
+  over_clamp WARN (10.3 N). So this is a *real* three-finger reorient that got partway (0.356) and shook —
+  qualitatively unlike H06_08_r1's one-finger phantom. **A was A×3**: t0+t1 **watchdog-COLLAPSED**
+  (`…H06_09_r1_t0/t1…COLLAPSED`), t2 clean (model_609, objheight 0.1145, abort False). **H06_09 pooled =
+  (r0 −0.282, r1 0.356) = 0.037 — non-expresser in BOTH draws** (r0 was WARN; r1 partial-but-FAIL). **Three
+  consecutive r1 FAILs, each a different mechanism (drop / phantom-1-finger / jitter), all off the same
+  imit-B recipe — a clean picture of draw-domination + why the scorecard's multi-check gate is load-bearing.**
+  Pooled means unchanged at top: {H06_00 0.284, H06_01 0.231, H06_02 −0.105, H06_03 0.281, **H06_04 0.797**,
+  H06_05 0.216, H06_06 0.055(r1), H06_07 0.140, H06_08 0.492\*(phantom), **H06_09 0.037**} — **H06_04
+  unchallenged (~2.8× next valid), still the only 2/2-expresser.** **A-hostility flat:** retry fraction
+  (collapse OR health-FAIL rejection) = **25/47 attempts (53%)**; of those, **true watchdog collapses =
+  22/47 (47%)** — note prior ticks' "23/44" was the retry fraction, not sentinels. Either way dead flat vs
+  the 9-dim ~47% band: **len-freeze does NOT calm A-training**, unsupported at 22/24 legs. Remaining:
+  H06_10_r1 (A now) → H06_11_r1 close the sweep. Committed H06_09_r1 handoff media + json/txt/STATUS + a
+  `reorientation.md` interim note; `results/` untouched; do NOT auto-launch the promotion/conditioned-policy
+  program (user's 09:00+ decision).
 - **2026-07-22 ~11:00 MDT — pulse tick (docs-only, no GPU launch). TWO NEW ROWS since the 07:30 tick,
   both health-FAILs and each instructive: H06_07_r1 = a genuine DROP that makes the sweep's 2nd-best
   design a NON-REPLICATOR; H06_08_r1 = a PHANTOM cos 0.78 that the scorecard correctly rejects as a
