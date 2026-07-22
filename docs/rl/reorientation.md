@@ -3714,3 +3714,44 @@ collapse) → **23 of 44 A attempts collapsed (~52%)**, dead flat across eight t
 legs. Remaining: H06_09_r1 (B training now), then H06_10_r1 + H06_11_r1 close the sweep. Pooled r0/r1
 verdict, `MORPH_PIPELINE_global6xy_POOLED.md`, and the XY-vs-9-dim comparison land at DONE — do **not**
 auto-launch the promotion/conditioned-policy program (user's decision).
+
+### 2026-07-22 ~12:35 MDT — global6xy interim (H06_09_r1): a THIRD distinct r1 FAIL mode — a genuine 3-finger reorient that got partway then jittered out
+
+One new row since the 11:00 tick. The worker is healthy on H06_10_r1's Policy A; **r1 pass = 10/12**
+(H06_00…H06_09). H06_09_r1 completes a striking triple: three consecutive r1 legs, all FAILs off the
+identical `imit`-B recipe, each failing by a *different* mechanism.
+
+- **H06_09_r1 — held-cos 0.356 (peak 0.545), verdict FAIL, but a GENUINE partial reorient, not a phantom.**
+  Unlike H06_08_r1, the grip here is fully recruited: idle_finger **PASS** with all three fingers loaded
+  (thumb 13.1 N / index 9.1 N / middle 8.5 N), drop **PASS** (min hold-z 0.109 m ≫ 0.05), late_finger PASS.
+  The **only** failing check is **jitter** — ang-jerk 44.0 1/s² over the certification floor. de_centering
+  is WARN (slide path 13.0 cm ≫ net drift 0.5 cm — the object is being worked in place, not walked off) and
+  over_clamp is WARN (10.3 N). So this is a real three-finger attempt that rotated the screwdriver partway
+  toward vertical (cos 0.356) and then shook rather than settling — qualitatively opposite to H06_08_r1's
+  one-finger lean that scored 0.78 on a dead grip. Policy A took **A×3**: t0 and t1 both
+  **watchdog-COLLAPSED** (`…H06_09_r1_t0/t1…COLLAPSED`), t2 trained clean (model_609, objheight 0.1145,
+  abort False). `H06_09_r1_handoff.mp4`.
+
+**Reading — the failure taxonomy is the finding.** Across the last three r1 legs the sweep produced a
+drop (H06_07_r1, minZ 0.045), a one-finger phantom (H06_08_r1, idle thumb+middle), and now a jittery
+partial reorient (H06_09_r1) — three separate ways to miss, all from the same recipe on three different
+XY draws. This is exactly what draw-domination (CLAUDE.md #6) predicts: the B outcome is not a smooth
+function of morphology but a *categorical* draw of how the A→B seam happened to land, and no single check
+would have caught all three. The multi-check trajectory-health scorecard is what keeps each of these — a
+drop, a degenerate, and an under-damped reorient — out of the standings; a held-cos or reward sum alone
+would have admitted the phantom (0.78) and possibly the jittery partial (0.356).
+
+**Standings.** Pooled per-design means unchanged at the top — {H06_00 0.284, H06_01 0.231, H06_02 −0.105,
+H06_03 0.281, **H06_04 0.797**, H06_05 0.216, H06_06 0.055 (r1-only), H06_07 0.140, H06_08 0.492\*
+(\*phantom), **H06_09 0.037** (r0 −0.282, r1 0.356-but-FAIL — non-expresser in both draws)}. **H06_04
+stays ~2.8× the next valid design and the only 2/2-expresser**, unchallenged — the design to flag for the
+user's promotion / conditioned-policy call.
+
+**Trainability watch.** Adding H06_09_r1's A×3 (2 collapse + 1 clean): the A-hostility metric is flat.
+Retry fraction (attempts needing a retry = collapse OR health-FAIL rejection) = **25 of 47 attempts (53%)**;
+of those the **true watchdog-collapse sentinels = 22/47 (47%)**. (Prior ticks' "23/44" was the retry
+fraction, not the sentinel count — same story either way.) Both sit dead on the 9-dim ~47% band, so
+**freezing the proximal lengths does not calm A-training** — the XY-only trainability motivation is
+unsupported at 22/24 legs. Remaining: H06_10_r1 (A training now) + H06_11_r1 close the sweep. Pooled r0/r1
+verdict, `MORPH_PIPELINE_global6xy_POOLED.md`, and the XY-vs-9-dim comparison land at DONE — do **not**
+auto-launch the promotion/conditioned-policy program (user's decision).
