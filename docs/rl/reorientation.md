@@ -3771,3 +3771,43 @@ fraction, not the sentinel count — same story either way.) Both sit dead on th
 unsupported at 22/24 legs. Remaining: H06_10_r1 (A training now) + H06_11_r1 close the sweep. Pooled r0/r1
 verdict, `MORPH_PIPELINE_global6xy_POOLED.md`, and the XY-vs-9-dim comparison land at DONE — do **not**
 auto-launch the promotion/conditioned-policy program (user's decision).
+
+### 2026-07-22 ~16:45 MDT — n=4 confirm interim (H06_04_r2): H06_04's reorient property REPLICATES at n=3
+
+The base 24-leg 6-dim sweep finished and was fully written up (the RESULT block above; pooled
+`MORPH_PIPELINE_global6xy_POOLED.md`, committed f200287). Its own completion step — an **n=4 confirm**
+on the two top designs H06_04 + H06_08 (`--replicas 4 --only H06_04_r2,H06_04_r3,H06_08_r2,H06_08_r3`,
+replica-major, same geometry) — is now the live worker. This is the discipline the 9-dim workflow used
+before any promotion: G02_00 looked like a 0.57 standout at n=2 but a static draw dragged it to 0.482
+by n=4, so a 2-draw mean is not a promotable claim. **First confirm row is in.**
+
+- **H06_04_r2 — held-cos 0.808 (peak 0.948), verdict FAIL, but a GENUINE near-complete reorient that
+  fails on jitter ALONE.** The grip is fully recruited: idle_finger **PASS** with all three fingers
+  loaded (thumb 11.2 N / index 9.3 N / middle 15.4 N), drop **PASS** (min hold-z 0.110 m ≫ 0.05),
+  late_finger PASS. The **only** failing check is **jitter** — ang-jerk 159.3 1/s² (box-high, edging out
+  H06_07_r1's 149.8). de_centering is WARN (slide path 18.9 cm ≫ net drift 0.9 cm — the screwdriver is
+  worked in place, not walked off the palm) and over_clamp is WARN (12.0 N). So this is the H06_09_r1
+  class again: a real three-finger drive that rotated the object nearly all the way to vertical
+  (tail 0.808, peak 0.948) and then shook rather than damping to a hold. Policy A took **A×3**: t1 + t2
+  **watchdog-COLLAPSED** (`…H06_04_r2_t1/t2…COLLAPSED`), t0 clean (model_609, objheight 0.108,
+  abort False). `H06_04_r2_handoff.mp4`.
+
+**Reading — this is a POSITIVE confirm signal, the first one the program has produced.** H06_04's held-cos
+across three independent draws is now **0.852 (r0) / 0.741 (r1) / 0.808 (r2), running mean 0.800**, and
+*every* draw drove the screwdriver near-vertical (all ≥0.74 tail, ≥0.94 peak). That is the exact opposite
+of the 9-dim standout G02_00, whose apparent 0.57 collapsed to 0.48 once a static draw showed up at n=4.
+Where G02_00's high mean was draw-luck, H06_04's high mean is **replicating** — the reorient-inducing
+geometry is expressing on draw after draw, which is precisely what an n=4 confirm exists to test. The one
+caveat the scorecard enforces: r2's *certified* verdict is FAIL (jitter), so H06_04's clean-express rate is
+2/3 — it reliably reorients but not always to a settled, low-jerk hold. Reorientability is replicating;
+hold-quality is still draw-variable. Neither the ≥0.5 promotion call nor any rename is made here — that
+waits for H06_04_r3 + the pooled n=4 verdict, and remains the user's decision.
+
+**Confirm progress + trainability.** Legs done 1/4: H06_04_r2 (14:54–16:39); worker now on H06_08_r2's
+Policy A (started 16:43, GPU 3.5 GB). Remaining: H06_08_r2 → H06_04_r3 → H06_08_r3 (replica-major). A-side,
+H06_04_r2's A×3 (2 watchdog collapses) is consistent with the base sweep's settled ~49% leg-abort rate —
+freezing len does not calm A-training, unchanged in the confirm. Base-sweep handoff media that f200287 left
+untracked (H06_10_r1 clean-but-static WARN 0.223; H06_11_r1 clean 3-finger EXPRESSER WARN 0.671, the row
+that closed the base sweep) are committed alongside H06_04_r2 this tick. On confirm DONE (28 records): pool
+H06_04/H06_08 at n=4 vs the ≥0.5 bar + m05 band, propose promotion to the user if H06_04 clears (do **not**
+auto-promote), then RE-PAUSE pending the conditioned-policy decision.
