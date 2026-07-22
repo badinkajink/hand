@@ -70,6 +70,15 @@ pgrep -af "morph_pipeline_sweep"; nvidia-smi ; ls logs/*.DONE
 ```
 
 **6-DIM STATUS LOG:**
+- **2026-07-21 ~23:15 MDT — pulse tick (docs-only, no GPU launch). NO new B row; H06_03_r1's Policy A
+  landed A×3, B now training.** Worker HEALTHY (tree step 1): B on **H06_03_r1** (`sweep_B_H06_03_r1`,
+  ~10 min in / ETA ~24 min, no COLLAPSED sentinel, GPU 4.6 GB) — row expected ~23:40. Last row in the
+  txt is still **H06_02_r1**, so nothing to append per tree step 3; the only delta is trainability:
+  **H06_03_r1's A finished 23:05 after 3 attempts** (2 watchdog collapses, sentinel
+  `sweep_A_H06_03_r1_t2 @23:05`; best model_609, objheight 0.116, no abort). Running **A-collapse
+  17/32 attempts = 53%** (was 15/29) — flat; five ticks in, len-freeze still does NOT calm A-training
+  (hugs 9-dim ~47%). Standouts H06_04 (0.852) / H06_07 (0.547) remain un-replicated. Committed STATUS +
+  `reorientation.md` interim note only (no new media). Waiter → milestone 18 (mid-r1). Analysis/commit only.
 - **2026-07-21 ~21:46 MDT — pulse tick (docs-only, no GPU launch). NEW ROW H06_02_r1 = the FIRST
   design that stays STATIC in BOTH draws → the "both static-r0 designs flip" claim was premature; a
   genuinely low-P(express) geometry now exists in the 6-XY box too.** Worker HEALTHY (tree step 1):
