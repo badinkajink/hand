@@ -70,6 +70,18 @@ pgrep -af "morph_pipeline_sweep"; nvidia-smi ; ls logs/*.DONE
 ```
 
 **6-DIM STATUS LOG:**
+- **2026-07-21 ~20:15 MDT — pulse tick (docs-only, no GPU launch). FIRST r0/r1 PAIRS: both static-r0
+  designs FLIP to expressers → draw-gated expression confirmed within-design.** Worker HEALTHY (tree
+  step 1): r1 pass produced its first two rows and is on **H06_02_r1's Policy A** (~37 min in; GPU
+  ~3.8 GB). **H06_00**: r0 −0.044 (static) → **r1 0.611** (WARN, all 3 fingers @step 0, jerk 26.7/8.4 N);
+  **H06_01**: r0 −0.048 (static) → **r1 0.51** (WARN, smoother jerk 14.7 PASS but forceful 12.8 N). Pair
+  means 0.284 (range 0.655) and 0.231 (range 0.558) — within-design spread already DWARFS the whole r0
+  between-design signal (mean +0.112, sd 0.333): the r0 static verdicts on these two were pure draw-luck,
+  and stopping at r0 would have mis-labelled both as non-reorienters. Both r1 draws WARN (no clean PASS),
+  neither edges the standouts (H06_04 0.852, H06_07 0.547 — replicas pending). **A-collapse running
+  15/28 attempts (~54%)** (both r1 legs A×2) — unchanged, still refuting the len-freeze hope. Committed
+  the two orphaned r1 handoff media pairs + json/txt/STATUS + a `reorientation.md` interim note. Waiter →
+  milestone 18 (mid-r1). GPU busy — analysis/commit only.
 - **2026-07-20 ~20:33 MDT — LAUNCHED (see above).** Quick-fix probe QF1 ran first (negative,
   committed); 6-dim sweep started on H06_00_r0. GPU was free (~1.5 GB). Waiter armed (milestone 3
   designs / DONE / crash). Pulse re-enabled + re-pointed at THIS section.

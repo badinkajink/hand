@@ -3447,3 +3447,35 @@ lift-miss H06_06 mirrors 9-dim G02_11 (all A draws → objheight 0.0). Still n=1
 pass now underway (and the pooled r0/r1 mean at DONE) decides whether the two standouts (H06_04 0.852,
 H06_07 0.547) replicate or were lucky draws. Continuing docs/commit-only per the STATUS tree (worker
 owns the GPU).
+
+### 6-dim interim — FIRST r0/r1 PAIRS (H06_00, H06_01): both static r0 draws FLIP to expressers (2026-07-21 ~20:15 MDT tick)
+The r1 replica pass has produced its first two rows, giving the sweep's **first head-to-head r0/r1
+pairs** — and both are a clean, within-design confirmation of H2 (draw-gated expression): a static r0
+draw is **not** a measurement of design incapability, it is draw-luck that the replica flips.
+
+- **H06_00** — r0 **−0.044** (static, WARN) → **r1 held-cos 0.611** (WARN, `H06_00_r1_handoff.mp4`).
+  The r1 draw is a genuine reorienter: **all three fingers engage at step 0** (late_finger PASS),
+  object held (minZ 0.115), peak-cos 0.659. WARN on jitter (ang-jerk 26.7 — thrashy), de-centering
+  (slide path 8.6 ≫ net 0.4cm) and over-clamp (8.4 N); grip thumb 4.9 / index 9.3 / middle 11.1 N
+  (thumb recruited but light, index/middle heavy). **Pair {−0.044, 0.611}: mean 0.284, range 0.655.**
+- **H06_01** — r0 **−0.048** (static, WARN) → **r1 held-cos 0.51** (WARN, `H06_01_r1_handoff.mp4`).
+  Smoother than H06_00_r1 (**jitter PASS, ang-jerk 14.7**) but forceful — over-clamp 12.8 N, grip
+  thumb 13.2 / index 15.4 / middle 9.9 N (all firmly engaged, late_finger PASS index@1). Held minZ
+  0.112, peak-cos 0.637; WARN on de-centering (slide 8.0 ≫ 0.3cm) + over-clamp. **Pair {−0.048, 0.51}:
+  mean 0.231, range 0.558.**
+
+**Reading.** The two designs that r0 happened to draw **static** (−0.04 each, indistinguishable from
+the box's non-expressers) both draw a **clean ≥0.5 reorienter** on their replica. Within-design spread
+(range 0.56–0.66) already **dwarfs** the entire between-design r0 signal (r0 mean +0.112, sd 0.333) —
+i.e. the per-draw sd 0.3–0.5 wall is live in the pairs, and the r0 map's static verdicts on these two
+designs were pure draw-luck. This is the strongest single-tick evidence in the 6-XY sweep that **design
+capability is unresolvable at n≤2**: had the sweep stopped at r0 it would have mis-labelled H06_00 and
+H06_01 as non-reorienters. Both r1 draws are WARN (never a clean PASS), consistent with every reorienter
+in this box and the 9-dim landscape — no design yet lifts the *quality* ceiling, only expresses. Neither
+edges the standouts (H06_04 0.852, H06_07 0.547); those two designs' replicas are still pending.
+
+**Trainability watch (running).** Both r1 legs so far were A×2 (one collapse + kept model each):
+r1 = 2 collapses / 4 attempts, so combined **15 of 28 A attempts collapsed (~54%)** — unchanged, still
+matching/edging the 9-dim ~47% and refuting the "freezing len calms A-training" hope. Worker healthy on
+**H06_02_r1's Policy A** (~37 min in). Continuing docs/commit-only per the STATUS tree (worker owns the
+GPU); pooled r0/r1 means + memory update at DONE.
