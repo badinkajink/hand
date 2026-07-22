@@ -3663,3 +3663,54 @@ attempts collapsed (~53%)** — dead flat across seven ticks. Len-freeze continu
 A-training (9-dim ~47% band); the XY-only trainability motivation stays unsupported at 19/24 legs. Pooled
 r0/r1 verdict + memory refresh land at DONE (do not auto-launch the promotion/conditioned-policy program —
 user's 09:00 call).
+
+### 2026-07-22 ~11:00 MDT — global6xy interim (H06_07_r1 + H06_08_r1): the 2nd-best design does NOT replicate, and a 1-finger phantom shows why held-cos alone lies
+
+**Goal.** Docs pass while the sweep worker runs (single GPU → analysis/commit only; the worker is now on
+**H06_09_r1's Policy B**, its A having just landed A×3). Two rows closed since the 07:30 tick —
+H06_07_r1's B landed 08:44, H06_08_r1's B (salvaged) 09:25 — bringing the r1 pass to **9/12**
+(H06_00…H06_08). Both are health-FAILs, and each is instructive in a different way.
+
+**Result — one genuine drop, one phantom high-cos.**
+- **H06_07_r1 — held-cos −0.268 (peak 0.515), a genuine DROP.** minZ 0.045 m sits *below* the 0.05 hold
+  floor (drop **FAIL**), ang-jerk 149.8 (jitter **FAIL**), net drift 4.9 cm (de-centering **FAIL**),
+  idle_finger WARN (2.06 mean contacts; thumb 4.7 / index 2.8 / middle 8.5 N). The object tumbled out.
+  A was **A×3 health-FAIL-driven** — no r1 COLLAPSED sentinel exists (only `…H06_07_r0_t0…COLLAPSED`),
+  matching the 07:30 read that r1's retries were certification failures, not collapses. `H06_07_r1_handoff.mp4`.
+  **→ H06_07 does NOT replicate.** r0 was the sweep's **2nd-strongest 6xy design at 0.547**; r1 drops the
+  object. Pooled mean collapses **0.547 → 0.140**. The "last big-reorient design still resolving" resolved
+  as a non-replicator — the exact opposite of H06_04. **H06_04 is now the *only* design that reorients in
+  both draws.**
+- **H06_08_r1 — held-cos 0.78 (peak 0.994) that is a PHANTOM, not an express.** This leg was troubled
+  end-to-end: Policy A collapsed on **all three** attempts (`…H06_08_r1_t0/t1/t2…COLLAPSED`), salvaging
+  model_100 with `abort=True`; then Policy B **watchdog-aborted** at iter 90 (objheight 0.0126 < 0.03) and
+  the sweep salvage-eval'd model_50. The scorecard exposes the "0.78": it is a **1-finger degenerate** —
+  thumb 0.0 N *and* middle 0.0 N (both **idle**), only the index touches (1.0 N), mean tip-force 0.3 N —
+  yet the object leans to near-vertical (cos_tail 0.78 / peak 0.994). idle_finger **FAIL**. This is a
+  textbook CLAUDE.md lesson #1: **aggregate held-cos hides degeneracy.** Taken naively, H06_08's pooled
+  mean (0.204, 0.78) = 0.492 would rank it 2nd in the program; the health scorecard correctly rejects it as
+  a one-finger balance, not a three-finger reorient. **It does not count as an expresser.** `H06_08_r1_handoff.mp4`.
+
+**Reading — two independent reinforcements of the program's core finding.**
+1. *Capability does not transfer across the A→B draw, even for the 2nd-best design.* H06_07 (r0 0.547 →
+   r1 drop) is the sharpest non-replication yet: only H06_04 expresses in both draws, while the design that
+   looked like the clear runner-up fails outright on its replica. This is the seed/draw-domination result
+   (CLAUDE.md #6) in its strongest form — a single per-design draw cannot resolve morphology, and the
+   observable is P(express | design), not a fixed per-design cos.
+2. *Held-cos alone lies; the scorecard is load-bearing.* H06_08_r1's phantom 0.78 is the concrete case the
+   whole program is built to catch — a salvaged, watchdog-aborted B on a triple-collapsed A produces a
+   high cos from a one-finger lean. Judging on the trajectory-health scorecard (not reward/cos sums) is
+   what keeps it out of the standings.
+
+**Standings.** Pooled per-design means — {H06_00 0.284, H06_01 0.231, H06_02 −0.105, H06_03 0.281,
+**H06_04 0.797**, H06_05 0.216, H06_06 0.055 (r1-only), **H06_07 0.140** (was 0.547 r0-only; r1 drop),
+H06_08 0.492\* (\*r1 = scorecard-rejected 1-finger phantom — not a genuine express)}. **H06_04 remains
+~2.8× the next *valid* design and the only 2/2-express standout**, unchallenged; it is the design to flag
+for the user's promotion / conditioned-policy call.
+
+**Trainability watch.** New attempts: H06_07_r1 A×3 (0 collapse — all health-FAIL) + H06_08_r1 A×3 (3
+collapse) → **23 of 44 A attempts collapsed (~52%)**, dead flat across eight ticks. Len-freeze still does
+**not** calm A-training (9-dim ~47% band); the XY-only trainability motivation stays unsupported at 21/24
+legs. Remaining: H06_09_r1 (B training now), then H06_10_r1 + H06_11_r1 close the sweep. Pooled r0/r1
+verdict, `MORPH_PIPELINE_global6xy_POOLED.md`, and the XY-vs-9-dim comparison land at DONE — do **not**
+auto-launch the promotion/conditioned-policy program (user's decision).
