@@ -70,6 +70,29 @@ pgrep -af "morph_pipeline_sweep"; nvidia-smi ; ls logs/*.DONE
 ```
 
 **6-DIM STATUS LOG:**
+- **2026-07-22 ~05:30 MDT — pulse tick (docs-only, no GPU launch). TWO NEW ROWS H06_05_r1 (0.092) +
+  H06_06_r1 (0.055), both clean-HOLD NON-EXPRESSERS; they BREAK any "r1 flips to express" read —
+  the flip is pure draw-luck, not replica-order.** Worker HEALTHY (tree step 1): H06_05_r1's B landed
+  **03:41**, H06_06_r1's B landed **05:22**, worker now on **H06_07_r1's Policy A**
+  (`sweep_A_H06_07_r1_t0`, started 05:27, ~34 min in / ETA ~19 min, no COLLAPSED sentinel, GPU 3.5 GB).
+  **H06_05_r1** cos **0.092** (WARN, peak-cos 0.169, grip 14.4/16.5/4.4 N index/thumb-dominant, slide
+  3.4cm, jitter 12.7) — all 3 fingers touch, holds minZ 0.110, but B never rotated. **H06_06_r1** cos
+  **0.055** (WARN, peak-cos 0.264, grip 10.8/8.2/6.4 N the *most balanced* draw in the pass, slide 3.0cm,
+  jitter 16.0, contact_spread 0.0 = all 3 land at step 1) — holds minZ 0.109 beautifully, still no
+  rotation. Both are textbook static draws (late_finger+idle_finger+drop+jitter all PASS, WARN only on
+  de-centering + over-clamp). **H06_05 now a closed pair**: r0 0.34 (FAIL, jerk 46.4) → r1 0.092 →
+  **mean 0.216, range 0.248** — NOT a flipper (r0 was moderate-but-unhealthy, r1 static; the *opposite*
+  direction to the 3 flippers). **H06_06** gets its first usable draw (r0 was A-never-lifted → r1 0.055
+  static; half-pair). **Sharpened claim:** H06_05 (moderate-r0→static-r1) + H06_06 (static-r1) prove
+  the r1 draws are NOT systematically better than r0 — earlier "every static-r0 flips to express-r1"
+  was draw-luck, not an r1-order/late-training effect. Pooled means now {H06_00 0.284, H06_01 0.231,
+  H06_02 −0.105, H06_03 0.281, **H06_04 0.797**, H06_05 0.216, H06_06 0.055(r1-only)} — **H06_04 still
+  ~2.8× the next-best**, unchallenged standout. **A-collapse 20/38 = 53%** (H06_05_r1 A×1 = 0 collapse;
+  H06_06_r1 A×3 = 2 collapse) — dead flat, len-freeze STILL not calming A-training (9-dim ~47% band);
+  XY-only trainability motivation stays unsupported at 19/24 legs. r1 pass now **7/12** (H06_00…H06_06);
+  remaining reorient standout **H06_07 (r0 0.547) is resolving NOW** — its r1 A is the current job (ETA
+  ~19 min). Committed the orphaned H06_05_r1 + H06_06_r1 handoff media pairs + json/txt/STATUS + a
+  `reorientation.md` interim note. Waiter → milestone 20. GPU busy — analysis/commit only.
 - **2026-07-22 ~02:30 MDT — pulse tick (docs-only, no GPU launch). NEW ROW H06_04_r1 = the STANDOUT
   REPLICATES: the program-best 6xy design expresses in BOTH draws, both HIGH (r0 0.852 / r1 0.741) —
   the FIRST express-both design, not a flipper.** Worker HEALTHY (tree step 1): H06_04_r1's B landed

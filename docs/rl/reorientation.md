@@ -3584,3 +3584,44 @@ comparison is the natural next probe, but **not** to be auto-launched (user's 09
 does **not** calm A-training (9-dim ~47% band); the XY-only trainability motivation stays unsupported at
 17/24 legs. Remaining reorient standout H06_07 (0.547) is still un-replicated (r1 later in the pass).
 Worker healthy on H06_05_r1's Policy A. Pooled r0/r1 verdict + memory refresh come at DONE.
+
+### 2026-07-22 ~05:30 MDT — global6xy interim (H06_05_r1 + H06_06_r1): two clean-hold NON-EXPRESSERS break the "r1 flips to express" read
+
+**Goal.** Idle-tick docs pass while the sweep worker runs (single GPU; analysis/commit only). Two rows
+closed since the 02:30 tick — H06_05_r1's B landed 03:41, H06_06_r1's B landed 05:22 — with the worker
+now on **H06_07_r1's Policy A** (ETA ~19 min). r1 pass is 7/12 (H06_00…H06_06).
+
+**Result — both new draws hold cleanly but do not reorient.**
+- **H06_05_r1** — held-cos **0.092** (WARN, peak-cos 0.169). All three fingers touch (contact_spread 1.0),
+  holds minZ 0.110, jitter 12.7 — but B never found the rotation. Grip index/thumb-dominant
+  (14.4/16.5/4.4 N, middle nearly idle at 4.4 N); WARN only on de-centering (slide 3.4 cm) + over-clamp
+  (11.8 N). `H06_05_r1_handoff.mp4`.
+- **H06_06_r1** — held-cos **0.055** (WARN, peak-cos 0.264). The *most balanced grip of the whole pass*
+  (10.8/8.2/6.4 N), contact_spread 0.0 (all three land at step 1), holds minZ 0.109 — and still no
+  rotation. WARN on de-centering (slide 3.0 cm) + over-clamp (8.5 N). `H06_06_r1_handoff.mp4`. A textbook
+  demonstration that a *good grip is necessary but not sufficient* for reorient expression — this A→B
+  draw simply landed in the non-express basin.
+
+Both are textbook **static draws** (late_finger + idle_finger + drop + jitter all PASS; the only WARNs are
+the ubiquitous de-centering + over-clamp that every draw in this sweep carries).
+
+**Reading — the flip is draw-luck, not replica-order.** Three earlier pairs read as *static-r0 →
+express-r1 flippers* (H06_00/01/03), which could have been mistaken for an r1-order effect (r1's A trains
+later in the pass — maybe on a warmer machine, or benefiting from something systematic). The two new rows
+**kill that reading**: H06_05 goes the *opposite* direction (r0 0.34-but-FAIL → r1 0.092 static; closed
+pair mean 0.216, range 0.248 — **not** a flipper), and H06_06_r1 is flatly static (0.055). So r1 draws
+are **not** systematically better than r0 — the flips were independent draws from *P(express|design)*, not
+a training-order artifact. This is the same draw-gated-expression model, now with a clean counter-example
+proving the gate is per-draw stochastic, not replica-indexed.
+
+**Standout untouched.** Pooled means across completed pairs — {H06_00 0.284, H06_01 0.231, H06_02 −0.105,
+H06_03 0.281, **H06_04 0.797**, H06_05 0.216, H06_06 0.055 (r1-only)} — leave **H06_04 at ~2.8× the
+next-best design**, still the only 2/2-express design and the one to flag for the user's promotion /
+conditioned-policy call. The last un-replicated reorient standout, **H06_07 (r0 0.547)**, is resolving
+right now (its r1 A is the live job).
+
+**Trainability watch.** H06_05_r1's A was A×1 (0 collapse), H06_06_r1's A×3 (2 collapse) → **20 of 38 A
+attempts collapsed (~53%)** — dead flat across seven ticks. Len-freeze continues to **not** calm
+A-training (9-dim ~47% band); the XY-only trainability motivation stays unsupported at 19/24 legs. Pooled
+r0/r1 verdict + memory refresh land at DONE (do not auto-launch the promotion/conditioned-policy program —
+user's 09:00 call).
