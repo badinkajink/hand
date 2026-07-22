@@ -70,6 +70,29 @@ pgrep -af "morph_pipeline_sweep"; nvidia-smi ; ls logs/*.DONE
 ```
 
 **6-DIM STATUS LOG:**
+- **2026-07-22 ~16:45 MDT — pulse tick (docs-only, no GPU launch). Base 24-leg sweep is DONE + fully
+  committed (f200287); the LIVE worker is now the n=4 CONFIRM (`--replicas 4 --only H06_04_r2,H06_04_r3,
+  H06_08_r2,H06_08_r3`), so tree step 1 still applies — commit/analyse only. FIRST CONFIRM ROW landed:
+  H06_04_r2 = a GENUINE near-complete reorient that FAILs on jitter only, and H06_04's reorient property
+  now REPLICATES at n=3.** Worker HEALTHY: H06_04_r2 finished 16:39, worker now on **H06_08_r2's Policy A**
+  (started 16:43, GPU 3.5 GB, sweep PID 251115, trainer PID 490809). **H06_04_r2** cos **0.808** (peak
+  **0.948**), verdict **FAIL** — but NOT a phantom/drop: idle_finger **PASS** (all three loaded, thumb
+  11.2 N / index 9.3 N / middle 15.4 N), drop **PASS** (min hold-z 0.110 ≫ 0.05), late_finger PASS; the
+  **only** failing check is **jitter** (ang-jerk **159.3** 1/s², box-high). de_centering WARN (slide 18.9 cm
+  ≫ net 0.9 cm — worked in place, not walked off), over_clamp WARN (12.0 N). Same class as H06_09_r1: a real
+  3-finger drive that rotated the screwdriver near-vertical and then shook rather than settling. A was
+  **A×3**: t1+t2 **watchdog-COLLAPSED** (`…H06_04_r2_t1/t2…COLLAPSED`), t0 clean (model_609, objheight 0.108,
+  abort False). **H06_04 across 3 draws now: 0.852 (r0, WARN-express) / 0.741 (r1, WARN-express) / 0.808 (r2,
+  FAIL-jitter), running mean 0.800** — EVERY draw drives the object near-vertical (all ≥0.74 tail, ≥0.94 peak).
+  This is the *opposite* of the 9-dim standout G02_00 (which regressed 0.57→0.48 by n=4): H06_04's
+  reorient-inducing geometry is holding across independent draws. Certified expression = **2/3** (r2 shakes out
+  on jitter, so it clears reorient but not the full health gate). **Positive early confirm signal**; the final
+  n=4 call still waits for H06_04_r3 + the ≥0.5 promotion bar. Also committed the base-sweep handoff media
+  f200287 left untracked: **H06_10_r1** (WARN 0.223, clean-but-static, A×1 no collapse) + **H06_11_r1**
+  (WARN 0.671 — a clean 3-finger EXPRESSER that closed the base sweep; A×3 t0+t1 COLLAPSED) + **H06_04_r2**.
+  Committed json/txt/STATUS + a `reorientation.md` interim note + the 3 handoff media pairs; `results/`
+  untouched; **do NOT auto-launch** the promotion/conditioned-policy program — on confirm DONE (28 records),
+  pool H06_04/H06_08 at n=4 vs the ≥0.5 bar and propose (don't auto-promote) to the user.
 - **2026-07-22 ~12:35 MDT — pulse tick (docs-only, no GPU launch). ONE NEW ROW H06_09_r1 = a THIRD
   distinct r1 FAIL mode in a row: a genuine 3-finger grip that partially reoriented (cos 0.356) but
   FAILs on JITTER — not a drop (H06_07_r1), not a phantom 1-finger (H06_08_r1).** Worker HEALTHY (tree
