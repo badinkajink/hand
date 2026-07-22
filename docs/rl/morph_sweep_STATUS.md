@@ -70,6 +70,23 @@ pgrep -af "morph_pipeline_sweep"; nvidia-smi ; ls logs/*.DONE
 ```
 
 **6-DIM STATUS LOG:**
+- **2026-07-21 ~21:46 MDT — pulse tick (docs-only, no GPU launch). NEW ROW H06_02_r1 = the FIRST
+  design that stays STATIC in BOTH draws → the "both static-r0 designs flip" claim was premature; a
+  genuinely low-P(express) geometry now exists in the 6-XY box too.** Worker HEALTHY (tree step 1):
+  r1 pass on **H06_03_r1's Policy A** (CEM done 21:13, A-train started; ~33 min in). **H06_02**:
+  r0 −0.119 (static, peak-cos 0.088) → **r1 −0.091** (WARN, static, peak-cos 0.165) — pair mean
+  **−0.105, range 0.028** (both draws land in the SAME static place). Contrast the two flippers:
+  H06_00 (−0.044→0.611, range 0.655) and H06_01 (−0.048→0.51, range 0.558). So the three completed
+  pairs now split **2 express / 1 non-express by design** (pooled max 0.611, 0.51, −0.091), and the
+  within-design draw spread is itself HETEROGENEOUS — huge for H06_00/01, near-zero for H06_02. This
+  is the draw-gate model sharpened: expression is P(express|design) and that probability *varies by
+  design* (H06_02 low, H06_00/01 high) — exactly the closed-program framing, now reproduced in the
+  len-frozen box. H06_02_r1's grip is lopsided (index 13.3 N / thumb 9.7 N / middle 3.0 N, over_clamp
+  + de-centering WARN) but smoother than r0 (jerk 12.7 PASS vs 26.8 WARN); neither draw rotates
+  (peak-cos ≤ 0.17). Standouts H06_04 (0.852) / H06_07 (0.547) still un-replicated (r1 legs pending).
+  **A-collapse 15/29 attempts = 52%** (r1 H06_02 was a clean 1-attempt A) — flat, still refuting the
+  len-freeze hope. Committed the orphaned H06_02_r1 handoff media pair + json/txt/STATUS + a
+  `reorientation.md` interim note. Waiter still → milestone 18 (mid-r1). GPU busy — analysis/commit only.
 - **2026-07-21 ~20:15 MDT — pulse tick (docs-only, no GPU launch). FIRST r0/r1 PAIRS: both static-r0
   designs FLIP to expressers → draw-gated expression confirmed within-design.** Worker HEALTHY (tree
   step 1): r1 pass produced its first two rows and is on **H06_02_r1's Policy A** (~37 min in; GPU
