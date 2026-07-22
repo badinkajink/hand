@@ -3551,3 +3551,36 @@ the count holds at **17 of 32 A attempts collapsed (~53%)**. Five+ ticks in, fre
 still does **not** calm A-training — it hugs the 9-dim global12x2 ~47% band — so the original trainability
 motivation for the XY-only box remains unsupported. Reorient standouts H06_04 (0.852) / H06_07 (0.547) are
 still un-replicated; H06_04_r1's A is the current leg. Pooled r0/r1 verdict + memory refresh come at DONE.
+
+### 6-dim interim — H06_04 STANDOUT REPLICATES: first express-both design, pair mean 0.797 (2026-07-22 ~02:30 MDT tick)
+Docs/commit-only tick (worker RUNNING on H06_05_r1's Policy A — never launch a GPU job). The predicted
+H06_04_r1 row landed **02:08**, closing the 5th pair — and it is the **most important row of the sweep so
+far**: the program-standout design H06_04 (flagged "un-replicated, 0.852" for five consecutive ticks) has
+**replicated its standout at n=2**.
+
+- **H06_04** — r0 **0.852** (WARN, peak-cos 0.889, grip 9.8/13.5/15.6 N middle-dominant, slide 34.5 cm) →
+  r1 **0.741** (WARN, peak-cos 0.792, grip 7.7/9.2/10.5 N much more balanced, slide 4.8 cm,
+  `H06_04_r1_handoff.mp4`). **Pair {0.852, 0.741}: mean 0.797, range 0.111** — the tightest *high* pair
+  in the entire program. Both draws are genuine 3-finger expressers (thumb@1 / index@0 / middle@1 →
+  late_finger + idle_finger + drop + jitter all **PASS** in both draws, held minZ 0.103 / 0.115), and r1
+  is actually the *cleaner* draw: its grip seats all three fingers more evenly (7.7/9.2/10.5 vs r0's
+  lopsided 9.8/13.5/15.6) and it slides far less (4.8 vs 34.5 cm), trading only a little held-cos. Both
+  still WARN on de-centering + over-clamp, i.e. WARN-tier expressers, but with real rotation.
+
+**Reading — this is the express-BOTH design the draw-gate model predicts sits at the top of P(express).**
+Until now the five completed pairs read as a spectrum of *P(express|design)*: H06_02 low (0/2, both
+static, range 0.028); H06_00/01/03 high-but-magnitude-variable (**flippers**, one static + one express
+draw, range 0.55–0.66); and now **H06_04 high-P AND high-magnitude** (2/2 express, both ≥0.74, range
+0.111). Pooled means across the 5 pairs — {H06_00 0.284, H06_01 0.231, H06_02 −0.105, H06_03 0.281,
+**H06_04 0.797**} — put H06_04 at **~3× the next-best design**, and its pooled max 0.852 trails only the
+9-dim program's single-policy best G02_05_r1 (0.887). So H06_04 is the first design here that is not
+merely *draw-luck away* from expression but **robustly expresses across independent policy draws** — the
+durable per-design reorient signal the whole program has been hunting for. It is the design to flag for
+the user's promotion / conditioned-policy decision; whether it beats m05 (a10→b33) on a fair multi-seed
+comparison is the natural next probe, but **not** to be auto-launched (user's 09:00 call).
+
+**Trainability watch (running).** H06_04_r1's A was **A×2** (1 collapse, 1 success), bumping the count to
+**18 of 34 A attempts collapsed (~53%)** — flat vs the 17/32 last tick. Six ticks in, len-freeze still
+does **not** calm A-training (9-dim ~47% band); the XY-only trainability motivation stays unsupported at
+17/24 legs. Remaining reorient standout H06_07 (0.547) is still un-replicated (r1 later in the pass).
+Worker healthy on H06_05_r1's Policy A. Pooled r0/r1 verdict + memory refresh come at DONE.

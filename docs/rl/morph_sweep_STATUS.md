@@ -70,6 +70,25 @@ pgrep -af "morph_pipeline_sweep"; nvidia-smi ; ls logs/*.DONE
 ```
 
 **6-DIM STATUS LOG:**
+- **2026-07-22 ~02:30 MDT — pulse tick (docs-only, no GPU launch). NEW ROW H06_04_r1 = the STANDOUT
+  REPLICATES: the program-best 6xy design expresses in BOTH draws, both HIGH (r0 0.852 / r1 0.741) —
+  the FIRST express-both design, not a flipper.** Worker HEALTHY (tree step 1): H06_04_r1's B landed
+  **02:08**, worker now on **H06_05_r1's Policy A** (`sweep_A_H06_05_r1_t0`, started 02:12, ~18 min in,
+  no COLLAPSED sentinel, GPU 3.5 GB). **H06_04**: r0 **0.852** (WARN, peak-cos 0.889, grip 9.8/13.5/15.6 N,
+  slide 34.5cm) → **r1 0.741** (WARN, peak-cos 0.792, grip 7.7/9.2/10.5 N, slide 4.8cm) — **pair mean
+  0.797, range 0.111** (the tightest HIGH pair in the whole program). Both draws are genuine 3-finger
+  expressers (thumb@1/index@0/middle@1, late_finger + idle_finger + drop + jitter all **PASS** in both),
+  and r1 is the *cleaner* of the two (grip much more balanced, slide 4.8 vs 34.5cm) despite slightly lower
+  held-cos. This is qualitatively different from the 3 flippers (static-r0→express-r1, one good draw of
+  two): H06_04 has **HIGH P(express|design) AND high magnitude** — the standout un-replicated for 5 ticks
+  has now HELD at n=2. Pooled means across the 5 completed pairs {H06_00 0.284, H06_01 0.231, H06_02
+  −0.105, H06_03 0.281, **H06_04 0.797**} — H06_04 is **~3× the next-best design** and its pooled max
+  0.852 trails only the program's single-policy G02_05_r1 (0.887). **This is the strongest durable
+  per-design reorient signal the program has produced** and the design to flag for the user's 09:00
+  promotion decision. **A-collapse 18/34 = 53%** (H06_04_r1's A was A×2 = 1 collapse) — flat, len-freeze
+  still not calming A-training (9-dim ~47%). Remaining standout H06_07 (0.547) still un-replicated (r1
+  pending later in the pass). Committed the orphaned H06_04_r1 handoff media pair + json/txt/STATUS + a
+  `reorientation.md` interim note. Waiter → milestone 18 (mid-r1). GPU busy — analysis/commit only.
 - **2026-07-22 ~01:01 MDT — pulse tick (docs-only, no GPU launch). NEW ROW H06_03_r1 = the THIRD
   static-r0→expressing-r1 FLIPPER (4th completed pair); flippers now 3/3 of the static-r0 designs
   whose r1 has closed.** Worker HEALTHY (tree step 1): H06_03_r1's B landed 23:40, worker now on
