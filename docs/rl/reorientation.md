@@ -3824,3 +3824,58 @@ landscape upward, wall unmoved, length is not a special noise source" reading; `
 html` verified clean), and `paper/main.tex` gets an App.~bottleneck `XY-only follow-up` paragraph plus a
 main-body pointer. No science added — a bookkeeping tick keeping the durable 6-dim finding in sync across
 all three docs while the n=4 confirm finishes.
+
+### 2026-07-22 ~21:10 MDT — 6-DIM SWEEP DONE (n=4 confirm complete, 28 records): H06_04 CONFIRMED, H06_08 FAILS — the program's first replicated design win
+
+The n=4 confirm finished at 20:54 (sentinel `MORPH_PIPELINE_global6xy.DONE`, 28 records, no live worker;
+STATUS decision-tree **step 4**). The remaining three confirm legs landed:
+
+- **H06_04_r3 — held-cos 0.593 (WARN, passes the gate).** A clean partial-to-strong reorient: idle_finger
+  PASS (all three loaded), drop PASS (minZ 0.116), jitter PASS (ang-jerk 18.2 — settled, not the r2 shake).
+  Policy A trained clean on the **first** attempt (A×1, model_609, objheight 0.112). So H06_04's fourth
+  independent draw again rotates the screwdriver substantially toward vertical, this time to a *settled*
+  hold. `H06_04_r3_handoff.mp4`.
+- **H06_08_r2 — held-cos −0.012 (WARN, static)** and **H06_08_r3 — held-cos 0.414 but a DROP (FAIL).**
+  r3's 0.414 is not a real reorient: minZ 0.007, net drift 10.5 cm — the object left the palm and the
+  cosine is measured on a falling object (A×3, the accepted A itself watchdog-aborted True, salvage-eval).
+  r2 is a flat static. `H06_08_r2/r3_handoff.mp4`.
+
+**POOLED n=4 verdict (`MORPH_PIPELINE_global6xy_POOLED.md`):**
+- **H06_04 CONFIRMED — {0.852, 0.741, 0.808, 0.593}, mean 0.748, ALL FOUR draws ≥ 0.59 (three ≥ 0.74,
+  peak ≥ 0.94), 4/4 express, 3/4 pass the full health gate.** This is the program's **first design to
+  clear the ≥0.5 promotion bar AND replicate** — mean 0.748 is ≈2× the m05 band mean (0.38) and above
+  m05's best single draw (0.82 ≈ H06_04's 0.852 peak). Where the 9-dim standout G02_00 *regressed*
+  0.57→0.48 by n=4 (its high mean was draw-luck), H06_04's high mean is *replicating* — the exact
+  opposite outcome, and precisely what an n=4 confirm exists to distinguish. The one caveat the
+  scorecard enforces: r2's certified verdict is FAIL (jitter, ang-jerk 159), so H06_04 reliably
+  **reorients** (4/4) but settles to a low-jerk hold on 3/4 — reorientability replicates, hold-quality
+  is still draw-variable.
+- **H06_08 FAILS the confirm — {0.204, 0.78, −0.012, 0.414}, mean 0.346, only 2/4 pass the gate.** The
+  n=2 promise (0.492) rested entirely on the r1 0.78, which the confirm exposed as a phantom **1-finger**
+  pinch (force 0.3 N, gate-rejected); the two new draws were a static and a drop. Exactly the "0.78 was
+  never real" trap the health scorecard exists to catch. Not promotable.
+
+**XY-only vs 9-dim landscape (apples-to-apples, both 12 designs / 28 records / same evaluator):** freezing
+the proximal lengths **narrows the landscape UPWARD but leaves the per-draw variance wall untouched.**
+Per-design mean floor rises (−0.39 → −0.11), leg-level median rises (0.15 → 0.22), never-lifted legs drop
+(3 → 1), and designs-with-mean-≥0.5 goes **0 → 1 (H06_04)**. BUT leg-level sd is **unmoved (0.339 → 0.354)**
+and A-collapse is **not lower (40% → 50%)** — so **length is not a special noise source**; freezing it buys
+a better-behaved *mean surface*, not a quieter *evaluator*. H06_04 wins by having a higher **true mean**,
+not by reducing draw noise — which is exactly the regime where replication *can* rank a design (and did).
+
+**H06_04 geometry** (deltas from m05, lengths held): thumb +8.4 mm x / **−22.2 mm y** (large reposition
+toward opposition), index +11.1/+12.0 mm (spread), middle −5.7/−6.7 mm (small inward). The thumb-toward-
+opposition + index-spread pattern is the mechanistic story the whole morphology program set out to find
+(project_policyB_v2_overnight: "reposition thumb for opposition"). **H06_06** remains the clearest
+lift-hostile counter-design (thumb −27 mm x, middle −30.6 mm y; A never lifted on r0).
+
+**Program status.** The 6-dim XY-only sweep is CLOSED. It did not break the draw-variance wall (the core
+§PROGRAM CLOSE-OUT finding stands — a *broad* design search is still gate-limited, and the morphology-
+conditioned policy remains the fundamental fix), but it produced the program's **first concrete design
+win**: H06_04 is a real candidate to promote as a co-designed reference alongside/over m05 (a10→b33).
+**Per the STATUS tree, I do NOT auto-launch promotion or the conditioned-policy build — both are the
+user's 09:00 decision.** Deliverables refreshed this tick: `MORPH_PIPELINE_global6xy_POOLED.md` (n=4),
+`morph_pipeline_plots.py --tag global6xy` figures + TABLE, this note, memory. Recommendation to surface
+to the user: **(a)** promote H06_04 to a canonical co-designed design (rename its best A/B into the
+registry, render a hero handoff) and/or **(b)** start the morphology-conditioned policy build — H06_04
+gives it a concrete high-signal anchor design to condition on.
