@@ -998,30 +998,35 @@ budget, same pipeline and evaluator, with the two blessed bumps the close-out ca
   table.header([*statistic*], [*6-dim (XY-only)*], [*9-dim (full box)*]),
   [design-mean floor (min)], [*−0.11*], [−0.39],
   [design-mean median], [+0.22], [+0.27],
-  [design-mean peak (max)], [*+0.80* (`H06_04`)], [+0.48],
+  [design-mean peak (max)], [*+0.75* (`H06_04`, n = 4)], [+0.48],
   [designs with mean ≥ 0.5], [*1* (`H06_04`)], [0],
-  [per-draw reorient sd], [~0.33], [0.3–0.5],
-  [A-leg abort rate], [~49%], [~47%],
+  [per-draw reorient sd], [0.35], [0.34],
+  [A-leg abort rate], [*50%*], [40%],
   [pick-up / hold], [solved (11/12)], [solved],
 )
 
 The mechanism reads off the two extremes. Removing the length axis eliminated the worst designs
 (no −0.39-class point — the 9-dim floor came from bad length combinations) *and* surfaced a single
-design, `H06_04`, whose mean (+0.80) sits above any 9-dim design mean and which expressed high on
-*both* of its first two draws (+0.85, +0.74). That is a profile the 9-dim sweep never produced: its
-apparent leader `G02_00` looked comparable at n = 2 (0.57) but a static third draw pulled it to
-0.482. So `H06_04` earned the same n = 4 confirmation the 9-dim leaders got — and its third draw came
-in at +0.81 (a genuine near-vertical reorient that failed the health gate on jitter alone), holding
-the running mean at 0.80. The confirm is still running as of writing; *no promotion is claimed* until
-it completes and clears the pre-registered ≥ 0.5 bar.
+design, `H06_04`, which expressed high on *both* of its first two draws (+0.85, +0.74) — a profile
+the 9-dim sweep never produced: its apparent leader `G02_00` looked comparable at n = 2 (0.57) but a
+static third draw pulled it to 0.482. So `H06_04` earned the same n = 4 confirmation the 9-dim
+leaders got — and it *held*. The two confirm draws came in at +0.81 (a near-vertical reorient that
+failed the health gate on jitter alone) and +0.59, for an *n = 4 mean of +0.75*, with all four draws
+driving the screwdriver substantially toward vertical (min +0.59, peak ≥ 0.94) and 3 of 4 clearing
+the full health gate. `H06_04` is the program's *first design to clear the pre-registered ≥ 0.5 bar
+and replicate* — the opposite of `G02_00`, which regressed to 0.48 by n = 4. Promotion (adopting
+`H06_04` as a co-designed reference) is a downstream decision; the analysis claims only that the
+design win is real. Geometrically the win is the story the program set out to find: the thumb moves
+`~22 mm` toward opposition while the index spreads, enabling a genuine 3-finger reorient.
 
-But the wall itself did not move. Reorient is still draw-gated (per-draw sd ≈ 0.33; 8 of 23 draws
-express; several designs are static in one draw and expressive in the other), and A-training is still
-~49% fragile — statistically identical to the 9-dim sweep's ~47%. That last number settles the
-question the sweep was built to ask: the length dimension is *not* a special noise source. Freezing
-it changed the *terrain* (which designs are good), not the *measurement* (how noisily any one design
-can be scored). The bottleneck is unchanged, and the morphology-conditioned policy remains the real
-fix. Full pooled table: `docs/experiments/MORPH_PIPELINE_global6xy_POOLED.md`.
+But the wall itself did not move. Reorient is still draw-gated (per-draw sd ≈ 0.35; 10 of 27
+evaluable draws express; several designs are static in one draw and expressive in the other), and
+A-training got *no less* fragile — 50% of A-legs aborted, versus 40% in the 9-dim sweep, if anything
+higher. That settles the question the sweep was built to ask: the length dimension is *not* a special
+noise source. Had it been, freezing it should have *lowered* the abort rate; instead the rate held
+(even rose). Freezing it changed the *terrain* (which designs are good), not the *measurement* (how
+noisily any one design can be scored). The bottleneck is unchanged, and the morphology-conditioned
+policy remains the real fix. Full pooled table: `docs/experiments/MORPH_PIPELINE_global6xy_POOLED.md`.
 
 #refbox[
   *Sources.* Lee et al., _Adversarial Skill Chaining via Terminal State Regularization_,

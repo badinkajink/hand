@@ -3879,3 +3879,20 @@ user's 09:00 decision.** Deliverables refreshed this tick: `MORPH_PIPELINE_globa
 to the user: **(a)** promote H06_04 to a canonical co-designed design (rename its best A/B into the
 registry, render a hero handoff) and/or **(b)** start the morphology-conditioned policy build — H06_04
 gives it a concrete high-signal anchor design to condition on.
+
+### 2026-07-23 ~02:05 MDT — pub-doc reconciliation (no new result): fixed stale mid-confirm numbers in webpaper + paper
+
+Docs-only pulse tick (sweep still DONE, no live worker). The 18:20 publication-doc sync (above) ran
+*during* the n=4 confirm and hard-coded interim figures that this log's 21:10 close-out then
+superseded — so `webpaper/src/rl.typ` and `paper/main.tex` disagreed with the authoritative
+`MORPH_PIPELINE_global6xy_POOLED.md`. Three fixes, all reconciled to POOLED: (1) H06_04 design-mean
+**peak +0.80 → +0.75** (the +0.80 was the n=3 *running* mean; the final n=4 mean is 0.748); (2) the
+head-to-head **A-abort "~49% vs ~47%, statistically identical" → 50% (global6xy) vs 40% (global12x2),
+NOT lower / if anything higher** — the "~47%" had been the broader *program-wide* rate mis-borrowed as
+the global12x2-specific figure. The conclusion ("length is not a special noise source") is unchanged
+but its logic is corrected: it now rests on *freezing length did not lower the abort rate* rather than
+on a false parity. (3) prose updated from *"confirm still running… no promotion claimed"* to the DONE
+state. Also refreshed per-draw sd (0.35 vs 0.34) and the express count (10/27). `typst compile
+--features html` verified clean (247 KB). NB `paper/main.tex` is gitignored (working copy) — its fixes
+are on disk only; the committed changes are `webpaper/src/rl.typ` + the STATUS bullet + this note.
+No GPU launch; promotion / conditioned-policy remain the user's decision.
