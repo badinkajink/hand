@@ -6,7 +6,17 @@ running, what was decided, and how to continue/intervene. Updated as stages comp
 
 ---
 
-## 6-DIM XY-ONLY SWEEP (2026-07-20) — ACTIVE. This section supersedes the CLOSED state below.
+## 6-DIM XY-ONLY SWEEP (2026-07-20) — DONE 2026-07-22 20:54 (incl. n=4 confirm). This section supersedes the CLOSED state below.
+
+> **CLOSE-OUT (2026-07-22 21:10):** Sweep + n=4 confirm complete (28 records). **H06_04 CONFIRMED** —
+> n=4 mean **0.748**, all 4 draws ≥0.59, 4/4 express, 3/4 pass gate: the program's **first design to clear
+> the ≥0.5 bar AND replicate**. **H06_08 FAILED** the confirm (mean 0.346; its 0.78 was a phantom 1-finger).
+> XY-only narrows the landscape upward but the per-draw variance wall + A-collapse rate are unmoved (len is
+> not a special noise source). Pooled `MORPH_PIPELINE_global6xy_POOLED.md`; full write-up in
+> `reorientation.md` (2026-07-22 ~21:10 note). **NEXT = user decision (do NOT auto-launch):** promote H06_04
+> as a canonical co-designed design, and/or start the morphology-conditioned policy build (H06_04 = anchor).
+> The decision tree below is retained for reference; on the next tick only step 1 (safety) + step 4 (already
+> executed) apply.
 
 **User directive (2026-07-20 eve, heading out until ~09:00):** (1) run a sweep like global12x2 but
 **freeze the proximal-phalange lengths** → explore the **6 XY placement dims only**; (2) analyse
@@ -70,6 +80,21 @@ pgrep -af "morph_pipeline_sweep"; nvidia-smi ; ls logs/*.DONE
 ```
 
 **6-DIM STATUS LOG:**
+- **2026-07-22 ~21:10 MDT — pulse tick. SWEEP DONE (tree step 4): n=4 confirm complete 20:54, sentinel
+  `MORPH_PIPELINE_global6xy.DONE` (28 records), no live worker. H06_04 CONFIRMED, H06_08 FAILS.** Three
+  final confirm legs: **H06_04_r3** cos 0.593 WARN (clean settled reorient, jitter PASS 18.2, A×1 clean);
+  **H06_08_r2** cos −0.012 WARN (static); **H06_08_r3** cos 0.414 **FAIL** (a DROP — minZ 0.007, drift
+  10.5 cm, A itself watchdog-aborted, salvage-eval). **POOLED n=4: H06_04 = {0.852, 0.741, 0.808, 0.593}
+  mean 0.748, all 4 draws ≥0.59, 4/4 express, 3/4 pass gate — the program's FIRST design to clear the
+  ≥0.5 bar AND replicate** (≈2× m05 band mean 0.38, > m05 best draw 0.82). **H06_08 = {0.204, 0.78,
+  −0.012, 0.414} mean 0.346, 2/4 pass — confirm FAILED**, the 0.78 was a phantom 1-finger (0.3 N). XY-only
+  vs 9-dim: narrows landscape UPWARD (per-design mean floor −0.39→−0.11, peak 0.48→0.75, designs≥0.5
+  0→1) but **per-draw sd unmoved (0.339→0.354)** and **A-collapse NOT lower (40%→50%)** — length is not a
+  special noise source; H06_04 wins on true mean, not lower draw noise. Deliverables refreshed: pooled md
+  (n=4), `morph_pipeline_plots.py --tag global6xy` figures+TABLE, `reorientation.md` DONE close-out,
+  memory. **Did NOT auto-launch** promotion / conditioned-policy — both are the user's decision. Proposal
+  to surface: (a) promote H06_04 as a canonical co-designed design, and/or (b) start the conditioned-policy
+  build with H06_04 as a high-signal anchor. `results/` untouched.
 - **2026-07-22 ~18:20 MDT — pulse tick (docs-only, no GPU launch). NO new completed leg row since the
   16:45 tick, so tree step 3 does not fire; did the sanctioned tree-step-5 idle work instead: synced the
   6-dim (global6xy) result into the two publication docs that still lacked it (the CLAUDE.md three-doc
