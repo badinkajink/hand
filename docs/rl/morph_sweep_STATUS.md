@@ -70,6 +70,22 @@ pgrep -af "morph_pipeline_sweep"; nvidia-smi ; ls logs/*.DONE
 ```
 
 **6-DIM STATUS LOG:**
+- **2026-07-22 ~18:20 MDT — pulse tick (docs-only, no GPU launch). NO new completed leg row since the
+  16:45 tick, so tree step 3 does not fire; did the sanctioned tree-step-5 idle work instead: synced the
+  6-dim (global6xy) result into the two publication docs that still lacked it (the CLAUDE.md three-doc
+  rule).** Worker HEALTHY (tree step 1 in force): sweep PID 251115 alive, **H06_08_r2's Policy A finished
+  17:47:53 (best model_609, objheight 0.1095, abort False, A×2 — 2 attempts, the accepted one clean)** and
+  its **Policy B is now training** (trainer PID 611627, GPU 3.1 GB). Confirm legs done still 1/4 (only
+  H06_04_r2); remaining H06_08_r2 (B in progress) → H06_04_r3 → H06_08_r3. **Docs synced this tick:**
+  (1) `webpaper/src/rl.typ` — new section *"A follow-up: does freezing the phalange lengths help?"* after
+  the global12x2 close-out: the 6-dim-vs-9-dim stats table (floor −0.11 vs −0.39, peak +0.80 vs +0.48,
+  median +0.22 vs +0.27, mean≥0.5 count 1 vs 0, per-draw sd ~0.33, A-abort ~49% vs ~47%) + the "narrows
+  UPWARD, wall unmoved, length is not a special noise source" reading + H06_04 as the strongest candidate
+  (n=4 confirm running, no promotion claimed). **Verified: `typst compile --features html` succeeds
+  (247 KB HTML, zero errors).** (2) `paper/main.tex` — App.~bottleneck `\paragraph{XY-only follow-up.}`
+  with the same floor/peak/median + sd/abort-parity numbers, and a one-sentence pointer in the main-body
+  co-design subsection. `reorientation.md` was already current from the 16:45 note (added a short
+  docs-sync line). `results/` untouched; **do NOT auto-launch** the promotion/conditioned-policy program.
 - **2026-07-22 ~16:45 MDT — pulse tick (docs-only, no GPU launch). Base 24-leg sweep is DONE + fully
   committed (f200287); the LIVE worker is now the n=4 CONFIRM (`--replicas 4 --only H06_04_r2,H06_04_r3,
   H06_08_r2,H06_08_r3`), so tree step 1 still applies — commit/analyse only. FIRST CONFIRM ROW landed:

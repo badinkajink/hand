@@ -3811,3 +3811,16 @@ untracked (H06_10_r1 clean-but-static WARN 0.223; H06_11_r1 clean 3-finger EXPRE
 that closed the base sweep) are committed alongside H06_04_r2 this tick. On confirm DONE (28 records): pool
 H06_04/H06_08 at n=4 vs the ≥0.5 bar + m05 band, propose promotion to the user if H06_04 clears (do **not**
 auto-promote), then RE-PAUSE pending the conditioned-policy decision.
+
+### 2026-07-22 ~18:20 MDT — docs-sync tick (no new leg row): 6-dim result propagated to the publication docs
+
+Pulse tick with the confirm worker still running (H06_08_r2's Policy A landed at 17:47 in 2 attempts,
+clean; its B is training) and **no new completed leg row** since the 16:45 note — so nothing new to score.
+Did the sanctioned idle work instead (STATUS decision-tree step 5, the CLAUDE.md three-doc rule): the
+finished 24-leg 6-dim (`global6xy`) result was fully in this log + `MORPH_PIPELINE_global6xy_POOLED.md`
+but **absent from both publication docs**. Propagated it: `webpaper/src/rl.typ` gets a new *"A follow-up:
+does freezing the phalange lengths help?"* section (the 6-dim-vs-9-dim stats table + the "narrows the
+landscape upward, wall unmoved, length is not a special noise source" reading; `typst compile --features
+html` verified clean), and `paper/main.tex` gets an App.~bottleneck `XY-only follow-up` paragraph plus a
+main-body pointer. No science added — a bookkeeping tick keeping the durable 6-dim finding in sync across
+all three docs while the n=4 confirm finishes.
