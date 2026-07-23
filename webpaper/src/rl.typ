@@ -976,6 +976,53 @@ What the program actually bought:
   `expand_model_fields` + constant recomputation) — the remaining work is project-side
   plumbing, estimated 2–4 days. Note: `docs/notes/morph_conditioned_policy_spike.md`.
 
+== A follow-up: does freezing the phalange lengths help?
+
+Before committing to the architectural rewrite, one more statistical lever was worth a look —
+the reviewer's natural question. The 9-parameter box mixes finger *placement* (x, y per finger)
+with finger *length* (three proximal phalanges). If the length axis is what injects the downside
+variance, constraining the search to placement alone might tighten the landscape enough to rank
+designs. So a sibling sweep (`global6xy`) *froze* the three phalange lengths at the reference
+values and Latin-hypercube sampled only the 6 placement dimensions — same 12-design × 2-replica
+budget, same pipeline and evaluator, with the two blessed bumps the close-out called for
+(imitation-B and Policy-A best-of-3).
+
+#callout(tag: "6-dim headline", kind: "note")[
+  Freezing the lengths narrows the landscape *upward* — a higher floor and a higher peak — but
+  leaves the draw-gated wall exactly where it was. The typical design is unchanged (median
+  held-cos +0.22 vs +0.27); only the extremes moved, and the measurement noise did not.
+]
+
+#table(
+  columns: (auto, auto, auto),
+  table.header([*statistic*], [*6-dim (XY-only)*], [*9-dim (full box)*]),
+  [design-mean floor (min)], [*−0.11*], [−0.39],
+  [design-mean median], [+0.22], [+0.27],
+  [design-mean peak (max)], [*+0.80* (`H06_04`)], [+0.48],
+  [designs with mean ≥ 0.5], [*1* (`H06_04`)], [0],
+  [per-draw reorient sd], [~0.33], [0.3–0.5],
+  [A-leg abort rate], [~49%], [~47%],
+  [pick-up / hold], [solved (11/12)], [solved],
+)
+
+The mechanism reads off the two extremes. Removing the length axis eliminated the worst designs
+(no −0.39-class point — the 9-dim floor came from bad length combinations) *and* surfaced a single
+design, `H06_04`, whose mean (+0.80) sits above any 9-dim design mean and which expressed high on
+*both* of its first two draws (+0.85, +0.74). That is a profile the 9-dim sweep never produced: its
+apparent leader `G02_00` looked comparable at n = 2 (0.57) but a static third draw pulled it to
+0.482. So `H06_04` earned the same n = 4 confirmation the 9-dim leaders got — and its third draw came
+in at +0.81 (a genuine near-vertical reorient that failed the health gate on jitter alone), holding
+the running mean at 0.80. The confirm is still running as of writing; *no promotion is claimed* until
+it completes and clears the pre-registered ≥ 0.5 bar.
+
+But the wall itself did not move. Reorient is still draw-gated (per-draw sd ≈ 0.33; 8 of 23 draws
+express; several designs are static in one draw and expressive in the other), and A-training is still
+~49% fragile — statistically identical to the 9-dim sweep's ~47%. That last number settles the
+question the sweep was built to ask: the length dimension is *not* a special noise source. Freezing
+it changed the *terrain* (which designs are good), not the *measurement* (how noisily any one design
+can be scored). The bottleneck is unchanged, and the morphology-conditioned policy remains the real
+fix. Full pooled table: `docs/experiments/MORPH_PIPELINE_global6xy_POOLED.md`.
+
 #refbox[
   *Sources.* Lee et al., _Adversarial Skill Chaining via Terminal State Regularization_,
   CoRL 2021 (arXiv:2111.07999). Chen et al., _Sequential Dexterity_, CoRL 2023
