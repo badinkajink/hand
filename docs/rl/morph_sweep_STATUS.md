@@ -80,6 +80,25 @@ pgrep -af "morph_pipeline_sweep"; nvidia-smi ; ls logs/*.DONE
 ```
 
 **6-DIM STATUS LOG:**
+- **2026-07-23 ~02:05 MDT — pulse tick (DOCS-ONLY, no GPU launch). Sweep still DONE; did sanctioned
+  tree-step-5 idle work: caught + fixed STALE numbers the 18:20 mid-confirm pub-doc sync had baked
+  into `webpaper/src/rl.typ` and `paper/main.tex`.** Safety re-checked (tree step 1): no live worker
+  (`pgrep [m]orph_pipeline_sweep|[r]l_train_cube` = only this pulse proc), sentinel present, git clean
+  bar the pre-existing `external/mujoco_warp`. **The bug:** the 18:20 sync ran *during* the n=4 confirm
+  and hard-coded interim figures that the 21:10 final close-out then superseded — (1) H06_04
+  design-mean peak `+0.80` (its n=3 *running* mean) vs the final **n=4 mean 0.748 → +0.75**; (2) the
+  head-to-head **A-abort framed as "~49% vs ~47%, statistically identical"** — but the apples-to-apples
+  POOLED figure is **50% (global6xy) vs 40% (global12x2)**, i.e. NOT lower / if anything higher (the
+  "~47%" was the broader *program-wide* rate mis-borrowed as the global12x2-specific number); (3) prose
+  still said *"confirm still running… no promotion claimed until it completes."* All three now corrected
+  against `MORPH_PIPELINE_global6xy_POOLED.md`: peak +0.75 (n=4), per-draw sd 0.35 vs 0.34, abort 50%
+  vs 40% with the corrected reading (*freezing length did not quiet the evaluator → length is not a
+  special A-collapse source* — conclusion preserved, logic fixed from "identical" to "not lower"), and
+  the narrative updated to the DONE state (H06_04 CONFIRMED: n=4 {0.852,0.741,0.808,0.593} mean 0.748,
+  4/4 express, 3/4 gate; promotion = downstream/user decision). **Verified `typst compile --features
+  html` clean (247 KB, zero errors).** NB `paper/main.tex` is **gitignored** (working copy only) — its
+  fixes are on disk but not committed; the tracked change committed this tick is `webpaper/src/rl.typ`
+  + this STATUS bullet. `results/` untouched; **did NOT auto-launch** promotion / conditioned-policy.
 - **2026-07-22 ~23:02 MDT — pulse tick (VERIFICATION-ONLY, no-op, no GPU launch). Sweep remains DONE
   and the 21:10 close-out is complete + committed (`e701515`); nothing in the decision tree is
   outstanding.** No live worker (`pgrep [m]orph_pipeline_sweep|[r]l_train_cube` clean); git clean
