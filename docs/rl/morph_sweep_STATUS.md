@@ -80,6 +80,19 @@ pgrep -af "morph_pipeline_sweep"; nvidia-smi ; ls logs/*.DONE
 ```
 
 **6-DIM STATUS LOG:**
+- **2026-07-23 ~09:30 MDT — pulse tick (VERIFY-ONLY, no-op, no GPU launch). Sweep remains DONE; whole
+  decision tree already executed + committed (`e701515`/`d5b1da0`/`671c204`).** Safety (tree step 1):
+  no live worker (`pgrep [m]orph_pipeline_sweep|[r]l_train_cube` = only this pulse proc); git clean bar
+  the pre-existing `external/mujoco_warp` submodule (untouched). **Cross-checked all four deliverables
+  agree**: POOLED md, committed `webpaper/src/rl.typ`, and the gitignored on-disk `paper/main.tex` all
+  carry H06_04 n=4 **0.748→+0.75** (n=2 +0.80 correctly framed as an interim stepping stone, not the
+  final), H06_08 **0.346**, leg-sd **0.354 vs 0.339**, A-abort **50% vs 40%**, designs-mean-≥0.5 **1 vs
+  0**. Also read the full `rl.typ` §1008–1020 paragraph to confirm "static third draw pulled *it* to
+  0.482" attributes to the 9-dim **G02_00** (not a mis-statement about H06_04) — correct. No new sweep
+  rows, no inconsistency to fix ⇒ no code/doc change beyond this bullet; **did NOT** re-run the
+  `probe_a_reorientability.py` GPU probe (would occupy the single 16 GB GPU + only marginally firm an
+  established QF1 negative) and **did NOT** auto-launch promotion / conditioned-policy — that is the
+  user's call (tree step 4). `results/` untouched.
 - **2026-07-23 ~02:05 MDT — pulse tick (DOCS-ONLY, no GPU launch). Sweep still DONE; did sanctioned
   tree-step-5 idle work: caught + fixed STALE numbers the 18:20 mid-confirm pub-doc sync had baked
   into `webpaper/src/rl.typ` and `paper/main.tex`.** Safety re-checked (tree step 1): no live worker
