@@ -80,6 +80,15 @@ pgrep -af "morph_pipeline_sweep"; nvidia-smi ; ls logs/*.DONE
 ```
 
 **6-DIM STATUS LOG:**
+- **2026-07-23 ~12:00 MDT — pulse tick (VERIFY-ONLY, no-op, no GPU launch). 5th consecutive no-op;
+  state static/closed-out.** Safety (tree step 1): no live worker (`pgrep [m]orph_pipeline_sweep|[r]l_train_cube`
+  matched only this pulse proc + its own bash); GPU idle 1.7 GB; sentinel present. `global6xy.txt`
+  byte-identical (30 lines, md5 `01b6ce4…`, mtime 20:54 = sweep-finish); confirm log ends `COMPLETE — 28
+  designs`. Both POOLED tables (`global6xy`, `global12x2`) present; all four deliverables intact. Git clean
+  bar the pre-existing `external/mujoco_warp` submodule (untouched). **Did NOT** run the
+  `probe_a_reorientability` GPU probe (marginal — firms an established QF1 negative; GPU best left free for
+  the user's imminent launch) and **did NOT** auto-launch promotion / conditioned-policy (tree step 4 =
+  user's call). `results/` untouched. No code/doc change beyond this bullet.
 - **2026-07-23 ~10:00 MDT — pulse tick (VERIFY-ONLY, no-op, no GPU launch). 4th consecutive no-op;
   state static/closed-out.** Safety (tree step 1): no live worker (`pgrep [m]orph_pipeline_sweep|[r]l_train_cube`
   = only this pulse proc + its own bash); GPU idle 1.6 GB; sentinel present. `global6xy.txt` byte-identical
