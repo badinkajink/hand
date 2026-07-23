@@ -80,6 +80,20 @@ pgrep -af "morph_pipeline_sweep"; nvidia-smi ; ls logs/*.DONE
 ```
 
 **6-DIM STATUS LOG:**
+- **2026-07-22 ~23:02 MDT — pulse tick (VERIFICATION-ONLY, no-op, no GPU launch). Sweep remains DONE
+  and the 21:10 close-out is complete + committed (`e701515`); nothing in the decision tree is
+  outstanding.** No live worker (`pgrep [m]orph_pipeline_sweep|[r]l_train_cube` clean); git clean
+  except the pre-existing `external/mujoco_warp` submodule change (untouched). **Re-verified the
+  committed deliverables are internally consistent** — re-derived H06_04 mean (0.852+0.741+0.808+
+  0.593)/4 = **0.748** and H06_08 (0.204+0.78−0.012+0.414)/4 = **0.346**, and the 6-vs-9-dim stats
+  (leg-level sd 0.354 vs 0.339, A-abort 50% vs 40%, designs-with-mean-≥0.5 1 vs 0) all match across
+  `MORPH_PIPELINE_global6xy_POOLED.md`, `reorientation.md` (21:10 note), this STATUS header, and
+  memory. Confirmed the claimed figures exist (`docs/rl/img/morph_pipeline_global6xy_{training,
+  summary}.png`) and all four H06_04 hero-render candidates are present (`H06_04_r{0,1,2,3}_handoff.mp4`
+  + `.health.json`). **Deliberately did NOT run the tree-step-5 probe re-run** (`probe_a_reorientability.py`):
+  it would only marginally firm an already-established QF1 negative, would occupy the single 16 GB GPU,
+  and could interfere with the user's promotion / conditioned-policy decision — that decision, not a
+  probe, is the next action, and it is the user's. `results/` untouched.
 - **2026-07-22 ~21:10 MDT — pulse tick. SWEEP DONE (tree step 4): n=4 confirm complete 20:54, sentinel
   `MORPH_PIPELINE_global6xy.DONE` (28 records), no live worker. H06_04 CONFIRMED, H06_08 FAILS.** Three
   final confirm legs: **H06_04_r3** cos 0.593 WARN (clean settled reorient, jitter PASS 18.2, A×1 clean);
