@@ -80,6 +80,19 @@ pgrep -af "morph_pipeline_sweep"; nvidia-smi ; ls logs/*.DONE
 ```
 
 **6-DIM STATUS LOG:**
+- **2026-07-23 ~07:01 MDT — pulse tick (VERIFY-ONLY, no-op, no GPU launch). Sweep still DONE; nothing
+  outstanding in the decision tree.** Safety (tree step 1): no live worker (`pgrep
+  [m]orph_pipeline_sweep|[r]l_train_cube` = only this pulse proc); sentinel present; git clean bar the
+  pre-existing `external/mujoco_warp` submodule (untouched). No new rows since last tick
+  (`MORPH_PIPELINE_global6xy.txt` = 30 lines, unchanged). Independently re-derived the headline
+  figures against the POOLED table — H06_04 (0.852+0.741+0.808+0.593)/4 = **0.748**, H06_08
+  (0.204+0.78−0.012+0.414)/4 = **0.346**, leg-sd 0.354 vs 0.339, A-abort 50% vs 40%, designs-mean-≥0.5
+  1 vs 0 — all consistent. Step-5 non-GPU idle work (pub-doc sync) was already completed by the
+  02:05/09:30 ticks; **did NOT** run the `probe_a_reorientability.py` GPU probe (marginal — firms an
+  already-established QF1 negative, and the GPU is best left free for the user's imminent
+  promotion/conditioned-policy launch). **Did NOT auto-launch** promotion / conditioned-policy —
+  user's call (tree step 4). (NB: prior commit `04d5fc5` is mislabeled "09:30"; it predates this 07:01
+  tick — harmless message skew, not a state issue.) `results/` untouched.
 - **2026-07-23 ~09:30 MDT — pulse tick (VERIFY-ONLY, no-op, no GPU launch). Sweep remains DONE; whole
   decision tree already executed + committed (`e701515`/`d5b1da0`/`671c204`).** Safety (tree step 1):
   no live worker (`pgrep [m]orph_pipeline_sweep|[r]l_train_cube` = only this pulse proc); git clean bar
