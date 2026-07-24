@@ -80,6 +80,23 @@ pgrep -af "morph_pipeline_sweep"; nvidia-smi ; ls logs/*.DONE
 ```
 
 **6-DIM STATUS LOG:**
+- **2026-07-24 ~06:02 MDT — pulse tick (VERIFY-ONLY, no-op, no GPU launch). 13th consecutive no-op;
+  state static/closed-out — but this tick did the deeper THREE-DOC SYNC audit prior ticks had not.**
+  Safety (tree step 1): no live worker (`pgrep [m]orph_pipeline_sweep|[r]l_train_cube` matched only this
+  pulse proc + its own bash); GPU idle 1.39 GB (1388 MiB); sentinel present (mtime 20:54, content "28
+  designs"); confirm log ends `COMPLETE — 28 designs`. `global6xy.txt` byte-identical (30 lines/28 H06
+  records, md5 `01b6ce4…`); both POOLED tables present (`global6xy` 7656 B, `global12x2` 3375 B).
+  **NEW this tick — verified the CLAUDE.md three-doc rule holds end-to-end for the confirmed H06_04 result
+  (a real check the prior 12 no-op bullets never performed):** (1) `webpaper/src/rl.typ` §"A follow-up:
+  does freezing the phalange lengths help?" (lines 979–1029) carries the full global6xy/H06_04 n=4 write-up
+  + the 6-vs-9-dim comparison table — IN SYNC; (2) its built `webpaper/build/rl.html` was regenerated
+  20260723-02:04 (one min AFTER the src edit 02:03) and `grep` confirms it contains the H06_04 content — the
+  canonical readable doc is FRESH, not stale (build/ is gitignored regardless); (3) `paper/main.tex`
+  §"XY-only follow-up" (lines 2017–2045) matches; (4) both POOLED tables + `reorientation.md` present.
+  All three docs current; no sync gap. **Did NOT** run the `probe_a_reorientability` GPU probe (marginal —
+  firms an established QF1 negative; GPU kept free for the user's imminent launch) and **did NOT** auto-launch
+  promotion / conditioned-policy (tree step 4 = user's call). `results/` + submodule untouched. Only doc change
+  is this bullet.
 - **2026-07-24 ~04:30 MDT — pulse tick (VERIFY-ONLY, no-op, no GPU launch). 12th consecutive no-op;
   state static/closed-out.** Safety (tree step 1): no live worker (`pgrep [m]orph_pipeline_sweep|[r]l_train_cube`
   matched only this pulse proc + its own bash); GPU idle 1.39 GB (1394 MiB); sentinel present (mtime 20:54 =
