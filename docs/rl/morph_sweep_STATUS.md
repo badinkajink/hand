@@ -80,6 +80,11 @@ pgrep -af "morph_pipeline_sweep"; nvidia-smi ; ls logs/*.DONE
 ```
 
 **6-DIM STATUS LOG:**
+- **2026-07-24 ~07:30 MDT — pulse tick (VERIFY-ONLY, no-op, collapsed). 16th consecutive no-op.** No live
+  worker (only this pulse proc); GPU idle 1355 MiB (no Warp); sentinel "28 designs"; `global6xy.txt`
+  byte-identical (md5 `01b6ce4…`, 30 lines); both POOLED tables intact; confirm log "COMPLETE — 28 designs";
+  git clean bar the pre-existing `external/mujoco_warp` submodule. No GPU launch, no promotion/conditioned-policy
+  auto-launch (tree step 4 = user's call). Only change = this bullet.
 - **2026-07-24 ~07:00 MDT — pulse tick (VERIFY-ONLY, no-op). 15th consecutive no-op; collapsed per prior
   note.** No live worker; GPU idle 1370 MiB (only gnome-remote 213 MiB, no Warp); sentinel "28 designs";
   `global6xy.txt` byte-identical (md5 `01b6ce4…`, 30 lines); both POOLED tables intact; git clean bar the
