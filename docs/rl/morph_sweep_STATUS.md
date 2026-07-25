@@ -80,6 +80,13 @@ pgrep -af "morph_pipeline_sweep"; nvidia-smi ; ls logs/*.DONE
 ```
 
 **6-DIM STATUS LOG:**
+- **2026-07-24 ~08:00 MDT — pulse tick (VERIFY-ONLY, no-op, collapsed). 17th consecutive no-op.** No live
+  MorphoHand worker (`pgrep [m]orph_pipeline_sweep|[r]l_train_cube` matched only this pulse proc); sweep DONE
+  (sentinel "28 designs", mtime 20:54); `global6xy.txt` byte-identical (md5 `01b6ce4…`, 30 lines); both POOLED
+  tables intact; confirm log ends "COMPLETE — 28 designs"; git clean bar pre-existing `external/mujoco_warp`.
+  GPU 2056 MiB — higher than prior ticks' ~1370 but the extra 776 MiB is an **unrelated external `graspgen_server`
+  ROS node** (PID 540544, ~2h42m up), **not** a Warp/sweep job; no MorphoHand GPU work running. No GPU launch, no
+  promotion/conditioned-policy auto-launch (tree step 4 = user's call). Only change = this bullet.
 - **2026-07-24 ~07:30 MDT — pulse tick (VERIFY-ONLY, no-op, collapsed). 16th consecutive no-op.** No live
   worker (only this pulse proc); GPU idle 1355 MiB (no Warp); sentinel "28 designs"; `global6xy.txt`
   byte-identical (md5 `01b6ce4…`, 30 lines); both POOLED tables intact; confirm log "COMPLETE — 28 designs";
