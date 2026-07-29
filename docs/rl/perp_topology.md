@@ -184,3 +184,49 @@ MUJOCO_GL=egl uv run python scripts/pose_open_keyframe.py \
 into one tiled PNG *and* prints tip positions, object pose and per-contact forces, so the
 picture and the numbers can be checked against each other. Every geometry bug above was found
 by looking at the render, not by reading metrics.
+
+---
+
+## Training results (2026-07-28)
+
+### Policy A — trains clean, but suppresses the reorient
+
+`results/rl/20260728-2028-policyA_perp_freeRot` (from scratch, orientation guard relaxed).
+Ran to completion, no collapse. Health gate WARN with every critical check passing:
+
+| check | result |
+|---|---|
+| late_finger | PASS — thumb@2, index@1, middle@1 |
+| idle_finger | PASS — all three at persistence 1.00 |
+| drop | PASS — min hold-phase obj-z **0.111 m** |
+| jitter | PASS — ang-jerk 12.7 |
+| de_centering | WARN — path 5.6 cm vs net 0.0 cm |
+| over_clamp | WARN — mean fingertip 9.2 N (thumb alone 22.3 N) |
+
+**`peak_cos` under A is 0.014** — the shaft never rotates. A clamps hard and carries it level,
+which is the same regime as the too-tight end of the squeeze sweep above (0.0105 → cos 0.28).
+Relaxing the orientation *termination* was necessary but not sufficient: `a_lift` still *pays*
+for holding the object still, so A trades away the free gravity reorient.
+
+Note when reading `rl_eval_reorient_metrics.py` on an A run: its `min_z`/`drop` columns take the
+minimum over the WHOLE rollout, which is dominated by the pre-lift floor at z≈0.012, so they
+read `0.011 / 1.00` on a policy that never drops anything. `peak_cos` is the trustworthy column.
+
+### Policy B warmstarted from b33 — ejects the shaft at the seam
+
+`results/rl/20260728-2128-policyB_perp` (live-A reset, warmstart b33). Trains without
+collapsing, `peak_cos` 0.543 vs A's 0.014, but `obj_jerk` 680 vs A's 0.83. The continuous
+handoff eval says why — **FAIL**, min hold-phase obj-z 0.009 m, net lateral drift 15.1 cm,
+object flung at 3 m/s. The video is unambiguous: A lifts cleanly, then at the handoff step B
+throws the shaft away and the hand is empty for the rest of the rollout
+(`docs/rl/videos/reorient/handoff_perp.mp4`).
+
+This is **gotcha #5's failure mode, one stage over**. b33's residual is tuned to m05's finger
+placement; applied to the perpendicular opposed pair it drives the facing fingers to a pose
+that has no meaning there, exactly as a warmstarted A ejects a re-CEM'd object. A reorient
+prior is only worth importing when the target hand's grip geometry resembles the prior's.
+
+`train_handoff_liveA_reset.sh` now accepts `B_CKPT=none` to train B from scratch, mirroring
+`WARMSTART=none` in `train_A_on_morph.sh`. That is the right default here: this topology's
+reorient is nearly free (the policy mostly has to STOP clamping), so it does not need the
+hard-exploration prior that the b33 warmstart exists to supply.
