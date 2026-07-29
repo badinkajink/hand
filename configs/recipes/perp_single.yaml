@@ -1,0 +1,75 @@
+# perp_single — SINGLE-STAGE lift+reorient on the perpendicular (opposed-pair) hand.
+#
+# Why single-stage: on the perp topology lift and reorient are the SAME motion (gravity does
+# the pitch once the shaft is pinched off its COM), and the A->B seam is MEASURED to be what
+# breaks it — two independently trained B policies (b33-warmstart and from-scratch) both eject
+# the shaft at the switch step, while the same A driving the whole rollout with no switch holds
+# perfectly (obj-z 0.111, drift 0.0 cm). The grip window spans hold-but-no-rotation to dropped
+# over 9 mm of pad set-point, so any discontinuity in finger targets lands outside it.
+# See docs/rl/perp_topology.md.
+#
+# Differences from a_lift, all deliberate:
+#   * term_object_slip_yaw 10.0 — a_lift's 0.5 rad gate fires on the gravity PITCH, which is the
+#     task here, not a fault. With the gate on, "don't lift at all" is the only reliable way to
+#     avoid rotating, and PPO found exactly that (policyA_perp collapsed at iter 44).
+#   * the target-axis reward is ON from just after the lift, so the pitch is PAID for rather
+#     than merely tolerated. Relaxing the termination alone was not enough: a_lift still rewards
+#     holding the object still, so A clamped (thumb 22 N) and peak cos came out at 0.014.
+#   * floor-proximity termination ON — forbids the floor-bracing shortcut (gotcha: v4 learned to
+#     use the ground as a pivot). Requires the taller lift below.
+#
+# Lift height is a RUN knob but must be >= ~0.12: hanging vertical puts the shaft's centre
+# 0.035 m below the pinch and its lower end 0.085 m below, so a 0.10 lift leaves only 24 mm of
+# floor clearance and the floor-proximity gate false-fires. Launcher uses 0.14.
+object_body_name: screwdriver_medium
+episode_length_s: 5.0
+
+# train/deploy parity (gotcha #13) — must match morphohand.rl.deploy.make_env_cfg
+finger_residual_scale: 0.5
+finger_close_easing: ease_out_quad
+contact_gate_stability_rewards: true
+
+# --- terminations: PITCH IS THE GOAL ---
+enable_lift_terminations: true
+lift_phase_start_step: 60
+term_object_drop: 0.02
+term_object_slip_xy: 0.5
+term_object_slip_yaw: 10.0
+term_finger_slip: 100.0
+term_tip_lost_steps: 3
+enable_floor_proximity_termination: true
+object_min_z: 0.05
+floor_proximity_phase_start_step: 80
+
+# --- reorient: pay for the pitch ---
+enable_target_axis_reward: true
+target_axis_weight: 100.0
+target_axis_alpha: 4.0
+target_axis_progress_weight: 300.0
+reorient_start_step: 65
+
+# --- grip: RECRUIT THE THUMB ---
+# reduce=min pays for the WEAKEST finger's force, so an idle finger caps the whole term — the
+# direct lever for "the thumb must actually push". (reduce=max was tried on the baseline hand
+# and barely moved the idle thumb.) Weight stays modest on purpose: this program has already
+# established that raw grip force is decoupled from both hold quality and jitter, so this is
+# here to make the thumb LOAD-BEARING for axial resistance, not to chase a force number.
+# Judge it with scripts/probe_axial_load.py, not with the force value itself.
+contact_min_weight: 15.0
+grip_force_weight: 2.0
+grip_force_reduce: min
+grip_force_max: 3.0
+grip_force_spread_weight: 1.0
+grip_force_spread_scale: 4.0
+
+# --- stabilize, but only AFTER the swing ---
+# object_ang_acc penalises angular acceleration, which the gravity swing NEEDS. Gating it to
+# step 150 (of 250) damps the settle at the end instead of fighting the rotation that gets us
+# there.
+object_ang_acc_weight: 0.5
+object_ang_acc_phase_start_step: 150
+lateral_drift_weight: -8.0
+lateral_drift_deadband: 0.01
+lateral_drift_power: 2.0
+
+wandb: false
