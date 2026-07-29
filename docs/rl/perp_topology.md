@@ -133,15 +133,27 @@ spawn orientation, threshold 0.5 rad — it fires on rotation about *any* axis. 
 recipe assumes the object stays level during the lift, which is right for the baseline hand
 and **exactly backwards here**: on perp, pitching during the lift is the desired behaviour.
 
-The current Policy-A run keeps the strict guard, which is self-consistent (the CEM grasp holds
-the shaft level, tilt 0.036 rad, so A *can* lift without tipping) and preserves the A→B split.
-But it means A is being trained to suppress the free reorientation, and B then has to pay to
-re-create it.
+### This is not theoretical — it killed the first run
 
-Two ways forward, both worth trying:
+`policyA_perp` was launched with the stock guard on the reasoning that it was self-consistent
+(the CEM grasp holds the shaft level at 0.036 rad, so A *can* lift without tipping). The
+collapse watchdog **aborted it at iteration 44**: `object_height` fell 0.09 → 0.0447.
 
-1. **Relax `--term-object-slip-yaw` for A on this design** (or make the term pitch-aware) so A
-   is allowed to deliver a partially reoriented shaft.
+The failure mode is instructive. Once airborne the shaft pitches — that is what this hand does
+— and the episode terminates as `object_orientation_slip`. The one reliable way to avoid the
+pitch is to **not lift at all**: on the floor the shaft cannot rotate. So the guard actively
+selects against the design's own mechanism, and PPO found the degenerate optimum. Aggregate
+reward never flagged it; the object-height watchdog did.
+
+Relaunched as `policyA_perp_freeRot` with `--term-object-slip-yaw 10.0 --term-object-slip-xy
+0.5` — the same relaxation `b_liveA` already uses for the rotation-permitting phase — keeping
+drop and tip-loss terminations intact (gotcha #7: never strip those). Orientation-slip
+terminations went to **0.0** and `object_height` held at 0.09–0.11.
+
+### Two ways forward
+
+1. **Relax the orientation guard for A on this design** (done above), or make the term
+   pitch-aware, so A is allowed to deliver a partially reoriented shaft.
 2. **Skip the A/B split entirely.** On this topology lift and reorient are the *same* motion.
    A single policy doing lift+reorient is a natural fit, and the A→B handoff seam — which has
    cost this program the most time — may simply not exist here.
