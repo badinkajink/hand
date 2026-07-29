@@ -296,3 +296,39 @@ nearer the thumb. That is the concrete next design iteration.
 The tight-grip row also should not be read as a real axial measurement: at cos 0.276 the shaft is
 still nearly horizontal, so a Z force is transverse and levers about the pinch rather than
 sliding along the shaft. That asymmetry (14.62 up vs 1.09 down) is the lever arm, not friction.
+
+---
+
+## Single-stage policy, attempt 1: still clamps — and the reward table says why
+
+`results/rl/20260729-1225-perp_single` (single policy, no A/B seam, orientation TERMINATION
+removed, target-axis reward on). Trains clean, no collapse, object held at 0.135 — and
+**`peak_cos` 0.015**. It clamps, exactly like Policy A did.
+
+The episode reward breakdown is unambiguous about the cause, and it is not the grip terms:
+
+| term | value |
+|---|---|
+| contact_min | +9.30 |
+| contact_mean | +6.23 |
+| lift_height | +5.75 |
+| **track_object_quat** | **+0.72** — pays for matching the SPAWN quaternion |
+| grip_force / grip_force_spread | +1.19 / +1.34 |
+| **target_axis_alignment** | **+0.115** — the term that wants the pitch |
+| **target_axis_progress** | **−0.18** |
+| **object_orientation_drift** | **−0.93** — penalty for rotating away from spawn |
+
+**Removing the termination was necessary but nowhere near sufficient.** Two *base* reward terms
+still pay for keeping the shaft at its spawn orientation — `object_orientation_drift` (−0.93) and
+`track_object_quat` (+0.72) — roughly 1.65 of pressure against rotating versus 0.115 for it. The
+policy is being paid an order of magnitude more to hold the shaft still than to turn it. This is
+the same trap as the termination, one layer down, and it is invisible unless you read the
+per-term table rather than the aggregate reward.
+
+`object_orientation_drift_weight` was already a knob; `track_object_quat`'s weight was hardcoded
+from `DEFAULT_REWARD_WEIGHTS`, so `track_object_quat_weight` was added (default `None` = the
+built-in value, so every existing run is unchanged). Both are zeroed in `perp_single`, the
+target-axis weights raised (250 / 600) so they are not dwarfed by contact_min + contact_mean, and
+the contact/grip weights trimmed since they pull toward the rotation-blocking tight grip that the
+axial probe measured. Relaunched as `perp_single_freeRot`; the live log confirms
+`track_object_quat 0.0000` and `object_orientation_drift 0.0000`.

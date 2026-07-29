@@ -157,6 +157,12 @@ class MorphoHandEnvCfg:
     """Penalty per metre of cube xy drift from its spawn. Increase to
     enforce 'lift only, no translation' grasps."""
     object_orientation_drift_weight: float = -3.0
+
+    # Weight on track_object_quat, which pays for keeping the object at its SPAWN orientation.
+    # Defaults to the DEFAULT_REWARD_WEIGHTS value so existing runs are unchanged. Set to 0.0 for
+    # any task where rotating the object IS the goal — otherwise this term and
+    # object_orientation_drift_weight quietly out-vote the target-axis reward.
+    track_object_quat_weight: float | None = None
     """Penalty per radian of cube quat geodesic distance from spawn quat.
     Increase to enforce 'lift only, no rotation' grasps."""
     finger_drift_weight: float = -2.0

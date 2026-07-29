@@ -41,11 +41,23 @@ enable_floor_proximity_termination: true
 object_min_z: 0.05
 floor_proximity_phase_start_step: 80
 
+# --- SILENCE THE ANTI-ROTATION TERMS ---
+# Measured in run 20260729-1225-perp_single (peak cos 0.015 — it clamped): removing the
+# orientation TERMINATION is not enough, because two base REWARD terms still pay for keeping the
+# shaft at its spawn orientation, and together they out-vote the reorient reward:
+#     object_orientation_drift  -0.93   (penalty for rotating away from spawn)
+#     track_object_quat         +0.72   (reward for matching spawn quat)
+#     target_axis_alignment     +0.115  <- the term that wants the pitch
+#     target_axis_progress      -0.18
+# ~1.65 of pressure against rotating vs 0.115 for it. Both are zeroed here.
+object_orientation_drift_weight: 0.0
+track_object_quat_weight: 0.0
+
 # --- reorient: pay for the pitch ---
 enable_target_axis_reward: true
-target_axis_weight: 100.0
+target_axis_weight: 250.0
 target_axis_alpha: 4.0
-target_axis_progress_weight: 300.0
+target_axis_progress_weight: 600.0
 reorient_start_step: 65
 
 # --- grip: RECRUIT THE THUMB ---
@@ -55,8 +67,8 @@ reorient_start_step: 65
 # established that raw grip force is decoupled from both hold quality and jitter, so this is
 # here to make the thumb LOAD-BEARING for axial resistance, not to chase a force number.
 # Judge it with scripts/probe_axial_load.py, not with the force value itself.
-contact_min_weight: 15.0
-grip_force_weight: 2.0
+contact_min_weight: 8.0
+grip_force_weight: 1.0
 grip_force_reduce: min
 grip_force_max: 3.0
 grip_force_spread_weight: 1.0
