@@ -19,7 +19,7 @@ Change summary:
 
 ## Validation
 Local validation was run after the fix:
-1. Generate a test scene from assets/mjcf/scene_power_drill.xml into results/phase1/tmp_pathcheck/scene_test.xml.
+1. Generate a test scene from assets/mjcf/baseline/scenes/scene_power_drill.xml into results/phase1/tmp_pathcheck/scene_test.xml.
 2. Load that generated scene with MuJoCo.
 3. Result: model loaded successfully.
 

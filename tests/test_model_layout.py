@@ -10,11 +10,11 @@ def _count_actuators(path: Path) -> int:
 
 def test_hand_actuator_count() -> None:
     root = Path(__file__).resolve().parents[1]
-    hand = root / "assets" / "mjcf" / "hand.xml"
+    hand = root / "assets" / "mjcf" / "baseline" / "hand.xml"
     assert _count_actuators(hand) == 9
 
 
 def test_scene_actuator_count() -> None:
     root = Path(__file__).resolve().parents[1]
-    scene = root / "assets" / "mjcf" / "scene.xml"
+    scene = root / "assets" / "mjcf" / "baseline" / "scenes" / "scene.xml"
     assert _count_actuators(scene) == 15

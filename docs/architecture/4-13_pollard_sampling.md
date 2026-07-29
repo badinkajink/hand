@@ -140,7 +140,7 @@ Observed issue from Run 1: many top GIFs still slipped during lift despite good 
 
 ### Run 2 Method Changes
 
-1. Physical/contact upgrades in [assets/mjcf/scene.xml](assets/mjcf/scene.xml):
+1. Physical/contact upgrades in [assets/mjcf/baseline/scenes/scene.xml](assets/mjcf/baseline/scenes/scene.xml):
    - Higher default friction and tighter contact solver settings (`solref`, `solimp`).
    - Higher cube geom friction.
    - Extra fingertip contact geoms (small side spheres) on thumb/index/middle tips.
@@ -164,9 +164,9 @@ Observed issue from Run 1: many top GIFs still slipped during lift despite good 
 Generate Run 2 prism scenes from updated physics:
 
 ```bash
-uv run python scripts/generate_prism_scene.py --base-scene-xml assets/mjcf/scene.xml --size-x 0.02 --size-y 0.025 --size-z 0.02 --output-scene-xml assets/mjcf/generated/scene_prism_run2_x0.0200_y0.0250_z0.0200.xml
-uv run python scripts/generate_prism_scene.py --base-scene-xml assets/mjcf/scene.xml --size-x 0.02 --size-y 0.030 --size-z 0.02 --output-scene-xml assets/mjcf/generated/scene_prism_run2_x0.0200_y0.0300_z0.0200.xml
-uv run python scripts/generate_prism_scene.py --base-scene-xml assets/mjcf/scene.xml --size-x 0.02 --size-y 0.035 --size-z 0.02 --output-scene-xml assets/mjcf/generated/scene_prism_run2_x0.0200_y0.0350_z0.0200.xml
+uv run python scripts/generate_prism_scene.py --base-scene-xml assets/mjcf/baseline/scenes/scene.xml --size-x 0.02 --size-y 0.025 --size-z 0.02 --output-scene-xml assets/mjcf/generated/scene_prism_run2_x0.0200_y0.0250_z0.0200.xml
+uv run python scripts/generate_prism_scene.py --base-scene-xml assets/mjcf/baseline/scenes/scene.xml --size-x 0.02 --size-y 0.030 --size-z 0.02 --output-scene-xml assets/mjcf/generated/scene_prism_run2_x0.0200_y0.0300_z0.0200.xml
+uv run python scripts/generate_prism_scene.py --base-scene-xml assets/mjcf/baseline/scenes/scene.xml --size-x 0.02 --size-y 0.035 --size-z 0.02 --output-scene-xml assets/mjcf/generated/scene_prism_run2_x0.0200_y0.0350_z0.0200.xml
 ```
 
 Cube foundational CEM (multi-seed):
@@ -174,7 +174,7 @@ Cube foundational CEM (multi-seed):
 ```bash
 MUJOCO_GL=egl bash -lc 'for seed in 0 1 2; do
   uv run python scripts/phase1_optimize_grasp.py \
-    --scene-xml assets/mjcf/scene.xml \
+    --scene-xml assets/mjcf/baseline/scenes/scene.xml \
     --optimizer cem \
     --iterations 36 \
     --population 64 \
@@ -302,9 +302,9 @@ Run 2 improved gross stability, but qualitative review still showed post-lift fi
 Generate Run 3 prism scenes:
 
 ```bash
-uv run python scripts/generate_prism_scene.py --base-scene-xml assets/mjcf/scene.xml --size-x 0.02 --size-y 0.025 --size-z 0.02 --output-scene-xml assets/mjcf/generated/scene_prism_run3_x0.0200_y0.0250_z0.0200.xml
-uv run python scripts/generate_prism_scene.py --base-scene-xml assets/mjcf/scene.xml --size-x 0.02 --size-y 0.030 --size-z 0.02 --output-scene-xml assets/mjcf/generated/scene_prism_run3_x0.0200_y0.0300_z0.0200.xml
-uv run python scripts/generate_prism_scene.py --base-scene-xml assets/mjcf/scene.xml --size-x 0.02 --size-y 0.035 --size-z 0.02 --output-scene-xml assets/mjcf/generated/scene_prism_run3_x0.0200_y0.0350_z0.0200.xml
+uv run python scripts/generate_prism_scene.py --base-scene-xml assets/mjcf/baseline/scenes/scene.xml --size-x 0.02 --size-y 0.025 --size-z 0.02 --output-scene-xml assets/mjcf/generated/scene_prism_run3_x0.0200_y0.0250_z0.0200.xml
+uv run python scripts/generate_prism_scene.py --base-scene-xml assets/mjcf/baseline/scenes/scene.xml --size-x 0.02 --size-y 0.030 --size-z 0.02 --output-scene-xml assets/mjcf/generated/scene_prism_run3_x0.0200_y0.0300_z0.0200.xml
+uv run python scripts/generate_prism_scene.py --base-scene-xml assets/mjcf/baseline/scenes/scene.xml --size-x 0.02 --size-y 0.035 --size-z 0.02 --output-scene-xml assets/mjcf/generated/scene_prism_run3_x0.0200_y0.0350_z0.0200.xml
 ```
 
 Cube foundational CEM (Run 3 objective):
@@ -312,7 +312,7 @@ Cube foundational CEM (Run 3 objective):
 ```bash
 MUJOCO_GL=egl bash -lc 'for seed in 0 1 2; do
   uv run python scripts/phase1_optimize_grasp.py \
-    --scene-xml assets/mjcf/scene.xml \
+    --scene-xml assets/mjcf/baseline/scenes/scene.xml \
     --optimizer cem \
     --iterations 40 \
     --population 72 \

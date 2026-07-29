@@ -25,8 +25,8 @@ ROOT = Path(__file__).resolve().parents[1]
 GEN_DIR = ROOT / "assets/mjcf/experimental/morph_sweep"
 OUT_DIR = ROOT / "results/phase1/morph_sweep"
 RESULTS = ROOT / "MORPH_GRASP_SWEEP_RESULTS.txt"
-BASE_HAND = ROOT / "assets/mjcf/hand.xml"
-BASE_SCENE = ROOT / "assets/mjcf/scene_screwdriver_medium_flat_short_proximal.xml"
+BASE_HAND = ROOT / "assets/mjcf/baseline/hand.xml"
+BASE_SCENE = ROOT / "assets/mjcf/baseline/scenes/scene_screwdriver_medium_flat_short_proximal.xml"
 # index/middle held at the run18 baseline; only the thumb is swept.
 BASE_INDEX = (0.010, -0.0123, 0.0)
 BASE_MIDDLE = (0.010, 0.0153, 0.0)

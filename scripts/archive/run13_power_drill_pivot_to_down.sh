@@ -9,7 +9,7 @@
 #      starting pose (1.6, 1.4, -0.031) to (0, 0, pi/2 ~ 1.5708). Run8/run12
 #      drove only one axis each (run8: ry only; run12: rz only) so rx and ry
 #      were stuck at the initial 1.6/1.4 values — confirmed by inspection of
-#      assets/mjcf/scene_power_drill_short_proximal.xml @ open_flat ctrl.
+#      assets/mjcf/baseline/scenes/scene_power_drill_short_proximal.xml @ open_flat ctrl.
 #   2. Scene switched to scene_power_drill_short_proximal.xml (matches the
 #      contact_targets YAML authored at the short-proximal grip).
 #   3. Two parallel morphology sweeps:
@@ -42,7 +42,7 @@ RUN_CONTACT_MAP="${RUN_CONTACT_MAP:-1}"
 FP_REFRESH_INTERVAL="${FP_REFRESH_INTERVAL:-40}"
 TOPK_GIFS="${TOPK_GIFS:-8}"
 
-SCENE_XML="assets/mjcf/scene_power_drill_short_proximal.xml"
+SCENE_XML="assets/mjcf/baseline/scenes/scene_power_drill_short_proximal.xml"
 CONTACT_TARGETS_YAML="assets/contact_targets/power_drill_short_proximal.yaml"
 KEYFRAMES=(open_flat)
 

@@ -1031,7 +1031,7 @@ the grip. This is believed to be a consequence of the deliberately *relaxed/soft
 solver* used for this task — the RL env sets `impratio=10`, `cone="elliptic"`
 ([env_cfg.py:1399-1405](../../src/morphohand/rl/env_cfg.py#L1399-L1405)) and the screwdriver
 scenes use a soft `solref="0.006 1" solimp="0.97 0.995 0.0005"` geom default
-([scene_screwdriver_medium_flat_short_proximal.xml:11](../../assets/mjcf/scene_screwdriver_medium_flat_short_proximal.xml#L11)),
+([scene_screwdriver_medium_flat_short_proximal.xml:11](../../assets/mjcf/baseline/scenes/scene_screwdriver_medium_flat_short_proximal.xml#L11)),
 which allow some interpenetration in exchange for a stable, non-explosive grip.
 
 It is **somewhat bad** (cosmetically and for sim-to-real fidelity), but **we are NOT changing

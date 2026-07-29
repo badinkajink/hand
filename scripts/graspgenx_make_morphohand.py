@@ -24,7 +24,7 @@ graspgenx_eval_phase1.py uses to score the generated poses on the real hand.
 
 Run in the project uv env (mujoco 3.6):
     uv run python scripts/graspgenx_make_morphohand.py \
-        --scene-xml assets/mjcf/scene.xml --keyframe open --name morphohand
+        --scene-xml assets/mjcf/baseline/scenes/scene.xml --keyframe open --name morphohand
 """
 
 from __future__ import annotations
@@ -136,7 +136,7 @@ def export_hand_mesh(model, data, out_path: Path):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--scene-xml", type=Path, default=ROOT / "assets" / "mjcf" / "scene.xml")
+    ap.add_argument("--scene-xml", type=Path, default=ROOT / "assets" / "mjcf" / "baseline" / "scenes" / "scene.xml")
     ap.add_argument("--keyframe", default="open")
     ap.add_argument("--name", default="morphohand")
     ap.add_argument("--out", type=Path, default=GRASPGENX_ROOT / "assets" / "x_grippers")

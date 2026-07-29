@@ -59,14 +59,14 @@ class EvalCase:
 
 # The exact (scene, keyframe, object_body) combos the user named.
 EVAL_CASES: list[EvalCase] = [
-    EvalCase("cube",                      ROOT_DIR / "assets/mjcf/scene.xml",                          "open",         "cube"),
-    EvalCase("prism",                     ROOT_DIR / "assets/mjcf/scene_prism.xml",                    "open",         "prism"),
-    EvalCase("screwdriver_medium_flat",   ROOT_DIR / "assets/mjcf/scene_screwdriver_medium_flat.xml",  "open",         "screwdriver_medium"),
-    EvalCase("screwdriver_medium_vert",   ROOT_DIR / "assets/mjcf/scene_screwdriver_medium_vertical.xml","open",       "screwdriver_medium"),
-    EvalCase("screwdriver_medium_90vert", ROOT_DIR / "assets/mjcf/scene_screwdriver_medium.xml",       "open_90vertical","cube"),
+    EvalCase("cube",                      ROOT_DIR / "assets/mjcf/baseline/scenes/scene.xml",                          "open",         "cube"),
+    EvalCase("prism",                     ROOT_DIR / "assets/mjcf/baseline/scenes/scene_prism.xml",                    "open",         "prism"),
+    EvalCase("screwdriver_medium_flat",   ROOT_DIR / "assets/mjcf/baseline/scenes/scene_screwdriver_medium_flat.xml",  "open",         "screwdriver_medium"),
+    EvalCase("screwdriver_medium_vert",   ROOT_DIR / "assets/mjcf/baseline/scenes/scene_screwdriver_medium_vertical.xml","open",       "screwdriver_medium"),
+    EvalCase("screwdriver_medium_90vert", ROOT_DIR / "assets/mjcf/baseline/scenes/scene_screwdriver_medium.xml",       "open_90vertical","cube"),
     EvalCase(
         "power_drill_short_proximal",
-        ROOT_DIR / "assets/mjcf/scene_power_drill_short_proximal_rigid_capsuletips.xml",
+        ROOT_DIR / "assets/mjcf/baseline/scenes/scene_power_drill_short_proximal_rigid_capsuletips.xml",
         "open_flat_gripping",
         "power_drill",
         already_short=True,

@@ -15,8 +15,8 @@ RUN_FOUNDATIONAL="${RUN_FOUNDATIONAL:-1}"
 FP_REFRESH_INTERVAL="${FP_REFRESH_INTERVAL:-40}"
 TOPK_GIFS="${TOPK_GIFS:-8}"
 
-SCENE_XML="assets/mjcf/scene_screwdriver_medium.xml"
-CAPSULE_SCENE_XML="assets/mjcf/scene_screwdriver_medium_capsuletips.xml"
+SCENE_XML="assets/mjcf/baseline/scenes/scene_screwdriver_medium.xml"
+CAPSULE_SCENE_XML="assets/mjcf/baseline/scenes/scene_screwdriver_medium_capsuletips.xml"
 KEYFRAMES=(open_flat open_vertical open_90vertical)
 
 FOUNDATIONAL_ROOT="results/phase1/run7_foundational"

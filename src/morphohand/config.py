@@ -10,8 +10,8 @@ class ModelPaths:
 
     @property
     def hand_xml(self) -> Path:
-        return self.project_root / "assets" / "mjcf" / "hand.xml"
+        return self.project_root / "assets" / "mjcf" / "baseline" / "hand.xml"
 
     @property
     def scene_xml(self) -> Path:
-        return self.project_root / "assets" / "mjcf" / "scene.xml"
+        return self.project_root / "assets" / "mjcf" / "baseline" / "scenes" / "scene.xml"

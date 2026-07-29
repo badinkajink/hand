@@ -27,7 +27,7 @@ if [[ ! -x "$LIGHTNING_VENV_PY" ]]; then
   echo "ERROR: $LIGHTNING_VENV_PY not executable -- need external/lightning-grasp/.venv"; exit 1
 fi
 
-SCENE_XML="${SCENE_XML:-assets/mjcf/scene_power_drill_short_proximal.xml}"
+SCENE_XML="${SCENE_XML:-assets/mjcf/baseline/scenes/scene_power_drill_short_proximal.xml}"
 KEYFRAME="${KEYFRAME:-open_flat}"
 DRILL_OBJ="${DRILL_OBJ:-$ROOT_DIR/external/035_power_drill/poisson/textured.obj}"
 OUTPUT_ROOT="${OUTPUT_ROOT:-results/lightning_grasp/power_drill_short_proximal}"

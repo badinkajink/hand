@@ -30,13 +30,13 @@ class EvalCase:
 
 
 EVAL_SET: list[EvalCase] = [
-    EvalCase("cube",                       ROOT / "assets/mjcf/scene_cube_short_proximal.xml",                       "open_short_manual",          "cube"),
-    EvalCase("prism",                      ROOT / "assets/mjcf/scene_prism_short_proximal.xml",                      "open_short_manual",          "prism"),
-    EvalCase("power_drill",                ROOT / "assets/mjcf/scene_power_drill_short_proximal.xml",                "open_flat_gripping",         "power_drill"),
-    EvalCase("screwdriver_medium_flat",    ROOT / "assets/mjcf/scene_screwdriver_medium_flat_short_proximal.xml",    "open_short_manual",          "screwdriver_medium"),
-    EvalCase("screwdriver_medium_vertical",ROOT / "assets/mjcf/scene_screwdriver_medium_vertical_short_proximal.xml","open_short_manual",          "screwdriver_medium"),
-    EvalCase("screwdriver_medium_90vert",  ROOT / "assets/mjcf/scene_screwdriver_medium_short_proximal.xml",         "open_90vertical_manual",     "cube"),
-    EvalCase("screwdriver_small_flat",     ROOT / "assets/mjcf/scene_screwdriver_small_flat_short_proximal.xml",     "open_short_manual",          "screwdriver_small"),
+    EvalCase("cube",                       ROOT / "assets/mjcf/baseline/scenes/scene_cube_short_proximal.xml",                       "open_short_manual",          "cube"),
+    EvalCase("prism",                      ROOT / "assets/mjcf/baseline/scenes/scene_prism_short_proximal.xml",                      "open_short_manual",          "prism"),
+    EvalCase("power_drill",                ROOT / "assets/mjcf/baseline/scenes/scene_power_drill_short_proximal.xml",                "open_flat_gripping",         "power_drill"),
+    EvalCase("screwdriver_medium_flat",    ROOT / "assets/mjcf/baseline/scenes/scene_screwdriver_medium_flat_short_proximal.xml",    "open_short_manual",          "screwdriver_medium"),
+    EvalCase("screwdriver_medium_vertical",ROOT / "assets/mjcf/baseline/scenes/scene_screwdriver_medium_vertical_short_proximal.xml","open_short_manual",          "screwdriver_medium"),
+    EvalCase("screwdriver_medium_90vert",  ROOT / "assets/mjcf/baseline/scenes/scene_screwdriver_medium_short_proximal.xml",         "open_90vertical_manual",     "cube"),
+    EvalCase("screwdriver_small_flat",     ROOT / "assets/mjcf/baseline/scenes/scene_screwdriver_small_flat_short_proximal.xml",     "open_short_manual",          "screwdriver_small"),
 ]
 
 

@@ -16,7 +16,7 @@ it has three distinct keyframes and a full run6 multitask evaluation path.
 
 ## Foundational Pose Search
 
-The foundational pose searches on `assets/mjcf/scene_screwdriver_medium.xml` produced the
+The foundational pose searches on `assets/mjcf/baseline/scenes/scene_screwdriver_medium.xml` produced the
 following best scores:
 
 | keyframe | best score | best cube lift | best contacts |

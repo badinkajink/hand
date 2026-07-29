@@ -23,7 +23,7 @@ from morph_landscape_sweep import morphologies, gen_scene  # reuse the exact des
 from morphohand.tools.keyframe_ik import retarget_scene
 
 ROOT = Path(__file__).resolve().parents[1]
-BASE_SCENE = ROOT / "assets/mjcf/scene_screwdriver_medium_flat_short_proximal.xml"
+BASE_SCENE = ROOT / "assets/mjcf/baseline/scenes/scene_screwdriver_medium_flat_short_proximal.xml"
 CEM_OUT = ROOT / "results/phase1/landscape_ik"
 JSON = ROOT / "docs/experiments/IK_RECEM_LANDSCAPE.json"
 TXT = ROOT / "docs/experiments/IK_RECEM_LANDSCAPE.txt"

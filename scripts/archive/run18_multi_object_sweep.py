@@ -91,21 +91,21 @@ def default_tasks() -> list[Task]:
     return [
         Task(
             label="cube",
-            scene_xml=ROOT / "assets/mjcf/scene_cube_short_proximal.xml",
+            scene_xml=ROOT / "assets/mjcf/baseline/scenes/scene_cube_short_proximal.xml",
             keyframe="open_short_manual",
             object_body="cube",
             contact_targets_yaml=ROOT / "assets/contact_targets/cube.yaml",
         ),
         Task(
             label="prism",
-            scene_xml=ROOT / "assets/mjcf/scene_prism_short_proximal.xml",
+            scene_xml=ROOT / "assets/mjcf/baseline/scenes/scene_prism_short_proximal.xml",
             keyframe="open_short_manual",
             object_body="prism",
             contact_targets_yaml=ROOT / "assets/contact_targets/prism.yaml",
         ),
         Task(
             label="power_drill",
-            scene_xml=ROOT / "assets/mjcf/scene_power_drill_short_proximal.xml",
+            scene_xml=ROOT / "assets/mjcf/baseline/scenes/scene_power_drill_short_proximal.xml",
             keyframe="open_flat_gripping",
             object_body="power_drill",
             contact_targets_yaml=ROOT / "assets/contact_targets/power_drill_short_proximal.yaml",
@@ -120,21 +120,21 @@ def default_tasks() -> list[Task]:
         ),
         Task(
             label="screwdriver_medium_flat",
-            scene_xml=ROOT / "assets/mjcf/scene_screwdriver_medium_flat_short_proximal.xml",
+            scene_xml=ROOT / "assets/mjcf/baseline/scenes/scene_screwdriver_medium_flat_short_proximal.xml",
             keyframe="open_short_manual",
             object_body="screwdriver_medium",
             contact_targets_yaml=ROOT / "assets/contact_targets/screwdriver_medium_open_flat.yaml",
         ),
         Task(
             label="screwdriver_medium_vertical",
-            scene_xml=ROOT / "assets/mjcf/scene_screwdriver_medium_vertical_short_proximal.xml",
+            scene_xml=ROOT / "assets/mjcf/baseline/scenes/scene_screwdriver_medium_vertical_short_proximal.xml",
             keyframe="open_short_manual",
             object_body="screwdriver_medium",
             contact_targets_yaml=ROOT / "assets/contact_targets/screwdriver_medium_open_vertical.yaml",
         ),
         Task(
             label="screwdriver_medium_90vert",
-            scene_xml=ROOT / "assets/mjcf/scene_screwdriver_medium_short_proximal.xml",
+            scene_xml=ROOT / "assets/mjcf/baseline/scenes/scene_screwdriver_medium_short_proximal.xml",
             keyframe="open_90vertical_manual",
             # NOTE: scene_screwdriver_medium uses body name "cube" for its primary object
             object_body="cube",
@@ -142,7 +142,7 @@ def default_tasks() -> list[Task]:
         ),
         Task(
             label="screwdriver_small_flat",
-            scene_xml=ROOT / "assets/mjcf/scene_screwdriver_small_flat_short_proximal.xml",
+            scene_xml=ROOT / "assets/mjcf/baseline/scenes/scene_screwdriver_small_flat_short_proximal.xml",
             keyframe="open_short_manual",
             object_body="screwdriver_small",
             contact_targets_yaml=ROOT / "assets/contact_targets/screwdriver_small_open_flat.yaml",

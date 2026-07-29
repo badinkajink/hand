@@ -116,7 +116,7 @@ Run the default Phase 1 grasp optimizer on a single scene/keyframe:
 
 ```bash
 uv run python scripts/phase1_optimize_grasp.py \
-  --scene-xml assets/mjcf/scene_screwdriver_medium.xml \
+  --scene-xml assets/mjcf/baseline/scenes/scene_screwdriver_medium.xml \
   --keyframe open_flat \
   --optimizer cem
 ```
@@ -150,11 +150,11 @@ uv run python scripts/run6_analysis.py \
 
 The repository currently centers on these scene/object pairs:
 
-- `assets/mjcf/scene_prism.xml`
-- `assets/mjcf/scene_screwdriver_medium.xml`
-- `assets/mjcf/scene_screwdriver_small.xml`
-- `assets/mjcf/scene_power_drill.xml`
-- `assets/mjcf/scene_human_calf.xml`
+- `assets/mjcf/baseline/scenes/scene_prism.xml`
+- `assets/mjcf/baseline/scenes/scene_screwdriver_medium.xml`
+- `assets/mjcf/baseline/scenes/scene_screwdriver_small.xml`
+- `assets/mjcf/baseline/scenes/scene_power_drill.xml`
+- `assets/mjcf/baseline/scenes/scene_human_calf.xml`
 
 The medium screwdriver scene is the most developed benchmark. It uses three keyframes:
 

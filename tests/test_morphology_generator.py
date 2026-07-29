@@ -40,7 +40,7 @@ def _open_key_qpos_len(path: Path) -> int:
 
 def test_create_rigid_hand_xml_removes_morph_joints(tmp_path: Path) -> None:
     root = Path(__file__).resolve().parents[1]
-    base = root / "assets" / "mjcf" / "hand.xml"
+    base = root / "assets" / "mjcf" / "baseline" / "hand.xml"
     out = tmp_path / "rigid_hand.xml"
 
     morphology = MorphologyValues(
@@ -88,8 +88,8 @@ def test_create_rigid_hand_xml_removes_morph_joints(tmp_path: Path) -> None:
 
 def test_create_rigid_hand_and_scene_xmls(tmp_path: Path) -> None:
     root = Path(__file__).resolve().parents[1]
-    hand_base = root / "assets" / "mjcf" / "hand.xml"
-    scene_base = root / "assets" / "mjcf" / "scene.xml"
+    hand_base = root / "assets" / "mjcf" / "baseline" / "hand.xml"
+    scene_base = root / "assets" / "mjcf" / "baseline" / "scenes" / "scene.xml"
 
     morphology = MorphologyValues(
         thumb_x=0.002,

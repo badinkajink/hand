@@ -31,8 +31,8 @@ GEN = ROOT / "assets/mjcf/experimental/landscape"
 CEM_OUT = ROOT / "results/phase1/landscape"
 TXT = ROOT / "MORPH_LANDSCAPE.txt"
 JSON = ROOT / "MORPH_LANDSCAPE.json"
-BASE_HAND = ROOT / "assets/mjcf/hand.xml"
-BASE_SCENE = ROOT / "assets/mjcf/scene_screwdriver_medium_flat_short_proximal.xml"
+BASE_HAND = ROOT / "assets/mjcf/baseline/hand.xml"
+BASE_SCENE = ROOT / "assets/mjcf/baseline/scenes/scene_screwdriver_medium_flat_short_proximal.xml"
 B4 = ROOT / "results/rl/b04_20260603-1746-policyB_p2_lateral_only/tensorboard/model_541.pt"
 # bounds: x,y in [-0.025,0.025], len in [0,0.030]  (morph-joint ranges are +/-0.03 / [0,0.035])
 BND = [(-0.025, 0.025), (-0.025, 0.025), (0.0, 0.030)] * 3  # t(x,y,len) i(...) m(...)

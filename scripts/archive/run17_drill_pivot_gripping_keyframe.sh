@@ -10,7 +10,7 @@
 # Candidate fix #1 from project_drill_pivot_open_question.md: author a new
 # keyframe whose fingers are already curled around the grip so the keyframe
 # itself is a closing pose. That keyframe now exists:
-#   scene: assets/mjcf/scene_power_drill_short_proximal_rigid_capsuletips.xml
+#   scene: assets/mjcf/baseline/scenes/scene_power_drill_short_proximal_rigid_capsuletips.xml
 #   key:   open_flat_gripping
 #     thumb_pip = -1.7  (was -1.2 in open_flat)
 #     index_pip = +1.5  (was +1.1)
@@ -35,7 +35,7 @@ if [[ ! -x "$PYTHON_BIN" ]]; then
   PYTHON_BIN="${PYTHON_BIN_FALLBACK:-python}"
 fi
 
-SCENE_XML="${SCENE_XML:-assets/mjcf/scene_power_drill_short_proximal_rigid_capsuletips.xml}"
+SCENE_XML="${SCENE_XML:-assets/mjcf/baseline/scenes/scene_power_drill_short_proximal_rigid_capsuletips.xml}"
 KEYFRAME="${KEYFRAME:-open_flat_gripping}"
 CONTACT_TARGETS_YAML="assets/contact_targets/power_drill_short_proximal.yaml"
 SEEDS="${SEEDS:-3}"

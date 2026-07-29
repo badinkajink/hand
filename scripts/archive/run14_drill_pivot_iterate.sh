@@ -3,7 +3,7 @@
 #
 # Three coupled changes relative to run13 foundational:
 #   1. Capsule fingertips
-#      (assets/mjcf/scene_power_drill_short_proximal_capsuletips.xml,
+#      (assets/mjcf/baseline/scenes/scene_power_drill_short_proximal_capsuletips.xml,
 #      generated via scripts/generate_capsule_tip_scene.py).
 #   2. Lift bumped 0.060 -> 0.110 (head clearance during pivot); ramp scaled
 #      100 -> 180 to preserve the per-step lift rate.
@@ -26,7 +26,7 @@ if [[ ! -x "$PYTHON_BIN" ]]; then
   PYTHON_BIN="${PYTHON_BIN_FALLBACK:-python}"
 fi
 
-SCENE_XML="${SCENE_XML:-assets/mjcf/scene_power_drill_short_proximal_capsuletips.xml}"
+SCENE_XML="${SCENE_XML:-assets/mjcf/baseline/scenes/scene_power_drill_short_proximal_capsuletips.xml}"
 CONTACT_TARGETS_YAML="assets/contact_targets/power_drill_short_proximal.yaml"
 SEEDS="${SEEDS:-3}"
 RUN_BASELINE="${RUN_BASELINE:-1}"
