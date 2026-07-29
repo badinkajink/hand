@@ -716,7 +716,7 @@ pgrep -af "morph_pipeline_sweep"; nvidia-smi ; ls logs/*.DONE
 ## What this is
 
 Explore hand morphologies using the **clean, health-gated m05 pipeline** (the policy in
-`docs/rl/videos/reorient/handoff_m05_FIXED.mp4` = **a10** native lift → **b33** live-A-reset
+`docs/rl/videos/20260702_reorient/1431_handoff_m05_FIXED.mp4` = **a10** native lift → **b33** live-A-reset
 reorient). Per design, the FULL honest pipeline runs — no cheap skip-lift proxy:
 
 ```
@@ -802,7 +802,7 @@ Outputs: `docs/experiments/MORPH_PIPELINE_<tag>.{json,txt}`, `sweep_{A,B}_<id>.t
 - **2026-07-04 00:00 — `valfix3` VALIDATED the corrected pipeline** (reused A model_609 + retrained
   B): **WARN**, all 3 fingers loaded (idle PASS), held (min-z 0.111), smooth (jitter 15) — same
   class as b33 (cos 0.66/firm 12N here = from-scratch seed variance vs a10→b33's 0.90/7N). Video
-  `docs/rl/videos/reorient/sweep/valfix3_m609_handoff.mp4`.
+  `docs/rl/videos/20260704_sweep/0003_valfix3_m609_handoff.mp4`.
 - **2026-07-04 00:04 — LARGE16 LAUNCHED** (`--morph-set local --n 16 --center m05 --seed 1 --tag
   large16`, corrected pipeline; design 0 = m05 anchor). Waiter fires at 4-design milestone (~6h) /
   completion / crash. ETA ~24h. **Next on completion:** `morph_pipeline_plots.py --tag large16` →

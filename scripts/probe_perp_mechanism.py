@@ -92,6 +92,9 @@ def main() -> None:
     ap.add_argument("--view", default="side")
     ap.add_argument("--frames", type=int, default=8)
     ap.add_argument("--out", required=True, type=Path)
+    ap.add_argument("--video", type=Path, default=None,
+                    help="also write an mp4 of the whole rollout (every --video-stride step)")
+    ap.add_argument("--video-stride", type=int, default=4)
     args = ap.parse_args()
 
     model = mujoco.MjModel.from_xml_path(str(args.scene))
@@ -111,6 +114,7 @@ def main() -> None:
     total = args.settle_steps + args.close_steps + args.lift_steps + args.press_steps
     grab_at = set(np.linspace(0, total - 1, args.frames).astype(int).tolist())
     frames: list[Image.Image] = []
+    video_frames: list[np.ndarray] = []
     trace: list[tuple[str, int, float, float, dict[str, float]]] = []
 
     az, el = VIEWS[args.view]
@@ -150,6 +154,10 @@ def main() -> None:
 
             mujoco.mj_step(model, data)
 
+            if args.video is not None and step % args.video_stride == 0:
+                cam.lookat[:] = data.body(OBJ).xpos
+                renderer.update_scene(data, camera=cam)
+                video_frames.append(renderer.render())
             if step in grab_at:
                 cam.lookat[:] = data.body(OBJ).xpos
                 renderer.update_scene(data, camera=cam)
@@ -176,6 +184,11 @@ def main() -> None:
     args.out.parent.mkdir(parents=True, exist_ok=True)
     tile(frames, 4).save(args.out)
     print(f"[probe] filmstrip -> {args.out}")
+    if args.video is not None and video_frames:
+        import imageio.v3 as iio
+        args.video.parent.mkdir(parents=True, exist_ok=True)
+        iio.imwrite(args.video, np.stack(video_frames), fps=30)
+        print(f"[probe] video -> {args.video}")
 
 
 if __name__ == "__main__":

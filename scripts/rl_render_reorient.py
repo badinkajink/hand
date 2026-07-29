@@ -11,7 +11,7 @@ Usage:
   uv run python scripts/rl_render_reorient.py \
       --run results/rl/bx_20260601-2310-policyB_v2_smooth5x \
       --checkpoint model_1219.pt \
-      --output docs/rl/videos/reorient/policyB_v2_smooth5x.mp4
+      --output docs/rl/videos/<YYYYMMDD>_reorient/<HHMM>_policyB_v2_smooth5x.mp4
 """
 from __future__ import annotations
 import argparse

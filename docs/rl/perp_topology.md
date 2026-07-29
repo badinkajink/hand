@@ -251,7 +251,7 @@ collapsing, `peak_cos` 0.543 vs A's 0.014, but `obj_jerk` 680 vs A's 0.83. The c
 handoff eval says why — **FAIL**, min hold-phase obj-z 0.009 m, net lateral drift 15.1 cm,
 object flung at 3 m/s. The video is unambiguous: A lifts cleanly, then at the handoff step B
 throws the shaft away and the hand is empty for the rest of the rollout
-(`docs/rl/videos/reorient/handoff_perp.mp4`).
+(`docs/rl/videos/20260728_reorient/2207_handoff_perp.mp4`).
 
 `train_handoff_liveA_reset.sh` now accepts `B_CKPT=none` to train B from scratch, mirroring
 `WARMSTART=none` in `train_A_on_morph.sh`. That is the right default here: this topology's

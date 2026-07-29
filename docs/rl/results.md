@@ -117,7 +117,7 @@ Per checkpoint: `random_pose_eval.mp4` (random sample of full DR, deterministic 
 **Final deterministic eval, full DR (64 envs random poses, single video):**
 
 <video controls width="100%" preload="metadata">
-  <source src="videos/cube_stable_v1/eval_1400_random_pose.mp4" type="video/mp4">
+  <source src="videos/20260528_cube_stable_v1/2300_eval_1400_random_pose.mp4" type="video/mp4">
 </video>
 
 **Pose-grid corners** (single-env, fixed cube pose per video) — shows the
@@ -126,15 +126,15 @@ the (x, y) grid cell, where 0=−jitter, 1=center, 2=+jitter.
 
 <table style="width:100%; table-layout: fixed">
   <tr>
-    <td><b>x=−20mm, y=−5mm</b><br/><video controls width="100%" preload="metadata"><source src="videos/cube_stable_v1/pose_x0_y0.mp4" type="video/mp4"></video></td>
-    <td><b>x=−20mm, y=+5mm</b><br/><video controls width="100%" preload="metadata"><source src="videos/cube_stable_v1/pose_x0_y2.mp4" type="video/mp4"></video></td>
+    <td><b>x=−20mm, y=−5mm</b><br/><video controls width="100%" preload="metadata"><source src="videos/20260528_cube_stable_v1/2300_pose_x0_y0.mp4" type="video/mp4"></video></td>
+    <td><b>x=−20mm, y=+5mm</b><br/><video controls width="100%" preload="metadata"><source src="videos/20260528_cube_stable_v1/2300_pose_x0_y2.mp4" type="video/mp4"></video></td>
   </tr>
   <tr>
-    <td colspan="2"><b>x=0, y=0 (center)</b><br/><video controls width="50%" preload="metadata"><source src="videos/cube_stable_v1/pose_x1_y1.mp4" type="video/mp4"></video></td>
+    <td colspan="2"><b>x=0, y=0 (center)</b><br/><video controls width="50%" preload="metadata"><source src="videos/20260528_cube_stable_v1/2300_pose_x1_y1.mp4" type="video/mp4"></video></td>
   </tr>
   <tr>
-    <td><b>x=+20mm, y=−5mm</b><br/><video controls width="100%" preload="metadata"><source src="videos/cube_stable_v1/pose_x2_y0.mp4" type="video/mp4"></video></td>
-    <td><b>x=+20mm, y=+5mm</b><br/><video controls width="100%" preload="metadata"><source src="videos/cube_stable_v1/pose_x2_y2.mp4" type="video/mp4"></video></td>
+    <td><b>x=+20mm, y=−5mm</b><br/><video controls width="100%" preload="metadata"><source src="videos/20260528_cube_stable_v1/2300_pose_x2_y0.mp4" type="video/mp4"></video></td>
+    <td><b>x=+20mm, y=+5mm</b><br/><video controls width="100%" preload="metadata"><source src="videos/20260528_cube_stable_v1/2300_pose_x2_y2.mp4" type="video/mp4"></video></td>
   </tr>
 </table>
 
@@ -144,12 +144,12 @@ the tracking-from-CEM rewards fully anneal off (also iter 400).
 
 <table style="width:100%; table-layout: fixed">
   <tr>
-    <td><b>iter 50</b> (DR ~12 %)<br/><video controls width="100%" preload="metadata"><source src="videos/cube_stable_v1/training_iter_50.mp4" type="video/mp4"></video></td>
-    <td><b>iter 400</b> (DR full, tracking off)<br/><video controls width="100%" preload="metadata"><source src="videos/cube_stable_v1/training_iter_400.mp4" type="video/mp4"></video></td>
+    <td><b>iter 50</b> (DR ~12 %)<br/><video controls width="100%" preload="metadata"><source src="videos/20260528_cube_stable_v1/2300_training_iter_50.mp4" type="video/mp4"></video></td>
+    <td><b>iter 400</b> (DR full, tracking off)<br/><video controls width="100%" preload="metadata"><source src="videos/20260528_cube_stable_v1/2300_training_iter_400.mp4" type="video/mp4"></video></td>
   </tr>
   <tr>
-    <td><b>iter 800</b><br/><video controls width="100%" preload="metadata"><source src="videos/cube_stable_v1/training_iter_800.mp4" type="video/mp4"></video></td>
-    <td><b>iter 1400</b> (best checkpoint)<br/><video controls width="100%" preload="metadata"><source src="videos/cube_stable_v1/training_iter_1400.mp4" type="video/mp4"></video></td>
+    <td><b>iter 800</b><br/><video controls width="100%" preload="metadata"><source src="videos/20260528_cube_stable_v1/2300_training_iter_800.mp4" type="video/mp4"></video></td>
+    <td><b>iter 1400</b> (best checkpoint)<br/><video controls width="100%" preload="metadata"><source src="videos/20260528_cube_stable_v1/2300_training_iter_1400.mp4" type="video/mp4"></video></td>
   </tr>
 </table>
 
@@ -162,20 +162,20 @@ checkpoint at iter 800 (closest saved iter to the post-curriculum
 peak metric at iter 819).
 
 <video controls width="100%" preload="metadata">
-  <source src="videos/prism_stable_v1/eval_800_random_pose.mp4" type="video/mp4">
+  <source src="videos/20260529_prism_stable_v1/0123_eval_800_random_pose.mp4" type="video/mp4">
 </video>
 
 <table style="width:100%; table-layout: fixed">
   <tr>
-    <td><b>x=−6mm, y=−10mm</b><br/><video controls width="100%" preload="metadata"><source src="videos/prism_stable_v1/pose_x0_y0.mp4" type="video/mp4"></video></td>
-    <td><b>x=−6mm, y=+10mm</b><br/><video controls width="100%" preload="metadata"><source src="videos/prism_stable_v1/pose_x0_y2.mp4" type="video/mp4"></video></td>
+    <td><b>x=−6mm, y=−10mm</b><br/><video controls width="100%" preload="metadata"><source src="videos/20260529_prism_stable_v1/0122_pose_x0_y0.mp4" type="video/mp4"></video></td>
+    <td><b>x=−6mm, y=+10mm</b><br/><video controls width="100%" preload="metadata"><source src="videos/20260529_prism_stable_v1/0122_pose_x0_y2.mp4" type="video/mp4"></video></td>
   </tr>
   <tr>
-    <td colspan="2"><b>x=0, y=0 (centered on +6,−3)</b><br/><video controls width="50%" preload="metadata"><source src="videos/prism_stable_v1/pose_x1_y1.mp4" type="video/mp4"></video></td>
+    <td colspan="2"><b>x=0, y=0 (centered on +6,−3)</b><br/><video controls width="50%" preload="metadata"><source src="videos/20260529_prism_stable_v1/0122_pose_x1_y1.mp4" type="video/mp4"></video></td>
   </tr>
   <tr>
-    <td><b>x=+6mm, y=−10mm</b><br/><video controls width="100%" preload="metadata"><source src="videos/prism_stable_v1/pose_x2_y0.mp4" type="video/mp4"></video></td>
-    <td><b>x=+6mm, y=+10mm</b><br/><video controls width="100%" preload="metadata"><source src="videos/prism_stable_v1/pose_x2_y2.mp4" type="video/mp4"></video></td>
+    <td><b>x=+6mm, y=−10mm</b><br/><video controls width="100%" preload="metadata"><source src="videos/20260529_prism_stable_v1/0122_pose_x2_y0.mp4" type="video/mp4"></video></td>
+    <td><b>x=+6mm, y=+10mm</b><br/><video controls width="100%" preload="metadata"><source src="videos/20260529_prism_stable_v1/0122_pose_x2_y2.mp4" type="video/mp4"></video></td>
   </tr>
 </table>
 
@@ -187,26 +187,26 @@ cylinder to a median 10.4 cm with perfect contact_min hold and
 sub-mm drift.
 
 <video controls width="100%" preload="metadata">
-  <source src="videos/screwdriver_vertical_stable_v1/eval_550_random_pose.mp4" type="video/mp4">
+  <source src="videos/20260529_screwdriver_vertical_stable_v1/0123_eval_550_random_pose.mp4" type="video/mp4">
 </video>
 
 <table style="width:100%; table-layout: fixed">
   <tr>
-    <td><b>x=−2mm, y=−2mm</b><br/><video controls width="100%" preload="metadata"><source src="videos/screwdriver_vertical_stable_v1/pose_x0_y0.mp4" type="video/mp4"></video></td>
-    <td><b>x=−2mm, y=+2mm</b><br/><video controls width="100%" preload="metadata"><source src="videos/screwdriver_vertical_stable_v1/pose_x0_y2.mp4" type="video/mp4"></video></td>
+    <td><b>x=−2mm, y=−2mm</b><br/><video controls width="100%" preload="metadata"><source src="videos/20260529_screwdriver_vertical_stable_v1/0122_pose_x0_y0.mp4" type="video/mp4"></video></td>
+    <td><b>x=−2mm, y=+2mm</b><br/><video controls width="100%" preload="metadata"><source src="videos/20260529_screwdriver_vertical_stable_v1/0122_pose_x0_y2.mp4" type="video/mp4"></video></td>
   </tr>
   <tr>
-    <td colspan="2"><b>x=0, y=0 (center)</b><br/><video controls width="50%" preload="metadata"><source src="videos/screwdriver_vertical_stable_v1/pose_x1_y1.mp4" type="video/mp4"></video></td>
+    <td colspan="2"><b>x=0, y=0 (center)</b><br/><video controls width="50%" preload="metadata"><source src="videos/20260529_screwdriver_vertical_stable_v1/0122_pose_x1_y1.mp4" type="video/mp4"></video></td>
   </tr>
   <tr>
-    <td><b>x=+2mm, y=−2mm</b><br/><video controls width="100%" preload="metadata"><source src="videos/screwdriver_vertical_stable_v1/pose_x2_y0.mp4" type="video/mp4"></video></td>
-    <td><b>x=+2mm, y=+2mm</b><br/><video controls width="100%" preload="metadata"><source src="videos/screwdriver_vertical_stable_v1/pose_x2_y2.mp4" type="video/mp4"></video></td>
+    <td><b>x=+2mm, y=−2mm</b><br/><video controls width="100%" preload="metadata"><source src="videos/20260529_screwdriver_vertical_stable_v1/0122_pose_x2_y0.mp4" type="video/mp4"></video></td>
+    <td><b>x=+2mm, y=+2mm</b><br/><video controls width="100%" preload="metadata"><source src="videos/20260529_screwdriver_vertical_stable_v1/0122_pose_x2_y2.mp4" type="video/mp4"></video></td>
   </tr>
 </table>
 
 ### All three stable runs — training-curve overlay
 
-![Overlay of cube/prism/screwdriver stable runs](videos/_overlay_all_stable.png)
+![Overlay of cube/prism/screwdriver stable runs](videos/20260529_misc/0122__overlay_all_stable.png)
 
 ### Reproduce / make your own videos
 

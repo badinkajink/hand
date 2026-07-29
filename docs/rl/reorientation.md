@@ -247,8 +247,8 @@ rotation + translation.
 
 **The headline finding — floor-bracing.**
 
-Visual inspection of [v4_peak_floorbracing.mp4](videos/reorient/v4_peak_floorbracing.mp4)
-and [v4_final_floorbracing.mp4](videos/reorient/v4_final_floorbracing.mp4)
+Visual inspection of [v4_peak_floorbracing.mp4](videos/20260601_reorient/1502_v4_peak_floorbracing.mp4)
+and [v4_final_floorbracing.mp4](videos/20260601_reorient/1502_v4_final_floorbracing.mp4)
 revealed that the policy was **using the floor as an external pivot to
 help roll the cylinder.** The cylinder is barely lifted
 (object_height ≈ 0.045 m) and the cylinder's long axis (8 cm) means its
@@ -442,8 +442,8 @@ Verification videos (single deterministic 4 s rollout from `model_1219.pt`,
 rendered via `scripts/rl_render_reorient.py` — the phase-B half of the
 handoff demo, driven from each run's own `config.yaml`):
 
-- [policyB_v2_smooth5x.mp4](videos/reorient/policyB_v2_smooth5x.mp4) — **chosen**
-- [policyB_v2_smooth10x.mp4](videos/reorient/policyB_v2_smooth10x.mp4)
+- [policyB_v2_smooth5x.mp4](videos/20260602_reorient/0021_policyB_v2_smooth5x.mp4) — **chosen**
+- [policyB_v2_smooth10x.mp4](videos/20260602_reorient/0021_policyB_v2_smooth10x.mp4)
 
 Both keep the object aloft the whole rollout (min center-z 0.111 / 0.114 m,
 well above the 0.05 m floor-proximity threshold) — genuine in-hand
@@ -505,8 +505,8 @@ Comparable raw jitter = `reward / |weight|` (in parens). Final converged block:
 Verification videos (single deterministic 4 s rollout from `model_1219.pt`, via
 `scripts/rl_render_reorient.py`):
 
-- [policyB_v2_smooth10x_quick.mp4](videos/reorient/policyB_v2_smooth10x_quick.mp4) — **recommended final Policy B v2**
-- [policyB_v2_smooth5x_quick.mp4](videos/reorient/policyB_v2_smooth5x_quick.mp4) — the "quick" variant (regressed; see below)
+- [policyB_v2_smooth10x_quick.mp4](videos/20260602_reorient/0133_policyB_v2_smooth10x_quick.mp4) — **recommended final Policy B v2**
+- [policyB_v2_smooth5x_quick.mp4](videos/20260602_reorient/0133_policyB_v2_smooth5x_quick.mp4) — the "quick" variant (regressed; see below)
 
 Both stay aloft the whole rollout (min center-z 0.120 / 0.115 m ≫ the 0.05 m
 floor-proximity threshold) — genuine in-hand reorientation, no floor-bracing.
@@ -724,7 +724,7 @@ first place, so adding terms looked harmless/helpful).
 `results/rl/b03_20260602-1636-policyB_abl_signed/tensorboard/model_405.pt`
 (v1 recipe + signed `target_axis_progress` + critic warmstart; no smoothness / quick /
 de-centering / lateral terms). Holds cos 0.978 (beats v1's 0.96), fixes slip-back, stays
-aloft (min-z 0.11 m). Video: [policyB_signed_critic.mp4](videos/reorient/policyB_signed_critic.mp4).
+aloft (min-z 0.11 m). Video: [policyB_signed_critic.mp4](videos/20260603_reorient/1250_policyB_signed_critic.mp4).
 A longer (30M) run from v1 would likely polish it further but isn't required.
 
 **Smoothness / de-centering / bracing — where they stand:**
@@ -961,7 +961,7 @@ B10): continuous handoff@40, **post-handoff min-z 0.110 m (HELD ≫ 0.05)**, hel
 and reorients. Every prior teleport approach dropped within 3–5 steps (min-z 0.003–0.011).
 Training signature confirmed it: masked-frac fell 0.95→0.20 (episodes lengthened ~5×),
 align 0.45→58.9, tip_lost 51→8, episodes ran to time_out. Video:
-[handoff_liveAreset_scale02.mp4](videos/reorient/handoff_liveAreset_scale02.mp4).
+[handoff_liveAreset_scale02.mp4](videos/20260610_reorient/1201_handoff_liveAreset_scale02.mp4).
 
 > **⚠️ CONFIG-PARITY GOTCHA (#13).** That run trained at `finger_residual_scale=0.2` (the
 > `rl_train_cube` default) while B10 (warmstart) AND the deploy demo use **0.5**. B relearned
@@ -1018,7 +1018,7 @@ modest, ~5° closer to vertical; the hold stays solid ~0.11) — but did **not**
 B4's standalone 0.988. **The B10-warmstart basin is a stubborn quality ceiling that
 reward-shaping only nudges.** New best handoff policy =
 `b29_…B10qual_commit60/tensorboard/model_405.pt`
-([handoff_B10qual_commit60.mp4](videos/reorient/handoff_B10qual_commit60.mp4)).
+([handoff_B10qual_commit60.mp4](videos/20260611_reorient/1231_handoff_B10qual_commit60.mp4)).
 Breaking past ~0.8 likely needs a *new mechanism* (distill B4's reorientation onto the
 held post-seam states b29 visits — behavior cloning / teacher-student), not more
 reward tuning. Iterate from b29, not b24.
@@ -1268,10 +1268,10 @@ is real, not floor-braced like `m03`:
 | drop | **0.00** | 0.00 |
 | per-finger force | 11.7 / 12.7 / 9.3 N (all loaded) | balanced tripod |
 
-Video: [morph_landscape_grid.mp4](videos/reorient/morph_landscape_grid.mp4) — a 2×3 grid of
+Video: [morph_landscape_grid.mp4](videos/20260630_reorient/1100_morph_landscape_grid.mp4) — a 2×3 grid of
 six designs' trained rollouts (m05 winner, m03 floor-brace, m07/m11 partial, m06 idle,
 m01 thumb-grasp-fails), which makes the failure modes legible at a glance; and
-[m05_landscape_winner.mp4](videos/reorient/m05_landscape_winner.mp4) — m05's clean
+[m05_landscape_winner.mp4](videos/20260625_reorient/1656_m05_landscape_winner.mp4) — m05's clean
 deterministic reorient on its own.
 
 **m05's design:** thumb (+.015, +.005, +.011), index (+.004, +.002, +.012),
@@ -1358,7 +1358,7 @@ collapse (contrast: every prior attempt, incl. the baseline lineage, dropped *at
 min-z 0.003–0.008). B then **holds and reorients to cos 0.94 (peak 0.987) for ~120 steps.** The
 remaining failure is a **late de-centering slip** (lateral drift creeps up, grip migrates off,
 object drops ~step 190) — a qualitatively milder, different problem than the seam drop.
-Video: [handoff_m05_continuous.mp4](videos/reorient/handoff_m05_continuous.mp4).
+Video: [handoff_m05_continuous.mp4](videos/20260701_reorient/1411_handoff_m05_continuous.mp4).
 
 ### B→A co-refinement — moving A (by B's downstream reward) reduces the slip
 
@@ -1383,7 +1383,7 @@ then re-eval the handoff with the co-refined A:
 and extended the hold ~30 steps**, directly attacking the exact failure mode. It does not yet
 eliminate the eventual drop; a longer / alternating co-adaptation (move A, refreeze, refinetune
 B, repeat) is the natural next step. Video:
-[handoff_m05_corefined.mp4](videos/reorient/handoff_m05_corefined.mp4).
+[handoff_m05_corefined.mp4](videos/20260701_reorient/1441_handoff_m05_corefined.mp4).
 
 **Takeaways.**
 1. **Cross-morphology grasp transfer must be world-frame (IK), not joint-space** — the single
@@ -1464,7 +1464,7 @@ the baseline reorient lineage always used; `train_A_on_morph.sh` had hardcoded 0
   | drop | ✓ | ✓ **PASS (0.127)** |
   | **verdict** | **FAIL** | **WARN** (firm grip + micro-slide only) |
 
-  Video: [handoff_m05_FIXED.mp4](videos/reorient/handoff_m05_FIXED.mp4). This is the **first
+  Video: [handoff_m05_FIXED.mp4](videos/20260702_reorient/1431_handoff_m05_FIXED.mp4). This is the **first
   health-gated genuine pickup→reorient on a co-designed morphology**: instant balanced 3-finger
   grasp, held aloft the whole rollout, reoriented to cos ~0.90, smooth (jitter 9.6). The remaining
   WARNs are the known firm grip (~7 N, the low-force goal) and a benign micro-slide.
@@ -1474,7 +1474,7 @@ the baseline reorient lineage always used; `train_A_on_morph.sh` had hardcoded 0
   on a degenerate policy). It **improved every axis while staying health-clean**: held-cos
   0.898→**0.974** (peak 0.981), post-handoff min-z 0.121→**0.139**, jitter 9.6→**5.9**, net drift
   0.8→**0.2 cm**, still 4/4 hard checks PASS. Video:
-  [handoff_m05_FIXED_corefined.mp4](videos/reorient/handoff_m05_FIXED_corefined.mp4). Confirms A's
+  [handoff_m05_FIXED_corefined.mp4](videos/20260702_reorient/1459_handoff_m05_FIXED_corefined.mp4). Confirms A's
   lift is genuinely optimizable for downstream reorient quality via gradient — the "slow gradient
   updates B→A" lever, validated on a healthy base.
 
@@ -1587,9 +1587,9 @@ Ranked by held-cos (figures `morph_pipeline_large16_summary.png` / `_training.pn
 3. **Best design lead = `L01_13`** (`thumb_x +9 mm`, a real thumb reposition toward opposition):
    m05-level verticality (0.76) at **lower force (7.4 vs 10.9) and half the object jerk (6.0 vs
    12.5)**. If replicated across seeds, this is a smoother, lower-force design at equal verticality.
-   Videos: [L01_13](videos/reorient/sweep/L01_13_handoff.mp4),
-   [L01_06](videos/reorient/sweep/L01_06_handoff.mp4),
-   [L01_00 (m05)](videos/reorient/sweep/L01_00_center_handoff.mp4).
+   Videos: [L01_13](videos/20260704_sweep/2015_L01_13_handoff.mp4),
+   [L01_06](videos/20260704_sweep/0902_L01_06_handoff.mp4),
+   [L01_00 (m05)](videos/20260704_sweep/0141_L01_00_center_handoff.mp4).
 
 ### Multi-seed confirmation — NEGATIVE: seed variance swamps any local design effect
 
@@ -2859,7 +2859,7 @@ evidence. G02_05's r2/r3 remain the open half — its A (r2 t0) is training now.
 
 Hold streak intact: min-z 0.1108 ⇒ **21/21 policy-producing legs ≥ 0.103** — pick-up/hold
 stays solved through the confirm draws. Video
-`docs/rl/videos/reorient/sweep/G02_00_r2_handoff.mp4` (+ `.health.json`).
+`docs/rl/videos/20260712_sweep/2353_G02_00_r2_handoff.mp4` (+ `.health.json`).
 
 ### P4 confirm — leg 2/4 (2026-07-13 ~02:00 tick): G02_05_r2 goes fully static — the program-best design's promotion bar is now mathematically unreachable
 
@@ -2903,7 +2903,7 @@ flipped.
 expression-fraction framing now covers both confirm candidates (G02_00 2/3, G02_05 1/3).
 Hold streak: min-z 0.107 ⇒ **22/22 policy-producing legs ≥ 0.103**. In flight: G02_00_r3
 (A t0 training since 01:32, CEM lift 0.052); G02_05_r3 last; batch ETA ~04:40. Video
-`docs/rl/videos/reorient/sweep/G02_05_r2_handoff.mp4` (+ `.health.json`).
+`docs/rl/videos/20260713_sweep/0128_G02_05_r2_handoff.mp4` (+ `.health.json`).
 
 ### P4 confirm — leg 3/4 (2026-07-13 ~05:00 tick): G02_00_r3 reorients at its design-best (0.681) — and still misses the promotion bar by 0.018; the confirm question is formally CLOSED
 
@@ -2950,7 +2950,7 @@ program (m05 2/3, G02_05 1/3). Hold streak: min-z 0.1156 ⇒ **23/23 policy-prod
 but health-FAILed → t1 training since ~04:56 (objheight 0.1106, healthy); batch ETA
 ~07:30 (both r3 legs spent the full best-of-2 budget). On completion: n=4/n=4 band
 close-out + program synthesis; GPU goes free. Video
-`docs/rl/videos/reorient/sweep/G02_00_r3_handoff.mp4` (+ `.health.json`).
+`docs/rl/videos/20260713_sweep/0356_G02_00_r3_handoff.mp4` (+ `.health.json`).
 
 ### PROGRAM CLOSE-OUT (2026-07-13 06:09): confirm 4/4 done, no promotion — the policy-bottleneck program's answer, in full
 
@@ -2989,11 +2989,11 @@ confirm; ~70 h GPU, 40 pipeline legs, 12 global designs + 5 rescue designs + 2 c
    is with the user.** GPU free as of 06:09.
 
 **Comparison videos (2026-07-13, `scripts/make_sweep_video_grids.py`):**
-[global12_lift_grid.mp4](videos/reorient/global12_lift_grid.mp4) (best draw per design,
+[global12_lift_grid.mp4](videos/20260713_reorient/1010_global12_lift_grid.mp4) (best draw per design,
 lift phase 2×-slowed — all 12 geometries deliver),
-[global12_reorient_grid.mp4](videos/reorient/global12_reorient_grid.mp4) (same draws
+[global12_reorient_grid.mp4](videos/20260713_reorient/1010_global12_reorient_grid.mp4) (same draws
 post-handoff — the axis where everything varies),
-[global12_highlights.mp4](videos/reorient/global12_highlights.mp4) (m05 a10→b33 +0.90 vs
+[global12_highlights.mp4](videos/20260713_reorient/1010_global12_highlights.mp4) (m05 a10→b33 +0.90 vs
 G02_00 r3 +0.68 vs G02_05 r1 +0.89). Also embedded in webpaper `rl.typ` §policy-bottleneck.
 
 ---
@@ -3022,37 +3022,37 @@ historical figure frozen).
 
 ### Headline videos
 
-- [handoff_demo.mp4](videos/reorient/handoff_demo.mp4) — **The
+- [handoff_demo.mp4](videos/20260601_reorient/1637_handoff_demo.mp4) — **The
   end-to-end handoff demo.** Policy A picks up the flat-laying
   cylinder and holds it stable (3 s); Policy B then reorients it
   toward vertical (4 s). Both policies running live in simulation,
   concatenated in one rollout. Generated by
   [scripts/rl_demo_handoff.py](../../scripts/rl_demo_handoff.py).
-- [reorient_comparison_grid.mp4](videos/reorient/reorient_comparison_grid.mp4)
+- [reorient_comparison_grid.mp4](videos/20260601_reorient/1650_reorient_comparison_grid.mp4)
   — **2×2 side-by-side comparison.** Top-left: v3 (reward never fires).
   Top-right: v4 floor-bracing. Bottom-left: v5 (no floor = no rotation).
   Bottom-right: Policy A → Policy B concatenated (the two-policy
   solution: pickup, then in-hand rotate). One-screen overview of the
   whole journey.
-- [v4_peak_floorbracing.mp4](videos/reorient/v4_peak_floorbracing.mp4)
+- [v4_peak_floorbracing.mp4](videos/20260601_reorient/1502_v4_peak_floorbracing.mp4)
   — v4 at iter ~950 (peak target_axis_progress). The cylinder is rolled
   while its distal end braces against the floor. **This is the
   "floor-bracing" behavior** — RL found that the ground reaction force
   helps with rotation when fingers alone can't.
-- [v4_final_floorbracing.mp4](videos/reorient/v4_final_floorbracing.mp4)
+- [v4_final_floorbracing.mp4](videos/20260601_reorient/1502_v4_final_floorbracing.mp4)
   — v4 at iter ~2000 (final). Same strategy, slightly regressed from
   peak.
-- [v5_final.mp4](videos/reorient/v5_final.mp4) — v5 final. Floor
+- [v5_final.mp4](videos/20260601_reorient/1502_v5_final.mp4) — v5 final. Floor
   contact forbidden; policy collapses to "hold the high lift, don't
   rotate." Showcases the no-floor-no-rotation result.
-- [policyA_lift.mp4](videos/reorient/policyA_lift.mp4) — `medium_flat_stable_v1`
+- [policyA_lift.mp4](videos/20260601_reorient/1630_policyA_lift.mp4) — `medium_flat_stable_v1`
   rollout: cylinder lying flat on floor → lifted and held horizontal.
   The "Policy A" half of the two-policy chain.
-- [policyB_final.mp4](videos/reorient/policyB_final.mp4) — Policy B v1
+- [policyB_final.mp4](videos/20260601_reorient/1502_policyB_final.mp4) — Policy B v1
   final. True in-hand reorientation from a pre-lifted spawn. Visibly
   jittery (sim-only exploit) but the cylinder genuinely rotates
   without floor contact.
-- [v3_final.mp4](videos/reorient/v3_final.mp4) — v3 final. Episodes die
+- [v3_final.mp4](videos/20260601_reorient/1610_v3_final.mp4) — v3 final. Episodes die
   at step ~40 (before reorient reward gate at step 50); cylinder barely
   moves. Stuck-in-lift-phase artifact of hostile terminations.
 
@@ -3227,7 +3227,7 @@ closed on. One early, weakly-positive signal for the freeze-len question: **no A
 held on draw 1 of an allowed 3), consistent with "no lift-hostile geometry in the box" carrying over
 to the XY-only slice — but n=1 says nothing yet about whether len-freezing lowers the collapse rate or
 sharpens resolvability. Note H06_01_r0's A already needed **2 attempts** (still held), so the A-draw
-term is live here too. Video `docs/rl/videos/reorient/sweep/H06_00_r0_handoff.mp4`; scorecard
+term is live here too. Video `docs/rl/videos/20260720_sweep/2209_H06_00_r0_handoff.mp4`; scorecard
 `…H06_00_r0_handoff.health.json`. Continuing to accumulate legs per the STATUS tree (docs/commit only
 while the worker runs).
 
@@ -3335,7 +3335,7 @@ untracked (same orphaning as H06_01/02/03/04). H06_06 produced **no handoff medi
   is a thrash, not a controlled reorient — the FAIL is correct. So the 6-dim r0 series to date is
   {−0.044, −0.048, −0.119, +0.006, **0.852**, +0.34(FAIL), [abort]}: **one clean strong reorient
   (H06_04), one thrashy partial (H06_05), four static** — the same draw-gated-expression shape as
-  9-dim. Video `docs/rl/videos/reorient/sweep/H06_05_r0_handoff.mp4`.
+  9-dim. Video `docs/rl/videos/20260721_sweep/0652_H06_05_r0_handoff.mp4`.
 - **H06_06_r0 — FIRST DESIGN-LEVEL ABORT of the 6-dim sweep.** CEM found a **graspable** grip (lift
   0.055, persist 1/1/1) — the open-loop CEM grip + scripted lift holds — but **Policy A never lifted**:
   all **3 attempts collapsed** (`sweep_A_H06_06_r0_t{0,1,2}.trainer.log.COLLAPSED` all present, best

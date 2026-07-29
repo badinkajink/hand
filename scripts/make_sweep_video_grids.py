@@ -12,7 +12,7 @@ Optionally a highlights row (--highlights id=video ...) hstacked at 2x scale.
 
 Videos are 320x240@50 (1 frame per control step; handoff onset = step 40 = 0.8 s).
 Run: uv run python scripts/make_sweep_video_grids.py --tag global12x2 \
-       --out-prefix docs/rl/videos/reorient/global12
+       --out-prefix docs/rl/videos/<YYYYMMDD>_sweep/global12
 """
 from __future__ import annotations
 import argparse, json, re, subprocess
@@ -83,7 +83,8 @@ def highlights(pairs, out: Path):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--tag", default="global12x2")
-    ap.add_argument("--out-prefix", default="docs/rl/videos/reorient/global12")
+    ap.add_argument("--out-prefix", default=None,
+                    help="default: docs/rl/videos/<today>_sweep/<HHMM>_grid (see morphohand.tools.video_paths)")
     ap.add_argument("--cols", type=int, default=4)
     ap.add_argument("--lift-end", default="1.5", help="lift-phase trim end (s); onset=0.8")
     ap.add_argument("--highlights", nargs="*", default=None,
@@ -91,7 +92,11 @@ def main():
     args = ap.parse_args()
     items = best_per_design(args.tag)
     print(f"{len(items)} designs: " + ", ".join(f"{b} {r} {c:+.2f}" for b, r, c, _ in items))
-    pre = ROOT / args.out_prefix
+    if args.out_prefix:
+        pre = ROOT / args.out_prefix
+    else:
+        from morphohand.tools.video_paths import video_out
+        pre = video_out("grid", "sweep", ext="")
     # lift phase at half speed (it is only ~1.2 s of footage)
     grid(items, pre.with_name(pre.name + "_lift_grid.mp4"),
          trim=f"0:{args.lift_end}", pts="2*(PTS-STARTPTS)", cols=args.cols)
