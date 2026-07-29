@@ -87,8 +87,12 @@ def actuator_ctrl_from_qpos(m, d) -> list[float]:
 
 
 def inject_keyframe(scene: Path, name: str, qpos: str, ctrl: str) -> None:
-    """Insert/replace <key name=...> in the scene XML."""
-    tree = ET.parse(scene)
+    """Insert/replace <key name=...> in the scene XML.
+
+    Parses with comments retained — ElementTree drops them by default, which silently ate the
+    design rationale out of hand-authored scenes every time a keyframe was rewritten.
+    """
+    tree = ET.parse(scene, ET.XMLParser(target=ET.TreeBuilder(insert_comments=True)))
     root = tree.getroot()
     kf = root.find("keyframe")
     if kf is None:
