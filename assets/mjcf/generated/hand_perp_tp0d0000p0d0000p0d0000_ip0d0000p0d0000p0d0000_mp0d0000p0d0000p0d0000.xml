@@ -1,53 +1,4 @@
-<mujoco model="morphohand_scene_screwdriver_medium_perp">
-  <!--
-    PERPENDICULAR-FINGER TOPOLOGY ("perp"), 2026-07-28.
-
-    Departure from the baseline hand: index + middle are rotated 90 deg about the palm Z so
-    their pointing axes are ANTI-PARALLEL along world Y (they face each other, a parallel-jaw
-    pinch), while the thumb still points along +X — i.e. every finger is perpendicular to its
-    neighbour, and index/middle are 180 deg apart.
-
-      baseline                              perp
-      thumb  -> +x                          thumb  ->  +x
-      index  -> +x   (all parallel)         index  ->  -y   \  opposed pair,
-      middle -> +x                          middle ->  +y   /  pinch axis = Y
-
-    Design consequences baked in here:
-
-      * The screwdriver lies along WORLD X (quat = 90 deg about Y), so the opposed pair pinches
-        ACROSS the shaft instead of on its end caps. The pinch axis (Y) is then exactly the axis
-        the reorient task must rotate about: the pair acts as a revolute bearing and the thumb,
-        pressing on top of the shaft off-centre in X, supplies the pitching torque.
-
-      * The opposed pair sits at x = +35 mm: it pinches the shaft 35 mm OFF its centre of mass,
-        near the +X end. This is the load-bearing choice. The pinch axis is a near-frictionless
-        pivot about Y, so an off-centre pinch lets GRAVITY do the reorientation - the long side
-        swings down and the shaft ends hanging vertically, +X end up, which is exactly cos=+1 for
-        the signed reward. Centred, the shaft just hangs level and the thumb has to do all the
-        work. Both pads stay at the SAME x: staggering them along the shaft trivially avoids the
-        fingers meeting, but two opposed point contacts offset along X apply a couple about Z and
-        the shaft would just spin in the horizontal plane.
-
-      * index/middle mounts sit in the palm plane at |y| = 48 mm. A facing finger must not be
-        asked to reach far INWARD: the tip target then sits near the finger's MINIMUM reach
-        (0.0949 m, pip at its flexion limit), the 90 mm proximal chain overshoots the midline
-        and the distal link hooks back outward — the pair crosses and self-collides. At 48 mm
-        each arm hangs nearly straight (|tip-mount| = 0.115 of a 0.12 reach) with its elbow
-        outboard of its tip.
-
-      * The thumb keeps its +X mount but moves back to x = -65 mm and its pip range widens to
-        -1.8 rad. It now opposes from ABOVE (over the top of the shaft) rather than curling
-        around from below, and the baseline -1.2 limit put the top of the shaft inside its
-        minimum reach shell.
-
-      * The palm plate is inset so no finger capsule intersects it. The baseline scene carries a
-        permanent ~186 N palm<->mcp penetration contact at its open keyframe; this one has none.
-
-    The 90 deg rotation lives on `<finger>_yaw_frame`, NOT on `<finger>_mount`: the morph x/y
-    slide joints stay expressed in the palm frame, so `morphology_xml.create_rigid_morphology_xml`
-    bakes the 9-param design exactly as it does for every other scene, and a morphology sweep can
-    be run over this topology unchanged.
-  -->
+<mujoco model="hand_perp_tp0d0000p0d0000p0d0000_ip0d0000p0d0000p0d0000_mp0d0000p0d0000p0d0000">
   <compiler angle="radian" autolimits="true" />
   <option timestep="0.002" gravity="0 0 -9.81" integrator="implicitfast" />
   <visual>
@@ -62,9 +13,6 @@
     <default class="pose">
       <joint damping="2.0" armature="0.01" />
       <position kp="4000" kv="100" forcerange="-1000 1000" />
-    </default>
-    <default class="morph">
-      <joint damping="2000" armature="0.0001" />
     </default>
     <default class="ctrl">
       <joint damping="0.5" armature="0.001" />
@@ -86,8 +34,6 @@
     <light pos="0 0 1.5" dir="0 0 -1" directional="true" diffuse=".6 .6 .6" specular=".2 .2 .2" />
     <light pos="0.5 0.5 1.0" dir="-1 -1 -1" directional="true" diffuse=".4 .4 .4" specular=".1 .1 .1" />
     <geom name="floor" type="plane" size="1.5 1.5 0.1" material="groundplane" />
-    <!-- Medium screwdriver, lying flat ALONG WORLD X (quat = 90 deg about Y).
-         Radius 0.0125 m, half-length 0.05 m, resting centre height 0.0125 m. -->
     <body name="screwdriver_medium" pos="0.0 0.0 0.0125" quat="0.70711 0 0.70711 0">
       <freejoint />
       <geom type="cylinder" size="0.0125 0.05" density="500" material="object_mat" friction="2.4 0.2 0.02" />
@@ -100,14 +46,11 @@
       <joint class="pose" name="palm_ry" type="hinge" axis="0 1 0" range="-1.57 1.57" />
       <joint class="pose" name="palm_rz" type="hinge" axis="0 0 1" range="-3.14 3.14" />
       <geom name="palm_plate" type="box" pos="-0.005 0 0" size="0.048 0.036 0.001" material="palm_mat" />
-      <!-- visual-only stalks out to the mounts (contype/conaffinity 0: never collide) -->
       <geom name="thumb_stalk" type="box" pos="-0.055 0 0" size="0.014 0.011 0.006" material="stalk_mat" contype="0" conaffinity="0" />
       <geom name="index_stalk" type="box" pos="0.035 0.042 0" size="0.012 0.008 0.005" material="stalk_mat" contype="0" conaffinity="0" />
       <geom name="middle_stalk" type="box" pos="0.035 -0.042 0" size="0.012 0.008 0.005" material="stalk_mat" contype="0" conaffinity="0" />
-      <body name="thumb_mount" pos="-0.065 0.0 0.0">
+      <body name="thumb_mount" pos="-0.065 0 0">
         <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
-        <joint class="morph" name="thumb_x" type="slide" axis="1 0 0" range="-0.03 0.03" />
-        <joint class="morph" name="thumb_y" type="slide" axis="0 1 0" range="-0.03 0.03" />
         <body name="thumb_yaw_frame">
           <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
           <joint class="ctrl" name="thumb_yaw" type="hinge" axis="1 0 0" range="-1.1 1.1" />
@@ -115,7 +58,6 @@
             <joint class="ctrl" name="thumb_mcp" type="hinge" axis="0 1 0" range="0 3.14" />
             <geom type="capsule" fromto="0 0 0 0.05 0 0" size="0.010" material="finger_mat" />
             <body name="thumb_len_frame" pos="0.05 0 0">
-              <joint class="morph" name="thumb_len" type="slide" axis="1 0 0" range="0.0 0.035" />
               <geom type="capsule" fromto="0 0 0 0.04 0 0" size="0.0085" material="finger_mat" />
               <body name="thumb_pip_frame" pos="0.04 0 0">
                 <joint class="ctrl" name="thumb_pip" type="hinge" axis="0 1 0" range="-1.8 0.5" />
@@ -130,11 +72,8 @@
           </body>
         </body>
       </body>
-      <!-- index: yaw frame rotated -90 deg about palm Z -> finger points along world -Y -->
-      <body name="index_mount" pos="0.035 0.048 0.0">
+      <body name="index_mount" pos="0.035 0.048 0">
         <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
-        <joint class="morph" name="index_x" type="slide" axis="1 0 0" range="-0.03 0.03" />
-        <joint class="morph" name="index_y" type="slide" axis="0 1 0" range="-0.03 0.03" />
         <body name="index_yaw_frame" quat="0.7071068 0 0 -0.7071068">
           <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
           <joint class="ctrl" name="index_yaw" type="hinge" axis="1 0 0" range="-1.1 1.1" />
@@ -142,24 +81,11 @@
             <joint class="ctrl" name="index_mcp" type="hinge" axis="0 1 0" range="0 2.5" />
             <geom type="capsule" fromto="0 0 0 0.05 0 0" size="0.010" material="finger_mat" />
             <body name="index_len_frame" pos="0.05 0 0">
-              <joint class="morph" name="index_len" type="slide" axis="1 0 0" range="0.0 0.035" />
               <geom type="capsule" fromto="0 0 0 0.04 0 0" size="0.0085" material="finger_mat" />
               <body name="index_pip_frame" pos="0.04 0 0">
                 <joint class="ctrl" name="index_pip" type="hinge" axis="0 1 0" range="-1.2 1.57" />
-                <!-- SLENDER distal phalange (r=4.5 mm vs the thumb's 7.5 mm). These fingers meet the
-                     shaft almost vertically, so a fat distal shaft grazes the shaft's upper flank
-                     just above the pad and becomes the binding contact - normal tilted DOWN, which
-                     shoves the shaft into the floor and unloads the pad entirely. Thin enough that
-                     only the 6 mm pad can reach the shaft. -->
                 <geom type="capsule" fromto="0 0 0 0.03 0 0" size="0.0045" material="finger_mat" />
                 <body name="index_tip" pos="0.03 0 0">
-                  <!-- NARROW pinch pad (r=6 mm, not the thumb's 10 mm). A 10 mm pad cannot touch
-                       the 12.5 mm shaft BELOW its equator without burying itself in the floor, so
-                       it can only contact the converging upper flank: the shaft settles a couple
-                       of mm on lift-off, the contact rides up the shoulder, penetration and grip
-                       force decay together and it drops. Friction is never the limit (slip ratio
-                       0.03-0.13); the wedge sign is. A 6 mm pad reaches ~2 mm BELOW the equator,
-                       so the contact normal tilts UPWARD and settling re-tightens the grip. -->
                   <geom type="sphere" size="0.006" material="finger_mat" friction="2.4 0.2 0.02" />
                   <geom type="sphere" pos="0 0.005 0" size="0.004" material="finger_mat" friction="2.4 0.2 0.02" />
                   <geom type="sphere" pos="0 -0.005 0" size="0.004" material="finger_mat" friction="2.4 0.2 0.02" />
@@ -169,11 +95,8 @@
           </body>
         </body>
       </body>
-      <!-- middle: yaw frame rotated +90 deg about palm Z -> points along world +Y, facing index -->
-      <body name="middle_mount" pos="0.035 -0.048 0.0">
+      <body name="middle_mount" pos="0.035 -0.048 0">
         <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
-        <joint class="morph" name="middle_x" type="slide" axis="1 0 0" range="-0.03 0.03" />
-        <joint class="morph" name="middle_y" type="slide" axis="0 1 0" range="-0.03 0.03" />
         <body name="middle_yaw_frame" quat="0.7071068 0 0 0.7071068">
           <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
           <joint class="ctrl" name="middle_yaw" type="hinge" axis="1 0 0" range="-1.1 1.1" />
@@ -181,24 +104,11 @@
             <joint class="ctrl" name="middle_mcp" type="hinge" axis="0 1 0" range="0 2.5" />
             <geom type="capsule" fromto="0 0 0 0.05 0 0" size="0.010" material="finger_mat" />
             <body name="middle_len_frame" pos="0.05 0 0">
-              <joint class="morph" name="middle_len" type="slide" axis="1 0 0" range="0.0 0.035" />
               <geom type="capsule" fromto="0 0 0 0.04 0 0" size="0.0085" material="finger_mat" />
               <body name="middle_pip_frame" pos="0.04 0 0">
                 <joint class="ctrl" name="middle_pip" type="hinge" axis="0 1 0" range="-1.2 1.57" />
-                <!-- SLENDER distal phalange (r=4.5 mm vs the thumb's 7.5 mm). These fingers meet the
-                     shaft almost vertically, so a fat distal shaft grazes the shaft's upper flank
-                     just above the pad and becomes the binding contact - normal tilted DOWN, which
-                     shoves the shaft into the floor and unloads the pad entirely. Thin enough that
-                     only the 6 mm pad can reach the shaft. -->
                 <geom type="capsule" fromto="0 0 0 0.03 0 0" size="0.0045" material="finger_mat" />
                 <body name="middle_tip" pos="0.03 0 0">
-                  <!-- NARROW pinch pad (r=6 mm, not the thumb's 10 mm). A 10 mm pad cannot touch
-                       the 12.5 mm shaft BELOW its equator without burying itself in the floor, so
-                       it can only contact the converging upper flank: the shaft settles a couple
-                       of mm on lift-off, the contact rides up the shoulder, penetration and grip
-                       force decay together and it drops. Friction is never the limit (slip ratio
-                       0.03-0.13); the wedge sign is. A 6 mm pad reaches ~2 mm BELOW the equator,
-                       so the contact normal tilts UPWARD and settling re-tightens the grip. -->
                   <geom type="sphere" size="0.006" material="finger_mat" friction="2.4 0.2 0.02" />
                   <geom type="sphere" pos="0 0.005 0" size="0.004" material="finger_mat" friction="2.4 0.2 0.02" />
                   <geom type="sphere" pos="0 -0.005 0" size="0.004" material="finger_mat" friction="2.4 0.2 0.02" />
@@ -228,12 +138,9 @@
     <position class="ctrl" name="a_middle_pip" joint="middle_pip" ctrlrange="-1.2 1.57" />
   </actuator>
   <keyframe>
-    <!-- Seed pose only; `open` is rewritten in place by scripts/pose_open_keyframe.py from
-         explicit fingertip world targets (the opposed pair just off the shaft flanks, the thumb
-         clear above it). -->
-    <key name="open" qpos="0 0 0.0125 0.707107 0 0.707107 0 0 0 0 0 0 0 0 0 0 1.90865 0 -1.8 0 0 4.34154e-17 1.13823 0 0.728527 0 0 -4.38085e-17 1.13823 0 0.728527" ctrl="0 0 0 0 0 0 0 1.90865 -1.8 4.34154e-17 1.13823 0.728527 -4.38085e-17 1.13823 0.728527" />
-    <key name="closed" qpos="0 0 0.0125 0.707107 0 0.707107 0 0 0 0 0 0 0 0 0 0 1.50407 0 -1.76939 0 0 4.83104e-17 1.11743 0 0.635855 0 0 -4.84827e-17 1.11743 0 0.635855" ctrl="0 0 0 0 0 0 0 1.50407 -1.76939 4.83104e-17 1.11743 0.635855 -4.84827e-17 1.11743 0.635855" />
-    <key name="press" qpos="0 0 0.0125 0.707107 0 0.707107 0 0 0 0 0 0 0 0 0 0 1.5154 0 -1.4802 0 0 4.83104e-17 1.11743 0 0.635855 0 0 -4.84827e-17 1.11743 0 0.635855" ctrl="0 0 0 0 0 0 0 1.5154 -1.4802 4.83104e-17 1.11743 0.635855 -4.84827e-17 1.11743 0.635855" />
-    <key name="open_ik" qpos="0 0 0.0125 0.707107 0 0.707107 0 0 0 0 0 0 0 0 0 0 1.90865 0 -1.8 0 0 4.34154e-17 1.13823 0 0.728527 0 0 -4.38085e-17 1.13823 0 0.728527" ctrl="0 0 0 0 0 0 0 1.90865 -1.8 4.34154e-17 1.13823 0.728527 -4.38085e-17 1.13823 0.728527" />
+    <key name="open" qpos="&#10;        0 0 0.0125 0.707107 0 0.707107 0 0 0 0 0 0 0 0 1.90865 -1.8 4.34154e-17 1.13823 0.728527 -4.38085e-17 1.13823 0.728527&#10;      " ctrl="&#10;        0 0 0 0 0 0 0 1.90865 -1.8 4.34154e-17 1.13823 0.728527 -4.38085e-17 1.13823 0.728527&#10;      " />
+    <key name="closed" qpos="&#10;        0 0 0.0125 0.707107 0 0.707107 0 0 0 0 0 0 0 0 1.50407 -1.76939 4.83104e-17 1.11743 0.635855 -4.84827e-17 1.11743 0.635855&#10;      " ctrl="0 0 0 0 0 0 0 1.50407 -1.76939 4.83104e-17 1.11743 0.635855 -4.84827e-17 1.11743 0.635855" />
+    <key name="press" qpos="&#10;        0 0 0.0125 0.707107 0 0.707107 0 0 0 0 0 0 0 0 1.5154 -1.4802 4.83104e-17 1.11743 0.635855 -4.84827e-17 1.11743 0.635855&#10;      " ctrl="0 0 0 0 0 0 0 1.5154 -1.4802 4.83104e-17 1.11743 0.635855 -4.84827e-17 1.11743 0.635855" />
+    <key name="open_ik" qpos="&#10;        0 0 0.0125 0.707107 0 0.707107 0 0 0 0 0 0 0 0 1.90865 -1.8 4.34154e-17 1.13823 0.728527 -4.38085e-17 1.13823 0.728527&#10;      " ctrl="0 0 0 0 0 0 0 1.90865 -1.8 4.34154e-17 1.13823 0.728527 -4.38085e-17 1.13823 0.728527" />
   </keyframe>
 </mujoco>

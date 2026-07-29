@@ -170,6 +170,26 @@ def _default_finger_ctrl_values() -> list[float]:
     return vals
 
 
+def _source_finger_ctrl_values(open_key: ET.Element | None, is_scene: bool) -> list[float] | None:
+    """The 9 finger ctrl-joint angles already in the source `open` key, or None.
+
+    Called before the morph qpos entries are stripped, so the layout is still the full
+    [x, y, yaw, mcp, len, pip] x 3 block (offset by the 13-entry object+palm prefix on a
+    scene model). For every baseline scene these values equal `_default_finger_ctrl_values()`,
+    so preserving them is a no-op there — but a hand whose open pose is NOT the baseline's
+    (e.g. the perpendicular/opposed-pair topology, whose fingers face each other and whose
+    open pose comes from fingertip IK) would otherwise have it silently overwritten.
+    """
+    if open_key is None or not open_key.get("qpos"):
+        return None
+    values = [float(v) for v in (open_key.get("qpos") or "").replace("\n", " ").split()]
+    start = 13 if is_scene else 0
+    if len(values) < start + 18:
+        return None
+    block = values[start : start + 18]
+    return [block[i] for i in (2, 3, 5, 8, 9, 11, 14, 15, 17)]
+
+
 def _write_open_keyframe(root: ET.Element) -> None:
     keyframe = root.find("keyframe")
     if keyframe is None:
@@ -180,11 +200,18 @@ def _write_open_keyframe(root: ET.Element) -> None:
         if key.get("name") == "open":
             open_key = key
             break
+
+    is_scene = _is_scene_model(root)
+    source_ctrl_joints = _source_finger_ctrl_values(open_key, is_scene)
+    source_ctrl = None
+    if open_key is not None and open_key.get("ctrl"):
+        source_ctrl = [float(v) for v in (open_key.get("ctrl") or "").replace("\n", " ").split()]
+
     if open_key is None:
         open_key = ET.SubElement(keyframe, "key", name="open")
 
-    ctrl_joint_values = _default_finger_ctrl_values()
-    prefix_vals = _scene_prefix_qpos_values(root) if _is_scene_model(root) else []
+    ctrl_joint_values = source_ctrl_joints or _default_finger_ctrl_values()
+    prefix_vals = _scene_prefix_qpos_values(root) if is_scene else []
     qpos_vals = prefix_vals + ctrl_joint_values
     open_key.set("qpos", "\n        " + " ".join(f"{v:g}" for v in qpos_vals) + "\n      ")
 
@@ -207,7 +234,10 @@ def _write_open_keyframe(root: ET.Element) -> None:
             "middle_mcp": 1.25,
             "middle_pip": 1.0,
         }
-        ctrl_vals = [ctrl_lookup.get(a.get("joint", ""), 0.0) for a in list(actuator)]
+        if source_ctrl is not None and len(source_ctrl) == len(list(actuator)):
+            ctrl_vals = source_ctrl
+        else:
+            ctrl_vals = [ctrl_lookup.get(a.get("joint", ""), 0.0) for a in list(actuator)]
         open_key.set("ctrl", "\n        " + " ".join(f"{v:g}" for v in ctrl_vals) + "\n      ")
 
 
