@@ -3,7 +3,7 @@
 Supersedes the 2026-06-25 landscape sweep (morph_landscape_sweep.py), which scored designs on a
 skip-lift TELEPORT reorienter warmstarting B4 (no native Policy A) and a JOINT-space keyframe that
 under-scored graspability. This sweep runs, per morphology, the exact CLEAN m05-fixed pipeline
-(the policy in docs/rl/videos/reorient/handoff_m05_FIXED.mp4, a10 -> b33):
+(the policy in docs/rl/videos/20260702_reorient/1431_handoff_m05_FIXED.mp4, a10 -> b33):
 
   1. generate scene XML from the 9-param design vector      (generate_morphology_xml.py)
   2. IK-retarget the fingertip open keyframe -> `open_ik`    (retarget_keyframe_ik helpers)
@@ -53,7 +53,9 @@ BASE_HAND = ROOT / "assets/mjcf/hand.xml"
 BASE_SCENE = ROOT / "assets/mjcf/scene_screwdriver_medium_flat_short_proximal.xml"
 GEN = ROOT / "assets/mjcf/experimental/morph_sweep"          # generated scenes (gitignored)
 CEM_OUT = ROOT / "results/phase1/morph_sweep"                 # CEM grasp outputs
-VID_OUT = ROOT / "docs/rl/videos/reorient/sweep"             # handoff videos + .health.json
+# handoff videos + .health.json, in the timestamped tree (morphohand.tools.video_paths)
+from morphohand.tools.video_paths import experiment_dir  # noqa: E402
+VID_OUT = experiment_dir("sweep")
 
 # 9-param design vector = t(x,y,len) i(x,y,len) m(x,y,len). Bounds from morph-joint ranges.
 BND = [(-0.025, 0.025), (-0.025, 0.025), (0.0, 0.030)] * 3

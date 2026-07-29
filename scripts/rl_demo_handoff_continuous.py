@@ -21,7 +21,7 @@ in this normal-lift env).
 Usage:
   uv run python scripts/rl_demo_handoff_continuous.py \
       --policy-b results/rl/b02_20260602-0024-policyB_v2_smooth10x_quick/tensorboard/model_1219.pt \
-      --output docs/rl/videos/reorient/handoff_continuous.mp4
+      --output docs/rl/videos/<YYYYMMDD>_reorient/<HHMM>_handoff_continuous.mp4
 """
 from __future__ import annotations
 import argparse
@@ -46,7 +46,8 @@ def main():
                     default=ROOT / "results/rl/b02_20260602-0024-policyB_v2_smooth10x_quick/tensorboard/model_1219.pt")
     ap.add_argument("--morphology-run", type=Path,
                     default=ROOT / "results/phase1/run18_multi_object_adapt/foundational/screwdriver_medium_flat/run_20260521_150259")
-    ap.add_argument("--output", type=Path, default=ROOT / "docs/rl/videos/reorient/handoff_continuous.mp4")
+    ap.add_argument("--output", type=Path, default=None,
+                    help="default: docs/rl/videos/<today>_reorient/<HHMM>_handoff_continuous.mp4")
     ap.add_argument("--handoff-step", type=int, default=40, help="policy step to switch A->B (after lift+settle)")
     ap.add_argument("--lift-delta", type=float, default=0.10,
                     help="scripted palm lift height (m). MUST match the evaluated A/B training "
@@ -123,7 +124,10 @@ def main():
         keyframe = json.load(f).get("keyframe", "open_short_manual")
     bfc = tuple(float(v) for v in np.load(args.morphology_run / "best_rollout.npz")["best_finger_ctrl"].reshape(-1))
     frozen = args.morphology_run / "frozen_scene.xml"
-    work = args.output.parent / "_hc_tmp"
+    from morphohand.tools.video_paths import tmp_dir, video_out
+    if args.output is None:
+        args.output = video_out("handoff_continuous", "reorient")
+    work = tmp_dir("handoff")
     work.mkdir(parents=True, exist_ok=True)
 
     # 1) Throwaway A-env to instantiate + load Policy A's actor. Detect A's obs dim

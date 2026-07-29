@@ -57,7 +57,8 @@ def train_B(design, a_ck: Path, cem_rel: str, mode: str, k: int, env):
 
 
 def eval_handoff(design, a_ck: Path, b_ck: Path, cem_rel: str, tag: str, env):
-    out = ROOT / f"docs/rl/videos/reorient/sweep/{tag}.mp4"
+    from morphohand.tools.video_paths import video_out
+    out = video_out(tag, "sweep")
     e = runlib.warp_cache_env(env)
     subprocess.run([sys.executable, str(ROOT / "scripts/rl_demo_handoff_continuous.py"),
                     "--policy-a", str(a_ck), "--policy-b", str(b_ck),

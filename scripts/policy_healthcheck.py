@@ -52,7 +52,9 @@ def main():
     # detect obs dim: 65 = Policy A (lift), 66 = a reorienter (target_axis obs)
     obs_dim = ckpt_obs_dim(args.policy)
     is_b = obs_dim == 66
-    work = ROOT / "docs/rl/videos/reorient/_hc_tmp"; work.mkdir(parents=True, exist_ok=True)
+    # temp renders live under logs/ (gitignored), never in the tracked docs tree
+    from morphohand.tools.video_paths import tmp_dir
+    work = tmp_dir("healthcheck")
 
     cfg = make_env_cfg(frozen, keyframe, run, bfc, enable_target_axis=is_b,
                        num_steps=args.total_steps, finger_residual_scale=args.finger_residual_scale,

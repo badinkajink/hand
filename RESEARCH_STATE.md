@@ -193,7 +193,7 @@ continuous handoff@40, **post-handoff min-z 0.110 m (HELD ≫ 0.05)**, held-vert
 reorients — the FIRST policy to do both. Every prior teleport approach dropped in 3-5 steps
 (min-z 0.003-0.011). Training signature confirmed it: masked frac fell 0.95→0.20 (episodes
 lengthened ~5×), align 0.45→58.9, tip_lost 51→8, episodes ran to time_out. Video
-`docs/rl/videos/reorient/handoff_liveAreset_scale02.mp4`.
+`docs/rl/videos/20260610_reorient/1201_handoff_liveAreset_scale02.mp4`.
 
 > **⚠️ CONFIG-PARITY GOTCHA (cost the first eval — now gotcha #13).** That run trained at
 > `finger_residual_scale=0.2` (the rl_train_cube DEFAULT) while B10 (warmstart) AND the deploy
@@ -286,7 +286,7 @@ follow-ups, both warmstart b30/model_405, live-A reset @ scale 0.2:
   `action_rate −0.05` + `object_ang_acc −0.05` (gated step 45) + `brace_distance_scale 0.025`,
   schedule **w4**, `target_axis_alpha 4` (ease off vertical reach → firm-first). Eval: **min-z 0.1085**
   (firmest hold of ANY run, ties b29), **held-cos 0.891**, 4–5× smoother than b31 — ang-jerk
-  **113**, lin-jerk **3.6**, wander 99→**23cm**. Video `docs/rl/videos/reorient/b32_gripSmooth_w4_cont.mp4`.
+  **113**, lin-jerk **3.6**, wander 99→**23cm**. Video `docs/rl/videos/20260612_reorient/1302_b32_gripSmooth_w4_cont.mp4`.
 
 **New eval diagnostics** (`rl_demo_handoff_continuous.py`, no reward cost): per-20-step heartbeat
 (`[diag] step z lat_drift cos`) + end summary (lateral drift, horizontal path/wander, z sink-rate,
@@ -314,7 +314,7 @@ verticality-push attempt has broken the hold).
 ### 2026-06-12 (eve) — B3 path RULED OUT by render; force-regularize b32 (b33) LAUNCHED
 **B3/B4 render dead-end (documented).** Rendered the gentle standalone reorienters B3
 (`b03_…_abl_signed`) and B4 (lateral-only) on the CONTINUOUS handoff
-(`docs/rl/videos/reorient/B3_signed_critic.mp4`, `B4_lateral_only.mp4`): both **drop the real
+(`docs/rl/videos/20260611_reorient/1110_B3_signed_critic.mp4`, `B4_lateral_only.mp4`): both **drop the real
 terminus** — B3/B4's relaxed seated grip survives only their own clean training reset, not A's
 organic delivery. So "just deploy B3's gentle grip" is dead: the gentleness is inseparable from
 the precarious start it was trained on. This closes the "move b32→B3 by swapping in B3" idea —
@@ -362,7 +362,7 @@ residual force still penetrates.
   penetrates**; still jitters (49 vs B4's 27); and it cost a little verticality (cos 0.891→0.845).
 - **It's a partial, diminishing-returns move in the right direction, not a B3-level transformation.**
   Visually confirmed: gentler and smoother, but the thumb still phases in. Video
-  `docs/rl/videos/reorient/b33_forcereg_w6_cont.mp4`.
+  `docs/rl/videos/20260612_reorient/1828_b33_forcereg_w6_cont.mp4`.
 
 **NEXT (open, not launched):** the obvious untried lever is to **push the penalty harder** (lower
 thresh 4→2–3 N and/or raise weight) to find where the grip actually breaks — i.e. locate the true
@@ -563,7 +563,7 @@ floor-drop non-learning; B won't hold A's flat delivery). B NOT relaunched.
   to B4's standalone 0.988. **Conclusion: the B10-warmstart basin is a stubborn quality ceiling that
   reward-shaping only nudges; the B4 path is dead (won't hold A's flat delivery).** Best handoff policy now
   = **b29** (`results/rl/b29_20260611-1152-policyB_liveAreset_B10qual_commit60/tensorboard/model_405.pt`),
-  video `docs/rl/videos/reorient/handoff_B10qual_commit60.mp4`.
+  video `docs/rl/videos/20260611_reorient/1231_handoff_B10qual_commit60.mp4`.
 - **NEXT to break past ~0.8 (needs a NEW mechanism, not reward tuning):** distill B4's full reorientation
   into a seam-surviving policy — e.g. behavior-clone B4's actions onto the held post-seam states b29 visits,
   or a teacher-student where B10 holds and B4 advises; or push the b29 recipe harder (even sharper basin /
@@ -716,7 +716,7 @@ FIRST next session.**
 throughout its own skip-lift env, no collapse). But the decisive continuous-handoff eval gave
 **min-z = 0.0028 m** (object z=0.0999 at handoff step 40, then falls to floor) — essentially tied
 with B10-alone (0.0029), WORSE than branch-B tol20 (0.0073), ≪ 0.05 bar. Video:
-`docs/rl/videos/reorient/handoff_adaptB.mp4`. (Infra note: it had failed twice at startup on a
+`docs/rl/videos/20260608_reorient/1813_handoff_adaptB.mp4`. (Infra note: it had failed twice at startup on a
 wedged-`nvidia_uvm` CUDA-context error — NOT a too-fast-relaunch transient; needed a module reload,
 see gotcha #12. Don't waste relaunches on it.)
 
@@ -734,7 +734,7 @@ delivered state at the onset (state == deploy) — `mjlab_terms.inject_handoff_b
 tensorboard/model_270.pt`; in training B HELD + reoriented from the injected state — object_height
 0.068, align 18.3). Continuous-handoff eval (frozen A → this B, handoff@40): z@40 0.113,
 **min-z 0.0081** — beats branch-B tol20 (0.0073), adapt-B (0.0028), B10-alone (0.0029), but still
-≪ 0.05; object reaches the floor (~8 mm). Video `docs/rl/videos/reorient/handoff_onset.mp4`.
+≪ 0.05; object reaches the floor (~8 mm). Video `docs/rl/videos/20260609_reorient/1150_handoff_onset.mp4`.
 
 **THE SHARPENED GAP (next step lives here).** B holds+reorients fine from the INJECTED state in
 training, yet drops at the ORGANIC deploy handoff. The only remaining train/deploy difference is the
@@ -908,7 +908,7 @@ and now run. **Result: it does NOT close the seam — and that is the informativ
   — object held +0.012 in its own skip-lift env the whole run, no collapse. But continuous-handoff
   eval (frozen A → this B, handoff@40) gives **min-z = 0.0028** (z=0.0999 at the seam, then floor):
   tied with B10-alone (0.0029), worse than branch-B tol20 (0.0073), ≪ 0.05. Video
-  `docs/rl/videos/reorient/handoff_adaptB.mp4`.
+  `docs/rl/videos/20260608_reorient/1813_handoff_adaptB.mp4`.
 - **WHAT IT PROVES → the next experiment.** Putting A's real delivery *state* into B's training
   distribution (the bank) is NOT enough, because the bank only fires in **skip-lift** (env_cfg.py
   l.1140 gates `reset_from_handoff_bank` on `skip_lift_phase and handoff_state_bank`). So B still
