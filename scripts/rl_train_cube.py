@@ -135,6 +135,9 @@ class Args:
     object_xy_drift_weight: float = -3.0
     """Penalty weight on cube xy drift from spawn. Larger negative = more stable."""
     object_orientation_drift_weight: float = -3.0
+    track_object_quat_weight: float | None = None
+    """Weight on track_object_quat (reward for holding the object at its SPAWN orientation).
+    None keeps the built-in default; set 0.0 when rotating the object is the task."""
     """Penalty weight on cube quat drift from spawn. Larger negative = more stable."""
     finger_drift_weight: float = -2.0
     """Penalty weight on finger qpos drift from grip ctrl."""
@@ -480,6 +483,7 @@ def main() -> None:
         finger_residual_scale=args.finger_residual_scale,
         object_xy_drift_weight=args.object_xy_drift_weight,
         object_orientation_drift_weight=args.object_orientation_drift_weight,
+        track_object_quat_weight=args.track_object_quat_weight,
         finger_drift_weight=args.finger_drift_weight,
         finger_close_easing=args.finger_close_easing,
         contact_gate_stability_rewards=args.contact_gate_stability_rewards,

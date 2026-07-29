@@ -500,7 +500,9 @@ def _build_rewards(cfg: MorphoHandEnvCfg) -> dict:
         ),
         "track_object_quat": RewardTermCfg(
             func=mjlab_terms.track_object_quat,
-            weight=DEFAULT_REWARD_WEIGHTS["track_object_quat"][1],
+            weight=(DEFAULT_REWARD_WEIGHTS["track_object_quat"][1]
+                    if cfg.track_object_quat_weight is None
+                    else cfg.track_object_quat_weight),
             params={
                 "run_dir": str(cfg.foundational_run_dir),
                 "frozen_scene_xml": str(cfg.frozen_scene_xml),
