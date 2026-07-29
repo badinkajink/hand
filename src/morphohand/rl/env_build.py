@@ -1123,8 +1123,10 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
             entity_name="robot",
             body_name="palm_pose",
             distance=cfg.viewer_distance,
-            elevation=-15.0,
-            azimuth=120.0,
+            elevation=cfg.viewer_elevation,
+            azimuth=cfg.viewer_azimuth,
+            width=cfg.viewer_width,
+            height=cfg.viewer_height,
         ),
         sim=SimulationCfg(
             nconmax=64,
