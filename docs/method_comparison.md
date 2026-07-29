@@ -121,7 +121,7 @@ which under FC weight 3.0 is *better* than a poor-quality contact configuration)
 
 ## Experimental setup
 
-- Scene: `assets/mjcf/scene_power_drill_short_proximal.xml`
+- Scene: `assets/mjcf/baseline/scenes/scene_power_drill_short_proximal.xml`
 - Keyframe: `open_flat`
 - Reduced timing for tractability: `settle=120, lift=80, hold=40` (vs default 240/220/140)
 - CEM: `iterations × population` as noted, elite fraction 0.25, σ_init 0.20

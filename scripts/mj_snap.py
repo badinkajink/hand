@@ -7,7 +7,7 @@ contacts) so the picture and the numbers can be cross-checked.
 
 Run (headless):
   MUJOCO_GL=egl uv run python scripts/mj_snap.py \
-    --scene assets/mjcf/scene_screwdriver_medium_flat.xml \
+    --scene assets/mjcf/baseline/scenes/scene_screwdriver_medium_flat.xml \
     --keyframe open --out /tmp/snap.png
 
 Settle/close the fingers before looking:

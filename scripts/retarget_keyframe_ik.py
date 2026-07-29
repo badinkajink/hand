@@ -7,7 +7,7 @@ result as an `open_ik` keyframe (the CEM seed / LerpFinger open pose).
 
 Run:
   uv run --extra rl python scripts/retarget_keyframe_ik.py \
-    --base-scene assets/mjcf/scene_screwdriver_medium_flat_short_proximal.xml \
+    --base-scene assets/mjcf/baseline/scenes/scene_screwdriver_medium_flat_short_proximal.xml \
     --keyframe open_short_manual --target-scene <generated_morph_scene.xml> \
     [--close-rad 0.15] [--validate]
 """

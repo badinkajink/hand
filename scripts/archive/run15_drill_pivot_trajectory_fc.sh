@@ -31,7 +31,7 @@ if [[ ! -x "$PYTHON_BIN" ]]; then
   PYTHON_BIN="${PYTHON_BIN_FALLBACK:-python}"
 fi
 
-SCENE_XML="${SCENE_XML:-assets/mjcf/scene_power_drill_short_proximal_capsuletips.xml}"
+SCENE_XML="${SCENE_XML:-assets/mjcf/baseline/scenes/scene_power_drill_short_proximal_capsuletips.xml}"
 CONTACT_TARGETS_YAML="assets/contact_targets/power_drill_short_proximal.yaml"
 SEEDS="${SEEDS:-3}"
 RUN_BASELINE="${RUN_BASELINE:-1}"

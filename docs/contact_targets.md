@@ -64,7 +64,7 @@ cfg = Phase1EvalConfig(
     objective_weight_contact_target_distance_penalty=20.0,
 )
 ev = Phase1GraspEvaluator(
-    scene_xml="assets/mjcf/scene_power_drill_short_proximal.xml",
+    scene_xml="assets/mjcf/baseline/scenes/scene_power_drill_short_proximal.xml",
     keyframe="open_flat",
     cfg=cfg,
     contact_target_set=ts,

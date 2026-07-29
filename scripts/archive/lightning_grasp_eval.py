@@ -16,7 +16,7 @@ each one in one of two modes:
 Usage:
     uv run python scripts/lightning_grasp_eval.py \\
         --grasps-json results/lightning_grasp/cube_grasps.json \\
-        --scene-xml assets/mjcf/scene.xml --keyframe open \\
+        --scene-xml assets/mjcf/baseline/scenes/scene.xml --keyframe open \\
         --output-json results/lightning_grasp/cube_eval.json \\
         --mode ctrl_only
 """

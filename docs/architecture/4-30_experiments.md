@@ -173,5 +173,5 @@ duplication between scalar and trajectory paths. Cleaned up:
 - `scripts/phase1_optimize_grasp.py` — `--traj-phases`, frozen-scene generation, pivot/cube-drift CLI flags.
 - `scripts/run6_combined_multitask.py`, `scripts/run6_screwdriver_multikey_sampling.py`, `scripts/run6_analysis.py` — Per-keyframe feasibility criteria, pivot/cube-drift flags, rigid-scene emission.
 - `scripts/run12_contact_focused_traj.sh` — Contact-focused weight sweep.
-- `assets/mjcf/scene_power_drill.xml` — Sphere-shell collision proxy and `hand`/`object` collision classes.
+- `assets/mjcf/baseline/scenes/scene_power_drill.xml` — Sphere-shell collision proxy and `hand`/`object` collision classes.
 - `README.md`, `docs/architecture/overview.md`, `docs/architecture/4-30_experiments.md` (this file).

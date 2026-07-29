@@ -442,7 +442,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--scene-xml",
-        default="assets/mjcf/scene_power_drill_short_proximal.xml",
+        default="assets/mjcf/baseline/scenes/scene_power_drill_short_proximal.xml",
         type=Path,
     )
     parser.add_argument("--keyframe", default="open_flat")

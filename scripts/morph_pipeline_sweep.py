@@ -49,8 +49,8 @@ from morphohand.studies import runlib
 from morphohand.studies.runlib import ROOT, best_a_ckpt, final_ckpt, iter_objheight, latest_run
 from morphohand.tools.keyframe_ik import retarget_scene
 
-BASE_HAND = ROOT / "assets/mjcf/hand.xml"
-BASE_SCENE = ROOT / "assets/mjcf/scene_screwdriver_medium_flat_short_proximal.xml"
+BASE_HAND = ROOT / "assets/mjcf/baseline/hand.xml"
+BASE_SCENE = ROOT / "assets/mjcf/baseline/scenes/scene_screwdriver_medium_flat_short_proximal.xml"
 GEN = ROOT / "assets/mjcf/experimental/morph_sweep"          # generated scenes (gitignored)
 CEM_OUT = ROOT / "results/phase1/morph_sweep"                 # CEM grasp outputs
 # handoff videos + .health.json, in the timestamped tree (morphohand.tools.video_paths)

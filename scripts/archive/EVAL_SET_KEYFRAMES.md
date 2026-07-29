@@ -15,13 +15,13 @@ at `pos="0.025 0 0"` instead of `0.05`).
 
 | Object | Scene path | Keyframe to use | Object body name | Notes |
 |---|---|---|---|---|
-| cube                       | [assets/mjcf/scene_cube_short_proximal.xml](../assets/mjcf/scene_cube_short_proximal.xml)                            | `open_short`         | `cube`              | Lightning-authored |
-| prism                      | [assets/mjcf/scene_prism_short_proximal.xml](../assets/mjcf/scene_prism_short_proximal.xml)                          | `open_short`         | `prism`             | Lightning-authored |
-| power_drill                | [assets/mjcf/scene_power_drill_short_proximal.xml](../assets/mjcf/scene_power_drill_short_proximal.xml)              | `open_flat_gripping` | `power_drill`       | Hand-authored from run17 |
-| screwdriver_medium_flat    | [assets/mjcf/scene_screwdriver_medium_flat_short_proximal.xml](../assets/mjcf/scene_screwdriver_medium_flat_short_proximal.xml) | `open_short`         | `screwdriver_medium` | Lightning-authored |
-| screwdriver_medium_vertical| [assets/mjcf/scene_screwdriver_medium_vertical_short_proximal.xml](../assets/mjcf/scene_screwdriver_medium_vertical_short_proximal.xml) | `open_short` | `screwdriver_medium` | Lightning-authored; original `open` keyframe palm was relocated to mirror `open_vertical` |
-| screwdriver_medium_90vert  | [assets/mjcf/scene_screwdriver_medium_short_proximal.xml](../assets/mjcf/scene_screwdriver_medium_short_proximal.xml) | `open_90vertical`    | `cube` (legacy)     | Existing keyframe (no Lightning needed) |
-| screwdriver_small_flat     | [assets/mjcf/scene_screwdriver_small_flat_short_proximal.xml](../assets/mjcf/scene_screwdriver_small_flat_short_proximal.xml) | `open_short`         | `screwdriver_small` | Lightning-authored |
+| cube                       | [assets/mjcf/baseline/scenes/scene_cube_short_proximal.xml](../assets/mjcf/baseline/scenes/scene_cube_short_proximal.xml)                            | `open_short`         | `cube`              | Lightning-authored |
+| prism                      | [assets/mjcf/baseline/scenes/scene_prism_short_proximal.xml](../assets/mjcf/baseline/scenes/scene_prism_short_proximal.xml)                          | `open_short`         | `prism`             | Lightning-authored |
+| power_drill                | [assets/mjcf/baseline/scenes/scene_power_drill_short_proximal.xml](../assets/mjcf/baseline/scenes/scene_power_drill_short_proximal.xml)              | `open_flat_gripping` | `power_drill`       | Hand-authored from run17 |
+| screwdriver_medium_flat    | [assets/mjcf/baseline/scenes/scene_screwdriver_medium_flat_short_proximal.xml](../assets/mjcf/baseline/scenes/scene_screwdriver_medium_flat_short_proximal.xml) | `open_short`         | `screwdriver_medium` | Lightning-authored |
+| screwdriver_medium_vertical| [assets/mjcf/baseline/scenes/scene_screwdriver_medium_vertical_short_proximal.xml](../assets/mjcf/baseline/scenes/scene_screwdriver_medium_vertical_short_proximal.xml) | `open_short` | `screwdriver_medium` | Lightning-authored; original `open` keyframe palm was relocated to mirror `open_vertical` |
+| screwdriver_medium_90vert  | [assets/mjcf/baseline/scenes/scene_screwdriver_medium_short_proximal.xml](../assets/mjcf/baseline/scenes/scene_screwdriver_medium_short_proximal.xml) | `open_90vertical`    | `cube` (legacy)     | Existing keyframe (no Lightning needed) |
+| screwdriver_small_flat     | [assets/mjcf/baseline/scenes/scene_screwdriver_small_flat_short_proximal.xml](../assets/mjcf/baseline/scenes/scene_screwdriver_small_flat_short_proximal.xml) | `open_short`         | `screwdriver_small` | Lightning-authored |
 
 ## To validate a keyframe yourself
 

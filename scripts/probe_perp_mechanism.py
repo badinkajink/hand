@@ -15,7 +15,7 @@ negative X produce.
 
 Run:
   MUJOCO_GL=egl uv run python scripts/probe_perp_mechanism.py \
-    --scene assets/mjcf/scene_screwdriver_medium_perp.xml --out /tmp/perp_probe.png
+    --scene assets/mjcf/perp/scenes/scene_screwdriver_medium_perp.xml --out /tmp/perp_probe.png
 """
 from __future__ import annotations
 

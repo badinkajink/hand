@@ -32,13 +32,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--base-hand-xml",
         type=Path,
-        default=PROJECT_ROOT / "assets" / "mjcf" / "hand.xml",
+        default=PROJECT_ROOT / "assets" / "mjcf" / "baseline" / "hand.xml",
         help="Source hand MJCF with morph joints.",
     )
     parser.add_argument(
         "--base-scene-xml",
         type=Path,
-        default=PROJECT_ROOT / "assets" / "mjcf" / "scene.xml",
+        default=PROJECT_ROOT / "assets" / "mjcf" / "baseline" / "scenes" / "scene.xml",
         help="Source scene MJCF with morph joints.",
     )
     parser.add_argument(

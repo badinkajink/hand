@@ -40,7 +40,7 @@
     <material name="finger_mat" rgba="0.8 0.72 0.6 1"/>
     <material name="object_mat" rgba="0.4 0.4 0.4 1"/>
 
-    <mesh name="drill_mesh" file="../../external/035_power_drill/poisson/nontextured.stl" scale="1 1 1"/>
+    <mesh name="drill_mesh" file="../../../../external/035_power_drill/poisson/nontextured.stl" scale="1 1 1"/>
   </asset>
 
   <worldbody>

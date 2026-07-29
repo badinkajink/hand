@@ -41,7 +41,7 @@ The canonical helper:
 from morphohand.sampling.scene import freeze_scene_for_eval
 
 frozen_xml = freeze_scene_for_eval(
-    scene_xml="assets/mjcf/scene_power_drill_short_proximal.xml",
+    scene_xml="assets/mjcf/baseline/scenes/scene_power_drill_short_proximal.xml",
     keyframe="open_flat",
     frozen_scene_xml=run_dir / "frozen_scenes" / "drill.frozen.xml",
 )

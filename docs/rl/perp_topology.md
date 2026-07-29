@@ -102,7 +102,7 @@ this is the clearest thing for RL to add on top of the geometry.
 
 The topology is expressed as a **base scene**, so the whole existing pipeline works unchanged:
 
-- `assets/mjcf/scene_screwdriver_medium_perp.xml` — base scene, morph joints intact.
+- `assets/mjcf/perp/scenes/scene_screwdriver_medium_perp.xml` — base scene, morph joints intact.
   The 90° rotation lives on `<finger>_yaw_frame`, **not** `<finger>_mount`, so the morph x/y
   slide joints stay expressed in the palm frame and `create_rigid_morphology_xml` bakes the
   9-param design exactly as for every other scene. **A morphology sweep can be run over this
@@ -165,7 +165,7 @@ terminations went to **0.0** and `object_height` held at 0.09–0.11.
 ```bash
 # look at the design
 MUJOCO_GL=egl uv run python scripts/mj_snap.py \
-  --scene assets/mjcf/scene_screwdriver_medium_perp.xml --keyframe open \
+  --scene assets/mjcf/perp/scenes/scene_screwdriver_medium_perp.xml --keyframe open \
   --views front,side,top,iso --out /tmp/perp.png
 
 # the mechanism, open-loop, on the frozen scene
@@ -175,7 +175,7 @@ MUJOCO_GL=egl uv run python scripts/probe_perp_mechanism.py \
 
 # re-author any keyframe from explicit fingertip world targets
 MUJOCO_GL=egl uv run python scripts/pose_open_keyframe.py \
-  --scene assets/mjcf/scene_screwdriver_medium_perp.xml --keyframe open --out-keyframe closed \
+  --scene assets/mjcf/perp/scenes/scene_screwdriver_medium_perp.xml --keyframe open --out-keyframe closed \
   --index-tip "0.035 0.0140 0.0095" --middle-tip "0.035 -0.0140 0.0095" \
   --thumb-tip "-0.030 0 0.038" --write
 ```

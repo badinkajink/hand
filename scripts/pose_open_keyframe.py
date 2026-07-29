@@ -11,7 +11,7 @@ its mount, which is the constraint that actually bites — a fingertip target cl
 
 Run:
   MUJOCO_GL=egl uv run python scripts/pose_open_keyframe.py \
-    --scene assets/mjcf/scene_screwdriver_medium_perp.xml \
+    --scene assets/mjcf/perp/scenes/scene_screwdriver_medium_perp.xml \
     --index-tip "0 0.0201 0.0225" --middle-tip "0 -0.0201 0.0225" \
     --thumb-tip "-0.030 0 0.045" --write
 """

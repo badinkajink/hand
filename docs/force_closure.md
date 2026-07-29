@@ -59,7 +59,7 @@ cfg = Phase1EvalConfig(
     force_closure_cone_edges=4,
 )
 ev = Phase1GraspEvaluator(
-    scene_xml="assets/mjcf/scene_power_drill_short_proximal.xml",
+    scene_xml="assets/mjcf/baseline/scenes/scene_power_drill_short_proximal.xml",
     keyframe="open_flat",
     cfg=cfg,
 )

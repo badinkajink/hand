@@ -245,27 +245,27 @@ Date: 2026-04-15
 
 ### Added scene XMLs
 
-- `assets/mjcf/scene_screwdriver_medium.xml`
+- `assets/mjcf/baseline/scenes/scene_screwdriver_medium.xml`
   - keyframes:
     - `open_flat`: near-contact pickup pose for horizontal tool.
     - `open_vertical`: near-contact wielding pose for vertical tool.
     - `open_90vertical`: near-contact pickup pose for 90-degree vertical orientation.
-- `assets/mjcf/scene_screwdriver_small.xml`
+- `assets/mjcf/baseline/scenes/scene_screwdriver_small.xml`
   - keyframes:
     - `open_flat`
     - `open_vertical`
-- `assets/mjcf/scene_power_drill.xml`
+- `assets/mjcf/baseline/scenes/scene_power_drill.xml`
   - keyframes:
     - `open_flat`: index-forward support + thumb/middle wrapping posture.
     - `open_vertical`: vertical wielding-oriented pre-grasp posture.
   - palm plate thickness increased (`0.001` -> `0.003`) to improve palm-side contact stability studies.
-- `assets/mjcf/scene_human_calf.xml`
+- `assets/mjcf/baseline/scenes/scene_human_calf.xml`
   - keyframes:
     - `open_under_ankle`: under-ankle power-grasp initialization.
     - `open_lifted`: same grasp family with elevated calf hinge angle.
   - includes explicit calf hinge joint (`calf_rotate`) to represent trajectory-like lift behavior.
 
-`assets/mjcf/scene_prism.xml` remains the prism baseline scene and already matches the requested prism dimensions and mass profile.
+`assets/mjcf/baseline/scenes/scene_prism.xml` remains the prism baseline scene and already matches the requested prism dimensions and mass profile.
 
 ### Validation
 

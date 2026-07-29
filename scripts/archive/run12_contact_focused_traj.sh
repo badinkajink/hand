@@ -17,7 +17,7 @@ if [[ ! -x "$PYTHON_BIN" ]]; then
 fi
 
 "$PYTHON_BIN" scripts/phase1_optimize_grasp.py \
-    --scene-xml assets/mjcf/scene_power_drill_short_proximal.xml \
+    --scene-xml assets/mjcf/baseline/scenes/scene_power_drill_short_proximal.xml \
     --keyframe open_flat \
     --optimizer cem \
     --iterations 120 \
