@@ -212,7 +212,39 @@ Note when reading `rl_eval_reorient_metrics.py` on an A run: its `min_z`/`drop` 
 minimum over the WHOLE rollout, which is dominated by the pre-lift floor at z≈0.012, so they
 read `0.011 / 1.00` on a policy that never drops anything. `peak_cos` is the trustworthy column.
 
-### Policy B warmstarted from b33 — ejects the shaft at the seam
+### Policy B — BOTH variants drop at the seam; the seam is the cause
+
+| condition | drop check | lateral drift | reorient |
+|---|---|---|---|
+| **A alone, full 240 steps (control)** | **PASS — min hold-phase obj-z 0.111 m** | net 0.0 cm, path 0.0 cm | cos 0.014 |
+| A→B, warmstart b33 | FAIL — 0.009 m | 15.1 cm | peak cos 0.543, obj_jerk 680 |
+| A→B, **from scratch** | FAIL — 0.008 m | 20.2 cm | — |
+
+`results/rl/20260728-2128-policyB_perp` (warmstart b33) and
+`results/rl/20260728-2208-policyB_perp_scratch` (from scratch) fail the continuous handoff
+**essentially identically** — the object is thrown at the switch step and the hand is empty for
+the rest of the rollout (`handoff_perp.mp4`, `handoff_perp_scratch.mp4`).
+
+The warmstart was first assumed to be the cause, by analogy with gotcha #5 (a warmstarted A
+loads a grip-specific residual that ejects a re-CEM'd object). **That attribution was wrong.**
+Training B from scratch — no b33 residual anywhere — reproduces the failure exactly, and the
+control run settles it: with `--handoff-step 240` (A driving the whole rollout, no switch) the
+same A holds perfectly for 240 steps — obj-z 0.111 m, net lateral drift 0.0 cm, ang-jerk 0.0,
+only the over-clamp WARN. A's hold does not decay over the long horizon; the closed-loop policy
+does not suffer the open-loop grip bleed measured earlier.
+
+**The seam itself is the cause.** This topology's grip has a narrow stability window — the
+squeeze sweep above spans hold-but-no-rotation (0.0105) to dropped (0.0195) over 9 mm of pad
+set-point — and it is held by a two-point pinch that provides no pitch resistance at all. Any
+discontinuity in finger targets at the policy switch lands outside that window and the shaft
+escapes. A's hard clamp (thumb 22 N) is what keeps the object in the narrow window at all, and
+B has no way to inherit it.
+
+That makes the "collapse the A/B split" recommendation below a **measured result rather than an
+aesthetic preference**: two independently trained B policies, and a no-seam control that passes
+every health check the seam runs fail.
+
+#### Detail: the b33-warmstart run
 
 `results/rl/20260728-2128-policyB_perp` (live-A reset, warmstart b33). Trains without
 collapsing, `peak_cos` 0.543 vs A's 0.014, but `obj_jerk` 680 vs A's 0.83. The continuous
@@ -220,11 +252,6 @@ handoff eval says why — **FAIL**, min hold-phase obj-z 0.009 m, net lateral dr
 object flung at 3 m/s. The video is unambiguous: A lifts cleanly, then at the handoff step B
 throws the shaft away and the hand is empty for the rest of the rollout
 (`docs/rl/videos/reorient/handoff_perp.mp4`).
-
-This is **gotcha #5's failure mode, one stage over**. b33's residual is tuned to m05's finger
-placement; applied to the perpendicular opposed pair it drives the facing fingers to a pose
-that has no meaning there, exactly as a warmstarted A ejects a re-CEM'd object. A reorient
-prior is only worth importing when the target hand's grip geometry resembles the prior's.
 
 `train_handoff_liveA_reset.sh` now accepts `B_CKPT=none` to train B from scratch, mirroring
 `WARMSTART=none` in `train_A_on_morph.sh`. That is the right default here: this topology's
