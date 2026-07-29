@@ -257,3 +257,42 @@ throws the shaft away and the hand is empty for the rest of the rollout
 `WARMSTART=none` in `train_A_on_morph.sh`. That is the right default here: this topology's
 reorient is nearly free (the policy mostly has to STOP clamping), so it does not need the
 hard-exploration prior that the b33 warmstart exists to supply.
+
+---
+
+## Axial load capacity — the screwdriver requirement
+
+Holding a screwdriver is not the same as holding a mass. In use the driver is pushed into the
+screw and the screw pushes back UP the shaft, so the functional requirement is an axial (world-Z)
+load capacity in both directions, not just enough friction to carry 0.24 N of weight.
+
+`scripts/probe_axial_load.py` measures it: reach the held state, then ramp an external force on
+the object along +Z / -Z until it slips more than 10 mm **relative to the palm** (a world-frame
+threshold would just measure the palm actuator).
+
+| grip set-point | reorient cos | grip force | escape +Z | escape -Z |
+|---|---|---|---|---|
+| loose (pad \|y\| 0.0140) | **0.983** — vertical | 0.3 N (bled) | 1.24 N | 0.47 N |
+| tight (pad \|y\| 0.0105) | 0.276 — barely rotates | 14.7 N | 14.62 N | 1.09 N |
+
+Two things fall out.
+
+**1. Capacity is just μN, so the lever is holding grip force.** In the loose/vertical case the
+open-loop grip has bled to 0.3 N per pad; μ = 2.4 over two pads predicts 1.44 N, and 1.24 N was
+measured. Axial capacity is therefore *not* a geometry limit — it is a direct readout of how much
+normal force the grip is still carrying when the shaft reaches vertical. An open-loop set-point
+cannot maintain that (the bleed is what it is); a closed-loop policy can, and 9 N of grip would
+predict ~43 N of axial capacity. This is exactly what `perp_single`'s `grip_force_reduce: min`
+plus the contact-min term are there to buy.
+
+**2. The thumb currently contributes nothing to load capacity either.** With the press phase on
+vs off: 1.24 vs 1.20 N up, 0.47 vs 0.58 N down — inside the noise, and its measured contact force
+is 0.0 N. The thumb is geometrically stranded: it mounts at x = −0.065 and the shaft, once
+vertical, hangs at x = +0.035, which is outside the thumb's reach shell. **Making the thumb
+load-bearing on the reoriented shaft needs a geometry change, not a reward change** — either move
+the thumb mount toward +x, or give the pinch a smaller x-offset so the vertical shaft lands
+nearer the thumb. That is the concrete next design iteration.
+
+The tight-grip row also should not be read as a real axial measurement: at cos 0.276 the shaft is
+still nearly horizontal, so a Z force is transverse and levers about the pinch rather than
+sliding along the shaft. That asymmetry (14.62 up vs 1.09 down) is the lever arm, not friction.
