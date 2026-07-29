@@ -51,7 +51,15 @@ LIFT_TERM_START=${LIFT_TERM_START:-$(( ONSET_STEP + BLEND ))}
 REORIENT_START=${REORIENT_START:-$(( ONSET_STEP + BLEND + 5 ))}
 TOTAL_TS=${TOTAL_TS:-20000000}; SMOKE=${SMOKE:-0}; [ "$SMOKE" = "1" ] && TOTAL_TS=1000000
 TAG="${TAG:-policyB_liveAreset_fromB10}"
-for f in "$A_CKPT" "$B_CKPT" "$ROOT/$MORPH/best_rollout.npz"; do
+# B_CKPT=none => train B from SCRATCH (mirrors WARMSTART=none in train_A_on_morph.sh).
+# A reorient prior is only worth importing when the target hand's grip geometry resembles the
+# prior's. Warmstarting b33 (m05 finger placement) onto the PERPENDICULAR opposed-pair hand
+# EJECTED the shaft at the seam — b33's residual drives the facing fingers to a pose that has
+# no meaning there. Same failure as warmstarting A across morphologies (gotcha #5).
+B_FROM_SCRATCH=0; [ "$B_CKPT" = "none" ] && B_FROM_SCRATCH=1
+_check=("$A_CKPT" "$ROOT/$MORPH/best_rollout.npz")
+[ "$B_FROM_SCRATCH" = "0" ] && _check+=("$B_CKPT")
+for f in "${_check[@]}"; do
   [ -e "$f" ] || { echo "FATAL missing $f"; exit 1; }; done
 
 # B10's reorient recipe (target-axis 100 / progress 300, lateral -8, contact-min 15),
@@ -66,7 +74,6 @@ ARGS=(
   --recipe "${RECIPE:-b_liveA}"
   --morphology-run "$MORPH"
   --num-envs "${NUM_ENVS:-3072}" --total-timesteps "$TOTAL_TS"
-  --init-actor-checkpoint "$B_CKPT"
   --live-a-checkpoint "$A_CKPT" --live-a-onset "$ONSET_STEP" --live-a-blend-steps "$BLEND"
   --lift-target-z-above-init "${LIFT_DELTA:-0.1}" --lift-delta-z "${LIFT_DELTA:-0.1}"
   --finger-residual-scale "${RESID_SCALE:-0.5}" --finger-close-easing "${EASING:-ease_out_quad}"
@@ -77,6 +84,7 @@ ARGS=(
   --target-axis-progress-weight "${TPROG_W:-300.0}"
   --tag "$TAG"
 )
+[ "$B_FROM_SCRATCH" = "0" ] && ARGS+=( --init-actor-checkpoint "$B_CKPT" )
 # EXTRA_ARGS: space-separated trainer flags appended verbatim (e.g. a commit bonus
 # --success-bonus-weight / --speed-bonus-weight, or --target-axis-alpha-curriculum-iters).
 [ -n "${EXTRA_ARGS:-}" ] && ARGS+=( $EXTRA_ARGS )
