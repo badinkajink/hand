@@ -215,6 +215,16 @@ class MorphoHandEnvCfg:
     obs_mode: str = "full"
     viewer_distance: float = 0.6
     """Viewer camera distance; larger values zoom out."""
+    viewer_elevation: float = -15.0
+    """Viewer camera elevation (deg). Negative looks down at the hand."""
+    viewer_azimuth: float = 120.0
+    """Viewer camera azimuth (deg)."""
+    viewer_width: int = 320
+    viewer_height: int = 240
+    """Offscreen render size. The 320x240 default is mjlab's and is what every
+    in-training eval video uses — big enough to see a drop, too small to see
+    which pad lost contact. Raise it (e.g. 960x720) for a diagnostic render;
+    leave it alone for training, where the recorder runs every eval."""
     # ---- in-hand reorient task -----------------------------------------
     enable_palm_rotation_residual: bool = False
     """If True, expand action space by 3 dims (palm rx/ry/rz residuals)

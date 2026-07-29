@@ -51,32 +51,41 @@ and **RL manipulation** (lift → in-hand reorient of a flat screwdriver to vert
    **trajectory-health scorecard** (`src/morphohand/rl/trajectory_health.py`, baked into handoff
    eval + `scripts/policy_healthcheck.py`) and per-run **watchdogs** (object-height collapse).
    Judge policies on the **deterministic held-cos**, never reward sums.
-2. **Train reorientation WITHOUT skipping the lift.** A skip-lift (teleport-spawn) reorienter is
+2. **LOOK at a finished policy before you explain its numbers** — skill **`policy-eyes`**.
+   `scripts/policy_filmstrip.py --run <run>` tiles phase-aligned frames from the run's own eval
+   video into one PNG; **read the PNG**, then get the signed per-step trace. The reward table is
+   sign-blind and timing-blind: a "policy that won't rotate" was rotating hard to the **wrong
+   pole** (held-cos −0.449), and a "too-weak reorient reward" was gated at step 65 for a rotation
+   that finished by step 50. Always also run the **open-loop probe on the same frozen scene** —
+   good open-loop + bad learned = policy/grip problem, *not* morphology (this test is what stops
+   a pointless morphology sweep). Re-render at `--width/--height` for anything you'll act on;
+   the in-training eval videos are 320x240.
+3. **Train reorientation WITHOUT skipping the lift.** A skip-lift (teleport-spawn) reorienter is
    out-of-distribution at the A→B handoff seam and drops the object. Use the **live-A reset** (a
    frozen Policy A drives the real lift 0..onset; B's pre-onset steps are PPO-masked) so B sees the
    *organic* delivery. (`scripts/train_handoff_liveA_reset.sh`, `live_a_runner.py`.)
-3. **Generate morphologies with FROZEN morphology parameters.** The base scene's morphology joints
+4. **Generate morphologies with FROZEN morphology parameters.** The base scene's morphology joints
    drift during rollout → linkage drift contaminates eval. **Freeze the scene**
    (`freeze_scene_for_eval`) before grasp/policy evaluation; `generate_morphology_xml.py` bakes the
    9-param design into fixed geometry.
-4. **IK-retarget the grasp keyframe across morphologies** (world-frame fingertips, NOT joint-space).
+5. **IK-retarget the grasp keyframe across morphologies** (world-frame fingertips, NOT joint-space).
    A repositioned/lengthened finger with the baseline joint angles lands its tip in the wrong world
    spot → spurious "2-finger / ungraspable" verdicts. `scripts/retarget_keyframe_ik.py` writes an
    `open_ik` keyframe; CEM seeds from it and the RL env must use it via **`--open-finger-from-keyframe`**
    (both the reset pose AND the LerpFinger start), or the grip is wrong and the object drops.
-5. **Retrain Policy A from scratch per morphology** — do NOT warmstart it. A warmstarted A loads a
+6. **Retrain Policy A from scratch per morphology** — do NOT warmstart it. A warmstarted A loads a
    grip-specific residual that **ejects** the re-CEM'd object; from scratch the residual ≈ 0 so the
    open-loop CEM grip + scripted lift does the lifting. (Warmstarting the *reorienter* B from a
    proven reorient prior is a different, useful lever — see below.)
-6. **Per-design RL reorient quality is SEED-DOMINATED.** From-scratch reorient training converges to
+7. **Per-design RL reorient quality is SEED-DOMINATED.** From-scratch reorient training converges to
    qualitatively different policies (peak reorient-cos 0.0–0.9) depending on the seed's early
    exploration — the reorient reward is a hard-exploration target. A single run per design cannot
    resolve morphology differences; you need **many seeds averaged** or a **shared reorient
    warm-start** to reduce evaluator variance before any design search is meaningful.
-7. **Never strip drop / tip-loss terminations** when adding a finger-perturbing reward, and always
+8. **Never strip drop / tip-loss terminations** when adding a finger-perturbing reward, and always
    **warmstart the critic** (actor-only warmstart wrecks finetunes — garbage early advantages knock
    the converged actor off its optimum).
-8. **Never `pkill -f` a pattern that appears in your own command** (kills your shell). Use the
+9. **Never `pkill -f` a pattern that appears in your own command** (kills your shell). Use the
    `[p]` bracket trick.
 
 ## Naming & results

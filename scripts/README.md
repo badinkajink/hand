@@ -30,7 +30,8 @@ the `.sh` launchers handle both).
 |---|---|
 | `rl_demo_handoff_continuous.py` | THE deploy eval: continuous A→B handoff, one env, video + trajectory-health scorecard + per-finger forces; `--record-fingertip-traj` dumps the imitation reference |
 | `policy_healthcheck.py` | standalone trajectory-health scorecard on any policy |
-| `rl_eval_reorient_metrics.py` | deterministic reorient metrics (held-cos etc.) from a run dir |
+| `rl_eval_reorient_metrics.py` | deterministic reorient metrics (held-cos etc.) from a run dir. Read held-cos WITH ITS SIGN; `min_z`/`drop` are whole-rollout and meaningless for runs that include the lift |
+| `policy_filmstrip.py` | run/video → one labelled PNG of phase-aligned frames (skill `policy-eyes`). Look at a policy before explaining its reward table |
 | `probe_grip_balance.py`, `probe_grip_force.py` | per-finger force probes (degenerate-pinch detection) |
 | `rl_eval_object.py`, `rl_play_policy.py`, `rl_diagnose_policy.py` | pose-grid eval / interactive playback / obs-action dump |
 | `rl_plot_training.py`, `rl_plot_reorient.py`, `rl_render_reorient.py` | training curves / reorient plots / rollout render |

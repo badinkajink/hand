@@ -332,3 +332,108 @@ target-axis weights raised (250 / 600) so they are not dwarfed by contact_min + 
 the contact/grip weights trimmed since they pull toward the rotation-blocking tight grip that the
 axial probe measured. Relaunched as `perp_single_freeRot`; the live log confirms
 `track_object_quat 0.0000` and `object_orientation_drift 0.0000`.
+
+---
+
+## Attempt 2 (`perp_single_freeRot`): the terms were silenced, and it still failed — but NOT the way the reward table reads
+
+`results/rl/20260729-1316-perp_single_freeRot`, 339 iterations, 42 min, trained clean: object
+held at 0.171, no collapse, both anti-rotation terms confirmed at `0.0000` all run. Final
+reward table:
+
+| term | value |
+|---|---|
+| track_object_quat | **0.0000** (silenced ✓) |
+| object_orientation_drift | **0.0000** (silenced ✓) |
+| target_axis_alignment | +0.028 |
+| target_axis_progress | **−0.524** |
+| contact_min / lift_height | +3.55 / +4.87 |
+
+Read as a reward table this says "still won't rotate" — alignment flat at ~0.03 after the terms
+that were blamed for suppressing it were removed. **That reading is wrong**, and the render is
+what proved it.
+
+### It rotates hard. It rotates the WRONG WAY.
+
+Deterministic eval (N=32): **`held_cos` −0.449**, `peak_cos` 0.127, mean peak |cos| **0.655**,
+**28/32 envs end negative**. Per-step trace:
+
+| step | 0 | 20 | 30 | 40 | 50 | 65 | 100 | 249 |
+|---|---|---|---|---|---|---|---|---|
+| cos | −0.00 | +0.02 | −0.02 | −0.30 | −0.46 | −0.48 | −0.46 | −0.38 |
+| obj z | 0.012 | 0.011 | 0.123 | 0.165 | 0.170 | 0.171 | 0.161 | 0.138 |
+
+The gravity swing this topology was built around **is happening, at full magnitude** — it just
+lands on the opposite pole. `target_axis_alignment` uses `exp(−α(1−cos))` with α=4, which is
+≈0.003 for any cos < 0: flat, no gradient, indistinguishable from "never tried". The persistent
+negative `target_axis_progress` was the only honest signal in the table and it was read as noise.
+
+**Two things follow, and both are timing/sign facts that no reward-weight change addresses:**
+
+1. **The rotation is over before the reward starts.** cos commits between step 20 and 50 (during
+   the lift ramp); `reorient_start_step` is **65**. The reorient reward is a spectator to the
+   only decision that matters. Raising its weight from 250 to 2500 would change nothing.
+2. **A negative held-cos is invisible in every aggregate**, including `peak_cos` — which just
+   picks up noise around zero on a wrong-way swing.
+
+### Same scene, open-loop: +0.957. So it is not the morphology.
+
+The decisive control: the scripted probe on the **exact frozen scene the RL run uses**
+(`results/phase1/perp/perp_v1/frozen_scene.xml`) reaches **final cos +0.957, held**. Same hand,
+same object, same lift height. The geometry is fine; a morphology sweep launched off the reward
+table would have been days spent on the wrong variable.
+
+### The real variable: the reorient is GRIP-FORCE-GATED, window ≈ 4–9 N per finger
+
+Substituting grips into that open-loop probe (symmetry preserved, only clamp depth varied)
+gives a clean monotonic curve — and the CEM grip the RL run inherits sits far outside the window:
+
+| per-finger force (N) | 1.2 | 3.8 | 6.0 | **8.3** (authored) | 9.9 | 11.4 | 12.9 | 14.3 | **21.1** (CEM) |
+|---|---|---|---|---|---|---|---|---|---|
+| final cos | DROP | 0.965 | 0.977 | **0.957** | 0.656 | 0.401 | 0.320 | 0.292 | **0.298** |
+
+Below ~3 N it drops; above ~10 N the pitch is choked off. The mechanism is exactly as documented
+— two opposed contacts on the axis are a near-frictionless **pin joint** — but only while the
+friction torque about that axis stays under gravity's moment. Clamp harder and the pin joint
+becomes a rigid clamp. **Force is the dominant variable for reorient on this topology.**
+
+This is a **topology-specific reversal of a durable program lesson**. On the baseline hand grip
+force was measured to be decoupled from hold quality and jitter, and the standing guidance is
+"stop re-chasing grip force". That lesson does **not** transfer to the perp hand, where force is
+the thing that gates the task.
+
+### The inherited CEM grip is the proximate cause
+
+`finger_default_ctrl` in the run config is the CEM grasp. Rendered against the authored
+keyframe on the same scene (`mj_snap.py --ctrl … --contacts`):
+
+| | authored `closed` | CEM grip |
+|---|---|---|
+| index tip / middle tip | `[0.035, +0.0174, 0.0085]` / `[0.035, −0.0174, 0.0085]` — symmetric | `[0.0236, +0.0111, 0.0076]` / `[0.0266, −0.0201, 0.0077]` — skewed in x, y and z |
+| tip forces | 3.74 / 3.74 N — balanced | 11.34 / 5.44 N — 2:1 |
+| pip forces | 4.55 / 4.55 N | 9.91 / 15.34 N |
+| total | ~16 N | **~44 N** |
+| thumb | 0 N (free) | 2.71 N (engaged) |
+| pinch offset from COM | 33 mm | 26 mm |
+| open-loop result | **+0.957** | **+0.298** |
+
+CEM optimises **grasp stability** — force closure — and on an opposed pair that means clamping
+hard and breaking the symmetry to wedge the object. That objective is *directly opposed* to the
+reorient mechanism, which needs a light, symmetric, off-COM pinch that lets the shaft pivot.
+The grip alone costs 0.957 → 0.298; the learned residual on top of it takes 0.298 → −0.449.
+
+### What this does and does not license
+
+- Confirmed: the mechanism works on this exact morphology, open-loop, at +0.957. The thumb reads
+  0 N throughout — still not needed for the rotation, consistent with the original probe.
+- Confirmed: the failure is the **inherited grip + reward timing**, not the finger layout. The
+  thumb-reach limitation (mounts at x −0.065, vertical shaft at x +0.035) remains real, but it
+  is a *post-reorient stabilisation* question, not the reason the reorient fails.
+- Not established: that any reward re-weighting alone fixes this. The two structural problems —
+  a reward gated after the event, and a grip outside the force window — are not weights.
+
+Tooling added for this: `scripts/policy_filmstrip.py` (phase-aligned frames from a run's own
+eval video into one PNG) and camera/resolution overrides on `rl_render_reorient.py`
+(`--width/--height/--distance/--elevation/--azimuth`; `viewer_*` fields on `MorphoHandEnvCfg`
+default to the previous hardcoded values, so existing runs are bit-identical). Skill:
+`policy-eyes`.

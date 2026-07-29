@@ -27,9 +27,12 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 
-def build_env_cfg_from_yaml(run_dir: Path, num_steps: int):
+def build_env_cfg_from_yaml(run_dir: Path, num_steps: int, camera: dict | None = None):
     """Reconstruct the run's MorphoHandEnvCfg from its config.yaml, with
-    num_envs forced to 1 and episode length sized to the requested rollout."""
+    num_envs forced to 1 and episode length sized to the requested rollout.
+
+    `camera` overrides only the viewer fields (size/distance/angles) — nothing
+    that touches physics or reward, so the rollout stays the run's own."""
     from morphohand.rl.env_cfg import MorphoHandEnvCfg
 
     with (run_dir / "config.yaml").open() as f:
@@ -50,6 +53,9 @@ def build_env_cfg_from_yaml(run_dir: Path, num_steps: int):
             kw[tk] = tuple(kw[tk])
     kw["num_envs"] = 1
     kw["episode_length_s"] = float(num_steps) / 50.0 + 0.5
+    for k, v in (camera or {}).items():
+        if v is not None:
+            kw[k] = v
     return MorphoHandEnvCfg(**kw)
 
 
@@ -124,6 +130,13 @@ def main():
                     help="checkpoint filename under <run>/tensorboard/")
     ap.add_argument("--output", type=Path, required=True)
     ap.add_argument("--steps", type=int, default=200, help="rollout policy steps (~4s at 50Hz)")
+    # Camera-only overrides — for a diagnostic render you can actually read.
+    # The in-training recorder's 320x240 shows a drop but not which pad slipped.
+    ap.add_argument("--width", type=int, default=None, help="render width (run default 320)")
+    ap.add_argument("--height", type=int, default=None, help="render height (run default 240)")
+    ap.add_argument("--distance", type=float, default=None, help="camera distance (m)")
+    ap.add_argument("--elevation", type=float, default=None, help="camera elevation (deg)")
+    ap.add_argument("--azimuth", type=float, default=None, help="camera azimuth (deg)")
     args = ap.parse_args()
 
     os.environ.setdefault("MUJOCO_GL", "egl")
@@ -133,7 +146,11 @@ def main():
     if not ckpt.exists():
         raise FileNotFoundError(ckpt)
 
-    env_cfg = build_env_cfg_from_yaml(args.run, args.steps)
+    env_cfg = build_env_cfg_from_yaml(args.run, args.steps, camera={
+        "viewer_width": args.width, "viewer_height": args.height,
+        "viewer_distance": args.distance, "viewer_elevation": args.elevation,
+        "viewer_azimuth": args.azimuth,
+    })
     args.output.parent.mkdir(parents=True, exist_ok=True)
     work_dir = args.output.parent / "_render_tmp"
     work_dir.mkdir(parents=True, exist_ok=True)
