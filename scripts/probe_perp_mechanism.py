@@ -178,8 +178,21 @@ def main() -> None:
     final_cos = trace[-1][2]
     peak_cos = max(t[2] for t in trace)
     final_z = trace[-1][3]
+    # A height threshold alone cannot tell "held vertical" from "standing on the floor": a
+    # released shaft that lands upright sits at z = half-length (0.050 here) with cos = +1.000,
+    # which passed the old `z > 0.03` check and reported the best possible result for a DROP.
+    # Ask the physics instead — is the hand still touching it, and is it off the floor?
+    grip = sum(tip_forces(model, data).values())
+    on_floor = any(
+        "world" in (model.body(model.geom_bodyid[data.contact[c].geom1]).name,
+                    model.body(model.geom_bodyid[data.contact[c].geom2]).name)
+        and OBJ in (model.body(model.geom_bodyid[data.contact[c].geom1]).name,
+                    model.body(model.geom_bodyid[data.contact[c].geom2]).name)
+        for c in range(data.ncon))
+    verdict = ("RELEASED-on-floor" if on_floor and grip < 0.1
+               else "ON-FLOOR" if on_floor else "DROPPED" if final_z <= 0.03 else "HELD")
     print(f"[result] final cos {final_cos:+.3f}  peak cos {peak_cos:+.3f}  final obj z {final_z:.3f}  "
-          f"{'HELD' if final_z > 0.03 else 'DROPPED'}")
+          f"grip {grip:.2f} N  {verdict}")
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     tile(frames, 4).save(args.out)

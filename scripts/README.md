@@ -33,6 +33,8 @@ the `.sh` launchers handle both).
 | `rl_eval_reorient_metrics.py` | deterministic reorient metrics (held-cos etc.) from a run dir. Read held-cos WITH ITS SIGN; `min_z`/`drop` are whole-rollout and meaningless for runs that include the lift |
 | `policy_filmstrip.py` | run/video → one labelled PNG of phase-aligned frames (skill `policy-eyes`). Look at a policy before explaining its reward table |
 | `probe_grip_balance.py`, `probe_grip_force.py` | per-finger force probes (degenerate-pinch detection) |
+| `probe_thumb_reach.py` | does the reoriented shaft land inside the thumb's reach shell? (perp) |
+| `sweep_perp_thumb.py` | perp thumb-morphology sweep: self-collision gate -> stow -> swing -> thumb press -> axial load |
 | `rl_eval_object.py`, `rl_play_policy.py`, `rl_diagnose_policy.py` | pose-grid eval / interactive playback / obs-action dump |
 | `rl_plot_training.py`, `rl_plot_reorient.py`, `rl_render_reorient.py` | training curves / reorient plots / rollout render |
 | `rl_record_handoff_states.py`, `rl_record_initiation_bank.py`, `rl_record_reorient_schedule.py` | state-bank / schedule recorders (consumed by rl_train_cube flags) |
