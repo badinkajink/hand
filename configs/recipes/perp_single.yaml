@@ -38,7 +38,14 @@ term_object_slip_yaw: 10.0
 term_finger_slip: 100.0
 term_tip_lost_steps: 3
 enable_floor_proximity_termination: true
-object_min_z: 0.05
+# 0.09, NOT the 0.05 default. The shaft is 100 mm long, so one dropped upright and left STANDING
+# ON THE FLOOR has its centre at z = 0.0500 — which is not < 0.05, so the gate never fires, while
+# `target_axis_alignment` reads a perfect +1.000 forever. That degenerate optimum is reachable on
+# this topology and on no other, because here the object ends the episode vertical by design.
+# Measured, not hypothetical: the open-loop probe run past its usual horizon ends exactly there
+# (grip 0.00 N, cos +1.000, z 0.050). Properly held-vertical sits at z ~ 0.113, so 0.09 separates
+# them cleanly. Raise this with the lift height, never below half the object's length.
+object_min_z: 0.09
 floor_proximity_phase_start_step: 80
 
 # --- SILENCE THE ANTI-ROTATION TERMS ---

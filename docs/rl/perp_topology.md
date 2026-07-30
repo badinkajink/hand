@@ -437,3 +437,97 @@ eval video into one PNG) and camera/resolution overrides on `rl_render_reorient.
 (`--width/--height/--distance/--elevation/--azimuth`; `viewer_*` fields on `MorphoHandEnvCfg`
 default to the previous hardcoded values, so existing runs are bit-identical). Skill:
 `policy-eyes`.
+
+---
+
+## Thumb morphology sweep (2026-07-30): the thumb CAN be recruited — but not on a shaft that reoriented
+
+User's call after the grip-force finding: change the morphology and see whether thumb support can
+be elicited. Swept with `scripts/sweep_perp_thumb.py` (new), which per design generates the rigid
+scene, gates on self-collision, stows the thumb clear of the swing corridor, runs
+settle → close → lift → hold, then IKs the thumb onto the settled shaft and ramps an axial load.
+New helper `scripts/probe_thumb_reach.py` reports the reach geometry alone.
+Table: `docs/experiments/perp_thumb_sweep.md`.
+
+### Result 1 — `thumb_x` is unusable. The whole forward half of the range self-collides.
+
+Every design with thumb_x ≥ +0.010 buries `thumb_mcp_frame` in `palm_pose`, 497–689 N:
+
+| thumb_x | +0.000 | +0.010 | +0.020 | +0.030 |
+|---|---|---|---|---|
+| verdict | ok | INVALID 499 N | INVALID 687 N | INVALID 689 N |
+
+So "move the thumb toward +x", the obvious fix for a thumb that cannot reach a shaft at x = +0.035,
+is not in the design space at all — it needs a palm change, not a morphology parameter. Any sweep
+that did not gate on self-collision would have reported these as ordinary results; the contact
+forces are large enough to throw the object across the scene.
+
+### Result 2 — `thumb_len` buys the reach for free
+
++35 mm of thumb closes the 30.6 mm reach deficit at **zero cost to the swing**:
+
+| thumb_len | reach shell | d(mount→shaft) | verdict | swing cos |
+|---|---|---|---|---|
+| 0.000 | [0.0882, 0.1200] | 0.1506 | SHORT by 30.6 mm | +0.986 |
+| 0.020 | [0.1072, 0.1400] | 0.1506 | SHORT by 10.6 mm | +0.986 |
+| **0.035** | [0.1217, 0.1550] | 0.1506 | **INSIDE** | **+0.986** |
+
+### Result 3 — reach is not support, and the two objectives fight over one parameter
+
+Moving the pinch (index+middle x, applied symmetrically) trades the reorient against the thumb,
+because the same offset is the swing's lever arm *and* the thumb's reach deficit:
+
+| index/middle x | pinch x | swing cos | d(mount→shaft) | thumb N | axial +Z / −Z |
+|---|---|---|---|---|---|
+| **−0.030** | 0.005 | **+0.168** | 0.1194 INSIDE | **4.0** | **9.21 / 4.48 N** |
+| −0.020 | 0.015 | +0.618 | 0.1367 | 0.0 | dropped at press |
+| −0.010 | 0.025 | +0.953 | 0.1390 | 0.0 | dropped at press |
+| 0.000 | 0.035 | +0.986 | 0.1506 | 0.0 | dropped at press |
+| +0.010 | 0.045 | +0.993 | 0.1861 | — | SHORT by 30 mm |
+
+**The thumb absolutely can be recruited: 4.0 N of thumb contact and axial capacity 9.21 N up /
+4.48 N down, against the baseline's 1.24 N — a 7.4× gain.** It just requires the pinch essentially
+on the COM, where cos stays at 0.168 and there is no reorient. Every design that reorients well
+loses the object the moment the thumb touches it.
+
+### Result 4 (the one that reframes the program) — the perp hand does not HOLD the reoriented shaft
+
+"Dropped at press" is not the thumb's fault. Running the hold past the horizon the original probe
+used shows the pinch unloading as the rotation completes:
+
+| steps after lift | 0 | 400 | 800 | 1200 | 1600 | 2000 |
+|---|---|---|---|---|---|---|
+| cos | +0.622 | +0.807 | +0.967 | +0.989 | +0.998 | +1.000 |
+| obj z | 0.1266 | 0.1210 | 0.1146 | 0.1137 | **0.0506** | 0.0500 |
+| grip N (each) | 8.11 | 7.53 | 5.18 | 1.82 | **0.00** | 0.00 |
+
+**Grip force and alignment are anti-correlated all the way to zero.** The shaft rotates to vertical
+*by sliding out of the pinch*, and then falls. The documented headline (cos +0.983, "airborne,
+HELD") is a **short-horizon artifact**: the original probe stops at step 2200, right in the window
+after the rotation completes and before the shaft escapes. Extend it by 800 steps and the run ends
+with the screwdriver **standing upright on the floor** — which reports `cos +1.000, z 0.050, HELD`,
+the best possible numbers, for a drop. The filmstrip shows it plainly.
+
+Two artifacts fixed as a result:
+
+* `probe_perp_mechanism.py`'s verdict was `final_z > 0.03`. A 100 mm shaft standing on the floor
+  sits at z = 0.050 and passed. It now asks the physics — total grip force and object↔floor
+  contact — and reports `RELEASED-on-floor` for exactly that state.
+* **`object_min_z: 0.05` in the `perp_single` recipe does not block it either.** The termination is
+  `z < min_z`, and a standing shaft's centre is 0.0500, so it never fires while
+  `target_axis_alignment` pays +1.000 forever. On this topology that is a reachable reward hack,
+  and it is *specifically* a hazard for the recommended change of moving the reorient reward
+  earlier and raising its weight. Raised to **0.09** (held-vertical sits at 0.113).
+
+### Where this leaves the two options
+
+The morphology route answers the question asked and returns a real number — 7.4× axial capacity
+with the thumb engaged — but it cannot be combined with the gravity reorient inside the 9-param
+space: `thumb_x` is blocked by the palm, and pinch offset cannot be small (thumb reaches) and
+large (shaft swings) at once. Getting both needs geometry outside the current parameterisation
+(a palm that lets the thumb sit forward), not another sample of it.
+
+Separately, **the reorient itself now needs re-examining before more is built on it**: on the
+current hand the vertical shaft is not held at all. "Reorient" here means "release into a vertical
+pose", which is a different capability from in-hand reorientation and is not what the RL task is
+scored on.
