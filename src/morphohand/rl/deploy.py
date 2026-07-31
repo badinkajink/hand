@@ -54,7 +54,8 @@ def make_env_cfg(frozen, keyframe, morph, bfc, *, enable_target_axis: bool,
                  num_steps: int, finger_residual_scale: float = 0.5,
                  finger_close_easing: str = "ease_out_quad",
                  contact_gate_stability_rewards: bool = True,
-                 lift_delta: float = 0.10, open_finger_from_keyframe: bool = False):
+                 lift_delta: float = 0.10, open_finger_from_keyframe: bool = False,
+                 num_envs: int = 1):
     """One env cfg. enable_target_axis=False -> 65-dim (Policy A's space);
     True -> 66-dim normal-lift reorient env (Policy B's space + dynamics).
     skip_lift_phase is always False here: the cylinder starts flat and is
@@ -63,7 +64,7 @@ def make_env_cfg(frozen, keyframe, morph, bfc, *, enable_target_axis: bool,
     common = dict(
         frozen_scene_xml=frozen, keyframe_name=keyframe,
         foundational_run_dir=morph, finger_default_ctrl=bfc,
-        object_body_name="screwdriver_medium", num_envs=1,
+        object_body_name="screwdriver_medium", num_envs=num_envs,
         episode_length_s=float(num_steps) / 50.0 + 0.5,
         finger_residual_scale=finger_residual_scale, finger_close_easing=finger_close_easing,
         lift_target_z_above_init=lift_delta, lift_delta_z=lift_delta,
@@ -94,7 +95,8 @@ def build_actor(env_cfg, checkpoint: Path, work_dir: Path):
     wrapped = RslRlVecEnvWrapper(env)
     runner = ManipulationOnPolicyRunner(
         env=wrapped,
-        train_cfg=dataclasses.asdict(build_runner_cfg(PPOConfig(num_envs=1), work_dir, run_name="hc")),
+        train_cfg=dataclasses.asdict(build_runner_cfg(
+            PPOConfig(num_envs=int(env_cfg.num_envs)), work_dir, run_name="hc")),
         log_dir=str(work_dir / "tb_tmp"), device="cuda:0")
     ckpt = torch.load(str(checkpoint), map_location="cpu", weights_only=False)
     runner.alg.actor.load_state_dict(ckpt["actor_state_dict"], strict=True)
