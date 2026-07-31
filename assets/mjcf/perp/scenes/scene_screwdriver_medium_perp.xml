@@ -106,8 +106,32 @@
       <geom name="middle_stalk" type="box" pos="0.035 -0.042 0" size="0.012 0.008 0.005" material="stalk_mat" contype="0" conaffinity="0" />
       <body name="thumb_mount" pos="-0.065 0.0 0.0">
         <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
-        <joint class="morph" name="thumb_x" type="slide" axis="1 0 0" range="-0.03 0.03" />
-        <joint class="morph" name="thumb_y" type="slide" axis="0 1 0" range="-0.03 0.03" />
+        <!-- T-workspace (see morphohand.sampling.morphology.PERP_T_WORKSPACE): the thumb's
+             box is 110 mm along Y by 60 mm along X, palm-frame x [-72.5,-12.5] y [+-55] mm.
+             These are mount-RELATIVE offsets from pos="-0.065 0 0", so keep them in sync with
+             that constant and with the mount pos.
+
+             ⚠ THE FORWARD HALF OF thumb_x IS NOT USABLE — it is inside the palm. The box is
+             the mount RAIL, and the rail passes through solid geometry; nothing here gates on
+             self-collision, so a design sampled from this range can be physically impossible
+             and still generate, simulate, and report numbers. Settled contact force at the
+             `open` and `closed` keyframes, thumb_mcp_frame vs palm_pose:
+
+                 thumb_x  | +0.000 | +0.010 | +0.020 | +0.0325 | +0.0525
+                 force    |  0 N   | 499 N  | 687 N  |  689 N  |  690 N
+
+             So only thumb_x <~ +0.005 is real. A reach study that works in FK will disagree,
+             because FK does not know about the palm: the tip does close to within ~1 mm of a
+             held-vertical shaft at palm x -0.0325, but it gets there THROUGH the palm. Treat
+             an FK reach result as necessary, never sufficient, and confirm with the physics
+             (`robot_self_collision` in scripts/sweep_perp_thumb.py) before baking a design.
+             A 689 N contact also ejects the object, so a scripted press at such a thumb_x
+             fails for reasons that have nothing to do with the press.
+
+             Moving the thumb forward therefore needs a PALM change, not a morphology value —
+             it is outside the 9-param space. See docs/rl/perp_topology.md. -->
+        <joint class="morph" name="thumb_x" type="slide" axis="1 0 0" range="-0.0075 0.0525" />
+        <joint class="morph" name="thumb_y" type="slide" axis="0 1 0" range="-0.055 0.055" />
         <body name="thumb_yaw_frame">
           <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
           <joint class="ctrl" name="thumb_yaw" type="hinge" axis="1 0 0" range="-1.1 1.1" />
@@ -133,8 +157,9 @@
       <!-- index: yaw frame rotated -90 deg about palm Z -> finger points along world -Y -->
       <body name="index_mount" pos="0.035 0.048 0.0">
         <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
-        <joint class="morph" name="index_x" type="slide" axis="1 0 0" range="-0.03 0.03" />
-        <joint class="morph" name="index_y" type="slide" axis="0 1 0" range="-0.03 0.03" />
+        <!-- 60x60 box, palm-frame x [+12.5,+72.5] y [+12.5,+72.5] mm; offsets from pos="0.035 0.048 0". -->
+        <joint class="morph" name="index_x" type="slide" axis="1 0 0" range="-0.0225 0.0375" />
+        <joint class="morph" name="index_y" type="slide" axis="0 1 0" range="-0.0355 0.0245" />
         <body name="index_yaw_frame" quat="0.7071068 0 0 -0.7071068">
           <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
           <joint class="ctrl" name="index_yaw" type="hinge" axis="1 0 0" range="-1.1 1.1" />
@@ -172,8 +197,9 @@
       <!-- middle: yaw frame rotated +90 deg about palm Z -> points along world +Y, facing index -->
       <body name="middle_mount" pos="0.035 -0.048 0.0">
         <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
-        <joint class="morph" name="middle_x" type="slide" axis="1 0 0" range="-0.03 0.03" />
-        <joint class="morph" name="middle_y" type="slide" axis="0 1 0" range="-0.03 0.03" />
+        <!-- 60x60 box, palm-frame x [+12.5,+72.5] y [-72.5,-12.5] mm; offsets from pos="0.035 -0.048 0". -->
+        <joint class="morph" name="middle_x" type="slide" axis="1 0 0" range="-0.0225 0.0375" />
+        <joint class="morph" name="middle_y" type="slide" axis="0 1 0" range="-0.0245 0.0355" />
         <body name="middle_yaw_frame" quat="0.7071068 0 0 0.7071068">
           <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
           <joint class="ctrl" name="middle_yaw" type="hinge" axis="1 0 0" range="-1.1 1.1" />

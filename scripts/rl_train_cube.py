@@ -201,6 +201,10 @@ class Args:
     contact_min_weight: float = 30.0
     """Weight on contact_min reward. Default 30 strongly incentivizes 3-finger
     grip; drop to 10-15 for reorient tasks where occasional regrip is needed."""
+    grip_phase_start_step: int = 0
+    """Step from which the grip-tightness rewards (`contact_min`, `grip_force`) are
+    paid. 0 = always on. Non-zero buys a two-phase grip: loose enough to let the
+    object move early, firm later. See env_cfg.grip_phase_start_step."""
     target_axis_progress_weight: float = 0.0
     """Weight on dense Δ(alignment)-per-step reward (gain shaping)."""
     target_axis_alpha_curriculum_iters: int = 0
@@ -296,6 +300,14 @@ class Args:
     open pose). REQUIRED for IK-retargeted morphologies (keyframe=open_ik) so the RL
     LerpFinger closes from the same pose CEM optimized the grip from — else a finger
     arrives late (2-then-3-finger grasp). See env_cfg.open_finger_from_keyframe."""
+    closed_ctrl_from_keyframe: str | None = None
+    """Take the CLOSED-grip set-point from this keyframe's ctrl instead of the CEM
+    `best_finger_ctrl`. CEM optimises force closure, which on the perp topology is
+    actively WRONG: it clamps to ~21 N per finger and breaks the index/middle symmetry
+    to wedge the object, while the gravity reorient needs a light SYMMETRIC pinch and
+    is choked off above ~10 N. Measured on the same frozen scene, open-loop: CEM grip
+    -> final cos 0.298, authored `closed` keyframe (8.3 N, symmetric) -> +0.957.
+    See docs/rl/perp_topology.md."""
     learning_rate: float | None = None
     """Override PPOConfig.learning_rate (default 5e-4). Use a LOW value (e.g. 5e-5)
     for the B->A co-refinement so A's lift is nudged, not overwritten."""
@@ -438,6 +450,21 @@ def main() -> None:
     if len(best_finger_ctrl) != 9:
         raise ValueError(f"best_finger_ctrl has {len(best_finger_ctrl)} dims; expected 9")
 
+    if args.closed_ctrl_from_keyframe:
+        # Look the actuators up BY NAME, not by slicing the tail of key.ctrl: the frozen
+        # scene carries 6 palm-pose actuators ahead of the 9 finger ones, and that prefix
+        # is not guaranteed across topologies.
+        import mujoco
+        from morphohand.sampling.morphology import FINGER_ACTUATOR_NAMES
+        _m = mujoco.MjModel.from_xml_path(str(frozen))
+        _kf = _m.key(args.closed_ctrl_from_keyframe)
+        best_finger_ctrl = tuple(
+            float(_kf.ctrl[mujoco.mj_name2id(_m, mujoco.mjtObj.mjOBJ_ACTUATOR, n)])
+            for n in FINGER_ACTUATOR_NAMES)
+        print(f"[rl_train_cube] closed grip from keyframe "
+              f"'{args.closed_ctrl_from_keyframe}' (NOT the CEM grasp): "
+              + " ".join(f"{v:+.4f}" for v in best_finger_ctrl))
+
     # Prepend YYYYMMDD-HHMM so runs sort chronologically on disk + in
     # wandb. Can be skipped by passing a tag that already starts with
     # 8 digits + dash.
@@ -511,6 +538,7 @@ def main() -> None:
         finger_residual_active_from_step=args.finger_residual_active_from_step,
         strict_tip_lost_termination=args.strict_tip_lost_termination,
         contact_min_weight=args.contact_min_weight,
+        grip_phase_start_step=args.grip_phase_start_step,
         target_axis_progress_weight=args.target_axis_progress_weight,
         target_axis_alpha_curriculum_iters=args.target_axis_alpha_curriculum_iters,
         target_axis_alpha_start=args.target_axis_alpha_start,

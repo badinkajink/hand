@@ -21,8 +21,45 @@
 # Lift height is a RUN knob but must be >= ~0.12: hanging vertical puts the shaft's centre
 # 0.035 m below the pinch and its lower end 0.085 m below, so a 0.10 lift leaves only 24 mm of
 # floor clearance and the floor-proximity gate false-fires. Launcher uses 0.14.
+#
+# REVISION 2 (2026-07-31), after run 20260729-1316-perp_single_freeRot came back at held-cos
+# -0.449. That run is the evidence for every change below; the reward table alone said "still
+# won't rotate", and the render said the opposite — it rotates at full magnitude to the WRONG
+# POLE. Three separate defects, none of them a weight:
+#   1. the reorient reward was gated to step 65, and the pole is chosen between step 20 and 50
+#      (during the lift ramp) -> both reorient terms were spectators to the only decision made;
+#   2. the grip set-point was inherited from CEM, which optimises force closure and lands at
+#      ~21 N per finger — outside the 4-9 N window the pitch needs (open-loop 0.298 vs 0.957);
+#   3. `contact_min`/`grip_force` were paid every step, so "hold tight" was rewarded during the
+#      swing that requires a loose pinch.
 object_body_name: screwdriver_medium
 episode_length_s: 5.0
+
+# --- init_noise_std 0.05, NOT the 0.3 default: the perp scene NaNs above ~0.1 ---
+# This is a HARD requirement, not a tuning preference. The perp hand is dynamically fragile
+# under exploratory actions in a way the baseline hand is not: with zero actions the scene is
+# perfectly stable (max|qvel| ~0.05 over 260 steps), but random actions drive a contact to
+# divergence and one env in ~512 goes NaN within ~14 steps, which aborts the whole run because
+# rsl_rl's check_nan sees the NaN in the shared obs tensor. Measured, 512 envs, 260 steps:
+#
+#     init_std | 0.05          | 0.15         | 0.5          | 1.0
+#     result   | clean, |qvel| | NaN @ step   | NaN @ step   | NaN @ step 12,
+#              | max ~15       | 227          | 14           | |qvel| 2e13
+#
+# The first perp run that trained clean (20260729-1316, 339 iters) passed 0.05 as a bare CLI
+# flag, so it was invisible to anyone reading the recipe — and the very next launch off the
+# recipe alone inherited the 0.3 default and died at iteration 0. That is exactly the flag-soup
+# parity bug the recipe layer exists to prevent, so it is pinned here. Do not raise it without
+# re-running the divergence check (scratch probe: zero-action vs randn*std, watch max|qvel|).
+init_noise_std: 0.05
+
+# --- the grip SET-POINT is the authored keyframe, NOT the CEM grasp ---
+# Measured open-loop on the same frozen scene: CEM grip -> final cos 0.298, authored `closed`
+# (8.3 N, symmetric) -> +0.957. CEM's objective (force closure => clamp hard, break symmetry to
+# wedge) is directly opposed to the reorient mechanism (light symmetric off-COM pinch that lets
+# the shaft pivot). This one line moves the run's STARTING point from outside the force window
+# to inside it; the learned residual then has something worth perturbing.
+closed_ctrl_from_keyframe: closed
 
 # train/deploy parity (gotcha #13) — must match morphohand.rl.deploy.make_env_cfg
 finger_residual_scale: 0.5
@@ -46,7 +83,11 @@ enable_floor_proximity_termination: true
 # (grip 0.00 N, cos +1.000, z 0.050). Properly held-vertical sits at z ~ 0.113, so 0.09 separates
 # them cleanly. Raise this with the lift height, never below half the object's length.
 object_min_z: 0.09
-floor_proximity_phase_start_step: 80
+# 50, not 80. The reorient reward now starts at 25 (below), so without this the floor-bracing
+# shortcut — roll the shaft upright against the ground, the v4 failure — is payable for a
+# 55-step window. The lift is complete by step 40 (z 0.165), so 50 forbids the shortcut without
+# firing on the legitimate lift.
+floor_proximity_phase_start_step: 50
 
 # --- SILENCE THE ANTI-ROTATION TERMS ---
 # Measured in run 20260729-1225-perp_single (peak cos 0.015 — it clamped): removing the
@@ -60,12 +101,24 @@ floor_proximity_phase_start_step: 80
 object_orientation_drift_weight: 0.0
 track_object_quat_weight: 0.0
 
-# --- reorient: pay for the pitch ---
+# --- reorient: pay for the pitch, WHILE IT IS BEING DECIDED ---
 enable_target_axis_reward: true
 target_axis_weight: 250.0
-target_axis_alpha: 4.0
+# alpha 2.0, was 4.0. `target_axis_alignment` is exp(-alpha*(1-cos)^2), which at alpha=4 is
+# ~1e-7 for cos <= -0.5: the entire negative half of the sphere is flat, so a full-magnitude
+# rotation to the wrong pole is scored identically to never having moved. That is why the
+# previous run's table showed alignment ~0.03 and read as "won't rotate". alpha=2 keeps a
+# usable gradient across the whole range (cos 0 -> 0.14, cos -0.45 -> 0.017) so wrong-way is
+# distinguishable from motionless.
+target_axis_alpha: 2.0
 target_axis_progress_weight: 600.0
-reorient_start_step: 65
+# 25, was 65 — THE load-bearing change. `target_axis_progress` is the only signed term (it is a
+# per-step delta, so it pays for rotating the right way and charges for the wrong way), and it
+# was switched off until step 65. The measured cos trace commits by step 50 and is already at
+# -0.30 by step 40. Starting at 25 puts the signed reward inside the window where the pole is
+# actually chosen; 25 rather than 0 keeps it off until the object is off the floor (z 0.011 at
+# step 20 -> 0.123 at step 30).
+reorient_start_step: 25
 
 # --- grip: RECRUIT THE THUMB ---
 # reduce=min pays for the WEAKEST finger's force, so an idle finger caps the whole term — the
@@ -80,6 +133,16 @@ grip_force_reduce: min
 grip_force_max: 3.0
 grip_force_spread_weight: 1.0
 grip_force_spread_scale: 4.0
+# The grip is a SCHEDULE, not a preference — the piece the env could not previously express.
+# Paying for grip during the swing is self-defeating: the reorient is grip-force-gated (window
+# ~4-9 N/finger; above ~10 N the opposed pair stops being a pin joint and the pitch is choked
+# off). But the shaft also rotates to vertical BY SLIDING OUT of the pinch — grip force and
+# alignment were measured anti-correlated all the way to 0.00 N, ending with the screwdriver
+# standing on the floor — so after the swing the grip must firm up or there is no hold at all.
+# Gating to 150 (with object_ang_acc below, so the whole "settle" block turns on together)
+# leaves the swing unpriced and pays for the catch. This is the two-phase grip schedule
+# expressed as a REWARD for the policy to learn, rather than a scripted ramp.
+grip_phase_start_step: 150
 
 # --- stabilize, but only AFTER the swing ---
 # object_ang_acc penalises angular acceleration, which the gravity swing NEEDS. Gating it to

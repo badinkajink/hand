@@ -26,25 +26,98 @@ FINGER_ACTUATOR_NAMES: tuple[str, ...] = (
 
 
 @dataclass(frozen=True)
-class MorphologyBounds:
+class FingerBox:
+    """One finger's mount workspace, as a rectangle in MOUNT-RELATIVE offsets (metres).
+
+    The morphology values are slide-joint offsets from the mount's XML `pos`, not absolute
+    palm coordinates, so a shared palm-frame rectangle becomes a DIFFERENT offset box per
+    finger. Build these with `FingerBox.from_palm_frame` and let it do the subtraction —
+    hand-converting is how the boxes drift out of sync with the MJCF joint ranges.
+    """
     x_min: float
     x_max: float
     y_min: float
     y_max: float
+
+    @staticmethod
+    def from_palm_frame(box: tuple[float, float, float, float],
+                        mount: tuple[float, float]) -> "FingerBox":
+        """`box` = (x_min, x_max, y_min, y_max) in the palm frame; `mount` = the mount's XML pos."""
+        x0, x1, y0, y1 = box
+        mx, my = mount
+        return FingerBox(x_min=x0 - mx, x_max=x1 - mx, y_min=y0 - my, y_max=y1 - my)
+
+
+@dataclass(frozen=True)
+class MorphologyBounds:
+    thumb: FingerBox
+    index: FingerBox
+    middle: FingerBox
     len_min: float
     len_max: float
+
+    @staticmethod
+    def uniform(x_min: float, x_max: float, y_min: float, y_max: float,
+                len_min: float, len_max: float) -> "MorphologyBounds":
+        """The legacy single-box-for-every-finger form.
+
+        Kept because it is what the archived sweep scripts construct, but it cannot express
+        the real hand: the three workspaces are neither the same size nor symmetric about
+        their mounts (the thumb's is 110x60, the finger boxes are 60x60). New code should
+        build per-finger boxes — see `PERP_T_WORKSPACE`.
+        """
+        box = FingerBox(x_min=x_min, x_max=x_max, y_min=y_min, y_max=y_max)
+        return MorphologyBounds(thumb=box, index=box, middle=box,
+                                len_min=len_min, len_max=len_max)
+
+
+# --- the real mount workspace (perp topology) ---------------------------------------------
+#
+# Three rectangles in the palm XY plane, separated by 25 mm bands that join into a T:
+#
+#       <--60--> 25 <--60-->          palm frame: +X = thumb -> fingers reach direction
+#       +------+    +------+                      +Y = middle -> index separation
+#       |middle|    |index |   60
+#       +------+    +------+
+#           +--------------+   <- 25 mm band
+#           |    thumb     |   60 x 110
+#           +--------------+
+#
+# The 25 mm bands are physical: finger thickness and mount hardware. They are hard
+# constraints, but the boxes as laid out cannot overlap, so clipping to the boxes enforces
+# them — there is no separate rejection step to keep in sync.
+#
+# The T's bounding box (145 x 145 mm) is centred on the palm origin. That is a PLACEHOLDER
+# centring: the hand's true reference point is not the centroid of the workspace and has not
+# been specified yet, so re-centre here (and re-derive the MJCF `pos` attributes) when it is.
+#
+# Sanity anchor: all three of the perp scene's shipped mounts — thumb (-65, 0), index
+# (35, 48), middle (35, -48) — land inside their boxes.
+PERP_MOUNTS: dict[str, tuple[float, float]] = {
+    "thumb": (-0.065, 0.0),
+    "index": (0.035, 0.048),
+    "middle": (0.035, -0.048),
+}
+
+PERP_T_WORKSPACE = MorphologyBounds(
+    thumb=FingerBox.from_palm_frame((-0.0725, -0.0125, -0.055, 0.055), PERP_MOUNTS["thumb"]),
+    index=FingerBox.from_palm_frame((0.0125, 0.0725, 0.0125, 0.0725), PERP_MOUNTS["index"]),
+    middle=FingerBox.from_palm_frame((0.0125, 0.0725, -0.0725, -0.0125), PERP_MOUNTS["middle"]),
+    len_min=0.0,
+    len_max=0.035,
+)
 
 
 def clip_morphology(values: MorphologyValues, bounds: MorphologyBounds) -> MorphologyValues:
     return MorphologyValues(
-        thumb_x=float(np.clip(values.thumb_x, bounds.x_min, bounds.x_max)),
-        thumb_y=float(np.clip(values.thumb_y, bounds.y_min, bounds.y_max)),
+        thumb_x=float(np.clip(values.thumb_x, bounds.thumb.x_min, bounds.thumb.x_max)),
+        thumb_y=float(np.clip(values.thumb_y, bounds.thumb.y_min, bounds.thumb.y_max)),
         thumb_len=float(np.clip(values.thumb_len, bounds.len_min, bounds.len_max)),
-        index_x=float(np.clip(values.index_x, bounds.x_min, bounds.x_max)),
-        index_y=float(np.clip(values.index_y, bounds.y_min, bounds.y_max)),
+        index_x=float(np.clip(values.index_x, bounds.index.x_min, bounds.index.x_max)),
+        index_y=float(np.clip(values.index_y, bounds.index.y_min, bounds.index.y_max)),
         index_len=float(np.clip(values.index_len, bounds.len_min, bounds.len_max)),
-        middle_x=float(np.clip(values.middle_x, bounds.x_min, bounds.x_max)),
-        middle_y=float(np.clip(values.middle_y, bounds.y_min, bounds.y_max)),
+        middle_x=float(np.clip(values.middle_x, bounds.middle.x_min, bounds.middle.x_max)),
+        middle_y=float(np.clip(values.middle_y, bounds.middle.y_min, bounds.middle.y_max)),
         middle_len=float(np.clip(values.middle_len, bounds.len_min, bounds.len_max)),
     )
 
