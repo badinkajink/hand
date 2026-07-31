@@ -21,6 +21,28 @@ import torch
 A_OBS_DIM = 65  # Policy A trained without the target_axis_misalign obs term.
 
 
+def finger_ctrl_from_keyframe(frozen_scene, keyframe_name: str) -> tuple[float, ...]:
+    """The 9 finger-actuator ctrl values of `keyframe_name` in `frozen_scene`.
+
+    The alternative closed-grip source to CEM's `best_finger_ctrl`. Whichever a policy
+    was TRAINED with, its eval env must use the same one — the grip is the set-point the
+    learned residual perturbs, so evaluating a keyframe-grip policy against the CEM grip
+    is the gotcha-#13 parity bug in a different coordinate (see the perp topology, where
+    the two grips differ by 21 N vs 8 N per finger and by the index/middle symmetry).
+
+    Reads BY ACTUATOR NAME: the frozen scene carries 6 palm-pose actuators ahead of the 9
+    finger ones and that prefix is not guaranteed across topologies.
+    """
+    import mujoco
+
+    from morphohand.sampling.morphology import FINGER_ACTUATOR_NAMES
+    model = mujoco.MjModel.from_xml_path(str(frozen_scene))
+    kf = model.key(keyframe_name)
+    return tuple(
+        float(kf.ctrl[mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_ACTUATOR, n)])
+        for n in FINGER_ACTUATOR_NAMES)
+
+
 def ckpt_obs_dim(checkpoint: Path) -> int:
     """Actor input width straight from the checkpoint: 65 = Policy A (lift), 66 = a
     reorienter (adds the target_axis obs). Lets eval tools build a matching env."""

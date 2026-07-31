@@ -207,13 +207,26 @@ def terminate_object_floor_proximity(env: "ManagerBasedRlEnv",
 def terminate_tip_lost(env: "ManagerBasedRlEnv",
                          lift_phase_start_step: int = 40,
                          consecutive_steps: int = 3,
-                         sensor_name: str = "fingertip_cube_contact"
+                         sensor_name: str = "fingertip_cube_contact",
+                         min_tips_in_contact: int = 3,
                          ) -> torch.Tensor:
-    """Terminate if any tip is off the object for >= consecutive_steps
-    consecutive policy steps during the lift phase.
+    """Terminate if fewer than `min_tips_in_contact` tips are on the object for
+    >= consecutive_steps consecutive policy steps during the lift phase.
+
+    `min_tips_in_contact` defaults to 3 (all of them), which is the historical
+    behaviour and what every run before it existed used. Lower it ONLY where a
+    finger is structurally unable to reach the object — on the perpendicular
+    topology the thumb cannot touch the shaft at any pinch offset that still
+    permits the gravity reorient (measured: thumb 0 N throughout the successful
+    open-loop swing, and the offsets where it does contact kill the swing), so
+    requiring 3 makes every episode terminate ~3 steps after the lift phase
+    opens regardless of what the policy does. This is NOT a way to quiet a
+    policy that merely drops the object: object_drop, object_slip and
+    floor_proximity all still fire, and losing one of the two opposed fingers
+    still ends the episode at min_tips_in_contact=2.
 
     Per-env counter persists across steps; resets when (a) the env
-    resets, or (b) contact is restored on all tips.
+    resets, or (b) enough tips regain contact.
     """
     if not hasattr(env, "_morphohand_tip_lost_counter"):
         env._morphohand_tip_lost_counter = torch.zeros(
@@ -229,7 +242,8 @@ def terminate_tip_lost(env: "ManagerBasedRlEnv",
     found = sensor.data.found
     if found is None:
         return torch.zeros(env.num_envs, device=env.device, dtype=torch.bool)
-    any_tip_lost = (found <= 0).any(dim=-1)
+    n_in_contact = (found > 0).sum(dim=-1)
+    any_tip_lost = n_in_contact < int(min_tips_in_contact)
     in_phase = _in_lift_phase(env, lift_phase_start_step)
 
     fire = any_tip_lost & in_phase

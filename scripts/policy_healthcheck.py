@@ -21,7 +21,10 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from morphohand.rl.deploy import act, act_b, build_actor, ckpt_obs_dim, make_env_cfg, read_per_finger
+from morphohand.rl.deploy import (
+    act, act_b, build_actor, ckpt_obs_dim, finger_ctrl_from_keyframe, make_env_cfg,
+    read_per_finger,
+)
 from morphohand.rl.trajectory_health import characterize_trajectory, format_scorecard
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -39,6 +42,11 @@ def main():
     ap.add_argument("--lift-delta", type=float, default=0.05)
     ap.add_argument("--open-finger-from-keyframe", action="store_true")
     ap.add_argument("--finger-residual-scale", type=float, default=0.5)
+    ap.add_argument("--closed-ctrl-from-keyframe", default=None,
+                    help="Take the closed-grip set-point from this keyframe instead of the "
+                         "CEM best_finger_ctrl. MUST match how the policy was trained "
+                         "(rl_train_cube.py --closed-ctrl-from-keyframe) or the policy is "
+                         "out-of-distribution and the scorecard is meaningless.")
     ap.add_argument("--json-out", type=Path, default=None)
     ap.add_argument("--title", type=str, default=None)
     args = ap.parse_args()
@@ -47,7 +55,13 @@ def main():
     summ = json.loads((run / "summary.json").read_text())
     frozen = run / "frozen_scene.xml"
     keyframe = summ["keyframe"]
-    bfc = tuple(float(v) for v in np.load(run / "best_rollout.npz")["best_finger_ctrl"].reshape(-1))
+    if args.closed_ctrl_from_keyframe:
+        bfc = finger_ctrl_from_keyframe(frozen, args.closed_ctrl_from_keyframe)
+        print(f"[healthcheck] closed grip from keyframe '{args.closed_ctrl_from_keyframe}': "
+              + " ".join(f"{v:+.4f}" for v in bfc))
+    else:
+        bfc = tuple(float(v)
+                    for v in np.load(run / "best_rollout.npz")["best_finger_ctrl"].reshape(-1))
 
     # detect obs dim: 65 = Policy A (lift), 66 = a reorienter (target_axis obs)
     obs_dim = ckpt_obs_dim(args.policy)

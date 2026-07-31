@@ -205,6 +205,10 @@ class Args:
     """Step from which the grip-tightness rewards (`contact_min`, `grip_force`) are
     paid. 0 = always on. Non-zero buys a two-phase grip: loose enough to let the
     object move early, firm later. See env_cfg.grip_phase_start_step."""
+    min_tips_in_contact: int = 3
+    """Fingertips the grip must keep on the object — drives the `tip_lost`
+    termination and the `contact_min` reward. 3 = all (historical). Use 2 only
+    where a finger structurally cannot reach. See env_cfg.min_tips_in_contact."""
     target_axis_progress_weight: float = 0.0
     """Weight on dense Δ(alignment)-per-step reward (gain shaping)."""
     target_axis_alpha_curriculum_iters: int = 0
@@ -451,16 +455,8 @@ def main() -> None:
         raise ValueError(f"best_finger_ctrl has {len(best_finger_ctrl)} dims; expected 9")
 
     if args.closed_ctrl_from_keyframe:
-        # Look the actuators up BY NAME, not by slicing the tail of key.ctrl: the frozen
-        # scene carries 6 palm-pose actuators ahead of the 9 finger ones, and that prefix
-        # is not guaranteed across topologies.
-        import mujoco
-        from morphohand.sampling.morphology import FINGER_ACTUATOR_NAMES
-        _m = mujoco.MjModel.from_xml_path(str(frozen))
-        _kf = _m.key(args.closed_ctrl_from_keyframe)
-        best_finger_ctrl = tuple(
-            float(_kf.ctrl[mujoco.mj_name2id(_m, mujoco.mjtObj.mjOBJ_ACTUATOR, n)])
-            for n in FINGER_ACTUATOR_NAMES)
+        from morphohand.rl.deploy import finger_ctrl_from_keyframe
+        best_finger_ctrl = finger_ctrl_from_keyframe(frozen, args.closed_ctrl_from_keyframe)
         print(f"[rl_train_cube] closed grip from keyframe "
               f"'{args.closed_ctrl_from_keyframe}' (NOT the CEM grasp): "
               + " ".join(f"{v:+.4f}" for v in best_finger_ctrl))
@@ -539,6 +535,7 @@ def main() -> None:
         strict_tip_lost_termination=args.strict_tip_lost_termination,
         contact_min_weight=args.contact_min_weight,
         grip_phase_start_step=args.grip_phase_start_step,
+        min_tips_in_contact=args.min_tips_in_contact,
         target_axis_progress_weight=args.target_axis_progress_weight,
         target_axis_alpha_curriculum_iters=args.target_axis_alpha_curriculum_iters,
         target_axis_alpha_start=args.target_axis_alpha_start,

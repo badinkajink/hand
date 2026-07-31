@@ -264,6 +264,16 @@ class MorphoHandEnvCfg:
     """Weight on fingertip_contact_min reward. Default 30 strongly
     incentivizes 3-finger grip; drop to 10-15 for reorient tasks where
     occasional regrip needs to be allowed."""
+    min_tips_in_contact: int = 3
+    """How many fingertips the grip is REQUIRED to have on the object. Governs both
+    the `tip_lost` termination and the `contact_min` reward. 3 = all of them, the
+    behaviour of every run before this existed.
+
+    Set to 2 only for a topology where a finger structurally cannot reach the object.
+    On the perp hand the thumb cannot touch the shaft at any pinch offset that still
+    allows the gravity reorient, so at 3 every episode terminates ~3 steps after the
+    lift phase opens (measured: mean episode length 62 of 250) and `contact_min` reads
+    a flat 0.0 all run. The drop/slip/floor guards are untouched by this."""
     grip_phase_start_step: int = 0
     """Episode step from which the GRIP-tightness rewards (`grip_force`,
     `contact_min`) are paid; before it they read 0. 0 = always on (every run
