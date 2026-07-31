@@ -736,3 +736,89 @@ something that penalises the slip rate or re-seats the grip, not more rotation r
 
 Artefacts: `docs/rl/videos/20260731_perp/` (960×720 render, filmstrip, per-run and overlay
 training curves, N=64 eval plots), `docs/experiments/perp_r{2,4}_eval.json`.
+
+---
+
+## 2026-07-31 (later) — the perp hand had no hand file, and the workspace was never sampled
+
+User's observation, and it is correct: every perp result to date — the scripted probes, the
+thumb sweep, r2/r3/r4 — ran on **one morphology, the all-zeros corner of the workspace**.
+`PERP_T_WORKSPACE` was written down in `morphohand.sampling.morphology` when the T-shaped mount
+layout was specified, and then **never referenced by anything**. It was dead code. The shipped
+mount positions are not a chosen design; they are simply where the scene was authored.
+
+Two mechanical reasons that persisted, both now fixed:
+
+**1. The perp topology had no hand XML.** `assets/mjcf/perp/` contained only `scenes/`, and
+`create_rigid_hand_and_scene_xmls` needs a hand/scene *pair*. Everything that generated a perp
+design therefore passed the scene as **both** arguments — which is why
+`assets/mjcf/generated/hand_perp_*.xml` is a byte-identical copy of `scene_perp_*.xml`,
+screwdriver and all. Now added, mirroring the baseline convention:
+
+* `assets/mjcf/perp/perp_hand.xml` — morph joints present, unactuated. **The generation source.**
+* `assets/mjcf/perp/perp_hand_morphology_actuated.xml` — all 18 DoF drivable, for dragging a
+  design in the viewer. Exploration only; never generate or measure from it.
+
+Parity with the scene is exact (0.0 m worst body mismatch at all four keyframes) and pinned by
+`tests/test_perp_hand_scene_parity.py`.
+
+**2. Nothing gated designs on self-collision**, so the workspace looked bigger than it is.
+New `scripts/morph_selfcollision_gate.py` bakes a design, settles it, and asks the contact
+solver. Always run it with `--retarget`, which IKs each design onto the reference grasp's
+fingertip world targets — without it a moved mount is judged in the pose authored for the old
+one and reports self-collisions it would not actually have (gotcha #5, resurfacing).
+
+### Two generator bugs this exposed
+
+* **Only the `open` keyframe was stripped.** `_strip_scene_morph_qpos` rewrote just that one
+  key, so any source with a second keyframe emitted a model MuJoCo refuses to load
+  (`keyframe 'closed': invalid qpos size, expected 9, got 18`). Invisible until now because the
+  baseline hand has exactly one keyframe and the perp hand has four. Now `_strip_morph_qpos`,
+  layout-aware, applied to every key.
+* **`--` inside an XML comment.** MuJoCo's parser accepts it; `ElementTree` — which the
+  generator uses — does not. A file can therefore load fine everywhere except the one place
+  that matters. Pinned by a test that parses each MJCF with *both*.
+* Generating from a `*_morphology_actuated.xml` now **raises** instead of silently substituting
+  the baseline hand's open angles and discarding the perp pose.
+
+### What the workspace actually allows
+
+`perp_compact_design(thumb_t, pair_x_t, pair_y_t)` interpolates from the shipped spread-out
+mounts (0,0,0) to the most compact layout the boxes allow (1,1,1). Gate results, retargeted:
+
+| direction | stock scene | palm plate raised 12 mm |
+|---|---|---|
+| **pair back in x** (`pair_x_t`) | **OK, full range** | OK, full range |
+| **thumb forward** (`thumb_t`), thumb stowed | palm 686–690 N | **OK, full range** |
+| **pair inward in y** (`pair_y_t`) | palm 462–687 N | index↔middle 22–81 N |
+
+**`pair_x_t` is available right now, unmodified.** The pair moves from palm x +35.0 to +12.5 mm,
+closing the thumb→pair tip gap 71.4 → 51.7 mm, with the pinch preserved (34.9 → 34.0 mm) and
+zero self-collision. This design was reachable the entire time and was never tried.
+
+**The palm plate is the sole blocker on the other two directions.** It is a 96 × 72 mm slab at
+`z = 0` — the *same plane as the finger mounts* — so any mount sliding over its footprint buries
+a 10 mm proximal capsule in it. That is what the `thumb_x` force table earlier in this file was
+measuring; it is not specific to the thumb. Raising the plate 12 mm clears it, and **costs the
+existing lineage nothing**: over 1200 settle steps from each of `open`/`closed`/`press`, the
+palm plate makes **no contact with anything at all**. It is inert geometry in every perp result
+so far. (Excluding palm↔proximal contacts instead gives bit-identical gate results.)
+
+**Pair separation in y is a genuine constraint, not a modelling artifact.** With the palm out of
+the way the pair still fails, now on index↔middle: the two facing fingers scissor into an X and
+eject the shaft sideways — visible directly in the render, and the failing bodies move from the
+middle phalanges (22–42 N) to the proximals (81 N) as the mounts close. Retargeting lowers the
+force an order of magnitude versus the naive pose but does not remove it. Bringing the opposed
+pair closer needs geometry outside the 9-param space (shorter proximals, or mounting the pair
+at an angle), not another sample of it.
+
+**The thumb-stow trick works.** A thumb moved forward cannot reach the authored `open` target —
+that target sits behind it, inside its minimum-reach shell — so it reads UNREACHABLE (residual
+3.4–6.1 mm). Stowing it with `thumb_yaw` (`--thumb-yaw 1.1`) exempts it from the grasp entirely
+and the whole forward range opens with the pinch untouched at 34.9 mm. `thumb_yaw` rolls the
+finger about its own proximal axis, which swings the tip laterally *because* the mcp is flexed
+at every authored perp keyframe.
+
+**Open decision (user's call, nothing launched):** whether to raise the palm plate. It unlocks
+the thumb-forward half of the workspace at no measured cost, but it is a change to the scene
+every published perp policy trained against.

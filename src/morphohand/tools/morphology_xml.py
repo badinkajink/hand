@@ -241,24 +241,25 @@ def _write_open_keyframe(root: ET.Element) -> None:
         open_key.set("ctrl", "\n        " + " ".join(f"{v:g}" for v in ctrl_vals) + "\n      ")
 
 
-def _strip_scene_morph_qpos(qpos_values: list[float]) -> list[float]:
-    """Remove morphology qpos entries from a scene qpos vector."""
-    if len(qpos_values) < 31:
+def _strip_morph_qpos(qpos_values: list[float], has_scene_prefix: bool) -> list[float]:
+    """Drop the six morph qpos entries, keeping [yaw, mcp, pip] per finger.
+
+    Layout is [x, y, yaw, mcp, len, pip] x 3, optionally behind a 13-entry object+palm prefix.
+
+    Must run on EVERY keyframe, not just `open`. A hand-only source with more than one keyframe
+    (the perp hand has four) otherwise emits a model whose extra keys still carry 18 qpos for a
+    9-qpos rigid hand, and MuJoCo refuses to load it: "keyframe 'closed': invalid qpos size,
+    expected 9, got 18". The baseline hand has a single keyframe, which is why this went
+    unnoticed.
+    """
+    start = 13 if has_scene_prefix else 0
+    if len(qpos_values) < start + 18:
         return qpos_values
 
-    rigid_prefix = qpos_values[:13]
-    rigid_fingers = [
-        qpos_values[15],
-        qpos_values[16],
-        qpos_values[18],
-        qpos_values[21],
-        qpos_values[22],
-        qpos_values[24],
-        qpos_values[27],
-        qpos_values[28],
-        qpos_values[30],
-    ]
-    return rigid_prefix + rigid_fingers
+    prefix = qpos_values[:start]
+    block = qpos_values[start : start + 18]
+    fingers = [block[i] for i in (2, 3, 5, 8, 9, 11, 14, 15, 17)]
+    return prefix + fingers
 
 
 def create_rigid_morphology_xml(
@@ -299,19 +300,40 @@ def create_rigid_morphology_xml(
     for joint_name in sorted(removed_joint_names):
         _remove_joint_by_name(root, joint_name)
 
+    # Determined BEFORE any keyframe rewriting: it keys off the palm pose joints, which the
+    # morph strip above leaves alone, but reading it once keeps the two layouts in lockstep.
+    is_scene = _is_scene_model(root)
+
     _remove_actuators_for_joints(root, removed_joint_names)
     _remove_defaults_by_class(root, {"morph"})
     _write_open_keyframe(root)
 
     keyframe = root.find("keyframe")
     if keyframe is not None:
+        actuator_elem = root.find("actuator")
+        n_actuators = 0 if actuator_elem is None else len(list(actuator_elem))
         for key in keyframe.findall("key"):
             qpos_raw = key.get("qpos")
-            if not qpos_raw:
-                continue
-            qpos_values = [float(v) for v in qpos_raw.replace("\n", " ").split()]
-            rigid_qpos = _strip_scene_morph_qpos(qpos_values)
-            key.set("qpos", "\n        " + " ".join(f"{v:.10g}" for v in rigid_qpos) + "\n      ")
+            if qpos_raw:
+                qpos_values = [float(v) for v in qpos_raw.replace("\n", " ").split()]
+                rigid_qpos = _strip_morph_qpos(qpos_values, is_scene)
+                key.set("qpos", "\n        " + " ".join(f"{v:.10g}" for v in rigid_qpos) + "\n      ")
+
+            ctrl_raw = key.get("ctrl")
+            if ctrl_raw:
+                ctrl_values = [float(v) for v in ctrl_raw.replace("\n", " ").split()]
+                if len(ctrl_values) != n_actuators:
+                    # The source's ctrl vector does not fit the stripped actuator list. Almost
+                    # always means a morphology-ACTUATED file was passed as the generation
+                    # source: its 9 morph actuators are gone but its ctrl still carries their
+                    # targets. Silently rewriting it discards the authored pose (baseline angles
+                    # get substituted), so refuse instead.
+                    raise ValueError(
+                        f"{base_xml_path.name}: keyframe '{key.get('name')}' has "
+                        f"{len(ctrl_values)} ctrl values but the rigid model has {n_actuators} "
+                        f"actuators. Generate from the UNACTUATED hand/scene, not from a "
+                        f"*_morphology_actuated.xml."
+                    )
 
     rebase_asset_file_paths(root, base_xml_path, output_xml_path)
 

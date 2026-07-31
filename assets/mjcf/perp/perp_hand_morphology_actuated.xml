@@ -1,0 +1,194 @@
+<mujoco model="morphohand_perp_hand_morphology_actuated">
+  <!--
+    PERP HAND, hand-only, morph joints PRESENT and ACTUATED.
+
+    All 18 DoF are user-drivable, so the 9-param design can be dragged live in the MuJoCo
+    viewer to find a morphology by eye before baking it. This is the perp counterpart of
+    assets/mjcf/baseline/hand_morphology_actuated.xml.
+
+      MUJOCO_GL=egl uv run python -m mujoco.viewer \
+        assets/mjcf/perp/perp_hand_morphology_actuated.xml
+
+    ctrl layout (18):
+      [thumb_x thumb_y index_x index_y middle_x middle_y thumb_len index_len middle_len]
+      [thumb_yaw thumb_mcp thumb_pip index_yaw index_mcp index_pip middle_yaw middle_mcp middle_pip]
+
+    ⚠ EXPLORATION ONLY - NEVER EVALUATE OR GENERATE FROM THIS FILE.
+
+      * The morph joints are live, so the morphology DRIFTS under contact during a rollout:
+        any number measured here describes a hand that never existed. Bake with
+        generate_morphology_xml.py (from perp_hand.xml) and evaluate the rigid output.
+      * The morph actuator gains below are retuned for interactive dragging and do NOT match
+        the generation source. Harmless here (nothing is measured), wrong anywhere else.
+      * Passing this file as the `base-hand-xml` source silently corrupts the open pose: it has 18
+        actuators, `_write_open_keyframe` only preserves the source `ctrl` vector when its
+        length matches the POST-STRIP count (9), so it falls back to the BASELINE hand's
+        open angles and the perp pose is lost. Generate from perp_hand.xml.
+
+    Geometry, mount positions, morph ranges and keyframe poses are identical to
+    perp_hand.xml / scenes/scene_screwdriver_medium_perp.xml - only the actuation differs.
+  -->
+  <compiler angle="radian" autolimits="true" />
+  <option timestep="0.002" gravity="0 0 -9.81" integrator="implicitfast" />
+  <visual>
+    <headlight ambient=".4 .4 .4" diffuse=".8 .8 .8" specular="0.1 0.1 0.1" />
+    <map znear=".01" />
+    <quality shadowsize="2048" />
+    <global elevation="-15" />
+  </visual>
+  <default>
+    <geom friction="1.8 0.15 0.01" solref="0.006 1" solimp="0.97 0.995 0.0005" />
+    <motor ctrlrange="-1 1" ctrllimited="true" />
+    <!--
+      MORPH class, actuated. Keeping the generation source's damping=2000 makes the response
+      FIRST-ORDER and unconditionally non-oscillatory; the only thing needed for usable
+      dragging is enough force to overcome it. Time constant = damping/kp = 2000/6000 = 0.33 s,
+      and forcerange covers the 400 N needed to hold a full-range 65 mm offset.
+      kv=0 deliberately: the joint damping already dominates.
+    -->
+    <default class="morph">
+      <joint damping="2000" armature="0.0001" />
+      <position kp="6000" kv="0" gear="1" forcerange="-400 400" />
+    </default>
+    <default class="ctrl">
+      <joint damping="0.5" armature="0.001" />
+      <position kp="30" kv="0.5" gear="1" forcerange="-10 10" ctrlrange="-1 1" />
+    </default>
+  </default>
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="3072" />
+    <texture name="grid" type="2d" builtin="checker" rgb1="0.15 0.15 0.15" rgb2="0.25 0.25 0.25" width="256" height="256" />
+    <material name="table_mat" texture="grid" texrepeat="3 3" reflectance="0.2" />
+    <material name="palm_mat" rgba="0.18 0.2 0.24 1" />
+    <material name="stalk_mat" rgba="0.28 0.3 0.34 1" />
+    <material name="finger_mat" rgba="0.8 0.72 0.6 1" />
+  </asset>
+  <worldbody>
+    <light pos="0 0 1.5" dir="0 0 -1" directional="true" diffuse=".6 .6 .6" specular=".2 .2 .2" />
+    <light pos="0.5 0.5 1.0" dir="-1 -1 -1" directional="true" diffuse=".4 .4 .4" specular=".1 .1 .1" />
+    <geom name="floor" type="plane" size="1.5 1.5 0.1" material="table_mat" contype="0" conaffinity="0" />
+    <body gravcomp="1" name="palm_pose" pos="0 0 0.120">
+      <geom name="palm_plate" type="box" pos="-0.005 0 0" size="0.048 0.036 0.001" material="palm_mat" />
+      <!-- Visual-only stalks: drawn at the SHIPPED mount positions, they do NOT follow a mount
+           that morph x/y has moved. Expect them to detach as soon as you drag anything. -->
+      <geom name="thumb_stalk" type="box" pos="-0.055 0 0" size="0.014 0.011 0.006" material="stalk_mat" contype="0" conaffinity="0" />
+      <geom name="index_stalk" type="box" pos="0.035 0.042 0" size="0.012 0.008 0.005" material="stalk_mat" contype="0" conaffinity="0" />
+      <geom name="middle_stalk" type="box" pos="0.035 -0.042 0" size="0.012 0.008 0.005" material="stalk_mat" contype="0" conaffinity="0" />
+      <body name="thumb_mount" pos="-0.065 0.0 0.0">
+        <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
+        <!-- T-workspace: thumb box 110 mm (Y) x 60 mm (X), palm-frame x [-72.5,-12.5] y [+-55] mm.
+             ⚠ The forward half of thumb_x is INSIDE THE PALM PLATE (689 N settled contact at
+             +0.0325). Only thumb_x <~ +0.005 is physically real. Gate every design with
+             scripts/morph_selfcollision_gate.py - the joint range does not. -->
+        <joint class="morph" name="thumb_x" type="slide" axis="1 0 0" range="-0.0075 0.0525" />
+        <joint class="morph" name="thumb_y" type="slide" axis="0 1 0" range="-0.055 0.055" />
+        <body name="thumb_yaw_frame">
+          <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
+          <joint class="ctrl" name="thumb_yaw" type="hinge" axis="1 0 0" range="-1.1 1.1" />
+          <body name="thumb_mcp_frame">
+            <joint class="ctrl" name="thumb_mcp" type="hinge" axis="0 1 0" range="0 3.14" />
+            <geom type="capsule" fromto="0 0 0 0.05 0 0" size="0.010" material="finger_mat" />
+            <body name="thumb_len_frame" pos="0.05 0 0">
+              <joint class="morph" name="thumb_len" type="slide" axis="1 0 0" range="0.0 0.035" />
+              <geom type="capsule" fromto="0 0 0 0.04 0 0" size="0.0085" material="finger_mat" />
+              <body name="thumb_pip_frame" pos="0.04 0 0">
+                <joint class="ctrl" name="thumb_pip" type="hinge" axis="0 1 0" range="-1.8 0.5" />
+                <geom type="capsule" fromto="0 0 0 0.03 0 0" size="0.0075" material="finger_mat" />
+                <body name="thumb_tip" pos="0.03 0 0">
+                  <geom type="sphere" size="0.010" material="finger_mat" friction="2.4 0.2 0.02" />
+                  <geom type="sphere" pos="0 0.004 0" size="0.005" material="finger_mat" friction="2.4 0.2 0.02" />
+                  <geom type="sphere" pos="0 -0.004 0" size="0.005" material="finger_mat" friction="2.4 0.2 0.02" />
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+      <!-- index: yaw frame rotated -90 deg about palm Z -> finger points along world -Y -->
+      <body name="index_mount" pos="0.035 0.048 0.0">
+        <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
+        <joint class="morph" name="index_x" type="slide" axis="1 0 0" range="-0.0225 0.0375" />
+        <joint class="morph" name="index_y" type="slide" axis="0 1 0" range="-0.0355 0.0245" />
+        <body name="index_yaw_frame" quat="0.7071068 0 0 -0.7071068">
+          <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
+          <joint class="ctrl" name="index_yaw" type="hinge" axis="1 0 0" range="-1.1 1.1" />
+          <body name="index_mcp_frame">
+            <joint class="ctrl" name="index_mcp" type="hinge" axis="0 1 0" range="0 2.5" />
+            <geom type="capsule" fromto="0 0 0 0.05 0 0" size="0.010" material="finger_mat" />
+            <body name="index_len_frame" pos="0.05 0 0">
+              <joint class="morph" name="index_len" type="slide" axis="1 0 0" range="0.0 0.035" />
+              <geom type="capsule" fromto="0 0 0 0.04 0 0" size="0.0085" material="finger_mat" />
+              <body name="index_pip_frame" pos="0.04 0 0">
+                <joint class="ctrl" name="index_pip" type="hinge" axis="0 1 0" range="-1.2 1.57" />
+                <geom type="capsule" fromto="0 0 0 0.03 0 0" size="0.0045" material="finger_mat" />
+                <body name="index_tip" pos="0.03 0 0">
+                  <geom type="sphere" size="0.006" material="finger_mat" friction="2.4 0.2 0.02" />
+                  <geom type="sphere" pos="0 0.005 0" size="0.004" material="finger_mat" friction="2.4 0.2 0.02" />
+                  <geom type="sphere" pos="0 -0.005 0" size="0.004" material="finger_mat" friction="2.4 0.2 0.02" />
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+      <!-- middle: yaw frame rotated +90 deg about palm Z -> points along world +Y, facing index -->
+      <body name="middle_mount" pos="0.035 -0.048 0.0">
+        <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
+        <joint class="morph" name="middle_x" type="slide" axis="1 0 0" range="-0.0225 0.0375" />
+        <joint class="morph" name="middle_y" type="slide" axis="0 1 0" range="-0.0245 0.0355" />
+        <body name="middle_yaw_frame" quat="0.7071068 0 0 0.7071068">
+          <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
+          <joint class="ctrl" name="middle_yaw" type="hinge" axis="1 0 0" range="-1.1 1.1" />
+          <body name="middle_mcp_frame">
+            <joint class="ctrl" name="middle_mcp" type="hinge" axis="0 1 0" range="0 2.5" />
+            <geom type="capsule" fromto="0 0 0 0.05 0 0" size="0.010" material="finger_mat" />
+            <body name="middle_len_frame" pos="0.05 0 0">
+              <joint class="morph" name="middle_len" type="slide" axis="1 0 0" range="0.0 0.035" />
+              <geom type="capsule" fromto="0 0 0 0.04 0 0" size="0.0085" material="finger_mat" />
+              <body name="middle_pip_frame" pos="0.04 0 0">
+                <joint class="ctrl" name="middle_pip" type="hinge" axis="0 1 0" range="-1.2 1.57" />
+                <geom type="capsule" fromto="0 0 0 0.03 0 0" size="0.0045" material="finger_mat" />
+                <body name="middle_tip" pos="0.03 0 0">
+                  <geom type="sphere" size="0.006" material="finger_mat" friction="2.4 0.2 0.02" />
+                  <geom type="sphere" pos="0 0.005 0" size="0.004" material="finger_mat" friction="2.4 0.2 0.02" />
+                  <geom type="sphere" pos="0 -0.005 0" size="0.004" material="finger_mat" friction="2.4 0.2 0.02" />
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+  <actuator>
+    <!-- morph actuators FIRST (ctrl[0:9]), matching the baseline actuated file's ordering.
+         ctrlrange mirrors each joint's range exactly - note they are NOT symmetric and NOT
+         the same per finger, unlike the baseline hand's uniform +-0.03 boxes. -->
+    <position class="morph" name="a_thumb_x" joint="thumb_x" ctrlrange="-0.0075 0.0525" />
+    <position class="morph" name="a_thumb_y" joint="thumb_y" ctrlrange="-0.055 0.055" />
+    <position class="morph" name="a_index_x" joint="index_x" ctrlrange="-0.0225 0.0375" />
+    <position class="morph" name="a_index_y" joint="index_y" ctrlrange="-0.0355 0.0245" />
+    <position class="morph" name="a_middle_x" joint="middle_x" ctrlrange="-0.0225 0.0375" />
+    <position class="morph" name="a_middle_y" joint="middle_y" ctrlrange="-0.0245 0.0355" />
+    <position class="morph" name="a_thumb_len" joint="thumb_len" ctrlrange="0.0 0.035" />
+    <position class="morph" name="a_index_len" joint="index_len" ctrlrange="0.0 0.035" />
+    <position class="morph" name="a_middle_len" joint="middle_len" ctrlrange="0.0 0.035" />
+    <position class="ctrl" name="a_thumb_yaw" joint="thumb_yaw" ctrlrange="-1.1 1.1" />
+    <position class="ctrl" name="a_thumb_mcp" joint="thumb_mcp" ctrlrange="0 3.14" />
+    <position class="ctrl" name="a_thumb_pip" joint="thumb_pip" ctrlrange="-1.8 0.5" />
+    <position class="ctrl" name="a_index_yaw" joint="index_yaw" ctrlrange="-1.1 1.1" />
+    <position class="ctrl" name="a_index_mcp" joint="index_mcp" ctrlrange="0 2.5" />
+    <position class="ctrl" name="a_index_pip" joint="index_pip" ctrlrange="-1.2 1.57" />
+    <position class="ctrl" name="a_middle_yaw" joint="middle_yaw" ctrlrange="-1.1 1.1" />
+    <position class="ctrl" name="a_middle_mcp" joint="middle_mcp" ctrlrange="0 2.5" />
+    <position class="ctrl" name="a_middle_pip" joint="middle_pip" ctrlrange="-1.2 1.57" />
+  </actuator>
+  <keyframe>
+    <!-- qpos identical to perp_hand.xml; ctrl carries the 9 morph targets in front so the
+         morph actuators hold the design the qpos starts at (zero error at reset). -->
+    <key name="open" qpos="0 0 0 1.90865 0 -1.8 0 0 4.34154e-17 1.13823 0 0.728527 0 0 -4.38085e-17 1.13823 0 0.728527" ctrl="0 0 0 0 0 0 0 0 0 0 1.90865 -1.8 4.34154e-17 1.13823 0.728527 -4.38085e-17 1.13823 0.728527" />
+    <key name="closed" qpos="0 0 0 1.50407 0 -1.76939 0 0 4.83104e-17 1.11743 0 0.635855 0 0 -4.84827e-17 1.11743 0 0.635855" ctrl="0 0 0 0 0 0 0 0 0 0 1.50407 -1.76939 4.83104e-17 1.11743 0.635855 -4.84827e-17 1.11743 0.635855" />
+    <key name="press" qpos="0 0 0 1.5154 0 -1.4802 0 0 4.83104e-17 1.11743 0 0.635855 0 0 -4.84827e-17 1.11743 0 0.635855" ctrl="0 0 0 0 0 0 0 0 0 0 1.5154 -1.4802 4.83104e-17 1.11743 0.635855 -4.84827e-17 1.11743 0.635855" />
+    <key name="open_ik" qpos="0 0 0 1.90865 0 -1.8 0 0 4.34154e-17 1.13823 0 0.728527 0 0 -4.38085e-17 1.13823 0 0.728527" ctrl="0 0 0 0 0 0 0 0 0 0 1.90865 -1.8 4.34154e-17 1.13823 0.728527 -4.38085e-17 1.13823 0.728527" />
+  </keyframe>
+</mujoco>
