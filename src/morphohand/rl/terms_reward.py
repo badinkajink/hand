@@ -96,8 +96,12 @@ def fingertip_contact_mean(env: "ManagerBasedRlEnv",
 
 
 def fingertip_contact_min(env: "ManagerBasedRlEnv",
-                           sensor_name: str = "fingertip_cube_contact") -> torch.Tensor:
+                           sensor_name: str = "fingertip_cube_contact",
+                           phase_start_step: int = 0) -> torch.Tensor:
     """Worst-finger contact, per env. Discourages 2-finger grips.
+
+    `phase_start_step` > 0 pays this only from that step on (see
+    env_cfg.grip_phase_start_step); 0 = always on.
 
     Returns shape (num_envs,) in [0, 1].
     """
@@ -105,20 +109,30 @@ def fingertip_contact_min(env: "ManagerBasedRlEnv",
     found = sensor.data.found
     if found is None:
         return torch.zeros(env.num_envs, device=env.device)
-    return (found > 0).float().min(dim=-1).values
+    out = (found > 0).float().min(dim=-1).values
+    if phase_start_step > 0:
+        out = out * (env.episode_length_buf >= int(phase_start_step)).float()
+    return out
 
 
 def grip_force(env: "ManagerBasedRlEnv",
                sensor_name: str = "fingertip_cube_contact",
                max_force: float = 3.0,
-               reduce: str = "mean") -> torch.Tensor:
+               reduce: str = "mean",
+               phase_start_step: int = 0) -> torch.Tensor:
     """Normalised fingertip grip force in [0, 1] — a "pinch-to-power" signal
     for the screwdriver bracing posture. Each fingertip's contact-force
     magnitude is clamped at `max_force` and normalised; `reduce` selects mean
-    (overall grip) or min (worst finger). Shape (num_envs,)."""
+    (overall grip) or min (worst finger). Shape (num_envs,).
+
+    `phase_start_step` > 0 pays this only from that step on (see
+    env_cfg.grip_phase_start_step); 0 = always on."""
     mag = _contact_force_mag(env, sensor_name)              # (B, n_tips)
     norm = (mag / float(max_force)).clamp(0.0, 1.0)
-    return norm.min(dim=-1).values if reduce == "min" else norm.mean(dim=-1)
+    out = norm.min(dim=-1).values if reduce == "min" else norm.mean(dim=-1)
+    if phase_start_step > 0:
+        out = out * (env.episode_length_buf >= int(phase_start_step)).float()
+    return out
 
 
 def grip_force_excess(env: "ManagerBasedRlEnv",

@@ -264,6 +264,21 @@ class MorphoHandEnvCfg:
     """Weight on fingertip_contact_min reward. Default 30 strongly
     incentivizes 3-finger grip; drop to 10-15 for reorient tasks where
     occasional regrip needs to be allowed."""
+    grip_phase_start_step: int = 0
+    """Episode step from which the GRIP-tightness rewards (`grip_force`,
+    `contact_min`) are paid; before it they read 0. 0 = always on (every run
+    before this existed).
+
+    For the perp topology the grip is not a constant preference but a SCHEDULE.
+    The reorient is grip-force-gated with a window of ~4-9 N per finger — below
+    it the shaft drops, above ~10 N the pinch becomes a rigid clamp and the
+    gravity pitch is choked off — so paying for grip during the swing buys a
+    policy that cannot rotate. But the shaft also rotates to vertical BY SLIDING
+    OUT of the pinch (grip force and alignment measured anti-correlated all the
+    way to 0.00 N), so after the swing the grip has to firm up or the object is
+    released. One always-on weight cannot ask for both; gating it to just after
+    the swing lets the policy learn 'loose to rotate, then clamp to keep'.
+    See docs/rl/perp_topology.md."""
     target_axis_progress_weight: float = 0.0
     """Reward weight on positive Δ(alignment) per step. Provides dense
     gradient toward 'rotating in the right direction' even when state
