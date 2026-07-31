@@ -531,3 +531,134 @@ Separately, **the reorient itself now needs re-examining before more is built on
 current hand the vertical shaft is not held at all. "Reorient" here means "release into a vertical
 pose", which is a different capability from in-hand reorientation and is not what the RL task is
 scored on.
+
+---
+
+## 2026-07-31 — train the reorient instead of scripting it: the first HELD reorient (cos +0.947)
+
+The open question the section above closes on — "on the current hand the vertical shaft is not
+held at all" — now has an answer, and it is better than expected. **It is held.** The release was
+never a property of the hand; it was a property of the scripted open-loop probe.
+
+User's call: skip the scripted two-phase grip schedule and train a reorienter suited to the perp
+hand. That turned out to be right, because three of the four things blocking the reorient were
+reward-level defects and the fourth was a missing phase gate — none of them needed a script.
+
+### First: the thumb reach was measured through the palm
+
+The preceding work widened the `thumb_x` range to a T-shaped workspace and picked `+0.0325` from
+an FK reach study, where the tip closes to within 1 mm of a held-vertical shaft. **That position
+is inside the palm.** Settled contact force, `thumb_mcp_frame` vs `palm_pose`:
+
+| thumb_x | +0.000 | +0.010 | +0.020 | **+0.0325** | +0.0525 |
+|---|---|---|---|---|---|
+| force | 0 N | 499 N | 687 N | **689 N** | 690 N |
+
+This restates Result 1 of the thumb sweep, which had already flagged `thumb_x >= +0.010` as
+INVALID — the FK study did not see it because forward kinematics does not model the palm. The tip
+does reach the shaft; it reaches it *through* solid geometry. Two consequences:
+
+* **A reach result is necessary, never sufficient.** Gate on `robot_self_collision` before
+  treating any thumb design as real. Nothing in the generate/sample path does this for you.
+* **The scripted press failed for an unrelated reason.** A press at `thumb_x +0.0325` reported
+  "cos 0.000, z 0.012, all three fingers 0 N" — that is the 689 N palm contact ejecting the
+  shaft, not a grip-sequencing failure. No conclusion about press sequencing survives from it.
+
+Recorded in the scene XML beside the joint range, since the range itself still spans the invalid
+region (the box is the mount rail, and the rail passes through the palm). Moving the thumb
+forward remains a palm change, not a morphology parameter.
+
+Everything below therefore runs at `thumb_x = 0`, which costs the reorient nothing: the thumb
+reads 0 N throughout the successful swing anyway.
+
+### Two infrastructure traps, both of which silently produce garbage
+
+**1. `init_noise_std` 0.3 (the default) NaNs this scene.** The first launch died at iteration 0 —
+and so did a faithful replay of run `20260729-1316`, which had trained 339 iterations clean. The
+perp hand is dynamically fragile under exploratory actions in a way the baseline hand is not.
+512 envs, 260 steps:
+
+| actions | zero | randn×0.05 | randn×0.15 | randn×0.5 | randn×1.0 |
+|---|---|---|---|---|---|
+| result | stable, max\|qvel\| 0.05 | stable, max\|qvel\| ~15 | NaN @ step 227 | NaN @ step 14 | NaN @ step 12, \|qvel\| 2e13 |
+
+One env in 512 going NaN aborts the entire run through `rsl_rl`'s `check_nan`. The run that
+worked had passed `0.05` as a bare CLI flag, invisible to anyone reading the recipe, so the next
+launch inherited the 0.3 default and died — exactly the flag-soup parity bug the recipe layer
+exists to kill. Now pinned in `perp_single`.
+
+**2. The 3-tip contact requirement is unsatisfiable on this hand.** The first launch that trained
+looked healthy on reward, but its in-training metrics did not: **mean episode length 62 of 250**,
+`tip_lost` 128.8, and `contact_min` / `grip_force` both flat at `0.0000` for the whole run. Every
+episode was terminating three steps after the lift phase opened; nothing past the lift was ever
+trained. `tip_lost` required all three tips, `contact_min` was min-over-3, and `grip_force` used
+`reduce=min` — all three gated on a thumb that cannot touch the shaft at any pinch offset which
+still permits the reorient. Two reward rows sat in the table looking active while being
+structurally incapable of taking a non-zero value.
+
+The CEM grip had masked this by happening to engage the thumb at 2.71 N; the lighter authored
+grip exposed it. New `min_tips_in_contact` (default 3, so every prior run is bit-identical) is
+set to 2 here, and `contact_min` becomes the worst of the k best tips. This adapts gotcha #8's
+guard to the topology rather than stripping it — drop, slip and floor-proximity are untouched,
+and losing either *opposed* finger still terminates. Effect, same config otherwise:
+
+| | episode length | mean reward | target_axis_alignment | target_axis_progress |
+|---|---|---|---|---|
+| 3 tips required | 62 | 61 | 7.1 | +0.27 |
+| 2 tips required | 149 | 335 | 49.1 | **+1.76** |
+
+### The four fixes to the reward, against the −0.449 run
+
+1. **`reorient_start_step` 65 → 25.** The pole is chosen between step 20 and 50, so the only
+   signed term (`target_axis_progress`) was switched off during the very decision it grades.
+2. **`target_axis_alpha` 4.0 → 2.0.** `exp(−α(1−cos)²)` is ~1e-7 for cos ≤ −0.5, so a
+   full-magnitude rotation to the wrong pole scored identically to never moving.
+3. **The grip set-point comes from the authored `closed` keyframe, not CEM** (new
+   `--closed-ctrl-from-keyframe`, and the matching flag on `policy_healthcheck.py` — evaluating a
+   keyframe-grip policy against the CEM grip is gotcha #13 in another coordinate, 21 N vs 8 N).
+4. **The grip rewards are phase-gated** (new `grip_phase_start_step`). The reorient needs a loose
+   pinch, but the shaft reaches vertical by sliding out of one, so the grip must firm up
+   afterwards. One always-on weight cannot ask for both. This is the user's two-phase schedule
+   expressed as something the policy *learns*, not a scripted ramp.
+
+### The result: the release was an artifact of the scripted probe
+
+Run `20260731-1146-perp_single_r2`, 339 iterations, 41 min, no collapse. Deterministic trace,
+run to 800 steps — well past its own 250-step training horizon:
+
+| step | 0 | 100 | 200 | 300 | 400 | **484** | 500 | 520 |
+|---|---|---|---|---|---|---|---|---|
+| cos | 0.000 | +0.296 | +0.441 | +0.615 | +0.848 | **+0.947** | +0.940 | 0.000 |
+| obj z | 0.012 | 0.141 | 0.134 | 0.125 | 0.115 | 0.111 | 0.111 | 0.012 |
+| grip (N) | 17.5 | 20.2 | 22.5 | 24.5 | 22.3 | ~10 | 6.2 | 0.00 |
+
+**Grip force and alignment are no longer anti-correlated.** That was the headline finding of the
+section above — the shaft rotates to vertical *by sliding out of the pinch*, grip decaying to
+0.00 N, ending upright on the floor with a perfect-looking cos. This policy instead climbs
+monotonically to **+0.947 with the grip maintained at 10–27 N and object z never leaving
+0.111–0.145**. It is walking the shaft around between the two opposed pads. That is in-hand
+reorientation, which is the capability the task is actually about, as opposed to "release into a
+vertical pose".
+
+Scorecard at the trained 250-step horizon: **held-cos +0.372**, peak 0.435, `drop` PASS at
+min hold-phase z 0.134. (Previous published run: held-cos −0.449.) The `idle_finger` FAIL is the
+thumb at 0 N and is structural on this topology, not a policy defect — the scorecard was written
+for the baseline 3-finger hand.
+
+### What it costs, and the defect that exposes
+
+The held reorient is **~4× slower than the gravity swing** — ~480 steps against ~120. That is the
+price of holding on: the fast version gets to vertical by letting go. And it exposes the next
+gate-timing defect, the same error as the original step-65 reorient gate one layer out:
+
+* the episode is 250 steps, so training ended at cos ~0.52 with the rotation still in progress;
+* the `grip_phase_start_step` "catch" reward was gated at 150 — less than a third of the way
+  through a manoeuvre that finishes at 484;
+* the loss of the shaft at ~step 510 happens 260 steps into **untrained extrapolation**, so it is
+  not evidence about what the policy would do if the completion were scored.
+
+Revision 3 (running): `episode_length_s` 5 → 12 (600 steps), grip and ang-acc gates 150 → 450.
+
+> **Gate timings are trajectory-relative, not absolute.** Both defects found here were a phase
+> gate pinned to a step count that came from a differently-shaped trajectory. When the horizon or
+> the manoeuvre speed changes, re-measure every `*_phase_start_step` against the actual trace.
