@@ -97,11 +97,21 @@ def fingertip_contact_mean(env: "ManagerBasedRlEnv",
 
 def fingertip_contact_min(env: "ManagerBasedRlEnv",
                            sensor_name: str = "fingertip_cube_contact",
-                           phase_start_step: int = 0) -> torch.Tensor:
+                           phase_start_step: int = 0,
+                           min_tips_in_contact: int = 3) -> torch.Tensor:
     """Worst-finger contact, per env. Discourages 2-finger grips.
 
     `phase_start_step` > 0 pays this only from that step on (see
     env_cfg.grip_phase_start_step); 0 = always on.
+
+    `min_tips_in_contact` is how many tips the grip is REQUIRED to have; the
+    reward is the worst of that many best tips. At the default 3 this is the
+    plain min over all tips — identical to every run before the parameter
+    existed. Lower it only where a finger structurally cannot reach the object
+    (perp topology, thumb): with min-over-3 there, the term reads exactly 0.0
+    for the entire episode no matter how well the two opposed fingers hold, so
+    it contributes no gradient at all while still looking like an active reward
+    term in the table. See terms_event.terminate_tip_lost.
 
     Returns shape (num_envs,) in [0, 1].
     """
@@ -109,7 +119,13 @@ def fingertip_contact_min(env: "ManagerBasedRlEnv",
     found = sensor.data.found
     if found is None:
         return torch.zeros(env.num_envs, device=env.device)
-    out = (found > 0).float().min(dim=-1).values
+    touching = (found > 0).float()
+    k = int(min_tips_in_contact)
+    if k >= touching.shape[-1]:
+        out = touching.min(dim=-1).values
+    else:
+        # worst of the k best tips == k-th largest
+        out = touching.topk(k, dim=-1).values[..., -1]
     if phase_start_step > 0:
         out = out * (env.episode_length_buf >= int(phase_start_step)).float()
     return out

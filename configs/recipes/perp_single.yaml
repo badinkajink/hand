@@ -120,16 +120,23 @@ target_axis_progress_weight: 600.0
 # step 20 -> 0.123 at step 30).
 reorient_start_step: 25
 
-# --- grip: RECRUIT THE THUMB ---
-# reduce=min pays for the WEAKEST finger's force, so an idle finger caps the whole term — the
-# direct lever for "the thumb must actually push". (reduce=max was tried on the baseline hand
-# and barely moved the idle thumb.) Weight stays modest on purpose: this program has already
-# established that raw grip force is decoupled from both hold quality and jitter, so this is
-# here to make the thumb LOAD-BEARING for axial resistance, not to chase a force number.
-# Judge it with scripts/probe_axial_load.py, not with the force value itself.
+# --- grip: THIS IS A TWO-FINGER HAND FOR THIS TASK ---
+# The previous revision tried to RECRUIT the thumb here (reduce=min, so an idle finger caps the
+# term). That objective is now known to be unreachable: the thumb cannot contact the shaft at
+# any pinch offset that still permits the gravity reorient — it is 0 N throughout the +0.957
+# open-loop swing, the offsets where it does bear load flatten the swing to cos 0.168, and
+# thumb_x forward is inside the palm (499-690 N). Asking for it anyway does not produce a
+# 3-finger grip, it produces terms that are identically zero:
+#   * tip_lost required all 3 tips -> every episode terminated ~3 steps after the lift phase
+#     opened (mean episode length 62 of 250), so nothing past the lift was ever trained;
+#   * contact_min = min over 3 tips -> flat 0.0 all run, an active-looking row worth nothing;
+#   * grip_force reduce=min -> flat 0.0 for the same reason.
+# So the required-contact count is 2 and grip_force reduces over the mean. The drop, slip and
+# floor-proximity guards are untouched, and losing either OPPOSED finger still terminates.
+min_tips_in_contact: 2
 contact_min_weight: 8.0
 grip_force_weight: 1.0
-grip_force_reduce: min
+grip_force_reduce: mean
 grip_force_max: 3.0
 grip_force_spread_weight: 1.0
 grip_force_spread_scale: 4.0

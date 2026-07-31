@@ -530,7 +530,8 @@ def _build_rewards(cfg: MorphoHandEnvCfg) -> dict:
             func=mjlab_terms.fingertip_contact_min,
             weight=float(cfg.contact_min_weight) * task_scale,
             params={"sensor_name": "fingertip_cube_contact",
-                    "phase_start_step": int(cfg.grip_phase_start_step)},
+                    "phase_start_step": int(cfg.grip_phase_start_step),
+                    "min_tips_in_contact": int(cfg.min_tips_in_contact)},
         ),
         "lift_height": RewardTermCfg(
             func=mjlab_terms.object_lift_height, weight=80.0 * task_scale,
@@ -913,6 +914,7 @@ def _build_terminations(cfg: MorphoHandEnvCfg) -> dict:
                     lift_phase_start_step=int(cfg.lift_phase_start_step),
                     consecutive_steps=int(cfg.term_tip_lost_steps),
                     sensor_name="fingertip_cube_contact",
+                    min_tips_in_contact=int(cfg.min_tips_in_contact),
                 ),
             )
         terminations["finger_slip"] = TerminationTermCfg(
