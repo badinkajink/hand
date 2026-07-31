@@ -205,6 +205,10 @@ class Args:
     """Step from which the grip-tightness rewards (`contact_min`, `grip_force`) are
     paid. 0 = always on. Non-zero buys a two-phase grip: loose enough to let the
     object move early, firm later. See env_cfg.grip_phase_start_step."""
+    grip_phase_align_thresh: float = 0.0
+    """Alignment cos at/above which the grip-tightness rewards turn on ("clamp firm
+    once it has rotated"). 0 disables. Task-progress alternative to
+    --grip-phase-start-step; see env_cfg.grip_phase_align_thresh."""
     min_tips_in_contact: int = 3
     """Fingertips the grip must keep on the object — drives the `tip_lost`
     termination and the `contact_min` reward. 3 = all (historical). Use 2 only
@@ -535,6 +539,7 @@ def main() -> None:
         strict_tip_lost_termination=args.strict_tip_lost_termination,
         contact_min_weight=args.contact_min_weight,
         grip_phase_start_step=args.grip_phase_start_step,
+        grip_phase_align_thresh=args.grip_phase_align_thresh,
         min_tips_in_contact=args.min_tips_in_contact,
         target_axis_progress_weight=args.target_axis_progress_weight,
         target_axis_alpha_curriculum_iters=args.target_axis_alpha_curriculum_iters,

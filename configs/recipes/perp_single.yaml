@@ -168,13 +168,23 @@ grip_force_spread_scale: 4.0
 # the swing unpriced and pays for the catch. This is the two-phase grip schedule expressed as a
 # REWARD for the policy to learn, rather than a scripted ramp.
 #
-# 450, was 150. The gate has to land just BEFORE the rotation completes, and revision 2 showed
-# the rotation completing at ~step 480, not ~150 — so the catch reward was firing less than a
-# third of the way through the manoeuvre, which is the same "reward gated to the wrong part of
-# the trajectory" error as the original step-65 reorient gate, one layer out. If the horizon or
-# the rotation speed changes, re-measure and move this with it; do not leave it pinned to a
-# step count that came from a different-length episode.
-grip_phase_start_step: 450
+# GATED ON ROTATION, NOT ON A STEP COUNT. Both step-gate attempts failed, in opposite
+# directions, and that is what makes the case: 150 covered less than a third of a manoeuvre
+# that took 480 steps; 450 then missed entirely, because under the longer horizon the episodes
+# shortened to ~165 and the gate was never reached. A step gate has to be guessed from the
+# PREVIOUS run's trajectory and is invalidated by the very learning it is meant to shape.
+#
+# Revision 3 showed what that costs. It peaked at iteration 50 and then degraded monotonically
+# to the NaN at 188 — reward 883 -> 430, target_axis_alignment 59.5 -> 28.8, episode length
+# 362 -> 165. With the catch unreachable, the only way left to stop losing the shaft at the top
+# of the rotation was to stop rotating, and PPO took it. That is the grip/alignment trade-off
+# reasserting itself once the horizon was long enough to expose the drop as a terminal penalty.
+#
+# An alignment gate cannot drift that way: it fires exactly when there is something worth
+# holding on to, however long the policy took to get there. 0.7 is past the point where the
+# pinch starts to unload (revision 2 unloads from ~0.90) but well inside what it reaches.
+grip_phase_start_step: 0
+grip_phase_align_thresh: 0.7
 
 # --- stabilize, but only AFTER the swing ---
 # object_ang_acc penalises angular acceleration, which the gravity swing NEEDS. Gating it to

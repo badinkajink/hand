@@ -531,7 +531,11 @@ def _build_rewards(cfg: MorphoHandEnvCfg) -> dict:
             weight=float(cfg.contact_min_weight) * task_scale,
             params={"sensor_name": "fingertip_cube_contact",
                     "phase_start_step": int(cfg.grip_phase_start_step),
-                    "min_tips_in_contact": int(cfg.min_tips_in_contact)},
+                    "min_tips_in_contact": int(cfg.min_tips_in_contact),
+                    "align_thresh": float(cfg.grip_phase_align_thresh),
+                    "object_name": "cube",
+                    "object_axis_local": cfg.target_axis_object_local,
+                    "target_axis_world": cfg.target_axis_world},
         ),
         "lift_height": RewardTermCfg(
             func=mjlab_terms.object_lift_height, weight=80.0 * task_scale,
@@ -610,7 +614,11 @@ def _build_rewards(cfg: MorphoHandEnvCfg) -> dict:
             params=dict(sensor_name="fingertip_cube_contact",
                         max_force=float(cfg.grip_force_max),
                         reduce=str(cfg.grip_force_reduce),
-                        phase_start_step=int(cfg.grip_phase_start_step)),
+                        phase_start_step=int(cfg.grip_phase_start_step),
+                        align_thresh=float(cfg.grip_phase_align_thresh),
+                        object_name="cube",
+                        object_axis_local=cfg.target_axis_object_local,
+                        target_axis_world=cfg.target_axis_world),
         )
     if cfg.grip_force_penalty_weight != 0.0:
         rewards["grip_force_excess"] = RewardTermCfg(

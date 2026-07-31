@@ -274,6 +274,16 @@ class MorphoHandEnvCfg:
     allows the gravity reorient, so at 3 every episode terminates ~3 steps after the
     lift phase opens (measured: mean episode length 62 of 250) and `contact_min` reads
     a flat 0.0 all run. The drop/slip/floor guards are untouched by this."""
+    grip_phase_align_thresh: float = 0.0
+    """Alignment cos at/above which the grip-tightness rewards turn on. 0 disables.
+
+    The TASK-PROGRESS version of `grip_phase_start_step`, and the right gate for a
+    reorient: "clamp firm once it has actually rotated" rather than "clamp firm at
+    step N". A step gate has to be guessed from some previous run's trajectory, and it
+    goes wrong silently whenever the policy's speed changes — on the perp hand a catch
+    reward pinned at step 150 was covering a rotation that took 480 steps, and moving
+    it to 450 then missed entirely because the episodes had shortened to 165. Set both
+    and they AND together."""
     grip_phase_start_step: int = 0
     """Episode step from which the GRIP-tightness rewards (`grip_force`,
     `contact_min`) are paid; before it they read 0. 0 = always on (every run
