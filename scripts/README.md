@@ -9,7 +9,8 @@ the `.sh` launchers handle both).
 
 | script | role |
 |---|---|
-| `generate_morphology_xml.py` | bake a 9-param finger design into fixed scene geometry (frozen morphology) |
+| `generate_morphology_xml.py` | bake a 9-param finger design into fixed scene geometry (frozen morphology). Needs a hand/scene PAIR — baseline `hand.xml`, perp `perp_hand.xml`; never a `*_morphology_actuated.xml` |
+| `morph_selfcollision_gate.py` | is a design PHYSICALLY REAL? bake → settle → ask the contact solver. The morph ranges are mount rails and the rails run through the palm; nothing else checks. Always `--retarget` |
 | `retarget_keyframe_ik.py` | IK-retarget the grasp keyframe across morphologies (world-frame fingertips → `open_ik` keyframe). REQUIRED before CEM/RL on a new design |
 | `phase1_optimize_grasp.py` | CEM grasp synthesis on a (frozen) scene; writes `best_rollout.npz` + `frozen_scene.xml` — the "morphology run dir" every RL script consumes |
 | `generate_primitive_meshes.py`, `build_morphohand_urdf.py` | asset generators (meshes; URDF for GraspGenX) |

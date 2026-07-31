@@ -107,6 +107,76 @@ PERP_T_WORKSPACE = MorphologyBounds(
     len_max=0.035,
 )
 
+# The design every perp run to date has actually used: all nine params at zero, i.e. the mounts
+# exactly as shipped in scene_screwdriver_medium_perp.xml. It is the CORNER of the workspace
+# where the hand is most spread out, not a chosen design — `PERP_T_WORKSPACE` was written down
+# and then never sampled from.
+PERP_BASE = MorphologyValues(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+
+
+def perp_compact_design(
+    thumb_t: float = 0.0,
+    pair_x_t: float = 0.0,
+    pair_y_t: float = 0.0,
+    thumb_len: float = 0.0,
+    pair_len: float = 0.0,
+) -> MorphologyValues:
+    """Linear interpolation from the shipped spread-out perp hand toward its most COMPACT design.
+
+    Three independent 0..1 knobs, each sliding mounts along a straight line from the shipped
+    position (t=0) to the far edge of that finger's `PERP_T_WORKSPACE` box (t=1):
+
+        thumb_t   thumb  palm x  -65.0  ->  -12.5 mm   (thumb forward, toward the pair)
+        pair_x_t  pair   palm x  +35.0  ->  +12.5 mm   (pair back, toward the thumb)
+        pair_y_t  pair   palm |y| 48.0  ->   12.5 mm   (pair inward, toward each other)
+
+    The pair is driven symmetrically (index +y, middle -y mirror each other), because the whole
+    point of the topology is an opposed pinch: breaking the symmetry tilts the pinch axis off Y
+    and the shaft rotates about the wrong axis.
+
+    At (1, 1, 1) the thumb sits 25 mm from the pair and the pair is 25 mm apart — a shaft
+    diameter. That is the geometric limit of the 9-param space, NOT a claim that it is
+    reachable: `thumb_t` in particular runs the thumb mount straight through the palm plate
+    (see `PERP_T_WORKSPACE`'s warning and the thumb_x force table in the scene XML). Gate every
+    design on physics before believing it:
+
+        MUJOCO_GL=egl uv run python scripts/morph_selfcollision_gate.py --sweep
+
+    `thumb_len` / `pair_len` are passed through unchanged as absolute metres (0..0.035); they
+    buy reach rather than closeness and are left out of the interpolation on purpose.
+    """
+    for name, t in (("thumb_t", thumb_t), ("pair_x_t", pair_x_t), ("pair_y_t", pair_y_t)):
+        if not 0.0 <= t <= 1.0:
+            raise ValueError(f"{name} must be in [0, 1], got {t}")
+
+    b = PERP_T_WORKSPACE
+    # Mount-relative offsets, so t=1 is simply the box edge in the "closer" direction.
+    thumb_x = thumb_t * b.thumb.x_max      # thumb moves +x (forward, toward the pair)
+    pair_x = pair_x_t * b.index.x_min      # pair moves -x (back, toward the thumb); x_min < 0
+    index_y = pair_y_t * b.index.y_min     # index moves -y (inward); y_min < 0
+    middle_y = pair_y_t * b.middle.y_max   # middle moves +y (inward); y_max > 0
+
+    return clip_morphology(
+        MorphologyValues(
+            thumb_x=thumb_x, thumb_y=0.0, thumb_len=thumb_len,
+            index_x=pair_x, index_y=index_y, index_len=pair_len,
+            middle_x=pair_x, middle_y=middle_y, middle_len=pair_len,
+        ),
+        b,
+    )
+
+
+def perp_mount_positions(m: MorphologyValues) -> dict[str, tuple[float, float]]:
+    """Absolute palm-frame (x, y) of each mount for a design — the readable form of the offsets."""
+    return {
+        finger: (PERP_MOUNTS[finger][0] + dx, PERP_MOUNTS[finger][1] + dy)
+        for finger, (dx, dy) in (
+            ("thumb", (m.thumb_x, m.thumb_y)),
+            ("index", (m.index_x, m.index_y)),
+            ("middle", (m.middle_x, m.middle_y)),
+        )
+    }
+
 
 def clip_morphology(values: MorphologyValues, bounds: MorphologyBounds) -> MorphologyValues:
     return MorphologyValues(
