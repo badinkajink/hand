@@ -197,4 +197,11 @@ lateral_drift_weight: -8.0
 lateral_drift_deadband: 0.01
 lateral_drift_power: 2.0
 
-wandb: false
+# wandb ON. Credentials are already in ~/.netrc, the trainer already syncs the full scalar
+# set, and the curves it builds are the ones that diagnosed revisions 2-4: reward, episode
+# length, action std and object height side by side is what showed r3 peaking at iteration 50
+# and degrading from there, while the reward number alone looked fine at the time. Offline
+# equivalent (no network / sweeps): `--no-wandb` plus scripts/rl_plot_training.py, which reads
+# the tensorboard logs every run writes regardless.
+wandb: true
+wandb_tags: [perp, single_stage, reorient]

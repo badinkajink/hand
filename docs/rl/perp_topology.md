@@ -662,3 +662,77 @@ Revision 3 (running): `episode_length_s` 5 → 12 (600 steps), grip and ang-acc 
 > **Gate timings are trajectory-relative, not absolute.** Both defects found here were a phase
 > gate pinned to a step count that came from a differently-shaped trajectory. When the horizon or
 > the manoeuvre speed changes, re-measure every `*_phase_start_step` against the actual trace.
+
+---
+
+## Revisions 3 and 4: gate the catch on ROTATION, and measure policies as distributions
+
+### Revision 3 failed — and the way it failed is the useful part
+
+600-step horizon, catch gate moved 150 → 450. It peaked at iteration 50 and then degraded
+monotonically until it NaN'd at 188:
+
+| iter | 18 | 50 | 80 | 110 | 140 | 170 | 187 |
+|---|---|---|---|---|---|---|---|
+| reward | 734 | **883** | 783 | 571 | 528 | 452 | 430 |
+| target_axis_alignment | 45.8 | **59.5** | 54.2 | 41.0 | 35.1 | 30.7 | 28.8 |
+| episode length | 409 | 362 | 313 | 239 | 203 | 170 | 165 |
+
+The longer horizon exposed the drop at the top of the rotation as a terminal penalty, but the
+catch reward that would have taught the policy to hold through it was gated at step 450 while
+episodes had shortened to 165 — so it never fired. With no reachable way to hold on, the only
+remaining way to stop losing the shaft was to stop rotating, and PPO took it.
+
+**Both step-gate attempts were wrong, in opposite directions**: 150 covered less than a third of
+a 480-step manoeuvre; 450 then missed entirely. A wall-clock gate must be guessed from the
+*previous* run's trajectory and is invalidated by the very learning it exists to shape. New
+`grip_phase_align_thresh` gates on task progress instead — "clamp firm once it has actually
+rotated past cos 0.7, however long that took". (This was the user's original framing, "clamp-firm
+on a rotation threshold"; the first implementation rendered it as a step count and got it wrong
+twice.)
+
+### Revision 4: the reorient is solved; the indefinite hold is not
+
+`20260731-1300-perp_single_r4`, 339 iterations, 41 min, no NaN, and unlike r3 it improves
+monotonically end to end (reward 234 → 1375, alignment 14 → 100, episode length 85 → 279).
+
+### Single rollouts of this stack are not reproducible
+
+Three deterministic rollouts of the same r4 checkpoint — stochastic sampling off,
+`cube_spawn_*_jitter` at 0 — ended three different ways (held at step 400 / lost at 430 / lost
+before 400). The actions are deterministic, so the spread is the simulator: parallel contact
+solves do not reduce in a fixed order on GPU. **A single trace cannot support a claim about a
+policy**, which invalidates the method used for every per-policy number in the sections above.
+New `scripts/policy_eval_suite.py` runs N envs batched (N rollouts ≈ one rollout of wall-clock)
+and reports rates with spreads. Skill: `policy-metrics`.
+
+### N = 64, 500 steps
+
+| metric | r2 (step-gated catch) | r4 (align-gated catch) |
+|---|---|---|
+| align_rate (ever cos ≥ 0.9) | 71.9% (46/64) | **100% (64/64)** |
+| t_align (steps) | 409 ± 29 | **89 ± 46** |
+| peak_cos | 0.905 ± 0.090 | **0.996 ± 0.006** |
+| hold_steps (aligned AND held) | 49 ± 41 | **331 ± 55** |
+| hold_rate @ step 500 | 45.3% | 0% |
+| drop_step | 443 ± 30 (35/64 envs) | 433 ± 32 (64/64) |
+
+**r4 reorients reliably and fast**: every rollout reaches vertical, at cos 0.996, in ~89 steps
+(1.8 s), and stays vertical and held for ~331 steps (6.6 s). Against the original run's
+held-cos of −0.449 that is the task, solved.
+
+**Neither holds indefinitely, and they fail at the same absolute step.** r2's 45% `hold_rate`
+is an artifact of the 500-step horizon truncating before the slower policy finishes failing —
+`hold_rate` at a fixed step ranks a slower policy higher, which is the same short-horizon trap
+documented earlier in this file, reappearing inside the new metric. Compare on `hold_steps`.
+
+That both policies lose the shaft at ~435–443 steps *regardless of when they got vertical* is
+the pointer to the remaining defect. The 4-panel eval plot shows it directly: object z slips
+**~12 mm monotonically** across the whole hold (0.120 → 0.108) while grip decays to ~6 N; the
+align-gated catch does fire (grip climbs back to ~16 N around step 300) but does not arrest the
+slip, and at ~440 steps the shaft has simply run out of pad. The open problem is therefore no
+longer "does it reorient" or "does it release" — it is a **slow steady slip**, and the lever is
+something that penalises the slip rate or re-seats the grip, not more rotation reward.
+
+Artefacts: `docs/rl/videos/20260731_perp/` (960×720 render, filmstrip, per-run and overlay
+training curves, N=64 eval plots), `docs/experiments/perp_r{2,4}_eval.json`.

@@ -1,0 +1,18 @@
+{
+  "label": "r2 (step-gated catch)",
+  "n": 64,
+  "steps": 500,
+  "align_thresh": 0.9,
+  "align_rate": 0.71875,
+  "hold_rate": 0.453125,
+  "success_rate": 0.375,
+  "t_align_mean": 408.7826086956522,
+  "hold_steps_mean": 49.140625,
+  "hold_steps_sd": 41.49053626562779,
+  "final_cos_mean": 0.45557308197021484,
+  "final_cos_sd": 0.45921024680137634,
+  "final_z_mean": 0.060594089329242706,
+  "peak_cos_mean": 0.9050780534744263,
+  "drop_step_mean": 442.8285714285714,
+  "n_lost": 35
+}
