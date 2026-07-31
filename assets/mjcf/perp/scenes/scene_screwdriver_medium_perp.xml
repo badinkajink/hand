@@ -99,37 +99,38 @@
       <joint class="pose" name="palm_rx" type="hinge" axis="1 0 0" range="-1.57 1.57" />
       <joint class="pose" name="palm_ry" type="hinge" axis="0 1 0" range="-1.57 1.57" />
       <joint class="pose" name="palm_rz" type="hinge" axis="0 0 1" range="-3.14 3.14" />
-      <geom name="palm_plate" type="box" pos="-0.005 0 0" size="0.048 0.036 0.001" material="palm_mat" />
+      <!-- VISUAL ONLY (contype/conaffinity 0). The real palm is a complex mechanism - it has to
+           actuate the XY morphology - and is deliberately NOT modelled. Collidable, it was a
+           96x72 mm slab in the SAME PLANE as the finger mounts, so any mount sliding over its
+           footprint buried a 10 mm proximal capsule in it at ~690 N. That blocked thumb-forward
+           AND pair-inward, i.e. most of PERP_T_WORKSPACE, and was previously mis-recorded as a
+           property of the thumb. Free to disable: measured over 1200 settle steps from every
+           keyframe, this geom made NO contact with anything. Matches assets/mjcf/baseline/hand.xml,
+           whose palm has always been non-colliding. -->
+      <geom name="palm_plate" type="box" pos="-0.005 0 0" size="0.048 0.036 0.001" material="palm_mat" contype="0" conaffinity="0" />
       <!-- visual-only stalks out to the mounts (contype/conaffinity 0: never collide) -->
       <geom name="thumb_stalk" type="box" pos="-0.055 0 0" size="0.014 0.011 0.006" material="stalk_mat" contype="0" conaffinity="0" />
       <geom name="index_stalk" type="box" pos="0.035 0.042 0" size="0.012 0.008 0.005" material="stalk_mat" contype="0" conaffinity="0" />
       <geom name="middle_stalk" type="box" pos="0.035 -0.042 0" size="0.012 0.008 0.005" material="stalk_mat" contype="0" conaffinity="0" />
       <body name="thumb_mount" pos="-0.065 0.0 0.0">
         <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
-        <!-- T-workspace (see morphohand.sampling.morphology.PERP_T_WORKSPACE): the thumb's
-             box is 110 mm along Y by 60 mm along X, palm-frame x [-72.5,-12.5] y [+-55] mm.
-             These are mount-RELATIVE offsets from pos="-0.065 0 0", so keep them in sync with
-             that constant and with the mount pos.
+        <!-- T-workspace (morphohand.sampling.morphology.PERP_T_WORKSPACE): thumb box is
+             110 mm along Y by 60 mm along X, palm-frame x [-72.5,-12.5] y [+-55] mm. These
+             are mount-RELATIVE offsets from pos="-0.065 0 0"; keep in sync with that constant.
 
-             ⚠ THE FORWARD HALF OF thumb_x IS NOT USABLE — it is inside the palm. The box is
-             the mount RAIL, and the rail passes through solid geometry; nothing here gates on
-             self-collision, so a design sampled from this range can be physically impossible
-             and still generate, simulate, and report numbers. Settled contact force at the
-             `open` and `closed` keyframes, thumb_mcp_frame vs palm_pose:
+             HISTORY: the forward half of this rail used to be unusable - it ran through the
+             collidable palm plate at ~690 N, and that was recorded here (and in three other
+             places) as a property of the THUMB. It was a property of the MODEL. The palm is
+             now visual-only, and the full rail gates clean:
 
-                 thumb_x  | +0.000 | +0.010 | +0.020 | +0.0325 | +0.0525
-                 force    |  0 N   | 499 N  | 687 N  |  689 N  |  690 N
+                 thumb_t (palm x)  | -65.0 | -51.9 | -38.8 | -25.6 | -12.5
+                 self-collision    |  OK   |  OK   |  OK   |  OK   |  OK
 
-             So only thumb_x <~ +0.005 is real. A reach study that works in FK will disagree,
-             because FK does not know about the palm: the tip does close to within ~1 mm of a
-             held-vertical shaft at palm x -0.0325, but it gets there THROUGH the palm. Treat
-             an FK reach result as necessary, never sufficient, and confirm with the physics
-             (`robot_self_collision` in scripts/sweep_perp_thumb.py) before baking a design.
-             A 689 N contact also ejects the object, so a scripted press at such a thumb_x
-             fails for reasons that have nothing to do with the press.
-
-             Moving the thumb forward therefore needs a PALM change, not a morphology value —
-             it is outside the 9-param space. See docs/rl/perp_topology.md. -->
+             Two caveats that still hold. A forward thumb cannot reach the authored `open`
+             grasp target - that target sits BEHIND it, inside its minimum-reach shell - so
+             pose it with `thumb_yaw` stowed (scripts/morph_selfcollision_gate.py the thumb-yaw flag)
+             rather than on the pair's grasp. And an FK reach result is still necessary, never
+             sufficient: gate on physics before baking any design. -->
         <joint class="morph" name="thumb_x" type="slide" axis="1 0 0" range="-0.0075 0.0525" />
         <joint class="morph" name="thumb_y" type="slide" axis="0 1 0" range="-0.055 0.055" />
         <body name="thumb_yaw_frame">
