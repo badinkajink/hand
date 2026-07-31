@@ -33,7 +33,25 @@
 #   3. `contact_min`/`grip_force` were paid every step, so "hold tight" was rewarded during the
 #      swing that requires a loose pinch.
 object_body_name: screwdriver_medium
-episode_length_s: 5.0
+
+# --- 12 s, NOT 5 s: the learned reorient is SLOW because it holds on ---
+# Revision 2 produced the first perp policy that reorients WITHOUT releasing (held-cos rises
+# monotonically, grip maintained 10-27 N, object z 0.111-0.145 throughout — see below), but it
+# takes ~480 steps to get there, where the open-loop gravity swing takes ~120. That is not a
+# defect, it is the price of holding: the gravity version reaches vertical BY letting the shaft
+# slide out of the pinch, and a policy that refuses to do that has to walk the shaft around
+# between the two pads instead, which is slower. Traced past its own horizon, revision 2 does:
+#
+#     step |   0   | 100  | 200  | 300  | 400  | 484   | 500  | 520
+#     cos  | 0.000 |0.296 |0.441 |0.615 |0.848 |+0.947 |0.940 |0.000
+#     z    | 0.012 |0.141 |0.134 |0.125 |0.115 | 0.111 |0.111 |0.012
+#     grip | 17.5  | 20.2 | 22.5 | 24.5 | 22.3 | ~10   | 6.2  | 0.00
+#
+# At the old 250-step horizon the episode ended at cos ~0.52 with the rotation still in
+# progress, so the policy was scored mid-manoeuvre and the whole completion+hold was untrained
+# extrapolation (which is where it eventually loses the shaft, at ~step 510). 600 steps covers
+# the rotation with ~120 steps of scored hold after it.
+episode_length_s: 12.0
 
 # --- init_noise_std 0.05, NOT the 0.3 default: the perp scene NaNs above ~0.1 ---
 # This is a HARD requirement, not a tuning preference. The perp hand is dynamically fragile
@@ -146,17 +164,25 @@ grip_force_spread_scale: 4.0
 # off). But the shaft also rotates to vertical BY SLIDING OUT of the pinch — grip force and
 # alignment were measured anti-correlated all the way to 0.00 N, ending with the screwdriver
 # standing on the floor — so after the swing the grip must firm up or there is no hold at all.
-# Gating to 150 (with object_ang_acc below, so the whole "settle" block turns on together)
-# leaves the swing unpriced and pays for the catch. This is the two-phase grip schedule
-# expressed as a REWARD for the policy to learn, rather than a scripted ramp.
-grip_phase_start_step: 150
+# Gating it (with object_ang_acc below, so the whole "settle" block turns on together) leaves
+# the swing unpriced and pays for the catch. This is the two-phase grip schedule expressed as a
+# REWARD for the policy to learn, rather than a scripted ramp.
+#
+# 450, was 150. The gate has to land just BEFORE the rotation completes, and revision 2 showed
+# the rotation completing at ~step 480, not ~150 — so the catch reward was firing less than a
+# third of the way through the manoeuvre, which is the same "reward gated to the wrong part of
+# the trajectory" error as the original step-65 reorient gate, one layer out. If the horizon or
+# the rotation speed changes, re-measure and move this with it; do not leave it pinned to a
+# step count that came from a different-length episode.
+grip_phase_start_step: 450
 
 # --- stabilize, but only AFTER the swing ---
 # object_ang_acc penalises angular acceleration, which the gravity swing NEEDS. Gating it to
 # step 150 (of 250) damps the settle at the end instead of fighting the rotation that gets us
 # there.
 object_ang_acc_weight: 0.5
-object_ang_acc_phase_start_step: 150
+# 450, tracking grip_phase_start_step — same reason, same re-measure caveat.
+object_ang_acc_phase_start_step: 450
 lateral_drift_weight: -8.0
 lateral_drift_deadband: 0.01
 lateral_drift_power: 2.0
