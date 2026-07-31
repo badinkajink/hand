@@ -95,10 +95,44 @@ def fingertip_contact_mean(env: "ManagerBasedRlEnv",
     return (found > 0).float().mean(dim=-1)
 
 
+def _grip_phase_mask(env: "ManagerBasedRlEnv", phase_start_step: int,
+                     align_thresh: float,
+                     object_name: str = "cube",
+                     object_axis_local: tuple[float, float, float] = (0.0, 0.0, 1.0),
+                     target_axis_world: tuple[float, float, float] = (0.0, 0.0, 1.0),
+                     ) -> torch.Tensor | None:
+    """When the grip-tightness rewards are paid. Returns None for "always".
+
+    Two independent gates, ANDed when both are set:
+
+    * `phase_start_step` — wall-clock. Fine when the manoeuvre has a fixed duration.
+    * `align_thresh` — TASK PROGRESS: pay for grip only once the object has actually
+      rotated past this cos. Prefer this one for the reorient. A step gate has to be
+      guessed from a previous run's trajectory and silently goes wrong the moment the
+      policy changes speed — measured on the perp hand, a catch reward pinned to step 150
+      was covering a rotation that took 480 steps, and moving it to 450 then missed
+      because episodes were ending at 165. An alignment gate cannot drift that way: it
+      fires exactly when there is something worth holding on to, however long that took.
+    """
+    mask = None
+    if phase_start_step > 0:
+        mask = (env.episode_length_buf >= int(phase_start_step)).float()
+    if align_thresh > 0.0:
+        cos = _alignment_cos(env, object_name, object_axis_local, target_axis_world)
+        a = (cos >= float(align_thresh)).float()
+        mask = a if mask is None else mask * a
+    return mask
+
+
 def fingertip_contact_min(env: "ManagerBasedRlEnv",
                            sensor_name: str = "fingertip_cube_contact",
                            phase_start_step: int = 0,
-                           min_tips_in_contact: int = 3) -> torch.Tensor:
+                           min_tips_in_contact: int = 3,
+                           align_thresh: float = 0.0,
+                           object_name: str = "cube",
+                           object_axis_local: tuple[float, float, float] = (0.0, 0.0, 1.0),
+                           target_axis_world: tuple[float, float, float] = (0.0, 0.0, 1.0),
+                           ) -> torch.Tensor:
     """Worst-finger contact, per env. Discourages 2-finger grips.
 
     `phase_start_step` > 0 pays this only from that step on (see
@@ -126,16 +160,21 @@ def fingertip_contact_min(env: "ManagerBasedRlEnv",
     else:
         # worst of the k best tips == k-th largest
         out = touching.topk(k, dim=-1).values[..., -1]
-    if phase_start_step > 0:
-        out = out * (env.episode_length_buf >= int(phase_start_step)).float()
-    return out
+    mask = _grip_phase_mask(env, phase_start_step, align_thresh,
+                            object_name, object_axis_local, target_axis_world)
+    return out if mask is None else out * mask
 
 
 def grip_force(env: "ManagerBasedRlEnv",
                sensor_name: str = "fingertip_cube_contact",
                max_force: float = 3.0,
                reduce: str = "mean",
-               phase_start_step: int = 0) -> torch.Tensor:
+               phase_start_step: int = 0,
+               align_thresh: float = 0.0,
+               object_name: str = "cube",
+               object_axis_local: tuple[float, float, float] = (0.0, 0.0, 1.0),
+               target_axis_world: tuple[float, float, float] = (0.0, 0.0, 1.0),
+               ) -> torch.Tensor:
     """Normalised fingertip grip force in [0, 1] — a "pinch-to-power" signal
     for the screwdriver bracing posture. Each fingertip's contact-force
     magnitude is clamped at `max_force` and normalised; `reduce` selects mean
@@ -146,9 +185,9 @@ def grip_force(env: "ManagerBasedRlEnv",
     mag = _contact_force_mag(env, sensor_name)              # (B, n_tips)
     norm = (mag / float(max_force)).clamp(0.0, 1.0)
     out = norm.min(dim=-1).values if reduce == "min" else norm.mean(dim=-1)
-    if phase_start_step > 0:
-        out = out * (env.episode_length_buf >= int(phase_start_step)).float()
-    return out
+    mask = _grip_phase_mask(env, phase_start_step, align_thresh,
+                            object_name, object_axis_local, target_axis_world)
+    return out if mask is None else out * mask
 
 
 def grip_force_excess(env: "ManagerBasedRlEnv",
