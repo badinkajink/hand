@@ -822,3 +822,39 @@ at every authored perp keyframe.
 **Open decision (user's call, nothing launched):** whether to raise the palm plate. It unlocks
 the thumb-forward half of the workspace at no measured cost, but it is a change to the scene
 every published perp policy trained against.
+
+### r5 queue launched (2026-07-31 17:07) — and the compact designs are MORE NaN-prone
+
+User's call: palm made **visual-only** (`contype/conaffinity 0`) rather than raising it — the real
+palm is a complex mechanism that has to actuate the XY morphology, and is deliberately not
+modelled at all. This matches `assets/mjcf/baseline/hand.xml`, whose palm has always been
+non-colliding, and is free: the plate made no contact with anything over 1200 settle steps from
+every keyframe. Gate goes 5/21 → 9/21 (thumb full range + pair_x full range).
+
+`scripts/sweep_perp_compact.py` ranks the workspace by the MECHANISM before spending GPU
+(gotcha #7: per-design RL is seed-dominated, so training every design learns nothing). 50
+designs, gate → retarget → settle/close/lift → **3.2 s hold**. 17/50 gate-valid, **12 HELD**.
+
+The long hold earns its keep immediately: designs `t0.50_x0.00`, `t0.75_x0.00`, `t0.75_x0.25`
+all report **peak cos +1.000** — and are **on the floor** at grip 0.0 N, z 0.050. That is the
+release artifact this file documented at 2026-07-30, reproduced across the morphology axis.
+`held` is asked of the physics (tip force + height + floor contact), never inferred from cos.
+
+Top 5 by held-peak-cos: `t0.00_x0.25` (+0.995), `t0.00_x0.00` (shipped, +0.991), `t0.25_x0.25`
+(+0.987), `t0.50_x0.50` (+0.879), `t0.00_x0.50` (+0.746). Table:
+`docs/experiments/perp_compact_sweep.md`.
+
+**The shipped hand is genuinely good on the open-loop mechanism** (+0.991, 2nd of 50) — the
+morphology complaint was never that the mechanism was broken, it was that one design was the
+only one ever tried. `t0.00_x0.25` edges it.
+
+`scripts/train_perp_compact_queue.sh` runs r5 sequentially over the top 5 (single GPU),
+resumable via per-design `.DONE`, own Warp cache per process, GPU-drain wait between runs.
+
+**⚠ OPEN: `t0.00_x0.25` NaN'd at iteration 0.** Same failure the recipe pins `init_noise_std:
+0.05` to prevent — but that value was tuned on the SHIPPED morphology, and a moved-mount design
+is more fragile still. The queue skipped it and is training `t0.00_x0.00`. **This means the
+top-ranked design is currently unmeasured, and the ranking may be systematically biased toward
+designs that happen to survive the pinned noise.** Next: per-design `init_noise_std` (try 0.02
+/ 0.01 on failure) and a retry loop in the queue rather than a skip. ETA is ~6 h per design, so
+the queue will not finish in one sitting — it is resumable by design.

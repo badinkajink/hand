@@ -67,7 +67,15 @@
     <!-- Body name kept as `palm_pose` (not `palm`) even though the pose joints are gone: the
          perp tooling looks up `model.body("palm_pose")` for the palm frame. -->
     <body gravcomp="1" name="palm_pose" pos="0 0 0.120">
-      <geom name="palm_plate" type="box" pos="-0.005 0 0" size="0.048 0.036 0.001" material="palm_mat" />
+      <!-- VISUAL ONLY (contype/conaffinity 0). The real palm is a complex mechanism - it has to
+           actuate the XY morphology - and is deliberately NOT modelled. Collidable, it was a
+           96x72 mm slab in the SAME PLANE as the finger mounts, so any mount sliding over its
+           footprint buried a 10 mm proximal capsule in it at ~690 N. That blocked thumb-forward
+           AND pair-inward, i.e. most of PERP_T_WORKSPACE, and was previously mis-recorded as a
+           property of the thumb. Free to disable: measured over 1200 settle steps from every
+           keyframe, this geom made NO contact with anything. Matches assets/mjcf/baseline/hand.xml,
+           whose palm has always been non-colliding. -->
+      <geom name="palm_plate" type="box" pos="-0.005 0 0" size="0.048 0.036 0.001" material="palm_mat" contype="0" conaffinity="0" />
       <!-- Visual-only stalks (contype/conaffinity 0: never collide). They are drawn at the
            SHIPPED mount positions and do NOT follow a mount that morph x/y has moved, so at
            non-zero morphology they detach. Cosmetic only - do not read them as geometry. -->
@@ -80,19 +88,19 @@
              110 mm along Y by 60 mm along X, palm-frame x [-72.5,-12.5] y [+-55] mm. These
              are mount-RELATIVE offsets from pos="-0.065 0 0"; keep in sync with that constant.
 
-             ⚠ THE FORWARD HALF OF thumb_x IS NOT USABLE - it is inside the palm plate. The
-             box is the mount RAIL and the rail passes through solid geometry; nothing gates
-             on self-collision, so a design sampled from this range can be physically
-             impossible and still generate, simulate and report numbers. Settled contact
-             force, thumb_mcp_frame vs palm_pose:
+             HISTORY: the forward half of this rail used to be unusable - it ran through the
+             collidable palm plate at ~690 N, and that was recorded here (and in three other
+             places) as a property of the THUMB. It was a property of the MODEL. The palm is
+             now visual-only, and the full rail gates clean:
 
-                 thumb_x  | +0.000 | +0.010 | +0.020 | +0.0325 | +0.0525
-                 force    |  0 N   | 499 N  | 687 N  |  689 N  |  690 N
+                 thumb_t (palm x)  | -65.0 | -51.9 | -38.8 | -25.6 | -12.5
+                 self-collision    |  OK   |  OK   |  OK   |  OK   |  OK
 
-             Only thumb_x <~ +0.005 is real. An FK reach study disagrees because FK does not
-             model the palm: the tip closes to ~1 mm of a held-vertical shaft at palm
-             x -0.0325, but it gets there THROUGH the palm. Gate on `robot_self_collision`
-             (scripts/morph_selfcollision_gate.py) before baking any design. -->
+             Two caveats that still hold. A forward thumb cannot reach the authored `open`
+             grasp target - that target sits BEHIND it, inside its minimum-reach shell - so
+             pose it with `thumb_yaw` stowed (scripts/morph_selfcollision_gate.py the thumb-yaw flag)
+             rather than on the pair's grasp. And an FK reach result is still necessary, never
+             sufficient: gate on physics before baking any design. -->
         <joint class="morph" name="thumb_x" type="slide" axis="1 0 0" range="-0.0075 0.0525" />
         <joint class="morph" name="thumb_y" type="slide" axis="0 1 0" range="-0.055 0.055" />
         <body name="thumb_yaw_frame">
