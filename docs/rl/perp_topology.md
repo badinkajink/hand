@@ -858,3 +858,43 @@ top-ranked design is currently unmeasured, and the ranking may be systematically
 designs that happen to survive the pinned noise.** Next: per-design `init_noise_std` (try 0.02
 / 0.01 on failure) and a retry loop in the queue rather than a skip. ETA is ~6 h per design, so
 the queue will not finish in one sitting — it is resumable by design.
+
+### 2026-07-31 20:55 — the non-colliding palm NaN'd every run; excludes are the right fix
+
+**The whole r5 queue failed.** All five designs NaN'd at iteration 0–121, *including the shipped
+morphology* — the same design r4 trained for 339 iterations. So the "moved-mount designs are
+more fragile" hypothesis was wrong, and the ranking bias it predicted does not exist.
+
+Diffing my baked scene against r4's `perp_v1/frozen_scene.xml`: **identical in every respect —
+nq 22, nu 15, ngeom 24, same four keyframes, identical `open_ik` qpos and fingertip world
+positions — except `palm_plate contype/conaffinity`, `[1]/[1]` vs `[0]/[0]`.** One attribute.
+
+**The "it's free to disable the palm" claim was wrong, and the way it was wrong is the familiar
+one.** The evidence for "free" was: no palm contact over 1200 settle steps from each keyframe.
+That is a *scripted settle with zero actions* — precisely the too-narrow test this project keeps
+getting burned by. Under RL exploration the palm↔object contact is load-bearing, and removing it
+lets the shaft escape into a state the solver cannot integrate. A geom reading 0 N in a settle
+is not an inert geom.
+
+**Fix: keep the plate collidable, exclude only palm↔finger-link pairs** (12 excludes, all three
+fingers' mcp/len/pip/tip). This is the user's stated intent read literally — *ignore
+palm-proximal contacts* — rather than the broader "make the plate disappear" I substituted for
+it. The palm remains a physical backstop for the object; it is simply not an obstacle to the
+fingers it carries, which was always a modelling artifact of putting the mounts in its plane.
+
+| | gate valid | shipped design trains |
+|---|---|---|
+| plate collidable (original) | 5/21 | yes (r4, 339 iters) |
+| plate non-colliding | 9/21 | **no — NaN at 0–121** |
+| plate collidable + 12 excludes | **9/21** | **yes — 204 iters clean** |
+
+The workspace is open *and* the sim is stable. `t0.00_x0.25_y0.00`, the top-ranked design that
+had never trained at all, is running now.
+
+**Queue hardening:** `train_perp_compact_queue.sh` now retries a NaN'd design at
+`init_noise_std` 0.02 then 0.01 instead of skipping it, and only retries on an actual NaN. The
+comment there carries the caveat this episode earned: **if the whole queue fails, the cause is
+not the noise — diff the scene against a run that trained.**
+
+Still ~6 h per design, sequential, resumable. Nothing has finished yet, so there are no r5
+policy numbers to compare against r4 (t_align 89±46, peak_cos 0.996±0.006, hold_steps 331±55).

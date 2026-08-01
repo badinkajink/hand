@@ -99,15 +99,14 @@
       <joint class="pose" name="palm_rx" type="hinge" axis="1 0 0" range="-1.57 1.57" />
       <joint class="pose" name="palm_ry" type="hinge" axis="0 1 0" range="-1.57 1.57" />
       <joint class="pose" name="palm_rz" type="hinge" axis="0 0 1" range="-3.14 3.14" />
-      <!-- VISUAL ONLY (contype/conaffinity 0). The real palm is a complex mechanism - it has to
-           actuate the XY morphology - and is deliberately NOT modelled. Collidable, it was a
-           96x72 mm slab in the SAME PLANE as the finger mounts, so any mount sliding over its
-           footprint buried a 10 mm proximal capsule in it at ~690 N. That blocked thumb-forward
-           AND pair-inward, i.e. most of PERP_T_WORKSPACE, and was previously mis-recorded as a
-           property of the thumb. Free to disable: measured over 1200 settle steps from every
-           keyframe, this geom made NO contact with anything. Matches assets/mjcf/baseline/hand.xml,
-           whose palm has always been non-colliding. -->
-      <geom name="palm_plate" type="box" pos="-0.005 0 0" size="0.048 0.036 0.001" material="palm_mat" contype="0" conaffinity="0" />
+      <!-- The palm still COLLIDES WITH THE OBJECT; it just never collides with the hand's own
+           finger links (see the contact excludes below). The real palm is a
+           complex mechanism - it has to actuate the XY morphology - and is deliberately not
+           modelled, but making the whole plate non-colliding was MEASURABLY WRONG: it NaN'd
+           every RL run at iteration 0-121, including the shipped morphology that trained 339
+           iterations with the plate collidable. The palm<->object contact is load-bearing under
+           exploration even though it reads 0 N in a scripted settle from the keyframes. -->
+      <geom name="palm_plate" type="box" pos="-0.005 0 0" size="0.048 0.036 0.001" material="palm_mat" />
       <!-- visual-only stalks out to the mounts (contype/conaffinity 0: never collide) -->
       <geom name="thumb_stalk" type="box" pos="-0.055 0 0" size="0.014 0.011 0.006" material="stalk_mat" contype="0" conaffinity="0" />
       <geom name="index_stalk" type="box" pos="0.035 0.042 0" size="0.012 0.008 0.005" material="stalk_mat" contype="0" conaffinity="0" />
@@ -237,6 +236,26 @@
       </body>
     </body>
   </worldbody>
+  <!-- The palm is a mount plate, not an obstacle for the fingers it carries: a finger link
+       overlapping it is a modelling artifact of putting the mounts in its plane, not a
+       physical constraint. Excluding those pairs opens the morphology workspace (the whole
+       point) while KEEPING palm<->object contact, which is load-bearing under RL exploration
+       even though it reads 0 N in a scripted settle. Making the plate fully non-colliding
+       instead NaN'd every run at iteration 0-121. -->
+  <contact>
+    <exclude body1="palm_pose" body2="thumb_mcp_frame"/>
+    <exclude body1="palm_pose" body2="thumb_len_frame"/>
+    <exclude body1="palm_pose" body2="thumb_pip_frame"/>
+    <exclude body1="palm_pose" body2="thumb_tip"/>
+    <exclude body1="palm_pose" body2="index_mcp_frame"/>
+    <exclude body1="palm_pose" body2="index_len_frame"/>
+    <exclude body1="palm_pose" body2="index_pip_frame"/>
+    <exclude body1="palm_pose" body2="index_tip"/>
+    <exclude body1="palm_pose" body2="middle_mcp_frame"/>
+    <exclude body1="palm_pose" body2="middle_len_frame"/>
+    <exclude body1="palm_pose" body2="middle_pip_frame"/>
+    <exclude body1="palm_pose" body2="middle_tip"/>
+  </contact>
   <actuator>
     <position class="pose" name="a_palm_px" joint="palm_px" ctrlrange="-0.20 0.20" />
     <position class="pose" name="a_palm_py" joint="palm_py" ctrlrange="-0.20 0.20" />
