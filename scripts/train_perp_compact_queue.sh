@@ -33,11 +33,23 @@ TOP="${TOP:-5}"
 # The working perp settings, as FLAGS (see header). Overridable, but do not drop them.
 NUM_ENVS="${NUM_ENVS:-3072}"
 TOTAL_TS="${TOTAL_TS:-25000000}"        # -> 339 iters at 3072x24, ~42 min/design
-# Health gate. Calibrated against every real curve we have: r4's episode-mean object height
-# never drops below 0.0556 after iteration 60, while all 11 dead r5 attempts sat at
-# 0.0123-0.033 and were caught at iteration 60 exactly. 0.04 sits between the two with 1.4x
-# margin under r4. Costs a dead design 7 min instead of the full 42.
-WATCH_Z="${WATCH_Z:-0.04}"
+# Health gate. It answers exactly one question — "did the object ever leave the floor?" — and
+# must NOT be used to judge lift QUALITY. The object spawns at z=0.0125, so 0.02 means "still
+# on the floor" with 1.6x margin, and nothing that is genuinely lifting comes near it.
+#
+# ⚠ RECALIBRATED 2026-08-01 after a FALSE KILL. The first value (0.04) was fitted to r5/r6
+# curves in which every dead run sat at exactly 0.0123 — the signature of the
+# open_finger_from_keyframe bug, i.e. fitted to an artifact. With that bug fixed the failure
+# distribution changed, and 0.04 promptly killed t0.00_x0.25_y0.00 at iteration 60 while it
+# was RECOVERING: obj_z 0.0268 (iter 50) -> 0.0349 -> 0.0390, with mean reward climbing
+# monotonically 42.6 -> 76.7 the whole time. A struggling-but-improving design is a result to
+# be measured over the full 339, not a run to abort.
+#
+# The lesson is about what a screening gate is FOR. "Never lifted" is a binary the gate can
+# read in 7 minutes; "lifts poorly" is the measurement itself and costs the full 42 minutes,
+# which is the price of an honest number. Do not raise this to reclaim GPU time — an early
+# kill that correlates with design quality silently biases the whole ranking.
+WATCH_Z="${WATCH_Z:-0.02}"
 WATCH_FROM="${WATCH_FROM:-60}"
 SWEEP_JSON="$ROOT/docs/experiments/perp_compact_sweep.json"
 BASE_SCENE="$ROOT/assets/mjcf/perp/scenes/scene_screwdriver_medium_perp.xml"
