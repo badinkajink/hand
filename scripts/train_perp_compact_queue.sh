@@ -1,8 +1,17 @@
 #!/usr/bin/env bash
 # r5: train perp_single on the TOP-N compact morphologies from the mechanism sweep.
 #
-# Iteration count comes from the recipe/PPO timestep budget (r4 ran 339); there is no
-# --max-iterations flag — max_iterations is derived via ppo_cfg.iters_for_timesteps().
+# ⚠ THE BUDGET MUST BE PASSED AS FLAGS. There is no --max-iterations; max_iterations is derived
+# as total_timesteps // (num_envs * num_steps_per_env). The recipe does NOT carry a timestep
+# budget, so a launcher that omits these inherits the PPOConfig DEFAULTS — 1024 envs and 200M
+# timesteps = 8138 iterations, i.e. 5.7 h/design instead of 42 min. The r5 queue did exactly
+# that and burned 13.4 h for 0/5 designs. Every working perp run (r2/r3/r4) used 3072 envs and
+# 25M timesteps = 339 iterations, passed on the command line, same as train_A_on_morph.sh.
+#
+# 339 is deliberately a SCREENING budget, not convergence — r4 was still climbing steeply when
+# it ended (reward 1207->1375 over its last 38 iters). It is enough to see a clear positive or
+# negative signal on pick-up + reorientation, which is what ranking designs needs; the
+# converged-cost question is deferred until a design is worth converging.
 #
 # Sequential on purpose — one 16 GB GPU. Resumable: each design writes a .DONE sentinel, so
 # re-running the script skips finished designs and picks up where it stopped. Every trainer
@@ -21,6 +30,15 @@ set -uo pipefail
 cd "$(dirname "$0")/.."
 ROOT="$PWD"
 TOP="${TOP:-5}"
+# The working perp settings, as FLAGS (see header). Overridable, but do not drop them.
+NUM_ENVS="${NUM_ENVS:-3072}"
+TOTAL_TS="${TOTAL_TS:-25000000}"        # -> 339 iters at 3072x24, ~42 min/design
+# Health gate. Calibrated against every real curve we have: r4's episode-mean object height
+# never drops below 0.0556 after iteration 60, while all 11 dead r5 attempts sat at
+# 0.0123-0.033 and were caught at iteration 60 exactly. 0.04 sits between the two with 1.4x
+# margin under r4. Costs a dead design 7 min instead of the full 42.
+WATCH_Z="${WATCH_Z:-0.04}"
+WATCH_FROM="${WATCH_FROM:-60}"
 SWEEP_JSON="$ROOT/docs/experiments/perp_compact_sweep.json"
 BASE_SCENE="$ROOT/assets/mjcf/perp/scenes/scene_screwdriver_medium_perp.xml"
 MORPH_RUN="$ROOT/results/phase1/perp/perp_v1"
@@ -86,10 +104,17 @@ PY
   # necessarily a bad design — it may just need quieter exploration — and silently skipping it
   # biases the whole ranking toward designs that happen to survive the pinned value.
   #
-  # This ladder is NOT a substitute for finding a real cause. The first time every design in
-  # the queue NaN'd, the cause was a scene change (a non-colliding palm plate), not the noise,
-  # and no amount of retrying would have helped. If the WHOLE queue fails, stop and diff the
-  # scene against a run that trained — do not just lower the noise.
+  # ⚠ THE NaN IS INTRINSIC TO THE PERP SCENE, not to any morphology or palm setting. Measured
+  # 2026-08-01 on CPU MuJoCo from r4's own XML: under randn*0.05 ctrl noise, seed 1 drives
+  # |qvel| to 5e6 by step 22, and the DOF that blows up is the SCREWDRIVER's free joint. The
+  # same divergence occurs with and without the palm<->finger excludes, so neither the excludes
+  # nor the earlier non-colliding plate introduced it — both attributions were wrong.
+  #
+  # What it means for scheduling: it is a per-iteration hazard, ~1 NaN per 1250 iterations
+  # across the 15 r5 attempts. P(finish 339) ~ 0.76, P(finish 8138) ~ 0.002 — which is why the
+  # over-long budget turned a survivable rate into 0/5. Retrying is legitimate here; it is
+  # re-rolling the dice, not papering over a scene bug. But if the WHOLE queue fails, still
+  # stop and diff against a run that trained.
   RC=1
   for NOISE in "" 0.02 0.01; do
     if [[ -n "$NOISE" ]]; then
@@ -100,16 +125,27 @@ PY
       NOISE_ARG=()
     fi
     export WARP_CACHE_PATH="$(mktemp -d)"
+    rm -f "$DEST/.COLLAPSED"          # stale sentinel from a previous attempt would misreport
     MUJOCO_GL=egl uv run --extra rl --extra gpu python scripts/rl_train_cube.py \
         --recipe perp_single \
         --morphology-run "$MORPH_RUN" \
         --frozen-scene-xml "$SCENE" \
         --tag "$RUN_NAME" \
+        --num-envs "$NUM_ENVS" --total-timesteps "$TOTAL_TS" \
+        --watchdog-collapse-z "$WATCH_Z" --watchdog-from-iter "$WATCH_FROM" \
+        --watchdog-sentinel "$DEST/.COLLAPSED" \
         "${NOISE_ARG[@]}" \
         >>"$DEST/train.log" 2>&1
     RC=$?
     rm -rf "$WARP_CACHE_PATH"
     [[ $RC -eq 0 ]] && break
+    # A watchdog abort is a VERDICT on the design (it never lifted), not a noise problem.
+    # Retrying it quieter would bias the ranking toward designs that tolerate low exploration
+    # — the same bias the NaN ladder exists to avoid. Only a NaN earns a retry.
+    if [[ -f "$DEST/.COLLAPSED" ]]; then
+      say "COLLAPSED $LABEL — never lifted: $(cat "$DEST/.COLLAPSED"); no retry, that IS the result"
+      break
+    fi
     grep -q "contains NaN values" "$DEST/train.log" || { say "FAIL $LABEL (rc=$RC, not a NaN) — no retry"; break; }
     wait_for_gpu
   done
