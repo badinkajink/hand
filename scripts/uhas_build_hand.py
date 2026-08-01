@@ -115,8 +115,10 @@ def main() -> int:
 
     cmd = [sys.executable]
     if args.figures:
+        # process_urdf runs with cwd=UHAS_PROCESS_DIR, so figdir must be absolute or the
+        # captures land under the UHAS checkout instead of this hand's folder.
         cmd += [str(REPO / "scripts" / "uhas_process_urdf.py"),
-                "--figdir", str(out / "figures")]
+                "--figdir", str((out / "figures").resolve())]
     else:
         cmd += [str(UHAS_PROCESS_DIR / "process_urdf.py")]
     cmd += ["--robot_path", str(urdf.resolve()),
