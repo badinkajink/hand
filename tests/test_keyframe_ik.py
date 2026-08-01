@@ -43,3 +43,48 @@ def test_inject_keyframe_creates_and_replaces(tmp_path):
     # the scene must still load with the injected keyframe
     m = mujoco.MjModel.from_xml_path(str(scene))
     assert m.key("open_ik").id >= 0
+
+
+# --- guard: an IK-retargeted keyframe must never be silently discarded ---------------
+# Regression for the 2026-08-01 defect that wiped out two 5-design queues: the launcher
+# retargeted `open_ik` into every scene and the env then ignored it, because
+# open_finger_from_keyframe defaults to False. Nothing errored; it surfaced as
+# "ungraspable morphologies" and "unstable scene". See configs/recipes/perp_single.yaml.
+
+import pytest
+
+from morphohand.rl.env_build import _assert_keyframe_not_silently_discarded
+
+
+class _Cfg:
+    def __init__(self, keyframe_name, open_finger_from_keyframe, open_finger_qpos):
+        self.keyframe_name = keyframe_name
+        self.open_finger_from_keyframe = open_finger_from_keyframe
+        self.open_finger_qpos = open_finger_qpos
+
+
+PERP_OPEN_IK = (0.0, 1.9086, -1.8, 0.0, 1.1382, 0.7285, 0.0, 1.1382, 0.7285)
+BASELINE_OPEN = (0.0, 3.14, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+
+
+def test_raises_when_ik_keyframe_would_be_discarded():
+    cfg = _Cfg("open_ik", False, BASELINE_OPEN)
+    with pytest.raises(ValueError, match="would be DISCARDED"):
+        _assert_keyframe_not_silently_discarded(cfg, {"finger_joint_pos": PERP_OPEN_IK})
+
+
+def test_silent_when_flag_is_set():
+    cfg = _Cfg("open_ik", True, BASELINE_OPEN)
+    _assert_keyframe_not_silently_discarded(cfg, {"finger_joint_pos": PERP_OPEN_IK})
+
+
+def test_silent_for_non_ik_keyframe():
+    """Baseline-hand runs legitimately use the authored open pose."""
+    cfg = _Cfg("open", False, BASELINE_OPEN)
+    _assert_keyframe_not_silently_discarded(cfg, {"finger_joint_pos": PERP_OPEN_IK})
+
+
+def test_silent_when_poses_agree():
+    """Zero morphology change: nothing is being discarded, so do not cry wolf."""
+    cfg = _Cfg("open_ik", False, PERP_OPEN_IK)
+    _assert_keyframe_not_silently_discarded(cfg, {"finger_joint_pos": PERP_OPEN_IK})

@@ -89,3 +89,16 @@ def test_shipped_recipes_validate_against_trainer_args():
     for p in shipped:
         d = recipes.load_recipe(str(p), Args)
         assert d, f"{p} is empty"
+
+
+def test_perp_single_pins_open_finger_from_keyframe():
+    """The perp scene's open pose is NOT the baseline hand's; leaving this unpinned cost
+    two full 5-design queues on 2026-08-01. r4 passed it as a bare CLI flag, which is
+    exactly the parity gap the recipe layer exists to close."""
+    sys.path.insert(0, str(recipes.ROOT / "scripts"))
+    try:
+        from rl_train_cube import Args
+    finally:
+        sys.path.pop(0)
+    d = recipes.load_recipe(str(recipes.RECIPE_DIR / "perp_single.yaml"), Args)
+    assert d.get("open_finger_from_keyframe") is True

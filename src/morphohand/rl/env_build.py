@@ -237,6 +237,45 @@ class _InitContext:
     obj_init_quat: tuple
 
 
+def _assert_keyframe_not_silently_discarded(cfg: MorphoHandEnvCfg, kf_state: dict) -> None:
+    """Refuse to train from a hand-authored open pose when the scene carries a RETARGETED one.
+
+    This exists because the failure it catches is invisible: on 2026-08-01 two full 5-design
+    queues (13.4 h, then 0/5 again) were wiped out by `open_finger_from_keyframe` defaulting to
+    False. The launcher IK-retargeted `open_ik` into every scene, logged sub-0.1 mm residuals,
+    and then the env discarded it for the BASELINE hand's pose — 70 deg off at thumb_mcp, with
+    index+middle left straight out instead of curled. Nothing reported an error. It surfaced as
+    "these morphologies are ungraspable" (grip never forms, object never leaves the floor) and
+    "the scene is unstable" (fingers start in contact, NaN at iteration 0), and cost a day of
+    blaming the palm geometry, which was innocent.
+
+    Scoped deliberately: only fires when the keyframe was named as an IK-retarget output, so
+    baseline-hand runs that legitimately use the authored `open_finger_qpos` are unaffected.
+    """
+    if cfg.open_finger_from_keyframe:
+        return
+    if not str(cfg.keyframe_name).endswith("_ik"):
+        return                      # not a retarget product; authored pose is intended
+    kf = tuple(float(v) for v in kf_state["finger_joint_pos"])
+    authored = tuple(float(v) for v in cfg.open_finger_qpos)
+    if len(kf) != len(authored):
+        return
+    worst = max((abs(a - b) for a, b in zip(kf, authored)), default=0.0)
+    if worst < 0.05:                # ~3 deg: same pose, nothing being discarded
+        return
+    raise ValueError(
+        f"keyframe '{cfg.keyframe_name}' is an IK-retarget output but "
+        f"open_finger_from_keyframe=False, so it would be DISCARDED and the fingers would "
+        f"start from the authored open pose instead (worst joint differs by {worst:.3f} rad "
+        f"= {worst * 57.3:.0f} deg).\n"
+        f"  keyframe : {tuple(round(v, 4) for v in kf)}\n"
+        f"  authored : {tuple(round(v, 4) for v in authored)}\n"
+        "Pass --open-finger-from-keyframe (or pin `open_finger_from_keyframe: true` in the "
+        "recipe). If you really mean to ignore the retarget, point --keyframe at a "
+        "non-'_ik' keyframe."
+    )
+
+
 def _init_context(cfg: MorphoHandEnvCfg) -> _InitContext:
     # Palm starts at the CEM keyframe pose (the scripted lift schedule
     # ramps palm_pz from there). Fingers start at `open_finger_qpos`
@@ -260,6 +299,7 @@ def _init_context(cfg: MorphoHandEnvCfg) -> _InitContext:
     open_finger_qpos = (tuple(kf_state["finger_joint_pos"])
                         if cfg.open_finger_from_keyframe
                         else tuple(cfg.open_finger_qpos))
+    _assert_keyframe_not_silently_discarded(cfg, kf_state)
     finger_init_pos = open_finger_qpos
     if cfg.skip_lift_phase:
         # Spawn palm + cylinder at the post-lift pose; fingers at the CEM grip.

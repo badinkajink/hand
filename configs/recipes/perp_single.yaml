@@ -79,6 +79,34 @@ init_noise_std: 0.05
 # to inside it; the learned residual then has something worth perturbing.
 closed_ctrl_from_keyframe: closed
 
+# --- START THE FINGERS FROM THE KEYFRAME, NOT THE BASELINE OPEN POSE ---
+# Pinned here 2026-08-01 after this single missing flag wiped out two entire 5-design queues
+# (r5: 13.4 h, 0/5; r6: 0/5). r4 passed it on the command line — its config.yaml records
+# `open_finger_from_keyframe: True` — the recipe did not carry it, and the queue launcher did
+# not re-type it, so every queued run silently fell back to `env_cfg.open_finger_qpos`:
+#
+#     baseline default : (0.0, 3.14, 0.0,  0, 0, 0,  0, 0, 0)      <- the BASELINE hand's pose
+#     perp open_ik     : (0.0, 1.909, -1.8,  0, 1.138, 0.729,  0, 1.138, 0.729)
+#
+# That is 70 deg wrong on thumb_mcp, 103 deg on thumb_pip, and it leaves index+middle STRAIGHT
+# OUT instead of curled — the hand closes on nothing. It is wrong even at zero morphology
+# change, so it is a property of the perp topology, not of the IK retarget.
+#
+# Both queue failure modes trace to it, and each looked like its own deep problem:
+#   * moved-mount designs -> grip never forms -> object never leaves the floor (obj_z 0.0123
+#     against r4's 0.060-0.097), which reads as "this design is ungraspable";
+#   * shipped design -> fingers start in violent contact -> NaN at iteration 0, which reads as
+#     "the scene is unstable".
+# Neither is true. Measured directly: r4's OWN frozen scene, 3072 envs, recipe noise, WITHOUT
+# the flag -> NaN at iteration 0; WITH it -> 339 clean iterations. Meanwhile the scripted
+# open-loop grip lifts all five baked designs (obj z 0.138-0.151), which is the standing
+# CLAUDE.md test #2: good open-loop + bad learned = policy/grip problem, never morphology.
+#
+# I spent this investigation blaming the palm plate twice (non-colliding, then 12 excludes).
+# Both were innocent; three CPU probes at 400-500 seeds could not separate them, because the
+# real defect was never in the scene. Do NOT remove this line to "test the palm" again.
+open_finger_from_keyframe: true
+
 # train/deploy parity (gotcha #13) — must match morphohand.rl.deploy.make_env_cfg
 finger_residual_scale: 0.5
 finger_close_easing: ease_out_quad
