@@ -898,3 +898,95 @@ not the noise — diff the scene against a run that trained.**
 
 Still ~6 h per design, sequential, resumable. Nothing has finished yet, so there are no r5
 policy numbers to compare against r4 (t_align 89±46, peak_cos 0.996±0.006, hold_steps 331±55).
+
+---
+
+## 2026-08-01 — the r5/r6 wipeouts were TWO launcher flags, not the palm
+
+**Everything the previous section concluded about r5 is wrong.** The queue finished 0/5, was
+relaunched, and finished 0/5 again. Neither wipeout had anything to do with the palm plate,
+which I blamed twice (first as a non-colliding geom, then as 12 contact excludes) and which was
+innocent both times.
+
+### What actually broke
+
+Two flags that r4 passed on the command line and that no config carried. `r4`'s dumped
+`config.yaml` records both; `scripts/train_perp_compact_queue.sh` passed neither.
+
+| flag | r4 | queue | consequence |
+|---|---|---|---|
+| `--num-envs` / `--total-timesteps` | 3072 / 25M → **339 iters** | omitted → 1024 / 200M → **8138 iters** | 5.7 h/design instead of 42 min |
+| `--open-finger-from-keyframe` | **True** | omitted → **False** | the IK-retargeted keyframe is discarded |
+
+`max_iterations` is not a flag — it is derived as
+`total_timesteps // (num_envs * num_steps_per_env)` — so omitting the budget silently rescales
+the run. And the recipe layer, which exists to stop exactly this, carries **no timestep budget
+at all**.
+
+The second flag is the one that produced the fake science. Without it the env falls back to
+`env_cfg.open_finger_qpos`, which is the **baseline hand's** open pose:
+
+```
+baseline default : (0.0, 3.14, 0.0,   0, 0, 0,        0, 0, 0)
+perp open_ik     : (0.0, 1.909, -1.8, 0, 1.138, 0.729, 0, 1.138, 0.729)
+```
+
+70° off at `thumb_mcp`, 103° at `thumb_pip`, index and middle left **straight out** instead of
+curled. The hand closes on nothing. It is wrong even at zero morphology change, so it is a
+property of the perp topology, not of the retarget. The queue therefore spent real time
+IK-retargeting `open_ik` into every scene, logged sub-0.1 mm residuals, and threw the result
+away.
+
+Both failure modes are this one bug, and each impersonated a genuine finding:
+
+* moved-mount designs → grip never forms → object never leaves the floor (`obj_z` 0.0123 =
+  spawn, against r4's 0.060–0.097) → reads as **"this morphology is ungraspable"**;
+* shipped design → fingers start in violent contact → NaN at iteration 0 → reads as **"the perp
+  scene is intrinsically unstable"**.
+
+### The decisive measurements
+
+* r4's **own** frozen scene, 3072 envs, recipe noise, **without** the flag → NaN at iteration 0.
+  With it → 339 clean iterations. Same file, same morphology, same everything else.
+* The scripted open-loop grip lifts **all five** baked designs (obj z 0.138–0.151, 2–3 tips in
+  contact) — i.e. none of them is ungraspable.
+* Three CPU probes (400–500 seeds) could not separate the palm-exclude scenes at all: 0/500 vs
+  0/500 under finger-only noise, 107/300 vs 104/300 under all-DOF noise. They could not,
+  because the defect was never in the scene.
+
+That second bullet is standing test #2 in `CLAUDE.md` — *good open-loop + bad learned is a
+policy/grip problem, never morphology*. It was available an hour before I used it.
+
+### Two traps worth naming
+
+**Reading solver settings off the XML is misleading.** The scene says Newton
+`iterations=100, ls_iterations=50`, pyramidal cone, impratio 1. mjlab **overrides all of it** at
+sim build (`env_build.py` → `SimulationCfg(mujoco=MujocoCfg(...))`): `iterations=10`,
+`ls_iterations=20`, `impratio=10`, `cone="elliptic"`. So (a) the "untuned solver" speedup is
+illusory — it is already lean — and (b) any CPU probe built from the raw XML simulates physics
+the trainer never runs. Apply the overrides to `m.opt` before concluding anything.
+
+**A health gate calibrated on a bug is calibrated on nothing.** The collapse watchdog was first
+set to `obj_z < 0.04`, fitted to r5/r6 curves where every dead run sat at 0.0123 — the
+*signature of the keyframe bug*. With the bug fixed the failure distribution moved and 0.04
+promptly false-killed a design that was recovering (obj_z 0.0268 → 0.0349 → 0.0390 with reward
+climbing 62.9 → 76.7). Re-validated against every curve on record, 0.02 catches 11/11
+genuinely-dead runs with zero false kills, at 1.6× above spawn and 1.34× below that run's true
+minimum. The gate answers **one binary question — did the object ever leave the floor** — in
+~7 min; "lifts poorly" is the measurement itself and costs the full 42 min. Raising it to
+reclaim GPU time would make early kills correlate with design quality and bias the ranking.
+
+### Guards added (the whole cost of both bugs was silence)
+
+* `_assert_keyframe_not_silently_discarded` (`morphohand.rl.env_build`) — refuses to start when
+  the keyframe is an IK-retarget output (`*_ik`), the flag is off, and the poses actually differ
+  by >0.05 rad. Scoped by the name suffix so baseline-hand runs are unaffected.
+* `open_finger_from_keyframe: true` pinned in `configs/recipes/perp_single.yaml`; budget flags
+  passed explicitly by the queue launcher.
+* Regression tests: guard (4) + recipe pin (1). 108 pass.
+
+**Before any cluster sweep, generalise this**: assert at startup that what the launcher
+*prepared* is what the env *used*. At 200 runs these bugs produce confident, plausible, wholly
+wrong conclusions with no error anywhere.
+
+Commits: `795535d` (budget), `3f6d032` (keyframe flag + guard), `02272ab` (gate recalibration).
