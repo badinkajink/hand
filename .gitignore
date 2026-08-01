@@ -37,3 +37,6 @@ logs/*
 wandb/
 *.DONE
 *.pid
+
+docs/uhas/UHAS_simdocs/uhas/paper
+.venv-uhas/
