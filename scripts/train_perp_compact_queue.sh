@@ -80,17 +80,39 @@ PY
       --write-keyframe --validate >>"$QLOG" 2>&1 \
     || { say "FAIL $LABEL: keyframe retarget failed"; continue; }
 
-  say "=== $LABEL: train (perp_single) ==="
   RUN_NAME="perp_single_r5_${LABEL}"
-  export WARP_CACHE_PATH="$(mktemp -d)"
-  MUJOCO_GL=egl uv run --extra rl --extra gpu python scripts/rl_train_cube.py \
-      --recipe perp_single \
-      --morphology-run "$MORPH_RUN" \
-      --frozen-scene-xml "$SCENE" \
-      --tag "$RUN_NAME" \
-      >>"$DEST/train.log" 2>&1
-  RC=$?
-  rm -rf "$WARP_CACHE_PATH"
+  # NaN retry ladder. The recipe pins init_noise_std 0.05 because the perp scene NaNs above
+  # ~0.1, but that was tuned on ONE morphology. A design that NaNs at iteration 0 is not
+  # necessarily a bad design — it may just need quieter exploration — and silently skipping it
+  # biases the whole ranking toward designs that happen to survive the pinned value.
+  #
+  # This ladder is NOT a substitute for finding a real cause. The first time every design in
+  # the queue NaN'd, the cause was a scene change (a non-colliding palm plate), not the noise,
+  # and no amount of retrying would have helped. If the WHOLE queue fails, stop and diff the
+  # scene against a run that trained — do not just lower the noise.
+  RC=1
+  for NOISE in "" 0.02 0.01; do
+    if [[ -n "$NOISE" ]]; then
+      say "=== $LABEL: RETRY at init_noise_std=$NOISE ==="
+      NOISE_ARG=(--init-noise-std "$NOISE")
+    else
+      say "=== $LABEL: train (perp_single, recipe noise) ==="
+      NOISE_ARG=()
+    fi
+    export WARP_CACHE_PATH="$(mktemp -d)"
+    MUJOCO_GL=egl uv run --extra rl --extra gpu python scripts/rl_train_cube.py \
+        --recipe perp_single \
+        --morphology-run "$MORPH_RUN" \
+        --frozen-scene-xml "$SCENE" \
+        --tag "$RUN_NAME" \
+        "${NOISE_ARG[@]}" \
+        >>"$DEST/train.log" 2>&1
+    RC=$?
+    rm -rf "$WARP_CACHE_PATH"
+    [[ $RC -eq 0 ]] && break
+    grep -q "contains NaN values" "$DEST/train.log" || { say "FAIL $LABEL (rc=$RC, not a NaN) — no retry"; break; }
+    wait_for_gpu
+  done
 
   if [[ $RC -eq 0 ]]; then
     date -Is > "$DEST/.DONE"; say "DONE $LABEL"
