@@ -237,6 +237,14 @@ class _InitContext:
     obj_init_quat: tuple
 
 
+def _nan_guard_cfg(cfg: MorphoHandEnvCfg):
+    """mjlab NanGuardCfg from `cfg.nan_guard_dump_dir` (None -> disabled, the default)."""
+    from mjlab.utils.nan_guard import NanGuardCfg
+    if not getattr(cfg, "nan_guard_dump_dir", None):
+        return NanGuardCfg()
+    return NanGuardCfg(enabled=True, output_dir=str(cfg.nan_guard_dump_dir))
+
+
 def _assert_keyframe_not_silently_discarded(cfg: MorphoHandEnvCfg, kf_state: dict) -> None:
     """Refuse to train from a hand-authored open pose when the scene carries a RETARGETED one.
 
@@ -1183,6 +1191,7 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
         sim=SimulationCfg(
             nconmax=64,
             njmax=400,
+            nan_guard=_nan_guard_cfg(cfg),
             mujoco=MujocoCfg(
                 timestep=cfg.sim_timestep,
                 iterations=10,

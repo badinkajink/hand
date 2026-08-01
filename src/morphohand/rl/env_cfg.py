@@ -57,6 +57,19 @@ class MorphoHandEnvCfg:
     env_spacing: float = 0.5
     sim_timestep: float = 0.002
     decimation: int = 10               # 50 Hz policy on 500 Hz sim
+    nan_guard_dump_dir: str | None = None
+    """Enable mjlab's NanGuard and dump pre-divergence sim state here (None = off).
+
+    The perp scene diverges at ~1 NaN per 217 PPO iterations (measured 2026-08-01, post
+    keyframe fix), and rsl_rl's check_nan aborts the WHOLE run when any one of 3072 envs
+    goes non-finite — so a 339-iteration run completes only ~21% of the time and a
+    completed design costs ~2.2 GPU-h instead of 42 min. Nothing has explained the
+    divergence: it lands in the screwdriver's FREE JOINT, and CPU MuJoCo reproduces it at
+    only 1/400 seeds under finger-only noise, so it is not reachable by probing.
+
+    NanGuard is diagnostic, not recovery: it keeps a rolling buffer of states and writes
+    them out when the NaN fires, which is the only way to see what the contact set looked
+    like on the way in. Costs a buffer copy per step, so leave it off for production runs."""
     episode_length_s: float = 1.4
     object_body_name: str = "cube"
     """Name of the object body in the frozen scene to extract and spawn.

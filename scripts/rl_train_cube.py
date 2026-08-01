@@ -405,6 +405,11 @@ class Args:
     """Override the morphology-run's frozen_scene.xml (e.g. a hardened-contact variant).
     None = use <morphology_run>/frozen_scene.xml. Lets a run change the contact physics
     (solref/solimp = less penetration) WITHOUT editing the canonical lineage scene."""
+    nan_guard_dump_dir: str | None = None
+    """Enable mjlab's NanGuard and dump pre-divergence sim state here (None = off).
+    Diagnostic only — it does not rescue the run. See env_cfg.nan_guard_dump_dir for why
+    this exists (the perp scene NaNs ~1 per 217 iterations and rsl_rl aborts the whole
+    run when any single env goes non-finite)."""
     watchdog_collapse_z: float | None = None
     """Trainer-side collapse watchdog (gotcha #10): abort the run when the episode-mean
     object height (Metrics/lift_height/object_height) sits below this (m) after
@@ -487,6 +492,7 @@ def main() -> None:
         frozen_scene_xml=frozen,
         keyframe_name=keyframe,
         open_finger_from_keyframe=args.open_finger_from_keyframe,
+        nan_guard_dump_dir=args.nan_guard_dump_dir,
         foundational_run_dir=run,
         finger_default_ctrl=best_finger_ctrl,
         num_envs=args.num_envs,
