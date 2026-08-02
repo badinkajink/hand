@@ -45,6 +45,29 @@ UHAS_PROCESS_DIR = REPO / "docs" / "uhas" / "UHAS_sim" / "process_urdf"
 LEAP_REFERENCE_RADIUS = 0.09119  # what the UHAS env calls base_radius
 
 
+def _keyframe_hinges(mjcf: str, key_name: str) -> dict[str, float]:
+    """Hinge joint values from a named MJCF keyframe, as UHAS ``opened_dofs``.
+
+    Slides are skipped: the morphology is baked into geometry by the exporter, so a slide
+    value would be double-counted.
+    """
+    import mujoco
+
+    model = mujoco.MjModel.from_xml_path(str(mjcf))
+    kid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_KEY, key_name)
+    if kid < 0:
+        names = [mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_KEY, k) for k in range(model.nkey)]
+        raise SystemExit(f"no keyframe {key_name!r} in {mjcf} (have: {names})")
+    qpos = model.key_qpos[kid]
+    out: dict[str, float] = {}
+    for j in range(model.njnt):
+        if int(model.jnt_type[j]) != int(mujoco.mjtJoint.mjJNT_HINGE):
+            continue
+        jname = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_JOINT, j)
+        out[jname] = float(qpos[model.jnt_qposadr[j]])
+    return out
+
+
 def summarise(cik_path: Path) -> dict:
     """Pull the morphology-relevant facts out of a sphere_cik.json."""
     d = json.loads(cik_path.read_text())
@@ -92,6 +115,14 @@ def main() -> int:
     ap.add_argument("--name", default=None)
     ap.add_argument("--palm-body", default="palm")
     ap.add_argument("--open-mcp", type=float, default=0.0)
+    ap.add_argument("--morph", action="append", default=[], metavar="JOINT=VALUE",
+                    help="set a morphology slide before baking, e.g. --morph thumb_x=0.03. "
+                         "Only meaningful for the *_morphology_actuated sources, whose slides "
+                         "are still live; generated hands already have theirs baked.")
+    ap.add_argument("--open-from-keyframe", default=None, metavar="NAME",
+                    help="take opened_dofs from this MJCF keyframe instead of --open-mcp. "
+                         "Required for the perp topology, whose fingers point at each other: "
+                         "at q=0 the tips converge and the sphere estimate collapses.")
     ap.add_argument("--thumb-anchor", type=float, default=1.571)
     ap.add_argument("--figures", action="store_true",
                     help="also capture the verbose construction figures (slow)")
@@ -107,8 +138,15 @@ def main() -> int:
         urdf = out / f"{name}.urdf"
         print(f"[export] reusing {urdf}")
     else:
+        open_pose = None
+        if args.open_from_keyframe:
+            open_pose = _keyframe_hinges(args.mjcf, args.open_from_keyframe)
+            print(f"[export] open pose from keyframe {args.open_from_keyframe!r}: "
+                  + ", ".join(f"{k}={v:.3f}" for k, v in open_pose.items()))
+        morph_qpos = {k: float(v) for k, _, v in (m.partition("=") for m in args.morph)}
         exp = export_hand_to_urdf(args.mjcf, out, robot_name=name,
-                                  palm_body=args.palm_body, open_mcp=args.open_mcp)
+                                  palm_body=args.palm_body, open_mcp=args.open_mcp,
+                                  open_pose=open_pose, morph_qpos=morph_qpos or None)
         urdf = exp.urdf_path
         print(f"[export] {urdf}  fingers={exp.finger_names}  "
               f"r_est={exp.sphere_radius_estimate:.4f}")

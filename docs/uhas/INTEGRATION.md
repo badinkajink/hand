@@ -135,45 +135,158 @@ markers, because the alignment step centres it on the median finger and the inde
 off alone. For H06_04 the sphere **contains** the fingertips, the flexed hand shows real
 3-finger opposition, and the fingerprint fan resolves into three separated regions.
 
-### ⚠ The real problem: our yaw is a poor lateral joint
+### ⚠ CORRECTION (2026-08-01): the yaw joint is fine. The CALIBRATION POSE is not.
 
-Per-finger lateral θ range from the CIK lookup table (LEAP, for scale, is ~±0.55 on **all
-five** planes — uniform and physical):
+An earlier revision of this file claimed "our yaw is a poor lateral joint" and proposed
+adding a true abduction DOF. **That was wrong, and no hardware change is warranted.**
+It was inferred from the CIK θ-range table without ever measuring what the joint does.
 
-| hand | thumb | index | middle |
+Measured directly (`scripts/uhas_lateral_authority.py`), sweeping `yaw` and decomposing
+fingertip motion in the palm frame — `lat` = in-palm-plane lateral (abduction), `oop` =
+out-of-plane (parasitic), `eff` = fraction of motion that is lateral:
+
+| pose | lat mm/rad | oop mm | eff |
 |---|---|---|---|
-| baseline | **0.19** | 2.88 | **±2.80** |
-| m05 | **0.17** | 3.60 | **±2.74** |
-| H06_04 | **0.17** | 2.62 | **±2.81** |
+| q = 0 (fully extended) | **0.0** | 0.0 | **0.00** |
+| open keyframe, local ±0.2 rad | **108–123** | 2.2–2.5 | **0.99** |
 
-Our `yaw` axis runs **along the finger's own longitudinal axis**, so it is a roll, not an
-abduction. At full extension it moves the fingertip not at all; when the finger is curled
-it sweeps the tip around a cone whose azimuthal effect is wildly non-uniform — near zero
-for the thumb (0.17 rad) and near-2π for the middle finger, whose tip crosses close to the
-sphere's pole where θ wraps.
+**eff = 0.99 on every finger of every hand** (baseline, m05, H06_04, perp). At the pose the
+hand actually operates at, `yaw` is a near-ideal abduction joint. It degenerates to a pure
+roll at exactly one pose — q = 0, full extension — because the yaw axis and the finger are
+colinear there. Nothing operates at q = 0. Rendered side by side in
+`figs/lateral_sweep_H0604.png` (`scripts/uhas_render_lateral.py`): at q=0 the three frames
+are identical and the tips travel 0 mm; at the open keyframe the same sweep moves them
+215/214/221 mm across the palm.
 
-Since each slot's action ∈ [−1,1] is rescaled by that slot's own min/max offsets, a shared
-policy's lateral command means something completely different on each of our fingers. The
-representation *builds*; **lateral (Δθ) control is predicted to be erratic**. This is the
-main technical risk to zero-shot transfer, and it points at a concrete design change: give
-the fingers a true abduction DOF (axis perpendicular to the finger, in the palm plane)
-rather than re-aiming a roll.
+**Why the θ table looked pathological.** Two compounding facts, both in UHAS:
+
+1. `process_type_ABC_joints` classifies a joint **A** (lateral) if the fingertip normal is
+   parallel to the joint axis, **C** (roll) if the fingertip *lies on* the axis. At q = 0
+   our tip sits on the yaw axis, so all three yaws classify **C**, not A. (The earlier note
+   here that "all three `*_yaw` classify type A" was a misreading of the log — the log says
+   `'type': 'C'`, `'ft': [0, 0, 0.131]`, i.e. the tip is exactly on the axis.)
+2. For a type-C joint, `compute_main_joints` measures θ range at the **IK-solved maximally
+   flexed pose**, which is bounded by the URDF joint limit. Our thumb_mcp upper is 3.14 rad
+   — folded fully back on itself, tip near the yaw axis again → θ range 0.17. Index/middle
+   at 2.5 rad swing the tip across the sphere's pole, where azimuth wraps → ±2.8.
+
+So the offsets are measured at two useless poses and the spread between fingers is an
+artifact of *where the probe pose lands*, not of the joint. Sweeping the mcp upper limit
+confirms the mechanism — the offsets are a smooth function of the probe pose:
+
+| mcp upper (rad) | 1.0 | 1.3 | 1.6 | 1.9 | 2.2 | 2.5 |
+|---|---|---|---|---|---|---|
+| span ratio max/min | **1.5** | 1.7 | 1.9 | 2.3 | 3.7 | **6.6** |
+
+At mcp_upper ≈ 1.0 our slot-to-slot consistency (1.5×) is *better than LEAP's* (1.7×).
+
+**This is not a free fix.** The URDF limit also bounds what CIK may command at runtime, and
+our thumb genuinely operates at mcp = 2.0 (`open` keyframe). Clamping to 1.0–1.3 would buy
+uniform offsets by forbidding the hand's real working range. The clean fix decouples the
+two — calibrate the lateral range at a sensible probe pose while leaving the actuation limit
+alone — which needs a small change to `compute_main_joints`, not to the hand. **Open.**
+
+---
+
+### The perp topology exports cleanly now
+
+Previously recorded as "degenerate — needs a bespoke open pose before it can be exported"
+(at q=0 the fingers point at each other, tips converge, r collapses to 0.0450). The `open`
+keyframe now in `perp_hand_morphology_actuated.xml` is that pose, and
+`--open-from-keyframe open` uses it:
+
+| | chain_indices | dead dims | sphere r |
+|---|---|---|---|
+| perp @ q=0 | *degenerate* | — | 0.0450 |
+| perp @ `open` keyframe | `[[4],[2],[0,1]]` | **2 / 15** | **0.0685** (0.75× LEAP) |
+
+That is the canonical 3-finger mapping, on par with m05 (0.0687) and H06_04 (0.0710).
+Note the root body is `palm_pose`, not `palm` (`--palm-body palm_pose`).
+
+**thumb_x toward the pair** (`--morph thumb_x=…`, sweeping its full −0.0075…0.0525 range):
+the UHAS representation is *indifferent* — 3-finger spread and 2 dead dims hold throughout;
+only the sphere shrinks ~7% (0.0693 → 0.0643) as the thumb closes in. So it neither helps
+nor breaks UHAS. It does, however, fail the grasp gate: `morph_selfcollision_gate.py
+--retarget` returns OK at thumb_x=0 (pinch 34.9 mm, thumb→pair 71.4 mm) but **UNREACHABLE**
+at +0.030 and +0.0525 (IK residual 6.1 / 4.4 mm). ⚠ Read that with care — the gate scores
+every design against the *reference grasp's* fingertip world targets, which were authored
+for a thumb 65 mm out. A thumb moved 30 mm inward should be grasping a differently-placed
+object, so this says "cannot do the old grasp", not "cannot grasp". Not self-collision this
+time; the palm is innocent again.
 
 ---
 
 ## State / what is not done
 
-Done: offline pipeline, exporter, LEAP validation, three morphologies built + rendered.
+Done: offline pipeline, exporter, LEAP validation, three morphologies + perp built and
+rendered, the lateral-authority correction above, **and the pretrained policy running in
+Isaac**.
+
+### The pretrained checkpoint is `All_grippers/model_14999.pt`
+
+There is no file named `multi_hand_policy.pt` in the Box download. The multi-hand policy is
+`models/UGAS_Models/**All_grippers**/model_14999.pt` — its `params/env.yaml` lists
+`robots: [shadow, allegro, modified_mano, leap]`, `num_robot_types: 4`, action 15, and the
+actor is 98→…→15. The 25 sibling dirs are ablations and baselines; `*_OOD` are leave-one-out
+(e.g. `MANO_OOD` trains on the other three). For a hand unseen by *all* of them, `All_grippers`
+is the right one — most training diversity. `All_grippers_RW` is the real-world variant
+(asymmetric, actor 61 / critic 142) and is **not** the sim policy.
+
+### Isaac Lab 2.2.1 is NOT needed — 2.1.0 / Isaac Sim 4.5.0 runs it
+
+UHAS's README asks for Isaac Lab 2.2.1, but 2.2.1 targets **Isaac Sim 5.0.0**, not the 4.5.0
+the README pairs it with — so "just bump the version" is really a multi-GB Isaac Sim upgrade
+that would disturb the working `env_isaaclab`. It is not necessary. The pretrained policy
+loads and steps on the installed 2.1.0 with five documented patches, all marked
+`MORPHOHAND PATCH` in the vendored tree:
+
+1. `grippers/allegro/.../allegro_right.py` and `multi_env_cfg.py` — drop `dynamic_friction`
+   (a 2.2 field; 2.2 split joint friction into static/dynamic). Both values are 0.02, so
+   2.1's single `friction` reproduces the intent **exactly**.
+2. `tasks/utils/dr_funcs.py` — `isaaclab.utils.version.compare_versions` is 2.2-only and is
+   a *dead import* in UHAS; fall back to the verbatim upstream body.
+3. `tasks/utils/dr_funcs.py` — `_validate_scale_range` is a 2.2 private helper; it is pure
+   input validation (raises on a malformed range, no physics), backported verbatim.
+4. `multi_env_cfg.py` — `vector_phis` 60.0 → **50.0** to match the checkpoint's env.yaml.
+   These angles define what an action *means* as a sphere deformation; a mismatch silently
+   misinterprets every action of a pretrained policy.
+5. `multi_env_cfg.py` / `multi_manipulation_env.py` — `tip_rot`/`angvel_obs` off, plus new
+   `ff_flag_input` and `symmetric_critic` flags.
+
+That last one is the interesting one: **the released code is a different vintage than the
+released checkpoints.** Released defaults give a 142-dim actor obs; the checkpoints are 98.
+Turning off `tip_rot` and `angvel_obs` (per the checkpoint's env.yaml) gets to 97 — one
+short. The missing dim is `ff_flag_input`, a 1-wide "is a finger disabled" flag whose whole
+feature (`finger_failures`, `fail_frequency`) the released env dropped. It is constant 0
+whenever no finger is failed, which is its value at eval (`force_failure: 0`), so a zero
+column restores it faithfully. `symmetric_critic` handles the checkpoints having
+critic.0 == actor.0 == 98 (no privileged asymmetry); it affects loading and value estimates
+only, never the actions taken.
+
+Environment fixes, in `env_isaaclab`: `pip install scipy matplotlib scikit-learn einops
+transformations` + the `tf` shim copied from `.venv-uhas` (ROS xyzw ordering — see above,
+getting it wrong is silent), and `pip install -e sphere_ctrl_isaaclab/source/...`.
+
+```bash
+cd docs/uhas/UHAS_sim/sphere_ctrl_isaaclab/scripts/rsl_rl
+/home/humanoid/miniconda3/envs/env_isaaclab/bin/python play.py \
+    --task UHAS-Inhand-Repose --headless --num_envs 16 \
+    --checkpoint ../../../models/UGAS_Models/All_grippers/model_14999.pt
+```
+
+Verified: env builds all four hands, checkpoint loads with no size mismatch, actor
+`98→512→512→256→128→15`, and it steps without crashing. **Not yet measured: whether it
+actually reposes the cube** (success rate / consecutive reorientations). That is the next
+thing to run, and it is now a matter of reading numbers off a run, not of infrastructure.
 
 Not done:
-1. **Pretrained checkpoint.** `multi_hand_policy.pt` is **not in the repo** — `**/models/*`
-   is gitignored and it is Box-only
-   (`utdallas.box.com/s/qq14yjwqzouv4a3dj95c3a5nght6g47j`). Zero-shot transfer is blocked
-   on a manual download.
-2. **Isaac version gap.** UHAS asks for Isaac Lab **2.2.1**; installed is **2.1.0**
-   (isaaclab 0.40.5). Untested whether UHAS's env imports against 2.1.0.
-3. URDF→USD conversion and wiring the hand into `multi_env_cfg.py`.
+1. **Zero-shot on OUR hand** — needs URDF→USD (Isaac Sim GUI import per `docs/add_hand.md`)
+   and a `<hand>_right.py` `ArticulationCfg` + registration in `multi_env_cfg.py`. All five
+   shipped hands already have USDs, which is why LEAP et al. ran without any conversion.
+2. **A success-rate number for the pretrained policy**, on LEAP first (reproducing the
+   paper) and then on ours.
+3. Decoupling the CIK lateral-range probe pose from the actuation limit (see the correction
+   above).
 4. A quantitative **sphere-reachability score** — CIK-solve a battery of deformations and
-   measure fingertip-to-target error. The lateral-span table above is the qualitative
-   version of this.
+   measure fingertip-to-target error.
 5. An `isaac-eyes` skill (the offline analogue, figure capture, exists).

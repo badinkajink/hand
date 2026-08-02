@@ -180,6 +180,7 @@ def export_hand_to_urdf(
     open_pip: float = 0.0,
     open_yaw: float = 0.0,
     morph_qpos: dict[str, float] | None = None,
+    open_pose: dict[str, float] | None = None,
 ) -> HandUrdfExport:
     """Convert a MorphoHand MJCF into a UHAS-ready URDF directory.
 
@@ -191,6 +192,9 @@ def export_hand_to_urdf(
 
     `morph_qpos` sets the morphology slide joints before they are baked; omit it to use
     whatever the MJCF already encodes (generated morphology files bake them already).
+
+    `open_pose` overrides the above per joint name, for hands whose open pose is not
+    describable by one angle per joint class.
     """
     mjcf_path = Path(mjcf_path)
     out_dir = Path(out_dir)
@@ -352,7 +356,12 @@ def export_hand_to_urdf(
     # --- config.json: the open-hand pose UHAS measures the sphere from ------------------
     opened: dict[str, float] = {}
     for jname in hinge_joints:
-        if jname.endswith("_yaw"):
+        if open_pose and jname in open_pose:
+            # Explicit per-joint pose wins. The perp topology needs this: its fingers point
+            # at each other, so a single uniform open_mcp cannot describe a usable open
+            # hand -- each finger carries its own pip.
+            opened[jname] = float(open_pose[jname])
+        elif jname.endswith("_yaw"):
             opened[jname] = float(open_yaw)
         elif jname.endswith("_mcp"):
             opened[jname] = float(open_mcp)
