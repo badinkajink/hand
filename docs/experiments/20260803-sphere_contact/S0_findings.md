@@ -137,3 +137,33 @@ behaviour it was brought in to make legible. It does not kill the arm (rolling s
 happens without slip), but any arm-B policy result must be read against a hand that lives in a
 measurably higher-rolling-resistance world, and a b33 failure under arm B cannot be attributed to
 representation without controlling for this.
+
+## S4 — the contact map: the trajectory signal was already there at 5 contacts
+
+`scripts/contact_map_render.py` → `contact_map.png`. Scripted `open → closed → press`, every
+hand↔object contact transformed into the object's own frame and mapped to cylindrical surface
+coordinates (θ around the barrel, axial along it). Top panel: force-weighted occupancy on the
+unrolled surface. Bottom panel: per-finger contact θ, unwrapped — the "contact trajectory" a
+Pollard-style tracking controller would be handed.
+
+Aggregating θ across fingers is meaningless and the first draft did it: the fingers sit on opposite
+sides of the barrel, so a circular mean lands on the ±180 seam and flips every step. Per-finger and
+unwrapped is the only readable form.
+
+Two findings, and the second is the awkward one.
+
+**1. The contact is PINNED.** Over the full 1000-step grasp, index holds θ ≈ +90°, middle ≈ −90°,
+thumb dead flat at −180°. Total migration is ~20° for index and middle and ~0° for the thumb. The
+fingers grab three fixed spots on the barrel and never migrate. That is what "the fingers barely
+move" looks like in contact coordinates, and it is visible in one plot. (Caveat: this is a scripted
+grip, not b33 — a policy that *tries* to reorient has not been run through this yet. That is S3.)
+
+**2. The capsule baseline draws the SAME trajectory as the packed scene.** Both panels show the
+same three flat lines at the same angles. The packing multiplies contact *samples* 7× (5 445 →
+38 920) and widens the patch, but it does not change the trajectory readout — because a single
+contact point already tells you where the finger is riding.
+
+This substantially deflates the case for packing as a *control* enabler while validating the
+contact-trajectory framing as a *diagnostic*. The signal S6 would track is already extractable from
+the existing 5-contact representation, today, with no packing and no physics change. What the
+packing adds is patch *shape* (how wide, how the force distributes within it), not patch *location*.
