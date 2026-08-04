@@ -1,0 +1,329 @@
+<mujoco model="morphohand_perp_hand">
+  <compiler angle="radian" autolimits="true" />
+  <option timestep="0.002" gravity="0 0 -9.81" integrator="implicitfast" />
+  <visual>
+    <headlight ambient=".4 .4 .4" diffuse=".8 .8 .8" specular="0.1 0.1 0.1" />
+    <map znear=".01" />
+    <quality shadowsize="2048" />
+    <global elevation="-15" />
+  </visual>
+  <default>
+    <geom friction="1.8 0.15 0.01" solref="0.006 1" solimp="0.97 0.995 0.0005" />
+    <motor ctrlrange="-1 1" ctrllimited="true" />
+    <default class="morph">
+      <joint damping="2000" armature="0.0001" />
+    </default>
+    <default class="ctrl">
+      <joint damping="0.5" armature="0.001" />
+      <position kp="30" kv="0.5" gear="1" forcerange="-10 10" ctrlrange="-1 1" />
+    </default>
+  </default>
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="3072" />
+    <texture name="grid" type="2d" builtin="checker" rgb1="0.15 0.15 0.15" rgb2="0.25 0.25 0.25" width="256" height="256" />
+    <material name="table_mat" texture="grid" texrepeat="3 3" reflectance="0.2" />
+    <material name="palm_mat" rgba="0.18 0.2 0.24 1" />
+    <material name="stalk_mat" rgba="0.28 0.3 0.34 1" />
+    <material name="finger_mat" rgba="0.8 0.72 0.6 1" />
+  </asset>
+  <worldbody>
+    <light pos="0 0 1.5" dir="0 0 -1" directional="true" diffuse=".6 .6 .6" specular=".2 .2 .2" />
+    <light pos="0.5 0.5 1.0" dir="-1 -1 -1" directional="true" diffuse=".4 .4 .4" specular=".1 .1 .1" />
+    <geom name="floor" type="plane" size="1.5 1.5 0.1" material="table_mat" contype="0" conaffinity="0" />
+    <body gravcomp="1" name="palm_pose" pos="0 0 0.120">
+      <geom name="palm_plate" type="box" pos="-0.005 0 0" size="0.048 0.036 0.001" material="palm_mat" />
+      <geom name="thumb_stalk" type="box" pos="-0.055 0 0" size="0.014 0.011 0.006" material="stalk_mat" contype="0" conaffinity="0" />
+      <geom name="index_stalk" type="box" pos="0.035 0.042 0" size="0.012 0.008 0.005" material="stalk_mat" contype="0" conaffinity="0" />
+      <geom name="middle_stalk" type="box" pos="0.035 -0.042 0" size="0.012 0.008 0.005" material="stalk_mat" contype="0" conaffinity="0" />
+      <body name="thumb_mount" pos="-0.065 0.0 0.0">
+        <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
+        <joint class="morph" name="thumb_x" type="slide" axis="1 0 0" range="-0.0075 0.0525" />
+        <joint class="morph" name="thumb_y" type="slide" axis="0 1 0" range="-0.055 0.055" />
+        <body name="thumb_yaw_frame">
+          <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
+          <joint class="ctrl" name="thumb_yaw" type="hinge" axis="1 0 0" range="-1.1 1.1" />
+          <body name="thumb_mcp_frame">
+            <inertial pos="0.025 0 0" quat="0.707106781 0 -0.707106781 0" mass="0.0198967535" diaginertia="7.23613508e-06 7.23613508e-06 9.52949772e-07" />
+            <joint class="ctrl" name="thumb_mcp" type="hinge" axis="0 1 0" range="0 3.14" />
+            <geom type="sphere" size="0.01005" pos="0 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.00277777778 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.00555555556 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.00833333333 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.0111111111 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.0138888889 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.0166666667 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.0194444444 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.0222222222 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.025 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.0277777778 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.0305555556 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.0333333333 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.0361111111 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.0388888889 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.0416666667 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.0444444444 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.0472222222 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.05 0 0" material="finger_mat" />
+            <body name="thumb_len_frame" pos="0.05 0 0">
+              <inertial pos="0.02 0 0" quat="0.707106781 0 -0.707106781 0" mass="0.0116516436" diaginertia="2.80585952e-06 2.80585952e-06 4.02329739e-07" />
+              <joint class="morph" name="thumb_len" type="slide" axis="1 0 0" range="0.0 0.035" />
+              <geom type="sphere" size="0.0085425" pos="0 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.00235294118 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.00470588235 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.00705882353 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.00941176471 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.0117647059 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.0141176471 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.0164705882 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.0188235294 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.0211764706 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.0235294118 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.0258823529 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.0282352941 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.0305882353 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.0329411765 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.0352941176 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.0376470588 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.04 0 0" material="finger_mat" />
+              <body name="thumb_pip_frame" pos="0.04 0 0">
+                <inertial pos="0.015 0 0" quat="0.707106781 0 -0.707106781 0" mass="0.00706858347" diaginertia="1.05863082e-06 1.05863082e-06 1.88863715e-07" />
+                <joint class="ctrl" name="thumb_pip" type="hinge" axis="0 1 0" range="-1.8 0.5" />
+                <geom type="sphere" size="0.0075375" pos="0 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0075375" pos="0.002 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0075375" pos="0.004 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0075375" pos="0.006 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0075375" pos="0.008 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0075375" pos="0.01 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0075375" pos="0.012 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0075375" pos="0.014 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0075375" pos="0.016 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0075375" pos="0.018 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0075375" pos="0.02 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0075375" pos="0.022 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0075375" pos="0.024 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0075375" pos="0.026 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0075375" pos="0.028 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0075375" pos="0.03 0 0" material="finger_mat" />
+                <body name="thumb_tip" pos="0.03 0 0">
+                  <inertial pos="0 0 0" quat="0.707106781 0.707106781 0 0" mass="0.00523598776" diaginertia="1.94778745e-07 1.94778745e-07 1.78023584e-07" />
+                  <geom type="sphere" size="0.01" pos="0 0 0" material="finger_mat" friction="2.4 0.2 0.02" />
+                  <geom type="sphere" size="0.005" pos="0 0.004 0" material="finger_mat" friction="2.4 0.2 0.02" />
+                  <geom type="sphere" size="0.005" pos="0 -0.004 0" material="finger_mat" friction="2.4 0.2 0.02" />
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+      <body name="index_mount" pos="0.035 0.048 0.0">
+        <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
+        <joint class="morph" name="index_x" type="slide" axis="1 0 0" range="-0.0225 0.0375" />
+        <joint class="morph" name="index_y" type="slide" axis="0 1 0" range="-0.0355 0.0245" />
+        <body name="index_yaw_frame" quat="0.7071068 0 0 -0.7071068">
+          <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
+          <joint class="ctrl" name="index_yaw" type="hinge" axis="1 0 0" range="-1.1 1.1" />
+          <body name="index_mcp_frame">
+            <inertial pos="0.025 0 0" quat="0.707106781 0 -0.707106781 0" mass="0.0198967535" diaginertia="7.23613508e-06 7.23613508e-06 9.52949772e-07" />
+            <joint class="ctrl" name="index_mcp" type="hinge" axis="0 1 0" range="0 2.5" />
+            <geom type="sphere" size="0.01005" pos="0 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.00277777778 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.00555555556 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.00833333333 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.0111111111 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.0138888889 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.0166666667 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.0194444444 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.0222222222 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.025 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.0277777778 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.0305555556 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.0333333333 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.0361111111 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.0388888889 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.0416666667 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.0444444444 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.0472222222 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.05 0 0" material="finger_mat" />
+            <body name="index_len_frame" pos="0.05 0 0">
+              <inertial pos="0.02 0 0" quat="0.707106781 0 -0.707106781 0" mass="0.0116516436" diaginertia="2.80585952e-06 2.80585952e-06 4.02329739e-07" />
+              <joint class="morph" name="index_len" type="slide" axis="1 0 0" range="0.0 0.035" />
+              <geom type="sphere" size="0.0085425" pos="0 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.00235294118 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.00470588235 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.00705882353 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.00941176471 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.0117647059 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.0141176471 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.0164705882 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.0188235294 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.0211764706 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.0235294118 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.0258823529 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.0282352941 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.0305882353 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.0329411765 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.0352941176 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.0376470588 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.04 0 0" material="finger_mat" />
+              <body name="index_pip_frame" pos="0.04 0 0">
+                <inertial pos="0.015 0 0" quat="0.707106781 0 -0.707106781 0" mass="0.00229022104" diaginertia="2.61099513e-07 2.61099513e-07 2.24155385e-08" />
+                <joint class="ctrl" name="index_pip" type="hinge" axis="0 1 0" range="-1.2 1.57" />
+                <geom type="sphere" size="0.0045225" pos="0 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.00125 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.0025 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.00375 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.005 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.00625 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.0075 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.00875 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.01 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.01125 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.0125 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.01375 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.015 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.01625 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.0175 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.01875 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.02 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.02125 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.0225 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.02375 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.025 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.02625 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.0275 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.02875 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.03 0 0" material="finger_mat" />
+                <body name="index_tip" pos="0.03 0 0">
+                  <inertial pos="0 0 0" quat="0.707106781 0.707106781 0 0" mass="0.00144094383" diaginertia="2.98643986e-08 2.98643986e-08 1.646027e-08" />
+                  <geom type="sphere" size="0.006" pos="0 0 0" material="finger_mat" friction="2.4 0.2 0.02" />
+                  <geom type="sphere" size="0.004" pos="0 0.005 0" material="finger_mat" friction="2.4 0.2 0.02" />
+                  <geom type="sphere" size="0.004" pos="0 -0.005 0" material="finger_mat" friction="2.4 0.2 0.02" />
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+      <body name="middle_mount" pos="0.035 -0.048 0.0">
+        <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
+        <joint class="morph" name="middle_x" type="slide" axis="1 0 0" range="-0.0225 0.0375" />
+        <joint class="morph" name="middle_y" type="slide" axis="0 1 0" range="-0.0245 0.0355" />
+        <body name="middle_yaw_frame" quat="0.7071068 0 0 0.7071068">
+          <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
+          <joint class="ctrl" name="middle_yaw" type="hinge" axis="1 0 0" range="-1.1 1.1" />
+          <body name="middle_mcp_frame">
+            <inertial pos="0.025 0 0" quat="0.707106781 0 -0.707106781 0" mass="0.0198967535" diaginertia="7.23613508e-06 7.23613508e-06 9.52949772e-07" />
+            <joint class="ctrl" name="middle_mcp" type="hinge" axis="0 1 0" range="0 2.5" />
+            <geom type="sphere" size="0.01005" pos="0 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.00277777778 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.00555555556 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.00833333333 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.0111111111 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.0138888889 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.0166666667 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.0194444444 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.0222222222 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.025 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.0277777778 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.0305555556 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.0333333333 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.0361111111 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.0388888889 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.0416666667 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.0444444444 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.0472222222 0 0" material="finger_mat" />
+            <geom type="sphere" size="0.01005" pos="0.05 0 0" material="finger_mat" />
+            <body name="middle_len_frame" pos="0.05 0 0">
+              <inertial pos="0.02 0 0" quat="0.707106781 0 -0.707106781 0" mass="0.0116516436" diaginertia="2.80585952e-06 2.80585952e-06 4.02329739e-07" />
+              <joint class="morph" name="middle_len" type="slide" axis="1 0 0" range="0.0 0.035" />
+              <geom type="sphere" size="0.0085425" pos="0 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.00235294118 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.00470588235 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.00705882353 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.00941176471 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.0117647059 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.0141176471 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.0164705882 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.0188235294 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.0211764706 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.0235294118 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.0258823529 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.0282352941 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.0305882353 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.0329411765 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.0352941176 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.0376470588 0 0" material="finger_mat" />
+              <geom type="sphere" size="0.0085425" pos="0.04 0 0" material="finger_mat" />
+              <body name="middle_pip_frame" pos="0.04 0 0">
+                <inertial pos="0.015 0 0" quat="0.707106781 0 -0.707106781 0" mass="0.00229022104" diaginertia="2.61099513e-07 2.61099513e-07 2.24155385e-08" />
+                <joint class="ctrl" name="middle_pip" type="hinge" axis="0 1 0" range="-1.2 1.57" />
+                <geom type="sphere" size="0.0045225" pos="0 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.00125 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.0025 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.00375 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.005 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.00625 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.0075 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.00875 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.01 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.01125 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.0125 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.01375 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.015 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.01625 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.0175 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.01875 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.02 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.02125 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.0225 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.02375 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.025 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.02625 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.0275 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.02875 0 0" material="finger_mat" />
+                <geom type="sphere" size="0.0045225" pos="0.03 0 0" material="finger_mat" />
+                <body name="middle_tip" pos="0.03 0 0">
+                  <inertial pos="0 0 0" quat="0.707106781 0.707106781 0 0" mass="0.00144094383" diaginertia="2.98643986e-08 2.98643986e-08 1.646027e-08" />
+                  <geom type="sphere" size="0.006" pos="0 0 0" material="finger_mat" friction="2.4 0.2 0.02" />
+                  <geom type="sphere" size="0.004" pos="0 0.005 0" material="finger_mat" friction="2.4 0.2 0.02" />
+                  <geom type="sphere" size="0.004" pos="0 -0.005 0" material="finger_mat" friction="2.4 0.2 0.02" />
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+  <contact>
+    <exclude body1="palm_pose" body2="thumb_mcp_frame" />
+    <exclude body1="palm_pose" body2="thumb_len_frame" />
+    <exclude body1="palm_pose" body2="thumb_pip_frame" />
+    <exclude body1="palm_pose" body2="thumb_tip" />
+    <exclude body1="palm_pose" body2="index_mcp_frame" />
+    <exclude body1="palm_pose" body2="index_len_frame" />
+    <exclude body1="palm_pose" body2="index_pip_frame" />
+    <exclude body1="palm_pose" body2="index_tip" />
+    <exclude body1="palm_pose" body2="middle_mcp_frame" />
+    <exclude body1="palm_pose" body2="middle_len_frame" />
+    <exclude body1="palm_pose" body2="middle_pip_frame" />
+    <exclude body1="palm_pose" body2="middle_tip" />
+  </contact>
+  <actuator>
+    <position class="ctrl" name="a_thumb_yaw" joint="thumb_yaw" ctrlrange="-1.1 1.1" />
+    <position class="ctrl" name="a_thumb_mcp" joint="thumb_mcp" ctrlrange="0 3.14" />
+    <position class="ctrl" name="a_thumb_pip" joint="thumb_pip" ctrlrange="-1.8 0.5" />
+    <position class="ctrl" name="a_index_yaw" joint="index_yaw" ctrlrange="-1.1 1.1" />
+    <position class="ctrl" name="a_index_mcp" joint="index_mcp" ctrlrange="0 2.5" />
+    <position class="ctrl" name="a_index_pip" joint="index_pip" ctrlrange="-1.2 1.57" />
+    <position class="ctrl" name="a_middle_yaw" joint="middle_yaw" ctrlrange="-1.1 1.1" />
+    <position class="ctrl" name="a_middle_mcp" joint="middle_mcp" ctrlrange="0 2.5" />
+    <position class="ctrl" name="a_middle_pip" joint="middle_pip" ctrlrange="-1.2 1.57" />
+  </actuator>
+  <keyframe>
+    <key name="open" qpos="0 0 0 1.90865 0 -1.8 0 0 4.34154e-17 1.13823 0 0.728527 0 0 -4.38085e-17 1.13823 0 0.728527" ctrl="0 1.90865 -1.8 4.34154e-17 1.13823 0.728527 -4.38085e-17 1.13823 0.728527" />
+    <key name="closed" qpos="0 0 0 1.50407 0 -1.76939 0 0 4.83104e-17 1.11743 0 0.635855 0 0 -4.84827e-17 1.11743 0 0.635855" ctrl="0 1.50407 -1.76939 4.83104e-17 1.11743 0.635855 -4.84827e-17 1.11743 0.635855" />
+    <key name="press" qpos="0 0 0 1.5154 0 -1.4802 0 0 4.83104e-17 1.11743 0 0.635855 0 0 -4.84827e-17 1.11743 0 0.635855" ctrl="0 1.5154 -1.4802 4.83104e-17 1.11743 0.635855 -4.84827e-17 1.11743 0.635855" />
+    <key name="open_ik" qpos="0 0 0 1.90865 0 -1.8 0 0 4.34154e-17 1.13823 0 0.728527 0 0 -4.38085e-17 1.13823 0 0.728527" ctrl="0 1.90865 -1.8 4.34154e-17 1.13823 0.728527 -4.38085e-17 1.13823 0.728527" />
+  </keyframe>
+</mujoco>

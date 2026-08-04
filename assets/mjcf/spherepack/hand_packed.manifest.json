@@ -1,0 +1,39 @@
+{
+  "source_scene": "assets/mjcf/baseline/hand.xml",
+  "out_scene": "assets/mjcf/spherepack/hand_packed.xml",
+  "pack": "hand",
+  "eps": 0.01,
+  "sphere_radius_frac": 0.5,
+  "spheres_per_body": {
+    "thumb_mcp_frame": 19,
+    "thumb_len_frame": 18,
+    "thumb_pip_frame": 16,
+    "thumb_tip": 1,
+    "index_mcp_frame": 19,
+    "index_len_frame": 18,
+    "index_pip_frame": 16,
+    "index_tip": 1,
+    "middle_mcp_frame": 19,
+    "middle_len_frame": 18,
+    "middle_pip_frame": 16,
+    "middle_tip": 1
+  },
+  "total_spheres": 162,
+  "ngeom_before": 14,
+  "ngeom_after": 164,
+  "max_rel_mass_drift": 4.000384587776638e-09,
+  "rel_mass_drift": {
+    "thumb_mcp_frame": 1.3703058893978616e-09,
+    "thumb_len_frame": 4.000384587776638e-09,
+    "thumb_pip_frame": 8.163374599789053e-11,
+    "thumb_tip": 1.1426668644257352e-09,
+    "index_mcp_frame": 1.3703058893978616e-09,
+    "index_len_frame": 4.000384587776638e-09,
+    "index_pip_frame": 8.163374599789053e-11,
+    "index_tip": 1.1426668644257352e-09,
+    "middle_mcp_frame": 1.3703058893978616e-09,
+    "middle_len_frame": 4.000384587776638e-09,
+    "middle_pip_frame": 8.163374599789053e-11,
+    "middle_tip": 1.1426668644257352e-09
+  }
+}
