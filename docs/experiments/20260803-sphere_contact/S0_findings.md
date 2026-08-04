@@ -87,8 +87,53 @@ sphere volume × density — the frozen scenes carry no explicit inertials.
 - **Self-collision: zero** intra-hand contacts in every packed scene at these poses. The
   anticipated intra-finger `<exclude>` work has not proved necessary yet; recheck at flexed poses.
 
-## What this means for the plan
+## S1 — the roll fidelity probe: arm B has an irreducible rolling cost
 
-Arm B is the arm. It is also the one S6 needs anyway, since a contact *trajectory* has to be
-expressed in object-surface coordinates. Arm A should be kept as the control that shows hand-side
-resolution is inert — that is a result, not a failure — but it should not carry the program.
+`scripts/probe_roll_fidelity.py`. Bare object on a plane, no hand, launched at 0.5 m/s with
+matched spin so it rolls rather than skids. (Getting the spin wrong makes it *skid*, which
+measures friction and not rolling — the freejoint's `qvel[3:6]` is body-local and this body is
+rotated 90° about X, so the roll axis is `qvel[5]`.)
+
+| object | distance | roll ratio | bob p-p | mean ncon | v_end |
+|---|---|---|---|---|---|
+| smooth cylinder | 1.498 m (1.00×) | 0.996 | 0.0000 mm | 2.0 | 0.499 |
+| packed ε=0.02 | 0.806 m (0.54×) | 0.997 | 0.138 mm | 13.0 | 0.132 |
+| packed ε=0.01 | 0.907 m (0.61×) | 0.998 | 0.109 mm | 19.4 | 0.152 |
+| packed ε=0.005 | 1.023 m (**0.68×**) | 0.999 | 0.091 mm | 28.7 | 0.178 |
+| packed ε=0.002 | 0.983 m (0.66×) | 0.999 | 0.059 mm | 52.4 | 0.151 |
+| packed ε=0.001 | 0.857 m (0.57×) | 0.999 | 0.060 mm | 94.4 | 0.086 |
+
+**Good news:** `roll_ratio` stays 0.996–0.999 everywhere. The rolling constraint is intact — the
+packed cylinder rolls, it does not slip. Scallop bob falls monotonically with ε exactly as the
+tolerance formula predicts.
+
+**Bad news:** rolling *distance* does not converge to smooth. It peaks at ε=0.005 (0.68×) and gets
+**worse** at finer ε, because contact count climbs (28 → 94) faster than the scallop shrinks. There
+is no ε that recovers smooth rolling.
+
+Cause, isolated:
+
+| configuration | distance | rel |
+|---|---|---|
+| packed ε=0.005, default solver | 1.023 m | 0.68× |
+| packed ε=0.005, Newton iter=200 tol=1e-10 | 1.023 m | 0.68× |
+| packed ε=0.005, CG iter=500 tol=1e-12 | 1.035 m | 0.69× |
+| packed ε=0.005, **timestep 0.002 → 0.0005** | 1.249 m | **0.83×** |
+
+Solver iterations, tolerance and algorithm change nothing. **Quartering the timestep recovers half
+the deficit.** So the loss is time-discretization of the micro-collisions at every facet crossing,
+not solver convergence — and our production timestep is 0.002 (`env_build.py` `MujocoCfg`), where
+quartering it would quarter throughput on top of arm B's own 1.8–2.4× cost.
+
+### The tension this creates
+
+- **Arm A** is faithful and free, and **inert**: 257 spheres reproduce the capsule baseline exactly
+  at the fingertip grip.
+- **Arm B** is the only one that produces a contact map, and it **costs ~32% of rolling distance**
+  at production timestep, irreducibly.
+
+The reorient we are chasing *is* a roll, so this is not a nuisance term — arm B perturbs the exact
+behaviour it was brought in to make legible. It does not kill the arm (rolling still happens, and
+happens without slip), but any arm-B policy result must be read against a hand that lives in a
+measurably higher-rolling-resistance world, and a b33 failure under arm B cannot be attributed to
+representation without controlling for this.
