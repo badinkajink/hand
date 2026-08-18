@@ -381,6 +381,13 @@ class Args:
     is m/step, so the weight is large: try -2000 to -10000. 0 disables."""
     axial_slip_rate_deadband: float = 0.0
     """Free slip rate (m/step) before the penalty engages."""
+    thumb_brace_weight: float = 0.0
+    """Reward on thumb<->object contact force, gated on alignment (post-swing brace).
+    For the opposed-pair hand, where the thumb cannot be a grasp finger. Try +4 to +20."""
+    thumb_brace_align_thresh: float = 0.7
+    """Alignment cos above which the thumb brace starts paying."""
+    thumb_brace_max_force: float = 4.0
+    """Thumb force (N) at which the brace reward saturates."""
     # ---- Phase 3: bracing (palm normal force + grip strength) -----------
     brace_force_weight: float = 0.0
     """Reward for palm<->cylinder contact force, gated on alignment. 0 off. Try +5..+20."""
@@ -593,6 +600,9 @@ def main() -> None:
         lateral_drift_power=args.lateral_drift_power,
         axial_slip_weight=args.axial_slip_weight,
         axial_slip_rate_deadband=args.axial_slip_rate_deadband,
+        thumb_brace_weight=args.thumb_brace_weight,
+        thumb_brace_align_thresh=args.thumb_brace_align_thresh,
+        thumb_brace_max_force=args.thumb_brace_max_force,
         brace_force_weight=args.brace_force_weight,
         brace_align_thresh=args.brace_align_thresh,
         brace_max_force=args.brace_max_force,

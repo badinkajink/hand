@@ -86,6 +86,7 @@ from morphohand.rl.terms_reward import (  # noqa: F401
     palm_brace_force,
     reorient_time_cost,
     target_axis_alignment,
+    thumb_brace_force,
     target_axis_progress,
     track_finger_ctrl_anchor,
     track_finger_qpos,

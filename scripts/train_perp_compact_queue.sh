@@ -31,6 +31,15 @@ TOP="${TOP:-5}"
 # have measured the bug, not the morphology. See CLAUDE.md gotcha: diff a new launcher's flags
 # against the last WORKING run's config.yaml (results/rl/<r4 run>/config.yaml has 0.14).
 LIFT_DELTA="${LIFT_DELTA:-0.14}"
+# ...and lift was only ONE of four. Relaunching this queue with just the lift fix still produced
+# num_envs 1024 (vs 3072), total_timesteps 200M (vs 25M -> a 6 h run instead of 40 min) and
+# open_finger_from_keyframe FALSE (vs True -> the wrong open pose, gotcha #5). All three are
+# silent. Every value below is read off REF_RUN's config.yaml, and the pre-flight re-checks that
+# claim against the config the trainer actually writes, because a comment has now failed to
+# prevent this four times.
+REF_RUN="${REF_RUN:-$ROOT/results/rl/20260731-1300-perp_single_r4}"
+NUM_ENVS="${NUM_ENVS:-3072}"
+TOTAL_STEPS="${TOTAL_STEPS:-25000000}"
 SWEEP_JSON="$ROOT/docs/experiments/perp_compact_sweep.json"
 BASE_SCENE="$ROOT/assets/mjcf/perp/scenes/scene_screwdriver_medium_perp.xml"
 MORPH_RUN="$ROOT/results/phase1/perp/perp_v1"
@@ -116,8 +125,29 @@ PY
         --frozen-scene-xml "$SCENE" \
         --tag "$RUN_NAME" \
         --lift-target-z-above-init "$LIFT_DELTA" --lift-delta-z "$LIFT_DELTA" \
+        --open-finger-from-keyframe \
+        --num-envs "$NUM_ENVS" \
+        --total-timesteps "$TOTAL_STEPS" \
         "${NOISE_ARG[@]}" \
-        >>"$DEST/train.log" 2>&1
+        >>"$DEST/train.log" 2>&1 &
+    TRAIN_PID=$!
+
+    # Pre-flight against r4 while the run is still free to kill. A design's SCENE differs by
+    # construction (that is the experiment) and assert_config_parity ignores scene/dir keys, so
+    # only the knobs are compared.
+    sleep 20
+    NEW_RUN="$(ls -dt "$ROOT/results/rl/"*"$RUN_NAME" 2>/dev/null | head -1)"
+    if [[ -n "$NEW_RUN" ]]; then
+      if ! uv run python scripts/assert_config_parity.py \
+             --run "$NEW_RUN" --reference "$REF_RUN" \
+             --allow ppo.init_noise_std 2>&1 | tee -a "$QLOG" | grep -q "^\[parity\] OK"; then
+        say "ABORT $LABEL: config parity check failed — killing $TRAIN_PID"
+        kill "$TRAIN_PID" 2>/dev/null; wait "$TRAIN_PID" 2>/dev/null
+        rm -rf "$WARP_CACHE_PATH"; RC=99; wait_for_gpu; break
+      fi
+    fi
+
+    wait "$TRAIN_PID"
     RC=$?
     rm -rf "$WARP_CACHE_PATH"
     [[ $RC -eq 0 ]] && break

@@ -85,17 +85,26 @@ def main():
         return 2
 
     allow = set(args.allow)
-    diffs = []
+    diffs, inert = [], []
     for k in sorted(set(new) | set(ref)):
         if k in allow or any(s in k.lower() for s in IGNORE_SUBSTRINGS):
             continue
         a, b = ref.get(k, "<absent>"), new.get(k, "<absent>")
-        if a != b:
-            diffs.append((k, a, b))
+        if a == b:
+            continue
+        # A field ADDED since the reference ran, sitting at a default that disables it, is not a
+        # divergence -- "the feature did not exist" and "the feature is off" are the same run.
+        # Without this, every new config key permanently breaks parity against older references
+        # and the check trains people to pass --allow reflexively, which defeats it.
+        if a == "<absent>" and b in (0, 0.0, False, None, ""):
+            inert.append(k)
+            continue
+        diffs.append((k, a, b))
 
     if not diffs:
+        note = f", {len(inert)} new field(s) at disabling defaults" if inert else ""
         print(f"[parity] OK — {args.run.name} matches {args.reference.name} "
-              f"({len(allow)} allowed delta(s))")
+              f"({len(allow)} allowed delta(s){note})")
         return 0
 
     w = max(len(k) for k, _, _ in diffs)

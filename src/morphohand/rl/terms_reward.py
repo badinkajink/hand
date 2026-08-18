@@ -246,6 +246,38 @@ def palm_brace_force(env: "ManagerBasedRlEnv",
     return norm * gate.float()
 
 
+def thumb_brace_force(env: "ManagerBasedRlEnv",
+                      sensor_name: str = "fingertip_cube_contact",
+                      thumb_index: int = 0,
+                      object_name: str = "cube",
+                      object_axis_local: tuple[float, float, float] = (0.0, 0.0, 1.0),
+                      target_axis_world: tuple[float, float, float] = (0.0, 0.0, 1.0),
+                      align_thresh: float = 0.7,
+                      max_force: float = 4.0) -> torch.Tensor:
+    """Normalised THUMB<->object contact force, gated on the shaft being reoriented.
+
+    On the opposed-pair hand the thumb is not a grasp finger and cannot be one: its reach shell
+    is ~32 mm wide, so a thumb long enough to touch the hanging vertical shaft (150.6 mm from
+    its mount) has a minimum reach of 121.7 mm and can no longer reach the initial grasp, which
+    sits nearer. It is a POST-SWING BRACE or it is nothing, which is why this is gated on
+    alignment rather than paid throughout.
+
+    That gating is also what keeps it from destroying the reorient. The swing needs the pinch
+    loose and the thumb clear of the corridor; a thumb pressing during the rotation either
+    blocks it or shoves the shaft out of a pinch that cannot react a force along its own axis.
+    Measured on the scripted probe, a thumb press at any point in the open-loop swing ejects the
+    object -- but that probe's grip has already bled to 0.4 N, so it cannot say anything about
+    the loaded regime a trained policy actually holds (10-27 N). This term exists to find out.
+
+    Reduces over the thumb's own sensor slot only, unlike `contact_min`, which reduces over the
+    k best tips and therefore cannot express "recruit THIS finger". Shape (num_envs,)."""
+    mag = _contact_force_mag(env, sensor_name)                 # (B, n_tips)
+    thumb = mag[:, int(thumb_index)]
+    norm = (thumb / float(max_force)).clamp(0.0, 1.0)
+    cos = _alignment_cos(env, object_name, object_axis_local, target_axis_world)
+    return norm * (cos >= float(align_thresh)).float()
+
+
 def palm_brace_distance(env: "ManagerBasedRlEnv",
                         object_name: str = "cube",
                         palm_body: str = "palm_pose",

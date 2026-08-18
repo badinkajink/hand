@@ -60,8 +60,13 @@ def build_hold(model, data, args) -> None:
         mujoco.mj_step(model, data)
 
 
-def ramp(model, data, args, sign: int) -> tuple[float, float]:
-    """Ramp an axial force until the object escapes. Returns (force_at_escape, max_force)."""
+def ramp(model, data, args, sign: int, axis: int = 2) -> tuple[float, float]:
+    """Ramp a force along `axis` until the object escapes. Returns (force_at_escape, max_force).
+
+    `axis` generalises what used to be hardcoded to world Z. The reason it matters on the perp
+    hand: the opposed pair clamps along Y and the shaft hangs along Z, so a force along X is
+    reacted by nothing but pad friction. Comparing the three axes is what distinguishes "the
+    grip is weak" from "the grip has no purchase in this direction at all"."""
     bid = model.body(OBJ).id
     # displacement is measured relative to the PALM, since the palm is servoed and moves
     palm_bid = model.body("palm_pose").id if mujoco.mj_name2id(
@@ -71,7 +76,7 @@ def ramp(model, data, args, sign: int) -> tuple[float, float]:
     force = 0.0
     for step in range(args.ramp_steps):
         force = args.max_force * (step / max(1, args.ramp_steps - 1))
-        data.xfrc_applied[bid, 2] = sign * force
+        data.xfrc_applied[bid, axis] = sign * force
         mujoco.mj_step(model, data)
         rel = data.body(bid).xpos - data.body(palm_bid).xpos
         if float(np.linalg.norm(rel - ref)) > args.slip_tol:
@@ -99,10 +104,20 @@ def main() -> None:
     ap.add_argument("--max-force", type=float, default=15.0, help="N at the end of the ramp")
     ap.add_argument("--slip-tol", type=float, default=0.01,
                     help="m of object motion RELATIVE TO THE PALM that counts as escape")
+    ap.add_argument("--axes", default="z",
+                    help="comma-separated world axes to ramp along: any of x,y,z (default z)")
     args = ap.parse_args()
 
+    axis_ids = {"x": 0, "y": 1, "z": 2}
+    directions = []
+    for name in [a.strip().lower() for a in args.axes.split(",") if a.strip()]:
+        if name not in axis_ids:
+            raise SystemExit(f"--axes: unknown axis {name!r} (use x, y, z)")
+        for sign, tag in ((+1, "+"), (-1, "-")):
+            directions.append((sign, axis_ids[name], f"{tag}{name.upper()}"))
+
     results = {}
-    for sign, label in ((+1, "up (+Z)"), (-1, "down (-Z)")):
+    for sign, axis, label in directions:
         model = mujoco.MjModel.from_xml_path(str(args.scene))
         data = mujoco.MjData(model)
         mujoco.mj_resetDataKeyframe(model, data, model.key(args.keyframe).id)
@@ -110,7 +125,7 @@ def main() -> None:
         build_hold(model, data, args)
         held_cos, held_z = obj_cos(model, data), float(data.body(OBJ).xpos[2])
         forces = tip_forces(model, data)
-        f_escape, f_max = ramp(model, data, args, sign)
+        f_escape, f_max = ramp(model, data, args, sign, axis)
         results[label] = (f_escape, f_max, held_cos, held_z, forces)
 
     print(f"[axial] {args.scene.name}  lift={args.lift}  press={args.press}  "
