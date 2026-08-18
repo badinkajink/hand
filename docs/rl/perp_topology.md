@@ -898,3 +898,124 @@ not the noise — diff the scene against a run that trained.**
 
 Still ~6 h per design, sequential, resumable. Nothing has finished yet, so there are no r5
 policy numbers to compare against r4 (t_align 89±46, peak_cos 0.996±0.006, hold_steps 331±55).
+
+---
+
+## 2026-08-17 — sim2real review: what survived, and the r5 queue measured a launcher bug
+
+Revisit prompted by a physically-ready prototype and a request for a bare-minimum sim2real
+transfer of the reorientation. Everything below is re-measured on the CURRENT scene (the
+12-exclude palm fix of 2026-08-01), not quoted from the sections above.
+
+### The r5 morphology queue is void — it trained at lift 0.05, not 0.14
+
+`train_perp_compact_queue.sh` never passed `--lift-delta-z`, so every r5 design inherited the
+trainer default of **0.05** while r2/r4 trained at **0.14**. Lift height is a run knob, not a
+recipe key, and this file's own recipe comment says it must be >= ~0.12 and that "launcher uses
+0.14" — the launcher did not.
+
+On a 100 mm shaft that is not a small difference: hanging vertical puts the lower end 0.085 m
+below the pinch, so at a 0.05 lift the shaft is in the floor and the floor-proximity gate
+false-fires. Exactly one design survived to 339 iterations before the queue was interrupted
+(`t0.00_x0.25_y0.00`, the top-ranked design), and evaluated at its own lift it is a total
+failure:
+
+| r5 `t0.00_x0.25`, N=64 x 600 | value |
+|---|---|
+| align_rate (ever cos >= 0.9) | **0.0%** (0/64) |
+| hold_rate | 0.0% |
+| peak_cos | 0.742 ± 0.049 |
+| final z | **0.013** — flat on the floor in every env |
+
+So there are still **no valid r5 numbers**, and the earlier worry that the ranking might be
+biased toward designs surviving the pinned noise is moot — no design was measured at all. This
+is the second occurrence of the launcher-parity failure already in CLAUDE.md; the fix is a
+`LIFT_DELTA` variable defaulting to 0.14, plus the reasoning, in the queue script.
+
+### r4 is real, reproduces, and survives the scene change
+
+`20260731-1300-perp_single_r4/tensorboard/model_338.pt`, N=64 x 600 steps:
+
+| | its own scene (control) | CURRENT scene, zero-shot |
+|---|---|---|
+| align_rate | 98.4% (63/64) | **100% (64/64)** |
+| peak_cos | 0.993 ± 0.019 | 0.994 ± 0.002 |
+| t_align | 86 ± 53 | 121 ± 83 |
+| hold_steps (aligned AND held) | 329 ± 67 | 257 ± 83 |
+| drop_step | 435 ± 36 | 386 ± 18 |
+
+The palm-exclude scene change costs some hold but **does not break the lineage** — the reorient
+is fully intact zero-shot. r4 remains the best asset this topology has.
+
+### The perp reorient is compliance-INSENSITIVE — the opposite of the baseline hand
+
+The largest documented sim2real risk in this program is that the m05 reorient is
+contact-compliance-dependent: hardening `solimp` collapsed it (`target_axis_alignment` 13 vs 48,
+held-cos ~0) because reorient-by-ROLLING needs compliant pads. r4 zero-shot across the same
+hardening range, N=64 x 600, no retraining:
+
+| geom solimp (dmin, dmax) | 0.97 / 0.995 (soft, trained) | 0.98 / 0.997 | 0.985 / 0.999 (hard) |
+|---|---|---|---|
+| align_rate | 100% | **100%** | **100%** |
+| peak_cos | 0.994 ± 0.002 | 0.996 ± 0.003 | 0.996 ± 0.002 |
+| hold_steps | 257 ± 83 | 271 ± 97 | 296 ± 93 |
+| drop_step | 386 ± 18 | 391 ± 25 | 398 ± 27 |
+
+Nothing degrades; the hard end is if anything slightly better. The mechanism explains it — the
+perp reorient is a **pivot about two opposed contacts**, not a roll across a deforming pad, so
+it does not spend the compliance the baseline hand's rolling gait depends on. **This makes the
+opposed pair the right sim2real candidate on physics grounds, not just the interesting one**,
+and it retires the compliance-curriculum work as a prerequisite for THIS topology.
+
+### The joint envelope fits the prototype
+
+New `scripts/probe_joint_envelope.py` rolls the policy out and reports the range it actually
+sweeps and the rate it demands, against `hand_paper` Table I. The MJCF ranges are wider than the
+hardware in every DOF, but the policy does not use them (r4, current scene, N=32 x 600):
+
+| joint | policy uses (deg) | hardware (deg) | rate p99 (deg/s) | verdict |
+|---|---|---|---|---|
+| thumb_yaw | [−4.8, −1.0] | ±45 | 44 | OK |
+| thumb_mcp | [+84.7, +109.2] | 0–110 | 68 | OK |
+| thumb_pip | [−98.5, −85.6] | 0–100 | 68 | **OFFSET 98 deg (13 deg of travel — mount/zero convention)** |
+| index_yaw | [−9.9, −2.0] | ±45 | 32 | OK |
+| index_mcp | [+53.4, +62.3] | 0–110 | 30 | OK |
+| index_pip | [+30.4, +40.6] | 0–100 | 39 | OK |
+| middle_yaw | [−12.4, −3.6] | ±45 | 22 | OK |
+| middle_mcp | [+59.7, +64.9] | 0–110 | 19 | OK |
+| middle_pip | [+45.1, +50.6] | 0–100 | 25 | OK |
+
+Every joint travels **less** than the prototype allows, and no joint's p99 rate exceeds 70
+deg/s. The opposed pair in particular works in a very small envelope (index 54–62 deg MCP,
+30–41 deg PIP, yaw inside ±13 deg). `thumb_pip` is the one flag and it is a sign convention, not
+a reach: the thumb is mounted mirrored so its MJCF flexion runs negative, and its travel is 13
+deg inside a 100 deg servo. It needs a zero offset agreed against the real thumb mount, not a
+bigger servo.
+
+**The one genuine hardware blocker is the 90 deg opposition itself.** It lives in the
+`index/middle_yaw_frame` body quat — a fixed mount rotation, not the yaw joint — and the yaw
+servo is spec'd at ±45 deg, so the pair cannot be brought into opposition by actuation. It
+requires the fingers to be physically remounted rotated 90 deg on their gantries. Nothing in
+sim tests whether the prototype's mounts allow that.
+
+### What is actually left: a slow axial slip, and nothing penalises it
+
+The 4-panel eval (`docs/rl/videos/20260817_perp_review/r4_excl_eval.png`) localises the only
+remaining defect. Object z decays **monotonically 0.120 → 0.108 across the whole hold** while
+the shaft sits at cos ~0.99, the align-gated catch fires and drives grip 10 → 18 N around step
+300 — and the slip continues anyway. At ~step 370 grip collapses to 0 and every env loses the
+shaft by ~420.
+
+So the task splits cleanly:
+
+* **reorient: solved.** 100% of rollouts reach cos >= 0.9, peak 0.994, and hold it aligned AND
+  physically held for ~257 steps (**~5.1 s**) on the current scene, ~6.6 s on r4's own.
+* **indefinite hold: open.** 0% hold at 600 steps, and the failure is a slip *through* the
+  pinch, along the shaft axis. No reward term measures it: `object_lateral_drift` and
+  `object_xy_drift` are both XY, and `object_lift_height` charges only ~12 mm of height for a
+  slip that ends in a total loss. The lever is a term on **object position relative to the
+  palm along the grip axis** — the quantity `probe_axial_load.py` already measures — not more
+  rotation reward and not more grip.
+
+Artefacts: `docs/experiments/20260817-perp_r{4,5}_*.json`,
+`docs/rl/videos/20260817_perp_review/` (960x720 render, filmstrip, N=64 eval plot).

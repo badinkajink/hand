@@ -1,0 +1,18 @@
+{
+  "label": "r5 t0.00_x0.25 (lift 0.05 as trained)",
+  "n": 64,
+  "steps": 600,
+  "align_thresh": 0.9,
+  "align_rate": 0.0,
+  "hold_rate": 0.0,
+  "success_rate": 0.0,
+  "t_align_mean": null,
+  "hold_steps_mean": 0.0,
+  "hold_steps_sd": 0.0,
+  "final_cos_mean": 0.009960757568478584,
+  "final_cos_sd": 0.07906200736761093,
+  "final_z_mean": 0.01274021901190281,
+  "peak_cos_mean": 0.7423464059829712,
+  "drop_step_mean": null,
+  "n_lost": 0
+}

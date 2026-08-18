@@ -1,0 +1,168 @@
+{
+  "label": "r4 on current perp scene",
+  "policy": "results/rl/20260731-1300-perp_single_r4/tensorboard/model_338.pt",
+  "n": 32,
+  "steps": 600,
+  "dt": 0.02,
+  "joints": {
+    "thumb_yaw": {
+      "used_deg": [
+        -4.760234832763672,
+        -0.9852724671363831
+      ],
+      "travel_deg": 3.774962365627289,
+      "hardware_deg": [
+        -45.0,
+        45.0
+      ],
+      "over_low_deg": 0.0,
+      "over_high_deg": 0.0,
+      "travel_fits": true,
+      "rate_p99_deg_s": 43.667945861816406,
+      "rate_max_deg_s": 84.23683166503906,
+      "verdict": "OK"
+    },
+    "thumb_mcp": {
+      "used_deg": [
+        84.65248107910156,
+        109.17378234863281
+      ],
+      "travel_deg": 24.52130126953125,
+      "hardware_deg": [
+        0.0,
+        110.0
+      ],
+      "over_low_deg": 0.0,
+      "over_high_deg": 0.0,
+      "travel_fits": true,
+      "rate_p99_deg_s": 67.57746887207031,
+      "rate_max_deg_s": 259.19610595703125,
+      "verdict": "OK"
+    },
+    "thumb_pip": {
+      "used_deg": [
+        -98.47100830078125,
+        -85.57360076904297
+      ],
+      "travel_deg": 12.897407531738281,
+      "hardware_deg": [
+        0.0,
+        100.0
+      ],
+      "over_low_deg": 98.47100830078125,
+      "over_high_deg": 0.0,
+      "travel_fits": true,
+      "rate_p99_deg_s": 68.29357147216797,
+      "rate_max_deg_s": 247.96409606933594,
+      "verdict": "OFFSET 98 deg (travel fits)"
+    },
+    "index_yaw": {
+      "used_deg": [
+        -9.868468284606934,
+        -1.9771772623062134
+      ],
+      "travel_deg": 7.89129102230072,
+      "hardware_deg": [
+        -45.0,
+        45.0
+      ],
+      "over_low_deg": 0.0,
+      "over_high_deg": 0.0,
+      "travel_fits": true,
+      "rate_p99_deg_s": 31.866024017333984,
+      "rate_max_deg_s": 98.865234375,
+      "verdict": "OK"
+    },
+    "index_mcp": {
+      "used_deg": [
+        53.40443420410156,
+        62.29731369018555
+      ],
+      "travel_deg": 8.892879486083984,
+      "hardware_deg": [
+        0.0,
+        110.0
+      ],
+      "over_low_deg": 0.0,
+      "over_high_deg": 0.0,
+      "travel_fits": true,
+      "rate_p99_deg_s": 30.433137893676758,
+      "rate_max_deg_s": 80.78041076660156,
+      "verdict": "OK"
+    },
+    "index_pip": {
+      "used_deg": [
+        30.38443946838379,
+        40.64887237548828
+      ],
+      "travel_deg": 10.264432907104492,
+      "hardware_deg": [
+        0.0,
+        100.0
+      ],
+      "over_low_deg": 0.0,
+      "over_high_deg": 0.0,
+      "travel_fits": true,
+      "rate_p99_deg_s": 39.20647430419922,
+      "rate_max_deg_s": 141.66470336914062,
+      "verdict": "OK"
+    },
+    "middle_yaw": {
+      "used_deg": [
+        -12.352188110351562,
+        -3.572964668273926
+      ],
+      "travel_deg": 8.779223442077637,
+      "hardware_deg": [
+        -45.0,
+        45.0
+      ],
+      "over_low_deg": 0.0,
+      "over_high_deg": 0.0,
+      "travel_fits": true,
+      "rate_p99_deg_s": 22.19731903076172,
+      "rate_max_deg_s": 188.73583984375,
+      "verdict": "OK"
+    },
+    "middle_mcp": {
+      "used_deg": [
+        59.69454574584961,
+        64.91954803466797
+      ],
+      "travel_deg": 5.225002288818359,
+      "hardware_deg": [
+        0.0,
+        110.0
+      ],
+      "over_low_deg": 0.0,
+      "over_high_deg": 0.0,
+      "travel_fits": true,
+      "rate_p99_deg_s": 19.322021484375,
+      "rate_max_deg_s": 48.35319519042969,
+      "verdict": "OK"
+    },
+    "middle_pip": {
+      "used_deg": [
+        45.14759826660156,
+        50.60504913330078
+      ],
+      "travel_deg": 5.457450866699219,
+      "hardware_deg": [
+        0.0,
+        100.0
+      ],
+      "over_low_deg": 0.0,
+      "over_high_deg": 0.0,
+      "travel_fits": true,
+      "rate_p99_deg_s": 25.02208709716797,
+      "rate_max_deg_s": 144.9604034423828,
+      "verdict": "OK"
+    }
+  },
+  "range_ok": true,
+  "offset_joints": [
+    "thumb_pip"
+  ],
+  "fast_joints": [],
+  "max_rate_deg_s_ref": 300.0
+}

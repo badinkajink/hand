@@ -1,0 +1,18 @@
+{
+  "label": "r4 zero-shot, contact hard",
+  "n": 64,
+  "steps": 600,
+  "align_thresh": 0.9,
+  "align_rate": 1.0,
+  "hold_rate": 0.0,
+  "success_rate": 0.0,
+  "t_align_mean": 97.578125,
+  "hold_steps_mean": 295.953125,
+  "hold_steps_sd": 93.2447099182274,
+  "final_cos_mean": -1.1920928955078125e-07,
+  "final_cos_sd": 0.0,
+  "final_z_mean": 0.012292511761188507,
+  "peak_cos_mean": 0.9956546425819397,
+  "drop_step_mean": 397.9375,
+  "n_lost": 64
+}
