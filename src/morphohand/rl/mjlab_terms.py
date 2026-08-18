@@ -72,6 +72,8 @@ from morphohand.rl.terms_reward import (  # noqa: F401
     grip_force_spread,
     handoff_target_proximity,
     object_ang_acc_l2,
+    object_axial_slip,
+    object_axial_slip_gated,
     object_drop_indicator,
     object_lateral_drift,
     object_lateral_drift_gated,

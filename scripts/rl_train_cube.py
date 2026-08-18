@@ -374,6 +374,13 @@ class Args:
     """Free lateral movement (m) before the penalty engages."""
     lateral_drift_power: float = 2.0
     """Exponent on (drift - deadband); 2.0 = quadratic."""
+    # ---- axial slip penalty (perp topology) -----------------------------
+    axial_slip_weight: float = 0.0
+    """Penalty on the object sliding DOWN through the grip, per step, palm frame
+    (one-sided). Targets the slow slip that drops 100% of r4 rollouts. The signal
+    is m/step, so the weight is large: try -2000 to -10000. 0 disables."""
+    axial_slip_rate_deadband: float = 0.0
+    """Free slip rate (m/step) before the penalty engages."""
     # ---- Phase 3: bracing (palm normal force + grip strength) -----------
     brace_force_weight: float = 0.0
     """Reward for palm<->cylinder contact force, gated on alignment. 0 off. Try +5..+20."""
@@ -584,6 +591,8 @@ def main() -> None:
         lateral_drift_weight=args.lateral_drift_weight,
         lateral_drift_deadband=args.lateral_drift_deadband,
         lateral_drift_power=args.lateral_drift_power,
+        axial_slip_weight=args.axial_slip_weight,
+        axial_slip_rate_deadband=args.axial_slip_rate_deadband,
         brace_force_weight=args.brace_force_weight,
         brace_align_thresh=args.brace_align_thresh,
         brace_max_force=args.brace_max_force,

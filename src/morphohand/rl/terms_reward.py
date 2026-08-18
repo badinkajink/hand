@@ -550,6 +550,51 @@ def object_lateral_drift(env: "ManagerBasedRlEnv",
     return d.pow(float(power))
 
 
+def object_axial_slip(env: "ManagerBasedRlEnv",
+                      object_name: str = "cube",
+                      palm_body: str = "palm_pose",
+                      rate_deadband: float = 0.0,
+                      ) -> torch.Tensor:
+    """Penalty on the object sliding DOWN through the grip, per step, in the palm frame.
+
+    The defect this exists for (perp topology, r4, N=64): the shaft reaches vertical at cos
+    ~0.99 and is genuinely held -- and then its height decays monotonically ~12 mm across the
+    hold while the align-gated catch drives grip from 10 to 18 N without arresting it. At
+    ~step 370 the grip collapses and 100% of rollouts lose the shaft. It runs out of pad.
+
+    Nothing else measures this. `object_lateral_drift` and `object_xy_drift` are both xy, and
+    `object_lift_height` charges ~12 mm of height for what ends as a total loss -- three orders
+    off the terminal cost. So the slip is invisible in the reward table right up to the drop.
+
+    Why a RATE and not a displacement from a reference: palm-frame z is not comparable across
+    the episode. At spawn the object is on the floor and the palm is above it, so the pre-grasp
+    value is a large offset that has nothing to do with slipping, and any fixed reference pose
+    has to be captured at a "grip established" moment that is itself a step gate -- the exact
+    construct that failed twice on this topology (see grip_phase_align_thresh). A per-step
+    delta needs no reference and no phase: it is zero whenever the object is not moving through
+    the grip, and it integrates over the episode to the total slip.
+
+    ONE-SIDED on purpose. Only downward motion relative to the palm is charged; the policy
+    re-seating the shaft upward is the recovery we want, and penalising it symmetrically would
+    make freezing preferable to fixing. `rate_deadband` (m/step) ignores solver-level jitter.
+
+    Returns a POSITIVE magnitude, shape (num_envs,) -- wire it with a negative weight, as
+    `object_lateral_drift` is."""
+    rel = object_pose_rel_palm(env, object_name, palm_body)     # (B, 7)
+    z = rel[:, 2]
+    if not hasattr(env, "_morphohand_prev_palm_z"):
+        env._morphohand_prev_palm_z = z.detach().clone()
+    prev = env._morphohand_prev_palm_z
+    # A reset makes the previous value belong to a different episode; seeding prev to the
+    # current z there makes the first step's delta exactly zero rather than a spurious spike.
+    just_started = env.episode_length_buf <= 1
+    if just_started.any():
+        prev[just_started] = z[just_started]
+    drop = (prev - z).clamp(min=0.0)                            # only downward
+    prev.copy_(z.detach())
+    return (drop - float(rate_deadband)).clamp(min=0.0)
+
+
 # ----------------------------------------------------------------------
 # Contact-gated stability rewards
 # ----------------------------------------------------------------------
@@ -588,6 +633,21 @@ def object_orientation_drift_gated(env: "ManagerBasedRlEnv",
                                      sensor_name: str = "fingertip_cube_contact"
                                      ) -> torch.Tensor:
     return object_orientation_drift(env, object_name) * _contact_gate(env, sensor_name, contact_gate_min)
+
+
+def object_axial_slip_gated(env: "ManagerBasedRlEnv",
+                             object_name: str = "cube",
+                             palm_body: str = "palm_pose",
+                             rate_deadband: float = 0.0,
+                             contact_gate_min: float = 0.5,
+                             sensor_name: str = "fingertip_cube_contact"
+                             ) -> torch.Tensor:
+    # The gate matters more here than for the other stability terms: a DROPPED object is also
+    # moving down fast in the palm frame, and charging for that would pay the drop penalty
+    # twice while teaching nothing about the slip. Once the tips are off the object there is no
+    # grip left to slip through.
+    return (object_axial_slip(env, object_name, palm_body, rate_deadband)
+            * _contact_gate(env, sensor_name, contact_gate_min))
 
 
 def finger_drift_from_grip_gated(env: "ManagerBasedRlEnv",
