@@ -1019,3 +1019,60 @@ So the task splits cleanly:
 
 Artefacts: `docs/experiments/20260817-perp_r{4,5}_*.json`,
 `docs/rl/videos/20260817_perp_review/` (960x720 render, filmstrip, N=64 eval plot).
+
+## 2026-08-18 — the axial-slip penalty works, and it buys nothing: rotation and retention are one variable
+
+The slip identified above was charged directly. New reward term `object_axial_slip`: downward
+palm-frame motion of the object, per step, one-sided (re-seating upward is free) and
+contact-gated. A rate rather than a displacement from a reference pose, because palm-frame z is
+not comparable across an episode and any reference needs a "grip established" step gate, which
+is the construct that already failed twice here. Default weight 0, so prior runs are unchanged.
+
+Calibration first, in the palm frame under r4 (N=32): the shaft slides **44.8 ± 0.8 mm** down
+through the pinch over the hold, not the ~12 mm the world-frame plot suggests — the palm is
+moving too. The spread of 0.8 mm across 32 rollouts says this is a mechanism, not noise.
+
+The slip splits **23.8 mm before cos 0.7 (in ~44 steps)** and **20.4 mm after (over ~349
+steps)**. More than half of it *is* the rotation. That ruled out gating the penalty on
+alignment the way the grip catch is gated, and it predicted the failure mode at high weight.
+
+### Dose-response, N=64 x 900 steps
+
+| | r4 (w = 0) | r6 w = −1000 | r6 w = −3000 |
+|---|---|---|---|
+| align_rate | 100% | 100% | **0%** |
+| peak_cos | 0.995 ± 0.002 | 0.976 ± 0.013 | 0.453 |
+| t_align | 128 ± 97 | 329 ± 20 | — |
+| hold_steps (aligned AND held) | **255 ± 93** | 183 ± 59 | 0 |
+| drop_step | 389 ± 25 | **513 ± 60** | 505 |
+
+**The term does exactly what it was built to do.** At −3000 the object-z trace is flat for 400
+steps: the slip is gone. At −1000 retention improves 32% (drop 389 → 513, +2.5 s) and the
+rotation becomes far more consistent (t_align sd 97 → 20).
+
+**And it buys nothing net.** At −1000 the rotation takes 200 steps longer, so the window in
+which the shaft is both vertical and held is 72 steps *shorter* than r4's. At −3000 the shaft
+holds at cos 0.45 and never finishes rotating at all — the predicted failure, and the same one
+that killed revision 3: with slipping made expensive, the cheapest way to stop slipping is to
+stop rotating, and PPO takes it.
+
+### The finding
+
+> On this topology rotation and retention are not two objectives to be balanced. They are the
+> same degree of freedom. The shaft turns *because* it travels through the pinch, so any
+> penalty on that travel buys hold time by spending rotation, monotonically, and the exchange
+> rate is roughly neutral. The pad length is the budget, and the reorient spends it.
+
+This retires "tune the reward until it holds" as a route. Extending the hold needs a mechanism
+that returns pad rather than conserving it — a regrasp/finger-gait that re-seats the shaft
+upward between rotation increments, or a pad geometry that does not run out (longer pads, or a
+thumb that becomes load-bearing once vertical, which the thumb sweep measured at 7.4x axial
+capacity but only at a pinch offset with no swing). Both are outside the reward function.
+
+**For a bare-minimum hardware transfer, r4 remains the policy**: 100% of rollouts reach cos
+0.995 and stay vertical and held for 255 ± 93 steps (~5.1 s). r6 w=−1000 is the better choice
+if the demo needs the object retained longer than it needs to be vertical sooner.
+
+Artefacts: `docs/experiments/20260818-perp_r{4,6w1000}_900.json`,
+`docs/experiments/20260817-perp_r6_slip-{1000,3000}.json`, renders + filmstrips + N=64 eval
+plots in `docs/rl/videos/20260817_perp_review/`.
