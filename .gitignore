@@ -37,3 +37,4 @@ logs/*
 wandb/
 *.DONE
 *.pid
+docs/experiments/20260818-perp_review_page/perp_reorientation.html

@@ -1,0 +1,763 @@
+<title>Reorienting a screwdriver with an opposed-finger hand</title>
+
+<style>
+:root{
+  --paper:#F6F7F9; --panel:#FFFFFF; --ink:#14181C; --ink-2:#39424C; --muted:#59636E;
+  --rule:#DDE2E8; --rule-2:#EDF0F3;
+  --accent:#2C6B9E; --accent-soft:#E7EFF6;
+  --good:#2E7566; --good-soft:#E4F0EC;
+  --tan:#B5854A; --tan-soft:#F6EEE1;
+  --shadow:0 1px 2px rgba(20,24,28,.06),0 8px 24px rgba(20,24,28,.05);
+  --serif:Georgia,"Iowan Old Style",Charter,"Times New Roman",serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --paper:#0F1317; --panel:#161B21; --ink:#E6EBF0; --ink-2:#B4BFCA; --muted:#8593A0;
+    --rule:#28313A; --rule-2:#1E252C;
+    --accent:#6FA8D6; --accent-soft:#16242F;
+    --good:#66B7A2; --good-soft:#12241F;
+    --tan:#D2A468; --tan-soft:#241C11;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0F1317; --panel:#161B21; --ink:#E6EBF0; --ink-2:#B4BFCA; --muted:#8593A0;
+  --rule:#28313A; --rule-2:#1E252C;
+  --accent:#6FA8D6; --accent-soft:#16242F;
+  --good:#66B7A2; --good-soft:#12241F;
+  --tan:#D2A468; --tan-soft:#241C11;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
+}
+:root[data-theme="light"]{
+  --paper:#F6F7F9; --panel:#FFFFFF; --ink:#14181C; --ink-2:#39424C; --muted:#59636E;
+  --rule:#DDE2E8; --rule-2:#EDF0F3;
+  --accent:#2C6B9E; --accent-soft:#E7EFF6;
+  --good:#2E7566; --good-soft:#E4F0EC;
+  --tan:#B5854A; --tan-soft:#F6EEE1;
+  --shadow:0 1px 2px rgba(20,24,28,.06),0 8px 24px rgba(20,24,28,.05);
+}
+
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);
+  font-size:16.5px;line-height:1.65;-webkit-font-smoothing:antialiased;}
+
+/* ---- measure system: prose column, figures break out ---- */
+.wrap{max-width:1140px;margin:0 auto;padding:0 28px 96px;}
+.col{max-width:660px;}
+.col.rail{margin-left:0;}
+figure{margin:0;}
+
+/* ---- masthead ---- */
+.mast{border-bottom:1px solid var(--rule);padding:64px 0 34px;margin-bottom:52px;}
+.eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--muted);margin:0 0 22px;}
+h1{font-family:var(--serif);font-weight:400;font-size:clamp(32px,5.2vw,50px);line-height:1.12;
+  letter-spacing:-.015em;margin:0 0 20px;text-wrap:balance;max-width:16ch;}
+.deck{font-size:19px;line-height:1.6;color:var(--ink-2);max-width:62ch;margin:0;}
+.deck strong{color:var(--ink);font-weight:600;}
+.meta{display:flex;flex-wrap:wrap;gap:0 30px;margin-top:30px;
+  font-family:var(--mono);font-size:12px;color:var(--muted);}
+.meta b{color:var(--ink-2);font-weight:500;}
+
+/* ---- section structure ---- */
+.part{margin:78px 0 0;padding-top:30px;border-top:2px solid var(--ink);}
+.part-no{font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--accent);margin:0 0 10px;}
+.part h2{font-family:var(--serif);font-weight:400;font-size:clamp(25px,3.4vw,33px);
+  line-height:1.2;margin:0 0 12px;letter-spacing:-.01em;max-width:22ch;text-wrap:balance;}
+.part-lede{color:var(--ink-2);max-width:62ch;margin:0;font-size:17px;}
+
+section{margin-top:52px;}
+h3{font-family:var(--serif);font-weight:400;font-size:22px;line-height:1.3;
+  margin:0 0 6px;letter-spacing:-.005em;max-width:28ch;}
+h3 .h3no{font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.08em;
+  margin-right:10px;vertical-align:2px;}
+h4{font-family:var(--sans);font-weight:650;font-size:14.5px;margin:30px 0 4px;
+  letter-spacing:.005em;color:var(--ink);}
+p{margin:14px 0;max-width:66ch;}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:2px;}
+a:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:2px;}
+strong{font-weight:640;}
+code{font-family:var(--mono);font-size:.875em;background:var(--rule-2);
+  padding:.12em .38em;border-radius:3px;}
+
+/* ---- pull quote / finding ---- */
+.finding{margin:34px 0;padding:22px 26px;background:var(--panel);
+  border-left:3px solid var(--accent);box-shadow:var(--shadow);border-radius:0 4px 4px 0;max-width:72ch;}
+.finding p{margin:0;font-family:var(--serif);font-size:19px;line-height:1.5;color:var(--ink);max-width:none;}
+.finding p + p{margin-top:12px;}
+
+/* ---- status chips ---- */
+.chip{display:inline-block;font-family:var(--mono);font-size:10.5px;letter-spacing:.11em;
+  text-transform:uppercase;padding:3px 8px;border-radius:3px;vertical-align:2px;font-weight:600;}
+.chip.ok{background:var(--good-soft);color:var(--good);}
+.chip.void{background:var(--tan-soft);color:var(--tan);}
+.chip.open{background:var(--accent-soft);color:var(--accent);}
+
+/* ---- tables ---- */
+.tbl{margin:26px 0;overflow-x:auto;}
+table{border-collapse:collapse;font-size:14px;width:100%;min-width:520px;
+  font-variant-numeric:tabular-nums;}
+caption{text-align:left;font-family:var(--mono);font-size:11.5px;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--muted);padding-bottom:10px;}
+th,td{text-align:left;padding:8px 16px 8px 0;border-bottom:1px solid var(--rule-2);}
+thead th{font-family:var(--mono);font-size:11px;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--muted);font-weight:500;border-bottom:1px solid var(--rule);}
+tbody tr:last-child td{border-bottom:1px solid var(--rule);}
+td.num,th.num{text-align:right;font-family:var(--mono);font-size:13px;padding-right:20px;}
+td.best{color:var(--good);font-weight:600;}
+td.bad{color:var(--tan);font-weight:600;}
+.rowlab{font-weight:600;}
+
+/* ---- figures ---- */
+.fig{margin:34px 0;}
+.fig img,.fig video{width:100%;display:block;border-radius:4px;border:1px solid var(--rule);
+  background:var(--panel);}
+.fig video{cursor:pointer;}
+figcaption{font-size:13.5px;color:var(--muted);margin-top:10px;max-width:70ch;line-height:1.55;}
+figcaption b{color:var(--ink-2);font-weight:600;}
+.fig-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:26px;margin:34px 0;}
+.fig-row .fig{margin:0;}
+
+/* ---- diagram ---- */
+.diagram{background:var(--panel);border:1px solid var(--rule);border-radius:4px;
+  padding:26px 22px 18px;box-shadow:var(--shadow);}
+.diagram svg{width:100%;height:auto;display:block;}
+
+/* ---- details / appendix collapsibles ---- */
+details{border-top:1px solid var(--rule-2);padding:2px 0;max-width:72ch;}
+details[open]{padding-bottom:12px;}
+summary{cursor:pointer;padding:13px 0;font-weight:600;font-size:15px;list-style:none;
+  display:flex;gap:12px;align-items:baseline;}
+summary::-webkit-details-marker{display:none;}
+summary::before{content:"+";font-family:var(--mono);color:var(--accent);font-weight:400;font-size:15px;}
+details[open] summary::before{content:"\2212";}
+details > *:not(summary){margin-left:24px;}
+
+/* ---- timeline ---- */
+.tl{list-style:none;padding:0;margin:26px 0;max-width:70ch;}
+.tl li{display:grid;grid-template-columns:78px 1fr;gap:20px;padding:14px 0;
+  border-bottom:1px solid var(--rule-2);align-items:baseline;}
+.tl .tag{font-family:var(--mono);font-size:12px;color:var(--accent);font-weight:600;letter-spacing:.04em;}
+.tl .what{font-size:15px;line-height:1.55;color:var(--ink-2);}
+.tl .what b{color:var(--ink);font-weight:640;}
+
+footer{margin-top:80px;padding-top:26px;border-top:1px solid var(--rule);
+  font-family:var(--mono);font-size:12px;color:var(--muted);line-height:1.9;}
+footer a{color:var(--muted);}
+
+@media (max-width:640px){
+  .wrap{padding:0 20px 64px;}
+  .tl li{grid-template-columns:1fr;gap:4px;}
+  .meta{gap:0 18px;}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
+</style>
+
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow">MorphoHand &middot; in-hand reorientation</p>
+  <h1>Turning a screwdriver upright with an opposed-finger hand</h1>
+  <p class="deck">A three-finger hand with the index and middle rotated to face each other picks a
+  screwdriver off the floor and stands it vertical, in 100% of 64 rollouts, and holds it there for
+  about five seconds. The reorientation <strong>does not depend on contact compliance</strong>,
+  which is the property that makes it a sim-to-real candidate where the program's earlier
+  rolling-based reorientation was not.</p>
+  <div class="meta">
+    <span><b>Policy</b> r4 &middot; single-stage</span>
+    <span><b>Evidence</b> N=64 rollouts, 900 steps</span>
+    <span><b>Updated</b> 18 Aug 2026</span>
+  </div>
+</header>
+
+<!-- ================= PART ONE ================= -->
+<div class="part">
+  <p class="part-no">Part one</p>
+  <h2>The method that works</h2>
+  <p class="part-lede">The mechanism, the policy that exploits it, and the measurements that say
+  it should survive contact with hardware.</p>
+</div>
+
+<section>
+  <h3><span class="h3no">1.1</span>The mechanism</h3>
+
+  <p>Two fingertips pressed on opposite sides of a cylinder sit on its axis of rotation. They can
+  carry the shaft but exert almost no torque about that axis, so the pinch behaves as a low-friction
+  pin joint. On a conventional hand that is a defect. Here it is the whole design.</p>
+
+  <p>The pair grips the shaft about 35&nbsp;mm from its centre of mass. Gravity then supplies a
+  moment about the pinch, the long side swings down, and the shaft ends hanging vertically. The
+  object spawns along world&nbsp;X, so its body axis starts horizontal and "long end down" is
+  exactly the target orientation. Nothing about the rotation itself has to be learned.</p>
+
+  <figure class="fig">
+    <div class="diagram">
+      <svg viewBox="0 0 720 250" role="img"
+           aria-label="Side view: two opposed fingertips pinch a horizontal shaft 35 mm from its centre of mass; gravity acting at the centre of mass produces a moment about the pinch that rotates the shaft to vertical.">
+        <defs>
+          <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+          </marker>
+        </defs>
+        <g font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="11">
+
+          <!-- ---------- panel A : pinched off-COM ---------- -->
+          <g transform="translate(0,0)">
+            <text x="16" y="22" fill="var(--muted)" letter-spacing="1.4">A &nbsp; AT THE PINCH</text>
+
+            <!-- shaft -->
+            <rect x="52" y="96" width="250" height="26" rx="13"
+                  fill="var(--rule-2)" stroke="var(--muted)" stroke-width="1.2"/>
+            <!-- handle end (heavier, to the left) -->
+            <rect x="52" y="90" width="70" height="38" rx="14"
+                  fill="var(--rule)" stroke="var(--muted)" stroke-width="1.2"/>
+
+            <!-- opposed pads -->
+            <rect x="228" y="66" width="15" height="30" rx="5" fill="var(--accent)"/>
+            <rect x="228" y="122" width="15" height="30" rx="5" fill="var(--accent)"/>
+            <text x="252" y="76" fill="var(--accent)">index</text>
+            <text x="252" y="148" fill="var(--accent)">middle</text>
+
+            <!-- COM marker -->
+            <circle cx="150" cy="109" r="4.5" fill="none" stroke="var(--ink)" stroke-width="1.4"/>
+            <circle cx="150" cy="109" r="1.6" fill="var(--ink)"/>
+            <text x="132" y="88" fill="var(--ink-2)">COM</text>
+
+            <!-- offset measure -->
+            <g stroke="var(--muted)" stroke-width="1">
+              <line x1="150" y1="168" x2="150" y2="128"/>
+              <line x1="235" y1="168" x2="235" y2="158"/>
+              <line x1="150" y1="168" x2="235" y2="168" marker-end="url(#ah)"/>
+            </g>
+            <text x="158" y="184" fill="var(--muted)">35 mm offset</text>
+
+            <!-- gravity -->
+            <g stroke="var(--ink)" stroke-width="1.4" color="var(--ink)">
+              <line x1="150" y1="112" x2="150" y2="150" marker-end="url(#ah)"/>
+            </g>
+            <text x="112" y="150" fill="var(--ink)">mg</text>
+
+            <!-- rotation arc -->
+            <path d="M262,96 A46,46 0 0 1 288,140" fill="none" stroke="var(--good)"
+                  stroke-width="1.8" marker-end="url(#ah)" color="var(--good)"/>
+          </g>
+
+          <!-- ---------- panel B : hanging vertical ---------- -->
+          <g transform="translate(400,0)">
+            <text x="16" y="22" fill="var(--muted)" letter-spacing="1.4">B &nbsp; AFTER THE SWING</text>
+
+            <!-- pads -->
+            <rect x="120" y="52" width="30" height="15" rx="5" fill="var(--accent)"/>
+            <rect x="176" y="52" width="30" height="15" rx="5" fill="var(--accent)"/>
+
+            <!-- shaft vertical -->
+            <rect x="150" y="60" width="26" height="120" rx="13"
+                  fill="var(--rule-2)" stroke="var(--muted)" stroke-width="1.2"/>
+            <rect x="144" y="150" width="38" height="60" rx="14"
+                  fill="var(--rule)" stroke="var(--muted)" stroke-width="1.2"/>
+
+            <circle cx="163" cy="140" r="4.5" fill="none" stroke="var(--ink)" stroke-width="1.4"/>
+            <circle cx="163" cy="140" r="1.6" fill="var(--ink)"/>
+
+            <text x="216" y="66" fill="var(--good)">cos = +0.995</text>
+            <text x="216" y="84" fill="var(--muted)">held, 100% of 64</text>
+
+            <!-- floor -->
+            <line x1="96" y1="228" x2="272" y2="228" stroke="var(--rule)" stroke-width="2"/>
+            <text x="96" y="244" fill="var(--muted)">floor &mdash; never touched</text>
+          </g>
+        </g>
+      </svg>
+    </div>
+    <figcaption><b>The reorientation is a gravity swing about an off-centre pinch.</b> Because the two
+    contacts lie on the rotation axis they resist the pitch only through friction, so the shaft turns
+    as soon as it leaves the ground. The policy's job is not to rotate the shaft but to stay inside
+    the grip-force window while it happens.</figcaption>
+  </figure>
+
+  <p>The window is narrow, and it is the one variable that governs the outcome. Measured open-loop
+  by varying clamp depth alone, with the pinch symmetric: below about 3&nbsp;N the shaft drops;
+  between 4 and 9&nbsp;N it swings to vertical; above about 10&nbsp;N the friction torque about the
+  pinch axis exceeds gravity's moment, the pin joint becomes a rigid clamp, and the rotation is
+  choked off.</p>
+
+  <div class="tbl">
+    <table>
+      <caption>Open-loop swing against per-finger clamp force</caption>
+      <thead><tr>
+        <th>Per-finger force (N)</th>
+        <th class="num">1.2</th><th class="num">3.8</th><th class="num">6.0</th>
+        <th class="num">8.3</th><th class="num">9.9</th><th class="num">11.4</th>
+        <th class="num">14.3</th><th class="num">21.1</th>
+      </tr></thead>
+      <tbody><tr>
+        <td class="rowlab">Final alignment cos</td>
+        <td class="num bad">drop</td><td class="num best">0.965</td><td class="num best">0.977</td>
+        <td class="num best">0.957</td><td class="num">0.656</td><td class="num">0.401</td>
+        <td class="num">0.292</td><td class="num bad">0.298</td>
+      </tr></tbody>
+    </table>
+  </div>
+
+  <p>The last column matters for a practical reason. A grasp synthesised by CEM lands at roughly
+  21&nbsp;N per finger, because force closure rewards clamping hard and breaking symmetry to wedge
+  the object. That objective is directly opposed to this mechanism. Seeding the policy from an
+  authored symmetric keyframe at 8&nbsp;N instead of the CEM grasp moves the starting point from
+  outside the window to inside it, and is worth more than any reward weight.</p>
+</section>
+
+<section>
+  <h3><span class="h3no">1.2</span>One policy, not two</h3>
+
+  <p>The program's standing architecture splits lift and reorientation into two policies, A and B,
+  with a handoff. On this topology that split is what breaks the task, and the evidence is a control
+  rather than an argument: two independently trained B policies, one warm-started and one from
+  scratch, both eject the shaft at the switch step, while the same A driving the entire rollout with
+  no switch holds it for the full horizon with no lateral drift.</p>
+
+  <p>The reason is the narrow window above. The grip spans hold-without-rotation to dropped over
+  about 9&nbsp;mm of pad set-point, and it is held by a two-point pinch with no pitch resistance, so
+  any discontinuity in finger targets at the switch lands outside the window. Lift and reorientation
+  are the same motion here, so they are trained as one policy and the seam simply does not exist.</p>
+
+  <h4>What the reward had to get right</h4>
+  <p>Four things, none of which is a weight on the reorientation term:</p>
+
+  <ul>
+    <li><strong>Stop paying to hold the object still.</strong> Two base terms rewarded matching the
+    spawn orientation and penalised drifting from it, together outweighing the reorientation reward
+    by roughly fifteen to one. Both are zeroed.</li>
+    <li><strong>Start the signed reward before the decision.</strong> The pole the shaft turns
+    towards is committed between steps 20 and 50, and the only signed term was gated to step 65. It
+    was a spectator to the one decision that mattered.</li>
+    <li><strong>Keep a gradient on the wrong half of the sphere.</strong> The alignment term
+    <code>exp(-&alpha;(1-cos)&sup2;)</code> at &alpha;=4 is around 1e-7 for any negative cos, so a
+    full-magnitude rotation to the wrong pole scored the same as never moving. &alpha;=2 keeps the
+    two distinguishable.</li>
+    <li><strong>Make the grip a schedule the policy learns.</strong> The swing needs a loose pinch;
+    the shaft then reaches vertical by sliding out of one, so the grip must firm up afterwards. One
+    always-on weight cannot ask for both.</li>
+  </ul>
+
+  <p>That last gate is worth isolating, because getting it wrong twice is what produced the
+  method. It was first written as a step count, at 150 of a manoeuvre that finished at 484, and then
+  at 450, by which point episodes had shortened to 165 and the gate never fired at all. With no
+  reachable way to hold on, the only remaining way to stop losing the shaft was to stop rotating,
+  and PPO took it.</p>
+
+  <div class="finding">
+    <p>Phase gates belong on task progress, not on the clock. A step count has to be guessed from
+    the previous run's trajectory, and it is invalidated by the very learning it exists to shape.</p>
+  </div>
+
+  <p>The working version fires the grip term when alignment passes cos&nbsp;0.7, however long that
+  took. It cannot drift, because it is defined by the thing it is waiting for.</p>
+</section>
+
+<section>
+  <h3><span class="h3no">1.3</span>What it does</h3>
+
+  <p>Deterministic policy, 64 parallel rollouts on the current scene. The shaft is picked off the
+  floor, rotated to vertical, and held there by the fingers rather than resting on anything.</p>
+
+  <figure class="fig">
+    <video controls muted loop playsinline preload="metadata" src="{{ASSET:r4_video}}"></video>
+    <figcaption><b>Policy r4, 600 steps at 50&nbsp;Hz.</b> The lift completes by about step 40 and the
+    shaft is vertical well before the horizon. Rendered at 960&times;720 from the run's own
+    configuration.</figcaption>
+  </figure>
+
+  <figure class="fig">
+    <img src="{{ASSET:r4_strip}}" alt="Eight phase-aligned frames from the r4 rollout, showing the shaft flat on the floor, lifted, and hanging vertically between the two opposed fingers.">
+    <figcaption>Phase-aligned frames from the same rollout, labelled with the reward-phase boundaries.
+    The thumb is visible doing nothing throughout, which is correct on this topology.</figcaption>
+  </figure>
+
+  <p>The distribution is what the claim rests on. Single rollouts of this stack are not
+  reproducible &mdash; three deterministic rollouts of one checkpoint, with sampling off and spawn
+  jitter at zero, ended three different ways, because parallel contact solves do not reduce in a
+  fixed order on GPU. Every number below is over 64 rollouts.</p>
+
+  <div class="tbl">
+    <table>
+      <caption>Policy r4, N=64 &times; 900 steps, current scene</caption>
+      <thead><tr><th>Measure</th><th class="num">Value</th><th>Reading</th></tr></thead>
+      <tbody>
+        <tr><td class="rowlab">Alignment rate</td><td class="num best">100%</td>
+            <td>every rollout reaches cos &ge; 0.9</td></tr>
+        <tr><td class="rowlab">Peak cos</td><td class="num best">0.995 &plusmn; 0.002</td>
+            <td>effectively vertical</td></tr>
+        <tr><td class="rowlab">Steps to alignment</td><td class="num">128 &plusmn; 97</td>
+            <td>about 2.6 s</td></tr>
+        <tr><td class="rowlab">Vertical <em>and</em> held</td><td class="num best">255 &plusmn; 93</td>
+            <td><b>about 5.1 s</b> &mdash; the demo window</td></tr>
+        <tr><td class="rowlab">Object lost at</td><td class="num bad">389 &plusmn; 25</td>
+            <td>the open problem, see 1.5</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>"Held" is asked of the physics, never inferred from height or angle. It requires fingertip
+  force above a threshold and the object clear of the floor. That distinction is load-bearing here:
+  a 100&nbsp;mm shaft standing upright on the floor reports a perfect alignment of 1.000 at a
+  plausible height, and is a total failure.</p>
+</section>
+
+<section>
+  <h3><span class="h3no">1.4</span>Why it should transfer</h3>
+
+  <p>Two properties were measured specifically because they are what usually breaks an in-hand
+  manipulation policy on hardware.</p>
+
+  <h4>It does not depend on contact compliance</h4>
+  <p>The same checkpoint, no retraining, evaluated across the contact-stiffness range:</p>
+
+  <div class="tbl">
+    <table>
+      <caption>Policy r4 zero-shot across geom solimp, N=64</caption>
+      <thead><tr>
+        <th>solimp d<sub>max</sub></th>
+        <th class="num">0.995 (trained)</th><th class="num">0.997</th><th class="num">0.999 (hard)</th>
+      </tr></thead>
+      <tbody>
+        <tr><td class="rowlab">Alignment rate</td>
+            <td class="num best">100%</td><td class="num best">100%</td><td class="num best">100%</td></tr>
+        <tr><td class="rowlab">Peak cos</td>
+            <td class="num">0.994</td><td class="num">0.996</td><td class="num">0.996</td></tr>
+        <tr><td class="rowlab">Vertical and held (steps)</td>
+            <td class="num">257 &plusmn; 83</td><td class="num">271 &plusmn; 97</td><td class="num">296 &plusmn; 93</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>Nothing degrades; the stiff end is marginally better. This is the opposite of the same
+  program's baseline hand, whose reorientation collapses under identical hardening. The mechanism
+  accounts for the difference. The baseline reorients by <em>rolling</em> the cylinder across
+  deforming pads, which spends compliance directly; the opposed pair <em>pivots</em> about two
+  contacts and does not. A contact-stiffness curriculum is a prerequisite for the baseline hand and
+  is not one here.</p>
+
+  <h4>It fits inside the prototype's actuators</h4>
+  <p>The MJCF joint ranges are wider than the hardware in every degree of freedom, which says
+  nothing on its own, since the policy may never approach them. Asking the rollout instead: every
+  joint travels less than the prototype allows, and no joint's 99th-percentile rate exceeds
+  70&nbsp;&deg;/s. The opposed pair works in a notably small envelope &mdash; index MCP 54&ndash;62&deg;,
+  PIP 30&ndash;41&deg;, yaw inside &plusmn;13&deg;.</p>
+
+  <p>One joint flags: <code>thumb_pip</code> operates over &minus;98.5&deg; to &minus;85.6&deg;
+  against a hardware range of 0&ndash;100&deg;. That is 13&deg; of travel inside a 100&deg; servo,
+  sitting at a different zero because the thumb is mounted mirrored. It needs an agreed offset, not
+  a larger actuator.</p>
+
+  <div class="finding">
+    <p>The transfer risk is concentrated in mounting, not in control or contact physics. The 90&deg;
+    opposition is a fixed mount rotation, not the yaw joint, and the yaw servo spans
+    &plusmn;45&deg; &mdash; so the pair cannot be brought into opposition by any command. The
+    fingers have to be physically remounted rotated 90&deg; on their carriages.</p>
+  </div>
+
+  <p>A second question is open and cheap to answer: the mounts sit at |y|&nbsp;=&nbsp;48&nbsp;mm
+  against a specified base-Y travel of &plusmn;40&nbsp;mm, and the thumb at x&nbsp;=&nbsp;&minus;65
+  against &plusmn;60. Whether that is a real conflict depends on where each gantry's zero sits
+  relative to the palm origin, which cannot be checked from the simulation side.</p>
+</section>
+
+<section>
+  <h3><span class="h3no">1.5</span>What is not solved</h3>
+
+  <p>Every rollout eventually loses the shaft, at step 389&nbsp;&plusmn;&nbsp;25. The cause is a slow
+  slide of the object down through the pinch. Measured in the palm frame, the shaft travels
+  <strong>44.8&nbsp;&plusmn;&nbsp;0.8&nbsp;mm</strong> through the grip over the hold; the spread of
+  under a millimetre across 64 rollouts identifies it as a mechanism rather than noise. The world
+  frame understates it as roughly 12&nbsp;mm, because the palm is moving as well.</p>
+
+  <figure class="fig">
+    <img src="{{ASSET:r4_eval}}" alt="Four stacked panels over 600 steps: alignment cos rising to 0.99 then collapsing near step 400; object height decaying gradually then falling; total grip force climbing to 18 N before collapsing; fraction of rollouts still holding falling from 1.0 to 0 between steps 340 and 430.">
+    <figcaption><b>The failure, in one figure.</b> Alignment holds near 0.99 while object height decays
+    steadily. The grip term fires and drives force back up to 18&nbsp;N around step 300, and the slide
+    continues regardless. By step 400 the shaft has run out of pad.</figcaption>
+  </figure>
+
+  <p>The obvious response is to charge for the slide, and it was implemented and swept: a per-step,
+  one-sided, contact-gated penalty on downward motion of the object in the palm frame. It behaves
+  exactly as specified. At the high weight the object-height trace goes flat for 400 steps &mdash;
+  the slide is gone. It still fails, and the way it fails is the useful part.</p>
+
+  <div class="tbl">
+    <table>
+      <caption>Axial-slip penalty, dose-response, N=64 &times; 900 steps</caption>
+      <thead><tr>
+        <th>Penalty weight</th><th class="num">0 (r4)</th>
+        <th class="num">&minus;1000</th><th class="num">&minus;3000</th>
+      </tr></thead>
+      <tbody>
+        <tr><td class="rowlab">Alignment rate</td>
+            <td class="num best">100%</td><td class="num best">100%</td><td class="num bad">0%</td></tr>
+        <tr><td class="rowlab">Peak cos</td>
+            <td class="num">0.995</td><td class="num">0.976</td><td class="num bad">0.453</td></tr>
+        <tr><td class="rowlab">Steps to alignment</td>
+            <td class="num best">128 &plusmn; 97</td><td class="num">329 &plusmn; 20</td><td class="num">&mdash;</td></tr>
+        <tr><td class="rowlab">Vertical and held</td>
+            <td class="num best">255 &plusmn; 93</td><td class="num">183 &plusmn; 59</td><td class="num">0</td></tr>
+        <tr><td class="rowlab">Object lost at</td>
+            <td class="num">389 &plusmn; 25</td><td class="num best">513 &plusmn; 60</td><td class="num">505</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>At &minus;1000 the object is retained 32% longer and the rotation becomes far more consistent
+  (spread in time-to-alignment falls from 97 steps to 20), but the rotation takes 200 steps longer,
+  so the window in which the shaft is both vertical and held is <em>shorter</em> than r4's. At
+  &minus;3000 the shaft is held rigidly at cos&nbsp;0.45 and never finishes turning.</p>
+
+  <div class="fig-row">
+    <figure class="fig">
+      <img src="{{ASSET:r6a_eval}}" alt="Four panels for the -1000 weight: alignment rising slowly to 0.97 by step 350, object height decaying gently, grip force steady near 14 N, holding fraction 1.0 until step 400.">
+      <figcaption>Weight &minus;1000. Height decays gently and retention extends, at the cost of a
+      much slower rotation.</figcaption>
+    </figure>
+    <figure class="fig">
+      <img src="{{ASSET:r6b_eval}}" alt="Four panels for the -3000 weight: alignment plateauing at 0.45 and never reaching the threshold, object height perfectly flat, grip force decaying from 30 N to 5 N.">
+      <figcaption>Weight &minus;3000. The height trace is flat &mdash; the slide is eliminated &mdash;
+      and the shaft never finishes rotating.</figcaption>
+    </figure>
+  </div>
+
+  <p>The reason both outcomes are the same outcome is in the calibration. The slide splits into
+  23.8&nbsp;mm before alignment reaches cos&nbsp;0.7, in only about 44 steps, and 20.4&nbsp;mm after,
+  over about 349 steps. More than half of the travel <em>is</em> the rotation.</p>
+
+  <div class="finding">
+    <p>Rotation and retention are not two objectives to be balanced. They are the same degree of
+    freedom: the shaft turns because it travels through the pinch.</p>
+    <p>Any penalty on that travel buys hold time by spending rotation, monotonically, at roughly a
+    neutral exchange rate. The pad length is a budget, and the reorientation spends it.</p>
+  </div>
+
+  <p>This retires reward tuning as a route to a longer hold. Extending it needs a mechanism that
+  <em>returns</em> pad rather than conserving it &mdash; a regrasp or finger gait that re-seats the
+  shaft upward between rotation increments, or a geometry whose budget is larger. Both sit outside
+  the reward function.</p>
+
+  <p>For a minimum hardware demonstration r4 remains the policy, with about five seconds of held
+  vertical. The &minus;1000 variant is the better choice only if a demonstration needs the object
+  retained longer more than it needs it upright sooner.</p>
+</section>
+
+<!-- ================= PART TWO ================= -->
+<div class="part">
+  <p class="part-no">Part two &middot; appendix</p>
+  <h2>Where the problem, the method and the alternatives came from</h2>
+  <p class="part-lede">Background for the choices above: what the earlier architecture was, how each
+  element of the method was forced by a specific failure, and how the alternatives measure against
+  it.</p>
+</div>
+
+<section>
+  <h3><span class="h3no">A</span>The problem this replaced</h3>
+
+  <p>The task throughout has been the same: pick up a screwdriver lying flat and bring it to
+  vertical using the fingers alone, with no wrist and no external support. The earlier work used a
+  conventional three-finger layout on a co-designed palm, split into a lifting policy and a
+  reorienting policy. It produced a working pipeline and two problems that resisted a long sequence
+  of fixes.</p>
+
+  <p><strong>The handoff seam.</strong> A reorienting policy trained against a teleported initial
+  state is out of distribution at the moment the lifting policy actually hands over, and drops the
+  object. This was eventually closed for the baseline hand by driving the real lifting policy live
+  during the reorienter's training, with the pre-handoff steps masked out of the update. It took
+  a large number of attempts, and it is the single most expensive item in the program's history.</p>
+
+  <p><strong>Compliance dependence.</strong> The baseline reorientation works by rolling the
+  cylinder between fingertips. Hardening contact towards something more physically realistic causes
+  it to fail while the grasp and lift survive a retrain: the alignment reward falls from 48 to 13,
+  and the policy holds the object without turning it. Evaluating fixed policies across a stiffness
+  range showed no policy was robust and the response was not even monotonic. Domain randomisation
+  over compliance was the recommended next step, and was not resolved.</p>
+
+  <p>The opposed-finger topology was introduced as an exploratory change and removes both problems
+  rather than solving them. There is no seam because there are not two policies, and there is no
+  compliance dependence because the reorientation is a pivot rather than a roll.</p>
+</section>
+
+<section>
+  <h3><span class="h3no">B</span>How the method was arrived at</h3>
+
+  <p>Each element of Part&nbsp;1 was forced by a specific measured failure. In order:</p>
+
+  <ol class="tl">
+    <li><span class="tag">A only</span><span class="what">The lifting recipe's orientation-slip
+    termination fires on the gravity pitch, which is the task. The reliable way to avoid rotating is
+    not to lift at all, and PPO found exactly that; a watchdog on object height caught it at
+    iteration 44. Aggregate reward never showed it. <b>Relaxing the termination was necessary and
+    nowhere near sufficient.</b></span></li>
+
+    <li><span class="tag">A &rarr; B</span><span class="what">Two independently trained reorienters,
+    one warm-started and one from scratch, both eject the shaft at the switch. A control with the
+    lifting policy driving the whole rollout passes every check. <b>The seam is the cause</b>, which
+    makes the single-stage design a measured result rather than a preference.</span></li>
+
+    <li><span class="tag">Single</span><span class="what">First single-stage attempt still clamps,
+    peak cos 0.015. The per-term table shows two base rewards paying to hold the spawn orientation,
+    outweighing the reorientation term about fifteen to one. Both zeroed.</span></li>
+
+    <li><span class="tag">Wrong pole</span><span class="what">Next attempt reads as "still will not
+    rotate", alignment flat near 0.03. <b>That reading was wrong.</b> It rotates at full magnitude to
+    the opposite pole &mdash; held cos &minus;0.449, 28 of 32 rollouts negative. The alignment term
+    was flat across the entire negative half of the sphere, so a wrong-way rotation and no rotation
+    scored the same. Found by rendering the policy, not by reading the table.</span></li>
+
+    <li><span class="tag">Release</span><span class="what">The scripted probe's headline result
+    &mdash; vertical and airborne &mdash; turns out to be a short-horizon artifact. Run 800 steps
+    longer, grip force and alignment are anti-correlated to zero: the shaft reaches vertical
+    <em>by sliding out of the pinch</em> and ends standing on the floor, reporting a perfect 1.000.
+    Two verdict functions were corrected to ask the physics instead.</span></li>
+
+    <li><span class="tag">r2</span><span class="what">First trained policy that reorients
+    <em>without</em> releasing: alignment climbs monotonically to +0.947 with grip maintained at
+    10&ndash;27&nbsp;N. It walks the shaft between the pads rather than letting it go, and takes
+    about four times as long as the free swing. That cost is the price of holding on.</span></li>
+
+    <li><span class="tag">r3</span><span class="what">Longer horizon with the grip gate moved to step
+    450. Peaks at iteration 50 and degrades monotonically to a divergence at 188 as episodes shorten
+    below the gate. <b>Both step-gate attempts failed, in opposite directions</b>, which is the
+    argument for gating on task progress.</span></li>
+
+    <li><span class="tag">r4</span><span class="what">Alignment-gated grip. Improves monotonically
+    end to end and is the policy in Part&nbsp;1.</span></li>
+  </ol>
+
+  <p>Two infrastructure faults in the same period are worth recording because both silently produce
+  plausible numbers. Exploration noise at the framework default diverges this scene within a few
+  steps, and one environment in 512 going non-finite aborts an entire run. Separately, requiring all
+  three fingertips in contact is unsatisfiable on this hand &mdash; the thumb cannot reach the shaft
+  at any pinch offset that still permits the swing &mdash; so every episode terminated three steps
+  after the lift, with two reward rows sitting in the table looking active while being structurally
+  incapable of taking a non-zero value. Relaxing the requirement to two contacts moved mean episode
+  length from 62 to 149.</p>
+</section>
+
+<section>
+  <h3><span class="h3no">C</span>Comparison with the alternatives</h3>
+
+  <div class="tbl">
+    <table>
+      <caption>Approaches to the same task</caption>
+      <thead><tr>
+        <th>Approach</th><th>Reorientation</th><th>Holds it</th>
+        <th>Compliance-robust</th><th>Status</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td class="rowlab">Baseline hand, two-stage<br><span style="color:var(--muted);font-size:13px">roll between fingertips</span></td>
+          <td>yes, after a live-reset training scheme</td>
+          <td>yes</td>
+          <td class="bad">no &mdash; fails under hardening</td>
+          <td><span class="chip open">superseded</span></td>
+        </tr>
+        <tr>
+          <td class="rowlab">Opposed pair, scripted<br><span style="color:var(--muted);font-size:13px">open-loop gravity swing</span></td>
+          <td>yes, cos 0.98</td>
+          <td class="bad">no &mdash; releases onto the floor</td>
+          <td>not tested</td>
+          <td><span class="chip void">artifact</span></td>
+        </tr>
+        <tr>
+          <td class="rowlab">Opposed pair, two-stage<br><span style="color:var(--muted);font-size:13px">lift then reorient</span></td>
+          <td class="bad">no &mdash; ejected at the seam</td>
+          <td class="bad">no</td>
+          <td>n/a</td>
+          <td><span class="chip void">negative</span></td>
+        </tr>
+        <tr>
+          <td class="rowlab"><strong>Opposed pair, single-stage (r4)</strong><br><span style="color:var(--muted);font-size:13px">pivot about the pinch</span></td>
+          <td class="best">yes &mdash; 100%, cos 0.995</td>
+          <td>5.1 s, then slides out</td>
+          <td class="best">yes &mdash; zero-shot to stiff</td>
+          <td><span class="chip ok">current</span></td>
+        </tr>
+        <tr>
+          <td class="rowlab">r4 + slip penalty (r6)<br><span style="color:var(--muted);font-size:13px">charge the slide</span></td>
+          <td>yes, but 200 steps slower</td>
+          <td>3.7 s vertical, lost 32% later</td>
+          <td>not tested</td>
+          <td><span class="chip void">no net gain</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>One further comparison is worth stating because it inverts a standing conclusion. On the
+  baseline hand, grip force was measured to be decoupled from both hold quality and jitter, and the
+  guidance has been to stop treating it as a lever. That does not carry over. On the opposed pair
+  force is the dominant variable, because it sets whether the pinch behaves as a pin joint or a
+  clamp. A conclusion of this kind is topology-specific and does not transfer with the codebase.</p>
+
+  <details>
+    <summary>Morphology search: no valid numbers yet</summary>
+    <p>An open-loop ranking over 50 variants of the mount layout put the shipped design second, and a
+    training queue over the top five was launched to confirm it. That queue is void. The launcher
+    never passed the lift-height flag, so every design trained at 0.05&nbsp;m against the reference
+    policies' 0.14&nbsp;m. On a 100&nbsp;mm shaft that puts the hanging end in the floor and
+    false-triggers the floor-proximity termination.</p>
+    <p>Exactly one design ran to completion before the queue was interrupted, and evaluating it gives
+    an alignment rate of 0.0% with every rollout ending flat on the floor. There are therefore no
+    valid morphology numbers for this topology, and the open-loop ranking has never been confirmed by
+    training. The queue has been corrected and relaunched.</p>
+  </details>
+
+  <details>
+    <summary>Why single rollouts are not used as evidence anywhere above</summary>
+    <p>Three deterministic rollouts of one checkpoint, with stochastic sampling disabled and spawn
+    jitter set to zero, ended three different ways: held at step 400, lost at 430, and lost before
+    400. The actions are deterministic, so the spread comes from the simulator &mdash; parallel
+    contact solves do not reduce in a fixed order on GPU.</p>
+    <p>Every headline figure here is over 64 rollouts stepped together, which costs about the same
+    wall-clock as one. Renders are included to be looked at, not measured.</p>
+  </details>
+
+  <details>
+    <summary>Metric traps specific to this task</summary>
+    <p><strong>A perfect alignment score is compatible with total failure.</strong> A 100&nbsp;mm
+    shaft standing upright on the floor sits with its centre at 0.050&nbsp;m and reports cos 1.000.
+    A drop termination written as <code>z &lt; 0.05</code> never fires on it, so it is a reachable
+    reward hack, and specifically a hazard when strengthening the reorientation reward. Holding
+    vertical sits at about 0.113&nbsp;m, so the threshold was raised to 0.09.</p>
+    <p><strong>A success rate at a fixed step ranks slower policies higher.</strong> Truncating
+    before a slow policy finishes failing flatters it. Compare on the length of the vertical-and-held
+    run instead, and evaluate past the point where both policies have resolved &mdash; the tables
+    above use 900 steps for that reason.</p>
+    <p><strong>Minimum height over a whole rollout is dominated by the pre-lift state.</strong> The
+    object starts on the floor, so the minimum reads about 0.012&nbsp;m on a policy that never drops
+    anything. Use the post-lift minimum.</p>
+  </details>
+</section>
+
+<section>
+  <h3><span class="h3no">D</span>Reproduction</h3>
+
+  <p>The policy is <code>results/rl/20260731-1300-perp_single_r4</code>, checkpoint 338, trained
+  single-stage on the perpendicular scene at a lift height of 0.14&nbsp;m. Evaluation, renders and
+  the joint-envelope check are driven by <code>scripts/policy_eval_suite.py</code>,
+  <code>scripts/rl_render_reorient.py</code> and <code>scripts/probe_joint_envelope.py</code>.</p>
+
+  <p>Launcher configurations are checked against the reference run before training rather than
+  after. Four separate experiments in this program have been lost to a launcher omitting a flag and
+  the trainer silently supplying a default, so the config the trainer writes on startup is now
+  diffed against a known-good run, and a divergent run is stopped while it is still free.
+  Differences that are intended must be declared explicitly, which puts them in the launcher where
+  they are visible in review.</p>
+
+  <p>The full chronological engineering log is <code>docs/rl/perp_topology.md</code>; the hardware
+  questions are in <code>docs/notes/perp_hardware_prep.md</code>.</p>
+</section>
+
+<footer>
+  MorphoHand &middot; opposed-finger in-hand reorientation<br>
+  Measurements re-run 17&ndash;18 August 2026 against the current scene. Figures are N=64 unless
+  stated.
+</footer>
+
+</div>
