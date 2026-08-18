@@ -1,0 +1,309 @@
+{
+  "args": {
+    "morph": "/home/humanoid/Programs/hand/results/phase1/landscape/m05_ik_cem",
+    "shapes": "['all']",
+    "radius": "0.005",
+    "half_length": "0.006",
+    "keyframe": "open_ik",
+    "lift": "0.1",
+    "settle_steps": "200",
+    "close_steps": "500",
+    "lift_steps": "900",
+    "closure_min": "0.55",
+    "closure_max": "1.15",
+    "closure_points": "13",
+    "max_penetration": "3.0",
+    "min_pad_N": "0.15",
+    "ramp_steps": "1500",
+    "max_force": "15.0",
+    "max_torque": "0.08",
+    "slip_tol": "0.01",
+    "turn_tol": "0.35",
+    "min_held_z": "0.05",
+    "solimp": "None",
+    "tip_friction": "None",
+    "json_out": "docs/experiments/FINGERTIP_MECHANICS.json"
+  },
+  "rows": {
+    "sphere": {
+      "held_z": 0.1486,
+      "held_cos": -0.029,
+      "closure": 0.75,
+      "grip_N": {
+        "thumb": 0.0,
+        "index": 2.39,
+        "middle": 2.45
+      },
+      "pad_N": 4.84,
+      "finger_total_N": 9.65,
+      "pad_compliance_mm_per_N": 0.1692,
+      "n_contacts": 3,
+      "n_per_finger": {
+        "thumb": 1,
+        "index": 1,
+        "middle": 1
+      },
+      "fingers_touching": 3,
+      "pad_frac": 0.502,
+      "penetration_max_mm": 0.819,
+      "penetration_mean_mm": 0.577,
+      "status": "ok",
+      "axial_plus_N": 4.343,
+      "axial_minus_N": 4.793,
+      "roll_torque_Nm": 0.02663,
+      "axial_per_N": 0.897,
+      "roll_per_Nm": 0.44,
+      "hold_per_roll": 2.04,
+      "axis_world": [
+        0.025,
+        -0.999,
+        -0.029
+      ]
+    },
+    "cap_cross": {
+      "held_z": 0.1486,
+      "held_cos": -0.029,
+      "closure": 0.75,
+      "grip_N": {
+        "thumb": 0.0,
+        "index": 2.39,
+        "middle": 2.45
+      },
+      "pad_N": 4.84,
+      "finger_total_N": 9.64,
+      "pad_compliance_mm_per_N": 0.1692,
+      "n_contacts": 3,
+      "n_per_finger": {
+        "thumb": 1,
+        "index": 1,
+        "middle": 1
+      },
+      "fingers_touching": 3,
+      "pad_frac": 0.502,
+      "penetration_max_mm": 0.819,
+      "penetration_mean_mm": 0.577,
+      "status": "ok",
+      "axial_plus_N": 4.343,
+      "axial_minus_N": 4.793,
+      "roll_torque_Nm": 0.02663,
+      "axial_per_N": 0.897,
+      "roll_per_Nm": 0.44,
+      "hold_per_roll": 2.04,
+      "axis_world": [
+        0.025,
+        -0.999,
+        -0.029
+      ]
+    },
+    "cap_line": {
+      "held_z": 0.1457,
+      "held_cos": -0.12,
+      "closure": 0.7,
+      "grip_N": {
+        "thumb": 1.54,
+        "index": 3.07,
+        "middle": 1.78
+      },
+      "pad_N": 6.4,
+      "finger_total_N": 9.69,
+      "pad_compliance_mm_per_N": 0.088,
+      "n_contacts": 4,
+      "n_per_finger": {
+        "thumb": 2,
+        "index": 1,
+        "middle": 1
+      },
+      "fingers_touching": 3,
+      "pad_frac": 0.661,
+      "penetration_max_mm": 0.563,
+      "penetration_mean_mm": 0.475,
+      "status": "ok",
+      "axial_plus_N": 5.834,
+      "axial_minus_N": 7.165,
+      "roll_torque_Nm": 0.03207,
+      "axial_per_N": 0.911,
+      "roll_per_Nm": 0.4008,
+      "hold_per_roll": 2.27,
+      "axis_world": [
+        -0.002,
+        -0.993,
+        -0.12
+      ]
+    },
+    "ellipsoid": {
+      "held_z": 0.1493,
+      "held_cos": 0.025,
+      "closure": 0.8,
+      "grip_N": {
+        "thumb": 0.0,
+        "index": 2.58,
+        "middle": 2.5
+      },
+      "pad_N": 5.08,
+      "finger_total_N": 10.1,
+      "pad_compliance_mm_per_N": 0.1677,
+      "n_contacts": 3,
+      "n_per_finger": {
+        "thumb": 1,
+        "index": 1,
+        "middle": 1
+      },
+      "fingers_touching": 3,
+      "pad_frac": 0.502,
+      "penetration_max_mm": 0.851,
+      "penetration_mean_mm": 0.593,
+      "status": "ok",
+      "axial_plus_N": 4.093,
+      "axial_minus_N": 3.702,
+      "roll_torque_Nm": 0.02252,
+      "axial_per_N": 0.729,
+      "roll_per_Nm": 0.355,
+      "hold_per_roll": 2.05,
+      "axis_world": [
+        0.047,
+        -0.999,
+        0.025
+      ]
+    },
+    "pad_flat": {
+      "held_z": 0.1499,
+      "held_cos": -0.252,
+      "closure": 0.55,
+      "grip_N": {
+        "thumb": 0.0,
+        "index": 0.24,
+        "middle": 0.54
+      },
+      "pad_N": 0.78,
+      "finger_total_N": 1.54,
+      "pad_compliance_mm_per_N": 0.4024,
+      "n_contacts": 3,
+      "n_per_finger": {
+        "thumb": 1,
+        "index": 1,
+        "middle": 1
+      },
+      "fingers_touching": 3,
+      "pad_frac": 0.508,
+      "penetration_max_mm": 0.315,
+      "penetration_mean_mm": 0.256,
+      "status": "ok",
+      "axial_plus_N": 1.131,
+      "axial_minus_N": 3.062,
+      "roll_torque_Nm": 0.00694,
+      "axial_per_N": 1.445,
+      "roll_per_Nm": 0.7092,
+      "hold_per_roll": 2.04,
+      "axis_world": [
+        -0.072,
+        -0.965,
+        -0.252
+      ]
+    },
+    "cylinder_line": {
+      "held_z": 0.1457,
+      "held_cos": -0.119,
+      "closure": 0.7,
+      "grip_N": {
+        "thumb": 1.47,
+        "index": 3.04,
+        "middle": 1.8
+      },
+      "pad_N": 6.3,
+      "finger_total_N": 9.64,
+      "pad_compliance_mm_per_N": 0.0906,
+      "n_contacts": 4,
+      "n_per_finger": {
+        "thumb": 2,
+        "index": 1,
+        "middle": 1
+      },
+      "fingers_touching": 3,
+      "pad_frac": 0.654,
+      "penetration_max_mm": 0.571,
+      "penetration_mean_mm": 0.474,
+      "status": "ok",
+      "axial_plus_N": 5.774,
+      "axial_minus_N": 7.135,
+      "roll_torque_Nm": 0.03186,
+      "axial_per_N": 0.916,
+      "roll_per_Nm": 0.4043,
+      "hold_per_roll": 2.27,
+      "axis_world": [
+        -0.002,
+        -0.993,
+        -0.119
+      ]
+    },
+    "groove_cradle": {
+      "held_z": 0.1507,
+      "held_cos": -0.102,
+      "closure": 0.55,
+      "grip_N": {
+        "thumb": 2.86,
+        "index": 2.1,
+        "middle": 0.73
+      },
+      "pad_N": 5.69,
+      "finger_total_N": 5.69,
+      "pad_compliance_mm_per_N": 0.084,
+      "n_contacts": 3,
+      "n_per_finger": {
+        "thumb": 1,
+        "index": 1,
+        "middle": 1
+      },
+      "fingers_touching": 3,
+      "pad_frac": 1.0,
+      "penetration_max_mm": 0.478,
+      "penetration_mean_mm": 0.402,
+      "status": "ok",
+      "axial_plus_N": 1.881,
+      "axial_minus_N": 2.702,
+      "roll_torque_Nm": 0.01014,
+      "axial_per_N": 0.33,
+      "roll_per_Nm": 0.1425,
+      "hold_per_roll": 2.32,
+      "axis_world": [
+        -0.012,
+        -0.995,
+        -0.102
+      ]
+    },
+    "groove_bite": {
+      "held_z": 0.1545,
+      "held_cos": 0.064,
+      "closure": 0.55,
+      "grip_N": {
+        "thumb": 2.61,
+        "index": 1.96,
+        "middle": 0.64
+      },
+      "pad_N": 5.21,
+      "finger_total_N": 5.21,
+      "pad_compliance_mm_per_N": 0.0856,
+      "n_contacts": 4,
+      "n_per_finger": {
+        "thumb": 1,
+        "index": 2,
+        "middle": 1
+      },
+      "fingers_touching": 3,
+      "pad_frac": 1.0,
+      "penetration_max_mm": 0.446,
+      "penetration_mean_mm": 0.311,
+      "status": "ok",
+      "axial_plus_N": 1.221,
+      "axial_minus_N": 1.121,
+      "roll_torque_Nm": 0.00688,
+      "axial_per_N": 0.215,
+      "roll_per_Nm": 0.1056,
+      "hold_per_roll": 2.04,
+      "axis_world": [
+        0.055,
+        -0.996,
+        0.064
+      ]
+    }
+  }
+}
