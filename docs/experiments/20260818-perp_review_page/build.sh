@@ -12,7 +12,8 @@ uv run python - "$TMP" "$V" <<'PY'
 from PIL import Image; import sys, os
 tmp, V = sys.argv[1], sys.argv[2]
 for f, w, q in [("r4_filmstrip.png",1600,82),("r4_excl_eval.png",900,85),
-                ("perp_r6_slip-1000_eval.png",900,85),("perp_r6_slip-3000_eval.png",900,85)]:
+                ("perp_r6_slip-1000_eval.png",900,85),("perp_r6_slip-3000_eval.png",900,85),
+                ("baseline_b33_filmstrip.png",1600,82)]:
     im = Image.open(os.path.join(V,f)).convert("RGB")
     im = im.resize((w,int(im.height*w/im.width)), Image.LANCZOS)
     im.save(os.path.join(tmp,f.replace(".png",".jpg")),"JPEG",quality=q,optimize=True)
@@ -25,7 +26,9 @@ assets = {"r4_video":(os.path.join(V,"r4_600steps.mp4"),"video/mp4"),
           "r4_strip":(os.path.join(tmp,"r4_filmstrip.jpg"),"image/jpeg"),
           "r4_eval":(os.path.join(tmp,"r4_excl_eval.jpg"),"image/jpeg"),
           "r6a_eval":(os.path.join(tmp,"perp_r6_slip-1000_eval.jpg"),"image/jpeg"),
-          "r6b_eval":(os.path.join(tmp,"perp_r6_slip-3000_eval.jpg"),"image/jpeg")}
+          "r6b_eval":(os.path.join(tmp,"perp_r6_slip-3000_eval.jpg"),"image/jpeg"),
+          "base_video":(os.path.join(V,"baseline_a10_b33_handoff.mp4"),"video/mp4"),
+          "base_strip":(os.path.join(tmp,"baseline_b33_filmstrip.jpg"),"image/jpeg")}
 html = open(os.path.join(OUT,"page.src.html")).read()
 for k,(p,mime) in assets.items():
     html = html.replace("{{ASSET:%s}}"%k,
