@@ -1,0 +1,18 @@
+{
+  "label": "r6w1000 @ 900 steps",
+  "n": 64,
+  "steps": 900,
+  "align_thresh": 0.9,
+  "align_rate": 1.0,
+  "hold_rate": 0.0,
+  "success_rate": 0.0,
+  "t_align_mean": 328.609375,
+  "hold_steps_mean": 183.015625,
+  "hold_steps_sd": 59.118390800658425,
+  "final_cos_mean": -1.1920928955078125e-07,
+  "final_cos_sd": 0.0,
+  "final_z_mean": 0.012292757630348206,
+  "peak_cos_mean": 0.9755300283432007,
+  "drop_step_mean": 513.234375,
+  "n_lost": 64
+}

@@ -1,0 +1,18 @@
+{
+  "label": "r6 axial-slip w=-1000",
+  "n": 64,
+  "steps": 600,
+  "align_thresh": 0.9,
+  "align_rate": 1.0,
+  "hold_rate": 0.015625,
+  "success_rate": 0.015625,
+  "t_align_mean": 334.6875,
+  "hold_steps_mean": 178.40625,
+  "hold_steps_sd": 58.03331983384631,
+  "final_cos_mean": 0.015322161838412285,
+  "final_cos_sd": 0.12161684036254883,
+  "final_z_mean": 0.013834333047270775,
+  "peak_cos_mean": 0.9747633934020996,
+  "drop_step_mean": 513.3492063492064,
+  "n_lost": 63
+}

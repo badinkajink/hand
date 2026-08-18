@@ -1,0 +1,18 @@
+{
+  "label": "r4 @ 900 steps",
+  "n": 64,
+  "steps": 900,
+  "align_thresh": 0.9,
+  "align_rate": 1.0,
+  "hold_rate": 0.0,
+  "success_rate": 0.0,
+  "t_align_mean": 127.734375,
+  "hold_steps_mean": 254.890625,
+  "hold_steps_sd": 93.42110929607598,
+  "final_cos_mean": -1.1920928955078125e-07,
+  "final_cos_sd": 0.0,
+  "final_z_mean": 0.012292634695768356,
+  "peak_cos_mean": 0.9948452711105347,
+  "drop_step_mean": 388.875,
+  "n_lost": 64
+}
