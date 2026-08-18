@@ -486,6 +486,17 @@ class MorphoHandEnvCfg:
     100% of rollouts to a ~12 mm monotonic slip that no xy drift term sees
     and that object_lift_height underprices by orders of magnitude. The
     signal is metres-per-step, so the weight is large: try -2000 to -10000."""
+    thumb_brace_weight: float = 0.0
+    """Reward weight on THUMB<->object contact force, gated on alignment. 0 disables.
+    Exists for the opposed-pair hand, where the thumb cannot be a grasp finger (its reach
+    shell is narrower than the span between the grasp pose and the hanging shaft) and can
+    only act as a post-swing brace. Try +4 to +20."""
+    thumb_brace_align_thresh: float = 0.7
+    """Alignment cos above which the thumb-brace reward starts paying."""
+    thumb_brace_max_force: float = 4.0
+    """Thumb force (N) at which the brace reward saturates."""
+    thumb_sensor_index: int = 0
+    """Slot of the thumb in the fingertip contact sensor (thumb, index, middle)."""
     axial_slip_rate_deadband: float = 0.0
     """Free slip rate (m/step) before the penalty engages — set above the
     solver's contact jitter so the term is silent on a grip that is holding."""

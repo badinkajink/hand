@@ -607,6 +607,16 @@ def _build_rewards(cfg: MorphoHandEnvCfg) -> dict:
             weight=float(cfg.lateral_drift_weight) * task_scale,
             params=_lat_params,
         )
+    if cfg.thumb_brace_weight != 0.0:
+        rewards["thumb_brace_force"] = RewardTermCfg(
+            func=mjlab_terms.thumb_brace_force,
+            weight=float(cfg.thumb_brace_weight) * task_scale,
+            params=dict(sensor_name="fingertip_cube_contact",
+                        thumb_index=int(cfg.thumb_sensor_index),
+                        object_name="cube",
+                        align_thresh=float(cfg.thumb_brace_align_thresh),
+                        max_force=float(cfg.thumb_brace_max_force)),
+        )
     if cfg.axial_slip_weight != 0.0:
         _slip_params = dict(object_name="cube",
                             rate_deadband=float(cfg.axial_slip_rate_deadband))
