@@ -607,6 +607,18 @@ def _build_rewards(cfg: MorphoHandEnvCfg) -> dict:
             weight=float(cfg.lateral_drift_weight) * task_scale,
             params=_lat_params,
         )
+    if cfg.axial_slip_weight != 0.0:
+        _slip_params = dict(object_name="cube",
+                            rate_deadband=float(cfg.axial_slip_rate_deadband))
+        if cfg.contact_gate_stability_rewards:
+            _slip_params.update(contact_gate_min=cfg.contact_gate_min,
+                                sensor_name="fingertip_cube_contact")
+        rewards["object_axial_slip"] = RewardTermCfg(
+            func=(mjlab_terms.object_axial_slip_gated if cfg.contact_gate_stability_rewards
+                  else mjlab_terms.object_axial_slip),
+            weight=float(cfg.axial_slip_weight) * task_scale,
+            params=_slip_params,
+        )
     if cfg.grip_force_weight != 0.0:
         rewards["grip_force"] = RewardTermCfg(
             func=mjlab_terms.grip_force,

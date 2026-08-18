@@ -478,6 +478,17 @@ class MorphoHandEnvCfg:
     lateral_drift_power: float = 2.0
     """Exponent on (drift − deadband): 2.0 = quadratic tail (bites the big
     slide much harder than a small one)."""
+    # ---- axial slip penalty (perp topology, 2026-08-17) -----------------
+    axial_slip_weight: float = 0.0
+    """Penalty weight on the object sliding DOWN through the grip, charged
+    per step in the palm frame (one-sided: re-seating upward is free). 0
+    disables, so every existing run is unchanged. Exists because r4 loses
+    100% of rollouts to a ~12 mm monotonic slip that no xy drift term sees
+    and that object_lift_height underprices by orders of magnitude. The
+    signal is metres-per-step, so the weight is large: try -2000 to -10000."""
+    axial_slip_rate_deadband: float = 0.0
+    """Free slip rate (m/step) before the penalty engages — set above the
+    solver's contact jitter so the term is silent on a grip that is holding."""
     # ---- Phase 3: bracing (palm normal force + grip strength) -----------
     brace_force_weight: float = 0.0
     """Reward weight for palm<->cylinder contact force (the cylinder's lower
