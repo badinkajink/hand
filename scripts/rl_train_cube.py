@@ -124,6 +124,10 @@ class Args:
     """(soft, hard) bounds for solimp dmin."""
     compliance_dr_dmax: tuple[float, float] = (0.995, 0.999)
     """(soft, hard) bounds for solimp dmax."""
+    friction_dr: bool = False
+    """Per-env sliding-friction DR (the sharpest measured sim2real cliff)."""
+    friction_dr_scale: tuple[float, float] = (0.55, 1.15)
+    """(soft, hard) bounds for solimp dmax."""
     tracking_anneal_iters: int = 0
     """PPO iters over which tracking-from-CEM reward weights linearly
     scale from initial → `tracking_final_scale` x initial. 0 disables.
@@ -517,6 +521,8 @@ def main() -> None:
         cube_spawn_yaw_jitter=args.cube_spawn_yaw_jitter,
         dr_anneal_iters=args.dr_anneal_iters,
         compliance_dr=args.compliance_dr,
+        friction_dr=args.friction_dr,
+        friction_dr_scale=args.friction_dr_scale,
         compliance_dr_dmin=args.compliance_dr_dmin,
         compliance_dr_dmax=args.compliance_dr_dmax,
         tracking_anneal_iters=args.tracking_anneal_iters,

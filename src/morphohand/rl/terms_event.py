@@ -53,6 +53,42 @@ def randomize_geom_solimp(env: "ManagerBasedRlEnv", env_ids,
     solimp[env_ids, :, 1] = dmax_range[0] + (dmax_range[1] - dmax_range[0]) * u
 
 
+@requires_model_fields("geom_friction")
+def randomize_geom_friction(env: "ManagerBasedRlEnv", env_ids,
+                            slide_scale_range: tuple[float, float] = (1.0, 1.0)) -> None:
+    """Reset event: per-env sliding-friction DR.
+
+    Friction is the SHARPEST sim2real cliff measured on this hand: halving the pad's sliding
+    coefficient (mu 2.4 -> 1.2) takes the a10->b33 handoff from hold 1.00 to hold 0.09, worse
+    than the contact-stiffness cliff this file's solimp DR was written for
+    (docs/experiments/SIM2REAL_ROBUSTNESS.txt). And mu=2.4 is an optimistic silicone-on-steel
+    figure, so the real pad is likely to land inside the failing region.
+
+    Only the SLIDING term is scaled. Torsional and rolling friction are separate physical claims
+    about the pad and should not ride along with a material change — the same split the offline
+    scene mutator uses, so a DR-trained policy is evaluated on the axis it was trained on.
+
+    Scales ALL geoms in the env's world, matching `randomize_geom_solimp` above and the
+    whole-scene friction edit the robustness sweep evaluates against. That includes the floor,
+    which is deliberate: the table's friction is no better known than the pad's, and the lift
+    phase slides the tool along it.
+    """
+    if env_ids is None:
+        env_ids = torch.arange(env.num_envs, device=env.device)
+    elif isinstance(env_ids, slice):
+        env_ids = torch.arange(env.num_envs, device=env.device)[env_ids]
+    env_ids = env_ids.to(device=env.device, dtype=torch.long)
+    lo, hi = slide_scale_range
+    u = torch.rand(len(env_ids), 1, device=env.device)
+    friction = env.sim.model.geom_friction        # (nworld, ngeom, 3): slide torsion roll
+    if not hasattr(env, "_geom_friction_nominal"):
+        # Scale off the SCENE value, not the current one. Scaling in place would compound across
+        # resets and walk friction to zero over training.
+        env._geom_friction_nominal = friction[:, :, 0].clone()
+    nominal = env._geom_friction_nominal[env_ids]
+    friction[env_ids, :, 0] = nominal * (lo + (hi - lo) * u)
+
+
 def reset_from_handoff_bank(env: "ManagerBasedRlEnv", env_ids, bank_path: str) -> None:
     """Reset event (train-the-handoff): spawn the object + hand from a randomly
     sampled state in Policy A's recorded terminal-state bank, so Policy B trains

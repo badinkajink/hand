@@ -95,8 +95,14 @@ def scene_dir(label: str, mutate) -> Path:
 
 
 # --------------------------------------------------------------------------- one point
-def rate_point(scene: Path, work: Path, cfg_over: dict) -> dict:
-    """One batched A->B handoff. Fresh envs per call so nothing leaks between points."""
+def rate_point(scene: Path, work: Path, cfg_over: dict,
+               a_ckpt: Path = A_CKPT, b_ckpt: Path = B_CKPT) -> dict:
+    """One batched A->B handoff. Fresh envs per call so nothing leaks between points.
+
+    The checkpoints are arguments so the hardening queue can push its DR finetunes through the
+    same evaluator the baseline was measured on — a hardening claim compared against a
+    differently-measured baseline would not be a comparison.
+    """
     import numpy as np
     import torch
     from morphohand.rl import deploy
@@ -106,7 +112,7 @@ def rate_point(scene: Path, work: Path, cfg_over: dict) -> dict:
     keyframe = json.loads((scene / "summary.json").read_text()).get("keyframe",
                                                                    "open_short_manual")
     frozen = scene / "frozen_scene.xml"
-    a_obs_dim = deploy.ckpt_obs_dim(A_CKPT)
+    a_obs_dim = deploy.ckpt_obs_dim(a_ckpt)
 
     cfg = deploy.make_env_cfg(frozen, keyframe, scene, bfc, enable_target_axis=True,
                               num_steps=TOTAL_STEPS, open_finger_from_keyframe=True)
@@ -116,11 +122,11 @@ def rate_point(scene: Path, work: Path, cfg_over: dict) -> dict:
             raise AttributeError(f"env cfg has no field {k!r}")   # fail loud, not silently OOD
         setattr(cfg, k, v)
 
-    env, wrapped, actor_b = deploy.build_actor(cfg, B_CKPT, work)
+    env, wrapped, actor_b = deploy.build_actor(cfg, b_ckpt, work)
     cfg_a = deploy.make_env_cfg(frozen, keyframe, scene, bfc,
                                 enable_target_axis=(a_obs_dim == 66), num_steps=10,
                                 open_finger_from_keyframe=True)
-    env_a, _, actor_a = deploy.build_actor(cfg_a, A_CKPT, work)
+    env_a, _, actor_a = deploy.build_actor(cfg_a, a_ckpt, work)
     env_a.close()
 
     obs_td, _ = wrapped.reset()
