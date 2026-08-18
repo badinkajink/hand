@@ -21,6 +21,16 @@ set -uo pipefail
 cd "$(dirname "$0")/.."
 ROOT="$PWD"
 TOP="${TOP:-5}"
+# LIFT HEIGHT IS NOT IN THE RECIPE — it is a run knob, and the trainer's default is 0.05.
+# The first r5 queue omitted it and every design therefore trained at 0.05 while the r2/r4
+# reference trained at 0.14, which is not a small difference on a 100 mm shaft: hanging
+# vertical puts the shaft's lower end 0.085 m below the pinch, so at a 0.05 lift it is in the
+# floor, the floor-proximity gate false-fires, and the reorient cannot complete. The one design
+# that ran to 339 iterations under that bug (t0.00_x0.25) evaluates at align_rate 0.0% / hold
+# 0.0% with every env ending flat on the floor -- a design ranking built on those numbers would
+# have measured the bug, not the morphology. See CLAUDE.md gotcha: diff a new launcher's flags
+# against the last WORKING run's config.yaml (results/rl/<r4 run>/config.yaml has 0.14).
+LIFT_DELTA="${LIFT_DELTA:-0.14}"
 SWEEP_JSON="$ROOT/docs/experiments/perp_compact_sweep.json"
 BASE_SCENE="$ROOT/assets/mjcf/perp/scenes/scene_screwdriver_medium_perp.xml"
 MORPH_RUN="$ROOT/results/phase1/perp/perp_v1"
@@ -105,6 +115,7 @@ PY
         --morphology-run "$MORPH_RUN" \
         --frozen-scene-xml "$SCENE" \
         --tag "$RUN_NAME" \
+        --lift-target-z-above-init "$LIFT_DELTA" --lift-delta-z "$LIFT_DELTA" \
         "${NOISE_ARG[@]}" \
         >>"$DEST/train.log" 2>&1
     RC=$?
