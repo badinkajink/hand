@@ -869,6 +869,14 @@ def _build_events(cfg: MorphoHandEnvCfg) -> dict:
             params={"dmin_range": tuple(cfg.compliance_dr_dmin),
                     "dmax_range": tuple(cfg.compliance_dr_dmax)},
         )
+    # sliding-friction DR: same shape as the compliance DR above, on the axis the
+    # robustness sweep found to be the sharpest cliff of the three.
+    if cfg.friction_dr:
+        events["randomize_friction"] = EventTermCfg(
+            func=mjlab_terms.randomize_geom_friction,
+            mode="reset",
+            params={"slide_scale_range": tuple(cfg.friction_dr_scale)},
+        )
     # train-the-handoff: spawn from Policy A's recorded terminal states. Added
     # LAST so it overrides reset_cube/reset_robot_joints (dict-insertion order).
     if cfg.skip_lift_phase and cfg.handoff_state_bank:

@@ -36,6 +36,7 @@ from morphohand.rl.terms_common import (  # noqa: F401
 )
 from morphohand.rl.terms_event import (  # noqa: F401
     inject_handoff_bank_at_onset,
+    randomize_geom_friction,
     randomize_geom_solimp,
     reset_from_handoff_bank,
     terminate_alignment_success,

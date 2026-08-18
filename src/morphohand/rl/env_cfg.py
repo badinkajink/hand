@@ -130,6 +130,16 @@ class MorphoHandEnvCfg:
     compliance_dr_dmax: tuple[float, float] = (0.995, 0.999)
     """(soft, hard) bounds for solimp dmax — the range over which the
     compliance-robustness sweep found the task at least sometimes feasible."""
+    friction_dr: bool = False
+    """Per-env sliding-friction DR: each reset scales every geom's friction[0]
+    off the SCENE value by a factor drawn from `friction_dr_scale`. Friction is
+    the sharpest measured sim2real cliff on this hand — mu x0.5 drops the
+    a10->b33 handoff to hold 0.09, worse than the stiffness cliff
+    (docs/experiments/SIM2REAL_ROBUSTNESS.txt)."""
+    friction_dr_scale: tuple[float, float] = (0.55, 1.15)
+    """(low, high) multiplicative range. Spans the measured cliff: x0.7 still
+    works (reorient 0.97), x0.5 does not (hold 0.09), so training has to cover
+    the edge rather than sit safely above it."""
     # ---- curriculum on DR jitter ---------------------------------------
     dr_anneal_iters: int = 0
     """Number of PPO iters over which jitter linearly ramps from 0 to
