@@ -1076,3 +1076,40 @@ if the demo needs the object retained longer than it needs to be vertical sooner
 Artefacts: `docs/experiments/20260818-perp_r{4,6w1000}_900.json`,
 `docs/experiments/20260817-perp_r6_slip-{1000,3000}.json`, renders + filmstrips + N=64 eval
 plots in `docs/rl/videos/20260817_perp_review/`.
+
+## 2026-08-18 (later) — r7: a thumb that CAN reach still never touches, and costs the reorient
+
+The long-thumb design (`thumb_len +0.035`, mounts untouched, pinch 34.9 mm, gate-valid) trained
+with `thumb_brace_force` at weight 5. N=64 x 900, against r4 on the same harness:
+
+| | r4 (shipped thumb) | r7 (long thumb + brace) |
+|---|---|---|
+| align_rate | 100% | 100% |
+| peak_cos | 0.995 ± 0.002 | 0.974 ± 0.005 |
+| t_align | **128 ± 97** | 322 ± 11 |
+| hold_steps (vertical AND held) | **255 ± 93** | **26 ± 3** |
+| drop_step | **389 ± 25** | 349 ± 12 |
+| `thumb_brace_force` over the whole run | — | **0.0000** |
+
+**Strictly worse on every axis, and the thumb never made contact once** — across 3072 envs and
+339 iterations, with a reward paying for exactly that contact. The term was not structurally
+dead: the gate (cos >= 0.7) opens around step 290 and the object survives to 349, so there was a
+window in which touching would have paid. The policy did not use it.
+
+Two readings remain open and this run does not separate them: either deploying the thumb ejects
+the shaft — the pinch clamps along Y and cannot react a thumb push along X, so PPO would learn
+to leave it stowed — or the residual authority (±0.5 rad from a yaw-0.6 stow) cannot bring the
+tip onto the shaft at all. Distinguishing them needs a scripted deploy on a *loaded* grip, which
+the open-loop probe cannot produce (it has bled to 0.4 N; see the axis table above).
+
+What the run does settle: **lengthening the thumb is not the missing piece.** The extra reach is
+real and it buys nothing, and the design pays for it — aligning 194 steps later and holding
+vertical for 26 steps against 255.
+
+### Standing verdict on the opposed pair
+
+Three independent attempts to give it a hold — the axial-slip penalty (r6), the morphology
+search, and the thumb brace (r7) — have all returned the same shape of answer. The rotation is
+the expenditure of the pinch, and nothing added around the edges changes that. The inline pair
+opposing the thumb keeps the object on three loaded fingers and gives up the last 10 degrees of
+rotation, which is the better trade for anything that has to hold the tool afterwards.

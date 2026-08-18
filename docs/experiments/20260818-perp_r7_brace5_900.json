@@ -1,0 +1,18 @@
+{
+  "label": "r7 long thumb + brace w=5",
+  "n": 64,
+  "steps": 900,
+  "align_thresh": 0.9,
+  "align_rate": 1.0,
+  "hold_rate": 0.0,
+  "success_rate": 0.0,
+  "t_align_mean": 322.453125,
+  "hold_steps_mean": 26.515625,
+  "hold_steps_sd": 2.549461876430985,
+  "final_cos_mean": -1.1920928955078125e-07,
+  "final_cos_sd": 0.0,
+  "final_z_mean": 0.012292761355638504,
+  "peak_cos_mean": 0.9740791320800781,
+  "drop_step_mean": 348.96875,
+  "n_lost": 64
+}
