@@ -1,0 +1,18 @@
+{
+  "label": "b33 inline+thumb (m05)",
+  "n": 64,
+  "steps": 900,
+  "align_thresh": 0.9,
+  "align_rate": 0.0625,
+  "hold_rate": 0.0,
+  "success_rate": 0.0,
+  "t_align_mean": 10.0,
+  "hold_steps_mean": 0.015625,
+  "hold_steps_sd": 0.12401959270615269,
+  "final_cos_mean": -1.043081283569336e-07,
+  "final_cos_sd": 1.1827430057564925e-07,
+  "final_z_mean": 0.0122927725315094,
+  "peak_cos_mean": 0.7582266330718994,
+  "drop_step_mean": 194.30769230769232,
+  "n_lost": 52
+}

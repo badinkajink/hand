@@ -1,4 +1,4 @@
-<title>Reorienting a screwdriver with an opposed-finger hand</title>
+<title>Screwdriver reorientation: two finger arrangements compared</title>
 
 <style>
 :root{
@@ -159,29 +159,118 @@ footer a{color:var(--muted);}
 
 <header class="mast">
   <p class="eyebrow">MorphoHand &middot; in-hand reorientation</p>
-  <h1>Turning a screwdriver upright with an opposed-finger hand</h1>
-  <p class="deck">A three-finger hand with the index and middle rotated to face each other picks a
-  screwdriver off the floor and stands it vertical, in 100% of 64 rollouts, and holds it there for
-  about five seconds. The reorientation <strong>does not depend on contact compliance</strong>,
-  which is the property that makes it a sim-to-real candidate where the program's earlier
-  rolling-based reorientation was not.</p>
+  <h1>Two finger arrangements, and the trade between turning and holding</h1>
+  <p class="deck">Rotating a screwdriver to vertical and keeping hold of it pull in opposite
+  directions, and the two hand arrangements tried sit on opposite sides of that trade. The
+  <strong>opposed pair</strong> reaches a near-perfect vertical in every rollout and then loses the
+  object every time, because the rotation and the loss are the same slide through a two-point
+  pinch. The <strong>inline pair opposing the thumb</strong> reorients less far, to about
+  cos&nbsp;0.9, and holds it in a real three-finger grasp.</p>
+  <div class="deck" style="margin-top:16px;">Neither is finished. This page states what each
+  arrangement actually buys, why the opposed pair's failure is structural rather than a tuning
+  problem, and what would have to change to get both properties at once.</div>
   <div class="meta">
-    <span><b>Policy</b> r4 &middot; single-stage</span>
-    <span><b>Evidence</b> N=64 rollouts, 900 steps</span>
+    <span><b>Compared</b> r4 (opposed) &middot; a10&rarr;b33 (inline+thumb)</span>
+    <span><b>Evidence</b> N=64 rollouts; handoff scorecard</span>
     <span><b>Updated</b> 18 Aug 2026</span>
   </div>
 </header>
 
-<!-- ================= PART ONE ================= -->
+<!-- ================= PART ZERO : THE COMPARISON ================= -->
 <div class="part">
   <p class="part-no">Part one</p>
-  <h2>The method that works</h2>
+  <h2>What each arrangement buys</h2>
+  <p class="part-lede">The headline numbers point in opposite directions, and reading either one
+  alone gives the wrong impression of where the program stands.</p>
+</div>
+
+<section>
+  <h3><span class="h3no">1.1</span>Side by side</h3>
+
+  <div class="fig-row">
+    <figure class="fig">
+      <video controls muted loop playsinline preload="metadata" src="{{ASSET:r4_video}}"></video>
+      <figcaption><b>Opposed pair (r4).</b> Index and middle rotated to face each other. The shaft
+      swings to vertical and hangs from a two-point pinch. It is on the floor by step 389.</figcaption>
+    </figure>
+    <figure class="fig">
+      <video controls muted loop playsinline preload="metadata" src="{{ASSET:base_video}}"></video>
+      <figcaption><b>Inline pair opposing the thumb (a10&rarr;b33).</b> The conventional arrangement.
+      It tilts the shaft partway and keeps it, enveloped, with all three fingers loaded.</figcaption>
+    </figure>
+  </div>
+
+  <div class="tbl">
+    <table>
+      <caption>The two arrangements on the same task</caption>
+      <thead><tr>
+        <th>&nbsp;</th>
+        <th class="num">Opposed pair (r4)</th>
+        <th class="num">Inline + thumb (a10&rarr;b33)</th>
+      </tr></thead>
+      <tbody>
+        <tr><td class="rowlab">Best alignment reached</td>
+            <td class="num best">0.995</td><td class="num">0.911</td></tr>
+        <tr><td class="rowlab">Alignment still held at the end</td>
+            <td class="num bad">0.000 &mdash; dropped</td><td class="num best">0.884</td></tr>
+        <tr><td class="rowlab">Object retained through its trained horizon</td>
+            <td class="num bad">no &mdash; lost at 65%</td><td class="num best">yes</td></tr>
+        <tr><td class="rowlab">Fingers carrying load</td>
+            <td class="num bad">2 &mdash; thumb at 0 N</td>
+            <td class="num best">3 &mdash; 9.5 / 5.6 / 5.5 N</td></tr>
+        <tr><td class="rowlab">Grasp type</td>
+            <td class="num">two-point pinch</td><td class="num">enveloping</td></tr>
+        <tr><td class="rowlab">Survives contact hardening</td>
+            <td class="num best">yes, zero-shot</td><td class="num bad">no</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>The opposed pair's alignment number is the best in the program and it is also the least
+  useful, because the mechanism that produces it is the mechanism that ends it. The shaft turns
+  <em>by sliding through the pinch</em>, so a rotation that completes is a rotation that has spent
+  the pad. Every rollout ends with the screwdriver on the floor. The thumb registers 0&nbsp;N
+  throughout and is not merely unused &mdash; it cannot reach the shaft at any pinch offset that
+  still permits the swing.</p>
+
+  <figure class="fig">
+    <img src="{{ASSET:base_strip}}" alt="Eight frames from the inline-plus-thumb rollout: the screwdriver is gripped between three fingers and held clear of the floor at a steep angle from step 50 through step 298.">
+    <figcaption><b>The inline arrangement holds what it turns.</b> The shaft is enveloped rather than
+    pinched, and stays in the hand for the whole rollout. It never reaches vertical; it settles
+    around cos 0.88&ndash;0.91.</figcaption>
+  </figure>
+
+  <div class="finding">
+    <p>The opposed pair is not a better hand that needs more tuning. It converts the reorientation
+    into a one-shot expenditure of pad length, and buys its alignment number with the grasp.</p>
+    <p>The inline arrangement gives up the last 10&deg; of rotation and keeps a working
+    three-finger grip. For anything that has to hold the tool afterwards, that is the better
+    trade.</p>
+  </div>
+
+  <h4>On the horizons, so the comparison is fair</h4>
+  <p>Both eventually lose the object, but not comparably. The opposed pair drops at step
+  389&nbsp;&plusmn;&nbsp;25 against a 600-step training horizon &mdash; it fails 65% of the way
+  into the episode it was trained on. The inline pair holds through its own 250-step horizon and
+  past it to 300; pushed to 600, which is 2.4&times; what it was trained for, it also slides out.
+  Neither holds indefinitely, and only one fails inside its own training distribution.</p>
+
+  <p>The rest of this page is about the opposed pair, because it is the arrangement whose failure
+  is now understood well enough to say what would fix it. The inline arrangement's own open
+  problems &mdash; de-centering, over-clamping, and a reorientation that stalls near cos 0.9 &mdash;
+  are unchanged from the earlier work and are summarised in Part&nbsp;3.</p>
+</section>
+
+<!-- ================= PART ONE ================= -->
+<div class="part">
+  <p class="part-no">Part two</p>
+  <h2>How the opposed pair works, and where it ends</h2>
   <p class="part-lede">The mechanism, the policy that exploits it, and the measurements that say
   it should survive contact with hardware.</p>
 </div>
 
 <section>
-  <h3><span class="h3no">1.1</span>The mechanism</h3>
+  <h3><span class="h3no">2.1</span>The mechanism</h3>
 
   <p>Two fingertips pressed on opposite sides of a cylinder sit on its axis of rotation. They can
   carry the shaft but exert almost no torque about that axis, so the pinch behaves as a low-friction
@@ -309,7 +398,7 @@ footer a{color:var(--muted);}
 </section>
 
 <section>
-  <h3><span class="h3no">1.2</span>One policy, not two</h3>
+  <h3><span class="h3no">2.2</span>One policy, not two</h3>
 
   <p>The program's standing architecture splits lift and reorientation into two policies, A and B,
   with a handoff. On this topology that split is what breaks the task, and the evidence is a control
@@ -357,17 +446,10 @@ footer a{color:var(--muted);}
 </section>
 
 <section>
-  <h3><span class="h3no">1.3</span>What it does</h3>
+  <h3><span class="h3no">2.3</span>What it does</h3>
 
   <p>Deterministic policy, 64 parallel rollouts on the current scene. The shaft is picked off the
   floor, rotated to vertical, and held there by the fingers rather than resting on anything.</p>
-
-  <figure class="fig">
-    <video controls muted loop playsinline preload="metadata" src="{{ASSET:r4_video}}"></video>
-    <figcaption><b>Policy r4, 600 steps at 50&nbsp;Hz.</b> The lift completes by about step 40 and the
-    shaft is vertical well before the horizon. Rendered at 960&times;720 from the run's own
-    configuration.</figcaption>
-  </figure>
 
   <figure class="fig">
     <img src="{{ASSET:r4_strip}}" alt="Eight phase-aligned frames from the r4 rollout, showing the shaft flat on the floor, lifted, and hanging vertically between the two opposed fingers.">
@@ -394,7 +476,7 @@ footer a{color:var(--muted);}
         <tr><td class="rowlab">Vertical <em>and</em> held</td><td class="num best">255 &plusmn; 93</td>
             <td><b>about 5.1 s</b> &mdash; the demo window</td></tr>
         <tr><td class="rowlab">Object lost at</td><td class="num bad">389 &plusmn; 25</td>
-            <td>the open problem, see 1.5</td></tr>
+            <td>the open problem, see 2.5</td></tr>
       </tbody>
     </table>
   </div>
@@ -406,7 +488,7 @@ footer a{color:var(--muted);}
 </section>
 
 <section>
-  <h3><span class="h3no">1.4</span>Why it should transfer</h3>
+  <h3><span class="h3no">2.4</span>Why it should transfer</h3>
 
   <p>Two properties were measured specifically because they are what usually breaks an in-hand
   manipulation policy on hardware.</p>
@@ -465,7 +547,7 @@ footer a{color:var(--muted);}
 </section>
 
 <section>
-  <h3><span class="h3no">1.5</span>What is not solved</h3>
+  <h3><span class="h3no">2.5</span>What is not solved</h3>
 
   <p>Every rollout eventually loses the shaft, at step 389&nbsp;&plusmn;&nbsp;25. The cause is a slow
   slide of the object down through the pinch. Measured in the palm frame, the shaft travels
@@ -548,7 +630,7 @@ footer a{color:var(--muted);}
 
 <!-- ================= PART TWO ================= -->
 <div class="part">
-  <p class="part-no">Part two &middot; appendix</p>
+  <p class="part-no">Part three &middot; appendix</p>
   <h2>Where the problem, the method and the alternatives came from</h2>
   <p class="part-lede">Background for the choices above: what the earlier architecture was, how each
   element of the method was forced by a specific failure, and how the alternatives measure against
@@ -579,7 +661,37 @@ footer a{color:var(--muted);}
 
   <p>The opposed-finger topology was introduced as an exploratory change and removes both problems
   rather than solving them. There is no seam because there are not two policies, and there is no
-  compliance dependence because the reorientation is a pivot rather than a roll.</p>
+  compliance dependence because the reorientation is a pivot rather than a roll. What it removes
+  them at the cost of is the grasp, which is the subject of Part&nbsp;1.</p>
+
+  <h4>Where the inline arrangement actually stands</h4>
+  <p>Measured on the current checkpoint pair rather than quoted from the log. Over a 300-step
+  continuous handoff, the health scorecard returns WARN with the critical checks passing:</p>
+
+  <div class="tbl">
+    <table>
+      <caption>a10 &rarr; b33 continuous handoff, 300 steps</caption>
+      <thead><tr><th>Check</th><th>Result</th></tr></thead>
+      <tbody>
+        <tr><td class="rowlab">Drop</td><td>PASS &mdash; minimum hold-phase height 0.127 m</td></tr>
+        <tr><td class="rowlab">Idle finger</td><td>PASS &mdash; 9.5 / 5.6 / 5.5 N, contact 1.00 / 1.00 / 0.96</td></tr>
+        <tr><td class="rowlab">Late finger</td><td>PASS &mdash; thumb at step 1, index 0, middle 1</td></tr>
+        <tr><td class="rowlab">Jitter</td><td>PASS &mdash; angular jerk 10.2</td></tr>
+        <tr><td class="rowlab">De-centering</td><td>WARN &mdash; 8.0 cm of path against 0.9 cm net</td></tr>
+        <tr><td class="rowlab">Over-clamp</td><td>WARN &mdash; mean fingertip 6.9 N</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>Three open problems, all long-standing. The reorientation stalls near cos 0.9 rather than
+  completing. The object slides around under the fingers &mdash; eight centimetres of travel to
+  reach a net displacement of one &mdash; which is the de-centering the co-refinement work reduced
+  but did not remove. And the grip is harder than it needs to be, though the earlier chase after
+  grip force on this hand turned out to be measuring the wrong thing and should not be resumed
+  without a specific reason.</p>
+
+  <p>Set against the opposed pair, none of these is fatal, and the thing it does have is the thing
+  the opposed pair cannot get: three fingers carrying load on an object it keeps hold of.</p>
 </section>
 
 <section>
@@ -651,11 +763,11 @@ footer a{color:var(--muted);}
       </tr></thead>
       <tbody>
         <tr>
-          <td class="rowlab">Baseline hand, two-stage<br><span style="color:var(--muted);font-size:13px">roll between fingertips</span></td>
-          <td>yes, after a live-reset training scheme</td>
-          <td>yes</td>
+          <td class="rowlab">Inline pair + thumb (a10&rarr;b33)<br><span style="color:var(--muted);font-size:13px">enveloping, rolls between fingertips</span></td>
+          <td>partial &mdash; peak 0.911, settles 0.884</td>
+          <td class="best">yes, through its horizon</td>
           <td class="bad">no &mdash; fails under hardening</td>
-          <td><span class="chip open">superseded</span></td>
+          <td><span class="chip ok">best hold</span></td>
         </tr>
         <tr>
           <td class="rowlab">Opposed pair, scripted<br><span style="color:var(--muted);font-size:13px">open-loop gravity swing</span></td>
@@ -674,7 +786,7 @@ footer a{color:var(--muted);}
         <tr>
           <td class="rowlab"><strong>Opposed pair, single-stage (r4)</strong><br><span style="color:var(--muted);font-size:13px">pivot about the pinch</span></td>
           <td class="best">yes &mdash; 100%, cos 0.995</td>
-          <td>5.1 s, then slides out</td>
+          <td class="bad">no &mdash; 5.1 s, then slides out</td>
           <td class="best">yes &mdash; zero-shot to stiff</td>
           <td><span class="chip ok">current</span></td>
         </tr>
