@@ -1,0 +1,18 @@
+# sim2real robustness sweep 2026-08-18 16:15  a10->b33 (inline arrangement), n=32/point, 300 steps
+# one physical axis moved per point; deterministic actions, solver-noise spread
+baseline:trained           hold    1.0 reorient  0.906 peak  0.917 cos|held   0.877 minz  0.1234 
+compliance:dmax0.997       hold  0.469 reorient  0.094 peak  0.404 cos|held   0.566 minz  0.0123 
+compliance:dmax0.998       hold  0.688 reorient  0.281 peak  0.699 cos|held   0.653 minz  0.1155 
+compliance:dmax0.999       hold  0.125 reorient    0.0 peak  0.204 cos|held   0.529 minz  0.0123 
+friction:x0.5              hold  0.094 reorient  0.031 peak   0.26 cos|held  -0.097 minz  0.0123 
+friction:x0.7              hold    1.0 reorient  0.969 peak  0.935 cos|held   0.913 minz  0.1215 
+friction:x1.4              hold  0.875 reorient  0.844 peak  0.895 cos|held   0.888 minz  0.1181 
+mass:x0.6                  hold  0.406 reorient  0.281 peak  0.468 cos|held   0.754 minz  0.0123 
+mass:x1.6                  hold    1.0 reorient  0.875 peak  0.902 cos|held   0.868 minz  0.1281 
+mass:x2.5                  hold  0.906 reorient  0.781 peak  0.812 cos|held   0.873 minz  0.1278 
+shaft_radius:x0.85         hold  0.031 reorient    0.0 peak  0.557 cos|held  -0.653 minz  0.0057 
+shaft_radius:x1.15         hold  0.938 reorient  0.562 peak  0.836 cos|held    0.71 minz  0.1293 
+spawn_xy:+-2mm             hold  0.906 reorient  0.812 peak  0.909 cos|held   0.887 minz  0.1215 
+spawn_xy:+-5mm             hold  0.375 reorient  0.281 peak  0.453 cos|held    0.81 minz  0.0123 
+spawn_yaw:+-0.1rad         hold  0.969 reorient  0.844 peak  0.883 cos|held   0.898 minz  0.1228 
+spawn_yaw:+-0.3rad         hold  0.562 reorient  0.531 peak  0.761 cos|held   0.911 minz  0.1054 

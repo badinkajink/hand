@@ -3896,3 +3896,96 @@ state. Also refreshed per-draw sd (0.35 vs 0.34) and the express count (10/27). 
 --features html` verified clean (247 KB). NB `paper/main.tex` is gitignored (working copy) — its fixes
 are on disk only; the committed changes are `webpaper/src/rl.typ` + the STATUS bullet + this note.
 No GPU launch; promotion / conditioned-policy remain the user's decision.
+
+### 2026-08-18 — INLINE ARRANGEMENT, sim2real: where it actually breaks, and what fingertip shape buys
+
+Direction change (user): the opposed/perp arrangement is dropped — it needs a physical 90° remount the
+±45° yaw servo cannot produce, and r5/r6/r7 all failed to make its pinch retain the tool. The **inline
+pair + opposing thumb (m05, a10→b33)** is the arrangement the prototype natively supports and is now the
+sim2real candidate. Two questions answered here: how robust is it, and what should the physical
+fingertip look like.
+
+New shared plumbing: `src/morphohand/studies/scene_mutate.py` — one place that perturbs a frozen scene
+along a single physical axis (contact stiffness, friction, object mass/radius, fingertip shape),
+inertia-pinned so a geometry edit never becomes a silent mass edit (`tests/test_scene_mutate.py`).
+
+**1. Robustness battery** (`scripts/sim2real_robustness_sweep.py`, `SIM2REAL_ROBUSTNESS.txt`).
+Frozen a10→b33, continuous handoff, n=32 × 300 steps per point, one axis moved at a time. Baseline
+hold 1.00 / reorient 0.91 / cos|held 0.88. Ranked by how little it takes to break it:
+
+| axis | breaks at | reorient rate |
+|---|---|---|
+| **pad friction ↓** | ×0.5 (μ 2.4→1.2) | 0.03, hold **0.09** — the worst cliff of all |
+| **shaft diameter ↓** | ×0.85 (25→21 mm) | 0.00, hold 0.03, cos −0.65 |
+| **contact stiffness ↑** | dmax 0.995→0.997 | 0.09 (0.998 → 0.28, 0.999 → 0.00) |
+| **tool mass ↓** | ×0.6 | 0.28, hold 0.41 — a *lighter* tool breaks it |
+| placement xy | ±5 mm | 0.28 (±2 mm → 0.81) |
+| placement yaw | ±0.3 rad | 0.53 (±0.1 rad → 0.84) |
+| tool mass ↑ | ×1.6, ×2.5 | 0.88, 0.78 — tolerant |
+| pad friction ↑ | ×1.4 | 0.84 — tolerant |
+
+The three worst are all the same physical statement: **anything that reduces purchase at the contact
+kills it**, and it is one-sided — more friction, more mass and a fatter shaft are all fine. Friction is
+the headline: the scene's μ=2.4 is an optimistic silicone-on-steel figure, and half of it is fatal. The
+hardware tolerances that follow are ±2 mm placement, ±0.1 rad yaw, and a pad that must deliver μ ≳ 1.7.
+
+**2. Fingertip shape.** Two findings before any sweep, both from looking rather than inferring:
+
+- The shipped "capsule" tip meets the shaft on its **hemispherical end cap** — measured contact point
+  5.01 mm from the cap centre, and a sphere substituted at matched reach reproduces its mechanics to
+  three decimals. **The hand already makes spherical point contact.** The user's objection to spheres
+  is an objection to what is shipping.
+- Reach-normalisation is mandatory. In the first render six of eight candidate shapes were **buried
+  inside the distal capsule** (r=7.5 mm, end cap on the tip origin) and never touched the object at
+  all. Contact arrives off the tip's +x end at local (+10.4, 0, −2.4) mm, so every shape is now
+  translated to present its surface at the shipped 11 mm. This is lesson #5 (IK-retarget across
+  morphologies) in a new coordinate.
+
+Zero-shot a10→b33 on each shape (`scripts/fingertip_policy_sweep.py`, n=32 × 300, `FINGERTIP_POLICY.txt`):
+
+| tip | hold | reorient | peak cos |
+|---|---|---|---|
+| `cap_cross` r5 h6 (**shipped**) | 1.00 | 1.00 | 0.926 |
+| `cap_cross` r6 h6 | 0.97 | 0.97 | **0.944** |
+| `cap_cross` r5 h10 | 0.97 | 0.94 | 0.929 |
+| `sphere` r5 | 1.00 | 0.84 | 0.914 |
+| `ellipsoid` | 0.94 | 0.75 | 0.785 |
+| `cap_cross` r4 h6 | 0.94 | 0.66 | 0.834 |
+| `cap_cross` r8 h6 | 0.66 | 0.63 | 0.822 |
+| `cylinder_line` | 0.72 | 0.38 | 0.584 |
+| `cap_line` (line contact along the shaft) | 0.66 | 0.13 | 0.654 |
+| `groove_cradle` / `groove_bite` | 0.53 / 0.63 | 0.13 / 0.09 | 0.37 / 0.51 |
+| `pad_flat` | 0.28 | 0.06 | 0.460 |
+
+**Compact convex point contact wins; every attempt to enlarge the contact patch loses.** Line contacts,
+ridged/grooved pads and flat pads all degrade the reorient badly — the mechanism is a ROLL, and a patch
+that resists rolling destroys it. Radius has an interior optimum around 5–6 mm (r4 and r8 both worse).
+
+**Resolution caveat, measured not assumed:** the identical shipped configuration scored reorient 0.906
+in the robustness sweep and 1.000 here — same policies, same scene, n=32 both times. So run-to-run
+spread at n=32 is ~±0.1 and **differences below ~0.15 in these tables are not resolvable.** The top four
+rows are one group; the bottom six are clearly worse.
+
+**3. The turn/hold ratio is invariant to tip shape** (`scripts/probe_fingertip_mechanics.py`,
+`FINGERTIP_MECHANICS.json`). Policy-free: hold at the best pad-loading closure, then ramp force along
+the shaft (hold) and torque about it (turn), both normalised by pad load. Across all eight shapes the
+axial-capacity-per-roll-resistance ratio sits at **2.04–2.32** — flat. Absolute levels move a lot
+(axial/N from 0.21 for `groove_bite` to 1.45 for `pad_flat`) but the trade does not. This is the perp
+programme's "rotation and retention are one variable" finding again, now in geometry rather than reward:
+**fingertip shape sets how hard the contact grips, it does not let you hold better without turning
+worse.** The probe also disagrees with the policy ranking (`pad_flat` has the best axial/N and the worst
+policy score), so mechanics at a 5 N scripted grip does NOT predict behaviour at the 20 N operating
+grip — the policy sweep is the one to trust.
+
+**Pad compliance spec.** At the probed grip the shipped tip penetrates 0.82 mm at 4.84 N of pad load
+(0.169 mm/N). That interpenetration is MuJoCo's stand-in for pad deflection, and the contact-stiffness
+row above says the reorient dies as soon as it is reduced. So the compliance is a **hardware
+requirement, not a solver setting**: the physical pad must deform on the order of 1–3 mm at operating
+load. A rigid printed tip will not reproduce b33 regardless of its shape.
+
+**Recommendation.** Keep the shipped tip geometry (optionally r 5→6 mm, the only variant that is
+arguably better and never worse); do NOT go to a flat or grooved compliant pad, which is the intuitive
+choice and the measurably wrong one; specify the pad for μ ≳ 1.7 and ~1–3 mm deflection at load. Open
+and NOT started: hardening b33 by domain-randomising the three cliff axes (friction, shaft diameter,
+contact stiffness) — multi-day GPU, and the earlier compliance-DR attempt reached a holding basin with
+reorient 0.00, so it needs the friction/diameter axes added rather than a rerun. User's call.

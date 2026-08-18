@@ -1,0 +1,14 @@
+# fingertip shape x shipped policy (zero-shot) 2026-08-18 16:25
+# a10->b33, n=32/point, 300 steps, continuous handoff. 'cap_cross' r5 h6 IS the shipped tip = the baseline row.
+shape:sphere                       hold    1.0 reorient  0.844 peak  0.914 cos|held   0.869 minz  0.1258 
+shape:cap_cross                    hold    1.0 reorient    1.0 peak  0.926 cos|held   0.897 minz  0.1219 
+shape:cap_line                     hold  0.656 reorient  0.125 peak  0.654 cos|held   0.376 minz  0.1186 
+shape:ellipsoid                    hold  0.938 reorient   0.75 peak  0.785 cos|held    0.87 minz  0.1252 
+shape:pad_flat                     hold  0.281 reorient  0.062 peak   0.46 cos|held  -0.016 minz  0.0077 
+shape:cylinder_line                hold  0.719 reorient  0.375 peak  0.584 cos|held   0.736 minz  0.1249 
+shape:groove_cradle                hold  0.531 reorient  0.125 peak  0.366 cos|held  -0.067 minz  0.0887 
+shape:groove_bite                  hold  0.625 reorient  0.094 peak  0.508 cos|held   0.098 minz   0.111 
+size:cap_cross_r4h6                hold  0.938 reorient  0.656 peak  0.834 cos|held   0.773 minz  0.1273 
+size:cap_cross_r6h6                hold  0.969 reorient  0.969 peak  0.944 cos|held   0.926 minz  0.1226 
+size:cap_cross_r8h6                hold  0.656 reorient  0.625 peak  0.822 cos|held   0.885 minz   0.118 
+size:cap_cross_r5h10               hold  0.969 reorient  0.938 peak  0.929 cos|held   0.893 minz  0.1224 
