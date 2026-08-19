@@ -35,6 +35,7 @@ import mujoco
 import numpy as np
 
 TIP_BODIES = ("thumb_tip", "index_tip", "middle_tip")
+PROXIMAL_BODIES = ("thumb_mcp_frame", "index_mcp_frame", "middle_mcp_frame")
 OBJECT_BODY = "screwdriver_medium"
 
 
@@ -238,6 +239,40 @@ class Scene:
                 size = [float(v) for v in (g.get("size") or "").split()]
                 if len(size) == 2:                  # cylinder: (radius, half-length)
                     g.set("size", f"{size[0] * factor:.6g} {size[1]:.6g}")
+        return self
+
+    # -- proximal phalanx ---------------------------------------------------
+    def shorten_proximal(self, *, pin_mass: bool = True) -> "Scene":
+        """Trim each proximal collision capsule back to its own KINEMATIC length.
+
+        The generator writes a fixed 50 mm capsule into `<f>_mcp_frame` no matter what the
+        design's proximal length is; the length parameter only moves where `<f>_len_frame`
+        attaches. On m05 that leaves 9-14 mm where the middle phalanx sits INSIDE the proximal
+        capsule (25 mm on the short base) — not manufacturable, and load-bearing, because at grip
+        force a share of the load runs through the sleeve rather than the pads
+        (`docs/notes/finger_spec.md` §3a).
+
+        The fix is to draw the proximal by the same rule the middle and distal phalanges already
+        follow: `fromto 0 0 0 L 0 0` with L the kinematic length, read per finger off the child
+        `<f>_len_frame`'s x-offset. The hemispherical end cap still extends r past the joint,
+        exactly as the middle's and distal's do — this makes the proximal consistent, it does not
+        invent a new convention.
+
+        `pin_mass` (default) holds the link's compiled mass/inertia at the 50 mm value so the
+        only thing that moved is the contact surface (THE MASS TRAP). A real shortened link is
+        also lighter; that is a separate axis and gets its own point rather than riding along.
+        """
+        for b in _bodies(self.root, PROXIMAL_BODIES):
+            child = next((c for c in b.findall("body")
+                          if (c.get("name") or "").endswith("_len_frame")), None)
+            if child is None:
+                raise ValueError(f"{b.get('name')} has no _len_frame child to read length from")
+            length = float((child.get("pos") or "0 0 0").split()[0])
+            if pin_mass:
+                _pin_inertial(b, self.inertials)
+            for g in b.findall("geom"):
+                if g.get("type") == "capsule" and g.get("fromto") is not None:
+                    g.set("fromto", f"0 0 0 {length:.6f} 0 0")
         return self
 
     # -- fingertips ---------------------------------------------------------
