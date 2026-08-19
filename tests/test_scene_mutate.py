@@ -123,3 +123,36 @@ def test_comments_survive_a_mutation(tmp_path):
         "<worldbody>", "<worldbody>\n    <!-- load-bearing rationale -->", 1))
     out = Scene(src).set_tip_shape("sphere").write(tmp_path / "out.xml")
     assert "load-bearing rationale" in out.read_text()
+
+
+def test_proximal_length_moves_the_joint_not_just_the_capsule(tmp_path):
+    """`set_proximal_length` changes the ROBOT, so the middle phalanx has to move with the draw.
+
+    `shorten_proximal` deliberately leaves kinematics alone (it only fixes the drawing); if the
+    two ever collapsed into each other, a "short proximal" hand would still have the long hand's
+    reach and every reach-shell verdict taken on it would be wrong.
+    """
+    out = _write(tmp_path, lambda s: s.set_proximal_length(0.025))
+    after = mujoco.MjModel.from_xml_path(str(out))
+    for finger in ("thumb", "index", "middle"):
+        assert after.body(f"{finger}_len_frame").pos[0] == pytest.approx(0.025)
+
+
+def test_proximal_length_shortens_the_reach_by_what_it_removed(tmp_path):
+    """The point of the mutation is a shorter finger; measure it at the tip, not in the XML."""
+    before = mujoco.MjModel.from_xml_path(str(FROZEN))
+    removed = float(before.body("index_len_frame").pos[0]) - 0.025
+    out = _write(tmp_path, lambda s: s.set_proximal_length(0.025))
+    after = mujoco.MjModel.from_xml_path(str(out))
+    bd, ad = mujoco.MjData(before), mujoco.MjData(after)
+    mujoco.mj_forward(before, bd)
+    mujoco.mj_forward(after, ad)
+    drop = np.linalg.norm(bd.body("index_tip").xpos - bd.body("index_mount").xpos) - \
+        np.linalg.norm(ad.body("index_tip").xpos - ad.body("index_mount").xpos)
+    assert drop == pytest.approx(removed, abs=1e-6)
+
+
+def test_proximal_length_holds_link_mass(tmp_path):
+    """THE MASS TRAP: a shorter link is also a lighter one, and that is a separate claim."""
+    out = _write(tmp_path, lambda s: s.set_proximal_length(0.025))
+    assert mass_check(FROZEN, out) == {}

@@ -1113,3 +1113,74 @@ search, and the thumb brace (r7) — have all returned the same shape of answer.
 the expenditure of the pinch, and nothing added around the edges changes that. The inline pair
 opposing the thumb keeps the object on three loaded fingers and gives up the last 10 degrees of
 rotation, which is the better trade for anything that has to hold the tool afterwards.
+
+---
+
+## 2026-08-19 — the thumb DOES have a job on this hand, and r7's open reading is now closed
+
+Re-opened at the user's request with a hand-authored `open_manual` keyframe in
+`assets/mjcf/perp/scenes/scene_screwdriver_medium_perp.xml`: the pair's tips seated closer to the
+shaft's centre of mass and yawed toward the midline, the thumb parked forward on its rail
+(`thumb_x` +50 mm) and yawed clear. The question was whether a *scripted* thumb trajectory could
+be found at all, before spending another training run looking for one.
+
+New probe: `scripts/probe_perp_thumb_engage.py`. Phases are settle → close → lift → hang →
+engage → press, every finger posed by fingertip IK onto a point stated in the OBJECT's frame
+("s mm along the shaft axis, at azimuth φ around it, d mm inside the surface"), never by joint
+offsets. The engage is gated on `--engage-at-cos`, not on a step count.
+
+### 1. r7's open reading is settled: touching, at that geometry, IS dropping
+
+Six scripted engages — thumb contact point s ∈ {+15, +5, −5} mm × depth ∈ {4, 8} mm — put
+8–11 N of thumb on the shaft, and **all six ejected it**, every one landing on the floor. The
+r7 policy could reach the shaft; it declined because at that geometry the reach *is* the drop.
+
+The mechanism is force closure, not reward shaping. After the swing the pair's two contacts sit
+at ±90° — diametrically opposite, so their normals are collinear along Y. A thumb approaching
+from −X pushes along +X, which is tangential to both, and nothing but friction opposes it. There
+is no thumb trajectory that fixes this, because the defect is in where the *other two* fingers
+are.
+
+### 2. Move the pair onto the +x flanks and the same thumb push becomes a chuck
+
+`--chuck-tilt` swings the pair's contacts off ±90° toward +x during the engage. At ±60° the three
+inward normals positively span the plane and the shaft is caged. Contact targets must also be
+re-solved during the hold (`--track-every`): a target solved once goes stale, the shaft creeps a
+fraction of a millimetre, all three contacts unload together, and it falls straight through a
+cage that still looks closed — the whole failure takes ~300 steps and the trace shows forces
+bleeding 3 N → 0 N before anything moves.
+
+### 3. The result is a proximal-length verdict, not a thumb verdict
+
+Same maneuver, same object-relative targets, two hands. `scripts/build_perp_shortprox.py` builds
+the 25 mm-proximal opposed hand (`Scene.set_proximal_length`, palm dropped by the 25 mm removed,
+every fingertip IK-retargeted to the long hand's own world targets — reach shells check OK).
+
+Hold window = the 3000 steps after the engage completes. "Held vertical" = cos ≥ 0.90 AND not
+on the floor, asked of the physics.
+
+| hand | pair only | thumb at ±90° | three-finger chuck |
+|---|---|---|---|
+| **50 mm proximal** (shipped perp) | peak 1.000, drops | ejects | **best 38%, never holds** (12 settings: depth ×4, tilt ×3) |
+| **25 mm proximal** | peak 1.000, drops | ejects | **100% held vertical, 100% three fingers loaded** |
+
+The short hand holds across engage gates cos ≥ 0.7 / 0.85 / 0.95 (100% / 100% / 100%), final cos
+0.984–0.993, object at z 0.18 with 11 / 16 / 15 N on thumb / index / middle. The long hand does
+not hold at any of the twelve chuck settings tried. Shorter links mean less lever arm between the
+joint servo and the pad, so the same `kp` holds the contact preload the long finger bleeds away.
+
+**This is the first three-finger vertical hold on the opposed topology.** Renders:
+`docs/experiments/20260819-perp_thumb_engage/HERO_sp25_{pair_only,eject,chuck}/rollout.mp4`.
+
+### 4. What it is not
+
+- **Open-loop and tightly tuned.** The chuck survives ±2 mm of spawn shift along x and fails at
+  3 mm along y. It is a scripted maneuver with object-pose feedback, not a policy.
+- **Over-clamped.** 11–17 N per finger against the 4–9 N window this topology reorients in. The
+  hold is bought with force.
+- **Sequential, not simultaneous.** Gravity turns the shaft on two fingers and the third arrives
+  afterwards to catch it. The inline hand reorients *while* three fingers are loaded. This is a
+  catch, and the catch has a timing window: the shaft is fastest exactly at vertical, so the gate
+  that reads best (0.85) is deliberately early.
+- **Not trained.** Nothing here has been through PPO. What it establishes is that a basin exists
+  and where it is, which is what every previous thumb attempt was missing.
