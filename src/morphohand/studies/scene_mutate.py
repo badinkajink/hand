@@ -275,6 +275,30 @@ class Scene:
                     g.set("fromto", f"0 0 0 {length:.6f} 0 0")
         return self
 
+    def set_proximal_length(self, length: float, *, pin_mass: bool = True) -> "Scene":
+        """Set the proximal phalanx to `length` metres — capsule AND kinematics together.
+
+        `shorten_proximal` fixes a DRAWING inconsistency and leaves the robot's kinematics
+        alone. This changes the robot: it moves `<f>_len_frame` as well, so the whole finger
+        gets shorter and every reach shell moves with it. The 25 mm proximal is the short base
+        the m05 lineage is built on (`docs/notes/finger_spec.md` §2), and a hand built on it
+        reaches ~25 mm less far — a scene mutated this way generally needs its keyframes
+        re-solved and its palm re-seated before it can touch the object at all.
+        """
+        for b in _bodies(self.root, PROXIMAL_BODIES):
+            child = next((c for c in b.findall("body")
+                          if (c.get("name") or "").endswith("_len_frame")), None)
+            if child is None:
+                raise ValueError(f"{b.get('name')} has no _len_frame child")
+            if pin_mass:
+                _pin_inertial(b, self.inertials)
+            for g in b.findall("geom"):
+                if g.get("type") == "capsule" and g.get("fromto") is not None:
+                    g.set("fromto", f"0 0 0 {length:.6f} 0 0")
+            pos = (child.get("pos") or "0 0 0").split()
+            child.set("pos", f"{length:.6f} {pos[1]} {pos[2]}")
+        return self
+
     # -- fingertips ---------------------------------------------------------
     def set_tip_shape(self, shape: str, r: float = 0.005, h: float = 0.006,
                       reach: float = SHIPPED_REACH) -> "Scene":
