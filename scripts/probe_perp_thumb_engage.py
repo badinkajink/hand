@@ -208,6 +208,26 @@ def main() -> None:
                          "push. 0 leaves the pair where the swing put it (two collinear "
                          "normals; the thumb then ejects the shaft).")
     ap.add_argument("--chuck-depth", type=float, default=0.003)
+    ap.add_argument("--chuck-x", type=float, default=0.0,
+                    help="metres to move BOTH pair pads toward +x of the shaft axis while "
+                         "holding their +-y separation, so they push back along -x against the "
+                         "thumb without loosening the pinch. This is the same intent as "
+                         "--chuck-tilt but keeps the grasp CENTRED: tilting around the axis "
+                         "shrinks the y half-separation to cos(tilt)*r, so the pads slide off "
+                         "toward whichever flank the shaft drifts to.")
+    ap.add_argument("--chuck-frame", choices=("object", "palm"), default="object",
+                    help="which frame the PAIR's hold targets are stated in. 'object' re-solves "
+                         "them from the shaft every retrack -- so the pads CHASE a shaft that is "
+                         "sliding along the pinch axis and can never push it back; the trace "
+                         "shows y walking out 40 mm with the far pad unloading to 4 N. 'palm' "
+                         "pins them in the hand at engage time, so a shaft that drifts runs "
+                         "into a pad that stayed put.")
+    ap.add_argument("--pair-yaw-bias", type=float, default=0.0,
+                    help="radians of YAW preload added to each pair finger during the hold, "
+                         "signed so both pads push back along -x against the thumb. The pinch "
+                         "clamps along y and cannot otherwise react the thumb at all; without "
+                         "this the shaft slides toward whichever pad it is closest to and the "
+                         "other unloads.")
     ap.add_argument("--track-every", type=int, default=0,
                     help="re-solve every finger's contact target every N steps through engage "
                          "and press. A target solved once goes stale: the shaft creeps a "
@@ -294,10 +314,32 @@ def main() -> None:
     engage_ctrl: dict[str, np.ndarray] = {}
     chuck_ctrl: dict[str, np.ndarray] = {}
     chuck_s: dict[str, float] = {}
+    chuck_palm_tgt: dict[str, np.ndarray] = {}
     engage_target: np.ndarray | None = None
     thumb_ctrl_at_engage: np.ndarray | None = None
 
     gated = args.engage_at_cos <= 0.0
+
+    # Which way each pair finger has to YAW to push back against the thumb. On this topology the
+    # yaw axis IS the finger's pointing axis, so yawing rolls the mcp/pip swing plane and, with
+    # the finger flexed, carries the tip along x — the one axis the thumb loads and the pinch
+    # (clamping along y) otherwise reacts only through friction. Measured off the model rather
+    # than reasoned from the mount quats, which differ in sign between index and middle.
+    yaw_sign = {}
+    probe = mujoco.MjData(model)
+    probe.qpos[:] = data.qpos
+    for finger in ("index", "middle"):
+        adr = model.jnt_qposadr[model.joint(FINGERS[finger][0]).id]
+        mujoco.mj_forward(model, probe)
+        x0 = float(probe.body(TIPS[finger]).xpos[0])
+        probe.qpos[adr] += 0.05
+        mujoco.mj_forward(model, probe)
+        dx = float(probe.body(TIPS[finger]).xpos[0]) - x0
+        probe.qpos[adr] -= 0.05
+        # the thumb pushes +x, so preload the pads toward -x
+        yaw_sign[finger] = -1.0 if dx > 0 else 1.0
+        print(f"[yaw] {finger:6s} d(tip x)/d(yaw) = {dx*1000:+.2f} mm/0.05 rad  "
+              f"-> bias sign {yaw_sign[finger]:+.0f}")
 
     with mujoco.Renderer(model, height=args.height, width=args.width) as renderer:
         for step in range(total):
@@ -352,9 +394,29 @@ def main() -> None:
                             # and the fingers then drag the object off vertical instead of
                             # holding it.
                             s_f = chuck_s.setdefault(finger, axial_s(model, data, TIPS[finger]))
-                            tgt = chuck_target(model, data, s_f,
-                                               side * (90.0 - args.chuck_tilt), args.chuck_depth)
+                            if args.chuck_x != 0.0:
+                                centre, axis, _ = obj_frame(model, data)
+                                u = np.array([1.0, 0.0, 0.0])
+                                u = u - float(np.dot(u, axis)) * axis
+                                u /= max(np.linalg.norm(u), 1e-9)
+                                v = np.cross(axis, u)
+                                tgt = (centre + s_f * axis + args.chuck_x * u
+                                       + side * (obj_radius(model) - args.chuck_depth) * v)
+                            else:
+                                tgt = chuck_target(model, data, s_f,
+                                                   side * (90.0 - args.chuck_tilt),
+                                                   args.chuck_depth)
+                            if args.chuck_frame == "palm":
+                                R = data.body("palm_pose").xmat.reshape(3, 3)
+                                o = data.body("palm_pose").xpos
+                                if finger in chuck_palm_tgt:
+                                    tgt = R @ chuck_palm_tgt[finger] + o
+                                else:
+                                    chuck_palm_tgt[finger] = R.T @ (tgt - o)
                             vals, err = solve_ctrl(model, data, finger, tgt)
+                            if args.pair_yaw_bias != 0.0:
+                                vals = vals.copy()
+                                vals[0] += args.pair_yaw_bias * yaw_sign[finger]
                             first = finger not in chuck_ctrl
                             chuck_ctrl[finger] = vals
                             if first:
