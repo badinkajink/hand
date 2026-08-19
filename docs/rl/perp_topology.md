@@ -1184,3 +1184,58 @@ joint servo and the pad, so the same `kp` holds the contact preload the long fin
   that reads best (0.85) is deliberately early.
 - **Not trained.** Nothing here has been through PPO. What it establishes is that a basin exists
   and where it is, which is what every previous thumb attempt was missing.
+
+### CORRECTION (same day) — the above was run on BASE scenes, and the freeze changes the answer
+
+Everything in §1–§4 above ran on `assets/mjcf/perp/scenes/*.xml` with the morph joints (`thumb_x`,
+`index_y`, `<f>_len`, …) still live. They are unactuated but they are not rigid: under grip load
+the mounts slide inside their ranges, so the hand absorbs the thumb's push instead of the object
+taking it. That compliance was doing part of the holding. This is CLAUDE.md gotcha #4 and it
+applies to a scripted probe exactly as it applies to CEM — freeze first
+(`freeze_scene_for_eval`, scenes now in `results/phase1/perp_thumb_engage/`).
+
+Re-run frozen, three things move:
+
+**The pinch over-clamps.** The same commanded pad depth that gave 13–17 N on the base scene gives
+25–29 N frozen, and at that force the pair stops being a bearing: the shaft does not swing at all
+(peak cos 0.05, then it rotates the wrong way as the grip bleeds). The pinch has to be re-tuned
+to 0.2–1.0 mm of commanded depth, which puts the swing back (peak cos 0.99–1.00 on both hands).
+
+**The base-scene chuck does not survive.** The sp25 result that read 100% on the base scene reads
+0% frozen. Nothing held: every chuck variant either crushed (48–100 N) or dropped.
+
+**The failure has a direction, and it is the pinch axis.** The trace shows the shaft walking along
+palm-frame **y** — −8 mm → −44 mm — while the far pad unloads 35 N → 4 N and the near one takes
+20–100 N. That is the de-centring, and it is not the thumb's push along x that my chuck was built
+to react. It happens because the pair's hold targets were stated in the OBJECT's frame and
+re-solved every 20 steps: the pads chase a sliding shaft and can never push it back.
+
+### The fix: state the pair's hold in the PALM frame, not the object's
+
+`--chuck-frame palm` pins the pair's contact targets in the hand at engage time. A shaft that
+drifts then runs into a pad that stayed put. Nothing else changed.
+
+| frozen hand | pair only | palm-frame chuck (gates 0.7 / 0.85 / 0.95) |
+|---|---|---|
+| **50 mm proximal** | peak 0.99, drops | 53% / 53% / 53% — **never holds**, index at 1.4–1.7 N |
+| **25 mm proximal** | peak 1.00, drops | **100% / 100%** / 39% |
+
+The sp25 hold is insensitive to depth once the frame is right — six of six settings across
+thumb depth ∈ {−1, 0, +0.5} mm × chuck depth ∈ {0.2, 0.5} mm hold 100% with all three fingers
+loaded 100%. Final cos 0.975–0.994, object at z 0.136.
+
+So the proximal-length verdict survives the freeze; what did not survive is the claim that the
+chuck geometry alone was the enabling ingredient. Both are needed, and the second one is a
+**control** property (hand-fixed setpoints), not a geometric one.
+
+Renders: `docs/experiments/20260819-perp_thumb_engage/FROZEN_HERO_{sp25,perp50}_chuck/`.
+
+Still true from §4, unchanged: forces are 12–25 N per finger against the 4–9 N window this
+topology reorients in; the catch is sequential, gravity turning the shaft on two fingers before
+the third arrives; the engage gate at 0.95 fails on both hands because the shaft moves fastest
+exactly at vertical; and nothing here has been through PPO.
+
+Two things tried that did NOT work, recorded so they are not re-tried: an explicit yaw preload on
+the pair (`--pair-yaw-bias`, signed off a measured d(tip x)/d(yaw)) fights the IK pose it is added
+to and drove the thumb to 88 N; and moving both pads forward in +x at fixed ±y separation
+(`--chuck-x`) crushed at 48–100 N or dropped, at every value tried.
