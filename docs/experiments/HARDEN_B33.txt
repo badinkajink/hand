@@ -1,0 +1,26 @@
+# b33 DR-hardening 2026-08-18 16:42  finetune of b33 (actor+critic) under contact DR, 40M ts/arm
+# eval: continuous a10->B handoff, n=32 x 300 steps. SUCCESS = FLAT high curve, not a high point.
+b33_baseline@trained               hold  0.969 reorient  0.906 cos|held   0.868 
+b33_baseline@dmax0.997             hold  0.688 reorient  0.094 cos|held   0.386 
+b33_baseline@dmax0.998             hold  0.469 reorient  0.188 cos|held   0.652 
+b33_baseline@dmax0.999             hold  0.125 reorient  0.031 cos|held    0.56 
+b33_baseline@mu_x0.5               hold  0.062 reorient    0.0 cos|held  -0.252 
+b33_baseline@mu_x0.7               hold  0.969 reorient  0.938 cos|held   0.898 
+b33dr_compliance@trained           hold    0.0 reorient    0.0 cos|held    None 
+b33dr_compliance@dmax0.997         hold    0.5 reorient  0.156 cos|held   0.595 
+b33dr_compliance@dmax0.998         hold  0.688 reorient  0.219 cos|held    0.63 
+b33dr_compliance@dmax0.999         hold    0.0 reorient    0.0 cos|held    None 
+b33dr_compliance@mu_x0.5           hold  0.062 reorient  0.031 cos|held  -0.134 
+b33dr_compliance@mu_x0.7           hold  0.062 reorient  0.031 cos|held   0.636 
+b33dr_friction@trained             hold  0.938 reorient  0.938 cos|held   0.937 
+b33dr_friction@dmax0.997           hold  0.438 reorient  0.125 cos|held   0.646 
+b33dr_friction@dmax0.998           hold  0.312 reorient  0.062 cos|held   0.588 
+b33dr_friction@dmax0.999           hold    0.0 reorient    0.0 cos|held    None 
+b33dr_friction@mu_x0.5             hold  0.219 reorient  0.031 cos|held   0.098 
+b33dr_friction@mu_x0.7             hold  0.938 reorient  0.938 cos|held   0.922 
+b33dr_both@trained                 hold  0.156 reorient  0.031 cos|held   0.572 
+b33dr_both@dmax0.997               hold  0.656 reorient  0.281 cos|held   0.608 
+b33dr_both@dmax0.998               hold  0.906 reorient  0.406 cos|held   0.685 
+b33dr_both@dmax0.999               hold  0.188 reorient    0.0 cos|held  -0.282 
+b33dr_both@mu_x0.5                 hold  0.062 reorient  0.031 cos|held   0.575 
+b33dr_both@mu_x0.7                 hold  0.062 reorient    0.0 cos|held  -0.625 

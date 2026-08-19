@@ -3989,3 +3989,50 @@ choice and the measurably wrong one; specify the pad for μ ≳ 1.7 and ~1–3 m
 and NOT started: hardening b33 by domain-randomising the three cliff axes (friction, shaft diameter,
 contact stiffness) — multi-day GPU, and the earlier compliance-DR attempt reached a holding basin with
 reorient 0.00, so it needs the friction/diameter axes added rather than a rerun. User's call.
+
+### 2026-08-18 late — DR-hardening the inline reorienter: NEGATIVE, and it says fix the hardware instead
+
+Ran `scripts/harden_b33_queue.py` overnight (user-authorized): three 40M-timestep finetunes of b33
+with actor **and** critic warmstarted, under contact DR via the live-A reset, then all four policies
+(baseline included) re-measured across both cliff axes. `docs/experiments/HARDEN_B33.txt`. No arm
+collapsed; all three reached model_541 with healthy object height (0.095–0.125).
+
+| policy | @trained | @0.997 | @0.998 | @0.999 | @μ×0.5 | @μ×0.7 |
+|---|---|---|---|---|---|---|
+| b33 baseline | **0.91** | 0.09 | 0.19 | 0.03 | 0.00 | 0.94 |
+| + compliance DR | **0.00** | 0.16 | 0.22 | 0.00 | 0.03 | 0.03 |
+| + friction DR | **0.94** | 0.13 | 0.06 | 0.00 | 0.03 | 0.94 |
+| + both | **0.03** | 0.28 | 0.41 | 0.00 | 0.03 | 0.00 |
+
+(reorient rate, n=32 each.) **Nothing was hardened.** Two arms destroyed the nominal policy and the
+third gained nothing.
+
+**Compliance DR does not broaden the policy, it RELOCATES it.** Both compliance arms lose the soft
+end they used to work at (0.91 → 0.00 / 0.03) and peak in the *middle* of the DR band (`both` is best
+at dmax 0.998: hold 0.906, reorient 0.41). The policy did not learn to span stiffnesses; it re-tuned
+to the band's mean and gave up the end it had. This reproduces the earlier from-scratch compliance-DR
+failure (`compliance_dr_pipeline.py` → reorient 0.00) under a completely different protocol, so the
+**protocol was never the problem** — that hypothesis is now dead. Compliance DR is not a fix for this
+skill.
+
+**The friction arm is the internal control that makes this attributable.** It ran the identical 40M
+finetune and *retained* nominal performance (0.938 vs baseline 0.906), which rules out "40M steps of
+finetuning drifts the policy" as the explanation for the compliance arms' collapse. The cause is the
+compliance DR specifically.
+
+**The μ×0.5 cliff was not cracked, and is NOT proven impossible.** The friction arm trained roughly
+half its envs in that regime and still scores 0.03 there. But a static-capacity probe at μ×0.5 finds
+~5 N of axial capacity against a 0.24 N tool — holding is not the binding constraint, so this is a
+dynamic/strategy limit this DR did not resolve, not a wall. Stated as unresolved rather than settled.
+
+**What this converges with.** The fingertip study found the hold-per-turn ratio invariant across all
+eight tip shapes, and this finds the reorient un-broadenable across contact stiffness. Both say the
+same thing: **the rolling reorient is a narrow-band contact behaviour**, and neither geometry nor DR
+widens the band.
+
+**Recommendation — invert the sim2real strategy.** Stop trying to make the policy contact-agnostic;
+make the hardware match the contact regime the policy already works in. That regime is now specified:
+pad deflecting ~1–3 mm at operating load, μ ≳ 1.7, a compact convex (not flat, not grooved) tip at
+r 5–6 mm, tool placement ±2 mm / ±0.1 rad. This is a narrower hardware spec than "build any pad and
+train around it", but it is a *reachable* one, and three independent attempts now say the training-side
+route is not.
