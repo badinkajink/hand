@@ -21,11 +21,24 @@ ATTEMPTS=${ATTEMPTS:-3}
 START=${START:-2}                     # attempt 1 already ran (collapsed)
 A_CKPT="$ROOT/results/rl/20260819-1259-policyA_sp25_t2/tensorboard/model_609.pt"
 
+# Wait for the GPU to fall back to idle. REQUIRED BEFORE EVERY ATTEMPT, including the first:
+# relaunching a Warp process while the previous one's memory is still held gives a NaN in the
+# actor observation a few dozen iterations in, which looks exactly like a diverged policy. That
+# is what killed the original attempt 2 -- the loop was launched ~25 s after the previous run
+# died and crashed at iter 24.
+gpu_idle() {
+  for _ in $(seq 1 60); do
+    u=$(nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits | head -1)
+    [ "$u" -lt 2000 ] && return 0; sleep 15
+  done
+}
+
 for t in $(seq "$START" "$ATTEMPTS"); do
   TAG="b_sp25_scratch_t${t}"
   LOG="$ROOT/logs/sp25/B_sp25_scratch_t${t}.trainer.log"
   rm -f "${LOG}.COLLAPSED"
   echo "[sp25-B] === attempt $t/$ATTEMPTS -> $TAG"
+  gpu_idle
   MORPH=results/phase1/shortprox25/20260819-sp25_ik_cem \
   A_CKPT="$A_CKPT" B_CKPT=none \
   LIFT_DELTA=0.1 ONSET_STEP=40 BLEND=0 LIFT_TERM_START=58 REORIENT_START=58 TIP_LOST_STEPS=10 \
@@ -33,15 +46,18 @@ for t in $(seq "$START" "$ATTEMPTS"); do
   EXTRA_ARGS="--open-finger-from-keyframe" \
   TAG="$TAG" LOG="$LOG" bash scripts/train_handoff_liveA_reset.sh
 
-  if [ -e "${LOG}.COLLAPSED" ]; then
-    echo "[sp25-B] attempt $t COLLAPSED — retrying"
-    for _ in $(seq 1 40); do
-      u=$(nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits | head -1)
-      [ "$u" -lt 2000 ] && break; sleep 15
-    done
+  # A run only counts as survived if it neither tripped the watchdog NOR crashed. Checking the
+  # sentinel alone reported a NaN crash at iter 24 as a success, which is how a broken run gets
+  # written up as a morphology result.
+  RUN=$(ls -dt "$ROOT"/results/rl/*"$TAG" 2>/dev/null | head -1)
+  FINAL=$(ls -t "$RUN"/tensorboard/model_*.pt 2>/dev/null | head -1)
+  if [ -e "${LOG}.COLLAPSED" ] || grep -q "^Traceback" "$LOG" || [ -z "$FINAL" ] \
+     || [ "$(basename "${FINAL:-model_0.pt}")" = "model_0.pt" ]; then
+    why=COLLAPSED; [ -e "${LOG}.COLLAPSED" ] || why=CRASHED
+    echo "[sp25-B] attempt $t $why — retrying"
     continue
   fi
-  echo "[sp25-B] attempt $t SURVIVED — keeping $TAG"
+  echo "[sp25-B] attempt $t SURVIVED ($FINAL) — keeping $TAG"
   echo "$TAG" > "$ROOT/logs/sp25/B_KEPT"
   break
 done
