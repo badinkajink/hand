@@ -250,6 +250,10 @@ def main() -> None:
     ap.add_argument("--height", type=int, default=400)
     ap.add_argument("--video-stride", type=int, default=5)
     ap.add_argument("--log-every", type=int, default=50)
+    ap.add_argument("--save-npz", type=Path, default=None,
+                    help="write the rollout as a reference trajectory (qpos/qvel/cube_z/"
+                         "contacts/best_finger_ctrl) in the layout rl_train_cube.py's "
+                         "--morphology-run expects, so the scripted maneuver can seed training")
     args = ap.parse_args()
 
     # The scene's offscreen framebuffer defaults to 640x480; a larger --width/--height has to
@@ -315,6 +319,10 @@ def main() -> None:
     chuck_ctrl: dict[str, np.ndarray] = {}
     chuck_s: dict[str, float] = {}
     chuck_palm_tgt: dict[str, np.ndarray] = {}
+    ref_qpos: list[np.ndarray] = []
+    ref_qvel: list[np.ndarray] = []
+    ref_z: list[float] = []
+    ref_con: list[float] = []
     engage_target: np.ndarray | None = None
     thumb_ctrl_at_engage: np.ndarray | None = None
 
@@ -429,6 +437,13 @@ def main() -> None:
 
             mujoco.mj_step(model, data)
 
+            if args.save_npz is not None:
+                ref_qpos.append(data.qpos.copy())
+                ref_qvel.append(data.qvel.copy())
+                ref_z.append(float(data.body(OBJ).xpos[2]))
+                ref_con.append(float(sum(1 for v in finger_forces(model, data).values()
+                                         if v > 0.1)))
+
             R = data.body(OBJ).xmat.reshape(3, 3)
             cos = float(R[2, 2])
             if step % args.video_stride == 0 or step in grab_at:
@@ -498,6 +513,14 @@ def main() -> None:
         summary = {"hold_share": share, "three_finger_share": three, "mean_force": fmean}
     else:
         summary = {}
+
+    if args.save_npz is not None:
+        args.save_npz.parent.mkdir(parents=True, exist_ok=True)
+        np.savez(args.save_npz, qpos=np.stack(ref_qpos), qvel=np.stack(ref_qvel),
+                 cube_z=np.asarray(ref_z), contacts=np.asarray(ref_con),
+                 best_finger_ctrl=np.concatenate([closed_ctrl.get(f, np.zeros(3))
+                                                  for f in ("thumb", "index", "middle")]))
+        print(f"[probe] reference trajectory -> {args.save_npz} ({len(ref_qpos)} steps)")
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
     tile(strip, 3).save(args.out_dir / "filmstrip.png")
