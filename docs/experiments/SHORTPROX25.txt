@@ -1,0 +1,114 @@
+# 25 mm-proximal hand (sp25) vs shipped m05 — 2026-08-19
+#
+# QUESTION: train the shipped reorienter on a hand with SHORTENED PROXIMAL PHALANGES.
+# sp25 = m05 with the proximal length parameter zeroed: 25/25/25 mm vs m05's 35.8/37.3/40.9.
+# Mount XY held at m05's values, so proximal LENGTH is the only variable.
+#
+# Generated off assets/mjcf/baseline/scenes/scene_screwdriver_medium_flat_short_proximal.xml
+# (the base the whole landscape used — generate_morphology_xml.py's DEFAULT base scene holds a
+# CUBE and silently produces a different robot). Retargeted with the blessed retarget_scene
+# path: residuals 2.97 / 0.09 / 0.10 mm at the as-shipped palm pose, no joint at a limit.
+#
+# Artifacts:
+#   scene      assets/mjcf/experimental/shortprox25/scene_tp...p0d0000_...xml
+#   morph run  results/phase1/shortprox25/20260819-sp25_ik_cem
+#   A          results/rl/20260819-1259-policyA_sp25_t2          (from scratch, attempt 2/3)
+#   B          results/rl/20260819-1357-b_sp25_fromb33           (b33 warmstart, 40M ts)
+#   renders    docs/experiments/20260819-shortprox25_renders/
+# Every run parity-gated with assert_config_parity.py against a10 / b33.
+
+
+## 1. CEM GRASP (low variance — CEM is not seed-dominated the way PPO is here)
+
+metric                      m05 (36-41mm)   sp25 (25mm)
+score                              8.523        8.431
+cube_lift                         0.0536       0.0497
+cube_tip_contacts                    3.0          3.0
+mean_tip_distance                 0.0084       0.0031
+cube_xy_drift                     0.0006       0.0000
+cube_axis_tilt                    0.0022       0.0000
+cube_vel_norm                     0.0110       0.0030
+per-finger persistence       1.0/1.0/1.0  1.0/1.0/1.0
+
+sp25's static grip is CLEANER on every stability term; the lower score is entirely the 4 mm
+less lift. Filmstrip confirms a genuine 3-finger enclosure, tool level, clear of the table.
+
+
+## 2. POLICY A HEALTH (trajectory-health scorecard, same evaluator)
+
+check            a10 (m05)                         sp25_t2 (25mm)
+late_finger      PASS (thumb@1,index@0,middle@1)    PASS (same)
+idle_finger      11.1 / 12.0 N                      6.8 / 5.4 / 4.3 N
+drop             min obj-z 0.123                    min obj-z 0.113
+jitter           ang-jerk 20.9                      ang-jerk 6.3
+de_centering     WARN sliding: path 5.4cm >> net    PASS net 0.4cm path 1.4cm
+over_clamp       WARN 9.7 N                         WARN 5.5 N
+VERDICT          WARN                               WARN
+
+Same verdict, milder warning. sp25 grips at ~half the force, 3.3x smoother, and does not slide.
+Relevant to the hardware torque budget: finger_spec.md sizes MCP by linear extrapolation from
+pad load, so half the pad force relaxes the servo requirement proportionally.
+
+
+## 3. A->B HANDOFF, n=32, continuous (rate_point, the protocol b33's baseline was measured on)
+
+                       hold   reorient  align  peak_cos  cos|held  t_align  minz
+m05  a10 -> b33        0.969    0.938   1.000    0.920     0.887     44.0  0.1222
+sp25 A -> b33 zeroshot 0.344    0.219   0.406    0.529     0.704    199.2  0.0078
+sp25 A -> B finetuned  1.000    0.406   0.938    0.755     0.680     90.5  0.1106
+sp25 A -> B (repeat)   1.000    0.562   0.938    0.775     0.711     95.9  0.1105
+
+THE REPEAT ROWS ARE THE SAME CHECKPOINT. reorient_rate moved 0.406 -> 0.562 on re-evaluation:
++-0.16 of pure GPU-solver non-determinism at n=32. Weigh single numbers accordingly.
+
+b33 does NOT transfer to this hand zero-shot — it drops 2 of 3 rollouts (minz 0.0078 = floor).
+The finetune did real work: hold 0.344 -> 1.000, reorient 0.219 -> ~0.5.
+
+BEHAVIOUR (per-step trace + render, not inferred from the reward table): cos climbs steadily to
+a PLATEAU at 0.74 (~42 deg off vertical) by step 140, then decays to 0.66 by step 280 while tip
+force bleeds 17.7 N -> 1.4 N. Health flags idle_finger (contact count 2.56 < 3; index/middle
+touching only 82% / 74% of steps) and de_centering (slide ratio 11.6 — 9.0 cm path for 0.8 cm
+net). It turns the tool PARTWAY, then progressively unloads and lets it slide, rather than
+completing the roll. It is not failing to rotate and it is not rotating to the wrong pole.
+
+
+## 4. FROM-SCRATCH B — 0 for 4, UNRESOLVED
+
+b33's own config has init_actor_checkpoint=None: it was trained FROM SCRATCH at 20M ts, with
+a10 driving the live-A reset rather than seeding the actor. So the apples-to-apples length
+comparison is a from-scratch B, and it did not produce one.
+
+  t1  COLLAPSED  oscillated 0.02-0.12 for 55 iters, watchdog at iter 55   (genuine draw failure)
+  t2  CRASHED    NaN in actor observation group at iter 24
+  t3  CRASHED    NaN in actor observation group at iter 42
+  t4  COLLAPSED  oscillated, watchdog                                     (genuine draw failure)
+
+The NaN cause is NOT identified. Ruled out:
+  - shared Warp kernel cache (each run gets its own mktemp -d)
+  - relaunching before the GPU drained (gpu_idle now runs before EVERY attempt; crashes persist)
+  - palm interpenetration / clearance. The mcp_frame<->palm contact sits at -11.00 mm and ~677 N
+    in EVERY baseline scene including m05 — it is pre-existing, not introduced here — and over
+    4000 random joint poses per hand the penetration is -11.00 mm in BOTH, invariant to joint
+    angle. Identical in the two hands, so it cannot explain a difference between them.
+The control that makes this a real asymmetry: b33 IS a successful from-scratch B on m05.
+
+CAUTION, and it nearly went into this file as a result: the first survival check tested only for
+the collapse sentinel, so it reported the iter-24 NaN crash as a SURVIVING run. A crashed run and
+a converged one are indistinguishable from the metrics alone. train_B_sp25_attempts.sh now fails
+an attempt on a Traceback, a missing checkpoint, or a newest-checkpoint of model_0.pt.
+
+
+## 5. WHAT IS AND IS NOT ESTABLISHED
+
+ESTABLISHED — the 25 mm hand is VIABLE and grips BETTER. Cleaner CEM grasp on every stability
+term, better A health than a10 on force / jitter / de-centering, and a PERFECT hold rate through
+the handoff (1.000 vs 0.969). These are low-variance measurements.
+
+NOT ESTABLISHED — that 25 mm is worse for reorienting. The measured gap (0.94 vs ~0.5) is about
+1.5x the known per-design draw sd of 0.3-0.5, on n=1 A draw and n=1 B draw per length, with the
+evaluator itself moving +-0.16 on repeats of one checkpoint. The partial-turn-then-unload
+signature is mechanistically suggestive and worth a look, but it is not a length verdict.
+
+A real length verdict needs several independent A->B draws per length — days, not hours. This is
+the same resolution ceiling the morphology program hit and closed out on (morph_sweep_STATUS.md:
+per-design draw sd 0.3-0.5, gate-invisible, A-grade even anti-orders outcomes).
