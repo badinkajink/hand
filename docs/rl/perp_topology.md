@@ -1307,3 +1307,24 @@ r9 therefore holds the reward weight fixed and sweeps `--finger-residual-scale` 
 0.5 reproduces the constraint, 1.5 is the first scale covering the excursion. This deliberately
 breaks train/deploy parity (gotcha #13), so it must be evaluated at the same scale —
 `scripts/eval_perp_sp25_runs.sh` reads each run's own value out of its config.
+
+### r9 prediction, written before the run finishes
+
+Recorded now so the result is readable either way. Raising `finger_residual_scale` to 1.5 buys the
+authority to reach the hold, but it hands that authority to the policy for the WHOLE episode,
+including the swing — and the swing is the part this recipe spends most of its length protecting
+(light symmetric pinch, grip reward gated on rotation, anti-rotation terms zeroed, because above
+~10 N the opposed pair stops being a pin joint). So the likely outcome is not a clean win:
+
+* If **0.5 stays at ~0 and 1.5 shows a non-zero `chuck_pose_match`**, reach was the binding
+  constraint and the term is learnable — the result this run is for.
+* If **1.5 clamps and stops rotating** (peak cos collapses, grip climbs), the answer is that
+  uniform extra authority is the wrong instrument, and the right one is a **set-point schedule**:
+  keep the grasp set-point through the swing, switch to the chuck set-point once aligned, so the
+  residual stays small in both phases. That is the same "the grip is a SCHEDULE, not a preference"
+  argument the recipe already makes for grip force, applied to the pose instead. It needs new
+  action-layer code (a second `target_ctrl` with an alignment gate), which is why it was not the
+  first thing tried.
+* If **both arms stay at ~0 with episodes still ending near step 100**, the reach fix is
+  irrelevant until the two-finger hold survives long enough for the third finger to matter, and
+  the next move is the hold itself, not the reward.
