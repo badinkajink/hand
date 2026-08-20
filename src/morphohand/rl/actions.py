@@ -153,7 +153,19 @@ class LerpFingerActionCfg(ActionTermCfg):
     start_ctrl: tuple[float, ...]
     target_ctrl: tuple[float, ...]
     settle_sim_steps: int = 240
-    residual_scale: float = 0.2
+    residual_scale: float | tuple[float, ...] = 0.2
+    """Scalar, or ONE VALUE PER JOINT in `joint_names` order.
+
+    Per-joint exists because on the opposed hand the fingers need different amounts of authority
+    and a uniform increase is not safe. The three-finger hold sits 1.296 rad from the closed
+    set-point at `thumb_pip` against a +-0.5 rad residual, so the thumb cannot be commanded there
+    at all; but raising the scale to 1.5 for EVERY joint NaN'd the scene at iteration 0 on both
+    noise levels tried, because it also hands that authority to the opposed pair during the
+    gravity swing, which the whole recipe is built to keep gentle. The thumb reads 0 N through
+    the lift and the swing, so giving it alone the extra range costs the swing nothing.
+
+    Re-centring the set-point instead does not work: the hold pose is defined for a lifted,
+    vertical shaft, and a thumb parked there pre-lift drives into the floor at 34.8 N."""
     easing: str = "linear"
     residual_active_from_sim_step: int = 0
     """Zero the policy's finger residual before this sim step — the scripted
@@ -164,6 +176,24 @@ class LerpFingerActionCfg(ActionTermCfg):
 
     def build(self, env: "ManagerBasedRlEnv") -> "LerpFingerAction":
         return LerpFingerAction(self, env)
+
+
+def resolve_residual_scale(scale, n: int, device=None):
+    """A scalar, or one value per joint in `joint_names` order.
+
+    Kept module-level so the length check is testable without building an env — a silently
+    broadcast wrong-length vector would hand the opposed pair the thumb's authority, which is the
+    exact configuration that NaN'd the scene.
+    """
+    if isinstance(scale, (int, float)):
+        return float(scale)
+    values = list(scale)
+    if len(values) != n:
+        raise ValueError(
+            f"residual_scale has {len(values)} entries; give one scalar or one value per "
+            f"joint ({n}, in joint_names order)"
+        )
+    return torch.as_tensor(values, device=device, dtype=torch.float32)
 
 
 class LerpFingerAction(ActionTerm):
@@ -181,6 +211,7 @@ class LerpFingerAction(ActionTerm):
                 f"start_ctrl ({len(cfg.start_ctrl)}) and target_ctrl ({len(cfg.target_ctrl)}) "
                 f"must each match joint_names length ({n})"
             )
+        self._residual_scale = resolve_residual_scale(cfg.residual_scale, n, self.device)
         self._start = torch.as_tensor(cfg.start_ctrl, device=self.device, dtype=torch.float32)
         self._target = torch.as_tensor(cfg.target_ctrl, device=self.device, dtype=torch.float32)
 
@@ -214,7 +245,7 @@ class LerpFingerAction(ActionTerm):
         alpha = alpha.unsqueeze(-1)  # (B, 1)
         offset = (1.0 - alpha) * self._start.unsqueeze(0) + alpha * self._target.unsqueeze(0)  # (B, N)
         active = (self._sim_step >= int(self.cfg.residual_active_from_sim_step)).float().unsqueeze(-1)
-        target = self._raw_actions * float(self.cfg.residual_scale) * active + offset
+        target = self._raw_actions * self._residual_scale * active + offset
 
         encoder_bias = self._entity.data.encoder_bias[:, self._target_ids]
         self._entity.set_joint_position_target(target - encoder_bias, joint_ids=self._target_ids)

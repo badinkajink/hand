@@ -69,7 +69,7 @@ class MorphoHandEnvCfg:
     settle_steps: int = 240
     lift_ramp_steps: int = 80
     lift_delta_z: float = 0.05
-    finger_residual_scale: float = 0.2
+    finger_residual_scale: float | tuple[float, ...] = 0.2
     """Scale applied to the policy's finger residual on top of the
     LerpFinger scripted setpoint. Larger = policy can deviate more from
     the open-loop schedule (useful under DR); smaller = policy is
