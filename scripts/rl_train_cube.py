@@ -385,6 +385,11 @@ class Args:
     is m/step, so the weight is large: try -2000 to -10000. 0 disables."""
     axial_slip_rate_deadband: float = 0.0
     """Free slip rate (m/step) before the penalty engages."""
+    finger_residual_scale_per_joint: str = ""
+    """Comma-separated per-joint residual scales in thumb/index/middle yaw,mcp,pip order,
+    overriding --finger-residual-scale. The opposed hand needs an asymmetric budget: the hold is
+    1.296 rad from the set-point at thumb_pip, but raising every joint to 1.5 NaN'd the scene at
+    iteration 0 because it also loosens the opposed pair during the gravity swing."""
     chuck_pose_npz: str = ""
     """Recorded object-frame fingertip hold configuration to reward matching once aligned."""
     chuck_pose_weight: float = 0.0
@@ -532,7 +537,9 @@ def main() -> None:
         compliance_dr_dmax=args.compliance_dr_dmax,
         tracking_anneal_iters=args.tracking_anneal_iters,
         tracking_final_scale=args.tracking_final_scale,
-        finger_residual_scale=args.finger_residual_scale,
+        finger_residual_scale=(
+            tuple(float(v) for v in args.finger_residual_scale_per_joint.split(","))
+            if args.finger_residual_scale_per_joint else args.finger_residual_scale),
         object_xy_drift_weight=args.object_xy_drift_weight,
         object_orientation_drift_weight=args.object_orientation_drift_weight,
         track_object_quat_weight=args.track_object_quat_weight,
