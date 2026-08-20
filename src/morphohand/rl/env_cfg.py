@@ -512,6 +512,8 @@ class MorphoHandEnvCfg:
     """Alignment cos at which that move begins (latched per env). 0 disables."""
     hold_switch_steps: int = 60
     """Sim steps to blend between the two set-points."""
+    hold_switch_min_z: float = 0.0
+    """Object height also required before the anchor moves (see actions.LerpFingerActionCfg)."""
     hold_finger_ctrl: tuple[float, ...] | None = None
     """The resolved 9-dim hold set-point (filled from `hold_ctrl_from_keyframe` by the trainer)."""
     chuck_pose_npz: str = ""

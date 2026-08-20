@@ -188,6 +188,15 @@ class LerpFingerActionCfg(ActionTermCfg):
     schedule: a step gate has to be guessed from the previous run's trajectory and is invalidated
     by the very learning it is meant to shape. Latched per env — once the shaft is up, the anchor
     stays moved, so a momentary wobble does not yank the hand back to the grasp pose."""
+    hold_switch_min_z: float = 0.0
+    """Object height (m) ALSO required before the anchor moves. 0 = height ignored.
+
+    Alignment alone is not enough and the failure is instructive: the hold pose is defined for a
+    shaft that is both upright AND LIFTED, but the shaft crosses cos 0.7 early, while it is still
+    low. Gated on alignment only, the thumb's anchor sweeps to a pose that belongs 120 mm higher,
+    knocks the object, and the run learns the one behaviour that avoids the penalty -- it stops
+    lifting. Measured: object_height collapsed to 0.0248 by iteration 52 with
+    object_floor_proximity firing 125x per episode, and the watchdog aborted the run."""
     hold_switch_steps: int = 60
     """Sim steps to blend between the two set-points. A step change in the anchor is a step change
     in every finger target at once, which is the discontinuity the whole single-stage recipe
@@ -282,7 +291,10 @@ class LerpFingerAction(ActionTerm):
             obj = self._env.scene[self.cfg.hold_object_name].data.root_link_pose_w
             qw, qx, qy, qz = obj[:, 3], obj[:, 4], obj[:, 5], obj[:, 6]
             cos = 1.0 - 2.0 * (qx * qx + qy * qy)          # object body +z against world +z
-            up = (cos >= float(self.cfg.hold_switch_align_thresh)).float()
+            up = (cos >= float(self.cfg.hold_switch_align_thresh))
+            if self.cfg.hold_switch_min_z > 0.0:
+                up = up & (obj[:, 2] >= float(self.cfg.hold_switch_min_z))
+            up = up.float()
             # Latched, and advanced by one blend increment per sim step once it has fired.
             self._switched = torch.clamp(
                 self._switched + up / max(1.0, float(self.cfg.hold_switch_steps)), max=1.0)

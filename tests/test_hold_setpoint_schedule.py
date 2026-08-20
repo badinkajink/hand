@@ -72,3 +72,41 @@ def test_per_env_latching_is_independent():
         sw, offset = _step(sw, torch.tensor([0.95, 0.10]), 0.7, 60)
     assert torch.allclose(offset[0], HOLD, atol=1e-6)
     assert torch.allclose(offset[1], GRASP)
+
+
+def _step_z(switched, cos, z, thresh, min_z, blend_steps):
+    """The gate with the height condition, as in LerpFingerAction.apply_actions."""
+    up = cos >= thresh
+    if min_z > 0.0:
+        up = up & (z >= min_z)
+    switched = torch.clamp(switched + up.float() / max(1.0, float(blend_steps)), max=1.0)
+    beta = switched.unsqueeze(-1)
+    return switched, (1.0 - beta) * GRASP.unsqueeze(0) + beta * HOLD.unsqueeze(0)
+
+
+def test_alignment_alone_fires_while_the_shaft_is_still_low():
+    """The r12 failure. The shaft crosses cos 0.7 early, while it is still near the floor, and a
+    thumb anchor that belongs 120 mm higher then sweeps through the object. The run learned the
+    one behaviour that avoids the penalty: it stopped lifting (object_height 0.0248 by iter 52)."""
+    sw = torch.zeros(1)
+    for _ in range(60):
+        sw, offset = _step_z(sw, torch.tensor([0.8]), torch.tensor([0.02]), 0.7, 0.0, 60)
+    assert torch.allclose(offset[0], HOLD, atol=1e-6), "no height gate = fires near the floor"
+
+
+def test_height_condition_holds_the_anchor_until_the_shaft_is_actually_up():
+    sw = torch.zeros(1)
+    for _ in range(200):                       # aligned but low: must NOT move
+        sw, offset = _step_z(sw, torch.tensor([0.95]), torch.tensor([0.02]), 0.7, 0.09, 60)
+    assert torch.allclose(offset[0], GRASP)
+    for _ in range(60):                        # aligned AND lifted: now it moves
+        sw, offset = _step_z(sw, torch.tensor([0.95]), torch.tensor([0.13]), 0.7, 0.09, 60)
+    assert torch.allclose(offset[0], HOLD, atol=1e-6)
+
+
+def test_height_alone_is_not_enough_either():
+    """Lifted but not yet turned is the grasp phase; moving the anchor there is the same mistake."""
+    sw = torch.zeros(1)
+    for _ in range(200):
+        sw, offset = _step_z(sw, torch.tensor([0.1]), torch.tensor([0.13]), 0.7, 0.09, 60)
+    assert torch.allclose(offset[0], GRASP)
