@@ -1239,3 +1239,71 @@ Two things tried that did NOT work, recorded so they are not re-tried: an explic
 the pair (`--pair-yaw-bias`, signed off a measured d(tip x)/d(yaw)) fights the IK pose it is added
 to and drove the thumb to 88 N; and moving both pads forward in +x at fixed ±y separation
 (`--chuck-x`) crushed at 48–100 N or dropped, at every value tried.
+
+---
+
+## 2026-08-19 (night) — why three reward runs read 0.0000, and it was never the reward
+
+r8 trained the thumb-brace reward on the 25 mm-proximal frozen hand — the one where the scripted
+chuck holds 100% of its window on three loaded fingers. `Episode_Reward/thumb_brace_force` read
+**0.0000** for the whole run, exactly as r7 did. Before adding a third weight to that pattern,
+measure whether the policy can COMMAND the behaviour at all.
+
+### The action budget
+
+The finger action is a bounded residual around a fixed set-point:
+
+    target = closed_ctrl + finger_residual_scale * a          (actions.py, LerpFingerAction)
+
+so any pose further than `finger_residual_scale` from the set-point ON ANY SINGLE JOINT cannot be
+expressed, whatever the reward says. Measured off the demonstration's own sustained hold (not an
+IK guess) against `closed_manual`:
+
+| joint | set-point | hold | excursion | vs ±0.5 |
+|---|---|---|---|---|
+| **thumb_pip** | −1.281 | +0.016 | **+1.296** | over by 0.80 |
+| **middle_pip** | −0.647 | +0.008 | **+0.654** | over by 0.15 |
+| **thumb_mcp** | +2.019 | +1.460 | **−0.559** | over by 0.06 |
+| index_pip | −1.033 | −0.739 | +0.293 | ok |
+
+Three joints outside the budget. The chuck is not unexplored, it is **unreachable**, and a reward
+table cannot tell you that: an unreachable target and an unattractive one are the same flat zero.
+Three runs (r7, r8, and the r8 smoke) were read as "PPO declines to use the thumb" when the
+policy could not have used it.
+
+Two traps worth recording, because both fired here:
+
+* **Measure the HOLD, not the approach.** The engage-time IK solve — first contact, before the
+  servo walks the hand in — sits 0.34 rad out. The sustained hold is 1.30. Reading the approach
+  is how the r8 launcher came to claim the pose was reachable.
+* The check is now `scripts/probe_action_budget.py`, which also prints the smallest residual
+  scale that would cover a demonstration (1.30 rad here).
+
+### The second, independent reason r8 could not have shown anything
+
+Mean episode length settled at **102 of 600 steps**, with `tip_lost` the only live termination
+(21.0). Not a light grip — the frozen pinch reads 15–18 N through the lift even at 0.2 mm of
+commanded depth. Episodes end where the scripted trace also fails: grip bleeds 18 N → 2 N over
+the hang, and the shaft goes. So the episode was ending at precisely the moment the third finger
+would have to arrive, and the pose it would need was outside the action budget. The brace gate
+(cos ≥ 0.7) barely opened before the episode was over.
+
+### What replaces the thumb-force reward
+
+`chuck_pose_match` (terms_reward.py) states the target as the object-frame position of all three
+fingertips, recorded off the scripted maneuver. Three design points, each forced by something
+measured:
+
+* **Whole hand, not the thumb.** A thumb press against a pair still at ±90° ejects the shaft, six
+  engages out of six. A thumb-only reward asks for a motion whose immediate consequence is a drop.
+* **Reduced over the WORST-placed finger**, not the mean over nine coordinates. Under a mean, a
+  thumb stowed 36 mm away still collects 96% of the reward — the two-finger grasp the term exists
+  to stop paying for. Caught by a unit test before any GPU time.
+* **Static, not time-indexed.** The learned rotation takes ~4× longer than the gravity swing the
+  demo was recorded from, so the existing imitation term (sampling at `(step − onset) * dt`) would
+  aim at the wrong phase. Over the hold the configuration is static to 1.46 mm per axis.
+
+r9 therefore holds the reward weight fixed and sweeps `--finger-residual-scale` over {0.5, 1.5}:
+0.5 reproduces the constraint, 1.5 is the first scale covering the excursion. This deliberately
+breaks train/deploy parity (gotcha #13), so it must be evaluated at the same scale —
+`scripts/eval_perp_sp25_runs.sh` reads each run's own value out of its config.
