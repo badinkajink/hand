@@ -505,6 +505,17 @@ class MorphoHandEnvCfg:
     """Alignment cos above which the thumb-brace reward starts paying."""
     thumb_brace_max_force: float = 4.0
     """Thumb force (N) at which the brace reward saturates."""
+    chuck_pose_npz: str = ""
+    """Path to a recorded object-frame fingertip HOLD configuration (scripts/
+    probe_perp_thumb_engage.py --save-chuck-pose). Empty disables the term."""
+    chuck_pose_weight: float = 0.0
+    """Reward weight on matching that configuration once aligned. 0 disables. Try +20 to +80."""
+    chuck_pose_alpha: float = 2000.0
+    """Sharpness: exp(-alpha * squared distance of the WORST-placed fingertip). Reducing over
+    the worst finger rather than the mean is what stops two correct fingers from paying for a
+    third that never moved -- the r7 failure in reward form."""
+    chuck_pose_align_thresh: float = 0.7
+    """Alignment cos above which the pose-match reward starts paying."""
     thumb_sensor_index: int = 0
     """Slot of the thumb in the fingertip contact sensor (thumb, index, middle)."""
     axial_slip_rate_deadband: float = 0.0

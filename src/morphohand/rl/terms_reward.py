@@ -865,3 +865,50 @@ def anneal_spawn_tilt_z(env: "ManagerBasedRlEnv", env_ids,
     cmd.cfg.spawn_tilt_range = (-tilt_max * progress, tilt_max * progress)
     cmd.cfg.object_pose_range.z = (z_center - z_max * progress, z_center + z_max * progress)
     return progress
+
+
+_CHUCK_REF: dict[str, torch.Tensor] = {}
+
+
+def chuck_pose_match(env: "ManagerBasedRlEnv",
+                     ref_npz: str = "",
+                     object_name: str = "cube",
+                     object_axis_local: tuple[float, float, float] = (0.0, 0.0, 1.0),
+                     target_axis_world: tuple[float, float, float] = (0.0, 0.0, 1.0),
+                     align_thresh: float = 0.7,
+                     alpha: float = 2000.0) -> torch.Tensor:
+    """How close the three fingertips are to a recorded OBJECT-FRAME hold configuration.
+
+    `thumb_brace_force` pays the thumb for touching and says nothing about where the other two
+    fingers are. On this topology that is not enough: the scripted result is that a thumb press
+    against a pair still sitting at +-90 deg EJECTS the shaft (six engages, six ejections), so a
+    thumb-only reward asks for a motion whose immediate consequence is a drop, and PPO correctly
+    refuses it — `thumb_brace_force` read 0.0000 for the whole of r7. The hold needs all three
+    contacts to move together.
+
+    So state the target as the whole configuration. Measured over the scripted hold, the three
+    fingertips in the shaft's own frame are static to 1.46 mm per axis, which is why a single
+    pose works where the existing time-indexed imitation reference would not: the learned
+    rotation takes ~4x longer than the gravity swing, so a trajectory sampled at
+    (step - onset) * dt is aimed at the wrong phase of the manoeuvre, while a static
+    configuration is indifferent to how long the policy took to get there.
+
+    Gated on alignment for the same reason the brace is: during the swing the pinch has to stay
+    loose and the corridor clear, and paying for the hold pose early would buy a clamp.
+    """
+    from morphohand.rl.imitation import fingertips_in_object_frame
+
+    ref = _CHUCK_REF.get(ref_npz)
+    if ref is None:
+        import numpy as np
+        ref = torch.as_tensor(np.load(ref_npz)["hold_pose"], dtype=torch.float32)
+        ref = _CHUCK_REF[ref_npz] = ref.to(env.device)
+    cur = fingertips_in_object_frame(env, object_name)          # (B, 3, 3)
+    # Reduce over the WORST finger, not the mean over all nine coordinates. Averaging lets two
+    # correctly-placed fingers hide the third: with a mean, a thumb stowed 36 mm away still
+    # collects 96% of this reward, which is precisely the two-finger grasp the term exists to
+    # stop paying for. Same lesson the recipe already records for `contact_min` (reduce=min, so
+    # an idle finger caps the term).
+    err = (cur - ref.unsqueeze(0)).pow(2).sum(dim=2).amax(dim=1)   # (B,) worst finger, m^2
+    cos = _alignment_cos(env, object_name, object_axis_local, target_axis_world)
+    return torch.exp(-float(alpha) * err) * (cos >= float(align_thresh)).float()

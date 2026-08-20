@@ -617,6 +617,15 @@ def _build_rewards(cfg: MorphoHandEnvCfg) -> dict:
                         align_thresh=float(cfg.thumb_brace_align_thresh),
                         max_force=float(cfg.thumb_brace_max_force)),
         )
+    if cfg.chuck_pose_weight != 0.0 and cfg.chuck_pose_npz:
+        rewards["chuck_pose_match"] = RewardTermCfg(
+            func=mjlab_terms.chuck_pose_match,
+            weight=float(cfg.chuck_pose_weight) * task_scale,
+            params=dict(ref_npz=str(cfg.chuck_pose_npz),
+                        object_name="cube",
+                        align_thresh=float(cfg.chuck_pose_align_thresh),
+                        alpha=float(cfg.chuck_pose_alpha)),
+        )
     if cfg.axial_slip_weight != 0.0:
         _slip_params = dict(object_name="cube",
                             rate_deadband=float(cfg.axial_slip_rate_deadband))
