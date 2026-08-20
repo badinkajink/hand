@@ -57,5 +57,5 @@ must happen on a compute node:
   sbatch scripts/cluster/deltaai_smoke.slurm       # primes the Warp cache + times a real run
 
 Read its log before you queue anything in bulk. It prints the steps/s that every
-GPU-hour estimate in docs/20260820-nsf_access_deltaai_runbook.md depends on.
+GPU-hour estimate in docs/notes/20260820-deltaai_bulk_training_runbook.md depends on.
 EOF
