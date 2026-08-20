@@ -390,6 +390,10 @@ class Args:
     overriding --finger-residual-scale. The opposed hand needs an asymmetric budget: the hold is
     1.296 rad from the set-point at thumb_pip, but raising every joint to 1.5 NaN'd the scene at
     iteration 0 because it also loosens the opposed pair during the gravity swing."""
+    hold_ctrl_from_keyframe: str = ""
+    """Keyframe the finger anchor moves to once the object is reoriented (see env_cfg)."""
+    hold_switch_align_thresh: float = 0.0
+    hold_switch_steps: int = 60
     chuck_pose_npz: str = ""
     """Recorded object-frame fingertip hold configuration to reward matching once aligned."""
     chuck_pose_weight: float = 0.0
@@ -486,8 +490,8 @@ def main() -> None:
     if len(best_finger_ctrl) != 9:
         raise ValueError(f"best_finger_ctrl has {len(best_finger_ctrl)} dims; expected 9")
 
+    from morphohand.rl.deploy import finger_ctrl_from_keyframe
     if args.closed_ctrl_from_keyframe:
-        from morphohand.rl.deploy import finger_ctrl_from_keyframe
         best_finger_ctrl = finger_ctrl_from_keyframe(frozen, args.closed_ctrl_from_keyframe)
         print(f"[rl_train_cube] closed grip from keyframe "
               f"'{args.closed_ctrl_from_keyframe}' (NOT the CEM grasp): "
@@ -618,6 +622,10 @@ def main() -> None:
         lateral_drift_power=args.lateral_drift_power,
         axial_slip_weight=args.axial_slip_weight,
         axial_slip_rate_deadband=args.axial_slip_rate_deadband,
+        hold_finger_ctrl=(finger_ctrl_from_keyframe(frozen, args.hold_ctrl_from_keyframe)
+                          if args.hold_ctrl_from_keyframe else None),
+        hold_switch_align_thresh=args.hold_switch_align_thresh,
+        hold_switch_steps=args.hold_switch_steps,
         chuck_pose_npz=args.chuck_pose_npz,
         chuck_pose_weight=args.chuck_pose_weight,
         chuck_pose_alpha=args.chuck_pose_alpha,
