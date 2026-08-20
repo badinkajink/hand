@@ -13,13 +13,22 @@
 # chuck_pose.npz), reduced over the WORST-placed finger so two correct fingers cannot pay for a
 # third that never moved, and gated on alignment so it cannot buy a clamp during the swing.
 #
+# THE BINDING CONSTRAINT IS REACH, NOT REWARD. Measured off the demo's own hold (not from an
+# IK guess): the chuck sits 1.296 rad away at thumb_pip, 0.654 at middle_pip and 0.559 at
+# thumb_mcp from the closed set-point, while the policy's action is a +-0.5 rad residual around
+# that set-point. Three joints are outside the budget, so the pose is not unexplored, it is
+# unreachable, and r7/r8's flat 0.0000 is what an unreachable target looks like from inside the
+# reward table. That is why this sweep moves --finger-residual-scale and holds the weight fixed.
+# It breaks train/deploy parity (gotcha #13) on purpose, so evaluate with the SAME scale:
+#   scripts/policy_eval_suite.py --finger-residual-scale <same value>
+#
 # Static, not time-indexed, deliberately: the learned rotation takes ~4x longer than the gravity
 # swing the demonstration was recorded from, so the existing imitation term -- which samples a
 # trajectory at (step - onset) * dt -- would aim at the wrong phase of the manoeuvre. Over the
 # scripted hold the configuration is static to 1.46 mm per axis, so there is nothing to index.
 #
 #   bash scripts/train_perp_sp25_chuckpose.sh
-#   WEIGHTS="60" bash scripts/train_perp_sp25_chuckpose.sh
+#   RESIDUALS="1.5" bash scripts/train_perp_sp25_chuckpose.sh
 set -uo pipefail
 
 cd "$(dirname "$0")/.."
@@ -28,7 +37,14 @@ ROOT="$PWD"
 MORPH_RUN="${MORPH_RUN:-$ROOT/results/phase1/perp_thumb_engage/sp25_manual}"
 SCENE="${SCENE:-$MORPH_RUN/frozen_scene.xml}"
 POSE="${POSE:-$MORPH_RUN/chuck_pose.npz}"
-WEIGHTS="${WEIGHTS:-30 80}"
+WEIGHT="${WEIGHT:-30}"
+# The sweep axis is the RESIDUAL SCALE, not the reward weight. Measured on the demo's own hold,
+# the chuck needs joint excursions of 1.296 rad (thumb_pip), 0.654 (middle_pip) and 0.559
+# (thumb_mcp) away from the closed set-point, against a policy whose action is a +-0.5 rad
+# residual around it. Three joints are outside the budget, so at 0.5 the pose is not merely
+# unexplored -- it is UNREACHABLE, and no weight on any term can buy it. 0.5 is the control that
+# proves the point; 1.5 is the first scale that covers the excursion.
+RESIDUALS="${RESIDUALS:-0.5 1.5}"
 POSE_THRESH="${POSE_THRESH:-0.7}"
 POSE_ALPHA="${POSE_ALPHA:-2000}"
 REF_RUN="${REF_RUN:-$ROOT/results/rl/20260731-1300-perp_single_r4}"
@@ -52,17 +68,18 @@ wait_for_gpu() {
 
 [[ -f "$SCENE" ]] || { say "FATAL: scene missing: $SCENE"; exit 1; }
 [[ -f "$POSE"  ]] || { say "FATAL: chuck pose missing: $POSE (probe --save-chuck-pose)"; exit 1; }
-say "r9 chuck-pose: weights [$WEIGHTS] gate cos>=$POSE_THRESH alpha $POSE_ALPHA -> $QLOG"
+say "r9 chuck-pose: weight $WEIGHT, residual scales [$RESIDUALS], gate cos>=$POSE_THRESH -> $QLOG"
 wait_for_gpu 720 || exit 1
 
-for W in $WEIGHTS; do
-  TAG="perp_sp25_chuckpose_w${W}"
-  DEST="$ROOT/results/rl/sp25_chuckpose_${W}"; mkdir -p "$DEST"
-  [[ -f "$DEST/.DONE" ]] && { say "SKIP $W (.DONE)"; continue; }
+for FRS in $RESIDUALS; do
+  W="$WEIGHT"
+  TAG="perp_sp25_chuckpose_frs${FRS}"
+  DEST="$ROOT/results/rl/sp25_chuckpose_frs${FRS}"; mkdir -p "$DEST"
+  [[ -f "$DEST/.DONE" ]] && { say "SKIP $FRS (.DONE)"; continue; }
 
   RC=1
   for NOISE in 0.02 0.01; do
-    say "=== train $TAG at init_noise_std=$NOISE ==="
+    say "=== train $TAG (residual $FRS) at init_noise_std=$NOISE ==="
     export WARP_CACHE_PATH="$(mktemp -d)"
     MUJOCO_GL=egl uv run --extra rl --extra gpu python scripts/rl_train_cube.py \
         --recipe perp_single \
@@ -77,6 +94,7 @@ for W in $WEIGHTS; do
         --chuck-pose-weight "$W" \
         --chuck-pose-align-thresh "$POSE_THRESH" \
         --chuck-pose-alpha "$POSE_ALPHA" \
+        --finger-residual-scale "$FRS" \
         --init-noise-std "$NOISE" \
         --watchdog-collapse-z 0.030 --watchdog-from-iter 50 \
         --watchdog-sentinel "$DEST/train.log.COLLAPSED" \
@@ -90,6 +108,7 @@ for W in $WEIGHTS; do
              --run "$NEW_RUN" --reference "$REF_RUN" \
              --allow env.chuck_pose_weight --allow env.chuck_pose_align_thresh \
              --allow env.chuck_pose_alpha --allow ppo.init_noise_std \
+             --allow env.chuck_pose_npz --allow env.finger_residual_scale \
              --allow env.frozen_scene_xml --allow env.keyframe_name \
              --allow env.foundational_run_dir --allow env.finger_default_ctrl \
              2>&1 | tee -a "$QLOG" | grep -q "^\[parity\] OK"; then
@@ -106,8 +125,8 @@ for W in $WEIGHTS; do
     wait_for_gpu
   done
 
-  if [[ $RC -eq 0 ]]; then date -Is > "$DEST/.DONE"; say "DONE $W"
-  else say "FAIL $W (rc=$RC)"; tail -5 "$DEST/train.log" | tee -a "$QLOG"; fi
+  if [[ $RC -eq 0 ]]; then date -Is > "$DEST/.DONE"; say "DONE $FRS"
+  else say "FAIL $FRS (rc=$RC)"; tail -5 "$DEST/train.log" | tee -a "$QLOG"; fi
   wait_for_gpu
 done
 say "r9 chuck-pose queue finished"
