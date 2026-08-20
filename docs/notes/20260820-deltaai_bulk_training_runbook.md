@@ -5,9 +5,10 @@ MuJoCo-Warp + PPO stack. That runbook trains one imitation policy in 1.5 GPU-hou
 here is different — not "can one run fit", but whether the *seed-dominated evaluator* that has
 blocked the morphology program for two months becomes affordable.
 
-Short answer: yes, and by a wide margin. The binding constraint has never been the cost of a run.
-It is that one GPU forces every run to be sequential, which is why every design comparison so far
-has been made at n=1 against a per-draw sd of 0.3–0.5.
+Short answer: yes, but for the opposite reason to the one expected. A GH200 is measurably *slower*
+per run than the workstation (0.66×). What the cluster buys is that one GPU no longer forces every
+run to be sequential — which is the actual constraint, and why every design comparison so far has
+been made at n=1 against a per-draw sd of 0.3–0.5.
 
 ## What the account gives you
 
@@ -16,7 +17,7 @@ has been made at n=1 against a per-draw sd of 0.3–0.5.
 | Exchange rate | 1,000 ACCESS credits → **7 DeltaAI GPU-hours** (~143 credits/GPU-h) |
 | Charge unit | 1 GPU-hour = one GH200 for one hour; a node is 4× GH200 |
 | Explore tier cap | 400,000 credits → **~2,800 GPU-hours** |
-| Billing | on **reserved** time, so `--time` must be tight, not generous |
+| Billing | granularity **unresolved** — see below; keep `--time` tight either way |
 
 **What is actually spendable today (checked 2026-08-20 via `ssh deltaai accounts`):**
 
@@ -29,55 +30,88 @@ bgcd-dtai-gh                 92                100  skin sensing for wh...
 on the project dashboard are unexchanged, and only 100 hours have ever been converted into a
 DeltaAI balance. Everything below is sized in GPU-hours, so read it against 92 until more credits
 are exchanged at `allocations.access-ci.org → Credits + Resources → Exchange`, at 143 credits per
-GPU-hour. The n=48 program needs ~80k credits exchanged; check what is still on the project first,
+GPU-hour. The n=48 program needs ~120k credits exchanged; check what is still on the project first,
 since the dashboard figure comes from a deck written before this account was shared.
+
+**Billing granularity is unresolved, and it decides how to shape an array.** Two jobs were run on
+2026-08-20: `2989123` (45 min reserved, 6:37 elapsed) and `2989164` (50 min reserved, 4:19
+elapsed). The balance went 92 → 91 after the first and stayed at 91 after the second. That is
+consistent with per-job hour granularity *and* with elapsed-second billing plus a delayed,
+floor-rounded display — 11 minutes of elapsed GPU time cannot produce a 1-hour drop, but neither
+should a 45-minute reservation leave the second job free. Re-read `accounts` a day later, or after
+one long job, before committing to a shape. It matters: if billing is hour-granular, 48 × 40-minute
+array tasks cost 48 hours regardless of elapsed, and the right structure is several seeds packed
+sequentially into each task rather than one seed per task.
+
+## Throughput: the GH200 is SLOWER than the workstation
+
+Measured 2026-08-20 on the real hardware (jobs 2989123, 2989164), against the local runs of
+2026-08-19. Both at `num_steps_per_env=24`, so one PPO iteration is `num_envs × 24` steps:
+
+| GPU | num_envs | s/iteration | steps/s |
+|---|---|---|---|
+| RTX 4070 Ti SUPER | 3072 | 7.00 | **10,530** |
+| GH200 120GB | 3072 | 10.3–11.4 | **~6,950** |
+| GH200 120GB | 8192 | 27.8 | 7,047 |
+| GH200 120GB | 16384 | 55.7 | 7,054 |
+
+**A GH200 delivers 0.66× the throughput of the 4070 Ti SUPER on this workload**, and the estimate
+from FLOPs and bandwidth (which said 1–2.5× *faster*) was wrong in direction. Do not size anything
+from spec sheets — mjwarp does not behave like a dense-matmul workload.
+
+The `num_envs` sweep was run to test whether CPU-side kernel-launch overhead on the slower Grace
+ARM cores explained the deficit, since 95 GiB of HBM makes large batches free. It does not:
+iteration time is **exactly linear in `num_envs` from 3072 to 16384** (a 5.3× batch costs 5.3× the
+time, ±0.1%), so the GPU is fully saturated at 3072 and the deficit is real compute, not overhead.
+That also means the local finding — throughput flat in `num_envs` — holds here, and there is no
+free lunch in bigger batches. 3072 remains the right setting.
+
+**The cluster's entire value is concurrency, not speed.** Each run costs ~1.5× more GPU-time than
+it does here, and against that you can hold 32+ of them at once. Net effective throughput at 32-way
+concurrency is ~21× the local serial rate.
 
 ## Feasibility, in our units
 
-Measured locally on the RTX 4070 Ti SUPER, from the runs of 2026-08-19: **25M timesteps in ~40
-minutes ≈ 10,400 steps/s**, and throughput is flat in `num_envs` because the GPU is already
-compute-saturated. That gives a per-run price:
+At the measured 6,950 steps/s:
 
-| Run type | Timesteps | Wall clock (local) | GPU-hours |
+| Run type | Timesteps | GPU-hours (GH200) | (local, for reference) |
 |---|---|---|---|
-| Policy A, lift/deliver (`train_A_on_morph.sh`) | 30M | ~48 min | 0.80 |
-| Policy B, reorient (`train_handoff_liveA_reset.sh`) | 20M | ~32 min | 0.53 |
-| perp single-phase (`perp_single`) | 25M | ~40 min | 0.67 |
+| Policy A, lift/deliver (`train_A_on_morph.sh`) | 30M | **1.20** | 0.80 |
+| Policy B, reorient (`train_handoff_liveA_reset.sh`) | 20M | **0.80** | 0.53 |
+| perp single-phase (`perp_single`) | 25M | **1.00** | 0.67 |
 
-So the **92 hours on the account today are ~130 runs** — three days of uninterrupted local training,
-delivered in an afternoon. A fully exchanged ~1,300-hour allocation would be ~2,000 runs (54 days
-local), and the Explore cap ~4,000.
+So the **92 hours on the account today are ~92 perp runs**. A fully exchanged ~1,300-hour
+allocation would be ~1,300, and the Explore cap ~2,800.
 
-That split matters for what to do first. 92 hours is enough to prove the pipeline and run one real
-seed study, not enough for the design program:
+What that does and does not cover:
 
 | | GPU-hours | fits in 92? |
 |---|---|---|
-| smoke test (2M steps + cold nvcc) | ~1 | yes |
-| one design, n=8 seeds | 5.4 | yes |
-| 5-design queue, n=8 | 27 | yes |
-| 5-design queue, n=4 with A best-of-3 | 23 | yes |
-| 20 designs at n=48 (Δ=0.2 resolution) | ~560 | **no — needs ~80k credits exchanged** |
+| smoke test (2M steps + cold nvcc) | ~0.2 elapsed | yes (done) |
+| one design, n=8 seeds | 6.4 | yes |
+| 5-design queue, n=4 with A best-of-3 | 34 | yes |
+| 5-design queue, n=8 | 50 | yes, but over half the balance |
+| 20 designs at n=48 (Δ=0.2 resolution) | **~830** | no — needs ~120k credits exchanged |
 
 Three concrete things the full allocation buys:
 
-**1. The morph sweep at honest n.** A 5-design queue at n=4 seeds is 5 × (3 A-attempts × 0.80 +
-4 B × 0.53) ≈ **23 GPU-hours** — about a day of solid local training, or ~1.5 hours of wall clock
-here at 20-way concurrency. This is the cheap case and it is already the thing we have been
-rationing.
+**1. The morph sweep at honest n.** A 5-design queue at n=4 seeds is 5 × (3 A-attempts × 1.20 +
+4 B × 0.80) ≈ **34 GPU-hours** — a day and a half of solid local training, delivered in ~2 hours of
+wall clock here at 20-way concurrency. This is the cheap case and it is already the thing we have
+been rationing.
 
 **2. Statistics that can actually separate two designs.** With σ ≈ 0.35 on held-cos, separating two
 designs whose true means differ by Δ needs about `n = 15.7 σ² / Δ²` seeds each:
 
 | Δ (difference in mean held-cos) | seeds per design | GPU-hours per design |
 |---|---|---|
-| 0.5 | 8 | 6.6 |
-| 0.3 | 21 | 13.5 |
-| 0.2 | 48 | 28 |
+| 0.5 | 8 | 10 |
+| 0.3 | 21 | 20 |
+| 0.2 | 48 | 42 |
 
 n=4 resolves only Δ ≳ 0.7. That is why H06_04 (mean 0.748 against a ~0.3 field) replicated and
-G02_00 did not — we could only ever see the largest effects. Twenty designs at n=48 is **~560
-GPU-hours**, or 40% of one allocation. Locally it is 23 days and would not be attempted.
+G02_00 did not — we could only ever see the largest effects. Twenty designs at n=48 is **~830
+GPU-hours**, most of a fully exchanged allocation. Locally it is 35 days and would not be attempted.
 
 **3. Seeds as a first-class axis instead of a budget concession.** `--seed` is already a trainer
 flag; the array job below turns it into the array index.
@@ -92,24 +126,27 @@ flag; the array job below turns it into the array index.
   every conclusion (CLAUDE.md lesson 2), and that is bench work here, not cluster work. Bulk
   training raises, not lowers, the risk of believing a reward table — 48 seeds produce 48 reward
   curves and zero pictures.
-- **Per-run speed is unmeasured.** A GH200 is H100-class: ~67 TFLOP fp32 against the 4070 Ti
-  SUPER's ~44, with 4 TB/s of HBM3 against 672 GB/s of GDDR6X. MuJoCo-Warp's contact solve is
-  neither pure ALU nor pure bandwidth, so the honest estimate is **1–2.5×** per run and the real
-  number comes out of `deltaai_smoke.slurm`. Every GPU-hour figure above uses the local rate, so
-  they are upper bounds on cost.
+- **Per-run speed gets 1.5× WORSE**, as measured above. Nothing about moving to the cluster makes
+  an individual experiment finish sooner; a single run you are waiting on is better off here, on
+  the workstation. Send breadth to the cluster, keep latency-sensitive one-offs local.
 
 ## Porting risk: all clear on arch, three real traps
 
-The ACT runbook's central pain was aarch64 — pip silently installing CPU-only wheels on ARM. Every
-dependency we pin has a real aarch64 build (checked against PyPI, 2026-08-20):
+The ACT runbook's central pain was aarch64 — pip silently installing CPU-only wheels on ARM. That
+risk is now closed by observation, not by reading wheel tags. `uv sync --extra gpu --extra rl`
+resolved clean on the login node and every import came up on the GH200 (job 2989123):
 
-| Package | aarch64 wheel |
-|---|---|
-| `mujoco==3.6.0` | `manylinux_2_27_aarch64` ✓ |
-| `warp-lang` 1.12.0 / 1.12.1 | `manylinux_2_34_aarch64` ✓ |
-| `torch` +cu128 (2.7–2.9.1) | `manylinux_2_28_aarch64` ✓ (cu126 also, if the driver is older) |
-| `jaxlib` | `manylinux2014_aarch64` ✓ |
-| `mjlab==1.2.0`, `mujoco-mjx==3.6.0` | pure python ✓ |
+| | resolved on DeltaAI | note |
+|---|---|---|
+| python | 3.12.11 aarch64 | |
+| `torch` | 2.11.0+cu128 | driver is 595.71.05, well past the ≥570 cu128 needs |
+| `warp-lang` | 1.12.1 | initialized on `sm_90`, mempool enabled, 95 GiB visible |
+| `mujoco` | 3.6.0 | |
+| `mujoco_warp` | 3.6.0 | editable path dep, imports fine |
+| `mjlab` | 1.2.0 | pure python (exposes no `__version__`) |
+
+The cu126 fallback documented in `deltaai_env_setup.sh` therefore stays unused, but leave it there
+— it is the fix if a future node images an older driver.
 
 The traps that are ours rather than theirs:
 
@@ -184,10 +221,8 @@ Scripts live in `scripts/cluster/`:
 
 ## Open items before this is load-bearing
 
-- Neither the login nor the smoke path has been executed — everything above is verified against
-  wheel indexes, the local throughput measurements and the source runbook, not against a live
-  session on DeltaAI. The Duo login has to happen first.
-- `--account` is a placeholder in both `.slurm` files until `accounts` is run.
+- Login, push, env build, smoke and the num_envs sweep have all RUN (2026-08-20); the numbers above
+  are measurements, not projections. What has not run is a real multi-task array.
 - Whether the `ghx4` partition allows per-GPU (non node-exclusive) jobs decides whether a 1-GPU
   array task bills 1 GPU-hour or 4. The scripts request 1 GPU per task; confirm against
   `docs.ncsa.illinois.edu/systems/deltaai` before queueing anything large.
@@ -199,5 +234,5 @@ Scripts live in `scripts/cluster/`:
   unusual and aligns 0.0%. That is what voided the r5 queue. Both `.slurm` files now pass those
   explicitly, and run-specific flags go in the manifest's `EXTRA` column, but the discipline still
   applies: diff one task's dumped `config.yaml` against the last known-good run *before* releasing
-  an array of 48. At n=1 a silent flag omission costs 40 minutes; at n=48 it costs 28 GPU-hours and
-  produces a confident, wrong mean.
+  an array of 48. At n=1 a silent flag omission costs 40 minutes; at n=48 it costs 42 GPU-hours —
+  nearly half the current balance — and produces a confident, wrong mean.
