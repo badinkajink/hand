@@ -39,6 +39,42 @@ import yaml
 IGNORE_SUBSTRINGS = ("scene", "dir", "tag", "run_name", "wandb", "seed", "device", "path")
 
 
+def _defaults() -> dict[str, object]:
+    """`section.field -> default` for every config dataclass the trainer writes out."""
+    import dataclasses
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+    out: dict[str, object] = {}
+    try:
+        from morphohand.rl.env_cfg import MorphoHandEnvCfg
+    except Exception:                      # parity must never fail because an import moved
+        return out
+    for f in dataclasses.fields(MorphoHandEnvCfg):
+        if f.default is not dataclasses.MISSING:
+            out[f"env.{f.name}"] = f.default
+        elif f.default_factory is not dataclasses.MISSING:  # type: ignore[misc]
+            try:
+                out[f"env.{f.name}"] = f.default_factory()  # type: ignore[misc]
+            except Exception:
+                pass
+    return out
+
+
+_DEFAULTS: dict[str, object] | None = None
+
+
+def _is_untouched_default(key: str, value) -> bool:
+    global _DEFAULTS
+    if _DEFAULTS is None:
+        _DEFAULTS = _defaults()
+    if key not in _DEFAULTS:
+        # Unknown key with no default to compare against: fall back to "off-looking values".
+        return value in (0, 0.0, False, None, "")
+    default = _DEFAULTS[key]
+    if isinstance(default, (tuple, list)) and isinstance(value, (tuple, list)):
+        return list(default) == list(value)
+    return default == value
+
+
 def flatten(d, prefix=""):
     out = {}
     for k, v in (d or {}).items():
@@ -92,11 +128,19 @@ def main():
         a, b = ref.get(k, "<absent>"), new.get(k, "<absent>")
         if a == b:
             continue
-        # A field ADDED since the reference ran, sitting at a default that disables it, is not a
-        # divergence -- "the feature did not exist" and "the feature is off" are the same run.
-        # Without this, every new config key permanently breaks parity against older references
-        # and the check trains people to pass --allow reflexively, which defeats it.
-        if a == "<absent>" and b in (0, 0.0, False, None, ""):
+        # A field ADDED since the reference ran, still sitting at the value the code gives it,
+        # is not a divergence -- "the feature did not exist" and "nobody touched the feature"
+        # are the same run. Without this, every new config key permanently breaks parity against
+        # older references and the check trains people to pass --allow reflexively, which
+        # defeats it.
+        #
+        # Compare against the DATACLASS default, not against a hand-written list of falsy
+        # values. That list cost this program an idle GPU night: `friction_dr_scale` was added
+        # after the reference ran and defaults to (0.55, 1.15) -- a tuple, so not falsy, so the
+        # check aborted both runs 25 s in even though `friction_dr` was False beside it and the
+        # range was inert. The gate being off is not visible from the range's own value; the
+        # default is.
+        if a == "<absent>" and _is_untouched_default(k, b):
             inert.append(k)
             continue
         diffs.append((k, a, b))
