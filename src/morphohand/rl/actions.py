@@ -167,6 +167,32 @@ class LerpFingerActionCfg(ActionTermCfg):
     Re-centring the set-point instead does not work: the hold pose is defined for a lifted,
     vertical shaft, and a thumb parked there pre-lift drives into the floor at 34.8 N."""
     easing: str = "linear"
+    hold_target_ctrl: tuple[float, ...] | None = None
+    """A SECOND set-point the anchor moves to once the object is reoriented.
+
+    The residual is bounded, so the set-point decides what the policy can reach. On the opposed
+    hand the grasp pose and the three-finger hold are 1.296 rad apart at `thumb_pip`, and every
+    time-invariant way of spanning that gap has been measured to fail: a uniform residual of 1.5
+    NaNs the scene at iteration 0; re-centring the thumb statically parks it in the floor at
+    34.8 N before the lift; and an asymmetric budget (thumb 1.5, pair 0.5/0.7) lets the thumb
+    wreck the grasp instead, dropping the shaft at step 78 against 485.
+
+    They fail for one reason: the thumb's useful pose and its harmful poses are the same
+    neighbourhood, separated by WHEN, not by how far. So move the anchor instead of widening the
+    budget — grasp set-point through the lift and the swing, hold set-point once the shaft is up,
+    with a small residual in both phases."""
+    hold_switch_align_thresh: float = 0.0
+    """Object alignment cos at which the anchor starts moving to `hold_target_ctrl`. 0 disables.
+
+    An ALIGNMENT gate, not a step count, for the reason the recipe already records for the grip
+    schedule: a step gate has to be guessed from the previous run's trajectory and is invalidated
+    by the very learning it is meant to shape. Latched per env — once the shaft is up, the anchor
+    stays moved, so a momentary wobble does not yank the hand back to the grasp pose."""
+    hold_switch_steps: int = 60
+    """Sim steps to blend between the two set-points. A step change in the anchor is a step change
+    in every finger target at once, which is the discontinuity the whole single-stage recipe
+    exists to avoid."""
+    hold_object_name: str = "cube"
     residual_active_from_sim_step: int = 0
     """Zero the policy's finger residual before this sim step — the scripted
     LerpFinger grasp runs undisturbed during the grasp/lift, then the policy
@@ -213,6 +239,13 @@ class LerpFingerAction(ActionTerm):
             )
         self._residual_scale = resolve_residual_scale(cfg.residual_scale, n, self.device)
         self._start = torch.as_tensor(cfg.start_ctrl, device=self.device, dtype=torch.float32)
+        self._hold = (torch.as_tensor(cfg.hold_target_ctrl, device=self.device,
+                                      dtype=torch.float32)
+                      if cfg.hold_target_ctrl is not None else None)
+        if self._hold is not None and self._hold.numel() != n:
+            raise ValueError(
+                f"hold_target_ctrl has {self._hold.numel()} entries; expected {n}")
+        self._switched = torch.zeros(self.num_envs, device=self.device, dtype=torch.float32)
         self._target = torch.as_tensor(cfg.target_ctrl, device=self.device, dtype=torch.float32)
 
         self._sim_step = torch.zeros(self.num_envs, device=self.device, dtype=torch.long)
@@ -244,6 +277,17 @@ class LerpFingerAction(ActionTerm):
             raise ValueError(f"Unknown easing '{easing}'")
         alpha = alpha.unsqueeze(-1)  # (B, 1)
         offset = (1.0 - alpha) * self._start.unsqueeze(0) + alpha * self._target.unsqueeze(0)  # (B, N)
+
+        if self._hold is not None and self.cfg.hold_switch_align_thresh > 0.0:
+            obj = self._env.scene[self.cfg.hold_object_name].data.root_link_pose_w
+            qw, qx, qy, qz = obj[:, 3], obj[:, 4], obj[:, 5], obj[:, 6]
+            cos = 1.0 - 2.0 * (qx * qx + qy * qy)          # object body +z against world +z
+            up = (cos >= float(self.cfg.hold_switch_align_thresh)).float()
+            # Latched, and advanced by one blend increment per sim step once it has fired.
+            self._switched = torch.clamp(
+                self._switched + up / max(1.0, float(self.cfg.hold_switch_steps)), max=1.0)
+            beta = self._switched.unsqueeze(-1)
+            offset = (1.0 - beta) * offset + beta * self._hold.unsqueeze(0)
         active = (self._sim_step >= int(self.cfg.residual_active_from_sim_step)).float().unsqueeze(-1)
         target = self._raw_actions * self._residual_scale * active + offset
 
@@ -256,6 +300,8 @@ class LerpFingerAction(ActionTerm):
         if env_ids is None:
             self._sim_step.zero_()
             self._raw_actions.zero_()
+            self._switched.zero_()
         else:
             self._sim_step[env_ids] = 0
             self._raw_actions[env_ids] = 0.0
+            self._switched[env_ids] = 0.0

@@ -61,7 +61,10 @@ def main():
     ap.add_argument("--floor-z", type=float, default=0.06,
                     help="object z below which it is resting on the floor, not held")
     ap.add_argument("--lift-delta", type=float, default=0.14)
-    ap.add_argument("--finger-residual-scale", type=float, default=0.5)
+    ap.add_argument("--finger-residual-scale", default="0.5",
+                    help="scalar, or a comma-separated per-joint list in thumb/index/middle "
+                         "yaw,mcp,pip order. Must MATCH the run's own value (gotcha #13): a "
+                         "policy scored at a different residual scale is a different policy.")
     ap.add_argument("--open-finger-from-keyframe", action="store_true")
     ap.add_argument("--closed-ctrl-from-keyframe", default=None,
                     help="MUST match how the policy was trained (gotcha #13)")
@@ -69,6 +72,8 @@ def main():
     ap.add_argument("--plot", type=Path, default=None, help="write a summary PNG here")
     ap.add_argument("--label", default=None)
     args = ap.parse_args()
+    _frs = [float(v) for v in str(args.finger_residual_scale).split(",")]
+    args.finger_residual_scale = _frs[0] if len(_frs) == 1 else tuple(_frs)
 
     run = args.morphology_run.resolve()
     summ = json.loads((run / "summary.json").read_text())

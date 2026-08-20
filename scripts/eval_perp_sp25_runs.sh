@@ -29,7 +29,8 @@ for RUN in "$@"; do
   [[ -n "$CKPT" ]] || { echo "skip (no checkpoint): $NAME"; continue; }
   FRS="$(python - "$RUN/config.yaml" <<'PY'
 import sys, yaml
-print(yaml.safe_load(open(sys.argv[1]))["env"].get("finger_residual_scale", 0.5))
+v = yaml.safe_load(open(sys.argv[1]))["env"].get("finger_residual_scale", 0.5)
+print(",".join(str(x) for x in v) if isinstance(v, (list, tuple)) else v)
 PY
 )"
   echo "=== $NAME   $(basename "$CKPT")   residual_scale=$FRS"

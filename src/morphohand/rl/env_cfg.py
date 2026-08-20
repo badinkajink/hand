@@ -505,6 +505,15 @@ class MorphoHandEnvCfg:
     """Alignment cos above which the thumb-brace reward starts paying."""
     thumb_brace_max_force: float = 4.0
     """Thumb force (N) at which the brace reward saturates."""
+    hold_ctrl_from_keyframe: str = ""
+    """Keyframe whose finger ctrl the anchor MOVES TO once the object is reoriented, instead of
+    holding the grasp set-point for the whole episode. Empty disables the schedule."""
+    hold_switch_align_thresh: float = 0.0
+    """Alignment cos at which that move begins (latched per env). 0 disables."""
+    hold_switch_steps: int = 60
+    """Sim steps to blend between the two set-points."""
+    hold_finger_ctrl: tuple[float, ...] | None = None
+    """The resolved 9-dim hold set-point (filled from `hold_ctrl_from_keyframe` by the trainer)."""
     chuck_pose_npz: str = ""
     """Path to a recorded object-frame fingertip HOLD configuration (scripts/
     probe_perp_thumb_engage.py --save-chuck-pose). Empty disables the term."""

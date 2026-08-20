@@ -356,6 +356,10 @@ def _build_actions(cfg: MorphoHandEnvCfg, ctx: _InitContext) -> dict:
             target_ctrl=tuple(float(v) for v in cfg.finger_default_ctrl),
             settle_sim_steps=cfg.finger_close_sim_steps,
             residual_scale=cfg.finger_residual_scale,
+            hold_target_ctrl=(tuple(cfg.hold_finger_ctrl)
+                              if getattr(cfg, "hold_finger_ctrl", None) else None),
+            hold_switch_align_thresh=float(cfg.hold_switch_align_thresh),
+            hold_switch_steps=int(cfg.hold_switch_steps),
             easing=cfg.finger_close_easing,
             residual_active_from_sim_step=int(cfg.finger_residual_active_from_step) * int(cfg.decimation),
         ),
