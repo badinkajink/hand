@@ -1356,3 +1356,57 @@ stop rotating.
 **Conclusion: no thumb-force reward can be tested on this topology at `finger_residual_scale`
 0.5, because the pose that reward is asking for is 1.30 rad outside the action budget.** r7 and
 r8 measured the budget, not the behaviour.
+
+### r9 — the whole-hand reward produced the best opposed-hand reorienter yet, and it is still two-fingered
+
+Same hand, same set-point, same residual budget (0.5), same 25M steps as r8. The only change is
+which reward is paid: `thumb_brace_force` → `chuck_pose_match`. N=64 × 700 steps:
+
+| | r4 (previous best) | r8 thumb-brace | **r9 chuck-pose** | scripted chuck |
+|---|---|---|---|---|
+| align_rate | 100% | **0%** | **100%** | 100% |
+| peak_cos | 0.995 | 0.195 | **0.997** | 0.997 |
+| steps to align | 128 ± 97 | — | **28.0 ± 0.1** | ~100 |
+| hold_steps (aligned+held) | 255 ± 93 | 0 | **455 ± 49** | 3000+ |
+| drop_step | 389 ± 25 | 116 ± 2 | **485 ± 50** | — |
+| **three_finger share** | ~0% | — | **0.0%** | **100%** |
+| mean N thumb/index/middle | — | — | **0.0** / 3.3 / 5.7 | 20.4 / 11.6 / 15.5 |
+
+Two things at once, and they have to be reported together.
+
+**The reward works, and it is the best reorienter this topology has produced.** It aligns 4.6×
+faster than r4 (28 steps against 128), holds vertical 1.8× longer, and drops 25% later. In
+training, everything moved with it: `target_axis_alignment` 5.99 → 186.3, `contact_min` 0.000 →
+5.93, episode length 113 → 470 of 600, reward 118 → 2493. The r8 comparison is the controlled
+one — same everything except the term — so this is attributable to the reward, not the hand.
+
+**The thumb still never touches. 0.0 N, three-finger share 0.0%, and it still drops** (final z
+0.012, on the floor). Which is exactly what the action budget predicts: `chuck_pose_match` is
+dense — `exp(-alpha * worst-finger error)` pays for getting CLOSER, not only for arriving — so
+the policy drove every finger as far toward the hold as it could and got a much better two-finger
+reorient out of it, while the thumb ran out of budget 0.8 rad short. That density is also why it
+worked where the thumb-force term could not: contact force is zero-or-nothing, so an unreachable
+target gives literally no gradient, while a distance gives one from anywhere.
+
+### Why the obvious fixes for the budget do not work
+
+Both were tried and both are measured, not predicted:
+
+* **Uniform residual 1.5** (r9's second arm): NaN at iteration 0, at `init_noise_std` 0.02 AND
+  0.01. Raising every joint also loosens the opposed pair during the gravity swing, and this
+  scene is documented as dynamically fragile under exploratory actions.
+* **Re-centre the thumb's set-point on the hold** (free in principle — the thumb reads 0 N through
+  the whole lift and swing): drops the required residual from 1.30 rad to 0.65, but the hold pose
+  is defined for a LIFTED, VERTICAL shaft, and a thumb parked there before the lift drives into
+  the floor at **34.8 N** and into the shaft's flank at 11.4 N. A static set-point cannot serve
+  both phases.
+
+r10 tests the remaining cheap instrument: an ASYMMETRIC budget (thumb 1.5, index 0.5, middle 0.7)
+so only the finger that does nothing during the swing gets the extra range — new per-joint
+`finger_residual_scale`. First attempt NaN'd at 0.02 as well, which already narrows the cause to
+the thumb's own authority rather than the pair's.
+
+If that also fails, the two failures together say the anchor has to MOVE rather than the budget
+grow: the grasp set-point through the swing, the chuck set-point once aligned, with the residual
+small in both phases. That is a scheduled `target_ctrl` in the action layer, and it is now the
+only option left standing.
