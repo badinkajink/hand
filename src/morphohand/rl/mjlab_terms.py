@@ -57,6 +57,7 @@ from morphohand.rl.terms_obs import (  # noqa: F401
 )
 from morphohand.rl.terms_reward import (  # noqa: F401
     alignment_speed_bonus,
+    chuck_pose_match,
     alignment_success_bonus,
     anneal_cube_spawn_jitter,
     anneal_smoothness_weights,

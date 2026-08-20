@@ -250,6 +250,12 @@ def main() -> None:
     ap.add_argument("--height", type=int, default=400)
     ap.add_argument("--video-stride", type=int, default=5)
     ap.add_argument("--log-every", type=int, default=50)
+    ap.add_argument("--save-chuck-pose", type=Path, default=None,
+                    help="write the three fingertips expressed in the OBJECT's frame: the whole "
+                         "trajectory, plus the mean over the hold window. The hold is a static "
+                         "object-relative configuration, so that mean is the thing a policy has "
+                         "to reproduce -- and unlike a time-indexed reference it does not care "
+                         "that the learned rotation takes 4x longer than the gravity swing.")
     ap.add_argument("--save-npz", type=Path, default=None,
                     help="write the rollout as a reference trajectory (qpos/qvel/cube_z/"
                          "contacts/best_finger_ctrl) in the layout rl_train_cube.py's "
@@ -319,6 +325,8 @@ def main() -> None:
     chuck_ctrl: dict[str, np.ndarray] = {}
     chuck_s: dict[str, float] = {}
     chuck_palm_tgt: dict[str, np.ndarray] = {}
+    tips_obj: list[np.ndarray] = []
+    tips_phase: list[str] = []
     ref_qpos: list[np.ndarray] = []
     ref_qvel: list[np.ndarray] = []
     ref_z: list[float] = []
@@ -437,6 +445,12 @@ def main() -> None:
 
             mujoco.mj_step(model, data)
 
+            if args.save_chuck_pose is not None:
+                R_o = data.body(OBJ).xmat.reshape(3, 3)
+                c_o = data.body(OBJ).xpos
+                tips_obj.append(np.stack([R_o.T @ (data.body(TIPS[f]).xpos - c_o)
+                                          for f in ("thumb", "index", "middle")]))
+                tips_phase.append(phase)
             if args.save_npz is not None:
                 ref_qpos.append(data.qpos.copy())
                 ref_qvel.append(data.qvel.copy())
@@ -513,6 +527,23 @@ def main() -> None:
         summary = {"hold_share": share, "three_finger_share": three, "mean_force": fmean}
     else:
         summary = {}
+
+    if args.save_chuck_pose is not None:
+        traj = np.stack(tips_obj)                                  # (T, 3, 3)
+        held = np.array([p == "press" for p in tips_phase])
+        if not held.any():
+            held = np.array([p in ("hang", "press") for p in tips_phase])
+        hold = traj[held].mean(axis=0)
+        spread = traj[held].std(axis=0).max()
+        args.save_chuck_pose.parent.mkdir(parents=True, exist_ok=True)
+        np.savez(args.save_chuck_pose, fingertip_obj=traj[::10], dt=0.02, t0=0.0,
+                 hold_pose=hold, hold_spread=spread,
+                 source=str(args.scene))
+        print("[chuck-pose] object-frame fingertips over the hold (m), thumb/index/middle:")
+        for name, row in zip(("thumb", "index", "middle"), hold):
+            print(f"    {name:7s} {np.round(row, 4)}")
+        print(f"[chuck-pose] max per-axis sd over the hold {spread*1000:.2f} mm "
+              f"-> {args.save_chuck_pose}")
 
     if args.save_npz is not None:
         args.save_npz.parent.mkdir(parents=True, exist_ok=True)
