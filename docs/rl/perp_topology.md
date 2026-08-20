@@ -1410,3 +1410,45 @@ If that also fails, the two failures together say the anchor has to MOVE rather 
 grow: the grasp set-point through the swing, the chuck set-point once aligned, with the residual
 small in both phases. That is a scheduled `target_ctrl` in the action layer, and it is now the
 only option left standing.
+
+### r10–r11 — every time-invariant way of spanning the gap fails, and so does moving all three anchors
+
+N=64 × 700, each scored at its own residual scale.
+
+| run | what changed | align_rate | peak_cos | drop_step | three-finger |
+|---|---|---|---|---|---|
+| r9 | chuck-pose reward, residual 0.5 | **100%** | **0.997** | **485 ± 50** | 0% |
+| r10 | asymmetric budget (thumb 1.5, pair 0.5/0.7) | 3.1% | 0.717 | 78 ± 17 | — |
+| r11 | anchor schedule, ALL THREE fingers | 0% | 0.214 | 245 ± 19 | — |
+
+**r10.** Giving the thumb the range did not recruit it — it let the thumb wreck the grasp. Drop at
+78 against r9's 485, `tip_lost` 32.2 against 1.9. (Confound to state: r10 trained at
+`init_noise_std` 0.01 after NaN-ing at 0.02, where r9 used 0.02. The effect size makes noise an
+implausible explanation, but it is not a perfectly matched pair.)
+
+**r11.** The scheduled anchor is mechanically sound — the required excursion from the hold
+set-point is 0.000 rad, and the smoke run gave 342-step episodes at iteration 20 against r9's 69 —
+and it still fails, because it moves the WRONG anchors. The opposed pair is what is actually
+holding the object; relocating its set-point at cos ≥ 0.7 relocates the pinch itself, mid-swing.
+That is the same discontinuity that ejects the shaft at an A→B seam, which this single-stage
+recipe exists to avoid, reintroduced by me from the other side. (It did not peak-and-collapse:
+the reward 1006 at iteration 9 is an early transient; from iteration 25 the run improves
+monotonically 78 → 227, to values an order of magnitude below r9's 2493.)
+
+The thumb reads 0 N through the whole lift and swing, so it is the only anchor that can move for
+free. **r12** tests exactly that: `hold_thumb_only`, pair set-point untouched.
+
+### Standing summary of the thumb problem on this topology
+
+Four mechanisms have now been tried and measured, not argued:
+
+| instrument | outcome |
+|---|---|
+| reward the thumb's contact force (r7, r8) | term reads a flat 0.000; the pose is 1.296 rad outside the action budget |
+| reward the whole-hand hold pose (r9) | **best reorienter this topology has produced**, still two-fingered — the dense reward drives every finger as far as it can, and the thumb runs out of budget 0.8 rad short |
+| widen the budget, uniformly or per-joint | NaN at iteration 0, or the thumb wrecks the grasp |
+| move the anchor for all three fingers | relocates the pinch mid-swing; align 0% |
+
+The consistent shape: **the thumb's useful pose and its harmful poses are the same neighbourhood,
+separated by when, not by how far** — and every instrument that reaches the first also reaches the
+second.
