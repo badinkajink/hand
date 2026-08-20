@@ -1,0 +1,22 @@
+{
+  "label": "20260819-2201-perp_sp25_holdthumb_z_z",
+  "n": 64,
+  "steps": 700,
+  "align_thresh": 0.9,
+  "align_rate": 0.0625,
+  "hold_rate": 0.0,
+  "success_rate": 0.0,
+  "t_align_mean": 180.0,
+  "hold_steps_mean": 0.0625,
+  "hold_steps_sd": 0.24206145913796356,
+  "final_cos_mean": -1.1920928955078125e-07,
+  "final_cos_sd": 0.0,
+  "final_z_mean": 0.01229277066886425,
+  "peak_cos_mean": 0.8537279367446899,
+  "drop_step_mean": 210.984375,
+  "n_lost": 64,
+  "three_finger_share": 0.0,
+  "mean_force_thumb": 0.0,
+  "mean_force_index": 2.528477907180786,
+  "mean_force_middle": 3.839601755142212
+}

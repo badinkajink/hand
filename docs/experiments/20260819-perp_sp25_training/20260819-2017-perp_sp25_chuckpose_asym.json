@@ -1,0 +1,22 @@
+{
+  "label": "20260819-2017-perp_sp25_chuckpose_asym",
+  "n": 64,
+  "steps": 700,
+  "align_thresh": 0.9,
+  "align_rate": 0.03125,
+  "hold_rate": 0.0,
+  "success_rate": 0.0,
+  "t_align_mean": 89.5,
+  "hold_steps_mean": 0.0,
+  "hold_steps_sd": 0.0,
+  "final_cos_mean": -1.1920928955078125e-07,
+  "final_cos_sd": 0.0,
+  "final_z_mean": 0.01229277066886425,
+  "peak_cos_mean": 0.7168731689453125,
+  "drop_step_mean": 78.53125,
+  "n_lost": 64,
+  "three_finger_share": 0.0,
+  "mean_force_thumb": 0.0,
+  "mean_force_index": 0.0,
+  "mean_force_middle": 0.0
+}

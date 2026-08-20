@@ -1452,3 +1452,52 @@ Four mechanisms have now been tried and measured, not argued:
 The consistent shape: **the thumb's useful pose and its harmful poses are the same neighbourhood,
 separated by when, not by how far** — and every instrument that reaches the first also reaches the
 second.
+
+### r12–r13 — moving only the thumb's anchor, and why the reward number lies about it
+
+**r12** (thumb anchor moves at cos ≥ 0.7, pair untouched) was aborted by the collapse watchdog at
+iteration 52: `object_height` 0.0248 < 0.03, `object_floor_proximity` firing 125× per episode. The
+policy had learned to stop lifting. The gate was wrong, not the schedule — the hold pose is defined
+for a shaft that is upright AND LIFTED, but the shaft crosses cos 0.7 while it is still near the
+floor, so the anchor swept the thumb to a pose belonging 120 mm higher. "Never lift" is the only
+behaviour that avoids the resulting penalty. Fixed with `hold_switch_min_z`.
+
+**r13** (same, gated on cos ≥ 0.7 AND z ≥ 0.09) trains cleanly and deploys badly:
+
+| | r9 | r13 |
+|---|---|---|
+| align_rate | **100%** | 6.2% |
+| peak_cos | **0.997** | 0.854 |
+| drop_step | **485 ± 50** | 211 ± 18 |
+| thumb force | 0.0 N | 0.0 N |
+| `chuck_pose_match` (training) | 0.612 | **0.701** |
+
+Note the last row, because it is a trap worth recording: r13 earns MORE pose-match reward than
+r9 while being far worse at the task. The anchor schedule moves the thumb to the hold pose by
+construction, so the term is paid for the schedule's action rather than the policy's — the metric
+went up because I moved the target under it. Judge these runs on the deterministic eval, never on
+the reward table. (The same lesson the program already records for held-cos vs reward sums.)
+
+## The thumb on the opposed pair: five instruments, one answer (2026-08-19, close-out)
+
+| # | instrument | outcome |
+|---|---|---|
+| 1 | reward thumb contact force (r7, r8) | flat 0.000 over 339 iters — the pose is 1.296 rad outside the action budget |
+| 2 | reward the whole-hand hold pose (r9) | **best opposed-hand reorienter to date**, still two-fingered |
+| 3 | widen the budget (uniform 1.5 / per-joint) | NaN at iteration 0; or the thumb wrecks the grasp (drop 78 vs 485) |
+| 4 | move all three anchors on alignment (r11) | relocates the pinch mid-swing — align 0% |
+| 5 | move only the thumb's anchor (r12, r13) | policy stops lifting; with the height gate, align 6.2% |
+
+Every instrument that gives the thumb enough authority or proximity to reach the hold also gives
+it the means to disturb a grasp that is, at that moment, the only thing holding the object. The
+thumb's useful pose and its harmful poses are the same neighbourhood, separated by *when*, and
+none of these five separate them finely enough.
+
+**What did work is worth stating on its own terms.** r9 — the whole-hand pose reward at the
+shipped residual budget — is the best reorienter this topology has produced: 100% align, peak cos
+0.997, aligned in **28 steps** against r4's 128, holding vertical **455** steps against 255, and
+dropping at 485 against 389. It is two-fingered and it still ends on the floor, and its eval plot
+shows exactly why: alignment pins at 0.99 from step 28 while total grip decays 13 N → 2 N. The
+retention problem is unchanged and is still the thing a third finger would fix.
+
+Anyone resuming this should start from r9, not from the thumb.
