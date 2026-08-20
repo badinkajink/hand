@@ -1328,3 +1328,31 @@ including the swing — and the swing is the part this recipe spends most of its
 * If **both arms stay at ~0 with episodes still ending near step 100**, the reach fix is
   irrelevant until the two-finger hold survives long enough for the third finger to matter, and
   the next move is the hold itself, not the reward.
+
+### r8 final — 339 iterations, the term never fired once
+
+`perp_sp25_chuck_w8`, 25M steps on the frozen 25 mm-proximal hand with the light `closed_manual`
+pinch:
+
+| metric | first | last | max over 339 iters |
+|---|---|---|---|
+| **`thumb_brace_force`** | 0.000 | 0.000 | **0.000** |
+| `contact_min` (gated cos ≥ 0.7) | 0.000 | 0.000 | 0.001 |
+| `grip_force` (same gate) | 0.000 | 0.000 | 0.000 |
+| `target_axis_alignment` | 0.000 | 5.985 | 9.204 |
+| `Train/mean_episode_length` | 167.5 | 112.9 | 228.1 |
+| `Train/mean_reward` | 152.3 | 118.2 | 215.2 |
+
+Not merely a zero mean — the maximum over every iteration is zero. The thumb never touched the
+shaft in 25 million steps. `contact_min` and `grip_force` sitting at zero beside it say why in a
+second way: both are gated on cos ≥ 0.7, and the episode is over (112 steps of 600, `tip_lost`)
+before the shaft spends any sustained time up there.
+
+The run also peaked and degraded — reward 215 → 118, alignment 9.2 → 6.0, episode length 228 →
+113 — the same shape the recipe records for its own revision 3, and for the same reason: with the
+catch unreachable, the only way left to stop losing the shaft at the top of the rotation is to
+stop rotating.
+
+**Conclusion: no thumb-force reward can be tested on this topology at `finger_residual_scale`
+0.5, because the pose that reward is asking for is 1.30 rad outside the action budget.** r7 and
+r8 measured the budget, not the behaviour.
