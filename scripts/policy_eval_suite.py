@@ -94,6 +94,10 @@ def main():
     cos_t = np.zeros((args.steps, N), dtype=np.float32)
     z_t = np.zeros((args.steps, N), dtype=np.float32)
     grip_t = np.zeros((args.steps, N), dtype=np.float32)
+    # PER-FINGER, not just the sum. On the opposed hand the whole open question is whether the
+    # third finger ever bears load: a two-finger pinch and a three-finger chuck can report the
+    # same total while one of them is the degenerate grasp we are trying to leave behind.
+    perf_t = np.zeros((args.steps, N, 3), dtype=np.float32)
 
     sensor = "fingertip_cube_contact"
     with torch.no_grad():
@@ -106,8 +110,10 @@ def main():
             cos_t[s] = (1.0 - 2.0 * (qx * qx + qy * qy)).cpu().numpy()
             z_t[s] = pose[:, 2].cpu().numpy()
             f = env.unwrapped.scene.sensors[sensor].data.force
-            grip_t[s] = (f.norm(dim=-1).sum(dim=-1).cpu().numpy()
-                         if f is not None else np.zeros(N))
+            if f is not None:
+                mag = f.norm(dim=-1)                                  # (N, n_tips)
+                grip_t[s] = mag.sum(dim=-1).cpu().numpy()
+                perf_t[s, :, :mag.shape[1]] = mag[:, :3].cpu().numpy()
     env.close()
 
     held_t = (grip_t > args.held_min_n) & (z_t > args.floor_z)      # (T, N)
@@ -154,6 +160,17 @@ def main():
     print(f"│  peak_cos                             {stat(cos_t.max(axis=0))}")
     if lost.any():
         print(f"│  drop_step   ({int(lost.sum())} envs lost it)      {stat(drop_step)}")
+    # Three-finger share is reported over the ALIGNED+HELD steps only. Over the whole rollout it
+    # is dominated by the pre-lift and swing phases, where a loaded thumb is not wanted anyway.
+    if good_t.any():
+        gf = perf_t[good_t]                                            # (K, 3)
+        three = float((gf.min(axis=1) > args.held_min_n).mean())
+        print(f"│  three_finger (of aligned+held steps) {three:6.1%}")
+        print(f"│  mean N thumb/index/middle            "
+              f"{gf[:, 0].mean():.1f}/{gf[:, 1].mean():.1f}/{gf[:, 2].mean():.1f}")
+    else:
+        three, gf = 0.0, np.zeros((1, 3))
+        print("│  three_finger                         — (never aligned AND held)")
     print("└" + "─" * 60)
 
     out = dict(
@@ -167,6 +184,10 @@ def main():
         peak_cos_mean=float(cos_t.max(axis=0).mean()),
         drop_step_mean=float(np.nanmean(drop_step)) if lost.any() else None,
         n_lost=int(lost.sum()),
+        three_finger_share=three,
+        mean_force_thumb=float(gf[:, 0].mean()),
+        mean_force_index=float(gf[:, 1].mean()),
+        mean_force_middle=float(gf[:, 2].mean()),
     )
     if args.json_out:
         args.json_out.parent.mkdir(parents=True, exist_ok=True)
