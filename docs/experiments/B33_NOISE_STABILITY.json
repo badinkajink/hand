@@ -1,0 +1,74 @@
+[
+  {
+    "std": 0.15,
+    "seed": 9,
+    "rc": 0,
+    "iters": 40,
+    "nan": false,
+    "secs": 348
+  },
+  {
+    "std": 0.15,
+    "seed": 13,
+    "rc": 0,
+    "iters": 40,
+    "nan": false,
+    "secs": 346
+  },
+  {
+    "std": 0.15,
+    "seed": 10,
+    "rc": 1,
+    "iters": 25,
+    "nan": true,
+    "secs": 227
+  },
+  {
+    "std": 0.1,
+    "seed": 9,
+    "rc": 1,
+    "iters": 24,
+    "nan": true,
+    "secs": 221
+  },
+  {
+    "std": 0.1,
+    "seed": 13,
+    "rc": 0,
+    "iters": 40,
+    "nan": false,
+    "secs": 352
+  },
+  {
+    "std": 0.1,
+    "seed": 10,
+    "rc": 1,
+    "iters": 2,
+    "nan": true,
+    "secs": 38
+  },
+  {
+    "std": 0.05,
+    "seed": 9,
+    "rc": 0,
+    "iters": 40,
+    "nan": false,
+    "secs": 349
+  },
+  {
+    "std": 0.05,
+    "seed": 13,
+    "rc": 1,
+    "iters": 2,
+    "nan": true,
+    "secs": 43
+  },
+  {
+    "std": 0.05,
+    "seed": 10,
+    "rc": 1,
+    "iters": 5,
+    "nan": true,
+    "secs": 64
+  }
+]

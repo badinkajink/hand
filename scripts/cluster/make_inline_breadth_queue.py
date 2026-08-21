@@ -14,7 +14,9 @@ defaults: lift-phase/reorient start at step 58 (recipe says 40/45), tip-loss gra
 10 (recipe says 3), and --open-finger-from-keyframe. harden_b33_queue.py documents
 why — left implicit, those three silently define a different experiment, and at
 n=16 that is 13 GPU-hours spent measuring the wrong thing. Do not "simplify" them
-out. Reference for `assert_config_parity.py` is the b33 run itself.
+out. Reference for `assert_config_parity.py` is the b33 run itself — but note that
+parity CANNOT see the warmstart checkpoint, which is not in the dumped config and
+is the one that actually broke the first run of this queue. See B_WARMSTART.
 """
 from __future__ import annotations
 
@@ -23,8 +25,21 @@ import sys
 
 MORPH_M05 = "results/phase1/landscape/m05_ik_cem"
 A_CKPT = "results/rl/a10_20260702-1256-policyA_m05_ik10/tensorboard/model_609.pt"
-B10 = "results/rl/b10_20260604-1642-policyB_holdonlyws_repro/tensorboard/model_541.pt"
 B33 = "results/rl/b33_20260702-1353-policyB_m05_reorient_ik10/tensorboard/model_270.pt"
+
+# b33 warmstarts its actor from a10 — the m05 A policy — NOT from b10. The registry
+# is the record: b33 = "live-A reset, warmstart a10", while b24 is the one that
+# warmstarts b10. The first version of this file took b10 from the launcher's
+# DEFAULT B_CKPT and shipped 16 tasks with it. Every one of them loaded an actor
+# trained on the BASELINE hand onto m05's IK-retargeted geometry — gotcha #5, the
+# same cross-morphology warmstart that ejected the shaft on the perp hand — and 15
+# of 16 diverged to NaN in mjwarp's contact solve. init_noise_std was innocent
+# (docs/experiments/B33_NOISE_STABILITY.txt: NaN at 0.05, 0.1 and 0.15 alike).
+#
+# The warmstart checkpoint is NOT written into the dumped config.yaml, so
+# assert_config_parity CANNOT catch this class of error. Check it by hand against
+# results/rl/REGISTRY.md before launching any queue that warmstarts.
+B_WARMSTART = A_CKPT
 
 STEPS = 20_000_000
 RATE = 6950            # measured GH200 steps/s
@@ -32,7 +47,7 @@ EST_H = round(STEPS / RATE / 3600 + 0.07, 2)   # + startup
 
 
 def train(tag: str, seed: int, morph: str = MORPH_M05, *,
-          warmstart: str | None = B10, scene: str | None = None,
+          warmstart: str | None = B_WARMSTART, scene: str | None = None,
           steps: int = STEPS) -> str:
     """One live-A reorient run, in b33's configuration."""
     a = [
@@ -73,9 +88,9 @@ def study_b33_seeds(n: int) -> list[tuple[float, str, str]]:
     ranking, the hardware spec — rests on ONE policy draw evaluated at n=32
     rollouts. The n=32 rollout spread is known (~±0.1). The TRAINING-draw spread
     is not, and elsewhere in this program it is 0.3-0.5, which is larger than
-    every difference those studies rank. So: rerun b33's own lineage (b10
-    warmstart, 20M ts, m05) across n seeds and get the distribution b33 was drawn
-    from. If b33 sits at the top of a wide band, the hardware spec was written
+    every difference those studies rank. So: rerun b33's own lineage (a10
+    warmstart, 20M ts, m05 — see B_WARMSTART) across n seeds and get the
+    distribution b33 was drawn from. If b33 sits at the top of a wide band, the hardware spec was written
     off a lucky policy and should be re-derived from a median one.
     """
     return [(EST_H, f"b33seed_s{s}", train(f"b33seed_s{s}", s)) for s in range(1, n + 1)]

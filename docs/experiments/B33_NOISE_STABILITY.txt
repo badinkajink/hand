@@ -1,0 +1,6 @@
+# b33 / m05 inline scene: NaN cliff vs init_noise_std 2026-08-20 20:11
+# 3000000 ts per point (~40 iters if clean); b33 trained at std 0.3
+
+init_noise_std 0.15   NaN 1/3   iters survived: 40,40,25
+init_noise_std 0.1    NaN 2/3   iters survived: 24,40,2
+init_noise_std 0.05   NaN 2/3   iters survived: 40,2,5
