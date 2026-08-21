@@ -1,0 +1,25 @@
+# b33 seed band 2026-08-21 04:26 — 16 draws, a10 warmstart, 20M ts, m05, continuous handoff, 3 rollouts/draw
+
+b33seed_s8       cos +0.935 sd   0.04  held 3/3
+b33seed_s2       cos +0.906 sd  0.014  held 3/3
+b33seed_s11      cos +0.906 sd  0.029  held 3/3
+b33seed_s3       cos +0.901 sd  0.025  held 3/3
+b33seed_s12      cos +0.899 sd  0.064  held 3/3
+b33seed_s1       cos +0.890 sd  0.022  held 3/3
+b33seed_s14      cos +0.874 sd  0.058  held 3/3
+b33seed_s5       cos +0.865 sd  0.026  held 3/3
+b33seed_s7       cos +0.864 sd  0.035  held 3/3
+b33seed_s16      cos +0.863 sd  0.034  held 3/3
+b33seed_s15      cos +0.853 sd  0.074  held 3/3
+b33seed_s9       cos +0.845 sd  0.132  held 3/3
+b33seed_s13      cos +0.837 sd  0.077  held 3/3
+b33seed_s4       cos +0.832 sd  0.149  held 3/3
+b33seed_s6       cos +0.827 sd  0.057  held 3/3
+b33seed_s10      cos +0.452 sd  0.439  held 2/3
+
+b33 (REFERENCE)  cos +0.891 sd  0.071  held 3/3
+
+draw band: min +0.452  median +0.865  max +0.935
+between-draw sd: 0.110
+within-draw sd (mean over draws): 0.080
+b33 percentile: 11/16 draws at or below it

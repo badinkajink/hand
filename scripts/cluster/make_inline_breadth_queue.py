@@ -141,7 +141,25 @@ def study_design_band(designs: list[str], seeds: int) -> list[tuple[float, str, 
     co-design objective and the sim2real spec loosens. If it is flat across
     designs too, that is the third independent negative and the hardware-side
     strategy is settled rather than merely recommended.
+
+    NOT RUNNABLE AS WRITTEN — and the reason is the bug that already cost one queue.
+    `train()` defaults both --live-a-checkpoint and --init-actor-checkpoint to a10,
+    which is m05's A policy. Pointing those at H06_04 or sp25 geometry is the same
+    cross-morphology warmstart that NaN'd 15 of 16 draws (gotcha #5): a10's residual
+    means nothing on a hand whose fingers are somewhere else.
+
+    Every design needs its OWN A policy, trained from scratch (gotcha #6 — a
+    warmstarted A loads a grip-specific residual that ejects the re-CEM'd object).
+    So this is a TWO-STAGE queue: an A stage per design, then a B stage that reads
+    each design's own A. `morph_pipeline_sweep.py` already encodes that dependency;
+    the cluster version needs `--dependency=afterok` between two queues rather than
+    one flat manifest. Left unimplemented rather than shipped wrong.
     """
+    raise SystemExit(
+        "design_band needs a per-design A policy and is not implemented as a flat "
+        "manifest — see the docstring. Build the A stage first, or run it through "
+        "morph_pipeline_sweep.py."
+    )
     rows = []
     for d in designs:
         name = d.rstrip("/").split("/")[-1]

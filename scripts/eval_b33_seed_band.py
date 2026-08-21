@@ -70,9 +70,15 @@ def one(ckpt: Path, workdir: Path) -> dict:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--runs", default="results/rl/20260820-2*b33seed_s*",
-                    help="glob of run dirs (the CORRECTED batch; the 1714 run used the "
-                         "wrong b10 warmstart and must not be included)")
+    ap.add_argument("--runs", default="results/rl/2026082*-*b33seed_s*",
+                    help="glob of run dirs. The corrected batch spans midnight "
+                         "(20260820-2131 .. 20260821-0408), so a 20260820-only glob "
+                         "silently scores 6 of 16 — it did exactly that once.")
+    ap.add_argument("--exclude", nargs="*", default=["20260820-1714"],
+                    help="substrings to drop. 20260820-1714-b33seed_s6 COMPLETED but under "
+                         "the wrong b10 warmstart, so it is not a draw from this "
+                         "distribution. It sits in the same tree under the same tag and "
+                         "the glob cannot tell them apart.")
     ap.add_argument("--repeats", type=int, default=3)
     args = ap.parse_args()
 
@@ -81,6 +87,9 @@ def main() -> int:
 
     targets: list[tuple[str, Path]] = []
     for d in sorted(glob.glob(str(ROOT / args.runs))):
+        if any(x in d for x in args.exclude):
+            print(f"[exclude] {Path(d).name}")
+            continue
         c = Path(d) / "tensorboard/model_270.pt"
         if c.is_file():
             targets.append((Path(d).name.split("-")[-1], c))
