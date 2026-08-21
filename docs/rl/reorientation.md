@@ -4036,3 +4036,66 @@ pad deflecting ~1–3 mm at operating load, μ ≳ 1.7, a compact convex (not fl
 r 5–6 mm, tool placement ±2 mm / ±0.1 rad. This is a narrower hardware spec than "build any pad and
 train around it", but it is a *reachable* one, and three independent attempts now say the training-side
 route is not.
+
+### 2026-08-21 — the b33 seed band: b33 is an ORDINARY draw, and the warmstarted recipe is not seed-dominated
+
+First study run on NSF ACCESS / DeltaAI (`docs/notes/20260820-deltaai_bulk_training_runbook.md`).
+16 independent draws of b33's own lineage — a10 warmstart, live-A reset, 20M ts, m05, b33's own
+timing (lift/reorient start 58, tip-loss grace 10) — each scored through the continuous handoff at
+3 rollouts. 15 SU. `docs/experiments/B33_SEED_BAND.{txt,json}`.
+
+| | held-cos |
+|---|---|
+| 15 "core" draws | 0.827 – 0.935, mean **0.873**, sd **0.032** |
+| 1 tail draw (s10) | **0.452**, sd 0.439, held 2/3 |
+| **b33 itself** | **0.891** — 11 of 16 draws at or below it |
+| within-draw (rollout) sd | **0.080** |
+
+**b33 is a typical draw, slightly above median.** Everything downstream of it — the three
+robustness cliffs, the fingertip ranking, the hardware spec (μ ≳ 1.7, 1–3 mm pad deflection,
+r 5–6 mm convex tip) — was measured on a representative policy, not a lucky one. That was the open
+question and it resolves in the reassuring direction.
+
+**The bigger result: between-draw sd is 0.032, SMALLER than the 0.080 rollout noise.** For this
+recipe the draws are barely distinguishable from each other. The program-wide prior of 0.3–0.5 came
+from *from-scratch* reorient training, which is a hard-exploration problem; **warmstarting from the
+design's own A policy removes the exploration lottery.** Nobody had measured it because nobody had
+ever taken a second draw.
+
+That re-prices the whole design-search program. At sd 0.032 the seeds needed to resolve a
+difference Δ in mean held-cos are `n ≈ 15.7σ²/Δ²`:
+
+| Δ | seeds at the MEASURED sd | seeds at the assumed 0.35 |
+|---|---|---|
+| 0.20 | <1 | 48 |
+| 0.10 | ~2 | 192 |
+| 0.05 | ~6 | 769 |
+
+The "n=48 per design" costing was built on a variance that does not apply to warmstarted runs.
+**Caveat, and it is a real one:** this is one design (m05) in the warmstarted regime. A per-design
+search cannot reuse a10 — warmstarting one hand's A onto another's geometry is gotcha #5, and it is
+exactly what NaN'd the first attempt at this study (below). Each design needs its own from-scratch
+A, and whether the low variance survives that is untested.
+
+**The tail is real and is a DROP, not a bad reorient.** s10 was rendered rather than inferred
+(`docs/experiments/20260821-b33_seed_band_filmstrips/`): it lifts cleanly, loses the shaft by
+step ~102, and the rollout ends with the tool rolling on the floor and the hand empty. Its 0.452 is
+a mixture of held rollouts and that drop. So ~1 draw in 16 is drop-prone, and a single-draw verdict
+still carries a ~6% chance of calling a design bad when it is not — small, but the argument for
+n≈3 rather than n=1, not for n=48.
+
+**The failed first attempt, worth recording.** The initial 16-draw queue returned 1 completion and
+15 NaN divergences. Cause: `--init-actor-checkpoint` pointed at **b10**, taken from
+`train_handoff_liveA_reset.sh`'s DEFAULT `B_CKPT`, when b33 in fact warmstarts **a10** (REGISTRY:
+b33 = "live-A reset, warmstart a10"; b24 is the b10 one). b10 was trained on the baseline hand, so
+every task loaded an actor from one morphology onto m05's IK-retargeted geometry — gotcha #5 — and
+mjwarp's contact solve diverged. Substitution on the three fastest failures: b10 → NaN at iters 21,
+36, 22; a10 → clean 40/40/40. Two hypotheses died first and are recorded so they are not re-run:
+the aarch64 platform (disproven — the same seeds NaN locally) and `init_noise_std` (disproven —
+`docs/experiments/B33_NOISE_STABILITY.txt`, NaN at 0.05/0.1/0.15 alike; the perp cliff does not
+transfer here).
+
+**Load-bearing gotcha: `assert_config_parity.py` CANNOT see the warmstart checkpoint.** It is not
+written into the dumped `config.yaml`. An in-flight parity check passed cleanly on runs loading the
+wrong policy. Until the trainer records it, warmstarts must be checked by hand against
+`results/rl/REGISTRY.md` — and the launcher DEFAULT is not evidence of what a published run used.

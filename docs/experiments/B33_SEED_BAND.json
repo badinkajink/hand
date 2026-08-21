@@ -1,0 +1,478 @@
+[
+  {
+    "name": "b33seed_s1",
+    "ckpt": "results/rl/20260820-2131-b33seed_s1/tensorboard/model_270.pt",
+    "trials": [
+      {
+        "held_cos": 0.902,
+        "peak_cos": 0.925,
+        "minz_post": 0.127,
+        "rc": 0
+      },
+      {
+        "held_cos": 0.864,
+        "peak_cos": 0.893,
+        "minz_post": 0.1209,
+        "rc": 0
+      },
+      {
+        "held_cos": 0.903,
+        "peak_cos": 0.936,
+        "minz_post": 0.1201,
+        "rc": 0
+      }
+    ],
+    "cos_mean": 0.89,
+    "cos_sd": 0.022,
+    "held": 3,
+    "n": 3
+  },
+  {
+    "name": "b33seed_s2",
+    "ckpt": "results/rl/20260820-2131-b33seed_s2/tensorboard/model_270.pt",
+    "trials": [
+      {
+        "held_cos": 0.921,
+        "peak_cos": 0.924,
+        "minz_post": 0.1221,
+        "rc": 0
+      },
+      {
+        "held_cos": 0.902,
+        "peak_cos": 0.92,
+        "minz_post": 0.1207,
+        "rc": 0
+      },
+      {
+        "held_cos": 0.894,
+        "peak_cos": 0.902,
+        "minz_post": 0.1224,
+        "rc": 0
+      }
+    ],
+    "cos_mean": 0.906,
+    "cos_sd": 0.014,
+    "held": 3,
+    "n": 3
+  },
+  {
+    "name": "b33seed_s3",
+    "ckpt": "results/rl/20260820-2227-b33seed_s3/tensorboard/model_270.pt",
+    "trials": [
+      {
+        "held_cos": 0.909,
+        "peak_cos": 0.916,
+        "minz_post": 0.1265,
+        "rc": 0
+      },
+      {
+        "held_cos": 0.873,
+        "peak_cos": 0.882,
+        "minz_post": 0.1228,
+        "rc": 0
+      },
+      {
+        "held_cos": 0.921,
+        "peak_cos": 0.924,
+        "minz_post": 0.1218,
+        "rc": 0
+      }
+    ],
+    "cos_mean": 0.901,
+    "cos_sd": 0.025,
+    "held": 3,
+    "n": 3
+  },
+  {
+    "name": "b33seed_s4",
+    "ckpt": "results/rl/20260820-2228-b33seed_s4/tensorboard/model_270.pt",
+    "trials": [
+      {
+        "held_cos": 0.869,
+        "peak_cos": 0.894,
+        "minz_post": 0.126,
+        "rc": 0
+      },
+      {
+        "held_cos": 0.958,
+        "peak_cos": 0.97,
+        "minz_post": 0.1188,
+        "rc": 0
+      },
+      {
+        "held_cos": 0.668,
+        "peak_cos": 0.724,
+        "minz_post": 0.1145,
+        "rc": 0
+      }
+    ],
+    "cos_mean": 0.832,
+    "cos_sd": 0.149,
+    "held": 3,
+    "n": 3
+  },
+  {
+    "name": "b33seed_s5",
+    "ckpt": "results/rl/20260820-2324-b33seed_s5/tensorboard/model_270.pt",
+    "trials": [
+      {
+        "held_cos": 0.895,
+        "peak_cos": 0.911,
+        "minz_post": 0.128,
+        "rc": 0
+      },
+      {
+        "held_cos": 0.845,
+        "peak_cos": 0.882,
+        "minz_post": 0.1229,
+        "rc": 0
+      },
+      {
+        "held_cos": 0.855,
+        "peak_cos": 0.869,
+        "minz_post": 0.1203,
+        "rc": 0
+      }
+    ],
+    "cos_mean": 0.865,
+    "cos_sd": 0.026,
+    "held": 3,
+    "n": 3
+  },
+  {
+    "name": "b33seed_s6",
+    "ckpt": "results/rl/20260820-2324-b33seed_s6/tensorboard/model_270.pt",
+    "trials": [
+      {
+        "held_cos": 0.879,
+        "peak_cos": 0.902,
+        "minz_post": 0.1267,
+        "rc": 0
+      },
+      {
+        "held_cos": 0.766,
+        "peak_cos": 0.878,
+        "minz_post": 0.1313,
+        "rc": 0
+      },
+      {
+        "held_cos": 0.836,
+        "peak_cos": 0.867,
+        "minz_post": 0.1219,
+        "rc": 0
+      }
+    ],
+    "cos_mean": 0.827,
+    "cos_sd": 0.057,
+    "held": 3,
+    "n": 3
+  },
+  {
+    "name": "b33_REFERENCE",
+    "ckpt": "results/rl/b33_20260702-1353-policyB_m05_reorient_ik10/tensorboard/model_270.pt",
+    "trials": [
+      {
+        "held_cos": 0.955,
+        "peak_cos": 0.969,
+        "minz_post": 0.1204,
+        "rc": 0
+      },
+      {
+        "held_cos": 0.905,
+        "peak_cos": 0.917,
+        "minz_post": 0.1248,
+        "rc": 0
+      },
+      {
+        "held_cos": 0.814,
+        "peak_cos": 0.864,
+        "minz_post": 0.1228,
+        "rc": 0
+      }
+    ],
+    "cos_mean": 0.891,
+    "cos_sd": 0.071,
+    "held": 3,
+    "n": 3
+  },
+  {
+    "name": "b33seed_s7",
+    "ckpt": "results/rl/20260821-0020-b33seed_s7/tensorboard/model_270.pt",
+    "trials": [
+      {
+        "held_cos": 0.828,
+        "peak_cos": 0.86,
+        "minz_post": 0.1179,
+        "rc": 0
+      },
+      {
+        "held_cos": 0.897,
+        "peak_cos": 0.903,
+        "minz_post": 0.1209,
+        "rc": 0
+      },
+      {
+        "held_cos": 0.867,
+        "peak_cos": 0.888,
+        "minz_post": 0.1266,
+        "rc": 0
+      }
+    ],
+    "cos_mean": 0.864,
+    "cos_sd": 0.035,
+    "held": 3,
+    "n": 3
+  },
+  {
+    "name": "b33seed_s8",
+    "ckpt": "results/rl/20260821-0021-b33seed_s8/tensorboard/model_270.pt",
+    "trials": [
+      {
+        "held_cos": 0.949,
+        "peak_cos": 0.951,
+        "minz_post": 0.1224,
+        "rc": 0
+      },
+      {
+        "held_cos": 0.965,
+        "peak_cos": 0.974,
+        "minz_post": 0.1194,
+        "rc": 0
+      },
+      {
+        "held_cos": 0.89,
+        "peak_cos": 0.909,
+        "minz_post": 0.1261,
+        "rc": 0
+      }
+    ],
+    "cos_mean": 0.935,
+    "cos_sd": 0.04,
+    "held": 3,
+    "n": 3
+  },
+  {
+    "name": "b33seed_s10",
+    "ckpt": "results/rl/20260821-0117-b33seed_s10/tensorboard/model_270.pt",
+    "trials": [
+      {
+        "held_cos": 0.481,
+        "peak_cos": 0.692,
+        "minz_post": 0.1104,
+        "rc": 0
+      },
+      {
+        "held_cos": 0.876,
+        "peak_cos": 0.902,
+        "minz_post": 0.1266,
+        "rc": 0
+      },
+      {
+        "held_cos": -0.0,
+        "peak_cos": 0.612,
+        "minz_post": 0.0027,
+        "rc": 0
+      }
+    ],
+    "cos_mean": 0.452,
+    "cos_sd": 0.439,
+    "held": 2,
+    "n": 3
+  },
+  {
+    "name": "b33seed_s9",
+    "ckpt": "results/rl/20260821-0117-b33seed_s9/tensorboard/model_270.pt",
+    "trials": [
+      {
+        "held_cos": 0.693,
+        "peak_cos": 0.723,
+        "minz_post": 0.1217,
+        "rc": 0
+      },
+      {
+        "held_cos": 0.914,
+        "peak_cos": 0.919,
+        "minz_post": 0.1229,
+        "rc": 0
+      },
+      {
+        "held_cos": 0.929,
+        "peak_cos": 0.938,
+        "minz_post": 0.1256,
+        "rc": 0
+      }
+    ],
+    "cos_mean": 0.845,
+    "cos_sd": 0.132,
+    "held": 3,
+    "n": 3
+  },
+  {
+    "name": "b33seed_s11",
+    "ckpt": "results/rl/20260821-0214-b33seed_s11/tensorboard/model_270.pt",
+    "trials": [
+      {
+        "held_cos": 0.874,
+        "peak_cos": 0.895,
+        "minz_post": 0.1248,
+        "rc": 0
+      },
+      {
+        "held_cos": 0.913,
+        "peak_cos": 0.923,
+        "minz_post": 0.1254,
+        "rc": 0
+      },
+      {
+        "held_cos": 0.93,
+        "peak_cos": 0.956,
+        "minz_post": 0.1176,
+        "rc": 0
+      }
+    ],
+    "cos_mean": 0.906,
+    "cos_sd": 0.029,
+    "held": 3,
+    "n": 3
+  },
+  {
+    "name": "b33seed_s12",
+    "ckpt": "results/rl/20260821-0214-b33seed_s12/tensorboard/model_270.pt",
+    "trials": [
+      {
+        "held_cos": 0.969,
+        "peak_cos": 0.973,
+        "minz_post": 0.1256,
+        "rc": 0
+      },
+      {
+        "held_cos": 0.843,
+        "peak_cos": 0.879,
+        "minz_post": 0.1238,
+        "rc": 0
+      },
+      {
+        "held_cos": 0.885,
+        "peak_cos": 0.902,
+        "minz_post": 0.1221,
+        "rc": 0
+      }
+    ],
+    "cos_mean": 0.899,
+    "cos_sd": 0.064,
+    "held": 3,
+    "n": 3
+  },
+  {
+    "name": "b33seed_s13",
+    "ckpt": "results/rl/20260821-0311-b33seed_s13/tensorboard/model_270.pt",
+    "trials": [
+      {
+        "held_cos": 0.879,
+        "peak_cos": 0.891,
+        "minz_post": 0.1234,
+        "rc": 0
+      },
+      {
+        "held_cos": 0.884,
+        "peak_cos": 0.903,
+        "minz_post": 0.1269,
+        "rc": 0
+      },
+      {
+        "held_cos": 0.749,
+        "peak_cos": 0.774,
+        "minz_post": 0.1213,
+        "rc": 0
+      }
+    ],
+    "cos_mean": 0.837,
+    "cos_sd": 0.077,
+    "held": 3,
+    "n": 3
+  },
+  {
+    "name": "b33seed_s14",
+    "ckpt": "results/rl/20260821-0311-b33seed_s14/tensorboard/model_270.pt",
+    "trials": [
+      {
+        "held_cos": 0.917,
+        "peak_cos": 0.92,
+        "minz_post": 0.1224,
+        "rc": 0
+      },
+      {
+        "held_cos": 0.808,
+        "peak_cos": 0.834,
+        "minz_post": 0.1229,
+        "rc": 0
+      },
+      {
+        "held_cos": 0.898,
+        "peak_cos": 0.917,
+        "minz_post": 0.1298,
+        "rc": 0
+      }
+    ],
+    "cos_mean": 0.874,
+    "cos_sd": 0.058,
+    "held": 3,
+    "n": 3
+  },
+  {
+    "name": "b33seed_s15",
+    "ckpt": "results/rl/20260821-0407-b33seed_s15/tensorboard/model_270.pt",
+    "trials": [
+      {
+        "held_cos": 0.769,
+        "peak_cos": 0.806,
+        "minz_post": 0.1186,
+        "rc": 0
+      },
+      {
+        "held_cos": 0.91,
+        "peak_cos": 0.926,
+        "minz_post": 0.1277,
+        "rc": 0
+      },
+      {
+        "held_cos": 0.881,
+        "peak_cos": 0.893,
+        "minz_post": 0.1192,
+        "rc": 0
+      }
+    ],
+    "cos_mean": 0.853,
+    "cos_sd": 0.074,
+    "held": 3,
+    "n": 3
+  },
+  {
+    "name": "b33seed_s16",
+    "ckpt": "results/rl/20260821-0408-b33seed_s16/tensorboard/model_270.pt",
+    "trials": [
+      {
+        "held_cos": 0.827,
+        "peak_cos": 0.869,
+        "minz_post": 0.124,
+        "rc": 0
+      },
+      {
+        "held_cos": 0.868,
+        "peak_cos": 0.895,
+        "minz_post": 0.1225,
+        "rc": 0
+      },
+      {
+        "held_cos": 0.895,
+        "peak_cos": 0.912,
+        "minz_post": 0.1274,
+        "rc": 0
+      }
+    ],
+    "cos_mean": 0.863,
+    "cos_sd": 0.034,
+    "held": 3,
+    "n": 3
+  }
+]
