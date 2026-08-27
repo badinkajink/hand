@@ -110,13 +110,24 @@ def _shift_first(spec: str | None, x: float) -> str:
     return _fmt_xyz((x, y, z))
 
 
-def _set_capsule(body: ET.Element, length: float) -> None:
-    """Redraw a body's single `fromto` capsule as `0 0 0 -> length 0 0`, radius untouched."""
+def _set_capsule(body: ET.Element, length: float, *,
+                 inset_start: bool = False, inset_end: bool = False) -> None:
+    """Redraw a body's single `fromto` capsule to span `length`, radius untouched.
+
+    The insets pull an endpoint in by the radius so the hemispherical cap lands ON the joint
+    instead of a radius past it. They are applied only at a LINK's outer ends: a link drawn as
+    two tapered capsules has sub-segments shorter than their own caps, and insetting both ends of
+    those collapses the fromto ("points too close in geom"). Insetting the outside of the pair is
+    what makes the pair's envelope equal the link.
+    """
     caps = [g for g in body.findall("geom")
             if g.get("type") == "capsule" and g.get("fromto") is not None]
     if len(caps) != 1:
         raise ValueError(f"{body.get('name')} has {len(caps)} fromto capsules, expected 1")
-    caps[0].set("fromto", f"0 0 0 {length:.6f} 0 0")
+    r = float(caps[0].get("size", "0.01").split()[0])
+    a = min(r, length - 0.001) if inset_start else 0.0
+    b = max(length - r, a + 0.001) if inset_end else length
+    caps[0].set("fromto", f"{a:.6f} 0 0 {b:.6f} 0 0")
 
 
 def _shift_x(spec: dict[str, str], dx: float) -> dict[str, str]:
@@ -325,7 +336,8 @@ class Scene:
 
     def set_link_lengths(self, proximal: float, distal: float, *, taper: float = 0.4,
                          pad_reach: float = 0.011, yaw_link: float = 0.0,
-                         yaw_link_dir: tuple[float, float, float] = (0.0, 0.0, -1.0)) -> "Scene":
+                         yaw_link_dir: tuple[float, float, float] = (0.0, 0.0, -1.0),
+                         cap_inset: bool = False) -> "Scene":
         """Set the two FLEXING link lengths, in the hardware's own terms.
 
         The hand has two flexion joints per finger, MCP and PIP, so it has two links — but the
@@ -355,6 +367,15 @@ class Scene:
         repositioned one — the whole a10/b33 lineage is roll-yaw — so it needs its keyframes
         re-solved and its policies retrained, not transferred.
 
+        `cap_inset` decides whether the DRAWN link matches the kinematic one. A capsule extends by
+        its radius past each `fromto` end, so a 40 mm link drawn `0 -> 40` at r 10 occupies 60 mm
+        and overlaps 10 mm backwards into whatever precedes it. That is the defect
+        `docs/notes/finger_spec.md` §3(a) records on the shipped hand (a 94 mm envelope on a
+        75.8 mm proximal, "not manufacturable as drawn"). Inset draws `r -> L-r` instead, so the
+        envelope IS the link. It is off by default because the trained scenes have the legacy
+        convention baked in and their collision geometry is what the policies learned against;
+        turn it on for a hand being checked against CAD.
+
         Mass is deliberately NOT pinned here (contrast the tip-shape mutators and THE MASS TRAP
         above): a shorter phalanx really is lighter, and pinning m05's inertia onto a 40 mm link
         would be the fiction, not the control.
@@ -371,11 +392,11 @@ class Scene:
             if min(p1, p2, d_link) <= 0:
                 raise ValueError(f"{f}: proximal {proximal} / distal {distal} leaves a "
                                  f"non-positive segment (distal must exceed pad reach {pad_reach})")
-            _set_capsule(mcp, p1)
+            _set_capsule(mcp, p1, inset_start=cap_inset)
             lenf.set("pos", _shift_first(lenf.get("pos"), p1))
-            _set_capsule(lenf, p2)
+            _set_capsule(lenf, p2, inset_end=cap_inset)
             pip.set("pos", _shift_first(pip.get("pos"), p2))
-            _set_capsule(pip, d_link)
+            _set_capsule(pip, d_link, inset_start=cap_inset)
             tip.set("pos", _shift_first(tip.get("pos"), d_link))
 
             if yaw_link:
@@ -402,9 +423,13 @@ class Scene:
                     yawb.remove(old)
                 for placeholder in yawb.findall("inertial"):
                     yawb.remove(placeholder)
+                r_yaw = 0.010
+                a = r_yaw * dirn if cap_inset else np.zeros(3)
+                b = (yaw_link - r_yaw) * dirn if cap_inset else end
                 yawb.append(ET.Element("geom", {
-                    "type": "capsule", "fromto": f"0 0 0 {end[0]:.6f} {end[1]:.6f} {end[2]:.6f}",
-                    "size": "0.010", "material": "finger_mat"}))
+                    "type": "capsule",
+                    "fromto": f"{a[0]:.6f} {a[1]:.6f} {a[2]:.6f} {b[0]:.6f} {b[1]:.6f} {b[2]:.6f}",
+                    "size": f"{r_yaw:.6f}", "material": "finger_mat"}))
         return self
 
     def set_mounts(self, mounts: dict[str, tuple[float, float]]) -> "Scene":

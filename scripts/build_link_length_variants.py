@@ -280,7 +280,7 @@ def fit_pose(scene: Scene, work: Path, keyframe: str, palm_vals, obj_qpos, tips_
 
 def build(proximal: float, distal: float, tag: str, *, yaw_link: float, abduction: bool,
           keyframe: str, src: Path, taper: float, tool_length: float | None,
-          do_fit: bool, fit_mounts: bool) -> dict:
+          do_fit: bool, fit_mounts: bool, cap_inset: bool) -> dict:
     tips_tgt, palm_vals, obj_qpos = tip_targets(str(src), keyframe)
 
     smodel = mujoco.MjModel.from_xml_path(str(src))
@@ -304,7 +304,7 @@ def build(proximal: float, distal: float, tag: str, *, yaw_link: float, abductio
     out = out_dir / "scene.xml"
     out_dir.mkdir(parents=True, exist_ok=True)
     sc = Scene(src).set_link_lengths(proximal, distal, taper=taper, pad_reach=PAD_REACH,
-                                    yaw_link=yaw_link)
+                                    yaw_link=yaw_link, cap_inset=cap_inset)
     if tool_length:
         sc = sc.set_tool_length(tool_length)
     sc.write(out)
@@ -380,6 +380,9 @@ def main() -> None:
                     help="Shorten the screwdriver stand-in to this many mm (default: leave at 100).")
     ap.add_argument("--fit-palm", action="store_true",
                     help="Solve palm px/py/pz for the tips instead of only dropping it in z.")
+    ap.add_argument("--cap-inset", action="store_true",
+                    help="Draw each link so its capsule ENVELOPE equals the kinematic length "
+                         "(default: legacy, caps add a radius at each end).")
     ap.add_argument("--fit-mounts", action="store_true",
                     help="Also solve the three mounts' x/y inside the co-design box. Implies "
                          "--fit-palm. A 70 mm finger wants a tighter footprint than a 117 mm one.")
@@ -405,11 +408,14 @@ def main() -> None:
             tag += f"_t{args.tool_length:.0f}"
         if args.fit_mounts:
             tag += "_fm"
+        if args.cap_inset:
+            tag += "_ci"
         rec = build(float(p_mm) / 1000, float(d_mm) / 1000, tag,
                     yaw_link=float(yl or 0) / 1000, abduction=abduction,
                     keyframe=args.keyframe, src=args.src, taper=args.taper,
                     tool_length=(args.tool_length / 1000 if args.tool_length else None),
-                    do_fit=args.fit_palm or args.fit_mounts, fit_mounts=args.fit_mounts)
+                    do_fit=args.fit_palm or args.fit_mounts, fit_mounts=args.fit_mounts,
+                    cap_inset=args.cap_inset)
         recs.append(rec)
         print(f"\n=== {spec}  proximal {rec['proximal_mm']:.0f} distal {rec['distal_mm']:.0f}"
               f"  yaw link {rec['yaw_link_mm']:.0f} mm (perpendicular, -z)"
