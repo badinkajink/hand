@@ -325,7 +325,7 @@ class Scene:
 
     def set_link_lengths(self, proximal: float, distal: float, *, taper: float = 0.4,
                          pad_reach: float = 0.011, yaw_link: float = 0.0,
-                         yaw_link_axis: str = "x") -> "Scene":
+                         yaw_link_dir: tuple[float, float, float] = (0.0, 0.0, -1.0)) -> "Scene":
         """Set the two FLEXING link lengths, in the hardware's own terms.
 
         The hand has two flexion joints per finger, MCP and PIP, so it has two links — but the
@@ -342,20 +342,18 @@ class Scene:
         fingertip pad is left alone: it is the r 5 mm convex tip the fingertip study selected, and
         `pad_reach` (6 mm half-length + 5 mm radius) is how far it sits past the distal link.
 
-        `yaw_link` is the THIRD segment the hardware has and this scene does not: the link between
-        the yaw joint and the MCP joint. In every scene here the two axes are coincident, so the
-        finger rolls and pitches about the same point. Setting this puts the MCP joint at the end
-        of the yaw link, where it belongs. `yaw_link_axis` says which way that link runs:
+        `yaw_link` is the THIRD segment the hardware has and this scene does not: the link from
+        the yaw joint out to the MCP joint, run along the finger's +x. These scenes put both
+        joints at the same point.
 
-          "x" — along the yaw axis itself (the serial roll-then-pitch build). The MCP joint moves
-                OUTWARD along the finger. It adds reach in the flexion plane but no vertical
-                travel, because the segment ahead of the first flexing joint cannot bend.
-          "z" — hanging the MCP joint below the mounting plane. This one is not on the yaw axis,
-                so yaw swings the MCP joint through an arc of that radius — a different robot,
-                not a repositioned one — and it is what buys clearance under the palm.
-
-        The distinction matters more than its size: only the links AFTER the first flexing joint
-        set how far below the mounting plane the hand can hold anything.
+        `yaw_axis` resets what the yaw joint rotates about, and the two only mean something
+        together. The shipped scenes use (1,0,0) — the finger's OWN long axis — so yaw is a ROLL
+        that turns the flexion plane, and a link laid along that same axis is kinematically
+        inert: the MCP joint sits on the axis and yaw cannot move it. Pass (0,0,1) for a true
+        abduction about the palm normal, where the link is perpendicular to the axis and yaw
+        sweeps the MCP joint through an arc of that radius. That is a different robot, not a
+        repositioned one — the whole a10/b33 lineage is roll-yaw — so it needs its keyframes
+        re-solved and its policies retrained, not transferred.
 
         Mass is deliberately NOT pinned here (contrast the tip-shape mutators and THE MASS TRAP
         above): a shorter phalanx really is lighter, and pinning m05's inertia onto a 40 mm link
@@ -381,11 +379,32 @@ class Scene:
             tip.set("pos", _shift_first(tip.get("pos"), d_link))
 
             if yaw_link:
-                if yaw_link_axis not in ("x", "z"):
-                    raise ValueError(f"yaw_link_axis must be 'x' or 'z', got {yaw_link_axis!r}")
-                off = ((yaw_link, 0.0, 0.0) if yaw_link_axis == "x" else (0.0, 0.0, -yaw_link))
+                yawb = _bodies(self.root, (f"{f}_yaw_frame",))[0]
+                jnt = next(j for j in yawb.findall("joint") if j.get("name") == f"{f}_yaw")
+                ax = np.asarray(_parse_xyz(jnt.get("axis", "1 0 0")), dtype=float)
+                dirn = np.asarray(yaw_link_dir, dtype=float)
+                dirn = dirn / np.linalg.norm(dirn)
+                if abs(float(np.dot(ax / np.linalg.norm(ax), dirn))) > 1e-6:
+                    raise ValueError(
+                        f"{f}: yaw_link_dir {yaw_link_dir} is not perpendicular to the yaw axis "
+                        f"{tuple(ax)}. A link along the axis leaves the MCP joint ON it, which is "
+                        f"the coincident-joint bug this parameter exists to fix.")
                 x, y, z = _parse_xyz(mcp.get("pos", "0 0 0"))
-                mcp.set("pos", _fmt_xyz((x + off[0], y + off[1], z + off[2])))
+                mcp.set("pos", _fmt_xyz(np.array([x, y, z]) + yaw_link * dirn))
+        return self
+
+    def set_mounts(self, mounts: dict[str, tuple[float, float]]) -> "Scene":
+        """Move each finger's mount to (x, y) in the palm frame.
+
+        Mount x/y are two thirds of the nine co-design free variables, and freezing them at one
+        hand's values while changing the link lengths is the same error as inheriting a palm pose
+        or a joint-space keyframe: the fingers get retargeted and the thing they hang off does
+        not. A hand with 70 mm fingers wants a tighter footprint than one with 117 mm fingers.
+        """
+        for finger, (x, y) in mounts.items():
+            b = _bodies(self.root, (f"{finger}_mount",))[0]
+            _, _, z = _parse_xyz(b.get("pos", "0 0 0"))
+            b.set("pos", _fmt_xyz((x, y, z)))
         return self
 
     def set_tool_length(self, length: float) -> "Scene":
