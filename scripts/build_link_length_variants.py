@@ -8,20 +8,30 @@ and `Scene.set_proximal_length` both move only part of it: m05's MCP link is 75.
 Shortening a finger is never one edit. Three things move together, and skipping any one produces
 a hand that reads as "cannot grasp" for a reason that has nothing to do with its links:
 
-  1. The links themselves (`Scene.set_link_lengths`, capsules and kinematics together).
-  2. The palm drops by the reach that was removed, so the fingertips can still reach the shaft
-     where it lies on the table.
+  1. The links themselves (`Scene.set_link_lengths`, capsules and kinematics together), including
+     the yaw link — the segment between the yaw joint and the MCP joint, which the scenes draw as
+     zero and the hardware has at ~32 mm.
+  2. The palm is FITTED, not just dropped. Dropping it by the reach removed keeps the tips in
+     range vertically and leaves the hand off-centre over the shaft, which cost the first pass a
+     spurious 2-finger verdict on 40x30 (thumb contact persistence 0.00, CEM score 2.33 against
+     m05's 8.52). Short fingers converge over a smaller footprint, so px/py/pz are solved for.
   3. Each fingertip is IK'd to the WORLD position it holds in the source hand's grasp keyframe —
      never the same joint angles (the standing retarget rule).
 
 Then the gate, which is the point of the script. A shorter finger holds the tool CLOSER to the
 mounting plane, and the tool has to stand up in that gap: a 100 mm shaft rotated to vertical needs
 ~50 mm of headroom above the grip. That constraint binds long before grip quality does, and it is
-pure geometry — knowable before a single GPU-hour.
+pure geometry — knowable before a single GPU-hour. It has two outs, and the script reports both:
+mount the MCP axis below the plane, or shorten the shaft (`--tool-length`, and the report gives
+the longest shaft each hand could ever stand up).
+
+Config spec is PROXxDIST[+YAWLINK[z]], all mm: `40x30` is a bare 40/30 finger, `40x30+32` puts a
+32 mm yaw link along the yaw axis (the serial roll-then-pitch build), `40x30+32z` hangs the MCP
+joint 32 mm below the mounting plane instead.
 
 Run:
   MUJOCO_GL=egl uv run --extra rl python scripts/build_link_length_variants.py \
-      --config 40x30 --config 30x30 --config 25x25
+      --config 40x30+32 --config 30x30+32 --config 25x25+32 --fit-palm
 """
 from __future__ import annotations
 
@@ -76,7 +86,8 @@ def reach_shell(model, data, finger: str, samples: int = 24) -> tuple[float, flo
     return min(dists), max(dists)
 
 
-def vertical_tool_check(model, data, obj_adr: int, lift: float = 0.10) -> dict:
+def vertical_tool_check(model, data, obj_adr: int, tool_half: float,
+                        lift: float = 0.10) -> dict:
     """Stand the shaft vertical at the grip centroid and look for palm/link penetration.
 
     Done at POST-LIFT height. The scripted lift raises `palm_pz` by `lift_delta_z` and the object
@@ -86,7 +97,8 @@ def vertical_tool_check(model, data, obj_adr: int, lift: float = 0.10) -> dict:
     Geometry first (headroom above the grip), then MuJoCo's own contact list, because the palm
     plate is not the only thing up there — the proximal links close over the top of the grip too.
     The headroom also sets a HARD CEILING on held-cos: a 100 mm shaft tilted t off vertical rises
-    TOOL_HALF*cos(t) above the grip, so cos(t) can never exceed grip_depth / TOOL_HALF.
+    tool_half*cos(t) above the grip, so cos(t) can never exceed grip_depth / tool_half — and
+    inverting that gives the longest shaft the hand could ever stand upright.
     """
     saved = data.qpos.copy()
     pz = model.jnt_qposadr[model.joint("palm_pz").id]
@@ -122,26 +134,58 @@ def vertical_tool_check(model, data, obj_adr: int, lift: float = 0.10) -> dict:
     return {
         "grip_z_mm": grip[2] * 1000,
         "grip_depth_below_palm_mm": depth * 1000,
-        "headroom_mm": (depth - TOOL_HALF) * 1000,
-        "held_cos_ceiling": min(1.0, depth / TOOL_HALF),
+        "headroom_mm": (depth - tool_half) * 1000,
+        "held_cos_ceiling": min(1.0, depth / tool_half),
+        "max_tool_length_mm": 2 * depth * 1000,
         "penetrations": {k: v * 1000 for k, v in sorted(worst.items(), key=lambda kv: kv[1])},
     }
 
 
-def build(proximal: float, distal: float, tag: str, *, standoff: float,
-          keyframe: str, src: Path, taper: float) -> dict:
+def _ik_cost(m, d, base_qpos, tips_tgt, palm_xyz) -> float:
+    """Sum of squared fingertip IK residuals at a candidate palm (px, py, pz)."""
+    d.qpos[:] = base_qpos
+    for name, v in zip(("palm_px", "palm_py", "palm_pz"), palm_xyz):
+        d.qpos[m.jnt_qposadr[m.joint(name).id]] = v
+    mujoco.mj_forward(m, d)
+    return float(sum(ik_finger(m, d, f, tips_tgt[f]) ** 2 for f in FINGERS))
+
+
+def fit_palm(m, d, base_qpos, tips_tgt, x0) -> np.ndarray:
+    """Solve the palm's position so all three tips can reach their targets.
+
+    A short finger converges over a smaller footprint than m05's, so inheriting m05's palm x/y
+    leaves the hand off-centre over the shaft and the far finger simply never arrives. That is
+    the same failure mode as transferring a keyframe in joint space, one level up: the fingers
+    are retargeted but the thing they hang off is not.
+    """
+    from scipy.optimize import minimize
+    res = minimize(lambda v: _ik_cost(m, d, base_qpos, tips_tgt, v), np.asarray(x0),
+                   method="Nelder-Mead",
+                   options={"xatol": 1e-5, "fatol": 1e-12, "maxiter": 600})
+    return res.x
+
+
+def build(proximal: float, distal: float, tag: str, *, yaw_link: float, yaw_axis: str,
+          keyframe: str, src: Path, taper: float, tool_length: float | None,
+          do_fit: bool) -> dict:
     tips_tgt, palm_vals, obj_qpos = tip_targets(str(src), keyframe)
 
     smodel = mujoco.MjModel.from_xml_path(str(src))
     src_reach = {f: sum(link_lengths(smodel, f)) for f in FINGERS}
-    new_reach = standoff + proximal + distal
+    # Only links AFTER the first flexing joint can carry the tip downward; a yaw link along the
+    # yaw axis adds reach in the flexion plane but no vertical travel.
+    flexing = proximal + distal
+    new_reach = flexing + (yaw_link if yaw_axis == "z" else 0.0)
     drop = float(np.mean(list(src_reach.values()))) - new_reach
 
     out_dir = OUT_ROOT / tag
     out = out_dir / "scene.xml"
     out_dir.mkdir(parents=True, exist_ok=True)
-    Scene(src).set_link_lengths(proximal, distal, taper=taper,
-                               pad_reach=PAD_REACH, standoff=standoff).write(out)
+    sc = Scene(src).set_link_lengths(proximal, distal, taper=taper, pad_reach=PAD_REACH,
+                                    yaw_link=yaw_link, yaw_link_axis=yaw_axis)
+    if tool_length:
+        sc = sc.set_tool_length(tool_length)
+    sc.write(out)
 
     m = mujoco.MjModel.from_xml_path(str(out))
     d = mujoco.MjData(m)
@@ -153,9 +197,24 @@ def build(proximal: float, distal: float, tag: str, *, standoff: float,
     d.qpos[obj_adr:obj_adr + 7] = obj_qpos
     mujoco.mj_forward(m, d)
 
+    palm_xyz = [palm_vals["palm_px"], palm_vals["palm_py"], palm_vals["palm_pz"] - drop]
+    if do_fit:
+        palm_xyz = fit_palm(m, d, d.qpos.copy(), tips_tgt, palm_xyz)
+        d.qpos[:] = d.qpos  # fit leaves the last IK pose; re-seat cleanly below
+        mujoco.mj_resetDataKeyframe(m, d, m.key(keyframe).id)
+        for j, v in palm_vals.items():
+            d.qpos[m.jnt_qposadr[m.joint(j).id]] = v
+        d.qpos[obj_adr:obj_adr + 7] = obj_qpos
+    for name, v in zip(("palm_px", "palm_py", "palm_pz"), palm_xyz):
+        d.qpos[m.jnt_qposadr[m.joint(name).id]] = v
+    mujoco.mj_forward(m, d)
+
     rec = {"tag": tag, "proximal_mm": proximal * 1000, "distal_mm": distal * 1000,
-           "standoff_mm": standoff * 1000, "reach_mm": new_reach * 1000,
-           "palm_drop_mm": drop * 1000,
+           "yaw_link_mm": yaw_link * 1000, "yaw_link_axis": yaw_axis,
+           "flexing_reach_mm": flexing * 1000, "reach_mm": new_reach * 1000,
+           "tool_length_mm": (tool_length or 2 * TOOL_HALF) * 1000,
+           "palm_fitted": bool(do_fit),
+           "palm_xyz_mm": [float(v) * 1000 for v in palm_xyz],
            "palm_z_mm": float(d.body("palm_pose").xpos[2]) * 1000, "fingers": {}}
 
     for f in FINGERS:
@@ -168,7 +227,7 @@ def build(proximal: float, distal: float, tag: str, *, standoff: float,
     for f in FINGERS:
         rec["fingers"][f]["ik_residual_mm"] = ik_finger(m, d, f, tips_tgt[f]) * 1000
 
-    rec.update(vertical_tool_check(m, d, obj_adr))
+    rec.update(vertical_tool_check(m, d, obj_adr, (tool_length or 2 * TOOL_HALF) / 2))
     rec["scene"] = str(out.relative_to(PROJECT_ROOT))
 
     inject_keyframe(out, "open_ik", " ".join(f"{v:.6g}" for v in d.qpos),
@@ -179,8 +238,13 @@ def build(proximal: float, distal: float, tag: str, *, standoff: float,
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", action="append", default=[],
-                    help="PROXxDIST in mm, e.g. 40x30. Repeatable. Suffix +S for a standoff, "
-                         "e.g. 40x30+32 hangs the MCP axis 32 mm below the mounting plane.")
+                    help="PROXxDIST[+YAWLINK[z]] in mm, repeatable. 40x30 = bare 40/30 finger; "
+                         "40x30+32 = 32 mm yaw link along the yaw axis; 40x30+32z = MCP joint "
+                         "hung 32 mm below the mounting plane instead.")
+    ap.add_argument("--tool-length", type=float, default=None,
+                    help="Shorten the screwdriver stand-in to this many mm (default: leave at 100).")
+    ap.add_argument("--fit-palm", action="store_true",
+                    help="Solve palm px/py/pz for the tips instead of only dropping it in z.")
     ap.add_argument("--src", type=Path, default=SRC_SCENE)
     ap.add_argument("--keyframe", default="open_ik")
     ap.add_argument("--taper", type=float, default=0.4)
@@ -195,22 +259,33 @@ def main() -> None:
 
     recs = []
     for spec in args.config:
-        body, _, so = spec.partition("+")
+        body, _, yl = spec.partition("+")
+        axis = "z" if yl.endswith("z") else "x"
         p_mm, _, d_mm = body.partition("x")
-        rec = build(float(p_mm) / 1000, float(d_mm) / 1000, spec.replace("+", "_so"),
-                    standoff=float(so or 0) / 1000, keyframe=args.keyframe,
-                    src=args.src, taper=args.taper)
+        tag = spec.replace("+", "_yl")
+        if args.tool_length:
+            tag += f"_t{args.tool_length:.0f}"
+        rec = build(float(p_mm) / 1000, float(d_mm) / 1000, tag,
+                    yaw_link=float(yl.rstrip("z") or 0) / 1000, yaw_axis=axis,
+                    keyframe=args.keyframe, src=args.src, taper=args.taper,
+                    tool_length=(args.tool_length / 1000 if args.tool_length else None),
+                    do_fit=args.fit_palm)
         recs.append(rec)
         print(f"\n=== {spec}  proximal {rec['proximal_mm']:.0f} distal {rec['distal_mm']:.0f}"
-              f" standoff {rec['standoff_mm']:.0f}  reach {rec['reach_mm']:.0f} mm ===")
-        print(f"    palm drops {rec['palm_drop_mm']:.1f} mm -> palm z {rec['palm_z_mm']:.1f} mm")
+              f"  yaw link {rec['yaw_link_mm']:.0f} along {rec['yaw_link_axis']}"
+              f"  flexing reach {rec['flexing_reach_mm']:.0f} mm"
+              f"  shaft {rec['tool_length_mm']:.0f} mm ===")
+        print(f"    palm {'FITTED' if rec['palm_fitted'] else 'dropped'} to "
+              f"({rec['palm_xyz_mm'][0]:+.1f}, {rec['palm_xyz_mm'][1]:+.1f}, "
+              f"{rec['palm_xyz_mm'][2]:+.1f}) mm -> palm z {rec['palm_z_mm']:.1f} mm")
         for f, fr in rec["fingers"].items():
             print(f"    {f:7s} shell [{fr['shell_min_mm']:5.1f},{fr['shell_max_mm']:6.1f}] "
                   f"target {fr['target_dist_mm']:5.1f} {'OK ' if fr['in_shell'] else 'OUT'}"
                   f"   IK residual {fr['ik_residual_mm']:6.2f} mm")
         print(f"    grip sits {rec['grip_depth_below_palm_mm']:.1f} mm below the palm; "
-              f"vertical-shaft headroom {rec['headroom_mm']:+.1f} mm; "
-              f"held-cos CEILING {rec['held_cos_ceiling']:.2f}")
+              f"headroom {rec['headroom_mm']:+.1f} mm; held-cos CEILING "
+              f"{rec['held_cos_ceiling']:.2f}; longest shaft it could stand up "
+              f"{rec['max_tool_length_mm']:.0f} mm")
         if rec["penetrations"]:
             worst = ", ".join(f"{k} {v:.1f} mm" for k, v in list(rec["penetrations"].items())[:4])
             print(f"    VERTICAL SHAFT PENETRATES: {worst}")
