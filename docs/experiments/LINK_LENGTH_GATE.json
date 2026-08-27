@@ -1,0 +1,297 @@
+[
+  {
+    "tag": "76x41",
+    "proximal_mm": 76.0,
+    "distal_mm": 41.0,
+    "standoff_mm": 0.0,
+    "reach_mm": 117.0,
+    "palm_drop_mm": 2.0000000000000018,
+    "palm_z_mm": 99.19040000000001,
+    "fingers": {
+      "thumb": {
+        "shell_min_mm": 91.25980144846703,
+        "shell_max_mm": 105.99674718762152,
+        "target_dist_mm": 96.0954820105698,
+        "in_shell": true,
+        "ik_residual_mm": 0.08677779018698117
+      },
+      "index": {
+        "shell_min_mm": 81.72901106584455,
+        "shell_max_mm": 105.99979669734685,
+        "target_dist_mm": 86.30542672721603,
+        "in_shell": true,
+        "ik_residual_mm": 0.08474288708483887
+      },
+      "middle": {
+        "shell_min_mm": 81.72901106584455,
+        "shell_max_mm": 105.99979669734685,
+        "target_dist_mm": 92.34076178324634,
+        "in_shell": true,
+        "ik_residual_mm": 0.09705072888454634
+      }
+    },
+    "grip_z_mm": 113.17805491926728,
+    "grip_depth_below_palm_mm": 86.01234508073273,
+    "headroom_mm": 36.01234508073273,
+    "held_cos_ceiling": 1.0,
+    "penetrations": {},
+    "scene": "assets/mjcf/experimental/20260827-linklen/76x41/scene.xml"
+  },
+  {
+    "tag": "40x30",
+    "proximal_mm": 40.0,
+    "distal_mm": 30.0,
+    "standoff_mm": 0.0,
+    "reach_mm": 70.0,
+    "palm_drop_mm": 48.999999999999986,
+    "palm_z_mm": 52.190400000000025,
+    "fingers": {
+      "thumb": {
+        "shell_min_mm": 50.11769933670681,
+        "shell_max_mm": 58.99805198579738,
+        "target_dist_mm": 58.512877186554746,
+        "in_shell": true,
+        "ik_residual_mm": 0.0999684727491891
+      },
+      "index": {
+        "shell_min_mm": 44.29684431875834,
+        "shell_max_mm": 58.99987824811975,
+        "target_dist_mm": 41.01098976764622,
+        "in_shell": false,
+        "ik_residual_mm": 3.3065861421601785
+      },
+      "middle": {
+        "shell_min_mm": 44.296844318758346,
+        "shell_max_mm": 58.99987824811976,
+        "target_dist_mm": 49.82259814949394,
+        "in_shell": true,
+        "ik_residual_mm": 0.09747327887371296
+      }
+    },
+    "grip_z_mm": 112.22058083765542,
+    "grip_depth_below_palm_mm": 39.96981916234461,
+    "headroom_mm": -10.03018083765539,
+    "held_cos_ceiling": 0.7993963832468922,
+    "penetrations": {
+      "palm_pose": -11.030215029687556,
+      "thumb_mcp_frame": -3.0128528168495845,
+      "thumb_len_frame": -1.6222865333658703
+    },
+    "scene": "assets/mjcf/experimental/20260827-linklen/40x30/scene.xml"
+  },
+  {
+    "tag": "30x30",
+    "proximal_mm": 30.0,
+    "distal_mm": 30.0,
+    "standoff_mm": 0.0,
+    "reach_mm": 60.0,
+    "palm_drop_mm": 59.0,
+    "palm_z_mm": 42.19040000000002,
+    "fingers": {
+      "thumb": {
+        "shell_min_mm": 40.91561853502164,
+        "shell_max_mm": 48.998240821371716,
+        "target_dist_mm": 52.511542962161606,
+        "in_shell": false,
+        "ik_residual_mm": 3.5115828153897395
+      },
+      "index": {
+        "shell_min_mm": 35.523341797334254,
+        "shell_max_mm": 48.99989005058803,
+        "target_dist_mm": 32.01465961834347,
+        "in_shell": false,
+        "ik_residual_mm": 3.541408005406043
+      },
+      "middle": {
+        "shell_min_mm": 35.52334179733426,
+        "shell_max_mm": 48.99989005058803,
+        "target_dist_mm": 42.02644569026189,
+        "in_shell": true,
+        "ik_residual_mm": 0.09446270408225435
+      }
+    },
+    "grip_z_mm": 112.80858484004862,
+    "grip_depth_below_palm_mm": 29.381815159951405,
+    "headroom_mm": -20.6181848400486,
+    "held_cos_ceiling": 0.587636303199028,
+    "penetrations": {
+      "palm_pose": -21.618217697490543,
+      "thumb_mcp_frame": -3.828876466195475,
+      "thumb_len_frame": -3.1041236432061363
+    },
+    "scene": "assets/mjcf/experimental/20260827-linklen/30x30/scene.xml"
+  },
+  {
+    "tag": "25x25",
+    "proximal_mm": 25.0,
+    "distal_mm": 25.0,
+    "standoff_mm": 0.0,
+    "reach_mm": 50.0,
+    "palm_drop_mm": 68.99999999999999,
+    "palm_z_mm": 32.19040000000001,
+    "fingers": {
+      "thumb": {
+        "shell_min_mm": 32.78186126707376,
+        "shell_max_mm": 38.99864282965157,
+        "target_dist_mm": 47.866141393317356,
+        "in_shell": false,
+        "ik_residual_mm": 8.866141394367874
+      },
+      "index": {
+        "shell_min_mm": 28.662823111087864,
+        "shell_max_mm": 38.999915176232555,
+        "target_dist_mm": 23.83223823384624,
+        "in_shell": false,
+        "ik_residual_mm": 4.845959657198471
+      },
+      "middle": {
+        "shell_min_mm": 28.662823111087867,
+        "shell_max_mm": 38.99991517623256,
+        "target_dist_mm": 35.3575025750845,
+        "in_shell": true,
+        "ik_residual_mm": 0.09916868315032988
+      }
+    },
+    "grip_z_mm": 113.11650617512807,
+    "grip_depth_below_palm_mm": 19.07389382487194,
+    "headroom_mm": -30.92610617512806,
+    "held_cos_ceiling": 0.38147787649743886,
+    "penetrations": {
+      "palm_pose": -31.926140620294856,
+      "thumb_mcp_frame": -4.572662858875203,
+      "thumb_len_frame": -3.619589564772643,
+      "middle_tip": -1.200169788114352,
+      "index_tip": -0.7657767417248535,
+      "thumb_pip_frame": -0.20986737614862946,
+      "middle_pip_frame": -0.08898331724309892
+    },
+    "scene": "assets/mjcf/experimental/20260827-linklen/25x25/scene.xml"
+  },
+  {
+    "tag": "40x30_so32",
+    "proximal_mm": 40.0,
+    "distal_mm": 30.0,
+    "standoff_mm": 32.0,
+    "reach_mm": 102.00000000000001,
+    "palm_drop_mm": 16.999999999999986,
+    "palm_z_mm": 84.19040000000003,
+    "fingers": {
+      "thumb": {
+        "shell_min_mm": 49.44760913341026,
+        "shell_max_mm": 90.17554913071301,
+        "target_dist_mm": 83.06563479725476,
+        "in_shell": true,
+        "ik_residual_mm": 0.09997809586437183
+      },
+      "index": {
+        "shell_min_mm": 49.17236019845389,
+        "shell_max_mm": 90.69244204622984,
+        "target_dist_mm": 71.61132875251981,
+        "in_shell": true,
+        "ik_residual_mm": 3.306574837589809
+      },
+      "middle": {
+        "shell_min_mm": 49.0708727707019,
+        "shell_max_mm": 90.87518745981285,
+        "target_dist_mm": 78.215807629891,
+        "in_shell": true,
+        "ik_residual_mm": 0.09747621853120754
+      }
+    },
+    "grip_z_mm": 112.22058728877232,
+    "grip_depth_below_palm_mm": 71.9698127112277,
+    "headroom_mm": 21.969812711227707,
+    "held_cos_ceiling": 1.0,
+    "penetrations": {
+      "thumb_mcp_frame": -3.0128978113586977,
+      "thumb_len_frame": -1.6223421597419398
+    },
+    "scene": "assets/mjcf/experimental/20260827-linklen/40x30_so32/scene.xml"
+  },
+  {
+    "tag": "30x30_so32",
+    "proximal_mm": 30.0,
+    "distal_mm": 30.0,
+    "standoff_mm": 32.0,
+    "reach_mm": 92.0,
+    "palm_drop_mm": 26.999999999999996,
+    "palm_z_mm": 74.19040000000001,
+    "fingers": {
+      "thumb": {
+        "shell_min_mm": 40.09202043186875,
+        "shell_max_mm": 80.2319623253068,
+        "target_dist_mm": 74.79040735207295,
+        "in_shell": true,
+        "ik_residual_mm": 3.511629256620107
+      },
+      "index": {
+        "shell_min_mm": 39.75204473716234,
+        "shell_max_mm": 80.71327630300793,
+        "target_dist_mm": 61.89684607843827,
+        "in_shell": true,
+        "ik_residual_mm": 3.541393473215674
+      },
+      "middle": {
+        "shell_min_mm": 39.626438242381525,
+        "shell_max_mm": 80.88380649623876,
+        "target_dist_mm": 69.0046622641303,
+        "in_shell": true,
+        "ik_residual_mm": 0.09446522266585296
+      }
+    },
+    "grip_z_mm": 112.80859761078636,
+    "grip_depth_below_palm_mm": 61.38180238921366,
+    "headroom_mm": 11.381802389213657,
+    "held_cos_ceiling": 1.0,
+    "penetrations": {
+      "thumb_mcp_frame": -3.8288930519282967,
+      "thumb_len_frame": -3.104148708248801
+    },
+    "scene": "assets/mjcf/experimental/20260827-linklen/30x30_so32/scene.xml"
+  },
+  {
+    "tag": "25x25_so32",
+    "proximal_mm": 25.0,
+    "distal_mm": 25.0,
+    "standoff_mm": 32.0,
+    "reach_mm": 82.0,
+    "palm_drop_mm": 36.99999999999999,
+    "palm_z_mm": 64.19040000000001,
+    "fingers": {
+      "thumb": {
+        "shell_min_mm": 35.9856037043934,
+        "shell_max_mm": 70.30220763616845,
+        "target_dist_mm": 66.98738970513115,
+        "in_shell": true,
+        "ik_residual_mm": 8.866192348663548
+      },
+      "index": {
+        "shell_min_mm": 35.7066109344703,
+        "shell_max_mm": 70.73954447495781,
+        "target_dist_mm": 52.290120512524055,
+        "in_shell": true,
+        "ik_residual_mm": 4.845940261876816
+      },
+      "middle": {
+        "shell_min_mm": 35.60358710636799,
+        "shell_max_mm": 70.8944023944273,
+        "target_dist_mm": 60.04643424198695,
+        "in_shell": true,
+        "ik_residual_mm": 0.0991726056753576
+      }
+    },
+    "grip_z_mm": 113.11651779811254,
+    "grip_depth_below_palm_mm": 51.07388220188748,
+    "headroom_mm": 1.0738822018874772,
+    "held_cos_ceiling": 1.0,
+    "penetrations": {
+      "thumb_mcp_frame": -4.572678393761702,
+      "thumb_len_frame": -3.6196121291329573,
+      "middle_tip": -1.2001704816901435,
+      "index_tip": -0.7657671554175466,
+      "thumb_pip_frame": -0.20989844162434476,
+      "middle_pip_frame": -0.08899225875600142
+    },
+    "scene": "assets/mjcf/experimental/20260827-linklen/25x25_so32/scene.xml"
+  }
+]

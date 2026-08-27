@@ -1,0 +1,93 @@
+# Two-link finger lengths — geometry gate, 2026-08-27
+#
+# QUESTION (from hardware): is a 40 mm proximal / 30 mm distal finger viable? 25/25? 30/30?
+#
+# TERMS. The hand has two flexion joints per finger (MCP, PIP), so it has TWO links. The scene
+# draws the MCP link as two capsules — `<f>_mcp_frame` then `<f>_len_frame` — with no joint
+# between them, purely so the co-design `len` parameter had somewhere to slide. Every length
+# number this program has published names that PARAMETER, not the link. Read as links:
+#
+#   build                MCP->PIP              PIP->pad surface   total flexing reach
+#   m05 (a10 -> b33)     75.8 / 77.3 / 80.9    41.0               116.8 / 118.3 / 121.9
+#   sp25 "25 mm hand"    65.0                  41.0               106.0
+#   a01 lineage          73.5 / 74.5 / 74.5    41.0               114.5 / 115.5 / 115.5
+#
+# So the shortest hand ever trained has a 65 mm proximal, and nothing has been trained within
+# 25 mm of the 40 mm target. `Scene.set_proximal_length` moves only the first capsule; the new
+# `Scene.set_link_lengths` sets the links themselves.
+#
+# Built with scripts/build_link_length_variants.py: links set, palm dropped by the reach that was
+# removed, every fingertip IK'd to the world position it holds in m05's `open_ik` grasp.
+# Scenes assets/mjcf/experimental/20260827-linklen/, renders docs/experiments/20260827-linklen_renders/,
+# machine-readable docs/experiments/LINK_LENGTH_GATE.json.
+
+
+## 1. THE CONSTRAINT NOBODY HAD WRITTEN DOWN
+
+A shorter finger holds the tool CLOSER to the mounting plane, and the tool has to stand up in
+that gap. The 100 mm shaft tilted t off vertical rises 50*cos(t) mm above the grip, so
+
+    held-cos can never exceed (grip depth below the mounting plane) / 50 mm
+
+and grip depth tracks reach almost exactly (measured: depth = reach - 30 mm). That is a HARD
+CEILING, set before any policy exists, and it is what binds — not grip quality.
+
+  config      reach   palm z   grip depth   headroom   held-cos CEILING   vertical shaft hits
+  76x41 ctrl  117 mm   99.2      86.0 mm     +36.0 mm      1.00           clear
+  40x30        70      52.2      40.0        -10.0         0.80           palm -11.0 mm
+  30x30        60      42.2      29.4        -20.6         0.59           palm -21.6 mm
+  25x25        50      32.2      19.1        -30.9         0.38           palm -31.9 mm
+
+b33 scores 0.891 on m05. A 40/30 hand mounted flush cannot exceed 0.80, a 30/30 cannot exceed
+0.59, and a 25/25 cannot exceed 0.38 — no matter how good the policy is. The control reproduces
+m05 (IK residuals 0.08-0.10 mm, shaft clear) which is what says the method is sound.
+
+
+## 2. IT IS A MOUNTING PROBLEM, NOT A LENGTH PROBLEM
+
+Re-run with the MCP axis hung 32 mm BELOW the mounting plane (the hardware's yaw link, if it
+points down rather than along the finger):
+
+  config        reach   grip depth   headroom   held-cos CEILING   shaft hits
+  40x30+32      102 mm    72.0 mm     +22.0 mm      1.00           thumb proximal -3.0 mm
+  30x30+32       92       61.4        +11.4         1.00           thumb proximal -3.8 mm
+  25x25+32       82       51.1         +1.1         1.00           thumb prox -4.6, two tips
+
+The finger kinematics are IDENTICAL with and without the standoff — same IK residuals to six
+decimals — because a standoff plus a matching palm drop is a pure translation of the finger
+relative to the shaft. The two knobs separate cleanly:
+
+  proximal + distal        -> whether the fingertips can wrap the shaft   (IK residual, below)
+  MCP axis below the plane -> whether the shaft can stand up              (ceiling, above)
+
+A yaw link running along the finger's own +x is a ROLL axis and buys none of this; only a link
+that drops the MCP axis does. Which one the hardware has decides whether 40/30 is comfortable
+(+22 mm) or unbuildable (ceiling 0.80).
+
+
+## 3. CAN THE FINGERTIPS STILL REACH THE GRASP
+
+IK onto m05's own fingertip world targets, one palm height for all three fingers:
+
+  config     thumb    index    middle    note
+  76x41      0.09     0.08     0.10 mm   control
+  40x30      0.10     3.31     0.10      index target sits INSIDE its minimum reach
+  30x30      3.51     3.54     0.09
+  25x25      8.87     4.85     0.10      thumb is 8.9 mm short of the target
+
+sp25 trained fine on a 2.97 mm residual, so 40/30 and 30/30 are seeds worth CEM'ing; 25/25's
+thumb is a real reach failure. These are SEED-quality numbers, not graspability verdicts —
+they force m05's grasp onto a different hand, and CEM is free to find its own. That run is
+`scripts/run_linklen_cem.sh`, config pinned to sp25's so the scores compare to SHORTPROX25 §1.
+
+
+## 4. WHAT THIS DOES NOT COVER
+
+- The standoff is modelled as a kinematic offset with no geometry. A real 32 mm yaw link is a
+  collision body between the plate and the MCP axis, and it is not in these scenes.
+- The palm plate stays 120x90x2 mm on every variant. A hand with 40 mm links would presumably
+  carry a smaller palm; the plate's SIZE does not change the ceiling (the shaft stands up under
+  its centre) but it does change what the links can hit.
+- Mass follows geometry here, deliberately: a 40 mm phalanx really is lighter than an 81 mm one.
+- Nothing has been TRAINED. The ceiling is geometry; whether a hand that clears it also reorients
+  well is the A->B question, and per B33_SEED_BAND that now needs ~3 draws per design, not 48.

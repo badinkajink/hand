@@ -95,6 +95,30 @@ SHIPPED_TIP = "cap_cross"
 SHIPPED_REACH = 0.011          # shipped half-length 6 mm + radius 5 mm
 
 
+def _parse_xyz(spec: str) -> tuple[float, float, float]:
+    v = [float(t) for t in (spec or "0 0 0").split()]
+    return v[0], v[1], v[2]
+
+
+def _fmt_xyz(v) -> str:
+    return " ".join(f"{c:.6f}" for c in v)
+
+
+def _shift_first(spec: str | None, x: float) -> str:
+    """Replace a body pos's x while keeping its y/z."""
+    _, y, z = _parse_xyz(spec or "0 0 0")
+    return _fmt_xyz((x, y, z))
+
+
+def _set_capsule(body: ET.Element, length: float) -> None:
+    """Redraw a body's single `fromto` capsule as `0 0 0 -> length 0 0`, radius untouched."""
+    caps = [g for g in body.findall("geom")
+            if g.get("type") == "capsule" and g.get("fromto") is not None]
+    if len(caps) != 1:
+        raise ValueError(f"{body.get('name')} has {len(caps)} fromto capsules, expected 1")
+    caps[0].set("fromto", f"0 0 0 {length:.6f} 0 0")
+
+
 def _shift_x(spec: dict[str, str], dx: float) -> dict[str, str]:
     if "fromto" in spec:
         v = [float(t) for t in spec["fromto"].split()]
@@ -297,6 +321,58 @@ class Scene:
                     g.set("fromto", f"0 0 0 {length:.6f} 0 0")
             pos = (child.get("pos") or "0 0 0").split()
             child.set("pos", f"{length:.6f} {pos[1]} {pos[2]}")
+        return self
+
+    def set_link_lengths(self, proximal: float, distal: float, *, taper: float = 0.4,
+                         pad_reach: float = 0.011, standoff: float = 0.0) -> "Scene":
+        """Set the two FLEXING link lengths, in the hardware's own terms.
+
+        The hand has two flexion joints per finger, MCP and PIP, so it has two links — but the
+        scene draws the MCP link as two capsules (`<f>_mcp_frame` then `<f>_len_frame`) with no
+        joint between them, purely so the co-design `len` parameter had somewhere to slide.
+        `set_proximal_length` moves only the first of those, which is why "the 25 mm hand" is
+        really a 65 mm MCP->PIP link. This sets the links themselves:
+
+          proximal = MCP axis -> PIP axis          (m05: 75.8 / 77.3 / 80.9 mm)
+          distal   = PIP axis -> pad front surface (m05: 41.0 mm = 30 mm link + 11 mm pad reach)
+
+        `taper` keeps the drawn cross-section stepping down the way the shipped hand does — the
+        MCP link stays two capsules (r 10.0 then r 8.5) splitting `proximal` at that fraction. The
+        fingertip pad is left alone: it is the r 5 mm convex tip the fingertip study selected, and
+        `pad_reach` (6 mm half-length + 5 mm radius) is how far it sits past the distal link.
+
+        `standoff` drops the whole finger by that much in -z, one body above the yaw joint. That
+        models a mount/yaw link that hangs the MCP axis BELOW the mounting plane, which is the
+        only thing that buys back clearance for the tool to stand vertical without lengthening a
+        flexing link. A yaw link running along the finger's own +x is a roll axis and adds none.
+
+        Mass is deliberately NOT pinned here (contrast the tip-shape mutators and THE MASS TRAP
+        above): a shorter phalanx really is lighter, and pinning m05's inertia onto a 40 mm link
+        would be the fiction, not the control.
+        """
+        for mcp_name in PROXIMAL_BODIES:
+            f = mcp_name.split("_")[0]
+            mcp = _bodies(self.root, (mcp_name,))[0]
+            lenf = next(c for c in mcp.findall("body") if (c.get("name") or "").endswith("_len_frame"))
+            pip = next(c for c in lenf.findall("body") if (c.get("name") or "").endswith("_pip_frame"))
+            tip = next(c for c in pip.findall("body") if (c.get("name") or "").endswith("_tip"))
+
+            p1, p2 = taper * proximal, (1.0 - taper) * proximal
+            d_link = distal - pad_reach
+            if min(p1, p2, d_link) <= 0:
+                raise ValueError(f"{f}: proximal {proximal} / distal {distal} leaves a "
+                                 f"non-positive segment (distal must exceed pad reach {pad_reach})")
+            _set_capsule(mcp, p1)
+            lenf.set("pos", _shift_first(lenf.get("pos"), p1))
+            _set_capsule(lenf, p2)
+            pip.set("pos", _shift_first(pip.get("pos"), p2))
+            _set_capsule(pip, d_link)
+            tip.set("pos", _shift_first(tip.get("pos"), d_link))
+
+            if standoff:
+                yaw = _bodies(self.root, (f"{f}_yaw_frame",))[0]
+                x, y, z = _parse_xyz(yaw.get("pos", "0 0 0"))
+                yaw.set("pos", _fmt_xyz((x, y, z - standoff)))
         return self
 
     # -- fingertips ---------------------------------------------------------
