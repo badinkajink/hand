@@ -390,7 +390,21 @@ class Scene:
                         f"{tuple(ax)}. A link along the axis leaves the MCP joint ON it, which is "
                         f"the coincident-joint bug this parameter exists to fix.")
                 x, y, z = _parse_xyz(mcp.get("pos", "0 0 0"))
-                mcp.set("pos", _fmt_xyz(np.array([x, y, z]) + yaw_link * dirn))
+                end = np.array([x, y, z]) + yaw_link * dirn
+                mcp.set("pos", _fmt_xyz(end))
+                # DRAW the link. Without a geom the segment exists in the kinematics and nowhere
+                # else: the viewer shows the finger starting in mid-air below the palm, which
+                # reads as the two joints being coincident even though they are 32 mm apart. It
+                # also has to be here for the mass and the collision volume to be real, so the
+                # placeholder inertial on the yaw frame goes and density carries it like every
+                # other link.
+                for old in yawb.findall("geom"):
+                    yawb.remove(old)
+                for placeholder in yawb.findall("inertial"):
+                    yawb.remove(placeholder)
+                yawb.append(ET.Element("geom", {
+                    "type": "capsule", "fromto": f"0 0 0 {end[0]:.6f} {end[1]:.6f} {end[2]:.6f}",
+                    "size": "0.010", "material": "finger_mat"}))
         return self
 
     def set_mounts(self, mounts: dict[str, tuple[float, float]]) -> "Scene":
