@@ -1,0 +1,303 @@
+[
+  {
+    "tag": "76x41_fm",
+    "proximal_mm": 76.0,
+    "distal_mm": 41.0,
+    "yaw_link_mm": 0.0,
+    "yaw_axis": "roll (1,0,0)",
+    "mounts_mm": {
+      "thumb": [
+        -13.492081357670935,
+        -30.072058622169543
+      ],
+      "index": [
+        5.383673695189994,
+        23.695162023354438
+      ],
+      "middle": [
+        7.364938283065484,
+        -6.440623300751128
+      ]
+    },
+    "flexing_reach_mm": 117.0,
+    "reach_mm": 117.0,
+    "tool_length_mm": 100.0,
+    "palm_fitted": true,
+    "palm_xyz_mm": [
+      18.64623690701724,
+      -2.765233209308172e-13,
+      -31.851915874015756
+    ],
+    "palm_z_mm": 102.14808412598425,
+    "fingers": {
+      "thumb": {
+        "shell_min_mm": 91.25980144846702,
+        "shell_max_mm": 105.99674718762154,
+        "target_dist_mm": 98.23094393038213,
+        "in_shell": true,
+        "ik_residual_mm": 0.08861590574554602
+      },
+      "index": {
+        "shell_min_mm": 81.72901106584455,
+        "shell_max_mm": 105.99979669734685,
+        "target_dist_mm": 88.0281467545376,
+        "in_shell": true,
+        "ik_residual_mm": 0.08271918279197386
+      },
+      "middle": {
+        "shell_min_mm": 81.72901106584455,
+        "shell_max_mm": 105.99979669734685,
+        "target_dist_mm": 91.13802919898978,
+        "in_shell": true,
+        "ik_residual_mm": 0.08499927997816668
+      }
+    },
+    "posture_cost": 1.8327307298963795,
+    "utilisation": {
+      "thumb": 0.8388242239869157,
+      "index": 0.7516832076613086,
+      "middle": 0.7782310803539298
+    },
+    "utilisation_target": {
+      "thumb": 0.8379746067168646,
+      "index": 0.7461742604930862,
+      "middle": 0.7731298031614671
+    },
+    "grip_z_mm": 113.28396106434457,
+    "grip_depth_below_palm_mm": 88.86412306163969,
+    "headroom_mm": 38.86412306163968,
+    "held_cos_ceiling": 1.0,
+    "max_tool_length_mm": 177.72824612327938,
+    "penetrations": {},
+    "scene": "assets/mjcf/experimental/20260827-linklen/76x41_fm/scene.xml"
+  },
+  {
+    "tag": "40x30_yl32_fm",
+    "proximal_mm": 40.0,
+    "distal_mm": 30.0,
+    "yaw_link_mm": 32.0,
+    "yaw_axis": "abduction (0,0,1)",
+    "mounts_mm": {
+      "thumb": [
+        -11.589928795307545,
+        1.9715001741247686
+      ],
+      "index": [
+        4.496014319012155,
+        56.769595305494455
+      ],
+      "middle": [
+        25.31182543823432,
+        -9.472397486030259
+      ]
+    },
+    "flexing_reach_mm": 70.0,
+    "reach_mm": 70.0,
+    "tool_length_mm": 100.0,
+    "palm_fitted": true,
+    "palm_xyz_mm": [
+      -10.950261471290027,
+      -3.139791598781797e-13,
+      -72.37231622754776
+    ],
+    "palm_z_mm": 61.62768377245226,
+    "fingers": {
+      "thumb": {
+        "shell_min_mm": 23.172518450355916,
+        "shell_max_mm": 90.99772661233865,
+        "target_dist_mm": 47.775851724106154,
+        "in_shell": true,
+        "ik_residual_mm": 0.09955737884055084
+      },
+      "index": {
+        "shell_min_mm": 14.379328575716572,
+        "shell_max_mm": 90.99985791157758,
+        "target_dist_mm": 69.29268406213663,
+        "in_shell": true,
+        "ik_residual_mm": 0.09442318772565098
+      },
+      "middle": {
+        "shell_min_mm": 14.379328575716562,
+        "shell_max_mm": 90.99985791157762,
+        "target_dist_mm": 51.7107979435531,
+        "in_shell": true,
+        "ik_residual_mm": 0.09469477777883438
+      }
+    },
+    "posture_cost": 2.0412538817972266,
+    "utilisation": {
+      "thumb": 0.8323922361177761,
+      "index": 0.7248115280737082,
+      "middle": 0.7700186529002054
+    },
+    "utilisation_target": {
+      "thumb": 0.8379746067168646,
+      "index": 0.7461742604930862,
+      "middle": 0.7731298031614671
+    },
+    "grip_z_mm": 113.27610187218514,
+    "grip_depth_below_palm_mm": 48.35158190026713,
+    "headroom_mm": -1.6484180997328735,
+    "held_cos_ceiling": 0.9670316380053425,
+    "max_tool_length_mm": 96.70316380053426,
+    "penetrations": {
+      "thumb_mcp_frame": -13.903189664938647,
+      "thumb_len_frame": -8.557159404340952,
+      "palm_pose": -2.6483738177526424
+    },
+    "scene": "assets/mjcf/experimental/20260827-linklen/40x30_yl32_fm/scene.xml"
+  },
+  {
+    "tag": "30x30_yl32_fm",
+    "proximal_mm": 30.0,
+    "distal_mm": 30.0,
+    "yaw_link_mm": 32.0,
+    "yaw_axis": "abduction (0,0,1)",
+    "mounts_mm": {
+      "thumb": [
+        -14.557464254837061,
+        1.0257314838520537
+      ],
+      "index": [
+        9.383711467622204,
+        0.024588559845264785
+      ],
+      "middle": [
+        20.21830786556509,
+        -16.298714859744532
+      ]
+    },
+    "flexing_reach_mm": 60.0,
+    "reach_mm": 60.0,
+    "tool_length_mm": 100.0,
+    "palm_fitted": true,
+    "palm_xyz_mm": [
+      -21.577377982877657,
+      -3.7573053576001777e-13,
+      -75.86096731343514
+    ],
+    "palm_z_mm": 58.13903268656487,
+    "fingers": {
+      "thumb": {
+        "shell_min_mm": 15.699898249015735,
+        "shell_max_mm": 80.99780067436531,
+        "target_dist_mm": 45.89688254220504,
+        "in_shell": true,
+        "ik_residual_mm": 0.128434958363321
+      },
+      "index": {
+        "shell_min_mm": 4.381141413875849,
+        "shell_max_mm": 80.99986254064925,
+        "target_dist_mm": 60.59029752615004,
+        "in_shell": true,
+        "ik_residual_mm": 0.09625825345231594
+      },
+      "middle": {
+        "shell_min_mm": 4.381141413875835,
+        "shell_max_mm": 80.99986254064929,
+        "target_dist_mm": 53.90775814850087,
+        "in_shell": true,
+        "ik_residual_mm": 0.09804007927298058
+      }
+    },
+    "posture_cost": 0.6683250834340292,
+    "utilisation": {
+      "thumb": 0.8064662343854203,
+      "index": 0.7466503677047927,
+      "middle": 0.7823052113512146
+    },
+    "utilisation_target": {
+      "thumb": 0.8379746067168646,
+      "index": 0.7461742604930862,
+      "middle": 0.7731298031614671
+    },
+    "grip_z_mm": 113.30513015960342,
+    "grip_depth_below_palm_mm": 44.83390252696145,
+    "headroom_mm": -5.166097473038548,
+    "held_cos_ceiling": 0.8966780505392291,
+    "max_tool_length_mm": 89.6678050539229,
+    "penetrations": {
+      "thumb_mcp_frame": -9.196037437570338,
+      "index_mcp_frame": -8.237390012674227,
+      "palm_pose": -6.166035216521196,
+      "thumb_len_frame": -1.488855617853448,
+      "index_len_frame": -1.1618009758449648
+    },
+    "scene": "assets/mjcf/experimental/20260827-linklen/30x30_yl32_fm/scene.xml"
+  },
+  {
+    "tag": "25x25_yl32_fm",
+    "proximal_mm": 25.0,
+    "distal_mm": 25.0,
+    "yaw_link_mm": 32.0,
+    "yaw_axis": "abduction (0,0,1)",
+    "mounts_mm": {
+      "thumb": [
+        -29.28511107216796,
+        -3.3552798352672637
+      ],
+      "index": [
+        7.477445852408084,
+        51.204211088066295
+      ],
+      "middle": [
+        6.6068116485007184,
+        -5.54665356235538
+      ]
+    },
+    "flexing_reach_mm": 50.0,
+    "reach_mm": 50.0,
+    "tool_length_mm": 100.0,
+    "palm_fitted": true,
+    "palm_xyz_mm": [
+      -11.123822031136903,
+      -2.4043989583303215e-13,
+      -84.41651599911607
+    ],
+    "palm_z_mm": 49.58348400088394,
+    "fingers": {
+      "thumb": {
+        "shell_min_mm": 6.047902426191599,
+        "shell_max_mm": 70.99830029673097,
+        "target_dist_mm": 39.60921719382381,
+        "in_shell": true,
+        "ik_residual_mm": 0.2370598524486851
+      },
+      "index": {
+        "shell_min_mm": 5.188944956456303,
+        "shell_max_mm": 70.99989376722755,
+        "target_dist_mm": 56.83660472793403,
+        "in_shell": true,
+        "ik_residual_mm": 0.09873207155404996
+      },
+      "middle": {
+        "shell_min_mm": 5.188944956456316,
+        "shell_max_mm": 70.99989376722756,
+        "target_dist_mm": 49.39282336442477,
+        "in_shell": true,
+        "ik_residual_mm": 0.12916396776962621
+      }
+    },
+    "posture_cost": 1.0446182167895592,
+    "utilisation": {
+      "thumb": 0.7687756787094147,
+      "index": 0.7464947852406291,
+      "middle": 0.7614720817747306
+    },
+    "utilisation_target": {
+      "thumb": 0.8379746067168646,
+      "index": 0.7461742604930862,
+      "middle": 0.7731298031614671
+    },
+    "grip_z_mm": 113.34981114899756,
+    "grip_depth_below_palm_mm": 36.23367285188639,
+    "headroom_mm": -13.766327148113614,
+    "held_cos_ceiling": 0.7246734570377278,
+    "max_tool_length_mm": 72.46734570377278,
+    "penetrations": {
+      "palm_pose": -14.76628357272413,
+      "thumb_mcp_frame": -3.098030723189608
+    },
+    "scene": "assets/mjcf/experimental/20260827-linklen/25x25_yl32_fm/scene.xml"
+  }
+]
