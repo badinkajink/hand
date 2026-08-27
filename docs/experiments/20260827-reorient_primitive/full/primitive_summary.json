@@ -1,0 +1,28 @@
+[
+  {
+    "label": "b33_m05",
+    "n_good": 13,
+    "n": 32,
+    "peak_cos": 0.9311185479164124,
+    "final_cos": 0.8981179594993591,
+    "roll_over_tilt": 1.096293330192566,
+    "tilt_gain_world": 0.9309114217758179,
+    "tilt_gain_palm": 0.9309173822402954,
+    "wrist_share": -6.402826668638895e-06,
+    "mean_contacts": 2.7773076923076925,
+    "mean_force_N": 24.624065399169922
+  },
+  {
+    "label": "r4_perp",
+    "n_good": 30,
+    "n": 32,
+    "peak_cos": 0.9827734231948853,
+    "final_cos": 0.9652959108352661,
+    "roll_over_tilt": 0.7074622511863708,
+    "tilt_gain_world": 0.9843056201934814,
+    "tilt_gain_palm": 0.984339714050293,
+    "wrist_share": -3.4637470427867356e-05,
+    "mean_contacts": 1.9625,
+    "mean_force_N": 10.339997291564941
+  }
+]

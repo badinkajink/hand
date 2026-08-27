@@ -4099,3 +4099,42 @@ transfer here).
 written into the dumped `config.yaml`. An in-flight parity check passed cleanly on runs loading the
 wrong policy. Until the trainer records it, warmstarts must be checked by hand against
 `results/rl/REGISTRY.md` — and the launcher DEFAULT is not evidence of what a published run used.
+
+---
+
+## Phase: object-frame reorientation primitive (2026-08-27)
+
+Asked whether our best reorienters can be expressed hand-agnostically (object-centric /
+fingertip-object-centric, in the spirit of UHAS and grasp-wrench representations) so a design
+could be scored by re-targeting a known skill instead of re-learning one. Built
+`scripts/reorient_primitive.py` and extracted the primitive from b33-on-m05 (through its a10
+live-A seam) and r4-on-perp, 32 envs x 400 steps each.
+
+Full writeup `docs/experiments/REORIENT_PRIMITIVE.txt`. Headlines:
+
+- The representation (tilt-frame azimuth + axial + load, indexed by the shaft's alignment PHASE
+  rather than by clock) reconstructs the recorded fingertip positions to **3.0 / 2.0 mm**. It is a
+  faithful description.
+- **The wrist contributes 0.0% of the turn on both policies**, despite both carrying
+  `palm_rotation_residual_scale 0.3`. A fingertip/object representation is the right one.
+- **The scripted grasp + lift reorients by cos 0.00** — necessary control, everything is policy.
+- **69% of m05's alignment gain and 46% of perp's happens while the shaft still touches the
+  floor.** On m05 that phase is over in 4 control steps and belongs to **Policy A**, not b33;
+  b33 contributes the final 31%. Reorient credit in this program has been mis-assigned.
+- **Opposite gravitational regimes.** perp grips ~45 mm from the COM and the shaft HANGS (hang
+  angle 70->21 deg, monotone); m05 grips ~20 mm out with the COM ABOVE the contact and balances it
+  inverted (121->162 deg). The signed grip offset from the COM selects the strategy and explains
+  perp's axial slip and thumb-idle drops versus m05's 3-finger 21 N hold.
+- Executed as a controller (IK on the schedule, residual on the grasp anchor), the primitive
+  recovers **~60% of m05's turn and ~30% of perp's** while holding the object. Faithful
+  description, incomplete generator — the missing part is exactly the floor and gravity share.
+- **Kinematic feasibility against the schedule does NOT discriminate designs** (all of m05,
+  H06_04, L01_13, G02_00, sp25, H06_08, H06_06 reach it to 1-2 mm on a 12.5 mm shaft, with m05
+  mid-pack). Converges with the same day's link-length geometry gate: geometry stops ranking
+  hands once they are modelled properly.
+
+Traps recorded there, all of which produced convincing wrong answers first: replacing the grasp
+anchor with the IK solution zeroes the position servo's squeeze and drops the shaft every time;
+peak_cos without final_z and contact count reports a dropped shaft standing on the floor as a
+perfect reorient; and a phase grid wider than the policy's own coverage puts NaN at the table ends
+where np.interp poisons every query.
