@@ -48,7 +48,6 @@
       <body name="thumb_mount" pos="-0.0153 -0.023 0">
         <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
         <body name="thumb_yaw_frame">
-          <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
           <joint class="ctrl" name="thumb_yaw" type="hinge" axis="1 0 0" range="-1.1 1.1" />
           <body name="thumb_mcp_frame" pos="0.000000 0.000000 -0.032000">
             <joint class="ctrl" name="thumb_mcp" type="hinge" axis="0 1 0" range="0 3.14" />
@@ -64,12 +63,12 @@
               </body>
             </body>
           </body>
+          <geom type="capsule" fromto="0 0 0 0.000000 0.000000 -0.032000" size="0.010" material="finger_mat" />
         </body>
       </body>
       <body name="index_mount" pos="0.004 0.0322 0">
         <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
         <body name="index_yaw_frame">
-          <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
           <joint class="ctrl" name="index_yaw" type="hinge" axis="1 0 0" range="-1.1 1.1" />
           <body name="index_mcp_frame" pos="0.000000 0.000000 -0.032000">
             <joint class="ctrl" name="index_mcp" type="hinge" axis="0 1 0" range="0 2.5" />
@@ -85,12 +84,12 @@
               </body>
             </body>
           </body>
+          <geom type="capsule" fromto="0 0 0 0.000000 0.000000 -0.032000" size="0.010" material="finger_mat" />
         </body>
       </body>
       <body name="middle_mount" pos="0.0246 -0.0058 0">
         <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
         <body name="middle_yaw_frame">
-          <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
           <joint class="ctrl" name="middle_yaw" type="hinge" axis="1 0 0" range="-1.1 1.1" />
           <body name="middle_mcp_frame" pos="0.000000 0.000000 -0.032000">
             <joint class="ctrl" name="middle_mcp" type="hinge" axis="0 1 0" range="0 2.5" />
@@ -106,6 +105,7 @@
               </body>
             </body>
           </body>
+          <geom type="capsule" fromto="0 0 0 0.000000 0.000000 -0.032000" size="0.010" material="finger_mat" />
         </body>
       </body>
     </body>
