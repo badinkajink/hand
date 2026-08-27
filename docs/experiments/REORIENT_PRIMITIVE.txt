@@ -1,0 +1,178 @@
+# The reorientation primitive — a hand-free description of what our reorienters do
+2026-08-27.  Tool: `scripts/reorient_primitive.py` (extract | compare | execute | feasibility)
+Data: `results/reorient_primitive/*.npz`, figures + primitives `docs/experiments/20260827-reorient_primitive/`
+
+GOAL: an object-centric, morphology-agnostic representation of our best reorientation policies,
+so that a design can be evaluated by RE-TARGETING a known skill instead of re-learning one
+(currently ~5.4 GPU-h per design, seed-dominated).
+
+Sources: b33 on m05 (driven through its live-A seam by a10, handoff step 58) and r4 on perp.
+32 envs x 400 steps each, deterministic, each env rebuilt from its OWN config.yaml.
+
+
+## 1. The representation
+
+A cylinder is symmetric about its long axis, so an absolute azimuth in the object's body frame is
+not observable — it is whatever yaw the shaft spawned with. The datum that IS observable, and is
+the natural one for this task, is where UP is as seen by the shaft: project world +Z into the
+shaft's cross-section and call that direction theta = 0. In that TILT FRAME each fingertip has
+
+    theta   which side of the shaft it rides (0 = upper, +-180 = lower)
+    s       how far along the shaft from the centre of mass
+    f       its contact load
+
+and the whole primitive is these three, per finger, indexed by PHASE (the shaft's alignment with
+vertical) rather than by clock. Phase-indexing matters: two hands that trace the same path at
+different speeds are the same primitive, and indexed by phase the record becomes a feedback law
+— desired contact configuration as a function of object state — instead of an open-loop demo.
+(The existing `src/morphohand/rl/imitation.py` reference is the clock-indexed version, which is
+why it can only be a shaping reward.) The primitive also carries the object's pose in the PALM
+frame per phase, which is what makes a kinematic feasibility test possible at all.
+
+VALIDATED AS A DESCRIPTION. Rebuilding each fingertip's position from the primitive at the
+recorded phase reproduces where the tip actually was to a median **3.0 mm (m05) / 2.0 mm (perp)**.
+The description is faithful.
+
+
+## 2. What the two reference policies actually do
+
+                                   b33 on m05        r4 on perp
+  peak / final held-cos            0.931 / 0.898     0.983 / 0.965
+  envs that reorient AND hold      13/32             30/32
+  loaded fingers                   2.79              1.96  (thumb 0.0 N throughout)
+  total contact force              21 N              10 N
+  roll / tilt (body-frame omega)   1.56              1.02
+  WRIST share of the achieved tilt 0.0%              0.0%
+
+- **The wrist does none of it.** Both policies carry `palm_rotation_residual_scale 0.3` and both
+  use it for zero of the turn. A fingertip/object representation is therefore the right one —
+  that had been an assumption, it is now measured.
+- **m05 rolls, perp does not.** Roll/tilt 1.56 vs 1.02, and the schedules say the same thing:
+  m05's three tips sweep ~45-50 deg azimuthally around the shaft at a near-fixed axial position;
+  perp's azimuths are static to within ~10 deg and its two loaded contacts sit parked at
+  s = +42 mm, sliding ~5 mm over the whole reorient.
+- **perp's thumb reads exactly 0.0 N at every phase.** The opposed pair does the entire task.
+
+
+## 3. The finding that reassigns credit
+
+CONTROL, measured first: the scripted grasp + scripted lift, with no policy at all, reorients by
+**cos 0.00** on both hands. Everything below is policy work.
+
+Splitting each rollout at the step where the shaft's LOWEST POINT leaves the floor
+(z_low = z_c - (L|cos| + R*sqrt(1-cos^2)), L=50 mm, R=12.5 mm — not the centre height, which is
+still low when a 100 mm shaft is half upright):
+
+                            gain while still touching the floor   gain once fully in hand
+  b33 on m05                        +0.643  (69%)                       +0.288 (31%)
+  r4 on perp                        +0.452  (46%)                       +0.532 (54%)
+
+On m05 the floor phase is over in the first 4 control steps (cos 0 -> 0.61 at z = 0.025) and it is
+**Policy A's** grasp closing that does it, not the reorienter. b33 contributes the last third.
+The known v1 floor-bracing failure mode (`project_inhand_reorient_v1`) was never actually
+designed out; it survives into the reference policy.
+
+**Opposite gravitational regimes.** Angle between (object COM - force-weighted contact centroid)
+and world -Z, over the airborne part:
+
+  r4 on perp   70 -> 57 -> 41 -> 30 -> 21 deg   |COM-centroid| ~45 mm   -> the shaft HANGS,
+               settling monotonically toward vertical from a grip near its end
+  b33 on m05  121 -> 136 -> 162 -> 162 deg      |COM-centroid| ~20 mm   -> the COM is ABOVE the
+               grip; the shaft is balanced inverted and must be actively rolled up
+
+One object-centric number — the signed axial offset of the grip from the centre of mass — selects
+the strategy, and explains the rest: a hanging end-grip has nothing resisting axial slip (perp's
+documented slow slip, and its every-rollout drop with the thumb idle), while an inverted balance
+needs three loaded fingers (m05's 21 N on 2.8 contacts).
+
+
+## 4. Executing the primitive as a controller (`execute`)
+
+Runs in CPU MuJoCo on any hand: read phase, read the schedule at phase + lookahead, build the tip
+targets on the shaft's surface, damped-least-squares IK per finger, apply **as a residual on the
+grasp anchor**. Nothing in the loop names a hand except the tip Jacobian and the pad radius.
+
+  b33 primitive on m05     peak 0.582 / final 0.574, held        (b33 itself: 0.931 / 0.898)
+  r4  primitive on perp    peak 0.322 / final 0.220, held 11 N   (r4 itself:  0.983 / 0.965)
+
+**Faithful description, incomplete generator: ~60% of m05's turn and ~30% of perp's.** Adding
+the force half of the schedule (impedance: force error -> radial target offset) helps perp
+(0.22 -> 0.32) and hurts m05. What the schedule cannot encode is exactly what section 3 found:
+the floor interaction during the grasp, and an actively managed pivot under gravity.
+
+TWO TRAPS, both of which produced convincing wrong answers first:
+- **Never replace the grasp anchor with the IK solution.** These are position servos; the grip
+  force IS the commanded-minus-actual joint error that the squeezing anchor supplies. Commanding
+  the tip exactly onto the surface sets that error to ~0 and the hand lets go. The first version
+  did this and dropped the shaft in every single run, with IK residuals of 300-1500 mm that
+  looked like "this hand cannot reach" but were entirely post-drop.
+- **peak_cos is not a result without the height and the force.** A dropped shaft lands upright
+  and reads cos +1.000. Several sweep cells here peaked at 0.96-1.00 with final_z 0.0124 and
+  0.00 N. Only report peak alongside final_z and contact count.
+- Also: a phase grid wider than the policy's own coverage leaves NaN at the table ends, and
+  np.interp then poisons EVERY query. Primitives are trimmed to their populated span.
+
+Grip placement alone is not a substitute either: a scripted grasp swept over axial offset x grip
+tightness (12 cells, no policy) tops out at held cos **0.249**. r4 is actively managing the
+pivot, not merely permitting it.
+
+
+## 5. Kinematic feasibility as a design metric — NEGATIVE
+
+`feasibility` asks, with no physics and no policy, whether a hand can put its loaded fingertips on
+the scheduled surface points while the shaft sits at the scheduled palm-relative pose. Seconds per
+design, no seed. This is the task-CONDITIONED repair of the UHAS authority metric, which was
+task-blind and correlated -0.03 with goal approach.
+
+  design    trained held-cos       mean residual   p90     met(<5mm)   limit saturation
+  m05       0.891                     1.05 mm     2.55 mm    91.7%          6.1%
+  H06_04    0.748                     0.22 mm     0.70 mm   100.0%          2.2%
+  L01_13    0.720                     0.39 mm     0.10 mm    96.1%          2.6%
+  G02_00    0.482                     2.22 mm     8.73 mm    84.4%          8.5%
+  sp25      0.48 (n=1)                0.80 mm     3.42 mm    97.8%          0.7%
+  H06_08    phantom 1-finger          1.49 mm     6.86 mm    87.8%          5.2%
+  H06_06    lift-hostile              1.07 mm     5.16 mm    89.4%          3.9%
+
+**Every design reaches the schedule to within 1-2 mm on a 12.5 mm-radius shaft, and the reference
+design m05 scores mid-pack.** Reachability is saturated; it does not discriminate. This converges
+with the link-length geometry gate of the same day (`8-27_LINK_LENGTH_GATE.txt`): once the hand is
+modelled properly, geometry stops ranking designs and only dynamics separate them. Do not build a
+design search on this score.
+
+
+## 6. Where this leaves the universalisation question
+
+The hand-agnostic content of these two policies is smaller than the premise assumed. What
+transfers is the schedule as a DESCRIPTION — which is a good evaluator and a good prior, and is
+exactly why the existing clock-indexed imitation reward worked (tightest seed bands, +-0.02).
+What does not transfer is the generative part, because 31-54% of the measured turn is produced by
+interactions the fingertips do not author: the floor during the grasp, and gravity on an
+off-centre grip.
+
+There is no single primitive across the two topologies, and the reason is not that the
+representation is too weak. It is that the two policies are solving different mechanical problems
+— one balances the shaft inverted and rolls it up, the other hangs it and manages the settle.
+
+Consequences worth acting on:
+1. **Any reorient number in this program is at most half a finger-driven reorientation.** If
+   in-hand reorientation is the actual goal, the floor phase has to be excluded by construction
+   (a no-floor-contact assertion, or a lift-to-clearance before the reorient reward opens), which
+   `project_inhand_reorient_v1` recommended in 2026 and was never implemented.
+2. **Scoring finger lengths on "can it execute a finger-driven rotation" scores 31-54% of the
+   behaviour.** The larger determinants are where along the shaft the hand can grip and whether it
+   can manage the grip through the floor-assisted flip.
+3. The signed grip offset from the object's COM, in units of the object's half-length, is the one
+   object-centric scalar found here that both transfers and predicts the strategy. It is untested
+   as a design variable.
+
+
+## 7. Files
+
+  scripts/reorient_primitive.py                        extract | compare | execute | feasibility
+  results/reorient_primitive/{b33_m05,r4_perp}.npz     raw 32x400 recordings
+  docs/experiments/20260827-reorient_primitive/
+      primitive_compare.png                            the 6-panel figure (b33 onset)
+      {b33_m05,r4_perp}__primitive.npz                 executable primitives, b33 onset
+      full/                                            same, over the WHOLE rollout (onset 0)
+      feas/*.json                                      per-design feasibility
+      designs/*.json                                   per-design executed-controller rollouts
