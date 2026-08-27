@@ -1,0 +1,101 @@
+[
+  {
+    "tag": "40x30_yl32z",
+    "proximal_mm": 40.0,
+    "distal_mm": 30.0,
+    "yaw_link_mm": 32.0,
+    "yaw_link_axis": "z",
+    "flexing_reach_mm": 70.0,
+    "reach_mm": 102.00000000000001,
+    "tool_length_mm": 100.0,
+    "palm_fitted": true,
+    "palm_xyz_mm": [
+      19.485208432582198,
+      -2.720347357588115e-13,
+      -43.3936735954681
+    ],
+    "palm_z_mm": 90.60632640453191,
+    "fingers": {
+      "thumb": {
+        "shell_min_mm": 49.01453109301767,
+        "shell_max_mm": 90.9583549500228,
+        "target_dist_mm": 85.38499074880993,
+        "in_shell": true,
+        "ik_residual_mm": 0.09702109882472301
+      },
+      "index": {
+        "shell_min_mm": 49.01453109301767,
+        "shell_max_mm": 90.97631915214122,
+        "target_dist_mm": 77.66588122798142,
+        "in_shell": true,
+        "ik_residual_mm": 0.08967001994005096
+      },
+      "middle": {
+        "shell_min_mm": 49.01453109301768,
+        "shell_max_mm": 90.97631915214123,
+        "target_dist_mm": 81.87129156528708,
+        "in_shell": true,
+        "ik_residual_mm": 0.09389795295734996
+      }
+    },
+    "grip_z_mm": 113.22767564014175,
+    "grip_depth_below_palm_mm": 77.37865076439014,
+    "headroom_mm": 27.378650764390137,
+    "held_cos_ceiling": 1.0,
+    "max_tool_length_mm": 154.7573015287803,
+    "penetrations": {
+      "thumb_mcp_frame": -6.958953090138904,
+      "thumb_len_frame": -1.7625834466143044
+    },
+    "scene": "assets/mjcf/experimental/20260827-linklen/40x30_yl32z/scene.xml"
+  },
+  {
+    "tag": "30x30_yl32z",
+    "proximal_mm": 30.0,
+    "distal_mm": 30.0,
+    "yaw_link_mm": 32.0,
+    "yaw_link_axis": "z",
+    "flexing_reach_mm": 60.0,
+    "reach_mm": 92.0,
+    "tool_length_mm": 100.0,
+    "palm_fitted": true,
+    "palm_xyz_mm": [
+      11.86271122169472,
+      -3.024070323806116e-13,
+      -50.309562695039986
+    ],
+    "palm_z_mm": 83.69043730496003,
+    "fingers": {
+      "thumb": {
+        "shell_min_mm": 39.556646869612955,
+        "shell_max_mm": 80.96255750034268,
+        "target_dist_mm": 76.84594167657914,
+        "in_shell": true,
+        "ik_residual_mm": 0.09783447970914878
+      },
+      "index": {
+        "shell_min_mm": 39.556646869612955,
+        "shell_max_mm": 80.97817112308145,
+        "target_dist_mm": 71.5391080472879,
+        "in_shell": true,
+        "ik_residual_mm": 0.07316866526362295
+      },
+      "middle": {
+        "shell_min_mm": 39.55664686961296,
+        "shell_max_mm": 80.97817112308147,
+        "target_dist_mm": 73.67981592831975,
+        "in_shell": true,
+        "ik_residual_mm": 0.09518128637758067
+      }
+    },
+    "grip_z_mm": 113.26958034386926,
+    "grip_depth_below_palm_mm": 70.42085696109078,
+    "headroom_mm": 20.420856961090777,
+    "held_cos_ceiling": 1.0,
+    "max_tool_length_mm": 140.84171392218155,
+    "penetrations": {
+      "thumb_mcp_frame": -3.814814332459161
+    },
+    "scene": "assets/mjcf/experimental/20260827-linklen/30x30_yl32z/scene.xml"
+  }
+]

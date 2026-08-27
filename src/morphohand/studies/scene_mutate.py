@@ -324,7 +324,8 @@ class Scene:
         return self
 
     def set_link_lengths(self, proximal: float, distal: float, *, taper: float = 0.4,
-                         pad_reach: float = 0.011, standoff: float = 0.0) -> "Scene":
+                         pad_reach: float = 0.011, yaw_link: float = 0.0,
+                         yaw_link_axis: str = "x") -> "Scene":
         """Set the two FLEXING link lengths, in the hardware's own terms.
 
         The hand has two flexion joints per finger, MCP and PIP, so it has two links — but the
@@ -341,10 +342,20 @@ class Scene:
         fingertip pad is left alone: it is the r 5 mm convex tip the fingertip study selected, and
         `pad_reach` (6 mm half-length + 5 mm radius) is how far it sits past the distal link.
 
-        `standoff` drops the whole finger by that much in -z, one body above the yaw joint. That
-        models a mount/yaw link that hangs the MCP axis BELOW the mounting plane, which is the
-        only thing that buys back clearance for the tool to stand vertical without lengthening a
-        flexing link. A yaw link running along the finger's own +x is a roll axis and adds none.
+        `yaw_link` is the THIRD segment the hardware has and this scene does not: the link between
+        the yaw joint and the MCP joint. In every scene here the two axes are coincident, so the
+        finger rolls and pitches about the same point. Setting this puts the MCP joint at the end
+        of the yaw link, where it belongs. `yaw_link_axis` says which way that link runs:
+
+          "x" — along the yaw axis itself (the serial roll-then-pitch build). The MCP joint moves
+                OUTWARD along the finger. It adds reach in the flexion plane but no vertical
+                travel, because the segment ahead of the first flexing joint cannot bend.
+          "z" — hanging the MCP joint below the mounting plane. This one is not on the yaw axis,
+                so yaw swings the MCP joint through an arc of that radius — a different robot,
+                not a repositioned one — and it is what buys clearance under the palm.
+
+        The distinction matters more than its size: only the links AFTER the first flexing joint
+        set how far below the mounting plane the hand can hold anything.
 
         Mass is deliberately NOT pinned here (contrast the tip-shape mutators and THE MASS TRAP
         above): a shorter phalanx really is lighter, and pinning m05's inertia onto a 40 mm link
@@ -369,10 +380,27 @@ class Scene:
             _set_capsule(pip, d_link)
             tip.set("pos", _shift_first(tip.get("pos"), d_link))
 
-            if standoff:
-                yaw = _bodies(self.root, (f"{f}_yaw_frame",))[0]
-                x, y, z = _parse_xyz(yaw.get("pos", "0 0 0"))
-                yaw.set("pos", _fmt_xyz((x, y, z - standoff)))
+            if yaw_link:
+                if yaw_link_axis not in ("x", "z"):
+                    raise ValueError(f"yaw_link_axis must be 'x' or 'z', got {yaw_link_axis!r}")
+                off = ((yaw_link, 0.0, 0.0) if yaw_link_axis == "x" else (0.0, 0.0, -yaw_link))
+                x, y, z = _parse_xyz(mcp.get("pos", "0 0 0"))
+                mcp.set("pos", _fmt_xyz((x + off[0], y + off[1], z + off[2])))
+        return self
+
+    def set_tool_length(self, length: float) -> "Scene":
+        """Set the screwdriver stand-in's length, radius untouched.
+
+        Mass rides along on purpose (density x volume): a shorter shaft IS lighter, and the
+        robustness sweep found the hand one-sidedly fragile to a lighter tool (x0.6 -> hold 0.41)
+        while a heavier one was fine. So shortening the shaft to buy headroom spends margin on
+        the axis that is already the weak one, and the two effects have to be read together.
+        """
+        for b in _bodies(self.root, (OBJECT_BODY,)):
+            for g in b.findall("geom"):
+                if g.get("type") == "cylinder":
+                    r, _ = [float(t) for t in (g.get("size") or "0 0").split()]
+                    g.set("size", f"{r:.6f} {length / 2:.6f}")
         return self
 
     # -- fingertips ---------------------------------------------------------
