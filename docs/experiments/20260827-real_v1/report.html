@@ -190,13 +190,13 @@
     </div>
     <div class="cell">
       <span class="k">A &rarr; B queue</span>
-      <span class="v" id="s-queue">in flight</span>
-      <span class="n">from scratch per design; nothing transfers</span>
+      <span class="v" id="s-queue">2 of 4</span>
+      <span class="n">rv03_narrowy training now; rv05 requeued after a keyframe bug</span>
     </div>
     <div class="cell">
       <span class="k">Reorient</span>
-      <span class="v" id="s-reorient">pending</span>
-      <span class="n">prediction recorded before the runs</span>
+      <span class="v" id="s-reorient">cos 0.02</span>
+      <span class="n">rv00_wide holds the shaft and never turns it</span>
     </div>
   </div>
 
@@ -439,7 +439,58 @@
       transfers onto this hand, and b33 did not survive even a proximal-length change on the same
       topology. Results land here as each design finishes.</p>
     </div>
-    <div id="train-body"></div>
+    <div class="scroller">
+      <table>
+        <thead><tr>
+          <th>design</th><th>A verdict</th><th>held at</th><th>fingers touching</th>
+          <th>tip force</th><th>peak cos</th><th>held cos</th><th>handoff</th>
+        </tr></thead>
+        <tbody>
+          <tr><td class="name">rv00_wide</td><td>WARN</td><td>116&nbsp;mm</td><td>3.0 &middot; 100%</td>
+              <td>17.4&nbsp;N</td><td>0.019</td><td>&minus;0.093</td><td><span class="tag hold">holds</span></td></tr>
+          <tr><td class="name">rv05_manual <span class="dim">yours</span></td><td class="dim">aborted &times;2</td>
+              <td colspan="5" class="dim">keyframe bug, not the design &mdash; requeued</td></tr>
+          <tr><td class="name">rv03_narrowy</td><td colspan="7" class="dim">Policy A training</td></tr>
+          <tr><td class="name">rv04_mid</td><td colspan="7" class="dim">queued</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="col stack-s">
+      <h3>The grasp fix survives contact with a policy</h3>
+      <p>This is the number that matters most tonight. <span class="mono">rv00_wide</span>'s
+      continuous A&rarr;B handoff holds the shaft at <strong>min-z 0.1161</strong> against a 0.05
+      &ldquo;held&rdquo; bar, with all three fingers in contact 100% of the time. Watching the
+      video: the hand lifts clear of the table and the shaft stays tucked under the palm for the
+      whole 4.8&nbsp;s. The same hand, before the elevation fix, leaked it in 0.6&nbsp;s.</p>
+
+      <h3>It also never turns the shaft</h3>
+      <p>Peak alignment cosine <strong>0.019</strong>; the shaft comes up horizontal and stays
+      horizontal, and the filmstrip shows no rotation of any kind. What Policy B spent its budget
+      on instead was squeezing &mdash; tip force <strong>9.7&nbsp;N after A &rarr; 17.4&nbsp;N
+      after B</strong>, with slide ratio 23.9&nbsp;&rarr;&nbsp;35.2 and angular jerk
+      6.0&nbsp;&rarr;&nbsp;15.7. That is the shape of an unreachable reward rather than a weak
+      one, and it is worth checking the action budget on the sustained hold before drawing any
+      conclusion about the morphology. One draw, and this program's from-scratch spread is
+      0.3&ndash;0.5, so it is not yet a verdict on wide straddle.</p>
+
+      <h3>Your design was never actually tested</h3>
+      <p><span class="mono">rv05_manual</span>'s Policy A aborted on both draws, and the record
+      says why without ambiguity: zero fingertip contacts for the entire episode and 10.3&nbsp;cm
+      of object drift. The video shows the hand rising off the table and leaving the shaft behind,
+      fingers nearly straight.</p>
+      <p>The design is fine &mdash; open-loop it holds a full 10&nbsp;cm lift on three contacts at
+      2.90&nbsp;N. What broke is that marking the pose &ldquo;stored&rdquo; protected it from the
+      <em>fitter</em> but not from the <em>generator</em>, which rewrites the scene file from the
+      base pair and carries the base's keyframes forward. Your pose was replaced by one belonging
+      to different mounts, putting the thumb pad 10&nbsp;mm inside the shaft at reset. CEM found a
+      working grip from that seed regardless and reported a healthy grasp, which is how it passed
+      the gate &mdash; but the RL environment resets to the keyframe, so every episode began by
+      ejecting the object. The pose now lives outside the generated scene, in
+      <span class="mono">rv05_manual_pose.json</span>, and is re-injected after generation. The
+      full chain is requeued behind the current queue.</p>
+    </div>
+
   </section>
 
   <hr class="rule">
