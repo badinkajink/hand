@@ -466,7 +466,7 @@
           <tr><td class="name">rv03_narrowy</td><td>&plusmn;25</td><td>0.1051</td><td>3.0 &middot; 100%</td>
               <td>5.6&nbsp;N</td><td>0.069</td><td>+0.052</td><td>0.1&nbsp;cm</td></tr>
           <tr><td class="name">rv05_manual <span class="dim">yours</span></td><td>&plusmn;25</td>
-              <td colspan="5" class="dim">re-running &mdash; grasp confirmed at +49.6&nbsp;mm, Policy A in flight</td></tr>
+              <td colspan="5" class="dim">re-running &mdash; grasp re-confirmed at +49.6&nbsp;mm, Policy A healthy at 0.110 and climbing</td></tr>
         </tbody>
       </table>
     </div>
@@ -608,9 +608,15 @@
   <footer>
     <hr class="rule">
     <p>Numbers here come from <span class="mono">docs/experiments/20260827-real_v1/</span> and the
-    2026-08-27 entry in <span class="mono">docs/rl/reorientation.md</span>. Policy A runs
-    <span class="mono">20260827-2112-policyA_rv00_wide_*</span> were trained against the broken
-    grasp and are superseded.</p>
+    2026-08-27 and 2026-08-28 entries in <span class="mono">docs/rl/reorientation.md</span>.
+    Policy A runs <span class="mono">20260827-2112-policyA_rv00_wide_*</span> were trained against
+    the broken grasp and are superseded. <span class="mono">rv05_manual</span> is still training
+    as of 05:53 and its row will be empty until it finishes &mdash; roughly 06:45 for Policy A and
+    07:20 for the handoff.</p>
+    <p>One thing that cost time and is worth knowing: a chained
+    <span class="mono">until ! pgrep -f "[r]pattern"</span> waiter matches <em>itself</em> when the
+    relaunch half of the same command line contains the literal string. The bracket trick protects
+    the pattern, not the rest of the line. That left the GPU idle for about three hours.</p>
   </footer>
 
 </div>
