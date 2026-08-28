@@ -4200,3 +4200,41 @@ A→B (from scratch per design; B warmstarts only that design's own A) launched 
 all five designs, ~8 h. Nothing transfers onto this hand — a10/b33 were trained on a 117 mm finger
 with coincident yaw/MCP axes, and b33 did not survive even a proximal-length change on the same
 topology.
+
+### 2026-08-28 00:51 — first two real_v1 A→B results, and a keyframe that never survived generation
+
+**The slip fix holds up.** `rv00_wide` trains a Policy A that grips all three fingers 100% of the
+time (`touch_frac` 1.0/1.0/1.0, `contact_count` 3.0) and carries the shaft at
+`min_z_hold` 0.1141, and the continuous A→B handoff holds it at **0.1161** — against the 0.05
+"held" bar and against a pre-fix run where the shaft crept out of the same hand in 0.6 s. Watched
+the handoff video: the hand lifts clear of the table and the shaft stays tucked under the palm for
+the whole 4.8 s. Grasp verdict on the elevation-0 refit is confirmed at the policy level, not just
+in the open-loop probe.
+
+**And it does not reorient at all.** `peak_cos` 0.019, `held_cos_tail` −0.093 after B. The shaft
+comes up horizontal and stays horizontal; the filmstrip shows no rotation of any kind. What B did
+instead is squeeze: `tip_force` 9.7 N after A → 17.4 N after B, with `slide_ratio` 23.9 → 35.2 and
+`ang_jerk` 6.0 → 15.7. That is the reorient reward being unreachable and the contact/stability
+terms taking up the slack — the same shape as an unreachable-pose failure, and worth checking with
+`probe_action_budget.py` on the sustained hold before concluding anything about the morphology.
+n=1, and this program's from-scratch draw has sd 0.3–0.5, so this is one draw, not a verdict.
+
+**`rv05_manual` collapsed for a plumbing reason, not a design one.** Policy A aborted on both
+draws (`object_height` never above 0.017, `tip_lost` 2.75–6.0 per batch from iteration 0) and the
+handoff recorded `contact_count` 0.00, `touch_frac` 0/0/0, 10.3 cm of object drift. The video
+shows the hand rising off the table and leaving the shaft behind, fingers nearly straight.
+
+The cause: `pose: "stored"` stops the FITTER from overwriting an authored keyframe, but the
+`generate` stage rewrites the scene file wholesale from the base pair and carries the BASE's
+keyframes forward. The user's authored pose was therefore replaced by a pose belonging to
+different mounts — putting the thumb pad 10 mm INSIDE the shaft at reset. CEM still found a
+working grip from that seed and reported held +49.4 mm with persistence 1.00, which is why it
+passed the grasp gate; but the RL env resets to the keyframe, so every episode began by ejecting
+the object. Open-loop, all four designs hold a full 10 cm lift with three contacts
+(`rv05_manual` 101.0 mm retained, 2.90 N), so the design is fine.
+
+Fixed by moving the authored pose out of the generated scene entirely, to
+`docs/experiments/20260827-real_v1/rv05_manual_pose.json`, and re-injecting after generation.
+This is the same class of bug as the joint-space keyframe transfer (gotcha #5), one level up: it
+is not enough to protect a keyframe from the retargeter if the file it lives in gets regenerated.
+`rv05_manual` is queued to re-run the whole chain behind the current queue.
