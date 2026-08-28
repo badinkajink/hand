@@ -125,3 +125,37 @@ Two caveats. The landscape's carries use the fitter's geometric grip and only th
 heights, so they are a floor (X100/Y50 reads 0.575 here and 0.909 tuned with its CEM grip). And a
 ceiling can only ever say a design *cannot* — clearing it does not mean a policy will find the
 behaviour.
+
+## Robustness of the scripted carry (rv05_manual, open-loop)
+
+`carry_robustness_rv05.json`. This is what the RL residual has to absorb, not the policy's own
+robustness. Read the rows against the baseline row: CPU contact solves still vary with the settle,
+and the baseline reads 0.901 here against 0.996 in `probe_real_v1_carry` itself.
+
+**Delivery height does not matter at all.** 0.995–0.997, three contacts, 10.9–13.0 N at every
+lift from 0.06 to 0.14 m. Even at 0.06 the shaft's lower end stays 23 mm off the table, so the
+turn is floor-free across the whole range.
+
+    perturbation            peak    final    obj z   contacts   force
+    baseline (mu 2.4)       0.901   0.901    0.113      3        4.2 N
+    friction x0.5 (mu 1.2)  1.000   0.967    0.120      3       19.2
+    friction x0.75          0.948   0.948    0.116      3        8.7
+    friction x1.5           0.765   0.765    0.113      3        1.5
+    friction x2.0 (mu 4.8)  ---- DROPS ----
+    solimp dmax 0.999       0.729   0.729    0.119      3       53.6
+    solimp dmax 0.9995      0.530  -0.986    0.102      2       50.3   (overshoots past vertical)
+    object mass x0.5        0.846   0.846    0.118      3       24.1
+    object mass x2.0        ---- DROPS ----
+
+Two things worth carrying into hardware.
+
+**Friction hurts in the direction nobody expects.** Lower friction is *better* — µ 1.2 gives the
+cleanest turn in the table — and µ 4.8 drops the shaft. The carry needs the pads to slip a little
+against the shaft as it comes round; too much grip and the fingers fight the object instead of
+turning it. The scene's µ 2.4 is already high for TPU on steel, so the real hand sits on the
+favourable side of this. That is the opposite sign from the inline hand's friction cliff
+(`project_inline_sim2real_robustness`), and it is because this is a pivot, not a roll.
+
+**Mass is the live risk.** The scene's cylinder is 24.5 g. At 2x it drops. A real screwdriver is
+heavier than 24.5 g, so the object model needs the real tool's mass before any of this is a
+hardware claim — and the anchor will need re-tuning (or the CEM grip re-optimising) when it does.

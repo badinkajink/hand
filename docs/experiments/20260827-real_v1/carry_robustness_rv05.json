@@ -1,0 +1,133 @@
+{
+  "_note": "Robustness of the SCRIPTED anchor sweep on rv05_manual -- open-loop, no policy. This is what the RL residual has to absorb, not the policy's own robustness. The baseline reads 0.901 in this harness against 0.996 in probe_real_v1_carry; GPU-free CPU contact solves still vary with the settle, so read the rows relative to the baseline row, not absolutely.",
+  "design": "rv05_manual_stored",
+  "axis_k": 0.25,
+  "turn_steps": 550,
+  "angle_deg": -90,
+  "contact_perturbations": [
+    {
+      "variant": "baseline (mu 2.4)",
+      "peak": 0.901,
+      "final": 0.901,
+      "z": 0.1134,
+      "contacts": 3,
+      "force": 4.16,
+      "ok": true
+    },
+    {
+      "variant": "friction x0.5 (mu 1.2)",
+      "peak": 1.0,
+      "final": 0.967,
+      "z": 0.12,
+      "contacts": 3,
+      "force": 19.18,
+      "ok": true
+    },
+    {
+      "variant": "friction x0.75",
+      "peak": 0.948,
+      "final": 0.948,
+      "z": 0.1155,
+      "contacts": 3,
+      "force": 8.72,
+      "ok": true
+    },
+    {
+      "variant": "friction x1.5",
+      "peak": 0.765,
+      "final": 0.765,
+      "z": 0.1134,
+      "contacts": 3,
+      "force": 1.51,
+      "ok": true
+    },
+    {
+      "variant": "friction x2.0 (mu 4.8)",
+      "peak": 0.0,
+      "final": 0.0,
+      "z": 0.0121,
+      "contacts": 0,
+      "force": 0.0,
+      "ok": false
+    },
+    {
+      "variant": "solimp dmax 0.999",
+      "peak": 0.729,
+      "final": 0.729,
+      "z": 0.1189,
+      "contacts": 3,
+      "force": 53.58,
+      "ok": true
+    },
+    {
+      "variant": "solimp dmax 0.9995",
+      "peak": 0.53,
+      "final": -0.986,
+      "z": 0.1016,
+      "contacts": 2,
+      "force": 50.26,
+      "ok": true,
+      "note": "overshot past vertical to the opposite pole"
+    },
+    {
+      "variant": "object mass x0.5",
+      "peak": 0.846,
+      "final": 0.846,
+      "z": 0.1179,
+      "contacts": 3,
+      "force": 24.11,
+      "ok": true
+    },
+    {
+      "variant": "object mass x2.0",
+      "peak": 0.758,
+      "final": 0.0,
+      "z": 0.0123,
+      "contacts": 0,
+      "force": 0.0,
+      "ok": false
+    }
+  ],
+  "delivery_height_sweep": [
+    {
+      "lift": 0.06,
+      "peak": 0.995,
+      "final": 0.995,
+      "z": 0.0728,
+      "contacts": 3,
+      "force": 10.88
+    },
+    {
+      "lift": 0.08,
+      "peak": 0.996,
+      "final": 0.996,
+      "z": 0.0929,
+      "contacts": 3,
+      "force": 11.45
+    },
+    {
+      "lift": 0.1,
+      "peak": 0.996,
+      "final": 0.996,
+      "z": 0.113,
+      "contacts": 3,
+      "force": 12.02
+    },
+    {
+      "lift": 0.12,
+      "peak": 0.997,
+      "final": 0.997,
+      "z": 0.1332,
+      "contacts": 3,
+      "force": 12.52
+    },
+    {
+      "lift": 0.14,
+      "peak": 0.997,
+      "final": 0.997,
+      "z": 0.1533,
+      "contacts": 3,
+      "force": 13.02
+    }
+  ]
+}
