@@ -1,0 +1,374 @@
+[
+  {
+    "straddle_mm": 15.0,
+    "offset_mm": 0.0,
+    "offset_frac": 0.0,
+    "palm_z": 0.016,
+    "grip_depth_mm": 66.0,
+    "tip_residual_mm": {
+      "thumb": 0.1,
+      "index": 3.66,
+      "middle": 3.66
+    },
+    "held_mm": 43.2,
+    "lift_contacts": 3,
+    "lift_force_N": 2.77,
+    "cos_after_lift": 0.0,
+    "gravity_torque_Nm": 0.0,
+    "breakaway_Nm": 0.01,
+    "torque_sweep": [
+      {
+        "torque_Nm": 0.002,
+        "cos": 0.0,
+        "z": 0.0124,
+        "contacts": 0,
+        "force_N": 0.0
+      },
+      {
+        "torque_Nm": 0.005,
+        "cos": 0.001,
+        "z": 0.0124,
+        "contacts": 0,
+        "force_N": 0.0
+      },
+      {
+        "torque_Nm": 0.01,
+        "cos": 0.82,
+        "z": 0.048,
+        "contacts": 2,
+        "force_N": 0.23
+      },
+      {
+        "torque_Nm": 0.02,
+        "cos": 0.876,
+        "z": 0.0496,
+        "contacts": 2,
+        "force_N": 0.73
+      },
+      {
+        "torque_Nm": 0.05,
+        "cos": 0.918,
+        "z": 0.0506,
+        "contacts": 2,
+        "force_N": 2.04
+      },
+      {
+        "torque_Nm": 0.1,
+        "cos": 0.969,
+        "z": 0.0513,
+        "contacts": 2,
+        "force_N": 4.06
+      }
+    ],
+    "hang_sweep": [
+      {
+        "grip": 1.0,
+        "cos": 0.0,
+        "z": 0.0124,
+        "contacts": 0,
+        "force_N": 0.0
+      },
+      {
+        "grip": 0.5,
+        "cos": 0.0,
+        "z": 0.0124,
+        "contacts": 0,
+        "force_N": 0.0
+      },
+      {
+        "grip": 0.25,
+        "cos": 0.0,
+        "z": 0.0124,
+        "contacts": 0,
+        "force_N": 0.0
+      },
+      {
+        "grip": 0.0,
+        "cos": 0.0,
+        "z": 0.0124,
+        "contacts": 0,
+        "force_N": 0.0
+      }
+    ],
+    "pad_travel_mm": 23.6
+  },
+  {
+    "straddle_mm": 30.0,
+    "offset_mm": 0.0,
+    "offset_frac": 0.0,
+    "palm_z": 0.015,
+    "grip_depth_mm": 65.0,
+    "tip_residual_mm": {
+      "thumb": 0.1,
+      "index": 0.1,
+      "middle": 0.1
+    },
+    "held_mm": 56.4,
+    "lift_contacts": 3,
+    "lift_force_N": 19.12,
+    "cos_after_lift": 0.0,
+    "gravity_torque_Nm": 0.0,
+    "breakaway_Nm": 0.01,
+    "torque_sweep": [
+      {
+        "torque_Nm": 0.002,
+        "cos": 0.016,
+        "z": 0.0732,
+        "contacts": 3,
+        "force_N": 0.5
+      },
+      {
+        "torque_Nm": 0.005,
+        "cos": 0.039,
+        "z": 0.0732,
+        "contacts": 3,
+        "force_N": 0.48
+      },
+      {
+        "torque_Nm": 0.01,
+        "cos": 0.888,
+        "z": 0.0755,
+        "contacts": 1,
+        "force_N": 0.14
+      },
+      {
+        "torque_Nm": 0.02,
+        "cos": 0.439,
+        "z": 0.0639,
+        "contacts": 2,
+        "force_N": 8.9
+      },
+      {
+        "torque_Nm": 0.05,
+        "cos": 0.682,
+        "z": 0.0827,
+        "contacts": 2,
+        "force_N": 1.39
+      },
+      {
+        "torque_Nm": 0.1,
+        "cos": 0.568,
+        "z": 0.0873,
+        "contacts": 2,
+        "force_N": 1.1
+      }
+    ],
+    "hang_sweep": [
+      {
+        "grip": 1.0,
+        "cos": 0.0,
+        "z": 0.0732,
+        "contacts": 3,
+        "force_N": 0.5
+      },
+      {
+        "grip": 0.5,
+        "cos": 0.0,
+        "z": 0.0679,
+        "contacts": 3,
+        "force_N": 0.93
+      },
+      {
+        "grip": 0.25,
+        "cos": 0.0,
+        "z": 0.0124,
+        "contacts": 0,
+        "force_N": 0.0
+      },
+      {
+        "grip": 0.0,
+        "cos": 0.0,
+        "z": 0.0124,
+        "contacts": 0,
+        "force_N": 0.0
+      }
+    ],
+    "pad_travel_mm": 47.1
+  },
+  {
+    "straddle_mm": 15.0,
+    "offset_mm": 20.0,
+    "offset_frac": 0.4,
+    "palm_z": 0.016,
+    "grip_depth_mm": 66.0,
+    "tip_residual_mm": {
+      "thumb": 0.1,
+      "index": 3.66,
+      "middle": 3.66
+    },
+    "held_mm": 42.1,
+    "lift_contacts": 3,
+    "lift_force_N": 2.62,
+    "cos_after_lift": 0.055,
+    "gravity_torque_Nm": 0.00482,
+    "breakaway_Nm": 0.01,
+    "torque_sweep": [
+      {
+        "torque_Nm": 0.002,
+        "cos": 0.0,
+        "z": 0.0124,
+        "contacts": 0,
+        "force_N": 0.0
+      },
+      {
+        "torque_Nm": 0.005,
+        "cos": 0.001,
+        "z": 0.0124,
+        "contacts": 0,
+        "force_N": 0.0
+      },
+      {
+        "torque_Nm": 0.01,
+        "cos": 0.577,
+        "z": 0.0389,
+        "contacts": 2,
+        "force_N": 0.06
+      },
+      {
+        "torque_Nm": 0.02,
+        "cos": 0.616,
+        "z": 0.0404,
+        "contacts": 2,
+        "force_N": 0.44
+      },
+      {
+        "torque_Nm": 0.05,
+        "cos": 0.63,
+        "z": 0.0409,
+        "contacts": 2,
+        "force_N": 1.63
+      },
+      {
+        "torque_Nm": 0.1,
+        "cos": 0.657,
+        "z": 0.0419,
+        "contacts": 2,
+        "force_N": 3.6
+      }
+    ],
+    "hang_sweep": [
+      {
+        "grip": 1.0,
+        "cos": 0.0,
+        "z": 0.0124,
+        "contacts": 0,
+        "force_N": 0.0
+      },
+      {
+        "grip": 0.5,
+        "cos": 0.0,
+        "z": 0.0124,
+        "contacts": 0,
+        "force_N": 0.0
+      },
+      {
+        "grip": 0.25,
+        "cos": 0.0,
+        "z": 0.0124,
+        "contacts": 0,
+        "force_N": 0.0
+      },
+      {
+        "grip": 0.0,
+        "cos": 0.0,
+        "z": 0.0124,
+        "contacts": 0,
+        "force_N": 0.0
+      }
+    ],
+    "pad_travel_mm": 23.6
+  },
+  {
+    "straddle_mm": 15.0,
+    "offset_mm": 30.0,
+    "offset_frac": 0.6,
+    "palm_z": 0.016,
+    "grip_depth_mm": 66.0,
+    "tip_residual_mm": {
+      "thumb": 0.1,
+      "index": 3.66,
+      "middle": 3.66
+    },
+    "held_mm": 40.7,
+    "lift_contacts": 3,
+    "lift_force_N": 2.42,
+    "cos_after_lift": 0.084,
+    "gravity_torque_Nm": 0.00722,
+    "breakaway_Nm": 0.01,
+    "torque_sweep": [
+      {
+        "torque_Nm": 0.002,
+        "cos": 0.0,
+        "z": 0.0124,
+        "contacts": 0,
+        "force_N": 0.0
+      },
+      {
+        "torque_Nm": 0.005,
+        "cos": 0.001,
+        "z": 0.0124,
+        "contacts": 0,
+        "force_N": 0.0
+      },
+      {
+        "torque_Nm": 0.01,
+        "cos": 0.517,
+        "z": 0.0364,
+        "contacts": 2,
+        "force_N": 0.04
+      },
+      {
+        "torque_Nm": 0.02,
+        "cos": 0.532,
+        "z": 0.0369,
+        "contacts": 2,
+        "force_N": 0.37
+      },
+      {
+        "torque_Nm": 0.05,
+        "cos": 0.551,
+        "z": 0.0377,
+        "contacts": 2,
+        "force_N": 1.42
+      },
+      {
+        "torque_Nm": 0.1,
+        "cos": 0.556,
+        "z": 0.0378,
+        "contacts": 2,
+        "force_N": 3.21
+      }
+    ],
+    "hang_sweep": [
+      {
+        "grip": 1.0,
+        "cos": 0.0,
+        "z": 0.0124,
+        "contacts": 0,
+        "force_N": 0.0
+      },
+      {
+        "grip": 0.5,
+        "cos": 0.0,
+        "z": 0.0124,
+        "contacts": 0,
+        "force_N": 0.0
+      },
+      {
+        "grip": 0.25,
+        "cos": 0.0,
+        "z": 0.0124,
+        "contacts": 0,
+        "force_N": 0.0
+      },
+      {
+        "grip": 0.0,
+        "cos": 0.0,
+        "z": 0.0124,
+        "contacts": 0,
+        "force_N": 0.0
+      }
+    ],
+    "pad_travel_mm": 23.6
+  }
+]

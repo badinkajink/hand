@@ -24,6 +24,10 @@ onto it** — a10/b33 were trained on a 117 mm finger with coincident yaw/MCP ax
 | script | role |
 |---|---|
 | `build_real_v1_scenes.py` | emit the base pair + actuated explorer from the CAD spec. `--check` fails if the shipped MJCFs drifted; `--fit-palm-z` prints the palm-height utilisation table |
+| `probe_real_v1_carry.py` | the reorient mechanism on `real_v1`: drives the shaft from horizontal to vertical OPEN-LOOP by rotating the contacts as a rigid body about a raised pivot, and reports the per-finger radial slack (`--workspace`) that decides whether a design can do it at all |
+| `probe_real_v1_slip.py` | why a `real_v1` grip that should work does not: pad elevation, compliance and friction on one axis, held far longer than an RL episode |
+| `probe_real_v1_vertical_hold.py` | can the hand REACH the vertical hold, and is that pose inside `finger_residual_scale` of the CEM grip |
+| `probe_real_v1_pivot.py` | breakaway torque about the pinch axis vs straddle and grip offset — the grasp as a rotational lock |
 | `fit_real_v1_pose.py` | per-design grasp keyframe: solves palm x/y/z AND the 9 finger angles onto fingertip targets ringing the shaft, writes `open_ik`. Replaces `retarget_keyframe_ik.py` here — new topology, and palm height is not shared across designs |
 | `real_v1_pipeline.py` | the per-design chain: generate → pose → CEM → A → B → handoff eval. Resumable, stage-selectable (`--stages grasp` is the cheap prefix) |
 

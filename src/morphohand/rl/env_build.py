@@ -360,6 +360,7 @@ def _build_actions(cfg: MorphoHandEnvCfg, ctx: _InitContext) -> dict:
                               if getattr(cfg, "hold_finger_ctrl", None) else None),
             hold_switch_align_thresh=float(cfg.hold_switch_align_thresh),
             hold_switch_steps=int(cfg.hold_switch_steps),
+            hold_switch_from_sim_step=int(cfg.hold_switch_from_sim_step),
             hold_switch_min_z=float(cfg.hold_switch_min_z),
             easing=cfg.finger_close_easing,
             residual_active_from_sim_step=int(cfg.finger_residual_active_from_step) * int(cfg.decimation),
