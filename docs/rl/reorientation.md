@@ -4294,3 +4294,87 @@ at fixed depth. (3) two or three draws per design before ranking anything.
 IN FLIGHT: rv05_manual (the user's hand-authored design and grasp) re-running the full chain after
 the keyframe-regeneration bug; its grasp re-confirmed at held +49.6 mm, persistence 1.00, pads at
 +1.9 / −3.2 / +7.5 deg. Policy A started 05:50.
+
+---
+
+## 2026-08-28 — real_v1: the grasp was a rotational LOCK, and the reorient is one more keyframe
+
+rv05_manual finished overnight and made it 4/4: handoff min-z 0.104, touch_frac 1.0/1.0/1.0,
+held cos −0.014. Four designs whose mounts differ by 60 mm, all holding perfectly, all turning
+the shaft by under four degrees. **A result that is invariant to the morphology is not about the
+morphology**, and with four draws it is not the seed lottery either. So the cause is upstream of
+both, and it is.
+
+### What it is
+
+A rotation of θ about the pinch axis with the contacts fixed on the shaft sends the DESCENDING
+pair contact down by `straddle · sin θ`, and its finger pays for that by **extending**. Measured
+radial slack at each design's own grasp, against the 68.11 mm straight-chain reach
+(`probe_real_v1_carry.py --workspace`):
+
+    design         extend   retract   straddle   ceiling = asin(extend/straddle)   trained peak
+    rv04_mid        1.3 mm   46.8 mm    ±30 mm            2.5 deg                  0.015 (0.9 deg)
+    rv05_manual     4.1      44.0        —                 —                       0.030 (1.7)
+    rv00_wide       4.5      43.6        ±30               8.6                     0.019 (1.1)
+    rv03_narrowy    7.1      41.0        ±40              10.2                     0.069 (4.0)
+
+Every trained policy sits at or below its own kinematic ceiling. Two choices put it there, and
+both were ours:
+
+* **`fit_real_v1_pose` takes the DEEPEST reachable palm**, for clearance over the shaft's upper
+  half once it stands up. On this hand that lands every design at 58–67 mm of a 68.11 mm chain.
+  The palm cannot simply be raised, either: below ~60 mm of grip depth the MCP pins at its −15°
+  hyperextension limit and no pose exists at all, so the usable band really is at the top.
+* **The same fitter picks the straddle by scoring close→lift→hold rollouts**, and its own
+  docstring says what that selects for: *"whether that tripod resists the shaft LEVERING ABOUT
+  THE PINCH AXIS"*. Levering about the pinch axis IS the reorientation. We were choosing, per
+  design, the grasp that best prevents the task.
+
+The earlier reading — that the vertical hold was outside the ±0.5 rad residual budget — was true
+but secondary. rv04_mid was *inside* the budget (0.465) and still turned 0.9°.
+
+### What fixes it, with no new controller and no change to the hand
+
+Put the rotation axis **above** the contact plane. Both pair contacts then gain `h(1−cos θ)`, so
+the descending one needs no extension and the ascending one spends **retraction**, of which there
+is 38–47 mm. Physically: the shaft descends in the grip as it stands up. Open-loop, no policy, at
+the full 0.10 m handoff height with the floor 60 mm below the shaft's lowest point:
+
+    design                          axis h   peak    final   obj z    contacts   force
+    rv05_manual (user's own hand)    8.2 mm  0.996   0.996   0.113        3       12.0 N
+    rv00_wide_sp40                  15.5     0.995   0.989   0.097        2       20.6
+    rv03_narrowy_sp40                5.8     0.936   0.909   0.110        2        5.1
+    rv04_mid                        no cell holds — the one design with no extension budget
+
+**This is the program's first floor-free reorient.** `REORIENT_PRIMITIVE.txt` measured 46–69% of
+both reference policies' alignment as floor work; here the shaft never comes within 60 mm of the
+table. And `extend_mm` predicts it: the only design that fails everywhere is the only one with no
+extension left.
+
+Three details that each produced a wrong answer first:
+
+* **Direction is not free.** Turning the other way stands the shaft up at cos **−0.82**, which
+  `target_axis_alignment` punishes (it rewards cos → +1, not |cos|). The first training smoke of
+  this schedule read `target_axis_progress −0.93` for that reason alone.
+* **A straight line in joint space reproduces the IK'd carry** (0.82 vs 0.76 on rv03_narrowy), so
+  the whole schedule collapses to ONE extra keyframe — which is exactly
+  `LerpFingerActionCfg.hold_target_ctrl`, built for the opposed hand and never used here.
+* **The anchor move must be BOUNDED.** Unclipped (±1.5 rad) it drops the shaft in every cell;
+  clipped at ±0.5 it holds. The bound is load-bearing, not a budget artifact.
+
+The one gap was that `hold_target_ctrl` latches on ALIGNMENT, which is circular when the grasp is
+a rotational lock — the anchor only moves once the policy rotates the shaft, and it cannot. New
+`hold_switch_from_sim_step` opens it on schedule instead, which turns the reorient into a residual
+problem, the same shape the scripted lift gives Policy A.
+
+Also plumbed the second anchor through `deploy.make_env_cfg` and
+`rl_demo_handoff_continuous.py`: **the anchor is env state, not policy state**, and a B trained
+with it and evaluated without it is out of distribution in exactly the way gotcha #13 describes.
+
+### Training
+
+`b_liveA` + `--hold-ctrl-from-keyframe hold_ik --hold-switch-from-sim-step 600
+--hold-switch-steps 550 --hold-switch-min-z 0.08 --object-orientation-drift-weight 0.0`, tip-loss
+termination relaxed 3 → 15 control steps (the carry runs on two contacts for most of the turn, as
+r4 on perp does; drop termination and the collapse watchdog are untouched).
+
