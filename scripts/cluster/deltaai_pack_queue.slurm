@@ -94,7 +94,7 @@ while :; do
 
   LINE=$(sed -n "${IDX}p" "$QDIR/manifest.tsv")
   IFS=$'\t' read -r EST LABEL CMD <<<"$LINE"
-  EST_S=$(python3 -c "print(int(float('${EST:-1.0}')*3600))")
+  EST_S=$(awk -v e="${EST:-1.0}" "BEGIN{printf \"%d\", e*3600}")
 
   # --- will it fit in what is left of the block? ------------------------------
   REMAIN=$(( END_EPOCH - $(date +%s) - MARGIN_S ))

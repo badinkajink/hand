@@ -1,0 +1,152 @@
+# Hardware finger geometry — the 2026-08-27 rebuild, and what is waiting on the real MJCF
+#
+# STATUS: geometry only. NO policy has been trained or evaluated on any scene in this study.
+# Written as a handoff: everything below is what a later agent needs to pick this up.
+#
+# ORIGIN. Hardware asked whether a 40 mm proximal / 30 mm distal finger is viable, or whether the
+# fingers should stay at the "37-40 mm" of earlier iterations. Answering it required correcting
+# how this program names finger lengths, then correcting the finger's topology twice.
+
+
+## 1. TERMS — every length this program has published names a PARAMETER, not a link
+
+The hand has TWO flexion joints per finger (MCP, PIP), so it has two flexing links. The scene
+draws the MCP link as two capsules — `<f>_mcp_frame` then `<f>_len_frame` — with NO JOINT between
+them, purely so the co-design `len` parameter had somewhere to slide. `set_proximal_length` and
+the whole 9-param design space move only the first of those. Read as links:
+
+  build              yaw link   MCP->PIP             PIP->pad     total flexing reach
+  m05 (a10 -> b33)      0       75.8 / 77.3 / 80.9   41.0         116.8 / 118.3 / 121.9
+  sp25 "25 mm hand"     0       65.0                 41.0         106.0
+  a01 lineage           0       73.5 / 74.5 / 74.5   41.0         114.5 / 115.5 / 115.5
+  HARDWARE TARGET      32       40                   30            70
+
+So the shipped hand's proximal is 76-81 mm, the "25 mm hand" is a 65 mm one, and nothing has ever
+been trained within 25 mm of the 40 mm target. `docs/notes/finger_spec.md` §2 states the parameter
+values; read them as parameters, not links.
+
+
+## 2. TOPOLOGY — two mistakes, both mine, recorded so they are not repeated
+
+**The yaw axis is (1,0,0) — the finger's OWN long axis, a ROLL. It has never changed and must not
+be changed.** Yaw turns the flexion plane; that is how the thumb opposes. I changed it to the palm
+normal off a badly-worded question of my own and it was wrong.
+
+**The 32 mm yaw link must be PERPENDICULAR to that axis.** Built along +x it lies ON the axis: the
+MCP joint sits on the line yaw rotates about, yaw cannot move it, and the two joints are coincident
+in everything but their body origins. `yaw_link_dir` defaults to (0,0,-1) — the link drops from the
+yaw joint to the MCP joint — and `set_link_lengths` now REFUSES any direction with a component
+along the axis.
+
+**The check, and use it on the user's MJCF too:** `yaw_mcp_offset()` in
+`scripts/build_link_length_variants.py` returns the perpendicular distance from the MCP joint's
+anchor to the yaw AXIS LINE, off the compiled model. It must equal the yaw link length. Zero is
+the coincident bug. Every build prints it; the baseline scenes correctly print 0.0/0.0/0.0.
+Body origins differing is NOT sufficient evidence — that was the trap both times.
+
+**Drawing.** A capsule extends by its radius past each `fromto` end, so a 40 mm link at r 10 drew
+58.5 mm with 10 mm sticking backwards through the yaw link. `--cap-inset` lands the cap ON the
+joint; envelope then measures 40.0 / 30.0. Applied at each LINK's outer ends only (the tapered
+sub-segments are shorter than their own caps and collapse if both ends are inset). Off by default
+because the trained scenes have the legacy convention in the collision geometry the policies
+learned against. NOTE FOR CAD: m05 draws a 94 mm envelope on a 75.8 mm proximal — anything sized
+off a render or export of the m05 scene is ~18 mm per finger too long.
+
+
+## 3. THE GATE, AND WHY IT NO LONGER DISCRIMINATES
+
+Constraint: a shorter finger holds the shaft closer to the mounting plane, and the shaft must
+stand up in that gap. A 100 mm shaft tilted t off vertical rises 50*cos(t) above the grip, so
+
+    held-cos <= grip depth below the mounting plane / (tool length / 2)
+
+Flush-mounted, no yaw link (fitted palm, m05 mounts, 100 mm shaft) — b33 scores 0.891 for scale:
+
+  76x41 control  86.7 mm depth   ceiling 1.00    longest shaft 173 mm
+  40x30          44.1            ceiling 0.88                  88
+  30x30          34.9            ceiling 0.70                  70
+  25x25          26.3            ceiling 0.53                  53
+
+WITH the 32 mm perpendicular yaw link and fitted mounts, ALL FOUR CLEAR:
+
+  76x41 control  88.9 mm depth   headroom +38.9   ceiling 1.00   longest shaft 178 mm
+  40x30 + 32     83.9            +33.9            1.00           168
+  30x30 + 32     76.0            +26.0            1.00           152
+  25x25 + 32     67.9            +17.9            1.00           136
+
+**The yaw link is what pays for the headroom.** Once it is modelled, the ceiling disappears and
+geometry cannot rank these lengths. Only a trained reorient can. Second lever if it ever binds
+again: max tool length = 2 x grip depth (`--tool-length`), but shortening the shaft also lightens
+it and SIM2REAL_ROBUSTNESS found the hand one-sidedly fragile there (density x0.6 -> hold 0.41).
+
+FREE RESULT: the 32 mm drop clears the ~479 N `mcp_frame`<->`palm` interpenetration that every
+baseline scene in this repo carries (finger_spec §3a). Contacts 5 -> 2, both the shaft on the table.
+
+
+## 4. WHAT HAS AND HAS NOT BEEN MEASURED
+
+MEASURED — CEM grasp, all four lengths, on the OLD scenes (no yaw link, m05 mounts):
+
+  76x41 5.881 | 40x30 5.742 | 30x30 5.736 | 25x25 5.735
+  every one: 3.0 tip contacts, 1.00/1.00/1.00 per-finger persistence, ~0 tilt, ~0 drift
+
+Grip is NOT what length decides — 0.15 of spread across a 2.4x range of finger length, consistent
+with the program-wide finding that pick-up and hold are solved everywhere. NOT re-run on the
+yaw-link scenes; a grasp is a prerequisite for Policy A, so it has to be.
+
+NOT MEASURED — anything with a controller. Zero RL runs reference these scenes. The reorient
+question is entirely open on this hand.
+
+
+## 5. TRAPS HIT IN THIS STUDY
+
+1. **The palm must be FITTED, not just dropped.** Inheriting m05's palm x/y leaves a short-fingered
+   hand off-centre over the shaft, and CEM returned a spurious 2-FINGER verdict on 40x30 (thumb
+   contact persistence 0.00, score 2.33 against m05's 8.52). Same class as the joint-space keyframe
+   bug, one level up. Fixed by solving px/py/pz.
+2. **Mount x/y must be fitted too** — they are co-design free variables, and a 70 mm finger wants a
+   tighter footprint than a 117 mm one.
+3. **The fit objective needs all three terms.** Reach alone is under-determined. Joint-centering
+   alone drops the palm until the fingers straighten (ceiling 0.88 -> 0.49). Utilisation alone
+   fixes the grasp's shape but not its height (40/30 came back SHALLOWER than 30/30 — a local
+   minimum, not a result). Working objective = reach + m05's per-finger utilisation
+   (|MCP->tip| / flexing reach, m05 = 0.84/0.75/0.77) + maximise grip depth, MULTI-STARTED from
+   reach-scaled mount layouts.
+4. **Never `pkill -f` a pattern that appears elsewhere in the same command line** — the relaunch
+   half of a compound command counts, and it killed the shell (CLAUDE.md gotcha #9).
+5. The Bash tool caps at 120 s regardless of a `timeout N` prefix; launch long builds detached.
+
+
+## 6. NEXT — WHEN THE HARDWARE MJCF ARRIVES
+
+The mounts and palm height in these scenes are SOLVED, not given: 40x30's fitted mounts are thumb
+(-10.8,-7.2) index (+3.3,+30.6) middle (+15.8,-4.6) mm with the palm at 97.1 mm. The real hand's
+will differ, and a run against slightly-wrong geometry produces a number that looks real. So:
+
+  1. Take link lengths, mount layout and palm pose FROM the user's model. Do not fit them.
+  2. Run the gate on it as a sanity check: `yaw_mcp_offset` must equal the yaw link (not 0), and
+     read grip depth / headroom / ceiling.
+  3. CEM grasp per design (~5 min each, `scripts/run_linklen_cem.sh`, config pinned to sp25's).
+  4. THEN A->B from scratch, n≈3 A draws + n≈3 B draws, ~5.4 GPU-h per design on DeltaAI
+     (~92 GPU-h available). **Nothing transfers**: a10/b33 were trained with coincident yaw/MCP
+     joints, warmstarting across morphologies is gotcha #5 and NaN'd 15/16 draws in the seed-band
+     study, and b33 did not survive even a proximal-length change on the SAME topology
+     (hold 0.344, dropped 2 of 3).
+  5. Flag parity (this repo has lost two 5-design queues in a day to omitted flags): pin
+     terminations to the REFERENCE RUN's config not the recipe's, pass
+     `--open-finger-from-keyframe`, and re-derive b33's timings — lift/reorient start 58 and
+     tip-loss grace 10 were tuned to m05's palm height and grip depth, both of which move here.
+
+
+## 7. FILES
+
+  src/morphohand/studies/scene_mutate.py   set_link_lengths (links + yaw link + cap_inset),
+                                           set_mounts, set_tool_length
+  scripts/build_link_length_variants.py    builder + gate; yaw_mcp_offset, utilisation, fit_pose
+  scripts/run_linklen_cem.sh               CEM per config, pinned to the sp25 configuration
+  assets/mjcf/experimental/20260827-linklen/<tag>/scene.xml
+        tag = PROXxDIST[_ylN][_fm][_ci]  — ylN = N mm yaw link, fm = mounts fitted, ci = cap inset
+        CURRENT hardware-class builds: *_yl32_fm_ci/ (and 40x30_yl32_ci/ palm-fit only)
+  docs/experiments/LINK_LENGTH_GATE.{txt,json}, _z/_t80/_abd/_yl.json variants
+  docs/experiments/20260827-linklen_renders/
+  commits c2ed14c, bb42f8b, 576add6, 55680f6, 1c65757

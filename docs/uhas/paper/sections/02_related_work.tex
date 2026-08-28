@@ -1,0 +1,31 @@
+\vspace{-4mm}
+\section{Related Work}
+\vspace{-2mm}
+\label{sec:rw}
+
+% \begin{itemize}
+%     \item Description of SotA landscape for the solution of the key problem
+%     \item Use baselines as main source of references; Reproduce the search tree of related work and search for newer methods for the ones referenced in the baseline (Expand leaves)
+%     \item Restate the key difference of our work and a spoiler of good results.
+% \end{itemize}
+
+% Go into detail of the current state of the art methods that perform cross embodiment learning, find the most recent and best results and add them here with a brief description. Joint paragraphs for the ones with the same first principles. 
+
+% Expand on intermediate grasp representation
+
+
+\label{sec:related_work}
+
+\paragraph{Dexterous Manipulation.}
+Dexterous in-hand manipulation remains a fundamental challenge in robotics due to the high-dimensional action spaces and complex contact dynamics involved in controlling multi-finger robotic hands. Prior works have demonstrated that reinforcement learning can learn sophisticated dexterous manipulation skills through large-scale simulation training and domain randomization~\cite{andrychowicz2020learning,chen2022towards,handa2023dextreme,ma2024eureka,zakka2025mujocoplayground}. More recent efforts have explored learning dexterous behaviors from demonstrations and large-scale video datasets~\cite{shaw2023videodex,cheng2024open,wang2024dexcap,xu2025dexumi,li2025maniptrans,tao2025dexwild}. In this work, we focus on dexterous in-hand cube reorientation and investigate how a unified geometric action representation can improve manipulation transfer across robotic hands with different kinematic structures.
+
+\vspace{-3mm}
+\paragraph{Unified and Cross-Embodiment Action Representations.}
+Recent robot learning systems increasingly aim to support multiple robotic embodiments through shared representations and generalist policies. RT-2~\cite{brohan2023rt2visionlanguageactionmodelstransfer}, Octo~\cite{team2024octo}, and OpenVLA~\cite{kim2024openvla} demonstrate the potential of large-scale robot foundation models, but most existing approaches still rely on embodiment-specific action spaces. Several recent works have explored unified representations for cross-embodiment learning, including CrossFormer~\cite{doshi2024scaling}, Universal Actions~\cite{zheng2025universal}, XL-VLA~\cite{jiang2026cross}, and One Hand to Rule Them All~\cite{wei2026one}. These methods use different action heads, latent actions or canonical joint-space representations. Our work introduces the Universal Hand Action Space (UHAS), where manipulation actions are represented as geometric deformations of a canonical sphere shared across robotic hands.
+
+
+\vspace{-2mm}
+\paragraph{Geometric Representations and Cross-Hand Transfer.}
+Geometric representations have recently emerged as an effective abstraction for cross-embodiment robotic grasping and manipulation~\cite{wei2024mathcal,khargonkar2024robotfingerprint,fei2025t,wu2025cedex,wu2026dexgrasp,he2026generate}. For example, D(R,O) Grasp~\cite{wei2024mathcal} proposes a unified representation of robot-object interactions for cross-embodiment dexterous grasping, while RobotFingerPrint (RFP)~\cite{khargonkar2024robotfingerprint} establishes dense correspondences between gripper surface points and a canonical sphere for grasp synthesis. Inspired by these geometric representations, we extend the sphere correspondence idea beyond grasp representation and propose the Universal Hand Action Space (UHAS), where sphere deformations themselves define the manipulation action space. 
+
+% To map sphere deformations to executable robot actions, we introduce a Cascade Inverse Kinematics (CIK) algorithm that converts the unified geometric representation into embodiment-specific joint configurations. The proposed approach naturally supports robotic hands with different finger layouts and kinematic structures while enabling cross-embodiment policy transfer.

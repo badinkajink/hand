@@ -1,0 +1,9 @@
+\vspace{-2mm}
+\section{Conclusion}
+\vspace{-2mm}
+
+In this work, we introduced the Unified Hand Action Space (UHAS), a sphere-based geometric action representation for dexterous manipulation across diverse robotic hands. By establishing dense correspondences between robotic hand surfaces and a canonical sphere representation, the proposed approach enables policies to operate in a shared action space independent of embodiment-specific joint parameterizations. We further proposed the Cascade Inverse Kinematics (CIK) algorithm to map sphere deformations to executable hand motions. Using reinforcement learning, we demonstrated dexterous in-hand cube reorientation across multiple robotic hands in both simulation and the real world, and showed meaningful cross-embodiment transfer through multi-hand, zero-shot, and finetuning experiments.
+
+\vspace{-2mm}
+\paragraph{Limitations.}
+Dexterous manipulation performance remains highly sensitive to low-level PD controller parameters, requiring extensive domain randomization for robust transfer across robotic hands. In addition, the in-hand cube reorientation task is sensitive to reward design and reinforcement learning hyperparameters. Finally, although UHAS enables transfer across diverse embodiments, performance degrades when transferring between substantially different hand morphologies, such as 4-finger and 5-finger hands.
