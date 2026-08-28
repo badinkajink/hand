@@ -4138,3 +4138,65 @@ anchor with the IK solution zeroes the position servo's squeeze and drops the sh
 peak_cos without final_z and contact count reports a dropped shaft standing on the floor as a
 perfect reorient; and a phase grid wider than the policy's own coverage puts NaN at the table ends
 where np.interp poisons every query.
+
+---
+
+## 2026-08-27 — real_v1: the CAD hand becomes a trainable topology, and the grasp stage lands
+
+The hardware MJCF arrived (`assets/mjcf/real_v1/`, user's commit ba3c28a). This is a NEW
+topology, not a variant of the m05 lineage: 33.45 / 33.45 / 37.16 mm links that OVERLAP by
+12.70 mm (so joint spacing is 20.75 mm), CAD ROM (yaw ±85°, MCP −15..+92°, PIP −18..+92°),
+78.66 mm of flexing reach against m05's ~117 mm, real XY gantry travel, and no proximal-length
+DoF at all — the links are CAD parts, so the design space is the 6 XY dims.
+
+Full setup record: `docs/experiments/20260827-real_v1/SETUP.md`. Headlines:
+
+- **Three defects in the shipped MJCF, all silent.** `<f>_tip` had NO GEOM — the RL fingertip
+  sensor matches contacts by BODY on `*_tip`, so every contact reward, the tip-loss termination
+  and the grip scorecard would have read zero for a whole training run and looked exactly like a
+  policy that never touched the object. 223 N of palm interpenetration plus 38 N per finger at
+  rest, both by construction (the yaw cap sits inside the palm plate; the 12.70 mm overhang makes
+  yaw and distal genuinely overlap, and MuJoCo only auto-filters direct parent/child pairs) —
+  21 excludes, now 0.000 N. And the palm sat at the 117 mm finger's height, 30 mm above anything
+  this finger can reach, so no grasp existed at all.
+- **Palm pose is solved per design** (`scripts/fit_real_v1_pose.py`), not retargeted. Palm height
+  is the arm's pose, not a hardware parameter, and inheriting one across designs is
+  LINK_LENGTH_GATE trap #1.
+- **The design space collapses from three knobs to two.** Because the fitter re-centres palm X
+  over the shaft, "thumb forward" and "pair back" are the same hand — both land at 70 mm
+  separation, 68.0 mm grip depth and identical joint angles. Only thumb↔pair X separation and
+  index↔middle Y separation vary. The set is a 2×2 factorial plus a centre.
+- **`cube_lift` is a PEAK and it hid two dropping designs.** Gate on the HELD lift
+  (`cube_z_after_hold − cube_z_before_lift`). On the first pass, rv01_compact and rv03_narrowy
+  both reported cube_lift 0.047 — indistinguishable from the three that held — with held lifts of
+  −0.001 and +0.000 and `cube_z_drop_from_peak` of 0.049 and 0.047. Both were one step from a
+  90-minute from-scratch Policy A run on a grasp that does not hold.
+- **The index/middle straddle decides verdicts and no geometric rule picks it.** Three were
+  tried: nominal-30 mm-first made rv01_compact read as a dropping design (held −1.4 mm) when the
+  identical hand holds +47.0 mm at 40 mm; widest-reachable fixed rv01 and broke rv00_wide the same
+  way; a scripted close→lift→hold probe ranks palm heights usefully but reports rv01 has no
+  holding pose at all, when CEM finds one. Reachability cannot see the pitch-out failure and a
+  geometric grip is not a CEM grip, so the pipeline now fits and CEMs at both straddles and keeps
+  whichever holds.
+- **Grasp stage result: all five designs hold.** 3.0 tip contacts, contact persistence 1.00,
+  47–48 mm of a commanded 50 mm still held at the end, grip depth 59.5–72.5 mm, clearance ceiling
+  1.00 everywhere. Consistent with the program-wide finding that pick-up and hold are solved on
+  every hand this program has built.
+- **Worth knowing when reading per-design numbers:** the fitter places fingertips at WORLD
+  targets, so every design that reaches them grasps at the same three points with the same pad
+  geometry. Designs differ in the joint configuration that gets there — effective stiffness at
+  the contact, and what the hand can do NEXT — not in where they touch.
+
+**Reorient prediction, recorded before the runs.** The pinch axis is X and the shaft lies along
+Y, so standing it up means rotating about the pinch axis, with the thumb (y=0) as pivot and the
+pair driving differentially — index tip up, middle tip down. A 90° turn moves each pair contact by
+its own Y offset in Z: ~55 mm for the wide-straddle designs against ~25 mm for the narrow ones, on
+78.66 mm of total flexing reach, while keeping the grip. That predicts wide straddle is
+reorient-hostile despite grasping identically well, and it is falsifiable. Lift is 0.10 m, so the
+shaft's lower end sits at z = 0.0625 when vertical: a TRUE in-hand reorient, with none of the
+69% / 46% floor contribution the 2026-08-26 primitive study measured on m05 and perp.
+
+A→B (from scratch per design; B warmstarts only that design's own A) launched 2026-08-27 21:11 on
+all five designs, ~8 h. Nothing transfers onto this hand — a10/b33 were trained on a 117 mm finger
+with coincident yaw/MCP axes, and b33 did not survive even a proximal-length change on the same
+topology.
