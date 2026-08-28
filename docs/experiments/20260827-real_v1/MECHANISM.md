@@ -159,3 +159,61 @@ favourable side of this. That is the opposite sign from the inline hand's fricti
 **Mass is the live risk.** The scene's cylinder is 24.5 g. At 2x it drops. A real screwdriver is
 heavier than 24.5 g, so the object model needs the real tool's mass before any of this is a
 hardware claim — and the anchor will need re-tuning (or the CEM grip re-optimising) when it does.
+
+## 2026-08-28, trained results and the head-to-head
+
+Four anchored runs finished (`results/rl/20260828-{1140,1215,1251,1327}-policyB_*`). Protocol:
+`rl_demo_handoff_continuous.py`, one physical rollout each, deterministic actor, n repeats
+because GPU contact solves are non-deterministic. `kept` = rollouts whose hold-phase min-z clears
+0.05 m. The open-loop row is the SAME env with `--zero-b`, i.e. the scripted carry riding Policy
+A's real delivery rather than a scripted grasp.
+
+    design         method                          n  held-cos    sd     min-z  kept  force
+    rv05_manual    RL, anchor (it 270)             3   +0.848   0.003    0.114  3/3   24.0 N
+    rv05_manual    open loop, in harness           3   -0.915   0.000    0.096  3/3    5.8
+    rv05_manual    baseline b_liveA (27 Aug)       1   -0.014     -      0.104  1/1    6.0
+    rv03_narrowy   RL, anchor + gate (it 150)      3   +0.645   0.007    0.110  3/3   10.6
+    rv03_narrowy   RL, anchor only  (it 150)       4   +0.629   0.031    0.075  3/4   10.4
+    rv03_narrowy   RL, anchor only  (it 270)       4   +0.542   0.046    0.034  1/4   10.3
+    rv03_narrowy   open loop, in harness           3   +0.343   0.464    0.022  0/3    0.0
+    rv03_narrowy   baseline b_liveA (27 Aug)       1   +0.052     -      0.105  1/1    5.6
+    rv00_wide      RL, anchor (it 270)             3   +0.222   0.017    0.126  3/3    8.2
+    rv00_wide      open loop, in harness           3   +0.375   0.051    0.006  0/3    3.5
+    rv00_wide      baseline b_liveA (27 Aug)       1   -0.093     -      0.116  1/1   17.4
+
+**The open-loop schedule does not survive Policy A's delivery.** From a scripted grasp it reaches
+0.909–0.996 on all three viable designs; from A's real delivery it keeps the shaft 0/3 on rv00 and
+rv03, and on rv05 — where it does keep it 3/3 — it turns the shaft to the OPPOSITE POLE (−0.915).
+The schedule is an open-loop joint trajectory and A's delivered object pose differs from the
+scripted one; near vertical the carry sits at a bifurcation.
+
+**What RL adds is not the trajectory. It is pole selection and grip regulation**: sd 0.003–0.031
+against the open loop's 0.46, three fingers loaded at 8–24 N against 0–6 N, 3/3 kept against 0/3.
+On rv05 both methods run the SAME anchor and end 1.76 apart in cos.
+
+**Checkpoint choice is not monotone** — rv03's iteration 150 beats its own 270 on every column.
+Judge on the handoff eval, never on the reward curve.
+
+### Which finger slips (`contact_trace_rv05.json`)
+
+Per-finger normal force, friction-cone utilisation |f_t|/(mu·f_n) and pad travel across the
+shaft's own surface, through the open-loop carry on rv05_manual:
+
+    cmd     cos     thumb fn/util/slip    index fn/util/slip    middle fn/util/slip
+    -13d   0.081    4.2N / 0.11 / 0.4mm   2.2N / 0.49 / 0.7mm   2.0N / 0.74 / 3.4mm
+    -22d   0.178    5.5  / 0.23 / 0.8     1.7  / 0.63 / 1.2     3.7  / 0.62 / 2.7
+    -31d   0.315    6.2  / 0.25 / 1.2     1.2  / 0.67 / 1.6     5.0  / 0.46 / 2.1
+    -49d   0.679    5.8  / 0.19 / 0.7     0.4  / 0.71 / 2.1     5.4  / 0.24 / 1.1
+    -71d   0.817    6.8  / 0.13 / 0.7     5.3  / 0.30 / 1.1     1.5  / 0.44 / 0.4
+    -88d   0.836   10.9  / 0.04 / 0.5     7.5  / 0.10 / 0.5     3.3  / 0.07 / 0.2
+
+The slip is real, concentrated in the first third of the turn, and in the two fingers that supply
+the couple. **The distribution is wrong, not the total**: at −13° the thumb has 2× the normal
+force and a seventh of the utilisation — it pins the shaft and does no tangential work — while
+the middle pad slides 3.4 mm per sample at utilisation 0.74 on 2.0 N. The intervention is to move
+normal force from the thumb to the pair (per-finger squeeze in the CEM objective, or
+`--finger-residual-scale-per-joint`), NOT to raise total grip force, which is already 24 N on the
+best RL policy and flagged `over_clamp`. Past −70° every utilisation collapses to 0.04–0.10: the
+shaft hangs into the grip and the fingers only hold it.
+
+Full methods spec and head-to-head: https://claude.ai/code/artifact/3632efc4-8132-4f3c-bed9-4588705efc6d

@@ -1,0 +1,522 @@
+[
+  {
+    "step": 27,
+    "cmd_deg": -4.4,
+    "cos": 0.014,
+    "z": 0.1122,
+    "fingers": {
+      "thumb": {
+        "fn_N": 3.27,
+        "ft_N": 0.79,
+        "cone_util": 0.101,
+        "slip_mm": 0.0
+      },
+      "index": {
+        "fn_N": 1.89,
+        "ft_N": 1.76,
+        "cone_util": 0.387,
+        "slip_mm": 0.0
+      },
+      "middle": {
+        "fn_N": 1.4,
+        "ft_N": 2.52,
+        "cone_util": 0.752,
+        "slip_mm": 0.0
+      }
+    }
+  },
+  {
+    "step": 54,
+    "cmd_deg": -8.8,
+    "cos": 0.043,
+    "z": 0.1123,
+    "fingers": {
+      "thumb": {
+        "fn_N": 3.72,
+        "ft_N": 0.85,
+        "cone_util": 0.095,
+        "slip_mm": 0.3
+      },
+      "index": {
+        "fn_N": 2.08,
+        "ft_N": 2.21,
+        "cone_util": 0.442,
+        "slip_mm": 0.61
+      },
+      "middle": {
+        "fn_N": 1.65,
+        "ft_N": 3.03,
+        "cone_util": 0.765,
+        "slip_mm": 3.22
+      }
+    }
+  },
+  {
+    "step": 81,
+    "cmd_deg": -13.3,
+    "cos": 0.081,
+    "z": 0.1124,
+    "fingers": {
+      "thumb": {
+        "fn_N": 4.21,
+        "ft_N": 1.09,
+        "cone_util": 0.108,
+        "slip_mm": 0.37
+      },
+      "index": {
+        "fn_N": 2.19,
+        "ft_N": 2.58,
+        "cone_util": 0.49,
+        "slip_mm": 0.69
+      },
+      "middle": {
+        "fn_N": 2.04,
+        "ft_N": 3.63,
+        "cone_util": 0.743,
+        "slip_mm": 3.42
+      }
+    }
+  },
+  {
+    "step": 108,
+    "cmd_deg": -17.7,
+    "cos": 0.126,
+    "z": 0.1126,
+    "fingers": {
+      "thumb": {
+        "fn_N": 4.81,
+        "ft_N": 1.72,
+        "cone_util": 0.149,
+        "slip_mm": 0.49
+      },
+      "index": {
+        "fn_N": 2.14,
+        "ft_N": 2.81,
+        "cone_util": 0.548,
+        "slip_mm": 0.81
+      },
+      "middle": {
+        "fn_N": 2.69,
+        "ft_N": 4.49,
+        "cone_util": 0.696,
+        "slip_mm": 3.22
+      }
+    }
+  },
+  {
+    "step": 135,
+    "cmd_deg": -22.1,
+    "cos": 0.178,
+    "z": 0.1129,
+    "fingers": {
+      "thumb": {
+        "fn_N": 5.46,
+        "ft_N": 2.96,
+        "cone_util": 0.226,
+        "slip_mm": 0.75
+      },
+      "index": {
+        "fn_N": 1.74,
+        "ft_N": 2.63,
+        "cone_util": 0.629,
+        "slip_mm": 1.19
+      },
+      "middle": {
+        "fn_N": 3.73,
+        "ft_N": 5.55,
+        "cone_util": 0.619,
+        "slip_mm": 2.71
+      }
+    }
+  },
+  {
+    "step": 162,
+    "cmd_deg": -26.5,
+    "cos": 0.241,
+    "z": 0.1131,
+    "fingers": {
+      "thumb": {
+        "fn_N": 5.83,
+        "ft_N": 3.63,
+        "cone_util": 0.259,
+        "slip_mm": 1.0
+      },
+      "index": {
+        "fn_N": 1.37,
+        "ft_N": 2.21,
+        "cone_util": 0.673,
+        "slip_mm": 1.56
+      },
+      "middle": {
+        "fn_N": 4.47,
+        "ft_N": 5.78,
+        "cone_util": 0.539,
+        "slip_mm": 2.28
+      }
+    }
+  },
+  {
+    "step": 189,
+    "cmd_deg": -30.9,
+    "cos": 0.315,
+    "z": 0.1133,
+    "fingers": {
+      "thumb": {
+        "fn_N": 6.22,
+        "ft_N": 3.79,
+        "cone_util": 0.254,
+        "slip_mm": 1.16
+      },
+      "index": {
+        "fn_N": 1.19,
+        "ft_N": 1.9,
+        "cone_util": 0.665,
+        "slip_mm": 1.6
+      },
+      "middle": {
+        "fn_N": 5.04,
+        "ft_N": 5.61,
+        "cone_util": 0.463,
+        "slip_mm": 2.13
+      }
+    }
+  },
+  {
+    "step": 216,
+    "cmd_deg": -35.3,
+    "cos": 0.403,
+    "z": 0.1135,
+    "fingers": {
+      "thumb": {
+        "fn_N": 6.61,
+        "ft_N": 3.2,
+        "cone_util": 0.202,
+        "slip_mm": 1.17
+      },
+      "index": {
+        "fn_N": 1.36,
+        "ft_N": 2.01,
+        "cone_util": 0.616,
+        "slip_mm": 1.27
+      },
+      "middle": {
+        "fn_N": 5.26,
+        "ft_N": 5.12,
+        "cone_util": 0.406,
+        "slip_mm": 2.18
+      }
+    }
+  },
+  {
+    "step": 243,
+    "cmd_deg": -39.8,
+    "cos": 0.501,
+    "z": 0.1138,
+    "fingers": {
+      "thumb": {
+        "fn_N": 6.96,
+        "ft_N": 2.29,
+        "cone_util": 0.137,
+        "slip_mm": 1.04
+      },
+      "index": {
+        "fn_N": 1.71,
+        "ft_N": 2.18,
+        "cone_util": 0.529,
+        "slip_mm": 0.93
+      },
+      "middle": {
+        "fn_N": 5.25,
+        "ft_N": 4.35,
+        "cone_util": 0.345,
+        "slip_mm": 2.17
+      }
+    }
+  },
+  {
+    "step": 270,
+    "cmd_deg": -44.2,
+    "cos": 0.591,
+    "z": 0.1139,
+    "fingers": {
+      "thumb": {
+        "fn_N": 6.64,
+        "ft_N": 2.47,
+        "cone_util": 0.155,
+        "slip_mm": 0.78
+      },
+      "index": {
+        "fn_N": 1.14,
+        "ft_N": 1.95,
+        "cone_util": 0.715,
+        "slip_mm": 1.21
+      },
+      "middle": {
+        "fn_N": 5.5,
+        "ft_N": 4.28,
+        "cone_util": 0.324,
+        "slip_mm": 1.67
+      }
+    }
+  },
+  {
+    "step": 297,
+    "cmd_deg": -48.6,
+    "cos": 0.679,
+    "z": 0.1136,
+    "fingers": {
+      "thumb": {
+        "fn_N": 5.82,
+        "ft_N": 2.64,
+        "cone_util": 0.189,
+        "slip_mm": 0.65
+      },
+      "index": {
+        "fn_N": 0.38,
+        "ft_N": 0.64,
+        "cone_util": 0.709,
+        "slip_mm": 2.09
+      },
+      "middle": {
+        "fn_N": 5.41,
+        "ft_N": 3.12,
+        "cone_util": 0.24,
+        "slip_mm": 1.1
+      }
+    }
+  },
+  {
+    "step": 324,
+    "cmd_deg": -53.0,
+    "cos": 0.732,
+    "z": 0.1133,
+    "fingers": {
+      "thumb": {
+        "fn_N": 5.11,
+        "ft_N": 1.79,
+        "cone_util": 0.146,
+        "slip_mm": 0.66
+      },
+      "index": {
+        "fn_N": 0.55,
+        "ft_N": 0.88,
+        "cone_util": 0.673,
+        "slip_mm": 1.17
+      },
+      "middle": {
+        "fn_N": 4.54,
+        "ft_N": 2.5,
+        "cone_util": 0.229,
+        "slip_mm": 0.94
+      }
+    }
+  },
+  {
+    "step": 351,
+    "cmd_deg": -57.4,
+    "cos": 0.766,
+    "z": 0.1131,
+    "fingers": {
+      "thumb": {
+        "fn_N": 4.8,
+        "ft_N": 1.04,
+        "cone_util": 0.09,
+        "slip_mm": 0.46
+      },
+      "index": {
+        "fn_N": 0.95,
+        "ft_N": 1.34,
+        "cone_util": 0.591,
+        "slip_mm": 0.86
+      },
+      "middle": {
+        "fn_N": 3.85,
+        "ft_N": 2.19,
+        "cone_util": 0.237,
+        "slip_mm": 0.73
+      }
+    }
+  },
+  {
+    "step": 378,
+    "cmd_deg": -61.9,
+    "cos": 0.785,
+    "z": 0.1132,
+    "fingers": {
+      "thumb": {
+        "fn_N": 5.62,
+        "ft_N": 0.58,
+        "cone_util": 0.043,
+        "slip_mm": 0.11
+      },
+      "index": {
+        "fn_N": 2.77,
+        "ft_N": 2.99,
+        "cone_util": 0.449,
+        "slip_mm": 0.85
+      },
+      "middle": {
+        "fn_N": 2.85,
+        "ft_N": 2.22,
+        "cone_util": 0.323,
+        "slip_mm": 0.57
+      }
+    }
+  },
+  {
+    "step": 405,
+    "cmd_deg": -66.3,
+    "cos": 0.801,
+    "z": 0.1134,
+    "fingers": {
+      "thumb": {
+        "fn_N": 6.18,
+        "ft_N": 1.51,
+        "cone_util": 0.102,
+        "slip_mm": 0.47
+      },
+      "index": {
+        "fn_N": 4.1,
+        "ft_N": 3.65,
+        "cone_util": 0.371,
+        "slip_mm": 0.97
+      },
+      "middle": {
+        "fn_N": 2.1,
+        "ft_N": 1.95,
+        "cone_util": 0.388,
+        "slip_mm": 0.44
+      }
+    }
+  },
+  {
+    "step": 432,
+    "cmd_deg": -70.7,
+    "cos": 0.817,
+    "z": 0.1136,
+    "fingers": {
+      "thumb": {
+        "fn_N": 6.8,
+        "ft_N": 2.07,
+        "cone_util": 0.127,
+        "slip_mm": 0.71
+      },
+      "index": {
+        "fn_N": 5.32,
+        "ft_N": 3.82,
+        "cone_util": 0.299,
+        "slip_mm": 1.12
+      },
+      "middle": {
+        "fn_N": 1.5,
+        "ft_N": 1.57,
+        "cone_util": 0.437,
+        "slip_mm": 0.38
+      }
+    }
+  },
+  {
+    "step": 459,
+    "cmd_deg": -75.1,
+    "cos": 0.826,
+    "z": 0.1139,
+    "fingers": {
+      "thumb": {
+        "fn_N": 7.92,
+        "ft_N": 1.23,
+        "cone_util": 0.065,
+        "slip_mm": 0.7
+      },
+      "index": {
+        "fn_N": 5.28,
+        "ft_N": 1.36,
+        "cone_util": 0.107,
+        "slip_mm": 0.77
+      },
+      "middle": {
+        "fn_N": 2.56,
+        "ft_N": 0.41,
+        "cone_util": 0.066,
+        "slip_mm": 0.14
+      }
+    }
+  },
+  {
+    "step": 486,
+    "cmd_deg": -79.5,
+    "cos": 0.83,
+    "z": 0.1141,
+    "fingers": {
+      "thumb": {
+        "fn_N": 8.93,
+        "ft_N": 1.02,
+        "cone_util": 0.048,
+        "slip_mm": 0.47
+      },
+      "index": {
+        "fn_N": 5.83,
+        "ft_N": 1.58,
+        "cone_util": 0.113,
+        "slip_mm": 0.4
+      },
+      "middle": {
+        "fn_N": 3.03,
+        "ft_N": 0.46,
+        "cone_util": 0.063,
+        "slip_mm": 0.2
+      }
+    }
+  },
+  {
+    "step": 513,
+    "cmd_deg": -83.9,
+    "cos": 0.833,
+    "z": 0.1143,
+    "fingers": {
+      "thumb": {
+        "fn_N": 9.91,
+        "ft_N": 1.02,
+        "cone_util": 0.043,
+        "slip_mm": 0.45
+      },
+      "index": {
+        "fn_N": 6.64,
+        "ft_N": 1.7,
+        "cone_util": 0.107,
+        "slip_mm": 0.46
+      },
+      "middle": {
+        "fn_N": 3.2,
+        "ft_N": 0.55,
+        "cone_util": 0.072,
+        "slip_mm": 0.18
+      }
+    }
+  },
+  {
+    "step": 540,
+    "cmd_deg": -88.4,
+    "cos": 0.836,
+    "z": 0.1145,
+    "fingers": {
+      "thumb": {
+        "fn_N": 10.91,
+        "ft_N": 1.02,
+        "cone_util": 0.039,
+        "slip_mm": 0.46
+      },
+      "index": {
+        "fn_N": 7.53,
+        "ft_N": 1.72,
+        "cone_util": 0.095,
+        "slip_mm": 0.49
+      },
+      "middle": {
+        "fn_N": 3.3,
+        "ft_N": 0.57,
+        "cone_util": 0.072,
+        "slip_mm": 0.19
+      }
+    }
+  }
+]

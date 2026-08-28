@@ -120,6 +120,35 @@ def _contacts(m, d, obj: str):
     return n, tot
 
 
+def _per_finger_contact(m, d, obj: str) -> dict:
+    """Per finger: normal force, tangential force, and FRICTION-CONE UTILISATION |f_t|/(mu*f_n).
+
+    Utilisation is the number that separates the two explanations for a finger that fails to
+    turn the shaft. At ~1.0 the contact is on the edge of the cone and is sliding, so that finger
+    needs more NORMAL force (or the others need less, since they set how hard the object is
+    pinned). Well below 1.0 it is not slipping at all and the finger simply is not being
+    commanded far enough. `mj_contactForce` returns the wrench in the CONTACT frame, so f[0] is
+    the normal and f[1:3] are the two tangential components directly."""
+    out = {f: {"fn": 0.0, "ft": 0.0, "util": 0.0, "mu": 0.0} for f in FINGERS}
+    f6 = np.zeros(6)
+    for i in range(d.ncon):
+        c = d.contact[i]
+        names = {m.body(m.geom_bodyid[c.geom1]).name, m.body(m.geom_bodyid[c.geom2]).name}
+        if obj not in names:
+            continue
+        for f in FINGERS:
+            if TIPS[f] in names:
+                mujoco.mj_contactForce(m, d, i, f6)
+                fn = abs(float(f6[0]))
+                ft = float(np.linalg.norm(f6[1:3]))
+                mu = float(c.friction[0])
+                out[f]["fn"] += fn
+                out[f]["ft"] += ft
+                out[f]["mu"] = mu
+                out[f]["util"] = ft / (mu * fn) if fn > 1e-6 else 0.0
+    return out
+
+
 def _cos(m, d, obj: str) -> float:
     """SIGNED alignment of the shaft's local +Z with world +Z.
 
@@ -187,7 +216,8 @@ def carry(scene: Path, lift: float, turn_steps: int, hold_steps: int, angle: flo
           offset: float = 0.0, squeeze: float = 0.004, label: str = "",
           depth: float | None = None, axis_k: float = 0.0,
           record: Path | None = None, linear_anchor: bool = False,
-          write_hold: bool = False, film: Path | None = None, film_frames: int = 8):
+          write_hold: bool = False, film: Path | None = None, film_frames: int = 8,
+          contact_trace: list | None = None):
     if morph_run is not None:
         m = mujoco.MjModel.from_xml_path(str(scene))
         d = mujoco.MjData(m)
@@ -250,6 +280,7 @@ def carry(scene: Path, lift: float, turn_steps: int, hold_steps: int, angle: flo
     ik_miss = 0.0
     travel = {f: 0.0 for f in FINGERS}
     ref, ref_every = [], 10          # 10 sim steps = one 0.02 s control step
+    _prev_obj: dict = {}
     shots, renderer = [], None
     if film is not None:
         renderer = mujoco.Renderer(m, height=480, width=640)
@@ -299,6 +330,26 @@ def carry(scene: Path, lift: float, turn_steps: int, hold_steps: int, angle: flo
             op = d.body(obj).xpos.copy()
             R_o = d.body(obj).xmat.reshape(3, 3)
             ref.append([(R_o.T @ (d.body(TIPS[f]).xpos - op)) for f in FINGERS])
+        if contact_trace is not None and k % max(1, turn_steps // 20) == 0:
+            op = d.body(obj).xpos.copy()
+            R_o = d.body(obj).xmat.reshape(3, 3)
+            here = {f: (R_o.T @ (d.body(TIPS[f]).xpos - op)) for f in FINGERS}
+            row = {"step": k, "cmd_deg": round(float(np.degrees(th)), 1),
+                   "cos": round(_cos(m, d, obj), 3),
+                   "z": round(float(d.body(obj).xpos[2]), 4), "fingers": {}}
+            pf = _per_finger_contact(m, d, obj)
+            for f in FINGERS:
+                slip = (0.0 if not contact_trace or not _prev_obj.get(f) is not None
+                        else float(np.linalg.norm(here[f] - _prev_obj[f])))
+                _prev_obj[f] = here[f]
+                row["fingers"][f] = {"fn_N": round(pf[f]["fn"], 2),
+                                     "ft_N": round(pf[f]["ft"], 2),
+                                     "cone_util": round(pf[f]["util"], 3),
+                                     # mm the pad has moved across the shaft's SURFACE since the
+                                     # last sample: the direct measure of pad slip, in the frame
+                                     # that makes it meaningful (the object's own)
+                                     "slip_mm": round(slip * 1000, 2)}
+            contact_trace.append(row)
         if trace and k % max(1, turn_steps // 10) == 0:
             n, fo = _contacts(m, d, obj)
             rows.append({"step": k, "cmd_deg": round(np.degrees(th), 1),
@@ -394,6 +445,9 @@ def main() -> int:
                     help="write the end-of-carry pose into the scene as `hold_ik`; that is the "
                          "second anchor --hold-ctrl-from-keyframe reads")
     ap.add_argument("--film", type=Path, default=None, help="tile frames of the carry here")
+    ap.add_argument("--contact-trace", type=Path, default=None,
+                    help="write per-finger normal / tangential force, friction-cone utilisation "
+                         "and pad slip across the shaft surface, through the turn")
     ap.add_argument("--workspace", action="store_true",
                     help="report per-finger radial slack for each --morph-run and exit")
     ap.add_argument("--trace", action="store_true")
@@ -418,7 +472,7 @@ def main() -> int:
     steps = [int(v) for v in str(args.turn_steps).split(",")]
     shifts = [float(v) for v in str(args.axis_shift).split(",")]
     ks = [float(v) for v in str(args.axis_k).split(",")]
-    rows = []
+    rows, ctrace = [], []
     if args.morph_run:
         cases = [(r / "frozen_scene.xml", r, None, 0.0, r.name, None)
                  for r in args.morph_run]
@@ -445,7 +499,8 @@ def main() -> int:
                           offset=off, squeeze=args.squeeze, label=label, depth=dp,
                           axis_k=kk, record=args.record_ref,
                           linear_anchor=args.linear_anchor,
-                          write_hold=args.write_hold_keyframe, film=args.film)
+                          write_hold=args.write_hold_keyframe, film=args.film,
+                          contact_trace=(ctrace if args.contact_trace else None))
                 if r is None:
                     print(f"{label:22}   -- no pose --")
                     continue
@@ -461,6 +516,16 @@ def main() -> int:
     if args.out:
         args.out.parent.mkdir(parents=True, exist_ok=True)
         args.out.write_text(json.dumps(rows, indent=2))
+    if args.contact_trace:
+        args.contact_trace.parent.mkdir(parents=True, exist_ok=True)
+        args.contact_trace.write_text(json.dumps(ctrace, indent=2))
+        print(f"\n{'step':>5} {'deg':>6} {'cos':>6} "
+              + "  ".join(f"{f[:3]}:fn/ft/util/slip" for f in FINGERS))
+        for r in ctrace:
+            cells = "  ".join(
+                f"{v['fn_N']:5.1f}/{v['ft_N']:4.1f}/{v['cone_util']:4.2f}/{v['slip_mm']:4.1f}"
+                for v in r["fingers"].values())
+            print(f"{r['step']:5d} {r['cmd_deg']:6.1f} {r['cos']:6.3f}  {cells}")
     return 0
 
 

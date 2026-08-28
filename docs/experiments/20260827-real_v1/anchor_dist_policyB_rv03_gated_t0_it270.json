@@ -1,0 +1,428 @@
+[
+  {
+    "design": "rv03_narrowy_sp40",
+    "variant": "trained",
+    "video": "/home/humanoid/Programs/hand/docs/rl/videos/20260828_real_v1_anchor/rv03_narrowy_sp40_model_270_trained_r0.mp4",
+    "min_z": 0.0077,
+    "rep": 0,
+    "checkpoint": "results/rl/20260828-1327-policyB_rv03_gated_t0/tensorboard/model_270.pt",
+    "health": {
+      "verdict": "FAIL",
+      "checks": {
+        "late_finger": {
+          "status": "PASS",
+          "value": 0.0,
+          "detail": "(thumb@0, index@0, middle@0)"
+        },
+        "idle_finger": {
+          "status": "WARN",
+          "value": 2.1676,
+          "detail": "mean tip-contacts 2.17<3 | thumb=13.9N/0.78 index=8.8N/0.60 middle=9.1N/0.78"
+        },
+        "drop": {
+          "status": "FAIL",
+          "value": 0.0077,
+          "detail": "min hold-phase obj-z 0.008 m (floor<0.05)"
+        },
+        "jitter": {
+          "status": "WARN",
+          "value": 24.5736,
+          "detail": "ang-jerk 24.6 1/s^2"
+        },
+        "de_centering": {
+          "status": "FAIL",
+          "value": 4.3723,
+          "detail": "net lateral drift 4.4 cm (path 10.1)"
+        },
+        "over_clamp": {
+          "status": "WARN",
+          "value": 10.5864,
+          "detail": "mean fingertip 10.6 N (reward saturates ~3N)"
+        }
+      },
+      "metrics": {
+        "first_contact": [
+          0,
+          0,
+          0
+        ],
+        "contact_spread": 0.0,
+        "touch_frac": [
+          0.78,
+          0.6,
+          0.78
+        ],
+        "force_mean": [
+          13.9,
+          8.8,
+          9.1
+        ],
+        "contact_count": 2.17,
+        "min_z_hold": 0.0077,
+        "ang_jerk": 24.6,
+        "net_drift_cm": 4.4,
+        "slide_ratio": 2.3,
+        "tip_force": 10.6,
+        "held_cos_tail": 0.453,
+        "peak_cos": 0.814
+      }
+    },
+    "rc": 0,
+    "stderr_tail": ""
+  },
+  {
+    "design": "rv03_narrowy_sp40",
+    "variant": "trained",
+    "video": "/home/humanoid/Programs/hand/docs/rl/videos/20260828_real_v1_anchor/rv03_narrowy_sp40_model_270_trained_r1.mp4",
+    "min_z": 0.0076,
+    "rep": 1,
+    "checkpoint": "results/rl/20260828-1327-policyB_rv03_gated_t0/tensorboard/model_270.pt",
+    "health": {
+      "verdict": "FAIL",
+      "checks": {
+        "late_finger": {
+          "status": "PASS",
+          "value": 0.0,
+          "detail": "(thumb@0, index@0, middle@0)"
+        },
+        "idle_finger": {
+          "status": "WARN",
+          "value": 2.373,
+          "detail": "mean tip-contacts 2.37<3 | thumb=14.3N/0.83 index=9.4N/0.74 middle=8.9N/0.81"
+        },
+        "drop": {
+          "status": "FAIL",
+          "value": 0.0076,
+          "detail": "min hold-phase obj-z 0.008 m (floor<0.05)"
+        },
+        "jitter": {
+          "status": "WARN",
+          "value": 26.7022,
+          "detail": "ang-jerk 26.7 1/s^2"
+        },
+        "de_centering": {
+          "status": "FAIL",
+          "value": 6.0639,
+          "detail": "net lateral drift 6.1 cm (path 13.9)"
+        },
+        "over_clamp": {
+          "status": "WARN",
+          "value": 10.8639,
+          "detail": "mean fingertip 10.9 N (reward saturates ~3N)"
+        }
+      },
+      "metrics": {
+        "first_contact": [
+          0,
+          0,
+          0
+        ],
+        "contact_spread": 0.0,
+        "touch_frac": [
+          0.83,
+          0.74,
+          0.81
+        ],
+        "force_mean": [
+          14.3,
+          9.4,
+          8.9
+        ],
+        "contact_count": 2.37,
+        "min_z_hold": 0.0076,
+        "ang_jerk": 26.7,
+        "net_drift_cm": 6.1,
+        "slide_ratio": 2.3,
+        "tip_force": 10.9,
+        "held_cos_tail": 0.416,
+        "peak_cos": 0.771
+      }
+    },
+    "rc": 0,
+    "stderr_tail": ""
+  },
+  {
+    "design": "rv03_narrowy_sp40",
+    "variant": "trained",
+    "video": "/home/humanoid/Programs/hand/docs/rl/videos/20260828_real_v1_anchor/rv03_narrowy_sp40_model_270_trained_r2.mp4",
+    "min_z": 0.0064,
+    "rep": 2,
+    "checkpoint": "results/rl/20260828-1327-policyB_rv03_gated_t0/tensorboard/model_270.pt",
+    "health": {
+      "verdict": "FAIL",
+      "checks": {
+        "late_finger": {
+          "status": "PASS",
+          "value": 0.0,
+          "detail": "(thumb@0, index@0, middle@0)"
+        },
+        "idle_finger": {
+          "status": "WARN",
+          "value": 2.373,
+          "detail": "mean tip-contacts 2.37<3 | thumb=14.0N/0.86 index=8.8N/0.65 middle=8.9N/0.86"
+        },
+        "drop": {
+          "status": "FAIL",
+          "value": 0.0064,
+          "detail": "min hold-phase obj-z 0.006 m (floor<0.05)"
+        },
+        "jitter": {
+          "status": "WARN",
+          "value": 27.5894,
+          "detail": "ang-jerk 27.6 1/s^2"
+        },
+        "de_centering": {
+          "status": "FAIL",
+          "value": 4.3532,
+          "detail": "net lateral drift 4.4 cm (path 9.7)"
+        },
+        "over_clamp": {
+          "status": "WARN",
+          "value": 10.5587,
+          "detail": "mean fingertip 10.6 N (reward saturates ~3N)"
+        }
+      },
+      "metrics": {
+        "first_contact": [
+          0,
+          0,
+          0
+        ],
+        "contact_spread": 0.0,
+        "touch_frac": [
+          0.86,
+          0.65,
+          0.86
+        ],
+        "force_mean": [
+          14.0,
+          8.8,
+          8.9
+        ],
+        "contact_count": 2.37,
+        "min_z_hold": 0.0064,
+        "ang_jerk": 27.6,
+        "net_drift_cm": 4.4,
+        "slide_ratio": 2.2,
+        "tip_force": 10.6,
+        "held_cos_tail": 0.512,
+        "peak_cos": 0.793
+      }
+    },
+    "rc": 0,
+    "stderr_tail": ""
+  },
+  {
+    "design": "rv03_narrowy_sp40",
+    "variant": "zeroB",
+    "video": "/home/humanoid/Programs/hand/docs/rl/videos/20260828_real_v1_anchor/rv03_narrowy_sp40_model_270_zeroB_r0.mp4",
+    "min_z": 0.0069,
+    "rep": 0,
+    "checkpoint": "results/rl/20260828-1327-policyB_rv03_gated_t0/tensorboard/model_270.pt",
+    "health": {
+      "verdict": "FAIL",
+      "checks": {
+        "late_finger": {
+          "status": "PASS",
+          "value": 0.0,
+          "detail": "(thumb@0, index@0, middle@0)"
+        },
+        "idle_finger": {
+          "status": "FAIL",
+          "value": 0.0,
+          "detail": "idle: thumb,index,middle | thumb=0.0N/0.00 index=0.0N/0.00 middle=0.0N/0.00"
+        },
+        "drop": {
+          "status": "FAIL",
+          "value": 0.0069,
+          "detail": "min hold-phase obj-z 0.007 m (floor<0.05)"
+        },
+        "jitter": {
+          "status": "PASS",
+          "value": 6.8169,
+          "detail": "ang-jerk 6.8 1/s^2"
+        },
+        "de_centering": {
+          "status": "FAIL",
+          "value": 14.8175,
+          "detail": "net lateral drift 14.8 cm (path 18.1)"
+        },
+        "over_clamp": {
+          "status": "PASS",
+          "value": 0.0,
+          "detail": "mean fingertip 0.0 N (reward saturates ~3N)"
+        }
+      },
+      "metrics": {
+        "first_contact": [
+          0,
+          0,
+          0
+        ],
+        "contact_spread": 0.0,
+        "touch_frac": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "force_mean": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "contact_count": 0.0,
+        "min_z_hold": 0.0069,
+        "ang_jerk": 6.8,
+        "net_drift_cm": 14.8,
+        "slide_ratio": 1.2,
+        "tip_force": 0.0,
+        "held_cos_tail": 0.037,
+        "peak_cos": 0.952
+      }
+    },
+    "rc": 0,
+    "stderr_tail": ""
+  },
+  {
+    "design": "rv03_narrowy_sp40",
+    "variant": "zeroB",
+    "video": "/home/humanoid/Programs/hand/docs/rl/videos/20260828_real_v1_anchor/rv03_narrowy_sp40_model_270_zeroB_r1.mp4",
+    "min_z": 0.0445,
+    "rep": 1,
+    "checkpoint": "results/rl/20260828-1327-policyB_rv03_gated_t0/tensorboard/model_270.pt",
+    "health": {
+      "verdict": "FAIL",
+      "checks": {
+        "late_finger": {
+          "status": "PASS",
+          "value": 0.0,
+          "detail": "(thumb@0, index@0, middle@0)"
+        },
+        "idle_finger": {
+          "status": "FAIL",
+          "value": 0.0,
+          "detail": "idle: thumb,index,middle | thumb=0.0N/0.00 index=0.0N/0.00 middle=0.0N/0.00"
+        },
+        "drop": {
+          "status": "FAIL",
+          "value": 0.0497,
+          "detail": "min hold-phase obj-z 0.050 m (floor<0.05)"
+        },
+        "jitter": {
+          "status": "PASS",
+          "value": 0.8418,
+          "detail": "ang-jerk 0.8 1/s^2"
+        },
+        "de_centering": {
+          "status": "PASS",
+          "value": 0.0161,
+          "detail": "net 0.0cm path 0.4cm"
+        },
+        "over_clamp": {
+          "status": "PASS",
+          "value": 0.0,
+          "detail": "mean fingertip 0.0 N (reward saturates ~3N)"
+        }
+      },
+      "metrics": {
+        "first_contact": [
+          0,
+          0,
+          0
+        ],
+        "contact_spread": 0.0,
+        "touch_frac": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "force_mean": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "contact_count": 0.0,
+        "min_z_hold": 0.0497,
+        "ang_jerk": 0.8,
+        "net_drift_cm": 0.0,
+        "slide_ratio": 4.5,
+        "tip_force": 0.0,
+        "held_cos_tail": 1.0,
+        "peak_cos": 1.0
+      }
+    },
+    "rc": 0,
+    "stderr_tail": ""
+  },
+  {
+    "design": "rv03_narrowy_sp40",
+    "variant": "zeroB",
+    "video": "/home/humanoid/Programs/hand/docs/rl/videos/20260828_real_v1_anchor/rv03_narrowy_sp40_model_270_zeroB_r2.mp4",
+    "min_z": 0.008,
+    "rep": 2,
+    "checkpoint": "results/rl/20260828-1327-policyB_rv03_gated_t0/tensorboard/model_270.pt",
+    "health": {
+      "verdict": "FAIL",
+      "checks": {
+        "late_finger": {
+          "status": "PASS",
+          "value": 0.0,
+          "detail": "(thumb@0, index@0, middle@0)"
+        },
+        "idle_finger": {
+          "status": "FAIL",
+          "value": 0.0,
+          "detail": "idle: thumb,index,middle | thumb=0.0N/0.00 index=0.0N/0.00 middle=0.0N/0.00"
+        },
+        "drop": {
+          "status": "FAIL",
+          "value": 0.008,
+          "detail": "min hold-phase obj-z 0.008 m (floor<0.05)"
+        },
+        "jitter": {
+          "status": "PASS",
+          "value": 4.87,
+          "detail": "ang-jerk 4.9 1/s^2"
+        },
+        "de_centering": {
+          "status": "FAIL",
+          "value": 7.4257,
+          "detail": "net lateral drift 7.4 cm (path 9.2)"
+        },
+        "over_clamp": {
+          "status": "PASS",
+          "value": 0.0,
+          "detail": "mean fingertip 0.0 N (reward saturates ~3N)"
+        }
+      },
+      "metrics": {
+        "first_contact": [
+          0,
+          0,
+          0
+        ],
+        "contact_spread": 0.0,
+        "touch_frac": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "force_mean": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "contact_count": 0.0,
+        "min_z_hold": 0.008,
+        "ang_jerk": 4.9,
+        "net_drift_cm": 7.4,
+        "slide_ratio": 1.2,
+        "tip_force": 0.0,
+        "held_cos_tail": 0.006,
+        "peak_cos": 0.938
+      }
+    },
+    "rc": 0,
+    "stderr_tail": ""
+  }
+]
