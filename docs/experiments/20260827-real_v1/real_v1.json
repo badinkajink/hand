@@ -1,0 +1,573 @@
+[
+ {
+  "id": "rv00_wide",
+  "design": {
+   "knobs": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  "vector": [
+   0.0,
+   0.0,
+   0.0,
+   -0.0,
+   -0.0,
+   0.0,
+   -0.0,
+   0.0,
+   0.0
+  ],
+  "mounts_mm": {
+   "thumb": [
+    -50.0,
+    0.0
+   ],
+   "index": [
+    50.0,
+    55.0
+   ],
+   "middle": [
+    50.0,
+    -55.0
+   ]
+  },
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/20260827-real_v1/scene_tp0d0000p0d0000p0d0000_in0d0000n0d0000p0d0000_mn0d0000p0d0000p0d0000.xml",
+  "pose": {
+   "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/20260827-real_v1/scene_tp0d0000p0d0000p0d0000_in0d0000n0d0000p0d0000_mn0d0000p0d0000p0d0000.xml",
+   "palm": {
+    "px": 0.0,
+    "py": 0.0,
+    "pz": 0.002499999999999979
+   },
+   "palm_z_world": 0.06499999999999997,
+   "grip_depth_mm": 52.49999999999998,
+   "clearance_ceiling": 1.0,
+   "tip_residual_mm": {
+    "thumb": 0.0988386050281684,
+    "index": 0.0996182616057839,
+    "middle": 0.0996182616057839
+   },
+   "joint_margin_rad": {
+    "thumb_yaw": 1.48353,
+    "thumb_mcp": 0.3412561807461315,
+    "thumb_pip": 0.5404319809285805,
+    "index_yaw": 1.039110790098901,
+    "index_mcp": 0.5419565805921052,
+    "index_pip": 0.8931044553520939,
+    "middle_yaw": 1.039110790098901,
+    "middle_mcp": 0.5419565805921052,
+    "middle_pip": 0.8931044553520939
+   },
+   "targets": {
+    "thumb": [
+     -0.024050000000000002,
+     0.0,
+     0.0125
+    ],
+    "index": [
+     0.024050000000000002,
+     0.03,
+     0.0125
+    ],
+    "middle": [
+     0.024050000000000002,
+     -0.03,
+     0.0125
+    ]
+   },
+   "gap_mm": 1.0,
+   "spread_mm": 30.0,
+   "elevation_deg": 0.0,
+   "probe_held_lift_mm": 60.38063022481325,
+   "probe_candidates": [
+    {
+     "spread_mm": 30.0,
+     "pz": 0.007499999999999979,
+     "held_mm": 24.677560876394857
+    },
+    {
+     "spread_mm": 30.0,
+     "pz": 0.002499999999999979,
+     "held_mm": 60.38063022481325
+    },
+    {
+     "spread_mm": 30.0,
+     "pz": -0.0025000000000000213,
+     "held_mm": 60.54718424873025
+    }
+   ],
+   "self_collisions": []
+  },
+  "cem": {
+   "score": 8.430966338941744,
+   "mean_tip_distance": 0.010022340758330401,
+   "tip_distance_thumb": 0.010002027015476617,
+   "tip_distance_index": 0.010029664160345814,
+   "tip_distance_middle": 0.01003533109916877,
+   "cube_tip_contacts": 3.0,
+   "cube_z_before_lift": 0.012444855109617462,
+   "cube_z_peak": 0.0627076040150196,
+   "cube_z_after_hold": 0.0627076040150196,
+   "cube_lift": 0.05026274890540214,
+   "cube_vel_norm": 0.005125150852799856,
+   "cube_xy_drift": 9.987296944456054e-06,
+   "cube_yaw_drift": 1.9276123182532245e-05,
+   "cube_axis_tilt": 2.5592404897391953e-05,
+   "cube_ang_drift": 0.003549204085177008,
+   "cube_z_drop_from_peak": 0.0,
+   "contact_persistence": 1.0,
+   "thumb_contact_persistence": 1.0,
+   "index_contact_persistence": 1.0,
+   "middle_contact_persistence": 1.0,
+   "all_finger_contact_persistence": 1.0,
+   "min_finger_contact_persistence": 1.0,
+   "finger_persistence_imbalance": 0.0,
+   "finger_yaw_drift": 1.476819056327299e-05,
+   "finger_flex_drift": 3.903294040863888e-05,
+   "finger_ctrl_anchor_dist": 0.08876258218980626,
+   "trajectory_fc_max_q1": 0.0,
+   "trajectory_fc_mean_q1": 0.0,
+   "trajectory_fc_min_fingers": 0.0,
+   "trajectory_fc_mean_fingers": 0.0,
+   "trajectory_fc_sample_count_taken": 0.0,
+   "contact_target_reward": 0.0,
+   "contact_target_mean_distance": 0.0
+  },
+  "cem_tag": "rv00_wide_sp30",
+  "spread_mm": 30,
+  "seconds": 282.7
+ },
+ {
+  "id": "rv01_compact",
+  "design": {
+   "knobs": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "vector": [
+   0.03,
+   0.0,
+   0.0,
+   -0.03,
+   -0.03,
+   0.0,
+   -0.03,
+   0.03,
+   0.0
+  ],
+  "mounts_mm": {
+   "thumb": [
+    -20.0,
+    0.0
+   ],
+   "index": [
+    20.0,
+    25.0
+   ],
+   "middle": [
+    20.0,
+    -25.0
+   ]
+  },
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/20260827-real_v1/scene_tp0d0300p0d0000p0d0000_in0d0300n0d0300p0d0000_mn0d0300p0d0300p0d0000.xml",
+  "error": "RuntimeError: no straddle worked for rv01_compact: 30mm: RuntimeError: pose fit failed for rv01_compact_sp30: FAIL scene_tp0d0300p0d0000p0d0000_in0d0300n0d0300p0d0000_mn0d0300p0d0300p0d0000.xml: no palm height reaches the shaft with joints in range\n\n | 40mm: RuntimeError: pose fit failed for rv01_compact_sp40: FAIL scene_tp0d0300p0d0000p0d0000_in0d0300n0d0300p0d0000_mn0d0300p0d0300p0d0000.xml: no palm height reaches the shaft with joints in range\n\n",
+  "seconds": 2.5
+ },
+ {
+  "id": "rv02_narrowx",
+  "design": {
+   "knobs": [
+    1.0,
+    1.0,
+    0.0
+   ]
+  },
+  "vector": [
+   0.03,
+   0.0,
+   0.0,
+   -0.03,
+   -0.0,
+   0.0,
+   -0.03,
+   0.0,
+   0.0
+  ],
+  "mounts_mm": {
+   "thumb": [
+    -20.0,
+    0.0
+   ],
+   "index": [
+    20.0,
+    55.0
+   ],
+   "middle": [
+    20.0,
+    -55.0
+   ]
+  },
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/20260827-real_v1/scene_tp0d0300p0d0000p0d0000_in0d0300n0d0000p0d0000_mn0d0300p0d0000p0d0000.xml",
+  "error": "RuntimeError: no straddle worked for rv02_narrowx: 30mm: RuntimeError: pose fit failed for rv02_narrowx_sp30: FAIL scene_tp0d0300p0d0000p0d0000_in0d0300n0d0000p0d0000_mn0d0300p0d0000p0d0000.xml: no palm height reaches the shaft with joints in range\n\n | 40mm: RuntimeError: pose fit failed for rv02_narrowx_sp40: FAIL scene_tp0d0300p0d0000p0d0000_in0d0300n0d0000p0d0000_mn0d0300p0d0000p0d0000.xml: no palm height reaches the shaft with joints in range\n\n",
+  "seconds": 2.2
+ },
+ {
+  "id": "rv03_narrowy",
+  "design": {
+   "knobs": [
+    0.0,
+    0.0,
+    1.0
+   ]
+  },
+  "vector": [
+   0.0,
+   0.0,
+   0.0,
+   -0.0,
+   -0.03,
+   0.0,
+   -0.0,
+   0.03,
+   0.0
+  ],
+  "mounts_mm": {
+   "thumb": [
+    -50.0,
+    0.0
+   ],
+   "index": [
+    50.0,
+    25.0
+   ],
+   "middle": [
+    50.0,
+    -25.0
+   ]
+  },
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/20260827-real_v1/scene_tp0d0000p0d0000p0d0000_in0d0000n0d0300p0d0000_mn0d0000p0d0300p0d0000.xml",
+  "pose": {
+   "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/20260827-real_v1/scene_tp0d0000p0d0000p0d0000_in0d0000n0d0300p0d0000_mn0d0000p0d0300p0d0000.xml",
+   "palm": {
+    "px": 0.0,
+    "py": 0.0,
+    "pz": 0.0029999999999999784
+   },
+   "palm_z_world": 0.06549999999999997,
+   "grip_depth_mm": 52.99999999999998,
+   "clearance_ceiling": 1.0,
+   "tip_residual_mm": {
+    "thumb": 0.09991320043377087,
+    "index": 0.09905202189259292,
+    "middle": 0.09905202189259292
+   },
+   "joint_margin_rad": {
+    "thumb_yaw": 1.48353,
+    "thumb_mcp": 0.36369693912566115,
+    "thumb_pip": 0.5910986145657036,
+    "index_yaw": 1.2077241014114775,
+    "index_mcp": 0.4235540845005793,
+    "index_pip": 0.7473939116311001,
+    "middle_yaw": 1.2077241014114775,
+    "middle_mcp": 0.4235540845005793,
+    "middle_pip": 0.7473939116311001
+   },
+   "targets": {
+    "thumb": [
+     -0.024050000000000002,
+     0.0,
+     0.0125
+    ],
+    "index": [
+     0.024050000000000002,
+     0.04,
+     0.0125
+    ],
+    "middle": [
+     0.024050000000000002,
+     -0.04,
+     0.0125
+    ]
+   },
+   "gap_mm": 1.0,
+   "spread_mm": 40.0,
+   "elevation_deg": 0.0,
+   "probe_held_lift_mm": 60.69148658603753,
+   "probe_candidates": [
+    {
+     "spread_mm": 40.0,
+     "pz": 0.012999999999999979,
+     "held_mm": -0.10075263139525982
+    },
+    {
+     "spread_mm": 40.0,
+     "pz": 0.00799999999999998,
+     "held_mm": 41.286255651963266
+    },
+    {
+     "spread_mm": 40.0,
+     "pz": 0.0029999999999999784,
+     "held_mm": 60.69148658603753
+    }
+   ],
+   "self_collisions": []
+  },
+  "cem": {
+   "score": 8.419500779245503,
+   "mean_tip_distance": 0.010107747029860137,
+   "tip_distance_thumb": 0.01003677062454188,
+   "tip_distance_index": 0.0101581484923262,
+   "tip_distance_middle": 0.010128321972712335,
+   "cube_tip_contacts": 3.0,
+   "cube_z_before_lift": 0.012413377853122801,
+   "cube_z_peak": 0.062322069737600905,
+   "cube_z_after_hold": 0.062178412316001436,
+   "cube_lift": 0.04990869188447811,
+   "cube_vel_norm": 0.004649024982708034,
+   "cube_xy_drift": 4.7237166393099015e-06,
+   "cube_yaw_drift": 2.3859479417520646e-05,
+   "cube_axis_tilt": 2.867729536499238e-05,
+   "cube_ang_drift": 0.0021637505861185785,
+   "cube_z_drop_from_peak": 0.00014365742159946904,
+   "contact_persistence": 1.0,
+   "thumb_contact_persistence": 1.0,
+   "index_contact_persistence": 1.0,
+   "middle_contact_persistence": 1.0,
+   "all_finger_contact_persistence": 1.0,
+   "min_finger_contact_persistence": 1.0,
+   "finger_persistence_imbalance": 0.0,
+   "finger_yaw_drift": 1.6916485893088418e-05,
+   "finger_flex_drift": 7.455373565978345e-05,
+   "finger_ctrl_anchor_dist": 0.0625052031901611,
+   "trajectory_fc_max_q1": 0.0,
+   "trajectory_fc_mean_q1": 0.0,
+   "trajectory_fc_min_fingers": 0.0,
+   "trajectory_fc_mean_fingers": 0.0,
+   "trajectory_fc_sample_count_taken": 0.0,
+   "contact_target_reward": 0.0,
+   "contact_target_mean_distance": 0.0
+  },
+  "cem_tag": "rv03_narrowy_sp40",
+  "spread_mm": 40,
+  "seconds": 287.1
+ },
+ {
+  "id": "rv04_mid",
+  "design": {
+   "knobs": [
+    0.5,
+    0.5,
+    0.5
+   ]
+  },
+  "vector": [
+   0.015,
+   0.0,
+   0.0,
+   -0.015,
+   -0.015,
+   0.0,
+   -0.015,
+   0.015,
+   0.0
+  ],
+  "mounts_mm": {
+   "thumb": [
+    -35.0,
+    0.0
+   ],
+   "index": [
+    35.0,
+    40.0
+   ],
+   "middle": [
+    35.0,
+    -40.0
+   ]
+  },
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/20260827-real_v1/scene_tp0d0150p0d0000p0d0000_in0d0150n0d0150p0d0000_mn0d0150p0d0150p0d0000.xml",
+  "pose": {
+   "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/20260827-real_v1/scene_tp0d0150p0d0000p0d0000_in0d0150n0d0150p0d0000_mn0d0150p0d0150p0d0000.xml",
+   "palm": {
+    "px": 0.0,
+    "py": 0.0,
+    "pz": 0.014999999999999979
+   },
+   "palm_z_world": 0.07749999999999999,
+   "grip_depth_mm": 64.99999999999999,
+   "clearance_ceiling": 1.0,
+   "tip_residual_mm": {
+    "thumb": 0.09956423464596094,
+    "index": 0.09933525016292369,
+    "middle": 0.09933525016292369
+   },
+   "joint_margin_rad": {
+    "thumb_yaw": 1.48353,
+    "thumb_mcp": 0.2014813469162751,
+    "thumb_pip": 0.8520394052810842,
+    "index_yaw": 1.3308806716047348,
+    "index_mcp": 0.274958676269748,
+    "index_pip": 0.7150004713814564,
+    "middle_yaw": 1.3308806716047348,
+    "middle_mcp": 0.274958676269748,
+    "middle_pip": 0.7150004713814564
+   },
+   "targets": {
+    "thumb": [
+     -0.024050000000000002,
+     0.0,
+     0.0125
+    ],
+    "index": [
+     0.024050000000000002,
+     0.03,
+     0.0125
+    ],
+    "middle": [
+     0.024050000000000002,
+     -0.03,
+     0.0125
+    ]
+   },
+   "gap_mm": 1.0,
+   "spread_mm": 30.0,
+   "elevation_deg": 0.0,
+   "probe_held_lift_mm": 60.601176428202024,
+   "probe_candidates": [
+    {
+     "spread_mm": 30.0,
+     "pz": 0.014999999999999979,
+     "held_mm": 60.601176428202024
+    }
+   ],
+   "self_collisions": []
+  },
+  "cem": {
+   "score": 8.431052994168763,
+   "mean_tip_distance": 0.009801991936993182,
+   "tip_distance_thumb": 0.009431215682230432,
+   "tip_distance_index": 0.0100696086939654,
+   "tip_distance_middle": 0.009905151434783715,
+   "cube_tip_contacts": 3.0,
+   "cube_z_before_lift": 0.012649808212555427,
+   "cube_z_peak": 0.0627260094060377,
+   "cube_z_after_hold": 0.06264969868376068,
+   "cube_lift": 0.05007620119348227,
+   "cube_vel_norm": 0.006876050412937463,
+   "cube_xy_drift": 9.50232983601685e-07,
+   "cube_yaw_drift": 2.974054441828855e-06,
+   "cube_axis_tilt": 3.2099467046899706e-06,
+   "cube_ang_drift": 7.726966928090127e-06,
+   "cube_z_drop_from_peak": 7.631072227702596e-05,
+   "contact_persistence": 1.0,
+   "thumb_contact_persistence": 1.0,
+   "index_contact_persistence": 1.0,
+   "middle_contact_persistence": 1.0,
+   "all_finger_contact_persistence": 1.0,
+   "min_finger_contact_persistence": 1.0,
+   "finger_persistence_imbalance": 0.0,
+   "finger_yaw_drift": 1.2953160183420501e-05,
+   "finger_flex_drift": 6.343549134361047e-07,
+   "finger_ctrl_anchor_dist": 0.07123906870272216,
+   "trajectory_fc_max_q1": 0.0,
+   "trajectory_fc_mean_q1": 0.0,
+   "trajectory_fc_min_fingers": 0.0,
+   "trajectory_fc_mean_fingers": 0.0,
+   "trajectory_fc_sample_count_taken": 0.0,
+   "contact_target_reward": 0.0,
+   "contact_target_mean_distance": 0.0
+  },
+  "cem_tag": "rv04_mid_sp30",
+  "spread_mm": 30,
+  "seconds": 288.4
+ },
+ {
+  "id": "rv05_manual",
+  "design": {
+   "vector": [
+    0.011,
+    0.0,
+    0.0,
+    -0.015,
+    -0.03,
+    0.0,
+    -0.0015,
+    0.02,
+    0.0
+   ],
+   "pose": "stored"
+  },
+  "vector": [
+   0.011,
+   0.0,
+   0.0,
+   -0.015,
+   -0.03,
+   0.0,
+   -0.0015,
+   0.02,
+   0.0
+  ],
+  "mounts_mm": {
+   "thumb": [
+    -39.0,
+    0.0
+   ],
+   "index": [
+    35.0,
+    25.0
+   ],
+   "middle": [
+    48.5,
+    -35.0
+   ]
+  },
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/20260827-real_v1/scene_tp0d0110p0d0000p0d0000_in0d0150n0d0300p0d0000_mn0d0015p0d0200p0d0000.xml",
+  "pose": {
+   "authored": true,
+   "self_collisions": []
+  },
+  "cem": {
+   "score": 8.383984559040181,
+   "mean_tip_distance": 0.009636774560389347,
+   "tip_distance_thumb": 0.008993995596524256,
+   "tip_distance_index": 0.009929682471711502,
+   "tip_distance_middle": 0.009986645612932285,
+   "cube_tip_contacts": 3.0,
+   "cube_z_before_lift": 0.01243488686119593,
+   "cube_z_peak": 0.061818998522570945,
+   "cube_z_after_hold": 0.061818998522570945,
+   "cube_lift": 0.04938411166137502,
+   "cube_vel_norm": 0.0073694228886628495,
+   "cube_xy_drift": 0.0003370822031895991,
+   "cube_yaw_drift": 0.001325788103637482,
+   "cube_axis_tilt": 0.0012928280430121674,
+   "cube_ang_drift": 0.004084800185380443,
+   "cube_z_drop_from_peak": 0.0,
+   "contact_persistence": 1.0,
+   "thumb_contact_persistence": 1.0,
+   "index_contact_persistence": 1.0,
+   "middle_contact_persistence": 1.0,
+   "all_finger_contact_persistence": 1.0,
+   "min_finger_contact_persistence": 1.0,
+   "finger_persistence_imbalance": 0.0,
+   "finger_yaw_drift": 0.0008089319393942233,
+   "finger_flex_drift": 0.0004525668495726244,
+   "finger_ctrl_anchor_dist": 0.18725023152527856,
+   "trajectory_fc_max_q1": 0.0,
+   "trajectory_fc_mean_q1": 0.0,
+   "trajectory_fc_min_fingers": 0.0,
+   "trajectory_fc_mean_fingers": 0.0,
+   "trajectory_fc_sample_count_taken": 0.0,
+   "contact_target_reward": 0.0,
+   "contact_target_mean_distance": 0.0
+  },
+  "cem_tag": "rv05_manual_stored",
+  "spread_mm": 0,
+  "seconds": 146.5
+ }
+]

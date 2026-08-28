@@ -151,13 +151,58 @@ def _seed_key(m: mujoco.MjModel, name: str) -> int:
     return 0
 
 
+# Damped-least-squares IK is local, and this finger has two qualitatively different ways to put
+# its pad on the shaft: a PINCH (positive MCP, the tip swings inward under the mount) and a HOOK
+# (negative MCP so the middle link leans outward, then strong PIP flexion to bring the pad back
+# in). A design whose mounts sit INBOARD of the contact ring can only do it by hooking -- the
+# 40 mm-separation designs need their pads 5 mm outboard of their own mounts, and flexion only
+# moves a tip inboard. Seeded from a pinch, the solver reports them unreachable at every palm
+# height, which is a false "ungraspable" verdict of exactly the kind this whole file exists to
+# avoid. The user's own hand-authored grasp is a hook (MCP -0.22, PIP +0.96), which is what
+# pointed at this.
+SEED_POSES: tuple[tuple[float, float, float], ...] = (
+    (0.0, 0.55, 0.55),      # pinch, the shipped `open` placeholder
+    (0.0, -0.22, 0.96),     # hook, the user's authored grasp
+    (0.0, 0.0, 0.0),        # straight
+)
+
+
 def solve(m, d, targets: dict[str, np.ndarray], px: float, py: float, pz: float,
           seed_key: int = 0, iters: int = 300):
-    """IK all three fingers at a given palm height. Returns (residuals, margins)."""
-    d.qpos[:] = m.key_qpos[seed_key]
+    """IK all three fingers at a given palm height, multi-started. Returns (residuals, margins).
+
+    Per finger, every seed in SEED_POSES is tried plus the seed keyframe's own angles, and the
+    solution with the smallest residual wins (ties broken toward the larger joint margin, since a
+    pose that reaches by parking a joint on its stop has no squeeze authority).
+    """
+    base = m.key_qpos[seed_key].copy()
+    best_q: dict[str, list[float]] = {}
+    res: dict[str, float] = {}
+    for f, joints in FINGERS.items():
+        adr = [m.jnt_qposadr[m.joint(j).id] for j in joints]
+        starts = [tuple(base[a] for a in adr)] + list(SEED_POSES)
+        best = None
+        for st in starts:
+            d.qpos[:] = base
+            _set_palm(m, d, px, py, pz)
+            for a, v in zip(adr, st):
+                d.qpos[a] = v
+            mujoco.mj_forward(m, d)
+            r = ik_finger(m, d, f, targets[f], iters=iters)
+            q = [float(d.qpos[a]) for a in adr]
+            rng = [m.jnt_range[m.joint(j).id] for j in joints]
+            marg = min(min(qq - lo, hi - qq) for qq, (lo, hi) in zip(q, rng))
+            key = (round(r, 5), -marg)
+            if best is None or key < best[0]:
+                best = (key, q, r)
+        best_q[f], res[f] = best[1], best[2]
+
+    d.qpos[:] = base
     _set_palm(m, d, px, py, pz)
+    for f, joints in FINGERS.items():
+        for j, v in zip(joints, best_q[f]):
+            d.qpos[m.jnt_qposadr[m.joint(j).id]] = v
     mujoco.mj_forward(m, d)
-    res = {f: ik_finger(m, d, f, targets[f], iters=iters) for f in FINGERS}
     return res, _joint_margins(m, d)
 
 
@@ -233,10 +278,11 @@ def _deepest(m, d, targets, px, py, seed, res_tol, pz_lo, pz_hi, pz_step):
 
 def fit(scene: Path, gap: float, spread: float, elevation: float, object_body: str,
         pz_lo: float, pz_hi: float, pz_step: float, verbose: bool = True,
-        seed_keyframe: str = "open", res_tol: float = 0.002,
+        seed_keyframe: str = "open", res_tol: float = 0.004,
         spreads: tuple[float, ...] | None = None,
         spread_max: float | None = None, spread_min: float = 0.020,
-        spread_frac: float = 0.85, squeeze: float = 0.004, lift_probe: float = 0.05):
+        spread_frac: float = 0.85, squeeze: float = 0.004, lift_probe: float = 0.05,
+        hold_min: float = 0.020):
     """Solve palm pose + finger angles for one design.
 
     Two things are fitted rather than fixed, both for the same reason: they are choices about
@@ -249,10 +295,14 @@ def fit(scene: Path, gap: float, spread: float, elevation: float, object_body: s
                actual close-lift-hold rollout -- see the block comment below for the two
                reachability heuristics that were tried first and what each of them cost.
 
-    `res_tol` is 2 mm, not sub-millimetre: the pad is 10.55 mm in radius and the targets already
-    carry a 1 mm approach gap, so a 2 mm residual is well inside the pad and CEM closes it. The
-    binding condition is the joint MARGIN -- a pose that reaches its target by parking a joint
-    on its stop has no squeeze authority in that direction and is not a grasp.
+    `res_tol` is 4 mm, not sub-millimetre. The pad is 10.55 mm in radius and the targets carry a
+    1 mm approach gap, so a few millimetres off the intended ring position is still on the pad and
+    CEM closes it -- and the residual was only ever a PROXY for "is this pose any good", which the
+    hold probe now answers directly. At 2 mm the most compact designs (thumb and pair 40 mm apart,
+    fingers at 0.91 of their reach) missed by 2.1-3.6 mm and were reported unreachable at every
+    palm height, which is a false "ungraspable" verdict. The binding condition is the joint
+    MARGIN -- a pose that reaches its target by parking a joint on its stop has no squeeze
+    authority in that direction and is not a grasp -- and then the probe.
     """
     m = mujoco.MjModel.from_xml_path(str(scene))
     d = mujoco.MjData(m)
@@ -314,6 +364,10 @@ def fit(scene: Path, gap: float, spread: float, elevation: float, object_body: s
                 print(f"  spread {sp*1000:4.0f}mm  palm_z {pz:+.4f}  held {held*1000:+7.2f}mm"
                       f"  res {max(res.values())*1000:.2f}mm  marg {min(marg.values()):.2f}")
 
+    # A pose only counts if it actually HOLDS. Returning the best of a set of poses that all
+    # drop the shaft is how a design gets handed to a 90-minute training run on a grasp that
+    # cannot work; the caller needs to hear "no viable pose", not a ranking of failures.
+    cands = [c for c in cands if c["held"] >= hold_min]
     if not cands:
         return None
     # Best hold wins. Ties (within 1 mm of the best) go to the DEEPER palm -- grip depth below
@@ -403,12 +457,14 @@ def main() -> int:
                     help="metres the hold probe drives each pad inside the shaft's surface")
     ap.add_argument("--lift-probe", type=float, default=0.05,
                     help="metres the hold probe raises the palm by")
+    ap.add_argument("--hold-min", type=float, default=0.020,
+                    help="metres of lift the probe must still hold for a pose to count")
     ap.add_argument("--elevation", type=float, default=0.0,
                     help="degrees above the shaft's equator to place the pads; see tip_targets")
     ap.add_argument("--pz-lo", type=float, default=-0.030)
     ap.add_argument("--pz-hi", type=float, default=0.060)
     ap.add_argument("--pz-step", type=float, default=0.0025)
-    ap.add_argument("--res-tol", type=float, default=0.002,
+    ap.add_argument("--res-tol", type=float, default=0.004,
                     help="max fingertip IK residual, metres; CEM closes anything under the pad")
     ap.add_argument("--also-open", action="store_true",
                     help="additionally write an `open` approach pose at --open-gap")
@@ -423,9 +479,10 @@ def main() -> int:
               seed_keyframe=args.seed_keyframe, res_tol=args.res_tol,
               spreads=(args.spread,) if args.spread else None,
               spread_min=args.spread_min, spread_frac=args.spread_frac,
-              squeeze=args.squeeze, lift_probe=args.lift_probe)
+              squeeze=args.squeeze, lift_probe=args.lift_probe, hold_min=args.hold_min)
     if out is None:
-        print(f"FAIL {args.scene.name}: no palm height reaches the shaft with joints in range")
+        print(f"FAIL {args.scene.name}: no pose reaches the shaft AND holds it "
+              f"(needs >= {args.hold_min*1000:.0f} mm of lift retained)")
         return 2
     report, qpos, ctrl = out
     if args.write:

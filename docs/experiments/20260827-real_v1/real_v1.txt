@@ -1,0 +1,8 @@
+# real_v1 pipeline — real_v1
+# design | grip depth + clearance ceiling (fit_real_v1_pose) | CEM grasp: HELD lift (peak lift) tip contacts, contact persistence | A->B handoff
+rv00_wide      | depth  52.5mm ceil 1.00 | sp 30mm held +0.050 peak 0.050 tips 3.0 pers 1.00 | minZ       — cos       — | —
+rv01_compact   | depth   nanmm ceil nan | sp  0mm held +nan peak nan tips nan pers nan | minZ       — cos       — | —
+rv02_narrowx   | depth   nanmm ceil nan | sp  0mm held +nan peak nan tips nan pers nan | minZ       — cos       — | —
+rv03_narrowy   | depth  53.0mm ceil 1.00 | sp 40mm held +0.050 peak 0.050 tips 3.0 pers 1.00 | minZ       — cos       — | —
+rv04_mid       | depth  65.0mm ceil 1.00 | sp 30mm held +0.050 peak 0.050 tips 3.0 pers 1.00 | minZ       — cos       — | —
+rv05_manual    | depth   nanmm ceil nan | sp  0mm held +0.049 peak 0.049 tips 3.0 pers 1.00 | minZ       — cos       — | —
