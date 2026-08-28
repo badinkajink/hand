@@ -55,7 +55,9 @@ def make_env_cfg(frozen, keyframe, morph, bfc, *, enable_target_axis: bool,
                  finger_close_easing: str = "ease_out_quad",
                  contact_gate_stability_rewards: bool = True,
                  lift_delta: float = 0.10, open_finger_from_keyframe: bool = False,
-                 num_envs: int = 1):
+                 num_envs: int = 1, hold_ctrl_from_keyframe: str = "",
+                 hold_switch_from_sim_step: int = 0, hold_switch_steps: int = 60,
+                 hold_switch_align_thresh: float = 0.0, hold_switch_min_z: float = 0.0):
     """One env cfg. enable_target_axis=False -> 65-dim (Policy A's space);
     True -> 66-dim normal-lift reorient env (Policy B's space + dynamics).
     skip_lift_phase is always False here: the cylinder starts flat and is
@@ -70,6 +72,16 @@ def make_env_cfg(frozen, keyframe, morph, bfc, *, enable_target_axis: bool,
         lift_target_z_above_init=lift_delta, lift_delta_z=lift_delta,
         contact_gate_stability_rewards=contact_gate_stability_rewards, enable_lift_terminations=False,
         open_finger_from_keyframe=open_finger_from_keyframe,
+        # THE SECOND ANCHOR IS PART OF THE ENV, NOT OF THE POLICY. A B trained with the anchor
+        # sweeping to `hold_ik` and deployed without it is out of distribution in exactly the
+        # way gotcha #13 describes for finger_residual_scale: the set-point its residual
+        # perturbs is somewhere else, and the eval reads as "the policy does nothing".
+        hold_finger_ctrl=(finger_ctrl_from_keyframe(frozen, hold_ctrl_from_keyframe)
+                          if hold_ctrl_from_keyframe else None),
+        hold_switch_from_sim_step=hold_switch_from_sim_step,
+        hold_switch_steps=hold_switch_steps,
+        hold_switch_align_thresh=hold_switch_align_thresh,
+        hold_switch_min_z=hold_switch_min_z,
     )
     if not enable_target_axis:
         return MorphoHandEnvCfg(**common)

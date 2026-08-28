@@ -64,6 +64,17 @@ def main():
                     help="MUST match the evaluated B's training env (B10/B4 used 0.5; "
                          "the rl_train_cube default is 0.2 — a mismatch puts B OOD).")
     ap.add_argument("--finger-close-easing", type=str, default="ease_out_quad")
+    ap.add_argument("--zero-b", action="store_true",
+                    help="drive B's action to zero after the handoff. The CONTROL for an anchor "
+                         "schedule: with --hold-ctrl-from-keyframe this is the scripted carry "
+                         "riding Policy A's real delivery, which is what a trained B must beat.")
+    ap.add_argument("--hold-ctrl-from-keyframe", type=str, default="",
+                    help="second finger anchor, e.g. `hold_ik`. MUST match what B was trained "
+                         "with — the anchor is env state, not policy state")
+    ap.add_argument("--hold-switch-from-sim-step", type=int, default=0)
+    ap.add_argument("--hold-switch-steps", type=int, default=60)
+    ap.add_argument("--hold-switch-align-thresh", type=float, default=0.0)
+    ap.add_argument("--hold-switch-min-z", type=float, default=0.0)
     ap.add_argument("--no-contact-gate", action="store_true",
                     help="set contact_gate_stability_rewards=False (match a B trained without it)")
     ap.add_argument("--action-lowpass", type=float, default=1.0,
@@ -138,7 +149,7 @@ def main():
     print(f"[hc] building A-env ({a_obs_dim}-dim) to load Policy A...")
     env_a, _wa, actor_a = build_actor(
         make_env_cfg(frozen, keyframe, args.morphology_run, bfc, enable_target_axis=(a_obs_dim == 66), num_steps=10,
-                     finger_residual_scale=args.finger_residual_scale, finger_close_easing=args.finger_close_easing, contact_gate_stability_rewards=not args.no_contact_gate, lift_delta=args.lift_delta, open_finger_from_keyframe=args.open_finger_from_keyframe),
+                     finger_residual_scale=args.finger_residual_scale, finger_close_easing=args.finger_close_easing, contact_gate_stability_rewards=not args.no_contact_gate, lift_delta=args.lift_delta, open_finger_from_keyframe=args.open_finger_from_keyframe, hold_ctrl_from_keyframe=args.hold_ctrl_from_keyframe, hold_switch_from_sim_step=args.hold_switch_from_sim_step, hold_switch_steps=args.hold_switch_steps, hold_switch_align_thresh=args.hold_switch_align_thresh, hold_switch_min_z=args.hold_switch_min_z),
         args.policy_a, work)
     env_a.close()
     print("[hc] Policy A loaded.")
@@ -154,7 +165,7 @@ def main():
 
     print("[hc] building main env (66-dim, normal lift to 0.10) + Policy B...")
     cfg_b = make_env_cfg(frozen, keyframe, args.morphology_run, bfc, enable_target_axis=True, num_steps=args.total_steps,
-                         finger_residual_scale=args.finger_residual_scale, finger_close_easing=args.finger_close_easing, contact_gate_stability_rewards=not args.no_contact_gate, lift_delta=args.lift_delta, open_finger_from_keyframe=args.open_finger_from_keyframe)
+                         finger_residual_scale=args.finger_residual_scale, finger_close_easing=args.finger_close_easing, contact_gate_stability_rewards=not args.no_contact_gate, lift_delta=args.lift_delta, open_finger_from_keyframe=args.open_finger_from_keyframe, hold_ctrl_from_keyframe=args.hold_ctrl_from_keyframe, hold_switch_from_sim_step=args.hold_switch_from_sim_step, hold_switch_steps=args.hold_switch_steps, hold_switch_align_thresh=args.hold_switch_align_thresh, hold_switch_min_z=args.hold_switch_min_z)
     env = ManagerBasedRlEnv(cfg=to_mjlab_cfg(cfg_b), device="cuda:0", render_mode="rgb_array")
     env = VideoRecorder(env, video_folder=str(work), step_trigger=lambda s: s == 1,
                         video_length=args.total_steps, name_prefix=args.output.stem)
@@ -267,6 +278,8 @@ def main():
                 a_lp = float(args.action_lowpass)
                 actions = a_lp * actions + (1.0 - a_lp) * (
                     prev_action if prev_action is not None else actions)
+            if args.zero_b and step >= args.handoff_step:
+                actions = torch.zeros_like(actions)
             prev_action = actions
             obs_td, *_ = wrapped.step(actions)
             obs = obs_td["actor"]
