@@ -1,0 +1,487 @@
+<!--
+  ARTIFACT URL: https://claude.ai/code/artifact/a0e25967-1cd8-445a-8e19-ea886f4982fd
+  Republish THIS SAME FILE PATH to update it in place; do not create a new artifact.
+  Source of record for the numbers here:
+    docs/experiments/20260827-real_v1/{SETUP.md,SLIP.md,real_v1.json,real_v1.txt}
+    docs/rl/reorientation.md  (2026-08-27 entry)
+-->
+<title>real_v1 First Night</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&display=swap">
+
+<style>
+  :root {
+    --ground:      #f4f5f7;
+    --panel:       #ffffff;
+    --panel-2:     #eceef2;
+    --rule:        #d3d7de;
+    --rule-soft:   #e4e7ec;
+    --ink:         #171a1f;
+    --ink-2:       #454a53;
+    --ink-3:       #6d747f;
+    --accent:      #a9702c;   /* the finger material in the renders: 0.8 0.72 0.6 */
+    --accent-soft: #f2e6d5;
+    --good:        #2f6f4f;
+    --good-soft:   #dcece3;
+    --bad:         #a3342c;
+    --bad-soft:    #f4dedc;
+    --shadow:      0 1px 2px rgba(23,26,31,.06), 0 8px 24px -16px rgba(23,26,31,.30);
+
+    --measure: 68ch;
+    --s1: .35rem;  --s2: .7rem;  --s3: 1.15rem;  --s4: 1.9rem;
+    --s5: 3.1rem;  --s6: 4.6rem;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #101317;
+      --panel:       #171b21;
+      --panel-2:     #1e232a;
+      --rule:        #2c333c;
+      --rule-soft:   #232931;
+      --ink:         #e6e9ee;
+      --ink-2:       #b0b7c1;
+      --ink-3:       #838b96;
+      --accent:      #d3a05f;
+      --accent-soft: #33271a;
+      --good:        #6dbb93;
+      --good-soft:   #17281f;
+      --bad:         #e0847b;
+      --bad-soft:    #2b1917;
+      --shadow:      0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:      #101317;
+    --panel:       #171b21;
+    --panel-2:     #1e232a;
+    --rule:        #2c333c;
+    --rule-soft:   #232931;
+    --ink:         #e6e9ee;
+    --ink-2:       #b0b7c1;
+    --ink-3:       #838b96;
+    --accent:      #d3a05f;
+    --accent-soft: #33271a;
+    --good:        #6dbb93;
+    --good-soft:   #17281f;
+    --bad:         #e0847b;
+    --bad-soft:    #2b1917;
+    --shadow:      0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    font-size: 16.5px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: var(--s5) var(--s3) var(--s6);
+    display: flex;
+    flex-direction: column;
+    gap: var(--s5);
+  }
+  .col { max-width: var(--measure); }
+
+  h1, h2, h3 { font-family: "IBM Plex Serif", ui-serif, Georgia, serif; text-wrap: balance; margin: 0; }
+  h1 { font-size: clamp(2rem, 4.4vw, 2.9rem); font-weight: 600; line-height: 1.12; letter-spacing: -.015em; }
+  h2 { font-size: clamp(1.32rem, 2.4vw, 1.6rem); font-weight: 600; line-height: 1.22; }
+  h3 { font-size: 1.03rem; font-weight: 600; }
+  p  { margin: 0; }
+  a  { color: var(--accent); text-underline-offset: .18em; }
+  a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px; }
+
+  .eyebrow {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .69rem; font-weight: 500;
+    letter-spacing: .16em; text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .lede { font-size: 1.1rem; color: var(--ink-2); }
+  .stack   { display: flex; flex-direction: column; gap: var(--s3); }
+  .stack-s { display: flex; flex-direction: column; gap: var(--s2); }
+  section  { display: flex; flex-direction: column; gap: var(--s3); }
+
+  header.masthead { display: flex; flex-direction: column; gap: var(--s3); }
+  .rule { height: 1px; background: var(--rule); border: 0; margin: 0; }
+
+  /* status strip — the four things worth knowing at a glance */
+  .strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1px;
+           background: var(--rule); border: 1px solid var(--rule); border-radius: 4px; overflow: hidden; }
+  .cell { background: var(--panel); padding: var(--s3); display: flex; flex-direction: column; gap: var(--s1); }
+  .cell .k { font-family: "IBM Plex Mono", monospace; font-size: .68rem; letter-spacing: .13em;
+             text-transform: uppercase; color: var(--ink-3); }
+  .cell .v { font-family: "IBM Plex Serif", serif; font-size: 1.5rem; font-weight: 600; line-height: 1.1;
+             font-variant-numeric: tabular-nums; }
+  .cell .n { font-size: .84rem; color: var(--ink-3); line-height: 1.42; }
+
+  table { border-collapse: collapse; width: 100%; font-size: .88rem;
+          font-family: "IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+  .scroller { overflow-x: auto; border: 1px solid var(--rule); border-radius: 4px; background: var(--panel); }
+  th, td { padding: .5rem .75rem; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--rule-soft); }
+  th { font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3);
+       font-weight: 500; border-bottom: 1px solid var(--rule); }
+  th:first-child, td:first-child { text-align: left; }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.name { font-weight: 500; color: var(--ink); }
+  .dim { color: var(--ink-3); }
+
+  .tag { display: inline-block; padding: .08em .5em; border-radius: 3px; font-size: .74rem;
+         font-weight: 500; letter-spacing: .02em; }
+  .tag.hold { background: var(--good-soft); color: var(--good); }
+  .tag.drop { background: var(--bad-soft);  color: var(--bad); }
+  .tag.wait { background: var(--panel-2);   color: var(--ink-3); }
+
+  .note { border-left: 2px solid var(--accent); padding-left: var(--s3); color: var(--ink-2); }
+
+  figure { margin: 0; display: flex; flex-direction: column; gap: var(--s2); }
+  figcaption { font-size: .84rem; color: var(--ink-3); max-width: var(--measure); }
+  .panel { background: var(--panel); border: 1px solid var(--rule); border-radius: 4px;
+           padding: var(--s3); box-shadow: var(--shadow); }
+  svg { display: block; max-width: 100%; height: auto; }
+
+  details { border: 1px solid var(--rule); border-radius: 4px; background: var(--panel); }
+  details + details { margin-top: var(--s2); }
+  summary { cursor: pointer; padding: .7rem var(--s3); font-size: .92rem; font-weight: 500; list-style: none; }
+  summary::-webkit-details-marker { display: none; }
+  summary::before { content: "+"; font-family: "IBM Plex Mono", monospace; color: var(--accent);
+                    margin-right: .6em; font-weight: 500; }
+  details[open] summary::before { content: "\2212"; }
+  details[open] summary { border-bottom: 1px solid var(--rule-soft); }
+  .details-body { padding: var(--s3); display: flex; flex-direction: column; gap: var(--s2);
+                  font-size: .95rem; color: var(--ink-2); }
+  code, .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .88em; }
+  code { background: var(--panel-2); padding: .08em .35em; border-radius: 3px; }
+
+  footer { color: var(--ink-3); font-size: .85rem; display: flex; flex-direction: column; gap: var(--s2); }
+
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">MorphoHand &middot; overnight brief &middot; 27&ndash;28 August 2026</p>
+    <div class="col stack">
+      <h1>The CAD hand grasps. Then it let go, and the reason was mine.</h1>
+      <p class="lede">Your hardware model went from two hand-authored files to a topology the
+      whole pipeline can run: base pair, per-design grasp keyframes, six designs through CEM, and
+      an A&rarr;B queue. Along the way it lost the screwdriver, and the root cause was not friction
+      or pad compliance &mdash; it was where I put the fingertips on the shaft.</p>
+    </div>
+  </header>
+
+  <div class="strip">
+    <div class="cell">
+      <span class="k">Grasp</span>
+      <span class="v" id="s-grasp">6 / 6</span>
+      <span class="n">designs holding the shaft after CEM</span>
+    </div>
+    <div class="cell">
+      <span class="k">Slip</span>
+      <span class="v">root&nbsp;caused</span>
+      <span class="n">grasp elevation, not the contact model</span>
+    </div>
+    <div class="cell">
+      <span class="k">A &rarr; B queue</span>
+      <span class="v" id="s-queue">in flight</span>
+      <span class="n">from scratch per design; nothing transfers</span>
+    </div>
+    <div class="cell">
+      <span class="k">Reorient</span>
+      <span class="v" id="s-reorient">pending</span>
+      <span class="n">prediction recorded before the runs</span>
+    </div>
+  </div>
+
+  <hr class="rule">
+
+  <section>
+    <p class="eyebrow">Defect &middot; what the shipped MJCF did silently</p>
+    <div class="col stack">
+      <h2>Three things had to be fixed before any number meant anything</h2>
+      <p>Your geometry was right. What was missing was the scaffolding that makes it measurable,
+      and each gap fails quietly rather than loudly.</p>
+    </div>
+
+    <div class="stack-s col">
+      <p><strong>The fingertip bodies had no geoms.</strong> The RL contact sensor matches by
+      <em>body</em> on <code>thumb_tip</code>, <code>index_tip</code>, <code>middle_tip</code>. A
+      body with no geom can never appear in a contact, so every fingertip-contact reward, the
+      tip-loss termination and the grip-force scorecard would have read exactly zero for a whole
+      training run &mdash; indistinguishable from a policy that never touched the object. The
+      distal capsule's terminal cap now lives on the tip body as a sphere at the same place, so
+      the envelope is unchanged and the pad is its own body.</p>
+
+      <p><strong>223&nbsp;N of interpenetration at rest.</strong> The yaw capsule's cap sits inside
+      the palm plate, and the 12.70&nbsp;mm link overhang means the yaw and distal links genuinely
+      overlap. MuJoCo only auto-filters direct parent/child pairs, so both showed up as permanent
+      contact forces &mdash; 223&nbsp;N against the palm and 38&nbsp;N per finger &mdash; before a
+      policy had done anything. 21 <code>&lt;contact&gt;&lt;exclude&gt;</code> entries; the hand
+      now rests at 0.000&nbsp;N.</p>
+
+      <p><strong>The palm was at the old hand's height.</strong> 0.134&nbsp;m was fitted to a
+      117&nbsp;mm finger. This one reaches 78.66&nbsp;mm, so the fingertips stopped 30&nbsp;mm
+      above a shaft lying on the table and no grasp existed at all. Palm pose is the arm's pose,
+      not a hardware parameter, so it is now solved per design.</p>
+    </div>
+
+    <p class="note col">Everything the CAD does fix &mdash; link lengths, the 12.70&nbsp;mm
+    overlap, ROM, mounts, gantry travel &mdash; is taken from your model verbatim, and pinned by
+    13 tests so an edit cannot quietly move the model away from the hardware.</p>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <p class="eyebrow">Root cause &middot; the slip you spotted</p>
+    <div class="col stack">
+      <h2>The grip did not slide. It opened.</h2>
+      <p>You saw the screwdriver creeping out during Policy A. The trainer agreed:
+      <code>tip_lost</code> was firing 1.4&ndash;2.3 times per batch while
+      <code>object_height</code> sat at 0.106 against a 0.10 target &mdash; the lift succeeded and
+      then the grip decayed. That pattern is contact, not control, so it should reproduce with no
+      policy at all. It does, and what it shows is not slipping.</p>
+    </div>
+
+    <figure>
+      <div class="panel">
+        <svg viewBox="0 0 720 250" role="img" aria-label="Fingertip normal force decaying from 1.75 N to zero over 320 hold steps, with the object falling out of the grip at step 320.">
+          <g font-family="IBM Plex Mono, monospace" font-size="11" fill="currentColor">
+            <text x="8" y="16" opacity=".62">N</text>
+            <text x="8" y="238" opacity=".62">0</text>
+            <text x="600" y="238" opacity=".62">hold step</text>
+          </g>
+          <!-- axes -->
+          <line x1="40" y1="20" x2="40" y2="210" stroke="currentColor" stroke-opacity=".22"/>
+          <line x1="40" y1="210" x2="700" y2="210" stroke="currentColor" stroke-opacity=".22"/>
+          <!-- gridlines at 0.5 N intervals -->
+          <g stroke="currentColor" stroke-opacity=".08">
+            <line x1="40" y1="156" x2="700" y2="156"/><line x1="40" y1="102" x2="700" y2="102"/>
+            <line x1="40" y1="48"  x2="700" y2="48"/>
+          </g>
+          <!-- thumb 1.75 .91 .71 .54 .40 .29 .20 .16 0  at steps 0..320 by 40 -->
+          <polyline fill="none" stroke="var(--accent)" stroke-width="2.5"
+            points="40,21 122,112 204,133 286,151 368,167 450,178 532,188 614,192 696,210"/>
+          <!-- index/middle .87 .46 .36 .27 .20 .14 .10 .08 0 -->
+          <polyline fill="none" stroke="currentColor" stroke-opacity=".45" stroke-width="1.8"
+            points="40,116 122,160 204,171 286,181 368,188 450,195 532,199 614,201 696,210"/>
+          <g font-family="IBM Plex Mono, monospace" font-size="11">
+            <text x="132" y="104" fill="var(--accent)">thumb</text>
+            <text x="132" y="186" fill="currentColor" opacity=".55">index / middle</text>
+          </g>
+          <!-- failure marker -->
+          <line x1="614" y1="20" x2="614" y2="210" stroke="var(--bad)" stroke-dasharray="3 3" stroke-opacity=".7"/>
+          <text x="620" y="34" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--bad)">shaft falls</text>
+        </svg>
+      </div>
+      <figcaption>Fingertip normal force on <span class="mono">rv00_wide</span> during a pure hold,
+      after a successful 10&nbsp;cm lift on three contacts. The force decays monotonically to zero
+      over 0.6&nbsp;s and the shaft drops &mdash; its x and y move by less than a millimetre the
+      whole time. Nothing slides sideways; the fingers let go.</figcaption>
+    </figure>
+
+    <div class="col stack-s">
+      <p>The cause is where the pads sit on the shaft. All three landed
+      <strong>+10.1&deg; above the shaft's axis</strong>, on the upper hemisphere. There the
+      contact normals tilt up and outward, so the wedge drives the shaft <em>down</em> out of the
+      pinch and only friction opposes it &mdash; against a normal force that shrinks as the shaft
+      creeps down and the pads ride toward the top of the cylinder, where the surface curves away.
+      Positive feedback: stable through the entire lift, unwound in 0.6&nbsp;s of standing still.</p>
+      <p>That <code>--elevation 10</code> was my own default, chosen because a 21&nbsp;mm-wide pad
+      cannot get under a 25&nbsp;mm shaft on a table without going through the floor. At elevation
+      0 the pad's underside clears the floor by 2.0&nbsp;mm, which is enough.</p>
+    </div>
+
+    <h3 class="col">Your two hypotheses, measured</h3>
+    <div class="scroller">
+      <table>
+        <thead><tr>
+          <th>variant</th><th>held</th><th>axial</th><th>radial</th><th>contacts</th>
+          <th>force</th><th>verdict</th>
+        </tr></thead>
+        <tbody>
+          <tr><td class="name">base</td><td>&minus;0.1&nbsp;mm</td><td>+0.1</td><td>94.7</td><td>0 / 0.44</td><td>0.16&nbsp;N</td><td><span class="tag drop">drops</span></td></tr>
+          <tr><td class="name">pads soft <span class="dim">(TPU)</span></td><td>&minus;0.1&nbsp;mm</td><td>&minus;0.0</td><td>31.2</td><td>0 / 0.00</td><td>0.00&nbsp;N</td><td><span class="tag drop">worse</span></td></tr>
+          <tr><td class="name">pads softer</td><td>&minus;0.1&nbsp;mm</td><td>&minus;0.0</td><td>74.5</td><td>0 / 0.00</td><td>0.00&nbsp;N</td><td><span class="tag drop">worse</span></td></tr>
+          <tr><td class="name">torsional + rolling friction</td><td>&minus;0.1&nbsp;mm</td><td>+0.1</td><td>94.7</td><td>0 / 0.44</td><td>0.16&nbsp;N</td><td><span class="tag drop">no change</span></td></tr>
+          <tr><td class="name">&mu; 2.4 &rarr; 4.0</td><td>&minus;0.1&nbsp;mm</td><td>+1.2</td><td>100.4</td><td>0 / 0.32</td><td>0.05&nbsp;N</td><td><span class="tag drop">no change</span></td></tr>
+          <tr><td class="name">palm down 5&nbsp;mm</td><td>101.2&nbsp;mm</td><td>+0.8</td><td>5.8</td><td>3 / 3.00</td><td>2.14&nbsp;N</td><td><span class="tag hold">holds</span></td></tr>
+          <tr><td class="name">palm up 5&nbsp;mm</td><td>&minus;0.1&nbsp;mm</td><td>+0.0</td><td>0.0</td><td>0 / 0.00</td><td>0.00&nbsp;N</td><td><span class="tag drop">drops</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <figcaption class="col">4&nbsp;s of hold after a 10&nbsp;cm lift. <span class="mono">held</span>
+    is the lift still present at the end; <span class="mono">axial</span> and
+    <span class="mono">radial</span> split the shaft's drift along and across its own axis, in
+    millimetres.</figcaption>
+
+    <div class="col stack-s">
+      <p>Making the pads compliant does not help and makes it slightly worse &mdash; a soft pad on
+      the upper hemisphere sinks in and slides off more easily. Torsional and rolling friction
+      change nothing because nothing is rotating. Quadrupling sliding friction changes nothing
+      because the shaft is not sliding against the pads; they have released it. Your instinct to
+      lower the palm was the right one, and it is the same fix as the elevation reached from the
+      other end: 5&nbsp;mm down moves the pads from 4.25&nbsp;mm above the axis to about a
+      millimetre below it.</p>
+      <p><strong>Refitting at elevation 0 holds +60&nbsp;mm where +10 holds nothing</strong>
+      (&minus;0.10&nbsp;mm at every candidate palm height). Below the equator also works but costs
+      grip depth &mdash; 52.0&nbsp;mm at &minus;8&deg; against a 50&nbsp;mm shaft half-length, so
+      2&nbsp;mm of clearance headroom, versus 55.5&nbsp;mm at 0&deg;. Elevation 0 is now the
+      default.</p>
+    </div>
+
+    <p class="note col">Your hand-authored grasp puts the pads at <strong>+1.9 /
+    &minus;3.2 / +7.5&deg;</strong> &mdash; on the equator, without seeing any of this. Eyeballing
+    the grasp put the contacts where the wedge works; the reachability-driven fitter did not.</p>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <p class="eyebrow">Design set &middot; six hands</p>
+    <div class="col stack">
+      <h2>Your workspace has three knobs but two dimensions</h2>
+      <p>Because the fitter re-centres palm&nbsp;X over the shaft, <em>thumb forward</em> and
+      <em>pair back</em> are the same hand: both land at 70&nbsp;mm separation, 68.0&nbsp;mm of
+      grip depth, and identical joint angles. Only two things actually vary, so the sampled set is
+      a 2&times;2 factorial in those plus a centre &mdash; and your hand-authored design sits
+      outside it, asymmetric in a way the knobs cannot express.</p>
+    </div>
+
+    <div class="scroller">
+      <table>
+        <thead><tr>
+          <th>design</th><th>thumb&ndash;pair X</th><th>index&ndash;middle Y</th>
+          <th>grip depth</th><th>straddle</th><th>held lift</th><th>tips</th><th>persistence</th>
+        </tr></thead>
+        <tbody id="grasp-rows">
+          <tr><td class="name">rv00_wide</td><td>100&nbsp;mm</td><td>110&nbsp;mm</td><td colspan="5" class="dim">re-running with the corrected grasp</td></tr>
+          <tr><td class="name">rv01_compact</td><td>40</td><td>50</td><td colspan="5" class="dim">&mdash;</td></tr>
+          <tr><td class="name">rv02_narrowx</td><td>40</td><td>110</td><td colspan="5" class="dim">&mdash;</td></tr>
+          <tr><td class="name">rv03_narrowy</td><td>100</td><td>50</td><td colspan="5" class="dim">&mdash;</td></tr>
+          <tr><td class="name">rv04_mid</td><td>70</td><td>80</td><td colspan="5" class="dim">&mdash;</td></tr>
+          <tr><td class="name">rv05_manual <span class="dim">yours</span></td><td>74</td><td>60</td><td colspan="5" class="dim">&mdash;</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="col">One thing worth knowing before reading any per-design number: because the
+    fitter places fingertips at <em>world</em> targets, every design that can reach them grasps the
+    shaft at the same three points with the same pad geometry. The designs differ in the joint
+    configuration that gets there &mdash; effective stiffness at the contact, and what the hand can
+    do next &mdash; not in where they touch. Your <span class="mono">rv05_manual</span> is the
+    exception: its pose is yours, stored verbatim, a hook with negative MCP and strong PIP flexion
+    rather than the fitter's pinch.</p>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <p class="eyebrow">Prediction &middot; recorded before the policies exist</p>
+    <div class="col stack">
+      <h2>Wide straddle should be reorient-hostile</h2>
+      <p>The pinch axis is X and the shaft lies along Y, so standing the shaft up means rotating
+      it about the pinch axis. The thumb sits at y=0 and acts as the pivot; index and middle
+      straddle it and have to drive the rotation differentially, one tip up and one tip down. A
+      90&deg; turn moves each pair contact by its own Y offset in Z:</p>
+    </div>
+
+    <div class="scroller">
+      <table>
+        <thead><tr><th>design</th><th>pair at</th><th>tip travel for 90&deg;</th><th>as a fraction of reach</th></tr></thead>
+        <tbody>
+          <tr><td class="name">rv00_wide, rv02_narrowx</td><td>&plusmn;55&nbsp;mm</td><td>~55&nbsp;mm</td><td>0.70</td></tr>
+          <tr><td class="name">rv05_manual</td><td>&plusmn;30&nbsp;mm</td><td>~30&nbsp;mm</td><td>0.38</td></tr>
+          <tr><td class="name">rv01_compact, rv03_narrowy</td><td>&plusmn;25&nbsp;mm</td><td>~25&nbsp;mm</td><td>0.32</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="col">Against 78.66&nbsp;mm of total flexing reach, while keeping the grip. If the
+    wide-straddle designs reorient anyway, the mechanism is not this one &mdash; which is the point
+    of writing it down first. Nothing in the grasp stage can see this: pick-up and hold have been
+    solved on every hand this program has built.</p>
+
+    <p class="note col">Lift is 0.10&nbsp;m, so the shaft's lower end sits at z&nbsp;=&nbsp;0.0625
+    when vertical. This is a true in-hand reorient with no floor to brace against &mdash; unlike
+    m05 and perp, where the August 26 primitive study found 69% and 46% of the alignment gain
+    happened while the shaft still touched the table.</p>
+  </section>
+
+  <hr class="rule">
+
+  <section id="results">
+    <p class="eyebrow">In flight &middot; A &rarr; B</p>
+    <div class="col stack">
+      <h2>Training</h2>
+      <p id="train-status">The queue restarted on the corrected grasps. Policy A trains from
+      scratch per design and Policy B warmstarts only from that design's own A &mdash; nothing
+      transfers onto this hand, and b33 did not survive even a proximal-length change on the same
+      topology. Results land here as each design finishes.</p>
+    </div>
+    <div id="train-body"></div>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <p class="eyebrow">Reference</p>
+    <details>
+      <summary>Geometry, as modelled</summary>
+      <div class="details-body">
+        <p>Phalange half-width 10.55&nbsp;mm. Yaw and middle links 33.45&nbsp;mm axis-to-surface,
+        distal 37.16&nbsp;mm axis-to-pad. Consecutive links overlap 12.70&nbsp;mm, so joint spacing
+        is 20.75&nbsp;mm and total flexing reach is 78.66&nbsp;mm. Yaw &plusmn;85&deg;, MCP
+        &minus;15&deg;&hellip;+92&deg;, PIP &minus;18&deg;&hellip;+92&deg;. Mounts at thumb
+        (&minus;50,&nbsp;0), index (+50,&nbsp;+55), middle (+50,&nbsp;&minus;55)&nbsp;mm; gantry
+        travel 60&times;110 for the thumb and 60&times;60 for the pair. No proximal-length DoF
+        &mdash; the links are CAD parts, so the design space is the six XY dimensions.</p>
+      </div>
+    </details>
+    <details>
+      <summary>What to run next</summary>
+      <div class="details-body">
+        <p><span class="mono">scripts/probe_real_v1_slip.py</span> is the tool to reach for
+        whenever a grip &ldquo;should work&rdquo; &mdash; it takes a morphology run, applies that
+        run's own CEM grip and just holds, for far longer than an RL episode, and it sweeps pad
+        compliance, friction and palm height on one axis.</p>
+        <p>If the reorient is weak everywhere, the compliance question is still open but has to be
+        asked separately: TPU pads were ruled out as a fix for <em>this</em> failure, not as a
+        model of the hardware. The honest test is a stiffness sweep on a grasp that already holds.</p>
+      </div>
+    </details>
+    <details>
+      <summary>Files</summary>
+      <div class="details-body">
+        <p><span class="mono">assets/mjcf/real_v1/</span> &mdash; base hand, base scene, actuated
+        explorer, all emitted by <span class="mono">scripts/build_real_v1_scenes.py</span>
+        (<span class="mono">--check</span> fails on drift).<br>
+        <span class="mono">scripts/fit_real_v1_pose.py</span> &mdash; per-design grasp keyframe:
+        palm x/y/z and nine finger angles together.<br>
+        <span class="mono">scripts/real_v1_pipeline.py</span> &mdash; generate &rarr; fit+CEM
+        &rarr; A &rarr; B &rarr; handoff eval, resumable and stage-selectable.<br>
+        <span class="mono">docs/experiments/20260827-real_v1/</span> &mdash;
+        <span class="mono">SETUP.md</span>, <span class="mono">SLIP.md</span>,
+        <span class="mono">real_v1.json</span>, and the pre-fix grasp table kept as
+        <span class="mono">PRE-SLIPFIX_*</span>.<br>
+        <span class="mono">tests/test_real_v1_scene.py</span> &mdash; 13 pins on the CAD geometry.</p>
+      </div>
+    </details>
+  </section>
+
+  <footer>
+    <hr class="rule">
+    <p>Numbers here come from <span class="mono">docs/experiments/20260827-real_v1/</span> and the
+    2026-08-27 entry in <span class="mono">docs/rl/reorientation.md</span>. Policy A runs
+    <span class="mono">20260827-2112-policyA_rv00_wide_*</span> were trained against the broken
+    grasp and are superseded.</p>
+  </footer>
+
+</div>
