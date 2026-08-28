@@ -394,6 +394,8 @@ class Args:
     """Keyframe the finger anchor moves to once the object is reoriented (see env_cfg)."""
     hold_switch_align_thresh: float = 0.0
     hold_switch_steps: int = 60
+    hold_switch_from_sim_step: int = 0
+    """Sim step from which the hold anchor may sweep; breaks the alignment gate's circularity."""
     hold_switch_min_z: float = 0.0
     chuck_pose_npz: str = ""
     """Recorded object-frame fingertip hold configuration to reward matching once aligned."""
@@ -627,6 +629,7 @@ def main() -> None:
                           if args.hold_ctrl_from_keyframe else None),
         hold_switch_align_thresh=args.hold_switch_align_thresh,
         hold_switch_steps=args.hold_switch_steps,
+        hold_switch_from_sim_step=args.hold_switch_from_sim_step,
         hold_switch_min_z=args.hold_switch_min_z,
         chuck_pose_npz=args.chuck_pose_npz,
         chuck_pose_weight=args.chuck_pose_weight,

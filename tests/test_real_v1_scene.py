@@ -227,3 +227,57 @@ def test_generator_bakes_a_design_and_strips_the_morph_joints(tmp_path):
     assert m.body("thumb_mount").pos[0] == pytest.approx(-50 * MM + design.thumb_x)
     assert m.body("index_mount").pos[1] == pytest.approx(55 * MM + design.index_y)
     assert m.nexclude == mujoco.MjModel.from_xml_path(str(SCENE)).nexclude
+
+
+# --- the reorient mechanism (2026-08-28) --------------------------------------------------
+#
+# The four trained real_v1 designs held the shaft perfectly and turned it by 0.9-4 degrees.
+# The cause is geometric, not a training accident: a fixed-contact rotation of theta about the
+# pinch axis drives the DESCENDING pair contact down by straddle * sin(theta), which its finger
+# pays for by extending — and `fit_real_v1_pose` picks the deepest reachable palm, so every
+# design grasps within 1.3-9.6 mm of full extension. These pin the two things that fixed it.
+
+
+def test_axial_offset_slides_the_whole_contact_ring():
+    """`--axial-offset` moves the grip along the shaft without changing the straddle.
+
+    An off-centre grip is what buys back the palm clearance that a shallower, less-extended
+    grasp would cost: the stub above the grip is (half_len - offset), not half_len.
+    """
+    import fit_real_v1_pose as F
+
+    centre = np.zeros(3)
+    a = F.tip_targets(centre, 0.0125, 0.001, 0.030, 0.0, 0.0)
+    b = F.tip_targets(centre, 0.0125, 0.001, 0.030, 0.0, 0.025)
+    for f in FINGERS:
+        assert b[f][1] - a[f][1] == pytest.approx(0.025)
+        assert b[f][0] == pytest.approx(a[f][0])
+        assert b[f][2] == pytest.approx(a[f][2])
+    assert b["index"][1] - b["middle"][1] == pytest.approx(0.060)
+
+
+def test_finger_radial_workspace_is_a_thin_shell(scene_model):
+    """The pad's distance from its mount is confined to a band, and the TOP of that band is
+    what a fixed-contact rotation spends. 68.11 mm is the straight-chain reach: yaw link
+    20.75 + mcp-to-pip 20.75 + pip-to-pad 26.61."""
+    d = mujoco.MjData(scene_model)
+    mujoco.mj_forward(scene_model, d)
+    reach = (B.JOINT_SPACING + B.JOINT_SPACING + B.PAD_CENTER)
+    assert reach == pytest.approx(0.06811, abs=1e-5)
+    for f in FINGERS:
+        root = d.body(f"{f}_yaw_frame").xpos
+        tip = d.body(f"{f}_tip").xpos
+        assert np.linalg.norm(tip - root) == pytest.approx(reach, abs=1e-4)
+
+
+def test_hold_anchor_can_open_on_a_schedule():
+    """`hold_switch_from_sim_step` exists and defaults off.
+
+    The alignment gate alone is circular on this hand: the anchor only moves once the policy
+    rotates the shaft, and the grasp is a rotational lock, so it never opens. The step gate
+    turns the reorient into a residual problem instead of an exploration one."""
+    from morphohand.rl.actions import LerpFingerActionCfg
+    from morphohand.rl.env_cfg import MorphoHandEnvCfg
+
+    assert LerpFingerActionCfg.hold_switch_from_sim_step == 0
+    assert MorphoHandEnvCfg.hold_switch_from_sim_step == 0

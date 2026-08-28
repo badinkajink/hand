@@ -75,7 +75,7 @@ def _object_geometry(m: mujoco.MjModel, d: mujoco.MjData, body: str) -> tuple[np
 
 
 def tip_targets(center: np.ndarray, radius: float, gap: float, spread: float,
-                elevation_deg: float) -> dict[str, np.ndarray]:
+                elevation_deg: float, axial_offset: float = 0.0) -> dict[str, np.ndarray]:
     """Pad-CENTRE targets ringing the shaft. The shaft lies along world Y.
 
     KEEP `elevation_deg` AT OR BELOW ZERO. It was +10 for one day and it cost a training run.
@@ -97,10 +97,11 @@ def tip_targets(center: np.ndarray, radius: float, gap: float, spread: float,
     el = np.deg2rad(elevation_deg)
     dz = r * np.sin(el)
     dx = r * np.cos(el)
+    a = axial_offset
     return {
-        "thumb": center + np.array([-dx, 0.0, dz]),
-        "index": center + np.array([dx, spread, dz]),
-        "middle": center + np.array([dx, -spread, dz]),
+        "thumb": center + np.array([-dx, a, dz]),
+        "index": center + np.array([dx, a + spread, dz]),
+        "middle": center + np.array([dx, a - spread, dz]),
     }
 
 
@@ -282,7 +283,7 @@ def fit(scene: Path, gap: float, spread: float, elevation: float, object_body: s
         spreads: tuple[float, ...] | None = None,
         spread_max: float | None = None, spread_min: float = 0.020,
         spread_frac: float = 0.85, squeeze: float = 0.004, lift_probe: float = 0.05,
-        hold_min: float = 0.020):
+        hold_min: float = 0.020, axial_offset: float = 0.0):
     """Solve palm pose + finger angles for one design.
 
     Two things are fitted rather than fixed, both for the same reason: they are choices about
@@ -313,7 +314,7 @@ def fit(scene: Path, gap: float, spread: float, elevation: float, object_body: s
     centre, radius, half_len = _object_geometry(m, d, object_body)
     # Re-centre the pinch over the shaft: the mount midpoint should sit above the object.
     cx, cy = _mount_centre(m, d)
-    px, py = float(centre[0] - cx), float(centre[1] - cy)
+    px, py = float(centre[0] - cx), float(centre[1] + axial_offset - cy)
 
     # WHICH (spread, palm height) PAIR IS CHOSEN IS DECIDED BY A ROLLOUT, NOT BY REACHABILITY.
     #
@@ -332,16 +333,17 @@ def fit(scene: Path, gap: float, spread: float, elevation: float, object_body: s
     # through a scripted close -> lift -> hold and scored on what it is still holding at the
     # end. It costs ~1 s of CPU per design and it is the same open-loop-probe-before-RL rule
     # the rest of this program runs on.
+    reach = half_len - abs(axial_offset)          # shaft left on the short side of the ring
     if spreads is None:
-        hi = min(spread_max if spread_max else spread_frac * half_len, half_len - 0.005)
+        hi = min(spread_max if spread_max else spread_frac * half_len, reach - 0.005)
         n = max(1, int(round((hi - spread_min) / 0.005)))
         spreads = tuple(hi - k * 0.005 for k in range(n + 1))
-    spreads = tuple(s for s in spreads if 0.005 <= s <= half_len - 0.005)
+    spreads = tuple(s for s in spreads if 0.0 <= s <= reach - 0.005)
 
     obj_z0 = float(centre[2])
     cands = []
     for sp in spreads:
-        targets = tip_targets(centre, radius, gap, sp, elevation)
+        targets = tip_targets(centre, radius, gap, sp, elevation, axial_offset)
         pz_top = _deepest(m, d, targets, px, py, seed, res_tol, pz_lo, pz_hi, pz_step)
         if pz_top is None:
             if verbose:
@@ -354,7 +356,8 @@ def fit(scene: Path, gap: float, spread: float, elevation: float, object_body: s
                 continue
             open_qpos = d.qpos.copy()
             # The squeeze: the same targets pulled `squeeze` metres INSIDE the shaft surface.
-            solve(m, d, tip_targets(centre, radius, gap - squeeze, sp, elevation),
+            solve(m, d, tip_targets(centre, radius, gap - squeeze, sp, elevation,
+                                    axial_offset),
                   px, py, pz, seed, iters=600)
             grip_ctrl = np.array(actuator_ctrl_from_qpos(m, d))
             held = hold_probe(m, d, open_qpos, grip_ctrl, lift_probe, obj_z0, object_body)
@@ -387,7 +390,7 @@ def fit(scene: Path, gap: float, spread: float, elevation: float, object_body: s
     if best is None:
         return None
 
-    targets = tip_targets(centre, radius, gap, spread, elevation)
+    targets = tip_targets(centre, radius, gap, spread, elevation, axial_offset)
     res, marg = solve(m, d, targets, px, py, best, seed, iters=600)
     depth = float(d.body("palm_pose").xpos[2] - centre[2])
     ceiling = min(1.0, depth / half_len) if half_len > 0 else float("nan")
@@ -402,6 +405,8 @@ def fit(scene: Path, gap: float, spread: float, elevation: float, object_body: s
         "targets": {f: t.tolist() for f, t in targets.items()},
         "gap_mm": gap * 1000.0,
         "spread_mm": spread * 1000.0,
+        "axial_offset_mm": axial_offset * 1000.0,
+        "grip_offset_frac": float(axial_offset / half_len) if half_len else float("nan"),
         "elevation_deg": elevation,
         "probe_held_lift_mm": best_c["held"] * 1000.0,
         "probe_candidates": [
@@ -459,6 +464,10 @@ def main() -> int:
                     help="metres the hold probe raises the palm by")
     ap.add_argument("--hold-min", type=float, default=0.020,
                     help="metres of lift the probe must still hold for a pose to count")
+    ap.add_argument("--axial-offset", type=float, default=0.0,
+                    help="metres to slide the whole contact ring along the shaft, away from its "
+                         "centre of mass. 0 = the centred tripod, which is a rotational LOCK "
+                         "about the pinch axis; see probe_real_v1_pivot.py")
     ap.add_argument("--elevation", type=float, default=0.0,
                     help="degrees above the shaft's equator to place the pads; see tip_targets")
     ap.add_argument("--pz-lo", type=float, default=-0.030)
@@ -479,7 +488,8 @@ def main() -> int:
               seed_keyframe=args.seed_keyframe, res_tol=args.res_tol,
               spreads=(args.spread,) if args.spread else None,
               spread_min=args.spread_min, spread_frac=args.spread_frac,
-              squeeze=args.squeeze, lift_probe=args.lift_probe, hold_min=args.hold_min)
+              squeeze=args.squeeze, lift_probe=args.lift_probe, hold_min=args.hold_min,
+              axial_offset=args.axial_offset)
     if out is None:
         print(f"FAIL {args.scene.name}: no pose reaches the shaft AND holds it "
               f"(needs >= {args.hold_min*1000:.0f} mm of lift retained)")
@@ -500,7 +510,7 @@ def main() -> int:
         # Same spread the fit SETTLED on, not the requested one -- an approach pose at a
         # different spread than the grasp makes closing a lateral move, not a squeeze.
         tg = tip_targets(centre, radius, args.open_gap, report["spread_mm"] / 1000.0,
-                         args.elevation)
+                         args.elevation, args.axial_offset)
         p = report["palm"]
         solve(m, d, tg, p["px"], p["py"], p["pz"], seed)
         if args.write:

@@ -510,6 +510,8 @@ class MorphoHandEnvCfg:
     holding the grasp set-point for the whole episode. Empty disables the schedule."""
     hold_switch_align_thresh: float = 0.0
     """Alignment cos at which that move begins (latched per env). 0 disables."""
+    hold_switch_from_sim_step: int = 0
+    """Sim step from which the hold anchor may start sweeping. 0 = alignment-gated only."""
     hold_switch_steps: int = 60
     """Sim steps to blend between the two set-points."""
     hold_switch_min_z: float = 0.0

@@ -188,6 +188,17 @@ class LerpFingerActionCfg(ActionTermCfg):
     schedule: a step gate has to be guessed from the previous run's trajectory and is invalidated
     by the very learning it is meant to shape. Latched per env — once the shaft is up, the anchor
     stays moved, so a momentary wobble does not yank the hand back to the grasp pose."""
+    hold_switch_from_sim_step: int = 0
+    """Sim step from which the anchor may start moving to `hold_target_ctrl`. 0 = no gate.
+
+    The alignment gate below is the right shape when the policy can already produce SOME
+    rotation, because it then only pays for what it has earned. On `real_v1` it cannot: the
+    grasp is a rotational lock and the four trained designs reached 0.9-4 degrees, so an
+    alignment-latched anchor never opens and the policy never learns that the anchor moves.
+    A step gate breaks that circularity -- the anchor sweeps on schedule after the lift, which
+    turns the reorient into a residual problem (the same shape as the scripted lift Policy A
+    rides on) instead of an exploration problem. Combine with `hold_switch_min_z` so a dropped
+    object does not get the sweep for free."""
     hold_switch_min_z: float = 0.0
     """Object height (m) ALSO required before the anchor moves. 0 = height ignored.
 
@@ -287,11 +298,16 @@ class LerpFingerAction(ActionTerm):
         alpha = alpha.unsqueeze(-1)  # (B, 1)
         offset = (1.0 - alpha) * self._start.unsqueeze(0) + alpha * self._target.unsqueeze(0)  # (B, N)
 
-        if self._hold is not None and self.cfg.hold_switch_align_thresh > 0.0:
+        if self._hold is not None and (self.cfg.hold_switch_align_thresh > 0.0
+                                       or self.cfg.hold_switch_from_sim_step > 0):
             obj = self._env.scene[self.cfg.hold_object_name].data.root_link_pose_w
-            qw, qx, qy, qz = obj[:, 3], obj[:, 4], obj[:, 5], obj[:, 6]
-            cos = 1.0 - 2.0 * (qx * qx + qy * qy)          # object body +z against world +z
-            up = (cos >= float(self.cfg.hold_switch_align_thresh))
+            up = torch.ones(self.num_envs, device=self.device, dtype=torch.bool)
+            if self.cfg.hold_switch_align_thresh > 0.0:
+                qx, qy = obj[:, 4], obj[:, 5]
+                cos = 1.0 - 2.0 * (qx * qx + qy * qy)      # object body +z against world +z
+                up = up & (cos >= float(self.cfg.hold_switch_align_thresh))
+            if self.cfg.hold_switch_from_sim_step > 0:
+                up = up & (self._sim_step >= int(self.cfg.hold_switch_from_sim_step))
             if self.cfg.hold_switch_min_z > 0.0:
                 up = up & (obj[:, 2] >= float(self.cfg.hold_switch_min_z))
             up = up.float()
