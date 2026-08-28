@@ -106,11 +106,17 @@ def cmd_plan(args) -> int:
               f"it can never start. Raise --block-hours.", file=sys.stderr)
         return 1
 
-    # Packing waste is the tail of each block: on average half a task's length.
-    workers = max(1, round(left / (b * 0.85) + 0.5))
+    # Reason in whole tasks, not in a fudge factor. A block fits floor(usable /
+    # longest) tasks, and reserving a worker that can only be half-filled is pure
+    # waste under reservation billing — so round DOWN on workers, never up.
+    usable = b - 300 / 3600.0                      # the runner's own tail margin
+    per_block = max(1, int(usable // longest)) if longest else len(todo)
+    workers = max(1, -(-len(todo) // per_block))   # ceil division on TASKS
     print(f"{left:.1f} GPU-hours remain, longest task {longest:.1f}h")
+    print(f"  a {b:.0f}h block fits {per_block} task(s)")
     print(f"  {workers} worker(s) x {b:.0f}h blocks = {workers * b:.0f} SU reserved "
-          f"(~{workers * b - left:.1f} SU of tail waste)")
+          f"(~{workers * b - left:.1f} SU of tail, only billed if charging is on the "
+          f"reservation — the runner exits early either way)")
     print(f"  wall clock if all {workers} run concurrently: ~{left / workers:.1f} h")
     print()
     print(f"  for i in $(seq {workers}); do sbatch --time={int(b):02d}:00:00 "

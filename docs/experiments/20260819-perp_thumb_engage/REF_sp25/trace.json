@@ -1,0 +1,84 @@
+{
+  "label": "REF_sp25",
+  "scene": "results/phase1/perp_thumb_engage/sp25_manual/frozen_scene.xml",
+  "start_keyframe": "open_manual",
+  "lift": 0.14,
+  "engage": false,
+  "thumb_s": -0.03,
+  "thumb_depth": 0.004,
+  "thumb_track": false,
+  "pinch_depth": 0.0002,
+  "chuck_tilt": 0.0,
+  "chuck_depth": 0.003,
+  "peak_cos": 0.24257819353849946,
+  "final_cos": 0.24257819353849946,
+  "final_z": 0.14854661477560055,
+  "thumb_peak_force": 0.0,
+  "verdict": "HELD",
+  "trace": [
+    {
+      "phase": "settle",
+      "step": 0,
+      "cos": 4.68306622325968e-34,
+      "obj_z": 0.0123992,
+      "obj_palm": [
+        0.0,
+        -0.0,
+        -0.0826
+      ],
+      "f_thumb": 0.0,
+      "f_index": 0.0,
+      "f_middle": 0.0,
+      "gap_thumb": 0.008515963131882532,
+      "on_floor": true
+    },
+    {
+      "phase": "settle",
+      "step": 200,
+      "cos": 1.1145169773431443e-33,
+      "obj_z": 0.012399247368604744,
+      "obj_palm": [
+        -0.0,
+        0.0,
+        -0.08231
+      ],
+      "f_thumb": 0.0,
+      "f_index": 0.0,
+      "f_middle": 0.0,
+      "gap_thumb": 0.008462241001551086,
+      "on_floor": true
+    },
+    {
+      "phase": "lift",
+      "step": 400,
+      "cos": 0.08240101379349914,
+      "obj_z": 0.04078941182567445,
+      "obj_palm": [
+        0.01692,
+        -3e-05,
+        -0.08398
+      ],
+      "f_thumb": 0.0,
+      "f_index": 16.26551835049051,
+      "f_middle": 16.28062638009665,
+      "gap_thumb": 0.009607779027141229,
+      "on_floor": false
+    },
+    {
+      "phase": "hang",
+      "step": 599,
+      "cos": 0.24257819353849946,
+      "obj_z": 0.14854661477560055,
+      "obj_palm": [
+        0.01709,
+        -8e-05,
+        -0.08585
+      ],
+      "f_thumb": 0.0,
+      "f_index": 16.164954647747717,
+      "f_middle": 16.18337688846471,
+      "gap_thumb": 0.014206866538849653,
+      "on_floor": false
+    }
+  ]
+}

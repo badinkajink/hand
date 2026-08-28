@@ -1,0 +1,244 @@
+{
+  "label": "C_chuck60_long",
+  "scene": "assets/mjcf/perp/scenes/scene_screwdriver_medium_perp.xml",
+  "start_keyframe": "open_manual",
+  "lift": 0.14,
+  "engage": true,
+  "thumb_s": 0.005,
+  "thumb_depth": 0.004,
+  "thumb_track": false,
+  "pinch_depth": 0.003,
+  "chuck_tilt": 60.0,
+  "chuck_depth": 0.003,
+  "peak_cos": 0.9941337914034664,
+  "final_cos": -5.828670879282072e-16,
+  "final_z": 0.012399247368604743,
+  "thumb_peak_force": 1.2322575240728004,
+  "verdict": "RELEASED-on-floor",
+  "trace": [
+    {
+      "phase": "settle",
+      "step": 0,
+      "cos": 0.0,
+      "obj_z": 0.012,
+      "obj_palm": [
+        0.0,
+        0.0,
+        -0.108
+      ],
+      "f_thumb": 0.0,
+      "f_index": 0.0,
+      "f_middle": 0.0,
+      "gap_thumb": 0.008339730085421727,
+      "on_floor": true
+    },
+    {
+      "phase": "close",
+      "step": 400,
+      "cos": -0.0011818362776547563,
+      "obj_z": 0.012163299881530868,
+      "obj_palm": [
+        0.00668,
+        0.00067,
+        -0.10827
+      ],
+      "f_thumb": 0.0,
+      "f_index": 9.15088984091347,
+      "f_middle": 7.373378242078315,
+      "gap_thumb": 0.00814239289696487,
+      "on_floor": true
+    },
+    {
+      "phase": "lift",
+      "step": 800,
+      "cos": 0.44156438616660315,
+      "obj_z": 0.10909164405271869,
+      "obj_palm": [
+        0.01647,
+        -0.00081,
+        -0.11109
+      ],
+      "f_thumb": 0.0,
+      "f_index": 6.795874354777974,
+      "f_middle": 6.792833114933527,
+      "gap_thumb": 0.021061807776008794,
+      "on_floor": false
+    },
+    {
+      "phase": "engage",
+      "step": 1200,
+      "cos": 0.9036902813183042,
+      "obj_z": 0.14517645265904636,
+      "obj_palm": [
+        0.02664,
+        -0.00049,
+        -0.11447
+      ],
+      "f_thumb": 1.134279627432652,
+      "f_index": 15.067642559340205,
+      "f_middle": 15.53117935587036,
+      "gap_thumb": 0.004776696336345811,
+      "on_floor": false
+    },
+    {
+      "phase": "press",
+      "step": 1600,
+      "cos": 0.9410565641395098,
+      "obj_z": 0.1483352014368663,
+      "obj_palm": [
+        0.03567,
+        -0.00133,
+        -0.11131
+      ],
+      "f_thumb": 1.2322575240728004,
+      "f_index": 9.411992277898097,
+      "f_middle": 10.10568689448317,
+      "gap_thumb": 0.0036376406447216954,
+      "on_floor": false
+    },
+    {
+      "phase": "press",
+      "step": 2000,
+      "cos": 0.9941337914034664,
+      "obj_z": 0.14764279754220086,
+      "obj_palm": [
+        0.03748,
+        -0.00124,
+        -0.112
+      ],
+      "f_thumb": 0.04767439304393124,
+      "f_index": 1.9939609687245128,
+      "f_middle": 2.032502143257966,
+      "gap_thumb": 0.00397313703478097,
+      "on_floor": false
+    },
+    {
+      "phase": "press",
+      "step": 2400,
+      "cos": 0.20088311946830967,
+      "obj_z": 0.02228282495661022,
+      "obj_palm": [
+        0.07775,
+        0.01297,
+        -0.23742
+      ],
+      "f_thumb": 0.0,
+      "f_index": 0.0,
+      "f_middle": 0.0,
+      "gap_thumb": 0.11377315731568517,
+      "on_floor": true
+    },
+    {
+      "phase": "press",
+      "step": 2800,
+      "cos": -1.6653345369377348e-16,
+      "obj_z": 0.012399247368604743,
+      "obj_palm": [
+        0.08153,
+        0.01648,
+        -0.24731
+      ],
+      "f_thumb": 0.0,
+      "f_index": 0.0,
+      "f_middle": 0.0,
+      "gap_thumb": 0.11442463811080404,
+      "on_floor": true
+    },
+    {
+      "phase": "press",
+      "step": 3200,
+      "cos": -4.163336342344337e-17,
+      "obj_z": 0.012399247368604743,
+      "obj_palm": [
+        0.08085,
+        0.01841,
+        -0.24731
+      ],
+      "f_thumb": 0.0,
+      "f_index": 0.0,
+      "f_middle": 0.0,
+      "gap_thumb": 0.11422026401564216,
+      "on_floor": true
+    },
+    {
+      "phase": "press",
+      "step": 3600,
+      "cos": -3.7470027081099033e-16,
+      "obj_z": 0.012399247368604743,
+      "obj_palm": [
+        0.08018,
+        0.02033,
+        -0.24731
+      ],
+      "f_thumb": 0.0,
+      "f_index": 0.0,
+      "f_middle": 0.0,
+      "gap_thumb": 0.11404715850387744,
+      "on_floor": true
+    },
+    {
+      "phase": "press",
+      "step": 4000,
+      "cos": 2.914335439641036e-16,
+      "obj_z": 0.012399247368604743,
+      "obj_palm": [
+        0.07951,
+        0.02225,
+        -0.24731
+      ],
+      "f_thumb": 0.0,
+      "f_index": 0.0,
+      "f_middle": 0.0,
+      "gap_thumb": 0.11390544418568117,
+      "on_floor": true
+    },
+    {
+      "phase": "press",
+      "step": 4400,
+      "cos": -4.718447854656915e-16,
+      "obj_z": 0.012399247368604743,
+      "obj_palm": [
+        0.07884,
+        0.02417,
+        -0.24731
+      ],
+      "f_thumb": 0.0,
+      "f_index": 0.0,
+      "f_middle": 0.0,
+      "gap_thumb": 0.11379522192924281,
+      "on_floor": true
+    },
+    {
+      "phase": "press",
+      "step": 4800,
+      "cos": -3.885780586188048e-16,
+      "obj_z": 0.012399247368604743,
+      "obj_palm": [
+        0.07817,
+        0.0261,
+        -0.24731
+      ],
+      "f_thumb": 0.0,
+      "f_index": 0.0,
+      "f_middle": 0.0,
+      "gap_thumb": 0.11371657051212085,
+      "on_floor": true
+    },
+    {
+      "phase": "press",
+      "step": 4869,
+      "cos": -5.828670879282072e-16,
+      "obj_z": 0.012399247368604743,
+      "obj_palm": [
+        0.07805,
+        0.02643,
+        -0.24731
+      ],
+      "f_thumb": 0.0,
+      "f_index": 0.0,
+      "f_middle": 0.0,
+      "gap_thumb": 0.11370620031213484,
+      "on_floor": true
+    }
+  ]
+}
