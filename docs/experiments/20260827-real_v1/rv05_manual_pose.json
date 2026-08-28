@@ -1,0 +1,10 @@
+{
+  "_source": "Hand-authored by the user in assets/mjcf/real_v1/hand_actuated_morphology_15dof.xml, 2026-08-27, read out of its qpos.",
+  "_why_here": "NOT inside the generated scene. scripts/real_v1_pipeline.py regenerates that scene from the base pair on every `generate` stage, which silently discards any keyframe injected into it — that is exactly how this pose was lost once already. The pipeline re-injects from this file after generation.",
+  "_layout": "palm_pz is the ABSOLUTE palm world height; the actuated explorer mounts the palm at 0.134 and the base pair at 0.0625, so the joint value does not transfer between them.",
+  "morphology": {"thumb": [0.011, 0.0, 0.0], "index": [-0.015, -0.03, 0.0], "middle": [-0.0015, 0.02, 0.0]},
+  "palm": {"px": 0.0, "py": 0.0, "pz_world": 0.074, "rx": 0.0, "ry": 0.0, "rz": 0.0},
+  "fingers": {"thumb": [0.0, -0.22, 0.96], "index": [0.0, -0.26, 0.85], "middle": [0.18, 0.24, 0.57]},
+  "object": {"pos": [0.0, 0.0, 0.0125], "quat": [0.70711, 0.70711, 0.0, 0.0]},
+  "measured_pad_elevation_deg": {"thumb": 1.9, "index": -3.2, "middle": 7.5}
+}

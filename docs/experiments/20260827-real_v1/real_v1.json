@@ -137,7 +137,219 @@
   },
   "cem_tag": "rv00_wide_sp30",
   "spread_mm": 30,
-  "seconds": 282.7
+  "seconds": 5300.9,
+  "A": {
+   "kept": {
+    "run": "/home/humanoid/Programs/hand/results/rl/20260827-2232-policyA_rv00_wide_t0",
+    "ck": "/home/humanoid/Programs/hand/results/rl/20260827-2232-policyA_rv00_wide_t0/tensorboard/model_609.pt",
+    "aborted": false,
+    "health": {
+     "verdict": "WARN",
+     "checks": {
+      "late_finger": {
+       "status": "PASS",
+       "value": 0.0,
+       "detail": "(thumb@0, index@0, middle@0)"
+      },
+      "idle_finger": {
+       "status": "PASS",
+       "value": 3.0,
+       "detail": "thumb=14.3N/1.00 index=8.1N/1.00 middle=6.6N/1.00"
+      },
+      "drop": {
+       "status": "PASS",
+       "value": 0.1141,
+       "detail": "min hold-phase obj-z 0.114 m (floor<0.05)"
+      },
+      "jitter": {
+       "status": "PASS",
+       "value": 6.0459,
+       "detail": "ang-jerk 6.0 1/s^2"
+      },
+      "de_centering": {
+       "status": "WARN",
+       "value": 23.9152,
+       "detail": "sliding: path 2.4cm >> net 0.0cm"
+      },
+      "over_clamp": {
+       "status": "WARN",
+       "value": 9.6858,
+       "detail": "mean fingertip 9.7 N (reward saturates ~3N)"
+      }
+     },
+     "metrics": {
+      "first_contact": [
+       0,
+       0,
+       0
+      ],
+      "contact_spread": 0.0,
+      "touch_frac": [
+       1.0,
+       1.0,
+       1.0
+      ],
+      "force_mean": [
+       14.3,
+       8.1,
+       6.6
+      ],
+      "contact_count": 3.0,
+      "min_z_hold": 0.1141,
+      "ang_jerk": 6.0,
+      "net_drift_cm": 0.0,
+      "slide_ratio": 23.9,
+      "tip_force": 9.7,
+      "held_cos_tail": -0.111,
+      "peak_cos": 0.018
+     },
+     "policy": "/home/humanoid/Programs/hand/results/rl/20260827-2232-policyA_rv00_wide_t0/tensorboard/model_609.pt",
+     "title": "policyA_rv00_wide_t0"
+    },
+    "oh": 0.1123
+   },
+   "attempts": [
+    {
+     "run": "/home/humanoid/Programs/hand/results/rl/20260827-2232-policyA_rv00_wide_t0",
+     "ck": "/home/humanoid/Programs/hand/results/rl/20260827-2232-policyA_rv00_wide_t0/tensorboard/model_609.pt",
+     "aborted": false,
+     "health": {
+      "verdict": "WARN",
+      "checks": {
+       "late_finger": {
+        "status": "PASS",
+        "value": 0.0,
+        "detail": "(thumb@0, index@0, middle@0)"
+       },
+       "idle_finger": {
+        "status": "PASS",
+        "value": 3.0,
+        "detail": "thumb=14.3N/1.00 index=8.1N/1.00 middle=6.6N/1.00"
+       },
+       "drop": {
+        "status": "PASS",
+        "value": 0.1141,
+        "detail": "min hold-phase obj-z 0.114 m (floor<0.05)"
+       },
+       "jitter": {
+        "status": "PASS",
+        "value": 6.0459,
+        "detail": "ang-jerk 6.0 1/s^2"
+       },
+       "de_centering": {
+        "status": "WARN",
+        "value": 23.9152,
+        "detail": "sliding: path 2.4cm >> net 0.0cm"
+       },
+       "over_clamp": {
+        "status": "WARN",
+        "value": 9.6858,
+        "detail": "mean fingertip 9.7 N (reward saturates ~3N)"
+       }
+      },
+      "metrics": {
+       "first_contact": [
+        0,
+        0,
+        0
+       ],
+       "contact_spread": 0.0,
+       "touch_frac": [
+        1.0,
+        1.0,
+        1.0
+       ],
+       "force_mean": [
+        14.3,
+        8.1,
+        6.6
+       ],
+       "contact_count": 3.0,
+       "min_z_hold": 0.1141,
+       "ang_jerk": 6.0,
+       "net_drift_cm": 0.0,
+       "slide_ratio": 23.9,
+       "tip_force": 9.7,
+       "held_cos_tail": -0.111,
+       "peak_cos": 0.018
+      },
+      "policy": "/home/humanoid/Programs/hand/results/rl/20260827-2232-policyA_rv00_wide_t0/tensorboard/model_609.pt",
+      "title": "policyA_rv00_wide_t0"
+     },
+     "oh": 0.1123
+    }
+   ]
+  },
+  "B": {
+   "run": "/home/humanoid/Programs/hand/results/rl/20260827-2325-policyB_rv00_wide_reorient",
+   "ck": "/home/humanoid/Programs/hand/results/rl/20260827-2325-policyB_rv00_wide_reorient/tensorboard/model_270.pt",
+   "aborted": false
+  },
+  "handoff": {
+   "video": "/home/humanoid/Programs/hand/docs/rl/videos/20260827_real_v1/rv00_wide_handoff.mp4",
+   "min_z_post": 0.1161,
+   "health": {
+    "verdict": "WARN",
+    "checks": {
+     "late_finger": {
+      "status": "PASS",
+      "value": 0.0,
+      "detail": "(thumb@0, index@0, middle@0)"
+     },
+     "idle_finger": {
+      "status": "PASS",
+      "value": 3.0,
+      "detail": "thumb=25.9N/1.00 index=13.9N/1.00 middle=12.3N/1.00"
+     },
+     "drop": {
+      "status": "PASS",
+      "value": 0.1161,
+      "detail": "min hold-phase obj-z 0.116 m (floor<0.05)"
+     },
+     "jitter": {
+      "status": "PASS",
+      "value": 15.7211,
+      "detail": "ang-jerk 15.7 1/s^2"
+     },
+     "de_centering": {
+      "status": "WARN",
+      "value": 35.1756,
+      "detail": "sliding: path 5.9cm >> net 0.2cm"
+     },
+     "over_clamp": {
+      "status": "WARN",
+      "value": 17.3686,
+      "detail": "mean fingertip 17.4 N (reward saturates ~3N)"
+     }
+    },
+    "metrics": {
+     "first_contact": [
+      0,
+      0,
+      0
+     ],
+     "contact_spread": 0.0,
+     "touch_frac": [
+      1.0,
+      1.0,
+      1.0
+     ],
+     "force_mean": [
+      25.9,
+      13.9,
+      12.3
+     ],
+     "contact_count": 3.0,
+     "min_z_hold": 0.1161,
+     "ang_jerk": 15.7,
+     "net_drift_cm": 0.2,
+     "slide_ratio": 35.2,
+     "tip_force": 17.4,
+     "held_cos_tail": -0.093,
+     "peak_cos": 0.019
+    }
+   }
+  }
  },
  {
   "id": "rv01_compact",
@@ -568,6 +780,101 @@
   },
   "cem_tag": "rv05_manual_stored",
   "spread_mm": 0,
-  "seconds": 146.5
+  "seconds": 905.4,
+  "A": {
+   "kept": {
+    "run": "/home/humanoid/Programs/hand/results/rl/20260827-2217-policyA_rv05_manual_t0",
+    "ck": "/home/humanoid/Programs/hand/results/rl/20260827-2217-policyA_rv05_manual_t0/tensorboard/model_0.pt",
+    "aborted": true,
+    "health": null,
+    "oh": 0.0
+   },
+   "attempts": [
+    {
+     "run": "/home/humanoid/Programs/hand/results/rl/20260827-2217-policyA_rv05_manual_t0",
+     "ck": "/home/humanoid/Programs/hand/results/rl/20260827-2217-policyA_rv05_manual_t0/tensorboard/model_0.pt",
+     "aborted": true,
+     "health": null,
+     "oh": 0.0
+    },
+    {
+     "run": "/home/humanoid/Programs/hand/results/rl/20260827-2221-policyA_rv05_manual_t1",
+     "ck": "/home/humanoid/Programs/hand/results/rl/20260827-2221-policyA_rv05_manual_t1/tensorboard/model_0.pt",
+     "aborted": true,
+     "health": null,
+     "oh": 0.0
+    }
+   ]
+  },
+  "B": {
+   "run": "/home/humanoid/Programs/hand/results/rl/20260827-2225-policyB_rv05_manual_reorient",
+   "ck": "/home/humanoid/Programs/hand/results/rl/20260827-2225-policyB_rv05_manual_reorient/tensorboard/model_0.pt",
+   "aborted": true
+  },
+  "handoff": {
+   "video": "/home/humanoid/Programs/hand/docs/rl/videos/20260827_real_v1/rv05_manual_handoff.mp4",
+   "min_z_post": 0.0078,
+   "health": {
+    "verdict": "FAIL",
+    "checks": {
+     "late_finger": {
+      "status": "PASS",
+      "value": 0.0,
+      "detail": "(thumb@0, index@0, middle@0)"
+     },
+     "idle_finger": {
+      "status": "FAIL",
+      "value": 0.0,
+      "detail": "idle: thumb,index,middle | thumb=0.0N/0.00 index=0.0N/0.00 middle=0.0N/0.00"
+     },
+     "drop": {
+      "status": "FAIL",
+      "value": 0.0123,
+      "detail": "min hold-phase obj-z 0.012 m (floor<0.05)"
+     },
+     "jitter": {
+      "status": "PASS",
+      "value": 0.0885,
+      "detail": "ang-jerk 0.1 1/s^2"
+     },
+     "de_centering": {
+      "status": "FAIL",
+      "value": 10.2754,
+      "detail": "net lateral drift 10.3 cm (path 10.3)"
+     },
+     "over_clamp": {
+      "status": "PASS",
+      "value": 0.0,
+      "detail": "mean fingertip 0.0 N (reward saturates ~3N)"
+     }
+    },
+    "metrics": {
+     "first_contact": [
+      0,
+      0,
+      0
+     ],
+     "contact_spread": 0.0,
+     "touch_frac": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "force_mean": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "contact_count": 0.0,
+     "min_z_hold": 0.0123,
+     "ang_jerk": 0.1,
+     "net_drift_cm": 10.3,
+     "slide_ratio": 1.0,
+     "tip_force": 0.0,
+     "held_cos_tail": 0.0,
+     "peak_cos": 0.086
+    }
+   }
+  }
  }
 ]

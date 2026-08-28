@@ -40,6 +40,8 @@ import sys
 import time
 from pathlib import Path
 
+import numpy as np
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from morphohand.tools.morphology_xml import MorphologyValues  # noqa: E402
@@ -120,6 +122,52 @@ def gen_scene(vec: list[float], env) -> Path:
 SPREADS_MM = (30, 40)
 
 
+STORED_POSES = {"rv05_manual": DOCS / "rv05_manual_pose.json"}
+
+
+def inject_stored_pose(scene: Path, mid: str) -> dict:
+    """Write an authored grasp keyframe into a freshly generated scene.
+
+    MUST run after every `generate`. `pose: "stored"` stops the FITTER from overwriting an
+    authored pose, but generation rewrites the scene file wholesale from the base pair and
+    carries the BASE's keyframes forward — so the authored pose was silently replaced by a pose
+    belonging to different mounts. On rv05_manual that put the thumb pad 10 mm INSIDE the shaft
+    at reset: CEM still found a working grip from that seed and reported held +49.4 mm, but the
+    RL env resets to the keyframe, so every episode began by ejecting the object. Policy A
+    collapsed on both draws with contact_count 0.00 and 10.3 cm of object drift.
+
+    The authored pose therefore lives in `docs/experiments/.../<mid>_pose.json`, outside the
+    generated scene, and is re-injected here.
+    """
+    import mujoco
+    from morphohand.tools.keyframe_ik import actuator_ctrl_from_qpos, inject_keyframe
+
+    spec = json.loads(STORED_POSES[mid].read_text())
+    m = mujoco.MjModel.from_xml_path(str(scene))
+    d = mujoco.MjData(m)
+    palm = spec["palm"]
+    pz = palm["pz_world"] - float(m.body("palm_pose").pos[2])
+    qpos = (list(spec["object"]["pos"]) + list(spec["object"]["quat"])
+            + [palm["px"], palm["py"], pz, palm["rx"], palm["ry"], palm["rz"]]
+            + spec["fingers"]["thumb"] + spec["fingers"]["index"] + spec["fingers"]["middle"])
+    if len(qpos) != m.nq:
+        raise ValueError(f"{mid}: stored pose has {len(qpos)} qpos, scene wants {m.nq}")
+    d.qpos[:] = qpos
+    mujoco.mj_forward(m, d)
+    q = " ".join(f"{v:.6g}" for v in d.qpos)
+    c = " ".join(f"{v:.6g}" for v in actuator_ctrl_from_qpos(m, d))
+    for name in ("open_ik", "open"):
+        inject_keyframe(scene, name, q, c)
+    obj = d.body("screwdriver_medium").xpos
+    elev = {}
+    for f in ("thumb", "index", "middle"):
+        t = d.body(f"{f}_tip").xpos
+        elev[f] = round(float(np.degrees(np.arctan2(t[2] - obj[2], abs(t[0] - obj[0])))), 1)
+    runlib.log(f"  {mid}: stored pose re-injected, pad elevation {elev}")
+    return {"authored": True, "self_collisions": [], "pad_elevation_deg": elev,
+            "palm_z_world": palm["pz_world"]}
+
+
 def fit_pose(scene: Path, tag: str, env, spread_mm: int) -> dict:
     """Solve palm pose + finger angles at a GIVEN straddle and write `open_ik` / `open`.
 
@@ -157,11 +205,11 @@ def fit_and_cem(scene: Path, mid: str, env, iters: int, render: bool) -> dict:
     if DESIGNS[mid].get("pose") == "stored":
         # An authored grasp: CEM refines the grip from it, but the pose itself is not ours to
         # re-fit. One straddle, because the straddle is already baked into the stored keyframe.
+        pose = inject_stored_pose(scene, mid)
         cem = run_cem(scene, f"{mid}_stored", env, iters, render)
         runlib.log(f"  {mid} stored pose -> held {held_lift(cem)*1000:+.1f}mm "
                    f"pers {cem.get('contact_persistence', float('nan')):.2f}")
-        return {"spread_mm": 0, "tag": f"{mid}_stored", "cem": cem,
-                "pose": {"authored": True, "self_collisions": []}}
+        return {"spread_mm": 0, "tag": f"{mid}_stored", "cem": cem, "pose": pose}
 
     best = None
     errors = []

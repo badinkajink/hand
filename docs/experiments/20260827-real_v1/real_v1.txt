@@ -6,3 +6,5 @@ rv02_narrowx   | depth   nanmm ceil nan | sp  0mm held +nan peak nan tips nan pe
 rv03_narrowy   | depth  53.0mm ceil 1.00 | sp 40mm held +0.050 peak 0.050 tips 3.0 pers 1.00 | minZ       — cos       — | —
 rv04_mid       | depth  65.0mm ceil 1.00 | sp 30mm held +0.050 peak 0.050 tips 3.0 pers 1.00 | minZ       — cos       — | —
 rv05_manual    | depth   nanmm ceil nan | sp  0mm held +0.049 peak 0.049 tips 3.0 pers 1.00 | minZ       — cos       — | —
+rv05_manual    | depth   nanmm ceil nan | sp  0mm held +0.049 peak 0.049 tips 3.0 pers 1.00 | minZ  0.0078 cos     0.0 | FAIL
+rv00_wide      | depth  52.5mm ceil 1.00 | sp 30mm held +0.050 peak 0.050 tips 3.0 pers 1.00 | minZ  0.1161 cos  -0.093 | WARN
