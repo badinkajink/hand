@@ -180,8 +180,8 @@
   <div class="strip">
     <div class="cell">
       <span class="k">Grasp</span>
-      <span class="v" id="s-grasp">6 / 6</span>
-      <span class="n">designs holding the shaft after CEM</span>
+      <span class="v" id="s-grasp">4 / 6</span>
+      <span class="n">hold the full 50&nbsp;mm lift; two are ruled out by the shaft's width</span>
     </div>
     <div class="cell">
       <span class="k">Slip</span>
@@ -362,15 +362,23 @@
           <th>grip depth</th><th>straddle</th><th>held lift</th><th>tips</th><th>persistence</th>
         </tr></thead>
         <tbody id="grasp-rows">
-          <tr><td class="name">rv00_wide</td><td>100&nbsp;mm</td><td>110&nbsp;mm</td><td colspan="5" class="dim">re-running with the corrected grasp</td></tr>
-          <tr><td class="name">rv01_compact</td><td>40</td><td>50</td><td colspan="5" class="dim">&mdash;</td></tr>
-          <tr><td class="name">rv02_narrowx</td><td>40</td><td>110</td><td colspan="5" class="dim">&mdash;</td></tr>
-          <tr><td class="name">rv03_narrowy</td><td>100</td><td>50</td><td colspan="5" class="dim">&mdash;</td></tr>
-          <tr><td class="name">rv04_mid</td><td>70</td><td>80</td><td colspan="5" class="dim">&mdash;</td></tr>
-          <tr><td class="name">rv05_manual <span class="dim">yours</span></td><td>74</td><td>60</td><td colspan="5" class="dim">&mdash;</td></tr>
+          <tr><td class="name">rv05_manual <span class="dim">yours</span></td><td>74&nbsp;mm</td><td>60&nbsp;mm</td><td class="dim">stored</td><td class="dim">stored</td><td>+49.4&nbsp;mm</td><td>3.0</td><td>1.00 <span class="tag hold">holds</span></td></tr>
+          <tr><td class="name">rv00_wide</td><td>100</td><td>110</td><td>52.5&nbsp;mm</td><td>30&nbsp;mm</td><td>+50.0&nbsp;mm</td><td>3.0</td><td>1.00 <span class="tag hold">holds</span></td></tr>
+          <tr><td class="name">rv03_narrowy</td><td>100</td><td>50</td><td>53.0</td><td>40</td><td>+50.0</td><td>3.0</td><td>1.00 <span class="tag hold">holds</span></td></tr>
+          <tr><td class="name">rv04_mid</td><td>70</td><td>80</td><td>65.0</td><td>30</td><td>+50.0</td><td>3.0</td><td>1.00 <span class="tag hold">holds</span></td></tr>
+          <tr><td class="name">rv01_compact</td><td>40</td><td>50</td><td colspan="5" class="dim">no viable pose &mdash; the pinch is narrower than the shaft's contact ring</td></tr>
+          <tr><td class="name">rv02_narrowx</td><td>40</td><td>110</td><td colspan="5" class="dim">no viable pose &mdash; same</td></tr>
         </tbody>
       </table>
     </div>
+
+    <p class="col"><strong>The pinch has a minimum width, and the object sets it.</strong> Pads
+    on the shaft's equator sit on a ring 48.1&nbsp;mm across for a 25&nbsp;mm shaft and a
+    21&nbsp;mm pad. A hand whose thumb and pair are 40&nbsp;mm apart would have to place each pad
+    <em>outboard</em> of its own mount, and flexion only moves a fingertip inboard. Both
+    X&nbsp;=&nbsp;40 designs fail, at every straddle and every palm height. That bounds the X
+    dimension of your gantry travel from below by the object rather than by the hand &mdash; a
+    smaller shaft opens it back up.</p>
 
     <p class="col">One thing worth knowing before reading any per-design number: because the
     fitter places fingertips at <em>world</em> targets, every design that can reach them grasps the
@@ -397,9 +405,10 @@
       <table>
         <thead><tr><th>design</th><th>pair at</th><th>tip travel for 90&deg;</th><th>as a fraction of reach</th></tr></thead>
         <tbody>
-          <tr><td class="name">rv00_wide, rv02_narrowx</td><td>&plusmn;55&nbsp;mm</td><td>~55&nbsp;mm</td><td>0.70</td></tr>
+          <tr><td class="name">rv00_wide</td><td>&plusmn;55&nbsp;mm</td><td>~55&nbsp;mm</td><td>0.70</td></tr>
+          <tr><td class="name">rv04_mid</td><td>&plusmn;40&nbsp;mm</td><td>~40&nbsp;mm</td><td>0.51</td></tr>
           <tr><td class="name">rv05_manual</td><td>&plusmn;30&nbsp;mm</td><td>~30&nbsp;mm</td><td>0.38</td></tr>
-          <tr><td class="name">rv01_compact, rv03_narrowy</td><td>&plusmn;25&nbsp;mm</td><td>~25&nbsp;mm</td><td>0.32</td></tr>
+          <tr><td class="name">rv03_narrowy</td><td>&plusmn;25&nbsp;mm</td><td>~25&nbsp;mm</td><td>0.32</td></tr>
         </tbody>
       </table>
     </div>
@@ -421,7 +430,11 @@
     <p class="eyebrow">In flight &middot; A &rarr; B</p>
     <div class="col stack">
       <h2>Training</h2>
-      <p id="train-status">The queue restarted on the corrected grasps. Policy A trains from
+      <p id="train-status">The queue restarted on the corrected grasps at 22:20, four designs in
+      priority order &mdash; <span class="mono">rv05_manual</span>,
+      <span class="mono">rv00_wide</span>, <span class="mono">rv03_narrowy</span>,
+      <span class="mono">rv04_mid</span> &mdash; so the widest and narrowest straddles land early.
+      Policy A trains from
       scratch per design and Policy B warmstarts only from that design's own A &mdash; nothing
       transfers onto this hand, and b33 did not survive even a proximal-length change on the same
       topology. Results land here as each design finishes.</p>
