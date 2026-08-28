@@ -42,6 +42,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
+from morphohand.tools.morphology_xml import MorphologyValues  # noqa: E402
 from morphohand.sampling.morphology import (  # noqa: E402
     morph_to_array,
     real_v1_compact_design,
@@ -76,17 +77,32 @@ CHEAP = ("generate", "pose", "cem")
 # So the set spans those two and drops the redundant single-knob designs. X separation sets how
 # hard the pinch has to squeeze and how deep the palm can sit; Y separation sets how much of the
 # shaft's length the pair straddles, which is the lever arm for tipping it upright.
-DESIGNS: dict[str, tuple[float, float, float]] = {
-    "rv00_wide":     (0.0, 0.0, 0.0),      # X 100  Y 110 -- CAD-nominal gantry centres
-    "rv01_compact":  (1.0, 1.0, 1.0),      # X  40  Y  50 -- every gantry inboard
-    "rv02_narrowx":  (1.0, 1.0, 0.0),      # X  40  Y 110 -- tight pinch, wide straddle
-    "rv03_narrowy":  (0.0, 0.0, 1.0),      # X 100  Y  50 -- wide pinch, narrow straddle
-    "rv04_mid":      (0.5, 0.5, 0.5),      # X  70  Y  80
+# Each entry is either `knobs` (the three workspace knobs, run through real_v1_compact_design)
+# or an explicit 9-vector. `pose: "stored"` means the scene already carries an authored grasp
+# keyframe that must NOT be overwritten by the fitter.
+DESIGNS: dict[str, dict] = {
+    "rv00_wide":     {"knobs": (0.0, 0.0, 0.0)},      # X 100  Y 110 -- CAD-nominal gantry centres
+    "rv01_compact":  {"knobs": (1.0, 1.0, 1.0)},      # X  40  Y  50 -- every gantry inboard
+    "rv02_narrowx":  {"knobs": (1.0, 1.0, 0.0)},      # X  40  Y 110 -- tight pinch, wide straddle
+    "rv03_narrowy":  {"knobs": (0.0, 0.0, 1.0)},      # X 100  Y  50 -- wide pinch, narrow straddle
+    "rv04_mid":      {"knobs": (0.5, 0.5, 0.5)},      # X  70  Y  80
+    # Hand-authored by the user in the actuated explorer, 2026-08-27, and read out of its qpos.
+    # X 81 Y 60, and ASYMMETRIC -- index and middle sit at different x and different |y|, which
+    # nothing in the knob parameterisation can express. Its grasp keyframe is the user's own pose
+    # (a hook: negative MCP with strong PIP flexion) and is stored in the scene verbatim; the
+    # pads land at +1.9 / -3.2 / +7.5 deg, i.e. on the shaft's equator, which is independently
+    # the thing the fitter had to be corrected to do.
+    "rv05_manual":   {"vector": (0.011, 0.0, 0.0, -0.015, -0.03, 0.0, -0.0015, 0.02, 0.0),
+                      "pose": "stored"},
 }
 
 
 def design_vector(mid: str) -> list[float]:
-    return [round(float(v), 4) for v in morph_to_array(real_v1_compact_design(*DESIGNS[mid]))]
+    spec = DESIGNS[mid]
+    if "vector" in spec:
+        return [round(float(v), 4) for v in spec["vector"]]
+    return [round(float(v), 4)
+            for v in morph_to_array(real_v1_compact_design(*spec["knobs"]))]
 
 
 def gen_scene(vec: list[float], env) -> Path:
@@ -138,6 +154,15 @@ def fit_and_cem(scene: Path, mid: str, env, iters: int, render: bool) -> dict:
     the arbiter is CEM itself, on the metric that matters (held lift, not peak). It costs one
     extra CEM per design and it removes the guessing.
     """
+    if DESIGNS[mid].get("pose") == "stored":
+        # An authored grasp: CEM refines the grip from it, but the pose itself is not ours to
+        # re-fit. One straddle, because the straddle is already baked into the stored keyframe.
+        cem = run_cem(scene, f"{mid}_stored", env, iters, render)
+        runlib.log(f"  {mid} stored pose -> held {held_lift(cem)*1000:+.1f}mm "
+                   f"pers {cem.get('contact_persistence', float('nan')):.2f}")
+        return {"spread_mm": 0, "tag": f"{mid}_stored", "cem": cem,
+                "pose": {"authored": True, "self_collisions": []}}
+
     best = None
     errors = []
     for sp in SPREADS_MM:
@@ -315,7 +340,7 @@ def _row(rec: dict) -> str:
     verdict = (h.get("health") or {}).get("verdict") or rec.get("note", "—")
     return (f"{rec['id']:14} | depth {p.get('grip_depth_mm', float('nan')):5.1f}mm "
             f"ceil {p.get('clearance_ceiling', float('nan')):.2f} "
-            f"| sp {rec.get('spread_mm', 0):2d}mm held {held_lift(g):+.3f} "
+            f"| sp {rec.get('spread_mm', 0) or 0:2d}mm held {held_lift(g):+.3f} "
             f"peak {g.get('cube_lift', float('nan')):.3f} "
             f"tips {g.get('cube_tip_contacts', float('nan')):.1f} "
             f"pers {g.get('contact_persistence', float('nan')):.2f} "
@@ -369,7 +394,7 @@ def main() -> int:
         rec = store.get(mid) or {"id": mid, "design": DESIGNS[mid], "vector": design_vector(mid)}
         rec["mounts_mm"] = {f: [round(v * 1000, 1) for v in xy] for f, xy
                             in real_v1_mount_positions(
-                                real_v1_compact_design(*DESIGNS[mid])).items()}
+                                MorphologyValues(*design_vector(mid))).items()}
         t0 = time.time()
 
         def need(stage: str, key: str) -> bool:
