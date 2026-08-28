@@ -76,7 +76,23 @@ def _object_geometry(m: mujoco.MjModel, d: mujoco.MjData, body: str) -> tuple[np
 
 def tip_targets(center: np.ndarray, radius: float, gap: float, spread: float,
                 elevation_deg: float) -> dict[str, np.ndarray]:
-    """Pad-CENTRE targets ringing the shaft. The shaft lies along world Y."""
+    """Pad-CENTRE targets ringing the shaft. The shaft lies along world Y.
+
+    KEEP `elevation_deg` AT OR BELOW ZERO. It was +10 for one day and it cost a training run.
+    Above the shaft's equator the contact normals tilt up and outward, so the wedge drives the
+    shaft DOWN out of the pinch and only friction opposes it — and that friction is against a
+    normal force which decays as the shaft creeps down and the pads ride toward the top of the
+    cylinder, where the surface curves away. Positive feedback: measured on rv00_wide, the grip
+    survives the entire 10 cm lift and then relaxes 1.75 N -> 0.00 N over 0.6 s of just holding,
+    with the shaft's x/y unchanged to 1 mm. It falls straight out of the bottom.
+
+    +10 was chosen because a 21 mm pad cannot get under a 25 mm shaft lying on a table without
+    going through the floor. At 0 the pad's underside sits 2.0 mm clear of the floor, which is
+    enough, and the user's own hand-authored grasp independently lands at +1.9 / -3.2 / +7.5 deg
+    — on the equator. Blaming friction or pad compliance for this reads as plausible and is
+    wrong: neither torsional friction, nor mu 2.4 -> 4.0, nor TPU-soft pads changes the outcome
+    (scripts/probe_real_v1_slip.py). Wedge sign beats friction.
+    """
     r = radius + PAD_RADIUS + gap
     el = np.deg2rad(elevation_deg)
     dz = r * np.sin(el)
@@ -147,7 +163,7 @@ def solve(m, d, targets: dict[str, np.ndarray], px: float, py: float, pz: float,
 
 def hold_probe(m, d, open_qpos: np.ndarray, grip_ctrl: np.ndarray, lift: float,
                obj_z0: float, object_body: str,
-               settle: int = 250, ramp: int = 200, hold: int = 150) -> float:
+               settle: int = 250, ramp: int = 200, hold: int = 600) -> float:
     """Close on the shaft from `open_qpos` toward `grip_ctrl`, lift, hold; report lift retained.
 
     `grip_ctrl` is the IK solution for fingertip targets placed INSIDE the shaft's surface, so
@@ -160,6 +176,11 @@ def hold_probe(m, d, open_qpos: np.ndarray, grip_ctrl: np.ndarray, lift: float,
     This is `phase1_optimize_grasp`'s schedule with a geometric grip instead of a CEM-optimised
     one — deliberately, because the question is whether the POSE is any good, not how good CEM
     can make it. Returns metres of lift still held; near zero means the shaft is back down.
+
+    The hold is 600 steps (1.2 s), not the 150 it started at. The failure this probe now exists
+    to catch takes ~0.6 s to develop: an above-equator grip holds through the whole lift and then
+    the normal force decays monotonically to zero while the shaft creeps down through the pads.
+    A 0.3 s hold reports that grasp as fine.
     """
     pz_a = next(k for k in range(m.nu) if m.actuator(k).name == "a_palm_pz")
     pz0 = float(grip_ctrl[pz_a])
@@ -382,8 +403,8 @@ def main() -> int:
                     help="metres the hold probe drives each pad inside the shaft's surface")
     ap.add_argument("--lift-probe", type=float, default=0.05,
                     help="metres the hold probe raises the palm by")
-    ap.add_argument("--elevation", type=float, default=10.0,
-                    help="degrees above the shaft mid-height to place the pads")
+    ap.add_argument("--elevation", type=float, default=0.0,
+                    help="degrees above the shaft's equator to place the pads; see tip_targets")
     ap.add_argument("--pz-lo", type=float, default=-0.030)
     ap.add_argument("--pz-hi", type=float, default=0.060)
     ap.add_argument("--pz-step", type=float, default=0.0025)

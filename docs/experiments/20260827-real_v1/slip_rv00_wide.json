@@ -1,0 +1,82 @@
+{
+  "base": {
+    "held_mm": -0.10075263139525809,
+    "grip_depth_mm": 60.034629945480155,
+    "axial_mm": 0.0867820893778045,
+    "radial_mm": 94.6766276398903,
+    "tilt_deg": 0.3547665224300203,
+    "contacts_min": 0,
+    "contacts_mean": 0.438,
+    "force_mean_N": 0.1555364952492909
+  },
+  "pads_soft": {
+    "held_mm": -0.10075263139525809,
+    "grip_depth_mm": 154.18213594951905,
+    "axial_mm": -3.149336260527269e-12,
+    "radial_mm": 31.200989995497586,
+    "tilt_deg": 1.7075472925031877e-06,
+    "contacts_min": 0,
+    "contacts_mean": 0.0,
+    "force_mean_N": 0.0
+  },
+  "pads_softer": {
+    "held_mm": -0.10075263139525809,
+    "grip_depth_mm": 154.18213601432137,
+    "axial_mm": -3.686287386450715e-14,
+    "radial_mm": 74.46237320858398,
+    "tilt_deg": 4.436338000413295e-06,
+    "contacts_min": 0,
+    "contacts_mean": 0.0,
+    "force_mean_N": 0.0
+  },
+  "fric_torsion": {
+    "held_mm": -0.10075263139525809,
+    "grip_depth_mm": 60.034629945480155,
+    "axial_mm": 0.0867820893778045,
+    "radial_mm": 94.6766276398903,
+    "tilt_deg": 0.3547665224300203,
+    "contacts_min": 0,
+    "contacts_mean": 0.438,
+    "force_mean_N": 0.1555364952492909
+  },
+  "fric_mu4": {
+    "held_mm": -0.10075263139525635,
+    "grip_depth_mm": 59.76996710186026,
+    "axial_mm": 1.1782233848838222,
+    "radial_mm": 100.4266801351883,
+    "tilt_deg": 1.0240147920972853,
+    "contacts_min": 0,
+    "contacts_mean": 0.324,
+    "force_mean_N": 0.04731321770246558
+  },
+  "palm_down5": {
+    "held_mm": 101.16262737455737,
+    "grip_depth_mm": 53.6997913451482,
+    "axial_mm": 0.8481943720043827,
+    "radial_mm": 5.841531336104016,
+    "tilt_deg": 0.27648517399347156,
+    "contacts_min": 3,
+    "contacts_mean": 3.0,
+    "force_mean_N": 2.143988522684171
+  },
+  "palm_up5": {
+    "held_mm": -0.10075263139525635,
+    "grip_depth_mm": 159.18213601428553,
+    "axial_mm": 8.255306373220854e-16,
+    "radial_mm": 3.8518598887744717e-31,
+    "tilt_deg": 1.7075472925031877e-06,
+    "contacts_min": 0,
+    "contacts_mean": 0.0,
+    "force_mean_N": 0.0
+  },
+  "pads_soft+torsion": {
+    "held_mm": -0.10075263139525809,
+    "grip_depth_mm": 154.18213594951905,
+    "axial_mm": -3.149336260527269e-12,
+    "radial_mm": 31.200989995497586,
+    "tilt_deg": 1.7075472925031877e-06,
+    "contacts_min": 0,
+    "contacts_mean": 0.0,
+    "force_mean_N": 0.0
+  }
+}
