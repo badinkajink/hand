@@ -437,12 +437,35 @@ def object_ang_acc_l2(env: "ManagerBasedRlEnv",
 # Reorientation (target-axis alignment family)
 # ----------------------------------------------------------------------
 
+def _lift_gate(env: "ManagerBasedRlEnv", object_name: str, min_lift: float) -> torch.Tensor:
+    """1 while the object is at least `min_lift` above its spawn, else 0. `min_lift` 0 disables.
+
+    WHY (2026-08-28, real_v1). `target_axis_alignment` carries weight 100 and saturates near 1,
+    while the ENTIRE lift_height reward is 80 * clip(z - spawn_z, 0, 0.10) and so tops out at 8.
+    Sinking the object therefore costs at most 8 per step and buys up to 98, and with a scheduled
+    anchor -- which is the first thing on this hand that makes a big rotation reachable at all --
+    the policy took that trade: alignment reward climbed 0.64 -> 19.9 while the episode-mean
+    object height fell 0.114 -> 0.061 and the continuous handoff ended with the shaft on the
+    table (min-z 0.008-0.034 against a 0.05 bar) with the fingers still on it.
+
+    Gating is the right shape rather than reweighting, for the same reason
+    `contact_gate_stability_rewards` gates the stability terms on contact: a reorientation that
+    has put the object on the floor is not a partially-good reorientation, it is a different
+    outcome, and paying a fraction of the reward for it is what creates the trade."""
+    if min_lift <= 0.0:
+        return torch.ones(env.num_envs, device=env.device)
+    obj = env.scene[object_name]
+    z = obj.data.root_link_pose_w[:, 2]
+    return ((z - _spawn_pose(env, object_name)[:, 2]) >= float(min_lift)).float()
+
+
 def target_axis_alignment(env: "ManagerBasedRlEnv",
                            object_name: str = "cube",
                            object_axis_local: tuple[float, float, float] = (0.0, 0.0, 1.0),
                            target_axis_world: tuple[float, float, float] = (0.0, 0.0, 1.0),
                            alpha: float = 4.0,
-                           reorient_start_step: int = 0) -> torch.Tensor:
+                           reorient_start_step: int = 0,
+                           min_lift: float = 0.0) -> torch.Tensor:
     """Reward for aligning the object's body-local axis with a world-frame
     target axis. Returns exp(-alpha * (1 - cos(theta))^2) where theta is
     the angle between the rotated object axis and the target.
@@ -459,7 +482,7 @@ def target_axis_alignment(env: "ManagerBasedRlEnv",
     if reorient_start_step > 0:
         active = (env.episode_length_buf >= int(reorient_start_step)).float()
         reward = reward * active
-    return reward
+    return reward * _lift_gate(env, object_name, min_lift)
 
 
 def target_axis_progress(env: "ManagerBasedRlEnv",
@@ -467,7 +490,8 @@ def target_axis_progress(env: "ManagerBasedRlEnv",
                           object_axis_local: tuple[float, float, float] = (0.0, 0.0, 1.0),
                           target_axis_world: tuple[float, float, float] = (0.0, 0.0, 1.0),
                           reorient_start_step: int = 50,
-                          clamp_negative: bool = False) -> torch.Tensor:
+                          clamp_negative: bool = False,
+                          min_lift: float = 0.0) -> torch.Tensor:
     """Reward = current_cos - previous_cos. Dense gradient for any rotation
     *toward* the target axis, even when state-based reward is small. The
     per-env previous-step alignment is tracked in an attribute buffer.
@@ -494,7 +518,7 @@ def target_axis_progress(env: "ManagerBasedRlEnv",
         delta = delta.clamp(min=0.0)
 
     active = (env.episode_length_buf >= int(reorient_start_step)).float()
-    return delta * active
+    return delta * active * _lift_gate(env, object_name, min_lift)
 
 
 def alignment_success_bonus(env: "ManagerBasedRlEnv",
