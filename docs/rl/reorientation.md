@@ -4238,3 +4238,59 @@ Fixed by moving the authored pose out of the generated scene entirely, to
 This is the same class of bug as the joint-space keyframe transfer (gotcha #5), one level up: it
 is not enough to protect a keyframe from the retargeter if the file it lives in gets regenerated.
 `rv05_manual` is queued to re-run the whole chain behind the current queue.
+
+### 2026-08-28 05:47 — real_v1 A→B, three designs: hold solved, reorient never fired, and why
+
+Full table in `docs/experiments/20260827-real_v1/real_v1.txt`; page at
+https://claude.ai/code/artifact/a0e25967-1cd8-445a-8e19-ea886f4982fd
+
+    design         straddle  handoff min-z  touch_frac  tip force  peak cos  held cos
+    rv00_wide      ±55 mm       0.1161      1.0/1.0/1.0   17.4 N     0.019    -0.093
+    rv04_mid       ±40          0.1078      1.0/1.0/1.0   13.9       0.015    -0.158
+    rv03_narrowy   ±25          0.1051      1.0/1.0/1.0    5.6       0.069    +0.052
+
+**Hold is solved on this hand.** All three carry the shaft at 0.105–0.116 m through the entire
+post-handoff phase with three fingers in contact 100% of the time and under 3 mm of net drift.
+Looked at every filmstrip: the hand lifts clear of the table and keeps the shaft for the full
+4.8 s. The elevation-0 grasp fix holds up against a trained policy, not just the open-loop probe.
+
+**Reorient never fired on any of them.** Peak cos 0.015–0.069, i.e. under four degrees; the shaft
+is horizontal in every frame of every filmstrip. Policy B spent its budget squeezing instead — on
+rv00_wide, tip force 9.7 N after A → 17.4 N after B with the cosine flat and slide_ratio
+23.9 → 35.2. That is the contact/stability terms absorbing a policy that could not collect the
+term it was paid for.
+
+**Why: the vertical hold is outside the action space** (`scripts/probe_real_v1_vertical_hold.py`,
+new). Asking each hand to ring a VERTICAL shaft at the height the handoff holds it, and measuring
+the pose against the ±0.5 rad residual budget the trainer centres on the CEM grip:
+
+    design         thumb   index/middle   max excursion   verdict
+    rv00_wide      1.5 mm     15.8 mm       0.928 rad     cannot reach the pose
+    rv03_narrowy   1.5         8.8          0.889         cannot reach the pose
+    rv04_mid       0.1         2.5          0.465         reachable AND commandable
+
+Two of three could never express the target. This is gotcha
+[[feedback_check_action_budget_before_rewarding]] again — an unreachable reward and an
+unattractive one are the same flat zero — and it means `finger_residual_scale` is the first knob,
+not the reward weights and not the morphology.
+
+**The prediction (wide straddle is reorient-hostile) CANNOT BE RESOLVED by these runs.** No design
+reorients, so there is nothing for a wide straddle to be hostile to, and the ordering that exists
+sits far inside the program's 0.3–0.5 from-scratch draw spread. The kinematic probe leans in its
+favour — the widest straddle is the one that cannot reach the vertical hold at all — but the
+ordering is not monotone (±40 beats ±25), and rv04_mid also has the deepest grip (65 mm vs
+52–53 mm), which buys the palm clearance a standing shaft needs. **Straddle and grip depth are
+confounded across this design set.** The experiment that settles it is a straddle sweep at fixed
+grip depth, which is now cheap because palm height is a solved variable.
+
+One real morphology effect did resolve: **grip force tracks straddle width**, 5.6 / 13.9 / 17.4 N
+at ±25 / ±40 / ±55 mm. The wide-straddle hands clamp three times harder to hold the same object.
+
+NEXT: (1) raise the residual budget (`--finger-residual-scale 0.8`, or re-centre `closed_ctrl`
+between the grasp and the vertical hold) and re-run rv04_mid — it needs 0.465 of its 0.5 rad, so
+it has no room to explore; gate on the vertical-hold probe BEFORE spending GPU. (2) straddle sweep
+at fixed depth. (3) two or three draws per design before ranking anything.
+
+IN FLIGHT: rv05_manual (the user's hand-authored design and grasp) re-running the full chain after
+the keyframe-regeneration bug; its grasp re-confirmed at held +49.6 mm, persistence 1.00, pads at
++1.9 / −3.2 / +7.5 deg. Policy A started 05:50.
