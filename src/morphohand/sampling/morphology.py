@@ -114,6 +114,92 @@ PERP_T_WORKSPACE = MorphologyBounds(
 PERP_BASE = MorphologyValues(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
 
 
+# --- the real hardware's mount workspace (real_v1 topology, 2026-08-27) --------------------
+#
+# Measured from CAD and shipped as assets/mjcf/real_v1/XY_space.png. The boxes map the reachable
+# travel of each finger's XY gantry, taken at the finger's mid-line when it is vertically
+# extended. Unlike PERP_T_WORKSPACE (which was written down from a sketch and never sampled),
+# these are the machine's actual limits.
+#
+#   CAD, looking down on the palm          MuJoCo palm frame
+#   +----------------+                     x_MJ = -(y_CAD - 80mm)   +X = thumb -> pair
+#   |     thumb      | 60 x 110            y_MJ = -(x_CAD - 55mm)   +Y = middle -> index
+#   +----------------+
+#          40mm band
+#   +------+  50  +------+
+#   |index |      |middle|  60 x 60 each
+#   +------+      +------+
+#
+# The 40 mm and 50 mm bands are physical clearance for the gantries; the boxes cannot overlap,
+# so clipping into them enforces the bands with no separate rejection step.
+#
+# len_min == len_max == 0: this hand HAS no proximal-length DoF. Its links are CAD parts
+# (33.45 / 33.45 / 37.16 mm). The `<f>_len` slide in the base MJCF is a zero-travel shim that
+# exists only so the shared generator finds the [x, y, yaw, mcp, len, pip] block it indexes by
+# position — see scripts/build_real_v1_scenes.py. The design space is the 6 XY dims.
+REAL_V1_MOUNTS: dict[str, tuple[float, float]] = {
+    "thumb": (-0.050, 0.000),
+    "index": (0.050, 0.055),
+    "middle": (0.050, -0.055),
+}
+
+REAL_V1_WORKSPACE = MorphologyBounds(
+    thumb=FingerBox(x_min=-0.030, x_max=0.030, y_min=-0.055, y_max=0.055),
+    index=FingerBox(x_min=-0.030, x_max=0.030, y_min=-0.030, y_max=0.030),
+    middle=FingerBox(x_min=-0.030, x_max=0.030, y_min=-0.030, y_max=0.030),
+    len_min=0.0,
+    len_max=0.0,
+)
+
+# All six slides at 0 = each gantry at the centre of its own travel. That is the CAD-nominal
+# hand, and it is also the WIDEST tripod the machine offers (thumb and pair 100 mm apart).
+REAL_V1_BASE = MorphologyValues(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+
+
+def real_v1_compact_design(thumb_t: float = 0.0, pair_x_t: float = 0.0,
+                           pair_y_t: float = 0.0) -> MorphologyValues:
+    """Three 0..1 knobs sliding the CAD-nominal hand toward its most COMPACT tripod.
+
+        thumb_t   thumb palm x   -50.0 -> -20.0 mm   (thumb forward, toward the pair)
+        pair_x_t  pair  palm x   +50.0 -> +20.0 mm   (pair back, toward the thumb)
+        pair_y_t  pair  palm |y|  55.0 ->  25.0 mm   (pair inward, toward each other)
+
+    The pair moves symmetrically: index +y and middle -y mirror each other, because breaking
+    that symmetry tilts the pinch axis off X and the shaft then rotates about the wrong axis.
+
+    Compactness is not cosmetic here. A tighter tripod does not have to reach as far sideways,
+    so its palm can hang LOWER over the shaft while the fingers stay inside their ROM, and grip
+    depth below the mounting plane is what buys clearance for the shaft's upper half when it
+    stands up. Measured with scripts/fit_real_v1_pose.py: (0,0,0) fits at 60.0 mm of depth,
+    (1,1,1) at 72.5 mm, against a 50 mm shaft half-length.
+    """
+    for name, t in (("thumb_t", thumb_t), ("pair_x_t", pair_x_t), ("pair_y_t", pair_y_t)):
+        if not 0.0 <= t <= 1.0:
+            raise ValueError(f"{name} must be in [0, 1], got {t}")
+    b = REAL_V1_WORKSPACE
+    return clip_morphology(
+        MorphologyValues(
+            thumb_x=thumb_t * b.thumb.x_max, thumb_y=0.0, thumb_len=0.0,
+            index_x=pair_x_t * b.index.x_min, index_y=pair_y_t * b.index.y_min, index_len=0.0,
+            middle_x=pair_x_t * b.middle.x_min, middle_y=pair_y_t * b.middle.y_max,
+            middle_len=0.0,
+        ),
+        b,
+    )
+
+
+def real_v1_mount_positions(m: MorphologyValues) -> dict[str, tuple[float, float]]:
+    """Absolute palm-frame (x, y) of each mount for a design — the readable form of the offsets."""
+    return {
+        finger: (REAL_V1_MOUNTS[finger][0] + dx, REAL_V1_MOUNTS[finger][1] + dy)
+        for finger, (dx, dy) in (
+            ("thumb", (m.thumb_x, m.thumb_y)),
+            ("index", (m.index_x, m.index_y)),
+            ("middle", (m.middle_x, m.middle_y)),
+        )
+    }
+
+
 def perp_compact_design(
     thumb_t: float = 0.0,
     pair_x_t: float = 0.0,

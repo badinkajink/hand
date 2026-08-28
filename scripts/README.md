@@ -15,6 +15,18 @@ the `.sh` launchers handle both).
 | `phase1_optimize_grasp.py` | CEM grasp synthesis on a (frozen) scene; writes `best_rollout.npz` + `frozen_scene.xml` — the "morphology run dir" every RL script consumes |
 | `generate_primitive_meshes.py`, `build_morphohand_urdf.py` | asset generators (meshes; URDF for GraspGenX) |
 
+## The `real_v1` hardware hand (2026-08-27)
+
+The CAD-matched hand: 33.45/33.45/37.16 mm links that OVERLAP by 12.70 mm, CAD ROM, and real XY
+gantry travel. It is a separate topology from the m05/baseline lineage and **nothing transfers
+onto it** — a10/b33 were trained on a 117 mm finger with coincident yaw/MCP axes.
+
+| script | role |
+|---|---|
+| `build_real_v1_scenes.py` | emit the base pair + actuated explorer from the CAD spec. `--check` fails if the shipped MJCFs drifted; `--fit-palm-z` prints the palm-height utilisation table |
+| `fit_real_v1_pose.py` | per-design grasp keyframe: solves palm x/y/z AND the 9 finger angles onto fingertip targets ringing the shaft, writes `open_ik`. Replaces `retarget_keyframe_ik.py` here — new topology, and palm height is not shared across designs |
+| `real_v1_pipeline.py` | the per-design chain: generate → pose → CEM → A → B → handoff eval. Resumable, stage-selectable (`--stages grasp` is the cheap prefix) |
+
 ## RL training (A = lift/deliver, B = reorient)
 
 | script | role |
