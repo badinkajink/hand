@@ -1,0 +1,130 @@
+% Drop-in figure + tables for the corrected real-hand finger kinematics.
+% Preamble requirements:
+%   \usepackage{tikz}
+%   \usetikzlibrary{arrows.meta,calc,decorations.pathreplacing}
+%   \usepackage{booktabs}
+%
+% Coordinate convention used here:
+%   MuJoCo +x = yaw axis, MuJoCo +y = MCP/PIP hinge axis,
+%   MuJoCo -z = straight-finger direction at q_MCP=q_PIP=0.
+
+\begin{figure}[t]
+  \centering
+  \begin{tikzpicture}[
+      x=0.105cm,y=0.105cm,
+      joint/.style={circle,draw=black,fill=white,minimum size=5.5mm,inner sep=0pt,line width=0.7pt},
+      dim/.style={<->,>=Latex,line width=0.55pt},
+      ext/.style={densely dashed,gray},
+      lbl/.style={font=\small},
+      axis/.style={->,>=Latex,line width=0.7pt}
+    ]
+    % Joint centers (mm): J0=Yaw, J1=MCP, J2=PIP.
+    \coordinate (J0) at (0,0);
+    \coordinate (J1) at (0,-20.75);
+    \coordinate (J2) at (0,-41.50);
+    % Measured distal surfaces of each phalange.
+    \coordinate (E0) at (0,-33.45);
+    \coordinate (E1) at (0,-54.20); % -20.75 - 33.45
+    \coordinate (E2) at (0,-78.66); % -41.50 - 37.16
+
+    % Phalange outlines. Width = 2*10.55 = 21.10 mm.
+    % They are offset slightly in x only so the overlap is visually legible.
+    \draw[rounded corners=2.5mm,fill=red!10,draw=red!65!black,line width=0.75pt]
+      (-10.55,0) rectangle (10.55,-33.45);
+    \draw[rounded corners=2.5mm,fill=blue!10,draw=blue!65!black,line width=0.75pt]
+      (-9.55,-20.75) rectangle (11.55,-54.20);
+    \draw[rounded corners=2.5mm,fill=black!7,draw=black!70,line width=0.75pt]
+      (-8.55,-41.50) rectangle (12.55,-78.66);
+
+    % Joint centers.
+    \node[joint,label={[lbl]left:Yaw}] at (J0) {$\odot$};
+    \node[joint,label={[lbl]left:MCP}] at (J1) {$\otimes$};
+    \node[joint,label={[lbl]left:PIP}] at (J2) {$\otimes$};
+
+    % Link labels.
+    \node[lbl,red!70!black,anchor=west] at (14,-9) {yaw link};
+    \node[lbl,blue!70!black,anchor=west] at (14,-31) {middle link};
+    \node[lbl,anchor=west] at (14,-63) {distal link / fingertip};
+
+    % Joint-center spacing: 33.45 - 12.70 = 20.75 mm.
+    \draw[dim] (-15,0) -- (-15,-20.75)
+      node[midway,fill=white,inner sep=1pt,rotate=90,lbl] {20.75 mm};
+    \draw[dim] (-15,-20.75) -- (-15,-41.50)
+      node[midway,fill=white,inner sep=1pt,rotate=90,lbl] {20.75 mm};
+
+    % Axis-to-distal-surface link lengths.
+    \draw[dim] (31,0) -- (31,-33.45)
+      node[midway,fill=white,inner sep=1pt,rotate=90,lbl] {33.45 mm};
+    \draw[dim] (37,-20.75) -- (37,-54.20)
+      node[midway,fill=white,inner sep=1pt,rotate=90,lbl] {33.45 mm};
+    \draw[dim] (31,-41.50) -- (31,-78.66)
+      node[midway,fill=white,inner sep=1pt,rotate=90,lbl] {37.16 mm};
+
+    % Parent-link overhang past the child joint axis.
+    \draw[dim] (24,-20.75) -- (24,-33.45)
+      node[midway,fill=white,inner sep=1pt,rotate=90,lbl] {12.70 mm};
+    \draw[dim] (24,-41.50) -- (24,-54.20)
+      node[midway,fill=white,inner sep=1pt,rotate=90,lbl] {12.70 mm};
+
+    % Joint axis to phalange outer surface (half-width).
+    \draw[dim] (0,5.5) -- (10.55,5.5)
+      node[midway,fill=white,inner sep=1pt,lbl] {10.55 mm};
+    \draw[ext] (0,2.5) -- (0,7.8);
+    \draw[ext] (10.55,2.5) -- (10.55,7.8);
+
+    % Local MuJoCo axes / zero pose.
+    \begin{scope}[shift={(55,-4)}]
+      \draw[axis] (0,0) -- (11,0) node[right,lbl] {$+y$ (MCP/PIP axis)};
+      \draw[axis] (0,0) -- (0,-11) node[below,lbl] {$-z$ (straight finger)};
+      \node[lbl,anchor=west] at (-2,5) {$+x$ yaw axis: $\odot$};
+    \end{scope}
+
+    % ROM annotation.
+    \node[draw,rounded corners=1.5mm,align=left,anchor=north west,font=\small,
+          inner sep=4pt] at (46,-23) {
+      $q_{\mathrm{yaw}}\in[-85^\circ,\,85^\circ]$\\
+      $q_{\mathrm{MCP}}\in[-15^\circ,\,92^\circ]$\\
+      $q_{\mathrm{PIP}}\in[-18^\circ,\,92^\circ]$\\[1mm]
+      $q=0$: straight / vertical\\
+      positive: abduction or flexion
+    };
+  \end{tikzpicture}
+  \caption{Corrected three-joint finger geometry. The yaw and middle physical links
+  extend 12.70~mm past the following joint axis, so the kinematic joint-center
+  spacing is $33.45-12.70=20.75$~mm.}
+  \label{fig:real-hand-kinematics}
+\end{figure}
+
+\begin{table}[t]
+  \centering
+  \caption{Standard DH parameters for the corrected finger. We use
+  ${}^{i-1}T_i=R_z(\theta_i)T_z(d_i)T_x(a_i)R_x(\alpha_i)$, with
+  $\hat z_0$ along the MuJoCo yaw axis $(+x)$, $\hat z_1,\hat z_2$ along the
+  flexion axes $(+y)$, and $\hat x_1$ pointing down the straight finger $(-z)$ at zero pose.}
+  \label{tab:finger-dh}
+  \begin{tabular}{@{}ccllll@{}}
+    \toprule
+    $i$ & Joint & $\theta_i$ & $d_i$ [mm] & $a_i$ [mm] & $\alpha_i$ \\
+    \midrule
+    1 & yaw & $q_{\mathrm{yaw}}$ & 0 & 20.75 & $-90^\circ$ \\
+    2 & MCP flex/ext & $q_{\mathrm{MCP}}$ & 0 & 20.75 & $0^\circ$ \\
+    3 & PIP flex/ext & $q_{\mathrm{PIP}}$ & 0 & 37.16 & $0^\circ$ \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{table}[t]
+  \centering
+  \caption{Geometry parameters used in the MJCF. DH lengths describe joint-center
+  kinematics; the physical link dimensions additionally include the measured overlap.}
+  \label{tab:finger-geometry}
+  \begin{tabular}{@{}lrrrr@{}}
+    \toprule
+    Link & Axis-to-end [mm] & Next-axis spacing [mm] & Overhang [mm] & Capsule radius [mm] \\
+    \midrule
+    yaw    & 33.45 & 20.75 & 12.70 & 10.55 \\
+    middle & 33.45 & 20.75 & 12.70 & 10.55 \\
+    distal & 37.16 & --    & --    & 10.55 \\
+    \bottomrule
+  \end{tabular}
+\end{table}

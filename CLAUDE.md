@@ -90,6 +90,13 @@ and **RL manipulation** (lift → in-hand reorient of a flat screwdriver to vert
 
 ## Naming & results
 
+- **DATE-PREFIX every generated folder.** Any directory that holds videos, renders, filmstrips,
+  reports, or documentation of an attempt gets a `YYYYMMDD-` (or `YYYYMMDD-HHMM-`) prefix:
+  `20260803-uhas_zeroshot_renders/`, not `uhas_zeroshot_renders/`. Attempts are only interpretable
+  against the timeline they were tried on — an undated folder is indistinguishable from a rerun
+  three weeks later with different code, and this program reruns the same names constantly. Run
+  dirs already do this; renders, `docs/experiments/` artifact folders and ad-hoc output dirs must
+  too. Files inside inherit the folder's date; don't re-date each file.
 - **A/B policy registry:** `aNN` = lift/deliver, `bNN` = reorient (b01–b13 published; b14+
   chronological), `bx_` = uncanonized exploration. The **single source of truth is
   `scripts/rename_results_bids.sh`** (edit its `MAP`, run `--apply`; it renames run dirs, rewrites
