@@ -432,6 +432,70 @@
   <hr class="rule">
 
   <section>
+    <p class="eyebrow">A design metric, for once</p>
+    <div class="col stack">
+      <h2>One forward-kinematics call, and it agrees with the carry nine times out of nine</h2>
+      <p>This program has looked for a cheap per-design reorientability score before and the
+      honest answer has been no. <span class="mono">reorient_primitive.py feasibility</span> asks
+      whether a hand can put its fingertips on a recorded schedule and every design lands within
+      0.2&ndash;2.2&nbsp;mm on a 12.5&nbsp;mm shaft &mdash; reachability is <em>saturated</em>, so
+      it cannot rank anything. The UHAS authority metric ranked the grip and correlated
+      &minus;0.03 with goal approach.</p>
+      <p>What was missing is that a reorient is not a reachability question, it is a budget
+      question, and the budget has a closed form. Sweeping the two dimensions the workspace
+      actually has, at a fixed straddle, with no CEM and no policy &mdash; about a minute per
+      design on CPU:</p>
+    </div>
+    <div class="scroller">
+      <table>
+        <thead><tr><th>X sep</th><th>Y sep</th><th>extension left</th><th>ceiling</th>
+          <th>open-loop final cos</th><th>object z</th><th></th></tr></thead>
+        <tbody>
+          <tr><td class="name">100&nbsp;mm</td><td>110&nbsp;mm</td><td>7.2&nbsp;mm</td>
+            <td>10.4&deg;</td><td>0.787</td><td>0.117</td>
+            <td><span class="tag hold">held</span></td></tr>
+          <tr><td class="name">100</td><td>80</td><td>7.2</td><td>10.4&deg;</td><td>0.523</td>
+            <td>0.129</td><td><span class="tag hold">held</span></td></tr>
+          <tr><td class="name">100</td><td>50</td><td>7.1</td><td>10.2&deg;</td><td>0.575</td>
+            <td>0.125</td><td><span class="tag hold">held</span></td></tr>
+          <tr><td class="name">70</td><td>110</td><td>1.4</td><td>2.0&deg;</td>
+            <td class="dim">&mdash;</td><td>0.012</td>
+            <td><span class="tag drop">drops</span></td></tr>
+          <tr><td class="name">70</td><td>80</td><td>1.6</td><td>2.3&deg;</td>
+            <td class="dim">&mdash;</td><td>0.012</td>
+            <td><span class="tag drop">drops</span></td></tr>
+          <tr><td class="name">70</td><td>50</td><td>1.4</td><td>2.0&deg;</td><td>0.201</td>
+            <td>0.153</td><td><span class="tag drop">drops</span></td></tr>
+          <tr><td class="name">40</td><td>110</td><td>0.0</td><td>0.0&deg;</td>
+            <td class="dim">&mdash;</td><td>0.012</td>
+            <td><span class="tag drop">drops</span></td></tr>
+          <tr><td class="name">40</td><td>80</td><td>0.0</td><td>0.0&deg;</td>
+            <td class="dim">&mdash;</td><td>0.012</td>
+            <td><span class="tag drop">drops</span></td></tr>
+          <tr><td class="name">40</td><td>50</td><td>0.0</td><td>0.0&deg;</td>
+            <td class="dim">&mdash;</td><td>0.012</td>
+            <td><span class="tag drop">drops</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="col stack">
+      <p>The budget is set almost entirely by <strong>thumb-to-pair X separation</strong>, and Y
+      separation barely moves it: 7.2 / 7.2 / 7.1&nbsp;mm across the whole Y range. A wide hand
+      has to reach <em>inward</em> to the shaft, so its fingers slant and keep reach in hand; a
+      compact hand hangs them straight down at full extension and has nothing left to spend. That
+      is the opposite of the intuition that a compact layout is the manipulable one, and it is a
+      hardware statement: <strong>keep the X gantries wide</strong>.</p>
+      <p>Two honesties about this table. The carries here use the fitter's geometric grip rather
+      than a CEM one and only three pivot heights, so they are a floor &mdash; the
+      X&nbsp;100 / Y&nbsp;50 cell reads 0.575 here and 0.909 when tuned with its CEM grip. And
+      the score is a <em>ceiling</em>, so it can only ever say a design cannot; that a design
+      clears it does not mean a policy will find the behaviour.</p>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <section>
     <p class="eyebrow">Training</p>
     <div class="col stack">
       <h2>The reorient becomes a residual problem</h2>
