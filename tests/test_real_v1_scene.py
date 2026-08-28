@@ -281,3 +281,18 @@ def test_hold_anchor_can_open_on_a_schedule():
 
     assert LerpFingerActionCfg.hold_switch_from_sim_step == 0
     assert MorphoHandEnvCfg.hold_switch_from_sim_step == 0
+
+
+def test_target_axis_rewards_can_be_gated_on_height():
+    """`target_axis_min_lift` exists and is off by default.
+
+    `target_axis_alignment` is weight 100 and saturates near 1; the whole `lift_height` reward is
+    80 * clip(z - spawn, 0, 0.10) and tops out at 8. So putting the object DOWN costs at most 8
+    per step and buys up to 98, and once the scheduled anchor made a large rotation reachable the
+    policy took that trade: alignment 0.64 -> 19.9 while episode-mean object height fell
+    0.114 -> 0.061 and the handoff ended with the shaft on the table."""
+    from morphohand.rl.env_cfg import MorphoHandEnvCfg
+    from morphohand.rl.terms_reward import _lift_gate
+
+    assert MorphoHandEnvCfg.target_axis_min_lift == 0.0
+    assert callable(_lift_gate)

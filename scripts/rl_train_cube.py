@@ -217,6 +217,8 @@ class Args:
     """Fingertips the grip must keep on the object — drives the `tip_lost`
     termination and the `contact_min` reward. 3 = all (historical). Use 2 only
     where a finger structurally cannot reach. See env_cfg.min_tips_in_contact."""
+    target_axis_min_lift: float = 0.0
+    """Metres above spawn the object must be for the target-axis rewards to pay. 0 = off."""
     target_axis_progress_weight: float = 0.0
     """Weight on dense Δ(alignment)-per-step reward (gain shaping)."""
     target_axis_alpha_curriculum_iters: int = 0
@@ -581,6 +583,7 @@ def main() -> None:
         grip_phase_align_thresh=args.grip_phase_align_thresh,
         min_tips_in_contact=args.min_tips_in_contact,
         target_axis_progress_weight=args.target_axis_progress_weight,
+        target_axis_min_lift=args.target_axis_min_lift,
         target_axis_alpha_curriculum_iters=args.target_axis_alpha_curriculum_iters,
         target_axis_alpha_start=args.target_axis_alpha_start,
         terminate_low_tilt_velocity=args.terminate_low_tilt_velocity,

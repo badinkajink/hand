@@ -309,6 +309,10 @@ class MorphoHandEnvCfg:
     released. One always-on weight cannot ask for both; gating it to just after
     the swing lets the policy learn 'loose to rotate, then clamp to keep'.
     See docs/rl/perp_topology.md."""
+    target_axis_min_lift: float = 0.0
+    """Metres above spawn the object must be for the target-axis rewards to pay at all.
+    0 = off. See terms_reward._lift_gate — alignment is weight 100 and the whole lift reward is
+    worth 8, so without this the policy can buy alignment by putting the object down."""
     target_axis_progress_weight: float = 0.0
     """Reward weight on positive Δ(alignment) per step. Provides dense
     gradient toward 'rotating in the right direction' even when state
