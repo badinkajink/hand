@@ -95,3 +95,45 @@ rather than re-fitted.
 The pre-fix grasp table is kept as `PRE-SLIPFIX_real_v1.{json,txt}` so the comparison survives.
 Policy A runs `20260827-2112-policyA_rv00_wide_t1` and its siblings were trained against the
 broken grasp and are superseded.
+
+## After the fix: the grasp table, and a design constraint that fell out of it
+
+Refitting every design at elevation 0 and re-running CEM:
+
+    design         X sep   Y sep   depth   straddle   held lift   tips   persistence
+    rv00_wide      100mm   110mm   52.5mm     30mm      +50.0mm    3.0      1.00
+    rv03_narrowy   100      50     53.0       40         +50.0      3.0      1.00
+    rv04_mid        70      80     65.0       30         +50.0      3.0      1.00
+    rv05_manual     74      60     (stored)    -         +49.4      3.0      1.00
+    rv01_compact    40      50     -- no viable pose --
+    rv02_narrowx    40     110     -- no viable pose --
+
+All four survivors now hold the FULL commanded 50 mm lift with three contacts and persistence
+1.00, against 47-48 mm and two silent drops before the fix.
+
+The two failures are the two designs with a 40 mm thumb-to-pair separation, and they fail for a
+reason that is worth stating as a constraint rather than a result. The pads must sit on the
+shaft's equator, which for a 25 mm shaft and a 21 mm pad is a ring **48.1 mm across**
+(2 x (12.5 + 10.55 + 1 mm approach gap)). A hand whose thumb and pair are 40 mm apart therefore
+has to put each pad OUTBOARD of its own mount — and flexion only moves a fingertip inboard. The
+IK gets close by hooking (negative MCP, then strong PIP flexion) but never closes, and no pose it
+finds survives the hold probe.
+
+    thumb-to-pair separation must exceed the contact ring, ~48 mm for this shaft,
+    with margin for the finger to approach from outside it
+
+That rules out the bottom third of the X gantry travel for this object, and it is a hardware
+statement, not a policy one. It also means the X dimension of the design set is bounded below by
+the object, so a smaller shaft would open it back up.
+
+Two fitter changes came out of chasing this, both guarding against the same class of error:
+
+* **Multi-start IK.** The finger has two qualitatively different solutions — a pinch (positive
+  MCP) and a hook (negative MCP then strong PIP) — and damped least squares finds only the one
+  nearest its seed. Seeded from a pinch, every compact design reported unreachable. `SEED_POSES`
+  now tries both plus a straight start, per finger. The hook seed is the user's own authored
+  pose, which is what pointed at it.
+* **The hold probe is now a gate, not a ranking.** It used to return the best of the candidate
+  poses even when all of them dropped the shaft; a design with no viable pose would be handed to
+  a 90-minute training run anyway. It now returns "no viable pose" unless a candidate retains at
+  least 20 mm of lift.

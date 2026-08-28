@@ -1,4 +1,4 @@
-<mujoco model="scene_tp0d0000p0d0000p0d0000_in0d0000n0d0300p0d0000_mn0d0000p0d0300p0d0000">
+<mujoco model="scene_tp0d0000p0d0000p0d0000_in0d0000n0d0000p0d0000_mn0d0000p0d0000p0d0000">
   <compiler angle="radian" autolimits="true" />
   <option timestep="0.002" gravity="0 0 -9.81" integrator="implicitfast" />
   <visual>
@@ -60,16 +60,16 @@
               <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
               <body name="thumb_pip_frame" pos="0 0 -0.020750">
                 <joint class="ctrl" name="thumb_pip" axis="0 -1 0" range="-0.314159 1.605703" />
-                <geom type="capsule" fromto="0 0 0 0 0 -0.016060" size="0.010550" material="finger_mat" friction="2.4 0.2 0.02" />
+                <geom type="capsule" fromto="0 0 0 0 0 -0.016060" size="0.010550" material="finger_mat" friction="2.4 0.2 0.02" solref="0.02 1" solimp="0.90 0.96 0.002" />
                 <body name="thumb_tip" pos="0 0 -0.026610">
-                  <geom type="sphere" size="0.010550" material="finger_mat" friction="2.4 0.2 0.02" />
+                  <geom type="sphere" size="0.010550" material="finger_mat" friction="2.4 0.2 0.02" solref="0.02 1" solimp="0.90 0.96 0.002" />
                 </body>
               </body>
             </body>
           </body>
         </body>
       </body>
-      <body name="index_mount" pos="0.05 0.025 0">
+      <body name="index_mount" pos="0.05 0.055 0">
         <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
         <body name="index_yaw_frame">
           <joint class="ctrl" name="index_yaw" axis="1 0 0" range="-1.483530 1.483530" />
@@ -81,16 +81,16 @@
               <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
               <body name="index_pip_frame" pos="0 0 -0.020750">
                 <joint class="ctrl" name="index_pip" axis="0 1 0" range="-0.314159 1.605703" />
-                <geom type="capsule" fromto="0 0 0 0 0 -0.016060" size="0.010550" material="finger_mat" friction="2.4 0.2 0.02" />
+                <geom type="capsule" fromto="0 0 0 0 0 -0.016060" size="0.010550" material="finger_mat" friction="2.4 0.2 0.02" solref="0.02 1" solimp="0.90 0.96 0.002" />
                 <body name="index_tip" pos="0 0 -0.026610">
-                  <geom type="sphere" size="0.010550" material="finger_mat" friction="2.4 0.2 0.02" />
+                  <geom type="sphere" size="0.010550" material="finger_mat" friction="2.4 0.2 0.02" solref="0.02 1" solimp="0.90 0.96 0.002" />
                 </body>
               </body>
             </body>
           </body>
         </body>
       </body>
-      <body name="middle_mount" pos="0.05 -0.025 0">
+      <body name="middle_mount" pos="0.05 -0.055 0">
         <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
         <body name="middle_yaw_frame">
           <joint class="ctrl" name="middle_yaw" axis="1 0 0" range="-1.483530 1.483530" />
@@ -102,9 +102,9 @@
               <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
               <body name="middle_pip_frame" pos="0 0 -0.020750">
                 <joint class="ctrl" name="middle_pip" axis="0 1 0" range="-0.314159 1.605703" />
-                <geom type="capsule" fromto="0 0 0 0 0 -0.016060" size="0.010550" material="finger_mat" friction="2.4 0.2 0.02" />
+                <geom type="capsule" fromto="0 0 0 0 0 -0.016060" size="0.010550" material="finger_mat" friction="2.4 0.2 0.02" solref="0.02 1" solimp="0.90 0.96 0.002" />
                 <body name="middle_tip" pos="0 0 -0.026610">
-                  <geom type="sphere" size="0.010550" material="finger_mat" friction="2.4 0.2 0.02" />
+                  <geom type="sphere" size="0.010550" material="finger_mat" friction="2.4 0.2 0.02" solref="0.02 1" solimp="0.90 0.96 0.002" />
                 </body>
               </body>
             </body>
@@ -154,7 +154,7 @@
     <position class="ctrl" name="a_middle_pip" joint="middle_pip" ctrlrange="-0.314159 1.605703" />
   </actuator>
   <keyframe>
-    <key name="open_ik" qpos="0 0 0.0125 0.707107 0.707107 0 0 0 0 0.003 0 0 0 0 0.101898 1.0146 0.275806 0.161755 0.858309 -0.275806 0.161755 0.858309" ctrl="0 0 0.003 0 0 0 0 0.101898 1.0146 0.275806 0.161755 0.858309 -0.275806 0.161755 0.858309" />
-    <key name="open" qpos="0 0 0.0125 0.707107 0.707107 0 0 0 0 0.003 0 0 0 0 -0.2277 1.32613 0.275806 -0.176105 1.19386 -0.275806 -0.176105 1.19386" ctrl="0 0 0.003 0 0 0 0 -0.2277 1.32613 0.275806 -0.176105 1.19386 -0.275806 -0.176105 1.19386" />
+    <key name="open_ik" qpos="0 0 0.0125 0.707107 0.707107 0 0 0 0 0.0095 0 0 0 0 0.177658 0.835668 -0.264766 0.259759 0.644996 0.264766 0.259759 0.644996" ctrl="0 0 0.0095 0 0 0 0 0.177658 0.835668 -0.264766 0.259759 0.644996 0.264766 0.259759 0.644996" />
+    <key name="open" qpos="0 0 0.0125 0.707107 0.707107 0 0 0 0 0.0095 0 0 0 0 -0.180303 1.23976 -0.270431 -0.124373 1.10137 0.270431 -0.124373 1.10137" ctrl="0 0 0.0095 0 0 0 0 -0.180303 1.23976 -0.270431 -0.124373 1.10137 0.270431 -0.124373 1.10137" />
   </keyframe>
 </mujoco>
