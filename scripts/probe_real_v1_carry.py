@@ -240,7 +240,7 @@ def carry(scene: Path, lift: float, turn_steps: int, hold_steps: int, angle: flo
           axis_shift: float, obj: str, budget: float, trace: bool,
           morph_run: Path | None = None, straddle: float | None = None,
           offset: float = 0.0, squeeze: float = 0.004, label: str = "",
-          depth: float | None = None, axis_k: float = 0.0,
+          depth: float | None = None, axis_k: float = 0.0, thumb_axial: float = 0.0,
           record: Path | None = None, linear_anchor: bool = False,
           write_hold: bool = False, film: Path | None = None, film_frames: int = 8,
           contact_trace: list | None = None, built=None,
@@ -262,7 +262,7 @@ def carry(scene: Path, lift: float, turn_steps: int, hold_steps: int, angle: flo
                   for i, (f, js) in enumerate(FINGERS.items()) for k, j in enumerate(js)}
     else:
         if built is None:
-            built = _grip_from_fit(scene, straddle, offset, squeeze, obj, depth)
+            built = _grip_from_fit(scene, straddle, offset, squeeze, obj, depth, thumb_axial)
         if built is None:
             return None
         m, open_qpos, grip, depth_mm = built
@@ -548,6 +548,9 @@ def main() -> int:
                     help="metres, half-separation of index/middle along the shaft")
     ap.add_argument("--offset", default="0.0", help="metres, grip offset along the shaft")
     ap.add_argument("--squeeze", type=float, default=0.004)
+    ap.add_argument("--thumb-axial", type=float, default=0.0,
+                    help="metres to slide ONLY the thumb pad along the shaft, giving it a moment "
+                         "arm about the pinch axis (see fit_real_v1_pose.tip_targets)")
     ap.add_argument("--depth", default="",
                     help="metres of grip depth below the mounting plane, comma list. Empty = "
                          "the fitter's DEEPEST reachable palm, which is 95%% finger extension")
@@ -641,6 +644,7 @@ def main() -> int:
                               np.radians(args.angle_deg), sh, args.object_body,
                               args.budget, args.trace, morph_run=run, straddle=st_m,
                               offset=off, squeeze=args.squeeze, label=label, depth=dp,
+                          thumb_axial=args.thumb_axial,
                               axis_k=kk, record=args.record_ref,
                               linear_anchor=args.linear_anchor,
                               write_hold=args.write_hold_keyframe, film=args.film,

@@ -284,6 +284,13 @@ def style(trace: list, r: dict, radius: float = 0.0125) -> dict:
         "mean_contacts": round(float(np.mean([row["contacts"] for row in trace])), 2),
         "obj_dz_mm": round((trace[-1]["z"] - trace[0]["z"]) * 1000, 1),
         "driver": max(ft, key=ft.get),
+        # How much of the alignment arrives AFTER the command stops. On the linear anchor the
+        # shaft goes on settling into vertical against a still-loaded grip -- rv05_manual runs
+        # 0.837 at the end of the turn to 0.999 half a second later -- so a schedule judged at
+        # the end of its own sweep is judged early.
+        "cos_turn_end": trace[-1]["cos"],
+        "settle_frac": round(float((r["final_cos"] - trace[-1]["cos"])
+                                   / max(1e-6, abs(r["final_cos"] - r["start_cos"]))), 2),
     }
 
 

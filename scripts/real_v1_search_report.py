@@ -113,17 +113,25 @@ def restyle(rows: list[dict], lift=0.10, turn_steps=550, hold_steps=800) -> None
 
 
 def label_style(st: dict) -> str:
-    if not st or "carry_frac" not in st:
+    """How many pads are on the shaft while it turns, and where the shaft goes in the grip.
+
+    An earlier version labelled on the pads' carry fraction (1 - pad travel / surface arc).
+    That separates a true carry from a spin in principle and does not in practice on this hand:
+    the pads come on and off the shaft and walk along it as well as around it, so 72 of 80
+    designs landed in one bucket at roughly -1, i.e. "travelled about twice the arc". The
+    contact count and the shaft's rise or fall in the grip do separate them, they are what the
+    renders show, and they are what a hardware build cares about.
+    """
+    if not st or st.get("mean_contacts") is None:
         return "-"
-    cf = [st["carry_frac"][f] for f in FINGERS if st["carry_frac"].get(f) is not None]
-    if not cf:
-        return "-"
-    mean = float(np.mean(cf))
-    if min(cf) < -0.2 or mean <= 0.15:
-        return "DRIVE"
-    if mean > 0.55:
-        return "CARRY"
-    return "PIVOT"
+    n = st["mean_contacts"]
+    if st.get("obj_dz_mm", 0.0) > 15.0:
+        return "PALM-PIN"
+    if n >= 2.6:
+        return "TRIPOD"
+    if n >= 1.5:
+        return "PINCH-ROLL"
+    return "SINGLE"
 
 
 def spearman(x, y):
@@ -184,6 +192,8 @@ def main() -> int:
             "carry_frac": st.get("carry_frac"), "drive_share": st.get("drive_share"),
             "driver": st.get("driver"), "mean_contacts": st.get("mean_contacts"),
             "obj_dz_mm": st.get("obj_dz_mm"), "max_util": st.get("max_util"),
+            "touch_frac": st.get("touch_frac"), "settle_frac": st.get("settle_frac"),
+            "cos_turn_end": st.get("cos_turn_end"),
             "reorients": bool(b["kept"] * 2 >= b["n"] and b["mean_cos"] >= args.bar),
             **{k: b["scores"].get(k) for k in SCORES},
         })
@@ -236,21 +246,22 @@ def main() -> int:
     for t in have:
         styles.setdefault(t["style"], []).append(t)
     lines += ["", "## Styles", "",
-              "| style | n | mean held cos | mean carry_frac (thumb/index/middle) | "
-              "mean contacts | driver |", "|---|---|---|---|---|---|"]
+              "| style | n | mean held cos | reorients | pads on the shaft (thumb/index/middle) |"
+              " mean contacts | shaft dz | settles after the command | driver |",
+              "|---|---|---|---|---|---|---|---|---|"]
     for name, group in sorted(styles.items()):
-        cf = [g["carry_frac"] for g in group if g["carry_frac"]]
-        cfm = ("/".join(
-            f"{np.mean([c[f] for c in cf if c.get(f) is not None]):+.2f}"
-            if any(c.get(f) is not None for c in cf) else "  -  " for f in FINGERS)
-            if cf else "-")
+        tf = [g["touch_frac"] for g in group if g.get("touch_frac")]
+        tfm = ("/".join(f"{np.mean([t[f] for t in tf]):.2f}" for f in FINGERS) if tf else "-")
         drivers = {}
         for g in group:
             drivers[g["driver"]] = drivers.get(g["driver"], 0) + 1
+        sf = [g["settle_frac"] for g in group if g.get("settle_frac") is not None]
         lines.append(f"| {name} | {len(group)} | {np.mean([g['mean_cos'] for g in group]):+.3f} "
-                     f"| {cfm} | "
-                     f"{np.mean([g['mean_contacts'] or 0 for g in group]):.2f} | "
-                     f"{', '.join(f'{k} x{v}' for k, v in sorted(drivers.items(), key=lambda kv: -kv[1]))} |")
+                     f"| {sum(g['reorients'] for g in group)}/{len(group)} | {tfm} "
+                     f"| {np.mean([g['mean_contacts'] or 0 for g in group]):.2f} "
+                     f"| {np.mean([g['obj_dz_mm'] or 0 for g in group]):+.1f} mm "
+                     f"| {np.mean(sf) if sf else float('nan'):+.2f} "
+                     f"| {', '.join(f'{k} x{v}' for k, v in sorted(drivers.items(), key=lambda kv: -kv[1]))} |")
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text("\n".join(lines) + "\n")

@@ -1,0 +1,706 @@
+<!--
+  ARTIFACT URL: https://claude.ai/code/artifact/e8a389ed-d80f-40d1-8c85-6301be4c8f35
+  Republish THIS SAME BUILT FILE (report_search.html) to update it in place.
+  SOURCE for the design-search page. Build with:
+      uv run python docs/experiments/20260828-real_v1_search/build_report.py
+  which inlines every ASSET placeholder as a data URI and writes report_search.html.
+  Every number here traces to a file listed in section 8.
+-->
+<title>Which Hands Turn the Shaft</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&display=swap">
+
+<style>
+  :root {
+    --ground:      #f4f5f7;
+    --panel:       #ffffff;
+    --panel-2:     #eceef2;
+    --rule:        #d3d7de;
+    --rule-soft:   #e4e7ec;
+    --ink:         #171a1f;
+    --ink-2:       #454a53;
+    --ink-3:       #6d747f;
+    --accent:      #a9702c;   /* the finger material in the renders: 0.8 0.72 0.6 */
+    --accent-soft: #f2e6d5;
+    --good:        #2f6f4f;
+    --good-soft:   #dcece3;
+    --bad:         #a3342c;
+    --bad-soft:    #f4dedc;
+    --shadow:      0 1px 2px rgba(23,26,31,.06), 0 8px 24px -16px rgba(23,26,31,.30);
+    --measure: 68ch;
+    --s1: .35rem;  --s2: .7rem;  --s3: 1.15rem;  --s4: 1.9rem;
+    --s5: 3.1rem;  --s6: 4.6rem;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #101317; --panel: #171b21; --panel-2: #1e232a;
+      --rule: #2c333c; --rule-soft: #232931;
+      --ink: #e6e9ee; --ink-2: #b0b7c1; --ink-3: #838b96;
+      --accent: #d3a05f; --accent-soft: #33271a;
+      --good: #6dbb93; --good-soft: #17281f;
+      --bad: #e0847b; --bad-soft: #2b1917;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #101317; --panel: #171b21; --panel-2: #1e232a;
+    --rule: #2c333c; --rule-soft: #232931;
+    --ink: #e6e9ee; --ink-2: #b0b7c1; --ink-3: #838b96;
+    --accent: #d3a05f; --accent-soft: #33271a;
+    --good: #6dbb93; --good-soft: #17281f;
+    --bad: #e0847b; --bad-soft: #2b1917;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--ground); color: var(--ink);
+    font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    font-size: 16.5px; line-height: 1.62; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: var(--s5) var(--s3) var(--s6);
+          display: flex; flex-direction: column; gap: var(--s5); }
+  .col { max-width: var(--measure); }
+  h1, h2, h3 { font-family: "IBM Plex Serif", Georgia, serif; text-wrap: balance;
+               margin: 0; letter-spacing: -.01em; }
+  h1 { font-size: 2.45rem; line-height: 1.12; font-weight: 600; }
+  h2 { font-size: 1.5rem; font-weight: 600; margin-bottom: var(--s2); }
+  h3 { font-size: 1.08rem; font-weight: 600; margin: var(--s4) 0 var(--s2); }
+  p { margin: 0 0 var(--s3); }
+  a { color: var(--accent); text-underline-offset: 2px; }
+  code, .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .875em; }
+  code { background: var(--panel-2); padding: .08em .34em; border-radius: 3px; }
+
+  .eyebrow { font-family: "IBM Plex Mono", monospace; font-size: .72rem; letter-spacing: .13em;
+             text-transform: uppercase; color: var(--ink-3); }
+  .lede { font-size: 1.12rem; color: var(--ink-2); }
+  header .rule { height: 3px; width: 68px; background: var(--accent); margin: var(--s3) 0; }
+
+  section { display: flex; flex-direction: column; gap: var(--s2); }
+  .secnum { font-family: "IBM Plex Mono", monospace; font-size: .72rem; letter-spacing: .13em;
+            color: var(--accent); text-transform: uppercase; }
+
+  .panel { background: var(--panel); border: 1px solid var(--rule-soft); border-radius: 7px;
+           padding: var(--s3) var(--s3); box-shadow: var(--shadow); }
+  .scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  table { border-collapse: collapse; width: 100%; font-size: .845rem;
+          font-variant-numeric: tabular-nums; }
+  th, td { text-align: right; padding: .34rem .58rem; border-bottom: 1px solid var(--rule-soft);
+           white-space: nowrap; }
+  th { font-weight: 600; color: var(--ink-2); border-bottom: 1px solid var(--rule);
+       font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; }
+  td:first-child, th:first-child { text-align: left; }
+  td.l, th.l { text-align: left; white-space: normal; }
+  tbody tr:hover { background: var(--panel-2); }
+  .num { font-family: "IBM Plex Mono", monospace; }
+  .win { color: var(--good); font-weight: 600; }
+  .lose { color: var(--bad); }
+  .dim { color: var(--ink-3); }
+  caption { caption-side: bottom; text-align: left; color: var(--ink-3); font-size: .78rem;
+            padding-top: var(--s2); line-height: 1.5; }
+  tr.sep td { border-top: 1px solid var(--rule); }
+
+  .callout { border-left: 3px solid var(--accent); background: var(--accent-soft);
+             padding: var(--s2) var(--s3); border-radius: 0 5px 5px 0; }
+  .callout.good { border-left-color: var(--good); background: var(--good-soft); }
+  .callout.bad  { border-left-color: var(--bad);  background: var(--bad-soft); }
+  .callout p:last-child { margin-bottom: 0; }
+
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+           gap: var(--s3); }
+  .grid4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(238px, 1fr));
+           gap: var(--s3); }
+  figure { margin: 0; }
+  figure img, figure video { width: 100%; display: block; border-radius: 5px;
+                             border: 1px solid var(--rule-soft); background: var(--panel-2); }
+  figcaption { font-size: .8rem; color: var(--ink-3); margin-top: var(--s1); line-height: 1.45; }
+  figcaption b { color: var(--ink-2); }
+
+  .kv { display: grid; grid-template-columns: max-content 1fr; gap: .28rem var(--s3);
+        font-size: .87rem; }
+  .kv dt { font-family: "IBM Plex Mono", monospace; color: var(--ink-3); }
+  .kv dd { margin: 0; }
+
+  .stat { display: flex; gap: var(--s4); flex-wrap: wrap; }
+  .stat div { min-width: 118px; }
+  .stat .n { font-family: "IBM Plex Mono", monospace; font-size: 1.7rem; line-height: 1.1;
+             font-weight: 500; }
+  .stat .k { font-size: .76rem; color: var(--ink-3); text-transform: uppercase;
+             letter-spacing: .06em; }
+
+  pre { background: var(--panel-2); border: 1px solid var(--rule-soft); border-radius: 5px;
+        padding: var(--s2) var(--s3); overflow-x: auto; font-family: "IBM Plex Mono", monospace;
+        font-size: .82rem; line-height: 1.55; margin: 0; }
+  ul, ol { margin: 0 0 var(--s3); padding-left: 1.2rem; }
+  li { margin-bottom: var(--s1); }
+  hr { border: 0; border-top: 1px solid var(--rule); margin: 0; }
+  .foot { color: var(--ink-3); font-size: .83rem; }
+</style>
+
+<div class="wrap">
+
+<header class="col">
+  <div class="eyebrow">real_v1 · 2026-08-28 · design search</div>
+  <h1>Which hands turn the shaft</h1>
+  <div class="rule"></div>
+  <p class="lede">108 hands sampled over the CAD gantry workspace, each given a grasp sweep and a
+  schedule sweep, each rollout repeated under spawn jitter. 49 of them stand the shaft up and
+  keep it. The thing that decides it is not the mount geometry — it is where the thumb pad sits
+  along the shaft.</p>
+  <p class="foot">Companion to <span class="mono">Two Routes to Vertical</span> (methods) and
+  <span class="mono">MECHANISM.md</span>. Section 1 corrects three measurements in those; every
+  number below is re-measured under the protocol in section 4.</p>
+</header>
+
+<hr>
+
+<!-- ===================================================================== 1 -->
+<section>
+  <div class="secnum">01 — supersedes</div>
+  <h2>Three ways the earlier numbers were measured wrong</h2>
+  <div class="col">
+  <p>All three were found by trying to reproduce the 2026-08-28 open-loop table and failing. None
+  of them is a code bug; all three are protocol.</p>
+  </div>
+
+  <h3>1.1 The controller in the published rows is the linear anchor, not the IK carry</h3>
+  <div class="col">
+  <p>Every row in <code>carry_pospole.json</code> and <code>carry_others_pospole.json</code> — the
+  rows that established "the raised pivot works" — carries
+  <code>max_ik_residual_mm: 0.0</code> and <code>commanded_tip_travel_mm: {0,0,0}</code>. Those
+  fields are only ever zero in the <code>--linear-anchor</code> branch, which skips the per-step
+  IK entirely and lerps the finger joints in a straight line between two set-points. So the
+  schedule that produced the good numbers is the one <code>LerpFingerActionCfg.hold_target_ctrl</code>
+  already implements, and the reorient needs <em>no runtime IK at all</em>.</p>
+  <p>This matters beyond bookkeeping, because the two controllers do not merely differ in quality
+  — they differ in whether the hand keeps hold of the object. Same design, same cell, same grasp;
+  the only difference is how the fingers are commanded between the two ends:</p>
+  </div>
+
+  <div class="panel scroll">
+    <table>
+      <caption>rv05_manual, CEM grip, pivot height 8.2 mm, −90°, held and otherwise undisturbed.
+      Tip force is the sum of the three pad normal forces.
+      <span class="mono">grip_decay_rv05.json</span>.</caption>
+      <thead><tr>
+        <th class="l">hold</th>
+        <th>IK cos</th><th>IK z</th><th>IK pads</th><th>IK force</th>
+        <th>lin cos</th><th>lin z</th><th>lin pads</th><th>lin force</th>
+      </tr></thead>
+      <tbody>{{GRIP_DECAY_ROWS}}</tbody>
+    </table>
+  </div>
+
+  <div class="col">
+  <div class="callout">
+    <p><b>Why the IK carry lets go.</b> The probe's own rule is that the IK solution must be applied
+    as a residual on the grasp anchor, because these are position servos and the grip force
+    <em>is</em> the commanded-minus-actual error. Re-solving the IK every step re-centres the
+    command on where the pad actually is, so the error — and the force with it — decays to nothing:
+    16.1 → 10.9 → 6.0 → 1.3 → 0 N, and the shaft is on the table at 1.2 s. The linear anchor
+    commands a fixed end pose that stays inside the object, so it keeps pressing.</p>
+  </div>
+  <p>The second thing the table shows is that <b>the turn is not finished when the command
+  finishes</b>. On the linear anchor the shaft goes on settling into vertical against a still-loaded
+  grip — 0.837 at the end of the sweep, 0.999 half a second later. A schedule scored at the end of
+  its own sweep is scored early. Across the 58 hands that turn the shaft as a pinch-roll, a mean of 17% of the
+  final alignment arrives after the command stops.</p>
+  </div>
+
+  <h3>1.2 A 400-step hold cannot see the release</h3>
+  <div class="col">
+  <p>The old <code>ok</code> test asked for ≥2 <em>pad</em> contacts and a final height, both read
+  at the last step of a 0.8 s hold. Two failures hide behind that. A shaft that comes upright and
+  then slides out of the grip over the next second reads fine (the IK column above is exactly this
+  case). And a shaft carried on the middle phalanges with the pads off it — which is the normal end
+  state of a raised-pivot turn — reads as a drop. <code>ok</code> is now the object's
+  <em>minimum</em> height over a 1.6 s hold, with contact counted against the whole hand.</p>
+  </div>
+
+  <h3>1.3 One rollout is not a measurement</h3>
+  <div class="col">
+  <p>The good cells sit in narrow resonances of (pivot height, turn angle). On rv05_manual at
+  −90°, neighbouring pivot heights read 0.991 and 0.000. A single rollout therefore reports
+  whichever side of a resonance it landed on, and best-of-a-grid reports the luckiest draw.
+  <code>--repeats</code> perturbs the object's spawn by σ = 0.5 mm and reports mean, sd and how
+  many draws kept the shaft.</p>
+  </div>
+
+  <h3>1.4 The five studied hands, re-measured</h3>
+  <div class="col">
+  <p>Linear anchor, 1.6 s hold, n = 8 jittered draws, best cell per design over 8 pivot heights ×
+  3 turn angles. The ordering is unchanged from the single-draw table and the separation is now
+  resolved: sd is 0.002–0.021 on every row but one, an order of magnitude below the gaps. The
+  exception is rv00_wide at the narrow straddle, whose best cell is bimodal — it turns the shaft
+  fully or loses it, and the mean of 0.454 describes neither draw.</p>
+  </div>
+
+  <div class="panel scroll">
+    <table>
+      <caption>Each row is the design's best cell out of 24, chosen on the repeated mean with the
+      shaft kept in most draws. <span class="mono">ref_lin_*.json</span>.</caption>
+      <thead><tr>
+        <th class="l">design</th><th>turn</th><th>pivot h</th><th>held cos</th><th>sd</th>
+        <th>kept</th><th>obj z</th><th>pads</th>
+      </tr></thead>
+      <tbody>{{REFERENCE_ROWS}}</tbody>
+    </table>
+  </div>
+</section>
+
+<hr>
+
+<!-- ===================================================================== 2 -->
+<section>
+  <div class="secnum">02 — mechanism</div>
+  <h2>You lose the descending pad, and that is fine</h2>
+  <div class="col">
+  <p>The bound in <span class="mono">MECHANISM.md</span> is right and its consequence was read
+  wrong. Rotate the shaft by θ about the pinch axis with the pads on fixed material points, and the
+  pair contact on the descending side moves down by <span class="mono">straddle · sin θ</span>,
+  which its finger can only follow by extending. The mount-to-pad chain is 68.11 mm straight and
+  these grasps sit 1–7 mm short of it, so the descending pad runs out after a few degrees.</p>
+  <p>Under the commanded −90° turn the descending pad is the one at <span class="mono">+y</span>,
+  which the fitter calls <em>index</em>: a contact at (13, +40, 0) mm maps to (13, 0, −40) mm.
+  What actually happens is not that the turn stops at the ceiling. The index pad simply
+  <em>leaves</em>, and the turn continues on the other two. Measured across the 49 hands that
+  reorient:</p>
+  </div>
+
+  <div class="panel scroll">
+    <table>
+      <caption>Fraction of the commanded turn each pad spends on the shaft (normal force &gt; 0.1 N),
+      and the share of tangential force it carries. <span class="mono">table.json</span>, restyled
+      best cell per design.</caption>
+      <thead><tr><th class="l">group</th><th>n</th><th>thumb on</th><th>index on</th>
+        <th>middle on</th><th>thumb drive</th><th>index drive</th><th>middle drive</th></tr></thead>
+      <tbody>{{TOUCH_ROWS}}</tbody>
+    </table>
+  </div>
+
+  <div class="col">
+  <div class="callout good">
+    <p><b>Every hand that reorients does it as a two-point couple between the thumb and the
+    ascending pad.</b> The index pad — the descending one, the one the extension budget is about —
+    is on the shaft for 19–28% of the turn and carries 6–9% of the tangential force in all 49 of
+    them. It is a spectator. The extension bound does not predict how far the shaft turns; it
+    predicts <em>which contact you are going to lose</em>.</p>
+  </div>
+  <p>The discriminator between a hand that turns the shaft and one that does not is
+  <b>contact persistence</b>, not friction. Reorienting hands keep the thumb and the ascending pad
+  on the shaft 92% of the turn; the ones that fail keep them on 48–49% and drop the shaft 68 mm.
+  Friction saturation is nearly irrelevant at this scale: only 7 of 80 designs push any pad to
+  ≥0.98 of its friction cone, and 6 of those 7 reorient anyway.</p>
+  <p>That last point is a correction to the reading of the middle-finger slip observed in the
+  trained policies. The saturation was real — it was measured at 0.74 and 1.00 on the pads that
+  had to supply the couple — but across a population it is a symptom of the grip being wrong, not
+  the binding constraint on its own.</p>
+  </div>
+</section>
+
+<hr>
+
+<!-- ===================================================================== 3 -->
+<section>
+  <div class="secnum">03 — the knob</div>
+  <h2>Slide the thumb 20 mm along the shaft</h2>
+  <div class="col">
+  <p>A pad at the shaft's mid-length has moment arm |r<sub>yz</sub>| = 0 about the pinch axis. It
+  can press as hard as it likes and contribute nothing to standing the shaft up. That is exactly
+  where the fitter put the thumb: <code>tip_targets</code> placed all three pads on one ring, thumb
+  from −x, pair straddling it at ±spread. So the hand's largest normal force had no arm, and the
+  two pads that did have an arm were the ones with the least force.</p>
+  <p><code>--thumb-axial</code> slides only the thumb along the shaft. On rv04_mid — same design,
+  same straddle, same pivot height, same turn — it is the difference between no reorient and a
+  solved one:</p>
+  </div>
+
+  <div class="grid2">
+    <figure>
+      <video src="{{ASSET:20260828-videos/rv04_mid_thAx0.mp4}}" controls loop muted playsinline></video>
+      <figcaption><b>thumb at the mid-length (0 mm).</b> held cos <span class="mono">0.000 ± 0.000</span>,
+      kept 0/8. The shaft rocks and falls out.</figcaption>
+    </figure>
+    <figure>
+      <video src="{{ASSET:20260828-videos/rv04_mid_thAx20.mp4}}" controls loop muted playsinline></video>
+      <figcaption><b>thumb slid 20 mm (+y).</b> held cos <span class="mono">0.972 ± 0.066</span>,
+      kept 8/8. Nothing else changed.</figcaption>
+    </figure>
+  </div>
+
+  <div class="panel scroll">
+    <table>
+      <caption>Contact traces of the two rollouts above, one draw each.
+      <span class="mono">traces/rv04_mid_thAx{0,20}.json</span>.</caption>
+      <thead><tr><th class="l">quantity</th><th>thumb @0</th><th>thumb @20</th>
+        <th class="l">reading</th></tr></thead>
+      <tbody>{{THUMB_ARM_ROWS}}</tbody>
+    </table>
+  </div>
+
+  <div class="col">
+  <p>The offset does not primarily add thumb torque. It <b>redistributes normal force onto the pad
+  that has to supply the couple</b>: the middle pad's mean normal force doubles, its peak
+  friction-cone utilisation falls from 1.00 (sliding) to 0.70, and it stays on the shaft for 92% of
+  the turn instead of 45%. This is the fix that was proposed from the trained-policy slip trace —
+  move force to the pair rather than raise total grip — obtained by geometry instead of by
+  control.</p>
+  </div>
+
+  <div class="col">
+  <div class="callout bad">
+    <p><b>It is not a free win, and the population says so.</b> Over 3564 cells matched on
+    (design, straddle, depth, pivot height, angle), the offset is <em>worse</em> on average:
+    held cos −0.023 (Wilcoxon p = 1.4 × 10⁻⁹), shaft kept in 25.3% of cells against 35.9%. It
+    narrows the band of schedules that work and raises what the best of them reaches. At the
+    design level — best cell of each arm, 74 designs with both — it gains +0.078, which does not
+    clear significance (p = 0.11), but 32 of the 49 hands that reorient at all use it, and it is on
+    <b>all 15 of the top 15 cells</b>.</p>
+  </div>
+  </div>
+</section>
+
+<hr>
+
+<!-- ===================================================================== 4 -->
+<section>
+  <div class="secnum">04 — the search</div>
+  <h2>108 hands</h2>
+
+  <div class="stat panel">
+    <div><div class="n">108</div><div class="k">hands sampled</div></div>
+    <div><div class="n">80</div><div class="k">have a grasp</div></div>
+    <div><div class="n win">49</div><div class="k">reorient and hold</div></div>
+    <div><div class="n">24</div><div class="k">cells per grasp</div></div>
+    <div><div class="n">~39k</div><div class="k">rollouts</div></div>
+  </div>
+
+  <div class="col">
+  <p>The design space is the six XY gantry slides
+  (<code>REAL_V1_WORKSPACE</code>): thumb ±30 × ±55 mm, index and middle ±30 × ±30 mm, link
+  lengths fixed by CAD. The set is the five studied hands, 30 one-knob axis designs (including
+  thumb-along-the-shaft and an asymmetric pair, neither ever sampled before), a 5 × 5 grid of the
+  two knobs the compact family has, and 48 uniform random draws over the full box.</p>
+  </div>
+
+  <div class="panel">
+    <h3 style="margin-top:0">Protocol</h3>
+    <dl class="kv">
+      <dt>scene</dt><dd>morphology baked to rigid geometry via <code>generate_morphology_xml.py</code>; no morph joints survive</dd>
+      <dt>grasp</dt><dd><code>fit_real_v1_pose</code> at straddle ∈ {25, 32, 40} mm × depth ∈ {deepest, 62 mm} × thumb-axial ∈ {0, 20} mm, squeeze 4 mm; 12 fits per design</dd>
+      <dt>delivery</dt><dd>close 250 steps → palm ramp 0.10 m over 200 → settle 200, the schedule Policy A's env runs</dd>
+      <dt>schedule</dt><dd>linear anchor, 550 steps, pivot height k ∈ {0.10 … 0.40} × half-straddle, turn ∈ {−90°, −100°}, per-joint clip ±0.5 rad (the trainer's <code>finger_residual_scale</code>)</dd>
+      <dt>hold</dt><dd>800 steps (1.6 s) with the anchor parked</dd>
+      <dt>repeats</dt><dd>3 per cell, object spawn jittered σ = 0.5 mm</dd>
+      <dt>verdict</dt><dd>held cos ≥ 0.5 <em>and</em> min object height over the hold within 20 mm of the delivery height, in ≥2 of 3 draws</dd>
+    </dl>
+  </div>
+
+  <figure>
+    <img src="{{ASSET:figs/landscape.png}}" alt="Best held cos against thumb-to-pair and index-to-middle mount separation, one point per design, green where the hand reorients and red where it does not.">
+    <figcaption>One point per design, at its best cell. <b>Green</b> = reorients and holds.
+    At 40 mm of thumb-to-pair separation none of the six hands works — the fingers hang straight
+    down at full extension and there is no budget at all — and at 55 mm one of five does. Above
+    that, mount geometry stops ordering the designs: <span class="mono">x_sep</span> correlates
+    ρ = −0.015 with the outcome and <span class="mono">y_sep</span> ρ = −0.092, and the 49 working
+    hands span 55–120 mm. Five hands (red, at the top) stand the shaft up and then lose it: they
+    finish at cos 0.86–1.00 with the object at z ≈ 0.05, which is a shaft balanced on the
+    table.</figcaption>
+  </figure>
+
+  <div class="col">
+  <div class="callout">
+    <p><b>This reverses the hardware statement in <span class="mono">MECHANISM.md</span>.</b> That
+    page concluded "keep the X gantries wide" from a 3 × 3 landscape in which X 70 and X 40 both
+    dropped the shaft. With a swept grasp and a swept pivot, X 70–85 is well represented among the
+    winners — the best cell in the whole search is at X 70 — and the only dead region is X ≤ 40.
+    The earlier grid was measuring the fitter's grasp, not the hand.</p>
+  </div>
+  <p style="margin-top:var(--s3)">rv05_manual is in that list of five. Given the fitter's grasp
+  instead of the user's authored hook, the best hand in the study turns the shaft to cos 0.990 and
+  drops it — same mounts, same schedule sweep, different grasp. That is the whole result of this
+  page in one row.</p>
+  </div>
+
+  <h3>The top of the table</h3>
+  <div class="panel scroll">
+    <table>
+      <caption>Best cell per design, ranked on the mean over 3 jittered draws. <span class="mono">sp/dep/th</span>
+      = straddle / commanded grip depth / thumb axial offset, mm. Full table of 108 in
+      <span class="mono">REPORT.md</span>.</caption>
+      <thead><tr><th class="l">design</th><th>X sep</th><th>Y sep</th><th>thumb y</th>
+        <th class="l">sp/dep/th</th><th>k</th><th>turn</th><th>held cos</th><th>sd</th>
+        <th>kept</th><th class="l">style</th></tr></thead>
+      <tbody>{{TOP_ROWS}}</tbody>
+    </table>
+  </div>
+</section>
+
+<hr>
+
+<!-- ===================================================================== 5 -->
+<section>
+  <div class="secnum">05 — scoring</div>
+  <h2>What predicts a design, and what does not</h2>
+  <div class="col">
+  <p>Every candidate score is computed from the settled grasp alone — one 650-step rollout, no
+  schedule, no policy, no seed — and is then compared against the carry it claims to stand in for.
+  Spearman ρ is against the best cell's held cos over the 80 graspable designs; AUC is
+  P(a reorienting design scores above a non-reorienting one), so 0.5 carries no information.</p>
+  </div>
+
+  <div class="panel scroll">
+    <table>
+      <caption>n = 80 designs. <span class="mono">REPORT.md</span> §"What scores a design".</caption>
+      <thead><tr><th class="l">score</th><th class="l">definition</th><th>ρ</th><th>p</th>
+        <th>AUC</th></tr></thead>
+      <tbody>{{SCORE_ROWS}}</tbody>
+    </table>
+  </div>
+
+  <div class="col">
+  <div class="callout good">
+    <p><b>The thumb's moment arm about the pinch axis is the score.</b>
+    ρ = +0.443 (p = 3.9 × 10⁻⁵), AUC 0.821 — it separates a reorienting hand from a
+    non-reorienting one four times out of five, from one forward-kinematics call and one contact
+    query on a static grasp.</p>
+  </div>
+
+  <pre>tau_thumb = mu * f_n,thumb * |r_yz,thumb|          [N mm]
+
+  mu            pad friction coefficient (2.4 in this scene)
+  f_n,thumb     thumb pad normal force at the settled, lifted grasp
+  |r_yz,thumb|  distance from the shaft's centre to the thumb contact,
+                projected out of the pinch axis  ->  the moment arm
+
+the same quantity for the pair is tau_pair; their sum is the friction-limited
+couple the grasp can apply about the axis the shaft has to rotate around.</pre>
+
+  <p>Three things about it are worth stating plainly.</p>
+  <ul>
+    <li><b>It is a property of the grasp, not of the hand.</b> That is the right unit — the whole
+    result of this study is that the grasp decides the turn — but it means it cannot rank mount
+    layouts on their own. It ranks (design × grasp) pairs, which is what a design search on this
+    hand should be enumerating anyway.</li>
+    <li><b>The thumb term beats the pair term</b> (AUC 0.821 against 0.555) and beats their sum
+    (0.604). The pair always has an arm; whether the thumb has one is the variable.</li>
+    <li><b>The previously published metric does not generalise.</b>
+    <span class="mono">ceiling = asin(extension_left / straddle)</span> reported 9/9 agreement on
+    nine cells of one three-knob family. At n = 80 it reads ρ = +0.096, AUC 0.617 — better than
+    chance and much weaker than advertised. The 9/9 held because that grid varied X separation,
+    which happens to move both the extension budget and the grasp; it was not a validation.</li>
+  </ul>
+  </div>
+
+  <figure>
+    <img src="{{ASSET:figs/scores.png}}" alt="Scatter of the two best-correlated cheap scores against the measured held cos, coloured by whether the design reorients.">
+    <figcaption>The two best-correlated scores against the outcome. Green = reorients and holds.</figcaption>
+  </figure>
+</section>
+
+<hr>
+
+<!-- ===================================================================== 6 -->
+<section>
+  <div class="secnum">06 — styles</div>
+  <h2>They do not all turn it the same way</h2>
+  <div class="col">
+  <p>An earlier attempt labelled the styles by the pads' <em>carry fraction</em> —
+  1 − (pad travel across the shaft's surface) / (surface arc the turn sweeps), which separates a
+  true carry, contacts fixed on the material, from a spin under stationary pads. It does not work
+  on this hand: the pads come on and off the shaft and walk along it as well as around it, so 72
+  of 80 designs land in one bucket at about −1, meaning "travelled roughly twice the arc". What
+  does separate them, and what the renders show, is how many pads are on the shaft and where the
+  shaft goes in the grip.</p>
+  </div>
+
+  <div class="panel scroll">
+    <table>
+      <caption>n = 80 graspable designs, best cell each. "Shaft dz" is the object's height change
+      over the commanded turn; "settles" is the fraction of the final alignment that arrives after
+      the command stops.</caption>
+      <thead><tr><th class="l">style</th><th>n</th><th>reorient</th><th>held cos</th>
+        <th>pads on shaft T/I/M</th><th>contacts</th><th>shaft dz</th>
+        <th class="l">what it is</th></tr></thead>
+      <tbody>{{STYLE_ROWS}}</tbody>
+    </table>
+  </div>
+
+  <div class="col">
+  <p>The taxonomy collapses to one working style and three failures. Every hand that reorients is
+  a <b>pinch-roll</b>: two pads loaded, the descending one shed early, the shaft rolling between
+  the thumb and the ascending pad while the whole grip rotates. <b>Single</b> is the ordinary
+  failure — the grip does not survive the first few degrees and the shaft falls 68 mm.
+  <b>Palm-pin</b> is the interesting one: the shaft rides <em>up</em> 15–19 mm and levers itself
+  against the palm plate, which pins it and stops the turn. Those hands hold perfectly and reorient
+  not at all.</p>
+  </div>
+
+  <div class="grid4">
+    <figure>
+      <video src="{{ASSET:20260828-videos/rv05_manual_best.mp4}}" controls loop muted playsinline></video>
+      <figcaption><b>rv05_manual</b> · 0.991 ± 0.002, 8/8. Three pads loaded the whole way; the
+      shaft ends vertical and tucked into the palm. The user's hand-authored hook grasp.</figcaption>
+    </figure>
+    <figure>
+      <video src="{{ASSET:20260828-videos/rv03_narrowy_best.mp4}}" controls loop muted playsinline></video>
+      <figcaption><b>rv03_narrowy</b> · 0.951 ± 0.020, 8/8, over-rotated to −100°. Two pads; the
+      shaft hangs rather than seats.</figcaption>
+    </figure>
+    <figure>
+      <video src="{{ASSET:20260828-videos/rv00_wide_best.mp4}}" controls loop muted playsinline></video>
+      <figcaption><b>rv00_wide</b> · 0.633 ± 0.013, 8/8. Turns and stalls at about 50°; the
+      fingers splay and run out of sweep.</figcaption>
+    </figure>
+    <figure>
+      <video src="{{ASSET:20260828-videos/rv04_mid_best.mp4}}" controls loop muted playsinline></video>
+      <figcaption><b>rv04_mid</b> (CEM grip) · 0.198 ± 0.021, 8/8. Palm-pin: the shaft rides up
+      38 mm into the palm plate and stops. The same hand reaches 0.997 on a fitted grasp with the
+      thumb offset.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<hr>
+
+<!-- ===================================================================== 7 -->
+<section>
+  <div class="secnum">07 — confirmation</div>
+  <h2>Does it survive a CEM grasp</h2>
+  <div class="col">
+  <p>The search's grip comes from the geometric fitter, which is a floor: on the earlier landscape
+  the same cell read 0.575 fitted and 0.909 with its CEM grip. So the two most interesting designs
+  were re-run end to end — fit the thumb-offset pose, CEM the grasp on it (120 iterations,
+  population 80), then sweep 8 pivot heights × 3 angles at n = 8 — on <em>copies</em> of the
+  scenes, because the fitter writes <code>open_ik</code> into the file it is given and the swept
+  scenes must not move under the sweep.</p>
+  </div>
+
+  <div class="panel scroll">
+    <table>
+      <caption><span class="mono">cem_cells_*.json</span>. "one cell" is the cell the fitted grip
+      preferred; "swept" is the best of 24 on the CEM grip.</caption>
+      <thead><tr><th class="l">design</th><th>fitted grip</th><th>CEM, one cell</th>
+        <th>CEM, swept</th><th>sd</th><th>kept</th><th class="l">read</th></tr></thead>
+      <tbody>{{CEM_ROWS}}</tbody>
+    </table>
+  </div>
+
+  <div class="col">
+  <p><b>ax_asym−10 confirms at 0.936 ± 0.074 on a real optimised grasp</b>, which puts a design
+  nobody had sampled between rv05_manual (0.991) and rv03_narrowy (0.951). Its geometry is the
+  CAD-nominal hand with the index and middle mounts slid 10 mm together along the shaft — an
+  asymmetric pair, which the three-knob compact family cannot express and which nothing in the
+  study had ever tried.</p>
+  <p><b>rv04_mid does not.</b> Its fitted-grip 0.997 falls to 0.625 once CEM has optimised the
+  grasp. CEM's objective is hold quality, and on this hand hold quality and turn quality trade
+  against each other — the same conflict <code>fit_real_v1_pose</code> already had, where the
+  straddle was chosen by scoring resistance to "the shaft levering about the pinch axis", which
+  is the reorientation. The first single-cell attempt read 0.008 and would have been reported as a
+  refutation; it was a resonance-selection artifact, and sweeping the cells is not optional.</p>
+  <div class="callout">
+    <p><b>Open, and it is the next thing to fix.</b> A grasp optimiser that scores only the hold
+    will keep giving back rotational locks. The obvious repair is to add
+    <span class="mono">tau_thumb</span>, or the open-loop carry itself, to the CEM objective — it
+    costs one 1600-step rollout per candidate, which is the same order as the hold probe CEM
+    already runs.</p>
+  </div>
+  </div>
+</section>
+
+<hr>
+
+<!-- ===================================================================== 8 -->
+<section>
+  <div class="secnum">08 — reading</div>
+  <h2>What this changes for the build and for the policy</h2>
+
+  <div class="grid2">
+    <div class="panel">
+      <h3 style="margin-top:0">Hardware</h3>
+      <ul>
+        <li><b>Keep thumb-to-pair X separation above about 55 mm.</b> At 40 mm no grasp has any
+        extension budget and none of the six hands turns anything. Above that the gantry layout
+        stops mattering — the 49 working hands span X 55–120 mm.</li>
+        <li><b>The thumb gantry's Y travel is load-bearing and was never used.</b> Every design in
+        the study to date sat at thumb y = 0, the one place where the thumb cannot torque the
+        shaft. The CAD workspace gives it ±55 mm.</li>
+        <li><b>Plan for a two-point turn.</b> The third pad is off the shaft for three quarters of
+        every successful reorient. Pad compliance and friction on the thumb and the ascending
+        finger are what matter; the descending finger is along for the ride.</li>
+        <li><b>The reorient wants a lower palm than the grasp does.</b> Grip depth trades clearance
+        for extension budget, and the fitter spends all of it on clearance.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3 style="margin-top:0">Policy</h3>
+      <ul>
+        <li><b>No runtime IK.</b> The working schedule is a straight line in joint space between
+        two set-points, which is <code>LerpFingerActionCfg.hold_target_ctrl</code> with
+        <code>hold_switch_from_sim_step</code>. The per-step IK carry is both worse and unstable.</li>
+        <li><b>Over-rotation is a free knob.</b> 22 of the 32 best cells with a thumb offset
+        command −100° rather than −90°: driving past vertical walks the pads back down the far
+        side of the shaft instead of parking them at the top, where the grip self-extinguishes.</li>
+        <li><b>Score checkpoints on a held minimum, over ≥1.6 s.</b> Both the release and the
+        settle live in the second after the command ends.</li>
+        <li><b>What RL is for here is regulation.</b> The open loop reaches 0.99 in a resonance
+        two millimetres of pivot height wide, from a scripted delivery. Absorbing that is a
+        residual policy's job, and it is why the trained anchored policies have sd 0.003–0.031
+        where the schedule alone has 0.46.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="col">
+  <h3>Not done</h3>
+  <ul>
+    <li><b>No policy was trained on any of this.</b> The 49 hands are open-loop results from a
+    scripted delivery. Whether the thumb offset survives Policy A's real delivery — which is where
+    the schedule previously flipped poles on rv05_manual — is untested.</li>
+    <li><b>The object is still 24.5 g.</b> Doubling its mass drops the reference carry, and a real
+    screwdriver is heavier. This is the one axis known to fail and it invalidates nothing else
+    until it is fixed.</li>
+    <li><b>n = 3 in the sweep, n = 8 on the confirmations.</b> The sweep ranks; it does not
+    measure. Any design promoted from it needs the n = 8 pass, and the two that got it moved
+    (0.997 → 0.625 on one, holding on the other).</li>
+    <li><b>The style taxonomy is 58 / 19 / 2 / 1.</b> Three of the four buckets are too small to
+    say anything about, and the interesting one — palm-pin, the hands that hold perfectly and
+    refuse to turn — has two members.</li>
+  </ul>
+  </div>
+</section>
+
+<hr>
+
+<!-- ===================================================================== 9 -->
+<section>
+  <div class="secnum">09 — provenance</div>
+  <h2>Where every number comes from</h2>
+  <div class="panel scroll">
+    <table>
+      <caption>All paths relative to the repository root. <span class="mono">results/</span> is
+      gitignored; <span class="mono">docs/experiments/</span> is tracked.</caption>
+      <thead><tr><th class="l">claim</th><th class="l">artifact</th><th class="l">produced by</th></tr></thead>
+      <tbody>
+        <tr><td class="l">controller is the linear anchor</td><td class="l mono">docs/experiments/20260827-real_v1/carry_{pospole,others_pospole}.json</td><td class="l mono">max_ik_residual_mm == 0.0 in every row</td></tr>
+        <tr><td class="l">grip decay, both modes</td><td class="l mono">…/20260828-real_v1_search/grip_decay_rv05.json</td><td class="l mono">probe_real_v1_carry.carry, hold 0…1200</td></tr>
+        <tr><td class="l">five hands re-measured, n=8</td><td class="l mono">…/20260828-real_v1_search/ref_lin_*.json</td><td class="l mono">probe_real_v1_carry --linear-anchor --repeats 8 --jitter 0.0005 --hold-steps 800</td></tr>
+        <tr><td class="l">108-hand sweep</td><td class="l mono">…/20260828-real_v1_search/lin_pass/rows_*.json</td><td class="l mono">real_v1_design_search.py --set all --modes linear --repeats 3</td></tr>
+        <tr><td class="l">score ranking, styles</td><td class="l mono">…/20260828-real_v1_search/{REPORT.md,table.json,figs/}</td><td class="l mono">real_v1_search_report.py --restyle --figs</td></tr>
+        <tr><td class="l">thumb-offset A/B</td><td class="l mono">…/20260828-real_v1_search/traces/rv04_mid_thAx{0,20}.json</td><td class="l mono">probe_real_v1_carry --thumb-axial --contact-trace --repeats 8</td></tr>
+        <tr><td class="l">CEM confirmation</td><td class="l mono">…/20260828-real_v1_search/cem_cells_*.json</td><td class="l mono">fit_real_v1_pose --thumb-axial → phase1_optimize_grasp → carry sweep</td></tr>
+        <tr><td class="l">videos and figures</td><td class="l mono">…/20260828-real_v1_search/{20260828-videos,figs}/</td><td class="l mono">probe_real_v1_carry --video; real_v1_search_report --figs</td></tr>
+        <tr><td class="l">scenes</td><td class="l mono">assets/mjcf/experimental/20260828-real_v1_{search,cemconfirm}/</td><td class="l mono">generate_morphology_xml.py from assets/mjcf/real_v1/</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="foot col">Sim: MuJoCo, dt 0.002 s, implicitfast, pad friction 2.4/0.2/0.02,
+  solref 0.006 1, solimp 0.97 0.995 0.0005. Object: 25 mm × 100 mm cylinder, density 500,
+  24.5 g. Hand: <span class="mono">assets/mjcf/real_v1/</span>, CAD link lengths
+  20.75 / 20.75 / 26.61 mm, yaw ±85°, MCP −15…+92°, PIP −18…+92°. All rollouts CPU, single
+  thread, ~1 s each.</p>
+</section>
+
+</div>

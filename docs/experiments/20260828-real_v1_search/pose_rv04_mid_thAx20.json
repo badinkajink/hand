@@ -1,0 +1,59 @@
+{
+  "scene": "assets/mjcf/experimental/20260828-real_v1_cemconfirm/rv04_mid.xml",
+  "palm": {
+    "px": 0.0,
+    "py": 0.0,
+    "pz": 0.012999999999999977
+  },
+  "palm_z_world": 0.07549999999999998,
+  "grip_depth_mm": 62.999999999999986,
+  "clearance_ceiling": 1.0,
+  "tip_residual_mm": {
+    "thumb": 0.09560682465732956,
+    "index": 0.09977331627923518,
+    "middle": 0.09977331627923518
+  },
+  "joint_margin_rad": {
+    "thumb_yaw": 1.1762287969775784,
+    "thumb_mcp": 0.31588105243013376,
+    "thumb_pip": 0.6406330066341888,
+    "index_yaw": 1.3572218829367597,
+    "index_mcp": 0.09674543486885342,
+    "index_pip": 0.8692014910550929,
+    "middle_yaw": 1.3572218829367597,
+    "middle_mcp": 0.09674543486885342,
+    "middle_pip": 0.8692014910550929
+  },
+  "targets": {
+    "thumb": [
+      -0.024050000000000002,
+      0.02,
+      0.0125
+    ],
+    "index": [
+      0.024050000000000002,
+      0.032,
+      0.0125
+    ],
+    "middle": [
+      0.024050000000000002,
+      -0.032,
+      0.0125
+    ]
+  },
+  "gap_mm": 1.0,
+  "spread_mm": 32.0,
+  "axial_offset_mm": 0.0,
+  "thumb_axial_mm": 20.0,
+  "grip_offset_frac": 0.0,
+  "elevation_deg": 0.0,
+  "probe_held_lift_mm": 56.25759063074573,
+  "probe_candidates": [
+    {
+      "spread_mm": 32.0,
+      "pz": 0.012999999999999977,
+      "held_mm": 56.25759063074573
+    }
+  ],
+  "self_collisions": []
+}

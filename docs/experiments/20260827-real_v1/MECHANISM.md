@@ -217,3 +217,43 @@ best RL policy and flagged `over_clamp`. Past −70° every utilisation collapse
 shaft hangs into the grip and the fingers only hold it.
 
 Full methods spec and head-to-head: https://claude.ai/code/artifact/3632efc4-8132-4f3c-bed9-4588705efc6d
+
+---
+
+## Superseded by the design search (2026-08-28, later)
+
+`docs/experiments/20260828-real_v1_search/` — 108 hands, and three of this file's measurements
+were wrong in ways that changed its conclusions. Page:
+https://claude.ai/code/artifact/e8a389ed-d80f-40d1-8c85-6301be4c8f35
+
+1. **Every "the raised pivot works" row above was run with `--linear-anchor`** (they all carry
+   `max_ik_residual_mm: 0.0`), i.e. a straight line in joint space between two set-points. The
+   per-step IK carry is the WORSE controller and it *releases the shaft*: re-solving the IK each
+   step re-centres the command on where the pad already is, the servo error goes to zero with it,
+   and the grip decays 16.1 -> 10.9 -> 6.0 -> 1.3 -> 0 N over 0.8 s. The linear anchor holds
+   5-22 N indefinitely and the shaft goes on settling into vertical after the command stops
+   (cos 0.837 -> 0.999 over the next half second). `grip_decay_rv05.json`.
+2. **The 400-step hold hid that.** `ok` is now the object's minimum height over 1.6 s, with
+   contact counted against the whole hand (the pads are commonly off the shaft at the end while
+   the middle phalanges carry it).
+3. **n=1 is not a measurement here either.** The good cells are narrow resonances in (pivot
+   height, turn angle): rv05_manual reads 0.991 and 0.000 at neighbouring pivot heights. At n=8
+   with jittered spawns: rv05_manual 0.991+-0.002 8/8, rv03_narrowy 0.951+-0.020 8/8 at -100 deg,
+   rv00_wide 0.633, rv04_mid 0.198, rv01/rv02 no cell holds.
+
+And two conclusions above do not survive n=80:
+
+* **`ceiling = asin(extension_left/straddle)` does not generalise.** The 9/9 was nine cells of one
+  three-knob family. Over 80 graspable designs it reads rho +0.096, AUC 0.617. What the extension
+  bound actually predicts is *which contact you lose*: the descending pad (index, at +y under a
+  -90 deg turn) leaves the shaft after a few degrees in every design, and the turn continues on
+  the thumb and the ascending pad. All 49 hands that reorient do it as a two-point pinch-roll with
+  the index pad on the shaft 19-28% of the time.
+* **"Keep the X gantries wide" is wrong.** X 70-85 is well represented among the winners and the
+  best cell in the search is at X 70; only X <= 40 is dead. The old grid was measuring the
+  fitter's grasp, not the hand.
+
+The design score is now `tau_thumb = mu * f_n,thumb * |r_yz,thumb|` (rho +0.443, AUC 0.821), and
+the actionable knob is `fit_real_v1_pose --thumb-axial`: at the default the thumb pad sits at the
+shaft's mid-length where its moment arm about the pinch axis is zero. On rv04_mid, sliding it
+20 mm takes the same design, grasp and cell from 0.000 (0/8 kept) to 0.972+-0.066 (8/8).

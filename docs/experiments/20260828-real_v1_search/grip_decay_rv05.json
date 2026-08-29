@@ -1,0 +1,178 @@
+[
+ {
+  "mode": "ik",
+  "hold_steps": 0,
+  "hold_s": 0.0,
+  "cos": 0.837,
+  "z": 0.1127,
+  "min_z_hold": 0.1127,
+  "tip_contacts": 3,
+  "tip_force_N": 16.13,
+  "hand_contacts": 3
+ },
+ {
+  "mode": "ik",
+  "hold_steps": 100,
+  "hold_s": 0.2,
+  "cos": 0.808,
+  "z": 0.1118,
+  "min_z_hold": 0.1118,
+  "tip_contacts": 3,
+  "tip_force_N": 10.85,
+  "hand_contacts": 3
+ },
+ {
+  "mode": "ik",
+  "hold_steps": 200,
+  "hold_s": 0.4,
+  "cos": 0.807,
+  "z": 0.1111,
+  "min_z_hold": 0.1111,
+  "tip_contacts": 3,
+  "tip_force_N": 5.99,
+  "hand_contacts": 3
+ },
+ {
+  "mode": "ik",
+  "hold_steps": 300,
+  "hold_s": 0.6,
+  "cos": 0.808,
+  "z": 0.1105,
+  "min_z_hold": 0.1105,
+  "tip_contacts": 3,
+  "tip_force_N": 1.28,
+  "hand_contacts": 3
+ },
+ {
+  "mode": "ik",
+  "hold_steps": 400,
+  "hold_s": 0.8,
+  "cos": 0.783,
+  "z": 0.109,
+  "min_z_hold": 0.109,
+  "tip_contacts": 0,
+  "tip_force_N": 0.0,
+  "hand_contacts": 0
+ },
+ {
+  "mode": "ik",
+  "hold_steps": 600,
+  "hold_s": 1.2,
+  "cos": -0.0,
+  "z": 0.0124,
+  "min_z_hold": 0.0112,
+  "tip_contacts": 0,
+  "tip_force_N": 0.0,
+  "hand_contacts": 0
+ },
+ {
+  "mode": "ik",
+  "hold_steps": 800,
+  "hold_s": 1.6,
+  "cos": -0.0,
+  "z": 0.0124,
+  "min_z_hold": 0.0112,
+  "tip_contacts": 0,
+  "tip_force_N": 0.0,
+  "hand_contacts": 0
+ },
+ {
+  "mode": "ik",
+  "hold_steps": 1200,
+  "hold_s": 2.4,
+  "cos": -0.0,
+  "z": 0.0124,
+  "min_z_hold": 0.0112,
+  "tip_contacts": 0,
+  "tip_force_N": 0.0,
+  "hand_contacts": 0
+ },
+ {
+  "mode": "linear",
+  "hold_steps": 0,
+  "hold_s": 0.0,
+  "cos": 0.837,
+  "z": 0.1146,
+  "min_z_hold": 0.1146,
+  "tip_contacts": 3,
+  "tip_force_N": 22.48,
+  "hand_contacts": 3
+ },
+ {
+  "mode": "linear",
+  "hold_steps": 100,
+  "hold_s": 0.2,
+  "cos": 0.859,
+  "z": 0.1144,
+  "min_z_hold": 0.1144,
+  "tip_contacts": 3,
+  "tip_force_N": 22.92,
+  "hand_contacts": 3
+ },
+ {
+  "mode": "linear",
+  "hold_steps": 200,
+  "hold_s": 0.4,
+  "cos": 0.901,
+  "z": 0.1139,
+  "min_z_hold": 0.1139,
+  "tip_contacts": 3,
+  "tip_force_N": 21.67,
+  "hand_contacts": 3
+ },
+ {
+  "mode": "linear",
+  "hold_steps": 300,
+  "hold_s": 0.6,
+  "cos": 0.946,
+  "z": 0.1134,
+  "min_z_hold": 0.1134,
+  "tip_contacts": 3,
+  "tip_force_N": 19.12,
+  "hand_contacts": 3
+ },
+ {
+  "mode": "linear",
+  "hold_steps": 400,
+  "hold_s": 0.8,
+  "cos": 0.98,
+  "z": 0.1131,
+  "min_z_hold": 0.1131,
+  "tip_contacts": 3,
+  "tip_force_N": 15.56,
+  "hand_contacts": 3
+ },
+ {
+  "mode": "linear",
+  "hold_steps": 600,
+  "hold_s": 1.2,
+  "cos": 0.999,
+  "z": 0.1131,
+  "min_z_hold": 0.113,
+  "tip_contacts": 3,
+  "tip_force_N": 8.89,
+  "hand_contacts": 3
+ },
+ {
+  "mode": "linear",
+  "hold_steps": 800,
+  "hold_s": 1.6,
+  "cos": 0.989,
+  "z": 0.113,
+  "min_z_hold": 0.113,
+  "tip_contacts": 3,
+  "tip_force_N": 6.28,
+  "hand_contacts": 3
+ },
+ {
+  "mode": "linear",
+  "hold_steps": 1200,
+  "hold_s": 2.4,
+  "cos": 0.982,
+  "z": 0.1127,
+  "min_z_hold": 0.1127,
+  "tip_contacts": 3,
+  "tip_force_N": 5.12,
+  "hand_contacts": 3
+ }
+]
