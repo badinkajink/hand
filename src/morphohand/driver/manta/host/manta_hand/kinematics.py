@@ -23,8 +23,16 @@ importable unconditionally, same tier as driver.py/joint.py.
 from __future__ import annotations
 
 import time
+from typing import TYPE_CHECKING
 
-from .driver import MantaHandDriver
+if TYPE_CHECKING:  # pyserial is a runtime-only dependency of .driver, and every
+    # annotation here is a string (`from __future__ import annotations`), so the
+    # import is not needed to load this module. Keeping it lazy is what makes the
+    # docstring's "importable unconditionally" claim actually true -- an offline
+    # planner on a workstation with no pyserial can read the calibration tables
+    # (STEPS_PER_MM / FULL_EXTENSION_MM / _TRANSFORM) as the single source of truth
+    # instead of copying them.
+    from .driver import MantaHandDriver
 
 # finger_id -> (x_joint_index, y_joint_index) on the Manta M8P (J0-J5).
 STEPPER_JOINTS = {0: (0, 1), 1: (2, 3), 2: (4, 5)}

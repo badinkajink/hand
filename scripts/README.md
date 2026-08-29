@@ -30,6 +30,9 @@ onto it** — a10/b33 were trained on a 117 mm finger with coincident yaw/MCP ax
 | `probe_real_v1_pivot.py` | breakaway torque about the pinch axis vs straddle and grip offset — the grasp as a rotational lock |
 | `fit_real_v1_pose.py` | per-design grasp keyframe: solves palm x/y/z AND the 9 finger angles onto fingertip targets ringing the shaft, writes `open_ik`. Replaces `retarget_keyframe_ik.py` here — new topology, and palm height is not shared across designs |
 | `real_v1_pipeline.py` | the per-design chain: generate → pose → CEM → A → B → handoff eval. Resumable, stage-selectable (`--stages grasp` is the cheap prefix) |
+| `real_v1_deploy_envelope.py` | how much perturbation the open-loop carry survives: one-at-a-time axes, everything-wrong-at-once ensembles, and the cell sweep that picks a design's operating point |
+| `real_v1_export_plan.py` | a chosen cell → bench sheets: mounts, a 50 Hz joint trajectory, the four set-points it really is, and `<design>_plan.json` for the driver |
+| `real_v1_hand_commands.py` | the sim design space against what the gantries actually reach, and an exported plan → literal `MOVEMM`/servo commands. `--travel` re-asks the question under a hypothetical rail length. Driver half = `manta_hand.plan` |
 
 ## RL training (A = lift/deliver, B = reorient)
 

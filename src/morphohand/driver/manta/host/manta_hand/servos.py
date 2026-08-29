@@ -30,13 +30,26 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-try:
-    from rustypot import Scs0009PyController
-except ImportError as exc:  # pragma: no cover
-    raise ImportError("manta_hand.servos requires rustypot: pip install rustypot") from exc
-
 import math
 import time
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:  # pragma: no cover
+    from rustypot import Scs0009PyController
+
+
+def _controller_cls():
+    """rustypot, imported at the moment a bus is actually opened rather than at
+    module load. This module's constant tables -- FINGER_JOINTS above all, the
+    authoritative per-servo zero + calibrated range -- are the contract an offline
+    planner has to validate a trajectory against, and it should not need the
+    hardware's serial stack installed to read them. Opening a real ServoBus still
+    fails with the same message it always did."""
+    try:
+        from rustypot import Scs0009PyController
+    except ImportError as exc:  # pragma: no cover
+        raise ImportError("manta_hand.servos requires rustypot: pip install rustypot") from exc
+    return Scs0009PyController
 
 # Torque-enable states, per AmazingHand's reference code.
 TORQUE_ON = 1
@@ -89,7 +102,7 @@ class ServoBus:
     """
 
     def __init__(self, port: str = "/dev/ttyUSB0", baudrate: int = 1_000_000, timeout: float = 0.5):
-        self._c = Scs0009PyController(serial_port=port, baudrate=baudrate, timeout=timeout)
+        self._c = _controller_cls()(serial_port=port, baudrate=baudrate, timeout=timeout)
         # The very first command issued right after opening the port
         # reproducibly timed out without this, confirmed empirically on
         # both the CB1 and a Mac -- same class of issue as INTER_CMD_DELAY_S

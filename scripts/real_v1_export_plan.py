@@ -7,6 +7,8 @@ WHAT COMES OUT
     <design>_build.txt   where to put the three finger mounts, and the grasp the plan assumes
     <design>_traj.csv    t_s, then the nine finger joints in DEGREES, then palm_z_mm
     <design>_poses.txt   the same trajectory as the four set-points it actually is
+    <design>_plan.json   the machine-readable form, for manta_hand.plan.HandPlan -- mounts plus
+                         the set-points INCLUDING the open pose the sheets above leave implicit
 
 The trajectory is open loop by construction -- it is a list of joint angles against time, and
 nothing in it depends on knowing where the object is once the hand has closed. That is the whole
@@ -180,8 +182,59 @@ def main() -> int:
               f"  ramp 4  end of turn -> re-squeeze        "
               f"{(plan['squeeze_steps']/500 if plan.get('squeeze_delta') else 0):.1f} s"]
     (args.out / f"{args.design}_poses.txt").write_text("\n".join(poses) + "\n")
+
+    # ---- the same thing again, for the driver ------------------------------------------------
+    # The .txt sheets are for a person; this is for manta_hand.plan.HandPlan, which turns it into
+    # MOVEMM/servo commands. It carries the OPEN pose the .txt sheets leave out: the CSV starts
+    # already at the grip set-point (the close is `ramp 1`, implied), and a servo told to jump
+    # there from wherever it happens to be sitting closes onto the tool at full speed.
+    def _split(j):
+        f, _, sj = j.rpartition("_")
+        return f, sj
+
+    open_deg = {j: float(np.degrees(np.asarray(plan["open_qpos"])[m.joint(j).qposadr[0]]))
+                for j in JOINTS}
+
+    def _pose(name, ramp_s, hold_s, vals):
+        out = {"name": name, "ramp_s": round(ramp_s, 3), "hold_s": round(hold_s, 3), "joints": {}}
+        for j in JOINTS:
+            f, sj = _split(j)
+            out["joints"].setdefault(f, {})[sj] = round(float(vals[j]), 3)
+        return out
+
+    grip_deg = {j: float(np.degrees(anchor[j])) for j in JOINTS}
+    end_deg = {j: float(np.degrees(anchor[j] + float(np.clip(plan["delta"][j], -0.5, 0.5))))
+               for j in JOINTS}
+    settle_s = 0.8 if args.bench_height > 0 else 0.8   # lift = 0.4 ramp + 0.4 settle
+    turn_s = args.turn_steps / 500.0
+    sq_s = plan["squeeze_steps"] / 500.0 if plan.get("squeeze_delta") else 0.0
+    jplan = {
+        "design": args.design,
+        "mounts_palm_mm": {f: [round(float(m.body(f"{f}_mount").pos[0]) * 1000, 2),
+                               round(float(m.body(f"{f}_mount").pos[1]) * 1000, 2)]
+                           for f in FINGERS},
+        "poses": [
+            _pose("open", 0.0, 0.0, open_deg),
+            _pose("grip", 0.5, settle_s, grip_deg),
+            _pose("turn_end", turn_s, 0.0 if sq_s else 1.6, end_deg),
+        ],
+        "meta": {"object": args.object, "scene": str(scene),
+                 "source": "scripts/real_v1_export_plan.py",
+                 "straddle_mm": st * 1000, "thumb_axial_mm": ta * 1000,
+                 "squeeze_mm": args.squeeze_mm, "grip_depth_mm": plan["grip_depth_mm"],
+                 "axis_k": k, "angle_deg": ang, "turn_steps": args.turn_steps,
+                 "pad_width_mm": args.pad_width_mm, "flat_pads": bool(args.flat_pads),
+                 "bench_height_mm": args.bench_height * 1000, "post_y_mm": args.post_y,
+                 "palm_lift_mm": 0.0 if args.bench_height > 0 else args.lift * 1000},
+    }
+    if sq_s:
+        sq_deg = {j: float(np.degrees(anchor[j] + plan["squeeze_delta"][j])) for j in JOINTS}
+        jplan["poses"].append(_pose("resqueeze", sq_s, 1.6, sq_deg))
+    (args.out / f"{args.design}_plan.json").write_text(json.dumps(jplan, indent=2) + "\n")
+
     print("\n".join(lines))
-    print(f"\nwrote {csv} ({len(rows)} rows at {CTRL_HZ:.0f} Hz) and the build/poses sheets")
+    print(f"\nwrote {csv} ({len(rows)} rows at {CTRL_HZ:.0f} Hz), the build/poses sheets, "
+          f"and {args.design}_plan.json for manta_hand.plan")
     return 0
 
 
