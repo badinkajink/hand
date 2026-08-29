@@ -90,18 +90,20 @@ OBJECTS = {
 
 
 def object_scene(base: Path, obj: str, bench: float = 0.0, post_y: float = 0.0,
-                 flat_pads: bool = False, pad_len: float = 0.0148) -> Path:
+                 flat_pads: bool = False, pad_len: float = 0.0148,
+                 pad_width: float = 0.0148, flat_links: bool = False) -> Path:
     """The design's scene holding `obj`, optionally standing it on a bench platform."""
     if obj == "medium" and bench <= 0.0 and not flat_pads:
         return base
     tag = (obj + (f"__bench{bench*1000:.0f}py{post_y*1000:+.0f}" if bench > 0 else "")
-           + (f"__flat{pad_len*1000:.0f}" if flat_pads else ""))
+           + (f"__flat{pad_len*1000:.0f}w{pad_width*1000:.0f}"
+              f"{'L' if flat_links else 'T'}" if flat_pads else ""))
     out = SCRATCH / f"{base.stem}__{tag}.xml"
     if not out.exists():
         SCRATCH.mkdir(parents=True, exist_ok=True)
         sc = Scene(base)
         if flat_pads:
-            sc.set_finger_flat_pads(pad_len=pad_len)
+            sc.set_finger_flat_pads(pad_len=pad_len, width=pad_width, links=flat_links)
         if obj != "medium":
             sc.set_object_stubby(**OBJECTS[obj])
         if bench > 0.0:
@@ -526,6 +528,13 @@ def dense_place_points() -> list[tuple[str, str, dict]]:
         pts.append(("fine_y", f"{mm:+d}mm", {"place": (0.0, mm / 1000.0, 0.0)}))
     for deg in range(-20, 21, 2):
         pts.append(("fine_yaw", f"{deg:+d}deg", {"yaw": np.radians(deg)}))
+    # HEIGHT ONLY MATTERS WITHOUT A Z STAGE. With the palm lift, the fitter picks the palm's
+    # height against the tool lying on the table and the grip depth comes out right by
+    # construction. With a fixed palm and the tool on a platform, the platform's height IS the
+    # grip depth, and an error in it is an error in the squeeze -- which nothing downstream
+    # corrects. It is the tolerance the bench adds that the lift schedule never had.
+    for mm in (-4, -3, -2, -1.5, -1, -0.5, 0.5, 1, 1.5, 2, 3, 4):
+        pts.append(("fine_z", f"{mm:+.1f}mm", {"place": (0.0, 0.0, mm / 1000.0)}))
     return pts
 
 
@@ -601,11 +610,18 @@ def cell_grid(k_lo: float, k_hi: float, k_n: int, angles: list[float]) -> list[t
 def _cell_task(job: tuple) -> dict:
     (tag, scene, row, axis_k, angle, n_nom, n_ens, level, hold_steps,
      turn_steps, hold_squeeze) = job
+    # THE SQUEEZE IS PART OF THE GRASP, and it stops being a free constant once the pads are
+    # flat. `fit` places the pad CENTRE at object_radius + PAD_RADIUS + gap - squeeze, which is
+    # exact for a sphere and wrong for a flat face: the face's closest approach to the shaft is
+    # along its own normal, and the finger meets the shaft at 20-35 deg to that normal, so the
+    # same command leaves the face (R + 10.55)(1/cos t - 1) mm short. Measured on g14, grip
+    # force falls 12.5 N -> 0.7 N at identical joint angles. Sweeping it is how that is paid for.
+    squeeze = row.get("squeeze_mm", 4.0) / 1000.0
     scene = Path(scene)
     t0 = time.time()
     plan = make_plan(scene, straddle=row["straddle_mm"] / 1000.0,
                      depth=None if row["depth_req_mm"] is None else row["depth_req_mm"] / 1000.0,
-                     thumb_axial=row["thumb_axial_mm"] / 1000.0, squeeze=0.004,
+                     thumb_axial=row["thumb_axial_mm"] / 1000.0, squeeze=squeeze,
                      axis_k=axis_k, angle_deg=angle, lift=0.10, budget=0.5,
                      turn_steps=turn_steps, hold_squeeze=hold_squeeze)
     if plan is None:
@@ -632,6 +648,7 @@ def _cell_task(job: tuple) -> dict:
         "design": tag, "axis_k": axis_k, "angle_deg": angle, "pose": True,
         "straddle_mm": row["straddle_mm"], "thumb_axial_mm": row["thumb_axial_mm"],
         "turn_steps": turn_steps, "hold_squeeze_mm": round(hold_squeeze * 1000, 1),
+        "squeeze_mm": row.get("squeeze_mm", 4.0),
         "nom_cos": round(float(np.mean(held(nom))), 3),
         "nom_sd": round(float(np.std(held(nom))), 3),
         "nom_kept": sum(1 for x in nom if x["ok"]), "n_nom": len(nom),
@@ -678,6 +695,12 @@ def main() -> int:
     ap.add_argument("--flat-pads", action="store_true",
                     help="use the BUILT finger cross-section (14.8 mm across, flat face at "
                          "10.55 mm) instead of the shipped 21.1 mm round capsules")
+    ap.add_argument("--pad-width-mm", type=float, default=14.8,
+                    help="the flat pad's width ACROSS the finger. The built part is 14.8; a wider "
+                         "printed tip is a free change, so this is a design knob, not a fact.")
+    ap.add_argument("--flat-links", action="store_true",
+                    help="also flatten the phalanges. Off by default: measured contact at a "
+                         "settled grasp is entirely on the tips, so the links are left round.")
     ap.add_argument("--pad-len-mm", type=float, default=14.8,
                     help="the fingertip pad's extent along the finger")
     ap.add_argument("--post-y", type=float, default=0.0,
@@ -700,6 +723,8 @@ def main() -> int:
     ap.add_argument("--cell-ens", type=int, default=8)
     ap.add_argument("--cell-level", type=float, default=1.0)
     ap.add_argument("--turn-steps", default="550", help="comma list; swept in --mode cell")
+    ap.add_argument("--squeeze-mm", default="4.0",
+                    help="comma list; how far inside the shaft surface the pads are driven")
     ap.add_argument("--hold-squeeze-mm", default="0", help="comma list; swept in --mode cell")
     ap.add_argument("--repeats", type=int, default=3,
                     help="rollouts per point. The good cells are narrow resonances and CPU "
@@ -709,6 +734,10 @@ def main() -> int:
                     help="comma list of per-finger normal-force set-points, N. 0 = the plain "
                          "open-loop plan. Anything else closes a loop on servo current alone.")
     ap.add_argument("--force-gain", type=float, default=0.0015)
+    ap.add_argument("--ensemble-seed", type=int, default=20260829,
+                    help="RNG for the ensemble draws. A cell picked as the best of thousands on "
+                         "16 draws is partly picked on noise, so the number quoted for it has to "
+                         "come from a DIFFERENT set of draws than the one that selected it.")
     ap.add_argument("--force-phase", default="all",
                     help="comma list of all|hold — whether the current loop acts through the "
                          "turn or only once the turn has finished")
@@ -719,6 +748,11 @@ def main() -> int:
     ap.add_argument("--workers", type=int, default=max(1, (os.cpu_count() or 4) - 2))
     ap.add_argument("--out", type=Path,
                     default=ROOT / f"docs/experiments/{DATE}-real_v1_deploy/envelope.json")
+    ap.add_argument("--cells-from", type=Path, default=None,
+                    help="a cells_*.json. Each design's operating point is taken from its best "
+                         "cell there instead of from the 108-hand search table. Needed whenever "
+                         "the schedule has changed -- the lift-tuned cell drops the tool on the "
+                         "fixed-palm bench, so a tolerance map built on it measures nothing.")
     ap.add_argument("--smoke", action="store_true", help="baseline only, n=1, no pool")
     args = ap.parse_args()
 
@@ -731,6 +765,23 @@ def main() -> int:
         for r in table.values():
             if r.get("depth_req_mm") is None and r.get("depth_fit_mm"):
                 r["depth_req_mm"] = r["depth_fit_mm"]
+    if args.cells_from and args.cells_from.exists():
+        best: dict[str, dict] = {}
+        for c in json.loads(args.cells_from.read_text()):
+            if not c.get("pose") or c.get("nom_kept", 0) < c.get("n_nom", 1) / 2:
+                continue
+            k = c["design"]
+            if k not in best or (c.get("ens_win", 0), c["nom_cos"]) > \
+                                (best[k].get("ens_win", 0), best[k]["nom_cos"]):
+                best[k] = c
+        for k, c in best.items():
+            if k in table:
+                table[k] = dict(table[k], axis_k=c["axis_k"], angle_deg=c["angle_deg"],
+                                straddle_mm=c["straddle_mm"],
+                                thumb_axial_mm=c["thumb_axial_mm"],
+                                squeeze_mm=c.get("squeeze_mm", 4.0))
+        print(f"operating points taken from {args.cells_from.name} for {len(best)} designs")
+
     designs = [t.strip() for t in args.designs.split(",") if t.strip()]
     vecs = ds.design_set("all")
 
@@ -750,6 +801,7 @@ def main() -> int:
         # CONTROLLER knobs, free on hardware: how slowly the turn is commanded, and whether the
         # pads are re-seated at the top of it. Neither is a property of the hand.
         turn_stepss = [int(v) for v in str(args.turn_steps).split(",")]
+        squeezes = [float(v) for v in str(args.squeeze_mm).split(",")]
         hold_squeezes = [float(v) / 1000.0 for v in str(args.hold_squeeze_mm).split(",")]
         for tag in designs:
             row = table.get(tag)
@@ -757,7 +809,8 @@ def main() -> int:
                 print(f"{tag:14} no row / not graspable — skipped")
                 continue
             scene = object_scene(ds.scene_for(vecs[tag]), args.object, args.bench_height, args.post_y / 1000.0,
-                                 args.flat_pads, args.pad_len_mm / 1000.0)
+                                 args.flat_pads, args.pad_len_mm / 1000.0,
+                                 args.pad_width_mm / 1000.0, args.flat_links)
             for st in straddles:
                 for ta in thumb_axials:
                     r2 = dict(row)
@@ -765,7 +818,9 @@ def main() -> int:
                         r2["straddle_mm"] = st
                     if ta is not None:
                         r2["thumb_axial_mm"] = ta
-                    for k, a in grid:
+                    for sq in squeezes:
+                      r2 = dict(r2, squeeze_mm=sq)
+                      for k, a in grid:
                         for ts in turn_stepss:
                             for hs in hold_squeezes:
                                 jobs.append((tag, str(scene), r2, k, a, args.cell_nom,
@@ -774,10 +829,11 @@ def main() -> int:
         args.out.parent.mkdir(parents=True, exist_ok=True)
         done = json.loads(args.out.read_text()) if args.out.exists() else []
         seen = {(r["design"], r.get("straddle_mm"), r.get("thumb_axial_mm"), r["axis_k"],
-                 r["angle_deg"], r.get("turn_steps"), r.get("hold_squeeze_mm")) for r in done}
+                 r["angle_deg"], r.get("turn_steps"), r.get("hold_squeeze_mm"),
+                 r.get("squeeze_mm", 4.0)) for r in done}
         jobs = [j for j in jobs
                 if (j[0], j[2]["straddle_mm"], j[2]["thumb_axial_mm"], j[3], j[4], j[9],
-                    round(j[10] * 1000, 1)) not in seen]
+                    round(j[10] * 1000, 1), j[2].get("squeeze_mm", 4.0)) not in seen]
         print(f"{len(jobs)} cells ({args.cell_nom} nominal + {args.cell_ens} ensemble each) "
               f"on {args.workers} workers")
         t0 = time.time()
@@ -802,7 +858,8 @@ def main() -> int:
             print(f"{tag:14} no row / not graspable — skipped")
             continue
         scene = object_scene(ds.scene_for(vecs[tag]), args.object, args.bench_height, args.post_y / 1000.0,
-                                 args.flat_pads, args.pad_len_mm / 1000.0)
+                                 args.flat_pads, args.pad_len_mm / 1000.0,
+                                 args.pad_width_mm / 1000.0, args.flat_links)
         row = dict(row)
         if args.straddle_mm:
             row["straddle_mm"] = float(str(args.straddle_mm).split(",")[0])
@@ -811,7 +868,8 @@ def main() -> int:
         t0 = time.time()
         plan = make_plan(scene, straddle=row["straddle_mm"] / 1000.0,
                          depth=None if row["depth_req_mm"] is None else row["depth_req_mm"] / 1000.0,
-                         thumb_axial=row["thumb_axial_mm"] / 1000.0, squeeze=0.004,
+                         thumb_axial=row["thumb_axial_mm"] / 1000.0,
+                         squeeze=row.get("squeeze_mm", 4.0) / 1000.0,
                          axis_k=row["axis_k"], angle_deg=row["angle_deg"], lift=0.10,
                          budget=0.5, bench=args.bench_height > 0.0,
                          turn_steps=int(str(args.turn_steps).split(",")[0]),
@@ -849,7 +907,7 @@ def main() -> int:
                     # SAME DRAWS FOR EVERY FORCE TARGET: the seed is reset per arm so the
                     # regulator is compared against the open loop on the identical set of wrong
                     # hands, not on a fresh sample of them.
-                    rng = np.random.default_rng(20260829)
+                    rng = np.random.default_rng(args.ensemble_seed)
                     for i in range(args.draws):
                         spec = ensemble_draw(rng, lv)
                         spec["force_target"] = ft
