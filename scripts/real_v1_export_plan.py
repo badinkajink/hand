@@ -53,11 +53,11 @@ def main() -> int:
     ap.add_argument("--angle-deg", type=float, default=None)
     ap.add_argument("--straddle-mm", type=float, default=None)
     ap.add_argument("--thumb-axial-mm", type=float, default=None)
+    ap.add_argument("--squeeze-mm", type=float, default=10.0,
+                    help="how far inside the tool's surface the pads are driven. 10, not the "
+                         "fitter's 4: the sphere-based pad model leaves a flat face 2-5 mm short, "
+                         "and paying it back takes the working region from 3% of cells to 15%.")
     ap.add_argument("--turn-steps", type=int, default=550)
-    ap.add_argument("--squeeze-mm", type=float, default=4.0,
-                    help="how far inside the tool's surface the pads are driven. 4 mm is right "
-                         "for the round pad the scene shipped; a flat face needs more, because "
-                         "the fitter measures the standoff along the face normal.")
     ap.add_argument("--hold-squeeze-mm", type=float, default=0.0)
     ap.add_argument("--lift", type=float, default=0.10)
     ap.add_argument("--bench-height", type=float, default=0.0,

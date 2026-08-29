@@ -341,9 +341,11 @@ more error.
 
 ## What to do on the bench
 
-1. **Print the 21.1 mm flat tip**, not the 14.8 mm one. Small, measured, free.
-2. **Squeeze 10 mm, not 4.** Biggest single lever found today.
-3. **Build the g23 / g24 mount setup first** — thumb at (-35, 0), pair at x = +35, y = +-32.5 (g23)
+1. **Squeeze 10 mm, not 4.** Biggest single lever found today: 2.6% of cells work at 4 mm,
+   17% at 10 mm.
+2. **Print the 21.1 mm flat tip**, not the 14.8 mm one. Small (+0.021 +- 0.008 held cos), free.
+3. **Build g12 first** -- thumb (-42.5, 0), pair (+42.5, +-40), straddle 40, thumb offset 20,
+   pivot k 0.10, turn -70 deg. Then the g23 / g24 / rv04_mid setup — thumb at (-35, 0), pair at x = +35, y = +-32.5 (g23)
    or +-25 (g24); rv04_mid is the same setup at +-40, so one build covers three hands by sliding
    the pair mounts in Y. g12 needs both gantries 7.5 mm further out (thumb -42.5, pair +42.5).
 4. **Support the tool under the half that RISES** (y = -35 mm), never under its middle: a centred
@@ -353,3 +355,34 @@ more error.
    negative.
 7. Expect **roughly 3 in 5 at a careful bench and 1 in 3 with everything wrong**, on the turn.
    The grasp and lift are not the risk.
+
+## 13. Final: the corrected hand, the corrected squeeze, re-searched and re-confirmed
+
+3,120 cells at squeeze 10 mm with the 21.1 mm flat tip, fixed palm, support at y = -35 mm:
+**522 cells reorient and keep the tool — 17%, against 2.6% at the fitter's 4 mm squeeze with the
+built 14.8 mm tip.** The working region is six and a half times larger, which is the largest single
+effect measured today and larger than any choice of hand.
+
+Confirmed on 200 draws under a seed that did not select the cell:
+
+    design      careful bench   kept   full error   operating point
+    g12             70%          89%      27%       sp40 t20 k0.10 a-70
+    g23             49%          63%      28%       sp40 t10 k0.10 a-80
+    g24             44%          52%      22%       sp32 t10 k0.55 a-110
+    rv04_mid        40%          56%      22%       sp32 t10 k0.45 a-80
+    ax_tx+20        30%          68%      15%       sp40 t10 k0.65 a-80
+    g14             26%          47%      20%       sp40 t20 k0.10 a-90
+    g10             25%          73%      10%       sp40 t20 k0.45 a-110
+
+**g12 is the hand**: 70% of runs stand the tool up at a careful bench and 89% keep hold of it, so
+its common failure is a tool still in the hand rather than a tool on the floor.
+
+A caveat on reading the per-design change against section 11: the search re-picked each design's
+cell at the new squeeze, so a design whose number fell (g23 64 -> 49) has moved operating point as
+well as squeeze, and the two cannot be separated from these runs. What is comparable, and what
+matters, is the size of the working region and the best confirmed hand.
+
+Build sheets at these points: `deploy/{g12,g23,g24,rv04_mid}_build.txt` with 50 Hz trajectories
+beside them. g12 needs both gantries 7.5 mm further out than the other three (thumb x -42.5,
+pair x +42.5); g23, g24 and rv04_mid share thumb (-35, 0) and pair x = +35 and differ only in
+pair-Y, so one build covers three hands.

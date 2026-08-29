@@ -10,12 +10,12 @@ FINGER MOUNTS (palm frame, mm) -- set the three gantry blocks to these
 
 GRASP the plan assumes
   straddle (each pair pad, from the tool's mid-length)    40.0 mm
-  thumb slid along the tool                               10.0 mm
+  thumb slid along the tool                               20.0 mm
   grip depth below the mounting plane                     62.5 mm
-  squeeze (pads driven inside the surface)                 4.0 mm
+  squeeze (pads driven inside the surface)                10.0 mm
 
 TURN
-  pivot height   axis_k 0.050  (that many x the half-straddle above the pads)
+  pivot height   axis_k 0.100  (that many x the half-straddle above the pads)
   commanded turn -70 deg about the pinch axis
   over           1.1 s
   re-squeeze     0.0 mm at the top
