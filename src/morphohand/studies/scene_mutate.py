@@ -258,6 +258,197 @@ class Scene:
                 g.set("friction", " ".join(fr))
         return self
 
+    def set_object_stubby(self, *, handle_r: float = 0.015, handle_len: float = 0.0508,
+                          shaft_r: float = 0.003175, shaft_len: float = 0.0381,
+                          handle_density: float = 500.0,
+                          shaft_density: float | None = None) -> "Scene":
+        """Replace the uniform cylinder with a stubby screwdriver: fat handle + thin shaft.
+
+        Defaults are a Stanley #2 stubby (100 PLUS / 64-105 class), converted from the catalogue
+        inches: 3.5 in overall = 2 in handle (1.18 in across) + 1.5 in shank (0.25 in). It is a
+        primitive pair rather than a mesh on purpose -- MuJoCo contacts on a convex-decomposed
+        screwdriver mesh would be slower and no more truthful about a printed part, and the two
+        things that actually change the manipulation are captured exactly: the grip diameter
+        (30 mm against the medium shaft's 25) and the fact that the mass is all in the handle.
+
+        THE BODY KEEPS THE NAME `screwdriver_medium`. It is the pipeline's handle for "the
+        object" -- the fitter, the carry, the reward and every frozen scene key off that string
+        -- so swapping the geometry under it is what makes the rest of the stack run unchanged.
+
+        SHAFT AT LOCAL -Z, so that `_cos` (local +Z against world +Z) reads +1 for the shaft
+        pointing DOWN, which is the pose that drives a screw. On the symmetric cylinder the pole
+        was arbitrary; here it is the task.
+
+        The handle geom is written FIRST because `fit_real_v1_pose._object_geometry` reads
+        `gids[0]` for the radius the pads ring -- and the pads go on the handle.
+        """
+        shaft_density = handle_density if shaft_density is None else shaft_density
+        rest_z = handle_r                       # lying on the table it rests on the handle alone
+        for b in _bodies(self.root, [OBJECT_BODY]):
+            for g in list(b.findall("geom")):
+                b.remove(g)
+            mat = "object_mat"
+            b.append(ET.Element("geom", {
+                "name": "stubby_handle", "type": "cylinder",
+                "size": f"{handle_r:.6f} {handle_len / 2:.6f}",
+                "density": f"{handle_density:.6g}", "material": mat,
+                "friction": "2.4 0.2 0.02"}))
+            b.append(ET.Element("geom", {
+                "name": "stubby_shaft", "type": "cylinder",
+                "size": f"{shaft_r:.6f} {shaft_len / 2:.6f}",
+                "pos": f"0 0 {-(handle_len / 2 + shaft_len / 2):.6f}",
+                "density": f"{shaft_density:.6g}", "material": mat,
+                "friction": "2.4 0.2 0.02"}))
+            x, y, _ = _parse_xyz(b.get("pos", "0 0 0"))
+            b.set("pos", _fmt_xyz((x, y, rest_z)))
+        # THE KEYFRAMES CARRY THE OBJECT'S HEIGHT. `_grip_from_fit` resets to the `open` key and
+        # reads the object's world position from the resulting qpos, so a keyframe still holding
+        # the 12.5 mm shaft's height would have the fitter ring its pads 2.5 mm below the handle.
+        for key in self.root.iter("key"):
+            q = (key.get("qpos") or "").split()
+            if len(q) > 2:
+                q[2] = f"{rest_z:.6g}"
+                key.set("qpos", " ".join(q))
+        return self
+
+    def set_object_platform(self, height: float, post_r: float = 0.008,
+                            post_y: float = 0.0) -> "Scene":
+        """Stand the tool on a thin post at `height` instead of flat on the table.
+
+        The bench this is modelling has NO palm stage: the hand is fixed and the tool sits on a
+        small elevated platform so that it has room to swing down as it comes upright. That is a
+        different scene from "lift it there", in two ways worth measuring rather than assuming --
+        the tool is supported from below while the hand closes on it (so a squeeze that would
+        have pushed it out of a free grasp instead pushes it against the post), and the post is
+        an obstacle the descending end of the tool has to miss.
+
+        The post is deliberately thin, and `post_y` moves it along the tool. That matters: under
+        a -90 degree turn the +Y end of the tool descends by most of its half-length, straight
+        through where a CENTRED post is, so the support has to sit under the half that rises.
+        """
+        for b in _bodies(self.root, [OBJECT_BODY]):
+            x, y, z = _parse_xyz(b.get("pos", "0 0 0"))
+            b.set("pos", _fmt_xyz((x, y, height)))
+        world = self.root.find("worldbody")
+        world.append(ET.Element("body", {"name": "tool_platform",
+                                         "pos": f"0 {post_y:.6f} {height / 2:.6f}"}))
+        post = world[-1]
+        post.append(ET.Element("geom", {
+            "name": "tool_post", "type": "cylinder",
+            "size": f"{post_r:.6f} {height / 2:.6f}",
+            "material": "table_mat", "friction": "1.0 0.1 0.01"}))
+        for key in self.root.iter("key"):
+            q = (key.get("qpos") or "").split()
+            if len(q) > 2:
+                q[2] = f"{height:.6g}"
+                key.set("qpos", " ".join(q))
+        return self
+
+    # -- the real finger cross-section --------------------------------------
+    # WHAT THE SHIPPED SCENE GETS WRONG. Every phalanx is a capsule of radius 10.55 mm and every
+    # fingertip a sphere of the same radius, so the hand is 21.1 mm round and makes POINT contact
+    # wherever it happens to touch. The built finger is 14.8 mm across and FLAT on the face that
+    # meets the object, with that flat face 10.55 mm from the joint axis. Only the axis-to-surface
+    # distance survives; the contact patch does not.
+    #
+    # WHICH WAY THE FACE POINTS, measured rather than assumed. The links run along local -z and
+    # bend about local +-y, and at a settled grasp every contact sits on the tip at local
+    # x = +9.0 mm (thumb) / -8.6, -7.9 mm (index, middle). So the object-facing direction is
+    # local +x for the thumb and local -x for the pair, the 14.8 mm width runs along the bend
+    # axis y, and the flat face is the plane |x| = 10.55 mm.
+    #
+    # THE THICKNESS IS AN ASSUMPTION and is exposed as `depth`: the two stated numbers fix the
+    # face and the width but say nothing about how far the part extends back toward the axis.
+    # The default fills from the joint axis out to the face, which is the minimum that can be
+    # true and cannot invent collision geometry behind the finger.
+    FACE_SIGN = {"thumb": +1.0, "index": -1.0, "middle": -1.0}
+
+    def set_finger_flat_pads(self, *, reach: float = 0.01055, width: float = 0.0148,
+                             depth: float | None = None, pad_len: float = 0.0148,
+                             links: bool = True) -> "Scene":
+        """Replace the round capsules/sphere with the real flat-faced cross-section.
+
+        `reach`   joint axis to the object-facing flat face (the one number that is preserved)
+        `width`   across the finger, along the bend axis
+        `depth`   how far back from the face the part extends; default fills to the axis
+        `pad_len` the fingertip pad's extent along the finger
+        """
+        depth = reach if depth is None else depth
+        hx, hy = depth / 2.0, width / 2.0
+        for finger, sgn in self.FACE_SIGN.items():
+            cx = sgn * (reach - hx)                     # box centre so the face lands at ±reach
+            for body in self.root.iter("body"):
+                name = body.get("name") or ""
+                if not name.startswith(f"{finger}_"):
+                    continue
+                if name.endswith("_tip"):
+                    _pin_inertial(body, self.inertials)
+                    for g in list(body.findall("geom")):
+                        keep = {k: g.get(k) for k in ("material", "friction", "class", "name")
+                                if g.get(k) is not None}
+                        body.remove(g)
+                        body.append(ET.Element("geom", {
+                            **keep, "type": "box",
+                            "size": f"{hx:.6f} {hy:.6f} {pad_len / 2:.6f}",
+                            "pos": _fmt_xyz((cx, 0.0, 0.0))}))
+                    continue
+                if not links:
+                    continue
+                for g in list(body.findall("geom")):
+                    ft = g.get("fromto")
+                    if g.get("type") != "capsule" or ft is None:
+                        continue
+                    v = [float(t) for t in ft.split()]
+                    length = abs(v[5] - v[2])           # these all run along -z
+                    if length < 1e-6:
+                        continue
+                    _pin_inertial(body, self.inertials)
+                    keep = {k: g.get(k) for k in ("material", "friction", "class", "name")
+                            if g.get(k) is not None}
+                    body.remove(g)
+                    body.append(ET.Element("geom", {
+                        **keep, "type": "box",
+                        "size": f"{hx:.6f} {hy:.6f} {length / 2:.6f}",
+                        "pos": _fmt_xyz((cx, 0.0, -length / 2.0))}))
+        return self
+
+    # -- actuators ----------------------------------------------------------
+    # The finger servos are position actuators with kp=30, kv=0.5, forcerange +-10 N.m. None of
+    # those three numbers came from a datasheet -- they are sim defaults -- so every hardware
+    # claim this program makes is implicitly a claim that the real servo is stiff enough and
+    # strong enough to be indistinguishable from them. These knobs are how that gets tested.
+    def scale_actuator_gain(self, kp: float = 1.0, kv: float = 1.0,
+                            cls: str = "ctrl") -> "Scene":
+        """Scale the finger servos' position/damping gains. kp<1 = a softer, laggier servo."""
+        for dfl in self.root.iter("default"):
+            if dfl.get("class") != cls:
+                continue
+            for pos in dfl.findall("position"):
+                pos.set("kp", f"{float(pos.get('kp') or 30.0) * kp:.6g}")
+                pos.set("kv", f"{float(pos.get('kv') or 0.5) * kv:.6g}")
+        return self
+
+    def scale_actuator_force(self, factor: float, cls: str = "ctrl") -> "Scene":
+        """Scale the finger servos' torque ceiling. The grip force IS servo error x kp, so a
+        real servo that saturates below the sim's +-10 N.m simply cannot hold what the sim holds.
+        """
+        for dfl in self.root.iter("default"):
+            if dfl.get("class") != cls:
+                continue
+            for pos in dfl.findall("position"):
+                lo, hi = [float(t) for t in (pos.get("forcerange") or "-10 10").split()]
+                pos.set("forcerange", f"{lo * factor:.6g} {hi * factor:.6g}")
+        return self
+
+    def scale_joint_damping(self, factor: float, cls: str = "ctrl") -> "Scene":
+        """Joint damping stands in for gearbox friction, which a real servo has and this has not."""
+        for dfl in self.root.iter("default"):
+            if dfl.get("class") != cls:
+                continue
+            for jt in dfl.findall("joint"):
+                jt.set("damping", f"{float(jt.get('damping') or 0.5) * factor:.6g}")
+        return self
+
     # -- object -------------------------------------------------------------
     def scale_object_density(self, factor: float) -> "Scene":
         """Heavier/lighter tool. Deliberately changes mass, so nothing is pinned here."""

@@ -1,0 +1,163 @@
+#!/usr/bin/env python3
+"""Turn a planned carry into something a bench can run: mount positions and a servo trajectory.
+
+    uv run python scripts/real_v1_export_plan.py --design g03 --out docs/experiments/.../deploy
+
+WHAT COMES OUT
+    <design>_build.txt   where to put the three finger mounts, and the grasp the plan assumes
+    <design>_traj.csv    t_s, then the nine finger joints in DEGREES, then palm_z_mm
+    <design>_poses.txt   the same trajectory as the four set-points it actually is
+
+The trajectory is open loop by construction -- it is a list of joint angles against time, and
+nothing in it depends on knowing where the object is once the hand has closed. That is the whole
+reason it is the thing that can go on hardware first.
+
+SIGN AND UNITS. Angles are the MuJoCo joint values in degrees, in the scene's own convention
+(`assets/mjcf/real_v1/real_hand.xml`): +mcp/+pip curl the finger toward the palm, yaw is the
+roll about the finger's own mount axis. A servo whose zero or direction differs needs the
+mapping applied here, once, not in the middle of the schedule -- and the envelope sweep says a
+1 degree per-joint zero error already costs most of the success rate, so the mapping is worth
+measuring against a physical pose rather than assumed from the CAD.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+import numpy as np
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+sys.path.insert(0, str(ROOT / "scripts"))
+
+import mujoco  # noqa: E402
+
+import real_v1_design_search as ds  # noqa: E402
+from morphohand.tools.keyframe_ik import FINGERS  # noqa: E402
+from real_v1_deploy_envelope import (  # noqa: E402
+    OBJECTS, TABLE, make_plan, object_scene,
+)
+
+JOINTS = [j for js in FINGERS.values() for j in js]
+CTRL_HZ = 50.0            # the repo's control rate: 10 sim steps at dt = 0.002 s
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--design", required=True)
+    ap.add_argument("--object", default="medium", choices=tuple(OBJECTS))
+    ap.add_argument("--axis-k", type=float, default=None, help="override the table's pivot height")
+    ap.add_argument("--angle-deg", type=float, default=None)
+    ap.add_argument("--straddle-mm", type=float, default=None)
+    ap.add_argument("--thumb-axial-mm", type=float, default=None)
+    ap.add_argument("--turn-steps", type=int, default=550)
+    ap.add_argument("--hold-squeeze-mm", type=float, default=0.0)
+    ap.add_argument("--lift", type=float, default=0.10)
+    ap.add_argument("--out", type=Path, required=True)
+    args = ap.parse_args()
+
+    row = {r["design"]: r for r in json.loads(TABLE.read_text())}[args.design]
+    scene = object_scene(ds.scene_for(ds.design_set("all")[args.design]), args.object)
+    st = (args.straddle_mm or row["straddle_mm"]) / 1000.0
+    ta = (row["thumb_axial_mm"] if args.thumb_axial_mm is None else args.thumb_axial_mm) / 1000.0
+    k = row["axis_k"] if args.axis_k is None else args.axis_k
+    ang = row["angle_deg"] if args.angle_deg is None else args.angle_deg
+    plan = make_plan(scene, straddle=st,
+                     depth=None if row["depth_req_mm"] is None else row["depth_req_mm"] / 1000.0,
+                     thumb_axial=ta, squeeze=0.004, axis_k=k, angle_deg=ang, lift=args.lift,
+                     budget=0.5, turn_steps=args.turn_steps,
+                     hold_squeeze=args.hold_squeeze_mm / 1000.0)
+    if plan is None:
+        print(f"{args.design}: no reachable pose at straddle {st*1000:.0f} mm")
+        return 1
+
+    m = mujoco.MjModel.from_xml_path(str(scene))
+    args.out.mkdir(parents=True, exist_ok=True)
+
+    # ---- what to build ----------------------------------------------------------------------
+    lines = [f"design         {args.design}",
+             f"object         {args.object}",
+             f"scene          {scene}",
+             "",
+             "FINGER MOUNTS (palm frame, mm) -- set the three gantry blocks to these",
+             f"  {'finger':8} {'x':>8} {'y':>8}"]
+    for f in FINGERS:
+        pos = m.body(f"{f}_mount").pos
+        lines.append(f"  {f:8} {pos[0]*1000:8.1f} {pos[1]*1000:8.1f}")
+    lines += ["",
+              "GRASP the plan assumes",
+              f"  straddle (each pair pad, from the tool's mid-length)  {st*1000:6.1f} mm",
+              f"  thumb slid along the tool                             {ta*1000:6.1f} mm",
+              f"  grip depth below the mounting plane                   {plan['grip_depth_mm']:6.1f} mm",
+              f"  squeeze (pads driven inside the surface)                 4.0 mm",
+              "",
+              "TURN",
+              f"  pivot height   axis_k {k:.3f}  (that many x the half-straddle above the pads)",
+              f"  commanded turn {ang:+.0f} deg about the pinch axis",
+              f"  over           {args.turn_steps / (CTRL_HZ * 10):.1f} s",
+              f"  re-squeeze     {args.hold_squeeze_mm:.1f} mm at the top",
+              f"  palm lift      {args.lift*1000:.0f} mm before the turn"]
+    (args.out / f"{args.design}_build.txt").write_text("\n".join(lines) + "\n")
+
+    # ---- the trajectory ---------------------------------------------------------------------
+    rows, t = [], 0.0
+    dt = 1.0 / CTRL_HZ
+    anchor = plan["anchor"]
+
+    def emit(vals, pz_mm):
+        nonlocal t
+        rows.append([round(t, 3)] + [round(float(np.degrees(vals[j])), 3) for j in JOINTS]
+                    + [round(pz_mm, 2)])
+        t += dt
+
+    for _ in range(25):                       # close, 0.5 s
+        emit(anchor, 0.0)
+    for i in range(20):                       # palm lift, 0.4 s
+        emit(anchor, args.lift * 1000 * (i + 1) / 20)
+    for _ in range(20):                       # settle
+        emit(anchor, args.lift * 1000)
+    n_turn = max(1, args.turn_steps // 10)
+    for i in range(1, n_turn + 1):
+        u = i / n_turn
+        emit({j: anchor[j] + float(np.clip(plan["delta"][j] * u, -0.5, 0.5)) for j in JOINTS},
+             args.lift * 1000)
+    if plan.get("squeeze_delta"):
+        start = {j: anchor[j] + float(np.clip(plan["delta"][j], -0.5, 0.5)) for j in JOINTS}
+        n_sq = max(1, int(plan["squeeze_steps"]) // 10)
+        for i in range(1, n_sq + 1):
+            u = i / n_sq
+            emit({j: start[j] + (anchor[j] + plan["squeeze_delta"][j] - start[j]) * u
+                  for j in JOINTS}, args.lift * 1000)
+    hold = dict(rows[-1])
+    for _ in range(80):                       # hold 1.6 s
+        rows.append([round(t, 3)] + rows[-1][1:])
+        t += dt
+    csv = args.out / f"{args.design}_traj.csv"
+    csv.write_text("t_s," + ",".join(f"{j}_deg" for j in JOINTS) + ",palm_z_mm\n"
+                   + "\n".join(",".join(str(v) for v in r) for r in rows) + "\n")
+
+    # ---- the same thing as the four set-points it really is ---------------------------------
+    poses = ["The trajectory is four set-points and three ramps; the CSV is only that, sampled.",
+             "", f"  {'joint':12} {'open/grip':>10} {'end of turn':>12} {'re-squeeze':>11}"]
+    for j in JOINTS:
+        a = np.degrees(anchor[j])
+        e = np.degrees(anchor[j] + float(np.clip(plan["delta"][j], -0.5, 0.5)))
+        q = (np.degrees(anchor[j] + plan["squeeze_delta"][j])
+             if plan.get("squeeze_delta") else float("nan"))
+        poses.append(f"  {j:12} {a:10.2f} {e:12.2f} {q:11.2f}")
+    poses += ["", f"  ramp 1  close to the grip pose            0.5 s",
+              f"  ramp 2  palm up {args.lift*1000:.0f} mm                     0.4 s",
+              f"  ramp 3  grip pose -> end of turn         {args.turn_steps/500:.1f} s",
+              f"  ramp 4  end of turn -> re-squeeze        "
+              f"{(plan['squeeze_steps']/500 if plan.get('squeeze_delta') else 0):.1f} s"]
+    (args.out / f"{args.design}_poses.txt").write_text("\n".join(poses) + "\n")
+    print("\n".join(lines))
+    print(f"\nwrote {csv} ({len(rows)} rows at {CTRL_HZ:.0f} Hz) and the build/poses sheets")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
