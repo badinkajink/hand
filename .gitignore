@@ -16,6 +16,10 @@ results/
 src/morphohand/driver/hand/.pio
 src/morphohand/driver/hand/.vscode
 
+# manta (STM32H723 Makefile build output)
+src/morphohand/driver/manta/firmware/build/
+.DS_Store
+
 # MuJoCo runtime dumps
 MJDATA.TXT
 MUJOCO_LOG.TXT
