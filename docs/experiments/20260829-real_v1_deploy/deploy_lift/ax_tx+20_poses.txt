@@ -1,0 +1,17 @@
+The trajectory is four set-points and three ramps; the CSV is only that, sampled.
+
+  joint         open/grip  end of turn  re-squeeze
+  thumb_yaw         17.35       -11.29         nan
+  thumb_mcp         23.30        -5.32         nan
+  thumb_pip          0.01        28.66         nan
+  index_yaw        -13.19       -38.90         nan
+  index_mcp         23.80        13.85         nan
+  index_pip          0.21         0.01         nan
+  middle_yaw        13.19        41.84         nan
+  middle_mcp        23.80        26.08         nan
+  middle_pip         0.21        28.86         nan
+
+  ramp 1  close to the grip pose            0.5 s
+  ramp 2  palm up 100 mm                     0.4 s
+  ramp 3  grip pose -> end of turn         1.1 s
+  ramp 4  end of turn -> re-squeeze        0.0 s

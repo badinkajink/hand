@@ -1,0 +1,22 @@
+design         ax_tx+20
+object         medium
+scene          /home/humanoid/Programs/hand/assets/mjcf/experimental/20260829-deploy_envelope/scene_tp0d0200p0d0000p0d0000_ip0d0000p0d0000p0d0000_mp0d0000p0d0000p0d0000__medium__flat15w15T.xml
+
+FINGER MOUNTS (palm frame, mm) -- set the three gantry blocks to these
+  finger          x        y
+  thumb       -30.0      0.0
+  index        50.0     55.0
+  middle       50.0    -55.0
+
+GRASP the plan assumes
+  straddle (each pair pad, from the tool's mid-length)    40.0 mm
+  thumb slid along the tool                               20.0 mm
+  grip depth below the mounting plane                     64.0 mm
+  squeeze (pads driven inside the surface)                 4.0 mm
+
+TURN
+  pivot height   axis_k 0.650  (that many x the half-straddle above the pads)
+  commanded turn -70 deg about the pinch axis
+  over           1.1 s
+  re-squeeze     0.0 mm at the top
+  palm lift      100 mm before the turn

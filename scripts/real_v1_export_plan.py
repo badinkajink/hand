@@ -54,22 +54,40 @@ def main() -> int:
     ap.add_argument("--straddle-mm", type=float, default=None)
     ap.add_argument("--thumb-axial-mm", type=float, default=None)
     ap.add_argument("--turn-steps", type=int, default=550)
+    ap.add_argument("--squeeze-mm", type=float, default=4.0,
+                    help="how far inside the tool's surface the pads are driven. 4 mm is right "
+                         "for the round pad the scene shipped; a flat face needs more, because "
+                         "the fitter measures the standoff along the face normal.")
     ap.add_argument("--hold-squeeze-mm", type=float, default=0.0)
     ap.add_argument("--lift", type=float, default=0.10)
+    ap.add_argument("--bench-height", type=float, default=0.0,
+                    help="metres. >0 = the prototype bench: fixed palm, tool already at this "
+                         "height on a platform, so the emitted trajectory has no palm ramp.")
+    ap.add_argument("--post-y", type=float, default=-35.0, help="mm, where the support sits")
+    ap.add_argument("--pad-width-mm", type=float, default=21.1,
+                    help="flat pad width across the finger. 14.8 is the built part; 21.1 is a "
+                         "free reprint and measured +0.021 +- 0.008 held cos better.")
+    ap.add_argument("--flat-pads", action="store_true",
+                    help="the BUILT finger cross-section rather than the shipped round capsules")
     ap.add_argument("--out", type=Path, required=True)
     args = ap.parse_args()
 
     row = {r["design"]: r for r in json.loads(TABLE.read_text())}[args.design]
-    scene = object_scene(ds.scene_for(ds.design_set("all")[args.design]), args.object)
+    scene = object_scene(ds.scene_for(ds.design_set("all")[args.design]), args.object,
+                         args.bench_height, args.post_y / 1000.0, args.flat_pads,
+                         pad_width=args.pad_width_mm / 1000.0)
+    if args.bench_height > 0 and row.get("depth_req_mm") is None and row.get("depth_fit_mm"):
+        row = dict(row, depth_req_mm=row["depth_fit_mm"])
     st = (args.straddle_mm or row["straddle_mm"]) / 1000.0
     ta = (row["thumb_axial_mm"] if args.thumb_axial_mm is None else args.thumb_axial_mm) / 1000.0
     k = row["axis_k"] if args.axis_k is None else args.axis_k
     ang = row["angle_deg"] if args.angle_deg is None else args.angle_deg
     plan = make_plan(scene, straddle=st,
                      depth=None if row["depth_req_mm"] is None else row["depth_req_mm"] / 1000.0,
-                     thumb_axial=ta, squeeze=0.004, axis_k=k, angle_deg=ang, lift=args.lift,
+                     thumb_axial=ta, squeeze=args.squeeze_mm / 1000.0, axis_k=k, angle_deg=ang, lift=args.lift,
                      budget=0.5, turn_steps=args.turn_steps,
-                     hold_squeeze=args.hold_squeeze_mm / 1000.0)
+                     hold_squeeze=args.hold_squeeze_mm / 1000.0,
+                     bench=args.bench_height > 0)
     if plan is None:
         print(f"{args.design}: no reachable pose at straddle {st*1000:.0f} mm")
         return 1
@@ -92,14 +110,17 @@ def main() -> int:
               f"  straddle (each pair pad, from the tool's mid-length)  {st*1000:6.1f} mm",
               f"  thumb slid along the tool                             {ta*1000:6.1f} mm",
               f"  grip depth below the mounting plane                   {plan['grip_depth_mm']:6.1f} mm",
-              f"  squeeze (pads driven inside the surface)                 4.0 mm",
+              f"  squeeze (pads driven inside the surface)              {args.squeeze_mm:6.1f} mm",
               "",
               "TURN",
               f"  pivot height   axis_k {k:.3f}  (that many x the half-straddle above the pads)",
               f"  commanded turn {ang:+.0f} deg about the pinch axis",
               f"  over           {args.turn_steps / (CTRL_HZ * 10):.1f} s",
               f"  re-squeeze     {args.hold_squeeze_mm:.1f} mm at the top",
-              f"  palm lift      {args.lift*1000:.0f} mm before the turn"]
+              (f"  palm lift      {args.lift*1000:.0f} mm before the turn"
+               if args.bench_height <= 0 else
+               f"  palm           FIXED; tool starts at {args.bench_height*1000:.0f} mm on a "
+               f"support at y {args.post_y:+.0f} mm")]
     (args.out / f"{args.design}_build.txt").write_text("\n".join(lines) + "\n")
 
     # ---- the trajectory ---------------------------------------------------------------------
@@ -115,23 +136,27 @@ def main() -> int:
 
     for _ in range(25):                       # close, 0.5 s
         emit(anchor, 0.0)
-    for i in range(20):                       # palm lift, 0.4 s
-        emit(anchor, args.lift * 1000 * (i + 1) / 20)
-    for _ in range(20):                       # settle
-        emit(anchor, args.lift * 1000)
+    z_hold = 0.0 if args.bench_height > 0 else args.lift * 1000
+    if args.bench_height > 0:
+        for _ in range(40):                   # fixed palm: settle in place, no lift
+            emit(anchor, 0.0)
+    else:
+        for i in range(20):                   # palm lift, 0.4 s
+            emit(anchor, args.lift * 1000 * (i + 1) / 20)
+        for _ in range(20):                   # settle
+            emit(anchor, args.lift * 1000)
     n_turn = max(1, args.turn_steps // 10)
     for i in range(1, n_turn + 1):
         u = i / n_turn
         emit({j: anchor[j] + float(np.clip(plan["delta"][j] * u, -0.5, 0.5)) for j in JOINTS},
-             args.lift * 1000)
+             z_hold)
     if plan.get("squeeze_delta"):
         start = {j: anchor[j] + float(np.clip(plan["delta"][j], -0.5, 0.5)) for j in JOINTS}
         n_sq = max(1, int(plan["squeeze_steps"]) // 10)
         for i in range(1, n_sq + 1):
             u = i / n_sq
             emit({j: start[j] + (anchor[j] + plan["squeeze_delta"][j] - start[j]) * u
-                  for j in JOINTS}, args.lift * 1000)
-    hold = dict(rows[-1])
+                  for j in JOINTS}, z_hold)
     for _ in range(80):                       # hold 1.6 s
         rows.append([round(t, 3)] + rows[-1][1:])
         t += dt
@@ -149,7 +174,8 @@ def main() -> int:
              if plan.get("squeeze_delta") else float("nan"))
         poses.append(f"  {j:12} {a:10.2f} {e:12.2f} {q:11.2f}")
     poses += ["", f"  ramp 1  close to the grip pose            0.5 s",
-              f"  ramp 2  palm up {args.lift*1000:.0f} mm                     0.4 s",
+              ("  ramp 2  settle, palm held still         0.8 s" if args.bench_height > 0
+               else f"  ramp 2  palm up {args.lift*1000:.0f} mm                     0.4 s"),
               f"  ramp 3  grip pose -> end of turn         {args.turn_steps/500:.1f} s",
               f"  ramp 4  end of turn -> re-squeeze        "
               f"{(plan['squeeze_steps']/500 if plan.get('squeeze_delta') else 0):.1f} s"]
