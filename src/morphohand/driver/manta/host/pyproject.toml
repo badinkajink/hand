@@ -1,0 +1,18 @@
+[project]
+name = "manta-hand"
+version = "0.1.0"
+description = "Python driver for the manta-hand 8-axis stepper controller firmware"
+requires-python = ">=3.9"
+dependencies = [
+    "pyserial>=3.5",
+]
+
+[project.optional-dependencies]
+servo = ["rustypot>=1.5.0"]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["manta_hand*"]
