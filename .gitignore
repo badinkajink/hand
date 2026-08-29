@@ -50,3 +50,12 @@ docs/uhas/UHAS_sim/
 *.fdb_latexmk
 *.fls
 *.synctex.gz
+
+# Deploy-envelope mutation cache: one frozen scene per perturbation draw, hundreds of MB and
+# regenerable from scripts/real_v1_deploy_envelope.py in seconds.
+assets/mjcf/experimental/20260829-deploy_envelope/
+# The per-rollout records for the envelope and force-loop sweeps are tens of MB; the tracked
+# artifact is the aggregate written next to them (*_SUMMARY.json) plus ENVELOPE.txt.
+docs/experiments/20260829-real_v1_deploy/envelope.json
+docs/experiments/20260829-real_v1_deploy/force_loop.json
+docs/experiments/20260829-real_v1_deploy/place_medium.json
