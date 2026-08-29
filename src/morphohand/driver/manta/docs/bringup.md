@@ -191,11 +191,17 @@ command language.
   axis with no hardware change in between. Worth a real investigation
   (current ripple? SPI bus contention with a neighboring axis? thermal?)
   if this project keeps scaling.
-- **Calibrate remaining fingers' adduction/abduction range** -- only finger
-  0 has a measured `ADDUCTION_RANGE` in `manta_hand/servos.py`
-  (characterized to a conservative ±44°, not the true mechanical limit).
-  Fingers 1 and 2 will raise clearly if asked for nonzero adduction, but
-  can't do it yet.
+- ~~**Calibrate remaining fingers' adduction/abduction range**~~ -- DONE
+  (2026-08-29). All three fingers have a real, wide, bidirectional `aa`
+  range in `FINGER_JOINTS`, from the assembled torque-free sweep: finger 0
+  (-70.02, +74.71), finger 1 (-79.69, +74.41), finger 2 (-75.29, +75.29).
+  Every finger yaws. There is no longer an `ADDUCTION_RANGE` symbol and no
+  ±44° cap -- that described a superseded state, as did the claim that
+  fingers 1/2 raise on nonzero adduction. The three differ by up to ~10° at
+  the bounds (per-servo assembled hardstops, not a design difference); the
+  tightest range common to all three is (-70.02, +74.41), i.e. ±70
+  symmetric, which is what a policy commanding all three fingers uniformly
+  should stay inside.
 - **Ruler-verify the non-J0 axes' `STEPS_PER_MM` magnitudes** -- only J0's
   is directly ruler-verified; the rest were back-calculated from a
   known-good 10mm move. Probably fine, but worth confirming once mechanical
