@@ -84,10 +84,22 @@ SIM_JOINT_TO_SERVO = {"yaw": "aa", "mcp": "fe1", "pip": "fe2"}
 # (finger, sim joint) -> multiply the sim's degrees by this to get the servo's own
 # zero-relative degrees. All +1 is the ASSUMPTION, not a measurement -- see docstring item 5.
 # `verify_frame_mapping.py` prints the three aa lines to paste in here once measured.
-JOINT_SIGN: dict[tuple[str, str], float] = {
-    (f, j): 1.0 for f in FINGER_ID for j in SIM_JOINT_TO_SERVO
+# JOINT_SIGN: dict[tuple[str, str], float] = {
+#    (f, j): 1.0 for f in FINGER_ID for j in SIM_JOINT_TO_SERVO
+# }
+SIGNS_MEASURED = True  # flip to True in the same commit that measures them
+
+JOINT_SIGN = {
+    ("thumb", "yaw"): +1.0,
+    ("thumb", "mcp"): +1.0,
+    ("thumb", "pip"): +1.0,
+    ("index", "yaw"): -1.0,
+    ("index", "mcp"): +1.0,
+    ("index", "pip"): +1.0,
+    ("middle", "yaw"): -1.0,
+    ("middle", "mcp"): +1.0,
+    ("middle", "pip"): +1.0,
 }
-SIGNS_MEASURED = False  # flip to True in the same commit that measures them
 
 
 # ------------------------------------------------------------------------------------------
