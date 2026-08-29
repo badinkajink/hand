@@ -386,3 +386,79 @@ Build sheets at these points: `deploy/{g12,g23,g24,rv04_mid}_build.txt` with 50 
 beside them. g12 needs both gantries 7.5 mm further out than the other three (thumb x -42.5,
 pair x +42.5); g23, g24 and rv04_mid share thumb (-35, 0) and pair x = +35 and differ only in
 pair-Y, so one build covers three hands.
+
+## 14. The hand the firmware can actually build
+
+The simulator's design space and the driver's rails were written months apart from the same
+drawing (`XY_space.png`) and had never been compared. They are now, by
+`scripts/real_v1_hand_commands.py --audit`, and the comparison holds in three places and fails
+in one.
+
+**The frame is the identity map, and that is verified.** `REAL_V1_MOUNTS` gives thumb (-50, 0),
+index (50, 55), middle (50, -55) mm; `kinematics.FINGER_GEOMETRY` gives the same three pairs as
+the origins of {P}. Nothing rotates and nothing flips: a mount position in the sim, in mm, *is* a
+{P} coordinate. From there `manta_hand.plan` translates into each finger's local frame and applies
+the firmware's x/y swap and per-finger homing sign, which `kinematics.py` had already derived.
+
+**The joint names are forced.** The scene's limits are yaw ±85, mcp [-15, +92], pip [-18, +92];
+the servo contract is aa ±85, fe1 [-15, +92], fe2 [-18, +92]. Three distinct ranges, three exact
+matches — there is no other assignment that fits. All four shortlisted trajectories also stay
+inside the servos' *measured* ranges, which are tighter than the scene's in places (finger 1's
+fe1 stops at +64.75° where the scene allows +92°).
+
+**The travel envelope does not hold.** The sim declares a ±30 mm box in x for every finger. The
+rails deliver thumb x_max +26.2, index x_min −26.0, middle x_min −24.1 — and the shortfall is on
+exactly the axis the compactness knobs push against, since `real_v1_compact_design` drives the
+thumb toward +x and the pair toward −x.
+
+    finger  axis         declared        reachable          lost
+    thumb   x    [ -30.0,  30.0] [-30.00, 26.20]    3.8 at max
+    index   x    [ -30.0,  30.0] [-26.00, 30.00]    4.0 at min
+    middle  x    [ -30.0,  30.0] [-24.10, 30.00]    5.9 at min
+
+**97 of the 108 sampled designs still fit, and all four shortlisted hands are among them.** g12,
+g23, g24 and rv04_mid sit at most 15 mm off centre on any axis, less than half the available
+travel. The 11 that fail are the compact corner — `rv01_compact`, the whole `g4*` column,
+`ax_px-30`, `ax_tx+30`, and three random draws that happened to land near it.
+
+**And that shortfall may not be real.** It lands on firmware joints J1/J3/J5, whose
+`STEPS_PER_MM` is, by its own comment, "back-calculated from a known-good 10mm move and hasn't
+been individually ruler-checked" — while J0, the one axis that *is* ruler-verified, measures
+112.4 mm against a 110 mm nominal, i.e. over rather than under. Re-run the audit assuming the
+~59.8 mm these rails were previously reported to travel and the entire design box comes back
+within 0.2 mm:
+
+    uv run python scripts/real_v1_hand_commands.py --audit --travel 1:59.8,3:59.8,5:59.8
+
+This is worth a caliper before it is worth anything else, because the two cases need opposite
+responses and the scale case reaches further than the design set. If commanding 45 mm moves
+45 mm, the rails really are short and those 11 designs are unbuildable. If commanding 45 mm moves
+48–50 mm, the scale is 6–10% high, the missing travel is recovered — and **every mm this driver
+has ever commanded on those three axes was short by that much, mount positions included**. Do not
+widen `FULL_EXTENSION_MM` on the hunch: `MOVEMM` does not stall-check, so an optimistic number
+drives an axis into its own hardstop unprotected. `examples/verify_frame_mapping.py --travel`
+runs the probe.
+
+**Two things the audit cannot settle, and one of them will cost a run.** Which physical gantry is
+finger 1 versus finger 2 comes from the drawing, not from watching a block move. And the *sign* of
+each aa joint is unmeasured: the flexion joints give themselves away (a [-15, +92]-shaped range is
+only explicable as a little hyperextension and a lot of flexion, and the scene mirrors mcp/pip per
+finger so positive is inward on all three), but aa's range is symmetric and carries no such
+fingerprint — and the scene gives all three fingers the *same* yaw axis while mirroring mcp/pip,
+which is not what a rigid 180°-rotated thumb module would do. g12 grips with the thumb at +17.7°
+of yaw, so a flipped sign rolls that pad off the tool. `plan.HandPlan.run_trajectory` refuses to
+run until someone passes `signs_checked=True`.
+
+### Commanding a hand
+
+    # the audit, and what a re-calibrated rail would buy
+    uv run python scripts/real_v1_hand_commands.py --audit
+
+    # a design as literal wire-protocol lines (docs/protocol.md) plus the servo set-points
+    uv run python scripts/real_v1_hand_commands.py --plan deploy/g12_plan.json
+
+    # on the CB1
+    python3 -c "from manta_hand.plan import HandPlan; HandPlan.from_json('g12_plan.json').apply_mounts(hand)"
+
+g12's six gantry targets, for the record: thumb J0=55.00 J1=37.50, index J2=45.00 J3=37.50,
+middle J4=45.00 J5=37.50 mm from home. All three fingers happen to sit at local (±7.5, 0/±15).

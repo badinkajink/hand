@@ -1,8 +1,20 @@
-from .driver import MantaHandDriver
 from .joint import Joint, JointStatus
 from .kinematics import Gantry, GantryFinger
 
-__all__ = ["MantaHandDriver", "Joint", "JointStatus", "Gantry", "GantryFinger"]
+__all__ = ["Joint", "JointStatus", "Gantry", "GantryFinger"]
+
+try:
+    from .driver import MantaHandDriver
+
+    __all__ += ["MantaHandDriver"]
+except ImportError:
+    # pyserial isn't installed -- fine off the CB1. Everything that actually
+    # talks to the M8P needs it; the calibration tables in kinematics.py do
+    # not, and an offline planner validating a trajectory against them should
+    # not have to install a serial stack to read them. `from manta_hand.driver
+    # import MantaHandDriver` raises its own clear error if someone tries to
+    # open a real link. Same pattern as the servo extra below.
+    pass
 
 try:
     from .servos import ServoBus, Servo, ServoStatus, Finger

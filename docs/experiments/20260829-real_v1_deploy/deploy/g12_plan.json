@@ -1,0 +1,102 @@
+{
+  "design": "g12",
+  "mounts_palm_mm": {
+    "thumb": [
+      -42.5,
+      0.0
+    ],
+    "index": [
+      42.5,
+      40.0
+    ],
+    "middle": [
+      42.5,
+      -40.0
+    ]
+  },
+  "poses": [
+    {
+      "name": "open",
+      "ramp_s": 0.0,
+      "hold_s": 0.0,
+      "joints": {
+        "thumb": {
+          "yaw": 17.745,
+          "mcp": 21.713,
+          "pip": 1.131
+        },
+        "index": {
+          "yaw": 0.0,
+          "mcp": 6.805,
+          "pip": 30.256
+        },
+        "middle": {
+          "yaw": 0.0,
+          "mcp": 6.805,
+          "pip": 30.256
+        }
+      }
+    },
+    {
+      "name": "grip",
+      "ramp_s": 0.5,
+      "hold_s": 0.8,
+      "joints": {
+        "thumb": {
+          "yaw": 17.745,
+          "mcp": 32.376,
+          "pip": 0.0
+        },
+        "index": {
+          "yaw": 0.0,
+          "mcp": 34.267,
+          "pip": 0.008
+        },
+        "middle": {
+          "yaw": 0.0,
+          "mcp": 34.267,
+          "pip": 0.008
+        }
+      }
+    },
+    {
+      "name": "turn_end",
+      "ramp_s": 1.1,
+      "hold_s": 1.6,
+      "joints": {
+        "thumb": {
+          "yaw": 6.664,
+          "mcp": 28.143,
+          "pip": 0.011
+        },
+        "index": {
+          "yaw": -16.742,
+          "mcp": 20.391,
+          "pip": 0.006
+        },
+        "middle": {
+          "yaw": 28.648,
+          "mcp": 16.079,
+          "pip": 28.656
+        }
+      }
+    }
+  ],
+  "meta": {
+    "object": "medium",
+    "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/20260829-deploy_envelope/scene_tp0d0075p0d0000p0d0000_in0d0075n0d0150p0d0000_mn0d0075p0d0150p0d0000__medium__bench100py-35__flat15w21T.xml",
+    "source": "scripts/real_v1_export_plan.py",
+    "straddle_mm": 40.0,
+    "thumb_axial_mm": 20.0,
+    "squeeze_mm": 10.0,
+    "grip_depth_mm": 62.5,
+    "axis_k": 0.1,
+    "angle_deg": -70.0,
+    "turn_steps": 550,
+    "pad_width_mm": 21.1,
+    "flat_pads": true,
+    "bench_height_mm": 100.0,
+    "post_y_mm": -35.0,
+    "palm_lift_mm": 0.0
+  }
+}
