@@ -40,15 +40,29 @@ STEPPER_JOINTS = {0: (0, 1), 1: (2, 3), 2: (4, 5)}
 # individually ruler-checked.
 STEPS_PER_MM = {0: -3216.0, 1: -2770.0, 2: -3260.0, 3: -3181.5, 4: -3472.0, 5: -3197.0}
 
-# joint index -> measured home-to-far-hardstop travel (mm), SIGNED to match
-# that joint's real direction (middle's x axis, joint 4, is a mirrored
-# rail and genuinely travels negative from home -- not a typo). This is
-# the single source of truth for stepper bounds-checking throughout this
-# module; do not use the nominal {P}-diagram box dimensions for safety
+# joint index -> measured home-to-far-hardstop travel (mm). ALWAYS POSITIVE,
+# on every axis: HOME_DIRECTION=+1 runs an axis's step count UP into its home
+# hardstop and ZERO then pins that stop at step 0, so with all six
+# STEPS_PER_MM negative, positive mm is the only direction that travels away
+# from home. A negative value here aims the axis back into its own home
+# hardstop -- which MOVEMM does NOT stall-check (only HOME does), so it
+# grinds unprotected.
+#
+# J4 was originally -62.2, on the theory that middle's x rail is "mirrored".
+# It IS mirrored, but geometrically: middle homes at the opposite corner
+# from index (local q_My min rather than max) and still travels positive-mm
+# away from it. That mirroring belongs in _TRANSFORM's sign, and is already
+# there -- encoding it here as well flipped the sign twice and pointed the
+# whole axis backwards. Confirmed on hardware 2026-08-29: J0 (known-good)
+# and J4 both move AWAY from home on a +3mm MOVEMM, via
+# host/examples/verify_axis_direction.py.
+#
+# This is the single source of truth for stepper bounds-checking throughout
+# this module; do not use the nominal {P}-diagram box dimensions for safety
 # checks, since they disagree with real measured travel on J1/J3/J5 by
 # several mm (nominal is optimistic there -- see FINGER_GEOMETRY's own
 # comment for the derivation).
-FULL_EXTENSION_MM = {0: 112.4, 1: 56.2, 2: 62.5, 3: 56.0, 4: -62.2, 5: 54.1}
+FULL_EXTENSION_MM = {0: 112.4, 1: 56.2, 2: 62.5, 3: 56.0, 4: 62.2, 5: 54.1}
 
 STEPPER_VELOCITY = 12000
 STEPPER_ACCEL = 2000
@@ -90,10 +104,9 @@ PRE_HOME_BACKOFF_MM = 10.0  # if already closer than this to the hardstop, back 
 # q_Fy and firmware y tracks local q_Fx (the confirmed swap), and (2) each
 # finger's stepper-homed corner (thumb: bottom-left / both local min; index:
 # top-right / both local max; middle: bottom-right / q_Mx max, q_My min)
-# maps to stepper 0mm, with the given far-end stepper range (including
-# middle's confirmed-mirrored negative range on its x axis) matching the
-# opposite corner. Nominal box half-extents (30/30, 30/30, 55/30 for
-# thumb/index/middle) were used to derive these constants; do NOT reuse
+# maps to stepper 0mm, with that axis's (always positive) far-end stepper
+# range matching the opposite corner. Nominal box half-extents (30/30,
+# 30/30, 55/30 for thumb/index/middle) were used to derive these constants; do NOT reuse
 # them for bounds-checking -- see FULL_EXTENSION_MM above and
 # _LOCAL_BOUNDS below for why real measured travel differs.
 FINGER_GEOMETRY = {
@@ -109,19 +122,31 @@ FINGER_GEOMETRY = {
 _TRANSFORM = {
     0: (55.0, 1.0, 30.0, 1.0),  # thumb: stepper_x=local_y+55, stepper_y=local_x+30
     1: (30.0, -1.0, 30.0, -1.0),  # index: stepper_x=30-local_y, stepper_y=30-local_x
-    2: (-30.0, -1.0, 30.0, -1.0),  # middle: stepper_x=-30-local_y, stepper_y=30-local_x
+    # middle's x_sign is +1 where index's is -1: they are mirror images about
+    # {P}'s x axis, so middle homes at local q_My MIN and travels up from it
+    # while index homes at q_My MAX and travels down. Both travel positive mm.
+    2: (30.0, 1.0, 30.0, -1.0),  # middle: stepper_x=30+local_y, stepper_y=30-local_x
 }
 
 
 def axis_stepper_range(joint_index: int) -> tuple[float, float]:
-    """Valid firmware-mm range for one stepper joint, sign-aware: (0, limit)
-    for a normal joint, (limit, 0) for a mirrored one (joint 4/middle-x) --
-    always returned low-to-high regardless. This is the single place that
-    understands FULL_EXTENSION_MM's sign convention; anything checking a
-    raw firmware-mm command against real hardware range (e.g.
+    """Valid firmware-mm range for one stepper joint: (0.0, limit). Every
+    axis homes to 0mm and travels positive away from there -- including J4,
+    which used to be special-cased as "mirrored" here (see
+    FULL_EXTENSION_MM's comment for why that was wrong). This is the single
+    place that understands FULL_EXTENSION_MM's sign convention; anything
+    checking a raw firmware-mm command against real hardware range (e.g.
     hand_control.py's REPL) should call this rather than re-deriving it."""
     limit = FULL_EXTENSION_MM[joint_index]
-    return (min(0.0, limit), max(0.0, limit))
+    if limit <= 0.0:
+        # Guard the exact regression this function used to encode: with a
+        # negative limit, the only values a caller could pass this check are
+        # ones that drive the axis into its home hardstop.
+        raise ValueError(
+            f"FULL_EXTENSION_MM[{joint_index}]={limit} is not positive -- every axis "
+            "travels positive-mm away from home; see that dict's comment"
+        )
+    return (0.0, limit)
 
 
 def _local_bounds(finger_id: int) -> tuple[tuple[float, float], tuple[float, float]]:
