@@ -296,3 +296,77 @@ def test_target_axis_rewards_can_be_gated_on_height():
 
     assert MorphoHandEnvCfg.target_axis_min_lift == 0.0
     assert callable(_lift_gate)
+
+
+def test_thumb_axial_moves_only_the_thumb():
+    """`thumb_axial` gives the thumb pad a moment arm about the pinch axis.
+
+    A pad at the shaft's mid-length has |r_yz| = 0 from the object's centre and contributes no
+    torque to standing the shaft up however hard it presses -- which is what the thumb does at
+    the default grip. Measured mid-turn on rv05_manual: thumb 4.2 N at 0.11 of its friction cone
+    while the middle pad, on 2.0 N, sits at 0.74 and slides 3.4 mm per sample.
+    """
+    import fit_real_v1_pose as F
+
+    centre = np.zeros(3)
+    a = F.tip_targets(centre, 0.0125, 0.001, 0.030, 0.0)
+    b = F.tip_targets(centre, 0.0125, 0.001, 0.030, 0.0, 0.0, 0.020)
+    assert b["thumb"][1] - a["thumb"][1] == pytest.approx(0.020)
+    for f in ("index", "middle"):
+        assert b[f][1] == pytest.approx(a[f][1])
+    # and it composes with the whole-ring offset rather than replacing it
+    c = F.tip_targets(centre, 0.0125, 0.001, 0.030, 0.0, 0.010, 0.020)
+    assert c["thumb"][1] == pytest.approx(0.030)
+    assert c["index"][1] == pytest.approx(0.040)
+
+
+def test_pad_slip_is_only_counted_while_the_pad_is_touching():
+    """A finger that lets go must not book slip.
+
+    The trace measures the tip in the OBJECT's frame whether or not it is in contact, so a pad
+    that leaves the shaft and swings away accumulates hundreds of millimetres of apparent travel
+    on a 78 mm circumference. Ungated, rv00_wide's index read 485.6 mm of slip and a carry
+    fraction of -42.8, which is not a style, it is a released finger.
+    """
+    import real_v1_design_search as S
+
+    def row(fn_middle, slip_middle):
+        return {"z": 0.11, "contacts": 2,
+                "fingers": {"thumb": {"fn_N": 4.0, "ft_N": 1.0, "cone_util": 0.2, "slip_mm": 0.5},
+                            "index": {"fn_N": 3.0, "ft_N": 1.0, "cone_util": 0.2, "slip_mm": 0.5},
+                            "middle": {"fn_N": fn_middle, "ft_N": 1.0, "cone_util": 0.2,
+                                       "slip_mm": slip_middle}}}
+
+    # the middle pad is off the shaft for the second half and racks up travel there
+    trace = [row(2.0, 0.5) for _ in range(10)] + [row(0.0, 40.0) for _ in range(10)]
+    st = S.style(trace, {"final_cos": 1.0, "start_cos": 0.0})
+    assert st["slip_mm"]["middle"] == pytest.approx(5.0)      # the 400 mm off-shaft is dropped
+    assert st["touch_frac"]["middle"] == pytest.approx(0.5)
+    assert st["carry_frac"]["middle"] is not None
+    # a pad that never touches has no style at all, rather than a fabricated one
+    never = [row(0.0, 40.0) for _ in range(20)]
+    assert S.style(never, {"final_cos": 1.0, "start_cos": 0.0})["carry_frac"]["middle"] is None
+
+
+def test_held_verdict_counts_the_whole_hand_not_just_the_pads():
+    """At the end of a raised-pivot turn the shaft is often carried on the middle phalanges with
+    the pads off it, and a pad-only contact count scores that as a drop."""
+    import probe_real_v1_carry as C
+
+    xml = """
+    <mujoco>
+      <worldbody>
+        <body name="screwdriver_medium" pos="0 0 0.1">
+          <freejoint/>
+          <geom type="sphere" size="0.01"/>
+        </body>
+        <body name="middle_pip_frame" pos="0 0 0.115">
+          <geom type="sphere" size="0.01"/>
+        </body>
+      </worldbody>
+    </mujoco>"""
+    m = mujoco.MjModel.from_xml_string(xml)
+    d = mujoco.MjData(m)
+    mujoco.mj_forward(m, d)
+    assert C._contacts(m, d, "screwdriver_medium")[0] == 0        # no PAD is touching
+    assert C._contacts_hand(m, d, "screwdriver_medium")[0] == 1   # a phalanx is

@@ -75,7 +75,8 @@ def _object_geometry(m: mujoco.MjModel, d: mujoco.MjData, body: str) -> tuple[np
 
 
 def tip_targets(center: np.ndarray, radius: float, gap: float, spread: float,
-                elevation_deg: float, axial_offset: float = 0.0) -> dict[str, np.ndarray]:
+                elevation_deg: float, axial_offset: float = 0.0,
+                thumb_axial: float = 0.0) -> dict[str, np.ndarray]:
     """Pad-CENTRE targets ringing the shaft. The shaft lies along world Y.
 
     KEEP `elevation_deg` AT OR BELOW ZERO. It was +10 for one day and it cost a training run.
@@ -98,8 +99,15 @@ def tip_targets(center: np.ndarray, radius: float, gap: float, spread: float,
     dz = r * np.sin(el)
     dx = r * np.cos(el)
     a = axial_offset
+    # `thumb_axial` slides ONLY the thumb along the shaft. At the default 0 the thumb sits at the
+    # pair's midpoint, where its moment arm about the pinch axis (world X, through the shaft's
+    # centre) is zero -- it can press as hard as it likes and contribute no torque to standing
+    # the shaft up. Measured on rv05_manual mid-turn: thumb 4.2 N at 0.11 of its friction cone
+    # while the middle pad, on 2.0 N, sits at 0.74 and slides 3.4 mm per sample. Offsetting the
+    # thumb gives the hand's largest normal force an arm; it also unbalances the moment about Z,
+    # which the pair has to take up, so it is a knob to sweep, not a free win.
     return {
-        "thumb": center + np.array([-dx, a, dz]),
+        "thumb": center + np.array([-dx, a + thumb_axial, dz]),
         "index": center + np.array([dx, a + spread, dz]),
         "middle": center + np.array([dx, a - spread, dz]),
     }
@@ -283,7 +291,7 @@ def fit(scene: Path, gap: float, spread: float, elevation: float, object_body: s
         spreads: tuple[float, ...] | None = None,
         spread_max: float | None = None, spread_min: float = 0.020,
         spread_frac: float = 0.85, squeeze: float = 0.004, lift_probe: float = 0.05,
-        hold_min: float = 0.020, axial_offset: float = 0.0):
+        hold_min: float = 0.020, axial_offset: float = 0.0, thumb_axial: float = 0.0):
     """Solve palm pose + finger angles for one design.
 
     Two things are fitted rather than fixed, both for the same reason: they are choices about
@@ -343,7 +351,7 @@ def fit(scene: Path, gap: float, spread: float, elevation: float, object_body: s
     obj_z0 = float(centre[2])
     cands = []
     for sp in spreads:
-        targets = tip_targets(centre, radius, gap, sp, elevation, axial_offset)
+        targets = tip_targets(centre, radius, gap, sp, elevation, axial_offset, thumb_axial)
         pz_top = _deepest(m, d, targets, px, py, seed, res_tol, pz_lo, pz_hi, pz_step)
         if pz_top is None:
             if verbose:
@@ -357,7 +365,7 @@ def fit(scene: Path, gap: float, spread: float, elevation: float, object_body: s
             open_qpos = d.qpos.copy()
             # The squeeze: the same targets pulled `squeeze` metres INSIDE the shaft surface.
             solve(m, d, tip_targets(centre, radius, gap - squeeze, sp, elevation,
-                                    axial_offset),
+                                    axial_offset, thumb_axial),
                   px, py, pz, seed, iters=600)
             grip_ctrl = np.array(actuator_ctrl_from_qpos(m, d))
             held = hold_probe(m, d, open_qpos, grip_ctrl, lift_probe, obj_z0, object_body)
@@ -390,7 +398,7 @@ def fit(scene: Path, gap: float, spread: float, elevation: float, object_body: s
     if best is None:
         return None
 
-    targets = tip_targets(centre, radius, gap, spread, elevation, axial_offset)
+    targets = tip_targets(centre, radius, gap, spread, elevation, axial_offset, thumb_axial)
     res, marg = solve(m, d, targets, px, py, best, seed, iters=600)
     depth = float(d.body("palm_pose").xpos[2] - centre[2])
     ceiling = min(1.0, depth / half_len) if half_len > 0 else float("nan")
@@ -406,6 +414,7 @@ def fit(scene: Path, gap: float, spread: float, elevation: float, object_body: s
         "gap_mm": gap * 1000.0,
         "spread_mm": spread * 1000.0,
         "axial_offset_mm": axial_offset * 1000.0,
+        "thumb_axial_mm": thumb_axial * 1000.0,
         "grip_offset_frac": float(axial_offset / half_len) if half_len else float("nan"),
         "elevation_deg": elevation,
         "probe_held_lift_mm": best_c["held"] * 1000.0,
