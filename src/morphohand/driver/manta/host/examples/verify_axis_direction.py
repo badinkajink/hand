@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 """Which sign of MOVEMM moves an axis AWAY from its home hardstop?
 
-Exists because hand_control.py's REPL can't answer this for J4: its
-`<finger>_x <mm>` segment is bounds-checked against
-kinematics.axis_stepper_range(), which for J4 currently returns
-(-62.2, 0.0) -- so the REPL REFUSES every positive value and accepts only
-negative ones. This script talks to the Joint directly and skips that
-check, so the question can actually be tested.
+Written to settle the J4 sign question, which hand_control.py's REPL could
+not answer: its `<finger>_x <mm>` segment is bounds-checked against
+kinematics.axis_stepper_range(), and while FULL_EXTENSION_MM[4] was -62.2
+that returned (-62.2, 0.0) for J4 -- so the REPL refused every positive
+value and accepted only the negative ones that drive into the home
+hardstop. Both are fixed now (positive mm is away from home on every
+axis), so this is kept as the regression check: re-run it after any
+change to STEPS_PER_MM, FULL_EXTENSION_MM, HOME_DIRECTION, or the wiring
+of an axis's direction pin. It talks to the Joint directly and so is not
+subject to the bounds check it was written to bypass.
 
 Safe by construction: it homes the axis first, so the axis starts pressed
 against its home hardstop. From there a command in the "into home"

@@ -67,7 +67,20 @@ constants):
 
 Note: finger 2's stepper4 X range is negative ([0, -60mm]) unlike fingers
 0/1 -- likely a mirrored rail direction for that finger's physical
-position on the hand, not a typo. Ranges above are as given by the user,
+position on the hand, not a typo.
+
+> **CORRECTION (2026-08-29).** The "likely" above was wrong, and it was
+> load-bearing: it became `FULL_EXTENSION_MM[4] = -62.2` in
+> `manta_hand/kinematics.py`, which pointed J4's entire commanded range at
+> its own home hardstop. Finger 2's rail *is* mirrored, but the mirroring
+> is which CORNER it homes at (local q_My min, where index homes at max),
+> not the sign of its travel. Every axis homes with `HOME_DIRECTION=+1`,
+> which runs the step count up into the home stop; with all six
+> `STEPS_PER_MM` negative, positive mm is the only direction that moves
+> away from home, J4 included. Verified on hardware: J0 (known-good) and
+> J4 both move away from home on a +3mm `MOVEMM`
+> (`verify_axis_direction.py`). Do not re-derive a negative stepper range
+> for any axis from this table. Ranges above are as given by the user,
 not yet independently re-verified against the ranges/stall data recorded
 per-servo elsewhere in this file (several servos, e.g. 0 and 6, showed
 real stalls well short of their full claimed aa/fe1/fe2 range during
