@@ -473,6 +473,10 @@ def main() -> int:
                     help="metres the hold probe raises the palm by")
     ap.add_argument("--hold-min", type=float, default=0.020,
                     help="metres of lift the probe must still hold for a pose to count")
+    ap.add_argument("--thumb-axial", type=float, default=0.0,
+                    help="metres to slide ONLY the thumb pad along the shaft. At 0 the thumb "
+                         "sits at the pair's midpoint, where its moment arm about the pinch "
+                         "axis is zero -- see tip_targets.")
     ap.add_argument("--axial-offset", type=float, default=0.0,
                     help="metres to slide the whole contact ring along the shaft, away from its "
                          "centre of mass. 0 = the centred tripod, which is a rotational LOCK "
@@ -498,7 +502,7 @@ def main() -> int:
               spreads=(args.spread,) if args.spread else None,
               spread_min=args.spread_min, spread_frac=args.spread_frac,
               squeeze=args.squeeze, lift_probe=args.lift_probe, hold_min=args.hold_min,
-              axial_offset=args.axial_offset)
+              axial_offset=args.axial_offset, thumb_axial=args.thumb_axial)
     if out is None:
         print(f"FAIL {args.scene.name}: no pose reaches the shaft AND holds it "
               f"(needs >= {args.hold_min*1000:.0f} mm of lift retained)")
