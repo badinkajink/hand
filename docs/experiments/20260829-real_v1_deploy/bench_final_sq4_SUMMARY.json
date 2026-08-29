@@ -1,0 +1,110 @@
+[
+ {
+  "design": "g01",
+  "axis": "ensemble0.5_F0",
+  "label": "*",
+  "n": 80,
+  "win": 0.45,
+  "kept": 0.487,
+  "mean_cos": 0.553
+ },
+ {
+  "design": "g01",
+  "axis": "ensemble1.0_F0",
+  "label": "*",
+  "n": 80,
+  "win": 0.125,
+  "kept": 0.15,
+  "mean_cos": 0.358
+ },
+ {
+  "design": "g12",
+  "axis": "ensemble0.5_F0",
+  "label": "*",
+  "n": 80,
+  "win": 0.625,
+  "kept": 0.8,
+  "mean_cos": 0.667
+ },
+ {
+  "design": "g12",
+  "axis": "ensemble1.0_F0",
+  "label": "*",
+  "n": 80,
+  "win": 0.4,
+  "kept": 0.6,
+  "mean_cos": 0.491
+ },
+ {
+  "design": "g14",
+  "axis": "ensemble0.5_F0",
+  "label": "*",
+  "n": 80,
+  "win": 0.225,
+  "kept": 0.525,
+  "mean_cos": 0.458
+ },
+ {
+  "design": "g14",
+  "axis": "ensemble1.0_F0",
+  "label": "*",
+  "n": 80,
+  "win": 0.062,
+  "kept": 0.2,
+  "mean_cos": 0.176
+ },
+ {
+  "design": "g23",
+  "axis": "ensemble0.5_F0",
+  "label": "*",
+  "n": 80,
+  "win": 0.637,
+  "kept": 0.725,
+  "mean_cos": 0.784
+ },
+ {
+  "design": "g23",
+  "axis": "ensemble1.0_F0",
+  "label": "*",
+  "n": 80,
+  "win": 0.163,
+  "kept": 0.275,
+  "mean_cos": 0.496
+ },
+ {
+  "design": "g24",
+  "axis": "ensemble0.5_F0",
+  "label": "*",
+  "n": 80,
+  "win": 0.487,
+  "kept": 0.512,
+  "mean_cos": 0.548
+ },
+ {
+  "design": "g24",
+  "axis": "ensemble1.0_F0",
+  "label": "*",
+  "n": 80,
+  "win": 0.212,
+  "kept": 0.263,
+  "mean_cos": 0.342
+ },
+ {
+  "design": "rv04_mid",
+  "axis": "ensemble0.5_F0",
+  "label": "*",
+  "n": 80,
+  "win": 0.475,
+  "kept": 0.487,
+  "mean_cos": 0.668
+ },
+ {
+  "design": "rv04_mid",
+  "axis": "ensemble1.0_F0",
+  "label": "*",
+  "n": 80,
+  "win": 0.175,
+  "kept": 0.188,
+  "mean_cos": 0.542
+ }
+]
