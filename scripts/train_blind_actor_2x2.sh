@@ -57,8 +57,8 @@ JIT=(--cube-spawn-xy-jitter 0.005 --cube-spawn-yaw-jitter 0.087 --dr-anneal-iter
 run_arm () {
   local name=$1; shift
   local tag="20260830-${name}_s${SEED}"
-  if [ -e "$STATE/$name.DONE" ]; then echo "[2x2] SKIP $name (done)"; return 0; fi
-  local log="$ROOT/logs/blind2x2/$name.trainer.log"
+  if [ -e "$STATE/${name}_s${SEED}.DONE" ]; then echo "[2x2] SKIP $name seed=$SEED (done)"; return 0; fi
+  local log="$ROOT/logs/blind2x2/${name}_s${SEED}.trainer.log"
   local c; c=$(mktemp -d)
   echo "[2x2] === $name  tag=$tag  ts=$TOTAL_TS  seed=$SEED ==="
   # The collapse watchdog engages after the jitter curriculum has finished ramping
@@ -84,7 +84,7 @@ run_arm () {
     # and do not let the queue silently report 4/4 on 3 real runs.
     echo "[2x2] $name FAILED rc=$rc — see $log"; return 1
   fi
-  touch "$STATE/$name.DONE"
+  touch "$STATE/${name}_s${SEED}.DONE"
   echo "[2x2] $name finished rc=$rc -> results/rl/$tag"
 }
 
@@ -117,4 +117,4 @@ echo "[2x2] queue complete. NEXT: evaluate all four with the SAME continuous-han
 echo "[2x2] protocol (scripts/probe_obs_ablation.py --conditions none, 32 envs), and"
 echo "[2x2] evaluate the blind arms with their blinding APPLIED — a blind-trained actor"
 echo "[2x2] read out in a sighted env is out of distribution in the gotcha-#13 way."
-touch "$STATE/QUEUE.DONE"
+touch "$STATE/QUEUE_s${SEED}.DONE"
