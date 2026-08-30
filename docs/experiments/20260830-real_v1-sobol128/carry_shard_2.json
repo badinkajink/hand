@@ -1,0 +1,7717 @@
+[
+ {
+  "design": "rv01_compact",
+  "vector": [
+   0.03,
+   0.0,
+   0.0,
+   -0.03,
+   -0.03,
+   0.0,
+   -0.03,
+   0.03,
+   0.0
+  ],
+  "scene": "assets/mjcf/experimental/20260830-real_v1-sobol128/scene_tp0d0300p0d0000p0d0000_in0d0300n0d0300p0d0000_mn0d0300p0d0300p0d0000.xml",
+  "x_sep_mm": 40.0,
+  "pair_x_mm": 20.0,
+  "pair_x_offset_mm": -30.0,
+  "y_sep_mm": 50.0,
+  "thumb_y_mm": 0.0,
+  "pair_y_mid_mm": 0.0,
+  "mounts_mm": {
+   "thumb": [
+    -20.0,
+    0.0
+   ],
+   "index": [
+    20.0,
+    25.0
+   ],
+   "middle": [
+    20.0,
+    -25.0
+   ]
+  },
+  "grasps": [
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 0.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 13.49,
+       "reach_mm": 68.11,
+       "extend_mm": 0.0,
+       "fn_N": 0.0,
+       "sweep_mm": 34.05,
+       "sweep_ratio": 1.607
+      },
+      "index": {
+       "arm_mm": 34.52,
+       "reach_mm": 68.11,
+       "extend_mm": 0.0,
+       "fn_N": 0.0,
+       "sweep_mm": 10.57,
+       "sweep_ratio": 0.195
+      },
+      "middle": {
+       "arm_mm": 34.52,
+       "reach_mm": 68.11,
+       "extend_mm": 0.0,
+       "fn_N": 0.0,
+       "sweep_mm": 10.57,
+       "sweep_ratio": 0.195
+      }
+     },
+     "extend_mm": 0.0,
+     "straddle_mm": 31.63,
+     "ceiling_deg": 0.0,
+     "tau_cap_Nmm": 0.0,
+     "tau_pair_Nmm": 0.0,
+     "tau_thumb_Nmm": 0.0,
+     "sweep_min_mm": 10.57,
+     "sweep_sum_mm": 55.19,
+     "grip_N": 0.0,
+     "grip_depth_mm": 81.6,
+     "grasp_z": 0.1021,
+     "grasp_contacts": 0,
+     "depth_fit_mm": 71.5
+    },
+    "cells": [
+     {
+      "axis_k": 0.25,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": -0.0,
+      "final_cos": 0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 0.0,
+       "arc_mm": 0.22,
+       "touch_frac": {
+        "thumb": 0.0,
+        "index": 0.0,
+        "middle": 0.0
+       },
+       "slip_mm": {
+        "thumb": 0.0,
+        "index": 0.0,
+        "middle": 0.0
+       },
+       "carry_frac": {
+        "thumb": null,
+        "index": null,
+        "middle": null
+       },
+       "drive_share": {
+        "thumb": 0.0,
+        "index": 0.0,
+        "middle": 0.0
+       },
+       "mean_fn_N": {
+        "thumb": 0.0,
+        "index": 0.0,
+        "middle": 0.0
+       },
+       "max_util": {
+        "thumb": 0.0,
+        "index": 0.0,
+        "middle": 0.0
+       },
+       "mean_contacts": 0.0,
+       "obj_dz_mm": -63.9,
+       "driver": "thumb",
+       "cos_turn_end": -0.0,
+       "settle_frac": 0.0
+      },
+      "min_finger_clearance_mm": -1.71,
+      "clearance_at_step": 1200,
+      "clearance_pair": "index-middle",
+      "clearance_ok": false
+     },
+     {
+      "axis_k": 0.4,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": -0.0,
+      "final_cos": 0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 0.0,
+       "arc_mm": 0.22,
+       "touch_frac": {
+        "thumb": 0.0,
+        "index": 0.0,
+        "middle": 0.0
+       },
+       "slip_mm": {
+        "thumb": 0.0,
+        "index": 0.0,
+        "middle": 0.0
+       },
+       "carry_frac": {
+        "thumb": null,
+        "index": null,
+        "middle": null
+       },
+       "drive_share": {
+        "thumb": 0.0,
+        "index": 0.0,
+        "middle": 0.0
+       },
+       "mean_fn_N": {
+        "thumb": 0.0,
+        "index": 0.0,
+        "middle": 0.0
+       },
+       "max_util": {
+        "thumb": 0.0,
+        "index": 0.0,
+        "middle": 0.0
+       },
+       "mean_contacts": 0.0,
+       "obj_dz_mm": -63.9,
+       "driver": "thumb",
+       "cos_turn_end": -0.0,
+       "settle_frac": 0.0
+      },
+      "min_finger_clearance_mm": -1.33,
+      "clearance_at_step": 2000,
+      "clearance_pair": "index-middle",
+      "clearance_ok": false
+     }
+    ]
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 21.83,
+       "reach_mm": 68.11,
+       "extend_mm": 0.0,
+       "fn_N": 1.13,
+       "sweep_mm": 7.12,
+       "sweep_ratio": 0.208
+      },
+      "index": {
+       "arm_mm": 33.13,
+       "reach_mm": 68.11,
+       "extend_mm": 0.0,
+       "fn_N": 0.89,
+       "sweep_mm": 4.88,
+       "sweep_ratio": 0.094
+      },
+      "middle": {
+       "arm_mm": 32.51,
+       "reach_mm": 68.11,
+       "extend_mm": 0.0,
+       "fn_N": 0.27,
+       "sweep_mm": 4.93,
+       "sweep_ratio": 0.097
+      }
+     },
+     "extend_mm": 0.0,
+     "straddle_mm": 31.87,
+     "ceiling_deg": 0.0,
+     "tau_cap_Nmm": 151.21,
+     "tau_pair_Nmm": 91.83,
+     "tau_thumb_Nmm": 59.37,
+     "sweep_min_mm": 4.88,
+     "sweep_sum_mm": 16.93,
+     "grip_N": 2.29,
+     "grip_depth_mm": 75.6,
+     "grasp_z": 0.1055,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 69.0
+    },
+    "cells": [
+     {
+      "axis_k": 0.25,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": 0.0,
+      "final_cos": 0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 3.6,
+       "arc_mm": 0.78,
+       "touch_frac": {
+        "thumb": 0.05,
+        "index": 0.05,
+        "middle": 0.0
+       },
+       "slip_mm": {
+        "thumb": 0.0,
+        "index": 0.0,
+        "middle": 0.0
+       },
+       "carry_frac": {
+        "thumb": 1.0,
+        "index": 1.0,
+        "middle": null
+       },
+       "drive_share": {
+        "thumb": 0.49,
+        "index": 0.51,
+        "middle": 0.0
+       },
+       "mean_fn_N": {
+        "thumb": 0.02,
+        "index": 0.02,
+        "middle": 0.0
+       },
+       "max_util": {
+        "thumb": 0.55,
+        "index": 0.76,
+        "middle": 0.0
+       },
+       "mean_contacts": 0.15,
+       "obj_dz_mm": -91.7,
+       "driver": "index",
+       "cos_turn_end": -0.0,
+       "settle_frac": 0.0
+      },
+      "min_finger_clearance_mm": -1.0,
+      "clearance_at_step": 1210,
+      "clearance_pair": "index-middle",
+      "clearance_ok": false
+     },
+     {
+      "axis_k": 0.4,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": -0.0,
+      "final_cos": 0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 3.6,
+       "arc_mm": 0.78,
+       "touch_frac": {
+        "thumb": 0.5,
+        "index": 0.35,
+        "middle": 0.5
+       },
+       "slip_mm": {
+        "thumb": 29.5,
+        "index": 1.9,
+        "middle": 24.7
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.45,
+        "index": 0.08,
+        "middle": 0.47
+       },
+       "mean_fn_N": {
+        "thumb": 3.75,
+        "index": 0.67,
+        "middle": 3.1
+       },
+       "max_util": {
+        "thumb": 0.69,
+        "index": 0.75,
+        "middle": 0.8
+       },
+       "mean_contacts": 1.35,
+       "obj_dz_mm": -92.8,
+       "driver": "middle",
+       "cos_turn_end": -0.0,
+       "settle_frac": 0.0
+      },
+      "min_finger_clearance_mm": -1.04,
+      "clearance_at_step": 2000,
+      "clearance_pair": "index-middle",
+      "clearance_ok": false
+     }
+    ]
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 0.0,
+    "depth_req_mm": 61.0,
+    "squeeze_mm": 4.0,
+    "pose": false
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": 61.0,
+    "squeeze_mm": 4.0,
+    "pose": false
+   }
+  ],
+  "sampling": {
+   "source": "known_anchor"
+  }
+ },
+ {
+  "design": "sv1_u0006",
+  "vector": [
+   -0.0098,
+   0.0041,
+   0.0,
+   -0.0013,
+   -0.0288,
+   0.0,
+   -0.0163,
+   0.0009,
+   0.0
+  ],
+  "scene": "assets/mjcf/experimental/20260830-real_v1-sobol128/scene_tn0d0098p0d0041p0d0000_in0d0013n0d0288p0d0000_mn0d0163p0d0009p0d0000.xml",
+  "x_sep_mm": 100.9,
+  "pair_x_mm": 41.2,
+  "pair_x_offset_mm": -8.8,
+  "y_sep_mm": 80.3,
+  "thumb_y_mm": 4.1,
+  "pair_y_mid_mm": -13.9,
+  "mounts_mm": {
+   "thumb": [
+    -59.8,
+    4.1
+   ],
+   "index": [
+    48.7,
+    26.2
+   ],
+   "middle": [
+    33.7,
+    -54.1
+   ]
+  },
+  "grasps": [
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 0.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 4.37,
+       "reach_mm": 63.44,
+       "extend_mm": 4.67,
+       "fn_N": 11.97,
+       "sweep_mm": 30.99,
+       "sweep_ratio": 4.519
+      },
+      "index": {
+       "arm_mm": 31.86,
+       "reach_mm": 63.11,
+       "extend_mm": 5.0,
+       "fn_N": 5.97,
+       "sweep_mm": 28.14,
+       "sweep_ratio": 0.562
+      },
+      "middle": {
+       "arm_mm": 32.46,
+       "reach_mm": 60.54,
+       "extend_mm": 7.57,
+       "fn_N": 5.79,
+       "sweep_mm": 26.01,
+       "sweep_ratio": 0.51
+      }
+     },
+     "extend_mm": 4.67,
+     "straddle_mm": 32.01,
+     "ceiling_deg": 8.39,
+     "tau_cap_Nmm": 1032.85,
+     "tau_pair_Nmm": 907.44,
+     "tau_thumb_Nmm": 125.41,
+     "sweep_min_mm": 26.01,
+     "sweep_sum_mm": 85.13,
+     "grip_N": 23.73,
+     "grip_depth_mm": 50.3,
+     "grasp_z": 0.1158,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 54.0
+    },
+    "cells": [
+     {
+      "axis_k": 0.25,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.77,
+      "sd_cos": 0.0,
+      "kept": 1,
+      "peak_cos": 0.77,
+      "final_cos": 0.77,
+      "final_z": 0.1181,
+      "min_z_hold": 0.1181,
+      "contacts": 2,
+      "contacts_hand": 3,
+      "force_N": 0.45,
+      "ok": true,
+      "style": {
+       "turned_deg": 44.8,
+       "arc_mm": 9.78,
+       "touch_frac": {
+        "thumb": 1.0,
+        "index": 0.25,
+        "middle": 0.95
+       },
+       "slip_mm": {
+        "thumb": 17.8,
+        "index": 4.8,
+        "middle": 24.7
+       },
+       "carry_frac": {
+        "thumb": -0.82,
+        "index": -0.94,
+        "middle": -1.65
+       },
+       "drive_share": {
+        "thumb": 0.37,
+        "index": 0.11,
+        "middle": 0.52
+       },
+       "mean_fn_N": {
+        "thumb": 3.72,
+        "index": 0.71,
+        "middle": 4.83
+       },
+       "max_util": {
+        "thumb": 0.61,
+        "index": 0.72,
+        "middle": 0.52
+       },
+       "mean_contacts": 2.25,
+       "obj_dz_mm": 8.7,
+       "driver": "middle",
+       "cos_turn_end": 0.592,
+       "settle_frac": 0.26
+      },
+      "min_finger_clearance_mm": 9.06,
+      "clearance_at_step": 2000,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     },
+     {
+      "axis_k": 0.4,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.493,
+      "sd_cos": 0.0,
+      "kept": 1,
+      "peak_cos": 0.493,
+      "final_cos": 0.493,
+      "final_z": 0.1292,
+      "min_z_hold": 0.1292,
+      "contacts": 2,
+      "contacts_hand": 3,
+      "force_N": 0.61,
+      "ok": true,
+      "style": {
+       "turned_deg": 24.0,
+       "arc_mm": 5.24,
+       "touch_frac": {
+        "thumb": 1.0,
+        "index": 0.25,
+        "middle": 1.0
+       },
+       "slip_mm": {
+        "thumb": 18.7,
+        "index": 4.7,
+        "middle": 27.9
+       },
+       "carry_frac": {
+        "thumb": -2.56,
+        "index": -2.56,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.38,
+        "index": 0.11,
+        "middle": 0.51
+       },
+       "mean_fn_N": {
+        "thumb": 4.04,
+        "index": 0.72,
+        "middle": 4.87
+       },
+       "max_util": {
+        "thumb": 0.49,
+        "index": 0.69,
+        "middle": 0.5
+       },
+       "mean_contacts": 2.25,
+       "obj_dz_mm": 15.8,
+       "driver": "middle",
+       "cos_turn_end": 0.423,
+       "settle_frac": 0.18
+      },
+      "min_finger_clearance_mm": 5.86,
+      "clearance_at_step": 2000,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     }
+    ]
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 19.95,
+       "reach_mm": 62.81,
+       "extend_mm": 5.3,
+       "fn_N": 11.22,
+       "sweep_mm": 29.6,
+       "sweep_ratio": 0.945
+      },
+      "index": {
+       "arm_mm": 31.89,
+       "reach_mm": 63.16,
+       "extend_mm": 4.95,
+       "fn_N": 8.66,
+       "sweep_mm": 30.19,
+       "sweep_ratio": 0.603
+      },
+      "middle": {
+       "arm_mm": 32.18,
+       "reach_mm": 60.49,
+       "extend_mm": 7.62,
+       "fn_N": 2.54,
+       "sweep_mm": 29.23,
+       "sweep_ratio": 0.578
+      }
+     },
+     "extend_mm": 4.95,
+     "straddle_mm": 32.0,
+     "ceiling_deg": 8.9,
+     "tau_cap_Nmm": 1396.21,
+     "tau_pair_Nmm": 858.79,
+     "tau_thumb_Nmm": 537.41,
+     "sweep_min_mm": 29.23,
+     "sweep_sum_mm": 89.03,
+     "grip_N": 22.42,
+     "grip_depth_mm": 54.6,
+     "grasp_z": 0.1115,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 54.0
+    },
+    "cells": [
+     {
+      "axis_k": 0.25,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": -0.0,
+      "final_cos": 0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 1.8,
+       "arc_mm": 0.4,
+       "touch_frac": {
+        "thumb": 0.7,
+        "index": 0.35,
+        "middle": 0.7
+       },
+       "slip_mm": {
+        "thumb": 14.0,
+        "index": 4.8,
+        "middle": 21.5
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.33,
+        "index": 0.18,
+        "middle": 0.49
+       },
+       "mean_fn_N": {
+        "thumb": 3.06,
+        "index": 1.33,
+        "middle": 1.74
+       },
+       "max_util": {
+        "thumb": 0.63,
+        "index": 0.73,
+        "middle": 0.81
+       },
+       "mean_contacts": 1.75,
+       "obj_dz_mm": -99.1,
+       "driver": "middle",
+       "cos_turn_end": -0.0,
+       "settle_frac": 0.0
+      },
+      "min_finger_clearance_mm": 9.96,
+      "clearance_at_step": 1680,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     },
+     {
+      "axis_k": 0.4,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.552,
+      "sd_cos": 0.0,
+      "kept": 1,
+      "peak_cos": 0.765,
+      "final_cos": 0.552,
+      "final_z": 0.1168,
+      "min_z_hold": 0.1168,
+      "contacts": 2,
+      "contacts_hand": 2,
+      "force_N": 0.49,
+      "ok": true,
+      "style": {
+       "turned_deg": 31.7,
+       "arc_mm": 6.91,
+       "touch_frac": {
+        "thumb": 1.0,
+        "index": 0.65,
+        "middle": 1.0
+       },
+       "slip_mm": {
+        "thumb": 19.8,
+        "index": 7.0,
+        "middle": 26.1
+       },
+       "carry_frac": {
+        "thumb": -1.87,
+        "index": -0.56,
+        "middle": -2.77
+       },
+       "drive_share": {
+        "thumb": 0.37,
+        "index": 0.16,
+        "middle": 0.46
+       },
+       "mean_fn_N": {
+        "thumb": 5.73,
+        "index": 1.78,
+        "middle": 3.85
+       },
+       "max_util": {
+        "thumb": 0.33,
+        "index": 0.85,
+        "middle": 0.69
+       },
+       "mean_contacts": 2.7,
+       "obj_dz_mm": 8.0,
+       "driver": "middle",
+       "cos_turn_end": 0.739,
+       "settle_frac": -0.36
+      },
+      "min_finger_clearance_mm": 6.83,
+      "clearance_at_step": 1480,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     }
+    ]
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 0.0,
+    "depth_req_mm": 61.0,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 4.37,
+       "reach_mm": 63.44,
+       "extend_mm": 4.67,
+       "fn_N": 11.97,
+       "sweep_mm": 30.99,
+       "sweep_ratio": 4.519
+      },
+      "index": {
+       "arm_mm": 31.86,
+       "reach_mm": 63.11,
+       "extend_mm": 5.0,
+       "fn_N": 5.97,
+       "sweep_mm": 28.14,
+       "sweep_ratio": 0.562
+      },
+      "middle": {
+       "arm_mm": 32.46,
+       "reach_mm": 60.54,
+       "extend_mm": 7.57,
+       "fn_N": 5.79,
+       "sweep_mm": 26.01,
+       "sweep_ratio": 0.51
+      }
+     },
+     "extend_mm": 4.67,
+     "straddle_mm": 32.01,
+     "ceiling_deg": 8.39,
+     "tau_cap_Nmm": 1032.85,
+     "tau_pair_Nmm": 907.44,
+     "tau_thumb_Nmm": 125.41,
+     "sweep_min_mm": 26.01,
+     "sweep_sum_mm": 85.13,
+     "grip_N": 23.73,
+     "grip_depth_mm": 50.3,
+     "grasp_z": 0.1158,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 54.0
+    },
+    "cells": [
+     {
+      "axis_k": 0.25,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.77,
+      "sd_cos": 0.0,
+      "kept": 1,
+      "peak_cos": 0.77,
+      "final_cos": 0.77,
+      "final_z": 0.1181,
+      "min_z_hold": 0.1181,
+      "contacts": 2,
+      "contacts_hand": 3,
+      "force_N": 0.45,
+      "ok": true,
+      "style": {
+       "turned_deg": 44.8,
+       "arc_mm": 9.78,
+       "touch_frac": {
+        "thumb": 1.0,
+        "index": 0.25,
+        "middle": 0.95
+       },
+       "slip_mm": {
+        "thumb": 17.8,
+        "index": 4.8,
+        "middle": 24.7
+       },
+       "carry_frac": {
+        "thumb": -0.82,
+        "index": -0.94,
+        "middle": -1.65
+       },
+       "drive_share": {
+        "thumb": 0.37,
+        "index": 0.11,
+        "middle": 0.52
+       },
+       "mean_fn_N": {
+        "thumb": 3.72,
+        "index": 0.71,
+        "middle": 4.83
+       },
+       "max_util": {
+        "thumb": 0.61,
+        "index": 0.72,
+        "middle": 0.52
+       },
+       "mean_contacts": 2.25,
+       "obj_dz_mm": 8.7,
+       "driver": "middle",
+       "cos_turn_end": 0.592,
+       "settle_frac": 0.26
+      },
+      "min_finger_clearance_mm": 9.06,
+      "clearance_at_step": 2000,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     },
+     {
+      "axis_k": 0.4,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.493,
+      "sd_cos": 0.0,
+      "kept": 1,
+      "peak_cos": 0.493,
+      "final_cos": 0.493,
+      "final_z": 0.1292,
+      "min_z_hold": 0.1292,
+      "contacts": 2,
+      "contacts_hand": 3,
+      "force_N": 0.61,
+      "ok": true,
+      "style": {
+       "turned_deg": 24.0,
+       "arc_mm": 5.24,
+       "touch_frac": {
+        "thumb": 1.0,
+        "index": 0.25,
+        "middle": 1.0
+       },
+       "slip_mm": {
+        "thumb": 18.7,
+        "index": 4.7,
+        "middle": 27.9
+       },
+       "carry_frac": {
+        "thumb": -2.56,
+        "index": -2.56,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.38,
+        "index": 0.11,
+        "middle": 0.51
+       },
+       "mean_fn_N": {
+        "thumb": 4.04,
+        "index": 0.72,
+        "middle": 4.87
+       },
+       "max_util": {
+        "thumb": 0.49,
+        "index": 0.69,
+        "middle": 0.5
+       },
+       "mean_contacts": 2.25,
+       "obj_dz_mm": 15.8,
+       "driver": "middle",
+       "cos_turn_end": 0.423,
+       "settle_frac": 0.18
+      },
+      "min_finger_clearance_mm": 5.86,
+      "clearance_at_step": 2000,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     }
+    ]
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": 61.0,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 19.95,
+       "reach_mm": 62.81,
+       "extend_mm": 5.3,
+       "fn_N": 11.22,
+       "sweep_mm": 29.6,
+       "sweep_ratio": 0.945
+      },
+      "index": {
+       "arm_mm": 31.89,
+       "reach_mm": 63.16,
+       "extend_mm": 4.95,
+       "fn_N": 8.66,
+       "sweep_mm": 30.19,
+       "sweep_ratio": 0.603
+      },
+      "middle": {
+       "arm_mm": 32.18,
+       "reach_mm": 60.49,
+       "extend_mm": 7.62,
+       "fn_N": 2.54,
+       "sweep_mm": 29.23,
+       "sweep_ratio": 0.578
+      }
+     },
+     "extend_mm": 4.95,
+     "straddle_mm": 32.0,
+     "ceiling_deg": 8.9,
+     "tau_cap_Nmm": 1396.21,
+     "tau_pair_Nmm": 858.79,
+     "tau_thumb_Nmm": 537.41,
+     "sweep_min_mm": 29.23,
+     "sweep_sum_mm": 89.03,
+     "grip_N": 22.42,
+     "grip_depth_mm": 54.6,
+     "grasp_z": 0.1115,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 54.0
+    },
+    "cells": [
+     {
+      "axis_k": 0.25,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": -0.0,
+      "final_cos": 0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 1.8,
+       "arc_mm": 0.4,
+       "touch_frac": {
+        "thumb": 0.7,
+        "index": 0.35,
+        "middle": 0.7
+       },
+       "slip_mm": {
+        "thumb": 14.0,
+        "index": 4.8,
+        "middle": 21.5
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.33,
+        "index": 0.18,
+        "middle": 0.49
+       },
+       "mean_fn_N": {
+        "thumb": 3.06,
+        "index": 1.33,
+        "middle": 1.74
+       },
+       "max_util": {
+        "thumb": 0.63,
+        "index": 0.73,
+        "middle": 0.81
+       },
+       "mean_contacts": 1.75,
+       "obj_dz_mm": -99.1,
+       "driver": "middle",
+       "cos_turn_end": -0.0,
+       "settle_frac": 0.0
+      },
+      "min_finger_clearance_mm": 9.96,
+      "clearance_at_step": 1690,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     },
+     {
+      "axis_k": 0.4,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.552,
+      "sd_cos": 0.0,
+      "kept": 1,
+      "peak_cos": 0.765,
+      "final_cos": 0.552,
+      "final_z": 0.1168,
+      "min_z_hold": 0.1168,
+      "contacts": 2,
+      "contacts_hand": 2,
+      "force_N": 0.49,
+      "ok": true,
+      "style": {
+       "turned_deg": 31.7,
+       "arc_mm": 6.91,
+       "touch_frac": {
+        "thumb": 1.0,
+        "index": 0.65,
+        "middle": 1.0
+       },
+       "slip_mm": {
+        "thumb": 19.8,
+        "index": 7.0,
+        "middle": 26.1
+       },
+       "carry_frac": {
+        "thumb": -1.87,
+        "index": -0.56,
+        "middle": -2.77
+       },
+       "drive_share": {
+        "thumb": 0.37,
+        "index": 0.16,
+        "middle": 0.46
+       },
+       "mean_fn_N": {
+        "thumb": 5.73,
+        "index": 1.78,
+        "middle": 3.85
+       },
+       "max_util": {
+        "thumb": 0.33,
+        "index": 0.85,
+        "middle": 0.69
+       },
+       "mean_contacts": 2.7,
+       "obj_dz_mm": 8.0,
+       "driver": "middle",
+       "cos_turn_end": 0.739,
+       "settle_frac": -0.36
+      },
+      "min_finger_clearance_mm": 6.83,
+      "clearance_at_step": 1480,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     }
+    ]
+   }
+  ],
+  "sampling": {
+   "source": "sobol_uniform",
+   "sobol_index": 6,
+   "sobol_selector": 0.55438028,
+   "sobol_u_raw": [
+    0.337275645,
+    0.536849415,
+    0.477775207,
+    0.020226761,
+    0.228310315,
+    0.51518353
+   ],
+   "sobol_u_used": [
+    0.337275645,
+    0.536849415,
+    0.477775207,
+    0.020226761,
+    0.228310315,
+    0.51518353
+   ]
+  }
+ },
+ {
+  "design": "sv1_u0019",
+  "vector": [
+   0.0034,
+   -0.0394,
+   0.0,
+   -0.0199,
+   0.0222,
+   0.0,
+   0.0012,
+   0.0276,
+   0.0
+  ],
+  "scene": "assets/mjcf/experimental/20260830-real_v1-sobol128/scene_tp0d0034n0d0394p0d0000_in0d0199p0d0222p0d0000_mp0d0012p0d0276p0d0000.xml",
+  "x_sep_mm": 87.2,
+  "pair_x_mm": 40.7,
+  "pair_x_offset_mm": -9.3,
+  "y_sep_mm": 104.7,
+  "thumb_y_mm": -39.4,
+  "pair_y_mid_mm": 24.9,
+  "mounts_mm": {
+   "thumb": [
+    -46.6,
+    -39.4
+   ],
+   "index": [
+    30.1,
+    77.2
+   ],
+   "middle": [
+    51.2,
+    -27.4
+   ]
+  },
+  "grasps": [
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 0.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 8.24,
+       "reach_mm": 66.64,
+       "extend_mm": 1.47,
+       "fn_N": 3.81,
+       "sweep_mm": 35.04,
+       "sweep_ratio": 2.708
+      },
+      "index": {
+       "arm_mm": 33.02,
+       "reach_mm": 67.59,
+       "extend_mm": 0.52,
+       "fn_N": 1.65,
+       "sweep_mm": 30.88,
+       "sweep_ratio": 0.595
+      },
+      "middle": {
+       "arm_mm": 32.23,
+       "reach_mm": 62.97,
+       "extend_mm": 5.14,
+       "fn_N": 2.18,
+       "sweep_mm": 30.12,
+       "sweep_ratio": 0.595
+      }
+     },
+     "extend_mm": 0.52,
+     "straddle_mm": 32.35,
+     "ceiling_deg": 0.92,
+     "tau_cap_Nmm": 374.47,
+     "tau_pair_Nmm": 299.23,
+     "tau_thumb_Nmm": 75.24,
+     "sweep_min_mm": 30.12,
+     "sweep_sum_mm": 96.03,
+     "grip_N": 7.64,
+     "grip_depth_mm": 56.9,
+     "grasp_z": 0.1082,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 53.0
+    },
+    "cells": [
+     {
+      "axis_k": 0.25,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": -0.0,
+      "final_cos": 0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 0.3,
+       "arc_mm": 0.22,
+       "touch_frac": {
+        "thumb": 0.55,
+        "index": 0.4,
+        "middle": 0.55
+       },
+       "slip_mm": {
+        "thumb": 19.6,
+        "index": 7.3,
+        "middle": 16.6
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.43,
+        "index": 0.09,
+        "middle": 0.48
+       },
+       "mean_fn_N": {
+        "thumb": 3.96,
+        "index": 0.31,
+        "middle": 3.65
+       },
+       "max_util": {
+        "thumb": 0.37,
+        "index": 0.71,
+        "middle": 0.51
+       },
+       "mean_contacts": 1.5,
+       "obj_dz_mm": -96.0,
+       "driver": "middle",
+       "cos_turn_end": -0.0,
+       "settle_frac": 0.0
+      },
+      "min_finger_clearance_mm": 16.3,
+      "clearance_at_step": 1670,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     },
+     {
+      "axis_k": 0.4,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": -0.0,
+      "final_cos": 0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 0.3,
+       "arc_mm": 0.22,
+       "touch_frac": {
+        "thumb": 0.45,
+        "index": 0.4,
+        "middle": 0.45
+       },
+       "slip_mm": {
+        "thumb": 17.7,
+        "index": 8.0,
+        "middle": 14.8
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.4,
+        "index": 0.14,
+        "middle": 0.47
+       },
+       "mean_fn_N": {
+        "thumb": 4.19,
+        "index": 0.56,
+        "middle": 3.62
+       },
+       "max_util": {
+        "thumb": 0.32,
+        "index": 0.66,
+        "middle": 0.51
+       },
+       "mean_contacts": 1.3,
+       "obj_dz_mm": -96.1,
+       "driver": "middle",
+       "cos_turn_end": -0.0,
+       "settle_frac": 0.0
+      },
+      "min_finger_clearance_mm": 16.77,
+      "clearance_at_step": 1660,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     }
+    ]
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": false
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 0.0,
+    "depth_req_mm": 61.0,
+    "squeeze_mm": 4.0,
+    "pose": false
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": 61.0,
+    "squeeze_mm": 4.0,
+    "pose": false
+   }
+  ],
+  "sampling": {
+   "source": "sobol_uniform",
+   "sobol_index": 19,
+   "sobol_selector": 0.877391583,
+   "sobol_u_raw": [
+    0.55701887,
+    0.141378734,
+    0.169142694,
+    0.870827035,
+    0.519200073,
+    0.959911587
+   ],
+   "sobol_u_used": [
+    0.55701887,
+    0.141378734,
+    0.169142694,
+    0.870827035,
+    0.519200073,
+    0.959911587
+   ]
+  }
+ },
+ {
+  "design": "sv1_u0035",
+  "vector": [
+   0.0073,
+   -0.0427,
+   0.0,
+   0.0171,
+   0.0248,
+   0.0,
+   0.0174,
+   0.0251,
+   0.0
+  ],
+  "scene": "assets/mjcf/experimental/20260830-real_v1-sobol128/scene_tp0d0073n0d0427p0d0000_ip0d0171p0d0248p0d0000_mp0d0174p0d0251p0d0000.xml",
+  "x_sep_mm": 110.0,
+  "pair_x_mm": 67.2,
+  "pair_x_offset_mm": 17.2,
+  "y_sep_mm": 109.7,
+  "thumb_y_mm": -42.7,
+  "pair_y_mid_mm": 24.9,
+  "mounts_mm": {
+   "thumb": [
+    -42.7,
+    -42.7
+   ],
+   "index": [
+    67.1,
+    79.8
+   ],
+   "middle": [
+    67.4,
+    -29.9
+   ]
+  },
+  "grasps": [
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 0.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 103.14,
+       "reach_mm": 64.56,
+       "extend_mm": 3.55,
+       "fn_N": 0.0,
+       "sweep_mm": 37.04,
+       "sweep_ratio": 0.229
+      },
+      "index": {
+       "arm_mm": 109.21,
+       "reach_mm": 64.6,
+       "extend_mm": 3.51,
+       "fn_N": 0.0,
+       "sweep_mm": 36.33,
+       "sweep_ratio": 0.212
+      },
+      "middle": {
+       "arm_mm": 104.64,
+       "reach_mm": 54.81,
+       "extend_mm": 13.3,
+       "fn_N": 0.0,
+       "sweep_mm": 29.22,
+       "sweep_ratio": 0.178
+      }
+     },
+     "extend_mm": 3.51,
+     "straddle_mm": 33.82,
+     "ceiling_deg": 5.96,
+     "tau_cap_Nmm": 0.0,
+     "tau_pair_Nmm": 0.0,
+     "tau_thumb_Nmm": 0.0,
+     "sweep_min_mm": 29.22,
+     "sweep_sum_mm": 102.59,
+     "grip_N": 0.0,
+     "grip_depth_mm": 141.8,
+     "grasp_z": 0.0124,
+     "grasp_contacts": 0,
+     "depth_fit_mm": 42.0
+    },
+    "cells": [
+     {
+      "axis_k": 0.25,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": -0.0,
+      "final_cos": 0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 0.0,
+       "arc_mm": 0.22,
+       "touch_frac": {
+        "thumb": 0.0,
+        "index": 0.0,
+        "middle": 0.0
+       },
+       "slip_mm": {
+        "thumb": 0.0,
+        "index": 0.0,
+        "middle": 0.0
+       },
+       "carry_frac": {
+        "thumb": null,
+        "index": null,
+        "middle": null
+       },
+       "drive_share": {
+        "thumb": 0.0,
+        "index": 0.0,
+        "middle": 0.0
+       },
+       "mean_fn_N": {
+        "thumb": 0.0,
+        "index": 0.0,
+        "middle": 0.0
+       },
+       "max_util": {
+        "thumb": 0.0,
+        "index": 0.0,
+        "middle": 0.0
+       },
+       "mean_contacts": 0.0,
+       "obj_dz_mm": 0.0,
+       "driver": "thumb",
+       "cos_turn_end": -0.0,
+       "settle_frac": 0.0
+      },
+      "min_finger_clearance_mm": 19.3,
+      "clearance_at_step": 1660,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     },
+     {
+      "axis_k": 0.4,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": -0.0,
+      "final_cos": 0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 0.0,
+       "arc_mm": 0.22,
+       "touch_frac": {
+        "thumb": 0.0,
+        "index": 0.0,
+        "middle": 0.0
+       },
+       "slip_mm": {
+        "thumb": 0.0,
+        "index": 0.0,
+        "middle": 0.0
+       },
+       "carry_frac": {
+        "thumb": null,
+        "index": null,
+        "middle": null
+       },
+       "drive_share": {
+        "thumb": 0.0,
+        "index": 0.0,
+        "middle": 0.0
+       },
+       "mean_fn_N": {
+        "thumb": 0.0,
+        "index": 0.0,
+        "middle": 0.0
+       },
+       "max_util": {
+        "thumb": 0.0,
+        "index": 0.0,
+        "middle": 0.0
+       },
+       "mean_contacts": 0.0,
+       "obj_dz_mm": 0.0,
+       "driver": "thumb",
+       "cos_turn_end": -0.0,
+       "settle_frac": 0.0
+      },
+      "min_finger_clearance_mm": 17.88,
+      "clearance_at_step": 1660,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     }
+    ]
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": false
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 0.0,
+    "depth_req_mm": 61.0,
+    "squeeze_mm": 4.0,
+    "pose": false
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": 61.0,
+    "squeeze_mm": 4.0,
+    "pose": false
+   }
+  ],
+  "sampling": {
+   "source": "sobol_uniform",
+   "sobol_index": 35,
+   "sobol_selector": 0.658191934,
+   "sobol_u_raw": [
+    0.62149679,
+    0.111545438,
+    0.785069399,
+    0.912869271,
+    0.789759178,
+    0.918640142
+   ],
+   "sobol_u_used": [
+    0.62149679,
+    0.111545438,
+    0.785069399,
+    0.912869271,
+    0.789759178,
+    0.918640142
+   ]
+  }
+ },
+ {
+  "design": "sv1_u0043",
+  "vector": [
+   0.014,
+   -0.0218,
+   0.0,
+   -0.0273,
+   0.0086,
+   0.0,
+   -0.0109,
+   0.0042,
+   0.0
+  ],
+  "scene": "assets/mjcf/experimental/20260830-real_v1-sobol128/scene_tp0d0140n0d0218p0d0000_in0d0273p0d0086p0d0000_mn0d0109p0d0042p0d0000.xml",
+  "x_sep_mm": 66.9,
+  "pair_x_mm": 30.9,
+  "pair_x_offset_mm": -19.1,
+  "y_sep_mm": 114.3,
+  "thumb_y_mm": -21.8,
+  "pair_y_mid_mm": 6.4,
+  "mounts_mm": {
+   "thumb": [
+    -36.0,
+    -21.8
+   ],
+   "index": [
+    22.7,
+    63.6
+   ],
+   "middle": [
+    39.1,
+    -50.8
+   ]
+  },
+  "grasps": [
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 0.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 4.71,
+       "reach_mm": 67.09,
+       "extend_mm": 1.02,
+       "fn_N": 8.34,
+       "sweep_mm": 34.87,
+       "sweep_ratio": 4.717
+      },
+      "index": {
+       "arm_mm": 35.03,
+       "reach_mm": 68.05,
+       "extend_mm": 0.06,
+       "fn_N": 3.73,
+       "sweep_mm": 25.43,
+       "sweep_ratio": 0.462
+      },
+      "middle": {
+       "arm_mm": 32.83,
+       "reach_mm": 66.69,
+       "extend_mm": 1.42,
+       "fn_N": 4.54,
+       "sweep_mm": 27.89,
+       "sweep_ratio": 0.541
+      }
+     },
+     "extend_mm": 0.06,
+     "straddle_mm": 33.12,
+     "ceiling_deg": 0.1,
+     "tau_cap_Nmm": 765.26,
+     "tau_pair_Nmm": 671.07,
+     "tau_thumb_Nmm": 94.19,
+     "sweep_min_mm": 25.43,
+     "sweep_sum_mm": 88.19,
+     "grip_N": 16.61,
+     "grip_depth_mm": 67.9,
+     "grasp_z": 0.1072,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 63.0
+    },
+    "cells": [
+     {
+      "axis_k": 0.25,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": -0.0,
+      "final_cos": -0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 3.0,
+       "arc_mm": 0.66,
+       "touch_frac": {
+        "thumb": 0.5,
+        "index": 0.35,
+        "middle": 0.5
+       },
+       "slip_mm": {
+        "thumb": 16.6,
+        "index": 5.8,
+        "middle": 19.4
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.38,
+        "index": 0.16,
+        "middle": 0.46
+       },
+       "mean_fn_N": {
+        "thumb": 4.56,
+        "index": 0.84,
+        "middle": 3.7
+       },
+       "max_util": {
+        "thumb": 0.34,
+        "index": 0.71,
+        "middle": 0.42
+       },
+       "mean_contacts": 1.35,
+       "obj_dz_mm": -94.7,
+       "driver": "middle",
+       "cos_turn_end": -0.0,
+       "settle_frac": 0.0
+      },
+      "min_finger_clearance_mm": 6.87,
+      "clearance_at_step": 1660,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     },
+     {
+      "axis_k": 0.4,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": -0.0,
+      "final_cos": 0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 3.0,
+       "arc_mm": 0.66,
+       "touch_frac": {
+        "thumb": 0.45,
+        "index": 0.35,
+        "middle": 0.5
+       },
+       "slip_mm": {
+        "thumb": 16.9,
+        "index": 5.6,
+        "middle": 33.0
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.39,
+        "index": 0.15,
+        "middle": 0.46
+       },
+       "mean_fn_N": {
+        "thumb": 5.63,
+        "index": 1.05,
+        "middle": 4.59
+       },
+       "max_util": {
+        "thumb": 0.83,
+        "index": 0.71,
+        "middle": 0.92
+       },
+       "mean_contacts": 1.4,
+       "obj_dz_mm": -94.8,
+       "driver": "middle",
+       "cos_turn_end": -0.0,
+       "settle_frac": 0.0
+      },
+      "min_finger_clearance_mm": 3.61,
+      "clearance_at_step": 1690,
+      "clearance_pair": "index-middle",
+      "clearance_ok": false
+     }
+    ]
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 19.73,
+       "reach_mm": 67.65,
+       "extend_mm": 0.46,
+       "fn_N": 3.2,
+       "sweep_mm": 13.32,
+       "sweep_ratio": 0.43
+      },
+      "index": {
+       "arm_mm": 33.12,
+       "reach_mm": 68.03,
+       "extend_mm": 0.08,
+       "fn_N": 2.36,
+       "sweep_mm": 24.76,
+       "sweep_ratio": 0.476
+      },
+      "middle": {
+       "arm_mm": 32.2,
+       "reach_mm": 65.36,
+       "extend_mm": 2.75,
+       "fn_N": 0.86,
+       "sweep_mm": 29.76,
+       "sweep_ratio": 0.588
+      }
+     },
+     "extend_mm": 0.08,
+     "straddle_mm": 32.23,
+     "ceiling_deg": 0.14,
+     "tau_cap_Nmm": 406.32,
+     "tau_pair_Nmm": 254.54,
+     "tau_thumb_Nmm": 151.77,
+     "sweep_min_mm": 13.32,
+     "sweep_sum_mm": 67.84,
+     "grip_N": 6.42,
+     "grip_depth_mm": 64.4,
+     "grasp_z": 0.1072,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 59.5
+    },
+    "cells": [
+     {
+      "axis_k": 0.25,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": -0.0,
+      "final_cos": 0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 3.0,
+       "arc_mm": 0.65,
+       "touch_frac": {
+        "thumb": 0.5,
+        "index": 0.25,
+        "middle": 0.5
+       },
+       "slip_mm": {
+        "thumb": 11.5,
+        "index": 2.1,
+        "middle": 15.8
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.45,
+        "index": 0.07,
+        "middle": 0.48
+       },
+       "mean_fn_N": {
+        "thumb": 1.03,
+        "index": 0.22,
+        "middle": 0.81
+       },
+       "max_util": {
+        "thumb": 0.6,
+        "index": 0.7,
+        "middle": 0.75
+       },
+       "mean_contacts": 1.25,
+       "obj_dz_mm": -94.8,
+       "driver": "middle",
+       "cos_turn_end": -0.0,
+       "settle_frac": 0.0
+      },
+      "min_finger_clearance_mm": 6.97,
+      "clearance_at_step": 1680,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     },
+     {
+      "axis_k": 0.4,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": -0.0,
+      "final_cos": -0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 3.0,
+       "arc_mm": 0.65,
+       "touch_frac": {
+        "thumb": 0.5,
+        "index": 0.35,
+        "middle": 0.5
+       },
+       "slip_mm": {
+        "thumb": 13.5,
+        "index": 4.5,
+        "middle": 19.4
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.43,
+        "index": 0.09,
+        "middle": 0.48
+       },
+       "mean_fn_N": {
+        "thumb": 2.13,
+        "index": 0.45,
+        "middle": 1.68
+       },
+       "max_util": {
+        "thumb": 0.46,
+        "index": 0.72,
+        "middle": 0.74
+       },
+       "mean_contacts": 1.35,
+       "obj_dz_mm": -94.9,
+       "driver": "middle",
+       "cos_turn_end": -0.0,
+       "settle_frac": 0.0
+      },
+      "min_finger_clearance_mm": 3.7,
+      "clearance_at_step": 1680,
+      "clearance_pair": "index-middle",
+      "clearance_ok": false
+     }
+    ]
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 0.0,
+    "depth_req_mm": 61.0,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 4.71,
+       "reach_mm": 67.09,
+       "extend_mm": 1.02,
+       "fn_N": 8.34,
+       "sweep_mm": 34.87,
+       "sweep_ratio": 4.717
+      },
+      "index": {
+       "arm_mm": 35.03,
+       "reach_mm": 68.05,
+       "extend_mm": 0.06,
+       "fn_N": 3.73,
+       "sweep_mm": 25.43,
+       "sweep_ratio": 0.462
+      },
+      "middle": {
+       "arm_mm": 32.83,
+       "reach_mm": 66.69,
+       "extend_mm": 1.42,
+       "fn_N": 4.54,
+       "sweep_mm": 27.89,
+       "sweep_ratio": 0.541
+      }
+     },
+     "extend_mm": 0.06,
+     "straddle_mm": 33.12,
+     "ceiling_deg": 0.1,
+     "tau_cap_Nmm": 765.26,
+     "tau_pair_Nmm": 671.07,
+     "tau_thumb_Nmm": 94.19,
+     "sweep_min_mm": 25.43,
+     "sweep_sum_mm": 88.19,
+     "grip_N": 16.61,
+     "grip_depth_mm": 67.9,
+     "grasp_z": 0.1072,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 63.0
+    },
+    "cells": [
+     {
+      "axis_k": 0.25,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": -0.0,
+      "final_cos": -0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 3.0,
+       "arc_mm": 0.66,
+       "touch_frac": {
+        "thumb": 0.5,
+        "index": 0.35,
+        "middle": 0.5
+       },
+       "slip_mm": {
+        "thumb": 16.6,
+        "index": 5.8,
+        "middle": 19.4
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.38,
+        "index": 0.16,
+        "middle": 0.46
+       },
+       "mean_fn_N": {
+        "thumb": 4.56,
+        "index": 0.84,
+        "middle": 3.7
+       },
+       "max_util": {
+        "thumb": 0.34,
+        "index": 0.71,
+        "middle": 0.42
+       },
+       "mean_contacts": 1.35,
+       "obj_dz_mm": -94.7,
+       "driver": "middle",
+       "cos_turn_end": -0.0,
+       "settle_frac": 0.0
+      },
+      "min_finger_clearance_mm": 6.87,
+      "clearance_at_step": 1660,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     },
+     {
+      "axis_k": 0.4,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": -0.0,
+      "final_cos": -0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 3.0,
+       "arc_mm": 0.66,
+       "touch_frac": {
+        "thumb": 0.45,
+        "index": 0.35,
+        "middle": 0.5
+       },
+       "slip_mm": {
+        "thumb": 16.9,
+        "index": 5.6,
+        "middle": 33.0
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.39,
+        "index": 0.15,
+        "middle": 0.46
+       },
+       "mean_fn_N": {
+        "thumb": 5.63,
+        "index": 1.05,
+        "middle": 4.59
+       },
+       "max_util": {
+        "thumb": 0.83,
+        "index": 0.71,
+        "middle": 0.92
+       },
+       "mean_contacts": 1.4,
+       "obj_dz_mm": -94.8,
+       "driver": "middle",
+       "cos_turn_end": -0.0,
+       "settle_frac": 0.0
+      },
+      "min_finger_clearance_mm": 3.61,
+      "clearance_at_step": 1680,
+      "clearance_pair": "index-middle",
+      "clearance_ok": false
+     }
+    ]
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": 61.0,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 19.73,
+       "reach_mm": 67.65,
+       "extend_mm": 0.46,
+       "fn_N": 3.2,
+       "sweep_mm": 13.32,
+       "sweep_ratio": 0.43
+      },
+      "index": {
+       "arm_mm": 33.12,
+       "reach_mm": 68.03,
+       "extend_mm": 0.08,
+       "fn_N": 2.36,
+       "sweep_mm": 24.76,
+       "sweep_ratio": 0.476
+      },
+      "middle": {
+       "arm_mm": 32.2,
+       "reach_mm": 65.36,
+       "extend_mm": 2.75,
+       "fn_N": 0.86,
+       "sweep_mm": 29.76,
+       "sweep_ratio": 0.588
+      }
+     },
+     "extend_mm": 0.08,
+     "straddle_mm": 32.23,
+     "ceiling_deg": 0.14,
+     "tau_cap_Nmm": 406.32,
+     "tau_pair_Nmm": 254.54,
+     "tau_thumb_Nmm": 151.77,
+     "sweep_min_mm": 13.32,
+     "sweep_sum_mm": 67.84,
+     "grip_N": 6.42,
+     "grip_depth_mm": 64.4,
+     "grasp_z": 0.1072,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 59.5
+    },
+    "cells": [
+     {
+      "axis_k": 0.25,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": -0.0,
+      "final_cos": 0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 3.0,
+       "arc_mm": 0.65,
+       "touch_frac": {
+        "thumb": 0.5,
+        "index": 0.25,
+        "middle": 0.5
+       },
+       "slip_mm": {
+        "thumb": 11.5,
+        "index": 2.1,
+        "middle": 15.8
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.45,
+        "index": 0.07,
+        "middle": 0.48
+       },
+       "mean_fn_N": {
+        "thumb": 1.03,
+        "index": 0.22,
+        "middle": 0.81
+       },
+       "max_util": {
+        "thumb": 0.6,
+        "index": 0.7,
+        "middle": 0.75
+       },
+       "mean_contacts": 1.25,
+       "obj_dz_mm": -94.8,
+       "driver": "middle",
+       "cos_turn_end": -0.0,
+       "settle_frac": 0.0
+      },
+      "min_finger_clearance_mm": 6.97,
+      "clearance_at_step": 1680,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     },
+     {
+      "axis_k": 0.4,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": -0.0,
+      "final_cos": 0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 3.0,
+       "arc_mm": 0.65,
+       "touch_frac": {
+        "thumb": 0.5,
+        "index": 0.35,
+        "middle": 0.5
+       },
+       "slip_mm": {
+        "thumb": 13.5,
+        "index": 4.5,
+        "middle": 19.4
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.43,
+        "index": 0.09,
+        "middle": 0.48
+       },
+       "mean_fn_N": {
+        "thumb": 2.13,
+        "index": 0.45,
+        "middle": 1.68
+       },
+       "max_util": {
+        "thumb": 0.46,
+        "index": 0.72,
+        "middle": 0.74
+       },
+       "mean_contacts": 1.35,
+       "obj_dz_mm": -94.9,
+       "driver": "middle",
+       "cos_turn_end": -0.0,
+       "settle_frac": 0.0
+      },
+      "min_finger_clearance_mm": 3.7,
+      "clearance_at_step": 1680,
+      "clearance_pair": "index-middle",
+      "clearance_ok": false
+     }
+    ]
+   }
+  ],
+  "sampling": {
+   "source": "sobol_uniform",
+   "sobol_index": 43,
+   "sobol_selector": 0.825207213,
+   "sobol_u_raw": [
+    0.73289257,
+    0.302256607,
+    0.044427811,
+    0.642565991,
+    0.317945599,
+    0.570388095
+   ],
+   "sobol_u_used": [
+    0.73289257,
+    0.302256607,
+    0.044427811,
+    0.642565991,
+    0.317945599,
+    0.570388095
+   ]
+  }
+ },
+ {
+  "design": "sv1_u0052",
+  "vector": [
+   0.0126,
+   0.0485,
+   0.0,
+   0.021,
+   -0.0094,
+   0.0,
+   0.0,
+   -0.0179,
+   0.0
+  ],
+  "scene": "assets/mjcf/experimental/20260830-real_v1-sobol128/scene_tp0d0126p0d0485p0d0000_ip0d0210n0d0094p0d0000_mp0d0000n0d0179p0d0000.xml",
+  "x_sep_mm": 97.8,
+  "pair_x_mm": 60.5,
+  "pair_x_offset_mm": 10.5,
+  "y_sep_mm": 118.6,
+  "thumb_y_mm": 48.5,
+  "pair_y_mid_mm": -13.6,
+  "mounts_mm": {
+   "thumb": [
+    -37.4,
+    48.5
+   ],
+   "index": [
+    71.0,
+    45.6
+   ],
+   "middle": [
+    50.0,
+    -72.9
+   ]
+  },
+  "grasps": [
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 0.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 8.57,
+       "reach_mm": 64.77,
+       "extend_mm": 3.34,
+       "fn_N": 7.26,
+       "sweep_mm": 37.08,
+       "sweep_ratio": 2.756
+      },
+      "index": {
+       "arm_mm": 33.17,
+       "reach_mm": 56.99,
+       "extend_mm": 11.12,
+       "fn_N": 3.69,
+       "sweep_mm": 34.68,
+       "sweep_ratio": 0.666
+      },
+      "middle": {
+       "arm_mm": 32.85,
+       "reach_mm": 65.59,
+       "extend_mm": 2.52,
+       "fn_N": 3.61,
+       "sweep_mm": 31.75,
+       "sweep_ratio": 0.615
+      }
+     },
+     "extend_mm": 2.52,
+     "straddle_mm": 31.9,
+     "ceiling_deg": 4.53,
+     "tau_cap_Nmm": 727.08,
+     "tau_pair_Nmm": 577.78,
+     "tau_thumb_Nmm": 149.31,
+     "sweep_min_mm": 31.75,
+     "sweep_sum_mm": 103.51,
+     "grip_N": 14.56,
+     "grip_depth_mm": 32.2,
+     "grasp_z": 0.1205,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 40.5
+    },
+    "cells": [
+     {
+      "axis_k": 0.25,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": -0.39,
+      "final_cos": 0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0105,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 0.0,
+       "arc_mm": 0.22,
+       "touch_frac": {
+        "thumb": 0.8,
+        "index": 0.25,
+        "middle": 0.85
+       },
+       "slip_mm": {
+        "thumb": 10.8,
+        "index": 5.3,
+        "middle": 15.1
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.44,
+        "index": 0.17,
+        "middle": 0.39
+       },
+       "mean_fn_N": {
+        "thumb": 1.31,
+        "index": 0.3,
+        "middle": 1.91
+       },
+       "max_util": {
+        "thumb": 0.81,
+        "index": 0.76,
+        "middle": 0.72
+       },
+       "mean_contacts": 2.0,
+       "obj_dz_mm": 15.4,
+       "driver": "thumb",
+       "cos_turn_end": 0.042,
+       "settle_frac": -42000.0
+      },
+      "min_finger_clearance_mm": 18.64,
+      "clearance_at_step": 1740,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     },
+     {
+      "axis_k": 0.4,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 1,
+      "peak_cos": -0.005,
+      "final_cos": 0.0,
+      "final_z": 0.1401,
+      "min_z_hold": 0.14,
+      "contacts": 2,
+      "contacts_hand": 3,
+      "force_N": 5.5,
+      "ok": true,
+      "style": {
+       "turned_deg": 0.0,
+       "arc_mm": 0.22,
+       "touch_frac": {
+        "thumb": 1.0,
+        "index": 0.2,
+        "middle": 1.0
+       },
+       "slip_mm": {
+        "thumb": 13.9,
+        "index": 3.0,
+        "middle": 15.7
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.51,
+        "index": 0.1,
+        "middle": 0.39
+       },
+       "mean_fn_N": {
+        "thumb": 1.91,
+        "index": 0.27,
+        "middle": 3.04
+       },
+       "max_util": {
+        "thumb": 0.74,
+        "index": 0.88,
+        "middle": 0.62
+       },
+       "mean_contacts": 2.2,
+       "obj_dz_mm": 20.0,
+       "driver": "thumb",
+       "cos_turn_end": -0.0,
+       "settle_frac": 0.0
+      },
+      "min_finger_clearance_mm": 17.04,
+      "clearance_at_step": 1240,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     }
+    ]
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 19.98,
+       "reach_mm": 62.7,
+       "extend_mm": 5.41,
+       "fn_N": 10.47,
+       "sweep_mm": 34.78,
+       "sweep_ratio": 1.108
+      },
+      "index": {
+       "arm_mm": 32.4,
+       "reach_mm": 62.44,
+       "extend_mm": 5.67,
+       "fn_N": 8.53,
+       "sweep_mm": 33.68,
+       "sweep_ratio": 0.662
+      },
+      "middle": {
+       "arm_mm": 35.6,
+       "reach_mm": 67.21,
+       "extend_mm": 0.9,
+       "fn_N": 1.89,
+       "sweep_mm": 33.51,
+       "sweep_ratio": 0.599
+      }
+     },
+     "extend_mm": 0.9,
+     "straddle_mm": 33.73,
+     "ceiling_deg": 1.53,
+     "tau_cap_Nmm": 1327.18,
+     "tau_pair_Nmm": 825.15,
+     "tau_thumb_Nmm": 502.03,
+     "sweep_min_mm": 33.51,
+     "sweep_sum_mm": 101.97,
+     "grip_N": 20.89,
+     "grip_depth_mm": 52.8,
+     "grasp_z": 0.1103,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 51.0
+    },
+    "cells": [
+     {
+      "axis_k": 0.25,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": -0.0,
+      "final_cos": -0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 1.4,
+       "arc_mm": 0.31,
+       "touch_frac": {
+        "thumb": 0.25,
+        "index": 0.25,
+        "middle": 0.2
+       },
+       "slip_mm": {
+        "thumb": 2.3,
+        "index": 2.0,
+        "middle": 6.2
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.24,
+        "index": 0.3,
+        "middle": 0.45
+       },
+       "mean_fn_N": {
+        "thumb": 1.31,
+        "index": 0.99,
+        "middle": 0.31
+       },
+       "max_util": {
+        "thumb": 0.26,
+        "index": 0.27,
+        "middle": 0.79
+       },
+       "mean_contacts": 0.7,
+       "obj_dz_mm": -97.9,
+       "driver": "middle",
+       "cos_turn_end": -0.0,
+       "settle_frac": 0.0
+      },
+      "min_finger_clearance_mm": 18.39,
+      "clearance_at_step": 1680,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     },
+     {
+      "axis_k": 0.4,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": -0.0,
+      "final_cos": -0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 1.4,
+       "arc_mm": 0.31,
+       "touch_frac": {
+        "thumb": 0.25,
+        "index": 0.25,
+        "middle": 0.25
+       },
+       "slip_mm": {
+        "thumb": 2.4,
+        "index": 2.0,
+        "middle": 9.2
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.25,
+        "index": 0.28,
+        "middle": 0.47
+       },
+       "mean_fn_N": {
+        "thumb": 1.39,
+        "index": 1.02,
+        "middle": 0.37
+       },
+       "max_util": {
+        "thumb": 0.23,
+        "index": 1.0,
+        "middle": 0.91
+       },
+       "mean_contacts": 0.8,
+       "obj_dz_mm": -97.9,
+       "driver": "middle",
+       "cos_turn_end": -0.0,
+       "settle_frac": 0.0
+      },
+      "min_finger_clearance_mm": 15.0,
+      "clearance_at_step": 1660,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     }
+    ]
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 0.0,
+    "depth_req_mm": 61.0,
+    "squeeze_mm": 4.0,
+    "pose": false
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": 61.0,
+    "squeeze_mm": 4.0,
+    "pose": false
+   }
+  ],
+  "sampling": {
+   "source": "sobol_uniform",
+   "sobol_index": 52,
+   "sobol_selector": 0.536342612,
+   "sobol_u_raw": [
+    0.710762717,
+    0.940846667,
+    0.849744607,
+    0.344005079,
+    0.50005449,
+    0.201405668
+   ],
+   "sobol_u_used": [
+    0.710762717,
+    0.940846667,
+    0.849744607,
+    0.344005079,
+    0.50005449,
+    0.201405668
+   ]
+  }
+ },
+ {
+  "design": "sv1_u0060",
+  "vector": [
+   0.0041,
+   0.0143,
+   0.0,
+   -0.0239,
+   -0.0249,
+   0.0,
+   -0.0236,
+   -0.0125,
+   0.0
+  ],
+  "scene": "assets/mjcf/experimental/20260830-real_v1-sobol128/scene_tp0d0041p0d0143p0d0000_in0d0239n0d0249p0d0000_mn0d0236n0d0125p0d0000.xml",
+  "x_sep_mm": 72.2,
+  "pair_x_mm": 26.3,
+  "pair_x_offset_mm": -23.7,
+  "y_sep_mm": 97.6,
+  "thumb_y_mm": 14.3,
+  "pair_y_mid_mm": -18.7,
+  "mounts_mm": {
+   "thumb": [
+    -45.9,
+    14.3
+   ],
+   "index": [
+    26.1,
+    30.1
+   ],
+   "middle": [
+    26.4,
+    -67.5
+   ]
+  },
+  "grasps": [
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 0.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 7.23,
+       "reach_mm": 67.39,
+       "extend_mm": 0.72,
+       "fn_N": 4.46,
+       "sweep_mm": 34.69,
+       "sweep_ratio": 3.054
+      },
+      "index": {
+       "arm_mm": 32.27,
+       "reach_mm": 66.82,
+       "extend_mm": 1.29,
+       "fn_N": 2.69,
+       "sweep_mm": 21.02,
+       "sweep_ratio": 0.415
+      },
+      "middle": {
+       "arm_mm": 35.01,
+       "reach_mm": 67.41,
+       "extend_mm": 0.7,
+       "fn_N": 1.69,
+       "sweep_mm": 29.24,
+       "sweep_ratio": 0.532
+      }
+     },
+     "extend_mm": 0.7,
+     "straddle_mm": 32.88,
+     "ceiling_deg": 1.22,
+     "tau_cap_Nmm": 427.99,
+     "tau_pair_Nmm": 350.64,
+     "tau_thumb_Nmm": 77.35,
+     "sweep_min_mm": 21.02,
+     "sweep_sum_mm": 84.95,
+     "grip_N": 8.84,
+     "grip_depth_mm": 69.4,
+     "grasp_z": 0.1072,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 64.5
+    },
+    "cells": [
+     {
+      "axis_k": 0.25,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": -0.0,
+      "final_cos": -0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 3.2,
+       "arc_mm": 0.69,
+       "touch_frac": {
+        "thumb": 0.35,
+        "index": 0.2,
+        "middle": 0.35
+       },
+       "slip_mm": {
+        "thumb": 11.7,
+        "index": 3.2,
+        "middle": 16.6
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.32,
+        "index": 0.22,
+        "middle": 0.46
+       },
+       "mean_fn_N": {
+        "thumb": 0.73,
+        "index": 0.28,
+        "middle": 0.46
+       },
+       "max_util": {
+        "thumb": 0.79,
+        "index": 0.76,
+        "middle": 0.77
+       },
+       "mean_contacts": 0.9,
+       "obj_dz_mm": -94.6,
+       "driver": "middle",
+       "cos_turn_end": -0.0,
+       "settle_frac": 0.0
+      },
+      "min_finger_clearance_mm": -0.43,
+      "clearance_at_step": 1210,
+      "clearance_pair": "index-middle",
+      "clearance_ok": false
+     },
+     {
+      "axis_k": 0.4,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": 0.317,
+      "final_cos": 0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0108,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 3.2,
+       "arc_mm": 0.69,
+       "touch_frac": {
+        "thumb": 0.4,
+        "index": 0.25,
+        "middle": 0.4
+       },
+       "slip_mm": {
+        "thumb": 16.4,
+        "index": 5.5,
+        "middle": 19.0
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.38,
+        "index": 0.14,
+        "middle": 0.48
+       },
+       "mean_fn_N": {
+        "thumb": 1.49,
+        "index": 0.35,
+        "middle": 1.15
+       },
+       "max_util": {
+        "thumb": 0.54,
+        "index": 0.78,
+        "middle": 0.73
+       },
+       "mean_contacts": 1.05,
+       "obj_dz_mm": -71.0,
+       "driver": "middle",
+       "cos_turn_end": 0.507,
+       "settle_frac": -9.22
+      },
+      "min_finger_clearance_mm": -1.42,
+      "clearance_at_step": 1230,
+      "clearance_pair": "index-middle",
+      "clearance_ok": false
+     }
+    ]
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 20.6,
+       "reach_mm": 66.7,
+       "extend_mm": 1.41,
+       "fn_N": 8.4,
+       "sweep_mm": 17.48,
+       "sweep_ratio": 0.54
+      },
+      "index": {
+       "arm_mm": 32.48,
+       "reach_mm": 66.87,
+       "extend_mm": 1.24,
+       "fn_N": 6.52,
+       "sweep_mm": 13.58,
+       "sweep_ratio": 0.266
+      },
+      "middle": {
+       "arm_mm": 33.44,
+       "reach_mm": 67.41,
+       "extend_mm": 0.7,
+       "fn_N": 1.57,
+       "sweep_mm": 24.48,
+       "sweep_ratio": 0.466
+      }
+     },
+     "extend_mm": 0.7,
+     "straddle_mm": 32.88,
+     "ceiling_deg": 1.22,
+     "tau_cap_Nmm": 1048.89,
+     "tau_pair_Nmm": 633.68,
+     "tau_thumb_Nmm": 415.21,
+     "sweep_min_mm": 13.58,
+     "sweep_sum_mm": 55.53,
+     "grip_N": 16.49,
+     "grip_depth_mm": 61.9,
+     "grasp_z": 0.1148,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 64.5
+    },
+    "cells": [
+     {
+      "axis_k": 0.25,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": 0.0,
+      "final_cos": 0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 8.5,
+       "arc_mm": 1.86,
+       "touch_frac": {
+        "thumb": 0.75,
+        "index": 0.3,
+        "middle": 0.75
+       },
+       "slip_mm": {
+        "thumb": 9.5,
+        "index": 2.9,
+        "middle": 25.0
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.34,
+        "index": 0.14,
+        "middle": 0.51
+       },
+       "mean_fn_N": {
+        "thumb": 2.15,
+        "index": 0.87,
+        "middle": 1.5
+       },
+       "max_util": {
+        "thumb": 0.55,
+        "index": 0.58,
+        "middle": 0.77
+       },
+       "mean_contacts": 1.85,
+       "obj_dz_mm": -102.8,
+       "driver": "middle",
+       "cos_turn_end": 0.0,
+       "settle_frac": 0.0
+      },
+      "min_finger_clearance_mm": 1.48,
+      "clearance_at_step": 1680,
+      "clearance_pair": "index-middle",
+      "clearance_ok": false
+     },
+     {
+      "axis_k": 0.4,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": -0.0,
+      "final_cos": 0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 8.5,
+       "arc_mm": 1.86,
+       "touch_frac": {
+        "thumb": 0.7,
+        "index": 0.3,
+        "middle": 0.6
+       },
+       "slip_mm": {
+        "thumb": 9.9,
+        "index": 3.1,
+        "middle": 23.4
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.37,
+        "index": 0.15,
+        "middle": 0.48
+       },
+       "mean_fn_N": {
+        "thumb": 2.5,
+        "index": 0.93,
+        "middle": 1.58
+       },
+       "max_util": {
+        "thumb": 0.83,
+        "index": 0.78,
+        "middle": 0.77
+       },
+       "mean_contacts": 1.75,
+       "obj_dz_mm": -102.9,
+       "driver": "middle",
+       "cos_turn_end": -0.0,
+       "settle_frac": 0.0
+      },
+      "min_finger_clearance_mm": -0.85,
+      "clearance_at_step": 1230,
+      "clearance_pair": "index-middle",
+      "clearance_ok": false
+     }
+    ]
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 0.0,
+    "depth_req_mm": 61.0,
+    "squeeze_mm": 4.0,
+    "pose": false
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": 61.0,
+    "squeeze_mm": 4.0,
+    "pose": false
+   }
+  ],
+  "sampling": {
+   "source": "sobol_uniform",
+   "sobol_index": 60,
+   "sobol_selector": 0.947055589,
+   "sobol_u_raw": [
+    0.568118732,
+    0.629728216,
+    0.102249908,
+    0.085423416,
+    0.10661099,
+    0.291620624
+   ],
+   "sobol_u_used": [
+    0.568118732,
+    0.629728216,
+    0.102249908,
+    0.085423416,
+    0.10661099,
+    0.291620624
+   ]
+  }
+ },
+ {
+  "design": "sv1_u0075",
+  "vector": [
+   0.0129,
+   -0.0071,
+   0.0,
+   -0.0018,
+   0.0204,
+   0.0,
+   0.0206,
+   -0.0113,
+   0.0
+  ],
+  "scene": "assets/mjcf/experimental/20260830-real_v1-sobol128/scene_tp0d0129n0d0071p0d0000_in0d0018p0d0204p0d0000_mp0d0206n0d0113p0d0000.xml",
+  "x_sep_mm": 96.5,
+  "pair_x_mm": 59.4,
+  "pair_x_offset_mm": 9.4,
+  "y_sep_mm": 141.7,
+  "thumb_y_mm": -7.1,
+  "pair_y_mid_mm": 4.5,
+  "mounts_mm": {
+   "thumb": [
+    -37.1,
+    -7.1
+   ],
+   "index": [
+    48.2,
+    75.4
+   ],
+   "middle": [
+    70.6,
+    -66.3
+   ]
+  },
+  "grasps": [
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 0.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 0.25,
+       "reach_mm": 54.74,
+       "extend_mm": 13.37,
+       "fn_N": 10.33,
+       "sweep_mm": 31.79,
+       "sweep_ratio": 81.623
+      },
+      "index": {
+       "arm_mm": 31.91,
+       "reach_mm": 65.22,
+       "extend_mm": 2.89,
+       "fn_N": 5.89,
+       "sweep_mm": 33.38,
+       "sweep_ratio": 0.666
+      },
+      "middle": {
+       "arm_mm": 34.8,
+       "reach_mm": 63.49,
+       "extend_mm": 4.62,
+       "fn_N": 4.16,
+       "sweep_mm": 37.8,
+       "sweep_ratio": 0.692
+      }
+     },
+     "extend_mm": 2.89,
+     "straddle_mm": 33.23,
+     "ceiling_deg": 4.99,
+     "tau_cap_Nmm": 804.1,
+     "tau_pair_Nmm": 797.96,
+     "tau_thumb_Nmm": 6.15,
+     "sweep_min_mm": 31.79,
+     "sweep_sum_mm": 102.97,
+     "grip_N": 20.38,
+     "grip_depth_mm": 46.6,
+     "grasp_z": 0.1115,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 46.0
+    },
+    "cells": [
+     {
+      "axis_k": 0.25,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": -0.0,
+      "final_cos": -0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 5.7,
+       "arc_mm": 1.24,
+       "touch_frac": {
+        "thumb": 0.45,
+        "index": 0.3,
+        "middle": 0.45
+       },
+       "slip_mm": {
+        "thumb": 11.8,
+        "index": 3.8,
+        "middle": 15.0
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.31,
+        "index": 0.2,
+        "middle": 0.5
+       },
+       "mean_fn_N": {
+        "thumb": 2.47,
+        "index": 0.88,
+        "middle": 1.57
+       },
+       "max_util": {
+        "thumb": 0.57,
+        "index": 0.66,
+        "middle": 0.57
+       },
+       "mean_contacts": 1.2,
+       "obj_dz_mm": -99.2,
+       "driver": "middle",
+       "cos_turn_end": -0.0,
+       "settle_frac": 0.0
+      },
+      "min_finger_clearance_mm": 22.02,
+      "clearance_at_step": 1660,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     },
+     {
+      "axis_k": 0.4,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": 0.339,
+      "final_cos": 0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0109,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 5.7,
+       "arc_mm": 1.24,
+       "touch_frac": {
+        "thumb": 0.6,
+        "index": 0.4,
+        "middle": 0.6
+       },
+       "slip_mm": {
+        "thumb": 40.8,
+        "index": 5.4,
+        "middle": 22.0
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.34,
+        "index": 0.17,
+        "middle": 0.49
+       },
+       "mean_fn_N": {
+        "thumb": 3.52,
+        "index": 1.06,
+        "middle": 2.4
+       },
+       "max_util": {
+        "thumb": 0.77,
+        "index": 0.82,
+        "middle": 0.83
+       },
+       "mean_contacts": 1.6,
+       "obj_dz_mm": -75.1,
+       "driver": "middle",
+       "cos_turn_end": 0.52,
+       "settle_frac": -5.25
+      },
+      "min_finger_clearance_mm": 20.59,
+      "clearance_at_step": 1660,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     }
+    ]
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 20.98,
+       "reach_mm": 60.87,
+       "extend_mm": 7.24,
+       "fn_N": 6.42,
+       "sweep_mm": 37.07,
+       "sweep_ratio": 1.125
+      },
+      "index": {
+       "arm_mm": 32.51,
+       "reach_mm": 65.23,
+       "extend_mm": 2.88,
+       "fn_N": 5.17,
+       "sweep_mm": 31.55,
+       "sweep_ratio": 0.618
+      },
+      "middle": {
+       "arm_mm": 34.31,
+       "reach_mm": 63.43,
+       "extend_mm": 4.68,
+       "fn_N": 1.02,
+       "sweep_mm": 37.52,
+       "sweep_ratio": 0.696
+      }
+     },
+     "extend_mm": 2.88,
+     "straddle_mm": 33.29,
+     "ceiling_deg": 4.96,
+     "tau_cap_Nmm": 810.4,
+     "tau_pair_Nmm": 487.34,
+     "tau_thumb_Nmm": 323.06,
+     "sweep_min_mm": 31.55,
+     "sweep_sum_mm": 106.14,
+     "grip_N": 12.61,
+     "grip_depth_mm": 42.4,
+     "grasp_z": 0.1158,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 46.0
+    },
+    "cells": [
+     {
+      "axis_k": 0.25,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": 0.0,
+      "final_cos": 0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 8.7,
+       "arc_mm": 1.89,
+       "touch_frac": {
+        "thumb": 0.2,
+        "index": 0.25,
+        "middle": 0.2
+       },
+       "slip_mm": {
+        "thumb": 1.7,
+        "index": 4.4,
+        "middle": 6.7
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.38,
+        "index": 0.2,
+        "middle": 0.42
+       },
+       "mean_fn_N": {
+        "thumb": 0.58,
+        "index": 0.35,
+        "middle": 0.22
+       },
+       "max_util": {
+        "thumb": 0.86,
+        "index": 0.83,
+        "middle": 0.84
+       },
+       "mean_contacts": 0.75,
+       "obj_dz_mm": -103.7,
+       "driver": "middle",
+       "cos_turn_end": -0.0,
+       "settle_frac": 0.0
+      },
+      "min_finger_clearance_mm": 19.69,
+      "clearance_at_step": 1660,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     },
+     {
+      "axis_k": 0.4,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": -0.0,
+      "final_cos": -0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 8.7,
+       "arc_mm": 1.89,
+       "touch_frac": {
+        "thumb": 0.7,
+        "index": 0.2,
+        "middle": 0.65
+       },
+       "slip_mm": {
+        "thumb": 12.0,
+        "index": 1.1,
+        "middle": 17.8
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -1.88,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.46,
+        "index": 0.09,
+        "middle": 0.45
+       },
+       "mean_fn_N": {
+        "thumb": 0.86,
+        "index": 0.32,
+        "middle": 0.5
+       },
+       "max_util": {
+        "thumb": 0.72,
+        "index": 0.72,
+        "middle": 0.84
+       },
+       "mean_contacts": 1.6,
+       "obj_dz_mm": -103.8,
+       "driver": "thumb",
+       "cos_turn_end": -0.0,
+       "settle_frac": 0.0
+      },
+      "min_finger_clearance_mm": 17.23,
+      "clearance_at_step": 1660,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     }
+    ]
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 0.0,
+    "depth_req_mm": 61.0,
+    "squeeze_mm": 4.0,
+    "pose": false
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": 61.0,
+    "squeeze_mm": 4.0,
+    "pose": false
+   }
+  ],
+  "sampling": {
+   "source": "sobol_uniform",
+   "sobol_index": 75,
+   "sobol_selector": 0.713260547,
+   "sobol_u_raw": [
+    0.715567117,
+    0.435743633,
+    0.470349633,
+    0.839949233,
+    0.843439265,
+    0.310987324
+   ],
+   "sobol_u_used": [
+    0.715567117,
+    0.435743633,
+    0.470349633,
+    0.839949233,
+    0.843439265,
+    0.310987324
+   ]
+  }
+ },
+ {
+  "design": "sv1_u0086",
+  "vector": [
+   -0.0123,
+   0.0083,
+   0.0,
+   0.025,
+   -0.0148,
+   0.0,
+   0.0268,
+   -0.0148,
+   0.0
+  ],
+  "scene": "assets/mjcf/experimental/20260830-real_v1-sobol128/scene_tn0d0123p0d0083p0d0000_ip0d0250n0d0148p0d0000_mp0d0268n0d0148p0d0000.xml",
+  "x_sep_mm": 138.2,
+  "pair_x_mm": 75.9,
+  "pair_x_offset_mm": 25.9,
+  "y_sep_mm": 110.0,
+  "thumb_y_mm": 8.3,
+  "pair_y_mid_mm": -14.8,
+  "mounts_mm": {
+   "thumb": [
+    -62.3,
+    8.3
+   ],
+   "index": [
+    75.0,
+    40.2
+   ],
+   "middle": [
+    76.8,
+    -69.8
+   ]
+  },
+  "grasps": [
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 0.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 1.01,
+       "reach_mm": 53.73,
+       "extend_mm": 14.38,
+       "fn_N": 3.68,
+       "sweep_mm": 20.07,
+       "sweep_ratio": 12.698
+      },
+      "index": {
+       "arm_mm": 32.41,
+       "reach_mm": 53.74,
+       "extend_mm": 14.37,
+       "fn_N": 2.04,
+       "sweep_mm": 37.03,
+       "sweep_ratio": 0.727
+      },
+      "middle": {
+       "arm_mm": 33.0,
+       "reach_mm": 57.37,
+       "extend_mm": 10.74,
+       "fn_N": 1.64,
+       "sweep_mm": 33.52,
+       "sweep_ratio": 0.647
+      }
+     },
+     "extend_mm": 10.74,
+     "straddle_mm": 32.68,
+     "ceiling_deg": 19.19,
+     "tau_cap_Nmm": 297.25,
+     "tau_pair_Nmm": 288.35,
+     "tau_thumb_Nmm": 8.89,
+     "sweep_min_mm": 20.07,
+     "sweep_sum_mm": 90.62,
+     "grip_N": 7.36,
+     "grip_depth_mm": 21.8,
+     "grasp_z": 0.1113,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 21.0
+    },
+    "cells": [
+     {
+      "axis_k": 0.25,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": -0.0,
+      "final_cos": -0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 0.4,
+       "arc_mm": 0.22,
+       "touch_frac": {
+        "thumb": 0.2,
+        "index": 0.15,
+        "middle": 0.2
+       },
+       "slip_mm": {
+        "thumb": 2.4,
+        "index": 2.1,
+        "middle": 5.2
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.13,
+        "index": 0.41,
+        "middle": 0.46
+       },
+       "mean_fn_N": {
+        "thumb": 0.27,
+        "index": 0.14,
+        "middle": 0.13
+       },
+       "max_util": {
+        "thumb": 0.7,
+        "index": 0.83,
+        "middle": 0.89
+       },
+       "mean_contacts": 0.55,
+       "obj_dz_mm": -98.8,
+       "driver": "middle",
+       "cos_turn_end": 0.0,
+       "settle_frac": -0.0
+      },
+      "min_finger_clearance_mm": 14.15,
+      "clearance_at_step": 1680,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     },
+     {
+      "axis_k": 0.4,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": 0.0,
+      "final_cos": 0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 0.4,
+       "arc_mm": 0.22,
+       "touch_frac": {
+        "thumb": 0.35,
+        "index": 0.1,
+        "middle": 0.35
+       },
+       "slip_mm": {
+        "thumb": 5.3,
+        "index": 0.9,
+        "middle": 6.3
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.3,
+        "index": 0.22,
+        "middle": 0.48
+       },
+       "mean_fn_N": {
+        "thumb": 0.33,
+        "index": 0.11,
+        "middle": 0.23
+       },
+       "max_util": {
+        "thumb": 0.72,
+        "index": 0.62,
+        "middle": 0.68
+       },
+       "mean_contacts": 0.8,
+       "obj_dz_mm": -98.8,
+       "driver": "middle",
+       "cos_turn_end": 0.0,
+       "settle_frac": 0.0
+      },
+      "min_finger_clearance_mm": 12.23,
+      "clearance_at_step": 1670,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     }
+    ]
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 20.22,
+       "reach_mm": 53.87,
+       "extend_mm": 14.24,
+       "fn_N": 5.03,
+       "sweep_mm": 37.96,
+       "sweep_ratio": 1.195
+      },
+      "index": {
+       "arm_mm": 32.38,
+       "reach_mm": 55.27,
+       "extend_mm": 12.84,
+       "fn_N": 4.31,
+       "sweep_mm": 38.59,
+       "sweep_ratio": 0.759
+      },
+      "middle": {
+       "arm_mm": 33.6,
+       "reach_mm": 58.22,
+       "extend_mm": 9.89,
+       "fn_N": 0.7,
+       "sweep_mm": 35.56,
+       "sweep_ratio": 0.674
+      }
+     },
+     "extend_mm": 9.89,
+     "straddle_mm": 32.92,
+     "ceiling_deg": 17.48,
+     "tau_cap_Nmm": 635.68,
+     "tau_pair_Nmm": 391.7,
+     "tau_thumb_Nmm": 243.97,
+     "sweep_min_mm": 35.56,
+     "sweep_sum_mm": 112.11,
+     "grip_N": 10.04,
+     "grip_depth_mm": 27.2,
+     "grasp_z": 0.1109,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 26.0
+    },
+    "cells": [
+     {
+      "axis_k": 0.25,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": -0.0,
+      "final_cos": -0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 1.1,
+       "arc_mm": 0.25,
+       "touch_frac": {
+        "thumb": 0.2,
+        "index": 0.2,
+        "middle": 0.05
+       },
+       "slip_mm": {
+        "thumb": 4.8,
+        "index": 5.4,
+        "middle": 0.0
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": 1.0
+       },
+       "drive_share": {
+        "thumb": 0.38,
+        "index": 0.45,
+        "middle": 0.17
+       },
+       "mean_fn_N": {
+        "thumb": 0.4,
+        "index": 0.38,
+        "middle": 0.03
+       },
+       "max_util": {
+        "thumb": 0.77,
+        "index": 0.16,
+        "middle": 0.8
+       },
+       "mean_contacts": 0.45,
+       "obj_dz_mm": -98.2,
+       "driver": "index",
+       "cos_turn_end": 0.0,
+       "settle_frac": -0.0
+      },
+      "min_finger_clearance_mm": 9.89,
+      "clearance_at_step": 1670,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     },
+     {
+      "axis_k": 0.4,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": -0.0,
+      "final_cos": -0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 1.1,
+       "arc_mm": 0.25,
+       "touch_frac": {
+        "thumb": 0.15,
+        "index": 0.15,
+        "middle": 0.1
+       },
+       "slip_mm": {
+        "thumb": 1.0,
+        "index": 1.5,
+        "middle": 2.1
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.19,
+        "index": 0.45,
+        "middle": 0.35
+       },
+       "mean_fn_N": {
+        "thumb": 0.4,
+        "index": 0.35,
+        "middle": 0.05
+       },
+       "max_util": {
+        "thumb": 0.22,
+        "index": 0.73,
+        "middle": 0.86
+       },
+       "mean_contacts": 0.45,
+       "obj_dz_mm": -98.3,
+       "driver": "index",
+       "cos_turn_end": 0.0,
+       "settle_frac": -0.0
+      },
+      "min_finger_clearance_mm": 6.71,
+      "clearance_at_step": 1680,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     }
+    ]
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 0.0,
+    "depth_req_mm": 61.0,
+    "squeeze_mm": 4.0,
+    "pose": false
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": 61.0,
+    "squeeze_mm": 4.0,
+    "pose": false
+   }
+  ],
+  "sampling": {
+   "source": "sobol_uniform",
+   "sobol_index": 86,
+   "sobol_selector": 0.628186942,
+   "sobol_u_raw": [
+    0.294504327,
+    0.575164529,
+    0.917214581,
+    0.254074145,
+    0.946200113,
+    0.253600867
+   ],
+   "sobol_u_used": [
+    0.294504327,
+    0.575164529,
+    0.917214581,
+    0.254074145,
+    0.946200113,
+    0.253600867
+   ]
+  }
+ },
+ {
+  "design": "sv1_u0097",
+  "vector": [
+   -0.0055,
+   -0.0293,
+   0.0,
+   -0.0,
+   -0.0133,
+   0.0,
+   0.0022,
+   -0.0293,
+   0.0
+  ],
+  "scene": "assets/mjcf/experimental/20260830-real_v1-sobol128/scene_tn0d0055n0d0293p0d0000_in0d0000n0d0133p0d0000_mp0d0022n0d0293p0d0000.xml",
+  "x_sep_mm": 106.6,
+  "pair_x_mm": 51.1,
+  "pair_x_offset_mm": 1.1,
+  "y_sep_mm": 125.9,
+  "thumb_y_mm": -29.3,
+  "pair_y_mid_mm": -21.3,
+  "mounts_mm": {
+   "thumb": [
+    -55.5,
+    -29.3
+   ],
+   "index": [
+    50.0,
+    41.7
+   ],
+   "middle": [
+    52.2,
+    -84.3
+   ]
+  },
+  "grasps": [
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 0.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 10.17,
+       "reach_mm": 55.54,
+       "extend_mm": 12.57,
+       "fn_N": 3.41,
+       "sweep_mm": 25.35,
+       "sweep_ratio": 1.587
+      },
+      "index": {
+       "arm_mm": 33.63,
+       "reach_mm": 63.99,
+       "extend_mm": 4.12,
+       "fn_N": 1.72,
+       "sweep_mm": 33.68,
+       "sweep_ratio": 0.638
+      },
+      "middle": {
+       "arm_mm": 33.45,
+       "reach_mm": 62.56,
+       "extend_mm": 5.55,
+       "fn_N": 1.7,
+       "sweep_mm": 34.01,
+       "sweep_ratio": 0.647
+      }
+     },
+     "extend_mm": 4.12,
+     "straddle_mm": 31.99,
+     "ceiling_deg": 7.4,
+     "tau_cap_Nmm": 358.2,
+     "tau_pair_Nmm": 274.98,
+     "tau_thumb_Nmm": 83.22,
+     "sweep_min_mm": 25.35,
+     "sweep_sum_mm": 93.04,
+     "grip_N": 6.83,
+     "grip_depth_mm": 34.0,
+     "grasp_z": 0.1221,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 44.0
+    },
+    "cells": [
+     {
+      "axis_k": 0.25,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.213,
+      "sd_cos": 0.0,
+      "kept": 1,
+      "peak_cos": 0.213,
+      "final_cos": 0.213,
+      "final_z": 0.1319,
+      "min_z_hold": 0.1319,
+      "contacts": 2,
+      "contacts_hand": 3,
+      "force_N": 0.61,
+      "ok": true,
+      "style": {
+       "turned_deg": 12.1,
+       "arc_mm": 2.63,
+       "touch_frac": {
+        "thumb": 1.0,
+        "index": 0.15,
+        "middle": 0.8
+       },
+       "slip_mm": {
+        "thumb": 14.8,
+        "index": 4.5,
+        "middle": 16.2
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.59,
+        "index": 0.03,
+        "middle": 0.38
+       },
+       "mean_fn_N": {
+        "thumb": 0.96,
+        "index": 0.03,
+        "middle": 2.52
+       },
+       "max_util": {
+        "thumb": 0.7,
+        "index": 0.72,
+        "middle": 0.76
+       },
+       "mean_contacts": 2.1,
+       "obj_dz_mm": 11.7,
+       "driver": "thumb",
+       "cos_turn_end": 0.159,
+       "settle_frac": 0.26
+      },
+      "min_finger_clearance_mm": 19.11,
+      "clearance_at_step": 2000,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     },
+     {
+      "axis_k": 0.4,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.095,
+      "sd_cos": 0.0,
+      "kept": 1,
+      "peak_cos": 0.095,
+      "final_cos": 0.095,
+      "final_z": 0.1376,
+      "min_z_hold": 0.1376,
+      "contacts": 2,
+      "contacts_hand": 3,
+      "force_N": 0.71,
+      "ok": true,
+      "style": {
+       "turned_deg": 5.2,
+       "arc_mm": 1.14,
+       "touch_frac": {
+        "thumb": 1.0,
+        "index": 0.05,
+        "middle": 0.8
+       },
+       "slip_mm": {
+        "thumb": 18.1,
+        "index": 0.0,
+        "middle": 16.6
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": 1.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.56,
+        "index": 0.01,
+        "middle": 0.43
+       },
+       "mean_fn_N": {
+        "thumb": 1.03,
+        "index": 0.01,
+        "middle": 2.64
+       },
+       "max_util": {
+        "thumb": 0.67,
+        "index": 0.62,
+        "middle": 0.97
+       },
+       "mean_contacts": 1.9,
+       "obj_dz_mm": 16.7,
+       "driver": "thumb",
+       "cos_turn_end": 0.056,
+       "settle_frac": 0.43
+      },
+      "min_finger_clearance_mm": 20.17,
+      "clearance_at_step": 2000,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     }
+    ]
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 19.9,
+       "reach_mm": 64.07,
+       "extend_mm": 4.04,
+       "fn_N": 8.55,
+       "sweep_mm": 33.85,
+       "sweep_ratio": 1.083
+      },
+      "index": {
+       "arm_mm": 33.04,
+       "reach_mm": 64.8,
+       "extend_mm": 3.31,
+       "fn_N": 6.71,
+       "sweep_mm": 36.45,
+       "sweep_ratio": 0.702
+      },
+      "middle": {
+       "arm_mm": 33.21,
+       "reach_mm": 64.01,
+       "extend_mm": 4.1,
+       "fn_N": 1.84,
+       "sweep_mm": 36.81,
+       "sweep_ratio": 0.706
+      }
+     },
+     "extend_mm": 3.31,
+     "straddle_mm": 32.93,
+     "ceiling_deg": 5.77,
+     "tau_cap_Nmm": 1087.11,
+     "tau_pair_Nmm": 678.56,
+     "tau_thumb_Nmm": 408.55,
+     "sweep_min_mm": 33.85,
+     "sweep_sum_mm": 107.11,
+     "grip_N": 17.1,
+     "grip_depth_mm": 51.2,
+     "grasp_z": 0.11,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 49.0
+    },
+    "cells": [
+     {
+      "axis_k": 0.25,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": 0.83,
+      "final_cos": 0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0113,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 1.2,
+       "arc_mm": 0.26,
+       "touch_frac": {
+        "thumb": 0.9,
+        "index": 0.25,
+        "middle": 0.9
+       },
+       "slip_mm": {
+        "thumb": 17.2,
+        "index": 1.3,
+        "middle": 18.7
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.44,
+        "index": 0.08,
+        "middle": 0.49
+       },
+       "mean_fn_N": {
+        "thumb": 2.03,
+        "index": 0.66,
+        "middle": 1.6
+       },
+       "max_util": {
+        "thumb": 0.85,
+        "index": 0.55,
+        "middle": 0.7
+       },
+       "mean_contacts": 2.05,
+       "obj_dz_mm": -53.8,
+       "driver": "middle",
+       "cos_turn_end": 0.862,
+       "settle_frac": -41.05
+      },
+      "min_finger_clearance_mm": 16.03,
+      "clearance_at_step": 1660,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     },
+     {
+      "axis_k": 0.4,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": -0.0,
+      "final_cos": -0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 1.2,
+       "arc_mm": 0.26,
+       "touch_frac": {
+        "thumb": 0.7,
+        "index": 0.3,
+        "middle": 0.7
+       },
+       "slip_mm": {
+        "thumb": 15.2,
+        "index": 1.7,
+        "middle": 18.4
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.46,
+        "index": 0.07,
+        "middle": 0.47
+       },
+       "mean_fn_N": {
+        "thumb": 2.9,
+        "index": 0.8,
+        "middle": 2.25
+       },
+       "max_util": {
+        "thumb": 0.55,
+        "index": 0.73,
+        "middle": 0.67
+       },
+       "mean_contacts": 1.7,
+       "obj_dz_mm": -97.5,
+       "driver": "middle",
+       "cos_turn_end": -0.0,
+       "settle_frac": 0.0
+      },
+      "min_finger_clearance_mm": 14.96,
+      "clearance_at_step": 1670,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     }
+    ]
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 0.0,
+    "depth_req_mm": 61.0,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 10.17,
+       "reach_mm": 55.54,
+       "extend_mm": 12.57,
+       "fn_N": 3.41,
+       "sweep_mm": 25.35,
+       "sweep_ratio": 1.587
+      },
+      "index": {
+       "arm_mm": 33.63,
+       "reach_mm": 63.99,
+       "extend_mm": 4.12,
+       "fn_N": 1.72,
+       "sweep_mm": 33.68,
+       "sweep_ratio": 0.638
+      },
+      "middle": {
+       "arm_mm": 33.45,
+       "reach_mm": 62.56,
+       "extend_mm": 5.55,
+       "fn_N": 1.7,
+       "sweep_mm": 34.01,
+       "sweep_ratio": 0.647
+      }
+     },
+     "extend_mm": 4.12,
+     "straddle_mm": 31.99,
+     "ceiling_deg": 7.4,
+     "tau_cap_Nmm": 358.2,
+     "tau_pair_Nmm": 274.98,
+     "tau_thumb_Nmm": 83.22,
+     "sweep_min_mm": 25.35,
+     "sweep_sum_mm": 93.04,
+     "grip_N": 6.83,
+     "grip_depth_mm": 34.0,
+     "grasp_z": 0.1221,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 44.0
+    },
+    "cells": [
+     {
+      "axis_k": 0.25,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.213,
+      "sd_cos": 0.0,
+      "kept": 1,
+      "peak_cos": 0.213,
+      "final_cos": 0.213,
+      "final_z": 0.1319,
+      "min_z_hold": 0.1319,
+      "contacts": 2,
+      "contacts_hand": 3,
+      "force_N": 0.61,
+      "ok": true,
+      "style": {
+       "turned_deg": 12.1,
+       "arc_mm": 2.63,
+       "touch_frac": {
+        "thumb": 1.0,
+        "index": 0.15,
+        "middle": 0.8
+       },
+       "slip_mm": {
+        "thumb": 14.8,
+        "index": 4.5,
+        "middle": 16.2
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.59,
+        "index": 0.03,
+        "middle": 0.38
+       },
+       "mean_fn_N": {
+        "thumb": 0.96,
+        "index": 0.03,
+        "middle": 2.52
+       },
+       "max_util": {
+        "thumb": 0.7,
+        "index": 0.72,
+        "middle": 0.76
+       },
+       "mean_contacts": 2.1,
+       "obj_dz_mm": 11.7,
+       "driver": "thumb",
+       "cos_turn_end": 0.159,
+       "settle_frac": 0.26
+      },
+      "min_finger_clearance_mm": 19.11,
+      "clearance_at_step": 2000,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     },
+     {
+      "axis_k": 0.4,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.095,
+      "sd_cos": 0.0,
+      "kept": 1,
+      "peak_cos": 0.095,
+      "final_cos": 0.095,
+      "final_z": 0.1376,
+      "min_z_hold": 0.1376,
+      "contacts": 2,
+      "contacts_hand": 3,
+      "force_N": 0.71,
+      "ok": true,
+      "style": {
+       "turned_deg": 5.2,
+       "arc_mm": 1.14,
+       "touch_frac": {
+        "thumb": 1.0,
+        "index": 0.05,
+        "middle": 0.8
+       },
+       "slip_mm": {
+        "thumb": 18.1,
+        "index": 0.0,
+        "middle": 16.6
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": 1.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.56,
+        "index": 0.01,
+        "middle": 0.43
+       },
+       "mean_fn_N": {
+        "thumb": 1.03,
+        "index": 0.01,
+        "middle": 2.64
+       },
+       "max_util": {
+        "thumb": 0.67,
+        "index": 0.62,
+        "middle": 0.97
+       },
+       "mean_contacts": 1.9,
+       "obj_dz_mm": 16.7,
+       "driver": "thumb",
+       "cos_turn_end": 0.056,
+       "settle_frac": 0.43
+      },
+      "min_finger_clearance_mm": 20.17,
+      "clearance_at_step": 2000,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     }
+    ]
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": 61.0,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 19.9,
+       "reach_mm": 64.07,
+       "extend_mm": 4.04,
+       "fn_N": 8.55,
+       "sweep_mm": 33.85,
+       "sweep_ratio": 1.083
+      },
+      "index": {
+       "arm_mm": 33.04,
+       "reach_mm": 64.8,
+       "extend_mm": 3.31,
+       "fn_N": 6.71,
+       "sweep_mm": 36.45,
+       "sweep_ratio": 0.702
+      },
+      "middle": {
+       "arm_mm": 33.21,
+       "reach_mm": 64.01,
+       "extend_mm": 4.1,
+       "fn_N": 1.84,
+       "sweep_mm": 36.81,
+       "sweep_ratio": 0.706
+      }
+     },
+     "extend_mm": 3.31,
+     "straddle_mm": 32.93,
+     "ceiling_deg": 5.77,
+     "tau_cap_Nmm": 1087.11,
+     "tau_pair_Nmm": 678.56,
+     "tau_thumb_Nmm": 408.55,
+     "sweep_min_mm": 33.85,
+     "sweep_sum_mm": 107.11,
+     "grip_N": 17.1,
+     "grip_depth_mm": 51.2,
+     "grasp_z": 0.11,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 49.0
+    },
+    "cells": [
+     {
+      "axis_k": 0.25,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": 0.83,
+      "final_cos": -0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0113,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 1.2,
+       "arc_mm": 0.26,
+       "touch_frac": {
+        "thumb": 0.9,
+        "index": 0.25,
+        "middle": 0.9
+       },
+       "slip_mm": {
+        "thumb": 17.2,
+        "index": 1.3,
+        "middle": 18.7
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.44,
+        "index": 0.08,
+        "middle": 0.49
+       },
+       "mean_fn_N": {
+        "thumb": 2.03,
+        "index": 0.66,
+        "middle": 1.6
+       },
+       "max_util": {
+        "thumb": 0.85,
+        "index": 0.55,
+        "middle": 0.7
+       },
+       "mean_contacts": 2.05,
+       "obj_dz_mm": -53.8,
+       "driver": "middle",
+       "cos_turn_end": 0.862,
+       "settle_frac": -41.05
+      },
+      "min_finger_clearance_mm": 16.03,
+      "clearance_at_step": 1670,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     },
+     {
+      "axis_k": 0.4,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": -0.0,
+      "final_cos": 0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 1.2,
+       "arc_mm": 0.26,
+       "touch_frac": {
+        "thumb": 0.7,
+        "index": 0.3,
+        "middle": 0.7
+       },
+       "slip_mm": {
+        "thumb": 15.2,
+        "index": 1.7,
+        "middle": 18.4
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.46,
+        "index": 0.07,
+        "middle": 0.47
+       },
+       "mean_fn_N": {
+        "thumb": 2.9,
+        "index": 0.8,
+        "middle": 2.25
+       },
+       "max_util": {
+        "thumb": 0.55,
+        "index": 0.73,
+        "middle": 0.67
+       },
+       "mean_contacts": 1.7,
+       "obj_dz_mm": -97.5,
+       "driver": "middle",
+       "cos_turn_end": -0.0,
+       "settle_frac": 0.0
+      },
+      "min_finger_clearance_mm": 14.96,
+      "clearance_at_step": 1660,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     }
+    ]
+   }
+  ],
+  "sampling": {
+   "source": "sobol_uniform",
+   "sobol_index": 97,
+   "sobol_selector": 0.379563164,
+   "sobol_u_raw": [
+    0.408111448,
+    0.233332768,
+    0.499896483,
+    0.277778059,
+    0.53621366,
+    0.012323084
+   ],
+   "sobol_u_used": [
+    0.408111448,
+    0.233332768,
+    0.499896483,
+    0.277778059,
+    0.53621366,
+    0.012323084
+   ]
+  }
+ },
+ {
+  "design": "sv1_u0108",
+  "vector": [
+   0.0029,
+   0.0255,
+   0.0,
+   0.0025,
+   -0.0108,
+   0.0,
+   0.0195,
+   0.0023,
+   0.0
+  ],
+  "scene": "assets/mjcf/experimental/20260830-real_v1-sobol128/scene_tp0d0029p0d0255p0d0000_ip0d0025n0d0108p0d0000_mp0d0195p0d0023p0d0000.xml",
+  "x_sep_mm": 108.1,
+  "pair_x_mm": 61.0,
+  "pair_x_offset_mm": 11.0,
+  "y_sep_mm": 96.9,
+  "thumb_y_mm": 25.5,
+  "pair_y_mid_mm": -4.3,
+  "mounts_mm": {
+   "thumb": [
+    -47.1,
+    25.5
+   ],
+   "index": [
+    52.5,
+    44.2
+   ],
+   "middle": [
+    69.5,
+    -52.7
+   ]
+  },
+  "grasps": [
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 0.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 0.16,
+       "reach_mm": 61.99,
+       "extend_mm": 6.12,
+       "fn_N": 9.81,
+       "sweep_mm": 33.12,
+       "sweep_ratio": 134.309
+      },
+      "index": {
+       "arm_mm": 32.17,
+       "reach_mm": 54.47,
+       "extend_mm": 13.64,
+       "fn_N": 5.57,
+       "sweep_mm": 28.89,
+       "sweep_ratio": 0.572
+      },
+      "middle": {
+       "arm_mm": 34.02,
+       "reach_mm": 62.47,
+       "extend_mm": 5.64,
+       "fn_N": 4.0,
+       "sweep_mm": 38.14,
+       "sweep_ratio": 0.714
+      }
+     },
+     "extend_mm": 5.64,
+     "straddle_mm": 32.97,
+     "ceiling_deg": 9.85,
+     "tau_cap_Nmm": 760.31,
+     "tau_pair_Nmm": 756.62,
+     "tau_thumb_Nmm": 3.7,
+     "sweep_min_mm": 28.89,
+     "sweep_sum_mm": 100.16,
+     "grip_N": 19.38,
+     "grip_depth_mm": 48.1,
+     "grasp_z": 0.1115,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 47.5
+    },
+    "cells": [
+     {
+      "axis_k": 0.25,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": -0.956,
+      "final_cos": -0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0113,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 5.2,
+       "arc_mm": 1.13,
+       "touch_frac": {
+        "thumb": 1.0,
+        "index": 1.0,
+        "middle": 1.0
+       },
+       "slip_mm": {
+        "thumb": 13.0,
+        "index": 22.2,
+        "middle": 14.7
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.2,
+        "index": 0.42,
+        "middle": 0.38
+       },
+       "mean_fn_N": {
+        "thumb": 9.31,
+        "index": 6.77,
+        "middle": 2.5
+       },
+       "max_util": {
+        "thumb": 0.12,
+        "index": 0.49,
+        "middle": 0.59
+       },
+       "mean_contacts": 3.0,
+       "obj_dz_mm": 5.4,
+       "driver": "index",
+       "cos_turn_end": 0.062,
+       "settle_frac": -0.69
+      },
+      "min_finger_clearance_mm": 8.72,
+      "clearance_at_step": 2000,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     },
+     {
+      "axis_k": 0.4,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": -0.902,
+      "final_cos": -0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.011,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 5.2,
+       "arc_mm": 1.13,
+       "touch_frac": {
+        "thumb": 1.0,
+        "index": 1.0,
+        "middle": 1.0
+       },
+       "slip_mm": {
+        "thumb": 14.2,
+        "index": 21.4,
+        "middle": 15.3
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.22,
+        "index": 0.36,
+        "middle": 0.41
+       },
+       "mean_fn_N": {
+        "thumb": 9.59,
+        "index": 6.05,
+        "middle": 3.45
+       },
+       "max_util": {
+        "thumb": 0.1,
+        "index": 0.48,
+        "middle": 0.55
+       },
+       "mean_contacts": 3.0,
+       "obj_dz_mm": 7.9,
+       "driver": "middle",
+       "cos_turn_end": 0.072,
+       "settle_frac": -0.8
+      },
+      "min_finger_clearance_mm": 10.55,
+      "clearance_at_step": 2000,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     }
+    ]
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 21.2,
+       "reach_mm": 58.58,
+       "extend_mm": 9.53,
+       "fn_N": 4.07,
+       "sweep_mm": 34.36,
+       "sweep_ratio": 1.032
+      },
+      "index": {
+       "arm_mm": 32.99,
+       "reach_mm": 54.44,
+       "extend_mm": 13.67,
+       "fn_N": 3.22,
+       "sweep_mm": 25.84,
+       "sweep_ratio": 0.499
+      },
+      "middle": {
+       "arm_mm": 33.4,
+       "reach_mm": 62.41,
+       "extend_mm": 5.7,
+       "fn_N": 0.66,
+       "sweep_mm": 37.27,
+       "sweep_ratio": 0.71
+      }
+     },
+     "extend_mm": 5.7,
+     "straddle_mm": 33.02,
+     "ceiling_deg": 9.94,
+     "tau_cap_Nmm": 514.39,
+     "tau_pair_Nmm": 307.41,
+     "tau_thumb_Nmm": 206.98,
+     "sweep_min_mm": 25.84,
+     "sweep_sum_mm": 97.47,
+     "grip_N": 7.95,
+     "grip_depth_mm": 42.9,
+     "grasp_z": 0.1167,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 47.5
+    },
+    "cells": [
+     {
+      "axis_k": 0.25,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": -0.954,
+      "final_cos": 0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0103,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 10.0,
+       "arc_mm": 2.17,
+       "touch_frac": {
+        "thumb": 1.0,
+        "index": 1.0,
+        "middle": 0.35
+       },
+       "slip_mm": {
+        "thumb": 21.9,
+        "index": 19.0,
+        "middle": 15.7
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.43,
+        "index": 0.47,
+        "middle": 0.09
+       },
+       "mean_fn_N": {
+        "thumb": 3.71,
+        "index": 3.44,
+        "middle": 0.24
+       },
+       "max_util": {
+        "thumb": 0.42,
+        "index": 0.42,
+        "middle": 0.97
+       },
+       "mean_contacts": 2.35,
+       "obj_dz_mm": -20.7,
+       "driver": "index",
+       "cos_turn_end": -0.754,
+       "settle_frac": 4.36
+      },
+      "min_finger_clearance_mm": 7.32,
+      "clearance_at_step": 1690,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     },
+     {
+      "axis_k": 0.4,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": -0.999,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": -1.0,
+      "final_cos": -0.999,
+      "final_z": 0.0504,
+      "min_z_hold": 0.0495,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 77.5,
+       "arc_mm": 16.9,
+       "touch_frac": {
+        "thumb": 1.0,
+        "index": 1.0,
+        "middle": 0.8
+       },
+       "slip_mm": {
+        "thumb": 19.2,
+        "index": 20.5,
+        "middle": 54.1
+       },
+       "carry_frac": {
+        "thumb": -0.14,
+        "index": -0.21,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.37,
+        "index": 0.39,
+        "middle": 0.23
+       },
+       "mean_fn_N": {
+        "thumb": 4.11,
+        "index": 3.39,
+        "middle": 0.81
+       },
+       "max_util": {
+        "thumb": 0.31,
+        "index": 0.38,
+        "middle": 0.86
+       },
+       "mean_contacts": 2.8,
+       "obj_dz_mm": -16.6,
+       "driver": "index",
+       "cos_turn_end": -0.908,
+       "settle_frac": -0.11
+      },
+      "min_finger_clearance_mm": 7.36,
+      "clearance_at_step": 1340,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     }
+    ]
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 0.0,
+    "depth_req_mm": 61.0,
+    "squeeze_mm": 4.0,
+    "pose": false
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": 61.0,
+    "squeeze_mm": 4.0,
+    "pose": false
+   }
+  ],
+  "sampling": {
+   "source": "sobol_uniform",
+   "sobol_index": 108,
+   "sobol_selector": 0.872211307,
+   "sobol_u_raw": [
+    0.547899864,
+    0.732037744,
+    0.541700732,
+    0.32020351,
+    0.824256616,
+    0.537831063
+   ],
+   "sobol_u_used": [
+    0.547899864,
+    0.732037744,
+    0.541700732,
+    0.32020351,
+    0.824256616,
+    0.537831063
+   ]
+  }
+ },
+ {
+  "design": "sv1_u0117",
+  "vector": [
+   -0.0298,
+   -0.0386,
+   0.0,
+   0.0015,
+   -0.022,
+   0.0,
+   0.0118,
+   0.0138,
+   0.0
+  ],
+  "scene": "assets/mjcf/experimental/20260830-real_v1-sobol128/scene_tn0d0298n0d0386p0d0000_ip0d0015n0d0220p0d0000_mp0d0118p0d0138p0d0000.xml",
+  "x_sep_mm": 136.5,
+  "pair_x_mm": 56.7,
+  "pair_x_offset_mm": 6.7,
+  "y_sep_mm": 74.2,
+  "thumb_y_mm": -38.6,
+  "pair_y_mid_mm": -4.1,
+  "mounts_mm": {
+   "thumb": [
+    -79.8,
+    -38.6
+   ],
+   "index": [
+    51.5,
+    33.0
+   ],
+   "middle": [
+    61.8,
+    -41.2
+   ]
+  },
+  "grasps": [
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 0.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 101.37,
+       "reach_mm": 58.62,
+       "extend_mm": 9.49,
+       "fn_N": 0.0,
+       "sweep_mm": 35.02,
+       "sweep_ratio": 0.22
+      },
+      "index": {
+       "arm_mm": 104.65,
+       "reach_mm": 57.19,
+       "extend_mm": 10.92,
+       "fn_N": 0.0,
+       "sweep_mm": 23.79,
+       "sweep_ratio": 0.145
+      },
+      "middle": {
+       "arm_mm": 106.65,
+       "reach_mm": 56.28,
+       "extend_mm": 11.83,
+       "fn_N": 0.0,
+       "sweep_mm": 31.32,
+       "sweep_ratio": 0.187
+      }
+     },
+     "extend_mm": 9.49,
+     "straddle_mm": 31.83,
+     "ceiling_deg": 17.35,
+     "tau_cap_Nmm": 0.0,
+     "tau_pair_Nmm": 0.0,
+     "tau_thumb_Nmm": 0.0,
+     "sweep_min_mm": 23.79,
+     "sweep_sum_mm": 90.13,
+     "grip_N": 0.0,
+     "grip_depth_mm": 133.8,
+     "grasp_z": 0.0124,
+     "grasp_contacts": 0,
+     "depth_fit_mm": 34.0
+    },
+    "cells": [
+     {
+      "axis_k": 0.25,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": 0.0,
+      "final_cos": 0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 0.0,
+       "arc_mm": 0.22,
+       "touch_frac": {
+        "thumb": 0.0,
+        "index": 0.0,
+        "middle": 0.0
+       },
+       "slip_mm": {
+        "thumb": 0.0,
+        "index": 0.0,
+        "middle": 0.0
+       },
+       "carry_frac": {
+        "thumb": null,
+        "index": null,
+        "middle": null
+       },
+       "drive_share": {
+        "thumb": 0.0,
+        "index": 0.0,
+        "middle": 0.0
+       },
+       "mean_fn_N": {
+        "thumb": 0.0,
+        "index": 0.0,
+        "middle": 0.0
+       },
+       "max_util": {
+        "thumb": 0.0,
+        "index": 0.0,
+        "middle": 0.0
+       },
+       "mean_contacts": 0.0,
+       "obj_dz_mm": 0.0,
+       "driver": "thumb",
+       "cos_turn_end": 0.0,
+       "settle_frac": 0.0
+      },
+      "min_finger_clearance_mm": 12.28,
+      "clearance_at_step": 1700,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     },
+     {
+      "axis_k": 0.4,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": 0.0,
+      "final_cos": 0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 0.0,
+       "arc_mm": 0.22,
+       "touch_frac": {
+        "thumb": 0.0,
+        "index": 0.0,
+        "middle": 0.0
+       },
+       "slip_mm": {
+        "thumb": 0.0,
+        "index": 0.0,
+        "middle": 0.0
+       },
+       "carry_frac": {
+        "thumb": null,
+        "index": null,
+        "middle": null
+       },
+       "drive_share": {
+        "thumb": 0.0,
+        "index": 0.0,
+        "middle": 0.0
+       },
+       "mean_fn_N": {
+        "thumb": 0.0,
+        "index": 0.0,
+        "middle": 0.0
+       },
+       "max_util": {
+        "thumb": 0.0,
+        "index": 0.0,
+        "middle": 0.0
+       },
+       "mean_contacts": 0.0,
+       "obj_dz_mm": 0.0,
+       "driver": "thumb",
+       "cos_turn_end": 0.0,
+       "settle_frac": 0.0
+      },
+      "min_finger_clearance_mm": 10.81,
+      "clearance_at_step": 1680,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     }
+    ]
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": false
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 0.0,
+    "depth_req_mm": 61.0,
+    "squeeze_mm": 4.0,
+    "pose": false
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": 61.0,
+    "squeeze_mm": 4.0,
+    "pose": false
+   }
+  ],
+  "sampling": {
+   "source": "sobol_uniform",
+   "sobol_index": 117,
+   "sobol_selector": 0.668434753,
+   "sobol_u_raw": [
+    0.003572002,
+    0.149046157,
+    0.525026957,
+    0.132778062,
+    0.697445406,
+    0.729996637
+   ],
+   "sobol_u_used": [
+    0.003572002,
+    0.149046157,
+    0.525026957,
+    0.132778062,
+    0.697445406,
+    0.729996637
+   ]
+  }
+ },
+ {
+  "design": "sv1_u0125",
+  "vector": [
+   -0.0215,
+   -0.0035,
+   0.0,
+   -0.0136,
+   -0.0046,
+   0.0,
+   -0.0202,
+   0.0159,
+   0.0
+  ],
+  "scene": "assets/mjcf/experimental/20260830-real_v1-sobol128/scene_tn0d0215n0d0035p0d0000_in0d0136n0d0046p0d0000_mn0d0202p0d0159p0d0000.xml",
+  "x_sep_mm": 104.5,
+  "pair_x_mm": 33.1,
+  "pair_x_offset_mm": -16.9,
+  "y_sep_mm": 89.5,
+  "thumb_y_mm": -3.5,
+  "pair_y_mid_mm": 5.6,
+  "mounts_mm": {
+   "thumb": [
+    -71.5,
+    -3.5
+   ],
+   "index": [
+    36.4,
+    50.4
+   ],
+   "middle": [
+    29.8,
+    -39.1
+   ]
+  },
+  "grasps": [
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 0.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 10.54,
+       "reach_mm": 59.1,
+       "extend_mm": 9.01,
+       "fn_N": 2.06,
+       "sweep_mm": 28.01,
+       "sweep_ratio": 1.691
+      },
+      "index": {
+       "arm_mm": 33.67,
+       "reach_mm": 62.47,
+       "extend_mm": 5.64,
+       "fn_N": 1.02,
+       "sweep_mm": 28.81,
+       "sweep_ratio": 0.545
+      },
+      "middle": {
+       "arm_mm": 33.63,
+       "reach_mm": 57.84,
+       "extend_mm": 10.27,
+       "fn_N": 1.04,
+       "sweep_mm": 29.86,
+       "sweep_ratio": 0.565
+      }
+     },
+     "extend_mm": 5.64,
+     "straddle_mm": 31.99,
+     "ceiling_deg": 10.15,
+     "tau_cap_Nmm": 218.71,
+     "tau_pair_Nmm": 166.56,
+     "tau_thumb_Nmm": 52.15,
+     "sweep_min_mm": 28.01,
+     "sweep_sum_mm": 86.68,
+     "grip_N": 4.12,
+     "grip_depth_mm": 38.6,
+     "grasp_z": 0.1225,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 49.0
+    },
+    "cells": [
+     {
+      "axis_k": 0.25,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.342,
+      "sd_cos": 0.0,
+      "kept": 1,
+      "peak_cos": 0.342,
+      "final_cos": 0.342,
+      "final_z": 0.1309,
+      "min_z_hold": 0.1309,
+      "contacts": 2,
+      "contacts_hand": 3,
+      "force_N": 0.45,
+      "ok": true,
+      "style": {
+       "turned_deg": 20.0,
+       "arc_mm": 4.36,
+       "touch_frac": {
+        "thumb": 1.0,
+        "index": 0.05,
+        "middle": 1.0
+       },
+       "slip_mm": {
+        "thumb": 18.0,
+        "index": 0.0,
+        "middle": 23.8
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": 1.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.29,
+        "index": 0.0,
+        "middle": 0.7
+       },
+       "mean_fn_N": {
+        "thumb": 0.83,
+        "index": 0.01,
+        "middle": 4.14
+       },
+       "max_util": {
+        "thumb": 0.73,
+        "index": 0.95,
+        "middle": 0.75
+       },
+       "mean_contacts": 2.05,
+       "obj_dz_mm": 12.4,
+       "driver": "middle",
+       "cos_turn_end": 0.246,
+       "settle_frac": 0.28
+      },
+      "min_finger_clearance_mm": 9.74,
+      "clearance_at_step": 1400,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     },
+     {
+      "axis_k": 0.4,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.167,
+      "sd_cos": 0.0,
+      "kept": 1,
+      "peak_cos": 0.167,
+      "final_cos": 0.167,
+      "final_z": 0.1391,
+      "min_z_hold": 0.1391,
+      "contacts": 2,
+      "contacts_hand": 3,
+      "force_N": 0.49,
+      "ok": true,
+      "style": {
+       "turned_deg": 9.6,
+       "arc_mm": 2.1,
+       "touch_frac": {
+        "thumb": 1.0,
+        "index": 0.05,
+        "middle": 1.0
+       },
+       "slip_mm": {
+        "thumb": 19.2,
+        "index": 0.0,
+        "middle": 25.8
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": 1.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.3,
+        "index": 0.0,
+        "middle": 0.7
+       },
+       "mean_fn_N": {
+        "thumb": 1.0,
+        "index": 0.01,
+        "middle": 4.48
+       },
+       "max_util": {
+        "thumb": 0.74,
+        "index": 1.0,
+        "middle": 0.74
+       },
+       "mean_contacts": 2.05,
+       "obj_dz_mm": 18.8,
+       "driver": "middle",
+       "cos_turn_end": 0.112,
+       "settle_frac": 0.33
+      },
+      "min_finger_clearance_mm": 5.15,
+      "clearance_at_step": 1380,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     }
+    ]
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 19.6,
+       "reach_mm": 64.74,
+       "extend_mm": 3.37,
+       "fn_N": 5.88,
+       "sweep_mm": 30.14,
+       "sweep_ratio": 0.979
+      },
+      "index": {
+       "arm_mm": 32.52,
+       "reach_mm": 63.68,
+       "extend_mm": 4.43,
+       "fn_N": 4.49,
+       "sweep_mm": 34.67,
+       "sweep_ratio": 0.679
+      },
+      "middle": {
+       "arm_mm": 32.06,
+       "reach_mm": 61.28,
+       "extend_mm": 6.83,
+       "fn_N": 1.4,
+       "sweep_mm": 31.73,
+       "sweep_ratio": 0.63
+      }
+     },
+     "extend_mm": 3.37,
+     "straddle_mm": 32.17,
+     "ceiling_deg": 6.01,
+     "tau_cap_Nmm": 734.93,
+     "tau_pair_Nmm": 458.09,
+     "tau_thumb_Nmm": 276.84,
+     "sweep_min_mm": 30.14,
+     "sweep_sum_mm": 96.54,
+     "grip_N": 11.77,
+     "grip_depth_mm": 55.2,
+     "grasp_z": 0.1099,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 53.0
+    },
+    "cells": [
+     {
+      "axis_k": 0.25,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": 0.901,
+      "final_cos": -0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0109,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 1.7,
+       "arc_mm": 0.36,
+       "touch_frac": {
+        "thumb": 1.0,
+        "index": 0.2,
+        "middle": 1.0
+       },
+       "slip_mm": {
+        "thumb": 17.8,
+        "index": 1.4,
+        "middle": 21.7
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.43,
+        "index": 0.06,
+        "middle": 0.51
+       },
+       "mean_fn_N": {
+        "thumb": 1.63,
+        "index": 0.31,
+        "middle": 1.42
+       },
+       "max_util": {
+        "thumb": 0.76,
+        "index": 0.8,
+        "middle": 0.75
+       },
+       "mean_contacts": 2.2,
+       "obj_dz_mm": 0.9,
+       "driver": "middle",
+       "cos_turn_end": 0.9,
+       "settle_frac": -31.03
+      },
+      "min_finger_clearance_mm": 9.59,
+      "clearance_at_step": 1670,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     },
+     {
+      "axis_k": 0.4,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": -0.0,
+      "final_cos": 0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 1.7,
+       "arc_mm": 0.36,
+       "touch_frac": {
+        "thumb": 0.7,
+        "index": 0.25,
+        "middle": 0.7
+       },
+       "slip_mm": {
+        "thumb": 14.4,
+        "index": 2.4,
+        "middle": 21.5
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.43,
+        "index": 0.07,
+        "middle": 0.5
+       },
+       "mean_fn_N": {
+        "thumb": 2.43,
+        "index": 0.43,
+        "middle": 2.08
+       },
+       "max_util": {
+        "thumb": 0.59,
+        "index": 0.77,
+        "middle": 0.74
+       },
+       "mean_contacts": 1.65,
+       "obj_dz_mm": -97.6,
+       "driver": "middle",
+       "cos_turn_end": -0.0,
+       "settle_frac": 0.0
+      },
+      "min_finger_clearance_mm": 6.16,
+      "clearance_at_step": 1680,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     }
+    ]
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 0.0,
+    "depth_req_mm": 61.0,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 10.54,
+       "reach_mm": 59.1,
+       "extend_mm": 9.01,
+       "fn_N": 2.06,
+       "sweep_mm": 28.01,
+       "sweep_ratio": 1.691
+      },
+      "index": {
+       "arm_mm": 33.67,
+       "reach_mm": 62.47,
+       "extend_mm": 5.64,
+       "fn_N": 1.02,
+       "sweep_mm": 28.81,
+       "sweep_ratio": 0.545
+      },
+      "middle": {
+       "arm_mm": 33.63,
+       "reach_mm": 57.84,
+       "extend_mm": 10.27,
+       "fn_N": 1.04,
+       "sweep_mm": 29.86,
+       "sweep_ratio": 0.565
+      }
+     },
+     "extend_mm": 5.64,
+     "straddle_mm": 31.99,
+     "ceiling_deg": 10.15,
+     "tau_cap_Nmm": 218.71,
+     "tau_pair_Nmm": 166.56,
+     "tau_thumb_Nmm": 52.15,
+     "sweep_min_mm": 28.01,
+     "sweep_sum_mm": 86.68,
+     "grip_N": 4.12,
+     "grip_depth_mm": 38.6,
+     "grasp_z": 0.1225,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 49.0
+    },
+    "cells": [
+     {
+      "axis_k": 0.25,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.342,
+      "sd_cos": 0.0,
+      "kept": 1,
+      "peak_cos": 0.342,
+      "final_cos": 0.342,
+      "final_z": 0.1309,
+      "min_z_hold": 0.1309,
+      "contacts": 2,
+      "contacts_hand": 3,
+      "force_N": 0.45,
+      "ok": true,
+      "style": {
+       "turned_deg": 20.0,
+       "arc_mm": 4.36,
+       "touch_frac": {
+        "thumb": 1.0,
+        "index": 0.05,
+        "middle": 1.0
+       },
+       "slip_mm": {
+        "thumb": 18.0,
+        "index": 0.0,
+        "middle": 23.8
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": 1.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.29,
+        "index": 0.0,
+        "middle": 0.7
+       },
+       "mean_fn_N": {
+        "thumb": 0.83,
+        "index": 0.01,
+        "middle": 4.14
+       },
+       "max_util": {
+        "thumb": 0.73,
+        "index": 0.95,
+        "middle": 0.75
+       },
+       "mean_contacts": 2.05,
+       "obj_dz_mm": 12.4,
+       "driver": "middle",
+       "cos_turn_end": 0.246,
+       "settle_frac": 0.28
+      },
+      "min_finger_clearance_mm": 9.74,
+      "clearance_at_step": 1400,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     },
+     {
+      "axis_k": 0.4,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.167,
+      "sd_cos": 0.0,
+      "kept": 1,
+      "peak_cos": 0.167,
+      "final_cos": 0.167,
+      "final_z": 0.1391,
+      "min_z_hold": 0.1391,
+      "contacts": 2,
+      "contacts_hand": 3,
+      "force_N": 0.49,
+      "ok": true,
+      "style": {
+       "turned_deg": 9.6,
+       "arc_mm": 2.1,
+       "touch_frac": {
+        "thumb": 1.0,
+        "index": 0.05,
+        "middle": 1.0
+       },
+       "slip_mm": {
+        "thumb": 19.2,
+        "index": 0.0,
+        "middle": 25.8
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": 1.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.3,
+        "index": 0.0,
+        "middle": 0.7
+       },
+       "mean_fn_N": {
+        "thumb": 1.0,
+        "index": 0.01,
+        "middle": 4.48
+       },
+       "max_util": {
+        "thumb": 0.74,
+        "index": 1.0,
+        "middle": 0.74
+       },
+       "mean_contacts": 2.05,
+       "obj_dz_mm": 18.8,
+       "driver": "middle",
+       "cos_turn_end": 0.112,
+       "settle_frac": 0.33
+      },
+      "min_finger_clearance_mm": 5.15,
+      "clearance_at_step": 1380,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     }
+    ]
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": 61.0,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 19.6,
+       "reach_mm": 64.74,
+       "extend_mm": 3.37,
+       "fn_N": 5.88,
+       "sweep_mm": 30.14,
+       "sweep_ratio": 0.979
+      },
+      "index": {
+       "arm_mm": 32.52,
+       "reach_mm": 63.68,
+       "extend_mm": 4.43,
+       "fn_N": 4.49,
+       "sweep_mm": 34.67,
+       "sweep_ratio": 0.679
+      },
+      "middle": {
+       "arm_mm": 32.06,
+       "reach_mm": 61.28,
+       "extend_mm": 6.83,
+       "fn_N": 1.4,
+       "sweep_mm": 31.73,
+       "sweep_ratio": 0.63
+      }
+     },
+     "extend_mm": 3.37,
+     "straddle_mm": 32.17,
+     "ceiling_deg": 6.01,
+     "tau_cap_Nmm": 734.93,
+     "tau_pair_Nmm": 458.09,
+     "tau_thumb_Nmm": 276.84,
+     "sweep_min_mm": 30.14,
+     "sweep_sum_mm": 96.54,
+     "grip_N": 11.77,
+     "grip_depth_mm": 55.2,
+     "grasp_z": 0.1099,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 53.0
+    },
+    "cells": [
+     {
+      "axis_k": 0.25,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": 0.901,
+      "final_cos": -0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0109,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 1.7,
+       "arc_mm": 0.36,
+       "touch_frac": {
+        "thumb": 1.0,
+        "index": 0.2,
+        "middle": 1.0
+       },
+       "slip_mm": {
+        "thumb": 17.8,
+        "index": 1.4,
+        "middle": 21.7
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.43,
+        "index": 0.06,
+        "middle": 0.51
+       },
+       "mean_fn_N": {
+        "thumb": 1.63,
+        "index": 0.31,
+        "middle": 1.42
+       },
+       "max_util": {
+        "thumb": 0.76,
+        "index": 0.8,
+        "middle": 0.75
+       },
+       "mean_contacts": 2.2,
+       "obj_dz_mm": 0.9,
+       "driver": "middle",
+       "cos_turn_end": 0.9,
+       "settle_frac": -31.03
+      },
+      "min_finger_clearance_mm": 9.59,
+      "clearance_at_step": 1680,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     },
+     {
+      "axis_k": 0.4,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": -0.0,
+      "final_cos": 0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 1.7,
+       "arc_mm": 0.36,
+       "touch_frac": {
+        "thumb": 0.7,
+        "index": 0.25,
+        "middle": 0.7
+       },
+       "slip_mm": {
+        "thumb": 14.4,
+        "index": 2.4,
+        "middle": 21.5
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.43,
+        "index": 0.07,
+        "middle": 0.5
+       },
+       "mean_fn_N": {
+        "thumb": 2.43,
+        "index": 0.43,
+        "middle": 2.08
+       },
+       "max_util": {
+        "thumb": 0.59,
+        "index": 0.77,
+        "middle": 0.74
+       },
+       "mean_contacts": 1.65,
+       "obj_dz_mm": -97.6,
+       "driver": "middle",
+       "cos_turn_end": -0.0,
+       "settle_frac": 0.0
+      },
+      "min_finger_clearance_mm": 6.16,
+      "clearance_at_step": 1670,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     }
+    ]
+   }
+  ],
+  "sampling": {
+   "source": "sobol_uniform",
+   "sobol_index": 125,
+   "sobol_selector": 0.813004126,
+   "sobol_u_raw": [
+    0.142313559,
+    0.46791733,
+    0.272674245,
+    0.422657409,
+    0.163124179,
+    0.764800731
+   ],
+   "sobol_u_used": [
+    0.142313559,
+    0.46791733,
+    0.272674245,
+    0.422657409,
+    0.163124179,
+    0.764800731
+   ]
+  }
+ },
+ {
+  "design": "sv1_w0016",
+  "vector": [
+   0.018,
+   0.0369,
+   0.0,
+   0.0191,
+   -0.0277,
+   0.0,
+   0.0281,
+   0.0049,
+   0.0
+  ],
+  "scene": "assets/mjcf/experimental/20260830-real_v1-sobol128/scene_tp0d0180p0d0369p0d0000_ip0d0191n0d0277p0d0000_mp0d0281p0d0049p0d0000.xml",
+  "x_sep_mm": 105.5,
+  "pair_x_mm": 73.6,
+  "pair_x_offset_mm": 23.6,
+  "y_sep_mm": 77.4,
+  "thumb_y_mm": 36.9,
+  "pair_y_mid_mm": -11.4,
+  "mounts_mm": {
+   "thumb": [
+    -32.0,
+    36.9
+   ],
+   "index": [
+    69.1,
+    27.3
+   ],
+   "middle": [
+    78.1,
+    -50.1
+   ]
+  },
+  "grasps": [
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 0.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 8.4,
+       "reach_mm": 63.97,
+       "extend_mm": 4.14,
+       "fn_N": 7.82,
+       "sweep_mm": 37.46,
+       "sweep_ratio": 2.839
+      },
+      "index": {
+       "arm_mm": 33.15,
+       "reach_mm": 53.65,
+       "extend_mm": 14.46,
+       "fn_N": 3.99,
+       "sweep_mm": 34.55,
+       "sweep_ratio": 0.663
+      },
+      "middle": {
+       "arm_mm": 32.92,
+       "reach_mm": 62.27,
+       "extend_mm": 5.84,
+       "fn_N": 3.86,
+       "sweep_mm": 34.25,
+       "sweep_ratio": 0.662
+      }
+     },
+     "extend_mm": 4.14,
+     "straddle_mm": 31.99,
+     "ceiling_deg": 7.44,
+     "tau_cap_Nmm": 780.32,
+     "tau_pair_Nmm": 622.65,
+     "tau_thumb_Nmm": 157.67,
+     "sweep_min_mm": 34.25,
+     "sweep_sum_mm": 106.26,
+     "grip_N": 15.67,
+     "grip_depth_mm": 36.4,
+     "grasp_z": 0.1202,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 44.5
+    },
+    "cells": [
+     {
+      "axis_k": 0.25,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.225,
+      "sd_cos": 0.0,
+      "kept": 1,
+      "peak_cos": 0.225,
+      "final_cos": 0.225,
+      "final_z": 0.1318,
+      "min_z_hold": 0.1318,
+      "contacts": 2,
+      "contacts_hand": 3,
+      "force_N": 0.58,
+      "ok": true,
+      "style": {
+       "turned_deg": 12.8,
+       "arc_mm": 2.79,
+       "touch_frac": {
+        "thumb": 1.0,
+        "index": 0.3,
+        "middle": 1.0
+       },
+       "slip_mm": {
+        "thumb": 11.4,
+        "index": 6.0,
+        "middle": 15.3
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.4,
+        "index": 0.17,
+        "middle": 0.43
+       },
+       "mean_fn_N": {
+        "thumb": 1.71,
+        "index": 0.43,
+        "middle": 2.12
+       },
+       "max_util": {
+        "thumb": 0.53,
+        "index": 0.78,
+        "middle": 0.6
+       },
+       "mean_contacts": 2.3,
+       "obj_dz_mm": 13.2,
+       "driver": "middle",
+       "cos_turn_end": 0.179,
+       "settle_frac": 0.21
+      },
+      "min_finger_clearance_mm": 9.25,
+      "clearance_at_step": 1190,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     },
+     {
+      "axis_k": 0.4,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.188,
+      "sd_cos": 0.0,
+      "kept": 1,
+      "peak_cos": 0.19,
+      "final_cos": 0.188,
+      "final_z": 0.1335,
+      "min_z_hold": 0.1335,
+      "contacts": 3,
+      "contacts_hand": 4,
+      "force_N": 0.58,
+      "ok": true,
+      "style": {
+       "turned_deg": 10.6,
+       "arc_mm": 2.31,
+       "touch_frac": {
+        "thumb": 1.0,
+        "index": 0.25,
+        "middle": 0.85
+       },
+       "slip_mm": {
+        "thumb": 17.3,
+        "index": 4.7,
+        "middle": 26.5
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.43,
+        "index": 0.14,
+        "middle": 0.43
+       },
+       "mean_fn_N": {
+        "thumb": 1.97,
+        "index": 0.43,
+        "middle": 2.61
+       },
+       "max_util": {
+        "thumb": 0.75,
+        "index": 0.64,
+        "middle": 1.0
+       },
+       "mean_contacts": 2.2,
+       "obj_dz_mm": 12.6,
+       "driver": "middle",
+       "cos_turn_end": 0.189,
+       "settle_frac": -0.01
+      },
+      "min_finger_clearance_mm": 7.89,
+      "clearance_at_step": 2000,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     }
+    ]
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 20.04,
+       "reach_mm": 64.37,
+       "extend_mm": 3.74,
+       "fn_N": 10.94,
+       "sweep_mm": 30.65,
+       "sweep_ratio": 0.974
+      },
+      "index": {
+       "arm_mm": 32.2,
+       "reach_mm": 62.78,
+       "extend_mm": 5.33,
+       "fn_N": 9.29,
+       "sweep_mm": 29.2,
+       "sweep_ratio": 0.577
+      },
+      "middle": {
+       "arm_mm": 33.97,
+       "reach_mm": 64.0,
+       "extend_mm": 4.11,
+       "fn_N": 1.45,
+       "sweep_mm": 35.86,
+       "sweep_ratio": 0.672
+      }
+     },
+     "extend_mm": 3.74,
+     "straddle_mm": 32.94,
+     "ceiling_deg": 6.52,
+     "tau_cap_Nmm": 1362.35,
+     "tau_pair_Nmm": 836.46,
+     "tau_thumb_Nmm": 525.89,
+     "sweep_min_mm": 29.2,
+     "sweep_sum_mm": 95.71,
+     "grip_N": 21.68,
+     "grip_depth_mm": 55.2,
+     "grasp_z": 0.1119,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 55.0
+    },
+    "cells": [
+     {
+      "axis_k": 0.25,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": 0.0,
+      "final_cos": -0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 5.3,
+       "arc_mm": 1.15,
+       "touch_frac": {
+        "thumb": 0.4,
+        "index": 0.4,
+        "middle": 0.2
+       },
+       "slip_mm": {
+        "thumb": 7.4,
+        "index": 8.3,
+        "middle": 9.3
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.23,
+        "index": 0.42,
+        "middle": 0.35
+       },
+       "mean_fn_N": {
+        "thumb": 2.11,
+        "index": 1.86,
+        "middle": 0.25
+       },
+       "max_util": {
+        "thumb": 0.47,
+        "index": 0.15,
+        "middle": 0.86
+       },
+       "mean_contacts": 1.0,
+       "obj_dz_mm": -99.6,
+       "driver": "index",
+       "cos_turn_end": 0.0,
+       "settle_frac": -0.0
+      },
+      "min_finger_clearance_mm": 1.83,
+      "clearance_at_step": 1670,
+      "clearance_pair": "index-middle",
+      "clearance_ok": false
+     },
+     {
+      "axis_k": 0.4,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": 0.0,
+      "final_cos": -0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 5.3,
+       "arc_mm": 1.15,
+       "touch_frac": {
+        "thumb": 0.5,
+        "index": 0.5,
+        "middle": 0.35
+       },
+       "slip_mm": {
+        "thumb": 7.3,
+        "index": 8.7,
+        "middle": 18.1
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.16,
+        "index": 0.4,
+        "middle": 0.44
+       },
+       "mean_fn_N": {
+        "thumb": 2.52,
+        "index": 2.1,
+        "middle": 0.41
+       },
+       "max_util": {
+        "thumb": 0.89,
+        "index": 0.38,
+        "middle": 0.97
+       },
+       "mean_contacts": 1.35,
+       "obj_dz_mm": -99.7,
+       "driver": "middle",
+       "cos_turn_end": -0.0,
+       "settle_frac": 0.0
+      },
+      "min_finger_clearance_mm": 0.34,
+      "clearance_at_step": 1680,
+      "clearance_pair": "index-middle",
+      "clearance_ok": false
+     }
+    ]
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 0.0,
+    "depth_req_mm": 61.0,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 8.4,
+       "reach_mm": 63.97,
+       "extend_mm": 4.14,
+       "fn_N": 7.82,
+       "sweep_mm": 37.46,
+       "sweep_ratio": 2.839
+      },
+      "index": {
+       "arm_mm": 33.15,
+       "reach_mm": 53.65,
+       "extend_mm": 14.46,
+       "fn_N": 3.99,
+       "sweep_mm": 34.55,
+       "sweep_ratio": 0.663
+      },
+      "middle": {
+       "arm_mm": 32.92,
+       "reach_mm": 62.27,
+       "extend_mm": 5.84,
+       "fn_N": 3.86,
+       "sweep_mm": 34.25,
+       "sweep_ratio": 0.662
+      }
+     },
+     "extend_mm": 4.14,
+     "straddle_mm": 31.99,
+     "ceiling_deg": 7.44,
+     "tau_cap_Nmm": 780.32,
+     "tau_pair_Nmm": 622.65,
+     "tau_thumb_Nmm": 157.67,
+     "sweep_min_mm": 34.25,
+     "sweep_sum_mm": 106.26,
+     "grip_N": 15.67,
+     "grip_depth_mm": 36.4,
+     "grasp_z": 0.1202,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 44.5
+    },
+    "cells": [
+     {
+      "axis_k": 0.25,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.225,
+      "sd_cos": 0.0,
+      "kept": 1,
+      "peak_cos": 0.225,
+      "final_cos": 0.225,
+      "final_z": 0.1318,
+      "min_z_hold": 0.1318,
+      "contacts": 2,
+      "contacts_hand": 3,
+      "force_N": 0.58,
+      "ok": true,
+      "style": {
+       "turned_deg": 12.8,
+       "arc_mm": 2.79,
+       "touch_frac": {
+        "thumb": 1.0,
+        "index": 0.3,
+        "middle": 1.0
+       },
+       "slip_mm": {
+        "thumb": 11.4,
+        "index": 6.0,
+        "middle": 15.3
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.4,
+        "index": 0.17,
+        "middle": 0.43
+       },
+       "mean_fn_N": {
+        "thumb": 1.71,
+        "index": 0.43,
+        "middle": 2.12
+       },
+       "max_util": {
+        "thumb": 0.53,
+        "index": 0.78,
+        "middle": 0.6
+       },
+       "mean_contacts": 2.3,
+       "obj_dz_mm": 13.2,
+       "driver": "middle",
+       "cos_turn_end": 0.179,
+       "settle_frac": 0.21
+      },
+      "min_finger_clearance_mm": 9.25,
+      "clearance_at_step": 1190,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     },
+     {
+      "axis_k": 0.4,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.188,
+      "sd_cos": 0.0,
+      "kept": 1,
+      "peak_cos": 0.19,
+      "final_cos": 0.188,
+      "final_z": 0.1335,
+      "min_z_hold": 0.1335,
+      "contacts": 3,
+      "contacts_hand": 4,
+      "force_N": 0.58,
+      "ok": true,
+      "style": {
+       "turned_deg": 10.6,
+       "arc_mm": 2.31,
+       "touch_frac": {
+        "thumb": 1.0,
+        "index": 0.25,
+        "middle": 0.85
+       },
+       "slip_mm": {
+        "thumb": 17.3,
+        "index": 4.7,
+        "middle": 26.5
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.43,
+        "index": 0.14,
+        "middle": 0.43
+       },
+       "mean_fn_N": {
+        "thumb": 1.97,
+        "index": 0.43,
+        "middle": 2.61
+       },
+       "max_util": {
+        "thumb": 0.75,
+        "index": 0.64,
+        "middle": 1.0
+       },
+       "mean_contacts": 2.2,
+       "obj_dz_mm": 12.6,
+       "driver": "middle",
+       "cos_turn_end": 0.189,
+       "settle_frac": -0.01
+      },
+      "min_finger_clearance_mm": 7.89,
+      "clearance_at_step": 2000,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     }
+    ]
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": 61.0,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 20.04,
+       "reach_mm": 64.37,
+       "extend_mm": 3.74,
+       "fn_N": 10.94,
+       "sweep_mm": 30.65,
+       "sweep_ratio": 0.974
+      },
+      "index": {
+       "arm_mm": 32.2,
+       "reach_mm": 62.78,
+       "extend_mm": 5.33,
+       "fn_N": 9.29,
+       "sweep_mm": 29.2,
+       "sweep_ratio": 0.577
+      },
+      "middle": {
+       "arm_mm": 33.97,
+       "reach_mm": 64.0,
+       "extend_mm": 4.11,
+       "fn_N": 1.45,
+       "sweep_mm": 35.86,
+       "sweep_ratio": 0.672
+      }
+     },
+     "extend_mm": 3.74,
+     "straddle_mm": 32.94,
+     "ceiling_deg": 6.52,
+     "tau_cap_Nmm": 1362.35,
+     "tau_pair_Nmm": 836.46,
+     "tau_thumb_Nmm": 525.89,
+     "sweep_min_mm": 29.2,
+     "sweep_sum_mm": 95.71,
+     "grip_N": 21.68,
+     "grip_depth_mm": 55.2,
+     "grasp_z": 0.1119,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 55.0
+    },
+    "cells": [
+     {
+      "axis_k": 0.25,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": 0.0,
+      "final_cos": -0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 5.3,
+       "arc_mm": 1.15,
+       "touch_frac": {
+        "thumb": 0.4,
+        "index": 0.4,
+        "middle": 0.2
+       },
+       "slip_mm": {
+        "thumb": 7.4,
+        "index": 8.3,
+        "middle": 9.3
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.23,
+        "index": 0.42,
+        "middle": 0.35
+       },
+       "mean_fn_N": {
+        "thumb": 2.11,
+        "index": 1.86,
+        "middle": 0.25
+       },
+       "max_util": {
+        "thumb": 0.47,
+        "index": 0.15,
+        "middle": 0.86
+       },
+       "mean_contacts": 1.0,
+       "obj_dz_mm": -99.6,
+       "driver": "index",
+       "cos_turn_end": 0.0,
+       "settle_frac": -0.0
+      },
+      "min_finger_clearance_mm": 1.83,
+      "clearance_at_step": 1670,
+      "clearance_pair": "index-middle",
+      "clearance_ok": false
+     },
+     {
+      "axis_k": 0.4,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": 0.0,
+      "final_cos": -0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 5.3,
+       "arc_mm": 1.15,
+       "touch_frac": {
+        "thumb": 0.5,
+        "index": 0.5,
+        "middle": 0.35
+       },
+       "slip_mm": {
+        "thumb": 7.3,
+        "index": 8.7,
+        "middle": 18.1
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.16,
+        "index": 0.4,
+        "middle": 0.44
+       },
+       "mean_fn_N": {
+        "thumb": 2.52,
+        "index": 2.1,
+        "middle": 0.41
+       },
+       "max_util": {
+        "thumb": 0.89,
+        "index": 0.38,
+        "middle": 0.97
+       },
+       "mean_contacts": 1.35,
+       "obj_dz_mm": -99.7,
+       "driver": "middle",
+       "cos_turn_end": -0.0,
+       "settle_frac": 0.0
+      },
+      "min_finger_clearance_mm": 0.34,
+      "clearance_at_step": 1680,
+      "clearance_pair": "index-middle",
+      "clearance_ok": false
+     }
+    ]
+   }
+  ],
+  "sampling": {
+   "source": "sobol_wide_bias",
+   "sobol_index": 16,
+   "sobol_selector": 0.045345338,
+   "sobol_u_raw": [
+    0.800381541,
+    0.835820818,
+    0.764394781,
+    0.03781453,
+    0.957198499,
+    0.581436289
+   ],
+   "sobol_u_used": [
+    0.800381541,
+    0.835820818,
+    0.817500985,
+    0.03781453,
+    0.967723988,
+    0.581436289
+   ]
+  }
+ },
+ {
+  "design": "sv1_w0064",
+  "vector": [
+   0.0192,
+   0.0342,
+   0.0,
+   -0.0042,
+   -0.0118,
+   0.0,
+   -0.0095,
+   -0.0094,
+   0.0
+  ],
+  "scene": "assets/mjcf/experimental/20260830-real_v1-sobol128/scene_tp0d0192p0d0342p0d0000_in0d0042n0d0118p0d0000_mn0d0095n0d0094p0d0000.xml",
+  "x_sep_mm": 74.0,
+  "pair_x_mm": 43.2,
+  "pair_x_offset_mm": -6.8,
+  "y_sep_mm": 107.6,
+  "thumb_y_mm": 34.2,
+  "pair_y_mid_mm": -10.6,
+  "mounts_mm": {
+   "thumb": [
+    -30.8,
+    34.2
+   ],
+   "index": [
+    45.8,
+    43.2
+   ],
+   "middle": [
+    40.5,
+    -64.4
+   ]
+  },
+  "grasps": [
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 0.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 6.77,
+       "reach_mm": 67.3,
+       "extend_mm": 0.81,
+       "fn_N": 5.49,
+       "sweep_mm": 34.91,
+       "sweep_ratio": 3.285
+      },
+      "index": {
+       "arm_mm": 32.22,
+       "reach_mm": 64.12,
+       "extend_mm": 3.99,
+       "fn_N": 3.32,
+       "sweep_mm": 25.82,
+       "sweep_ratio": 0.51
+      },
+      "middle": {
+       "arm_mm": 35.5,
+       "reach_mm": 67.58,
+       "extend_mm": 0.53,
+       "fn_N": 2.08,
+       "sweep_mm": 30.62,
+       "sweep_ratio": 0.549
+      }
+     },
+     "extend_mm": 0.53,
+     "straddle_mm": 33.15,
+     "ceiling_deg": 0.92,
+     "tau_cap_Nmm": 522.61,
+     "tau_pair_Nmm": 433.51,
+     "tau_thumb_Nmm": 89.1,
+     "sweep_min_mm": 25.82,
+     "sweep_sum_mm": 91.35,
+     "grip_N": 10.89,
+     "grip_depth_mm": 65.4,
+     "grasp_z": 0.1072,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 60.5
+    },
+    "cells": [
+     {
+      "axis_k": 0.25,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": -0.0,
+      "final_cos": 0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 3.5,
+       "arc_mm": 0.76,
+       "touch_frac": {
+        "thumb": 0.2,
+        "index": 0.2,
+        "middle": 0.15
+       },
+       "slip_mm": {
+        "thumb": 1.6,
+        "index": 2.9,
+        "middle": 4.5
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.23,
+        "index": 0.38,
+        "middle": 0.4
+       },
+       "mean_fn_N": {
+        "thumb": 0.54,
+        "index": 0.32,
+        "middle": 0.23
+       },
+       "max_util": {
+        "thumb": 0.61,
+        "index": 0.56,
+        "middle": 0.79
+       },
+       "mean_contacts": 0.55,
+       "obj_dz_mm": -94.6,
+       "driver": "middle",
+       "cos_turn_end": 0.0,
+       "settle_frac": 0.0
+      },
+      "min_finger_clearance_mm": 6.19,
+      "clearance_at_step": 1680,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     },
+     {
+      "axis_k": 0.4,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": -0.0,
+      "final_cos": 0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 3.5,
+       "arc_mm": 0.76,
+       "touch_frac": {
+        "thumb": 0.3,
+        "index": 0.2,
+        "middle": 0.3
+       },
+       "slip_mm": {
+        "thumb": 7.0,
+        "index": 3.2,
+        "middle": 11.7
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.32,
+        "index": 0.21,
+        "middle": 0.47
+       },
+       "mean_fn_N": {
+        "thumb": 0.86,
+        "index": 0.32,
+        "middle": 0.55
+       },
+       "max_util": {
+        "thumb": 0.65,
+        "index": 0.79,
+        "middle": 0.75
+       },
+       "mean_contacts": 0.8,
+       "obj_dz_mm": -94.7,
+       "driver": "middle",
+       "cos_turn_end": -0.0,
+       "settle_frac": 0.0
+      },
+      "min_finger_clearance_mm": 1.0,
+      "clearance_at_step": 1680,
+      "clearance_pair": "index-middle",
+      "clearance_ok": false
+     }
+    ]
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": false
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 0.0,
+    "depth_req_mm": 61.0,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 6.77,
+       "reach_mm": 67.3,
+       "extend_mm": 0.81,
+       "fn_N": 5.49,
+       "sweep_mm": 34.91,
+       "sweep_ratio": 3.285
+      },
+      "index": {
+       "arm_mm": 32.22,
+       "reach_mm": 64.12,
+       "extend_mm": 3.99,
+       "fn_N": 3.32,
+       "sweep_mm": 25.82,
+       "sweep_ratio": 0.51
+      },
+      "middle": {
+       "arm_mm": 35.5,
+       "reach_mm": 67.58,
+       "extend_mm": 0.53,
+       "fn_N": 2.08,
+       "sweep_mm": 30.62,
+       "sweep_ratio": 0.549
+      }
+     },
+     "extend_mm": 0.53,
+     "straddle_mm": 33.15,
+     "ceiling_deg": 0.92,
+     "tau_cap_Nmm": 522.61,
+     "tau_pair_Nmm": 433.51,
+     "tau_thumb_Nmm": 89.1,
+     "sweep_min_mm": 25.82,
+     "sweep_sum_mm": 91.35,
+     "grip_N": 10.89,
+     "grip_depth_mm": 65.4,
+     "grasp_z": 0.1072,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 60.5
+    },
+    "cells": [
+     {
+      "axis_k": 0.25,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": 0.0,
+      "final_cos": -0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 3.5,
+       "arc_mm": 0.76,
+       "touch_frac": {
+        "thumb": 0.2,
+        "index": 0.2,
+        "middle": 0.15
+       },
+       "slip_mm": {
+        "thumb": 1.6,
+        "index": 2.9,
+        "middle": 4.5
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.23,
+        "index": 0.38,
+        "middle": 0.4
+       },
+       "mean_fn_N": {
+        "thumb": 0.54,
+        "index": 0.32,
+        "middle": 0.23
+       },
+       "max_util": {
+        "thumb": 0.61,
+        "index": 0.56,
+        "middle": 0.79
+       },
+       "mean_contacts": 0.55,
+       "obj_dz_mm": -94.6,
+       "driver": "middle",
+       "cos_turn_end": 0.0,
+       "settle_frac": -0.0
+      },
+      "min_finger_clearance_mm": 6.19,
+      "clearance_at_step": 1680,
+      "clearance_pair": "index-middle",
+      "clearance_ok": true
+     },
+     {
+      "axis_k": 0.4,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": 0.0,
+      "final_cos": 0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 3.5,
+       "arc_mm": 0.76,
+       "touch_frac": {
+        "thumb": 0.3,
+        "index": 0.2,
+        "middle": 0.3
+       },
+       "slip_mm": {
+        "thumb": 7.0,
+        "index": 3.2,
+        "middle": 11.7
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.32,
+        "index": 0.21,
+        "middle": 0.47
+       },
+       "mean_fn_N": {
+        "thumb": 0.86,
+        "index": 0.32,
+        "middle": 0.55
+       },
+       "max_util": {
+        "thumb": 0.65,
+        "index": 0.79,
+        "middle": 0.75
+       },
+       "mean_contacts": 0.8,
+       "obj_dz_mm": -94.7,
+       "driver": "middle",
+       "cos_turn_end": -0.0,
+       "settle_frac": 0.0
+      },
+      "min_finger_clearance_mm": 1.0,
+      "clearance_at_step": 1680,
+      "clearance_pair": "index-middle",
+      "clearance_ok": false
+     }
+    ]
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": 61.0,
+    "squeeze_mm": 4.0,
+    "pose": false
+   }
+  ],
+  "sampling": {
+   "source": "sobol_wide_bias",
+   "sobol_index": 64,
+   "sobol_selector": 0.150890423,
+   "sobol_u_raw": [
+    0.819684918,
+    0.811208216,
+    0.324928918,
+    0.302866154,
+    0.239293407,
+    0.343047135
+   ],
+   "sobol_u_used": [
+    0.819684918,
+    0.811208216,
+    0.43036929,
+    0.302866154,
+    0.342135429,
+    0.343047135
+   ]
+  }
+ },
+ {
+  "design": "sv1_w0111",
+  "vector": [
+   0.0183,
+   -0.0229,
+   0.0,
+   -0.0007,
+   0.0016,
+   0.0,
+   0.0127,
+   0.0246,
+   0.0
+  ],
+  "scene": "assets/mjcf/experimental/20260830-real_v1-sobol128/scene_tp0d0183n0d0229p0d0000_in0d0007p0d0016p0d0000_mp0d0127p0d0246p0d0000.xml",
+  "x_sep_mm": 87.7,
+  "pair_x_mm": 56.0,
+  "pair_x_offset_mm": 6.0,
+  "y_sep_mm": 87.0,
+  "thumb_y_mm": -22.9,
+  "pair_y_mid_mm": 13.1,
+  "mounts_mm": {
+   "thumb": [
+    -31.7,
+    -22.9
+   ],
+   "index": [
+    49.3,
+    56.6
+   ],
+   "middle": [
+    62.7,
+    -30.4
+   ]
+  },
+  "grasps": [
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 0.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 1.6,
+       "reach_mm": 66.42,
+       "extend_mm": 1.69,
+       "fn_N": 13.33,
+       "sweep_mm": 34.61,
+       "sweep_ratio": 13.771
+      },
+      "index": {
+       "arm_mm": 31.95,
+       "reach_mm": 65.5,
+       "extend_mm": 2.61,
+       "fn_N": 6.77,
+       "sweep_mm": 27.02,
+       "sweep_ratio": 0.538
+      },
+      "middle": {
+       "arm_mm": 32.0,
+       "reach_mm": 64.93,
+       "extend_mm": 3.18,
+       "fn_N": 6.53,
+       "sweep_mm": 24.2,
+       "sweep_ratio": 0.482
+      }
+     },
+     "extend_mm": 1.69,
+     "straddle_mm": 31.94,
+     "ceiling_deg": 3.03,
+     "tau_cap_Nmm": 1071.87,
+     "tau_pair_Nmm": 1020.67,
+     "tau_thumb_Nmm": 51.2,
+     "sweep_min_mm": 24.2,
+     "sweep_sum_mm": 85.84,
+     "grip_N": 26.63,
+     "grip_depth_mm": 59.6,
+     "grasp_z": 0.1111,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 58.5
+    },
+    "cells": [
+     {
+      "axis_k": 0.25,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": -0.0,
+      "final_cos": 0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 2.0,
+       "arc_mm": 0.44,
+       "touch_frac": {
+        "thumb": 0.6,
+        "index": 0.45,
+        "middle": 0.6
+       },
+       "slip_mm": {
+        "thumb": 14.2,
+        "index": 8.0,
+        "middle": 20.5
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.28,
+        "index": 0.24,
+        "middle": 0.49
+       },
+       "mean_fn_N": {
+        "thumb": 9.31,
+        "index": 2.41,
+        "middle": 6.89
+       },
+       "max_util": {
+        "thumb": 0.17,
+        "index": 0.72,
+        "middle": 0.34
+       },
+       "mean_contacts": 1.65,
+       "obj_dz_mm": -98.7,
+       "driver": "middle",
+       "cos_turn_end": -0.0,
+       "settle_frac": 0.0
+      },
+      "min_finger_clearance_mm": -0.48,
+      "clearance_at_step": 2000,
+      "clearance_pair": "index-middle",
+      "clearance_ok": false
+     },
+     {
+      "axis_k": 0.4,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": 0.168,
+      "final_cos": 0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0106,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 2.0,
+       "arc_mm": 0.44,
+       "touch_frac": {
+        "thumb": 0.7,
+        "index": 0.45,
+        "middle": 0.6
+       },
+       "slip_mm": {
+        "thumb": 24.1,
+        "index": 8.3,
+        "middle": 21.1
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.29,
+        "index": 0.23,
+        "middle": 0.48
+       },
+       "mean_fn_N": {
+        "thumb": 10.5,
+        "index": 2.61,
+        "middle": 7.85
+       },
+       "max_util": {
+        "thumb": 0.85,
+        "index": 0.74,
+        "middle": 0.33
+       },
+       "mean_contacts": 1.8,
+       "obj_dz_mm": -80.2,
+       "driver": "middle",
+       "cos_turn_end": 0.389,
+       "settle_frac": -11.11
+      },
+      "min_finger_clearance_mm": -0.21,
+      "clearance_at_step": 2000,
+      "clearance_pair": "index-middle",
+      "clearance_ok": false
+     }
+    ]
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": false
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 0.0,
+    "depth_req_mm": 61.0,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 0.55,
+       "reach_mm": 66.4,
+       "extend_mm": 1.71,
+       "fn_N": 14.63,
+       "sweep_mm": 35.79,
+       "sweep_ratio": 41.223
+      },
+      "index": {
+       "arm_mm": 31.92,
+       "reach_mm": 65.06,
+       "extend_mm": 3.05,
+       "fn_N": 7.34,
+       "sweep_mm": 26.01,
+       "sweep_ratio": 0.519
+      },
+      "middle": {
+       "arm_mm": 31.99,
+       "reach_mm": 64.87,
+       "extend_mm": 3.24,
+       "fn_N": 7.27,
+       "sweep_mm": 23.84,
+       "sweep_ratio": 0.474
+      }
+     },
+     "extend_mm": 1.71,
+     "straddle_mm": 31.94,
+     "ceiling_deg": 3.07,
+     "tau_cap_Nmm": 1140.19,
+     "tau_pair_Nmm": 1120.78,
+     "tau_thumb_Nmm": 19.41,
+     "sweep_min_mm": 23.84,
+     "sweep_sum_mm": 85.64,
+     "grip_N": 29.24,
+     "grip_depth_mm": 57.3,
+     "grasp_z": 0.1128,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 58.0
+    },
+    "cells": [
+     {
+      "axis_k": 0.25,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": -0.0,
+      "final_cos": 0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 1.5,
+       "arc_mm": 0.34,
+       "touch_frac": {
+        "thumb": 0.55,
+        "index": 0.45,
+        "middle": 0.55
+       },
+       "slip_mm": {
+        "thumb": 12.2,
+        "index": 7.7,
+        "middle": 22.9
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.29,
+        "index": 0.23,
+        "middle": 0.47
+       },
+       "mean_fn_N": {
+        "thumb": 8.17,
+        "index": 2.46,
+        "middle": 5.71
+       },
+       "max_util": {
+        "thumb": 0.25,
+        "index": 0.79,
+        "middle": 0.31
+       },
+       "mean_contacts": 1.55,
+       "obj_dz_mm": -100.8,
+       "driver": "middle",
+       "cos_turn_end": 0.0,
+       "settle_frac": 0.0
+      },
+      "min_finger_clearance_mm": -0.44,
+      "clearance_at_step": 2000,
+      "clearance_pair": "index-middle",
+      "clearance_ok": false
+     },
+     {
+      "axis_k": 0.4,
+      "mode": "linear",
+      "angle_deg": -90.0,
+      "n": 1,
+      "mean_cos": 0.0,
+      "sd_cos": 0.0,
+      "kept": 0,
+      "peak_cos": -0.0,
+      "final_cos": 0.0,
+      "final_z": 0.0124,
+      "min_z_hold": 0.0124,
+      "contacts": 0,
+      "contacts_hand": 0,
+      "force_N": 0.0,
+      "ok": false,
+      "style": {
+       "turned_deg": 1.5,
+       "arc_mm": 0.34,
+       "touch_frac": {
+        "thumb": 0.5,
+        "index": 0.4,
+        "middle": 0.5
+       },
+       "slip_mm": {
+        "thumb": 12.3,
+        "index": 6.1,
+        "middle": 24.5
+       },
+       "carry_frac": {
+        "thumb": -3.0,
+        "index": -3.0,
+        "middle": -3.0
+       },
+       "drive_share": {
+        "thumb": 0.32,
+        "index": 0.22,
+        "middle": 0.46
+       },
+       "mean_fn_N": {
+        "thumb": 8.19,
+        "index": 2.56,
+        "middle": 5.62
+       },
+       "max_util": {
+        "thumb": 0.3,
+        "index": 0.63,
+        "middle": 0.31
+       },
+       "mean_contacts": 1.4,
+       "obj_dz_mm": -100.8,
+       "driver": "middle",
+       "cos_turn_end": -0.0,
+       "settle_frac": 0.0
+      },
+      "min_finger_clearance_mm": -0.2,
+      "clearance_at_step": 2000,
+      "clearance_pair": "index-middle",
+      "clearance_ok": false
+     }
+    ]
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": 61.0,
+    "squeeze_mm": 4.0,
+    "pose": false
+   }
+  ],
+  "sampling": {
+   "source": "sobol_wide_bias",
+   "sobol_index": 111,
+   "sobol_selector": 0.204319065,
+   "sobol_u_raw": [
+    0.805636269,
+    0.291746893,
+    0.384024258,
+    0.526251359,
+    0.636272755,
+    0.909340731
+   ],
+   "sobol_u_used": [
+    0.805636269,
+    0.291746893,
+    0.48783055,
+    0.526251359,
+    0.712414082,
+    0.909340731
+   ]
+  }
+ }
+]

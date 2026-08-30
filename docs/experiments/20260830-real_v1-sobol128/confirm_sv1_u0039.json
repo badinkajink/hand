@@ -1,0 +1,24 @@
+[
+ {
+  "design": "sv1_u0039",
+  "axis_k": 0.55,
+  "angle_deg": -60.0,
+  "pose": true,
+  "straddle_mm": 32.0,
+  "thumb_axial_mm": 10.0,
+  "turn_steps": 550,
+  "hold_squeeze_mm": 0.0,
+  "squeeze_mm": 10.0,
+  "nom_cos": 0.715,
+  "nom_sd": 0.024,
+  "nom_kept": 10,
+  "n_nom": 10,
+  "min_finger_clearance_mm": 7.6,
+  "ens_cos": null,
+  "ens_sd": null,
+  "ens_kept": 0,
+  "n_ens": 0,
+  "ens_win": 0.0,
+  "secs": 2.5
+ }
+]

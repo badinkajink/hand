@@ -101,6 +101,59 @@ to any disturbance."  The pilot ran it at `force_target = 0.0`.  Turning it on:
 only inside a 1–3 N window — 6 N squeezes the tool out, which is the same grip window
 the hardware bench found.  Every other design drops at 9.6 s at every force setting.
 
+## The residual clip is doing more damage than the hold length
+
+Every finalist plan carries `budget: 0.5` — the ±0.5 rad (28.648°) residual clip
+inherited from Policy B's action budget, which has no business constraining an
+open-loop plan (the hardware yaw range is ±85°).  It is not a formality here:
+
+| design | joints clipped | largest thing the trajectory wants |
+|---|---:|---|
+| g12 | 3/9 | middle_pip **92.0°** |
+| rv05_manual | 2/9 | middle_pip **92.0°** |
+| sv1_u0060 | 2/9 | middle_yaw 62.0° |
+| sv1_u0100 | 2/9 | middle_pip **91.6°** |
+| sv1_w0099 | 2/9 | middle_pip 85.0° |
+| sv1_w0116 | 3/9 | middle_pip **92.0°** |
+
+**The whole screen ran the driver finger at about a third of the motion the plan was
+designed from.**  Re-running the same plans with the clip opened, nothing else
+changed (`--budget`, 3 reps):
+
+| design | 0.5 rad (28.6°) @9.6 s | **1.0 rad (57°) @9.6 s** | 1.7 rad (97°) @9.6 s |
+|---|:--:|:--:|:--:|
+| g12 | drop | **held, cos 0.703, 7.0 mm** | drop |
+| sv1_w0099 | drop | **held, cos 0.671, 11.4 mm** | drop |
+| rv05_manual | drop | **held, cos 0.477, 0.2 mm** | drop |
+| sv1_u0060 | drop | **held, cos 0.450, 1.0 mm** | held, cos 0.385 |
+| sv1_w0116 | drop | 1/3, 71.6 mm | held, cos 0.456 |
+| **sv1_u0100** | drop (8.0 s) | **drop — the worst of the six** | drop |
+
+At 1.6 s several of these read a *negative* descent — the tool ends up **higher** than
+where it was grasped, because the fingers close around it instead of letting it swing
+down out of the pinch.  That is the qualitative difference between a turn and a fall,
+and the clip was suppressing it.
+
+**The promotion order inverts.**  `sv1_u0100` was the pilot's robust winner because it
+took longest to fall; with the clip opened it is the only design that cannot take the
+full motion at all (its 1.6 s force reads 33 N — the trajectory jams the tool) and it
+drops before every other design.  Meanwhile g12, the baseline, holds at cos 0.70.
+
+This also matches the hardware: the operator's re-export past the clip (`g12w11`) is
+the one bench plan that "works pretty well".
+
+**Still not a permanent grasp.**  At 1.0 rad the hold goes from ~3 s to ~10–30 s, and
+by 57.6 s everything is on the table.  An open-loop plan ending in a static pose
+eventually loses the tool.  But 3 s → 10–30 s is the difference between a metric that
+cannot see holding at all and one that can.
+
+### What this means for the screen
+
+The budget is not a constant, it is a **design variable that interacts with the
+geometry** — 1.0 rad is far better than 0.5 for four designs, worse for `sv1_u0100`,
+and 1.7 is worse than 1.0 for most.  Any future sweep has to include it as an axis, or
+it is ranking hands on an arbitrary handicap that suits some geometries and not others.
+
 ## What this does and does not invalidate
 
 **Still good.** The sampler, the 134 scenes, the grasp screen, the clearance tracing,
@@ -110,10 +163,10 @@ do not depend on the hold.
 **Not supported.** Any statement of the form "design X reorients and holds."  No hand
 in the finalist set holds the tool after the turn.
 
-**Weaker than stated, but not wrong.** `sv1_u0100` really is the best of the six — it
-survives 4× longer than the median finalist and it is the only one whose alignment is
-not bought by falling.  What the pilot could not know is that "robust" here means
-*slowest to fall*, not *holds*.  `sv1_w0116`'s 0.918 ± 0.001 is a measurement taken
+**Inverted.** `sv1_u0100` is the best of the six *at the clipped budget*, where it
+survives 4× longer than the median finalist.  With the clip opened it is the worst —
+it is the one design that cannot absorb the full motion.  Its promotion is an artifact
+of a handicap that happened to suit it.  `sv1_w0116`'s 0.918 ± 0.001 is a measurement taken
 1.6 s into a fall that completes by 3.2 s; its low variance is the repeatability of a
 falling object, and it is the one design a hold controller can rescue.
 
