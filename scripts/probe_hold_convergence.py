@@ -25,12 +25,14 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def _job(a):
     import real_v1_deploy_envelope as de
-    plan_path, hold, rep, ft, fp = a
+    plan_path, hold, rep, ft, fp, budget = a
     plan = json.loads(Path(plan_path).read_text())
+    if budget is not None:
+        plan["budget"] = budget
     r = de.execute(Path(plan["scene"]), plan, hold_steps=hold, seed=rep,
                    force_target=ft, force_phase=fp)
     return {"design": Path(plan_path).stem, "hold": hold, "rep": rep,
-            "force_target": ft, "force_phase": fp,
+            "force_target": ft, "force_phase": fp, "budget": plan["budget"],
             "final_cos": r["final_cos"], "peak_cos": r["peak_cos"],
             "ok": r["ok"], "contacts": r["contacts_hand"],
             "force_N": r["force_hand_N"], "final_z": r["final_z"],
@@ -49,11 +51,15 @@ def main():
                          "at 0.0, i.e. open loop through the hold as well as the turn.")
     ap.add_argument("--force-phase", default="hold",
                     help="all | hold -- whether the regulator acts through the turn too")
+    ap.add_argument("--budget", type=float, default=None,
+                    help="override the plan's residual clip, rad. The screen ran at 0.5 = 28.6 deg, "
+                         "and every finalist's middle finger wants 62-92 deg, so the screened "
+                         "trajectory is ~1/3 of the one it was designed from.")
     ap.add_argument("--out", type=Path, default=None)
     a = ap.parse_args()
 
     holds = [int(x) for x in a.holds.split(",")]
-    jobs = [(str(p), h, r, a.force_target, a.force_phase)
+    jobs = [(str(p), h, r, a.force_target, a.force_phase, a.budget)
             for p in sorted(a.plans.glob("*.json"))
             for h in holds for r in range(a.reps)]
     print(f"{len(jobs)} rollouts: {len(list(a.plans.glob('*.json')))} plans "
