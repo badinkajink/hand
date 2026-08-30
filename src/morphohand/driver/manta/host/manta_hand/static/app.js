@@ -88,7 +88,14 @@ async function loadPlans() {
     for (const p of plans) {
       const option = document.createElement('option');
       option.value = p.file;
-      option.textContent = p.error ? `${p.file} · invalid` : p.design;
+      /* The design field is the SEARCH identity, not the plan identity: g12, g12w08
+         and g12w11 are three different exports of design g12 and all three read
+         "g12" here, which is indistinguishable in the dropdown. The file stem is
+         unique by construction (resolve_plan keys on it), so label by that and
+         keep the design name only when it adds something. */
+      const stem = p.file.replace(/_plan\.json$/, '');
+      option.textContent = p.error ? `${p.file} · invalid`
+        : (stem === p.design ? stem : `${stem} · ${p.design}`);
       select.appendChild(option);
     }
     showPlan(plans[0]);
