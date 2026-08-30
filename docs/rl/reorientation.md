@@ -4378,3 +4378,89 @@ with it and evaluated without it is out of distribution in exactly the way gotch
 termination relaxed 3 → 15 control steps (the carry runs on two contacts for most of the turn, as
 r4 on perp does; drop termination and the collapse watchdog are untouched).
 
+
+## 2026-08-30 — the reference reorienter does not use its observations
+
+`docs/rl/partial_observation_transfer.md` proposes a teacher/student + RMA program on the
+premise that a deployable actor must infer hidden object state to reproduce what the
+privileged policy does. Its own §4 says to audit observability before training anything.
+Doing that audit first — 30 minutes, no training — says the premise does not hold on the
+policy we have.
+
+New probe `scripts/probe_obs_ablation.py` intervenes on one observation block at a time
+*inside* the closed loop of the continuous A→B handoff, batched over 32 envs. On a10 → b33
+(m05), interventions from the handoff step onward:
+
+    condition                        hold   min-z   final cos   cos|held
+    none (baseline)                  0.97   0.120     +0.867     +0.895
+    replay:hidden  (11 object dims)  0.94   0.117     +0.839     +0.895
+    shuffle:hidden                   0.94   0.116     +0.849     +0.912
+    freeze:hidden                    0.97   0.121     +0.862     +0.890
+    replay:deployable (q, qd, ref, a) 0.97  0.121     +0.845     +0.900
+    zero:hidden                      0.28   0.031     -0.036     +0.191
+
+**Replaying another env's values over the ENTIRE 66-dim actor input costs nothing**
+(0.900 vs 0.895). Not just the object blocks — the proprioception too. b33 steers on none
+of its inputs; its reorientation is a learned open-loop residual trajectory. Which is what
+the two results either side of it already said: the turn is 46–69% floor-and-gravity work
+(`REORIENT_PRIMITIVE.txt`), and the same maneuver runs open-loop from a bounded joint-space
+anchor at cos 0.996 with no policy at all (2026-08-28, above).
+
+Three details that each produce a wrong answer on their own:
+
+* **`zero` ablations lie.** `zero:hidden` collapses the policy while carrying the SAME
+  information as `replay:hidden`, which costs nothing. The collapse is the off-manifold
+  input VALUE, not the missing signal. An ablation that only zeroed blocks — the obvious
+  implementation — would have concluded b33 critically depends on object state and would
+  have justified the entire distillation program. Believe replay/shuffle.
+* **An ablation is only as strong as the across-env variance it destroys.** shuffle/replay
+  permute across the batch, so on a deterministic spawn they are the identity map. The probe
+  prints the variance report FIRST and flags rows that could not have had teeth. Here
+  across-env sd ran 1.9–5.3× across-time sd, so the interventions bit. It also shows
+  `ref_finger_qpos` and `ref_object_pose` have exactly ZERO across-env spread — they are
+  functions of the step index — so `ref_object_pose` is freely available on hardware,
+  contra the memo's §1.1 table which lists it as untrustworthy.
+* **Score held rollouts only.** `peak_cos` reads 0.54–0.97 in every failed condition. It is
+  measuring the shaft rotating on its way to the floor.
+
+**b33 has no feedback to fall back on either.** 5 mm xy / 5° yaw of spawn jitter, no ablation
+at all, drops the baseline to hold 0.41 / final cos +0.228. Under that jitter,
+`replay:joint_vel` makes it BETTER (hold 0.75, cos|held 0.745): feeding a memorised trajectory
+the observations it expects keeps it on its track, while the truth about a perturbed world
+pushes it off. There its observations are not merely unused, they are net harmful.
+
+### What this means
+
+The binding constraint is not observability. There is no closed-loop content in b33 to
+distill — it would distill into a step-index lookup and inherit its brittleness exactly. We
+do not yet have a reorientation policy that uses feedback at all, and a transfer program
+cannot transfer one that does not exist.
+
+The question only becomes meaningful on a task an open-loop trajectory provably cannot solve,
+and the jitter result supplies one for free. Hence `scripts/train_blind_actor_2x2.sh`:
+
+                  nominal                        jittered (5mm / 5°)
+    sighted   S0: reproduces b33 (control)   S1: oracle — solvable WITH object state?
+    blind     B0: was it ever needed?        B1: solvable WITHOUT? = deployability
+
+S1 − B1 is the memo's own oracle-vs-AAC decision gate, measured rather than assumed. "Blind"
+is genuine asymmetric actor-critic, which this env did NOT previously have — both groups got
+the same terms and differed only in noise corruption (the memo's §2.3 caught this). New
+`MorphoHandEnvCfg.actor_blind_terms` forces the actor's `object_pos` / `object_pose_actual` /
+`target_axis_misalign` to zero while the critic keeps them; those three are exactly what the
+real_v1 bench cannot measure, so whatever B1 learns is deployable by construction.
+
+Blinding is `scale=0.0`, not deletion, so the vector stays 66-dim and b33's actor AND critic
+still warmstart — worth far more than eleven dead columns, given from-scratch reorient draws
+vary by sd 0.3–0.5 across seeds against a warmstarted 0.032. All four arms are
+`assert_config_parity.py`-gated: S0 reports EXACT parity with b33's own config.
+
+Also worth recording against the memo's §3.1/§8, which ask for RNNModel plumbing, a recurrent
+config path, recurrent sequence batching and burn-in: mjlab's `ObservationTermCfg` already
+carries `history_length`, `delay_min_lag/max_lag`, `scale` and per-term noise. Frame-stacked
+history (`actor_obs_history`) gives a history-conditioned actor with no new runner code and
+keeps the ONNX export path the CB1 deploy wants — HORA's own adaptation module is a
+convolution over a proprioceptive history buffer, not a recurrent net. Recurrence is the
+fallback, not the first build.
+
+Full tables + variance report: `docs/experiments/20260830-obs_ablation/OBS_ABLATION.md`.
