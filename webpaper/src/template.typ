@@ -21,6 +21,7 @@
   ("morphology.html", "Morphology & Grasp Opt", "morphology"),
   ("rl.html", "RL Manipulation", "rl"),
   ("hardware.html", "Hardware Validation", "hardware"),
+  ("control.html", "Control Station", "control"),
 )
 
 #let site-css = "

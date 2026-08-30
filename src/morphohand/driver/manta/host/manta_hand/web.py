@@ -411,6 +411,11 @@ def main(argv: list[str] | None = None) -> int:
                          "recommended on the CB1: without it the only record is the SSH "
                          "session's scrollback, which is gone exactly when you need it")
     ap.add_argument("--verbose", action="store_true")
+    ap.add_argument("--servo-fields", default="",
+                    help="extra per-servo feedback to sample with each telemetry frame, "
+                         "comma separated (load, voltage, temperature, speed). Each costs "
+                         "another nine bus transactions; 'load' is the only force-ish proxy "
+                         "this part has and it is UNCALIBRATED -- not amps, not newtons")
     args = ap.parse_args(argv)
     if args.mock and args.fake:
         ap.error("--mock and --fake are different things; pick one (see their help text)")
@@ -419,6 +424,10 @@ def main(argv: list[str] | None = None) -> int:
         ap.error("--token is required with real hardware; generate one with: openssl rand -hex 16")
 
     configure_logging(args.log_file, args.verbose)
+    servo_fields = tuple(f.strip() for f in args.servo_fields.split(",") if f.strip())
+    unknown = sorted(set(servo_fields) - {"load", "voltage", "temperature", "speed"})
+    if unknown:
+        ap.error(f"unknown --servo-fields: {', '.join(unknown)}")
     signs = _parse_signs(args.aa_signs)
     if signs:
         for finger, sign in signs.items():
@@ -439,9 +448,11 @@ def main(argv: list[str] | None = None) -> int:
         fake_device = FakeM8P(stall_axes=stall)
         print(f"FAKE hardware: simulated M8P on {fake_device.port}, "
               f"StallGuard2 fires on axes {sorted(stall)}")
-        backend = RealHardwareBackend(fake_device.port, "fake://servos")
+        backend = RealHardwareBackend(fake_device.port, "fake://servos",
+                                       servo_fields=servo_fields)
     else:
-        backend = RealHardwareBackend(args.stepper_port, args.servo_port)
+        backend = RealHardwareBackend(args.stepper_port, args.servo_port,
+                                       servo_fields=servo_fields)
 
     runtime = HandRuntime(backend, logs_dir=args.logs_dir,
                           telemetry_hz=args.telemetry_hz,

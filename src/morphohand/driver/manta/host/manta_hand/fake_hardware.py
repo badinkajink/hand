@@ -246,6 +246,7 @@ class FakeScs0009Controller:
         self.goal_speed = {i: 0 for i in range(NUM_SERVOS)}
         self.torque_enable = {i: TORQUE_OFF for i in range(NUM_SERVOS)}
         self.present_load = {i: 0.0 for i in range(NUM_SERVOS)}
+        self.alarms: dict[int, int] = {}
         self.writes = 0
         self.sync_writes = 0
         self.reads = 0
@@ -292,6 +293,35 @@ class FakeScs0009Controller:
         self._check(sid)
         self.reads += 1
         return [self.present_position[sid]]
+
+    # The per-servo reads the driver actually uses. SYNC READ is unsupported by the real
+    # SCS0009 (it times out on every field), so everything reads one servo at a time --
+    # these are the calls that matter, not the sync_* ones below.
+    def read_present_load(self, sid: int):
+        self._check(sid)
+        self.reads += 1
+        return [self.present_load[sid]]
+
+    def read_present_speed(self, sid: int):
+        self._check(sid)
+        self.reads += 1
+        return [0.0]
+
+    def read_present_voltage(self, sid: int):
+        self._check(sid)
+        self.reads += 1
+        return [50.0]
+
+    def read_present_temperature(self, sid: int):
+        self._check(sid)
+        self.reads += 1
+        return [20.0]
+
+    def read_status(self, sid: int):
+        """Latched alarm byte; 0 is healthy. Set `alarms[sid]` to model a fault."""
+        self._check(sid)
+        self.reads += 1
+        return [self.alarms.get(sid, 0)]
 
     def write_goal_speed(self, sid: int, value: int) -> None:
         self._check(sid)
