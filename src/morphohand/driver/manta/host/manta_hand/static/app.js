@@ -18,7 +18,14 @@
 
 const qs = new URLSearchParams(location.search);
 const API = (qs.get('api') || localStorage.getItem('manta-api') || location.origin).replace(/\/$/, '');
-const TOKEN = qs.get('token') || localStorage.getItem('manta-token') || '';
+/* ?view=1 is an observer link. Every mutating endpoint is a POST behind the control
+ * token and every read is an unauthenticated GET, so a viewer is enforced by the
+ * SERVER, not by these disabled buttons -- but a cached token in localStorage would
+ * re-arm the page for someone who only meant to watch, so view mode deliberately
+ * neither reads nor writes that key. Sharing the URL without ?token= is already
+ * read-only for a fresh browser; ?view=1 is what makes it read-only for yours. */
+const VIEW_ONLY = qs.get('view') === '1';
+const TOKEN = VIEW_ONLY ? '' : (qs.get('token') || localStorage.getItem('manta-token') || '');
 localStorage.setItem('manta-api', API);
 if (TOKEN) localStorage.setItem('manta-token', TOKEN);
 const $ = id => document.getElementById(id);
@@ -37,7 +44,10 @@ async function api(path, options = {}) {
   if (!response.ok) throw new Error(body.error || `HTTP ${response.status}`);
   return body;
 }
-const post = (path, body = {}) => api(path, {method: 'POST', body: JSON.stringify(body)});
+const post = (path, body = {}) => {
+  if (VIEW_ONLY) return Promise.reject(new Error('observer link -- commands are disabled'));
+  return api(path, {method: 'POST', body: JSON.stringify(body)});
+};
 
 function toast(message, isError = false) {
   const t = $('toast');
@@ -120,7 +130,7 @@ function showPlan(p) {
 /* ---------------------------------------------------------------- render --- */
 function render(s) {
   state = s;
-  $('endpoint').textContent = API;
+  $('endpoint').textContent = VIEW_ONLY ? `${API}  (observer)` : API;
 
   /* Link banner: a latched serial failure outranks everything else on the page,
    * because nothing else on it is actionable until the board is back. */
@@ -178,6 +188,8 @@ function render(s) {
   $('stop').disabled = !busy;
   $('disable-motors').disabled = blocked;
   $('reconnect').disabled = !blocked || busy;
+  if (VIEW_ONLY) setCommandsEnabled(false);   // render() re-derives every button from
+  // the runtime state, so the mode has to be re-asserted after it, not just at boot.
 
   renderProgress(s);
   renderHomeOutcomes(s);
@@ -291,8 +303,21 @@ function renderMounts(m) {
 const COMMAND_BUTTONS = ['load-plan', 'home', 'apply-morph', 'pose-open', 'pose-grip',
   'run', 'stop', 'disable-motors', 'torque-on', 'torque-off', 'torque-free'];
 function setCommandsEnabled(enabled) {
-  for (const id of COMMAND_BUTTONS) $(id).disabled = !enabled;
-  $('reconnect').disabled = enabled;
+  const on = enabled && !VIEW_ONLY;
+  for (const id of COMMAND_BUTTONS) $(id).disabled = !on;
+  $('adopt-home').disabled = !on;
+  $('reconnect').disabled = VIEW_ONLY ? true : enabled;
+}
+
+function enterViewOnlyMode() {
+  const banner = document.createElement('div');
+  banner.className = 'banner progress';
+  banner.innerHTML = '<strong>Observer link.</strong> <span>Live telemetry, no control. ' +
+    'Every command button is disabled and this page holds no control token. ' +
+    'Drop <code>?view=1</code> from the URL and add <code>?token=&hellip;</code> to take over.</span>';
+  document.querySelector('main').prepend(banner);
+  setCommandsEnabled(false);
+  for (const el of document.querySelectorAll('.tab')) el.disabled = true;
 }
 
 /* ----------------------------------------------------------------- poll --- */
@@ -432,7 +457,8 @@ $('save-score').onclick = e => {
 };
 $('dismiss-error').onclick = clearError;
 
-$('endpoint').textContent = API;
+$('endpoint').textContent = VIEW_ONLY ? `${API}  (observer)` : API;
+if (VIEW_ONLY) enterViewOnlyMode();
 loadPlans();
 refresh().finally(scheduleRefresh);
 refreshLogs();
