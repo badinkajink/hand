@@ -31,6 +31,7 @@ misleadingly named: it matches joint names among the actuated subset).
 """
 from __future__ import annotations
 
+import dataclasses
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -460,9 +461,44 @@ def _build_observations(cfg: MorphoHandEnvCfg) -> dict:
         }
     else:
         raise ValueError(f"Unknown obs_mode '{cfg.obs_mode}'")
+
+    # ---- asymmetric actor/critic -------------------------------------------
+    # Until now both groups got the SAME terms and the only difference was noise
+    # corruption, i.e. this was never actually asymmetric actor-critic. The critic
+    # keeps every term at its true value (it only ever runs in simulation); the
+    # actor can be blinded to the terms that no hardware sensor can supply.
+    #
+    # Blinding is `scale=0.0`, not deletion, and that is deliberate: the term keeps
+    # its width, so the observation vector stays 66-dim and a privileged checkpoint
+    # (b33) can still be warmstarted into the blinded env. Losing the warmstart would
+    # cost far more than the eleven dead input columns — from-scratch reorient draws
+    # have sd 0.3–0.5 across seeds, warmstarted ones sd 0.032.
+    #
+    # `scale` applies after noise in mjlab's compute → noise → clip → scale → delay →
+    # history pipeline, so a blinded term is exactly zero, corruption included.
+    critic_terms = {**actor_terms}
+    blind = tuple(getattr(cfg, "actor_blind_terms", ()) or ())
+    if blind:
+        unknown = [t for t in blind if t not in actor_terms]
+        if unknown:
+            raise ValueError(
+                f"actor_blind_terms names no such observation term: {unknown}. "
+                f"Available in obs_mode '{cfg.obs_mode}': {sorted(actor_terms)}")
+        actor_terms = {
+            name: (dataclasses.replace(term, scale=0.0) if name in blind else term)
+            for name, term in actor_terms.items()
+        }
+    actor_group = ObservationGroupCfg(actor_terms, enable_corruption=True)
+    # Frame-stacked history straight from mjlab, which is why this needs no RNN: a
+    # blinded actor is solving a POMDP and needs temporal context, and HORA's own
+    # adaptation module is a convolution over a proprioceptive history buffer rather
+    # than a recurrent net. Try a GRU only if stacking demonstrably fails.
+    history = int(getattr(cfg, "actor_obs_history", 0) or 0)
+    if history > 1:
+        actor_group.history_length = history
     return {
-        "actor": ObservationGroupCfg(actor_terms, enable_corruption=True),
-        "critic": ObservationGroupCfg({**actor_terms}, enable_corruption=False),
+        "actor": actor_group,
+        "critic": ObservationGroupCfg(critic_terms, enable_corruption=False),
     }
 
 

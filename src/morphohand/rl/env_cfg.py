@@ -223,6 +223,27 @@ class MorphoHandEnvCfg:
     closing-grasp motion instead of a pre-cage."""
     reward_mode: str = "full"
     obs_mode: str = "full"
+    actor_blind_terms: tuple[str, ...] = ()
+    """Observation terms the ACTOR is blinded to (forced to zero), while the CRITIC
+    keeps their true values — i.e. genuine asymmetric actor-critic, which this env
+    did not previously have (both groups got the same terms and differed only in
+    noise corruption).
+
+    This is the sim2real lever: on the real_v1 bench there is no object tracker, so
+    `object_pos`, `object_pose_actual` and `target_axis_misalign` cannot be measured.
+    Blind the actor to exactly those and whatever it learns is deployable.
+
+    Blinded terms keep their WIDTH (scale=0.0, not deletion), so the vector stays
+    66-dim and a privileged checkpoint can still be warmstarted in — worth far more
+    than the dead columns cost, given from-scratch reorient draws vary by sd 0.3–0.5
+    across seeds against a warmstarted 0.032."""
+    actor_obs_history: int = 0
+    """Frames of observation history stacked into the ACTOR group (0/1 = none). A
+    blinded actor is solving a POMDP and a single frame cannot separate two object
+    states that share a joint vector; stacking is mjlab-native and keeps the existing
+    MLP, ONNX export and deploy path (HORA's adaptation module is likewise a conv over
+    a proprioceptive history, not a recurrent net). Multiplies the actor obs width, so
+    it is incompatible with warmstarting a 1-frame checkpoint."""
     viewer_distance: float = 0.6
     """Viewer camera distance; larger values zoom out."""
     viewer_elevation: float = -15.0
