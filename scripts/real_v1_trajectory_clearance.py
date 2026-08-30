@@ -166,8 +166,13 @@ def main():
                     help="chord resolution; 55 matches the 50Hz service over the 1.1s ramp")
     ap.add_argument("--min-mm", type=float, default=5.0,
                     help="PASS threshold; the sim's links are thinner than the printed parts")
+    ap.add_argument("--deploy-dir", default=None,
+                    help="scan plans from another export dir (e.g. a --budget sweep) instead\n                         of the shipped deploy folder")
     ap.add_argument("--json", default=None)
     args = ap.parse_args()
+    global DEPLOY
+    if args.deploy_dir:
+        DEPLOY = Path(args.deploy_dir)
 
     designs = args.plan
     if args.all or not designs:

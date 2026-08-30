@@ -48,6 +48,10 @@ SIGN = {"thumb": 1.0, "index": -1.0, "middle": -1.0}
 # which is what makes "try them all" safe.
 SAFE_U = {
     "g12":      {"chord": 1.00, "csv": 1.00},
+    # g12 re-exported past the +-0.5 rad residual clip; clearance is unchanged
+    # (the minimum is at the grip pose, which the budget does not touch)
+    "g12w08":   {"chord": 1.00, "csv": 1.00},
+    "g12w11":   {"chord": 1.00, "csv": 1.00},
     "g23":      {"chord": 0.92, "csv": 0.84},
     "g24":      {"chord": 0.55, "csv": 0.10},
     "rv04_mid": {"chord": 0.65, "csv": 0.70},
