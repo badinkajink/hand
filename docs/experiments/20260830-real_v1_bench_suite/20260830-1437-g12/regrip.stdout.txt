@@ -1,0 +1,8 @@
+  stall angle: thumb=22.9  index=27.2  middle=29.3   starting 9.0deg above it
+   0  thu cmd +31.9 got +23.1 L +495  ind cmd +34.3 got +26.7 L +315  mid cmd +34.3 got +28.4 L +240   relieving: thumb,middle
+   1  thu cmd +31.5 got +23.1 L +420  ind cmd +34.3 got +27.2 L +375  mid cmd +33.9 got +30.2 L +240   relieving: middle
+   2  thu cmd +31.5 got +23.1 L +450  ind cmd +34.3 got +27.2 L +330  mid cmd +33.5 got +30.5 L +165   relieving: thumb
+   3  thu cmd +31.1 got +23.1 L +420  ind cmd +34.3 got +26.4 L +375  mid cmd +33.5 got +30.2 L +210   -> in band
+
+  final grip: {"thumb": {"yaw": 17.75, "pip": 0.0, "mcp": 31.05}, "index": {"yaw": 0.0, "pip": 0.01, "mcp": 34.27}, "middle": {"yaw": 0.0, "pip": 0.01, "mcp": 33.47}}
+  wrote logs/regrip_pose.json

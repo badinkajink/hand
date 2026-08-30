@@ -1,0 +1,10 @@
+  before (open):
+    thumb   yaw  +14.94  mcp  +21.68  pip   -0.00   yaw-load   -150
+    index   yaw   -4.39  mcp   +7.03  pip  +29.59   yaw-load   +255
+    middle  yaw   +1.76  mcp   +7.03  pip  +29.59   yaw-load   -105
+  after (grip, seated):
+    thumb   yaw  +15.82  mcp  +22.85  pip   -0.29   yaw-load   -120
+    index   yaw   -3.81  mcp  +27.25  pip   -0.59   yaw-load   +255
+    middle  yaw   +2.05  mcp  +29.30  pip   +0.29   yaw-load    -90
+
+  commanded grip: thumb y+17.7 m+32.4 p+0.0  index y+0.0 m+34.3 p+0.0  middle y+0.0 m+34.3 p+0.0

@@ -112,6 +112,7 @@ def main():
             o = obs.get(f"loaded_{r.get('repeat')}", {})
             out.append({
                 "session": d.name, "design": man["design"], "repeat": r.get("repeat"),
+                "servo_speed": r.get("servo_speed"),
                 "path": man["args"].get("path"), "max_u": man["args"].get("max_u"),
                 "driver": drv, "drivers": drivers,
                 "holders": man["plan_facts"].get("holders", []),
@@ -137,14 +138,14 @@ def main():
 
     print(f"{'design':9s} {'rep':>3s} {'path':5s} {'maxu':>5s} {'drv':6s} "
           f"{'free':>6s} {'load':>6s} {'defc':>6s} {'peakL':>6s} {'plateau':>9s} "
-          f"{'held':>5s} {'rot':>6s} {'touch':>5s}")
+          f"{'spd':>4s} {'held':>5s} {'rot':>6s} {'touch':>5s}")
     for r in out:
         print(f"{r['design']:9s} {s(r['repeat'],3)} {(r['path'] or '-'):5s} "
               f"{s(r['max_u'],5,'{:.2f}')} {r['driver'][:6]:6s} "
               f"{s(r['free_air_yaw'],6,'{:+.1f}')} {s(r['loaded_yaw'],6,'{:+.1f}')} "
               f"{s(r['deficit'],6,'{:+.1f}')} {s(r['peak_driver_load'],6,'{:.0f}')} "
               f"{s(r['plateau_load'],4,'{:.0f}')}x{s(r['plateau_steps'],4,'{:d}')} "
-              f"{s(r['held'],5)} {s(r['rotation_deg'],6,'{:.0f}')} "
+              f"{s(r['servo_speed'],4)} {s(r['held'],5)} {s(r['rotation_deg'],6,'{:.0f}')} "
               f"{s(r['fingers_touched'],5)}")
 
     print()
