@@ -284,8 +284,14 @@ def arm_loaded(a, sess, facts, rec):
             say("  !! no regrip pose -- run the grip arm first, or the plan grip will over-clamp")
             return
     start_pose = json.loads(Path(regrip).read_text())
-    for k in range(a.repeats):
-        say(f"\n  -- repeat {k + 1} of {a.repeats} --")
+    # A speed sweep is a repeat sweep with one thing varied: the servos are
+    # position-controlled with a goal-speed, so the same trajectory at a different
+    # speed is a different LOAD profile, and load is what trips the overload
+    # protection.  Cheapest lever we have that does not touch the plan.
+    speeds = [int(x) for x in a.speed_sweep.split(",")] if a.speed_sweep else [a.speed] * a.repeats
+    for k, spd in enumerate(speeds):
+        say(f"\n  -- repeat {k + 1} of {len(speeds)}"
+            + (f", servo_speed {spd} --" if a.speed_sweep else " --"))
         if k:
             # the previous repeat left the fingers at turn_end; go back before the
             # shaft is re-staged, so it is placed into the same hand every time
@@ -298,7 +304,7 @@ def arm_loaded(a, sess, facts, rec):
                 ask("re-stage the shaft and press enter", "")
         cmd = ["python3", "scripts/real_v1_bench_stepped_run.py", "--plan", a.design,
                "--steps", str(a.steps), "--gate", "5.0", "--gate-timeout", "0.8",
-               "--dwell", str(a.dwell), "--speed", str(a.speed),
+               "--dwell", str(a.dwell), "--speed", str(spd),
                "--max-u", f"{a.max_u:.3f}", "--regrip", str(regrip),
                "--load-delta", "400", "--stall-deg", "0.5", "--stall-window", "5",
                "--hold", str(a.hold)]
@@ -307,7 +313,7 @@ def arm_loaded(a, sess, facts, rec):
         if a.mcp_scale != 1.0:
             cmd += ["--mcp-scale", str(a.mcp_scale)]
         rc, txt = run(cmd, sess, f"loaded_{k + 1}")
-        rec["runs"].append({"arm": "loaded", "repeat": k + 1, "rc": rc,
+        rec["runs"].append({"arm": "loaded", "repeat": k + 1, "servo_speed": spd, "rc": rc,
                             "log": harvest(txt, sess, f"loaded_{k + 1}"), "cmd": cmd})
         o = observe(f"loaded_{k + 1}")
         rec["observations"].append(o)
@@ -383,6 +389,9 @@ def main():
     ap.add_argument("--steps", type=int, default=55)
     ap.add_argument("--dwell", type=float, default=0.1)
     ap.add_argument("--speed", type=int, default=80)
+    ap.add_argument("--speed-sweep", default="",
+                    help="comma-separated servo speeds, one loaded repeat each, e.g. 40,80,120. "
+                         "Overrides --repeats.  Same trajectory, different load profile")
     ap.add_argument("--hold", type=float, default=4.0)
     ap.add_argument("--mcp-scale", type=float, default=1.0)
     ap.add_argument("--preload-start", type=float, default=9.0)

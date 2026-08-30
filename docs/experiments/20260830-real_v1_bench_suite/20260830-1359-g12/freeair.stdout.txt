@@ -1,0 +1,13 @@
+  grip -> turn_end, 55 steps, dwell 0.1s, gate 5.0 deg  -> logs/20260830-135923-g12-stepped.jsonl
+  step   u      thumb yaw c/g/e      index yaw c/g/e      middle yaw c/g/e     loads
+Traceback (most recent call last):
+  File "/home/humanoid/Programs/hand/scripts/real_v1_bench_stepped_run.py", line 274, in <module>
+    main()
+  File "/home/humanoid/Programs/hand/scripts/real_v1_bench_stepped_run.py", line 189, in main
+    command(want, args.speed)
+  File "/home/humanoid/Programs/hand/scripts/real_v1_bench_stepped_run.py", line 35, in command
+    tok = mh.post("/stream/start", {"timeout_s": 2.0})["token"]
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/humanoid/Programs/hand/scripts/mh.py", line 20, in post
+    raise RuntimeError(f"{path} -> {e.code} {e.read().decode()[:300]}") from None
+RuntimeError: /stream/start -> 409 {"error": "RuntimeErrorState: home the gantries once in this daemon session first"}

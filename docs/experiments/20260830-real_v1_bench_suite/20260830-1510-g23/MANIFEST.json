@@ -1,0 +1,332 @@
+{
+  "design": "g23",
+  "started": "2026-08-30T15:10:35",
+  "operator": "humanoid",
+  "note": "",
+  "args": {
+    "design": "g23",
+    "arms": "loaded",
+    "repeats": 3,
+    "path": "chord",
+    "max_u": 0.92,
+    "steps": 55,
+    "dwell": 0.1,
+    "speed": 80,
+    "hold": 4.0,
+    "mcp_scale": 1.0,
+    "preload_start": 9.0,
+    "operator": "humanoid",
+    "note": ""
+  },
+  "plan_facts": {
+    "driver": "middle",
+    "drivers": [
+      "middle"
+    ],
+    "holders": [
+      "thumb",
+      "index"
+    ],
+    "no_clean_holder": false,
+    "excursion_deg": {
+      "thumb": {
+        "yaw": -8.186,
+        "mcp": -1.1370000000000005,
+        "pip": -0.073
+      },
+      "index": {
+        "yaw": -22.251,
+        "mcp": -10.707,
+        "pip": -0.144
+      },
+      "middle": {
+        "yaw": 28.648,
+        "mcp": -20.936,
+        "pip": 28.648
+      }
+    },
+    "total_deg": {
+      "thumb": 9.4,
+      "index": 33.1,
+      "middle": 78.2
+    },
+    "clip_saturated": [
+      "middle_yaw",
+      "middle_pip"
+    ],
+    "meta": {
+      "object": "medium",
+      "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/20260829-deploy_envelope/scene_tp0d0150p0d0000p0d0000_in0d0150n0d0225p0d0000_mn0d0150p0d0225p0d0000__medium__bench100py-35__flat15w21T.xml",
+      "source": "scripts/real_v1_export_plan.py",
+      "replay_initial_qpos": [
+        0.0,
+        0.0,
+        0.1,
+        0.7071067811865475,
+        0.7071067811865475,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.10250000000000001,
+        0.0,
+        0.0,
+        0.0,
+        0.15264932839526513,
+        0.013159676269750955,
+        0.4008414713814508,
+        0.11487660541689913,
+        -0.021600124595120663,
+        0.46544607047091574,
+        -0.11487660541689913,
+        -0.02160012459512067,
+        0.46544607047091574
+      ],
+      "replay_base_ctrl": [
+        0.0,
+        0.0,
+        0.10250000000000001,
+        0.0,
+        0.0,
+        0.0,
+        0.15264932839526513,
+        0.434861471684524,
+        0.001283699150165695,
+        0.11487660541689915,
+        0.43695986163475053,
+        0.002614832943111115,
+        -0.11487660541689915,
+        0.43695986163475053,
+        0.0026148329431111097
+      ],
+      "straddle_mm": 40.0,
+      "thumb_axial_mm": 10.0,
+      "squeeze_mm": 10.0,
+      "grip_depth_mm": 65.0,
+      "axis_k": 0.1,
+      "angle_deg": -80.0,
+      "turn_steps": 550,
+      "pad_width_mm": 21.1,
+      "flat_pads": true,
+      "bench_height_mm": 100.0,
+      "post_y_mm": -35.0,
+      "palm_lift_mm": 0.0
+    },
+    "grip_pose": {
+      "thumb": {
+        "yaw": 8.746,
+        "mcp": 24.916,
+        "pip": 0.074
+      },
+      "index": {
+        "yaw": 6.582,
+        "mcp": 25.036,
+        "pip": 0.15
+      },
+      "middle": {
+        "yaw": -6.582,
+        "mcp": 25.036,
+        "pip": 0.15
+      }
+    }
+  },
+  "safe_u_table": {
+    "chord": 0.92,
+    "csv": 0.84
+  },
+  "runs": [
+    {
+      "arm": "loaded",
+      "repeat": 1,
+      "rc": 0,
+      "log": "loaded_1.jsonl",
+      "cmd": [
+        "python3",
+        "scripts/real_v1_bench_stepped_run.py",
+        "--plan",
+        "g23",
+        "--steps",
+        "55",
+        "--gate",
+        "5.0",
+        "--gate-timeout",
+        "0.8",
+        "--dwell",
+        "0.1",
+        "--speed",
+        "80",
+        "--max-u",
+        "0.920",
+        "--regrip",
+        "/home/humanoid/Programs/hand/logs/regrip_pose.json",
+        "--load-delta",
+        "400",
+        "--stall-deg",
+        "0.5",
+        "--stall-window",
+        "5",
+        "--hold",
+        "4.0"
+      ]
+    },
+    {
+      "arm": "return",
+      "repeat": 2,
+      "yaw_err": {
+        "thumb": -6.32,
+        "index": 1.76,
+        "middle": -4.4
+      }
+    },
+    {
+      "arm": "loaded",
+      "repeat": 2,
+      "rc": 0,
+      "log": "loaded_2.jsonl",
+      "cmd": [
+        "python3",
+        "scripts/real_v1_bench_stepped_run.py",
+        "--plan",
+        "g23",
+        "--steps",
+        "55",
+        "--gate",
+        "5.0",
+        "--gate-timeout",
+        "0.8",
+        "--dwell",
+        "0.1",
+        "--speed",
+        "80",
+        "--max-u",
+        "0.920",
+        "--regrip",
+        "/home/humanoid/Programs/hand/logs/regrip_pose.json",
+        "--load-delta",
+        "400",
+        "--stall-deg",
+        "0.5",
+        "--stall-window",
+        "5",
+        "--hold",
+        "4.0"
+      ]
+    },
+    {
+      "arm": "return",
+      "repeat": 3,
+      "yaw_err": {
+        "thumb": -8.96,
+        "index": -0.29,
+        "middle": 2.64
+      }
+    },
+    {
+      "arm": "loaded",
+      "repeat": 3,
+      "rc": 0,
+      "log": "loaded_3.jsonl",
+      "cmd": [
+        "python3",
+        "scripts/real_v1_bench_stepped_run.py",
+        "--plan",
+        "g23",
+        "--steps",
+        "55",
+        "--gate",
+        "5.0",
+        "--gate-timeout",
+        "0.8",
+        "--dwell",
+        "0.1",
+        "--speed",
+        "80",
+        "--max-u",
+        "0.920",
+        "--regrip",
+        "/home/humanoid/Programs/hand/logs/regrip_pose.json",
+        "--load-delta",
+        "400",
+        "--stall-deg",
+        "0.5",
+        "--stall-window",
+        "5",
+        "--hold",
+        "4.0"
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "loaded_1",
+      "held": true,
+      "rotation_deg": 5.0,
+      "rotation_source": "eye",
+      "fingers_touched": false,
+      "slipped": false,
+      "media": "",
+      "notes": "an even worse policy"
+    },
+    {
+      "kind": "loaded_2",
+      "held": true,
+      "rotation_deg": 2.0,
+      "rotation_source": "eye",
+      "fingers_touched": false,
+      "slipped": false,
+      "media": "",
+      "notes": "basically nothing"
+    },
+    {
+      "kind": "loaded_3",
+      "held": true,
+      "rotation_deg": 2.0,
+      "rotation_source": "eye",
+      "fingers_touched": false,
+      "slipped": false,
+      "media": "",
+      "notes": "pretty nothing"
+    }
+  ],
+  "preflight": {
+    "backend": "real",
+    "homed": true,
+    "busy": false,
+    "operation": "idle",
+    "servo_torque": 1,
+    "loaded_plan": null,
+    "servo_age_s": 0.1898210048675537,
+    "servo_polling_suspended": false,
+    "servo_load": {
+      "0": -90.0,
+      "1": -60.0,
+      "2": -90.0,
+      "3": 240.0,
+      "4": 0.0,
+      "5": 75.0,
+      "6": -135.0,
+      "7": 0.0,
+      "8": 0.0
+    },
+    "servos": {
+      "0": {
+        "aa": 7.324193749999992,
+        "fe1": -4.3750000010334134e-05,
+        "fe2": 21.679675000000003
+      },
+      "1": {
+        "aa": -2.636725000000002,
+        "fe1": -0.878868749999981,
+        "fe2": 27.246049999999997
+      },
+      "2": {
+        "aa": 4.395156249999999,
+        "fe1": -1.46484375,
+        "fe2": 26.07426875
+      }
+    },
+    "problems": []
+  },
+  "updated": "2026-08-30T15:43:10",
+  "ended": "2026-08-30T15:43:10"
+}
