@@ -70,6 +70,60 @@ its own grip is what stalls it.  Relieving both together drops the shaft
 (run 2); relieving neither stalls the turn (runs 1, 3); relieving middle alone
 while keeping the thumb firm does both (run 4).
 
+## The stall is the servo's overload protection, not a mechanical stall
+
+Read from all nine servos on 2026-08-30 with the bus free (factory defaults, identical
+across every servo):
+
+| register | value |
+|---|---|
+| `max_torque_limit` | 100 % — **not** a limiter |
+| `overload_torque` | 80 % |
+| `protective_torque` | **20 %** |
+| `protection_time` | 100 |
+| `unloading_condition` | 32 |
+| `minimum_startup_force` | 45 |
+
+The SCS0009 protection scheme is: sustained load above `overload_torque` for
+`protection_time` drops the servo's output to `protective_torque` and holds it there.
+Run 4's middle-yaw load trace is exactly that signature:
+
+```
+ i   cmd_yaw  got_yaw  load
+20   +23.92   +13.18    615
+21   +25.06   +12.89    630
+22   +26.20   +12.89    705
+23   +27.34   +13.77    690
+24   +28.48   +12.89    200   <- instantaneous 505-unit drop
+25   +28.65   +12.89    200
+...                     200   for 32 consecutive steps, never varying by one unit
+```
+
+Two things make this more than a coincidence. **200 is 20 % of a 0-1000 load scale**,
+i.e. `protective_torque` exactly. And **200 is the only plateau value in the entire
+bench dataset that is not a multiple of 15** — every genuine load reading in all seven
+runs is quantized to 15, so 200 is not a load measurement at all. The other flat
+stretches in the data (135, 195, 225) are ordinary: the load was already at that level
+before the plateau. This one drops 505 units in a single step and then never moves.
+
+Run 3 corroborates from the other side: its middle-yaw load reached 855 — above the
+80 % threshold — at step 24, the same step at which run 4 tripped, and the stall abort
+fired there. Free air never gets close: peak middle-yaw load 255-285, which is why the
+same command reaches 25.8 deg with no shaft in the hand.
+
+So the mechanism is: **grip load drives the yaw servo past 80 %, protection fires, the
+joint is left with 20 % torque and cannot move for the rest of the trajectory.** The
+finger is not mechanically stalled and the trajectory is not asking for something
+impossible — the actuator has unloaded itself. `overload_torque`, `protective_torque`,
+`protection_time` and `unloading_condition` are all per-servo writable
+(`rustypot` `write_*`), so this is a configuration ceiling, not a hardware one.
+
+**Not yet confirmed by a write test.** Setting `protective_torque` to 40 on
+middle_yaw and re-running should pin the plateau at 400 instead of 200; that is the
+decisive experiment and it has not been run. Raising it also removes a thermal
+protection that exists for a reason.
+
+
 ## Reproducing run 4
 
 With the shaft staged in the open hand and the CB1 service up:
@@ -99,11 +153,9 @@ load 270 and it could not reach the 450 target.
 
 ## Open
 
-- Middle yaw stalls at a repeatable 12.6 deg, load exactly 200, for the last 30
-  steps whenever the thumb is firm.  Free air proves the axis can reach 25.8, so
-  the missing 13 deg is grip load alone, and at ~1:1 it is worth roughly another
-  13 deg of cylinder rotation.  This is the single highest-value thing to chase
-  next: the trajectory's second half is currently doing nothing.
+- The overload-protection write test above: does `protective_torque = 40` move the
+  plateau to 400?  That decides whether the missing 13 deg of middle yaw -- worth
+  another ~13 deg of cylinder at 1:1 -- is recoverable by configuration.
 - Index yaw does not return to its commanded zero (sits at -4.7 deg with a
   standing load ~240-270).  That axis is preloaded against something.
 - No object-pose measurement exists.  Every reorientation verdict here is the

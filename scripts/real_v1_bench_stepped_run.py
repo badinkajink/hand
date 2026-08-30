@@ -103,6 +103,13 @@ def main():
                          "over --stall-window steps.  Load alone is not a fault: the turn is "
                          "supposed to push the object, so load RISES when it is working.")
     ap.add_argument("--stall-window", type=int, default=5)
+    ap.add_argument("--max-u", type=float, default=1.0,
+                    help="stop at this fraction of the turn.  Three of the four exported "
+                         "designs interpenetrate index<->middle somewhere on the path "
+                         "(real_v1_trajectory_clearance.py); truncating at the last u that "
+                         "still clears is what makes them runnable at all.  Per design, at a "
+                         "3mm margin: g12 1.00, g23 0.84(csv)/0.92(chord), g24 0.55(chord), "
+                         "rv04_mid 0.65(chord).")
     ap.add_argument("--csv", action="store_true",
                     help="replay <plan>_traj.csv instead of interpolating the set-points. "
                          "These are NOT the same path: the plan JSON keeps three poses and "
@@ -139,7 +146,7 @@ def main():
     import os; os.makedirs(os.path.dirname(out), exist_ok=True)
     fh = open(out, "w")
     meta = {"kind": "meta", "plan": args.plan, "steps": args.steps, "csv": args.csv, "dwell_s": args.dwell,
-            "gate_deg": args.gate, "gate_timeout_s": args.gate_timeout,
+            "gate_deg": args.gate, "max_u": args.max_u, "gate_timeout_s": args.gate_timeout,
             "servo_speed": args.speed, "from": args.from_pose, "to": args.to_pose,
             "started": time.strftime("%Y-%m-%dT%H:%M:%S"), "plan_meta": plan["meta"]}
     fh.write(json.dumps(meta) + "\n")
@@ -164,7 +171,12 @@ def main():
         return [f for f in SIGN if L[f] - base[f] > margin]
 
     n_steps = (len(csv_path) - 1) if csv_path else args.steps
-    for i in range(0, n_steps + 1):
+    last = n_steps
+    if args.max_u < 1.0:
+        last = max(1, int(round(args.max_u * n_steps)))
+        print(f"  TRUNCATED at u={args.max_u:.2f} -> step {last} of {n_steps} "
+              f"(finger-finger clearance)")
+    for i in range(0, last + 1):
         u = i / n_steps
         want = csv_path[i] if csv_path else lerp(a, b, u)
         if args.mcp_scale != 1.0:
@@ -228,14 +240,14 @@ def main():
                     print("  backing off 3 steps")
                     command(back, args.speed); time.sleep(0.3)
                 break
-        if i % 5 == 0 or i == n_steps:
+        if i % 5 == 0 or i == last:
             print(f"  {i:4d} {u:5.2f}  " + "  ".join(
                 f"{row[f]['cmd']['yaw']:+6.1f}/{row[f]['got']['yaw']:+6.1f}/"
                 f"{row[f]['err']['yaw']:+5.2f}" for f in SIGN)
                 + "   " + " ".join(f"{row[f]['yaw_load']:+6.0f}" for f in SIGN))
     if args.hold > 0 and not aborted:
         print(f"  holding {args.hold:.1f}s at the final pose...")
-        want = csv_path[-1] if csv_path else lerp(a, b, 1.0)
+        want = csv_path[last] if csv_path else lerp(a, b, last / n_steps)
         end = time.monotonic() + args.hold
         k = 0
         while time.monotonic() < end:

@@ -38,6 +38,17 @@ onto it** — a10/b33 were trained on a 117 mm finger with coincident yaw/MCP ax
 
 ### On the bench (workstation → CB1, in this order)
 
+**Run a whole sitting through `real_v1_bench_session.py`** — it calls the three scripts below
+in order, picks the clearance-safe truncation for the design, sets per-finger grip targets
+from the plan's own driver/holder split, and captures the operator observations that no log
+contains (there is no object-pose sensor on this hand). Protocol:
+`docs/experiments/20260830-real_v1_bench_suite/README.md`.
+
+| script | role |
+|---|---|
+| `real_v1_bench_session.py` | 0. the session driver — one design, one directory, self-describing |
+| `real_v1_bench_report.py` | 4. read the sessions back: driver-yaw loaded vs free-air (= grip load), and the load-200 overload plateau |
+
 `mh.py` is the shared HTTP client (`10.99.99.2:8765`; GETs are unauthenticated, POSTs carry the
 token). Every read must assert `servo_polling_suspended == False` and a fresh `servo_age_s` —
 telemetry stops while a writer owns the bus, so a careless probe reads one stale sample forever.
