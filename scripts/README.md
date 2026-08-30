@@ -71,6 +71,7 @@ telemetry stops while a writer owns the bus, so a careless probe reads one stale
 | `policy_filmstrip.py` | run/video → one labelled PNG of phase-aligned frames (skill `policy-eyes`). Look at a policy before explaining its reward table |
 | `probe_grip_balance.py`, `probe_grip_force.py` | per-finger force probes (degenerate-pinch detection) |
 | `probe_thumb_reach.py` | does the reoriented shaft land inside the thumb's reach shell? (perp) |
+| `real_v1_render_deploy_plan.py` | render the trajectory the HARDWARE replays (the exported chord/CSV, not the dense carry), with per-frame finger clearance; `--physics` steps the CSV in the deploy scene and reports whether the tool is actually carried. All four plans reorient (cos 0.74-0.78); only g12 keeps its fingers apart |
 | `probe_obs_ablation.py` | closed-loop observation ablation: which observation blocks does a trained policy actually steer on? Four interventions (zero/freeze/shuffle/replay) because `zero` conflates missing information with an off-manifold value and gives the OPPOSITE verdict; prints an across-env variance report first, since an intervention can only destroy variance that exists. Found b33 to be feed-forward (`docs/experiments/20260830-obs_ablation/`) |
 | `sweep_perp_thumb.py` | perp thumb-morphology sweep: self-collision gate -> stow -> swing -> thumb press -> axial load |
 | `rl_eval_object.py`, `rl_play_policy.py`, `rl_diagnose_policy.py` | pose-grid eval / interactive playback / obs-action dump |

@@ -179,9 +179,16 @@ def _min_cross_clearance(m, d, pairs, owner, distmax=0.05):
     best, who = float("inf"), None
     for a, b in pairs:
         dist = mujoco.mj_geomDistance(m, d, a, b, distmax, None)
-        # mj_geomDistance returns distmax when the pair is further apart than the cutoff;
-        # that is a non-measurement, not a reading, so it must not win the minimum.
-        if dist < best and dist < distmax:
+        # Two non-readings must not win the minimum. `distmax` means "further apart than
+        # the cutoff", and an EXACT 0.0 is a documented box-box artifact of
+        # mj_geomDistance, not a touch -- real_v1_trajectory_clearance.py hit it on
+        # g12's thumb_tip/index_tip in the middle of a smooth 8.8 -> 20.9 mm sweep. That
+        # script uses the collision pipeline as the authority on actual contact; here the
+        # finger pairs are excluded from that pipeline, so the zeros are simply dropped
+        # and this stays a MARGIN measurement rather than a contact test.
+        if dist == 0.0 or dist >= distmax:
+            continue
+        if dist < best:
             best, who = dist, (owner[a], owner[b])
     return (None, None) if who is None else (best, who)
 
