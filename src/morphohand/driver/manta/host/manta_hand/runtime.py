@@ -22,7 +22,7 @@ from typing import Protocol
 from .kinematics import (FULL_EXTENSION_MM, STEPPER_JOINTS, STEPS_PER_MM,
                           HomingAborted, _home_timeout_ms)
 from .plan import (FINGER_ID, FINGER_NAME, JOINT_SIGN, SIM_JOINT_TO_SERVO, HandPlan,
-                    Pose, servo_deg)
+                    Pose, local_from_palm, servo_deg, stepper_mm)
 from .protocol import MantaHandError
 from .servos import (DEFAULT_JOINT_SPEED, FINGER_JOINTS, TORQUE_FREE, TORQUE_OFF,
                       TORQUE_ON, TORQUE_UNSET)
@@ -87,6 +87,7 @@ class HardwareBackend(Protocol):
     def apply_mounts(self, plan: HandPlan, cancel=None, report=None) -> None: ...
     def write_joints(self, pose: dict[int, dict[str, float]], speed: int | None = None) -> None: ...
     def read_telemetry(self, include_servos: bool = True) -> dict: ...
+    def adoptable_home(self) -> dict: ...
     def set_servo_torque(self, state: int) -> dict: ...
     def disable_motors(self) -> None: ...
     def stop(self) -> None: ...
@@ -140,6 +141,31 @@ class RealHardwareBackend:
             raise
         self.link_error = None
         return result
+
+    def adoptable_home(self) -> dict:
+        """Does the BOARD still vouch for a home the host has forgotten?
+
+        The M8P keeps its step counters, its SETSCALE calibration and its per-axis
+        `homing_result` across a HOST restart -- only a board reset or an explicit DIS
+        clears them. A daemon restart therefore does not invalidate the reference, even
+        though the session state is rebuilt from nothing. Re-homing in that situation
+        costs about two minutes of the rails grinding into their hardstops for no new
+        information, on a hand that may be holding something.
+
+        `homing_result` 2 (stalled) or 3 (timed out having covered the full measured
+        travel) is the firmware's own record that a home completed. An axis that is
+        disabled, still moving, or reporting 0/1 has no trustworthy reference and
+        disqualifies the whole set -- the reference is only as good as its worst axis."""
+        status = self.guard(self.driver.get_all_status)[:6]
+        axes = []
+        for i, st in enumerate(status):
+            axes.append({"joint": i, "homing_result": st.homing_result,
+                         "enabled": st.enabled, "moving": st.moving,
+                         "position_mm": st.position / STEPS_PER_MM[i],
+                         "stalled": st.homing_result == 2, "elapsed_s": 0.0,
+                         "ok": bool(st.enabled and not st.moving
+                                    and st.homing_result in (2, 3))})
+        return {"adoptable": all(a["ok"] for a in axes), "axes": axes}
 
     def ping(self) -> bool:
         try:
@@ -287,6 +313,13 @@ class MockHardwareBackend:
 
     def ping(self) -> bool:
         return True
+
+    def adoptable_home(self) -> dict:
+        axes = [{"joint": i, "homing_result": 2 if self.homed else 0,
+                 "enabled": not self.motors_disabled, "moving": False,
+                 "position_mm": 0.0, "stalled": True, "elapsed_s": 0.0,
+                 "ok": self.homed and not self.motors_disabled} for i in range(6)]
+        return {"adoptable": all(a["ok"] for a in axes), "axes": axes}
 
     def read_telemetry(self, include_servos: bool = True) -> dict:
         steppers = []
@@ -597,6 +630,49 @@ class HandRuntime:
         elif event == "gantry_axis_start":
             self._event("info", f"J{payload['joint']} -> {payload.get('target_mm', 0):.2f}mm",
                         payload)
+
+    def adopt_home(self, *, tolerance_mm: float = 0.5) -> dict:
+        """Take over a home the board still vouches for, without re-homing.
+
+        Also adopts `mounts_applied` when the gantries are already sitting at the loaded
+        plan's stepper targets within `tolerance_mm` -- which after a daemon restart they
+        usually are, because nothing moved them. Both adoptions are logged as adopted
+        rather than performed, so a run summary never claims a home this process watched
+        when it did not."""
+        with self._lock:
+            self._require_link()
+            self._require_idle()
+            if self._homed:
+                raise RuntimeErrorState("this session is already homed")
+        report = self.backend.adoptable_home()
+        if not report["adoptable"]:
+            bad = [str(a["joint"]) for a in report["axes"] if not a["ok"]]
+            raise RuntimeErrorState(
+                f"the board does not vouch for a completed home on J{', J'.join(bad)} "
+                f"(needs enabled, stopped, homing_result 2 or 3) -- home properly instead")
+        with self._lock:
+            self._homed = True
+            self._unhomed_reason = None
+            self._home_outcomes = [{k: a[k] for k in
+                                    ("joint", "homing_result", "stalled", "elapsed_s")}
+                                   for a in report["axes"]]
+            self._current_pose = None
+            adopted_mounts = False
+            if self._plan is not None:
+                targets: dict[int, float] = {}
+                for finger, (x, y) in self._plan.mounts_palm_mm.items():
+                    lx, ly = local_from_palm(finger, x, y)
+                    targets.update(stepper_mm(finger, lx, ly))
+                here = {a["joint"]: a["position_mm"] for a in report["axes"]}
+                deltas = [abs(here[j] - mm) for j, mm in targets.items() if j in here]
+                if deltas and max(deltas) <= tolerance_mm:
+                    self._mounts_applied = True
+                    adopted_mounts = True
+        self._event("warning",
+                    "adopted the board's existing home without re-homing"
+                    + (" (and its morphology position)" if adopted_mounts else ""),
+                    {"axes": report["axes"], "mounts_adopted": adopted_mounts})
+        return self.state()
 
     def apply_morphology(self) -> None:
         with self._lock:
