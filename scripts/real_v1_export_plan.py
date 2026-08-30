@@ -175,7 +175,7 @@ def main() -> int:
         q = (np.degrees(anchor[j] + plan["squeeze_delta"][j])
              if plan.get("squeeze_delta") else float("nan"))
         poses.append(f"  {j:12} {a:10.2f} {e:12.2f} {q:11.2f}")
-    poses += ["", f"  ramp 1  close to the grip pose            0.5 s",
+    poses += ["", "  ramp 1  close to the grip pose            0.5 s",
               ("  ramp 2  settle, palm held still         0.8 s" if args.bench_height > 0
                else f"  ramp 2  palm up {args.lift*1000:.0f} mm                     0.4 s"),
               f"  ramp 3  grip pose -> end of turn         {args.turn_steps/500:.1f} s",
@@ -220,6 +220,12 @@ def main() -> int:
         ],
         "meta": {"object": args.object, "scene": str(scene),
                  "source": "scripts/real_v1_export_plan.py",
+                 # The nine hardware joints are enough to command the hand, but not enough to
+                 # reconstruct the fitted MuJoCo initial state: the scene also has the object's
+                 # free joint and six virtual palm joints. Preserve both here so a hardware-log
+                 # replay cannot silently start from an unrelated scene keyframe.
+                 "replay_initial_qpos": [float(v) for v in plan["open_qpos"]],
+                 "replay_base_ctrl": [float(v) for v in plan["grip_ctrl"]],
                  "straddle_mm": st * 1000, "thumb_axial_mm": ta * 1000,
                  "squeeze_mm": args.squeeze_mm, "grip_depth_mm": plan["grip_depth_mm"],
                  "axis_k": k, "angle_deg": ang, "turn_steps": args.turn_steps,

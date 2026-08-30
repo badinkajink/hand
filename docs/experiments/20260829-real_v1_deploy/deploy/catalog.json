@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "source": "DEPLOY.md sections 11-12; 200 fresh simulation draws per operating point",
+  "note": "These are robustness metrics for the buffered CEM/open-loop schedule, not learned-policy metrics and not hardware success rates.",
+  "designs": {
+    "g12": {
+      "careful_bench_win": 0.65,
+      "careful_bench_kept": 0.84,
+      "full_error_win": 0.32,
+      "full_error_kept": 0.66,
+      "axial_band_mm": [-2.0, 4.0],
+      "transverse_band_mm": [-8.0, 8.0],
+      "yaw_band_deg": [-8.0, 2.0]
+    },
+    "g23": {
+      "careful_bench_win": 0.64,
+      "careful_bench_kept": 0.76,
+      "full_error_win": 0.28,
+      "full_error_kept": 0.41,
+      "axial_band_mm": [-8.0, 3.0],
+      "transverse_band_mm": [-7.0, 8.0],
+      "yaw_band_deg": [-12.0, 18.0]
+    },
+    "g24": {
+      "careful_bench_win": 0.60,
+      "careful_bench_kept": 0.62,
+      "full_error_win": 0.28,
+      "full_error_kept": 0.36,
+      "axial_band_mm": [-8.0, 2.0],
+      "transverse_band_mm": [-7.0, 8.0],
+      "yaw_band_deg": [-12.0, 18.0]
+    },
+    "rv04_mid": {
+      "careful_bench_win": 0.46,
+      "careful_bench_kept": 0.47,
+      "full_error_win": 0.26,
+      "full_error_kept": 0.31,
+      "axial_band_mm": [-8.0, -1.0],
+      "transverse_band_mm": [3.0, 8.0],
+      "yaw_band_deg": [2.0, 12.0]
+    }
+  }
+}

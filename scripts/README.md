@@ -33,6 +33,7 @@ onto it** — a10/b33 were trained on a 117 mm finger with coincident yaw/MCP ax
 | `real_v1_deploy_envelope.py` | how much perturbation the open-loop carry survives: one-at-a-time axes, everything-wrong-at-once ensembles, and the cell sweep that picks a design's operating point |
 | `real_v1_export_plan.py` | a chosen cell → bench sheets: mounts, a 50 Hz joint trajectory, the four set-points it really is, and `<design>_plan.json` for the driver |
 | `real_v1_hand_commands.py` | the sim design space against what the gantries actually reach, and an exported plan → literal `MOVEMM`/servo commands. `--travel` re-asks the question under a hypothetical rail length. Driver half = `manta_hand.plan` |
+| `replay_real_v1_hardware_log.py` | replay a control-station JSONL command stream in its exported MuJoCo scene; writes an NPZ plus object-motion and endpoint servo-tracking summary. This replays commands, not unmeasured real object motion |
 
 ## RL training (A = lift/deliver, B = reorient)
 

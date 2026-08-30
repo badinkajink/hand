@@ -46,6 +46,12 @@ day-to-day driving.
 
 The CB1 has a static IP on the lab network: `10.99.99.2` (SSH user `irlab`).
 
+The current network control path is `host/manta_hand/web.py`: a token-protected HTTP/JSON
+service with a browser UI, cached telemetry, buffered trajectory playback, and run logging.
+See the repository-level `docs/hardware_control_station.md`. It does not auto-home on startup.
+The older `hand_control.py` REPL still homes automatically and should remain a bench bring-up
+tool, not the long-running network manager.
+
 ## Startup / power-up
 
 Every power-up (and after any DFU-mode blip -- the M8P's USB-CDC device,

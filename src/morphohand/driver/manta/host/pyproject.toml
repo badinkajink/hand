@@ -10,9 +10,15 @@ dependencies = [
 [project.optional-dependencies]
 servo = ["rustypot>=1.5.0"]
 
+[project.scripts]
+manta-hand-web = "manta_hand.web:main"
+
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 include = ["manta_hand*"]
+
+[tool.setuptools.package-data]
+manta_hand = ["static/*.html", "static/*.css", "static/*.js"]

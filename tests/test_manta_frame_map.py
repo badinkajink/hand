@@ -104,6 +104,15 @@ def test_flexion_is_positive_toward_the_palm_centre(mh):
         assert list(yaw) == [1.0, 0.0, 0.0], finger
 
 
+def test_measured_yaw_signs_are_recorded(mh):
+    assert mh.SIGNS_MEASURED is True
+    assert {finger: mh.JOINT_SIGN[(finger, "yaw")] for finger in mh.FINGER_ID} == {
+        "thumb": 1.0,
+        "index": -1.0,
+        "middle": -1.0,
+    }
+
+
 @pytest.mark.parametrize("design", ["g12", "g23", "g24", "rv04_mid"])
 def test_shortlisted_deploy_plans_fit_the_real_hand(mh, design):
     path = ROOT / f"docs/experiments/20260829-real_v1_deploy/deploy/{design}_plan.json"
@@ -114,6 +123,26 @@ def test_shortlisted_deploy_plans_fit_the_real_hand(mh, design):
     assert bad == [], "\n".join(str(v) for v in bad)
     cmds = plan.stepper_commands()
     assert sum(c.startswith("MOVEMM") for c in cmds) == 6
+
+    # A command plan alone only needs the nine fingers, but hardware-log replay also needs the
+    # fitted virtual palm/object state. Keep that state paired with the exact generated scene.
+    model = mujoco.MjModel.from_xml_path(plan.meta["scene"])
+    qpos = plan.meta["replay_initial_qpos"]
+    ctrl = plan.meta["replay_base_ctrl"]
+    assert len(qpos) == model.nq
+    assert len(ctrl) == model.nu
+    open_pose = next(pose for pose in plan.poses if pose.name == "open")
+    grip_pose = next(pose for pose in plan.poses if pose.name == "grip")
+    for finger in mh.FINGER_ID:
+        for joint in mh.SIM_JOINT_TO_SERVO:
+            joint_id = model.joint(f"{finger}_{joint}").id
+            actuator_id = model.actuator(f"a_{finger}_{joint}").id
+            assert math.degrees(qpos[model.jnt_qposadr[joint_id]]) == pytest.approx(
+                open_pose.joints[finger][joint], abs=1e-3
+            )
+            assert math.degrees(ctrl[actuator_id]) == pytest.approx(
+                grip_pose.joints[finger][joint], abs=1e-3
+            )
 
 
 def test_compact_corner_designs_are_reported_out_of_reach(mh):
