@@ -48,6 +48,7 @@ contains (there is no object-pose sensor on this hand). Protocol:
 |---|---|
 | `real_v1_bench_session.py` | 0. the session driver — one design, one directory, self-describing |
 | `real_v1_bench_report.py` | 4. read the sessions back: driver-yaw loaded vs free-air (= grip load), and the load-200 overload plateau. Excludes runs the operator flagged `slipped` (a shaft that turned because the grasp released is the opposite result) and whole sessions carrying an `EXCLUDED.txt` |
+| `probe_hold_convergence.py` | does a plan's "held" verdict survive a longer hold? Re-runs saved plans at several `--hold-steps` and at several hold-phase force targets. Built because the Sobol-128 screen measured 1.6 s after the turn and every finalist drops by 3.2-8.0 s — `docs/experiments/20260830-real_v1-sobol128/HOLD_REVIEW.md` |
 | `real_v1_vane_angle.py` | 5. the turn angle out of a bench video — an AprilTag on a vane whose face normal is the pinch axis, read as an IN-PLANE image rotation against a fixed reference tag. Needs `opencv-python-headless`; validated on synthetic footage only (0.33 deg rms) |
 
 `mh.py` is the shared HTTP client (`10.99.99.2:8765`; GETs are unauthenticated, POSTs carry the
