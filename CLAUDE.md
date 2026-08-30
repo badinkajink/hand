@@ -46,6 +46,21 @@ and **RL manipulation** (lift → in-hand reorient of a flat screwdriver to vert
 
 ## Critical lessons (the load-bearing ones — violating these has cost days)
 
+0. **HARDWARE-PROVENANCE GATE: only current `real_v1` hands count for new manipulation
+   experiments.** Any morphology used to train, evaluate, rank, render, or make a deployment claim
+   must be generated from the real hardware model (`assets/mjcf/real_v1/real_hand.xml` and its
+   `real_v1` scenes/generators), must be representable inside `REAL_V1_WORKSPACE` /
+   `REAL_V1_MOUNTS`, and must be exportable through the real build/plan mechanism. Record the base
+   scene, generator, compact design or mount coordinates, and deployment status before launching
+   expensive work; if no collision-safe plan has been produced yet, label that explicitly rather
+   than implying one exists. Abort if the hardware provenance or workspace fit cannot be
+   established. `results/phase1/real_v1/*` and scenes generated from the current `real_v1` base are
+   eligible for simulation studies; a hardware-transfer claim additionally requires the export and
+   trajectory-clearance gates. Legacy simulation-only families—including
+   `results/phase1/landscape/*`, `m05_ik_cem`, `perp`, and their old a10/b33 policies—are historical
+   controls only: do not use them for a new policy study or generalize their result to hardware
+   unless the user explicitly requests a non-deployable control. Observation compatibility does not
+   make the hand geometry deployable.
 1. **Monitor IN-TRAINING metrics, not just final reward.** Aggregate reward/tip-lost/held-object
    *hide* degeneracy (late/idle finger, 2-finger pinch, jitter, de-centering, over-clamp). Use the
    **trajectory-health scorecard** (`src/morphohand/rl/trajectory_health.py`, baked into handoff

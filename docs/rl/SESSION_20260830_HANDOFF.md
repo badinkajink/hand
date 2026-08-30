@@ -179,3 +179,105 @@ lineage is wasted. Queue default is now 5M and arms are selectable via `ARMS=`.
    The `--squeeze` sweep returned byte-identical numbers because it is unused on `--morph-run`.
    Same "no teeth" failure as the deterministic-spawn shuffle — check that a parameter moved
    before believing it did not matter.
+
+---
+
+# ADDENDUM (same day, after both queues finished)
+
+Two queues ran in parallel: mine on m05/b33 (2 seeds) and Codex's on the real_v1 hands rv03 and
+rv05 (1 seed) — `docs/experiments/20260830-real_v1-obs-transfer/HANDOFF_TO_CLAUDE.md`. Read
+together they say something neither says alone.
+
+## 6. The blind/sighted 2x2 finished, and it does NOT resolve the question
+
+**m05 (mine, `logs/decisive.log`, 2 seeds, 32 envs, cos on held rollouts):**
+
+| arm | test | hold s42 | cos s42 | hold s43 | cos s43 |
+|---|---|---:|---:|---:|---:|
+| S1 sighted | nominal | 1.00 | +0.808 | 1.00 | +0.846 |
+| S1 sighted | jitter  | 0.62 | +0.672 | 0.66 | +0.574 |
+| B1 blind   | nominal | 0.19 | +0.276 | 0.25 | −0.201 |
+| B1 blind   | jitter  | 0.28 | −0.147 | 0.06 | −0.708 |
+
+**real_v1 (Codex, 1 seed, 128 envs):**
+
+| design | actor | test | held | cos on held |
+|---|---|---|---:|---:|
+| rv03 | sighted | nominal | **0.00** | n/a |
+| rv03 | blind   | nominal | **0.98** | +0.888 |
+| rv03 | blind   | jitter  | 0.75 | +0.538 |
+| rv05 | sighted | jitter  | 0.60 | +0.884 |
+| rv05 | blind   | —       | **collapsed** (watchdog, it62) | — |
+
+**Three hands, six arms, and the blind/sighted axis does not predict the outcome.** Blinding is
+fatal on m05 (both seeds) and on rv05. On rv03 the *sighted* arm is the one that died — 0/128
+retained on nominal, from a teacher that retained 0.59.
+
+The common factor is not information. It is that **the 5M jittered finetune from a Policy-B
+warmstart bifurcates: 3 of 6 arms collapsed.** rv03-sighted reached the *highest* training reward
+of its pair (124 vs 68) while retaining nothing, and its peak_cos still reads 0.859 — the object
+rotates on its way down. That is reward-hacking, and it is the peak_cos trap appearing inside the
+objective rather than inside the metric.
+
+So: **do not report a blind-vs-sighted conclusion from these runs.** Codex reaches the same
+verdict from its own side (§8 "not supported" 1 and 3). The honest statement is that the finetune
+is unstable under this recipe and n=1 cannot separate an information effect from a draw.
+
+### What DID replicate
+
+Codex's pre-training replay audit reproduces the m05 finding **on the hardware geometry**: feeding
+another env's real hidden-object values changes cos-on-held by ≤0.02 on rv03 and rv05, nominal and
+jittered. Two implementations, three hands, same answer — **once the shaft is retained, the turn
+does not use object state.** Codex adds the sharper framing: under perturbation the failure is
+*retention*, not alignment.
+
+That is the finding worth carrying. The blind-actor training was the wrong instrument for it; the
+replay ablation was the right one and it was the cheap one.
+
+### Recommendation: stop this thread
+
+Codex's §9A asks for seeds 43/44 on rv03 to see if the reversal replicates. That is the correct
+science and it is not on the submission path. Two days out, the deliverable is g12 on the bench.
+Resume only if the user asks.
+
+Also note the eval's `S0_sighted_nominal_s42` row (m05, nominal 0.94/+0.784): that arm is an
+**aborted 20M-budget run stopped at model_50, no `.DONE`**. It is not a sanctioned 5M arm and
+should not be quoted as the control.
+
+## 7. `paper/main (5).tex` abstract: "8000 sampled hands" is not supported
+
+The abstract claims *"four hand morphologies optimized from 8000 sampled hands."* Nothing on disk
+backs it, and a reviewer would check it.
+
+Measured over `docs/experiments/20260828-real_v1_{search,landscape}` and
+`results/phase1/real_v1*`:
+
+* **117 distinct design tags** (Codex's note counts 108 evaluated; the rest are variants)
+* **10,777 scored rollout records**
+* 11 morphology directories under `results/phase1/real_v1/`
+* no sampler anywhere in the repo draws 8,000 hands
+
+**8000 is the right order of magnitude for rollouts and wrong by ~2 orders for hands.** If the
+number came from the legacy m05 landscape sweeps, that is a different hand family and is not the
+pool these four came from. The truthful version is still a strong claim — *four morphologies
+selected from 117 candidate hands evaluated over ~10,800 scored carry rollouts* — and it is
+defensible line by line.
+
+Codex's `docs/notes/20260830-real-v1-sampling-and-gaiting.md` makes the related and correct point
+that of the 108, only **48 are uniform six-dimensional random draws** (the rest are anchors,
+one-axis sweeps and a 5x5 plane), so the set supports "a structured subset of designs works," not
+"the successful volume is intrinsically tiny."
+
+**Not edited — an abstract number needs the user.** The appendix corrections from §3 stand.
+
+## 8. `CLAUDE.md` was modified by Codex (uncommitted)
+
+A new lesson "0" adds a hardware-provenance gate: only current `real_v1` hands for new manipulation
+experiments, `m05`/`perp`/a10/b33 demoted to historical controls. **The substance is right** — it
+is the correction that my own ablation invited, since m05 is not the hardware hand.
+
+Two caveats before it stands as written: it is longer than any other lesson and now sits ahead of
+the ones that have cost days; and as an absolute it forbids work that is still legitimate, because
+b33/m05 *is* the subject of the paper's Policy B claim, so measuring b33 to check what the paper
+says about b33 is correct and this rule reads as prohibiting it. Suggest trimming to ~5 lines with
+a "unless the claim is about the legacy policy itself" carve-out. Left as Codex wrote it.
