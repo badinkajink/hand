@@ -1,0 +1,118 @@
+{
+ "policy_a": "results/rl/20260828-0550-policyA_rv05_manual_t0/tensorboard/model_609.pt",
+ "policy_b": "results/rl/20260830-rv05_manual-B1_blind_jitter_s42/tensorboard/model_50.pt",
+ "morphology_run": "results/phase1/real_v1/rv05_manual_stored",
+ "num_envs": 128,
+ "handoff_step": 40,
+ "ablate_from": 40,
+ "spawn_jitter": 0.0,
+ "spawn_yaw_jitter": 0.0,
+ "obs_layout": {
+  "joint_pos": [
+   0,
+   15
+  ],
+  "joint_vel": [
+   15,
+   30
+  ],
+  "object_pos": [
+   30,
+   33
+  ],
+  "object_pose_actual": [
+   33,
+   40
+  ],
+  "ref_finger_qpos": [
+   40,
+   49
+  ],
+  "ref_object_pose": [
+   49,
+   56
+  ],
+  "actions": [
+   56,
+   65
+  ],
+  "target_axis_misalign": [
+   65,
+   66
+  ]
+ },
+ "variance": {
+  "joint_pos": {
+   "across_env_sd": 0.06358927721157522,
+   "across_time_sd": 0.02637979308202303,
+   "ratio": 2.410529795053974,
+   "constant_across_envs": false
+  },
+  "joint_vel": {
+   "across_env_sd": 0.38895841925185354,
+   "across_time_sd": 0.09565276104816563,
+   "ratio": 4.066358513749487,
+   "constant_across_envs": false
+  },
+  "object_pos": {
+   "across_env_sd": 0.0,
+   "across_time_sd": 0.0,
+   "ratio": Infinity,
+   "constant_across_envs": true
+  },
+  "object_pose_actual": {
+   "across_env_sd": 0.0,
+   "across_time_sd": 0.0,
+   "ratio": Infinity,
+   "constant_across_envs": true
+  },
+  "ref_finger_qpos": {
+   "across_env_sd": 0.0,
+   "across_time_sd": 0.0,
+   "ratio": Infinity,
+   "constant_across_envs": true
+  },
+  "ref_object_pose": {
+   "across_env_sd": 0.0,
+   "across_time_sd": 0.0,
+   "ratio": Infinity,
+   "constant_across_envs": true
+  },
+  "actions": {
+   "across_env_sd": 0.10031111440818274,
+   "across_time_sd": 0.04597467880974272,
+   "ratio": 2.181877437867501,
+   "constant_across_envs": false
+  },
+  "target_axis_misalign": {
+   "across_env_sd": 0.0,
+   "across_time_sd": 0.0,
+   "ratio": Infinity,
+   "constant_across_envs": true
+  }
+ },
+ "rows": [
+  {
+   "condition": "none",
+   "hold_rate": 0.0,
+   "min_z_post_mean": 0.0074700238183140755,
+   "final_cos_mean": 0.008940279483795166,
+   "final_cos_sd": 0.03748749941587448,
+   "peak_cos_mean": 0.8773471713066101,
+   "final_cos_held_mean": NaN,
+   "n_held": 0,
+   "n": 128,
+   "touch_frac": [
+    0.2773827314376831,
+    0.12363289296627045,
+    0.16804686188697815
+   ],
+   "force_mean": [
+    3.417320728302002,
+    1.3599271774291992,
+    1.8089933395385742
+   ],
+   "no_teeth": false
+  }
+ ]
+}

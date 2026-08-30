@@ -1,0 +1,162 @@
+{
+ "policy_a": "results/rl/20260828-0000-policyA_rv03_narrowy_t0/tensorboard/model_609.pt",
+ "policy_b": "results/rl/20260828-1327-policyB_rv03_gated_t0/tensorboard/model_150.pt",
+ "morphology_run": "results/phase1/real_v1/rv03_narrowy_sp40",
+ "num_envs": 32,
+ "handoff_step": 40,
+ "ablate_from": 40,
+ "spawn_jitter": 0.0,
+ "spawn_yaw_jitter": 0.0,
+ "obs_layout": {
+  "joint_pos": [
+   0,
+   15
+  ],
+  "joint_vel": [
+   15,
+   30
+  ],
+  "object_pos": [
+   30,
+   33
+  ],
+  "object_pose_actual": [
+   33,
+   40
+  ],
+  "ref_finger_qpos": [
+   40,
+   49
+  ],
+  "ref_object_pose": [
+   49,
+   56
+  ],
+  "actions": [
+   56,
+   65
+  ],
+  "target_axis_misalign": [
+   65,
+   66
+  ]
+ },
+ "variance": {
+  "joint_pos": {
+   "across_env_sd": 0.006554042827643502,
+   "across_time_sd": 0.0812505523864561,
+   "ratio": 0.08066459408755988,
+   "constant_across_envs": false
+  },
+  "joint_vel": {
+   "across_env_sd": 0.3049404941032534,
+   "across_time_sd": 0.12260266030881273,
+   "ratio": 2.487225752974417,
+   "constant_across_envs": false
+  },
+  "object_pos": {
+   "across_env_sd": 0.003612514707405743,
+   "across_time_sd": 0.0038297477766375994,
+   "ratio": 0.9432774475235599,
+   "constant_across_envs": false
+  },
+  "object_pose_actual": {
+   "across_env_sd": 0.008508043594094518,
+   "across_time_sd": 0.04799729336441928,
+   "ratio": 0.1772609036409038,
+   "constant_across_envs": false
+  },
+  "ref_finger_qpos": {
+   "across_env_sd": 0.0,
+   "across_time_sd": 0.0,
+   "ratio": Infinity,
+   "constant_across_envs": true
+  },
+  "ref_object_pose": {
+   "across_env_sd": 0.0,
+   "across_time_sd": 0.0,
+   "ratio": Infinity,
+   "constant_across_envs": true
+  },
+  "actions": {
+   "across_env_sd": 0.014609472067701915,
+   "across_time_sd": 0.04430944582061642,
+   "ratio": 0.3297146194706949,
+   "constant_across_envs": false
+  },
+  "target_axis_misalign": {
+   "across_env_sd": 0.029124924731035666,
+   "across_time_sd": 0.3889791853788123,
+   "ratio": 0.07487527823030425,
+   "constant_across_envs": false
+  }
+ },
+ "rows": [
+  {
+   "condition": "none",
+   "hold_rate": 0.59375,
+   "min_z_post_mean": 0.07413555681705475,
+   "final_cos_mean": 0.8433857560157776,
+   "final_cos_sd": 0.047652892768383026,
+   "peak_cos_mean": 0.8806357979774475,
+   "final_cos_held_mean": 0.8588243722915649,
+   "n_held": 19,
+   "n": 32,
+   "touch_frac": [
+    0.9731250405311584,
+    0.6551562547683716,
+    0.9754687547683716
+   ],
+   "force_mean": [
+    13.95750904083252,
+    7.4226579666137695,
+    10.781773567199707
+   ],
+   "no_teeth": false
+  },
+  {
+   "condition": "replay:hidden",
+   "hold_rate": 0.5,
+   "min_z_post_mean": 0.06415336579084396,
+   "final_cos_mean": 0.8258067965507507,
+   "final_cos_sd": 0.05895989015698433,
+   "peak_cos_mean": 0.8781189918518066,
+   "final_cos_held_mean": 0.8574706315994263,
+   "n_held": 16,
+   "n": 32,
+   "touch_frac": [
+    0.9650001525878906,
+    0.6274999976158142,
+    0.9662500619888306
+   ],
+   "force_mean": [
+    13.783247947692871,
+    7.3470563888549805,
+    10.679943084716797
+   ],
+   "no_teeth": false
+  },
+  {
+   "condition": "replay:deployable",
+   "hold_rate": 0.625,
+   "min_z_post_mean": 0.06939985603094101,
+   "final_cos_mean": 0.8079736828804016,
+   "final_cos_sd": 0.13253411650657654,
+   "peak_cos_mean": 0.8801535964012146,
+   "final_cos_held_mean": 0.8599007725715637,
+   "n_held": 20,
+   "n": 32,
+   "touch_frac": [
+    0.9618749618530273,
+    0.6346874833106995,
+    0.9640626311302185
+   ],
+   "force_mean": [
+    13.793782234191895,
+    7.344684600830078,
+    10.694734573364258
+   ],
+   "no_teeth": false
+  }
+ ]
+}
