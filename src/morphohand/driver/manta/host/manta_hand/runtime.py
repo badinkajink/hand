@@ -423,6 +423,7 @@ class HandRuntime:
         self._stream_token: str | None = None
         self._stream_deadline = 0.0
         self._stream_timeout_s = 0.25
+        self._startup_check()
         self._event("info", f"runtime ready ({backend.kind})")
         self._telemetry_thread = threading.Thread(target=self._telemetry_loop,
                                                   name="manta-telemetry", daemon=True)
@@ -430,6 +431,41 @@ class HandRuntime:
         self._watchdog_thread = threading.Thread(target=self._watchdog_loop,
                                                  name="manta-stream-watchdog", daemon=True)
         self._watchdog_thread.start()
+
+    def _startup_check(self) -> None:
+        """One telemetry read at construction, before anything can be commanded.
+
+        Two jobs. It populates the servo torque state, which the backend set at connect
+        and which nothing else would report until the first home -- the UI would
+        otherwise show "unknown" for a hand that is in fact energised. And it puts a
+        broken link or a silent servo bus in front of the operator at startup, rather
+        than at the first command, which is when it used to surface."""
+        try:
+            sample = self.backend.read_telemetry(include_servos=True)
+        except Exception as exc:
+            message = f"{type(exc).__name__}: {exc}"
+            with self._lock:
+                self._telemetry["error"] = message
+                if isinstance(exc, LinkDown):
+                    self._link_down = str(exc)
+            self._event("error", "hardware did not answer at startup", {"error": message})
+            return
+        now = time.time()
+        with self._lock:
+            self._telemetry.update({"timestamp": now, "age_s": 0.0, "error": None,
+                                    "servo_timestamp": now, "servo_age_s": 0.0,
+                                    "samples": 1, **sample})
+            torque = set((sample.get("servo_torque") or {}).values())
+            if len(torque) == 1:
+                value = torque.pop()
+                self._servo_torque = TORQUE_OFF if value == TORQUE_UNSET else value
+        bus = sample.get("servo_bus") or {}
+        latency = bus.get("ftdi_latency") or {}
+        if latency.get("after_ms") and latency["after_ms"] > 1:
+            # 16x on every servo read, and nothing errors -- say so loudly once.
+            self._event("warning", f"servo link latency timer is "
+                                    f"{latency['after_ms']}ms: {latency.get('note', '')}",
+                        latency)
 
     # ---- state and catalog --------------------------------------------------------------
     def state(self) -> dict:

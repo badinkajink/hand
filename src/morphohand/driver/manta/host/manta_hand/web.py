@@ -339,13 +339,22 @@ def serve(runtime: HandRuntime, *, host: str = "0.0.0.0", port: int = 8765,
         import threading
         threading.Thread(target=server.shutdown, daemon=True).start()
 
-    signal.signal(signal.SIGINT, stop_server)
-    signal.signal(signal.SIGTERM, stop_server)
-    # SIGHUP too: this is normally started in a foreground SSH shell, and the shell
-    # dying is the single most common way this service has ended. Handling it means the
-    # hand is stopped and de-energised on the way out instead of holding its last goal.
-    if hasattr(signal, "SIGHUP"):
-        signal.signal(signal.SIGHUP, stop_server)
+    # SIGHUP alongside INT/TERM: this is normally started in a foreground SSH shell, and
+    # the shell dying is the single most common way this service has ended. Handling it
+    # means the hand is stopped and de-energised on the way out rather than left holding
+    # its last goal.
+    #
+    # signal.signal() only works on the main thread, and serve() is worth calling from a
+    # worker in tests and embedding harnesses -- so a failure here costs the clean
+    # shutdown, not the service.
+    for name in ("SIGINT", "SIGTERM", "SIGHUP"):
+        sig = getattr(signal, name, None)
+        if sig is None:
+            continue
+        try:
+            signal.signal(sig, stop_server)
+        except ValueError:
+            LOG.debug("not on the main thread; %s will not be handled", name)
     LOG.info("serving on %s:%s backend=%s", host, port, runtime.backend.kind)
     print(f"MorphoHand control: http://{host}:{port}  backend={runtime.backend.kind}")
     try:

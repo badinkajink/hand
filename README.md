@@ -1,368 +1,192 @@
 # MorphoHand
 
-MorphoHand is a simulation-to-real co-design stack for a three-finger, reconfigurable hand.
-It now contains both the simulation/RL research system and the live `real_v1` hardware path:
-six morphology gantry axes, nine independent finger servos, validated sim-to-hardware plans,
-a CB1 control service, a workstation/browser UI, and hardware experiment logging.
+Co-design of a three-finger reconfigurable hand: optimise the finger **morphology** and the
+**grasp/manipulation** together, in simulation, and put the result on real hardware.
 
-The key design split is:
+Two coupled parameter sets, and the whole repo is organised around the split:
 
-- 9D morphology parameters: per finger `(x, y, len)`
-- 9D control parameters: per finger `(yaw, mcp, pip)`
+- **morphology** — per finger `(x, y, length)`: where the finger mounts on the palm and how long it is
+- **control** — per finger `(yaw, mcp, pip)`: the three joints it actuates
 
-That split is reflected directly in the package layout and in the current evaluation scripts.
+There are two simulation tracks (CEM grasp synthesis over a parametric hand, and RL for
+lift → in-hand reorientation of a screwdriver) and one hardware track (`real_v1`: six morphology
+gantry axes on a Manta M8P, nine Feetech servos, and a browser control station).
 
-## What Is Implemented
+---
 
-- `src/morphohand/sampling/`: morphology sampling, foundational pose loading, feasibility
-  gating, scene XML patching, frozen-scene baking, and CSV/plot helpers.
-- `src/morphohand/optimization/phase1_common.py`: shared Phase 1 evaluator and objective.
-- `src/morphohand/optimization/phase1_strategy_cem.py`: CEM grasp optimizer.
-- `src/morphohand/optimization/phase1_strategy_synergy_cem.py`: CEM in a low-dim
-  (eigengrasp) coefficient subspace — see [docs/eigengrasp.md](docs/eigengrasp.md).
-- `src/morphohand/optimization/phase1_strategy_mjx_autodiff.py`: MJX autodiff lane.
-- `src/morphohand/optimization/phase1_strategy_diffmjx.py`: DiffMJX-style MVP lane.
-- `src/morphohand/optimization/contact_targets.py`: hand-authorable contact patches as
-  an objective term — see [docs/contact_targets.md](docs/contact_targets.md).
-- `src/morphohand/optimization/force_closure.py`: continuous Ferrari-Canny / DFC grasp
-  quality energy — see [docs/force_closure.md](docs/force_closure.md).
-- `src/morphohand/optimization/eigengrasp.py`: PCA basis fit on historical grasps,
-  hand-designed fallback basis.
-- `src/morphohand/tools/morphology_xml.py`: morphology encoding, parsing, and XML generation.
-- `assets/mjcf/`: base hand/scene templates plus object-specific scenes.
-- `src/morphohand/driver/manta/`: current Manta M8P + CB1 hardware firmware and host package.
-- `src/morphohand/driver/manta/host/manta_hand/plan.py`: verified `real_v1` frame, envelope,
-  and sim-joint-to-servo plan conversion.
-- `src/morphohand/driver/manta/host/manta_hand/web.py`: token-protected control service and UI.
-- `assets/contact_targets/`: per-(scene, keyframe) target patch specs (YAML).
-- `scripts/`: runnable Phase 1 sweeps, analysis tools, and the cross-object
-  [eval suite](docs/eval_suite.md).
+## Where to start
 
-The outer-loop MAP-Elites modules are still skeletons; the working system today is the
-sampling-and-evaluation pipeline around Phase 1.
+| You want to… | Go to |
+|---|---|
+| Read the project as a document | **[`webpaper/`](webpaper/)** — Typst → HTML, the canonical readable write-up. `webpaper/build.sh`, then serve `webpaper/build/` |
+| Know what any script does | **[`scripts/README.md`](scripts/README.md)** — the map of the ~80 active scripts, grouped by role |
+| Pick up the RL work | **[`RESEARCH_STATE.md`](RESEARCH_STATE.md)** (self-contained handoff) then [`docs/rl/reorientation.md`](docs/rl/reorientation.md) (the chronological log, the RL source of truth) |
+| Drive the real hand | **[`docs/hardware_control_station.md`](docs/hardware_control_station.md)** |
+| Understand conventions and failure modes before editing | **[`CLAUDE.md`](CLAUDE.md)** — the load-bearing lessons, written down because relearning them is expensive |
+| Find a trained policy | [`results/rl/REGISTRY.md`](results/rl/REGISTRY.md) — the `aNN`/`bNN` policy registry |
 
-### Grasp specification methods at a glance
-
-Three orthogonal approaches, all opt-in via config knobs (default off):
-
-| Method | Toggle | When to use |
-|---|---|---|
-| Eigengrasp / synergy CEM | call `optimize_finger_controls_synergy` with a fitted basis | sample-efficient search when you have historical runs |
-| Contact-target patches | `objective_weight_contact_target_reward` / `_distance_penalty` | object-specific intent: "thumb here, index there" |
-| Force-closure energy | `objective_weight_force_closure` | grasp-quality signal beyond contact count |
-
-Full overview and empirical comparison: [docs/grasp_methods.md](docs/grasp_methods.md).
-
-### Eval suite
-
-Cross-object benchmark harness at [scripts/eval_suite.py](scripts/eval_suite.py) — 8
-benchmarks × N methods × seeds, with oracle re-scoring under the baseline objective,
-auto-generated GIFs per `(benchmark, method)`, and per-benchmark markdown reports.
-See [docs/eval_suite.md](docs/eval_suite.md) for adding new benchmarks / methods.
-
-## Repository Layout
-
-```text
-assets/
-  mjcf/
-    hand.xml                  # 3-finger hand template
-    scene.xml                 # base scene with palm pose actuators
-    scene_*.xml               # object-specific evaluation scenes
-  objects/                    # object XMLs used by the scenes
-
-docs/
-  index.md
-  architecture/
-  simulators/
-  roadmap/
-
-scripts/
-  phase1_optimize_grasp.py    # single-scene Phase 1 optimizer
-  phase1_pollard_multiscene.py# cube + prism morphology sampling sweep
-  run6_combined_multitask.py  # screwdriver multi-keyframe combined run
-  run6_analysis.py            # embeddings and feature-metric plots
-  smoke_test_models.py        # sanity checks for the MJCF models
-
-src/morphohand/
-  sampling/                   # morphology, FP, feasibility, scene, IO
-  optimization/               # Phase 1 evaluator and strategy lanes
-  tools/                      # morphology XML helpers
-  backends/                   # backend protocol and adapter shells
-  driver/manta/               # current hardware: STM32 firmware + CB1 Python host
-```
-
-## Real hand control
-
-The deployable hardware method today is the morphology-specific CEM grasp and buffered
-open-loop reorientation. The learned A/B policies require object pose/velocity and other
-observations the servo-only prototype does not have, so the UI marks closed-loop RL unavailable
-instead of silently filling missing observations.
-
-Run the complete control station safely against a mock hand:
-
-```bash
-PYTHONPATH=src/morphohand/driver/manta/host \
-  python -m manta_hand.web --mock --host 127.0.0.1 --port 8765
-```
-
-Then open `http://127.0.0.1:8765`. CB1 installation, the once-per-session homing flow,
-telemetry-rate benchmark, real launch command, API, logs, and recovery behavior are documented
-in [docs/hardware_control_station.md](docs/hardware_control_station.md). The static UI may be
-served by the CB1, but it executes in the workstation browser; the guide also shows how to serve
-those files locally while using the CB1 only as the hardware API. Hardware electrical,
-StallGuard, and servo calibration details remain in
-[src/morphohand/driver/manta/docs/](src/morphohand/driver/manta/docs/).
+---
 
 ## Environment
 
-The repo is configured for Python 3.10.
-
 ```bash
-uv venv --python 3.10
-source .venv/bin/activate
+uv venv --python 3.10          # the project targets >=3.10,<3.14
 uv sync --extra dev
 ```
 
-Optional backend extras:
+Simulation and RL need the GPU extras, and every run goes through `uv run`:
 
 ```bash
-uv sync --extra mjwarp --extra comfree
+uv run --extra rl --extra gpu python scripts/<script>.py
 ```
 
-If you use the local Warp checkouts under `external/`, install them with the helper script
-and then editable `uv pip` installs when the upstream metadata is available.
+Two rules that are not optional (see [`CLAUDE.md`](CLAUDE.md) for why):
 
-## Quick Start
+- `MUJOCO_GL=egl` for headless rendering.
+- **Every Warp process needs its own kernel cache**: `WARP_CACHE_PATH=$(mktemp -d)`. A shared
+  cache races and produces NaNs. The `.sh` launchers set both.
 
-Smoke-test the model layout:
+There is one GPU (16 GB). Train sequentially; after killing a Warp run, wait for GPU memory to
+fall to ~1 GB before relaunching.
+
+---
+
+## Simulation: the grasp/morphology loop
+
+A design goes through the same chain every time. `scripts/README.md` documents each step; the
+short version:
 
 ```bash
-uv run python scripts/smoke_test_models.py
+# 1. bake a 9-param design into fixed geometry (a FROZEN morphology scene)
+uv run --extra gpu python scripts/generate_morphology_xml.py ...
+
+# 2. is it physically real? the mount rails run through the palm and nothing else checks
+uv run --extra gpu python scripts/morph_selfcollision_gate.py --retarget ...
+
+# 3. IK-retarget the grasp keyframe to this design (world-frame fingertips, NOT joint angles)
+uv run --extra gpu python scripts/retarget_keyframe_ik.py ...
+
+# 4. CEM grasp synthesis -> the "morphology run dir" every RL script consumes
+uv run --extra rl --extra gpu python scripts/phase1_optimize_grasp.py \
+    --scene-xml <frozen_scene.xml> --keyframe open_ik --optimizer cem
 ```
 
-Run the default Phase 1 grasp optimizer on a single scene/keyframe:
+Steps 1–3 are not optional preprocessing. Evaluating a design on an unfrozen scene lets the
+morphology joints drift during the rollout, and transferring the grasp keyframe in joint space
+instead of IK-retargeting it lands the fingertips in the wrong place — both produce confident,
+wrong verdicts. See [`docs/frozen_scene_protocol.md`](docs/frozen_scene_protocol.md).
+
+The `real_v1` hardware hand has its own chain (different topology, nothing transfers from the
+m05/baseline lineage) — `scripts/real_v1_pipeline.py` and the `real_v1_*` scripts.
+
+## Simulation: the RL loop
+
+Policy **A** lifts and delivers; policy **B** reorients. `scripts/rl_train_cube.py` is the
+trainer; the launchers pin the known-good configurations as recipes:
 
 ```bash
-uv run python scripts/phase1_optimize_grasp.py \
-  --scene-xml assets/mjcf/baseline/scenes/scene_screwdriver_medium.xml \
-  --keyframe open_flat \
-  --optimizer cem
+scripts/train_A_on_morph.sh <morphology-run-dir>          # A, always from scratch per design
+scripts/train_handoff_liveA_reset.sh <...>                # B, via the live-A reset
 ```
 
-Run the current morphology sweep used in the docs and results folders:
+Judge a policy on the deterministic held-cos and the trajectory-health scorecard, never on
+reward sums, and **look at it before explaining its numbers**:
 
 ```bash
-uv run python scripts/phase1_pollard_multiscene.py \
-  --samples 500 \
-  --fp-adaptation sparse-per-morph
+uv run --extra rl --extra gpu python scripts/rl_demo_handoff_continuous.py --run <run>   # the deploy eval
+uv run --extra rl --extra gpu python scripts/policy_filmstrip.py --run <run>             # frames to actually read
+uv run --extra rl --extra gpu python scripts/policy_eval_suite.py --run <run>            # as a distribution, not one rollout
 ```
 
-Run the combined screwdriver multi-keyframe experiment:
+Aggregate reward hides late/idle fingers, two-finger pinches, jitter and de-centering; a
+"policy that won't rotate" turned out to be rotating hard to the wrong pole. The
+`policy-eyes`, `policy-metrics`, `mujoco-eyes` and `morphology-scenes` skills under
+`.claude/skills/` wrap these workflows.
+
+---
+
+## Hardware: the `real_v1` hand
+
+```text
+workstation                                CB1 (10.99.99.2)              hand
+browser UI ───── HTTP/JSON ─────┐
+policy client  ─────────────────┴──> HandRuntime ── USB-CDC ──> 6 gantry steppers (Manta M8P)
+                                       └────────── U2D2 TTL ──> 9 SCS0009 servos
+```
+
+Try the whole control station with no hardware — this runs the **real** driver stack against a
+simulated M8P on a pty and a simulated servo bus:
 
 ```bash
-uv run python scripts/run6_combined_multitask.py \
-  --samples 1000 \
-  --keyframes open_flat open_vertical open_90vertical
+PYTHONPATH=src/morphohand/driver/manta/host \
+  uv run --no-project --with pyserial python -m manta_hand.web \
+  --fake --host 127.0.0.1 --port 8765
 ```
 
-Analyze a run:
+Then open `http://127.0.0.1:8765`. (`--mock` also exists but replaces the whole backend, so it
+exercises none of the driver code — use `--fake` for anything involving homing, motion or the
+serial link.)
+
+Real launch, CB1 install, the homing flow, the API, logging and recovery are in
+[`docs/hardware_control_station.md`](docs/hardware_control_station.md). Electrical, StallGuard
+and servo-calibration details are in
+[`src/morphohand/driver/manta/docs/`](src/morphohand/driver/manta/docs/).
+
+Two hardware facts worth knowing before you touch it:
+
+- **Homing takes about two minutes** and is meant to. Each axis gets a timeout that guarantees
+  it covered its full measured travel; four of six trip StallGuard2 in ~15 s and J3/J5 grind
+  against their hardstop for ~33 s each. That is the current SGT tuning, not a fault.
+- **Feedback is nine joint positions and nothing else** — no object pose, no contact, no
+  current (the SCS0009 has no current register at all). Measured ceiling is 111 Hz for the nine
+  positions, but only after lowering the FTDI latency timer; the default costs 16× and is
+  silent about it. The learned A/B policies need ~65 observations, so they remain
+  simulation-only; the deployable method is the CEM grasp plus a buffered open-loop reorientation.
+
+---
+
+## Repository layout
+
+```text
+assets/mjcf/            hand + scene MJCFs. baseline/, experimental/, real_v1 scenes
+configs/recipes/        pinned trainer configurations (a_lift, b_liveA, b_liveA_imit)
+docs/                   MkDocs reference docs; docs/rl/ is the RL engineering log,
+                        docs/experiments/ holds dated experiment artifacts
+scripts/                ~80 active scripts (see scripts/README.md); archive/ holds
+                        superseded ones — move them back to resurrect, don't run in place
+src/morphohand/
+  sampling/             morphology sampling, feasibility gating, scene freezing
+  optimization/         CEM grasp synthesis and objective terms
+  rl/                   env, trajectory-health scorecard, live-A runner, deploy builders
+  studies/              shared sweep/run plumbing
+  driver/manta/         hardware: STM32 firmware (firmware/) + CB1 host package (host/)
+tests/                  pytest suite
+webpaper/               Typst -> HTML project site
+results/                run outputs (gitignored except REGISTRY.md and summaries)
+logs/                   run logs, sentinels, pids (gitignored)
+```
+
+Naming rules that the tooling depends on: **date-prefix every generated folder**
+(`20260829-...`), keep run logs in `logs/` and experiment summaries in `docs/experiments/`, and
+use the `aNN`/`bNN` policy IDs everywhere — `scripts/rename_results_bids.sh` is the single
+source of truth for those.
+
+## Tests
 
 ```bash
-uv run python scripts/run6_analysis.py \
-  --run-dirs results/phase1/run6_combined_1000 \
-  --embedding tsne \
-  --metrics cube_xy_drift finger_flex_drift
+uv run --extra dev python -m pytest tests/ -q
 ```
 
-## Current Benchmark Composition
+The hardware tests need no hardware: `tests/test_manta_hardware_faults.py` runs the real driver
+stack against `manta_hand.fake_hardware`.
 
-The repository currently centers on these scene/object pairs:
+## Documentation surfaces
 
-- `assets/mjcf/baseline/scenes/scene_prism.xml`
-- `assets/mjcf/baseline/scenes/scene_screwdriver_medium.xml`
-- `assets/mjcf/baseline/scenes/scene_screwdriver_small.xml`
-- `assets/mjcf/baseline/scenes/scene_power_drill.xml`
-- `assets/mjcf/baseline/scenes/scene_human_calf.xml`
-
-The medium screwdriver scene is the most developed benchmark. It uses three keyframes:
-
-- `open_flat`
-- `open_vertical`
-- `open_90vertical`
-
-## Current Results
-
-Foundational pose search on the medium screwdriver scene produced the following best
-scores:
-
-- `open_flat`: `5.702777`
-- `open_vertical`: `6.906849`
-- `open_90vertical`: `7.091068`
-
-The combined screwdriver multitask run then confirmed that the pipeline can score all
-three keyframes per morphology in one pass. In the current 1000-sample sweep, feasible
-rates were:
-
-- `open_flat`: `0.994`
-- `open_vertical`: `0.884`
-- `open_90vertical`: `0.696`
-
-This is the main signal the docs and paper now track: pose choice matters, and the same
-morphology distribution behaves differently across the three screwdriver orientations.
-
-## Artifacts
-
-Phase 1 runs write their outputs under `results/phase1/<run_tag>/`.
-Common artifacts include:
-
-- `summary.json`
-- `all_candidates.csv` or `all_candidates_multitask.csv`
-- `all_task_results.csv`
-- `rolling_efficiency.csv`
-- `objective_trace.png`
-- `grasp_metrics_trace.png`
-- `top5_gifs/`
-
-## Grasp Run Protocol
-
-**Every grasp experiment must run against a frozen scene XML.** The base scenes under
-`assets/mjcf/` still carry morphology DOFs as joints, which drift during the rollout
-and silently invalidate any cross-method comparison. Full rationale, the canonical
-helper (`morphohand.sampling.scene.freeze_scene_for_eval`), DOF-count sanity check,
-and a before/after numbers table for the eval suite are in
-[docs/frozen_scene_protocol.md](docs/frozen_scene_protocol.md).
-
-The eval-suite harnesses (`scripts/eval_suite.py`, `scripts/compare_methods.py`) and
-`scripts/phase1_optimize_grasp.py` enforce this automatically. New scripts that
-construct a `Phase1GraspEvaluator` should freeze first.
-
-The frozen scene artifact should capture:
-
-- the exact scene XML used for the run,
-- the keyframe name,
-- the frozen morphology setting or frozen morphology scene variant,
-- the tuned `open_flat` qpos/qctrl pair when a manual pregrasp is being carried forward,
-- the pivot convention used for the lift-and-tilt pass,
-- and whether all three fingertips actually made contact.
-
-For the power-drill runs in particular:
-
-- the short-proximal scene is the current manual-tuning target,
-- the drill should tilt from the forward pose toward facing down, not the reverse direction,
-- and a result with only six contacts usually means the middle finger never engaged.
-
-## Notes on Backend Support
-
-The evaluator supports `mujoco`, `mjwarp`, and `comfree-warp` runtime backends.
-MuJoCo is the default and most reliable option for the current Phase 1 loop.
-The Warp-backed paths remain optional and are best treated as throughput experiments.
-
-### Initial backend targets
-
-1. `mjx-native`
-- Primary differentiable backend for inner loop.
-- JAX-based gradients through kinematics and soft-contact dynamics.
-
-2. `diffmjx-lite`
-- Extension of native MJX with placeholders for:
-  - smooth collision branch blending,
-  - CFD (contacts-from-distance) in backward pass,
-  - optional adaptive integration hooks.
-- Start with smooth collision + CFD path only.
-
-3. `mjwarp`
-- Throughput-oriented outer loop evaluator.
-- Used when gradients are not required.
-
-4. `comfree-warp`
-- Throughput + analytical contact candidate.
-- Run as alternative outer-loop evaluator; compare rank correlation vs hardware later.
-
-## Optimization Plan (detailed, living architecture)
-
-### Phase 0: Foundation (now)
-
-- [x] uv project scaffold.
-- [x] backend abstraction and registry.
-- [x] baseline MJCF hand and scene.
-- [x] XML + smoke tests.
-- [x] docs scaffold with MkDocs.
-
-### Phase 1: Inner-loop baseline (MJX)
-
-- [x] Implement a real inner-loop grasp synthesis runner over `(yaw, mcp, pip)`.
-- [x] Add practical grasp objective proxy (distance + contacts + lift + stability).
-- [x] Add optimizer, trace logging, plots, and rollout visualization artifact generation.
-- [ ] Add MJX-native autodiff path and compare against CEM baseline.
-
-### Phase 2: Outer-loop baseline (MAP-Elites)
-
-- [ ] Genome = `(x_i, y_i, l_i)` for each finger.
-- [ ] Descriptor choices: spread, reach, opposition quality.
-- [ ] Archive update rule + novelty handling.
-- [ ] Evaluate each morphology with inner-loop best response.
-
-### Phase 3: Multi-backend execution
-
-- [ ] Run outer loop with `mjwarp` and `comfree-warp`.
-- [ ] Keep inner loop on `mjx-native` by default.
-- [ ] Add fallback policy: if `comfree` unstable, retry with `mjwarp`.
-- [ ] Compare ranking consistency across backends.
-
-### Phase 4: DiffMJX track
-
-- [ ] Implement `diffmjx-lite` branch in code (not a forked package yet).
-- [ ] Toggle CFD in backward pass.
-- [ ] Add finite-difference gradient sanity checks.
-- [ ] Compare `mjx-native` vs `diffmjx-lite` inner-loop convergence.
-
-### Phase 5: CTR-inspired options (optional)
-
-- [ ] Add implementation note and API hooks for projected gradient / cone-feasibility filters.
-- [ ] Keep this as optional regularizer, not required for baseline results.
-
-## Why one package (not many envs) initially
-
-The scaffold keeps one uv environment and plugin backends by optional dependencies + runtime imports. This avoids duplicated code and keeps experiments comparable.
-
-If backend dependency conflicts become real, split into backend-specific uv lockfiles:
-
-- `uv.lock` (core + mjx)
-- `uv.mjwarp.lock`
-- `uv.comfree.lock`
-
-Only split when needed.
-
-## Documentation
-
-There are two doc surfaces, serving different purposes:
-
-**1. Reference docs (`docs/`) — MkDocs.** Detailed architecture, backend notes, and the full RL
-research log (`docs/rl/`). The README stays the high-level execution plan; `docs/` holds the depth.
-
-```bash
-uv run mkdocs serve          # live-reload server at http://localhost:8000
-```
-
-**2. Project site (`webpaper/`) — Typst → static HTML.** A research-paper-grade, media-rich
-write-up (morphology/grasp optimization, RL manipulation + policy switching, hardware validation).
-Authored in Typst so it carries paper-quality math *and* embedded video. Requires `typst` on PATH.
-
-```bash
-webpaper/build.sh                                 # compiles src/*.typ -> webpaper/build/*.html
-python3 -m http.server -d webpaper/build 8080     # then open http://localhost:8080
-```
-
-See [webpaper/README.md](webpaper/README.md) for authoring (adding a page, the math→SVG show rule,
-and Typst-HTML export gotchas).
-
-**RL research state.** The canonical living handoff for the in-hand reorientation work is
-[RESEARCH_STATE.md](RESEARCH_STATE.md) at the repo root (self-contained problem statement + current
-state + open problems); the full chronological log is [docs/rl/reorientation.md](docs/rl/reorientation.md).
-
-## Immediate Next Tasks
-
-1. Implement real MJX stepping in `MJXNativeBackend`.
-2. Add first inner-loop objective for cube grasp stability.
-3. Wire minimal MAP-Elites loop over `(x, y, l)`.
-4. Add canonical scene pose config file and evaluator.
+- **[`webpaper/`](webpaper/)** — Typst → static HTML, the canonical readable write-up
+  (foundation → experimentation → results → analysis, with collapsible detail sections).
+  `webpaper/build.sh`, then `python3 -m http.server -d webpaper/build 8080`.
+- **[`docs/`](docs/)** — MkDocs reference docs and the chronological engineering logs.
+  `uv run mkdocs serve`.
+- **[`paper/`](paper/) and [`hand_paper/`](hand_paper/)** — LaTeX papers (simulation/morphology
+  stack; hardware).
+- **[`RESEARCH_STATE.md`](RESEARCH_STATE.md)** — the living RL handoff.
