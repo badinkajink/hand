@@ -182,7 +182,8 @@ function render(s) {
   for (const id of ['torque-on', 'torque-off', 'torque-free']) $(id).disabled = busy || blocked;
   $('home').disabled = busy || blocked;
   $('apply-morph').disabled = busy || blocked || !s.homed || !s.plan;
-  $('pose-open').disabled = busy || blocked || !motionReady;
+  for (const id of ['pose-open', 'setup-open', 'setup-grip'])
+    $(id).disabled = busy || blocked || !motionReady;   /* same interlock as the run tab */
   $('pose-grip').disabled = busy || blocked || !motionReady;
   $('run').disabled = busy || blocked || s.current_pose !== 'grip';
   $('stop').disabled = !busy;
@@ -420,6 +421,14 @@ $('adopt-home').onclick = () => action(() => post('/home/adopt'),
   "Adopted the board's home — nothing moved");
 $('apply-morph').onclick = () => action(() => post('/morphology'), 'Gantry move started');
 const motion = () => ({speed_ratio: Number($('speed').value), rate_hz: Number($('rate').value)});
+// Setup-card duplicates of the two keyframe moves.  They are the same server call
+// as the run-tab buttons, but they belong here too: the grasp keyframe is what you
+// RESET to between attempts, and having to leave the setup card to find it is how a
+// repeat ends up starting from the previous attempt's end pose.
+$('setup-open').onclick = () => action(() => post('/pose', {name: 'open', ...motion()}),
+                                       'Moving to the open keyframe');
+$('setup-grip').onclick = () => action(() => post('/pose', {name: 'grip', ...motion()}),
+                                       'Moving to the grasp keyframe');
 $('pose-open').onclick = () => action(() => post('/pose', {name: 'open', ...motion()}));
 $('pose-grip').onclick = () => action(() => post('/pose', {name: 'grip', ...motion()}));
 $('run').onclick = () => action(async () => {

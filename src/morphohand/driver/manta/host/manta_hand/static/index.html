@@ -50,6 +50,10 @@
           </div>
           <button id="adopt-home" class="secondary wide hidden" title="The board still reports a completed home on all six axes; take it over without re-homing">Adopt the board's existing home</button>
           <button id="apply-morph" class="wide">Move gantries to morphology</button>
+          <div class="button-row">
+            <button id="setup-open" class="secondary" title="Drive the fingers to the plan's approach pose. Do this with the hand empty, before the object is staged.">Load open keyframe</button>
+            <button id="setup-grip" title="Drive the fingers to the plan's CEM grasp keyframe. Ramped from wherever the fingers are now, so it can be used to RESET between attempts as well as to close on the object.">Load grasp keyframe</button>
+          </div>
           <details id="metrics"><summary>Simulation metrics and build settings</summary><div id="metrics-body" class="metric-grid"></div></details>
           <p class="hint">Gantries move one axis at a time, each waited on before the next starts.
             Homing is remembered only for this daemon session; an M8P reset, a cancelled home or

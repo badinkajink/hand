@@ -37,6 +37,9 @@ REPO = Path(__file__).resolve().parents[1]
 DEPLOY = REPO / "docs/experiments/20260829-real_v1_deploy/deploy"
 SUITE = REPO / "docs/experiments/20260830-real_v1_bench_suite"
 FINGERS = ("thumb", "index", "middle")
+FID = {"thumb": "0", "index": "1", "middle": "2"}
+KEY = {"yaw": "aa", "mcp": "fe1", "pip": "fe2"}
+SIGN = {"thumb": 1.0, "index": -1.0, "middle": -1.0}
 
 # Largest fraction of the turn that still clears finger<->finger by >=3mm in the
 # design's OWN sim geometry (scripts/real_v1_trajectory_clearance.py --all, and
@@ -113,6 +116,12 @@ def preflight(design):
         problems.append("servo torque is OFF -- enable it in the web app first")
     if pf["servo_polling_suspended"]:
         problems.append("telemetry is suspended: another writer owns the bus")
+    if not pf["homed"]:
+        # /stream/start 409s with "home the gantries once in this daemon session
+        # first", and it does so on the FIRST FRAME -- i.e. after the shaft is
+        # staged and the operator is committed.  Catch it in preflight instead.
+        problems.append("gantries are not homed in this daemon session -- every "
+                        "/stream/start will 409.  Home in the web app first")
     say(f"  preflight: backend={pf['backend']} torque={pf['servo_torque']} "
         f"homed={pf['homed']} servo_age={pf['servo_age_s']}s")
     for p in problems:
@@ -148,6 +157,37 @@ def plan_facts(design):
             "clip_saturated": [f"{f}_{j}" for f in FINGERS for j in ("yaw", "mcp", "pip")
                                if abs(abs(exc[f][j]) - 28.648) < 0.05],
             "meta": plan.get("meta", {}), "grip_pose": g}
+
+
+def ramp_to(target, secs=1.2, speed=50, steps=30):
+    """Walk the fingers to `target` instead of commanding it in one frame.
+
+    Repeat 2 of the 2026-08-30 g12 session opened at middle-yaw +18.7 against a
+    commanded 0.0 with a yaw load of -930: the run started from wherever repeat 1
+    had ENDED, and the first frame tried to close a 19 degree gap in one step.
+    Repeats have to begin from the same pose or they are not repeats, and the pose
+    has to be reached gently or the first frame is a slam.
+    """
+    cur = read_fresh()
+    a = {f: {j: cur["servos"][FID[f]][KEY[j]] / (SIGN[f] if j == "yaw" else 1.0)
+             for j in ("yaw", "mcp", "pip")} for f in FINGERS}
+    tok = mh.post("/stream/start", {"timeout_s": 2.0})["token"]
+    try:
+        for i in range(steps + 1):
+            u = i / steps
+            mh.post("/stream/frame", {"token": tok, "servo_speed": speed,
+                                      "joints": {f: {j: a[f][j] + (target[f][j] - a[f][j]) * u
+                                                     for j in ("yaw", "mcp", "pip")}
+                                                 for f in FINGERS}})
+            time.sleep(secs / steps)
+    finally:
+        mh.post("/stream/end", {"token": tok})
+    time.sleep(0.5)
+    t = read_fresh()
+    err = {f: round(t["servos"][FID[f]][KEY["yaw"]] / SIGN[f] - target[f]["yaw"], 2)
+           for f in FINGERS}
+    say("  returned to start pose, yaw err: " + "  ".join(f"{f}={err[f]:+.1f}" for f in FINGERS))
+    return err
 
 
 def run(cmd, sess, tag):
@@ -243,10 +283,19 @@ def arm_loaded(a, sess, facts, rec):
         if not regrip.exists():
             say("  !! no regrip pose -- run the grip arm first, or the plan grip will over-clamp")
             return
+    start_pose = json.loads(Path(regrip).read_text())
     for k in range(a.repeats):
         say(f"\n  -- repeat {k + 1} of {a.repeats} --")
-        if k and sys.stdin.isatty():
-            ask("re-stage the shaft and press enter", "")
+        if k:
+            # the previous repeat left the fingers at turn_end; go back before the
+            # shaft is re-staged, so it is placed into the same hand every time
+            try:
+                rec["runs"].append({"arm": "return", "repeat": k + 1,
+                                    "yaw_err": ramp_to(start_pose)})
+            except Exception as exc:
+                say(f"  !! could not return to the start pose: {exc}")
+            if sys.stdin.isatty():
+                ask("re-stage the shaft and press enter", "")
         cmd = ["python3", "scripts/real_v1_bench_stepped_run.py", "--plan", a.design,
                "--steps", str(a.steps), "--gate", "5.0", "--gate-timeout", "0.8",
                "--dwell", str(a.dwell), "--speed", str(a.speed),
