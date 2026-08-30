@@ -504,6 +504,7 @@ class HandRuntime:
             if len(torque) == 1:
                 value = torque.pop()
                 self._servo_torque = TORQUE_OFF if value == TORQUE_UNSET else value
+        self._seed_last_command(sample)
         bus = sample.get("servo_bus") or {}
         latency = bus.get("ftdi_latency") or {}
         if latency.get("after_ms") and latency["after_ms"] > 1:
@@ -511,6 +512,45 @@ class HandRuntime:
             self._event("warning", f"servo link latency timer is "
                                     f"{latency['after_ms']}ms: {latency.get('note', '')}",
                         latency)
+
+
+    def _seed_last_command(self, sample: dict) -> None:
+        """Adopt the hand's MEASURED pose as the ramp start.
+
+        `_last_command` is what every ramp interpolates FROM, and a fresh runtime used to
+        initialise it to the zero pose on the assumption that a session begins with a home.
+        It does not: adopting an existing home, or simply restarting this daemon while the
+        servos hold their last goal, leaves the hand somewhere else entirely -- after the
+        2026-08-29 run it was still holding `turn_end`. The first frame of the next ramp
+        then jumps the fingers to a pose nobody asked for before ramping anywhere.
+
+        Sign-only mapping (see plan.servo_deg), so the inverse is the same multiply."""
+        servos = sample.get("servos")
+        if not servos:
+            return
+        pose: dict[str, dict[str, float]] = {}
+        try:
+            for finger in FINGER_ORDER:
+                fid = FINGER_ID[finger]
+                # int keys straight off the backend, str keys after a JSON round trip.
+                measured = servos.get(fid, servos.get(str(fid)))
+                pose[finger] = {
+                    sim_joint: measured[SIM_JOINT_TO_SERVO[sim_joint]]
+                               / JOINT_SIGN[(finger, sim_joint)]
+                    for sim_joint in JOINT_ORDER
+                }
+        except (KeyError, TypeError, ZeroDivisionError) as exc:
+            # Not fatal -- but say so, because falling back to the zero assumption is
+            # exactly the silent wrong-start this method exists to prevent.
+            self._event("warning", "could not seed the ramp start from telemetry; "
+                                   "ramps will assume the zero pose",
+                        {"error": f"{type(exc).__name__}: {exc}"})
+            return
+        with self._lock:
+            self._last_command = pose
+        self._event("info", "ramp start seeded from the servos' measured pose",
+                    {finger: {j: round(v, 2) for j, v in joints.items()}
+                     for finger, joints in pose.items()})
 
     # ---- state and catalog --------------------------------------------------------------
     def state(self) -> dict:
@@ -700,7 +740,11 @@ class HandRuntime:
         with self._lock:
             if not self._stop.is_set():
                 self._mounts_applied = True
-                self._current_pose = "zero"
+                # NOT "zero": this operation moves steppers and never commands a servo.
+                # Labelling it zero was true only on the home-then-morphology path, where
+                # home_all had just zeroed the servos; on adopt-home, or on a second
+                # morphology change, it claimed a pose the hand was not in.
+                self._current_pose = None
 
     def set_servo_torque(self, state: int) -> dict:
         if state not in (TORQUE_ON, TORQUE_OFF, TORQUE_FREE):
