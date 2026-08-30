@@ -17,9 +17,11 @@ both buses, since they're physically different links.
 
 from __future__ import annotations
 
+from typing import Callable
+
 from .driver import MantaHandDriver
 from .kinematics import STEPPER_ACCEL, STEPPER_VELOCITY, Gantry, GantryFinger
-from .servos import DEFAULT_JOINT_SPEED, Finger, ServoBus
+from .servos import DEFAULT_JOINT_SPEED, TORQUE_ON, Finger, ServoBus
 
 
 class HandFinger:
@@ -65,12 +67,16 @@ class HandFinger:
         self._apply_joints(aa, fe1, fe2, speed)
 
     def home(self, velocity: int = STEPPER_VELOCITY, accel: int = STEPPER_ACCEL,
-             speed: int = DEFAULT_JOINT_SPEED):
+             speed: int = DEFAULT_JOINT_SPEED, *,
+             cancel: Callable[[], bool] | None = None,
+             report: Callable[[str, dict], None] | None = None):
         """Home this finger's two stepper axes (StallGuard2, sequential x
         then y), then return its three servos to their zero references.
         Steppers first, then servos."""
-        self._gantry.home(velocity=velocity, accel=accel)
+        outcomes = self._gantry.home(velocity=velocity, accel=accel,
+                                      cancel=cancel, report=report)
         self._servo.zero_joints(speed=speed)
+        return outcomes
 
 
 class Hand:
@@ -82,16 +88,58 @@ class Hand:
         self._gantry = Gantry(stepper_driver)  # enables + sets scale internally
         self._servo_bus = servo_bus
 
+    @property
+    def gantry(self) -> Gantry:
+        return self._gantry
+
+    @property
+    def servo_bus(self) -> ServoBus:
+        return self._servo_bus
+
     def finger(self, finger_id: int) -> HandFinger:
         return HandFinger(self._gantry.finger(finger_id), self._servo_bus.finger(finger_id))
 
     def home_all(self, velocity: int = STEPPER_VELOCITY, accel: int = STEPPER_ACCEL,
-                 speed: int = DEFAULT_JOINT_SPEED):
+                 speed: int = DEFAULT_JOINT_SPEED, *,
+                 cancel: Callable[[], bool] | None = None,
+                 report: Callable[[str, dict], None] | None = None,
+                 require_torque: bool = False) -> list[dict]:
         """Home every stepper axis (sequentially, all 6) then zero every
-        finger's servos."""
-        self._gantry.home_all(velocity=velocity, accel=accel)
+        finger's servos.
+
+        `require_torque=True` refuses to start unless all nine servos report torque
+        ON. Zeroing a torque-OFF servo is a silent no-op -- the goal-position write is
+        accepted and reads back correctly, and the horn does not move -- so without
+        this check "home" can report success having moved six axes and zero joints.
+        Callers that manage torque themselves (hand_control.py enables all nine before
+        calling this) can leave it False; anything that homes on a user's behalf should
+        pass True. See ServoBus.set_torque_all.
+
+        Returns the per-axis homing outcomes from Gantry.home_all."""
+        if require_torque:
+            states = self._servo_bus.read_torque_all()
+            off = sorted(sid for sid, state in states.items() if state != TORQUE_ON)
+            if off:
+                raise RuntimeError(
+                    f"servos {off} do not have torque enabled -- zeroing them would be a "
+                    f"silent no-op; call ServoBus.enable_all() first"
+                )
+        outcomes = self._gantry.home_all(velocity=velocity, accel=accel,
+                                          cancel=cancel, report=report)
         for finger_id in range(3):
             self._servo_bus.finger(finger_id).zero_joints(speed=speed)
+        return outcomes
+
+    def move_mounts_sequential(self, mounts: dict[int, tuple[float, float]], *,
+                               frame: str = "global",
+                               velocity: int = STEPPER_VELOCITY,
+                               accel: int = STEPPER_ACCEL,
+                               cancel: Callable[[], bool] | None = None,
+                               report: Callable[[str, dict], None] | None = None) -> None:
+        """Position the three gantries one axis at a time. See Gantry.move_sequential
+        for why one at a time is the only profile this hardware has been run at."""
+        self._gantry.move_sequential(mounts, frame=frame, velocity=velocity, accel=accel,
+                                      cancel=cancel, report=report)
 
     def set_joints_fast(self, pose: dict[int, dict[str, float]], speed: int | None = None):
         """Real-time-capable aa/fe1/fe2 update across any number of

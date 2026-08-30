@@ -357,16 +357,32 @@ class HandPlan:
         return "\n".join(lines)
 
     # -- running it -------------------------------------------------------------------------
-    def apply_mounts(self, hand, *, home: bool = True,
-                     velocity: int = STEPPER_VELOCITY, accel: int = STEPPER_ACCEL) -> None:
+    def apply_mounts(self, hand, *, home: bool = True, sequential: bool = True,
+                     velocity: int = STEPPER_VELOCITY, accel: int = STEPPER_ACCEL,
+                     cancel=None, report=None) -> None:
         """Put the three gantries where this design wants them. Validates first: a bad target
-        raises before any command goes out, rather than after two of six axes have moved."""
+        raises before any command goes out, rather than after two of six axes have moved.
+
+        `sequential` (default) moves ONE AXIS AT A TIME and waits for each to stop --
+        see Gantry.move_sequential for why. The old behaviour, six MOVEMMs fired back to
+        back with nothing waiting on any of them, is still reachable with
+        sequential=False; it is not a profile this hardware has been validated at, it
+        returns while all six axes are still travelling, and nothing downstream can then
+        tell "finished" from "still moving". Prefer the default.
+
+        `cancel` is a predicate polled between and during axes, so a stop button can
+        actually stop this. `report(event, payload)` receives per-axis progress."""
         bad = [v for v in self.validate() if v.axis in ("x", "y")]
         if bad:
             raise ValueError("mounts outside the measured envelope:\n  "
                              + "\n  ".join(str(v) for v in bad))
         if home:
-            hand.home_all(velocity=velocity, accel=accel)
+            hand.home_all(velocity=velocity, accel=accel, cancel=cancel, report=report)
+        if sequential:
+            hand.move_mounts_sequential(
+                {FINGER_ID[f]: (x, y) for f, (x, y) in self.mounts_palm_mm.items()},
+                frame="global", velocity=velocity, accel=accel, cancel=cancel, report=report)
+            return
         for finger, (x, y) in self.mounts_palm_mm.items():
             hand.finger(FINGER_ID[finger]).move_to_global(x, y, velocity=velocity, accel=accel)
 

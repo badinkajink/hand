@@ -23,7 +23,7 @@ importable unconditionally, same tier as driver.py/joint.py.
 from __future__ import annotations
 
 import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 if TYPE_CHECKING:  # pyserial is a runtime-only dependency of .driver, and every
     # annotation here is a string (`from __future__ import annotations`), so the
@@ -95,6 +95,17 @@ HOME_VELOCITY = 12000
 HOME_ACCEL = 2000
 HOME_TIMEOUT_MARGIN = 1.4  # multiplier over the theoretical minimum travel time
 HOME_POLL_PERIOD_S = 0.3
+
+class HomingAborted(RuntimeError):
+    """Raised when a caller's `cancel` predicate stops a home or gantry move part-way.
+
+    Distinct from RuntimeError (a real failure) on purpose: an aborted axis has NOT
+    been zeroed and its step-0 reference is unknown, so a caller has to invalidate the
+    whole session's home rather than treat this as a soft skip. See `_home_one_axis`'s
+    `cancel` parameter for why an abort can never zero.
+    """
+
+
 PRE_HOME_BACKOFF_MM = 10.0  # if already closer than this to the hardstop, back off
 # first -- re-homing an axis that's already at/near the wall presses into it
 # for HOME's whole grace period (~ramp time + 800ms) with StallGuard not even
@@ -199,32 +210,131 @@ def _home_timeout_ms(joint_index: int) -> int:
     return int(travel_s * HOME_TIMEOUT_MARGIN * 1000)
 
 
-def _home_one_axis(driver: MantaHandDriver, joint_index: int):
+def _abort_axis(driver: MantaHandDriver, joint_index: int, *, settle_s: float = 8.0):
+    """Bring one axis to a halt and hand it back to the firmware in a clean state.
+
+    STOP alone is not enough to cancel a HOME. The firmware's Stepper_Stop() only sets
+    `target = position` (firmware/Core/Src/stepper.c) -- it leaves `homing_result` at 1,
+    so the axis stays logically "homing" and the supervisor tick eventually flips it to
+    3 (timed out) on its own. A caller polling for the outcome would then read 3,
+    believe the timeout guarantee (see _home_timeout_ms) and ZERO an axis that never
+    reached its hardstop, leaving a bogus step-0 reference that the next MOVEMM drives
+    away from with no stall protection at all. Stepper_Disable() DOES clear
+    homing_result, so the disable here is what actually cancels the home.
+
+    STOP first so the axis decelerates under control rather than dropping torque at
+    speed; disable once it has stopped, or once `settle_s` has passed, since an
+    unresponsive axis still has to end up de-energised."""
+    j = driver.joints[joint_index]
+    try:
+        j.stop()
+        deadline = time.monotonic() + settle_s
+        while time.monotonic() < deadline:
+            if not j.status.moving:
+                break
+            time.sleep(0.1)
+    finally:
+        j.disable()  # the part that actually clears the firmware's homing_result
+
+
+def _cancelled(cancel: Callable[[], bool] | None) -> bool:
+    return bool(cancel and cancel())
+
+
+def wait_for_axis_idle(driver: MantaHandDriver, joint_index: int, timeout_s: float,
+                        *, poll_s: float = 0.15,
+                        cancel: Callable[[], bool] | None = None) -> None:
+    """Block until one axis reports `moving == False`, or raise.
+
+    MOVEMM is non-blocking (see Joint.move_to_mm) and has no stall protection, so
+    anything that issues one and then wants to know it finished has to poll. Polls ONE
+    axis with STAT rather than the whole board with STATALL: STATALL is nine USB-CDC
+    packets sent from the firmware's main loop, in competition with the step ISRs that
+    are running at that very moment at a higher interrupt priority than USB.
+
+    Raises HomingAborted if `cancel` fires (the axis is stopped and disabled first), or
+    TimeoutError if it is still moving after `timeout_s`."""
+    j = driver.joints[joint_index]
+    deadline = time.monotonic() + timeout_s
+    while True:
+        if _cancelled(cancel):
+            _abort_axis(driver, joint_index)
+            raise HomingAborted(f"J{joint_index}: motion cancelled")
+        if not j.status.moving:
+            return
+        if time.monotonic() > deadline:
+            _abort_axis(driver, joint_index)
+            raise TimeoutError(
+                f"J{joint_index}: still moving after {timeout_s:.1f}s -- stopped and disabled"
+            )
+        time.sleep(poll_s)
+
+
+def move_time_estimate_s(joint_index: int, distance_mm: float,
+                          velocity: int = STEPPER_VELOCITY,
+                          accel: int = STEPPER_ACCEL) -> float:
+    """Trapezoidal-profile travel time for `distance_mm` on this axis, in seconds.
+
+    Same arithmetic as _home_timeout_ms, but for an arbitrary distance, so a settle
+    timeout can be sized from the move it is actually waiting on instead of one
+    constant that is either far too generous for a 3mm nudge or too tight for a
+    full-length one."""
+    steps = abs(distance_mm) * abs(STEPS_PER_MM[joint_index])
+    ramp_steps = velocity**2 / (2 * accel)
+    if steps <= 0:
+        return 0.0
+    if steps <= ramp_steps:
+        return (2 * steps / accel) ** 0.5
+    return velocity / accel + (steps - ramp_steps) / velocity
+
+
+def _home_one_axis(driver: MantaHandDriver, joint_index: int,
+                    *, cancel: Callable[[], bool] | None = None,
+                    report: Callable[[str, dict], None] | None = None) -> dict:
     """Sequentially home one axis via StallGuard2, then ZERO it so 0mm
     becomes the home reference for move_to_mm. Never call this
     concurrently with another axis's homing -- see this project's
     sequential-only rule. Relocated verbatim from hand_control.py's
-    home_axis (same behavior, validated live this session)."""
+    home_axis (same behavior, validated live this session).
+
+    `cancel`: polled at every wait point. When it fires, the axis is stopped and
+    disabled (see _abort_axis) and HomingAborted is raised WITHOUT zeroing -- an
+    interrupted home leaves the step-0 reference unknown, and zeroing anyway is exactly
+    how a cancelled home becomes a gantry that later drives itself into a hardstop.
+
+    `report`: optional callback(event_name, payload) so a caller can show per-axis
+    progress and the stall-vs-timeout outcome live, rather than only in this process's
+    stdout.
+
+    Returns {joint, homing_result, stalled, elapsed_s}."""
+    def emit(name: str, **payload):
+        payload["joint"] = joint_index
+        if report is not None:
+            report(name, payload)
+
     j = driver.joints[joint_index]
+    if _cancelled(cancel):
+        raise HomingAborted(f"J{joint_index}: homing cancelled before it started")
+    timeout_ms = _home_timeout_ms(joint_index)
+    emit("home_axis_start", timeout_s=timeout_ms / 1000.0,
+         travel_mm=FULL_EXTENSION_MM[joint_index])
+    started = time.monotonic()
+
     current_mm = j.status.position / STEPS_PER_MM[joint_index]
     if abs(current_mm) < PRE_HOME_BACKOFF_MM:
         # HOME_VELOCITY/HOME_ACCEL, not STEPPER_VELOCITY -- at 400sps a 10mm
         # move takes ~80s, far longer than this poll loop waits, so the
         # first cut of this backoff silently moved on to HOME while the
         # backoff move was still barely underway (~1mm covered, not 10).
+        emit("home_axis_backoff", from_mm=current_mm, to_mm=PRE_HOME_BACKOFF_MM)
         j.move_to_mm(PRE_HOME_BACKOFF_MM, HOME_VELOCITY, HOME_ACCEL)
-        start = time.monotonic()
-        while time.monotonic() - start < 15.0:
-            if not j.status.moving:
-                break
-            time.sleep(0.2)
-        else:
-            j.stop()
-            j.disable()
-            raise RuntimeError(f"J{joint_index}: pre-home backoff didn't finish in 15s -- disabled")
+        try:
+            wait_for_axis_idle(driver, joint_index, 15.0, poll_s=0.2, cancel=cancel)
+        except TimeoutError as exc:
+            raise RuntimeError(
+                f"J{joint_index}: pre-home backoff didn't finish in 15s -- disabled") from exc
         print(f"  J{joint_index} was within {PRE_HOME_BACKOFF_MM}mm of home -- backed off first")
     j.write_reg5160(0x6D, HOME_COOLCONF[joint_index])
-    timeout_ms = _home_timeout_ms(joint_index)
     j.home(HOME_DIRECTION, HOME_VELOCITY, HOME_ACCEL, timeout_ms)
     hard_cap_s = timeout_ms / 1000 + 5.0  # must stay above the firmware timeout --
     # a client-side cap shorter than the firmware's own timeout would fire
@@ -233,23 +343,33 @@ def _home_one_axis(driver: MantaHandDriver, joint_index: int):
     start = time.monotonic()
     status = j.status
     while status.homing_result == 1:
+        if _cancelled(cancel):
+            _abort_axis(driver, joint_index)
+            raise HomingAborted(
+                f"J{joint_index}: homing cancelled -- axis stopped and disabled, NOT zeroed")
         if time.monotonic() - start > hard_cap_s:
             j.stop()
             j.disable()
             raise RuntimeError(f"J{joint_index}: homing exceeded {hard_cap_s:.0f}s hard cap -- disabled")
         time.sleep(HOME_POLL_PERIOD_S)
         status = j.status
+    elapsed = time.monotonic() - started
     if status.homing_result == 2:
         j.zero()
         print(f"  J{joint_index} homed")
+        emit("home_axis_done", homing_result=2, stalled=True, elapsed_s=elapsed)
     elif status.homing_result == 3:
         # No stall seen, but timeout_ms guarantees the full measured range
         # was covered -- the axis must be at the far hardstop regardless.
         j.zero()
         print(f"  J{joint_index} homed via timeout guarantee (StallGuard didn't trigger)")
+        emit("home_axis_done", homing_result=3, stalled=False, elapsed_s=elapsed)
     else:
         j.disable()
+        emit("home_axis_failed", homing_result=status.homing_result, elapsed_s=elapsed)
         raise RuntimeError(f"J{joint_index}: homing failed (homing_result={status.homing_result})")
+    return {"joint": joint_index, "homing_result": status.homing_result,
+            "stalled": status.homing_result == 2, "elapsed_s": elapsed}
 
 
 class GantryFinger:
@@ -292,14 +412,42 @@ class GantryFinger:
         origin_x, origin_y = self._origin
         self.move_to_local(x_mm - origin_x, y_mm - origin_y, velocity=velocity, accel=accel)
 
-    def home(self, velocity: int = STEPPER_VELOCITY, accel: int = STEPPER_ACCEL):
+    def home(self, velocity: int = STEPPER_VELOCITY, accel: int = STEPPER_ACCEL,
+             *, cancel: Callable[[], bool] | None = None,
+             report: Callable[[str, dict], None] | None = None) -> list[dict]:
         """Home this finger's two stepper axes (x then y, sequentially --
         never concurrently, per this project's homing rule). velocity/accel
         are unused here (homing always uses HOME_VELOCITY/HOME_ACCEL, a
         deliberately different, validated-safe pair) but accepted for
-        signature symmetry with move_to_local/move_to_global."""
-        _home_one_axis(self._driver, self._x_joint)
-        _home_one_axis(self._driver, self._y_joint)
+        signature symmetry with move_to_local/move_to_global.
+
+        `cancel`/`report` are forwarded to _home_one_axis; see there. Returns one
+        outcome dict per axis."""
+        return [_home_one_axis(self._driver, self._x_joint, cancel=cancel, report=report),
+                _home_one_axis(self._driver, self._y_joint, cancel=cancel, report=report)]
+
+    def stepper_targets(self, x_mm: float, y_mm: float, *, frame: str = "local"
+                         ) -> dict[int, float]:
+        """Bounds-checked {joint index: firmware mm} for a local- or global-frame
+        target, WITHOUT commanding anything. Splitting the arithmetic out from the
+        command is what lets a caller move the two axes one at a time (see
+        Gantry.move_sequential) while keeping this module the only place that knows
+        the transform and the limits."""
+        if frame == "global":
+            origin_x, origin_y = self._origin
+            x_mm, y_mm = x_mm - origin_x, y_mm - origin_y
+        elif frame != "local":
+            raise ValueError(f"frame must be 'local' or 'global', got {frame!r}")
+        lo, hi = self._x_bounds
+        if not lo <= x_mm <= hi:
+            raise ValueError(f"finger {self._finger_id}: local x={x_mm}mm outside real range "
+                             f"[{lo:.2f}, {hi:.2f}]mm")
+        lo, hi = self._y_bounds
+        if not lo <= y_mm <= hi:
+            raise ValueError(f"finger {self._finger_id}: local y={y_mm}mm outside real range "
+                             f"[{lo:.2f}, {hi:.2f}]mm")
+        return {self._x_joint: self._x_offset + self._x_sign * y_mm,
+                self._y_joint: self._y_offset + self._y_sign * x_mm}
 
 
 class Gantry:
@@ -309,21 +457,92 @@ class Gantry:
 
     def __init__(self, driver: MantaHandDriver):
         self._driver = driver
-        self._fingers: dict[int, GantryFinger] = {}
-        for finger_id, (x_joint, y_joint) in STEPPER_JOINTS.items():
-            driver.joints[x_joint].enable()
-            driver.joints[y_joint].enable()
-            driver.joints[x_joint].set_scale(STEPS_PER_MM[x_joint])
-            driver.joints[y_joint].set_scale(STEPS_PER_MM[y_joint])
-            self._fingers[finger_id] = GantryFinger(driver, finger_id)
+        self._fingers: dict[int, GantryFinger] = {
+            finger_id: GantryFinger(driver, finger_id) for finger_id in STEPPER_JOINTS}
+        self.prepare()
+
+    def prepare(self) -> None:
+        """Enable every axis and re-send its mm calibration.
+
+        Run at construction and again before each home or gantry move, not once at
+        startup, because both bits of state are lost more often than they look. EN is
+        cleared by any DIS -- which is how a cancelled home is cancelled (see
+        _abort_axis), and what the disable-motors control does -- and Stepper_Home
+        refuses with ERR NODIAG on an axis that is not enabled, so a session that
+        aborted one home could not start another. SETSCALE is RAM-only firmware side
+        and does not survive a board reset. Both are single cheap commands; re-asserting
+        them is what makes the session recoverable instead of one-shot."""
+        for x_joint, y_joint in STEPPER_JOINTS.values():
+            for joint_index in (x_joint, y_joint):
+                self._driver.joints[joint_index].enable()
+                self._driver.joints[joint_index].set_scale(STEPS_PER_MM[joint_index])
 
     def finger(self, finger_id: int) -> GantryFinger:
         return self._fingers[finger_id]
 
-    def home_all(self, velocity: int = STEPPER_VELOCITY, accel: int = STEPPER_ACCEL):
+    def home_all(self, velocity: int = STEPPER_VELOCITY, accel: int = STEPPER_ACCEL,
+                 *, cancel: Callable[[], bool] | None = None,
+                 report: Callable[[str, dict], None] | None = None) -> list[dict]:
         """Home every stepper axis, sequentially, all 3 fingers in order --
-        matches hand_control.py's original home_all_axes iteration order."""
+        matches hand_control.py's original home_all_axes iteration order.
+
+        Returns one outcome dict per axis (see _home_one_axis), so a caller can tell
+        which axes found their hardstop via StallGuard2 and which fell through to the
+        timeout guarantee. On this hardware as of 2026-08-29 that is not academic:
+        J3 and J5 routinely reach `homing_result == 3`, i.e. they grind against the
+        hardstop for the axis's full computed timeout (25s and 24s) before the home is
+        accepted. That is by design (see HOME_COOLCONF), but it looks exactly like a
+        hang to anyone watching, so surface it rather than only print()ing it."""
         print("homing all axes sequentially...")
+        self.prepare()  # a previous abort or disable-motors left axes de-energised
+        outcomes: list[dict] = []
         for finger_id in STEPPER_JOINTS:
-            self._fingers[finger_id].home(velocity=velocity, accel=accel)
+            outcomes += self._fingers[finger_id].home(velocity=velocity, accel=accel,
+                                                       cancel=cancel, report=report)
         print("all axes homed -- 0mm is now each axis's home reference")
+        return outcomes
+
+    def move_sequential(self, targets: dict[int, tuple[float, float]], *,
+                        frame: str = "global",
+                        velocity: int = STEPPER_VELOCITY, accel: int = STEPPER_ACCEL,
+                        cancel: Callable[[], bool] | None = None,
+                        report: Callable[[str, dict], None] | None = None) -> None:
+        """Move several fingers to their targets ONE AXIS AT A TIME, waiting for each
+        to stop before starting the next.
+
+        This exists because issuing six MOVEMMs back to back is not a motion profile
+        this hardware has ever been validated at. Everything that has run on this hand
+        -- hand_control.py's REPL, movement_examples.py, the homing sequence -- moves a
+        single axis at a time. Six simultaneous starts means six simultaneous
+        TMC5160_StartMotionKick current kicks (IRUN 1 -> 7 for 500ms each, see
+        firmware/Core/Inc/tmc5160_spi.h) on the 19V rail that also backfeeds the CB1,
+        and six axes' worth of step ISRs at NVIC priority 2 preempting the USB
+        interrupt at priority 3 while the host is polling the very link those ISRs are
+        starving.
+
+        Every target is computed and bounds-checked BEFORE the first command goes out,
+        so a plan that does not fit moves nothing rather than stranding the hand
+        half-configured. Each axis then gets a settle timeout sized from its own
+        travel distance, and `cancel` is honoured between and during axes."""
+        self.prepare()
+        commands: list[tuple[int, float]] = []
+        for finger_id, (x_mm, y_mm) in sorted(targets.items()):
+            per_axis = self._fingers[finger_id].stepper_targets(x_mm, y_mm, frame=frame)
+            commands += sorted(per_axis.items())
+
+        for joint_index, mm in commands:
+            if _cancelled(cancel):
+                raise HomingAborted(f"gantry move cancelled before J{joint_index}")
+            joint = self._driver.joints[joint_index]
+            here = joint.status.position / STEPS_PER_MM[joint_index]
+            distance = abs(mm - here)
+            if report is not None:
+                report("gantry_axis_start", {"joint": joint_index, "target_mm": mm,
+                                              "from_mm": here, "distance_mm": distance})
+            joint.move_to_mm(mm, velocity, accel)
+            # +3s covers the command round trip and the firmware's own start latency;
+            # the 1.5x is the same kind of real-world margin HOME_TIMEOUT_MARGIN applies.
+            budget = move_time_estimate_s(joint_index, distance, velocity, accel) * 1.5 + 3.0
+            wait_for_axis_idle(self._driver, joint_index, budget, cancel=cancel)
+            if report is not None:
+                report("gantry_axis_done", {"joint": joint_index, "target_mm": mm})
