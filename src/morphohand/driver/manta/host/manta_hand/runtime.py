@@ -106,13 +106,17 @@ class RealHardwareBackend:
     kind = "real"
 
     def __init__(self, stepper_port: str = "/dev/ttyACM0", servo_port: str = "/dev/ttyUSB0",
-                 *, enable_servos: bool = True):
+                 *, enable_servos: bool = True, servo_fields: tuple[str, ...] = ()):
         from .driver import MantaHandDriver
         from .hand import Hand
         from .servos import ServoBus
 
         self.stepper_port = stepper_port
         self.servo_port = servo_port
+        # Extra per-servo feedback fields to sample alongside position. Each one costs
+        # another nine transactions (position alone measured 111Hz, position+load
+        # 55.6Hz), so this is opt-in rather than "read everything".
+        self.servo_fields = tuple(servo_fields)
         self.link_error: str | None = None
         self.driver = MantaHandDriver(stepper_port)
         try:
@@ -210,6 +214,13 @@ class RealHardwareBackend:
         if include_servos:
             out["servos"] = self.servos.sync_read_joint_positions()
             out["servo_torque"] = self.servos.read_torque_all()
+            for field in self.servo_fields:
+                values = self.servos.read_field(field)
+                if values is not None:
+                    # Keyed by servo id, not joint name: present_load in particular is
+                    # an uncalibrated per-servo number and giving it a joint name would
+                    # invite reading it as a joint torque, which it is not.
+                    out[f"servo_{field}"] = values
         out["servo_bus"] = self.servos.health()
         return out
 
@@ -441,6 +452,7 @@ class HandRuntime:
         self._current_pose: str | None = None
         self._last_command = _zero_sim_pose()
         self._last_error: str | None = None
+        self.servo_fields = tuple(getattr(backend, "servo_fields", ()))
         self._telemetry: dict = {"timestamp": None, "age_s": None, "servos": None,
                                 "servo_timestamp": None, "servo_age_s": None,
                                 "steppers": None, "error": None, "samples": 0,
@@ -537,6 +549,7 @@ class HandRuntime:
                 "telemetry": telem,
                 "last_error": self._last_error,
                 "streaming": self._stream_token is not None,
+                "servo_fields": list(self.servo_fields),
                 "capabilities": {
                     "servo_position": "sync-read when supported by installed rustypot",
                     "servo_load": "uncalibrated duty-cycle proxy; NOT current, NOT force",

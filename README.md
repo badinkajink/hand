@@ -18,7 +18,7 @@ gantry axes on a Manta M8P, nine Feetech servos, and a browser control station).
 
 | You want to… | Go to |
 |---|---|
-| Read the project as a document | **[`webpaper/`](webpaper/)** — Typst → HTML, the canonical readable write-up. `webpaper/build.sh`, then serve `webpaper/build/` |
+| Read the project as a document | **[`webpaper/`](webpaper/)** — Typst → HTML, the canonical readable write-up. `webpaper/build.sh`, then serve `webpaper/build/`. The **Control Station** page is the sim2real bring-up record and catalogues the study artifacts |
 | Know what any script does | **[`scripts/README.md`](scripts/README.md)** — the map of the ~80 active scripts, grouped by role |
 | Pick up the RL work | **[`RESEARCH_STATE.md`](RESEARCH_STATE.md)** (self-contained handoff) then [`docs/rl/reorientation.md`](docs/rl/reorientation.md) (the chronological log, the RL source of truth) |
 | Drive the real hand | **[`docs/hardware_control_station.md`](docs/hardware_control_station.md)** |
@@ -128,8 +128,11 @@ exercises none of the driver code — use `--fake` for anything involving homing
 serial link.)
 
 Real launch, CB1 install, the homing flow, the API, logging and recovery are in
-[`docs/hardware_control_station.md`](docs/hardware_control_station.md). Electrical, StallGuard
-and servo-calibration details are in
+[`docs/hardware_control_station.md`](docs/hardware_control_station.md) — that is the runbook.
+The reasoning behind it, the 2026-08-29 bench failure, the measured bus limits and a catalogue
+of the `real_v1` study artifacts are on the **Control Station** page of the webpaper
+([`webpaper/src/control.typ`](webpaper/src/control.typ)). Electrical, StallGuard and
+servo-calibration details are in
 [`src/morphohand/driver/manta/docs/`](src/morphohand/driver/manta/docs/).
 
 Two hardware facts worth knowing before you touch it:
@@ -139,9 +142,10 @@ Two hardware facts worth knowing before you touch it:
   against their hardstop for ~33 s each. That is the current SGT tuning, not a fault.
 - **Feedback is nine joint positions and nothing else** — no object pose, no contact, no
   current (the SCS0009 has no current register at all). Measured ceiling is 111 Hz for the nine
-  positions, but only after lowering the FTDI latency timer; the default costs 16× and is
-  silent about it. The learned A/B policies need ~65 observations, so they remain
-  simulation-only; the deployable method is the CEM grasp plus a buffered open-loop reorientation.
+  positions, and 75 Hz for a full write-plus-read closed loop — but only after lowering the FTDI
+  latency timer, which the default costs 16× and says nothing about. Install the udev rule in the
+  runbook. The learned A/B policies need ~65 observations, so they remain simulation-only; the
+  deployable method is the CEM grasp plus a buffered open-loop reorientation.
 
 ---
 
