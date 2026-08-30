@@ -16,7 +16,13 @@ failure modes sit within ~10 degrees of MCP command.**
 | 211406 — plan grip | 525 / 350 / 210 | +4.1 deg of +12.5 | stall abort at step 10; held; operator saw a small reorientation |
 | 211644 — full relief | 105 / 60 / 0 | +25.5 deg of +28.6 | ran the whole path; **dropped the shaft** |
 | 212031 — uniform preload | 285 / 300 / 195 | +12.6 deg | stall abort at step 24, middle yaw load 855 (saturated) |
-| **212231 — asymmetric** | **435 / 210 / 0** | **+13.2 deg** | **ran the whole path and held 4 s at the final pose** |
+| **212231 — asymmetric** | **435 / 210 / 0** | **+13.2 deg** | **ran the whole path and held 4 s; operator measured ~15 deg of real cylinder rotation** |
+
+**Object rotation tracks middle yaw close to 1:1.**  Run 4 turned the cylinder
+about 15 degrees (operator estimate) while middle yaw travelled 13.2 degrees.
+There is no object-pose sensor on this hand, so middle's yaw excursion is the
+best available proxy for the reorientation, and the +28.6 deg the plan commands
+would be worth roughly a 28 deg turn if middle could complete it.
 
 ## Why the plan over-clamps
 
@@ -55,7 +61,9 @@ while keeping the thumb firm does both (run 4).
 ## Open
 
 - Middle yaw plateaus near 13 deg at load exactly 200 for 30+ steps whenever the
-  thumb is firm.  Partial turn, stable hold; the remaining 15 deg is unexplained.
+  thumb is firm.  Partial turn, stable hold; the remaining 15 deg is unexplained
+  and, at ~1:1, is worth roughly another 15 deg of cylinder rotation.  This is
+  the single highest-value thing to chase next.
 - Index yaw does not return to its commanded zero (sits at -4.7 deg with a
   standing load ~240-270).  That axis is preloaded against something.
 - No object-pose measurement exists.  Every reorientation verdict here is the
