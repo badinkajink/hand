@@ -10,9 +10,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
+import logging.handlers
 import mimetypes
 import signal
 import sys
+import traceback
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -20,9 +23,37 @@ from urllib.parse import parse_qs, unquote, urlparse
 
 from . import plan as plan_module
 from .plan import HandPlan
-from .runtime import HandRuntime, MockHardwareBackend, RealHardwareBackend, RuntimeErrorState
+from .runtime import (HandRuntime, MockHardwareBackend, RealHardwareBackend,
+                       RuntimeErrorState)
+from .servos import TORQUE_FREE, TORQUE_OFF, TORQUE_ON
 
 STATIC_DIR = Path(__file__).with_name("static")
+LOG = logging.getLogger("manta_hand.web")
+
+
+def configure_logging(log_file: Path | None, verbose: bool = False) -> None:
+    """Console plus, when asked, a rotating file.
+
+    The file matters more than it looks. This service is normally started in an
+    interactive SSH shell on the CB1, so its only record of what happened lives in that
+    terminal's scrollback -- which is gone the moment the session drops, exactly when
+    something has gone wrong and the traceback is what you need. Point --log-file at the
+    repo's logs/ directory and the next incident leaves evidence."""
+    root = logging.getLogger("manta_hand")
+    root.setLevel(logging.DEBUG if verbose else logging.INFO)
+    root.handlers.clear()
+    fmt = logging.Formatter("%(asctime)s %(levelname)-7s %(name)s: %(message)s")
+    console = logging.StreamHandler(sys.stderr)
+    console.setFormatter(fmt)
+    console.setLevel(logging.DEBUG if verbose else logging.WARNING)
+    root.addHandler(console)
+    if log_file is not None:
+        log_file.parent.mkdir(parents=True, exist_ok=True)
+        handler = logging.handlers.RotatingFileHandler(log_file, maxBytes=8_000_000,
+                                                        backupCount=3, encoding="utf-8")
+        handler.setFormatter(fmt)
+        handler.setLevel(logging.DEBUG)
+        root.addHandler(handler)
 
 
 class ControlHTTPServer(ThreadingHTTPServer):
@@ -70,9 +101,29 @@ class ControlHTTPServer(ThreadingHTTPServer):
 class ControlRequestHandler(BaseHTTPRequestHandler):
     server: ControlHTTPServer
     protocol_version = "HTTP/1.1"
+    # Without this a keep-alive connection that the browser abandons (page reload, a
+    # network blip, a laptop lid) holds its handler thread forever. Over a long bench
+    # session on a CB1 those accumulate with nothing to reap them.
+    timeout = 30.0
+
+    def setup(self):
+        super().setup()
+        self._responded = False
 
     def log_message(self, fmt, *args):
-        sys.stderr.write("manta-web: " + fmt % args + "\n")
+        # Goes through logging, not straight to stderr: a foreground service on the CB1
+        # writes to whatever pty started it, and a blocked or closed pty then blocks or
+        # kills the service. The file handler installed in serve() is what survives the
+        # SSH session that launched it.
+        LOG.info("%s %s", self.address_string(), fmt % args)
+
+    def handle_one_request(self):
+        try:
+            super().handle_one_request()
+        except (BrokenPipeError, ConnectionResetError):
+            # The client hung up mid-response. Normal with a polling UI; not an error,
+            # and definitely not something to print a traceback about on every refresh.
+            self.close_connection = True
 
     def end_headers(self):
         self.send_header("Access-Control-Allow-Origin", "*")
@@ -108,11 +159,17 @@ class ControlRequestHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         try:
+            path = urlparse(self.path).path.rstrip("/")
+            # Read the body BEFORE any early return. On a keep-alive connection an
+            # unread request body is left in the socket and the next request line is
+            # parsed out of the middle of it -- the connection then desyncs and every
+            # later request on it fails, which in a browser reads as "Failed to fetch"
+            # with no server-side error at all.
+            body = self._body()
             if (self.server.control_token and
                     self.headers.get("X-Manta-Token", "") != self.server.control_token):
-                return self._json(HTTPStatus.UNAUTHORIZED, {"error": "missing or invalid control token"})
-            path = urlparse(self.path).path.rstrip("/")
-            body = self._body()
+                return self._json(HTTPStatus.UNAUTHORIZED,
+                                  {"error": "missing or invalid control token"})
             rt = self.server.runtime
             if path == "/api/v1/plans/load":
                 if "plan" in body:
@@ -148,6 +205,17 @@ class ControlRequestHandler(BaseHTTPRequestHandler):
             if path == "/api/v1/stop":
                 rt.stop()
                 return self._json(HTTPStatus.OK, {"stopped": True})
+            if path == "/api/v1/motors/disable":
+                return self._json(HTTPStatus.OK, rt.disable_motors())
+            if path == "/api/v1/servos/torque":
+                names = {"on": TORQUE_ON, "off": TORQUE_OFF, "free": TORQUE_FREE}
+                requested = str(body.get("state", "")).lower()
+                if requested not in names:
+                    raise ValueError(f"state must be one of {sorted(names)}")
+                return self._json(HTTPStatus.OK,
+                                  {"readback": rt.set_servo_torque(names[requested])})
+            if path == "/api/v1/reconnect":
+                return self._json(HTTPStatus.OK, rt.reconnect())
             if path == "/api/v1/stream/start":
                 token = rt.begin_stream(timeout_s=float(body.get("timeout_s", 0.25)))
                 return self._json(HTTPStatus.OK, {"token": token})
@@ -190,6 +258,7 @@ class ControlRequestHandler(BaseHTTPRequestHandler):
             return self._json(HTTPStatus.NOT_FOUND, {"error": "not found"})
         data = path.read_bytes()
         mime = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
+        self._responded = True
         self.send_response(HTTPStatus.OK)
         self.send_header("Content-Type", mime)
         self.send_header("Content-Length", str(len(data)))
@@ -203,6 +272,7 @@ class ControlRequestHandler(BaseHTTPRequestHandler):
         if path.parent != self.server.runtime.logs_dir.resolve() or not path.is_file():
             raise FileNotFoundError(name)
         data = path.read_bytes()
+        self._responded = True
         self.send_response(HTTPStatus.OK)
         self.send_header("Content-Type", "application/x-ndjson" if name.endswith(".jsonl") else "application/json")
         self.send_header("Content-Disposition", f'attachment; filename="{path.name}"')
@@ -211,7 +281,17 @@ class ControlRequestHandler(BaseHTTPRequestHandler):
         self.wfile.write(data)
 
     def _json(self, status: HTTPStatus, value: dict):
-        data = json.dumps(value, allow_nan=False).encode("utf-8")
+        try:
+            data = json.dumps(value, allow_nan=False).encode("utf-8")
+        except (ValueError, TypeError) as exc:
+            # A non-finite or unserialisable value anywhere in the status document used
+            # to raise HERE, after the caller had already decided to respond -- the
+            # handler then unwound with nothing written and the browser saw a dead
+            # connection. Degrade to a describable error instead of losing the response.
+            LOG.exception("response for %s was not serialisable", self.path)
+            data = json.dumps({"error": f"response not serialisable: {exc}"}).encode("utf-8")
+            status = HTTPStatus.INTERNAL_SERVER_ERROR
+        self._responded = True
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(data)))
@@ -219,19 +299,40 @@ class ControlRequestHandler(BaseHTTPRequestHandler):
         self.wfile.write(data)
 
     def _error(self, exc: Exception):
+        if self._responded:
+            # Something failed after the response was already on the wire. Writing a
+            # second one would desync a keep-alive connection and break every request
+            # that follows it, so close instead and leave the evidence in the log.
+            LOG.error("error after response was sent for %s: %s", self.path, exc)
+            self.close_connection = True
+            return
         if isinstance(exc, (ValueError, KeyError, RuntimeErrorState)):
             status = HTTPStatus.CONFLICT if isinstance(exc, RuntimeErrorState) else HTTPStatus.BAD_REQUEST
         elif isinstance(exc, FileNotFoundError):
             status = HTTPStatus.NOT_FOUND
         else:
             status = HTTPStatus.INTERNAL_SERVER_ERROR
-        self._json(status, {"error": f"{type(exc).__name__}: {exc}"})
+            LOG.error("unhandled error serving %s\n%s", self.path, traceback.format_exc())
+        try:
+            self._json(status, {"error": f"{type(exc).__name__}: {exc}"})
+        except OSError:
+            self.close_connection = True
 
 
 def serve(runtime: HandRuntime, *, host: str = "0.0.0.0", port: int = 8765,
           plans_dir: str | Path = "docs/experiments/20260829-real_v1_deploy/deploy",
           control_token: str = "") -> None:
-    server = ControlHTTPServer((host, port), runtime, Path(plans_dir), control_token)
+    try:
+        server = ControlHTTPServer((host, port), runtime, Path(plans_dir), control_token)
+    except OSError as exc:
+        # Starting a second instance is the most common way to get here, and the two
+        # serial links are exclusive, so the running one is the one that owns the hand.
+        runtime.close()
+        raise SystemExit(
+            f"cannot bind {host}:{port}: {exc}\n"
+            f"Another control service is probably already running and holding the "
+            f"serial ports. Find it with:  pgrep -af manta_hand"
+        ) from exc
 
     def stop_server(_signum=None, _frame=None):
         # shutdown() must run outside serve_forever's own thread.
@@ -240,6 +341,12 @@ def serve(runtime: HandRuntime, *, host: str = "0.0.0.0", port: int = 8765,
 
     signal.signal(signal.SIGINT, stop_server)
     signal.signal(signal.SIGTERM, stop_server)
+    # SIGHUP too: this is normally started in a foreground SSH shell, and the shell
+    # dying is the single most common way this service has ended. Handling it means the
+    # hand is stopped and de-energised on the way out instead of holding its last goal.
+    if hasattr(signal, "SIGHUP"):
+        signal.signal(signal.SIGHUP, stop_server)
+    LOG.info("serving on %s:%s backend=%s", host, port, runtime.backend.kind)
     print(f"MorphoHand control: http://{host}:{port}  backend={runtime.backend.kind}")
     try:
         server.serve_forever(poll_interval=0.25)
@@ -266,7 +373,15 @@ FINGER_NAMES = ("thumb", "index", "middle")
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--mock", action="store_true", help="no hardware; exercise the full UI safely")
+    ap.add_argument("--mock", action="store_true",
+                    help="no hardware, no driver code: swaps the whole backend for a stub")
+    ap.add_argument("--fake", action="store_true",
+                    help="no hardware, but the REAL driver stack against a simulated M8P on a "
+                         "pty and a simulated SCS0009 bus. Use this, not --mock, to reproduce "
+                         "and debug anything involving homing, gantry motion or the serial link")
+    ap.add_argument("--fake-stall-axes", default="0,1,2,4",
+                    help="--fake only: which axes' StallGuard2 fires. The default matches the "
+                         "real hand as measured 2026-08-29 (J3 and J5 home by timeout)")
     ap.add_argument("--host", default="0.0.0.0")
     ap.add_argument("--port", type=int, default=8765)
     ap.add_argument("--stepper-port", default="/dev/ttyACM0")
@@ -280,22 +395,52 @@ def main(argv: list[str] | None = None) -> int:
                     help="required X-Manta-Token for commands (mandatory with real hardware)")
     ap.add_argument("--aa-signs", default="",
                     help="override recorded sim->servo yaw signs after a new hardware check")
+    ap.add_argument("--log-file", type=Path, default=None,
+                    help="rotating log of every request, error and traceback. Strongly "
+                         "recommended on the CB1: without it the only record is the SSH "
+                         "session's scrollback, which is gone exactly when you need it")
+    ap.add_argument("--verbose", action="store_true")
     args = ap.parse_args(argv)
-    if not args.mock and not args.token:
+    if args.mock and args.fake:
+        ap.error("--mock and --fake are different things; pick one (see their help text)")
+    simulated = args.mock or args.fake
+    if not simulated and not args.token:
         ap.error("--token is required with real hardware; generate one with: openssl rand -hex 16")
 
+    configure_logging(args.log_file, args.verbose)
     signs = _parse_signs(args.aa_signs)
     if signs:
         for finger, sign in signs.items():
             plan_module.JOINT_SIGN[(finger, "yaw")] = sign
         plan_module.SIGNS_MEASURED = True
-    backend = (MockHardwareBackend() if args.mock else
-               RealHardwareBackend(args.stepper_port, args.servo_port))
+
+    fake_device = None
+    if args.mock:
+        backend = MockHardwareBackend()
+    elif args.fake:
+        from . import servos as servos_module
+        from .fake_hardware import FakeM8P, FakeScs0009Controller
+
+        servos_module._controller_cls = lambda: FakeScs0009Controller
+        servos_module.INTER_CMD_DELAY_S = 0.0
+        servos_module.PORT_SETTLE_S = 0.0
+        stall = {int(x) for x in args.fake_stall_axes.split(",") if x.strip() != ""}
+        fake_device = FakeM8P(stall_axes=stall)
+        print(f"FAKE hardware: simulated M8P on {fake_device.port}, "
+              f"StallGuard2 fires on axes {sorted(stall)}")
+        backend = RealHardwareBackend(fake_device.port, "fake://servos")
+    else:
+        backend = RealHardwareBackend(args.stepper_port, args.servo_port)
+
     runtime = HandRuntime(backend, logs_dir=args.logs_dir,
                           telemetry_hz=args.telemetry_hz,
-                          signs_checked=plan_module.SIGNS_MEASURED or bool(signs) or args.mock)
-    serve(runtime, host=args.host, port=args.port, plans_dir=args.plans_dir,
-          control_token=args.token)
+                          signs_checked=plan_module.SIGNS_MEASURED or bool(signs) or simulated)
+    try:
+        serve(runtime, host=args.host, port=args.port, plans_dir=args.plans_dir,
+              control_token=args.token)
+    finally:
+        if fake_device is not None:
+            fake_device.close()
     return 0
 
 

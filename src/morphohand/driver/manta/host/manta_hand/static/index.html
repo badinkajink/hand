@@ -10,17 +10,32 @@
   <header>
     <div class="brand"><span class="mark">MH</span><div><h1>MorphoHand</h1><p>real_v1 control station</p></div></div>
     <div class="connection"><span id="health-dot" class="dot"></span><div><strong id="connection">Connecting</strong><small id="endpoint"></small></div></div>
+    <button id="disable-motors" class="secondary danger-outline" title="Stop and de-energise every stepper and servo. Invalidates the home.">Disable motors</button>
     <button id="stop" class="danger">Stop motion</button>
   </header>
 
   <main>
+    <div id="offline-banner" class="banner bad hidden">
+      <strong>No response from the control service.</strong>
+      <span id="offline-banner-text"></span>
+    </div>
+    <div id="link-banner" class="banner bad hidden">
+      <strong>Serial link down.</strong>
+      <span id="link-banner-text"></span>
+      <button id="reconnect" class="secondary">Re-check link</button>
+    </div>
+    <div id="command-error" class="banner warn hidden"></div>
+
     <section class="status-strip">
-      <div><small>Session</small><strong id="session-state">—</strong></div>
+      <div><small>Session</small><strong id="session-state">—</strong><small id="session-detail" class="detail"></small></div>
       <div><small>Operation</small><strong id="operation">—</strong></div>
       <div><small>Morphology</small><strong id="active-design">None</strong></div>
       <div><small>Pose</small><strong id="current-pose">—</strong></div>
+      <div><small>Servo torque</small><strong id="servo-torque">—</strong></div>
       <div><small>Measured telemetry</small><strong id="telem-rate">Off</strong></div>
     </section>
+
+    <div id="progress" class="banner progress hidden"></div>
 
     <section class="layout">
       <div class="column">
@@ -31,11 +46,22 @@
           </label>
           <div class="button-row">
             <button id="load-plan">Load candidate</button>
-            <button id="home" class="secondary">Home once</button>
+            <button id="home" class="secondary">Home gantries</button>
           </div>
           <button id="apply-morph" class="wide">Move gantries to morphology</button>
           <details id="metrics"><summary>Simulation metrics and build settings</summary><div id="metrics-body" class="metric-grid"></div></details>
-          <p class="hint">Homing is remembered only for this daemon session. An M8P reset or daemon restart requires a new home.</p>
+          <p class="hint">Gantries move one axis at a time, each waited on before the next starts.
+            Homing is remembered only for this daemon session; an M8P reset, a cancelled home or
+            a motor disable all invalidate it.</p>
+        </article>
+
+        <article class="card homing">
+          <div class="card-head"><div><span class="eyebrow">reference</span><h2>Home result</h2></div></div>
+          <div id="home-outcomes" class="axis-list"><p class="empty">No home recorded this session.</p></div>
+          <p class="hint">An axis marked <em>timeout</em> did not trip StallGuard2 and instead ran its
+            full computed window pressed against the hardstop. The window is sized to guarantee the
+            axis covered its whole measured travel, so the home is still trustworthy — but it grinds,
+            and on this hand J3 and J5 do it every time.</p>
         </article>
 
         <article class="card sequence">
@@ -52,6 +78,10 @@
           <div class="controls">
             <label>Speed ratio <output id="speed-value">1.00×</output><input id="speed" type="range" min="0.1" max="2" step="0.05" value="1"></label>
             <label>Command rate<select id="rate"><option>20</option><option selected>50</option><option>100</option></select><span>Hz</span></label>
+          </div>
+          <div class="torque-row">
+            <small>Servo torque</small>
+            <div><button id="torque-on" class="secondary">On</button><button id="torque-off" class="secondary">Off</button><button id="torque-free" class="secondary" title="Backdrivable by hand, for posing a finger manually">Free</button></div>
           </div>
           <div id="safety-note" class="callout warning">Yaw direction has not been verified. Finger motion remains interlocked.</div>
         </article>
@@ -70,7 +100,7 @@
             </svg>
             <div id="finger-cards" class="finger-cards"></div>
           </div>
-          <p id="telemetry-warning" class="hint">Browser refresh uses cached data and never polls a servo directly.</p>
+          <p id="telemetry-warning" class="hint">Browser refresh reads a cached document and never polls a servo directly.</p>
         </article>
 
         <article class="card recording">
@@ -89,7 +119,12 @@
   <dialog id="confirm-home">
     <form method="dialog">
       <span class="eyebrow">Destructive reference change</span><h2>Home all six gantry axes?</h2>
-      <p>Clear the hand and watch every rail. Axes move sequentially into their hardstops. Servo joints return to calibrated zero afterward.</p>
+      <p>Clear the hand and watch every rail. Axes home sequentially into their hardstops, and
+        servo joints return to calibrated zero afterwards.</p>
+      <p id="home-duration" class="emphasis"></p>
+      <p><strong>Stop motion</strong> cancels a home in progress. The cancelled axis is stopped and
+        de-energised and is <em>not</em> zeroed, so the whole reference is discarded and you will
+        need to home again.</p>
       <label>Type <code>HOME ALL AXES</code><input id="home-phrase" autocomplete="off"></label>
       <div class="dialog-actions"><button value="cancel" class="secondary">Cancel</button><button id="confirm-home-button" value="default" class="danger">Home hand</button></div>
     </form>
@@ -105,6 +140,7 @@
       <div class="dialog-actions"><button value="cancel" class="secondary">Cancel</button><button id="save-score" value="default">Save score</button></div>
     </form>
   </dialog>
+  <button id="dismiss-error" hidden></button>
   <div id="toast" role="status"></div>
   <script src="/app.js"></script>
 </body>
