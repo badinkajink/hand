@@ -43,9 +43,20 @@ B_CKPT=$ROOT/results/rl/b33_20260702-1353-policyB_m05_reorient_ik10/tensorboard/
 REF=$ROOT/results/rl/b33_20260702-1353-policyB_m05_reorient_ik10
 STATE=$ROOT/logs/blind2x2; mkdir -p "$STATE"
 
-TOTAL_TS=${TOTAL_TS:-20000000}; SMOKE=${SMOKE:-0}
+# BUDGET. b33's own 20M-timestep run converged at iteration 26 of 271: target-axis
+# alignment 55.9 at iter 26 vs 55.1 at iter 134 and 60.5 at iter 270, object height
+# 0.130 -> 0.126, reward 405 -> 407. The last 18M timesteps -- 90% of the wall clock --
+# bought nothing measurable, and these arms are warmstarted finetunes off an ALREADY
+# converged policy, so they settle sooner still. 5M (68 iters, ~9 min/arm) is generous
+# against a 1.9M convergence point. This is the only real throughput lever we have:
+# steps/s is flat in num_envs (measured 9,473 at 1024 vs 9,973 at 3072), CUDA graph
+# capture is already on, and the PPO update is 1.1% of the wall clock.
+TOTAL_TS=${TOTAL_TS:-5000000}; SMOKE=${SMOKE:-0}
 [ "$SMOKE" = "1" ] && TOTAL_TS=1000000
 SEED=${SEED:-42}
+# Which cells to run. The jittered pair is the decisive one: S1-B1 is the oracle-vs-AAC
+# gate, because the nominal task is one an open-loop trajectory already solves.
+ARMS=${ARMS:-"S0_sighted_nominal B0_blind_nominal S1_sighted_jitter B1_blind_jitter"}
 
 for f in "$A_CKPT" "$B_CKPT" "$ROOT/$MORPH/best_rollout.npz"; do
   [ -e "$f" ] || { echo "FATAL missing $f"; exit 1; }; done
@@ -108,10 +119,15 @@ uv run python "$ROOT/scripts/assert_config_parity.py" --run "$DRY/20260830-S0_pa
   || { echo "[2x2] FATAL parity broken — not launching."; exit 1; }
 rm -rf "$DRY"
 
-run_arm S0_sighted_nominal
-run_arm B0_blind_nominal   "${BLIND[@]}"
-run_arm S1_sighted_jitter  "${JIT[@]}"
-run_arm B1_blind_jitter    "${BLIND[@]}" "${JIT[@]}"
+for arm in $ARMS; do
+  case "$arm" in
+    S0_sighted_nominal) run_arm S0_sighted_nominal ;;
+    B0_blind_nominal)   run_arm B0_blind_nominal   "${BLIND[@]}" ;;
+    S1_sighted_jitter)  run_arm S1_sighted_jitter  "${JIT[@]}" ;;
+    B1_blind_jitter)    run_arm B1_blind_jitter    "${BLIND[@]}" "${JIT[@]}" ;;
+    *) echo "[2x2] FATAL unknown arm '$arm'"; exit 1 ;;
+  esac
+done
 
 echo "[2x2] queue complete. NEXT: evaluate all four with the SAME continuous-handoff"
 echo "[2x2] protocol (scripts/probe_obs_ablation.py --conditions none, 32 envs), and"
