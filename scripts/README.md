@@ -47,7 +47,8 @@ contains (there is no object-pose sensor on this hand). Protocol:
 | script | role |
 |---|---|
 | `real_v1_bench_session.py` | 0. the session driver — one design, one directory, self-describing |
-| `real_v1_bench_report.py` | 4. read the sessions back: driver-yaw loaded vs free-air (= grip load), and the load-200 overload plateau |
+| `real_v1_bench_report.py` | 4. read the sessions back: driver-yaw loaded vs free-air (= grip load), and the load-200 overload plateau. Excludes runs the operator flagged `slipped` (a shaft that turned because the grasp released is the opposite result) and whole sessions carrying an `EXCLUDED.txt` |
+| `real_v1_vane_angle.py` | 5. the turn angle out of a bench video — an AprilTag on a vane whose face normal is the pinch axis, read as an IN-PLANE image rotation against a fixed reference tag. Needs `opencv-python-headless`; validated on synthetic footage only (0.33 deg rms) |
 
 `mh.py` is the shared HTTP client (`10.99.99.2:8765`; GETs are unauthenticated, POSTs carry the
 token). Every read must assert `servo_polling_suspended == False` and a fresh `servo_age_s` —

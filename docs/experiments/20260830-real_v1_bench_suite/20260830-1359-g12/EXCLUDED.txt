@@ -1,0 +1,16 @@
+repeats did not return to the staged pose -- they are not repeats
+
+This session ran before scripts/real_v1_bench_session.py grew ramp_to() (bf79fe0).
+Each loaded repeat started from wherever the previous one ended: repeat 2 opened
+with middle yaw at +18.7 deg against a commanded 0.0 (yaw load -930), repeat 3 at
++4.4.  So the grip, the starting shaft pose and the servo preload were all
+different for each "repeat", and the operator said so at the time ("we need to
+reset the servos to the original keyframe though between runs", "hard to judge
+because of the lack of servo reset").
+
+Its rotation readings (30 / 50 / 30 deg) are the highest g12 numbers on record and
+they are not comparable to anything.  Superseded by 20260830-1437-g12, which ran
+the same design with the reset in place and got 10 / slip / 10.
+
+Keep the directory: the free-air arm 409'd here, which is what added the homed
+check to preflight, and the de-staged repeats are the evidence for ramp_to.
