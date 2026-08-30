@@ -232,6 +232,11 @@ def observe(kind):
     o["rotation_deg"] = ask("estimated cylinder rotation, degrees (protractor/tag if you have it)",
                             None, float)
     o["rotation_source"] = ask("how measured (eye/protractor/apriltag/video)", "eye")
+    if str(o["rotation_source"]).startswith("apriltag"):
+        # The vane read is an IN-PLANE image angle relative to the fixed reference
+        # tag, so both readings belong in the record, not just their difference.
+        o["vane_deg_start"] = ask("vane angle at the grip pose, deg", None, float)
+        o["vane_deg_end"] = ask("vane angle at the end of the turn, deg", None, float)
     o["fingers_touched"] = ask_bool("did any two fingers touch each other", False)
     o["slipped"] = ask_bool("did the shaft slide or roll rather than turn with the fingers", False)
     o["media"] = ask("photo/video filename (blank if none)", "", allow_blank=True)
@@ -429,8 +434,12 @@ def main():
     say(f"  truncation  : max_u {a.max_u:.2f} on the {a.path} path"
         + ("  (FULL path clears)" if a.max_u >= 1.0 else "  (finger-finger clearance)"))
 
+    # Every session recorded before 2026-08-30 evening has an empty note, and a
+    # session with no stated hypothesis is hard to place in the sequence later.
+    note = a.note or (ask("what is this session testing", "", allow_blank=True) or "")
+
     rec = {"design": a.design, "started": time.strftime("%Y-%m-%dT%H:%M:%S"),
-           "operator": a.operator, "note": a.note, "args": vars(a),
+           "operator": a.operator, "note": note, "args": vars(a),
            "plan_facts": facts, "safe_u_table": SAFE_U[a.design],
            "runs": [], "observations": []}
     rec["preflight"] = preflight(a.design)

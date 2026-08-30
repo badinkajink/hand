@@ -148,7 +148,11 @@ def main():
     meta = {"kind": "meta", "plan": args.plan, "steps": args.steps, "csv": args.csv, "dwell_s": args.dwell,
             "gate_deg": args.gate, "max_u": args.max_u, "gate_timeout_s": args.gate_timeout,
             "servo_speed": args.speed, "from": args.from_pose, "to": args.to_pose,
-            "started": time.strftime("%Y-%m-%dT%H:%M:%S"), "plan_meta": plan["meta"]}
+            "started": time.strftime("%Y-%m-%dT%H:%M:%S"),
+            # sub-second, so an external video can be aligned to a STEP rather than
+            # to the nearest second: frame time == started_unix + step["t_s"].
+            "started_unix": round(time.time(), 3),
+            "plan_meta": plan["meta"]}
     fh.write(json.dumps(meta) + "\n")
 
     print(f"  {args.from_pose} -> {args.to_pose}, {args.steps} steps, dwell {args.dwell}s"

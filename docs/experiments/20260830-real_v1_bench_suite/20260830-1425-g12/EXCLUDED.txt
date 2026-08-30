@@ -1,0 +1,4 @@
+aborted at preflight -- no runs
+
+Started with --arms empty and produced only a MANIFEST.json.  Kept so the gap in
+the afternoon's timestamps is explained rather than mysterious.
