@@ -137,6 +137,55 @@ def _load_model(path):
     return m
 
 
+# ---- finger-finger clearance ----------------------------------------------
+# Three of four deployed real_v1 designs interpenetrate their own fingers during the
+# turn, and nothing on the path from design to exported trajectory checks for it. It
+# is invisible to the contact solver here because the scene EXCLUDES the finger pairs
+# (21 exclusions), which is correct for a grasp -- adjacent phalanges of one finger
+# would otherwise chatter -- but it means the sim happily drives two fingers through
+# each other and reports a clean carry. On the real hand that is a stall or a stripped
+# horn, so it has to be measured geometrically rather than read off the solver.
+#
+# mj_geomDistance ignores contype/conaffinity and exclusions, so it sees the pairs the
+# solver was told to skip.
+#
+# THIS IS NOT THE DEPLOYMENT GATE. It checks the dense trajectory the carry itself
+# produces, i.e. "is the thing we are about to export safe". What the hardware actually
+# replays is the exported plan -- three set-points linearly interpolated, plus a CSV
+# whose per-joint timing differs from that chord -- and those are DIFFERENT paths that
+# can collide where this one does not. `scripts/real_v1_trajectory_clearance.py` is the
+# authoritative check and gates both of them; run it before any bench session. As of
+# 2026-08-30 it passes only g12 (+8.7 mm chord / +8.8 mm csv); g23 is +0.8 mm and g24
+# and rv04_mid interpenetrate outright.
+_FINGER_PREFIX = ("thumb", "index", "middle")
+
+
+def _cross_finger_pairs(m):
+    """Geom-id pairs belonging to DIFFERENT fingers. Within-finger pairs are excluded on
+    purpose: adjacent phalanges of one finger are supposed to be near each other."""
+    owner = {}
+    for g in range(m.ngeom):
+        b = mujoco.mj_id2name(m, mujoco.mjtObj.mjOBJ_BODY, m.geom_bodyid[g]) or ""
+        for f in _FINGER_PREFIX:
+            if b.startswith(f + "_"):
+                owner[g] = f
+                break
+    gs = sorted(owner)
+    return [(a, b) for i, a in enumerate(gs) for b in gs[i + 1:] if owner[a] != owner[b]], owner
+
+
+def _min_cross_clearance(m, d, pairs, owner, distmax=0.05):
+    """(min signed distance in m, the pair that owns it). Negative = interpenetrating."""
+    best, who = float("inf"), None
+    for a, b in pairs:
+        dist = mujoco.mj_geomDistance(m, d, a, b, distmax, None)
+        # mj_geomDistance returns distmax when the pair is further apart than the cutoff;
+        # that is a non-measurement, not a reading, so it must not win the minimum.
+        if dist < best and dist < distmax:
+            best, who = dist, (owner[a], owner[b])
+    return (None, None) if who is None else (best, who)
+
+
 def _rotx(a: float) -> np.ndarray:
     c, s = np.cos(a), np.sin(a)
     return np.array([[1, 0, 0], [0, c, -s], [0, s, c]])
@@ -281,7 +330,8 @@ def carry(scene: Path, lift: float, turn_steps: int, hold_steps: int, angle: flo
           contact_trace: list | None = None, built=None,
           video: Path | None = None, video_every: int = 8, video_fps: int = 40,
           jitter: float = 0.0, seed: int = 0, cam=(0.0, -12.0, 0.40),
-          hold_squeeze: float = 0.0, hold_squeeze_steps: int = 200):
+          hold_squeeze: float = 0.0, hold_squeeze_steps: int = 200,
+          selfcollision: bool = False):
     # `built` is a (model, open_qpos, grip_ctrl, depth_mm) tuple from a previous _grip_from_fit
     # on this scene at this straddle. The fit is ~90% of a cell's cost and does not depend on
     # the pivot height, so a sweep over axis_k pays for it once.
@@ -322,6 +372,8 @@ def carry(scene: Path, lift: float, turn_steps: int, hold_steps: int, angle: flo
     dik = mujoco.MjData(mik)                         # sim state is never disturbed
 
     acts = _finger_act(m)
+    clr_pairs, clr_owner = _cross_finger_pairs(m) if selfcollision else ([], {})
+    clr_min, clr_at, clr_pair = float("inf"), None, None
     pz_a = next(k for k in range(m.nu) if m.actuator(k).name == "a_palm_pz")
     for j, a in acts.items():
         d.ctrl[a] = anchor[j]
@@ -342,12 +394,19 @@ def carry(scene: Path, lift: float, turn_steps: int, hold_steps: int, angle: flo
     step_i = 0
 
     def _run(n, before=None):
-        nonlocal step_i
+        nonlocal step_i, clr_min, clr_at, clr_pair
         for k in range(n):
             if before is not None:
                 before(k)
             mujoco.mj_step(m, d)
             step_i += 1
+            # Sampled every 10 sim steps = one control step. The trajectory is smooth, so
+            # this cannot miss a crossing by more than one control period, and checking 48
+            # geom pairs every sim step would dominate the probe's runtime.
+            if clr_pairs and step_i % 10 == 0:
+                dist, who = _min_cross_clearance(m, d, clr_pairs, clr_owner)
+                if dist is not None and dist < clr_min:
+                    clr_min, clr_at, clr_pair = dist, step_i, who
             if vid is not None and step_i % video_every == 0:
                 vcam.lookat[:] = d.body(obj).xpos
                 vid.update_scene(d, vcam)
@@ -568,6 +627,12 @@ def carry(scene: Path, lift: float, turn_steps: int, hold_steps: int, angle: flo
         # whole hand: the pads are often off the shaft at the end of a raised-pivot turn while
         # the middle phalanges carry it.
         "ok": bool(nh >= 1 and min_z_hold > start["z"] - 0.02),
+        # Reported separately from `ok`: a trajectory can be a perfect reorientation in sim
+        # and still be unrunnable on the built hand.
+        "min_finger_clearance_mm": (None if clr_min == float("inf")
+                                    else round(clr_min * 1000, 2)),
+        "clearance_at_step": clr_at,
+        "clearance_pair": None if clr_pair is None else "-".join(clr_pair),
         "trace": rows,
     }
 
@@ -590,6 +655,11 @@ def main() -> int:
                     help="metres of grip depth below the mounting plane, comma list. Empty = "
                          "the fitter's DEEPEST reachable palm, which is 95%% finger extension")
     ap.add_argument("--object-body", default="screwdriver_medium")
+    ap.add_argument("--selfcollision", action="store_true",
+                    help="trace minimum FINGER-TO-FINGER clearance along the whole schedule. "
+                         "The scene excludes finger pairs from the contact solver, so the sim "
+                         "will drive two fingers through each other and still report a clean "
+                         "carry; on the built hand that is a stall or a stripped horn.")
     ap.add_argument("--object-mass", type=float, default=None,
                     help="override the object mass (kg). The scene ships 0.0245 kg; the "
                          "appendix names 2x that as the point where the open-loop carry "
@@ -697,7 +767,8 @@ def main() -> int:
                               cam=tuple(float(v) for v in args.cam.split(",")),
                               hold_squeeze=args.hold_squeeze,
                               hold_squeeze_steps=args.hold_squeeze_steps,
-                              jitter=(args.jitter if args.repeats > 1 else 0.0), seed=rep)
+                              jitter=(args.jitter if args.repeats > 1 else 0.0), seed=rep,
+                              selfcollision=args.selfcollision)
                     if r is None:
                         break
                     r["repeat"] = rep
