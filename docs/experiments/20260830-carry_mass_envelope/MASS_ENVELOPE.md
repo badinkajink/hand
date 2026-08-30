@@ -80,11 +80,11 @@ belongs to the plan, not to the hand. Sweep the plan you intend to run.
 The measured objects -- a 24 g bench cylinder and a 65 g screwdriver -- are both comfortably
 inside g12's range.
 
-## The measurement that decides this
+## The objects, measured (2026-08-30)
 
-**Weigh the actual screwdriver.** A precision driver at 20–40 g sits comfortably inside the
-envelope; a standard 60–100 g one is at or past the cliff. Every conclusion above is
-conditional on that one number, and it costs a kitchen scale.
+The bench cylinder is **24 g** and the intended screwdriver is **65 g**. Against the deployed
+g12 plan both are inside the range with no cliff; against this rv05_manual carry, 65 g is the
+last passing mass. Deploy on g12.
 
 ## Reproduce
 
