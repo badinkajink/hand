@@ -114,6 +114,24 @@ INTER_CMD_DELAY_S = 0.3
 # different servos, a different adapter, or a longer chain.
 INTER_READ_DELAY_S = 0.0
 
+# Gap a READ waits out after a SYNC write (sync_set_joints), as opposed to after one of
+# the slow verified individual writes, which keep the full INTER_CMD_DELAY_S above.
+# Measured on the real chain 2026-08-29, writing each servo the pose it was already
+# holding (nothing commanded to move), 9 writes + 9 reads per cycle:
+#
+#   sync writes alone, back to back    2859 Hz,  0 errors / 14298
+#   write ->  0ms -> 9 reads             90 Hz,  1 error  / 451
+#   write ->  1ms -> 9 reads            100 Hz,  0 errors / 500
+#   write ->  2ms -> 9 reads             91 Hz,  0 errors / 454
+#   write -> 10ms -> 9 reads             52 Hz,  0 errors / 263
+#
+# 2ms is the setting: it clears the errors with margin and still leaves ~90Hz, well
+# above the 50Hz a closed loop on this hand would want. An earlier measurement under
+# different conditions (torque off, writing an extreme target rather than the held
+# pose) saw 15% failures at 0ms and has NOT been reproduced -- which is exactly why
+# this is 2ms and not 0.
+POST_SYNC_WRITE_READ_GAP_S = 0.002
+
 # Settle time after opening the port, before the first transaction. Same empirical
 # story as INTER_CMD_DELAY_S; named so a fake bus (fake_hardware.py) and the test
 # suite can set it to 0 without patching a literal.
@@ -225,9 +243,12 @@ class ServoBus:
         self.timeouts = 0
         self.transactions = 0
         self.consecutive_timeouts = 0
-        # Monotonic timestamps driving the gap rule described at INTER_READ_DELAY_S.
-        self._last_write_at = 0.0
-        self._last_call_at = 0.0
+        # Two independent quiet periods, per the measurements at INTER_READ_DELAY_S and
+        # POST_SYNC_WRITE_READ_GAP_S. Reads wait for the first; writes wait only for
+        # the second, which only the slow verified write path ever sets -- so a
+        # trajectory of consecutive sync writes is never throttled by its own history.
+        self._quiet_until_read = 0.0
+        self._quiet_until_write = 0.0
 
     def __enter__(self):
         return self
@@ -308,11 +329,17 @@ class ServoBus:
                 ids.append(servo_id)
                 values.append(math.radians(zero_deg + relative_deg))
         with self._lock:
-            self._wait_for_quiet(True)
+            # NO _wait_for_quiet here, deliberately. This is the one real-time path on
+            # the bus and it is a single transaction; making it wait out the write gap
+            # caps a 50Hz trajectory at 3.33Hz. The gap protects a transaction issued
+            # too soon after a write -- it is not a rate limit on writes themselves,
+            # and consecutive sync writes were the collaborator's proven fast path long
+            # before the gap existed. _note_call still runs, so a READ that follows
+            # still waits; see INTER_READ_DELAY_S and _wait_for_quiet.
             if speed is not None:
                 self._c.sync_write_goal_speed(ids=ids, values=[speed] * len(ids))
             self._c.sync_write_goal_position(ids=ids, values=values)
-            self._note_call(True)
+            self._note_call(True, fast=True)
 
     def sync_read_joint_positions(self) -> dict[int, dict[str, float]]:
         """All nine joint positions, in the zero-relative degrees `sync_set_joints` takes.
@@ -469,19 +496,32 @@ class ServoBus:
     def _wait_for_quiet(self, is_write: bool) -> None:
         """Sleep until this transaction is safe to issue.
 
-        A WRITE waits out the full gap since the last transaction of any kind; a READ
-        only waits out the gap since the last WRITE. See INTER_READ_DELAY_S for the
-        measurements this encodes."""
-        since = self._last_call_at if is_write else self._last_write_at
-        wait = since + INTER_CMD_DELAY_S - time.monotonic()
+        Reads and writes wait on different clocks, because the hazard is asymmetric:
+        what fails is a transaction issued too soon after a write, not a write issued
+        at any rate. See the measurements at INTER_READ_DELAY_S and
+        POST_SYNC_WRITE_READ_GAP_S."""
+        until = self._quiet_until_write if is_write else self._quiet_until_read
+        wait = until - time.monotonic()
         if wait > 0:
             time.sleep(wait)
 
-    def _note_call(self, is_write: bool) -> None:
+    def _note_call(self, is_write: bool, *, fast: bool = False) -> None:
+        """Record a completed transaction.
+
+        `fast=True` marks the one-transaction sync write path: it makes a following
+        READ wait POST_SYNC_WRITE_READ_GAP_S, and imposes nothing at all on a following
+        write, so a 50Hz trajectory runs at its own rate. `fast=False` is the slow
+        verified individual-write path and keeps the collaborator's full
+        INTER_CMD_DELAY_S on everything after it."""
+        if not is_write:
+            return  # a read imposes nothing on anything
         now = time.monotonic()
-        self._last_call_at = now
-        if is_write:
-            self._last_write_at = now
+        if fast:
+            self._quiet_until_read = max(self._quiet_until_read,
+                                          now + POST_SYNC_WRITE_READ_GAP_S)
+        else:
+            self._quiet_until_read = max(self._quiet_until_read, now + INTER_CMD_DELAY_S)
+            self._quiet_until_write = max(self._quiet_until_write, now + INTER_CMD_DELAY_S)
 
     def _note_transaction(self, timed_out: bool) -> None:
         self.transactions += 1
@@ -544,7 +584,7 @@ class Servo:
                     last_exc = exc
                     self._note(True)
                     # A timed-out transaction leaves the bus in an unknown state; give
-                    # it the full write-grade quiet period before anything else goes out.
+                    # it the full slow-write quiet period before anything else goes out.
                     self._mark(True)
         raise last_exc
 

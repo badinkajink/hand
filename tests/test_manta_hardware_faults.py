@@ -219,6 +219,47 @@ def test_morphology_is_refused_after_a_cancelled_home_and_says_why(rig):
         runtime.apply_morphology()
 
 
+def test_a_daemon_restart_can_adopt_the_boards_home_without_re_homing(rig):
+    """The M8P keeps step counters, SETSCALE and homing_result across a HOST restart --
+    only a board reset or a DIS clears them. Re-homing then costs two minutes of the
+    rails grinding for no information, on a hand that may be holding something."""
+    device, backend, runtime = rig()
+    runtime.load_plan(tiny_plan())
+    runtime.home(HOME_CONFIRMATION)
+    assert wait_idle(runtime)["homed"] is True
+    runtime.apply_morphology()
+    assert wait_idle(runtime)["mounts_applied"] is True
+
+    # A fresh runtime on the SAME board, as after a daemon restart.
+    fresh = HandRuntime(backend, logs_dir=runtime.logs_dir, signs_checked=True)
+    try:
+        assert fresh.state()["homed"] is False
+        fresh.load_plan(tiny_plan())
+        state = fresh.adopt_home()
+        assert state["homed"] is True
+        assert state["mounts_applied"] is True, "gantries were already on target"
+        assert [o["joint"] for o in state["home_outcomes"]] == list(range(6))
+    finally:
+        fresh.close()
+
+
+def test_adopting_is_refused_when_the_board_does_not_vouch(rig):
+    device, backend, runtime = rig()
+    runtime.load_plan(tiny_plan())
+    with pytest.raises(RuntimeErrorState, match="does not vouch"):
+        runtime.adopt_home()          # never homed: homing_result is 0 everywhere
+
+    runtime.home(HOME_CONFIRMATION)
+    wait_idle(runtime)
+    runtime.disable_motors()          # DIS clears the firmware's homing_result
+    fresh = HandRuntime(backend, logs_dir=runtime.logs_dir, signs_checked=True)
+    try:
+        with pytest.raises(RuntimeErrorState, match="does not vouch"):
+            fresh.adopt_home()
+    finally:
+        fresh.close()
+
+
 # ----------------------------------------------------------------------------------
 # 3. The gantry move must be sequential
 # ----------------------------------------------------------------------------------
@@ -337,6 +378,48 @@ def test_disable_motors_de_energises_everything_and_invalidates_the_home(rig):
     assert "disabled" in state["unhomed_reason"]
     assert all(not axis.enabled for axis in device.axes[:6])
     assert all(v == TORQUE_OFF for v in backend.servos.controller.torque_enable.values())
+
+
+def test_the_trajectory_write_path_is_not_rate_limited(rig):
+    """sync_set_joints is the only real-time path on the servo bus and must not wait
+    out the inter-command gap.
+
+    The gap exists because a transaction issued too soon AFTER a write fails (15% in
+    measurement); it is not a rate limit on writes themselves, and consecutive sync
+    writes are one bus transaction each. Applying it here silently capped a 50Hz
+    trajectory at 3.33Hz -- the moves still happen, just 15x too slowly, which on an
+    open-loop reorientation is a wrong experiment rather than an obvious failure."""
+    _device, backend, _runtime = rig()
+    pose = {0: {"fe1": 0.0}, 1: {"fe1": 0.0}, 2: {"fe1": 0.0}}
+    backend.servos.sync_set_joints(pose, speed=80)      # first call may set speed
+    start = time.monotonic()
+    frames = 60
+    for _ in range(frames):
+        backend.servos.sync_set_joints(pose)
+    elapsed = time.monotonic() - start
+    rate = frames / elapsed
+    assert rate > 200, (
+        f"trajectory writes ran at {rate:.1f} Hz; the 50Hz replay path needs headroom "
+        f"well above its own rate")
+
+
+def test_a_read_still_waits_out_the_gap_after_a_write(rig):
+    """The other half of the same rule: reads are free after reads, but a read that
+    follows a write waits out POST_SYNC_WRITE_READ_GAP_S -- 2ms, measured, which leaves
+    ~90Hz for a full write+read closed loop instead of the 3.3Hz the full
+    INTER_CMD_DELAY_S would have allowed."""
+    _device, backend, _runtime = rig()
+    bus = backend.servos
+    import manta_hand.servos as servos_real
+    original = servos_real.POST_SYNC_WRITE_READ_GAP_S
+    try:
+        servos_real.POST_SYNC_WRITE_READ_GAP_S = 0.05
+        bus.sync_set_joints({0: {"fe1": 0.0}})
+        start = time.monotonic()
+        bus.sync_read_joint_positions()
+        assert time.monotonic() - start >= 0.04, "read did not wait out the write gap"
+    finally:
+        servos_real.POST_SYNC_WRITE_READ_GAP_S = original
 
 
 # ----------------------------------------------------------------------------------

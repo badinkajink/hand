@@ -164,6 +164,11 @@ function render(s) {
   const motionReady = s.mounts_applied && s.signs_checked && s.servo_torque === 1;
   /* Re-enable whatever a previous disconnect switched off, then apply the interlocks. */
   $('load-plan').disabled = busy;
+  /* The M8P keeps its step counters and homing_result across a daemon restart, so a
+   * session that starts un-homed against an already-homed board can take the reference
+   * over instead of grinding the rails for two minutes. Only offered when it applies. */
+  $('adopt-home').classList.toggle('hidden', s.homed || busy || blocked);
+  $('adopt-home').disabled = busy || blocked;
   for (const id of ['torque-on', 'torque-off', 'torque-free']) $(id).disabled = busy || blocked;
   $('home').disabled = busy || blocked;
   $('apply-morph').disabled = busy || blocked || !s.homed || !s.plan;
@@ -386,6 +391,8 @@ $('confirm-home-button').onclick = e => {
   }, 'Homing started — stay with the hand');
 };
 
+$('adopt-home').onclick = () => action(() => post('/home/adopt'),
+  "Adopted the board's home — nothing moved");
 $('apply-morph').onclick = () => action(() => post('/morphology'), 'Gantry move started');
 const motion = () => ({speed_ratio: Number($('speed').value), rate_hz: Number($('rate').value)});
 $('pose-open').onclick = () => action(() => post('/pose', {name: 'open', ...motion()}));

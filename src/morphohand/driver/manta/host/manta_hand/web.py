@@ -188,6 +188,8 @@ class ControlRequestHandler(BaseHTTPRequestHandler):
             if path == "/api/v1/home":
                 rt.home(str(body.get("confirmation", "")), force=bool(body.get("force", False)))
                 return self._json(HTTPStatus.ACCEPTED, {"accepted": True, "operation": "homing"})
+            if path == "/api/v1/home/adopt":
+                return self._json(HTTPStatus.OK, rt.adopt_home())
             if path == "/api/v1/morphology":
                 rt.apply_morphology()
                 return self._json(HTTPStatus.ACCEPTED,

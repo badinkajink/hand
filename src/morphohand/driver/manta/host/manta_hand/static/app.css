@@ -33,3 +33,5 @@
 .hint.bad{color:var(--red)}
 dialog p.emphasis{color:var(--amber);border-left:2px solid #ffc86655;padding-left:11px}
 @media(max-width:900px){.status-strip{grid-template-columns:repeat(2,1fr)}}
+
+#adopt-home{margin-top:9px}
