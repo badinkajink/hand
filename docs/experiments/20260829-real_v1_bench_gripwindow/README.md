@@ -6,6 +6,11 @@ had no per-step feedback at all: the writer owned the servo bus for the whole
 2.78 s, so its log holds 14 telemetry records and not one contains a servo
 reading.  These four have one per step.
 
+Three earlier logs (`205127`, `205151`, `205525`) are the same trajectory run
+**before the shaft was placed** — ungated, arrival-gated, and chord-vs-CSV.
+They were shakedowns of the stepping code, but they turn out to be the control
+the loaded runs need, so they are archived here too.
+
 ## What the runs establish
 
 **Grip force and reorientation are in direct conflict on this hand, and both
@@ -23,6 +28,22 @@ about 15 degrees (operator estimate) while middle yaw travelled 13.2 degrees.
 There is no object-pose sensor on this hand, so middle's yaw excursion is the
 best available proxy for the reorientation, and the +28.6 deg the plan commands
 would be worth roughly a 28 deg turn if middle could complete it.
+
+**The shortfall is the clamp, and nothing else.**  The same commanded middle-yaw
+sweep, measured at the last step:
+
+| condition | middle yaw reached of +28.6 | error |
+|---|---|---|
+| 205525 — no shaft in the hand | +25.8 | -2.9 |
+| 211644 — shaft, clamp fully relieved (dropped) | +25.5 | -3.2 |
+| 212031 — shaft, uniform preload | +12.6 | -15.9 |
+| 212231 — shaft, asymmetric grip (held) | +12.6 | -16.1 |
+
+Free air and a shaft the hand is about to drop give the *same* tracking, so the
+3 deg residual is the static servo droop already documented and the other 13 deg
+is load.  The two clamped runs stall within 0.0 deg of each other, which makes
+12.6 a repeatable ceiling rather than noise — and run 4 reached it by step ~24,
+so the last 30 steps of commanded yaw moved the finger not at all.
 
 ## Why the plan over-clamps
 
@@ -49,6 +70,24 @@ its own grip is what stalls it.  Relieving both together drops the shaft
 (run 2); relieving neither stalls the turn (runs 1, 3); relieving middle alone
 while keeping the thumb firm does both (run 4).
 
+## Reproducing run 4
+
+With the shaft staged in the open hand and the CB1 service up:
+
+```bash
+python3 scripts/real_v1_bench_grip.py g12
+python3 scripts/real_v1_bench_regrip.py --plan g12 \
+    --target-thumb 450 --target-index 220 --target-middle 0 --preload-start 9.0
+python3 scripts/real_v1_bench_stepped_run.py --plan g12 --csv --steps 55 \
+    --gate 5.0 --gate-timeout 0.8 --dwell 0.1 --speed 80 \
+    --regrip logs/regrip_pose.json --load-delta 400 --stall-deg 0.5 --stall-window 5 --hold 4
+```
+
+`--load-delta` alone aborted run 1 at step 10 on load that was the turn *working*;
+the abort has to require a stalled yaw as well, which is what `--stall-deg` adds.
+`--preload-start 9.0` matters: starting the walk-down at 5.0 capped the thumb at
+load 270 and it could not reach the 450 target.
+
 ## Superseded
 
 - The yaw servos are not weak and the fingers were not crashing into each other
@@ -60,10 +99,11 @@ while keeping the thumb firm does both (run 4).
 
 ## Open
 
-- Middle yaw plateaus near 13 deg at load exactly 200 for 30+ steps whenever the
-  thumb is firm.  Partial turn, stable hold; the remaining 15 deg is unexplained
-  and, at ~1:1, is worth roughly another 15 deg of cylinder rotation.  This is
-  the single highest-value thing to chase next.
+- Middle yaw stalls at a repeatable 12.6 deg, load exactly 200, for the last 30
+  steps whenever the thumb is firm.  Free air proves the axis can reach 25.8, so
+  the missing 13 deg is grip load alone, and at ~1:1 it is worth roughly another
+  13 deg of cylinder rotation.  This is the single highest-value thing to chase
+  next: the trajectory's second half is currently doing nothing.
 - Index yaw does not return to its commanded zero (sits at -4.7 deg with a
   standing load ~240-270).  That axis is preloaded against something.
 - No object-pose measurement exists.  Every reorientation verdict here is the

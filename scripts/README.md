@@ -34,6 +34,20 @@ onto it** — a10/b33 were trained on a 117 mm finger with coincident yaw/MCP ax
 | `real_v1_export_plan.py` | a chosen cell → bench sheets: mounts, a 50 Hz joint trajectory, the four set-points it really is, and `<design>_plan.json` for the driver |
 | `real_v1_hand_commands.py` | the sim design space against what the gantries actually reach, and an exported plan → literal `MOVEMM`/servo commands. `--travel` re-asks the question under a hypothetical rail length. Driver half = `manta_hand.plan` |
 | `replay_real_v1_hardware_log.py` | replay a control-station JSONL command stream in its exported MuJoCo scene; writes an NPZ plus object-motion and endpoint servo-tracking summary. This replays commands, not unmeasured real object motion |
+| `real_v1_trajectory_clearance.py` | finger-to-finger clearance ALONG a plan's path — the gate nobody had. `morph_selfcollision_gate.py` checks mount rails at one static pose; this one walks the trajectory. Trust `d.contact`, not `mj_geomDistance`: it returns exactly 0.0 on some box-box pairs |
+
+### On the bench (workstation → CB1, in this order)
+
+`mh.py` is the shared HTTP client (`10.99.99.2:8765`; GETs are unauthenticated, POSTs carry the
+token). Every read must assert `servo_polling_suspended == False` and a fresh `servo_age_s` —
+telemetry stops while a writer owns the bus, so a careless probe reads one stale sample forever.
+
+| script | role |
+|---|---|
+| `real_v1_bench_grip.py` | 1. seat the grip — ramp open → grip over ~1 s and report the seated pose and loads |
+| `real_v1_bench_regrip.py` | 2. relieve the over-clamp to a target load band, anchored at the MEASURED stall angle. The exported grip is a POSITION the sim reaches with the object already contacted; on hardware the leftover travel becomes clamping force. Per-finger targets — the fingers do not have the same job |
+| `real_v1_bench_stepped_run.py` | 3. run the turn, one step at a time, each commanded-and-verified with a fresh servo sample. Arrival gating (`--gate`), load abort/settle (`--load-delta`, `--load-settle`, which require a STALL as well as a load rise), `--regrip` to start from a relieved pose |
+
 
 ## RL training (A = lift/deliver, B = reorient)
 
