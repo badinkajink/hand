@@ -58,6 +58,8 @@ telemetry stops while a writer owns the bus, so a careless probe reads one stale
 | `train_handoff_liveA_reset.sh` | launcher: Policy B via the LIVE-A reset (frozen A drives 0..onset organically; pre-onset PPO-masked). Recipe `b_liveA` (RECIPE=b_liveA_imit adds the imitation prior) |
 | `train_reorient_on_morph.sh` | launcher: standalone reorient B on a new morphology |
 | `train_corefine_BtoA.sh` | launcher: B→A co-refinement (train A on B's downstream reorient reward) |
+| `train_blind_actor_2x2.sh` | launcher: the blind-actor 2x2 (sighted/blind x nominal/jittered), all four warmstarted from b33 with a parity gate against b33's own config. `--actor-blind-terms` zeroes the actor's object observations while the critic keeps them = genuine asymmetric actor-critic |
+| `eval_blind_actor_2x2.sh` | scores that 2x2 on both test distributions; evaluates the blind arms WITH their blinding applied (a blind-trained actor read out sighted is gotcha #13 in an observation coordinate) |
 
 ## Evaluation + diagnostics (judge on these, never on reward sums)
 
@@ -69,6 +71,7 @@ telemetry stops while a writer owns the bus, so a careless probe reads one stale
 | `policy_filmstrip.py` | run/video → one labelled PNG of phase-aligned frames (skill `policy-eyes`). Look at a policy before explaining its reward table |
 | `probe_grip_balance.py`, `probe_grip_force.py` | per-finger force probes (degenerate-pinch detection) |
 | `probe_thumb_reach.py` | does the reoriented shaft land inside the thumb's reach shell? (perp) |
+| `probe_obs_ablation.py` | closed-loop observation ablation: which observation blocks does a trained policy actually steer on? Four interventions (zero/freeze/shuffle/replay) because `zero` conflates missing information with an off-manifold value and gives the OPPOSITE verdict; prints an across-env variance report first, since an intervention can only destroy variance that exists. Found b33 to be feed-forward (`docs/experiments/20260830-obs_ablation/`) |
 | `sweep_perp_thumb.py` | perp thumb-morphology sweep: self-collision gate -> stow -> swing -> thumb press -> axial load |
 | `rl_eval_object.py`, `rl_play_policy.py`, `rl_diagnose_policy.py` | pose-grid eval / interactive playback / obs-action dump |
 | `rl_plot_training.py`, `rl_plot_reorient.py`, `rl_render_reorient.py` | training curves / reorient plots / rollout render |

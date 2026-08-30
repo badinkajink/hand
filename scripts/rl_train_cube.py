@@ -84,6 +84,14 @@ class Args:
     """Reward mode: full | tracking_only."""
     obs_mode: str = "full"
     """Observation mode: full | ref_only."""
+    actor_blind_terms: tuple[str, ...] = ()
+    """Observation terms the ACTOR is blinded to while the CRITIC keeps them
+    (asymmetric actor-critic). For a deployable reorienter on a hand with no object
+    tracker: `--actor-blind-terms object_pos object_pose_actual target_axis_misalign`.
+    Blinded terms keep their width, so `--init-actor-checkpoint` still applies."""
+    actor_obs_history: int = 0
+    """Frames of observation history stacked into the actor group (0/1 = none).
+    Changes the actor obs width, so it cannot be combined with a 1-frame warmstart."""
     init_actor_checkpoint: Path | None = None
     """Optional checkpoint to initialize the actor weights."""
     warmstart_critic: bool = True
@@ -531,6 +539,8 @@ def main() -> None:
         lift_delta_z=args.lift_delta_z,
         reward_mode=args.reward_mode,
         obs_mode=args.obs_mode,
+        actor_blind_terms=tuple(args.actor_blind_terms),
+        actor_obs_history=args.actor_obs_history,
         object_body_name=args.object_body_name,
         cube_spawn_xy_jitter=args.cube_spawn_xy_jitter,
         cube_spawn_x_jitter=args.cube_spawn_x_jitter,

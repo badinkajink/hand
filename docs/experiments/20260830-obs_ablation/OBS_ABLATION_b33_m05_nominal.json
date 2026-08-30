@@ -1,0 +1,352 @@
+{
+ "policy_a": "results/rl/a10_20260702-1256-policyA_m05_ik10/tensorboard/model_609.pt",
+ "policy_b": "results/rl/b33_20260702-1353-policyB_m05_reorient_ik10/tensorboard/model_270.pt",
+ "morphology_run": "results/phase1/landscape/m05_ik_cem",
+ "num_envs": 32,
+ "handoff_step": 40,
+ "ablate_from": 40,
+ "spawn_jitter": 0.0,
+ "spawn_yaw_jitter": 0.0,
+ "obs_layout": {
+  "joint_pos": [
+   0,
+   15
+  ],
+  "joint_vel": [
+   15,
+   30
+  ],
+  "object_pos": [
+   30,
+   33
+  ],
+  "object_pose_actual": [
+   33,
+   40
+  ],
+  "ref_finger_qpos": [
+   40,
+   49
+  ],
+  "ref_object_pose": [
+   49,
+   56
+  ],
+  "actions": [
+   56,
+   65
+  ],
+  "target_axis_misalign": [
+   65,
+   66
+  ]
+ },
+ "variance": {
+  "joint_pos": {
+   "across_env_sd": 0.025277886183787426,
+   "across_time_sd": 0.013012237074090278,
+   "ratio": 1.9426241652267677
+  },
+  "joint_vel": {
+   "across_env_sd": 0.3169973322009478,
+   "across_time_sd": 0.10765277606073038,
+   "ratio": 2.9446275683789094
+  },
+  "object_pos": {
+   "across_env_sd": 0.020150084877164683,
+   "across_time_sd": 0.0037769526074199374,
+   "ratio": 5.335011309800191
+  },
+  "object_pose_actual": {
+   "across_env_sd": 0.06814113091183306,
+   "across_time_sd": 0.015242286666141297,
+   "ratio": 4.47053204052378
+  },
+  "ref_finger_qpos": {
+   "across_env_sd": 0.0,
+   "across_time_sd": 0.0,
+   "ratio": Infinity
+  },
+  "ref_object_pose": {
+   "across_env_sd": 0.0,
+   "across_time_sd": 0.0,
+   "ratio": Infinity
+  },
+  "actions": {
+   "across_env_sd": 0.0888783411842703,
+   "across_time_sd": 0.041056549114214747,
+   "ratio": 2.1647786553375603
+  },
+  "target_axis_misalign": {
+   "across_env_sd": 0.19902221993055624,
+   "across_time_sd": 0.0772201617498606,
+   "ratio": 2.5773349267934615
+  }
+ },
+ "rows": [
+  {
+   "condition": "none",
+   "hold_rate": 0.96875,
+   "min_z_post_mean": 0.1204143837094307,
+   "final_cos_mean": 0.8670952320098877,
+   "final_cos_sd": 0.16308167576789856,
+   "peak_cos_mean": 0.9200449585914612,
+   "final_cos_held_mean": 0.89506596326828,
+   "n_held": 31,
+   "n": 32,
+   "touch_frac": [
+    0.9673437476158142,
+    0.9495312571525574,
+    0.8917186856269836
+   ],
+   "force_mean": [
+    9.042444229125977,
+    5.796713352203369,
+    6.591039180755615
+   ],
+   "no_teeth": false
+  },
+  {
+   "condition": "replay:hidden",
+   "hold_rate": 0.9375,
+   "min_z_post_mean": 0.1168152317404747,
+   "final_cos_mean": 0.8391541838645935,
+   "final_cos_sd": 0.21976783871650696,
+   "peak_cos_mean": 0.897480845451355,
+   "final_cos_held_mean": 0.8950978517532349,
+   "n_held": 30,
+   "n": 32,
+   "touch_frac": [
+    0.9523438215255737,
+    0.9329687356948853,
+    0.8614063262939453
+   ],
+   "force_mean": [
+    8.826615333557129,
+    5.6155548095703125,
+    5.697146415710449
+   ],
+   "no_teeth": false
+  },
+  {
+   "condition": "shuffle:hidden",
+   "hold_rate": 0.9375,
+   "min_z_post_mean": 0.1155313104391098,
+   "final_cos_mean": 0.8491792678833008,
+   "final_cos_sd": 0.2482544183731079,
+   "peak_cos_mean": 0.8954172134399414,
+   "final_cos_held_mean": 0.9122998118400574,
+   "n_held": 30,
+   "n": 32,
+   "touch_frac": [
+    0.9801562428474426,
+    0.97593754529953,
+    0.9337500333786011
+   ],
+   "force_mean": [
+    9.34286117553711,
+    6.03973913192749,
+    7.3057451248168945
+   ],
+   "no_teeth": false
+  },
+  {
+   "condition": "zero:hidden",
+   "hold_rate": 0.28125,
+   "min_z_post_mean": 0.0306342002004385,
+   "final_cos_mean": -0.03639451414346695,
+   "final_cos_sd": 0.25595417618751526,
+   "peak_cos_mean": 0.9692822098731995,
+   "final_cos_held_mean": 0.1913655400276184,
+   "n_held": 9,
+   "n": 32,
+   "touch_frac": [
+    0.8432813882827759,
+    0.8360937237739563,
+    0.6051562428474426
+   ],
+   "force_mean": [
+    8.135912895202637,
+    7.164647579193115,
+    9.268155097961426
+   ],
+   "no_teeth": false
+  },
+  {
+   "condition": "freeze:hidden",
+   "hold_rate": 0.96875,
+   "min_z_post_mean": 0.12102299928665161,
+   "final_cos_mean": 0.8618201017379761,
+   "final_cos_sd": 0.16448290646076202,
+   "peak_cos_mean": 0.8872351050376892,
+   "final_cos_held_mean": 0.889620840549469,
+   "n_held": 31,
+   "n": 32,
+   "touch_frac": [
+    0.9587500095367432,
+    0.9471875429153442,
+    0.9282812476158142
+   ],
+   "force_mean": [
+    7.677204608917236,
+    4.541855335235596,
+    5.425646781921387
+   ],
+   "no_teeth": false
+  },
+  {
+   "condition": "replay:objstate",
+   "hold_rate": 0.96875,
+   "min_z_post_mean": 0.12052120268344879,
+   "final_cos_mean": 0.8772989511489868,
+   "final_cos_sd": 0.16152149438858032,
+   "peak_cos_mean": 0.9231729507446289,
+   "final_cos_held_mean": 0.9055988788604736,
+   "n_held": 31,
+   "n": 32,
+   "touch_frac": [
+    0.9774999618530273,
+    0.9768750071525574,
+    0.92578125
+   ],
+   "force_mean": [
+    9.685397148132324,
+    6.128772735595703,
+    6.931201934814453
+   ],
+   "no_teeth": false
+  },
+  {
+   "condition": "replay:object_pose_actual",
+   "hold_rate": 0.9375,
+   "min_z_post_mean": 0.11786913871765137,
+   "final_cos_mean": 0.8468152284622192,
+   "final_cos_sd": 0.16999423503875732,
+   "peak_cos_mean": 0.9077242612838745,
+   "final_cos_held_mean": 0.8836571574211121,
+   "n_held": 30,
+   "n": 32,
+   "touch_frac": [
+    0.9700000286102295,
+    0.9509374499320984,
+    0.8895312547683716
+   ],
+   "force_mean": [
+    8.81711483001709,
+    5.470700740814209,
+    6.5592827796936035
+   ],
+   "no_teeth": false
+  },
+  {
+   "condition": "replay:object_pos",
+   "hold_rate": 1.0,
+   "min_z_post_mean": 0.12372361123561859,
+   "final_cos_mean": 0.8965725898742676,
+   "final_cos_sd": 0.05433172360062599,
+   "peak_cos_mean": 0.9213421940803528,
+   "final_cos_held_mean": 0.8965725898742676,
+   "n_held": 32,
+   "n": 32,
+   "touch_frac": [
+    0.9803124666213989,
+    0.9550000429153442,
+    0.8807812333106995
+   ],
+   "force_mean": [
+    9.085836410522461,
+    5.766018867492676,
+    6.887057304382324
+   ],
+   "no_teeth": false
+  },
+  {
+   "condition": "replay:target_axis_misalign",
+   "hold_rate": 1.0,
+   "min_z_post_mean": 0.12181613594293594,
+   "final_cos_mean": 0.8285707235336304,
+   "final_cos_sd": 0.3185664415359497,
+   "peak_cos_mean": 0.8709101676940918,
+   "final_cos_held_mean": 0.8285707235336304,
+   "n_held": 32,
+   "n": 32,
+   "touch_frac": [
+    0.9915624856948853,
+    0.9417187571525574,
+    0.9020312428474426
+   ],
+   "force_mean": [
+    9.129877090454102,
+    5.665484428405762,
+    6.844857215881348
+   ],
+   "no_teeth": false
+  },
+  {
+   "condition": "replay:ref_object_pose",
+   "hold_rate": 0.96875,
+   "min_z_post_mean": 0.1198914647102356,
+   "final_cos_mean": 0.8796082735061646,
+   "final_cos_sd": 0.16077744960784912,
+   "peak_cos_mean": 0.9243413805961609,
+   "final_cos_held_mean": 0.9079827666282654,
+   "n_held": 31,
+   "n": 32,
+   "touch_frac": [
+    0.9717187285423279,
+    0.9684374928474426,
+    0.9028124809265137
+   ],
+   "force_mean": [
+    9.273378372192383,
+    6.047555923461914,
+    7.072612285614014
+   ],
+   "no_teeth": false
+  },
+  {
+   "condition": "replay:joint_vel",
+   "hold_rate": 1.0,
+   "min_z_post_mean": 0.12260265648365021,
+   "final_cos_mean": 0.8791913986206055,
+   "final_cos_sd": 0.09225741773843765,
+   "peak_cos_mean": 0.9115045666694641,
+   "final_cos_held_mean": 0.8791913986206055,
+   "n_held": 32,
+   "n": 32,
+   "touch_frac": [
+    0.9940624833106995,
+    0.9750000238418579,
+    0.9201561808586121
+   ],
+   "force_mean": [
+    9.196681022644043,
+    5.926844596862793,
+    6.775485992431641
+   ],
+   "no_teeth": false
+  },
+  {
+   "condition": "replay:deployable",
+   "hold_rate": 0.96875,
+   "min_z_post_mean": 0.1212565153837204,
+   "final_cos_mean": 0.8449076414108276,
+   "final_cos_sd": 0.30891919136047363,
+   "peak_cos_mean": 0.9217463731765747,
+   "final_cos_held_mean": 0.8998340964317322,
+   "n_held": 31,
+   "n": 32,
+   "touch_frac": [
+    0.9643749594688416,
+    0.9509375095367432,
+    0.8823437690734863
+   ],
+   "force_mean": [
+    9.173711776733398,
+    6.011723518371582,
+    6.580194473266602
+   ],
+   "no_teeth": false
+  }
+ ]
+}
