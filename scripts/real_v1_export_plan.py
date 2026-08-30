@@ -23,7 +23,7 @@ measuring against a physical pose rather than assumed from the CAD.
 """
 from __future__ import annotations
 
-import argparse
+import argparse, pathlib
 import json
 import sys
 from pathlib import Path
@@ -59,6 +59,13 @@ def main() -> int:
                     help="how far inside the tool's surface the pads are driven. 10, not the "
                          "fitter's 4: the sphere-based pad model leaves a flat face 2-5 mm short, "
                          "and paying it back takes the working region from 3% of cells to 15%.")
+    ap.add_argument("--budget", type=float, default=0.5,
+                    help="per-joint |delta| cap in RADIANS.  0.5 rad = 28.648 deg, which is "
+                         "Policy B's residual action budget and has no business constraining "
+                         "an OPEN-LOOP plan: it saturated middle_yaw and middle_pip on every "
+                         "exported design and 5 of 9 joints on g24, against a hardware yaw "
+                         "range of +-85 deg.  Raising it widens the commanded turn but also "
+                         "the swept volume -- re-run real_v1_trajectory_clearance.py after.")
     ap.add_argument("--turn-steps", type=int, default=550)
     ap.add_argument("--hold-squeeze-mm", type=float, default=0.0)
     ap.add_argument("--lift", type=float, default=0.10)
@@ -71,11 +78,17 @@ def main() -> int:
                          "free reprint and measured +0.021 +- 0.008 held cos better.")
     ap.add_argument("--flat-pads", action="store_true",
                     help="the BUILT finger cross-section rather than the shipped round capsules")
+    ap.add_argument("--scene", default=None,
+                    help="use an EXISTING scene xml instead of rebuilding one from the pad/bench "
+                         "flags.  The shipped g12 plan was exported against a prebuilt "
+                         "deploy_envelope scene; rebuilding it from flags produces a different "
+                         "(and unstable) model, so a budget sweep has to reuse the same file.")
     ap.add_argument("--out", type=Path, required=True)
     args = ap.parse_args()
 
     row = {r["design"]: r for r in json.loads(TABLE.read_text())}[args.design]
-    scene = object_scene(ds.scene_for(ds.design_set("all")[args.design]), args.object,
+    scene = pathlib.Path(args.scene) if args.scene else object_scene(
+        ds.scene_for(ds.design_set("all")[args.design]), args.object,
                          args.bench_height, args.post_y / 1000.0, args.flat_pads,
                          pad_width=args.pad_width_mm / 1000.0)
     if args.bench_height > 0 and row.get("depth_req_mm") is None and row.get("depth_fit_mm"):
@@ -87,7 +100,7 @@ def main() -> int:
     plan = make_plan(scene, straddle=st,
                      depth=None if row["depth_req_mm"] is None else row["depth_req_mm"] / 1000.0,
                      thumb_axial=ta, squeeze=args.squeeze_mm / 1000.0, axis_k=k, angle_deg=ang, lift=args.lift,
-                     budget=0.5, turn_steps=args.turn_steps,
+                     budget=args.budget, turn_steps=args.turn_steps,
                      hold_squeeze=args.hold_squeeze_mm / 1000.0,
                      bench=args.bench_height > 0)
     if plan is None:
@@ -150,10 +163,10 @@ def main() -> int:
     n_turn = max(1, args.turn_steps // 10)
     for i in range(1, n_turn + 1):
         u = i / n_turn
-        emit({j: anchor[j] + float(np.clip(plan["delta"][j] * u, -0.5, 0.5)) for j in JOINTS},
+        emit({j: anchor[j] + float(np.clip(plan["delta"][j] * u, -args.budget, args.budget)) for j in JOINTS},
              z_hold)
     if plan.get("squeeze_delta"):
-        start = {j: anchor[j] + float(np.clip(plan["delta"][j], -0.5, 0.5)) for j in JOINTS}
+        start = {j: anchor[j] + float(np.clip(plan["delta"][j], -args.budget, args.budget)) for j in JOINTS}
         n_sq = max(1, int(plan["squeeze_steps"]) // 10)
         for i in range(1, n_sq + 1):
             u = i / n_sq
@@ -171,7 +184,7 @@ def main() -> int:
              "", f"  {'joint':12} {'open/grip':>10} {'end of turn':>12} {'re-squeeze':>11}"]
     for j in JOINTS:
         a = np.degrees(anchor[j])
-        e = np.degrees(anchor[j] + float(np.clip(plan["delta"][j], -0.5, 0.5)))
+        e = np.degrees(anchor[j] + float(np.clip(plan["delta"][j], -args.budget, args.budget)))
         q = (np.degrees(anchor[j] + plan["squeeze_delta"][j])
              if plan.get("squeeze_delta") else float("nan"))
         poses.append(f"  {j:12} {a:10.2f} {e:12.2f} {q:11.2f}")
@@ -203,7 +216,7 @@ def main() -> int:
         return out
 
     grip_deg = {j: float(np.degrees(anchor[j])) for j in JOINTS}
-    end_deg = {j: float(np.degrees(anchor[j] + float(np.clip(plan["delta"][j], -0.5, 0.5))))
+    end_deg = {j: float(np.degrees(anchor[j] + float(np.clip(plan["delta"][j], -args.budget, args.budget))))
                for j in JOINTS}
     settle_s = 0.8 if args.bench_height > 0 else 0.8   # lift = 0.4 ramp + 0.4 settle
     turn_s = args.turn_steps / 500.0
