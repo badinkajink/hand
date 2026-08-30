@@ -69,6 +69,17 @@ from the CEM `best_finger_ctrl`, and `squeeze` is only consumed by `_grip_from_f
 running properly, because the bench already found that clamp force and reorientation trade
 directly, so a grip that buys mass headroom may cost the turn.
 
+## SUPERSEDED for deployment purposes (same day)
+
+The cliff below is real for `rv05_manual` at `axis_k 0.25` with the CEM grip. It does **not**
+describe the deployed plan. Sweeping mass through g12's own exported CSV
+(`20260830-deploy_renders/`) gives a flat 0.779 -> 0.790 from 24 g to 85 g with no cliff,
+because g12 clamps 10 mm of pad squeeze where this sweep used the CEM grasp. Mass tolerance
+belongs to the plan, not to the hand. Sweep the plan you intend to run.
+
+The measured objects -- a 24 g bench cylinder and a 65 g screwdriver -- are both comfortably
+inside g12's range.
+
 ## The measurement that decides this
 
 **Weigh the actual screwdriver.** A precision driver at 20–40 g sits comfortably inside the
