@@ -60,8 +60,27 @@ finger-crashing plans to the bench.
    sufficient — sim geometry is thinner than the printed parts.
 2. **Use g12.** Set the gantry blocks to thumb (−42.5, 0.0), index (42.5, 40.0), middle
    (42.5, −40.0) mm in the palm frame, per `deploy/g12_build.txt`.
-3. **Weigh the screwdriver.** The open-loop carry holds to 65 g and drops at 70
-   (`20260830-carry_mass_envelope/`). The plan assumes 24.5 g.
+3. **Mass is not a constraint for either object.** Swept through g12's own exported CSV:
+
+   | mass | final cos | object z | contacts |
+   |---:|---:|---:|---:|
+   | 24 g (the bench cylinder) | +0.779 | 112 mm | 3 |
+   | 50 g | +0.786 | 109 mm | 3 |
+   | 65 g (the intended screwdriver) | +0.788 | 108 mm | 2-3 |
+   | 85 g | +0.790 | 107 mm | 2 |
+
+   Flat across the range, no cliff. **This contradicts the dense carry's envelope**
+   (`20260830-carry_mass_envelope/`), which found rv05_manual dropping between 65 and 70 g,
+   and the disagreement is the point: that envelope was measured on a different design with
+   the CEM grip, while g12 clamps 10 mm of pad squeeze. Mass tolerance is a property of the
+   deployed plan, not of the hand, so it has to be swept on the plan being run.
+
+   The contact count flickering 2-3 is a single-instant `d.ncon` read, not a lost contact
+   (mean 2.77 over the final 0.8 s at 65 g, alignment flat at +0.7873 -> +0.7884).
+
+   The real number to carry to the bench: at 65 g the shaft **sinks 2.2 mm over the final
+   0.8 s** (110.4 -> 108.2 mm). Alignment holds, but that is a slow slip, and the plan's hold
+   is 1.6 s. Anything asking for a longer hold meets this first.
 4. The known bench failures from 2026-08-29 are mechanical, not control: yaw joints came up
    4–6° short under load, and position control over-clamps because the plan asks for 10 mm of
    pad squeeze. Neither is addressed by anything here.

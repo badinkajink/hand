@@ -106,7 +106,8 @@ def render(design: str, which: str, frames: int, width: int, height: int,
 
 
 def replay_physics(design: str, out_png: Path, out_mp4: Path | None,
-                   frames: int, width: int, height: int, fps: int = 40):
+                   frames: int, width: int, height: int, fps: int = 40,
+                   object_mass: float | None = None):
     """Step the deploy scene under the EXPORTED csv and see whether the tool is carried.
 
     The kinematic view above shows the commanded path; this shows what the commanded
@@ -122,6 +123,13 @@ def replay_physics(design: str, out_png: Path, out_mp4: Path | None,
     plan = json.loads((DEPLOY / f"{design}_plan.json").read_text())
     meta = plan["meta"]
     m = mujoco.MjModel.from_xml_path(meta["scene"])
+    if object_mass is not None:
+        # Inertia scales with mass at fixed geometry; scaling mass alone leaves the shaft
+        # rotationally heavy and quietly changes the dynamics under test.
+        _b = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, "screwdriver_medium")
+        _old = float(m.body_mass[_b])
+        m.body_inertia[_b] *= object_mass / _old
+        m.body_mass[_b] = object_mass
     d = mujoco.MjData(m)
     d.qpos[:] = np.array(meta["replay_initial_qpos"], dtype=float)
     d.ctrl[:] = np.array(meta["replay_base_ctrl"], dtype=float)
@@ -202,6 +210,10 @@ def main():
                     help="also STEP the exported csv in the deploy scene and report whether "
                          "the tool is actually carried (the kinematic view cannot say)")
     ap.add_argument("--mp4", action="store_true", help="write a video alongside the filmstrip")
+    ap.add_argument("--object-mass", type=float, default=None,
+                    help="kg. The plans assume 0.0245. Sweep this against the tool you will "
+                         "actually pick up -- the dense carry's envelope was measured on a "
+                         "different design and does not transfer.")
     ap.add_argument("--frames", type=int, default=10)
     ap.add_argument("--width", type=int, default=420)
     ap.add_argument("--height", type=int, default=340)
@@ -226,7 +238,7 @@ def main():
             rows.append(replay_physics(
                 dsg, args.outdir / f"{dsg}_physics.png",
                 (args.outdir / f"{dsg}_physics.mp4") if args.mp4 else None,
-                args.frames, args.width, args.height))
+                args.frames, args.width, args.height, object_mass=args.object_mass))
     (args.outdir / "RENDERS.json").write_text(json.dumps(rows, indent=1))
     print(f"[render] index -> {args.outdir / 'RENDERS.json'}")
 
