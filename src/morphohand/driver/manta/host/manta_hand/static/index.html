@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>MorphoHand control</title>
+  <link rel="stylesheet" href="/app.css">
+</head>
+<body>
+  <header>
+    <div class="brand"><span class="mark">MH</span><div><h1>MorphoHand</h1><p>real_v1 control station</p></div></div>
+    <div class="connection"><span id="health-dot" class="dot"></span><div><strong id="connection">Connecting</strong><small id="endpoint"></small></div></div>
+    <button id="stop" class="danger">Stop motion</button>
+  </header>
+
+  <main>
+    <section class="status-strip">
+      <div><small>Session</small><strong id="session-state">—</strong></div>
+      <div><small>Operation</small><strong id="operation">—</strong></div>
+      <div><small>Morphology</small><strong id="active-design">None</strong></div>
+      <div><small>Pose</small><strong id="current-pose">—</strong></div>
+      <div><small>Measured telemetry</small><strong id="telem-rate">Off</strong></div>
+    </section>
+
+    <section class="layout">
+      <div class="column">
+        <article class="card setup">
+          <div class="card-head"><div><span class="eyebrow">01 / configure</span><h2>Hand setup</h2></div><span id="fit-badge" class="badge muted">No plan</span></div>
+          <label>Candidate morphology
+            <select id="plan-select"><option>Loading plans…</option></select>
+          </label>
+          <div class="button-row">
+            <button id="load-plan">Load candidate</button>
+            <button id="home" class="secondary">Home once</button>
+          </div>
+          <button id="apply-morph" class="wide">Move gantries to morphology</button>
+          <details id="metrics"><summary>Simulation metrics and build settings</summary><div id="metrics-body" class="metric-grid"></div></details>
+          <p class="hint">Homing is remembered only for this daemon session. An M8P reset or daemon restart requires a new home.</p>
+        </article>
+
+        <article class="card sequence">
+          <div class="card-head"><div><span class="eyebrow">02 / execute</span><h2>Grasp &amp; reorient</h2></div><span id="method-badge" class="badge good">Buffered open loop</span></div>
+          <div class="method-tabs" role="tablist">
+            <button class="tab active">CEM trajectory</button>
+            <button class="tab" disabled title="Policy observations are unavailable on this hand">Learned RL · unavailable</button>
+          </div>
+          <div class="timeline">
+            <button id="pose-open"><span>1</span><div><strong>Open pose</strong><small>Morphology-specific approach</small></div></button>
+            <button id="pose-grip"><span>2</span><div><strong>Grasp keyframe</strong><small>CEM-optimized close</small></div></button>
+            <button id="run"><span>3</span><div><strong>Run reorientation</strong><small>Buffered on CB1; Ethernet jitter-independent</small></div></button>
+          </div>
+          <div class="controls">
+            <label>Speed ratio <output id="speed-value">1.00×</output><input id="speed" type="range" min="0.1" max="2" step="0.05" value="1"></label>
+            <label>Command rate<select id="rate"><option>20</option><option selected>50</option><option>100</option></select><span>Hz</span></label>
+          </div>
+          <div id="safety-note" class="callout warning">Yaw direction has not been verified. Finger motion remains interlocked.</div>
+        </article>
+      </div>
+
+      <div class="column">
+        <article class="card telemetry">
+          <div class="card-head"><div><span class="eyebrow">live / measured</span><h2>Hand telemetry</h2></div><span id="freshness" class="badge muted">No samples</span></div>
+          <div class="hand-view">
+            <svg viewBox="0 0 360 230" aria-label="Top-down morphology view">
+              <rect x="130" y="76" width="100" height="78" rx="18" class="palm"/>
+              <path d="M180 32v166M60 115h240" class="axis"/>
+              <g id="mount-thumb" class="mount"><circle cx="80" cy="115" r="16"/><text x="80" y="119">T</text></g>
+              <g id="mount-index" class="mount"><circle cx="280" cy="55" r="16"/><text x="280" y="59">I</text></g>
+              <g id="mount-middle" class="mount"><circle cx="280" cy="175" r="16"/><text x="280" y="179">M</text></g>
+            </svg>
+            <div id="finger-cards" class="finger-cards"></div>
+          </div>
+          <p id="telemetry-warning" class="hint">Browser refresh uses cached data and never polls a servo directly.</p>
+        </article>
+
+        <article class="card recording">
+          <div class="card-head"><div><span class="eyebrow">experiment record</span><h2>Runs &amp; scoring</h2></div><button id="refresh-logs" class="icon">↻</button></div>
+          <div id="runs" class="runs"><p class="empty">No hardware runs recorded.</p></div>
+        </article>
+
+        <article class="card events">
+          <div class="card-head"><div><span class="eyebrow">daemon</span><h2>Event log</h2></div></div>
+          <div id="events"></div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="confirm-home">
+    <form method="dialog">
+      <span class="eyebrow">Destructive reference change</span><h2>Home all six gantry axes?</h2>
+      <p>Clear the hand and watch every rail. Axes move sequentially into their hardstops. Servo joints return to calibrated zero afterward.</p>
+      <label>Type <code>HOME ALL AXES</code><input id="home-phrase" autocomplete="off"></label>
+      <div class="dialog-actions"><button value="cancel" class="secondary">Cancel</button><button id="confirm-home-button" value="default" class="danger">Home hand</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="score-dialog">
+    <form method="dialog">
+      <span class="eyebrow">Manual ground truth</span><h2>Score this run</h2>
+      <input id="score-run-id" type="hidden">
+      <label>Outcome<select id="score-success"><option value="true">Success</option><option value="false">Failure</option></select></label>
+      <label>Approx. reorientation (degrees)<input id="score-angle" type="number" step="1" placeholder="e.g. 78"></label>
+      <label>Notes<textarea id="score-notes" rows="3" placeholder="Slip, wrong pole, placement, unusual sound…"></textarea></label>
+      <div class="dialog-actions"><button value="cancel" class="secondary">Cancel</button><button id="save-score" value="default">Save score</button></div>
+    </form>
+  </dialog>
+  <div id="toast" role="status"></div>
+  <script src="/app.js"></script>
+</body>
+</html>

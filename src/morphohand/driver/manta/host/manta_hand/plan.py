@@ -31,21 +31,19 @@ WHAT IS VERIFIED, AND WHAT IS NOT
    See `travel_audit()`; do not paper over it by widening FULL_EXTENSION_MM on a hunch, because
    MOVEMM does not stall-check.
 
-4. JOINT IDENTITY -- VERIFIED by range fingerprint. The sim's joint limits are exactly the
-   declared servo contract: yaw +-85 = aa, mcp [-15,+92] = fe1, pip [-18,+92] = fe2. Three
-   distinct ranges, three exact matches; there is no other assignment that fits.
+4. JOINT IDENTITY -- VERIFIED by range fingerprint. The sim limits match the original nominal
+   servo contract: yaw +-85 = aa, mcp [-15,+92] = fe1, pip [-18,+92] = fe2. Three distinct
+   ranges, three exact matches; there is no other assignment that fits. The live aa command
+   cap is now the user's more conservative +-70 degrees; that tightens reach without changing
+   the identity.
 
-5. JOINT SIGN -- fe1/fe2 INFERRED, aa UNVERIFIED.
+5. JOINT SIGN -- aa VERIFIED ON HARDWARE 2026-08-29; fe1/fe2 INFERRED.
    fe1/fe2: the calibrated ranges are asymmetric ([-15,+92]-shaped) in a way only "small
    hyperextension, large flexion" explains, and the sim mirrors its mcp/pip axis per finger
    (thumb 0 -1 0, pair 0 +1 0) so that positive is flexion toward the palm centre on all three,
    matching the drawing's own "+flex direction" column. Positive-is-flexion on both sides.
-   aa: the ranges are symmetric, so there is no fingerprint at all, and the sim gives ALL THREE
-   fingers the same yaw axis (1 0 0) while mirroring mcp/pip -- i.e. positive yaw swings every
-   tip toward +y_P, which is not what a rigid 180-degree-rotated thumb module would do. The sign
-   is a per-finger coin flip that only hardware can settle, and the plans matter: g12 grips with
-   thumb_yaw at +17.7 deg, so a flipped sign misses the tool by ~35 deg of roll.
-   Measure it with `examples/verify_frame_mapping.py`, then set JOINT_SIGN.
+   aa: measured with `examples/verify_frame_mapping.py`: sim-to-servo is thumb +1, index -1,
+   middle -1. The signs are recorded in JOINT_SIGN below and frozen into every run summary.
 
 Everything here is pure arithmetic over the driver's own calibration tables -- no serial, no
 mujoco, no morphohand. It imports on a workstation so a plan can be checked before anyone is
@@ -55,6 +53,7 @@ standing next to the hardware.
 from __future__ import annotations
 
 import json
+import math
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -82,14 +81,9 @@ FINGER_NAME = {v: k for k, v in FINGER_ID.items()}
 SIM_JOINT_TO_SERVO = {"yaw": "aa", "mcp": "fe1", "pip": "fe2"}
 
 # (finger, sim joint) -> multiply the sim's degrees by this to get the servo's own
-# zero-relative degrees. All +1 is the ASSUMPTION, not a measurement -- see docstring item 5.
-# `verify_frame_mapping.py` prints the three aa lines to paste in here once measured.
-# JOINT_SIGN: dict[tuple[str, str], float] = {
-#    (f, j): 1.0 for f in FINGER_ID for j in SIM_JOINT_TO_SERVO
-# }
-SIGNS_MEASURED = True  # flip to True in the same commit that measures them
-
-JOINT_SIGN = {
+# zero-relative degrees. aa was measured on hardware 2026-08-29; flexion signs follow the
+# asymmetric joint-range and mirrored-axis argument in docstring item 5.
+JOINT_SIGN: dict[tuple[str, str], float] = {
     ("thumb", "yaw"): +1.0,
     ("thumb", "mcp"): +1.0,
     ("thumb", "pip"): +1.0,
@@ -100,6 +94,7 @@ JOINT_SIGN = {
     ("middle", "mcp"): +1.0,
     ("middle", "pip"): +1.0,
 }
+SIGNS_MEASURED = True
 
 
 # ------------------------------------------------------------------------------------------
@@ -248,6 +243,44 @@ class HandPlan:
                    for p in raw["poses"]],
             meta=raw.get("meta", {}),
         )
+
+    def schema_errors(self) -> list[str]:
+        """Structural errors that would otherwise become partial moves or late KeyErrors."""
+        errors: list[str] = []
+        expected_fingers = set(FINGER_ID)
+        expected_joints = set(SIM_JOINT_TO_SERVO)
+        if not isinstance(self.design, str) or not self.design.strip():
+            errors.append("design must be a non-empty string")
+        if set(self.mounts_palm_mm) != expected_fingers:
+            errors.append(f"mounts must contain exactly {sorted(expected_fingers)}")
+        names = [pose.name for pose in self.poses]
+        if len(names) != len(set(names)):
+            errors.append("pose names must be unique")
+        for required in ("open", "grip"):
+            if required not in names:
+                errors.append(f"missing required pose {required!r}")
+        for pose in self.poses:
+            if not math.isfinite(pose.ramp_s) or pose.ramp_s < 0:
+                errors.append(f"pose {pose.name!r} ramp_s must be finite and non-negative")
+            if not math.isfinite(pose.hold_s) or pose.hold_s < 0:
+                errors.append(f"pose {pose.name!r} hold_s must be finite and non-negative")
+            if set(pose.joints) != expected_fingers:
+                errors.append(f"pose {pose.name!r} must contain exactly {sorted(expected_fingers)}")
+                continue
+            for finger, joints in pose.joints.items():
+                if set(joints) != expected_joints:
+                    errors.append(
+                        f"pose {pose.name!r} finger {finger!r} must contain exactly "
+                        f"{sorted(expected_joints)}"
+                    )
+                for joint, value in joints.items():
+                    try:
+                        finite = math.isfinite(float(value))
+                    except (TypeError, ValueError):
+                        finite = False
+                    if not finite:
+                        errors.append(f"pose {pose.name!r} {finger}_{joint} must be finite")
+        return errors
 
     # -- checking ---------------------------------------------------------------------------
     def validate(self, travel_mm: dict[int, float] | None = None) -> list[Violation]:

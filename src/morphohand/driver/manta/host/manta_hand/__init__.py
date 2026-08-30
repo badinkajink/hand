@@ -1,7 +1,10 @@
 from .joint import Joint, JointStatus
 from .kinematics import Gantry, GantryFinger
+from .plan import HandPlan, Pose
+from .runtime import HandRuntime, MockHardwareBackend
 
-__all__ = ["Joint", "JointStatus", "Gantry", "GantryFinger"]
+__all__ = ["Joint", "JointStatus", "Gantry", "GantryFinger", "HandPlan", "Pose",
+           "HandRuntime", "MockHardwareBackend"]
 
 try:
     from .driver import MantaHandDriver

@@ -31,6 +31,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import math
+import threading
 import time
 from typing import TYPE_CHECKING
 
@@ -103,6 +104,11 @@ class ServoBus:
 
     def __init__(self, port: str = "/dev/ttyUSB0", baudrate: int = 1_000_000, timeout: float = 0.5):
         self._c = _controller_cls()(serial_port=port, baudrate=baudrate, timeout=timeout)
+        # The controller owns one half-duplex serial bus.  The web controller has a
+        # trajectory writer and an optional telemetry reader in different threads;
+        # without one bus-wide lock their packets can overlap.  Keep the lock here,
+        # below every caller, rather than relying on each application to remember it.
+        self._lock = threading.RLock()
         # The very first command issued right after opening the port
         # reproducibly timed out without this, confirmed empirically on
         # both the CB1 and a Mac -- same class of issue as INTER_CMD_DELAY_S
@@ -127,7 +133,7 @@ class ServoBus:
 
     def servo(self, servo_id: int) -> "Servo":
         if servo_id not in self._servos:
-            self._servos[servo_id] = Servo(self._c, servo_id)
+            self._servos[servo_id] = Servo(self._c, servo_id, self._lock)
         return self._servos[servo_id]
 
     def finger(self, finger_id: int) -> "Finger":
@@ -190,9 +196,48 @@ class ServoBus:
                     )
                 ids.append(servo_id)
                 values.append(math.radians(zero_deg + relative_deg))
-        if speed is not None:
-            self._c.sync_write_goal_speed(ids=ids, values=[speed] * len(ids))
-        self._c.sync_write_goal_position(ids=ids, values=values)
+        with self._lock:
+            if speed is not None:
+                self._c.sync_write_goal_speed(ids=ids, values=[speed] * len(ids))
+            self._c.sync_write_goal_position(ids=ids, values=values)
+
+    def sync_read_joint_positions(self) -> dict[int, dict[str, float]]:
+        """Read all nine joint positions in one controller operation.
+
+        Returns zero-relative degrees in the same convention accepted by
+        :meth:`sync_set_joints`.  This is the only position polling path intended
+        for a control/telemetry loop.  Falling back to nine ``Servo.status`` calls
+        would also invoke the empirically-required 300 ms inter-command delay and
+        could starve trajectory writes for seconds, so lack of sync-read support is
+        reported explicitly instead.
+
+        The SCS protocol manual documents READ and SYNC WRITE but not SYNC READ.
+        ``rustypot`` nevertheless exposes ``sync_read_present_position`` for its
+        SCS0009 controller.  Whether the particular nine-servo chain can sustain a
+        useful rate is deliberately left to ``examples/benchmark_servo_telemetry.py``.
+        """
+        read = getattr(self._c, "sync_read_present_position", None)
+        if read is None:
+            raise NotImplementedError(
+                "this rustypot SCS0009 controller has no sync_read_present_position"
+            )
+        ordered = []
+        for finger_id, joints in FINGER_JOINTS.items():
+            for name, (servo_id, zero_deg, _limits) in joints.items():
+                ordered.append((finger_id, name, servo_id, zero_deg))
+        ids = [x[2] for x in ordered]
+        with self._lock:
+            values = read(ids)
+        if len(values) != len(ids):
+            raise RuntimeError(f"sync position read returned {len(values)} values for {len(ids)} ids")
+        out: dict[int, dict[str, float]] = {fid: {} for fid in FINGER_JOINTS}
+        for (finger_id, name, _servo_id, zero_deg), raw_rad in zip(ordered, values):
+            out[finger_id][name] = math.degrees(float(raw_rad)) - zero_deg
+        return out
+
+    @property
+    def supports_sync_position_read(self) -> bool:
+        return callable(getattr(self._c, "sync_read_present_position", None))
 
     @property
     def controller(self):
@@ -202,9 +247,11 @@ class ServoBus:
 
 
 class Servo:
-    def __init__(self, controller: "Scs0009PyController", servo_id: int):
+    def __init__(self, controller: "Scs0009PyController", servo_id: int,
+                 lock: threading.RLock | None = None):
         self._c = controller
         self.id = servo_id
+        self._lock = lock or threading.RLock()
 
     def _call(self, fn, *args):
         """Every controller RPC goes through here so INTER_CMD_DELAY_S is
@@ -222,13 +269,17 @@ class Servo:
         absorb the occasional miss with a bounded retry instead."""
         last_exc = None
         for _attempt in range(3):
-            try:
-                result = fn(self.id, *args)
-                time.sleep(INTER_CMD_DELAY_S)
-                return result
-            except RuntimeError as exc:  # rustypot's "Operation timed out"
-                last_exc = exc
-                time.sleep(INTER_CMD_DELAY_S)
+            # Include success OR timeout recovery in the critical section: the
+            # quiet period exists to protect the *next* packet on this shared bus,
+            # regardless of which thread wants to issue it.
+            with self._lock:
+                try:
+                    result = fn(self.id, *args)
+                    time.sleep(INTER_CMD_DELAY_S)
+                    return result
+                except RuntimeError as exc:  # rustypot's "Operation timed out"
+                    last_exc = exc
+                    time.sleep(INTER_CMD_DELAY_S)
         raise last_exc
 
     def _call_verified(self, write_fn, read_fn, value, attempts=3, matches=None):
@@ -308,8 +359,9 @@ class Servo:
 # repeatedly this session).
 #
 # (min_rel_deg, max_rel_deg) is EFFECTIVE range = intersection of the
-# originally-declared nominal contract (aa: +/-85, fe1: -15..92, fe2:
-# -18..92) with each servo's REAL measured hardstop, from a manual
+# originally-declared nominal contract (aa was +/-85, fe1: -15..92, fe2:
+# -18..92), the user's later conservative aa cap (+/-70), and each servo's
+# REAL measured hardstop, from a manual
 # torque-free sweep logged at 10Hz on 2026-08-29 (every servo freed one at
 # a time, hand-moved through its full range, logged to
 # host/examples/servo_manual_range.csv -- see servo_calibration_notes.md
@@ -320,9 +372,11 @@ class Servo:
 # frequently wrong in both directions (some servos couldn't reach the
 # declared value at all, others could go well past it).
 FINGER_JOINTS = {
-    0: {"aa": (0, -41.0156, (-70.02, 74.71)), "fe1": (1, -34.2773, (-12.30, 89.06)), "fe2": (2, -43.9453, (-18.00, 86.72))},
-    1: {"aa": (3, -10.2539, (-79.69, 74.41)), "fe1": (4, 84.9609, (-15.00, 64.75)), "fe2": (5, -146.7773, (-2.93, 92.00))},
-    2: {"aa": (6, 12.89, (-75.29, 75.29)), "fe1": (7, 79.98046875, (-15.00, 69.73)), "fe2": (8, 72.6562, (-16.11, 77.05))},
+    # aa/yaw is intentionally capped at the user's conservative +/-70 deg
+    # contract even where the manual sweep found a few more physical degrees.
+    0: {"aa": (0, -41.0156, (-70.00, 70.00)), "fe1": (1, -34.2773, (-12.30, 89.06)), "fe2": (2, -43.9453, (-18.00, 86.72))},
+    1: {"aa": (3, -10.2539, (-70.00, 70.00)), "fe1": (4, 84.9609, (-15.00, 64.75)), "fe2": (5, -146.7773, (-2.93, 92.00))},
+    2: {"aa": (6, 12.89, (-70.00, 70.00)), "fe1": (7, 79.98046875, (-15.00, 69.73)), "fe2": (8, 72.6562, (-16.11, 77.05))},
 }
 DEFAULT_JOINT_SPEED = 80  # matches what's worked reliably all session
 

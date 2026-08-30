@@ -1,8 +1,9 @@
 # MorphoHand
 
-MorphoHand is a simulation-first hand morphology evaluation stack for a 3-finger hand.
-The current codebase focuses on Phase 1: fixed-scene grasp synthesis, foundational pose
-search, morphology sampling, adaptation, and result analysis.
+MorphoHand is a simulation-to-real co-design stack for a three-finger, reconfigurable hand.
+It now contains both the simulation/RL research system and the live `real_v1` hardware path:
+six morphology gantry axes, nine independent finger servos, validated sim-to-hardware plans,
+a CB1 control service, a workstation/browser UI, and hardware experiment logging.
 
 The key design split is:
 
@@ -29,6 +30,10 @@ That split is reflected directly in the package layout and in the current evalua
   hand-designed fallback basis.
 - `src/morphohand/tools/morphology_xml.py`: morphology encoding, parsing, and XML generation.
 - `assets/mjcf/`: base hand/scene templates plus object-specific scenes.
+- `src/morphohand/driver/manta/`: current Manta M8P + CB1 hardware firmware and host package.
+- `src/morphohand/driver/manta/host/manta_hand/plan.py`: verified `real_v1` frame, envelope,
+  and sim-joint-to-servo plan conversion.
+- `src/morphohand/driver/manta/host/manta_hand/web.py`: token-protected control service and UI.
 - `assets/contact_targets/`: per-(scene, keyframe) target patch specs (YAML).
 - `scripts/`: runnable Phase 1 sweeps, analysis tools, and the cross-object
   [eval suite](docs/eval_suite.md).
@@ -83,7 +88,30 @@ src/morphohand/
   optimization/               # Phase 1 evaluator and strategy lanes
   tools/                      # morphology XML helpers
   backends/                   # backend protocol and adapter shells
+  driver/manta/               # current hardware: STM32 firmware + CB1 Python host
 ```
+
+## Real hand control
+
+The deployable hardware method today is the morphology-specific CEM grasp and buffered
+open-loop reorientation. The learned A/B policies require object pose/velocity and other
+observations the servo-only prototype does not have, so the UI marks closed-loop RL unavailable
+instead of silently filling missing observations.
+
+Run the complete control station safely against a mock hand:
+
+```bash
+PYTHONPATH=src/morphohand/driver/manta/host \
+  python -m manta_hand.web --mock --host 127.0.0.1 --port 8765
+```
+
+Then open `http://127.0.0.1:8765`. CB1 installation, the once-per-session homing flow,
+telemetry-rate benchmark, real launch command, API, logs, and recovery behavior are documented
+in [docs/hardware_control_station.md](docs/hardware_control_station.md). The static UI may be
+served by the CB1, but it executes in the workstation browser; the guide also shows how to serve
+those files locally while using the CB1 only as the hardware API. Hardware electrical,
+StallGuard, and servo calibration details remain in
+[src/morphohand/driver/manta/docs/](src/morphohand/driver/manta/docs/).
 
 ## Environment
 

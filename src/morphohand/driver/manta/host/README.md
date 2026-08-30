@@ -4,7 +4,8 @@ Runs on the CB1, talks to the firmware over `/dev/ttyACM0` (USB-CDC, see
 `../docs/protocol.md`).
 
 ```sh
-pip install -e .
+python3 -m venv .venv
+.venv/bin/python -m pip install -e '.[servo]'
 ```
 
 ```python
@@ -19,6 +20,30 @@ with MantaHandDriver("/dev/ttyACM0") as hand:
 
 `examples/bringup_demo.py` is the first thing to run against real hardware
 -- see `../docs/bringup.md`.
+
+## Web control and experiment logging
+
+`manta-hand-web` is the CB1 service and browser control station. It loads validated
+`HandPlan` JSON, homes once per daemon session behind an exact confirmation, moves to a
+morphology, commands the open/grip poses, buffers the reorientation on the CB1, and records
+command/telemetry/event JSONL with a manual-score summary.
+
+Exercise it without hardware first:
+
+```sh
+manta-hand-web --mock --host 127.0.0.1 --port 8765
+```
+
+The measured yaw signs are recorded in `plan.py`; real hardware requires a control token:
+
+```sh
+.venv/bin/manta-hand-web --token "$MANTA_TOKEN" --telemetry-hz 0
+```
+
+The recorded sim-to-servo yaw signs are thumb `+1`, index `-1`, middle `-1`, measured on
+2026-08-29. `--aa-signs` can explicitly override them after a new hardware check. Full topology,
+launch, telemetry benchmark, API, logging, and safety notes are in
+[`docs/hardware_control_station.md`](../../../../../docs/hardware_control_station.md).
 
 ## Feetech SCS0009 servos (via U2D2)
 
@@ -36,9 +61,7 @@ IDs 6/7/8 (`FINGER_JOINTS` in `servos.py`). Each joint moves in plain
 degrees relative to its own calibrated zero reference, bounds-checked
 against that joint's real measured range before anything moves.
 
-```sh
-pip install -e ".[servo]"
-```
+The `servo` extra is installed by the virtual-environment command above.
 
 ```python
 from manta_hand import ServoBus
