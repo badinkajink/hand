@@ -75,7 +75,7 @@ def workspace(morph_run: Path, obj: str = "screwdriver_medium") -> dict:
     extension left -- is the only one of the four whose open-loop carry then holds.
     """
     import itertools
-    m = mujoco.MjModel.from_xml_path(str(morph_run / "frozen_scene.xml"))
+    m = _load_model(morph_run / "frozen_scene.xml")
     d = mujoco.MjData(m)
     mujoco.mj_resetDataKeyframe(m, d, m.key("open_ik").id)
     mujoco.mj_forward(m, d)
@@ -100,6 +100,41 @@ def workspace(morph_run: Path, obj: str = "screwdriver_medium") -> dict:
                   "retract_mm": round((now - lo) * 1000, 1)}
     return {"run": morph_run.name, "fingers": out,
             "extend_mm": min(v["extend_mm"] for v in out.values())}
+
+
+# ---- object mass override -------------------------------------------------
+# The appendix flags the sim cylinder's 24.5 g as the parameter most likely to
+# invalidate a hardware claim ("doubling that mass causes the present open-loop
+# solution to fail"), and until now there was no way to sweep it. The carry is a
+# quasi-static geometric trajectory, so mass enters only through the contact forces
+# needed to hold the shaft against gravity while it rotates -- which is exactly the
+# thing a real screwdriver changes.
+#
+# Set once from the CLI and applied at EVERY model load: the grip fit, the IK
+# scratch model and the live rollout all have to agree, or the fit picks a grip for
+# one object and the carry runs it on another.
+_MASS_OVERRIDE: dict = {"kg": None, "scale": 1.0, "obj": "screwdriver_medium"}
+
+
+def _load_model(path):
+    """`MjModel.from_xml_path` plus the object-mass override, if one is set."""
+    m = mujoco.MjModel.from_xml_path(str(path))
+    kg, scale, obj = _MASS_OVERRIDE["kg"], _MASS_OVERRIDE["scale"], _MASS_OVERRIDE["obj"]
+    if kg is None and scale == 1.0:
+        return m
+    bid = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, obj)
+    if bid < 0:
+        return m
+    old = float(m.body_mass[bid])
+    new = float(kg) if kg is not None else old * float(scale)
+    if old <= 0:
+        return m
+    # Inertia scales linearly with mass at fixed geometry and density distribution;
+    # scaling mass alone would leave the shaft rotationally heavy and silently change
+    # the very dynamics the sweep is trying to measure.
+    m.body_inertia[bid] *= new / old
+    m.body_mass[bid] = new
+    return m
 
 
 def _rotx(a: float) -> np.ndarray:
@@ -202,7 +237,7 @@ def _grip_from_fit(scene: Path, straddle: float, offset: float, squeeze: float, 
     # cannot carry the object anywhere. Capping the palm height trades clearance for workspace,
     # and an axial grip offset buys the clearance back (the stub above the grip is half_len -
     # offset, not half_len).
-    m0 = mujoco.MjModel.from_xml_path(str(scene))
+    m0 = _load_model(scene)
     d0 = mujoco.MjData(m0)
     mujoco.mj_resetDataKeyframe(m0, d0, fp._seed_key(m0, "open"))
     mujoco.mj_forward(m0, d0)
@@ -221,7 +256,7 @@ def _grip_from_fit(scene: Path, straddle: float, offset: float, squeeze: float, 
     rep = out[0]
     px, py, pz = rep["palm"]["px"], rep["palm"]["py"], rep["palm"]["pz"]
     depth_mm = rep["grip_depth_mm"]
-    m = mujoco.MjModel.from_xml_path(str(scene))
+    m = _load_model(scene)
     d = mujoco.MjData(m)
     seed = fp._seed_key(m, "open")
     mujoco.mj_resetDataKeyframe(m, d, seed)
@@ -251,7 +286,7 @@ def carry(scene: Path, lift: float, turn_steps: int, hold_steps: int, angle: flo
     # on this scene at this straddle. The fit is ~90% of a cell's cost and does not depend on
     # the pivot height, so a sweep over axis_k pays for it once.
     if morph_run is not None:
-        m = mujoco.MjModel.from_xml_path(str(scene))
+        m = _load_model(scene)
         d = mujoco.MjData(m)
         depth_mm = float("nan")
         closed = np.load(morph_run / "best_rollout.npz")["best_finger_ctrl"]
@@ -283,7 +318,7 @@ def carry(scene: Path, lift: float, turn_steps: int, hold_steps: int, angle: flo
         d.qpos[adr + 1] += float(rng.normal(0.0, jitter))
         mujoco.mj_forward(m, d)
 
-    mik = mujoco.MjModel.from_xml_path(str(scene))   # scratch pair for the IK, so the live
+    mik = _load_model(scene)   # scratch pair for the IK, so the live
     dik = mujoco.MjData(mik)                         # sim state is never disturbed
 
     acts = _finger_act(m)
@@ -555,6 +590,13 @@ def main() -> int:
                     help="metres of grip depth below the mounting plane, comma list. Empty = "
                          "the fitter's DEEPEST reachable palm, which is 95%% finger extension")
     ap.add_argument("--object-body", default="screwdriver_medium")
+    ap.add_argument("--object-mass", type=float, default=None,
+                    help="override the object mass (kg). The scene ships 0.0245 kg; the "
+                         "appendix names 2x that as the point where the open-loop carry "
+                         "fails, and a real screwdriver should be weighed, not assumed.")
+    ap.add_argument("--mass-scale", type=float, default=1.0,
+                    help="multiply the object mass instead of setting it (ignored when "
+                         "--object-mass is given).")
     ap.add_argument("--lift", type=float, default=0.10)
     ap.add_argument("--turn-steps", default="200,400,800",
                     help="sim steps over which the 90 deg is commanded (speed axis)")
@@ -598,6 +640,8 @@ def main() -> int:
     ap.add_argument("--trace", action="store_true")
     ap.add_argument("--out", type=Path, default=None)
     args = ap.parse_args()
+    _MASS_OVERRIDE.update(kg=args.object_mass, scale=args.mass_scale, obj=args.object_body)
+
 
     if args.workspace:
         print(f"{'run':22} {'finger':7} {'reach':>7} {'min':>7} {'max':>7} "
