@@ -137,7 +137,243 @@ function showPlan(p) {
 /* ---------------------------------------------------------------- render --- */
 function render(s) {
   state = s;
-  $('endpoint').textContent = VIEW_ONLY ? `${API}  (observer)` : API;
+  /* ------------------------------------------------------------------ manual control
+ * examples/hand_control.py over this connection. It exists because that script wants
+ * the two USB ports for itself, so reaching for it means stopping the service -- and
+ * the things you actually want to do by hand (nudge one finger, walk a gantry clear,
+ * check a sign) are exactly the things you want to do WITHOUT losing the home and the
+ * telemetry.
+ *
+ * Sliders send on `change`, not `input`: `input` fires on every pixel of a drag and
+ * would put a hundred writes on the servo bus for one gesture. */
+let manualLimits = null, manualBuilt = false, manualSending = false;
+
+function manualLog(text, kind = '') {
+  const box = $('manual-console');
+  const line = document.createElement('div');
+  line.className = `console-line ${kind}`;
+  line.textContent = `${new Date().toLocaleTimeString()}  ${text}`;
+  box.appendChild(line);
+  while (box.children.length > 200) box.removeChild(box.firstChild);
+  box.scrollTop = box.scrollHeight;
+}
+
+function showPanel(which) {
+  $('panel-bench').classList.toggle('hidden', which !== 'bench');
+  $('panel-manual').classList.toggle('hidden', which !== 'manual');
+  $('view-bench').classList.toggle('active', which === 'bench');
+  $('view-manual').classList.toggle('active', which === 'manual');
+  localStorage.setItem('manta-view', which);
+  if (which === 'manual') loadManualLimits();
+}
+
+async function loadManualLimits() {
+  if (manualLimits) return manualLimits;
+  try {
+    manualLimits = await api('/manual/limits');
+    buildManualControls();
+  } catch (err) {
+    manualLog(`could not read joint limits: ${err.message}`, 'bad');
+  }
+  return manualLimits;
+}
+
+function numberRow(id, label, lo, hi, step, value, suffix) {
+  return `<div class="knob" data-knob="${id}">
+    <div class="knob-head"><small>${label}</small>
+      <input id="${id}-num" type="number" min="${lo}" max="${hi}" step="${step}" value="${value}">
+      <span>${suffix}</span></div>
+    <input id="${id}-range" type="range" min="${lo}" max="${hi}" step="${step}" value="${value}">
+    <small class="knob-range">${lo.toFixed(1)} … ${hi.toFixed(1)}</small>
+  </div>`;
+}
+
+function buildManualControls() {
+  if (manualBuilt || !manualLimits) return;
+  const L = manualLimits;
+
+  $('manual-mounts').innerHTML = L.fingers.map(f => {
+    const mx = L.mounts[f].x, my = L.mounts[f].y;
+    const at = (L.mount_positions || {})[f];
+    const x = at ? at.x : (mx[0] + mx[1]) / 2, y = at ? at.y : (my[0] + my[1]) / 2;
+    return `<div class="manual-finger">
+      <header><strong>${f}</strong><small id="mount-${f}-steppers">—</small></header>
+      ${numberRow(`mount-${f}-x`, 'palm x', mx[0], mx[1], 0.1, x.toFixed(1), 'mm')}
+      ${numberRow(`mount-${f}-y`, 'palm y', my[0], my[1], 0.1, y.toFixed(1), 'mm')}
+      <button class="secondary wide" data-mount-go="${f}">Move ${f} gantry</button>
+    </div>`;
+  }).join('');
+
+  $('manual-joints').innerHTML = L.fingers.map(f => `<div class="manual-finger">
+      <header><strong>${f}</strong><small>${L.joints.map(j =>
+        `${j}=${L.servo_alias[j]}${L.joint_sign[f][j] < 0 ? '⁻' : ''}`).join('  ')}</small></header>
+      ${L.joints.map(j => {
+        const [lo, hi] = L.joint_deg[f][j];
+        const at = (L.last_command || {})[f]?.[j] ?? 0;
+        return numberRow(`joint-${f}-${j}`, j, lo, hi, 0.5, at.toFixed(1), '°');
+      }).join('')}
+    </div>`).join('');
+
+  /* keep each pair of number box and slider showing the same value */
+  for (const el of document.querySelectorAll('[data-knob]')) {
+    const id = el.dataset.knob, num = $(`${id}-num`), range = $(`${id}-range`);
+    num.oninput = () => { range.value = num.value; };
+    range.oninput = () => { num.value = range.value; };
+    if (id.startsWith('joint-')) {
+      const [, finger, joint] = id.split('-');
+      const send = () => sendJoint(finger, joint, Number(num.value));
+      range.onchange = send;
+      num.onchange = send;
+    } else {
+      const finger = id.split('-')[1];
+      const show = () => showStepperTarget(finger);
+      range.onchange = show;
+      num.onchange = show;
+    }
+  }
+  for (const btn of document.querySelectorAll('[data-mount-go]')) {
+    btn.onclick = () => moveMount(btn.dataset.mountGo);
+  }
+  for (const f of L.fingers) showStepperTarget(f);
+  manualBuilt = true;
+}
+
+/* Palm mm and firmware mm are different numbers for the same place, and hand_control.py
+ * speaks the other one. Showing both is what keeps them from being confused -- and the
+ * conversion is asked of the server, because kinematics is the one place that knows the
+ * transform and a copy of it in JavaScript is a copy that will drift. */
+const stepperProbe = {};
+async function showStepperTarget(finger) {
+  const el = $(`mount-${finger}-steppers`);
+  if (!el) return;
+  const x = Number($(`mount-${finger}-x-num`).value), y = Number($(`mount-${finger}-y-num`).value);
+  clearTimeout(stepperProbe[finger]);
+  stepperProbe[finger] = setTimeout(async () => {
+    try {
+      const r = await api('/manual/resolve', {
+        method: 'POST',
+        body: JSON.stringify({line: `${finger}_x ${x}, ${finger}_y ${y}`}),
+      });
+      const t = r.mounts[finger];
+      el.className = '';
+      el.textContent = 'firmware ' + Object.entries(t.steppers)
+        .map(([j, mm]) => `J${j} ${mm}`).join('  ');
+    } catch (err) {
+      el.className = 'bad';
+      el.textContent = err.message.replace(/^\w*Error:\s*/, '');
+    }
+  }, 150);
+}
+
+async function sendJoint(finger, joint, deg) {
+  if (manualSending) return;
+  manualSending = true;
+  try {
+    await post('/manual/joints', {
+      joints: {[finger]: {[joint]: deg}},
+      servo_speed: Number($('manual-speed').value),
+    });
+    manualLog(`${finger}_${joint} → ${deg.toFixed(1)}°`);
+    clearError();
+  } catch (err) {
+    manualLog(`${finger}_${joint} ${deg.toFixed(1)}° refused: ${err.message}`, 'bad');
+    showError(err.message);
+  } finally {
+    manualSending = false;
+  }
+}
+
+async function moveMount(finger) {
+  const x = Number($(`mount-${finger}-x-num`).value);
+  const y = Number($(`mount-${finger}-y-num`).value);
+  await action(async () => {
+    const r = await post('/manual/mounts', {mounts: {[finger]: {x, y}}});
+    const t = r.targets[finger];
+    manualLog(`${finger} gantry → palm (${x.toFixed(1)}, ${y.toFixed(1)}) mm = firmware `
+      + Object.entries(t.steppers).map(([j, mm]) => `J${j} ${mm}`).join(', '));
+    manualLimits = null; manualBuilt = false;   // positions changed; re-read on next view
+  }, `Moving the ${finger} gantry`);
+}
+
+function renderManual(s, {busy, blocked, motionReady}) {
+  const mountsOk = !busy && !blocked && s.homed;
+  for (const btn of document.querySelectorAll('[data-mount-go]')) btn.disabled = !mountsOk;
+  for (const el of document.querySelectorAll('[data-knob]')) {
+    const joint = el.dataset.knob.startsWith('joint-');
+    const ok = joint ? (!busy && !blocked && motionReady) : mountsOk;
+    $(`${el.dataset.knob}-num`).disabled = !ok;
+    $(`${el.dataset.knob}-range`).disabled = !ok;
+  }
+  $('manual-line').disabled = busy || blocked;
+  $('manual-send').disabled = busy || blocked;
+  $('manual-zero').disabled = busy || blocked || !motionReady;
+  $('manual-sync').disabled = busy || blocked;
+
+  const mb = $('manual-mount-badge');
+  mb.textContent = s.manual_mounts ? 'hand-placed' : (s.mounts_applied ? 'plan morphology' : 'unknown');
+  mb.className = `badge ${s.manual_mounts ? '' : (s.mounts_applied ? '' : 'muted')}`;
+  const jb = $('manual-joint-badge');
+  jb.textContent = motionReady ? 'live' : 'interlocked';
+  jb.className = `badge ${motionReady ? '' : 'muted'}`;
+  if (VIEW_ONLY) {
+    for (const el of $('panel-manual').querySelectorAll('button, input')) el.disabled = true;
+  }
+}
+
+function syncManualSliders() {
+  if (!manualLimits || !state) return;
+  for (const f of manualLimits.fingers) {
+    for (const j of manualLimits.joints) {
+      const v = state.last_command?.[f]?.[j];
+      if (v === undefined) continue;
+      const num = $(`joint-${f}-${j}-num`), range = $(`joint-${f}-${j}-range`);
+      if (num) { num.value = v.toFixed(1); range.value = v; }
+    }
+  }
+  manualLog('sliders set to the last commanded pose');
+}
+
+$('view-bench').onclick = () => showPanel('bench');
+$('view-manual').onclick = () => showPanel('manual');
+$('manual-speed').oninput = () => { $('manual-speed-value').textContent = $('manual-speed').value; };
+$('manual-sync').onclick = syncManualSliders;
+$('manual-zero').onclick = () => action(async () => {
+  const zero = Object.fromEntries(manualLimits.fingers.map(f =>
+    [f, Object.fromEntries(manualLimits.joints.map(j => [j, 0]))]));
+  await post('/manual/joints', {joints: zero, servo_speed: Number($('manual-speed').value)});
+  manualLog('every joint → 0°');
+  syncManualSliders();
+}, 'Joints commanded to zero');
+$('manual-form').onsubmit = async e => {
+  e.preventDefault();
+  const line = $('manual-line').value.trim();
+  if (!line) return;
+  manualLog(`> ${line}`, 'echo');
+  try {
+    const r = await post('/manual/command', {line, servo_speed: Number($('manual-speed').value)});
+    for (const [f, m] of Object.entries(r.mounts || {})) {
+      manualLog(`  ${f} gantry → palm (${m.x}, ${m.y}) mm = firmware `
+        + Object.entries(m.steppers).map(([j, mm]) => `J${j} ${mm}`).join(', '));
+      manualLimits = null; manualBuilt = false;
+    }
+    if (Object.keys(r.joints || {}).length) {
+      manualLog('  ' + Object.entries(r.joints).map(([f, js]) =>
+        `${f} ` + Object.entries(js).map(([j, d]) => `${j}=${Number(d).toFixed(1)}`).join(' ')
+      ).join('   '));
+    }
+    $('manual-line').value = '';
+    clearError();
+  } catch (err) {
+    /* An error here belongs in the console next to the line that caused it, not only in
+     * the page-wide banner -- the whole point of a console is that it keeps the pair. */
+    manualLog(`  ${err.message}`, 'bad');
+    showError(err.message);
+  }
+  await refresh();
+};
+if (localStorage.getItem('manta-view') === 'manual') showPanel('manual');
+
+$('endpoint').textContent = VIEW_ONLY ? `${API}  (observer)` : API;
 
   /* Link banner: a latched serial failure outranks everything else on the page,
    * because nothing else on it is actionable until the board is back. */
@@ -178,7 +414,10 @@ function render(s) {
   $('safety-note').className = `callout ${s.signs_checked ? 'good-note' : 'warning'}`;
 
   const busy = s.busy, blocked = !!s.link_down;
-  const motionReady = s.mounts_applied && s.signs_checked && s.servo_torque === 1;
+  /* A manual gantry move retires the plan's morphology but leaves the rails at a known,
+   * bounds-checked place -- which is all the finger interlock actually needs. */
+  const motionReady = (s.mounts_applied || s.manual_mounts) && s.signs_checked
+    && s.servo_torque === 1;
   /* Re-enable whatever a previous disconnect switched off, then apply the interlocks. */
   $('load-plan').disabled = busy;
   /* The M8P keeps its step counters and homing_result across a daemon restart, so a
@@ -203,6 +442,7 @@ function render(s) {
   renderHomeOutcomes(s);
   renderTelemetry(t);
   renderMounts(s.plan?.mounts_palm_mm);
+  renderManual(s, {busy, blocked, motionReady});
 }
 
 /* Live "what is it doing right now", with the expected duration. This is the answer to

@@ -130,12 +130,15 @@ def test_stop_does_not_claim_an_interrupted_pose(tmp_path):
     wait_idle(rt)
     rt.apply_morphology()
     wait_idle(rt)
-    assert rt.state()["current_pose"] == "zero"
+    # Applying a morphology moves steppers and commands no servo, so it does NOT leave
+    # the hand at the zero pose -- see _do_apply_morphology. The pose is unknown here.
+    assert rt.state()["current_pose"] is None
     rt.move_to_pose("open", rate_hz=100)
     time.sleep(0.04)
     rt.stop()
     wait_idle(rt)
-    assert rt.state()["current_pose"] == "zero"
+    # and an interrupted pose must not claim to have arrived
+    assert rt.state()["current_pose"] is None
     rt.close()
 
 

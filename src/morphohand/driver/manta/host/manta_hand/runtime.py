@@ -23,6 +23,9 @@ from .kinematics import (FULL_EXTENSION_MM, STEPPER_JOINTS, STEPS_PER_MM,
                           HomingAborted, _home_timeout_ms)
 from .plan import (FINGER_ID, FINGER_NAME, JOINT_SIGN, SIM_JOINT_TO_SERVO, HandPlan,
                     Pose, local_from_palm, servo_deg, stepper_mm)
+from .manual import (ManualCommandError, check_mount as manual_check_mount,
+                     limits as manual_limits_payload, parse as manual_parse,
+                     validate as manual_validate)
 from .protocol import MantaHandError
 from .servos import (DEFAULT_JOINT_SPEED, FINGER_JOINTS, TORQUE_FREE, TORQUE_OFF,
                       TORQUE_ON, TORQUE_UNSET)
@@ -85,6 +88,8 @@ class HardwareBackend(Protocol):
 
     def home_all(self, cancel=None, report=None) -> list[dict]: ...
     def apply_mounts(self, plan: HandPlan, cancel=None, report=None) -> None: ...
+    def move_mounts(self, targets: dict[int, tuple[float, float]],
+                    cancel=None, report=None) -> None: ...
     def write_joints(self, pose: dict[int, dict[str, float]], speed: int | None = None) -> None: ...
     def read_telemetry(self, include_servos: bool = True) -> dict: ...
     def adoptable_home(self) -> dict: ...
@@ -188,6 +193,13 @@ class RealHardwareBackend:
         # Gantry.move_sequential for why six simultaneous MOVEMMs are not a profile
         # this hardware has been validated at.
         self.guard(plan.apply_mounts, self.hand, home=False, sequential=True,
+                   cancel=cancel, report=report)
+
+    def move_mounts(self, targets: dict[int, tuple[float, float]],
+                    cancel=None, report=None) -> None:
+        # Same one-axis-at-a-time profile as apply_mounts; a manual move is not a
+        # different kind of motion, only a different source of the numbers.
+        self.guard(self.hand.move_mounts_sequential, targets, frame="global",
                    cancel=cancel, report=report)
 
     def write_joints(self, pose: dict[int, dict[str, float]], speed: int | None = None) -> None:
@@ -308,6 +320,15 @@ class MockHardwareBackend:
                 report("gantry_axis_start", {"joint": FINGER_ID[finger] * 2,
                                              "target_mm": xy[0]})
         self.mounts = dict(plan.mounts_palm_mm)
+
+    def move_mounts(self, targets: dict[int, tuple[float, float]],
+                    cancel=None, report=None) -> None:
+        for fid, xy in targets.items():
+            if cancel and cancel():
+                raise HomingAborted("gantry move cancelled")
+            if report:
+                report("gantry_axis_start", {"joint": fid * 2, "target_mm": xy[0]})
+            self.mounts[FINGER_NAME[fid]] = (float(xy[0]), float(xy[1]))
 
     def write_joints(self, pose: dict[int, dict[str, float]], speed: int | None = None) -> None:
         for fid, values in pose.items():
@@ -448,6 +469,12 @@ class HandRuntime:
         self._plan: HandPlan | None = None
         self._homed = False
         self._mounts_applied = False
+        # Where the gantries were last COMMANDED to, palm-frame mm, whether by a plan's
+        # morphology or by hand. Kept apart from _mounts_applied: that flag means "the
+        # loaded plan's morphology is on the hand", and a manual move makes it false
+        # while still leaving the gantries at a known, motion-legal place.
+        self._mount_positions: dict[str, dict[str, float]] | None = None
+        self._manual_mounts = False
         self._operation = "idle"
         self._current_pose: str | None = None
         self._last_command = _zero_sim_pose()
@@ -580,9 +607,16 @@ class HandRuntime:
                 "home_worst_case_s": HOME_WORST_CASE_S,
                 "servo_torque": self._servo_torque,
                 "mounts_applied": self._mounts_applied,
+                "manual_mounts": self._manual_mounts,
+                "mount_positions": self._mount_positions,
                 "operation": self._operation,
                 "busy": self._operation != "idle",
                 "current_pose": self._current_pose,
+                # What the joints were last TOLD to do, sim frame. Distinct from
+                # telemetry["servos"], which is what they report having done -- the
+                # manual controls seed from this so a slider shows the target, not the
+                # droop.
+                "last_command": {f: dict(v) for f, v in self._last_command.items()},
                 "plan": plan,
                 "signs_checked": self.signs_checked,
                 "axes": AXIS_INFO,
@@ -640,6 +674,8 @@ class HandRuntime:
             # no longer exists.
             self._homed = False
             self._mounts_applied = False
+            self._manual_mounts = False
+            self._mount_positions = None
             self._home_outcomes = []
             self._home_progress = None
             self._unhomed_reason = "homing in progress"
@@ -653,6 +689,8 @@ class HandRuntime:
             self._home_outcomes = list(outcomes)
             self._home_progress = None
             self._mounts_applied = False
+            self._manual_mounts = False
+            self._mount_positions = None
             self._current_pose = "zero"
             self._last_command = _zero_sim_pose()
             self._servo_torque = TORQUE_ON
@@ -720,6 +758,9 @@ class HandRuntime:
                 deltas = [abs(here[j] - mm) for j, mm in targets.items() if j in here]
                 if deltas and max(deltas) <= tolerance_mm:
                     self._mounts_applied = True
+                    self._manual_mounts = False
+                    self._mount_positions = {f: {"x": xy[0], "y": xy[1]}
+                                             for f, xy in self._plan.mounts_palm_mm.items()}
                     adopted_mounts = True
         self._event("warning",
                     "adopted the board's existing home without re-homing"
@@ -740,11 +781,126 @@ class HandRuntime:
         with self._lock:
             if not self._stop.is_set():
                 self._mounts_applied = True
+                self._manual_mounts = False
+                self._mount_positions = {f: {"x": xy[0], "y": xy[1]}
+                                         for f, xy in self._plan.mounts_palm_mm.items()}
                 # NOT "zero": this operation moves steppers and never commands a servo.
                 # Labelling it zero was true only on the home-then-morphology path, where
                 # home_all had just zeroed the servos; on adopt-home, or on a second
                 # morphology change, it claimed a pose the hand was not in.
                 self._current_pose = None
+
+    # ------------------------------------------------------------------ manual control
+    # `examples/hand_control.py` over the station's own link. It exists because that
+    # script needs the two USB ports for itself, so using it means stopping the service
+    # -- and the thing you most often want to do by hand (nudge one finger, walk a
+    # gantry clear, check a sign) is exactly the thing you want to do WITHOUT losing the
+    # home and the telemetry.
+
+    def manual_limits(self) -> dict:
+        """Bounds and current targets, i.e. everything a UI needs to build the controls."""
+        payload = manual_limits_payload()
+        with self._lock:
+            payload["mount_positions"] = self._mount_positions
+            payload["manual_mounts"] = self._manual_mounts
+            payload["mounts_applied"] = self._mounts_applied
+            payload["last_command"] = {f: dict(v) for f, v in self._last_command.items()}
+        return payload
+
+    def manual_resolve(self, line: str) -> dict:
+        """Parse and bounds-check a line WITHOUT moving anything.
+
+        The UI needs this because palm mm and firmware mm are different numbers for the
+        same place and only this process knows the transform -- duplicating it in
+        JavaScript is exactly the drift `kinematics` exists to prevent."""
+        with self._lock:
+            return manual_validate(manual_parse(line), current_mounts=self._mount_positions)
+
+    def manual_joints(self, joints: dict[str, dict[str, float]],
+                      *, servo_speed: int | None = None) -> dict:
+        """Move only the joints named; every other joint is re-commanded to where it
+        already was, which for a position servo is what holding still means."""
+        if not joints:
+            raise ValueError("no joints given")
+        with self._lock:
+            self._require_motion_ready()
+            self._require_idle()
+            merged = {f: dict(self._last_command[f]) for f in FINGER_ORDER}
+            for finger, values in joints.items():
+                if finger not in merged:
+                    raise ValueError(f"no finger {finger!r} (have {FINGER_ORDER})")
+                merged[finger].update({k: float(v) for k, v in values.items()})
+            normalized = self._validate_sim_pose(merged)
+        self.backend.write_joints(self._servo_pose(normalized),
+                                  speed=servo_speed or DEFAULT_JOINT_SPEED)
+        with self._lock:
+            self._last_command = normalized
+            self._current_pose = None      # no longer at any named pose
+        self._event("info", "manual joint write",
+                    {"joints": {f: dict(v) for f, v in joints.items()},
+                     "servo_speed": servo_speed or DEFAULT_JOINT_SPEED})
+        return normalized
+
+    def manual_mounts(self, targets: dict[str, tuple[float, float]]) -> dict:
+        """Drive one or more gantries to palm-frame (x, y). Async, like a morphology
+        apply, because steppers take seconds and move one axis at a time."""
+        if not targets:
+            raise ValueError("no mounts given")
+        with self._lock:
+            self._require_link()
+            self._require_idle()
+            if not self._homed:
+                detail = f" ({self._unhomed_reason})" if self._unhomed_reason else ""
+                raise RuntimeErrorState(
+                    f"home the gantries once in this daemon session first{detail}")
+            resolved = {}
+            for finger, (x, y) in targets.items():
+                steppers = manual_check_mount(finger, float(x), float(y))
+                resolved[finger] = {"x": float(x), "y": float(y),
+                                    "steppers": {str(k): round(v, 3) for k, v in steppers.items()}}
+            self._start_operation("manual gantry move", self._do_manual_mounts,
+                                  {f: (v["x"], v["y"]) for f, v in resolved.items()})
+        return resolved
+
+    def _do_manual_mounts(self, targets: dict[str, tuple[float, float]]) -> None:
+        self.backend.move_mounts({FINGER_ID[f]: xy for f, xy in targets.items()},
+                                 cancel=self._stop.is_set, report=self._home_report)
+        with self._lock:
+            if self._stop.is_set():
+                return
+            known = dict(self._mount_positions or {})
+            known.update({f: {"x": xy[0], "y": xy[1]} for f, xy in targets.items()})
+            self._mount_positions = known
+            self._manual_mounts = True
+            # The loaded plan's morphology is no longer what is on the hand -- but the
+            # gantries ARE at a known, bounds-checked place, which is what the finger
+            # interlock actually needs.
+            self._mounts_applied = False
+            self._current_pose = None
+
+    def manual_command(self, line: str, *, servo_speed: int | None = None) -> dict:
+        """One `hand_control.py` line. Parsed and bounds-checked whole before anything
+        moves, so a typo in the third segment does not leave the first two applied."""
+        request = manual_parse(line)
+        if not request:
+            raise ManualCommandError("nothing to do")
+        with self._lock:
+            checked = manual_validate(request, current_mounts=self._mount_positions)
+        if checked["mounts"] and checked["joints"]:
+            # A gantry move is an async operation and a joint write requires an idle
+            # runtime, so one line cannot be both without racing itself. hand_control
+            # could, because it was synchronous and owned the ports.
+            raise ManualCommandError(
+                "one line cannot move gantries and joints at once here -- the gantry move "
+                "is asynchronous and the joint write needs an idle hand. Send them as two "
+                "lines, gantries first.")
+        out = {"line": line, "mounts": {}, "joints": {}}
+        if checked["mounts"]:
+            out["mounts"] = self.manual_mounts(
+                {f: (v["x"], v["y"]) for f, v in checked["mounts"].items()})
+        if checked["joints"]:
+            out["joints"] = self.manual_joints(checked["joints"], servo_speed=servo_speed)
+        return out
 
     def set_servo_torque(self, state: int) -> dict:
         if state not in (TORQUE_ON, TORQUE_OFF, TORQUE_FREE):
@@ -773,6 +929,8 @@ class HandRuntime:
             with self._lock:
                 self._homed = False
                 self._mounts_applied = False
+                self._manual_mounts = False
+                self._mount_positions = None
                 self._current_pose = None
                 self._unhomed_reason = "motors were disabled; the step reference is gone"
                 self._servo_torque = TORQUE_OFF
@@ -965,6 +1123,8 @@ class HandRuntime:
                 with self._lock:
                     self._homed = False
                     self._mounts_applied = False
+                    self._manual_mounts = False
+                    self._mount_positions = None
                     self._current_pose = None
                     self._unhomed_reason = f"cancelled part-way: {exc}"
                 self._event("warning", f"{name} cancelled -- re-home before moving",
@@ -976,6 +1136,8 @@ class HandRuntime:
                     self._link_down = str(exc)
                     self._homed = False
                     self._mounts_applied = False
+                    self._manual_mounts = False
+                    self._mount_positions = None
                     self._current_pose = None
                     self._unhomed_reason = "the serial link dropped"
                 self._event("error", "serial link lost", {"error": error})
@@ -1094,7 +1256,7 @@ class HandRuntime:
             raise RuntimeErrorState(
                 "servo torque is not ON -- position writes would be accepted and read back "
                 "correctly while nothing moves; enable torque first")
-        if not self._mounts_applied:
+        if not (self._mounts_applied or self._manual_mounts):
             raise RuntimeErrorState("apply the selected morphology before moving fingers")
         if not self.signs_checked:
             raise RuntimeErrorState("aa signs have not been hardware-verified")
@@ -1180,6 +1342,8 @@ class HandRuntime:
                         self._link_down = str(exc)
                         self._homed = False
                         self._mounts_applied = False
+                        self._manual_mounts = False
+                        self._mount_positions = None
                         self._unhomed_reason = "the serial link dropped"
                 if isinstance(exc, LinkDown):
                     self._event("error", "serial link lost (telemetry)", {"error": message})

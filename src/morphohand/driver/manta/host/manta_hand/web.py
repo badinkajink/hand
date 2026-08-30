@@ -147,6 +147,8 @@ class ControlRequestHandler(BaseHTTPRequestHandler):
             if path == "/api/v1/events":
                 after = int(query.get("after", ["0"])[0])
                 return self._json(HTTPStatus.OK, {"events": self.server.runtime.events(after)})
+            if path == "/api/v1/manual/limits":
+                return self._json(HTTPStatus.OK, self.server.runtime.manual_limits())
             if path == "/api/v1/plans":
                 return self._json(HTTPStatus.OK, {"plans": self.server.plan_catalog()})
             if path == "/api/v1/logs":
@@ -194,6 +196,29 @@ class ControlRequestHandler(BaseHTTPRequestHandler):
                 rt.apply_morphology()
                 return self._json(HTTPStatus.ACCEPTED,
                                   {"accepted": True, "operation": "applying morphology"})
+            if path == "/api/v1/manual/joints":
+                joints = body.get("joints")
+                if not isinstance(joints, dict) or not joints:
+                    raise ValueError("joints must be a non-empty object of "
+                                     "{finger: {yaw|mcp|pip: degrees}}")
+                speed = body.get("servo_speed")
+                return self._json(HTTPStatus.OK, {"commanded": rt.manual_joints(
+                    joints, servo_speed=(int(speed) if speed is not None else None))})
+            if path == "/api/v1/manual/mounts":
+                mounts = body.get("mounts")
+                if not isinstance(mounts, dict) or not mounts:
+                    raise ValueError("mounts must be a non-empty object of "
+                                     "{finger: {x: mm, y: mm}} in the palm frame")
+                targets = {str(f): (float(v["x"]), float(v["y"])) for f, v in mounts.items()}
+                return self._json(HTTPStatus.ACCEPTED,
+                                  {"accepted": True, "targets": rt.manual_mounts(targets)})
+            if path == "/api/v1/manual/resolve":
+                return self._json(HTTPStatus.OK, rt.manual_resolve(str(body.get("line", ""))))
+            if path == "/api/v1/manual/command":
+                speed = body.get("servo_speed")
+                return self._json(HTTPStatus.OK, rt.manual_command(
+                    str(body.get("line", "")),
+                    servo_speed=(int(speed) if speed is not None else None)))
             if path == "/api/v1/pose":
                 rt.move_to_pose(str(body["name"]), speed_ratio=float(body.get("speed_ratio", 1.0)),
                                 rate_hz=float(body.get("rate_hz", 50.0)),
