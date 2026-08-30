@@ -37,7 +37,12 @@
 
     <div id="progress" class="banner progress hidden"></div>
 
-    <section class="layout">
+    <nav class="view-tabs" role="tablist">
+      <button id="view-bench" class="viewtab active" role="tab">Bench</button>
+      <button id="view-manual" class="viewtab" role="tab">Manual control</button>
+    </nav>
+
+    <section class="layout" id="panel-bench">
       <div class="column">
         <article class="card setup">
           <div class="card-head"><div><span class="eyebrow">01 / configure</span><h2>Hand setup</h2></div><span id="fit-badge" class="badge muted">No plan</span></div>
@@ -116,6 +121,54 @@
         <article class="card events">
           <div class="card-head"><div><span class="eyebrow">daemon</span><h2>Event log</h2></div></div>
           <div id="events"></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="layout hidden" id="panel-manual">
+      <div class="column">
+        <article class="card">
+          <div class="card-head"><div><span class="eyebrow">manual / gantries</span><h2>Morphology</h2></div><span id="manual-mount-badge" class="badge muted">—</span></div>
+          <p class="hint" style="margin-top:0">Palm-frame millimetres — the same frame as the plan's
+            mounts and the build sheets. <code>hand_control.py</code> takes firmware mm instead;
+            the resolved firmware target is shown next to each finger so the two never get mixed.
+            Each move runs one axis at a time, like a morphology apply.</p>
+          <div id="manual-mounts" class="manual-group"></div>
+          <div class="callout warning" style="margin-top:14px">Moving a gantry by hand retires the
+            loaded plan's morphology: the fingers stay movable because the rails are still at a
+            known place, but <strong>re-apply the morphology before running a plan</strong>.</div>
+        </article>
+
+        <article class="card">
+          <div class="card-head"><div><span class="eyebrow">manual / console</span><h2>Command line</h2></div></div>
+          <p class="hint" style="margin-top:0"><code>hand_control.py</code> grammar over this
+            connection, so the ports stay with the service.
+            <code>thumb_mcp 30</code>, <code>0_yaw -5</code>, <code>index_fe1 20</code>,
+            <code>middle_x 42.5, middle_y -40</code>. Comma separated; the whole line is
+            bounds-checked before anything moves.</p>
+          <div id="manual-console" class="console"></div>
+          <form id="manual-form" class="console-form" autocomplete="off">
+            <input id="manual-line" placeholder="thumb_mcp 30, thumb_pip 20" spellcheck="false">
+            <button id="manual-send" type="submit">Send</button>
+          </form>
+        </article>
+      </div>
+
+      <div class="column">
+        <article class="card">
+          <div class="card-head"><div><span class="eyebrow">manual / servos</span><h2>Finger joints</h2></div><span id="manual-joint-badge" class="badge muted">—</span></div>
+          <p class="hint" style="margin-top:0">Sim-frame degrees, the frame the plans and the
+            telemetry use. Releasing a slider sends that one joint; every other joint is
+            re-commanded to where it already was, which is what holding still means for a
+            position servo. Ranges are each joint's calibrated limits.</p>
+          <label style="margin:14px 0">Servo speed <output id="manual-speed-value">80</output>
+            <input id="manual-speed" type="range" min="10" max="200" step="5" value="80">
+          </label>
+          <div id="manual-joints" class="manual-group"></div>
+          <div class="button-row">
+            <button id="manual-zero" class="secondary" title="Command every joint to its calibrated zero. Ramped by the servos' own speed setting, not instantly.">All joints to zero</button>
+            <button id="manual-sync" class="secondary" title="Set every slider to the joint's last commanded value">Sync sliders to hand</button>
+          </div>
         </article>
       </div>
     </section>
