@@ -108,12 +108,22 @@ as the object's would put a 70 mm phantom translation in every trace.
 ### What is calibrated, and what is withheld
 
 A single static tag supplies world up (observed) and, through the tape measure, a height datum.
-It **cannot** supply its own heading about vertical, so the bench-frame x/y is one unknown short.
-Rather than fabricate it, `BenchFrame.heading_deg is None` until it is calibrated and `locate()`
-returns height and radial distance with `xy = None`. Height is real, radius is real, x/y is
-blank. `--calibrate-heading X,Y` solves it from the cylinder staged at a known bench position and
-writes `bench_frame.json`; `test_heading_calibration_round_trips` checks the solve against three
-truths.
+In general it cannot supply its own heading about vertical — but **on this rig it can**, and an
+earlier version of this note wrongly treated that as a standing limitation.
+
+The reference tag is bolted facing normal to the gantry x-axis and stays that way, with the
+camera facing it. So its in-plane horizontal axis is ±y_B: the heading is **±90°, and only the
+sign is unknown**. The sign follows from geometry already in frame — the hand is at bench x = 0
+and the tag at x = +133.5, so the shaft must come out at large negative x, and of the two
+candidates (which mirror the offset about the tag) exactly one does that.
+`BenchFrame.heading_from_mounting()` resolves it on the first frame the cylinder is seen, in both
+`--probe` and a recording, and prints which it chose and why.
+
+What that cannot check is the *premise*: if the tag is ever re-aimed by hand it is no longer
+normal to the gantry axis and the true heading is not ±90 at all. `--calibrate-heading X,Y`
+remains for that case, and `--no-mounting-heading` turns the inference off. When neither is
+available `heading_deg` stays `None` and `locate()` returns height and radius with `xy = None` —
+blank rather than a plausible-looking zero.
 
 ### The instrument, measured
 

@@ -1148,10 +1148,15 @@ class HandRuntime:
             log.append("object", {"object": sample})
             if summary is not None:
                 log.track(summary)
-        elif summary is not None and run_id:
-            # the run finished before the tracker did, which is the normal ordering:
-            # the trace is written after the motion stops
-            known = self._logs.get(run_id)
+        elif summary is not None:
+            # The run finished before the tracker did, which is the normal ordering: the trace
+            # is written after the motion stops.  Falling back to the most recent run matters
+            # for the WEB APP path -- there the run_id is only known after /reorient returns,
+            # so a tracker started beforehand has no id to quote, and without this the
+            # per-frame rows would land in the log while the summary went nowhere.
+            known = self._logs.get(run_id) if run_id else None
+            if known is None and self._logs:
+                known = list(self._logs.values())[-1]
             if known is not None:
                 known.track(summary)
         return self.state()["tracker"]

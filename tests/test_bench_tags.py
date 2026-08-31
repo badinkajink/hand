@@ -189,3 +189,31 @@ def test_an_empty_trace_says_so_rather_than_scoring_zero():
     assert s.seen == 0 and s.cos_peak is None and s.deg_turned is None
     assert "never detected" in " ".join(s.notes)
     assert "nothing measured" in s.line()
+
+
+def test_heading_comes_from_the_mounting_not_a_calibration(ident_frame):
+    """The reference tag is bolted normal to the gantry x-axis, so its heading is +-90 and
+    only the SIGN is unknown -- and the sign follows from the hand sitting at bench x = 0
+    while the tag sits at x = +133.5. No staging, no calibration point."""
+    frame, _, _ = ident_frame
+    for truth in (90.0, -90.0):
+        frame.heading_deg = truth
+        # a shaft in the hand: 133.5 mm back along -x from the tag, a little off in y
+        p_cam = frame.ref_t_cam_mm - 133.5 * frame.x_cam + 20.0 * frame.y_cam
+        frame.heading_deg = None
+        got, why = frame.heading_from_mounting(p_cam)
+        assert got == pytest.approx(truth)
+        assert "bench x" in why
+        frame.heading_deg = got
+        assert frame.locate(p_cam)[2][0] == pytest.approx(0.0, abs=1e-6)
+
+
+def test_mounting_heading_refuses_only_the_genuinely_degenerate_point(ident_frame):
+    """The two candidates mirror the offset about the tag, so one always wins -- the sign is a
+    choice between two, not a test. It is undefined only for a shaft at the tag's own x."""
+    frame, _, _ = ident_frame
+    frame.heading_deg = 90.0
+    p_cam = frame.ref_t_cam_mm + 40.0 * frame.y_cam + 12.0 * frame.up_cam   # no x offset at all
+    frame.heading_deg = None
+    with pytest.raises(ValueError, match="own x"):
+        frame.heading_from_mounting(p_cam)
