@@ -47,12 +47,21 @@ from pathlib import Path
 import numpy as np
 import torch
 
-# Blocks that a hardware controller genuinely cannot measure on the real_v1 bench:
-# there is no object tracker, so anything derived from the object's pose is hidden.
-# `ref_object_pose` is the frozen CEM reference (replayable open-loop, therefore
-# KNOWN) and is listed separately for exactly that reason.
+# These three blocks are everything derived from the OBJECT's pose.
+#
+# They were named "hidden" because until 2026-08-31 nothing on the real_v1 bench could
+# measure them. That is no longer true: `morphohand.bench.tags` reads the shaft's pose
+# from two AprilTags, and `scripts/real_v1_obs_sources.py` shows all eleven of these
+# columns now have a bench source. The name is kept so old command lines and the
+# `docs/rl/partial_observation_transfer.md` tables still resolve, but read it as
+# "object-derived", not as "unavailable" -- an ablation of this group is now a question
+# about whether the policy USES the object pose, not about whether it could be given one.
+#
+# `ref_object_pose` is the frozen CEM reference (replayable open-loop, therefore KNOWN
+# even without a sensor) and is listed separately for exactly that reason.
 NAMED_GROUPS = {
     "hidden": ("object_pos", "object_pose_actual", "target_axis_misalign"),
+    "objpose": ("object_pos", "object_pose_actual", "target_axis_misalign"),
     "objstate": ("object_pos", "object_pose_actual"),
     "deployable": ("joint_pos", "joint_vel", "ref_finger_qpos", "actions"),
 }

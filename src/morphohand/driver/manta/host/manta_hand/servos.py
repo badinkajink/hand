@@ -682,9 +682,8 @@ class Servo:
 # repeatedly this session).
 #
 # (min_rel_deg, max_rel_deg) is EFFECTIVE range = intersection of the
-# originally-declared nominal contract (aa was +/-85, fe1: -15..92, fe2:
-# -18..92), the user's later conservative aa cap (+/-70), and each servo's
-# REAL measured hardstop, from a manual
+# declared nominal contract (aa +/-85, fe1: -15..92, fe2: -18..92) and each
+# servo's REAL measured hardstop, from a manual
 # torque-free sweep logged at 10Hz on 2026-08-29 (every servo freed one at
 # a time, hand-moved through its full range, logged to
 # host/examples/servo_manual_range.csv -- see servo_calibration_notes.md
@@ -694,12 +693,37 @@ class Servo:
 # smaller. This REPLACES the earlier declared-only ranges, which were
 # frequently wrong in both directions (some servos couldn't reach the
 # declared value at all, others could go well past it).
+
+# aa/yaw's live command cap. HISTORY, because this number has moved twice and
+# both moves changed which plans exist:
+#
+#   +-85  declared contract, and what assets/mjcf/real_v1/real_hand.xml's yaw
+#         joints still declare (test_manta_frame_map pins that identification).
+#   +-70  a conservative cap the user set on 2026-08-29, before any plan had
+#         been driven. It later turned out to be a SCREEN, not a safety margin:
+#         it is the sole reason sv1_u0060_b100 (needs 73.88) and sv1_w0116_b100
+#         (needs 76.27) could not be loaded, and both overruns are middle_yaw at
+#         turn_end -- i.e. the cap was deciding how far the hand may turn.
+#   +-85  restored 2026-08-31 at the user's request, so those two plans load.
+#
+# What the manual sweep actually demonstrated for the three aa servos, in this
+# module's own zero-relative degrees:
+#
+#   servo 0 (thumb  aa)   -70.02 .. +74.71
+#   servo 3 (index  aa)   -79.69 .. +74.41
+#   servo 6 (middle aa)  -162.60 .. +136.82
+#
+# Only servo 6 -- the one both restored plans need -- was demonstrated past 85 in
+# both directions. Thumb aa has never been shown past -70.02, and that is a gap in
+# the evidence rather than a measured hardstop: the sweep is a person moving a freed
+# joint, so it records where they stopped, not necessarily where the joint does. No
+# deployed plan commands thumb aa past -23.1, so nothing currently rides on it; if a
+# future plan does, sweep servo 0 again before trusting the bound.
+AA_LIMIT_DEG = (-85.00, 85.00)
 FINGER_JOINTS = {
-    # aa/yaw is intentionally capped at the user's conservative +/-70 deg
-    # contract even where the manual sweep found a few more physical degrees.
-    0: {"aa": (0, -41.0156, (-70.00, 70.00)), "fe1": (1, -34.2773, (-12.30, 89.06)), "fe2": (2, -43.9453, (-18.00, 86.72))},
-    1: {"aa": (3, -10.2539, (-70.00, 70.00)), "fe1": (4, 84.9609, (-15.00, 64.75)), "fe2": (5, -146.7773, (-2.93, 92.00))},
-    2: {"aa": (6, 12.89, (-70.00, 70.00)), "fe1": (7, 79.98046875, (-15.00, 69.73)), "fe2": (8, 72.6562, (-16.11, 77.05))},
+    0: {"aa": (0, -41.0156, AA_LIMIT_DEG), "fe1": (1, -34.2773, (-12.30, 89.06)), "fe2": (2, -43.9453, (-18.00, 86.72))},
+    1: {"aa": (3, -10.2539, AA_LIMIT_DEG), "fe1": (4, 84.9609, (-15.00, 64.75)), "fe2": (5, -146.7773, (-2.93, 92.00))},
+    2: {"aa": (6, 12.89, AA_LIMIT_DEG), "fe1": (7, 79.98046875, (-15.00, 69.73)), "fe2": (8, 72.6562, (-16.11, 77.05))},
 }
 DEFAULT_JOINT_SPEED = 80  # matches what's worked reliably all session
 

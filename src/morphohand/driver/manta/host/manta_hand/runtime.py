@@ -374,6 +374,12 @@ class MockHardwareBackend:
         return None
 
 
+#: A tracker sample older than this is not an object pose, it is a memory of one. The
+#: camera runs at 30 Hz and pushes at 10, so anything past a second means the tracker
+#: process died, the tag went out of view, or the link to the workstation dropped.
+TRACKER_STALE_S = 1.0
+
+
 @dataclass
 class Event:
     seq: int
@@ -403,8 +409,12 @@ class RunLog:
             "status": "running",
             "settings": settings,
             "plan_meta": plan.meta,
-            "samples": {"command": 0, "telemetry": 0, "event": 0},
+            "samples": {"command": 0, "telemetry": 0, "event": 0, "object": 0},
             "manual_score": None,
+            # What the AprilTag tracker measured, kept SEPARATE from manual_score on
+            # purpose: the operator's estimate and the instrument's are two readings of
+            # the same run and the interesting case is the one where they disagree.
+            "object_track": None,
         }
         self._write_summary()
 
@@ -423,6 +433,11 @@ class RunLog:
             self.summary["status"] = status
             if error:
                 self.summary["error"] = error
+            self._write_summary_unlocked()
+
+    def track(self, block: dict) -> None:
+        with self._lock:
+            self.summary["object_track"] = block
             self._write_summary_unlocked()
 
     def score(self, success: bool, reorientation_deg: float | None, notes: str) -> None:
@@ -486,6 +501,14 @@ class HandRuntime:
                                 "measured_hz": None, "servo_polling_suspended": False}
         self._active_log: RunLog | None = None
         self._logs: dict[str, RunLog] = {}
+        # Pushed by scripts/real_v1_tag_tracker.py, which owns the camera on the
+        # workstation. The station never opens a camera itself: the RealSense is on the
+        # other side of the subnet and the CB1 has neither the USB bandwidth nor the
+        # dependencies. What arrives here is already-reduced geometry, in millimetres.
+        self._tracker: dict = {"last": None, "received": 0, "timestamp": None,
+                               "run_id": "", "start_cos": None, "peak_cos": None,
+                               "min_cos": None, "start_z_mm": None, "min_z_mm": None,
+                               "summary": None, "source": None}
         self._home_outcomes: list[dict] = []
         self._home_progress: dict | None = None
         self._link_down: str | None = None
@@ -596,6 +619,10 @@ class HandRuntime:
                     "poses": [p.name for p in self._plan.poses],
                     "violations": [str(v) for v in self._plan.validate()],
                 }
+            track = dict(self._tracker)
+            track["age_s"] = (None if track["timestamp"] is None
+                              else max(0.0, time.time() - track["timestamp"]))
+            track["fresh"] = track["age_s"] is not None and track["age_s"] < TRACKER_STALE_S
             return {
                 "schema_version": 1,
                 "backend": self.backend.kind,
@@ -618,6 +645,7 @@ class HandRuntime:
                 # droop.
                 "last_command": {f: dict(v) for f, v in self._last_command.items()},
                 "plan": plan,
+                "tracker": track,
                 "signs_checked": self.signs_checked,
                 "axes": AXIS_INFO,
                 "telemetry": telem,
@@ -631,7 +659,13 @@ class HandRuntime:
                     # question of read cost, the data does not exist on the part. Checked
                     # against the installed rustypot register table 2026-08-29.
                     "servo_current": False,
-                    "object_pose": False,
+                    # True only while samples are actually arriving. The capability is a
+                    # running tracker process, not a line of code -- the camera can be
+                    # unplugged, aimed at a wall, or looking at a shadowed tag, and in
+                    # every one of those cases this must not claim an object sensor.
+                    "object_pose": ("AprilTag id0 on the shaft against static id6, pushed "
+                                    "by scripts/real_v1_tag_tracker.py"
+                                    if track["fresh"] else False),
                     "contact": False,
                     "closed_loop_rl": False,
                     "open_loop_buffered": True,
@@ -1068,6 +1102,59 @@ class HandRuntime:
             self._event("warning",
                         f"stop requested during {operation!r}; gantries decelerate over "
                         f"~6s and servos hold their last goal")
+
+    def tracker_sample(self, sample: dict) -> dict:
+        """Take one reading from the workstation's tag tracker.
+
+        Two jobs, and only two. It keeps the newest reading so the web app can show where
+        the shaft actually is, and -- when a run is in flight -- it appends the reading to
+        that run's JSONL so the trace and the joint commands share one timeline. It does
+        NOT do the geometry (that happened in `morphohand.bench.tags`, on the machine with
+        the camera) and it does NOT summarise the trace: the tracker pushes its own summary
+        at the end of a run, computed by the same code the offline analysis uses, so there
+        is one implementation of "it turned 42 degrees" rather than two that can drift.
+        """
+        now = time.time()
+        with self._lock:
+            t = self._tracker
+            run_id = str(sample.get("run_id") or "")
+            if run_id != t.get("run_id"):
+                # a new run resets the per-run extremes; a run_id-less push does not
+                t.update({"run_id": run_id, "start_cos": None, "peak_cos": None,
+                          "min_cos": None, "start_z_mm": None, "min_z_mm": None,
+                          "summary": None})
+            t["received"] += 1
+            t["timestamp"] = now
+            t["source"] = sample.get("source") or t.get("source")
+            if sample.get("summary") is not None:
+                t["summary"] = sample["summary"]
+            seen = bool(sample.get("seen"))
+            t["last"] = sample if seen else {**(t.get("last") or {}), "seen": False,
+                                             "t": sample.get("t")}
+            if seen and sample.get("cos") is not None:
+                cos, z = float(sample["cos"]), sample.get("z_bench_mm")
+                if t["start_cos"] is None:
+                    t["start_cos"] = cos
+                t["peak_cos"] = cos if t["peak_cos"] is None else max(t["peak_cos"], cos)
+                t["min_cos"] = cos if t["min_cos"] is None else min(t["min_cos"], cos)
+                if z is not None:
+                    z = float(z)
+                    if t["start_z_mm"] is None:
+                        t["start_z_mm"] = z
+                    t["min_z_mm"] = z if t["min_z_mm"] is None else min(t["min_z_mm"], z)
+            log = self._active_log
+            summary = sample.get("summary")
+        if log is not None:
+            log.append("object", {"object": sample})
+            if summary is not None:
+                log.track(summary)
+        elif summary is not None and run_id:
+            # the run finished before the tracker did, which is the normal ordering:
+            # the trace is written after the motion stops
+            known = self._logs.get(run_id)
+            if known is not None:
+                known.track(summary)
+        return self.state()["tracker"]
 
     def score_run(self, run_id: str, *, success: bool,
                   reorientation_deg: float | None, notes: str = "") -> dict:

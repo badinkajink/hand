@@ -9,7 +9,12 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-POP=docs/experiments/20260830-real_v1-sobol4096
+# POP is where the SCREEN's tables live (retention/, hardware_manifest.json); OUT is where
+# this pass writes.  Both are overridable so the same three stages run over the Sobol-8192
+# extension without a second copy of the recipe:
+#   POP=docs/experiments/20260831-real_v1-sobol8192 \
+#   OUT=docs/experiments/20260831-real_v1-sobol8192 scripts/real_v1_budget_confirm.sh
+POP=${POP:-docs/experiments/20260830-real_v1-sobol4096}
 OUT=${OUT:-docs/experiments/20260830-real_v1-budget-rescreen}
 GEN=${GEN:-assets/mjcf/experimental/20260830-real_v1-sobol4096}
 WORKERS=${WORKERS:-18}

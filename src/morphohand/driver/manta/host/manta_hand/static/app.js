@@ -448,9 +448,73 @@ $('endpoint').textContent = VIEW_ONLY ? `${API}  (observer)` : API;
 
   renderProgress(s);
   renderHomeOutcomes(s);
+  renderTracker(s.tracker);
   renderTelemetry(t);
   renderMounts(s.plan?.mounts_palm_mm);
   renderManual(s, {busy, blocked, motionReady});
+}
+
+/* Where the shaft actually is. Before 2026-08-31 the only answer to that on this station
+ * was the operator's eye, so the guiding rule here is that a number is shown only when it
+ * was measured: a stale sample says so and keeps its last value greyed, a lost tag says
+ * LOST rather than freezing, and bench x/y is blank until the heading is calibrated. */
+const degFromUp = c => (Math.acos(Math.min(1, Math.max(-1, c))) * 180 / Math.PI);
+
+function renderTracker(tr) {
+  const badge = $('track-badge'), body = $('track-body'), empty = $('track-empty');
+  if (!tr || !tr.received) {
+    badge.textContent = 'No tracker'; badge.className = 'badge muted';
+    body.classList.add('hidden'); empty.classList.remove('hidden');
+    return;
+  }
+  body.classList.remove('hidden'); empty.classList.add('hidden');
+  const last = tr.last || {}, seen = last.seen !== false, cos = last.cos;
+  if (!tr.fresh) {
+    badge.textContent = `stale ${tr.age_s == null ? '' : tr.age_s.toFixed(0) + ' s'}`;
+    badge.className = 'badge bad';
+  } else if (!seen) {
+    badge.textContent = 'tag LOST'; badge.className = 'badge bad';
+  } else {
+    badge.textContent = `tracking · ${tr.received}`; badge.className = 'badge';
+  }
+  const el = $('track-cos');
+  el.textContent = cos == null ? '—'
+    : `${cos >= 0 ? '+' : ''}${Number(cos).toFixed(3)}   ${degFromUp(cos).toFixed(1)}° from up`;
+  el.style.opacity = (tr.fresh && seen) ? 1 : .45;
+  /* The bar runs from the centre so the direction of the turn is visible, not just its
+     size; red on the left half is the wrong pole. */
+  const fill = $('track-fill'), c = cos == null ? 0 : Math.min(1, Math.max(-1, cos));
+  fill.style.left = `${50 + Math.min(0, c) * 50}%`;
+  fill.style.width = `${Math.abs(c) * 50}%`;
+  fill.className = c < 0 ? 'bad' : '';
+
+  const turned = (tr.start_cos != null && cos != null)
+    ? degFromUp(tr.start_cos) - degFromUp(cos) : null;
+  const fall = (tr.start_z_mm != null && tr.min_z_mm != null)
+    ? tr.start_z_mm - tr.min_z_mm : null;
+  const rows = [
+    ['turned so far', turned == null ? null
+      : `${turned >= 0 ? '+' : ''}${turned.toFixed(1)}° toward vertical`],
+    ['peak cos', tr.peak_cos == null ? null : Number(tr.peak_cos).toFixed(3)],
+    ['lowest cos', tr.min_cos == null ? null
+      : Number(tr.min_cos).toFixed(3) + (tr.min_cos < -0.15 ? ' — WRONG POLE' : '')],
+    ['height, bench floor', last.z_bench_mm == null ? null
+      : `${Number(last.z_bench_mm).toFixed(0)} mm`],
+    ['height, simulator z', last.z_sim_mm == null ? null
+      : `${Number(last.z_sim_mm).toFixed(0)} mm (bench scene stands it at 100)`],
+    ['fallen from start', fall == null ? null : `${fall.toFixed(0)} mm`],
+    ['bench x / y', (last.x_bench_mm === '' || last.x_bench_mm == null) ? 'no heading calibrated'
+      : `${Number(last.x_bench_mm).toFixed(0)} / ${Number(last.y_bench_mm).toFixed(0)} mm`],
+    ['run', tr.run_id || 'not tied to a run'],
+  ];
+  const grid = $('track-grid');
+  grid.innerHTML = '';
+  for (const [k, v] of rows) {
+    if (v == null) continue;
+    const d = document.createElement('div');
+    d.innerHTML = `<small>${k}</small><strong>${v}</strong>`;
+    grid.appendChild(d);
+  }
 }
 
 /* Live "what is it doing right now", with the expected duration. This is the answer to
@@ -634,11 +698,20 @@ async function refreshLogs() {
       const score = r.manual_score
         ? `${r.manual_score.success ? 'success' : 'failure'} · ${r.manual_score.reorientation_deg ?? '—'}°`
         : 'unscored';
-      d.innerHTML = `<strong>${r.design} · ${r.status}</strong><small>${r.run_id}<br>${score}</small>`
+      /* Measured and estimated are shown side by side rather than one replacing the
+         other: they are two readings of the same run and their disagreement is data. */
+      const tk = r.object_track;
+      const measured = tk && tk.seen
+        ? `<br>tag: ${tk.deg_turned == null ? '—' : (tk.deg_turned >= 0 ? '+' : '')
+            + tk.deg_turned.toFixed(0) + '°'}`
+          + `, peak cos ${tk.cos_peak == null ? '—' : tk.cos_peak.toFixed(2)}`
+          + (tk.dropped ? ' · DROPPED' : '') + (tk.wrong_pole ? ' · wrong pole' : '')
+        : '';
+      d.innerHTML = `<strong>${r.design} · ${r.status}</strong><small>${r.run_id}<br>${score}${measured}</small>`
         + `<div class="actions"><button class="secondary download">Data</button>`
         + `<button class="secondary score">Score</button></div>`;
       d.querySelector('.download').onclick = () => window.open(`${API}/api/v1/logs/${r.run_id}.jsonl`);
-      d.querySelector('.score').onclick = () => openScore(r.run_id);
+      d.querySelector('.score').onclick = () => openScore(r.run_id, r.object_track);
       root.appendChild(d);
     }
   } catch (e) {
@@ -646,7 +719,27 @@ async function refreshLogs() {
   }
 }
 
-function openScore(id) { $('score-run-id').value = id; $('score-dialog').showModal(); }
+function openScore(id, track) {
+  $('score-run-id').value = id;
+  /* Seeded from the tag when there is one, so the operator confirms a measurement instead
+     of recalling an angle. Left editable: the instrument can be wrong too (a dropout
+     during the turn, a slipped shaft) and the operator saw the run. */
+  const hint = $('score-measured');
+  if (track && track.seen && track.deg_turned != null) {
+    $('score-angle').value = Math.round(track.deg_turned);
+    hint.textContent = `AprilTag measured ${track.deg_turned.toFixed(1)}° `
+      + `(peak cos ${track.cos_peak?.toFixed(3) ?? '—'}, `
+      + `${Math.round((track.visibility ?? 0) * 100)}% visible`
+      + (track.dropped ? ', DROPPED' : '') + ').';
+    hint.classList.remove('hidden');
+    $('score-success').value = String(!track.dropped);
+  } else {
+    $('score-angle').value = '';
+    hint.textContent = 'No tag trace for this run — this is an eyeball estimate.';
+    hint.classList.remove('hidden');
+  }
+  $('score-dialog').showModal();
+}
 
 /* ------------------------------------------------------------- controls --- */
 $('plan-select').onchange = () => showPlan(plans.find(p => p.file === $('plan-select').value));

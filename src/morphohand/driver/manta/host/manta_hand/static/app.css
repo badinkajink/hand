@@ -57,3 +57,17 @@ dialog p.emphasis{color:var(--amber);border-left:2px solid #ffc86655;padding-lef
 .console-line.bad{color:var(--red)}
 .console-form{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:10px}
 .console-form input{font-family:ui-monospace,monospace;font-size:.74rem}
+
+/* Shaft tracking. The dial is deliberately a signed line rather than a gauge: a turn to
+   the wrong pole has to look different from a turn to the right one, and a magnitude
+   readout makes those two identical. Left is down, centre is horizontal, right is up. */
+.track-dial{display:grid;gap:8px}
+.track-dial>div:first-child{display:flex;align-items:baseline;justify-content:space-between}
+.track-dial small{color:var(--muted);font-size:.64rem;text-transform:uppercase;letter-spacing:.11em}
+.track-dial strong{font-size:1.6rem;font-variant-numeric:tabular-nums}
+.track-meter{position:relative;height:12px;border-radius:999px;background:#0b0f0e;border:1px solid var(--line);overflow:hidden}
+.track-meter>div{position:absolute;top:0;bottom:0;background:var(--green);transition:.12s left,.12s width}
+.track-meter>div.bad{background:var(--red)}
+.track-zero{position:absolute;left:50%;top:0;bottom:0;width:1px;background:#4a5a53}
+.track-scale{display:flex;justify-content:space-between;color:var(--muted);font-size:.6rem}
+.cmd{font-family:ui-monospace,monospace;font-size:.64rem;background:#0b0f0e;border:1px solid var(--line);border-radius:8px;padding:9px 10px;overflow-x:auto;color:var(--amber);margin:8px 0 0}

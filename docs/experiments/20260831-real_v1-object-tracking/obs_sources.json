@@ -1,0 +1,96 @@
+{
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/real_v1/hand_frozen_morphology.xml",
+  "actuated_joints": 15,
+  "total": 66,
+  "checkpoint_matches": true,
+  "terms": [
+    {
+      "term": "joint_pos",
+      "columns": [
+        0,
+        15
+      ],
+      "width": 15,
+      "status": "measured",
+      "source": "servo present-position, sync-read at ~50 Hz.  The 6 palm-pose columns are the arm, which the bench holds fixed, so they are constants -- and the 9 finger columns arrive at 0.44-0.90 of what was commanded on the yaw joints, which is the plant difference, not a sensing gap.",
+      "was_hidden_before_20260831": false
+    },
+    {
+      "term": "joint_vel",
+      "columns": [
+        15,
+        30
+      ],
+      "width": 15,
+      "status": "measured",
+      "source": "differenced servo positions.  Available but NOISY: the SCS0009 has no velocity register, the position quantum is 0.29 deg, and at 50 Hz that is 14.6 deg/s of quantisation on a signal the policy trained on as exact.",
+      "was_hidden_before_20260831": false
+    },
+    {
+      "term": "object_pos",
+      "columns": [
+        30,
+        33
+      ],
+      "width": 3,
+      "status": "measured",
+      "source": "AprilTag: palm-frame vector to the cylinder centre.  NEW 2026-08-31.",
+      "was_hidden_before_20260831": true
+    },
+    {
+      "term": "object_pose_actual",
+      "columns": [
+        33,
+        40
+      ],
+      "width": 7,
+      "status": "measured",
+      "source": "AprilTag: cylinder pose in the palm frame, position + quaternion.  NEW 2026-08-31. The tag gives full 6-DoF, so the quaternion is real and not a reconstruction -- but the bench x/y half of the position needs the heading calibration.",
+      "was_hidden_before_20260831": true
+    },
+    {
+      "term": "ref_finger_qpos",
+      "columns": [
+        40,
+        49
+      ],
+      "width": 9,
+      "status": "replayable",
+      "source": "the frozen CEM reference trajectory, indexed by step.  A file.",
+      "was_hidden_before_20260831": false
+    },
+    {
+      "term": "ref_object_pose",
+      "columns": [
+        49,
+        56
+      ],
+      "width": 7,
+      "status": "replayable",
+      "source": "the same frozen reference.  A file.",
+      "was_hidden_before_20260831": false
+    },
+    {
+      "term": "actions",
+      "columns": [
+        56,
+        65
+      ],
+      "width": 9,
+      "status": "internal",
+      "source": "the controller's own previous output.",
+      "was_hidden_before_20260831": false
+    },
+    {
+      "term": "target_axis_misalign",
+      "columns": [
+        65,
+        66
+      ],
+      "width": 1,
+      "status": "measured",
+      "source": "AprilTag: arccos of the shaft's alignment with world up, which is exactly what the tracker's cos column already is.  NEW 2026-08-31.",
+      "was_hidden_before_20260831": true
+    }
+  ]
+}
