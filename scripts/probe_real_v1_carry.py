@@ -400,24 +400,34 @@ def carry(scene: Path, lift: float, turn_steps: int, hold_steps: int, angle: flo
         vcam.azimuth, vcam.elevation, vcam.distance = cam
     step_i = 0
 
-    def _run(n, before=None):
+    def _after_step():
+        """Bookkeeping shared by close, lift, turn, re-squeeze, and hold.
+
+        Clearance used to be sampled only through ``_run``, which meant the reported
+        "whole schedule" minimum silently excluded the commanded turn and final hold.
+        Keep all schedule phases on the same sampling clock so this value is usable as
+        a deployment gate.
+        """
         nonlocal step_i, clr_min, clr_at, clr_pair
+        step_i += 1
+        # Sampled every 10 sim steps = one control step. The trajectory is smooth, so
+        # this cannot miss a crossing by more than one control period, and checking 48
+        # geom pairs every sim step would dominate the probe's runtime.
+        if clr_pairs and step_i % 10 == 0:
+            dist, who = _min_cross_clearance(m, d, clr_pairs, clr_owner)
+            if dist is not None and dist < clr_min:
+                clr_min, clr_at, clr_pair = dist, step_i, who
+        if vid is not None and step_i % video_every == 0:
+            vcam.lookat[:] = d.body(obj).xpos
+            vid.update_scene(d, vcam)
+            vframes.append(vid.render())
+
+    def _run(n, before=None):
         for k in range(n):
             if before is not None:
                 before(k)
             mujoco.mj_step(m, d)
-            step_i += 1
-            # Sampled every 10 sim steps = one control step. The trajectory is smooth, so
-            # this cannot miss a crossing by more than one control period, and checking 48
-            # geom pairs every sim step would dominate the probe's runtime.
-            if clr_pairs and step_i % 10 == 0:
-                dist, who = _min_cross_clearance(m, d, clr_pairs, clr_owner)
-                if dist is not None and dist < clr_min:
-                    clr_min, clr_at, clr_pair = dist, step_i, who
-            if vid is not None and step_i % video_every == 0:
-                vcam.lookat[:] = d.body(obj).xpos
-                vid.update_scene(d, vcam)
-                vframes.append(vid.render())
+            _after_step()
 
     # close -> lift -> settle, the schedule Policy A's env runs
     _run(250)
@@ -490,11 +500,7 @@ def carry(scene: Path, lift: float, turn_steps: int, hold_steps: int, angle: flo
                 d.ctrl[a] = anchor[j] + float(np.clip(delta, -budget, budget))
                 final_ctrl[j] = float(d.ctrl[a])
         mujoco.mj_step(m, d)
-        step_i += 1
-        if vid is not None and step_i % video_every == 0:
-            vcam.lookat[:] = d.body(obj).xpos
-            vid.update_scene(d, vcam)
-            vframes.append(vid.render())
+        _after_step()
         if film is not None and k % max(1, turn_steps // film_frames) == 0:
             renderer.update_scene(d, cam)
             shots.append(renderer.render())
@@ -562,22 +568,14 @@ def carry(scene: Path, lift: float, turn_steps: int, hold_steps: int, angle: flo
                 d.ctrl[a] = float(np.clip(tgt, anchor[j] - budget, anchor[j] + budget))
                 final_ctrl[j] = float(d.ctrl[a])
             mujoco.mj_step(m, d)
-            step_i += 1
-            if vid is not None and step_i % video_every == 0:
-                vcam.lookat[:] = d.body(obj).xpos
-                vid.update_scene(d, vcam)
-                vframes.append(vid.render())
+            _after_step()
 
     peak = _cos(m, d, obj)
     min_z_hold = float(d.body(obj).xpos[2])
     for _ in range(hold_steps):
         mujoco.mj_step(m, d)
         min_z_hold = min(min_z_hold, float(d.body(obj).xpos[2]))
-        step_i += 1
-        if vid is not None and step_i % video_every == 0:
-            vcam.lookat[:] = d.body(obj).xpos
-            vid.update_scene(d, vcam)
-            vframes.append(vid.render())
+        _after_step()
         peak = peak if abs(peak) >= abs(_cos(m, d, obj)) else _cos(m, d, obj)
     n, fo = _contacts(m, d, obj)
     nh, foh = _contacts_hand(m, d, obj)

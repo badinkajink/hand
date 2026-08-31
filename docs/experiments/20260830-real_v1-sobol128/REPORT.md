@@ -1,21 +1,28 @@
 # Real-v1 Sobol-128 open-loop morphology pilot
 
 **Date:** 2026-08-30  
-**Status:** pilot complete; two new hands merit export/hardware-clearance work  
+**Status:** superseded as a retention result; useful only as a transient-reorientation pilot
 **Task:** fixed-palm bench reorientation of the medium screwdriver using an open-loop joint
 trajectory and only hardware-configurable real-v1 mount coordinates
 
-> **Budget-1.0 deployment follow-up:** a later [uniform deployment audit](deploy_b100/README.md)
-> exported `sv1_u0060`, `sv1_u0100`, `sv1_w0099`, and `sv1_w0116`. All four pass modeled
-> trajectory clearance, but none passes the combined driver-range and ten-repeat aligned-hold
-> gates. Consequently, no `_b100` plan was added to the runnable station directory.
+> **Correction after long-hold review:** the evaluator used here could count a transiently
+> reoriented cylinder as held. Extended rollouts showed that all open-loop finalists eventually
+> dropped the object. Consequently, the winner and hardware-promotion language below is retained
+> as an audit trail, not as a current claim. The replacement screen uses published SCS0009 torque
+> caps, a position/load-only capture controller, a 60 mm proof lift, and a five-second free hold;
+> see [`../20260830-real_v1-sobol4096/TORQUE_MODEL.md`](../20260830-real_v1-sobol4096/TORQUE_MODEL.md).
+>
+> A later [uniform budget-1.0 deployment audit](deploy_b100/README.md) exported `sv1_u0060`,
+> `sv1_u0100`, `sv1_w0099`, and `sv1_w0116`. All four pass modeled trajectory clearance, but none
+> passes the combined driver-range and ten-repeat aligned-hold gates. Consequently, no `_b100`
+> plan was added to the runnable station directory.
 
-## Result
+## Original pilot result (superseded)
 
-The sampling route works well enough to continue. The 128 new hands produced multiple nominal
-open-loop reorienters, and one new design (`sv1_u0100`) outperformed the tested g12 operating
-point under the full combined-error ensemble. A different new design (`sv1_w0116`) is the clear
-nominal winner but is substantially less robust.
+The sampling machinery worked well enough to continue, but the original performance conclusion
+did not. The 128 new hands produced multiple transient open-loop reorienters, and one new design
+(`sv1_u0100`) outperformed the tested g12 operating point under the old combined-error metric. A
+different new design (`sv1_w0116`) was the old nominal winner but substantially less robust.
 
 This is not yet a hardware-ready winner declaration. The dynamic clearance gate covers the
 MuJoCo links and tips, not the real servo bodies and mount side profiles. Positive simulated
@@ -158,4 +165,3 @@ horns, and brackets to the exact plans. Then export build sheets/firmware comman
 four plans in sim with those bodies enabled. If `sv1_u0100` remains clear, it is the first new hand
 to build. In parallel, the cheap geometry/grasp sampler can be extended to 4,096 points, but only
 the diverse graspable subset should pay for the deploy cell sweep.
-

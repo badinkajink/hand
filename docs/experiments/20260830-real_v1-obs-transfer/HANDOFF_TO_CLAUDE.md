@@ -4,6 +4,14 @@
 **Branch:** `partial-obs-transfer`  
 **Status:** the four seed-42 training runs and their 32- and 128-environment evaluations are complete. No process from this queue remains active.
 
+> **Priority update after this handoff was written:** stop the observation thread on the path to
+> the next hardware result. Seeds 43/44 remain the correct replication experiment if this study is
+> revisited for science, but the immediate program is now the broader hardware-valid open-loop
+> morphology search in
+> [`docs/roadmap/20260830-real-v1-open-loop-sampling.md`](../../roadmap/20260830-real-v1-open-loop-sampling.md).
+> The aim is to produce collision-safe candidates first, then develop the 18-D load-aware residual
+> controller on a hand that can actually be deployed.
+
 ## Executive summary
 
 The earlier observation-ablation experiment used the legacy simulation-only `m05_ik_cem` hand. That result is useful only as a historical control and must not be presented as evidence about the current physical platform.
@@ -276,4 +284,3 @@ diff -u \
 find docs/experiments/20260830-real_v1-obs-transfer \
   -maxdepth 1 -name 'EVAL128_*.json' -print | sort
 ```
-
