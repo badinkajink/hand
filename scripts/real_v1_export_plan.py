@@ -70,8 +70,13 @@ def main() -> int:
     ap.add_argument("--hold-squeeze-mm", type=float, default=0.0)
     ap.add_argument("--lift", type=float, default=0.10)
     ap.add_argument("--bench-height", type=float, default=0.0,
-                    help="metres. >0 = the prototype bench: fixed palm, tool already at this "
-                         "height on a platform, so the emitted trajectory has no palm ramp.")
+                    help="the prototype bench: fixed palm, tool already at this height on a "
+                         "platform, so the emitted trajectory has no palm ramp. METRES, but a "
+                         "value above 1 is read as MILLIMETRES and said so -- every recorded "
+                         "invocation in this repo passes 100, and taking that literally is what "
+                         "wrote bench_height_mm 100000 into the g12w08/g12w11 plans. Nothing "
+                         "downstream reads the number (the flag is used as a boolean and for "
+                         "meta), so the bad value was invisible until two plans were diffed.")
     ap.add_argument("--post-y", type=float, default=-35.0, help="mm, where the support sits")
     ap.add_argument("--pad-width-mm", type=float, default=21.1,
                     help="flat pad width across the finger. 14.8 is the built part; 21.1 is a "
@@ -84,9 +89,24 @@ def main() -> int:
                          "deploy_envelope scene; rebuilding it from flags produces a different "
                          "(and unstable) model, so a budget sweep has to reuse the same file.")
     ap.add_argument("--out", type=Path, required=True)
+    ap.add_argument("--design-table", type=Path, default=TABLE,
+                    help="where the operating point (straddle, thumb axial, depth, axis_k, "
+                         "angle) is read from. Defaults to the 108-hand 20260828 search. A "
+                         "later sampler writes its own table -- the sobol128 pilot's is "
+                         "docs/experiments/20260830-real_v1-sobol128/pilot_table.json -- and "
+                         "its designs do not exist in the default one.")
     args = ap.parse_args()
+    if args.bench_height > 1.0:
+        print(f"--bench-height {args.bench_height:g} read as {args.bench_height:g} mm "
+              f"(> 1 m is not a bench); pass {args.bench_height / 1000:g} for metres.")
+        args.bench_height /= 1000.0
 
-    row = {r["design"]: r for r in json.loads(TABLE.read_text())}[args.design]
+    table = json.loads(args.design_table.read_text())
+    if args.design not in {r["design"] for r in table}:
+        print(f"{args.design}: not one of the {len(table)} designs in {args.design_table}. "
+              f"A design from another sampler needs that sampler's table via --design-table.")
+        return 1
+    row = {r["design"]: r for r in table}[args.design]
     scene = pathlib.Path(args.scene) if args.scene else object_scene(
         ds.scene_for(ds.design_set("all")[args.design]), args.object,
                          args.bench_height, args.post_y / 1000.0, args.flat_pads,
@@ -232,6 +252,7 @@ def main() -> int:
             _pose("turn_end", turn_s, 0.0 if sq_s else 1.6, end_deg),
         ],
         "meta": {"object": args.object, "scene": str(scene),
+                 "design_table": str(args.design_table),
                  "source": "scripts/real_v1_export_plan.py",
                  # The nine hardware joints are enough to command the hand, but not enough to
                  # reconstruct the fitted MuJoCo initial state: the scene also has the object's

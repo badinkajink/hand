@@ -64,6 +64,10 @@ def qadr(m: mujoco.MjModel) -> dict[tuple[str, str], int]:
     return adr
 
 
+def _body_of(m: mujoco.MjModel, g: int) -> str:
+    return mujoco.mj_id2name(m, mujoco.mjtObj.mjOBJ_BODY, m.geom_bodyid[g]) or f"geom{g}"
+
+
 def min_clearance(m, d, groups, pairs, owner) -> tuple[float, str, int]:
     """Smallest finger-to-finger distance at the current (already mj_forward'ed) pose.
 
@@ -88,7 +92,12 @@ def min_clearance(m, d, groups, pairs, owner) -> tuple[float, str, int]:
                 dropped += 1
                 continue
             if dist < worst:
-                worst, who = dist, f"{fa}<->{fb}"
+                # Name the two BODIES, not just the two fingers.  The sim's proximal
+                # link is a 21.2 mm capsule on the mount axis and the printed part is
+                # a servo body and bracket around it, so a margin held between two
+                # PROXIMAL segments is worth less than the same margin between two
+                # tips -- and only the body names say which one this is.
+                worst, who = dist, f"{_body_of(m, ga)}<->{_body_of(m, gb)}"
     return worst, who, dropped
 
 
@@ -150,7 +159,7 @@ def scan(design: str, substeps: int, steps: int, verbose: bool):
                           "n_setpoints": len(path), "n_checked": len(dense),
                           "artifact_zeros": dropped, "trace_mm": trace}
         if verbose:
-            print(f"    {label:6s} {worst*1000:+7.1f} mm  {who:22s} at u={at:.2f}"
+            print(f"    {label:6s} {worst*1000:+7.1f} mm  {who:40s} at u={at:.2f}"
                   f"  ({len(path)} set-points, {len(dense)} checked"
                   + (f", {dropped} artifact zeros discarded)" if dropped else ")"))
     return results
