@@ -7,7 +7,7 @@
     # a run, written next to the bench session that produced it
     scripts/real_v1_tag_tracker.py --seconds 20 --out logs/20260831-turn.csv --push
 
-    # the one calibration a single static tag cannot supply
+    # only if the normally-fixed reference tag has been re-aimed by hand
     scripts/real_v1_tag_tracker.py --calibrate-heading 0,0 --calibration bench_frame.json
 
 This is the maintained version of `docs/experiments/20260830-apriltag-tracking/track_tags.py`,
@@ -37,6 +37,7 @@ import shutil
 import subprocess
 import sys
 import time
+import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -82,13 +83,19 @@ def _camera():
     return rs, cv2, Detector
 
 
-def open_ir(rs, w, h, fps, warmup=10, exposure=None, gain=None):
-    """IR stream 1, emitter off, auto-exposure pinned.
+def open_ir(rs, w, h, fps, warmup=30, exposure=None, gain=None):
+    """IR stream 1, emitter off, with exposure stable before the reference latch.
 
     Three ordering rules the hard way, all from the 2026-08-30 bring-up: the emitter write must
     come AFTER frames are flowing (issuing it between start() and the first frame wedges the
     stream), the projector's dot pattern wrecks the tag decode, and auto-exposure hunts as the
-    shaft swings so the motion smear changes frame to frame.
+    shaft swings so the motion smear changes frame to frame. By default AE is allowed to settle
+    on the actual lighting at the start of EACH run and that value is then locked, so a session
+    inherits the room it is actually in rather than a number measured in another one, without
+    letting exposure hunt during the trajectory. That is a convenience, not a tag-visibility
+    fix: a reference tag that has been bumped is lost at every exposure (see `detect`). A
+    positive ``exposure`` still requests an explicit fixed exposure/gain for repeatability
+    studies, which is what a cross-session comparison of decision margins needs.
     """
     pipe, cfg = rs.pipeline(), rs.config()
     cfg.enable_stream(rs.stream.infrared, 1, w, h, rs.format.y8, fps)
@@ -97,25 +104,77 @@ def open_ir(rs, w, h, fps, warmup=10, exposure=None, gain=None):
     for s in prof.get_device().query_sensors():
         if s.supports(rs.option.emitter_enabled):
             s.set_option(rs.option.emitter_enabled, 0)
-    if exposure:
-        for s in prof.get_device().query_sensors():
-            if s.supports(rs.option.enable_auto_exposure):
-                s.set_option(rs.option.enable_auto_exposure, 0)
-                s.set_option(rs.option.exposure, exposure)
-                if gain is not None:
-                    s.set_option(rs.option.gain, gain)
+    sensor = next((s for s in prof.get_device().query_sensors()
+                   if s.supports(rs.option.enable_auto_exposure)
+                   and s.supports(rs.option.exposure)), None)
+    if sensor is None:
+        raise RuntimeError("RealSense IR sensor exposes no exposure controls")
+    fixed = exposure is not None and float(exposure) > 0
+    if fixed:
+        sensor.set_option(rs.option.enable_auto_exposure, 0)
+        sensor.set_option(rs.option.exposure, float(exposure))
+        if gain is not None and sensor.supports(rs.option.gain):
+            sensor.set_option(rs.option.gain, float(gain))
+    else:
+        sensor.set_option(rs.option.enable_auto_exposure, 1)
     for _ in range(warmup):
         pipe.wait_for_frames(8000)
+    if not fixed:
+        # Read the values AE chose for this lighting, then freeze exactly those values. Merely
+        # leaving AE on fixed the shadowed reference in RealSense Viewer, but produces a moving
+        # measurement transfer function as the bright shaft vane swings through the frame.
+        actual_exposure = float(sensor.get_option(rs.option.exposure))
+        actual_gain = (float(sensor.get_option(rs.option.gain))
+                       if sensor.supports(rs.option.gain) else None)
+        sensor.set_option(rs.option.enable_auto_exposure, 0)
+        sensor.set_option(rs.option.exposure, actual_exposure)
+        if actual_gain is not None:
+            sensor.set_option(rs.option.gain, actual_gain)
+        for _ in range(3):
+            pipe.wait_for_frames(8000)
+    actual = {"mode": "fixed" if fixed else "auto-locked",
+              "exposure_us": float(sensor.get_option(rs.option.exposure)),
+              "gain": (float(sensor.get_option(rs.option.gain))
+                       if sensor.supports(rs.option.gain) else None)}
     I = prof.get_stream(rs.stream.infrared, 1).as_video_stream_profile().get_intrinsics()
-    return pipe, (I.fx, I.fy, I.ppx, I.ppy), I
+    return pipe, (I.fx, I.fy, I.ppx, I.ppy), I, actual
 
 
-def detect(det, img, cam):
+def detect(det, img, cam, cv2=None):
+    """Detect both bench tags, retrying a missing one on two normalizations of the image.
+
+    Neither normalization is a substitute for a tag that is staged correctly, and the retry
+    ladder must not be read as one. Measured on the three probe frames of 2026-08-31, the
+    reference tag decodes raw at margin 62 at 14:11, needs global equalization to reach 35
+    at 15:20, and at 16:57 decodes under nothing at all -- not raw, not equalized, not CLAHE,
+    and not under any of the 24 detector parameter combinations swept over quad_decimate,
+    quad_sigma, refine_edges and decode_sharpening. Its contrast is the SAME in all three
+    (Michelson 0.68 / 0.72 / 0.71) and so is its sharpness, so the 16:57 loss is not an
+    exposure problem; the tag had shifted a few pixels, i.e. something bumped it. The probe
+    is the instrument that catches that, and the fix is at the bench, not here.
+
+    What the ladder is for is the marginal middle case, and the two normalizations disagree
+    about which frame they rescue -- CLAHE scored 62 on the 14:11 frame where equalization
+    scored 37, and equalization was the only one that read the 15:20 frame -- so both are
+    tried. Raw stays primary and supplies every healthy frame.
+    """
+    want = ((T.CYL_TAG_ID, T.CYL_TAG_SIZE_M), (T.REF_TAG_ID, T.REF_TAG_SIZE_M))
     out = {}
-    for tid, size in ((T.CYL_TAG_ID, T.CYL_TAG_SIZE_M), (T.REF_TAG_ID, T.REF_TAG_SIZE_M)):
-        for t in det.detect(img, estimate_tag_pose=True, camera_params=cam, tag_size=size):
-            if t.tag_id == tid:
-                out[tid] = t
+
+    def scan(image):
+        for tid, size in want:
+            if tid in out:
+                continue
+            for t in det.detect(image, estimate_tag_pose=True, camera_params=cam,
+                                tag_size=size):
+                if t.tag_id == tid:
+                    out[tid] = t
+
+    scan(img)
+    if cv2 is not None and len(out) < len(want):
+        scan(cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8)).apply(img))
+    if cv2 is not None and len(out) < len(want):
+        scan(cv2.equalizeHist(img))
     return out
 
 
@@ -171,11 +230,14 @@ class Pusher:
     the CB1 is busy or the network hiccuped.
     """
 
-    def __init__(self, enabled: bool, hz: float, run_id: str = ""):
+    def __init__(self, enabled: bool, hz: float, run_id: str = "", *,
+                 push_url: str = "", push_token: str = ""):
         self.on, self.every, self.run_id = enabled, (1.0 / hz if hz > 0 else 0.0), run_id
         self.last, self.sent, self.failed, self.warned = 0.0, 0, 0, False
+        self.push_url = push_url.rstrip("/")
+        self.push_token = push_token
         self.mh = None
-        if self.on:
+        if self.on and not self.push_url:
             try:
                 import mh
                 self.mh = mh
@@ -185,19 +247,30 @@ class Pusher:
 
     def send(self, payload: dict, force: bool = False):
         if not self.on:
-            return
+            return False
         now = time.time()
         if not force and now - self.last < self.every:
-            return
+            return False
         self.last = now
         try:
-            self.mh.post("/tracker/sample", {**payload, "run_id": self.run_id}, timeout=1.5)
+            body = {**payload, "run_id": self.run_id}
+            if self.push_url:
+                req = urllib.request.Request(
+                    self.push_url + "/tracker/sample", json.dumps(body).encode(), method="POST",
+                    headers={"Content-Type": "application/json",
+                             "X-Manta-Token": self.push_token})
+                with urllib.request.urlopen(req, timeout=1.5):
+                    pass
+            else:
+                self.mh.post("/tracker/sample", body, timeout=1.5)
             self.sent += 1
+            return True
         except Exception as exc:
             self.failed += 1
             if not self.warned:
                 self.warned = True
                 print(f"\n  push failing ({exc}); the CSV is unaffected", flush=True)
+            return False
 
 
 def load_calibration(path: Path | None) -> dict:
@@ -207,17 +280,19 @@ def load_calibration(path: Path | None) -> dict:
 
 
 def probe(a, rs, cv2, Detector):
-    pipe, cam, I = open_ir(rs, a.width, a.height, a.fps,
-                           exposure=(a.exposure or None), gain=a.gain)
+    pipe, cam, I, camera_settings = open_ir(rs, a.width, a.height, a.fps,
+                                            exposure=a.exposure, gain=a.gain)
     try:
         det = Detector(families="tag36h11", nthreads=4, quad_decimate=1.0)
         img = np.asanyarray(pipe.wait_for_frames(5000).get_infrared_frame().get_data())
         out = Path(a.probe_image)
         out.parent.mkdir(parents=True, exist_ok=True)
         cv2.imwrite(str(out), img)
-        found = detect(det, img, cam)
+        found = detect(det, img, cam, cv2)
         print(f"IR1 {I.width}x{I.height} fx={I.fx:.1f}  "
-              f"HFOV={2 * np.degrees(np.arctan(I.width / (2 * I.fx))):.1f} deg  emitter OFF")
+              f"HFOV={2 * np.degrees(np.arctan(I.width / (2 * I.fx))):.1f} deg  emitter OFF  "
+              f"{camera_settings['mode']} {camera_settings['exposure_us']:.0f}us/"
+              f"{camera_settings['gain']:.0f}")
         print(f"exposure looks {'OK' if 20 < img.mean() < 235 else 'BAD'} (mean {img.mean():.0f})")
         for tid, t in sorted(found.items()):
             e = np.mean([np.linalg.norm(t.corners[k] - t.corners[(k + 1) % 4]) for k in range(4)])
@@ -288,14 +363,14 @@ def calibrate(a, rs, cv2, Detector):
     want = tuple(float(v) for v in a.calibrate_heading.split(","))
     if len(want) != 2:
         raise SystemExit("--calibrate-heading takes X,Y in mm in the bench frame")
-    pipe, cam, I = open_ir(rs, a.width, a.height, a.fps,
-                           exposure=(a.exposure or None), gain=a.gain)
+    pipe, cam, I, _camera_settings = open_ir(rs, a.width, a.height, a.fps,
+                                             exposure=a.exposure, gain=a.gain)
     try:
         det = Detector(families="tag36h11", nthreads=4, quad_decimate=1.0)
         refs, cyls = [], []
         for _ in range(a.latch_frames):
             img = np.asanyarray(pipe.wait_for_frames(8000).get_infrared_frame().get_data())
-            f = detect(det, img, cam)
+            f = detect(det, img, cam, cv2)
             if T.REF_TAG_ID in f:
                 refs.append((f[T.REF_TAG_ID].pose_R, f[T.REF_TAG_ID].pose_t))
             if T.CYL_TAG_ID in f:
@@ -315,8 +390,9 @@ def calibrate(a, rs, cv2, Detector):
                "cylinder_centre_spread_mm": round(spread, 2),
                "up_axis": a.up_axis, "plane_axis": a.plane_axis, "shaft_axis": a.shaft_axis,
                "note": "heading is the bench +x direction measured from the reference tag's "
-                       "in-plane horizontal axis, about world up. It is the ONE quantity a "
-                       "single static tag cannot supply; without it bench x/y is withheld."}
+                       "in-plane horizontal axis, about world up. On the fixed rig the mounting "
+                       "normally supplies this; this staged calibration is for a tag that has "
+                       "been re-aimed by hand."}
         print(f"heading {heading:+.3f} deg from {len(cyls)} cylinder frames "
               f"(centre spread {spread:.2f} mm)")
         if spread > 5.0:
@@ -334,17 +410,18 @@ def calibrate(a, rs, cv2, Detector):
 
 
 def record(a, rs, cv2, Detector):
-    pipe, cam, I = open_ir(rs, a.width, a.height, a.fps,
-                           exposure=(a.exposure or None), gain=a.gain)
+    pipe, cam, I, camera_settings = open_ir(rs, a.width, a.height, a.fps,
+                                            exposure=a.exposure, gain=a.gain)
     live = Live(not a.quiet, a.live_hz)
-    push = Pusher(a.push, a.push_hz, a.run_id)
+    push = Pusher(a.push, a.push_hz, a.run_id, push_url=a.push_url,
+                  push_token=a.push_token)
     try:
         det = Detector(families="tag36h11", nthreads=4, quad_decimate=1.0)
         cal = load_calibration(a.calibration)
         refs = []
         for _ in range(a.latch_frames):
             img = np.asanyarray(pipe.wait_for_frames(8000).get_infrared_frame().get_data())
-            f = detect(det, img, cam)
+            f = detect(det, img, cam, cv2)
             if T.REF_TAG_ID in f:
                 refs.append((f[T.REF_TAG_ID].pose_R, f[T.REF_TAG_ID].pose_t))
         frame = T.BenchFrame.latch(refs, up_axis=a.up_axis, plane_axis=a.plane_axis,
@@ -359,11 +436,13 @@ def record(a, rs, cv2, Detector):
                    f"(wrong pole).  Ctrl-C stops early and still writes {a.out}")
 
         rows, readings, t0 = [], [], time.time()
+        heading_tries = 0
         peak, lost_since, drift_warned, stamps = -1.0, None, False, []
+        push_confirmed = False
         try:
             while time.time() - t0 < a.seconds:
                 img = np.asanyarray(pipe.wait_for_frames(5000).get_infrared_frame().get_data())
-                found = detect(det, img, cam)
+                found = detect(det, img, cam, cv2)
                 t = time.time() - t0
                 stamps.append(time.time())
                 if len(stamps) > 15:
@@ -398,12 +477,22 @@ def record(a, rs, cv2, Detector):
                                                     margin=tag.decision_margin,
                                                     axial_mm=a.axial_mm)
                         except ValueError as exc:
-                            live.event(f"  heading unresolved, bench x/y withheld: {exc}")
-                            a.no_mounting_heading = True
+                            # Retry rather than give up on the first frame: the tracker can be
+                            # armed a moment before the shaft is finally seated, and the
+                            # envelope test legitimately refuses a shaft still on its post.
+                            heading_tries += 1
+                            if heading_tries in (1, 30) or heading_tries % 300 == 0:
+                                live.event(f"  heading unresolved, bench x/y withheld: {exc}")
+                            if heading_tries >= 600:
+                                a.no_mounting_heading = True
+                                live.event("  giving up on the mounting heading for this run")
                     readings.append(r)
                     rows.append(r.row())
                     peak = max(peak, r.cos_up)
-                    push.send({"seen": True, **r.row()})
+                    pushed = push.send({"seen": True, **r.row()})
+                    if pushed and not push_confirmed:
+                        push_confirmed = True
+                        live.event("station push confirmed")
                     live.update(f"{t:6.2f}s  cos {r.cos_up:+.3f} {meter(r.cos_up)} "
                                 f"{r.deg_from_up:5.1f}deg  z {r.z_bench_mm:6.1f}mm  "
                                 f"peak {peak:+.3f}  {fps:4.1f}fps  m{r.margin:3.0f}")
@@ -431,8 +520,7 @@ def record(a, rs, cv2, Detector):
                "frame": frame.to_json(), "summary": summary.to_json(),
                "axes": {"up": a.up_axis, "plane": a.plane_axis, "shaft": a.shaft_axis},
                "axial_mm": a.axial_mm, "camera": {"width": a.width, "height": a.height,
-                                                  "fps": a.fps, "exposure": a.exposure,
-                                                  "gain": a.gain}}
+                                                  "fps": a.fps, **camera_settings}}
         sidecar = a.out.with_name(a.out.stem + "_SUMMARY.json")
         sidecar.write_text(json.dumps(doc, indent=2) + "\n")
         print(f"{len(rows)} frames -> {a.out}")
@@ -442,7 +530,10 @@ def record(a, rs, cv2, Detector):
         print(f"  wrote {sidecar}")
         if push.on:
             print(f"  pushed {push.sent} samples to the station ({push.failed} failed)")
-            push.send({"seen": False, "final": True, "summary": summary.to_json()}, force=True)
+            push.send({"seen": False, "final": True, "summary": summary.to_json(),
+                       "frame": frame.to_json(), "camera": camera_settings,
+                       "axes": {"up": a.up_axis, "plane": a.plane_axis,
+                                "shaft": a.shaft_axis}, "axial_mm": a.axial_mm}, force=True)
         return 0
     finally:
         pipe.stop()
@@ -471,13 +562,16 @@ def main() -> int:
     p.add_argument("--run-id", default="", help="station run_id these samples belong to")
     p.add_argument("--push", action="store_true", help="POST live samples to the control station")
     p.add_argument("--push-hz", type=float, default=10.0)
+    p.add_argument("--push-url", default="",
+                   help="control-station API base ending in /api/v1; default uses scripts/mh.py")
+    p.add_argument("--push-token", default="",
+                   help="X-Manta-Token used with --push-url")
     p.add_argument("--width", type=int, default=1280)
     p.add_argument("--height", type=int, default=720)
     p.add_argument("--fps", type=int, default=30)
-    p.add_argument("--exposure", type=float, default=4000.0,
-                   help="us; pins auto-exposure off. 0 = leave auto. 4000/64 measured best on "
-                        "this rig 2026-08-31 (AE had picked 8500/16, where the reference "
-                        "tag vanishes)")
+    p.add_argument("--exposure", type=float, default=0.0,
+                   help="us; default 0 lets IR auto-exposure settle at run start and then locks "
+                        "its chosen exposure/gain. Positive values force a fixed exposure")
     p.add_argument("--gain", type=float, default=64.0)
     p.add_argument("--shaft-axis", default="x",
                    help="direction in the CYLINDER tag's frame pointing from the cylinder "

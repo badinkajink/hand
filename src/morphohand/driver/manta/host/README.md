@@ -26,7 +26,9 @@ with MantaHandDriver("/dev/ttyACM0") as hand:
 `manta-hand-web` is the CB1 service and browser control station. It loads validated
 `HandPlan` JSON, homes once per daemon session behind an exact confirmation, moves to a
 morphology, commands the open/grip poses, buffers the reorientation on the CB1, and records
-command/telemetry/event JSONL with a manual-score summary.
+command/telemetry/event/object JSONL with instrument and manual-score summaries. When launched
+with `--tracker-url http://10.99.99.50:8770`, every reorientation automatically owns a trace from
+the workstation companion `scripts/real_v1_tracker_service.py`.
 
 Exercise it without hardware first:
 

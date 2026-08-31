@@ -126,11 +126,10 @@
           <div id="track-empty">
             <p class="hint" style="margin-top:0">No object-pose samples. Until one arrives this
               station has no object sensor and a run can only be scored by eye.</p>
-            <p class="hint">The camera is on the workstation, not the CB1. Start the tracker
-              there:</p>
-            <pre class="cmd">~/miniconda3/bin/python scripts/real_v1_tag_tracker.py --push --seconds 30</pre>
-            <p class="hint">Run it with <code>--probe</code> first: it checks exposure, both
-              tags, and the sign of <code>--shaft-axis</code>.</p>
+            <p class="hint" id="track-service-note">Automatic tracking is not configured on
+              the CB1. Configure the workstation tracker service before a production run.</p>
+            <p class="hint">A one-off <code>--probe</code> remains useful after the camera or
+              mounting moves: it checks exposure, both tags, and the shaft-axis sign.</p>
           </div>
         </article>
 

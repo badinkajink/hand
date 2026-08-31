@@ -48,6 +48,17 @@ def test_tag_offset_is_half_length_plus_the_vane():
     assert T.CYL_TAG_AXIAL_MM == pytest.approx(T.CYL_HALF_LEN_MM + 21.0)
 
 
+def test_rigid_reference_and_camera_mounting_is_machine_readable():
+    assert T.REF_TAG_BENCH_MM[0] == pytest.approx(133.5)
+    assert T.REF_TAG_NORMAL_BENCH_AXIS.startswith("x ")
+    assert T.CAMERA_VIEW_BENCH_AXIS.startswith("x ")
+    assert set(T.REF_TAG_PLANE_HORIZONTAL_BENCH_CANDIDATES) == {"+y", "-y"}
+    assert T.REF_TAG_MOUNTING_FIXED is True
+    frame = T.BenchFrame(np.array([0., 0., 1.]), np.array([1., 0., 0.]),
+                         np.zeros(3))
+    assert "opposes" in frame.to_json()["rigid_mounting"]["camera_view_bench_axis"]
+
+
 def test_deg_from_up_is_unfolded():
     """A turn to the wrong pole must not score like a correct one."""
     assert T.deg_from_up(1.0) == pytest.approx(0.0)
@@ -208,12 +219,75 @@ def test_heading_comes_from_the_mounting_not_a_calibration(ident_frame):
         assert frame.locate(p_cam)[2][0] == pytest.approx(0.0, abs=1e-6)
 
 
-def test_mounting_heading_refuses_only_the_genuinely_degenerate_point(ident_frame):
-    """The two candidates mirror the offset about the tag, so one always wins -- the sign is a
-    choice between two, not a test. It is undefined only for a shaft at the tag's own x."""
+def test_mounting_heading_refuses_a_shaft_parked_beside_the_reference_tag(ident_frame):
+    """The regression from the first live arm, 2026-08-31.
+
+    Staging had the shaft on its post next to the reference tag rather than in the hand. The
+    two mounting candidates came out at bench x +114 and +153 -- mirrored about the tag's own
+    +133.5 -- and the first version of this method just took the smaller and reported it as
+    "the hand's side". Both are outside the hand, so the sign was a coin flip that would have
+    been written into the trace as measured x/y. Neither inside the envelope must refuse.
+    """
+    frame, _, _ = ident_frame
+    frame.heading_deg = 90.0
+    # 19.5 mm off the tag's own x, i.e. candidates at 133.5 -+ 19.5
+    p_cam = (frame.ref_t_cam_mm - 19.5 * frame.x_cam
+             + 40.0 * frame.y_cam + 12.0 * frame.up_cam)
+    frame.heading_deg = None
+    with pytest.raises(ValueError, match=r"\+114 and \+153"):
+        frame.heading_from_mounting(p_cam)
+
+
+def test_mounting_heading_resolves_a_shaft_staged_in_the_hand(ident_frame):
+    """The staging the automatic flow actually arms in: the shaft near the palm centre, so one
+    candidate lands inside the hand envelope and the mirrored one lands far outside it."""
+    frame, _, _ = ident_frame
+    for truth in (90.0, -90.0):
+        frame.heading_deg = truth
+        p_cam = (frame.ref_t_cam_mm - 133.5 * frame.x_cam        # shaft at bench x ~ 0
+                 + 25.0 * frame.y_cam + 12.0 * frame.up_cam)
+        frame.heading_deg = None
+        got, why = frame.heading_from_mounting(p_cam)
+        assert got == pytest.approx(truth)
+        assert "+267" in why or "-267" in why   # the mirrored candidate, named in the reason
+
+
+def test_mounting_heading_is_undefined_at_the_reference_tags_own_x(ident_frame):
+    """Both candidates collapse onto 133.5, which is outside the envelope, so it still refuses."""
     frame, _, _ = ident_frame
     frame.heading_deg = 90.0
     p_cam = frame.ref_t_cam_mm + 40.0 * frame.y_cam + 12.0 * frame.up_cam   # no x offset at all
     frame.heading_deg = None
-    with pytest.raises(ValueError, match="own x"):
+    with pytest.raises(ValueError, match="a guess"):
         frame.heading_from_mounting(p_cam)
+
+
+def test_hold_metric_is_the_pose_that_was_KEPT_not_the_best_instant(ident_frame):
+    """The study's primary metric. A shaft flicked upright and then lost must not score like one
+    carried there and held, which is exactly what `cos_peak` does."""
+    frame, _, _ = ident_frame
+    frame.heading_deg = 90.0
+
+    def trace(cos_series, dt=0.05):
+        out = []
+        for i, c in enumerate(cos_series):
+            r = T.Reading(t=i * dt, cos_up=c, deg_from_up=T.deg_from_up(c),
+                          z_bench_mm=100.0, radial_mm=50.0, tag_z_bench_mm=171.0,
+                          xy_bench_mm=(0.0, 0.0), margin=60.0, range_mm=400.0)
+            out.append(r)
+        return out
+
+    # 2 s: a spike to vertical at 1 s, then settled back to horizontal and held there
+    flicked = trace([0.0] * 20 + [1.0] + [0.05] * 19)
+    kept = trace([0.0] * 20 + [0.9] * 20)
+    a, b = T.summarise(flicked), T.summarise(kept)
+    assert a.cos_peak == pytest.approx(b.cos_peak, abs=0.11)   # the peak cannot tell them apart
+    assert a.cos_hold < 0.2 and b.cos_hold > 0.85              # the hold metric can
+    assert a.hold_window_s == pytest.approx(T.HOLD_WINDOW_S)
+
+
+def test_hold_metric_falls_back_to_the_last_sample_on_a_trace_shorter_than_the_window():
+    frame_free = [T.Reading(t=0.0, cos_up=0.4, deg_from_up=T.deg_from_up(0.4), z_bench_mm=100.0,
+                            radial_mm=50.0, tag_z_bench_mm=171.0, xy_bench_mm=None,
+                            margin=60.0, range_mm=400.0)]
+    assert T.summarise(frame_free).cos_hold == pytest.approx(0.4)
