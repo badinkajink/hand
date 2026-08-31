@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source": "DEPLOY.md sections 11-12; 200 fresh simulation draws per operating point",
+  "source": "per-plan residual-clip band scan (real_v1_plan_band.py, 33 clips x 4 reps, 9.6 s hold) and real_v1_trajectory_clearance.py --all; simulation only",
   "note": "These are robustness metrics for the buffered CEM/open-loop schedule, not learned-policy metrics and not hardware success rates.",
   "designs": {
     "g12": {
@@ -8,36 +8,344 @@
       "careful_bench_kept": 0.84,
       "full_error_win": 0.32,
       "full_error_kept": 0.66,
-      "axial_band_mm": [-2.0, 4.0],
-      "transverse_band_mm": [-8.0, 8.0],
-      "yaw_band_deg": [-8.0, 2.0]
+      "axial_band_mm": [
+        -2.0,
+        4.0
+      ],
+      "transverse_band_mm": [
+        -8.0,
+        8.0
+      ],
+      "yaw_band_deg": [
+        -8.0,
+        2.0
+      ],
+      "budget_rad": 0.5,
+      "band_rad": [
+        0.7,
+        1.05
+      ],
+      "held_cos": 0.0,
+      "held_reps": [
+        0,
+        4
+      ],
+      "best_cos": 0.627,
+      "best_at_rad": 0.95,
+      "clearance_mm": 8.7,
+      "servo_short_deg": 0.0,
+      "max_commandable_rad": 1.3,
+      "recommended_rad": 0.95,
+      "sim_rank": null,
+      "expect": "drops the shaft in every sim rollout at this clip -- below its band"
     },
     "g23": {
       "careful_bench_win": 0.64,
       "careful_bench_kept": 0.76,
       "full_error_win": 0.28,
       "full_error_kept": 0.41,
-      "axial_band_mm": [-8.0, 3.0],
-      "transverse_band_mm": [-7.0, 8.0],
-      "yaw_band_deg": [-12.0, 18.0]
+      "axial_band_mm": [
+        -8.0,
+        3.0
+      ],
+      "transverse_band_mm": [
+        -7.0,
+        8.0
+      ],
+      "yaw_band_deg": [
+        -12.0,
+        18.0
+      ],
+      "budget_rad": 0.5,
+      "band_rad": [
+        0.75,
+        2.0
+      ],
+      "held_cos": 0.0,
+      "held_reps": [
+        0,
+        4
+      ],
+      "best_cos": 0.591,
+      "best_at_rad": 0.75,
+      "clearance_mm": 0.8,
+      "servo_short_deg": 0.0,
+      "max_commandable_rad": 1.3,
+      "recommended_rad": 0.85,
+      "sim_rank": null,
+      "expect": "DO NOT RUN: the modelled fingers interpenetrate along this trajectory. drops the shaft in every sim rollout at this clip -- below its band"
     },
     "g24": {
-      "careful_bench_win": 0.60,
+      "careful_bench_win": 0.6,
       "careful_bench_kept": 0.62,
       "full_error_win": 0.28,
       "full_error_kept": 0.36,
-      "axial_band_mm": [-8.0, 2.0],
-      "transverse_band_mm": [-7.0, 8.0],
-      "yaw_band_deg": [-12.0, 18.0]
+      "axial_band_mm": [
+        -8.0,
+        2.0
+      ],
+      "transverse_band_mm": [
+        -7.0,
+        8.0
+      ],
+      "yaw_band_deg": [
+        -12.0,
+        18.0
+      ],
+      "budget_rad": 0.5,
+      "band_rad": [
+        0.6,
+        1.1
+      ],
+      "held_cos": 0.75,
+      "held_reps": [
+        0,
+        4
+      ],
+      "best_cos": 0.647,
+      "best_at_rad": 0.6,
+      "clearance_mm": -5.3,
+      "servo_short_deg": 0.0,
+      "max_commandable_rad": 0.6,
+      "recommended_rad": null,
+      "sim_rank": null,
+      "expect": "DO NOT RUN: the modelled fingers interpenetrate along this trajectory. drops the shaft in every sim rollout at this clip -- below its band"
     },
     "rv04_mid": {
       "careful_bench_win": 0.46,
       "careful_bench_kept": 0.47,
       "full_error_win": 0.26,
       "full_error_kept": 0.31,
-      "axial_band_mm": [-8.0, -1.0],
-      "transverse_band_mm": [3.0, 8.0],
-      "yaw_band_deg": [2.0, 12.0]
+      "axial_band_mm": [
+        -8.0,
+        -1.0
+      ],
+      "transverse_band_mm": [
+        3.0,
+        8.0
+      ],
+      "yaw_band_deg": [
+        2.0,
+        12.0
+      ],
+      "budget_rad": 0.5,
+      "band_rad": [
+        0.7,
+        2.0
+      ],
+      "held_cos": 0.0,
+      "held_reps": [
+        0,
+        4
+      ],
+      "best_cos": 0.738,
+      "best_at_rad": 0.7,
+      "clearance_mm": -2.7,
+      "servo_short_deg": 0.0,
+      "max_commandable_rad": 1.3,
+      "recommended_rad": 1.3,
+      "sim_rank": null,
+      "expect": "DO NOT RUN: the modelled fingers interpenetrate along this trajectory. drops the shaft in every sim rollout at this clip -- below its band"
+    },
+    "g12w08": {
+      "budget_rad": 0.8,
+      "band_rad": [
+        0.7,
+        1.05
+      ],
+      "held_cos": 0.484,
+      "held_reps": [
+        4,
+        4
+      ],
+      "best_cos": 0.627,
+      "best_at_rad": 0.95,
+      "clearance_mm": 8.7,
+      "servo_short_deg": 0.0,
+      "max_commandable_rad": 1.3,
+      "recommended_rad": 0.95,
+      "sim_rank": 4,
+      "expect": "holds 4/4, a partial turn (cos 0.48), 10 centirad above its band's lower edge"
+    },
+    "g12w11": {
+      "budget_rad": 1.1,
+      "band_rad": [
+        0.7,
+        1.05
+      ],
+      "held_cos": 0.267,
+      "held_reps": [
+        1,
+        4
+      ],
+      "best_cos": 0.627,
+      "best_at_rad": 0.95,
+      "clearance_mm": 8.7,
+      "servo_short_deg": 0.0,
+      "max_commandable_rad": 1.3,
+      "recommended_rad": 0.95,
+      "sim_rank": null,
+      "expect": "holds 1/4, holds but barely turns (cos 0.27), 40 centirad above its band's lower edge"
+    },
+    "rv05_manual_b85": {
+      "budget_rad": 0.85,
+      "band_rad": [
+        0.75,
+        1.25
+      ],
+      "held_cos": 0.568,
+      "held_reps": [
+        4,
+        4
+      ],
+      "best_cos": 0.638,
+      "best_at_rad": 0.75,
+      "clearance_mm": 10.3,
+      "servo_short_deg": 0.0,
+      "max_commandable_rad": 1.3,
+      "recommended_rad": 0.85,
+      "sim_rank": 3,
+      "expect": "holds 4/4, a partial turn (cos 0.57), 10 centirad above its band's lower edge"
+    },
+    "sv1_u0060_b100": {
+      "budget_rad": 1.0,
+      "band_rad": [
+        0.65,
+        2.0
+      ],
+      "held_cos": 0.441,
+      "held_reps": [
+        4,
+        4
+      ],
+      "best_cos": 0.723,
+      "best_at_rad": 0.65,
+      "clearance_mm": 9.9,
+      "servo_short_deg": 3.88,
+      "max_commandable_rad": 0.9,
+      "recommended_rad": 0.75,
+      "sim_rank": null,
+      "expect": "WILL NOT LOAD: 3.88 deg outside a servo's range at this clip, and HandRuntime.load_plan refuses it"
+    },
+    "sv1_u0060_b75": {
+      "budget_rad": 0.75,
+      "band_rad": [
+        0.65,
+        2.0
+      ],
+      "held_cos": 0.597,
+      "held_reps": [
+        4,
+        4
+      ],
+      "best_cos": 0.723,
+      "best_at_rad": 0.65,
+      "clearance_mm": 9.9,
+      "servo_short_deg": 0.0,
+      "max_commandable_rad": 0.9,
+      "recommended_rad": 0.75,
+      "sim_rank": 2,
+      "expect": "holds 4/4, a partial turn (cos 0.60), 10 centirad above its band's lower edge"
+    },
+    "sv1_u0100_b100": {
+      "budget_rad": 1.0,
+      "band_rad": [
+        0.6,
+        0.9
+      ],
+      "held_cos": 0.0,
+      "held_reps": [
+        0,
+        4
+      ],
+      "best_cos": 0.541,
+      "best_at_rad": 0.6,
+      "clearance_mm": 9.8,
+      "servo_short_deg": 0.0,
+      "max_commandable_rad": 1.3,
+      "recommended_rad": 0.7,
+      "sim_rank": null,
+      "expect": "drops the shaft in every sim rollout at this clip -- above its band"
+    },
+    "sv1_u0100_b70": {
+      "budget_rad": 0.7,
+      "band_rad": [
+        0.6,
+        0.9
+      ],
+      "held_cos": 0.231,
+      "held_reps": [
+        4,
+        4
+      ],
+      "best_cos": 0.541,
+      "best_at_rad": 0.6,
+      "clearance_mm": 7.5,
+      "servo_short_deg": 0.0,
+      "max_commandable_rad": 1.3,
+      "recommended_rad": 0.7,
+      "sim_rank": 5,
+      "expect": "holds 4/4, holds but barely turns (cos 0.23), 10 centirad above its band's lower edge -- tightest clearance of any shipped plan"
+    },
+    "sv1_w0099_b100": {
+      "budget_rad": 1.0,
+      "band_rad": [
+        0.4,
+        0.4
+      ],
+      "held_cos": 0.501,
+      "held_reps": [
+        3,
+        4
+      ],
+      "best_cos": 0.148,
+      "best_at_rad": 0.4,
+      "clearance_mm": 8.2,
+      "servo_short_deg": 0.0,
+      "max_commandable_rad": 1.2,
+      "recommended_rad": null,
+      "sim_rank": null,
+      "expect": "holds 3/4, a partial turn (cos 0.50), 60 centirad above its band's lower edge"
+    },
+    "sv1_w0116_b100": {
+      "budget_rad": 1.0,
+      "band_rad": [
+        1.45,
+        2.0
+      ],
+      "held_cos": 0.372,
+      "held_reps": [
+        2,
+        4
+      ],
+      "best_cos": 0.633,
+      "best_at_rad": 1.45,
+      "clearance_mm": 11.6,
+      "servo_short_deg": 6.27,
+      "max_commandable_rad": 0.85,
+      "recommended_rad": null,
+      "sim_rank": null,
+      "expect": "WILL NOT LOAD: 6.27 deg outside a servo's range at this clip, and HandRuntime.load_plan refuses it"
+    },
+    "g12_b095": {
+      "budget_rad": 0.95,
+      "band_rad": [
+        0.7,
+        1.05
+      ],
+      "held_cos": 0.627,
+      "held_reps": [
+        4,
+        4
+      ],
+      "best_cos": 0.627,
+      "best_at_rad": 0.95,
+      "clearance_mm": 8.7,
+      "servo_short_deg": 0.0,
+      "max_commandable_rad": 1.3,
+      "recommended_rad": 0.95,
+      "sim_rank": 1,
+      "expect": "holds 4/4, a partial turn (cos 0.63), 25 centirad above its band's lower edge"
     }
   }
 }

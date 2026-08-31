@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "run_id": "20260830-103739-sv1_u0100-33069b",
+  "design": "sv1_u0100",
+  "operation": "reorientation",
+  "started_at": "2026-08-30T10:37:39.097842+00:00",
+  "finished_at": "2026-08-30T10:37:42.570063+00:00",
+  "status": "complete",
+  "settings": {
+    "speed_ratio": 1.1,
+    "rate_hz": 50.0,
+    "servo_speed": 80,
+    "telemetry_hz": 20.0,
+    "joint_signs": {
+      "thumb": {
+        "yaw": 1.0,
+        "mcp": 1.0,
+        "pip": 1.0
+      },
+      "index": {
+        "yaw": -1.0,
+        "mcp": 1.0,
+        "pip": 1.0
+      },
+      "middle": {
+        "yaw": -1.0,
+        "mcp": 1.0,
+        "pip": 1.0
+      }
+    }
+  },
+  "plan_meta": {
+    "object": "medium",
+    "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/20260829-deploy_envelope/scene_tp0d0096p0d0458p0d0000_in0d0129n0d0234p0d0000_mn0d0131p0d0264p0d0000__medium__bench100py-35__flat15w21T.xml",
+    "design_table": "docs/experiments/20260830-real_v1-sobol128/pilot_table.json",
+    "source": "scripts/real_v1_export_plan.py",
+    "replay_initial_qpos": [
+      0.0,
+      0.0,
+      0.1,
+      0.7071067811865475,
+      0.7071067811865475,
+      0.0,
+      0.0,
+      0.0017055000000000022,
+      -0.016254,
+      0.1005,
+      0.0,
+      0.0,
+      0.0,
+      -0.3004898150227274,
+      0.2728500581162166,
+      0.073401770811506,
+      0.3728476672874506,
+      0.30290014558093964,
+      0.004018912580027386,
+      0.07730594957701697,
+      -0.030630970572847013,
+      0.6420037180032434
+    ],
+    "replay_base_ctrl": [
+      0.0017055000000000022,
+      -0.016254,
+      0.1005,
+      0.0,
+      0.0,
+      0.0,
+      -0.30048981502272737,
+      0.4998351766357652,
+      1.1263469188464368e-05,
+      0.3728476672874507,
+      0.4859866571288511,
+      1.8879512820066597e-07,
+      0.077305949577017,
+      0.5222283100024407,
+      0.0054665622166911645
+    ],
+    "straddle_mm": 40.0,
+    "thumb_axial_mm": 10.0,
+    "squeeze_mm": 10.0,
+    "grip_depth_mm": 63.0,
+    "axis_k": 0.15,
+    "angle_deg": -60.0,
+    "turn_steps": 550,
+    "pad_width_mm": 21.1,
+    "flat_pads": true,
+    "bench_height_mm": 100.0,
+    "post_y_mm": -35.0,
+    "palm_lift_mm": 0.0
+  },
+  "samples": {
+    "command": 50,
+    "telemetry": 51,
+    "event": 1
+  },
+  "manual_score": null
+}
