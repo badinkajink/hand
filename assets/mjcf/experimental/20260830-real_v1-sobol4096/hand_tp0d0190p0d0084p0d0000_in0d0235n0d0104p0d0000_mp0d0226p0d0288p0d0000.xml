@@ -1,0 +1,142 @@
+<mujoco model="hand_tp0d0190p0d0084p0d0000_in0d0235n0d0104p0d0000_mp0d0226p0d0288p0d0000">
+  <compiler angle="radian" autolimits="true" />
+  <option timestep="0.002" gravity="0 0 -9.81" integrator="implicitfast" />
+  <visual>
+    <headlight ambient=".4 .4 .4" diffuse=".8 .8 .8" specular="0.1 0.1 0.1" />
+    <map znear=".01" />
+    <quality shadowsize="2048" />
+    <global elevation="-15" />
+  </visual>
+  <default>
+    <geom friction="1.8 0.15 0.01" solref="0.006 1" solimp="0.97 0.995 0.0005" />
+    <motor ctrlrange="-1 1" ctrllimited="true" />
+    <default class="pose">
+      <joint damping="2.0" armature="0.01" />
+      <position kp="4000" kv="100" forcerange="-1000 1000" />
+    </default>
+    <default class="ctrl">
+      <joint type="hinge" damping="0.5" armature="0.001" />
+      <position kp="30" kv="0.5" gear="1" forcerange="-10 10" ctrlrange="-1 1" />
+    </default>
+  </default>
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="3072" />
+    <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3" markrgb="0.8 0.8 0.8" width="300" height="300" />
+    <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2" />
+    <texture name="grid" type="2d" builtin="checker" rgb1="0.15 0.15 0.15" rgb2="0.25 0.25 0.25" width="256" height="256" />
+    <material name="table_mat" texture="grid" texrepeat="3 3" reflectance="0.2" />
+    <material name="palm_mat" rgba="0.18 0.2 0.24 1" />
+    <material name="finger_mat" rgba="0.8 0.72 0.6 1" />
+    <material name="object_mat" rgba="0.6 0.6 0.6 1" />
+  </asset>
+  <worldbody>
+    <light pos="0 0 1.5" dir="0 0 -1" directional="true" diffuse=".6 .6 .6" specular=".2 .2 .2" />
+    <geom name="floor" type="plane" size="1.5 1.5 0.1" material="table_mat" contype="0" conaffinity="0" />
+    <body gravcomp="1" name="palm_pose" pos="0 0 0.062500">
+      <geom type="box" size="0.0850 0.0900 0.0015" material="palm_mat" />
+      <site name="workspace_thumb" type="box" pos="-0.050 0 0.003" size="0.030 0.055 0.0005" rgba="0.85 0.30 0.30 0.14" />
+      <site name="workspace_index" type="box" pos="0.050 0.055 0.003" size="0.030 0.030 0.0005" rgba="0.30 0.55 0.85 0.14" />
+      <site name="workspace_middle" type="box" pos="0.050 -0.055 0.003" size="0.030 0.030 0.0005" rgba="0.30 0.75 0.45 0.14" />
+      <body name="thumb_mount" pos="-0.03098 0.008352 0">
+        <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
+        <body name="thumb_yaw_frame">
+          <joint class="ctrl" name="thumb_yaw" axis="1 0 0" range="-1.483530 1.483530" />
+          <geom type="capsule" fromto="0 0 0 0 0 -0.022900" size="0.010550" material="finger_mat" />
+          <body name="thumb_mcp_frame" pos="0 0 -0.020750">
+            <joint class="ctrl" name="thumb_mcp" axis="0 -1 0" range="-0.261799 1.605703" />
+            <geom type="capsule" fromto="0 0 0 0 0 -0.022900" size="0.010550" material="finger_mat" />
+            <body name="thumb_len_frame" pos="0 0 0">
+              <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
+              <body name="thumb_pip_frame" pos="0 0 -0.020750">
+                <joint class="ctrl" name="thumb_pip" axis="0 -1 0" range="-0.314159 1.605703" />
+                <geom type="capsule" fromto="0 0 0 0 0 -0.016060" size="0.010550" material="finger_mat" friction="2.4 0.2 0.02" />
+                <body name="thumb_tip" pos="0 0 -0.026610">
+                  <geom type="sphere" size="0.010550" material="finger_mat" friction="2.4 0.2 0.02" />
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+      <body name="index_mount" pos="0.026509 0.044569 0">
+        <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
+        <body name="index_yaw_frame">
+          <joint class="ctrl" name="index_yaw" axis="1 0 0" range="-1.483530 1.483530" />
+          <geom type="capsule" fromto="0 0 0 0 0 -0.022900" size="0.010550" material="finger_mat" />
+          <body name="index_mcp_frame" pos="0 0 -0.020750">
+            <joint class="ctrl" name="index_mcp" axis="0 1 0" range="-0.261799 1.605703" />
+            <geom type="capsule" fromto="0 0 0 0 0 -0.022900" size="0.010550" material="finger_mat" />
+            <body name="index_len_frame" pos="0 0 0">
+              <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
+              <body name="index_pip_frame" pos="0 0 -0.020750">
+                <joint class="ctrl" name="index_pip" axis="0 1 0" range="-0.314159 1.605703" />
+                <geom type="capsule" fromto="0 0 0 0 0 -0.016060" size="0.010550" material="finger_mat" friction="2.4 0.2 0.02" />
+                <body name="index_tip" pos="0 0 -0.026610">
+                  <geom type="sphere" size="0.010550" material="finger_mat" friction="2.4 0.2 0.02" />
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+      <body name="middle_mount" pos="0.0726 -0.02621 0">
+        <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
+        <body name="middle_yaw_frame">
+          <joint class="ctrl" name="middle_yaw" axis="1 0 0" range="-1.483530 1.483530" />
+          <geom type="capsule" fromto="0 0 0 0 0 -0.022900" size="0.010550" material="finger_mat" />
+          <body name="middle_mcp_frame" pos="0 0 -0.020750">
+            <joint class="ctrl" name="middle_mcp" axis="0 1 0" range="-0.261799 1.605703" />
+            <geom type="capsule" fromto="0 0 0 0 0 -0.022900" size="0.010550" material="finger_mat" />
+            <body name="middle_len_frame" pos="0 0 0">
+              <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
+              <body name="middle_pip_frame" pos="0 0 -0.020750">
+                <joint class="ctrl" name="middle_pip" axis="0 1 0" range="-0.314159 1.605703" />
+                <geom type="capsule" fromto="0 0 0 0 0 -0.016060" size="0.010550" material="finger_mat" friction="2.4 0.2 0.02" />
+                <body name="middle_tip" pos="0 0 -0.026610">
+                  <geom type="sphere" size="0.010550" material="finger_mat" friction="2.4 0.2 0.02" />
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+  <contact>
+    <exclude body1="palm_pose" body2="thumb_yaw_frame" />
+    <exclude body1="palm_pose" body2="thumb_mcp_frame" />
+    <exclude body1="palm_pose" body2="thumb_len_frame" />
+    <exclude body1="palm_pose" body2="thumb_pip_frame" />
+    <exclude body1="palm_pose" body2="thumb_tip" />
+    <exclude body1="thumb_yaw_frame" body2="thumb_pip_frame" />
+    <exclude body1="thumb_mcp_frame" body2="thumb_pip_frame" />
+    <exclude body1="palm_pose" body2="index_yaw_frame" />
+    <exclude body1="palm_pose" body2="index_mcp_frame" />
+    <exclude body1="palm_pose" body2="index_len_frame" />
+    <exclude body1="palm_pose" body2="index_pip_frame" />
+    <exclude body1="palm_pose" body2="index_tip" />
+    <exclude body1="index_yaw_frame" body2="index_pip_frame" />
+    <exclude body1="index_mcp_frame" body2="index_pip_frame" />
+    <exclude body1="palm_pose" body2="middle_yaw_frame" />
+    <exclude body1="palm_pose" body2="middle_mcp_frame" />
+    <exclude body1="palm_pose" body2="middle_len_frame" />
+    <exclude body1="palm_pose" body2="middle_pip_frame" />
+    <exclude body1="palm_pose" body2="middle_tip" />
+    <exclude body1="middle_yaw_frame" body2="middle_pip_frame" />
+    <exclude body1="middle_mcp_frame" body2="middle_pip_frame" />
+  </contact>
+  <actuator>
+    <position class="ctrl" name="a_thumb_yaw" joint="thumb_yaw" ctrlrange="-1.483530 1.483530" />
+    <position class="ctrl" name="a_thumb_mcp" joint="thumb_mcp" ctrlrange="-0.261799 1.605703" />
+    <position class="ctrl" name="a_thumb_pip" joint="thumb_pip" ctrlrange="-0.314159 1.605703" />
+    <position class="ctrl" name="a_index_yaw" joint="index_yaw" ctrlrange="-1.483530 1.483530" />
+    <position class="ctrl" name="a_index_mcp" joint="index_mcp" ctrlrange="-0.261799 1.605703" />
+    <position class="ctrl" name="a_index_pip" joint="index_pip" ctrlrange="-0.314159 1.605703" />
+    <position class="ctrl" name="a_middle_yaw" joint="middle_yaw" ctrlrange="-1.483530 1.483530" />
+    <position class="ctrl" name="a_middle_mcp" joint="middle_mcp" ctrlrange="-0.261799 1.605703" />
+    <position class="ctrl" name="a_middle_pip" joint="middle_pip" ctrlrange="-0.314159 1.605703" />
+  </actuator>
+  <keyframe>
+    <key name="open" qpos="&#10;        0 0.55 0.55 0 0.55 0.55 0 0.55 0.55&#10;      " ctrl="&#10;        0 0.55 0.55 0 0.55 0.55 0 0.55 0.55&#10;      " />
+  </keyframe>
+</mujoco>

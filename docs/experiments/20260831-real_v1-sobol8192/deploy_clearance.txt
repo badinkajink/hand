@@ -1,0 +1,98 @@
+finger<->finger clearance, PASS >= 5.0 mm on sim geometry
+
+  g12
+    chord     +8.7 mm  thumb_tip<->index_tip                    at u=0.00  (56 set-points, 221 checked, 5 artifact zeros discarded)
+    csv       +8.8 mm  thumb_tip<->index_tip                    at u=0.00  (56 set-points, 221 checked, 4 artifact zeros discarded)
+
+  g12_b095
+    chord     +8.7 mm  thumb_tip<->index_tip                    at u=0.00  (56 set-points, 221 checked, 5 artifact zeros discarded)
+    csv       +8.8 mm  thumb_tip<->index_tip                    at u=0.00  (56 set-points, 221 checked, 6 artifact zeros discarded)
+
+  g12w08
+    chord     +8.7 mm  thumb_tip<->index_tip                    at u=0.00  (56 set-points, 221 checked, 6 artifact zeros discarded)
+    csv       +8.8 mm  thumb_tip<->index_tip                    at u=0.00  (56 set-points, 221 checked, 10 artifact zeros discarded)
+
+  g12w11
+    chord     +8.7 mm  thumb_tip<->index_tip                    at u=0.00  (56 set-points, 221 checked, 6 artifact zeros discarded)
+    csv       +8.8 mm  thumb_tip<->index_tip                    at u=0.00  (56 set-points, 221 checked, 2 artifact zeros discarded)
+
+  g23
+    chord     +0.8 mm  index_tip<->middle_tip                   at u=1.00  (56 set-points, 221 checked, 13 artifact zeros discarded)
+    csv       +0.8 mm  index_tip<->middle_tip                   at u=0.98  (56 set-points, 221 checked, 15 artifact zeros discarded)
+
+  g24
+    chord     -5.2 mm  index<->middle CONTACT                   at u=0.88  (56 set-points, 221 checked, 10 artifact zeros discarded)
+    csv       -4.1 mm  index<->middle CONTACT                   at u=0.52  (56 set-points, 221 checked, 12 artifact zeros discarded)
+
+  rv04_mid
+    chord     -2.6 mm  index<->middle CONTACT                   at u=0.96  (56 set-points, 221 checked, 7 artifact zeros discarded)
+    csv       -2.0 mm  index<->middle CONTACT                   at u=0.94  (56 set-points, 221 checked, 18 artifact zeros discarded)
+
+  rv05_manual_b85
+    chord    +10.3 mm  index_pip_frame<->middle_pip_frame       at u=1.00  (56 set-points, 221 checked, 7 artifact zeros discarded)
+    csv      +10.3 mm  index_pip_frame<->middle_pip_frame       at u=0.98  (56 set-points, 221 checked, 13 artifact zeros discarded)
+
+  sv1_u0060_b100
+    chord     +9.9 mm  thumb_tip<->index_tip                    at u=0.20  (56 set-points, 221 checked, 6 artifact zeros discarded)
+    csv       +9.9 mm  thumb_tip<->index_tip                    at u=0.18  (56 set-points, 221 checked, 6 artifact zeros discarded)
+
+  sv1_u0060_b75
+    chord     +9.9 mm  thumb_tip<->index_tip                    at u=0.20  (56 set-points, 221 checked, 9 artifact zeros discarded)
+    csv       +9.9 mm  thumb_tip<->index_tip                    at u=0.18  (56 set-points, 221 checked, 6 artifact zeros discarded)
+
+  sv1_u0100_b100
+    chord     +9.8 mm  index_mcp_frame<->middle_mcp_frame       at u=1.00  (56 set-points, 221 checked, 12 artifact zeros discarded)
+    csv       +9.8 mm  index_mcp_frame<->middle_mcp_frame       at u=0.98  (56 set-points, 221 checked, 12 artifact zeros discarded)
+
+  sv1_u0100_b70
+    chord     +7.5 mm  index_mcp_frame<->middle_pip_frame       at u=1.00  (56 set-points, 221 checked, 9 artifact zeros discarded)
+    csv       +7.5 mm  index_mcp_frame<->middle_pip_frame       at u=0.98  (56 set-points, 221 checked, 4 artifact zeros discarded)
+
+  sv1_u0308_b050
+    chord     +9.2 mm  thumb_tip<->index_tip                    at u=0.16  (56 set-points, 221 checked, 8 artifact zeros discarded)
+    csv       +9.2 mm  thumb_tip<->index_tip                    at u=0.15  (56 set-points, 221 checked, 12 artifact zeros discarded)
+
+  sv1_u1364_b080
+    chord     +5.0 mm  thumb_tip<->index_tip                    at u=0.00  (56 set-points, 221 checked, 3 artifact zeros discarded)
+    csv       +5.2 mm  thumb_tip<->index_tip                    at u=0.00  (56 set-points, 221 checked, 3 artifact zeros discarded)
+
+  sv1_u7952_b065
+    chord     +5.4 mm  thumb_tip<->index_tip                    at u=0.00  (56 set-points, 221 checked, 14 artifact zeros discarded)
+    csv       +5.5 mm  thumb_tip<->index_tip                    at u=0.00  (56 set-points, 221 checked, 6 artifact zeros discarded)
+
+  sv1_w0099_b100
+    chord     +8.2 mm  index_mcp_frame<->middle_pip_frame       at u=1.00  (56 set-points, 221 checked, 6 artifact zeros discarded)
+    csv       +8.2 mm  index_mcp_frame<->middle_pip_frame       at u=0.98  (56 set-points, 221 checked, 10 artifact zeros discarded)
+
+  sv1_w0116_b100
+    chord    +11.6 mm  thumb_tip<->index_tip                    at u=0.00  (56 set-points, 221 checked, 11 artifact zeros discarded)
+    csv      +11.8 mm  thumb_tip<->index_tip                    at u=0.00  (56 set-points, 221 checked, 8 artifact zeros discarded)
+
+  sv1_w2360_b075
+    chord    +10.4 mm  thumb_tip<->index_tip                    at u=0.06  (56 set-points, 221 checked, 2 artifact zeros discarded)
+    csv      +10.4 mm  thumb_tip<->index_tip                    at u=0.05  (56 set-points, 221 checked)
+
+  sv1_w6689_b060
+    chord     +8.5 mm  thumb_tip<->index_tip                    at u=0.06  (56 set-points, 221 checked, 16 artifact zeros discarded)
+    csv       +8.5 mm  thumb_tip<->index_tip                    at u=0.05  (56 set-points, 221 checked, 9 artifact zeros discarded)
+
+  design          chord        csv   verdict
+  g12             +8.7       +8.8   run on: chord, csv
+  g12_b095        +8.7       +8.8   run on: chord, csv
+  g12w08          +8.7       +8.8   run on: chord, csv
+  g12w11          +8.7       +8.8   run on: chord, csv
+  g23             +0.8       +0.8   NO SAFE PATH
+  g24             -5.2       -4.1   NO SAFE PATH
+  rv04_mid        -2.6       -2.0   NO SAFE PATH
+  rv05_manual_b85     +10.3      +10.3   run on: chord, csv
+  sv1_u0060_b100      +9.9       +9.9   run on: chord, csv
+  sv1_u0060_b75      +9.9       +9.9   run on: chord, csv
+  sv1_u0100_b100      +9.8       +9.8   run on: chord, csv
+  sv1_u0100_b70      +7.5       +7.5   run on: chord, csv
+  sv1_u0308_b050      +9.2       +9.2   run on: chord, csv
+  sv1_u1364_b080      +5.0       +5.2   run on: csv
+  sv1_u7952_b065      +5.4       +5.5   run on: chord, csv
+  sv1_w0099_b100      +8.2       +8.2   run on: chord, csv
+  sv1_w0116_b100     +11.6      +11.8   run on: chord, csv
+  sv1_w2360_b075     +10.4      +10.4   run on: chord, csv
+  sv1_w6689_b060      +8.5       +8.5   run on: chord, csv
