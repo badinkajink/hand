@@ -1,0 +1,63 @@
+{
+  "budget_rad": 1.0,
+  "hold_steps": 4800,
+  "hold_seconds": 9.6,
+  "repeats": 10,
+  "clearance_minimum_mm": 5.0,
+  "alignment_minimum": 0.7,
+  "designs": {
+    "sv1_u0060": {
+      "export": true,
+      "chord_clearance_mm": 9.8591,
+      "csv_clearance_mm": 9.8596,
+      "driver_valid": false,
+      "driver_violations": [
+        "middle_aa -73.88deg outside [-70.00, 70.00] -- short by 3.88deg"
+      ],
+      "held_repeats": 10,
+      "aligned_and_held_repeats": 0,
+      "mean_final_cos": 0.418,
+      "mean_drop_mm": 3.4,
+      "verdict": "reject_b100"
+    },
+    "sv1_u0100": {
+      "export": true,
+      "chord_clearance_mm": 9.7858,
+      "csv_clearance_mm": 9.7858,
+      "driver_valid": true,
+      "driver_violations": [],
+      "held_repeats": 0,
+      "aligned_and_held_repeats": 0,
+      "mean_final_cos": 0.0,
+      "mean_drop_mm": 113.3,
+      "verdict": "reject_b100"
+    },
+    "sv1_w0099": {
+      "export": true,
+      "chord_clearance_mm": 8.1881,
+      "csv_clearance_mm": 8.1881,
+      "driver_valid": true,
+      "driver_violations": [],
+      "held_repeats": 7,
+      "aligned_and_held_repeats": 0,
+      "mean_final_cos": 0.4,
+      "mean_drop_mm": 10.3,
+      "verdict": "reject_b100"
+    },
+    "sv1_w0116": {
+      "export": true,
+      "chord_clearance_mm": 11.6362,
+      "csv_clearance_mm": 11.7844,
+      "driver_valid": false,
+      "driver_violations": [
+        "middle_aa -76.27deg outside [-70.00, 70.00] -- short by 6.27deg"
+      ],
+      "held_repeats": 5,
+      "aligned_and_held_repeats": 0,
+      "mean_final_cos": 0.345,
+      "mean_drop_mm": 56.2,
+      "verdict": "reject_b100"
+    }
+  },
+  "runnable_plan_additions": []
+}

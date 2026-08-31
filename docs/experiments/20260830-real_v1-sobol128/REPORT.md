@@ -5,6 +5,11 @@
 **Task:** fixed-palm bench reorientation of the medium screwdriver using an open-loop joint
 trajectory and only hardware-configurable real-v1 mount coordinates
 
+> **Budget-1.0 deployment follow-up:** a later [uniform deployment audit](deploy_b100/README.md)
+> exported `sv1_u0060`, `sv1_u0100`, `sv1_w0099`, and `sv1_w0116`. All four pass modeled
+> trajectory clearance, but none passes the combined driver-range and ten-repeat aligned-hold
+> gates. Consequently, no `_b100` plan was added to the runnable station directory.
+
 ## Result
 
 The sampling route works well enough to continue. The 128 new hands produced multiple nominal

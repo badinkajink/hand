@@ -23,8 +23,9 @@ measuring against a physical pose rather than assumed from the CAD.
 """
 from __future__ import annotations
 
-import argparse, pathlib
+import argparse
 import json
+import pathlib
 import sys
 from pathlib import Path
 
@@ -50,6 +51,9 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--design", required=True)
+    ap.add_argument("--tag", default=None,
+                    help="output filename stem; defaults to --design (for example, use "
+                         "sv1_u0060_b100 for a budget-tagged export)")
     ap.add_argument("--object", default="medium", choices=tuple(OBJECTS))
     ap.add_argument("--axis-k", type=float, default=None, help="override the table's pivot height")
     ap.add_argument("--angle-deg", type=float, default=None)
@@ -96,6 +100,7 @@ def main() -> int:
                          "docs/experiments/20260830-real_v1-sobol128/pilot_table.json -- and "
                          "its designs do not exist in the default one.")
     args = ap.parse_args()
+    output_tag = args.tag or args.design
     if args.bench_height > 1.0:
         print(f"--bench-height {args.bench_height:g} read as {args.bench_height:g} mm "
               f"(> 1 m is not a bench); pass {args.bench_height / 1000:g} for metres.")
@@ -156,7 +161,7 @@ def main() -> int:
                if args.bench_height <= 0 else
                f"  palm           FIXED; tool starts at {args.bench_height*1000:.0f} mm on a "
                f"support at y {args.post_y:+.0f} mm")]
-    (args.out / f"{args.design}_build.txt").write_text("\n".join(lines) + "\n")
+    (args.out / f"{output_tag}_build.txt").write_text("\n".join(lines) + "\n")
 
     # ---- the trajectory ---------------------------------------------------------------------
     rows, t = [], 0.0
@@ -195,7 +200,7 @@ def main() -> int:
     for _ in range(80):                       # hold 1.6 s
         rows.append([round(t, 3)] + rows[-1][1:])
         t += dt
-    csv = args.out / f"{args.design}_traj.csv"
+    csv = args.out / f"{output_tag}_traj.csv"
     csv.write_text("t_s," + ",".join(f"{j}_deg" for j in JOINTS) + ",palm_z_mm\n"
                    + "\n".join(",".join(str(v) for v in r) for r in rows) + "\n")
 
@@ -214,7 +219,7 @@ def main() -> int:
               f"  ramp 3  grip pose -> end of turn         {args.turn_steps/500:.1f} s",
               f"  ramp 4  end of turn -> re-squeeze        "
               f"{(plan['squeeze_steps']/500 if plan.get('squeeze_delta') else 0):.1f} s"]
-    (args.out / f"{args.design}_poses.txt").write_text("\n".join(poses) + "\n")
+    (args.out / f"{output_tag}_poses.txt").write_text("\n".join(poses) + "\n")
 
     # ---- the same thing again, for the driver ------------------------------------------------
     # The .txt sheets are for a person; this is for manta_hand.plan.HandPlan, which turns it into
@@ -263,6 +268,7 @@ def main() -> int:
                  "straddle_mm": st * 1000, "thumb_axial_mm": ta * 1000,
                  "squeeze_mm": args.squeeze_mm, "grip_depth_mm": plan["grip_depth_mm"],
                  "axis_k": k, "angle_deg": ang, "turn_steps": args.turn_steps,
+                 "budget_rad": args.budget,
                  "pad_width_mm": args.pad_width_mm, "flat_pads": bool(args.flat_pads),
                  "bench_height_mm": args.bench_height * 1000, "post_y_mm": args.post_y,
                  "palm_lift_mm": 0.0 if args.bench_height > 0 else args.lift * 1000},
@@ -270,11 +276,11 @@ def main() -> int:
     if sq_s:
         sq_deg = {j: float(np.degrees(anchor[j] + plan["squeeze_delta"][j])) for j in JOINTS}
         jplan["poses"].append(_pose("resqueeze", sq_s, 1.6, sq_deg))
-    (args.out / f"{args.design}_plan.json").write_text(json.dumps(jplan, indent=2) + "\n")
+    (args.out / f"{output_tag}_plan.json").write_text(json.dumps(jplan, indent=2) + "\n")
 
     print("\n".join(lines))
     print(f"\nwrote {csv} ({len(rows)} rows at {CTRL_HZ:.0f} Hz), the build/poses sheets, "
-          f"and {args.design}_plan.json for manta_hand.plan")
+          f"and {output_tag}_plan.json for manta_hand.plan")
     return 0
 
 

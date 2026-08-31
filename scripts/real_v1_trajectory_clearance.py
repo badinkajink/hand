@@ -24,7 +24,12 @@ necessary and not sufficient.  A negative number means the geoms interpenetrate.
   python3 scripts/real_v1_trajectory_clearance.py --all --substeps 8
 """
 from __future__ import annotations
-import argparse, csv, itertools, json, os, sys
+
+import argparse
+import csv
+import itertools
+import json
+import sys
 from pathlib import Path
 
 import mujoco
@@ -188,7 +193,7 @@ def main():
         designs = sorted({p.name.removesuffix("_plan.json")
                           for p in DEPLOY.glob("*_plan.json")})
 
-    out, worst_overall = {}, {}
+    out = {}
     print(f"finger<->finger clearance, PASS >= {args.min_mm:.1f} mm on sim geometry\n")
     for design in designs:
         print(f"  {design}")
