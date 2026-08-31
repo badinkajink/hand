@@ -135,6 +135,7 @@
     "axis_k": 0.05,
     "angle_deg": -60.0,
     "turn_steps": 550,
+    "budget_rad": 0.85,
     "pad_width_mm": 21.1,
     "flat_pads": true,
     "bench_height_mm": 100.0,

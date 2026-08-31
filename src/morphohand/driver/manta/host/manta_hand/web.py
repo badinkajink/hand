@@ -81,7 +81,13 @@ class ControlHTTPServer(ThreadingHTTPServer):
                 plan = HandPlan.from_json(path)
                 schema = plan.schema_errors()
                 rows.append({"file": path.name, "design": plan.design, "meta": plan.meta,
-                             "metrics": catalog.get(plan.design, {}),
+                             # keyed by FILE STEM first: the same design now ships several
+                             # plans that differ only in residual clip (sv1_u0060_b75 and
+                             # sv1_u0060_b100 are one hand at two clips, and they behave
+                             # nothing alike), so metrics keyed by design alone would show
+                             # the same numbers under both.
+                             "metrics": catalog.get(path.name.removesuffix("_plan.json"),
+                                                    catalog.get(plan.design, {})),
                              "mounts_palm_mm": plan.mounts_palm_mm,
                              "poses": [p.name for p in plan.poses],
                              "violations": schema + [str(v) for v in plan.validate()]})
