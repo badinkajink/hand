@@ -106,6 +106,11 @@ def _servo_job(a):
     return tag, budget, short, worst
 
 
+def _edge(blocked: list[float]) -> str:
+    """The lowest clip a servo range refuses, or 'nothing'."""
+    return f"{min(blocked):.2f}+" if blocked else "nothing"
+
+
 def _servo_only(a, metas, shipped, budgets) -> int:
     """Rewrite servo_short_deg in place. Everything else in the file is a rollout result and
     is left exactly as it was measured."""
@@ -127,8 +132,7 @@ def _servo_only(a, metas, shipped, budgets) -> int:
         s["servo_short_deg"] = {str(b): short.get((tag, b), (0.0, ""))[0] for b in budgets}
         now = [b for b in budgets if s["servo_short_deg"][str(b)] > 0.0]
         if was != now:
-            fmt = lambda v: (f"{min(v):.2f}+" if v else "nothing")
-            print(f"{tag:22s} {fmt(was):>32s} -> {fmt(now):>32s}")
+            print(f"{tag:22s} {_edge(was):>32s} -> {_edge(now):>32s}")
     a.out.write_text(json.dumps(doc, indent=1) + "\n")
     print(f"\nrewrote {a.out}")
     return 0

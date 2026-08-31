@@ -456,7 +456,9 @@ def main() -> int:
                    help="cylinder centre to tag centre along the shaft")
     p.add_argument("--latch-frames", type=int, default=20)
     p.add_argument("--drift-deg", type=float, default=2.0)
-    p.add_argument("--probe-image", default="probe_ir.png")
+    p.add_argument("--probe-image", default=None,
+                   help="default: logs/<stamp>-probe_ir.png.  Not the repo root -- run "
+                        "outputs live under logs/ (gitignored)")
     p.add_argument("--quiet", action="store_true")
     p.add_argument("--live-hz", type=float, default=12.0)
     a = p.parse_args()
@@ -465,8 +467,11 @@ def main() -> int:
         exe = find_interpreter()
         print(exe or "")
         return 0 if exe else 1
+    stamp = time.strftime("%Y%m%d-%H%M%S")
     if a.out is None:
-        a.out = ROOT / f"logs/{time.strftime('%Y%m%d-%H%M%S')}-turn_trace.csv"
+        a.out = ROOT / f"logs/{stamp}-turn_trace.csv"
+    if a.probe_image is None:
+        a.probe_image = ROOT / f"logs/{stamp}-probe_ir.png"
 
     rs, cv2, Detector = _camera()
     if a.calibrate_heading:
