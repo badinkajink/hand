@@ -34,3 +34,8 @@ hold band, not shared: see
   docs/experiments/20260830-real_v1-sobol128/deploy/README.md
 for the band scan, the two designs that were rejected, and the gates that were run.
 UNTESTED ON HARDWARE.
+
+A later uniform budget-1.0 audit exported u0060/u0100/w0099/w0116 but added none here:
+all four cleared simulated finger geometry, while none passed both driver validation and ten
+repeated aligned 9.6-second holds. Evidence:
+  docs/experiments/20260830-real_v1-sobol128/deploy_b100/README.md

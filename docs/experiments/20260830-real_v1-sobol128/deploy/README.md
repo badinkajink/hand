@@ -1,5 +1,11 @@
 # Clearing the Sobol-128 finalists onto hardware (2026-08-30)
 
+> **Uniform budget-1.0 follow-up:** all four Sobol finalists were re-exported and passed both
+> trajectory-clearance paths, but none passed the combined driver + repeated aligned-hold gates.
+> No `_b100` plan was added to the runnable station set. See
+> [`../deploy_b100/README.md`](../deploy_b100/README.md). The per-design tuned plans below are a
+> separate result and remain untested on hardware.
+
 The pilot ([`../REPORT.md`](../REPORT.md)) ranked 134 hands but stopped short of exporting any of
 them, and its own ranking was measured at a 1.6 s hold and a 0.5 rad residual clip -- both of
 which [`../HOLD_REVIEW.md`](../HOLD_REVIEW.md) showed to be wrong. This is the promotion pass:

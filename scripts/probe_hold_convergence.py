@@ -15,7 +15,9 @@ not.
       --plans docs/experiments/20260830-real_v1-sobol128/plans \
       --holds 800,2400,4800 --reps 3
 """
-import argparse, json, sys
+import argparse
+import json
+import sys
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
