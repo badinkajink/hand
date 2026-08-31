@@ -1,5 +1,8 @@
 # The bench gets an object-pose sensor — 2026-08-31
 
+*Digestible version:* <https://claude.ai/code/artifact/56cfae1b-3922-48ae-8e20-94ea2a7f66ca>
+(source kept here as `tape-measure.html`).
+
 Every hardware result this program has produced was scored by an operator looking at the shaft
 and typing a number. `scripts/probe_obs_ablation.py` called the object-derived observation
 blocks *hidden*; `real_v1_bench_session.py`'s docstring said "there is no object-pose sensor on

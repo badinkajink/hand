@@ -1,0 +1,138 @@
+[
+ {
+  "design": "sv1_u5855",
+  "tag": "sv1_u5855_b050",
+  "budget_rad": 0.5,
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/20260829-deploy_envelope/scene_tp0d0217n0d0021p0d0000_ip0d0039p0d0023p0d0000_mp0d0151p0d0076p0d0000__medium__bench100py-35__flat15w21T.xml",
+  "straddle_mm": 32.0,
+  "thumb_axial_mm": 10.0,
+  "axis_k": 0.15,
+  "angle_deg": -80.0,
+  "servo_violations": [],
+  "clearance_mm": {
+   "chord": 5.9,
+   "csv": 6.0
+  },
+  "clearance_pair": "thumb_tip<->index_tip",
+  "verdict": "ship"
+ },
+ {
+  "design": "sv1_u5860",
+  "tag": "sv1_u5860_b070",
+  "budget_rad": 0.7,
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/20260829-deploy_envelope/scene_tp0d0103p0d0429p0d0000_in0d0093n0d0215p0d0000_mn0d0065p0d0090p0d0000__medium__bench100py-35__flat15w21T.xml",
+  "straddle_mm": 32.0,
+  "thumb_axial_mm": 20.0,
+  "axis_k": 0.15,
+  "angle_deg": -80.0,
+  "servo_violations": [],
+  "clearance_mm": {
+   "chord": 3.9,
+   "csv": 4.1
+  },
+  "clearance_pair": "thumb_tip<->index_tip",
+  "verdict": "clearance"
+ },
+ {
+  "design": "sv1_u7952",
+  "tag": "sv1_u7952_b050",
+  "budget_rad": 0.5,
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/20260829-deploy_envelope/scene_tp0d0182p0d0147p0d0000_ip0d0014p0d0228p0d0000_mp0d0006p0d0183p0d0000__medium__bench100py-35__flat15w21T.xml",
+  "straddle_mm": 32.0,
+  "thumb_axial_mm": 10.0,
+  "axis_k": 0.15,
+  "angle_deg": -80.0,
+  "servo_violations": [],
+  "clearance_mm": {
+   "chord": 5.4,
+   "csv": 5.5
+  },
+  "clearance_pair": "thumb_tip<->index_tip",
+  "verdict": "ship"
+ },
+ {
+  "design": "sv1_u7952",
+  "tag": "sv1_u7952_b065",
+  "budget_rad": 0.65,
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/20260829-deploy_envelope/scene_tp0d0182p0d0147p0d0000_ip0d0014p0d0228p0d0000_mp0d0006p0d0183p0d0000__medium__bench100py-35__flat15w21T.xml",
+  "straddle_mm": 32.0,
+  "thumb_axial_mm": 10.0,
+  "axis_k": 0.15,
+  "angle_deg": -80.0,
+  "servo_violations": [],
+  "clearance_mm": {
+   "chord": 5.4,
+   "csv": 5.5
+  },
+  "clearance_pair": "thumb_tip<->index_tip",
+  "verdict": "ship"
+ },
+ {
+  "design": "sv1_w5120",
+  "tag": "sv1_w5120_b070",
+  "budget_rad": 0.7,
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/20260829-deploy_envelope/scene_tp0d0199p0d0224p0d0000_in0d0093n0d0046p0d0000_mn0d0092n0d0048p0d0000__medium__bench100py-35__flat15w21T.xml",
+  "straddle_mm": 32.0,
+  "thumb_axial_mm": 10.0,
+  "axis_k": 0.15,
+  "angle_deg": -80.0,
+  "servo_violations": [],
+  "clearance_mm": {
+   "chord": 5.0,
+   "csv": 5.2
+  },
+  "clearance_pair": "thumb_tip<->index_tip",
+  "verdict": "ship"
+ },
+ {
+  "design": "sv1_w6689",
+  "tag": "sv1_w6689_b050",
+  "budget_rad": 0.5,
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/20260829-deploy_envelope/scene_tn0d0043n0d0337p0d0000_in0d0121n0d0129p0d0000_mn0d0110p0d0120p0d0000__medium__bench100py-35__flat15w21T.xml",
+  "straddle_mm": 32.0,
+  "thumb_axial_mm": 10.0,
+  "axis_k": 0.15,
+  "angle_deg": -80.0,
+  "servo_violations": [],
+  "clearance_mm": {
+   "chord": 8.5,
+   "csv": 8.5
+  },
+  "clearance_pair": "thumb_tip<->index_tip",
+  "verdict": "ship"
+ },
+ {
+  "design": "sv1_w6689",
+  "tag": "sv1_w6689_b060",
+  "budget_rad": 0.6,
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/20260829-deploy_envelope/scene_tn0d0043n0d0337p0d0000_in0d0121n0d0129p0d0000_mn0d0110p0d0120p0d0000__medium__bench100py-35__flat15w21T.xml",
+  "straddle_mm": 32.0,
+  "thumb_axial_mm": 10.0,
+  "axis_k": 0.15,
+  "angle_deg": -80.0,
+  "servo_violations": [],
+  "clearance_mm": {
+   "chord": 8.5,
+   "csv": 8.5
+  },
+  "clearance_pair": "thumb_tip<->index_tip",
+  "verdict": "ship"
+ },
+ {
+  "design": "sv1_w7583",
+  "tag": "sv1_w7583_b130",
+  "budget_rad": 1.3,
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/20260829-deploy_envelope/scene_tp0d0208n0d0038p0d0000_ip0d0176n0d0148p0d0000_mp0d0162p0d0166p0d0000__medium__bench100py-35__flat15w21T.xml",
+  "straddle_mm": 32.0,
+  "thumb_axial_mm": 10.0,
+  "axis_k": 0.15,
+  "angle_deg": -80.0,
+  "servo_violations": [],
+  "clearance_mm": {
+   "chord": 7.3,
+   "csv": 7.4
+  },
+  "clearance_pair": "thumb_tip<->index_tip",
+  "verdict": "ship"
+ }
+]

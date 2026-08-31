@@ -1,0 +1,429 @@
+<title>Tape Measure and Two Tags</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Spectral:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --paper:#f6f4ef; --ink:#1d2422; --ink-soft:#55605c; --ink-faint:#8b948f;
+  --rule:#d9d5cb; --panel:#fffdf9; --panel2:#eeebe3;
+  --measure:#0f6f74;         /* the instrument */
+  --measure-wash:#0f6f7418;
+  --estimate:#a4552b;        /* the eyeball */
+  --estimate-wash:#a4552b18;
+  --known:#5b6b52;           /* replayable / already had it */
+  --shadow:0 1px 2px #1d24220c, 0 8px 24px #1d242208;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#111614; --ink:#e6e6df; --ink-soft:#a2ada8; --ink-faint:#6d7873;
+    --rule:#2a3330; --panel:#171d1b; --panel2:#1e2523;
+    --measure:#4fd2d6; --measure-wash:#4fd2d61c;
+    --estimate:#e39264; --estimate-wash:#e392641c;
+    --known:#9db38e;
+    --shadow:0 1px 2px #0006, 0 10px 30px #0004;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#111614; --ink:#e6e6df; --ink-soft:#a2ada8; --ink-faint:#6d7873;
+  --rule:#2a3330; --panel:#171d1b; --panel2:#1e2523;
+  --measure:#4fd2d6; --measure-wash:#4fd2d61c;
+  --estimate:#e39264; --estimate-wash:#e392641c;
+  --known:#9db38e;
+  --shadow:0 1px 2px #0006, 0 10px 30px #0004;
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font-family:Spectral,Georgia,serif;font-size:17px;line-height:1.62;
+  -webkit-font-smoothing:antialiased}
+.wrap{max-width:1080px;margin:0 auto;padding:0 28px 96px}
+h1,h2,h3,.eyebrow,.num,th,.chip{font-family:Archivo,"Helvetica Neue",Arial,sans-serif}
+h1{font-size:clamp(2.3rem,6vw,3.6rem);font-weight:700;letter-spacing:-.025em;line-height:1.02;
+  margin:0 0 .35em;text-wrap:balance}
+h2{font-size:clamp(1.3rem,3vw,1.7rem);font-weight:600;letter-spacing:-.015em;margin:0 0 .2em;
+  text-wrap:balance}
+h3{font-size:1rem;font-weight:600;letter-spacing:.01em;margin:0 0 .3em}
+p{margin:0 0 1em;max-width:66ch}
+.eyebrow{font-size:.7rem;font-weight:600;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--ink-faint);margin:0 0 .8em}
+.mono,code,td.n,.scale-n{font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-variant-numeric:tabular-nums}
+code{font-size:.86em;background:var(--panel2);padding:.1em .35em;border-radius:3px;
+  color:var(--ink)}
+a{color:var(--measure)}
+em{font-style:italic}
+strong{font-weight:600}
+
+/* ---- masthead ------------------------------------------------------------ */
+header{padding:76px 0 40px;border-bottom:1px solid var(--rule);margin-bottom:52px}
+.lede{font-size:1.22rem;color:var(--ink-soft);max-width:60ch;margin:0}
+.stamp{display:flex;gap:22px;flex-wrap:wrap;margin-top:26px;
+  font-family:"IBM Plex Mono",monospace;font-size:.72rem;color:var(--ink-faint);
+  letter-spacing:.04em;text-transform:uppercase}
+
+/* ---- sections ------------------------------------------------------------ */
+section{margin:0 0 72px;scroll-margin-top:24px}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:34px;align-items:start}
+@media(max-width:820px){.two{grid-template-columns:1fr}}
+
+/* ---- the datum ruler ----------------------------------------------------- */
+.datum{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr);gap:40px;
+  align-items:start}
+@media(max-width:820px){.datum{grid-template-columns:1fr}}
+.ruler{position:relative;height:430px;border-left:2px solid var(--ink);
+  margin:14px 0 0 74px}
+.ruler .floor{position:absolute;left:-76px;right:-10px;bottom:0;height:2px;background:var(--ink)}
+.ruler .floor::after{content:"bench floor · 0";position:absolute;left:0;top:8px;
+  font-family:"IBM Plex Mono",monospace;font-size:.66rem;color:var(--ink-faint);
+  letter-spacing:.05em}
+.tick{position:absolute;left:0;width:100%;border-top:1px dashed var(--rule)}
+.tick.solid{border-top-style:solid;border-top-color:var(--measure)}
+.tick .scale-n{position:absolute;right:calc(100% + 10px);top:-.75em;font-size:.74rem;
+  color:var(--ink-soft);white-space:nowrap}
+.tick .lab{position:absolute;left:10px;top:-1.45em;font-size:.76rem;color:var(--ink-soft);
+  font-family:Archivo,sans-serif}
+.tick.solid .lab,.tick.solid .scale-n{color:var(--measure);font-weight:500}
+.link{position:absolute;left:-58px;width:12px;border-left:2px solid var(--estimate)}
+.link::before,.link::after{content:"";position:absolute;left:-4px;width:10px;height:2px;
+  background:var(--estimate)}
+.link::before{top:0}.link::after{bottom:0}
+.link span{position:absolute;left:-52px;top:50%;transform:translateY(-50%) rotate(-90deg);
+  transform-origin:center;font-family:"IBM Plex Mono",monospace;font-size:.68rem;
+  color:var(--estimate);white-space:nowrap;font-weight:500}
+
+/* ---- panels -------------------------------------------------------------- */
+.panel{background:var(--panel);border:1px solid var(--rule);border-radius:10px;padding:22px 24px;
+  box-shadow:var(--shadow)}
+.panel.tight{padding:18px 20px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;
+  background:var(--rule);border:1px solid var(--rule);border-radius:10px;overflow:hidden;
+  margin:26px 0}
+.stat{background:var(--panel);padding:18px 20px}
+.stat .num{display:block;font-size:1.85rem;font-weight:700;letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums;line-height:1.1;color:var(--measure)}
+.stat .num.est{color:var(--estimate)}
+.stat small{display:block;color:var(--ink-faint);font-size:.72rem;margin-top:6px;
+  font-family:Archivo,sans-serif;letter-spacing:.05em;text-transform:uppercase}
+.stat .sub{display:block;color:var(--ink-soft);font-size:.82rem;margin-top:8px}
+
+/* ---- tables -------------------------------------------------------------- */
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:22px 0}
+table{border-collapse:collapse;width:100%;font-size:.88rem;min-width:520px}
+th{font-size:.68rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-faint);text-align:left;padding:0 14px 9px 0;border-bottom:1px solid var(--rule);
+  white-space:nowrap}
+td{padding:9px 14px 9px 0;border-bottom:1px solid var(--rule);vertical-align:baseline}
+td.n{text-align:right;padding-right:18px;white-space:nowrap}
+tr:last-child td{border-bottom:0}
+.up{color:var(--measure);font-weight:500}
+.gone{color:var(--ink-faint);text-decoration:line-through}
+
+/* ---- the observation band ------------------------------------------------ */
+.obs{display:flex;gap:2px;margin:20px 0 10px;height:56px}
+.obs div{border-radius:2px;position:relative;display:flex;align-items:flex-end;
+  justify-content:center;padding-bottom:5px;font-family:"IBM Plex Mono",monospace;
+  font-size:.62rem;color:#fff;overflow:hidden}
+.obs .m{background:var(--measure)}
+.obs .n{background:var(--measure);outline:2px solid var(--estimate);outline-offset:-2px}
+.obs .r{background:var(--known)}
+.obs .i{background:var(--ink-faint)}
+.obskey{display:flex;gap:20px;flex-wrap:wrap;font-size:.78rem;color:var(--ink-soft);
+  margin-bottom:8px}
+.obskey span{display:flex;align-items:center;gap:7px}
+.sw{width:13px;height:13px;border-radius:3px;display:inline-block}
+.obslabels{display:flex;gap:2px;font-family:"IBM Plex Mono",monospace;font-size:.62rem;
+  color:var(--ink-faint)}
+.obslabels div{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+
+/* ---- callouts ------------------------------------------------------------ */
+.note{border-left:3px solid var(--measure);background:var(--measure-wash);
+  padding:16px 20px;border-radius:0 8px 8px 0;margin:24px 0}
+.note.warn{border-left-color:var(--estimate);background:var(--estimate-wash)}
+.note p:last-child{margin-bottom:0}
+.note .eyebrow{color:var(--measure)}
+.note.warn .eyebrow{color:var(--estimate)}
+
+/* ---- numbered blockers --------------------------------------------------- */
+ol.blockers{list-style:none;counter-reset:b;padding:0;margin:24px 0 0}
+ol.blockers li{counter-increment:b;position:relative;padding:0 0 20px 52px;
+  border-bottom:1px solid var(--rule);margin-bottom:20px}
+ol.blockers li:last-child{border-bottom:0;margin-bottom:0;padding-bottom:0}
+ol.blockers li::before{content:counter(b);position:absolute;left:0;top:1px;
+  font-family:Archivo,sans-serif;font-weight:700;font-size:.8rem;
+  width:30px;height:30px;border-radius:50%;border:1.5px solid var(--rule);
+  display:grid;place-items:center;color:var(--ink-faint)}
+ol.blockers li p{margin:0}
+ol.blockers h3{margin-bottom:.15em}
+
+footer{border-top:1px solid var(--rule);padding-top:26px;color:var(--ink-faint);font-size:.84rem}
+footer p{max-width:none}
+</style>
+
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">MorphoHand · real_v1 bench · 31 August 2026</p>
+  <h1>Tape Measure<br>and Two Tags</h1>
+  <p class="lede">Every hardware result this program has produced was scored by someone
+    looking at the shaft and typing a number. That stopped today, and it cost two printed
+    AprilTags and four measurements with a tape.</p>
+  <div class="stamp">
+    <span>0.017° rms</span><span>0.030 mm rms</span><span>30 fps</span>
+    <span>11 of 66 columns recovered</span><span>17 of 17 plans load</span>
+  </div>
+</header>
+
+<section>
+  <div class="datum">
+    <div>
+      <p class="eyebrow">The measurement that matters</p>
+      <div class="ruler">
+        <div class="tick solid" style="bottom:82.4%"><span class="scale-n">175.0</span><span class="lab">reference tag centre</span></div>
+        <div class="tick" style="bottom:67.8%"><span class="scale-n">144.0</span><span class="lab">tool post · sim 100</span></div>
+        <div class="tick solid" style="bottom:30.6%"><span class="scale-n">65.0</span><span class="lab">distal link, top edge</span></div>
+        <div class="tick" style="bottom:9.9%"><span class="scale-n">21.0</span><span class="lab">the same edge, in sim</span></div>
+        <div class="link" style="bottom:9.9%;height:20.7%"><span>44.0 mm</span></div>
+        <div class="floor"></div>
+      </div>
+    </div>
+    <div>
+      <h2>A camera gives you angles. A tape measure gives you a frame.</h2>
+      <p>An AprilTag reports its pose in the <em>camera's</em> frame — a frame that moves
+        whenever anyone nudges the tripod. Four numbers, recorded by hand, turn that into
+        something the simulator can be held to.</p>
+      <p>The load-bearing one is the fingertip datum, because it is the only measurement that
+        ties the two floors together <em>through a part both sides model</em>. With the distal
+        link vertical, its top flat edge sits <span class="mono">65.0 mm</span> above the bench
+        floor. In <code>real_hand_morphology_actuated.xml</code> at the zero pose that same edge
+        is at <span class="mono">21.0 mm</span>, and the 37.2 mm link runs down from there to
+        16.2 mm <em>below</em> the floor — which is the scene builder's own "straight fingers put
+        every pad 16 mm below the floor" note, arrived at from the other direction.</p>
+      <p>So <span class="mono">z_bench = z_sim + 44.0</span>, the physical palm plane stands
+        106.5 mm over its table where the simulator's stands at 62.5 over its own, and the bench
+        scenes' 100 mm post is 144 mm on the floor. One subtraction, written down in one place,
+        and a height measured on the bench becomes a height the sim predicted.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <p class="eyebrow">The instrument, measured</p>
+  <h2>Against an eyeball at ±5°</h2>
+  <div class="stats">
+    <div class="stat"><span class="num">0.017°</span><small>rms, angle from vertical</small>
+      <span class="sub">peak-to-peak 0.092° over 179 frames</span></div>
+    <div class="stat"><span class="num">0.030 mm</span><small>rms, centre height</small>
+      <span class="sub">peak-to-peak 0.200 mm</span></div>
+    <div class="stat"><span class="num">30.0 fps</span><small>at 100% visibility</small>
+      <span class="sub">1280×720 IR, projector off</span></div>
+    <div class="stat"><span class="num est">±5°</span><small>what it replaces</small>
+      <span class="sub">and 20 bench runs recorded no angle at all</span></div>
+  </div>
+  <p>That is the <em>floor</em> — a static target at 320 mm with no motion smear, not what a
+    swinging shaft will give. But it settles the only question that mattered before spending a
+    bench session: the differences simulation predicts between the shipped plans are 12° apart,
+    and the instrument resolves them by three orders of magnitude.</p>
+</section>
+
+<section>
+  <p class="eyebrow">Two things it will not tell you</p>
+  <h2>What the sensor refuses</h2>
+  <div class="two">
+    <div class="panel">
+      <h3>The tag is not the object</h3>
+      <p style="margin-bottom:0">The cylinder tag rides a vane 21 mm past the flat end face —
+        <span class="mono">71 mm</span> from the centre along the shaft. Through a 90° turn the
+        tag sweeps 71 mm while the cylinder's centre barely moves. Reporting the tag's position
+        as the object's would put a phantom 70 mm translation in every trace, and it would look
+        exactly like a slip.</p>
+    </div>
+    <div class="panel">
+      <h3>Bench x and y are withheld</h3>
+      <p style="margin-bottom:0">A single static tag supplies world up, and the tape supplies a
+        height datum. It cannot supply its own <em>heading</em> about vertical — that is one
+        unknown short of a full frame. So heights and radial distances are reported and
+        <span class="mono">(x, y)</span> comes back as <code>None</code>, not as a
+        plausible-looking zero, until <code>--calibrate-heading</code> solves it against a
+        known staged position.</p>
+    </div>
+  </div>
+  <div class="note">
+    <p class="eyebrow">Why that second one is a design decision, not a limitation</p>
+    <p style="margin-bottom:0">A fabricated heading would print believable x/y numbers beside
+      real z ones, in the same table, in the same units, with nothing distinguishing them. The
+      geometry module returns <code>None</code> and the web app prints
+      <em>no heading calibrated</em> in the slot where the coordinate would go.</p>
+  </div>
+</section>
+
+<section>
+  <p class="eyebrow">The observation vector</p>
+  <h2>Eleven columns came back</h2>
+  <p><code>probe_obs_ablation.py</code> grouped three observation terms under the name
+    <em>hidden</em>, with the comment "there is no object tracker, so anything derived from the
+    object's pose is hidden." True when it was written. Not true after this afternoon.</p>
+
+  <div class="obskey">
+    <span><i class="sw" style="background:var(--measure)"></i> measured on the bench</span>
+    <span><i class="sw" style="background:var(--measure);outline:2px solid var(--estimate);outline-offset:-2px"></i> newly measured today</span>
+    <span><i class="sw" style="background:var(--known)"></i> replayable from a file</span>
+    <span><i class="sw" style="background:var(--ink-faint)"></i> the controller already has it</span>
+  </div>
+  <div class="obs">
+    <div class="m" style="flex:15">joint_pos 15</div>
+    <div class="m" style="flex:15">joint_vel 15</div>
+    <div class="n" style="flex:3">3</div>
+    <div class="n" style="flex:7">7</div>
+    <div class="r" style="flex:9">ref_qpos 9</div>
+    <div class="r" style="flex:7">ref_pose 7</div>
+    <div class="i" style="flex:9">actions 9</div>
+    <div class="n" style="flex:1"></div>
+  </div>
+  <div class="obslabels">
+    <div style="flex:15">servo position</div>
+    <div style="flex:15">differenced</div>
+    <div style="flex:3">obj_pos</div>
+    <div style="flex:7">obj_pose</div>
+    <div style="flex:9">frozen CEM</div>
+    <div style="flex:7">frozen CEM</div>
+    <div style="flex:9">own output</div>
+    <div style="flex:1">↑</div>
+  </div>
+  <p style="margin-top:18px">Sixty-six columns; the derived total is checked against the actor's
+    own input width, which is the only way to be sure the map describes the policy you are about
+    to deploy. <strong>Nothing is absent any more.</strong></p>
+</section>
+
+<section>
+  <p class="eyebrow">So can the policy run on hardware?</p>
+  <h2>Not yet — and the tags were never what stopped it</h2>
+  <p>The observation problem is solved, and it turns out to have been the smallest of four.</p>
+  <ol class="blockers">
+    <li><h3>Rate</h3><p>The tags run at 30 Hz and the policy at 50. The servo bus sustains about
+      111 Hz of sync <em>writes</em>, but sync <em>reads</em> do not work on the SCS0009 at all,
+      so joint positions cost individual reads.</p></li>
+    <li><h3>Plant</h3><p>The yaw joints arrive at 0.44–0.90 of what they are told — measured over
+      20 bench runs, and it is torque rather than speed. A policy trained where commanded equals
+      achieved is driving a different hand, feedback or no feedback.</p></li>
+    <li><h3>The policy itself</h3><p>b33 was shown to <em>ignore its observations</em>: replaying
+      the whole 66-dimensional input from a different rollout cost nothing. Handing a policy that
+      ignores its inputs a real sensor changes nothing about what it does.</p></li>
+    <li><h3>Safety</h3><p>Nothing gates a streamed policy against finger-to-finger collision, and
+      three of the four originally deployed designs interpenetrate along their own planned
+      path.</p></li>
+  </ol>
+  <div class="note">
+    <p style="margin-bottom:0"><strong>The tags make a sighted policy trainable; they do not make
+      an open-loop one closed.</strong> What they open is not "stream b33 at 50 Hz" — it is that
+      the object-derived columns are now a training signal that survives deployment, so a policy
+      trained to use them is no longer trained on information the bench cannot supply.</p>
+  </div>
+</section>
+
+<section>
+  <p class="eyebrow">Separately, and by a different mechanism</p>
+  <h2>A bound nobody chose was deciding how far the hand may turn</h2>
+  <p>Two plans shipped on 30 August would not load. <code>HandRuntime.load_plan</code> raises on
+    any validation failure, and both overran the aa/yaw command range — by 3.88° and 6.27°, both
+    at <code>turn_end</code>, both on <strong>middle yaw</strong>.</p>
+  <p>That range was not a hardware limit. It was ±70°, a conservative cap set before any plan had
+    been driven; the declared contract — the one the MJCF still encodes and a test pins — is
+    ±85°. And the manual torque-free sweep had put servo 6, the one both plans need, through
+    −162.6° to +136.8° by hand. So the cap was not protecting a servo. It was a screening
+    variable, exactly like the ±0.5 rad residual clip one layer up.</p>
+  <div class="scroll">
+    <table>
+      <thead><tr><th>plan</th><th class="n">clip ceiling at ±70°</th><th class="n">at ±85°</th><th>band it wants</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">sv1_u0060_b75 / _b100</td><td class="n gone">0.90</td><td class="n up">2.00</td><td class="mono">0.65–2.00 · fully reachable</td></tr>
+        <tr><td class="mono">sv1_u0308_b050</td><td class="n gone">0.80</td><td class="n up">2.00</td><td class="mono">0.40–0.85</td></tr>
+        <tr><td class="mono">sv1_u1364_b080</td><td class="n gone">0.80</td><td class="n up">2.00</td><td class="mono">0.40–0.95</td></tr>
+        <tr><td class="mono">sv1_w2360_b075</td><td class="n gone">0.85</td><td class="n up">1.10</td><td class="mono">0.50–0.80</td></tr>
+        <tr><td class="mono">sv1_w0099_b100</td><td class="n gone">1.20</td><td class="n up">1.30</td><td class="mono">0.40 only</td></tr>
+        <tr><td class="mono">sv1_w0116_b100</td><td class="n gone">0.85</td><td class="n up">1.30</td><td class="mono">1.45–2.00 · still out of reach</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>All seventeen shipped plans now validate — verified on the CB1 itself, not just here.
+    <code>sv1_u0060_b100</code> enters the ranking at rank 8, holding 4 of 4 at cos 0.44.
+    <code>sv1_w0116_b100</code> loads but stays unranked: it runs at a clip of 1.00 against a
+    band of 1.45–2.00, which is 45 centirad below where it wants to be and still above the 1.30
+    its servos can be told.</p>
+  <div class="note warn">
+    <p class="eyebrow">The gap in the evidence, stated rather than papered over</p>
+    <p style="margin-bottom:0">Thumb aa was never swept past −70.02° — the manual sweep records
+      where a person stopped moving a freed joint, not necessarily where the joint does. No
+      deployed plan commands it past −23.1°, so nothing rides on it today. If one ever does,
+      sweep servo 0 again before trusting the bound.</p>
+  </div>
+</section>
+
+<section>
+  <p class="eyebrow">What a bench session does now</p>
+  <h2>Two readings of the same run, and their disagreement</h2>
+  <p>Tracking is on by default and needs no flags. The session finds an interpreter that can
+    open the camera, arms the tracker <em>before</em> the motion so the first frames are the
+    staged pose, and stops it by signal when the run ends. Each repeat leaves a per-frame CSV, a
+    summary, and the tracker's own stdout in the session directory.</p>
+  <p>The operator prompt survives, and it now offers the measured angle as its default instead of
+    asking for a recollection. Both readings are kept. The tracker cannot see a shaft that turned
+    by slipping through the fingers rather than with them; it reports a dropout as missing data
+    where the operator sees a dropped shaft; it has no opinion about whether two fingers touched.
+    When the two differ by more than 10°, the session says so at the prompt and records the
+    difference.</p>
+  <p>On the station, samples arriving during a run are appended to that run's own log as
+    <code>kind: "object"</code>, so the trace and the joint commands share one timeline, and
+    <code>capabilities.object_pose</code> is derived from whether data is arriving rather than
+    from a literal — the camera can be unplugged, aimed at a wall, or looking at a shadowed tag,
+    and in each of those the station must not claim an object sensor.</p>
+</section>
+
+<section>
+  <p class="eyebrow">And overnight, on a separate thread</p>
+  <h2>The population doubled, and one new hand took the top</h2>
+  <p>The Sobol sequence is prefix-stable, so extending 4,096 → 8,192 is a strict superset: the
+    first half keeps its tags and its scenes, and only the new half costs anything. 6,629 hands
+    inside the measured rails, 57,220 screened cells, <strong>535 passing at some clip</strong>,
+    227 confirmed — roughly double the 269 → 119 of the first population, which is what a doubled
+    sample should do and is worth stating precisely, because it means the search is not
+    saturating.</p>
+  <p><code>sv1_u1939</code> came out of the first pass as the full-error leader at a 0.35 win
+    rate, clip 0.70. It came out of this one at <em>0.35 at clip 0.70</em>, from an independently
+    launched run. The ranking is not decoration.</p>
+  <div class="note warn">
+    <p class="eyebrow">The non-transfer result, again</p>
+    <p style="margin-bottom:0">Six new leaders were exported at the clips the retention screen
+      chose; five passed every deployment gate; and when they were band-scanned on the
+      <em>bench</em> schedule — fixed palm, tool on a post, 9.6 s hold — <strong>two of five kept
+      the tool at any clip at all</strong>. Yesterday the same figure was three of sixteen. The
+      two maneuvers keep disagreeing about which hands work, and anything selected under one has
+      to be re-scanned under the other before it is shipped.</p>
+  </div>
+  <div class="scroll">
+    <table>
+      <thead><tr><th>rank</th><th>plan</th><th class="n">clip</th><th class="n">held cos</th><th class="n">clearance</th><th></th></tr></thead>
+      <tbody>
+        <tr><td class="n">1</td><td class="mono">sv1_w6689_b060</td><td class="n">0.60</td><td class="n up">0.827</td><td class="n">+8.5 mm</td><td>new — best shipped so far</td></tr>
+        <tr><td class="n">2</td><td class="mono">sv1_w2360_b075</td><td class="n">0.75</td><td class="n">0.726</td><td class="n">+10.4 mm</td><td>yesterday's leader</td></tr>
+        <tr><td class="n">3</td><td class="mono">sv1_u1364_b080</td><td class="n">0.80</td><td class="n">0.711</td><td class="n">+5.0 mm</td><td>tightest clearance shipped</td></tr>
+        <tr><td class="n">9</td><td class="mono">sv1_u0060_b100</td><td class="n">1.00</td><td class="n">0.441</td><td class="n">+9.9 mm</td><td>newly loadable</td></tr>
+        <tr><td class="n">10</td><td class="mono">sv1_u7952_b065</td><td class="n">0.65</td><td class="n">0.416</td><td class="n">+5.4 mm</td><td>new, but see below</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Nineteen plans on the station now, and all nineteen load. One caution: <code>sv1_u7952</code>'s
+    alignment across its band is jagged — 0.479 at 0.50, 0.281 at 0.55, <strong>0.093</strong> at
+    0.60, 0.416 at 0.65. It is shipped at 0.65 by the margin rule, but a plan whose neighbouring
+    clip reads 0.093 has no margin in the quantity that actually varies, and the hand arrives 4–6°
+    short under load. Rank 10 is a data point, not a candidate.</p>
+</section>
+
+<footer>
+  <p>Full write-up:
+    <code>docs/experiments/20260831-real_v1-object-tracking/README.md</code>. Geometry in
+    <code>src/morphohand/bench/tags.py</code> (numpy only — no camera, no mujoco, no torch), 16
+    tests against synthetic poses whose answer is known by construction. Everything on this page
+    is either a measurement or a simulation, and the two are labelled.</p>
+</footer>
+
+</div>

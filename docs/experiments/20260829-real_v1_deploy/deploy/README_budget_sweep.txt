@@ -182,3 +182,37 @@ operator's own reading.  Which means every number in the ranking above is now
 falsifiable on the bench rather than merely written down.
 
   docs/experiments/20260831-real_v1-object-tracking/README.md
+
+--------------------------------------------------------------------------------
+2026-08-31, later -- TWO MORE PLANS, AND A NEW RANK 1
+--------------------------------------------------------------------------------
+
+The Sobol-8192 extension finished and was confirmed and promoted the same
+morning: 6,629 hands inside the rails, 535 passing the retention screen at some
+clip, 227 confirmed.  Six new leaders were exported; five passed the deployment
+gates; TWO of those five keep the tool on the bench schedule.  (On 2026-08-30
+the same figure was three of sixteen.  The retention gate and the bench schedule
+keep disagreeing, and anything selected under one must be re-scanned under the
+other.)
+
+  1  sv1_w6689_b060   0.827  4/4    +8.5 mm   NEW -- best this program has shipped
+  2  sv1_w2360_b075   0.726  4/4   +10.4 mm
+  3  sv1_u1364_b080   0.711  4/4    +5.0 mm
+  4  g12_b095         0.627  4/4    +8.7 mm
+  5  sv1_u0060_b75    0.597  4/4    +9.9 mm
+  6  sv1_u0308_b050   0.585  4/4    +9.2 mm
+  7  rv05_manual_b85  0.568  4/4   +10.3 mm   ran on the bench
+  8  g12w08           0.484  4/4    +8.7 mm
+  9  sv1_u0060_b100   0.441  4/4    +9.9 mm
+ 10  sv1_u7952_b065   0.416  4/4    +5.4 mm   NEW
+ 11  sv1_u0100_b70    0.231  4/4    +7.5 mm   ran on the bench
+
+sv1_u7952's alignment across its band is JAGGED -- 0.479 at 0.50, 0.281 at 0.55,
+0.093 at 0.60, 0.416 at 0.65.  It is shipped at 0.65 by the margin rule, but a
+plan whose neighbouring clip reads 0.093 has no margin in the quantity that
+matters, and the hand arrives 4-6 deg short under load.  Rank 10 is a data
+point, not a candidate.
+
+19 plans on the station, all 19 load (verified on the CB1).
+
+  docs/experiments/20260831-real_v1-sobol8192/README.md
