@@ -133,7 +133,16 @@ def main() -> int:
         print(f"{tag:22s} clearance {worst if worst is not None else float('nan'):+6.1f} mm  "
               f"{'0 violations' if not bad else bad[0]}  -> {verdicts[-1]['verdict']}")
 
-    (a.out_dir / "promotion.json").write_text(json.dumps(verdicts, indent=1) + "\n")
+    # MERGE, do not overwrite. Per-design clips mean one call per design, and an --out-dir
+    # whose promotion.json only records the last of them is worse than none.
+    record = a.out_dir / "promotion.json"
+    if record.exists():
+        merged = {v.get("tag", v["design"]): v for v in json.loads(record.read_text())}
+        merged.update({v.get("tag", v["design"]): v for v in verdicts})
+        verdicts_out = [merged[k] for k in sorted(merged)]
+    else:
+        verdicts_out = verdicts
+    record.write_text(json.dumps(verdicts_out, indent=1) + "\n")
     shipped = [v for v in verdicts if v.get("verdict") == "ship"]
     if a.ship:
         a.ship.mkdir(parents=True, exist_ok=True)
@@ -141,7 +150,8 @@ def main() -> int:
             for suffix in ("plan.json", "traj.csv", "poses.txt", "build.txt"):
                 shutil.copy2(a.out_dir / f"{v['tag']}_{suffix}", a.ship / f"{v['tag']}_{suffix}")
         print(f"\ncopied {len(shipped)} plans into {a.ship}")
-    print(f"\n{len(shipped)}/{len(verdicts)} pass every gate; wrote {a.out_dir}/promotion.json")
+    print(f"\n{len(shipped)}/{len(verdicts)} pass every gate this call; "
+          f"{a.out_dir}/promotion.json now holds {len(verdicts_out)}")
     return 0
 
 

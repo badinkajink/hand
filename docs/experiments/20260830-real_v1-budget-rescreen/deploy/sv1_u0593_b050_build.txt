@@ -1,0 +1,22 @@
+design         sv1_u0593
+object         medium
+scene          /home/humanoid/Programs/hand/assets/mjcf/experimental/20260829-deploy_envelope/scene_tn0d0015n0d0265p0d0000_in0d0093p0d0027p0d0000_mp0d0058p0d0175p0d0000__medium__bench100py-35__flat15w21T.xml
+
+FINGER MOUNTS (palm frame, mm) -- set the three gantry blocks to these
+  finger          x        y
+  thumb       -51.5    -26.5
+  index        40.7     57.7
+  middle       55.8    -37.5
+
+GRASP the plan assumes
+  straddle (each pair pad, from the tool's mid-length)    32.0 mm
+  thumb slid along the tool                               10.0 mm
+  grip depth below the mounting plane                     52.0 mm
+  squeeze (pads driven inside the surface)                10.0 mm
+
+TURN
+  pivot height   axis_k 0.150  (that many x the half-straddle above the pads)
+  commanded turn -80 deg about the pinch axis
+  over           1.1 s
+  re-squeeze     0.0 mm at the top
+  palm           FIXED; tool starts at 100 mm on a support at y -35 mm

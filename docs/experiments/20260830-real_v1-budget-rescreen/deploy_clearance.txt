@@ -48,6 +48,14 @@ finger<->finger clearance, PASS >= 5.0 mm on sim geometry
     chord     +7.5 mm  index_mcp_frame<->middle_pip_frame       at u=1.00  (56 set-points, 441 checked, 23 artifact zeros discarded)
     csv       +7.5 mm  index_mcp_frame<->middle_pip_frame       at u=0.98  (56 set-points, 441 checked, 11 artifact zeros discarded)
 
+  sv1_u0308_b050
+    chord     +9.2 mm  thumb_tip<->index_tip                    at u=0.16  (56 set-points, 441 checked, 12 artifact zeros discarded)
+    csv       +9.2 mm  thumb_tip<->index_tip                    at u=0.15  (56 set-points, 441 checked, 21 artifact zeros discarded)
+
+  sv1_u1364_b080
+    chord     +5.0 mm  thumb_tip<->index_tip                    at u=0.00  (56 set-points, 441 checked, 3 artifact zeros discarded)
+    csv       +5.2 mm  thumb_tip<->index_tip                    at u=0.00  (56 set-points, 441 checked, 4 artifact zeros discarded)
+
   sv1_w0099_b100
     chord     +8.2 mm  index_mcp_frame<->middle_pip_frame       at u=1.00  (56 set-points, 441 checked, 10 artifact zeros discarded)
     csv       +8.2 mm  index_mcp_frame<->middle_pip_frame       at u=0.98  (56 set-points, 441 checked, 18 artifact zeros discarded)
@@ -55,6 +63,10 @@ finger<->finger clearance, PASS >= 5.0 mm on sim geometry
   sv1_w0116_b100
     chord    +11.6 mm  thumb_tip<->index_tip                    at u=0.00  (56 set-points, 441 checked, 13 artifact zeros discarded)
     csv      +11.8 mm  thumb_tip<->index_tip                    at u=0.00  (56 set-points, 441 checked, 13 artifact zeros discarded)
+
+  sv1_w2360_b075
+    chord    +10.4 mm  thumb_tip<->index_tip                    at u=0.06  (56 set-points, 441 checked, 2 artifact zeros discarded)
+    csv      +10.4 mm  thumb_tip<->index_tip                    at u=0.05  (56 set-points, 441 checked, 1 artifact zeros discarded)
 
   design          chord        csv   verdict
   g12             +8.7       +8.8   run on: chord, csv
@@ -69,5 +81,8 @@ finger<->finger clearance, PASS >= 5.0 mm on sim geometry
   sv1_u0060_b75      +9.9       +9.9   run on: chord, csv
   sv1_u0100_b100      +9.8       +9.8   run on: chord, csv
   sv1_u0100_b70      +7.5       +7.5   run on: chord, csv
+  sv1_u0308_b050      +9.2       +9.2   run on: chord, csv
+  sv1_u1364_b080      +5.0       +5.2   run on: csv
   sv1_w0099_b100      +8.2       +8.2   run on: chord, csv
   sv1_w0116_b100     +11.6      +11.8   run on: chord, csv
+  sv1_w2360_b075     +10.4      +10.4   run on: chord, csv

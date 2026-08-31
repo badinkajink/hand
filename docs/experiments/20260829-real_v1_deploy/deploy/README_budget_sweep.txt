@@ -97,3 +97,48 @@ hand performs 0.44-0.90 of the yaw travel it is commanded, stalling on middle ya
 servo load of 900+ against a trip near 800.  Everything above is commanded-clip
 simulation, and the achieved clip is smaller by a design-dependent factor.  See
 docs/experiments/20260830-real_v1_bench_sobol/README.md.
+
+----------------------------------------------------------------------------------
+2026-08-30 overnight: three hands from the clip re-screen, and they top the ranking
+
+The 4,096-hand population was re-screened across five clips (28,480 rollouts) instead
+of at the single inherited 0.5 rad, with a servo-command gate running inside the screen
+for the first time.  119 of 269 morphologies survive a 5-repeat confirmation, and 50 of
+those confirm at no clip the old screen ever tried.
+
+Sixteen went through export / servo range / gantry travel / clearance.  Thirteen passed,
+and NO design failed on servo range -- the new upstream gate did its job.  But those
+sixteen were selected under the RETENTION maneuver (60 mm proof lift, five free
+seconds), and the bench runs the FIXED-PALM schedule with the tool on a post.  Band-
+scanned on the bench schedule, eleven of the sixteen keep the tool at NO clip at all,
+including both new leaders (sv1_u1939, sv1_u2745).  A hand chosen for proof-lift
+retention is not a hand that rolls a tool resting on a post.
+
+Three survive both, re-exported at their BENCH clip:
+
+  sv1_w2360_b075   band 0.50-0.80   cos 0.726   clearance +10.4 mm
+  sv1_u1364_b080   band 0.40-0.95   cos 0.711   clearance  +5.0 mm  <- thin
+  sv1_u0308_b050   band 0.40-0.85   cos 0.585   clearance  +9.2 mm
+
+sv1_w3408 holds well (0.708) and is NOT here: its export clearance is +4.6 mm at every
+clip, because the minimum sits at the GRIP pose, which the clip does not touch.
+sv1_u1676 repeats sv1_w0116 exactly -- a band (1.05-2.00) entirely above the largest
+clip its servos can be commanded to (0.80).
+
+RANKING NOW ON THE STATION (simulation, bench schedule, 9.6 s hold, 4 repeats):
+
+   1  sv1_w2360_b075   0.726  4/4   +10.4 mm     NEW
+   2  sv1_u1364_b080   0.711  4/4    +5.0 mm     NEW
+   3  g12_b095         0.627  4/4    +8.7 mm
+   4  sv1_u0060_b75    0.597  4/4    +9.9 mm
+   5  sv1_u0308_b050   0.585  4/4    +9.2 mm     NEW
+   6  rv05_manual_b85  0.568  4/4   +10.3 mm     ran on the bench
+   7  g12w08           0.484  4/4    +8.7 mm
+   8  sv1_u0100_b70    0.231  4/4    +7.5 mm     ran on the bench
+
+  not ranked: sv1_u0060_b100 and sv1_w0116_b100 will not load (yaw cap);
+  g12, g23, rv04_mid, sv1_u0100_b100 drop 4/4 at their own clip; g12w11 holds 1/4;
+  sv1_w0099_b100 has no band.  g23 (+0.8), g24 (-5.3) and rv04_mid (-2.7) also fail
+  clearance and should not be run at all.
+
+Full write-up: docs/experiments/20260830-real_v1-budget-rescreen/README.md
