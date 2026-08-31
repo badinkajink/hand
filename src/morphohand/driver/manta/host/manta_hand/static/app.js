@@ -106,6 +106,9 @@ async function loadPlans() {
 
 const unit = (v, u) => (v == null ? null : `${Number(v).toFixed(1)} ${u}`);
 const pct = v => (v == null ? null : `${Math.round(Number(v) * 100)}% (sim)`);
+/* The clip is the knob that decides whether a plan holds at all -- a design keeps the tool only
+   inside a contiguous band of it -- so it belongs on the face of the panel, in both units. */
+const clip = v => (v == null ? null : `${Number(v).toFixed(2)} rad = ${(Number(v) * 180 / Math.PI).toFixed(0)}°`);
 
 function showPlan(p) {
   const meta = p?.meta || {}, metrics = p?.metrics || {}, body = $('metrics-body');
@@ -113,6 +116,11 @@ function showPlan(p) {
   const rows = [
     ['object', meta.object],
     ['predicted turn', meta.angle_deg != null ? `${meta.angle_deg}°` : null],
+    ['residual clip', clip(meta.budget_rad)],
+    ['clip band', metrics.band_rad ? `${metrics.band_rad[0]}-${metrics.band_rad[1]} rad` : null],
+    ['sim held cos', metrics.held_cos == null ? null : Number(metrics.held_cos).toFixed(3)],
+    ['finger clearance', unit(metrics.clearance_mm, 'mm')],
+    ['expect', metrics.expect],
     ['careful-bench win', pct(metrics.careful_bench_win)],
     ['full-error win', pct(metrics.full_error_win)],
     ['careful-bench kept', pct(metrics.careful_bench_kept)],

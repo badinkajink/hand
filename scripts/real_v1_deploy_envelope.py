@@ -126,6 +126,53 @@ def object_scene(base: Path, obj: str, bench: float = 0.0, post_y: float = 0.0,
 
 
 # --------------------------------------------------------------------------------------------
+# CAN THE SERVOS BE TOLD TO DO THIS?  Clearance says the modelled fingers miss each other; it
+# says nothing about whether the command is legal.  sv1_w0116 cleared 11.6 mm, scored the best
+# cosine in the whole 128-hand pilot, and its GRIP asks middle yaw for 84 deg against a 70 deg
+# cap -- nothing noticed until the plan was exported, four stages later.  The budget is exactly
+# what moves a joint further, so the check belongs beside it, in the screen.
+# --------------------------------------------------------------------------------------------
+_QPOSADR: dict[str, dict[str, int]] = {}
+
+
+def servo_shortfall(scene: Path, plan: dict, budget: float) -> tuple[float, str]:
+    """Worst servo-range overrun of this plan's set-points, in degrees. 0.0 = commandable.
+
+    Checks the same three poses `real_v1_export_plan.py` writes and `HandPlan.validate` gates
+    -- open, grip, end of turn -- so a design that passes here passes there. Returns (0.0, "")
+    when the driver package is unavailable, which keeps the screen runnable without it.
+    """
+    try:
+        sys.path.insert(0, str(ROOT / "src/morphohand/driver/manta/host"))
+        from manta_hand.plan import joint_violation
+    except Exception:
+        return 0.0, ""
+    key = str(scene)
+    if key not in _QPOSADR:
+        m = mujoco.MjModel.from_xml_path(key)
+        _QPOSADR[key] = {j: int(m.joint(j).qposadr[0])
+                         for js in FINGERS.values() for j in js}
+    adr = _QPOSADR[key]
+    qpos = np.asarray(plan["open_qpos"])
+    poses = {"open": {j: float(np.degrees(qpos[adr[j]])) for j in adr},
+             "grip": {j: float(np.degrees(plan["anchor"][j])) for j in adr},
+             "turn_end": {j: float(np.degrees(plan["anchor"][j]
+                                              + float(np.clip(plan["delta"][j],
+                                                              -budget, budget)))) for j in adr}}
+    if plan.get("squeeze_delta"):
+        poses["resqueeze"] = {j: float(np.degrees(plan["anchor"][j] + plan["squeeze_delta"][j]))
+                              for j in adr}
+    worst, who = 0.0, ""
+    for name, vals in poses.items():
+        for finger, joints in FINGERS.items():
+            for j in joints:
+                v = joint_violation(finger, j.rpartition("_")[2], vals[j])
+                if v is not None and v.short > worst:
+                    worst, who = v.short, f"{name}:{finger}_{v.axis}"
+    return round(worst, 2), who
+
+
+# --------------------------------------------------------------------------------------------
 # the plan: a joint-space trajectory, computed once, on the nominal hand
 # --------------------------------------------------------------------------------------------
 def make_plan(scene: Path, *, straddle: float, depth: float | None, thumb_axial: float,
@@ -726,7 +773,8 @@ def cell_grid(k_lo: float, k_hi: float, k_n: int, angles: list[float]) -> list[t
 
 def _cell_task(job: tuple) -> dict:
     (tag, scene, row, axis_k, angle, n_nom, n_ens, level, hold_steps,
-     turn_steps, hold_squeeze, bench, selfcollision, retention_cfg, ensemble_seed) = job
+     turn_steps, hold_squeeze, bench, selfcollision, retention_cfg, ensemble_seed,
+     budget) = job
     # THE SQUEEZE IS PART OF THE GRASP, and it stops being a free constant once the pads are
     # flat. `fit` places the pad CENTRE at object_radius + PAD_RADIUS + gap - squeeze, which is
     # exact for a sphere and wrong for a flat face: the face's closest approach to the shaft is
@@ -739,12 +787,14 @@ def _cell_task(job: tuple) -> dict:
     plan = make_plan(scene, straddle=row["straddle_mm"] / 1000.0,
                      depth=None if row["depth_req_mm"] is None else row["depth_req_mm"] / 1000.0,
                      thumb_axial=row["thumb_axial_mm"] / 1000.0, squeeze=squeeze,
-                     axis_k=axis_k, angle_deg=angle, lift=0.10, budget=0.5,
+                     axis_k=axis_k, angle_deg=angle, lift=0.10, budget=budget,
                      turn_steps=turn_steps, hold_squeeze=hold_squeeze, bench=bench)
     if plan is None:
         return {"design": tag, "axis_k": axis_k, "angle_deg": angle, "pose": False,
                 "straddle_mm": row["straddle_mm"], "thumb_axial_mm": row["thumb_axial_mm"],
-                "turn_steps": turn_steps, "hold_squeeze_mm": round(hold_squeeze * 1000, 1)}
+                "turn_steps": turn_steps, "hold_squeeze_mm": round(hold_squeeze * 1000, 1),
+                "squeeze_mm": row.get("squeeze_mm", 4.0), "budget_rad": budget}
+    servo_short, servo_worst = servo_shortfall(scene, plan, budget)
     nom, ens = [], []
     for rep in range(n_nom):
         nom.append(execute(scene, plan, hold_steps=hold_steps, seed=rep,
@@ -769,7 +819,8 @@ def _cell_task(job: tuple) -> dict:
         "design": tag, "axis_k": axis_k, "angle_deg": angle, "pose": True,
         "straddle_mm": row["straddle_mm"], "thumb_axial_mm": row["thumb_axial_mm"],
         "turn_steps": turn_steps, "hold_squeeze_mm": round(hold_squeeze * 1000, 1),
-        "squeeze_mm": row.get("squeeze_mm", 4.0),
+        "squeeze_mm": row.get("squeeze_mm", 4.0), "budget_rad": budget,
+        "servo_short_deg": servo_short, "servo_worst": servo_worst,
         "nom_cos": round(float(np.mean(held(nom))), 3),
         "nom_sd": round(float(np.std(held(nom))), 3),
         "nom_kept": sum(1 for x in nom if x["ok"]), "n_nom": len(nom),
@@ -867,6 +918,14 @@ def main() -> int:
     ap.add_argument("--cell-ens", type=int, default=8)
     ap.add_argument("--cell-level", type=float, default=1.0)
     ap.add_argument("--turn-steps", default="550", help="comma list; swept in --mode cell")
+    ap.add_argument("--budget", default="0.5",
+                    help="comma list of per-joint |delta| caps in RADIANS, swept in --mode "
+                         "cell. 0.5 rad = 28.6 deg is Policy B's RESIDUAL ACTION BUDGET and "
+                         "was inherited here by accident: every screen and every ranking in "
+                         "this program so far was measured at it. A design holds only inside "
+                         "a contiguous BAND of clips and drops on both sides, so screening at "
+                         "one value scores each hand at a point that may be nowhere near its "
+                         "own band -- see docs/experiments/20260830-real_v1-sobol128/deploy/.")
     ap.add_argument("--squeeze-mm", default="4.0",
                     help="comma list; how far inside the shaft surface the pads are driven")
     ap.add_argument("--hold-squeeze-mm", default="0", help="comma list; swept in --mode cell")
@@ -970,6 +1029,7 @@ def main() -> int:
         # CONTROLLER knobs, free on hardware: how slowly the turn is commanded, and whether the
         # pads are re-seated at the top of it. Neither is a property of the hand.
         turn_stepss = [int(v) for v in str(args.turn_steps).split(",")]
+        budgets = [float(v) for v in str(args.budget).split(",")]
         squeezes = [float(v) for v in str(args.squeeze_mm).split(",")]
         hold_squeezes = [float(v) / 1000.0 for v in str(args.hold_squeeze_mm).split(",")]
         retention_cfg = {
@@ -1003,19 +1063,20 @@ def main() -> int:
                       for k, a in grid:
                         for ts in turn_stepss:
                             for hs in hold_squeezes:
+                              for bg in budgets:
                                 jobs.append((tag, str(scene), r2, k, a, args.cell_nom,
                                              args.cell_ens, args.cell_level, args.hold_steps,
                                              ts, hs, args.bench_height > 0.0,
                                              args.selfcollision, retention_cfg,
-                                             args.ensemble_seed))
+                                             args.ensemble_seed, bg))
         args.out.parent.mkdir(parents=True, exist_ok=True)
         done = json.loads(args.out.read_text()) if args.out.exists() else []
         seen = {(r["design"], r.get("straddle_mm"), r.get("thumb_axial_mm"), r["axis_k"],
                  r["angle_deg"], r.get("turn_steps"), r.get("hold_squeeze_mm"),
-                 r.get("squeeze_mm", 4.0)) for r in done}
+                 r.get("squeeze_mm", 4.0), r.get("budget_rad", 0.5)) for r in done}
         jobs = [j for j in jobs
                 if (j[0], j[2]["straddle_mm"], j[2]["thumb_axial_mm"], j[3], j[4], j[9],
-                    round(j[10] * 1000, 1), j[2].get("squeeze_mm", 4.0)) not in seen]
+                    round(j[10] * 1000, 1), j[2].get("squeeze_mm", 4.0), j[15]) not in seen]
         print(f"{len(jobs)} cells ({args.cell_nom} nominal + {args.cell_ens} ensemble each) "
               f"on {args.workers} workers")
         t0 = time.time()
@@ -1026,7 +1087,9 @@ def main() -> int:
                     el = time.time() - t0
                     print(f"  [{i+1}/{len(jobs)}] {el/60:5.1f} min, "
                           f"{el/(i+1)*(len(jobs)-i-1)/60:5.1f} left — {r['design']} "
-                          f"k{r['axis_k']} a{r['angle_deg']:.0f} nom {r.get('nom_cos')} "
+                          f"k{r['axis_k']} a{r['angle_deg']:.0f} b{r.get('budget_rad')} "
+                          f"nom {r.get('nom_cos')} kept {r.get('nom_kept')}/{r.get('n_nom')} "
+                          f"servo+{r.get('servo_short_deg')} "
                           f"ens_win {r.get('ens_win')}", flush=True)
                     args.out.write_text(json.dumps(done, indent=1))
         args.out.write_text(json.dumps(done, indent=1))
@@ -1054,7 +1117,8 @@ def main() -> int:
                          thumb_axial=row["thumb_axial_mm"] / 1000.0,
                          squeeze=row.get("squeeze_mm", 4.0) / 1000.0,
                          axis_k=row["axis_k"], angle_deg=row["angle_deg"], lift=0.10,
-                         budget=0.5, bench=args.bench_height > 0.0,
+                         budget=float(str(args.budget).split(",")[0]),
+                         bench=args.bench_height > 0.0,
                          turn_steps=int(str(args.turn_steps).split(",")[0]),
                          hold_squeeze=float(str(args.hold_squeeze_mm).split(",")[0]) / 1000.0)
         if plan is None:

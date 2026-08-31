@@ -195,6 +195,16 @@ def design_set(name: str, *, sobol_count: int = 128, sobol_seed: int = 20260830,
 def scene_for(vec, generated_dir: Path = GEN) -> Path:
     """Generate (or find) the rigid scene for a design. Morph joints baked out."""
     generated_dir.mkdir(parents=True, exist_ok=True)
+    # FIND before GENERATE. The generator is a subprocess, and a population screen asks for the
+    # same scenes on every stage -- 1,400 interpreter starts is ~17 minutes of doing nothing
+    # before the first rollout of each stage, four times over for the four grasp cells. The file
+    # name is a pure function of the design vector, so an already-generated scene can be handed
+    # back without paying for that. A miss (a vector that rounds differently at the 5th decimal)
+    # just falls through to the subprocess, which is the old behaviour.
+    from morphohand.tools.morphology_xml import MorphologyValues, build_morphology_suffix
+    cached = generated_dir / f"scene_{build_morphology_suffix(MorphologyValues(*vec))}.xml"
+    if cached.exists():
+        return cached
     r = subprocess.run([sys.executable, str(ROOT / "scripts/generate_morphology_xml.py"),
                         "--base-hand-xml", str(BASE_HAND), "--base-scene-xml", str(BASE_SCENE),
                         "--output-dir", str(generated_dir),
