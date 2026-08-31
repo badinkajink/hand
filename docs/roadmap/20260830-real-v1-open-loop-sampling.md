@@ -255,3 +255,35 @@ latency, saturation, and protection behavior using recorded hardware traces.
 That is the plausible path to proprioceptive reorientation. The immediate search comes first
 because the controller should be developed on the morphology and trajectory that can actually be
 deployed, not on rv03/rv05 policies disconnected from the cleared hardware plan.
+
+---
+
+## Status 2026-08-30, late — two of the pause conditions fired
+
+**"Collision status changes between search and export."** It does. The retention screen's
+`min_finger_clearance_mm` is measured along the simulated rollout; the deployment gate's is
+measured along the commanded chord and the 50 Hz CSV. They are not the same number and they do
+not track: `sv1_u2699` reads 12.2 mm in the screen and +7.3 mm at export, and `sv1_w3408` reads
+19.3 mm in the screen and **+4.6 mm** at export, which fails the 5 mm gate outright. The screen's
+figure is not a substitute for the export's.
+
+**A third condition, not on the list, and it should be: the commandable status changes between
+search and export.** Nothing in the screen asked whether the servos could be *told* to run the
+trajectory. `sv1_w0116` was the 128-hand pilot's nominal winner and cannot be commanded at any
+clip that also holds the tool; **18 of the 248** hands the 4,096-hand screen passed at 0.5 rad are
+in the same position, and at 1.30 rad the cap blocks 5,227 of 5,696 fitted grasp cells. `real_v1_deploy_envelope.servo_shortfall` now runs inside `--mode cell` and records
+`servo_short_deg` per row, and `real_v1_select_budget.py` will not select a cell that fails it.
+
+**And the clip itself was never a variable.** Every stage of this plan — the 108-hand search, the
+128-hand pilot, the 4,096-hand screen — planned its turn at `budget = 0.5` rad, a number inherited
+from Policy B's residual action budget. Each design holds only inside a contiguous band of clips.
+The population re-screen at five clips, the per-plan bands on the deployed cells, and what that
+does to the bench plans are in
+[`docs/experiments/20260830-real_v1-budget-rescreen/`](../experiments/20260830-real_v1-budget-rescreen/README.md).
+
+**The controller section above is the right next move, and the bench now says why.** The hand
+performs only 0.44–0.90 of the yaw travel it is commanded, stalling on middle yaw at a servo load
+of 900 against a trip near 800 — so the "history of 9 servo positions and 9 unitless loads" is not
+an enrichment of an otherwise-working open loop. It is the missing feedback on a plan whose central
+assumption is measurably false. See
+[`docs/experiments/20260830-real_v1_bench_sobol/`](../experiments/20260830-real_v1_bench_sobol/README.md).
