@@ -5,9 +5,11 @@ workstation; one service on the CB1 owns both serial links. Open-loop trajectori
 the CB1, so Ethernet jitter does not become servo jitter.
 
 ```text
-workstation                              CB1 (10.99.99.2)              hand
+workstation (10.99.99.50)               CB1 (10.99.99.2)              hand
 browser UI ───── HTTP/JSON ─────┐
 local inference client ─────────┴──> HandRuntime ── USB-CDC ──> 6 gantry steppers
+AprilTag service <── start/stop/run id ─┤
+       └──────── object samples ───────>│
                                       │
                                       └──────── U2D2 TTL ────> 9 SCS0009 servos
 ```
@@ -87,8 +89,27 @@ cd ~/hand/src/morphohand/driver/manta/host
   --logs-dir ~/hand/logs/hardware \
   --telemetry-hz 5 \
   --log-file /tmp/mantalogs/web.log \
+  --tracker-url http://10.99.99.50:8770 \
   --token "$MANTA_TOKEN"
 ```
+
+On the workstation, start the camera companion once per boot (not once per trial), with the
+same station token. Its default exposure mode lets IR auto-exposure settle on the staged scene,
+then locks the selected exposure/gain before the reference latch and motion:
+
+```bash
+cd ~/hand
+MANTA_TOKEN="$MANTA_TOKEN" \
+  ~/miniconda3/bin/python scripts/real_v1_tracker_service.py \
+  --host 10.99.99.50 --port 8770
+```
+
+With `--tracker-url` configured, `/reorient` is fail-closed for tracking: it creates the run id,
+asks the workstation to start that exact trace, waits until static id6 is latched and the first
+id0 sample has reached the CB1, then moves.
+It stops/finalizes the tracker before closing the run summary. A missing camera, invisible id6,
+or dead companion therefore refuses motion rather than silently producing an untracked trial.
+The service's 300 s cap is only crash protection; normal traces stop with the trajectory.
 
 Then open, from the workstation:
 
@@ -132,7 +153,8 @@ python3 -m http.server 8766 --bind 127.0.0.1 \
 3. **Move gantries to morphology** — one axis at a time, each waited on (~95 s for a full
    change).
 4. Command the `open` pose, position the object, then command the CEM `grip` pose.
-5. Run the buffered reorientation at a chosen speed ratio.
+5. Run the buffered reorientation at a chosen speed ratio. The button automatically arms and
+   finalizes its AprilTag trace when `--tracker-url` is configured.
 6. Score the run and download its JSONL.
 
 ### Homing takes about two minutes
@@ -245,8 +267,9 @@ only once an observation source exists.
 ## Logs and replay
 
 Each reorientation writes `<run_id>.jsonl` (timestamped commanded sim joint positions, telemetry
-samples, runtime events) and `<run_id>_SUMMARY.json` (plan metadata, rates, sample counts,
-completion state, the operator's manual score, and the per-finger joint signs used). Commanded
+samples, runtime events, and AprilTag object samples) and `<run_id>_SUMMARY.json` (plan metadata,
+rates, sample counts, completion state, instrument summary, the operator's separate manual score,
+and the per-finger joint signs used). Commanded
 values stay in sim joint names and degrees so they map straight back to `thumb_yaw...middle_pip`.
 
 Servo polling is suspended while command frames are being written; one nine-servo snapshot is

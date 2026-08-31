@@ -38,7 +38,11 @@ onto it** — a10/b33 were trained on a 117 mm finger with coincident yaw/MCP ax
 
 ### On the bench (workstation → CB1, in this order)
 
-**Run a whole sitting through `real_v1_bench_session.py`** — it calls the three scripts below
+**Run a whole sitting through `real_v1_bench_session.py`** when its free-air/grip-window arms,
+preflight, truncation selection, and manifest are part of the protocol. For an untruncated
+single-design run, the web UI is sufficient: its reorientation button automatically starts and
+finalizes AprilTag capture when the CB1 is configured with the persistent workstation tracker
+service. The session script calls the three scripts below
 in order, picks the clearance-safe truncation for the design, sets per-finger grip targets
 from the plan's own driver/holder split, and captures the operator observations that no log
 contains (there is no object-pose sensor on this hand). Protocol:
@@ -46,7 +50,7 @@ contains (there is no object-pose sensor on this hand). Protocol:
 
 | script | role |
 |---|---|
-| `real_v1_bench_session.py` | 0. the session driver — one design, one directory, self-describing |
+| `real_v1_bench_session.py` | 0. the full multi-arm session driver — one design, one directory, self-describing |
 | `real_v1_bench_report.py` | 4. read the sessions back: driver-yaw loaded vs free-air (= grip load), and the load-200 overload plateau. Excludes runs the operator flagged `slipped` (a shaft that turned because the grasp released is the opposite result) and whole sessions carrying an `EXCLUDED.txt` |
 | `probe_hold_convergence.py` | does a plan's "held" verdict survive a longer hold? Re-runs saved plans at several `--hold-steps` and at several hold-phase force targets. Built because the Sobol-128 screen measured 1.6 s after the turn and every finalist drops by 3.2-8.0 s — `docs/experiments/20260830-real_v1-sobol128/HOLD_REVIEW.md` |
 | `real_v1_vane_angle.py` | 5. the turn angle out of a bench video — an AprilTag on a vane whose face normal is the pinch axis, read as an IN-PLANE image rotation against a fixed reference tag. Needs `opencv-python-headless`; validated on synthetic footage only (0.33 deg rms) |

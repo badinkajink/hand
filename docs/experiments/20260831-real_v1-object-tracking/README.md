@@ -113,11 +113,21 @@ earlier version of this note wrongly treated that as a standing limitation.
 
 The reference tag is bolted facing normal to the gantry x-axis and stays that way, with the
 camera facing it. So its in-plane horizontal axis is ±y_B: the heading is **±90°, and only the
-sign is unknown**. The sign follows from geometry already in frame — the hand is at bench x = 0
-and the tag at x = +133.5, so the shaft must come out at large negative x, and of the two
-candidates (which mirror the offset about the tag) exactly one does that.
+sign is unknown**. The two candidates mirror the shaft about the tag's own x, landing it at
+133.5 − d and 133.5 + d, and the hand at x = 0 decides between them.
+
+That discriminator only works when **the shaft is staged in the hand**, and the first live arm
+showed why the test has to be able to fail. With the shaft parked on its post beside the
+reference tag the two candidates came out at bench x +114 and +153 mm — both far outside the
+hand, 19 mm either side of the tag — and the first version of this method simply took the
+smaller and reported it as "the hand's side". It would have written x/y into the trace off a
+coin flip. The rule is now **exactly one candidate inside `OBJECT_X_ENVELOPE_MM` (±90 mm)**;
+staging beside the tag is refused with both candidate positions named, rather than guessed.
+With the shaft in the hand the candidates are ≈0 and ≈+267 mm and the choice is unambiguous.
 `BenchFrame.heading_from_mounting()` resolves it on the first frame the cylinder is seen, in both
-`--probe` and a recording, and prints which it chose and why.
+`--probe` and a recording, and prints which it chose and why; a recording keeps retrying for
+20 s rather than giving up on the first frame, since the tracker can be armed a moment before
+the shaft is finally seated.
 
 What that cannot check is the *premise*: if the tag is ever re-aimed by hand it is no longer
 normal to the gantry axis and the true heading is not ±90 at all. `--calibrate-heading X,Y`
@@ -149,13 +159,17 @@ differences the sim predicts between plans (cos 0.73 vs 0.59 is 12° apart).
 #    (get that backwards and the centre lands 142 mm the wrong way down the shaft)
 ~/miniconda3/bin/python scripts/real_v1_tag_tracker.py --probe
 
-# 2. the one calibration a single static tag cannot supply. Stage the cylinder somewhere
-#    its bench (x, y) is known, then:
+# 2. only if the fixed tag was re-aimed by hand. Stage the cylinder somewhere its bench
+#    (x, y) is known, then:
 ~/miniconda3/bin/python scripts/real_v1_tag_tracker.py --calibrate-heading 0,0
 
-# 3. a bench session. Tracking is ON by default and needs no extra flags: it finds an
-#    interpreter that can open the camera, arms before the motion so the first frames are
-#    the staged pose, and stops by signal when the run ends.
+# 3a. normal web-UI operation. Start this companion once per workstation boot; every
+#     reorientation button press then arms and finalizes its own run-id trace.
+MANTA_TOKEN="$MANTA_TOKEN" ~/miniconda3/bin/python scripts/real_v1_tracker_service.py \
+  --host 10.99.99.50 --port 8770
+
+# 3b. use the bench-session script only when its extra experimental arms/manifest are
+#     wanted. Its own tracking remains automatic.
 python3 scripts/real_v1_bench_session.py --design sv1_w2360_b075 --arms grip,loaded
 ```
 
@@ -179,7 +193,12 @@ records `operator_minus_tag_deg`.
 
 ### On the station
 
-`POST /api/v1/tracker/sample` takes one reading; `--push` sends them at 10 Hz. The web app grows
+`POST /api/v1/tracker/sample` takes one reading; `--push` sends them at 10 Hz. With the CB1's
+`--tracker-url` configured, `/reorient` first asks the persistent workstation service to arm the
+exact new run id and waits for id6 to latch and the first id0 sample to reach the CB1. It stops
+and finalizes that trace after motion. An
+arm failure refuses the motion, so a camera fault cannot silently create an untracked trial.
+The web app grows
 a **Shaft tracking** card: a signed dial (left is the wrong pole, and it is red), degrees from
 up, height in both frames, peak and lowest cos, and how far it has fallen from the start. A
 stale sample says stale and greys its numbers; a lost tag says LOST rather than freezing on the
@@ -257,7 +276,36 @@ drop time, a real slip, and a height in the simulator's own coordinates — so t
 | `src/morphohand/bench/tags.py` | the geometry. numpy only — no camera, no mujoco, no torch |
 | `tests/test_bench_tags.py` | 16 tests, synthetic poses whose answer is known by construction |
 | `scripts/real_v1_tag_tracker.py` | the maintained tracker: probe, calibrate, record, push |
+| `scripts/real_v1_tracker_service.py` | persistent workstation camera owner for automatic web runs |
 | `scripts/real_v1_obs_sources.py` | the 66-column map, checked against a checkpoint |
 | `scripts/real_v1_bench_session.py` | tracking wired into every loaded repeat |
 | `manta_hand/runtime.py`, `web.py`, `static/*` | the station side |
 | `docs/experiments/20260830-apriltag-tracking/` | the original probe and the printable sheet |
+
+
+## The reference tag's detectability is not stable (2026-08-31)
+
+Recorded because it will happen again and because the first diagnosis was wrong.
+
+Three probe frames, same tag, same camera, same afternoon:
+
+| time | raw | after CLAHE | after equalization | Michelson contrast at the tag | sharpness |
+|---|---|---|---|---|---|
+| 14:11 | **62.4** | 61.6 | 36.8 | 0.678 | 777 |
+| 15:20 | — | — | **35.4** | 0.716 | 593 |
+| 16:57 | — | — | — | 0.711 | 683 |
+| 17:06 | **62.6** | — | — | — | — |
+
+The 16:57 frame decodes under nothing: not raw, not either normalization, and not under any of
+24 detector configurations swept over `quad_decimate`, `quad_sigma`, `refine_edges` and
+`decode_sharpening`. It was first read as a local underexposure, but the contrast and sharpness
+columns rule that out — they are the same in the frame that works and the frame that does not.
+The tag had shifted a few pixels in the image. Something bumps it, and it comes back on its own.
+
+Two consequences. `detect()` now tries raw, then CLAHE, then global equalization, because the
+two normalizations rescue different frames (CLAHE reads 14:11 at 62 where equalization manages
+37; equalization is the only one that reads 15:20) — but the ladder is for the marginal middle
+case and is **not** a substitute for staging. And `--probe` before every sitting is a gate, not
+paperwork: require id6 at raw margin ≥ 30. With `--tracker-url` configured the station is
+already fail-closed on this — an unlatched reference refuses the motion rather than producing an
+untracked trial — so a bumped tag costs a refused run, not a wasted one.

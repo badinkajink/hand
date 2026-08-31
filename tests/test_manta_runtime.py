@@ -264,9 +264,15 @@ def test_tracker_samples_land_in_the_running_log_and_the_summary(tmp_path):
         assert obj[0]["object"]["cos"] == 0.0
         # the tracker finishes after the motion does; its summary still reaches the run
         rt.tracker_sample({"seen": False, "final": True, "run_id": run_id,
-                           "summary": {"cos_peak": 0.4, "dropped": False}})
+                           "summary": {"cos_peak": 0.4, "dropped": False},
+                           "frame": {"heading_deg": 90.0,
+                                     "rigid_mounting": {"fixed": True}},
+                           "camera": {"mode": "auto-locked", "exposure_us": 4000.0}})
         summary = json.loads((tmp_path / f"{run_id}_SUMMARY.json").read_text())
-        assert summary["object_track"] == {"cos_peak": 0.4, "dropped": False}
+        assert summary["object_track"]["cos_peak"] == 0.4
+        assert summary["object_track"]["dropped"] is False
+        assert summary["object_track"]["frame"]["rigid_mounting"]["fixed"] is True
+        assert summary["object_track"]["camera"]["mode"] == "auto-locked"
         assert summary["samples"]["object"] == 5
         # measured and operator-estimated stay separate readings of the same run
         assert summary["manual_score"] is None
@@ -291,4 +297,79 @@ def test_tracker_sample_is_reachable_over_http(tmp_path):
             assert json.load(r)["tracker"]["last"]["cos"] == 0.5
     finally:
         server.shutdown()
+        rt.close()
+
+
+class StubTrackerController:
+    def __init__(self, backend, fail=False):
+        self.backend = backend
+        self.fail = fail
+        self.calls = []
+        self.cached = {"configured": True, "running": False, "armed": False,
+                       "error": None}
+
+    def start(self, run_id):
+        self.calls.append(("start", run_id, self.backend.writes))
+        if self.fail:
+            raise RuntimeError("id6 was not visible")
+        self.cached.update({"running": True, "armed": True, "run_id": run_id})
+        return dict(self.cached)
+
+    def stop(self, run_id):
+        self.calls.append(("stop", run_id, self.backend.writes))
+        self.cached.update({"running": False, "armed": False, "run_id": run_id})
+        return dict(self.cached)
+
+    def state(self):
+        return dict(self.cached)
+
+
+def _runtime_at_grip(tmp_path, tracker):
+    rt = HandRuntime(tracker.backend, logs_dir=tmp_path, signs_checked=True,
+                     tracker_controller=tracker)
+    rt.load_plan(tiny_plan())
+    rt.home(HOME_CONFIRMATION)
+    wait_idle(rt)
+    rt.apply_morphology()
+    wait_idle(rt)
+    rt.move_to_pose("open", rate_hz=100)
+    wait_idle(rt)
+    rt.move_to_pose("grip", rate_hz=100)
+    wait_idle(rt)
+    return rt
+
+
+def test_reorientation_owns_automatic_tracker_lifecycle(tmp_path):
+    backend = MockHardwareBackend()
+    tracker = StubTrackerController(backend)
+    rt = _runtime_at_grip(tmp_path, tracker)
+    try:
+        writes_before = backend.writes
+        run_id = rt.run_reorientation(rate_hz=100)
+        wait_idle(rt)
+        assert tracker.calls[0] == ("start", run_id, writes_before)
+        assert tracker.calls[1][0:2] == ("stop", run_id)
+        assert tracker.calls[1][2] > writes_before
+        summary = json.loads((tmp_path / f"{run_id}_SUMMARY.json").read_text())
+        assert summary["status"] == "complete"
+        assert summary["settings"]["object_tracking"] == "automatic-required"
+    finally:
+        rt.close()
+
+
+def test_tracker_arm_failure_refuses_untracked_motion(tmp_path):
+    backend = MockHardwareBackend()
+    tracker = StubTrackerController(backend, fail=True)
+    rt = _runtime_at_grip(tmp_path, tracker)
+    try:
+        writes_before = backend.writes
+        run_id = rt.run_reorientation(rate_hz=100)
+        wait_idle(rt)
+        assert backend.writes == writes_before
+        assert [c[0] for c in tracker.calls] == ["start"]
+        summary = json.loads((tmp_path / f"{run_id}_SUMMARY.json").read_text())
+        assert summary["status"] == "failed"
+        assert "id6 was not visible" in summary["error"]
+        assert rt.state()["current_pose"] == "grip"
+    finally:
         rt.close()

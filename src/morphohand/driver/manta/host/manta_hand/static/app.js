@@ -448,7 +448,7 @@ $('endpoint').textContent = VIEW_ONLY ? `${API}  (observer)` : API;
 
   renderProgress(s);
   renderHomeOutcomes(s);
-  renderTracker(s.tracker);
+  renderTracker(s.tracker, s.tracker_service);
   renderTelemetry(t);
   renderMounts(s.plan?.mounts_palm_mm);
   renderManual(s, {busy, blocked, motionReady});
@@ -460,10 +460,19 @@ $('endpoint').textContent = VIEW_ONLY ? `${API}  (observer)` : API;
  * LOST rather than freezing, and bench x/y is blank until the heading is calibrated. */
 const degFromUp = c => (Math.acos(Math.min(1, Math.max(-1, c))) * 180 / Math.PI);
 
-function renderTracker(tr) {
+function renderTracker(tr, service) {
   const badge = $('track-badge'), body = $('track-body'), empty = $('track-empty');
+  const serviceNote = $('track-service-note');
+  if (serviceNote) {
+    serviceNote.textContent = service
+      ? (service.error
+        ? `Automatic tracker configured, but its last arm failed: ${service.error}`
+        : 'Automatic tracker ready: Run reorientation arms it before motion and finalizes it afterward.')
+      : 'Automatic tracking is not configured on the CB1. Configure the workstation tracker service before a production run.';
+  }
   if (!tr || !tr.received) {
-    badge.textContent = 'No tracker'; badge.className = 'badge muted';
+    badge.textContent = service ? (service.error ? 'tracker fault' : 'automatic') : 'No tracker';
+    badge.className = `badge ${service?.error ? 'bad' : 'muted'}`;
     body.classList.add('hidden'); empty.classList.remove('hidden');
     return;
   }

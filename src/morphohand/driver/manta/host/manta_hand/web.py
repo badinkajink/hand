@@ -15,7 +15,10 @@ import logging.handlers
 import mimetypes
 import signal
 import sys
+import threading
 import traceback
+import urllib.error
+import urllib.request
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -29,6 +32,67 @@ from .servos import TORQUE_FREE, TORQUE_OFF, TORQUE_ON
 
 STATIC_DIR = Path(__file__).with_name("static")
 LOG = logging.getLogger("manta_hand.web")
+
+
+class HTTPTrackerController:
+    """Synchronous control of the workstation camera service.
+
+    Calls happen inside the reorientation worker, never a request handler: ``start`` may
+    legitimately take a few seconds while IR auto-exposure settles and id6 is latched.
+    Keeping only cached state here preserves the runtime's cheap, non-blocking /state reads.
+    """
+
+    def __init__(self, url: str, token: str = "", timeout_s: float = 30.0):
+        self.url = url.rstrip("/")
+        self.token = token
+        self.timeout_s = timeout_s
+        self._lock = threading.Lock()
+        self._state = {"configured": True, "url": self.url, "running": False,
+                       "armed": False, "run_id": "", "error": None}
+
+    def _post(self, path: str, run_id: str, timeout: float) -> dict:
+        req = urllib.request.Request(
+            self.url + path, json.dumps({"run_id": run_id}).encode(), method="POST",
+            headers={"Content-Type": "application/json", "X-Tracker-Token": self.token})
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as response:
+                return json.load(response)
+        except urllib.error.HTTPError as exc:
+            try:
+                detail = json.loads(exc.read()).get("error")
+            except Exception:
+                detail = str(exc)
+            raise RuntimeError(f"workstation tracker {path} failed: {detail}") from None
+        except OSError as exc:
+            raise RuntimeError(f"cannot reach workstation tracker at {self.url}: {exc}") from None
+
+    def start(self, run_id: str) -> dict:
+        try:
+            result = self._post("/start", run_id, self.timeout_s)
+        except Exception as exc:
+            with self._lock:
+                self._state.update({"running": False, "armed": False, "run_id": run_id,
+                                    "error": str(exc)})
+            raise
+        with self._lock:
+            self._state.update(result)
+            self._state["error"] = None
+            return dict(self._state)
+
+    def stop(self, run_id: str) -> dict:
+        try:
+            result = self._post("/stop", run_id, max(self.timeout_s, 40.0))
+        except Exception as exc:
+            with self._lock:
+                self._state["error"] = str(exc)
+            raise
+        with self._lock:
+            self._state.update(result)
+            return dict(self._state)
+
+    def state(self) -> dict:
+        with self._lock:
+            return dict(self._state)
 
 
 def configure_logging(log_file: Path | None, verbose: bool = False) -> None:
@@ -191,7 +255,13 @@ class ControlRequestHandler(BaseHTTPRequestHandler):
                         meta=raw.get("meta", {}),
                     )
                 else:
-                    plan = HandPlan.from_json(self.server.resolve_plan(str(body["file"])))
+                    plan_path = self.server.resolve_plan(str(body["file"]))
+                    plan = HandPlan.from_json(plan_path)
+                    # Stamp which FILE was read. `design` is the morphology tag, and several
+                    # exported plans share one -- g12 ships at four residual clips under the
+                    # single design "g12" -- so without this a run log cannot say which of
+                    # them ran, and the run id (stamp-design-uuid) cannot either.
+                    plan.meta["plan_file"] = plan_path.name
                 return self._json(HTTPStatus.OK, rt.load_plan(plan))
             if path == "/api/v1/home":
                 rt.home(str(body.get("confirmation", "")), force=bool(body.get("force", False)))
@@ -437,6 +507,13 @@ def main(argv: list[str] | None = None) -> int:
                     help="0 disables polling; benchmark before selecting a nonzero rate")
     ap.add_argument("--token", default="",
                     help="required X-Manta-Token for commands (mandatory with real hardware)")
+    ap.add_argument("--tracker-url", default="",
+                    help="workstation tracker service (for example http://10.99.99.50:8770). "
+                         "When set, every reorientation must arm tracking before motion")
+    ap.add_argument("--tracker-token", default="",
+                    help="optional X-Tracker-Token shared with the workstation service")
+    ap.add_argument("--tracker-timeout", type=float, default=30.0,
+                    help="seconds allowed for the workstation to settle exposure and latch id6")
     ap.add_argument("--aa-signs", default="",
                     help="override recorded sim->servo yaw signs after a new hardware check")
     ap.add_argument("--log-file", type=Path, default=None,
@@ -487,9 +564,13 @@ def main(argv: list[str] | None = None) -> int:
         backend = RealHardwareBackend(args.stepper_port, args.servo_port,
                                        servo_fields=servo_fields)
 
+    tracker_controller = (HTTPTrackerController(args.tracker_url, args.tracker_token,
+                                                args.tracker_timeout)
+                          if args.tracker_url else None)
     runtime = HandRuntime(backend, logs_dir=args.logs_dir,
                           telemetry_hz=args.telemetry_hz,
-                          signs_checked=plan_module.SIGNS_MEASURED or bool(signs) or simulated)
+                          signs_checked=plan_module.SIGNS_MEASURED or bool(signs) or simulated,
+                          tracker_controller=tracker_controller)
     try:
         serve(runtime, host=args.host, port=args.port, plans_dir=args.plans_dir,
               control_token=args.token)

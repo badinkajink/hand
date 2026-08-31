@@ -15,17 +15,16 @@ WHAT THIS MODULE IS FOR. `pupil_apriltags` gives each tag's pose in the CAMERA's
 which is a frame that moves whenever anyone nudges the tripod. This turns that into two
 frames that mean something:
 
-  the reference-tag frame   heading-free. Height above the bench floor, and horizontal
-                            distance from the datum. Available with no calibration at
-                            all beyond the tape measure, because the up axis is
-                            observed and the datum's height was measured.
+  the reference-tag frame   Height above the bench floor and horizontal distance from
+                            the datum, independent of how the camera is aimed.
   the bench frame {B}       origin on the floor under the palm centre, +x toward the
-                            index/middle gantries, +z up. Needs ONE more number -- the
-                            reference tag's heading about vertical -- which no single
-                            tag can supply. `BenchFrame.heading_deg is None` until it is
-                            calibrated, and `locate()` then returns z and radius but no
-                            (x, y). That is deliberate: a fabricated heading would put
-                            plausible x/y numbers next to real z ones.
+                            index/middle gantries, +z up. The reference tag is rigidly
+                            bolted normal to the x_B axis and the camera directly faces it.
+                            Therefore the tag's in-plane horizontal axis is +-y_B, not
+                            an arbitrary heading. The remaining sign is selected from
+                            the observed hand-side offset (the tag is at x=+133.5 and
+                            the shaft lies on its smaller-x side). No staged calibration
+                            is needed while that mounting is unchanged.
 
 THE MEASUREMENTS, all by the user on 2026-08-31, all in mm.
 
@@ -80,6 +79,22 @@ CYL_TAG_SIZE_M = 0.030
 #: index/middle split rather than inferring it from this comment.
 REF_TAG_BENCH_MM = (133.5, 15.0, 175.0)
 REF_TAG_Y_SIGN_MEASURED = False
+
+#: Rigid mounting facts, recorded explicitly rather than living only in an operator's
+#: recollection. The printed reference-tag plane is normal to bench x and faces the camera;
+#: the camera faces it along the opposite axis. ``plane_axis='y'`` is consequently one of
+#: the two signed bench-y directions. ``heading_from_mounting`` resolves that printed-axis
+#: sign from the hand already visible in the frame.
+REF_TAG_NORMAL_BENCH_AXIS = "x (signed direction resolved from the facing/scene)"
+CAMERA_VIEW_BENCH_AXIS = "x (opposes the reference-tag face)"
+REF_TAG_PLANE_HORIZONTAL_BENCH_CANDIDATES = ("+y", "-y")
+REF_TAG_MOUNTING_FIXED = True
+
+#: The largest |bench x| at which the tool can plausibly sit while the hand is holding it.
+#: The mounts span +-30 mm and the fingers reach roughly 60 mm beyond them. This is deliberately
+#: generous because it is used to REJECT an ambiguous mounting heading, never to validate a
+#: measurement: a shaft outside it means the scene is not staged, not that the reading is wrong.
+OBJECT_X_ENVELOPE_MM = 90.0
 
 #: Cylinder tag centre from the cylinder's centre, along the shaft axis, on the axis.
 #: 21 mm past a flat end face + the 50 mm half-length.
@@ -235,36 +250,45 @@ class BenchFrame:
         return z, radial, xy
 
     def heading_from_mounting(self, t_cam_mm: np.ndarray) -> tuple[float, str]:
-        """The heading, from how the tag is MOUNTED plus one weak fact about the scene.
+        """The heading, from how the tag is MOUNTED plus one fact about the staged scene.
 
         The reference tag is bolted facing normal to the gantry x-axis and stays that way, so
         its in-plane horizontal axis is +-y_B and the heading can only be +90 or -90 -- there is
-        no continuum to calibrate, only a sign. And the sign is decided by something already in
-        frame: the hand sits at the palm centre, x = 0, while the tag is at x = +133.5, so the
-        cylinder must come out at LARGE NEGATIVE bench x. The candidate that puts it at positive
-        x has the tag's y axis flipped.
+        no continuum to calibrate, only a sign. The two candidates differ by 180 deg, so they
+        mirror the shaft about the tag's own x: one lands at 133.5 - d, the other at 133.5 + d.
+        The sign is then decided by the hand, which sits at the palm centre, x = 0.
 
-        This is why `--calibrate-heading` is a refinement rather than a prerequisite: it exists
-        for a rig where the tag is aimed by hand, not for this one.
+        That discriminator only works when the shaft is staged IN the hand, and the first live
+        run showed why the test has to be able to fail. With the shaft parked on its post beside
+        the reference tag the two candidates came out at +114 and +153 mm -- both far outside the
+        hand, 19 mm either side of the tag -- and an earlier version of this method, which simply
+        took the smaller x, returned +114 and called it "the hand's side". It then wrote bench
+        x/y into the trace off a coin flip. So the rule is exactly one candidate inside the hand
+        envelope, and staging beside the tag is refused rather than guessed.
+
+        What this cannot check is its own premise: a tag that has been re-aimed by hand is no
+        longer normal to the gantry x-axis and the true heading is not +-90 at all. That is what
+        `--calibrate-heading` is for.
         """
-        # The two candidates differ by 180 deg, so they mirror the offset about the tag: one
-        # puts the shaft on the hand's side, the other the same distance further out. Picking
-        # the smaller x is therefore a CHOICE between two, not a test that can fail -- the only
-        # degenerate case is a shaft at the tag's own x, 133.5 mm from the palm centre, which is
-        # outside the workspace. What this cannot check is the premise: if the tag has been
-        # re-aimed by hand it is no longer normal to the gantry x-axis and the true heading is
-        # not +-90 at all. That is what --calibrate-heading is for.
         seen = []
         for cand in (90.0, -90.0):
             keep, self.heading_deg = self.heading_deg, cand
             _, _, xy = self.locate(t_cam_mm)
             self.heading_deg = keep
-            seen.append((xy[0], cand))
-        seen.sort()
-        if abs(seen[0][0] - seen[1][0]) < 1.0:
-            raise ValueError("the shaft is at the reference tag's own x; the heading's sign is "
-                             "undefined there. Move it or use --calibrate-heading")
-        return seen[0][1], f"puts the shaft at bench x {seen[0][0]:+.0f} mm, the hand's side"
+            seen.append((float(xy[0]), cand))
+        inside = [(x, c) for x, c in seen if abs(x) <= OBJECT_X_ENVELOPE_MM]
+        if len(inside) != 1:
+            where = " and ".join(f"{x:+.0f}" for x, _ in sorted(seen))
+            raise ValueError(
+                f"the two mounting headings put the shaft at bench x {where} mm and "
+                f"{'neither is' if not inside else 'both are'} inside the "
+                f"+-{OBJECT_X_ENVELOPE_MM:.0f} mm hand envelope, so the sign is a guess. "
+                "Stage the shaft in the hand before latching, or use --calibrate-heading")
+        x, cand = inside[0]
+        other = next(v for v, c in seen if c != cand)
+        return cand, (f"puts the shaft at bench x {x:+.0f} mm, inside the "
+                      f"+-{OBJECT_X_ENVELOPE_MM:.0f} mm hand envelope; the other candidate "
+                      f"lands at {other:+.0f} mm")
 
     def heading_for(self, t_cam_mm: np.ndarray, bench_xy_mm: tuple[float, float]) -> float:
         """Solve the one unknown: the heading that puts a point of KNOWN bench (x, y) where
@@ -291,6 +315,13 @@ class BenchFrame:
                 "ref_t_cam_mm": [round(v, 2) for v in self.ref_t_cam_mm],
                 "heading_deg": self.heading_deg,
                 "ref_bench_mm": list(self.ref_bench_mm),
+                "rigid_mounting": {
+                    "fixed": REF_TAG_MOUNTING_FIXED,
+                    "ref_tag_normal_bench_axis": REF_TAG_NORMAL_BENCH_AXIS,
+                    "camera_view_bench_axis": CAMERA_VIEW_BENCH_AXIS,
+                    "plane_horizontal_candidates":
+                        list(REF_TAG_PLANE_HORIZONTAL_BENCH_CANDIDATES),
+                },
                 "latched_from_frames": self.n_frames}
 
 
@@ -333,6 +364,12 @@ def reading_from_tags(frame: BenchFrame, pose_R, pose_t, *, t: float,
 #: A drop is a fall, not a low sample: the shaft has to LOSE this much height against its
 #: own baseline. 25 mm is twice the cylinder's radius, so a shaft that has merely rolled in
 #: the grip does not read as one.
+#: The window at the end of a trace that the study's primary metric averages over. A single
+#: last frame is one sample of a shaft that is still settling on its contacts; a second of it is
+#: the pose the hand actually ended up holding. Averaging also makes the metric insensitive to
+#: exactly when the operator stopped the recording, which is not a property of the hand.
+HOLD_WINDOW_S = 1.0
+
 DROP_FALL_MM = 25.0
 #: ...and stay down. A single frame this low is a mis-detection; a fall persists.
 DROP_HOLD_S = 0.4
@@ -348,6 +385,8 @@ class TraceSummary:
     cos_start: float | None = None
     cos_peak: float | None = None
     cos_final: float | None = None
+    cos_hold: float | None = None
+    hold_window_s: float = HOLD_WINDOW_S
     cos_min: float | None = None
     t_peak_s: float | None = None
     deg_turned: float | None = None
@@ -371,7 +410,8 @@ class TraceSummary:
             return "no cylinder tag in the whole trace -- nothing measured"
         turn = f"{self.deg_turned:+.1f} deg" if self.deg_turned is not None else "--"
         drop = f", DROPPED at {self.drop_at_s:.1f}s" if self.dropped else ""
-        return (f"cos {self.cos_start:+.3f} -> {self.cos_final:+.3f} (peak {self.cos_peak:+.3f} "
+        return (f"cos {self.cos_start:+.3f} -> {self.cos_final:+.3f} (hold "
+                f"{self.cos_hold:+.3f}, peak {self.cos_peak:+.3f} "
                 f"at {self.t_peak_s:.1f}s), turned {turn}, height "
                 f"{self.z_start_mm:.0f} -> {self.z_final_mm:.0f} mm, slip {self.slip_mm:.1f} mm, "
                 f"seen {100 * self.visibility:.0f}%{drop}")
@@ -379,7 +419,8 @@ class TraceSummary:
 
 def summarise(readings, *, total_frames: int | None = None,
               drop_fall_mm: float = DROP_FALL_MM,
-              drop_hold_s: float = DROP_HOLD_S) -> TraceSummary:
+              drop_hold_s: float = DROP_HOLD_S,
+              hold_window_s: float = HOLD_WINDOW_S) -> TraceSummary:
     """Turn a trace into the numbers a bench session records.
 
     `readings` are the frames where the tag WAS seen; `total_frames` is how many were
@@ -398,6 +439,13 @@ def summarise(readings, *, total_frames: int | None = None,
     cos = [r.cos_up for r in rs]
     s.cos_start, s.cos_final = cos[0], cos[-1]
     s.cos_peak, s.cos_min = max(cos), min(cos)
+    # The primary metric of the transfer study: the alignment the hand ENDED UP holding, not
+    # the best instant it passed through. `cos_peak` without a height check scores a shaft that
+    # was flicked upright and dropped exactly like one that was carried and kept.
+    t_end = rs[-1].t
+    held = [r.cos_up for r in rs if r.t >= t_end - hold_window_s]
+    s.cos_hold = float(np.mean(held)) if held else cos[-1]
+    s.hold_window_s = float(hold_window_s)
     s.t_peak_s = rs[int(np.argmax(cos))].t
     s.deg_turned = deg_from_up(cos[0]) - deg_from_up(cos[-1])   # + = moved toward vertical
     s.z_start_mm, s.z_final_mm = rs[0].z_bench_mm, rs[-1].z_bench_mm

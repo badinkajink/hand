@@ -99,6 +99,14 @@ class HardwareBackend(Protocol):
     def close(self) -> None: ...
 
 
+class TrackerController(Protocol):
+    """A camera owner outside the CB1 process (normally on the workstation)."""
+
+    def start(self, run_id: str) -> dict: ...
+    def stop(self, run_id: str) -> dict: ...
+    def state(self) -> dict: ...
+
+
 class RealHardwareBackend:
     """The two physical serial links on the CB1, opened only on construction.
 
@@ -468,13 +476,15 @@ class HandRuntime:
     """One state machine around the hand, safe to call from HTTP request threads."""
 
     def __init__(self, backend: HardwareBackend, *, logs_dir: str | Path = "logs/hardware",
-                 telemetry_hz: float = 0.0, signs_checked: bool = False):
+                 telemetry_hz: float = 0.0, signs_checked: bool = False,
+                 tracker_controller: TrackerController | None = None):
         if not 0.0 <= telemetry_hz <= 100.0:
             raise ValueError("telemetry_hz must be in [0, 100]")
         self.backend = backend
         self.logs_dir = Path(logs_dir)
         self.telemetry_hz = float(telemetry_hz)
         self.signs_checked = bool(signs_checked)
+        self.tracker_controller = tracker_controller
         self._lock = threading.RLock()
         self._stop = threading.Event()
         self._shutdown = threading.Event()
@@ -646,6 +656,8 @@ class HandRuntime:
                 "last_command": {f: dict(v) for f, v in self._last_command.items()},
                 "plan": plan,
                 "tracker": track,
+                "tracker_service": (self.tracker_controller.state()
+                                    if self.tracker_controller is not None else None),
                 "signs_checked": self.signs_checked,
                 "axes": AXIS_INFO,
                 "telemetry": telem,
@@ -1018,6 +1030,9 @@ class HandRuntime:
             log = RunLog(self.logs_dir, self._plan, "reorientation",
                          {"speed_ratio": speed_ratio, "rate_hz": rate_hz,
                           "servo_speed": servo_speed, "telemetry_hz": self.telemetry_hz,
+                          "object_tracking": ("automatic-required"
+                                              if self.tracker_controller is not None
+                                              else "external-or-none"),
                           "joint_signs": {
                               finger: {joint: JOINT_SIGN[(finger, joint)]
                                        for joint in JOINT_ORDER}
@@ -1032,22 +1047,34 @@ class HandRuntime:
     def _do_run_reorientation(self, speed_ratio: float, rate_hz: float,
                               speed: int, log: RunLog) -> None:
         assert self._plan is not None
-        self._capture_run_telemetry(log, "before")
-        grip_index = next(i for i, p in enumerate(self._plan.poses) if p.name == "grip")
-        previous = self._last_command
-        for pose in self._plan.poses[grip_index + 1:]:
-            if self._stop.is_set():
-                break
-            complete = self._ramp(previous, pose.joints, pose.ramp_s / speed_ratio,
-                                  rate_hz, speed, pose.name, log)
-            if not complete:
-                break
-            previous = pose.joints
-            if pose.hold_s > 0 and self._stop.wait(pose.hold_s / speed_ratio):
-                break
-            with self._lock:
-                self._current_pose = pose.name
-        self._capture_run_telemetry(log, "after")
+        tracker_started = False
+        try:
+            if self.tracker_controller is not None:
+                armed = self.tracker_controller.start(log.run_id)
+                tracker_started = True
+                self._event("info", "object tracker armed before reorientation",
+                            {"run_id": log.run_id, "tracker": armed})
+            self._capture_run_telemetry(log, "before")
+            grip_index = next(i for i, p in enumerate(self._plan.poses) if p.name == "grip")
+            previous = self._last_command
+            for pose in self._plan.poses[grip_index + 1:]:
+                if self._stop.is_set():
+                    break
+                complete = self._ramp(previous, pose.joints, pose.ramp_s / speed_ratio,
+                                      rate_hz, speed, pose.name, log)
+                if not complete:
+                    break
+                previous = pose.joints
+                if pose.hold_s > 0 and self._stop.wait(pose.hold_s / speed_ratio):
+                    break
+                with self._lock:
+                    self._current_pose = pose.name
+            self._capture_run_telemetry(log, "after")
+        finally:
+            if tracker_started:
+                stopped = self.tracker_controller.stop(log.run_id)
+                self._event("info", "object tracker finalized",
+                            {"run_id": log.run_id, "tracker": stopped})
 
     # ---- experimental local-policy write stream ----------------------------------------
     def begin_stream(self, *, timeout_s: float = 0.25) -> str:
@@ -1144,10 +1171,16 @@ class HandRuntime:
                     t["min_z_mm"] = z if t["min_z_mm"] is None else min(t["min_z_mm"], z)
             log = self._active_log
             summary = sample.get("summary")
+            track_block = None
+            if summary is not None:
+                track_block = dict(summary)
+                for key in ("frame", "camera", "axes", "axial_mm"):
+                    if sample.get(key) is not None:
+                        track_block[key] = sample[key]
         if log is not None:
             log.append("object", {"object": sample})
             if summary is not None:
-                log.track(summary)
+                log.track(track_block)
         elif summary is not None:
             # The run finished before the tracker did, which is the normal ordering: the trace
             # is written after the motion stops.  Falling back to the most recent run matters
@@ -1158,7 +1191,7 @@ class HandRuntime:
             if known is None and self._logs:
                 known = list(self._logs.values())[-1]
             if known is not None:
-                known.track(summary)
+                known.track(track_block)
         return self.state()["tracker"]
 
     def score_run(self, run_id: str, *, success: bool,
