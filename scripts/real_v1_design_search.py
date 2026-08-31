@@ -536,6 +536,10 @@ def main() -> int:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--set", default="axes", help="known | axes | grid | random | all | sobol")
     ap.add_argument("--only", default="", help="comma list of design tags")
+    ap.add_argument("--only-file", type=Path, default=None,
+                    help="a file of design tags (comma or newline separated) to restrict to. "
+                         "The population filters -- reachability, graspability -- write lists, "
+                         "and a 6,000-name --only does not belong on a command line.")
     ap.add_argument("--stage", default="all", choices=("all", "grasp", "generate", "manifest"),
                     help="manifest only, scene generation, grasp-only screening, or full carry")
     ap.add_argument("--shard", type=int, default=0)
@@ -574,7 +578,10 @@ def main() -> int:
     ap.add_argument("--generated-dir", type=Path,
                     default=ROOT / "assets/mjcf/experimental/20260830-real_v1-sobol128")
     ap.add_argument("--manifest", type=Path, default=None,
-                    help="default: <out stem>_manifest.json")
+                    help="where to WRITE the provenance manifest -- it is not read back, and "
+                         "pointing it at an existing filtered manifest overwrites that file with "
+                         "the unfiltered population. Default: <out stem>_manifest.json. To "
+                         "restrict the population, use --only-file.")
     ap.add_argument("--out", type=Path, required=True)
     args = ap.parse_args()
 
@@ -588,8 +595,11 @@ def main() -> int:
 
     args.generated_dir = args.generated_dir.resolve()
     designs, metadata = population_for(args)
-    if args.only:
-        keep = set(args.only.split(","))
+    if args.only or args.only_file:
+        keep = set(args.only.split(",")) if args.only else set()
+        if args.only_file:
+            keep |= {t.strip() for t in args.only_file.read_text().replace("\n", ",").split(",")
+                     if t.strip()}
         designs = {k: v for k, v in designs.items() if k in keep}
         metadata = {k: metadata[k] for k in designs}
 

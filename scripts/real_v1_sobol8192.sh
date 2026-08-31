@@ -29,12 +29,20 @@ python3 scripts/real_v1_design_search.py --stage manifest --set sobol \
 echo "=== stage A2: keep only the hands the rails reach ==="
 python3 scripts/real_v1_filter_reachable.py \
   --manifest "$OUT/grasp_screen_manifest.json" --out "$OUT/hardware_manifest.json"
+python3 -c "
+import json, sys
+m = json.load(open(sys.argv[1]))
+open(sys.argv[2], 'w').write('\n'.join(r['design'] for r in m['designs']) + '\n')
+print(len(m['designs']), 'reachable ->', sys.argv[2])
+" "$OUT/hardware_manifest.json" "$OUT/reachable.txt"
 
+# --manifest is a WRITE path.  Pointing it at hardware_manifest.json here overwrites the filter's
+# output with the unfiltered population -- the population is restricted with --only-file instead.
 echo "=== stage B: grasp screen, $SHARDS shards ==="
 for i in $(seq 0 $((SHARDS - 1))); do
   python3 scripts/real_v1_design_search.py --stage grasp --set sobol \
     --sobol-count "$COUNT" --sobol-seed "$SEED" --generated-dir "$GEN" \
-    --manifest "$OUT/hardware_manifest.json" \
+    --only-file "$OUT/reachable.txt" \
     --straddle 0.032,0.040 --thumb-axial 0.01,0.02 --depth auto --squeeze 0.004 \
     --axis-k 0.15,0.25,0.35,0.5 --angle-deg -90 --modes ik \
     --shard "$i" --shards "$SHARDS" --out "$OUT/grasp_shard_$i.json" \
