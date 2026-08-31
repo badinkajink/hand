@@ -113,6 +113,27 @@
           <p id="telemetry-warning" class="hint">Browser refresh reads a cached document and never polls a servo directly.</p>
         </article>
 
+        <article class="card tracking">
+          <div class="card-head"><div><span class="eyebrow">live / object pose</span><h2>Shaft tracking</h2></div><span id="track-badge" class="badge muted">No tracker</span></div>
+          <div id="track-body" class="hidden">
+            <div class="track-dial">
+              <div><small>cos(shaft, up)</small><strong id="track-cos">—</strong></div>
+              <div class="track-meter"><div id="track-fill"></div><span class="track-zero"></span></div>
+              <div class="track-scale"><span>down</span><span>flat</span><span>up</span></div>
+            </div>
+            <div class="metric-grid" id="track-grid"></div>
+          </div>
+          <div id="track-empty">
+            <p class="hint" style="margin-top:0">No object-pose samples. Until one arrives this
+              station has no object sensor and a run can only be scored by eye.</p>
+            <p class="hint">The camera is on the workstation, not the CB1. Start the tracker
+              there:</p>
+            <pre class="cmd">~/miniconda3/bin/python scripts/real_v1_tag_tracker.py --push --seconds 30</pre>
+            <p class="hint">Run it with <code>--probe</code> first: it checks exposure, both
+              tags, and the sign of <code>--shaft-axis</code>.</p>
+          </div>
+        </article>
+
         <article class="card recording">
           <div class="card-head"><div><span class="eyebrow">experiment record</span><h2>Runs &amp; scoring</h2></div><button id="refresh-logs" class="icon">↻</button></div>
           <div id="runs" class="runs"><p class="empty">No hardware runs recorded.</p></div>
@@ -194,6 +215,7 @@
       <input id="score-run-id" type="hidden">
       <label>Outcome<select id="score-success"><option value="true">Success</option><option value="false">Failure</option></select></label>
       <label>Approx. reorientation (degrees)<input id="score-angle" type="number" step="1" placeholder="e.g. 78"></label>
+      <p id="score-measured" class="hint hidden" style="margin-top:-6px"></p>
       <label>Notes<textarea id="score-notes" rows="3" placeholder="Slip, wrong pole, placement, unusual sound…"></textarea></label>
       <div class="dialog-actions"><button value="cancel" class="secondary">Cancel</button><button id="save-score" value="default">Save score</button></div>
     </form>

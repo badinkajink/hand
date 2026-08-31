@@ -12,6 +12,13 @@ It writes ONE directory per session containing every raw log, every stdout, and
 a MANIFEST.json -- self-describing, so the whole thing can be handed to an
 analyst (or a fresh session) with no other context.
 
+Since 2026-08-31 it also runs the AprilTag tracker alongside every loaded repeat,
+so the sentence below -- "there is no object-pose sensor on this hand" -- is no
+longer true and the operator confirms a measurement instead of recalling an angle.
+The eyeball field is KEPT: the instrument has its own failure modes (a dropout
+during the turn, a shaft that slipped rather than turned) and the operator saw the
+run. When the two disagree, that disagreement is in the manifest.
+
   python3 scripts/real_v1_bench_session.py --design g12
   python3 scripts/real_v1_bench_session.py --design g24 --arms freeair
   python3 scripts/real_v1_bench_session.py --design g12 --arms loaded --repeats 3
@@ -27,11 +34,12 @@ Arms, in the order they must be run:
   protection  prints the servo overload-protection procedure (needs the CB1 bus,
             so it cannot run from here) and records the operator's readings.
 """
-import argparse, json, os, re, shutil, subprocess, sys, time
+import argparse, json, os, re, shutil, signal, subprocess, sys, time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 import mh
+import real_v1_tag_tracker as tagtool
 
 REPO = Path(__file__).resolve().parents[1]
 DEPLOY = REPO / "docs/experiments/20260829-real_v1_deploy/deploy"
@@ -46,19 +54,133 @@ SIGN = {"thumb": 1.0, "index": -1.0, "middle": -1.0}
 # the sim links are THINNER than the printed parts, so these are optimistic).
 # Only g12 clears the whole path; the rest are truncated rather than skipped,
 # which is what makes "try them all" safe.
-SAFE_U = {
-    "g12":      {"chord": 1.00, "csv": 1.00},
-    # g12 re-exported past the +-0.5 rad residual clip; clearance is unchanged
-    # (the minimum is at the grip pose, which the budget does not touch)
-    "g12w08":   {"chord": 1.00, "csv": 1.00},
-    "g12w11":   {"chord": 1.00, "csv": 1.00},
+TRUNCATED = {
+    # Designs whose fingers CROSS during the turn, backed off ~1 step from the 3 mm
+    # crossing.  These are hand-entered because the truncation is a judgement about how
+    # much of a colliding path is worth running, not something the clearance report says.
     "g23":      {"chord": 0.92, "csv": 0.84},
     "g24":      {"chord": 0.55, "csv": 0.10},
     "rv04_mid": {"chord": 0.65, "csv": 0.70},
 }
-# margin already applied: g24/rv04_mid backed off ~1 step from the 3mm crossing.
+CLEARANCE = REPO / "docs/experiments/20260830-real_v1-budget-rescreen/deploy_clearance.txt"
+
+
+def safe_u_table():
+    """Which plans this session may run, and how far along each path.
+
+    Read from the clearance report rather than transcribed.  The transcribed version went
+    stale the moment three more plans were promoted on 2026-08-30: the deploy directory had
+    seventeen plans and `--design` offered six, so the top-ranked hand on the station could
+    not be run by the driver meant to run it.
+    """
+    table = {}
+    if CLEARANCE.exists():
+        for line in CLEARANCE.read_text().splitlines():
+            parts = line.split()
+            if len(parts) >= 4 and parts[0] not in ("design",) and "run on:" in line:
+                paths = line.partition("run on:")[2]
+                table[parts[0]] = {"chord": 1.00 if "chord" in paths else None,
+                                   "csv": 1.00 if "csv" in paths else None}
+    for tag, row in TRUNCATED.items():
+        table.setdefault(tag, {})
+        table[tag] = dict(row)
+    for tag in list(table):
+        if not (DEPLOY / f"{tag}_plan.json").exists():
+            del table[tag]        # a clearance row whose plan is no longer shipped
+    return table
+
+
+SAFE_U = safe_u_table()
 
 GRIP_FIRM, GRIP_FREE = 440.0, 0.0   # |fe1| load targets for holder vs driver
+
+
+class Tracker:
+    """The AprilTag tracker, run alongside one bench arm.
+
+    The camera is on the WORKSTATION and the control station is on the CB1, so this is a
+    local subprocess, not a service call -- and it needs an interpreter that is not this
+    one (pyrealsense2 and pupil_apriltags are not in the repo's uv environment). Started
+    before the motion so its reference latch and its first frames are the STAGED pose,
+    stopped with SIGINT afterwards because the tracker writes its trace on the way out.
+
+    Every failure here is non-fatal by construction. A bench run that stopped because the
+    camera was unplugged would be the instrument deciding whether the experiment happens.
+    """
+
+    def __init__(self, session, tag, run_id="", enabled=True, seconds=300.0, push=True,
+                 extra=()):
+        self.session, self.tag, self.enabled = session, tag, enabled
+        self.run_id, self.seconds, self.push, self.extra = run_id, seconds, push, list(extra)
+        self.proc = None
+        self.csv = session / f"{tag}_track.csv"
+        self.error = None
+
+    def __enter__(self):
+        if not self.enabled:
+            return self
+        exe = tagtool.find_interpreter()
+        if not exe:
+            self.error = "no interpreter on this machine can open the camera"
+            say(f"  !! tracking off: {self.error}")
+            return self
+        cmd = [exe, str(REPO / "scripts/real_v1_tag_tracker.py"),
+               "--seconds", str(self.seconds), "--out", str(self.csv), "--quiet"]
+        if self.run_id:
+            cmd += ["--run-id", self.run_id]
+        if self.push:
+            cmd.append("--push")
+        cmd += self.extra
+        try:
+            self.proc = subprocess.Popen(cmd, cwd=REPO, stdout=subprocess.PIPE,
+                                         stderr=subprocess.STDOUT, text=True, bufsize=1)
+        except Exception as exc:
+            self.error = str(exc)
+            say(f"  !! tracking off: {exc}")
+            return self
+        # Wait for the reference latch before letting the hand move: the first frames are
+        # the staged pose, and they are the baseline every angle in the run is measured
+        # against. Started too late, the "start" of the trace is already mid-motion.
+        deadline = time.time() + 20.0
+        while time.time() < deadline:
+            line = self.proc.stdout.readline()
+            if not line:
+                break
+            if "recording" in line:
+                say(f"  tracker armed -> {self.csv.name}")
+                return self
+            if line.strip():
+                say(f"  [tracker] {line.rstrip()}")
+        self.error = "the tracker never reached its recording state"
+        say(f"  !! {self.error}; continuing without it")
+        return self
+
+    def __exit__(self, *exc):
+        if self.proc is None:
+            return False
+        try:
+            self.proc.send_signal(signal.SIGINT)
+            rest = self.proc.communicate(timeout=30)[0] or ""
+        except Exception:
+            self.proc.kill()
+            rest = ""
+        (self.session / f"{self.tag}_track.stdout.txt").write_text(rest)
+        for line in rest.splitlines():
+            if line.strip():
+                say(f"  [tracker] {line.rstrip()}")
+        return False
+
+    def result(self) -> dict:
+        """What the instrument measured, or WHY it measured nothing. Never a silent None:
+        a run with no trace has to be distinguishable from a run whose trace read zero."""
+        sidecar = self.csv.with_name(self.csv.stem + "_SUMMARY.json")
+        if not sidecar.exists():
+            return {"measured": False,
+                    "reason": self.error or ("tracking disabled" if not self.enabled
+                                             else "the tracker wrote no summary")}
+        doc = json.loads(sidecar.read_text())
+        return {"measured": True, "trace": self.csv.name,
+                "summary": doc["summary"], "frame": doc["frame"], "axes": doc["axes"]}
 
 
 def say(*a):
@@ -99,8 +221,17 @@ def read_fresh(max_age=0.4, tries=40):
 
 def preflight(design):
     """Everything that makes a run interpretable later, captured before it runs."""
-    s = mh.get("/state")
-    t = read_fresh()
+    try:
+        s = mh.get("/state")
+        t = read_fresh()
+    except Exception as exc:
+        # A stopped station used to come out of here as a bare ConnectionRefusedError
+        # traceback, which reads like a bug in the session driver rather than "the
+        # service on the CB1 is not running".
+        problem = (f"the control station at {mh.BASE} did not answer ({type(exc).__name__}: "
+                   f"{exc}). Start it on the CB1 with ~/run_control_station.sh start")
+        say(f"  !! {problem}")
+        return {"problems": [problem], "reachable": False}
     pf = {
         "backend": s.get("backend"), "homed": s.get("homed"),
         "busy": s.get("busy"), "operation": s.get("operation"),
@@ -110,6 +241,10 @@ def preflight(design):
         "servo_polling_suspended": t.get("servo_polling_suspended"),
         "servo_load": t.get("servo_load"),
         "servos": t.get("servos"),
+        "reachable": True,
+        # The station's own view of whether it has an object sensor right now.  If this is
+        # False while --track is on, the tracker is running but its pushes are not landing.
+        "station_object_pose": (s.get("capabilities") or {}).get("object_pose", False),
     }
     problems = []
     if pf["backend"] != "real":
@@ -161,6 +296,18 @@ def plan_facts(design):
             "clip_saturated": [f"{f}_{j}" for f in FINGERS for j in ("yaw", "mcp", "pip")
                                if abs(abs(exc[f][j]) - 28.648) < 0.05],
             "meta": plan.get("meta", {}), "grip_pose": g}
+
+
+def plan_prediction(design):
+    """What simulation says this plan will do, from the catalog the station serves."""
+    path = DEPLOY / "catalog.json"
+    if not path.exists():
+        return {"available": False, "reason": "no catalog.json in the deploy directory"}
+    doc = json.loads(path.read_text())
+    entry = (doc.get("designs") or {}).get(design)
+    if entry is None:
+        return {"available": False, "reason": f"catalog.json has no entry for {design}"}
+    return {"available": True, "source": doc.get("source"), **entry}
 
 
 def ramp_to(target, secs=1.2, speed=50, steps=30):
@@ -224,23 +371,49 @@ def harvest(text, sess, tag):
     return dst.name
 
 
-def observe(kind):
-    """The measurement no log contains.  Keep the field names stable."""
-    say("\n  --- operator observation (this is the only object-pose sensor we have) ---")
+def observe(kind, track=None):
+    """The operator's reading of the run.
+
+    Kept even now that the AprilTag tracker exists, and kept as a SEPARATE reading rather
+    than a confirmation dialog around the instrument's number.  The tracker cannot see a
+    shaft that turned because it slipped through the fingers rather than with them, it
+    reports a dropout as missing data and the operator as a dropped shaft, and it has no
+    opinion at all about whether two fingers touched.  Where both have a view, the default
+    offered is the measured one -- the operator overrides an instrument, not the reverse.
+    """
+    say("\n  --- operator observation ---")
     o = {"kind": kind}
-    o["held"] = ask_bool("was the shaft still in the hand at the end", True)
-    o["rotation_deg"] = ask("estimated cylinder rotation, degrees (protractor/tag if you have it)",
-                            None, float)
-    o["rotation_source"] = ask("how measured (eye/protractor/apriltag/video)", "eye")
-    if str(o["rotation_source"]).startswith("apriltag"):
-        # The vane read is an IN-PLANE image angle relative to the fixed reference
-        # tag, so both readings belong in the record, not just their difference.
-        o["vane_deg_start"] = ask("vane angle at the grip pose, deg", None, float)
-        o["vane_deg_end"] = ask("vane angle at the end of the turn, deg", None, float)
+    meas = (track or {}).get("summary") if (track or {}).get("measured") else None
+    if meas and meas.get("seen"):
+        turned = meas.get("deg_turned")
+        say(f"      tag measured: {meas['cos_start']:+.3f} -> {meas['cos_final']:+.3f} cos, "
+            f"{turned:+.1f} deg toward vertical, peak {meas['cos_peak']:+.3f}")
+        say(f"      height {meas['z_start_mm']:.0f} -> {meas['z_final_mm']:.0f} mm, slip "
+            f"{meas['slip_mm']:.1f} mm, seen {100 * meas['visibility']:.0f}%"
+            + (", DROPPED" if meas["dropped"] else ""))
+        for n in meas.get("notes", []):
+            say(f"      NOTE: {n}")
+    elif track is not None:
+        say(f"      no tag measurement: {track.get('reason', 'unknown')}")
+    default_held = None if meas is None else (not meas["dropped"])
+    default_deg = None if not (meas and meas.get("deg_turned") is not None) \
+        else round(meas["deg_turned"], 1)
+    o["held"] = ask_bool("was the shaft still in the hand at the end",
+                         True if default_held is None else default_held)
+    o["rotation_deg"] = ask("cylinder rotation, degrees", default_deg, float)
+    o["rotation_source"] = ask("how measured (apriltag/eye/protractor/video)",
+                               "apriltag" if default_deg is not None else "eye")
     o["fingers_touched"] = ask_bool("did any two fingers touch each other", False)
     o["slipped"] = ask_bool("did the shaft slide or roll rather than turn with the fingers", False)
     o["media"] = ask("photo/video filename (blank if none)", "", allow_blank=True)
     o["notes"] = ask("anything else worth writing down", "", allow_blank=True)
+    if meas and o["rotation_deg"] is not None and default_deg is not None:
+        # The disagreement is the interesting number, so compute it here rather than
+        # leaving it for whoever reads the manifest to notice.
+        o["operator_minus_tag_deg"] = round(o["rotation_deg"] - default_deg, 1)
+        if abs(o["operator_minus_tag_deg"]) > 10.0:
+            say(f"      !! operator and tag differ by {o['operator_minus_tag_deg']:+.1f} deg -- "
+                "one of them is measuring something else. Say which in the notes.")
     return o
 
 
@@ -321,10 +494,14 @@ def arm_loaded(a, sess, facts, rec):
             cmd.append("--csv")
         if a.mcp_scale != 1.0:
             cmd += ["--mcp-scale", str(a.mcp_scale)]
-        rc, txt = run(cmd, sess, f"loaded_{k + 1}")
+        tag = f"loaded_{k + 1}"
+        with Tracker(sess, tag, enabled=a.track, push=a.track_push,
+                     seconds=a.track_seconds, extra=a.track_args.split()) as tr:
+            rc, txt = run(cmd, sess, tag)
+        track = tr.result()
         rec["runs"].append({"arm": "loaded", "repeat": k + 1, "servo_speed": spd, "rc": rc,
-                            "log": harvest(txt, sess, f"loaded_{k + 1}"), "cmd": cmd})
-        o = observe(f"loaded_{k + 1}")
+                            "log": harvest(txt, sess, tag), "cmd": cmd, "tracking": track})
+        o = observe(tag, track)
         rec["observations"].append(o)
         write(sess, rec)
 
@@ -404,14 +581,32 @@ def main():
     ap.add_argument("--hold", type=float, default=4.0)
     ap.add_argument("--mcp-scale", type=float, default=1.0)
     ap.add_argument("--preload-start", type=float, default=9.0)
+    ap.add_argument("--track", dest="track", action="store_true", default=True,
+                    help="record the AprilTag turn trace alongside each loaded repeat "
+                         "(default on; needs the RealSense on this workstation)")
+    ap.add_argument("--no-track", dest="track", action="store_false")
+    ap.add_argument("--track-push", dest="track_push", action="store_true", default=True,
+                    help="also push live samples to the control station's web app")
+    ap.add_argument("--no-track-push", dest="track_push", action="store_false")
+    ap.add_argument("--track-seconds", type=float, default=300.0,
+                    help="tracker recording cap; it is stopped by signal when the run ends, "
+                         "so this only has to be longer than the longest repeat")
+    ap.add_argument("--track-args", default="",
+                    help="extra flags for real_v1_tag_tracker.py, e.g. '--shaft-axis -x'")
     ap.add_argument("--operator", default=os.environ.get("USER", "?"))
     ap.add_argument("--note", default="", help="what this session is testing")
     a = ap.parse_args()
 
     if a.max_u is None:
         a.max_u = SAFE_U[a.design][a.path]
+    if a.max_u is None:
+        other = [p for p, v in SAFE_U[a.design].items() if v is not None]
+        say(f"  !! {a.design} has no cleared {a.path} path"
+            + (f" -- run --path {other[0]}" if other else " on either path"))
+        return 1
 
     facts = plan_facts(a.design)
+    predicted = plan_prediction(a.design)
     stamp = time.strftime("%Y%m%d-%H%M")
     sess = SUITE / f"{stamp}-{a.design}"
     sess.mkdir(parents=True, exist_ok=True)
@@ -433,6 +628,19 @@ def main():
             "     bad staging.  (Both designs in this class also interpenetrate.)")
     say(f"  truncation  : max_u {a.max_u:.2f} on the {a.path} path"
         + ("  (FULL path clears)" if a.max_u >= 1.0 else "  (finger-finger clearance)"))
+    if predicted.get("available"):
+        rank = predicted.get("sim_rank")
+        say(f"  simulation  : {predicted['expect']}")
+        say(f"                clip {predicted['budget_rad']:.2f} rad, band "
+            + (f"{predicted['band_rad'][0]:.2f}-{predicted['band_rad'][1]:.2f}"
+               if predicted.get("band_rad") else "none")
+            + (f", rank {rank} of the shipped plans" if rank else "")
+            + "  -- this is the claim the session is testing")
+    else:
+        say(f"  simulation  : no prediction ({predicted['reason']})")
+    say(f"  tracking    : " + ("AprilTag, pushed to the station" if a.track and a.track_push
+                               else "AprilTag, local only" if a.track
+                               else "OFF -- runs will be scored by eye"))
 
     # Every session recorded before 2026-08-30 evening has an empty note, and a
     # session with no stated hypothesis is hard to place in the sequence later.
@@ -441,6 +649,10 @@ def main():
     rec = {"design": a.design, "started": time.strftime("%Y-%m-%dT%H:%M:%S"),
            "operator": a.operator, "note": note, "args": vars(a),
            "plan_facts": facts, "safe_u_table": SAFE_U[a.design],
+           # The simulator's expectation, recorded BEFORE the runs.  A prediction written
+           # down after the fact is not a prediction, and the whole point of shipping the
+           # catalog to the station was that a session can disagree with it.
+           "predicted": predicted,
            "runs": [], "observations": []}
     rec["preflight"] = preflight(a.design)
     write(sess, rec)

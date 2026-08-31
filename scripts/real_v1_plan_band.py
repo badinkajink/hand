@@ -96,6 +96,44 @@ def _check_rebuild(tag: str, shipped: dict, meta: dict) -> str:
     return f"grip matches to {err:.3f} deg" if err < 0.05 else f"GRIP DIFFERS by {err:.2f} deg"
 
 
+def _servo_job(a):
+    import real_v1_deploy_envelope as de
+    tag, meta, design, budget = a
+    plan = _build(meta, budget, design)
+    if plan is None:
+        return tag, budget, 0.0, ""
+    short, worst = de.servo_shortfall(Path(meta["scene"]), plan, budget)
+    return tag, budget, short, worst
+
+
+def _servo_only(a, metas, shipped, budgets) -> int:
+    """Rewrite servo_short_deg in place. Everything else in the file is a rollout result and
+    is left exactly as it was measured."""
+    if not a.out or not a.out.exists():
+        print("--servo-only needs an existing --out to update"); return 1
+    doc = json.loads(a.out.read_text())
+    jobs = [(t, metas[t], shipped[t]["design"], b) for t in metas for b in budgets]
+    print(f"{len(jobs)} plan rebuilds, no rollouts", flush=True)
+    with ProcessPoolExecutor(a.workers) as ex:
+        out = list(ex.map(_servo_job, jobs))
+    short = {(t, b): (s, w) for t, b, s, w in out}
+    for row in doc["rows"]:
+        key = (row["plan"], row["budget"])
+        if key in short:
+            row["servo_short_deg"], row["servo_worst"] = short[key]
+    print(f"\n{'plan':22s} {'was blocked at':>32s} -> {'now blocked at':>32s}")
+    for tag, s in doc["summary"].items():
+        was = [b for b in budgets if s["servo_short_deg"].get(str(b), 0.0) > 0.0]
+        s["servo_short_deg"] = {str(b): short.get((tag, b), (0.0, ""))[0] for b in budgets}
+        now = [b for b in budgets if s["servo_short_deg"][str(b)] > 0.0]
+        if was != now:
+            fmt = lambda v: (f"{min(v):.2f}+" if v else "nothing")
+            print(f"{tag:22s} {fmt(was):>32s} -> {fmt(now):>32s}")
+    a.out.write_text(json.dumps(doc, indent=1) + "\n")
+    print(f"\nrewrote {a.out}")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -108,6 +146,11 @@ def main() -> int:
                          "fall: every Sobol-128 finalist that 'held' at 800 was on its way out.")
     ap.add_argument("--workers", type=int, default=8)
     ap.add_argument("--out", type=Path, default=None)
+    ap.add_argument("--servo-only", action="store_true",
+                    help="recompute only servo_short_deg into an EXISTING --out, no rollouts. "
+                         "The shortfall is kinematics against servos.FINGER_JOINTS, so when "
+                         "that table moves (the aa cap went +-70 -> +-85 on 2026-08-31) the "
+                         "recorded band is still valid and only this column is stale.")
     a = ap.parse_args()
 
     lo, hi, step = (float(v) for v in a.budgets.split(","))
@@ -128,6 +171,9 @@ def main() -> int:
     for tag in metas:
         print(f"{tag:22s} b{metas[tag]['budget_rad']:<5} {_check_rebuild(tag, shipped[tag], metas[tag])}",
               flush=True)
+
+    if a.servo_only:
+        return _servo_only(a, metas, shipped, budgets)
 
     jobs = [(t, metas[t], shipped[t]["design"], b, r, a.hold_steps)
             for t in metas for b in budgets for r in range(a.reps)]

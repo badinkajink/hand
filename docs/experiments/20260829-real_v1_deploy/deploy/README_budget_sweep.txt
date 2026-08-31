@@ -142,3 +142,43 @@ RANKING NOW ON THE STATION (simulation, bench schedule, 9.6 s hold, 4 repeats):
   clearance and should not be run at all.
 
 Full write-up: docs/experiments/20260830-real_v1-budget-rescreen/README.md
+
+================================================================================
+2026-08-31 -- THE YAW CAP CAME OFF, AND THE BENCH GOT AN OBJECT SENSOR
+================================================================================
+
+servos.FINGER_JOINTS' aa/yaw range went +-70 -> +-85 deg, the declared contract.
+The +-70 was a conservative cap set before any plan had been driven, and it was
+not protecting the servo -- it was deciding how far the hand may turn.  Both of
+the plans it blocked overran on MIDDLE YAW at turn_end, and servo 6 was swept
+-162.6..+136.8 deg by hand, so the restored bound is inside demonstrated travel.
+
+All 17 plans now validate, verified on the CB1 itself.  Ranking, unchanged for
+everything that already loaded:
+
+   1  sv1_w2360_b075   0.726  4/4   +10.4 mm
+   2  sv1_u1364_b080   0.711  4/4    +5.0 mm
+   3  g12_b095         0.627  4/4    +8.7 mm
+   4  sv1_u0060_b75    0.597  4/4    +9.9 mm
+   5  sv1_u0308_b050   0.585  4/4    +9.2 mm
+   6  rv05_manual_b85  0.568  4/4   +10.3 mm   ran on the bench
+   7  g12w08           0.484  4/4    +8.7 mm
+   8  sv1_u0060_b100   0.441  4/4    +9.9 mm   NEWLY LOADABLE
+   9  sv1_u0100_b70    0.231  4/4    +7.5 mm   ran on the bench
+
+  sv1_w0116_b100 now loads but stays unranked: it holds 2/4 at its own clip of
+  1.00 and its band is 1.45-2.00, still above the 1.30 its servos can be told.
+  It is a plan running 45 centirad below the band it wants.
+
+The clip ceilings all moved.  sv1_u0060 is now commandable across its entire
+0.65-2.00 band (it was capped at 0.90); sv1_u0308 and sv1_u1364 went 0.80 ->
+2.00; sv1_w2360 0.85 -> 1.10; sv1_w0099 and sv1_w0116 to 1.30.
+
+OBJECT TRACKING.  Two AprilTags now give the shaft's pose: turn angle, height
+above the bench floor (and in the simulator's own z, one subtraction away), slip
+and drop time, at 0.017 deg / 0.03 mm rms on a static target.  The station shows
+it live and files it into each run's log next to -- never instead of -- the
+operator's own reading.  Which means every number in the ranking above is now
+falsifiable on the bench rather than merely written down.
+
+  docs/experiments/20260831-real_v1-object-tracking/README.md

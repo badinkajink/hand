@@ -64,8 +64,15 @@ def expectation(s: dict, clearance: float | None) -> str:
             "holds but barely turns")
     edge = ""
     if band:
-        edge = (f", {round((own - band[0]) * 100)} centirad above its band's lower edge"
-                if own > band[0] else ", at its band's lower edge")
+        # A plan that keeps the tool in SOME reps can still be sitting outside its band --
+        # sv1_w0116_b100 runs at 1.00 against a band of 1.45-2.00 and held 2 of 4. Saying
+        # "at its band's lower edge" there (which this did until 2026-08-31) reads as a
+        # tuned plan when it is a plan the band scan says is in the wrong place.
+        edge = (", at its band's lower edge" if abs(own - band[0]) < 1e-9 else
+                f", {round((own - band[0]) * 100)} centirad above its band's lower edge"
+                if own > band[0] else
+                f", {round((band[0] - own) * 100)} centirad BELOW its band -- the band scan "
+                f"puts this design's hold at {band[0]:.2f}-{band[1]:.2f}")
     tight = (" -- tightest clearance of any shipped plan" if clearance is not None
              and clearance < 8.0 else "")
     return f"holds {kept}/{reps}, {turn} (cos {cos:.2f}){edge}{tight}"

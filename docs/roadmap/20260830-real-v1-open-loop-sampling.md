@@ -287,3 +287,30 @@ of 900 against a trip near 800 — so the "history of 9 servo positions and 9 un
 an enrichment of an otherwise-working open loop. It is the missing feedback on a plan whose central
 assumption is measurably false. See
 [`docs/experiments/20260830-real_v1_bench_sobol/`](../experiments/20260830-real_v1_bench_sobol/README.md).
+
+## Status 2026-08-31 — the pause conditions can be measured now
+
+Two of the three conditions above were about quantities nobody could observe on the bench. That
+changed today.
+
+**The scoring was the bottleneck, and it is gone.** Two AprilTags and four tape-measure readings
+give the shaft's pose to 0.017° and 0.03 mm rms on a static target, absolutely, in a frame that
+converts to the simulator's own z by subtracting 44.0 mm. Every bench run now produces a turn
+angle, a drop time, a slip and a height without an operator estimating anything, and the
+estimate is still recorded next to it so the two can disagree. `capabilities.object_pose` is
+true when samples arrive and false when they stop.
+[`docs/experiments/20260831-real_v1-object-tracking/`](../experiments/20260831-real_v1-object-tracking/README.md)
+
+**The commandable-status condition had a second half nobody had checked: the bound itself.** The
+±70° aa cap that made 18 of 248 screened hands uncommandable, and that blocked both audited
+`_b100` plans, was a conservative setting from before any plan had been driven — not a hardware
+limit. Restored to the declared ±85°, all 17 shipped plans validate and several clip ceilings
+move by 0.4–1.1 rad. **A screening variable that nobody chose is still a screening variable**;
+this is the same failure as the residual clip, one layer down.
+
+**The controller section is now buildable, not merely desirable.** All 66 observation columns
+have a bench source (`scripts/real_v1_obs_sources.py` checks the count against the actor's own
+input width). What blocks a closed loop is no longer sensing: it is the 30 Hz camera against a
+50 Hz policy, the yaw joints arriving at 0.44–0.90 of command, the fact that b33 demonstrably
+ignores its observations, and the absence of any collision gate on a streamed policy. The tags
+make a *sighted* policy trainable; they do not make an open-loop one closed.

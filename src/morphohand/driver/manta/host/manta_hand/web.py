@@ -260,6 +260,8 @@ class ControlRequestHandler(BaseHTTPRequestHandler):
             if path == "/api/v1/stream/end":
                 rt.end_stream(str(body["token"]))
                 return self._json(HTTPStatus.OK, {"ended": True})
+            if path == "/api/v1/tracker/sample":
+                return self._json(HTTPStatus.OK, rt.tracker_sample(body))
             if path.startswith("/api/v1/logs/") and path.endswith("/score"):
                 run_id = unquote(path.removeprefix("/api/v1/logs/").removesuffix("/score"))
                 if not isinstance(body.get("success"), bool):
