@@ -24,3 +24,13 @@ Thumb and index never reached the clip at any budget, so they are unaffected.
 UNTESTED ON HARDWARE.  A wider commanded turn is a larger load excursion, and the
 middle yaw servo already trips its overload protection at the 28.65 deg command.
 Expect the trip to come EARLIER, not later, until protective_torque is raised.
+
+----------------------------------------------------------------------------------
+sv1_u0060_b75 / rv05_manual_b85 / sv1_u0100_b70 -- Sobol-128 finalists (2026-08-30)
+
+Promoted from the 128-hand pilot.  `_bNN` is the per-joint clip in centiradians,
+the same thing `w08`/`w11` mean above.  Each design's clip was tuned to its own
+hold band, not shared: see
+  docs/experiments/20260830-real_v1-sobol128/deploy/README.md
+for the band scan, the two designs that were rejected, and the gates that were run.
+UNTESTED ON HARDWARE.

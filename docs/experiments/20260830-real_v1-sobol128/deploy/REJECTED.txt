@@ -1,0 +1,13 @@
+Do not copy these into the station's plans directory.
+
+sv1_w0116_b155_*   FAILS HandPlan.validate. The GRIP anchor puts middle yaw at -84.16 deg
+                   against the +-70 deg command cap, identically at every budget from 1.20 to
+                   1.55, and middle pip exceeds its +77.05 deg ceiling from 1.35 up. The design's
+                   hold band starts at 1.45 rad, above both. Kept here as the evidence for that
+                   verdict -- the pilot's nominal winner is not commandable on this machine.
+
+sv1_w0099          Never exported. No contiguous budget band: its kept counts are isolated 4/4
+                   spikes at 0.40 and 0.95 with 0/4 and 2/4 immediately either side, so there is
+                   no clip setting to ship. See budget_band_scan.json.
+
+See README.md for both in context.

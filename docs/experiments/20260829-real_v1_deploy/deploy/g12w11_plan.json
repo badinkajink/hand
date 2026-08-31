@@ -84,7 +84,8 @@
   ],
   "meta": {
     "object": "medium",
-    "scene": "assets/mjcf/experimental/20260829-deploy_envelope/scene_tp0d0075p0d0000p0d0000_in0d0075n0d0150p0d0000_mn0d0075p0d0150p0d0000__medium__bench100py-35__flat15w21T.xml",
+    "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/20260829-deploy_envelope/scene_tp0d0075p0d0000p0d0000_in0d0075n0d0150p0d0000_mn0d0075p0d0150p0d0000__medium__bench100py-35__flat15w21T.xml",
+    "design_table": "/home/humanoid/Programs/hand/docs/experiments/20260828-real_v1_search/table.json",
     "source": "scripts/real_v1_export_plan.py",
     "replay_initial_qpos": [
       0.0,
@@ -135,8 +136,8 @@
     "angle_deg": -70.0,
     "turn_steps": 550,
     "pad_width_mm": 21.1,
-    "flat_pads": false,
-    "bench_height_mm": 100000.0,
+    "flat_pads": true,
+    "bench_height_mm": 100.0,
     "post_y_mm": -35.0,
     "palm_lift_mm": 0.0
   }
