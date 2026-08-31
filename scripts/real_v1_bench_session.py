@@ -638,7 +638,7 @@ def main():
             + "  -- this is the claim the session is testing")
     else:
         say(f"  simulation  : no prediction ({predicted['reason']})")
-    say(f"  tracking    : " + ("AprilTag, pushed to the station" if a.track and a.track_push
+    say("  tracking    : " + ("AprilTag, pushed to the station" if a.track and a.track_push
                                else "AprilTag, local only" if a.track
                                else "OFF -- runs will be scored by eye"))
 
