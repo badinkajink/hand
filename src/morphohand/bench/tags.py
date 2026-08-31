@@ -397,6 +397,7 @@ class TraceSummary:
     dropped: bool = False
     drop_at_s: float | None = None
     wrong_pole: bool = False
+    below_floor_mm: float | None = None
     gaps: list[tuple[float, float]] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
 
@@ -467,6 +468,22 @@ def summarise(readings, *, total_frames: int | None = None,
         first = below[0].t
         if below[-1].t - first >= drop_hold_s or first >= rs[-1].t - drop_hold_s:
             s.dropped, s.drop_at_s = True, first
+
+    # A cylinder centre cannot be under the bench. When it reads that way the axial offset is
+    # being applied to the WRONG END of the shaft: the centre is computed as tag - 71*u, so a
+    # `--shaft-axis` pointing from the tag toward the centre instead of the other way puts the
+    # centre 2 x 71 x cos on the far side. It is invisible while the shaft lies flat -- cos ~ 0,
+    # so the offset is horizontal and the height is right either way -- and only appears once
+    # the tool stands up, which is exactly when the run matters.
+    lowest = min(r.z_bench_mm for r in rs)
+    if lowest < 0.0:
+        s.below_floor_mm = lowest
+        s.notes.append(
+            f"the cylinder CENTRE reads {lowest:.0f} mm, below the bench floor, which is not a "
+            f"pose. Almost always --shaft-axis has the wrong sign: flipping it puts the centre "
+            f"at {max(r.z_bench_mm + 2 * CYL_TAG_AXIAL_MM * r.cos_up for r in rs):.0f} mm "
+            "instead. Height, slip, x/y and the drop verdict are all wrong until it is fixed; "
+            "the ANGLE is unaffected except for its sign. Stand the tool up and re-probe")
 
     if s.cos_min < -0.15:
         s.wrong_pole = True

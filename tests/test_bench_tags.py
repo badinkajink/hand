@@ -291,3 +291,26 @@ def test_hold_metric_falls_back_to_the_last_sample_on_a_trace_shorter_than_the_w
                             radial_mm=50.0, tag_z_bench_mm=171.0, xy_bench_mm=None,
                             margin=60.0, range_mm=400.0)]
     assert T.summarise(frame_free).cos_hold == pytest.approx(0.4)
+
+
+def test_a_centre_below_the_bench_floor_is_reported_as_a_shaft_axis_sign_error():
+    """The 2026-08-31 17:46 run: the tag itself fell 44 mm while the computed centre 'fell' 102
+    and ended 46 mm UNDER the bench. The centre is tag - 71*u, so a --shaft-axis pointing from
+    the tag toward the centre puts it 2 x 71 x cos on the wrong side. Flat on the post the error
+    is horizontal and invisible; it only appears once the tool stands up."""
+    def reading(t, cos, tag_z):
+        z = tag_z - T.CYL_TAG_AXIAL_MM * cos          # exactly how the tracker computes it
+        return T.Reading(t=t, cos_up=cos, deg_from_up=T.deg_from_up(cos), z_bench_mm=z,
+                         radial_mm=40.0, tag_z_bench_mm=tag_z, xy_bench_mm=None,
+                         margin=60.0, range_mm=320.0)
+
+    s = T.summarise([reading(0.0, 0.049, 59.3), reading(1.5, 0.60, 30.0),
+                     reading(3.0, 0.855, 14.8)])
+    assert s.below_floor_mm is not None and s.below_floor_mm < -40
+    note = " ".join(s.notes)
+    assert "--shaft-axis" in note and "below the bench floor" in note
+    # and it names the height the other sign would have given, so the operator can sanity-check it
+    assert "75 mm" in note or "76 mm" in note
+
+    upright = T.summarise([reading(0.0, 0.0, 130.0), reading(3.0, 0.9, 200.0)])
+    assert upright.below_floor_mm is None
