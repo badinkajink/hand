@@ -234,6 +234,38 @@ class BenchFrame:
                   self.ref_bench_mm[1] + float(np.dot(d, self.y_cam)))
         return z, radial, xy
 
+    def heading_from_mounting(self, t_cam_mm: np.ndarray) -> tuple[float, str]:
+        """The heading, from how the tag is MOUNTED plus one weak fact about the scene.
+
+        The reference tag is bolted facing normal to the gantry x-axis and stays that way, so
+        its in-plane horizontal axis is +-y_B and the heading can only be +90 or -90 -- there is
+        no continuum to calibrate, only a sign. And the sign is decided by something already in
+        frame: the hand sits at the palm centre, x = 0, while the tag is at x = +133.5, so the
+        cylinder must come out at LARGE NEGATIVE bench x. The candidate that puts it at positive
+        x has the tag's y axis flipped.
+
+        This is why `--calibrate-heading` is a refinement rather than a prerequisite: it exists
+        for a rig where the tag is aimed by hand, not for this one.
+        """
+        # The two candidates differ by 180 deg, so they mirror the offset about the tag: one
+        # puts the shaft on the hand's side, the other the same distance further out. Picking
+        # the smaller x is therefore a CHOICE between two, not a test that can fail -- the only
+        # degenerate case is a shaft at the tag's own x, 133.5 mm from the palm centre, which is
+        # outside the workspace. What this cannot check is the premise: if the tag has been
+        # re-aimed by hand it is no longer normal to the gantry x-axis and the true heading is
+        # not +-90 at all. That is what --calibrate-heading is for.
+        seen = []
+        for cand in (90.0, -90.0):
+            keep, self.heading_deg = self.heading_deg, cand
+            _, _, xy = self.locate(t_cam_mm)
+            self.heading_deg = keep
+            seen.append((xy[0], cand))
+        seen.sort()
+        if abs(seen[0][0] - seen[1][0]) < 1.0:
+            raise ValueError("the shaft is at the reference tag's own x; the heading's sign is "
+                             "undefined there. Move it or use --calibrate-heading")
+        return seen[0][1], f"puts the shaft at bench x {seen[0][0]:+.0f} mm, the hand's side"
+
     def heading_for(self, t_cam_mm: np.ndarray, bench_xy_mm: tuple[float, float]) -> float:
         """Solve the one unknown: the heading that puts a point of KNOWN bench (x, y) where
         the camera sees it. Calibration, run once, with the cylinder staged somewhere its

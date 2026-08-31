@@ -258,9 +258,23 @@ def probe(a, rs, cv2, Detector):
                   "Stand it up and re-probe.")
         print(f"\n  the bench scene stands the tool at {T.BENCH_POST_HEIGHT_SIM_MM:.0f} mm in "
               f"sim = {T.bench_z_mm(T.BENCH_POST_HEIGHT_SIM_MM):.0f} mm on the bench floor")
+        if frame.heading_deg is None and not a.no_mounting_heading:
+            try:
+                h, why = frame.heading_from_mounting(
+                    T.object_center_cam_mm(found[T.CYL_TAG_ID].pose_R,
+                                           found[T.CYL_TAG_ID].pose_t,
+                                           shaft_axis=a.shaft_axis, axial_mm=a.axial_mm)[0])
+                frame.heading_deg = h
+                r = T.reading_from_tags(frame, found[T.CYL_TAG_ID].pose_R,
+                                        found[T.CYL_TAG_ID].pose_t, t=0.0,
+                                        shaft_axis=a.shaft_axis, axial_mm=a.axial_mm)
+                print(f"  heading {h:+.0f} deg from the MOUNTING (tag normal to the gantry "
+                      f"x-axis; {why})")
+            except ValueError as exc:
+                print(f"  heading unresolved: {exc}")
         if frame.heading_deg is None:
-            print("  no heading calibrated: heights and radial distances are real, bench "
-                  "(x, y) is withheld. --calibrate-heading fixes that.")
+            print("  no heading: heights and radial distances are real, bench (x, y) is "
+                  "withheld. --calibrate-heading fixes that.")
         else:
             print(f"  heading {frame.heading_deg:+.2f} deg -> cylinder centre at bench "
                   f"({r.xy_bench_mm[0]:+.1f}, {r.xy_bench_mm[1]:+.1f}) mm")
@@ -371,6 +385,21 @@ def record(a, rs, cv2, Detector):
                     r = T.reading_from_tags(frame, tag.pose_R, tag.pose_t, t=t,
                                             shaft_axis=a.shaft_axis,
                                             margin=tag.decision_margin, axial_mm=a.axial_mm)
+                    if frame.heading_deg is None and not a.no_mounting_heading:
+                        try:
+                            h, why = frame.heading_from_mounting(
+                                T.object_center_cam_mm(tag.pose_R, tag.pose_t,
+                                                       shaft_axis=a.shaft_axis,
+                                                       axial_mm=a.axial_mm)[0])
+                            frame.heading_deg = h
+                            live.event(f"  heading {h:+.0f} deg from the mounting ({why})")
+                            r = T.reading_from_tags(frame, tag.pose_R, tag.pose_t, t=t,
+                                                    shaft_axis=a.shaft_axis,
+                                                    margin=tag.decision_margin,
+                                                    axial_mm=a.axial_mm)
+                        except ValueError as exc:
+                            live.event(f"  heading unresolved, bench x/y withheld: {exc}")
+                            a.no_mounting_heading = True
                     readings.append(r)
                     rows.append(r.row())
                     peak = max(peak, r.cos_up)
@@ -432,6 +461,11 @@ def main() -> int:
                    default=ROOT / "docs/experiments/20260830-apriltag-tracking/bench_frame.json")
     p.add_argument("--heading-deg", type=float, default=None,
                    help="use this heading instead of a calibration file")
+    p.add_argument("--no-mounting-heading", action="store_true",
+                   help="do NOT infer the heading from the tag's mounting (it is bolted normal "
+                        "to the gantry x-axis, so the heading is +-90 and only the sign is "
+                        "unknown; the sign follows from the hand being at x=0 and the tag at "
+                        "x=+133.5). Pass this if the tag has been re-aimed by hand.")
     p.add_argument("--seconds", type=float, default=20.0)
     p.add_argument("--out", type=Path, default=None)
     p.add_argument("--run-id", default="", help="station run_id these samples belong to")
