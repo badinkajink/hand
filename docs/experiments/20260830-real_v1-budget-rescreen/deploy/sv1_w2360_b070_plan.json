@@ -1,0 +1,145 @@
+{
+  "design": "sv1_w2360",
+  "mounts_palm_mm": {
+    "thumb": [
+      -27.42,
+      46.29
+    ],
+    "index": [
+      61.38,
+      26.38
+    ],
+    "middle": [
+      68.96,
+      -54.65
+    ]
+  },
+  "poses": [
+    {
+      "name": "open",
+      "ramp_s": 0.0,
+      "hold_s": 0.0,
+      "joints": {
+        "thumb": {
+          "yaw": -28.191,
+          "mcp": 26.769,
+          "pip": 0.699
+        },
+        "index": {
+          "yaw": 19.157,
+          "mcp": -1.95,
+          "pip": 48.178
+        },
+        "middle": {
+          "yaw": 20.082,
+          "mcp": 27.053,
+          "pip": 11.377
+        }
+      }
+    },
+    {
+      "name": "grip",
+      "ramp_s": 0.5,
+      "hold_s": 0.8,
+      "joints": {
+        "thumb": {
+          "yaw": -28.191,
+          "mcp": 36.641,
+          "pip": 0.0
+        },
+        "index": {
+          "yaw": 19.157,
+          "mcp": 35.108,
+          "pip": 1.715
+        },
+        "middle": {
+          "yaw": 20.082,
+          "mcp": 42.439,
+          "pip": 0.0
+        }
+      }
+    },
+    {
+      "name": "turn_end",
+      "ramp_s": 1.1,
+      "hold_s": 1.6,
+      "joints": {
+        "thumb": {
+          "yaw": -34.935,
+          "mcp": 30.211,
+          "pip": 0.007
+        },
+        "index": {
+          "yaw": -12.662,
+          "mcp": 23.016,
+          "pip": 0.009
+        },
+        "middle": {
+          "yaw": 60.189,
+          "mcp": 22.783,
+          "pip": 40.107
+        }
+      }
+    }
+  ],
+  "meta": {
+    "object": "medium",
+    "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/20260829-deploy_envelope/scene_tp0d0226p0d0463p0d0000_ip0d0114n0d0286p0d0000_mp0d0190p0d0003p0d0000__medium__bench100py-35__flat15w21T.xml",
+    "design_table": "docs/experiments/20260830-real_v1-budget-rescreen/selected/confirmed/selected_table.json",
+    "source": "scripts/real_v1_export_plan.py",
+    "replay_initial_qpos": [
+      0.0,
+      0.0,
+      0.1,
+      0.7071067811865475,
+      0.7071067811865475,
+      0.0,
+      0.0,
+      -0.018874250000000002,
+      -0.006004000000000002,
+      0.094,
+      0.0,
+      0.0,
+      0.0,
+      -0.4920311515677386,
+      0.46720205338650583,
+      0.012199308223397806,
+      0.33435510658461015,
+      -0.0340332042732367,
+      0.8408676314729226,
+      0.3504979704123745,
+      0.4721599483088577,
+      0.19856559981309413
+    ],
+    "replay_base_ctrl": [
+      -0.018874250000000002,
+      -0.006004000000000002,
+      0.094,
+      0.0,
+      0.0,
+      0.0,
+      -0.4920311515677385,
+      0.639510395709017,
+      1.5091678209931842e-08,
+      0.33435510658461015,
+      0.6127461369252846,
+      0.029935044190857973,
+      0.3504979704123744,
+      0.7407081351146368,
+      7.7897256938393e-08
+    ],
+    "straddle_mm": 40.0,
+    "thumb_axial_mm": 10.0,
+    "squeeze_mm": 10.0,
+    "grip_depth_mm": 56.49999999999999,
+    "axis_k": 0.15,
+    "angle_deg": -80.0,
+    "turn_steps": 550,
+    "budget_rad": 0.7,
+    "pad_width_mm": 21.1,
+    "flat_pads": true,
+    "bench_height_mm": 100.0,
+    "post_y_mm": -35.0,
+    "palm_lift_mm": 0.0
+  }
+}

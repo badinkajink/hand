@@ -1,0 +1,274 @@
+[
+ {
+  "design": "sv1_u1939",
+  "tag": "sv1_u1939_b070",
+  "budget_rad": 0.7,
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/20260829-deploy_envelope/scene_tp0d0029n0d0362p0d0000_in0d0081n0d0224p0d0000_mn0d0069n0d0025p0d0000__medium__bench100py-35__flat15w21T.xml",
+  "straddle_mm": 32.0,
+  "thumb_axial_mm": 10.0,
+  "axis_k": 0.15,
+  "angle_deg": -80.0,
+  "servo_violations": [],
+  "clearance_mm": {
+   "chord": 6.6,
+   "csv": 6.7
+  },
+  "clearance_pair": "thumb_tip<->index_tip",
+  "verdict": "ship"
+ },
+ {
+  "design": "sv1_u2745",
+  "tag": "sv1_u2745_b110",
+  "budget_rad": 1.1,
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/20260829-deploy_envelope/scene_tn0d0106n0d0322p0d0000_in0d0198n0d0296p0d0000_mn0d0196n0d0020p0d0000__medium__bench100py-35__flat15w21T.xml",
+  "straddle_mm": 32.0,
+  "thumb_axial_mm": 10.0,
+  "axis_k": 0.15,
+  "angle_deg": -80.0,
+  "servo_violations": [],
+  "clearance_mm": {
+   "chord": 6.3,
+   "csv": 6.4
+  },
+  "clearance_pair": "thumb_tip<->index_tip",
+  "verdict": "ship"
+ },
+ {
+  "design": "sv1_u1364",
+  "tag": "sv1_u1364_b050",
+  "budget_rad": 0.5,
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/20260829-deploy_envelope/scene_tp0d0133p0d0316p0d0000_in0d0095n0d0280p0d0000_mn0d0017n0d0145p0d0000__medium__bench100py-35__flat15w21T.xml",
+  "straddle_mm": 40.0,
+  "thumb_axial_mm": 20.0,
+  "axis_k": 0.15,
+  "angle_deg": -80.0,
+  "servo_violations": [],
+  "clearance_mm": {
+   "chord": 5.0,
+   "csv": 5.2
+  },
+  "clearance_pair": "thumb_tip<->index_tip",
+  "verdict": "ship"
+ },
+ {
+  "design": "sv1_u2699",
+  "tag": "sv1_u2699_b050",
+  "budget_rad": 0.5,
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/20260829-deploy_envelope/scene_tp0d0115n0d0220p0d0000_ip0d0020n0d0082p0d0000_mp0d0052p0d0169p0d0000__medium__bench100py-35__flat15w21T.xml",
+  "straddle_mm": 32.0,
+  "thumb_axial_mm": 10.0,
+  "axis_k": 0.15,
+  "angle_deg": -80.0,
+  "servo_violations": [],
+  "clearance_mm": {
+   "chord": 7.3,
+   "csv": 7.3
+  },
+  "clearance_pair": "thumb_tip<->index_tip",
+  "verdict": "ship"
+ },
+ {
+  "design": "sv1_u0308",
+  "tag": "sv1_u0308_b070",
+  "budget_rad": 0.7,
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/20260829-deploy_envelope/scene_tp0d0122p0d0043p0d0000_in0d0118n0d0159p0d0000_mn0d0031n0d0210p0d0000__medium__bench100py-35__flat15w21T.xml",
+  "straddle_mm": 40.0,
+  "thumb_axial_mm": 10.0,
+  "axis_k": 0.15,
+  "angle_deg": -80.0,
+  "servo_violations": [],
+  "clearance_mm": {
+   "chord": 9.2,
+   "csv": 9.2
+  },
+  "clearance_pair": "thumb_tip<->index_tip",
+  "verdict": "ship"
+ },
+ {
+  "design": "sv1_u1189",
+  "tag": "sv1_u1189_b050",
+  "budget_rad": 0.5,
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/20260829-deploy_envelope/scene_tn0d0229n0d0515p0d0000_in0d0187n0d0289p0d0000_mn0d0184n0d0160p0d0000__medium__bench100py-35__flat15w21T.xml",
+  "straddle_mm": 32.0,
+  "thumb_axial_mm": 10.0,
+  "axis_k": 0.15,
+  "angle_deg": -80.0,
+  "servo_violations": [],
+  "clearance_mm": {
+   "chord": 13.4,
+   "csv": 13.5
+  },
+  "clearance_pair": "thumb_tip<->index_tip",
+  "verdict": "ship"
+ },
+ {
+  "design": "sv1_w0903",
+  "tag": "sv1_w0903_b130",
+  "budget_rad": 1.3,
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/20260829-deploy_envelope/scene_tp0d0236n0d0173p0d0000_ip0d0210n0d0297p0d0000_mp0d0223n0d0026p0d0000__medium__bench100py-35__flat15w21T.xml",
+  "straddle_mm": 32.0,
+  "thumb_axial_mm": 10.0,
+  "axis_k": 0.15,
+  "angle_deg": -80.0,
+  "servo_violations": [],
+  "clearance_mm": {
+   "chord": 7.4,
+   "csv": 7.5
+  },
+  "clearance_pair": "thumb_tip<->index_tip",
+  "verdict": "ship"
+ },
+ {
+  "design": "sv1_u0593",
+  "tag": "sv1_u0593_b050",
+  "budget_rad": 0.5,
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/20260829-deploy_envelope/scene_tn0d0015n0d0265p0d0000_in0d0093p0d0027p0d0000_mp0d0058p0d0175p0d0000__medium__bench100py-35__flat15w21T.xml",
+  "straddle_mm": 32.0,
+  "thumb_axial_mm": 10.0,
+  "axis_k": 0.15,
+  "angle_deg": -80.0,
+  "servo_violations": [],
+  "clearance_mm": {
+   "chord": 12.5,
+   "csv": 12.6
+  },
+  "clearance_pair": "thumb_tip<->index_tip",
+  "verdict": "ship"
+ },
+ {
+  "design": "sv1_w3408",
+  "tag": "sv1_w3408_b070",
+  "budget_rad": 0.7,
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/20260829-deploy_envelope/scene_tp0d0169p0d0521p0d0000_in0d0075n0d0007p0d0000_mn0d0044p0d0066p0d0000__medium__bench100py-35__flat15w21T.xml",
+  "straddle_mm": 40.0,
+  "thumb_axial_mm": 20.0,
+  "axis_k": 0.15,
+  "angle_deg": -80.0,
+  "servo_violations": [],
+  "clearance_mm": {
+   "chord": 4.6,
+   "csv": 4.9
+  },
+  "clearance_pair": "thumb_tip<->index_tip",
+  "verdict": "clearance"
+ },
+ {
+  "design": "sv1_u1676",
+  "tag": "sv1_u1676_b070",
+  "budget_rad": 0.7,
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/20260829-deploy_envelope/scene_tp0d0009p0d0467p0d0000_in0d0236p0d0132p0d0000_mn0d0146p0d0153p0d0000__medium__bench100py-35__flat15w21T.xml",
+  "straddle_mm": 40.0,
+  "thumb_axial_mm": 10.0,
+  "axis_k": 0.15,
+  "angle_deg": -80.0,
+  "servo_violations": [],
+  "clearance_mm": {
+   "chord": 8.9,
+   "csv": 8.9
+  },
+  "clearance_pair": "thumb_tip<->index_tip",
+  "verdict": "ship"
+ },
+ {
+  "design": "sv1_u3027",
+  "tag": "sv1_u3027_b130",
+  "budget_rad": 1.3,
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/20260829-deploy_envelope/scene_tp0d0022n0d0010p0d0000_in0d0114n0d0184p0d0000_mn0d0169n0d0056p0d0000__medium__bench100py-35__flat15w21T.xml",
+  "straddle_mm": 32.0,
+  "thumb_axial_mm": 10.0,
+  "axis_k": 0.15,
+  "angle_deg": -80.0,
+  "servo_violations": [],
+  "clearance_mm": {
+   "chord": 5.0,
+   "csv": 5.1
+  },
+  "clearance_pair": "thumb_tip<->index_tip",
+  "verdict": "ship"
+ },
+ {
+  "design": "sv1_u0720",
+  "tag": "sv1_u0720_b090",
+  "budget_rad": 0.9,
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/20260829-deploy_envelope/scene_tp0d0175p0d0169p0d0000_ip0d0150n0d0262p0d0000_mp0d0211p0d0297p0d0000__medium__bench100py-35__flat15w21T.xml",
+  "straddle_mm": 32.0,
+  "thumb_axial_mm": 20.0,
+  "axis_k": 0.15,
+  "angle_deg": -80.0,
+  "servo_violations": [],
+  "clearance_mm": {
+   "chord": -4.4,
+   "csv": -4.4
+  },
+  "clearance_pair": "index<->middle",
+  "verdict": "clearance"
+ },
+ {
+  "design": "sv1_u4019",
+  "tag": "sv1_u4019_b050",
+  "budget_rad": 0.5,
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/20260829-deploy_envelope/scene_tp0d0013n0d0281p0d0000_in0d0099n0d0287p0d0000_mn0d0155n0d0271p0d0000__medium__bench100py-35__flat15w21T.xml",
+  "straddle_mm": 32.0,
+  "thumb_axial_mm": 10.0,
+  "axis_k": 0.15,
+  "angle_deg": -80.0,
+  "servo_violations": [],
+  "clearance_mm": {
+   "chord": 6.1,
+   "csv": 6.2
+  },
+  "clearance_pair": "thumb_tip<->index_tip",
+  "verdict": "ship"
+ },
+ {
+  "design": "sv1_u3825",
+  "tag": "sv1_u3825_b050",
+  "budget_rad": 0.5,
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/20260829-deploy_envelope/scene_tn0d0030n0d0123p0d0000_in0d0022p0d0186p0d0000_mp0d0029p0d0266p0d0000__medium__bench100py-35__flat15w21T.xml",
+  "straddle_mm": 32.0,
+  "thumb_axial_mm": 10.0,
+  "axis_k": 0.15,
+  "angle_deg": -80.0,
+  "servo_violations": [],
+  "clearance_mm": {
+   "chord": 13.0,
+   "csv": 13.0
+  },
+  "clearance_pair": "thumb_tip<->index_tip",
+  "verdict": "ship"
+ },
+ {
+  "design": "sv1_w2360",
+  "tag": "sv1_w2360_b070",
+  "budget_rad": 0.7,
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/20260829-deploy_envelope/scene_tp0d0226p0d0463p0d0000_ip0d0114n0d0286p0d0000_mp0d0190p0d0003p0d0000__medium__bench100py-35__flat15w21T.xml",
+  "straddle_mm": 40.0,
+  "thumb_axial_mm": 10.0,
+  "axis_k": 0.15,
+  "angle_deg": -80.0,
+  "servo_violations": [],
+  "clearance_mm": {
+   "chord": 10.4,
+   "csv": 10.4
+  },
+  "clearance_pair": "thumb_tip<->index_tip",
+  "verdict": "ship"
+ },
+ {
+  "design": "sv1_u2175",
+  "tag": "sv1_u2175_b050",
+  "budget_rad": 0.5,
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/20260829-deploy_envelope/scene_tp0d0202n0d0106p0d0000_ip0d0023p0d0047p0d0000_mp0d0121p0d0035p0d0000__medium__bench100py-35__flat15w21T.xml",
+  "straddle_mm": 32.0,
+  "thumb_axial_mm": 10.0,
+  "axis_k": 0.15,
+  "angle_deg": -80.0,
+  "servo_violations": [],
+  "clearance_mm": {
+   "chord": 4.3,
+   "csv": 4.4
+  },
+  "clearance_pair": "thumb_tip<->index_tip",
+  "verdict": "clearance"
+ }
+]

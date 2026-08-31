@@ -1,0 +1,19 @@
+[
+ {
+  "design": "sv1_w3408",
+  "tag": "sv1_w3408_b050",
+  "budget_rad": 0.5,
+  "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/20260829-deploy_envelope/scene_tp0d0169p0d0521p0d0000_in0d0075n0d0007p0d0000_mn0d0044p0d0066p0d0000__medium__bench100py-35__flat15w21T.xml",
+  "straddle_mm": 40.0,
+  "thumb_axial_mm": 20.0,
+  "axis_k": 0.15,
+  "angle_deg": -80.0,
+  "servo_violations": [],
+  "clearance_mm": {
+   "chord": 4.6,
+   "csv": 4.9
+  },
+  "clearance_pair": "thumb_tip<->index_tip",
+  "verdict": "clearance"
+ }
+]

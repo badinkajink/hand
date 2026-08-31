@@ -188,3 +188,67 @@ python3 scripts/real_v1_promote_designs.py \
   --generated-dir assets/mjcf/experimental/20260830-real_v1-sobol4096 \
   --designs-file <the shortlist> --out-dir <dir> --ship <the station's plans dir>
 ```
+
+---
+
+## Part 3 — promotion, and what did not transfer
+
+The confirmation pass leaves **119 of 269** morphologies (five nominal repeats, ≥3 kept, cos ≥ 0.7,
+≥5 mm rollout clearance, commandable), and **50 of those 119 confirm at no clip the old screen ever
+tried**. Twenty full-error draws each put two new hands ahead of anything the single-clip screen
+found:
+
+| design | clip | grasp cell | nominal cos | full-error win | rollout clearance |
+|---|---:|---:|---:|---:|---:|
+| `sv1_u1939` | 0.70 | 32/10 | 0.821 (5/5) | **0.35** | 13.2 mm |
+| `sv1_u2745` | 1.10 | 32/10 | 0.799 (5/5) | **0.30** | 8.9 mm |
+| `sv1_u1364` | 0.50 | 40/20 | 0.913 (5/5) | 0.25 | 19.1 mm |
+| `sv1_u2699` | 0.50 | 32/10 | 0.867 (5/5) | 0.25 | 12.2 mm |
+| `sv1_u0308` | 0.70 | 40/10 | 0.799 (5/5) | 0.25 | 16.3 mm |
+| `sv1_w3408` | 0.70 | 40/20 | 0.707 (5/5) | 0.25 | 17.3 mm |
+
+The previous best on this population was `sv1_u2699` at 0.25, and it is now fourth. Both new
+leaders are at a clip the old screen never ran.
+
+### Sixteen went to the gates; thirteen passed; five hold the tool on the bench
+
+Thirteen of the top sixteen pass export, servo range, gantry travel and trajectory clearance — and
+**no design failed on servo range**, which is the screen's new gate doing its job upstream. The
+three that failed, failed on clearance, and they failed it the way the roadmap warned about:
+`sv1_w3408` reads 17.3 mm in the rollout and **+4.6 mm** along the commanded chord, `sv1_u0720`
+reads 5.7 mm and **−4.4 mm**. The screen's clearance figure is not the export's.
+
+Then the harder question. These hands were selected under the **retention** maneuver — proof lift,
+free hold. The bench runs the **fixed-palm** schedule with the tool on a post. Band-scanning all
+sixteen exported plans on that schedule:
+
+| plan | bench band (rad) | best cos | recommended clip | largest commandable |
+|---|---|---:|---:|---:|
+| `sv1_w2360` | 0.50–0.80 | 0.739 | **0.75** | 0.85 |
+| `sv1_u1364` | 0.40–0.95 | 0.712 | **0.80** | 0.80 |
+| `sv1_w3408` | 0.40–1.00 | 0.708 | 0.50 | 0.80 |
+| `sv1_u0308` | 0.40–0.85 | 0.712 | **0.50** | 0.80 |
+| `sv1_u1676` | 1.05–2.00 | 0.515 | — band is uncommandable | 0.80 |
+| `sv1_u2175` | 0.60–0.75 | 0.369 | 0.70 | 0.85 |
+| the other ten | none | — | — | — |
+
+**Eleven of the sixteen keep the tool at no clip at all on the bench schedule** — including both new
+leaders, `sv1_u1939` and `sv1_u2745`. A hand chosen for proof-lift retention is not a hand that
+rolls a tool resting on a post. `sv1_u1676` repeats `sv1_w0116`'s failure exactly: a band that lies
+entirely above the largest clip its servos can be commanded to.
+
+### Three new hands on the station
+
+Re-exported at their **bench** clip, re-gated, and copied to the plans directory:
+
+| plan | clip | bench band | held cos | clearance | full-error win (retention) |
+|---|---:|---|---:|---:|---:|
+| `sv1_w2360_b075` | 0.75 | 0.50–0.80 | 0.726 | +10.4 mm | 0.20 |
+| `sv1_u1364_b080` | 0.80 | 0.40–0.95 | 0.711 | +5.0 mm | 0.25 |
+| `sv1_u0308_b050` | 0.50 | 0.40–0.85 | 0.585 | +9.2 mm | 0.25 |
+
+`sv1_w3408` is not among them: its export clearance is +4.6 mm at every clip, because the minimum
+sits at the grip pose, which the clip does not touch.
+
+**These are the first hands to reach the bench from a search that varied the clip**, and the first
+to have passed a servo-command gate before they were ranked rather than after.
