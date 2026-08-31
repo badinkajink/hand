@@ -30,10 +30,17 @@ def main() -> int:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--band-dir", type=Path, required=True)
     ap.add_argument("--glob", default="band_s*.json")
+    ap.add_argument("--table", type=Path, default=None,
+                    help="one table for every input file. Use this for a second pass over the "
+                         "CONFIRMATION results, whose filenames no longer name a grasp cell.")
     ap.add_argument("--table-dir", type=Path, default=None,
                     help="where retention_table_<cell>.json live; defaults to "
                          "<band-dir>/../20260830-real_v1-sobol4096/retention")
     ap.add_argument("--min-cos", type=float, default=0.7)
+    ap.add_argument("--min-kept-frac", type=float, default=0.0,
+                    help="fraction of the nominal repeats that must keep the tool. 0 accepts a "
+                         "single lucky trial, which is right for the one-trial screen and wrong "
+                         "for the confirmation pass -- use 0.6 there.")
     ap.add_argument("--min-clearance-mm", type=float, default=5.0)
     ap.add_argument("--out-dir", type=Path, required=True)
     a = ap.parse_args()
@@ -45,13 +52,14 @@ def main() -> int:
     for path_str in sorted(glob.glob(str(a.band_dir / a.glob))):
         path = Path(path_str)
         cell = path.stem.removeprefix("band_")
-        table = {r["design"]: r for r in
-                 json.loads((table_dir / f"retention_table_{cell}.json").read_text())}
+        table = {r["design"]: r for r in json.loads(
+            (a.table or table_dir / f"retention_table_{cell}.json").read_text())}
         for row in json.loads(path.read_text()):
             evaluated += 1
             seen_designs.add(row["design"])
             clearance = row.get("min_finger_clearance_mm")
             if (not row.get("pose") or not row.get("nom_kept")
+                    or row["nom_kept"] < a.min_kept_frac * row.get("n_nom", 1)
                     or row.get("nom_cos", 0.0) < a.min_cos
                     or clearance is None or clearance < a.min_clearance_mm
                     # a plan the driver would refuse is not a candidate, however it scores
