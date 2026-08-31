@@ -26,6 +26,10 @@ python3 scripts/real_v1_design_search.py --stage manifest --set sobol \
   --sobol-count "$COUNT" --sobol-seed "$SEED" --generated-dir "$GEN" \
   --out "$OUT/grasp_screen.json"
 
+echo "=== stage A2: keep only the hands the rails reach ==="
+python3 scripts/real_v1_filter_reachable.py \
+  --manifest "$OUT/grasp_screen_manifest.json" --out "$OUT/hardware_manifest.json"
+
 echo "=== stage B: grasp screen, $SHARDS shards ==="
 for i in $(seq 0 $((SHARDS - 1))); do
   python3 scripts/real_v1_design_search.py --stage grasp --set sobol \
