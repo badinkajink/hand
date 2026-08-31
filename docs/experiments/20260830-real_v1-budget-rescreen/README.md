@@ -9,6 +9,10 @@ trajectory, and it arrived here by inheritance rather than by choice.
 This is that decision re-opened on two fronts: the plans already on the bench, and the population
 they were drawn from.
 
+**A digestible version of this day, with the band grid drawn:**
+<https://claude.ai/code/artifact/865c4572-ce31-40b9-a616-da5ca28a9f57>
+(source kept here as [`clip-cap-stall.html`](clip-cap-stall.html)).
+
 ---
 
 ## Part 1 — the plans on the bench

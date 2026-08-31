@@ -1,0 +1,668 @@
+<title>Clip, Cap and Stall</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,380;0,8..60,600;1,8..60,380&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --ground:#ECEEEC; --surface:#F7F8F7; --sunk:#E2E5E2;
+  --ink:#131817; --body:#2B3431; --muted:#5E6A66; --faint:#8A9691;
+  --rule:#CBD2CE; --hair:#DDE2DF;
+  --accent:#2C6156; --accent-soft:#8FB3AA;
+  --signal:#A9631A; --signal-soft:#E2C39A;
+  --alert:#8E3629; --alert-soft:#DDB0A8;
+  --cell-0:#E4E7E4; --cell-p:#C6D8D2; --cell-f:#2C6156;
+  --shadow:0 1px 0 rgba(19,24,23,.05);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0E1211; --surface:#161B19; --sunk:#0A0D0C;
+    --ink:#E6EBE8; --body:#C4CEC9; --muted:#8E9C96; --faint:#66736E;
+    --rule:#2B332F; --hair:#222926;
+    --accent:#74B9A8; --accent-soft:#2F5B52;
+    --signal:#D9A15C; --signal-soft:#5A421F;
+    --alert:#D67C6B; --alert-soft:#5A2A22;
+    --cell-0:#1B211E; --cell-p:#2E4E47; --cell-f:#74B9A8;
+    --shadow:0 1px 0 rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0E1211; --surface:#161B19; --sunk:#0A0D0C;
+  --ink:#E6EBE8; --body:#C4CEC9; --muted:#8E9C96; --faint:#66736E;
+  --rule:#2B332F; --hair:#222926;
+  --accent:#74B9A8; --accent-soft:#2F5B52;
+  --signal:#D9A15C; --signal-soft:#5A421F;
+  --alert:#D67C6B; --alert-soft:#5A2A22;
+  --cell-0:#1B211E; --cell-p:#2E4E47; --cell-f:#74B9A8;
+  --shadow:0 1px 0 rgba(0,0,0,.4);
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--body);
+  font-family:"Source Serif 4",Georgia,"Times New Roman",serif;
+  font-size:17px; line-height:1.62; -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1180px; margin:0 auto; padding:0 28px 96px}
+.col{max-width:660px}
+h1,h2,h3,.mono,th,.eyebrow,.pill,.num{font-family:Archivo,"Helvetica Neue",Arial,sans-serif}
+.mono,code,pre,td.n,th.n,.grid-scale,.cellrow .lab{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace}
+a{color:var(--accent); text-decoration:none; border-bottom:1px solid var(--accent-soft)}
+a:hover{border-bottom-color:var(--accent)}
+a:focus-visible,summary:focus-visible{outline:2px solid var(--accent); outline-offset:3px; border-radius:2px}
+
+/* ---- masthead ---- */
+header.top{padding:76px 0 40px; border-bottom:1px solid var(--rule)}
+.eyebrow{
+  font-size:11.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--muted); margin:0 0 20px;
+}
+h1{
+  font-size:clamp(40px,6.4vw,68px); line-height:1.02; letter-spacing:-.022em;
+  font-weight:700; color:var(--ink); margin:0 0 22px; text-wrap:balance;
+}
+.standfirst{font-size:20.5px; line-height:1.5; color:var(--body); max-width:34em; margin:0}
+.standfirst strong{color:var(--ink); font-weight:600}
+.tally{
+  display:flex; flex-wrap:wrap; gap:0 40px; margin:34px 0 0;
+  font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--muted);
+}
+.tally b{display:block; font-family:Archivo,sans-serif; font-size:25px; font-weight:600;
+  color:var(--ink); letter-spacing:-.01em; font-variant-numeric:tabular-nums}
+
+/* ---- sections ---- */
+section{padding:56px 0 8px; border-bottom:1px solid var(--hair)}
+section:last-of-type{border-bottom:0}
+h2{
+  font-size:12px; font-weight:600; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--accent); margin:0 0 8px;
+}
+h3{
+  font-size:clamp(25px,3.2vw,34px); line-height:1.14; letter-spacing:-.018em;
+  font-weight:600; color:var(--ink); margin:0 0 20px; text-wrap:balance; max-width:20em;
+}
+h4{font-size:17px; font-weight:600; color:var(--ink); margin:36px 0 10px; letter-spacing:-.005em}
+p{margin:0 0 18px}
+p strong{color:var(--ink); font-weight:600}
+.lede{font-size:19px; color:var(--body)}
+
+/* ---- panels ---- */
+.panel{
+  background:var(--surface); border:1px solid var(--rule); border-radius:3px;
+  padding:22px 24px; margin:30px 0; box-shadow:var(--shadow); overflow-x:auto;
+}
+.panel-title{
+  font-family:Archivo,sans-serif; font-size:11.5px; font-weight:600; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--muted); margin:0 0 16px;
+}
+table{border-collapse:collapse; width:100%; font-size:14px}
+th{
+  text-align:left; font-size:10.5px; font-weight:600; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--faint); padding:0 14px 9px 0; border-bottom:1px solid var(--rule); white-space:nowrap;
+}
+td{padding:9px 14px 9px 0; border-bottom:1px solid var(--hair); vertical-align:baseline}
+td.n,th.n{text-align:right; font-variant-numeric:tabular-nums; padding-right:18px}
+tbody tr:last-child td{border-bottom:0}
+td.name{font-family:"IBM Plex Mono",monospace; font-size:13px; color:var(--ink); white-space:nowrap}
+.rank{font-family:Archivo,sans-serif; font-weight:600; color:var(--faint); font-size:13px}
+.pill{
+  display:inline-block; font-size:10.5px; font-weight:600; letter-spacing:.07em;
+  text-transform:uppercase; padding:3px 8px; border-radius:2px; white-space:nowrap;
+}
+.pill.run{background:var(--accent-soft); color:var(--ink)}
+.pill.hold{background:var(--signal-soft); color:var(--ink)}
+.pill.no{background:var(--alert-soft); color:var(--ink)}
+.dim{color:var(--faint)}
+
+/* ---- the band grid ---- */
+.gridwrap{overflow-x:auto; margin:8px -4px 4px; padding:0 4px 6px}
+.cellrow{display:flex; align-items:center; gap:0; height:19px; margin-bottom:3px}
+.cellrow .lab{
+  flex:0 0 150px; font-size:11.5px; color:var(--ink); text-align:right; padding-right:12px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.cellrow i{
+  display:block; width:14px; height:15px; margin-right:2px; border-radius:1px;
+  background:var(--cell-0); flex:0 0 14px; position:relative;
+}
+.cellrow i.p{background:var(--cell-p)}
+.cellrow i.f{background:var(--cell-f)}
+.cellrow i.own{box-shadow:inset 0 0 0 2px var(--signal)}
+.cellrow i.over{background:repeating-linear-gradient(135deg,var(--cell-0),var(--cell-0) 3px,var(--alert-soft) 3px,var(--alert-soft) 5px)}
+.grid-scale{display:flex; gap:0; margin:6px 0 0 150px; font-size:9.5px; color:var(--faint)}
+.grid-scale span{flex:0 0 64px; text-align:left}
+.legend{display:flex; flex-wrap:wrap; gap:6px 22px; margin:20px 0 0; font-size:12px; color:var(--muted);
+  font-family:"IBM Plex Mono",monospace}
+.legend b{display:inline-block; width:12px; height:12px; border-radius:1px; margin-right:7px;
+  vertical-align:-1px}
+
+/* ---- details ---- */
+details{border-top:1px solid var(--hair); margin:0}
+details:last-of-type{border-bottom:1px solid var(--hair)}
+summary{
+  cursor:pointer; list-style:none; padding:15px 0; display:flex; gap:14px; align-items:baseline;
+  font-family:Archivo,sans-serif; font-size:14.5px; font-weight:500; color:var(--ink);
+}
+summary::-webkit-details-marker{display:none}
+summary::before{
+  content:"+"; font-family:"IBM Plex Mono",monospace; font-size:14px; color:var(--accent);
+  flex:0 0 12px;
+}
+details[open] summary::before{content:"\2013"}
+details[open] summary{color:var(--accent)}
+.detail-body{padding:0 0 22px 26px; font-size:15.5px; color:var(--body)}
+.detail-body p{margin:0 0 14px}
+.detail-body p:last-child{margin-bottom:0}
+pre{
+  background:var(--sunk); border:1px solid var(--hair); border-radius:2px;
+  padding:14px 16px; overflow-x:auto; font-size:12px; line-height:1.65; margin:0 0 16px;
+  color:var(--body);
+}
+code{font-size:.9em; background:var(--sunk); padding:1px 5px; border-radius:2px; color:var(--ink)}
+pre code{background:none; padding:0}
+
+/* ---- callout ---- */
+.note{
+  border-left:2px solid var(--signal); padding:2px 0 2px 20px; margin:26px 0;
+  color:var(--body);
+}
+.note .k{font-family:Archivo,sans-serif; font-weight:600; color:var(--ink)}
+.filerow{
+  display:flex; gap:16px; padding:11px 0; border-bottom:1px solid var(--hair);
+  font-size:13.5px; align-items:baseline; flex-wrap:wrap;
+}
+.filerow .p{font-family:"IBM Plex Mono",monospace; font-size:12.5px; flex:0 0 auto}
+.filerow .d{color:var(--muted); font-size:14px}
+footer{padding:44px 0 0; color:var(--faint); font-size:13px; font-family:"IBM Plex Mono",monospace}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+@media (max-width:720px){
+  body{font-size:16px}
+  .wrap{padding:0 20px 72px}
+  .cellrow .lab{flex-basis:112px; font-size:10.5px}
+  .grid-scale{margin-left:112px}
+}
+</style>
+<div class="wrap">
+
+<header class="top">
+  <p class="eyebrow">MorphoHand · real_v1 · 30 August 2026</p>
+  <h1>Clip, Cap and Stall</h1>
+  <p class="standfirst">Three things bound the turn this hand can perform, and until today
+  we had measured none of them. One is a number inherited from a reinforcement-learning
+  policy that has nothing to do with open-loop control. One is a servo range. The third is
+  <strong>the hand refusing to go where it is told</strong>.</p>
+  <div class="tally">
+    <div><b>17</b>plans on the bench</div>
+    <div><b>20</b>hardware runs, read back</div>
+    <div><b>40,212</b>simulated rollouts</div>
+    <div><b>0.56</b>of the commanded turn, measured</div>
+  </div>
+</header>
+
+<section>
+  <div class="col">
+    <h2>The inherited number</h2>
+    <h3>Every morphology screen this program has run was measured at one residual clip, and nobody chose it</h3>
+    <p class="lede">The open-loop plan is a list of joint angles against time. Each joint's motion
+    away from its grasp anchor is capped at a per-joint limit called the <em>residual clip</em> —
+    and that limit has been <code>0.5&nbsp;rad</code>, hardcoded, in the 108-hand search, the
+    128-hand pilot and the 4,096-hand retention screen alike.</p>
+    <p>0.5 rad is Policy B's <strong>residual action budget</strong>: a cap on how far a learned
+    residual may push a joint away from a reference. It is a reinforcement-learning safety rail. It
+    has no business constraining a scripted trajectory, and it got here by inheritance rather than
+    by anyone deciding it was right.</p>
+    <p>The question is not whether 0.5 is a good value. It is that a screen at a single clip scores
+    every hand at one point on an axis that turns out to dominate the result.</p>
+  </div>
+</section>
+
+<section>
+  <div class="col">
+    <h2>What the clip does</h2>
+    <h3>Each plan keeps the tool only inside a contiguous band, and drops it on both sides</h3>
+    <p>Rebuild each deployed plan from its own metadata, check the rebuild lands on its shipped
+    set-points — all fourteen match to 0.000° — then run it at 33 clips from 0.40 to 2.00 rad, four
+    repeats each, with a 9.6-second hold. 1,848 rollouts.</p>
+  </div>
+
+  <div class="panel">
+    <p class="panel-title">Rollouts that kept the tool, out of four · residual clip, radians</p>
+    <div class="gridwrap">
+      <div class="cellrow"><span class="lab">sv1_w2360_b075</span><i title="sv1_w2360_b075 at 0.40 rad: 0/4 kept, cos +0.00"></i><i title="sv1_w2360_b075 at 0.45 rad: 0/4 kept, cos +0.61"></i><i class="f" title="sv1_w2360_b075 at 0.50 rad: 4/4 kept, cos +0.70"></i><i class="f" title="sv1_w2360_b075 at 0.55 rad: 4/4 kept, cos +0.66"></i><i class="f" title="sv1_w2360_b075 at 0.60 rad: 4/4 kept, cos +0.63"></i><i class="f" title="sv1_w2360_b075 at 0.65 rad: 4/4 kept, cos +0.64"></i><i class="f" title="sv1_w2360_b075 at 0.70 rad: 4/4 kept, cos +0.69"></i><i class="f own" title="sv1_w2360_b075 at 0.75 rad: 4/4 kept, cos +0.73"></i><i class="f" title="sv1_w2360_b075 at 0.80 rad: 4/4 kept, cos +0.74"></i><i class="p" title="sv1_w2360_b075 at 0.85 rad: 3/4 kept, cos +0.61"></i><i class="over" title="sv1_w2360_b075 at 0.90 rad: 3/4 kept, cos +0.64"></i><i class="over" title="sv1_w2360_b075 at 0.95 rad: 0/4 kept, cos +0.48"></i><i class="over" title="sv1_w2360_b075 at 1.00 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_w2360_b075 at 1.05 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_w2360_b075 at 1.10 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_w2360_b075 at 1.15 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_w2360_b075 at 1.20 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_w2360_b075 at 1.25 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_w2360_b075 at 1.30 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_w2360_b075 at 1.35 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_w2360_b075 at 1.40 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_w2360_b075 at 1.45 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_w2360_b075 at 1.50 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_w2360_b075 at 1.55 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_w2360_b075 at 1.60 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_w2360_b075 at 1.65 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_w2360_b075 at 1.70 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_w2360_b075 at 1.75 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_w2360_b075 at 1.80 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_w2360_b075 at 1.85 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_w2360_b075 at 1.90 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_w2360_b075 at 1.95 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_w2360_b075 at 2.00 rad: 0/4 kept, cos +0.00"></i></div>
+      <div class="cellrow"><span class="lab">sv1_u1364_b080</span><i class="f" title="sv1_u1364_b080 at 0.40 rad: 4/4 kept, cos +0.69"></i><i class="f" title="sv1_u1364_b080 at 0.45 rad: 4/4 kept, cos +0.69"></i><i class="f" title="sv1_u1364_b080 at 0.50 rad: 4/4 kept, cos +0.69"></i><i class="f" title="sv1_u1364_b080 at 0.55 rad: 4/4 kept, cos +0.71"></i><i class="f" title="sv1_u1364_b080 at 0.60 rad: 4/4 kept, cos +0.67"></i><i class="f" title="sv1_u1364_b080 at 0.65 rad: 4/4 kept, cos +0.67"></i><i class="f" title="sv1_u1364_b080 at 0.70 rad: 4/4 kept, cos +0.69"></i><i class="f" title="sv1_u1364_b080 at 0.75 rad: 4/4 kept, cos +0.71"></i><i class="f own" title="sv1_u1364_b080 at 0.80 rad: 4/4 kept, cos +0.71"></i><i class="over" title="sv1_u1364_b080 at 0.85 rad: 4/4 kept, cos +0.71"></i><i class="over" title="sv1_u1364_b080 at 0.90 rad: 4/4 kept, cos +0.46"></i><i class="over" title="sv1_u1364_b080 at 0.95 rad: 4/4 kept, cos +0.42"></i><i class="over" title="sv1_u1364_b080 at 1.00 rad: 1/4 kept, cos +0.54"></i><i class="over" title="sv1_u1364_b080 at 1.05 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u1364_b080 at 1.10 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u1364_b080 at 1.15 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u1364_b080 at 1.20 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u1364_b080 at 1.25 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u1364_b080 at 1.30 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u1364_b080 at 1.35 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u1364_b080 at 1.40 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u1364_b080 at 1.45 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u1364_b080 at 1.50 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u1364_b080 at 1.55 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u1364_b080 at 1.60 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u1364_b080 at 1.65 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u1364_b080 at 1.70 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u1364_b080 at 1.75 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u1364_b080 at 1.80 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u1364_b080 at 1.85 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u1364_b080 at 1.90 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u1364_b080 at 1.95 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u1364_b080 at 2.00 rad: 0/4 kept, cos +0.00"></i></div>
+      <div class="cellrow"><span class="lab">g12_b095</span><i class="f" title="g12_b095 at 0.40 rad: 4/4 kept, cos +0.70"></i><i title="g12_b095 at 0.45 rad: 0/4 kept, cos +0.00"></i><i title="g12_b095 at 0.50 rad: 0/4 kept, cos +0.00"></i><i title="g12_b095 at 0.55 rad: 0/4 kept, cos +0.00"></i><i title="g12_b095 at 0.60 rad: 0/4 kept, cos +0.00"></i><i title="g12_b095 at 0.65 rad: 0/4 kept, cos +0.00"></i><i class="f" title="g12_b095 at 0.70 rad: 4/4 kept, cos +0.61"></i><i class="f" title="g12_b095 at 0.75 rad: 4/4 kept, cos +0.52"></i><i class="f" title="g12_b095 at 0.80 rad: 4/4 kept, cos +0.48"></i><i class="f" title="g12_b095 at 0.85 rad: 4/4 kept, cos +0.49"></i><i class="f" title="g12_b095 at 0.90 rad: 4/4 kept, cos +0.60"></i><i class="f own" title="g12_b095 at 0.95 rad: 4/4 kept, cos +0.63"></i><i class="f" title="g12_b095 at 1.00 rad: 4/4 kept, cos +0.59"></i><i class="f" title="g12_b095 at 1.05 rad: 4/4 kept, cos +0.52"></i><i class="p" title="g12_b095 at 1.10 rad: 1/4 kept, cos +0.27"></i><i class="p" title="g12_b095 at 1.15 rad: 1/4 kept, cos +0.23"></i><i title="g12_b095 at 1.20 rad: 0/4 kept, cos +0.15"></i><i title="g12_b095 at 1.25 rad: 0/4 kept, cos +0.15"></i><i title="g12_b095 at 1.30 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12_b095 at 1.35 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12_b095 at 1.40 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12_b095 at 1.45 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12_b095 at 1.50 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12_b095 at 1.55 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12_b095 at 1.60 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12_b095 at 1.65 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12_b095 at 1.70 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12_b095 at 1.75 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12_b095 at 1.80 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12_b095 at 1.85 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12_b095 at 1.90 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12_b095 at 1.95 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12_b095 at 2.00 rad: 0/4 kept, cos +0.15"></i></div>
+      <div class="cellrow"><span class="lab">sv1_u0060_b75</span><i title="sv1_u0060_b75 at 0.40 rad: 0/4 kept, cos +0.00"></i><i title="sv1_u0060_b75 at 0.45 rad: 0/4 kept, cos +0.00"></i><i title="sv1_u0060_b75 at 0.50 rad: 0/4 kept, cos +0.00"></i><i title="sv1_u0060_b75 at 0.55 rad: 0/4 kept, cos +0.00"></i><i class="p" title="sv1_u0060_b75 at 0.60 rad: 3/4 kept, cos +0.60"></i><i class="f" title="sv1_u0060_b75 at 0.65 rad: 4/4 kept, cos +0.72"></i><i class="f" title="sv1_u0060_b75 at 0.70 rad: 4/4 kept, cos +0.66"></i><i class="f own" title="sv1_u0060_b75 at 0.75 rad: 4/4 kept, cos +0.60"></i><i class="f" title="sv1_u0060_b75 at 0.80 rad: 4/4 kept, cos +0.58"></i><i class="f" title="sv1_u0060_b75 at 0.85 rad: 4/4 kept, cos +0.45"></i><i class="f" title="sv1_u0060_b75 at 0.90 rad: 4/4 kept, cos +0.52"></i><i class="over" title="sv1_u0060_b75 at 0.95 rad: 4/4 kept, cos +0.51"></i><i class="over" title="sv1_u0060_b75 at 1.00 rad: 4/4 kept, cos +0.44"></i><i class="over" title="sv1_u0060_b75 at 1.05 rad: 4/4 kept, cos +0.38"></i><i class="over" title="sv1_u0060_b75 at 1.10 rad: 4/4 kept, cos +0.38"></i><i class="over" title="sv1_u0060_b75 at 1.15 rad: 4/4 kept, cos +0.38"></i><i class="over" title="sv1_u0060_b75 at 1.20 rad: 4/4 kept, cos +0.38"></i><i class="over" title="sv1_u0060_b75 at 1.25 rad: 4/4 kept, cos +0.38"></i><i class="over" title="sv1_u0060_b75 at 1.30 rad: 4/4 kept, cos +0.38"></i><i class="over" title="sv1_u0060_b75 at 1.35 rad: 4/4 kept, cos +0.38"></i><i class="over" title="sv1_u0060_b75 at 1.40 rad: 4/4 kept, cos +0.38"></i><i class="over" title="sv1_u0060_b75 at 1.45 rad: 4/4 kept, cos +0.38"></i><i class="over" title="sv1_u0060_b75 at 1.50 rad: 4/4 kept, cos +0.38"></i><i class="over" title="sv1_u0060_b75 at 1.55 rad: 4/4 kept, cos +0.38"></i><i class="over" title="sv1_u0060_b75 at 1.60 rad: 4/4 kept, cos +0.38"></i><i class="over" title="sv1_u0060_b75 at 1.65 rad: 4/4 kept, cos +0.38"></i><i class="over" title="sv1_u0060_b75 at 1.70 rad: 4/4 kept, cos +0.38"></i><i class="over" title="sv1_u0060_b75 at 1.75 rad: 4/4 kept, cos +0.38"></i><i class="over" title="sv1_u0060_b75 at 1.80 rad: 4/4 kept, cos +0.38"></i><i class="over" title="sv1_u0060_b75 at 1.85 rad: 4/4 kept, cos +0.38"></i><i class="over" title="sv1_u0060_b75 at 1.90 rad: 4/4 kept, cos +0.38"></i><i class="over" title="sv1_u0060_b75 at 1.95 rad: 4/4 kept, cos +0.38"></i><i class="over" title="sv1_u0060_b75 at 2.00 rad: 4/4 kept, cos +0.38"></i></div>
+      <div class="cellrow"><span class="lab">sv1_u0308_b050</span><i class="f" title="sv1_u0308_b050 at 0.40 rad: 4/4 kept, cos +0.71"></i><i class="f" title="sv1_u0308_b050 at 0.45 rad: 4/4 kept, cos +0.65"></i><i class="f own" title="sv1_u0308_b050 at 0.50 rad: 4/4 kept, cos +0.58"></i><i class="f" title="sv1_u0308_b050 at 0.55 rad: 4/4 kept, cos +0.57"></i><i class="f" title="sv1_u0308_b050 at 0.60 rad: 4/4 kept, cos +0.56"></i><i class="f" title="sv1_u0308_b050 at 0.65 rad: 4/4 kept, cos +0.56"></i><i class="f" title="sv1_u0308_b050 at 0.70 rad: 4/4 kept, cos +0.50"></i><i class="f" title="sv1_u0308_b050 at 0.75 rad: 4/4 kept, cos +0.50"></i><i class="f" title="sv1_u0308_b050 at 0.80 rad: 4/4 kept, cos +0.52"></i><i class="over" title="sv1_u0308_b050 at 0.85 rad: 4/4 kept, cos +0.46"></i><i class="over" title="sv1_u0308_b050 at 0.90 rad: 3/4 kept, cos +0.32"></i><i class="over" title="sv1_u0308_b050 at 0.95 rad: 0/4 kept, cos -0.03"></i><i class="over" title="sv1_u0308_b050 at 1.00 rad: 0/4 kept, cos -0.03"></i><i class="over" title="sv1_u0308_b050 at 1.05 rad: 0/4 kept, cos -0.03"></i><i class="over" title="sv1_u0308_b050 at 1.10 rad: 0/4 kept, cos -0.03"></i><i class="over" title="sv1_u0308_b050 at 1.15 rad: 0/4 kept, cos -0.03"></i><i class="over" title="sv1_u0308_b050 at 1.20 rad: 0/4 kept, cos -0.03"></i><i class="over" title="sv1_u0308_b050 at 1.25 rad: 0/4 kept, cos -0.03"></i><i class="over" title="sv1_u0308_b050 at 1.30 rad: 0/4 kept, cos -0.03"></i><i class="over" title="sv1_u0308_b050 at 1.35 rad: 0/4 kept, cos -0.03"></i><i class="over" title="sv1_u0308_b050 at 1.40 rad: 0/4 kept, cos -0.03"></i><i class="over" title="sv1_u0308_b050 at 1.45 rad: 0/4 kept, cos -0.03"></i><i class="over" title="sv1_u0308_b050 at 1.50 rad: 0/4 kept, cos -0.03"></i><i class="over" title="sv1_u0308_b050 at 1.55 rad: 0/4 kept, cos -0.03"></i><i class="over" title="sv1_u0308_b050 at 1.60 rad: 0/4 kept, cos -0.03"></i><i class="over" title="sv1_u0308_b050 at 1.65 rad: 0/4 kept, cos -0.03"></i><i class="over" title="sv1_u0308_b050 at 1.70 rad: 0/4 kept, cos -0.03"></i><i class="over" title="sv1_u0308_b050 at 1.75 rad: 0/4 kept, cos -0.03"></i><i class="over" title="sv1_u0308_b050 at 1.80 rad: 0/4 kept, cos -0.03"></i><i class="over" title="sv1_u0308_b050 at 1.85 rad: 0/4 kept, cos -0.03"></i><i class="over" title="sv1_u0308_b050 at 1.90 rad: 0/4 kept, cos -0.03"></i><i class="over" title="sv1_u0308_b050 at 1.95 rad: 0/4 kept, cos -0.03"></i><i class="over" title="sv1_u0308_b050 at 2.00 rad: 0/4 kept, cos -0.03"></i></div>
+      <div class="cellrow"><span class="lab">rv05_manual_b85</span><i class="f" title="rv05_manual_b85 at 0.40 rad: 4/4 kept, cos +0.73"></i><i title="rv05_manual_b85 at 0.45 rad: 0/4 kept, cos +0.00"></i><i title="rv05_manual_b85 at 0.50 rad: 0/4 kept, cos +0.00"></i><i title="rv05_manual_b85 at 0.55 rad: 0/4 kept, cos +0.00"></i><i title="rv05_manual_b85 at 0.60 rad: 0/4 kept, cos +0.00"></i><i title="rv05_manual_b85 at 0.65 rad: 0/4 kept, cos +0.00"></i><i title="rv05_manual_b85 at 0.70 rad: 0/4 kept, cos +0.00"></i><i class="f" title="rv05_manual_b85 at 0.75 rad: 4/4 kept, cos +0.64"></i><i class="f" title="rv05_manual_b85 at 0.80 rad: 4/4 kept, cos +0.60"></i><i class="f own" title="rv05_manual_b85 at 0.85 rad: 4/4 kept, cos +0.57"></i><i class="f" title="rv05_manual_b85 at 0.90 rad: 4/4 kept, cos +0.53"></i><i class="f" title="rv05_manual_b85 at 0.95 rad: 4/4 kept, cos +0.49"></i><i class="f" title="rv05_manual_b85 at 1.00 rad: 4/4 kept, cos +0.46"></i><i class="f" title="rv05_manual_b85 at 1.05 rad: 4/4 kept, cos +0.44"></i><i class="f" title="rv05_manual_b85 at 1.10 rad: 4/4 kept, cos +0.42"></i><i class="f" title="rv05_manual_b85 at 1.15 rad: 4/4 kept, cos +0.33"></i><i class="f" title="rv05_manual_b85 at 1.20 rad: 4/4 kept, cos +0.27"></i><i class="f" title="rv05_manual_b85 at 1.25 rad: 4/4 kept, cos +0.25"></i><i class="p" title="rv05_manual_b85 at 1.30 rad: 3/4 kept, cos +0.10"></i><i class="over" title="rv05_manual_b85 at 1.35 rad: 3/4 kept, cos +0.15"></i><i class="over" title="rv05_manual_b85 at 1.40 rad: 0/4 kept, cos -0.03"></i><i class="over" title="rv05_manual_b85 at 1.45 rad: 0/4 kept, cos -0.03"></i><i class="over" title="rv05_manual_b85 at 1.50 rad: 0/4 kept, cos -0.03"></i><i class="over" title="rv05_manual_b85 at 1.55 rad: 0/4 kept, cos -0.03"></i><i class="over" title="rv05_manual_b85 at 1.60 rad: 0/4 kept, cos -0.03"></i><i class="over" title="rv05_manual_b85 at 1.65 rad: 0/4 kept, cos -0.03"></i><i class="over" title="rv05_manual_b85 at 1.70 rad: 0/4 kept, cos -0.03"></i><i class="over" title="rv05_manual_b85 at 1.75 rad: 0/4 kept, cos -0.03"></i><i class="over" title="rv05_manual_b85 at 1.80 rad: 0/4 kept, cos -0.03"></i><i class="over" title="rv05_manual_b85 at 1.85 rad: 0/4 kept, cos -0.03"></i><i class="over" title="rv05_manual_b85 at 1.90 rad: 0/4 kept, cos -0.03"></i><i class="over" title="rv05_manual_b85 at 1.95 rad: 0/4 kept, cos -0.03"></i><i class="over" title="rv05_manual_b85 at 2.00 rad: 0/4 kept, cos -0.03"></i></div>
+      <div class="cellrow"><span class="lab">g12w08</span><i class="f" title="g12w08 at 0.40 rad: 4/4 kept, cos +0.70"></i><i title="g12w08 at 0.45 rad: 0/4 kept, cos +0.00"></i><i title="g12w08 at 0.50 rad: 0/4 kept, cos +0.00"></i><i title="g12w08 at 0.55 rad: 0/4 kept, cos +0.00"></i><i title="g12w08 at 0.60 rad: 0/4 kept, cos +0.00"></i><i title="g12w08 at 0.65 rad: 0/4 kept, cos +0.00"></i><i class="f" title="g12w08 at 0.70 rad: 4/4 kept, cos +0.61"></i><i class="f" title="g12w08 at 0.75 rad: 4/4 kept, cos +0.52"></i><i class="f own" title="g12w08 at 0.80 rad: 4/4 kept, cos +0.48"></i><i class="f" title="g12w08 at 0.85 rad: 4/4 kept, cos +0.49"></i><i class="f" title="g12w08 at 0.90 rad: 4/4 kept, cos +0.60"></i><i class="f" title="g12w08 at 0.95 rad: 4/4 kept, cos +0.63"></i><i class="f" title="g12w08 at 1.00 rad: 4/4 kept, cos +0.59"></i><i class="f" title="g12w08 at 1.05 rad: 4/4 kept, cos +0.52"></i><i class="p" title="g12w08 at 1.10 rad: 1/4 kept, cos +0.27"></i><i class="p" title="g12w08 at 1.15 rad: 1/4 kept, cos +0.23"></i><i title="g12w08 at 1.20 rad: 0/4 kept, cos +0.15"></i><i title="g12w08 at 1.25 rad: 0/4 kept, cos +0.15"></i><i title="g12w08 at 1.30 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12w08 at 1.35 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12w08 at 1.40 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12w08 at 1.45 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12w08 at 1.50 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12w08 at 1.55 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12w08 at 1.60 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12w08 at 1.65 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12w08 at 1.70 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12w08 at 1.75 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12w08 at 1.80 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12w08 at 1.85 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12w08 at 1.90 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12w08 at 1.95 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12w08 at 2.00 rad: 0/4 kept, cos +0.15"></i></div>
+      <div class="cellrow"><span class="lab">sv1_u0100_b70</span><i title="sv1_u0100_b70 at 0.40 rad: 0/4 kept, cos +0.74"></i><i title="sv1_u0100_b70 at 0.45 rad: 0/4 kept, cos +0.77"></i><i title="sv1_u0100_b70 at 0.50 rad: 0/4 kept, cos +0.00"></i><i title="sv1_u0100_b70 at 0.55 rad: 0/4 kept, cos +0.00"></i><i class="f" title="sv1_u0100_b70 at 0.60 rad: 4/4 kept, cos +0.54"></i><i class="f" title="sv1_u0100_b70 at 0.65 rad: 4/4 kept, cos +0.33"></i><i class="f own" title="sv1_u0100_b70 at 0.70 rad: 4/4 kept, cos +0.23"></i><i class="f" title="sv1_u0100_b70 at 0.75 rad: 4/4 kept, cos +0.19"></i><i class="f" title="sv1_u0100_b70 at 0.80 rad: 4/4 kept, cos +0.14"></i><i class="f" title="sv1_u0100_b70 at 0.85 rad: 4/4 kept, cos +0.04"></i><i class="f" title="sv1_u0100_b70 at 0.90 rad: 4/4 kept, cos +0.00"></i><i title="sv1_u0100_b70 at 0.95 rad: 0/4 kept, cos +0.00"></i><i title="sv1_u0100_b70 at 1.00 rad: 0/4 kept, cos +0.00"></i><i title="sv1_u0100_b70 at 1.05 rad: 0/4 kept, cos +0.00"></i><i title="sv1_u0100_b70 at 1.10 rad: 0/4 kept, cos +0.00"></i><i title="sv1_u0100_b70 at 1.15 rad: 0/4 kept, cos +0.00"></i><i title="sv1_u0100_b70 at 1.20 rad: 0/4 kept, cos +0.00"></i><i title="sv1_u0100_b70 at 1.25 rad: 0/4 kept, cos +0.00"></i><i title="sv1_u0100_b70 at 1.30 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u0100_b70 at 1.35 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u0100_b70 at 1.40 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u0100_b70 at 1.45 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u0100_b70 at 1.50 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u0100_b70 at 1.55 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u0100_b70 at 1.60 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u0100_b70 at 1.65 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u0100_b70 at 1.70 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u0100_b70 at 1.75 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u0100_b70 at 1.80 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u0100_b70 at 1.85 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u0100_b70 at 1.90 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u0100_b70 at 1.95 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u0100_b70 at 2.00 rad: 0/4 kept, cos +0.00"></i></div>
+      <div class="cellrow"><span class="lab">g24</span><i title="g24 at 0.40 rad: 0/4 kept, cos +0.00"></i><i title="g24 at 0.45 rad: 0/4 kept, cos +0.00"></i><i class="own" title="g24 at 0.50 rad: 0/4 kept, cos +0.75"></i><i title="g24 at 0.55 rad: 0/4 kept, cos +0.75"></i><i class="f" title="g24 at 0.60 rad: 4/4 kept, cos +0.65"></i><i class="over" title="g24 at 0.65 rad: 4/4 kept, cos +0.30"></i><i class="over" title="g24 at 0.70 rad: 4/4 kept, cos +0.19"></i><i class="over" title="g24 at 0.75 rad: 4/4 kept, cos +0.16"></i><i class="over" title="g24 at 0.80 rad: 4/4 kept, cos +0.13"></i><i class="over" title="g24 at 0.85 rad: 4/4 kept, cos +0.10"></i><i class="over" title="g24 at 0.90 rad: 4/4 kept, cos +0.06"></i><i class="over" title="g24 at 0.95 rad: 4/4 kept, cos +0.02"></i><i class="over" title="g24 at 1.00 rad: 4/4 kept, cos +0.00"></i><i class="over" title="g24 at 1.05 rad: 4/4 kept, cos +0.00"></i><i class="over" title="g24 at 1.10 rad: 4/4 kept, cos +0.00"></i><i class="over" title="g24 at 1.15 rad: 1/4 kept, cos +0.00"></i><i class="over" title="g24 at 1.20 rad: 2/4 kept, cos +0.00"></i><i class="over" title="g24 at 1.25 rad: 2/4 kept, cos +0.00"></i><i class="over" title="g24 at 1.30 rad: 0/4 kept, cos +0.50"></i><i class="over" title="g24 at 1.35 rad: 2/4 kept, cos +0.17"></i><i class="over" title="g24 at 1.40 rad: 2/4 kept, cos +0.17"></i><i class="over" title="g24 at 1.45 rad: 2/4 kept, cos +0.15"></i><i class="over" title="g24 at 1.50 rad: 2/4 kept, cos +0.25"></i><i class="over" title="g24 at 1.55 rad: 2/4 kept, cos +0.23"></i><i class="over" title="g24 at 1.60 rad: 4/4 kept, cos +0.28"></i><i class="over" title="g24 at 1.65 rad: 3/4 kept, cos +0.26"></i><i class="over" title="g24 at 1.70 rad: 3/4 kept, cos +0.26"></i><i class="over" title="g24 at 1.75 rad: 3/4 kept, cos +0.26"></i><i class="over" title="g24 at 1.80 rad: 3/4 kept, cos +0.26"></i><i class="over" title="g24 at 1.85 rad: 3/4 kept, cos +0.26"></i><i class="over" title="g24 at 1.90 rad: 3/4 kept, cos +0.26"></i><i class="over" title="g24 at 1.95 rad: 3/4 kept, cos +0.26"></i><i class="over" title="g24 at 2.00 rad: 3/4 kept, cos +0.26"></i></div>
+      <div class="cellrow"><span class="lab">sv1_w0099_b100</span><i class="f" title="sv1_w0099_b100 at 0.40 rad: 4/4 kept, cos +0.15"></i><i class="p" title="sv1_w0099_b100 at 0.45 rad: 1/4 kept, cos +0.02"></i><i title="sv1_w0099_b100 at 0.50 rad: 0/4 kept, cos +0.00"></i><i title="sv1_w0099_b100 at 0.55 rad: 0/4 kept, cos +0.00"></i><i title="sv1_w0099_b100 at 0.60 rad: 0/4 kept, cos +0.00"></i><i title="sv1_w0099_b100 at 0.65 rad: 0/4 kept, cos +0.00"></i><i title="sv1_w0099_b100 at 0.70 rad: 0/4 kept, cos +0.00"></i><i title="sv1_w0099_b100 at 0.75 rad: 0/4 kept, cos +0.00"></i><i title="sv1_w0099_b100 at 0.80 rad: 0/4 kept, cos +0.00"></i><i class="p" title="sv1_w0099_b100 at 0.85 rad: 2/4 kept, cos +0.26"></i><i class="p" title="sv1_w0099_b100 at 0.90 rad: 2/4 kept, cos +0.24"></i><i class="f" title="sv1_w0099_b100 at 0.95 rad: 4/4 kept, cos +0.54"></i><i class="p own" title="sv1_w0099_b100 at 1.00 rad: 3/4 kept, cos +0.50"></i><i class="p" title="sv1_w0099_b100 at 1.05 rad: 2/4 kept, cos +0.31"></i><i title="sv1_w0099_b100 at 1.10 rad: 0/4 kept, cos -0.01"></i><i class="p" title="sv1_w0099_b100 at 1.15 rad: 2/4 kept, cos +0.07"></i><i title="sv1_w0099_b100 at 1.20 rad: 0/4 kept, cos -0.01"></i><i class="over" title="sv1_w0099_b100 at 1.25 rad: 1/4 kept, cos +0.04"></i><i class="over" title="sv1_w0099_b100 at 1.30 rad: 1/4 kept, cos +0.14"></i><i class="over" title="sv1_w0099_b100 at 1.35 rad: 2/4 kept, cos +0.22"></i><i class="over" title="sv1_w0099_b100 at 1.40 rad: 0/4 kept, cos -0.01"></i><i class="over" title="sv1_w0099_b100 at 1.45 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_w0099_b100 at 1.50 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_w0099_b100 at 1.55 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_w0099_b100 at 1.60 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_w0099_b100 at 1.65 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_w0099_b100 at 1.70 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_w0099_b100 at 1.75 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_w0099_b100 at 1.80 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_w0099_b100 at 1.85 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_w0099_b100 at 1.90 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_w0099_b100 at 1.95 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_w0099_b100 at 2.00 rad: 0/4 kept, cos +0.00"></i></div>
+      <div class="cellrow"><span class="lab">sv1_u0060_b100</span><i title="sv1_u0060_b100 at 0.40 rad: 0/4 kept, cos +0.00"></i><i title="sv1_u0060_b100 at 0.45 rad: 0/4 kept, cos +0.00"></i><i title="sv1_u0060_b100 at 0.50 rad: 0/4 kept, cos +0.00"></i><i title="sv1_u0060_b100 at 0.55 rad: 0/4 kept, cos +0.00"></i><i class="p" title="sv1_u0060_b100 at 0.60 rad: 3/4 kept, cos +0.60"></i><i class="f" title="sv1_u0060_b100 at 0.65 rad: 4/4 kept, cos +0.72"></i><i class="f" title="sv1_u0060_b100 at 0.70 rad: 4/4 kept, cos +0.66"></i><i class="f" title="sv1_u0060_b100 at 0.75 rad: 4/4 kept, cos +0.60"></i><i class="f" title="sv1_u0060_b100 at 0.80 rad: 4/4 kept, cos +0.58"></i><i class="f" title="sv1_u0060_b100 at 0.85 rad: 4/4 kept, cos +0.45"></i><i class="f" title="sv1_u0060_b100 at 0.90 rad: 4/4 kept, cos +0.52"></i><i class="over" title="sv1_u0060_b100 at 0.95 rad: 4/4 kept, cos +0.51"></i><i class="over own" title="sv1_u0060_b100 at 1.00 rad: 4/4 kept, cos +0.44"></i><i class="over" title="sv1_u0060_b100 at 1.05 rad: 4/4 kept, cos +0.38"></i><i class="over" title="sv1_u0060_b100 at 1.10 rad: 4/4 kept, cos +0.38"></i><i class="over" title="sv1_u0060_b100 at 1.15 rad: 4/4 kept, cos +0.38"></i><i class="over" title="sv1_u0060_b100 at 1.20 rad: 4/4 kept, cos +0.38"></i><i class="over" title="sv1_u0060_b100 at 1.25 rad: 4/4 kept, cos +0.38"></i><i class="over" title="sv1_u0060_b100 at 1.30 rad: 4/4 kept, cos +0.38"></i><i class="over" title="sv1_u0060_b100 at 1.35 rad: 4/4 kept, cos +0.38"></i><i class="over" title="sv1_u0060_b100 at 1.40 rad: 4/4 kept, cos +0.38"></i><i class="over" title="sv1_u0060_b100 at 1.45 rad: 4/4 kept, cos +0.38"></i><i class="over" title="sv1_u0060_b100 at 1.50 rad: 4/4 kept, cos +0.38"></i><i class="over" title="sv1_u0060_b100 at 1.55 rad: 4/4 kept, cos +0.38"></i><i class="over" title="sv1_u0060_b100 at 1.60 rad: 4/4 kept, cos +0.38"></i><i class="over" title="sv1_u0060_b100 at 1.65 rad: 4/4 kept, cos +0.38"></i><i class="over" title="sv1_u0060_b100 at 1.70 rad: 4/4 kept, cos +0.38"></i><i class="over" title="sv1_u0060_b100 at 1.75 rad: 4/4 kept, cos +0.38"></i><i class="over" title="sv1_u0060_b100 at 1.80 rad: 4/4 kept, cos +0.38"></i><i class="over" title="sv1_u0060_b100 at 1.85 rad: 4/4 kept, cos +0.38"></i><i class="over" title="sv1_u0060_b100 at 1.90 rad: 4/4 kept, cos +0.38"></i><i class="over" title="sv1_u0060_b100 at 1.95 rad: 4/4 kept, cos +0.38"></i><i class="over" title="sv1_u0060_b100 at 2.00 rad: 4/4 kept, cos +0.38"></i></div>
+      <div class="cellrow"><span class="lab">sv1_w0116_b100</span><i title="sv1_w0116_b100 at 0.40 rad: 0/4 kept, cos +0.00"></i><i title="sv1_w0116_b100 at 0.45 rad: 0/4 kept, cos +0.50"></i><i title="sv1_w0116_b100 at 0.50 rad: 0/4 kept, cos +0.00"></i><i title="sv1_w0116_b100 at 0.55 rad: 0/4 kept, cos +0.00"></i><i title="sv1_w0116_b100 at 0.60 rad: 0/4 kept, cos +0.00"></i><i title="sv1_w0116_b100 at 0.65 rad: 0/4 kept, cos +0.99"></i><i title="sv1_w0116_b100 at 0.70 rad: 0/4 kept, cos +0.00"></i><i title="sv1_w0116_b100 at 0.75 rad: 0/4 kept, cos +0.00"></i><i title="sv1_w0116_b100 at 0.80 rad: 0/4 kept, cos +0.00"></i><i title="sv1_w0116_b100 at 0.85 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_w0116_b100 at 0.90 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_w0116_b100 at 0.95 rad: 0/4 kept, cos +0.00"></i><i class="over own" title="sv1_w0116_b100 at 1.00 rad: 2/4 kept, cos +0.37"></i><i class="over" title="sv1_w0116_b100 at 1.05 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_w0116_b100 at 1.10 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_w0116_b100 at 1.15 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_w0116_b100 at 1.20 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_w0116_b100 at 1.25 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_w0116_b100 at 1.30 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_w0116_b100 at 1.35 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_w0116_b100 at 1.40 rad: 2/4 kept, cos +0.42"></i><i class="over" title="sv1_w0116_b100 at 1.45 rad: 4/4 kept, cos +0.63"></i><i class="over" title="sv1_w0116_b100 at 1.50 rad: 4/4 kept, cos +0.54"></i><i class="over" title="sv1_w0116_b100 at 1.55 rad: 4/4 kept, cos +0.47"></i><i class="over" title="sv1_w0116_b100 at 1.60 rad: 4/4 kept, cos +0.46"></i><i class="over" title="sv1_w0116_b100 at 1.65 rad: 4/4 kept, cos +0.46"></i><i class="over" title="sv1_w0116_b100 at 1.70 rad: 4/4 kept, cos +0.46"></i><i class="over" title="sv1_w0116_b100 at 1.75 rad: 4/4 kept, cos +0.46"></i><i class="over" title="sv1_w0116_b100 at 1.80 rad: 4/4 kept, cos +0.46"></i><i class="over" title="sv1_w0116_b100 at 1.85 rad: 4/4 kept, cos +0.46"></i><i class="over" title="sv1_w0116_b100 at 1.90 rad: 4/4 kept, cos +0.46"></i><i class="over" title="sv1_w0116_b100 at 1.95 rad: 4/4 kept, cos +0.46"></i><i class="over" title="sv1_w0116_b100 at 2.00 rad: 4/4 kept, cos +0.46"></i></div>
+      <div class="cellrow"><span class="lab">g12w11</span><i class="f" title="g12w11 at 0.40 rad: 4/4 kept, cos +0.70"></i><i title="g12w11 at 0.45 rad: 0/4 kept, cos +0.00"></i><i title="g12w11 at 0.50 rad: 0/4 kept, cos +0.00"></i><i title="g12w11 at 0.55 rad: 0/4 kept, cos +0.00"></i><i title="g12w11 at 0.60 rad: 0/4 kept, cos +0.00"></i><i title="g12w11 at 0.65 rad: 0/4 kept, cos +0.00"></i><i class="f" title="g12w11 at 0.70 rad: 4/4 kept, cos +0.61"></i><i class="f" title="g12w11 at 0.75 rad: 4/4 kept, cos +0.52"></i><i class="f" title="g12w11 at 0.80 rad: 4/4 kept, cos +0.48"></i><i class="f" title="g12w11 at 0.85 rad: 4/4 kept, cos +0.49"></i><i class="f" title="g12w11 at 0.90 rad: 4/4 kept, cos +0.60"></i><i class="f" title="g12w11 at 0.95 rad: 4/4 kept, cos +0.63"></i><i class="f" title="g12w11 at 1.00 rad: 4/4 kept, cos +0.59"></i><i class="f" title="g12w11 at 1.05 rad: 4/4 kept, cos +0.52"></i><i class="p own" title="g12w11 at 1.10 rad: 1/4 kept, cos +0.27"></i><i class="p" title="g12w11 at 1.15 rad: 1/4 kept, cos +0.23"></i><i title="g12w11 at 1.20 rad: 0/4 kept, cos +0.15"></i><i title="g12w11 at 1.25 rad: 0/4 kept, cos +0.15"></i><i title="g12w11 at 1.30 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12w11 at 1.35 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12w11 at 1.40 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12w11 at 1.45 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12w11 at 1.50 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12w11 at 1.55 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12w11 at 1.60 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12w11 at 1.65 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12w11 at 1.70 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12w11 at 1.75 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12w11 at 1.80 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12w11 at 1.85 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12w11 at 1.90 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12w11 at 1.95 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12w11 at 2.00 rad: 0/4 kept, cos +0.15"></i></div>
+      <div class="cellrow"><span class="lab">g12</span><i class="f" title="g12 at 0.40 rad: 4/4 kept, cos +0.70"></i><i title="g12 at 0.45 rad: 0/4 kept, cos +0.00"></i><i class="own" title="g12 at 0.50 rad: 0/4 kept, cos +0.00"></i><i title="g12 at 0.55 rad: 0/4 kept, cos +0.00"></i><i title="g12 at 0.60 rad: 0/4 kept, cos +0.00"></i><i title="g12 at 0.65 rad: 0/4 kept, cos +0.00"></i><i class="f" title="g12 at 0.70 rad: 4/4 kept, cos +0.61"></i><i class="f" title="g12 at 0.75 rad: 4/4 kept, cos +0.52"></i><i class="f" title="g12 at 0.80 rad: 4/4 kept, cos +0.48"></i><i class="f" title="g12 at 0.85 rad: 4/4 kept, cos +0.49"></i><i class="f" title="g12 at 0.90 rad: 4/4 kept, cos +0.60"></i><i class="f" title="g12 at 0.95 rad: 4/4 kept, cos +0.63"></i><i class="f" title="g12 at 1.00 rad: 4/4 kept, cos +0.59"></i><i class="f" title="g12 at 1.05 rad: 4/4 kept, cos +0.52"></i><i class="p" title="g12 at 1.10 rad: 1/4 kept, cos +0.27"></i><i class="p" title="g12 at 1.15 rad: 1/4 kept, cos +0.23"></i><i title="g12 at 1.20 rad: 0/4 kept, cos +0.15"></i><i title="g12 at 1.25 rad: 0/4 kept, cos +0.15"></i><i title="g12 at 1.30 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12 at 1.35 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12 at 1.40 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12 at 1.45 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12 at 1.50 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12 at 1.55 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12 at 1.60 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12 at 1.65 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12 at 1.70 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12 at 1.75 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12 at 1.80 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12 at 1.85 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12 at 1.90 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12 at 1.95 rad: 0/4 kept, cos +0.15"></i><i class="over" title="g12 at 2.00 rad: 0/4 kept, cos +0.15"></i></div>
+      <div class="cellrow"><span class="lab">g23</span><i class="f" title="g23 at 0.40 rad: 4/4 kept, cos +0.13"></i><i title="g23 at 0.45 rad: 0/4 kept, cos +0.00"></i><i class="own" title="g23 at 0.50 rad: 0/4 kept, cos +0.00"></i><i title="g23 at 0.55 rad: 0/4 kept, cos +0.00"></i><i title="g23 at 0.60 rad: 0/4 kept, cos +0.00"></i><i title="g23 at 0.65 rad: 0/4 kept, cos +0.00"></i><i title="g23 at 0.70 rad: 0/4 kept, cos +0.00"></i><i class="f" title="g23 at 0.75 rad: 4/4 kept, cos +0.59"></i><i class="f" title="g23 at 0.80 rad: 4/4 kept, cos +0.47"></i><i class="f" title="g23 at 0.85 rad: 4/4 kept, cos +0.37"></i><i class="f" title="g23 at 0.90 rad: 4/4 kept, cos +0.27"></i><i class="f" title="g23 at 0.95 rad: 4/4 kept, cos +0.19"></i><i class="f" title="g23 at 1.00 rad: 4/4 kept, cos +0.12"></i><i class="f" title="g23 at 1.05 rad: 4/4 kept, cos +0.08"></i><i class="f" title="g23 at 1.10 rad: 4/4 kept, cos +0.05"></i><i class="f" title="g23 at 1.15 rad: 4/4 kept, cos +0.00"></i><i class="f" title="g23 at 1.20 rad: 4/4 kept, cos -0.00"></i><i class="f" title="g23 at 1.25 rad: 4/4 kept, cos +0.00"></i><i class="f" title="g23 at 1.30 rad: 4/4 kept, cos +0.00"></i><i class="over" title="g23 at 1.35 rad: 4/4 kept, cos +0.03"></i><i class="over" title="g23 at 1.40 rad: 4/4 kept, cos +0.06"></i><i class="over" title="g23 at 1.45 rad: 4/4 kept, cos +0.08"></i><i class="over" title="g23 at 1.50 rad: 4/4 kept, cos +0.08"></i><i class="over" title="g23 at 1.55 rad: 4/4 kept, cos +0.07"></i><i class="over" title="g23 at 1.60 rad: 4/4 kept, cos +0.07"></i><i class="over" title="g23 at 1.65 rad: 4/4 kept, cos +0.07"></i><i class="over" title="g23 at 1.70 rad: 4/4 kept, cos +0.07"></i><i class="over" title="g23 at 1.75 rad: 4/4 kept, cos +0.07"></i><i class="over" title="g23 at 1.80 rad: 4/4 kept, cos +0.07"></i><i class="over" title="g23 at 1.85 rad: 4/4 kept, cos +0.07"></i><i class="over" title="g23 at 1.90 rad: 4/4 kept, cos +0.07"></i><i class="over" title="g23 at 1.95 rad: 4/4 kept, cos +0.07"></i><i class="over" title="g23 at 2.00 rad: 4/4 kept, cos +0.07"></i></div>
+      <div class="cellrow"><span class="lab">rv04_mid</span><i title="rv04_mid at 0.40 rad: 0/4 kept, cos +0.00"></i><i title="rv04_mid at 0.45 rad: 0/4 kept, cos +0.00"></i><i class="own" title="rv04_mid at 0.50 rad: 0/4 kept, cos +0.00"></i><i title="rv04_mid at 0.55 rad: 0/4 kept, cos +0.00"></i><i title="rv04_mid at 0.60 rad: 0/4 kept, cos +0.25"></i><i class="p" title="rv04_mid at 0.65 rad: 2/4 kept, cos +0.94"></i><i class="f" title="rv04_mid at 0.70 rad: 4/4 kept, cos +0.74"></i><i class="f" title="rv04_mid at 0.75 rad: 4/4 kept, cos +0.49"></i><i class="f" title="rv04_mid at 0.80 rad: 4/4 kept, cos +0.26"></i><i class="f" title="rv04_mid at 0.85 rad: 4/4 kept, cos +0.09"></i><i class="f" title="rv04_mid at 0.90 rad: 4/4 kept, cos +0.00"></i><i class="f" title="rv04_mid at 0.95 rad: 4/4 kept, cos +0.00"></i><i class="f" title="rv04_mid at 1.00 rad: 4/4 kept, cos +0.00"></i><i class="f" title="rv04_mid at 1.05 rad: 4/4 kept, cos +0.00"></i><i class="f" title="rv04_mid at 1.10 rad: 4/4 kept, cos +0.00"></i><i class="f" title="rv04_mid at 1.15 rad: 4/4 kept, cos +0.00"></i><i class="f" title="rv04_mid at 1.20 rad: 4/4 kept, cos +0.00"></i><i class="f" title="rv04_mid at 1.25 rad: 4/4 kept, cos +0.04"></i><i class="f" title="rv04_mid at 1.30 rad: 4/4 kept, cos +0.55"></i><i class="over" title="rv04_mid at 1.35 rad: 4/4 kept, cos +0.62"></i><i class="over" title="rv04_mid at 1.40 rad: 4/4 kept, cos +0.29"></i><i class="over" title="rv04_mid at 1.45 rad: 4/4 kept, cos +0.04"></i><i class="over" title="rv04_mid at 1.50 rad: 4/4 kept, cos +0.18"></i><i class="over" title="rv04_mid at 1.55 rad: 4/4 kept, cos +0.45"></i><i class="over" title="rv04_mid at 1.60 rad: 4/4 kept, cos +0.28"></i><i class="over" title="rv04_mid at 1.65 rad: 4/4 kept, cos +0.14"></i><i class="over" title="rv04_mid at 1.70 rad: 4/4 kept, cos +0.14"></i><i class="over" title="rv04_mid at 1.75 rad: 4/4 kept, cos +0.14"></i><i class="over" title="rv04_mid at 1.80 rad: 4/4 kept, cos +0.14"></i><i class="over" title="rv04_mid at 1.85 rad: 4/4 kept, cos +0.14"></i><i class="over" title="rv04_mid at 1.90 rad: 4/4 kept, cos +0.14"></i><i class="over" title="rv04_mid at 1.95 rad: 4/4 kept, cos +0.14"></i><i class="over" title="rv04_mid at 2.00 rad: 4/4 kept, cos +0.14"></i></div>
+      <div class="cellrow"><span class="lab">sv1_u0100_b100</span><i title="sv1_u0100_b100 at 0.40 rad: 0/4 kept, cos +0.74"></i><i title="sv1_u0100_b100 at 0.45 rad: 0/4 kept, cos +0.77"></i><i title="sv1_u0100_b100 at 0.50 rad: 0/4 kept, cos +0.00"></i><i title="sv1_u0100_b100 at 0.55 rad: 0/4 kept, cos +0.00"></i><i class="f" title="sv1_u0100_b100 at 0.60 rad: 4/4 kept, cos +0.54"></i><i class="f" title="sv1_u0100_b100 at 0.65 rad: 4/4 kept, cos +0.33"></i><i class="f" title="sv1_u0100_b100 at 0.70 rad: 4/4 kept, cos +0.23"></i><i class="f" title="sv1_u0100_b100 at 0.75 rad: 4/4 kept, cos +0.19"></i><i class="f" title="sv1_u0100_b100 at 0.80 rad: 4/4 kept, cos +0.14"></i><i class="f" title="sv1_u0100_b100 at 0.85 rad: 4/4 kept, cos +0.04"></i><i class="f" title="sv1_u0100_b100 at 0.90 rad: 4/4 kept, cos +0.00"></i><i title="sv1_u0100_b100 at 0.95 rad: 0/4 kept, cos +0.00"></i><i class="own" title="sv1_u0100_b100 at 1.00 rad: 0/4 kept, cos +0.00"></i><i title="sv1_u0100_b100 at 1.05 rad: 0/4 kept, cos +0.00"></i><i title="sv1_u0100_b100 at 1.10 rad: 0/4 kept, cos +0.00"></i><i title="sv1_u0100_b100 at 1.15 rad: 0/4 kept, cos +0.00"></i><i title="sv1_u0100_b100 at 1.20 rad: 0/4 kept, cos +0.00"></i><i title="sv1_u0100_b100 at 1.25 rad: 0/4 kept, cos +0.00"></i><i title="sv1_u0100_b100 at 1.30 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u0100_b100 at 1.35 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u0100_b100 at 1.40 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u0100_b100 at 1.45 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u0100_b100 at 1.50 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u0100_b100 at 1.55 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u0100_b100 at 1.60 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u0100_b100 at 1.65 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u0100_b100 at 1.70 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u0100_b100 at 1.75 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u0100_b100 at 1.80 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u0100_b100 at 1.85 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u0100_b100 at 1.90 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u0100_b100 at 1.95 rad: 0/4 kept, cos +0.00"></i><i class="over" title="sv1_u0100_b100 at 2.00 rad: 0/4 kept, cos +0.00"></i></div>
+      <div class="grid-scale"><span>0.40</span><span>0.60</span><span>0.80</span><span>1.00</span><span>1.20</span><span>1.40</span><span>1.60</span><span>1.80</span><span>2.00</span></div>
+    </div>
+    <div class="legend">
+      <span><b style="background:var(--cell-f)"></b>4 of 4 kept</span>
+      <span><b style="background:var(--cell-p)"></b>1–3 kept</span>
+      <span><b style="background:var(--cell-0)"></b>all four dropped</span>
+      <span><b style="box-shadow:inset 0 0 0 2px var(--signal)"></b>the clip this plan ships at</span>
+      <span><b class="hatch" style="background:repeating-linear-gradient(135deg,var(--cell-0),var(--cell-0) 3px,var(--alert-soft) 3px,var(--alert-soft) 5px)"></b>outside servo range</span>
+    </div>
+  </div>
+
+  <div class="col">
+    <p><strong>Three of the plans the bench has been running sit outside their own band.</strong>
+    <code>g12</code>, <code>g23</code> and <code>rv04_mid</code> at 0.50 rad are all below theirs
+    and drop every repeat. <code>g12w11</code> at 1.10 is above g12's upper edge of 1.05 and holds
+    one in four.</p>
+    <div class="note">
+      <span class="k">The isolated block at 0.40 is not an operating point.</span> Several designs
+      keep the tool there with 0/4 immediately above. A turn small enough not to disturb the grip
+      is not a turn — the band is always the longest contiguous run.
+    </div>
+  </div>
+
+  <details>
+    <summary>Alignment is not monotonic across the band, so the lower-edge rule does not survive</summary>
+    <div class="detail-body">
+      <p>Measured on the pilot's own cells, held cosine fell monotonically from the lower edge, and
+      the ship rule became "lower edge plus a margin". Measured on the cells the bench actually
+      runs, it does not hold:</p>
+<pre><code>g12       clip  0.70  0.75  0.80  0.85  0.90  0.95  1.00  1.05  1.10
+          cos   0.61  0.52  0.48  0.49  0.60  0.63  0.59  0.52  0.27
+
+rv04_mid  clip  0.60  0.65  0.70  0.75  0.80  0.85  0.90
+          cos   0.25  0.94  0.74  0.49  0.26  0.09  0.00</code></pre>
+      <p>g12 dips in the middle of its band and recovers; rv04_mid peaks hard at 0.65 and is
+      worthless by 0.90. Read the shape. What survives from the edge rule is the <em>margin</em> —
+      stay clear of the lower edge, because the joints do not arrive.</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>The clip has a hard ceiling, and it is the middle pip servo</summary>
+    <div class="detail-body">
+      <p>A plan's <code>anchor</code> and <code>delta</code> do not depend on the clip, so the
+      largest clip a design can be <em>commanded</em> to is closed-form rather than sampled:</p>
+      <table>
+        <thead><tr><th>design</th><th class="n">largest commandable clip</th><th>first joint over</th></tr></thead>
+        <tbody>
+          <tr><td class="name">most of the family</td><td class="n">1.345 rad</td><td class="dim mono">turn_end : middle_fe2 · +77.05°</td></tr>
+          <tr><td class="name">sv1_w0099</td><td class="n">1.212</td><td class="dim mono">turn_end : middle_aa</td></tr>
+          <tr><td class="name">sv1_u0060</td><td class="n">0.932</td><td class="dim mono">turn_end : middle_aa</td></tr>
+          <tr><td class="name">sv1_w0116</td><td class="n">0.891</td><td class="dim mono">turn_end : middle_aa</td></tr>
+          <tr><td class="name">g24</td><td class="n">0.650</td><td class="dim mono">turn_end : thumb_fe1</td></tr>
+        </tbody>
+      </table>
+      <p style="margin-top:16px"><code>sv1_w0116</code>'s hold band is 1.45–2.00 and lies
+      <strong>entirely above</strong> the largest clip it can be told to execute. There is no clip
+      at which that hand both holds the tool and can be commanded to. It was the 128-hand pilot's
+      nominal winner, on the strength of a 0.918 cosine and 11.6&nbsp;mm of finger clearance.</p>
+    </div>
+  </details>
+</section>
+
+<section>
+  <div class="col">
+    <h2>The bench</h2>
+    <h3>The hand performs between 44% and 90% of the turn it is commanded, and it is torque</h3>
+    <p class="lede">An open-loop plan is exactly the claim that <em>commanded equals achieved</em>.
+    The control station logs both sides of it — the command stream it sent, and servo telemetry
+    before and after. Twenty runs of three of the newly promoted hands, read back off the CB1 the
+    same evening, say the claim is wrong by a factor of two on the joint that matters.</p>
+  </div>
+
+  <div class="panel">
+    <p class="panel-title">Achieved ÷ commanded travel, median over each design's runs</p>
+    <table>
+      <thead><tr>
+        <th>design</th><th class="n">runs</th>
+        <th class="n">thumb yaw</th><th class="n">index yaw</th><th class="n">middle yaw</th>
+        <th class="n">middle mcp</th><th class="n">middle pip</th>
+        <th class="n">middle-yaw load</th>
+      </tr></thead>
+      <tbody>
+        <tr><td class="name">sv1_u0060</td><td class="n">6</td>
+          <td class="n">0.90</td><td class="n">0.75</td><td class="n"><strong>0.86</strong></td>
+          <td class="n">0.77</td><td class="n">1.05</td><td class="n">405–495</td></tr>
+        <tr><td class="name">rv05_manual</td><td class="n">2</td>
+          <td class="n">0.22</td><td class="n">0.44</td><td class="n"><strong>0.69</strong></td>
+          <td class="n">0.54</td><td class="n">1.04</td><td class="n">—</td></tr>
+        <tr><td class="name">sv1_u0100</td><td class="n">12</td>
+          <td class="n">−0.00</td><td class="n">0.55</td><td class="n"><strong>0.56</strong></td>
+          <td class="n">0.69</td><td class="n">0.99</td><td class="n" style="color:var(--alert)">900–915</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="col">
+    <p><strong>The pip joints arrive and the yaw joints do not.</strong> Every <code>pip</code>
+    sits at 1.00&nbsp;±&nbsp;0.05. Yaw runs from 0.44 to 0.90 — and yaw is the joint the turn is
+    built out of.</p>
+    <p><strong>It is not a following error.</strong> The session swept commanded speed from 0.10×
+    to 1.50×. <code>sv1_u0100</code>'s middle yaw reads 0.56 at both ends. A shortfall invariant to
+    how slowly you ask for it is not the servo lagging.</p>
+    <p><strong>It is torque.</strong> The terminal load on middle yaw is 405–495 on
+    <code>sv1_u0060</code> and <strong>900–915</strong> on <code>sv1_u0100</code>, against an
+    overload trip that fires near 800. One run sits at exactly 200.0 — the
+    <code>protective_torque&nbsp;=&nbsp;20%</code> plateau this program has met before. The joint
+    that falls furthest short is the one that is stalled.</p>
+    <div class="note">
+      <span class="k">Every simulated ranking is in commanded units.</span> The clip the hand
+      executes is smaller than the clip in the plan, by a design-dependent factor. The
+      <code>+0.10&nbsp;rad</code> margin in the current ship rule was sized against 4–6° of yaw
+      droop measured a day earlier; the real correction is an order of magnitude larger.
+    </div>
+  </div>
+
+  <details>
+    <summary>What this session cannot tell us — none of the twenty runs recorded a rotation angle</summary>
+    <div class="detail-body">
+      <p><code>manual_score</code> is null on all 20. By the bench protocol's own rule that means
+      the session produced no <em>result</em>: a rotation angle, with a repeat count and a stated
+      measurement method.</p>
+      <p><code>sv1_u0060</code> achieves the most of its commanded turn and has the best simulated
+      alignment of the three. <code>sv1_u0100</code> achieves the least, has a completely idle
+      thumb, and was one of the two singled out as working well by eye. With no rotation
+      measurement on any run, that comparison contains no data — which is an argument for the
+      AprilTag vane instrument the bench suite already specifies, not an argument about the hands.</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>Method, and a caution about the CB1's clock</summary>
+    <div class="detail-body">
+      <p>Per joint, over the whole turn:</p>
+<pre><code>achieved fraction = (measured after − measured before)
+                    ÷ (commanded end − commanded start)</code></pre>
+      <p>Joints commanded to move less than 2° are skipped — a ratio taken over a 1° command is
+      noise. Regenerate with <code>scripts/real_v1_bench_arrival.py --logs &lt;session&gt;/logs</code>.</p>
+      <p><strong>The CB1's clock runs about 14.5 hours behind.</strong> There is no RTC and no NTP
+      on that subnet, so it counts from boot. Run filenames order the session correctly but do not
+      date it.</p>
+    </div>
+  </details>
+</section>
+
+<section>
+  <div class="col">
+    <h2>The population</h2>
+    <h3>Re-screening 4,096 hands across the clip, with a gate for what the servos will accept</h3>
+    <p class="lede">If one clip is not a screen, the fix is to sweep it. Every fitted grasp cell in
+    the 4,096-hand population was re-run at five clips from 0.50 to 1.30 rad under the full
+    retention gate — a 60&nbsp;mm proof lift the object has to follow, then five free seconds with
+    at most 10&nbsp;mm of slip, under the SCS0009 torque caps.</p>
+    <p>The screen also carries something it never had: a <strong>servo-command gate</strong>. A
+    trajectory the driver would refuse is not a candidate, however well it scores, and until today
+    that was only discovered at export — four stages downstream.</p>
+  </div>
+
+  <div class="panel">
+    <p class="panel-title">28,480 rollouts · every fitted grasp cell at five clips</p>
+    <table>
+      <thead><tr>
+        <th class="n">clip</th><th class="n">cells</th>
+        <th class="n">pass the retention gate</th>
+        <th class="n">…and are commandable</th>
+        <th class="n">blocked by servo range</th>
+      </tr></thead>
+      <tbody>
+        <tr><td class="n">0.50</td><td class="n">5,696</td><td class="n">315</td><td class="n">295</td><td class="n" style="color:var(--alert)">2,031</td></tr>
+        <tr><td class="n">0.70</td><td class="n">5,696</td><td class="n">264</td><td class="n">230</td><td class="n" style="color:var(--alert)">2,856</td></tr>
+        <tr><td class="n">0.90</td><td class="n">5,696</td><td class="n">221</td><td class="n">110</td><td class="n" style="color:var(--alert)">4,042</td></tr>
+        <tr><td class="n">1.10</td><td class="n">5,696</td><td class="n">217</td><td class="n">73</td><td class="n" style="color:var(--alert)">4,927</td></tr>
+        <tr><td class="n">1.30</td><td class="n">5,696</td><td class="n">212</td><td class="n">53</td><td class="n" style="color:var(--alert)">5,227</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="col">
+    <p><strong>Raising the clip does not help this maneuver.</strong> Fewer cells pass at every
+    step above 0.50, and the servo cap blocks a steeply growing share — 5,227
+    of 5,696 cells at 1.30&nbsp;rad. That is the opposite of what the
+    deployed plans wanted, and the two are not in conflict: the population screen ends with a
+    60&nbsp;mm proof lift and five free seconds, and a bigger turn excursion costs grip. The bench
+    plans hold the tool on a post with a fixed palm, where a bigger turn is what produces the
+    rotation. <em>Different maneuvers have different clips.</em> The mistake was never that 0.5 was
+    the wrong number — it is that one number was used for both.</p>
+
+    <p>The sweep still finds hands the single-clip screen could not see. Of
+    <strong>269</strong> morphologies that pass the gate at some
+    clip, <strong>39</strong> pass at no other value than one the
+    old screen never tried, and 125
+    do their best work away from 0.50.</p>
+  </div>
+
+  <div class="panel" style="max-width:420px">
+    <p class="panel-title">Clip each hand does its best work at</p>
+    <table>
+      <thead><tr><th class="n">clip</th><th class="n">hands</th></tr></thead>
+      <tbody>
+        <tr><td class="n">0.5</td><td class="n">144</td></tr>
+        <tr><td class="n">0.7</td><td class="n">70</td></tr>
+        <tr><td class="n">0.9</td><td class="n">19</td></tr>
+        <tr><td class="n">1.1</td><td class="n">15</td></tr>
+        <tr><td class="n">1.3</td><td class="n">21</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="col">
+    <div class="note">
+      <span class="k">18 of the 248 hands the old screen passed at 0.50 rad
+      cannot be commanded.</span> They would have failed at export, four stages later, after being
+      confirmed, ranked and rendered. That gate now runs inside the screen.
+    </div>
+  </div>
+
+  <div class="col">
+    <h4>What the confirmation left, and what did not transfer</h4>
+    <p>Five nominal repeats plus a four-draw wrong-hand ensemble leave <strong>119 of 269</strong>
+    morphologies, and <strong>50 of those confirm at no clip the old screen ever tried</strong>.
+    Twenty full-error draws each put two hands ahead of anything the single-clip screen found —
+    <code>sv1_u1939</code> at 0.70 rad (0.35 of the full-error distribution) and
+    <code>sv1_u2745</code> at 1.10 (0.30), against 0.25 for <code>sv1_u2699</code>, the previous
+    best on this population. Both are at clips that were never run.</p>
+    <p>Sixteen went through export, servo range, gantry travel and clearance. Thirteen passed, and
+    <strong>none failed on servo range</strong> — the new upstream gate doing its job. The three
+    that failed, failed on clearance the way the roadmap warned: <code>sv1_w3408</code> reads
+    17.3&nbsp;mm in the rollout and <strong>+4.6&nbsp;mm</strong> along the commanded chord.</p>
+  </div>
+
+  <div class="note">
+    <span class="k">Then the result that matters.</span> Those sixteen were selected under the
+    <em>retention</em> maneuver — proof lift, free hold. The bench runs the <em>fixed-palm</em>
+    schedule with the tool on a post. Band-scanned there, <strong>eleven of the sixteen keep the
+    tool at no clip at all</strong>, including both new leaders. A hand chosen for proof-lift
+    retention is not a hand that rolls a tool resting on a post, and the two searches have been
+    pulling in opposite directions the whole time.
+  </div>
+
+  <div class="col">
+    <p>Three survive both. Re-exported at their <em>bench</em> clip, re-gated and copied to the
+    station, they take first, second and fifth in the ranking below —
+    <code>sv1_w2360_b075</code>, <code>sv1_u1364_b080</code>, <code>sv1_u0308_b050</code>. They are
+    the first hands to reach this bench from a search that varied the clip, and the first to have
+    passed a servo-command gate before being ranked rather than after.</p>
+    <p><code>sv1_u1676</code> repeats <code>sv1_w0116</code> exactly: a band of 1.05–2.00 sitting
+    entirely above the largest clip its servos can be commanded to, 0.80.</p>
+  </div>
+
+  <details>
+    <summary>Why the single-trial numbers are not the answer, and what is</summary>
+    <div class="detail-body">
+      <p>Stage one is <em>one</em> rollout per cell per clip. On a contact solve that varies with
+      the settle, that is a filter, not a measurement — and each hand gets twenty chances (four
+      grasp cells × five clips) to produce its best number, so taking the maximum selects hard on
+      noise. Single-trial cosines run up to 0.998; they will not survive.</p>
+      <p>The point of making stage one cheap is to afford stage two: five nominal repeats plus a
+      four-draw wrong-hand ensemble at each survivor's chosen clip, then twenty full-error draws
+      for what remains. That is the number to quote.</p>
+      <p>One more caution about comparing across this page: the population screen's cosine is
+      measured after a 60&nbsp;mm proof lift and five free seconds of hold, and the deployed
+      plans' cosine after a fixed-palm hold with the tool on a post. They are different maneuvers
+      and the numbers are not interchangeable.</p>
+    </div>
+  </details>
+
+</section>
+
+<section>
+  <div class="col">
+    <h2>On the bench now</h2>
+    <h3>Fourteen plans, ranked by what simulation expects, so the next session can disagree</h3>
+    <p>The station reads a catalog beside its plans. It now carries, per plan, the band, the held
+    cosine at that plan's own clip, the finger clearance, the largest commandable clip, a
+    recommended clip and a sentence of what to expect. It exists to be falsified.</p>
+  </div>
+
+  <div class="panel">
+    <p class="panel-title">Expected ranking · simulation, bench schedule, 9.6 s hold, 4 repeats</p>
+    <table>
+      <thead><tr>
+        <th class="n">#</th><th>plan</th><th class="n">clip</th><th>band</th>
+        <th class="n">held cos</th><th class="n">clearance</th><th>note</th>
+      </tr></thead>
+      <tbody>
+        <tr><td class="n rank">1</td><td class="name">sv1_w2360_b075</td><td class="n">0.75</td>
+          <td class="mono dim">0.50–0.80</td><td class="n"><strong>0.726</strong></td><td class="n">+10.4 mm</td>
+          <td><span class="pill run">new</span> from the clip re-screen</td></tr>
+        <tr><td class="n rank">2</td><td class="name">sv1_u1364_b080</td><td class="n">0.80</td>
+          <td class="mono dim">0.40–0.95</td><td class="n">0.711</td><td class="n">+5.0 mm</td>
+          <td><span class="pill run">new</span> thinnest clearance on the station</td></tr>
+        <tr><td class="n rank">3</td><td class="name">g12_b095</td><td class="n">0.95</td>
+          <td class="mono dim">0.70–1.05</td><td class="n">0.627</td><td class="n">+8.7 mm</td>
+          <td class="dim">supersedes g12w08 / g12w11</td></tr>
+        <tr><td class="n rank">4</td><td class="name">sv1_u0060_b75</td><td class="n">0.75</td>
+          <td class="mono dim">0.65–2.00</td><td class="n">0.597</td><td class="n">+9.9 mm</td>
+          <td class="dim">widest band of any hand</td></tr>
+        <tr><td class="n rank">5</td><td class="name">sv1_u0308_b050</td><td class="n">0.50</td>
+          <td class="mono dim">0.40–0.85</td><td class="n">0.585</td><td class="n">+9.2 mm</td>
+          <td><span class="pill run">new</span> from the clip re-screen</td></tr>
+        <tr><td class="n rank">6</td><td class="name">rv05_manual_b85</td><td class="n">0.85</td>
+          <td class="mono dim">0.75–1.25</td><td class="n">0.568</td><td class="n">+10.3 mm</td>
+          <td class="dim">ran well on the bench</td></tr>
+        <tr><td class="n rank">7</td><td class="name">g12w08</td><td class="n">0.80</td>
+          <td class="mono dim">0.70–1.05</td><td class="n">0.484</td><td class="n">+8.7 mm</td>
+          <td class="dim">in the band's dip</td></tr>
+        <tr><td class="n rank">8</td><td class="name">sv1_u0100_b70</td><td class="n">0.70</td>
+          <td class="mono dim">0.60–0.90</td><td class="n">0.231</td><td class="n">+7.5 mm</td>
+          <td class="dim">ran well on the bench</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="col">
+    <p><strong>The two hands that ran well by eye are ranked sixth and eighth.</strong> That is
+    either the ranking being weak or the eye being weak, and with no rotation measurement there is
+    nothing yet to separate those. Nine further plans are served and not ranked: two refuse to
+    load, four drop the tool at their own clip, one holds one rollout in four, one has no band, and
+    <code>g23</code>, <code>g24</code> and <code>rv04_mid</code> also fail clearance and should not
+    be run at all.</p>
+  </div>
+
+  <details>
+    <summary>The four budget-1.0 exports were added as asked — two of them will not load</summary>
+    <div class="detail-body">
+      <p>A uniform budget-1.0 audit exported all four Sobol-128 finalists and declined to ship any
+      of them. Those verdicts were re-checked independently and they stand: a 4-repeat clip scan
+      agrees with the audit's 10-repeat holds design for design, and <code>HandPlan.validate</code>
+      reproduces both servo violations to the hundredth of a degree.</p>
+      <table>
+        <thead><tr><th>plan</th><th>what happens</th></tr></thead>
+        <tbody>
+          <tr><td class="name">sv1_u0100_b100</td><td><span class="pill hold">loads</span> drops every rollout — 1.00 is above its 0.60–0.90 band</td></tr>
+          <tr><td class="name">sv1_w0099_b100</td><td><span class="pill hold">loads</span> holds 3/4; this design has no contiguous band at any clip</td></tr>
+          <tr><td class="name">sv1_u0060_b100</td><td><span class="pill no">will not load</span> middle yaw 3.88° outside the ±70° cap</td></tr>
+          <tr><td class="name">sv1_w0116_b100</td><td><span class="pill no">will not load</span> middle yaw 6.27° outside it</td></tr>
+        </tbody>
+      </table>
+      <p style="margin-top:16px"><code>HandRuntime.load_plan</code> raises on any validation
+      failure, so the last two appear in the dropdown and refuse to run. Nothing is silently
+      clamped. Both are inside the servos' declared ±85° contract and inside the measured hardstop
+      — the ±70° is a conservative cap set by hand, and relaxing it is a hardware decision, not
+      something a plan should route around.</p>
+      <p>They are on the station because four more points on the clip axis is what a
+      hardware/simulation disagreement needs, not because the audit was wrong.</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>g12 was running at 0.50 rad, which is below its own band</summary>
+    <div class="detail-body">
+      <p>g12 is the most-run design on this bench. Its band, on its own deployed cell, is
+      0.70–1.05, and its best alignment is at 0.95 — not at either edge:</p>
+<pre><code>clip   0.70  0.75  0.80  0.85  0.90  0.95  1.00  1.05  1.10
+cos    0.61  0.52  0.48  0.49  0.60  0.63  0.59  0.52  0.27
+kept    4/4   4/4   4/4   4/4   4/4   4/4   4/4   4/4   1/4</code></pre>
+      <p>So the shipped <code>g12</code> at 0.50 is below the band and drops 4/4;
+      <code>g12w11</code> at 1.10 is above it and holds 1/4; <code>g12w08</code> at 0.80 sits in
+      the dip. <code>g12_b095</code> holds 4/4 at cos 0.627 — the best simulated alignment of any
+      plan in the directory.</p>
+    </div>
+  </details>
+</section>
+
+<section>
+  <div class="col">
+    <h2>What is still open</h2>
+    <h3>Three things this day did not settle</h3>
+    <p><span class="mono" style="color:var(--accent)">01</span>&nbsp;&nbsp;<strong>The achieved
+    clip is unmeasured as a clip.</strong> We know the hand performs 0.44–0.90 of its commanded
+    yaw travel, but an achieved-travel factor is not a clip: the clip binds different joints at
+    different points of the ramp. Replaying each hardware log against its plan in simulation would
+    give the achieved trajectory directly, and that is the thing to compare a band against.</p>
+    <p><span class="mono" style="color:var(--accent)">02</span>&nbsp;&nbsp;<strong>Nothing models
+    the servo bodies.</strong> The clearance gate measures modelled finger links and tips. The
+    printed parts put a servo case and a bracket around exactly those, so a margin held between two
+    proximal segments is worth less than the same margin between two tips. The gate now names the
+    two bodies at the minimum so this can at least be reasoned about; measuring it is a printed
+    part and a caliper.</p>
+    <p><span class="mono" style="color:var(--accent)">03</span>&nbsp;&nbsp;<strong>The operating
+    cell was never swept jointly with the clip.</strong> Pivot height, turn angle, straddle and
+    thumb placement were all chosen at 0.5&nbsp;rad. Only the clip has been re-tuned around them.</p>
+    <p><span class="mono" style="color:var(--accent)">04</span>&nbsp;&nbsp;<strong>The population
+    is screened on a maneuver the bench does not run.</strong> Eleven of the sixteen best hands
+    under the proof-lift retention gate keep the tool at no clip on the fixed-palm schedule. Either
+    the screen should run the schedule the hardware runs, or the hardware should run the proof
+    lift. Continuing to rank on one and deploy the other is the expensive option.</p>
+  </div>
+</section>
+
+<section>
+  <div class="col">
+    <h2>Where things are</h2>
+    <h3>The evidence, in the repository</h3>
+  </div>
+  <div class="panel" style="padding-top:16px">
+    <div class="filerow"><span class="p">docs/experiments/20260830-real_v1-budget-rescreen/</span>
+      <span class="d">the clip re-screen: per-plan bands, the population sweep, the clearance table</span></div>
+    <div class="filerow"><span class="p">docs/experiments/20260830-real_v1_bench_sobol/</span>
+      <span class="d">the 20 hardware runs, and commanded-versus-achieved per joint</span></div>
+    <div class="filerow"><span class="p">docs/experiments/20260830-real_v1-sobol4096/</span>
+      <span class="d">the retention-aware population screen this re-screen re-opens</span></div>
+    <div class="filerow"><span class="p">docs/experiments/20260829-real_v1_deploy/deploy/</span>
+      <span class="d">the plans themselves, README_budget_sweep.txt, and catalog.json</span></div>
+    <div class="filerow"><span class="p">scripts/real_v1_plan_band.py</span>
+      <span class="d">the band of a shipped plan, on its own cell</span></div>
+    <div class="filerow"><span class="p">scripts/real_v1_bench_arrival.py</span>
+      <span class="d">commanded versus achieved, from any station log directory</span></div>
+    <div class="filerow"><span class="p">scripts/real_v1_budget_rescreen.sh</span>
+      <span class="d">the population sweep, resumable</span></div>
+    <div class="filerow"><span class="p">scripts/real_v1_promote_designs.py</span>
+      <span class="d">export → servo range → gantry travel → clearance, in one pass</span></div>
+    <div class="filerow" style="border-bottom:0"><span class="p">scripts/real_v1_filter_reachable.py</span>
+      <span class="d">the rails filter the pipeline was missing</span></div>
+  </div>
+</section>
+
+<footer>
+  MorphoHand · real_v1 · simulation figures are commanded-clip simulation unless a line says
+  otherwise · 2026-08-30
+</footer>
+
+</div>

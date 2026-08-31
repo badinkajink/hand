@@ -1,0 +1,920 @@
+[
+ {
+  "design": "rv04_mid",
+  "vector": [
+   0.015,
+   0.0,
+   0.0,
+   -0.015,
+   -0.015,
+   0.0,
+   -0.015,
+   0.015,
+   0.0
+  ],
+  "scene": "assets/mjcf/experimental/20260830-real_v1-sobol4096/scene_tp0d0150p0d0000p0d0000_in0d0150n0d0150p0d0000_mn0d0150p0d0150p0d0000.xml",
+  "x_sep_mm": 70.0,
+  "pair_x_mm": 35.0,
+  "pair_x_offset_mm": -15.0,
+  "y_sep_mm": 80.0,
+  "thumb_y_mm": 0.0,
+  "pair_y_mid_mm": 0.0,
+  "mounts_mm": {
+   "thumb": [
+    -35.0,
+    0.0
+   ],
+   "index": [
+    35.0,
+    40.0
+   ],
+   "middle": [
+    35.0,
+    -40.0
+   ]
+  },
+  "grasps": [
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 10.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 11.27,
+       "reach_mm": 67.43,
+       "extend_mm": 0.68,
+       "fn_N": 11.35,
+       "sweep_mm": 27.86,
+       "sweep_ratio": 1.573
+      },
+      "index": {
+       "arm_mm": 32.42,
+       "reach_mm": 67.15,
+       "extend_mm": 0.96,
+       "fn_N": 7.12,
+       "sweep_mm": 13.13,
+       "sweep_ratio": 0.258
+      },
+      "middle": {
+       "arm_mm": 32.25,
+       "reach_mm": 67.12,
+       "extend_mm": 0.99,
+       "fn_N": 4.2,
+       "sweep_mm": 13.31,
+       "sweep_ratio": 0.263
+      }
+     },
+     "extend_mm": 0.68,
+     "straddle_mm": 31.99,
+     "ceiling_deg": 1.22,
+     "tau_cap_Nmm": 1185.84,
+     "tau_pair_Nmm": 878.87,
+     "tau_thumb_Nmm": 306.97,
+     "sweep_min_mm": 13.13,
+     "sweep_sum_mm": 54.3,
+     "grip_N": 22.67,
+     "grip_depth_mm": 60.4,
+     "grasp_z": 0.1167,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 65.0
+    },
+    "cells": []
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 20.53,
+       "reach_mm": 67.46,
+       "extend_mm": 0.65,
+       "fn_N": 9.83,
+       "sweep_mm": 25.33,
+       "sweep_ratio": 0.785
+      },
+      "index": {
+       "arm_mm": 32.35,
+       "reach_mm": 65.44,
+       "extend_mm": 2.67,
+       "fn_N": 7.56,
+       "sweep_mm": 14.49,
+       "sweep_ratio": 0.285
+      },
+      "middle": {
+       "arm_mm": 32.1,
+       "reach_mm": 65.37,
+       "extend_mm": 2.74,
+       "fn_N": 2.19,
+       "sweep_mm": 14.78,
+       "sweep_ratio": 0.293
+      }
+     },
+     "extend_mm": 0.65,
+     "straddle_mm": 31.96,
+     "ceiling_deg": 1.17,
+     "tau_cap_Nmm": 1240.59,
+     "tau_pair_Nmm": 756.04,
+     "tau_thumb_Nmm": 484.54,
+     "sweep_min_mm": 14.49,
+     "sweep_sum_mm": 54.6,
+     "grip_N": 19.58,
+     "grip_depth_mm": 59.2,
+     "grasp_z": 0.116,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 63.0
+    },
+    "cells": []
+   },
+   {
+    "straddle_mm": 40.0,
+    "thumb_axial_mm": 10.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 11.55,
+       "reach_mm": 67.43,
+       "extend_mm": 0.68,
+       "fn_N": 10.9,
+       "sweep_mm": 28.96,
+       "sweep_ratio": 1.596
+      },
+      "index": {
+       "arm_mm": 40.44,
+       "reach_mm": 66.73,
+       "extend_mm": 1.38,
+       "fn_N": 6.57,
+       "sweep_mm": 17.41,
+       "sweep_ratio": 0.274
+      },
+      "middle": {
+       "arm_mm": 40.28,
+       "reach_mm": 66.71,
+       "extend_mm": 1.4,
+       "fn_N": 4.32,
+       "sweep_mm": 17.54,
+       "sweep_ratio": 0.277
+      }
+     },
+     "extend_mm": 0.68,
+     "straddle_mm": 40.0,
+     "ceiling_deg": 0.97,
+     "tau_cap_Nmm": 1357.11,
+     "tau_pair_Nmm": 1054.86,
+     "tau_thumb_Nmm": 302.25,
+     "sweep_min_mm": 17.41,
+     "sweep_sum_mm": 63.91,
+     "grip_N": 21.79,
+     "grip_depth_mm": 59.7,
+     "grasp_z": 0.1174,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 65.0
+    },
+    "cells": []
+   },
+   {
+    "straddle_mm": 40.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 20.58,
+       "reach_mm": 67.47,
+       "extend_mm": 0.64,
+       "fn_N": 10.21,
+       "sweep_mm": 25.85,
+       "sweep_ratio": 0.8
+      },
+      "index": {
+       "arm_mm": 40.35,
+       "reach_mm": 64.95,
+       "extend_mm": 3.16,
+       "fn_N": 7.31,
+       "sweep_mm": 18.33,
+       "sweep_ratio": 0.289
+      },
+      "middle": {
+       "arm_mm": 40.16,
+       "reach_mm": 64.89,
+       "extend_mm": 3.22,
+       "fn_N": 2.83,
+       "sweep_mm": 18.53,
+       "sweep_ratio": 0.294
+      }
+     },
+     "extend_mm": 0.64,
+     "straddle_mm": 40.0,
+     "ceiling_deg": 0.92,
+     "tau_cap_Nmm": 1485.17,
+     "tau_pair_Nmm": 980.76,
+     "tau_thumb_Nmm": 504.41,
+     "sweep_min_mm": 18.33,
+     "sweep_sum_mm": 62.71,
+     "grip_N": 20.35,
+     "grip_depth_mm": 58.7,
+     "grasp_z": 0.1164,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 63.0
+    },
+    "cells": []
+   }
+  ],
+  "sampling": {
+   "source": "known_anchor"
+  }
+ },
+ {
+  "design": "sv1_u0021",
+  "vector": [
+   -0.0271,
+   -0.0529,
+   0.0,
+   0.0275,
+   -0.0107,
+   0.0,
+   -0.0178,
+   -0.0057,
+   0.0
+  ],
+  "scene": "assets/mjcf/experimental/20260830-real_v1-sobol4096/scene_tn0d0271n0d0529p0d0000_ip0d0275n0d0107p0d0000_mn0d0178n0d0057p0d0000.xml",
+  "x_sep_mm": 132.0,
+  "pair_x_mm": 54.9,
+  "pair_x_offset_mm": 4.9,
+  "y_sep_mm": 105.1,
+  "thumb_y_mm": -52.9,
+  "pair_y_mid_mm": -8.2,
+  "mounts_mm": {
+   "thumb": [
+    -77.1,
+    -52.9
+   ],
+   "index": [
+    77.5,
+    44.3
+   ],
+   "middle": [
+    32.2,
+    -60.7
+   ]
+  },
+  "grasps": [
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 10.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": false
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": false
+   },
+   {
+    "straddle_mm": 40.0,
+    "thumb_axial_mm": 10.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": false
+   },
+   {
+    "straddle_mm": 40.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": false
+   }
+  ],
+  "sampling": {
+   "source": "sobol_uniform",
+   "sobol_index": 21,
+   "sobol_selector": 0.807715643,
+   "sobol_u_raw": [
+    0.048273601,
+    0.01873344,
+    0.958486628,
+    0.322332613,
+    0.203194348,
+    0.40419236
+   ],
+   "sobol_u_used": [
+    0.048273601,
+    0.01873344,
+    0.958486628,
+    0.322332613,
+    0.203194348,
+    0.40419236
+   ]
+  }
+ },
+ {
+  "design": "sv1_u0052",
+  "vector": [
+   0.0126,
+   0.0485,
+   0.0,
+   0.021,
+   -0.0094,
+   0.0,
+   0.0,
+   -0.0179,
+   0.0
+  ],
+  "scene": "assets/mjcf/experimental/20260830-real_v1-sobol4096/scene_tp0d0126p0d0485p0d0000_ip0d0210n0d0094p0d0000_mp0d0000n0d0179p0d0000.xml",
+  "x_sep_mm": 97.8,
+  "pair_x_mm": 60.5,
+  "pair_x_offset_mm": 10.5,
+  "y_sep_mm": 118.6,
+  "thumb_y_mm": 48.5,
+  "pair_y_mid_mm": -13.6,
+  "mounts_mm": {
+   "thumb": [
+    -37.4,
+    48.5
+   ],
+   "index": [
+    71.0,
+    45.6
+   ],
+   "middle": [
+    50.0,
+    -72.9
+   ]
+  },
+  "grasps": [
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 10.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 14.14,
+       "reach_mm": 59.31,
+       "extend_mm": 8.8,
+       "fn_N": 1.72,
+       "sweep_mm": 28.51,
+       "sweep_ratio": 1.283
+      },
+      "index": {
+       "arm_mm": 33.91,
+       "reach_mm": 57.33,
+       "extend_mm": 10.78,
+       "fn_N": 0.98,
+       "sweep_mm": 35.07,
+       "sweep_ratio": 0.658
+      },
+      "middle": {
+       "arm_mm": 32.77,
+       "reach_mm": 65.79,
+       "extend_mm": 2.32,
+       "fn_N": 0.7,
+       "sweep_mm": 31.17,
+       "sweep_ratio": 0.606
+      }
+     },
+     "extend_mm": 2.32,
+     "straddle_mm": 32.0,
+     "ceiling_deg": 4.16,
+     "tau_cap_Nmm": 193.42,
+     "tau_pair_Nmm": 135.11,
+     "tau_thumb_Nmm": 58.3,
+     "sweep_min_mm": 28.51,
+     "sweep_sum_mm": 94.75,
+     "grip_N": 3.4,
+     "grip_depth_mm": 31.7,
+     "grasp_z": 0.1214,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 41.0
+    },
+    "cells": []
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 19.98,
+       "reach_mm": 62.7,
+       "extend_mm": 5.41,
+       "fn_N": 10.47,
+       "sweep_mm": 34.78,
+       "sweep_ratio": 1.108
+      },
+      "index": {
+       "arm_mm": 32.4,
+       "reach_mm": 62.44,
+       "extend_mm": 5.67,
+       "fn_N": 8.53,
+       "sweep_mm": 33.68,
+       "sweep_ratio": 0.662
+      },
+      "middle": {
+       "arm_mm": 35.6,
+       "reach_mm": 67.21,
+       "extend_mm": 0.9,
+       "fn_N": 1.89,
+       "sweep_mm": 33.51,
+       "sweep_ratio": 0.599
+      }
+     },
+     "extend_mm": 0.9,
+     "straddle_mm": 33.73,
+     "ceiling_deg": 1.53,
+     "tau_cap_Nmm": 1327.18,
+     "tau_pair_Nmm": 825.15,
+     "tau_thumb_Nmm": 502.03,
+     "sweep_min_mm": 33.51,
+     "sweep_sum_mm": 101.97,
+     "grip_N": 20.89,
+     "grip_depth_mm": 52.8,
+     "grasp_z": 0.1103,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 51.0
+    },
+    "cells": []
+   },
+   {
+    "straddle_mm": 40.0,
+    "thumb_axial_mm": 10.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 13.17,
+       "reach_mm": 64.07,
+       "extend_mm": 4.04,
+       "fn_N": 6.0,
+       "sweep_mm": 27.26,
+       "sweep_ratio": 1.318
+      },
+      "index": {
+       "arm_mm": 41.08,
+       "reach_mm": 61.47,
+       "extend_mm": 6.64,
+       "fn_N": 3.53,
+       "sweep_mm": 35.39,
+       "sweep_ratio": 0.548
+      },
+      "middle": {
+       "arm_mm": 40.47,
+       "reach_mm": 64.89,
+       "extend_mm": 3.22,
+       "fn_N": 2.45,
+       "sweep_mm": 30.06,
+       "sweep_ratio": 0.473
+      }
+     },
+     "extend_mm": 3.22,
+     "straddle_mm": 39.94,
+     "ceiling_deg": 4.62,
+     "tau_cap_Nmm": 775.27,
+     "tau_pair_Nmm": 585.63,
+     "tau_thumb_Nmm": 189.64,
+     "sweep_min_mm": 27.26,
+     "sweep_sum_mm": 92.71,
+     "grip_N": 11.98,
+     "grip_depth_mm": 39.4,
+     "grasp_z": 0.1202,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 47.5
+    },
+    "cells": []
+   },
+   {
+    "straddle_mm": 40.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 21.83,
+       "reach_mm": 59.73,
+       "extend_mm": 8.38,
+       "fn_N": 3.33,
+       "sweep_mm": 28.02,
+       "sweep_ratio": 0.817
+      },
+      "index": {
+       "arm_mm": 41.15,
+       "reach_mm": 61.45,
+       "extend_mm": 6.66,
+       "fn_N": 2.25,
+       "sweep_mm": 35.13,
+       "sweep_ratio": 0.543
+      },
+      "middle": {
+       "arm_mm": 40.17,
+       "reach_mm": 64.87,
+       "extend_mm": 3.24,
+       "fn_N": 1.0,
+       "sweep_mm": 30.42,
+       "sweep_ratio": 0.482
+      }
+     },
+     "extend_mm": 3.24,
+     "straddle_mm": 39.96,
+     "ceiling_deg": 4.65,
+     "tau_cap_Nmm": 492.84,
+     "tau_pair_Nmm": 318.55,
+     "tau_thumb_Nmm": 174.29,
+     "sweep_min_mm": 28.02,
+     "sweep_sum_mm": 93.56,
+     "grip_N": 6.58,
+     "grip_depth_mm": 40.0,
+     "grasp_z": 0.1196,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 47.5
+    },
+    "cells": []
+   }
+  ],
+  "sampling": {
+   "source": "sobol_uniform",
+   "sobol_index": 52,
+   "sobol_selector": 0.536342612,
+   "sobol_u_raw": [
+    0.710762717,
+    0.940846667,
+    0.849744607,
+    0.344005079,
+    0.50005449,
+    0.201405668
+   ],
+   "sobol_u_used": [
+    0.710762717,
+    0.940846667,
+    0.849744607,
+    0.344005079,
+    0.50005449,
+    0.201405668
+   ]
+  }
+ },
+ {
+  "design": "sv1_u0079",
+  "vector": [
+   0.0168,
+   -0.0488,
+   0.0,
+   0.0239,
+   -0.0185,
+   0.0,
+   0.0046,
+   -0.0029,
+   0.0
+  ],
+  "scene": "assets/mjcf/experimental/20260830-real_v1-sobol4096/scene_tp0d0168n0d0488p0d0000_ip0d0239n0d0185p0d0000_mp0d0046n0d0029p0d0000.xml",
+  "x_sep_mm": 97.4,
+  "pair_x_mm": 64.3,
+  "pair_x_offset_mm": 14.3,
+  "y_sep_mm": 94.4,
+  "thumb_y_mm": -48.8,
+  "pair_y_mid_mm": -10.7,
+  "mounts_mm": {
+   "thumb": [
+    -33.2,
+    -48.8
+   ],
+   "index": [
+    73.9,
+    36.5
+   ],
+   "middle": [
+    54.6,
+    -57.9
+   ]
+  },
+  "grasps": [
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 10.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": false
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": false
+   },
+   {
+    "straddle_mm": 40.0,
+    "thumb_axial_mm": 10.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": false
+   },
+   {
+    "straddle_mm": 40.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": false
+   }
+  ],
+  "sampling": {
+   "source": "sobol_uniform",
+   "sobol_index": 79,
+   "sobol_selector": 0.830191357,
+   "sobol_u_raw": [
+    0.780480424,
+    0.056591705,
+    0.898595794,
+    0.191625929,
+    0.576959184,
+    0.451747427
+   ],
+   "sobol_u_used": [
+    0.780480424,
+    0.056591705,
+    0.898595794,
+    0.191625929,
+    0.576959184,
+    0.451747427
+   ]
+  }
+ },
+ {
+  "design": "sv1_u0107",
+  "vector": [
+   0.0147,
+   -0.0364,
+   0.0,
+   0.0291,
+   -0.0073,
+   0.0,
+   0.0241,
+   0.0199,
+   0.0
+  ],
+  "scene": "assets/mjcf/experimental/20260830-real_v1-sobol4096/scene_tp0d0147n0d0364p0d0000_ip0d0291n0d0073p0d0000_mp0d0241p0d0199p0d0000.xml",
+  "x_sep_mm": 111.9,
+  "pair_x_mm": 76.6,
+  "pair_x_offset_mm": 26.6,
+  "y_sep_mm": 82.8,
+  "thumb_y_mm": -36.4,
+  "pair_y_mid_mm": 6.3,
+  "mounts_mm": {
+   "thumb": [
+    -35.3,
+    -36.4
+   ],
+   "index": [
+    79.1,
+    47.7
+   ],
+   "middle": [
+    74.1,
+    -35.1
+   ]
+  },
+  "grasps": [
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 10.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 9.8,
+       "reach_mm": 63.94,
+       "extend_mm": 4.17,
+       "fn_N": 8.75,
+       "sweep_mm": 32.66,
+       "sweep_ratio": 2.121
+      },
+      "index": {
+       "arm_mm": 32.26,
+       "reach_mm": 61.61,
+       "extend_mm": 6.5,
+       "fn_N": 5.48,
+       "sweep_mm": 38.81,
+       "sweep_ratio": 0.766
+      },
+      "middle": {
+       "arm_mm": 31.84,
+       "reach_mm": 54.0,
+       "extend_mm": 14.11,
+       "fn_N": 3.29,
+       "sweep_mm": 30.73,
+       "sweep_ratio": 0.615
+      }
+     },
+     "extend_mm": 4.17,
+     "straddle_mm": 31.95,
+     "ceiling_deg": 7.5,
+     "tau_cap_Nmm": 881.31,
+     "tau_pair_Nmm": 675.44,
+     "tau_thumb_Nmm": 205.87,
+     "sweep_min_mm": 30.73,
+     "sweep_sum_mm": 102.2,
+     "grip_N": 17.52,
+     "grip_depth_mm": 44.6,
+     "grasp_z": 0.1095,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 42.0
+    },
+    "cells": []
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": false
+   },
+   {
+    "straddle_mm": 40.0,
+    "thumb_axial_mm": 10.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": true,
+    "scores": {
+     "fingers": {
+      "thumb": {
+       "arm_mm": 9.58,
+       "reach_mm": 63.94,
+       "extend_mm": 4.17,
+       "fn_N": 9.01,
+       "sweep_mm": 32.78,
+       "sweep_ratio": 2.179
+      },
+      "index": {
+       "arm_mm": 40.09,
+       "reach_mm": 59.01,
+       "extend_mm": 9.1,
+       "fn_N": 5.44,
+       "sweep_mm": 38.14,
+       "sweep_ratio": 0.606
+      },
+      "middle": {
+       "arm_mm": 39.94,
+       "reach_mm": 55.23,
+       "extend_mm": 12.88,
+       "fn_N": 3.59,
+       "sweep_mm": 34.16,
+       "sweep_ratio": 0.544
+      }
+     },
+     "extend_mm": 4.17,
+     "straddle_mm": 39.95,
+     "ceiling_deg": 5.99,
+     "tau_cap_Nmm": 1074.21,
+     "tau_pair_Nmm": 867.17,
+     "tau_thumb_Nmm": 207.04,
+     "sweep_min_mm": 32.78,
+     "sweep_sum_mm": 105.08,
+     "grip_N": 18.04,
+     "grip_depth_mm": 44.5,
+     "grasp_z": 0.1097,
+     "grasp_contacts": 3,
+     "depth_fit_mm": 42.0
+    },
+    "cells": []
+   },
+   {
+    "straddle_mm": 40.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": false
+   }
+  ],
+  "sampling": {
+   "source": "sobol_uniform",
+   "sobol_index": 107,
+   "sobol_selector": 0.337174708,
+   "sobol_u_raw": [
+    0.745557131,
+    0.169429953,
+    0.985075188,
+    0.37769917,
+    0.901290839,
+    0.831846741
+   ],
+   "sobol_u_used": [
+    0.745557131,
+    0.169429953,
+    0.985075188,
+    0.37769917,
+    0.901290839,
+    0.831846741
+   ]
+  }
+ },
+ {
+  "design": "sv1_u0134",
+  "vector": [
+   -0.0099,
+   0.0398,
+   0.0,
+   -0.0175,
+   -0.0217,
+   0.0,
+   0.0294,
+   -0.0018,
+   0.0
+  ],
+  "scene": "assets/mjcf/experimental/20260830-real_v1-sobol4096/scene_tn0d0099p0d0398p0d0000_in0d0175n0d0217p0d0000_mp0d0294n0d0018p0d0000.xml",
+  "x_sep_mm": 115.9,
+  "pair_x_mm": 55.9,
+  "pair_x_offset_mm": 5.9,
+  "y_sep_mm": 90.2,
+  "thumb_y_mm": 39.8,
+  "pair_y_mid_mm": -11.8,
+  "mounts_mm": {
+   "thumb": [
+    -59.9,
+    39.8
+   ],
+   "index": [
+    32.5,
+    33.3
+   ],
+   "middle": [
+    79.4,
+    -56.8
+   ]
+  },
+  "grasps": [
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 10.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": false
+   },
+   {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": false
+   },
+   {
+    "straddle_mm": 40.0,
+    "thumb_axial_mm": 10.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": false
+   },
+   {
+    "straddle_mm": 40.0,
+    "thumb_axial_mm": 20.0,
+    "depth_req_mm": null,
+    "squeeze_mm": 4.0,
+    "pose": false
+   }
+  ],
+  "sampling": {
+   "source": "sobol_uniform",
+   "sobol_index": 134,
+   "sobol_selector": 0.457248061,
+   "sobol_u_raw": [
+    0.334804793,
+    0.861708191,
+    0.207935544,
+    0.138765822,
+    0.990378966,
+    0.469304263
+   ],
+   "sobol_u_used": [
+    0.334804793,
+    0.861708191,
+    0.207935544,
+    0.138765822,
+    0.990378966,
+    0.469304263
+   ]
+  }
+ }
+]
