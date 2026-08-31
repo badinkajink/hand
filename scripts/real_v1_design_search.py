@@ -44,6 +44,7 @@ import sys
 from pathlib import Path
 
 import numpy as np
+from scipy.stats import qmc
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
@@ -56,7 +57,6 @@ from morphohand.sampling.morphology import (  # noqa: E402
     REAL_V1_MOUNTS, REAL_V1_WORKSPACE, morph_to_array, real_v1_compact_design,
 )
 from morphohand.tools.keyframe_ik import FINGERS  # noqa: E402
-from morphohand.tools.morphology_xml import MorphologyValues  # noqa: E402
 
 BASE_HAND = ROOT / "assets/mjcf/real_v1/real_hand.xml"
 BASE_SCENE = ROOT / "assets/mjcf/real_v1/scenes/scene_screwdriver_medium.xml"
@@ -79,18 +79,79 @@ def _v(tx=0.0, ty=0.0, ix=0.0, iy=0.0, mx=0.0, my=0.0) -> tuple:
             c(mx, b.middle.x_min, b.middle.x_max), c(my, b.middle.y_min, b.middle.y_max), 0.0)
 
 
-def design_set(name: str) -> dict[str, tuple]:
-    """Named design sets. Every one includes the four studied hands so the sweep is anchored."""
-    known = {
+def known_designs() -> dict[str, tuple]:
+    """Hands that anchor every new population to the existing evidence."""
+    return {
         # the five that went through the A->B pipeline, so every sweep can be read against them
         "rv00_wide": tuple(morph_to_array(real_v1_compact_design(0.0, 0.0, 0.0))),
         "rv01_compact": tuple(morph_to_array(real_v1_compact_design(1.0, 1.0, 1.0))),
         "rv03_narrowy": tuple(morph_to_array(real_v1_compact_design(0.0, 0.0, 1.0))),
         "rv04_mid": tuple(morph_to_array(real_v1_compact_design(0.5, 0.5, 0.5))),
         "rv05_manual": (0.011, 0.0, 0.0, -0.015, -0.03, 0.0, -0.0015, 0.02, 0.0),
+        # Current deployment baseline: the only design with a collision-safe exported plan.
+        "g12": (0.0075, 0.0, 0.0, -0.0075, -0.015, 0.0, -0.0075, 0.015, 0.0),
     }
-    out = dict(known)
+
+
+def sobol_designs(count: int = 128, seed: int = 20260830,
+                  wide_fraction: float = 0.25,
+                  wide_power: float = 0.75) -> tuple[dict[str, tuple], dict[str, dict]]:
+    """Return a prefix-stable six-slide Sobol population and its provenance.
+
+    A seventh Sobol coordinate selects the mildly outward-biased stratum.  In that stratum,
+    only index-X and middle-X are transformed: ``u -> u**wide_power``.  A power below one shifts
+    them toward the positive end of their real gantry travel while leaving thumb-X and all Y
+    coordinates unbiased.  Keeping the selector in the low-discrepancy sequence makes the mix
+    reproducible and reasonably even at every prefix.
+
+    This is packaging *bias*, not a housing collision model.  Most of the population remains
+    uniform so an incorrect intuition about wider pair-X cannot erase coverage of the space.
+    """
+    if count < 1:
+        raise ValueError("sobol count must be positive")
+    if not 0.0 <= wide_fraction <= 1.0:
+        raise ValueError("wide fraction must be in [0, 1]")
+    if not 0.0 < wide_power <= 1.0:
+        raise ValueError("wide power must be in (0, 1]")
+
+    raw = qmc.Sobol(d=7, scramble=True, seed=seed).random(count)
+    b = REAL_V1_WORKSPACE
+    bounds = (
+        (b.thumb.x_min, b.thumb.x_max), (b.thumb.y_min, b.thumb.y_max),
+        (b.index.x_min, b.index.x_max), (b.index.y_min, b.index.y_max),
+        (b.middle.x_min, b.middle.x_max), (b.middle.y_min, b.middle.y_max),
+    )
+    designs, metadata = {}, {}
+    for i, point in enumerate(raw):
+        u_raw = point[:6].copy()
+        u_used = u_raw.copy()
+        biased = bool(point[6] < wide_fraction)
+        if biased:
+            u_used[[2, 4]] = u_used[[2, 4]] ** wide_power
+        vals = [lo + float(u) * (hi - lo) for u, (lo, hi) in zip(u_used, bounds)]
+        tag = f"sv1_{'w' if biased else 'u'}{i:04d}"
+        designs[tag] = _v(tx=vals[0], ty=vals[1], ix=vals[2], iy=vals[3],
+                          mx=vals[4], my=vals[5])
+        metadata[tag] = {
+            "source": "sobol_wide_bias" if biased else "sobol_uniform",
+            "sobol_index": i,
+            "sobol_selector": round(float(point[6]), 9),
+            "sobol_u_raw": [round(float(v), 9) for v in u_raw],
+            "sobol_u_used": [round(float(v), 9) for v in u_used],
+        }
+    return designs, metadata
+
+
+def design_set(name: str, *, sobol_count: int = 128, sobol_seed: int = 20260830,
+               wide_fraction: float = 0.25,
+               wide_power: float = 0.75) -> dict[str, tuple]:
+    """Named design sets. Every one includes the five studied hands as anchors."""
+    out = known_designs()
     if name == "known":
+        return out
+    if name == "sobol":
+        sampled, _ = sobol_designs(sobol_count, sobol_seed, wide_fraction, wide_power)
+        out.update(sampled)
         return out
     if name == "axes":
         # One knob at a time off the CAD-nominal hand, so each axis is separable. thumb_y and an
@@ -131,19 +192,22 @@ def design_set(name: str) -> dict[str, tuple]:
     raise ValueError(f"unknown design set {name!r}")
 
 
-def scene_for(vec) -> Path:
+def scene_for(vec, generated_dir: Path = GEN) -> Path:
     """Generate (or find) the rigid scene for a design. Morph joints baked out."""
-    GEN.mkdir(parents=True, exist_ok=True)
+    generated_dir.mkdir(parents=True, exist_ok=True)
     r = subprocess.run([sys.executable, str(ROOT / "scripts/generate_morphology_xml.py"),
                         "--base-hand-xml", str(BASE_HAND), "--base-scene-xml", str(BASE_SCENE),
-                        "--output-dir", str(GEN),
-                        "--thumb", *map(str, vec[0:3]), "--index", *map(str, vec[3:6]),
-                        "--middle", *map(str, vec[6:9])],
+                        "--output-dir", str(generated_dir),
+                        # Fixed-point formatting matters: argparse reads a tiny negative in
+                        # scientific notation (for example -6e-05) as an unknown option.
+                        "--thumb", *(f"{v:.9f}" for v in vec[0:3]),
+                        "--index", *(f"{v:.9f}" for v in vec[3:6]),
+                        "--middle", *(f"{v:.9f}" for v in vec[6:9])],
                        check=True, capture_output=True, text=True, timeout=180)
     for line in r.stdout.splitlines():
         if "scene_" in line and line.strip().endswith(".xml"):
             return Path(line.split()[-1])
-    return sorted(GEN.glob("scene_*.xml"), key=lambda p: p.stat().st_mtime)[-1]
+    return sorted(generated_dir.glob("scene_*.xml"), key=lambda p: p.stat().st_mtime)[-1]
 
 
 # --------------------------------------------------------------------------------------------
@@ -230,6 +294,8 @@ def geometry(vec) -> dict:
     i = (REAL_V1_MOUNTS["index"][0] + vec[3], REAL_V1_MOUNTS["index"][1] + vec[4])
     mi = (REAL_V1_MOUNTS["middle"][0] + vec[6], REAL_V1_MOUNTS["middle"][1] + vec[7])
     return {"x_sep_mm": round((0.5 * (i[0] + mi[0]) - t[0]) * 1000, 1),
+            "pair_x_mm": round(0.5 * (i[0] + mi[0]) * 1000, 1),
+            "pair_x_offset_mm": round(0.5 * (vec[3] + vec[6]) * 1000, 1),
             "y_sep_mm": round(abs(i[1] - mi[1]) * 1000, 1),
             "thumb_y_mm": round(t[1] * 1000, 1),
             "pair_y_mid_mm": round(0.5 * (i[1] + mi[1]) * 1000, 1),
@@ -265,6 +331,7 @@ def style(trace: list, r: dict, radius: float = 0.0125) -> dict:
     ft = {f: sum(row["fingers"][f]["ft_N"] for row in trace) for f in FINGERS}
     fn = {f: sum(row["fingers"][f]["fn_N"] for row in trace) for f in FINGERS}
     tot = sum(ft.values()) or 1.0
+    cos_turn_end = trace[-1].get("cos", r["final_cos"])
     return {
         "turned_deg": round(turned, 1),
         "arc_mm": round(arc * 1000, 2),
@@ -288,15 +355,15 @@ def style(trace: list, r: dict, radius: float = 0.0125) -> dict:
         # shaft goes on settling into vertical against a still-loaded grip -- rv05_manual runs
         # 0.837 at the end of the turn to 0.999 half a second later -- so a schedule judged at
         # the end of its own sweep is judged early.
-        "cos_turn_end": trace[-1]["cos"],
-        "settle_frac": round(float((r["final_cos"] - trace[-1]["cos"])
+        "cos_turn_end": cos_turn_end,
+        "settle_frac": round(float((r["final_cos"] - cos_turn_end)
                                    / max(1e-6, abs(r["final_cos"] - r["start_cos"]))), 2),
     }
 
 
 # --------------------------------------------------------------------------------------------
 def evaluate(tag: str, vec, args) -> dict:
-    scene = scene_for(vec)
+    scene = scene_for(vec, args.generated_dir)
     row = {"design": tag, "vector": [round(float(v), 4) for v in vec],
            "scene": str(scene.relative_to(ROOT)), **geometry(vec), "grasps": []}
     for st, dp, ta, sq in itertools.product(args.straddles, args.depths,
@@ -318,6 +385,9 @@ def evaluate(tag: str, vec, args) -> dict:
         sc = grasp_scores(m, _settle(m, open_qpos, grip, args.lift))
         sc["depth_fit_mm"] = round(float(depth_mm), 1)
         g = {**label, "pose": True, "scores": sc, "cells": []}
+        if args.stage == "grasp":
+            row["grasps"].append(g)
+            continue
         for k, mode, ang in itertools.product(args.axis_ks, args.modes, args.angles):
             reps, trace = [], []
             for rep in range(args.repeats):
@@ -329,13 +399,17 @@ def evaluate(tag: str, vec, args) -> dict:
                              np.radians(ang), 0.0, OBJ, args.budget, False,
                              straddle=st, label=tag, axis_k=k,
                              linear_anchor=(mode == "linear"), built=built, contact_trace=tr,
-                             jitter=(args.jitter if args.repeats > 1 else 0.0), seed=rep)
+                             jitter=(args.jitter if args.repeats > 1 else 0.0), seed=rep,
+                             selfcollision=args.selfcollision)
                 if r is None:
                     break
                 reps.append(r)
             if not reps:
                 continue
             fin = [x["final_cos"] for x in reps]
+            clearances = [x["min_finger_clearance_mm"] for x in reps
+                          if x["min_finger_clearance_mm"] is not None]
+            min_clearance = min(clearances) if clearances else None
             r0 = reps[0]
             g["cells"].append({
                 "axis_k": k, "mode": mode, "angle_deg": ang, "n": len(reps),
@@ -346,6 +420,14 @@ def evaluate(tag: str, vec, args) -> dict:
                 "final_z": r0["final_z"], "min_z_hold": r0["min_z_hold"],
                 "contacts": r0["contacts"], "contacts_hand": r0["contacts_hand"],
                 "force_N": r0["force_N"], "ok": r0["ok"], "style": style(trace, r0)})
+            g["cells"][-1].update({
+                "min_finger_clearance_mm": min_clearance,
+                "clearance_at_step": r0["clearance_at_step"],
+                "clearance_pair": r0["clearance_pair"],
+                "clearance_ok": (not args.selfcollision or
+                                 (min_clearance is not None and
+                                  min_clearance >= args.min_clearance_mm)),
+            })
         row["grasps"].append(g)
     return row
 
@@ -359,8 +441,10 @@ def best_cell(row: dict) -> dict | None:
             # Ranking on a single rollout's final cos ranks the luckiest draw of a schedule
             # whose good cells sit in narrow resonances -- rv05_manual reads 0.99 and 0.00 at
             # neighbouring pivot heights.
-            key = (c["kept"] * 2 >= c["n"], c["mean_cos"])
-            if best is None or key > (best["kept"] * 2 >= best["n"], best["mean_cos"]):
+            key = (c.get("clearance_ok", True), c["kept"] * 2 >= c["n"], c["mean_cos"])
+            best_key = None if best is None else (
+                best.get("clearance_ok", True), best["kept"] * 2 >= best["n"], best["mean_cos"])
+            if best is None or key > best_key:
                 best = {**c, "straddle_mm": g["straddle_mm"],
                         "thumb_axial_mm": g["thumb_axial_mm"],
                         "depth_req_mm": g["depth_req_mm"],
@@ -368,14 +452,90 @@ def best_cell(row: dict) -> dict | None:
     return best
 
 
+def population_for(args) -> tuple[dict[str, tuple], dict[str, dict]]:
+    """Build a population plus per-design provenance without changing legacy set semantics."""
+    if args.set == "sobol":
+        designs = known_designs()
+        metadata = {tag: {"source": "known_anchor"} for tag in designs}
+        sampled, sampled_metadata = sobol_designs(
+            args.sobol_count, args.sobol_seed, args.wide_fraction, args.wide_power)
+        designs.update(sampled)
+        metadata.update(sampled_metadata)
+        return designs, metadata
+    designs = design_set(args.set)
+    return designs, {tag: {"source": ("known_anchor" if tag in known_designs()
+                                      else f"legacy_{args.set}")}
+                     for tag in designs}
+
+
+def write_manifest(path: Path, designs: dict[str, tuple], metadata: dict[str, dict], args,
+                   scenes: dict[str, Path] | None = None) -> None:
+    """Write enough information to reproduce and audit every physical design."""
+    scenes = scenes or {}
+    records = []
+    for tag, vec in sorted(designs.items()):
+        scene = scenes.get(tag)
+        records.append({
+            "design": tag,
+            **metadata[tag],
+            "vector_m": [round(float(v), 9) for v in vec],
+            "geometry": geometry(vec),
+            "scene": (None if scene is None else str(scene.relative_to(ROOT))),
+        })
+    payload = {
+        "schema_version": 1,
+        "population": args.set,
+        "candidate_count": len(records),
+        "new_candidate_count": sum(r["source"].startswith("sobol") for r in records),
+        "base_hand": str(BASE_HAND.relative_to(ROOT)),
+        "base_scene": str(BASE_SCENE.relative_to(ROOT)),
+        "generated_dir": str(args.generated_dir.relative_to(ROOT)),
+        "sampling": {
+            "sobol_count": args.sobol_count,
+            "sobol_seed": args.sobol_seed,
+            "wide_fraction": args.wide_fraction,
+            "wide_power": args.wide_power,
+            "wide_coordinates": ["index_x", "middle_x"],
+            "wide_direction": "positive X / away from the thumb side",
+        },
+        "clearance": {
+            "enabled_for_carry": args.selfcollision,
+            "minimum_mm": args.min_clearance_mm,
+            "model_scope": "MuJoCo finger links and tips only",
+            "known_omission": "real servo bodies and mounting side profiles are not modeled",
+        },
+        "evaluation": {
+            "stage": args.stage,
+            "straddles_m": args.straddles,
+            "thumb_axials_m": args.thumb_axials,
+            "depths_m": args.depths,
+            "squeezes_m": args.squeezes,
+            "axis_k": args.axis_ks,
+            "modes": args.modes,
+            "angles_deg": args.angles,
+            "repeats": args.repeats,
+        },
+        "designs": records,
+    }
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2) + "\n")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--set", default="axes", help="known | axes | grid | random")
+    ap.add_argument("--set", default="axes", help="known | axes | grid | random | all | sobol")
     ap.add_argument("--only", default="", help="comma list of design tags")
-    ap.add_argument("--stage", default="all", choices=("all", "generate"))
+    ap.add_argument("--stage", default="all", choices=("all", "grasp", "generate", "manifest"),
+                    help="manifest only, scene generation, grasp-only screening, or full carry")
     ap.add_argument("--shard", type=int, default=0)
     ap.add_argument("--shards", type=int, default=1)
+    ap.add_argument("--sobol-count", type=int, default=128)
+    ap.add_argument("--sobol-seed", type=int, default=20260830)
+    ap.add_argument("--wide-fraction", type=float, default=0.25,
+                    help="fraction with index/middle X mildly biased outward")
+    ap.add_argument("--wide-power", type=float, default=0.75,
+                    help="u**power transform for pair X in the biased stratum; 1 = no bias")
     ap.add_argument("--straddle", default="0.025,0.032,0.040")
     ap.add_argument("--thumb-axial", default="0.0")
     ap.add_argument("--axis-k", default="0.15,0.25,0.35,0.5")
@@ -397,6 +557,14 @@ def main() -> int:
     ap.add_argument("--repeats", type=int, default=1)
     ap.add_argument("--jitter", type=float, default=0.0005)
     ap.add_argument("--budget", type=float, default=0.5)
+    ap.add_argument("--selfcollision", action="store_true",
+                    help="measure cross-finger clearance through close, lift, turn, and hold")
+    ap.add_argument("--min-clearance-mm", type=float, default=5.0,
+                    help="conservative simulated-link clearance used when ranking cells")
+    ap.add_argument("--generated-dir", type=Path,
+                    default=ROOT / "assets/mjcf/experimental/20260830-real_v1-sobol128")
+    ap.add_argument("--manifest", type=Path, default=None,
+                    help="default: <out stem>_manifest.json")
     ap.add_argument("--out", type=Path, required=True)
     args = ap.parse_args()
 
@@ -408,30 +576,62 @@ def main() -> int:
     args.angles = [float(v) for v in str(args.angle_deg).split(",")]
     args.modes = [v for v in args.modes.split(",") if v]
 
-    designs = design_set(args.set)
+    args.generated_dir = args.generated_dir.resolve()
+    designs, metadata = population_for(args)
     if args.only:
         keep = set(args.only.split(","))
         designs = {k: v for k, v in designs.items() if k in keep}
+        metadata = {k: metadata[k] for k in designs}
+
+    manifest_path = args.manifest or args.out.with_name(f"{args.out.stem}_manifest.json")
+    if args.shard == 0:
+        write_manifest(manifest_path, designs, metadata, args)
+    if args.stage == "manifest":
+        print(f"manifest -> {manifest_path} ({len(designs)} designs)")
+        return 0
 
     if args.stage == "generate":
+        scenes = {}
         for tag, vec in designs.items():
-            print(f"{tag:16} {scene_for(vec).name}")
+            scenes[tag] = scene_for(vec, args.generated_dir)
+            print(f"{tag:16} {scenes[tag].name}")
+        if args.shard == 0:
+            write_manifest(manifest_path, designs, metadata, args, scenes)
+        print(f"manifest -> {manifest_path}")
         return 0
 
     items = [(t, v) for i, (t, v) in enumerate(sorted(designs.items()))
              if i % args.shards == args.shard]
     rows = []
-    print(f"{'design':16} {'Xsep':>6} {'Ysep':>6} {'Ty':>5} {'ext':>6} {'ceil':>6} "
-          f"{'tau':>7} {'swp':>6} {'dep':>5} {'mean':>6} {'sd':>6} {'z':>7} "
-          f"{'con':>4}  ok")
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    args.out.write_text("[]\n")
+    if args.stage == "grasp":
+        print(f"{'design':16} {'Xsep':>6} {'PairX':>6} {'Ysep':>6} {'poses':>7} "
+              f"{'best grip':>10} {'extension':>10}")
+    else:
+        print(f"{'design':16} {'Xsep':>6} {'Ysep':>6} {'Ty':>5} {'ext':>6} {'ceil':>6} "
+              f"{'tau':>7} {'swp':>6} {'dep':>5} {'mean':>6} {'sd':>6} {'z':>7} "
+              f"{'clr':>6} {'con':>4}  ok")
     for tag, vec in items:
         try:
             row = evaluate(tag, vec, args)
         except Exception as exc:                       # a design that will not compile is data
             print(f"{tag:16} FAILED {type(exc).__name__}: {exc}")
-            rows.append({"design": tag, "error": f"{type(exc).__name__}: {exc}"})
+            rows.append({"design": tag, "sampling": metadata[tag],
+                         "error": f"{type(exc).__name__}: {exc}"})
+            args.out.write_text(json.dumps(rows, indent=1) + "\n")
             continue
+        row["sampling"] = metadata[tag]
         rows.append(row)
+        if args.stage == "grasp":
+            viable = [g for g in row["grasps"] if g.get("pose")]
+            best_grip = max((g["scores"]["grip_N"] for g in viable), default=float("nan"))
+            best_ext = max((g["scores"]["extend_mm"] for g in viable), default=float("nan"))
+            print(f"{tag:16} {row['x_sep_mm']:6.0f} {row['pair_x_mm']:6.0f} "
+                  f"{row['y_sep_mm']:6.0f} {len(viable):3d}/{len(row['grasps']):<3d} "
+                  f"{best_grip:10.1f} {best_ext:10.1f}")
+            args.out.write_text(json.dumps(rows, indent=1) + "\n")
+            continue
         b = best_cell(row)
         if b is None:
             print(f"{tag:16} {row['x_sep_mm']:6.0f} {row['y_sep_mm']:6.0f} "
@@ -442,11 +642,12 @@ def main() -> int:
                   f"{row['thumb_y_mm']:5.0f} {s['extend_mm']:6.1f} {s['ceiling_deg']:6.1f} "
                   f"{s['tau_cap_Nmm']:7.1f} {s['sweep_min_mm']:6.1f} "
                   f"{s['depth_fit_mm']:5.0f} {b['mean_cos']:6.3f} "
-                  f"{b['sd_cos']:6.3f} {b['final_z']:7.4f} {b['contacts']:4d}  "
+                  f"{b['sd_cos']:6.3f} {b['final_z']:7.4f} "
+                  f"{(b['min_finger_clearance_mm'] if b['min_finger_clearance_mm'] is not None else float('nan')):6.1f} "
+                  f"{b['contacts']:4d}  "
                   f"k={b['axis_k']:.2f} a={b['angle_deg']:.0f} "
                   f"{b['kept']}/{b['n']}")
-        args.out.parent.mkdir(parents=True, exist_ok=True)
-        args.out.write_text(json.dumps(rows, indent=1))
+        args.out.write_text(json.dumps(rows, indent=1) + "\n")
     return 0
 
 

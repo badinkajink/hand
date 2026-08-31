@@ -1,0 +1,20 @@
+{
+  "shards": 16,
+  "screened": 3318,
+  "expected": 3318,
+  "missing": 0,
+  "graspable_any": 1656,
+  "graspable_any_fraction": 0.4991,
+  "source_screened": {
+    "known_anchor": 5,
+    "sobol_uniform": 2422,
+    "sobol_wide_bias": 891
+  },
+  "retention_cells_by_grasp": {
+    "s32_t10": 1444,
+    "s32_t20": 1297,
+    "s40_t10": 1562,
+    "s40_t20": 1393
+  },
+  "retention_cells_total": 5696
+}

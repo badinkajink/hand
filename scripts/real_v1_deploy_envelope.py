@@ -73,6 +73,17 @@ TABLE = ROOT / "docs/experiments/20260828-real_v1_search/table.json"
 DATE = "20260829"
 SCRATCH = ROOT / f"assets/mjcf/experimental/{DATE}-deploy_envelope"
 
+# SCS0009 at 6 V, from Feetech's product specification.  The hardware's present-load field is
+# not calibrated torque, but the bench protection experiment establishes that its 0..1000 scale
+# tracks the percentage registers: overload_torque=80 trips near 800 and protective_torque=20
+# produces an exact 200 plateau (and 40 produces 400).  This therefore is a useful screening
+# proxy, not a metrology claim.
+KGCM_TO_NM = 9.80665 / 100.0
+SCS0009_STALL_TORQUE_NM = 2.3 * KGCM_TO_NM       # 0.2256 N m, published peak stall
+SCS0009_RATED_TORQUE_NM = 0.7 * KGCM_TO_NM       # 0.0686 N m, published rated torque
+SCS0009_OVERLOAD_TORQUE_NM = 0.8 * SCS0009_STALL_TORQUE_NM
+SCS0009_PROTECTIVE_TORQUE_NM = 0.2 * SCS0009_STALL_TORQUE_NM
+
 # The keepers from the 108-hand search, best-cell mean cos in brackets. rv05_manual is left out:
 # its winning grasp is an authored pose, not one `_grip_from_fit` reproduces.
 DEFAULT_DESIGNS = "rv04_mid,ax_asym-10,r08,g10,ax_asym+10,rv00_wide,rv03_narrowy"
@@ -288,11 +299,57 @@ def _force_step(m, d, acts, trim: dict, target: float, gain: float, authority: f
             trim[j] = float(np.clip(trim[j] + step * float(u), -authority, authority))
 
 
+def _servo_load_units(m, d, acts) -> dict[str, float]:
+    """Napkin SCS0009 present-load proxy from simulated actuator torque.
+
+    A value of 1000 corresponds to published stall torque.  The real register contains gearbox
+    friction, inertial load, deadband and protection plateaus, so this is intentionally used as
+    a broad control/ranking signal only.
+    """
+    return {
+        f: float(np.clip(max(abs(float(d.actuator_force[acts[j]])) for j in joints)
+                         / SCS0009_STALL_TORQUE_NM * 1000.0, 0.0, 1000.0))
+        for f, joints in FINGERS.items()
+    }
+
+
+def _load_step(m, d, acts, trim: dict, target: float, gain: float,
+               authority: float) -> None:
+    """Move each pad inward/outward to maintain a per-finger servo-load band.
+
+    The direction comes only from measured joint positions and hand FK; the trigger is the
+    SCS0009-like load proxy.  It does not read object pose or simulator contact force.
+    """
+    loads = _servo_load_units(m, d, acts)
+    dirs = _squeeze_dirs(m, d, acts)
+    for f, joints in FINGERS.items():
+        error = target - loads[f]
+        if abs(error) <= 0.3 * target:
+            continue
+        step = float(np.clip(gain * error / 1000.0, -0.0006, 0.0006))
+        for j, u in zip(joints, dirs[f]):
+            trim[j] = float(np.clip(trim[j] + step * float(u), -authority, authority))
+
+
+def _set_servo_torque_limit(m, acts, limit_nm: float) -> None:
+    """Cap the nine finger actuators without touching the palm gantry actuators."""
+    if limit_nm <= 0.0:
+        return
+    for actuator in set(acts.values()):
+        m.actuator_forcelimited[actuator] = 1
+        m.actuator_forcerange[actuator] = (-limit_nm, limit_nm)
+
+
 def execute(scene: Path, plan: dict, *, place=(0.0, 0.0, 0.0), yaw: float = 0.0,
             ctrl_bias: dict | None = None, hold_steps: int = 800, seed: int = 0,
             jitter: float = 0.0005, video: Path | None = None,
             force_target: float = 0.0, force_gain: float = 0.0015,
-            force_band: float = 0.45, force_phase: str = "all") -> dict:
+            force_band: float = 0.45, force_phase: str = "all",
+            selfcollision: bool = False, load_target_units: float = 0.0,
+            load_gain: float = 0.0024, capture_steps: int = 0,
+            proof_lift: float = 0.0, proof_lift_steps: int = 500,
+            proof_max_slip: float = 0.010,
+            turn_torque_limit_nm: float = 0.0, hold_torque_limit_nm: float = 0.0) -> dict:
     m = mujoco.MjModel.from_xml_path(str(scene))
     d = mujoco.MjData(m)
     d.qpos[:] = np.asarray(plan["open_qpos"])
@@ -314,6 +371,7 @@ def execute(scene: Path, plan: dict, *, place=(0.0, 0.0, 0.0), yaw: float = 0.0,
         d.qpos[adr + 3:adr + 7] = out
 
     acts = pc._finger_act(m)
+    _set_servo_torque_limit(m, acts, turn_torque_limit_nm)
     pz_a = next(k for k in range(m.nu) if m.actuator(k).name == "a_palm_pz")
     bias = ctrl_bias or {}
     d.ctrl[:] = np.asarray(plan["grip_ctrl"])
@@ -328,18 +386,27 @@ def execute(scene: Path, plan: dict, *, place=(0.0, 0.0, 0.0), yaw: float = 0.0,
         mujoco.mjv_defaultFreeCamera(m, vcam)
         vcam.azimuth, vcam.elevation, vcam.distance = 0.0, -12.0, 0.40
     step_i = 0
+    clr_pairs, clr_owner = pc._cross_finger_pairs(m) if selfcollision else ([], {})
+    clr_min, clr_at, clr_pair = float("inf"), None, None
+
+    def _after_step():
+        nonlocal step_i, clr_min, clr_at, clr_pair
+        step_i += 1
+        if clr_pairs and step_i % 10 == 0:
+            dist, who = pc._min_cross_clearance(m, d, clr_pairs, clr_owner)
+            if dist is not None and dist < clr_min:
+                clr_min, clr_at, clr_pair = dist, step_i, who
+        if vid is not None and step_i % 8 == 0:
+            vcam.lookat[:] = d.body(OBJ).xpos
+            vid.update_scene(d, vcam)
+            frames.append(vid.render())
 
     def _run(n, before=None):
-        nonlocal step_i
         for k in range(n):
             if before is not None:
                 before(k)
             mujoco.mj_step(m, d)
-            step_i += 1
-            if vid is not None and step_i % 8 == 0:
-                vcam.lookat[:] = d.body(OBJ).xpos
-                vid.update_scene(d, vcam)
-                frames.append(vid.render())
+            _after_step()
 
     _run(250)
     if plan.get("bench"):
@@ -371,7 +438,7 @@ def execute(scene: Path, plan: dict, *, place=(0.0, 0.0, 0.0), yaw: float = 0.0,
             for j, a in acts.items():
                 d.ctrl[a] = plan["anchor"][j] + trim[j] + bias.get(j, 0.0)
             mujoco.mj_step(m, d)
-            step_i += 1
+            _after_step()
     for k in range(1, turn + 1):
         u = k / turn
         for j, a in acts.items():
@@ -385,11 +452,7 @@ def execute(scene: Path, plan: dict, *, place=(0.0, 0.0, 0.0), yaw: float = 0.0,
                              + float(np.clip(plan["delta"][j] * u, -budget, budget))
                              + trim[j] + bias.get(j, 0.0))
         mujoco.mj_step(m, d)
-        step_i += 1
-        if vid is not None and step_i % 8 == 0:
-            vcam.lookat[:] = d.body(OBJ).xpos
-            vid.update_scene(d, vcam)
-            frames.append(vid.render())
+        _after_step()
 
     if plan.get("squeeze_delta"):
         sq_start = {j: float(d.ctrl[a]) for j, a in acts.items()}
@@ -401,30 +464,68 @@ def execute(scene: Path, plan: dict, *, place=(0.0, 0.0, 0.0), yaw: float = 0.0,
                 d.ctrl[a] = float(np.clip(d.ctrl[a], plan["anchor"][j] - budget,
                                           plan["anchor"][j] + budget)) + bias.get(j, 0.0)
             mujoco.mj_step(m, d)
-            step_i += 1
-            if vid is not None and step_i % 8 == 0:
-                vcam.lookat[:] = d.body(OBJ).xpos
-                vid.update_scene(d, vcam)
-                frames.append(vid.render())
+            _after_step()
 
+    # The turn may use short-duration torque below the 80% protection threshold, but a long
+    # capture must live near the published rated torque. A single static MJCF limit cannot
+    # express that phase change, so switch the nine actuator ceilings here.
+    _set_servo_torque_limit(m, acts, hold_torque_limit_nm)
+
+    def _hold_regulator():
+        if load_target_units > 0.0:
+            _load_step(m, d, acts, trim, load_target_units, load_gain, force_band)
+        elif force_target > 0.0:
+            _force_step(m, d, acts, trim, force_target, force_gain, force_band, OBJ)
+
+    def _apply_trim():
+        for joint, actuator in acts.items():
+            d.ctrl[actuator] += trim[joint] - applied_trim[joint]
+            applied_trim[joint] = trim[joint]
+
+    applied_trim = dict(trim)
     peak = pc._cos(m, d, OBJ)
     min_z = float(d.body(OBJ).xpos[2])
-    for hk in range(hold_steps):
-        if force_target > 0.0 and hk % 5 == 0:
-            base = {j: d.ctrl[a] - trim[j] for j, a in acts.items()}
-            _force_step(m, d, acts, trim, force_target, force_gain, force_band, OBJ)
-            for j, a in acts.items():
-                d.ctrl[a] = base[j] + trim[j]
+    # Give the proprioceptive clamp time to establish a load band before testing whether the
+    # object is genuinely captured. This still sees only nine positions + nine load proxies.
+    for k in range(capture_steps):
+        if k % 5 == 0:
+            _hold_regulator()
+            _apply_trim()
         mujoco.mj_step(m, d)
         min_z = min(min_z, float(d.body(OBJ).xpos[2]))
+        peak = max(peak, pc._cos(m, d, OBJ))
+        _after_step()
+
+    # PROOF LIFT. A cylinder balanced against a finger or left on the support can pass an image-
+    # based final-angle score. Raise the whole palm; only an actually captured object follows.
+    proof_start_z = float(d.body(OBJ).xpos[2])
+    pz_start = float(d.ctrl[pz_a])
+    for k in range(proof_lift_steps if proof_lift > 0.0 else 0):
+        d.ctrl[pz_a] = pz_start + proof_lift * (k + 1) / proof_lift_steps
+        if k % 5 == 0:
+            _hold_regulator()
+            _apply_trim()
+        mujoco.mj_step(m, d)
+        min_z = min(min_z, float(d.body(OBJ).xpos[2]))
+        peak = max(peak, pc._cos(m, d, OBJ))
+        _after_step()
+    proof_end_z = float(d.body(OBJ).xpos[2])
+    proof_rise = proof_end_z - proof_start_z
+    proof_lift_ok = proof_lift <= 0.0 or proof_rise >= 0.8 * proof_lift
+    min_z_free = float(d.body(OBJ).xpos[2])
+    for hk in range(hold_steps):
+        if (force_target > 0.0 or load_target_units > 0.0) and hk % 5 == 0:
+            _hold_regulator()
+            _apply_trim()
+        mujoco.mj_step(m, d)
+        min_z = min(min_z, float(d.body(OBJ).xpos[2]))
+        min_z_free = min(min_z_free, float(d.body(OBJ).xpos[2]))
         c = pc._cos(m, d, OBJ)
         peak = peak if abs(peak) >= abs(c) else c
-        step_i += 1
-        if vid is not None and step_i % 8 == 0:
-            vcam.lookat[:] = d.body(OBJ).xpos
-            vid.update_scene(d, vcam)
-            frames.append(vid.render())
+        _after_step()
     nh, foh = pc._contacts_hand(m, d, OBJ)
+    proof_slip = max(0.0, proof_end_z - min_z_free)
+    proof_hold_ok = proof_lift <= 0.0 or proof_slip <= proof_max_slip
     # ON THE BENCH, "held" IS NOT ENOUGH. The tool stands on a post rather than being lifted
     # clear, so a rollout can bring it upright while it is still resting on that post -- the
     # same floor-assisted reorient `REORIENT_PRIMITIVE.txt` measured as 46-69% of both reference
@@ -448,11 +549,27 @@ def execute(scene: Path, plan: dict, *, place=(0.0, 0.0, 0.0), yaw: float = 0.0,
         "peak_cos": round(float(peak), 3), "final_cos": round(pc._cos(m, d, OBJ), 3),
         "final_z": round(float(d.body(OBJ).xpos[2]), 4), "min_z_hold": round(min_z, 4),
         "contacts_hand": nh, "force_hand_N": round(foh, 2), "on_post": on_post,
+        "load_units": {f: round(v, 1) for f, v in _servo_load_units(m, d, acts).items()},
+        "proof_lift_mm": round(proof_lift * 1000.0, 1),
+        "proof_rise_mm": round(proof_rise * 1000.0, 1),
+        "proof_lift_ok": proof_lift_ok,
+        "proof_slip_mm": round(proof_slip * 1000.0, 1),
+        "proof_max_slip_mm": round(proof_max_slip * 1000.0, 1),
+        "proof_hold_ok": proof_hold_ok,
+        "min_z_free": round(min_z_free, 4),
+        "turn_torque_limit_nm": turn_torque_limit_nm,
+        "hold_torque_limit_nm": hold_torque_limit_nm,
+        "min_finger_clearance_mm": (None if clr_min == float("inf")
+                                    else round(clr_min * 1000, 2)),
+        "clearance_at_step": clr_at,
+        "clearance_pair": None if clr_pair is None else "-".join(clr_pair),
         "force_target_N": force_target,
         "trim_max_deg": round(float(np.degrees(max(abs(v) for v in trim.values()))), 2),
         # Same `ok` as the search: held, not merely upright -- a shaft standing on the table
         # reads cos 1.0, and one that comes up and then slides out reads a fine final z.
-        "ok": bool(nh >= 1 and min_z > lifted["z"] - 0.02 and on_post == 0),
+        "ok": bool(nh >= 1 and min_z > lifted["z"] - 0.02 and on_post == 0
+                   and proof_lift_ok
+                   and proof_hold_ok),
     }
 
 
@@ -609,7 +726,7 @@ def cell_grid(k_lo: float, k_hi: float, k_n: int, angles: list[float]) -> list[t
 
 def _cell_task(job: tuple) -> dict:
     (tag, scene, row, axis_k, angle, n_nom, n_ens, level, hold_steps,
-     turn_steps, hold_squeeze) = job
+     turn_steps, hold_squeeze, bench, selfcollision, retention_cfg, ensemble_seed) = job
     # THE SQUEEZE IS PART OF THE GRASP, and it stops being a free constant once the pads are
     # flat. `fit` places the pad CENTRE at object_radius + PAD_RADIUS + gap - squeeze, which is
     # exact for a sphere and wrong for a flat face: the face's closest approach to the shaft is
@@ -623,15 +740,16 @@ def _cell_task(job: tuple) -> dict:
                      depth=None if row["depth_req_mm"] is None else row["depth_req_mm"] / 1000.0,
                      thumb_axial=row["thumb_axial_mm"] / 1000.0, squeeze=squeeze,
                      axis_k=axis_k, angle_deg=angle, lift=0.10, budget=0.5,
-                     turn_steps=turn_steps, hold_squeeze=hold_squeeze)
+                     turn_steps=turn_steps, hold_squeeze=hold_squeeze, bench=bench)
     if plan is None:
         return {"design": tag, "axis_k": axis_k, "angle_deg": angle, "pose": False,
                 "straddle_mm": row["straddle_mm"], "thumb_axial_mm": row["thumb_axial_mm"],
                 "turn_steps": turn_steps, "hold_squeeze_mm": round(hold_squeeze * 1000, 1)}
     nom, ens = [], []
     for rep in range(n_nom):
-        nom.append(execute(scene, plan, hold_steps=hold_steps, seed=rep))
-    rng = np.random.default_rng(20260829)
+        nom.append(execute(scene, plan, hold_steps=hold_steps, seed=rep,
+                           selfcollision=selfcollision, **retention_cfg))
+    rng = np.random.default_rng(ensemble_seed)
     for i in range(n_ens):
         spec = ensemble_draw(rng, level)
         pert = mutate(scene, spec, SCRATCH)
@@ -640,10 +758,13 @@ def _cell_task(job: tuple) -> dict:
                 for js in FINGERS.values() for j in js}
         try:
             ens.append(execute(pert, plan, place=spec["place"], yaw=spec["yaw"],
-                               ctrl_bias=bias, hold_steps=hold_steps, seed=100 + i))
+                               ctrl_bias=bias, hold_steps=hold_steps, seed=100 + i,
+                               **retention_cfg))
         except Exception:
             ens.append({"ok": False, "final_cos": 0.0, "min_z_hold": 0.0})
     held = lambda rs: [x["final_cos"] if x["ok"] else 0.0 for x in rs]  # noqa: E731
+    clearances = [x["min_finger_clearance_mm"] for x in nom
+                  if x.get("min_finger_clearance_mm") is not None]
     return {
         "design": tag, "axis_k": axis_k, "angle_deg": angle, "pose": True,
         "straddle_mm": row["straddle_mm"], "thumb_axial_mm": row["thumb_axial_mm"],
@@ -652,6 +773,19 @@ def _cell_task(job: tuple) -> dict:
         "nom_cos": round(float(np.mean(held(nom))), 3),
         "nom_sd": round(float(np.std(held(nom))), 3),
         "nom_kept": sum(1 for x in nom if x["ok"]), "n_nom": len(nom),
+        "nom_proof_lift": sum(1 for x in nom if x.get("proof_lift_ok", True)),
+        "nom_proof_hold": sum(1 for x in nom if x.get("proof_hold_ok", True)),
+        "max_proof_slip_mm": round(max((x.get("proof_slip_mm", 0.0) for x in nom),
+                                       default=0.0), 1),
+        "proof_lift_mm": retention_cfg.get("proof_lift", 0.0) * 1000.0,
+        "proof_max_slip_mm": retention_cfg.get("proof_max_slip", 0.0) * 1000.0,
+        "load_target_units": retention_cfg.get("load_target_units", 0.0),
+        "turn_torque_limit_nm": retention_cfg.get("turn_torque_limit_nm", 0.0),
+        "hold_torque_limit_nm": retention_cfg.get("hold_torque_limit_nm", 0.0),
+        "terminal_load_units": {
+            f: round(float(np.mean([x.get("load_units", {}).get(f, 0.0) for x in nom])), 1)
+            for f in FINGERS},
+        "min_finger_clearance_mm": min(clearances) if clearances else None,
         "ens_cos": round(float(np.mean(held(ens))), 3) if ens else None,
         "ens_sd": round(float(np.std(held(ens))), 3) if ens else None,
         "ens_kept": sum(1 for x in ens if x["ok"]), "n_ens": len(ens),
@@ -692,6 +826,16 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--designs", default=DEFAULT_DESIGNS)
+    ap.add_argument("--designs-file", type=Path, default=None,
+                    help="optional newline/comma-separated design names; avoids an oversized "
+                         "command line for population-scale screens")
+    ap.add_argument("--design-table", type=Path, default=TABLE,
+                    help="joined per-design table; defaults to the original 108-hand search")
+    ap.add_argument("--design-manifest", type=Path, default=None,
+                    help="optional real-v1 sampler manifest adding design vectors not in the "
+                         "legacy named sets")
+    ap.add_argument("--generated-dir", type=Path, default=ds.GEN,
+                    help="where rigid scenes for manifest designs are generated")
     ap.add_argument("--flat-pads", action="store_true",
                     help="use the BUILT finger cross-section (14.8 mm across, flat face at "
                          "10.55 mm) instead of the shipped 21.1 mm round capsules")
@@ -743,6 +887,24 @@ def main() -> int:
                          "turn or only once the turn has finished")
     ap.add_argument("--levels", default="0.5,1.0", help="ensemble severity multipliers")
     ap.add_argument("--hold-steps", type=int, default=800)
+    ap.add_argument("--load-target-units", type=float, default=0.0,
+                    help="per-finger SCS0009-like load target; 1000 ~= published stall torque")
+    ap.add_argument("--load-gain", type=float, default=0.0024)
+    ap.add_argument("--capture-steps", type=int, default=0,
+                    help="post-turn load-clamp settling steps before the proof lift")
+    ap.add_argument("--proof-lift-mm", type=float, default=0.0,
+                    help="raise the palm after capture; the object must follow to pass")
+    ap.add_argument("--proof-lift-steps", type=int, default=700)
+    ap.add_argument("--proof-max-slip-mm", type=float, default=10.0,
+                    help="maximum vertical object slip during the post-lift free hold")
+    ap.add_argument("--turn-torque-limit-nm", type=float, default=0.0,
+                    help=f"absolute finger torque cap; SCS0009 80%% overload = "
+                         f"{SCS0009_OVERLOAD_TORQUE_NM:.4f} N m")
+    ap.add_argument("--hold-torque-limit-nm", type=float, default=0.0,
+                    help=f"absolute long-hold cap; SCS0009 rated = "
+                         f"{SCS0009_RATED_TORQUE_NM:.4f} N m")
+    ap.add_argument("--selfcollision", action="store_true",
+                    help="trace dynamic finger clearance over nominal cell rollouts")
     ap.add_argument("--dense-place", action="store_true",
                     help="replace the one-at-a-time axes with a 1 mm / 2 deg placement map")
     ap.add_argument("--workers", type=int, default=max(1, (os.cpu_count() or 4) - 2))
@@ -756,7 +918,7 @@ def main() -> int:
     ap.add_argument("--smoke", action="store_true", help="baseline only, n=1, no pool")
     args = ap.parse_args()
 
-    table = {r["design"]: r for r in json.loads(TABLE.read_text())}
+    table = {r["design"]: r for r in json.loads(args.design_table.read_text())}
     # ON THE BENCH THE GRIP DEPTH HAS TO BE STATED. With the tool on the table `fit` searches a
     # palm-height window around the palm body's own z; with the tool 100 mm up, that window does
     # not contain a reachable pose and every design reports "no pose". The design's own fitted
@@ -782,8 +944,15 @@ def main() -> int:
                                 squeeze_mm=c.get("squeeze_mm", 4.0))
         print(f"operating points taken from {args.cells_from.name} for {len(best)} designs")
 
-    designs = [t.strip() for t in args.designs.split(",") if t.strip()]
+    design_text = args.designs_file.read_text() if args.designs_file else args.designs
+    designs = [t.strip() for t in design_text.replace("\n", ",").split(",") if t.strip()]
     vecs = ds.design_set("all")
+    if args.design_manifest:
+        manifest = json.loads(args.design_manifest.read_text())
+        vecs.update({r["design"]: tuple(r["vector_m"]) for r in manifest["designs"]})
+    missing = sorted(set(designs) - set(vecs))
+    if missing:
+        raise SystemExit(f"design vectors missing for: {', '.join(missing)}")
 
     if args.mode == "cell":
         lo, hi, n = args.cell_k.split(",")
@@ -803,12 +972,23 @@ def main() -> int:
         turn_stepss = [int(v) for v in str(args.turn_steps).split(",")]
         squeezes = [float(v) for v in str(args.squeeze_mm).split(",")]
         hold_squeezes = [float(v) / 1000.0 for v in str(args.hold_squeeze_mm).split(",")]
+        retention_cfg = {
+            "load_target_units": args.load_target_units,
+            "load_gain": args.load_gain,
+            "capture_steps": args.capture_steps,
+            "proof_lift": args.proof_lift_mm / 1000.0,
+            "proof_lift_steps": args.proof_lift_steps,
+            "proof_max_slip": args.proof_max_slip_mm / 1000.0,
+            "turn_torque_limit_nm": args.turn_torque_limit_nm,
+            "hold_torque_limit_nm": args.hold_torque_limit_nm,
+        }
         for tag in designs:
             row = table.get(tag)
             if row is None or not row.get("graspable"):
                 print(f"{tag:14} no row / not graspable — skipped")
                 continue
-            scene = object_scene(ds.scene_for(vecs[tag]), args.object, args.bench_height, args.post_y / 1000.0,
+            scene = object_scene(ds.scene_for(vecs[tag], args.generated_dir), args.object,
+                                 args.bench_height, args.post_y / 1000.0,
                                  args.flat_pads, args.pad_len_mm / 1000.0,
                                  args.pad_width_mm / 1000.0, args.flat_links)
             for st in straddles:
@@ -825,7 +1005,9 @@ def main() -> int:
                             for hs in hold_squeezes:
                                 jobs.append((tag, str(scene), r2, k, a, args.cell_nom,
                                              args.cell_ens, args.cell_level, args.hold_steps,
-                                             ts, hs))
+                                             ts, hs, args.bench_height > 0.0,
+                                             args.selfcollision, retention_cfg,
+                                             args.ensemble_seed))
         args.out.parent.mkdir(parents=True, exist_ok=True)
         done = json.loads(args.out.read_text()) if args.out.exists() else []
         seen = {(r["design"], r.get("straddle_mm"), r.get("thumb_axial_mm"), r["axis_k"],
@@ -857,7 +1039,8 @@ def main() -> int:
         if row is None or not row.get("graspable"):
             print(f"{tag:14} no row / not graspable — skipped")
             continue
-        scene = object_scene(ds.scene_for(vecs[tag]), args.object, args.bench_height, args.post_y / 1000.0,
+        scene = object_scene(ds.scene_for(vecs[tag], args.generated_dir), args.object,
+                             args.bench_height, args.post_y / 1000.0,
                                  args.flat_pads, args.pad_len_mm / 1000.0,
                                  args.pad_width_mm / 1000.0, args.flat_links)
         row = dict(row)

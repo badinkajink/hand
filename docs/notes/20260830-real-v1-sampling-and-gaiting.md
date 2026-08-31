@@ -1,7 +1,9 @@
 # Catalogued sidequests: real_v1 sampling and post-turn gaiting
 
-Status: **catalogue only; no experiments launched from this note.** Sampling is the higher
-priority sidequest. Continued gaiting is lower priority still.
+Status: sampling has been **promoted to the immediate roadmap**, but no sampling run was launched
+while documenting it. The executable plan is
+[`docs/roadmap/20260830-real-v1-open-loop-sampling.md`](../roadmap/20260830-real-v1-open-loop-sampling.md).
+Continued gaiting remains a lower-priority catalogue item.
 
 ## 1. Sample substantially more hardware-valid hands
 
@@ -57,4 +59,3 @@ But it should follow the denser one-shot sampling study. Otherwise a new task, c
 reward, and morphology distribution all change simultaneously, making it impossible to tell
 whether new hands arise from genuine task complexity or from another sampling/configuration
 artifact.
-
