@@ -160,16 +160,20 @@ python3 -m http.server 8766 --bind 127.0.0.1 \
 ### Homing takes about two minutes
 
 Each axis gets a timeout sized to guarantee it covered its full measured travel, so a home
-cannot be shortened without making it untrustworthy. Worst case for all six is 176 s.
+cannot be shortened without making it untrustworthy. Worst case for all six is 179 s.
+
+`FULL_EXTENSION_MM` corrected 2026-09-01 -- all six axes reach their full nominal travel (110mm
+on J0, 60mm on the rest); the previous J1/J3/J5 entries (56.2/56.0/54.1) implied a shortfall that
+was never real, and travel/window below reflect the fix.
 
 | axis | finger | travel | window | typical outcome |
 |---|---|---|---|---|
-| J0 | thumb x | 112.4 mm | 46.4 s | StallGuard2, ~16 s |
-| J1 | thumb y | 56.2 mm | 22.4 s | StallGuard2, ~15 s |
-| J2 | index x | 62.5 mm | 28.0 s | StallGuard2, ~16 s |
-| J3 | index y | 56.0 mm | 25.0 s | **timeout, ~33 s** |
-| J4 | middle x | 62.2 mm | 29.4 s | StallGuard2, ~15 s |
-| J5 | middle y | 54.1 mm | 24.4 s | **timeout, ~33 s** |
+| J0 | thumb x | 110.0 mm | 45.5 s | StallGuard2, ~16 s |
+| J1 | thumb y | 60.0 mm | 26.7 s | StallGuard2, ~15 s |
+| J2 | index x | 60.0 mm | 26.7 s | StallGuard2, ~16 s |
+| J3 | index y | 60.0 mm | 26.7 s | **timeout, ~33 s** |
+| J4 | middle x | 60.0 mm | 26.7 s | StallGuard2, ~15 s |
+| J5 | middle y | 60.0 mm | 26.7 s | **timeout, ~33 s** |
 
 **J3 and J5 do not trip StallGuard2** under the current SGT tuning — they press against their
 hardstop for their whole window, every time. The home is still trustworthy; it just sounds
@@ -217,7 +221,7 @@ all six axes, and also adopts the morphology position when the gantries are alre
    from manta_hand.kinematics import STEPS_PER_MM
    with MantaHandDriver('/dev/ttyACM0') as d:
        for i, s in enumerate(d.get_all_status()[:6]):
-           print(f'J{i} {s.position/STEPS_PER_MM[i]:+8.2f}mm moving={s.moving} '
+           print(f'J{i} {s.position/STEPS_PER_MM:+8.2f}mm moving={s.moving} '
                  f'enabled={s.enabled} homing_result={s.homing_result}')"
    ```
 

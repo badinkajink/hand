@@ -202,10 +202,12 @@ command language.
   tightest range common to all three is (-70.02, +74.41), i.e. ±70
   symmetric, which is what a policy commanding all three fingers uniformly
   should stay inside.
-- **Ruler-verify the non-J0 axes' `STEPS_PER_MM` magnitudes** -- only J0's
-  is directly ruler-verified; the rest were back-calculated from a
-  known-good 10mm move. Probably fine, but worth confirming once mechanical
-  work on those axes settles down.
+- ~~**Ruler-verify the non-J0 axes' `STEPS_PER_MM` magnitudes**~~ -- SUPERSEDED
+  (2026-08-29). `STEPS_PER_MM` collapsed from six back-calculated
+  per-joint values to one shared scalar (J0's ruler-verified magnitude,
+  since all six axes are the same motor/leadscrew/nut) -- see
+  `kinematics.py`'s comment. Confirmed to 0.0% scale error at 45mm on
+  J1/J3/J5 via `verify_frame_mapping.py --travel` (2026-09-01).
 - **Firmware-level fix for the grace-period-at-hardstop case**, if it comes
   up often enough to matter -- `hand_control.py`'s `PRE_HOME_BACKOFF_MM`
   works around it at the Python layer (back off before homing if already

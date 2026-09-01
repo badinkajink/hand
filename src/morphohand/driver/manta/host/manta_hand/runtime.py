@@ -178,7 +178,7 @@ class RealHardwareBackend:
         for i, st in enumerate(status):
             axes.append({"joint": i, "homing_result": st.homing_result,
                          "enabled": st.enabled, "moving": st.moving,
-                         "position_mm": st.position / STEPS_PER_MM[i],
+                         "position_mm": st.position / STEPS_PER_MM,
                          "stalled": st.homing_result == 2, "elapsed_s": 0.0,
                          "ok": bool(st.enabled and not st.moving
                                     and st.homing_result in (2, 3))})
@@ -222,8 +222,8 @@ class RealHardwareBackend:
             "steppers": [
                 {
                     "id": i,
-                    "position_mm": s.position / STEPS_PER_MM[i],
-                    "target_mm": s.target / STEPS_PER_MM[i],
+                    "position_mm": s.position / STEPS_PER_MM,
+                    "target_mm": s.target / STEPS_PER_MM,
                     "moving": s.moving,
                     "enabled": s.enabled,
                     "homing_result": s.homing_result,

@@ -23,13 +23,13 @@ WHAT IS VERIFIED, AND WHAT IS NOT
    q_Fy, firmware "y" tracks local q_Fx, per-finger sign from which corner homes). This module
    reuses that transform rather than restating it.
 
-3. TRAVEL ENVELOPE -- MISMATCHED, and this is the live issue. The sim declares a +-30 mm box in
-   x for all three fingers; the firmware's measured travel gives thumb x_max +26.2, index x_min
-   -26.0, middle x_min -24.1. The shortfall lands on firmware joints J1/J3/J5, whose
-   STEPS_PER_MM was "back-calculated from a known-good 10mm move and hasn't been individually
-   ruler-checked" -- so the missing 4-6 mm may be a scale error rather than a mechanical limit.
-   See `travel_audit()`; do not paper over it by widening FULL_EXTENSION_MM on a hunch, because
-   MOVEMM does not stall-check.
+3. TRAVEL ENVELOPE -- VERIFIED (corrected 2026-09-01). The sim declares a +-30 mm box in x for
+   all three fingers; earlier `FULL_EXTENSION_MM` entries for firmware joints J1/J3/J5 (56.2,
+   56.0, 54.1) implied a 4-6 mm shortfall against that box, on the theory that those axes'
+   STEPS_PER_MM -- "back-calculated from a known-good 10mm move and hasn't been individually
+   ruler-checked" -- was hiding a scale error rather than a mechanical limit. There was no
+   shortfall: all six axes reach their full nominal travel (110mm on J0, 60mm on the rest), and
+   `FULL_EXTENSION_MM` now says so. See `travel_audit()`.
 
 4. JOINT IDENTITY -- VERIFIED by range fingerprint. The sim limits match the original nominal
    servo contract: yaw +-85 = aa, mcp [-15,+92] = fe1, pip [-18,+92] = fe2. Three distinct
@@ -313,7 +313,7 @@ class HandPlan:
                        f"{self.mounts_palm_mm[finger][1]:+.1f}) mm = local ({lx:+.1f}, {ly:+.1f}) mm")
             for j in (jx, jy):
                 out.append(f"EN J{j}")
-                out.append(f"SETSCALE J{j} {STEPS_PER_MM[j]:.1f}")
+                out.append(f"SETSCALE J{j} {STEPS_PER_MM:.1f}")
             if home:
                 for j in (jx, jy):   # sequential, never concurrent -- see kinematics._home_one_axis
                     out.append(f"WREG5160 J{j} 6D {HOME_COOLCONF[j]:X}")

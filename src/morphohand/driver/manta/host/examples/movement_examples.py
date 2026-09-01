@@ -84,7 +84,7 @@ def move_gantry_raw_mm(hand: Hand, stepper_driver: MantaHandDriver, servo_bus: S
     joint when you construct a Hand, so it's redundant here -- shown for
     when you're using MantaHandDriver directly, without Hand)."""
     joint = stepper_driver.joints[0]
-    joint.set_scale(-3216.0)  # STEPS_PER_MM[0] -- see kinematics.py
+    joint.set_scale(-3216.0)  # STEPS_PER_MM -- see kinematics.py (one shared value, not per-joint)
     joint.move_to_mm(mm=20.0, velocity=12000, accel=2000)
 
 
