@@ -13,14 +13,14 @@ Three strips are produced:
   pair     the same hand holding and dropping, for a figure that needs two rows.
   designs  one representative run per hand, ordered by simulated rank.
 """
-import argparse, csv, glob, os, sys
+import argparse, csv, glob, json, os, sys
 import numpy as np
 from PIL import Image
 from scipy import ndimage
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from real_v1_transfer_figures import bench                              # noqa: E402
-from real_v1_transfer_ranking import DESIGN_ID, EJECT_SLIP_MM           # noqa: E402
+from real_v1_transfer_ranking import DESIGN_ID                          # noqa: E402
 
 OUT = "paper/figures"
 CROP = (310, 45, 640, 345)      # right of the frame: hand, object, both tags, no operator
@@ -35,6 +35,11 @@ DPI = 450                       # the tape is 640x360; anything less throws half
 #: percentile of the RUN -- not of the frame, so the panels do not flicker against each other --
 #: and a gamma below 1 lifts the midtones without touching the highlights that are already gone.
 LO_PCT, HI_PCT, GAMMA = 2.0, 99.5, 0.85
+
+#: How far the cylinder's centre must fall below its own running maximum before the shaft counts
+#: as leaving the grasp rather than settling into it. Holds sag by up to 11 mm and recover; a
+#: fall does not, which is why the test below is irreversible departure and not any single dip.
+Z_FALL_MM = 10.0
 
 
 def frames(run_tag, n=NFRAME, t_peak=None):
@@ -85,6 +90,29 @@ def _tone(a, lo, hi):
     return np.clip(x + 0.6 * (x - ndimage.gaussian_filter(x, 1.1)), 0, 255)
 
 
+def heights(run_tag):
+    """t -> cylinder-centre height, or {} when the run's shaft axis was mis-set.
+
+    The height is what tells a turn the hand made apart from the shaft pivoting out of the
+    grasp. When --shaft-axis was wrong the centre was reconstructed off the wrong end of the
+    cylinder, so those runs get no gate at all rather than a gate built on a bad number."""
+    p = glob.glob(f"logs/tracker/*-{run_tag}_track_SUMMARY.json")
+    c = glob.glob(f"logs/tracker/*-{run_tag}_track.csv")
+    if not p or not c or json.load(open(p[0]))["axes"]["shaft"] != "-x":
+        return {}
+    return {float(r["t"]): float(r["z_bench_mm"])
+            for r in csv.DictReader(open(c[0])) if r.get("cos") and r["z_bench_mm"]}
+
+
+def fall_time(run_tag):
+    """When the shaft began leaving the grasp for good, or None if it never did."""
+    zmax, below = -1e9, None
+    for t, z in sorted(heights(run_tag).items()):
+        zmax = max(zmax, z)
+        below = (below or t) if z < zmax - Z_FALL_MM else None
+    return below
+
+
 def trace(run_tag):
     """t -> measured tilt, so a panel can be captioned with what the instrument saw."""
     p = glob.glob(f"logs/tracker/*-{run_tag}_track.csv")
@@ -94,32 +122,41 @@ def trace(run_tag):
 
 
 def turn_label(run):
-    """How a row states its rotation.
-
-    PEAK, not net: on an overshoot the shaft passes the label's angle and the tag dies there,
-    so the net figure would contradict the panels. An ejection is the exception -- its peak is
-    the shaft tumbling out of the grasp on the way to the table, which is not a turn the hand
-    made -- so those rows carry the net turn they actually produced."""
-    eject = run["slip"] is not None and run["slip"] >= EJECT_SLIP_MM
-    v, what = (run["deg"], "net") if eject else (peak_at(run["tag"])[0], "peak")
-    return f"{v:+.0f}$\\degree$ {what} turn"
+    """How a row states its rotation: the largest turn the hand produced while it still had
+    the shaft. Not the net turn, which on an overshoot is measured after the shaft has passed
+    the label's angle, and not the raw peak, which on a drop is mostly the fall (see peak_at).
+    Whatever it prints, some panel in the row shows it."""
+    v = peak_at(run["tag"])[0]
+    return "--" if v is None else f"{v:+.0f}$\\degree$ peak turn"
 
 
 def peak_at(run_tag):
-    """(largest rotation any TAPED frame reports, the time of that frame).
+    """(largest rotation any TAPED frame reports while the shaft is still held, its time).
 
-    Deliberately not the trace's own maximum. The tag is sampled at about 29 Hz and the tape
-    writes about 3.7 frames a second, so the true peak almost always falls between two
-    pictures -- and a row labelled with a number no panel shows is a row the reader cannot
-    check. Reading the peak off the tape makes the label and the overlays the same fact."""
+    Two things this deliberately is not.
+
+    It is not the trace's own maximum. The tag is sampled at about 29 Hz and the tape writes
+    about 3.7 frames a second, so the true peak almost always falls between two pictures -- and
+    a row labelled with a number no panel shows is a row the reader cannot check.
+
+    And it is not the largest rotation full stop. A shaft pivoting out of the grasp keeps
+    turning all the way to the table and the tag reads that as rotation: on w0099/00178e the
+    last 33 deg arrive inside 0.28 s while the centre drops 19 mm. Frames from the fall onward
+    are therefore not eligible, so the number is a turn the hand produced. Ties go to the
+    EARLIER frame -- the tag's last reading before it dies is resolved by two tape frames at
+    once, and taking the later one put the peak column a third of a second into the aftermath,
+    on a panel showing the cylinder already lying on the bench.
+    """
     tr, (_, ts) = trace(run_tag), tape(run_tag)
     if not tr or not ts:
         return None, None
     base = at(tr, ts[0])
     if base is None:
         return None, None
-    seen = [(base - d, t) for t, d in ((t, at(tr, t)) for t in ts) if d is not None]
-    return max(seen) if seen else (None, None)
+    tf = fall_time(run_tag)
+    seen = [(base - d, t) for t, d in ((t, at(tr, t)) for t in ts if tf is None or t < tf)
+            if d is not None]
+    return max(seen, key=lambda r: (r[0], -r[1])) if seen else (None, None)
 
 
 def at(tr, t, tol=0.35):
@@ -174,13 +211,23 @@ def pick(B):
     def get(design, want, key):
         g = [t for t in B[design] if t["outcome"] == want and t["deg"] is not None]
         return sorted(g, key=key)[0] if g else None
+    # Ranking the drops by their recorded turn picks out the run whose turn is most inflated
+    # by the fall, because the tag keeps reading rotation all the way to the table. Rank on the
+    # turn produced while the hand still had the shaft, which is also the number the row prints
+    # and the panel it points at. On w0099 that is the difference between a +70 deg label over
+    # a picture of the bench and a +63 deg label over a picture of the shaft still gripped.
+    def held(t):
+        v = peak_at(t["tag"])[0]
+        return -1e9 if v is None else v
+
     # A stall is the mode that hides: it slips like a hold and simply stops short, so the
     # run to show is the one nearest its hand's mean dropped turn, not an extreme.
     st = [t for t in B["sv1_u1364"] if t["outcome"] == "DROPPED" and t["deg"] is not None]
     mu = sum(t["deg"] for t in st) / len(st) if st else 0.0
     return dict(
         hold=("sv1_w0099", get("sv1_w0099", "HELD", lambda t: -t["deg"])),
-        over=("sv1_w0099", get("sv1_w0099", "DROPPED", lambda t: -t["deg"])),
+        over=("sv1_w0099", max([t for t in B["sv1_w0099"] if t["outcome"] == "DROPPED"],
+                              key=held, default=None)),
         stall=("sv1_u1364", min(st, key=lambda t: abs(t["deg"] - mu)) if st else None),
         eject=("sv1_u0308", get("sv1_u0308", "DROPPED", lambda t: -t["slip"])),
         good=("sv1_w6689", get("sv1_w6689", "HELD", lambda t: -t["deg"])))
