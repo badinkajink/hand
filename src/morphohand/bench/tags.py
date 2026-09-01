@@ -350,26 +350,39 @@ def object_center_cam_mm(pose_R, pose_t, *, shaft_axis: str = "x",
 
 def reading_from_tags(frame: BenchFrame, pose_R, pose_t, *, t: float,
                       shaft_axis: str = "x", margin: float = 0.0,
-                      axial_mm: float = CYL_TAG_AXIAL_MM) -> Reading:
+                      axial_mm: float = CYL_TAG_AXIAL_MM,
+                      symmetric: bool = False) -> Reading:
+    """One frame of object state.
+
+    `symmetric` folds the pole. The axial offset ALWAYS runs from the cylinder's centre to the
+    tag -- that is geometry, and getting it backwards puts the centre 2 x 71 x cos on the wrong
+    side of the tag. But which end of a plain 100 x 25 mm cylinder points up is not a property of
+    the object, it is a property of how the operator happened to seat it, and the vane is glued
+    to one arbitrary end. For such an object a turn to "the wrong pole" is the same turn, so the
+    sign is bookkeeping and folding it is the honest reading. Leave it off for the screwdriver,
+    which has a handle and a tip and where the pole is real.
+    """
     center, s = object_center_cam_mm(pose_R, pose_t, shaft_axis=shaft_axis, axial_mm=axial_mm)
     z, radial, xy = frame.locate(center)
     tag_z, _, _ = frame.locate(np.asarray(pose_t, dtype=float).flatten() * 1000.0)
     cos_up = float(np.dot(s, frame.up_cam))
+    if symmetric:
+        cos_up = abs(cos_up)
     return Reading(t=t, cos_up=cos_up, deg_from_up=deg_from_up(cos_up), z_bench_mm=z,
                    radial_mm=radial, tag_z_bench_mm=tag_z, xy_bench_mm=xy, margin=float(margin),
                    range_mm=float(np.linalg.norm(np.asarray(pose_t).flatten()) * 1000.0))
 
 
 # ---- what a whole trace means ----------------------------------------------------------
-#: A drop is a fall, not a low sample: the shaft has to LOSE this much height against its
-#: own baseline. 25 mm is twice the cylinder's radius, so a shaft that has merely rolled in
-#: the grip does not read as one.
 #: The window at the end of a trace that the study's primary metric averages over. A single
 #: last frame is one sample of a shaft that is still settling on its contacts; a second of it is
 #: the pose the hand actually ended up holding. Averaging also makes the metric insensitive to
 #: exactly when the operator stopped the recording, which is not a property of the hand.
 HOLD_WINDOW_S = 1.0
 
+#: A drop is a fall, not a low sample: the shaft has to LOSE this much height against its
+#: own baseline. 25 mm is twice the cylinder's radius, so a shaft that has merely rolled in
+#: the grip does not read as one.
 DROP_FALL_MM = 25.0
 #: ...and stay down. A single frame this low is a mis-detection; a fall persists.
 DROP_HOLD_S = 0.4
