@@ -8,7 +8,8 @@ the trace, annotated with elapsed time and -- where the tag was still resolving 
 shaft tilt at that instant.
 
 Three strips are produced:
-  modes    one held and one dropped trial of the same hand, plus one hand whose drops eject
+  modes    the best-aligned hold, one held and one dropped trial of the same hand, and one
+           hand whose drops eject
            where possible, so the comparison is within a design and not across designs.
   pair     the same hand holding and dropping, for a figure that needs two rows.
   designs  one representative run per hand, ordered by simulated rank.
@@ -134,11 +135,19 @@ def pick(B):
         g = [t for t in B[design] if t["outcome"] == want and t["deg"] is not None]
         return sorted(g, key=key)[0] if g else None
 
+    def aligned(design):
+        """The best-measured hold of a hand: alignment, not turn. cos_hold is the mean over
+        the last second of a trial that never fell, so unlike a drop's turn it is a settled
+        number and ranking on it is safe."""
+        g = [t for t in B[design] if t["outcome"] == "HELD" and t["cos_hold"] is not None]
+        return max(g, key=lambda t: t["cos_hold"], default=None)
+
     def median(design, want):
         g = sorted([t for t in B[design] if t["outcome"] == want and t["slip"] is not None],
                    key=lambda t: t["slip"])
         return g[len(g) // 2] if g else None
     return dict(
+        best=("sv1_u0060", aligned("sv1_u0060")),
         hold=("sv1_w0099", get("sv1_w0099", "HELD", lambda t: -t["deg"])),
         over=("sv1_w0099", median("sv1_w0099", "DROPPED")),
         eject=("sv1_u0308", get("sv1_u0308", "DROPPED", lambda t: -t["slip"])),
@@ -162,12 +171,15 @@ def main():
         return f"{DESIGN_ID[dsg]}  {kind}", f"{run['slip']:.0f} mm slip"
 
     if a.which in ("all", "modes"):
-        # The rows are named by what happened, not by a mechanism. The first two are the same
-        # hand under the same plan, held and dropped; the third is a different hand whose
-        # cylinder travels 54 mm across the bench instead of turning. Slip is the only number
-        # on the labels because it is the only one of the three that means the same thing on a
-        # held and a dropped trial. The panels carry the tag's own angles and can be read.
-        sel = [("hold", "Held"), ("over", "Dropped"), ("eject", "Dropped")]
+        # The rows are named by what happened, not by a mechanism. The first is the best
+        # reorientation the bench produced, and it is a different shape of trajectory as well
+        # as a better one -- u0060 carries the shaft to about 70 deg where w0099 stops near
+        # 50, so the two hands' last panels do not look alike. The middle two are the same
+        # hand under the same plan, held and dropped. The last is a hand whose cylinder
+        # travels 54 mm across the bench instead of turning. Slip is the only number on the
+        # labels because it is the only one that means the same thing on a held and a dropped
+        # trial; the panels carry the tag's own angles and can be read.
+        sel = [("best", "Held"), ("hold", "Held"), ("over", "Dropped"), ("eject", "Dropped")]
         sheet([(P[k][1],) + lab(P[k][0], P[k][1], v) for k, v in sel if P[k][1]],
               f"{OUT}/fig_filmstrip_modes")
 
