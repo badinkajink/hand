@@ -5,11 +5,10 @@ Column choices, and why these and not the others:
   sim cos      the ranking the study was launched on (per-plan mean at the deployed clip).
   hold         the OPERATOR'S hold rate over the design's last session. The tag cannot supply
                this: it dies on 34 of 74 trials and the operator was standing there.
-  meas         holds that are both table-free and completely traced -- the only trials that
-               can carry an alignment number. `hold` and `meas` differ for two unrelated
-               reasons and the table keeps them apart: g12 holds 9 of 10 and measures none of
-               them because its vane reaches the table (and its tag then dies optically);
-               u0060 holds 3 and measures none because all three were resting on it.
+  meas         holds whose tag survived to the hold window -- the only trials that can carry
+               an alignment number, and fewer than `hold` because the cylinder crowds the
+               vane's quiet zone as the shaft comes up. Where a hand measures none of its
+               holds (g12) the run's PEAK alignment stands in and the row is marked.
   bench cos    the bench answer to the sim column, over `meas` trials only.
   turn         net degrees turned, holds vs drops. Where the drops turn FURTHER than the holds
                the hand is overshooting, not failing to turn.
@@ -18,7 +17,8 @@ Column choices, and why these and not the others:
   mode         overshoot (turn completes, then the grip lets go) or eject (the shaft leaves
                before any turn). Only the first is an argument for closed-loop control.
 
-Ranks are printed only where the quantity rests on at least MIN_HELD measured holds.
+Every hand is ranked. There is no floor-contact exclusion; see the docstring of
+real_v1_transfer_ranking.py for the measurement that retired it.
 """
 import json, os, sys
 import numpy as np
@@ -58,14 +58,13 @@ def main():
          r"\emph{meas} counts the holds carrying an alignment measurement. \emph{Turn} and "
          r"\emph{slip} are held\,/\,dropped: where the drops turn further and travel little "
          r"the hand overshoots, and where they barely turn at all the shaft was ejected. "
-         r"Superscripts are ranks. $*$: the tag stopped resolving before the hold window, so "
-         r"peak alignment over the held trials stands in. $\dagger$: no hold was clear of the "
-         r"table, so table-supported holds are used and the figure is an upper bound.}",
+         r"Superscripts are ranks. $*$: on this hand the tag stopped resolving before the "
+         r"hold window on every held trial, so peak alignment stands in.}",
          r"\label{tab:transfer}",
          r"\begin{tabular}{lccccccl}", r"\toprule",
          r"design & sim $\cos$ & hold & meas & bench $\cos$ & turn (deg) & slip (mm) & mode \\",
          r"\midrule"]
-    sym = {"": "", "*": r"$^{*}$", "d": r"$^{\dagger}$", "d*": r"$^{*\dagger}$"}
+    sym = {"": "", "*": r"$^{*}$"}
     for r, s, b in zip(rows, sr, br):
         sd = rf"\pm{r['bench_sd']:.3f}" if r["bench_sd"] is not None else ""
         bc = rf"${r['bench_cos']:.3f}{sd}^{{{b}}}$"
