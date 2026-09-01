@@ -20,6 +20,7 @@ from real_v1_transfer_figures import bench, sim, PLAN          # noqa: E402
 
 OUT = "paper/figures"
 FLOOR_MM = 8.0          # tag centre this close to the bench floor => the vane is on the table
+EJECT_SLIP_MM = 20.0    # a drop that travels this far never had the shaft in the first place
 SHORT = {"sv1_w6689": "w6689", "sv1_w2360": "w2360", "sv1_u1364": "u1364", "g12": "g12",
          "sv1_u0060": "u0060", "sv1_u0308": "u0308", "rv05_manual": "rv05", "sv1_w0099": "w0099"}
 
@@ -42,27 +43,59 @@ def floor_contact(per_design=10):
 def build(per_design=10):
     B, S, F = bench(per_design), sim(), floor_contact()
     rows = []
+
+    def mode(drops):
+        """Two failure modes, and they are not the same defect.
+
+        OVERSHOOT: the turn completes and keeps going, then the grip lets go. The drops turn
+        FURTHER than the same hand's holds (w0099: 65 deg vs 44) and travel little.
+        EJECTION:  the shaft leaves the grip before any turn happens -- net turn near zero and
+        20-55 mm of travel. Only overshoot is an argument for closing the loop; ejection is a
+        grasp that never closed."""
+        if not drops:
+            return "--"
+        sl = np.mean([t["slip"] for t in drops if t["slip"] is not None])
+        return "eject" if sl >= EJECT_SLIP_MM else "overshoot"
+
     for dsg, g in B.items():
         for t in g:
             t["floor"] = F.get(t["tag"], 1e9) < FLOOR_MM
         # a held trial only counts toward alignment if the hand held it WITHOUT the table
         held = [t for t in g if t["outcome"] == "HELD" and not t["floor"]]
-        h = np.array([t["cos_hold"] for t in held])
-        mins = [F.get(t["tag"]) for t in g if F.get(t["tag"]) is not None]
+        # ...and only if the tag survived to the end. g12 holds 9 of 10 and measures 0 of them:
+        # its tag dies optically (the cylinder crowds the quiet zone), not by falling, so its
+        # hold rate is real and its alignment is simply absent. The two are separate columns.
+        h = np.array([t["cos_hold"] for t in held if t["cos_hold"] is not None])
+        heldall = [t for t in g if t["outcome"] == "HELD"]
+        drops = [t for t in g if t["outcome"] == "DROPPED"]
+        mins = [F.get(t["tag"]) for t in heldall if F.get(t["tag"]) is not None]
         onfloor = sum(1 for v in mins if v < FLOOR_MM)
         rows.append(dict(design=dsg, short=SHORT[dsg], n=len(g), n_held=len(held),
                          n_drop=sum(t["outcome"] == "DROPPED" for t in g),
-                         n_clean=len(held),
+                         n_clean=len(held), n_cos=int(len(h)),
                          n_unres=sum(t["outcome"] == "UNRESOLVED" for t in g),
+                         n_heldall=len(heldall), mode=mode(drops),
+                         hold_rate_op=len(heldall) / len(g),
+                         held_slip=float(np.mean([t["slip"] for t in heldall
+                                                  if t["slip"] is not None])) if heldall else None,
+                         drop_slip=float(np.mean([t["slip"] for t in drops
+                                                  if t["slip"] is not None])) if drops else None,
+                         held_deg=float(np.mean([t["deg"] for t in heldall
+                                                 if t["deg"] is not None])) if heldall else None,
+                         drop_deg=float(np.mean([t["deg"] for t in drops
+                                                 if t["deg"] is not None])) if drops else None,
                          floor_trials=onfloor, min_tag_z=float(np.median(mins)) if mins else None,
                          held_rate=sum(t["outcome"] == "HELD" and not t["floor"]
                                        for t in g) / len(g),
                          bench_cos=float(h.mean()) if len(h) else None,
                          bench_med=float(np.median(h)) if len(h) else None,
                          bench_sd=float(h.std(ddof=1)) if len(h) > 1 else None,
-                         bench_peak=float(np.mean([t["cos_peak"] for t in g])),
-                         bench_deg=float(np.mean([t["deg"] for t in g])),
-                         bench_slip=float(np.mean([t["slip"] for t in g])),
+                         bench_peak=float(np.mean([t["cos_peak"] for t in g
+                                                   if t["cos_peak"] is not None])),
+                         bench_deg=float(np.mean([t["deg"] for t in g
+                                                  if t["deg"] is not None])),
+                         bench_slip=float(np.mean([t["slip"] for t in g
+                                                   if t["slip"] is not None])),
                          **{f"sim_{k}": S.get(dsg, {}).get(k) for k in
                             ("final_cos", "peak_cos", "ok_rate", "contacts", "force_N")}))
     return sorted(rows, key=lambda r: -(r["sim_final_cos"] or 0))
@@ -87,19 +120,21 @@ def main():
     a = ap.parse_args()
     os.makedirs(OUT, exist_ok=True)
     allrows = build(a.per_design)
-    rows = [r for r in allrows if r["n_held"] >= 3]      # need >=3 table-free held trials
+    rows = [r for r in allrows if r["n_cos"] >= 3]   # need >=3 measured table-free holds
 
     print(f"{'design':<8}{'n':>3}{'held':>5}{'drop':>5}{'unres':>6}{'floor':>6}{'medTagZ':>9}"
           f"{'bench':>8}{'sd':>7}{'peak':>7}{'deg':>6}{'simcos':>8}{'simN':>7}")
     for r in allrows:
         bc = f"{r['bench_cos']:+.3f}" if r["bench_cos"] is not None else "     -"
         sd = f"{r['bench_sd']:.3f}" if r["bench_sd"] is not None else "    -"
-        flag = " <-- too few table-free trials" if r["n_held"] < 3 else ""
+        flag = " <-- too few measured holds" if r["n_cos"] < 3 else ""
         print(f"{r['short']:<8}{r['n']:>3}{r['n_held']:>5}{r['n_drop']:>5}{r['n_unres']:>6}"
-              f"{r['floor_trials']:>6}{r['min_tag_z']:>9.1f}{bc:>8}{sd:>7}{r['bench_peak']:>+7.3f}"
+              f"{r['floor_trials']:>3}/{r['n_heldall']:<2}"
+              f"{(r['min_tag_z'] if r['min_tag_z'] is not None else float('nan')):>9.1f}{bc:>8}{sd:>7}{r['bench_peak']:>+7.3f}"
               f"{r['bench_deg']:>6.1f}{r['sim_final_cos']:>8.3f}{r['sim_force_N']:>7.2f}{flag}")
 
-    bench_keys = ["bench_cos", "bench_med", "bench_peak", "bench_deg", "held_rate", "bench_slip"]
+    bench_keys = ["bench_cos", "bench_med", "bench_peak", "bench_deg", "hold_rate_op",
+                  "held_slip"]
     sim_keys = ["sim_final_cos", "sim_peak_cos", "sim_ok_rate", "sim_contacts", "sim_force_N"]
     Mb, Nb = rank_table(rows, bench_keys)
     Ms, Ns = rank_table(rows, sim_keys + bench_keys)
@@ -132,7 +167,7 @@ def figures():
         g = B[r["design"]]
         for t in g:
             fl = F.get(t["tag"], 1e9) < FLOOR_MM
-            if t["outcome"] == "HELD":
+            if t["outcome"] == "HELD" and t["cos_hold"] is not None:
                 ax.scatter(i + np.random.uniform(-.15, .15), t["cos_hold"], s=15, lw=.7,
                            c="none" if fl else BL, edgecolors=MU if fl else "none", zorder=3)
         if r["bench_cos"] is not None:
@@ -160,7 +195,8 @@ def figures():
         if k == 0:      # panel A must use the unfiltered per-design means
             xs, ys, nm = [], [], []
             for r in allrows:
-                g = [t["cos_hold"] for t in B[r["design"]] if t["outcome"] == "HELD"]
+                g = [t["cos_hold"] for t in B[r["design"]]
+                     if t["outcome"] == "HELD" and t["cos_hold"] is not None]
                 if g:
                     xs.append(r["sim_final_cos"]); ys.append(float(np.mean(g))); nm.append(r["short"])
         a.plot([.45, .9], [.45, .9], ls="--", c=MU, lw=.8)
@@ -177,10 +213,11 @@ def figures():
     # ---- fig 3: rank agreement between metrics
     lbl = {"bench_cos": "cos held", "bench_med": "median cos", "bench_peak": "cos peak",
            "bench_deg": "turn (deg)", "held_rate": "held rate", "bench_slip": "slip",
+           "hold_rate_op": "hold rate", "held_slip": "slip (held)",
            "sim_final_cos": "sim cos", "sim_peak_cos": "sim peak", "sim_ok_rate": "sim retained",
            "sim_contacts": "sim contacts", "sim_force_N": "sim force"}
     use = [r for r in allrows if r["bench_peak"] is not None]
-    bk2 = ["bench_peak", "bench_deg", "held_rate", "bench_slip", "bench_cos"]
+    bk2 = ["bench_peak", "bench_deg", "hold_rate_op", "held_slip", "bench_cos"]
     Mb2, Nb2 = rank_table(use, bk2)
     Mx, Nx = rank_table(use, sk + bk2)
     f, ax = plt.subplots(1, 2, figsize=(7.0, 3.4),
@@ -203,22 +240,26 @@ def figures():
     f.savefig(f"{OUT}/fig_transfer_ranking.pdf", bbox_inches="tight")
     f.savefig(f"{OUT}/fig_transfer_ranking.png", dpi=200, bbox_inches="tight")
 
-    # ---- fig 4: the drops
-    f, ax = plt.subplots(figsize=(3.3, 3.0))
-    pk, fn = [], []
+    # ---- fig 4: the two failure modes, in one plane
+    f, ax = plt.subplots(figsize=(4.3, 3.2))
     for g in B.values():
         for t in g:
-            if t["outcome"] == "DROPPED":
-                pk.append(t["cos_peak"]); fn.append(t["cos_hold"] or 0.0)
-            elif t["outcome"] == "HELD":
-                ax.plot([0, 1], [t["cos_peak"], t["cos_hold"]], c=BL, lw=.5, alpha=.2, zorder=2)
-    for p_, f_ in zip(pk, fn):
-        ax.plot([0, 1], [p_, f_], c=RD, lw=1.2, alpha=.8, zorder=3)
-    ax.set_xticks([0, 1]); ax.set_xticklabels(["peak", "held"]); ax.set_xlim(-.15, 1.15)
-    ax.set_ylabel(r"$\cos(\hat{s},\,\hat{z})$")
-    ax.set_title(f"the {len(pk)} drops turn first\n"
-                 f"{np.mean(pk):+.2f} $\\rightarrow$ {np.mean(fn):+.2f}", loc="left")
-    f.tight_layout(); f.savefig(f"{OUT}/fig_transfer_drops.pdf"); f.savefig(f"{OUT}/fig_transfer_drops.png", dpi=200)
+            if t["deg"] is None or t["slip"] is None:
+                continue
+            if t["outcome"] == "HELD":
+                ax.scatter(t["deg"], t["slip"], s=20, c=BL, zorder=3, lw=0)
+            elif t["outcome"] == "DROPPED":
+                ax.scatter(t["deg"], t["slip"], s=26, marker="x", c=RD, zorder=4, lw=1.1)
+    ax.axhline(EJECT_SLIP_MM, c=MU, lw=.7, ls="--")
+    ax.text(74, EJECT_SLIP_MM + 1.5, "ejected", fontsize=7, color=MU, ha="right")
+    ax.set_xlabel("net turn (deg)"); ax.set_ylabel("slip (mm)")
+    ax.scatter([], [], s=20, c=BL, label="held"); ax.scatter([], [], s=26, marker="x", c=RD,
+                                                             lw=1.1, label="dropped")
+    ax.legend(frameon=False, fontsize=7, loc="upper right")
+    ax.set_title("a drop either overshoots the turn\nor never gets one", loc="left")
+    f.tight_layout(); f.savefig(f"{OUT}/fig_transfer_drops.pdf")
+    f.savefig(f"{OUT}/fig_transfer_drops.png", dpi=200)
+
     print(f"\nwrote 4 figures to {OUT}/")
     return allrows, rows, Mb2, Mx, bk2, sk
 
