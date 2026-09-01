@@ -50,7 +50,7 @@ def main():
     args = ap.parse_args()
 
     j_idx = args.joint
-    spm = STEPS_PER_MM[j_idx]
+    spm = STEPS_PER_MM
     expected_steps = round(args.mm * spm)
 
     print(f"J{j_idx}: steps_per_mm = {spm}")

@@ -37,7 +37,9 @@ day-to-day driving.
     can be checked on a workstation before anyone stands next to the hardware.
   - `host/examples/verify_frame_mapping.py` -- the three questions only the hardware answers:
     which physical block is which finger, which way a positive aa command actually swings a
-    fingertip, and whether J1/J3/J5's 4-6 mm travel shortfall is a scale error or a wall.
+    fingertip, and (resolved 2026-09-01, no shortfall -- see `kinematics.py`'s
+    `FULL_EXTENSION_MM` comment) whether J1/J3/J5's apparent 4-6 mm travel shortfall was a scale
+    error or a wall.
   - `host/examples/movement_examples.py` -- one example per movement option, run any one by name.
   - `host/examples/hand_control.py` -- interactive text-command REPL (day-to-day driving).
 - `docs/` -- pin mapping, wire protocol spec, bring-up checklist.

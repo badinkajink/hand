@@ -21,20 +21,18 @@ are not, and each of them silently produces a hand that looks right and grasps n
    module would do. A flipped sign rolls a pad off the tool: g12 grips with the thumb at
    +17.7 deg of yaw.
 
-3. J1/J3/J5 TRAVEL. `FULL_EXTENSION_MM` says these three reach 56.2 / 56.0 / 54.1 mm against a
-   60 mm nominal, and that 4-6 mm shortfall is what disqualifies the most compact 11 of the 108
-   sampled designs. But those three axes' `STEPS_PER_MM` was, per its own comment,
-   "back-calculated from a known-good 10mm move and hasn't been individually ruler-checked" --
-   so the shortfall may be a scale error rather than a wall. The two cases need opposite
-   responses and a caliper tells them apart in a minute:
+3. J1/J3/J5 TRAVEL -- RESOLVED 2026-09-01, no shortfall. `FULL_EXTENSION_MM` used to say these
+   three reach 56.2 / 56.0 / 54.1 mm against a 60 mm nominal, implying a 4-6 mm shortfall that
+   would disqualify the most compact 11 of the 108 sampled designs. That was wrong: all six axes
+   reach their full nominal travel (110 mm on J0, 60 mm on the rest -- see `kinematics.py`'s
+   `FULL_EXTENSION_MM` comment), and the 45mm caliper check below found 0.0% scale error on all
+   three axes. `stage_travel` is kept as the regression check for this -- worth re-running if
+   `STEPS_PER_MM` or the hardware itself changes again:
 
-     commanded 45 mm moves ~45 mm   -> the scale is right, the rails really are short,
-                                       those 11 designs are unbuildable, stop trying
-     commanded 45 mm moves ~48-50 mm-> the scale is 6-10 percent high, every mm this driver has
-                                       ever commanded on these axes was short by that much, and
-                                       fixing STEPS_PER_MM recovers the whole design box
-
-   The second case matters beyond the design set: mount positions are commanded in the same mm.
+     commanded 45 mm moves ~45 mm   -> scale still right, no shortfall (the expected result)
+     commanded 45 mm moves something else -> STEPS_PER_MM or the hardware has drifted; a
+                                       divergence here also means mount positions (commanded in
+                                       the same mm) are off by the same amount
 
 Nothing here is destructive -- every move is well inside a calibrated range, and the travel
 probe stops short of both hypotheses' far hardstop. It does drive real hardware, so it asks
@@ -131,15 +129,30 @@ def stage_signs(hand, yes: bool) -> dict[tuple[str, str], float]:
 
 
 def stage_travel(driver, yes: bool) -> None:
-    """Is the y-axis shortfall a scale error or a wall."""
-    print("\n3. J1/J3/J5 TRAVEL -- scale error, or a real wall?")
+    """Scale-linearity regression check on J1/J3/J5, up to PROBE_MM.
+
+    2026-08-31: STEPS_PER_MM collapsed from a per-joint dict to one shared
+    scalar (all six axes are the identical motor/leadscrew/nut, so there can
+    only be one true steps/mm) -- see kinematics.py's comment.
+
+    2026-09-01: FULL_EXTENSION_MM corrected to the full nominal travel (60mm
+    on these three axes) -- the previous 56.2/56.0/54.1 entries implied a
+    wall that was never real (see that dict's comment). This stage no longer
+    investigates "scale error vs. wall"; it's a scale-drift regression check
+    now. PROBE_MM (45mm) stays short of the corrected 60mm FULL_EXTENSION_MM,
+    so a clean result here confirms scale linearity up to 45mm, not the full
+    range -- it does not by itself verify there's no wall between 45 and
+    60mm."""
+    print("\n3. J1/J3/J5 TRAVEL -- scale-drift regression check")
     print(f"   Each axis homes, then is commanded to +{PROBE_MM:.0f} mm. Measure the actual")
     print("   travel with a caliper against a fixed reference and type it in.")
     for j in (1, 3, 5):
         if ask(f"home and probe J{j} (believed travel {FULL_EXTENSION_MM[j]:.1f} mm, "
-               f"scale {STEPS_PER_MM[j]:.1f} steps/mm)? [enter / s]", yes) == "s":
+               f"shared scale {STEPS_PER_MM:.1f} steps/mm)? [enter / s]", yes) == "s":
             continue
         from manta_hand.kinematics import _home_one_axis
+        driver.joints[j].enable()
+        driver.joints[j].set_scale(STEPS_PER_MM)
         _home_one_axis(driver, j)
         driver.joints[j].move_to_mm(PROBE_MM, STEPPER_VELOCITY, STEPPER_ACCEL)
         while driver.joints[j].status.moving:
@@ -151,16 +164,19 @@ def stage_travel(driver, yes: bool) -> None:
             print("   skipped")
             continue
         ratio = measured / PROBE_MM
-        true_scale = STEPS_PER_MM[j] / ratio
+        true_scale = STEPS_PER_MM / ratio
         true_travel = FULL_EXTENSION_MM[j] * ratio
         print(f"   J{j}: commanded {PROBE_MM:.1f}, moved {measured:.1f} -> "
               f"{100 * (ratio - 1):+.1f}% scale error")
         if abs(ratio - 1) < 0.01:
-            print(f"       scale is right. This rail really does stop at "
-                  f"{FULL_EXTENSION_MM[j]:.1f} mm; the compact designs needing it are out.")
+            print(f"       scale still right, consistent with FULL_EXTENSION_MM's "
+                  f"{FULL_EXTENSION_MM[j]:.1f} mm.")
         else:
-            print(f"       STEPS_PER_MM[{j}] should be {true_scale:.1f}, and the real travel is "
-                  f"~{true_travel:.1f} mm.")
+            print(f"       this axis's true scale is {true_scale:.1f} steps/mm, vs. the shared "
+                  f"STEPS_PER_MM={STEPS_PER_MM:.1f} every axis currently uses -- either this "
+                  f"axis has drifted, or FULL_EXTENSION_MM's {FULL_EXTENSION_MM[j]:.1f} mm is "
+                  f"wrong again. Investigate before trusting mount positions on J{j}; implied "
+                  f"real travel is ~{true_travel:.1f} mm.")
             print(f"       Every mm ever commanded on J{j} was off by {100*(ratio-1):+.1f}% -- "
                   f"that includes mount positions.")
         driver.joints[j].move_to_mm(10.0, STEPPER_VELOCITY, STEPPER_ACCEL)

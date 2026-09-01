@@ -37,16 +37,29 @@ if TYPE_CHECKING:  # pyserial is a runtime-only dependency of .driver, and every
 # finger_id -> (x_joint_index, y_joint_index) on the Manta M8P (J0-J5).
 STEPPER_JOINTS = {0: (0, 1), 1: (2, 3), 2: (4, 5)}
 
-# joint index -> steps/mm (SETSCALE calibration, RAM-only on the firmware
-# side -- re-sent every run). Negative: HOME's dir=+1 increases the step
-# count as it travels TOWARD the near/home hardstop, so 0mm (the post-home
-# zero) needs a *negative* scale for positive MOVEMM values to mean "away
-# from home" -- getting this backwards drives an axis further into its
-# home hardstop with no StallGuard protection at all (MOVEMM doesn't check
-# stall, unlike HOME). J0's magnitude is ruler-verified; the rest are
-# back-calculated from a known-good 10mm move and haven't been
-# individually ruler-checked.
-STEPS_PER_MM = {0: -3216.0, 1: -2770.0, 2: -3260.0, 3: -3181.5, 4: -3472.0, 5: -3197.0}
+# steps/mm (SETSCALE calibration, RAM-only on the firmware side -- re-sent
+# every run). Negative: HOME's dir=+1 increases the step count as it
+# travels TOWARD the near/home hardstop, so 0mm (the post-home zero) needs
+# a *negative* scale for positive MOVEMM values to mean "away from home"
+# -- getting this backwards drives an axis further into its home hardstop
+# with no StallGuard protection at all (MOVEMM doesn't check stall, unlike
+# HOME).
+#
+# ONE shared scalar, not six independently-calibrated values, as of
+# 2026-08-29. All six axes use the identical motor, leadscrew, and nut --
+# steps/mm is a function of motor step angle x microstepping / screw
+# pitch, which doesn't depend on rail length or which axis it is, so
+# physically there can only be one true value here. The old per-joint dict
+# ({0: -3216.0, 1: -2770.0, 2: -3260.0, 3: -3181.5, 4: -3472.0, 5:
+# -3197.0}) let J1 drift 13.9% and J4 drift 8.0% from J0's value with
+# nothing to flag either as wrong -- both were within a couple percent of
+# each other and of the theoretical 3200 (200 full steps/rev x 16
+# microsteps / 1mm pitch) EXCEPT those two, which is a calibration error
+# in their individual "known-good 10mm move" check, not a real mechanical
+# difference. Using J0's magnitude here since it's the only one that was
+# ever independently ruler-verified rather than back-calculated from an
+# eyeballed move.
+STEPS_PER_MM = -3216.0
 
 # joint index -> measured home-to-far-hardstop travel (mm). ALWAYS POSITIVE,
 # on every axis: HOME_DIRECTION=+1 runs an axis's step count UP into its home
@@ -66,11 +79,19 @@ STEPS_PER_MM = {0: -3216.0, 1: -2770.0, 2: -3260.0, 3: -3181.5, 4: -3472.0, 5: -
 # host/examples/verify_axis_direction.py.
 #
 # This is the single source of truth for stepper bounds-checking throughout
-# this module; do not use the nominal {P}-diagram box dimensions for safety
-# checks, since they disagree with real measured travel on J1/J3/J5 by
-# several mm (nominal is optimistic there -- see FINGER_GEOMETRY's own
-# comment for the derivation).
-FULL_EXTENSION_MM = {0: 112.4, 1: 56.2, 2: 62.5, 3: 56.0, 4: 62.2, 5: 54.1}
+# this module.
+#
+# 2026-09-01: corrected -- all six axes reach their full nominal travel
+# (110mm on J0, 60mm on the rest); there is no wall short of that on
+# J1/J3/J5. The previous entries here (56.2/56.0/54.1, a 4-6mm "shortfall"
+# against the 60mm nominal box) were wrong, not a real mechanical limit.
+# This is a direct correction, not derived from the 45mm
+# verify_frame_mapping.py --travel probe: that probe (commanded 45,
+# measured 45 on all three, 0.0% scale error) only checked scale linearity
+# up to 45mm -- PROBE_MM was deliberately kept short of the old 56ish-mm
+# hypothesis, so on its own it cannot distinguish "wall at 56" from "goes
+# to 60."
+FULL_EXTENSION_MM = {0: 110.0, 1: 60.0, 2: 60.0, 3: 60.0, 4: 60.0, 5: 60.0}
 
 STEPPER_VELOCITY = 12000
 STEPPER_ACCEL = 2000
@@ -169,9 +190,28 @@ def axis_stepper_range(joint_index: int) -> tuple[float, float]:
 
 
 def _local_bounds(finger_id: int) -> tuple[tuple[float, float], tuple[float, float]]:
-    """Invert this finger's transform against the REAL measured
-    FULL_EXTENSION_MM (not the nominal box) to get the valid local (x, y)
-    interval, computed once and cached by Gantry/GantryFinger at init."""
+    """Valid local (x, y) interval a caller can command via
+    move_to_local/move_to_global -- the NOMINAL box from FINGER_GEOMETRY
+    (e.g. thumb's full 60x110, index/middle's full 60x60), centered on the
+    origin.
+
+    2026-09-01: identical to _local_bounds_real_measured now that
+    FULL_EXTENSION_MM was corrected to match this nominal box exactly on
+    every axis (see that dict's comment) -- the "real measured travel is a
+    few mm short of nominal" tradeoff this docstring used to describe was
+    based on wrong FULL_EXTENSION_MM entries and no longer applies. Kept as
+    a separate function from _local_bounds_real_measured in case
+    FULL_EXTENSION_MM needs tightening below nominal again later."""
+    box_w, box_h = FINGER_GEOMETRY[finger_id]["box"]
+    return (-box_w / 2.0, box_w / 2.0), (-box_h / 2.0, box_h / 2.0)
+
+
+def _local_bounds_real_measured(finger_id: int) -> tuple[tuple[float, float], tuple[float, float]]:
+    """Invert this finger's transform against FULL_EXTENSION_MM to get the
+    valid local (x, y) interval. Identical to _local_bounds as of
+    2026-09-01, since FULL_EXTENSION_MM now equals the nominal box on every
+    axis (see _local_bounds's docstring) -- kept separate in case
+    FULL_EXTENSION_MM needs tightening below nominal again later."""
     x_joint, y_joint = STEPPER_JOINTS[finger_id]
     x_offset, x_sign, y_offset, y_sign = _TRANSFORM[finger_id]
     # stepper_x = x_offset + x_sign*local_y ranges over [0, FULL_EXTENSION_MM[x_joint]]
@@ -191,7 +231,7 @@ def _home_timeout_ms(joint_index: int) -> int:
     measured travel range (FULL_EXTENSION_MM) at HOME_VELOCITY/HOME_ACCEL,
     times HOME_TIMEOUT_MARGIN for real-world slop -- computed per axis
     instead of one shared constant, since axes have very different real
-    lengths (J0's 112.4mm vs J5's 54.1mm) and a timeout sized for the
+    lengths (J0's 110mm vs J1/J3/J5's 60mm) and a timeout sized for the
     longest axis wastes a lot of grind time on the shorter ones.
 
     This is what makes a StallGuard miss (homing_result=3) trustworthy
@@ -201,7 +241,7 @@ def _home_timeout_ms(joint_index: int) -> int:
     far hardstop by now, whether or not StallGuard noticed. See
     feedback_homing_timeout_must_cover_full_travel.md for why the timeout
     itself must never be shortened below this regardless."""
-    distance_steps = abs(FULL_EXTENSION_MM[joint_index]) * abs(STEPS_PER_MM[joint_index])
+    distance_steps = abs(FULL_EXTENSION_MM[joint_index]) * abs(STEPS_PER_MM)
     ramp_distance_steps = HOME_VELOCITY**2 / (2 * HOME_ACCEL)
     if distance_steps <= ramp_distance_steps:
         travel_s = (2 * distance_steps / HOME_ACCEL) ** 0.5  # never reaches cruise speed
@@ -279,7 +319,7 @@ def move_time_estimate_s(joint_index: int, distance_mm: float,
     timeout can be sized from the move it is actually waiting on instead of one
     constant that is either far too generous for a 3mm nudge or too tight for a
     full-length one."""
-    steps = abs(distance_mm) * abs(STEPS_PER_MM[joint_index])
+    steps = abs(distance_mm) * abs(STEPS_PER_MM)
     ramp_steps = velocity**2 / (2 * accel)
     if steps <= 0:
         return 0.0
@@ -320,7 +360,7 @@ def _home_one_axis(driver: MantaHandDriver, joint_index: int,
          travel_mm=FULL_EXTENSION_MM[joint_index])
     started = time.monotonic()
 
-    current_mm = j.status.position / STEPS_PER_MM[joint_index]
+    current_mm = j.status.position / STEPS_PER_MM
     if abs(current_mm) < PRE_HOME_BACKOFF_MM:
         # HOME_VELOCITY/HOME_ACCEL, not STEPPER_VELOCITY -- at 400sps a 10mm
         # move takes ~80s, far longer than this poll loop waits, so the
@@ -475,7 +515,7 @@ class Gantry:
         for x_joint, y_joint in STEPPER_JOINTS.values():
             for joint_index in (x_joint, y_joint):
                 self._driver.joints[joint_index].enable()
-                self._driver.joints[joint_index].set_scale(STEPS_PER_MM[joint_index])
+                self._driver.joints[joint_index].set_scale(STEPS_PER_MM)
 
     def finger(self, finger_id: int) -> GantryFinger:
         return self._fingers[finger_id]
@@ -534,7 +574,7 @@ class Gantry:
             if _cancelled(cancel):
                 raise HomingAborted(f"gantry move cancelled before J{joint_index}")
             joint = self._driver.joints[joint_index]
-            here = joint.status.position / STEPS_PER_MM[joint_index]
+            here = joint.status.position / STEPS_PER_MM
             distance = abs(mm - here)
             if report is not None:
                 report("gantry_axis_start", {"joint": joint_index, "target_mm": mm,
