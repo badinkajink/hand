@@ -25,10 +25,10 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from real_v1_transfer_ranking import build                              # noqa: E402
+from real_v1_transfer_figures import PLAN                                # noqa: E402
 
 OUT = "paper/transfer_table.tex"
-MIN_HELD = 3
-SUSPECT = {"u1364": "mount re-staged mid-session; 7 trials, none scored"}
+MAP = "paper/transfer_appendix_designs.tex"
 
 
 def ranks(vals):
@@ -46,36 +46,30 @@ def fmt(v, n=1, sign=False):
 
 def main():
     rows = build(10)
-    for r in rows:
-        r["rankable"] = r["n_cos"] >= MIN_HELD and r["short"] not in SUSPECT
     rows.sort(key=lambda r: -r["sim_final_cos"])
     sr = ranks([r["sim_final_cos"] for r in rows])
-    br = ranks([r["bench_cos"] if r["rankable"] else None for r in rows])
+    br = ranks([r["bench_cos"] for r in rows])       # every hand is ranked
 
     L = [r"\begin{table}[t]", r"\centering", r"\footnotesize",
          r"\setlength{\tabcolsep}{4pt}",
          r"\caption{Eight \texttt{real\_v1} hands, one exported open-loop plan each, one bench "
-         r"session each. \emph{hold} is the operator's verdict; \emph{meas} counts the holds "
-         r"that are both clear of the table and completely traced, which are the only ones "
-         r"carrying an alignment number. \emph{turn} and \emph{slip} are given as "
-         r"holds\,/\,drops: where the drops turn further and travel little the hand is "
-         r"overshooting, and where they barely turn at all the shaft was ejected. Superscripts "
-         r"are ranks. \texttt{u1364} is bracketed -- its mount was re-staged mid-session.}",
+         r"session each, named \texttt{D1}--\texttt{D8} in the order simulation ranked them "
+         r"(Appendix~\ref{tab:transfer-map}). \emph{Hold} is the operator's verdict; "
+         r"\emph{meas} counts the holds carrying an alignment measurement. \emph{Turn} and "
+         r"\emph{slip} are held\,/\,dropped: where the drops turn further and travel little "
+         r"the hand overshoots, and where they barely turn at all the shaft was ejected. "
+         r"Superscripts are ranks. $*$: the tag stopped resolving before the hold window, so "
+         r"peak alignment over the held trials stands in. $\dagger$: no hold was clear of the "
+         r"table, so table-supported holds are used and the figure is an upper bound.}",
          r"\label{tab:transfer}",
          r"\begin{tabular}{lccccccl}", r"\toprule",
-         r"hand & sim $\cos$ & hold & meas & bench $\cos$ & turn (deg) & slip (mm) & mode \\",
+         r"design & sim $\cos$ & hold & meas & bench $\cos$ & turn (deg) & slip (mm) & mode \\",
          r"\midrule"]
+    sym = {"": "", "*": r"$^{*}$", "d": r"$^{\dagger}$", "d*": r"$^{*\dagger}$"}
     for r, s, b in zip(rows, sr, br):
-        if r["bench_cos"] is None:
-            bc = "--"
-        elif r["rankable"]:
-            bc = rf"${r['bench_cos']:.3f}\pm{r['bench_sd']:.3f}^{{{b}}}$"
-        else:
-            bc = rf"$({r['bench_cos']:.3f})$"
-        nm = rf"\texttt{{{r['short']}}}"
-        if r["short"] in SUSPECT:
-            nm = rf"[{nm}]"
-        L.append(rf"{nm} & ${r['sim_final_cos']:.3f}^{{{s}}}$ & "
+        sd = rf"\pm{r['bench_sd']:.3f}" if r["bench_sd"] is not None else ""
+        bc = rf"${r['bench_cos']:.3f}{sd}^{{{b}}}$"
+        L.append(rf"\texttt{{{r['did']}}}{sym[r['qual']]} & ${r['sim_final_cos']:.3f}^{{{s}}}$ & "
                  rf"{r['n_heldall']}/{r['n']} & {r['n_cos']} & {bc} & "
                  rf"{fmt(r['held_deg'], 0)}\,/\,{fmt(r['drop_deg'], 0)} & "
                  rf"{fmt(r['held_slip'])}\,/\,{fmt(r['drop_slip'])} & {r['mode']} \\")
@@ -83,16 +77,29 @@ def main():
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     open(OUT, "w").write("\n".join(L))
 
-    hdr = (f"{'hand':<7}{'simcos':>8}{'r':>3}{'hold':>7}{'meas':>6}{'benchcos':>10}{'r':>3}"
+    M = [r"\begin{table}[t]", r"\centering", r"\footnotesize",
+         r"\caption{Design labels. \texttt{D}$k$ is the hand simulation ranked $k$th; the "
+         r"internal tag and the exported plan are given so every number in "
+         r"Table~\ref{tab:transfer} can be traced to a run directory.}",
+         r"\label{tab:transfer-map}", r"\begin{tabular}{llll}", r"\toprule",
+         r"design & internal tag & exported plan & clip \\", r"\midrule"]
+    for r in rows:
+        plan, clip = PLAN[r["design"]]
+        M.append(rf"\texttt{{{r['did']}}} & \texttt{{{r['short']}}} & "
+                 rf"\texttt{{{plan.replace('_', chr(92) + '_')}}} & {clip:.2f} \\")
+    M += [r"\bottomrule", r"\end{tabular}", r"\end{table}", ""]
+    open(MAP, "w").write("\n".join(M))
+
+    hdr = (f"{'hand':<10}{'simcos':>8}{'r':>3}{'hold':>7}{'meas':>6}{'benchcos':>10}{'r':>3}"
            f"{'turn h/d':>14}{'slip h/d':>13}  mode")
     print(hdr); print("-" * len(hdr))
     for r, s, b in zip(rows, sr, br):
-        bc = f"{r['bench_cos']:.3f}" if r["bench_cos"] is not None else "-"
-        print(f"{r['short']:<7}{r['sim_final_cos']:>8.3f}{s:>3}"
+        bc = f"{r['bench_cos']:.3f}{r['qual']}"
+        print(f"{r['did']} {r['short']:<7}{r['sim_final_cos']:>8.3f}{s:>3}"
               f"{r['n_heldall']:>4}/{r['n']:<2}{r['n_cos']:>6}{bc:>10}{b if b else '-':>3}"
               f"{fmt(r['held_deg'],0):>7}/{fmt(r['drop_deg'],0):<6}"
               f"{fmt(r['held_slip']):>6}/{fmt(r['drop_slip']):<6}  {r['mode']}")
-    print(f"\nwrote {OUT}")
+    print(f"\nwrote {OUT} and {MAP}")
     return rows
 
 
