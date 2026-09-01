@@ -5,20 +5,28 @@ Scoring rules, stated once here so they can be argued with:
 * Only traces on the 40 mm / 77 mm vane count. The vane rebuild changed the task, not just the
   instrument: on sv1_w6689 the mean turn fell 4 deg and cos_hold fell 0.044 (Welch p = 0.019).
   Pooling across it would put an instrument change inside a design comparison.
-* Each design keeps its LAST `--per-design` trials; the operator's early trials on a morphology
-  are staging/calibration, not data.
-* Three outcomes, because the instrument admits three:
-    HELD        complete trace, no fall  -> carries cos_hold
-    DROPPED     the shaft lost >= DROP_MM against its own baseline while still observed
-    UNRESOLVED  the vane left view mid-run, so the ending was never seen. NOT a success and NOT
-                a failure. Scoring these as either one is the single easiest way to manufacture
-                a result here: 12 of g12's 12 trials are unresolved.
+* Each design keeps its LAST SESSION (runs separated by more than SESSION_GAP_S start a new
+  one) and at most `--per-design` trials from its end. Designs were rerun on 2026-08-31 after
+  the floor confound was found, so "the last ten" and "the rerun" have to be the same set;
+  a design whose rerun was short (u1364, 7 trials) keeps what it has rather than reaching
+  back across the gap into an older configuration.
+* The OPERATOR'S VERDICT outranks the instrument. `manual_score.success` from the CB1 decides
+  HELD vs DROPPED wherever it exists, because the tag drops out on precisely the runs whose
+  ending matters most and the operator was standing there. The tag supplies the metrics, not
+  the verdict.
+* Three outcomes, because the evidence admits three:
+    HELD        the operator called it a hold (or, unscored, a complete trace with no fall)
+    DROPPED     the operator called it a failure (or, unscored, z fell >= DROP_MM while seen)
+    UNRESOLVED  no operator verdict AND the vane left view mid-run. NOT a success and NOT a
+                failure.
+  A HELD trial carries cos_hold only if the trace is complete; g12 holds 9 of 10 and supplies
+  one alignment number, because its tag dies optically rather than by falling.
 * cos at the last detection is NOT a stand-in for cos_hold. Measured over 52 complete traces the
   two correlate at r = 0.82, but the residual sd is 0.103 -- three times the within-design
   spread -- because the turn is still moving at 1.5 s. It ranks (spearman 0.86); it does not
   substitute.
 """
-import argparse, csv, glob, json, os, re, collections
+import argparse, csv, glob, json, os, re, time, collections
 import numpy as np
 
 SIM = "docs/experiments/20260831-real_v1-sobol8192/deploy_plan_bands_all.json"
@@ -29,30 +37,56 @@ PLAN = {"sv1_w6689": ("sv1_w6689_b060", 0.60), "sv1_w2360": ("sv1_w2360_b075", 0
         "sv1_u0060": ("sv1_u0060_b75", 0.75), "sv1_u0308": ("sv1_u0308_b050", 0.50),
         "rv05_manual": ("rv05_manual_b85", 0.85), "sv1_w0099": ("sv1_w0099_b100", 1.00)}
 EXCLUDE = {"b01cac"}          # operator-flagged mis-staging
+SESSION_GAP_S = 600           # a gap this long means the rig was reconfigured between runs
+SCORES = "docs/experiments/20260901-real_v1-transfer-firstpass/manual_scores.json"
+
+
+def _scores():
+    try:
+        return json.load(open(SCORES))
+    except FileNotFoundError:       # run scripts/real_v1_fetch_scores.py
+        return {}
 
 
 def bench(per_design=10):
-    rows = []
+    S, rows = _scores(), []
     for p in sorted(glob.glob("logs/tracker/*_SUMMARY.json"), key=os.path.getmtime):
         d = json.load(open(p))
         if d.get("axial_mm") != 77.0:
             continue
         s = d["summary"]
-        m = re.match(r"\d{8}-(\d{6})-(.+)-([0-9a-f]{6})$",
-                     os.path.basename(p).replace("_track_SUMMARY.json", ""))
-        if m.group(3) in EXCLUDE:
+        run_id = os.path.basename(p).replace("_track_SUMMARY.json", "")
+        m = re.match(r"(\d{8})-(\d{6})-(.+)-([0-9a-f]{6})$", run_id)
+        if m.group(4) in EXCLUDE:
             continue
+        sc = S.get(run_id, {})
         void = s.get("cos_hold") is None
-        dropped = s["z_drop_mm"] >= DROP_MM
-        rows.append(dict(design=m.group(2), tag=m.group(3), clock=m.group(1),
-                         outcome="DROPPED" if dropped else ("UNRESOLVED" if void else "HELD"),
+        # a trace with no detection at all has no z_drop; it is void, never a measured fall
+        dropped = s["z_drop_mm"] is not None and s["z_drop_mm"] >= DROP_MM
+        if sc.get("success") is None:
+            outcome = "DROPPED" if dropped else ("UNRESOLVED" if void else "HELD")
+        else:
+            outcome = "HELD" if sc["success"] else "DROPPED"
+        t = time.mktime(time.strptime(m.group(1) + m.group(2), "%Y%m%d%H%M%S"))
+        rows.append(dict(design=m.group(3), tag=m.group(4), clock=m.group(2), t=t,
+                         run_id=run_id, scored=sc.get("success") is not None,
+                         op_deg=sc.get("deg"),
+                         outcome=outcome,
                          cos_hold=s.get("cos_hold"), cos_peak=s["cos_peak"],
                          deg=s["deg_turned"], z_drop=s["z_drop_mm"], slip=s["slip_mm"],
                          vis=s["visibility"]))
     by = collections.defaultdict(list)
     for r in rows:
         by[r["design"]].append(r)
-    return {k: v[-per_design:] for k, v in by.items()}
+    out = {}
+    for k, v in by.items():
+        v.sort(key=lambda r: r["t"])
+        cut = 0
+        for i in range(1, len(v)):
+            if v[i]["t"] - v[i - 1]["t"] > SESSION_GAP_S:
+                cut = i
+        out[k] = v[cut:][-per_design:]
+    return out
 
 
 def sim():

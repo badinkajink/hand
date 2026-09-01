@@ -720,7 +720,7 @@ async function refreshLogs() {
         + `<div class="actions"><button class="secondary download">Data</button>`
         + `<button class="secondary score">Score</button></div>`;
       d.querySelector('.download').onclick = () => window.open(`${API}/api/v1/logs/${r.run_id}.jsonl`);
-      d.querySelector('.score').onclick = () => openScore(r.run_id, r.object_track);
+      d.querySelector('.score').onclick = () => openScore(r.run_id, r.object_track, r.manual_score);
       root.appendChild(d);
     }
   } catch (e) {
@@ -728,8 +728,13 @@ async function refreshLogs() {
   }
 }
 
-function openScore(id, track) {
+function openScore(id, track, saved) {
   $('score-run-id').value = id;
+  /* EVERY field is written on EVERY open. The dialog is one shared element reused across
+     runs, so a field left alone keeps the previous run's value and then saves it against
+     this one -- which is how a single typed note propagated over a whole session of trials.
+     Notes come back from the run's own saved score or from nothing at all. */
+  $('score-notes').value = saved?.notes ?? '';
   /* Seeded from the tag when there is one, so the operator confirms a measurement instead
      of recalling an angle. Left editable: the instrument can be wrong too (a dropout
      during the turn, a slipped shaft) and the operator saw the run. */
@@ -744,8 +749,17 @@ function openScore(id, track) {
     $('score-success').value = String(!track.dropped);
   } else {
     $('score-angle').value = '';
+    $('score-success').value = 'true';
     hint.textContent = 'No tag trace for this run — this is an eyeball estimate.';
     hint.classList.remove('hidden');
+  }
+  /* A score already saved outranks the seed: it is the operator's own earlier reading of
+     this run, and reopening a scored run must show what it says, not the tag's guess. */
+  if (saved) {
+    $('score-success').value = String(!!saved.success);
+    if (saved.reorientation_deg != null) {
+      $('score-angle').value = Math.round(saved.reorientation_deg);
+    }
   }
   $('score-dialog').showModal();
 }
