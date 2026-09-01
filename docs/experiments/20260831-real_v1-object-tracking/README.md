@@ -68,7 +68,7 @@ its band's lower edge as being *at* that edge, which reads like a tuned plan.
 
 ## 2. Two AprilTags, and where the shaft actually is
 
-`id 6` (40 mm) is static and vertical; `id 0` (30 mm) rides a vane on the cylinder, its plane
+`id 6` (40 mm) is static and vertical; `id 0` (40 mm) rides a vane on the cylinder, its plane
 containing the shaft axis. The camera is a RealSense D435 on the **workstation** — the CB1 has
 neither the USB bandwidth nor the dependencies — reading IR stream 1 with the projector off at
 1280×720/30.
@@ -101,9 +101,15 @@ its own. The bench scenes' 100 mm post is **144 mm** on the bench floor. `SIM_TO
 the only place that 44.0 is written down, and `tests/test_bench_tags.py` derives it rather than
 asserting it.
 
-The 71 mm matters more than it looks. The tag is on a vane *past the end face*, so through a 90°
-turn the tag sweeps 71 mm while the cylinder's centre barely moves. Reporting the tag's position
-as the object's would put a 70 mm phantom translation in every trace.
+The 77 mm matters more than it looks. The tag is on a vane *past the end face*, so through a 90°
+turn the tag sweeps 77 mm while the cylinder's centre barely moves. Reporting the tag's position
+as the object's would put a 77 mm phantom translation in every trace.
+
+Both numbers moved on 2026-08-31. `id 0` was 30 mm on a 71 mm vane until five of twelve Stage-1
+runs lost it partway through while `id 6` decoded in every frame of every run, in the same images
+at the same range. Reprinted at 40 mm it resolves 10.2 px/cell against the reference tag's 10.0,
+where the 30 mm one managed 7.6; the larger quiet-zone patch needed a taller vane, which put the
+tag centre 6 mm further out.
 
 ### What is calibrated, and what is withheld
 

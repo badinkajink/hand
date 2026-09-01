@@ -45,7 +45,9 @@ def test_the_floor_datum_is_the_fingertip_measurement():
 
 
 def test_tag_offset_is_half_length_plus_the_vane():
-    assert T.CYL_TAG_AXIAL_MM == pytest.approx(T.CYL_HALF_LEN_MM + 21.0)
+    # 27 mm of vane since 2026-08-31, when it was rebuilt to carry the 40 mm tag; 21 before.
+    assert T.CYL_TAG_AXIAL_MM == pytest.approx(T.CYL_HALF_LEN_MM + 27.0)
+    assert T.CYL_TAG_SIZE_M == pytest.approx(0.040)
 
 
 def test_rigid_reference_and_camera_mounting_is_machine_readable():
@@ -297,7 +299,12 @@ def test_a_centre_below_the_bench_floor_is_reported_as_a_shaft_axis_sign_error()
     """The 2026-08-31 17:46 run: the tag itself fell 44 mm while the computed centre 'fell' 102
     and ended 46 mm UNDER the bench. The centre is tag - 71*u, so a --shaft-axis pointing from
     the tag toward the centre puts it 2 x 71 x cos on the wrong side. Flat on the post the error
-    is horizontal and invisible; it only appears once the tool stands up."""
+    is horizontal and invisible; it only appears once the tool stands up.
+
+    The tag heights are the ones that trace recorded; the offset is deliberately read from
+    CYL_TAG_AXIAL_MM rather than pinned at the 71 mm of that day, because `summarise` builds
+    its note from the same constant. Pinning one and not the other would test a mismatch that
+    cannot occur. The incident being reproduced is the SIGN, which no vane rebuild changes."""
     def reading(t, cos, tag_z):
         z = tag_z - T.CYL_TAG_AXIAL_MM * cos          # exactly how the tracker computes it
         return T.Reading(t=t, cos_up=cos, deg_from_up=T.deg_from_up(cos), z_bench_mm=z,
@@ -310,7 +317,8 @@ def test_a_centre_below_the_bench_floor_is_reported_as_a_shaft_axis_sign_error()
     note = " ".join(s.notes)
     assert "--shaft-axis" in note and "below the bench floor" in note
     # and it names the height the other sign would have given, so the operator can sanity-check it
-    assert "75 mm" in note or "76 mm" in note
+    other_sign = max(14.8 + T.CYL_TAG_AXIAL_MM * 0.855, 30.0 + T.CYL_TAG_AXIAL_MM * 0.60)
+    assert f"{other_sign:.0f} mm" in note
 
     upright = T.summarise([reading(0.0, 0.0, 130.0), reading(3.0, 0.9, 200.0)])
     assert upright.below_floor_mm is None

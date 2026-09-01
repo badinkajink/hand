@@ -140,7 +140,7 @@ is between two different quantities.
    **id6 decision margin >= 30 on the raw image**, frame mean in 20..235, and the sign line
    reading `--shaft-axis -x is CORRECT`.
 2. Stand the tool upright (in the grip, or on the bench beside it) and re-probe. **A flat shaft
-   cannot check the axis sign** — cos ≈ 0 puts the 71 mm offset horizontal and the height reads
+   cannot check the axis sign** — cos ≈ 0 puts the 77 mm offset horizontal and the height reads
    correctly either way — which is why the error survived until the first run stood the tool up.
 3. `scripts/real_v1_trajectory_clearance.py` for the plans in this sitting.
 4. Keep the probe PNG in the session directory. It is the record of what the instrument could

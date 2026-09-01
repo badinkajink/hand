@@ -31,9 +31,10 @@ THE MEASUREMENTS, all by the user on 2026-08-31, all in mm.
   reference tag centre    175.0 above the floor
                           133.5 from the palm centre along x (past the index gantry)
                            15.0 from the palm centre along y (toward the thumb side)
-  cylinder tag centre     21.0 past the cylinder's flat end face, i.e. 71.0 from the
+  cylinder tag centre     27.0 past the cylinder's flat end face, i.e. 77.0 from the
                           cylinder's centre along the shaft axis, and ON that axis
-                          (no lateral offset).
+                          (no lateral offset). Was 21.0/71.0 until 2026-08-31, when the
+                          vane was rebuilt to carry the 40 mm tag.
   fingertip datum         with the distal link vertical, its top flat edge is 65.0
                           above the floor. The link is 37.2 long.
 
@@ -67,7 +68,7 @@ import numpy as np
 REF_TAG_ID = 6
 CYL_TAG_ID = 0
 REF_TAG_SIZE_M = 0.040
-CYL_TAG_SIZE_M = 0.030
+CYL_TAG_SIZE_M = 0.040
 
 # ---- the measured geometry ------------------------------------------------------------
 #: Reference tag centre in the bench frame {B}: origin on the floor under the palm
@@ -97,8 +98,10 @@ REF_TAG_MOUNTING_FIXED = True
 OBJECT_X_ENVELOPE_MM = 90.0
 
 #: Cylinder tag centre from the cylinder's centre, along the shaft axis, on the axis.
-#: 21 mm past a flat end face + the 50 mm half-length.
-CYL_TAG_AXIAL_MM = 71.0
+#: 27 mm past a flat end face + the 50 mm half-length. Was 71.0 against the 30 mm tag; the
+#: 40 mm reprint (2026-08-31) needs a 60 mm quiet-zone patch instead of 45 mm, so the vane
+#: was rebuilt and the tag centre moved 6 mm further out. Measured by the operator, not derived.
+CYL_TAG_AXIAL_MM = 77.0
 CYL_HALF_LEN_MM = 50.0
 CYL_RADIUS_MM = 12.5
 
