@@ -42,6 +42,10 @@ day-to-day driving.
     error or a wall.
   - `host/examples/movement_examples.py` -- one example per movement option, run any one by name.
   - `host/examples/hand_control.py` -- interactive text-command REPL (day-to-day driving).
+  - `host/examples/rezero_finger_joint.py` -- re-measure a servo joint's true center (aa/fe1/fe2,
+    any finger) and write it into `manta_hand/servos.py`'s `FINGER_JOINTS` in place, for when
+    mechanical play or a part swap has moved it off the recorded zero. A real source edit --
+    review the diff and commit it.
 - `docs/` -- pin mapping, wire protocol spec, bring-up checklist.
 
 ## Network

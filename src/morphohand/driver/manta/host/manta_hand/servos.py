@@ -644,6 +644,23 @@ class Servo:
         posing a finger to find calibration offsets."""
         self._call_verified(self._c.write_torque_enable, self._c.read_torque_enable, TORQUE_FREE)
 
+    def free_raw(self):
+        """Genuinely backdrivable, unlike free() (TORQUE_FREE=3) which does NOT reliably
+        produce real backdrivable behavior on this SCS0009 firmware -- confirmed on
+        hardware 2026-08-29 (servo_calibration_notes.md's "Manual torque-free range
+        sweep"): a servo can read back torque_enable=3, present_load=0 (both looking
+        free) while still visibly springing back to a held position when released by
+        hand. A full reboot() didn't fix it either. Writing the RAW value 0 directly
+        (bypassing this project's TORQUE_FREE=3 constant) is the one path confirmed
+        backdrivable by hand. Use this, not free(), for anything that actually needs to
+        pose the joint by hand (manual range sweeps, rezero_finger_joint.py).
+
+        Not write-verified like free()/enable()/disable(): there's no TORQUE_FREE-style
+        register value to compare a readback against here (0 is also the power-on
+        default, see TORQUE_UNSET), and the thing this is actually confirming --
+        real hand-backdrivability -- isn't something a register read can verify anyway."""
+        self._call(self._c.write_torque_enable, 0)
+
     def set_speed(self, speed: int):
         # Not verified like enable()/move_to_deg(): read_goal_speed returned
         # a value in a completely different unit/scale than what
@@ -723,7 +740,7 @@ AA_LIMIT_DEG = (-85.00, 85.00)
 FINGER_JOINTS = {
     0: {"aa": (0, -41.0156, AA_LIMIT_DEG), "fe1": (1, -34.2773, (-12.30, 89.06)), "fe2": (2, -43.9453, (-18.00, 86.72))},
     1: {"aa": (3, -10.2539, AA_LIMIT_DEG), "fe1": (4, 84.9609, (-15.00, 64.75)), "fe2": (5, -146.7773, (-2.93, 92.00))},
-    2: {"aa": (6, 12.89, AA_LIMIT_DEG), "fe1": (7, 79.98046875, (-15.00, 69.73)), "fe2": (8, 72.6562, (-16.11, 77.05))},
+    2: {"aa": (6, 19.3359, AA_LIMIT_DEG), "fe1": (7, 79.98046875, (-15.00, 69.73)), "fe2": (8, 72.6562, (-16.11, 77.05))},
 }
 DEFAULT_JOINT_SPEED = 80  # matches what's worked reliably all session
 
