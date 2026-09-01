@@ -36,7 +36,10 @@ PLAN = {"sv1_w6689": ("sv1_w6689_b060", 0.60), "sv1_w2360": ("sv1_w2360_b075", 0
         "sv1_u1364": ("sv1_u1364_b080", 0.80), "g12": ("g12_b095", 0.95),
         "sv1_u0060": ("sv1_u0060_b75", 0.75), "sv1_u0308": ("sv1_u0308_b050", 0.50),
         "rv05_manual": ("rv05_manual_b85", 0.85), "sv1_w0099": ("sv1_w0099_b100", 1.00)}
-EXCLUDE = {"b01cac"}          # operator-flagged mis-staging
+EXCLUDE = {"b01cac"}
+#: design -> run tags from another session that join its ALIGNMENT pool (never its hold rate).
+#: See the note in bench(). Each entry is a deliberate, operator-sanctioned addition.
+EXTRA_RUNS = {"sv1_w6689": ("3f83cf", "810b95", "77e306")}          # operator-flagged mis-staging
 SESSION_GAP_S = 600           # a gap this long means the rig was reconfigured between runs
 SCORES = "docs/experiments/20260901-real_v1-transfer-firstpass/manual_scores.json"
 
@@ -60,6 +63,18 @@ def bench(per_design=10):
         if m.group(4) in EXCLUDE:
             continue
         sc = S.get(run_id, {})
+        # `--shaft-axis` names the direction in the TAG's frame from the cylinder centre
+        # OUTWARD to the tag, and every session but one ran it as -x. The 2026-09-01 04:18
+        # w6689 re-run was launched without the flag, so the axial offset went to the wrong
+        # end of the shaft and the centre came out 72 mm under the bench. z, x/y, slip and
+        # the drop verdict are all wrong for those runs; the ANGLE is untouched, because it
+        # comes from the tag's own orientation and never sees the offset. Such a run can
+        # still carry alignment, and nothing else.
+        #
+        # NOT the same as the summary's `below_floor_mm`, which also fires on correctly
+        # configured runs where the object genuinely went over the edge -- that is what an
+        # ejection looks like, and voiding it would delete the evidence for the mode.
+        geom_void = d["axes"]["shaft"] != "-x"
         void = s.get("cos_hold") is None
         # a trace with no detection at all has no z_drop; it is void, never a measured fall
         dropped = s["z_drop_mm"] is not None and s["z_drop_mm"] >= DROP_MM
@@ -73,7 +88,9 @@ def bench(per_design=10):
                          op_deg=sc.get("deg"),
                          outcome=outcome,
                          cos_hold=s.get("cos_hold"), cos_peak=s["cos_peak"],
-                         deg=s["deg_turned"], z_drop=s["z_drop_mm"], slip=s["slip_mm"],
+                         deg=s["deg_turned"], z_drop=s["z_drop_mm"],
+                         slip=None if geom_void else s["slip_mm"],
+                         geom_void=geom_void, extra=False,
                          vis=s["visibility"]))
     by = collections.defaultdict(list)
     for r in rows:
@@ -94,8 +111,24 @@ def bench(per_design=10):
         for a, b in zip(v, v[1:]):
             (sessions.append([b]) if b["t"] - a["t"] > SESSION_GAP_S
              else sessions[-1].append(b))
-        scored = [s for s in sessions if any(r["scored"] for r in s)]
-        out[k] = (scored or sessions)[-1][-per_design:]
+        # A session counts as this hand's sample only if the operator scored MOST of it.
+        # Two sessions fail that test and both would otherwise have been chosen for being
+        # last: u1364's 14:51 block (7 trials, no verdicts at all) and w6689's 04:18 re-run
+        # (15 trials, 3 verdicts). Taking either would have set a hold rate from the tag
+        # heuristic while a fully scored session of the same hand sat unused.
+        scored = [s for s in sessions if sum(r["scored"] for r in s) * 2 >= len(s)]
+        keep = (scored or sessions)[-1][-per_design:]
+        # Named runs from an EARLIER session, admitted by hand. sv1_w6689's own session ran
+        # short (7 usable trials against ten for everyone else), and the operator re-ran it on
+        # 2026-09-01 and scored three more holds out of fifteen attempts, leaving the other
+        # twelve unscored. Those three join the alignment pool; the twelve do not enter
+        # anything, so the SESSION's hold rate is the only honest one and `extra` marks the
+        # trials that must not be counted into it.
+        for tag in EXTRA_RUNS.get(k, ()):
+            for r in by[k]:
+                if r["tag"] == tag and r not in keep:
+                    keep.append(dict(r, extra=True))
+        out[k] = keep
     return out
 
 
