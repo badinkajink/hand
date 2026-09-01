@@ -1,0 +1,4 @@
+sim->bench alignment: spearman +0.357 p=0.432, pearson +0.188 p=0.687, n=7
+sim force_N -> bench drop rate: spearman -0.452 p=0.261
+sim contacts -> bench drop rate: spearman +0.125 p=0.768
+dropped trials: peak +0.608 -> final +0.109; the shaft had already turned 37 deg of the 90 before it was lost, n=6
