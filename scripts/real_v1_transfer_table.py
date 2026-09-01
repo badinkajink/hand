@@ -11,11 +11,14 @@ Column choices, and why these and not the others:
                holds (g12) the run's PEAK alignment stands in and the row is marked.
   bench cos    the bench answer to the sim column, over `meas` trials only.
   turn         net degrees turned, holds vs drops. Where the drops turn FURTHER than the holds
-               the hand is overshooting, not failing to turn.
+               that difference is the shaft's motion after it left the grasp.
   slip         lateral travel of the cylinder centre, holds vs drops. This is what separates
                the two failure modes; see `mode`.
-  mode         overshoot (turn completes, then the grip lets go) or eject (the shaft leaves
-               before any turn). Only the first is an argument for closed-loop control.
+  mode         eject (the shaft leaves the grasp sideways, 20-55 mm, before any real turn)
+               or stall (the drops end up turned LESS than the same hand's holds while
+               travelling no further). A hand whose drops merely record MORE turn gets no
+               mode: that difference is the fall, and telling it from a real overshoot needs
+               servo load, which these sessions did not record.
 
 Every hand is ranked. There is no floor-contact exclusion; see the docstring of
 real_v1_transfer_ranking.py for the measurement that retired it.
@@ -56,8 +59,9 @@ def main():
          r"session each, named \texttt{D1}--\texttt{D8} in the order simulation ranked them "
          r"(Appendix~\ref{tab:transfer-map}). \emph{Hold} is the operator's verdict; "
          r"\emph{meas} counts the holds carrying an alignment measurement. \emph{Turn} and "
-         r"\emph{slip} are held\,/\,dropped: where the drops turn further and travel little "
-         r"the hand overshoots, and where they barely turn at all the shaft was ejected. "
+         r"\emph{slip} are held\,/\,dropped. A drop's turn is measured while the shaft is "
+         r"still moving and includes travel after it left the grasp, so \emph{mode} names "
+         r"only what slip and a shortfall in turn can establish. "
          r"Superscripts are ranks. $*$: on this hand the tag stopped resolving before the "
          r"hold window on every held trial, so peak alignment stands in.}",
          r"\label{tab:transfer}",

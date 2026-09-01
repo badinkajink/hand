@@ -525,6 +525,10 @@ class HandRuntime:
         self._unhomed_reason: str | None = None
         self._servo_torque: int | None = None
         self._telemetry_failures = 0
+        #: Set while a trajectory frame is being written to the SERVO bus. The steppers are
+        #: on a different serial port, so this -- not "an operation is running" -- is what
+        #: actually excludes a telemetry read from the servos' half-duplex line.
+        self._servo_writing = threading.Event()
         self._stream_token: str | None = None
         self._stream_deadline = 0.0
         self._stream_timeout_s = 0.25
@@ -1300,6 +1304,13 @@ class HandRuntime:
         n = max(1, int(round(max(0.0, duration) * rate_hz)))
         dt = 1.0 / rate_hz
         t0 = time.monotonic()
+        self._servo_writing.set()
+        try:
+            return self._ramp_frames(start, end, n, dt, t0, speed, label, log)
+        finally:
+            self._servo_writing.clear()
+
+    def _ramp_frames(self, start, end, n, dt, t0, speed, label, log) -> bool:
         for i in range(1, n + 1):
             if self._stop.is_set():
                 return False
@@ -1428,7 +1439,17 @@ class HandRuntime:
                         self._shutdown.wait(2.0)
                         continue
                     idle = self._operation == "idle"
-                    include_servos = idle
+                    # Rule 1 is about the SERVO bus, and the servos are on their own serial
+                    # port -- so the test is whether a trajectory frame is being written, not
+                    # whether some operation is in flight. Gating on "idle" cost every run
+                    # its servo feedback, including the seconds of HOLD after the turn when
+                    # the bus is free and nothing is moving. That is where a lost object
+                    # shows: load present before the turn and gone after. The transfer
+                    # sessions recorded none of it, so whether a dropped trial released the
+                    # shaft during the last segment or after it could only be inferred from
+                    # the tag, which cannot tell a turn from a fall.
+                    include_servos = idle or (not self._servo_writing.is_set()
+                                              and self._operation != "policy stream")
                     include_steppers = idle or self._operation not in (
                         "homing", "applying morphology")
                 if not include_steppers and not include_servos:

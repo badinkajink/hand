@@ -79,16 +79,25 @@ def build(per_design=10):
     rows = []
 
     def mode(drops, holds):
-        """Three failure modes, and they are not the same defect.
+        """What a hand's drops have in common, where that can be said from the measurement.
 
-        EJECTION:  the shaft leaves the grip before any turn happens -- net turn near zero and
-                   20-55 mm of travel. A grasp that never closed.
-        OVERSHOOT: the turn completes and keeps going, then the grip lets go. The drops turn
-                   FURTHER than the same hand's holds (w0099: 65 deg against 44) and travel
-                   little. This is the one that argues for closing the loop.
-        STALL:     the drops travel like a hold but stop SHORT of one (u1364: 25 deg against
-                   42). Neither of the above, and it was invisible while slip was the only
-                   test -- a stalled turn slips no more than a good one."""
+        Only two things can. A hand whose drops travel 20-55 mm across the bench has EJECTED
+        the shaft, and travel is measured the same way on a held trial, so the comparison is
+        sound. A hand whose drops end up turned LESS than its own holds while travelling no
+        further has STALLED -- u1364 reverses from 27 deg back to 16 while both its holds and
+        its drops are still turning at 50-75 deg/s, so the shortfall is in the rotation itself
+        and not in how the trial ended.
+
+        There used to be a third, OVERSHOOT, for the hands whose drops record MORE turn than
+        their holds. It is withdrawn. The tag keeps reading rotation while the shaft falls, so
+        a drop's recorded turn includes the fall: on w0099 the held and dropped trials are
+        indistinguishable to 1.4 s (37 deg, both decelerating through 10 deg/s), and then the
+        holds complete the last segment at 46-59 deg/s and stop dead at 52 while the drops run
+        away at 166-217 deg/s. The extra 20 deg is the shaft being flung, not a turn commanded
+        or produced, and the trajectory is the same one in both. Separating the two needs a
+        signal the tag does not carry -- servo load, which these sessions did not record -- so
+        these hands get no mode rather than a mechanism inferred from the artifact.
+        """
         if not drops:
             return "--"
         sl = np.mean([t["slip"] for t in drops if t["slip"] is not None])
@@ -98,7 +107,7 @@ def build(per_design=10):
         hd = [t["deg"] for t in holds if t["deg"] is not None]
         if dd and hd and np.mean(dd) < np.mean(hd):
             return "stall"
-        return "overshoot"
+        return "--"
 
     for dsg, g in B.items():
         # `extra` trials are individually admitted holds from another session (see
@@ -418,10 +427,14 @@ def figures(clean=False):
     f.savefig(f"{OUT}/fig_transfer_ranking{suf}.pdf", bbox_inches="tight")
     f.savefig(f"{OUT}/fig_transfer_ranking{suf}.png", dpi=200, bbox_inches="tight")
 
-    # ---- fig 4: the three failure modes, in one plane
-    BAND = (20.0, 60.0)     # where 44 of the 48 holds sit, and 4 of the 28 drops
+    # ---- fig 4: turn against slip, one point per trial
+    #
+    # This used to shade a 20-60 deg band and name three regions in it -- ejected, stalled,
+    # overshot. The band is gone. A dropped trial's turn is measured while the shaft is on its
+    # way to the bench and includes that motion, so "the drops leave the band" was in part a
+    # statement about falling, not about turning. What survives is the slip threshold, which
+    # means the same thing on a held and a dropped trial, and the points themselves.
     f, ax = plt.subplots(figsize=(4.6, 3.4))
-    ax.axvspan(*BAND, color=BL, alpha=.05, zorder=0)
     for g in B.values():
         for t in g:
             if t["deg"] is None or t["slip"] is None:
@@ -431,18 +444,13 @@ def figures(clean=False):
             elif t["outcome"] == "DROPPED":
                 ax.scatter(t["deg"], t["slip"], s=26, marker="x", c=RD, zorder=4, lw=1.1)
     ax.axhline(EJECT_SLIP_MM, c=MU, lw=.7, ls="--")
-    for v in BAND:
-        ax.axvline(v, c=MU, lw=.7, ls=":")
-    # The three regions a drop can be in, named where the reader will look for them.
-    for x, y, txt, ha in [(-4, 45, "Ejected", "left"), (-4, 15, "Stalled", "left"),
-                          (77, 15, "Overshot", "right")]:
-        ax.text(x, y, txt, fontsize=7.5, color=MU, ha=ha, style="italic")
+    ax.text(-4, EJECT_SLIP_MM + 2, "ejected", fontsize=7.5, color=MU, ha="left", style="italic")
     ax.set_xlabel("Net turn (deg)"); ax.set_ylabel("Slip (mm)")
     ax.scatter([], [], s=20, c=BL, label="Held")
     ax.scatter([], [], s=26, marker="x", c=RD, lw=1.1, label="Dropped")
     ax.legend(frameon=False, loc="upper center", ncol=2, bbox_to_anchor=(.55, 1.02))
     title(ax, "a", "Trial outcomes" if clean else
-          "Holds live in a band of turn;\ndrops leave it three ways")
+          "Every trial, by net turn and slip")
     f.tight_layout(); f.savefig(f"{OUT}/fig_transfer_drops{suf}.pdf")
     f.savefig(f"{OUT}/fig_transfer_drops{suf}.png", dpi=200)
 
