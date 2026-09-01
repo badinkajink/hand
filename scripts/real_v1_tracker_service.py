@@ -30,6 +30,21 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
+
+#: What every bench run on THIS rig needs, applied unless --tracker-arg overrides it.
+#:
+#: `--shaft-axis` names the direction in the cylinder tag's frame from the object's centre
+#: OUTWARD to the tag, and on this vane it is -x. The tracker's own default is +x, which is
+#: not a property of the rig but of nobody having picked a side; launch the service without
+#: this and the axial offset lands on the wrong end of the shaft, so the reported centre comes
+#: out ~150 mm displaced -- below the bench, in fact, which is how it gets noticed. Height,
+#: x/y, slip and the drop verdict are all wrong for such a run; only the ANGLE survives, and a
+#: whole session was lost to that on 2026-09-01 because the service was restarted bare.
+#:
+#: Taping frames is likewise not optional here: a run with no frames can never appear in a
+#: filmstrip, and the filmstrip is how a trial gets looked at rather than summarised.
+BENCH_DEFAULTS = ["--shaft-axis", "-x",
+                  "--video-hz", "4", "--video-scale", "1.0", "--video-quality", "92"]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 import real_v1_tag_tracker as tagtool  # noqa: E402
@@ -120,7 +135,7 @@ class TrackerProcess:
                    "--push", "--push-url", self.station_url, "--run-id", run_id]
             if self.station_token:
                 cmd += ["--push-token", self.station_token]
-            cmd += self.extra
+            cmd += BENCH_DEFAULTS + self.extra          # --tracker-arg still wins, it comes last
             self.proc = subprocess.Popen(cmd, cwd=ROOT, stdout=subprocess.PIPE,
                                          stderr=subprocess.STDOUT, text=True, bufsize=1)
             self.reader = threading.Thread(target=self._read_output,
