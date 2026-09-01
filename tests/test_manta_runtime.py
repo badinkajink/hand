@@ -87,6 +87,34 @@ def test_safe_sequence_and_run_log(tmp_path):
     rt.close()
 
 
+def test_a_run_samples_the_servos_through_its_hold(tmp_path):
+    """The servo bus is free while a pose is being HELD, and that is where a drop shows.
+
+    Telemetry used to be gated on the whole runtime being idle, so a run recorded no servo
+    feedback at all -- not during the trajectory, where the bus really is owned by the
+    writer, and not during the seconds of hold afterwards, where it is not. The bench
+    sessions that came out of that have only the camera, which cannot separate a shaft
+    turning in the grasp from one turning on its way to the table."""
+    plan = tiny_plan()
+    plan.poses[-1] = Pose(plan.poses[-1].name, plan.poses[-1].ramp_s, 0.25,
+                          plan.poses[-1].joints)
+    backend = MockHardwareBackend()
+    rt = HandRuntime(backend, logs_dir=tmp_path, telemetry_hz=50.0, signs_checked=True)
+    rt.load_plan(plan)
+    rt.home(HOME_CONFIRMATION); wait_idle(rt)
+    rt.apply_morphology(); wait_idle(rt)
+    rt.move_to_pose("grip", rate_hz=100); wait_idle(rt)
+    run_id = rt.run_reorientation(rate_hz=100)
+    wait_idle(rt, timeout=5.0)
+    rows = [json.loads(x) for x in (tmp_path / f"{run_id}.jsonl").read_text().splitlines()]
+    # phase "during" specifically: the before/after snapshots were always taken, and they
+    # bracket the run without saying anything about what happened inside it.
+    during = [r for r in rows if r["kind"] == "telemetry" and r.get("phase") == "during"
+              and "servos" in (r.get("data") or {})]
+    assert during, "the run's hold recorded no servo telemetry"
+    rt.close()
+
+
 def test_yaw_sign_interlock_blocks_finger_motion(tmp_path):
     rt = HandRuntime(MockHardwareBackend(), logs_dir=tmp_path, signs_checked=False)
     rt.load_plan(tiny_plan())

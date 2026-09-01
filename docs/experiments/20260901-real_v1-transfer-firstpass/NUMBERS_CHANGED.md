@@ -123,3 +123,67 @@ the other seven where they are. That biases the comparison, not the number.
 
 If the 30 mm runs are wanted, the defensible version is to give **every** hand its whole history
 and report a between-session term, not to add the history of one hand.
+
+## 5. "Overshoot" is withdrawn -- a drop's turn is measured partly during the fall
+
+Raised by the user against the filmstrip: the D8 overshoot row's peak-turn panel showed
+the cylinder already lying on the bench. Two faults, one cosmetic and one not.
+
+The cosmetic one: the tag's last reading before it dies is resolved by two tape frames
+at once, and `max()` over `(turn, t)` awarded the peak column to the later of them --
+0.31 s into the aftermath. Fixed by tie-breaking to the earlier frame.
+
+The one that matters: **the AprilTag cannot tell a turn from a fall.** It keeps reading
+rotation all the way to the bench. On w0099/00178e the last 33 deg arrive inside 0.28 s
+while the cylinder's centre drops 19 mm.
+
+Aligning D8's held and dropped trials on a common clock settles it:
+
+| t (s) | b18421 HELD | 84f5ef drop | 5c0092 drop | 00178e drop |
+|---|---|---|---|---|
+| 1.30 | 35.7 @ 16/s z72 | 35.7 @ 16/s z71 | 38.0 @ 14/s z70 | 35.4 @ 16/s z73 |
+| 1.40 | 37.8 @ 10/s z72 | 37.0 @ 12/s z72 | 39.2 @ 10/s z71 | 36.1 @ 7/s z73 |
+| 1.60 | 48.4 @ 59/s z72 | 63.3 @ 217/s z65 | 59.7 @ 166/s z65 | 57.6 @ 184/s z69 |
+| 1.70 | 48.4 @ 0/s z72 | -- | -- | 69.5 @ 166/s z55 |
+
+Identical to 1.4 s. Then the hold completes the last segment at 46-59 deg/s and stops
+dead at 52 deg for the remaining 4.3 s, while the drops run away at 166-217 deg/s with
+the centre descending at 42-54 % of g. **The extra 20 deg is the shaft being flung.**
+Same plan in both -- so the caption's "drops when the trajectory continues to 70 deg"
+was wrong twice over.
+
+D5 is worse: its holds and drops are indistinguishable throughout (70 vs 73 deg, matching
+rate profiles). D3 is the opposite and is *confirmed*: its drops diverge at 1.3 s
+(27 vs 38 deg) while both are still turning at 50-75 deg/s, then rotate back to 16 deg.
+
+**Modes now: D6 eject (by slip), D3 stall (by rotation), everything else `--`.**
+
+### What the band contingency becomes
+
+Restricting each trial to rotation recorded while the cylinder was still rising:
+
+| | holds | drops |
+|---|---|---|
+| net turn (as reported) | 46.4 | 39.1 |
+| turn while still rising | 46.7 | **46.5** |
+
+44/48 vs 4/28 (OR 66, p = 8e-12) becomes 44/48 vs **17/28** (OR 7.1, p = 2e-3). Most
+drops turn the same amount as the holds. Do not lead with the band.
+
+### Why this is inferred and not measured
+
+Nothing here is confirmed against contact. **The transfer sessions recorded no servo
+load** -- `--servo-fields` defaulted to empty and `--telemetry-hz` to 0, and the
+telemetry loop gated servo reads on the whole runtime being idle, so a run logged none
+even during the seconds of hold when the bus is free. A height gate was tried and
+rejected: it fires on 4 of D3's *holds* (a 1-3 mm/s settle with the turn already
+stopped, not a fall) and never fires on D5 or D4 (the tag dies first), so it would bias
+each hand differently.
+
+Fixed at the source for the next session (`runtime.py`, `web.py`): the servos are on
+their own serial port, so servo reads are now excluded only while a trajectory frame is
+actually being written, not for the whole run; `--telemetry-hz` defaults to 10 and
+`--servo-fields` to `load`. Regression test:
+`tests/test_manta_runtime.py::test_a_run_samples_the_servos_through_its_hold`.
+Timing a release *within* the ramp still needs the stepped runner
+(`real_v1_bench_stepped_run.py`), which dwells and records `load_base` per set point.

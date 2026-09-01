@@ -521,8 +521,11 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--plans-dir", type=Path,
                     default=Path("docs/experiments/20260829-real_v1_deploy/deploy"))
     ap.add_argument("--logs-dir", type=Path, default=Path("logs/hardware"))
-    ap.add_argument("--telemetry-hz", type=float, default=0.0,
-                    help="0 disables polling; benchmark before selecting a nonzero rate")
+    ap.add_argument("--telemetry-hz", type=float, default=10.0,
+                    help="0 disables polling. The default samples the servos through every "
+                         "run's hold phases, which is what makes a drop visible in load "
+                         "rather than only in the camera; reads are skipped automatically "
+                         "while a trajectory frame owns the servo bus")
     ap.add_argument("--token", default="",
                     help="required X-Manta-Token for commands (mandatory with real hardware)")
     ap.add_argument("--tracker-url", default="",
@@ -539,7 +542,7 @@ def main(argv: list[str] | None = None) -> int:
                          "recommended on the CB1: without it the only record is the SSH "
                          "session's scrollback, which is gone exactly when you need it")
     ap.add_argument("--verbose", action="store_true")
-    ap.add_argument("--servo-fields", default="",
+    ap.add_argument("--servo-fields", default="load",
                     help="extra per-servo feedback to sample with each telemetry frame, "
                          "comma separated (load, voltage, temperature, speed). Each costs "
                          "another nine bus transactions; 'load' is the only force-ish proxy "
