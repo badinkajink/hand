@@ -661,7 +661,19 @@ async function refresh() {
       for (const e of events) {
         const d = document.createElement('div');
         d.className = `event ${e.level}`;
+        /* The message, and then whatever the event carried that the message does not
+           already say. An error's cause used to live only in e.data and nothing rendered
+           it, so a failed reorientation read as the bare words "reorienting failed" while
+           the reason -- a workstation tracker that was not running -- was sitting in the
+           payload. */
+        const extra = e.data && (e.data.error || e.data.detail);
         d.textContent = `${e.timestamp.slice(11, 19)}  ${e.message}`;
+        if (extra && !e.message.includes(String(extra).slice(0, 24))) {
+          const sub = document.createElement('div');
+          sub.className = 'event-detail';
+          sub.textContent = extra;
+          d.appendChild(sub);
+        }
         $('events').prepend(d);
       }
       while ($('events').childElementCount > 300) $('events').lastElementChild.remove();

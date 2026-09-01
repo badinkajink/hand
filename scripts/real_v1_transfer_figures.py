@@ -81,11 +81,21 @@ def bench(per_design=10):
     out = {}
     for k, v in by.items():
         v.sort(key=lambda r: r["t"])
-        cut = 0
-        for i in range(1, len(v)):
-            if v[i]["t"] - v[i - 1]["t"] > SESSION_GAP_S:
-                cut = i
-        out[k] = v[cut:][-per_design:]
+        # Split on the gap, then take the LAST session THE OPERATOR SCORED.
+        #
+        # Not simply the last session. sv1_u1364 was run twice, and the later of the two was
+        # never scored -- seven traces, no verdicts -- so "most recent" handed the analysis a
+        # block of trials whose hold/drop labels came from the tag heuristic, and threw away
+        # the eleven the operator had actually watched and called 4/10. The two disagree
+        # about the hand. A session with no verdict in it is not the same kind of evidence as
+        # one with ten, and the rest of this study rests on the operator's verdict, so it
+        # cannot be the tiebreak that silently loses to a clock.
+        sessions = [[v[0]]]
+        for a, b in zip(v, v[1:]):
+            (sessions.append([b]) if b["t"] - a["t"] > SESSION_GAP_S
+             else sessions[-1].append(b))
+        scored = [s for s in sessions if any(r["scored"] for r in s)]
+        out[k] = (scored or sessions)[-1][-per_design:]
     return out
 
 

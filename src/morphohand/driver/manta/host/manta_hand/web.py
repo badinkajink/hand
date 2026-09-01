@@ -64,7 +64,25 @@ class HTTPTrackerController:
                 detail = str(exc)
             raise RuntimeError(f"workstation tracker {path} failed: {detail}") from None
         except OSError as exc:
-            raise RuntimeError(f"cannot reach workstation tracker at {self.url}: {exc}") from None
+            raise RuntimeError(self._unreachable(exc)) from None
+
+    def _unreachable(self, exc: OSError) -> str:
+        """Say which of the two failures this is, and what to type.
+
+        An operator reads this at the bench with the hand in the grip pose, so the message
+        has to name the fix rather than the errno. Connection REFUSED means the workstation
+        answered and nothing is listening -- the service is simply not running, which is
+        where it ends up after a workstation reboot or a closed terminal. Anything else
+        (no route, timed out) is the hand network itself, and the interface is the suspect."""
+        refused = isinstance(exc, ConnectionRefusedError) or getattr(exc, "errno", None) == 111
+        if refused:
+            return (f"the workstation tracker at {self.url} is not running (connection "
+                    f"refused). Start it on the workstation and retry:  PYTHONPATH= "
+                    f"MANTA_TOKEN=... ~/miniconda3/bin/python "
+                    f"scripts/real_v1_tracker_service.py")
+        return (f"cannot reach the workstation tracker at {self.url}: {exc}. The service may "
+                f"be up but unreachable -- check the hand-network interface on the "
+                f"workstation (ip addr add 10.99.99.50/24 dev <iface>)")
 
     def start(self, run_id: str) -> dict:
         try:

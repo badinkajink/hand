@@ -1274,7 +1274,11 @@ class HandRuntime:
                         # Leaving _unhomed_reason at "homing in progress" made every
                         # later refusal quote a home that had already failed.
                         self._unhomed_reason = f"the last home failed: {error}"
-                self._event("error", f"{name} failed", {"error": error})
+                # The REASON goes in the message, not only in `data`. The web UI's event
+                # pane prints messages, so a bare "reorienting failed" told an operator at
+                # the bench nothing at all -- the cause (a workstation tracker that was not
+                # running) sat in a field nothing rendered.
+                self._event("error", f"{name} failed: {exc}", {"error": error})
             finally:
                 with self._lock:
                     stopped = self._stop.is_set()

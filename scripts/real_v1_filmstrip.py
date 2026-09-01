@@ -45,13 +45,9 @@ def frames(run_tag, n=NFRAME, t_peak=None):
     whole trace spends five of six panels on a shaft that has stopped moving. The peak column
     is there because the row's label is the peak: on an overshoot the turn runs a few tenths
     past the window and the label would otherwise assert something the panels do not show."""
-    d = glob.glob(f"logs/tracker/*-{run_tag}_track_frames")
-    if not d:
-        return [], []
-    fs = sorted(glob.glob(d[0] + "/*.jpg"))
+    fs, ts = tape(run_tag)
     if not fs:
         return [], []
-    ts = [int(os.path.basename(f).split("_")[1].split(".")[0]) / 1000.0 for f in fs]
 
     def spread(pool, k):
         return ([pool[round(i * (len(pool) - 1) / (k - 1))] for i in range(k)]
@@ -60,14 +56,25 @@ def frames(run_tag, n=NFRAME, t_peak=None):
     early = [i for i, t in enumerate(ts) if t <= ACTION_S]
     kp = (min(range(len(ts)), key=lambda i: abs(ts[i] - t_peak))
           if t_peak is not None else None)
-    if kp is not None and early and kp > early[-1]:
-        ks = spread(early, n) + [kp]            # the peak sits outside the action window
+    if kp is None:
+        ks = spread(early, n + 1)
     else:
-        ks = spread(early, n + 1)               # ...or inside it, and needs no column
+        # The peak ALWAYS gets its own column, whether or not it falls inside the action
+        # window, because the column is titled "peak turn" for every row at once. Letting it
+        # be an ordinary frame on the rows whose peak came early put that title over a panel
+        # showing something else.
+        ks = spread([i for i in early if i != kp], n) + [kp]
     ks = ks + [len(fs) - 1]                     # always n + 2 panels, so the grid is fixed
     raw = [np.asarray(Image.open(fs[k]).convert("L").crop(CROP), dtype=float) for k in ks]
     lo, hi = np.percentile(np.concatenate([a.ravel() for a in raw]), [LO_PCT, HI_PCT])
     return [_tone(a, lo, hi) for a in raw], [ts[k] for k in ks]
+
+
+def tape(run_tag):
+    """(frame files, their timestamps) for one run, in order."""
+    d = glob.glob(f"logs/tracker/*-{run_tag}_track_frames")
+    fs = sorted(glob.glob(d[0] + "/*.jpg")) if d else []
+    return fs, [int(os.path.basename(f).split("_")[1].split(".")[0]) / 1000.0 for f in fs]
 
 
 def _tone(a, lo, hi):
@@ -94,27 +101,25 @@ def turn_label(run):
     the shaft tumbling out of the grasp on the way to the table, which is not a turn the hand
     made -- so those rows carry the net turn they actually produced."""
     eject = run["slip"] is not None and run["slip"] >= EJECT_SLIP_MM
-    v, what = (run["deg"], "net") if eject else (peak_turn(run["tag"]), "peak")
+    v, what = (run["deg"], "net") if eject else (peak_at(run["tag"])[0], "peak")
     return f"{v:+.0f}$\\degree$ {what} turn"
 
 
 def peak_at(run_tag):
-    """(largest rotation, the time it happened), both from the trace's own first sample."""
-    tr = trace(run_tag)
-    if not tr:
+    """(largest rotation any TAPED frame reports, the time of that frame).
+
+    Deliberately not the trace's own maximum. The tag is sampled at about 29 Hz and the tape
+    writes about 3.7 frames a second, so the true peak almost always falls between two
+    pictures -- and a row labelled with a number no panel shows is a row the reader cannot
+    check. Reading the peak off the tape makes the label and the overlays the same fact."""
+    tr, (_, ts) = trace(run_tag), tape(run_tag)
+    if not tr or not ts:
         return None, None
-    k = max(range(len(tr)), key=lambda i: tr[0][1] - tr[i][1])
-    return tr[0][1] - tr[k][1], tr[k][0]
-
-
-def peak_turn(run_tag):
-    """Largest rotation the tag ever reported, measured from the trace's own first sample.
-
-    This is what the panel overlays count up to. It is NOT the summary's net turn, which is
-    taken at the end: on an ejection the shaft swings through 50 degrees and comes back, and
-    labelling that row with its net turn contradicts what the reader can see in the frames."""
-    tr = trace(run_tag)
-    return max(tr[0][1] - d for _, d in tr) if tr else None
+    base = at(tr, ts[0])
+    if base is None:
+        return None, None
+    seen = [(base - d, t) for t, d in ((t, at(tr, t)) for t in ts) if d is not None]
+    return max(seen) if seen else (None, None)
 
 
 def at(tr, t, tol=0.35):
@@ -169,9 +174,14 @@ def pick(B):
     def get(design, want, key):
         g = [t for t in B[design] if t["outcome"] == want and t["deg"] is not None]
         return sorted(g, key=key)[0] if g else None
+    # A stall is the mode that hides: it slips like a hold and simply stops short, so the
+    # run to show is the one nearest its hand's mean dropped turn, not an extreme.
+    st = [t for t in B["sv1_u1364"] if t["outcome"] == "DROPPED" and t["deg"] is not None]
+    mu = sum(t["deg"] for t in st) / len(st) if st else 0.0
     return dict(
         hold=("sv1_w0099", get("sv1_w0099", "HELD", lambda t: -t["deg"])),
         over=("sv1_w0099", get("sv1_w0099", "DROPPED", lambda t: -t["deg"])),
+        stall=("sv1_u1364", min(st, key=lambda t: abs(t["deg"] - mu)) if st else None),
         eject=("sv1_u0308", get("sv1_u0308", "DROPPED", lambda t: -t["slip"])),
         good=("sv1_w6689", get("sv1_w6689", "HELD", lambda t: -t["deg"])))
 
@@ -194,7 +204,8 @@ def main():
                 f"{turn_label(run)}\n{run['slip']:.0f} mm slip")
 
     if a.which in ("all", "modes"):
-        sel = [("hold", "Held"), ("over", "Overshoot"), ("eject", "Ejection")]
+        sel = [("hold", "Held"), ("over", "Overshoot"), ("stall", "Stall"),
+               ("eject", "Ejection")]
         sheet([(P[k][1],) + lab(P[k][0], P[k][1], v) for k, v in sel if P[k][1]],
               f"{OUT}/fig_filmstrip_modes")
 
