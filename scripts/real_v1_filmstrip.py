@@ -204,8 +204,12 @@ def main():
                 f"{turn_label(run)}\n{run['slip']:.0f} mm slip")
 
     if a.which in ("all", "modes"):
-        sel = [("hold", "Held"), ("over", "Overshoot"), ("stall", "Stall"),
-               ("eject", "Ejection")]
+        # Three rows, not four. The stall is a real mode and the table names it, but the
+        # figure is the paper's one picture of what a trial looks like and it earns its space
+        # by contrast: two rows of the SAME hand under the SAME plan, held then overshot, and
+        # one row of the grasp letting go. A fourth row of a turn that merely stops early
+        # dilutes that without showing anything the drops figure does not already say.
+        sel = [("hold", "Held"), ("over", "Overshoot"), ("eject", "Ejection")]
         sheet([(P[k][1],) + lab(P[k][0], P[k][1], v) for k, v in sel if P[k][1]],
               f"{OUT}/fig_filmstrip_modes")
 
