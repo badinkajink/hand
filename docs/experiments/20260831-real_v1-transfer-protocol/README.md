@@ -104,10 +104,25 @@ the study answers that before it answers anything else.
 Automatic, from the two AprilTags, at 0.017 deg / 0.030 mm rms:
 
 - **primary — `cos_up`, averaged over the last 1.0 s of the hold.** Not the peak. A peak without
-  a height check scores a dropped shaft as a perfect turn.
+  a height check scores a dropped shaft as a perfect turn. The window is anchored to when
+  **recording stopped**, and the station keeps the camera running `--post-roll 2.5` s past the
+  end of the trajectory so that a hold window exists at all. Both of those were wrong on
+  2026-08-31: the trace ended on the last instant of the motion, so "hold" was the last second
+  of the *turn*, and on a run that lost its tag early the window slid back to whenever the tag
+  was last seen and quoted the middle of the turn as the ending (two trials scored 0.359 and
+  0.386 that way). The servos hold their last commanded position after a plan runs, so the
+  dwell costs nothing but the seconds.
 - `deg_from_up`, unfolded to [0, 180], so a turn to the wrong pole cannot score as a good one.
 - **retention** — `dropped`, from a sustained fall (>= 25 mm for >= 0.4 s), never one low sample.
 - `turned_deg` (first reading to last), horizontal `slip_mm`, `z` fall, tag visibility fraction.
+- `u_px, v_px`, where the tag sat in the image. Pose alone cannot tell an occluded tool from one
+  that swung out of the camera's view, and that was the open question after the first five
+  trials.
+- **the tape** — one IR frame every 0.25 s into `<trace>_frames/`, ~1 MB a run, assembled by
+  `scripts/real_v1_tracker_replay.py` into an annotated mp4 and a phase-aligned filmstrip. The
+  trace says the shaft turned 55.9 deg; only the pictures say whether it pivoted about a contact
+  or about the floor, whether a finger walked off its pad, and which of two equal cosines was
+  carried and which was flung.
 - the operator's by-eye score, still recorded. It is the check on the instrument, and where the
   two disagree that disagreement is a figure, not an embarrassment.
 
@@ -181,6 +196,12 @@ separately, and use the Stage 1 number for the error bars.
 
 A trial is **void and re-run** (not a failure) when:
 - the cylinder tag is lost for more than 0.5 s during the turn, or visibility is below 90%;
+- the ending was never observed — no detection anywhere in the hold window, so `cos_hold` is
+  `None`. **These are counted and attributed to their plan**, never quietly dropped: a tool that
+  is flung out of the camera's view produces exactly this trace, so a void rule applied without
+  bookkeeping deletes failures from the plans that fail. If a plan's unobserved endings outnumber
+  its scored trials, that plan's number is the exclusion rate, not its cosine — read the tape
+  before calling it a void.
 - the grip released the tool before motion started, seen by the operator or by a fall in the
   pre-motion samples;
 - the station refused the run (tracker failed to arm, servo gate, clearance gate).
@@ -240,7 +261,18 @@ MANTA_TOKEN="$MANTA_TOKEN" ~/miniconda3/bin/python scripts/real_v1_tracker_servi
   --tracker-arg --symmetric-object \
   --tracker-arg --heading-deg --tracker-arg 90 \
   --tracker-arg --exposure --tracker-arg 4000 \
-  --tracker-arg --gain --tracker-arg 64
+  --tracker-arg --gain --tracker-arg 64 \
+  --tracker-arg --video-hz --tracker-arg 4 \
+  --post-roll 2.5
+```
+
+(Note the `--tracker-arg=--shaft-axis=-x` form for any value that starts with a dash; argparse
+reads the spaced form as an option of its own.)
+
+Afterwards, render what was taped:
+
+```bash
+~/miniconda3/bin/python scripts/real_v1_tracker_replay.py --all
 ```
 
 `scripts/real_v1_bench_session.py` remains the tool for a sitting that needs its free-air control

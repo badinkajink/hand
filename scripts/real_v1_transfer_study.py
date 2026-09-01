@@ -96,17 +96,26 @@ def load_bench(runs_dir: Path) -> tuple[dict, list]:
         key = plan_key(s)
         track = s.get("object_track")
         if key is None:
-            skipped.append((path.name, "no plan identity"))
+            skipped.append((path.name, "no plan identity", None))
             continue
         if s.get("status") != "complete":
-            skipped.append((path.name, f"status {s.get('status')}"))
+            skipped.append((path.name, f"status {s.get('status')}", key))
             continue
-        if not track or track.get("cos_hold") is None:
-            skipped.append((path.name, "no instrument trace"))
+        if not track:
+            skipped.append((path.name, "no instrument trace", key))
+            continue
+        if track.get("cos_hold") is None:
+            # The pose the hand ENDED holding was never observed -- the tag went dark before
+            # the hold window. This is NOT interchangeable with a missing trace: a tool that
+            # is flung out of the camera's view produces one, so silently dropping these
+            # deletes failures from the numerator of exactly the plans that fail. Excluded
+            # from the correlation, but counted and attributed to the plan below.
+            skipped.append((path.name, f"ENDING UNOBSERVED after "
+                                       f"{track.get('duration_s', float('nan')):.1f}s", key))
             continue
         # Voids declared in the protocol, applied here so they cannot be applied selectively.
         if (track.get("visibility") or 0) < 0.9:
-            skipped.append((path.name, f"VOID visibility {track['visibility']:.2f}"))
+            skipped.append((path.name, f"VOID visibility {track['visibility']:.2f}", key))
             continue
         manual = s.get("manual_score") or {}
         by_plan[key].append({
@@ -344,8 +353,17 @@ def markdown(sim, bench, report, skipped) -> str:
         L += ["", f"**Operator vs instrument.** n = {o['n']}, the eye reads "
               f"{o['bias_deg']:+.1f} deg relative to the tags{loa}."]
     if skipped:
-        L += ["", f"**Excluded from the analysis ({len(skipped)}):**"]
-        L += [f"- `{n}` — {why}" for n, why in skipped[:30]]
+        L += ["", f"**Excluded from the analysis ({len(skipped)}):**", ""]
+        # Attributed to the plan, because an exclusion rate that CLUSTERS on one hand is a
+        # result about that hand, and an exclusion rate spread evenly is an instrument note.
+        per_plan = defaultdict(int)
+        for _, _, key in skipped:
+            per_plan[key] += 1
+        for key, n in sorted(per_plan.items(), key=lambda kv: -kv[1]):
+            kept = len(bench.get(key, ()))
+            L.append(f"- **{key or 'unidentified'}** — {n} excluded, {kept} kept"
+                     + ("  ← more excluded than kept" if n > kept else ""))
+        L += [""] + [f"  - `{n}` — {why}" for n, why, _ in skipped[:30]]
     return "\n".join(L) + "\n"
 
 

@@ -33,9 +33,11 @@ import argparse
 import csv
 import json
 import os
+import queue
 import shutil
 import subprocess
 import sys
+import threading
 import time
 import urllib.request
 from pathlib import Path
@@ -46,6 +48,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 import numpy as np  # noqa: E402
 
+from morphohand.bench import replay as RP  # noqa: E402
 from morphohand.bench import tags as T  # noqa: E402
 
 #: Interpreters that might carry the camera stack, best first. Kept here rather than in the
@@ -273,6 +276,104 @@ class Pusher:
             return False
 
 
+class FrameTape:
+    """A low-rate JPEG tape of the run, encoded off the measuring loop.
+
+    Until this existed a run left no pixels behind at all -- a CSV of cosines and a summary
+    line, which say what the shaft did and nothing about how. The tape is what makes a number
+    reviewable after the bench is packed up: whether the tool pivoted about a contact or about
+    the floor, whether a finger walked off its pad, which of two equal final cosines was
+    carried and which was flung.
+
+    THE LOOP MUST NOT PAY FOR IT. Encoding a 1280x720 frame is a few milliseconds -- affordable
+    at a few Hz, not free, and a slow disk must never become a slow measurement. So frames are
+    handed to a bounded queue and DROPPED, counted, when it fills, rather than blocking the
+    thread that is producing the trace. A dropped replay frame costs a picture; a stalled
+    tracking loop costs the run.
+
+    FILES, NOT A CONTAINER. The bench service stops a run with SIGINT, and a video file that
+    was never released is unplayable, so an interrupted run would lose everything it recorded.
+    Every frame here is closed the moment it is written; `real_v1_tracker_replay.py` assembles
+    them afterwards, offline, where failing is cheap.
+    """
+
+    def __init__(self, out_dir, hz, *, cv2=None, scale=0.5, quality=85, depth=24):
+        self.on = bool(hz > 0.0 and cv2 is not None)
+        self.dir, self.hz, self.cv2 = Path(out_dir), float(hz), cv2
+        self.scale, self.quality = float(scale), int(quality)
+        self.taken = self.written = self.dropped = self.failed = 0
+        self.size = None
+        self.error = None
+        self._next_t = 0.0
+        self._q = queue.Queue(maxsize=int(depth))
+        self._thread = None
+        if self.on:
+            self.dir.mkdir(parents=True, exist_ok=True)
+            self._thread = threading.Thread(target=self._pump, name="frame-tape", daemon=True)
+            self._thread.start()
+
+    def offer(self, img, t: float) -> bool:
+        """Take this frame if the tape is due one. Never blocks; says whether it was taken.
+
+        The copy is not optional: `img` is a view into the RealSense buffer, which is handed
+        back to the driver and refilled as soon as the loop asks for the next frame.
+        """
+        if not self.on or t < self._next_t:
+            return False
+        self._next_t = t + 1.0 / self.hz
+        try:
+            self._q.put_nowait((self.taken, float(t), img.copy()))
+        except queue.Full:
+            self.dropped += 1
+            return False
+        self.taken += 1
+        return True
+
+    def _pump(self):
+        while True:
+            item = self._q.get()
+            if item is None:
+                return
+            i, t, img = item
+            try:
+                if self.scale != 1.0:
+                    img = self.cv2.resize(img, None, fx=self.scale, fy=self.scale,
+                                          interpolation=self.cv2.INTER_AREA)
+                self.size = (int(img.shape[1]), int(img.shape[0]))
+                if self.cv2.imwrite(str(self.dir / RP.frame_name(i, t)), img,
+                                    [int(self.cv2.IMWRITE_JPEG_QUALITY), self.quality]):
+                    self.written += 1
+                else:
+                    self.failed += 1
+            except Exception as exc:            # a full disk must not take the trace with it
+                self.failed += 1
+                self.error = self.error or repr(exc)
+
+    def close(self, timeout: float = 20.0) -> None:
+        if not self.on:
+            return
+        self.on = False
+        self._q.put(None)
+        self._thread.join(timeout)
+        if self._thread.is_alive():
+            self.error = self.error or f"the tape writer was still busy after {timeout:.0f}s"
+
+    def to_json(self) -> dict | None:
+        if not self.taken:
+            return None
+        return {"dir": str(self.dir), "frames": self.written, "requested": self.taken,
+                "hz": self.hz, "scale": self.scale, "quality": self.quality,
+                "width": self.size[0] if self.size else None,
+                "height": self.size[1] if self.size else None,
+                "dropped": self.dropped, "failed": self.failed, "error": self.error}
+
+    def line(self) -> str:
+        lost = self.dropped + self.failed
+        return (f"tape: {self.written} frames at {self.hz:g} Hz -> {self.dir}"
+                + (f"  ({lost} lost: {self.error or 'queue full, disk too slow'})" if lost
+                   else ""))
+
+
 def load_calibration(path: Path | None) -> dict:
     if not path or not path.exists():
         return {}
@@ -430,6 +531,8 @@ def record(a, rs, cv2, Detector):
     live = Live(not a.quiet, a.live_hz)
     push = Pusher(a.push, a.push_hz, a.run_id, push_url=a.push_url,
                   push_token=a.push_token)
+    tape = FrameTape(a.out.with_name(a.out.stem + "_frames"), a.video_hz, cv2=cv2,
+                     scale=a.video_scale, quality=a.video_quality)
     try:
         det = Detector(families="tag36h11", nthreads=4, quad_decimate=1.0)
         cal = load_calibration(a.calibration)
@@ -447,6 +550,9 @@ def record(a, rs, cv2, Detector):
         if len(refs) < a.latch_frames:
             live.event("  note: intermittent reference. Latching covers it, but light it "
                        "better if you re-aim.")
+        if tape.on:
+            live.event(f"taping IR frames at {tape.hz:g} Hz into {tape.dir.name}/ "
+                       f"(replay with scripts/real_v1_tracker_replay.py)")
         live.event(f"recording {a.seconds:.0f}s -- cos +1 = up, 0 = horizontal, -1 = down "
                    f"(wrong pole).  Ctrl-C stops early and still writes {a.out}")
 
@@ -459,6 +565,7 @@ def record(a, rs, cv2, Detector):
                 img = np.asanyarray(pipe.wait_for_frames(5000).get_infrared_frame().get_data())
                 found = detect(det, img, cam, cv2)
                 t = time.time() - t0
+                tape.offer(img, t)
                 stamps.append(time.time())
                 if len(stamps) > 15:
                     stamps.pop(0)
@@ -479,7 +586,8 @@ def record(a, rs, cv2, Detector):
                     r = T.reading_from_tags(frame, tag.pose_R, tag.pose_t, t=t,
                                             shaft_axis=a.shaft_axis,
                                             margin=tag.decision_margin, axial_mm=a.axial_mm,
-                                            symmetric=a.symmetric_object)
+                                            symmetric=a.symmetric_object,
+                                            center_px=tag.center)
                     if frame.heading_deg is None and not a.no_mounting_heading:
                         try:
                             h, why = frame.heading_from_mounting(
@@ -492,7 +600,8 @@ def record(a, rs, cv2, Detector):
                                                     shaft_axis=a.shaft_axis,
                                                     margin=tag.decision_margin,
                                                     axial_mm=a.axial_mm,
-                                                    symmetric=a.symmetric_object)
+                                                    symmetric=a.symmetric_object,
+                                                    center_px=tag.center)
                         except ValueError as exc:
                             # Retry rather than give up on the first frame: the tracker can be
                             # armed a moment before the shaft is finally seated, and the
@@ -525,19 +634,22 @@ def record(a, rs, cv2, Detector):
             live.close()
             print(f"interrupted at {time.time() - t0:.2f}s -- writing what was captured")
         live.close()
+        tape.close()
 
         a.out.parent.mkdir(parents=True, exist_ok=True)
         with a.out.open("w", newline="") as f:
             w = csv.DictWriter(f, fieldnames=T.CSV_FIELDS)
             w.writeheader()
             w.writerows(rows)
-        summary = T.summarise(readings, total_frames=len(rows))
+        summary = T.summarise(readings, total_frames=len(rows),
+                              trace_end_s=(rows[-1]["t"] if rows else None))
         doc = {"schema_version": 1, "trace": str(a.out), "run_id": a.run_id,
                "recorded_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
                "frame": frame.to_json(), "summary": summary.to_json(),
                "axes": {"up": a.up_axis, "plane": a.plane_axis, "shaft": a.shaft_axis},
                "axial_mm": a.axial_mm, "camera": {"width": a.width, "height": a.height,
-                                                  "fps": a.fps, **camera_settings}}
+                                                  "fps": a.fps, **camera_settings},
+               "video": tape.to_json()}
         sidecar = a.out.with_name(a.out.stem + "_SUMMARY.json")
         sidecar.write_text(json.dumps(doc, indent=2) + "\n")
         print(f"{len(rows)} frames -> {a.out}")
@@ -545,6 +657,8 @@ def record(a, rs, cv2, Detector):
         for n in summary.notes:
             print(f"  NOTE: {n}")
         print(f"  wrote {sidecar}")
+        if tape.to_json():
+            print(f"  {tape.line()}")
         if push.on:
             print(f"  pushed {push.sent} samples to the station ({push.failed} failed)")
             push.send({"seen": False, "final": True, "summary": summary.to_json(),
@@ -553,6 +667,7 @@ def record(a, rs, cv2, Detector):
                                 "shaft": a.shaft_axis}, "axial_mm": a.axial_mm}, force=True)
         return 0
     finally:
+        tape.close()
         pipe.stop()
 
 
@@ -609,6 +724,14 @@ def main() -> int:
                    help="cylinder centre to tag centre along the shaft")
     p.add_argument("--latch-frames", type=int, default=20)
     p.add_argument("--drift-deg", type=float, default=2.0)
+    p.add_argument("--video-hz", type=float, default=0.0,
+                   help="also tape an IR frame this often, for replay (0 = off). 4 is "
+                        "plenty to watch a 20 s turn and costs ~1 MB/run at the default "
+                        "scale; the frames go next to the trace and are assembled by "
+                        "scripts/real_v1_tracker_replay.py")
+    p.add_argument("--video-scale", type=float, default=0.5,
+                   help="downscale taped frames by this factor (0.5 = 640x360)")
+    p.add_argument("--video-quality", type=int, default=85, help="JPEG quality of the tape")
     p.add_argument("--probe-image", default=None,
                    help="default: logs/<stamp>-probe_ir.png.  Not the repo root -- run "
                         "outputs live under logs/ (gitignored)")
