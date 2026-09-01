@@ -311,23 +311,37 @@ def probe(a, rs, cv2, Detector):
         r = T.reading_from_tags(frame, found[T.CYL_TAG_ID].pose_R, found[T.CYL_TAG_ID].pose_t,
                                 t=0.0, shaft_axis=a.shaft_axis,
                                 margin=found[T.CYL_TAG_ID].decision_margin,
-                                axial_mm=a.axial_mm)
+                                axial_mm=a.axial_mm, symmetric=a.symmetric_object)
         print(f"\n  cos(shaft, up) = {r.cos_up:+.4f}   {r.deg_from_up:.1f} deg from up, "
               f"{abs(90.0 - r.deg_from_up):.1f} deg off horizontal")
         print("    -> lay the shaft flat: expect cos ~0.  Stand it up: expect cos ~+1.")
         print(f"\n  tag centre      {r.tag_z_bench_mm:7.1f} mm above the bench floor")
         print(f"  cylinder centre {r.z_bench_mm:7.1f} mm above the bench floor "
               f"(= {r.z_sim_mm:.1f} in the simulator's z)")
-        # The sign check that costs nothing and saves a whole session: the centre is 71 mm from
-        # the tag ALONG the shaft, so with the shaft upright and the tag on top the centre must
-        # read lower. If it reads higher, --shaft-axis points the wrong way.
+        # The sign check. The previous version of this compared the computed centre height
+        # against the tag height -- but the centre IS tag - 71*cos, so that test is the
+        # computation checked against itself and printed CORRECT for every input, including
+        # the inverted axis that produced a sub-floor centre on 2026-08-31. A sign check needs
+        # a fact the camera cannot see: which physical END of the cylinder the vane is on.
         if abs(r.cos_up) > 0.5:
-            expect = "LOWER" if r.cos_up > 0 else "HIGHER"
-            got = "lower" if r.z_bench_mm < r.tag_z_bench_mm else "higher"
-            ok = (expect.lower() == got)
-            print(f"  shaft is near vertical, so the centre should read {expect} than the tag; "
-                  f"it reads {got}  --> --shaft-axis {a.shaft_axis} is "
-                  f"{'CORRECT' if ok else 'BACKWARDS (use its negation)'}")
+            standing_end = "TOP" if r.cos_up > 0 else "BOTTOM"
+            other_end = "BOTTOM" if r.cos_up > 0 else "TOP"
+            if a.tag_end:
+                ok = (a.tag_end == "top") == (r.cos_up > 0)
+                print(f"  shaft is near vertical and you declared the vane on the {a.tag_end.upper()} "
+                      f"end; cos reads {r.cos_up:+.3f}  --> --shaft-axis {a.shaft_axis} is "
+                      f"{'CORRECT' if ok else 'BACKWARDS (use its negation, e.g. --shaft-axis=-x)'}")
+                if not ok:
+                    print(f"    with the sign flipped the centre reads "
+                          f"{r.tag_z_bench_mm + T.CYL_TAG_AXIAL_MM * r.cos_up:.1f} mm instead of "
+                          f"{r.z_bench_mm:.1f}")
+            else:
+                print(f"  shaft is near vertical and cos reads {r.cos_up:+.3f}. The camera cannot "
+                      f"see which END the vane is on, and that is the whole question:")
+                print(f"    --shaft-axis {a.shaft_axis} is CORRECT if the vane is physically at "
+                      f"the {standing_end} right now,")
+                print(f"    and BACKWARDS if it is at the {other_end}. Re-run with "
+                      f"--tag-end top|bottom to have this checked instead of narrated.")
         else:
             print("  shaft is near horizontal, so this frame cannot check --shaft-axis's sign. "
                   "Stand it up and re-probe.")
@@ -342,7 +356,8 @@ def probe(a, rs, cv2, Detector):
                 frame.heading_deg = h
                 r = T.reading_from_tags(frame, found[T.CYL_TAG_ID].pose_R,
                                         found[T.CYL_TAG_ID].pose_t, t=0.0,
-                                        shaft_axis=a.shaft_axis, axial_mm=a.axial_mm)
+                                        shaft_axis=a.shaft_axis, axial_mm=a.axial_mm,
+                                        symmetric=a.symmetric_object)
                 print(f"  heading {h:+.0f} deg from the MOUNTING (tag normal to the gantry "
                       f"x-axis; {why})")
             except ValueError as exc:
@@ -463,7 +478,8 @@ def record(a, rs, cv2, Detector):
                     tag = found[T.CYL_TAG_ID]
                     r = T.reading_from_tags(frame, tag.pose_R, tag.pose_t, t=t,
                                             shaft_axis=a.shaft_axis,
-                                            margin=tag.decision_margin, axial_mm=a.axial_mm)
+                                            margin=tag.decision_margin, axial_mm=a.axial_mm,
+                                            symmetric=a.symmetric_object)
                     if frame.heading_deg is None and not a.no_mounting_heading:
                         try:
                             h, why = frame.heading_from_mounting(
@@ -475,7 +491,8 @@ def record(a, rs, cv2, Detector):
                             r = T.reading_from_tags(frame, tag.pose_R, tag.pose_t, t=t,
                                                     shaft_axis=a.shaft_axis,
                                                     margin=tag.decision_margin,
-                                                    axial_mm=a.axial_mm)
+                                                    axial_mm=a.axial_mm,
+                                                    symmetric=a.symmetric_object)
                         except ValueError as exc:
                             # Retry rather than give up on the first frame: the tracker can be
                             # armed a moment before the shaft is finally seated, and the
@@ -573,6 +590,14 @@ def main() -> int:
                    help="us; default 0 lets IR auto-exposure settle at run start and then locks "
                         "its chosen exposure/gain. Positive values force a fixed exposure")
     p.add_argument("--gain", type=float, default=64.0)
+    p.add_argument("--symmetric-object", action="store_true",
+                   help="the object is rotationally symmetric end-for-end (the 100x25 cylinder), "
+                        "so which pole ends up on top is a property of how it was seated and not "
+                        "of the turn. Folds cos to [0,1]. Leave OFF for the screwdriver")
+    p.add_argument("--tag-end", choices=("top", "bottom"), default="",
+                   help="which END of the cylinder the vane tag is on with the tool standing "
+                        "upright. The one fact the camera cannot supply; without it --probe can "
+                        "only narrate the sign of --shaft-axis, not check it")
     p.add_argument("--shaft-axis", default="x",
                    help="direction in the CYLINDER tag's frame pointing from the cylinder "
                         "centre outward to the tag")

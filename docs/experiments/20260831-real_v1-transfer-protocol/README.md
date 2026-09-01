@@ -36,6 +36,20 @@ the bench alignment will be systematically below the simulated one. Ranking is t
 | grip | the plan's own per-finger driver/holder split | position control over-clamps a symmetric grip |
 | servo protection | as configured, unchanged mid-study | the load-200 plateau is `protective_torque` 20% |
 | camera | fixed exposure, `--exposure 4000 --gain 64` | a session that compares decision margins needs a fixed transfer function |
+| shaft axis | `--shaft-axis=-x --tag-end top` | measured 2026-08-31: with the vane end up and the tool standing, `x` reads cos −0.999. The axial offset must run centre→tag or the centre lands 2×71×cos on the wrong side |
+| pole | `--symmetric-object` | the 100×25 cylinder has no distinguished end, so which pole ends up on top is how the operator seated it, not what the hand did. **Off for the screwdriver** |
+| heading | `--heading-deg 90` | see below |
+
+**On the heading.** Nothing this study measures needs bench x/y. The primary metric is an
+angle, which comes from the reference tag's observed up vector and the shaft direction — no
+horizontal frame is involved at all — and `radial_mm`, the horizontal distance from the reference
+tag, already gives a rotation-free slip proxy. The mounting inference refuses on this rig because
+the object measures ~36 mm horizontally from the reference tag where `REF_TAG_BENCH_MM` predicts
+~130, so the tape-measured x/y does not describe the rig and the refusal is correct. For the study
+that is settled by declaring `--heading-deg 90`: the frame is then anchored on the reference tag
+with a chosen azimuth, x/y is populated and **internally consistent across every trial**, and the
+only thing given up is that `+x` need not point at the index gantry. Nothing downstream cares.
+Re-derive the true azimuth later with `--calibrate-heading` if a claim ever needs it.
 
 The camera exposure is the one place this protocol overrides the tool's default. The tracker's
 default (settle auto-exposure, then lock it) adapts each run to the room, which is right for a
@@ -106,12 +120,13 @@ is between two different quantities.
 
 ### Stage 0 — preflight, every sitting, ~5 min
 
-1. `scripts/real_v1_tag_tracker.py --probe --exposure 4000 --gain 64`. Require: both tags found,
-   **id6 decision margin >= 30 on the raw image**, frame mean in 20..235.
-2. Stage the shaft **in the hand at the grip pose** and re-probe. This is the step that checks
-   `--shaft-axis`'s sign against a standing shaft, and it is the only staging in which the
-   mounting heading resolves — with the shaft parked beside the reference tag the two candidate
-   headings straddle it and the tracker refuses, by design.
+1. `scripts/real_v1_tag_tracker.py --probe --exposure 4000 --gain 64 --shaft-axis=-x
+   --tag-end top --symmetric-object --heading-deg 90`. Require: both tags found,
+   **id6 decision margin >= 30 on the raw image**, frame mean in 20..235, and the sign line
+   reading `--shaft-axis -x is CORRECT`.
+2. Stand the tool upright (in the grip, or on the bench beside it) and re-probe. **A flat shaft
+   cannot check the axis sign** — cos ≈ 0 puts the 71 mm offset horizontal and the height reads
+   correctly either way — which is why the error survived until the first run stood the tool up.
 3. `scripts/real_v1_trajectory_clearance.py` for the plans in this sitting.
 4. Keep the probe PNG in the session directory. It is the record of what the instrument could
    see that day.
@@ -214,6 +229,19 @@ the CB1 started with `--tracker-url` and the workstation companion running, pres
 reorientation* creates the run id, arms the camera on that exact id, waits for the reference
 latch and the first delivered sample, moves, and finalizes the trace. A run that cannot arm is
 refused rather than run blind.
+
+Start the workstation companion once per session with the study's settings baked in, so they
+cannot drift between trials:
+
+```bash
+MANTA_TOKEN="$MANTA_TOKEN" ~/miniconda3/bin/python scripts/real_v1_tracker_service.py \
+  --host 10.99.99.50 --port 8770 \
+  --tracker-arg --shaft-axis=-x \
+  --tracker-arg --symmetric-object \
+  --tracker-arg --heading-deg --tracker-arg 90 \
+  --tracker-arg --exposure --tracker-arg 4000 \
+  --tracker-arg --gain --tracker-arg 64
+```
 
 `scripts/real_v1_bench_session.py` remains the tool for a sitting that needs its free-air control
 arm, its grip-window arm, `max_u` truncation, or its self-describing manifest. Stage 2 needs none

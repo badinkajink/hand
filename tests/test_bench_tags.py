@@ -314,3 +314,25 @@ def test_a_centre_below_the_bench_floor_is_reported_as_a_shaft_axis_sign_error()
 
     upright = T.summarise([reading(0.0, 0.0, 130.0), reading(3.0, 0.9, 200.0)])
     assert upright.below_floor_mm is None
+
+
+def test_symmetric_folds_the_pole_but_never_the_axial_geometry(ident_frame):
+    """A plain cylinder has no distinguished end, so which pole ends up on top is a property of
+    how the operator seated it. The axial offset is NOT foldable: it is geometry, and it always
+    runs centre -> tag."""
+    frame, _, _ = ident_frame
+    frame.heading_deg = 90.0
+    # tag frame whose local +x points DOWN in the world: the vane sits on the lower end
+    R = np.column_stack([-frame.up_cam, frame.plane_cam,
+                         np.cross(-frame.up_cam, frame.plane_cam)])
+    t = ((frame.ref_t_cam_mm + 30.0 * frame.plane_cam) / 1000.0).reshape(3, 1)
+    signed = T.reading_from_tags(frame, R, t, t=0.0, shaft_axis="x")
+    folded = T.reading_from_tags(frame, R, t, t=0.0, shaft_axis="x", symmetric=True)
+    assert signed.cos_up == pytest.approx(-1.0, abs=1e-6)
+    assert folded.cos_up == pytest.approx(1.0, abs=1e-6)
+    assert folded.deg_from_up == pytest.approx(0.0, abs=1e-4)
+    # the centre is 71 mm from the tag along the shaft, on the same side either way
+    assert folded.z_bench_mm == pytest.approx(signed.z_bench_mm)
+    assert folded.tag_z_bench_mm == pytest.approx(signed.tag_z_bench_mm)
+    # and a folded trace can never trip the wrong-pole flag, because there is no wrong pole
+    assert not T.summarise([folded]).wrong_pole
