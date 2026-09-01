@@ -309,3 +309,30 @@ case and is **not** a substitute for staging. And `--probe` before every sitting
 paperwork: require id6 at raw margin ≥ 30. With `--tracker-url` configured the station is
 already fail-closed on this — an unlatched reference refuses the motion rather than producing an
 untracked trial — so a bumped tag costs a refused run, not a wasted one.
+
+## The trace was not enough (2026-08-31, after the first five trials)
+
+Five trials of one plan produced a CSV of cosines and no pixels, and two of the five went dark
+mid-turn with a healthy decision margin right up to the last frame. Nothing in the trace could
+say whether the tool had been occluded or flung out of the camera's view. Three additions:
+
+- **`u_px, v_px`** in every row. Pose does not distinguish those two cases; an image position
+  does.
+- **a tape.** `--video-hz 4` writes one IR frame every 0.25 s into `<trace>_frames/` —
+  individual JPEGs, not a container, because the service ends a run with SIGINT and a video file
+  that was never released is unplayable. ~1 MB a run at the default half scale. Encoding happens
+  on a background thread behind a bounded queue that DROPS rather than blocks: a slow disk must
+  never become a slow measurement. `scripts/real_v1_tracker_replay.py` assembles them offline
+  into an annotated mp4 and a phase-aligned filmstrip.
+- **`--post-roll`** on the service. Every trace ended at the last instant of the motion, because
+  that is when the station stops the camera, so `cos_hold` averaged the end of the *turn* and a
+  tool released a moment later would have scored like one that was kept. The servos hold their
+  last commanded position after a plan runs, so recording 2.5 s longer costs nothing and is the
+  difference between measuring a turn and measuring a grasp.
+
+And one correction: the hold window is anchored to when **recording stopped**, not to the last
+detection. Anchored to the last detection it slides backwards through a run that lost its tag,
+and reports the middle of the turn as the ending — which is what happened to those two trials
+(+0.359 and +0.386, from frames in which the shaft was still rotating). A hold window with no
+detections in it now yields `cos_hold = None`: a void, said out loud, rather than a plausible
+low number.

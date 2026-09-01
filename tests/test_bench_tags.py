@@ -336,3 +336,24 @@ def test_symmetric_folds_the_pole_but_never_the_axial_geometry(ident_frame):
     assert folded.tag_z_bench_mm == pytest.approx(signed.tag_z_bench_mm)
     # and a folded trace can never trip the wrong-pole flag, because there is no wrong pole
     assert not T.summarise([folded]).wrong_pole
+
+
+def test_a_trace_that_goes_dark_before_the_end_has_no_hold():
+    """Two runs on 2026-08-31 lost the tag at 1.5 s of a 3.4 s trajectory and were scored
+    0.359 and 0.386 -- numbers taken from frames in which the shaft was still turning. The
+    hold window belongs to when RECORDING stopped, and a window with nothing in it is a void,
+    not a low score."""
+    rs = [mk(t, c, 80.0) for t, c in [(0.0, 0.05), (0.7, 0.40), (1.4, 0.70)]]
+    s = T.summarise(rs, total_frames=90, trace_end_s=3.4)
+    assert s.cos_hold is None
+    assert any("never observed" in n for n in s.notes)
+    assert s.cos_peak == pytest.approx(0.70)     # the rest of the trace is still real
+    # ... and a run whose tag was visible to the end is scored exactly as before.
+    kept = rs + [mk(3.2, 0.90, 80.0), mk(3.4, 0.92, 80.0)]
+    assert T.summarise(kept, total_frames=90, trace_end_s=3.4).cos_hold == pytest.approx(0.91)
+
+
+def test_the_hold_window_still_defaults_to_the_last_detection():
+    """Traces recorded before `trace_end_s` existed must summarise the way they always did."""
+    rs = [mk(t, c, 80.0) for t, c in [(0.0, 0.1), (1.0, 0.5), (1.5, 0.8), (2.0, 0.9)]]
+    assert T.summarise(rs, total_frames=4).cos_hold == pytest.approx((0.5 + 0.8 + 0.9) / 3)

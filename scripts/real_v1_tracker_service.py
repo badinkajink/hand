@@ -39,13 +39,15 @@ class TrackerProcess:
     """Own at most one camera subprocess and expose its latch/finalization boundary."""
 
     def __init__(self, *, station_url: str, station_token: str, logs_dir: Path,
-                 seconds: float, arm_timeout: float, extra: list[str]):
+                 seconds: float, arm_timeout: float, extra: list[str],
+                 post_roll: float = 0.0):
         self.station_url = station_url.rstrip("/")
         self.station_token = station_token
         self.logs_dir = logs_dir
         self.seconds = seconds
         self.arm_timeout = arm_timeout
         self.extra = extra
+        self.post_roll = float(post_roll)
         self.lock = threading.RLock()
         self.proc: subprocess.Popen | None = None
         self.run_id = ""
@@ -151,13 +153,29 @@ class TrackerProcess:
         raise TimeoutError(f"tracker did not confirm {missing} within {self.arm_timeout:.0f}s")
 
     def stop(self, run_id: str = "") -> dict:
+        """End the recording -- after a dwell, so the trace contains a pose being HELD.
+
+        The station stops the tracker the instant its last ramp finishes, which made every
+        trace end at the end of the motion. `cos_hold` then averaged the last second of the
+        TURN, and a hand that reached vertical and let go a moment later scored exactly like
+        one that reached vertical and kept it -- the failure the hold window exists to catch.
+        The servos hold their last commanded position after the plan runs, so the dwell costs
+        nothing but the seconds and observes the only thing the metric is about.
+        """
         with self.lock:
             self._reap_if_done()
             if self.proc is None:
                 return self.status()
             if run_id and run_id != self.run_id:
                 raise ValueError(f"active tracker belongs to {self.run_id}, not {run_id}")
-            proc = self.proc
+            proc, armed = self.proc, self.armed
+        # Only after a run that actually armed: an arm-timeout abort must fail fast, not sit
+        # there taping a bench nobody is watching.
+        if armed and self.post_roll > 0:
+            time.sleep(self.post_roll)
+        with self.lock:
+            if self.proc is not proc:
+                return self.status()
             proc.send_signal(signal.SIGINT)
         try:
             proc.wait(timeout=30)
@@ -242,12 +260,17 @@ def main() -> int:
     ap.add_argument("--seconds", type=float, default=300.0,
                     help="safety cap; the CB1 normally stops each recording earlier")
     ap.add_argument("--arm-timeout", type=float, default=20.0)
+    ap.add_argument("--post-roll", type=float, default=2.0,
+                    help="keep recording this long after the station says the trajectory is "
+                         "done, so the trace contains the pose being HELD rather than ending "
+                         "on the last instant of the motion (0 restores the old behaviour)")
     ap.add_argument("--tracker-arg", action="append", default=[],
                     help="repeatable argument passed to real_v1_tag_tracker.py")
     args = ap.parse_args()
     tracker = TrackerProcess(station_url=args.station_url, station_token=args.station_token,
                              logs_dir=args.logs_dir, seconds=args.seconds,
-                             arm_timeout=args.arm_timeout, extra=args.tracker_arg)
+                             arm_timeout=args.arm_timeout, extra=args.tracker_arg,
+                             post_roll=args.post_roll)
     server = TrackerServer((args.host, args.port), tracker, args.token)
     print(f"AprilTag tracker service: http://{args.host}:{args.port} -> {args.station_url}",
           flush=True)

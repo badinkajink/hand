@@ -154,6 +154,11 @@ class Reading:
     xy_bench_mm: tuple[float, float] | None    # None until the heading is calibrated
     margin: float                              # detector decision margin on the cylinder tag
     range_mm: float                            # cylinder tag distance from the camera
+    #: Where the tag sat in the IMAGE. Pose alone cannot distinguish a tool that was occluded
+    #: from one that swung out of the camera's view, and on 2026-08-31 two of five trials went
+    #: dark mid-turn with a healthy decision margin right up to the last frame -- a question no
+    #: column in the trace could answer. A pixel does.
+    center_px: tuple[float, float] | None = None
 
     @property
     def z_sim_mm(self) -> float:
@@ -169,11 +174,14 @@ class Reading:
                 "x_bench_mm": (round(x, 2) if x != "" else ""),
                 "y_bench_mm": (round(y, 2) if y != "" else ""),
                 "tag_z_bench_mm": round(self.tag_z_bench_mm, 2),
-                "margin": round(self.margin, 1), "range_mm": round(self.range_mm, 1)}
+                "margin": round(self.margin, 1), "range_mm": round(self.range_mm, 1),
+                "u_px": (round(self.center_px[0], 1) if self.center_px else ""),
+                "v_px": (round(self.center_px[1], 1) if self.center_px else "")}
 
 
 CSV_FIELDS = ["t", "cos", "deg", "z_bench_mm", "z_sim_mm", "radial_mm",
-              "x_bench_mm", "y_bench_mm", "tag_z_bench_mm", "margin", "range_mm"]
+              "x_bench_mm", "y_bench_mm", "tag_z_bench_mm", "margin", "range_mm",
+              "u_px", "v_px"]
 
 
 @dataclass
@@ -351,7 +359,8 @@ def object_center_cam_mm(pose_R, pose_t, *, shaft_axis: str = "x",
 def reading_from_tags(frame: BenchFrame, pose_R, pose_t, *, t: float,
                       shaft_axis: str = "x", margin: float = 0.0,
                       axial_mm: float = CYL_TAG_AXIAL_MM,
-                      symmetric: bool = False) -> Reading:
+                      symmetric: bool = False,
+                      center_px=None) -> Reading:
     """One frame of object state.
 
     `symmetric` folds the pole. The axial offset ALWAYS runs from the cylinder's centre to the
@@ -370,7 +379,9 @@ def reading_from_tags(frame: BenchFrame, pose_R, pose_t, *, t: float,
         cos_up = abs(cos_up)
     return Reading(t=t, cos_up=cos_up, deg_from_up=deg_from_up(cos_up), z_bench_mm=z,
                    radial_mm=radial, tag_z_bench_mm=tag_z, xy_bench_mm=xy, margin=float(margin),
-                   range_mm=float(np.linalg.norm(np.asarray(pose_t).flatten()) * 1000.0))
+                   range_mm=float(np.linalg.norm(np.asarray(pose_t).flatten()) * 1000.0),
+                   center_px=(None if center_px is None
+                              else (float(center_px[0]), float(center_px[1]))))
 
 
 # ---- what a whole trace means ----------------------------------------------------------
@@ -424,21 +435,24 @@ class TraceSummary:
             return "no cylinder tag in the whole trace -- nothing measured"
         turn = f"{self.deg_turned:+.1f} deg" if self.deg_turned is not None else "--"
         drop = f", DROPPED at {self.drop_at_s:.1f}s" if self.dropped else ""
+        hold = f"{self.cos_hold:+.3f}" if self.cos_hold is not None else "NOT MEASURED"
         return (f"cos {self.cos_start:+.3f} -> {self.cos_final:+.3f} (hold "
-                f"{self.cos_hold:+.3f}, peak {self.cos_peak:+.3f} "
+                f"{hold}, peak {self.cos_peak:+.3f} "
                 f"at {self.t_peak_s:.1f}s), turned {turn}, height "
                 f"{self.z_start_mm:.0f} -> {self.z_final_mm:.0f} mm, slip {self.slip_mm:.1f} mm, "
                 f"seen {100 * self.visibility:.0f}%{drop}")
 
 
 def summarise(readings, *, total_frames: int | None = None,
+              trace_end_s: float | None = None,
               drop_fall_mm: float = DROP_FALL_MM,
               drop_hold_s: float = DROP_HOLD_S,
               hold_window_s: float = HOLD_WINDOW_S) -> TraceSummary:
     """Turn a trace into the numbers a bench session records.
 
     `readings` are the frames where the tag WAS seen; `total_frames` is how many were
-    captured, so visibility is honest. Everything is computed against the trace's own
+    captured, so visibility is honest, and `trace_end_s` is when RECORDING stopped, which
+    is not the same instant as the last detection and is the one the hold window belongs to. Everything is computed against the trace's own
     first sample: the interesting quantity on this bench is the CHANGE the turn produced,
     and the absolute height only says whether the staging matched the plan.
     """
@@ -456,10 +470,24 @@ def summarise(readings, *, total_frames: int | None = None,
     # The primary metric of the transfer study: the alignment the hand ENDED UP holding, not
     # the best instant it passed through. `cos_peak` without a height check scores a shaft that
     # was flicked upright and dropped exactly like one that was carried and kept.
-    t_end = rs[-1].t
+    # Measured against when RECORDING stopped. Taking it from the last DETECTION instead
+    # silently slides the window backwards through a run that lost its tag near the end, and
+    # reports the middle of the turn as the pose the hand finished in: on 2026-08-31 two runs
+    # that went dark at 1.5 s of a 3.4 s trajectory were scored 0.359 and 0.386 from frames
+    # taken while they were still turning. When nothing was seen in the window at all the hold
+    # is not measured -- None, and the study voids the trial -- because the alternative is to
+    # quote a number from seconds earlier as though it were the ending.
+    t_end = float(trace_end_s) if trace_end_s is not None else rs[-1].t
     held = [r.cos_up for r in rs if r.t >= t_end - hold_window_s]
-    s.cos_hold = float(np.mean(held)) if held else cos[-1]
     s.hold_window_s = float(hold_window_s)
+    if held:
+        s.cos_hold = float(np.mean(held))
+    else:
+        s.cos_hold = None
+        s.notes.append(f"the tag was not seen at any point in the last {hold_window_s:.1f} s "
+                       f"of the {t_end:.1f} s recording (last detection {rs[-1].t:.1f} s), so "
+                       "the alignment the hand ENDED holding was never observed. The trial "
+                       "has no cos_hold; it is a void, not a low score.")
     s.t_peak_s = rs[int(np.argmax(cos))].t
     s.deg_turned = deg_from_up(cos[0]) - deg_from_up(cos[-1])   # + = moved toward vertical
     s.z_start_mm, s.z_final_mm = rs[0].z_bench_mm, rs[-1].z_bench_mm
