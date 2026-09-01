@@ -1978,5 +1978,185 @@
   "success": null,
   "tag_seen": 164,
   "tag_vis": 1.0
+ },
+ "20260901-040125-sv1_w6689-101c10": {
+  "deg": null,
+  "design": "sv1_w6689",
+  "notes": null,
+  "status": "failed",
+  "success": null,
+  "tag_seen": null,
+  "tag_vis": null
+ },
+ "20260901-040133-sv1_w6689-eea582": {
+  "deg": null,
+  "design": "sv1_w6689",
+  "notes": null,
+  "status": "failed",
+  "success": null,
+  "tag_seen": null,
+  "tag_vis": null
+ },
+ "20260901-040143-sv1_w6689-933934": {
+  "deg": null,
+  "design": "sv1_w6689",
+  "notes": null,
+  "status": "failed",
+  "success": null,
+  "tag_seen": null,
+  "tag_vis": null
+ },
+ "20260901-040201-sv1_w6689-eb7cfb": {
+  "deg": null,
+  "design": "sv1_w6689",
+  "notes": null,
+  "status": "failed",
+  "success": null,
+  "tag_seen": null,
+  "tag_vis": null
+ },
+ "20260901-040350-sv1_w6689-9c14d9": {
+  "deg": null,
+  "design": "sv1_w6689",
+  "notes": null,
+  "status": "failed",
+  "success": null,
+  "tag_seen": null,
+  "tag_vis": null
+ },
+ "20260901-041855-sv1_w6689-cde74d": {
+  "deg": null,
+  "design": "sv1_w6689",
+  "notes": null,
+  "status": "complete",
+  "success": null,
+  "tag_seen": 31,
+  "tag_vis": 0.23134328358208955
+ },
+ "20260901-041932-sv1_w6689-7f02cb": {
+  "deg": null,
+  "design": "sv1_w6689",
+  "notes": null,
+  "status": "complete",
+  "success": null,
+  "tag_seen": 36,
+  "tag_vis": 0.2706766917293233
+ },
+ "20260901-042005-sv1_w6689-41e442": {
+  "deg": null,
+  "design": "sv1_w6689",
+  "notes": null,
+  "status": "complete",
+  "success": null,
+  "tag_seen": 30,
+  "tag_vis": 0.24793388429752067
+ },
+ "20260901-042057-sv1_w6689-75bdbe": {
+  "deg": null,
+  "design": "sv1_w6689",
+  "notes": null,
+  "status": "complete",
+  "success": null,
+  "tag_seen": 26,
+  "tag_vis": 0.2
+ },
+ "20260901-042211-sv1_w6689-3f83cf": {
+  "deg": 41.0,
+  "design": "sv1_w6689",
+  "notes": "",
+  "status": "complete",
+  "success": true,
+  "tag_seen": 133,
+  "tag_vis": 1.0
+ },
+ "20260901-042320-sv1_w6689-b7ef58": {
+  "deg": null,
+  "design": "sv1_w6689",
+  "notes": null,
+  "status": "complete",
+  "success": null,
+  "tag_seen": 138,
+  "tag_vis": 1.0
+ },
+ "20260901-042355-sv1_w6689-8111c6": {
+  "deg": null,
+  "design": "sv1_w6689",
+  "notes": null,
+  "status": "complete",
+  "success": null,
+  "tag_seen": 47,
+  "tag_vis": 0.35074626865671643
+ },
+ "20260901-042420-sv1_w6689-940181": {
+  "deg": null,
+  "design": "sv1_w6689",
+  "notes": null,
+  "status": "complete",
+  "success": null,
+  "tag_seen": 133,
+  "tag_vis": 1.0
+ },
+ "20260901-042528-sv1_w6689-810b95": {
+  "deg": 55.0,
+  "design": "sv1_w6689",
+  "notes": "",
+  "status": "complete",
+  "success": true,
+  "tag_seen": 122,
+  "tag_vis": 1.0
+ },
+ "20260901-042609-sv1_w6689-7069e0": {
+  "deg": null,
+  "design": "sv1_w6689",
+  "notes": null,
+  "status": "complete",
+  "success": null,
+  "tag_seen": 118,
+  "tag_vis": 1.0
+ },
+ "20260901-042639-sv1_w6689-f4b5c9": {
+  "deg": null,
+  "design": "sv1_w6689",
+  "notes": null,
+  "status": "complete",
+  "success": null,
+  "tag_seen": 33,
+  "tag_vis": 0.2619047619047619
+ },
+ "20260901-042719-sv1_w6689-15cda8": {
+  "deg": null,
+  "design": "sv1_w6689",
+  "notes": null,
+  "status": "complete",
+  "success": null,
+  "tag_seen": 126,
+  "tag_vis": 1.0
+ },
+ "20260901-042749-sv1_w6689-0b6e1b": {
+  "deg": null,
+  "design": "sv1_w6689",
+  "notes": null,
+  "status": "complete",
+  "success": null,
+  "tag_seen": 47,
+  "tag_vis": 0.34814814814814815
+ },
+ "20260901-042818-sv1_w6689-051905": {
+  "deg": null,
+  "design": "sv1_w6689",
+  "notes": null,
+  "status": "complete",
+  "success": null,
+  "tag_seen": 40,
+  "tag_vis": 0.3053435114503817
+ },
+ "20260901-042931-sv1_w6689-77e306": {
+  "deg": 72.0,
+  "design": "sv1_w6689",
+  "notes": "",
+  "status": "complete",
+  "success": true,
+  "tag_seen": 127,
+  "tag_vis": 1.0
  }
 }

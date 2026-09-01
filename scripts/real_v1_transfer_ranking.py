@@ -101,11 +101,17 @@ def build(per_design=10):
         return "overshoot"
 
     for dsg, g in B.items():
-        # Every trial the operator called a hold counts toward alignment...
-        held = heldall = [t for t in g if t["outcome"] == "HELD"]
-        drops = [t for t in g if t["outcome"] == "DROPPED"]
+        # `extra` trials are individually admitted holds from another session (see
+        # EXTRA_RUNS). They add ALIGNMENT samples and nothing else. They must never enter a
+        # hold RATE: they were picked because the operator scored them and they succeeded,
+        # so counting them into a denominator selects on the outcome being measured. Every
+        # rate, turn, slip and failure mode below is computed on the session alone.
+        core = [t for t in g if not t.get("extra")]
+        held = heldall = [t for t in core if t["outcome"] == "HELD"]
+        drops = [t for t in core if t["outcome"] == "DROPPED"]
         # ...if the tag survived to the hold window.
-        h = np.array([t["cos_hold"] for t in held if t["cos_hold"] is not None])
+        pool = held + [t for t in g if t.get("extra") and t["outcome"] == "HELD"]
+        h = np.array([t["cos_hold"] for t in pool if t["cos_hold"] is not None])
         # EVERY hand carries an alignment number, so that every hand carries a rank and the
         # sim/bench comparison is over the same eight. One needs a substitute, marked with the
         # symbol in `qual` wherever it is printed:
@@ -114,16 +120,17 @@ def build(per_design=10):
         #      range as the shaft comes up, which is an instrument failure, not a grip one.
         qual = ""
         if not len(h):
-            h = np.array([t["cos_peak"] for t in held if t["cos_peak"] is not None])
+            h = np.array([t["cos_peak"] for t in pool if t["cos_peak"] is not None])
             qual = "*"
         mins = [F.get(t["tag"]) for t in heldall if F.get(t["tag"]) is not None]
-        rows.append(dict(design=dsg, short=SHORT[dsg], n=len(g), n_held=len(held),
-                         n_drop=sum(t["outcome"] == "DROPPED" for t in g),
+        rows.append(dict(design=dsg, short=SHORT[dsg], n=len(core), n_held=len(held),
+                         n_extra=len(g) - len(core),
+                         n_drop=sum(t["outcome"] == "DROPPED" for t in core),
                          n_clean=len(held), n_cos=int(len(h)), qual=qual,
                          did=DESIGN_ID[dsg],
-                         n_unres=sum(t["outcome"] == "UNRESOLVED" for t in g),
+                         n_unres=sum(t["outcome"] == "UNRESOLVED" for t in core),
                          n_heldall=len(heldall), mode=mode(drops, heldall),
-                         hold_rate_op=len(heldall) / len(g),
+                         hold_rate_op=len(heldall) / len(core),
                          held_slip=float(np.mean([t["slip"] for t in heldall
                                                   if t["slip"] is not None])) if heldall else None,
                          drop_slip=float(np.mean([t["slip"] for t in drops
@@ -136,11 +143,11 @@ def build(per_design=10):
                          bench_cos=float(h.mean()) if len(h) else None,
                          bench_med=float(np.median(h)) if len(h) else None,
                          bench_sd=float(h.std(ddof=1)) if len(h) > 1 else None,
-                         bench_peak=float(np.mean([t["cos_peak"] for t in g
+                         bench_peak=float(np.mean([t["cos_peak"] for t in core
                                                    if t["cos_peak"] is not None])),
-                         bench_deg=float(np.mean([t["deg"] for t in g
+                         bench_deg=float(np.mean([t["deg"] for t in core
                                                   if t["deg"] is not None])),
-                         bench_slip=float(np.mean([t["slip"] for t in g
+                         bench_slip=float(np.mean([t["slip"] for t in core
                                                    if t["slip"] is not None])),
                          **{f"sim_{k}": S.get(dsg, {}).get(k) for k in
                             ("final_cos", "peak_cos", "ok_rate", "contacts", "force_N")}))
@@ -227,8 +234,20 @@ def all_hold_cos(g):
     return (float(np.mean(v)), "*") if v else (None, "")
 
 
-def figures():
+#: The paper wants the same figures with the statistics moved out of the titles and panels
+#: named (a)/(b) for the caption to refer to. Rather than keep a second, drifting copy of the
+#: plotting code, `figures(clean=True)` re-renders everything into `*_clean.pdf` from the same
+#: data. Whatever the analysis says, both variants say.
+def figures(clean=False):
     plt = _style()
+    suf = "_clean" if clean else ""
+
+    def title(ax, letter, plain, rich=""):
+        """Panel title. The clean variant is captioned prose, so it carries a letter and no
+        numbers; the working variant states the statistic where it can be seen."""
+        ax.set_title(f"({letter}) {plain}" if clean else (plain + rich), loc="left",
+                     fontsize=8.5 if clean else 8)
+
     allrows, rows, bk, sk, Mb, Nb, Ms, Ns = main()
     for r in allrows:
         r["hold_rate_op"] = r["n_heldall"] / r["n"]
@@ -282,8 +301,8 @@ def figures():
         Line2D([], [], ls="none", marker="^", ms=5, mfc="none", mec=BL,
                label="Hold, peak (tag lost before the hold window)")],
         frameon=False, ncol=2, loc="upper center", bbox_to_anchor=(.5, -0.15))
-    f.tight_layout(); f.savefig(f"{OUT}/fig_transfer_designs.pdf")
-    f.savefig(f"{OUT}/fig_transfer_designs.png", dpi=200)
+    f.tight_layout(); f.savefig(f"{OUT}/fig_transfer_designs{suf}.pdf")
+    f.savefig(f"{OUT}/fig_transfer_designs{suf}.png", dpi=200)
 
     # ---- fig 2: the simulator against each of the two bench axes, all eight hands
     f, ax = plt.subplots(1, 2, figsize=(6.6, 3.6))
@@ -294,6 +313,7 @@ def figures():
              "Does the simulator rank the turn?", True),
             (ax[1], [r["hold_rate_op"] for r in allrows], "Hold rate",
              "Does the simulator rank the grip?", False)]:
+        _ = ttl
         ys = np.array(ys)
         for x, y, r in zip(xs, ys, allrows):
             sub = diag and bool(r["qual"])
@@ -318,8 +338,9 @@ def figures():
             q = [r for r in allrows if not r["qual"]]
             rr = stats.spearmanr([r["sim_final_cos"] for r in q], [r["bench_cos"] for r in q])
             extra = f"\n{rr.statistic:+.2f} with the substituted hand removed (n = {len(q)})"
-        a.set_title(f"{ttl}\n" + r"$\rho_s$ = " + f"{rho.statistic:+.2f} (n = 8,"
-                    f" p = {rho.pvalue:.2f}){extra}", loc="left", fontsize=8)
+        title(a, "a" if diag else "b", "Measured alignment" if diag else "Hold rate",
+              f"\n" + r"$\rho_s$ = " + f"{rho.statistic:+.2f} (n = 8, p = {rho.pvalue:.2f})"
+              f"{extra}")
         a.set_xlabel("Simulated alignment"); a.set_ylabel(ylab)
 
     ax[0].legend(handles=[
@@ -332,8 +353,8 @@ def figures():
     ax[1].legend(handles=[Line2D([], [], c=RD, lw=1.4, label="Robust trend")],
                  frameon=False, loc="lower right", fontsize=6.5, handlelength=1.6)
     ax[0].set_ylim(0.08, 1.02); ax[1].set_ylim(-0.05, 1.15)
-    f.tight_layout(); f.savefig(f"{OUT}/fig_transfer_sim2real.pdf")
-    f.savefig(f"{OUT}/fig_transfer_sim2real.png", dpi=200)
+    f.tight_layout(); f.savefig(f"{OUT}/fig_transfer_sim2real{suf}.pdf")
+    f.savefig(f"{OUT}/fig_transfer_sim2real{suf}.png", dpi=200)
 
     # ---- fig 3: rank flow + what predicts what (the readable version)
     f, ax = plt.subplots(1, 2, figsize=(6.6, 3.3), gridspec_kw={"width_ratios": [1, 1.25]})
@@ -352,7 +373,7 @@ def figures():
     a.spines["bottom"].set_visible(False); a.tick_params(axis="x", length=0)
     a.plot([], [], c=RD, lw=1.6, label="Moves 3 places or more")
     a.legend(frameon=False, loc="lower center", bbox_to_anchor=(.5, -.28))
-    a.set_title("Rank in simulation against rank on the bench", loc="left")
+    title(a, "a", "Simulated and measured ranks")
 
     a = ax[1]
     preds = ["sim_final_cos", "sim_peak_cos", "sim_force_N", "sim_contacts", "sim_ok_rate"]
@@ -367,9 +388,9 @@ def figures():
     a.invert_yaxis(); a.set_xlim(-.75, .75)
     a.set_xlabel(r"Spearman $\rho$ against the bench  (n = 8)")
     a.legend(frameon=False, loc="lower left", bbox_to_anchor=(0, -.02))
-    a.set_title("What the simulator predicts", loc="left")
-    f.tight_layout(); f.savefig(f"{OUT}/fig_transfer_rankflow.pdf")
-    f.savefig(f"{OUT}/fig_transfer_rankflow.png", dpi=200)
+    title(a, "b", "Simulation-to-bench rank correlation")
+    f.tight_layout(); f.savefig(f"{OUT}/fig_transfer_rankflow{suf}.pdf")
+    f.savefig(f"{OUT}/fig_transfer_rankflow{suf}.png", dpi=200)
 
     # ---- fig 3b (appendix): the full matrices
     bk2 = ["bench_peak", "bench_deg", "hold_rate_op", "held_slip", "bench_cos"]
@@ -378,8 +399,10 @@ def figures():
     f, ax = plt.subplots(1, 2, figsize=(7.0, 3.4),
                          gridspec_kw={"width_ratios": [len(bk2), len(sk)]})
     for a, M, rl, cl, ttl in [
-            (ax[0], Mb2, bk2, bk2, "Bench metrics against each other"),
-            (ax[1], Mx[len(sk):, :len(sk)], bk2, sk, "Simulated against bench")]:
+            (ax[0], Mb2, bk2, bk2, "(a) Bench metrics against each other" if clean
+             else "Bench metrics against each other"),
+            (ax[1], Mx[len(sk):, :len(sk)], bk2, sk, "(b) Simulated against bench" if clean
+             else "Simulated against bench")]:
         im = a.imshow(M, vmin=-1, vmax=1, cmap="RdBu_r")
         a.set_xticks(range(len(cl))); a.set_xticklabels([lbl[k] for k in cl], rotation=40,
                                                         ha="right")
@@ -392,8 +415,8 @@ def figures():
                            color="white" if abs(M[i, j]) > .6 else "#222")
         a.set_title(ttl, loc="left", fontsize=8)
     f.colorbar(im, ax=ax, shrink=.8, label=r"Spearman $\rho$")
-    f.savefig(f"{OUT}/fig_transfer_ranking.pdf", bbox_inches="tight")
-    f.savefig(f"{OUT}/fig_transfer_ranking.png", dpi=200, bbox_inches="tight")
+    f.savefig(f"{OUT}/fig_transfer_ranking{suf}.pdf", bbox_inches="tight")
+    f.savefig(f"{OUT}/fig_transfer_ranking{suf}.png", dpi=200, bbox_inches="tight")
 
     # ---- fig 4: the three failure modes, in one plane
     BAND = (20.0, 60.0)     # where 44 of the 48 holds sit, and 4 of the 28 drops
@@ -418,13 +441,15 @@ def figures():
     ax.scatter([], [], s=20, c=BL, label="Held")
     ax.scatter([], [], s=26, marker="x", c=RD, lw=1.1, label="Dropped")
     ax.legend(frameon=False, loc="upper center", ncol=2, bbox_to_anchor=(.55, 1.02))
-    ax.set_title("Holds live in a band of turn;\ndrops leave it three ways", loc="left")
-    f.tight_layout(); f.savefig(f"{OUT}/fig_transfer_drops.pdf")
-    f.savefig(f"{OUT}/fig_transfer_drops.png", dpi=200)
+    title(ax, "a", "Trial outcomes" if clean else
+          "Holds live in a band of turn;\ndrops leave it three ways")
+    f.tight_layout(); f.savefig(f"{OUT}/fig_transfer_drops{suf}.pdf")
+    f.savefig(f"{OUT}/fig_transfer_drops{suf}.png", dpi=200)
 
-    print(f"\nwrote 5 figures to {OUT}/")
+    print(f"\nwrote 5 figures to {OUT}/ (suffix {suf!r})")
     return allrows
 
 
 if __name__ == "__main__":
     figures()
+    figures(clean=True)
