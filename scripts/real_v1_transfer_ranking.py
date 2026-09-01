@@ -78,18 +78,27 @@ def build(per_design=10):
     B, S, F = bench(per_design), sim(), min_tag_z()
     rows = []
 
-    def mode(drops):
-        """Two failure modes, and they are not the same defect.
+    def mode(drops, holds):
+        """Three failure modes, and they are not the same defect.
 
-        OVERSHOOT: the turn completes and keeps going, then the grip lets go. The drops turn
-        FURTHER than the same hand's holds (w0099: 65 deg vs 44) and travel little.
         EJECTION:  the shaft leaves the grip before any turn happens -- net turn near zero and
-        20-55 mm of travel. Only overshoot is an argument for closing the loop; ejection is a
-        grasp that never closed."""
+                   20-55 mm of travel. A grasp that never closed.
+        OVERSHOOT: the turn completes and keeps going, then the grip lets go. The drops turn
+                   FURTHER than the same hand's holds (w0099: 65 deg against 44) and travel
+                   little. This is the one that argues for closing the loop.
+        STALL:     the drops travel like a hold but stop SHORT of one (u1364: 25 deg against
+                   42). Neither of the above, and it was invisible while slip was the only
+                   test -- a stalled turn slips no more than a good one."""
         if not drops:
             return "--"
         sl = np.mean([t["slip"] for t in drops if t["slip"] is not None])
-        return "eject" if sl >= EJECT_SLIP_MM else "overshoot"
+        if sl >= EJECT_SLIP_MM:
+            return "eject"
+        dd = [t["deg"] for t in drops if t["deg"] is not None]
+        hd = [t["deg"] for t in holds if t["deg"] is not None]
+        if dd and hd and np.mean(dd) < np.mean(hd):
+            return "stall"
+        return "overshoot"
 
     for dsg, g in B.items():
         # Every trial the operator called a hold counts toward alignment...
@@ -113,7 +122,7 @@ def build(per_design=10):
                          n_clean=len(held), n_cos=int(len(h)), qual=qual,
                          did=DESIGN_ID[dsg],
                          n_unres=sum(t["outcome"] == "UNRESOLVED" for t in g),
-                         n_heldall=len(heldall), mode=mode(drops),
+                         n_heldall=len(heldall), mode=mode(drops, heldall),
                          hold_rate_op=len(heldall) / len(g),
                          held_slip=float(np.mean([t["slip"] for t in heldall
                                                   if t["slip"] is not None])) if heldall else None,
@@ -386,8 +395,10 @@ def figures():
     f.savefig(f"{OUT}/fig_transfer_ranking.pdf", bbox_inches="tight")
     f.savefig(f"{OUT}/fig_transfer_ranking.png", dpi=200, bbox_inches="tight")
 
-    # ---- fig 4: the two failure modes, in one plane
-    f, ax = plt.subplots(figsize=(4.3, 3.2))
+    # ---- fig 4: the three failure modes, in one plane
+    BAND = (20.0, 60.0)     # where 44 of the 48 holds sit, and 4 of the 28 drops
+    f, ax = plt.subplots(figsize=(4.6, 3.4))
+    ax.axvspan(*BAND, color=BL, alpha=.05, zorder=0)
     for g in B.values():
         for t in g:
             if t["deg"] is None or t["slip"] is None:
@@ -397,12 +408,17 @@ def figures():
             elif t["outcome"] == "DROPPED":
                 ax.scatter(t["deg"], t["slip"], s=26, marker="x", c=RD, zorder=4, lw=1.1)
     ax.axhline(EJECT_SLIP_MM, c=MU, lw=.7, ls="--")
-    ax.text(74, EJECT_SLIP_MM + 1.5, "Ejected", fontsize=7, color=MU, ha="right")
+    for v in BAND:
+        ax.axvline(v, c=MU, lw=.7, ls=":")
+    # The three regions a drop can be in, named where the reader will look for them.
+    for x, y, txt, ha in [(-4, 45, "Ejected", "left"), (-4, 15, "Stalled", "left"),
+                          (77, 15, "Overshot", "right")]:
+        ax.text(x, y, txt, fontsize=7.5, color=MU, ha=ha, style="italic")
     ax.set_xlabel("Net turn (deg)"); ax.set_ylabel("Slip (mm)")
     ax.scatter([], [], s=20, c=BL, label="Held")
     ax.scatter([], [], s=26, marker="x", c=RD, lw=1.1, label="Dropped")
-    ax.legend(frameon=False, loc="upper right")
-    ax.set_title("A drop either overshoots the turn\nor never gets one", loc="left")
+    ax.legend(frameon=False, loc="upper center", ncol=2, bbox_to_anchor=(.55, 1.02))
+    ax.set_title("Holds live in a band of turn;\ndrops leave it three ways", loc="left")
     f.tight_layout(); f.savefig(f"{OUT}/fig_transfer_drops.pdf")
     f.savefig(f"{OUT}/fig_transfer_drops.png", dpi=200)
 
