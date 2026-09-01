@@ -55,6 +55,16 @@ def trace(run_tag):
     return [(float(r["t"]), float(r["deg"])) for r in csv.DictReader(open(p[0])) if r.get("cos")]
 
 
+def peak_turn(run_tag):
+    """Largest rotation the tag ever reported, measured from the trace's own first sample.
+
+    This is what the panel overlays count up to. It is NOT the summary's net turn, which is
+    taken at the end: on an ejection the shaft swings through 50 degrees and comes back, and
+    labelling that row with its net turn contradicts what the reader can see in the frames."""
+    tr = trace(run_tag)
+    return max(tr[0][1] - d for _, d in tr) if tr else None
+
+
 def at(tr, t, tol=0.35):
     near = [(abs(x - t), d) for x, d in tr if abs(x - t) < tol]
     return min(near)[1] if near else None
@@ -123,7 +133,9 @@ def main():
     P = pick(B, F)
 
     def lab(dsg, run, kind):
-        return f"{DESIGN_ID[dsg]}  {kind}", f"{run['deg']:+.0f}$\\degree$ turn\n{run['slip']:.0f} mm slip"
+        pk = peak_turn(run["tag"])
+        return (f"{DESIGN_ID[dsg]}  {kind}",
+                f"{pk:+.0f}$\\degree$ peak turn\n{run['slip']:.0f} mm slip")
 
     if a.which in ("all", "modes"):
         sel = [("hold", "Held"), ("over", "Overshoot"), ("eject", "Ejection")]
@@ -145,7 +157,8 @@ def main():
                    [t for t in g if t["deg"] is not None]
             run = sorted(cand, key=lambda t: -t["deg"])[len(cand) // 2]
             rows.append((run, f"{DESIGN_ID[dsg]}  {want.title()}",
-                         f"{nh}/{len(g)} held\n{run['deg']:+.0f}$\\degree$ turn"))
+                         f"{nh}/{len(g)} held\n{peak_turn(run['tag']):+.0f}"
+                         r"$\degree$ peak turn"))
         sheet(rows, f"{OUT}/fig_filmstrip_designs")
     print(f"wrote filmstrips to {OUT}/")
 
