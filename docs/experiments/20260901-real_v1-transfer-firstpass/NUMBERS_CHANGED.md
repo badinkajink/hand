@@ -87,15 +87,20 @@ The standard deviation tripled. The three added trials read 0.655, 0.909 and 0.9
 12:05 session. The extra samples make D1's number *less* certain, not more, and that is the
 honest reading: the 04:18 staging was not repeatable.
 
-Two defects in that session, both worth fixing before the next one:
+Two defects in that session, and both are mine: the workstation tracker service had died and I
+restarted it bare, without the flags every previous session passed.
 
-* it was launched **without `--shaft-axis -x`**, so the axial offset went to the wrong end of
-  the shaft and the tracker put the cylinder centre 72 mm under the bench. Height, x/y, slip and
-  the drop verdict are void for all 15 runs; only the ANGLE survives, because it comes from the
-  tag's own orientation and never sees the offset. The tracker flags this itself in
-  `summary.notes` -- it is worth reading after the first run of a session.
-* it was launched **without `--video-hz 4`**, so there are no frames and those runs can never
-  appear in a filmstrip.
+* no **`--shaft-axis -x`**. The tracker's own default is `+x`, so the axial offset went to the
+  wrong end of the shaft and the cylinder centre came out 72 mm under the bench. Height, x/y,
+  slip and the drop verdict are void for every run of that session; only the ANGLE survives,
+  because it comes from the tag's own orientation and never sees the offset. The tracker flags
+  it itself in `summary.notes`.
+* no **`--video-hz`**. It defaults to 0, so nothing was taped and those runs can never appear
+  in a filmstrip.
+
+Fixed at the source rather than in a launch command: `real_v1_tracker_service.py` now carries
+`BENCH_DEFAULTS` -- `--shaft-axis -x`, `--video-hz 4`, `--video-scale 1.0`, `--video-quality
+92` -- so a bare restart of the bench companion is correct. `--tracker-arg` still overrides.
 
 ## 4. Why the 30 mm-tag trials are still out -- and it is not the tag
 
