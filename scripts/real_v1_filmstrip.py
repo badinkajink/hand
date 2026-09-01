@@ -147,7 +147,7 @@ def pick(B):
                    key=lambda t: t["slip"])
         return g[len(g) // 2] if g else None
     return dict(
-        best=("sv1_u0060", aligned("sv1_u0060")),
+        best=("sv1_w2360", aligned("sv1_w2360")),
         hold=("sv1_w0099", get("sv1_w0099", "HELD", lambda t: -t["deg"])),
         over=("sv1_w0099", median("sv1_w0099", "DROPPED")),
         eject=("sv1_u0308", get("sv1_u0308", "DROPPED", lambda t: -t["slip"])),
@@ -171,14 +171,17 @@ def main():
         return f"{DESIGN_ID[dsg]}  {kind}", f"{run['slip']:.0f} mm slip"
 
     if a.which in ("all", "modes"):
-        # The rows are named by what happened, not by a mechanism. The first is the best
-        # reorientation the bench produced, and it is a different shape of trajectory as well
-        # as a better one -- u0060 carries the shaft to about 70 deg where w0099 stops near
-        # 50, so the two hands' last panels do not look alike. The middle two are the same
-        # hand under the same plan, held and dropped. The last is a hand whose cylinder
-        # travels 54 mm across the bench instead of turning. Slip is the only number on the
-        # labels because it is the only one that means the same thing on a held and a dropped
-        # trial; the panels carry the tag's own angles and can be read.
+        # The rows are named by what happened, not by a mechanism. The first is the hand that
+        # worked: w2360 retained the cylinder on all ten of its trials, and its best-aligned
+        # one is here. It is also a different shape of trajectory -- the shaft is still near
+        # 20 deg at 1.2 s and then turns through 30 deg in the next third of a second, where
+        # w0099 below it climbs from the first frame and stops near 50. u0060 aligns better
+        # still, 0.95, but drops seven trials in ten, and a top row is read as the best hand
+        # rather than the best trial. The middle two are the same hand under the same plan,
+        # held and dropped. The last is a hand whose cylinder travels 54 mm across the bench
+        # instead of turning. Slip is the only number on the labels because it is the only one
+        # that means the same thing on a held and a dropped trial; the panels carry the tag's
+        # own angles and can be read.
         sel = [("best", "Held"), ("hold", "Held"), ("over", "Dropped"), ("eject", "Dropped")]
         sheet([(P[k][1],) + lab(P[k][0], P[k][1], v) for k, v in sel if P[k][1]],
               f"{OUT}/fig_filmstrip_modes")
