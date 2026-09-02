@@ -1,0 +1,495 @@
+<title>A Spring, a Cone, and a Cliff</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Spectral:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --paper:#f6f4ef; --ink:#1d2422; --ink-soft:#55605c; --ink-faint:#8b948f;
+  --rule:#d9d5cb; --panel:#fffdf9; --panel2:#eeebe3;
+  --measure:#0f6f74;         /* the instrument */
+  --measure-wash:#0f6f7418;
+  --estimate:#a4552b;        /* the eyeball */
+  --estimate-wash:#a4552b18;
+  --known:#5b6b52;           /* replayable / already had it */
+  --shadow:0 1px 2px #1d24220c, 0 8px 24px #1d242208;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#111614; --ink:#e6e6df; --ink-soft:#a2ada8; --ink-faint:#6d7873;
+    --rule:#2a3330; --panel:#171d1b; --panel2:#1e2523;
+    --measure:#4fd2d6; --measure-wash:#4fd2d61c;
+    --estimate:#e39264; --estimate-wash:#e392641c;
+    --known:#9db38e;
+    --shadow:0 1px 2px #0006, 0 10px 30px #0004;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#111614; --ink:#e6e6df; --ink-soft:#a2ada8; --ink-faint:#6d7873;
+  --rule:#2a3330; --panel:#171d1b; --panel2:#1e2523;
+  --measure:#4fd2d6; --measure-wash:#4fd2d61c;
+  --estimate:#e39264; --estimate-wash:#e392641c;
+  --known:#9db38e;
+  --shadow:0 1px 2px #0006, 0 10px 30px #0004;
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font-family:Spectral,Georgia,serif;font-size:17px;line-height:1.62;
+  -webkit-font-smoothing:antialiased}
+.wrap{max-width:1080px;margin:0 auto;padding:0 28px 96px}
+h1,h2,h3,.eyebrow,.num,th,.chip{font-family:Archivo,"Helvetica Neue",Arial,sans-serif}
+h1{font-size:clamp(2.3rem,6vw,3.6rem);font-weight:700;letter-spacing:-.025em;line-height:1.02;
+  margin:0 0 .35em;text-wrap:balance}
+h2{font-size:clamp(1.3rem,3vw,1.7rem);font-weight:600;letter-spacing:-.015em;margin:0 0 .2em;
+  text-wrap:balance}
+h3{font-size:1rem;font-weight:600;letter-spacing:.01em;margin:0 0 .3em}
+p{margin:0 0 1em;max-width:66ch}
+.eyebrow{font-size:.7rem;font-weight:600;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--ink-faint);margin:0 0 .8em}
+.mono,code,td.n,.scale-n{font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-variant-numeric:tabular-nums}
+code{font-size:.86em;background:var(--panel2);padding:.1em .35em;border-radius:3px;
+  color:var(--ink)}
+a{color:var(--measure)}
+em{font-style:italic}
+strong{font-weight:600}
+
+/* ---- masthead ------------------------------------------------------------ */
+header{padding:76px 0 40px;border-bottom:1px solid var(--rule);margin-bottom:52px}
+.lede{font-size:1.22rem;color:var(--ink-soft);max-width:60ch;margin:0}
+.stamp{display:flex;gap:22px;flex-wrap:wrap;margin-top:26px;
+  font-family:"IBM Plex Mono",monospace;font-size:.72rem;color:var(--ink-faint);
+  letter-spacing:.04em;text-transform:uppercase}
+
+/* ---- sections ------------------------------------------------------------ */
+section{margin:0 0 72px;scroll-margin-top:24px}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:34px;align-items:start}
+@media(max-width:820px){.two{grid-template-columns:1fr}}
+
+/* ---- the datum ruler ----------------------------------------------------- */
+.datum{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr);gap:40px;
+  align-items:start}
+@media(max-width:820px){.datum{grid-template-columns:1fr}}
+.ruler{position:relative;height:430px;border-left:2px solid var(--ink);
+  margin:14px 0 0 74px}
+.ruler .floor{position:absolute;left:-76px;right:-10px;bottom:0;height:2px;background:var(--ink)}
+.ruler .floor::after{content:"bench floor · 0";position:absolute;left:0;top:8px;
+  font-family:"IBM Plex Mono",monospace;font-size:.66rem;color:var(--ink-faint);
+  letter-spacing:.05em}
+.tick{position:absolute;left:0;width:100%;border-top:1px dashed var(--rule)}
+.tick.solid{border-top-style:solid;border-top-color:var(--measure)}
+.tick .scale-n{position:absolute;right:calc(100% + 10px);top:-.75em;font-size:.74rem;
+  color:var(--ink-soft);white-space:nowrap}
+.tick .lab{position:absolute;left:10px;top:-1.45em;font-size:.76rem;color:var(--ink-soft);
+  font-family:Archivo,sans-serif}
+.tick.solid .lab,.tick.solid .scale-n{color:var(--measure);font-weight:500}
+.link{position:absolute;left:-58px;width:12px;border-left:2px solid var(--estimate)}
+.link::before,.link::after{content:"";position:absolute;left:-4px;width:10px;height:2px;
+  background:var(--estimate)}
+.link::before{top:0}.link::after{bottom:0}
+.link span{position:absolute;left:-52px;top:50%;transform:translateY(-50%) rotate(-90deg);
+  transform-origin:center;font-family:"IBM Plex Mono",monospace;font-size:.68rem;
+  color:var(--estimate);white-space:nowrap;font-weight:500}
+
+/* ---- panels -------------------------------------------------------------- */
+.panel{background:var(--panel);border:1px solid var(--rule);border-radius:10px;padding:22px 24px;
+  box-shadow:var(--shadow)}
+.panel.tight{padding:18px 20px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;
+  background:var(--rule);border:1px solid var(--rule);border-radius:10px;overflow:hidden;
+  margin:26px 0}
+.stat{background:var(--panel);padding:18px 20px}
+.stat .num{display:block;font-size:1.85rem;font-weight:700;letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums;line-height:1.1;color:var(--measure)}
+.stat .num.est{color:var(--estimate)}
+.stat small{display:block;color:var(--ink-faint);font-size:.72rem;margin-top:6px;
+  font-family:Archivo,sans-serif;letter-spacing:.05em;text-transform:uppercase}
+.stat .sub{display:block;color:var(--ink-soft);font-size:.82rem;margin-top:8px}
+
+/* ---- tables -------------------------------------------------------------- */
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:22px 0}
+table{border-collapse:collapse;width:100%;font-size:.88rem;min-width:520px}
+th{font-size:.68rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-faint);text-align:left;padding:0 14px 9px 0;border-bottom:1px solid var(--rule);
+  white-space:nowrap}
+td{padding:9px 14px 9px 0;border-bottom:1px solid var(--rule);vertical-align:baseline}
+td.n{text-align:right;padding-right:18px;white-space:nowrap}
+tr:last-child td{border-bottom:0}
+.up{color:var(--measure);font-weight:500}
+.gone{color:var(--ink-faint);text-decoration:line-through}
+
+/* ---- the observation band ------------------------------------------------ */
+.obs{display:flex;gap:2px;margin:20px 0 10px;height:56px}
+.obs div{border-radius:2px;position:relative;display:flex;align-items:flex-end;
+  justify-content:center;padding-bottom:5px;font-family:"IBM Plex Mono",monospace;
+  font-size:.62rem;color:#fff;overflow:hidden}
+.obs .m{background:var(--measure)}
+.obs .n{background:var(--measure);outline:2px solid var(--estimate);outline-offset:-2px}
+.obs .r{background:var(--known)}
+.obs .i{background:var(--ink-faint)}
+.obskey{display:flex;gap:20px;flex-wrap:wrap;font-size:.78rem;color:var(--ink-soft);
+  margin-bottom:8px}
+.obskey span{display:flex;align-items:center;gap:7px}
+.sw{width:13px;height:13px;border-radius:3px;display:inline-block}
+.obslabels{display:flex;gap:2px;font-family:"IBM Plex Mono",monospace;font-size:.62rem;
+  color:var(--ink-faint)}
+.obslabels div{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+
+/* ---- callouts ------------------------------------------------------------ */
+.note{border-left:3px solid var(--measure);background:var(--measure-wash);
+  padding:16px 20px;border-radius:0 8px 8px 0;margin:24px 0}
+.note.warn{border-left-color:var(--estimate);background:var(--estimate-wash)}
+.note p:last-child{margin-bottom:0}
+.note .eyebrow{color:var(--measure)}
+.note.warn .eyebrow{color:var(--estimate)}
+
+/* ---- numbered blockers --------------------------------------------------- */
+ol.blockers{list-style:none;counter-reset:b;padding:0;margin:24px 0 0}
+ol.blockers li{counter-increment:b;position:relative;padding:0 0 20px 52px;
+  border-bottom:1px solid var(--rule);margin-bottom:20px}
+ol.blockers li:last-child{border-bottom:0;margin-bottom:0;padding-bottom:0}
+ol.blockers li::before{content:counter(b);position:absolute;left:0;top:1px;
+  font-family:Archivo,sans-serif;font-weight:700;font-size:.8rem;
+  width:30px;height:30px;border-radius:50%;border:1.5px solid var(--rule);
+  display:grid;place-items:center;color:var(--ink-faint)}
+ol.blockers li p{margin:0}
+ol.blockers h3{margin-bottom:.15em}
+
+footer{border-top:1px solid var(--rule);padding-top:26px;color:var(--ink-faint);font-size:.84rem}
+footer p{max-width:none}
+</style>
+<style>
+figure{margin:26px 0}
+figure img{width:100%;border:1px solid var(--rule);border-radius:10px;background:var(--panel);
+  box-shadow:var(--shadow);display:block}
+figcaption{font-size:.82rem;color:var(--ink-soft);margin-top:10px;max-width:74ch}
+.hyp{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;margin:26px 0}
+.hyp .card{background:var(--panel);border:1px solid var(--rule);border-radius:10px;padding:18px 20px;
+  box-shadow:var(--shadow);border-top:3px solid var(--rule)}
+.hyp .card.yes{border-top-color:var(--measure)}
+.hyp .card.no{border-top-color:var(--estimate)}
+.hyp .card.open{border-top-color:var(--ink-faint);border-top-style:dashed}
+.verdict{font-family:Archivo,sans-serif;font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;
+  font-weight:700;margin-bottom:9px;display:block}
+.card.yes .verdict{color:var(--measure)} .card.no .verdict{color:var(--estimate)}
+.card.open .verdict{color:var(--ink-faint)}
+.hyp .card p{font-size:.9rem;margin-bottom:.6em}
+.hyp .card p:last-child{margin-bottom:0}
+</style>
+
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">MorphoHand · real_v1 · 2 September 2026</p>
+  <h1>A Spring,<br>a Cone, and a Cliff</h1>
+  <p class="lede">The hand performs about two thirds of the turn its plan commands. That
+    shortfall is not noise and it is not a bug in the controller — it is three separate
+    properties of an SCS0009 that the simulator models none of. Two are now measured. The
+    third is the one that decides whether MuJoCo can represent this hand at all, and this
+    bench could not reach it.</p>
+  <div class="stamp">
+    <span>236 archived runs</span><span>11 morphologies</span>
+    <span>0.0186°/load unit</span><span>5 joints swept</span><span>1 hypothesis open</span>
+  </div>
+</header>
+
+<section>
+  <p class="eyebrow">Intent</p>
+  <h2>A residual policy can only learn a disturbance its simulator produces</h2>
+  <p>Every learned reorientation policy this program has trained ignores its observations.
+    Replaying a fixed action sequence over the whole 66-dimensional input costs
+    <span class="mono">≤0.02</span> of held-cosine, on three separate hands, in two
+    independent implementations. That has been read as a defect of the policies. It is more
+    honestly a property of the problem they were given: in a rigid, deterministic simulator,
+    open loop <em>is</em> optimal, and a policy that ignores its sensors is not failing, it is
+    correct.</p>
+  <p>The bench does not behave that way. Across 236 logged runs the commanded and achieved
+    joint angles diverge by an amount that scales with load, and on the joint that drives the
+    turn — <code>middle_yaw</code> — a further <span class="mono">4.19°</span> of the spread
+    is <em>within</em>-design: same hand, same plan, different trial. No feedforward correction
+    removes that, and no open-loop plan can see it.</p>
+  <p>So the actuator model is not a side quest. It is the thing that decides whether a residual
+    policy has anything to learn. What follows identifies it.</p>
+</section>
+
+<section>
+  <p class="eyebrow">The starting position</p>
+  <h2>Three simulator defaults, and the hardware behind each</h2>
+  <div class="scroll"><table>
+    <tr><th>What every <code>real_v1</code> scene says</th><th>What that asserts</th><th>The hand</th></tr>
+    <tr><td class="mono">position kp="4000"</td><td>a near-rigid position source</td>
+        <td>a P controller at <span class="mono">p_coefficient 15</span>, <strong>and
+        <span class="mono">i_coefficient 0</span></strong></td></tr>
+    <tr><td class="mono">forcerange="-1000 1000"</td><td>effectively no torque ceiling</td>
+        <td>drops to <span class="mono">protective_torque</span> = 20 % under sustained
+        overload</td></tr>
+    <tr><td>no <code>frictionloss</code>, in any MJCF in the repo</td>
+        <td>a frictionless joint</td>
+        <td>a measurable friction cone — §4</td></tr>
+    <tr><td class="mono">mass 12.93 / 12.93 / 14.22 g</td>
+        <td>a modelled inertia</td>
+        <td>numerically identical to the capsule volumes in cm³: MuJoCo's default
+        1000 kg/m³ on a collision shape, never a model — §6</td></tr>
+  </table></div>
+</section>
+
+<section>
+  <p class="eyebrow">Hypotheses</p>
+  <h2>Three mechanisms produce a load-proportional error. Only one is a spring.</h2>
+  <p>The measured relationship — position error rising linearly with reported load, no
+    intercept — is compatible with all three of the following, and terminal holds cannot
+    separate them, because all three are linear in load with no constant term.</p>
+  <div class="hyp">
+    <div class="card yes">
+      <span class="verdict">Supported</span>
+      <h3>H1 · Proportional droop</h3>
+      <p>With <span class="mono">i_coefficient 0</span> the position loop has no integral, so a
+        standing load torque leaves an error that is never integrated away.</p>
+      <p><strong>Signature:</strong> error is a function of current load alone. Approach
+        direction is irrelevant.</p>
+      <p><strong>Maps to:</strong> MuJoCo <code>kp</code>, exactly — a position actuator
+        <em>is</em> a P controller.</p>
+    </div>
+    <div class="card yes">
+      <span class="verdict">Confirmed</span>
+      <h3>H2 · Friction cone</h3>
+      <p>Static friction lets the joint stop anywhere within a band around its target rather
+        than at it.</p>
+      <p><strong>Signature:</strong> path dependence. An up-sweep and a down-sweep through the
+        same set-points do not retrace; they open into a loop of twice the friction width.</p>
+      <p><strong>Maps to:</strong> MuJoCo <code>frictionloss</code>, a constant.</p>
+    </div>
+    <div class="card open">
+      <span class="verdict">Unresolved</span>
+      <h3>H3 · Load-dependent friction</h3>
+      <p>BAM's M3: <span class="mono">τ_f = K_v·q̇ + K_c + K_l·|τ_m − τ_e|</span>. Gear teeth
+        slide harder under load, so the cone <em>widens</em> with the torque passing through
+        it.</p>
+      <p><strong>Signature:</strong> loop width grows with load.</p>
+      <p><strong>Maps to:</strong> <em>nothing in MuJoCo.</em> <code>frictionloss</code> is a
+        constant. If H3 holds, the simulator cannot express this hand without the model BAM
+        adds.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <p class="eyebrow">Evidence · 236 archived runs</p>
+  <h2>One spring for the whole hand, and a cliff at 200</h2>
+  <figure>
+    <img src="compliance_scatter.png" alt="Deflection against servo load for 236 archived bench runs. Points on the linear branch follow a line of 0.0186 degrees per load unit; a separate cluster pinned at load 200 scatters from 14 to 43 degrees.">
+    <figcaption>Every logged run the CB1 has kept, over 11 morphologies. Deflection is the
+      absolute <span class="mono">commanded − achieved</span> at the settled terminal hold —
+      not the ratio of deltas <code>real_v1_bench_arrival.py</code> reports, because a joint
+      already sagging at <span class="mono">before</span> cancels part of its own sag out of a
+      delta.</figcaption>
+  </figure>
+  <div class="stats">
+    <div class="stat"><span class="num">0.0186°</span><small>per load unit</small>
+      <span class="sub">four loaded joints agree within 0.0177–0.0198</span></div>
+    <div class="stat"><span class="num">0.94–0.99</span><small>R² per joint</small>
+      <span class="sub">rms about half a degree</span></div>
+    <div class="stat"><span class="num est">42 %</span><small>of middle_yaw runs tripped</small>
+      <span class="sub">deflection and scatter both roughly double</span></div>
+  </div>
+  <p>Fifty of the 51 distinct reported load values are multiples of 15. The exception is
+    <strong>200</strong>, which is <span class="mono">protective_torque</span> — a register, not
+    a reading. A servo there has unloaded itself, so its deflection is set by whatever else is
+    pushing the joint. Separating those samples moves <code>middle_yaw</code> from R² 0.025 to
+    <strong>0.987</strong>. The two regimes were never one noisy phenomenon.</p>
+  <div class="note">
+    <p class="eyebrow">Out-of-sample check</p>
+    <p>Applied to three runs recorded afterwards and never used in the fit, the single constant
+      predicts the terminal deficits to a few tenths of a degree: <code>middle_yaw</code>
+      13.63° against 13.67 predicted, 10.70 against 11.16, 10.70 against 10.88;
+      <code>thumb_mcp</code> 7.86 against 7.81.</p>
+  </div>
+</section>
+
+<section>
+  <p class="eyebrow">Evidence · the registers</p>
+  <h2>The spring has a mechanism, and it is not a spring</h2>
+  <p>Read with the bus free, identical across all nine servos:</p>
+  <div class="scroll"><table>
+    <tr><th>register</th><th class="n">value</th><th>consequence</th></tr>
+    <tr><td class="mono">p_coefficient</td><td class="n">15</td><td>the proportional gain</td></tr>
+    <tr><td class="mono">i_coefficient</td><td class="n"><strong>0</strong></td>
+        <td><strong>no integral term</strong> — a standing load torque leaves a proportional
+        error forever</td></tr>
+    <tr><td class="mono">d_coefficient</td><td class="n">15</td><td>damping</td></tr>
+    <tr><td class="mono">cw / ccw_dead_zone</td><td class="n">1</td>
+        <td>≈0.29°, far too small to account for a 10–13° shortfall</td></tr>
+    <tr><td class="mono">max_temperature_limit</td><td class="n">70 °C</td>
+        <td>an independent thermal cutoff; the hand idles at 19–21 °C</td></tr>
+  </table></div>
+  <p>This is the useful kind of result: the load-proportional error is not material compliance
+    but the position loop's own droop, which is precisely what MuJoCo's position actuator
+    already models. <code>kp = 4000</code> is not the wrong <em>kind</em> of model. It is the
+    right model roughly 250× too stiff.</p>
+</section>
+
+<section>
+  <p class="eyebrow">Evidence · today's experiment</p>
+  <h2>The staircase does not retrace</h2>
+  <p>Each flexion joint was walked from 5° to 61° and back in 4° steps, 0.4 s at each
+    set-point so that what is read is an equilibrium rather than tracking lag, with the hand
+    homed and the fingers hanging clear. This is BAM's third trajectory, "raising and lowering
+    slowly".</p>
+  <figure>
+    <img src="hysteresis_loops.png" alt="Five panels, one per joint, plotting commanded minus achieved angle against commanded angle. In every panel the up-sweep trace sits above zero and the down-sweep trace below it, forming an open band rather than a single curve.">
+    <figcaption>In every panel the up-sweep sits above zero and the down-sweep below it. The
+      joint lags in whichever direction it is travelling, and stops short on both — the
+      signature of a friction cone, not of a spring.</figcaption>
+  </figure>
+  <div class="scroll"><table>
+    <tr><th>joint</th><th class="n">mean error</th><th class="n">loop width</th>
+        <th class="n">loop max</th><th class="n">mean |load|</th></tr>
+    <tr><td class="mono">thumb_mcp</td><td class="n">+0.51°</td><td class="n up">+0.76°</td><td class="n">2.05°</td><td class="n">47</td></tr>
+    <tr><td class="mono">thumb_pip</td><td class="n">+0.12°</td><td class="n up">+1.50°</td><td class="n">3.52°</td><td class="n">56</td></tr>
+    <tr><td class="mono">index_pip</td><td class="n">+0.24°</td><td class="n up">+1.07°</td><td class="n">1.76°</td><td class="n">38</td></tr>
+    <tr><td class="mono">middle_mcp</td><td class="n">+0.49°</td><td class="n up">+1.00°</td><td class="n">3.52°</td><td class="n">44</td></tr>
+    <tr><td class="mono">middle_pip</td><td class="n">+0.25°</td><td class="n up">+0.70°</td><td class="n">1.46°</td><td class="n">10</td></tr>
+  </table></div>
+  <p>The loop is <strong>two to six times larger than the systematic error</strong>. A
+    proportional droop predicts a loop of exactly zero, so at this load the friction term is not
+    a correction to the spring — it is the dominant effect, and the simulator carries no
+    <code>frictionloss</code> anywhere to represent it.</p>
+  <p><code>index_mcp</code> is absent: it refused a set-point near 61°, clamping at its own
+    <span class="mono">max_angle_limit</span>. A per-servo range difference, not a failure of
+    the method.</p>
+</section>
+
+<section>
+  <p class="eyebrow">The experiment that did not work</p>
+  <h2>A hanging finger cannot reach the load a grasp creates</h2>
+  <p>BAM varies load by bolting masses to its pendulum — 0.5, 1 and 1.5 kg over three link
+    lengths. This hand has nothing to bolt a mass to, so the substitute was to fold the distal
+    joint and change the moment arm instead: same joint, same trajectory, different load.</p>
+  <p>It did not work. Sweeping <code>middle_mcp</code> with <code>middle_pip</code> held at 0°,
+    25°, 50° and 72° produced mean loads of <strong>44, 45, 40 and 43</strong> — no variation at
+    all, and a loop of 1.00, 1.01, 0.88, 1.01° to match. The distal mass is too small and the
+    load register too coarse (a quantum of 15 on a signal of about 45) for the moment arm to
+    register.</p>
+  <figure>
+    <img src="load_coverage.png" alt="Deflection against load, overlaying 236 grasp runs spanning load 0 to 990 with today's free-hanging sweeps, which occupy only 0 to 150.">
+    <figcaption>The free-hanging sweeps occupy load 0–150. A grasp reaches 990. Everything
+      measured today about friction was measured in the leftmost 15 % of the range that
+      matters.</figcaption>
+  </figure>
+  <div class="note warn">
+    <p class="eyebrow">What this bench cannot say</p>
+    <p>H3 is untested, not refuted. The cone is real and roughly 1° wide at near-zero load. If
+      it is constant, a MuJoCo <code>frictionloss</code> of that size closes the gap and the
+      remaining shortfall is all <code>kp</code>. If it scales with load in the way BAM measures
+      on the MX-106 and eRob80, it could be several degrees at the 585–735 loads a real grasp
+      produces — and MuJoCo has no term for it.</p>
+    <p>That distinction is worth an experiment because it is exactly the size of the
+      unexplained <span class="mono">4.19°</span> of within-design scatter on
+      <code>middle_yaw</code>.</p>
+  </div>
+</section>
+
+<section>
+  <p class="eyebrow">Method</p>
+  <h2>Where this hand departs from BAM's bench</h2>
+  <p>BAM identifies one actuated joint driving a rigid link and a point mass. Three differences
+    matter here, and only the first is cosmetic.</p>
+  <ol class="blockers">
+    <li>
+      <h3>The link is not rigid — it is more servos</h3>
+      <p>Everything distal to the swept joint is itself a chain of actuators with their own
+        friction and their own droop. Leaving them torque-enabled and holding is the closest
+        approximation to BAM's rigid link available, and it is what was done here, but the
+        "link" still contains two compliant elements. Sweeping the distal-most joint
+        (<code>pip</code>) is the only genuinely clean single-joint pendulum on this hand.</p>
+    </li>
+    <li>
+      <h3>The joint that matters cannot be identified this way at all</h3>
+      <p><code>yaw</code> is a <strong>roll</strong> about the hanging finger's own long axis,
+        so gravity exerts no torque about it in this pose and a sweep is unloaded and
+        uninformative. It is also the joint that drives the turn and gives up 10–13° of a
+        commanded 32.68°. Identifying it needs the finger held horizontal — which the gantry
+        cannot do — or an offset mass on the yaw link.</p>
+    </li>
+    <li>
+      <h3>The real load is a contact, not gravity</h3>
+      <p>A pendulum loads the joint through a known inertia. A grasp loads it through a contact
+        whose stiffness, friction and geometry are themselves unidentified. The pendulum gives
+        the actuator model cleanly and says nothing about the contact — which is the half to
+        trust least when a residual policy meets the object.</p>
+    </li>
+  </ol>
+</section>
+
+<section>
+  <p class="eyebrow">A second model error, found on the way</p>
+  <h2>The finger masses were never modelled</h2>
+  <p>The MJCF gives the three links 12.93, 12.93 and 14.22 g. Those numbers are identical to
+    the capsule volumes in cm³, which is MuJoCo applying its default 1000 kg/m³ — water — to a
+    collision shape. Against the hardware: each link carries a 13.2 g servo biased toward its
+    lower end, a 30 %-infill PLA shell, and the yaw link additionally carries 10 g of boards
+    that appear nowhere in the model.</p>
+  <div class="scroll"><table>
+    <tr><th>link</th><th class="n">MJCF</th><th class="n">servo</th><th class="n">PLA shell*</th>
+        <th class="n">boards</th><th class="n">estimate</th></tr>
+    <tr><td class="mono">yaw_frame</td><td class="n gone">12.93 g</td><td class="n">13.2</td>
+        <td class="n">~7.2</td><td class="n">10.0</td><td class="n up">~30.4 g</td></tr>
+    <tr><td class="mono">mcp_frame</td><td class="n gone">12.93 g</td><td class="n">13.2</td>
+        <td class="n">~7.2</td><td class="n">—</td><td class="n up">~20.4 g</td></tr>
+    <tr><td class="mono">pip_frame</td><td class="n gone">14.22 g</td><td class="n">13.2</td>
+        <td class="n">~8.0</td><td class="n">—</td><td class="n up">~21.2 g</td></tr>
+  </table></div>
+  <p>*PLA shell from the capsule volume at an assumed effective density of 0.56 g/cm³ — solid
+    PLA at 1.24 discounted for 30 % infill with perimeters and skins. That factor is a guess and
+    a kitchen scale settles it; the servo and board masses are not.</p>
+  <p>The consequence is larger than the mass ratio suggests, because gravity torque and pendulum
+    inertia both depend on where the mass sits. With the servo biased low, the link centre of
+    mass moves from the modelled <span class="mono">−11.4 mm</span> to roughly
+    <span class="mono">−30 mm</span>. First moment <span class="mono">m·l</span> goes from about
+    147 to about 620 g·mm — <strong>the real gravity torque on a finger joint is roughly four
+    times what the simulator applies.</strong></p>
+</section>
+
+<section>
+  <p class="eyebrow">Consequences</p>
+  <h2>What changes, and what is still owed</h2>
+  <ol class="blockers">
+    <li>
+      <h3>Three MJCF corrections, two of them measured</h3>
+      <p>Finite <code>kp</code>, fitted by matching simulated <span class="mono">ctrl − qpos</span>
+        at the hold to the measured deflection, which never needs the load-to-N·m conversion.
+        Finite <code>forcerange</code> for the trip. Real masses and centres of mass. A
+        <code>frictionloss</code> of about 1° equivalent torque is defensible now and its
+        load-scaling is not.</p>
+    </li>
+    <li>
+      <h3>The test that closes H3</h3>
+      <p>Run the deploy plan forward and then backward with the object gripped, and compare
+        achieved angles at the same commanded pose. That is the same hysteresis measurement at
+        a load of 600 instead of 45, it needs no new hardware, and it is the one experiment that
+        decides whether MuJoCo can represent this actuator.</p>
+    </li>
+    <li>
+      <h3>Then, and only then, the ranking and drop checks</h3>
+      <p>With the plant corrected, re-score the eight transfer designs: the simulator currently
+        orders them at ρ<sub>s</sub> = +0.36 (p = 0.43), which is no relationship. And check
+        that the corrected simulator <em>drops</em> the shaft the way the bench does — simulated
+        retention is presently 1.00 for seven of eight designs, and a residual policy trained
+        against a simulator that cannot fail will learn nothing.</p>
+    </li>
+  </ol>
+</section>
+
+<footer>
+  <p>Data and scripts: <code>docs/experiments/20260902-servo-sysid/</code>,
+    <code>scripts/servo_hysteresis_sweep.py</code>,
+    <code>scripts/servo_load_dependence.py</code>,
+    <code>scripts/fit_servo_compliance.py</code>. Archived run logs in
+    <code>docs/experiments/20260902-cb1-log-archive/</code>; the 236-run compliance fit in
+    <code>docs/experiments/20260902-servo-compliance/</code>.</p>
+  <p>BAM: Duclusaud, Passault, Padois, Ly, <em>Extended Friction Models for the Physics
+    Simulation of Servo Actuators</em>, arXiv:2410.08650 (2024) —
+    <a href="https://github.com/Rhoban/bam">github.com/Rhoban/bam</a>.</p>
+</footer>
+
+</div>
