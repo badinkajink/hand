@@ -43,7 +43,11 @@ ROOT = Path(__file__).resolve().parents[1]
 #:
 #: Taping frames is likewise not optional here: a run with no frames can never appear in a
 #: filmstrip, and the filmstrip is how a trial gets looked at rather than summarised.
-BENCH_DEFAULTS = ["--shaft-axis", "-x",
+#: NOTE the "=" form on --shaft-axis. As two argv entries argparse reads "-x" as an option
+#: name, not a value, and the tracker dies at startup with "expected one argument" -- which
+#: reaches the operator as a station /reorient failure, since the run is fail-closed on
+#: tracking. Any future flag whose value begins with "-" needs the same treatment.
+BENCH_DEFAULTS = ["--shaft-axis=-x",
                   "--video-hz", "4", "--video-scale", "1.0", "--video-quality", "92"]
 sys.path.insert(0, str(ROOT / "scripts"))
 
