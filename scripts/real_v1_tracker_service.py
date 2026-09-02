@@ -47,7 +47,25 @@ ROOT = Path(__file__).resolve().parents[1]
 #: name, not a value, and the tracker dies at startup with "expected one argument" -- which
 #: reaches the operator as a station /reorient failure, since the run is fail-closed on
 #: tracking. Any future flag whose value begins with "-" needs the same treatment.
-BENCH_DEFAULTS = ["--shaft-axis=-x",
+#:
+#: The four flags after --shaft-axis were operator knowledge that lived only in a shell
+#: history until 2026-09-02, and a service launched without them produces runs that look
+#: like failures and are not:
+#:
+#:   --tag-end top       the one fact the camera cannot supply. Without it --probe can only
+#:                       narrate the sign of --shaft-axis instead of checking it.
+#:   --symmetric-object  the 100x25 cylinder is symmetric end-for-end, so which pole ends up
+#:                       on top is a property of seating, not of the turn. FOLDS cos TO [0,1].
+#:                       Without it a good 38 deg turn reports cos -0.684 and reads as the
+#:                       shaft driving downward.  *** TURN THIS OFF FOR THE SCREWDRIVER ***
+#:   --heading-deg 90    resolves the mounting heading. Without it bench x/y are withheld and
+#:                       the probe says "heading unresolved".
+#:   --exposure/--gain   fixed, not auto. Measured 2026-09-02 on the staged cylinder: id0
+#:                       decode margin 28.0 auto vs 48.9 fixed, id6 39.5 vs 62.2. Auto-exposure
+#:                       settles on the bright bench and starves the tag, which is the most
+#:                       likely cause of mid-turn dropouts.
+BENCH_DEFAULTS = ["--shaft-axis=-x", "--tag-end", "top", "--symmetric-object",
+                  "--heading-deg", "90", "--exposure", "4000", "--gain", "64",
                   "--video-hz", "4", "--video-scale", "1.0", "--video-quality", "92"]
 sys.path.insert(0, str(ROOT / "scripts"))
 
