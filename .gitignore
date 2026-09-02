@@ -9,7 +9,6 @@ site/
 .external/
 *.egg-info/
 external/
-*__init__.py
 results/
 
 # platformio lib, drivers, vscode
@@ -66,3 +65,4 @@ docs/experiments/20260829-real_v1_deploy/place_medium.json
 docs/experiments/20260829-real_v1_deploy/place_flat_bench.json
 docs/experiments/20260829-real_v1_deploy/bench_final_sq4.json
 docs/experiments/20260829-real_v1_deploy/bench_final_sq7.json
+paper/speculative/
