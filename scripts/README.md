@@ -1,6 +1,6 @@
 # scripts/ — active tooling map
 
-36 active scripts (2026-07-08 consolidation; ~90 superseded ones live in `archive/` with their
+135 active scripts (112 Python, 23 shell; ~90 superseded ones live in `archive/` with their
 own README). Everything runs via `uv run --extra rl --extra gpu python scripts/<x>.py`
 (`MUJOCO_GL=egl` headless; every Warp process needs its own `WARP_CACHE_PATH=$(mktemp -d)` —
 the `.sh` launchers handle both).
