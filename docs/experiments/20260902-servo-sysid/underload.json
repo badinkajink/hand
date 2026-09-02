@@ -1,0 +1,1349 @@
+{
+ "plan": "docs/experiments/20260902-residual-bench/deploy/rv05_manual_b85_plan.json",
+ "steps": 11,
+ "dwell": 0.7,
+ "records": [
+  {
+   "direction": "up",
+   "u": 0.0,
+   "t": 1788390986.9864204,
+   "joints": {
+    "thumb_yaw": {
+     "commanded": 5.768,
+     "achieved": 6.152318749999992,
+     "load": 0.0,
+     "temp": 22.0
+    },
+    "thumb_mcp": {
+     "commanded": 30.006,
+     "achieved": 20.507768749999997,
+     "load": -510.0,
+     "temp": 29.0
+    },
+    "thumb_pip": {
+     "commanded": 0.0,
+     "achieved": -1.4648562499999969,
+     "load": -105.0,
+     "temp": 21.0
+    },
+    "index_yaw": {
+     "commanded": 10.024,
+     "achieved": 1.757818750000002,
+     "load": 570.0,
+     "temp": 31.0
+    },
+    "index_mcp": {
+     "commanded": 22.921,
+     "achieved": 19.043006250000005,
+     "load": -225.0,
+     "temp": 23.0
+    },
+    "index_pip": {
+     "commanded": 0.016,
+     "achieved": -0.5859812500000032,
+     "load": 0.0,
+     "temp": 21.0
+    },
+    "middle_yaw": {
+     "commanded": -7.196,
+     "achieved": -3.222693750000005,
+     "load": -195.0,
+     "temp": 25.0
+    },
+    "middle_mcp": {
+     "commanded": 35.851,
+     "achieved": 33.69140625,
+     "load": -120.0,
+     "temp": 22.0
+    },
+    "middle_pip": {
+     "commanded": 0.0,
+     "achieved": -0.8788562499999983,
+     "load": -120.0,
+     "temp": 22.0
+    }
+   }
+  },
+  {
+   "direction": "up",
+   "u": 0.1,
+   "t": 1788390987.8498776,
+   "joints": {
+    "thumb_yaw": {
+     "commanded": 5.2924,
+     "achieved": 6.152318749999992,
+     "load": -90.0,
+     "temp": 22.0
+    },
+    "thumb_mcp": {
+     "commanded": 29.7832,
+     "achieved": 20.507768749999997,
+     "load": -510.0,
+     "temp": 29.0
+    },
+    "thumb_pip": {
+     "commanded": 0.0008,
+     "achieved": -1.4648562499999969,
+     "load": -135.0,
+     "temp": 21.0
+    },
+    "index_yaw": {
+     "commanded": 8.3744,
+     "achieved": 0.5859437500000002,
+     "load": 435.0,
+     "temp": 31.0
+    },
+    "index_mcp": {
+     "commanded": 22.057299999999998,
+     "achieved": 19.043006250000005,
+     "load": -165.0,
+     "temp": 23.0
+    },
+    "index_pip": {
+     "commanded": 0.015,
+     "achieved": -0.5859812500000032,
+     "load": 0.0,
+     "temp": 21.0
+    },
+    "middle_yaw": {
+     "commanded": -3.2087999999999997,
+     "achieved": -3.515662500000005,
+     "load": 75.0,
+     "temp": 25.0
+    },
+    "middle_mcp": {
+     "commanded": 34.5154,
+     "achieved": 33.69140625,
+     "load": -60.0,
+     "temp": 22.0
+    },
+    "middle_pip": {
+     "commanded": 4.870100000000001,
+     "achieved": -0.5858874999999841,
+     "load": -120.0,
+     "temp": 22.0
+    }
+   }
+  },
+  {
+   "direction": "up",
+   "u": 0.2,
+   "t": 1788390988.697936,
+   "joints": {
+    "thumb_yaw": {
+     "commanded": 4.8168,
+     "achieved": 6.152318749999992,
+     "load": 0.0,
+     "temp": 22.0
+    },
+    "thumb_mcp": {
+     "commanded": 29.5604,
+     "achieved": 20.507768749999997,
+     "load": -510.0,
+     "temp": 29.0
+    },
+    "thumb_pip": {
+     "commanded": 0.0016,
+     "achieved": -1.171887500000004,
+     "load": -135.0,
+     "temp": 21.0
+    },
+    "index_yaw": {
+     "commanded": 6.724799999999999,
+     "achieved": 0.8789125000000002,
+     "load": 435.0,
+     "temp": 32.0
+    },
+    "index_mcp": {
+     "commanded": 21.1936,
+     "achieved": 19.043006250000005,
+     "load": -150.0,
+     "temp": 23.0
+    },
+    "index_pip": {
+     "commanded": 0.014,
+     "achieved": -0.5859812500000032,
+     "load": 0.0,
+     "temp": 21.0
+    },
+    "middle_yaw": {
+     "commanded": 0.7784000000000004,
+     "achieved": -3.222693750000005,
+     "load": 255.0,
+     "temp": 25.0
+    },
+    "middle_mcp": {
+     "commanded": 33.1798,
+     "achieved": 33.3984375,
+     "load": 90.0,
+     "temp": 23.0
+    },
+    "middle_pip": {
+     "commanded": 9.740200000000002,
+     "achieved": 3.222706250000016,
+     "load": -225.0,
+     "temp": 22.0
+    }
+   }
+  },
+  {
+   "direction": "up",
+   "u": 0.3,
+   "t": 1788390989.5620842,
+   "joints": {
+    "thumb_yaw": {
+     "commanded": 4.3412,
+     "achieved": 6.445287499999999,
+     "load": 135.0,
+     "temp": 22.0
+    },
+    "thumb_mcp": {
+     "commanded": 29.3376,
+     "achieved": 19.628862499999997,
+     "load": -495.0,
+     "temp": 29.0
+    },
+    "thumb_pip": {
+     "commanded": 0.0024,
+     "achieved": -1.4648562499999969,
+     "load": -105.0,
+     "temp": 21.0
+    },
+    "index_yaw": {
+     "commanded": 5.0752,
+     "achieved": 0.2929750000000002,
+     "load": 270.0,
+     "temp": 32.0
+    },
+    "index_mcp": {
+     "commanded": 20.3299,
+     "achieved": 18.750037500000005,
+     "load": -120.0,
+     "temp": 23.0
+    },
+    "index_pip": {
+     "commanded": 0.013000000000000001,
+     "achieved": -0.5859812500000032,
+     "load": 0.0,
+     "temp": 21.0
+    },
+    "middle_yaw": {
+     "commanded": 4.765599999999999,
+     "achieved": -2.0508187500000012,
+     "load": 375.0,
+     "temp": 25.0
+    },
+    "middle_mcp": {
+     "commanded": 31.8442,
+     "achieved": 31.640625000000014,
+     "load": 0.0,
+     "temp": 22.0
+    },
+    "middle_pip": {
+     "commanded": 14.610299999999999,
+     "achieved": 13.183643750000002,
+     "load": -195.0,
+     "temp": 22.0
+    }
+   }
+  },
+  {
+   "direction": "up",
+   "u": 0.4,
+   "t": 1788390990.410091,
+   "joints": {
+    "thumb_yaw": {
+     "commanded": 3.8655999999999997,
+     "achieved": 6.445287499999999,
+     "load": 165.0,
+     "temp": 22.0
+    },
+    "thumb_mcp": {
+     "commanded": 29.1148,
+     "achieved": 20.507768749999997,
+     "load": -465.0,
+     "temp": 29.0
+    },
+    "thumb_pip": {
+     "commanded": 0.0032,
+     "achieved": -1.4648562499999969,
+     "load": -105.0,
+     "temp": 21.0
+    },
+    "index_yaw": {
+     "commanded": 3.4255999999999993,
+     "achieved": 0.5859437500000002,
+     "load": 180.0,
+     "temp": 32.0
+    },
+    "index_mcp": {
+     "commanded": 19.4662,
+     "achieved": 17.871131250000005,
+     "load": -105.0,
+     "temp": 23.0
+    },
+    "index_pip": {
+     "commanded": 0.012,
+     "achieved": -0.5859812500000032,
+     "load": 0.0,
+     "temp": 21.0
+    },
+    "middle_yaw": {
+     "commanded": 8.7528,
+     "achieved": -1.1719125000000012,
+     "load": 465.0,
+     "temp": 25.0
+    },
+    "middle_mcp": {
+     "commanded": 30.5086,
+     "achieved": 31.0546875,
+     "load": -60.0,
+     "temp": 22.0
+    },
+    "middle_pip": {
+     "commanded": 19.480400000000003,
+     "achieved": 13.183643750000002,
+     "load": 90.0,
+     "temp": 22.0
+    }
+   }
+  },
+  {
+   "direction": "up",
+   "u": 0.5,
+   "t": 1788390991.2170298,
+   "joints": {
+    "thumb_yaw": {
+     "commanded": 3.3899999999999997,
+     "achieved": 6.445287499999999,
+     "load": 210.0,
+     "temp": 22.0
+    },
+    "thumb_mcp": {
+     "commanded": 28.892,
+     "achieved": 20.214799999999997,
+     "load": -465.0,
+     "temp": 29.0
+    },
+    "thumb_pip": {
+     "commanded": 0.004,
+     "achieved": -1.4648562499999969,
+     "load": -150.0,
+     "temp": 21.0
+    },
+    "index_yaw": {
+     "commanded": 1.7759999999999998,
+     "achieved": 0.5859437500000002,
+     "load": 0.0,
+     "temp": 32.0
+    },
+    "index_mcp": {
+     "commanded": 18.6025,
+     "achieved": 14.648475000000019,
+     "load": -105.0,
+     "temp": 23.0
+    },
+    "index_pip": {
+     "commanded": 0.011,
+     "achieved": -0.5859812500000032,
+     "load": 0.0,
+     "temp": 21.0
+    },
+    "middle_yaw": {
+     "commanded": 12.74,
+     "achieved": 2.9296499999999988,
+     "load": 555.0,
+     "temp": 25.0
+    },
+    "middle_mcp": {
+     "commanded": 29.173000000000002,
+     "achieved": 28.125000000000014,
+     "load": 0.0,
+     "temp": 22.0
+    },
+    "middle_pip": {
+     "commanded": 24.3505,
+     "achieved": 23.73051875,
+     "load": -60.0,
+     "temp": 22.0
+    }
+   }
+  },
+  {
+   "direction": "up",
+   "u": 0.6,
+   "t": 1788390991.9942672,
+   "joints": {
+    "thumb_yaw": {
+     "commanded": 2.9143999999999997,
+     "achieved": 6.152318749999992,
+     "load": 225.0,
+     "temp": 22.0
+    },
+    "thumb_mcp": {
+     "commanded": 28.6692,
+     "achieved": 20.214799999999997,
+     "load": -360.0,
+     "temp": 29.0
+    },
+    "thumb_pip": {
+     "commanded": 0.0048,
+     "achieved": -1.4648562499999969,
+     "load": -105.0,
+     "temp": 21.0
+    },
+    "index_yaw": {
+     "commanded": 0.1264000000000003,
+     "achieved": 0.5859437500000002,
+     "load": 0.0,
+     "temp": 31.0
+    },
+    "index_mcp": {
+     "commanded": 17.7388,
+     "achieved": 16.699256250000005,
+     "load": -45.0,
+     "temp": 23.0
+    },
+    "index_pip": {
+     "commanded": 0.01,
+     "achieved": -0.5859812500000032,
+     "load": 0.0,
+     "temp": 21.0
+    },
+    "middle_yaw": {
+     "commanded": 16.727199999999996,
+     "achieved": 7.910118749999997,
+     "load": 435.0,
+     "temp": 25.0
+    },
+    "middle_mcp": {
+     "commanded": 27.837400000000002,
+     "achieved": 27.832031250000014,
+     "load": 0.0,
+     "temp": 22.0
+    },
+    "middle_pip": {
+     "commanded": 29.220599999999997,
+     "achieved": 28.41801875,
+     "load": -150.0,
+     "temp": 22.0
+    }
+   }
+  },
+  {
+   "direction": "up",
+   "u": 0.7,
+   "t": 1788390992.8586886,
+   "joints": {
+    "thumb_yaw": {
+     "commanded": 2.4387999999999996,
+     "achieved": 6.738256249999992,
+     "load": 240.0,
+     "temp": 22.0
+    },
+    "thumb_mcp": {
+     "commanded": 28.4464,
+     "achieved": 19.921831249999997,
+     "load": -450.0,
+     "temp": 30.0
+    },
+    "thumb_pip": {
+     "commanded": 0.0056,
+     "achieved": -1.4648562499999969,
+     "load": -105.0,
+     "temp": 21.0
+    },
+    "index_yaw": {
+     "commanded": -1.5231999999999992,
+     "achieved": 0.5859437500000002,
+     "load": -135.0,
+     "temp": 31.0
+    },
+    "index_mcp": {
+     "commanded": 16.8751,
+     "achieved": 16.699256250000005,
+     "load": 0.0,
+     "temp": 23.0
+    },
+    "index_pip": {
+     "commanded": 0.009000000000000001,
+     "achieved": -0.5859812500000032,
+     "load": 0.0,
+     "temp": 21.0
+    },
+    "middle_yaw": {
+     "commanded": 20.714399999999998,
+     "achieved": 7.031212499999997,
+     "load": 540.0,
+     "temp": 25.0
+    },
+    "middle_mcp": {
+     "commanded": 26.501800000000003,
+     "achieved": 28.125000000000014,
+     "load": 90.0,
+     "temp": 22.0
+    },
+    "middle_pip": {
+     "commanded": 34.0907,
+     "achieved": 29.296925000000016,
+     "load": -45.0,
+     "temp": 22.0
+    }
+   }
+  },
+  {
+   "direction": "up",
+   "u": 0.8,
+   "t": 1788390993.738472,
+   "joints": {
+    "thumb_yaw": {
+     "commanded": 1.9631999999999996,
+     "achieved": 6.445287499999999,
+     "load": 240.0,
+     "temp": 22.0
+    },
+    "thumb_mcp": {
+     "commanded": 28.223599999999998,
+     "achieved": 20.507768749999997,
+     "load": -435.0,
+     "temp": 29.0
+    },
+    "thumb_pip": {
+     "commanded": 0.0064,
+     "achieved": -1.4648562499999969,
+     "load": -105.0,
+     "temp": 21.0
+    },
+    "index_yaw": {
+     "commanded": -3.1728000000000005,
+     "achieved": 0.2929750000000002,
+     "load": -120.0,
+     "temp": 31.0
+    },
+    "index_mcp": {
+     "commanded": 16.011400000000002,
+     "achieved": 16.113318750000005,
+     "load": 0.0,
+     "temp": 23.0
+    },
+    "index_pip": {
+     "commanded": 0.008,
+     "achieved": -0.5859812500000032,
+     "load": 0.0,
+     "temp": 21.0
+    },
+    "middle_yaw": {
+     "commanded": 24.7016,
+     "achieved": 12.011681249999999,
+     "load": 720.0,
+     "temp": 25.0
+    },
+    "middle_mcp": {
+     "commanded": 25.1662,
+     "achieved": 27.5390625,
+     "load": 135.0,
+     "temp": 22.0
+    },
+    "middle_pip": {
+     "commanded": 38.960800000000006,
+     "achieved": 32.812550000000016,
+     "load": 0.0,
+     "temp": 22.0
+    }
+   }
+  },
+  {
+   "direction": "up",
+   "u": 0.9,
+   "t": 1788390994.553608,
+   "joints": {
+    "thumb_yaw": {
+     "commanded": 1.4875999999999996,
+     "achieved": 6.738256249999992,
+     "load": 270.0,
+     "temp": 22.0
+    },
+    "thumb_mcp": {
+     "commanded": 28.000799999999998,
+     "achieved": 20.507768749999997,
+     "load": -420.0,
+     "temp": 30.0
+    },
+    "thumb_pip": {
+     "commanded": 0.007200000000000001,
+     "achieved": -1.4648562499999969,
+     "load": -105.0,
+     "temp": 21.0
+    },
+    "index_yaw": {
+     "commanded": -4.8224,
+     "achieved": -0.5859312499999998,
+     "load": -300.0,
+     "temp": 31.0
+    },
+    "index_mcp": {
+     "commanded": 15.1477,
+     "achieved": 15.234412500000005,
+     "load": 0.0,
+     "temp": 23.0
+    },
+    "index_pip": {
+     "commanded": 0.006999999999999999,
+     "achieved": -0.5859812500000032,
+     "load": 0.0,
+     "temp": 21.0
+    },
+    "middle_yaw": {
+     "commanded": 28.6888,
+     "achieved": 23.4374625,
+     "load": 255.0,
+     "temp": 26.0
+    },
+    "middle_mcp": {
+     "commanded": 23.8306,
+     "achieved": 26.660156250000014,
+     "load": 210.0,
+     "temp": 22.0
+    },
+    "middle_pip": {
+     "commanded": 43.8309,
+     "achieved": 44.23833125,
+     "load": 0.0,
+     "temp": 22.0
+    }
+   }
+  },
+  {
+   "direction": "up",
+   "u": 1.0,
+   "t": 1788390995.465384,
+   "joints": {
+    "thumb_yaw": {
+     "commanded": 1.0119999999999996,
+     "achieved": 6.152318749999992,
+     "load": 300.0,
+     "temp": 22.0
+    },
+    "thumb_mcp": {
+     "commanded": 27.778,
+     "achieved": 20.507768749999997,
+     "load": -390.0,
+     "temp": 30.0
+    },
+    "thumb_pip": {
+     "commanded": 0.008,
+     "achieved": -1.4648562499999969,
+     "load": -105.0,
+     "temp": 21.0
+    },
+    "index_yaw": {
+     "commanded": -6.4719999999999995,
+     "achieved": -0.5859312499999998,
+     "load": -300.0,
+     "temp": 31.0
+    },
+    "index_mcp": {
+     "commanded": 14.284,
+     "achieved": 15.527381250000005,
+     "load": 75.0,
+     "temp": 23.0
+    },
+    "index_pip": {
+     "commanded": 0.006,
+     "achieved": -0.5859812500000032,
+     "load": 0.0,
+     "temp": 21.0
+    },
+    "middle_yaw": {
+     "commanded": 32.676,
+     "achieved": 23.14449375,
+     "load": 360.0,
+     "temp": 26.0
+    },
+    "middle_mcp": {
+     "commanded": 22.495,
+     "achieved": 26.660156250000014,
+     "load": 210.0,
+     "temp": 22.0
+    },
+    "middle_pip": {
+     "commanded": 48.701,
+     "achieved": 44.23833125,
+     "load": 0.0,
+     "temp": 22.0
+    }
+   }
+  },
+  {
+   "direction": "down",
+   "u": 1.0,
+   "t": 1788390996.3273556,
+   "joints": {
+    "thumb_yaw": {
+     "commanded": 1.0119999999999996,
+     "achieved": 5.273412499999999,
+     "load": 240.0,
+     "temp": 23.0
+    },
+    "thumb_mcp": {
+     "commanded": 27.778,
+     "achieved": 20.507768749999997,
+     "load": -375.0,
+     "temp": 30.0
+    },
+    "thumb_pip": {
+     "commanded": 0.008,
+     "achieved": -1.4648562499999969,
+     "load": -105.0,
+     "temp": 21.0
+    },
+    "index_yaw": {
+     "commanded": -6.4719999999999995,
+     "achieved": -1.1718687499999998,
+     "load": -300.0,
+     "temp": 31.0
+    },
+    "index_mcp": {
+     "commanded": 14.284,
+     "achieved": 14.355506250000005,
+     "load": 0.0,
+     "temp": 23.0
+    },
+    "index_pip": {
+     "commanded": 0.006,
+     "achieved": -0.5859812500000032,
+     "load": 0.0,
+     "temp": 21.0
+    },
+    "middle_yaw": {
+     "commanded": 32.676,
+     "achieved": 25.195275,
+     "load": 450.0,
+     "temp": 26.0
+    },
+    "middle_mcp": {
+     "commanded": 22.495,
+     "achieved": 24.609375000000014,
+     "load": 165.0,
+     "temp": 22.0
+    },
+    "middle_pip": {
+     "commanded": 48.701,
+     "achieved": 49.51176875,
+     "load": 60.0,
+     "temp": 22.0
+    }
+   }
+  },
+  {
+   "direction": "down",
+   "u": 0.9,
+   "t": 1788390997.1906745,
+   "joints": {
+    "thumb_yaw": {
+     "commanded": 1.4875999999999996,
+     "achieved": 5.273412499999999,
+     "load": 225.0,
+     "temp": 23.0
+    },
+    "thumb_mcp": {
+     "commanded": 28.000799999999998,
+     "achieved": 20.507768749999997,
+     "load": -390.0,
+     "temp": 30.0
+    },
+    "thumb_pip": {
+     "commanded": 0.007200000000000001,
+     "achieved": -1.4648562499999969,
+     "load": -105.0,
+     "temp": 21.0
+    },
+    "index_yaw": {
+     "commanded": -4.8224,
+     "achieved": -1.1718687499999998,
+     "load": -210.0,
+     "temp": 31.0
+    },
+    "index_mcp": {
+     "commanded": 15.1477,
+     "achieved": 13.769568750000005,
+     "load": 0.0,
+     "temp": 23.0
+    },
+    "index_pip": {
+     "commanded": 0.006999999999999999,
+     "achieved": -0.5859812500000032,
+     "load": 0.0,
+     "temp": 21.0
+    },
+    "middle_yaw": {
+     "commanded": 28.6888,
+     "achieved": 24.90230625,
+     "load": 195.0,
+     "temp": 26.0
+    },
+    "middle_mcp": {
+     "commanded": 23.8306,
+     "achieved": 24.609375000000014,
+     "load": 90.0,
+     "temp": 22.0
+    },
+    "middle_pip": {
+     "commanded": 43.8309,
+     "achieved": 49.51176875,
+     "load": 150.0,
+     "temp": 22.0
+    }
+   }
+  },
+  {
+   "direction": "down",
+   "u": 0.8,
+   "t": 1788390998.1056604,
+   "joints": {
+    "thumb_yaw": {
+     "commanded": 1.9631999999999996,
+     "achieved": 4.687474999999999,
+     "load": 225.0,
+     "temp": 23.0
+    },
+    "thumb_mcp": {
+     "commanded": 28.223599999999998,
+     "achieved": 20.507768749999997,
+     "load": -450.0,
+     "temp": 30.0
+    },
+    "thumb_pip": {
+     "commanded": 0.0064,
+     "achieved": -1.4648562499999969,
+     "load": -105.0,
+     "temp": 21.0
+    },
+    "index_yaw": {
+     "commanded": -3.1728000000000005,
+     "achieved": -1.1718687499999998,
+     "load": -210.0,
+     "temp": 31.0
+    },
+    "index_mcp": {
+     "commanded": 16.011400000000002,
+     "achieved": 14.355506250000005,
+     "load": -105.0,
+     "temp": 23.0
+    },
+    "index_pip": {
+     "commanded": 0.008,
+     "achieved": -0.5859812500000032,
+     "load": 0.0,
+     "temp": 21.0
+    },
+    "middle_yaw": {
+     "commanded": 24.7016,
+     "achieved": 24.6093375,
+     "load": 195.0,
+     "temp": 26.0
+    },
+    "middle_mcp": {
+     "commanded": 25.1662,
+     "achieved": 24.90234375,
+     "load": -75.0,
+     "temp": 22.0
+    },
+    "middle_pip": {
+     "commanded": 38.960800000000006,
+     "achieved": 43.9453625,
+     "load": 405.0,
+     "temp": 22.0
+    }
+   }
+  },
+  {
+   "direction": "down",
+   "u": 0.7,
+   "t": 1788390998.9573863,
+   "joints": {
+    "thumb_yaw": {
+     "commanded": 2.4387999999999996,
+     "achieved": 4.980443749999992,
+     "load": 180.0,
+     "temp": 23.0
+    },
+    "thumb_mcp": {
+     "commanded": 28.4464,
+     "achieved": 20.507768749999997,
+     "load": -450.0,
+     "temp": 30.0
+    },
+    "thumb_pip": {
+     "commanded": 0.0056,
+     "achieved": -1.4648562499999969,
+     "load": -60.0,
+     "temp": 22.0
+    },
+    "index_yaw": {
+     "commanded": -1.5231999999999992,
+     "achieved": -1.1718687499999998,
+     "load": 0.0,
+     "temp": 31.0
+    },
+    "index_mcp": {
+     "commanded": 16.8751,
+     "achieved": 13.769568750000005,
+     "load": -75.0,
+     "temp": 23.0
+    },
+    "index_pip": {
+     "commanded": 0.009000000000000001,
+     "achieved": -0.5859812500000032,
+     "load": 0.0,
+     "temp": 21.0
+    },
+    "middle_yaw": {
+     "commanded": 20.714399999999998,
+     "achieved": 20.507775,
+     "load": 0.0,
+     "temp": 26.0
+    },
+    "middle_mcp": {
+     "commanded": 26.501800000000003,
+     "achieved": 24.609375000000014,
+     "load": -120.0,
+     "temp": 22.0
+    },
+    "middle_pip": {
+     "commanded": 34.0907,
+     "achieved": 37.500050000000016,
+     "load": 165.0,
+     "temp": 22.0
+    }
+   }
+  },
+  {
+   "direction": "down",
+   "u": 0.6,
+   "t": 1788390999.7465708,
+   "joints": {
+    "thumb_yaw": {
+     "commanded": 2.9143999999999997,
+     "achieved": 4.394506249999992,
+     "load": 135.0,
+     "temp": 23.0
+    },
+    "thumb_mcp": {
+     "commanded": 28.6692,
+     "achieved": 20.507768749999997,
+     "load": -435.0,
+     "temp": 30.0
+    },
+    "thumb_pip": {
+     "commanded": 0.0048,
+     "achieved": -1.4648562499999969,
+     "load": -105.0,
+     "temp": 21.0
+    },
+    "index_yaw": {
+     "commanded": 0.1264000000000003,
+     "achieved": -0.5859312499999998,
+     "load": 120.0,
+     "temp": 31.0
+    },
+    "index_mcp": {
+     "commanded": 17.7388,
+     "achieved": 14.941443750000005,
+     "load": -120.0,
+     "temp": 23.0
+    },
+    "index_pip": {
+     "commanded": 0.01,
+     "achieved": -0.5859812500000032,
+     "load": 0.0,
+     "temp": 21.0
+    },
+    "middle_yaw": {
+     "commanded": 16.727199999999996,
+     "achieved": 20.21480625,
+     "load": 0.0,
+     "temp": 26.0
+    },
+    "middle_mcp": {
+     "commanded": 27.837400000000002,
+     "achieved": 24.0234375,
+     "load": -180.0,
+     "temp": 22.0
+    },
+    "middle_pip": {
+     "commanded": 29.220599999999997,
+     "achieved": 36.328175000000016,
+     "load": 0.0,
+     "temp": 22.0
+    }
+   }
+  },
+  {
+   "direction": "down",
+   "u": 0.5,
+   "t": 1788391000.6500516,
+   "joints": {
+    "thumb_yaw": {
+     "commanded": 3.3899999999999997,
+     "achieved": 5.273412499999999,
+     "load": 90.0,
+     "temp": 23.0
+    },
+    "thumb_mcp": {
+     "commanded": 28.892,
+     "achieved": 20.214799999999997,
+     "load": -435.0,
+     "temp": 30.0
+    },
+    "thumb_pip": {
+     "commanded": 0.004,
+     "achieved": -1.4648562499999969,
+     "load": -105.0,
+     "temp": 21.0
+    },
+    "index_yaw": {
+     "commanded": 1.7759999999999998,
+     "achieved": -1.1718687499999998,
+     "load": 105.0,
+     "temp": 30.0
+    },
+    "index_mcp": {
+     "commanded": 18.6025,
+     "achieved": 15.527381250000005,
+     "load": -120.0,
+     "temp": 23.0
+    },
+    "index_pip": {
+     "commanded": 0.011,
+     "achieved": -0.5859812500000032,
+     "load": 0.0,
+     "temp": 21.0
+    },
+    "middle_yaw": {
+     "commanded": 12.74,
+     "achieved": 16.99215,
+     "load": 0.0,
+     "temp": 26.0
+    },
+    "middle_mcp": {
+     "commanded": 29.173000000000002,
+     "achieved": 25.1953125,
+     "load": -165.0,
+     "temp": 22.0
+    },
+    "middle_pip": {
+     "commanded": 24.3505,
+     "achieved": 30.17583125,
+     "load": 345.0,
+     "temp": 22.0
+    }
+   }
+  },
+  {
+   "direction": "down",
+   "u": 0.4,
+   "t": 1788391001.4173856,
+   "joints": {
+    "thumb_yaw": {
+     "commanded": 3.8655999999999997,
+     "achieved": 5.273412499999999,
+     "load": 90.0,
+     "temp": 23.0
+    },
+    "thumb_mcp": {
+     "commanded": 29.1148,
+     "achieved": 20.507768749999997,
+     "load": -465.0,
+     "temp": 30.0
+    },
+    "thumb_pip": {
+     "commanded": 0.0032,
+     "achieved": -1.4648562499999969,
+     "load": -105.0,
+     "temp": 21.0
+    },
+    "index_yaw": {
+     "commanded": 3.4255999999999993,
+     "achieved": -1.4648374999999998,
+     "load": 270.0,
+     "temp": 30.0
+    },
+    "index_mcp": {
+     "commanded": 19.4662,
+     "achieved": 15.234412500000005,
+     "load": -225.0,
+     "temp": 23.0
+    },
+    "index_pip": {
+     "commanded": 0.012,
+     "achieved": -0.5859812500000032,
+     "load": 0.0,
+     "temp": 21.0
+    },
+    "middle_yaw": {
+     "commanded": 8.7528,
+     "achieved": 10.253868749999999,
+     "load": -90.0,
+     "temp": 26.0
+    },
+    "middle_mcp": {
+     "commanded": 30.5086,
+     "achieved": 27.5390625,
+     "load": -165.0,
+     "temp": 22.0
+    },
+    "middle_pip": {
+     "commanded": 19.480400000000003,
+     "achieved": 18.750050000000016,
+     "load": 0.0,
+     "temp": 22.0
+    }
+   }
+  },
+  {
+   "direction": "down",
+   "u": 0.3,
+   "t": 1788391002.2019312,
+   "joints": {
+    "thumb_yaw": {
+     "commanded": 4.3412,
+     "achieved": 4.980443749999992,
+     "load": 75.0,
+     "temp": 23.0
+    },
+    "thumb_mcp": {
+     "commanded": 29.3376,
+     "achieved": 20.214799999999997,
+     "load": -480.0,
+     "temp": 30.0
+    },
+    "thumb_pip": {
+     "commanded": 0.0024,
+     "achieved": -1.757825000000004,
+     "load": -150.0,
+     "temp": 21.0
+    },
+    "index_yaw": {
+     "commanded": 5.0752,
+     "achieved": -1.1718687499999998,
+     "load": 315.0,
+     "temp": 30.0
+    },
+    "index_mcp": {
+     "commanded": 20.3299,
+     "achieved": 14.941443750000005,
+     "load": -165.0,
+     "temp": 23.0
+    },
+    "index_pip": {
+     "commanded": 0.013000000000000001,
+     "achieved": -0.5859812500000032,
+     "load": 0.0,
+     "temp": 20.0
+    },
+    "middle_yaw": {
+     "commanded": 4.765599999999999,
+     "achieved": 10.253868749999999,
+     "load": -135.0,
+     "temp": 26.0
+    },
+    "middle_mcp": {
+     "commanded": 31.8442,
+     "achieved": 28.125000000000014,
+     "load": -195.0,
+     "temp": 22.0
+    },
+    "middle_pip": {
+     "commanded": 14.610299999999999,
+     "achieved": 19.3359875,
+     "load": 0.0,
+     "temp": 22.0
+    }
+   }
+  },
+  {
+   "direction": "down",
+   "u": 0.2,
+   "t": 1788391003.020584,
+   "joints": {
+    "thumb_yaw": {
+     "commanded": 4.8168,
+     "achieved": 4.687474999999999,
+     "load": -105.0,
+     "temp": 23.0
+    },
+    "thumb_mcp": {
+     "commanded": 29.5604,
+     "achieved": 21.386674999999997,
+     "load": -330.0,
+     "temp": 30.0
+    },
+    "thumb_pip": {
+     "commanded": 0.0016,
+     "achieved": -1.171887500000004,
+     "load": -135.0,
+     "temp": 21.0
+    },
+    "index_yaw": {
+     "commanded": 6.724799999999999,
+     "achieved": 2.636725000000002,
+     "load": 210.0,
+     "temp": 30.0
+    },
+    "index_mcp": {
+     "commanded": 21.1936,
+     "achieved": 17.285193750000005,
+     "load": -165.0,
+     "temp": 23.0
+    },
+    "index_pip": {
+     "commanded": 0.014,
+     "achieved": -0.5859812500000032,
+     "load": 0.0,
+     "temp": 20.0
+    },
+    "middle_yaw": {
+     "commanded": 0.7784000000000004,
+     "achieved": 6.445274999999997,
+     "load": -165.0,
+     "temp": 26.0
+    },
+    "middle_mcp": {
+     "commanded": 33.1798,
+     "achieved": 28.125000000000014,
+     "load": -165.0,
+     "temp": 22.0
+    },
+    "middle_pip": {
+     "commanded": 9.740200000000002,
+     "achieved": 14.941456250000016,
+     "load": 60.0,
+     "temp": 22.0
+    }
+   }
+  },
+  {
+   "direction": "down",
+   "u": 0.1,
+   "t": 1788391003.835789,
+   "joints": {
+    "thumb_yaw": {
+     "commanded": 5.2924,
+     "achieved": 3.222631249999999,
+     "load": -135.0,
+     "temp": 23.0
+    },
+    "thumb_mcp": {
+     "commanded": 29.7832,
+     "achieved": 23.730424999999997,
+     "load": -315.0,
+     "temp": 30.0
+    },
+    "thumb_pip": {
+     "commanded": 0.0008,
+     "achieved": -1.4648562499999969,
+     "load": -105.0,
+     "temp": 21.0
+    },
+    "index_yaw": {
+     "commanded": 8.3744,
+     "achieved": 3.515631250000002,
+     "load": 285.0,
+     "temp": 30.0
+    },
+    "index_mcp": {
+     "commanded": 22.057299999999998,
+     "achieved": 17.285193750000005,
+     "load": -210.0,
+     "temp": 23.0
+    },
+    "index_pip": {
+     "commanded": 0.015,
+     "achieved": -0.5859812500000032,
+     "load": 0.0,
+     "temp": 21.0
+    },
+    "middle_yaw": {
+     "commanded": -3.2087999999999997,
+     "achieved": -3.750000000124487e-05,
+     "load": -165.0,
+     "temp": 26.0
+    },
+    "middle_mcp": {
+     "commanded": 34.5154,
+     "achieved": 31.347656250000014,
+     "load": -375.0,
+     "temp": 22.0
+    },
+    "middle_pip": {
+     "commanded": 4.870100000000001,
+     "achieved": 6.152393750000002,
+     "load": 0.0,
+     "temp": 22.0
+    }
+   }
+  },
+  {
+   "direction": "down",
+   "u": 0.0,
+   "t": 1788391004.6981068,
+   "joints": {
+    "thumb_yaw": {
+     "commanded": 5.768,
+     "achieved": 3.222631249999999,
+     "load": -150.0,
+     "temp": 23.0
+    },
+    "thumb_mcp": {
+     "commanded": 30.006,
+     "achieved": 23.730424999999997,
+     "load": -255.0,
+     "temp": 30.0
+    },
+    "thumb_pip": {
+     "commanded": 0.0,
+     "achieved": -1.4648562499999969,
+     "load": -105.0,
+     "temp": 21.0
+    },
+    "index_yaw": {
+     "commanded": 10.024,
+     "achieved": 5.85938125,
+     "load": 165.0,
+     "temp": 30.0
+    },
+    "index_mcp": {
+     "commanded": 22.921,
+     "achieved": 18.457068750000005,
+     "load": -150.0,
+     "temp": 23.0
+    },
+    "index_pip": {
+     "commanded": 0.016,
+     "achieved": -0.5859812500000032,
+     "load": 0.0,
+     "temp": 21.0
+    },
+    "middle_yaw": {
+     "commanded": -7.196,
+     "achieved": -3.808631250000005,
+     "load": -135.0,
+     "temp": 26.0
+    },
+    "middle_mcp": {
+     "commanded": 35.851,
+     "achieved": 33.984375000000014,
+     "load": -90.0,
+     "temp": 22.0
+    },
+    "middle_pip": {
+     "commanded": 0.0,
+     "achieved": 0.8789562500000017,
+     "load": 0.0,
+     "temp": 22.0
+    }
+   }
+  }
+ ]
+}

@@ -189,7 +189,7 @@ figcaption{font-size:.82rem;color:var(--ink-soft);margin-top:10px;max-width:74ch
     bench could not reach it.</p>
   <div class="stamp">
     <span>236 archived runs</span><span>11 morphologies</span>
-    <span>0.0186°/load unit</span><span>5 joints swept</span><span>1 hypothesis open</span>
+    <span>0.0186°/load unit</span><span>5 joints swept</span><span>cone 11× wider under load</span>
   </div>
 </header>
 
@@ -259,16 +259,15 @@ figcaption{font-size:.82rem;color:var(--ink-soft);margin-top:10px;max-width:74ch
         same set-points do not retrace; they open into a loop of twice the friction width.</p>
       <p><strong>Maps to:</strong> MuJoCo <code>frictionloss</code>, a constant.</p>
     </div>
-    <div class="card open">
-      <span class="verdict">Unresolved</span>
+    <div class="card yes">
+      <span class="verdict">Confirmed</span>
       <h3>H3 · Load-dependent friction</h3>
       <p>BAM's M3: <span class="mono">τ_f = K_v·q̇ + K_c + K_l·|τ_m − τ_e|</span>. Gear teeth
         slide harder under load, so the cone <em>widens</em> with the torque passing through
         it.</p>
       <p><strong>Signature:</strong> loop width grows with load.</p>
       <p><strong>Maps to:</strong> <em>nothing in MuJoCo.</em> <code>frictionloss</code> is a
-        constant. If H3 holds, the simulator cannot express this hand without the model BAM
-        adds.</p>
+        constant, and the width this needs runs from about 1° to 14° depending on load — §8.</p>
     </div>
   </div>
 </section>
@@ -377,16 +376,66 @@ figcaption{font-size:.82rem;color:var(--ink-soft);margin-top:10px;max-width:74ch
       matters.</figcaption>
   </figure>
   <div class="note warn">
-    <p class="eyebrow">What this bench cannot say</p>
-    <p>H3 is untested, not refuted. The cone is real and roughly 1° wide at near-zero load. If
-      it is constant, a MuJoCo <code>frictionloss</code> of that size closes the gap and the
-      remaining shortfall is all <code>kp</code>. If it scales with load in the way BAM measures
-      on the MX-106 and eRob80, it could be several degrees at the 585–735 loads a real grasp
-      produces — and MuJoCo has no term for it.</p>
-    <p>That distinction is worth an experiment because it is exactly the size of the
-      unexplained <span class="mono">4.19°</span> of within-design scatter on
-      <code>middle_yaw</code>.</p>
+    <p class="eyebrow">So the question moved to the object</p>
+    <p>H3 could not be settled on a hanging finger. It could be settled by putting the load
+      back where it belongs — in the grasp — which is §8.</p>
   </div>
+</section>
+
+<section>
+  <p class="eyebrow">Evidence · under a grasp</p>
+  <h2>At working load the cone is eleven times wider</h2>
+  <p>Same measurement, load supplied by the object instead of by gravity. The hand grips the
+    staged cylinder and all nine joints are interpolated along the plan's <em>own</em> chord
+    from <code>grip</code> to <code>turn_end</code> and back, eleven set-points each way, 0.7 s
+    at each. The path is the plan's, so it is the path the clearance gate cleared; inventing a
+    single-joint sweep would have left it and risked both the grip and the fingers.</p>
+  <figure>
+    <img src="underload_hysteresis.png" alt="Left: middle_yaw achieved against commanded, with the forward and backward traces separated by about 12 degrees through the middle of the range. Right: loop width per step, 9 to 14 degrees across the mid-trajectory against a dashed line at 1.1 degrees marking the free-hanging cone.">
+    <figcaption>Left, the forward and backward traces at the same commanded angle. Right, the
+      loop width per set-point against the free-hanging cone measured on the same joint.</figcaption>
+  </figure>
+  <div class="stats">
+    <div class="stat"><span class="num">+12.26°</span><small>mean loop, u 0.2–0.8</small>
+      <span class="sub">max +14.06° at u = 0.50</span></div>
+    <div class="stat"><span class="num est">0.70–1.50°</span><small>same joints, free-hanging</small>
+      <span class="sub">the load range grew about 5×</span></div>
+    <div class="stat"><span class="num">≈11×</span><small>wider cone</small>
+      <span class="sub">so the growth is faster than linear in load</span></div>
+  </div>
+  <p>The cone is not constant, and it is not a small correction. <code>middle_yaw</code> is
+    12.26° away from itself at the same commanded angle depending only on which direction it
+    arrived from. That is larger than the 10–13° droop, and it is the same size as the whole
+    shortfall the program has been trying to explain.</p>
+  <div class="scroll"><table>
+    <tr><th>joint</th><th class="n">mean loop, u 0.2–0.8</th><th class="n">mean |load|</th></tr>
+    <tr><td class="mono">middle_yaw</td><td class="n up">+12.26°</td><td class="n">478</td></tr>
+    <tr><td class="mono">middle_pip</td><td class="n up">+8.16°</td><td class="n">109</td></tr>
+    <tr><td class="mono">middle_mcp</td><td class="n">−3.60°</td><td class="n">54</td></tr>
+    <tr><td class="mono">index_mcp</td><td class="n">−1.97°</td><td class="n">75</td></tr>
+    <tr><td class="mono">thumb_yaw</td><td class="n">−1.51°</td><td class="n">174</td></tr>
+    <tr><td class="mono">index_yaw</td><td class="n">−1.13°</td><td class="n">163</td></tr>
+    <tr><td class="mono">thumb_mcp</td><td class="n">+0.33°</td><td class="n">454</td></tr>
+  </table></div>
+  <div class="note warn">
+    <p class="eyebrow">What this does and does not identify</p>
+    <p>This is the hysteresis of the <em>loaded system</em>, not of the gearbox alone. The load
+      is a contact, so pad-on-shaft friction and any object slip that persists are inside these
+      numbers along with the servo's own friction. <code>middle_pip</code> is the tell: an 8.16°
+      loop at a mean load of only 109 does not fit load-dependent gearbox friction, and points
+      at the object having moved and stayed moved.</p>
+    <p>The conclusion for the simulator survives that ambiguity — a constant
+      <code>frictionloss</code> cannot produce a cone that is 1° free and 12° loaded, whichever
+      mechanism supplies it. The conclusion for <em>BAM</em> does not: separating gearbox
+      friction from contact hysteresis needs the pendulum bench with an added mass, not a grasp.</p>
+  </div>
+  <p>One incidental finding, visible in the load trace rather than the angles. On the first
+    pass, run with a 0.7 s dwell, <code>middle_yaw</code> hit exactly
+    <span class="mono">200</span> — <code>protective_torque</code> — at the top of the turn and
+    held it through the first two steps of the return. The reorientation runs earlier the same
+    day, at full speed, ended at 585–735 and never tripped. Protection fires on sustained
+    overload, so <strong>stepping through the trajectory slowly makes the trip more likely, not
+    less</strong>, which inverts the usual instinct about being gentle with a servo.</p>
 </section>
 
 <section>
@@ -463,11 +512,12 @@ figcaption{font-size:.82rem;color:var(--ink-soft);margin-top:10px;max-width:74ch
         load-scaling is not.</p>
     </li>
     <li>
-      <h3>The test that closes H3</h3>
-      <p>Run the deploy plan forward and then backward with the object gripped, and compare
-        achieved angles at the same commanded pose. That is the same hysteresis measurement at
-        a load of 600 instead of 45, it needs no new hardware, and it is the one experiment that
-        decides whether MuJoCo can represent this actuator.</p>
+      <h3>Separate the gearbox from the contact</h3>
+      <p>§8 shows the loaded cone is 11× the free one but cannot say how much of that is the
+        servo and how much is the object slipping. The clean version is BAM's: the pendulum
+        bench with a mass bolted on, which loads the gearbox without a contact. Until that is
+        run, the 12.26° is a property of the hand-plus-object, which is the right quantity for
+        the simulator and the wrong one for an actuator model.</p>
     </li>
     <li>
       <h3>Then, and only then, the ranking and drop checks</h3>
