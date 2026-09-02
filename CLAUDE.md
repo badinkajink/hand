@@ -25,6 +25,45 @@ and **RL manipulation** (lift → in-hand reorient of a flat screwdriver to vert
   that matches the worker via `pgrep -f "[p]ython3 …"` (bracket-trick avoids self-match; don't rely
   on a captured PID — the launcher forks transient PIDs).
 
+## Hardware — two hosts, and which one owns what
+
+| | workstation `10.99.99.50` | CB1 `10.99.99.2` |
+|---|---|---|
+| owns | RealSense D435, GPU, **the canonical repo** | both serial links, the control station |
+| runs | AprilTag tracker service (:8770) | `manta_hand.web` (:8765) |
+| repo | `/home/humanoid/Programs/hand`, current | `/home/irlab/hand`, **stale HEAD + uncommitted driver edits** |
+
+**Never rsync the repo onto the CB1** — its working copy is ahead of its own HEAD and those
+edits are the running driver. Ship individual files.
+
+**SSH is `irlab@10.99.99.2`** (not `humanoid`). A key is installed as of 2026-09-02; the
+password fallback is `MANTA_IRLAB_PW` in the gitignored `.dotenv`, which the user wants used.
+If the host is unreachable at all it is the subnet, not the box: the CB1 is L2-adjacent on a
+different subnet, so `sudo ip addr add 10.99.99.50/24 dev enp130s0`.
+
+**There is no filesystem share and no push helper.** Deploy plans are generated on the
+workstation — `docs/experiments/*/deploy/*_plan.json` plus their `_traj.csv`/`_build.txt`/
+`_poses.txt` — and **copied** to the CB1, which holds only whatever subset someone copied. A
+plan that is not on the CB1 has not been copied; it is not lost, and the workstation is the
+source of truth. `--plans-dir` reads the CB1's own filesystem.
+
+**Bring-up.** On the CB1, `~/run_control_station.sh start|stop|status|log` (it carries the
+token, and `--tracker-url`, without which `/reorient` silently runs untracked trials). On the
+workstation, `scripts/real_v1_tracker_service.py` under **`~/miniconda3/bin/python`** — the
+camera stack is not in the uv env. Launch that service plain: its `BENCH_DEFAULTS` supply
+`--shaft-axis=-x` and a session was lost on 2026-09-01 to launching it bare. `--tracker-arg`
+is appended after the defaults, so it overrides them without dropping them.
+
+**Both serial ports are exclusive.** Stop the station before any raw-bus work
+(`rustypot` register reads/writes, `examples/hand_control.py`); the loser gets
+`Device or resource busy`. Telemetry also suspends while a writer owns the bus, so a probe
+that holds the stream open reads one stale sample repeated.
+
+**Before any bench session** run `scripts/real_v1_trajectory_clearance.py` on the plans you
+will serve — three of the four plans sitting on the CB1 in 2026-09 were ones the gate had
+*excluded* for finger interpenetration. A plan's `chord` and its `_traj.csv` are **different
+paths**; the gate passes them separately and a plan can clear one and not the other.
+
 ## Documentation — where things go (keep all three in sync for real work)
 
 - **`webpaper/` (Typst → HTML) = the canonical readable doc**, tutorial-style: *foundation →
@@ -100,8 +139,12 @@ and **RL manipulation** (lift → in-hand reorient of a flat screwdriver to vert
 8. **Never strip drop / tip-loss terminations** when adding a finger-perturbing reward, and always
    **warmstart the critic** (actor-only warmstart wrecks finetunes — garbage early advantages knock
    the converged actor off its optimum).
-9. **Never `pkill -f` a pattern that appears in your own command** (kills your shell). Use the
-   `[p]` bracket trick.
+9. **Never `pkill -f` a pattern that appears ANYWHERE in your own command** (kills your shell).
+   The `[p]` bracket trick protects the pattern itself; it does not help if the plain string
+   also appears *later in the same compound command* — a `pkill -f "foo[b]ar"` followed by
+   `&& nohup ... foobar.py` still matches the shell's own argv and kills it mid-command,
+   leaving the old process dead and the new one never started. Stop and restart in **separate**
+   calls, or put the relaunch in a script file so the name never enters the shell's argv.
 
 ## Naming & results
 
