@@ -244,8 +244,9 @@ logs/                   run logs, sentinels, pids (gitignored)
 ## Tests
 
 ```bash
-uv run --extra dev python -m pytest tests/ -q
+uv run --extra dev --with pyserial python -m pytest tests/ -q
 ```
 
-The hardware tests need no hardware: `tests/test_manta_hardware_faults.py` runs the real driver
-stack against `manta_hand.fake_hardware`.
+The hardware tests need no hardware — `tests/test_manta_hardware_faults.py` runs the real driver
+stack against `manta_hand.fake_hardware` — but they do need `pyserial`, which is not in the `dev`
+extra; without it all 23 collect as errors. Clear `PYTHONPATH` first if ROS is on it.
