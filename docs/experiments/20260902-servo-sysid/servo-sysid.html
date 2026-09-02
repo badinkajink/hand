@@ -189,7 +189,7 @@ figcaption{font-size:.82rem;color:var(--ink-soft);margin-top:10px;max-width:74ch
     bench could not reach it.</p>
   <div class="stamp">
     <span>236 archived runs</span><span>11 morphologies</span>
-    <span>0.0186°/load unit</span><span>5 joints swept</span><span>cone 11× wider under load</span>
+    <span>0.0186°/load unit</span><span>5 joints swept</span><span>cone 11× wider under load</span><span>gate passed</span>
   </div>
 </header>
 
@@ -217,7 +217,7 @@ figcaption{font-size:.82rem;color:var(--ink-soft);margin-top:10px;max-width:74ch
   <h2>Three simulator defaults, and the hardware behind each</h2>
   <div class="scroll"><table>
     <tr><th>What every <code>real_v1</code> scene says</th><th>What that asserts</th><th>The hand</th></tr>
-    <tr><td class="mono">position kp="4000"</td><td>a near-rigid position source</td>
+    <tr><td class="mono">position kp="30"</td><td>a near-rigid position source at these loads</td>
         <td>a P controller at <span class="mono">p_coefficient 15</span>, <strong>and
         <span class="mono">i_coefficient 0</span></strong></td></tr>
     <tr><td class="mono">forcerange="-1000 1000"</td><td>effectively no torque ceiling</td>
@@ -323,8 +323,20 @@ figcaption{font-size:.82rem;color:var(--ink-soft);margin-top:10px;max-width:74ch
   </table></div>
   <p>This is the useful kind of result: the load-proportional error is not material compliance
     but the position loop's own droop, which is precisely what MuJoCo's position actuator
-    already models. <code>kp = 4000</code> is not the wrong <em>kind</em> of model. It is the
-    right model roughly 250× too stiff.</p>
+    already models. <code>kp = 30</code> is not the wrong <em>kind</em> of model. It is the
+    right model roughly <strong>60×</strong> too stiff: calibrated against the bench's own
+    deficits the effective gain is about <span class="mono">0.5</span>, at which the simulator
+    reproduces <code>middle_yaw</code>'s shortfall as +11.09° against +11.68 measured. At the
+    shipped 30 it produces <span class="mono">+0.03°</span> — the simulator really does assume
+    commanded equals achieved.</p>
+  <div class="note warn">
+    <p class="eyebrow">Correction, 2026-09-02</p>
+    <p>An earlier version of this page reported the finger actuators as <code>kp="4000"</code>
+      and "250× too stiff". 4000 is the <code>pose</code> class, which drives the palm; the nine
+      finger actuators are <code>class="ctrl"</code> and ship at <code>kp=30</code>, read from
+      the compiled model's <span class="mono">actuator_gainprm</span>. The direction of the
+      conclusion is unchanged; the factor was wrong.</p>
+  </div>
 </section>
 
 <section>
@@ -436,6 +448,67 @@ figcaption{font-size:.82rem;color:var(--ink-soft);margin-top:10px;max-width:74ch
     day, at full speed, ended at 585–735 and never tripped. Protection fires on sustained
     overload, so <strong>stepping through the trajectory slowly makes the trip more likely, not
     less</strong>, which inverts the usual instinct about being gentle with a servo.</p>
+</section>
+
+<section>
+  <p class="eyebrow">Evidence · putting it back in the simulator</p>
+  <h2>A gain fitted to joint angles predicts the whole task</h2>
+  <p>The corrections above were applied to rv05_manual_b85's own deploy scene and the plan run
+    against it — sixteen spawn-jittered trials per plant, the shipped one against the corrected
+    one, nothing else changed.</p>
+  <figure>
+    <img src="drop_gate.png" alt="Two bar charts. Left, retention: shipped 1.00, corrected 0.94, against a dashed bench line at 0.92. Right, cos to vertical: shipped 0.178, corrected 0.638, against a dashed bench line at 0.593.">
+    <figcaption>The shipped plant matches the bench on neither retention nor alignment. The
+      corrected plant matches on both.</figcaption>
+  </figure>
+  <div class="stats">
+    <div class="stat"><span class="num est">0.178</span><small>shipped, cos to vertical</small>
+      <span class="sub">and it never drops: 16 of 16 retained</span></div>
+    <div class="stat"><span class="num">0.638</span><small>corrected, cos to vertical</small>
+      <span class="sub">retention 0.94, one drop in sixteen</span></div>
+    <div class="stat"><span class="num">0.593</span><small>the bench</small>
+      <span class="sub">retention 0.92, 71 of 77 trials</span></div>
+  </div>
+  <p>The gain was calibrated on <em>joint deficits</em> — how far short of its command each joint
+    stops at the hold — and on nothing else. Sweeping it against the outcome of the whole task
+    is therefore an independent check, and it lands in the same place.</p>
+  <figure>
+    <img src="kp_band.png" alt="Retention and alignment against actuator gain on a log axis. Above kp=2 retention is 1.00 and alignment about 0.2. Below kp=0.3 retention is zero. At kp=0.5 retention is 0.90 and alignment 0.633, close to the bench values marked as dotted lines.">
+    <figcaption>Ten trials per gain. Above <span class="mono">kp≈2</span> the hand holds the
+      shaft and will not turn it; below <span class="mono">kp≈0.3</span> it drops every trial.
+      The band between is narrow, and the bench-calibrated 0.5 is inside it.</figcaption>
+  </figure>
+  <p>That the shipped, stiffer plant <em>under</em>-predicts the turn is the counter-intuitive
+    part, and it is the point. Compliance is not an error term here — it is the mechanism. A
+    rigid finger holds its commanded pose and the shaft cannot settle into the grip and be
+    carried; a compliant one yields and the carry works. It is the same conclusion the
+    compliance-hardening study reached from the other direction, where <code>b33</code>'s
+    reorient rate fell from 0.91 to 0.09 as contacts were stiffened.</p>
+  <div class="note">
+    <p class="eyebrow">The gate</p>
+    <p>Simulated retention was 1.00 for seven of eight transfer designs, which is why a residual
+      policy had nothing to learn and why every previous reorienter could ignore its own
+      observations without penalty. The corrected plant drops on 6 % of trials against the
+      bench's 8 %. <strong>There is now a disturbance to learn.</strong></p>
+  </div>
+  <div class="note warn">
+    <p class="eyebrow">Three harness bugs that each looked like a plant result</p>
+    <p>Recorded because each produced a confident, wrong number before it was caught, and all
+      three are the same mistake — trusting a default instead of the plan's own exported state.</p>
+    <p><strong>The palm was never lifted.</strong> The scene keyframe puts
+      <code>palm_pz</code> at 10 mm; the plan's <span class="mono">replay_base_ctrl</span> puts
+      it at 103.5 mm, because the object stands on a 100 mm bench post. Reset from the keyframe
+      and the fingertips sit 83 mm below the shaft, the grip closes on air, and all 16 trials
+      report "never retained".</p>
+    <p><strong>The run began by letting go.</strong> <span class="mono">replay_base_ctrl</span>'s
+      finger channels decode to exactly the plan's <code>grip</code> pose — the exported state is
+      already holding the shaft. Commanding <code>open</code> first releases it, and the released
+      shaft falls off the post and lands <em>upright</em>, reading cos 1.000. That is the failure
+      <code>probe_real_v1_carry.py</code>'s docstring warns about by name.</p>
+    <p><strong>The retention threshold was set above the real motion.</strong> A 10 mm rise was
+      required to count as held, when the bench's own centre rises only about 6 mm through the
+      turn — a criterion the successful behaviour fails.</p>
+  </div>
 </section>
 
 <section>

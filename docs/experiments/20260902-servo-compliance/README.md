@@ -17,11 +17,18 @@ servo feedback, over 11 morphologies; 64 of them also carry `servo_load`, over 6
 Every `real_v1` scene actuates its fingers with
 
 ```xml
-<position kp="4000" kv="100" forcerange="-1000 1000" />
+<position class="ctrl" kp="30" kv="0.5" gear="1" forcerange="-10 10" ctrlrange="-1 1" />
 ```
 
-across all 57,256 generated scene files, and no MJCF in the repo carries a `frictionloss`. That
-is a rigid, unlimited actuator. The exported plans are therefore written in commanded units and
+and no MJCF in the repo carries a `frictionloss`.
+
+> **Corrected 2026-09-02.** An earlier version of this file quoted `kp="4000"` here. That is the
+> `pose` class, which drives the palm/arm actuators; the nine finger actuators are `class="ctrl"`
+> and ship at **`kp=30`**, confirmed from the compiled model's `actuator_gainprm` in the deploy
+> scene, `hand_frozen_morphology.xml` and `real_hand.xml` alike. The conclusion is unchanged and
+> the factor is smaller: calibrating against the bench's own deficits puts the effective gain at
+> about **0.5**, so the shipped model is roughly **60×** too stiff, not 250×. See
+> `../20260902-servo-sysid/kp_calibration.json`. The exported plans are therefore written in commanded units and
 assume the hand arrives; [`../20260830-real_v1_bench_sobol`](../20260830-real_v1_bench_sobol)
 already established that it does not.
 
