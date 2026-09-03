@@ -127,16 +127,17 @@ footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",mo
   <h1>Gates on a Deployable Residual</h1>
   <p class="lede">A standing account of what now blocks a sim2real residual reorientation
   policy, written for a reader with no hardware time. The short answer is that the question
-  splits in two: a residual on <em>one</em> hand is not blocked by anything physical and is
-  mostly a base-schedule swap; a residual <em>across a set of hands</em> is blocked, and the
-  binding resource is not compute or algorithms but bench measurements.</p>
+  splits three ways, and only the last is blocked: a residual on <em>one</em> hand is mostly a
+  base-schedule swap; a residual that <em>controls</em> many hands needs conditioning, not
+  correct rankings; and only <em>choosing</em> a hand is gated, on bench measurements rather
+  than compute or search algorithms.</p>
   <div class="byline">status page &middot; no new experiment &middot; supersedes nothing, indexes everything</div>
   <div class="stats">
     <div class="stat"><b>+0.107</b><span>corrected sim vs bench, spearman</span></div>
     <div class="stat"><b>7</b><span>hands in the entire validation set</span></div>
     <div class="stat"><b>0.94 / 0.92</b><span>sim / bench retention, rv05</span></div>
     <div class="stat"><b>~2</b><span>seeds to resolve &Delta;=0.1, warmstarted</span></div>
-    <div class="stat"><b>0</b><span>bench sessions the next step needs</span></div>
+    <div class="stat"><b>9</b><span>design dims never put in an obs</span></div>
     <div class="stat"><b>write-only</b><span>what the deploy stream carries today</span></div>
   </div>
 </header>
@@ -150,15 +151,21 @@ footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",mo
 
   <div class="phases">
     <div class="chip"><i>Claim A</i><b>Residual, one hand</b><span>plant calibrated<br>gate passed<br><span class="ok">not blocked</span></span></div>
-    <div class="chip"><i>Claim B</i><b>Across many hands</b><span>ranking uncorrelated<br>contact unidentified<br><span class="no">blocked</span></span></div>
-    <div class="chip"><i>Blocker for B</i><b>Bench data</b><span>n = 7 designs<br>one is a mixture<br><span class="no">needs hardware</span></span></div>
+    <div class="chip"><i>Claim B</i><b>Controls many hands</b><span>needs conditioning<br>not correct rankings<br><span class="ok">not blocked</span></span></div>
+    <div class="chip"><i>Claim C</i><b>Picks the best hand</b><span>ranking uncorrelated<br>contact unidentified<br><span class="no">blocked</span></span></div>
+    <div class="chip"><i>Blocker for C</i><b>Bench data</b><span>n = 7 designs<br>one is a mixture<br><span class="no">needs hardware</span></span></div>
   </div>
 
   <p><strong>Claim A is not gated on hardware.</strong> The actuator model is measured,
   corrected and validated against the bench on the one hand we have most data for. What
   remains is software that can be written today.</p>
 
-  <p><strong>Claim B is gated,</strong> and the gate is not "we need a better search
+  <p><strong>Claim B is not gated either</strong>, which took a second pass to see. A
+  design-conditioned policy has to <em>control</em> each hand; it never has to say which hand
+  is better. Conditioning is not ranking. The argument is developed in the value-gradient
+  section below, and it is the single largest correction on this page.</p>
+
+  <p><strong>Claim C is gated,</strong> and the gate is not "we need a better search
   algorithm." It is that the simulator does not currently order hands the way the bench
   orders them, and the measurement we would need to fix that — and, more importantly, to
   <em>verify</em> any fix — only exists on the bench.</p>
@@ -427,6 +434,9 @@ footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",mo
       <tr class="hi"><td><code>pollard_optimization.pdf</code><br>Mannam, Liu, Zhao, Oh, Pollard 2024</td>
           <td>GA + <strong>policy transfer</strong> across ~400 designs; validated with 900+ teleoperated real tasks</td>
           <td>The relevant one for our actual problem. Their headline claim is exactly ours: "the trend in design performance in simulation resembles that of the real world." They earned it with real-world validation at scale. We have n=7 and the trend does <em>not</em> resemble.</td></tr>
+      <tr class="hi"><td><a href="https://nico-bohlinger.github.io/shape-your-body/"><em>Shape Your Body</em></a><br>Bohlinger &amp; Peters, arXiv:2606.00702</td>
+          <td>One embodiment-aware policy + critic over 50 robots; the <strong>frozen critic</strong> becomes a differentiable design surrogate, ascended inside a soft trust region</td>
+          <td>The reachable form of "backpropagate to guide the search" &mdash; the gradient runs through the critic, not through contact, so no differentiable simulator is required. Analysed in full in the next two sections.</td></tr>
       <tr><td><code>diffmjx.pdf</code><br>Paulus, Geist et al., arXiv:2506.14186</td>
           <td>Soft gradients through hard contacts, corrections applied in the backward pass only</td>
           <td>The enabling technology for literal backprop-through-sim. Note the practical blockers already recorded in <code>docs/notes/diffmjx.md</code>: the code is not public, and it targets MJX rather than MuJoCo-Warp.</td></tr>
@@ -461,6 +471,132 @@ footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",mo
 </section>
 
 <section class="col">
+  <h2>Value gradients, and the distinction that changes the answer</h2>
+  <p class="sub">Bohlinger &amp; Peters, <em>Shape Your Body</em>, arXiv:2606.00702</p>
+
+  <p>VGDS trains one embodiment-aware policy <em>and value function</em> across a robot
+  distribution with ordinary PPO, then <strong>freezes the critic and uses it as a
+  differentiable surrogate for the design</strong>. New designs are found by Adam ascent on
+  the critic's prediction inside a soft trust region. 50 robots, design spaces of
+  190&ndash;1177 continuous parameters, 1&ndash;2 minutes per design instead of a retrain.</p>
+
+  <p>The important structural property: <strong>the gradient is through the critic network,
+  not through contact.</strong> That sidesteps the blocker recorded against DiffMJX entirely
+  &mdash; no differentiable simulator, no MJX port, nothing that MuJoCo-Warp cannot already do.
+  It is the version of "backpropagate to guide the search" that is actually reachable from
+  where this program stands.</p>
+
+  <h3>The distinction I got wrong earlier on this page</h3>
+
+  <p>Reading VGDS forces a split that the rest of this page had collapsed. "Across a large set
+  of hands" is <em>two</em> claims, not one, and they have different gates:</p>
+
+  <div class="tw"><table>
+    <thead><tr><th>Claim</th><th>What it needs from the simulator</th><th>Gated?</th></tr></thead>
+    <tbody>
+      <tr class="hi"><td><strong>Control transfer</strong><br>one policy that <em>works on</em> many hands</td>
+          <td>That each hand's dynamics be roughly right &mdash; which the corrected plant demonstrably is, on the hand we have data for</td>
+          <td class="ok">no</td></tr>
+      <tr><td><strong>Design search</strong><br>the sim says which hand is <em>best</em></td>
+          <td>That the <em>ordering across</em> hands be right &mdash; spearman +0.107</td>
+          <td class="no">yes</td></tr>
+    </tbody>
+  </table></div>
+
+  <p><strong>Conditioning is not ranking.</strong> A design-conditioned policy has to
+  <em>control</em> each hand; it never has to say which hand is better. So a residual that
+  serves a whole family of hands is <em>not</em> blocked by the ranking failure. Only choosing
+  a new hand to build is. The earlier summary on this page conflated them and was too
+  pessimistic by one whole claim.</p>
+</section>
+
+<section class="col">
+  <h2>One artifact, four payoffs</h2>
+  <p class="sub">what to build on from VGDS, Yang and the DASH series</p>
+
+  <p>All three papers converge on a prerequisite we have never built: <strong>a policy and
+  critic conditioned on the 9-dim design vector</strong>. That single artifact pays for itself
+  four separate ways, and only one of them is the gradient search.</p>
+
+  <div class="phases">
+    <div class="chip"><i>Payoff 1</i><b>The multi-hand residual</b><span>deploy on hand #2 is a<br>config change, not a retrain</span></div>
+    <div class="chip"><i>Payoff 2</i><b>Near-free per-design eval</b><span>zero-shot instead of<br>warmstart-and-finetune</span></div>
+    <div class="chip"><i>Payoff 3</i><b>The VGDS critic</b><span>gradient search arrives<br>for free once it exists</span></div>
+    <div class="chip"><i>Payoff 4</i><b>Parameter diagnostics</b><span>which of the 9 params<br>the task is sensitive to</span></div>
+  </div>
+
+  <p><strong>This was scoped in 2026 and never executed.</strong>
+  <code>docs/rl/multimorphology.md</code> lists it as <em>Path C &mdash; explicit 9-dim
+  morphology obs</em>, cost "Low", risk "network may not learn to use it." Path A
+  (eval-and-finetune) was chosen instead. Nothing named <code>morph_vec</code>,
+  <code>design_vec</code> or <code>embodiment</code> exists anywhere in <code>src/</code>. The
+  design vector itself is well-defined and already threaded through the generators and the
+  design table.</p>
+
+  <h3>Payoff 4 is the one that is useful before anything is trusted</h3>
+
+  <p>The critic's rankings inherit the simulator's contact model and should not be believed.
+  But <em>"which parameter does the task care about"</em> is a much weaker claim than
+  <em>"which design is best,"</em> and it is one we can independently check. The design search
+  found that <code>tau_thumb</code> &mdash; the thumb's moment arm &mdash; carries the result
+  (rho +0.443, AUC 0.821), and that <code>--thumb-axial</code> alone takes <code>rv04_mid</code>
+  from 0.000 to 0.972. <strong>If the critic's gradient independently recovers thumb moment arm
+  as the dominant direction, that is real cross-validation of a hand-derived heuristic. If it
+  does not, that is equally informative.</strong> Either way it costs one gradient evaluation
+  against a hypothesis that already exists.</p>
+
+  <h3>Bohlinger's own limitation is in our favour</h3>
+
+  <p>They report that the full 50-robot set is dominated by quadrupeds and bipeds, and that
+  performance drops on morphologically distinct robots trained on the mixed distribution
+  &mdash; <em>morphology-specific training does better</em>. We have one topology and nine
+  continuous parameters. That is squarely the regime they say works. It also means we should
+  expect conditioning to be <em>easier</em> than their result, and the search itself to be
+  <em>less</em> valuable: VGDS solves searching 1177 parameters without a retrain, and we have
+  nine parameters and roughly 117 already-scored designs. Search efficiency is not our
+  bottleneck.</p>
+
+  <div class="callout">
+    <span class="tag">The ablation that must gate this whole line</span>
+    <p>Our own note against Path C &mdash; "high-dim conditioning often gets ignored" &mdash; is
+    a live risk with precedent: <strong>b33 ignores its observations entirely</strong>, and
+    replaying the whole 66-dim input costs nothing. Nine conditioning dims among sixty-six are
+    easy to ignore. So the first test is not performance, it is
+    <strong>whether the policy's behaviour changes when only the design vector changes.</strong>
+    If it does not, the critic's design gradient is meaningless and every payoff above
+    evaporates. Run that ablation before building anything on top.</p>
+  </div>
+
+  <h3>What Yang and DASH contribute that VGDS does not</h3>
+
+  <p>VGDS is a simulation method and inherits every simulation problem. The other two papers
+  are about getting hardware into the loop, which is our actual gate.</p>
+
+  <p><strong>Yang et al.</strong> built a physically reconfigurable hand with 37 adjustable
+  parameters specifically so evolved designs could be realised and tested. Ours is
+  reconfigurable too, and there is a fact about it that is under-exploited: the finger mounts
+  are on <em>gantries</em>, and <code>apply_mounts</code> is a motorised station operation.
+  <strong>Changing the morphology is a stepper move, not a rebuild.</strong></p>
+
+  <p><strong>Mannam and Pollard</strong> validated a simulation <em>trend</em> against 900+ real
+  trials, and got that number by using teleoperation &mdash; taking the per-design policy out
+  of the real-world loop. Our analogue already exists: the open-loop plan is exactly a
+  per-design controller that needs no training. Put those two together and the n=7 gate looks
+  less like a research problem and more like a session-design problem:</p>
+
+  <div class="callout">
+    <span class="tag">The cheapest attack on n = 7</span>
+    <p>A bench session that <strong>batches designs under software control</strong> &mdash;
+    apply mounts, run the exported plan, log the tag track, apply the next design's mounts
+    &mdash; without a human rebuilding the hand between designs. The per-design cost then is
+    staging the object and the operator's attention, not the hardware. Every existing piece
+    (mount application, plan export, clearance gate, tag tracking, per-run logging) is already
+    built; nothing here is new capability, only new sequencing. This is the item that most
+    directly buys back the ability to make <em>any</em> claim about design ranking.</p>
+  </div>
+</section>
+
+<section class="col">
   <h2>The task list, sorted by what it costs</h2>
   <p class="sub">explicit about which side of the hardware line each falls on</p>
 
@@ -476,6 +612,12 @@ footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",mo
           <td>Pure sim. The stated motivation &mdash; imperfect perception, positional imprecision &mdash; needs no hardware to train against.</td><td class="num">high</td></tr>
       <tr><td><strong>Warmstarted policy-in-the-loop design evaluation</strong></td>
           <td>sd 0.032 warmstarted vs 0.3&ndash;0.5 from scratch; ~2 seeds per design</td><td class="num">high</td></tr>
+      <tr class="hi"><td><strong>Design-conditioned policy + critic</strong><br>the 9-dim design vector in the obs (Path C)</td>
+          <td>Scoped in <code>multimorphology.md</code>, never built. Pays four ways: multi-hand residual, near-free per-design eval, the VGDS critic, and parameter diagnostics. <strong>Gate it on the conditioning ablation first.</strong></td><td class="num">high</td></tr>
+      <tr><td><strong>Conditioning ablation</strong><br>does behaviour change when only the design vector changes?</td>
+          <td>Cheap, and it decides whether the row above is worth anything. b33 ignoring its observations is the precedent for why this cannot be assumed.</td><td class="num">high</td></tr>
+      <tr><td><strong>Residual envelope gate</strong></td>
+          <td>Every existing gate validates a fixed trajectory; a residual does not have one. Owed before any residual reaches hardware.</td><td class="num">high</td></tr>
       <tr><td><strong>Fingertip shape co-design</strong></td>
           <td>Sim-only and explicitly asked for. Prior result exists on the <em>inline</em> hand (point contact beat flat and grooved pads); untested on real_v1, whose topology shares nothing with it.</td><td class="num">medium</td></tr>
       <tr><td><strong>Residual clip as a declared variable</strong></td>
@@ -510,10 +652,126 @@ footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",mo
   </table></div>
 
   <h3>Needs a bench campaign &mdash; and this is the real gate</h3>
+  <p><strong>The shape it should take:</strong> a session that batches designs under software
+  control, rather than another study that happens to visit a few hands. <code>apply_mounts</code>
+  is a motorised station operation, so the morphology change is a stepper move; plan export,
+  the clearance gate, tag tracking and per-run logging all already exist. Nothing here is new
+  capability, only new sequencing.</p>
   <p>Expanding the validation set beyond seven designs. Everything about ranking, transfer,
   design search and contact identification terminates here. It is the one item that no amount
   of simulation, compute or algorithmic work can substitute for, and it should be planned as a
   measurement campaign rather than folded into another study.</p>
+</section>
+
+<section class="col">
+  <h2>Yes &mdash; the per-hand residual, concretely</h2>
+  <p class="sub">what to build, what to gate it on, and what a bench day looks like</p>
+
+  <p>Stated plainly, because it is the near-term question: <strong>a residual policy on one hand
+  morphology can be built and trained today, with no hardware time and no new measurement.</strong>
+  Everything below is written so it can be picked up cold.</p>
+
+  <h3>1. Train &mdash; sim only, nothing gated</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Piece</th><th>What it is</th><th>State</th></tr></thead>
+    <tbody>
+      <tr><td>action term</td><td>bounded finger residual on a scripted set-point schedule, with <code>residual_active_from_sim_step</code></td><td class="ok">exists, <code>rl/actions.py</code></td></tr>
+      <tr><td>plant</td><td><code>kp</code> 0.5, <code>forcerange</code> 0.35, <code>frictionloss</code> 0.0035, measured masses</td><td class="ok">exists, <code>apply_measured_plant.py</code></td></tr>
+      <tr><td>reset state</td><td><code>meta.replay_base_ctrl</code> from the plan &mdash; <strong>not</strong> the scene keyframe</td><td class="no">to write</td></tr>
+      <tr><td>base schedule</td><td>the plan's per-step <code>_traj.csv</code> &mdash; <strong>not</strong> the 3-set-point chord</td><td class="no">to write</td></tr>
+      <tr><td>residual clip</td><td>declared per maneuver, not the inherited 0.5 rad</td><td class="no">to decide</td></tr>
+      <tr><td>observation</td><td>object pose only (see the deploy-path section) &mdash; not the 66-dim vector</td><td class="no">to decide</td></tr>
+    </tbody>
+  </table></div>
+
+  <p>Two traps, both already paid for once: the scene keyframe puts <code>palm_pz</code> at 0.01
+  against the plan's 0.1035, so a harness that uses it never lifts; and the chord and the CSV
+  are <em>different paths</em> that the clearance gate passes separately &mdash; a ranking
+  attempt was voided for replaying the wrong one.</p>
+
+  <p>Reward shaping is nearly free here: the residual does not have to discover the turn, which
+  the plan already performs. It has to notice slip. The six bench drops define the target
+  exactly &mdash; peak +0.608 reached, then collapse to +0.109.</p>
+
+  <h3>2. The gate that does not exist yet</h3>
+
+  <div class="callout">
+    <span class="tag">Owed before any residual touches hardware</span>
+    <p>Every safety gate this program has &mdash;
+    <code>real_v1_trajectory_clearance.py</code> (finger interpenetration) and the servo-limit
+    check (family clip ceiling about 1.34 rad, lower for hands leaning on middle yaw) &mdash;
+    <strong>validates a fixed trajectory</strong>. A residual policy by definition does not have
+    one: it moves the path at run time. Clearing the base path is therefore
+    <em>not sufficient</em>, and no existing gate covers this.</p>
+    <p>What is needed is an <strong>envelope</strong> gate: sample the trained residual over its
+    action bound and reset distribution, take the swept commanded envelope, and run the existing
+    two gates on <em>that</em> rather than on the base path. Three of the four plans sitting on
+    the CB1 in 2026-09 were ones the clearance gate had <em>excluded</em>; this is not a
+    hypothetical failure mode.</p>
+  </div>
+
+  <h3>3. Data collection &mdash; what a run must record</h3>
+
+  <p>Nothing new needs building; the point is to say what must be on before the first trial,
+  because a run missing any of it is not interpretable and cannot be repeated.</p>
+
+  <ul>
+    <li><strong>Tag track</strong> &mdash; the object-pose channel, and the only ground truth
+    for whether the turn happened. The tracker must be launched so
+    <code>BENCH_DEFAULTS</code> apply (<code>--shaft-axis=-x --tag-end top --symmetric-object
+    --heading-deg 90 --exposure 4000 --gain 64</code>). A session was lost to launching it bare,
+    and a run was misread as "no rotation" for want of <code>--symmetric-object</code>, which
+    folds cos to [0,1].</li>
+    <li><strong>Servo load and temperature</strong>, per run. Load is the only force proxy on
+    this part and is what shows a lost object; <code>protective_torque</code> fires on 42% of
+    <code>middle_yaw</code> bench runs and doubles both deflection and scatter, so a trial
+    without temperature cannot be told apart from one that tripped.</li>
+    <li><strong>The commanded stream</strong>, frame by frame, alongside the base trajectory
+    &mdash; the residual is the difference, and without both there is nothing to compare
+    against the sim.</li>
+    <li><strong>The station's own run log</strong>, which already captures commands and
+    telemetry phases.</li>
+  </ul>
+
+  <p>One thing to confirm at the bench rather than assume: the <em>tag update rate reaching the
+  station</em>. The policy's feedback bandwidth is bounded by it, and it is the one number in
+  this loop that has never been measured under load.</p>
+
+  <h3>4. Deployment sequence</h3>
+
+  <p>Pre-flight, on the workstation, before a bench day starts:</p>
+  <pre><code># base path must clear BOTH the chord and the per-step CSV
+uv run python scripts/real_v1_trajectory_clearance.py --plan &lt;design&gt;
+# then the same two gates on the residual's swept envelope  (TO BUILD)
+# then a corrected-plant retention check, the shape of plant_drop_gate.py</code></pre>
+
+  <p>At the bench, in this order:</p>
+  <ol>
+    <li><strong>Workstation:</strong> tracker service under
+    <code>~/miniconda3/bin/python</code> &mdash; the camera stack is not in the uv env. Launch
+    it plain so its defaults apply.</li>
+    <li><strong>CB1:</strong> <code>~/run_control_station.sh start</code>, which carries the
+    token and <code>--tracker-url</code>. Without that URL <code>/reorient</code> silently runs
+    untracked trials.</li>
+    <li>Apply the design's mounts; stage the object in the design's open-grasp keyframe.</li>
+    <li>Grasp. <strong>Confirm with the operator before the reorient</strong> &mdash; the object
+    is staged in a holder that fights the turn, and the holder is pulled between the two.</li>
+    <li>Stream the residual. <strong>No joint feedback is available during a stream</strong>;
+    the policy sees the object and its own commands.</li>
+  </ol>
+
+  <p>Both serial ports are exclusive: stop the station before any raw-bus work, and remember
+  that telemetry suspends while a writer owns the bus, so a probe holding the stream open reads
+  one stale sample repeated.</p>
+
+  <div class="callout">
+    <span class="tag">What this would and would not prove</span>
+    <p>A residual trained on a plant calibrated to one hand, deployed on that hand, that
+    recovers turns the open-loop plan loses to slip &mdash; that is a clean, defensible first
+    closed-loop sim2real result, and it is the first one this program would have. It says
+    nothing about other morphologies until the design-conditioned version above is trained, and
+    nothing about design ranking at all.</p>
+  </div>
 </section>
 
 <section class="col">
@@ -557,15 +815,26 @@ footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",mo
   mode it would fix &mdash; a turn that is won and then lost to slip &mdash; is documented in
   six bench drops. That work can proceed with no hardware time.</p>
 
-  <p>A residual policy <strong>across a large set of hands</strong> is blocked, and not on
+  <p>A residual that <strong>controls a family of hands</strong> is also not blocked, once
+  conditioning is separated from ranking. It needs the 9-dim design vector in the observation
+  and critic, scoped as Path C in <code>docs/rl/multimorphology.md</code> and never built, and
+  it pays four ways: the multi-hand residual itself, near-free per-design evaluation, the
+  frozen critic that VGDS needs, and a gradient diagnostic over the nine design parameters that
+  can be checked against the thumb-moment-arm result we already have. One ablation gates all of
+  it: does the policy behave differently when only the design vector changes.</p>
+
+  <p><strong>Choosing</strong> a hand is what is blocked, and not on
   anything that can be simulated away. The simulator does not order hands the way the bench
   does, before or after the actuator correction; the missing physics is contact; and both
   identifying it and verifying any fix require bench measurements we do not have. Seven
-  designs is the ceiling, and it is a low one.</p>
+  designs is the ceiling, and it is a low one. The cheapest attack on it is not a better
+  algorithm but a bench session that batches designs under software control: the mounts are
+  motorised, so changing morphology is a stepper move.</p>
 
   <p>The recommendation, stated once: <strong>build the per-hand residual now and claim exactly
-  that</strong>, and treat the multi-hand ranking claim as owing a measurement campaign rather
-  than an algorithm.</p>
+  that; build the design-conditioned version next, because it is the same work plus nine input
+  dimensions and it unlocks three further things</strong>; and treat the ranking claim as owing
+  a measurement campaign rather than an algorithm.</p>
 </section>
 
 <footer>
