@@ -69,7 +69,7 @@ def _indent(elem, level=0):
 def build(design_scene: Path, ur5e_xml: Path, out: Path, ik_out: Path,
           base_xyz=(-0.50, 0.0, 0.30), pedestal: bool = True,
           gravcomp: bool = False, arm_gravcomp: float = 1.0,
-          model_name: str = "ur5e_real_v1") -> dict:
+          meshdir: Path | None = None, model_name: str = "ur5e_real_v1") -> dict:
     hand = ET.parse(design_scene).getroot()
     ur = ET.parse(ur5e_xml).getroot()
 
@@ -79,7 +79,7 @@ def build(design_scene: Path, ur5e_xml: Path, out: Path, ik_out: Path,
         # Absolute, and deliberately not an <include>: including the menagerie file splices a
         # second <compiler> whose meshdir is relative to ITS directory, and the resulting mesh
         # paths depend on where the generated scene is written.
-        "meshdir": str((ur5e_xml.parent / "assets").resolve())})
+        "meshdir": str((meshdir or (ur5e_xml.parent / "assets")).resolve())})
     for tag in ("option", "visual"):
         src = hand.find(tag)
         if src is not None:
@@ -185,7 +185,7 @@ def build(design_scene: Path, ur5e_xml: Path, out: Path, ik_out: Path,
     ik = ET.parse(ur5e_xml).getroot()
     ik.set("model", "ur5e_palm_ik")
     c = ik.find("compiler")
-    c.set("meshdir", str((ur5e_xml.parent / "assets").resolve()))
+    c.set("meshdir", str((meshdir or (ur5e_xml.parent / "assets")).resolve()))
     b = _find(ik.find("worldbody"), "body", name="base")
     b.set("pos", f"{base_xyz[0]:.6g} {base_xyz[1]:.6g} {base_xyz[2]:.6g}")
     ET.SubElement(_find(b, "body", name="wrist_3_link"), "site",
@@ -341,12 +341,22 @@ def main() -> int:
     print(f"home written into {out}")
 
     if args.cl_assets:
+        # The lab menagerie gets a SELF-CONTAINED pair: its own copy of the UR5e, and scenes
+        # whose meshdir points at that copy rather than at whichever mujoco_menagerie clone
+        # happened to be on the machine that generated them.
         dst = args.cl_assets / "universal_robots_ur5e"
         if not dst.exists():
             shutil.copytree(args.ur5e.parent, dst)
-        for f in (out, ik_out):
-            shutil.copy(f, args.cl_assets / f"{args.morph_run.name}_{f.name}")
-        print(f"-> {args.cl_assets}")
+        a = args.cl_assets / f"ur5e_{args.morph_run.name}_scene.xml"
+        b = args.cl_assets / f"ur5e_{args.morph_run.name}_ik.xml"
+        build(scene, args.ur5e, a, b,
+              base_xyz=tuple(float(v) for v in args.base.split(",")),
+              gravcomp=args.gravcomp, arm_gravcomp=args.arm_gravcomp,
+              meshdir=dst / "assets", model_name=f"ur5e_{args.morph_run.name}")
+        best2, _, d2, m2 = solve_home(a, b, scene, seeds=args.ik_seeds)
+        write_home(a, best2["q"], d2, m2)
+        mujoco.MjModel.from_xml_path(str(a))
+        print(f"-> {a}\n-> {b}")
     return 0
 
 
