@@ -4606,3 +4606,7 @@ of a 5° one, and 14.0° is where a standing cylinder topples.
 **Not done:** no clearance or servo-limit gate on the chained trajectory, no stall-torque
 measurement on the seat, no closed-loop gait (the AprilTag rig measures the gait's controlled
 variable directly, at 0.017° rms, and nothing uses it).
+
+Note on commit 21f796c3: its message quotes 13% of the turn and a 4 mm capture radius, measured
+before the re-grip default moved from 0.5 mm to 0.3. The re-run at 0.3 gives 18% and 6 mm, and
+those are the numbers above, in `screw_study.json` and on the page.
