@@ -46,10 +46,10 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts"))
 
+import palm_driver as pd  # noqa: E402
 import probe_real_v1_gait as pg  # noqa: E402
 from morphohand.tools.keyframe_ik import FINGERS, TIPS, ik_finger  # noqa: E402
 
-PALM = pg.PALM_JOINTS
 DEBUG = []
 CONTROL_DECIMATION = pg.CONTROL_DECIMATION
 
@@ -73,26 +73,8 @@ def _align(u: np.ndarray, v: np.ndarray) -> np.ndarray:
     return np.eye(3) + np.sin(np.arccos(np.clip(c, -1, 1))) * K + (1 - c) * (K @ K)
 
 
-def _palm_joints_from_pose(m, R: np.ndarray, p: np.ndarray) -> dict:
-    """The six palm joint values that put the palm body at world (R, p).
-
-    MuJoCo composes a body's joints in the order they are declared, so with px,py,pz listed
-    before rx,ry,rz the slides are world-axis translations of the body origin and the hinges
-    compose as an INTRINSIC X-Y-Z Euler triple: R = Rx(a) Ry(b) Rz(c). Getting that order wrong
-    is silent -- the palm lands somewhere plausible and the ring IK then reports a residual
-    nobody can explain -- so it is asserted, not assumed.
-    """
-    assert np.allclose(m.body("palm_pose").quat, [1, 0, 0, 0], atol=1e-9), \
-        "palm_pose carries a body quat; the Euler decomposition below assumes identity"
-    b = float(np.arcsin(np.clip(R[0, 2], -1.0, 1.0)))
-    a = float(np.arctan2(-R[1, 2], R[2, 2]))
-    c = float(np.arctan2(-R[0, 1], R[0, 0]))
-    d = p - np.asarray(m.body("palm_pose").pos, float)
-    return dict(zip(PALM, [float(d[0]), float(d[1]), float(d[2]), a, b, c]))
-
-
-def _rigid_palm_target(m, d, obj: str, R_des: np.ndarray, p_des: np.ndarray) -> dict:
-    """Palm joints that would put a RIGIDLY HELD object at (R_des, p_des).
+def _rigid_palm_pose(m, d, obj: str, R_des: np.ndarray, p_des: np.ndarray):
+    """World palm pose that would put a RIGIDLY HELD object at (R_des, p_des).
 
     T_palm_new = T_obj_des . T_obj_now^-1 . T_palm_now. The grip is not actually rigid -- the
     pads are position servos on a compliant contact and the shaft creeps -- which is why this is
@@ -103,7 +85,7 @@ def _rigid_palm_target(m, d, obj: str, R_des: np.ndarray, p_des: np.ndarray) -> 
     R_palm = d.body("palm_pose").xmat.reshape(3, 3)
     p_palm = d.body("palm_pose").xpos
     dR = R_des @ R_obj.T
-    return _palm_joints_from_pose(m, dR @ R_palm, p_des + dR @ (p_palm - p_obj))
+    return dR @ R_palm, p_des + dR @ (p_palm - p_obj)
 
 
 def _hold_ring(m, mik, dik, d, obj: str, acts: dict, r_ring: float) -> dict:
@@ -147,14 +129,6 @@ def _hold_ring(m, mik, dik, d, obj: str, acts: dict, r_ring: float) -> dict:
     return {j: float(dik.qpos[mik.jnt_qposadr[mik.joint(j).id]]) for j in acts}
 
 
-def _palm_now(m, d) -> dict:
-    return {j: float(d.qpos[m.jnt_qposadr[m.joint(j).id]]) for j in PALM}
-
-
-def _palm_acts(m) -> dict:
-    return {j: next(k for k in range(m.nu) if m.actuator(k).name == f"a_{j}") for j in PALM}
-
-
 def _finger_act(m) -> dict:
     return {j: next(k for k in range(m.nu) if m.actuator(k).name == f"a_{j}")
             for joints in FINGERS.values() for j in joints}
@@ -176,9 +150,11 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
           release_mm: float = 6.0, twist_steps: int = 120, move_steps: int = 60,
           approach_steps: int = 200, pad_radius: float | None = None,
           jitter: float = 0.0, seed: int = 0, no_floor_gait: bool = False,
+          arm_ik: Path | None = None, arm_scene: Path | None = None,
           video: Path | None = None, film: Path | None = None,
           cam=(120.0, -18.0, 0.36), video_every: int = 12, trace: bool = False) -> dict:
-    scene = morph_run / "frozen_scene.xml"
+    scene = Path(arm_scene) if arm_scene is not None else \
+        morph_run / ("arm_scene.xml" if arm_ik is not None else "frozen_scene.xml")
     pg._MODEL_PATH["path"] = str(scene)
     m = mujoco.MjModel.from_xml_path(str(scene))
     if pad_radius is not None:
@@ -205,7 +181,7 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
               for i, (f, js) in enumerate(FINGERS.items()) for k, j in enumerate(js)}
 
     acts = _finger_act(m)
-    pacts = _palm_acts(m)
+    palm = pd.make(m, d, arm_ik)
     for j, a in acts.items():
         d.ctrl[a] = anchor[j]
     mujoco.mj_forward(m, d)
@@ -283,9 +259,10 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
 
     # ---------------------------------------------------------------- 1. grasp, lift, settle
     _run(250)
-    pz0 = float(d.ctrl[pacts["palm_pz"]])
-    _run(200, lambda k: d.ctrl.__setitem__(pacts["palm_pz"], pz0 + lift * (k + 1) / 200),
-         every_step=True)
+    R_c, p_c = palm.cmd_pose()
+    u0 = palm.read()
+    u1 = palm.solve(R_c, p_c + np.array([0.0, 0.0, lift]))[0]
+    _run(200, lambda k: palm.write(u0 + (u1 - u0) * (k + 1) / 200), every_step=True)
     _run(200)
     seams.append(_snap("lifted"))
     _shot()
@@ -392,22 +369,24 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         n = float(np.linalg.norm(u))
         return c - half * av - (r_obj * (u / n) if n > 1e-9 else np.zeros(3))
 
-    def _move(tg, steps_each, hold=True):
-        """Ramp the palm (and, if holding, the pad ring) to one commanded pose."""
-        c0 = {j: float(d.ctrl[pacts[j]]) for j in PALM}
+    def _move_u(u1, steps_each, hold=True, settle=None):
+        """Ramp the palm command (and, if holding, the pad ring) to one target vector."""
+        c0 = palm.read()
         sq = _hold_ring(m, mik, dik, d, obj, acts, r_hold) if (hold and carry_squeeze > 0) else None
         f0 = {j: float(d.ctrl[a]) for j, a in acts.items()}
 
         def _mv(k):
             v = min(1.0, (k + 1) / steps_each)
-            for j in PALM:
-                d.ctrl[pacts[j]] = c0[j] * (1 - v) + tg[j] * v
+            palm.write(c0 + (np.asarray(u1, float) - c0) * v)
             if sq is not None:
                 for j, a in acts.items():
                     d.ctrl[a] = f0[j] * (1 - v) + sq[j] * v
 
         _run(steps_each, _mv, every_step=True)
-        _run(settle_steps // 4)
+        _run(settle_steps // 4 if settle is None else settle)
+
+    def _move(R, p_, steps_each, hold=True, settle=None):
+        _move_u(palm.solve(R, p_)[0], steps_each, hold=hold, settle=settle)
 
     def _lost():
         return pg._hand(m, d, obj)[2] == 0 and float(d.body(obj).xpos[2]) < half * 0.8
@@ -439,11 +418,11 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
             R_obj = d.body(obj).xmat.reshape(3, 3).copy()
             po = d.body(obj).xpos.copy()
             dz = (z0 + (z_low_goal - z0) * (it + 1) / iters) - float(_low_point()[2])
-            _move(_rigid_palm_target(m, d, obj, R_obj, po + np.array([0.0, 0.0, dz])), steps_each)
+            _move(*_rigid_palm_pose(m, d, obj, R_obj, po + np.array([0.0, 0.0, dz])), steps_each)
             if DEBUG:
                 print("   ", {**_snap(name), "dz_mm": round(dz * 1000, 1),
                               "z_low_mm": round(float(_low_point()[2]) * 1000, 1),
-                              "palm_pz": round(float(d.ctrl[pacts["palm_pz"]]), 4)})
+                              "palm_z": round(float(palm.cmd_pose()[1][2]), 4)})
             if _lost():
                 break
         seams.append(_snap(name))
@@ -474,7 +453,7 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
             R_corr = np.eye(3) + np.sin(delta) * K + (1 - np.cos(delta)) * (K @ K)
             po = d.body(obj).xpos.copy()
             piv = _low_point() if about_foot else po
-            _move(_rigid_palm_target(m, d, obj, R_corr @ R_obj, piv + R_corr @ (po - piv)),
+            _move(*_rigid_palm_pose(m, d, obj, R_corr @ R_obj, piv + R_corr @ (po - piv)),
                   steps_each)
             if DEBUG:
                 print("   ", {**_snap(name), "delta_deg": round(float(np.degrees(delta)), 2),
@@ -515,14 +494,9 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
 
     # The press is delivered THROUGH the grip, exactly as in the gait study, where it has a
     # measured window: -6..+6 mm holds, +8 levers the shaft off its own footprint.
-    pz_now = float(d.ctrl[pacts["palm_pz"]])
-
-    def _press(k):
-        u = min(1.0, (k + 1) / press_steps)
-        d.ctrl[pacts["palm_pz"]] = pz_now - (press_mm / 1000.0) * u
-
-    _run(press_steps, _press, every_step=True)
-    _run(settle_steps)
+    R_c, p_c = palm.cmd_pose()
+    _move(R_c, p_c - np.array([0.0, 0.0, press_mm / 1000.0]), press_steps,
+          hold=False, settle=settle_steps)
     seams.append(_snap("pressed"))
     _shot()
     stood = seams[-1]
@@ -539,10 +513,10 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         # study validated, and take the shaft again as a ring. Nothing else in this program can
         # do this: every other release in the repertoire drops the object.
         z_ring = float(half + 0.025) if ring_z is None else float(ring_z)
-        palm_tgt = _palm_joints_from_pose(
-            m, np.eye(3), np.array([centre[0] - centre_x, centre[1], z_ring + grip_depth]))
+        u_tgt, ep_re, er_re = palm.solve(
+            np.eye(3), np.array([centre[0] - centre_x, centre[1], z_ring + grip_depth]))
         table, ik_res, per_r = pg._ring_table(
-            m, centre, z_ring, palm_tgt, [r_grip, r_open, r_wide], phis)
+            m, centre, z_ring, palm.joint_dict(u_tgt), [r_grip, r_open, r_wide], phis)
         open_ctrl = {j: float(m.key_ctrl[key][a]) for j, a in acts.items()}
         cur_f = {j: float(d.ctrl[a]) for j, a in acts.items()}
         _run(approach_steps // 2, lambda k: [
@@ -552,20 +526,14 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         _run(settle_steps // 4)
         seams.append(_snap("released"))
         _shot()
-        cur_p = {j: float(d.ctrl[pacts[j]]) for j in PALM}
-        _run(repose_steps, lambda k: [
-            d.ctrl.__setitem__(pacts[j], cur_p[j] * (1 - min(1.0, (k + 1) / repose_steps))
-                               + palm_tgt[j] * min(1.0, (k + 1) / repose_steps))
-            for j in PALM], every_step=True)
-        _run(settle_steps // 2)
+        _move_u(u_tgt, repose_steps, hold=False, settle=settle_steps // 2)
         seams.append(_snap("reindexed"))
         _shot()
     else:
         # No luxury: solve the ring at the palm pose the carry actually left, and regrasp from
         # the carry's own finger pose. If this is unreachable the residual says so directly.
-        palm_tgt = _palm_now(m, d)
         table, ik_res, per_r = pg._ring_table(
-            m, centre, z_ring, palm_tgt, [r_grip, r_open, r_wide], phis)
+            m, centre, z_ring, palm.joint_dict(palm.read()), [r_grip, r_open, r_wide], phis)
 
     wide = {f: pg._lookup(table, f, 2, 0.0, phis) for f in FINGERS}
     grip_t = {f: pg._lookup(table, f, 0, 0.0, phis) for f in FINGERS}
@@ -659,6 +627,10 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         "ring_ik_grip_mm": round(per_r[0] * 1000, 2),
         "ring_ik_open_mm": round(per_r[1] * 1000, 2),
         "pad_radius": round(pad_r, 6), "gear_ratio": round(gear, 4),
+        "wrist": palm.kind,
+        "arm_ik_pos_mm": round(getattr(palm, "worst_pos", 0.0) * 1000, 3),
+        "arm_ik_rot_deg": round(float(np.degrees(getattr(palm, "worst_rot", 0.0))), 3),
+        "arm_ik_fails": int(getattr(palm, "fails", 0)),
         "seams": seams,
         "carry_ok": bool(carry_ok), "stood_ok": stood_ok, "grip_ok": grip_ok,
         "spin_deg": round(float(np.degrees(spin[0])), 2),
@@ -694,6 +666,16 @@ def main() -> int:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--morph-run", type=Path, action="append",
                     default=None, help="CEM run dir holding frozen_scene.xml; repeatable")
+    ap.add_argument("--arm-ik", type=Path, default=None,
+                    help="the arm-only IK model written by build_real_v1_arm_scene.py. Given, "
+                         "the palm's six commands are produced by a UR5e instead of the "
+                         "floating gantry, and --morph-run must point at a run whose "
+                         "arm_scene.xml exists.")
+    ap.add_argument("--arm-scene", type=Path, default=None,
+                    help="the task scene to roll out; defaults to <run>/arm_scene.xml when an "
+                         "IK model is given, else the run's frozen_scene.xml")
+    ap.add_argument("--arm", action="store_true",
+                    help="shorthand: use <run>/arm_scene.xml and <run>/arm_ik.xml")
     ap.add_argument("--object-body", default="screwdriver_medium")
     ap.add_argument("--lift", type=float, default=0.10)
     ap.add_argument("--angle-deg", type=float, default=-90.0)
@@ -760,6 +742,7 @@ def main() -> int:
     args = ap.parse_args()
 
     runs = args.morph_run or [ROOT / "results/phase1/real_v1/rv05_manual_stored"]
+    arm_ik = args.arm_ik or ((runs[0] / "arm_ik.xml") if args.arm else None)
     cam = tuple(float(v) for v in args.cam.split(","))
     rows = []
     print(f"{'run':22} {'idx':5} {'press':>6} {'ringIK':>7} {'repose':>7} "
@@ -779,7 +762,8 @@ def main() -> int:
                           stroke_deg=args.stroke, cycles=args.cycles, squeeze=args.squeeze,
                           release_mm=args.release, twist_steps=args.twist_steps,
                           move_steps=args.move_steps, pad_radius=args.pad_radius,
-                          no_floor_gait=args.no_floor_gait,
+                          no_floor_gait=args.no_floor_gait, arm_ik=arm_ik,
+                          arm_scene=args.arm_scene,
                           jitter=args.jitter if rep or args.repeats > 1 else 0.0,
                           seed=rep, video=args.video if rep == 0 else None,
                           film=args.film if rep == 0 else None, cam=cam, trace=args.trace)

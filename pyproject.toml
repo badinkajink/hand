@@ -41,6 +41,14 @@ rl = [
   "gymnasium>=0.29",
 ]
 
+# Arm-mounted variants of the real_v1 hand: a UR5e from mujoco_menagerie driven by
+# differential IK. mink 1.1 is the last release that resolves against mujoco 3.6.0;
+# letting uv pick a newer one silently upgrades mujoco to 3.12 and every physics
+# result in this repo is then measured on a different engine.
+arm = [
+  "mink>=1.1,<1.2",
+]
+
 dev = [
   "pytest>=8.3",
   "ruff>=0.6.9",
