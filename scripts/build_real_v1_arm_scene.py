@@ -79,7 +79,7 @@ def build(design_scene: Path, ur5e_xml: Path, out: Path, ik_out: Path,
           base_xyz=(-0.50, 0.0, 0.30), pedestal: bool = True,
           gravcomp: bool = False, arm_gravcomp: float = 1.0,
           wrist_stack: float = WRIST_STACK, stack_radius: float = STACK_RADIUS,
-          stack_density: float = 700.0,
+          stack_density: float = 700.0, payload_gravcomp: bool = False,
           meshdir: Path | None = None, model_name: str = "ur5e_real_v1") -> dict:
     palm_pos = f"0 {FLANGE_Y + wrist_stack:.6g} 0"
     hand = ET.parse(design_scene).getroot()
@@ -174,10 +174,19 @@ def build(design_scene: Path, ur5e_xml: Path, out: Path, ik_out: Path,
             # the hand itself: this is payload, not a massless decoration. Set the density to 0
             # to separate the stack's REACH from its WEIGHT.
             "density": f"{stack_density:.6g}"}))
-    if gravcomp:
+    if gravcomp or payload_gravcomp:
+        # A REAL UR5e IS TOLD ITS PAYLOAD. `set_payload` puts the hand's mass and centre in the
+        # controller's dynamic model, and the servo loop then holds position under it -- the arm
+        # is rated to 5 kg and 0.57 kg of hand is nothing. The menagerie model has no such
+        # feedforward for the arm OR its payload, so leaving the hand uncompensated models a
+        # robot nobody sells. `--payload-gravcomp` compensates the whole hand subtree, which is
+        # the closer model; `--gravcomp` compensates only the palm body, as before.
         palm.set("gravcomp", "1")
+        if payload_gravcomp:
+            for b in palm.iter("body"):
+                b.set("gravcomp", "1")
     else:
-        palm.attrib.pop("gravcomp", None)    # the arm carries the hand's weight now
+        palm.attrib.pop("gravcomp", None)
     ET.SubElement(palm, "site", {"name": "palm_site", "size": "0.004",
                                  "rgba": "0.9 0.3 0.2 0.6"})
     _find(base, "body", name="wrist_3_link").append(palm)
@@ -343,6 +352,11 @@ def main() -> int:
     ap.add_argument("--stack-radius", type=float, default=STACK_RADIUS,
                     help="radius of the cylinder standing in for that hardware, so it is "
                          "present in the collision pass. Placeholder until it is measured.")
+    ap.add_argument("--payload-gravcomp", action="store_true",
+                    help="compensate gravity on the WHOLE hand subtree, modelling a UR5e that "
+                         "has been told its payload. The menagerie model has no payload "
+                         "feedforward at all, so without this the arm sags under 0.57 kg on a "
+                         "robot rated for 5.")
     ap.add_argument("--gravcomp", action="store_true",
                     help="keep the palm's gravity compensation. Off by default: on the arm the "
                          "hand's ~0.2 kg is real payload.")
@@ -363,7 +377,8 @@ def main() -> int:
                  base_xyz=tuple(float(v) for v in args.base.split(",")),
                  gravcomp=args.gravcomp, arm_gravcomp=args.arm_gravcomp,
                  wrist_stack=args.wrist_stack, stack_radius=args.stack_radius,
-                 stack_density=args.stack_density, model_name=f"ur5e_{args.morph_run.name}")
+                 stack_density=args.stack_density,
+                 payload_gravcomp=args.payload_gravcomp, model_name=f"ur5e_{args.morph_run.name}")
 
     import mujoco
     import numpy as np
@@ -394,7 +409,8 @@ def main() -> int:
               base_xyz=tuple(float(v) for v in args.base.split(",")),
               gravcomp=args.gravcomp, arm_gravcomp=args.arm_gravcomp,
               wrist_stack=args.wrist_stack, stack_radius=args.stack_radius,
-              stack_density=args.stack_density, meshdir=dst / "assets", model_name=f"ur5e_{args.morph_run.name}")
+              stack_density=args.stack_density,
+              payload_gravcomp=args.payload_gravcomp, meshdir=dst / "assets", model_name=f"ur5e_{args.morph_run.name}")
         best2, _, d2, m2 = solve_home(a, b, scene, seeds=args.ik_seeds)
         write_home(a, best2["q"], d2, m2)
         mujoco.MjModel.from_xml_path(str(a))

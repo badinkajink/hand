@@ -4615,7 +4615,7 @@ those are the numbers above, in `screw_study.json` and on the page.
 
 `scripts/probe_real_v1_chain.py` (`--reindex relay`, `--relay-gait`, `--relay-squeeze`,
 `--tilt-deg`) + `real_v1_handover_study.py`, 306 cells / ~3 min on 6 workers, commit d4b29670.
-Data `docs/experiments/20260903-real_v1_handover/handover_study.json`, page `page.html`.
+Data `docs/experiments/20260903-real_v1_handover/handover_study.json`, page `20260903-real_v1_relay_handover.html`.
 
 The chained task above changes grasp by opening the hand completely. Instrumenting contact at
 the control rate from set-down to the end of the gait: **49.2% of that window has no pad on the
@@ -4673,43 +4673,47 @@ ground. The gate cannot tell a drop from a slip; `slip_mm_per_cycle` now reports
 shape); no torsional load on the seat, so this is still 0.0072 N·m and not a fastener; the relay
 grip is set once and never corrected, which is the obvious first closed loop.
 
-## 2026-09-04 — The bench we have: one flat table and 100 mm of wrist
+## 2026-09-04 — UR5e bench geometry, grasp preload, and where the reorientation's alignment comes from
 
-Every arm result before today stood the UR5e on a 300 mm pedestal and bolted the palm plate
-straight to the tool flange. Both are now scene parameters (`build_real_v1_arm_scene.py`
-`--base`, `--wrist-stack`, `--stack-density`), and the builder copies the whole worldbody rather
-than a whitelist — the old whitelist silently dropped the countersink when an arm scene was
-built from a screw scene. 1088 rollouts, `docs/experiments/20260904-real_v1_bench/`, page
-https://claude.ai/code/artifact/0942dd45-e94f-485b-ad17-aaac1b1d3f1b
+Local page **`docs/experiments/20260904-real_v1_bench/20260904-real_v1_bench_geometry.html`**,
+artifact https://claude.ai/code/artifact/0942dd45-e94f-485b-ad17-aaac1b1d3f1b .
+`build_real_v1_arm_scene.py --base --wrist-stack --stack-density --payload-gravcomp`,
+`probe_real_v1_chain.py --turn-squeeze --screw-torque`, `real_v1_bench_study.py`. ~1500 rollouts,
+data in `bench_study.json`.
 
-**The pedestal was free.** Base z 0/100/200/300 mm: relay 7/7/6/7 of 8, release 8/8 throughout,
-same IK branch, no link below the table. 14 unreachable poses in 1088 rollouts, all at one
-standing position (650 mm back, 200 mm across).
+**The pedestal is free.** Base z 0/100/200/300 mm: relay 7/7/6/7 of 8, release 8/8, same IK
+branch. 14 unreachable poses across the whole study, all at 650 mm back / 200 mm across. The
+scene builder now copies the whole worldbody rather than a whitelist — the whitelist silently
+dropped the countersink when an arm scene was built from a screw scene.
 
-**The 100 mm stack is not, and the relay notices first.** At the published carry grip the
-release chain is 8/8 out to 125 mm and dies at 150; the relay breaks at 50. A massless 100 mm
-stack is 8/8, so the cost is the payload (222 → 574 g), not the reach.
+**Declare the payload and the wrist stack is free at every length.** With `--payload-gravcomp`
+(a real UR5e is told its payload with `set_payload` and is rated to 5 kg), palm error at the top
+of the lift goes 0.97 → 0.01 mm, and stack 0/50/100/150 mm all run 8/8 at the published 0.3 mm
+carry grip, 32–33 deg/cycle, end tilt 2.1–2.5 deg. Undeclared, 150 mm loses the tool on every
+seed. The declaration also inverts the grip: on a stiff wrist 0.8 mm gives 3–6/8 and 1.5 mm gives
+1/8, because the extra closure is interference rather than compensation.
 
-**All three geometry knobs act through PALM DROOP** — deterministic, measured at the top of a
-100 mm lift under the hand's own weight. Stack length is linear in it (~6 µm/mm); standing
-distance is monotone in it (350 mm → 0.58, 650 mm → 1.50). Sweeping the carry grip at each
-geometry and taking its best cell orders perfectly on droop, and **every seed completes up to
-0.76 mm**: 0.36→8/8, 0.58→8/8, 0.66→8/8, 0.76→8/8, 0.97→3/8, 1.29→0/8.
+**Undeclared, everything is palm droop** — kept as the diagnostic for any compliant wrist. Stack
+length is linear in it (~6 µm/mm), standoff monotone (350 mm → 0.58, 650 → 1.50). Best cell per
+geometry orders exactly on droop: 8/8 up to 0.76 mm, 3/8 at 0.97, 0/8 at 1.29, and the grip each
+geometry needs rises over the same range. A massless 100 mm stack is 8/8, which identifies the
+payload rather than the reach.
 
-**So the stack is a PRELOAD problem.** `--carry-squeeze` is commanded interference and the arm
-is a spring, so a longer, heavier wrist needs more command for the same force. The window
-relocates rather than closing: 0 mm stack wants 0.3 mm of grip, 50 mm wants 1.5, and with the
-full 100 mm stack, moving the mount 500 → 425 mm takes the best cell from 3/8 to 8/8 and 350 mm
-needs only 0.8 mm. **Bench spec: no pedestal, mount 350–425 mm from the work, carry grip
-0.8–1.5 mm.**
+**The settle to vertical was mostly wrist sag.** New `turned` seam at the last commanded turn
+step, so the hold's contribution is separable. Undeclared: the turn ends 31.4 deg off vertical
+and the hold pulls it back to 12.6. Declared: the turn ends **8.03 deg**, sd 0.42 over spawn
+jitter, and the hold makes it worse (6.76 at 150 steps, 13.73 at 900). So the 28 deg of settle
+the published chain leaned on was correcting the arm. Predictable to ~1 deg and degrading with
+exposure (sd 0.14 → 1.63); controllable only by settling time, best 150 steps; measurable
+already, since the reorient turns about a horizontal axis and the vane tag stays in view at
+0.017 deg rms — the opposite of the gait. `--turn-squeeze` is not a control: any closure held
+through the sweep takes commanded tilt from 8.0 to 31–39 deg and 0/8 completes, because the
+fingers turn the shaft by rolling it.
 
-**Thread load.** New `--screw-torque`: a Coulomb brake about the tool's own axis, armed once the
-tool is seated. On the recommended geometry the relay is flat — 8/8 and 14.4 → 14.4 deg/cycle
-from 0 to 20 mN·m — while the release chain breaks between 8 and 12 mN·m, because the brake
-levers a slightly-off-vertical tool over during the part of each cycle when nothing holds it.
-The knob is only valid to ~20 mN·m (24 g tool, 1.9e-6 kg·m² axial): past that a brake can
-overshoot zero inside a timestep and pump the shaft, flagged per rollout as `brake_pumped`
-(1 of 96 here, at 20 mN·m). A cone cannot supply a set torque on the bench — that needs a
-preloaded friction bushing under the receptacle.
+**Thread load.** `--screw-torque` = a Coulomb brake about the tool axis, armed once seated. At
+the 0.3 mm grip the relay drives 32 deg/cycle against 4 mN·m and loses seeds by 8; 0.8 mm is
+worse at every torque including zero. The 20 mN·m flat result measured earlier was on the sagging
+arm at 1.5 mm of commanded grip, so the two do not compare as grip settings — what separates them
+is achieved pad force, which is not measured. Valid only to ~20 mN·m (24 g tool, 1.9e-6 kg·m²):
+past that a brake overshoots zero in one timestep and pumps the shaft, flagged as `brake_pumped`.
 
-Not gated: no export / trajectory-clearance / servo-limit pass on the relay's Cartesian legs.

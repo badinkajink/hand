@@ -106,10 +106,10 @@ CYL_HALF_LEN_MM = 50.0
 CYL_RADIUS_MM = 12.5
 
 #: The floor tie-in. See the module docstring: measured 65.0, simulated 21.0.
-FINGERTIP_TOP_BENCH_MM = 65.0
+FINGERTIP_TOP_BENCH_MM = 85.0
 FINGERTIP_LINK_MM = 37.2
 SIM_PIP_FRAME_Z_MM = 21.0
-SIM_TO_BENCH_Z_MM = FINGERTIP_TOP_BENCH_MM - SIM_PIP_FRAME_Z_MM   # 44.0
+SIM_TO_BENCH_Z_MM = FINGERTIP_TOP_BENCH_MM - SIM_PIP_FRAME_Z_MM   # 64.0
 
 #: Where the bench scenes stand the tool before the hand closes (`--bench-height 0.100`
 #: sets the cylinder body's z, so this is the CENTRE, not the underside).
