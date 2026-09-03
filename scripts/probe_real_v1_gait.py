@@ -86,11 +86,24 @@ def _stand(m, d, obj: str, cx: float, cy: float, gap: float = 0.0):
     d.qvel[dadr:dadr + 6] = 0.0
 
 
-def _palm_to(m, d, z: float):
-    """Hold the palm plane at world height `z`, everything else at the keyframe pose."""
-    body_z = float(m.body("palm_pose").pos[2])
-    for j, val in (("palm_pz", z - body_z),):
-        d.qpos[m.jnt_qposadr[m.joint(j).id]] = val
+PALM_JOINTS = ("palm_px", "palm_py", "palm_pz", "palm_rx", "palm_ry", "palm_rz")
+
+
+def _palm_to(m, d, z):
+    """Put the palm at `z` and sync the pose actuators to it.
+
+    `z` is either a world height for the palm plane -- everything else stays at the keyframe
+    pose, which is what the standing-shaft gait wants -- or a full {joint: value} dict of the
+    six pose joints, which is what a chained run needs, because by the time the carry has stood
+    the shaft up the palm is nowhere near the keyframe and is no longer level.
+    """
+    if isinstance(z, dict):
+        for j, val in z.items():
+            d.qpos[m.jnt_qposadr[m.joint(j).id]] = float(val)
+    else:
+        body_z = float(m.body("palm_pose").pos[2])
+        for j, val in (("palm_pz", z - body_z),):
+            d.qpos[m.jnt_qposadr[m.joint(j).id]] = val
     for a in range(m.nu):
         name = m.actuator(a).name
         if name.startswith("a_palm_"):
@@ -172,7 +185,7 @@ def _axis_tilt(m, d, obj: str):
 
 # ------------------------------------------------------------------------------------- command
 
-def _ring_table(m, centre, z, palm_z, radii, phis, iters=200):
+def _ring_table(m, centre, z, palm_z, radii, phis, iters=200, seed_key="open_ik"):
     """Solve each pad onto (radius, azimuth) ONCE; the gait then plays joint targets back.
 
     Doing IK inside the rollout costs an mj_forward per iteration per finger per control step and
@@ -181,7 +194,7 @@ def _ring_table(m, centre, z, palm_z, radii, phis, iters=200):
     """
     mik = mujoco.MjModel.from_xml_path(m_path_of(m))
     dik = mujoco.MjData(mik)
-    mujoco.mj_resetDataKeyframe(mik, dik, mik.key("open_ik").id)
+    mujoco.mj_resetDataKeyframe(mik, dik, mik.key(seed_key).id)
     _palm_to(mik, dik, palm_z)
     mujoco.mj_forward(mik, dik)
 
