@@ -4464,3 +4464,60 @@ convolution over a proprioceptive history buffer, not a recurrent net. Recurrenc
 fallback, not the first build.
 
 Full tables + variance report: `docs/experiments/20260830-obs_ablation/OBS_ABLATION.md`.
+
+## 2026-09-02 — Ground-supported gaiting: the shaft turns 5 revolutions, open loop
+
+`scripts/probe_real_v1_gait.py`, `scripts/real_v1_gait_study.py`,
+`docs/experiments/20260902-real_v1_gait/` (348 rollouts, 33 s of CPU).
+Pages: gaiting results https://claude.ai/code/artifact/f6bb51d5-4028-41ad-a830-03f1e1a6b237 ·
+plans https://claude.ai/code/artifact/13ba9a07-c78b-43ee-84fa-7e31c5a5455e
+
+Three pads ring a shaft standing on its end face and run a fixed four-phase set-point cycle —
+twist, release, return, regrasp. No policy, no reward, nothing reads the object. rv05_manual
+accumulates **4.99 turns over 40 cycles** (n=3, sd 0.07), final tilt 0.5°, drift 0.3 mm.
+rv03_narrowy does 5.26–5.56.
+
+**The floor is the enabling constraint.** A 100×25 mm cylinder on its end is statically stable
+to atan(12.5/50) = 14.0°, so the fingers can leave it entirely. Delete the floor *after* the
+grasp is established — same hand, same grasp, same set-points — and every hand that grips loses
+the shaft in the first cycle (0/6 vs 6/6). Deleting it at load time is a degenerate control: the
+shaft falls before the hand arrives.
+
+**The design criterion is the RELEASE, and it is not the grasp's.** rv04_mid solves the gripping
+ring to 1.78 mm, holds the shaft 40/40 cycles at 34 N, and nets 2.2°/cycle — it cannot retract
+its pads (9.85 mm residual, 1.59 whole-hand contacts through the release), so its return stroke
+drags the shaft back −39.6°/cycle against a +45.5° twist. Release-phase contact orders the hands
+exactly: rv05 0.00 / rv03 0.45 / rv04 1.59 against return-phase rotation +2.0 / −5.4 / −39.6.
+rv00_wide, rv01_compact and rv02_narrowx never reach the ring (13–20 mm residual, <0.05 N).
+rv04_mid is the design `probe_real_v1_vertical_hold.py` singled out as reachable AND commandable.
+
+**Operating window** (rv05_manual, n=6 × 8 cycles): press −6..+6 mm holds 6/6 and tips over at
++8 (not an overload — ground force is 0.58 N against a 0.24 N tool; it is the asymmetric drag
+levering it off its footprint). Stroke safe to 30°, 5/6 at 45°, 0/6 at 75°. Grip force 5.6–52 N
+all works; at 75 N transmission falls to 0.35. Because the floor carries the weight the fingers
+supply torque only — rim resistance is µ·N·r ≈ 0.0072 N·m.
+
+**GOTCHAS — three measurement errors, each of which read as a result.**
+1. **The pad ring is a GEAR.** Pad centres ride r = 21.05 mm about a 12.5 mm shaft, so a no-slip
+   azimuth sweep dφ turns the shaft by (r_ring/r_obj)·dφ = **1.684·dφ**. "Efficiency" against
+   commanded azimuth has a ceiling of 1.684, not 1.0; every first-sweep reading above 1.0 was
+   this ratio. Report `transmission` = delivered / (gear × stroke).
+2. **Integrate ω at the SIM rate.** Sampling every 10th step and multiplying by 0.02 s aliased a
+   500 Hz signal and invented +59°/cycle across phases with zero hand contact. The control that
+   settles it: spin the standing shaft at 10 rad/s with no hand and it coasts **0.6°**, stopping
+   in 12 ms. Also sample per-phase contact THROUGHOUT the phase, not at its end.
+3. **Approach radially at the ring height.** Ramping from the scene's `open_ik` keyframe sweeps
+   the pads 18 mm upward across the shaft and drags it 8 mm off the floor before the gait starts —
+   the opposite of the condition under test. And the ring centre must be offset ~4 mm +x: the
+   mounts are asymmetric, so a palm-centred ring asks the thumb for 19.5 mm of reach and the pair
+   for 36.9 mm (grip residual 1.8–11.0 mm; offset, it is 0.1–0.7).
+
+**Fingertip radius IS the gear ratio.** (r_obj + r_pad − squeeze)/r_obj, so a bigger tip turns
+the tool further per degree of finger sweep. Measured over six radii on a fixed hand: optimum at
+**13 mm, 52.6°/cycle against the shipped 10.55 mm pad's 45.0** (+17%), falling away at 16 mm and
+failing to grip at 20 mm. This is opposite to the reorient's fingertip verdict (point contact
+wins, optimum 5–6 mm) on the same hand and tool — the reorient is a roll, the gait is a
+tangential drive. A hand asked to do both has a real trade.
+
+Sim only. Not chained from the carry's real end state, not exported, no clearance or
+servo-limit gate, and a flat floor is not a fastener.
