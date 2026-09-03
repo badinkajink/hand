@@ -140,3 +140,48 @@ morphology count.
 - [DexFormer: Cross-Embodied Dexterous Manipulation via History-Conditioned Transformer](https://arxiv.org/pdf/2602.08278)
 - [DexGrasp-Zero: A Morphology-Aligned Policy for Zero-Shot Cross-Embodiment Dexterous Grasping](https://arxiv.org/pdf/2603.16806)
 - [House of Dextra: Cross-embodied Co-design for Dexterous Hands](https://arxiv.org/pdf/2512.03743)
+
+---
+
+## 2026-09-03 — Path C is now the keystone, and it was never built
+
+Revisited after the user raised gradient-guided design search and shared
+[Shape Your Body: Value Gradients for Multi-Embodiment Robot Design](https://nico-bohlinger.github.io/shape-your-body/)
+(Bohlinger & Peters, arXiv:2606.00702). VGDS trains one embodiment-aware policy **and value
+function** across a robot distribution with ordinary PPO, then **freezes the critic and ascends
+its gradient w.r.t. the design vector** inside a soft trust region. The gradient runs through the
+critic network, not through contact — so it needs no differentiable simulator, which retires the
+DiffMJX blocker (`docs/notes/diffmjx.md`: code not public, targets MJX not MJ-Warp).
+
+**Path C ("explicit 9-dim morphology obs", chosen against above) is the prerequisite for all of
+it, and nothing named `morph_vec` / `design_vec` / `embodiment` exists anywhere in `src/`.**
+Path A was taken instead and the question was never revisited.
+
+That single artifact now pays four ways:
+
+1. **The multi-hand residual.** Deploying on hand #2 becomes a config change, not a retrain.
+   Crucially, **conditioning is not ranking** — a conditioned policy must *control* each hand
+   and never has to say which hand is better, so this is NOT blocked by the sim's ranking
+   failure (spearman +0.107, see `docs/experiments/20260902-servo-sysid/`).
+2. **Near-free per-design evaluation** — zero-shot rather than the warmstart-and-finetune that
+   already cut between-draw sd from 0.3–0.5 to 0.032. This is Mannam/Pollard's actual lever.
+3. **The VGDS critic**, so gradient design search arrives for free once the artifact exists.
+4. **Parameter diagnostics.** "Which of the 9 params does the task care about" is a far weaker
+   claim than "which design is best", and we can check it: the design search found `tau_thumb`
+   (thumb moment arm) carries the result (rho +0.443, AUC 0.821). If the critic's gradient
+   independently recovers it, that cross-validates a hand-derived heuristic.
+
+**The ablation that gates the whole line:** does the policy's behaviour change when *only* the
+design vector changes? The risk logged in the table above ("network may not learn to use it") has
+direct precedent — b33 ignores its observations entirely and replaying the whole 66-dim input
+costs nothing. Nine conditioning dims among sixty-six are easy to ignore. Run this before
+building anything on top.
+
+Bohlinger's own limitation is in our favour: performance drops on morphologically distinct robots
+trained on the mixed distribution, and morphology-specific training does better. We have ONE
+topology and nine continuous parameters — their favourable regime. It also means the *search*
+half matters less to us than the *conditioning* half: VGDS solves searching 1177 parameters
+without a retrain, and we have nine parameters and ~117 already-scored designs.
+
+Full analysis, with the Yang et al. and Mannam/Pollard comparison and the deployment runbook:
+`docs/experiments/20260903-sim2real-gates/page.html`.
