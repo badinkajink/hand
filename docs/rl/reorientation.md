@@ -4672,3 +4672,44 @@ ground. The gate cannot tell a drop from a slip; `slip_mm_per_cycle` now reports
 **Not done:** no export / clearance / servo-limit gate on the relay's Cartesian legs (a new path
 shape); no torsional load on the seat, so this is still 0.0072 N·m and not a fastener; the relay
 grip is set once and never corrected, which is the obvious first closed loop.
+
+## 2026-09-04 — The bench we have: one flat table and 100 mm of wrist
+
+Every arm result before today stood the UR5e on a 300 mm pedestal and bolted the palm plate
+straight to the tool flange. Both are now scene parameters (`build_real_v1_arm_scene.py`
+`--base`, `--wrist-stack`, `--stack-density`), and the builder copies the whole worldbody rather
+than a whitelist — the old whitelist silently dropped the countersink when an arm scene was
+built from a screw scene. 1088 rollouts, `docs/experiments/20260904-real_v1_bench/`, page
+https://claude.ai/code/artifact/0942dd45-e94f-485b-ad17-aaac1b1d3f1b
+
+**The pedestal was free.** Base z 0/100/200/300 mm: relay 7/7/6/7 of 8, release 8/8 throughout,
+same IK branch, no link below the table. 14 unreachable poses in 1088 rollouts, all at one
+standing position (650 mm back, 200 mm across).
+
+**The 100 mm stack is not, and the relay notices first.** At the published carry grip the
+release chain is 8/8 out to 125 mm and dies at 150; the relay breaks at 50. A massless 100 mm
+stack is 8/8, so the cost is the payload (222 → 574 g), not the reach.
+
+**All three geometry knobs act through PALM DROOP** — deterministic, measured at the top of a
+100 mm lift under the hand's own weight. Stack length is linear in it (~6 µm/mm); standing
+distance is monotone in it (350 mm → 0.58, 650 mm → 1.50). Sweeping the carry grip at each
+geometry and taking its best cell orders perfectly on droop, and **every seed completes up to
+0.76 mm**: 0.36→8/8, 0.58→8/8, 0.66→8/8, 0.76→8/8, 0.97→3/8, 1.29→0/8.
+
+**So the stack is a PRELOAD problem.** `--carry-squeeze` is commanded interference and the arm
+is a spring, so a longer, heavier wrist needs more command for the same force. The window
+relocates rather than closing: 0 mm stack wants 0.3 mm of grip, 50 mm wants 1.5, and with the
+full 100 mm stack, moving the mount 500 → 425 mm takes the best cell from 3/8 to 8/8 and 350 mm
+needs only 0.8 mm. **Bench spec: no pedestal, mount 350–425 mm from the work, carry grip
+0.8–1.5 mm.**
+
+**Thread load.** New `--screw-torque`: a Coulomb brake about the tool's own axis, armed once the
+tool is seated. On the recommended geometry the relay is flat — 8/8 and 14.4 → 14.4 deg/cycle
+from 0 to 20 mN·m — while the release chain breaks between 8 and 12 mN·m, because the brake
+levers a slightly-off-vertical tool over during the part of each cycle when nothing holds it.
+The knob is only valid to ~20 mN·m (24 g tool, 1.9e-6 kg·m² axial): past that a brake can
+overshoot zero inside a timestep and pump the shaft, flagged per rollout as `brake_pumped`
+(1 of 96 here, at 20 mN·m). A cone cannot supply a set torque on the bench — that needs a
+preloaded friction bushing under the receptacle.
+
+Not gated: no export / trajectory-clearance / servo-limit pass on the relay's Cartesian legs.

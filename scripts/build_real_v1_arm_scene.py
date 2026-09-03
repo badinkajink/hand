@@ -42,8 +42,17 @@ ARM_BODIES = ("shoulder_link", "upper_arm_link", "forearm_link",
 # wrist_3 frame has +y out of the flange (that is where `attachment_site` sits, at 0 0.1 0) and
 # the palm's fingers run along its own -z, so the palm frame is the wrist rotated +90 deg about
 # x: palm_z = -y_wrist3 = into the flange, fingers out along +y_wrist3.
-PALM_POS = "0 0.1 0"
+FLANGE_Y = 0.1
 PALM_QUAT = "0.70710678 0.70710678 0 0"
+
+# Between the flange and the palm plate there is real hardware -- the coupling, the servo bank,
+# the wiring -- and on the bench it is about 100 mm of it. Every arm result before 2026-09-03
+# bolted the palm plate straight to the flange, which puts the fingers 100 mm closer to the
+# work than they are and, worse, leaves nothing there to collide with. The stack is modelled as
+# a cylinder in the palm body running back along +palm_z (= -y_wrist3, into the flange) so it
+# travels with the hand and is seen by the collision pass.
+WRIST_STACK = 0.10
+STACK_RADIUS = 0.040
 
 
 def _find(root, tag, **attrs):
@@ -69,7 +78,10 @@ def _indent(elem, level=0):
 def build(design_scene: Path, ur5e_xml: Path, out: Path, ik_out: Path,
           base_xyz=(-0.50, 0.0, 0.30), pedestal: bool = True,
           gravcomp: bool = False, arm_gravcomp: float = 1.0,
+          wrist_stack: float = WRIST_STACK, stack_radius: float = STACK_RADIUS,
+          stack_density: float = 700.0,
           meshdir: Path | None = None, model_name: str = "ur5e_real_v1") -> dict:
+    palm_pos = f"0 {FLANGE_Y + wrist_stack:.6g} 0"
     hand = ET.parse(design_scene).getroot()
     ur = ET.parse(ur5e_xml).getroot()
 
@@ -117,15 +129,20 @@ def build(design_scene: Path, ur5e_xml: Path, out: Path, ik_out: Path,
     # ---- worldbody ---------------------------------------------------------------------------
     wb = ET.SubElement(root, "worldbody")
     hwb = hand.find("worldbody")
+    # Everything the design scene puts in the world EXCEPT the hand: lights, floor, the object,
+    # and -- the reason this is a blanket copy rather than a whitelist -- a `screw_seat` body if
+    # the scene came from build_screw_scene.py. A whitelist silently dropped the countersink and
+    # produced an arm scene whose tool stood on a bare plane.
     for c in hwb:
-        if c.tag == "light" or (c.tag == "geom" and c.get("name") == "floor"):
+        if not (c.tag == "body" and c.get("name") == "palm_pose"):
             wb.append(copy.deepcopy(c))
-    obj = next(c for c in hwb if c.tag == "body" and c.get("name") not in (None, "palm_pose")
-               and c.find("freejoint") is not None)
-    wb.append(copy.deepcopy(obj))
-    if pedestal:
+    if not any(c.tag == "body" and c.find("freejoint") is not None for c in wb):
+        raise SystemExit("the design scene has no free-jointed object body")
+    if pedestal and base_xyz[2] > 1e-3:
         # The arm has to stand on something, and where it stands is a real constraint: on the
         # floor the UR5e's own forearm fouls the table before the hand is over the shaft.
+        # base z = 0 is the bench we actually have: one flat table carrying both the robot and
+        # the work, and then there is no pedestal to draw.
         ET.SubElement(wb, "geom", {
             "name": "pedestal", "type": "box", "material": "palm_mat",
             "pos": f"{base_xyz[0]} {base_xyz[1]} {base_xyz[2] / 2:.6g}",
@@ -147,8 +164,16 @@ def build(design_scene: Path, ur5e_xml: Path, out: Path, ik_out: Path,
     palm = copy.deepcopy(_find(hwb, "body", name="palm_pose"))
     for j in [c for c in palm if c.tag == "joint"]:
         palm.remove(j)                       # the six Harry Potter DOF, deleted
-    palm.set("pos", PALM_POS)
+    palm.set("pos", palm_pos)
     palm.set("quat", PALM_QUAT)
+    if wrist_stack > 1e-4 and stack_radius > 0:
+        palm.insert(0, ET.Element("geom", {
+            "name": "wrist_stack", "type": "cylinder", "material": "palm_mat",
+            "fromto": f"0 0 0 0 0 {wrist_stack:.6g}", "size": f"{stack_radius:.6g}",
+            # ~0.35 kg of couplings and servos, unknown to the arm's controller, exactly like
+            # the hand itself: this is payload, not a massless decoration. Set the density to 0
+            # to separate the stack's REACH from its WEIGHT.
+            "density": f"{stack_density:.6g}"}))
     if gravcomp:
         palm.set("gravcomp", "1")
     else:
@@ -161,7 +186,10 @@ def build(design_scene: Path, ur5e_xml: Path, out: Path, ik_out: Path,
     # ---- contact + actuators -----------------------------------------------------------------
     con = copy.deepcopy(hand.find("contact"))
     if con is not None:
-        for link in ("wrist_3_link", "wrist_2_link"):
+        for link in ("wrist_3_link", "wrist_2_link", "wrist_1_link"):
+            # the palm itself now carries the stack geom, so it has to be excluded too --
+            # a 100 mm cylinder bolted to the flange is permanently inside wrist_3.
+            ET.SubElement(con, "exclude", {"body1": link, "body2": "palm_pose"})
             for f in ("thumb", "index", "middle"):
                 for seg in ("yaw_frame", "mcp_frame", "pip_frame", "tip"):
                     ET.SubElement(con, "exclude", {"body1": link, "body2": f"{f}_{seg}"})
@@ -189,11 +217,12 @@ def build(design_scene: Path, ur5e_xml: Path, out: Path, ik_out: Path,
     b = _find(ik.find("worldbody"), "body", name="base")
     b.set("pos", f"{base_xyz[0]:.6g} {base_xyz[1]:.6g} {base_xyz[2]:.6g}")
     ET.SubElement(_find(b, "body", name="wrist_3_link"), "site",
-                  {"name": "palm_site", "pos": PALM_POS, "quat": PALM_QUAT, "size": "0.004"})
+                  {"name": "palm_site", "pos": palm_pos, "quat": PALM_QUAT, "size": "0.004"})
     _indent(ik)
     ik_out.parent.mkdir(parents=True, exist_ok=True)
     ET.ElementTree(ik).write(ik_out, encoding="unicode")
-    return {"scene": str(out), "ik": str(ik_out), "base_xyz": list(base_xyz)}
+    return {"scene": str(out), "ik": str(ik_out), "base_xyz": list(base_xyz),
+            "wrist_stack": wrist_stack, "stack_radius": stack_radius}
 
 
 def solve_home(scene: Path, ik_xml: Path, design_scene: Path, seeds: int = 24,
@@ -303,7 +332,17 @@ def main() -> int:
     ap.add_argument("--out", type=Path, default=None)
     ap.add_argument("--ik-out", type=Path, default=None)
     ap.add_argument("--base", default="-0.50,0,0.30",
-                    help="x,y,z of the UR5e base mount")
+                    help="x,y,z of the UR5e base mount. z=0 is the bench that exists: one flat "
+                         "table carrying both the robot and the work.")
+    ap.add_argument("--wrist-stack", type=float, default=WRIST_STACK,
+                    help="metres of hardware between the tool flange and the palm plate, along "
+                         "the tool z. ~0.10 on the bench; to be measured.")
+    ap.add_argument("--stack-density", type=float, default=700.0,
+                    help="density of that cylinder; 0 makes it massless, which separates the "
+                         "stack's reach from its weight.")
+    ap.add_argument("--stack-radius", type=float, default=STACK_RADIUS,
+                    help="radius of the cylinder standing in for that hardware, so it is "
+                         "present in the collision pass. Placeholder until it is measured.")
     ap.add_argument("--gravcomp", action="store_true",
                     help="keep the palm's gravity compensation. Off by default: on the arm the "
                          "hand's ~0.2 kg is real payload.")
@@ -323,13 +362,15 @@ def main() -> int:
     info = build(scene, args.ur5e, out, ik_out,
                  base_xyz=tuple(float(v) for v in args.base.split(",")),
                  gravcomp=args.gravcomp, arm_gravcomp=args.arm_gravcomp,
-                 model_name=f"ur5e_{args.morph_run.name}")
+                 wrist_stack=args.wrist_stack, stack_radius=args.stack_radius,
+                 stack_density=args.stack_density, model_name=f"ur5e_{args.morph_run.name}")
 
     import mujoco
     import numpy as np
     m = mujoco.MjModel.from_xml_path(str(out))
     mujoco.MjModel.from_xml_path(str(ik_out))
-    print(f"{out}  nq={m.nq} nu={m.nu} nbody={m.nbody}")
+    print(f"{out}  nq={m.nq} nu={m.nu} nbody={m.nbody}  "
+          f"base {args.base}  stack {args.wrist_stack * 1000:.0f} mm")
     print(f"{ik_out}")
     best, cands, d, mm = solve_home(out, ik_out, scene, seeds=args.ik_seeds)
     print(f"{len(cands)} distinct IK branches reach the design's open_ik palm pose")
@@ -352,7 +393,8 @@ def main() -> int:
         build(scene, args.ur5e, a, b,
               base_xyz=tuple(float(v) for v in args.base.split(",")),
               gravcomp=args.gravcomp, arm_gravcomp=args.arm_gravcomp,
-              meshdir=dst / "assets", model_name=f"ur5e_{args.morph_run.name}")
+              wrist_stack=args.wrist_stack, stack_radius=args.stack_radius,
+              stack_density=args.stack_density, meshdir=dst / "assets", model_name=f"ur5e_{args.morph_run.name}")
         best2, _, d2, m2 = solve_home(a, b, scene, seeds=args.ik_seeds)
         write_home(a, best2["q"], d2, m2)
         mujoco.MjModel.from_xml_path(str(a))
