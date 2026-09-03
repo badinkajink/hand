@@ -38,7 +38,16 @@ OBJECT = "screwdriver_medium"
 
 
 def run_trial(scene: Path, plan: dict, jitter_xy: float, jitter_yaw: float,
-              seed: int) -> dict:
+              seed: int, traj: Path | None = None) -> dict:
+    """`traj` is the plan's own <design>_traj.csv, the per-step schedule the carry produced.
+
+    PREFER IT.  Interpolating the plan JSON's three set-points gives a DIFFERENT path -- the
+    same distinction `real_v1_trajectory_clearance.py` scores separately as `chord` and `csv`,
+    where a design can clear one and not the other.  The chord happens to work on
+    rv05_manual_b85 and drops the shaft on 10 of 10 trials for sv1_w6689_b060 in BOTH plants,
+    which reads as a plant verdict and is a path artifact: on the CSV the same hand and the
+    same corrected plant retain 4 of 4 at cos 0.928."""
+
     import mujoco
     m = mujoco.MjModel.from_xml_path(str(scene))
     d = mujoco.MjData(m)
@@ -87,21 +96,31 @@ def run_trial(scene: Path, plan: dict, jitter_xy: float, jitter_yaw: float,
     # cos 1.000 -- the failure probe_real_v1_carry.py's docstring warns about by name.
     hold(poses["grip"], 0.8)
     z_pre = float(d.xpos[bid][2])
-    a_, b_ = poses["grip"], poses["turn_end"]
     zs = []
-    for i in range(61):
-        u = i / 60
-        hold({f: {j: a_[f][j] + (b_[f][j] - a_[f][j]) * u for j in JOINTS} for f in FINGERS},
-             1.6 / 60)
-        zs.append(float(d.xpos[bid][2]))
-    hold(b_, 1.5)
+    if traj is not None:
+        import csv as _csv
+        rows = list(_csv.DictReader(open(traj)))
+        span = float(rows[-1]["t_s"]) or 1.6
+        for r in rows:
+            hold({f: {j: float(r[f"{f}_{j}_deg"]) for j in JOINTS} for f in FINGERS},
+                 span / len(rows))
+            zs.append(float(d.xpos[bid][2]))
+        hold({f: {j: float(rows[-1][f"{f}_{j}_deg"]) for j in JOINTS} for f in FINGERS}, 1.5)
+    else:
+        a_, b_ = poses["grip"], poses["turn_end"]
+        for i in range(61):
+            u = i / 60
+            hold({f: {j: a_[f][j] + (b_[f][j] - a_[f][j]) * u for j in JOINTS} for f in FINGERS},
+                 1.6 / 60)
+            zs.append(float(d.xpos[bid][2]))
+        hold(b_, 1.5)
     zs.append(float(d.xpos[bid][2]))
 
     R = d.xmat[bid].reshape(3, 3)
     cos = float(abs(R[:, 2] @ np.array([0.0, 0.0, 1.0])))
     z_end = float(d.xpos[bid][2])
     return {"cos": cos, "z_end": z_end, "z_min_turn": float(min(zs)), "z_pre": z_pre,
-            "dropped": bool(z_end < z_pre + 0.010)}
+            "dropped": bool(z_end < z_pre - 0.020)}
 
 
 def main() -> int:

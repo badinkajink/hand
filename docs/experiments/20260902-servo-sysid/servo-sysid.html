@@ -512,6 +512,65 @@ figcaption{font-size:.82rem;color:var(--ink-soft);margin-top:10px;max-width:74ch
 </section>
 
 <section>
+  <p class="eyebrow">Evidence · the ranking, and a negative result</p>
+  <h2>The correction lifts the level. It does not fix the ordering.</h2>
+  <p>The same seven measurable transfer designs, their own shipped plans, six trials each under
+    both plants. The correction was expected to help here too, because a simulator that never
+    drops cannot express what separates these hands. It does not.</p>
+  <figure>
+    <img src="ranking_test.png" alt="Simulated alignment against measured alignment for seven designs, with the shipped and corrected plant values joined by a line for each. The corrected values are higher but scattered; two designs sit far from the diagonal.">
+    <figcaption>Each design twice, joined: shipped below, corrected above. The corrected plant
+      moves almost every design up toward the diagonal and leaves the ordering roughly as wrong
+      as it found it.</figcaption>
+  </figure>
+  <div class="scroll"><table>
+    <tr><th>design</th><th class="n">bench</th><th class="n">sim, corrected</th>
+        <th class="n">error</th><th class="n">retention</th></tr>
+    <tr><td class="mono">sv1_u0060_b75</td><td class="n">0.912</td><td class="n">0.893</td><td class="n up">−0.019</td><td class="n">1.00</td></tr>
+    <tr><td class="mono">sv1_w6689_b060</td><td class="n">0.826</td><td class="n">0.928</td><td class="n">+0.102</td><td class="n">1.00</td></tr>
+    <tr><td class="mono">sv1_w2360_b075</td><td class="n">0.797</td><td class="n">0.577</td><td class="n">−0.220</td><td class="n">1.00</td></tr>
+    <tr><td class="mono">sv1_w0099_b100</td><td class="n">0.721</td><td class="n">0.000</td><td class="n">−0.721</td><td class="n">0.00</td></tr>
+    <tr><td class="mono">sv1_u0308_b050</td><td class="n">0.625</td><td class="n">0.810</td><td class="n">+0.185</td><td class="n">1.00</td></tr>
+    <tr><td class="mono">rv05_manual_b85</td><td class="n">0.553</td><td class="n">0.654</td><td class="n">+0.101</td><td class="n">1.00</td></tr>
+    <tr><td class="mono">sv1_u1364_b080</td><td class="n">0.489</td><td class="n">0.920</td><td class="n">+0.431</td><td class="n">1.00</td></tr>
+  </table></div>
+  <p>Spearman against the bench moves from <span class="mono">−0.536</span> shipped to
+    <span class="mono">+0.107</span> corrected over all seven, and to
+    <span class="mono">−0.300</span> over the five that run in both plants. Three designs land
+    within about 0.1 of their measured alignment. Four do not, and the ordering is not
+    recovered.</p>
+  <div class="note warn">
+    <p class="eyebrow">Do not compare this to the published +0.36</p>
+    <p>The transfer first pass reported spearman +0.36 on these seven, scored through
+      <code>real_v1_deploy_envelope</code>'s rebuild with its own retention rule. This harness
+      replays the exported trajectory and scores a different quantity, and its shipped baseline
+      is −0.536 rather than +0.36. The comparison that is valid here is shipped against
+      corrected <em>within this harness</em>. The absolute figure is not comparable to the
+      published one.</p>
+  </div>
+  <p>The two worst misses are the informative part, and they are both slip.
+    <code>sv1_u1364</code> is the design whose bench trials were not a distribution but a
+    <em>mixture</em> — 0.21, 0.30, 0.32, 0.33, 0.61, 0.66, 0.70, 0.78, a within-design sd of
+    0.221, four times any other design's, from grips that held and grips that slipped partway.
+    The corrected simulator gives it 0.920 and retains it on every trial: it does not reproduce
+    the slip at all. <code>sv1_w0099</code> is the mirror image — the only design the original
+    simulator did not fully retain, and one of only two that dropped on the bench — and the
+    corrected plant now drops it on every trial instead of some.</p>
+  <div class="note">
+    <p class="eyebrow">What this says</p>
+    <p>The actuator was one of at least two things missing. Correcting it makes the simulator
+      reproduce a single hand's behaviour — retention, and rv05's alignment to about 0.1 — and
+      does not make it predict which hand is better, because what separates these hands is grip
+      and slip, and the contact model is still the one the shipped scenes ship with.</p>
+    <p>That is the same gap §8 could not close from the other side, where a 12.26° loop under
+      load could not be attributed to the gearbox rather than the object moving, and where
+      <code>middle_pip</code> showed an 8.16° loop at a load of only 109. <strong>Contact, not
+      actuator, is the next thing to identify</strong> — and no more design search should be run
+      against this simulator expecting it to rank hands.</p>
+  </div>
+</section>
+
+<section>
   <p class="eyebrow">Method</p>
   <h2>Where this hand departs from BAM's bench</h2>
   <p>BAM identifies one actuated joint driving a rigid link and a point mass. Three differences

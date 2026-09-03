@@ -1,0 +1,105 @@
+{
+ "designs": {
+  "sv1_w6689_b060": {
+   "bench": 0.826,
+   "shipped": {
+    "n": 6,
+    "retention": 0.0,
+    "cos_held": 0.0
+   },
+   "corrected": {
+    "n": 6,
+    "retention": 1.0,
+    "cos_held": 0.9280306828174111
+   }
+  },
+  "sv1_w2360_b075": {
+   "bench": 0.797,
+   "shipped": {
+    "n": 6,
+    "retention": 1.0,
+    "cos_held": 0.5537525705949706
+   },
+   "corrected": {
+    "n": 6,
+    "retention": 1.0,
+    "cos_held": 0.5767819050252792
+   }
+  },
+  "sv1_u1364_b080": {
+   "bench": 0.489,
+   "shipped": {
+    "n": 6,
+    "retention": 1.0,
+    "cos_held": 0.5878082709626024
+   },
+   "corrected": {
+    "n": 6,
+    "retention": 1.0,
+    "cos_held": 0.9197776300937875
+   }
+  },
+  "sv1_u0060_b75": {
+   "bench": 0.912,
+   "shipped": {
+    "n": 6,
+    "retention": 1.0,
+    "cos_held": 0.18392435397092208
+   },
+   "corrected": {
+    "n": 6,
+    "retention": 1.0,
+    "cos_held": 0.8926995831448147
+   }
+  },
+  "sv1_u0308_b050": {
+   "bench": 0.625,
+   "shipped": {
+    "n": 6,
+    "retention": 1.0,
+    "cos_held": 0.48072955752104374
+   },
+   "corrected": {
+    "n": 6,
+    "retention": 1.0,
+    "cos_held": 0.8099742147134606
+   }
+  },
+  "rv05_manual_b85": {
+   "bench": 0.553,
+   "shipped": {
+    "n": 6,
+    "retention": 1.0,
+    "cos_held": 0.34756392799511854
+   },
+   "corrected": {
+    "n": 6,
+    "retention": 1.0,
+    "cos_held": 0.65417205525031
+   }
+  },
+  "sv1_w0099_b100": {
+   "bench": 0.721,
+   "shipped": {
+    "n": 6,
+    "retention": 1.0,
+    "cos_held": 0.5885047480302532
+   },
+   "corrected": {
+    "n": 6,
+    "retention": 0.0,
+    "cos_held": 0.0
+   }
+  }
+ },
+ "stats": {
+  "shipped": {
+   "spearman": -0.5357142857142858,
+   "pearson": -0.5480802352745598
+  },
+  "corrected": {
+   "spearman": 0.10714285714285716,
+   "pearson": -0.01494524612913596
+  }
+ }
+}
