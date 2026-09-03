@@ -1,0 +1,341 @@
+<title>Three Open Problems</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ground:#F8F6F2; --panel:#FFFDF9; --ink:#1C1E22; --ink2:#43474E; --muted:#6E727A;
+  --rule:#E2DDD4; --rule2:#EFEBE4; --accent:#BE7514; --go:#417F3A; --stop:#B4342B;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#15171B; --panel:#1B1E23; --ink:#E9E6E0; --ink2:#C3C0BA; --muted:#8F949C;
+    --rule:#2C3037; --rule2:#23272D; --accent:#D89138; --go:#65A257; --stop:#DD6A5C;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#15171B; --panel:#1B1E23; --ink:#E9E6E0; --ink2:#C3C0BA; --muted:#8F949C;
+  --rule:#2C3037; --rule2:#23272D; --accent:#D89138; --go:#65A257; --stop:#DD6A5C;
+}
+*{box-sizing:border-box}
+body{background:var(--ground); color:var(--ink);
+  font-family:"Source Serif 4",Charter,Georgia,serif; font-size:18px; line-height:1.62;
+  -webkit-font-smoothing:antialiased}
+.wrap{max-width:1000px; margin:0 auto; padding:0 28px 96px}
+.col{max-width:660px}
+h1,h2,h3,h4,.eyebrow,th,.pri b{font-family:Archivo,"Helvetica Neue",Arial,sans-serif}
+h1{font-size:clamp(2.3rem,5.2vw,3.4rem); line-height:1.04; font-weight:700;
+  letter-spacing:-0.026em; margin:0; text-wrap:balance}
+h2{font-size:1.34rem; font-weight:600; letter-spacing:-0.012em; margin:0 0 .45rem;
+  text-wrap:balance}
+h3{font-size:1.02rem; font-weight:600; margin:0 0 .3rem}
+h4{font-size:.82rem; font-weight:600; letter-spacing:.04em; text-transform:uppercase;
+  color:var(--muted); margin:1.6rem 0 .5rem}
+p{margin:0 0 1rem} p:last-child{margin-bottom:0}
+.mono,code{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace; font-size:.86em}
+code{background:var(--rule2); padding:.08em .34em; border-radius:3px}
+header{padding:72px 0 0}
+.kicker{font-family:"IBM Plex Mono",monospace; font-size:.74rem; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--accent); margin:0 0 1.3rem}
+.standfirst{font-size:1.18rem; line-height:1.5; color:var(--ink2); margin:1.4rem 0 0;
+  max-width:640px}
+.meta{display:flex; flex-wrap:wrap; gap:0 2rem; margin:2.2rem 0 0; padding:1rem 0 0;
+  border-top:1px solid var(--rule); font-family:"IBM Plex Mono",monospace; font-size:.76rem;
+  color:var(--muted)}
+
+.prob{margin:64px 0 0; padding:0}
+.pri{display:flex; align-items:baseline; gap:.85rem; margin:0 0 .7rem}
+.pri b{font-family:"IBM Plex Mono",monospace; font-size:.74rem; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--accent); font-weight:500}
+.pri span{font-family:"IBM Plex Mono",monospace; font-size:.72rem; color:var(--muted);
+  letter-spacing:.06em}
+.state{border-left:2px solid var(--rule); padding-left:1.15rem; margin:1.3rem 0;
+  color:var(--ink2); max-width:640px; font-size:.97rem}
+.state b{color:var(--ink)}
+
+.steps{list-style:none; padding:0; margin:1.4rem 0 0; border-top:1px solid var(--rule)}
+.steps>li{padding:1.15rem 0; border-bottom:1px solid var(--rule2)}
+.sh{display:flex; flex-wrap:wrap; align-items:baseline; gap:.6rem 1rem; margin:0 0 .4rem}
+.sid{font-family:"IBM Plex Mono",monospace; font-size:.75rem; color:var(--accent);
+  min-width:2.6rem}
+.st{font-family:Archivo,sans-serif; font-weight:600; font-size:1rem; flex:1 1 16rem}
+.cost{font-family:"IBM Plex Mono",monospace; font-size:.72rem; color:var(--muted);
+  border:1px solid var(--rule); border-radius:99px; padding:.14rem .6rem; white-space:nowrap}
+.sb{font-size:.95rem; color:var(--ink2); margin:0 0 .5rem; max-width:660px; line-height:1.55}
+.kill{font-family:"IBM Plex Mono",monospace; font-size:.78rem; color:var(--muted);
+  max-width:660px; line-height:1.6}
+.kill b{color:var(--stop); font-weight:500}
+.kill em{color:var(--go); font-style:normal; font-weight:500}
+
+.tw{overflow-x:auto; border:1px solid var(--rule); border-radius:5px; background:var(--panel);
+  margin:1.5rem 0}
+table{border-collapse:collapse; width:100%; font-size:.82rem;
+  font-family:"IBM Plex Mono",monospace}
+th{text-align:right; font-size:.67rem; letter-spacing:.07em; text-transform:uppercase;
+  color:var(--muted); font-weight:600; padding:.68rem .85rem;
+  border-bottom:1px solid var(--rule); white-space:nowrap}
+th:first-child{text-align:left}
+td{padding:.5rem .85rem; border-bottom:1px solid var(--rule2); white-space:nowrap}
+td:first-child{white-space:normal}
+tbody tr:last-child td{border-bottom:none}
+.num{text-align:right; font-variant-numeric:tabular-nums}
+.no{color:var(--stop)}
+ul.plain{padding-left:1.1rem; margin:0 0 1rem; max-width:660px}
+ul.plain li{margin-bottom:.45rem; font-size:.97rem; color:var(--ink2)}
+footer{margin-top:72px; padding-top:1.2rem; border-top:1px solid var(--rule);
+  font-family:"IBM Plex Mono",monospace; font-size:.74rem; color:var(--muted); line-height:1.8}
+</style>
+
+<div class="wrap">
+<header>
+  <p class="kicker">MorphoHand &middot; planning note &middot; 2026-09-02</p>
+  <h1>Three Open Problems</h1>
+  <p class="standfirst">Exploratory plans for gaiting, for reinforcement-learning throughput and
+  universality, and for fingertip co-design &mdash; in the order they were prioritised, with what
+  each one costs and what would make it stop.</p>
+  <div class="meta">
+    <span>priority order as given</span><span>problem 1 partly executed</span>
+    <span>see the gaiting results page</span>
+  </div>
+</header>
+
+<section class="prob">
+  <div class="col">
+    <div class="pri"><b>Problem 1</b><span>highest priority &middot; partly executed today</span></div>
+    <h2>Gaiting and screwing from the reoriented shaft</h2>
+    <p>Rotate the tool about its own axis, indefinitely, once it is standing vertical. This was
+    catalogued as the lowest-priority backlog item because gaiting means breaking and remaking
+    contact and every reorientation result in the program depends on a fixed contact set. Standing
+    the tool on the ground is what changes that: a released shaft no longer falls, so the release
+    stops being the expensive part.</p>
+    <div class="state">
+      <b>Status.</b> The core question is answered. An open-loop four-phase set-point cycle turns a
+      ground-supported shaft 4.99 revolutions in 40 cycles on rv05_manual, 3/3, at 0.5&deg; of
+      final tilt; deleting the floor after the grasp is set loses it in the first cycle on every
+      hand that grips. The operating window, the design criterion and the gear ratio are measured.
+      What follows is the work that remains.
+    </div>
+  </div>
+  <ol class="steps">
+    <li>
+      <div class="sh"><span class="sid">G1</span><span class="st">Chain it to the carry's real end
+        state</span><span class="cost">CPU, ~1 h</span></div>
+      <p class="sb">The gait currently starts from a shaft placed upright under the hand. The
+      raised-pivot carry produces a vertical shaft at cos 0.996 and 0.113&nbsp;m, but its end state
+      is a distribution and the schedule is chaotic at the 1e-6 level &mdash; re-serialising a
+      keyframe once moved a cell from 0.996 held to 0.783 dropped. Sample the carry's end state
+      over n&nbsp;=&nbsp;32, set the palm down onto the floor from each one, and run the gait from
+      what actually arrives.</p>
+      <p class="kill"><b>Kill if</b> the carry's end-state spread in tilt and lateral offset falls
+      outside the gait's measured window (tilt under ~14&deg;, press &minus;6 to +6&nbsp;mm).
+      <em>Then</em> the seam needs a settling move, not a chained demo.</p>
+    </li>
+    <li>
+      <div class="sh"><span class="sid">G2</span><span class="st">Screen the hand pool on
+        release reachability</span><span class="cost">seconds per hand</span></div>
+      <p class="sb">The gait's design criterion is whether a hand can withdraw its pads at the far
+      end of the stroke, and it is not the grasp's criterion: rv04_mid solves the gripping ring to
+      1.78&nbsp;mm, holds for 40 cycles, and nets 2.2&deg;/cycle because it cannot let go. This is
+      one IK table per hand with no rollout at all, so it can run over the whole Sobol pool rather
+      than the ten CEM hands.</p>
+      <p class="kill"><b>Kill if</b> release residual does not separate hands on delivered rotation
+      out of sample &mdash; it is a clean monotone relation at n&nbsp;=&nbsp;4 here, which is not
+      evidence.</p>
+    </li>
+    <li>
+      <div class="sh"><span class="sid">G3</span><span class="st">Put a real load on
+        it</span><span class="cost">CPU, ~2 h</span></div>
+      <p class="sb">The present load is rim friction against a plane, 0.0072&nbsp;N&middot;m. A
+      fastener resists with a torque that rises as it seats. Add a torsional load at the shaft tip
+      and sweep it to the stall point; report stall torque per hand, and whether stalling is a slip
+      at the pads or a tip-over.</p>
+      <p class="kill">The number that matters is stall torque against the 1&ndash;3&nbsp;N bench
+      grip window. <b>Kill if</b> stall arrives below any torque a real driver needs, because then
+      the gait is a demonstration and not a capability.</p>
+    </li>
+    <li>
+      <div class="sh"><span class="sid">G4</span><span class="st">Export and gate for the
+        bench</span><span class="cost">1 session</span></div>
+      <p class="sb">A gait plan is a longer set-point list than a carry plan and structurally
+      identical, so the existing export, trajectory-clearance and servo-limit gates apply
+      unchanged. Forty cycles at 50&nbsp;Hz is about ninety seconds of bus time.</p>
+      <p class="kill"><b>Watch</b> the servo overload protection: it already fires on 42% of
+      middle-yaw bench runs, and sustained cyclic loading is exactly what it exists for. Log
+      temperature per run. <b>Kill if</b> the per-joint travel this schedule needs exceeds the
+      family's ~1.34&nbsp;rad clip ceiling &mdash; that is a check, not a rollout.</p>
+    </li>
+    <li>
+      <div class="sh"><span class="sid">G5</span><span class="st">Close the loop &mdash; and this
+        is the one task where that is possible</span><span class="cost">see Problem 2</span></div>
+      <p class="sb">The AprilTag rig reads in-plane rotation of a vane about the pinch axis at
+      0.017&ndash;0.33&deg; rms. For gaiting, that sensor measures <em>the controlled variable
+      itself</em> &mdash; which has never been true in this program before, and is why the
+      observation-transfer work kept stalling on a policy that ignores its observations. Slip per
+      cycle is directly observable, so a controller can correct stroke and grip against it.</p>
+      <p class="kill">Do not start this before G3. Without a resisting load there is nothing for
+      feedback to reject and it will distil into a step-index lookup, exactly as the reorient
+      distillation would have.</p>
+    </li>
+  </ol>
+</section>
+
+<section class="prob">
+  <div class="col">
+    <div class="pri"><b>Problem 2</b><span>second priority</span></div>
+    <h2>Faster and better policy training</h2>
+    <p>Two complaints are bundled here and they have different answers. Per-seed variance killing
+    significance is a real, measured problem. Slow training is largely not: throughput is spent,
+    and the honest recommendation is to stop looking for it.</p>
+    <div class="state">
+      <b>What is already measured, and should not be re-derived.</b> ~10,000 env-steps/s, flat in
+      <code>num_envs</code> (1024 &rarr; 3072 buys 5%). The PPO update is 1.1% of wall clock, so no
+      learning-side knob can matter. CUDA graph capture is on; the solver is already at 10/20
+      iterations, not the 100/50 the scene XML claims. What is left &mdash; elliptic&rarr;pyramidal
+      cone, fewer line-search iterations, a larger timestep &mdash; changes contact dynamics, which
+      is the one thing in this program not to touch.
+    </div>
+  </div>
+  <ol class="steps">
+    <li>
+      <div class="sh"><span class="sid">R1</span><span class="st">Stop paying for throughput; cut
+        the budget instead</span><span class="cost">trainer-side, ~1 day</span></div>
+      <p class="sb">b33's own 20M-timestep run converged at iteration 26 of 271: target-axis
+      alignment 55.9 at it26 against 60.5 at it270. Ninety per cent of every run in this lineage is
+      wasted, and warmstarted finetunes settle sooner still. Add a plateau detector on the
+      <em>deterministic held-cos</em> &mdash; never the reward sum, which is sign-blind and
+      timing-blind &mdash; evaluated every N iterations, and stop on it.</p>
+      <p class="kill">Expected payoff is 3&ndash;8&times; more arms per GPU-day, which is larger
+      than any throughput lever available. <b>Kill if</b> the plateau detector fires before the
+      trajectory-health scorecard is clean, i.e. if held-cos plateaus while a finger is still
+      idle or the object is de-centring.</p>
+    </li>
+    <li>
+      <div class="sh"><span class="sid">R2</span><span class="st">Decompose the variance before
+        buying seeds</span><span class="cost">~1 GPU-day</span></div>
+      <p class="sb">The n needed per design is currently guessed from two incompatible numbers.
+      Warmstarted draws have between-draw sd 0.032 against 0.080 of rollout noise, so ~2 seeds
+      resolve a 0.1 difference. From-scratch draws have sd 0.3&ndash;0.5, which is where the
+      n&nbsp;=&nbsp;48 costing came from. Whether the small band survives a <em>per-design</em>
+      from-scratch Policy A is untested, and it is the number that sets the price of every design
+      search this program might run.</p>
+      <p class="kill"><b>Kill if</b> per-design from-scratch sd comes back at 0.3&ndash;0.5: then
+      per-design RL evaluation is unaffordable and design ranking has to move to open-loop
+      screens &mdash; which the gaiting and carry results suggest it can.</p>
+    </li>
+    <li>
+      <div class="sh"><span class="sid">R3</span><span class="st">Use the open-loop controllers as
+        the prior</span><span class="cost">~2 GPU-days</span></div>
+      <p class="sb">The reason from-scratch reorient variance is 0.3&ndash;0.5 is that the reward
+      is a hard-exploration target and the seed's early exploration decides the run. The program
+      now has open-loop kinematic controllers that solve both the reorient (cos 0.996) and the gait
+      (0.89 of slip-free transmission) on the hardware model, and they are cheap to evaluate at
+      any design. Behaviour-clone from those, then finetune. That removes the exploration lottery
+      at its source rather than averaging over it.</p>
+      <p class="kill"><b>Kill if</b> the cloned policy inherits the open-loop schedule's
+      brittleness under jitter &mdash; which is the specific failure that has to be tested for,
+      since b33 already replays as a step-index lookup and 5&nbsp;mm of spawn jitter drops it from
+      0.97 to 0.41.</p>
+    </li>
+    <li>
+      <div class="sh"><span class="sid">R4</span><span class="st">Define what "universal" would
+        have to beat</span><span class="cost">analysis</span></div>
+      <p class="sb">The incumbent is not a weak baseline. A recorded open-loop primitive retargets
+      across topologies &mdash; the perp reorient primitive executed on rv03 gives held cos 0.848
+      &mdash; while a trained policy does not transfer even across proximal length. A learned
+      controller earns its place only on a task an open-loop trajectory provably cannot solve.
+      Two candidates exist: spawn jitter, and the unknown fastener torque of G3. The second is
+      better, because the disturbance is persistent rather than an initial condition, and because
+      the bench can actually measure it.</p>
+      <p class="kill">State the win condition before training anything: policy beats the
+      retargeted open-loop schedule, on the same hands, under the same disturbance, at
+      n&nbsp;&ge;&nbsp;2 seeds. Anything less is not evidence that learning was needed.</p>
+    </li>
+  </ol>
+</section>
+
+<section class="prob">
+  <div class="col">
+    <div class="pri"><b>Problem 3</b><span>third priority</span></div>
+    <h2>Fingertip shape and co-design</h2>
+    <p>The brief's own framing was that there is no obvious meaningful attack and that sim-to-real
+    is hardest here. Both remain true, but the gaiting result opened one axis that is now
+    quantitative, and it is worth separating that from the parts that are not.</p>
+    <div class="state">
+      <b>What became decidable today.</b> In a gait, the pad radius is the gear ratio:
+      <code>(r_obj + r_pad &minus; squeeze) / r_obj</code>. Measured across six radii on a fixed
+      hand, delivered rotation tracks that ceiling to 13&nbsp;mm (52.6&deg;/cycle against the
+      shipped pad's 45.0) and falls away beyond it as the ring leaves the fingers' workspace. The
+      reorientation work, on the same hand and tool, found the opposite: compact convex point
+      contact won every comparison and the radius optimum was 5&ndash;6&nbsp;mm, because that task
+      is a roll and a patch that resists rolling destroys it.
+    </div>
+  </div>
+  <div class="tw"><table>
+    <thead><tr><th>question</th><th>decidable in sim?</th><th>why</th></tr></thead>
+    <tbody>
+      <tr><td>pad radius, for gait leverage</td><td class="num">yes</td>
+        <td>a kinematic ratio, measured, 36 cells</td></tr>
+      <tr><td>pad radius, for reorient rolling</td><td class="num">yes</td>
+        <td>already swept; point contact wins</td></tr>
+      <tr><td>the trade between the two</td><td class="num">yes</td>
+        <td>same hand, same object, two scored tasks</td></tr>
+      <tr><td>pad compliance</td><td class="num no">no</td>
+        <td>a hardware spec (1&ndash;3&nbsp;mm deflection at load), not a solver setting</td></tr>
+      <tr><td>friction coefficient</td><td class="num no">no</td>
+        <td>reorient is one-sidedly fragile below &mu;&nbsp;1.7; sim &mu; is an assumption</td></tr>
+      <tr><td>wear, contamination, tolerance</td><td class="num no">no</td>
+        <td>no model exists and none is worth building yet</td></tr>
+    </tbody>
+  </table></div>
+  <ol class="steps">
+    <li>
+      <div class="sh"><span class="sid">F1</span><span class="st">Run the two-task Pareto over pad
+        radius</span><span class="cost">CPU, ~1 h</span></div>
+      <p class="sb">One axis, two tasks, one hand, one object. The gait arm exists and costs 40
+      seconds; the reorient arm reuses the existing fingertip sweep and mutator. Report both
+      metrics against radius on one chart and let the trade be visible rather than argued.</p>
+      <p class="kill">Obey the trap that voided six of eight candidates in the earlier sweep: tip
+      shapes must be reach-normalised or they sit inside the distal capsule and never touch the
+      object, and geometry edits must pin body inertials or a shape change is a silent mass change.
+      <b>Kill if</b> the two optima turn out not to conflict &mdash; then there is no co-design
+      problem here, only a part number.</p>
+    </li>
+    <li>
+      <div class="sh"><span class="sid">F2</span><span class="st">Make compliance a specification,
+        not a sweep</span><span class="cost">bench, 1 session</span></div>
+      <p class="sb">The useful output of the sim is not an optimal pad; it is the tolerance band a
+      pad must sit inside. Compliance already has one from the reorient work. Give the gait one
+      too, by sweeping contact stiffness and reporting where transmission and retention break, and
+      hand both to whoever specifies the TPU.</p>
+      <p class="kill">This is the honest form of the fingertip problem. <b>Do not</b> present a
+      simulated optimum as a design recommendation when the axis that dominates real contact is
+      one the simulator does not model.</p>
+    </li>
+    <li>
+      <div class="sh"><span class="sid">F3</span><span class="st">Print two radii and measure
+        them</span><span class="cost">bench</span></div>
+      <p class="sb">The shipped 10.55&nbsp;mm pad and a 13&nbsp;mm pad, on the same hand, running
+      the same exported gait plan. Rotation per cycle is measurable on the tag rig to well under a
+      degree, so the predicted 17% difference is far above the measurement floor. This is the
+      cheapest sim-to-real check the program has available, because the prediction is kinematic
+      rather than dynamic.</p>
+      <p class="kill">If the measured ratio does not move with pad radius, the sim's contact model
+      is wrong in a way that invalidates the gait study, not just this comparison.</p>
+    </li>
+  </ol>
+</section>
+
+<section class="prob col">
+  <h4>Sequencing</h4>
+  <p>G1 and G2 are cheap and unlock the rest; G3 defines whether any of this is a capability, and
+  it is also the disturbance that makes Problem 2's learned controller worth training and the load
+  that makes Problem 3's pad radius worth optimising. R1 is independent of everything and pays for
+  itself immediately. F1 is an hour and should be run alongside G2 rather than scheduled.</p>
+  <p>The one thing to avoid is the pattern that has cost this program most: launching a policy
+  study against a variable that an open-loop probe would have resolved for free.</p>
+</section>
+
+<footer>
+  supersedes the "in-hand gaiting after reorientation" backlog note of 2026-08-30<br>
+  results: docs/experiments/20260902-real_v1_gait/ &middot; probe_real_v1_gait.py &middot;
+  real_v1_gait_study.py
+</footer>
+</div>
