@@ -88,29 +88,23 @@ def _rigid_palm_pose(m, d, obj: str, R_des: np.ndarray, p_des: np.ndarray):
     return dR @ R_palm, p_des + dR @ (p_palm - p_obj)
 
 
-def _hold_ring(m, mik, dik, d, obj: str, acts: dict, r_ring: float) -> dict:
-    """Finger targets that put every pad on a ring of radius `r_ring` about the shaft's axis,
-    each at the axial station the CURRENT COMMAND already puts it at.
+def _squeeze_cmd(m, mik, dik, d, obj: str, acts: dict, depth: float) -> dict:
+    """Push every pad `depth` further into the shaft, radially, FROM THE COMMANDED POSE.
 
-    Two traps here, and both have cost this program a session before under other names.
+    The carry's own re-squeeze (`probe_real_v1_carry --hold-squeeze`) with one correction, and
+    the correction is the whole point. Grip force on a position servo is commanded-minus-actual,
+    so measuring the pad's ACHIEVED position and pushing `depth` from there hands back exactly
+    the deflection that was carrying the load: reissued, it bled 18.4 -> 16.7 -> 11.6 -> 4.2 ->
+    0.25 N with the object doing nothing. Measuring from the command adds `depth` of real
+    interference. Same family as `achieved_fraction` in the bench work.
 
-    ABSOLUTE, not a relative push. Grip force on a position servo is commanded-minus-actual and
-    it bleeds: through a re-pose the shaft settles into the pads and the error is spent.
-    Re-pushing each pad a further `depth` inward restores force but compounds without bound,
-    because the pad never reaches the commanded point. A fixed interference against the shaft's
-    current axis is idempotent.
-
-    MEASURED FROM THE COMMAND, not from the achieved pose. These joints are ~60x too stiff in
-    the shipped model but they still deflect under load, and that deflection IS the grip force.
-    Reading the pad's ACHIEVED position and re-solving the ring from there hands back exactly
-    the deflection, so every reissue of the command washes out a little more preload: measured
-    18.4 -> 18.8 -> 18.4 -> 16.7 -> 11.6 -> 4.2 -> 0.25 N over seven reissues, with the object
-    doing nothing unusual in between. Same family as `achieved_fraction` in the bench work.
+    Applied ONCE, because it is relative: repeating it drives the pads arbitrarily deep, and the
+    pad never reaches the commanded point so nothing stops it.
     """
     o = d.body(obj).xpos.copy()
     ax = d.body(obj).xmat.reshape(3, 3)[:, 2]
     dik.qpos[:] = d.qpos
-    for a_i in range(m.nu):                       # the commanded configuration, not the achieved
+    for a_i in range(m.nu):
         jid = m.actuator_trnid[a_i, 0]
         if jid >= 0 and m.jnt_type[jid] in (mujoco.mjtJoint.mjJNT_HINGE,
                                             mujoco.mjtJoint.mjJNT_SLIDE):
@@ -120,13 +114,36 @@ def _hold_ring(m, mik, dik, d, obj: str, acts: dict, r_ring: float) -> dict:
     for f in FINGERS:
         t = dik.body(TIPS[f]).xpos.copy()
         rel = t - o
-        s_ax = float(rel @ ax)
-        v = rel - s_ax * ax
+        v = rel - float(rel @ ax) * ax
         n = float(np.linalg.norm(v))
         if n < 1e-6:
             continue
-        ik_finger(mik, dik, f, o + s_ax * ax + (v / n) * r_ring, iters=200)
+        ik_finger(mik, dik, f, t - (v / n) * depth, iters=200)
     return {j: float(dik.qpos[mik.jnt_qposadr[mik.joint(j).id]]) for j in acts}
+
+
+def _support(m, d, obj: str):
+    """Contacts between the tool and whatever is holding it up -- floor, table, or seat.
+
+    NOT `probe_real_v1_gait._ground`, which asks for the body named "world". A countersink is a
+    separate body, so on a screw scene that test reads zero contacts for a tool that is sitting
+    firmly in its seat, and every "is it standing" gate downstream fails on a run that worked.
+    Support here is anything the tool touches that is not the hand.
+    """
+    n, tot = 0, 0.0
+    f6 = np.zeros(6)
+    for i in range(d.ncon):
+        c = d.contact[i]
+        names = [m.body(m.geom_bodyid[c.geom1]).name, m.body(m.geom_bodyid[c.geom2]).name]
+        if obj not in names:
+            continue
+        other = names[0] if names[1] == obj else names[1]
+        if other.split("_")[0] in ("thumb", "index", "middle", "palm"):
+            continue
+        mujoco.mj_contactForce(m, d, i, f6)
+        n += 1
+        tot += abs(float(f6[0]))
+    return n, tot
 
 
 def _finger_act(m) -> dict:
@@ -143,6 +160,7 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
           repose_steps: int = 800, repose_iters: int = 8,
           descend_steps: int = 400, descend_iters: int = 1,
           press_steps: int = 300, settle_steps: int = 400,
+          transport_steps: int = 600, transport_iters: int = 1,
           stand_order: str = "ground", airgrip: str = "cradle",
           reindex: str = "full", centre_x: float = 0.004, grip_depth: float = 0.050,
           ring_z: float | None = None,
@@ -150,10 +168,12 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
           release_mm: float = 6.0, twist_steps: int = 120, move_steps: int = 60,
           approach_steps: int = 200, pad_radius: float | None = None,
           jitter: float = 0.0, seed: int = 0, no_floor_gait: bool = False,
-          arm_ik: Path | None = None, arm_scene: Path | None = None,
+          arm_ik: Path | None = None, scene_path: Path | None = None,
+          place_xy=None, place_err=(0.0, 0.0), seat_z: float | None = None,
+          tip_len: float = 0.0,
           video: Path | None = None, film: Path | None = None,
           cam=(120.0, -18.0, 0.36), video_every: int = 12, trace: bool = False) -> dict:
-    scene = Path(arm_scene) if arm_scene is not None else \
+    scene = Path(scene_path) if scene_path is not None else \
         morph_run / ("arm_scene.xml" if arm_ik is not None else "frozen_scene.xml")
     pg._MODEL_PATH["path"] = str(scene)
     m = mujoco.MjModel.from_xml_path(str(scene))
@@ -166,6 +186,10 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
     pad_r = pg.PAD_RADIUS if pad_radius is None else float(pad_radius)
     d = mujoco.MjData(m)
     r_obj, half = pg._obj_geom(m, obj)
+    # Where the tool comes to rest once it is standing. On a plane that is its own half length;
+    # in a countersink it is set by where the two cone radii match, and every "is it still
+    # standing" test in this probe is written against it rather than against `half`.
+    rest_z = float(half if seat_z is None else seat_z)
     floor_gid = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_GEOM, "floor")
 
     key = m.key("open_ik").id
@@ -224,7 +248,7 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
 
     def _snap(name: str) -> dict:
         nh, fh, npd, fpd = pg._hand(m, d, obj)
-        ng, fg = pg._ground(m, d, obj)
+        ng, fg = _support(m, d, obj)
         ax, tilt = pg._axis_tilt(m, d, obj)
         p = d.body(obj).xpos
         return {"phase": name, "cos": round(float(d.body(obj).xmat[8]), 4),
@@ -315,7 +339,6 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
     # converges instead, and this is not a sim luxury: the bench has an object-pose sensor
     # (two AprilTags, 0.017 deg / 0.03 mm rms) whose whole point was that no controller yet used
     # it. `--repose open` runs the single-shot version as the control.
-    r_hold = r_obj + pad_r - carry_squeeze
     r_grip = r_obj + pad_r - squeeze
     r_open = r_obj + pad_r + release_mm / 1000.0
     r_wide = r_obj + pad_r + 0.018
@@ -323,10 +346,12 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
     stroke = np.radians(stroke_deg)
     phis = np.linspace(0.0, stroke, 25)
     if carry_squeeze > 0.0:
-        # RE-GRIP BEFORE MOVING, and keep re-gripping through the move (see `_servo`). Pad force
-        # through the carry: 5.6 N at the grasp, 19.1 N at the top of the turn, and then a
-        # monotone bleed to 0 across the re-pose if nothing puts it back.
-        sq = _hold_ring(m, mik, dik, d, obj, acts, r_hold)
+        # RE-GRIP BEFORE MOVING. The carry's terminal hold LEAKS: the shaft creeps down through
+        # the pads at about 1.5 mm/s and the pad force decays to zero in ~1.6 s, so everything
+        # after the turn is a race. On the flat floor one continuous set-down fits inside the
+        # budget; an insertion (level, carry across, level, go down) does not, and this is what
+        # buys the time.
+        sq = _squeeze_cmd(m, mik, dik, d, obj, acts, carry_squeeze)
         f0 = {j: float(d.ctrl[a]) for j, a in acts.items()}
         _run(200, lambda k: [d.ctrl.__setitem__(
             a, f0[j] + (sq[j] - f0[j]) * min(1.0, (k + 1) / 200))
@@ -361,26 +386,25 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         return {j: float(dik.qpos[mik.jnt_qposadr[mik.joint(j).id]]) for j in acts}, worst
 
     def _low_point():
-        """World point where the tilted shaft would touch a floor: the low edge of its bottom rim."""
+        """Lowest point of the tool: the bottom rim's low edge, or the cone apex if it is lower."""
         R = d.body(obj).xmat.reshape(3, 3)
         c = d.body(obj).xpos.copy()
         av = R[:, 2] * (1.0 if R[2, 2] >= 0 else -1.0)
         u = np.array([0.0, 0.0, 1.0]) - av[2] * av
         n = float(np.linalg.norm(u))
-        return c - half * av - (r_obj * (u / n) if n > 1e-9 else np.zeros(3))
+        rim = c - half * av - (r_obj * (u / n) if n > 1e-9 else np.zeros(3))
+        if tip_len <= 0.0:
+            return rim
+        apex = c - (half + tip_len) * av
+        return apex if apex[2] < rim[2] else rim
 
     def _move_u(u1, steps_each, hold=True, settle=None):
         """Ramp the palm command (and, if holding, the pad ring) to one target vector."""
         c0 = palm.read()
-        sq = _hold_ring(m, mik, dik, d, obj, acts, r_hold) if (hold and carry_squeeze > 0) else None
-        f0 = {j: float(d.ctrl[a]) for j, a in acts.items()}
 
         def _mv(k):
             v = min(1.0, (k + 1) / steps_each)
             palm.write(c0 + (np.asarray(u1, float) - c0) * v)
-            if sq is not None:
-                for j, a in acts.items():
-                    d.ctrl[a] = f0[j] * (1 - v) + sq[j] * v
 
         _run(steps_each, _mv, every_step=True)
         _run(settle_steps // 4 if settle is None else settle)
@@ -425,6 +449,47 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
                               "palm_z": round(float(palm.cmd_pose()[1][2]), 4)})
             if _lost():
                 break
+        seams.append(_snap(name))
+        _shot()
+
+    def _transport(name, iters, steps_each):
+        """Carry the tool sideways to the seat, at constant height and constant orientation.
+
+        A SEPARATE PHASE, not folded into the descent, and the reason is the cone. Doing both at
+        once drags the shaft in the grip -- a 1 deg exit tilt became 8 deg by the time the tip
+        reached the mouth -- and a tilted cone entering a matched cone binds at 3 mm of a 10 mm
+        seat and stops. Transport, re-level, then go straight down.
+        """
+        xy0 = d.body(obj).xpos[:2].copy()
+        tgt = np.array([place_xy[0] + place_err[0], place_xy[1] + place_err[1]])
+        for it in range(iters):
+            R_obj = d.body(obj).xmat.reshape(3, 3).copy()
+            po = d.body(obj).xpos.copy()
+            want = xy0 + (tgt - xy0) * (it + 1) / iters
+            _move(*_rigid_palm_pose(m, d, obj, R_obj,
+                                    np.array([want[0], want[1], po[2]])), steps_each)
+            if _lost():
+                break
+        seams.append(_snap(name))
+        _shot()
+
+    def _stage(name, steps_each):
+        """ONE move: stand the tool vertical and carry it over the seat, together.
+
+        The alternative -- level, transport, level again -- is four phases and about 7.6 s of
+        hand-time, and the carry's terminal grasp is gone in 1.6 s (12.8 N at the top of the
+        turn, 4.8 after the first levelling, 2.5 after the transport, 0 during the second).
+        The rigid transfer can express both at once because it is a pose command, not a
+        sequence, so the whole staging move is a single ramp and the budget is spent on one
+        thing instead of three.
+        """
+        R_obj = d.body(obj).xmat.reshape(3, 3).copy()
+        av = R_obj[:, 2] * (1.0 if R_obj[2, 2] >= 0 else -1.0)
+        R_des = _align(av, np.array([0.0, 0.0, 1.0])) @ R_obj
+        po = d.body(obj).xpos.copy()
+        _move(*_rigid_palm_pose(m, d, obj, R_des,
+                                np.array([place_xy[0] + place_err[0],
+                                          place_xy[1] + place_err[1], po[2]])), steps_each)
         seams.append(_snap(name))
         _shot()
 
@@ -485,8 +550,17 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
 
     R0 = d.body(obj).xmat.reshape(3, 3)
     repose_deg = round(float(np.degrees(np.arccos(np.clip(abs(R0[2, 2]), -1, 1)))), 2)
-    if stand_order == "ground":
-        _descend("set_down", descend_iters, max(1, descend_steps // descend_iters), gap)
+    # Where the low point has to end up: `gap` above a plane, or `gap` above the depth the
+    # seated tool's apex reaches in a countersink.
+    z_low_goal = gap + (0.0 if tip_len <= 0.0 else rest_z - half - tip_len)
+    if place_xy is not None:
+        # Insertion, in two moves. Levelling matters because a tilted cone binds in a matched
+        # cone -- an 8 deg entry stops 3 mm into a 10 mm seat -- and the lateral carry has to
+        # happen at height, but neither can be afforded its own phase.
+        _stage("staged", transport_steps)
+        _descend("set_down", descend_iters, max(1, descend_steps // descend_iters), z_low_goal)
+    elif stand_order == "ground":
+        _descend("set_down", descend_iters, max(1, descend_steps // descend_iters), z_low_goal)
         _upright("upright", repose_iters, max(1, repose_steps // repose_iters), True)
     else:
         _upright("upright", repose_iters, max(1, repose_steps // repose_iters), False)
@@ -501,7 +575,7 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
     _shot()
     stood = seams[-1]
     stood_ok = bool(stood["ground_contacts"] >= 1 and stood["tilt_deg"] < 14.0
-                    and abs(stood["z"] - half) < 0.010)
+                    and abs(stood["z"] - rest_z) < 0.010)
 
     # ------------------------------------------------------------------ 4. take the gait grasp
     centre = d.body(obj).xpos[:2].copy()
@@ -512,7 +586,7 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         # THE FLOOR MAKES THE HAND FREE. Let go completely, drive the palm to the pose the gait
         # study validated, and take the shaft again as a ring. Nothing else in this program can
         # do this: every other release in the repertoire drops the object.
-        z_ring = float(half + 0.025) if ring_z is None else float(ring_z)
+        z_ring = float(rest_z + 0.025) if ring_z is None else float(ring_z)
         u_tgt, ep_re, er_re = palm.solve(
             np.eye(3), np.array([centre[0] - centre_x, centre[1], z_ring + grip_depth]))
         table, ik_res, per_r = pg._ring_table(
@@ -585,9 +659,9 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         _run(move_steps)
         _, tilt = pg._axis_tilt(m, d, obj)
         nh, fh, npd, fpd = pg._hand(m, d, obj)
-        ng, fg = pg._ground(m, d, obj)
+        ng, fg = _support(m, d, obj)
         p = d.body(obj).xpos
-        if tilt > 45.0 or float(p[2]) < half * 0.5:
+        if tilt > 45.0 or float(p[2]) < rest_z * 0.5:
             lost[0] = True
         row = {"cycle": c + 1, "spin_deg": round(float(np.degrees(spin[0])), 2),
                "gain_deg": round(float(np.degrees(spin[0] - s0)), 2),
@@ -606,7 +680,7 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
     gains = [r["gain_deg"] for r in per_cycle]
     _, tilt = pg._axis_tilt(m, d, obj)
     nh, fh, npd, fpd = pg._hand(m, d, obj)
-    ng, fg = pg._ground(m, d, obj)
+    ng, fg = _support(m, d, obj)
     seams.append(_snap("gaited"))
     _shot()
     out = {
@@ -617,6 +691,12 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         "carry_squeeze_mm": carry_squeeze * 1000,
         "repose_iters": repose_iters, "descend_iters": descend_iters,
         "stand_order": stand_order, "airgrip": airgrip,
+        "seat_z": round(rest_z, 5), "tip_len_mm": round(tip_len * 1000, 2),
+        "place_xy": None if place_xy is None else [round(float(v), 5) for v in place_xy],
+        "place_err_mm": [round(float(v) * 1000, 2) for v in place_err],
+        "seat_offset_mm": round(float(np.linalg.norm(
+            d.body(obj).xpos[:2] - np.asarray(place_xy, float))) * 1000, 2)
+            if place_xy is not None else None,
         "air_ik_mm": None if air_ik != air_ik else round(air_ik * 1000, 2),
         "centre_x": centre_x, "ring_z": round(z_ring, 4), "squeeze_mm": squeeze * 1000,
         "release_mm": release_mm, "stroke_deg": stroke_deg, "cycles_asked": cycles,
@@ -671,9 +751,17 @@ def main() -> int:
                          "the palm's six commands are produced by a UR5e instead of the "
                          "floating gantry, and --morph-run must point at a run whose "
                          "arm_scene.xml exists.")
-    ap.add_argument("--arm-scene", type=Path, default=None,
+    ap.add_argument("--scene-path", type=Path, default=None,
                     help="the task scene to roll out; defaults to <run>/arm_scene.xml when an "
                          "IK model is given, else the run's frozen_scene.xml")
+    ap.add_argument("--screw", type=Path, default=None,
+                    help="a build_screw_scene.py JSON. Sets the scene, the seat "
+                         "coordinates, the seated height and the tip length together, "
+                         "because getting one of them wrong is silent.")
+    ap.add_argument("--transport-steps", type=int, default=600)
+    ap.add_argument("--transport-iters", type=int, default=1)
+    ap.add_argument("--place-err", default="0,0",
+                    help="mm of deliberate lateral error in the insertion target")
     ap.add_argument("--arm", action="store_true",
                     help="shorthand: use <run>/arm_scene.xml and <run>/arm_ik.xml")
     ap.add_argument("--object-body", default="screwdriver_medium")
@@ -743,6 +831,9 @@ def main() -> int:
 
     runs = args.morph_run or [ROOT / "results/phase1/real_v1/rv05_manual_stored"]
     arm_ik = args.arm_ik or ((runs[0] / "arm_ik.xml") if args.arm else None)
+    screw = json.loads(args.screw.read_text()) if args.screw else {}
+    scene_path = args.scene_path or (Path(screw["scene"]) if screw else None)
+    pe = [float(v) / 1000.0 for v in args.place_err.split(",")]
     cam = tuple(float(v) for v in args.cam.split(","))
     rows = []
     print(f"{'run':22} {'idx':5} {'press':>6} {'ringIK':>7} {'repose':>7} "
@@ -763,7 +854,11 @@ def main() -> int:
                           release_mm=args.release, twist_steps=args.twist_steps,
                           move_steps=args.move_steps, pad_radius=args.pad_radius,
                           no_floor_gait=args.no_floor_gait, arm_ik=arm_ik,
-                          arm_scene=args.arm_scene,
+                          scene_path=scene_path,
+                          place_xy=screw.get('socket_xy'), place_err=pe,
+                          seat_z=screw.get('seat_z'), tip_len=screw.get('tip_len', 0.0),
+                          transport_steps=args.transport_steps,
+                          transport_iters=args.transport_iters,
                           jitter=args.jitter if rep or args.repeats > 1 else 0.0,
                           seed=rep, video=args.video if rep == 0 else None,
                           film=args.film if rep == 0 else None, cam=cam, trace=args.trace)

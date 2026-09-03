@@ -1,0 +1,21 @@
+{
+  "scene": "/home/humanoid/Programs/hand/results/phase1/real_v1/rv05_manual_stored/screw_a45_x60_y-11.xml",
+  "tip_mesh": "/home/humanoid/Programs/hand/results/phase1/real_v1/rv05_manual_stored/screw_a45_x60_y-11_tip.obj",
+  "r_obj": 0.0125,
+  "half": 0.05,
+  "half_angle_deg": 45.0,
+  "h_tip_mm": 10.0,
+  "socket_depth_mm": 10.0,
+  "mouth_r_mm": 13.0,
+  "seat_r_mm": 3.0,
+  "clearance_mm": 0.5,
+  "relief_mm": 1.5,
+  "capture_r_mm": 10.5,
+  "tip_len": 0.01,
+  "seat_z": 0.0495,
+  "socket_xy": [
+    0.06,
+    -0.011
+  ],
+  "ngeom": 65
+}
