@@ -1,5 +1,17 @@
 # MorphoHand Docs
 
+> **Current state (2026-09-03).** The sections below describe the Phase 1 *simulation*
+> pipeline and are still accurate for that. They do not cover the hardware program. For where
+> the project actually is:
+>
+> - **[Gates on a deployable residual](experiments/20260903-sim2real-gates/page.html)** —
+>   current state, what blocks a sim2real residual RL policy, and the full index of hardware
+>   report pages. **Start here.**
+> - [Servo system identification](experiments/20260902-servo-sysid/servo-sysid.html) — the
+>   measured plant and the ranking negative result.
+> - `docs/rl/reorientation.md` — chronological engineering log, RL source of truth.
+> - `CLAUDE.md` — durable conventions and the gotcha list.
+
 This documentation tracks the current Phase 1 composition of MorphoHand: morphology
 sampling, foundational pose search, grasp evaluation, and analysis around the screwdriver
 and prism benchmarks.

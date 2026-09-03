@@ -1,0 +1,580 @@
+<title>Gates on a Deployable Residual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#EEF1F4; --card:#FFFFFF; --sunk:#E4E9EE;
+  --ink:#1A2127; --ink2:#48545D; --ink3:#77848D; --rule:#D2DAE1; --rule2:#E2E8ED;
+  --s1:#BE7514; --s2:#4A7FC4; --ref:#8A959D;
+  --good:#3F7A46; --bad:#A8443C;
+  --shadow:0 1px 2px rgba(16,26,34,.06),0 8px 24px -14px rgba(16,26,34,.28);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
+  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
+  --s1:#E39A2E; --s2:#7BA7E0; --ref:#79858E;
+  --good:#6FB076; --bad:#DE8078;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+}}
+:root[data-theme="dark"]{
+  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
+  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
+  --s1:#E39A2E; --s2:#7BA7E0; --ref:#79858E;
+  --good:#6FB076; --bad:#DE8078;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);
+  font:400 17px/1.62 "Source Serif 4",Georgia,"Times New Roman",serif;
+  -webkit-font-smoothing:antialiased;padding:0 20px 96px}
+.wrap{max-width:1020px;margin:0 auto}
+.col{max-width:70ch}
+h1,h2,h3,.mono,.tag,th,.chip b{font-family:Archivo,"Helvetica Neue",Arial,sans-serif}
+.mono,code,td.num,.tick,.val,.ser,.mark,.note,.axlab{
+  font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+
+header{padding:72px 0 30px;border-bottom:1px solid var(--rule)}
+.eyebrow{font:500 12px/1 "IBM Plex Mono",monospace;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--ink3)}
+h1{font-size:clamp(34px,5.4vw,56px);line-height:1.02;font-weight:700;letter-spacing:-.022em;
+  margin:16px 0 0;text-wrap:balance;max-width:16ch}
+.lede{font-size:20px;line-height:1.55;color:var(--ink2);margin:18px 0 0;max-width:62ch}
+.byline{margin-top:22px;font:400 13px/1.5 "IBM Plex Mono",monospace;color:var(--ink3)}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:1px;
+  background:var(--rule);border:1px solid var(--rule);border-radius:10px;overflow:hidden;
+  margin:34px 0 8px}
+.stat{background:var(--card);padding:16px 18px}
+.stat b{display:block;font:700 27px/1.1 Archivo,sans-serif;letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums}
+.stat span{display:block;margin-top:5px;font:400 12.5px/1.4 "IBM Plex Mono",monospace;
+  color:var(--ink3)}
+
+section{padding:52px 0;border-bottom:1px solid var(--rule2)}
+section:last-of-type{border-bottom:0}
+h2{font-size:29px;font-weight:700;letter-spacing:-.018em;margin:0 0 6px;text-wrap:balance}
+h2 + .sub{color:var(--ink3);font:400 14px/1.5 "IBM Plex Mono",monospace;margin:0 0 26px}
+h3{font-size:18.5px;font-weight:600;letter-spacing:-.008em;margin:34px 0 10px}
+p{margin:0 0 17px}
+strong{font-weight:600}
+a{color:var(--ink);text-decoration-color:var(--s1);text-underline-offset:3px}
+ul{margin:0 0 17px;padding-left:20px}
+li{margin:0 0 8px}
+
+.phases{display:grid;grid-template-columns:repeat(auto-fit,minmax(124px,1fr));gap:8px;
+  margin:26px 0 30px}
+.chip{background:var(--card);border:1px solid var(--rule);border-radius:8px;
+  padding:11px 13px;box-shadow:var(--shadow)}
+.chip i{display:block;font:500 10.5px/1 "IBM Plex Mono",monospace;color:var(--ink3);
+  letter-spacing:.1em;font-style:normal}
+.chip b{display:block;font-size:15px;font-weight:600;margin:6px 0 3px}
+.chip span{font:400 12px/1.4 "IBM Plex Mono",monospace;color:var(--ink2);
+  font-variant-numeric:tabular-nums}
+
+figure{margin:30px 0}
+figure img,figure video{display:block;width:100%;border-radius:10px;background:var(--sunk);
+  box-shadow:var(--shadow)}
+figcaption{margin-top:11px;font:400 14px/1.55 "IBM Plex Mono",monospace;color:var(--ink3);
+  max-width:78ch}
+.chart{display:block;width:100%;height:auto;background:var(--card);border:1px solid var(--rule);
+  border-radius:10px}
+/* Tables, charts and media are wider than the 70ch reading measure; let them run out to the
+   full page width instead of scrolling inside it. */
+.col > .tw,.col > figure,.col > .pair,.col > pre{width:min(1020px,calc(100vw - 40px));
+  max-width:none}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media (max-width:760px){.pair{grid-template-columns:1fr}}
+.ax line{stroke:var(--rule);stroke-width:1}
+.ax .grid{stroke:var(--rule2)}
+.rule{stroke:var(--rule);stroke-width:1;stroke-dasharray:3 4}
+.tick{font-size:11px;fill:var(--ink3)}
+.axlab{font-size:11.5px;fill:var(--ink3);letter-spacing:.05em}
+.val{font-size:12px;font-weight:500;fill:var(--ink2)}
+.ser{font-size:12.5px;font-weight:500}
+.mark{font-size:10.5px;fill:var(--ink3);letter-spacing:.06em}
+.note{font-size:11.5px;fill:var(--ink3)}
+
+.tw{overflow-x:auto;margin:26px 0;border:1px solid var(--rule);border-radius:10px;
+  background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th{font:600 12px/1.3 Archivo,sans-serif;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink3);text-align:left;padding:13px 14px;border-bottom:1px solid var(--rule);
+  white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid var(--rule2);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;font-size:13.5px}
+tbody tr.hi td{background:color-mix(in oklab,var(--s1) 9%,transparent)}
+.ok{color:var(--good);font-weight:600}
+.no{color:var(--bad);font-weight:600}
+
+.callout{border-left:3px solid var(--s1);background:var(--card);border-radius:0 10px 10px 0;
+  padding:18px 22px;margin:28px 0;box-shadow:var(--shadow)}
+.callout p:last-child{margin-bottom:0}
+.callout .tag{display:block;font:600 11px/1 Archivo,sans-serif;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--s1);margin-bottom:9px}
+pre{background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:16px 18px;
+  overflow-x:auto;font:400 13px/1.7 "IBM Plex Mono",monospace;color:var(--ink2);margin:20px 0}
+code{font-size:.92em;background:var(--sunk);padding:1px 4px;border-radius:4px;
+  margin:0 -1px;white-space:nowrap}
+pre code{background:none;padding:0}
+footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",monospace}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">MorphoHand &middot; real_v1 &middot; 2026-09-03</div>
+  <h1>Gates on a Deployable Residual</h1>
+  <p class="lede">A standing account of what now blocks a sim2real residual reorientation
+  policy, written for a reader with no hardware time. The short answer is that the question
+  splits in two: a residual on <em>one</em> hand is not blocked by anything physical and is
+  mostly a base-schedule swap; a residual <em>across a set of hands</em> is blocked, and the
+  binding resource is not compute or algorithms but bench measurements.</p>
+  <div class="byline">status page &middot; no new experiment &middot; supersedes nothing, indexes everything</div>
+  <div class="stats">
+    <div class="stat"><b>+0.107</b><span>corrected sim vs bench, spearman</span></div>
+    <div class="stat"><b>7</b><span>hands in the entire validation set</span></div>
+    <div class="stat"><b>0.94 / 0.92</b><span>sim / bench retention, rv05</span></div>
+    <div class="stat"><b>~2</b><span>seeds to resolve &Delta;=0.1, warmstarted</span></div>
+    <div class="stat"><b>0</b><span>bench sessions the next step needs</span></div>
+    <div class="stat"><b>write-only</b><span>what the deploy stream carries today</span></div>
+  </div>
+</header>
+
+<section class="col">
+  <h2>The question splits in two, and only one half is blocked</h2>
+  <p class="sub">"a residual RL policy for reorientation across a large set of hands"</p>
+
+  <p>These are separate claims with separate evidence and separate blockers, and conflating
+  them is what makes the program look more stuck than it is.</p>
+
+  <div class="phases">
+    <div class="chip"><i>Claim A</i><b>Residual, one hand</b><span>plant calibrated<br>gate passed<br><span class="ok">not blocked</span></span></div>
+    <div class="chip"><i>Claim B</i><b>Across many hands</b><span>ranking uncorrelated<br>contact unidentified<br><span class="no">blocked</span></span></div>
+    <div class="chip"><i>Blocker for B</i><b>Bench data</b><span>n = 7 designs<br>one is a mixture<br><span class="no">needs hardware</span></span></div>
+  </div>
+
+  <p><strong>Claim A is not gated on hardware.</strong> The actuator model is measured,
+  corrected and validated against the bench on the one hand we have most data for. What
+  remains is software that can be written today.</p>
+
+  <p><strong>Claim B is gated,</strong> and the gate is not "we need a better search
+  algorithm." It is that the simulator does not currently order hands the way the bench
+  orders them, and the measurement we would need to fix that — and, more importantly, to
+  <em>verify</em> any fix — only exists on the bench.</p>
+</section>
+
+<section class="col">
+  <h2>What the plant work settled</h2>
+  <p class="sub">2026-09-02, 236 archived runs &mdash; full detail in the sysid page</p>
+
+  <p>The servo is a spring with a cliff. Deflection is <code>0.0186&deg;</code> per unit of
+  load, one constant for all nine joints, R&sup2; 0.94&ndash;0.99, no meaningful intercept.
+  The mechanism is in the register file: <code>p=15, i=0, d=15</code> &mdash; with no integral
+  term a standing load leaves a proportional error forever. The cliff is
+  <code>protective_torque</code>, which fires on 42% of <code>middle_yaw</code> bench runs.</p>
+
+  <p>Correcting the simulator means finger gain <code>kp</code> 30 &rarr; <strong>0.5</strong>
+  (about 60&times; softer than shipped), <code>forcerange</code> 0.35,
+  <code>frictionloss</code> 0.0035, and real link masses. On rv05 that closes the gap on
+  <em>both</em> axes at once, where the shipped plant closed neither:</p>
+
+  <div class="tw"><table>
+    <thead><tr><th>rv05_manual</th><th class="num">retention</th><th class="num">cos, held</th></tr></thead>
+    <tbody>
+      <tr><td>shipped plant</td><td class="num">1.00</td><td class="num">0.178</td></tr>
+      <tr class="hi"><td>corrected plant</td><td class="num">0.94</td><td class="num">0.638</td></tr>
+      <tr><td><strong>bench</strong></td><td class="num"><strong>0.92</strong></td><td class="num"><strong>0.593</strong></td></tr>
+    </tbody>
+  </table></div>
+
+  <p>The cross-validation is the part worth trusting: <code>kp</code> was fitted to
+  <em>joint angles alone</em>, and it independently lands where the <em>whole-task outcome</em>
+  matches. Compliance turns out to be the carry mechanism, which is why the stiff shipped
+  plant under-turns.</p>
+
+  <div class="callout">
+    <span class="tag">The limit of that result</span>
+    <p>It is a result about <strong>one hand's dynamics</strong>. It says the simulator can be
+    made to reproduce rv05. It does not say the simulator can be made to compare hands, and
+    the next section is the direct test of that.</p>
+  </div>
+</section>
+
+<section class="col">
+  <h2>The correction lifts the level. It does not fix the ordering.</h2>
+  <p class="sub">seven designs, six trials each, replaying the exported per-step trajectory</p>
+
+  <p>Spearman against the bench moves <strong>&minus;0.536 &rarr; +0.107</strong> (n=7); over
+  the five designs that run in both plants it is &minus;0.300. Three designs land within about
+  0.1 of the bench. Four do not.</p>
+
+  <figure>
+  <svg class="chart" viewBox="0 0 900 300" role="img" aria-label="Signed error of the corrected simulator against the bench, per design">
+    <line class="grid" x1="186" y1="24" x2="186" y2="272"/>
+    <line class="grid" x1="624" y1="24" x2="624" y2="272"/>
+    <line x1="460" y1="24" x2="460" y2="272" stroke="currentColor" stroke-opacity=".45"/>
+    <text class="axlab" x="460" y="290" text-anchor="middle">signed error &nbsp; (corrected sim cos &minus; bench cos)</text>
+    <text class="mark" x="330" y="18" text-anchor="middle">SIM UNDER-TURNS</text>
+    <text class="mark" x="580" y="18" text-anchor="middle">SIM OVER-TURNS</text>
+
+    <text class="ser" x="20" y="50" fill="currentColor">sv1_u0060</text>
+    <rect x="453" y="35" width="7" height="20" fill="var(--good)"/>
+    <text class="val" x="470" y="50">&minus;0.019</text>
+
+    <text class="ser" x="20" y="84" fill="currentColor">sv1_w6689</text>
+    <rect x="460" y="69" width="39" height="20" fill="var(--good)"/>
+    <text class="val" x="509" y="84">+0.102</text>
+
+    <text class="ser" x="20" y="118" fill="currentColor">sv1_w2360</text>
+    <rect x="376" y="103" width="84" height="20" fill="var(--s1)"/>
+    <text class="val" x="322" y="118" text-anchor="end">&minus;0.220</text>
+
+    <text class="ser" x="20" y="152" fill="currentColor">sv1_w0099</text>
+    <rect x="186" y="137" width="274" height="20" fill="var(--bad)"/>
+    <text class="val" x="176" y="152" text-anchor="end">&minus;0.721</text>
+    <text class="mark" x="196" y="152">DROPS 6/6 IN SIM, HELD ON THE BENCH</text>
+
+    <text class="ser" x="20" y="186" fill="currentColor">sv1_u0308</text>
+    <rect x="460" y="171" width="70" height="20" fill="var(--s1)"/>
+    <text class="val" x="540" y="186">+0.185</text>
+
+    <text class="ser" x="20" y="220" fill="currentColor">rv05_manual</text>
+    <rect x="460" y="205" width="38" height="20" fill="var(--good)"/>
+    <text class="val" x="508" y="220">+0.101</text>
+
+    <text class="ser" x="20" y="254" fill="currentColor">sv1_u1364</text>
+    <rect x="460" y="239" width="164" height="20" fill="var(--bad)"/>
+    <text class="val" x="634" y="254">+0.431</text>
+    <text class="mark" x="466" y="269">SLIP NOT REPRODUCED &mdash; RETAINS 6/6</text>
+  </svg>
+  <figcaption>Per-design signed error of the corrected plant. Ordered by bench performance,
+  best at the top. The two large errors run in opposite directions and both concern grip
+  rather than the turn.</figcaption>
+  </figure>
+
+  <p><strong>Both worst misses are slip cases, and they fail in opposite directions.</strong>
+  <code>sv1_u1364</code> is the design whose bench trials are not a distribution but a
+  <em>mixture</em> &mdash; 0.21, 0.30, 0.32, 0.33, 0.61, 0.66, 0.70, 0.78, sd 0.221, roughly
+  four times any other design's, from trials that held their grip and trials that slipped
+  partway. The corrected simulator gives it 0.920 and retains every trial: it does not
+  reproduce the slip at all. <code>sv1_w0099</code> is the mirror &mdash; one of only two
+  designs that dropped on the bench, and the corrected plant now drops it on <em>every</em>
+  trial instead of some.</p>
+
+  <div class="callout">
+    <span class="tag">Do not compare this to +0.36</span>
+    <p>The transfer first pass reported spearman <strong>+0.36 (p = 0.43)</strong> on these
+    same seven designs. That number came from a different harness &mdash;
+    <code>real_v1_deploy_envelope</code>'s rebuild with its own retention rule. This harness
+    replays the exported trajectory, and its <em>shipped</em> baseline is &minus;0.536, not
+    +0.36. Only shipped-vs-corrected <em>within</em> one harness is a valid comparison. Both
+    harnesses agree on the thing that matters: no usable relationship.</p>
+  </div>
+</section>
+
+<section class="col">
+  <h2>Two independent routes point at contact</h2>
+  <p class="sub">and neither can be followed without the bench</p>
+
+  <p>The ranking failure is one route. The hysteresis measurement is the other, and it arrives
+  at the same place from the opposite side.</p>
+
+  <p>A free-hanging finger's staircase shows a friction loop of 0.70&ndash;1.50&deg;. Under a
+  grasp, walking the plan's own chord forward and back, <code>middle_yaw</code>'s loop is
+  <strong>+12.26&deg; mean, +14.06&deg; max</strong> &mdash; about eleven times wider, while
+  the load range grew only about fivefold. That excess cannot be attributed to the gearbox with
+  the data in hand, because <code>middle_pip</code> shows an 8.16&deg; loop at a load of only
+  109, which does not fit a friction model. The obvious remaining explanation is
+  <strong>the object moving</strong>.</p>
+
+  <p>So the two routes agree: what the simulator is missing is contact, not actuator. And
+  identifying contact means measuring slip, which means the hand.</p>
+
+  <div class="callout">
+    <span class="tag">Consequence, recorded deliberately</span>
+    <p><strong>No further design search should be run against this simulator expecting it to
+    rank hands.</strong> Neither plant ranks them. A faster or better-guided search over an
+    objective with no demonstrated relationship to the bench converges more efficiently on a
+    hand we cannot trust.</p>
+  </div>
+</section>
+
+<section class="col">
+  <h2>The hard gate is n = 7</h2>
+  <p class="sub">the ceiling on every sim-fidelity claim this program can currently make</p>
+
+  <p>The entire bench validation set is <strong>77 trials over 8 morphologies</strong> &mdash;
+  52 held, 6 dropped, 19 unresolved &mdash; of which <strong>7 designs</strong> have a usable
+  <code>cos_hold</code>. One of those seven (<code>sv1_u1364</code>) is a mixture rather than a
+  distribution, and one more (<code>g12</code>) is 10/10 unresolved and dropped entirely.</p>
+
+  <p>This caps what can be concluded regardless of how much simulation is run. A spearman on
+  n=7 has a 95% confidence interval spanning most of the achievable range; the transfer first
+  pass's own p-value was 0.43. <strong>Any improvement to the contact model would have to be
+  validated against seven numbers</strong>, and seven numbers cannot distinguish a real
+  improvement from a reshuffle.</p>
+
+  <p>This is the sense in which the program is genuinely gated on physical testing, and it is
+  worth stating plainly: <em>more bench designs is the limiting resource for sim2real fidelity
+  work, and no amount of GPU time substitutes for it.</em></p>
+</section>
+
+<section class="col">
+  <h2>What is not gated: the residual is a base-schedule swap</h2>
+  <p class="sub">the machinery already exists; it is pointed at the wrong base</p>
+
+  <p>This was worth checking rather than assuming, and the finding is favourable. The action
+  term in <code>src/morphohand/rl/actions.py</code> is <em>already</em> a bounded finger
+  residual on top of a scripted set-point schedule, with a
+  <code>residual_active_from_sim_step</code> gate for exactly the "let the script run, then
+  let the policy correct" pattern. Its own docstring describes the reorient as a residual
+  problem.</p>
+
+  <p>What it lacks is that its base schedule is a <em>training-time scripted close</em>, not
+  the <em>exported deployment plan</em>. The three concrete pieces of work:</p>
+
+  <ul>
+    <li>Reset from <code>meta.replay_base_ctrl</code> rather than the scene keyframe. This is
+    already known to be load-bearing &mdash; the plant gate found the keyframe puts
+    <code>palm_pz</code> at 0.01 against the plan's 0.1035, so a harness using the keyframe
+    never lifts at all.</li>
+    <li>Drive the base from the plan's per-step <code>_traj.csv</code>, not the three-set-point
+    chord. These are <strong>different paths</strong> &mdash; the clearance gate passes them
+    separately, and a first ranking attempt was voided for replaying the chord.</li>
+    <li>Train on the <strong>corrected</strong> plant, with the residual clip stated as a
+    maneuver-specific choice rather than inherited. The 0.5 rad figure was Policy B's action
+    budget and has been hardcoded through every screen since; it helps the bench hold and hurts
+    the proof-lift retention gate.</li>
+  </ul>
+
+  <p>None of that needs the hand. It produces a residual for rv05 (or any hand with an exported
+  plan), trained against a plant that demonstrably matches that hand on retention and
+  alignment. <strong>That is a defensible deliverable on its own</strong>, and it is the
+  cheapest real progress available right now.</p>
+
+  <p>What it would <em>not</em> be is a claim about transfer across designs. Stated as "a
+  residual trained on a calibrated plant for a specific hand," it is honest and useful. Stated
+  as "a residual that generalizes across morphologies," it is not supported.</p>
+</section>
+
+<section class="col">
+  <h2>What the deploy path can carry today</h2>
+  <p class="sub">read before designing the policy's observation vector</p>
+
+  <p>The streaming endpoints exist (<code>/api/v1/stream/{start,frame,end}</code>), and the
+  runtime announces the stream as "experimental write-only policy stream armed." That phrasing
+  is exact. In the telemetry loop:</p>
+
+  <pre><code>include_servos = idle or (not self._servo_writing.is_set()
+                          and self._operation != "policy stream")</code></pre>
+
+  <p><strong>During a policy stream the runtime never reads the servos.</strong> A residual
+  deployed on this path today gets no joint feedback. That is a deliberate half-duplex bus
+  decision, not an oversight.</p>
+
+  <p>The important corollary is that <strong>this does not block a closed loop</strong>,
+  because the object-pose sensor is not on that bus. The AprilTag tracker runs on the
+  workstation and pushes already-reduced geometry to the station over the network, at
+  0.017&deg; / 0.03 mm rms. So:</p>
+
+  <div class="tw"><table>
+    <thead><tr><th>Observation</th><th>Hardware source</th><th>Available during a stream?</th></tr></thead>
+    <tbody>
+      <tr class="hi"><td>object pose / orientation</td><td>AprilTags, over the network</td><td class="ok">yes &mdash; off the servo bus</td></tr>
+      <tr><td>joint positions</td><td>servo telemetry, half-duplex bus</td><td class="no">no &mdash; suppressed by design</td></tr>
+      <tr><td>joint load / temperature</td><td>servo telemetry</td><td class="no">no &mdash; same bus</td></tr>
+      <tr><td>commanded pose</td><td>the policy's own output</td><td class="ok">yes &mdash; trivially</td></tr>
+    </tbody>
+  </table></div>
+
+  <p>An <strong>object-only residual is deployable on the path that already exists.</strong>
+  This suits the evidence: b33 ignores its observations, and replaying the whole 66-dim input
+  costs nothing. It also suits the failure mode the residual is meant to catch &mdash; the six
+  bench drops all turn the shaft to a mean peak of <strong>+0.608</strong>, which is 37&deg; of
+  the 90&deg; turn already won, and then collapse to +0.109. The residual does not need to
+  discover the turn. It needs to notice the shaft escaping, which is precisely what the tags
+  see and the open-loop plan is blind to.</p>
+
+  <p>Joint feedback in the loop is a separate, genuinely hardware-gated question: whether reads
+  and writes can interleave on the half-duplex bus at 50 Hz. Sync writes are known not to be
+  rate-limiting and reads have been clocked at 111 Hz, but <em>interleaved</em> at rate is
+  unmeasured.</p>
+</section>
+
+<section class="col">
+  <h2>On sampling and ranking hands: the objective, not the algorithm</h2>
+  <p class="sub">responding to the gradient-guided search question</p>
+
+  <p>The instinct is right that scoring-then-sorting is a weak way to search, and the
+  literature in <code>relevant_papers/</code> supports the direction. But the ordering of the
+  fixes matters, and right now the search method is not the binding constraint.</p>
+
+  <p><strong>A gradient tells you which way to move on the objective you have.</strong> Our
+  objective is a simulator whose rank correlation with the bench is +0.107. Backpropagating
+  through it moves faster along a direction we have not shown points anywhere. That is the
+  ranking result's direct consequence, and it applies to any search method, gradient or
+  otherwise.</p>
+
+  <h3>What the three papers actually offer</h3>
+
+  <div class="tw"><table>
+    <thead><tr><th>Paper</th><th>Method</th><th>Bearing on us</th></tr></thead>
+    <tbody>
+      <tr><td><code>evolving_hand.pdf</code><br>Yang et al., RA-L 2024</td>
+          <td>"Hardware gradients" + RL in parallel envs, 37 variable hardware parameters on a physically reconfigurable hand</td>
+          <td>Closest to the described idea, and unusually applicable &mdash; ours is also a physically reconfigurable hand via the gantry mounts. This is probably the one you meant.</td></tr>
+      <tr class="hi"><td><code>pollard_optimization.pdf</code><br>Mannam, Liu, Zhao, Oh, Pollard 2024</td>
+          <td>GA + <strong>policy transfer</strong> across ~400 designs; validated with 900+ teleoperated real tasks</td>
+          <td>The relevant one for our actual problem. Their headline claim is exactly ours: "the trend in design performance in simulation resembles that of the real world." They earned it with real-world validation at scale. We have n=7 and the trend does <em>not</em> resemble.</td></tr>
+      <tr><td><code>diffmjx.pdf</code><br>Paulus, Geist et al., arXiv:2506.14186</td>
+          <td>Soft gradients through hard contacts, corrections applied in the backward pass only</td>
+          <td>The enabling technology for literal backprop-through-sim. Note the practical blockers already recorded in <code>docs/notes/diffmjx.md</code>: the code is not public, and it targets MJX rather than MuJoCo-Warp.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>The affordable version we have not done</h3>
+
+  <p>Mannam's actual lever is not the genetic algorithm, it is <strong>policy transfer</strong>
+  &mdash; and we have independently measured why that works. From-scratch reorient training has
+  a between-draw sd of <strong>0.3&ndash;0.5</strong>, which is why single-draw design rankings
+  were noise and why the program costed a design search at n=48 replicates. Warmstarted, the
+  between-draw sd is <strong>0.032</strong> &mdash; smaller than the 0.080 rollout noise. About
+  <strong>two seeds</strong> then resolve a &Delta; of 0.1.</p>
+
+  <p>That makes genuine policy-in-the-loop ranking affordable <em>today</em>, with no gradients
+  and no new simulator. It is roughly a 20&times; reduction in the cost of evaluating a design
+  properly, and it is the single biggest unexploited lever in the search program.</p>
+
+  <p>The caveat is the same one as everywhere else on this page, and it is why this is listed
+  as a lever rather than a plan: <strong>it makes the sim ranking cheap, not correct.</strong>
+  Policy-in-the-loop evaluation resolves differences between designs faithfully in simulation.
+  Whether those differences survive to the bench is the n=7 question.</p>
+
+  <div class="callout">
+    <span class="tag">The order these want to be done in</span>
+    <p>1. Make the evaluation trustworthy per design (warmstarted policy-in-the-loop &mdash;
+    cheap, sim-only, available now). 2. Establish that sim differences predict bench
+    differences (needs bench designs). 3. <em>Then</em> make the search efficient (gradients,
+    GA, transfer). Doing 3 before 2 is the failure this page exists to prevent.</p>
+  </div>
+</section>
+
+<section class="col">
+  <h2>The task list, sorted by what it costs</h2>
+  <p class="sub">explicit about which side of the hardware line each falls on</p>
+
+  <h3>Available now &mdash; no hardware, no new measurement</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Task</th><th>Why it is unblocked</th><th class="num">Value</th></tr></thead>
+    <tbody>
+      <tr class="hi"><td><strong>Residual env on the corrected plant</strong><br>reset from <code>replay_base_ctrl</code>, base from <code>_traj.csv</code></td>
+          <td>Residual action term already exists; plant is calibrated and gate-passed on rv05</td><td class="num">high</td></tr>
+      <tr class="hi"><td><strong>Contact-parameter DR</strong><br>randomize what is unidentified</td>
+          <td>The correct response to an unidentified contact model is to train across it rather than pick a wrong point estimate. Directly serves the robustness ask.</td><td class="num">high</td></tr>
+      <tr><td><strong>Grasp-point and perception-noise randomization</strong></td>
+          <td>Pure sim. The stated motivation &mdash; imperfect perception, positional imprecision &mdash; needs no hardware to train against.</td><td class="num">high</td></tr>
+      <tr><td><strong>Warmstarted policy-in-the-loop design evaluation</strong></td>
+          <td>sd 0.032 warmstarted vs 0.3&ndash;0.5 from scratch; ~2 seeds per design</td><td class="num">high</td></tr>
+      <tr><td><strong>Fingertip shape co-design</strong></td>
+          <td>Sim-only and explicitly asked for. Prior result exists on the <em>inline</em> hand (point contact beat flat and grooved pads); untested on real_v1, whose topology shares nothing with it.</td><td class="num">medium</td></tr>
+      <tr><td><strong>Residual clip as a declared variable</strong></td>
+          <td>0.5 rad is inherited from Policy B's action budget, never screened; it trades bench hold against proof-lift retention</td><td class="num">medium</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="callout">
+    <span class="tag">Prior art warning on the DR items</span>
+    <p>Compliance DR has failed twice in this program, and the recorded verdict is that
+    <strong>DR relocates a policy to its band's middle rather than broadening it</strong>. What
+    is different now, and the reason it is listed rather than excluded: both prior attempts
+    randomized around an <em>uncalibrated</em> centre on the m05/inline topology. We now have a
+    measured centre (<code>kp</code> 0.5) and a measured band (holds from about 0.3 to 2). If
+    this fails a third time, the honest conclusion is that DR is not the tool, and it should be
+    recorded as closed rather than retried.</p>
+  </div>
+
+  <h3>Needs one bench session</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Task</th><th>What it buys</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Slip-vs-gearbox decomposition</strong><br>grip a <em>fixed</em> object (the holder) and walk the chord forward and back</td>
+          <td>Object slip is zero by construction, so the residual loop is the gearbox. This is the cheapest possible attack on the contact question and it decides whether a BAM-style rig would identify the right thing.</td></tr>
+      <tr><td><strong>Feedforward compensation run</strong></td>
+          <td>Already verified within all servo limits (<code>middle_yaw</code> &rarr; 44.36&deg; against a &plusmn;85&deg; limit; tightest headroom is <code>index_pip</code> at 3.5&deg;). The spring model's out-of-sample predictions were within 0.04&ndash;0.46&deg;. Highest-confidence deployable improvement the program has.</td></tr>
+      <tr><td><strong>Streaming path parity test</strong></td>
+          <td>The stream has never carried a policy. Needed before any residual deploys, independent of how good the residual is.</td></tr>
+      <tr><td><strong>Read-while-write bus test at 50 Hz</strong></td>
+          <td>Decides whether joint feedback can ever be in the loop, or whether object-only is permanent.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Needs a bench campaign &mdash; and this is the real gate</h3>
+  <p>Expanding the validation set beyond seven designs. Everything about ranking, transfer,
+  design search and contact identification terminates here. It is the one item that no amount
+  of simulation, compute or algorithmic work can substitute for, and it should be planned as a
+  measurement campaign rather than folded into another study.</p>
+</section>
+
+<section class="col">
+  <h2>Where the documentation lives</h2>
+  <p class="sub">14 standalone pages existed with nothing linking them; this is the index</p>
+
+  <div class="tw"><table>
+    <thead><tr><th>Page</th><th>Subject</th></tr></thead>
+    <tbody>
+      <tr><td><a href="../20260902-servo-sysid/servo-sysid.html">servo-sysid</a></td><td>The plant: spring, friction cone, cliff. Correction, drop gate, ranking negative result, BAM comparison, masses. <strong>The main sim2real reference.</strong></td></tr>
+      <tr><td><a href="../20260901-real_v1-transfer-firstpass/README.md">transfer first pass</a></td><td>77 bench trials, 8 morphologies. The simulator does not rank the hands; the drops make the case for a residual.</td></tr>
+      <tr><td><a href="../20260903-real_v1_chain/page.html">the chain, the arm, the screw</a></td><td>grasp &rarr; lift &rarr; reorient &rarr; set down &rarr; gait, on a UR5e, into a countersink.</td></tr>
+      <tr><td><a href="../20260903-real_v1_handover/page.html">relay handover</a></td><td>Changing grasp without letting go. Continuous contact buys nothing on a plane and everything in a seat.</td></tr>
+      <tr><td><a href="../20260902-real_v1_gait/page.html">ground-supported gaiting</a></td><td>Five turns open-loop; the fingertip radius is the gear ratio. Plans: <a href="../20260902-real_v1_gait/plans.html">plans.html</a></td></tr>
+      <tr><td><a href="../20260831-real_v1-object-tracking/tape-measure.html">object tracking</a></td><td>The bench's object-pose sensor. 0.017&deg; / 0.03 mm rms.</td></tr>
+      <tr><td><a href="../20260830-real_v1-budget-rescreen/clip-cap-stall.html">clip, cap, stall</a></td><td>The residual clip was never a screening variable; servo limits belong in the gate.</td></tr>
+      <tr><td><a href="../20260828-real_v1_search/report_search.html">design search</a></td><td>49 of 108 hands reorient; the score is the thumb's moment arm.</td></tr>
+      <tr><td><a href="../20260827-real_v1/report.html">real_v1</a></td><td>The CAD-matched hand. Also <a href="../20260827-real_v1/report_methods.html">methods</a> and <a href="../20260827-real_v1/report_mechanism.html">mechanism</a>.</td></tr>
+    </tbody>
+  </table></div>
+
+  <p>Chronological engineering log: <code>docs/rl/reorientation.md</code> (the RL source of
+  truth). Durable repo conventions and the gotcha list: <code>CLAUDE.md</code>.</p>
+
+  <div class="callout">
+    <span class="tag">Stale document</span>
+    <p><code>docs/RESEARCH_STATE.md</code> presents itself as the "read first" brief but was
+    last updated 2026-07-29. It still describes compliance domain randomization as ACTIVE and
+    frames the A&rarr;B handoff seam as the open problem. Everything from real_v1 onward &mdash;
+    the hardware hand, transfer, sysid, gaiting, the chain &mdash; is absent from it. A banner
+    has been added; treat this page and the log as current instead.</p>
+  </div>
+</section>
+
+<section class="col">
+  <h2>The honest summary</h2>
+
+  <p>A residual policy for reorientation on <strong>a specific hand</strong> is not blocked by
+  anything physical. The plant is measured and validated, the residual machinery exists, the
+  observation the policy needs is available off the servo bus during a stream, and the failure
+  mode it would fix &mdash; a turn that is won and then lost to slip &mdash; is documented in
+  six bench drops. That work can proceed with no hardware time.</p>
+
+  <p>A residual policy <strong>across a large set of hands</strong> is blocked, and not on
+  anything that can be simulated away. The simulator does not order hands the way the bench
+  does, before or after the actuator correction; the missing physics is contact; and both
+  identifying it and verifying any fix require bench measurements we do not have. Seven
+  designs is the ceiling, and it is a low one.</p>
+
+  <p>The recommendation, stated once: <strong>build the per-hand residual now and claim exactly
+  that</strong>, and treat the multi-hand ranking claim as owing a measurement campaign rather
+  than an algorithm.</p>
+</section>
+
+<footer>
+  <p>Status page, 2026-09-03. No new experiment; every number is cited from work already
+  recorded. Sources: <code>docs/experiments/20260902-servo-sysid/</code> (plant, drop gate,
+  ranking), <code>docs/experiments/20260901-real_v1-transfer-firstpass/</code> (bench trials),
+  <code>src/morphohand/rl/actions.py</code> (residual action term),
+  <code>src/morphohand/driver/manta/host/manta_hand/runtime.py</code> (stream and telemetry
+  gating), <code>docs/rl/reorientation.md</code> (seed bands),
+  <code>relevant_papers/</code> (co-design literature).</p>
+</footer>
+</div>

@@ -1,5 +1,28 @@
 # In-hand reorientation — research state & handoff (updated 2026-06-22)
 
+> # ⚠️ STALE AS OF 2026-09-03 — DO NOT READ THIS AS CURRENT STATE
+>
+> This file was last updated **2026-07-29**. Everything below predates the real_v1 hardware
+> hand, and the "ACTIVE" banner immediately following describes a compliance-DR phase that has
+> since been **closed as a failed direction**. The A→B handoff seam it frames as the open
+> problem has not been the open problem since June.
+>
+> **Absent from this document entirely:** the real_v1 CAD-matched hand and its design search;
+> the hardware bench, tag tracking and open-loop transfer; the servo/plant system
+> identification and the ranking negative result; ground-supported gaiting; the
+> grasp→lift→reorient→gait chain on a UR5e.
+>
+> **Read instead:**
+> - [Gates on a deployable residual](experiments/20260903-sim2real-gates/page.html) — current
+>   state, and what blocks a sim2real residual policy. **Start here.**
+> - [Servo system identification](experiments/20260902-servo-sysid/servo-sysid.html) — the
+>   plant, the correction, and why it does not fix the ranking.
+> - `docs/rl/reorientation.md` — the chronological log, and the RL source of truth.
+> - `CLAUDE.md` — durable repo conventions and the gotcha list.
+>
+> Retained below as the historical record of the simulation-only era.
+
+
 Living handoff doc for a FRESH session **and a self-contained brief for an external analyst.**
 Full chronological log: `docs/rl/reorientation.md`. Published narrative: `webpaper/src/rl.typ`.
 
