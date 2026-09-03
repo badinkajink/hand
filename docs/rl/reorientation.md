@@ -4610,3 +4610,65 @@ variable directly, at 0.017° rms, and nothing uses it).
 Note on commit 21f796c3: its message quotes 13% of the turn and a 4 mm capture radius, measured
 before the re-grip default moved from 0.5 mm to 0.3. The re-run at 0.3 gives 18% and 6 mm, and
 those are the numbers above, in `screw_study.json` and on the page.
+
+## 2026-09-03 — Changing grasp without letting go
+
+`scripts/probe_real_v1_chain.py` (`--reindex relay`, `--relay-gait`, `--relay-squeeze`,
+`--tilt-deg`) + `real_v1_handover_study.py`, 306 cells / ~3 min on 6 workers, commit d4b29670.
+Data `docs/experiments/20260903-real_v1_handover/handover_study.json`, page `page.html`.
+
+The chained task above changes grasp by opening the hand completely. Instrumenting contact at
+the control rate from set-down to the end of the gait: **49.2% of that window has no pad on the
+tool at all.** That works because a 100×25 mm cylinder on its end face is stable to 14.0° and
+waits — a property of the object on a level floor, not of the hand.
+
+**The relay handover + the relay gait: 6/6, 23.0°/cycle, 0.4% uncontacted, 0.03 mm drift.**
+Against the shipped release + synchronous gait's 6/6, 44.3°/cycle, 49.2%. Over 40 cycles,
+2.49 turns against 5.08 — but sd 0.010 turns against 0.081, because it never re-establishes a
+grasp from scratch.
+
+**The handover and the gait schedule are a matched pair.** relay + synchronous is 2/6, worse
+than either diagonal: it hands a carefully preserved grasp to a schedule that throws it away
+three pads at a time. release + relay-gait is 6/6 at 29.4°/cycle and 17.6%.
+
+**Two failures worth more than the successes.**
+1. **A joint-space per-finger regrasp sweeps the pad THROUGH the tool.** The carry's station
+   and the ring's straddle the shaft, so the straight line between them in joint space is
+   inside the material and the tool leaves before the finger arrives — 0/6 at every fraction of
+   the wrist move. This is the same defect as the mid-air ring regrasp (`--airgrip ring`, 6/6
+   failures), which was recorded as a mid-air problem. It is not; it is a path problem and it is
+   present on the floor too. Plan the move in the tool's cylindrical frame: retract radially at
+   the station already held, travel out there, close back in.
+2. **The fingers cannot absorb the wrist move.** The gait's ring is reachable to 0.21 mm from
+   the gait's palm pose and 7.6 mm from where the carry parks the palm, 27.7 mm and 9.2° away.
+   Flying the palm with every pad pinned to its world point runs 15.8 mm short at full travel;
+   sweeping the fraction, ring residual falls 7.6 → 0.4 mm while the pin shortfall rises
+   0.1 → 15.8, with no crossing. Dragging the pads along the tool instead is worse — a loaded
+   pad cannot be slid axially without carrying the object (93% uncontacted, 0/6).
+   So the relay gives up the wrist move and takes its ring at the height the pads already hold.
+
+**Arrival order cannot set a grip.** Landing three pads nominally 2 mm inside the surface gives
+7.6 → 4.9 → 0.3 N: the tool moves as each finger arrives and relieves the one before. Set the
+grasp afterwards with one relative squeeze from the COMMANDED pose. Window 1.0–2.0 mm — 0.5 mm
+loses the tool (0/6, 31° tilt), 3.0 mm stalls the gait at 0.7°/cycle while holding it perfectly.
+
+**`--tilt-deg` replaces the assumption with a load** — a steady lateral force of tan θ of the
+tool's weight, i.e. a bench out of level by θ. Prediction: a free-standing cylinder topples at
+atan(12.5/50) = 14.0°.
+- **On a plane, never letting go buys nothing.** Both modes hold to 8° and fail by 12°. A grip
+  strong enough to hold the tool upright also unloads the floor (69% of the window has ground
+  contact against 99%), removing the 12.5 mm foot the 14.0° figure is computed from. Three pads
+  on a 21 mm ring are a worse stabiliser than the foot.
+- **In a 45° countersink it buys everything.** relay 5/6 at 0/8/16/30° (18.6→19.0°/cycle,
+  unchanged), and 5/6 in all four load azimuths at 16°; release is 5/6 → 4/6 → 0/6 → 0/6.
+  **Neither the seat nor the grasp is sufficient alone.**
+
+**With the floor deleted after the grasp**, both score 0/6 and only one dropped anything. The
+release chain: 70% uncontacted. The relay: 1.3% uncontacted, three pads at 20 N for all six
+cycles, tilt under 9°, still turning at 8°/cycle — it holds the tool and *lowers* it,
+11.0 mm/cycle. First floor-free gait in the program that does not end with the tool on the
+ground. The gate cannot tell a drop from a slip; `slip_mm_per_cycle` now reports it.
+
+**Not done:** no export / clearance / servo-limit gate on the relay's Cartesian legs (a new path
+shape); no torsional load on the seat, so this is still 0.0072 N·m and not a fastener; the relay
+grip is set once and never corrected, which is the obvious first closed loop.
