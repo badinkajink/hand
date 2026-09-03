@@ -4521,3 +4521,88 @@ tangential drive. A hand asked to do both has a real trade.
 
 Sim only. Not chained from the carry's real end state, not exported, no clearance or
 servo-limit gate, and a flat floor is not a fastener.
+
+## 2026-09-03 — The chain end to end, on an arm, into a screw
+
+`scripts/probe_real_v1_chain.py` + `real_v1_chain_study.py` + `real_v1_arm_study.py`
++ `build_real_v1_arm_scene.py` + `palm_driver.py` + `morphohand.tools.arm_ik`
++ `build_screw_scene.py` + `real_v1_screw_study.py`.
+Data in `docs/experiments/20260903-real_v1_chain/` and `.../20260903-real_v1_screw/`.
+Page: https://claude.ai/code/artifact/6473c3b4-7d2b-4fd1-81ab-d5bfc9753349
+
+**The chain runs in one rollout.** grasp → lift → reorient → set down → release → re-index →
+gait, 6/6 spawn-jittered seeds on rv05_manual_stored, 0.98 turns in 8 cycles and 4.92 in 40.
+`ok` is the AND of four gates (carry held, stood within 10 mm of its resting height under 14°
+with support contact, gait grasp on ≥2 pads, all cycles run). The other nine designs never
+reach the seam under rv05's published carry settings, applied un-retuned.
+
+**The seam is a race against a leaking grip.** The carry ends with the tool cradled on the
+middle phalanges at ~0.5 mm of commanded interference; the shaft creeps ~1.5 mm/s and pad force
+goes 12.0 N at the top of the turn → 5.5 → 1.2 → 0.4 while the hand does nothing but move it.
+Consequences:
+- **Feedback on the HEIGHT is harmful.** One continuous set-down = 6/6; eight measured
+  corrections = 1/6. The corrections do not change the trajectory, only add dwells, and the
+  height error being corrected *is* the slip.
+- **Feedback on the TILT is not.** 1, 2, 4 or 8 corrections all 6/6.
+- **You cannot change grasp in mid-air.** The gait's tripod ring solves to 1.1 mm at the carry's
+  own palm pose and holds fine, but a linear joint-space move between two grasps of the same
+  object passes through a configuration that holds neither: 0/6. Set it down first and the
+  identical transition works. `--reindex none` (gait from the carry's grip) is 1/6.
+- No floor during the gait: 0/6 vs 6/6, replicating the standalone premise inside the chain.
+- The seam absorbs a 6°–25° carry exit equally (hold-after-turn 0.4–1.8 s all 6/6).
+- Stroke 45° reads 91° per cycle, which is 1.20× the slip-free ceiling (gear 1.684 × 45° =
+  75.8°) — the tool is being flicked and coasting, not driven. Do not quote it as throughput.
+
+**The UR5e runs it.** `build_real_v1_arm_scene.py` deletes the six palm DOF and bolts the hand
+to the flange; `palm_driver.py` puts gantry and arm behind one `read/write/solve/cmd_pose`, so
+the probe has no branch on which wrist it is using. mink 1.1 (pinned: 1.2 pulls mujoco 3.12),
+solving on a separate arm-only model because mink integrates over every DOF a model has.
+6/6, 1.098 turns/8 cycles (gantry 0.984), 5.74 turns/40 (gantry 4.92), worst IK residual
+0.001 mm, 0 unreachable poses.
+
+**The wrist spec is 1 mm of palm droop under load.** The menagerie UR5e has no gravity
+feedforward (shoulder 21 mrad under its own 12 kg → 12.7 mm droop at the top of the lift, which
+alone turns a 5° carry exit into 29°). Compensating the ARM's links only — the hand is real
+payload — sweeps droop continuously:
+
+    droop mm   12.68  6.53  2.83  1.59  0.97  0.35
+    chains      0/6   0/6   0/6   1/6   6/6   6/6
+
+**The screw.** 45° frustum tip (a mesh; a frustum is convex so MuJoCo's hull is exact) into a
+matching countersink built as facets (a conical hole is not convex): 32 boxes for the wall, a
+relieved disc for the bottom, a flat annulus for the table. Tool picked up 40 mm from the seat,
+so the chain transports as well as inserts.
+
+    flat plane, press 2 mm    6/6   49.0 °/cycle   1.28 mm drift   5.11 turns/40
+    45° seat,   press 10 mm   5/6   40.3 °/cycle   0.08 mm drift   4.44 turns/40
+
+18% of the turn for 16× less walk. The loss is the wedge (normal force = axial load / sin α),
+and the cone angle trades the two directly: 30° → 6/6 at 36.3 °/cy, 45° → 5/6 at 40.3,
+60° → 4/6 at 40.7, matching wedge factors 2.00 / 1.41 / 1.15.
+- **Insertion is a press.** Below ~8 mm the tip stops proud; 10–18 mm all 5/6.
+- **Capture radius 6 mm** against 10.5 mm of geometric clearance — the tool arrives with 2–5° of
+  tilt and a tilted cone binds in a matched cone (an 8° entry stops 3 mm into a 10 mm seat).
+- **Re-grip window 0.3–0.5 mm.** 0 → 1/6 (grip gone before the tip is home), 0.3 → 5/6,
+  1.0 → 0/6 (the pads sit at different stations, so too much interference torques the tool out
+  of line and the cone binds).
+- Transport distance is free: 30–90 mm all 5/6, because standing up and carrying across are one
+  pose command and therefore one ramp.
+
+**Three instrumentation errors, each of which read as physics:**
+1. A re-grip measured from the pad's ACHIEVED position hands back the deflection that was
+   carrying the load: 18.4 → 16.7 → 11.6 → 4.2 → 0.25 N over seven reissues with the object
+   doing nothing. Measure from the COMMAND. Same family as `achieved_fraction` on the bench.
+2. A proportional tilt correction tracking a SCHEDULED reference changes sign whenever the plant
+   runs behind, and on a 20 N grip with 150 steps of lag it always does — palm rx oscillated to
+   −0.49 rad and threw the tool from a state already at 3.0°. Correct toward the goal only.
+3. `probe_real_v1_gait._ground` counts contacts with the body named `world`, so a tool sitting
+   firmly in a seat that is its own body reads zero support and every standing gate fails.
+   `probe_real_v1_chain._support` counts anything that is not the hand.
+
+Also: the carry's exit tilt is set by the hold after the turn (cos 0.837 at the last commanded
+step, 0.946 after 300 steps, 0.996 after 500) — a short hold hands the seam a 19° tilt instead
+of a 5° one, and 14.0° is where a standing cylinder topples.
+
+**Not done:** no clearance or servo-limit gate on the chained trajectory, no stall-torque
+measurement on the seat, no closed-loop gait (the AprilTag rig measures the gait's controlled
+variable directly, at 0.017° rms, and nothing uses it).
