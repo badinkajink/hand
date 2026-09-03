@@ -162,7 +162,10 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
           press_steps: int = 300, settle_steps: int = 400,
           transport_steps: int = 600, transport_iters: int = 1,
           stand_order: str = "ground", airgrip: str = "cradle",
-          reindex: str = "full", centre_x: float = 0.004, grip_depth: float = 0.050,
+          reindex: str = "full", relay_gait: bool = False, track_frac: float = 1.0,
+          relay_squeeze: float = 0.0015,
+          tilt_deg: float = 0.0, tilt_dir: float = 0.0,
+          centre_x: float = 0.004, grip_depth: float = 0.050,
           ring_z: float | None = None,
           stroke_deg: float = 30.0, cycles: int = 8, squeeze: float = 0.002,
           release_mm: float = 6.0, twist_steps: int = 120, move_steps: int = 60,
@@ -226,6 +229,14 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         mujoco.mjv_defaultFreeCamera(m, vcam)
         vcam.azimuth, vcam.elevation, vcam.distance = cam
 
+    # SUPPORT BOOKKEEPING. Everything after the tool is standing is judged on whether the
+    # HAND ever handed it to the world. Armed at the start of the handover and sampled at the
+    # control rate: `min_pads` is the worst instant, `free_frac` the share of the window in
+    # which no pad was on the tool at all -- the share during which the only thing keeping it
+    # where the chain put it is the floor's willingness to leave it there.
+    watch = [False]
+    sup = {"n": 0, "free": 0, "one": 0, "gnd": 0, "min": 3, "sum": 0}
+
     def _integrate():
         ax = d.body(obj).xmat.reshape(3, 3)[:, 2]
         dadr = m.jnt_dofadr[m.body(obj).jntadr[0]]
@@ -240,6 +251,14 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
             mujoco.mj_step(m, d)
             _integrate()
             step_i[0] += 1
+            if watch[0] and step_i[0] % CONTROL_DECIMATION == 0:
+                npd = pg._hand(m, d, obj)[2]
+                sup["n"] += 1
+                sup["sum"] += npd
+                sup["min"] = min(sup["min"], npd)
+                sup["free"] += npd == 0
+                sup["one"] += npd <= 1
+                sup["gnd"] += _support(m, d, obj)[0] > 0
             if vid is not None and step_i[0] % video_every == 0:
                 vcam.lookat[:] = d.body(obj).xpos
                 vid.update_scene(d, vcam)
@@ -578,18 +597,202 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
     stood_ok = bool(stood["ground_contacts"] >= 1 and stood["tilt_deg"] < 14.0
                     and abs(stood["z"] - rest_z) < 0.010)
 
+    # A STANDING TOOL IS NOT A FIXTURED ONE. Everything downstream of this line in the shipped
+    # chain assumed the tool stays exactly where it was set down for as long as the hand is off
+    # it; on a bench nothing enforces that. `--tilt-deg` names the assumption and prices it: a
+    # steady lateral load of tan(theta) of the tool's own weight, which is what a table out of
+    # level by theta delivers, or a cable, or a nudge that does not go away. The free-standing
+    # prediction is exact and worth stating before the sweep runs it -- a cylinder on its end
+    # face topples when the overturning moment beats the restoring one, tan(theta) > r/half,
+    # i.e. at atan(12.5/50) = 14.0 deg, the same number the gait study quotes for its stability
+    # margin. A seat moves that threshold; so, differently, does never letting go.
+    watch[0] = True
+    if tilt_deg > 0.0:
+        bid = m.body(obj).id
+        az = np.radians(tilt_dir)
+        f_lat = float(m.body_mass[bid]) * abs(float(m.opt.gravity[2])) * np.tan(np.radians(tilt_deg))
+        d.xfrc_applied[bid, 0] = f_lat * np.cos(az)
+        d.xfrc_applied[bid, 1] = f_lat * np.sin(az)
+        _run(settle_steps // 2)
+        seams.append(_snap("loaded"))
+        _shot()
+
+    # ---------------------------------------------------------- 3b. the palm move, and its cost
+    def _cmd_qpos():
+        """Load the scratch model with the COMMANDED configuration, not the achieved one."""
+        dik.qpos[:] = d.qpos
+        for a_i in range(m.nu):
+            jid = m.actuator_trnid[a_i, 0]
+            if jid >= 0 and m.jnt_type[jid] in (mujoco.mjtJoint.mjJNT_HINGE,
+                                                mujoco.mjtJoint.mjJNT_SLIDE):
+                dik.qpos[mik.jnt_qposadr[jid]] = float(d.ctrl[a_i])
+        dik.qvel[:] = 0.0
+        mujoco.mj_forward(mik, dik)
+
+    def _tool_frame():
+        """Origin and orthonormal triad of the tool: axis up, plus two radial directions."""
+        o = d.body(obj).xpos.copy()
+        R = d.body(obj).xmat.reshape(3, 3)
+        av = R[:, 2] * (1.0 if R[2, 2] >= 0 else -1.0)
+        e1 = np.array([1.0, 0.0, 0.0]) - av[0] * av
+        n1 = float(np.linalg.norm(e1))
+        e1 = e1 / n1 if n1 > 1e-9 else np.array([1.0, 0.0, 0.0])
+        return o, av, e1, np.cross(av, e1)
+
+    def _cyl(pt, frame):
+        """A world point as (axial station, radius, azimuth) on the tool."""
+        o, av, e1, e2 = frame
+        rel = np.asarray(pt, float) - o
+        st = float(rel @ av)
+        v = rel - st * av
+        return st, float(np.linalg.norm(v)), float(np.arctan2(v @ e2, v @ e1))
+
+    def _uncyl(sra, frame):
+        o, av, e1, e2 = frame
+        st, r, az = sra
+        return o + st * av + r * (np.cos(az) * e1 + np.sin(az) * e2)
+
+    def _fly(u_tgt, steps, ends=None, iters=40):
+        """Fly the palm to `u_tgt` with the pads pinned to the world points they hold now.
+
+        The relay handover wants two things at once that a rigid hand cannot have: the palm
+        over the tool, where the gait's ring is reachable, and the tool where it was set down.
+        With two fingers loaded, moving the wrist drags the object -- across a plane that is
+        drift, and out of a countersink that is the whole insertion undone.
+
+        Resolving it is the FINGERS' job, not the wrist's. The palm follows the ramp, and at
+        every control step each finger is re-solved to keep its pad on the same world point, so
+        the wrist's motion is absorbed inside the hand and the contacts never move on the
+        material. Pinned and seeded from the COMMAND, because on a position servo the pad's
+        achieved pose already contains the deflection that is carrying the load: hold *that*
+        fixed and the grip is handed back a millimetre at a time (18.4 N -> 0.25 N over seven
+        reissues of a constant command, measured).
+        """
+        u0 = palm.read()
+        _cmd_qpos()
+        fr0 = _tool_frame()
+        a0 = {f: _cyl(dik.body(TIPS[f]).xpos, fr0) for f in FINGERS}
+        # `ends` turns the pin into a SLIDE. Pinning asks the hand to absorb the whole wrist
+        # move with the contacts frozen, and this hand cannot -- it runs 15 mm short and the
+        # pads come off. Sliding spends the same move going somewhere useful: each pad walks
+        # from where the carry left it to its gait-ring station, and the interpolation is done
+        # in the tool's own cylindrical coordinates so the path stays ON THE SURFACE. A straight
+        # line in world space between two points on a cylinder is a chord: it passes inside the
+        # tool, so the pads are commanded into the material and the transition jams.
+        a1 = None if ends is None else {f: _cyl(ends[f], fr0) for f in FINGERS}
+        if a1 is not None:
+            for f in FINGERS:  # take the short way round
+                a1[f] = (a1[f][0], a1[f][1],
+                         a0[f][2] + float(np.arctan2(np.sin(a1[f][2] - a0[f][2]),
+                                                     np.cos(a1[f][2] - a0[f][2]))))
+        worst = [0.0]
+
+        def _mv(k):
+            u = min(1.0, (k + 1) / steps)
+            palm.write(u0 + (np.asarray(u_tgt, float) - u0) * u)
+            _cmd_qpos()
+            fr = _tool_frame()
+            for f in FINGERS:
+                if a1 is None:
+                    tgt = _uncyl(a0[f], fr)
+                else:
+                    tgt = _uncyl(tuple(a0[f][i] + (a1[f][i] - a0[f][i]) * u for i in range(3)), fr)
+                worst[0] = max(worst[0], ik_finger(mik, dik, f, tgt, iters=iters))
+                for kk, j in enumerate(FINGERS[f]):
+                    d.ctrl[acts[j]] = float(dik.qpos[mik.jnt_qposadr[mik.joint(j).id]])
+
+        _run(steps, _mv)
+        _run(settle_steps // 4)
+        return worst[0]
+
+    def _cart_leg(f, sra0, sra1, n, iters=60):
+        """One finger, one straight leg in the tool's cylindrical coordinates."""
+        def _mv(k):
+            u = min(1.0, (k + 1) / n)
+            fr = _tool_frame()
+            tgt = _uncyl(tuple(sra0[i] + (sra1[i] - sra0[i]) * u for i in range(3)), fr)
+            _cmd_qpos()
+            ik_finger(mik, dik, f, tgt, iters=iters)
+            for j in FINGERS[f]:
+                d.ctrl[acts[j]] = float(dik.qpos[mik.jnt_qposadr[mik.joint(j).id]])
+
+        _run(n, _mv)
+
+    def _relay_finger(f, end_pt, n):
+        """Walk ONE pad from where it is to `end_pt`: off the tool, around it, back on.
+
+        The move has to be Cartesian. Ramping the finger's JOINTS from its carry pose to its
+        ring pose is the obvious implementation and it is the one that knocked the tool over on
+        every fraction of the wrist move tried: the two poses straddle the shaft, so the
+        straight line between them in joint space sweeps the pad THROUGH the material, and the
+        tool leaves before the finger arrives. It is the same defect as the mid-air ring
+        regrasp, which fails 6/6 for the same reason and was read as a mid-air problem.
+
+        Three legs instead, in the tool's own cylindrical frame, so the pad is never commanded
+        inside the surface: retract radially to the open radius at the station it already holds,
+        travel to the new station and azimuth out there, then close back in. The other two
+        fingers are not touched, so the tool is held throughout by the pair.
+        """
+        _cmd_qpos()
+        fr = _tool_frame()
+        s0, r0, az0 = _cyl(dik.body(TIPS[f]).xpos, fr)
+        s1, r1, az1 = _cyl(end_pt, fr)
+        az1 = az0 + float(np.arctan2(np.sin(az1 - az0), np.cos(az1 - az0)))
+        _cart_leg(f, (s0, r0, az0), (s0, r_open, az0), max(1, n // 3))
+        _cart_leg(f, (s0, r_open, az0), (s1, r_open, az1), max(1, n))
+        _cart_leg(f, (s1, r_open, az1), (s1, r1, az1), max(1, n // 2))
+
     # ------------------------------------------------------------------ 4. take the gait grasp
     centre = d.body(obj).xpos[:2].copy()
     z_ring = float(np.mean([d.body(TIPS[f]).xpos[2] for f in FINGERS])) if ring_z is None \
         else float(ring_z)
+    # Where the gait wants the palm: centred over the tool, `grip_depth` above the ring. Each
+    # mode below either gets there or pays for staying -- and the payment is visible in one
+    # number, the ring's IK residual, because a ring solved from the wrong palm pose is a ring
+    # the fingers cannot reach.
+    z_gait = float(rest_z + 0.025) if ring_z is None else float(ring_z)
+    u_gait, ep_re, er_re = palm.solve(
+        np.eye(3), np.array([centre[0] - centre_x, centre[1], z_gait + grip_depth]))
+    R_now, p_now = palm.cmd_pose()
+    R_gait, p_gait = palm.fk(u_gait)
+    palm_move_mm = round(float(np.linalg.norm(p_gait - p_now)) * 1000, 2)
+    palm_move_deg = round(float(np.degrees(np.arccos(np.clip(
+        (np.trace(R_gait @ R_now.T) - 1) / 2, -1.0, 1.0)))), 2)
+    hold_ik_mm = float("nan")
 
-    if reindex == "full":
+    if reindex in ("track", "slide"):
+        # THE HANDOVER WITHOUT A RELEASE. Fly the palm to the gait's own pose while all three
+        # fingers hold their contacts fixed in the world, then walk them onto the ring one at a
+        # time. This is the only mode that gets both the reachable ring AND an unbroken grasp;
+        # `full` buys the ring by letting go, `relay` keeps the grasp and cannot reach.
+        # HOW MUCH OF THE WRIST MOVE CAN THE HAND ABSORB? `--track-frac` sweeps it. At 0 the
+        # palm does not move and the fingers keep every contact, but the ring is solved from
+        # the pose the carry happened to leave and the pads cannot reach it cleanly; at 1 the
+        # palm is where the gait wants it and the ring is exact, but the fingers run out of
+        # reach on the way and the tool is briefly nobody's. The ring target itself is held
+        # fixed across the sweep -- same centre, same height -- so the residual curve is the
+        # wrist move's doing and nothing else's.
+        z_ring = z_gait
+        u0_go = palm.read()
+        u_go = u0_go + (np.asarray(u_gait, float) - u0_go) * float(track_frac)
+        ends = None if reindex == "track" else {
+            f: np.array([centre[0] + r_grip * np.cos(pg.AZIMUTH[f]),
+                         centre[1] + r_grip * np.sin(pg.AZIMUTH[f]), z_ring]) for f in FINGERS}
+        hold_ik_mm = _fly(u_go, repose_steps, ends=ends) * 1000
+        R_go, p_go = palm.fk(u_go)
+        palm_move_mm = round(float(np.linalg.norm(p_go - p_now)) * 1000, 2)
+        palm_move_deg = round(float(np.degrees(np.arccos(np.clip(
+            (np.trace(R_go @ R_now.T) - 1) / 2, -1.0, 1.0)))), 2)
+        seams.append(_snap("tracked"))
+        _shot()
+        centre = d.body(obj).xpos[:2].copy()
+        table, ik_res, per_r = pg._ring_table(
+            m, centre, z_ring, palm.joint_dict(u_go), [r_grip, r_open, r_wide], phis)
+    elif reindex == "full":
         # THE FLOOR MAKES THE HAND FREE. Let go completely, drive the palm to the pose the gait
         # study validated, and take the shaft again as a ring. Nothing else in this program can
         # do this: every other release in the repertoire drops the object.
-        z_ring = float(rest_z + 0.025) if ring_z is None else float(ring_z)
-        u_tgt, ep_re, er_re = palm.solve(
-            np.eye(3), np.array([centre[0] - centre_x, centre[1], z_ring + grip_depth]))
+        z_ring, u_tgt = z_gait, u_gait
         table, ik_res, per_r = pg._ring_table(
             m, centre, z_ring, palm.joint_dict(u_tgt), [r_grip, r_open, r_wide], phis)
         open_ctrl = {j: float(m.key_ctrl[key][a]) for j, a in acts.items()}
@@ -612,24 +815,91 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
 
     wide = {f: pg._lookup(table, f, 2, 0.0, phis) for f in FINGERS}
     grip_t = {f: pg._lookup(table, f, 0, 0.0, phis) for f in FINGERS}
-    cur_f = {j: float(d.ctrl[a]) for j, a in acts.items()}
+    n_app = max(1, approach_steps // 2)
 
-    def _reach(k):
-        u = min(1.0, (k + 1) / (approach_steps // 2))
-        for f in FINGERS:
+    def _ramp(f, dst, n):
+        """Drive ONE finger from wherever its command is to `dst`, leaving the others alone."""
+        src = [float(d.ctrl[acts[j]]) for j in FINGERS[f]]
+
+        def _mv(k):
+            u = min(1.0, (k + 1) / n)
             for kk, j in enumerate(FINGERS[f]):
-                d.ctrl[acts[j]] = cur_f[j] * (1 - u) + float(wide[f][kk]) * u
+                d.ctrl[acts[j]] = src[kk] * (1 - u) + float(dst[kk]) * u
 
-    def _close(k):
-        u = min(1.0, (k + 1) / (approach_steps // 2))
+        _run(n, _mv, every_step=True)
+
+    if reindex in ("relay", "track", "slide"):
+        # THE HANDOVER, ONE FINGER AT A TIME. `full` and `none` both take the ring grasp with
+        # all three fingers at once, which means both pass through a moment with every pad off
+        # the tool -- `full` deliberately (it opens the hand and flies the palm somewhere else),
+        # `none` incidentally (its reach phase sends all three out to the wide radius together).
+        # Either way the tool is briefly the floor's problem, and that is the assumption being
+        # removed here: move one finger to its ring station, close it, and only then release the
+        # next. Two pads are on the tool at every instant, so the transition itself is a grasp
+        # the hand could hold, not a release it happens to survive.
+        #
+        # It costs the palm move. `full` re-centres the palm over the tool before regrasping,
+        # which is what makes its ring solve cleanly; a relay cannot, because moving the palm
+        # while two fingers are loaded drags the tool across the seat it was just set into. So
+        # the relay inherits `none`'s ring -- solved at whatever pose the carry parked the palm
+        # -- and the IK residual it reports is the price of not being allowed to let go.
+        ring_pt = {f: np.array([centre[0] + r_grip * np.cos(pg.AZIMUTH[f]),
+                                centre[1] + r_grip * np.sin(pg.AZIMUTH[f]), z_ring])
+                   for f in FINGERS}
         for f in FINGERS:
-            for kk, j in enumerate(FINGERS[f]):
-                d.ctrl[acts[j]] = float(wide[f][kk]) * (1 - u) + float(grip_t[f][kk]) * u
+            if reindex != "slide":
+                # A slide has already walked the pads onto the ring, so it only trims onto the
+                # table's joint targets; everything else has to get there one finger at a time.
+                _relay_finger(f, ring_pt[f], n_app)
+            _run(settle_steps // 4)
+            seams.append(_snap(f"handover_{f}"))
+            _shot()
+        _run(settle_steps)
+        # SET THE GRIP EXPLICITLY, ONCE, ONCE ALL THREE ARE ON. The Cartesian legs land each pad
+        # on the ring, which is nominally `squeeze` inside the surface -- but the tool moves as
+        # each finger arrives, so the pad that got there first has been relieved by the time the
+        # third lands (7.6 -> 4.9 -> 0.3 N, measured). Arrival order cannot set a grip. One
+        # relative squeeze from the COMMANDED pose does, and it is the same primitive the carry
+        # uses: measure from the command, not from the achieved pose that already contains the
+        # deflection carrying the load.
+        if relay_squeeze > 0.0:
+            sq = _squeeze_cmd(m, mik, dik, d, obj, acts, relay_squeeze)
+            f0 = {j: float(d.ctrl[a]) for j, a in acts.items()}
+            _run(n_app, lambda k: [d.ctrl.__setitem__(
+                a, f0[j] + (sq[j] - f0[j]) * min(1.0, (k + 1) / n_app))
+                for j, a in acts.items()], every_step=True)
+            _run(settle_steps // 2)
+            seams.append(_snap("handover_grip"))
+            _shot()
+        # REBASE THE GAIT TABLE ON WHERE THE FINGERS ACTUALLY ARE. The table is solved from a
+        # palm pose the relay never reaches, so its phi=0 entry is a few millimetres off the
+        # ring; snapping onto it after a clean Cartesian arrival commands that error as
+        # interference, and on a position servo interference IS grip -- 20 N of it, enough to
+        # pick the tool up off the floor it is supposed to be standing on. Offsetting the whole
+        # table by the difference keeps the sweep the gait study validated and starts it from
+        # the grasp the hand has, which is the one that is holding the tool.
+        for f in FINGERS:
+            off = np.array([float(d.ctrl[acts[j]]) for j in FINGERS[f]]) - table[f][0, 0]
+            table[f] += off
+    else:
+        cur_f = {j: float(d.ctrl[a]) for j, a in acts.items()}
 
-    _run(approach_steps // 2, _reach, every_step=True)
-    _run(settle_steps // 4)
-    _run(approach_steps // 2, _close, every_step=True)
-    _run(settle_steps)
+        def _reach(k):
+            u = min(1.0, (k + 1) / n_app)
+            for f in FINGERS:
+                for kk, j in enumerate(FINGERS[f]):
+                    d.ctrl[acts[j]] = cur_f[j] * (1 - u) + float(wide[f][kk]) * u
+
+        def _close(k):
+            u = min(1.0, (k + 1) / n_app)
+            for f in FINGERS:
+                for kk, j in enumerate(FINGERS[f]):
+                    d.ctrl[acts[j]] = float(wide[f][kk]) * (1 - u) + float(grip_t[f][kk]) * u
+
+        _run(n_app, _reach, every_step=True)
+        _run(settle_steps // 4)
+        _run(n_app, _close, every_step=True)
+        _run(settle_steps)
     seams.append(_snap("gait_grip"))
     _shot()
     grip_snap = seams[-1]
@@ -641,6 +911,7 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         m.geom_conaffinity[floor_gid] = 0
     spin[0] = spin_w[0] = 0.0
     start_xy = d.body(obj).xpos[:2].copy()
+    z_gait0 = float(d.body(obj).xpos[2])
     lost = [False]
 
     def _cmd(f, ri, phi):
@@ -653,10 +924,22 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         s0 = spin[0]
         _run(twist_steps, lambda k: [_cmd(f, 0, stroke * min(1.0, (k + 1) / twist_steps))
                                      for f in FINGERS])
-        _run(move_steps, lambda k: [_cmd(f, 1, stroke) for f in FINGERS])
-        _run(move_steps, lambda k: [_cmd(f, 1, stroke * max(0.0, 1 - (k + 1) / move_steps))
-                                    for f in FINGERS])
-        _run(move_steps, lambda k: [_cmd(f, 0, 0.0) for f in FINGERS])
+        if relay_gait:
+            # RELEASE / RETURN / REGRASP ONE FINGER AT A TIME. The other two stay closed at the
+            # end of the stroke, so the tool is held by two pads through the whole recovery and
+            # the gait stops depending on it standing unaided. It is the same schedule as the
+            # relay handover, run once per cycle instead of once per task, which is why the two
+            # are not really separate mechanisms: a handover is a relay whose target ring moved.
+            for f in FINGERS:
+                _run(move_steps, lambda k, f=f: _cmd(f, 1, stroke))
+                _run(move_steps, lambda k, f=f: _cmd(
+                    f, 1, stroke * max(0.0, 1 - (k + 1) / move_steps)))
+                _run(move_steps, lambda k, f=f: _cmd(f, 0, 0.0))
+        else:
+            _run(move_steps, lambda k: [_cmd(f, 1, stroke) for f in FINGERS])
+            _run(move_steps, lambda k: [_cmd(f, 1, stroke * max(0.0, 1 - (k + 1) / move_steps))
+                                        for f in FINGERS])
+            _run(move_steps, lambda k: [_cmd(f, 0, 0.0) for f in FINGERS])
         _run(move_steps)
         _, tilt = pg._axis_tilt(m, d, obj)
         nh, fh, npd, fpd = pg._hand(m, d, obj)
@@ -686,6 +969,16 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
     _shot()
     out = {
         "run": morph_run.name, "object": obj, "reindex": reindex,
+        "palm_move_mm": palm_move_mm, "palm_move_deg": palm_move_deg,
+        "track_frac": track_frac, "relay_squeeze_mm": round(relay_squeeze * 1000, 2),
+        "hold_ik_mm": None if hold_ik_mm != hold_ik_mm else round(hold_ik_mm, 2),
+        "relay_gait": bool(relay_gait), "tilt_deg": tilt_deg, "tilt_dir": tilt_dir,
+        # The support window: from the moment the tool is standing to the end of the gait.
+        "sup_steps": sup["n"], "min_pads": None if not sup["n"] else int(sup["min"]),
+        "mean_pads": None if not sup["n"] else round(sup["sum"] / sup["n"], 2),
+        "free_frac": None if not sup["n"] else round(sup["free"] / sup["n"], 3),
+        "one_frac": None if not sup["n"] else round(sup["one"] / sup["n"], 3),
+        "ground_frac": None if not sup["n"] else round(sup["gnd"] / sup["n"], 3),
         "angle_deg": angle_deg, "axis_k": axis_k, "turn_steps": turn_steps,
         "hold_steps": hold_steps, "descend_steps": descend_steps, "lift": lift,
         "gap_mm": gap * 1000, "press_mm": press_mm, "grip_depth": grip_depth,
@@ -721,6 +1014,12 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         "transmission": round(float(np.mean(gains)) / (gear * stroke_deg), 3) if gains else 0.0,
         "final_tilt_deg": round(tilt, 2),
         "final_z": round(float(d.body(obj).xpos[2]), 4),
+        # Axial descent through the grasp, per cycle. With the floor there this is ~0; with it
+        # deleted it separates a hand that DROPPED the tool from one that is still holding it
+        # and lowering it, which the `ok` gate cannot tell apart.
+        "z_gait0": round(z_gait0, 4),
+        "slip_mm_per_cycle": round((z_gait0 - float(d.body(obj).xpos[2])) * 1000
+                                   / max(1, len(per_cycle)), 2),
         "drift_mm": round(float(np.linalg.norm(d.body(obj).xpos[:2] - start_xy)) * 1000, 2),
         "hand_contacts": nh, "hand_force_N": round(fh, 2),
         "ground_contacts": ng, "ground_force_N": round(fg, 3),
@@ -806,9 +1105,33 @@ def main() -> int:
     ap.add_argument("--stand-order", default="ground", choices=("ground", "air"),
                     help="ground = set the tilted shaft's foot on the floor, then rotate it "
                          "upright about that foot; air = stand it up in mid-air first")
-    ap.add_argument("--reindex", default="full", choices=("full", "none"),
-                    help="full = let go on the floor and retake the gait's ring grasp; "
-                         "none = gait from the grip the carry left")
+    ap.add_argument("--reindex", default="full",
+                    choices=("full", "slide", "track", "relay", "none"),
+                    help="how the carry's grasp becomes the gait's. full = let go on the "
+                         "floor, re-centre the palm and retake the ring; relay = walk the "
+                         "fingers onto the ring ONE AT A TIME with the palm parked, so two "
+                         "pads are on the tool at every instant; none = release and retake "
+                         "all three together at the carry's palm pose. full and none both "
+                         "pass through zero contacts and so both need the tool to stay put "
+                         "on its own.")
+    ap.add_argument("--relay-squeeze", type=float, default=0.0015,
+                    help="m of radial interference commanded once a relay handover has all "
+                         "three pads on the ring. Arrival order cannot set a grip; this can.")
+    ap.add_argument("--track-frac", type=float, default=1.0,
+                    help="fraction of the wrist move to the gait's palm pose that a track/slide "
+                         "handover actually makes. 0 keeps every contact and cannot reach the "
+                         "ring; 1 reaches the ring and drops the contacts on the way.")
+    ap.add_argument("--relay-gait", action="store_true",
+                    help="run the gait's release/return/regrasp one finger at a time as well, "
+                         "so the whole task after the carry never drops below two pads")
+    ap.add_argument("--tilt-deg", type=float, default=0.0,
+                    help="steady lateral load on the tool once it is standing, as the table "
+                         "tilt that would produce it: |F| = m g tan(theta). A free-standing "
+                         "cylinder topples past atan(r/half) = 14.0 deg whatever the hand is "
+                         "doing elsewhere; this is the knob that stops the probe assuming a "
+                         "set-down tool stays where it was set down.")
+    ap.add_argument("--tilt-dir", type=float, default=0.0,
+                    help="azimuth of that load in world degrees (0 = +x, away from the palm)")
     ap.add_argument("--centre-x", type=float, default=0.004)
     ap.add_argument("--grip-depth", type=float, default=0.050)
     ap.add_argument("--ring-z", type=float, default=None)
@@ -838,7 +1161,7 @@ def main() -> int:
     cam = tuple(float(v) for v in args.cam.split(","))
     rows = []
     print(f"{'run':22} {'idx':5} {'press':>6} {'ringIK':>7} {'repose':>7} "
-          f"{'turns':>6} {'deg/cy':>7} {'tilt':>6} {'drift':>7} {'cyc':>5}  ok")
+          f"{'turns':>6} {'deg/cy':>7} {'tilt':>6} {'drift':>7} {'free':>5} {'cyc':>5}  ok")
     for run in runs:
         for press in (float(v) for v in str(args.press).split(",")):
             for rep in range(args.repeats):
@@ -849,7 +1172,10 @@ def main() -> int:
                           repose_iters=args.repose_iters, repose_steps=args.repose_steps,
                           descend_iters=args.descend_iters, descend_steps=args.descend_steps,
                           stand_order=args.stand_order, airgrip=args.airgrip,
-                          reindex=args.reindex, centre_x=args.centre_x,
+                          reindex=args.reindex, relay_gait=args.relay_gait,
+                          track_frac=args.track_frac, relay_squeeze=args.relay_squeeze,
+                          tilt_deg=args.tilt_deg, tilt_dir=args.tilt_dir,
+                          centre_x=args.centre_x,
                           grip_depth=args.grip_depth, ring_z=args.ring_z,
                           stroke_deg=args.stroke, cycles=args.cycles, squeeze=args.squeeze,
                           release_mm=args.release, twist_steps=args.twist_steps,
@@ -868,6 +1194,7 @@ def main() -> int:
                 print(f"{r['run']:22} {r['reindex']:5} {press:6.1f} {r['ring_ik_grip_mm']:7.2f} "
                       f"{r['repose_deg']:7.2f} {r['turns']:6.2f} {r['gain_mean_deg']:7.2f} "
                       f"{r['final_tilt_deg']:6.2f} {r['drift_mm']:7.2f} "
+                      f"{(r['free_frac'] if r['free_frac'] is not None else 0):5.2f} "
                       f"{r['cycles_run']:2d}/{r['cycles_asked']:<2d} "
                       f"{'OK' if r['ok'] else '--'}"
                       f"{'' if r['carry_ok'] else ' carry'}"
