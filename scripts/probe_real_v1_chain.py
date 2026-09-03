@@ -157,6 +157,7 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
           lift: float = 0.10, angle_deg: float = -90.0, axis_k: float = 0.25,
           turn_steps: int = 550, budget: float = 0.5, hold_steps: int = 500,
           gap: float = 0.002, press_mm: float = 2.0, carry_squeeze: float = 0.0,
+          turn_squeeze: float = 0.0,
           repose_steps: int = 800, repose_iters: int = 8,
           descend_steps: int = 400, descend_iters: int = 1,
           press_steps: int = 300, settle_steps: int = 400,
@@ -364,12 +365,27 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
                                            iters=400))
     end = {j: float(dik.qpos[mik.jnt_qposadr[mik.joint(j).id]]) for j in acts}
 
+    # GRIP THROUGH THE TURN, or do not. `--carry-squeeze` closes the hand AFTER the hold, by
+    # which time the shaft has already rolled itself upright inside a loose grasp; this closes
+    # it BEFORE, as a constant joint-space offset carried through the sweep, so the shaft
+    # arrives where the fingers put it. The two flags therefore ask different questions: one
+    # buys time for the transport, the other suppresses the settle.
+    sq0 = {j: 0.0 for j in acts}
+    if turn_squeeze > 0.0:
+        sq = _squeeze_cmd(m, mik, dik, d, obj, acts, turn_squeeze)
+        sq0 = {j: sq[j] - float(d.ctrl[a]) for j, a in acts.items()}
+
     def _turn(k):
         u = (k + 1) / turn_steps
         for j, a in acts.items():
-            d.ctrl[a] = anchor[j] + float(np.clip((end[j] - q0[j]) * u, -budget, budget))
+            d.ctrl[a] = (anchor[j] + sq0[j]
+                         + float(np.clip((end[j] - q0[j]) * u, -budget, budget)))
 
     _run(turn_steps, _turn, every_step=True)
+    # THE SEAM THAT SEPARATES COMMAND FROM SLIP. Everything between this snapshot and the next
+    # happens with the finger commands frozen, so the alignment gained in between is the shaft
+    # rolling itself upright inside the grasp and nothing else.
+    seams.append(_snap("turned"))
     _run(hold_steps)
     seams.append(_snap("reoriented"))
     _shot()
@@ -1017,6 +1033,15 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         "hold_steps": hold_steps, "descend_steps": descend_steps, "lift": lift,
         "gap_mm": gap * 1000, "press_mm": press_mm, "grip_depth": grip_depth,
         "carry_squeeze_mm": carry_squeeze * 1000,
+        "turn_squeeze_mm": turn_squeeze * 1000,
+        # The controlled slip, in degrees of alignment the hand did not command.
+        "tilt_turned_deg": round(float(
+            [s for s in seams if s["phase"] == "turned"][0]["tilt_deg"]), 2),
+        "tilt_settled_deg": round(float(
+            [s for s in seams if s["phase"] == "reoriented"][0]["tilt_deg"]), 2),
+        "settle_deg": round(float(
+            [s for s in seams if s["phase"] == "turned"][0]["tilt_deg"]
+            - [s for s in seams if s["phase"] == "reoriented"][0]["tilt_deg"]), 2),
         "repose_iters": repose_iters, "descend_iters": descend_iters,
         "stand_order": stand_order, "airgrip": airgrip,
         "seat_z": round(rest_z, 5), "tip_len_mm": round(tip_len * 1000, 2),
@@ -1119,6 +1144,10 @@ def main() -> int:
                          "before the press closes it")
     ap.add_argument("--press", default="2.0",
                     help="mm the palm drives down after the shaft lands. Comma list.")
+    ap.add_argument("--turn-squeeze", type=float, default=0.0,
+                    help="metres of extra radial closure held through the reorienting turn. "
+                         "Suppresses the shaft's settle to vertical; --carry-squeeze, which "
+                         "closes after the hold, does not.")
     ap.add_argument("--carry-squeeze", type=float, default=0.0,
                     help="m the pads are pushed back into the shaft after the turn, before the "
                          "re-pose. These are position servos; the error is the grip force.")
@@ -1215,6 +1244,7 @@ def main() -> int:
                           axis_k=args.axis_k, turn_steps=args.turn_steps, budget=args.budget,
                           hold_steps=args.hold_steps, gap=args.gap, press_mm=press,
                           carry_squeeze=args.carry_squeeze,
+                          turn_squeeze=args.turn_squeeze,
                           repose_iters=args.repose_iters, repose_steps=args.repose_steps,
                           descend_iters=args.descend_iters, descend_steps=args.descend_steps,
                           stand_order=args.stand_order, airgrip=args.airgrip,

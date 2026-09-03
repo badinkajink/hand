@@ -275,7 +275,7 @@ def main() -> int:
     ap.add_argument("--out", type=Path, default=None)
     args = ap.parse_args()
     rows = json.loads((args.data / "gait_study.json").read_text())
-    out = args.out or (args.data / "page.html")
+    out = args.out or (args.data / "20260902-real_v1_gaiting.html")
 
     end = [r for r in rows if r["arm"] == "endurance" and r["design"] == "rv05_manual_stored"]
     turns = np.mean([r["spin_deg"] for r in end]) / 360

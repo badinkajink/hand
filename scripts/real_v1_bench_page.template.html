@@ -1,4 +1,4 @@
-<title>A Hundred Millimetres of Wrist</title>
+<title>UR5e-mounted hand: wrist geometry, grasp preload, and controlled slip to vertical</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -124,11 +124,12 @@ footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",mo
 <div class="wrap">
 <header>
   <div class="eyebrow">MorphoHand &middot; real_v1 &middot; 2026-09-04</div>
-  <h1>A Hundred Millimetres of Wrist</h1>
-  <p class="lede">Every arm result in this program so far stood the UR5e on a 300 mm pedestal and
-  bolted the palm plate straight to the tool flange. The bench is one flat table, and between the
-  flange and the first finger joint there is a coupling, a servo bank and its wiring &mdash; about
-  100 mm of it. Putting both in the scene costs nothing in reach, and one number in grip.</p>
+  <h1>UR5e-mounted hand: wrist geometry, grasp preload, and controlled slip to vertical</h1>
+  <p class="lede">Every arm result in this program so far stood the UR5e on a 300 mm pedestal,
+  bolted the palm plate straight to the tool flange, and let the arm carry the hand without
+  knowing it was there. Correcting all three: the pedestal buys nothing, the wrist stack is free
+  at every length tested, and 23&#176; of the reorientation's alignment turns out to have been the
+  wrist sagging rather than the hand turning.</p>
   <div class="byline">{{NCELLS}} rollouts &middot; rv05_manual_stored on a UR5e &middot; MuJoCo 3.6 &middot; CPU</div>
   <div class="stats">{{STATS}}</div>
 </header>
@@ -138,7 +139,8 @@ footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",mo
 <footer>
   <p>Scripts: <code>build_real_v1_arm_scene.py</code> (<code>--base</code>,
   <code>--wrist-stack</code>, <code>--stack-density</code>), <code>probe_real_v1_chain.py</code>
-  (<code>--screw-torque</code>), <code>real_v1_bench_study.py</code>. Data:
+  (<code>--screw-torque</code>), <code>real_v1_bench_study.py</code>. Local file:
+  <code>docs/experiments/20260904-real_v1_bench/20260904-real_v1_bench_geometry.html</code>. Data:
   <code>docs/experiments/20260904-real_v1_bench/bench_study.json</code>. Prior pages: never
   letting go, <code>docs/experiments/20260903-real_v1_handover/page.html</code>; the chained task
   and the countersink, <code>docs/experiments/20260903-real_v1_chain/page.html</code>. Page

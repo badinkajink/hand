@@ -184,4 +184,4 @@ half matters less to us than the *conditioning* half: VGDS solves searching 1177
 without a retrain, and we have nine parameters and ~117 already-scored designs.
 
 Full analysis, with the Yang et al. and Mannam/Pollard comparison and the deployment runbook:
-`docs/experiments/20260903-sim2real-gates/page.html`.
+`docs/experiments/20260903-sim2real-gates/20260903-sim2real_gates.html`.

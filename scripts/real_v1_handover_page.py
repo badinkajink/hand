@@ -7,7 +7,7 @@ are inlined as base64.
 
     uv run --extra rl python scripts/real_v1_handover_page.py \
         --data docs/experiments/20260903-real_v1_handover \
-        --out  docs/experiments/20260903-real_v1_handover/page.html
+        --out  docs/experiments/20260903-real_v1_handover/20260903-real_v1_relay_handover.html
 """
 from __future__ import annotations
 
@@ -56,7 +56,7 @@ def main() -> int:
     ap.add_argument("--out", type=Path, default=None)
     args = ap.parse_args()
     D = args.data
-    out = args.out or (D / "page.html")
+    out = args.out or (D / "20260903-real_v1_relay_handover.html")
     rows = json.loads((D / "handover_study.json").read_text())
 
     # ------------------------------------------------------------------ the numbers

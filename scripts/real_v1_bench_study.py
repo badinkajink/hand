@@ -52,13 +52,13 @@ MODES = {"relay": dict(reindex="relay", relay_gait=True),
          "release": dict(reindex="full", relay_gait=False)}
 
 
-def _tag(base, stack, density, src) -> str:
+def _tag(base, stack, density, src, pgc=False) -> str:
     return (f"{'screw' if src else 'plane'}_x{base[0]:+.3f}_y{base[1]:+.3f}_z{base[2]:.3f}"
-            f"_s{stack * 1000:.0f}_d{density:.0f}").replace(".", "p")
+            f"_s{stack * 1000:.0f}_d{density:.0f}{'_pgc' if pgc else ''}").replace(".", "p")
 
 
 def scene_for(cache: Path, base, stack: float, density: float = 700.0,
-              src: Path | None = None) -> tuple:
+              src: Path | None = None, pgc: bool = False) -> tuple:
     """Build (or reuse) the arm scene + IK model for one bench geometry.
 
     Every build runs the eight-branch home solve, which is ~10 s, so the cache is not an
@@ -66,13 +66,15 @@ def scene_for(cache: Path, base, stack: float, density: float = 700.0,
     running chains.
     """
     cache.mkdir(parents=True, exist_ok=True)
-    t = _tag(base, stack, density, src)
+    t = _tag(base, stack, density, src, pgc)
     sc, ik = cache / f"{t}.xml", cache / f"{t}_ik.xml"
     if sc.exists() and ik.exists():
         return sc, ik
     cmd = [sys.executable, str(ROOT / "scripts/build_real_v1_arm_scene.py"),
            f"--base={base[0]},{base[1]},{base[2]}", "--wrist-stack", str(stack),
            "--stack-density", str(density), "--out", str(sc), "--ik-out", str(ik)]
+    if pgc:
+        cmd.append("--payload-gravcomp")
     if src is not None:
         cmd += ["--scene", str(src)]
     p = subprocess.run(cmd, capture_output=True, text=True)
@@ -138,7 +140,8 @@ def main() -> int:
     ap.add_argument("--reps", type=int, default=8)
     ap.add_argument("--cycles", type=int, default=8)
     ap.add_argument("--workers", type=int, default=6)
-    ap.add_argument("--arms", default="table,stack,mass,preload,place,place2,torque")
+    ap.add_argument("--arms",
+                    default="table,stack,mass,preload,place,place2,torque,payload,slip,wrist")
     ap.add_argument("--droop-all", action="store_true",
                     help="measure palm droop for every scene in the cache and merge those rows "
                          "in, without running any chains")
@@ -155,17 +158,18 @@ def main() -> int:
             jobs.append({"_tag": tag, "_run": str(RUN), "_meta": dict(meta),
                          "_meta_geom": {k: meta[k] for k in
                                         ("base_x", "base_y", "base_z", "stack_mm",
-                                         "stack_density", "seat")},
+                                         "stack_density", "seat", "pgc")},
                          # The carry is chaotic at the 1e-6 level, so a geometry judged at one
                          # seed is a claim about one carry, not about the geometry.
                          "seed": rep, "jitter": 0.0005, "cycles": args.cycles,
                          "arm_ik": ik, "scene_path": sc, **BASE, **kw})
 
-    def geom(tag, base, stack, density=700.0, src=None, modes=MODES, reps=None, **kw):
-        sc, ik = scene_for(args.cache, base, stack, density, src)
+    def geom(tag, base, stack, density=700.0, src=None, modes=MODES, reps=None, pgc=False,
+             **kw):
+        sc, ik = scene_for(args.cache, base, stack, density, src, pgc)
         meta0 = {"base_x": base[0], "base_y": base[1], "base_z": base[2],
                  "stack_mm": stack * 1000, "stack_density": density,
-                 "seat": src is not None}
+                 "seat": src is not None, "pgc": pgc}
         if sc is None:
             unreachable.append({"arm": tag, **meta0, "why": ik})
             print(f"  {tag} {meta0}: NO HOME POSE")
@@ -210,13 +214,44 @@ def main() -> int:
             for cs in (0.0003, 0.0008, 0.0015, 0.0020):
                 geom("place2", (x, 0.0, 0.0), 0.100, src=seat_src,
                      **{**seat_kw, "carry_squeeze": cs})
+    if "payload" in arms:
+        # A UR5e is told its payload and holds position under it. The whole droop story above
+        # is measured on a model with no payload feedforward at all, so this arm asks whether
+        # the wrist stack costs anything on the robot that actually exists.
+        for s in (0.0, 0.050, 0.100, 0.150):
+            for cs in (0.0003, 0.0008, 0.0015):
+                geom("payload", (-0.50, 0.0, 0.0), s, src=seat_src, pgc=True,
+                     **{**seat_kw, "carry_squeeze": cs})
+    if "slip" in arms:
+        # PREDICT / CONTROL / MEASURE the settle. `hold_steps` is how much of the slip you
+        # allow; `turn_squeeze` is how much of it you suppress; the `turned` seam is where it
+        # is measured from.
+        for tsq in (0.0, 0.0005, 0.0010, 0.0015, 0.0020):
+            for hs in (0, 150, 300, 500, 900):
+                geom("slip", (-0.50, 0.0, 0.0), 0.100, src=seat_src, pgc=True,
+                     modes={"relay": MODES["relay"]}, turn_squeeze=tsq, hold_steps=hs,
+                     **{**seat_kw, "carry_squeeze": 0.0003})
+        # Where the turn's residual tilt comes from: the same sweep with the payload
+        # UNcompensated says how much of it is the wrist sagging rather than the fingers.
+        for pg in (True, False):
+            for hs in (0, 150, 300, 500, 900):
+                geom("wrist", (-0.50, 0.0, 0.0), 0.100, src=seat_src, pgc=pg,
+                     modes={"relay": MODES["relay"]}, hold_steps=hs,
+                     **{**seat_kw, "carry_squeeze": 0.0003})
+    if "torque_grip" in arms:
+        # The drivable load turned out to depend on the grip, not on the handover schedule, so
+        # the two have to be crossed rather than reported separately.
+        for tq in (0.0, 0.008, 0.016):
+            for cs in (0.0003, 0.0008):
+                geom("torque_grip", (-0.50, 0.0, 0.0), 0.100, src=seat_src, screw_torque=tq,
+                     pgc=True, modes={"relay": MODES["relay"]},
+                     **{**seat_kw, "carry_squeeze": cs})
     if "torque" in arms:
-        # On the geometry this study ends up recommending -- the full stack, 425 mm of
-        # standoff, 1.5 mm of carry grip -- so the load is measured on a bench that works
-        # rather than on the marginal one.
+        # On the corrected model -- payload compensated, full stack, published carry grip --
+        # so the load is measured on the robot that exists rather than on one that sags.
         for tq in (0.0, 0.004, 0.008, 0.012, 0.016, 0.020):
-            geom("torque", (-0.425, 0.0, 0.0), 0.100, src=seat_src, screw_torque=tq,
-                 **{**seat_kw, "carry_squeeze": 0.0015})
+            geom("torque", (-0.50, 0.0, 0.0), 0.100, src=seat_src, screw_torque=tq, pgc=True,
+                 **{**seat_kw, "carry_squeeze": 0.0003})
 
     print(f"{len(jobs)} cells on {args.workers} workers, {len(unreachable)} geometries unreachable")
     rows = []
@@ -247,7 +282,7 @@ def main() -> int:
             continue
         seen.add(key)
         g = {k: j["_meta_geom"][k] for k in ("base_x", "base_y", "base_z", "stack_mm",
-                                             "stack_density", "seat")}
+                                             "stack_density", "seat", "pgc")}
         dro.append({"scene": Path(key[0]).name, **g, **droop(Path(key[0]), Path(key[1]))})
     for row in dro:
         print(f"   droop {row['scene'][:46]:48} {row['droop_mm']:6.3f} mm  "

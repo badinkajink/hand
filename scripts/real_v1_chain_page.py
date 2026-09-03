@@ -7,7 +7,7 @@ re-running a study and re-running this is the whole update path. Charts are hand
     uv run --extra rl python scripts/real_v1_chain_page.py \
         --chain docs/experiments/20260903-real_v1_chain \
         --screw docs/experiments/20260903-real_v1_screw \
-        --out   docs/experiments/20260903-real_v1_chain/page.html
+        --out   docs/experiments/20260903-real_v1_chain/20260903-real_v1_chain_and_countersink.html
 """
 from __future__ import annotations
 
@@ -192,7 +192,7 @@ def main() -> int:
     ap.add_argument("--screw", type=Path, default=ROOT / "docs/experiments/20260903-real_v1_screw")
     ap.add_argument("--out", type=Path, default=None)
     args = ap.parse_args()
-    out = args.out or (args.chain / "page.html")
+    out = args.out or (args.chain / "20260903-real_v1_chain_and_countersink.html")
 
     CH = json.loads((args.chain / "chain_study.json").read_text())
     AR = json.loads((args.chain / "arm_study.json").read_text())
