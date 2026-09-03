@@ -164,7 +164,7 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
           stand_order: str = "ground", airgrip: str = "cradle",
           reindex: str = "full", relay_gait: bool = False, track_frac: float = 1.0,
           relay_squeeze: float = 0.0015,
-          tilt_deg: float = 0.0, tilt_dir: float = 0.0,
+          tilt_deg: float = 0.0, tilt_dir: float = 0.0, screw_torque: float = 0.0,
           centre_x: float = 0.004, grip_depth: float = 0.050,
           ring_z: float | None = None,
           stroke_deg: float = 30.0, cycles: int = 8, squeeze: float = 0.002,
@@ -175,7 +175,8 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
           place_xy=None, place_err=(0.0, 0.0), seat_z: float | None = None,
           tip_len: float = 0.0,
           video: Path | None = None, film: Path | None = None,
-          cam=(120.0, -18.0, 0.36), video_every: int = 12, trace: bool = False) -> dict:
+          cam=(120.0, -18.0, 0.36), video_every: int = 12, trace: bool = False,
+          video_size=(640, 480), cam_look=None) -> dict:
     scene = Path(scene_path) if scene_path is not None else \
         morph_run / ("arm_scene.xml" if arm_ik is not None else "frozen_scene.xml")
     pg._MODEL_PATH["path"] = str(scene)
@@ -224,10 +225,14 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
     vid = vcam = None
     frames: list = []
     if video is not None or film is not None:
-        vid = mujoco.Renderer(m, height=480, width=640)
+        vid = mujoco.Renderer(m, height=int(video_size[1]), width=int(video_size[0]))
         vcam = mujoco.MjvCamera()
         mujoco.mjv_defaultFreeCamera(m, vcam)
         vcam.azimuth, vcam.elevation, vcam.distance = cam
+        # The arm scene is 1.5 m across and the task is a 0.1 m corner of it, so the default
+        # free camera frames the robot and renders the hand as a few pixels.
+        if cam_look is not None:
+            vcam.lookat[:] = cam_look
 
     # SUPPORT BOOKKEEPING. Everything after the tool is standing is judged on whether the
     # HAND ever handed it to the world. Armed at the start of the handover and sampled at the
@@ -236,6 +241,28 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
     # where the chain put it is the floor's willingness to leave it there.
     watch = [False]
     sup = {"n": 0, "free": 0, "one": 0, "gnd": 0, "min": 3, "sum": 0}
+
+    # A RESISTING TORQUE ABOUT THE TOOL'S OWN AXIS. A countersink is a friction brake, not a
+    # thread: it gives back mu*N*r and nothing more, so on a plane or in a cone the load the
+    # gait works against is whatever the press happens to buy. `--screw-torque` puts a named
+    # one in, as a COULOMB brake -- it opposes whatever motion there is and does no work when
+    # the tool is still, which is what a thread does and what a constant applied torque does
+    # not (a constant torque spins the tool up the moment the fingers leave it).
+    #
+    # Two forms were tried and BOTH have a failure the other does not, so the probe reports a
+    # guard rather than pretending one of them is safe everywhere. tau = clip(-I w / dt, +-t_r)
+    # is dissipative by construction but useless here: the tool's axial inertia is 1.9e-6 kg
+    # m^2 and dt is 2 ms, so the clip stops binding below 0.002 N m and every torque above that
+    # returns the SAME answer -- the rotation is carried by the pads through contact, not by
+    # the shaft's own momentum, and a brake sized by that momentum cannot oppose it.
+    # -t_r*tanh(w/w0) does oppose it, and is what is used, but a brake that big on a body that
+    # light can overshoot zero inside one step once the tool leaves the pads: at 0.05 N m the
+    # shaft read +/-450 deg/cycle, past the 1.684 gear ceiling, i.e. the brake was pumping it.
+    # `brake_pumped` flags exactly that, and a flagged cell is not a measurement.
+    bid_obj = m.body(obj).id
+    dadr_obj = m.jnt_dofadr[m.body(obj).jntadr[0]]
+    brake = [0.0]
+    BRAKE_W0 = 0.2
 
     def _integrate():
         ax = d.body(obj).xmat.reshape(3, 3)[:, 2]
@@ -248,6 +275,11 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         for k in range(n):
             if before is not None and (every_step or step_i[0] % CONTROL_DECIMATION == 0):
                 before(k)
+            if brake[0] > 0.0:
+                R = d.body(obj).xmat.reshape(3, 3)
+                ax = R[:, 2]
+                w = float(np.dot(R @ d.qvel[dadr_obj + 3:dadr_obj + 6], ax))
+                d.xfrc_applied[bid_obj, 3:6] = -brake[0] * np.tanh(w / BRAKE_W0) * ax
             mujoco.mj_step(m, d)
             _integrate()
             step_i[0] += 1
@@ -607,6 +639,7 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
     # i.e. at atan(12.5/50) = 14.0 deg, the same number the gait study quotes for its stability
     # margin. A seat moves that threshold; so, differently, does never letting go.
     watch[0] = True
+    brake[0] = float(screw_torque)
     if tilt_deg > 0.0:
         bid = m.body(obj).id
         az = np.radians(tilt_dir)
@@ -973,6 +1006,7 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         "track_frac": track_frac, "relay_squeeze_mm": round(relay_squeeze * 1000, 2),
         "hold_ik_mm": None if hold_ik_mm != hold_ik_mm else round(hold_ik_mm, 2),
         "relay_gait": bool(relay_gait), "tilt_deg": tilt_deg, "tilt_dir": tilt_dir,
+        "screw_torque": screw_torque,
         # The support window: from the moment the tool is standing to the end of the gait.
         "sup_steps": sup["n"], "min_pads": None if not sup["n"] else int(sup["min"]),
         "mean_pads": None if not sup["n"] else round(sup["sum"] / sup["n"], 2),
@@ -1012,6 +1046,10 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         "gain_mean_deg": round(float(np.mean(gains)), 2) if gains else 0.0,
         "gain_sd_deg": round(float(np.std(gains)), 2) if gains else 0.0,
         "transmission": round(float(np.mean(gains)) / (gear * stroke_deg), 3) if gains else 0.0,
+        # A brake that pumps instead of resisting shows up as a turn past the no-slip ceiling.
+        # Flagged rather than silently dropped: the flag IS the validity limit of the knob.
+        "brake_pumped": bool(screw_torque > 0.0 and gains
+                             and abs(float(np.mean(gains))) > 1.05 * gear * stroke_deg),
         "final_tilt_deg": round(tilt, 2),
         "final_z": round(float(d.body(obj).xpos[2]), 4),
         # Axial descent through the grasp, per cycle. With the floor there this is ~0; with it
@@ -1130,6 +1168,11 @@ def main() -> int:
                          "cylinder topples past atan(r/half) = 14.0 deg whatever the hand is "
                          "doing elsewhere; this is the knob that stops the probe assuming a "
                          "set-down tool stays where it was set down.")
+    ap.add_argument("--screw-torque", type=float, default=0.0,
+                    help="N.m of Coulomb brake about the tool's own axis, armed once the tool "
+                         "is standing. A cone gives back mu*N*r and no more; this is the load "
+                         "a thread would add on top, and sweeping it to zero turns is the "
+                         "stall torque.")
     ap.add_argument("--tilt-dir", type=float, default=0.0,
                     help="azimuth of that load in world degrees (0 = +x, away from the palm)")
     ap.add_argument("--centre-x", type=float, default=0.004)
@@ -1148,7 +1191,10 @@ def main() -> int:
     ap.add_argument("--jitter", type=float, default=0.0005)
     ap.add_argument("--video", type=Path, default=None)
     ap.add_argument("--film", type=Path, default=None)
-    ap.add_argument("--cam", default="120,-18,0.36")
+    ap.add_argument("--cam", default="120,-18,0.36",
+                    help="azimuth,elevation,distance")
+    ap.add_argument("--cam-look", default=None, help="x,y,z the camera points at")
+    ap.add_argument("--video-size", default="640,480")
     ap.add_argument("--trace", action="store_true")
     ap.add_argument("--out", type=Path, default=None)
     args = ap.parse_args()
@@ -1175,6 +1221,7 @@ def main() -> int:
                           reindex=args.reindex, relay_gait=args.relay_gait,
                           track_frac=args.track_frac, relay_squeeze=args.relay_squeeze,
                           tilt_deg=args.tilt_deg, tilt_dir=args.tilt_dir,
+                          screw_torque=args.screw_torque,
                           centre_x=args.centre_x,
                           grip_depth=args.grip_depth, ring_z=args.ring_z,
                           stroke_deg=args.stroke, cycles=args.cycles, squeeze=args.squeeze,
@@ -1188,7 +1235,10 @@ def main() -> int:
                           transport_iters=args.transport_iters,
                           jitter=args.jitter if rep or args.repeats > 1 else 0.0,
                           seed=rep, video=args.video if rep == 0 else None,
-                          film=args.film if rep == 0 else None, cam=cam, trace=args.trace)
+                          film=args.film if rep == 0 else None, cam=cam, trace=args.trace,
+                          video_size=tuple(int(v) for v in args.video_size.split(",")),
+                          cam_look=(None if args.cam_look is None else
+                                    tuple(float(v) for v in args.cam_look.split(","))))
                 r["rep"] = rep
                 rows.append(r)
                 print(f"{r['run']:22} {r['reindex']:5} {press:6.1f} {r['ring_ik_grip_mm']:7.2f} "
