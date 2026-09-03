@@ -251,7 +251,8 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         ng, fg = _support(m, d, obj)
         ax, tilt = pg._axis_tilt(m, d, obj)
         p = d.body(obj).xpos
-        return {"phase": name, "cos": round(float(d.body(obj).xmat[8]), 4),
+        return {"phase": name, "t": round(step_i[0] * float(m.opt.timestep), 3),
+                "cos": round(float(d.body(obj).xmat[8]), 4),
                 "tilt_deg": round(tilt, 2), "z": round(float(p[2]), 4),
                 "xy_mm": [round(float(p[0]) * 1000, 1), round(float(p[1]) * 1000, 1)],
                 "hand_contacts": nh, "hand_force_N": round(fh, 2),
