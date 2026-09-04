@@ -59,3 +59,49 @@ bench measurements, so it is the only one where a sim claim can be checked again
 `probe_real_v1_carry.carry` and `real_v1_deploy_envelope.execute`.
 `probe_real_v1_chain.chain(anchor_ctrl=...)` takes a fitted grasp by joint name.
 `scripts/real_v1_ranked_slip_study.py`, `scripts/real_v1_ranked_videos.py`.
+
+
+---
+
+## 2026-09-04 17:0x — first pass on the closed loop. It does not reach the shaft.
+
+**Done:** `probe_real_v1_chain.chain(load_target=, load_gain=, reg_band=, reg_every=)` regulates
+per-finger servo load through EVERY phase (ported from `real_v1_deploy_envelope._load_step`; the
+trim is removed before each phase's `before(k)` and re-added after, so a phase that commands only
+some fingers — the relay walks one pad at a time — neither loses it nor double-applies it).
+`scripts/real_v1_chain_hands.py` prepares both sets: base scene -> flat pads -> `_grip_from_fit`
+baked into `open_ik` -> countersink -> UR5e arm scene, then runs the chain at each hand's own cell.
+
+**Set A through the chain, loop off: 0/8 hold the tool at the last commanded turn step, 0/8
+complete.** Turn tilts 68-90 deg. (Set A's own maneuver is the fixed-palm bench carry, where these
+hands score cos 0.75-0.95 — the chain is new to them, so this is not a failure of the ranking.)
+
+**The loop does not fix it, and the reason is not the loop.** On `rv05_manual_b85`, load target
+0/60/120/250/400 units: pad force at the turn stays 0.06-0.11 N and the trim SATURATES at 25.78
+deg (= the 0.45 rad band) at every non-zero target. The regulator is pushing the fingers inward at
+full authority and still not making contact.
+
+**Ablation says the cell is not the cause either.** Same hand, same scene, four cells (its own
+k0.05/-60/b0.85, the chain's k0.25/-90/b0.50, and two crosses): turn 39-69 deg, pad force
+0.11-0.33 N, 1-2 pads in all four. What is common is the GRASP: 2 pads and 1.9 N at the lift,
+decaying to 1 pad and 0.08 N through the turn.
+
+**So the grasp geometry is wrong for this maneuver before the loop ever runs.** The fit
+(`_grip_from_fit`, 10 mm squeeze) is solved for the tool where the design scene puts it and is
+correct on the bench, where the tool is held at working height on a platform. In the chain the
+tool is picked up off a table and then rotated, and the pads end up further from the shaft than
+0.45 rad of joint travel can close. This is the self-extinguishing grip the carry probe already
+documents ("the grip force IS the commanded-minus-actual error; as the shaft creeps down through
+the pads the error shrinks and the force decays to zero", measured 16.1 N -> 0 over 0.8 s).
+
+**NEXT LEVER — a geometric re-anchor, not a load trim.** The bench's own answer to exactly this
+decay is `hold_squeeze`: re-solve each pad's IK target to sit INSIDE the rotated shaft's surface
+and ramp to it. That is a new set-point, not a trim on the old one, which is why the load
+regulator cannot substitute for it. The chain has no equivalent — `turn_squeeze` (added earlier)
+holds a closure THROUGH the turn and is known bad. Port `execute`'s `squeeze_delta` /
+`plan["squeeze_delta"]` path into the chain as a re-grip at the top of the turn, THEN re-run this
+sweep. Widening `reg_band` past 0.45 rad is the cheap thing to try alongside it, but the
+saturation says the gap is geometric.
+
+Artifacts: `docs/experiments/20260904-real_v1_chain_hands/20260904-rv05_manual_b85_chain_load250.mp4`
+and `.png` (filmstrip). Data for the loop-off pass was a smoke run, not kept.
