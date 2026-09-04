@@ -4718,6 +4718,11 @@ is achieved pad force, which is not measured. Valid only to ~20 mN·m (24 g tool
 past that a brake overshoots zero in one timestep and pumps the shaft, flagged as `brake_pumped`.
 
 
+**WRONG POPULATION, WRONG MANEUVER — superseded by the entry below.** The replication that
+follows ran `results/phase1/real_v1/rv0*`, the five-design screening family, through the chain.
+The design study's population is the Sobol-8192 sample, and the chain is not the maneuver any of
+those hands was screened on. Kept for the contact-gate finding, which stands.
+
 **The 8.03 deg is rv05_manual's, not the primitive's** (`real_v1_slip_study.py`, 880 rollouts,
 `docs/experiments/20260904-real_v1_slip/slip_study.json`). Every `real_v1` design with a CEM
 grasp got the identical commanded chain — same turn schedule, same ±0.5 rad budget, same 0.3 mm
@@ -4751,3 +4756,49 @@ This is a transfer test of one tuned cell, not a design ranking: `angle_deg`, `a
 ±0.5 rad budget were fitted on rv05_manual, and the rotation-axis height relative to the contacts
 is what decided whether a `real_v1` hand reoriented at all in the 2026-08-28 search. Next: one
 axis refit per design, then rerun this table.
+
+
+### 2026-09-04 — the ranked hands
+
+**The 8.03 deg is not in the ranked population's range at all** (`real_v1_ranked_slip_study.py`,
+640 rollouts, `docs/experiments/20260904-real_v1_ranked/ranked_slip.json`). Population =
+`20260831-real_v1-sobol8192`: 8,192 sampled, 535 selected, 227 confirmed, **8 promoted** across 6
+distinct designs. Every hand runs at ITS OWN operating point (straddle, thumb-axial, fitted grip
+depth, residual clip, from the confirmed design table + `promotion.json`) through the screen's own
+`real_v1_deploy_envelope.make_plan` + `.execute`, on the bench scene its plan names, with the
+stage-D retention config of `real_v1_sobol8192.sh`.
+
+**Validated first.** 6 of the 6 tags that have a confirmation at their clip reproduce `nom_cos` to
+three decimals (0.830/0.830, 0.828/0.828, 0.825/0.825, 0.948/0.948, 0.749/0.749, 0.869/0.869). The
+other two promoted tags are the same designs at a different clip and have no confirmation cell.
+
+| tag | pad force | tilt at the turn | sd | after the 2500-step hold | settle |
+|---|---|---|---|---|---|
+| sv1_u5860_b070 | 7.2 N | 17.4 | 2.5 | 34.1 | **-16.7** |
+| sv1_w7583_b130 | 2.9 N | 24.7 | 10.0 | 29.6 | -4.9 |
+| sv1_w6689_b050 | 12.1 N | 45.3 | 0.5 | 41.5 | +3.8 |
+| sv1_w5120_b070 | 3.3 N | 48.3 | 0.5 | 18.5 | **+29.8** |
+| sv1_u5855_b050 | 2.1 N | 49.8 | 1.0 | 33.9 | +15.9 |
+| sv1_u7952_b050 | 1.9 N | 55.9 | 5.8 | 30.7 | +25.2 |
+
+All 8 hold the tool 5/5 through turn and hold — selection bought retention, and the failure mode
+on this population is ALIGNMENT, not dropping. Turn tilt spans 17.4-55.9 deg and seed spread
+0.48-9.96 deg, against rv05_manual's 8.03 / 0.42.
+
+**The settle is the larger term here and its sign is a property of the hand**: +29.8 deg on one,
+-16.7 on another, from the same commanded schedule. It is not finished at 900 steps on any hand,
+so "best at 150 steps" was also rv05-specific.
+
+**Neither knob controls it.** The deployed maneuver's own hold-phase load regulator (250 units)
+moves the settled tilt by at most 1.87 deg on any hand — it is gravity through a decayed grip, and
+the one closed loop in the maneuver does not reach it. `hold_squeeze` at 2 mm leaves every hand
+further from vertical than none, which is the single claim that survives from the one-hand study;
+but unlike on the chain it does not destroy the maneuver (5/5 still complete).
+
+**GOTCHA — the maneuver has to be the screened one.** Rebuilding it out of `probe_real_v1_carry`
+on a flat table with a palm lift (the chain's geometry) put every ranked hand at 78-89 deg of
+residual tilt. That measures the substitution. Always replay through the screen's own planner.
+
+New instrumentation: `turn_tilt_deg` / `settle_deg` at the last commanded turn step in BOTH
+`probe_real_v1_carry.carry` and `real_v1_deploy_envelope.execute` — neither could previously
+separate the commanded turn from the settle.

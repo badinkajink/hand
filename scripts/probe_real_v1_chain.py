@@ -172,6 +172,7 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
           release_mm: float = 6.0, twist_steps: int = 120, move_steps: int = 60,
           approach_steps: int = 200, pad_radius: float | None = None,
           jitter: float = 0.0, seed: int = 0, no_floor_gait: bool = False,
+          anchor_ctrl: dict | None = None,
           arm_ik: Path | None = None, scene_path: Path | None = None,
           place_xy=None, place_err=(0.0, 0.0), seat_z: float | None = None,
           tip_len: float = 0.0,
@@ -205,9 +206,14 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         adr = m.jnt_qposadr[m.body(obj).jntadr[0]]
         d.qpos[adr + 0] += float(rng.normal(0.0, jitter))
         d.qpos[adr + 1] += float(rng.normal(0.0, jitter))
-    closed = np.load(morph_run / "best_rollout.npz")["best_finger_ctrl"]
-    anchor = {j: float(closed[i * 3 + k])
-              for i, (f, js) in enumerate(FINGERS.items()) for k, j in enumerate(js)}
+    if anchor_ctrl is not None:
+        # A Sobol-sampled hand has no CEM run: its grasp comes from `_grip_from_fit`, keyed by
+        # joint name because the fit is solved on the design scene and replayed on the arm one.
+        anchor = {j: float(anchor_ctrl[j]) for js in FINGERS.values() for j in js}
+    else:
+        closed = np.load(morph_run / "best_rollout.npz")["best_finger_ctrl"]
+        anchor = {j: float(closed[i * 3 + k])
+                  for i, (f, js) in enumerate(FINGERS.items()) for k, j in enumerate(js)}
 
     acts = _finger_act(m)
     palm = pd.make(m, d, arm_ik)

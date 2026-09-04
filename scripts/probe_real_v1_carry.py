@@ -537,6 +537,16 @@ def carry(scene: Path, lift: float, turn_steps: int, hold_steps: int, angle: flo
                          "z": round(float(d.body(obj).xpos[2]), 4),
                          "contacts": n, "force_N": round(fo, 2)})
 
+    # The turn's own product, before any hold. `peak_cos`/`final_cos` are taken after the hold
+    # loop, so until now there was no way to say how much of the alignment the COMMAND produced
+    # and how much was the shaft settling inside the grasp afterwards.
+    _nh_t, _fh_t = _contacts_hand(m, d, obj)
+    turn_snap = {"turn_cos": round(_cos(m, d, obj), 4),
+                 "turn_tilt_deg": round(float(np.degrees(np.arccos(
+                     np.clip(abs(_cos(m, d, obj)), -1.0, 1.0)))), 2),
+                 "turn_z": round(float(d.body(obj).xpos[2]), 4),
+                 "turn_contacts_hand": _nh_t, "turn_force_hand_N": round(_fh_t, 2)}
+
     # RE-SQUEEZE AT THE TOP. The turn ends with the pads high on the shaft where the surface
     # curves away from them, and these are position servos: the grip force IS the commanded-
     # minus-actual error, so as the shaft creeps down through the pads the error shrinks and the
@@ -609,13 +619,19 @@ def carry(scene: Path, lift: float, turn_steps: int, hold_steps: int, angle: flo
                  hold_ctrl=np.asarray([final_ctrl[j] for js in FINGERS.values() for j in js],
                                       dtype=np.float32),
                  hold_qpos=d.qpos.copy(), hold_full_ctrl=d.ctrl.copy())
+    _final_tilt = float(np.degrees(np.arccos(np.clip(abs(_cos(m, d, obj)), -1.0, 1.0))))
     return {
         "run": label or (morph_run.name if morph_run else scene.stem[:18]),
-        "lift": lift, "turn_steps": turn_steps,
+        "lift": lift, "turn_steps": turn_steps, "hold_steps": hold_steps,
         "angle_deg": round(np.degrees(angle), 1), "axis_shift_mm": axis_shift * 1000,
         "budget_rad": budget, "axis_k": axis_k,
         "hold_squeeze_mm": hold_squeeze * 1000,
         "axis_height_mm": round(axis_k * span * 1000, 1),
+        **turn_snap,
+        # How much alignment the HOLD added on top of the commanded turn. Negative = the shaft
+        # settled upright by itself; positive = it fell back out.
+        "final_tilt_deg": round(_final_tilt, 2),
+        "settle_deg": round(turn_snap["turn_tilt_deg"] - _final_tilt, 2),
         "start_cos": round(start["cos"], 3), "start_z": round(start["z"], 4),
         "peak_cos": round(peak, 3), "final_cos": round(_cos(m, d, obj), 3),
         "final_z": round(z, 4), "contacts": n, "force_N": round(fo, 2),
