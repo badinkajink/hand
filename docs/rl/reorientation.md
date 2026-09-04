@@ -4717,3 +4717,37 @@ arm at 1.5 mm of commanded grip, so the two do not compare as grip settings — 
 is achieved pad force, which is not measured. Valid only to ~20 mN·m (24 g tool, 1.9e-6 kg·m²):
 past that a brake overshoots zero in one timestep and pumps the shaft, flagged as `brake_pumped`.
 
+
+**The 8.03 deg is rv05_manual's, not the primitive's** (`real_v1_slip_study.py`, 880 rollouts,
+`docs/experiments/20260904-real_v1_slip/slip_study.json`). Every `real_v1` design with a CEM
+grasp got the identical commanded chain — same turn schedule, same ±0.5 rad budget, same 0.3 mm
+carry grip, same seat, its own grasp. Of 10 designs, **3** still hold the tool at the last
+commanded turn step (≥2 pads, tool above 80 mm), **2** finish the chain in any seed and **1**
+finishes it in every seed:
+
+| design | holds | pad force | tilt at the turn | sd | chain |
+|---|---|---|---|---|---|
+| rv00_wide_sp40 | 8/8 | 0.5 N | 48.44 | 2.63 | 0/8 |
+| rv03_narrowy_sp40 | 8/8 | 23.0 N | 39.94 | 4.12 | 1/8 |
+| rv05_manual | 8/8 | 12.9 N | **8.03** | **0.42** | 8/8 |
+
+The other seven never reach the seam holding the tool. The seed spread on the two hands that do
+is 6–10× rv05's, and the settle's *direction* does not replicate either: rv05 improves to 6.76 at
+150 steps then degrades, rv00 improves to 41.9 at 150 and is lying flat (90.0) by 900, rv03 is
+monotonically worse (39.9 → 51.1).
+
+**A contact gate is mandatory on any tilt read.** `rv04_mid_sp40` drops the shaft during the turn
+and the shaft lands in the countersink, which is vertical by construction: 5 of 8 seeds report
+8.0–28.9 deg (mean 12.4) at the seam with **zero pads** on the tool and z = 51 mm. On tilt alone
+it beats the hand that actually turned it. `held_turn` = 2 pads and z > 80 mm. The same
+substitution is needed in the scorecard and in the AprilTag read, where a seated tool and a held
+one are equally vertical to the camera.
+
+What *does* replicate: `--turn-squeeze` is not a control on any hand (0/8 at every non-zero
+closure, tilt worse on both hands that turn). And declaring the payload buys the grasp, not only
+the alignment — rv03_narrowy_sp40 holds through the turn in 1/8 seeds undeclared and 8/8 declared.
+
+This is a transfer test of one tuned cell, not a design ranking: `angle_deg`, `axis_k` and the
+±0.5 rad budget were fitted on rv05_manual, and the rotation-axis height relative to the contacts
+is what decided whether a `real_v1` hand reoriented at all in the 2026-08-28 search. Next: one
+axis refit per design, then rerun this table.

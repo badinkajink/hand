@@ -70,11 +70,16 @@ def main() -> int:
     ap.add_argument("--data", type=Path,
                     default=ROOT / "docs/experiments/20260904-real_v1_bench")
     ap.add_argument("--out", type=Path, default=None)
+    ap.add_argument("--slip", type=Path,
+                    default=ROOT / "docs/experiments/20260904-real_v1_slip/slip_study.json")
     args = ap.parse_args()
     D = args.data
     out = args.out or (D / "20260904-real_v1_bench_geometry.html")
     blob = json.loads((D / "bench_study.json").read_text())
     rows, dro = blob["rows"], blob["droop"]
+    # The multi-hand replication of the slip claim lives in its own dated folder because it is
+    # its own study; the page reads it because it qualifies a claim this page makes.
+    srows = json.loads(args.slip.read_text())["rows"] if args.slip.exists() else []
 
     gk = lambda r: (round(r.get("base_x", 0), 3), round(r.get("base_y", 0), 3),
                     round(r.get("base_z", 0), 3), round(r.get("stack_mm", 0)),
@@ -117,6 +122,34 @@ def main() -> int:
            for g in (True, False) for h in HOLD}
     tqg = {(q, c): agg(sel(rows, arm="torque_grip", screw_torque=q, carry_squeeze_mm=c))
            for q in (0.0, 0.008, 0.016) for c in (0.30, 0.80)}
+
+    # ---- the multi-hand replication -------------------------------------------------------
+    # `held_turn` is two pads on the tool and the tool still in the air at the last commanded
+    # turn step. Without that gate a hand that DROPS the tool into the countersink reports a
+    # near-perfect tilt, because a tool standing in its seat is vertical.
+    def hagg(g):
+        h = [r for r in g if r.get("held_turn")]
+        f = lambda k: [float(r.get(k) or 0.0) for r in h]
+        sd = lambda v: st.pstdev(v) if len(v) > 1 else 0.0
+        return {"n": len(g), "held": len(h), "k": sum(1 for r in g if r.get("ok")),
+                "turned": st.mean(f("tilt_turned_deg")) if h else float("nan"),
+                "turned_sd": sd(f("tilt_turned_deg")) if h else float("nan"),
+                "settled": st.mean(f("tilt_settled_deg")) if h else float("nan"),
+                "settled_sd": sd(f("tilt_settled_deg")) if h else float("nan"),
+                "force": st.mean(f("force_turned_N")) if h else float("nan")}
+
+    DSN = sorted({r["design"] for r in srows}) if srows else []
+    SH = (0, 150, 300, 500, 900)
+    mh = {(d, h): hagg([r for r in srows if r["arm"] == "settle" and r["design"] == d
+                        and r["hold_steps_m"] == h]) for d in DSN for h in SH}
+    mq = {(d, q): hagg([r for r in srows if r["arm"] == "squeeze" and r["design"] == d
+                        and abs(r["turn_squeeze_m"] - q) < 1e-9])
+          for d in DSN for q in (0.0005, 0.0010, 0.0020)}
+    # A hand counts as reaching the turn if it holds the tool at that seam in every seed.
+    mw = {(d, h): hagg([r for r in srows if r["arm"] == "wrist" and r["design"] == d
+                        and r["hold_steps_m"] == h]) for d in DSN for h in (0, 300, 900)}
+    HOLDERS = [d for d in DSN if mh[(d, 0)]["held"] == mh[(d, 0)]["n"] and mh[(d, 0)]["n"]]
+    CHAINERS = [d for d in DSN if max(mh[(d, h)]["k"] for h in SH) > 0]
 
     # ---- the collapse: every geometry's BEST cell, against its droop -----------------------
     # Each of the three geometry knobs (stack length, stack mass, standing distance) moves palm
@@ -167,6 +200,17 @@ def main() -> int:
         PUMPED_AT=", ".join(sorted({f'{r["screw_torque"] * 1000:.0f} mN&middot;m in the '
                                     f'{"relay" if r["mode"] == "relay" else "release"} arm'
                                     for r in rows if r.get("brake_pumped")})) or "none",
+        MH_N=len(DSN), MH_HELD=len(HOLDERS), MH_CHAIN=len(CHAINERS),
+        MH_FALSE_MIN=f'{min([r["tilt_turned_deg"] for r in srows if r["arm"] == "settle" and r["design"] == "rv04_mid_sp40" and r["hold_steps_m"] == 300 and (r.get("pads_turned") or 0) == 0 and r["tilt_turned_deg"] < 20]):.1f}' if srows else "",
+        MH_FALSE=f'{st.mean([r["tilt_turned_deg"] for r in srows if r["arm"] == "settle" and r["design"] == "rv04_mid_sp40" and r["hold_steps_m"] == 300 and (r.get("pads_turned") or 0) == 0 and r["tilt_turned_deg"] < 20]):.1f}' if srows else "",
+        MH_FALSE_N=sum(1 for r in srows if r["arm"] == "settle" and r["design"] == "rv04_mid_sp40" and r["hold_steps_m"] == 300 and (r.get("pads_turned") or 0) == 0 and r["tilt_turned_deg"] < 20),
+        MH_FALSE_Z=f'{st.mean([(r.get("z_turned") or 0) * 1000 for r in srows if r["arm"] == "settle" and r["design"] == "rv04_mid_sp40" and r["hold_steps_m"] == 300 and (r.get("pads_turned") or 0) == 0 and r["tilt_turned_deg"] < 20]):.0f}' if srows else "",
+        MH_LIST=" and ".join(f'<code>{d.replace("_stored", "")}</code> at '
+                             f'{mh[(d, 0)]["turned"]:.0f}&#176;'
+                             for d in HOLDERS if "rv05" not in d),
+        MH_REP=sum(1 for d in DSN if max(mh[(d, h)]["k"] for h in SH) == mh[(d, 0)]["n"]),
+        MH_SDW=f'{max(mh[(d, 0)]["turned_sd"] for d in HOLDERS if "rv05" not in d):.1f}',
+        MH_SDB=f'{min(mh[(d, 0)]["turned_sd"] for d in HOLDERS if "rv05" not in d):.1f}',
     )
 
     # ------------------------------------------------------------------ charts
@@ -212,6 +256,17 @@ def main() -> int:
                     B, "5 4", 1, -16)],
                   "extra radial closure held through the turn (mm)",
                   "tool tilt from vertical (deg)", 2.0, 95)
+    COL = {0: A, 1: B, 2: REF}
+    # label anchors chosen per curve: the three settle curves cross, and parity-picked offsets
+    # put two labels 17 px apart on the same x.
+    MHLAB = [(3, 22), (1, 22), (3, -14)]
+    c_mh = lines([(d.replace("_stored", ""),
+                   [(h, mh[(d, h)]["settled"]) for h in SH], COL[i % 3],
+                   None if i == 0 else "5 4", *MHLAB[i % 3])
+                  for i, d in enumerate(sorted(HOLDERS, key=lambda d: mh[(d, 0)]["turned"]))],
+                 "settling steps after the last commanded turn step",
+                 "tool tilt from vertical (deg)", 900, 95) if HOLDERS else ""
+
     c_tq = lines([("relay", [(t * 1000, pct(tq[(t, "relay")])) for t in TQ], A, None, 2, 22),
                   ("release", [(t * 1000, pct(tq[(t, "release")])) for t in TQ], B, "5 4",
                    0, -14)],
@@ -278,6 +333,34 @@ def main() -> int:
            + okcell(slp[(q, 150)]["k"], slp[(q, 150)]["n"])
            + okcell(slp[(q, 500)]["k"], slp[(q, 500)]["n"]), q == 0.0)
         for q in TSQ)
+
+    nan = lambda v, f="{:.2f}": ('<td class="num">&mdash;</td>' if v != v else num(v, f))
+    HORD = sorted(HOLDERS, key=lambda d: mh[(d, 0)]["turned"])
+    TH_MHH = "".join(f'<th class="num">{d.replace("_stored", "")}</th><th class="num">sd</th>'
+                     for d in HORD)
+    TH_MHQ = "".join(f'<th class="num">{d.replace("_stored", "")}</th><th class="num">ok</th>'
+                     for d in HORD)
+    t_mh = "".join(
+        tr(f'<td><code>{d.replace("_stored", "")}</code></td>'
+           + f'<td class="num">{mh[(d, 0)]["held"]}/{mh[(d, 0)]["n"]}</td>'
+           + nan(mh[(d, 0)]["force"], "{:.1f}") + nan(mh[(d, 0)]["turned"])
+           + nan(mh[(d, 0)]["turned_sd"])
+           + nan(min((mh[(d, h)]["settled"] for h in SH), default=float("nan")))
+           + okcell(max(mh[(d, h)]["k"] for h in SH), mh[(d, 0)]["n"]), "rv05" in d)
+        for d in DSN)
+
+    t_mhh = "".join(
+        tr(f'<td class="num">{h}</td>'
+           + "".join(nan(mh[(d, h)]["settled"]) + nan(mh[(d, h)]["settled_sd"])
+                     for d in sorted(HOLDERS, key=lambda d: mh[(d, 0)]["turned"])), h == 150)
+        for h in SH)
+
+    t_mhq = "".join(
+        tr(f'<td class="num">{q * 1000:.1f}</td>'
+           + "".join(nan(mq[(d, q)]["turned"])
+                     + okcell(mq[(d, q)]["k"], mq[(d, q)]["n"])
+                     for d in sorted(HOLDERS, key=lambda d: mh[(d, 0)]["turned"])))
+        for q in (0.0005, 0.0010, 0.0020))
 
     t_tqg = "".join(
         tr(f'<td class="num">{q * 1000:.0f}</td>'
@@ -451,7 +534,8 @@ contributions were reported as one number.</p>
 been told its payload the turn ends {K["TURN_U"]}&#176; off vertical and the hold pulls it back
 to {K["SETTLE_U"]}&#176;. On the same arm with the payload declared the turn ends
 <b>{K["TURN_C"]}&#176;</b> off vertical, with a spread of {K["SD_C"]}&#176; across spawn jitter,
-and the hold then makes it worse.</p>
+and the hold then makes it worse. Everything in this section is <code>rv05_manual</code>; the
+next section runs the same measurement on every other hand, and neither number survives.</p>
 
 <div class="tw"><table>
 <thead><tr><th class="num">settling steps</th><th class="num">seconds</th>
@@ -492,11 +576,75 @@ about a horizontal axis, so the vane tag stays in the camera's view for the whol
 gait, where the shaft spins about the vertical and a single tag leaves view within about
 60&#176;.</p>
 
-<p>So the practical answer is that the settle is not needed once the payload is declared. It was
-worth 23&#176; on a sagging wrist and it is worth nothing on a stiff one, where the hand delivers
-{K["TURN_C"]}&#176; directly and repeatably. The remaining use for the <code>turned</code> seam is
-as a monitor: it separates a hand that reoriented the tool from a wrist that dropped it into
-place.</p>
+<p>So on this hand the settle is not needed once the payload is declared. It was worth 23&#176;
+on a sagging wrist and it is worth nothing on a stiff one, where <code>rv05_manual</code>
+delivers {K["TURN_C"]}&#176; directly and repeatably. The remaining use for the
+<code>turned</code> seam is as a monitor: it separates a hand that reoriented the tool from a
+wrist that dropped it into place, and the next section is what that gate is for.</p>
+</div></section>
+
+<section><div class="col">
+<h2>The same turn on ten hands</h2>
+<p class="sub">the published cell, unretuned, on every <code>real_v1</code> design that has a
+CEM grasp &mdash; {K["MH_N"]} designs &times; 88 rollouts</p>
+
+<p>Every number above was measured on one morphology. Each design was given the identical
+commanded chain &mdash; same turn schedule, same &plusmn;0.5&nbsp;rad budget, same 0.3&nbsp;mm
+carry grip, same seat, its own CEM grasp &mdash; and the turn was read at the same seam. Of
+{K["MH_N"]} designs, <b>{K["MH_HELD"]}</b> still have the tool in the air with at least two pads
+on it at the last commanded turn step, {K["MH_CHAIN"]} finish the chain in at least one seed, and
+<b>{K["MH_REP"]}</b> finishes it in every seed.</p>
+
+<div class="callout"><div class="lab">why the seam needs a contact gate</div>
+<p>In {K["MH_FALSE_N"]} of 8 seeds <code>rv04_mid_sp40</code> reaches that seam with zero pads on
+the tool and the tool sitting at z&nbsp;=&nbsp;{K["MH_FALSE_Z"]}&nbsp;mm, the depth of the
+countersink. It dropped the shaft during the turn and the shaft landed in its seat, which is
+vertical by construction, so the seam reads {K["MH_FALSE_MIN"]}&#176; of tilt at best and
+{K["MH_FALSE"]}&#176; on average &mdash; a better number than the hand that actually turned it.
+<code>held_turn</code>, two pads and the tool above 80&nbsp;mm, is what separates the two.</p></div>
+
+<div class="tw"><table>
+<thead><tr><th>design</th><th class="num">holds</th><th class="num">pad force (N)</th>
+<th class="num">tilt (&#176;)</th><th class="num">sd</th>
+<th class="num">best settled (&#176;)</th><th class="num">chain</th></tr></thead>
+<tbody>{t_mh}</tbody></table></div>
+
+<p>Of the three hands that hold the tool, only <code>rv05_manual</code> turns it upright. The
+other two stop at {K["MH_LIST"]}, with a seed spread of {K["MH_SDB"]}&ndash;{K["MH_SDW"]}&#176;
+against {K["SD_C"]}&#176;. The 8&#176; and its {K["SD_C"]}&#176; belong to that hand.</p>
+
+<div class="tw"><table>
+<thead><tr><th class="num">settling steps</th>{TH_MHH}</tr></thead>
+<tbody>{t_mhh}</tbody></table></div>
+
+<figure>{c_mh}<figcaption>Tilt from vertical after the turn, mean of 8 seeds. Settling helps for
+150 steps on two hands of three and never on the third, and past that it is a slow fall:
+<code>rv00_wide_sp40</code> is lying flat by 900.</figcaption></figure>
+
+<p>What does replicate is that closure through the turn is not the control. At every non-zero
+squeeze, on every hand, nothing completes; on both hands that turn the tool at all, the commanded
+tilt gets worse rather than better.</p>
+
+<div class="tw"><table>
+<thead><tr><th class="num">closure through the turn (mm)</th>{TH_MHQ}</tr></thead>
+<tbody>{t_mhq}</tbody></table></div>
+
+<p>One result from the payload sweep does carry across hands, and it is about the grasp rather
+than the tilt. On an arm that has not been told its payload
+<code>rv03_narrowy_sp40</code> holds the tool through the turn in
+{mw[("rv03_narrowy_sp40", 0)]["held"]} of {mw[("rv03_narrowy_sp40", 0)]["n"]} seeds; declaring it
+takes that to {mh[("rv03_narrowy_sp40", 0)]["held"]} of
+{mh[("rv03_narrowy_sp40", 0)]["n"]}. <code>rv00_wide_sp40</code> and <code>rv05_manual</code> hold
+in both. The sag costs some hands the tool, not just the alignment.</p>
+
+<p>This is a transfer test of one tuned cell, not a design ranking. The turn angle, the axis
+fraction and the &plusmn;0.5&nbsp;rad budget were all fitted on <code>rv05_manual</code>, and the
+height of the rotation axis relative to the contacts is the variable that decided whether a
+<code>real_v1</code> hand reoriented at all in the 2026-08-28 search. So the table says the
+8&#176; is a property of this hand and this fit; it does not say the other nine cannot reorient
+with a fit of their own. What would settle that is one axis refit per design &mdash;
+<code>--axis-k</code> and the anchor height, the same two knobs the reorient-mechanism study
+swept &mdash; and this table rerun on the refits.</p>
 </div></section>
 
 <section><div class="col">
@@ -551,17 +699,20 @@ torque a wrench can read.</p></div>
 <h2>Next measurements</h2>
 
 <ol>
-<li><b>Caliper the wrist stack and weigh it.</b> 100&nbsp;mm and 40&nbsp;mm radius are
-placeholders. Measure flange face to first yaw axis, and the assembly's mass and centre. Both go
-straight into <code>--wrist-stack</code> and <code>--stack-density</code>; the whole study
-re-runs in about 35&nbsp;minutes. The result above says the numbers will not change the answer,
-which is itself the thing to confirm.</li>
+<li><b>Refit the turn per design and rerun the ten-hand table.</b> The axis fraction
+<code>--axis-k</code>, the turn angle and the anchor height were fitted on
+<code>rv05_manual</code>, so the {K["MH_N"]}-hand result measures transfer of one fit, not the
+hands. Sweep those two knobs per design the way
+<code>docs/experiments/20260828-real_v1_reorient</code> did, then re-read the
+<code>turned</code> seam. Until that runs, the 8&#176; is a one-hand number and nothing in this
+page says a second hand can reach it.</li>
 
-<li><b>Confirm the payload is actually declared on the real robot.</b> Everything here turns on
-it. Read back <code>get_target_payload()</code> on the controller and compare the arm's sag under
-the hand at the top of the lift against the {DR[(-0.5, 0.0, 0.0, 100, 700)]:.2f}&nbsp;mm the
-undeclared model predicts. If the bench robot has not been configured, the droop section is the
-operative one and the mount has to move to 425&nbsp;mm.</li>
+<li><b>Put the contact gate in every tilt report.</b> A tool dropped into a countersink reads
+vertical, and <code>rv04_mid_sp40</code> scores better than <code>rv05_manual</code> on tilt
+alone. <code>held_turn</code> (two pads, tool above 80&nbsp;mm) is one line in
+<code>probe_real_v1_chain</code>; the same substitution belongs in the scorecard and in the
+bench&rsquo;s AprilTag read, where a seated tool and a held one are equally vertical to the
+camera.</li>
 
 <li><b>Cross the thread load with the grip.</b> The drivable torque moved from 4&ndash;12 to
 20&nbsp;mN&middot;m when the commanded grip went 0.3&nbsp;&rarr;&nbsp;1.5&nbsp;mm, but those two
