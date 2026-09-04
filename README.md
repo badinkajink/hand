@@ -12,7 +12,7 @@ finger, on SCS0009 servos.
 The simulator's older generator also treats phalange length as a morphology parameter. The platform
 does not. Hardware morphology is the six gantry coordinates.
 
-The paper is [`paper/hand_iros26-4.pdf`](paper/hand_iros26-4.pdf).
+The paper can be found at [`sr2-hand.github.io`](sr2-hand.github.io).
 
 ---
 
