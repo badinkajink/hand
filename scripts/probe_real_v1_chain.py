@@ -88,6 +88,55 @@ def _rigid_palm_pose(m, d, obj: str, R_des: np.ndarray, p_des: np.ndarray):
     return dR @ R_palm, p_des + dR @ (p_palm - p_obj)
 
 
+def _pad_frame(m, d, obj: str) -> dict:
+    """Each pad's ACHIEVED station and radius in the shaft's own frame, mm-free (metres).
+
+    station = signed distance along the shaft's long axis from its centre; radius = distance
+    from the axis. Together they say where on the shaft the pad is sitting, which is the
+    quantity that changes when the shaft slides through a grip rather than when the grip
+    loosens.
+    """
+    o = d.body(obj).xpos.copy()
+    ax = d.body(obj).xmat.reshape(3, 3)[:, 2]
+    out = {}
+    for f in FINGERS:
+        rel = d.body(TIPS[f]).xpos - o
+        sst = float(rel @ ax)
+        v = rel - sst * ax
+        out[f] = (sst, float(np.linalg.norm(v)))
+    return out
+
+
+def _regrasp_cmd(m, mik, dik, d, obj: str, acts: dict, ref: dict) -> dict:
+    """Put every pad back where it was in the SHAFT's frame, from the commanded pose.
+
+    `_squeeze_cmd` presses each pad `depth` further in along the current radius. That restores
+    force but not position: if the shaft has slid axially through the grasp -- which is what a
+    41 N grip decaying to 0.33 N over a lift actually is -- pressing harder holds the shaft in
+    its new, wrong place. This drives each pad back to the (station, radius) it held at closure,
+    so the correction is where the pad went rather than how hard it is pushing.
+    """
+    o = d.body(obj).xpos.copy()
+    ax = d.body(obj).xmat.reshape(3, 3)[:, 2]
+    dik.qpos[:] = d.qpos
+    for a_i in range(m.nu):
+        jid = m.actuator_trnid[a_i, 0]
+        if jid >= 0 and m.jnt_type[jid] in (mujoco.mjtJoint.mjJNT_HINGE,
+                                            mujoco.mjtJoint.mjJNT_SLIDE):
+            dik.qpos[mik.jnt_qposadr[jid]] = float(d.ctrl[a_i])
+    dik.qvel[:] = 0.0
+    mujoco.mj_forward(mik, dik)
+    for f in FINGERS:
+        rel = dik.body(TIPS[f]).xpos - o
+        v = rel - float(rel @ ax) * ax
+        n = float(np.linalg.norm(v))
+        if n < 1e-6:
+            continue
+        s_ref, r_ref = ref[f]
+        ik_finger(mik, dik, f, o + s_ref * ax + r_ref * (v / n), iters=200)
+    return {j: float(dik.qpos[mik.jnt_qposadr[mik.joint(j).id]]) for j in acts}
+
+
 def _squeeze_cmd(m, mik, dik, d, obj: str, acts: dict, depth: float) -> dict:
     """Push every pad `depth` further into the shaft, radially, FROM THE COMMANDED POSE.
 
@@ -175,6 +224,7 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
           anchor_ctrl: dict | None = None,
           load_target: float = 0.0, load_gain: float = 0.0024, reg_band: float = 0.45,
           reg_every: int = 5, force_target: float = 0.0, force_gain: float = 0.0015,
+          regrasp: bool = False, regrasp_steps: int = 150,
           arm_ik: Path | None = None, scene_path: Path | None = None,
           place_xy=None, place_err=(0.0, 0.0), seat_z: float | None = None,
           tip_len: float = 0.0,
@@ -380,6 +430,7 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
 
     # ---------------------------------------------------------------- 1. grasp, lift, settle
     _run(250)
+    pad_ref = _pad_frame(m, d, obj)          # where the pads sit once the grasp has settled
     R_c, p_c = palm.cmd_pose()
     u0 = palm.read()
     u1 = palm.solve(R_c, p_c + np.array([0.0, 0.0, lift]))[0]
@@ -387,6 +438,21 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
     _run(200)
     seams.append(_snap("lifted"))
     _shot()
+
+    # THE PADS MOVED, SO PUT THEM BACK. The grasp closes at ~41 N and is holding 0.33 N by the
+    # top of the lift: the shaft creeps through the pads, the position error that IS the grip
+    # force bleeds away, and every phase after this is measured through a grasp that has already
+    # collapsed. One extra set-point, still open loop, referenced to where each pad sat in the
+    # shaft's frame at closure rather than to how hard it was pushing.
+    if regrasp:
+        rg = _regrasp_cmd(m, mik, dik, d, obj, acts, pad_ref)
+        st = {j: float(d.ctrl[a]) for j, a in acts.items()}
+        _run(regrasp_steps,
+             lambda k: [d.ctrl.__setitem__(a, st[j] + (rg[j] - st[j]) * (k + 1) / regrasp_steps)
+                        for j, a in acts.items()], every_step=True)
+        _run(100)
+        seams.append(_snap("regrasped_lift"))
+        _shot()
 
     # ------------------------------------------------------------------------- 2. the carry
     # Verbatim `probe_real_v1_carry.py --linear-anchor`: the pivot is raised axis_k half-straddles
@@ -1078,6 +1144,7 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         "gap_mm": gap * 1000, "press_mm": press_mm, "grip_depth": grip_depth,
         "carry_squeeze_mm": carry_squeeze * 1000,
         "load_target": load_target, "force_target": force_target, "reg_band": reg_band,
+        "regrasp": bool(regrasp),
         "trim_max_deg": round(float(np.degrees(max(abs(v) for v in trim.values()))), 2),
         "turn_squeeze_mm": turn_squeeze * 1000,
         # The controlled slip, in degrees of alignment the hand did not command.
