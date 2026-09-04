@@ -173,6 +173,8 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
           approach_steps: int = 200, pad_radius: float | None = None,
           jitter: float = 0.0, seed: int = 0, no_floor_gait: bool = False,
           anchor_ctrl: dict | None = None,
+          load_target: float = 0.0, load_gain: float = 0.0024, reg_band: float = 0.45,
+          reg_every: int = 5,
           arm_ik: Path | None = None, scene_path: Path | None = None,
           place_xy=None, place_err=(0.0, 0.0), seat_z: float | None = None,
           tip_len: float = 0.0,
@@ -220,6 +222,21 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
     for j, a in acts.items():
         d.ctrl[a] = anchor[j]
     mujoco.mj_forward(m, d)
+
+    # CLOSED-LOOP GRIP, THROUGH THE WHOLE CHAIN. The deployed bench maneuver runs this only in
+    # its hold phase, because regulating through the turn holds the shaft better and turns it
+    # worse -- the last third of the rotation is the shaft settling into vertical against a grip
+    # that has decayed, and a hand that keeps squeezing keeps it where it was. Here that trade is
+    # taken deliberately: the settle is worth up to 30 deg on one hand and -17 on another, so it
+    # is not something a chain can be built on, and a grasp that does not fail is worth more than
+    # an alignment that arrives by luck.
+    trim = {j: 0.0 for j in acts}
+    reg = load_target > 0.0
+    if reg:
+        import real_v1_deploy_envelope as de
+
+    def _regulate():
+        de._load_step(m, d, acts, trim, load_target, load_gain, reg_band)
 
     mik = mujoco.MjModel.from_xml_path(str(scene))
     dik = mujoco.MjData(mik)
@@ -281,7 +298,21 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
     def _run(n, before=None, every_step=False):
         for k in range(n):
             if before is not None and (every_step or step_i[0] % CONTROL_DECIMATION == 0):
+                # Strip the trim before the phase writes its set-point and put it back after,
+                # so a phase that commands only SOME fingers (the relay walks one pad at a
+                # time) neither loses the trim on the others nor gets it applied twice.
+                if reg:
+                    for j, a in acts.items():
+                        d.ctrl[a] -= trim[j]
                 before(k)
+                if reg:
+                    for j, a in acts.items():
+                        d.ctrl[a] += trim[j]
+            if reg and step_i[0] % reg_every == 0:
+                pre = dict(trim)
+                _regulate()
+                for j, a in acts.items():
+                    d.ctrl[a] += trim[j] - pre[j]
             if brake[0] > 0.0:
                 R = d.body(obj).xmat.reshape(3, 3)
                 ax = R[:, 2]
@@ -1039,6 +1070,8 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         "hold_steps": hold_steps, "descend_steps": descend_steps, "lift": lift,
         "gap_mm": gap * 1000, "press_mm": press_mm, "grip_depth": grip_depth,
         "carry_squeeze_mm": carry_squeeze * 1000,
+        "load_target": load_target, "reg_band": reg_band,
+        "trim_max_deg": round(float(np.degrees(max(abs(v) for v in trim.values()))), 2),
         "turn_squeeze_mm": turn_squeeze * 1000,
         # The controlled slip, in degrees of alignment the hand did not command.
         "tilt_turned_deg": round(float(
