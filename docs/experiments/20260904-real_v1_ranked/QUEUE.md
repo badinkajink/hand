@@ -157,3 +157,59 @@ does not happen, which means the next thing to fix is upstream of both.
 `scripts/real_v1_chain_hands.py` is the runner for both sets; its cache lives in
 `assets/mjcf/experimental/20260904-chain_bothsets/` (own directory — `20260904-chain_hands` is
 written by another study and a shared path returned half-populated records).
+
+---
+
+## Session 3 — the turn: what moves it, and the three things that do not
+
+**THE COMMANDED ANGLE IS THE LEVER, AND THE DEPLOYED ANGLES ARE TOO BIG FOR A MID-AIR TURN.**
+The chain's turn is an IK sweep of the finger anchor about a raised pivot, and the IK residual
+scales with the commanded angle: 14-18 mm at -30 deg, 20-28 at -50, 27-43 at -90. At the plans'
+own angles (-60 to -90) the targets are 27-43 mm out of reach, so the command is not a rotation
+and the achieved turn is under a degree. Halving the ask roughly triples what is achieved:
+
+| hand | plan angle -> achieved | best cell found | achieved |
+|---|---|---|---|
+| sv1_u0308_b050 | -80 deg -> +15.7 | **-50 deg, k 0.25** | **+36.1** (87.3 -> 51.1, held) |
+| rv05_manual_b85 | -60 deg -> +0.5 | -50 deg, k 0.05 | +25.4 (84.0 -> 58.7, held) |
+| g12_b095 | -70 deg -> -0.1 | -40 deg, k 0.05 | +27.4 (87.5 -> 60.0, held) |
+
+`make_plan` never checks this residual (it calls `ik_finger` and discards the return), so the
+deployed plans carry it too. They work on the bench because the POST supports the tool through
+the turn -- consistent with the program's own finding that 46-69% of the alignment gain happens
+on the floor. Mid-air there is nothing to take up the shortfall.
+
+**THE GRIP IS 41 N AT CLOSURE AND 0.33 N AFTER THE LIFT.** Measured directly: `F@close` 41.0 /
+40.5 / 43.2 N on u0308 / g12 / rv05, `F@hold` 0.33 / 0.38 / 0.33 N after a 100 mm lift and
+settle. Pad station is -3 to -7 mm, so this is NOT an above-the-equator wedge; it is the
+position-servo decay the screen already documented (grip force IS commanded-minus-actual, the
+shaft creeps down through the pads, the error shrinks). This is the root cause of everything
+downstream, and it is upstream of the turn.
+
+**THREE THINGS THAT DO NOT FIX IT — all measured, do not repeat:**
+1. **The servo-load loop** (`--load-target`, `_load_step`). It runs, it reaches its 0.45 rad
+   authority cap over a full chain, and it roughly doubles the lift force (0.9 -> 1.92 N on
+   rv05). It does not change the turn: 68.8 -> 68.3 deg.
+2. **The contact-force loop** (`--force-target`, `_force_step`, added this session). Targets of
+   0 / 1.5 / 3 / 6 N give results identical to three significant figures. Both loops steer with
+   `_squeeze_dirs`, which moves the pad radially toward the pinch axis; when the shaft has slid
+   AXIALLY through the pads, radial squeeze does not restore the lost position error.
+3. **The re-squeeze** (`--turn-squeeze`). Worse on every hand at every setting: u0308 +36.1 ->
+   +23.9 -> +19.0 -> +15.5 -> +6.8 over 0/2/4/6/10 mm, and the tool drops out of a 2-pad hold
+   into a 1-pad one. This now replicates in both regimes -- on rv05_manual_stored with a healthy
+   12.9 N grip and here with a 0.33 N one -- so it is settled: closure through the turn is not a
+   control anywhere.
+
+**So the user's hypothesis is answered and it is negative:** closed-loop grasp control does not
+rescue the chain. The loop is real and it works, but it regulates the wrong degree of freedom
+for this failure. Videos: `20260904-sv1_u0308_b050_turn50_k0.25.mp4` (best, +36.1) against
+`..._turn80_k0.15.mp4` (the deployed cell, +15.7).
+
+**NEXT — the axial slip, not the radial squeeze.** The pads need to be put back where they were
+along the shaft, not pressed harder into it. Two candidates, in order:
+1. Re-solve the grasp against the shaft's CURRENT pose partway through the lift and command the
+   corrected joint targets (a mid-lift re-grasp, one extra set-point, still open-loop).
+2. Regulate on pad STATION (`pad_s_mm`, already in every seam) rather than on force or load:
+   drive each pad back to its station at closure. `_squeeze_dirs` needs an axial sibling.
+Only after the grip survives the lift is it worth re-running the angle sweep or judging any
+hand, because every turn number above is measured through a grip that has already collapsed.
