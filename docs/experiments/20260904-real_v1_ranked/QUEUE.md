@@ -105,3 +105,55 @@ saturation says the gap is geometric.
 
 Artifacts: `docs/experiments/20260904-real_v1_chain_hands/20260904-rv05_manual_b85_chain_load250.mp4`
 and `.png` (filmstrip). Data for the loop-off pass was a smoke run, not kept.
+
+---
+
+## Session 2 (2026-09-04, evening) — what got done and where it stalled
+
+**The regulator is ported and it works.** `probe_real_v1_chain.chain(load_target=, load_gain=,
+reg_band=, reg_every=)` runs `real_v1_deploy_envelope._load_step` through EVERY phase, hooked
+into `_run` — the one step loop every phase goes through. The trim is stripped before a phase
+writes its set-point and re-added after, so a phase that commands only some fingers (the relay
+walks one pad at a time) neither loses the trim nor double-applies it. Measured on the chain:
+trim reaches its 0.45 rad authority cap (25.8 deg) on `rv05_manual_b85` and lift force goes
+0.9 -> 1.92 N; on `sv1_u0308_b050` turn-seam force goes 0.33 -> 3.7 N. Videos in
+`docs/experiments/20260904-real_v1_chain_bothsets/videos/`.
+
+**But the chain still does not work on set A: 0/8 complete.** Two failure modes:
+1. `sv1_w6689_b060` and `sv1_w2360_b075` never close on the tool at all (0 pads from the first
+   seam; the two shallowest fitted depths, 52.5 and 58.5 mm).
+2. The other six lift (100-113 mm rise, 2-3 pads) but **the turn does essentially nothing**:
+   86.8 -> 87.6 deg on u0060, 68.8 -> 68.3 on rv05 with the loop on. Tilt at the turn seam sits
+   at 68-88 deg for every hand, loop or no loop.
+
+**So the blocker is the TURN, not only the grip.** The loop raises the grip and the turn still
+does not happen, which means the next thing to fix is upstream of both.
+
+**Dead ends, measured, do not repeat:**
+- **Gain does not matter.** `_load_step` clips each step to +-0.0006 rad, so gain above ~0.003
+  changes nothing (0.020 and 0.080 give bit-identical results). The loop is rate-limited; over a
+  750-step window it only reaches 3-4 deg of trim, which is why a short probe reads it as broken.
+  Over a full chain (~10k steps) it reaches the authority cap.
+- **Commanded squeeze is not the fix.** Sweeping 10/14/18/22/26 mm: force is non-monotone and
+  mostly falls (g12 0.38 -> 0.30 -> 0.26 -> DROP), every hand drops the tool by 22 mm, and only
+  `rv05_manual_b85` gains (0.35 -> 3.97 -> 6.25 N at 18-22 mm). This is the flat-pad shortfall
+  the screen already documented; sweeping it per hand is not a general answer.
+- **The fitted grasp makes only 0.33-1.56 N** on a tool LYING ON A TABLE, against 12.1 N for the
+  same hand on the bench scene where the tool STANDS. The grasp geometry, not the hand, is the
+  difference.
+
+**Next, in order:**
+1. Find why the turn stalls at ~68 deg. The chain's turn is an IK sweep of the finger anchor
+   clipped to `budget`; these hands' plans carry their own `axis_k`/`angle_deg`/`budget` and
+   those are being passed. Check the turn's commanded joint delta against `budget` per hand
+   (the plan's own `delta` field is the reference) — a clip that binds everywhere would explain
+   a uniform stall. `scripts/probe_action_budget.py` is the existing tool for exactly this.
+2. Fix the table grasp before judging any hand: the 0.33 N grip is the real defect, and the
+   bench scene shows the same hands can make 12 N. Consider fitting the grasp with the tool in
+   the pose the chain actually presents it in.
+3. Only then re-run `scripts/real_v1_chain_hands.py --sets AB --loads 0,250` (the runner is
+   written, cached per hand, and renders a video per hand per load).
+
+`scripts/real_v1_chain_hands.py` is the runner for both sets; its cache lives in
+`assets/mjcf/experimental/20260904-chain_bothsets/` (own directory — `20260904-chain_hands` is
+written by another study and a shared path returned half-populated records).
