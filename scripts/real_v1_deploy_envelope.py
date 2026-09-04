@@ -501,6 +501,18 @@ def execute(scene: Path, plan: dict, *, place=(0.0, 0.0, 0.0), yaw: float = 0.0,
         mujoco.mj_step(m, d)
         _after_step()
 
+    # THE TURN'S OWN PRODUCT, before the re-squeeze and before the hold. `peak_cos` and
+    # `final_cos` are both taken after the hold, so until now there was no way to separate the
+    # alignment the COMMAND produced from the alignment the shaft found by settling inside a
+    # grip that has decayed to a fraction of a newton.
+    _nh_t, _fh_t = pc._contacts_hand(m, d, OBJ)
+    _c_t = pc._cos(m, d, OBJ)
+    turn_snap = {"turn_cos": round(float(_c_t), 4),
+                 "turn_tilt_deg": round(float(np.degrees(np.arccos(
+                     np.clip(abs(_c_t), -1.0, 1.0)))), 2),
+                 "turn_z": round(float(d.body(OBJ).xpos[2]), 4),
+                 "turn_contacts_hand": int(_nh_t), "turn_force_hand_N": round(float(_fh_t), 2)}
+
     if plan.get("squeeze_delta"):
         sq_start = {j: float(d.ctrl[a]) for j, a in acts.items()}
         for k in range(1, int(plan["squeeze_steps"]) + 1):
@@ -591,8 +603,14 @@ def execute(scene: Path, plan: dict, *, place=(0.0, 0.0, 0.0), yaw: float = 0.0,
         import imageio.v3 as iio
         video.parent.mkdir(parents=True, exist_ok=True)
         iio.imwrite(video, np.stack(frames), fps=40)
+    _final_tilt = float(np.degrees(np.arccos(np.clip(abs(pc._cos(m, d, OBJ)), -1.0, 1.0))))
     return {
         "lifted_z": round(lifted["z"], 4), "lifted_contacts": lifted["contacts"][0],
+        **turn_snap,
+        "final_tilt_deg": round(_final_tilt, 2),
+        # + = the hold made it more upright, - = the shaft fell back out during the hold
+        "settle_deg": round(turn_snap["turn_tilt_deg"] - _final_tilt, 2),
+        "hold_steps": hold_steps,
         "peak_cos": round(float(peak), 3), "final_cos": round(pc._cos(m, d, OBJ), 3),
         "final_z": round(float(d.body(OBJ).xpos[2]), 4), "min_z_hold": round(min_z, 4),
         "contacts_hand": nh, "force_hand_N": round(foh, 2), "on_post": on_post,

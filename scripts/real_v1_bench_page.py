@@ -72,6 +72,8 @@ def main() -> int:
     ap.add_argument("--out", type=Path, default=None)
     ap.add_argument("--slip", type=Path,
                     default=ROOT / "docs/experiments/20260904-real_v1_slip/slip_study.json")
+    ap.add_argument("--ranked", type=Path,
+                    default=ROOT / "docs/experiments/20260904-real_v1_ranked/ranked_slip.json")
     args = ap.parse_args()
     D = args.data
     out = args.out or (D / "20260904-real_v1_bench_geometry.html")
@@ -80,6 +82,10 @@ def main() -> int:
     # The multi-hand replication of the slip claim lives in its own dated folder because it is
     # its own study; the page reads it because it qualifies a claim this page makes.
     srows = json.loads(args.slip.read_text())["rows"] if args.slip.exists() else []
+    # The Sobol population the design study ranks, run at each hand's own operating point in the
+    # maneuver it was screened on.
+    rk = json.loads(args.ranked.read_text()) if args.ranked.exists() else {"rows": [], "hands": []}
+    rrows, rhands = rk["rows"], rk["hands"]
 
     gk = lambda r: (round(r.get("base_x", 0), 3), round(r.get("base_y", 0), 3),
                     round(r.get("base_z", 0), 3), round(r.get("stack_mm", 0)),
@@ -137,6 +143,48 @@ def main() -> int:
                 "settled": st.mean(f("tilt_settled_deg")) if h else float("nan"),
                 "settled_sd": sd(f("tilt_settled_deg")) if h else float("nan"),
                 "force": st.mean(f("force_turned_N")) if h else float("nan")}
+
+    # ---- the ranked population ------------------------------------------------------------
+    import glob as _glob
+    POPD = ROOT / "docs/experiments/20260831-real_v1-sobol8192"
+
+    def _screen(design, budget):
+        """What the confirmation scored this hand at THIS clip. Keyed on the budget as well as
+        the design: two promoted tags are the same hand at a different clip."""
+        for f in sorted(_glob.glob(str(POPD / "confirm_b*.json"))):
+            for r in json.loads(Path(f).read_text()):
+                if r["design"] == design and abs(r["budget_rad"] - budget) < 1e-9:
+                    return r["nom_cos"]
+        return None
+
+    def ragg(g):
+        h = [r for r in g if r.get("held_turn")]
+        f = lambda k: [float(r.get(k) or 0.0) for r in h]
+        sdv = lambda v: st.pstdev(v) if len(v) > 1 else float("nan")
+        mv = lambda v: st.mean(v) if v else float("nan")
+        return {"n": len(g), "held": len(h), "k": sum(1 for r in g if r.get("ok")),
+                "turn": mv(f("turn_tilt_deg")), "turn_sd": sdv(f("turn_tilt_deg")),
+                "fin": mv(f("final_tilt_deg")), "fin_sd": sdv(f("final_tilt_deg")),
+                "force": mv(f("turn_force_hand_N"))}
+
+    RH = [h["tag"] for h in rhands]
+    RHOLD = (0, 150, 300, 500, 900, 2500)
+    RQ = (0.5, 1.0, 2.0)
+    rk_s = {(t, hs): ragg([r for r in rrows if r.get("arm") == "settle" and r["tag"] == t
+                           and r.get("hold_steps") == hs]) for t in RH for hs in RHOLD}
+    rk_o = {(t, hs): ragg([r for r in rrows if r.get("arm") == "open" and r["tag"] == t
+                           and r.get("hold_steps") == hs]) for t in RH for hs in RHOLD}
+    rk_q = {(t, q): ragg([r for r in rrows if r.get("arm") == "squeeze" and r["tag"] == t
+                          and abs((r.get("hold_squeeze_mm") or 0.0) - q) < 1e-9])
+            for t in RH for q in RQ}
+    rk_v = {}
+    for h in rhands:
+        g = [r for r in rrows if r.get("arm") == "validate" and r["tag"] == h["tag"]]
+        held = [abs(r["final_cos"]) if r.get("ok") else 0.0 for r in g]
+        rk_v[h["tag"]] = {"screen": _screen(h["design"], h["budget"]),
+                          "replay": st.mean(held) if held else float("nan"), "n": len(g)}
+    # Ordered by what the turn itself delivers, best first.
+    RORD = sorted(RH, key=lambda t: rk_s[(t, 0)]["turn"])
 
     DSN = sorted({r["design"] for r in srows}) if srows else []
     SH = (0, 150, 300, 500, 900)
@@ -200,6 +248,19 @@ def main() -> int:
         PUMPED_AT=", ".join(sorted({f'{r["screw_torque"] * 1000:.0f} mN&middot;m in the '
                                     f'{"relay" if r["mode"] == "relay" else "release"} arm'
                                     for r in rows if r.get("brake_pumped")})) or "none",
+        RK_N=len(RH), RK_NDES=len({h["design"] for h in rhands}),
+        RK_LO=f'{min(rk_s[(t, 0)]["turn"] for t in RH):.1f}',
+        RK_HI=f'{max(rk_s[(t, 0)]["turn"] for t in RH):.1f}',
+        RK_SDLO=f'{min(rk_s[(t, 0)]["turn_sd"] for t in RH):.2f}',
+        RK_SDHI=f'{max(rk_s[(t, 0)]["turn_sd"] for t in RH):.2f}',
+        RK_MATCH=sum(1 for t in RH if rk_v[t]["screen"] is not None
+                     and abs(rk_v[t]["screen"] - rk_v[t]["replay"]) < 0.0015),
+        RK_HASCELL=sum(1 for t in RH if rk_v[t]["screen"] is not None),
+        RK_SETTLE_HI=f'{max(rk_s[(t, 0)]["turn"] - rk_s[(t, 2500)]["fin"] for t in RH):+.1f}',
+        RK_SETTLE_LO=f'{min(rk_s[(t, 0)]["turn"] - rk_s[(t, 2500)]["fin"] for t in RH):+.1f}',
+        RK_HELPED=sum(1 for t in RH if rk_s[(t, 0)]["turn"] - rk_s[(t, 2500)]["fin"] > 0),
+        RK_REGMAX=f'{max(abs(rk_o[(t, 2500)]["fin"] - rk_s[(t, 2500)]["fin"]) for t in RH):.2f}',
+        RK_ROWS=len(rrows),
         MH_N=len(DSN), MH_HELD=len(HOLDERS), MH_CHAIN=len(CHAINERS),
         MH_FALSE_MIN=f'{min([r["tilt_turned_deg"] for r in srows if r["arm"] == "settle" and r["design"] == "rv04_mid_sp40" and r["hold_steps_m"] == 300 and (r.get("pads_turned") or 0) == 0 and r["tilt_turned_deg"] < 20]):.1f}' if srows else "",
         MH_FALSE=f'{st.mean([r["tilt_turned_deg"] for r in srows if r["arm"] == "settle" and r["design"] == "rv04_mid_sp40" and r["hold_steps_m"] == 300 and (r.get("pads_turned") or 0) == 0 and r["tilt_turned_deg"] < 20]):.1f}' if srows else "",
@@ -335,6 +396,58 @@ def main() -> int:
         for q in TSQ)
 
     nan = lambda v, f="{:.2f}": ('<td class="num">&mdash;</td>' if v != v else num(v, f))
+
+    # ---- ranked-population tables and chart -------------------------------------------------
+    t_rkv = "".join(
+        tr(f'<td><code>{t}</code></td>'
+           + (nan(rk_v[t]["screen"] if rk_v[t]["screen"] is not None else float("nan"), "{:.3f}"))
+           + num(rk_v[t]["replay"], "{:.3f}")
+           + (f'<td class="num">{abs(rk_v[t]["screen"] - rk_v[t]["replay"]):.3f}</td>'
+              if rk_v[t]["screen"] is not None
+              else '<td class="num">no cell at this clip</td>'))
+        for t in RORD)
+
+    t_rk = "".join(
+        tr(f'<td><code>{t}</code></td>'
+           + f'<td class="num">{rk_s[(t, 0)]["held"]}/{rk_s[(t, 0)]["n"]}</td>'
+           + num(rk_s[(t, 0)]["force"], "{:.1f}")
+           + num(rk_s[(t, 0)]["turn"]) + num(rk_s[(t, 0)]["turn_sd"])
+           + num(rk_s[(t, 2500)]["fin"]) + num(rk_s[(t, 2500)]["fin_sd"])
+           + num(rk_s[(t, 0)]["turn"] - rk_s[(t, 2500)]["fin"], "{:+.1f}")
+           + okcell(rk_s[(t, 2500)]["k"], rk_s[(t, 2500)]["n"]))
+        for t in RORD)
+
+    t_rkh = "".join(
+        tr(f'<td><code>{t}</code></td>'
+           + "".join(num(rk_s[(t, hs)]["fin"]) for hs in RHOLD)
+           + num(rk_s[(t, 0)]["turn"] - rk_s[(t, 2500)]["fin"], "{:+.1f}"))
+        for t in RORD)
+
+    t_rko = "".join(
+        tr(f'<td><code>{t}</code></td>' + num(rk_s[(t, 2500)]["fin"])
+           + num(rk_o[(t, 2500)]["fin"])
+           + num(rk_o[(t, 2500)]["fin"] - rk_s[(t, 2500)]["fin"], "{:+.2f}"))
+        for t in RORD)
+
+    t_rkq = "".join(
+        tr(f'<td><code>{t}</code></td>' + num(rk_s[(t, 300)]["fin"])
+           + "".join(num(rk_q[(t, q)]["fin"]) for q in RQ))
+        for t in RORD)
+
+    TH_RKH = "".join(f'<th class="num">{hs}</th>' for hs in RHOLD)
+    # 8 curves in 3 colours is a tangle. Plot the three hands that bracket the behaviour --
+    # the biggest settle toward vertical, the biggest fall back out, and the flattest -- and
+    # leave the other five to the table.
+    _set = {t: rk_s[(t, 0)]["turn"] - rk_s[(t, 2500)]["fin"] for t in RORD}
+    RPICK = [max(RORD, key=lambda t: _set[t]), min(RORD, key=lambda t: abs(_set[t])),
+             min(RORD, key=lambda t: _set[t])]
+    c_rk = lines([(t.replace("sv1_", ""), [(hs, rk_s[(t, hs)]["fin"]) for hs in RHOLD],
+                   (A, B, REF)[i], None if i == 0 else "5 4",
+                   (4, 2, 2)[i], (22, -16, 22)[i])
+                  for i, t in enumerate(RPICK)],
+                 "settling steps after the last commanded turn step",
+                 "tool tilt from vertical (deg)", 2500, 55) if RORD else ""
+
     HORD = sorted(HOLDERS, key=lambda d: mh[(d, 0)]["turned"])
     TH_MHH = "".join(f'<th class="num">{d.replace("_stored", "")}</th><th class="num">sd</th>'
                      for d in HORD)
@@ -535,7 +648,8 @@ been told its payload the turn ends {K["TURN_U"]}&#176; off vertical and the hol
 to {K["SETTLE_U"]}&#176;. On the same arm with the payload declared the turn ends
 <b>{K["TURN_C"]}&#176;</b> off vertical, with a spread of {K["SD_C"]}&#176; across spawn jitter,
 and the hold then makes it worse. Everything in this section is <code>rv05_manual</code>; the
-next section runs the same measurement on every other hand, and neither number survives.</p>
+next section runs the same measurement on the hands the design study ranks, and neither number
+survives.</p>
 
 <div class="tw"><table>
 <thead><tr><th class="num">settling steps</th><th class="num">seconds</th>
@@ -584,16 +698,96 @@ wrist that dropped it into place, and the next section is what that gate is for.
 </div></section>
 
 <section><div class="col">
-<h2>The same turn on ten hands</h2>
-<p class="sub">the published cell, unretuned, on every <code>real_v1</code> design that has a
-CEM grasp &mdash; {K["MH_N"]} designs &times; 88 rollouts</p>
+<h2>The same turn on the ranked hands</h2>
+<p class="sub">the {K["RK_N"]} promoted hands of the Sobol&#8209;8192 population, each at its own
+operating point, in the maneuver they were screened on &mdash; {K["RK_ROWS"]} rollouts</p>
 
-<p>Every number above was measured on one morphology. Each design was given the identical
-commanded chain &mdash; same turn schedule, same &plusmn;0.5&nbsp;rad budget, same 0.3&nbsp;mm
-carry grip, same seat, its own CEM grasp &mdash; and the turn was read at the same seam. Of
-{K["MH_N"]} designs, <b>{K["MH_HELD"]}</b> still have the tool in the air with at least two pads
-on it at the last commanded turn step, {K["MH_CHAIN"]} finish the chain in at least one seed, and
-<b>{K["MH_REP"]}</b> finishes it in every seed.</p>
+<p>Everything above was measured on <code>rv05_manual</code>. The population the design study
+samples and ranks is <code>20260831-real_v1-sobol8192</code>: 8,192 hands sampled, 535 selected,
+227 confirmed, {K["RK_N"]} promoted to exported plans across {K["RK_NDES"]} distinct designs.
+Each of those runs here at the operating point it was screened at &mdash; its straddle,
+thumb-axial offset, fitted grip depth and residual clip, from the confirmed design table and
+<code>promotion.json</code> &mdash; through the screen's own planner and rollout, on the bench
+scene its plan names: the tool standing on a 100&nbsp;mm platform, palm fixed, close, settle,
+turn, hold, with the load regulator and the two servo torque ceilings of the retention screen.
+Nothing is retuned and nothing is carried over from <code>rv05_manual</code>.</p>
+
+<div class="callout"><div class="lab">the maneuver has to be the screened one</div>
+<p>Rebuilding this out of <code>probe_real_v1_carry</code> on a flat table with a palm lift
+&mdash; the geometry the chain uses &mdash; put every ranked hand at 78&ndash;89&#176; of residual
+tilt, which is no reorientation at all. That is a measurement of the substitution. Replayed
+through the screen's own code the same hands reproduce their confirmation cos to three decimals
+on {K["RK_MATCH"]} of the {K["RK_HASCELL"]} tags that have a confirmation at their clip, so the
+numbers below are the ranking's own maneuver rather than a reconstruction of it.</p></div>
+
+<div class="tw"><table>
+<thead><tr><th>tag</th><th class="num">confirmation cos</th><th class="num">this replay</th>
+<th class="num">difference</th></tr></thead>
+<tbody>{t_rkv}</tbody></table></div>
+
+<p>On this population the turn ends between <b>{K["RK_LO"]}&#176;</b> and
+<b>{K["RK_HI"]}&#176;</b> off vertical, with a seed spread of {K["RK_SDLO"]}&ndash;{K["RK_SDHI"]}&#176;
+against <code>rv05_manual</code>'s 0.42. The 8&#176; is not in this population's range, and
+neither is its repeatability &mdash; three of the {K["RK_N"]} hands are inside a degree, the
+other five are not. Every hand carries the tool through the turn and through the hold, which is
+what selection bought: the failure mode here is alignment, not dropping.</p>
+
+<div class="tw"><table>
+<thead><tr><th>tag</th><th class="num">holds</th><th class="num">pad force (N)</th>
+<th class="num">tilt at the turn (&#176;)</th><th class="num">sd</th>
+<th class="num">after the hold (&#176;)</th><th class="num">sd</th>
+<th class="num">settle</th><th class="num">ok</th></tr></thead>
+<tbody>{t_rk}</tbody></table></div>
+
+<h3>The settle is the larger term here, and its sign is a property of the hand</h3>
+
+<p>On the stiff-wrist chain the hold was worth nothing and the turn delivered its 8&#176;
+directly. On the ranked hands the hold is worth up to {K["RK_SETTLE_HI"]}&#176; and as little as
+{K["RK_SETTLE_LO"]}&#176;: it helps {K["RK_HELPED"]} of {K["RK_N"]} and on the rest the shaft
+falls back out of the alignment the command produced. It is also not finished at 900 steps on any
+of them &mdash; the screened hold of 2,500 is doing real work, so &ldquo;settle for 150 steps and
+stop&rdquo; is another <code>rv05_manual</code> number.</p>
+
+<div class="tw"><table>
+<thead><tr><th>tag</th>{TH_RKH}<th class="num">settle</th></tr></thead>
+<tbody>{t_rkh}</tbody></table></div>
+
+<p class="sub">tilt from vertical after N settling steps, degrees, mean of 5 seeds</p>
+
+<figure>{c_rk}<figcaption>The three hands that bracket the behaviour, of the {K["RK_N"]} in the
+table above: the largest settle toward vertical, the flattest, and the one that falls back out.
+The curves do not share a shape, so settling time is not a control that transfers.</figcaption>
+</figure>
+
+<h3>Neither knob controls it</h3>
+
+<p>The deployed maneuver already closes one loop: a regulator that trims each finger's flexion to
+hold its share of the servo load, active only in the hold phase. Turning it off moves the settled
+tilt by at most {K["RK_REGMAX"]}&#176; on any hand. The settle is gravity acting through a grip
+that has decayed, and the one controller in the maneuver does not reach it.</p>
+
+<div class="pair"><div class="tw"><table>
+<thead><tr><th>tag</th><th class="num">regulator on</th><th class="num">off</th>
+<th class="num">&Delta;</th></tr></thead>
+<tbody>{t_rko}</tbody></table></div>
+<div class="tw"><table>
+<thead><tr><th>tag</th><th class="num">no squeeze</th><th class="num">0.5&nbsp;mm</th>
+<th class="num">1&nbsp;mm</th><th class="num">2&nbsp;mm</th></tr></thead>
+<tbody>{t_rkq}</tbody></table></div></div>
+
+<p>Re-gripping at the top of the turn is the other candidate, and it is the one claim that
+survives from the single-hand study: 2&nbsp;mm of extra closure leaves every hand further from
+vertical than no squeeze at all. It does not destroy the maneuver the way it did on the chain
+&mdash; all five seeds still complete on every hand &mdash; it just gives up alignment. The
+fingers turn the shaft by letting it roll, and a tighter grip removes the rolling.</p>
+
+<h3>The legacy family, and why a tilt number needs a contact gate</h3>
+
+<p>The first version of this section ran <code>results/phase1/real_v1/rv0*</code> through the
+chain instead. That is the five-design screening family, not the ranked population, and the chain
+is not the maneuver any of them was screened on; the table is kept because of what it showed
+about the measurement. Of {K["MH_N"]} legacy designs only {K["MH_HELD"]} were still holding the
+tool at the last commanded turn step and {K["MH_CHAIN"]} finished the chain in any seed.</p>
 
 <div class="callout"><div class="lab">why the seam needs a contact gate</div>
 <p>In {K["MH_FALSE_N"]} of 8 seeds <code>rv04_mid_sp40</code> reaches that seam with zero pads on
@@ -601,50 +795,15 @@ the tool and the tool sitting at z&nbsp;=&nbsp;{K["MH_FALSE_Z"]}&nbsp;mm, the de
 countersink. It dropped the shaft during the turn and the shaft landed in its seat, which is
 vertical by construction, so the seam reads {K["MH_FALSE_MIN"]}&#176; of tilt at best and
 {K["MH_FALSE"]}&#176; on average &mdash; a better number than the hand that actually turned it.
-<code>held_turn</code>, two pads and the tool above 80&nbsp;mm, is what separates the two.</p></div>
+Every tilt in this page is therefore gated on the hand still carrying the tool clear at that
+step, and the bench&rsquo;s AprilTag read needs the same gate: a seated tool and a held one are
+equally vertical to the camera.</p></div>
 
 <div class="tw"><table>
 <thead><tr><th>design</th><th class="num">holds</th><th class="num">pad force (N)</th>
 <th class="num">tilt (&#176;)</th><th class="num">sd</th>
 <th class="num">best settled (&#176;)</th><th class="num">chain</th></tr></thead>
 <tbody>{t_mh}</tbody></table></div>
-
-<p>Of the three hands that hold the tool, only <code>rv05_manual</code> turns it upright. The
-other two stop at {K["MH_LIST"]}, with a seed spread of {K["MH_SDB"]}&ndash;{K["MH_SDW"]}&#176;
-against {K["SD_C"]}&#176;. The 8&#176; and its {K["SD_C"]}&#176; belong to that hand.</p>
-
-<div class="tw"><table>
-<thead><tr><th class="num">settling steps</th>{TH_MHH}</tr></thead>
-<tbody>{t_mhh}</tbody></table></div>
-
-<figure>{c_mh}<figcaption>Tilt from vertical after the turn, mean of 8 seeds. Settling helps for
-150 steps on two hands of three and never on the third, and past that it is a slow fall:
-<code>rv00_wide_sp40</code> is lying flat by 900.</figcaption></figure>
-
-<p>What does replicate is that closure through the turn is not the control. At every non-zero
-squeeze, on every hand, nothing completes; on both hands that turn the tool at all, the commanded
-tilt gets worse rather than better.</p>
-
-<div class="tw"><table>
-<thead><tr><th class="num">closure through the turn (mm)</th>{TH_MHQ}</tr></thead>
-<tbody>{t_mhq}</tbody></table></div>
-
-<p>One result from the payload sweep does carry across hands, and it is about the grasp rather
-than the tilt. On an arm that has not been told its payload
-<code>rv03_narrowy_sp40</code> holds the tool through the turn in
-{mw[("rv03_narrowy_sp40", 0)]["held"]} of {mw[("rv03_narrowy_sp40", 0)]["n"]} seeds; declaring it
-takes that to {mh[("rv03_narrowy_sp40", 0)]["held"]} of
-{mh[("rv03_narrowy_sp40", 0)]["n"]}. <code>rv00_wide_sp40</code> and <code>rv05_manual</code> hold
-in both. The sag costs some hands the tool, not just the alignment.</p>
-
-<p>This is a transfer test of one tuned cell, not a design ranking. The turn angle, the axis
-fraction and the &plusmn;0.5&nbsp;rad budget were all fitted on <code>rv05_manual</code>, and the
-height of the rotation axis relative to the contacts is the variable that decided whether a
-<code>real_v1</code> hand reoriented at all in the 2026-08-28 search. So the table says the
-8&#176; is a property of this hand and this fit; it does not say the other nine cannot reorient
-with a fit of their own. What would settle that is one axis refit per design &mdash;
-<code>--axis-k</code> and the anchor height, the same two knobs the reorient-mechanism study
-swept &mdash; and this table rerun on the refits.</p>
 </div></section>
 
 <section><div class="col">
@@ -699,13 +858,21 @@ torque a wrench can read.</p></div>
 <h2>Next measurements</h2>
 
 <ol>
-<li><b>Refit the turn per design and rerun the ten-hand table.</b> The axis fraction
-<code>--axis-k</code>, the turn angle and the anchor height were fitted on
-<code>rv05_manual</code>, so the {K["MH_N"]}-hand result measures transfer of one fit, not the
-hands. Sweep those two knobs per design the way
-<code>docs/experiments/20260828-real_v1_reorient</code> did, then re-read the
-<code>turned</code> seam. Until that runs, the 8&#176; is a one-hand number and nothing in this
-page says a second hand can reach it.</li>
+<li><b>Take the settle to the bench on <code>w5120_b070</code> and
+<code>u5860_b070</code>.</b> They are the two ends of it: {rk_s[(RPICK[0], 0)]["turn"]:.0f}&#176;
+&rarr; {rk_s[(RPICK[0], 2500)]["fin"]:.0f}&#176; over the hold on one, and
+{rk_s[(RPICK[2], 0)]["turn"]:.0f}&#176; &rarr; {rk_s[(RPICK[2], 2500)]["fin"]:.0f}&#176; the wrong
+way on the other, from the same commanded schedule. Both have exported plans, the vane tag reads
+this rotation directly at 0.017&#176; rms, and the prediction is a signed 30&#176; difference
+&mdash; large enough that the bench either confirms the mechanism or kills it. This is the only
+item here that a hardware run can settle.</li>
+
+<li><b>Sweep the settle across the 227 confirmed hands, not the 8 promoted ones.</b> The eight
+were promoted on clearance and servo limits, and they are a concentrated set: the settle ranges
+over 46&#176; inside them, which says nothing about how it is distributed over the population the
+study samples. The screen costs about three seconds a rollout and the confirmed table is already
+on disk, so this is one overnight job, and it is what would turn the settle from an observation
+into a design variable.</li>
 
 <li><b>Put the contact gate in every tilt report.</b> A tool dropped into a countersink reads
 vertical, and <code>rv04_mid_sp40</code> scores better than <code>rv05_manual</code> on tilt

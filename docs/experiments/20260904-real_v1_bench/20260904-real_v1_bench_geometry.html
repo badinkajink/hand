@@ -281,7 +281,8 @@ been told its payload the turn ends 31.40&#176; off vertical and the hold pulls 
 to 12.56&#176;. On the same arm with the payload declared the turn ends
 <b>8.03&#176;</b> off vertical, with a spread of 0.42&#176; across spawn jitter,
 and the hold then makes it worse. Everything in this section is <code>rv05_manual</code>; the
-next section runs the same measurement on every other hand, and neither number survives.</p>
+next section runs the same measurement on the hands the design study ranks, and neither number
+survives.</p>
 
 <div class="tw"><table>
 <thead><tr><th class="num">settling steps</th><th class="num">seconds</th>
@@ -330,16 +331,96 @@ wrist that dropped it into place, and the next section is what that gate is for.
 </div></section>
 
 <section><div class="col">
-<h2>The same turn on ten hands</h2>
-<p class="sub">the published cell, unretuned, on every <code>real_v1</code> design that has a
-CEM grasp &mdash; 10 designs &times; 88 rollouts</p>
+<h2>The same turn on the ranked hands</h2>
+<p class="sub">the 8 promoted hands of the Sobol&#8209;8192 population, each at its own
+operating point, in the maneuver they were screened on &mdash; 640 rollouts</p>
 
-<p>Every number above was measured on one morphology. Each design was given the identical
-commanded chain &mdash; same turn schedule, same &plusmn;0.5&nbsp;rad budget, same 0.3&nbsp;mm
-carry grip, same seat, its own CEM grasp &mdash; and the turn was read at the same seam. Of
-10 designs, <b>3</b> still have the tool in the air with at least two pads
-on it at the last commanded turn step, 2 finish the chain in at least one seed, and
-<b>1</b> finishes it in every seed.</p>
+<p>Everything above was measured on <code>rv05_manual</code>. The population the design study
+samples and ranks is <code>20260831-real_v1-sobol8192</code>: 8,192 hands sampled, 535 selected,
+227 confirmed, 8 promoted to exported plans across 6 distinct designs.
+Each of those runs here at the operating point it was screened at &mdash; its straddle,
+thumb-axial offset, fitted grip depth and residual clip, from the confirmed design table and
+<code>promotion.json</code> &mdash; through the screen's own planner and rollout, on the bench
+scene its plan names: the tool standing on a 100&nbsp;mm platform, palm fixed, close, settle,
+turn, hold, with the load regulator and the two servo torque ceilings of the retention screen.
+Nothing is retuned and nothing is carried over from <code>rv05_manual</code>.</p>
+
+<div class="callout"><div class="lab">the maneuver has to be the screened one</div>
+<p>Rebuilding this out of <code>probe_real_v1_carry</code> on a flat table with a palm lift
+&mdash; the geometry the chain uses &mdash; put every ranked hand at 78&ndash;89&#176; of residual
+tilt, which is no reorientation at all. That is a measurement of the substitution. Replayed
+through the screen's own code the same hands reproduce their confirmation cos to three decimals
+on 6 of the 6 tags that have a confirmation at their clip, so the
+numbers below are the ranking's own maneuver rather than a reconstruction of it.</p></div>
+
+<div class="tw"><table>
+<thead><tr><th>tag</th><th class="num">confirmation cos</th><th class="num">this replay</th>
+<th class="num">difference</th></tr></thead>
+<tbody><tr><td><code>sv1_u5860_b070</code></td><td class="num">0.828</td><td class="num">0.828</td><td class="num">0.000</td></tr><tr><td><code>sv1_w7583_b130</code></td><td class="num">0.869</td><td class="num">0.869</td><td class="num">0.000</td></tr><tr><td><code>sv1_w6689_b050</code></td><td class="num">0.749</td><td class="num">0.749</td><td class="num">0.000</td></tr><tr><td><code>sv1_w6689_b060</code></td><td class="num">&mdash;</td><td class="num">0.734</td><td class="num">no cell at this clip</td></tr><tr><td><code>sv1_w5120_b070</code></td><td class="num">0.948</td><td class="num">0.948</td><td class="num">0.000</td></tr><tr><td><code>sv1_u5855_b050</code></td><td class="num">0.830</td><td class="num">0.830</td><td class="num">0.000</td></tr><tr><td><code>sv1_u7952_b065</code></td><td class="num">&mdash;</td><td class="num">0.742</td><td class="num">no cell at this clip</td></tr><tr><td><code>sv1_u7952_b050</code></td><td class="num">0.825</td><td class="num">0.825</td><td class="num">0.000</td></tr></tbody></table></div>
+
+<p>On this population the turn ends between <b>17.4&#176;</b> and
+<b>55.9&#176;</b> off vertical, with a seed spread of 0.48&ndash;9.96&#176;
+against <code>rv05_manual</code>'s 0.42. The 8&#176; is not in this population's range, and
+neither is its repeatability &mdash; three of the 8 hands are inside a degree, the
+other five are not. Every hand carries the tool through the turn and through the hold, which is
+what selection bought: the failure mode here is alignment, not dropping.</p>
+
+<div class="tw"><table>
+<thead><tr><th>tag</th><th class="num">holds</th><th class="num">pad force (N)</th>
+<th class="num">tilt at the turn (&#176;)</th><th class="num">sd</th>
+<th class="num">after the hold (&#176;)</th><th class="num">sd</th>
+<th class="num">settle</th><th class="num">ok</th></tr></thead>
+<tbody><tr><td><code>sv1_u5860_b070</code></td><td class="num">5/5</td><td class="num">7.2</td><td class="num">17.4</td><td class="num">2.5</td><td class="num">34.1</td><td class="num">0.1</td><td class="num">-16.7</td><td class="num"><span class="ok">5/5</span></td></tr><tr><td><code>sv1_w7583_b130</code></td><td class="num">5/5</td><td class="num">2.9</td><td class="num">24.7</td><td class="num">10.0</td><td class="num">29.6</td><td class="num">1.2</td><td class="num">-4.9</td><td class="num"><span class="ok">5/5</span></td></tr><tr><td><code>sv1_w6689_b050</code></td><td class="num">5/5</td><td class="num">12.1</td><td class="num">45.3</td><td class="num">0.5</td><td class="num">41.5</td><td class="num">1.0</td><td class="num">+3.8</td><td class="num"><span class="ok">5/5</span></td></tr><tr><td><code>sv1_w6689_b060</code></td><td class="num">5/5</td><td class="num">12.1</td><td class="num">45.3</td><td class="num">0.5</td><td class="num">42.7</td><td class="num">0.8</td><td class="num">+2.6</td><td class="num"><span class="ok">5/5</span></td></tr><tr><td><code>sv1_w5120_b070</code></td><td class="num">5/5</td><td class="num">3.3</td><td class="num">48.3</td><td class="num">0.5</td><td class="num">18.5</td><td class="num">1.6</td><td class="num">+29.8</td><td class="num"><span class="ok">5/5</span></td></tr><tr><td><code>sv1_u5855_b050</code></td><td class="num">5/5</td><td class="num">2.1</td><td class="num">49.8</td><td class="num">1.0</td><td class="num">33.9</td><td class="num">0.1</td><td class="num">+15.9</td><td class="num"><span class="ok">5/5</span></td></tr><tr><td><code>sv1_u7952_b065</code></td><td class="num">5/5</td><td class="num">1.6</td><td class="num">54.8</td><td class="num">6.3</td><td class="num">40.5</td><td class="num">13.3</td><td class="num">+14.3</td><td class="num"><span class="ok">5/5</span></td></tr><tr><td><code>sv1_u7952_b050</code></td><td class="num">5/5</td><td class="num">1.9</td><td class="num">55.9</td><td class="num">5.8</td><td class="num">30.7</td><td class="num">17.5</td><td class="num">+25.2</td><td class="num"><span class="ok">5/5</span></td></tr></tbody></table></div>
+
+<h3>The settle is the larger term here, and its sign is a property of the hand</h3>
+
+<p>On the stiff-wrist chain the hold was worth nothing and the turn delivered its 8&#176;
+directly. On the ranked hands the hold is worth up to +29.8&#176; and as little as
+-16.7&#176;: it helps 6 of 8 and on the rest the shaft
+falls back out of the alignment the command produced. It is also not finished at 900 steps on any
+of them &mdash; the screened hold of 2,500 is doing real work, so &ldquo;settle for 150 steps and
+stop&rdquo; is another <code>rv05_manual</code> number.</p>
+
+<div class="tw"><table>
+<thead><tr><th>tag</th><th class="num">0</th><th class="num">150</th><th class="num">300</th><th class="num">500</th><th class="num">900</th><th class="num">2500</th><th class="num">settle</th></tr></thead>
+<tbody><tr><td><code>sv1_u5860_b070</code></td><td class="num">15.3</td><td class="num">21.2</td><td class="num">27.6</td><td class="num">33.8</td><td class="num">35.5</td><td class="num">34.1</td><td class="num">-16.7</td></tr><tr><td><code>sv1_w7583_b130</code></td><td class="num">35.9</td><td class="num">35.9</td><td class="num">36.2</td><td class="num">36.2</td><td class="num">32.4</td><td class="num">29.6</td><td class="num">-4.9</td></tr><tr><td><code>sv1_w6689_b050</code></td><td class="num">42.1</td><td class="num">42.0</td><td class="num">42.0</td><td class="num">41.9</td><td class="num">41.8</td><td class="num">41.5</td><td class="num">+3.8</td></tr><tr><td><code>sv1_w6689_b060</code></td><td class="num">42.1</td><td class="num">41.9</td><td class="num">41.8</td><td class="num">41.9</td><td class="num">42.9</td><td class="num">42.7</td><td class="num">+2.6</td></tr><tr><td><code>sv1_w5120_b070</code></td><td class="num">29.5</td><td class="num">29.2</td><td class="num">28.8</td><td class="num">28.0</td><td class="num">26.2</td><td class="num">18.5</td><td class="num">+29.8</td></tr><tr><td><code>sv1_u5855_b050</code></td><td class="num">37.8</td><td class="num">37.7</td><td class="num">37.7</td><td class="num">37.7</td><td class="num">37.0</td><td class="num">33.9</td><td class="num">+15.9</td></tr><tr><td><code>sv1_u7952_b065</code></td><td class="num">43.0</td><td class="num">42.4</td><td class="num">42.0</td><td class="num">41.4</td><td class="num">40.4</td><td class="num">40.5</td><td class="num">+14.3</td></tr><tr><td><code>sv1_u7952_b050</code></td><td class="num">39.9</td><td class="num">39.2</td><td class="num">38.6</td><td class="num">37.8</td><td class="num">35.9</td><td class="num">30.7</td><td class="num">+25.2</td></tr></tbody></table></div>
+
+<p class="sub">tilt from vertical after N settling steps, degrees, mean of 5 seeds</p>
+
+<figure><svg viewBox="0 0 620 300" class="chart" role="img"><g class="ax"><line x1="50" y1="260" x2="596" y2="260"/><line class="grid" x1="50" y1="260.0" x2="596" y2="260.0"/><text class="tick" x="42" y="264.0" text-anchor="end">0</text><line class="grid" x1="50" y1="177.8" x2="596" y2="177.8"/><text class="tick" x="42" y="181.8" text-anchor="end">20</text><line class="grid" x1="50" y1="95.6" x2="596" y2="95.6"/><text class="tick" x="42" y="99.6" text-anchor="end">40</text><text class="tick" x="50.0" y="278" text-anchor="middle">0</text><text class="tick" x="268.4" y="278" text-anchor="middle">1000</text><text class="tick" x="486.8" y="278" text-anchor="middle">2000</text><text class="axlab" x="323" y="296" text-anchor="middle">settling steps after the last commanded turn step</text><text class="axlab" transform="translate(14,147) rotate(-90)" text-anchor="middle">tool tilt from vertical (deg)</text></g><path d="M50.0,138.7 L82.8,140.0 L115.5,141.5 L159.2,144.8 L246.6,152.3 L596.0,184.1" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round"/><circle cx="50.0" cy="138.7" r="4" fill="var(--s1)" stroke="var(--card)" stroke-width="2"/><circle cx="82.8" cy="140.0" r="4" fill="var(--s1)" stroke="var(--card)" stroke-width="2"/><circle cx="115.5" cy="141.5" r="4" fill="var(--s1)" stroke="var(--card)" stroke-width="2"/><circle cx="159.2" cy="144.8" r="4" fill="var(--s1)" stroke="var(--card)" stroke-width="2"/><circle cx="246.6" cy="152.3" r="4" fill="var(--s1)" stroke="var(--card)" stroke-width="2"/><circle cx="596.0" cy="184.1" r="4" fill="var(--s1)" stroke="var(--card)" stroke-width="2"/><text class="ser" x="246.6" y="174.3" text-anchor="middle" fill="var(--s1)">w5120_b070</text><path d="M50.0,86.9 L82.8,88.0 L115.5,88.4 L159.2,87.8 L246.6,83.9 L596.0,84.3" fill="none" stroke="var(--s2)" stroke-width="2" stroke-linejoin="round" stroke-dasharray='5 4'/><circle cx="50.0" cy="86.9" r="4" fill="var(--s2)" stroke="var(--card)" stroke-width="2"/><circle cx="82.8" cy="88.0" r="4" fill="var(--s2)" stroke="var(--card)" stroke-width="2"/><circle cx="115.5" cy="88.4" r="4" fill="var(--s2)" stroke="var(--card)" stroke-width="2"/><circle cx="159.2" cy="87.8" r="4" fill="var(--s2)" stroke="var(--card)" stroke-width="2"/><circle cx="246.6" cy="83.9" r="4" fill="var(--s2)" stroke="var(--card)" stroke-width="2"/><circle cx="596.0" cy="84.3" r="4" fill="var(--s2)" stroke="var(--card)" stroke-width="2"/><text class="ser" x="115.5" y="72.4" text-anchor="middle" fill="var(--s2)">w6689_b060</text><path d="M50.0,197.3 L82.8,173.0 L115.5,146.8 L159.2,121.1 L246.6,114.0 L596.0,119.8" fill="none" stroke="var(--ref)" stroke-width="2" stroke-linejoin="round" stroke-dasharray='5 4'/><circle cx="50.0" cy="197.3" r="4" fill="var(--ref)" stroke="var(--card)" stroke-width="2"/><circle cx="82.8" cy="173.0" r="4" fill="var(--ref)" stroke="var(--card)" stroke-width="2"/><circle cx="115.5" cy="146.8" r="4" fill="var(--ref)" stroke="var(--card)" stroke-width="2"/><circle cx="159.2" cy="121.1" r="4" fill="var(--ref)" stroke="var(--card)" stroke-width="2"/><circle cx="246.6" cy="114.0" r="4" fill="var(--ref)" stroke="var(--card)" stroke-width="2"/><circle cx="596.0" cy="119.8" r="4" fill="var(--ref)" stroke="var(--card)" stroke-width="2"/><text class="ser" x="115.5" y="168.8" text-anchor="middle" fill="var(--ref)">u5860_b070</text></svg><figcaption>The three hands that bracket the behaviour, of the 8 in the
+table above: the largest settle toward vertical, the flattest, and the one that falls back out.
+The curves do not share a shape, so settling time is not a control that transfers.</figcaption>
+</figure>
+
+<h3>Neither knob controls it</h3>
+
+<p>The deployed maneuver already closes one loop: a regulator that trims each finger's flexion to
+hold its share of the servo load, active only in the hold phase. Turning it off moves the settled
+tilt by at most 1.87&#176; on any hand. The settle is gravity acting through a grip
+that has decayed, and the one controller in the maneuver does not reach it.</p>
+
+<div class="pair"><div class="tw"><table>
+<thead><tr><th>tag</th><th class="num">regulator on</th><th class="num">off</th>
+<th class="num">&Delta;</th></tr></thead>
+<tbody><tr><td><code>sv1_u5860_b070</code></td><td class="num">34.1</td><td class="num">33.3</td><td class="num">-0.79</td></tr><tr><td><code>sv1_w7583_b130</code></td><td class="num">29.6</td><td class="num">27.7</td><td class="num">-1.87</td></tr><tr><td><code>sv1_w6689_b050</code></td><td class="num">41.5</td><td class="num">42.1</td><td class="num">+0.65</td></tr><tr><td><code>sv1_w6689_b060</code></td><td class="num">42.7</td><td class="num">42.8</td><td class="num">+0.10</td></tr><tr><td><code>sv1_w5120_b070</code></td><td class="num">18.5</td><td class="num">19.0</td><td class="num">+0.51</td></tr><tr><td><code>sv1_u5855_b050</code></td><td class="num">33.9</td><td class="num">35.0</td><td class="num">+1.08</td></tr><tr><td><code>sv1_u7952_b065</code></td><td class="num">40.5</td><td class="num">39.7</td><td class="num">-0.80</td></tr><tr><td><code>sv1_u7952_b050</code></td><td class="num">30.7</td><td class="num">30.6</td><td class="num">-0.04</td></tr></tbody></table></div>
+<div class="tw"><table>
+<thead><tr><th>tag</th><th class="num">no squeeze</th><th class="num">0.5&nbsp;mm</th>
+<th class="num">1&nbsp;mm</th><th class="num">2&nbsp;mm</th></tr></thead>
+<tbody><tr><td><code>sv1_u5860_b070</code></td><td class="num">27.6</td><td class="num">34.8</td><td class="num">35.9</td><td class="num">38.1</td></tr><tr><td><code>sv1_w7583_b130</code></td><td class="num">36.2</td><td class="num">33.5</td><td class="num">34.6</td><td class="num">37.7</td></tr><tr><td><code>sv1_w6689_b050</code></td><td class="num">42.0</td><td class="num">42.2</td><td class="num">42.3</td><td class="num">42.3</td></tr><tr><td><code>sv1_w6689_b060</code></td><td class="num">41.8</td><td class="num">42.0</td><td class="num">42.3</td><td class="num">42.9</td></tr><tr><td><code>sv1_w5120_b070</code></td><td class="num">28.8</td><td class="num">28.9</td><td class="num">29.3</td><td class="num">29.9</td></tr><tr><td><code>sv1_u5855_b050</code></td><td class="num">37.7</td><td class="num">35.1</td><td class="num">37.7</td><td class="num">38.9</td></tr><tr><td><code>sv1_u7952_b065</code></td><td class="num">42.0</td><td class="num">43.1</td><td class="num">43.4</td><td class="num">46.5</td></tr><tr><td><code>sv1_u7952_b050</code></td><td class="num">38.6</td><td class="num">39.5</td><td class="num">42.2</td><td class="num">42.6</td></tr></tbody></table></div></div>
+
+<p>Re-gripping at the top of the turn is the other candidate, and it is the one claim that
+survives from the single-hand study: 2&nbsp;mm of extra closure leaves every hand further from
+vertical than no squeeze at all. It does not destroy the maneuver the way it did on the chain
+&mdash; all five seeds still complete on every hand &mdash; it just gives up alignment. The
+fingers turn the shaft by letting it roll, and a tighter grip removes the rolling.</p>
+
+<h3>The legacy family, and why a tilt number needs a contact gate</h3>
+
+<p>The first version of this section ran <code>results/phase1/real_v1/rv0*</code> through the
+chain instead. That is the five-design screening family, not the ranked population, and the chain
+is not the maneuver any of them was screened on; the table is kept because of what it showed
+about the measurement. Of 10 legacy designs only 3 were still holding the
+tool at the last commanded turn step and 2 finished the chain in any seed.</p>
 
 <div class="callout"><div class="lab">why the seam needs a contact gate</div>
 <p>In 5 of 8 seeds <code>rv04_mid_sp40</code> reaches that seam with zero pads on
@@ -347,50 +428,15 @@ the tool and the tool sitting at z&nbsp;=&nbsp;51&nbsp;mm, the depth of the
 countersink. It dropped the shaft during the turn and the shaft landed in its seat, which is
 vertical by construction, so the seam reads 8.0&#176; of tilt at best and
 12.4&#176; on average &mdash; a better number than the hand that actually turned it.
-<code>held_turn</code>, two pads and the tool above 80&nbsp;mm, is what separates the two.</p></div>
+Every tilt in this page is therefore gated on the hand still carrying the tool clear at that
+step, and the bench&rsquo;s AprilTag read needs the same gate: a seated tool and a held one are
+equally vertical to the camera.</p></div>
 
 <div class="tw"><table>
 <thead><tr><th>design</th><th class="num">holds</th><th class="num">pad force (N)</th>
 <th class="num">tilt (&#176;)</th><th class="num">sd</th>
 <th class="num">best settled (&#176;)</th><th class="num">chain</th></tr></thead>
 <tbody><tr><td><code>rv00_wide_sp30</code></td><td class="num">0/8</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num"><span class="no">0/8</span></td></tr><tr><td><code>rv00_wide_sp40</code></td><td class="num">8/8</td><td class="num">0.5</td><td class="num">48.44</td><td class="num">2.63</td><td class="num">41.93</td><td class="num"><span class="no">0/8</span></td></tr><tr><td><code>rv01_compact_sp30</code></td><td class="num">0/8</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num"><span class="no">0/8</span></td></tr><tr><td><code>rv01_compact_sp40</code></td><td class="num">0/8</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num"><span class="no">0/8</span></td></tr><tr><td><code>rv02_narrowx_sp40</code></td><td class="num">0/8</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num"><span class="no">0/8</span></td></tr><tr><td><code>rv03_narrowy_sp30</code></td><td class="num">0/8</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num"><span class="no">0/8</span></td></tr><tr><td><code>rv03_narrowy_sp40</code></td><td class="num">8/8</td><td class="num">23.0</td><td class="num">39.94</td><td class="num">4.12</td><td class="num">39.94</td><td class="num"><span class="">1/8</span></td></tr><tr><td><code>rv04_mid_sp30</code></td><td class="num">0/8</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num"><span class="no">0/8</span></td></tr><tr><td><code>rv04_mid_sp40</code></td><td class="num">0/8</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num"><span class="no">0/8</span></td></tr><tr class="hi"><td><code>rv05_manual</code></td><td class="num">8/8</td><td class="num">12.9</td><td class="num">8.03</td><td class="num">0.42</td><td class="num">6.76</td><td class="num"><span class="ok">8/8</span></td></tr></tbody></table></div>
-
-<p>Of the three hands that hold the tool, only <code>rv05_manual</code> turns it upright. The
-other two stop at <code>rv00_wide_sp40</code> at 48&#176; and <code>rv03_narrowy_sp40</code> at 40&#176;, with a seed spread of 2.6&ndash;4.1&#176;
-against 0.42&#176;. The 8&#176; and its 0.42&#176; belong to that hand.</p>
-
-<div class="tw"><table>
-<thead><tr><th class="num">settling steps</th><th class="num">rv05_manual</th><th class="num">sd</th><th class="num">rv03_narrowy_sp40</th><th class="num">sd</th><th class="num">rv00_wide_sp40</th><th class="num">sd</th></tr></thead>
-<tbody><tr><td class="num">0</td><td class="num">8.03</td><td class="num">0.42</td><td class="num">39.94</td><td class="num">4.12</td><td class="num">48.44</td><td class="num">2.63</td></tr><tr class="hi"><td class="num">150</td><td class="num">6.76</td><td class="num">0.14</td><td class="num">41.88</td><td class="num">4.45</td><td class="num">41.93</td><td class="num">5.87</td></tr><tr><td class="num">300</td><td class="num">8.32</td><td class="num">0.48</td><td class="num">43.47</td><td class="num">5.34</td><td class="num">65.66</td><td class="num">19.72</td></tr><tr><td class="num">500</td><td class="num">11.14</td><td class="num">0.99</td><td class="num">46.75</td><td class="num">7.26</td><td class="num">86.87</td><td class="num">4.96</td></tr><tr><td class="num">900</td><td class="num">13.73</td><td class="num">1.63</td><td class="num">51.08</td><td class="num">8.48</td><td class="num">90.00</td><td class="num">0.00</td></tr></tbody></table></div>
-
-<figure><svg viewBox="0 0 620 300" class="chart" role="img"><g class="ax"><line x1="50" y1="260" x2="596" y2="260"/><line class="grid" x1="50" y1="260.0" x2="596" y2="260.0"/><text class="tick" x="42" y="264.0" text-anchor="end">0</text><line class="grid" x1="50" y1="200.5" x2="596" y2="200.5"/><text class="tick" x="42" y="204.5" text-anchor="end">25</text><line class="grid" x1="50" y1="141.1" x2="596" y2="141.1"/><text class="tick" x="42" y="145.1" text-anchor="end">50</text><line class="grid" x1="50" y1="81.6" x2="596" y2="81.6"/><text class="tick" x="42" y="85.6" text-anchor="end">75</text><text class="tick" x="50.0" y="278" text-anchor="middle">0</text><text class="tick" x="201.7" y="278" text-anchor="middle">250</text><text class="tick" x="353.3" y="278" text-anchor="middle">500</text><text class="tick" x="505.0" y="278" text-anchor="middle">750</text><text class="axlab" x="323" y="296" text-anchor="middle">settling steps after the last commanded turn step</text><text class="axlab" transform="translate(14,147) rotate(-90)" text-anchor="middle">tool tilt from vertical (deg)</text></g><path d="M50.0,240.9 L141.0,243.9 L232.0,240.2 L353.3,233.5 L596.0,227.3" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round"/><circle cx="50.0" cy="240.9" r="4" fill="var(--s1)" stroke="var(--card)" stroke-width="2"/><circle cx="141.0" cy="243.9" r="4" fill="var(--s1)" stroke="var(--card)" stroke-width="2"/><circle cx="232.0" cy="240.2" r="4" fill="var(--s1)" stroke="var(--card)" stroke-width="2"/><circle cx="353.3" cy="233.5" r="4" fill="var(--s1)" stroke="var(--card)" stroke-width="2"/><circle cx="596.0" cy="227.3" r="4" fill="var(--s1)" stroke="var(--card)" stroke-width="2"/><text class="ser" x="353.3" y="255.5" text-anchor="middle" fill="var(--s1)">rv05_manual</text><path d="M50.0,165.0 L141.0,160.4 L232.0,156.6 L353.3,148.8 L596.0,138.5" fill="none" stroke="var(--s2)" stroke-width="2" stroke-linejoin="round" stroke-dasharray='5 4'/><circle cx="50.0" cy="165.0" r="4" fill="var(--s2)" stroke="var(--card)" stroke-width="2"/><circle cx="141.0" cy="160.4" r="4" fill="var(--s2)" stroke="var(--card)" stroke-width="2"/><circle cx="232.0" cy="156.6" r="4" fill="var(--s2)" stroke="var(--card)" stroke-width="2"/><circle cx="353.3" cy="148.8" r="4" fill="var(--s2)" stroke="var(--card)" stroke-width="2"/><circle cx="596.0" cy="138.5" r="4" fill="var(--s2)" stroke="var(--card)" stroke-width="2"/><text class="ser" x="141.0" y="182.4" text-anchor="middle" fill="var(--s2)">rv03_narrowy_sp40</text><path d="M50.0,144.8 L141.0,160.3 L232.0,103.8 L353.3,53.3 L596.0,45.9" fill="none" stroke="var(--ref)" stroke-width="2" stroke-linejoin="round" stroke-dasharray='5 4'/><circle cx="50.0" cy="144.8" r="4" fill="var(--ref)" stroke="var(--card)" stroke-width="2"/><circle cx="141.0" cy="160.3" r="4" fill="var(--ref)" stroke="var(--card)" stroke-width="2"/><circle cx="232.0" cy="103.8" r="4" fill="var(--ref)" stroke="var(--card)" stroke-width="2"/><circle cx="353.3" cy="53.3" r="4" fill="var(--ref)" stroke="var(--card)" stroke-width="2"/><circle cx="596.0" cy="45.9" r="4" fill="var(--ref)" stroke="var(--card)" stroke-width="2"/><text class="ser" x="353.3" y="39.3" text-anchor="middle" fill="var(--ref)">rv00_wide_sp40</text></svg><figcaption>Tilt from vertical after the turn, mean of 8 seeds. Settling helps for
-150 steps on two hands of three and never on the third, and past that it is a slow fall:
-<code>rv00_wide_sp40</code> is lying flat by 900.</figcaption></figure>
-
-<p>What does replicate is that closure through the turn is not the control. At every non-zero
-squeeze, on every hand, nothing completes; on both hands that turn the tool at all, the commanded
-tilt gets worse rather than better.</p>
-
-<div class="tw"><table>
-<thead><tr><th class="num">closure through the turn (mm)</th><th class="num">rv05_manual</th><th class="num">ok</th><th class="num">rv03_narrowy_sp40</th><th class="num">ok</th><th class="num">rv00_wide_sp40</th><th class="num">ok</th></tr></thead>
-<tbody><tr><td class="num">0.5</td><td class="num">31.86</td><td class="num"><span class="no">0/8</span></td><td class="num">40.36</td><td class="num"><span class="no">0/8</span></td><td class="num">40.72</td><td class="num"><span class="no">0/8</span></td></tr><tr><td class="num">1.0</td><td class="num">30.81</td><td class="num"><span class="no">0/8</span></td><td class="num">43.33</td><td class="num"><span class="no">0/8</span></td><td class="num">62.28</td><td class="num"><span class="no">0/8</span></td></tr><tr><td class="num">2.0</td><td class="num">39.44</td><td class="num"><span class="no">0/8</span></td><td class="num">41.78</td><td class="num"><span class="no">0/8</span></td><td class="num">33.17</td><td class="num"><span class="no">0/8</span></td></tr></tbody></table></div>
-
-<p>One result from the payload sweep does carry across hands, and it is about the grasp rather
-than the tilt. On an arm that has not been told its payload
-<code>rv03_narrowy_sp40</code> holds the tool through the turn in
-1 of 8 seeds; declaring it
-takes that to 8 of
-8. <code>rv00_wide_sp40</code> and <code>rv05_manual</code> hold
-in both. The sag costs some hands the tool, not just the alignment.</p>
-
-<p>This is a transfer test of one tuned cell, not a design ranking. The turn angle, the axis
-fraction and the &plusmn;0.5&nbsp;rad budget were all fitted on <code>rv05_manual</code>, and the
-height of the rotation axis relative to the contacts is the variable that decided whether a
-<code>real_v1</code> hand reoriented at all in the 2026-08-28 search. So the table says the
-8&#176; is a property of this hand and this fit; it does not say the other nine cannot reorient
-with a fit of their own. What would settle that is one axis refit per design &mdash;
-<code>--axis-k</code> and the anchor height, the same two knobs the reorient-mechanism study
-swept &mdash; and this table rerun on the refits.</p>
 </div></section>
 
 <section><div class="col">
@@ -445,13 +491,21 @@ torque a wrench can read.</p></div>
 <h2>Next measurements</h2>
 
 <ol>
-<li><b>Refit the turn per design and rerun the ten-hand table.</b> The axis fraction
-<code>--axis-k</code>, the turn angle and the anchor height were fitted on
-<code>rv05_manual</code>, so the 10-hand result measures transfer of one fit, not the
-hands. Sweep those two knobs per design the way
-<code>docs/experiments/20260828-real_v1_reorient</code> did, then re-read the
-<code>turned</code> seam. Until that runs, the 8&#176; is a one-hand number and nothing in this
-page says a second hand can reach it.</li>
+<li><b>Take the settle to the bench on <code>w5120_b070</code> and
+<code>u5860_b070</code>.</b> They are the two ends of it: 48&#176;
+&rarr; 18&#176; over the hold on one, and
+17&#176; &rarr; 34&#176; the wrong
+way on the other, from the same commanded schedule. Both have exported plans, the vane tag reads
+this rotation directly at 0.017&#176; rms, and the prediction is a signed 30&#176; difference
+&mdash; large enough that the bench either confirms the mechanism or kills it. This is the only
+item here that a hardware run can settle.</li>
+
+<li><b>Sweep the settle across the 227 confirmed hands, not the 8 promoted ones.</b> The eight
+were promoted on clearance and servo limits, and they are a concentrated set: the settle ranges
+over 46&#176; inside them, which says nothing about how it is distributed over the population the
+study samples. The screen costs about three seconds a rollout and the confirmed table is already
+on disk, so this is one overnight job, and it is what would turn the settle from an observation
+into a design variable.</li>
 
 <li><b>Put the contact gate in every tilt report.</b> A tool dropped into a countersink reads
 vertical, and <code>rv04_mid_sp40</code> scores better than <code>rv05_manual</code> on tilt
