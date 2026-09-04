@@ -213,3 +213,45 @@ along the shaft, not pressed harder into it. Two candidates, in order:
    drive each pad back to its station at closure. `_squeeze_dirs` needs an axial sibling.
 Only after the grip survives the lift is it worth re-running the angle sweep or judging any
 hand, because every turn number above is measured through a grip that has already collapsed.
+
+---
+
+## Session 4 — why nothing worked: you cannot preload a light free object with position servos
+
+**THE 0.33 N GRIP IS NOT A DECAYED GRIP. IT IS STATICS.** The transient at closure is 80-99 N;
+by step 900 it is whatever the object's weight demands, and it scales with mass on the same
+command and the same hand:
+
+| object mass | 24.5 g | 98 g | 393 g | 1571 g |
+|---|---|---|---|---|
+| sv1_u0308_b050 | 0.33 N | 1.32 N | 9.84 N | 83.6 N |
+| rv05_manual_b85 | 0.34 N | 1.54 N | 8.87 N | 28.0 N |
+
+Position servos converge until forces balance. In mid-air nothing opposes the squeeze except the
+object's own weight and inertia, so a 24 g tool is held at a third of a newton however deep the
+command goes. On the bench the POST supplies the reaction, which is why the same hands make 12 N
+there and 0.33 N here.
+
+**This explains every negative in sessions 2-3 at once.** Commanded squeeze, re-squeeze, the
+servo-load loop, the contact-force loop and the station-referenced re-grasp were all trying to
+move a quantity that statics fixes. The re-grasp is the clearest case: it put the pads back where
+they sat at closure and force went 0.33 -> 0.32, 0.59 -> 0.30, 0.90 -> 0.39, 2.19 -> 0.34 N,
+because the pads had not slid -- there was never a grip to restore.
+
+**So the mid-air chain is grip-limited at ~0.33 N and the turn gets what friction at 0.33 N
+allows** -- 20-38 deg of the ~87 needed, best `sv1_u0308_b050` 87.3 -> 51.1 at -50 deg / k 0.25.
+No control knob reaches this. What does:
+1. **Opposition.** Pads that squeeze against each other THROUGH the object, so the interference
+   has nowhere to go. That is grasp geometry and morphology, not a controller -- and it is a
+   co-design variable the program has a topology for (the opposed pair,
+   `project_perp_topology`). Screen for it: the achievable mid-air grip at fixed command, which
+   is one 900-step rollout per hand with no schedule at all.
+2. **Keep a reaction surface in contact.** Every maneuver that works in this program -- the
+   bench carry, the ground-supported gait, the countersink seat -- has one. A mid-air reorient
+   may simply be the wrong primitive for a 24 g tool and a 3-finger position-controlled hand.
+
+**ON RL.** It cannot beat statics either: a policy trained on this chain would be optimising
+against a 0.33 N ceiling and would rediscover the same ~30 deg. It IS the right tool for the one
+thing no scalar schedule can express -- trading grip against roll DURING the turn, where every
+knob swept here is monotone in the wrong direction on one of the two objectives -- but only once
+the grasp can generate force at all. Fix opposition first, then RL on the modulation.
