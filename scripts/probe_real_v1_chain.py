@@ -227,6 +227,7 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
           transport_steps: int = 600, transport_iters: int = 1,
           stand_order: str = "ground", airgrip: str = "cradle",
           reindex: str = "full", relay_gait: bool = False, track_frac: float = 1.0,
+          clear: float = 0.08,
           ring_az: str = "canonical",
           relay_squeeze: float = 0.0015,
           tilt_deg: float = 0.0, tilt_dir: float = 0.0, screw_torque: float = 0.0,
@@ -1167,13 +1168,23 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         _run(settle_steps // 4)
         seams.append(_snap("released"))
         _shot()
-        # CARTESIAN, like every other palm move in this probe. The re-index is the largest
-        # rotation the wrist makes in the whole chain -- from wherever the reorient parked the
-        # palm to the gait's own pose looking down at the tool -- and a joint-space ramp across
-        # it swings the open hand through an arc that is not on the commanded path. With the
-        # tool standing free on the floor, that arc is what knocks it over.
-        _move(np.eye(3), np.array([centre[0] - centre_x, centre[1], z_gait + gd_use]),
-              repose_steps, hold=False, settle=settle_steps // 2)
+        # OVER THE TOP, NOT THROUGH. The re-index is the largest rotation the wrist makes in the
+        # whole chain -- from wherever the reorient parked the palm, on edge beside the tool, to
+        # the gait's own pose looking down at it -- and it is where the chain is lost: 29 of 36
+        # runs that stood the tool are past 14 deg by the end of this move, with the hand OPEN
+        # and the ring not yet closed, mean tilt 1.15 deg before it and 41.4 after. A single
+        # Cartesian leg rotates and translates at once, which walks the open fingers through the
+        # space the standing tool occupies. Three legs instead: straight up to a height where
+        # the fingertips clear the tool's top, across and around at that height, then straight
+        # down onto the gait pose. Same endpoint, and nothing passes through the tool.
+        p_g = np.array([centre[0] - centre_x, centre[1], z_gait + gd_use])
+        R_c, p_c = palm.cmd_pose()
+        z_hi = max(float(p_c[2]), float(p_g[2])) + clear
+        n3 = max(1, repose_steps // 3)
+        _move(R_c, np.array([p_c[0], p_c[1], z_hi]), n3, hold=False, settle=settle_steps // 8)
+        _move(np.eye(3), np.array([p_g[0], p_g[1], z_hi]), n3, hold=False,
+              settle=settle_steps // 8)
+        _move(np.eye(3), p_g, n3, hold=False, settle=settle_steps // 2)
         seams.append(_snap("reindexed"))
         _shot()
     else:
@@ -1518,6 +1529,10 @@ def main() -> int:
                          "all three together at the carry's palm pose. full and none both "
                          "pass through zero contacts and so both need the tool to stay put "
                          "on its own.")
+    ap.add_argument("--clear", type=float, default=0.08,
+                    help="m the re-index lifts the open hand above the gait pose before it "
+                         "translates across. 0 collapses the three legs back into the single "
+                         "Cartesian move that walks the open fingers through the standing tool.")
     ap.add_argument("--relay-squeeze", type=float, default=0.0015,
                     help="m of radial interference commanded once a relay handover has all "
                          "three pads on the ring. Arrival order cannot set a grip; this can.")
@@ -1586,6 +1601,7 @@ def main() -> int:
                           descend_iters=args.descend_iters, descend_steps=args.descend_steps,
                           stand_order=args.stand_order, airgrip=args.airgrip,
                           reindex=args.reindex, relay_gait=args.relay_gait,
+                          clear=args.clear,
                           track_frac=args.track_frac, relay_squeeze=args.relay_squeeze,
                           tilt_deg=args.tilt_deg, tilt_dir=args.tilt_dir,
                           screw_torque=args.screw_torque,
