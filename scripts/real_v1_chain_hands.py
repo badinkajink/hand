@@ -45,6 +45,24 @@ A_TAGS = ["sv1_w6689_b060", "sv1_w2360_b075", "sv1_u1364_b080", "g12_b095",
 # cache path silently returned records with half the fields.
 SCENES = ROOT / "assets/mjcf/experimental/20260904-chain_bothsets"
 PAD = dict(pad_len=0.015, width=0.0211, links=False)
+# THE PLAN'S SQUEEZE IS A BENCH NUMBER AND IT MUST NOT BE TRANSPLANTED. Every deployed plan
+# carries `squeeze_mm` 10.0, fitted on a scene where the shaft floats at 100 mm on a post that
+# takes the reaction. It drives the pad CENTRES to r_obj + r_pad + gap - squeeze = 14.05 mm from
+# the shaft axis when contact needs 23.05 -- 9 mm inside the surface. On a shaft lying on a
+# table there is nothing behind it, so the pinch ejects it: measured at closure with the palm
+# stationary, the tool rises +14 to +20 mm on nine of sixteen hands (its own radius is 12.5),
+# rides up onto the pip frames, and the pad force FALLS as the squeeze rises (g12 10.4 -> 0.5 N
+# over 2 -> 10 mm) because the shaft has escaped over the top of the pads. Three hands go the
+# other way and crush it into the floor at 28-67 N. It is the wedge-sign failure
+# `fit_real_v1_pose.tip_targets` warns about for positive elevation, arriving through excess
+# squeeze instead of elevation.
+#
+# The fitter's own hold probe does not catch it, and cannot: `held` is measured against the
+# object's height BEFORE the close, so the pop counts as retained lift. held ~= lift_probe + dz
+# is the identity, and every grasp that "passes" the 20 mm gate at 65-75 mm on a 50 mm probe is
+# passing by the amount it threw the tool. The tell is `held > lift_probe`, and nothing was
+# looking at it.
+SQUEEZE_MM = 2.0
 STEM = "screw_a45_x40_y-11"
 
 # The published chain cell (docs/experiments/20260903-real_v1_chain + the seat's carry). Only the
@@ -78,7 +96,8 @@ def _rec(tag: str, m: dict, which: str) -> dict | None:
         return None
     return {"tag": tag, "set": which, "base": str(base),
             "straddle": m["straddle_mm"] / 1000, "thumb_axial": m["thumb_axial_mm"] / 1000,
-            "squeeze": m["squeeze_mm"] / 1000, "depth": m["grip_depth_mm"] / 1000,
+            "squeeze": SQUEEZE_MM / 1000, "plan_squeeze_mm": m["squeeze_mm"],
+            "depth": m["grip_depth_mm"] / 1000,
             "axis_k": m["axis_k"], "angle_deg": m["angle_deg"], "budget": m["budget_rad"]}
 
 
@@ -91,7 +110,7 @@ def _qmul(a, b):
             w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2)
 
 
-def prepare(h: dict, yaw_deg: float = 0.0) -> dict | None:
+def prepare(h: dict, yaw_deg: float = 0.0, squeeze_mm: float | None = None) -> dict | None:
     """Design scene -> fitted grasp baked into `open_ik` -> countersink -> UR5e arm scene.
 
     The chain resets from the scene's `open_ik` keyframe and takes its finger anchor separately,
@@ -108,13 +127,17 @@ def prepare(h: dict, yaw_deg: float = 0.0) -> dict | None:
     # WHICH WAY THE TOOL LIES ON THE BENCH, and it is a spec rather than a detail: standing it
     # up is a rotation the grasp can carry in one direction and not the other, so the heading
     # the tool is laid down in decides whether the tool ends up standing or on the floor.
+    sq = SQUEEZE_MM if squeeze_mm is None else float(squeeze_mm)
     tag = h["tag"] if not yaw_deg else f"{h['tag']}_y{int(round(yaw_deg))}"
+    if sq != SQUEEZE_MM:
+        tag += f"_sq{sq:g}"
     meta = SCENES / f"{tag}_fit.json"
     arm, ik = SCENES / f"{tag}_arm.xml", SCENES / f"{tag}_arm_ik.xml"
-    NEED = ("anchor", "depth_mm", "arm", "ik", "place_xy", "seat_z", "tip_len")
+    NEED = ("anchor", "depth_mm", "arm", "ik", "place_xy", "seat_z", "tip_len",
+            "close_dz_mm", "squeeze_mm")
     if meta.exists() and arm.exists() and ik.exists():
         rec = json.loads(meta.read_text())
-        if all(k in rec for k in NEED):
+        if all(k in rec for k in NEED) and rec.get("squeeze_mm") == sq:
             return rec
 
     flat = SCENES / f"{tag}__flat.xml"
@@ -130,7 +153,7 @@ def prepare(h: dict, yaw_deg: float = 0.0) -> dict | None:
             b.set("quat", " ".join(f"{v:.9g}" for v in
                                    _qmul((math.cos(a), 0.0, 0.0, math.sin(a)), q)))
             ET.ElementTree(root).write(flat, encoding="unicode")
-    built = pc._grip_from_fit(flat, h["straddle"], 0.0, h["squeeze"], BASE["obj"],
+    built = pc._grip_from_fit(flat, h["straddle"], 0.0, sq / 1000.0, BASE["obj"],
                               h["depth"], h["thumb_axial"])
     if built is None:
         return None
@@ -161,8 +184,15 @@ def prepare(h: dict, yaw_deg: float = 0.0) -> dict | None:
                        capture_output=True, text=True)
     if p.returncode != 0:
         return None
+    # WHAT THE CLOSE DOES TO A TOOL THAT IS LYING ON THE TABLE, before the palm moves at all.
+    # `close_dz_mm` near zero is a grasp; +15 is the tool being thrown out of the pinch, and
+    # `close_nonpad` counts contacts on anything that is not a pad -- the pip frames the tool
+    # rides up onto, or the floor it is being crushed into.
+    dz, npad, nonpad, fpad = _close_probe(m, open_qpos, grip, BASE["obj"])
     sj = json.loads(seat.with_suffix(".json").read_text())
-    out = {"tag": tag, "anchor": {j: float(grip[a]) for j, a in acts.items()},
+    out = {"tag": tag, "close_dz_mm": dz, "close_pads": npad, "close_nonpad": nonpad,
+           "close_pad_N": fpad, "squeeze_mm": sq,
+           "anchor": {j: float(grip[a]) for j, a in acts.items()},
            "depth_mm": depth_mm, "arm": str(arm), "ik": str(ik),
            "place_xy": sj["socket_xy"], "seat_z": sj["seat_z"], "tip_len": sj["tip_len"]}
     meta.write_text(json.dumps(out))
@@ -182,6 +212,38 @@ TABLE = dict(obj="screwdriver_medium", lift=0.10, gap=0.002, angle_deg=0.0,
              release_mm=6.0, twist_steps=120, move_steps=60, carry_squeeze=0.0003,
              press_mm=10.0, transport_steps=300, reindex="full", relay_gait=False,
              ring_az="pads", turn_steps=550, hold_steps=300)
+
+
+def _close_probe(m, open_qpos, grip, obj: str):
+    """Hold the fitted grip for 0.8 s with the palm still, and see where the tool goes."""
+    import mujoco
+    import numpy as np
+    from morphohand.tools.keyframe_ik import FINGERS
+    d = mujoco.MjData(m)
+    d.qpos[:] = open_qpos
+    d.ctrl[:] = grip
+    mujoco.mj_forward(m, d)
+    z0 = float(d.body(obj).xpos[2])
+    for _ in range(400):
+        mujoco.mj_step(m, d)
+    bid = m.body(obj).id
+    tips = {m.body(f"{f}_tip").id for f in FINGERS}
+    npad = nonpad = 0
+    fpad = 0.0
+    for i in range(d.ncon):
+        c = d.contact[i]
+        b1, b2 = m.geom_bodyid[c.geom1], m.geom_bodyid[c.geom2]
+        if bid not in (b1, b2):
+            continue
+        other = b2 if b1 == bid else b1
+        f6 = np.zeros(6)
+        mujoco.mj_contactForce(m, d, i, f6)
+        if other in tips:
+            npad += 1
+            fpad += float(abs(f6[0]))
+        else:
+            nonpad += 1
+    return (round((float(d.body(obj).xpos[2]) - z0) * 1000, 2), npad, nonpad, round(fpad, 2))
 
 
 def _cell(kw):
@@ -234,6 +296,11 @@ def main() -> int:
     ap.add_argument("--reps", type=int, default=4)
     ap.add_argument("--cycles", type=int, default=8)
     ap.add_argument("--workers", type=int, default=6)
+    ap.add_argument("--squeeze-mm", default=None,
+                    help="comma list of grasp squeeze values in mm, overriding SQUEEZE_MM. The "
+                         "deployed plans all say 10.0, which is a BENCH number: on a tool lying "
+                         "on a table it ejects the tool 14-20 mm out of the pinch at closure. "
+                         "2.0 gives 64/64 lifts against 41/64 and 23/64 chains against 8/64.")
     ap.add_argument("--clears", default=None,
                     help="comma list of re-index clearance heights in m to sweep (table mode). "
                          "The palm lifts this far above the gait pose before it translates "
@@ -250,15 +317,17 @@ def main() -> int:
 
     H = hands(args.sets)
     print(f"{len(H)} hands: " + ", ".join(f"{h['tag']}[{h['set']}]" for h in H), flush=True)
+    sqs = [None] if not args.squeeze_mm else [float(v) for v in args.squeeze_mm.split(",")]
     fits, jobs, skipped = {}, [], []
     vid = args.out / "videos"
     for h in H:
-        f = prepare(h)
+      for sq in sqs:
+        f = prepare(h, squeeze_mm=sq)
         if f is None:
             skipped.append(h["tag"])
             print(f"  {h['tag']}: NO POSE / BUILD FAILED", flush=True)
             continue
-        fits[h["tag"]] = f
+        fits[f["tag"]] = f
         grid = [(c, rp) for c in ([None] if not args.clears else
                                   [float(v) for v in args.clears.split(",")])
                 for rp in ([None] if not args.reposes else
@@ -266,7 +335,7 @@ def main() -> int:
         for lt in (float(v) for v in args.loads.split(",")):
           for cl, rp in grid:
             for rep in range(args.reps):
-                tg = f"load{lt:.0f}"
+                tg = f"load{lt:.0f}" + ("" if sq is None else f"_sq{sq:g}")
                 if cl is not None:
                     tg += f"_c{cl*1000:.0f}"
                 if rp is not None:
@@ -279,8 +348,9 @@ def main() -> int:
                     kw["clear"] = cl
                 if rp is not None:
                     kw["repose_steps"] = rp
-                if rep == args.video_seed and not args.no_video and len(grid) == 1:
-                    kw["video"] = vid / f"20260904-{h['tag']}_{args.stand}_load{lt:.0f}.mp4"
+                if rep == args.video_seed and not args.no_video and len(grid) == 1 \
+                        and len(sqs) == 1:
+                    kw["video"] = vid / f"20260905-{h['tag']}_{args.stand}_{tg}.mp4"
                     kw["video_size"] = (640, 480)
                     kw["cam"] = (-60.0, -20.0, 0.42)
                     kw["cam_look"] = (0.02, -0.005, 0.045)
