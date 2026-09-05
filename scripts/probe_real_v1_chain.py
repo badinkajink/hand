@@ -247,7 +247,8 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
           tip_len: float = 0.0,
           video: Path | None = None, film: Path | None = None,
           cam=(120.0, -18.0, 0.36), video_every: int = 12, trace: bool = False,
-          video_size=(640, 480), cam_look=None) -> dict:
+          video_size=(640, 480), cam_look=None,
+          gait_scan: str = "grip") -> dict:
     scene = Path(scene_path) if scene_path is not None else \
         morph_run / ("arm_scene.xml" if arm_ik is not None else "frozen_scene.xml")
     pg._MODEL_PATH["path"] = str(scene)
@@ -1110,7 +1111,17 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         for gd in np.arange(0.030, 0.0721, 0.005):
             u_c = palm.solve(np.eye(3), np.array([centre[0] - centre_x, centre[1],
                                                   z_gait + float(gd)]))[0]
-            _, w_, _ = pg._ring_table(m, centre, z_ring, palm.joint_dict(u_c), [r_grip], [0.0])
+            jd = palm.joint_dict(u_c)
+            # WHICH RING THE HEIGHT IS CHOSEN FOR. The close happens on `r_grip`, but the
+            # palm DESCENDS onto the standing tool with the fingers at `r_open`, and it is
+            # that descent that knocks the tool over -- 53 of 58 handover failures are
+            # already past 14 deg at `reindexed`, having stood at 1.5 deg through `released`.
+            # A height that solves the closed ring and not the open one drives the open pads
+            # through the tool on the way down.
+            w_ = pg._ring_table(m, centre, z_ring, jd, [r_grip], [0.0])[1]
+            if gait_scan != "grip":
+                w_o = pg._ring_table(m, centre, z_ring, jd, [r_open], [0.0])[1]
+                w_ = w_o if gait_scan == "open" else max(w_, w_o)
             if w_ < best_gd[0]:
                 best_gd = (w_, float(gd))
         gd_use = best_gd[1]
@@ -1351,6 +1362,32 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
     ng, fg = _support(m, d, obj)
     seams.append(_snap("gaited"))
     _shot()
+    # ---------------------------------------------------------- the reorientation, on its own
+    # The chain's gates are an AND, so a hand that reorients perfectly and then loses the
+    # handover reads exactly like a hand that never turned the tool. These four fields score
+    # the REORIENTATION alone, on the two things that can go wrong with it: the tool leaving
+    # the hand, and the turn coming up short.
+    #   reorient_deg  how much of the 90 deg lying->standing turn the tool actually made, read
+    #                 at `upright` (the pivot's own result) before the press touches it.
+    #   drop_stage    the first seam at which the tool is on the floor with nothing holding it.
+    #                 Everything up to `pressed` is supposed to be held or supported, so any
+    #                 name here is a drop; None means the tool was never loose.
+    #   reorient_ok   turned to within 14 deg of vertical AND never dropped getting there.
+    _ph = {s_["phase"]: s_ for s_ in seams}
+    _up = _ph.get("upright", _ph.get("staged"))
+    reorient_deg = None if _up is None else round(90.0 - float(_up["tilt_deg"]), 2)
+    drop_stage = None
+    for s_ in seams:
+        if s_["phase"] == "released":
+            break
+        # loose = lying on the floor (centre at the shaft RADIUS, not the half-length -- a
+        # tool standing on its end sits at `half` and is not dropped) with no hand on it
+        if s_["hand_contacts"] < 1 and s_["z"] < r_obj + 0.004:
+            drop_stage = s_["phase"]
+            break
+    reorient_ok = bool(reorient_deg is not None and reorient_deg >= 76.0
+                       and drop_stage is None)
+
     out = {
         "run": morph_run.name, "object": obj, "reindex": reindex,
         "palm_move_mm": palm_move_mm, "palm_move_deg": palm_move_deg,
@@ -1414,6 +1451,8 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         "arm_ik_fails": int(getattr(palm, "fails", 0)),
         "seams": seams,
         "carry_ok": bool(carry_ok), "stood_ok": stood_ok, "grip_ok": grip_ok,
+        "reorient_deg": reorient_deg, "drop_stage": drop_stage,
+        "reorient_ok": reorient_ok,
         "spin_deg": round(float(np.degrees(spin[0])), 2),
         "turns": round(float(np.degrees(spin[0])) / 360.0, 3),
         "gain_mean_deg": round(float(np.mean(gains)), 2) if gains else 0.0,
