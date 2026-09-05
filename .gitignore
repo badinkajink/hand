@@ -67,3 +67,9 @@ docs/experiments/20260829-real_v1_deploy/bench_final_sq4.json
 docs/experiments/20260829-real_v1_deploy/bench_final_sq7.json
 paper/speculative/
 docs/experiments/20260902-cb1-log-archive/logs/
+
+# Per-hand fit + arm scenes rebuilt by real_v1_chain_hands.prepare() and the slip studies.
+# Regenerated from the tracked sobol base scenes and the deploy plans; ~2 MB per study.
+assets/mjcf/experimental/20260904-chain_bothsets/
+assets/mjcf/experimental/20260904-chain_hands/
+assets/mjcf/experimental/20260904-ranked_slip/

@@ -64,8 +64,8 @@ def main() -> int:
     html = TEMPLATE.replace("{{ROWS}}", "\n".join(body)) \
         .replace("{{OK}}", str(tot["ok"])).replace("{{N}}", str(tot["n"])) \
         .replace("{{STOOD}}", str(tot["stood"])).replace("{{LIFT}}", str(tot["lift"])) \
-        .replace("{{VIDEO}}", b64(DIR / "20260904-table_stand_g12.mp4", "video/mp4")) \
-        .replace("{{FILM}}", b64(DIR / "20260904-table_stand_g12_seams.png", "image/png"))
+        .replace("{{VIDEO}}", b64(DIR / "20260904-table_stand_u1364.mp4", "video/mp4")) \
+        .replace("{{FILM}}", b64(DIR / "20260904-table_stand_u1364_seams.png", "image/png"))
     OUT.write_text(html)
     print(f"-> {OUT}  ({OUT.stat().st_size/1e6:.1f} MB)")
     return 0

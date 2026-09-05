@@ -93,14 +93,14 @@ tr:last-child td{border-bottom:0}
   <div class="eyebrow">real_v1 &middot; grasp&rarr;reorient&rarr;gait &middot; 2026-09-04</div>
   <h1>Table-supported reorientation in the grasp-to-gait chain</h1>
   <p class="lede">The hand stands a screwdriver upright by pivoting it on the table rather than
-  turning it in the air, reaching 0.09&deg; off vertical and gaiting it 6 cycles at
-  &minus;36.4&deg; per cycle. Ten of sixteen hands stand the tool on every seed; two of
-  sixty-four runs finish the chain.</p>
+  turning it in the air, and gaits it six cycles at &minus;40.6&deg; each while it stays within
+  0.1&deg; of vertical. Ten of sixteen hands stand the tool on every seed; eight of sixty-four
+  runs finish the chain.</p>
   <p class="byline">Simulation, MuJoCo, UR5e-mounted real_v1 hand, 24.5 g screwdriver.<br>
   Local: <code>docs/experiments/20260904-real_v1_held/20260904-real_v1_table_stand.html</code></p>
   <div class="stats">
-    <div class="stat"><b>0.09&deg;</b><span>tilt after the stand-up</span></div>
-    <div class="stat"><b>&minus;36.4&deg;</b><span>per gait cycle, 6/6</span></div>
+    <div class="stat"><b>0.00&deg;</b><span>tilt after the stand-up</span></div>
+    <div class="stat"><b>&minus;40.6&deg;</b><span>per gait cycle, 6/6</span></div>
     <div class="stat"><b>{{STOOD}}/{{N}}</b><span>runs stand the tool</span></div>
     <div class="stat"><b>{{OK}}/{{N}}</b><span>runs finish the chain</span></div>
   </div>
@@ -116,14 +116,21 @@ tr:last-child td{border-bottom:0}
     rotating the tool about the point it is resting on. The table carries the weight throughout.
     Once the tool is standing it supports itself, so the palm can leave, re-index to the pose the
     gait study validated, close on the tripod ring, and gait.</p>
-    <p>On <code>g12_b095</code>, seed 0: stood at 0.09&deg;, pressed to 0.00&deg;, ring taken on
-    three pads at 41.1&nbsp;N, six gait cycles at &minus;36.4&deg; each &mdash; 72% of the
-    1.684-gear ceiling &mdash; and the tool 11.7&deg; off vertical when the chain ends.</p>
+    <p>On <code>sv1_u1364_b080</code>, seed 3: stood at 0.00&deg;, ring taken on three pads at
+    32.2&nbsp;N, six gait cycles at &minus;40.6&deg; each &mdash; 80% of the 1.684-gear ceiling
+    &mdash; and the tool 0.09&deg; off vertical when the chain ends. The tool rotates 23.3&deg;
+    inside the grasp over the whole run.</p>
+    <p>The re-index goes over the top rather than across. A single Cartesian leg would rotate
+    and translate at once, and since the move is a quarter turn of the wrist from
+    on-edge-beside-the-tool to looking-down-at-it, that walks the open fingers through the space
+    the standing tool occupies &mdash; which is where 29 of 36 stands were being lost. Three legs
+    instead: straight up until the fingertips clear the tool's top, across and around at that
+    height, then straight down onto the gait pose.</p>
   </div>
   <figure>
     <video src="{{VIDEO}}" controls muted loop playsinline preload="metadata"></video>
-    <figcaption>g12_b095, seed 0. Grasp on the table, set back down, pivot up about the foot,
-    palm re-index, ring, six gait cycles.</figcaption>
+    <figcaption>sv1_u1364_b080, seed 3. Grasp on the table, set back down, pivot up about the
+    foot, palm re-index over the top, ring, six gait cycles.</figcaption>
   </figure>
   <figure>
     <img src="{{FILM}}" alt="Sixteen phase-aligned frames of the chain, from the grasp on the
@@ -150,7 +157,8 @@ tr:last-child td{border-bottom:0}
     was failing; the hold was, and only a reaction surface changes it &mdash; which is what every
     maneuver that works in this program already has.</p>
     <h3>It is a guided pivot, not a rigid carry</h3>
-    <p>The tool rotates 70.6&deg; inside the grasp during the stand-up. That is measured directly
+    <p>The tool rotates 23&ndash;71&deg; inside the grasp during the stand-up, depending on the
+    hand. That is measured directly
     now: every seam carries <code>roll_deg</code> and <code>slide_mm</code>, the tool's rotation
     and translation in the <em>palm's</em> frame since the grasp settled, which separates
     alignment the hand delivered from alignment the tool helped itself to. A rigid carry reads
@@ -220,15 +228,15 @@ tr:last-child td{border-bottom:0}
   <div class="col">
     <h2>What this does not settle</h2>
     <ol>
-      <li><strong>The handover is the entire remaining failure.</strong> Thirty-six stands, two
-      chains. The tool is standing free and stable when the palm move starts and on the floor by
-      the time the ring closes. The next measurement is which phase of the re-index &mdash;
-      release, palm move, or close &mdash; loses it, per seed, on the ten hands that stand on
-      every seed. Two variants are already excluded: closing one finger at a time after the palm
-      move (<code>--reindex regrip</code>) gives 0/4 against 1/4, because three Cartesian
-      approaches past a free-standing tool are three chances to knock it down; and reducing the
-      ring's commanded interference (<code>--squeeze</code> 0.5 / 1.0 / 2.0&nbsp;mm over five
-      hands &times; four seeds) leaves every hand at its own value.</li>
+      <li><strong>The seeds that still fail, fail at the re-index.</strong> With the single-leg
+      re-index, 29 of the 36 runs that stood the tool were past 14&deg; by the end of that move
+      &mdash; hand open, ring not yet closed, mean tilt 1.15&deg; before it and 41.4&deg; after.
+      The three-leg version below removes most of that, and what remains is the same seam. Two
+      other variants are excluded: closing one finger at a time after the palm move
+      (<code>--reindex regrip</code>) is worse, because three Cartesian approaches past a
+      free-standing tool are three chances to knock it down; and reducing the ring's commanded
+      interference (<code>--squeeze</code> 0.5 / 1.0 / 2.0&nbsp;mm over five hands &times; four
+      seeds) leaves every hand at its own value. The close was never the problem.</li>
       <li><strong>The countersink, and the tool's heading on the bench.</strong> A screwdriver
       cannot stand tip-down on a flat table, so the seated version has to arrive at the socket.
       On the heading the scenes ship with, pivoting the foot into the socket stalls at 34&deg;
