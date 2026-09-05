@@ -288,7 +288,11 @@ def main() -> int:
             if not g:
                 continue
             hh = [r for r in g if r.get("held_turn")]
-            f = lambda k, src=None: [float(r.get(k) or 0.0) for r in (src or g)]
+            # `src or g` would fall back to the whole group whenever the filtered list is
+            # EMPTY, which is exactly the hands that never stood the tool -- and then prints
+            # their all-run mean under a column headed "over the runs that stood it".
+            def f(k, src=None):
+                return [float(r.get(k) or 0.0) for r in (g if src is None else src)]
             sd = [r for r in g if r.get("stood_ok")]
             print(f"   {h['tag']:20} {h['set']:>3} {lt:5.0f} "
                   f"{sum(1 for r in g if r.get('held_lift')):2}/{len(g):<2} "

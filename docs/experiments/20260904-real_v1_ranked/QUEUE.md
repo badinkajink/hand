@@ -274,12 +274,12 @@ pose and take the ring, and that is where 34 of 36 successful stands are lost.
 | hold the lift | 41/64 (5 hands drop the tool at the grasp: w6689_b060, w6689_b050, u5860_b070, w7583_b130, and w2360_b075 at 2/4) |
 | stand it | 36/64, ten hands at 4/4 |
 | upright tilt, on the stands | 0.00-3.3 deg on nine hands, 17.4 on `sv1_u0060_b75` |
-| complete the chain | **2/64** -- `g12_b095` 1/4 and `sv1_w0099_b100` 1/4 |
+| complete the chain | **2/64** with the single-leg re-index, **8/64** with the three-leg one below |
 
-The best run, `g12_b095` seed 0: stood at 0.09 deg, pressed to 0.00, ring taken on three pads at
-41.1 N, 6/6 gait cycles at -36.4 deg/cycle (72% of the 1.684-gear ceiling), tool at 11.7 deg when
-the chain ends, `ok` True.
-`docs/experiments/20260904-real_v1_held/20260904-table_stand_g12.mp4`.
+The best run, `sv1_u1364_b080` seed 3: stood at 0.00 deg, ring taken on three pads at 32.2 N,
+6/6 gait cycles at -40.6 deg/cycle (80% of the 1.684-gear ceiling), tool at 0.09 deg when the
+chain ends, 23.3 deg of roll in the grasp over the whole run, `ok` True.
+`docs/experiments/20260904-real_v1_held/20260904-table_stand_u1364.mp4`.
 
 **WHY THE TABLE AND NOT THE ARM.** A 90 deg mid-air rigid reorientation drops the tool on every
 variant tried: fingers turning it, arm turning it, tip-up, tip-down, UR5e, floating palm. That
@@ -338,13 +338,35 @@ body) and the same move stands it TIP DOWN at 8.79 deg with 10.8 deg of roll. Th
 10 mm proud of its seat and the handover topples it, so it is not yet a chain, but the stand-up
 is no longer the obstacle.
 
+**THE HANDOVER LOSES IT DURING THE PALM MOVE, WITH THE HAND OPEN.** Of the 36 runs that stood
+the tool, the first seam past `pressed` where the tilt exceeds 14 deg is `reindexed` in 29,
+`gait_grip` in 2, `gaited` in 3, and never in 2. Mean tilt across the stands: 1.15 deg at
+`released`, **41.4 at `reindexed`**, 71.0 at `gait_grip`. The close was never the problem.
+
+The cause is the shape of the move. The re-index is a ~90 deg wrist rotation from on-edge-beside
+-the-tool to looking-down-at-it, and one Cartesian leg rotates and translates at once, which
+walks the open fingers through the space the standing tool occupies. `--clear` (default 80 mm)
+splits it into three legs: straight up until the fingertips clear the tool's top, across and
+around at that height, then straight down onto the gait pose. Same endpoint, nothing passes
+through the tool. On `g12_b095` over four seeds that is **1/4 -> 3/4 complete chains**, and the
+surviving runs end 5.4 / 9.1 / 10.8 deg off vertical against 11.7 before (commit e2a47be0).
+
+**THE 16-HAND RE-RUN WITH THE THREE-LEG RE-INDEX: 8/64, and the loss at `reindexed` falls from
+29 to 20 of 36.** `sv1_u1364_b080` 3/4, `sv1_u7952_b050` and `_b065` 2/4 each, `sv1_w0099_b100`
+1/4. `g12_b095` runs all six cycles on all four seeds and never drops the tool (end tilt
+8.4-16.3 deg) but fails `grip_ok` on three of them, and its -67 to -86 deg/cycle is past the
+50.5 deg gear ceiling, which is the shaft being spun rather than gaited. At `repose_steps` 900
+instead of 800 the same hand is 3/4, so the leg length matters and has not been swept.
+
 **NEXT, in order.**
-1. **The handover is the whole remaining failure.** 36 stands, 2 chains. The tool is standing
-   free and stable when the palm move starts and on the floor by the time the ring closes.
-   Instrument the window that `free_frac` already summarises: which phase of `full`
-   (release / palm move / close) loses it, per seed, on the ten hands that stand 4/4. Nothing
-   else is worth tuning until that is named.
-2. **Seat the tool the last 10 mm** on the flipped heading, then re-run the handover there. A
+1. **Sweep the re-index leg length and clearance** (`--clear`, and `repose_steps`, which sets how
+   long each of the three legs takes). g12 flips 0/4 to 3/4 between 800 and 900 steps, which is
+   too sensitive to leave at a default. 20 of 36 stands are still lost at `reindexed`.
+2. **`gain_mean_deg` past the gear ceiling is not a gait.** g12 at -67 to -86 deg/cycle and
+   u7952 at -1164 and +582 on its failing seeds are the tool being spun or thrown, not turned by
+   the pads. The gait probe already flags this for the brake (`brake_pumped`); the chain needs
+   the same guard, or those cells will be read as fast gaits.
+3. **Seat the tool the last 10 mm** on the flipped heading, then re-run the handover there. A
    tool in a 45 deg cone is not free-standing, and the program has already measured that
    continuous contact buys everything in a seat and nothing on a plane.
 3. **The five hands that drop the tool at the grasp** (roll 147-167 deg, `free_frac` 1.00) fail
