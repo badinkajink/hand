@@ -1,269 +1,247 @@
-<title>Table-supported reorientation</title>
+<title>Table-supported reorientation across sixteen hands</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
 <style>
 :root{
-  --paper:#EEF1F4; --card:#FFFFFF; --sunk:#E4E9EE;
-  --ink:#1A2127; --ink2:#48545D; --ink3:#77848D; --rule:#D2DAE1; --rule2:#E2E8ED;
-  --s1:#BE7514; --s2:#4A7FC4;
-  --good:#3F7A46; --warn:#8A6A17; --bad:#A8443C;
-  --shadow:0 1px 2px rgba(16,26,34,.06),0 8px 24px -14px rgba(16,26,34,.28);
+  --ground:#faf8f4; --surface:#ffffff; --ink:#191713; --muted:#6d6862;
+  --rule:#e3ddd3; --rule-soft:#efeae1; --accent:#1f4e79; --ok:#2d6a4f;
+  --warn:#a8620f; --bad:#8f382c; --chip:#efeae1;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --serif:"Source Serif 4",Georgia,"Times New Roman",serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
 }
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
-  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
-  --s1:#E39A2E; --s2:#7BA7E0;
-  --good:#6FB076; --warn:#D9AE4F; --bad:#DE8078;
-  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
-}}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#131519; --surface:#1a1d22; --ink:#e9e6e0; --muted:#98938b;
+    --rule:#2b2f36; --rule-soft:#22262c; --accent:#84b6e4; --ok:#6cc09a;
+    --warn:#d99a4e; --bad:#e08272; --chip:#252930;
+  }
+}
 :root[data-theme="dark"]{
-  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
-  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
-  --s1:#E39A2E; --s2:#7BA7E0;
-  --good:#6FB076; --warn:#D9AE4F; --bad:#DE8078;
-  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+  --ground:#131519; --surface:#1a1d22; --ink:#e9e6e0; --muted:#98938b;
+  --rule:#2b2f36; --rule-soft:#22262c; --accent:#84b6e4; --ok:#6cc09a;
+  --warn:#d99a4e; --bad:#e08272; --chip:#252930;
 }
 *{box-sizing:border-box}
-body{background:var(--paper);color:var(--ink);
-  font:400 17px/1.62 "Source Serif 4",Georgia,"Times New Roman",serif;
-  -webkit-font-smoothing:antialiased;padding:0 20px 96px}
-.wrap{max-width:1020px;margin:0 auto}
-.col{max-width:70ch}
-h1,h2,h3,.tag,th,.stat b{font-family:Archivo,"Helvetica Neue",Arial,sans-serif}
-.mono,code,td.num,.tag,.cap,.foot{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace}
-
-header{padding:72px 0 30px;border-bottom:1px solid var(--rule)}
-.eyebrow{font:500 12px/1 "IBM Plex Mono",monospace;letter-spacing:.16em;
-  text-transform:uppercase;color:var(--ink3)}
-h1{font-size:clamp(32px,5vw,52px);line-height:1.03;font-weight:700;letter-spacing:-.022em;
-  margin:16px 0 0;text-wrap:balance;max-width:19ch}
-.lede{font-size:20px;line-height:1.55;color:var(--ink2);margin:18px 0 0;max-width:64ch}
-.byline{margin-top:22px;font:400 13px/1.6 "IBM Plex Mono",monospace;color:var(--ink3)}
-.byline a{color:var(--s2)}
-
+body{background:var(--ground);color:var(--ink);font-family:var(--serif);
+  font-size:17px;line-height:1.62;margin:0;-webkit-font-smoothing:antialiased}
+.wrap{max-width:960px;margin:0 auto;padding:0 24px 96px;
+  display:flex;flex-direction:column;gap:34px}
+header{padding:56px 0 0;display:flex;flex-direction:column;gap:12px}
+.kicker{font-family:var(--sans);font-size:12px;font-weight:600;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--accent)}
+h1{font-family:var(--sans);font-weight:700;font-size:clamp(30px,4.6vw,44px);
+  line-height:1.12;letter-spacing:-.02em;margin:0;text-wrap:balance;max-width:20ch}
+.lede{font-size:19px;color:var(--muted);margin:0;max-width:62ch}
+.path{font-family:var(--mono);font-size:12.5px;color:var(--muted);
+  border-top:1px solid var(--rule);padding-top:12px;word-break:break-all;line-height:1.7}
+.path b{color:var(--ink);font-weight:500}
+h2{font-family:var(--sans);font-weight:600;font-size:23px;letter-spacing:-.01em;
+  margin:22px 0 -14px;text-wrap:balance}
+h3{font-family:var(--sans);font-weight:600;font-size:15px;letter-spacing:.01em;
+  margin:14px 0 -18px;color:var(--muted)}
+p{margin:0;max-width:70ch}
+a{color:var(--accent)}
+code,.m{font-family:var(--mono);font-size:.88em;background:var(--chip);
+  padding:.1em .34em;border-radius:3px}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1px;
-  background:var(--rule);border:1px solid var(--rule);border-radius:10px;overflow:hidden;
-  margin:34px 0 0}
-.stat{background:var(--card);padding:16px 18px}
-.stat b{display:block;font:700 27px/1.1 Archivo,sans-serif;letter-spacing:-.02em;
+  background:var(--rule);border:1px solid var(--rule);border-radius:6px;overflow:hidden}
+.stat{background:var(--surface);padding:16px 18px;display:flex;flex-direction:column;gap:3px}
+.stat b{font-family:var(--mono);font-size:26px;font-weight:500;letter-spacing:-.02em;
   font-variant-numeric:tabular-nums}
-.stat span{display:block;margin-top:5px;font:400 12.5px/1.4 "IBM Plex Mono",monospace;
-  color:var(--ink3)}
-
-section{padding:52px 0;border-bottom:1px solid var(--rule2)}
-section:last-of-type{border-bottom:0}
-h2{font-size:29px;font-weight:700;letter-spacing:-.018em;margin:0 0 6px;text-wrap:balance}
-h2 + .sub{color:var(--ink3);font:400 14px/1.5 "IBM Plex Mono",monospace;margin:0 0 26px}
-h3{font-size:18.5px;font-weight:600;letter-spacing:-.008em;margin:34px 0 10px}
-p{margin:0 0 17px}
-strong{font-weight:600}
-code{font-size:.9em;background:var(--sunk);padding:1px 5px;border-radius:4px}
-ol,ul{margin:0 0 17px;padding-left:22px}
-li{margin:0 0 9px}
-
-figure{margin:26px 0 0}
-video,figure img{width:100%;display:block;border-radius:10px;border:1px solid var(--rule);
-  background:var(--sunk);box-shadow:var(--shadow)}
-figcaption{margin-top:11px;color:var(--ink3);font:400 13.5px/1.55 "IBM Plex Mono",monospace;
-  max-width:80ch}
-
-.scroll{overflow-x:auto;margin:24px 0 0;border:1px solid var(--rule);border-radius:10px;
-  background:var(--card);box-shadow:var(--shadow)}
-table{border-collapse:collapse;width:100%;font-size:14px}
-th,td{padding:9px 13px;text-align:left;border-bottom:1px solid var(--rule2);white-space:nowrap}
-th{font:600 11.5px/1.3 Archivo,sans-serif;letter-spacing:.06em;text-transform:uppercase;
-  color:var(--ink3);background:var(--sunk);position:sticky;top:0}
-td.num{text-align:right;font-variant-numeric:tabular-nums;font-size:13px}
-td.tag{font-size:12.5px}
-td.s{color:var(--ink3);font-size:12.5px}
-td.strong{font-weight:600}
-tr.ok td.strong{color:var(--good)}
-tr.bad td{color:var(--ink3)}
-tr:last-child td{border-bottom:0}
-
-.seams{margin:24px 0 0;border-left:3px solid var(--s1);padding:2px 0 2px 18px}
-.seams p{margin:0 0 9px}
-.foot{margin-top:56px;padding-top:22px;border-top:1px solid var(--rule);
-  color:var(--ink3);font-size:13px;line-height:1.7}
+.stat span{font-family:var(--sans);font-size:12.5px;color:var(--muted);line-height:1.35}
+figure{margin:0;display:flex;flex-direction:column;gap:10px}
+video,figure img{width:100%;display:block;border-radius:6px;
+  border:1px solid var(--rule);background:#000}
+figcaption{font-family:var(--sans);font-size:13px;color:var(--muted);line-height:1.5;
+  max-width:78ch}
+.scroll{overflow-x:auto;border:1px solid var(--rule);border-radius:6px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-family:var(--mono);font-size:13px;
+  font-variant-numeric:tabular-nums}
+th{font-family:var(--sans);font-weight:600;font-size:11px;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--muted);text-align:right;padding:11px 10px;
+  border-bottom:1px solid var(--rule);white-space:nowrap;vertical-align:bottom}
+th:first-child,td:first-child{text-align:left}
+td{padding:8px 10px;border-bottom:1px solid var(--rule-soft);text-align:right;
+  white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+.tag{font-size:12.5px}
+.s{color:var(--muted)}
+.strong{font-weight:600}
+.ok{color:var(--ok)} .warn{color:var(--warn)} .bad{color:var(--bad)}
+tr.ok td:first-child{box-shadow:inset 3px 0 var(--ok)}
+tr.part td:first-child{box-shadow:inset 3px 0 var(--warn)}
+tr.bad td:first-child{box-shadow:inset 3px 0 var(--bad)}
+.chip{display:inline-block;min-width:20px;padding:1px 5px;border-radius:3px;
+  background:var(--chip);color:var(--muted);font-size:11.5px;text-align:center}
+.chip.hi{background:var(--accent);color:var(--surface);font-weight:600}
+.cells{letter-spacing:.06em}
+.clip{margin-top:6px;width:190px}
+.clip video{border-radius:4px}
+ol,ul{margin:0;padding-left:1.3em;max-width:70ch;display:flex;flex-direction:column;gap:9px}
+li::marker{color:var(--muted);font-family:var(--mono);font-size:.85em}
+.note{border-left:2px solid var(--rule);padding-left:16px;color:var(--muted);font-size:16px}
+footer{font-family:var(--sans);font-size:12.5px;color:var(--muted);
+  border-top:1px solid var(--rule);padding-top:16px;line-height:1.7}
+@media (max-width:620px){.clip{width:100%;min-width:150px}}
 </style>
 
 <div class="wrap">
 <header>
-  <div class="eyebrow">real_v1 &middot; grasp&rarr;reorient&rarr;gait &middot; 2026-09-04</div>
-  <h1>Table-supported reorientation in the grasp-to-gait chain</h1>
-  <p class="lede">The hand stands a screwdriver upright by pivoting it on the table rather than
-  turning it in the air, and gaits it six cycles at &minus;40.6&deg; each while it stays within
-  0.1&deg; of vertical. Ten of sixteen hands stand the tool on every seed; eight of sixty-four
-  runs finish the chain.</p>
-  <p class="byline">Simulation, MuJoCo, UR5e-mounted real_v1 hand, 24.5 g screwdriver.<br>
-  Local: <code>docs/experiments/20260904-real_v1_held/20260904-real_v1_table_stand.html</code></p>
-  <div class="stats">
-    <div class="stat"><b>0.00&deg;</b><span>tilt after the stand-up</span></div>
-    <div class="stat"><b>&minus;40.6&deg;</b><span>per gait cycle, 6/6</span></div>
-    <div class="stat"><b>{{STOOD}}/{{N}}</b><span>runs stand the tool</span></div>
-    <div class="stat"><b>{{OK}}/{{N}}</b><span>runs finish the chain</span></div>
+  <div class="kicker">real_v1 &middot; 2026-09-05</div>
+  <h1>Table-supported reorientation across sixteen hands</h1>
+  <p class="lede">Sixteen hands, four grasp squeezes, four seeds each. The tool is grasped
+  lying on a table, stood up on its own end, released, and picked up again in the gait ring.
+  The reorientation reaches {{REO}}&deg; of the 90&deg; turn; {{OK2}} of {{N}} runs finish
+  the chain.</p>
+  <div class="path">
+    <b>page</b> docs/experiments/20260904-real_v1_held/20260904-real_v1_table_stand.html<br>
+    <b>data</b> docs/experiments/20260904-real_v1_held/squeeze_sweep/chain_hands.json &middot;
+    <b>films</b> docs/experiments/20260904-real_v1_held/20260905-films/<br>
+    <b>code</b> scripts/probe_real_v1_chain.py &middot; scripts/real_v1_chain_hands.py &middot;
+    scripts/real_v1_chain_films.py
   </div>
 </header>
 
-<section>
-  <div class="col">
-    <h2>The maneuver</h2>
-    <p class="sub">scripts/real_v1_chain_hands.py --stand table</p>
-    <p>The fingers are never asked to turn the tool. The hand closes on the screwdriver lying on
-    the table, lifts it, puts it back down lying, and then stands it up by pivoting it about its
-    own foot: eight rigid palm transfers, each computed against the measured tool pose, each
-    rotating the tool about the point it is resting on. The table carries the weight throughout.
-    Once the tool is standing it supports itself, so the palm can leave, re-index to the pose the
-    gait study validated, close on the tripod ring, and gait.</p>
-    <p>On <code>sv1_u1364_b080</code>, seed 3: stood at 0.00&deg;, ring taken on three pads at
-    32.2&nbsp;N, six gait cycles at &minus;40.6&deg; each &mdash; 80% of the 1.684-gear ceiling
-    &mdash; and the tool 0.09&deg; off vertical when the chain ends. The tool rotates 23.3&deg;
-    inside the grasp over the whole run.</p>
-    <p>The re-index goes over the top rather than across. A single Cartesian leg would rotate
-    and translate at once, and since the move is a quarter turn of the wrist from
-    on-edge-beside-the-tool to looking-down-at-it, that walks the open fingers through the space
-    the standing tool occupies &mdash; which is where 29 of 36 stands were being lost. Three legs
-    instead: straight up until the fingertips clear the tool's top, across and around at that
-    height, then straight down onto the gait pose.</p>
-  </div>
-  <figure>
-    <video src="{{VIDEO}}" controls muted loop playsinline preload="metadata"></video>
-    <figcaption>sv1_u1364_b080, seed 3. Grasp on the table, set back down, pivot up about the
-    foot, palm re-index over the top, ring, six gait cycles.</figcaption>
-  </figure>
-  <figure>
-    <img src="{{FILM}}" alt="Sixteen phase-aligned frames of the chain, from the grasp on the
-    table through six gait cycles.">
-    <figcaption>The same run, one frame per seam. Rows 1&ndash;2: grasp, set-down, the pivot to
-    vertical with the palm left on edge beside the tool. Row 2, last frame: the palm re-indexed
-    above the standing tool. Rows 3&ndash;4: the gait.</figcaption>
-  </figure>
-</section>
+<div class="stats">
+  <div class="stat"><b>{{REO}}&deg;</b><span>of the 90&deg; turn, when the tool
+    stands (sd {{REOSD}}&deg;)</span></div>
+  <div class="stat"><b>{{STOOD2}}/{{N}}</b><span>runs stand the tool at 2 mm squeeze</span></div>
+  <div class="stat"><b>{{OK2}}/{{N}}</b><span>runs finish the chain</span></div>
+  <div class="stat"><b>{{BEST}}/{{N}}</b><span>at each hand's own best squeeze</span></div>
+</div>
 
-<section>
-  <div class="col">
-    <h2>Why the table and not the arm</h2>
-    <p>A 90&deg; rigid reorientation in mid-air drops the tool in every variant measured: the
-    fingers turning it, the arm turning it, tip-up, tip-down, on the UR5e and on a floating
-    palm. The cause is statics rather than control. Steady-state grip on a free object held by
-    position servos is whatever force balance with the object's weight demands, and it scales
-    with mass on an identical command &mdash; 0.33&nbsp;N on the 24.5&nbsp;g tool, 9.84&nbsp;N at
-    393&nbsp;g, 83.6&nbsp;N at 1571&nbsp;g. The 41&nbsp;N at closure is a transient. Nothing in
-    the controller reaches this: commanded squeeze, re-squeeze, a servo-load loop, a
-    contact-force loop and a station-referenced re-grasp all move a quantity that statics
-    fixes.</p>
-    <p>So giving up the reorientation-by-rolling does not by itself help. The roll was not what
-    was failing; the hold was, and only a reaction surface changes it &mdash; which is what every
-    maneuver that works in this program already has.</p>
-    <h3>It is a guided pivot, not a rigid carry</h3>
-    <p>The tool rotates 23&ndash;71&deg; inside the grasp during the stand-up, depending on the
-    hand. That is measured directly
-    now: every seam carries <code>roll_deg</code> and <code>slide_mm</code>, the tool's rotation
-    and translation in the <em>palm's</em> frame since the grasp settled, which separates
-    alignment the hand delivered from alignment the tool helped itself to. A rigid carry reads
-    zero on both however far the arm travels. The floor does the work; the hand guides; the
-    feedback lands it.</p>
-  </div>
-</section>
+<figure>
+  <video src="{{GRID}}" controls muted loop playsinline preload="metadata"></video>
+  <figcaption>Every hand's furthest-reaching run, phase-aligned, at its own best squeeze.
+  Nine end with the tool standing in the gait ring. Of the six that do not, three stand the
+  tool and lose it when the palm re-indexes, two eject it from the pinch one seam after the
+  lift, and one reaches the ring but never completes six cycles.</figcaption>
+</figure>
 
-<section>
-  <div class="col">
-    <h2>What the probe was reporting wrong</h2>
-    <p class="sub">four defects, all surfaced by taking the finger turn out</p>
-  </div>
-  <div class="col seams">
-    <p><strong>A screwdriver standing on its handle read as a perfect 0.00&deg; stand.</strong>
-    Every tilt in the chain probe was arccos|cos| and every axis was folded to point up &mdash;
-    right for a plain cylinder, wrong for a tool whose tip is one specific end. With the rotation
-    left to the arm, the staging transfer picks the end to raise from the sign of
-    <code>R[2,2]</code>, which on a horizontal tool is numerical noise. The run then reported
-    tilt 0.00&deg;, z 0.0500&nbsp;m, <code>stood_ok</code> True for a tool upside down on the
-    annulus beside the socket.</p>
-    <p><strong>Rigid transfers were interpolated in joint space.</strong> For the small
-    corrections the published chain makes that is the same path. For a 90&deg; reorientation it
-    is not: the arm swings the hand through an arc the command never named, and reports an
-    0.008&nbsp;mm IK residual saying it went exactly where it was told.</p>
-    <p><strong>The gait's ring was solved on fixed world bearings.</strong> Thumb at &pi;, index
-    at &pi;/3 is the tripod a palm looking down at a standing tool makes. A palm that stood the
-    tool up by pivoting is a quarter turn from there, and the canonical ring is 14.0&nbsp;mm
-    outside the fingers' reach; the pads then either hover at 0.02&nbsp;N or arrive with that
-    residual commanded as interference, at 57&ndash;91&nbsp;N, and shove the tool 17&ndash;26&deg;
-    over.</p>
-    <p><strong>The gait's palm height was the fit's grip depth.</strong> The fit reports the
-    height that pinches a tool lying down &mdash; 64.5&nbsp;mm on this hand. The gait needs the
-    height from which three fingers close on a ring around a standing one, 45&nbsp;mm. At 64.5
-    the ring solves 13.0&nbsp;mm out of reach and the close knocks the tool over; scanned per
-    hand, the residual is 0.43&nbsp;mm.</p>
-  </div>
-</section>
+<h2>The reorientation is not where the runs are lost</h2>
+<p>Splitting the chain's gates apart puts the 90&deg; turn on one side and everything
+downstream of it on the other. When a hand stands the tool it stands it at {{REO}}&deg; of
+the 90, with a standard deviation of {{REOSD}}&deg; across every hand and every squeeze. The
+attrition is at the two ends: the carry that delivers the tool to the table, and the handover
+that gives the standing tool back to the gait ring.</p>
 
-<section>
-  <div class="col">
-    <h2>Sixteen hands, four seeds each</h2>
-    <p class="sub">both deployed sets, each hand at its own straddle, thumb offset and grip depth</p>
-    <p>The reorientation generalises and the handover does not. {{LIFT}} of {{N}} runs hold the
-    lift; five hands drop the tool at the grasp itself, before any of this applies. {{STOOD}} of
-    {{N}} stand it, ten hands on every seed, at 0.00&ndash;3.3&deg; off vertical. {{OK}} of {{N}}
-    finish the chain.</p>
-  </div>
-  <div class="scroll">
-  <table>
-    <thead><tr><th>hand</th><th>set</th><th>lift</th><th>stood</th><th>upright &deg;</th>
-      <th>chain</th><th>deg/cycle</th><th>end tilt &deg;</th><th>roll &deg;</th><th>free</th></tr></thead>
-    <tbody>
-{{ROWS}}
-    </tbody>
-  </table>
-  </div>
-  <div class="col">
-    <p style="margin-top:20px"><span class="cap" style="color:var(--ink3);font-size:13px">
-    upright &deg; and end tilt &deg; are means over the runs that stood the tool; roll &deg; is the
-    worst rotation of the tool inside the grasp; free is the fraction of the handover window with
-    no pad on the tool.</span></p>
-  </div>
-</section>
+<div class="scroll"><table>
+<thead><tr><th>squeeze (mm)</th><th>lost in carry</th><th>lost standing</th>
+<th>lost at handover</th><th>lost gaiting</th><th>complete</th>
+<th>reorient (deg)</th></tr></thead>
+<tbody>{{FUNNEL}}</tbody>
+</table></div>
 
-<section>
-  <div class="col">
-    <h2>What this does not settle</h2>
-    <ol>
-      <li><strong>The seeds that still fail, fail at the re-index.</strong> With the single-leg
-      re-index, 29 of the 36 runs that stood the tool were past 14&deg; by the end of that move
-      &mdash; hand open, ring not yet closed, mean tilt 1.15&deg; before it and 41.4&deg; after.
-      The three-leg version below removes most of that, and what remains is the same seam. Two
-      other variants are excluded: closing one finger at a time after the palm move
-      (<code>--reindex regrip</code>) is worse, because three Cartesian approaches past a
-      free-standing tool are three chances to knock it down; and reducing the ring's commanded
-      interference (<code>--squeeze</code> 0.5 / 1.0 / 2.0&nbsp;mm over five hands &times; four
-      seeds) leaves every hand at its own value. The close was never the problem.</li>
-      <li><strong>The countersink, and the tool's heading on the bench.</strong> A screwdriver
-      cannot stand tip-down on a flat table, so the seated version has to arrive at the socket.
-      On the heading the scenes ship with, pivoting the foot into the socket stalls at 34&deg;
-      &mdash; the same tip-down rotation the mid-air stage could not carry. Laid down the other
-      way round (one quaternion on the object body, <code>prepare(h, yaw_deg=180)</code>) the same
-      move stands the tool tip-down at 8.79&deg; with only 10.8&deg; of roll in the grasp. It then
-      sits 10&nbsp;mm proud of its seat and the handover topples it. Seat it the last 10&nbsp;mm
-      and re-run the handover there: a tool in a 45&deg; cone is not free-standing, and continuous
-      contact has already been measured to buy everything in a seat and nothing on a plane.</li>
-      <li><strong>Five hands fail upstream of all of this.</strong> <code>sv1_w6689_b060</code>,
-      <code>sv1_w6689_b050</code>, <code>sv1_u5860_b070</code>, <code>sv1_w7583_b130</code> and
-      <code>sv1_w2360_b075</code> drop the tool at the grasp, with 147&ndash;167&deg; of roll and
-      no pad on it for the whole run. Their fitted grasp does not hold a tool lying on a table;
-      check the fit before reading anything else about them.</li>
-      <li><strong>The press is a cliff, not a knob.</strong> Same hand, same seed, 2 / 6 /
-      10&nbsp;mm: the tool is thrown, then six cycles at 15.6&deg;, then six cycles at 12.5&deg;.
-      The gait study's own window was &minus;6 to +6&nbsp;mm for a shaft already standing. Where
-      the top of that range comes from, and whether it is the same on hardware where the table is
-      not a rigid plane, is unmeasured.</li>
-    </ol>
-  </div>
-  <div class="col foot">
-    Regenerate: <code>uv run python scripts/real_v1_held_page.py</code>.
-    Data: <code>docs/experiments/20260904-real_v1_held/chain_hands.json</code>, one video per hand
-    in <code>videos/</code>. Study: <code>scripts/real_v1_chain_hands.py --stand table</code>.
-    Probe: <code>scripts/probe_real_v1_chain.py</code>. Work order:
-    <code>docs/experiments/20260904-real_v1_ranked/QUEUE.md</code>, session&nbsp;5.
-  </div>
-</section>
+<p>The two losses pull in opposite directions. A 2 mm squeeze puts the tool where it was and
+loses 24 runs in the carry; a 6 mm squeeze carries the tool and loses 32 at the handover. The
+chain rate peaks at 2 mm ({{OK2}}) and 4 mm ({{OK4}}), and choosing the squeeze per hand
+rather than for the population is worth {{BEST}}.</p>
+
+<h2>Why 10 mm of squeeze ejects the tool</h2>
+<p>Every deployed plan carries <span class="m">squeeze_mm = 10.0</span>. That drives the pad
+centres to <span class="m">r_obj + r_pad + gap &minus; squeeze</span> = 12.5 + 10.55 + 1
+&minus; 10 = 14.05 mm from the shaft axis, where contact needs 23.05 &mdash; nine millimetres
+inside the surface. The number was fitted on a bench scene where the shaft floats at 100 mm
+on a post that takes the reaction. On a table nothing takes it, so the pinch drives the tool
+up and out.</p>
+<p>Measured with the palm held still and the tool lying on the table,
+<span class="m">g12_b095</span> rises +3.8, +8.9, +12.8 and +18.6 mm at 2, 4, 6 and 10 mm of
+squeeze while its pad force falls 10.4, 5.4, 1.8, 0.5 N &mdash; the force falls because the
+shaft has escaped over the top of the pads. Nine of sixteen hands rise more than their own
+12.5 mm radius at 10 mm and finish riding on <span class="m">thumb_pip_frame</span>.</p>
+<p class="note">The fitter's own hold probe cannot catch this. It measures retained lift
+against the object's height <em>before</em> the close, so a tool thrown 18 mm upward reads as
+18 mm of successful lift &mdash; <span class="m">held &asymp; lift_probe + dz</span> is an
+identity. Grasps &ldquo;passing&rdquo; a 20 mm gate at 65&ndash;75 mm on a 50 mm probe passed
+by the amount they ejected the tool. <span class="m">_grip_from_fit</span> then passes
+<span class="m">hold_min=&minus;1.0</span> and discards the gate anyway.</p>
+
+<h2>Per hand</h2>
+<p>Each hand at its own best squeeze, with what the close does before the palm moves:
+<span class="m">rise</span> is how far the tool moves at closure,
+<span class="m">non-pad</span> counts contacts on anything that is not a pad. The four chips
+are the chain count at 2, 3, 4 and 6 mm; the filled one is the squeeze the row reports.</p>
+
+<div class="scroll"><table>
+<thead><tr><th>hand</th><th>set</th><th>sq (mm)</th><th>rise (mm)</th><th>pad (N)</th>
+<th>non&#8209;pad</th><th>carry</th><th>stands</th><th>reorient (deg)</th><th>chain</th>
+<th>2 / 3 / 4 / 6</th></tr></thead>
+<tbody>{{ROWS}}</tbody>
+</table></div>
+
+<h2>The three failure modes, as they are filmed</h2>
+
+<figure>
+  <img src="{{FILM_OK}}" alt="Sixteen phase-aligned frames: the hand grasps a screwdriver
+  lying on a table, lifts it, pivots it upright against the table, sets it down standing,
+  releases, re-indexes the palm overhead, closes three fingers around the standing shaft and
+  gaits it.">
+  <figcaption><b>The chain, complete.</b> <span class="m">sv1_u1364_b080</span> at 2 mm, 4/4
+  seeds. The tool stands in the same place from the moment it is set down; the palm lifts
+  clear, translates, and descends around it.</figcaption>
+</figure>
+
+<figure>
+  <img src="{{FILM_HAND}}" alt="Eleven phase-aligned frames: the same sequence up to a
+  standing tool, then the palm departs and the tool is lying well clear of the table disc for
+  the remaining frames.">
+  <figcaption><b>The handover.</b> <span class="m">sv1_w2360_b075</span> stands the tool 4/4
+  and completes 0/4. It is at 1.5&deg; off vertical through <span class="m">released</span>
+  and flung clear of the disc by <span class="m">reindexed</span> &mdash; 53 of 58 handover
+  failures follow exactly this trace. The palm descends onto the standing tool with the
+  fingers at <span class="m">r_open</span>, but the gait palm height is scanned against
+  <span class="m">r_grip</span>, so the height that solves the closed ring can drive the open
+  pads through the tool on the way down.</figcaption>
+</figure>
+
+<figure>
+  <img src="{{FILM_DROP}}" alt="Eleven phase-aligned frames: the tool is in the pinch in the
+  first frame and lying on the table in the second, with the hand empty for the rest of the
+  sequence.">
+  <figcaption><b>The grasp.</b> <span class="m">sv1_w6689_b050</span> holds the lift and has
+  the tool out of the pinch one seam later, at every squeeze. Its close probe reads
+  &minus;0.4 mm of rise with two non-pad contacts and 28&ndash;67 N &mdash; it crushes the
+  tool into the floor rather than pinching it. The probe predicts every one of its 0/16
+  runs.</figcaption>
+</figure>
+
+<h2>What is not settled, and what would settle it</h2>
+<ol>
+  <li><b>The gait palm height is scanned against the wrong ring.</b>
+  <span class="m">probe_real_v1_chain.py</span> minimises the closed-ring IK residual over
+  palm heights 30&ndash;72 mm, but the descent that topples the tool happens on the open ring.
+  <span class="m">--gait-scan grip|open|both</span> is in the chain now; the 384-cell A/B over
+  16 hands &times; {2, 4} mm &times; 4 seeds decides it, and it is the only change that
+  addresses the dominant loss.</li>
+  <li><b>The close probe is a gate that is not being applied.</b>
+  <span class="m">close_nonpad &ge; 2</span> selects exactly the hands that eject the tool
+  (<span class="m">sv1_w6689_b050</span>, <span class="m">_b060</span> at every squeeze,
+  <span class="m">sv1_u5855_b050</span> at 2 mm), and those hands account for 0/16 and 0/4.
+  Applying it in <span class="m">prepare()</span> removes them from the denominator on
+  evidence rather than by hand.</li>
+  <li><b>The squeeze optimum is bracketed but not resolved.</b> The carry wants more and the
+  handover wants less; 2 mm and 4 mm are within two runs of each other over 64. Per-hand
+  selection is worth {{BEST}}/{{N}} against {{OK2}}/{{N}}, on n=4 per cell, which does not
+  separate a 3-run difference from noise. Eight seeds per cell on the surviving hands would.</li>
+  <li><b>The tip-down variant has no measurement at all here.</b> Every run on this page
+  stands the tool on its handle on a flat table. Standing it tip-down into the 45&deg;
+  countersink needs <span class="m">--stand-order pivot</span>, which stalls at 34&deg; on the
+  shipped heading and reaches 8.79&deg; when the tool is laid down rotated 180&deg;. The tool's
+  heading on the bench is therefore a spec, and the seated version is unmeasured across the
+  population.</li>
+  <li><b>The gait gain is not guarded against the gear ceiling.</b> The pad ring is a 1.684
+  gear, so a 30&deg; stroke cannot exceed 50.5&deg; per cycle;
+  <span class="m">gain_mean_deg</span> reads &minus;67 to &minus;86 on g12 and +188 on u5860.
+  Those are the shaft being spun or thrown, and they currently read as fast gaits.</li>
+</ol>
+
+<footer>
+Built by <span class="m">scripts/real_v1_held_page.py</span> from
+<span class="m">squeeze_sweep/chain_hands.json</span> (256 runs) and
+<span class="m">20260905-films/films.json</span> (15 filmed runs). Simulation only; no bench
+data on this page. Screwdriver, 100 mm shaft, 25 mm diameter, UR5e palm with a 100 mm wrist
+stack and <span class="m">--payload-gravcomp</span>.
+</footer>
 </div>

@@ -4841,3 +4841,35 @@ the seated version has to arrive at the socket; on the heading the scenes ship w
 34 deg, and laying the tool down the other way round (`prepare(h, yaw_deg=180)`) turns that into
 an 8.79 deg tip-down stand with only 10.8 deg of roll. The tool then sits 10 mm proud and the
 handover topples it. The tool's heading on the bench is a spec.
+
+## 2026-09-05 -- the reorientation is solved; the carry and the handover are not
+
+The chain's `ok` is an AND of four gates, so a hand that stands the tool on every seed and loses
+the handover scored exactly like a hand that never turned it. `probe_real_v1_chain.chain()` now
+returns `reorient_deg` (90 minus the tilt at the `upright` seam), `drop_stage` (the first seam the
+tool is loose on the floor at) and `reorient_ok`, and the answer is flat: over 16 hands, 4 seeds
+and 4 grasp squeezes, **every stand lands at 89.1-89.4 deg of the 90 deg turn with sd 0.9 deg**.
+
+Attrition, 64 runs per squeeze:
+
+| squeeze (mm) | carry | standing | handover | gaiting | complete |
+|---|---|---|---|---|---|
+| 2 | 24 | 5 | 11 | 1 | 23 |
+| 4 | 13 | 4 | 22 | 4 | 21 |
+| 6 | 13 | 2 | 32 | 8 | 9 |
+
+A tighter grasp carries better and hands over worse. Per-hand selection of the squeeze is worth
+28/64 against 23/64 for one population value.
+
+The handover is a single seam. 53 of the 58 failures at 2-4 mm are past 14 deg at `reindexed`
+having stood at 1.47 deg through `released`; the completed runs read 0.64 deg at that seam. The
+palm move, not the close, is what loses the tool.
+
+Scanning the gait palm height against the OPEN ring instead of the closed one makes it worse (21
+vs 44 chains over 128 runs per arm) because minimising the open-ring residual seats the open pads
+6 mm from the tool rather than clear of it. The width the descent needs is `release_mm`.
+
+`scripts/real_v1_chain_films.py` renders every hand's furthest-reaching cell to an mp4 and a seam
+filmstrip plus a labelled grid; `docs/experiments/20260904-real_v1_held/20260905-films/`. Page:
+`docs/experiments/20260904-real_v1_held/20260904-real_v1_table_stand.html` ->
+https://claude.ai/code/artifact/96207fa7-6175-4ffa-b6b8-34d73116cf47
