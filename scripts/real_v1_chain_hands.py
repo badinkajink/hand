@@ -234,6 +234,14 @@ def main() -> int:
     ap.add_argument("--reps", type=int, default=4)
     ap.add_argument("--cycles", type=int, default=8)
     ap.add_argument("--workers", type=int, default=6)
+    ap.add_argument("--clears", default=None,
+                    help="comma list of re-index clearance heights in m to sweep (table mode). "
+                         "The palm lifts this far above the gait pose before it translates "
+                         "across; 20 of 36 stands are still lost during that move.")
+    ap.add_argument("--reposes", default=None,
+                    help="comma list of repose_steps to sweep. In table mode this also sets the "
+                         "length of each of the re-index's three legs, and g12 flips 0/4 to 3/4 "
+                         "between 800 and 900.")
     ap.add_argument("--loads", default="0,250",
                     help="servo-load set-points for the grip loop; 0 = open loop")
     ap.add_argument("--video-seed", type=int, default=0)
@@ -251,13 +259,27 @@ def main() -> int:
             print(f"  {h['tag']}: NO POSE / BUILD FAILED", flush=True)
             continue
         fits[h["tag"]] = f
+        grid = [(c, rp) for c in ([None] if not args.clears else
+                                  [float(v) for v in args.clears.split(",")])
+                for rp in ([None] if not args.reposes else
+                           [int(v) for v in args.reposes.split(",")])]
         for lt in (float(v) for v in args.loads.split(",")):
+          for cl, rp in grid:
             for rep in range(args.reps):
-                kw = {"_hand": h, "_fit": f, "_tag": f"load{lt:.0f}",
+                tg = f"load{lt:.0f}"
+                if cl is not None:
+                    tg += f"_c{cl*1000:.0f}"
+                if rp is not None:
+                    tg += f"_r{rp}"
+                kw = {"_hand": h, "_fit": f, "_tag": tg,
                       "_table": args.stand == "table",
                       "load_target": lt, "seed": rep, "jitter": 0.0005,
                       "cycles": args.cycles}
-                if rep == args.video_seed and not args.no_video:
+                if cl is not None:
+                    kw["clear"] = cl
+                if rp is not None:
+                    kw["repose_steps"] = rp
+                if rep == args.video_seed and not args.no_video and len(grid) == 1:
                     kw["video"] = vid / f"20260904-{h['tag']}_{args.stand}_load{lt:.0f}.mp4"
                     kw["video_size"] = (640, 480)
                     kw["cam"] = (-60.0, -20.0, 0.42)
@@ -279,12 +301,12 @@ def main() -> int:
 
     import statistics as st
     m = lambda x: st.mean(x) if x else float("nan")
-    print(f"\n   {'tag':20} {'set':>3} {'load':>5} {'lift':>5} {'upright':>8} {'stood':>6} "
+    print(f"\n   {'tag':20} {'set':>3} {'cell':>14} {'lift':>5} {'upright':>8} {'stood':>6} "
           f"{'chain':>6} {'cyc':>5} {'deg/cy':>7} {'endtilt':>8} {'F_N':>6} {'roll':>6} "
           f"{'free':>5}")
     for h in H:
-        for lt in sorted({r.get("load_target", 0.0) for r in rows if r.get("tag") == h["tag"]}):
-            g = [r for r in rows if r.get("tag") == h["tag"] and r.get("load_target") == lt]
+        for lt in sorted({r.get("arm", "") for r in rows if r.get("tag") == h["tag"]}):
+            g = [r for r in rows if r.get("tag") == h["tag"] and r.get("arm") == lt]
             if not g:
                 continue
             hh = [r for r in g if r.get("held_turn")]
@@ -294,7 +316,7 @@ def main() -> int:
             def f(k, src=None):
                 return [float(r.get(k) or 0.0) for r in (g if src is None else src)]
             sd = [r for r in g if r.get("stood_ok")]
-            print(f"   {h['tag']:20} {h['set']:>3} {lt:5.0f} "
+            print(f"   {h['tag']:20} {h['set']:>3} {str(lt)[:14]:>14} "
                   f"{sum(1 for r in g if r.get('held_lift')):2}/{len(g):<2} "
                   f"{m(f('tilt_upright_deg', sd)):8.2f} "
                   f"{len(sd):2}/{len(g):<2} "
