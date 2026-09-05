@@ -4802,3 +4802,42 @@ residual tilt. That measures the substitution. Always replay through the screen'
 New instrumentation: `turn_tilt_deg` / `settle_deg` at the last commanded turn step in BOTH
 `probe_real_v1_carry.carry` and `real_v1_deploy_envelope.execute` — neither could previously
 separate the commanded turn from the settle.
+
+## 2026-09-04 — the reorientation moves off the mid-air phase and onto the table
+
+The chain now runs without asking the fingers to turn the tool and without the tool ever leaving
+a surface. `scripts/real_v1_chain_hands.py --stand table`: grasp the tool lying on the table,
+put it back down lying, stand it up by pivoting about its own foot with the table carrying its
+weight, re-index the palm to the gait's pose while the tool stands on its own, take the ring,
+gait. On `g12_b095` seed 0 that stands the tool at 0.09 deg and gaits it 6/6 cycles at
+-36.4 deg/cycle, 72% of the 1.684-gear ceiling
+(`docs/experiments/20260904-real_v1_held/20260904-table_stand_g12.mp4`).
+
+**The ordering is forced by statics, not chosen.** A 90 deg mid-air rigid reorientation drops
+the tool in every variant measured — fingers turning it, arm turning it, tip-up, tip-down, on the
+UR5e and on a floating palm — because this grasp holds 0.4 N on a 24 g tool in the air (session 4
+of `docs/experiments/20260904-real_v1_ranked/QUEUE.md`). Giving up the roll does not by itself
+help: the roll was not what was failing, the hold was.
+
+**It is a guided pivot, not a rigid carry.** The tool rotates 70.6 deg inside the grasp during
+the stand-up (`roll_max_deg`, new: the tool's rotation in the PALM's frame since the grasp
+settled). The floor does the work and eight rigid-transfer corrections against the measured pose
+land it vertical.
+
+16 hands x 4 seeds: 41/64 hold the lift — five hands drop the tool at the grasp — 36/64 stand it,
+ten hands stand it 4/4 at 0.00-3.3 deg, and **2/64 complete the chain**. The handover to the gait
+ring is now the entire remaining failure and is where the next effort goes.
+
+Four defects in `probe_real_v1_chain.py`, all surfaced by taking the finger turn out (commit
+2e0bd26d): the tool axis was folded so a screwdriver standing on its HANDLE read as a perfect
+0.00 deg stand; rigid transfers were interpolated in joint space, which for a 90 deg
+reorientation is not the commanded path; the gait's ring was solved on fixed world bearings that
+a pivoted-up palm is a quarter turn away from; and the gait's palm height was the fit's grip
+depth (64.5 mm, the height that pinches a tool lying down) instead of the height three fingers
+close on a standing one from (45 mm).
+
+The countersink is not solved. Standing a screwdriver tip down cannot happen on a flat table, so
+the seated version has to arrive at the socket; on the heading the scenes ship with it stalls at
+34 deg, and laying the tool down the other way round (`prepare(h, yaw_deg=180)`) turns that into
+an 8.79 deg tip-down stand with only 10.8 deg of roll. The tool then sits 10 mm proud and the
+handover topples it. The tool's heading on the bench is a spec.

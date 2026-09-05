@@ -255,3 +255,98 @@ against a 0.33 N ceiling and would rediscover the same ~30 deg. It IS the right 
 thing no scalar schedule can express -- trading grip against roll DURING the turn, where every
 knob swept here is monotone in the wrong direction on one of the two objectives -- but only once
 the grasp can generate force at all. Fix opposition first, then RL on the modulation.
+
+---
+
+## Session 5 — give up the roll: stand the tool up ON the table, then hand it over
+
+**THE REORIENTATION IS SOLVED AND THE HANDOVER IS NOT.** The fingers are never asked to turn the
+tool (`angle_deg` 0) and the tool never leaves a surface: it is picked up, put back down lying,
+and stood up by pivoting about its own foot with the table carrying its weight. Ten of sixteen
+hands stand it 4/4 at 0.00-3.3 deg off vertical. Then the palm has to re-index to the gait's
+pose and take the ring, and that is where 34 of 36 successful stands are lost.
+
+16 hands x 4 seeds, `scripts/real_v1_chain_hands.py --stand table`
+(`docs/experiments/20260904-real_v1_held/chain_hands.json`, one video per hand in `videos/`):
+
+| | count |
+|---|---|
+| hold the lift | 41/64 (5 hands drop the tool at the grasp: w6689_b060, w6689_b050, u5860_b070, w7583_b130, and w2360_b075 at 2/4) |
+| stand it | 36/64, ten hands at 4/4 |
+| upright tilt, on the stands | 0.00-3.3 deg on nine hands, 17.4 on `sv1_u0060_b75` |
+| complete the chain | **2/64** -- `g12_b095` 1/4 and `sv1_w0099_b100` 1/4 |
+
+The best run, `g12_b095` seed 0: stood at 0.09 deg, pressed to 0.00, ring taken on three pads at
+41.1 N, 6/6 gait cycles at -36.4 deg/cycle (72% of the 1.684-gear ceiling), tool at 11.7 deg when
+the chain ends, `ok` True.
+`docs/experiments/20260904-real_v1_held/20260904-table_stand_g12.mp4`.
+
+**WHY THE TABLE AND NOT THE ARM.** A 90 deg mid-air rigid reorientation drops the tool on every
+variant tried: fingers turning it, arm turning it, tip-up, tip-down, UR5e, floating palm. That
+is session 4's statics again -- 0.4 N on a 24 g tool -- and it does not care who commands the
+rotation. It is also why "give up the roll" is not by itself the fix: the roll was not what was
+failing, the hold was, and only a reaction surface changes that.
+
+**IT IS NOT A HELD REORIENT.** On the plane the tool rotates 70.6 deg inside the grasp while the
+table pivots it (`roll_max_deg`, new, measured in the palm's frame). The hand guides; the floor
+does the work; eight rigid-transfer corrections against the measured pose land it at 0.09 deg.
+On the flipped heading below the same move costs only 10.8 deg of roll, so a nearly-held version
+of it exists.
+
+**FOUR DEFECTS IN THE CHAIN PROBE, ALL FOUND BY TAKING THE FINGER TURN OUT** (commit 2e0bd26d):
+
+1. **The tool axis was folded, so a screwdriver standing on its HANDLE read as a perfect
+   0.00 deg stand.** Every tilt in the probe was arccos|cos|, right for a plain cylinder and
+   wrong for a tool whose tip is one specific end. With the rotation left to the arm, `_stage`
+   picks the end to raise from the sign of R[2,2], which on a horizontal tool is numerical
+   noise -- and the run then reported `tilt_deg` 0.00, z 0.0500, `stood_ok` True for a tool
+   upside down on the annulus beside the socket. Fixed: signed axis whenever `tip_len > 0`.
+2. **Rigid transfers were interpolated in joint space.** For the small corrections the published
+   chain makes that is the same path; for a 90 deg reorientation the arm swings the hand through
+   an arc the command never named, with an 0.008 mm IK residual saying it went where it was
+   told. Fixed: interpolate the pose, re-solve each control step.
+3. **The gait's ring was solved on fixed world bearings** (thumb pi, index pi/3), which is the
+   tripod a palm looking DOWN makes. Stand the tool up by pivoting and the palm is left on edge
+   beside it; the canonical ring is then 14.0 mm out of reach, so the pads either hover at
+   0.02 N or arrive with that residual as interference at 57-91 N and shove the tool 17-26 deg
+   over. `--ring-az pads` builds the same table on the azimuths the pads already occupy, and
+   `ring_z` is scanned for the height whose ring the fingers can close on.
+4. **The gait's palm height was the fit's grip depth.** The fit reports the height that pinches
+   a tool LYING DOWN (64.5 mm on g12); the gait needs the height from which three fingers close
+   on a ring around a STANDING one (45 mm). At 64.5 the ring solves 13.0 mm out of reach and the
+   close knocks the tool over. Now scanned per hand: residual 0.43 mm.
+
+**THE PRESS IS A CLIFF, NOT A KNOB.** Same hand, same seed, `--press` 2 / 6 / 10 mm: thrown
+(-1243 deg/cycle, dropped) / 6 cycles at -37.7 and 15.6 deg / 6 cycles at -37.9 and 12.5 deg.
+The gait study's own window was -6..+6 mm for a shaft already standing; a shaft the hand has
+just stood up needs the top of that range.
+
+**TWO HANDOVER VARIANTS THAT DO NOT HELP -- do not repeat.**
+* **Closing one finger at a time after the palm move** (`--reindex regrip`, added this session):
+  0/4 against `full`'s 1/4 on g12. Each finger's Cartesian legs pass close to a tool that is now
+  free-standing, and three passes are three chances to knock it over.
+* **Reducing the ring's commanded interference.** `--squeeze` 0.5 / 1.0 / 2.0 mm over five hands
+  x four seeds: g12 2/4, 1/4, 1/4 and every other hand flat at its own value. The 41-45 N at the
+  close is not what the knob controls.
+
+**THE COUNTERSINK: the tool's heading on the bench is a spec.** Standing a screwdriver TIP DOWN
+cannot happen on a flat table, so the seated version has to arrive at the socket. `--stand-order
+pivot` (descend lying, pivot up about the foot, walk that foot to the socket) stalls at 34 deg on
+the heading the scenes ship with -- the same tip-down rotation the mid-air stage could not carry.
+Lay the tool down the other way round (`prepare(h, yaw_deg=180)`, one quaternion on the object
+body) and the same move stands it TIP DOWN at 8.79 deg with 10.8 deg of roll. The tool then sits
+10 mm proud of its seat and the handover topples it, so it is not yet a chain, but the stand-up
+is no longer the obstacle.
+
+**NEXT, in order.**
+1. **The handover is the whole remaining failure.** 36 stands, 2 chains. The tool is standing
+   free and stable when the palm move starts and on the floor by the time the ring closes.
+   Instrument the window that `free_frac` already summarises: which phase of `full`
+   (release / palm move / close) loses it, per seed, on the ten hands that stand 4/4. Nothing
+   else is worth tuning until that is named.
+2. **Seat the tool the last 10 mm** on the flipped heading, then re-run the handover there. A
+   tool in a 45 deg cone is not free-standing, and the program has already measured that
+   continuous contact buys everything in a seat and nothing on a plane.
+3. **The five hands that drop the tool at the grasp** (roll 147-167 deg, `free_frac` 1.00) fail
+   upstream of any of this. Their fitted grasp does not hold a tool lying on a table at all;
+   check the fit before reading anything else about them.
