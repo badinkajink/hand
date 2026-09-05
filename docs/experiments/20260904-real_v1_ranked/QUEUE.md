@@ -372,3 +372,65 @@ instead of 800 the same hand is 3/4, so the leg length matters and has not been 
 3. **The five hands that drop the tool at the grasp** (roll 147-167 deg, `free_frac` 1.00) fail
    upstream of any of this. Their fitted grasp does not hold a tool lying on a table at all;
    check the fit before reading anything else about them.
+
+---
+
+## Session 6 — the grasp was wrong, and it was wrong because the squeeze is a bench number
+
+**THE USER SAW THE TOOL POPPING OUT OF THE HAND AND WAS RIGHT.** Measured at closure with the
+palm stationary and the tool lying on the table, at the deployed plans' own `squeeze_mm` of 10.0:
+
+| squeeze | 2 mm | 4 mm | 6 mm | 10 mm |
+|---|---|---|---|---|
+| `g12_b095` rise at closure | +3.8 mm | +8.9 | +12.8 | **+18.6** |
+| `g12_b095` pad force | 10.4 N | 5.4 | 1.8 | **0.5** |
+
+Nine of sixteen hands rise +14 to +20 mm -- more than the shaft's own 12.5 mm radius -- ride up
+onto `thumb_pip_frame` and `index_pip_frame`, and lose pad force as the squeeze rises, because
+the shaft has escaped over the top of the pads. Three hands go the other way and crush it into
+the floor at 28-67 N.
+
+**WHY.** `tip_targets` puts the pad CENTRES at `r_obj + r_pad + gap - squeeze` = 12.5 + 10.55 +
+1 - 10 = **14.05 mm** from the shaft axis when contact needs 23.05. The command is 9 mm inside
+the surface. The plans were fitted on `...__medium__bench100py-35__flat15w21T.xml`, where the
+shaft floats at 100 mm on a post that takes that reaction; a shaft lying on a table has nothing
+behind it. It is the wedge-sign failure `tip_targets` documents for positive elevation, arriving
+through excess squeeze instead of elevation.
+
+**THE FITTER'S HOLD PROBE CANNOT CATCH IT, AND IT WAS SWITCHED OFF ANYWAY.** `held` is measured
+against the object's height BEFORE the close, so the pop counts as retained lift:
+`held ~= lift_probe + dz` is an identity. Every grasp that "passed" the 20 mm gate at 65-75 mm on
+a 50 mm probe passed by the amount it threw the tool, and the tell -- `held > lift_probe` -- was
+never checked. On top of that `probe_real_v1_carry._grip_from_fit` calls `fp.fit(..., hold_min=
+-1.0)`, so six of sixteen hands ran the whole chain on grasps the fitter itself scores at
+-0.1 mm. Those six are exactly the six that dropped the tool at the grasp in every session-5 run.
+
+**THE FIX AND WHAT IT BUYS.** `SQUEEZE_MM = 2.0` is the chain's own value now, `--squeeze-mm`
+sweeps it, and `prepare()` records `close_dz_mm` / `close_pads` / `close_nonpad` / `close_pad_N`.
+At 2 mm every one of the 16 hands closes on three pads with the tool where it started (rise -0.4
+to +5.0 mm, 8.6-38.7 N) and the pip-frame contacts are gone on ten of them.
+
+| 16 hands x 4 seeds | 10 mm (the plans') | 2 mm |
+|---|---|---|
+| hold the lift | 41/64 | **64/64** |
+| stand the tool | 36/64 | 35/64 |
+| complete the chain | 8/64 | **23/64** |
+
+`rv05_manual_b85` goes 0/4 to 4/4, and so do `sv1_u1364_b080`, `sv1_u7952_b050` and `_b065`;
+`g12_b095` 0/4 to 3/4. Of the 35 stands, 23 never exceed 14 deg after `pressed`, against 8.
+
+**THE FAILURE MOVED TO THE SET-DOWN.** 24 of the 29 non-stands lose every pad at `set_down` --
+the phase that puts the tool back down lying before the pivot. A 2 mm grasp has less margin there
+than a 10 mm one, so the squeeze is a trade with an optimum between the two ends and not a knob
+to minimise. `--squeeze-mm 2,3,4,6` is running.
+
+**NEXT, in order.**
+1. **Read the squeeze sweep** (`docs/experiments/20260904-real_v1_held/squeeze_sweep/`). Report
+   `close_dz_mm` beside the chain rate: the right value is the largest squeeze whose closure
+   still leaves the tool where it was.
+2. **Re-run everything in session 5 on the corrected grasp.** The re-index leg sweep, the
+   three-leg clearance, the countersink heading -- all of them were measured through a grasp that
+   had thrown the tool 15-20 mm before the maneuver started, so none of those numbers stand.
+3. **Gate the fit.** `_grip_from_fit` should pass the fitter's real `hold_min` and reject
+   `held > lift_probe + 2 mm` as a pop rather than a pass. `sv1_w6689_*` fails at every squeeze
+   and is a genuinely bad grasp; it should be excluded by the gate, not by hand.

@@ -281,6 +281,9 @@ def _cell(kw):
     # -- there is no finger turn, so that column reads the tool still lying down.
     u = seam.get("upright", seam.get("staged", {}))
     r["tilt_upright_deg"] = u.get("tilt_deg")
+    # The reorientation scored on its own -- `reorient_deg` of the 90 deg turn, and the
+    # seam the tool was dropped at if it was. A hand can reorient 4/4 and chain 0/4.
+    r.setdefault("reorient_deg", None if u is None else round(90.0 - u.get("tilt_deg", 90.0), 2))
     return r
 
 
@@ -296,6 +299,10 @@ def main() -> int:
     ap.add_argument("--reps", type=int, default=4)
     ap.add_argument("--cycles", type=int, default=8)
     ap.add_argument("--workers", type=int, default=6)
+    ap.add_argument("--gait-scan", default=None,
+                    help="comma list of ring-scan modes for the gait palm height: grip (the "
+                         "shipped behaviour, minimise the CLOSED ring's residual), open "
+                         "(minimise the OPEN ring's -- the one the palm descends on), both")
     ap.add_argument("--squeeze-mm", default=None,
                     help="comma list of grasp squeeze values in mm, overriding SQUEEZE_MM. The "
                          "deployed plans all say 10.0, which is a BENCH number: on a tool lying "
@@ -328,18 +335,21 @@ def main() -> int:
             print(f"  {h['tag']}: NO POSE / BUILD FAILED", flush=True)
             continue
         fits[f["tag"]] = f
-        grid = [(c, rp) for c in ([None] if not args.clears else
-                                  [float(v) for v in args.clears.split(",")])
+        grid = [(c, rp, gs) for c in ([None] if not args.clears else
+                                      [float(v) for v in args.clears.split(",")])
                 for rp in ([None] if not args.reposes else
-                           [int(v) for v in args.reposes.split(",")])]
+                           [int(v) for v in args.reposes.split(",")])
+                for gs in ([None] if not args.gait_scan else args.gait_scan.split(","))]
         for lt in (float(v) for v in args.loads.split(",")):
-          for cl, rp in grid:
+          for cl, rp, gs in grid:
             for rep in range(args.reps):
                 tg = f"load{lt:.0f}" + ("" if sq is None else f"_sq{sq:g}")
                 if cl is not None:
                     tg += f"_c{cl*1000:.0f}"
                 if rp is not None:
                     tg += f"_r{rp}"
+                if gs is not None:
+                    tg += f"_g{gs}"
                 kw = {"_hand": h, "_fit": f, "_tag": tg,
                       "_table": args.stand == "table",
                       "load_target": lt, "seed": rep, "jitter": 0.0005,
@@ -348,6 +358,8 @@ def main() -> int:
                     kw["clear"] = cl
                 if rp is not None:
                     kw["repose_steps"] = rp
+                if gs is not None:
+                    kw["gait_scan"] = gs
                 if rep == args.video_seed and not args.no_video and len(grid) == 1 \
                         and len(sqs) == 1:
                     kw["video"] = vid / f"20260905-{h['tag']}_{args.stand}_{tg}.mp4"
