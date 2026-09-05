@@ -507,3 +507,51 @@ a labelled grid. Output `docs/experiments/20260904-real_v1_held/20260905-films/`
 5. **The countersink heading is still unmeasured on the corrected grasp.** `--stand-order pivot`
    stalls at 34 deg on the shipped heading and reaches 8.79 deg at `yaw_deg=180`, both measured
    through the 10 mm grasp.
+
+---
+
+## Session 7, RETRACTION (2026-09-05) -- the table stand is not a reorientation
+
+**Everything in the session 7 entry above that quotes a reorientation angle is wrong.** The
+metric did not test whether the hand was holding the tool.
+
+`stood_ok` is `ground_contacts >= 1 and tilt_deg < 14 and |z - rest_z| < 0.010`. It never asked
+about the grasp, and `reorient_deg` (90 minus the tilt at `upright`) inherited that. Counting pad
+contacts at the `upright` seam over the 177 runs that passed the gate:
+
+| pads on the tool at `upright` | runs |
+|---|---|
+| 0 | **116** |
+| 1 | 57 |
+| 2 | 4 |
+
+**Pad force at that seam has a median of 0.000 N over all 177 stands and exceeds the tool's own
+0.24 N weight in 2 of them.** With the load test applied the maneuver holds the tool through the
+turn in **2 of 256 runs**. The table is carrying the tool; the hand sets it down, lets go, and it
+settles vertical. The "89.1 +- 0.9 deg of the 90 deg turn" was the tilt of a released tool.
+
+This is the same defect already recorded twice in this program -- peak_cos without final_z scores
+a dropped shaft as perfect, and rv04 reads 8 deg with ZERO pads because a dropped shaft in a
+countersink is vertical. It was rebuilt from scratch here and published before anyone checked
+contacts.
+
+**Three further gaps, all visible in the run records and none of them measured:**
+- `tip_len_mm = 0.0` on every run. The object is a plain cylinder, the tool axis is folded, and
+  standing on EITHER end scores `tilt_deg = 0`. Tip-down was never tested.
+- `place_xy = None` on every run. No countersink. 79 of the 177 stands end below the table top.
+- `reindex = "full"` sets the tool down and releases it. There is no relay from the reorient
+  grasp to the gait grasp. `reindex = "relay"` exists and was not run.
+
+**The gate is now in the code.** `chain()` returns `upright_pads`, `upright_force_N` and
+`held_reorient` (2 pads and >1 N at `upright`), and `reorient_ok` requires it. No tilt from this
+family should be quoted without it.
+
+**Both handover sweeps are also negative**, and they are the only part of session 7 that stands:
+scanning the gait palm height against the open ring gives 21 chains against 44 (128 runs per
+arm), and opening the pads wider before the descent changes the handover count by exactly zero at
+6, 11, 16 and 22 mm -- `ring_ik_open_mm` grows one-for-one with the target (14.3 -> 26.9 mm), so
+the fingers are already as open as they go and the pad radius is not a lever.
+
+**PATH ABORTED.** Do not resume the table-stand chain. What a real attempt needs, and none of it
+was in these runs: a tool with a tip, a socket to seat it in, a grasp that carries load through
+the turn, and the relay instead of a release.

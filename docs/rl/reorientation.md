@@ -4873,3 +4873,13 @@ vs 44 chains over 128 runs per arm) because minimising the open-ring residual se
 filmstrip plus a labelled grid; `docs/experiments/20260904-real_v1_held/20260905-films/`. Page:
 `docs/experiments/20260904-real_v1_held/20260904-real_v1_table_stand.html` ->
 https://claude.ai/code/artifact/96207fa7-6175-4ffa-b6b8-34d73116cf47
+
+### RETRACTION, same day -- the stand is not a held turn
+
+The metric above is wrong. `stood_ok` tests ground contact, tilt and height and never tests the
+grasp, and `reorient_deg` inherited that. Over the 177 runs that passed the gate, 116 have ZERO
+pads on the tool at `upright`, 57 have one, 4 have two; median pad force is 0.000 N and only 2
+exceed the tool's own 0.24 N weight. **Held reorientation: 2 of 256.** The table carries the
+tool. Also, `tip_len_mm = 0` on every run (either end down scores tilt 0), `place_xy = None`
+(no countersink), and `reindex = "full"` releases rather than relaying. Path aborted.
+`chain()` now returns `held_reorient` and `reorient_ok` depends on it.

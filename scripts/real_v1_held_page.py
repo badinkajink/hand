@@ -39,6 +39,17 @@ def reorient_deg(r: dict) -> float | None:
     return None if u is None else 90.0 - float(u["tilt_deg"])
 
 
+def upright(r: dict) -> dict:
+    """The `upright` seam -- the moment the maneuver claims a vertical tool."""
+    return seams(r).get("upright") or seams(r).get("staged") or {}
+
+
+def held(r: dict) -> bool:
+    """Is the hand still ON the tool when it reads vertical? `stood_ok` never asked."""
+    u = upright(r)
+    return int(u.get("pad_contacts") or 0) >= 2 and float(u.get("pad_force_N") or 0.0) > 1.0
+
+
 def funnel(rows: list[dict]) -> list[dict]:
     """Where the 64 runs of each squeeze arm die, on the chain's own gate order."""
     out = []
@@ -95,9 +106,13 @@ def per_hand(rows: list[dict], cp: dict, films: list[dict]) -> list[dict]:
         reo = [v for v in reo if v is not None]
         c = (cp.get(tag) or {}).get(best, {})
         f = fv.get(tag, {})
+        allg = [r for s_ in SQ for r in per.get(s_, [])]
+        pads = [int(upright(r).get("pad_contacts") or 0) for r in allg if r.get("stood_ok")]
         out.append(dict(tag=tag, set=g[0]["set"] if g else "?", best=best, cells=cells,
                         ok=cells[best]["ok"], n=cells[best]["n"],
                         carry=cells[best]["carry"], stood=cells[best]["stood"],
+                        pads=(max(pads) if pads else None), nstood=len(pads),
+                        heldn=sum(1 for r in allg if r.get("stood_ok") and held(r)),
                         reo=stx.mean(reo) if reo else None,
                         dz=c.get("close_dz_mm"), nonpad=c.get("close_nonpad"),
                         force=c.get("close_pad_N"),
@@ -148,9 +163,16 @@ def main() -> int:
             f'<td class="num">{fmt(r["dz"], 1)}</td><td class="num">{fmt(r["force"], 1)}</td>'
             f'<td class="num">{r["nonpad"] if r["nonpad"] is not None else "&mdash;"}</td>'
             f'<td class="num">{r["carry"]}/{r["n"]}</td><td class="num">{r["stood"]}/{r["n"]}</td>'
-            f'<td class="num">{fmt(r["reo"], 1)}</td>'
-            f'<td class="num strong">{r["ok"]}/{r["n"]}</td><td class="cells">{cells}</td></tr>')
+            f'<td class="num">{r["pads"] if r["pads"] is not None else "&mdash;"}</td>'
+            f'<td class="num strong">{r["heldn"]}/16</td>'
+            f'<td class="num">{r["ok"]}/{r["n"]}</td><td class="cells">{cells}</td></tr>')
 
+    st_all = [r for r in rows if r.get("stood_ok")]
+    padc = {k: sum(1 for r in st_all if int(upright(r).get("pad_contacts") or 0) == k)
+            for k in (0, 1, 2)}
+    n_held = sum(1 for r in st_all if held(r))
+    n_below = sum(1 for r in st_all
+                  if (seams(r).get("gait_grip", {}).get("z") or 1.0) < 0.02)
     tot = {s: sum(1 for r in rows if sq_of(r) == s and r.get("ok")) for s in SQ}
     best_tot = sum(r["ok"] for r in T)
     n_arm = sum(1 for r in rows if sq_of(r) == 2.0)
@@ -161,6 +183,9 @@ def main() -> int:
         "{{N}}": str(n_arm), "{{OK2}}": str(tot[2.0]), "{{OK4}}": str(tot[4.0]),
         "{{BEST}}": str(best_tot),
         "{{REO}}": fmt(F[0]["reo"], 1), "{{REOSD}}": fmt(F[0]["reo_sd"], 1),
+        "{{NALL}}": str(len(rows)), "{{NSTOOD}}": str(len(st_all)),
+        "{{P0}}": str(padc[0]), "{{P1}}": str(padc[1]), "{{P2}}": str(padc[2]),
+        "{{HELD}}": str(n_held), "{{BELOW}}": str(n_below),
         "{{STOOD2}}": str(sum(1 for r in rows if sq_of(r) == 2.0 and r.get("stood_ok"))),
         "{{GRID}}": b64(FILMS / "20260905-chain_grid.mp4", "video/mp4"),
         "{{FILM_OK}}": b64(FILMS / "20260905-sv1_u1364_b080_sq2_s0_seams.png", "image/png"),
