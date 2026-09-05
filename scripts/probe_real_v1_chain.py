@@ -777,7 +777,7 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         seams.append(_snap(name))
         _shot()
 
-    def _upright(name, iters, steps_each, about_foot: bool):
+    def _upright(name, iters, steps_each, about_foot: bool, foot_xy=None):
         """Rotate the shaft to vertical, about its own centre or about the point it stands on.
 
         ABOUT THE FOOT is the difference between standing a rod up and juggling it. Corrected in
@@ -802,8 +802,18 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
             R_corr = np.eye(3) + np.sin(delta) * K + (1 - np.cos(delta)) * (K @ K)
             po = d.body(obj).xpos.copy()
             piv = _low_point() if about_foot else po
-            _move(*_rigid_palm_pose(m, d, obj, R_corr @ R_obj, piv + R_corr @ (po - piv)),
-                  steps_each)
+            p_new = piv + R_corr @ (po - piv)
+            if foot_xy is not None:
+                # WALK THE FOOT TO THE SOCKET AS IT COMES UP. Standing a screwdriver TIP DOWN
+                # cannot happen on a flat table -- the 10 mm cone has nowhere to go -- so the
+                # seated version of this move has to arrive at the hole, and where the foot
+                # ends up is not where it started: the contact migrates from the bottom rim to
+                # the apex somewhere past 50 deg, which shifts it by the tool's own radius. A
+                # correction on the MEASURED low point each iteration lands it without that
+                # geometry having to be derived, and it is the same measurement the tilt
+                # correction already uses.
+                p_new = p_new + g * np.array([foot_xy[0] - piv[0], foot_xy[1] - piv[1], 0.0])
+            _move(*_rigid_palm_pose(m, d, obj, R_corr @ R_obj, p_new), steps_each)
             if DEBUG:
                 print("   ", {**_snap(name), "delta_deg": round(float(np.degrees(delta)), 2),
                               "z_low_mm": round(float(_low_point()[2]) * 1000, 1)})
@@ -837,7 +847,19 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
     # Where the low point has to end up: `gap` above a plane, or `gap` above the depth the
     # seated tool's apex reaches in a countersink.
     z_low_goal = gap + (0.0 if tip_len <= 0.0 else rest_z - half - tip_len)
-    if place_xy is not None:
+    if stand_order == "pivot":
+        # NEVER OFF A SURFACE. Put the tool back down on the table LYING, then pivot it up about
+        # its own foot, walking that foot into the socket as it rises. The reason is statics and
+        # not preference: this grasp holds 0.4 N on a 24 g tool in mid-air, so a 90 deg mid-air
+        # reorientation drops it whether the fingers or the arm do the rotating, on the UR5e and
+        # on a floating palm alike. With the table under it the tool's weight is not the pads'
+        # problem and they only have to keep it from falling over, which is the job the gait
+        # study already showed they can do.
+        _descend("set_down", descend_iters, max(1, descend_steps // descend_iters), gap)
+        _upright("upright", repose_iters, max(1, repose_steps // repose_iters), True,
+                 foot_xy=(None if place_xy is None else
+                          (place_xy[0] + place_err[0], place_xy[1] + place_err[1])))
+    elif place_xy is not None:
         # Insertion, in two moves. Levelling matters because a tilted cone binds in a matched
         # cone -- an 8 deg entry stops 3 mm into a 10 mm seat -- and the lateral carry has to
         # happen at height, but neither can be afforded its own phase.
@@ -1068,7 +1090,11 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
     # mode below either gets there or pays for staying -- and the payment is visible in one
     # number, the ring's IK residual, because a ring solved from the wrong palm pose is a ring
     # the fingers cannot reach.
-    z_gait = float(rest_z + 0.025) if ring_z is None else float(ring_z)
+    # 25 mm above the tool's own centre, MEASURED. The seated height is what it should be when
+    # the insertion went in all the way; when it did not -- and a tool the hand stood up in a
+    # countersink can be 10 mm proud -- a ring referenced to `rest_z` is 10 mm off the tool it
+    # is meant to hold, which the gait palm scan below then cannot fix.
+    z_gait = float(d.body(obj).xpos[2] + 0.025) if ring_z is None else float(ring_z)
     # HOW HIGH THE GAIT'S PALM SITS ABOVE ITS RING, and it is not the fit's grip depth. The fit
     # reports the palm height that pinches a tool LYING DOWN; the gait needs the height from
     # which three fingers can close on a ring around a tool STANDING UP, and on this hand those
@@ -1077,7 +1103,7 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
     # 0.43 mm and the same chain runs. Scanned rather than named, because it is a property of
     # each hand's reach, and the residual is the thing being minimised anyway.
     gd_use = float(grip_depth if gait_depth is None else gait_depth)
-    if gait_depth is None and reindex == "full":
+    if gait_depth is None and reindex in ("full", "regrip"):
         _wp, _wr, _nf = palm.worst_pos, palm.worst_rot, palm.fails
         best_gd = (float("inf"), gd_use)
         for gd in np.arange(0.030, 0.0721, 0.005):
@@ -1125,7 +1151,7 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         centre = d.body(obj).xpos[:2].copy()
         table, ik_res, per_r = pg._ring_table(
             m, centre, z_ring, palm.joint_dict(u_go), [r_grip, r_open, r_wide], phis)
-    elif reindex == "full":
+    elif reindex in ("full", "regrip"):
         # THE FLOOR MAKES THE HAND FREE. Let go completely, drive the palm to the pose the gait
         # study validated, and take the shaft again as a ring. Nothing else in this program can
         # do this: every other release in the repertoire drops the object.
@@ -1172,7 +1198,7 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
 
         _run(n, _mv, every_step=True)
 
-    if reindex in ("relay", "track", "slide"):
+    if reindex in ("relay", "track", "slide", "regrip"):
         # THE HANDOVER, ONE FINGER AT A TIME. `full` and `none` both take the ring grasp with
         # all three fingers at once, which means both pass through a moment with every pad off
         # the tool -- `full` deliberately (it opens the hand and flies the palm somewhere else),
@@ -1480,11 +1506,11 @@ def main() -> int:
                          "joint-space move between two grasps of the same object passes through "
                          "a configuration that holds neither, and in mid-air there is nothing "
                          "under the shaft. Changing grasp needs the floor.")
-    ap.add_argument("--stand-order", default="ground", choices=("ground", "air"),
+    ap.add_argument("--stand-order", default="ground", choices=("ground", "air", "pivot"),
                     help="ground = set the tilted shaft's foot on the floor, then rotate it "
                          "upright about that foot; air = stand it up in mid-air first")
     ap.add_argument("--reindex", default="full",
-                    choices=("full", "slide", "track", "relay", "none"),
+                    choices=("full", "regrip", "slide", "track", "relay", "none"),
                     help="how the carry's grasp becomes the gait's. full = let go on the "
                          "floor, re-centre the palm and retake the ring; relay = walk the "
                          "fingers onto the ring ONE AT A TIME with the palm parked, so two "
