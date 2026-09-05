@@ -1385,8 +1385,17 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         if s_["hand_contacts"] < 1 and s_["z"] < r_obj + 0.004:
             drop_stage = s_["phase"]
             break
+    # A REORIENTATION IS ONLY A REORIENTATION IF THE HAND IS STILL ON THE TOOL. Without this
+    # clause the metric scores a tool that was set down and released and happened to settle
+    # vertical: over 256 table-stand runs, 116 of the 177 that passed `stood_ok` had ZERO pads
+    # on the tool at `upright` and only 4 had two. `stood_ok` tests ground contact and tilt and
+    # never tested the grasp, and `reorient_deg` inherited that. Same defect as reading peak_cos
+    # without final_z, and as a dropped shaft reading vertical in a countersink.
+    upright_pads = 0 if _up is None else int(_up.get("pad_contacts") or 0)
+    upright_force = 0.0 if _up is None else float(_up.get("pad_force_N") or 0.0)
+    held_reorient = bool(upright_pads >= 2 and upright_force > 1.0)
     reorient_ok = bool(reorient_deg is not None and reorient_deg >= 76.0
-                       and drop_stage is None)
+                       and drop_stage is None and held_reorient)
 
     out = {
         "run": morph_run.name, "object": obj, "reindex": reindex,
@@ -1452,6 +1461,8 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         "seams": seams,
         "carry_ok": bool(carry_ok), "stood_ok": stood_ok, "grip_ok": grip_ok,
         "reorient_deg": reorient_deg, "drop_stage": drop_stage,
+        "upright_pads": upright_pads, "upright_force_N": round(upright_force, 2),
+        "held_reorient": held_reorient,
         "reorient_ok": reorient_ok,
         "spin_deg": round(float(np.degrees(spin[0])), 2),
         "turns": round(float(np.degrees(spin[0])) / 360.0, 3),
