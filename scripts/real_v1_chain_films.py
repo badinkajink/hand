@@ -90,11 +90,22 @@ def grid(vids: list[tuple[str, Path]], out: Path, cols: int, size: tuple[int, in
     else:
         lay = "|".join(f"{(i % cols) * w}_{(i // cols) * h}" for i in range(len(vids)))
         fc.append("".join(f"[v{i}]" for i in range(len(vids))) +
-                  f"xstack=inputs={len(vids)}:layout={lay}:shortest=0[out]")
+                  f"xstack=inputs={len(vids)}:layout={lay}:fill=black:shortest=0[out]")
+    # tpad clones each clip's last frame forever, so the output MUST be cut to the longest
+    # input or ffmpeg encodes an endless stream (a 23 MB file with no moov atom).
+    dur = 0.0
+    for _, v in vids:
+        q = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration",
+                            "-of", "csv=p=0", str(v)], capture_output=True, text=True)
+        try:
+            dur = max(dur, float(q.stdout.strip()))
+        except ValueError:
+            pass
     cmd = (["ffmpeg", "-y"] + ins +
            ["-filter_complex", ";".join(fc), "-map", "[out]",
-            "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "26",
-            "-r", "40", str(out)])
+            "-t", f"{dur:.2f}" if dur > 0 else "30",
+            "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "28",
+            "-preset", "slow", "-movflags", "+faststart", "-r", "40", str(out)])
     p = subprocess.run(cmd, capture_output=True, text=True)
     if p.returncode != 0:
         print(p.stderr[-2500:], flush=True)

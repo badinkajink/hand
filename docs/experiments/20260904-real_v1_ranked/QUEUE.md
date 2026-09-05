@@ -434,3 +434,76 @@ to minimise. `--squeeze-mm 2,3,4,6` is running.
 3. **Gate the fit.** `_grip_from_fit` should pass the fitter's real `hold_min` and reject
    `held > lift_probe + 2 mm` as a pop rather than a pass. `sv1_w6689_*` fails at every squeeze
    and is a genuinely bad grasp; it should be excluded by the gate, not by hand.
+
+---
+
+## Session 7 (2026-09-05) -- the reorientation is not the loss, and the handover is one seam
+
+**The squeeze sweep, 16 hands x 4 seeds x {2, 3, 4, 6} mm.** Splitting the chain's AND-gate into
+its four stages puts the 90 deg turn on one side of the ledger and everything else on the other.
+
+| squeeze (mm) | lost in carry | lost standing | lost at handover | lost gaiting | complete | reorient (deg) |
+|---|---|---|---|---|---|---|
+| 2 | 24 | 5 | 11 | 1 | **23** | 89.1 +- 0.9 |
+| 3 | 16 | 2 | 25 | 0 | 21 | 88.3 +- 4.5 |
+| 4 | 13 | 4 | 22 | 4 | 21 | 89.3 +- 0.8 |
+| 6 | 13 | 2 | 32 | 8 | 9 | 89.4 +- 0.9 |
+
+**When a hand stands the tool it stands it at 89.1-89.4 deg of the 90, sd 0.9.** The
+reorientation does not vary across hands, seeds or squeeze. What varies is the carry that
+delivers the tool and the handover that gives it back. The two pull opposite ways -- 2 mm loses
+24 in the carry and 11 at the handover, 6 mm loses 13 and 32 -- so the squeeze is a per-hand
+trade. Per-hand best totals **28/64** against 23 for a single population value, on n=4 per cell.
+
+**Three new fields** (`probe_real_v1_chain.py`): `reorient_deg` (90 minus the tilt at `upright`),
+`drop_stage` (the first seam the tool is loose on the floor at -- referenced to the shaft RADIUS,
+because a tool standing on its end sits at the half-LENGTH and is not dropped), `reorient_ok`.
+
+**The handover is one seam, and the films name it.** Of the 58 handover failures at 2-4 mm, 53
+are already past 14 deg at `reindexed`, having stood at 1.47 deg through `released`; mean tilt
+goes 1.5 -> 75.4 deg and z 50.4 -> 16.8 mm across that one move. The completed runs read 0.64 deg
+at the same seam. `sv1_w2360_b075` stands 4/4 and completes 0/4, and its filmstrip shows the tool
+flung clear of the table disc, not toppled in place.
+
+**`--gait-scan` A/B: NEGATIVE, and it inverts the fix.** The gait palm height is scanned over
+30-72 mm against the CLOSED ring's IK residual, but the palm descends on the OPEN ring, so
+scanning the open ring looked like the obvious correction. Over 128 runs per arm (16 hands x
+{2, 4} mm x 4 seeds):
+
+| scan | carry | stands | handover | chain |
+|---|---|---|---|---|
+| grip (shipped) | 91 | 82 | **49** | **44**/128 |
+| open | 91 | 82 | 29 | 21/128 |
+| both | 91 | 82 | 46 | 35/128 |
+
+Minimising the open-ring residual is the wrong objective: it puts the open pads ON a ring 6 mm
+from the tool instead of clear of it. The descent needs the fingers WIDER than the tool, which is
+`release_mm` (6.0), not the palm height. `--releases 6,11,16,22` x {2, 4} mm is running.
+
+**Films.** `scripts/real_v1_chain_films.py --sweep <chain_hands.json> --out <dir>` re-runs each
+hand's furthest-reaching cell with the renderer on: one mp4 and one seam filmstrip per hand plus
+a labelled grid. Output `docs/experiments/20260904-real_v1_held/20260905-films/`.
+
+**Two gotchas that cost a sweep each.**
+- `tpad=stop=-1` on every xstack input makes an ENDLESS stream; the grid encode ran until killed
+  and left a 23 MB file with no moov atom. Cut the output with `-t <longest input>`.
+- A sweep arm whose name is already a key in the base cell dict raises "got multiple values for
+  keyword argument" INSIDE the per-cell try, so all 512 cells fail silently and the summary
+  prints zeros that look like a finding. `_cell` now pops every kw key from the base cell.
+
+**NEXT, in order.**
+1. **Read the release sweep** (`docs/experiments/20260904-real_v1_held/release_sweep/`). It is the
+   only untried lever on the dominant loss. If a wider release helps, the ceiling is the open
+   ring's own IK residual (`ring_ik_open_mm`, 13-16 mm today) -- past some width the fingers
+   cannot reach the ring at all.
+2. **Apply the close-probe gate in `prepare()`.** `close_nonpad >= 2` selects exactly the hands
+   that eject the tool: `sv1_w6689_b050` and `_b060` at every squeeze (0/16 each) and
+   `sv1_u5855_b050` at 2 mm (0/4). Removing them on evidence takes the denominator from 64 to 56.
+3. **Per-hand squeeze, then eight seeds.** 28/64 vs 23/64 on n=4 does not separate a 5-run
+   difference from noise. Fix the squeeze per hand from the close probe, then re-run at n=8 on the
+   hands that survive gate 2.
+4. **Guard `gain_mean_deg` against the 50.5 deg/cycle gear ceiling.** g12 reads -67 to -86 and
+   u5860 +188; those are the shaft being spun or thrown and they currently read as fast gaits.
+5. **The countersink heading is still unmeasured on the corrected grasp.** `--stand-order pivot`
+   stalls at 34 deg on the shipped heading and reaches 8.79 deg at `yaw_deg=180`, both measured
+   through the 10 mm grasp.

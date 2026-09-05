@@ -255,6 +255,11 @@ def _cell(kw):
         place_xy=fit["place_xy"], seat_z=fit["seat_z"], tip_len=fit["tip_len"])
     if not table:
         cell["angle_deg"] = h["angle_deg"]
+    # A SWEEP ARM ALWAYS WINS over the base cell. Without this a `--releases` arm collides with
+    # TABLE's own `release_mm` and every cell in the sweep dies on "got multiple values for
+    # keyword argument" -- 512 of them, silently, since the failure is caught per cell.
+    for k in kw:
+        cell.pop(k, None)
     try:
         r = C.chain(Path(h["tag"]), arm_ik=Path(fit["ik"]), scene_path=Path(fit["arm"]),
                     anchor_ctrl=fit["anchor"], axis_k=h["axis_k"],
@@ -299,6 +304,10 @@ def main() -> int:
     ap.add_argument("--reps", type=int, default=4)
     ap.add_argument("--cycles", type=int, default=8)
     ap.add_argument("--workers", type=int, default=6)
+    ap.add_argument("--releases", default=None,
+                    help="comma list of release_mm -- how far the pads open before the palm "
+                         "re-indexes. The descent onto the standing tool happens at this "
+                         "radius, so it is what has to clear the tool")
     ap.add_argument("--gait-scan", default=None,
                     help="comma list of ring-scan modes for the gait palm height: grip (the "
                          "shipped behaviour, minimise the CLOSED ring's residual), open "
@@ -335,13 +344,15 @@ def main() -> int:
             print(f"  {h['tag']}: NO POSE / BUILD FAILED", flush=True)
             continue
         fits[f["tag"]] = f
-        grid = [(c, rp, gs) for c in ([None] if not args.clears else
+        grid = [(c, rp, gs, rl) for c in ([None] if not args.clears else
                                       [float(v) for v in args.clears.split(",")])
                 for rp in ([None] if not args.reposes else
                            [int(v) for v in args.reposes.split(",")])
-                for gs in ([None] if not args.gait_scan else args.gait_scan.split(","))]
+                for gs in ([None] if not args.gait_scan else args.gait_scan.split(","))
+                for rl in ([None] if not args.releases else
+                           [float(v) for v in args.releases.split(",")])]
         for lt in (float(v) for v in args.loads.split(",")):
-          for cl, rp, gs in grid:
+          for cl, rp, gs, rl in grid:
             for rep in range(args.reps):
                 tg = f"load{lt:.0f}" + ("" if sq is None else f"_sq{sq:g}")
                 if cl is not None:
@@ -350,6 +361,8 @@ def main() -> int:
                     tg += f"_r{rp}"
                 if gs is not None:
                     tg += f"_g{gs}"
+                if rl is not None:
+                    tg += f"_o{rl:g}"
                 kw = {"_hand": h, "_fit": f, "_tag": tg,
                       "_table": args.stand == "table",
                       "load_target": lt, "seed": rep, "jitter": 0.0005,
@@ -360,6 +373,8 @@ def main() -> int:
                     kw["repose_steps"] = rp
                 if gs is not None:
                     kw["gait_scan"] = gs
+                if rl is not None:
+                    kw["release_mm"] = rl
                 if rep == args.video_seed and not args.no_video and len(grid) == 1 \
                         and len(sqs) == 1:
                     kw["video"] = vid / f"20260905-{h['tag']}_{args.stand}_{tg}.mp4"
