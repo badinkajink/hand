@@ -293,7 +293,7 @@ def _cell(kw):
     cell = dict(TABLE if table else BASE)
     seat = dict(place_xy=None, seat_z=None, tip_len=0.0) if table else dict(
         place_xy=fit["place_xy"], seat_z=fit["seat_z"], tip_len=fit["tip_len"])
-    if not table:
+    if not table and "angle_deg" not in kw:
         cell["angle_deg"] = h["angle_deg"]
     # A SWEEP ARM ALWAYS WINS over the base cell. Without this a `--releases` arm collides with
     # TABLE's own `release_mm` and every cell in the sweep dies on "got multiple values for
@@ -383,6 +383,10 @@ def main() -> int:
                     help="comma list of turn_steps to sweep. The published chain cell uses 550; "
                          "the floor-free held turn that reproduces 30/30 in probe_real_v1_carry "
                          "uses 250, so the two results are not at the same operating point.")
+    ap.add_argument("--angles", default=None,
+                    help="comma list of finger-turn angles in deg, overriding each plan's own. "
+                         "The plans carry -60 to -90; the one configuration that has ever "
+                         "chained this task uses -90.")
     ap.add_argument("--axis-ks", default=None,
                     help="comma list of pivot heights in half-straddles, overriding each plan's "
                          "own. The pivot the finger anchor is rotated about sets whether the "
@@ -422,7 +426,7 @@ def main() -> int:
             print(f"  {h['tag']}: NO POSE / BUILD FAILED", flush=True)
             continue
         fits[f["tag"]] = f
-        grid = [(c, rp, gs, rl, ts, bg, ak) for c in ([None] if not args.clears else
+        grid = [(c, rp, gs, rl, ts, bg, ak, an) for c in ([None] if not args.clears else
                                       [float(v) for v in args.clears.split(",")])
                 for rp in ([None] if not args.reposes else
                            [int(v) for v in args.reposes.split(",")])
@@ -434,9 +438,11 @@ def main() -> int:
                 for bg in ([None] if not args.budgets else
                            [float(v) for v in args.budgets.split(",")])
                 for ak in ([None] if not args.axis_ks else
-                           [float(v) for v in args.axis_ks.split(",")])]
+                           [float(v) for v in args.axis_ks.split(",")])
+                for an in ([None] if not args.angles else
+                           [float(v) for v in args.angles.split(",")])]
         for lt in (float(v) for v in args.loads.split(",")):
-          for cl, rp, gs, rl, ts, bg, ak in grid:
+          for cl, rp, gs, rl, ts, bg, ak, an in grid:
             for rep in range(args.reps):
                 tg = f"load{lt:.0f}" + ("" if sq is None else f"_sq{sq:g}")
                 if cl is not None:
@@ -453,6 +459,8 @@ def main() -> int:
                     tg += f"_b{bg:g}"
                 if ak is not None:
                     tg += f"_k{ak:g}"
+                if an is not None:
+                    tg += f"_a{an:g}"
                 kw = {"_hand": h, "_fit": f, "_tag": tg,
                       "_table": args.stand == "table",
                       "load_target": lt, "seed": rep, "jitter": 0.0005,
@@ -471,6 +479,8 @@ def main() -> int:
                     kw["budget"] = bg
                 if ak is not None:
                     kw["axis_k"] = ak
+                if an is not None:
+                    kw["angle_deg"] = an
                 if rep == args.video_seed and not args.no_video and len(grid) == 1 \
                         and len(sqs) == 1:
                     kw["video"] = vid / f"20260905-{h['tag']}_{args.stand}_{tg}.mp4"
