@@ -74,6 +74,46 @@ BASE = dict(obj="screwdriver_medium", lift=0.10, gap=0.002, descend_iters=1, des
             turn_steps=550, hold_steps=300)
 
 
+def variants(H: list[dict], straddles: str | None, depths: str | None,
+             elevations: str | None = None) -> list[dict]:
+    """Clone each hand record at other GRASP operating points, keeping the hand itself fixed.
+
+    Straddle (the axial spacing of the two straddling fingers) and grip depth (the palm's
+    height above the shaft's centre line) are properties of the GRASP the fitter authored, not
+    of the morphology: every one of these variants is the same `real_v1` design at the same
+    mount coordinates. They are swept here because the deployed plan fixes them at whatever the
+    bench fit returned, and set A's plans disagree by 8 mm of straddle and 16 mm of depth with
+    no evidence that the chain wants the same point the bench carry did.
+    """
+    if not straddles and not depths and not elevations:
+        return H
+    ss = [None] if not straddles else [float(v) for v in straddles.split(",")]
+    dd = [None] if not depths else [float(v) for v in depths.split(",")]
+    ee = [None] if not elevations else [float(v) for v in elevations.split(",")]
+    out = []
+    for h in H:
+        for s in ss:
+            for d in dd:
+                for e in ee:
+                    v = dict(h)
+                    if s is not None:
+                        v["straddle"] = s / 1000.0
+                    if d is not None:
+                        v["depth"] = d / 1000.0
+                    if e is not None:
+                        v["elevation"] = e
+                    v["tag"] = h["tag"]
+                    if straddles:
+                        v["tag"] += f"_s{v['straddle'] * 1000:g}"
+                    if depths:
+                        v["tag"] += f"_d{v['depth'] * 1000:g}"
+                    if elevations:
+                        v["tag"] += f"_e{v.get('elevation', 0.0):g}"
+                    v["parent"] = h["tag"]
+                    out.append(v)
+    return out
+
+
 def hands(sets: str) -> list[dict]:
     out = []
     if "A" in sets:
@@ -154,7 +194,7 @@ def prepare(h: dict, yaw_deg: float = 0.0, squeeze_mm: float | None = None) -> d
                                    _qmul((math.cos(a), 0.0, 0.0, math.sin(a)), q)))
             ET.ElementTree(root).write(flat, encoding="unicode")
     built = pc._grip_from_fit(flat, h["straddle"], 0.0, sq / 1000.0, BASE["obj"],
-                              h["depth"], h["thumb_axial"])
+                              h["depth"], h["thumb_axial"], h.get("elevation", 0.0))
     if built is None:
         return None
     m, open_qpos, grip, depth_mm = built
@@ -261,12 +301,17 @@ def _cell(kw):
     for k in kw:
         cell.pop(k, None)
     try:
+        base_kw = dict(axis_k=h["axis_k"], budget=h["budget"])
+        for k in kw:
+            base_kw.pop(k, None)
         r = C.chain(Path(h["tag"]), arm_ik=Path(fit["ik"]), scene_path=Path(fit["arm"]),
-                    anchor_ctrl=fit["anchor"], axis_k=h["axis_k"],
-                    budget=h["budget"], grip_depth=fit["depth_mm"] / 1000,
-                    **seat, **cell, **kw)
+                    anchor_ctrl=fit["anchor"], grip_depth=fit["depth_mm"] / 1000,
+                    **base_kw, **seat, **cell, **kw)
     except Exception as exc:
         return {"arm": tag, "tag": h["tag"], "set": h["set"], "error": repr(exc), "ok": False,
+                "parent": h.get("parent", h["tag"]),
+                "straddle_mm": h["straddle"] * 1000, "depth_ask_mm": h["depth"] * 1000,
+                "elevation_deg": h.get("elevation", 0.0),
                 **{k: v for k, v in kw.items() if isinstance(v, (int, float))}}
     seam = {s["phase"]: s for s in r["seams"]}
     t, L = seam.get("turned", {}), seam.get("lifted", {})
@@ -275,6 +320,9 @@ def _cell(kw):
                    if k in s} for s in r["seams"]]
     r.pop("cycles", None)
     r["arm"], r["tag"], r["set"] = tag, h["tag"], h["set"]
+    r["parent"] = h.get("parent", h["tag"])
+    r["straddle_mm"], r["depth_ask_mm"] = h["straddle"] * 1000, h["depth"] * 1000
+    r["elevation_deg"] = h.get("elevation", 0.0)
     r["pads_turned"], r["force_turned_N"] = t.get("pad_contacts"), t.get("pad_force_N")
     r["z_turned"], r["pads_lifted"] = t.get("z"), L.get("pad_contacts")
     # A dropped shaft standing in a countersink reads vertical, so every tilt is gated on the
@@ -297,6 +345,20 @@ def main() -> int:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--sets", default="AB")
+    ap.add_argument("--hands", default=None,
+                    help="comma list of plan tags to keep, e.g. sv1_w6689_b060")
+    ap.add_argument("--straddles", default=None,
+                    help="comma list of straddle values in mm, overriding each plan's own. The "
+                         "axial spacing of the two straddling fingers -- a GRASP parameter, not "
+                         "a morphology one, so a sweep over it holds the hand fixed.")
+    ap.add_argument("--elevations", default=None,
+                    help="comma list of pad-ring elevations in deg about the shaft, overriding "
+                         "the 0.0 every caller in this program has passed. Negative aims the "
+                         "pad centres below the shaft's equator, where the wedge holds the tool "
+                         "in instead of driving it out; the cost is the pad's floor clearance.")
+    ap.add_argument("--depths", default=None,
+                    help="comma list of grip depths in mm (palm height above the shaft's centre "
+                         "line), overriding each plan's own. Set A's plans span 50.5-66.5.")
     ap.add_argument("--stand", default="air", choices=("air", "table"),
                     help="air = the published cell (fingers turn the tool, arm stages it over "
                          "the countersink); table = no finger turn, the tool is stood up by "
@@ -317,6 +379,14 @@ def main() -> int:
                          "deployed plans all say 10.0, which is a BENCH number: on a tool lying "
                          "on a table it ejects the tool 14-20 mm out of the pinch at closure. "
                          "2.0 gives 64/64 lifts against 41/64 and 23/64 chains against 8/64.")
+    ap.add_argument("--turn-steps", default=None,
+                    help="comma list of turn_steps to sweep. The published chain cell uses 550; "
+                         "the floor-free held turn that reproduces 30/30 in probe_real_v1_carry "
+                         "uses 250, so the two results are not at the same operating point.")
+    ap.add_argument("--budgets", default=None,
+                    help="comma list of residual clips in rad, overriding each plan's own. Each "
+                         "design holds inside a contiguous band and drops on both sides of it, "
+                         "so read the shape rather than assuming monotonicity.")
     ap.add_argument("--clears", default=None,
                     help="comma list of re-index clearance heights in m to sweep (table mode). "
                          "The palm lifts this far above the gait pose before it translates "
@@ -332,6 +402,10 @@ def main() -> int:
     args = ap.parse_args()
 
     H = hands(args.sets)
+    if args.hands:
+        keep = set(args.hands.split(","))
+        H = [h for h in H if h["tag"] in keep]
+    H = variants(H, args.straddles, args.depths, args.elevations)
     print(f"{len(H)} hands: " + ", ".join(f"{h['tag']}[{h['set']}]" for h in H), flush=True)
     sqs = [None] if not args.squeeze_mm else [float(v) for v in args.squeeze_mm.split(",")]
     fits, jobs, skipped = {}, [], []
@@ -344,15 +418,19 @@ def main() -> int:
             print(f"  {h['tag']}: NO POSE / BUILD FAILED", flush=True)
             continue
         fits[f["tag"]] = f
-        grid = [(c, rp, gs, rl) for c in ([None] if not args.clears else
+        grid = [(c, rp, gs, rl, ts, bg) for c in ([None] if not args.clears else
                                       [float(v) for v in args.clears.split(",")])
                 for rp in ([None] if not args.reposes else
                            [int(v) for v in args.reposes.split(",")])
                 for gs in ([None] if not args.gait_scan else args.gait_scan.split(","))
                 for rl in ([None] if not args.releases else
-                           [float(v) for v in args.releases.split(",")])]
+                           [float(v) for v in args.releases.split(",")])
+                for ts in ([None] if not args.turn_steps else
+                           [int(v) for v in args.turn_steps.split(",")])
+                for bg in ([None] if not args.budgets else
+                           [float(v) for v in args.budgets.split(",")])]
         for lt in (float(v) for v in args.loads.split(",")):
-          for cl, rp, gs, rl in grid:
+          for cl, rp, gs, rl, ts, bg in grid:
             for rep in range(args.reps):
                 tg = f"load{lt:.0f}" + ("" if sq is None else f"_sq{sq:g}")
                 if cl is not None:
@@ -363,6 +441,10 @@ def main() -> int:
                     tg += f"_g{gs}"
                 if rl is not None:
                     tg += f"_o{rl:g}"
+                if ts is not None:
+                    tg += f"_t{ts}"
+                if bg is not None:
+                    tg += f"_b{bg:g}"
                 kw = {"_hand": h, "_fit": f, "_tag": tg,
                       "_table": args.stand == "table",
                       "load_target": lt, "seed": rep, "jitter": 0.0005,
@@ -375,6 +457,10 @@ def main() -> int:
                     kw["gait_scan"] = gs
                 if rl is not None:
                     kw["release_mm"] = rl
+                if ts is not None:
+                    kw["turn_steps"] = ts
+                if bg is not None:
+                    kw["budget"] = bg
                 if rep == args.video_seed and not args.no_video and len(grid) == 1 \
                         and len(sqs) == 1:
                     kw["video"] = vid / f"20260905-{h['tag']}_{args.stand}_{tg}.mp4"

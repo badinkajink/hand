@@ -1,0 +1,274 @@
+[
+ {
+  "tag": "sv1_w6689_b060",
+  "squeeze_mm": 2.0,
+  "depth_mm": 52.5,
+  "straddle_mm": 32.0,
+  "dz_mm": -0.39,
+  "n_pads": 3,
+  "n_below": 0,
+  "z_rel_mean": 0.168,
+  "z_rel_min": 0.039,
+  "span_deg": 173.6,
+  "Fz_pad": -3.463,
+  "F_pad_N": 28.2,
+  "pads": [
+   {
+    "finger": "thumb",
+    "z_rel": 0.039,
+    "az_deg": 87.5,
+    "F_N": 13.86
+   },
+   {
+    "finger": "index",
+    "z_rel": 0.064,
+    "az_deg": -86.1,
+    "F_N": 8.96
+   },
+   {
+    "finger": "middle",
+    "z_rel": 0.402,
+    "az_deg": -65.4,
+    "F_N": 5.38
+   }
+  ]
+ },
+ {
+  "tag": "sv1_w2360_b075",
+  "squeeze_mm": 2.0,
+  "depth_mm": 58.5,
+  "straddle_mm": 40.0,
+  "dz_mm": 0.18,
+  "n_pads": 3,
+  "n_below": 3,
+  "z_rel_mean": -0.017,
+  "z_rel_min": -0.02,
+  "span_deg": 178.2,
+  "Fz_pad": 0.241,
+  "F_pad_N": 22.8,
+  "pads": [
+   {
+    "finger": "thumb",
+    "z_rel": -0.011,
+    "az_deg": 90.7,
+    "F_N": 11.4
+   },
+   {
+    "finger": "index",
+    "z_rel": -0.02,
+    "az_deg": -91.2,
+    "F_N": 7.5
+   },
+   {
+    "finger": "middle",
+    "z_rel": -0.02,
+    "az_deg": -91.1,
+    "F_N": 3.9
+   }
+  ]
+ },
+ {
+  "tag": "sv1_u1364_b080",
+  "squeeze_mm": 2.0,
+  "depth_mm": 62.5,
+  "straddle_mm": 40.0,
+  "dz_mm": 4.04,
+  "n_pads": 3,
+  "n_below": 3,
+  "z_rel_mean": -0.295,
+  "z_rel_min": -0.452,
+  "span_deg": 152.7,
+  "Fz_pad": 0.24,
+  "F_pad_N": 19.02,
+  "pads": [
+   {
+    "finger": "thumb",
+    "z_rel": -0.408,
+    "az_deg": 115.8,
+    "F_N": 9.52
+   },
+   {
+    "finger": "index",
+    "z_rel": -0.452,
+    "az_deg": -117.8,
+    "F_N": 5.09
+   },
+   {
+    "finger": "middle",
+    "z_rel": -0.026,
+    "az_deg": -91.5,
+    "F_N": 4.41
+   }
+  ]
+ },
+ {
+  "tag": "g12_b095",
+  "squeeze_mm": 2.0,
+  "depth_mm": 64.5,
+  "straddle_mm": 40.0,
+  "dz_mm": 3.63,
+  "n_pads": 3,
+  "n_below": 3,
+  "z_rel_mean": -0.301,
+  "z_rel_min": -0.408,
+  "span_deg": 150.5,
+  "Fz_pad": 0.241,
+  "F_pad_N": 11.18,
+  "pads": [
+   {
+    "finger": "thumb",
+    "z_rel": -0.134,
+    "az_deg": 98.0,
+    "F_N": 5.57
+   },
+   {
+    "finger": "index",
+    "z_rel": -0.408,
+    "az_deg": -114.8,
+    "F_N": 4.16
+   },
+   {
+    "finger": "middle",
+    "z_rel": -0.361,
+    "az_deg": -111.5,
+    "F_N": 1.45
+   }
+  ]
+ },
+ {
+  "tag": "sv1_u0060_b75",
+  "squeeze_mm": 2.0,
+  "depth_mm": 62.5,
+  "straddle_mm": 40.0,
+  "dz_mm": 2.26,
+  "n_pads": 3,
+  "n_below": 3,
+  "z_rel_mean": -0.233,
+  "z_rel_min": -0.342,
+  "span_deg": 157.6,
+  "Fz_pad": 0.242,
+  "F_pad_N": 31.75,
+  "pads": [
+   {
+    "finger": "thumb",
+    "z_rel": -0.194,
+    "az_deg": 102.5,
+    "F_N": 15.87
+   },
+   {
+    "finger": "index",
+    "z_rel": -0.342,
+    "az_deg": -111.1,
+    "F_N": 7.66
+   },
+   {
+    "finger": "middle",
+    "z_rel": -0.163,
+    "az_deg": -99.9,
+    "F_N": 8.22
+   }
+  ]
+ },
+ {
+  "tag": "sv1_u0308_b050",
+  "squeeze_mm": 2.0,
+  "depth_mm": 62.5,
+  "straddle_mm": 40.0,
+  "dz_mm": 2.72,
+  "n_pads": 3,
+  "n_below": 3,
+  "z_rel_mean": -0.188,
+  "z_rel_min": -0.276,
+  "span_deg": 159.1,
+  "Fz_pad": 0.241,
+  "F_pad_N": 28.07,
+  "pads": [
+   {
+    "finger": "thumb",
+    "z_rel": -0.276,
+    "az_deg": 107.7,
+    "F_N": 14.04
+   },
+   {
+    "finger": "index",
+    "z_rel": -0.234,
+    "az_deg": -104.3,
+    "F_N": 7.99
+   },
+   {
+    "finger": "middle",
+    "z_rel": -0.053,
+    "az_deg": -93.2,
+    "F_N": 6.04
+   }
+  ]
+ },
+ {
+  "tag": "rv05_manual_b85",
+  "squeeze_mm": 2.0,
+  "depth_mm": 66.0,
+  "straddle_mm": 40.0,
+  "dz_mm": 3.13,
+  "n_pads": 3,
+  "n_below": 3,
+  "z_rel_mean": -0.212,
+  "z_rel_min": -0.352,
+  "span_deg": 156.7,
+  "Fz_pad": 0.241,
+  "F_pad_N": 8.9,
+  "pads": [
+   {
+    "finger": "thumb",
+    "z_rel": -0.352,
+    "az_deg": 111.2,
+    "F_N": 4.46
+   },
+   {
+    "finger": "index",
+    "z_rel": -0.247,
+    "az_deg": -104.6,
+    "F_N": 2.81
+   },
+   {
+    "finger": "middle",
+    "z_rel": -0.037,
+    "az_deg": -92.1,
+    "F_N": 1.63
+   }
+  ]
+ },
+ {
+  "tag": "sv1_w0099_b100",
+  "squeeze_mm": 2.0,
+  "depth_mm": 63.0,
+  "straddle_mm": 40.0,
+  "dz_mm": 0.72,
+  "n_pads": 3,
+  "n_below": 2,
+  "z_rel_mean": 0.026,
+  "z_rel_min": -0.209,
+  "span_deg": 196.3,
+  "Fz_pad": -0.364,
+  "F_pad_N": 23.54,
+  "pads": [
+   {
+    "finger": "thumb",
+    "z_rel": -0.052,
+    "az_deg": 93.3,
+    "F_N": 11.71
+   },
+   {
+    "finger": "index",
+    "z_rel": -0.209,
+    "az_deg": -103.0,
+    "F_N": 10.44
+   },
+   {
+    "finger": "middle",
+    "z_rel": 0.339,
+    "az_deg": -69.9,
+    "F_N": 1.39
+   }
+  ]
+ }
+]
