@@ -37,7 +37,11 @@ OUTS = ROOT / "assets/mjcf/experimental/20260906-grasp_refit"
 def flat_scene(h: dict) -> Path:
     from morphohand.studies.scene_mutate import Scene
     OUTS.mkdir(parents=True, exist_ok=True)
-    p = OUTS / f"{h['tag']}__flat.xml"
+    # Keyed on the PLAN, not the variant: this scene depends only on the base morphology and
+    # the pad geometry, so a straddle/depth/elevation sweep would otherwise write dozens of
+    # byte-identical copies. (`real_v1_chain_hands.prepare` must keep its per-variant flats --
+    # it writes the variant's own grip into the keyframe.)
+    p = OUTS / f"{h.get('parent', h['tag'])}__flat.xml"
     if not p.exists():
         sc = Scene(Path(h["base"]))
         sc.set_finger_flat_pads(**ch.PAD)
