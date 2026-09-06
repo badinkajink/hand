@@ -383,6 +383,10 @@ def main() -> int:
                     help="comma list of turn_steps to sweep. The published chain cell uses 550; "
                          "the floor-free held turn that reproduces 30/30 in probe_real_v1_carry "
                          "uses 250, so the two results are not at the same operating point.")
+    ap.add_argument("--axis-ks", default=None,
+                    help="comma list of pivot heights in half-straddles, overriding each plan's "
+                         "own. The pivot the finger anchor is rotated about sets whether the "
+                         "descending finger spends retraction or extension.")
     ap.add_argument("--budgets", default=None,
                     help="comma list of residual clips in rad, overriding each plan's own. Each "
                          "design holds inside a contiguous band and drops on both sides of it, "
@@ -418,7 +422,7 @@ def main() -> int:
             print(f"  {h['tag']}: NO POSE / BUILD FAILED", flush=True)
             continue
         fits[f["tag"]] = f
-        grid = [(c, rp, gs, rl, ts, bg) for c in ([None] if not args.clears else
+        grid = [(c, rp, gs, rl, ts, bg, ak) for c in ([None] if not args.clears else
                                       [float(v) for v in args.clears.split(",")])
                 for rp in ([None] if not args.reposes else
                            [int(v) for v in args.reposes.split(",")])
@@ -428,9 +432,11 @@ def main() -> int:
                 for ts in ([None] if not args.turn_steps else
                            [int(v) for v in args.turn_steps.split(",")])
                 for bg in ([None] if not args.budgets else
-                           [float(v) for v in args.budgets.split(",")])]
+                           [float(v) for v in args.budgets.split(",")])
+                for ak in ([None] if not args.axis_ks else
+                           [float(v) for v in args.axis_ks.split(",")])]
         for lt in (float(v) for v in args.loads.split(",")):
-          for cl, rp, gs, rl, ts, bg in grid:
+          for cl, rp, gs, rl, ts, bg, ak in grid:
             for rep in range(args.reps):
                 tg = f"load{lt:.0f}" + ("" if sq is None else f"_sq{sq:g}")
                 if cl is not None:
@@ -445,6 +451,8 @@ def main() -> int:
                     tg += f"_t{ts}"
                 if bg is not None:
                     tg += f"_b{bg:g}"
+                if ak is not None:
+                    tg += f"_k{ak:g}"
                 kw = {"_hand": h, "_fit": f, "_tag": tg,
                       "_table": args.stand == "table",
                       "load_target": lt, "seed": rep, "jitter": 0.0005,
@@ -461,6 +469,8 @@ def main() -> int:
                     kw["turn_steps"] = ts
                 if bg is not None:
                     kw["budget"] = bg
+                if ak is not None:
+                    kw["axis_k"] = ak
                 if rep == args.video_seed and not args.no_video and len(grid) == 1 \
                         and len(sqs) == 1:
                     kw["video"] = vid / f"20260905-{h['tag']}_{args.stand}_{tg}.mp4"
