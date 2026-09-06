@@ -279,7 +279,8 @@ def _finger_act(m):
 
 
 def _grip_from_fit(scene: Path, straddle: float, offset: float, squeeze: float, obj: str,
-                   depth: float | None = None, thumb_axial: float = 0.0):
+                   depth: float | None = None, thumb_axial: float = 0.0,
+                   elevation_deg: float = 0.0):
     """Author a grasp at a PINNED straddle, so the carry can be swept over it.
 
     `fit_real_v1_pose` normally picks the straddle by scoring close-lift-hold rollouts, which
@@ -304,7 +305,13 @@ def _grip_from_fit(scene: Path, straddle: float, offset: float, squeeze: float, 
     else:
         pz_hi = obj_z + depth - pz_ref
         pz_lo = pz_hi - 0.008
-    out = fp.fit(scene, 0.001, straddle, 0.0, obj, pz_lo, pz_hi, 0.0025, verbose=False,
+    # ELEVATION IS THE WEDGE SIGN AND IT WAS NEVER A VARIABLE. `fit`'s fourth positional is the
+    # elevation of the pad-target ring about the shaft, and every caller in this program passed
+    # 0.0. Measured at closure, that lands the pads 0.19-0.30 shaft-radii BELOW the axis on six
+    # of the eight deployed hands and 0.17 ABOVE it on `sv1_w6689`, whose fingers cannot reach
+    # further round; above the equator the pad normals push the shaft down and out (see
+    # `fit_real_v1_pose.tip_targets`). Exposing it lets a hand that lands high be asked lower.
+    out = fp.fit(scene, 0.001, straddle, elevation_deg, obj, pz_lo, pz_hi, 0.0025, verbose=False,
                  spreads=(straddle,), squeeze=squeeze, hold_min=-1.0, axial_offset=offset,
                  thumb_axial=thumb_axial)
     if out is None:
@@ -318,11 +325,12 @@ def _grip_from_fit(scene: Path, straddle: float, offset: float, squeeze: float, 
     mujoco.mj_resetDataKeyframe(m, d, seed)
     mujoco.mj_forward(m, d)
     centre, radius, _ = fp._object_geometry(m, d, obj)
-    fp.solve(m, d, fp.tip_targets(centre, radius, 0.001, straddle, 0.0, offset, thumb_axial),
+    fp.solve(m, d, fp.tip_targets(centre, radius, 0.001, straddle, elevation_deg, offset,
+                                  thumb_axial),
              px, py, pz, seed, iters=600)
     open_qpos = d.qpos.copy()
-    fp.solve(m, d, fp.tip_targets(centre, radius, 0.001 - squeeze, straddle, 0.0, offset,
-                                  thumb_axial),
+    fp.solve(m, d, fp.tip_targets(centre, radius, 0.001 - squeeze, straddle, elevation_deg,
+                                  offset, thumb_axial),
              px, py, pz, seed, iters=600)
     return m, open_qpos, np.array(actuator_ctrl_from_qpos(m, d)), depth_mm
 
