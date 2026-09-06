@@ -53,6 +53,14 @@ class GantryPalm:
         self.joints = GANTRY_JOINTS
         self.acts = [next(k for k in range(m.nu) if m.actuator(k).name == f"a_{j}")
                      for j in GANTRY_JOINTS]
+        # The gantry IS the pose, so it has no IK residual and never fails. The counters exist
+        # only because callers that save and restore them across a trial scan (the gait-depth
+        # scan in `probe_real_v1_chain`) read them unconditionally; without these the whole
+        # floating-palm chain path raises AttributeError, which is what killed the ONLY
+        # configuration that has ever chained this task 169/169 (2026-09-03, rv05_manual_stored).
+        self.worst_pos = 0.0
+        self.worst_rot = 0.0
+        self.fails = 0
 
     def read(self) -> np.ndarray:
         return np.array([float(self.d.ctrl[a]) for a in self.acts])

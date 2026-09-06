@@ -1,0 +1,466 @@
+{
+ "note": "Per hand AND per maneuver. A clip or pivot height is not a property of a hand. Never carry a value between maneuvers; where `measured` is false, measure it rather than defaulting to another maneuver's number.",
+ "object_weight_N": 0.24,
+ "held_definition": ">= 2 pad contacts at >= object_weight_N, floor-free",
+ "sign_convention": "cos is the tool's own +z against world +z. TIP DOWN is +1, HANDLE DOWN is -1. `tilt_deg` is folded to arccos|cos| whenever tip_len is 0 and CANNOT tell them apart.",
+ "reference_configuration": {
+  "run": "results/phase1/real_v1/rv05_manual_stored",
+  "what": "the only configuration that has ever run the chain end to end",
+  "result": "169/169 on 2026-09-03, reproduced 2026-09-06: cos +0.9965 at `reoriented` on 3 pads at 10.47 N, tip down, gaits 8/8",
+  "pads": "SPHERE r 10.55 mm (frozen_scene.xml), not the chain's flat pads",
+  "grasp": "stored CEM best_finger_ctrl from best_rollout.npz, not _grip_from_fit",
+  "axis_k": 0.25,
+  "angle_deg": -90.0,
+  "budget_rad": 0.5,
+  "turn_steps": 550,
+  "regression": "tests/test_chain_reference.py"
+ },
+ "hands": {
+  "sv1_w6689_b060": {
+   "id": "D1",
+   "plan": {
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 10.0,
+    "grip_depth_mm": 50.500000000000014,
+    "squeeze_mm": 10.0,
+    "axis_k": 0.15,
+    "angle_deg": -80.0,
+    "budget_rad": 0.6
+   },
+   "bench": {
+    "measured": false,
+    "axis_k": 0.15,
+    "angle_deg": -80.0,
+    "clip_band_rad": null,
+    "clip_at_plan_holds": false,
+    "cos_in_band": null,
+    "source": "docs/experiments/20260830-real_v1-budget-rescreen/deploy_plan_bands.json"
+   },
+   "carry": {
+    "measured": false,
+    "axis_k": null,
+    "clip_rad": null,
+    "note": "floor-free lifted turn; measured only on rv05_manual_stored and rv03_narrowy_sp40, neither of which is one of these plans at these settings",
+    "source": "docs/experiments/20260906-rv05_band"
+   },
+   "chain": {
+    "measured": false,
+    "axis_k": null,
+    "clip_rad": null,
+    "note": "running 2026-09-06, docs/experiments/20260906-chain_band",
+    "source": null
+   }
+  },
+  "sv1_w2360_b075": {
+   "id": "D2",
+   "plan": {
+    "straddle_mm": 40.0,
+    "thumb_axial_mm": 10.0,
+    "grip_depth_mm": 56.49999999999999,
+    "squeeze_mm": 10.0,
+    "axis_k": 0.15,
+    "angle_deg": -80.0,
+    "budget_rad": 0.75
+   },
+   "bench": {
+    "measured": true,
+    "axis_k": 0.15,
+    "angle_deg": -80.0,
+    "clip_band_rad": [
+     0.5,
+     0.9
+    ],
+    "clip_at_plan_holds": true,
+    "cos_in_band": {
+     "0.50": 0.702,
+     "0.55": 0.658,
+     "0.60": 0.628,
+     "0.65": 0.643,
+     "0.70": 0.694,
+     "0.75": 0.726,
+     "0.80": 0.739,
+     "0.85": 0.614,
+     "0.90": 0.639
+    },
+    "source": "docs/experiments/20260830-real_v1-budget-rescreen/deploy_plan_bands.json"
+   },
+   "carry": {
+    "measured": false,
+    "axis_k": null,
+    "clip_rad": null,
+    "note": "floor-free lifted turn; measured only on rv05_manual_stored and rv03_narrowy_sp40, neither of which is one of these plans at these settings",
+    "source": "docs/experiments/20260906-rv05_band"
+   },
+   "chain": {
+    "measured": false,
+    "axis_k": null,
+    "clip_rad": null,
+    "note": "running 2026-09-06, docs/experiments/20260906-chain_band",
+    "source": null
+   }
+  },
+  "sv1_u1364_b080": {
+   "id": "D3",
+   "plan": {
+    "straddle_mm": 40.0,
+    "thumb_axial_mm": 20.0,
+    "grip_depth_mm": 62.5,
+    "squeeze_mm": 10.0,
+    "axis_k": 0.15,
+    "angle_deg": -80.0,
+    "budget_rad": 0.8
+   },
+   "bench": {
+    "measured": true,
+    "axis_k": 0.15,
+    "angle_deg": -80.0,
+    "clip_band_rad": [
+     0.4,
+     1.0
+    ],
+    "clip_at_plan_holds": true,
+    "cos_in_band": {
+     "0.40": 0.689,
+     "0.45": 0.688,
+     "0.50": 0.694,
+     "0.55": 0.709,
+     "0.60": 0.666,
+     "0.65": 0.665,
+     "0.70": 0.692,
+     "0.75": 0.708,
+     "0.80": 0.711,
+     "0.85": 0.712,
+     "0.90": 0.464,
+     "0.95": 0.416,
+     "1.00": 0.536
+    },
+    "source": "docs/experiments/20260830-real_v1-budget-rescreen/deploy_plan_bands.json"
+   },
+   "carry": {
+    "measured": false,
+    "axis_k": null,
+    "clip_rad": null,
+    "note": "floor-free lifted turn; measured only on rv05_manual_stored and rv03_narrowy_sp40, neither of which is one of these plans at these settings",
+    "source": "docs/experiments/20260906-rv05_band"
+   },
+   "chain": {
+    "measured": false,
+    "axis_k": null,
+    "clip_rad": null,
+    "note": "running 2026-09-06, docs/experiments/20260906-chain_band",
+    "source": null
+   }
+  },
+  "g12_b095": {
+   "id": "D4",
+   "plan": {
+    "straddle_mm": 40.0,
+    "thumb_axial_mm": 20.0,
+    "grip_depth_mm": 62.5,
+    "squeeze_mm": 10.0,
+    "axis_k": 0.1,
+    "angle_deg": -70.0,
+    "budget_rad": 0.95
+   },
+   "bench": {
+    "measured": true,
+    "axis_k": 0.1,
+    "angle_deg": -70.0,
+    "clip_band_rad": [
+     0.9,
+     2.0
+    ],
+    "clip_at_plan_holds": true,
+    "cos_in_band": {
+     "0.90": 0.596,
+     "0.95": 0.627,
+     "1.00": 0.588,
+     "1.05": 0.523,
+     "1.10": 0.267,
+     "1.15": 0.233,
+     "1.20": 0.148,
+     "1.25": 0.15,
+     "1.30": 0.15,
+     "1.35": 0.151,
+     "1.40": 0.15,
+     "1.45": 0.151,
+     "1.50": 0.15,
+     "1.55": 0.151,
+     "1.60": 0.15,
+     "1.65": 0.15,
+     "1.70": 0.15,
+     "1.75": 0.15,
+     "1.80": 0.15,
+     "1.85": 0.15,
+     "1.90": 0.15,
+     "1.95": 0.15,
+     "2.00": 0.15
+    },
+    "source": "docs/experiments/20260830-real_v1-budget-rescreen/deploy_plan_bands.json"
+   },
+   "carry": {
+    "measured": false,
+    "axis_k": null,
+    "clip_rad": null,
+    "note": "floor-free lifted turn; measured only on rv05_manual_stored and rv03_narrowy_sp40, neither of which is one of these plans at these settings",
+    "source": "docs/experiments/20260906-rv05_band"
+   },
+   "chain": {
+    "measured": false,
+    "axis_k": null,
+    "clip_rad": null,
+    "note": "running 2026-09-06, docs/experiments/20260906-chain_band",
+    "source": null
+   }
+  },
+  "sv1_u0060_b75": {
+   "id": "D5",
+   "plan": {
+    "straddle_mm": 40.0,
+    "thumb_axial_mm": 10.0,
+    "grip_depth_mm": 66.5,
+    "squeeze_mm": 10.0,
+    "axis_k": 0.15,
+    "angle_deg": -90.0,
+    "budget_rad": 0.75
+   },
+   "bench": {
+    "measured": true,
+    "axis_k": 0.15,
+    "angle_deg": -90.0,
+    "clip_band_rad": [
+     0.6,
+     2.0
+    ],
+    "clip_at_plan_holds": true,
+    "cos_in_band": {
+     "0.60": 0.599,
+     "0.65": 0.723,
+     "0.70": 0.659,
+     "0.75": 0.597,
+     "0.80": 0.586,
+     "0.85": 0.449,
+     "0.90": 0.515,
+     "0.95": 0.509,
+     "1.00": 0.441,
+     "1.05": 0.384,
+     "1.10": 0.384,
+     "1.15": 0.384,
+     "1.20": 0.384,
+     "1.25": 0.384,
+     "1.30": 0.384,
+     "1.35": 0.384,
+     "1.40": 0.384,
+     "1.45": 0.384,
+     "1.50": 0.384,
+     "1.55": 0.384,
+     "1.60": 0.384,
+     "1.65": 0.384,
+     "1.70": 0.384,
+     "1.75": 0.384,
+     "1.80": 0.384,
+     "1.85": 0.384,
+     "1.90": 0.384,
+     "1.95": 0.384,
+     "2.00": 0.384
+    },
+    "source": "docs/experiments/20260830-real_v1-budget-rescreen/deploy_plan_bands.json"
+   },
+   "carry": {
+    "measured": false,
+    "axis_k": null,
+    "clip_rad": null,
+    "note": "floor-free lifted turn; measured only on rv05_manual_stored and rv03_narrowy_sp40, neither of which is one of these plans at these settings",
+    "source": "docs/experiments/20260906-rv05_band"
+   },
+   "chain": {
+    "measured": false,
+    "axis_k": null,
+    "clip_rad": null,
+    "note": "running 2026-09-06, docs/experiments/20260906-chain_band",
+    "source": null
+   }
+  },
+  "sv1_u0308_b050": {
+   "id": "D6",
+   "plan": {
+    "straddle_mm": 40.0,
+    "thumb_axial_mm": 10.0,
+    "grip_depth_mm": 62.5,
+    "squeeze_mm": 10.0,
+    "axis_k": 0.15,
+    "angle_deg": -80.0,
+    "budget_rad": 0.5
+   },
+   "bench": {
+    "measured": true,
+    "axis_k": 0.15,
+    "angle_deg": -80.0,
+    "clip_band_rad": [
+     0.45,
+     2.0
+    ],
+    "clip_at_plan_holds": true,
+    "cos_in_band": {
+     "0.45": 0.648,
+     "0.50": 0.585,
+     "0.55": 0.572,
+     "0.60": 0.565,
+     "0.65": 0.559,
+     "0.70": 0.504,
+     "0.75": 0.504,
+     "0.80": 0.522,
+     "0.85": 0.462,
+     "0.90": 0.315,
+     "0.95": -0.027,
+     "1.00": -0.027,
+     "1.05": -0.027,
+     "1.10": -0.027,
+     "1.15": -0.027,
+     "1.20": -0.027,
+     "1.25": -0.027,
+     "1.30": -0.027,
+     "1.35": -0.027,
+     "1.40": -0.027,
+     "1.45": -0.027,
+     "1.50": -0.027,
+     "1.55": -0.027,
+     "1.60": -0.027,
+     "1.65": -0.027,
+     "1.70": -0.027,
+     "1.75": -0.027,
+     "1.80": -0.027,
+     "1.85": -0.027,
+     "1.90": -0.027,
+     "1.95": -0.027,
+     "2.00": -0.027
+    },
+    "source": "docs/experiments/20260830-real_v1-budget-rescreen/deploy_plan_bands.json"
+   },
+   "carry": {
+    "measured": false,
+    "axis_k": null,
+    "clip_rad": null,
+    "note": "floor-free lifted turn; measured only on rv05_manual_stored and rv03_narrowy_sp40, neither of which is one of these plans at these settings",
+    "source": "docs/experiments/20260906-rv05_band"
+   },
+   "chain": {
+    "measured": false,
+    "axis_k": null,
+    "clip_rad": null,
+    "note": "running 2026-09-06, docs/experiments/20260906-chain_band",
+    "source": null
+   }
+  },
+  "rv05_manual_b85": {
+   "id": "D7",
+   "plan": {
+    "straddle_mm": 40.0,
+    "thumb_axial_mm": 10.0,
+    "grip_depth_mm": 66.0,
+    "squeeze_mm": 10.0,
+    "axis_k": 0.05,
+    "angle_deg": -60.0,
+    "budget_rad": 0.85
+   },
+   "bench": {
+    "measured": true,
+    "axis_k": 0.05,
+    "angle_deg": -60.0,
+    "clip_band_rad": [
+     0.75,
+     2.0
+    ],
+    "clip_at_plan_holds": true,
+    "cos_in_band": {
+     "0.75": 0.638,
+     "0.80": 0.597,
+     "0.85": 0.568,
+     "0.90": 0.531,
+     "0.95": 0.491,
+     "1.00": 0.464,
+     "1.05": 0.439,
+     "1.10": 0.423,
+     "1.15": 0.327,
+     "1.20": 0.269,
+     "1.25": 0.251,
+     "1.30": 0.104,
+     "1.35": 0.148,
+     "1.40": -0.028,
+     "1.45": -0.028,
+     "1.50": -0.028,
+     "1.55": -0.028,
+     "1.60": -0.028,
+     "1.65": -0.028,
+     "1.70": -0.028,
+     "1.75": -0.028,
+     "1.80": -0.028,
+     "1.85": -0.028,
+     "1.90": -0.028,
+     "1.95": -0.028,
+     "2.00": -0.028
+    },
+    "source": "docs/experiments/20260830-real_v1-budget-rescreen/deploy_plan_bands.json"
+   },
+   "carry": {
+    "measured": false,
+    "axis_k": null,
+    "clip_rad": null,
+    "note": "floor-free lifted turn; measured only on rv05_manual_stored and rv03_narrowy_sp40, neither of which is one of these plans at these settings",
+    "source": "docs/experiments/20260906-rv05_band"
+   },
+   "chain": {
+    "measured": false,
+    "axis_k": null,
+    "clip_rad": null,
+    "note": "running 2026-09-06, docs/experiments/20260906-chain_band",
+    "source": null
+   }
+  },
+  "sv1_w0099_b100": {
+   "id": "D8",
+   "plan": {
+    "straddle_mm": 40.0,
+    "thumb_axial_mm": 10.0,
+    "grip_depth_mm": 63.0,
+    "squeeze_mm": 10.0,
+    "axis_k": 0.15,
+    "angle_deg": -80.0,
+    "budget_rad": 1.0
+   },
+   "bench": {
+    "measured": true,
+    "axis_k": 0.15,
+    "angle_deg": -80.0,
+    "clip_band_rad": [
+     0.95,
+     1.2
+    ],
+    "clip_at_plan_holds": true,
+    "cos_in_band": {
+     "0.95": 0.535,
+     "1.00": 0.501,
+     "1.05": 0.309,
+     "1.10": -0.007,
+     "1.15": 0.074,
+     "1.20": -0.01
+    },
+    "source": "docs/experiments/20260830-real_v1-budget-rescreen/deploy_plan_bands.json"
+   },
+   "carry": {
+    "measured": false,
+    "axis_k": null,
+    "clip_rad": null,
+    "note": "floor-free lifted turn; measured only on rv05_manual_stored and rv03_narrowy_sp40, neither of which is one of these plans at these settings",
+    "source": "docs/experiments/20260906-rv05_band"
+   },
+   "chain": {
+    "measured": false,
+    "axis_k": null,
+    "clip_rad": null,
+    "note": "running 2026-09-06, docs/experiments/20260906-chain_band",
+    "source": null
+   }
+  }
+ }
+}
