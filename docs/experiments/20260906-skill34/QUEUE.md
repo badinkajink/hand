@@ -56,10 +56,33 @@ Blocked: `sv1_w6689_b060` (D1) — best on hardware, 0/16 carried. `sv1_w0099_b1
   of the task uncontacted vs 49% for release-and-regrip, at half the turn rate. It only
   re-seats; it has never been asked to also advance the angle.
 
+## What changed on 2026-09-06
+
+The grasp, not the maneuver, was the block. See
+`docs/experiments/20260906-pad_elevation/20260906-pad_elevation.html`
+(https://claude.ai/code/artifact/d5533b73-dbdf-431e-b015-82b8cd003fd1).
+
+- **Pad contact height on the shaft decides the carry.** Six hands contact below the equator at
+  Fz_pad +0.241 N (the tool's weight); D1 is at +0.168 and -3.463 N and carries nothing.
+- **The pad-ring elevation was hardcoded to 0.0** at every call site. Swept, D1 crosses at
+  -24 deg and D8 at -6 deg; 7/8 hands then stand 6/6 and full chains go 18/48 -> 30/48.
+  **D1 is unblocked** (2/6 chains, 6/6 stands) and **D8 chains 6/6**. Optimum is per hand.
+- **Item 1 below is done.** The screened turn inside the chain stands the tool 0/96 at each
+  plan's own setting: it turns 59.8 deg on rv05 while pad force falls 5.60 -> 0.13 N. Crossing
+  elevation with the clip takes air-mode carries 6/128 -> 42/128 and gives the first complete
+  chain with a finger turn. Every cell turning past 59 deg carries 0/4.
+- Ruled out: straddle x depth on D1 (0/54), the servo-load grip loop (costs four carriers their
+  stand), a stale grip depth.
+
+New flags on `real_v1_chain_hands.py`: `--hands --straddles --depths --elevations --turn-steps
+--budgets --axis-ks`. New probe: `scripts/real_v1_grasp_closure.py`.
+
 ## Next measurements, in order
 
-1. **Run the screened turn inside the chain** on the six ready hands. Until that exists, skills
-   3 and 4 are being tested downstream of a maneuver that is not the screened one.
+1. ~~Run the screened turn inside the chain.~~ DONE 2026-09-06, see above. What replaces it:
+   **put the elevation into a plan.** `real_v1_deploy_envelope.make_plan` does not pass it and
+   the plan schema has no field for it, so nothing above is deployable until that exists and
+   the exported plan clears `scripts/real_v1_trajectory_clearance.py`.
 2. **Skill 3 standalone**: from a held, partially-reoriented tool, close the residual angle by
    palm re-pose. No script exists; this is the gap. Accept on held + residual closed.
 3. **Rotating relay**: make each relay cycle re-seat AND advance the angle, so the tool passes
