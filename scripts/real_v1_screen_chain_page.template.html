@@ -1,0 +1,262 @@
+<title>Screened plans in the chained task: pickup, turn and handover</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#EEF1F4; --card:#FFFFFF; --sunk:#E4E9EE;
+  --ink:#1A2127; --ink2:#48545D; --ink3:#77848D; --rule:#D2DAE1; --rule2:#E2E8ED;
+  --s1:#BE7514; --s2:#4A7FC4; --ref:#8A959D;
+  --good:#3F7A46; --bad:#A8443C;
+  --shadow:0 1px 2px rgba(16,26,34,.06),0 8px 24px -14px rgba(16,26,34,.28);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
+  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
+  --s1:#E39A2E; --s2:#7BA7E0; --ref:#79858E;
+  --good:#6FB076; --bad:#DE8078;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+}}
+:root[data-theme="dark"]{
+  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
+  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
+  --s1:#E39A2E; --s2:#7BA7E0; --ref:#79858E;
+  --good:#6FB076; --bad:#DE8078;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);
+  font:400 17px/1.62 "Source Serif 4",Georgia,"Times New Roman",serif;
+  -webkit-font-smoothing:antialiased;padding:0 20px 96px}
+.wrap{max-width:1020px;margin:0 auto}
+.col{max-width:70ch}
+h1,h2,h3,.mono,.tag,th,.chip b{font-family:Archivo,"Helvetica Neue",Arial,sans-serif}
+.mono,code,td.num,.tick,.val,.ser,.mark,.note,.axlab{
+  font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+
+header{padding:72px 0 30px;border-bottom:1px solid var(--rule)}
+.eyebrow{font:500 12px/1 "IBM Plex Mono",monospace;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--ink3)}
+h1{font-size:clamp(34px,5.4vw,56px);line-height:1.02;font-weight:700;letter-spacing:-.022em;
+  margin:16px 0 0;text-wrap:balance;max-width:16ch}
+.lede{font-size:20px;line-height:1.55;color:var(--ink2);margin:18px 0 0;max-width:62ch}
+.byline{margin-top:22px;font:400 13px/1.5 "IBM Plex Mono",monospace;color:var(--ink3)}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:1px;
+  background:var(--rule);border:1px solid var(--rule);border-radius:10px;overflow:hidden;
+  margin:34px 0 8px}
+.stat{background:var(--card);padding:16px 18px}
+.stat b{display:block;font:700 27px/1.1 Archivo,sans-serif;letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums}
+.stat span{display:block;margin-top:5px;font:400 12.5px/1.4 "IBM Plex Mono",monospace;
+  color:var(--ink3)}
+
+section{padding:52px 0;border-bottom:1px solid var(--rule2)}
+section:last-of-type{border-bottom:0}
+h2{font-size:29px;font-weight:700;letter-spacing:-.018em;margin:0 0 6px;text-wrap:balance}
+h2 + .sub{color:var(--ink3);font:400 14px/1.5 "IBM Plex Mono",monospace;margin:0 0 26px}
+h3{font-size:18.5px;font-weight:600;letter-spacing:-.008em;margin:34px 0 10px}
+p{margin:0 0 17px}
+strong{font-weight:600}
+a{color:var(--ink);text-decoration-color:var(--s1);text-underline-offset:3px}
+ul{margin:0 0 17px;padding-left:20px}
+li{margin:0 0 8px}
+
+.phases{display:grid;grid-template-columns:repeat(auto-fit,minmax(124px,1fr));gap:8px;
+  margin:26px 0 30px}
+.chip{background:var(--card);border:1px solid var(--rule);border-radius:8px;
+  padding:11px 13px;box-shadow:var(--shadow)}
+.chip i{display:block;font:500 10.5px/1 "IBM Plex Mono",monospace;color:var(--ink3);
+  letter-spacing:.1em;font-style:normal}
+.chip b{display:block;font-size:15px;font-weight:600;margin:6px 0 3px}
+.chip span{font:400 12px/1.4 "IBM Plex Mono",monospace;color:var(--ink2);
+  font-variant-numeric:tabular-nums}
+
+figure{margin:30px 0}
+figure img,figure video{display:block;width:100%;border-radius:10px;background:var(--sunk);
+  box-shadow:var(--shadow)}
+figcaption{margin-top:11px;font:400 14px/1.55 "IBM Plex Mono",monospace;color:var(--ink3);
+  max-width:78ch}
+.chart{display:block;width:100%;height:auto;background:var(--card);border:1px solid var(--rule);
+  border-radius:10px}
+/* Tables, charts and media are wider than the 70ch reading measure; let them run out to the
+   full page width instead of scrolling inside it. */
+.col > .tw,.col > figure,.col > .pair,.col > pre{width:min(1020px,calc(100vw - 40px));
+  max-width:none}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media (max-width:760px){.pair{grid-template-columns:1fr}}
+.ax line{stroke:var(--rule);stroke-width:1}
+.ax .grid{stroke:var(--rule2)}
+.rule{stroke:var(--rule);stroke-width:1;stroke-dasharray:3 4}
+.tick{font-size:11px;fill:var(--ink3)}
+.axlab{font-size:11.5px;fill:var(--ink3);letter-spacing:.05em}
+.val{font-size:12px;font-weight:500;fill:var(--ink2)}
+.ser{font-size:12.5px;font-weight:500}
+.mark{font-size:10.5px;fill:var(--ink3);letter-spacing:.06em}
+.note{font-size:11.5px;fill:var(--ink3)}
+
+.tw{overflow-x:auto;margin:26px 0;border:1px solid var(--rule);border-radius:10px;
+  background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th{font:600 12px/1.3 Archivo,sans-serif;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink3);text-align:left;padding:13px 14px;border-bottom:1px solid var(--rule);
+  white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid var(--rule2);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;font-size:13.5px}
+tbody tr.hi td{background:color-mix(in oklab,var(--s1) 9%,transparent)}
+.ok{color:var(--good);font-weight:600}
+.no{color:var(--bad);font-weight:600}
+
+.callout{border-left:3px solid var(--s1);background:var(--card);border-radius:0 10px 10px 0;
+  padding:18px 22px;margin:28px 0;box-shadow:var(--shadow)}
+.callout p:last-child{margin-bottom:0}
+.callout .tag{display:block;font:600 11px/1 Archivo,sans-serif;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--s1);margin-bottom:9px}
+pre{background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:16px 18px;
+  overflow-x:auto;font:400 13px/1.7 "IBM Plex Mono",monospace;color:var(--ink2);margin:20px 0}
+code{font-size:.92em;background:var(--sunk);padding:1px 4px;border-radius:4px;
+  margin:0 -1px;white-space:nowrap}
+pre code{background:none;padding:0}
+footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",monospace}
+</style>
+
+<div class="wrap">
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">MorphoHand &middot; real_v1 &middot; 2026-09-06</div>
+  <h1>Screened plans in the chained task</h1>
+  <p class="lede">Eight morphologies were exported to hardware trajectories and evaluated on the
+  bench, then the same eight plans were run inside the chained task. The screen and the chain
+  disagree, and the disagreement is not one effect: the grasp specification does not survive the
+  change of support, one hand releases the tool after a successful lift, and half the runs that
+  stand the tool upright lose it at the handover.</p>
+  <div class="byline">{{NTRIAL}} bench trials &middot; {{NCHAIN}} chain rollouts &middot; MuJoCo 3.6</div>
+  <div class="stats">{{STATS}}</div>
+</header>
+
+<section class="col">
+  <h2>The deploy screen reproduces, and it agrees with the bench</h2>
+  <p class="sub">scripts/real_v1_plan_band.py &middot; each plan at its own shipped clip &middot; 4 repeats</p>
+  <p>The screen rebuilds each plan's trajectory from its own metadata and runs it in the scene
+  the plan names &mdash; the cylinder standing on a 100&nbsp;mm post, the palm fixed. Re-run today
+  on the three hands with the highest hardware retention, it returns what it returned in August
+  and what the bench measured:</p>
+  {{T_REPRO}}
+  <p>Nothing is wrong with the screened simulation. Every discrepancy below is on the chain side.</p>
+</section>
+
+<section class="col">
+  <h2>Axis alignment is the wrong acceptance test</h2>
+  <p class="sub">docs/experiments/20260902-cb1-log-archive &middot; {{NTRIAL}} trials carrying both a tag angle and an operator verdict</p>
+  <p>Retention is the operator's verdict that the cylinder is still in the hand at trial end.
+  Net turn angle is <code>object_track.deg_turned</code>, the cylinder's net rotation about the
+  pinch axis from an AprilTag on a rigid vane. Axis alignment is
+  <code>object_track.cos_hold</code>, the signed cosine between the cylinder's long axis and
+  world vertical over the terminal hold window.</p>
+  {{T_BENCH}}
+  <div class="callout"><span class="tag">The gate that would fail</span>
+  <p><b>No hand reaches mean <code>cos_hold</code> 0.95</b>, so a 0.95 gate admits nothing, and
+  the single hand above 0.90 has the second-worst retention at 0.30. Alignment carries no
+  information about retention in either direction: on the pre-registered analysis
+  (<code>paper/figures/ranking.json</code>, dropped trials scored 0 for parity with the
+  simulator) per-hand retention rate ranks against mean alignment at Spearman
+  <b>{{RHO_PAPER}}</b> and against peak alignment at <b>{{RHO_PEAK}}</b>; on the per-trial table
+  here, taking the median alignment over retained trials only, it is <b>{{RHO_TRIAL}}</b>. Both
+  are within noise of zero at n&nbsp;=&nbsp;8, and they do not agree on sign. Retention has to
+  be measured, not inferred from how far the tool turned.</p></div>
+  <p>Pooled over all eight hands, {{BANDH}} of {{NHELD}} retained trials and {{BANDD}} of
+  {{NDROP}} non-retained trials have a net turn angle between 20&deg; and 60&deg;. That is a
+  descriptive interval over the pooled sample, not a per-hand threshold: three hands have no
+  non-retained trials at all, and on two the non-retained trials turned <em>less</em> than the
+  retained median, not more. There is no single angle above which the tool is lost.</p>
+  <p>The consequence for the chain is fixed by the same table. Skills 3 and 4 inherit the
+  residual angle, 90&deg; minus the median retained turn, and it runs from 24.5&deg; to
+  56.5&deg;.</p>
+</section>
+
+<section class="col">
+  <h2>Where the chained task loses the tool</h2>
+  <p class="sub">docs/experiments/20260904-real_v1_held/squeeze_sweep &middot; set A, {{NCHAIN}} rollouts &middot; table mode</p>
+  {{T_FUNNEL}}
+  <p>Six of the eight hands lift and hold the turn in 16 of 16 rollouts. The attrition is
+  concentrated at the handover: of the {{NSTOOD}} runs that stand the tool upright, {{NGRIP}}
+  reach a gait grasp.</p>
+  <div class="callout"><span class="tag">Correction</span>
+  <p>An earlier report of &ldquo;2 of 256 held reorientations&rdquo; read
+  <code>held_reorient</code> at the <code>upright</code> seam in <b>table</b> mode, where the
+  maneuver stands the tool on the table and lets go by construction. It is the released-tool
+  measurement. <code>held_turn</code>, measured while the fingers carry, is
+  {{NTURN}}/{{NCHAIN}}.</p></div>
+</section>
+
+<section class="col">
+  <h2>Loss one: the plan's squeeze ejects a tool that is lying on a table</h2>
+  <p class="sub">scripts/real_v1_grasp_refit.py &middot; closure with the palm stationary</p>
+  <p>Every deployed plan carries <code>squeeze_mm</code> 10.0. That drives the pad centres to
+  <code>r_obj + r_pad + gap &minus; squeeze</code> = 14.05&nbsp;mm from the shaft axis when
+  contact needs 23.05&nbsp;mm &mdash; 9&nbsp;mm inside the surface. On the screen's post the post
+  takes the reaction. On a table nothing is behind the shaft, so the pinch drives it out.
+  <code>close_dz_mm</code> is the tool's rise during closure with the palm held still:</p>
+  {{T_SQUEEZE}}
+  <p>Six of eight rise 14.5&ndash;19.6&nbsp;mm, more than the shaft's own 12.5&nbsp;mm radius.
+  Substituting 2.0&nbsp;mm holds every hand to 4.0&nbsp;mm or less, which is what the chain
+  already does.</p>
+  <h3>Not the depth</h3>
+  <p><code>_grip_from_fit</code> clamps its palm-height search to
+  <code>[depth &minus; 8&nbsp;mm, depth]</code>, so overriding squeeze without re-fitting depth
+  is a plausible cause and is not the cause. Re-fitting with the depth search free at
+  squeeze&nbsp;2&nbsp;mm returns the plan's own depth on six of eight hands, moves
+  <code>sv1_w6689</code> by 6.0&nbsp;mm and two others by 1.0&nbsp;mm, and changes contact count
+  on none.</p>
+</section>
+
+<section class="col">
+  <h2>Loss two: one hand lifts the tool and releases it at the next seam</h2>
+  <p class="sub">sv1_w6689_b060 &middot; 24/24 retained on hardware, 0/16 carried in the chain</p>
+  <p><code>sv1_w6689_b060</code> is the best hand on the bench and the worst in the chain. It is
+  not failing at the grasp: it closes on the tool with 3 pads at 28.20&nbsp;N and lifts it to
+  100.8&nbsp;mm. Its seam trace:</p>
+  {{T_SEAM}}
+  <p>Every later seam repeats the second row. <code>rv05_manual_b85</code> on the same schedule
+  reads 4 pads at 5.22&nbsp;N lifted and 4 pads at 1.04&nbsp;N turned, and completes the chain.</p>
+  <figure><img src="{{IMG_D1}}" alt="sv1_w6689 chain seam frames">
+  <figcaption>sv1_w6689_b060. The tool is in the fingers in the first frame and on the table in
+  every frame after; the hand goes on to execute the rest of the schedule on an empty
+  pinch.</figcaption></figure>
+  <figure><img src="{{IMG_D7}}" alt="rv05_manual chain seam frames">
+  <figcaption>rv05_manual_b85, same schedule, same rendering. Lift, set down, stand, re-index,
+  gait.</figcaption></figure>
+  <p>Three properties separate <code>sv1_w6689</code> from the six that work and they are
+  confounded in one hand: it is the only set-A hand at <code>straddle_mm</code> 32.0 (the rest
+  are 40.0), the shallowest at <code>grip_depth_mm</code> 52.5 (the rest 56.5&ndash;66.5), and
+  the only one with two non-pad contacts at closure.</p>
+</section>
+
+<section class="col">
+  <h2>What this does not settle</h2>
+  <ul>
+    <li><b>Which of the three differences releases the tool on <code>sv1_w6689</code>.</b> The
+    test is a 2&times;2 on that hand alone: straddle {32, 40} &times; depth {52.5, 58.5},
+    n&nbsp;&ge;&nbsp;6, scored on pad count and pad force at the <code>turned</code> seam.</li>
+    <li><b><code>sv1_w0099_b100</code> at 6/16</b> has not been examined.</li>
+    <li><b>Whether the chain's turn is the screened turn.</b> The chain runs in table mode with
+    <code>angle_deg</code> 0, so the fingers never turn the tool. The screened maneuver's turn
+    has not been run inside the chain on any hand.</li>
+    <li><b>The handover, {{NGRIP}}/{{NSTOOD}}.</b> This is skills 3 and 4 and it is the largest
+    single loss in the funnel. Nothing here measures it.</li>
+  </ul>
+</section>
+
+<footer>
+  <p>Scripts: <code>real_v1_plan_band.py</code>, <code>real_v1_grasp_refit.py</code>,
+  <code>real_v1_bench_trials.py</code>, <code>real_v1_chain_hands.py</code>,
+  <code>real_v1_chain_films.py</code>. Data:
+  <code>docs/experiments/20260906-rv05_band/</code>,
+  <code>docs/experiments/20260902-cb1-log-archive/logs/</code>,
+  <code>docs/experiments/20260904-real_v1_held/squeeze_sweep/chain_hands.json</code>.
+  Bench study: <code>paper/transfer_results.tex</code>. Page regenerated by
+  <code>scripts/real_v1_screen_chain_page.py</code>.</p>
+</footer>
+</div>

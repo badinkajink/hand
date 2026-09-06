@@ -6,6 +6,7 @@ changes. Regenerate with the builder named in each page's footer.
 
 | date | subject | local file | artifact |
 |---|---|---|---|
+| 2026-09-06 | Screened plans in the chained task: pickup, turn and handover | [20260906-screen_vs_chain/20260906-screen_vs_chain.html](20260906-screen_vs_chain/20260906-screen_vs_chain.html) | https://claude.ai/code/artifact/28a84ea8-a8b2-405e-aea6-e6a626baa3b0 |
 | 2026-09-05 | Table-supported reorientation across sixteen hands | [20260904-real_v1_held/20260904-real_v1_table_stand.html](20260904-real_v1_held/20260904-real_v1_table_stand.html) | https://claude.ai/code/artifact/96207fa7-6175-4ffa-b6b8-34d73116cf47 |
 | 2026-09-04 | Wrist geometry, grasp preload and the settle to vertical on the ranked hands | [20260904-real_v1_bench/20260904-real_v1_bench_geometry.html](20260904-real_v1_bench/20260904-real_v1_bench_geometry.html) | https://claude.ai/code/artifact/0942dd45-e94f-485b-ad17-aaac1b1d3f1b |
 | 2026-09-03 | Changing grasp without releasing the tool | [20260903-real_v1_handover/20260903-real_v1_relay_handover.html](20260903-real_v1_handover/20260903-real_v1_relay_handover.html) | https://claude.ai/code/artifact/1aa2f26a-8281-407c-9298-88138b51d59f |
