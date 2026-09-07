@@ -70,3 +70,52 @@ no reason to expect a pivot value to help a grasp with no travel left.
 `real_v1_chain_hands.py` gained `--hands --straddles --depths --elevations --turn-steps
 --budgets --axis-ks --angles`. `palm_driver.GantryPalm` gained the three IK counters that had
 killed the whole floating-palm path.
+
+
+## 2026-09-06, later: the turn IS solved on three deployed hands
+
+Scanning every chain sweep on the **signed** cosine with a load test at `reoriented`
+(cos > +0.85, >= 2 pads, >= 0.240 N, z > 0.08): 1,550 rollouts, **zero** completed chains on any
+hand but the reference. But `docs/experiments/20260906-pivot` (96 rollouts, clip 0.50, angle -90,
+pivot 0.15/0.25/0.35) holds the tip-down turn on three:
+
+| id | hand | pivot | cos | pads | force | z | lost at |
+|---|---|---|---|---|---|---|---|
+| D5 | `sv1_u0060_b75`  | 0.15 | +0.894 | 2 | 14.13 N | 123 mm | `set_down` |
+| D3 | `sv1_u1364_b080` | 0.35 | +0.987 | 2 |  3.36 N | 121 mm | `set_down` |
+| D1 | `sv1_w6689_b060` | 0.35 | +0.913 | 1 | 10.10 N |  55 mm | `staged`   |
+| D6 | `sv1_u0308_b050` | 0.15 | +0.568 | 3 |  4.20 N | 121 mm | chains 3/4, 35 deg short |
+
+D5 holds 8/8 seeds across pivots 0.15 and 0.25. D3 is seed-fragile (2 of 4 seeds go to the wrong
+pole at the same pivot).
+
+**The pivot is per-hand.** 0.15 for D5, 0.35 for D3/D1, 0.25 for the reference.
+
+**Why the band sweep missed it.** `20260906-chain_band` stepped clip 0.40 / 0.55 / 0.70 / 0.85 /
+1.00 / 1.15 and never tried 0.50 — the clip all three of these turns run at. Its "0 chains in 432
+rollouts" is true of that grid only.
+
+**The named next measurement (revised).** Instrument the **set-down seam** on those three cells
+before touching `_grip_from_fit`. The films separate two mechanisms that the `drop_stage` field
+does not: D5's tool topples out of the pads onto the disc; D3's UR5e wrist descends into the
+table. Neither is a turn failure, and the fitter is not implicated in either until they are told
+apart. Re-run with the descent logged per step and per contact.
+
+Structural note: the reference chain has **no arm and no table disc** — floating gantry palm,
+tool stood on the floor. Every deployed-hand chain adds the UR5e and the countersink at exactly
+the seam that fails.
+
+## Films
+
+Both grids and per-hand mp4s + seam filmstrips:
+
+- `docs/experiments/20260906-held_turn_films/` — eight hands, each at its own best pivot,
+  ranked by the signed held turn. Built with
+  `scripts/real_v1_chain_films.py --sweep docs/experiments/20260906-pivot/chain_hands.json
+  --rank held --mode air --date 20260906`.
+- `docs/experiments/20260906-ablate/20260906-films/` — the eight ablation arms on the reference
+  hand. Built with `scripts/real_v1_chain_ablate.py --films <dir> --reps 1`.
+
+`real_v1_chain_films.py` gained `--rank held|chain`, `--mode air|table|sweep` and `--date`, and
+now parses the sweep's own arm tag back into kwargs so a film re-runs the picked cell rather than
+the base config. Verified: all eight films reproduce their sweep row's `reoriented` seam exactly.

@@ -5,7 +5,7 @@
 """
 from __future__ import annotations
 
-import json, statistics as st
+import base64, json, statistics as st
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -35,6 +35,10 @@ def table(head, rows, nums, hi=frozenset()):
         body.append(f'<tr{" class=hi" if k in hi else ""}>{td}</tr>')
     return ('<div class="tw"><table><thead><tr>' + th + "</tr></thead><tbody>"
             + "".join(body) + "</tbody></table></div>")
+
+
+def data_uri(p: Path, mime: str) -> str:
+    return f"data:{mime};base64," + base64.b64encode(p.read_bytes()).decode()
 
 
 def rows_of(p: Path):
@@ -172,6 +176,42 @@ def main() -> int:
           f"{c:+.3f}", f"{p:.1f}", f'<span class="{"ok" if F >= 0.24 else "no"}">{F:.2f} N</span>']
          for c, i, a, p, F in best[:8]],
         nums={2, 3, 4})
+
+    # ---- the turn on the deployed hands: pivot at the clip the band sweep stepped over ----
+    piv = rows_of(E / "20260906-pivot/chain_hands.json")
+    V["PIVOT_N"] = str(len(piv))
+    rows = []
+    for t in ORDER:
+        g = [r for r in piv if r["tag"] == t]
+        best, key = None, None
+        for r in g:
+            s_ = {x["phase"]: x for x in r.get("seams", [])}.get("reoriented", {})
+            k = ((s_.get("pad_contacts") or 0) >= 2 and (s_.get("pad_force_N") or 0) >= 0.24
+                 and (s_.get("z") or 0) > 0.08, s_.get("cos") or -1.0)
+            if key is None or k > key:
+                best, key = r, k
+        s_ = {x["phase"]: x for x in best.get("seams", [])}.get("reoriented", {})
+        rows.append((DID[t], t, best.get("axis_k"), s_.get("cos") or 0.0,
+                     s_.get("pad_contacts") or 0, s_.get("pad_force_N") or 0.0,
+                     s_.get("z") or 0.0, best.get("drop_stage"), key[0]))
+    rows.sort(key=lambda r: (-r[8], -r[3]))
+    V["PIVOT_HELD"] = str(sum(1 for r in rows if r[8]))
+    V["PIVOT_TBL"] = table(
+        ["id", "hand", "pivot", "reoriented: cos", "pads", "force", "z", "lost at"],
+        [[i, f"<code>{t}</code>", f"{ak:.2f}", f"{c:+.3f}", f"{p_:d}",
+          f'<span class="{"ok" if F >= 0.24 and p_ >= 2 else "no"}">{F:.2f} N</span>',
+          f"{z*1000:.0f} mm", f"<code>{d}</code>" if d else "&#8212;"]
+         for i, t, ak, c, p_, F, z, d, _ in rows],
+        nums={2, 3, 4, 5, 6}, hi={0, 1, 2})
+
+    F = E / "20260906-held_turn_films"
+    V["FILM_GRID"] = data_uri(F / "20260906-chain_grid.mp4", "video/mp4")
+    V["FILM_D5"] = data_uri(
+        F / "20260906-sv1_u0060_b75_angle_deg-90_axis_k0.15_budget0.5_turn_steps550_s2_seams.png",
+        "image/png")
+    V["FILM_D3"] = data_uri(
+        F / "20260906-sv1_u1364_b080_angle_deg-90_axis_k0.35_budget0.5_turn_steps550_s0_seams.png",
+        "image/png")
 
     html = TPL.read_text()
     for k, v in V.items():

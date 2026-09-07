@@ -47,6 +47,7 @@ strong{font-weight:600}
 ul{margin:0 0 17px;padding-left:20px}
 li{margin:0 0 8px}
 figure{margin:28px 0}
+figure video{display:block;width:100%;border-radius:10px;background:var(--sunk)}
 figure img{display:block;width:100%;border-radius:10px;background:var(--sunk);
   box-shadow:var(--shadow)}
 figcaption{margin-top:11px;font:400 14px/1.55 "IBM Plex Mono",monospace;color:var(--ink3);
@@ -91,9 +92,12 @@ footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",mo
   <p class="lede">One configuration has ever run this task end to end, and it still does. Four
   things changed on the way to the deployed plans; ablating them one at a time shows the pivot
   height decides which end of the tool points down, and the grasp fitter spends the finger
-  travel the turn is paid for in.</p>
-  <div class="byline">Ablation off the reproduced 2026-09-03 chain &#183; 492 rollouts &#183;
-  scored on the SIGNED cosine with a load test &#183; no hardware run</div>
+  travel the turn is paid for in. Three of the eight deployed hands do reach a held, floor-free,
+  tip-down turn once the pivot is set per hand, and every one of them loses the tool at the
+  set-down seam.</p>
+  <div class="byline">Ablation off the reproduced 2026-09-03 chain &#183; 492 rollouts, plus a
+  96-rollout pivot sweep re-run on film &#183; scored on the SIGNED cosine with a load test
+  &#183; no hardware run</div>
 </header>
 
 <section class="col">
@@ -211,7 +215,50 @@ cannot carry the object anywhere.</pre>
   <p>Two shapes, and the load test separates them. <code>sv1_u0060_b75</code> reaches cos +0.989
   on 0.3 pads at 0.09 N &#8212; a tool that has left the hand and happens to be vertical.
   <code>rv05_manual_b85</code> holds three pads through the turn and reaches +0.83 at 0.41 N,
-  which is real and 34&#176; short, on a grip 25 times weaker than the reference's 10.47 N.</p>
+  which is real and 34&#176; short, on a grip 25 times weaker than the reference's 10.47 N. The
+  same hand holds the turn at 14.13 N one clip away from this grid, which is the next
+  section.</p>
+</section>
+
+<section class="col">
+  <h2>The turn on the deployed hands</h2>
+  <p class="sub">docs/experiments/20260906-pivot &#183; docs/experiments/20260906-held_turn_films</p>
+
+  <p>Three of the eight hands do turn the tool tip-down and carry it there. The pivot sweep runs
+  the same three heights at a clip of 0.50, {{PIVOT_N}} rollouts, and {{PIVOT_HELD}} hands hold
+  the tool at <code>reoriented</code> on two or more pads at or above its 0.240 N weight, clear
+  of the floor. The pivot that does it is a per-hand number: 0.15 for D5, 0.35 for D3 and D1.</p>
+
+  {{PIVOT_TBL}}
+
+  <p>The clip is why the band sweep missed this. It stepped 0.40, 0.55, 0.70, 0.85, 1.00, 1.15
+  and never tried 0.50, which is the value all three of these turns run at.</p>
+
+  <p>Every one of them then loses the tool at the same place. D5 holds the shaft vertical on two
+  pads at 14.13 N, descends with it, and the tool is flat on the disc one seam later. D3 holds it
+  at cos +0.987 and the arm drives the wrist into the table on the way down. Neither is a turn
+  failure.</p>
+
+  <figure>
+    <video controls preload="metadata" src="{{FILM_GRID}}"></video>
+    <figcaption>All eight hands, each re-run at its own best pivot, ranked by the signed held
+      turn. Labels carry cos, pad count and pad force at <code>reoriented</code> and the seam the
+      run was lost at. <code>docs/experiments/20260906-held_turn_films/20260906-chain_grid.mp4</code>
+    </figcaption>
+  </figure>
+
+  <figure>
+    <img src="{{FILM_D5}}" alt="D5 seam frames: the tool held vertical, then flat on the table">
+    <figcaption>D5, <code>sv1_u0060_b75</code>, pivot 0.15. Frames 2&#8211;4: the shaft vertical
+      and tip-down in the grip, descending. Frame 5: on the disc, horizontal. The hand completes
+      the rest of the chain empty.</figcaption>
+  </figure>
+
+  <figure>
+    <img src="{{FILM_D3}}" alt="D3 seam frames: the wrist descending into the table">
+    <figcaption>D3, <code>sv1_u1364_b080</code>, pivot 0.35, the strongest turn in the set at cos
+      +0.987. From frame 4 the UR5e wrist is lying across the disc.</figcaption>
+  </figure>
 </section>
 
 <section class="col">
@@ -225,10 +272,15 @@ cannot carry the object anywhere.</pre>
     <li><strong>2.74 mm is one hand's number, not a threshold.</strong> It comes from a single
       CEM grasp. Measure headroom against reorientation outcome across the eight deployed hands
       before treating it as a gate.</li>
-    <li><strong>The pivot height has no per-hand value for the chain.</strong> 0.25 is the
-      reference hand's. The 432-rollout sweep found no hand for which any of 0.15/0.25/0.35
-      completes, so the right value is either outside that range or conditional on the grasp
-      being fixed first. Re-run it after the fitter changes, not before.</li>
+    <li><strong>The set-down seam has not been measured.</strong> Three hands arrive at it
+      holding a vertical tool and none leaves it holding one. Name the mechanism per hand
+      &#8212; the tool toppling out of the pads against the disc, or the arm driving the wrist
+      into the table &#8212; by re-running those three cells with the descent instrumented.
+      Nothing about the fitter is implicated until that is separated.</li>
+    <li><strong>The pivot values are one clip's.</strong> 0.15 for D5 and 0.35 for D3/D1 come
+      from a single clip of 0.50, and 0.50 is below the bench band for four of the eight hands.
+      Sweep the pivot against each hand's own bench band before treating these as the hands'
+      pivots.</li>
     <li><strong>Nothing here is hardware.</strong> The bench record for these eight hands is 251
       runs in <code>docs/experiments/20260902-cb1-log-archive</code>, all at the deployed pivot
       and clip. No corrected grasp has been closed on a real tool.</li>
@@ -240,6 +292,7 @@ cannot carry the object anywhere.</pre>
   <code>docs/experiments/20260906-control_diagnosis/20260906-control_diagnosis.html</code><br>
   Built by <code>scripts/real_v1_control_diagnosis_page.py</code> from
   <code>20260906-ablate</code>, <code>20260906-fitter_force</code>,
-  <code>20260906-chain_band</code> and <code>OPERATING_POINTS.json</code>.
+  <code>20260906-chain_band</code>, <code>20260906-pivot</code>,
+  <code>20260906-held_turn_films</code> and <code>OPERATING_POINTS.json</code>.
 </footer>
 </div>
