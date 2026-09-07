@@ -242,6 +242,7 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
           load_target: float = 0.0, load_gain: float = 0.0024, reg_band: float = 0.45,
           reg_every: int = 5, force_target: float = 0.0, force_gain: float = 0.0015,
           force_rate: float = 0.0006,
+          track_gain: float = 0.0, track_rate: float = 0.01, track_every: int = 25,
           regrasp: bool = False, regrasp_steps: int = 150,
           arm_ik: Path | None = None, scene_path: Path | None = None,
           place_xy=None, place_err=(0.0, 0.0), seat_z: float | None = None,
@@ -316,9 +317,16 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
     # is not something a chain can be built on, and a grasp that does not fail is worth more than
     # an alignment that arrives by luck.
     trim = {j: 0.0 for j in acts}
-    reg = load_target > 0.0 or force_target > 0.0
+    reg = load_target > 0.0 or force_target > 0.0 or track_gain > 0.0
     if reg:
         import real_v1_deploy_envelope as de
+    # WHERE THE PADS ARE, not how hard they push. `_regrasp_cmd` restores each pad's (station,
+    # radius) in the SHAFT's frame and the chain fires it once, after the lift. Every deployed
+    # hand slides 8.7-14.8 mm through the turn against the reference's 7.0 and keeps sliding at
+    # every seam after it, so the grasp is migrating the whole run -- which a force loop cannot
+    # see, because a pad that has walked 15 mm down the shaft can still be pushing 9 N. Filled
+    # in once the grasp has settled; the tracker is a no-op until then.
+    pad_track: dict = {"ref": None}
 
     def _regulate():
         # Two signals for the same job. The servo-load proxy is what the bench can actually
@@ -328,8 +336,20 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         if force_target > 0.0:
             de._force_step(m, d, acts, trim, force_target, force_gain, reg_band, obj,
                            rate=force_rate)
-        else:
+        elif load_target > 0.0:
             de._load_step(m, d, acts, trim, load_target, load_gain, reg_band)
+        # A THIRD signal, and the only one that answers the tool moving THROUGH the grasp:
+        # drive the commanded pose toward the one that puts every pad back at the station and
+        # radius it held at closure, on the tool's CURRENT frame. Slewed and clipped like the
+        # others so it cannot overwrite the phase's own set-point in one tick.
+        if track_gain > 0.0 and pad_track["ref"] is not None \
+                and step_i[0] % track_every == 0:
+            rg = _regrasp_cmd(m, mik, dik, d, obj, acts, pad_track["ref"])
+            for j, a in acts.items():
+                e = rg[j] - float(d.ctrl[a])
+                trim[j] = float(np.clip(trim[j] + float(np.clip(track_gain * e,
+                                                                -track_rate, track_rate)),
+                                        -reg_band, reg_band))
 
     mik = mujoco.MjModel.from_xml_path(str(scene))
     dik = mujoco.MjData(mik)
@@ -494,6 +514,7 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
     # ---------------------------------------------------------------- 1. grasp, lift, settle
     _run(250)
     pad_ref = _pad_frame(m, d, obj)          # where the pads sit once the grasp has settled
+    pad_track["ref"] = pad_ref
     _grip_mark()
     R_c, p_c = palm.cmd_pose()
     u0 = palm.read()

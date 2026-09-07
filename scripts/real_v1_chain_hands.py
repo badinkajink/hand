@@ -413,6 +413,15 @@ def main() -> int:
                          "the fitted grasp produces, the load proxy barely moves. Every chain "
                          "sweep before 2026-09-06 ran with this unreachable and the loop off.")
     ap.add_argument("--force-gain", type=float, default=0.0015)
+    ap.add_argument("--tracks", default=None,
+                    help="comma list of POSE-tracking gains for the grip loop; 0 = off. Drives "
+                         "the commanded finger pose toward the one that restores every pad's "
+                         "(station, radius) on the shaft, measured continuously. The force loop "
+                         "regulates how hard the pads push; this regulates where they are, and "
+                         "the deployed hands' failure is the tool sliding 8.7-14.8 mm through "
+                         "the grasp during the turn while the force stays high.")
+    ap.add_argument("--track-rate", type=float, default=0.01)
+    ap.add_argument("--track-every", type=int, default=25)
     ap.add_argument("--force-rates", default=None,
                     help="comma list of per-tick trim slew limits, rad. THE binding constraint "
                          "on the grip loop: the default 0.0006 caps the whole turn's correction "
@@ -445,7 +454,7 @@ def main() -> int:
             print(f"  {h['tag']}: NO POSE / BUILD FAILED", flush=True)
             continue
         fits[f["tag"]] = f
-        grid = [(c, rp, gs, rl, ts, bg, ak, an, ft, rb, fr) for c in ([None] if not args.clears else
+        grid = [(c, rp, gs, rl, ts, bg, ak, an, ft, rb, fr, tk) for c in ([None] if not args.clears else
                                       [float(v) for v in args.clears.split(",")])
                 for rp in ([None] if not args.reposes else
                            [int(v) for v in args.reposes.split(",")])
@@ -465,9 +474,11 @@ def main() -> int:
                 for rb in ([None] if not args.reg_bands else
                            [float(v) for v in args.reg_bands.split(",")])
                 for fr in ([None] if not args.force_rates else
-                           [float(v) for v in args.force_rates.split(",")])]
+                           [float(v) for v in args.force_rates.split(",")])
+                for tk in ([None] if not args.tracks else
+                           [float(v) for v in args.tracks.split(",")])]
         for lt in (float(v) for v in args.loads.split(",")):
-          for cl, rp, gs, rl, ts, bg, ak, an, ft, rb, fr in grid:
+          for cl, rp, gs, rl, ts, bg, ak, an, ft, rb, fr, tk in grid:
             for rep in range(args.reps):
                 tg = f"load{lt:.0f}" + ("" if sq is None else f"_sq{sq:g}")
                 if cl is not None:
@@ -492,6 +503,8 @@ def main() -> int:
                     tg += f"_w{rb:g}"
                 if fr is not None:
                     tg += f"_v{fr:g}"
+                if tk is not None:
+                    tg += f"_x{tk:g}"
                 kw = {"_hand": h, "_fit": f, "_tag": tg,
                       "_table": args.stand == "table",
                       "load_target": lt, "seed": rep, "jitter": 0.0005,
@@ -519,6 +532,10 @@ def main() -> int:
                     kw["reg_band"] = rb
                 if fr is not None:
                     kw["force_rate"] = fr
+                if tk is not None:
+                    kw["track_gain"] = tk
+                    kw["track_rate"] = args.track_rate
+                    kw["track_every"] = args.track_every
                 if rep == args.video_seed and not args.no_video and len(grid) == 1 \
                         and len(sqs) == 1:
                     kw["video"] = vid / f"20260905-{h['tag']}_{args.stand}_{tg}.mp4"

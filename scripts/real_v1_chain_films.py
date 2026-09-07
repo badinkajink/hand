@@ -36,7 +36,7 @@ ARM_KEYS = {"c": ("clear", lambda v: v / 1000.0), "r": ("repose_steps", int),
             "g": ("gait_scan", int), "o": ("release_mm", float), "t": ("turn_steps", int),
             "b": ("budget", float), "k": ("axis_k", float), "a": ("angle_deg", float),
             "f": ("force_target", float), "w": ("reg_band", float),
-            "v": ("force_rate", float)}
+            "v": ("force_rate", float), "x": ("track_gain", float)}
 
 
 def _knobs(arm: str) -> dict:
