@@ -405,6 +405,25 @@ def main() -> int:
                          "between 800 and 900.")
     ap.add_argument("--loads", default="0,250",
                     help="servo-load set-points for the grip loop; 0 = open loop")
+    ap.add_argument("--forces", default=None,
+                    help="PER-FINGER contact normal-force set-points for the grip loop, N; "
+                         "0 = open loop. This is the privileged signal -- `_force_step` reads "
+                         "simulator contact force, which no bench can -- and it is the one the "
+                         "servo-load proxy cannot substitute for: at the fractions of a newton "
+                         "the fitted grasp produces, the load proxy barely moves. Every chain "
+                         "sweep before 2026-09-06 ran with this unreachable and the loop off.")
+    ap.add_argument("--force-gain", type=float, default=0.0015)
+    ap.add_argument("--force-rates", default=None,
+                    help="comma list of per-tick trim slew limits, rad. THE binding constraint "
+                         "on the grip loop: the default 0.0006 caps the whole turn's correction "
+                         "at 0.066 rad, and `gain` saturates it at any realistic force error.")
+    ap.add_argument("--reg-bands", default=None,
+                    help="comma list of regulator AUTHORITY limits, rad. `trim` is clipped to "
+                         "+/-this, and it is added on top of the turn's own set-point. The "
+                         "default 0.45 is comparable to the turn budget of 0.5, so a saturated "
+                         "regulator can overwrite the entire anchor sweep -- which is what the "
+                         "2026-09-06 force sweep measured: retention up, reorientation to zero "
+                         "on every hand.")
     ap.add_argument("--video-seed", type=int, default=0)
     ap.add_argument("--no-video", action="store_true")
     args = ap.parse_args()
@@ -426,7 +445,7 @@ def main() -> int:
             print(f"  {h['tag']}: NO POSE / BUILD FAILED", flush=True)
             continue
         fits[f["tag"]] = f
-        grid = [(c, rp, gs, rl, ts, bg, ak, an) for c in ([None] if not args.clears else
+        grid = [(c, rp, gs, rl, ts, bg, ak, an, ft, rb, fr) for c in ([None] if not args.clears else
                                       [float(v) for v in args.clears.split(",")])
                 for rp in ([None] if not args.reposes else
                            [int(v) for v in args.reposes.split(",")])
@@ -440,9 +459,15 @@ def main() -> int:
                 for ak in ([None] if not args.axis_ks else
                            [float(v) for v in args.axis_ks.split(",")])
                 for an in ([None] if not args.angles else
-                           [float(v) for v in args.angles.split(",")])]
+                           [float(v) for v in args.angles.split(",")])
+                for ft in ([None] if not args.forces else
+                           [float(v) for v in args.forces.split(",")])
+                for rb in ([None] if not args.reg_bands else
+                           [float(v) for v in args.reg_bands.split(",")])
+                for fr in ([None] if not args.force_rates else
+                           [float(v) for v in args.force_rates.split(",")])]
         for lt in (float(v) for v in args.loads.split(",")):
-          for cl, rp, gs, rl, ts, bg, ak, an in grid:
+          for cl, rp, gs, rl, ts, bg, ak, an, ft, rb, fr in grid:
             for rep in range(args.reps):
                 tg = f"load{lt:.0f}" + ("" if sq is None else f"_sq{sq:g}")
                 if cl is not None:
@@ -461,6 +486,12 @@ def main() -> int:
                     tg += f"_k{ak:g}"
                 if an is not None:
                     tg += f"_a{an:g}"
+                if ft is not None:
+                    tg += f"_f{ft:g}"
+                if rb is not None:
+                    tg += f"_w{rb:g}"
+                if fr is not None:
+                    tg += f"_v{fr:g}"
                 kw = {"_hand": h, "_fit": f, "_tag": tg,
                       "_table": args.stand == "table",
                       "load_target": lt, "seed": rep, "jitter": 0.0005,
@@ -481,6 +512,13 @@ def main() -> int:
                     kw["axis_k"] = ak
                 if an is not None:
                     kw["angle_deg"] = an
+                if ft is not None:
+                    kw["force_target"] = ft
+                    kw["force_gain"] = args.force_gain
+                if rb is not None:
+                    kw["reg_band"] = rb
+                if fr is not None:
+                    kw["force_rate"] = fr
                 if rep == args.video_seed and not args.no_video and len(grid) == 1 \
                         and len(sqs) == 1:
                     kw["video"] = vid / f"20260905-{h['tag']}_{args.stand}_{tg}.mp4"

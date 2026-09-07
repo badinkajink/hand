@@ -241,6 +241,7 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
           anchor_ctrl: dict | None = None,
           load_target: float = 0.0, load_gain: float = 0.0024, reg_band: float = 0.45,
           reg_every: int = 5, force_target: float = 0.0, force_gain: float = 0.0015,
+          force_rate: float = 0.0006,
           regrasp: bool = False, regrasp_steps: int = 150,
           arm_ik: Path | None = None, scene_path: Path | None = None,
           place_xy=None, place_err=(0.0, 0.0), seat_z: float | None = None,
@@ -325,7 +326,8 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         # newton this chain's fitted grasp produces the load proxy barely moves, so the force
         # arm is the one that can tell whether closing the loop is worth anything at all.
         if force_target > 0.0:
-            de._force_step(m, d, acts, trim, force_target, force_gain, reg_band, obj)
+            de._force_step(m, d, acts, trim, force_target, force_gain, reg_band, obj,
+                           rate=force_rate)
         else:
             de._load_step(m, d, acts, trim, load_target, load_gain, reg_band)
 
