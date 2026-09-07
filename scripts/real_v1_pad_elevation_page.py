@@ -327,6 +327,26 @@ def main() -> int:
     V["D1_LOOP_N"] = str(sum(len(v) for (t, _), v in loop.items() if t == "sv1_w6689_b060"))
     V["ELEV_STOOD6"] = str(sum(1 for t in ORDER
                                if any(G[(t, e)]["stood_ok"] == 6 for e in ELEVS if (t, e) in G)))
+    # How many of the reported table-stand "stands" were the tool standing on its HANDLE.
+    up = dn = 0
+    for f in ("20260906-elevation", "20260906-griploop",
+              "20260904-real_v1_held/squeeze2", "20260904-real_v1_held/squeeze_sweep",
+              "20260904-real_v1_held/release_sweep", "20260904-real_v1_held/gaitscan",
+              "20260904-real_v1_held/reindex_sweep"):
+        q = E / f / "chain_hands.json"
+        if not q.exists() or json.loads(q.read_text()).get("stand") != "table":
+            continue
+        for r in rows_of(q):
+            if not r.get("stood_ok"):
+                continue
+            sm = {x["phase"]: x for x in r.get("seams", [])}
+            c = (sm.get("upright") or sm.get("staged") or {}).get("cos")
+            if c is None:
+                continue
+            up += c > 0
+            dn += c <= 0
+    V["HANDLE_DOWN"] = str(dn)
+    V["TOTAL_STANDS"] = str(up + dn)
     V["N_ROLLOUTS"] = f"{len(grid_rows) + len(loop_rows) + len(air_rows) + len(ele_rows) + len(band_rows) + len(te_rows):,}"
     V["N_FITS"] = str(len(clo) + len(elev_clo) + len(depth_clo))
 

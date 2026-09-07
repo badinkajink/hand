@@ -13,15 +13,13 @@
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --paper:#12171B; --card:#1A2026; --sunk:#161C21;
   --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
-  --s1:#E39A2E; --s2:#7BA7E0; --ref:#79858E;
-  --good:#6FB076; --bad:#DE8078;
+  --s1:#E39A2E; --s2:#7BA7E0; --ref:#79858E; --good:#6FB076; --bad:#DE8078;
   --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
 }}
 :root[data-theme="dark"]{
   --paper:#12171B; --card:#1A2026; --sunk:#161C21;
   --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
-  --s1:#E39A2E; --s2:#7BA7E0; --ref:#79858E;
-  --good:#6FB076; --bad:#DE8078;
+  --s1:#E39A2E; --s2:#7BA7E0; --ref:#79858E; --good:#6FB076; --bad:#DE8078;
   --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
 }
 *{box-sizing:border-box}
@@ -30,49 +28,32 @@ body{background:var(--paper);color:var(--ink);
   -webkit-font-smoothing:antialiased;padding:0 20px 96px}
 .wrap{max-width:1020px;margin:0 auto}
 .col{max-width:70ch}
-h1,h2,h3,.mono,.tag,th,.chip b{font-family:Archivo,"Helvetica Neue",Arial,sans-serif}
+h1,h2,h3,.mono,.tag,th{font-family:Archivo,"Helvetica Neue",Arial,sans-serif}
 .mono,code,td.num,.tick,.val,.ser,.mark,.note,.axlab{
   font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
-
-header{padding:72px 0 30px;border-bottom:1px solid var(--rule)}
+header{padding:64px 0 30px;border-bottom:1px solid var(--rule)}
 .eyebrow{font:500 12px/1 "IBM Plex Mono",monospace;letter-spacing:.16em;
   text-transform:uppercase;color:var(--ink3)}
-h1{font-size:clamp(32px,5vw,52px);line-height:1.04;font-weight:700;letter-spacing:-.022em;
+h1{font-size:clamp(30px,4.6vw,48px);line-height:1.05;font-weight:700;letter-spacing:-.022em;
   margin:16px 0 0;text-wrap:balance;max-width:19ch}
 .lede{font-size:20px;line-height:1.55;color:var(--ink2);margin:18px 0 0;max-width:62ch}
 .byline{margin-top:22px;font:400 13px/1.5 "IBM Plex Mono",monospace;color:var(--ink3)}
-
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;
-  background:var(--rule);border:1px solid var(--rule);border-radius:10px;overflow:hidden;
-  margin:34px 0 8px}
-.stat{background:var(--card);padding:16px 18px}
-.stat b{display:block;font:700 27px/1.1 Archivo,sans-serif;letter-spacing:-.02em;
-  font-variant-numeric:tabular-nums}
-.stat span{display:block;margin-top:5px;font:400 12.5px/1.4 "IBM Plex Mono",monospace;
-  color:var(--ink3)}
-
-section{padding:52px 0;border-bottom:1px solid var(--rule2)}
+section{padding:46px 0;border-bottom:1px solid var(--rule2)}
 section:last-of-type{border-bottom:0}
-h2{font-size:29px;font-weight:700;letter-spacing:-.018em;margin:0 0 6px;text-wrap:balance}
-h2 + .sub{color:var(--ink3);font:400 14px/1.5 "IBM Plex Mono",monospace;margin:0 0 26px}
-h3{font-size:18.5px;font-weight:600;letter-spacing:-.008em;margin:34px 0 10px}
+h2{font-size:27px;font-weight:700;letter-spacing:-.018em;margin:0 0 6px;text-wrap:balance}
+h2 + .sub{color:var(--ink3);font:400 14px/1.5 "IBM Plex Mono",monospace;margin:0 0 24px}
 p{margin:0 0 17px}
 strong{font-weight:600}
-a{color:var(--ink);text-decoration-color:var(--s1);text-underline-offset:3px}
 ul{margin:0 0 17px;padding-left:20px}
 li{margin:0 0 8px}
-.pending{color:var(--ink3);font:400 14px/1.6 "IBM Plex Mono",monospace}
-
-figure{margin:30px 0}
-figure img,figure video{display:block;width:100%;border-radius:10px;background:var(--sunk);
+figure{margin:28px 0}
+figure img{display:block;width:100%;border-radius:10px;background:var(--sunk);
   box-shadow:var(--shadow)}
 figcaption{margin-top:11px;font:400 14px/1.55 "IBM Plex Mono",monospace;color:var(--ink3);
   max-width:78ch}
 .chart{display:block;width:100%;height:auto;background:var(--card);border:1px solid var(--rule);
-  border-radius:10px;margin:26px 0}
-.col > .tw,.col > figure,.col > .chart,.col > pre{width:min(1020px,calc(100vw - 40px));
-  max-width:none}
-.ax line{stroke:var(--rule);stroke-width:1}
+  border-radius:10px;margin:24px 0}
+.col > .tw,.col > figure,.col > .chart{width:min(1020px,calc(100vw - 40px));max-width:none}
 .grid{stroke:var(--rule2)}
 .tick{font-size:11px;fill:var(--ink3)}
 .axlab{font-size:11.5px;fill:var(--ink3);letter-spacing:.05em}
@@ -80,8 +61,7 @@ figcaption{margin-top:11px;font:400 14px/1.55 "IBM Plex Mono",monospace;color:va
 .ser{font-size:12.5px;font-weight:500}
 .mark{font-size:10.5px;fill:var(--ink3);letter-spacing:.06em}
 .note{font-size:11.5px;fill:var(--ink3)}
-
-.tw{overflow-x:auto;margin:26px 0;border:1px solid var(--rule);border-radius:10px;
+.tw{overflow-x:auto;margin:24px 0;border:1px solid var(--rule);border-radius:10px;
   background:var(--card)}
 table{border-collapse:collapse;width:100%;font-size:14.5px}
 th{font:600 12px/1.3 Archivo,sans-serif;letter-spacing:.06em;text-transform:uppercase;
@@ -93,262 +73,87 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;font-size:13.5p
 tbody tr.hi td{background:color-mix(in oklab,var(--s1) 9%,transparent)}
 .ok{color:var(--good);font-weight:600}
 .no{color:var(--bad);font-weight:600}
-
-.callout{border-left:3px solid var(--s1);background:var(--card);border-radius:0 10px 10px 0;
-  padding:18px 22px;margin:28px 0;box-shadow:var(--shadow)}
-.callout p:last-child{margin-bottom:0}
-.callout .tag{display:block;font:600 11px/1 Archivo,sans-serif;letter-spacing:.14em;
-  text-transform:uppercase;color:var(--s1);margin-bottom:9px}
-pre{background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:16px 18px;
-  overflow-x:auto;font:400 13px/1.7 "IBM Plex Mono",monospace;color:var(--ink2);margin:20px 0}
+.retract{border:2px solid var(--bad);border-radius:12px;padding:22px 26px;margin:30px 0 0;
+  background:color-mix(in oklab,var(--bad) 7%,var(--card))}
+.retract .tag{display:block;font:700 12px/1 Archivo,sans-serif;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--bad);margin-bottom:11px}
+.retract p:last-child{margin-bottom:0}
 code{font-size:.92em;background:var(--sunk);padding:1px 4px;border-radius:4px;
   margin:0 -1px;white-space:nowrap}
-pre code{background:none;padding:0}
-footer{padding:44px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",monospace}
+footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",monospace}
 </style>
 
 <div class="wrap">
 <header>
-  <div class="eyebrow">MorphoHand &#183; real_v1 &#183; 6 September 2026</div>
+  <div class="eyebrow">MorphoHand &#183; real_v1 &#183; 6 September 2026 &#183; retracted the
+    same day</div>
   <h1>Pad contact elevation and tool retention across eight deployed hands</h1>
-  <p class="lede">The two hands that never carry a screwdriver in the chained task are the
-  two whose pads touch it above its equator. A pad-target angle that was hardcoded to zero at
-  every call site moves them below it, and both then complete the chain.</p>
-  <div class="byline">Measured in MuJoCo on the eight bench-tested <code>real_v1</code> plans
-  &#183; {{N_ROLLOUTS}} chain rollouts and {{N_FITS}} closure fits &#183; no hardware run</div>
+  <p class="lede">This page claimed that a pad-target angle unblocked two hands and took full
+  chains from 18 of 48 to 30. Those chains stood the screwdriver on its handle. The claim is
+  withdrawn; one measurement on the page survives and is kept below.</p>
+  <div class="byline">Superseded by the control diagnosis of the same date &#183;
+  <code>docs/experiments/20260906-control_diagnosis/</code></div>
+
+  <div class="retract">
+    <span class="tag">Retraction</span>
+    <p><code>probe_real_v1_chain._av()</code> folds the tool's axis to always point up when
+    <code>tip_len</code> is 0, and <code>real_v1_chain_hands._cell</code> passes
+    <code>tip_len=0.0</code> for every table-stand cell. <code>tilt_deg</code> is then
+    <code>arccos|cos|</code> and a screwdriver standing on its <em>handle</em> reads as a
+    perfect 0.00&#176; stand. Every stand count on the original page came from that mode.</p>
+    <p>Re-scored on the signed cosine, <strong>{{HANDLE_DOWN}} of {{TOTAL_STANDS}} of those
+    stands were handle down</strong> &#8212; 180&#176; from the task. The elevation sweep, the
+    grip-loop sweep and the straddle&#215;depth grid are all void as reported. The air-mode
+    results on the original page were signed and are not affected; they said 0 stands in 96,
+    which was the honest number all along.</p>
+    <p>The cause of the drops was found the same day and is not the pad elevation: the pivot
+    height <code>axis_k</code> decides which end of the tool goes down, and the grasp fitter
+    leaves the fingers with no extension left to turn with. See the diagnosis page.</p>
+  </div>
 </header>
 
 <section class="col">
-  <div class="stats">
-    <div class="stat"><b>+0.241 N</b><span>summed vertical pad force on the six hands that
-      carry &#8212; the tool weighs 0.240 N</span></div>
-    <div class="stat"><b>&minus;3.463 N</b><span>the same quantity on <code>sv1_w6689</code>,
-      which carries nothing</span></div>
-    <div class="stat"><b>{{ELEV_SHIP_SUM}} &#8594; {{ELEV_BEST_SUM}}</b><span>chains completed
-      out of 48, shipped elevation vs each hand's best</span></div>
-    <div class="stat"><b>{{TE_CARRY_0}} &#8594; {{TE_CARRY_12}}</b><span>rollouts carrying the
-      tool through a finger turn, at 0&#176; vs &minus;12&#176;</span></div>
-  </div>
-</section>
+  <h2>What survives: where the pads meet the shaft</h2>
+  <p class="sub">scripts/real_v1_grasp_closure.py &#183; a static contact measurement, no axis
+  folding involved</p>
 
-<section class="col">
-  <h2>Where the pads meet the shaft</h2>
-  <p class="sub">scripts/real_v1_grasp_closure.py &#183; the fitted grip held 0.8 s with the
-  palm stationary</p>
-
-  <p><code>sv1_w6689_b060</code> (D1) is the best hand on the bench &#8212; 6 of 7 trials
-  retained &#8212; and it has never carried the tool in the chained task: 0 of {{GRID_N}}
-  rollouts across a grasp grid, 0 of {{D1_LOOP_N}} across the grip loop. It lifts every time.
-  At the
-  <code>lifted</code> seam it holds the tool at 100.8 mm on three pads at 16.71 N; 1.1 s later,
-  with the finger commands unchanged, the tool is on the table 99 mm away.</p>
-
-  <p>The reason is where the pads sit on the cylinder. Measuring each pad contact's height
-  above the shaft's own axis, in units of the shaft radius, separates the eight hands without
-  an exception: six contact below the equator and two above it.</p>
+  <p>This measurement is unaffected by the retraction. It reports each pad contact's height
+  above the shaft's own axis at closure, in units of the shaft radius, with the palm
+  stationary.</p>
 
   {{CLOSURE_FIG}}
   {{CLOSURE_TBL}}
 
-  <p>F<sub>z,pad</sub> is the vertical component of the summed pad contact force. On all six
-  carriers it is +0.241 N, which is the screwdriver's weight (0.240 N) to three figures: the
-  pads hold the tool up and nothing else is needed. On D1 it is &minus;3.463 N. Its pads press
-  the tool <em>down</em> with fourteen times its weight, and the tool stays put only because
-  the table is underneath it. Take the table away and it must leave. <code>sv1_w0099_b100</code>
-  (D8) is the same failure at one tenth the magnitude, with one pad still below the equator.</p>
+  <p>F<sub>z,pad</sub> is the vertical component of the summed pad contact force. On six of the
+  eight hands it is +0.241 N, the screwdriver's weight (0.240 N) to three figures. On
+  <code>sv1_w6689_b060</code> it is &minus;3.463 N: its pads press the tool down with fourteen
+  times its weight and it stays put only because the table is underneath.
+  <code>sv1_w0099_b100</code> is the same failure at one tenth the magnitude.</p>
 
-  <div class="callout">
-    <span class="tag">The rule was already written down</span>
-    <p><code>fit_real_v1_pose.tip_targets</code> carries a docstring warning that above the
-    equator the contact normals tilt up and outward, the wedge drives the shaft down out of the
-    pinch, and the normal force it depends on decays as the shaft creeps toward the top of the
-    cylinder. It was written after a grip relaxed 1.75 N to 0.00 N over 0.6 s of holding still.
-    Nothing measured whether a fitted grasp obeyed it.</p>
-  </div>
-
-  <figure>
-    <img src="{{FIG_D1_E0}}" alt="D1 at the shipped grasp: the tool leaves the pinch">
-    <figcaption>D1 at the shipped grasp, 0.8&#8211;3.2 s. The pads close on the upper half of
-    the shaft, the palm lifts, and the tool exits downward through the bottom of the V.</figcaption>
-  </figure>
+  <p>The <em>consequence</em> drawn from this on the original page &#8212; that moving the pads
+  below the equator unblocks the chain &#8212; is what is retracted, because it was scored on
+  handle-down stands. The contact geometry itself stands, and
+  <code>fit_real_v1_pose.tip_targets</code> documents the wedge-sign rule it measures.</p>
 </section>
 
 <section class="col">
-  <h2>Three things it is not</h2>
-  <p class="sub">each ruled out by its own sweep before the elevation result</p>
+  <h2>What the numbers actually are</h2>
+  <p class="sub">signed cosine, tip down is +1</p>
 
-  <h3>Straddle and grip depth</h3>
-  <p>A 3&#215;3 grid on D1 alone &#8212; straddle 32/36/40 mm against grip depth
-  50.5/56.5/62.5 mm &#8212; lifts {{GRID_N}} of {{GRID_N}} and carries {{GRID_CARRY}}.</p>
-  {{GRID_TBL}}
-  <p>The closure probe says why: across {{D1_DEPTH_N}} fits spanning 48&#8211;64 mm of grip
-  depth at both straddles, D1's mean pad height never falls below {{D1_DEPTH_MIN}} shaft radii.
-  Its fingers cannot reach further round the cylinder, and the fitter saturates at the same
-  answer for every depth above 60 mm.</p>
+  <p>Across the air-mode runs of the same day, which are signed because they carry a countersink
+  and therefore a non-zero <code>tip_len</code>: 1 complete chain in 352 rollouts. A subsequent
+  per-hand sweep over the pivot height and the residual clip &#8212; 432 rollouts, clip 0.40 to
+  1.15 against <code>axis_k</code> 0.15/0.25/0.35 &#8212; completed 0. Sixty of those 432 held
+  the tool at <code>reoriented</code> on two or more pads at or above its weight, and the best
+  cell reached cos +0.83 at 0.41 N against the reference configuration's +0.994 at 10.47 N.</p>
 
-  <h3>The servo-load grip loop</h3>
-  <p><code>real_v1_deploy_envelope._load_step</code> regulates each finger to a servo-load band
-  from measured joint positions and hand FK, without reading object pose or contact force. It
-  is the deployable grip controller and it had never been run at the corrected 2 mm squeeze. It
-  rescues neither failing hand, and it costs four of the six carriers their stand by roughly
-  tripling pad force.</p>
-  {{LOOP_TBL}}
-
-  <h3>A stale grip depth</h3>
-  <p>Re-fitting depth freely at the chain's squeeze returns the plan's own depth on six of the
-  eight hands, so the depth the chain inherits is not stale. That hypothesis was mine and the
-  measurement refuted it.</p>
-</section>
-
-<section class="col">
-  <h2>The bench-screened turn inside the chain</h2>
-  <p class="sub">scripts/real_v1_chain_hands.py --stand air &#183; each plan's own angle_deg,
-  budget and pivot height</p>
-
-  <p>Every deployed plan was screened on the fixed-palm bench carry, where the tool stands on a
-  100 mm post. Until now the chain had only ever been run with <code>angle_deg</code> 0, so the
-  fingers never turned the tool and the screened maneuver had not been tested in the chained
-  task at all. Run at each plan's own setting it stands the tool 0 times in 96.</p>
-
-  {{AIR_TBL}}
-
-  <p>The turn itself is not the problem. On <code>rv05_manual_b85</code> the tool goes from
-  93.0&#176; to 33.2&#176; off vertical &#8212; 59.8&#176; of rotation, in the commanded
-  direction. Over the same 1.1 s the pad force falls from 5.60 N to 0.13 N, against a tool that
-  weighs 0.240 N. Rotating the finger anchor through the plan's angle opens the grip. On the
-  bench that is survivable because the post takes the reaction; in free air the tool is
-  released by the same command that turns it.</p>
-
-  <p>Sweeping the residual clip and the turn duration at the shipped grasp shows the trade
-  directly, and it is one-dimensional: a larger clip buys rotation and spends grip.</p>
-  {{BAND_TBL}}
-  <p>Two cells out of {{BAND_N}} turn the tool through more than 77&#176; and still hold it on
-  loaded pads at the <code>turned</code> seam &#8212; <code>sv1_u0060_b75</code> at 550 steps
-  and clip 0.6 (78.6&#176;, 7.57 N) and <code>rv05_manual_b85</code> at 250 steps and clip 0.6
-  (77.6&#176;, 0.85 N). Both are at the largest clip tested, and neither survives the hold that
-  follows.</p>
-</section>
-
-<section class="col">
-  <h2>The pad-ring elevation</h2>
-  <p class="sub">scripts/real_v1_chain_hands.py --elevations &#183; 180 chain rollouts,
-  table-stand mode</p>
-
-  <p><code>fit</code>'s fourth positional argument is the elevation of the pad-target ring
-  about the shaft: 0&#176; aims the pad centres at the equator, negative aims below it. Every
-  call site in this program passed 0.0. It is now a variable.</p>
-
-  <p>At closure it does what the geometry says it should. D1 crosses to three pads below the
-  equator at &minus;24&#176;, and its vertical pad force goes from &minus;3.463 N to
-  +0.241 N &#8212; the tool's weight, carried. D8 crosses at &minus;6&#176;. The cost is floor
-  clearance: below about &minus;12&#176; on most hands the fit fails because the pad's underside
-  would pass through the table.</p>
-  {{ELEV_CLO_TBL}}
-
-  <p>In the chain, {{ELEV_STOOD6}} of the 8 hands have an elevation at which they stand the
-  tool 6 times out of 6, and {{ELEV_CARRY_BEST}} of 8 carry it, against {{ELEV_CARRY_SHIP}} of 8
-  at the shipped 0&#176;. Full chains go from {{ELEV_SHIP_SUM}} of 48 to {{ELEV_BEST_SUM}}.
-  <code>sv1_u0060_b75</code> is the exception on both counts: it carries at every elevation and
-  stands the tool 5 of 6 at 0&#176; and 0 of 6 below it.</p>
-
-  {{ELEV_FIG}}
-  {{ELEV_TBL}}
-
-  <p>The optimum is per hand, not global: D3 and D7 are best at the shipped 0&#176;, D4 at
-  &minus;6&#176;, D6 and D8 at &minus;12&#176;, D1 at &minus;24&#176;. Pushing past a hand's own
-  optimum costs it &#8212; D7 falls 6/6 to 2/6 by &minus;12&#176;, and D5 stops standing the
-  tool at all below 0&#176;.</p>
-
-  <figure>
-    <img src="{{FIG_D1_E24}}" alt="D1 at elevation -24 degrees completing the chain">
-    <figcaption>D1 at &minus;24&#176;: pick up from the table, carry, re-pose to vertical, set
-    the tool down standing, gait it. 6 of 6 stands, 2 of 6 full chains, 5.3 gait cycles.
-    The same hand and the same plan as the strip above.</figcaption>
-  </figure>
-  <figure>
-    <video controls muted playsinline preload="metadata" src="{{VID_D1}}"></video>
-    <figcaption>The same rollout at 640&#215;480.</figcaption>
-  </figure>
-  <figure>
-    <img src="{{FIG_D8_E12}}" alt="D8 at elevation -12 degrees completing the chain">
-    <figcaption>D8 at &minus;12&#176;: 6 of 6 stands and 6 of 6 full chains, from 0 of 6 at the
-    shipped 0&#176;.</figcaption>
-  </figure>
-
-  <p>Elevation does not touch the other loss. D2 carries 6/6 and stands 6/6 at
-  &minus;6&#176; and completes 0 of 6, because it never re-grips for the gait; D5 is the same
-  at 0&#176;. That seam &#8212; releasing a standing tool and closing the ring grasp on it
-  &#8212; is untouched by anything on this page.</p>
-</section>
-
-<section class="col">
-  <h2>The turn and the elevation together</h2>
-  <p class="sub">scripts/real_v1_chain_hands.py --stand air --elevations 0,-12 --budgets 0.6,0.8
-  --turn-steps 250,550 &#183; {{TE_N}} rollouts</p>
-
-  <p>The elevation sweep above runs <code>angle_deg</code> 0, so it measures the carry and not
-  the turn; the clip sweep runs elevation 0. Crossing them is the test of whether a grasp that
-  holds through the carry also survives the command that turns the tool. It does.</p>
-
-  <p>Carrying the tool through the turn and the hold that follows goes from
-  {{TE_CARRY_0}} rollouts at the shipped 0&#176; to {{TE_CARRY_12}} at &minus;12&#176;. Each
-  cell below gives the count that carried, the angle turned at the <code>turned</code> seam,
-  and the pad force there. The angle is 90&#176; minus the tilt from vertical, so a negative
-  entry is a tool that has been rotated past horizontal in the opposite sense &#8212; a
-  commanded turn that overshot or reversed, not a small one.</p>
-
-  {{TE_TBL}}
-
-  <p>The best cell is <code>rv05_manual_b85</code> at &minus;12&#176;, 250 turn steps and clip
-  0.8: {{TE_BEST}}. At elevation 0 the same hand carries 0 of 16. <code>sv1_w2360_b075</code>
-  at &minus;12&#176;, 550 steps and clip 0.8 produces the only complete chain in the run
-  &#8212; {{TE_OK}} of {{TE_N}} &#8212; and it is the first time in this program that the
-  fingers have turned the tool and the chain has finished.</p>
-
-  <p>The turn is still short of the 90&#176; the task wants. Every cell that turns past
-  59&#176; carries 0 of 4, at either elevation, and every cell that carries 4 of 4 turns
-  44&#176; or less. The elevation does not lift that ceiling; it decides whether anything is
-  still in the hand underneath it.</p>
-</section>
-
-<section class="col">
-  <h2>What this does not settle</h2>
-
-  <ul>
-    <li><strong>The elevation is not in a plan yet.</strong>
-      <code>real_v1_deploy_envelope.make_plan</code> calls <code>_grip_from_fit</code> without
-      it and the plan schema has no field for it, so nothing on this page is deployable until
-      that is added and the exported plan re-cleared by
-      <code>scripts/real_v1_trajectory_clearance.py</code>. Falsified if a plan carrying a
-      non-zero elevation fails the clearance gate on the hands that need it.</li>
-    <li><strong>Floor clearance is the binding constraint and it was not measured, only
-      inferred from fit failures.</strong> The pad's underside sits 2.0 mm clear of the table at
-      0&#176;. Measure the actual clearance against elevation per hand and report where it goes
-      to zero, rather than reading it off which fits return <code>None</code>.</li>
-    <li><strong>The turned angle is 42&#176;, not 90&#176;.</strong> The best air-mode cell
-      leaves roughly half the reorientation to whatever follows it, and the clip that would buy
-      more turn spends the grip that makes it survivable. Sweep elevation against clip on
-      <code>rv05_manual_b85</code> alone, finely, at 250 turn steps: &minus;18 and &minus;24
-      against 0.8/0.9/1.0, scored on the angle turned at <code>turned</code> with pad force
-      &#8805; 0.240 N. Falsified if no cell exceeds 60&#176; with a loaded grip.</li>
-    <li><strong>The elevation optimum was found on a five-point grid.</strong> D1's is at the
-      edge of it (&minus;24&#176;, the last value that fits), so its true optimum is unmeasured
-      and may be outside the reachable set entirely.</li>
-    <li><strong>The gait re-grip is untouched.</strong> D2 and D5 stand the tool and never
-      complete, and D1 stands 6/6 and completes 2/6. That is skill 4, the relay from the carry
-      grasp to the gait ring, and no measurement here addresses it.</li>
-    <li><strong>None of this is hardware.</strong> The bench record for these eight hands is
-      251 runs in <code>docs/experiments/20260902-cb1-log-archive</code>, all at elevation 0.
-      A negative-elevation grasp has never been closed on a real tool.</li>
-  </ul>
+  <p>The reference is <code>rv05_manual_stored</code>, which chained 169 of 169 on
+  2026-09-03 and is now pinned by <code>tests/test_chain_reference.py</code>.</p>
 </section>
 
 <footer>
   Local: <code>docs/experiments/20260906-pad_elevation/20260906-pad_elevation.html</code><br>
-  Built by <code>scripts/real_v1_pad_elevation_page.py</code> from
-  <code>docs/experiments/20260906-griploop/grasp_closure*.json</code>,
-  <code>20260906-d1_graspgrid</code>, <code>20260906-griploop</code>,
-  <code>20260906-screened_turn</code>, <code>20260906-turn_band</code>,
-  <code>20260906-elevation</code> and <code>20260906-turn_elev/chain_hands.json</code>.
+  Built by <code>scripts/real_v1_pad_elevation_page.py</code>. Closure data:
+  <code>docs/experiments/20260906-griploop/grasp_closure.json</code>.
 </footer>
 </div>

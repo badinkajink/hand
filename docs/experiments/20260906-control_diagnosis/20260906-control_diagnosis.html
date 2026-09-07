@@ -1,0 +1,245 @@
+<title>Why the deployed hands stopped reorienting the screwdriver</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#EEF1F4; --card:#FFFFFF; --sunk:#E4E9EE;
+  --ink:#1A2127; --ink2:#48545D; --ink3:#77848D; --rule:#D2DAE1; --rule2:#E2E8ED;
+  --s1:#BE7514; --s2:#4A7FC4; --ref:#8A959D;
+  --good:#3F7A46; --bad:#A8443C;
+  --shadow:0 1px 2px rgba(16,26,34,.06),0 8px 24px -14px rgba(16,26,34,.28);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
+  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
+  --s1:#E39A2E; --s2:#7BA7E0; --ref:#79858E; --good:#6FB076; --bad:#DE8078;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+}}
+:root[data-theme="dark"]{
+  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
+  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
+  --s1:#E39A2E; --s2:#7BA7E0; --ref:#79858E; --good:#6FB076; --bad:#DE8078;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);
+  font:400 17px/1.62 "Source Serif 4",Georgia,"Times New Roman",serif;
+  -webkit-font-smoothing:antialiased;padding:0 20px 96px}
+.wrap{max-width:1020px;margin:0 auto}
+.col{max-width:70ch}
+h1,h2,h3,.mono,.tag,th{font-family:Archivo,"Helvetica Neue",Arial,sans-serif}
+.mono,code,td.num,.tick,.val,.ser,.mark,.note,.axlab{
+  font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+header{padding:64px 0 30px;border-bottom:1px solid var(--rule)}
+.eyebrow{font:500 12px/1 "IBM Plex Mono",monospace;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--ink3)}
+h1{font-size:clamp(30px,4.6vw,48px);line-height:1.05;font-weight:700;letter-spacing:-.022em;
+  margin:16px 0 0;text-wrap:balance;max-width:19ch}
+.lede{font-size:20px;line-height:1.55;color:var(--ink2);margin:18px 0 0;max-width:62ch}
+.byline{margin-top:22px;font:400 13px/1.5 "IBM Plex Mono",monospace;color:var(--ink3)}
+section{padding:46px 0;border-bottom:1px solid var(--rule2)}
+section:last-of-type{border-bottom:0}
+h2{font-size:27px;font-weight:700;letter-spacing:-.018em;margin:0 0 6px;text-wrap:balance}
+h2 + .sub{color:var(--ink3);font:400 14px/1.5 "IBM Plex Mono",monospace;margin:0 0 24px}
+p{margin:0 0 17px}
+strong{font-weight:600}
+ul{margin:0 0 17px;padding-left:20px}
+li{margin:0 0 8px}
+figure{margin:28px 0}
+figure img{display:block;width:100%;border-radius:10px;background:var(--sunk);
+  box-shadow:var(--shadow)}
+figcaption{margin-top:11px;font:400 14px/1.55 "IBM Plex Mono",monospace;color:var(--ink3);
+  max-width:78ch}
+.chart{display:block;width:100%;height:auto;background:var(--card);border:1px solid var(--rule);
+  border-radius:10px;margin:24px 0}
+.col > .tw,.col > figure,.col > .chart{width:min(1020px,calc(100vw - 40px));max-width:none}
+.grid{stroke:var(--rule2)}
+.tick{font-size:11px;fill:var(--ink3)}
+.axlab{font-size:11.5px;fill:var(--ink3);letter-spacing:.05em}
+.val{font-size:12px;font-weight:500;fill:var(--ink2)}
+.ser{font-size:12.5px;font-weight:500}
+.mark{font-size:10.5px;fill:var(--ink3);letter-spacing:.06em}
+.note{font-size:11.5px;fill:var(--ink3)}
+.tw{overflow-x:auto;margin:24px 0;border:1px solid var(--rule);border-radius:10px;
+  background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th{font:600 12px/1.3 Archivo,sans-serif;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink3);text-align:left;padding:13px 14px;border-bottom:1px solid var(--rule);
+  white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid var(--rule2);vertical-align:top;white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;font-size:13.5px}
+tbody tr.hi td{background:color-mix(in oklab,var(--s1) 9%,transparent)}
+.ok{color:var(--good);font-weight:600}
+.no{color:var(--bad);font-weight:600}
+.retract{border:2px solid var(--bad);border-radius:12px;padding:22px 26px;margin:30px 0 0;
+  background:color-mix(in oklab,var(--bad) 7%,var(--card))}
+.retract .tag{display:block;font:700 12px/1 Archivo,sans-serif;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--bad);margin-bottom:11px}
+.retract p:last-child{margin-bottom:0}
+code{font-size:.92em;background:var(--sunk);padding:1px 4px;border-radius:4px;
+  margin:0 -1px;white-space:nowrap}
+footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",monospace}
+</style>
+
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">MorphoHand &#183; real_v1 &#183; 6 September 2026</div>
+  <h1>Why the deployed hands stopped reorienting the screwdriver</h1>
+  <p class="lede">One configuration has ever run this task end to end, and it still does. Four
+  things changed on the way to the deployed plans; ablating them one at a time shows the pivot
+  height decides which end of the tool points down, and the grasp fitter spends the finger
+  travel the turn is paid for in.</p>
+  <div class="byline">Ablation off the reproduced 2026-09-03 chain &#183; 492 rollouts &#183;
+  scored on the SIGNED cosine with a load test &#183; no hardware run</div>
+</header>
+
+<section class="col">
+  <h2>The reference, and why it had to be recovered first</h2>
+  <p class="sub">results/phase1/real_v1/rv05_manual_stored &#183; 169/169 on 2026-09-03</p>
+
+  <p>The fingers take the shaft from horizontal to 4.8&#176; off vertical in the air, on three
+  pads, tip down, then the arm sets it into the countersink and the hand gaits it eight cycles:</p>
+
+<pre>lifted      cos -0.0005  z 0.1121  3 pads   5.55 N
+turned      cos +0.8404  z 0.1145  3 pads  22.32 N
+reoriented  cos +0.9939  z 0.1129  3 pads  10.47 N
+upright     cos +1.0000  z 0.0499  2 pads          tip down
+gaited      cos +0.9946                    8/8 cycles   OK</pre>
+
+  <p>On 2026-09-06 that configuration would not execute at all. <code>GantryPalm</code> has no
+  <code>worst_pos</code>, which <code>probe_real_v1_chain</code> reads unconditionally when
+  <code>reindex</code> is <code>"full"</code>, so the entire floating-palm path raised
+  <code>AttributeError</code>. Nothing had noticed, because every run since the arm work went
+  through the arm path. One line in <code>palm_driver.py</code>, and it reproduces.</p>
+
+  <p>It is now pinned by <code>tests/test_chain_reference.py</code>, which asserts the signed
+  cosine above 0.90 at <code>reoriented</code>, at least two pads carrying at least the tool's
+  0.240 N, floor-free, and 8 of 8 gait cycles. Verified to discriminate: at the deployed pivot
+  height it fails with cos 0.0008.</p>
+</section>
+
+<section class="col">
+  <h2>One factor at a time</h2>
+  <p class="sub">scripts/real_v1_chain_ablate.py &#183; 32 rollouts &#183; cos is the tool's own
+  +z against world +z, so tip down is +1 and handle down is &minus;1</p>
+
+  <div class="tw"><table><thead><tr><th>one factor changed</th><th class=num>lift: pads / N</th><th class=num>turned: cos</th><th class=num>reoriented: cos</th><th class=num>reoriented: pads / N</th><th class=num>chain</th></tr></thead><tbody><tr><td>the 2026-09-03 reference, reproduced</td><td class=num>3.0 / 5.55</td><td class=num><span class="">+0.840</span></td><td class=num>+0.994</td><td class=num>3.0 / 10.47</td><td class=num>4/4</td></tr><tr class=hi><td>pivot 0.25 &#8594; 0.05 (the plans')</td><td class=num>3.0 / 5.55</td><td class=num><span class="no">-0.988</span></td><td class=num>-0.249</td><td class=num>0.0 / 0.00</td><td class=num>0/4</td></tr><tr><td>clip 0.50 &#8594; 0.85 (the plan's)</td><td class=num>3.0 / 5.55</td><td class=num><span class="">+0.967</span></td><td class=num>+0.970</td><td class=num>2.0 / 0.16</td><td class=num>1/4</td></tr><tr><td>turn &minus;90&#176; &#8594; &minus;60&#176; (the plan's)</td><td class=num>3.0 / 5.55</td><td class=num><span class="">+0.546</span></td><td class=num>+0.791</td><td class=num>2.8 / 1.32</td><td class=num>3/4</td></tr><tr><td>sphere pads &#8594; the chain's flat pads</td><td class=num>0.0 / 0.00</td><td class=num><span class="">+0.000</span></td><td class=num>+0.000</td><td class=num>0.0 / 0.00</td><td class=num>0/4</td></tr><tr><td>CEM grasp &#8594; the bench fitter</td><td class=num>0.0 / 0.00</td><td class=num><span class="">+0.000</span></td><td class=num>+0.000</td><td class=num>0.0 / 0.00</td><td class=num>0/4</td></tr><tr><td>all four together</td><td class=num>3.0 / 3.37</td><td class=num><span class="">+0.755</span></td><td class=num>+0.619</td><td class=num>1.5 / 0.18</td><td class=num>0/4</td></tr></tbody></table></div>
+
+  <p><strong>The pivot height is the 180&#176;.</strong> <code>axis_k</code> sets the height of
+  the point the finger anchor is rotated about, in half-straddles above the contact plane. At
+  0.05 the lift is bit-for-bit identical to the reference &#8212; three pads, 5.55 N, z 0.1121,
+  because the pivot only enters after the lift &#8212; and the turn then carries the tool to
+  cos &minus;0.988: within 9&#176; of vertical, standing on its handle, and it drops. Every
+  deployed plan carries 0.05 to 0.15.</p>
+
+  <p><strong>The clip bleeds the grip.</strong> At 0.85 the tool reorients correctly, cos
+  +0.970, and the pad force falls from 5.55 N to 0.15 N across the same 1.1 s against a 0.240 N
+  tool. It arrives vertical in a hand that is no longer holding it, and is lost on the way down.
+  The plan angle of &minus;60&#176; simply under-rotates and still chains 3 of 4.</p>
+
+  <p><strong>The two pad arms are not evidence about pads.</strong> Both fail at the
+  <em>lift</em>, at z 0.0124 with zero contacts: the stored CEM anchor replayed on a flat pad
+  whose contacting face sits 3 mm further out, and the fitter's anchor replayed on spherical
+  pads. Flat pads <em>with a grasp fitted for them</em> &#8212; the last row &#8212; lift on
+  three pads at 3.37 N and turn to cos +0.755. The pad shape is not the blocker.</p>
+</section>
+
+<section class="col">
+  <h2>What the fitter spends</h2>
+  <p class="sub">mount-to-pad distance at the closed grip, against the 68.11 mm chain</p>
+
+  <p>The reference grasp comes from a CEM search over rollouts. The deployed hands are
+  Sobol-sampled and have no CEM run, so their grasp comes from
+  <code>probe_real_v1_carry._grip_from_fit</code>, a geometric IK fit. Its own docstring names
+  the problem it creates:</p>
+
+<pre>GRIP DEPTH IS A VARIABLE, NOT AN OPTIMUM. `fit` normally takes the DEEPEST reachable
+palm height, for clearance over the shaft's upper half once it stands up. On this hand
+that lands every design at 52-65 mm of a 68.11 mm mount-to-pad chain -- 95% extension, the
+boundary of the reach shell, where the fingertip has no radial workspace left and so
+cannot carry the object anywhere.</pre>
+
+  <p>Measured, it is worse than the comment says. The turn is paid for in finger extension, and
+  the fitted grasp arrives at the turn with between 0.44 and 1.26 mm of chain left, against the
+  reference grasp's 2.74 mm.</p>
+
+  <svg class="chart" viewBox="0 0 1020 268" role="img" aria-label="finger extension at the closed grip"><line class="grid" x1="210.0" y1="34" x2="210.0" y2="228"/><text class="tick" x="210.0" y="244" text-anchor="middle">60</text><line class="grid" x1="380.2" y1="34" x2="380.2" y2="228"/><text class="tick" x="380.2" y="244" text-anchor="middle">62</text><line class="grid" x1="550.3" y1="34" x2="550.3" y2="228"/><text class="tick" x="550.3" y="244" text-anchor="middle">64</text><line class="grid" x1="720.5" y1="34" x2="720.5" y2="228"/><text class="tick" x="720.5" y="244" text-anchor="middle">66</text><line class="grid" x1="890.6" y1="34" x2="890.6" y2="228"/><text class="tick" x="890.6" y="244" text-anchor="middle">68</text><line x1="900.0" y1="28" x2="900.0" y2="228" stroke="var(--bad)" stroke-width="1.5"/><text class="mark" x="900.0" y="20" text-anchor="middle" fill="var(--bad)">REACH SHELL 68.11</text><text class="ser" x="198" y="50" text-anchor="end" fill="var(--ink2)">CEM (the reference)</text><line x1="431.2" y1="46" x2="669.4" y2="46" stroke="var(--s2)" stroke-width="2" stroke-linecap="round"/><circle cx="431.2" cy="46" r="4.5" fill="var(--s2)"/><circle cx="524.8" cy="46" r="4.5" fill="var(--s2)"/><circle cx="669.4" cy="46" r="4.5" fill="var(--s2)"/><text class="val" x="910" y="50" fill="var(--s2)">2.71 mm left</text><text class="ser" x="198" y="78" text-anchor="end" fill="var(--ink2)">fitter, squeeze 2 mm</text><line x1="746.0" y1="74" x2="865.1" y2="74" stroke="var(--s1)" stroke-width="2" stroke-linecap="round"/><circle cx="814.1" cy="74" r="4.5" fill="var(--s1)"/><circle cx="865.1" cy="74" r="4.5" fill="var(--s1)"/><circle cx="746.0" cy="74" r="4.5" fill="var(--s1)"/><text class="val" x="910" y="78" fill="var(--s1)">0.41 mm left</text><text class="ser" x="198" y="106" text-anchor="end" fill="var(--ink2)">fitter, squeeze 4 mm</text><line x1="729.0" y1="102" x2="856.6" y2="102" stroke="var(--s1)" stroke-width="2" stroke-linecap="round"/><circle cx="797.1" cy="102" r="4.5" fill="var(--s1)"/><circle cx="856.6" cy="102" r="4.5" fill="var(--s1)"/><circle cx="729.0" cy="102" r="4.5" fill="var(--s1)"/><text class="val" x="910" y="106" fill="var(--s1)">0.51 mm left</text><text class="ser" x="198" y="134" text-anchor="end" fill="var(--ink2)">fitter, squeeze 6 mm</text><line x1="712.0" y1="130" x2="839.6" y2="130" stroke="var(--s1)" stroke-width="2" stroke-linecap="round"/><circle cx="788.5" cy="130" r="4.5" fill="var(--s1)"/><circle cx="839.6" cy="130" r="4.5" fill="var(--s1)"/><circle cx="712.0" cy="130" r="4.5" fill="var(--s1)"/><text class="val" x="910" y="134" fill="var(--s1)">0.71 mm left</text><text class="ser" x="198" y="162" text-anchor="end" fill="var(--ink2)">fitter, squeeze 8 mm</text><line x1="686.4" y1="158" x2="831.1" y2="158" stroke="var(--s1)" stroke-width="2" stroke-linecap="round"/><circle cx="771.5" cy="158" r="4.5" fill="var(--s1)"/><circle cx="831.1" cy="158" r="4.5" fill="var(--s1)"/><circle cx="686.4" cy="158" r="4.5" fill="var(--s1)"/><text class="val" x="910" y="162" fill="var(--s1)">0.81 mm left</text><text class="ser" x="198" y="190" text-anchor="end" fill="var(--ink2)">fitter, squeeze 10 mm</text><line x1="669.4" y1="186" x2="814.1" y2="186" stroke="var(--s1)" stroke-width="2" stroke-linecap="round"/><circle cx="746.0" cy="186" r="4.5" fill="var(--s1)"/><circle cx="814.1" cy="186" r="4.5" fill="var(--s1)"/><circle cx="669.4" cy="186" r="4.5" fill="var(--s1)"/><text class="val" x="910" y="190" fill="var(--s1)">1.01 mm left</text><text class="ser" x="198" y="218" text-anchor="end" fill="var(--ink2)">fitter, squeeze 12 mm</text><line x1="643.9" y1="214" x2="788.5" y2="214" stroke="var(--s1)" stroke-width="2" stroke-linecap="round"/><circle cx="720.5" cy="214" r="4.5" fill="var(--s1)"/><circle cx="788.5" cy="214" r="4.5" fill="var(--s1)"/><circle cx="643.9" cy="214" r="4.5" fill="var(--s1)"/><text class="val" x="910" y="218" fill="var(--s1)">1.31 mm left</text><text class="axlab" x="555" y="262" text-anchor="middle">MOUNT-TO-PAD DISTANCE AT THE CLOSED GRIP / mm</text></svg>
+  <div class="tw"><table><thead><tr><th>grasp</th><th class=num>thumb</th><th class=num>index</th><th class=num>middle</th><th class=num>% of the chain</th><th class=num>headroom</th></tr></thead><tbody><tr class=hi><td>CEM (the reference)</td><td class=num>62.6 mm</td><td class=num>63.7 mm</td><td class=num>65.4 mm</td><td class=num>96.0%</td><td class=num>2.71 mm</td></tr><tr><td>fitter, squeeze 2 mm</td><td class=num>67.1 mm</td><td class=num>67.7 mm</td><td class=num>66.3 mm</td><td class=num>99.4%</td><td class=num>0.41 mm</td></tr><tr><td>fitter, squeeze 4 mm</td><td class=num>66.9 mm</td><td class=num>67.6 mm</td><td class=num>66.1 mm</td><td class=num>99.3%</td><td class=num>0.51 mm</td></tr><tr><td>fitter, squeeze 6 mm</td><td class=num>66.8 mm</td><td class=num>67.4 mm</td><td class=num>65.9 mm</td><td class=num>99.0%</td><td class=num>0.71 mm</td></tr><tr><td>fitter, squeeze 8 mm</td><td class=num>66.6 mm</td><td class=num>67.3 mm</td><td class=num>65.6 mm</td><td class=num>98.8%</td><td class=num>0.81 mm</td></tr><tr><td>fitter, squeeze 10 mm</td><td class=num>66.3 mm</td><td class=num>67.1 mm</td><td class=num>65.4 mm</td><td class=num>98.5%</td><td class=num>1.01 mm</td></tr><tr><td>fitter, squeeze 12 mm</td><td class=num>66.0 mm</td><td class=num>66.8 mm</td><td class=num>65.1 mm</td><td class=num>98.1%</td><td class=num>1.31 mm</td></tr></tbody></table></div>
+
+  <p>Squeeze moves it in the right direction and never far enough: 2 mm leaves 0.44 mm of
+  headroom and 12 mm leaves 1.26 mm, still half the reference. Swept through the chain on the
+  reference hand with spherical pads at reference pivot and clip, so the fitter is the only
+  thing that differs, no squeeze value produces a chain:</p>
+
+  <div class="tw"><table><thead><tr><th>fitted grasp</th><th class=num>lift: cos / z</th><th class=num>lift: pads / N</th><th class=num>reoriented: cos</th><th class=num>chain</th></tr></thead><tbody><tr class=hi><td>the reference</td><td class=num>-0.00 / 0.112</td><td class=num>3.0 / 5.55</td><td class=num>+0.994</td><td class=num>4/4</td></tr><tr><td>squeeze 2 mm</td><td class=num>+0.00 / 0.012</td><td class=num>0.0 / 0.00</td><td class=num>+0.000</td><td class=num>0/4</td></tr><tr><td>squeeze 4 mm</td><td class=num>-0.03 / 0.108</td><td class=num>3.0 / 8.79</td><td class=num>+0.000</td><td class=num>0/4</td></tr><tr><td>squeeze 6 mm</td><td class=num>-0.04 / 0.103</td><td class=num>1.5 / 0.15</td><td class=num>+0.000</td><td class=num>0/4</td></tr><tr><td>squeeze 8 mm</td><td class=num>+0.00 / 0.012</td><td class=num>0.0 / 0.00</td><td class=num>+0.000</td><td class=num>0/4</td></tr><tr><td>squeeze 10 mm</td><td class=num>+0.00 / 0.012</td><td class=num>0.0 / 0.00</td><td class=num>+0.000</td><td class=num>0/4</td></tr><tr><td>squeeze 12 mm</td><td class=num>+0.00 / 0.012</td><td class=num>0.0 / 0.00</td><td class=num>+0.000</td><td class=num>0/4</td></tr></tbody></table></div>
+
+  <p>The 4 mm cell is the one that matters. It lifts on three pads at <strong>8.79 N</strong>
+  &#8212; more grip than the reference's 5.55 N &#8212; and is on the floor by the next seam.
+  Grip force at the lift is therefore not the missing quantity; travel left in the fingers is.</p>
+
+  <p>Lowering the palm is the direct fix and the fitter will not do it: asked for 62, 58, 54, 50
+  and 46 mm of grip depth on this hand, <code>_grip_from_fit</code> returns no pose at every
+  one. Its clamp searches only <code>[depth &minus; 8 mm, depth]</code>, and on this hand the
+  only depth that solves is the deepest. The feasible set of the fitter lies entirely inside the
+  reach shell, so this is not a flag to turn down.</p>
+</section>
+
+<section class="col">
+  <h2>The clip belongs to a maneuver, not to a hand</h2>
+  <p class="sub">docs/experiments/OPERATING_POINTS.json</p>
+
+  <p>Three maneuvers in this program use the same field names for different numbers: the
+  <strong>bench</strong> (fixed palm, tool on a 100 mm post, 9.6 s hold, what the plans were
+  fitted on and what the CB1 replays), the <strong>carry</strong> (floor-free, the tool lifted
+  clear and turned in the air), and the <strong>chain</strong>. They disagree, and
+  <code>rv05_manual</code> is the proof: its bench band is 0.75&#8211;2.00 with a clip of 0.50
+  holding 0 of 4, while in the floor-free carry a clip of 0.50 gives cos 0.971 6 of 6 and 0.85
+  drops the tool at every pivot height.</p>
+
+  <div class="tw"><table><thead><tr><th>hand</th><th>id</th><th class=num>plan clip</th><th class=num>bench band</th><th class=num>plan inside it?</th><th class=num>carry</th><th class=num>chain</th></tr></thead><tbody><tr><td><code>sv1_w6689_b060</code></td><td>D1</td><td class=num>0.60</td><td class=num>no data</td><td class=num><span class="no">no</span></td><td class=num>unmeasured</td><td class=num>unmeasured</td></tr><tr><td><code>sv1_w2360_b075</code></td><td>D2</td><td class=num>0.75</td><td class=num>[0.5, 0.9]</td><td class=num><span class="ok">yes</span></td><td class=num>unmeasured</td><td class=num>unmeasured</td></tr><tr><td><code>sv1_u1364_b080</code></td><td>D3</td><td class=num>0.80</td><td class=num>[0.4, 1.0]</td><td class=num><span class="ok">yes</span></td><td class=num>unmeasured</td><td class=num>unmeasured</td></tr><tr><td><code>g12_b095</code></td><td>D4</td><td class=num>0.95</td><td class=num>[0.9, 2.0]</td><td class=num><span class="ok">yes</span></td><td class=num>unmeasured</td><td class=num>unmeasured</td></tr><tr><td><code>sv1_u0060_b75</code></td><td>D5</td><td class=num>0.75</td><td class=num>[0.6, 2.0]</td><td class=num><span class="ok">yes</span></td><td class=num>unmeasured</td><td class=num>unmeasured</td></tr><tr><td><code>sv1_u0308_b050</code></td><td>D6</td><td class=num>0.50</td><td class=num>[0.45, 2.0]</td><td class=num><span class="ok">yes</span></td><td class=num>unmeasured</td><td class=num>unmeasured</td></tr><tr><td><code>rv05_manual_b85</code></td><td>D7</td><td class=num>0.85</td><td class=num>[0.75, 2.0]</td><td class=num><span class="ok">yes</span></td><td class=num>unmeasured</td><td class=num>unmeasured</td></tr><tr><td><code>sv1_w0099_b100</code></td><td>D8</td><td class=num>1.00</td><td class=num>[0.95, 1.2]</td><td class=num><span class="ok">yes</span></td><td class=num>unmeasured</td><td class=num>unmeasured</td></tr></tbody></table></div>
+
+  <p>Sweeping the chain's own band per hand &#8212; clip 0.40 to 1.15 against pivot 0.15, 0.25
+  and 0.35, at &minus;90&#176; &#8212; gives 0 chains in 432 rollouts.
+  60 of them held the tool at <code>reoriented</code> on two or more pads at or above
+  its weight. The pole flip is gone; the grip is not there.</p>
+
+  <div class="tw"><table><thead><tr><th>id</th><th>pivot / clip</th><th class=num>reoriented: cos</th><th class=num>pads</th><th class=num>force</th></tr></thead><tbody><tr><td>D5</td><td>clip 0.7 / pivot 0.15</td><td class=num>+0.989</td><td class=num>0.3</td><td class=num><span class="no">0.09 N</span></td></tr><tr><td>D5</td><td>clip 0.85 / pivot 0.25</td><td class=num>+0.957</td><td class=num>0.3</td><td class=num><span class="no">0.10 N</span></td></tr><tr><td>D5</td><td>clip 0.85 / pivot 0.15</td><td class=num>+0.895</td><td class=num>0.0</td><td class=num><span class="no">0.00 N</span></td></tr><tr><td>D5</td><td>clip 1 / pivot 0.35</td><td class=num>+0.861</td><td class=num>2.3</td><td class=num><span class="no">0.15 N</span></td></tr><tr><td>D7</td><td>clip 0.85 / pivot 0.35</td><td class=num>+0.828</td><td class=num>3.0</td><td class=num><span class="ok">0.32 N</span></td></tr><tr><td>D7</td><td>clip 0.7 / pivot 0.25</td><td class=num>+0.815</td><td class=num>3.0</td><td class=num><span class="ok">0.41 N</span></td></tr><tr><td>D5</td><td>clip 1.15 / pivot 0.15</td><td class=num>+0.812</td><td class=num>0.0</td><td class=num><span class="no">0.00 N</span></td></tr><tr><td>D7</td><td>clip 0.85 / pivot 0.25</td><td class=num>+0.803</td><td class=num>3.0</td><td class=num><span class="ok">0.37 N</span></td></tr></tbody></table></div>
+
+  <p>Two shapes, and the load test separates them. <code>sv1_u0060_b75</code> reaches cos +0.989
+  on 0.3 pads at 0.09 N &#8212; a tool that has left the hand and happens to be vertical.
+  <code>rv05_manual_b85</code> holds three pads through the turn and reaches +0.83 at 0.41 N,
+  which is real and 34&#176; short, on a grip 25 times weaker than the reference's 10.47 N.</p>
+</section>
+
+<section class="col">
+  <h2>What this does not settle</h2>
+  <ul>
+    <li><strong>The fix to the fitter is not written.</strong> It needs an
+      extension-headroom constraint &#8212; reject a pose leaving under about 2.5 mm of the
+      68.11 mm chain &#8212; and a palm-height search wider than the current 8 mm clamp, since
+      the constraint is unsatisfiable inside it. Falsified if a headroom-constrained fit on
+      <code>rv05_manual_stored</code> does not reproduce the reference chain.</li>
+    <li><strong>2.74 mm is one hand's number, not a threshold.</strong> It comes from a single
+      CEM grasp. Measure headroom against reorientation outcome across the eight deployed hands
+      before treating it as a gate.</li>
+    <li><strong>The pivot height has no per-hand value for the chain.</strong> 0.25 is the
+      reference hand's. The 432-rollout sweep found no hand for which any of 0.15/0.25/0.35
+      completes, so the right value is either outside that range or conditional on the grasp
+      being fixed first. Re-run it after the fitter changes, not before.</li>
+    <li><strong>Nothing here is hardware.</strong> The bench record for these eight hands is 251
+      runs in <code>docs/experiments/20260902-cb1-log-archive</code>, all at the deployed pivot
+      and clip. No corrected grasp has been closed on a real tool.</li>
+  </ul>
+</section>
+
+<footer>
+  Local:
+  <code>docs/experiments/20260906-control_diagnosis/20260906-control_diagnosis.html</code><br>
+  Built by <code>scripts/real_v1_control_diagnosis_page.py</code> from
+  <code>20260906-ablate</code>, <code>20260906-fitter_force</code>,
+  <code>20260906-chain_band</code> and <code>OPERATING_POINTS.json</code>.
+</footer>
+</div>
