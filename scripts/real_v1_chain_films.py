@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 import sys
 from concurrent.futures import ProcessPoolExecutor
@@ -27,6 +28,44 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 # How far a run got, so "the best cell" is well defined for a hand that never completes.
 RANK = ("held_lift", "carry_ok", "stood_ok", "grip_ok", "ok")
+WEIGHT_N = 0.240   # the screwdriver's own weight -- below this the pads are touching, not carrying
+
+# The sweep builds its arm tag from its own knobs; parsing it back is how a film reproduces the
+# exact cell rather than the base config. Keep in step with `real_v1_chain_hands.main`.
+ARM_KEYS = {"c": ("clear", lambda v: v / 1000.0), "r": ("repose_steps", int),
+            "g": ("gait_scan", int), "o": ("release_mm", float), "t": ("turn_steps", int),
+            "b": ("budget", float), "k": ("axis_k", float), "a": ("angle_deg", float)}
+
+
+def _knobs(arm: str) -> dict:
+    """`load0_sq2_t550_b0.5_k0.35_a-90` -> the kwargs that produced it."""
+    out: dict = {}
+    for part in (arm or "").split("_"):
+        m = re.fullmatch(r"([a-z])(-?[\d.]+)", part)
+        if m and m.group(1) in ARM_KEYS:
+            key, cast = ARM_KEYS[m.group(1)]
+            out[key] = cast(float(m.group(2)))
+    return out
+
+
+def _seam(r: dict, phase: str) -> dict:
+    for e in r.get("seams") or []:
+        if e.get("phase") == phase:
+            return e
+    return {}
+
+
+def _held_turn(r: dict) -> tuple:
+    """Rank on the SIGNED held reorientation: +1 is tip down, -1 is the tool on its handle.
+
+    `ok` ranks the chain, which in table mode completes with the tool standing handle-down --
+    952 of 967 such stands were, and filming by `ok` filmed those. This ranks what the turn
+    actually did, gated on the hand still carrying the tool clear of the floor.
+    """
+    s = _seam(r, "reoriented")
+    carried = (s.get("pad_contacts") or 0) >= 2 and (s.get("pad_force_N") or 0) >= WEIGHT_N \
+        and (s.get("z") or 0.0) > 0.08
+    return (1 if carried else 0, s.get("cos") or -1.0, s.get("pad_force_N") or 0.0)
 
 
 def _reached(r: dict) -> int:
@@ -38,7 +77,9 @@ def _reached(r: dict) -> int:
     return n
 
 
-def _pick(runs: list[dict]) -> dict:
+def _pick(runs: list[dict], rank: str = "chain") -> dict:
+    if rank == "held":
+        return max(runs, key=_held_turn)
     return max(runs, key=lambda r: (_reached(r), r.get("reorient_deg") or -1.0,
                                     -(r.get("seed") or 0)))
 
@@ -56,9 +97,11 @@ def _cell(job: dict):
     fit = H.prepare(hand, squeeze_mm=sq)
     if fit is None:
         return {"tag": tag, "error": "prepare failed"}
-    stem = f"20260905-{tag}_sq{sq:g}_s{seed}"
-    kw = {"_hand": hand, "_fit": fit, "_tag": f"film_sq{sq:g}", "_table": True,
+    stem = job.get("stem") or f"20260905-{tag}" + ("" if sq is None else f"_sq{sq:g}") + f"_s{seed}"
+    kw = {"_hand": hand, "_fit": fit, "_tag": "film" if sq is None else f"film_sq{sq:g}",
+          "_table": job.get("table", True),
           "load_target": 0.0, "seed": seed, "jitter": 0.0005, "cycles": job["cycles"],
+          **job.get("knobs", {}),
           "video": out / f"{stem}.mp4", "video_size": size,
           "film": out / f"{stem}_seams.png",
           "cam": (-60.0, -20.0, 0.42), "cam_look": (0.02, -0.005, 0.045)}
@@ -123,10 +166,18 @@ def main() -> int:
     ap.add_argument("--cycles", type=int, default=6)
     ap.add_argument("--size", default="480,360")
     ap.add_argument("--only", default=None, help="comma list of tags")
+    ap.add_argument("--rank", choices=("chain", "held"), default="chain",
+                    help="chain = furthest gate reached; held = best SIGNED held reorientation")
+    ap.add_argument("--mode", choices=("air", "table", "sweep"), default="sweep",
+                    help="sweep = whatever the sweep itself ran (its meta.stand)")
+    ap.add_argument("--date", default="20260905", help="YYYYMMDD prefix for the output files")
     args = ap.parse_args()
 
     size = tuple(int(v) for v in args.size.split(","))
-    rows = json.loads(args.sweep.read_text())["rows"]
+    sweep = json.loads(args.sweep.read_text())
+    rows = sweep["rows"]
+    stand = sweep.get("stand") or (sweep.get("meta") or {}).get("stand") or "table"
+    table = stand == "table" if args.mode == "sweep" else args.mode == "table"
     by: dict[str, list[dict]] = {}
     for r in rows:
         by.setdefault(r["tag"], []).append(r)
@@ -137,10 +188,19 @@ def main() -> int:
     args.out.mkdir(parents=True, exist_ok=True)
     jobs = []
     for tag in sorted(by):
-        p = _pick(by[tag])
-        jobs.append({"tag": tag, "sq": _sq_of(p) or 2.0, "seed": p.get("seed", 0),
+        p = _pick(by[tag], args.rank)
+        kn = _knobs(p.get("arm", ""))
+        sq = _sq_of(p)   # None = the plan's own squeeze, which is what a no-`_sq` arm ran
+        stem = f"{args.date}-{tag}_" + "_".join(
+            f"{k}{v:g}" for k, v in sorted(kn.items()) if isinstance(v, (int, float))
+        ) + f"_s{p.get('seed', 0)}"
+        jobs.append({"tag": tag, "sq": sq, "seed": p.get("seed", 0), "knobs": kn,
+                     "table": table, "stem": stem,
                      "out": str(args.out), "size": list(size), "cycles": args.cycles})
-        print(f"  {tag:22} sq{jobs[-1]['sq']:g} seed{jobs[-1]['seed']}  "
+        s = _seam(p, "reoriented")
+        print(f"  {tag:22} {stand:5s} " + " ".join(f"{k}={v:g}" for k, v in sorted(kn.items()))
+              + f" s{p.get('seed', 0)}  reoriented cos {s.get('cos', 0):+.3f} "
+              f"{s.get('pad_contacts', 0)}p {s.get('pad_force_N', 0):.2f}N  "
               f"reached {RANK[_reached(p) - 1] if _reached(p) else 'grasp'}", flush=True)
 
     done = []
@@ -151,10 +211,16 @@ def main() -> int:
                   f"drop={r.get('drop_stage')}", flush=True)
 
     (args.out / "films.json").write_text(json.dumps(done, separators=(",", ":")))
-    vids = [(f"{r['tag']}  sq{r['sq']:g}" + ("  CHAIN" if r.get("ok") else
-            f"  {'stood' if r.get('stood_ok') else 'drop@' + str(r.get('drop_stage'))}"),
-             Path(r["video"])) for r in done if r.get("video") and Path(r["video"]).exists()]
-    g = args.out / "20260905-chain_grid.mp4"
+    vids = []
+    for r in done:
+        if not (r.get("video") and Path(r["video"]).exists()):
+            continue
+        s = _seam(r, "reoriented")
+        lab = (f"{r['tag']}  cos {s.get('cos', 0):+.2f} {s.get('pad_contacts', 0)}p "
+               f"{s.get('pad_force_N', 0):.1f}N  " +
+               ("CHAIN" if r.get("ok") else "drop@" + str(r.get("drop_stage"))))
+        vids.append((lab, Path(r["video"])))
+    g = args.out / f"{args.date}-chain_grid.mp4"
     print(f"grid: {g} " + ("written" if grid(vids, g, args.cols, size) else "FAILED"))
     print(f"-> {args.out}")
     return 0

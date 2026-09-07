@@ -101,6 +101,7 @@ def fitted(scene: Path, tag: str, squeeze: float | None = None,
 def _cell(kw):
     import probe_real_v1_chain as C
     arm, seed = kw.pop("_arm"), kw["seed"]
+    kw.pop("_stem", None)
     scene = kw.pop("_scene", None)
     anchor = kw.pop("_anchor", None)
     cell = dict(BASE)
@@ -126,6 +127,8 @@ def _cell(kw):
     r["reorient_ok"] = bool((ro.get("cos") or -1.0) > 0.90
                             and (ro.get("pad_contacts") or 0) >= 2
                             and (ro.get("z") or 0.0) > 0.08)
+    if kw.get("video"):
+        r["video"], r["film"] = str(kw["video"]), str(kw.get("film"))
     return r
 
 
@@ -135,6 +138,12 @@ def main() -> int:
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--reps", type=int, default=4)
     ap.add_argument("--workers", type=int, default=6)
+    ap.add_argument("--films", type=Path, default=None,
+                    help="render seed 0 of every arm: one mp4 and one seam filmstrip each, "
+                         "plus a labelled grid. An ablation table says WHICH factor, never "
+                         "what the factor did to the tool.")
+    ap.add_argument("--date", default="20260906")
+    ap.add_argument("--film-size", default="480,360")
     ap.add_argument("--depths", default=None,
                     help="comma list of fitted-grasp grip depths in mm. THE FITTER MAXIMISES "
                          "THIS BY CONSTRUCTION and its own docstring says so: it takes the "
@@ -190,7 +199,15 @@ def main() -> int:
             print(f"  {name}: NO FIT", flush=True)
             continue
         for rep in range(args.reps):
-            jobs.append({"_arm": name, "seed": rep, "jitter": 0.0005, **kw})
+            job = {"_arm": name, "seed": rep, "jitter": 0.0005, **kw}
+            if args.films is not None and rep == 0:
+                args.films.mkdir(parents=True, exist_ok=True)
+                stem = f"{args.date}-rv05_{name.replace('=', '').replace('.', 'd')}"
+                job.update(video=args.films / f"{stem}.mp4",
+                           video_size=tuple(int(v) for v in args.film_size.split(",")),
+                           film=args.films / f"{stem}_seams.png",
+                           cam=(-60.0, -20.0, 0.42), cam_look=(0.02, -0.005, 0.045))
+            jobs.append(job)
     print(f"{len(jobs)} cells on {args.workers} workers", flush=True)
 
     rows = []
@@ -217,6 +234,22 @@ def main() -> int:
               f"{m(f('force_reoriented_N')):7.2f} {m(f('cos_upright')):+7.4f} "
               f"{sum(1 for r in g if r.get('ok')):2}/{len(g):<2} "
               f"{m(f('cycles_run')):5.1f}")
+
+    if args.films is not None:
+        from real_v1_chain_films import grid
+        vids = []
+        for name, _ in arms:
+            r = next((x for x in rows if x.get("arm") == name and x.get("video")), None)
+            if r is None or not Path(r["video"]).exists():
+                continue
+            vids.append((f"{name}  cos {r.get('cos_reoriented') or 0:+.2f} "
+                         f"{r.get('pads_reoriented') or 0}p "
+                         f"{r.get('force_reoriented_N') or 0:.1f}N  " +
+                         ("CHAIN" if r.get("ok") else "drop@" + str(r.get("drop_stage"))),
+                         Path(r["video"])))
+        g = args.films / f"{args.date}-ablate_grid.mp4"
+        sz = tuple(int(v) for v in args.film_size.split(","))
+        print(f"grid: {g} " + ("written" if grid(vids, g, 4, sz) else "FAILED"))
     return 0
 
 
