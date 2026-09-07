@@ -59,7 +59,8 @@ def flat_scene() -> Path:
     return p
 
 
-def fitted(scene: Path, tag: str) -> tuple[Path, dict] | None:
+def fitted(scene: Path, tag: str, squeeze: float | None = None,
+           depth: float | None = None) -> tuple[Path, dict] | None:
     """`_grip_from_fit` on the same scene, with its open pose written into `open_ik`.
 
     The fit's open pose has to land in the keyframe as well as the anchor: the chain resets
@@ -74,8 +75,10 @@ def fitted(scene: Path, tag: str) -> tuple[Path, dict] | None:
     meta = OUTS / f"{tag}.json"
     if out.exists() and meta.exists():
         return out, json.loads(meta.read_text())
-    built = pc._grip_from_fit(scene, PLAN["straddle"], 0.0, PLAN["squeeze"], OBJ,
-                              PLAN["depth"], PLAN["thumb_axial"])
+    built = pc._grip_from_fit(scene, PLAN["straddle"], 0.0,
+                              PLAN["squeeze"] if squeeze is None else squeeze, OBJ,
+                              PLAN["depth"] if depth is None else depth,
+                              PLAN["thumb_axial"])
     if built is None:
         return None
     m, open_qpos, grip, _ = built
@@ -132,6 +135,23 @@ def main() -> int:
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--reps", type=int, default=4)
     ap.add_argument("--workers", type=int, default=6)
+    ap.add_argument("--depths", default=None,
+                    help="comma list of fitted-grasp grip depths in mm. THE FITTER MAXIMISES "
+                         "THIS BY CONSTRUCTION and its own docstring says so: it takes the "
+                         "DEEPEST reachable palm height, which lands the fingers at 96-99%% of "
+                         "the 68.11 mm mount-to-pad chain with 0.44-1.26 mm of headroom. The "
+                         "turn is paid for in EXTENSION, and the reference CEM grasp sits at "
+                         "92-96%% with 2.74 mm. A lower palm trades tip clearance for the "
+                         "travel the turn needs.")
+    ap.add_argument("--squeezes", default=None,
+                    help="comma list of fitted-grasp squeezes in mm. THE FITTER HAS NO FORCE "
+                         "TARGET: `_grip_from_fit` places the pad CENTRES geometrically at "
+                         "r_obj + r_pad + gap - squeeze and never asks what force that "
+                         "produces, so squeeze is the only knob between a grip that holds a "
+                         "static tool (0.24 N, its weight) and one that holds it through a "
+                         "turn (the CEM grasp's 10.47 N). Runs on the REFERENCE hand with "
+                         "sphere pads at reference axis_k and clip, so the fitter is the only "
+                         "thing that differs.")
     args = ap.parse_args()
 
     sph = RV05 / "frozen_scene.xml"
@@ -152,6 +172,18 @@ def main() -> int:
                            "angle_deg": PLAN["angle_deg"], "budget": PLAN["budget"]}
                           if f_box else None)),
     ]
+    if args.depths:
+        arms = [("baseline", {})]
+        for dp in (float(v) for v in args.depths.split(",")):
+            f = fitted(sph, f"rv05_fit_sphere_d{dp:g}", None, dp / 1000.0)
+            arms.append((f"fit_d{dp:g}mm",
+                         {"_scene": f[0], "_anchor": f[1]} if f else None))
+    elif args.squeezes:
+        arms = [("baseline", {})]
+        for sq in (float(v) for v in args.squeezes.split(",")):
+            f = fitted(sph, f"rv05_fit_sphere_sq{sq:g}", sq / 1000.0)
+            arms.append((f"fit_sq{sq:g}mm",
+                         {"_scene": f[0], "_anchor": f[1]} if f else None))
     jobs = []
     for name, kw in arms:
         if kw is None:
