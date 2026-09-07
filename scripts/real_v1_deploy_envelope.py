@@ -329,11 +329,19 @@ def _squeeze_dirs(m, d, acts) -> dict[str, np.ndarray]:
 
 
 def _force_step(m, d, acts, trim: dict, target: float, gain: float, authority: float,
-                obj: str) -> None:
+                obj: str, rate: float = 0.0006) -> None:
     """One step of per-finger normal-force regulation. Updates `trim` in place.
 
     A deadband of +-30% of the set-point, because the first version had none and integrated
     itself into the stop within a fifth of the turn.
+
+    `rate` is the per-tick slew limit on the trim, and it -- not `authority` -- is what bounds
+    this loop in practice. At the default 0.0006 rad, a 550-step turn regulated every 5 steps
+    can accumulate at most 110 * 0.0006 = 0.066 rad total, so an authority of 0.45 is never
+    approached and sweeping authority changes nothing (measured 2026-09-06: bands 0.03 and 0.45
+    give identical outcomes to three decimals). Note also that `gain` is inert at any realistic
+    error -- 0.0015 * 3 N = 0.0045 already saturates the clip -- so this is the only knob that
+    changes how fast the grip can answer the turn.
     """
     pf = pc._per_finger_contact(m, d, obj)
     dirs = _squeeze_dirs(m, d, acts)
@@ -341,7 +349,7 @@ def _force_step(m, d, acts, trim: dict, target: float, gain: float, authority: f
         fn = float(pf[f]["fn"])
         if abs(fn - target) <= 0.3 * target:
             continue
-        step = float(np.clip(gain * (target - fn), -0.0006, 0.0006))
+        step = float(np.clip(gain * (target - fn), -rate, rate))
         for j, u in zip(joints, dirs[f]):
             trim[j] = float(np.clip(trim[j] + step * float(u), -authority, authority))
 

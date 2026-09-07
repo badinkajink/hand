@@ -34,7 +34,9 @@ WEIGHT_N = 0.240   # the screwdriver's own weight -- below this the pads are tou
 # exact cell rather than the base config. Keep in step with `real_v1_chain_hands.main`.
 ARM_KEYS = {"c": ("clear", lambda v: v / 1000.0), "r": ("repose_steps", int),
             "g": ("gait_scan", int), "o": ("release_mm", float), "t": ("turn_steps", int),
-            "b": ("budget", float), "k": ("axis_k", float), "a": ("angle_deg", float)}
+            "b": ("budget", float), "k": ("axis_k", float), "a": ("angle_deg", float),
+            "f": ("force_target", float), "w": ("reg_band", float),
+            "v": ("force_rate", float)}
 
 
 def _knobs(arm: str) -> dict:
@@ -68,6 +70,20 @@ def _held_turn(r: dict) -> tuple:
     return (1 if carried else 0, s.get("cos") or -1.0, s.get("pad_force_N") or 0.0)
 
 
+def _carried(r: dict) -> tuple:
+    """Never dropped it, then how far up it got at ANY seam, while loaded.
+
+    `_held_turn` scores the `reoriented` seam alone, and a run whose rotation finishes later --
+    D7 reaches cos +0.617 at `reoriented` and +0.987 at `staged` -- ranks below one that never
+    got there. This ranks the run: did the tool stay in the hand, and what is the best loaded
+    alignment it ever reached.
+    """
+    ok = r.get("drop_stage") is None
+    peak = max(((s.get("cos") or -1.0) for s in (r.get("seams") or [])
+                if (s.get("pad_contacts") or 0) >= 1), default=-1.0)
+    return (1 if ok else 0, peak, -(r.get("free_frac") or 1.0))
+
+
 def _reached(r: dict) -> int:
     n = 0
     for k in RANK:
@@ -78,6 +94,8 @@ def _reached(r: dict) -> int:
 
 
 def _pick(runs: list[dict], rank: str = "chain") -> dict:
+    if rank == "carried":
+        return max(runs, key=_carried)
     if rank == "held":
         return max(runs, key=_held_turn)
     return max(runs, key=lambda r: (_reached(r), r.get("reorient_deg") or -1.0,
@@ -104,7 +122,8 @@ def _cell(job: dict):
           **job.get("knobs", {}),
           "video": out / f"{stem}.mp4", "video_size": size,
           "film": out / f"{stem}_seams.png",
-          "cam": (-60.0, -20.0, 0.42), "cam_look": (0.02, -0.005, 0.045)}
+          "cam": tuple(job.get("cam") or (-60.0, -20.0, 0.42)),
+          "cam_look": tuple(job.get("cam_look") or (0.02, -0.005, 0.045))}
     r = H._cell(kw)
     r["video"] = str(out / f"{stem}.mp4")
     r["film"] = str(out / f"{stem}_seams.png")
@@ -166,11 +185,18 @@ def main() -> int:
     ap.add_argument("--cycles", type=int, default=6)
     ap.add_argument("--size", default="480,360")
     ap.add_argument("--only", default=None, help="comma list of tags")
-    ap.add_argument("--rank", choices=("chain", "held"), default="chain",
-                    help="chain = furthest gate reached; held = best SIGNED held reorientation")
+    ap.add_argument("--rank", choices=("chain", "held", "carried"), default="chain",
+                    help="chain = furthest gate reached; held = best SIGNED held reorientation "
+                         "at the `reoriented` seam; carried = never dropped it, then best loaded "
+                         "alignment at ANY seam")
     ap.add_argument("--mode", choices=("air", "table", "sweep"), default="sweep",
                     help="sweep = whatever the sweep itself ran (its meta.stand)")
     ap.add_argument("--date", default="20260905", help="YYYYMMDD prefix for the output files")
+    ap.add_argument("--cam", default=None,
+                    help="azimuth,elevation,distance. The default -60,-20,0.42 was framed for "
+                         "the gantry palm; on the UR5e scene the wrist swings between it and "
+                         "the tool and occludes the whole second half of the run.")
+    ap.add_argument("--cam-look", default=None, help="x,y,z the camera points at")
     args = ap.parse_args()
 
     size = tuple(int(v) for v in args.size.split(","))
@@ -196,6 +222,9 @@ def main() -> int:
         ) + f"_s{p.get('seed', 0)}"
         jobs.append({"tag": tag, "sq": sq, "seed": p.get("seed", 0), "knobs": kn,
                      "table": table, "stem": stem,
+                     "cam": [float(v) for v in args.cam.split(",")] if args.cam else None,
+                     "cam_look": ([float(v) for v in args.cam_look.split(",")]
+                                  if args.cam_look else None),
                      "out": str(args.out), "size": list(size), "cycles": args.cycles})
         s = _seam(p, "reoriented")
         print(f"  {tag:22} {stand:5s} " + " ".join(f"{k}={v:g}" for k, v in sorted(kn.items()))
