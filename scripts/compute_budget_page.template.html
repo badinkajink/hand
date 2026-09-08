@@ -1,0 +1,368 @@
+<title>Training throughput on the workstation and a DeltaAI GH200</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#EEF1F4; --card:#FFFFFF; --sunk:#E4E9EE;
+  --ink:#1A2127; --ink2:#48545D; --ink3:#77848D; --rule:#D2DAE1; --rule2:#E2E8ED;
+  --s1:#BE7514; --s2:#4A7FC4; --ref:#8A959D;
+  --good:#3F7A46; --bad:#A8443C;
+  --shadow:0 1px 2px rgba(16,26,34,.06),0 8px 24px -14px rgba(16,26,34,.28);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
+  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
+  --s1:#E39A2E; --s2:#7BA7E0; --ref:#79858E; --good:#6FB076; --bad:#DE8078;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+}}
+:root[data-theme="dark"]{
+  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
+  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
+  --s1:#E39A2E; --s2:#7BA7E0; --ref:#79858E; --good:#6FB076; --bad:#DE8078;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);
+  font:400 17px/1.62 "Source Serif 4",Georgia,"Times New Roman",serif;
+  -webkit-font-smoothing:antialiased;padding:0 20px 96px}
+.wrap{max-width:1020px;margin:0 auto}
+.col{max-width:70ch}
+h1,h2,h3,.mono,.tag,th{font-family:Archivo,"Helvetica Neue",Arial,sans-serif}
+.mono,code,td.num,.tick,.val,.ser,.mark,.note,.axlab,pre{
+  font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+header{padding:64px 0 30px;border-bottom:1px solid var(--rule)}
+.eyebrow{font:500 12px/1 "IBM Plex Mono",monospace;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--ink3)}
+h1{font-size:clamp(30px,4.6vw,48px);line-height:1.05;font-weight:700;letter-spacing:-.022em;
+  margin:16px 0 0;text-wrap:balance;max-width:22ch}
+.lede{font-size:20px;line-height:1.55;color:var(--ink2);margin:18px 0 0;max-width:62ch}
+.byline{margin-top:22px;font:400 13px/1.5 "IBM Plex Mono",monospace;color:var(--ink3)}
+section{padding:46px 0;border-bottom:1px solid var(--rule2)}
+section:last-of-type{border-bottom:0}
+h2{font-size:27px;font-weight:700;letter-spacing:-.018em;margin:0 0 6px;text-wrap:balance}
+h3{font-size:18px;font-weight:600;letter-spacing:-.008em;margin:34px 0 8px}
+h2 + .sub{color:var(--ink3);font:400 14px/1.5 "IBM Plex Mono",monospace;margin:0 0 24px}
+p{margin:0 0 17px}
+strong{font-weight:600}
+ul,ol{margin:0 0 17px;padding-left:20px}
+li{margin:0 0 10px}
+.chart{display:block;width:100%;height:auto;background:var(--card);border:1px solid var(--rule);
+  border-radius:10px;margin:24px 0}
+.col > .tw,.col > .chart,.col > .kpi{width:min(1020px,calc(100vw - 40px));max-width:none}
+.grid{stroke:var(--rule2)}
+.tick{font-size:11px;fill:var(--ink3)}
+.axlab{font-size:11.5px;fill:var(--ink3);letter-spacing:.05em}
+.val{font-size:12px;font-weight:500;fill:var(--ink2)}
+.ser{font-size:12.5px;font-weight:500}
+.mark{font-size:10.5px;fill:var(--ink3);letter-spacing:.06em}
+.note{font-size:11.5px;fill:var(--ink3)}
+.tw{overflow-x:auto;margin:24px 0;border:1px solid var(--rule);border-radius:10px;
+  background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th{font:600 12px/1.3 Archivo,sans-serif;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink3);text-align:left;padding:13px 14px;border-bottom:1px solid var(--rule);
+  white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid var(--rule2);vertical-align:top}
+td.wrap{white-space:normal;min-width:20ch}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;font-size:13.5px;
+  white-space:nowrap}
+tbody tr.hi td{background:color-mix(in oklab,var(--s1) 9%,transparent)}
+.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--rule);
+  border:1px solid var(--rule);border-radius:10px;overflow:hidden;margin:28px 0}
+@media (max-width:720px){.kpi{grid-template-columns:repeat(2,1fr)}}
+.kpi div{background:var(--card);padding:18px 20px}
+.kpi .n{font:500 25px/1.1 "IBM Plex Mono",monospace;color:var(--ink);
+  font-variant-numeric:tabular-nums}
+.kpi .k{font:600 11px/1.3 Archivo,sans-serif;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink3);margin-top:8px}
+.keep{border:1px solid var(--rule);border-left:3px solid var(--s2);border-radius:10px;
+  padding:20px 24px;margin:28px 0;background:var(--card)}
+.keep .tag{display:block;font:700 12px/1 Archivo,sans-serif;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--s2);margin-bottom:11px}
+.keep p:last-child,.keep ul:last-child{margin-bottom:0}
+.corr{border:1px solid var(--rule);border-left:3px solid var(--bad);border-radius:10px;
+  padding:20px 24px;margin:28px 0;background:var(--card)}
+.corr .tag{display:block;font:700 12px/1 Archivo,sans-serif;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--bad);margin-bottom:11px}
+.corr p:last-child{margin-bottom:0}
+pre{background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:16px 18px;
+  overflow-x:auto;font-size:13px;line-height:1.6;margin:22px 0}
+code{font-size:.92em;background:var(--sunk);padding:1px 4px;border-radius:4px;
+  margin:0 -1px;white-space:nowrap}
+footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",monospace}
+footer a{color:var(--s2)}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">MorphoHand &#183; compute budget &#183; 8 September 2026</div>
+  <h1>Training throughput on the workstation and a DeltaAI GH200</h1>
+  <p class="lede">A GH200 compute node runs the MuJoCo-Warp training loop at {{RATIO_MED}}&#215;
+  the workstation&#8217;s rate, measured against the workstation&#8217;s whole logged
+  population rather than its best hour. Over the {{SPAN_DAYS}} days that population covers,
+  the workstation&#8217;s GPU was busy {{DUTY}}% of the time, which places the binding
+  constraint somewhere other than throughput.</p>
+  <div class="byline">{{N_LOGS}} trainer logs &#183; {{N_ITERS}} PPO iterations &#183;
+  {{N_GSTEPS}} G env-steps &#183; {{TRAIN_H}} GPU-hours &#183; {{FIRST_DAY}} to
+  {{LAST_DAY}}. GH200 figures are transcribed from jobs 2989123 and 2989164 and are not
+  reproducible from this machine.</div>
+</header>
+
+<section class="col">
+  <h2>What each machine delivers per GPU</h2>
+  <p class="sub">logs/*.log, steady-state iterations &#183; docs/notes/20260820-deltaai_bulk_training_runbook.md</p>
+
+  <p>Every trainer log in <code>logs/</code> that got past five PPO iterations reports its own
+  steps/s, collection time and learning time each iteration. {{N_LOGS}} logs qualify. At 3072
+  parallel environments the median run sustains <strong>{{MED3}} env-steps/s</strong>
+  (interquartile range {{Q1_3}} to {{Q3_3}}, n = {{N3}}); at 2048 it sustains {{MED2}}
+  (n = {{N2}}). A single GH200 job at the same batch width reached {{GH_SPS3}}.</p>
+
+  {{CHART_THROUGHPUT}}
+
+  <div class="corr">
+    <span class="tag">Correction to the recorded ratio</span>
+    <p>The 0.66&#215; figure in the runbook and in
+    <code>docs/notes/20260826-nsf_access_deltaai_guide.md</code> was computed against a local
+    reference of {{PUB_REF}} steps/s taken from one run on 2026-08-19. That number does not
+    appear anywhere in the population: the fastest of the {{N3}} logged runs at 3072 envs
+    reached {{MAX3}}, and the median is {{MED3}}. Against the median the GH200 is
+    <strong>{{RATIO_MED}}&#215;</strong>, not {{RATIO_PUB}}&#215;. The direction of the finding
+    is unchanged and the sizing tables built on it are conservative by about 11%.</p>
+  </div>
+
+  {{TABLE_MACHINES}}
+</section>
+
+<section class="col">
+  <h2>Where the wall clock goes</h2>
+  <p class="sub">median over {{N_LOGS}} logs, iteration 0 excluded</p>
+
+  <p>Collection takes <strong>{{COLLECT_PCT}}%</strong> of an iteration and the PPO update
+  takes {{LEARN_PCT}}%; the worst learning share in the whole population is {{LEARN_MAX}}%.
+  Iteration time minus collection minus learning leaves {{UNACC}}% unaccounted, so there is no
+  hidden third term. Every learning-side knob &#8212; epochs, minibatch count, learning rate,
+  network width &#8212; divides a budget of one and a third percent.</p>
+
+  <p>Batch width does not help either, and the reason is visible in the per-env-step cost. One
+  iteration simulates <code>num_envs &#215; 24</code> env-steps, so dividing collection time by
+  that gives a cost per simulated step that is free of batch size. On the workstation it is
+  {{US1}} &#181;s at 1024 envs, {{US2}} &#181;s at 2048 and {{US3}} &#181;s at 3072 &#8212; a
+  spread of 0.01% across a threefold change in batch. The GH200 behaves the same way at its own
+  level, {{GH_US_ASYM}} &#181;s from 8192 to 16384.</p>
+
+  {{CHART_COST}}
+
+  <p>A workload whose per-item cost is invariant to batch width is not throughput-limited. It
+  is limited by the depth of the dependency chain inside one step: MuJoCo's solver runs
+  <code>iterations &#215; ls_iterations</code> sequential passes, and with 15 joints and a
+  handful of contacts none of those passes is wide enough to fill the device. That matches what
+  the card reports while training, 43&#8211;46% utilisation with CUDA graph capture already
+  enabled, and it explains why the two levers people reach for first are both spent: the solver
+  already ships at <code>iterations=10, ls_iterations=20</code> (set in
+  <code>env_build.py</code>, overriding whatever the scene XML says), and adding environments
+  widens kernels that were never the constraint.</p>
+</section>
+
+<section class="col">
+  <h2>Why the GH200 loses on a workload it should win</h2>
+  <p class="sub">clock ratio {{CLK_RATIO}}&#215; against measured cost ratio {{COST_RATIO}}&#215;</p>
+
+  <p>A latency-bound workload spends its time waiting on a chain of dependent operations, so its
+  wall clock scales with clock period rather than with FLOPs or bandwidth. That predicts the
+  deficit directly. The workstation's SM clock reads <strong>{{CLK_LOC}} MHz</strong> under load
+  (<code>nvidia-smi --query-gpu=clocks.sm</code>, 2026-09-08, ceiling 3,120); the GH200's Hopper
+  die boosts to a specified {{CLK_GH}} MHz. The ratio is {{CLK_RATIO}}&#215;. The measured
+  per-env-step cost ratio is {{COST_RATIO}}&#215;. Those agree to {{CLK_GAP}}%.</p>
+
+  <p>Read that way the result stops being a surprise. The GH200 brings roughly twice the SMs and
+  six times the memory, and this workload uses neither: it needs one narrow kernel to finish so
+  the next can start. The estimate that predicted 1&#8211;2.5&#215; faster was reading the
+  specification sheet in the units of a dense-matmul workload.</p>
+
+  <div class="keep">
+    <span class="tag">Sizing rule for this stack</span>
+    <p>Rank candidate GPUs for mjwarp training by clock, not by FLOPs, memory or SM count, and
+    confirm with a smoke job on a real scene before committing an allocation. A consumer part
+    with a high boost clock will beat a datacenter part at the same generation on this workload,
+    and the gap does not close at any batch size either machine can hold.</p>
+  </div>
+
+  <p>The clock figure for the GH200 is a specification, not a measurement &#8212; nobody has read
+  <code>clocks.sm</code> on the compute node under load. That measurement is listed at the end.</p>
+</section>
+
+<section class="col">
+  <h2>The workstation GPU is idle nine days in ten</h2>
+  <p class="sub">{{TRAIN_H}} GPU-hours over {{SPAN_DAYS}} calendar days</p>
+
+  <p>The {{N_LOGS}} logs sum to {{TRAIN_H}} hours of training spread across {{SPAN_DAYS}} days,
+  a duty cycle of <strong>{{DUTY}}%</strong>. {{ACTIVE_DAYS}} days carried a run and
+  {{IDLE_DAYS}} did not. On the days it ran at all the GPU averaged {{H_PER_ACTIVE}} hours, so
+  when work exists the machine is used hard; the gaps are between studies, not inside them.</p>
+
+  {{CHART_DUTY}}
+
+  <p>This reframes what extra compute can buy. Adding a second GPU-equivalent to a machine
+  running at {{DUTY}}% occupancy shortens nothing that was waiting on a GPU, because almost
+  nothing was. The {{IDLE_DAYS}} idle days went to rendering filmstrips, reading trajectory
+  health scorecards, bench sessions on the CB1, and deciding what the last result meant. Those
+  are the serial resource.</p>
+
+  <p>Two caveats on the number. It counts only runs that logged five or more iterations, so
+  crashed launches and short probes are missing, and it counts only RL training &#8212; CEM
+  grasp synthesis, evaluation sweeps and rendering also use the card and are not in
+  <code>logs/*.log</code>. The true occupancy is higher than {{DUTY}}%; it is not close to
+  100%.</p>
+</section>
+
+<section class="col">
+  <h2>The first cluster study removed the reason for the cluster</h2>
+  <p class="sub">docs/experiments/B33_SEED_BAND.txt &#183; {{SB_N}} draws, {{SB_GPUH}} GPU-hours, {{SB_SU}} SU</p>
+
+  <p>The allocation was sized around one quantity: the standard deviation between independent
+  training draws of the same design. The program-wide prior was {{SB_SD_ASSUMED}}, taken from
+  from-scratch reorient training, and at that value separating two designs by 0.2 in mean
+  held-cos needs 48 seeds each. Twenty designs at that resolution is roughly 830 GPU-hours,
+  which is what the whole allocation was for.</p>
+
+  <p>The seed-band study ran {{SB_N}} draws of b33's lineage on DeltaAI for {{SB_SU}} SU. The
+  15 core draws span 0.827 to 0.935 with a between-draw sd of <strong>{{SB_SD_CORE}}</strong>
+  ({{SB_SD_ALL}} including the one drop-prone tail draw), against a within-draw rollout sd of
+  {{SB_WITHIN}}. The training draw is less variable than the evaluation noise. The
+  {{SB_SD_ASSUMED}} prior belongs to from-scratch training of a hard-exploration objective;
+  warmstarting from the design's own Policy A removes the lottery.</p>
+
+  {{TABLE_SEEDS}}
+
+  <p>At the measured sd, the 20-design comparison that justified the allocation costs 16
+  GH200-hours, or under twelve hours on the workstation. The study answered its own question and
+  priced its own successor out of needing a cluster. It also cost {{SB_SU}} SU and produced the
+  second result the program needed: b33 sits at {{SB_REF}} with {{SB_RANK}} draws, so the
+  sim-to-real hardware spec downstream of it rests on a representative policy rather than a
+  lucky one.</p>
+
+  <p>One limit on how far that generalises. The seed band shared a single Policy A warmstart
+  across all 16 draws. Whether sd {{SB_SD_CORE}} survives per-design from-scratch A training is
+  untested, and a per-design search cannot reuse one hand's A on another's geometry &#8212; that
+  substitution is what NaN'd the first attempt, 15 of 16 tasks diverging.</p>
+</section>
+
+<section class="col">
+  <h2>The timestep budget is a larger lever than the hardware</h2>
+  <p class="sub">b33's 20M-timestep run, docs/rl/reorientation.md</p>
+
+  <p>Two budgets dominate the logged population: {{BUDGET_30M}} runs at 30M timesteps and
+  {{BUDGET_20M}} at 20M. b33's own 20M run converged at iteration {{CONV_IT}} of
+  {{CONV_BUDGET}}.</p>
+
+  {{CHART_BUDGET}}
+
+  <p>Cutting a converged run to its convergence point is worth about 10&#215;. The best
+  available hardware move, running on a GH200 instead, is {{RATIO_MED}}&#215; in the wrong
+  direction. Any plan that adds compute before trimming the budget is buying the smaller lever
+  at the higher price. The trimming is not free of risk &#8212; a shorter budget on a
+  from-scratch run is a different proposition than on a warmstarted finetune, and gotcha 13
+  applies, since the recipes carry reward shaping but not the timestep budget, so cutting it
+  means editing every launcher that passes <code>--total-timesteps</code> explicitly.</p>
+</section>
+
+<section class="col">
+  <h2>What the remaining {{BALANCE}} SU are worth</h2>
+  <p class="sub">balance {{BALANCE}} of {{DEPOSITED}} deposited hours, 2026-08-20</p>
+
+  <p>The one study actually run gives the honest wall-clock arithmetic. Sixteen draws of 20M
+  timesteps is {{SEQ_LOCAL_H}} hours of exclusive GPU on the workstation, run end to end. On
+  DeltaAI at 16-way concurrency and zero queue wait it is {{IDEAL_GH_H}} hours, a
+  {{IDEAL_SPEEDUP}}&#215; improvement; at 8-way it is {{EIGHT_WAY_H}} hours and
+  {{EIGHT_WAY_SPEEDUP}}&#215;. The write-up records the actual elapsed time as &#8220;a few
+  hours&#8221;, which means queue wait, not throughput, set the delivered result. Nobody
+  measured it.</p>
+
+  <p>Against that the accounting is straightforward. The study consumed {{SB_GPUH}} GPU-hours of
+  work and was billed {{SB_SU}} SU, an overhead of {{SB_BILL_OVER}}&#215; from reservation
+  rounding. The entire {{SPAN_DAYS}}-day local training history &#8212; {{N_GSTEPS}} G env-steps,
+  {{HISTORY_LOC_H}} hours here &#8212; would take {{HISTORY_GH_H}} GH200-hours, which does not
+  fit in the {{BALANCE}} SU on the account.</p>
+
+  <div class="kpi">
+    <div><div class="n">{{RATIO_MED}}&#215;</div><div class="k">GH200 per-run throughput</div></div>
+    <div><div class="n">{{IDEAL_SPEEDUP}}&#215;</div><div class="k">best case at 16-way breadth</div></div>
+    <div><div class="n">{{SB_BILL_OVER}}&#215;</div><div class="k">billed over work done</div></div>
+    <div><div class="n">{{DUTY}}%</div><div class="k">local GPU occupancy</div></div>
+  </div>
+
+  <h3>Where the allocation still pays</h3>
+  <p>Work that is genuinely wide and that nobody is waiting on: seed bands, hyperparameter or
+  reward-shaping sweeps, ablations across many hands, and any question of the form &#8220;is
+  this effect larger than the draw-to-draw noise&#8221;. The seed band is the model case. It was
+  9.4 hours of exclusive local GPU on a machine with one card, which is why it went unasked for
+  two months, and it settled a question the whole sim-to-real spec depended on for 15 SU.</p>
+
+  <h3>Where it does not</h3>
+  <p>Anything with a person at the end of it. Per-run latency is worse, so a single run being
+  watched belongs here. The A&#8594;B pipeline stays sequential per design because B warmstarts
+  from A's checkpoint, so parallelism is across designs and seeds only, and chaining wants
+  <code>--dependency=afterok</code> rather than lifting
+  <code>morph_pipeline_sweep.py</code> onto a compute node. Rendering is worse than not
+  cluster-shaped: EGL on the node image is untested and video encoding is billed GPU time, so
+  filmstrips and eval videos come back to the workstation. And bulk training raises the risk the
+  program is already most exposed to, since 48 seeds produce 48 reward curves and no pictures,
+  while every conclusion in this repo has needed someone to look at a rollout.</p>
+</section>
+
+<section class="col">
+  <h2>What this does not settle</h2>
+
+  <ol>
+    <li><strong>Queue wait is unmeasured, and it decides the previous section.</strong> The
+      {{IDEAL_SPEEDUP}}&#215; figure assumes 16 GPUs start at once. Run
+      <code>sacct -j &lt;jobid&gt; --format=JobID,Submit,Start,Elapsed,Reserved,State</code>
+      after the next queue and take the median Submit&#8594;Start delta. If it exceeds about
+      {{SEQ_LOCAL_H}} hours, breadth on the cluster is slower in wall clock than running the
+      same work serially here.</li>
+    <li><strong>The GH200's clock under load has never been read.</strong> Add
+      <code>nvidia-smi --query-gpu=clocks.sm,clocks.max.sm,power.draw,utilization.gpu
+      --format=csv -l 10</code> to the next <code>deltaai_smoke.slurm</code>. A reading near
+      {{CLK_GH}} MHz confirms the latency explanation; a reading near {{CLK_LOC}} MHz falsifies
+      it and sends the deficit back to memory subsystem or kernel dispatch.</li>
+    <li><strong>Billing granularity is still unresolved.</strong> The evidence is mixed: two
+      short jobs moved the balance 92 &#8594; 91 &#8594; 91, while 13.9 hours of packed work
+      drew {{SB_SU}} SU. Run one 8-hour packed block, wait a day, and re-read
+      <code>accounts</code>. If charging is per reserved hour the packed queue in
+      <code>deltaai_pack_queue.slurm</code> is correct and job arrays waste a tail per task; if
+      it is per elapsed second the array is simpler and equally cheap.</li>
+    <li><strong>The convergence point is n = 1.</strong> {{CONV_IT}}-of-{{CONV_BUDGET}} comes
+      from one run. Parse <code>Metrics/.../target_axis_alignment</code> out of the tensorboard
+      logs of the {{BUDGET_20M}} runs at that budget and report the first iteration within 2% of
+      each run's final value. A median convergence point above iteration 100 would make the
+      trimming argument much weaker than it looks here.</li>
+    <li><strong>Whether the draw-to-draw sd holds without a shared warmstart.</strong>
+      {{SB_SD_CORE}} was measured with all 16 draws warmstarted from the same a10 checkpoint.
+      The test is a two-stage A-then-B queue on one hand, n = 4 from-scratch A per design, and
+      it is the number that decides whether a per-design morphology search is affordable at
+      all.</li>
+    <li><strong>The duty cycle is a floor, not a measurement of the card.</strong> It counts RL
+      training logs only. Logging wall-clock GPU occupancy directly &#8212;
+      <code>nvidia-smi --query-gpu=utilization.gpu --format=csv -l 60</code> to a rotating file
+      &#8212; would show how much of the {{IDLE_DAYS}} idle days is CEM, evaluation and
+      rendering rather than genuinely idle.</li>
+  </ol>
+</section>
+
+<footer>
+  <p>Data: <span class="mono">docs/experiments/20260908-compute_budget/compute_budget.json</span>,
+  collected from <span class="mono">logs/*.log</span> by
+  <span class="mono">scripts/compute_budget_data.py</span>.<br>
+  Page: <span class="mono">scripts/compute_budget_page.py</span> +
+  <span class="mono">scripts/compute_budget_page.template.html</span> &#8594;
+  <span class="mono">docs/experiments/20260908-compute_budget/20260908-compute_budget.html</span>.<br>
+  GH200 measurements: jobs 2989123 / 2989164, 2026-08-20, recorded in
+  <span class="mono">docs/notes/20260820-deltaai_bulk_training_runbook.md</span> and
+  <span class="mono">docs/notes/20260826-nsf_access_deltaai_guide.md</span>.
+  Seed band: <span class="mono">docs/experiments/B33_SEED_BAND.txt</span>.
+  Cluster scripts: <span class="mono">scripts/cluster/</span>.</p>
+</footer>
+</div>

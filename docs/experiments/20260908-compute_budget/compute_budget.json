@@ -1,0 +1,199 @@
+{
+ "generated": "2026-09-08T12:46:55",
+ "local": {
+  "gpu": "NVIDIA GeForce RTX 4070 Ti SUPER, 16 GB",
+  "cpu": "Intel Core Ultra 7 265KF, 20 threads",
+  "sm_clock_mhz_under_load": 2820,
+  "sm_clock_max_mhz": 3120,
+  "n_logs": 214,
+  "n_iterations": 69333,
+  "total_env_steps": 3934445568,
+  "train_hours": 116.7,
+  "span_days": 50,
+  "active_days": 14,
+  "duty_cycle": 9.7,
+  "first_day": "2026-07-10",
+  "last_day": "2026-08-28",
+  "by_env": {
+   "1024": {
+    "n": 1,
+    "min": 9293.0,
+    "q1": 9293.0,
+    "med": 9293.0,
+    "q3": 9293.0,
+    "max": 9293.0,
+    "col_med": 2.5945,
+    "us_per_env_step": 105.57,
+    "envs": 1024
+   },
+   "2048": {
+    "n": 127,
+    "min": 8935.0,
+    "q1": 9288.5,
+    "med": 9392.0,
+    "q3": 9476.0,
+    "max": 9864.0,
+    "col_med": 5.161,
+    "us_per_env_step": 105.001,
+    "envs": 2048
+   },
+   "3072": {
+    "n": 86,
+    "min": 8623.0,
+    "q1": 9297.5,
+    "med": 9416.8,
+    "q3": 9505.0,
+    "max": 10310.0,
+    "col_med": 7.7405,
+    "us_per_env_step": 104.987,
+    "envs": 3072
+   }
+  },
+  "learn_share_pct": 1.32,
+  "learn_share_max_pct": 1.85,
+  "unaccounted_pct": 0.01,
+  "per_day": [
+   {
+    "day": "2026-07-10",
+    "hours": 5.59
+   },
+   {
+    "day": "2026-07-11",
+    "hours": 22.38
+   },
+   {
+    "day": "2026-07-12",
+    "hours": 21.6
+   },
+   {
+    "day": "2026-07-13",
+    "hours": 5.97
+   },
+   {
+    "day": "2026-07-20",
+    "hours": 3.08
+   },
+   {
+    "day": "2026-07-21",
+    "hours": 22.42
+   },
+   {
+    "day": "2026-07-22",
+    "hours": 19.9
+   },
+   {
+    "day": "2026-07-28",
+    "hours": 2.23
+   },
+   {
+    "day": "2026-07-29",
+    "hours": 1.51
+   },
+   {
+    "day": "2026-07-31",
+    "hours": 1.77
+   },
+   {
+    "day": "2026-08-01",
+    "hours": 0.4
+   },
+   {
+    "day": "2026-08-18",
+    "hours": 0.03
+   },
+   {
+    "day": "2026-08-27",
+    "hours": 1.64
+   },
+   {
+    "day": "2026-08-28",
+    "hours": 8.16
+   }
+  ],
+  "budgets": [
+   {
+    "iters": 610,
+    "envs": 2048,
+    "logs": 125,
+    "timesteps_m": 30.0
+   },
+   {
+    "iters": 271,
+    "envs": 3072,
+    "logs": 76,
+    "timesteps_m": 20.0
+   },
+   {
+    "iters": 339,
+    "envs": 3072,
+    "logs": 9,
+    "timesteps_m": 25.0
+   },
+   {
+    "iters": 20,
+    "envs": 2048,
+    "logs": 2,
+    "timesteps_m": 1.0
+   },
+   {
+    "iters": 61,
+    "envs": 1024,
+    "logs": 1,
+    "timesteps_m": 1.5
+   },
+   {
+    "iters": 13,
+    "envs": 3072,
+    "logs": 1,
+    "timesteps_m": 1.0
+   }
+  ],
+  "gh200_ratio_vs_median": 0.738,
+  "gh200_ratio_vs_published": 0.66
+ },
+ "deltaai": {
+  "gpu": "NVIDIA GH200 120 GB (Grace-Hopper, aarch64)",
+  "sm_clock_mhz_spec": 1980,
+  "source": "docs/notes/20260820-deltaai_bulk_training_runbook.md",
+  "sweep": [
+   {
+    "envs": 3072,
+    "s_per_iter": 10.85,
+    "note": "10.3-11.4 s range"
+   },
+   {
+    "envs": 8192,
+    "s_per_iter": 27.8,
+    "note": ""
+   },
+   {
+    "envs": 16384,
+    "s_per_iter": 55.7,
+    "note": ""
+   }
+  ],
+  "headline_sps": 6950,
+  "balance_su": 92,
+  "deposited_su": 100,
+  "credits_per_gpu_hour": 143
+ },
+ "published_local_reference_sps": 10530,
+ "seed_band": {
+  "n_draws": 16,
+  "gpu_hours": 12.8,
+  "su_billed": 15,
+  "assumed_sd": 0.35,
+  "measured_sd_core": 0.032,
+  "measured_sd_all": 0.11,
+  "within_draw_sd": 0.08,
+  "reference_cos": 0.891,
+  "rank": "11/16 at or below"
+ },
+ "convergence": {
+  "converged_iter": 26,
+  "budget_iters": 271,
+  "align_it26": 55.9,
+  "align_it134": 55.1,
+  "align_it270": 60.5
+ }
+}

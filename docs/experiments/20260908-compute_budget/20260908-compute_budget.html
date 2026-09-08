@@ -1,0 +1,544 @@
+<title>Training throughput on the workstation and a DeltaAI GH200</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#EEF1F4; --card:#FFFFFF; --sunk:#E4E9EE;
+  --ink:#1A2127; --ink2:#48545D; --ink3:#77848D; --rule:#D2DAE1; --rule2:#E2E8ED;
+  --s1:#BE7514; --s2:#4A7FC4; --ref:#8A959D;
+  --good:#3F7A46; --bad:#A8443C;
+  --shadow:0 1px 2px rgba(16,26,34,.06),0 8px 24px -14px rgba(16,26,34,.28);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
+  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
+  --s1:#E39A2E; --s2:#7BA7E0; --ref:#79858E; --good:#6FB076; --bad:#DE8078;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+}}
+:root[data-theme="dark"]{
+  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
+  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
+  --s1:#E39A2E; --s2:#7BA7E0; --ref:#79858E; --good:#6FB076; --bad:#DE8078;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);
+  font:400 17px/1.62 "Source Serif 4",Georgia,"Times New Roman",serif;
+  -webkit-font-smoothing:antialiased;padding:0 20px 96px}
+.wrap{max-width:1020px;margin:0 auto}
+.col{max-width:70ch}
+h1,h2,h3,.mono,.tag,th{font-family:Archivo,"Helvetica Neue",Arial,sans-serif}
+.mono,code,td.num,.tick,.val,.ser,.mark,.note,.axlab,pre{
+  font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+header{padding:64px 0 30px;border-bottom:1px solid var(--rule)}
+.eyebrow{font:500 12px/1 "IBM Plex Mono",monospace;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--ink3)}
+h1{font-size:clamp(30px,4.6vw,48px);line-height:1.05;font-weight:700;letter-spacing:-.022em;
+  margin:16px 0 0;text-wrap:balance;max-width:22ch}
+.lede{font-size:20px;line-height:1.55;color:var(--ink2);margin:18px 0 0;max-width:62ch}
+.byline{margin-top:22px;font:400 13px/1.5 "IBM Plex Mono",monospace;color:var(--ink3)}
+section{padding:46px 0;border-bottom:1px solid var(--rule2)}
+section:last-of-type{border-bottom:0}
+h2{font-size:27px;font-weight:700;letter-spacing:-.018em;margin:0 0 6px;text-wrap:balance}
+h3{font-size:18px;font-weight:600;letter-spacing:-.008em;margin:34px 0 8px}
+h2 + .sub{color:var(--ink3);font:400 14px/1.5 "IBM Plex Mono",monospace;margin:0 0 24px}
+p{margin:0 0 17px}
+strong{font-weight:600}
+ul,ol{margin:0 0 17px;padding-left:20px}
+li{margin:0 0 10px}
+.chart{display:block;width:100%;height:auto;background:var(--card);border:1px solid var(--rule);
+  border-radius:10px;margin:24px 0}
+.col > .tw,.col > .chart,.col > .kpi{width:min(1020px,calc(100vw - 40px));max-width:none}
+.grid{stroke:var(--rule2)}
+.tick{font-size:11px;fill:var(--ink3)}
+.axlab{font-size:11.5px;fill:var(--ink3);letter-spacing:.05em}
+.val{font-size:12px;font-weight:500;fill:var(--ink2)}
+.ser{font-size:12.5px;font-weight:500}
+.mark{font-size:10.5px;fill:var(--ink3);letter-spacing:.06em}
+.note{font-size:11.5px;fill:var(--ink3)}
+.tw{overflow-x:auto;margin:24px 0;border:1px solid var(--rule);border-radius:10px;
+  background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th{font:600 12px/1.3 Archivo,sans-serif;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink3);text-align:left;padding:13px 14px;border-bottom:1px solid var(--rule);
+  white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid var(--rule2);vertical-align:top}
+td.wrap{white-space:normal;min-width:20ch}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;font-size:13.5px;
+  white-space:nowrap}
+tbody tr.hi td{background:color-mix(in oklab,var(--s1) 9%,transparent)}
+.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--rule);
+  border:1px solid var(--rule);border-radius:10px;overflow:hidden;margin:28px 0}
+@media (max-width:720px){.kpi{grid-template-columns:repeat(2,1fr)}}
+.kpi div{background:var(--card);padding:18px 20px}
+.kpi .n{font:500 25px/1.1 "IBM Plex Mono",monospace;color:var(--ink);
+  font-variant-numeric:tabular-nums}
+.kpi .k{font:600 11px/1.3 Archivo,sans-serif;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink3);margin-top:8px}
+.keep{border:1px solid var(--rule);border-left:3px solid var(--s2);border-radius:10px;
+  padding:20px 24px;margin:28px 0;background:var(--card)}
+.keep .tag{display:block;font:700 12px/1 Archivo,sans-serif;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--s2);margin-bottom:11px}
+.keep p:last-child,.keep ul:last-child{margin-bottom:0}
+.corr{border:1px solid var(--rule);border-left:3px solid var(--bad);border-radius:10px;
+  padding:20px 24px;margin:28px 0;background:var(--card)}
+.corr .tag{display:block;font:700 12px/1 Archivo,sans-serif;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--bad);margin-bottom:11px}
+.corr p:last-child{margin-bottom:0}
+pre{background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:16px 18px;
+  overflow-x:auto;font-size:13px;line-height:1.6;margin:22px 0}
+code{font-size:.92em;background:var(--sunk);padding:1px 4px;border-radius:4px;
+  margin:0 -1px;white-space:nowrap}
+footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",monospace}
+footer a{color:var(--s2)}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">MorphoHand &#183; compute budget &#183; 8 September 2026</div>
+  <h1>Training throughput on the workstation and a DeltaAI GH200</h1>
+  <p class="lede">A GH200 compute node runs the MuJoCo-Warp training loop at 0.74&#215;
+  the workstation&#8217;s rate, measured against the workstation&#8217;s whole logged
+  population rather than its best hour. Over the 50 days that population covers,
+  the workstation&#8217;s GPU was busy 9.7% of the time, which places the binding
+  constraint somewhere other than throughput.</p>
+  <div class="byline">214 trainer logs &#183; 69,333 PPO iterations &#183;
+  3.93 G env-steps &#183; 116.7 GPU-hours &#183; 2026-07-10 to
+  2026-08-28. GH200 figures are transcribed from jobs 2989123 and 2989164 and are not
+  reproducible from this machine.</div>
+</header>
+
+<section class="col">
+  <h2>What each machine delivers per GPU</h2>
+  <p class="sub">logs/*.log, steady-state iterations &#183; docs/notes/20260820-deltaai_bulk_training_runbook.md</p>
+
+  <p>Every trainer log in <code>logs/</code> that got past five PPO iterations reports its own
+  steps/s, collection time and learning time each iteration. 214 logs qualify. At 3072
+  parallel environments the median run sustains <strong>9,417 env-steps/s</strong>
+  (interquartile range 9,298 to 9,505, n = 86); at 2048 it sustains 9,392
+  (n = 127). A single GH200 job at the same batch width reached 6,795.</p>
+
+  <svg class="chart" viewBox="0 0 1020 314" role="img" aria-label="Training throughput, workstation population versus GH200">
+<text class="axlab" x="190" y="20">ENV-STEPS PER SECOND, STEADY STATE (ITERATION 0 EXCLUDED)</text>
+<line class="grid" x1="190.0" y1="32" x2="190.0" y2="268"/>
+<text class="tick" x="190.0" y="284" text-anchor="middle">6k</text>
+<line class="grid" x1="329.6" y1="32" x2="329.6" y2="268"/>
+<text class="tick" x="329.6" y="284" text-anchor="middle">7k</text>
+<line class="grid" x1="469.2" y1="32" x2="469.2" y2="268"/>
+<text class="tick" x="469.2" y="284" text-anchor="middle">8k</text>
+<line class="grid" x1="608.8" y1="32" x2="608.8" y2="268"/>
+<text class="tick" x="608.8" y="284" text-anchor="middle">9k</text>
+<line class="grid" x1="748.4" y1="32" x2="748.4" y2="268"/>
+<text class="tick" x="748.4" y="284" text-anchor="middle">10k</text>
+<line class="grid" x1="888.0" y1="32" x2="888.0" y2="268"/>
+<text class="tick" x="888.0" y="284" text-anchor="middle">11k</text>
+<text class="ser" x="178" y="62.72" text-anchor="end" fill="var(--ink)">workstation &#183; 3072 envs</text>
+<text class="tick" x="178" y="75.72" text-anchor="end">n = 86</text>
+<line x1="556.2" y1="57.0" x2="791.7" y2="57.0" stroke="var(--s2)" stroke-width="1.5" opacity=".55"/>
+<line x1="556.2" y1="49" x2="556.2" y2="65" stroke="var(--s2)" stroke-width="1.5" opacity=".55"/>
+<line x1="791.7" y1="49" x2="791.7" y2="65" stroke="var(--s2)" stroke-width="1.5" opacity=".55"/>
+<rect x="650.3" y="44" width="29.0" height="26" rx="4" fill="var(--s2)" opacity=".30"/>
+<line x1="667.0" y1="44" x2="667.0" y2="70" stroke="var(--s2)" stroke-width="3"/>
+<text class="val" x="900" y="63.239999999999995">9,417</text>
+<text class="ser" x="178" y="100.72" text-anchor="end" fill="var(--ink)">workstation &#183; 2048 envs</text>
+<text class="tick" x="178" y="113.72" text-anchor="end">n = 127</text>
+<line x1="599.7" y1="95.0" x2="729.4" y2="95.0" stroke="var(--s2)" stroke-width="1.5" opacity=".55"/>
+<line x1="599.7" y1="87" x2="599.7" y2="103" stroke="var(--s2)" stroke-width="1.5" opacity=".55"/>
+<line x1="729.4" y1="87" x2="729.4" y2="103" stroke="var(--s2)" stroke-width="1.5" opacity=".55"/>
+<rect x="649.1" y="82" width="26.2" height="26" rx="4" fill="var(--s2)" opacity=".30"/>
+<line x1="663.5" y1="82" x2="663.5" y2="108" stroke="var(--s2)" stroke-width="3"/>
+<text class="val" x="900" y="101.24">9,392</text>
+<text class="ser" x="178" y="138.72" text-anchor="end" fill="var(--ink)">GH200 &#183; 3072 envs</text>
+<text class="tick" x="178" y="151.72" text-anchor="end">n = 1</text>
+<circle cx="301.0" cy="133.0" r="6" fill="var(--s1)"/>
+<text class="val" x="900" y="139.24">6,795</text>
+<text class="ser" x="178" y="176.72" text-anchor="end" fill="var(--ink)">GH200 &#183; 8192 envs</text>
+<text class="tick" x="178" y="189.72" text-anchor="end">n = 1</text>
+<circle cx="339.7" cy="171.0" r="6" fill="var(--s1)"/>
+<text class="val" x="900" y="177.24">7,072</text>
+<text class="ser" x="178" y="214.72" text-anchor="end" fill="var(--ink)">GH200 &#183; 16384 envs</text>
+<text class="tick" x="178" y="227.72" text-anchor="end">n = 1</text>
+<circle cx="337.9" cy="209.0" r="6" fill="var(--s1)"/>
+<text class="val" x="900" y="215.24">7,060</text>
+<line x1="822.4" y1="32" x2="822.4" y2="268" stroke="var(--bad)" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text class="mark" x="814.4" y="262" text-anchor="end" fill="var(--bad)">10,530 &#8212; THE REFERENCE THE 0.66&#215; RATIO USED</text>
+<text class="note" x="190" y="290">Box is the interquartile range, bar the median, whiskers the min and max of the per-run medians. No run in the</text>
+<text class="note" x="190" y="305">86-run population at 3072 envs reached 10,530; the highest was 10,310.</text></svg>
+
+  <div class="corr">
+    <span class="tag">Correction to the recorded ratio</span>
+    <p>The 0.66&#215; figure in the runbook and in
+    <code>docs/notes/20260826-nsf_access_deltaai_guide.md</code> was computed against a local
+    reference of 10,530 steps/s taken from one run on 2026-08-19. That number does not
+    appear anywhere in the population: the fastest of the 86 logged runs at 3072 envs
+    reached 10,310, and the median is 9,417. Against the median the GH200 is
+    <strong>0.74&#215;</strong>, not 0.66&#215;. The direction of the finding
+    is unchanged and the sizing tables built on it are conservative by about 11%.</p>
+  </div>
+
+  <div class="tw"><table><thead><tr><th></th><th>Workstation</th><th>DeltaAI <span class="mono">ghx4</span></th></tr></thead><tbody>
+<tr><td class="wrap"><strong>GPU</strong></td><td class="wrap">NVIDIA GeForce RTX 4070 Ti SUPER, 16 GB</td><td class="wrap">NVIDIA GH200 120 GB (Grace-Hopper, aarch64)</td></tr>
+<tr><td class="wrap"><strong>SM clock under load</strong></td><td class="wrap">2,820 MHz (measured)</td><td class="wrap">1,980 MHz (spec, not measured on the node)</td></tr>
+<tr><td class="wrap"><strong>Steps/s at 3072 envs</strong></td><td class="wrap">9,417 median of 86 runs</td><td class="wrap">6,795 single job</td></tr>
+<tr><td class="wrap"><strong>Collection per env-step</strong></td><td class="wrap">105.0 &#181;s</td><td class="wrap">147.2 &#181;s</td></tr>
+<tr><td class="wrap"><strong>Best batch width found</strong></td><td class="wrap">3072 (nothing above helps)</td><td class="wrap">3072 (nothing above helps, to 95 GiB)</td></tr>
+<tr><td class="wrap"><strong>Concurrent runs</strong></td><td class="wrap">1</td><td class="wrap">as many as the balance and the queue allow</td></tr>
+<tr><td class="wrap"><strong>Charged</strong></td><td class="wrap">electricity</td><td class="wrap">1 SU per reserved GPU-hour, rounded up &#183; 143 ACCESS credits per hour</td></tr>
+</tbody></table></div>
+</section>
+
+<section class="col">
+  <h2>Where the wall clock goes</h2>
+  <p class="sub">median over 214 logs, iteration 0 excluded</p>
+
+  <p>Collection takes <strong>98.68%</strong> of an iteration and the PPO update
+  takes 1.32%; the worst learning share in the whole population is 1.85%.
+  Iteration time minus collection minus learning leaves 0.01% unaccounted, so there is no
+  hidden third term. Every learning-side knob &#8212; epochs, minibatch count, learning rate,
+  network width &#8212; divides a budget of one and a third percent.</p>
+
+  <p>Batch width does not help either, and the reason is visible in the per-env-step cost. One
+  iteration simulates <code>num_envs &#215; 24</code> env-steps, so dividing collection time by
+  that gives a cost per simulated step that is free of batch size. On the workstation it is
+  105.57 &#181;s at 1024 envs, 105.00 &#181;s at 2048 and 104.99 &#181;s at 3072 &#8212; a
+  spread of 0.01% across a threefold change in batch. The GH200 behaves the same way at its own
+  level, 141.7 &#181;s from 8192 to 16384.</p>
+
+  <svg class="chart" viewBox="0 0 1020 332" role="img" aria-label="Per-env-step collection cost against batch width">
+<text class="axlab" x="190" y="20">MICROSECONDS OF COLLECTION PER SIMULATED ENV-STEP &#183; LOWER IS FASTER</text>
+<line class="grid" x1="246" y1="214.0" x2="878" y2="214.0"/>
+<text class="tick" x="224" y="218.0" text-anchor="end">0</text>
+<line class="grid" x1="246" y1="171.5" x2="878" y2="171.5"/>
+<text class="tick" x="224" y="175.5" text-anchor="end">40</text>
+<line class="grid" x1="246" y1="129.0" x2="878" y2="129.0"/>
+<text class="tick" x="224" y="133.0" text-anchor="end">80</text>
+<line class="grid" x1="246" y1="86.5" x2="878" y2="86.5"/>
+<text class="tick" x="224" y="90.5" text-anchor="end">120</text>
+<line class="grid" x1="246" y1="44.0" x2="878" y2="44.0"/>
+<text class="tick" x="224" y="48.0" text-anchor="end">160</text>
+<text class="tick" x="246.0" y="234" text-anchor="middle">1,024</text>
+<text class="tick" x="404.0" y="234" text-anchor="middle">2,048</text>
+<text class="tick" x="562.0" y="234" text-anchor="middle">3,072</text>
+<text class="tick" x="720.0" y="234" text-anchor="middle">8,192</text>
+<text class="tick" x="878.0" y="234" text-anchor="middle">16,384</text>
+<text class="axlab" x="562.0" y="256" text-anchor="middle">PARALLEL ENVIRONMENTS</text>
+<path d="M246.0,101.8 L404.0,102.4 L562.0,102.5" fill="none" stroke="var(--s2)" stroke-width="2"/>
+<circle cx="246.0" cy="101.8" r="5" fill="var(--s2)"/>
+<text class="val" x="246.0" y="123.8" text-anchor="middle">105.6</text>
+<circle cx="404.0" cy="102.4" r="5" fill="var(--s2)"/>
+<text class="val" x="404.0" y="124.4" text-anchor="middle">105.0</text>
+<circle cx="562.0" cy="102.5" r="5" fill="var(--s2)"/>
+<text class="val" x="562.0" y="124.5" text-anchor="middle">105.0</text>
+<text class="ser" x="576.0" y="106.5" fill="var(--s2)">workstation</text>
+<path d="M562.0,57.6 L720.0,63.8 L878.0,63.5" fill="none" stroke="var(--s1)" stroke-width="2"/>
+<circle cx="562.0" cy="57.6" r="5" fill="var(--s1)"/>
+<text class="val" x="562.0" y="44.6" text-anchor="middle">147.2</text>
+<circle cx="720.0" cy="63.8" r="5" fill="var(--s1)"/>
+<text class="val" x="720.0" y="50.8" text-anchor="middle">141.4</text>
+<circle cx="878.0" cy="63.5" r="5" fill="var(--s1)"/>
+<text class="val" x="878.0" y="50.5" text-anchor="middle">141.7</text>
+<text class="ser" x="892.0" y="67.5" fill="var(--s1)">GH200</text>
+<text class="note" x="190" y="292">Both machines are flat: tripling the batch moves the workstation’s cost by 0.01%. The vertical gap between the</text>
+<text class="note" x="190" y="307">two lines is the whole result, and it closes at no width either machine can hold.</text></svg>
+
+  <p>A workload whose per-item cost is invariant to batch width is not throughput-limited. It
+  is limited by the depth of the dependency chain inside one step: MuJoCo's solver runs
+  <code>iterations &#215; ls_iterations</code> sequential passes, and with 15 joints and a
+  handful of contacts none of those passes is wide enough to fill the device. That matches what
+  the card reports while training, 43&#8211;46% utilisation with CUDA graph capture already
+  enabled, and it explains why the two levers people reach for first are both spent: the solver
+  already ships at <code>iterations=10, ls_iterations=20</code> (set in
+  <code>env_build.py</code>, overriding whatever the scene XML says), and adding environments
+  widens kernels that were never the constraint.</p>
+</section>
+
+<section class="col">
+  <h2>Why the GH200 loses on a workload it should win</h2>
+  <p class="sub">clock ratio 1.42&#215; against measured cost ratio 1.35&#215;</p>
+
+  <p>A latency-bound workload spends its time waiting on a chain of dependent operations, so its
+  wall clock scales with clock period rather than with FLOPs or bandwidth. That predicts the
+  deficit directly. The workstation's SM clock reads <strong>2,820 MHz</strong> under load
+  (<code>nvidia-smi --query-gpu=clocks.sm</code>, 2026-09-08, ceiling 3,120); the GH200's Hopper
+  die boosts to a specified 1,980 MHz. The ratio is 1.42&#215;. The measured
+  per-env-step cost ratio is 1.35&#215;. Those agree to 5%.</p>
+
+  <p>Read that way the result stops being a surprise. The GH200 brings roughly twice the SMs and
+  six times the memory, and this workload uses neither: it needs one narrow kernel to finish so
+  the next can start. The estimate that predicted 1&#8211;2.5&#215; faster was reading the
+  specification sheet in the units of a dense-matmul workload.</p>
+
+  <div class="keep">
+    <span class="tag">Sizing rule for this stack</span>
+    <p>Rank candidate GPUs for mjwarp training by clock, not by FLOPs, memory or SM count, and
+    confirm with a smoke job on a real scene before committing an allocation. A consumer part
+    with a high boost clock will beat a datacenter part at the same generation on this workload,
+    and the gap does not close at any batch size either machine can hold.</p>
+  </div>
+
+  <p>The clock figure for the GH200 is a specification, not a measurement &#8212; nobody has read
+  <code>clocks.sm</code> on the compute node under load. That measurement is listed at the end.</p>
+</section>
+
+<section class="col">
+  <h2>The workstation GPU is idle nine days in ten</h2>
+  <p class="sub">116.7 GPU-hours over 50 calendar days</p>
+
+  <p>The 214 logs sum to 116.7 hours of training spread across 50 days,
+  a duty cycle of <strong>9.7%</strong>. 14 days carried a run and
+  36 did not. On the days it ran at all the GPU averaged 8.3 hours, so
+  when work exists the machine is used hard; the gaps are between studies, not inside them.</p>
+
+  <svg class="chart" viewBox="0 0 1020 300" role="img" aria-label="Training hours per calendar day">
+<text class="axlab" x="190" y="20">GPU-HOURS OF TRAINING PER CALENDAR DAY &#183; 2026-07-10 TO 2026-08-28</text>
+<line class="grid" x1="190" y1="200.0" x2="956" y2="200.0"/>
+<text class="tick" x="180" y="204.0" text-anchor="end">0 h</text>
+<line class="grid" x1="190" y1="148.0" x2="956" y2="148.0"/>
+<text class="tick" x="180" y="152.0" text-anchor="end">8 h</text>
+<line class="grid" x1="190" y1="96.0" x2="956" y2="96.0"/>
+<text class="tick" x="180" y="100.0" text-anchor="end">16 h</text>
+<line class="grid" x1="190" y1="44.0" x2="956" y2="44.0"/>
+<text class="tick" x="180" y="48.0" text-anchor="end">24 h</text>
+<rect x="190.0" y="163.7" width="13.7" height="36.3" rx="2" fill="var(--s2)"/>
+<rect x="205.3" y="54.5" width="13.7" height="145.5" rx="2" fill="var(--s2)"/>
+<rect x="220.6" y="59.6" width="13.7" height="140.4" rx="2" fill="var(--s2)"/>
+<rect x="236.0" y="161.2" width="13.7" height="38.8" rx="2" fill="var(--s2)"/>
+<rect x="251.3" y="198.0" width="13.7" height="2" fill="var(--rule)"/>
+<rect x="266.6" y="198.0" width="13.7" height="2" fill="var(--rule)"/>
+<rect x="281.9" y="198.0" width="13.7" height="2" fill="var(--rule)"/>
+<rect x="297.2" y="198.0" width="13.7" height="2" fill="var(--rule)"/>
+<rect x="312.6" y="198.0" width="13.7" height="2" fill="var(--rule)"/>
+<rect x="327.9" y="198.0" width="13.7" height="2" fill="var(--rule)"/>
+<rect x="343.2" y="180.0" width="13.7" height="20.0" rx="2" fill="var(--s2)"/>
+<rect x="358.5" y="54.3" width="13.7" height="145.7" rx="2" fill="var(--s2)"/>
+<rect x="373.8" y="70.7" width="13.7" height="129.3" rx="2" fill="var(--s2)"/>
+<rect x="389.2" y="198.0" width="13.7" height="2" fill="var(--rule)"/>
+<rect x="404.5" y="198.0" width="13.7" height="2" fill="var(--rule)"/>
+<rect x="419.8" y="198.0" width="13.7" height="2" fill="var(--rule)"/>
+<rect x="435.1" y="198.0" width="13.7" height="2" fill="var(--rule)"/>
+<rect x="450.4" y="198.0" width="13.7" height="2" fill="var(--rule)"/>
+<rect x="465.8" y="185.5" width="13.7" height="14.5" rx="2" fill="var(--s2)"/>
+<rect x="481.1" y="190.2" width="13.7" height="9.8" rx="2" fill="var(--s2)"/>
+<rect x="496.4" y="198.0" width="13.7" height="2" fill="var(--rule)"/>
+<rect x="511.7" y="188.5" width="13.7" height="11.5" rx="2" fill="var(--s2)"/>
+<rect x="527.0" y="197.4" width="13.7" height="2.6" rx="2" fill="var(--s2)"/>
+<rect x="542.4" y="198.0" width="13.7" height="2" fill="var(--rule)"/>
+<rect x="557.7" y="198.0" width="13.7" height="2" fill="var(--rule)"/>
+<rect x="573.0" y="198.0" width="13.7" height="2" fill="var(--rule)"/>
+<rect x="588.3" y="198.0" width="13.7" height="2" fill="var(--rule)"/>
+<rect x="603.6" y="198.0" width="13.7" height="2" fill="var(--rule)"/>
+<rect x="619.0" y="198.0" width="13.7" height="2" fill="var(--rule)"/>
+<rect x="634.3" y="198.0" width="13.7" height="2" fill="var(--rule)"/>
+<rect x="649.6" y="198.0" width="13.7" height="2" fill="var(--rule)"/>
+<rect x="664.9" y="198.0" width="13.7" height="2" fill="var(--rule)"/>
+<rect x="680.2" y="198.0" width="13.7" height="2" fill="var(--rule)"/>
+<rect x="695.6" y="198.0" width="13.7" height="2" fill="var(--rule)"/>
+<rect x="710.9" y="198.0" width="13.7" height="2" fill="var(--rule)"/>
+<rect x="726.2" y="198.0" width="13.7" height="2" fill="var(--rule)"/>
+<rect x="741.5" y="198.0" width="13.7" height="2" fill="var(--rule)"/>
+<rect x="756.8" y="198.0" width="13.7" height="2" fill="var(--rule)"/>
+<rect x="772.2" y="198.0" width="13.7" height="2" fill="var(--rule)"/>
+<rect x="787.5" y="199.8" width="13.7" height="0.2" rx="2" fill="var(--s2)"/>
+<rect x="802.8" y="198.0" width="13.7" height="2" fill="var(--rule)"/>
+<rect x="818.1" y="198.0" width="13.7" height="2" fill="var(--rule)"/>
+<rect x="833.4" y="198.0" width="13.7" height="2" fill="var(--rule)"/>
+<rect x="848.8" y="198.0" width="13.7" height="2" fill="var(--rule)"/>
+<rect x="864.1" y="198.0" width="13.7" height="2" fill="var(--rule)"/>
+<rect x="879.4" y="198.0" width="13.7" height="2" fill="var(--rule)"/>
+<rect x="894.7" y="198.0" width="13.7" height="2" fill="var(--rule)"/>
+<rect x="910.0" y="198.0" width="13.7" height="2" fill="var(--rule)"/>
+<rect x="925.4" y="189.3" width="13.7" height="10.7" rx="2" fill="var(--s2)"/>
+<rect x="940.7" y="147.0" width="13.7" height="53.0" rx="2" fill="var(--s2)"/>
+<text class="tick" x="197.7" y="220" text-anchor="middle">Jul 10</text>
+<text class="tick" x="534.7" y="220" text-anchor="middle">Aug 1</text>
+<text class="tick" x="948.3" y="220" text-anchor="middle">Aug 28</text>
+<text class="note" x="190" y="244">116.7 hours of training spread over 50 days, a duty cycle of 9.7%. 14 days carried a run; the other 36 are the</text>
+<text class="note" x="190" y="259">grey baseline. On the days it ran at all the GPU averaged 8.3 hours, so the idle time is not runs queueing for</text>
+<text class="note" x="190" y="274">the card.</text></svg>
+
+  <p>This reframes what extra compute can buy. Adding a second GPU-equivalent to a machine
+  running at 9.7% occupancy shortens nothing that was waiting on a GPU, because almost
+  nothing was. The 36 idle days went to rendering filmstrips, reading trajectory
+  health scorecards, bench sessions on the CB1, and deciding what the last result meant. Those
+  are the serial resource.</p>
+
+  <p>Two caveats on the number. It counts only runs that logged five or more iterations, so
+  crashed launches and short probes are missing, and it counts only RL training &#8212; CEM
+  grasp synthesis, evaluation sweeps and rendering also use the card and are not in
+  <code>logs/*.log</code>. The true occupancy is higher than 9.7%; it is not close to
+  100%.</p>
+</section>
+
+<section class="col">
+  <h2>The first cluster study removed the reason for the cluster</h2>
+  <p class="sub">docs/experiments/B33_SEED_BAND.txt &#183; 16 draws, 12.8 GPU-hours, 15 SU</p>
+
+  <p>The allocation was sized around one quantity: the standard deviation between independent
+  training draws of the same design. The program-wide prior was 0.35, taken from
+  from-scratch reorient training, and at that value separating two designs by 0.2 in mean
+  held-cos needs 48 seeds each. Twenty designs at that resolution is roughly 830 GPU-hours,
+  which is what the whole allocation was for.</p>
+
+  <p>The seed-band study ran 16 draws of b33's lineage on DeltaAI for 15 SU. The
+  15 core draws span 0.827 to 0.935 with a between-draw sd of <strong>0.032</strong>
+  (0.11 including the one drop-prone tail draw), against a within-draw rollout sd of
+  0.08. The training draw is less variable than the evaluation noise. The
+  0.35 prior belongs to from-scratch training of a hard-exploration objective;
+  warmstarting from the design's own Policy A removes the lottery.</p>
+
+  <div class="tw"><table><thead><tr><th>Resolvable difference in mean held-cos</th><th class="num">Seeds at &#963; = 0.35</th><th class="num">20 designs, GH200-h</th><th class="num">Seeds at &#963; = 0.032</th><th class="num">20 designs, GH200-h</th><th class="num">&#8230; on the workstation</th></tr></thead><tbody>
+<tr><td>&#916; = 0.5</td><td class="num">8</td><td class="num">128</td><td class="num">1</td><td class="num">16</td><td class="num">11.8 h</td></tr>
+<tr><td>&#916; = 0.3</td><td class="num">22</td><td class="num">352</td><td class="num">1</td><td class="num">16</td><td class="num">11.8 h</td></tr>
+<tr class="hi"><td>&#916; = 0.2</td><td class="num">49</td><td class="num">783</td><td class="num">1</td><td class="num">16</td><td class="num">11.8 h</td></tr>
+<tr><td>&#916; = 0.1</td><td class="num">193</td><td class="num">3,086</td><td class="num">2</td><td class="num">32</td><td class="num">23.6 h</td></tr>
+</tbody></table></div>
+
+  <p>At the measured sd, the 20-design comparison that justified the allocation costs 16
+  GH200-hours, or under twelve hours on the workstation. The study answered its own question and
+  priced its own successor out of needing a cluster. It also cost 15 SU and produced the
+  second result the program needed: b33 sits at 0.891 with 11/16 at or below draws, so the
+  sim-to-real hardware spec downstream of it rests on a representative policy rather than a
+  lucky one.</p>
+
+  <p>One limit on how far that generalises. The seed band shared a single Policy A warmstart
+  across all 16 draws. Whether sd 0.032 survives per-design from-scratch A training is
+  untested, and a per-design search cannot reuse one hand's A on another's geometry &#8212; that
+  substitution is what NaN'd the first attempt, 15 of 16 tasks diverging.</p>
+</section>
+
+<section class="col">
+  <h2>The timestep budget is a larger lever than the hardware</h2>
+  <p class="sub">b33's 20M-timestep run, docs/rl/reorientation.md</p>
+
+  <p>Two budgets dominate the logged population: 125 runs at 30M timesteps and
+  76 at 20M. b33's own 20M run converged at iteration 26 of
+  271.</p>
+
+  <svg class="chart" viewBox="0 0 1020 190" role="img" aria-label="Converged iteration against requested budget">
+<text class="axlab" x="190" y="20">PPO ITERATIONS &#183; b33&#8217;S OWN 20M-TIMESTEP RUN</text>
+<text class="ser" x="178" y="67.0" text-anchor="end" fill="var(--ink)">requested</text>
+<rect x="190" y="46" width="656.0" height="30" rx="4" fill="var(--sunk)" stroke="var(--rule)"/>
+<rect x="190" y="46" width="62.9" height="30" rx="4" fill="var(--good)"/>
+<text class="val" x="858" y="67.0">271 iters</text>
+<text class="val" x="262.9" y="67.0" fill="var(--good)">converged at iteration 26</text>
+<line x1="252.9" y1="76" x2="252.9" y2="100.0" stroke="var(--rule)" stroke-width="1"/>
+<text class="tick" x="252.9" y="112" text-anchor="middle">iteration 26</text>
+<text class="val" x="252.9" y="130" text-anchor="middle">55.9</text>
+<line x1="514.4" y1="76" x2="514.4" y2="100.0" stroke="var(--rule)" stroke-width="1"/>
+<text class="tick" x="514.4" y="112" text-anchor="middle">iteration 134</text>
+<text class="val" x="514.4" y="130" text-anchor="middle">55.1</text>
+<line x1="843.6" y1="76" x2="843.6" y2="100.0" stroke="var(--rule)" stroke-width="1"/>
+<text class="tick" x="843.6" y="112" text-anchor="middle">iteration 270</text>
+<text class="val" x="843.6" y="130" text-anchor="middle">60.5</text>
+<text class="mark" x="178" y="130" text-anchor="end">TARGET-AXIS ALIGNMENT</text>
+<text class="note" x="190" y="164">Target-axis alignment moves 55.9 → 55.1 → 60.5 over the remaining 245 iterations, which cost 18.1M of the 20M</text>
+<text class="note" x="190" y="179">timesteps.</text></svg>
+
+  <p>Cutting a converged run to its convergence point is worth about 10&#215;. The best
+  available hardware move, running on a GH200 instead, is 0.74&#215; in the wrong
+  direction. Any plan that adds compute before trimming the budget is buying the smaller lever
+  at the higher price. The trimming is not free of risk &#8212; a shorter budget on a
+  from-scratch run is a different proposition than on a warmstarted finetune, and gotcha 13
+  applies, since the recipes carry reward shaping but not the timestep budget, so cutting it
+  means editing every launcher that passes <code>--total-timesteps</code> explicitly.</p>
+</section>
+
+<section class="col">
+  <h2>What the remaining 92 SU are worth</h2>
+  <p class="sub">balance 92 of 100 deposited hours, 2026-08-20</p>
+
+  <p>The one study actually run gives the honest wall-clock arithmetic. Sixteen draws of 20M
+  timesteps is 9.4 hours of exclusive GPU on the workstation, run end to end. On
+  DeltaAI at 16-way concurrency and zero queue wait it is 0.8 hours, a
+  12&#215; improvement; at 8-way it is 1.6 hours and
+  5.9&#215;. The write-up records the actual elapsed time as &#8220;a few
+  hours&#8221;, which means queue wait, not throughput, set the delivered result. Nobody
+  measured it.</p>
+
+  <p>Against that the accounting is straightforward. The study consumed 12.8 GPU-hours of
+  work and was billed 15 SU, an overhead of 1.17&#215; from reservation
+  rounding. The entire 50-day local training history &#8212; 3.93 G env-steps,
+  116 hours here &#8212; would take 157 GH200-hours, which does not
+  fit in the 92 SU on the account.</p>
+
+  <div class="kpi">
+    <div><div class="n">0.74&#215;</div><div class="k">GH200 per-run throughput</div></div>
+    <div><div class="n">12&#215;</div><div class="k">best case at 16-way breadth</div></div>
+    <div><div class="n">1.17&#215;</div><div class="k">billed over work done</div></div>
+    <div><div class="n">9.7%</div><div class="k">local GPU occupancy</div></div>
+  </div>
+
+  <h3>Where the allocation still pays</h3>
+  <p>Work that is genuinely wide and that nobody is waiting on: seed bands, hyperparameter or
+  reward-shaping sweeps, ablations across many hands, and any question of the form &#8220;is
+  this effect larger than the draw-to-draw noise&#8221;. The seed band is the model case. It was
+  9.4 hours of exclusive local GPU on a machine with one card, which is why it went unasked for
+  two months, and it settled a question the whole sim-to-real spec depended on for 15 SU.</p>
+
+  <h3>Where it does not</h3>
+  <p>Anything with a person at the end of it. Per-run latency is worse, so a single run being
+  watched belongs here. The A&#8594;B pipeline stays sequential per design because B warmstarts
+  from A's checkpoint, so parallelism is across designs and seeds only, and chaining wants
+  <code>--dependency=afterok</code> rather than lifting
+  <code>morph_pipeline_sweep.py</code> onto a compute node. Rendering is worse than not
+  cluster-shaped: EGL on the node image is untested and video encoding is billed GPU time, so
+  filmstrips and eval videos come back to the workstation. And bulk training raises the risk the
+  program is already most exposed to, since 48 seeds produce 48 reward curves and no pictures,
+  while every conclusion in this repo has needed someone to look at a rollout.</p>
+</section>
+
+<section class="col">
+  <h2>What this does not settle</h2>
+
+  <ol>
+    <li><strong>Queue wait is unmeasured, and it decides the previous section.</strong> The
+      12&#215; figure assumes 16 GPUs start at once. Run
+      <code>sacct -j &lt;jobid&gt; --format=JobID,Submit,Start,Elapsed,Reserved,State</code>
+      after the next queue and take the median Submit&#8594;Start delta. If it exceeds about
+      9.4 hours, breadth on the cluster is slower in wall clock than running the
+      same work serially here.</li>
+    <li><strong>The GH200's clock under load has never been read.</strong> Add
+      <code>nvidia-smi --query-gpu=clocks.sm,clocks.max.sm,power.draw,utilization.gpu
+      --format=csv -l 10</code> to the next <code>deltaai_smoke.slurm</code>. A reading near
+      1,980 MHz confirms the latency explanation; a reading near 2,820 MHz falsifies
+      it and sends the deficit back to memory subsystem or kernel dispatch.</li>
+    <li><strong>Billing granularity is still unresolved.</strong> The evidence is mixed: two
+      short jobs moved the balance 92 &#8594; 91 &#8594; 91, while 13.9 hours of packed work
+      drew 15 SU. Run one 8-hour packed block, wait a day, and re-read
+      <code>accounts</code>. If charging is per reserved hour the packed queue in
+      <code>deltaai_pack_queue.slurm</code> is correct and job arrays waste a tail per task; if
+      it is per elapsed second the array is simpler and equally cheap.</li>
+    <li><strong>The convergence point is n = 1.</strong> 26-of-271 comes
+      from one run. Parse <code>Metrics/.../target_axis_alignment</code> out of the tensorboard
+      logs of the 76 runs at that budget and report the first iteration within 2% of
+      each run's final value. A median convergence point above iteration 100 would make the
+      trimming argument much weaker than it looks here.</li>
+    <li><strong>Whether the draw-to-draw sd holds without a shared warmstart.</strong>
+      0.032 was measured with all 16 draws warmstarted from the same a10 checkpoint.
+      The test is a two-stage A-then-B queue on one hand, n = 4 from-scratch A per design, and
+      it is the number that decides whether a per-design morphology search is affordable at
+      all.</li>
+    <li><strong>The duty cycle is a floor, not a measurement of the card.</strong> It counts RL
+      training logs only. Logging wall-clock GPU occupancy directly &#8212;
+      <code>nvidia-smi --query-gpu=utilization.gpu --format=csv -l 60</code> to a rotating file
+      &#8212; would show how much of the 36 idle days is CEM, evaluation and
+      rendering rather than genuinely idle.</li>
+  </ol>
+</section>
+
+<footer>
+  <p>Data: <span class="mono">docs/experiments/20260908-compute_budget/compute_budget.json</span>,
+  collected from <span class="mono">logs/*.log</span> by
+  <span class="mono">scripts/compute_budget_data.py</span>.<br>
+  Page: <span class="mono">scripts/compute_budget_page.py</span> +
+  <span class="mono">scripts/compute_budget_page.template.html</span> &#8594;
+  <span class="mono">docs/experiments/20260908-compute_budget/20260908-compute_budget.html</span>.<br>
+  GH200 measurements: jobs 2989123 / 2989164, 2026-08-20, recorded in
+  <span class="mono">docs/notes/20260820-deltaai_bulk_training_runbook.md</span> and
+  <span class="mono">docs/notes/20260826-nsf_access_deltaai_guide.md</span>.
+  Seed band: <span class="mono">docs/experiments/B33_SEED_BAND.txt</span>.
+  Cluster scripts: <span class="mono">scripts/cluster/</span>.</p>
+</footer>
+</div>
