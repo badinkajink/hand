@@ -6,6 +6,7 @@ changes. Regenerate with the builder named in each page's footer.
 
 | date | subject | local file | artifact |
 |---|---|---|---|
+| 2026-09-08 | Training throughput on the workstation and a DeltaAI GH200 | [20260908-compute_budget/20260908-compute_budget.html](20260908-compute_budget/20260908-compute_budget.html) | https://claude.ai/code/artifact/10e05a17-0472-4c4f-8e85-b85065c28f4a |
 | 2026-09-08 | Screwdriver reorientation across eight deployed hands | [20260908-reorientation_journey/20260908-reorientation_journey.html](20260908-reorientation_journey/20260908-reorientation_journey.html) | https://claude.ai/code/artifact/80256b16-4b80-45ac-a6c2-ff409c8b8f2b |
 | 2026-09-06 | Why the deployed hands stopped reorienting the screwdriver | [20260906-control_diagnosis/20260906-control_diagnosis.html](20260906-control_diagnosis/20260906-control_diagnosis.html) | https://claude.ai/code/artifact/f10f07dd-6812-4c1b-a55c-9bd58c125924 |
 | 2026-09-06 | Pad contact elevation and tool retention across eight deployed hands **(RETRACTED)** | [20260906-pad_elevation/20260906-pad_elevation.html](20260906-pad_elevation/20260906-pad_elevation.html) | https://claude.ai/code/artifact/d5533b73-dbdf-431e-b015-82b8cd003fd1 |
