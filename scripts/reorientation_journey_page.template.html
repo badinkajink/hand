@@ -1,0 +1,621 @@
+<title>Screwdriver reorientation across eight deployed hands</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#EEF1F4; --card:#FFFFFF; --sunk:#E4E9EE;
+  --ink:#1A2127; --ink2:#48545D; --ink3:#77848D; --rule:#D2DAE1; --rule2:#E2E8ED;
+  --s1:#BE7514; --s2:#4A7FC4; --ref:#8A959D;
+  --good:#3F7A46; --bad:#A8443C;
+  --shadow:0 1px 2px rgba(16,26,34,.06),0 8px 24px -14px rgba(16,26,34,.28);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
+  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
+  --s1:#E39A2E; --s2:#7BA7E0; --ref:#79858E; --good:#6FB076; --bad:#DE8078;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+}}
+:root[data-theme="dark"]{
+  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
+  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
+  --s1:#E39A2E; --s2:#7BA7E0; --ref:#79858E; --good:#6FB076; --bad:#DE8078;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);
+  font:400 17px/1.62 "Source Serif 4",Georgia,"Times New Roman",serif;
+  -webkit-font-smoothing:antialiased;padding:0 20px 96px}
+.wrap{max-width:1020px;margin:0 auto}
+.col{max-width:70ch}
+h1,h2,h3,.mono,.tag,th{font-family:Archivo,"Helvetica Neue",Arial,sans-serif}
+.mono,code,td.num,.tick,.val,.ser,.mark,.note,.axlab,pre{
+  font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+header{padding:64px 0 30px;border-bottom:1px solid var(--rule)}
+.eyebrow{font:500 12px/1 "IBM Plex Mono",monospace;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--ink3)}
+h1{font-size:clamp(30px,4.6vw,48px);line-height:1.05;font-weight:700;letter-spacing:-.022em;
+  margin:16px 0 0;text-wrap:balance;max-width:20ch}
+.lede{font-size:20px;line-height:1.55;color:var(--ink2);margin:18px 0 0;max-width:62ch}
+.byline{margin-top:22px;font:400 13px/1.5 "IBM Plex Mono",monospace;color:var(--ink3)}
+section{padding:46px 0;border-bottom:1px solid var(--rule2)}
+section:last-of-type{border-bottom:0}
+h2{font-size:27px;font-weight:700;letter-spacing:-.018em;margin:0 0 6px;text-wrap:balance}
+h3{font-size:18px;font-weight:600;letter-spacing:-.008em;margin:34px 0 8px}
+h2 + .sub{color:var(--ink3);font:400 14px/1.5 "IBM Plex Mono",monospace;margin:0 0 24px}
+p{margin:0 0 17px}
+strong{font-weight:600}
+ul,ol{margin:0 0 17px;padding-left:20px}
+li{margin:0 0 8px}
+figure{margin:28px 0}
+figure video{display:block;width:100%;border-radius:10px;background:var(--sunk);
+  box-shadow:var(--shadow)}
+figure img{display:block;width:100%;border-radius:10px;background:var(--sunk);
+  box-shadow:var(--shadow)}
+figcaption{margin-top:11px;font:400 14px/1.55 "IBM Plex Mono",monospace;color:var(--ink3);
+  max-width:82ch}
+.chart{display:block;width:100%;height:auto;background:var(--card);border:1px solid var(--rule);
+  border-radius:10px;margin:24px 0}
+.col > .tw,.col > figure,.col > .chart,.col > .duo{
+  width:min(1020px,calc(100vw - 40px));max-width:none}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:28px 0}
+@media (max-width:720px){.duo{grid-template-columns:1fr}}
+.duo figure{margin:0}
+.narrow{max-width:560px}
+.narrow video,.narrow img{box-shadow:var(--shadow)}
+.grid{stroke:var(--rule2)}
+.tick{font-size:11px;fill:var(--ink3)}
+.axlab{font-size:11.5px;fill:var(--ink3);letter-spacing:.05em}
+.val{font-size:12px;font-weight:500;fill:var(--ink2)}
+.ser{font-size:12.5px;font-weight:500}
+.mark{font-size:10.5px;fill:var(--ink3);letter-spacing:.06em}
+.note{font-size:11.5px;fill:var(--ink3)}
+.tw{overflow-x:auto;margin:24px 0;border:1px solid var(--rule);border-radius:10px;
+  background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th{font:600 12px/1.3 Archivo,sans-serif;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink3);text-align:left;padding:13px 14px;border-bottom:1px solid var(--rule);
+  white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid var(--rule2);vertical-align:top}
+td.wrap{white-space:normal;min-width:22ch}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;font-size:13.5px;
+  white-space:nowrap}
+tbody tr.hi td{background:color-mix(in oklab,var(--s1) 9%,transparent)}
+.ok{color:var(--good);font-weight:600}
+.no{color:var(--bad);font-weight:600}
+.retract{border:2px solid var(--bad);border-radius:12px;padding:22px 26px;margin:30px 0;
+  background:color-mix(in oklab,var(--bad) 7%,var(--card))}
+.retract .tag{display:block;font:700 12px/1 Archivo,sans-serif;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--bad);margin-bottom:11px}
+.retract p:last-child{margin-bottom:0}
+.keep{border:1px solid var(--rule);border-left:3px solid var(--s2);border-radius:10px;
+  padding:20px 24px;margin:28px 0;background:var(--card)}
+.keep .tag{display:block;font:700 12px/1 Archivo,sans-serif;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--s2);margin-bottom:11px}
+.keep p:last-child,.keep ul:last-child{margin-bottom:0}
+pre{background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:16px 18px;
+  overflow-x:auto;font-size:13px;line-height:1.6;margin:22px 0}
+code{font-size:.92em;background:var(--sunk);padding:1px 4px;border-radius:4px;
+  margin:0 -1px;white-space:nowrap}
+footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",monospace}
+footer a{color:var(--s2)}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">MorphoHand &#183; real_v1 &#183; 8 September 2026</div>
+  <h1>Screwdriver reorientation across eight deployed hands</h1>
+  <p class="lede">{{N_ROLLOUTS}} simulated rollouts over {{N_SWEEPS}} sweeps, on the eight
+  hardware-provenanced hands, asking one question: can a three-finger hand take a screwdriver
+  from horizontal to vertical while holding it, and then seat and drive it. Four distinct
+  configurations completed the whole chain, three of them the same hand at the same pivot
+  height on different seeds. This is the record of what was tried, what each attempt cost, and
+  what it eliminated.</p>
+  <div class="byline">Simulation only, no hardware run &#183; scored on the signed cosine with
+  a load test at the tool&#8217;s own 0.240 N &#183; every number here is read back out of the
+  sweeps&#8217; own JSON by the builder named in the footer</div>
+</header>
+
+<section class="col">
+  <h2>The task, and the one configuration that has ever done it</h2>
+  <p class="sub">results/phase1/real_v1/rv05_manual_stored &#183; 169/169 on 2026-09-03</p>
+
+  <p>The chain is five moves: close on a screwdriver lying on the table, lift it, turn it
+  tip-down in the air, set it into a countersink, and gait it round. Thirteen instrumented
+  seams, and at each one the tool&#8217;s orientation, its pose in the palm frame, and how many
+  pads are on it under how much load.</p>
+
+  <p>One configuration runs it end to end. It is not one of the eight deployed hands: it is
+  <code>rv05_manual_stored</code>, on spherical pads, driven from a stored CEM grasp rather
+  than the deployment fitter, on a floating palm.</p>
+
+<pre>lifted      cos -0.0005  z 0.1121  3 pads   5.55 N
+turned      cos +0.8404  z 0.1145  3 pads  22.32 N
+reoriented  cos +0.9939  z 0.1129  3 pads  10.47 N
+upright     cos +1.0000  z 0.0499  2 pads          tip down
+gaited      cos +0.9946                    8/8 cycles   OK</pre>
+
+  <div class="duo">
+    <figure>
+      <video src="{{MEDIA_REFERENCE_MP4}}" autoplay loop muted playsinline></video>
+      <figcaption>The reference chain, running.</figcaption>
+    </figure>
+    <figure>
+      <img src="{{MEDIA_REFERENCE_SEAMS_JPG}}" alt="Reference chain filmstrip">
+      <figcaption>The same rollout, phase-aligned. Everything below is an attempt to get the
+      deployed hands to do this.
+      <span class="mark">docs/experiments/20260906-ablate/</span></figcaption>
+    </figure>
+  </div>
+
+  <p>It is pinned by <code>tests/test_chain_reference.py</code>, which asserts cos above 0.90
+  at <code>reoriented</code>, at least two pads carrying at least 0.240 N, floor-free, and 8 of
+  8 gait cycles. That test exists because on 2026-09-06 the reference would not execute at all
+  &#8212; <code>GantryPalm</code> had no <code>worst_pos</code>, which the chain reads
+  unconditionally on the floating-palm path, so the whole path had been raising
+  <code>AttributeError</code> unnoticed since the arm work began.</p>
+</section>
+
+<section class="col">
+  <h2>The measurement was wrong three times</h2>
+  <p class="sub">each of these produced a result that was reported and then withdrawn</p>
+
+  <p>Before any of the physics is worth reading, three scoring defects have to be named,
+  because each one generated a positive result that did not exist.</p>
+
+  <h3>1. The tilt angle folds a tool that is upside down onto one that is upright</h3>
+  <p><code>tilt_deg</code> is computed as <code>arccos|cos|</code> when the tool has no
+  modelled tip, so a screwdriver standing on its handle and one standing on its tip both read
+  0.00&#176;. <strong>952 of 967</strong> scored &#8220;stands&#8221; on 2026-09-06 were
+  upside down. Everything is now scored on the signed cosine, where +1 is tip down and
+  &#8722;1 is handle down.</p>
+
+  <h3>2. A stand is not a hold</h3>
+  <p>In table mode the maneuver stands the tool up and lets go of it by construction, so
+  <code>held_reorient</code> in that mode is a measurement of a released tool. Of 177 recorded
+  stands, <strong>116 had zero pads on the tool</strong> and a median pad force of 0.000 N.
+  The angle those runs reported is the angle of a tool the hand had already let go of.</p>
+
+  <h3>3. The success flag read the wrong seam</h3>
+  <p><code>reorient_ok</code> reads the <code>reoriented</code> seam. On the hand that
+  eventually completed the chain the rotation is not finished there &#8212; it reads +0.568 at
+  <code>reoriented</code> and +0.995 two seams later. The completed chain was sitting in the
+  first pivot sweep of 2026-09-06 and was scored as a failure for the rest of the day.</p>
+
+  <div class="keep">
+    <span class="tag">What replaced them</span>
+    <p>Every rollout is now scored on four fields at every seam: the signed cosine, the pad
+    count, the pad force against the tool&#8217;s 0.240 N weight, and the height. A held turn
+    requires two pads at or above the weight, floor-free. <code>slide_mm</code> &#8212; the
+    tool&#8217;s position in the palm frame relative to closure &#8212; is what says whether
+    the grasp kept its geometry, and it is the field that finally agreed with what the videos
+    showed.</p>
+  </div>
+</section>
+
+<section class="col">
+  <h2>Where the tool goes</h2>
+  <p class="sub">{{N_AIR}} mid-air rollouts, every sweep pooled</p>
+
+  <p>Of every loss, 64% happens at the turn or at the settle immediately after it. None
+  happens at the lift.</p>
+
+  {{CHART_ATTRITION}}
+
+  <p>Whether a hand keeps the tool through the turn is a property of the hand, not of the
+  settings swept over it. Two of the eight never do it at any setting tried.</p>
+
+  {{CHART_HANDS}}
+
+  <figure>
+    <video src="{{MEDIA_HELDTURN_GRID_MP4}}" autoplay loop muted playsinline></video>
+    <figcaption>All eight deployed hands at the turn, same settings, same seed. The two on the
+    left of the second row never carry the tool past the lift.
+    <span class="mark">docs/experiments/20260906-held_turn_films/</span></figcaption>
+  </figure>
+
+  <div class="duo">
+    <figure>
+      <video src="{{MEDIA_D5_HELDTURN_MP4}}" autoplay loop muted playsinline></video>
+      <figcaption>D5 at pivot 0.15, the best held turn in the record: cos +0.894 on two pads at
+      14.13 N, floor-free. It loses the tool at the set-down.</figcaption>
+    </figure>
+    <figure>
+      <video src="{{MEDIA_D3_HELDTURN_MP4}}" autoplay loop muted playsinline></video>
+      <figcaption>D3 at pivot 0.35, cos +0.987 on two pads at 3.36 N. Also lost at the
+      set-down.</figcaption>
+    </figure>
+  </div>
+
+  <p>Three of the eight do reach a held, floor-free, tip-down turn once the pivot is set per
+  hand &#8212; D5 at +0.894, D3 at +0.987, D1 at +0.913 on a single pad. All three lose the
+  tool at the seam after it.</p>
+</section>
+
+<section class="col">
+  <h2>Everything that was tried</h2>
+  <p class="sub">{{N_SWEEPS}} sweeps, in the order they were run</p>
+
+  {{CHART_LEDGER}}
+
+  <div class="tw"><table>
+    <thead><tr><th class="num">#</th><th>sweep</th><th>mode</th><th class="num">rollouts</th>
+      <th class="num">survive turn</th><th class="num">held turn</th>
+      <th class="num">chain</th></tr></thead>
+    <tbody>{{TABLE_LEDGER}}</tbody>
+  </table></div>
+
+  <p>* In table mode the maneuver stands the tool up and releases it, so a completed
+  &#8220;chain&#8221; there is a stand, not a held reorientation. Those four sweeps are the
+  reason the second defect above matters: 111 rollouts pass in table mode and none of them is
+  what the task asks for.</p>
+
+  <p>Grouped by what each one was testing:</p>
+
+  <div class="tw"><table>
+    <thead><tr><th>approach</th><th class="wrap">what it was</th><th class="wrap">verdict</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">table stand</td>
+        <td class="wrap">Put the tool back on the table and pivot it up about its foot, so the
+          table carries the weight during the rotation.</td>
+        <td class="wrap"><span class="no">Retracted.</span> 10 of 16 hands &#8220;stood&#8221;
+          it &#8212; with the tool released. 2 of 256 held it.</td></tr>
+      <tr><td class="mono">screened turn in the chain</td>
+        <td class="wrap">Replay the per-hand maneuver that passed the deployment screen, inside
+          the full chain.</td>
+        <td class="wrap"><span class="no">Eliminated.</span> 0 of 96 stands in air mode. Pad
+          force falls 8.43 &#8594; 0.00 N over 59.8&#176; of turn: the screened turn opens the
+          grip.</td></tr>
+      <tr><td class="mono">pad contact elevation</td>
+        <td class="wrap">Move the pads up or down the shaft relative to its equator, on the
+          theory that a wedge above the equator ejects the tool.</td>
+        <td class="wrap"><span class="no">Retracted.</span> The closure measurement stands;
+          the claim that elevation unblocks the chain does not &#8212; those stands were
+          handle-down.</td></tr>
+      <tr><td class="mono">clip / budget band</td>
+        <td class="wrap">432 rollouts over finger travel budget 0.40&#8211;1.15 rad &#215; three
+          pivot heights.</td>
+        <td class="wrap"><span class="no">0 chains.</span> Correct diagnosis of the wrong
+          variable; the fit had no travel left to spend (below).</td></tr>
+      <tr><td class="mono">per-finger force loop</td>
+        <td class="wrap">Regulate each finger&#8217;s trim against measured contact force through
+          every phase, using privileged simulator state.</td>
+        <td class="wrap"><span class="no">Destructive</span> at a correct pivot; rescues a wrong
+          one. Two implementation bugs found and fixed on the way.</td></tr>
+      <tr><td class="mono">pad-pose tracker</td>
+        <td class="wrap">Re-IK the fingers onto their closure stations on the tool&#8217;s
+          current frame, every 25 steps.</td>
+        <td class="wrap"><span class="no">Worse.</span> Median slide through the turn 13 &#8594;
+          41&#8211;127 mm. It chases the tool instead of restoring it.</td></tr>
+      <tr><td class="mono">pivot height, per hand</td>
+        <td class="wrap">Sweep the height of the turn&#8217;s rotation axis above the contact
+          plane, per hand rather than per family.</td>
+        <td class="wrap"><span class="ok">This is the lever.</span> Decides which end of the
+          tool goes down; the good value differs by hand.</td></tr>
+      <tr><td class="mono">grasp extension headroom</td>
+        <td class="wrap">Measure how much of the 68.11 mm finger chain the deployment fitter
+          leaves unspent at closure.</td>
+        <td class="wrap"><span class="ok">Real defect.</span> Fitter leaves 0.44&#8211;1.26 mm
+          against the CEM grasp&#8217;s 2.74 mm, at every squeeze from 2 to 12 mm.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section class="col">
+  <h2>The pivot height decides which end goes down</h2>
+  <p class="sub">scripts/real_v1_chain_ablate.py &#183; open-loop rollouts only</p>
+
+  <p>The turn rotates the fingers about an axis a fixed fraction <code>axis_k</code> of a
+  half-straddle above the contact plane. That fraction selects which end of the tool ends up
+  pointing down, and it does that before it affects how far the tool turns: the same hand at
+  0.05 reaches cos &#8722;0.988 and at 0.25 reaches +0.994.</p>
+
+  {{CHART_PIVOT}}
+
+  <div class="duo">
+    <figure>
+      <video src="{{MEDIA_POLEFLIP_MP4}}" autoplay loop muted playsinline></video>
+      <figcaption>The reference hand at the deployed plans&#8217; pivot, 0.05. The tool turns
+      hard to cos &#8722;0.988 &#8212; handle down &#8212; and is dropped.</figcaption>
+    </figure>
+    <figure>
+      <img src="{{MEDIA_POLEFLIP_SEAMS_JPG}}" alt="Filmstrip of the wrong-pole turn">
+      <figcaption>The same rollout, phase-aligned. The lift is bit-identical to the working
+      one; the pivot only enters after it.</figcaption>
+    </figure>
+  </div>
+
+  <p>The eight deployed plans carry <code>axis_k</code> between 0.05 and 0.15, inherited from a
+  bench screen that measured a different maneuver. Nothing in the deployment path had ever
+  checked that a pivot height transfers between maneuvers, and it does not: for
+  <code>rv05_manual_b85</code>, 0.05 is right for the free carry and 0.25 for the chain.</p>
+
+  <figure>
+    <video src="{{MEDIA_ABLATE_GRID_MP4}}" autoplay loop muted playsinline></video>
+    <figcaption>One factor at a time off the working reference: pads, grasp source, pivot,
+    travel budget, turn angle, tip geometry, and the full deployed plan. Only two of these
+    break it. <span class="mark">docs/experiments/20260906-ablate/</span></figcaption>
+  </figure>
+
+  <div class="tw"><table>
+    <thead><tr><th>arm</th><th class="wrap">what changed</th><th class="num">chains</th>
+      <th>drops at</th></tr></thead>
+    <tbody>{{TABLE_ABLATION}}</tbody>
+  </table></div>
+
+  <p>The turn angle costs least: &#8722;60&#176; under-rotates and still chains 3 of 4. The
+  travel budget costs more than expected &#8212; 0.85 rad chains 1 of 4. <code>tips=box</code> and
+  <code>grasp=fit</code> both die at the <em>lift</em>, not the turn, and both are the same
+  mismatch &#8212; flat pads with a grasp fitted for spheres, and a fitted grasp on a hand whose
+  reference grasp was stored. Flat pads with a grasp fitted for them lift 3 of 4 on three pads
+  at 3.37 N, so the pad shape is not the defect.</p>
+</section>
+
+<section class="col">
+  <h2>The grasp fitter spends the travel the turn is paid for in</h2>
+  <p class="sub">closed-grip mount-to-pad distance against the 68.11 mm finger chain</p>
+
+  <p>A fixed-contact turn is paid for in finger extension: the fingers have to reach further as
+  the tool rotates under them. The stored CEM grasp closes at 62.6&#8211;65.4 mm of a 68.11 mm
+  chain, leaving <strong>2.74 mm</strong>. The deployment fitter <code>_grip_from_fit</code>
+  closes at 66.0&#8211;67.7 mm, leaving <strong>0.44&#8211;1.26 mm</strong>, at every squeeze
+  value from 2 to 12 mm. No squeeze value chains.</p>
+
+  <div class="duo">
+    <figure>
+      <video src="{{MEDIA_GRASPFIT_MP4}}" autoplay loop muted playsinline></video>
+      <figcaption>The reference hand with only the grasp source swapped to the deployment
+      fitter. It drops the tool at the lift, 4 of 4 seeds.</figcaption>
+    </figure>
+    <figure>
+      <img src="{{MEDIA_GRASPFIT_SEAMS_JPG}}" alt="Fitter-grasp filmstrip">
+      <figcaption>Phase-aligned. Nothing about the turn is reached.</figcaption>
+    </figure>
+  </div>
+
+  <p>Grip force is not the missing quantity: the 4 mm cell lifts on three pads at 8.79 N
+  &#8212; more than the reference &#8212; and is on the floor at the next seam. The fitter's
+  palm-height search is clamped to <code>[depth &#8722; 8 mm, depth]</code>, and asked for
+  62, 58, 54, 50 and 46 mm on the reference hand it returns no pose at any of them. Its only
+  feasible depth is the deepest one, which is the problem.</p>
+</section>
+
+<section class="col">
+  <h2>Two closed loops, both measured, both worse</h2>
+  <p class="sub">privileged simulator state, no sim-to-real constraint</p>
+
+  <p>The brief was explicit that closed-loop feedback and privileged information were allowed.
+  Two loops were built and swept. Both make the turn worse at a pivot height that already
+  works.</p>
+
+  <h3>The force loop</h3>
+  <p>Two implementation defects turned up first, and both are real bugs independent of the
+  result. The regulator existed in <code>chain()</code> but the sweep tool exposed only the
+  servo-load proxy, so <em>every chain sweep ever run had been open loop</em>. And
+  <code>_force_step</code> slewed the trim at a hardcoded &#177;0.0006 rad per tick, which
+  <code>gain &#215; error</code> saturates at any realistic error &#8212; 0.066 rad of total
+  correction available over a 550-step turn, against an authority band of 0.45. Fixing both
+  made the loop reachable and effective, and then:</p>
+
+  <div class="tw"><table>
+    <thead><tr><th>per-finger target</th><th class="num">rollouts</th>
+      <th class="num">held tip-down turns</th>
+      <th class="num">median slide at the turn, mm</th></tr></thead>
+    <tbody>{{TABLE_FORCE}}</tbody>
+  </table></div>
+
+  <p>Pooled, the loop looks like it tightens the grasp. Per hand at a correct pivot it
+  destroys the turn. D5 at its own pivot of 0.15:</p>
+
+  <div class="tw"><table>
+    <thead><tr><th>loop</th><th class="num">seed</th><th class="num">cos at turn</th>
+      <th class="num">slide, mm</th><th class="num">pads</th><th class="num">N</th></tr></thead>
+    <tbody>{{TABLE_D5}}</tbody>
+  </table></div>
+
+  <p>Every cell where the loop helped is a pivot of 0.25 or 0.35, where the open loop was
+  already going to the wrong pole. At a pivot that works it costs the turn.</p>
+
+  <h3>The pad-pose tracker</h3>
+  <p>Re-IK the fingertips onto their closure stations, computed on the tool&#8217;s
+  <em>current</em> frame. Median slide at the turn, in mm:</p>
+
+  <div class="tw"><table>
+    <thead><tr><th>hand</th>{{TRACK_HEAD}}</tr></thead>
+    <tbody>{{TABLE_TRACK}}</tbody>
+  </table></div>
+
+  <p>Recomputing the station on the moved tool asks the fingers to follow the tool rather than
+  put it back, and the turn needs the contacts to migrate along the shaft. Higher gain, more
+  slide.</p>
+
+  <figure>
+    <video src="{{MEDIA_FAILURES_GRID_MP4}}" autoplay loop muted playsinline></video>
+    <figcaption>Four hands under the force loop, filmed after the fix. Top left D3: keeps hold
+    and the tool shifts through the turn. Top right D5: slips and loses control mid-rotation.
+    Bottom left D6: barely rotates. Bottom right D7: reorients, then the tool pops up out of the
+    grasp. <span class="mark">docs/experiments/20260906-closedloop_films2/</span></figcaption>
+  </figure>
+
+  <div class="duo">
+    <figure>
+      <img src="{{MEDIA_D3_SLIP_SEAMS_JPG}}" alt="D3 filmstrip">
+      <figcaption>D3 &#8212; slide 0.6 &#8594; 85.7 mm across the turn while the pads stay
+      on.</figcaption>
+    </figure>
+    <figure>
+      <img src="{{MEDIA_D7_POP_SEAMS_JPG}}" alt="D7 filmstrip">
+      <figcaption>D7 &#8212; rises 18.0 mm in the hand during the turn, then +8.6 mm at the
+      re-grip as pad force falls 5.47 &#8594; 0.26 N.</figcaption>
+    </figure>
+  </div>
+
+  <div class="retract">
+    <span class="tag">Withdrawn</span>
+    <p>Two claims made during this work were wrong and are not used above. Grip force at the
+    lift was reported to predict the drop at Spearman &#8722;0.312 pooled; within each hand
+    the relationship vanishes (|&#961;| 0.03&#8211;0.36, inconsistent sign), so the pooled
+    figure is carried by which hand, not by how hard it clamps. And <code>roll_deg</code> was
+    read as evidence the fingers were not carrying the tool; it is measured against the palm,
+    which is fixed through the turn, so it reads about 90&#176; on a working rollout
+    too.</p>
+  </div>
+</section>
+
+<section class="col">
+  <h2>The maneuvers that release the tool</h2>
+  <p class="sub">two withdrawn results, kept here because they cost the most time</p>
+
+  <figure>
+    <video src="{{MEDIA_TABLESTAND_GRID_MP4}}" autoplay loop muted playsinline></video>
+    <figcaption>Table-supported reorientation, sixteen hands. Ten of them bring the tool to
+    within 3&#176; of vertical. The angle was reported at 89.1&#176; &#177; 0.9 before the load
+    test was applied; 2 of 256 rollouts still had the tool in hand.
+    <span class="mark">docs/experiments/20260904-real_v1_held/20260905-films/</span></figcaption>
+  </figure>
+
+  <figure>
+    <video src="{{MEDIA_SCREENED_TURN_MP4}}" autoplay loop muted playsinline></video>
+    <figcaption>The screened per-hand maneuver, replayed inside the chain. It turns the tool
+    59.8&#176; and pad force goes 5.60 &#8594; 0.13 N doing it. Past 59&#176; nothing in any
+    sweep has ever carried the tool.
+    <span class="mark">docs/experiments/20260906-screened_turn/</span></figcaption>
+  </figure>
+
+  <p>Both maneuvers reorient the tool without holding it, and both come from a screen that
+  measured a turn angle with no load test &#8212; the same defect as the tilt folding, in a
+  different place.</p>
+</section>
+
+<section class="col">
+  <h2>The chain completes on D6, open loop</h2>
+  <p class="sub">sv1_u0308_b050 &#183; pivot 0.15 &#183; travel budget 0.50 rad &#183; 550-step
+  turn &#183; &#8722;90&#176;</p>
+
+  <p>Three pads on the tool at every one of the thirteen seams, 1.0 mm of grasp slide between
+  the lift and vertical, eight of eight gait cycles.</p>
+
+  <figure>
+    <video src="{{MEDIA_D6_SOLVED_WIDE_MP4}}" autoplay loop muted playsinline></video>
+    <figcaption>D6, the completed chain, on the UR5e: close on the lying tool, lift, turn it
+    tip-down, seat it in the countersink, gait it eight cycles. Seed 2.
+    <span class="mark">docs/experiments/20260908-reorientation_journey/films/</span></figcaption>
+  </figure>
+
+  {{CHART_D6}}
+
+  <div class="tw"><table>
+    <thead><tr><th>seam</th><th class="num">cos</th><th class="num">tilt, deg</th>
+      <th class="num">slide, mm</th><th class="num">pads</th><th class="num">N</th>
+      <th class="num">z, mm</th></tr></thead>
+    <tbody>{{TABLE_D6}}</tbody>
+  </table></div>
+
+  <div class="duo">
+    <figure>
+      <img src="{{MEDIA_D6_SOLVED_SEAMS_JPG}}" alt="D6 completed chain filmstrip, close">
+      <figcaption>Phase-aligned, close on the hand: horizontal, vertical, seated, gaited
+      &#8212; three pads on the shaft throughout.</figcaption>
+    </figure>
+    <figure>
+      <video src="{{MEDIA_D6_SOLVED_MP4}}" autoplay loop muted playsinline></video>
+      <figcaption>The same configuration filmed at the pads, seed 3.</figcaption>
+    </figure>
+  </div>
+
+  <div class="keep">
+    <span class="tag">The caveat, stated with the result</span>
+    <p>The fingers take the tool from 94.0&#176; to 54.5&#176;. The arm takes it from
+    54.5&#176; to 6.0&#176;, by an iterated rigid palm transfer against the measured object
+    pose &#8212; the hand and tool rotate together and the fingers do not move. This is a held
+    reorientation of the whole assembly, not a finger-only in-hand reorientation. Of the
+    90&#176; asked for, the fingers deliver 39.5&#176;.</p>
+  </div>
+
+  <p>At the exact cell above it reproduces on <strong>{{D6_CELL_OK}} of {{D6_CELL_N}}
+  seeds</strong>. Across every open-loop configuration at pivot 0.15 on this hand it is
+  {{D6_PIVOT15_OK}} of {{D6_PIVOT15_N}}, and the reason for the gap is that the finger-travel
+  budget has to be 0.50 rad:</p>
+
+  <div class="tw"><table>
+    <thead><tr><th class="num">travel budget, rad</th><th class="num">seeds</th>
+      <th class="num">chains</th></tr></thead>
+    <tbody>{{TABLE_BUDGET}}</tbody>
+  </table></div>
+
+  <p>0.50 rad was Policy B&#8217;s action budget, carried into this maneuver because it was
+  never a screening variable. It is the only value that works here, and the sweep either side of
+  it is 0 for 18. Maximum slide anywhere in the run is {{D6_SLIDE_MAX}} mm, during the gait,
+  after the tool is seated.</p>
+
+  <figure>
+    <video src="{{MEDIA_SOLVED_GRID_MP4}}" autoplay loop muted playsinline></video>
+    <figcaption>D5 and D6 at pivot 0.15, side by side. D5 reaches cos +0.899 on two pads at
+    22.60 N and loses the tool at the set-down; D6 carries it through.
+    <span class="mark">docs/experiments/20260906-solved/</span></figcaption>
+  </figure>
+
+  <p>Every completed chain in the whole {{N_ROLLOUTS}}-rollout record &#8212;
+  {{N_COMPLETED}} distinct (hand, pivot, seed) cells, several of them re-run by more than one
+  sweep:</p>
+
+  <div class="tw"><table>
+    <thead><tr><th>hand</th><th>plan</th><th class="num">pivot</th><th class="num">seed</th>
+      <th>sweep</th><th class="num">cos at staged</th><th class="num">cos at gaited</th></tr></thead>
+    <tbody>{{TABLE_COMPLETED}}</tbody>
+  </table></div>
+
+  <p>The last row is D2 with its pad contacts moved 12 mm down the shaft &#8212; a variant of a
+  deployed plan, not a deployed plan. It reached the same place by the same route and has not
+  been reproduced across seeds.</p>
+</section>
+
+<section class="col">
+  <h2>What this does not settle</h2>
+  <p class="sub">named measurements, with what would falsify each</p>
+
+  <ol>
+    <li><strong>Whether the fingers can deliver more than 39.5&#176;.</strong> Rerun D6 at pivot
+      0.15 with <code>transport_iters=1</code> and the staging rotation disabled, so the arm
+      cannot contribute, and read the cosine at <code>staged</code>. If it stays near +0.568
+      the finger-only reorientation is unsolved and the chain result is an arm result.</li>
+    <li><strong>Whether the fitter is the reason seven hands fail.</strong> Add an
+      extension-headroom constraint to <code>_grip_from_fit</code> &#8212; reject a pose leaving
+      under 2.5 mm of the 68.11 mm chain &#8212; and widen its palm-height search past the
+      <code>[depth &#8722; 8 mm, depth]</code> clamp. Accept if a headroom-constrained fit
+      reproduces the reference chain under <code>tests/test_chain_reference.py</code>. Then
+      re-run the pivot sweep. Not before: the 432-rollout budget band already gave 0 chains
+      against a fit with no travel left.</li>
+    <li><strong>Whether pivot 0.15 is D6&#8217;s optimum or the edge of a window.</strong> The
+      grid is 0.05 / 0.10 / 0.15 / 0.20 / 0.25 / 0.35 and D6 is only sampled densely at 0.15.
+      Sweep 0.12&#8211;0.20 in steps of 0.01, eight seeds, and read the width of the band that
+      chains.</li>
+    <li><strong>Whether the per-hand pivot is predictable from geometry.</strong> Eight hands,
+      each with a measured best pivot, is enough to test against thumb moment arm and grip
+      depth, and not enough to fit anything. If neither correlates, the pivot has to be
+      screened per hand and that cost belongs in the deployment budget.</li>
+    <li><strong>The handover.</strong> The chain funnel on the earlier set A run was 122
+      lifts, 102 held turns, 91 stands, and <strong>43</strong> <code>grip_ok</code>. That
+      91&#8594;43 loss is not touched by anything in this page; D6 passes it, and no test has
+      isolated why.</li>
+  </ol>
+
+  <p>None of this has been run on hardware. The deployed plans keep their bench pivot values,
+  which this page shows are wrong for the chain; nothing should be re-flashed to the CB1 until
+  the pivot is measured for the maneuver the hardware will actually run.</p>
+</section>
+
+<footer>
+  <p>Data: <span class="mono">docs/experiments/20260908-reorientation_journey/journey.json</span>,
+  collected from every <span class="mono">docs/experiments/*/chain_hands.json</span> by
+  <span class="mono">scripts/reorientation_journey_data.py</span>.<br>
+  Page: <span class="mono">scripts/reorientation_journey_page.py</span> +
+  <span class="mono">scripts/reorientation_journey_page.template.html</span> &#8594;
+  <span class="mono">docs/experiments/20260908-reorientation_journey/20260908-reorientation_journey.html</span>.<br>
+  Films: <span class="mono">scripts/real_v1_chain_films.py</span>,
+  <span class="mono">scripts/real_v1_chain_ablate.py --films</span>.
+  Sweeps: <span class="mono">scripts/real_v1_chain_hands.py</span>.
+  Reference regression: <span class="mono">tests/test_chain_reference.py</span>.</p>
+</footer>
+</div>

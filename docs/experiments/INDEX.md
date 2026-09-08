@@ -6,6 +6,7 @@ changes. Regenerate with the builder named in each page's footer.
 
 | date | subject | local file | artifact |
 |---|---|---|---|
+| 2026-09-08 | Screwdriver reorientation across eight deployed hands | [20260908-reorientation_journey/20260908-reorientation_journey.html](20260908-reorientation_journey/20260908-reorientation_journey.html) | https://claude.ai/code/artifact/80256b16-4b80-45ac-a6c2-ff409c8b8f2b |
 | 2026-09-06 | Why the deployed hands stopped reorienting the screwdriver | [20260906-control_diagnosis/20260906-control_diagnosis.html](20260906-control_diagnosis/20260906-control_diagnosis.html) | https://claude.ai/code/artifact/f10f07dd-6812-4c1b-a55c-9bd58c125924 |
 | 2026-09-06 | Pad contact elevation and tool retention across eight deployed hands **(RETRACTED)** | [20260906-pad_elevation/20260906-pad_elevation.html](20260906-pad_elevation/20260906-pad_elevation.html) | https://claude.ai/code/artifact/d5533b73-dbdf-431e-b015-82b8cd003fd1 |
 | 2026-09-06 | Screened plans in the chained task: pickup, turn and handover | [20260906-screen_vs_chain/20260906-screen_vs_chain.html](20260906-screen_vs_chain/20260906-screen_vs_chain.html) | https://claude.ai/code/artifact/28a84ea8-a8b2-405e-aea6-e6a626baa3b0 |
