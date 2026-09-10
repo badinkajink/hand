@@ -432,6 +432,22 @@ def main() -> None:
         vals[k] = f"{rho[v]['rho']:+.3f}" if v in rho else "n/a"
         vals[k + "_P"] = f"{rho[v]['p']:.2g}" if v in rho else "n/a"
     vals["N_TURN"] = str(an["arms"].get(prim, {}).get("n_with_turn", 0))
+    sc = an.get("scale_matched", {})
+    vals["SC_N"] = str(sc.get("n", 0))
+    vals["SC_RHO"] = (f"{sc['ranking_agreement']['karma_t']['rho']:+.3f}"
+                      if sc else "n/a")
+    dt = sc.get("delta", {}).get("karma_t")
+    vals["SC_DELTA"] = (f"{dt['absolute_minus_scaled']:+.3f} "
+                        f"(95% {dt['ci'][0]:+.3f} to {dt['ci'][1]:+.3f})") if dt else "n/a"
+    st_ = sc.get("rho_nom_cos", {})
+    if "absolute|karma_t" in st_ and "scaled|karma_t" in st_:
+        vals["SC_TURN"] = (f"Spearman {st_['absolute|karma_t']['rho']:+.3f} against "
+                           f"{st_['scaled|karma_t']['rho']:+.3f}, "
+                           f"p {st_['absolute|karma_t']['p']:.2f}, "
+                           f"n {st_['absolute|karma_t']['n']}")
+    else:
+        vals["SC_TURN"] = "n/a"
+
     pm = an.get("pair_matched", {})
     au = pm.get("auc", {})
     vals["PM_TI"] = f"{au['thumb-index|karma_t']['auc']:.3f}" if au else "n/a"

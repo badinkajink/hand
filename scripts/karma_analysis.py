@@ -328,6 +328,53 @@ def main() -> int:
             "median_abs_log2_ratio": round(float(np.median(np.abs(
                 np.log2(np.maximum(tm, 1e-9) / np.maximum(ti, 1e-9))))), 3)}
 
+    # ── does defeating the L_ref scaling change anything? ────────────────────
+    # KaRMA is exactly invariant to rescaling a hand, which is right for comparing hands of
+    # different sizes and questionable for a fixed-object task. The absolute arm pins the
+    # sphere to the screwdriver shaft's 12.5 mm radius and the capsule to the real 10.55 mm
+    # pad, matched on the designs scored both ways.
+    byv: dict = {}
+    for r in rows:
+        if r["pair"] == "thumb-index":
+            byv.setdefault(r["design"], {})[r["variant"]] = r
+    bothv = [v for v in byv.values() if "scaled" in v and "absolute" in v]
+    if len(bothv) >= 30:
+        yv = np.array([bool(v["scaled"]["retained"]) for v in bothv])
+        sc: dict = {"n": len(bothv), "n_retained": int(yv.sum()), "auc": {}, "delta": {},
+                    "ranking_agreement": {}}
+        rng = np.random.default_rng(0)
+        idx = np.arange(len(bothv))
+        for k in ("karma_t", "karma_r", "n_voxels"):
+            a = np.array([b["scaled"][k] for b in bothv], float)
+            c = np.array([b["absolute"][k] for b in bothv], float)
+            for lab, v in (("scaled", a), ("absolute", c)):
+                lo, hi = auc_ci(v, yv)
+                sc["auc"][f"{lab}|{k}"] = {"auc": round(auc(v, yv), 3),
+                                           "ci": [round(lo, 3), round(hi, 3)]}
+            d = []
+            for _ in range(2000):
+                bi = rng.choice(idx, len(idx), replace=True)
+                if yv[bi].sum() in (0, len(bi)):
+                    continue
+                d.append(auc(c[bi], yv[bi]) - auc(a[bi], yv[bi]))
+            sc["delta"][k] = {"absolute_minus_scaled": round(float(auc(c, yv) - auc(a, yv)), 3),
+                              "ci": [round(float(np.percentile(d, 2.5)), 3),
+                                     round(float(np.percentile(d, 97.5)), 3)]}
+            rho, pv = stats.spearmanr(a, c)
+            sc["ranking_agreement"][k] = {"rho": round(float(rho), 3), "p": float(pv)}
+        # Does pinning the object to the real shaft recover any of the turn?
+        cf = [b for b in bothv if b["scaled"].get("nom_cos") is not None]
+        sc["rho_nom_cos"] = {}
+        if len(cf) >= 20:
+            tc = np.array([b["scaled"]["nom_cos"] for b in cf], float)
+            for k in ("karma_t", "karma_r"):
+                for var in ("scaled", "absolute"):
+                    v = np.array([b[var][k] for b in cf], float)
+                    rho, pv = stats.spearmanr(v, tc)
+                    sc["rho_nom_cos"][f"{var}|{k}"] = {
+                        "rho": round(float(rho), 3), "p": float(pv), "n": len(cf)}
+        out["scale_matched"] = sc
+
     # ── what is KaRMA measuring, in coordinates this programme already uses? ──
     # x_sep (thumb-to-pair span) and y_sep (pair opening) are linear in the six mounts and
     # are the two the retention screen demonstrably acts on, so they are the natural basis
