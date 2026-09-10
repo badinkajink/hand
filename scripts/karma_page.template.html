@@ -257,6 +257,23 @@ footer a{color:var(--s2)}
 </section>
 
 <section class="col">
+  <h2>Its scale invariance costs nothing here</h2>
+  <p>KaRMA scales every length by <span class="mono">L_ref</span>, so a hand is posed a problem
+  proportional to its own size and the score cannot see absolute scale. For comparing hands of
+  different sizes that is the point; for a design search against a fixed 25 mm screwdriver
+  shaft it is the wrong invariance in principle. Re-running {{SC_N}} designs with the scaling
+  defeated &#8212; <span class="mono">l_ref_nominal_m</span> set to each hand&#8217;s own
+  <span class="mono">L_ref</span>, so the factor is exactly 1, with the sphere pinned to the
+  shaft&#8217;s 12.5 mm radius and the capsule to the real 10.55 mm pad &#8212; leaves the
+  KaRMA-T ranking almost unchanged at Spearman <strong>{{SC_RHO}}</strong>, and moves retention
+  AUC by {{SC_DELTA}}. Correlation with the screened turn does not improve either
+  ({{SC_TURN}}).</p>
+  <p>The invariance was a candidate explanation for the flat turn correlation and it is not the
+  explanation. Anything that fixes that has to change what the search does, not what it is
+  measured in.</p>
+</section>
+
+<section class="col">
   <h2>The pinch it scores is not the grasp this hand uses</h2>
   <p>KaRMA chooses its own pinch, ranking every feasible seed by a trial search. Over
   {{N_DESIGNS}} designs it chose a median depth of <strong>{{DEPTH_MED}} mm</strong> below the
