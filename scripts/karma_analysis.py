@@ -53,9 +53,7 @@ def auc_ci(score: np.ndarray, label: np.ndarray, n: int = 2000,
     idx = np.arange(len(score))
     for _ in range(n):
         b = rng.choice(idx, len(idx), replace=True)
-        if label[b].all() or (~label[b]).any() is False:
-            continue
-        if label[b].sum() in (0, len(b)):
+        if label[b].sum() in (0, len(b)):   # a degenerate resample has no AUC
             continue
         vals.append(auc(score[b], label[b]))
     if not vals:
@@ -135,11 +133,11 @@ def main() -> int:
             contact = {"thumb-index": (0, 2), "thumb-middle": (0, 4),
                        "index-middle": (2, 4)}[pair]
             i, j = contact
-            rulers = {
-                "pair_mount_distance_mm": -np.hypot(M[:, i] - M[:, j],
-                                                    M[:, i + 1] - M[:, j + 1]),
-                "x_sep_mm": -((M[:, 2] + M[:, 4]) / 2 - M[:, 0]),
-                "y_sep_mm": -np.abs(M[:, 3] - M[:, 5]),
+            rulers = {   # each scores HIGH for a more compact hand
+                "closeness_of_the_scored_pair": -np.hypot(M[:, i] - M[:, j],
+                                                          M[:, i + 1] - M[:, j + 1]),
+                "small_x_sep": -((M[:, 2] + M[:, 4]) / 2 - M[:, 0]),
+                "small_y_sep": -np.abs(M[:, 3] - M[:, 5]),
             }
             for k, v in rulers.items():
                 if y.sum() in (0, len(y)):

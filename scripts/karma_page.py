@@ -111,6 +111,10 @@ def chart_auc(an, arm_key: str) -> str:
             ("karma_s", "KaRMA-S  seed sensitivity", A),
             ("karma_trs_logistic_cv", "KaRMA T+R+S, logistic (5-fold CV)", A),
             ("seed_depth_mm", "depth of the pinch KaRMA chose", REF),
+            ("ruler_closeness_of_the_scored_pair",
+             "ruler: how close the two scored mounts are", B),
+            ("ruler_small_x_sep", "ruler: thumb-to-pair span, small is high", B),
+            ("ruler_small_y_sep", "ruler: pair opening, small is high", B),
             ("six_mounts_logistic_cv", "the six mount coordinates, logistic (5-fold CV)", B),
             ("mounts_plus_karma_logistic_cv", "six mounts + KaRMA T/R/S, logistic (CV)", B)):
         if k in a:
