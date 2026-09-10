@@ -72,8 +72,10 @@ def chart_spread(tab, pub) -> str:
     o.append(f'<text class="ser" x="{x0-10}" y="66" text-anchor="end" fill="var(--ink)">'
              f'real_v1</text>')
     o.append(f'<text class="tick" x="{x0-10}" y="82" text-anchor="end">n={len(ours)}</text>')
-    for v in ours:
-        o.append(f'<circle cx="{X(v):.1f}" cy="{62 + (hash(f"{v:.9f}") % 26) - 13}" r="2.6" '
+    for n, v in enumerate(ours):
+        # Deterministic jitter: Python salts str hashes per process, so hash() here would
+        # make the page fail to regenerate identically.
+        o.append(f'<circle cx="{X(v):.1f}" cy="{62 + (n * 7) % 26 - 13}" r="2.6" '
                  f'fill="{A}" fill-opacity="0.5"/>')
     o.append(f'<text class="ser" x="{x0-10}" y="146" text-anchor="end" fill="var(--ink)">'
              f'published</text>')
@@ -269,6 +271,39 @@ def table_deployed(an) -> str:
     return "\n".join(o) + "</tbody></table></div>"
 
 
+def fig_replay() -> str:
+    f = f"{MEDIA}/20260910-karma_replay.mp4"
+    if not os.path.exists(f):
+        return ""
+    r = json.load(open(f"{ROOT}/replay.json"))["summary"]
+    return (f'<figure><video autoplay loop muted playsinline src="{uri(os.path.basename(f))}">'
+            f'</video><figcaption>KaRMA&#8217;s own rolling path for the highest-scoring hand '
+            f'in the sweep, driven joint for joint through MuJoCo contact physics on '
+            f'KaRMA&#8217;s own capsule geometry, gravity off, with {r["squeeze_deg"]:.0f}'
+            f'&#176; of commanded squeeze added because the metric&#8217;s pinch carries no '
+            f'preload. The sphere travels {r["actual_travel_mm"]:.0f} mm against the '
+            f'{r["predicted_travel_mm"]:.0f} mm predicted, ends {r["final_error_mm"]:.0f} mm '
+            f'from the predicted pose, and is never held at two contacts.</figcaption>'
+            f'</figure>')
+
+
+def fig_reach(tab) -> str:
+    hi = f"{MEDIA}/20260910-reach_best.png"
+    lo = f"{MEDIA}/20260910-reach_worst.png"
+    if not (os.path.exists(hi) and os.path.exists(lo)):
+        return ""
+    sub = sorted([r for r in tab if r["variant"] == "scaled" and r["pair"] == "thumb-index"],
+                 key=lambda r: r["n_voxels"])
+    a, b = sub[-1], sub[0]
+    return (f'<div class="duo">'
+            f'<figure><img src="{uri(os.path.basename(hi))}">'
+            f'<figcaption>{esc(a["design"])} &#183; {a["n_voxels"]} voxels, KaRMA-R '
+            f'{a["karma_r"]:.3f}</figcaption></figure>'
+            f'<figure><img src="{uri(os.path.basename(lo))}">'
+            f'<figcaption>{esc(b["design"])} &#183; {b["n_voxels"]} voxels, KaRMA-R '
+            f'{b["karma_r"]:.3f}</figcaption></figure></div>')
+
+
 def main() -> None:
     tab = json.load(open(f"{ROOT}/karma_table.json"))
     an = json.load(open(f"{ROOT}/karma_analysis.json"))
@@ -306,12 +341,8 @@ def main() -> None:
         "GAP_MED": f"{st.median(near):+.2f}" if near else "n/a",
         "PAD_PCT": f"{100*sum(onpad)/len(onpad):.0f}" if onpad else "n/a",
         "DEPTH_MED": f"{st.median([r['seed_depth_mm'] for r in sub]):.1f}",
-        "REPLAY": uri("20260910-karma_replay.mp4") if os.path.exists(
-            f"{MEDIA}/20260910-karma_replay.mp4") else "",
-        "REACH_HI": uri("20260910-reach_best.png") if os.path.exists(
-            f"{MEDIA}/20260910-reach_best.png") else "",
-        "REACH_LO": uri("20260910-reach_worst.png") if os.path.exists(
-            f"{MEDIA}/20260910-reach_worst.png") else "",
+        "FIG_REPLAY": fig_replay(),
+        "FIG_REACH": fig_reach(tab),
     }
     for k, v in (("AUC_R", "karma_r"), ("AUC_T", "karma_t"), ("AUC_S", "karma_s"),
                  ("AUC_VOX", "n_voxels"), ("AUC_MOUNTS", "six_mounts_logistic_cv"),

@@ -164,6 +164,24 @@ def main() -> int:
             except ImportError:
                 pass
 
+            # The stricter screen, asked conditionally: among designs that were retained,
+            # does KaRMA pick out the ones that went on to be confirmed? The sample is
+            # case-control on retention, so this is the only unbiased way to ask about
+            # confirmation with it.
+            ret = [r for r in sub if r["retained"]]
+            arm["auc_confirmed_among_retained"] = {}
+            if len(ret) >= 20:
+                yc = np.array([bool(r["confirmed"]) for r in ret])
+                if 0 < yc.sum() < len(yc):
+                    arm["n_confirmed_among_retained"] = int(yc.sum())
+                    for k in SCORES:
+                        v = np.array([r[k] for r in ret], float)
+                        ok = np.isfinite(v)
+                        if ok.sum() < 20 or yc[ok].sum() in (0, int(ok.sum())):
+                            continue
+                        arm["auc_confirmed_among_retained"][k] = {
+                            "auc": round(auc(v[ok], yc[ok]), 3)}
+
             # Does KaRMA rank the screened turn among hands that got that far?
             conf = [r for r in sub if r.get("nom_cos") is not None]
             arm["n_with_turn"] = len(conf)
