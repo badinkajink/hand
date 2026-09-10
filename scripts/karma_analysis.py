@@ -208,6 +208,21 @@ def main() -> int:
                         arm["auc_confirmed_among_retained"][k] = {
                             "auc": round(auc(v[ok], yc[ok]), 3)}
 
+            # A finer-grained ordinal than binary retention: the highest residual clip the
+            # design still passes at. Under this gate a bigger clip is HARDER (305 designs
+            # pass at 0.50, 33 at 1.30), so a higher value is a more robust hand.
+            clipped = [r for r in sub if r.get("max_clip_rad")]
+            arm["n_with_clip"] = len(clipped)
+            arm["rho_max_clip"] = {}
+            if len(clipped) >= 20:
+                mc = np.array([r["max_clip_rad"] for r in clipped], float)
+                for k in SCORES:
+                    v = np.array([r[k] for r in clipped], float)
+                    ok = np.isfinite(v)
+                    rho, p = stats.spearmanr(v[ok], mc[ok])
+                    arm["rho_max_clip"][k] = {"rho": round(float(rho), 3), "p": float(p),
+                                              "n": int(ok.sum())}
+
             # Does KaRMA rank the screened turn among hands that got that far?
             conf = [r for r in sub if r.get("nom_cos") is not None]
             arm["n_with_turn"] = len(conf)

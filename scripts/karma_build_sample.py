@@ -48,8 +48,17 @@ def load_labels() -> dict[str, dict]:
     reach = set(open(SOBOL / "reachable.txt").read().split())
     sel: set[str] = set()
     conf: set[str] = set()
+    # The clip is an ordinal difficulty axis under this gate, not a free parameter: the
+    # retention screen passes 305 designs at 0.50 and 33 at 1.30, because a bigger turn
+    # excursion costs grip before the proof lift. The highest clip a design still passes
+    # at is therefore a finer-grained label than binary retention.
+    max_clip: dict[str, float] = {}
     for f in glob.glob(str(SOBOL / "selected/designs_b*.txt")):
-        sel |= set(open(f).read().strip().split(","))
+        clip = int(f.rsplit("_b", 1)[1].split(".")[0]) / 100.0
+        names = set(open(f).read().strip().split(","))
+        sel |= names
+        for t in names:
+            max_clip[t] = max(max_clip.get(t, 0.0), clip)
     for f in glob.glob(str(SOBOL / "selected/confirmed/designs_b*.txt")):
         conf |= set(open(f).read().strip().split(","))
 
@@ -79,7 +88,8 @@ def load_labels() -> dict[str, dict]:
         if t in conf:
             stage = 3
         rec = {"design": t, "mounts_mm": mounts_mm(r["vector_m"]), "stage": stage,
-               "retained": stage >= 2, "confirmed": stage >= 3, "source": r.get("source")}
+               "retained": stage >= 2, "confirmed": stage >= 3, "source": r.get("source"),
+               "max_clip_rad": max_clip.get(t)}
         rec.update(turn.get(t, {}))
         out[t] = rec
     return out
