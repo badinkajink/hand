@@ -1,0 +1,268 @@
+<title>The KaRMA kinematic metric on the real_v1 design family</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#EEF1F4; --card:#FFFFFF; --sunk:#E4E9EE;
+  --ink:#1A2127; --ink2:#48545D; --ink3:#77848D; --rule:#D2DAE1; --rule2:#E2E8ED;
+  --s1:#BE7514; --s2:#4A7FC4; --ref:#8A959D;
+  --good:#3F7A46; --bad:#A8443C;
+  --shadow:0 1px 2px rgba(16,26,34,.06),0 8px 24px -14px rgba(16,26,34,.28);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
+  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
+  --s1:#E39A2E; --s2:#7BA7E0; --ref:#79858E; --good:#6FB076; --bad:#DE8078;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+}}
+:root[data-theme="dark"]{
+  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
+  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
+  --s1:#E39A2E; --s2:#7BA7E0; --ref:#79858E; --good:#6FB076; --bad:#DE8078;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);
+  font:400 17px/1.62 "Source Serif 4",Georgia,"Times New Roman",serif;
+  -webkit-font-smoothing:antialiased;padding:0 20px 96px}
+.wrap{max-width:1020px;margin:0 auto}
+.col{max-width:70ch}
+h1,h2,h3,.mono,.tag,th{font-family:Archivo,"Helvetica Neue",Arial,sans-serif}
+.mono,code,td.num,.tick,.val,.ser,.mark,.note,.axlab,pre{
+  font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+header{padding:64px 0 30px;border-bottom:1px solid var(--rule)}
+.eyebrow{font:500 12px/1 "IBM Plex Mono",monospace;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--ink3)}
+h1{font-size:clamp(30px,4.6vw,48px);line-height:1.05;font-weight:700;letter-spacing:-.022em;
+  margin:16px 0 0;text-wrap:balance;max-width:20ch}
+.lede{font-size:20px;line-height:1.55;color:var(--ink2);margin:18px 0 0;max-width:62ch}
+.byline{margin-top:22px;font:400 13px/1.5 "IBM Plex Mono",monospace;color:var(--ink3)}
+section{padding:46px 0;border-bottom:1px solid var(--rule2)}
+section:last-of-type{border-bottom:0}
+h2{font-size:27px;font-weight:700;letter-spacing:-.018em;margin:0 0 6px;text-wrap:balance}
+h3{font-size:18px;font-weight:600;letter-spacing:-.008em;margin:34px 0 8px}
+h2 + .sub{color:var(--ink3);font:400 14px/1.5 "IBM Plex Mono",monospace;margin:0 0 24px}
+p{margin:0 0 17px}
+strong{font-weight:600}
+ul,ol{margin:0 0 17px;padding-left:20px}
+li{margin:0 0 8px}
+figure{margin:28px 0}
+figure video{display:block;width:100%;border-radius:10px;background:var(--sunk);
+  box-shadow:var(--shadow)}
+figure img{display:block;width:100%;border-radius:10px;background:var(--sunk);
+  box-shadow:var(--shadow)}
+figcaption{margin-top:11px;font:400 14px/1.55 "IBM Plex Mono",monospace;color:var(--ink3);
+  max-width:82ch}
+.chart{display:block;width:100%;height:auto;background:var(--card);border:1px solid var(--rule);
+  border-radius:10px;margin:24px 0}
+.col > .tw,.col > figure,.col > .chart,.col > .duo{
+  width:min(1020px,calc(100vw - 40px));max-width:none}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:28px 0}
+@media (max-width:720px){.duo{grid-template-columns:1fr}}
+.duo figure{margin:0}
+.narrow{max-width:560px}
+.narrow video,.narrow img{box-shadow:var(--shadow)}
+.grid{stroke:var(--rule2)}
+.tick{font-size:11px;fill:var(--ink3)}
+.axlab{font-size:11.5px;fill:var(--ink3);letter-spacing:.05em}
+.val{font-size:12px;font-weight:500;fill:var(--ink2)}
+.ser{font-size:12.5px;font-weight:500}
+.mark{font-size:10.5px;fill:var(--ink3);letter-spacing:.06em}
+.note{font-size:11.5px;fill:var(--ink3)}
+.tw{overflow-x:auto;margin:24px 0;border:1px solid var(--rule);border-radius:10px;
+  background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th{font:600 12px/1.3 Archivo,sans-serif;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink3);text-align:left;padding:13px 14px;border-bottom:1px solid var(--rule);
+  white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid var(--rule2);vertical-align:top}
+td.wrap{white-space:normal;min-width:22ch}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;font-size:13.5px;
+  white-space:nowrap}
+tbody tr.hi td{background:color-mix(in oklab,var(--s1) 9%,transparent)}
+.ok{color:var(--good);font-weight:600}
+.no{color:var(--bad);font-weight:600}
+.retract{border:2px solid var(--bad);border-radius:12px;padding:22px 26px;margin:30px 0;
+  background:color-mix(in oklab,var(--bad) 7%,var(--card))}
+.retract .tag{display:block;font:700 12px/1 Archivo,sans-serif;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--bad);margin-bottom:11px}
+.retract p:last-child{margin-bottom:0}
+.keep{border:1px solid var(--rule);border-left:3px solid var(--s2);border-radius:10px;
+  padding:20px 24px;margin:28px 0;background:var(--card)}
+.keep .tag{display:block;font:700 12px/1 Archivo,sans-serif;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--s2);margin-bottom:11px}
+.keep p:last-child,.keep ul:last-child{margin-bottom:0}
+pre{background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:16px 18px;
+  overflow-x:auto;font-size:13px;line-height:1.6;margin:22px 0}
+code{font-size:.92em;background:var(--sunk);padding:1px 4px;border-radius:4px;
+  margin:0 -1px;white-space:nowrap}
+footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",monospace}
+footer a{color:var(--s2)}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">MorphoHand &#183; real_v1 &#183; 10 September 2026</div>
+  <h1>The KaRMA kinematic metric on the real_v1 design family</h1>
+  <p class="lede">KaRMA scores a hand by how far a two-finger pinch can roll a sphere without
+  releasing it, from kinematics alone. This runs it over {{N_DESIGNS}} real_v1 designs that
+  already carry retention labels from this programme&#8217;s own screen, and asks the two
+  questions that decide whether it is worth adopting: does it separate hands inside one
+  topology, and does it predict which of them keep the screwdriver.</p>
+  <div class="byline">{{N_RUNS}} metric runs, upstream&#8217;s <span class="mono">run_metric.py</span>
+  unmodified &#183; labels from the Sobol-8192 funnel, 8,198 sampled &#8594; 6,629 reachable
+  &#8594; 535 retained &#8594; 227 confirmed &#183; every number here is read back out of the
+  sweep&#8217;s own JSON by the builder named in the footer</div>
+</header>
+
+<section class="col">
+  <h2>What KaRMA measures, and why this family can test it</h2>
+  <p>KaRMA (<span class="mono">arXiv:2605.15548</span>, Peticco and Agrawal, IROS 2026) puts a
+  hand in a thumb&#8211;index precision pinch on a sphere and searches, by breadth-first
+  expansion over translation and rotation primitives, for every object pose the pinch can roll
+  to without letting go. Each step enforces joint limits, self- and object collision, a
+  rolling-contact constraint solved as a QP, and antipodal force feasibility. It reports three
+  dimensionless numbers: <strong>KaRMA-T</strong>, the reachable object-centre volume;
+  <strong>KaRMA-R</strong>, the fraction of 228 twist-invariant orientation bins reached; and
+  <strong>KaRMA-S</strong>, how much the answer depends on which initial pinch you start from.
+  Every length is scaled by a characteristic hand size <span class="mono">L_ref</span>, so the
+  scores are exactly invariant to rescaling a hand uniformly.</p>
+
+  <p>The authors are explicit that it is &#8220;a standardized lower bound on thumb&#8211;index
+  rolling-pinch dexterity, not a universal dexterity score, and not a predictor of task
+  success&#8221;, and that it is meant for procurement and design iteration. Design iteration is
+  exactly what this programme does, so the useful test is not whether KaRMA is a good metric in
+  general but whether it ranks <em>our</em> candidate hands usefully.</p>
+
+  <p>real_v1 makes that test unusually clean. Every hand in the family has identical fingers
+  &#8212; three links of 33.45 / 33.45 / 37.16 mm, three revolute joints, the same limits
+  &#8212; and the design space is six numbers, the palm-frame x and y of each finger&#8217;s
+  mount. KaRMA is therefore a three-number function of those six, and cannot carry information
+  the six do not. The question is whether its compression is a useful one. There are published
+  incumbents to compare against on the same label: logistic regression on the six raw mount
+  coordinates predicts retention at AUC 0.839 and the grasp fit&#8217;s
+  <span class="mono">depth_fit</span> at 0.803, while the one purely kinematic geometric
+  predictor this programme has tried &#8212; the extension ceiling
+  <span class="mono">asin(extend/straddle)</span> &#8212; reached AUC 0.617 at n = 80.</p>
+</section>
+
+<section class="col">
+  <h2>Porting the hand, and the checks that it ported correctly</h2>
+  <p>KaRMA reads a URDF; real_v1 lives in MJCF. <span class="mono">scripts/karma_export_urdf.py</span>
+  reads a real_v1 MJCF and writes the URDF plus the per-hand YAML. Two details set what the
+  score means.</p>
+  <p><span class="mono">tip_length_m</span> is the distance from the terminal joint origin to
+  the <em>outer surface</em> of the fingertip, because KaRMA subtracts its own capsule radius
+  from that value to get the medial axis. For real_v1 that is 37.16 mm, the CAD
+  <span class="mono">LINK_DISTAL</span>, and the resulting capsule end lands on the same
+  fingertip surface as the MJCF pad sphere to the micron. Palm height is dropped: KaRMA
+  canonicalizes the base link to the world origin, so a rigid translation cannot change the
+  score, and each real_v1 design carries its own palm height from
+  <span class="mono">fit_real_v1_pose.py</span>.</p>
+  <div class="keep">
+    <span class="tag">What was verified before any number was believed</span>
+    <ul>
+      <li>The install reproduces the paper. Inspire returns 4 voxels, KaRMA-T 0.000417,
+        KaRMA-R 0.004386, KaRMA-S 0.2500, <span class="mono">L_ref</span> 155.4 mm &#8212; the
+        published row exactly.</li>
+      <li>The two export routes agree. Reading a generated design&#8217;s own MJCF and
+        re-mounting the base hand at that design&#8217;s six coordinates give
+        <strong>byte-identical URDFs on 20 of 20</strong> sampled designs.</li>
+      <li>Running one metric process instead of ten changes nothing.
+        <span class="mono">karma.seed_selection</span> sizes its own process pool from the core
+        count, independently of <span class="mono">rotation_workers</span>, which made 18
+        concurrent runs thrash; pinning it to one process returns 46 voxels, KaRMA-T 0.005667,
+        KaRMA-R 0.1652, KaRMA-S 0.4348 on the base hand, bit-identical to the shipped path.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="col">
+  <h2>It separates hands inside one topology</h2>
+  <p>Across {{N_DESIGNS}} designs that differ only in where three fingers are bolted to a
+  plate, KaRMA-T spans <strong>{{SPREAD_RATIO}}&#215;</strong> between the best and the worst.
+  The sixteen commercial hands in the paper&#8217;s own table span {{PUB_RATIO}}&#215;. The
+  median real_v1 hand sits at the {{PCTILE}}th percentile of those sixteen.</p>
+  {{CHART_SPREAD}}
+  <p>So the metric is not degenerate on a single-topology family, and moving a mount by a few
+  centimetres changes its answer as much as changing hands does. Whether that separation is the
+  <em>useful</em> one is the next section.</p>
+</section>
+
+<section class="col">
+  <h2>It does not predict which hands keep the tool</h2>
+  <p class="sub">retention over {{N_DESIGNS}} designs, {{N_RETAINED}} retained</p>
+  {{CHART_AUC}}
+  <p>{{FINDING_PREDICTION}}</p>
+  <h3>The screened turn</h3>
+  <p>{{FINDING_TURN}}</p>
+</section>
+
+<section class="col">
+  <h2>Which two fingers you pick changes the answer</h2>
+  <p>KaRMA takes a thumb and an index. real_v1 has three fingers, and this programme&#8217;s
+  own result is that the third loaded finger is what keeps the tool: the opposed pair peaks at
+  0.995 and drops the tool in every rollout with the thumb at 0 N, while inline-plus-thumb
+  settles at 0.884 and keeps it on three loaded fingers. Scoring the same {{PAIR_N}} designs
+  with thumb&#8211;index and again with thumb&#8211;middle gives Spearman
+  {{PAIR_RHO}} between the two rankings, and a median absolute disagreement of
+  {{PAIR_RATIO}} in log&#8322; KaRMA-T.</p>
+  {{CHART_PAIRS}}
+  <p>{{FINDING_PAIRS}}</p>
+</section>
+
+<section class="col">
+  <h2>The pinch it scores is not the grasp this hand uses</h2>
+  <p>KaRMA chooses its own pinch, ranking every feasible seed by a trial search. Over
+  {{N_DESIGNS}} designs it chose a median depth of <strong>{{DEPTH_MED}} mm</strong> below the
+  mounting plane. The eight deployed plans grasp at 50.5&#8211;66.5 mm.</p>
+  {{CHART_DEPTH}}
+  <p>The contact model differs too. KaRMA models every finger link as a capsule of one radius
+  &#8212; 11.8 mm nominal, 11.37 mm after scaling on this hand &#8212; and lets contact land
+  anywhere along it. real_v1&#8217;s links are 10.55 mm capsules with a pad sphere at the tip,
+  and the pad is the only surface carrying the high-friction contact parameters. Rebuilding
+  each hand in MuJoCo at KaRMA&#8217;s own seed angles, with a sphere of KaRMA&#8217;s own
+  radius at KaRMA&#8217;s own seed centre, the contact fingers sit a median
+  <strong>{{GAP_MED}} mm</strong> from the object on the hardware geometry, and
+  {{PAD_PCT}}% of those contacts are nearest at the pad rather than partway up a link.</p>
+  {{FIG_REPLAY}}
+  <p>{{FINDING_REPLAY}}</p>
+</section>
+
+<section class="col">
+  <h2>The eight deployed hands</h2>
+  <p>Reported apart from the population and never pooled with it. The eight were selected in
+  sim-cos rank order, so any variable correlated with the selection correlates with the outcome
+  inside the set: <span class="mono">depth_fit</span> against sim cos reads &#8722;0.90 over
+  these eight and +0.076 over the 535 retained. A within-eight correlation is evidence about
+  the selection, not about the predictor.</p>
+  {{TABLE_DEPLOYED}}
+</section>
+
+<section class="col">
+  <h2>What this does not settle</h2>
+  {{NOT_SETTLED}}
+</section>
+
+<footer>
+  <p>Data: <span class="mono">docs/experiments/20260910-karma_metric/karma_table.json</span>
+  (collected from the per-run <span class="mono">current.yaml</span> by
+  <span class="mono">scripts/karma_collect.py</span>),
+  <span class="mono">karma_analysis.json</span>
+  (<span class="mono">scripts/karma_analysis.py</span>),
+  <span class="mono">seed_geometry.json</span>
+  (<span class="mono">scripts/karma_seed_geometry.py</span>).<br>
+  Sweep: <span class="mono">scripts/karma_batch.py</span> over
+  <span class="mono">scripts/karma_build_sample.py</span>&#8217;s labelled sample, exporting
+  each hand with <span class="mono">scripts/karma_export_urdf.py</span>.
+  Replay: <span class="mono">scripts/karma_replay_mujoco.py</span>.
+  Renders: <span class="mono">scripts/karma_render_reachable.py</span>.<br>
+  Page: <span class="mono">scripts/karma_page.py</span> +
+  <span class="mono">scripts/karma_page.template.html</span> &#8594;
+  <span class="mono">docs/experiments/20260910-karma_metric/20260910-karma_metric_evaluation.html</span>.<br>
+  Metric: KaRMA v1.0.0, <span class="mono">github.com/mfpeticco/karma-hand-metric</span>,
+  run unmodified in the pinned <span class="mono">karma-hand-metric</span> conda environment.</p>
+</footer>
+</div>
