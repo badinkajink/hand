@@ -162,6 +162,34 @@ def main() -> int:
             except ImportError:
                 pass
 
+            # Two separate AUC intervals overlapping is not evidence that two predictors
+            # are indistinguishable: the comparison has to be paired, resampling the same
+            # designs for both and taking the interval of the DIFFERENCE.
+            arm["paired_delta_auc"] = {}
+            for a_key, b_key in (("karma_t", "ruler_closeness_of_the_scored_pair"),
+                                 ("karma_r", "ruler_closeness_of_the_scored_pair"),
+                                 ("karma_t", "ruler_small_x_sep"),
+                                 ("karma_r", "ruler_small_x_sep")):
+                av = np.array([r[a_key] for r in sub], float)
+                bv = rulers.get(b_key[len("ruler_"):])
+                if bv is None or not np.isfinite(av).all():
+                    continue
+                rng = np.random.default_rng(0)
+                idx = np.arange(len(av))
+                d = []
+                for _ in range(2000):
+                    bi = rng.choice(idx, len(idx), replace=True)
+                    if y[bi].sum() in (0, len(bi)):
+                        continue
+                    d.append(auc(av[bi], y[bi]) - auc(bv[bi], y[bi]))
+                if d:
+                    arm["paired_delta_auc"][f"{a_key}_minus_{b_key}"] = {
+                        "delta": round(float(auc(av, y) - auc(bv, y)), 3),
+                        "ci": [round(float(np.percentile(d, 2.5)), 3),
+                               round(float(np.percentile(d, 97.5)), 3)],
+                        "p_two_sided": round(float(2 * min((np.array(d) <= 0).mean(),
+                                                           (np.array(d) >= 0).mean())), 4)}
+
             # The stricter screen, asked conditionally: among designs that were retained,
             # does KaRMA pick out the ones that went on to be confirmed? The sample is
             # case-control on retention, so this is the only unbiased way to ask about
