@@ -198,9 +198,35 @@ footer a{color:var(--s2)}
   <h2>It does not predict which hands keep the tool</h2>
   <p class="sub">retention over {{N_DESIGNS}} designs, {{N_RETAINED}} retained</p>
   {{CHART_AUC}}
-  <p>{{FINDING_PREDICTION}}</p>
+  <p>KaRMA-T separates retained from discarded designs at <strong>AUC {{AUC_T}}</strong>
+  (bootstrap {{AUC_T_CI}}) and KaRMA-R at {{AUC_R}}. The best single number measurable off the
+  mount plate, how close the two scored mounts are, reads {{AUC_RULER}}; a paired bootstrap over
+  the same designs puts KaRMA-T ahead of it by <strong>{{DELTA}}</strong> ({{DELTA_CI}},
+  p&nbsp;&lt;&nbsp;0.001). Logistic regression on all six mount coordinates reads {{AUC_MOUNTS}}
+  here, and adding KaRMA&#8217;s three scores takes it to {{AUC_BOTH}}. The search buys roughly
+  0.07 to 0.09 of AUC over the geometry it is computed from, at about 220 core-seconds per
+  hand.</p>
+  <p>KaRMA-S is inverted. At AUC {{AUC_S}} a design whose score depends heavily on which pinch
+  you start from is <em>less</em> likely to be retained, so the sensitivity score carries sign
+  as well as magnitude on this family.</p>
+  <h3>How robustly it holds</h3>
+  <p>Binary retention is the coarsest form of the label. The screen also records the highest
+  residual clip at which each design still passes, and under this gate a bigger clip is the
+  harder test, not the easier one: 305 designs pass at 0.50 rad and 33 at 1.30, because a
+  larger turn excursion costs grip before the proof lift. Against that ordinal, KaRMA-T reads
+  <strong>&#961; {{RHO_CLIP_T}}</strong> (p&nbsp;=&nbsp;{{RHO_CLIP_T_P}}, n&nbsp;=&nbsp;{{N_CLIP}})
+  and KaRMA-R {{RHO_CLIP_R}} (p&nbsp;=&nbsp;{{RHO_CLIP_R_P}}). So the metric ranks how much
+  residual authority a hand can absorb and still keep the tool.</p>
+  {{CHART_CLIP}}
+
   <h3>The screened turn</h3>
-  <p>{{FINDING_TURN}}</p>
+  <p>Over the {{N_TURN}} designs that produced a screened turn, KaRMA-T correlates with the
+  turn&#8217;s signed cosine at <strong>&#961; {{RHO_T}}</strong> (p&nbsp;{{RHO_T_P}}) and
+  KaRMA-R at {{RHO_R}} (p&nbsp;{{RHO_R_P}}). Among the retained designs, separating the
+  {{N_CONF}} that went on to be confirmed runs at AUC {{AUC_CONF_T}} for KaRMA-T and
+  {{AUC_CONF_R}} for KaRMA-R. The metric ranks which hands hold the tool, and says almost
+  nothing about how far they turn it, which is the quantity this programme is optimizing.
+  That is the scope its authors claim for it.</p>
 </section>
 
 <section class="col">
@@ -214,6 +240,14 @@ footer a{color:var(--s2)}
   {{PAIR_RATIO}} in log&#8322; KaRMA-T.</p>
   {{CHART_PAIRS}}
   <p>{{FINDING_PAIRS}}</p>
+  <h3>What it is measuring on this family</h3>
+  <p>KaRMA-T is Spearman <strong>{{RHO_GEOM}}</strong> with the straight-line distance between
+  the two scored mounts, over {{N_DESIGNS}} designs, and {{RHO_LREF}} with
+  <span class="mono">L_ref</span> itself. Its ranking is close to
+  &#8220;compact hands score higher&#8221;, which is what this programme&#8217;s funnel already
+  selects: the retained population is more compact than the sampled one in both x_sep
+  (105.2&#8594;91.4 mm) and y_sep (110.0&#8594;99.8 mm). The {{DELTA}} of AUC that KaRMA adds
+  over that distance is the part of its answer the ruler does not contain.</p>
 </section>
 
 <section class="col">
