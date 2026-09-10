@@ -106,11 +106,12 @@ footer a{color:var(--s2)}
 <header>
   <div class="eyebrow">MorphoHand &#183; real_v1 &#183; 10 September 2026</div>
   <h1>The KaRMA kinematic metric on the real_v1 design family</h1>
-  <p class="lede">KaRMA scores a hand by how far a two-finger pinch can roll a sphere without
-  releasing it, from kinematics alone. This runs it over {{N_DESIGNS}} real_v1 designs that
-  already carry retention labels from this programme&#8217;s own screen, and asks the two
-  questions that decide whether it is worth adopting: does it separate hands inside one
-  topology, and does it predict which of them keep the screwdriver.</p>
+  <p class="lede">Over {{N_DESIGNS}} real_v1 designs carrying this programme&#8217;s own
+  retention labels, KaRMA predicts which hands keep the screwdriver at AUC {{AUC_T}} and beats
+  the best distance measurable off the mount plate by {{DELTA}}. It says almost nothing about
+  how far those hands turn the tool: &#961; {{RHO_T}} against the screened turn, and AUC
+  {{AUC_CONF_T}} for separating confirmed designs from merely retained ones. That split is the
+  result, and it matches the scope its authors claim.</p>
   <div class="byline">{{N_RUNS}} metric runs, upstream&#8217;s <span class="mono">run_metric.py</span>
   unmodified &#183; labels from the Sobol-8192 funnel, 8,198 sampled &#8594; 6,629 reachable
   &#8594; 535 retained &#8594; 227 confirmed &#183; every number here is read back out of the
@@ -195,7 +196,7 @@ footer a{color:var(--s2)}
 </section>
 
 <section class="col">
-  <h2>It does not predict which hands keep the tool</h2>
+  <h2>It predicts which hands keep the tool, better than the geometry it is computed from</h2>
   <p class="sub">retention over {{N_DESIGNS}} designs, {{N_RETAINED}} retained</p>
   {{CHART_AUC}}
   <p>KaRMA-T separates retained from discarded designs at <strong>AUC {{AUC_T}}</strong>
@@ -209,7 +210,7 @@ footer a{color:var(--s2)}
   <p>KaRMA-S is inverted. At AUC {{AUC_S}} a design whose score depends heavily on which pinch
   you start from is <em>less</em> likely to be retained, so the sensitivity score carries sign
   as well as magnitude on this family.</p>
-  <h3>How robustly it holds</h3>
+  <h3>How much residual clip a hand absorbs</h3>
   <p>Binary retention is the coarsest form of the label. The screen also records the highest
   residual clip at which each design still passes, and under this gate a bigger clip is the
   harder test, not the easier one: 305 designs pass at 0.50 rad and 33 at 1.30, because a
@@ -225,8 +226,8 @@ footer a{color:var(--s2)}
   KaRMA-R at {{RHO_R}} (p&nbsp;{{RHO_R_P}}). Among the retained designs, separating the
   {{N_CONF}} that went on to be confirmed runs at AUC {{AUC_CONF_T}} for KaRMA-T and
   {{AUC_CONF_R}} for KaRMA-R. The metric ranks which hands hold the tool, and says almost
-  nothing about how far they turn it, which is the quantity this programme is optimizing.
-  That is the scope its authors claim for it.</p>
+  nothing about how far they turn it, which is the quantity this programme is optimizing and
+  which the authors place outside the metric&#8217;s scope.</p>
 </section>
 
 <section class="col">
@@ -244,16 +245,15 @@ footer a{color:var(--s2)}
   {{PM_DELTA}}, so at this sample size neither pair is demonstrably the better one to hand
   the metric. Taking the better of the two scores per design reads {{PM_BEST}} and buys
   nothing. What is established is that <strong>a three-finger hand has no single KaRMA
-  score</strong>: the number depends on a choice the metric does not make for you, and this
-  hand&#8217;s own result is that the third loaded finger is what keeps the tool.</p>
+  score</strong>: the number depends on a choice the metric does not make for you.</p>
   <h3>What it is measuring on this family</h3>
   <p>KaRMA-T is Spearman <strong>{{RHO_GEOM}}</strong> with the straight-line distance between
   the two scored mounts, over {{N_DESIGNS}} designs, and {{RHO_LREF}} with
   <span class="mono">L_ref</span> itself. Its ranking is close to
   &#8220;compact hands score higher&#8221;, which is what this programme&#8217;s funnel already
   selects: the retained population is more compact than the sampled one in both x_sep
-  (105.2&#8594;91.4 mm) and y_sep (110.0&#8594;99.8 mm). The {{DELTA}} of AUC that KaRMA adds
-  over that distance is the part of its answer the ruler does not contain.</p>
+  (105.2&#8594;91.4 mm) and y_sep (110.0&#8594;99.8 mm). The {{DELTA}} it adds over that
+  distance is the part of its answer the ruler does not contain.</p>
 </section>
 
 <section class="col">
@@ -268,9 +268,9 @@ footer a{color:var(--s2)}
   KaRMA-T ranking almost unchanged at Spearman <strong>{{SC_RHO}}</strong>, and moves retention
   AUC by {{SC_DELTA}}. Correlation with the screened turn does not improve either
   ({{SC_TURN}}).</p>
-  <p>The invariance was a candidate explanation for the flat turn correlation and it is not the
-  explanation. Anything that fixes that has to change what the search does, not what it is
-  measured in.</p>
+  <p>The invariance was the leading candidate explanation for the flat turn correlation, and
+  this rules it out. Recovering the turn would take a change to what the search does rather
+  than to the units it is measured in.</p>
 </section>
 
 <section class="col">
@@ -288,7 +288,18 @@ footer a{color:var(--s2)}
   <strong>{{GAP_MED}} mm</strong> from the object on the hardware geometry, and
   {{PAD_PCT}}% of those contacts are nearest at the pad rather than partway up a link.</p>
   {{FIG_REPLAY}}
-  <p>{{FINDING_REPLAY}}</p>
+  <p>Driving KaRMA&#8217;s own joint trajectory through MuJoCo, on KaRMA&#8217;s own capsule
+  geometry with its own sphere at its own seed pose, does not carry the object. The pinch has
+  no preload by construction &#8212; the search drives the contact gap to within
+  <span class="mono">eps_g</span> and no further &#8212; so nothing presses, and adding 5&#176;
+  of commanded squeeze on the two contact fingers does not fix it: the sphere is never held at
+  two contacts and normal force stays at zero, while it travels {{REPLAY_RATIO}}&#215; the
+  predicted distance because it is being pushed rather than rolled.</p>
+  <p>This is a statement about what the metric&#8217;s output is, not a refutation of it.
+  KaRMA claims a kinematically feasible rolling path and delivers one; the path is not a
+  controller, and a hand executing it open-loop under position control drops the object. Any
+  use of KaRMA&#8217;s trajectories as motion primitives would have to add the grip regulation
+  the metric leaves out.</p>
 </section>
 
 <section class="col">
@@ -299,11 +310,50 @@ footer a{color:var(--s2)}
   these eight and +0.076 over the 535 retained. A within-eight correlation is evidence about
   the selection, not about the predictor.</p>
   {{TABLE_DEPLOYED}}
+  <p>KaRMA spreads the eight over {{DEP_RANGE}}&#215; in KaRMA-T. Against their screened turn
+  it reads &#961; {{DEP_RHO}} (p&nbsp;{{DEP_P}}, n&nbsp;=&nbsp;{{DEP_N}}), which is what the
+  paragraph above says to disregard. The one thing worth recording is positional:
+  <span class="mono">D7</span>, the reference configuration and the only one that has run the
+  whole chain end to end, is the highest-scoring of the eight, and <span class="mono">D6</span>,
+  the hand that completes the chain at pivot 0.15, sits mid-pack. Six hands and two orderings
+  is not a test of anything; the population arm above is.</p>
 </section>
 
 <section class="col">
   <h2>What this does not settle</h2>
-  {{NOT_SETTLED}}
+  <ol>
+    <li><strong>Tip length is a modelling choice whose effect is untested.</strong>
+      <span class="mono">karma_export_urdf.py --tip-mode centre</span> ends the capsule at the
+      pad centre instead of its outer surface, 10.55 mm shorter. Re-running the 128-design
+      subset both ways says whether the {{DELTA}} margin over the ruler survives the choice.
+      About 8 core-hours.</li>
+    <li><strong>Whether KaRMA adds anything over the mounts is a point estimate.</strong>
+      {{AUC_BOTH}} for six mounts plus KaRMA against {{AUC_MOUNTS}} for the mounts alone are
+      single 5-fold CV numbers with no interval. A paired bootstrap over refits, 200 resamples
+      at n&nbsp;=&nbsp;{{N_DESIGNS}}, would say whether that gap is real. No new metric runs.</li>
+    <li><strong>The disagreements have never been tested, and they are the only place KaRMA
+      could aid discovery rather than agree with what the screen already found.</strong> The
+      designs KaRMA ranks highest among the <em>not</em>-retained are enumerable from
+      <span class="mono">karma_table.json</span>. Testing ten of them against ten
+      KaRMA-low controls matched on mount compactness needs a CEM grasp per design, which
+      the screen&#8217;s closed-form fit does not provide:
+      <span class="mono">fit_real_v1_pose.py</span> then
+      <span class="mono">probe_real_v1_carry.py --repeats 8 --jitter 0.0005
+      --linear-anchor</span>.</li>
+    <li><strong>The two other topologies would be decisive and are not covered.</strong> m05
+      (inline) and perp (opposed) are historical controls with a verdict already in hand: the
+      opposed pair peaks at 0.995 and drops the tool in every rollout with the thumb at 0 N,
+      while inline-plus-thumb settles at 0.884 and keeps it on three loaded fingers. A
+      two-finger metric has an obvious reason to prefer the opposed arrangement. Deciding it
+      needs <span class="mono">karma_export_urdf.py</span> extended to the nine-parameter
+      MJCF, which currently assumes real_v1&#8217;s fixed links.</li>
+    <li><strong>Agreeing with the screen is not evidence about hardware.</strong> This
+      programme&#8217;s own retention ranking is documented not to transfer to the bench
+      maneuver: of the sixteen best hands from the budget re-screen, eleven keep the tool at
+      <em>no</em> clip between 0.40 and 2.00 rad on the fixed-palm bench schedule. Nothing on
+      this page has been run on hardware, and no KaRMA score should pick a hand to build until
+      the screen it agrees with has itself been validated against the bench.</li>
+  </ol>
 </section>
 
 <footer>

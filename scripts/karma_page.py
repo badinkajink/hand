@@ -390,6 +390,8 @@ def main() -> None:
         "PAD_PCT": f"{100*sum(onpad)/len(onpad):.0f}" if onpad else "n/a",
         "DEPTH_MED": f"{st.median([r['seed_depth_mm'] for r in sub]):.1f}",
         "FIG_REPLAY": fig_replay(),
+        "REPLAY_RATIO": (f"{json.load(open(f'{ROOT}/replay.json'))['summary']['travel_ratio']:.1f}"
+                         if os.path.exists(f"{ROOT}/replay.json") else "n/a"),
         "FIG_REACH": fig_reach(tab),
     }
     for k, v in (("AUC_R", "karma_r"), ("AUC_T", "karma_t"), ("AUC_S", "karma_s"),
@@ -432,6 +434,14 @@ def main() -> None:
         vals[k] = f"{rho[v]['rho']:+.3f}" if v in rho else "n/a"
         vals[k + "_P"] = f"{rho[v]['p']:.2g}" if v in rho else "n/a"
     vals["N_TURN"] = str(an["arms"].get(prim, {}).get("n_with_turn", 0))
+    dep = an.get("deployed", {})
+    dr = dep.get("rows", [])
+    vals["DEP_RANGE"] = (f"{max(r['karma_t'] for r in dr) / min(r['karma_t'] for r in dr):.1f}"
+                         if dr else "n/a")
+    dw = dep.get("rho_karma_t_vs_nom_cos_WITHIN_EIGHT", {})
+    vals["DEP_RHO"] = f"{dw['rho']:+.3f}" if dw else "n/a"
+    vals["DEP_P"] = f"{dw['p']:.2f}" if dw else "n/a"
+    vals["DEP_N"] = str(dw.get("n", 0))
     sc = an.get("scale_matched", {})
     vals["SC_N"] = str(sc.get("n", 0))
     vals["SC_RHO"] = (f"{sc['ranking_agreement']['karma_t']['rho']:+.3f}"
@@ -457,11 +467,18 @@ def main() -> None:
     vals["PM_DELTA"] = (f"{pdl['delta']:+.3f} AUC, 95% {pdl['ci'][0]:+.3f} to "
                         f"{pdl['ci'][1]:+.3f}") if pdl else "n/a"
 
+    im = an["arms"].get("scaled|index-middle", {})
+    ti = an["arms"].get("scaled|thumb-index", {})
+    vals["IM_AUC"] = (f"{im['auc_retained']['karma_t']['auc']:.3f}" if im else "n/a")
+    vals["IM_VOX"] = (f"{im['spread']['n_voxels']['median']:.0f}" if im else "n/a")
+    vals["TI_VOX"] = (f"{ti['spread']['n_voxels']['median']:.0f}" if ti else "n/a")
+
     pa = an.get("pair_agreement", {})
     vals["PAIR_RHO"] = f"{pa.get('spearman_T_thumb_index_vs_thumb_middle', float('nan')):+.3f}" \
         if pa else "n/a"
     vals["PAIR_N"] = str(pa.get("n", 0))
     vals["PAIR_RATIO"] = f"{pa.get('median_abs_log2_ratio', float('nan')):.2f}" if pa else "n/a"
+    vals["PAIR_FACTOR"] = (f"{2 ** pa['median_abs_log2_ratio']:.1f}" if pa else "n/a")
 
     html = open(TPL).read()
     for k, v in vals.items():
