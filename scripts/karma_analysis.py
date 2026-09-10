@@ -271,6 +271,47 @@ def main() -> int:
                                          "n": len(conf)}
         out["arms"][f"{variant}|best-of-pairs"] = arm
 
+    # ── the two pairs, matched on the designs that carry both ────────────────
+    # Comparing the 504-design thumb-index arm against the 128-design thumb-middle arm
+    # would confound the pair with the sample, so this restricts both to the designs that
+    # were scored twice and takes the paired interval of the difference.
+    byd0: dict = {}
+    for r in rows:
+        if r["variant"] == "scaled":
+            byd0.setdefault(r["design"], {})[r["pair"]] = r
+    both0 = [v for v in byd0.values() if "thumb-index" in v and "thumb-middle" in v]
+    if len(both0) >= 30:
+        yb = np.array([bool(v["thumb-index"]["retained"]) for v in both0])
+        pm: dict = {"n": len(both0), "n_retained": int(yb.sum()), "auc": {}}
+        for pair in ("thumb-index", "thumb-middle"):
+            for k in ("karma_t", "karma_r", "n_voxels"):
+                v = np.array([b[pair][k] for b in both0], float)
+                lo, hi = auc_ci(v, yb)
+                pm["auc"][f"{pair}|{k}"] = {"auc": round(auc(v, yb), 3),
+                                            "ci": [round(lo, 3), round(hi, 3)]}
+        for k in ("karma_t", "karma_r"):
+            v = np.array([max(b["thumb-index"][k], b["thumb-middle"][k]) for b in both0], float)
+            lo, hi = auc_ci(v, yb)
+            pm["auc"][f"best-of-pairs|{k}"] = {"auc": round(auc(v, yb), 3),
+                                               "ci": [round(lo, 3), round(hi, 3)]}
+        rng = np.random.default_rng(0)
+        idx = np.arange(len(both0))
+        pm["paired_delta"] = {}
+        for k in ("karma_t", "karma_r"):
+            a = np.array([b["thumb-index"][k] for b in both0], float)
+            c = np.array([b["thumb-middle"][k] for b in both0], float)
+            d = []
+            for _ in range(2000):
+                bi = rng.choice(idx, len(idx), replace=True)
+                if yb[bi].sum() in (0, len(bi)):
+                    continue
+                d.append(auc(a[bi], yb[bi]) - auc(c[bi], yb[bi]))
+            pm["paired_delta"][k] = {
+                "delta": round(float(auc(a, yb) - auc(c, yb)), 3),
+                "ci": [round(float(np.percentile(d, 2.5)), 3),
+                       round(float(np.percentile(d, 97.5)), 3)]}
+        out["pair_matched"] = pm
+
     # ── how much do the pairs disagree? ───────────────────────────────────────
     byd: dict = {}
     for r in rows:
