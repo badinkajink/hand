@@ -432,6 +432,15 @@ def main() -> None:
         vals[k] = f"{rho[v]['rho']:+.3f}" if v in rho else "n/a"
         vals[k + "_P"] = f"{rho[v]['p']:.2g}" if v in rho else "n/a"
     vals["N_TURN"] = str(an["arms"].get(prim, {}).get("n_with_turn", 0))
+    pm = an.get("pair_matched", {})
+    au = pm.get("auc", {})
+    vals["PM_TI"] = f"{au['thumb-index|karma_t']['auc']:.3f}" if au else "n/a"
+    vals["PM_TM"] = f"{au['thumb-middle|karma_t']['auc']:.3f}" if au else "n/a"
+    vals["PM_BEST"] = f"{au['best-of-pairs|karma_t']['auc']:.3f}" if au else "n/a"
+    pdl = pm.get("paired_delta", {}).get("karma_t")
+    vals["PM_DELTA"] = (f"{pdl['delta']:+.3f} AUC, 95% {pdl['ci'][0]:+.3f} to "
+                        f"{pdl['ci'][1]:+.3f}") if pdl else "n/a"
+
     pa = an.get("pair_agreement", {})
     vals["PAIR_RHO"] = f"{pa.get('spearman_T_thumb_index_vs_thumb_middle', float('nan')):+.3f}" \
         if pa else "n/a"
