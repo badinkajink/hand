@@ -203,6 +203,49 @@ def chart_depth(tab, ops) -> str:
     return "\n".join(o) + "</svg>"
 
 
+def chart_clip(tab, an) -> str:
+    """KaRMA-T against the highest residual clip a design still passes retention at."""
+    sub = [r for r in tab if r["variant"] == "scaled" and r["pair"] == "thumb-index"
+           and r.get("max_clip_rad")]
+    if len(sub) < 30:
+        return ""
+    clips = sorted({r["max_clip_rad"] for r in sub})
+    cw, gap = 150, 18
+    h = 300
+    y0, y1 = 44, h - 74
+    vals = [r["karma_t"] for r in sub]
+    import math
+    lo, hi = math.log10(min(vals)), math.log10(max(vals))
+
+    def Y(v):
+        return y1 - (math.log10(v) - lo) / (hi - lo) * (y1 - y0)
+
+    o = [f'<svg class="chart" viewBox="0 0 {W} {h}" role="img" aria-label="KaRMA-T against '
+         f'the highest residual clip a design still passes at">']
+    o.append(f'<text class="axlab" x="{PAD_L}" y="18">KaRMA-T (log) BY THE HIGHEST RESIDUAL '
+             f'CLIP THE DESIGN STILL PASSES RETENTION AT &#183; n = {len(sub)}</text>')
+    for i, c in enumerate(clips):
+        x = PAD_L + i * (cw + gap)
+        grp = [r["karma_t"] for r in sub if r["max_clip_rad"] == c]
+        o.append(f'<text class="tick" x="{x + cw / 2:.0f}" y="{h - 52}" '
+                 f'text-anchor="middle">{c:.2f} rad</text>')
+        o.append(f'<text class="mark" x="{x + cw / 2:.0f}" y="{h - 36}" '
+                 f'text-anchor="middle">n = {len(grp)}</text>')
+        for n, v in enumerate(grp):
+            o.append(f'<circle cx="{x + 14 + (n * 11) % (cw - 28):.1f}" cy="{Y(v):.1f}" '
+                     f'r="2.7" fill="{A}" fill-opacity="0.55"/>')
+        med = sorted(grp)[len(grp) // 2]
+        o.append(f'<line x1="{x}" y1="{Y(med):.1f}" x2="{x + cw}" y2="{Y(med):.1f}" '
+                 f'stroke="var(--ink)" stroke-width="1.8"/>')
+        o.append(f'<text class="val" x="{x + cw + 4:.0f}" y="{Y(med) + 4:.1f}">'
+                 f'{med:.4f}</text>')
+    rho = an["arms"]["scaled|thumb-index"]["rho_max_clip"]["karma_t"]
+    o.append(f'<text class="note" x="{PAD_L}" y="{h - 14}">A bigger clip is a HARDER test '
+             f'under this gate, not an easier one. Spearman {rho["rho"]:+.3f} '
+             f'(p = {rho["p"]:.1e}); heavy rules are group medians.</text>')
+    return "\n".join(o) + "</svg>"
+
+
 def chart_pairs(tab) -> str:
     """Thumb-index against thumb-middle: does the choice of two fingers matter?"""
     import math
@@ -337,6 +380,7 @@ def main() -> None:
         "CHART_SPREAD": chart_spread(tab, pub),
         "CHART_AUC": chart_auc(an, prim) if prim in an["arms"] else "",
         "CHART_DEPTH": chart_depth(tab, ops),
+        "CHART_CLIP": chart_clip(tab, an),
         "CHART_PAIRS": chart_pairs(tab),
         "TABLE_DEPLOYED": table_deployed(an),
         "SPREAD_RATIO": f"{an['vs_published_16']['real_v1_T']['ratio_max_min']:.0f}",
@@ -359,6 +403,30 @@ def main() -> None:
             vals[k + "_CI"] = f"{a['ci'][0]:.2f}–{a['ci'][1]:.2f}"
         else:
             vals[k + "_CI"] = "n/a"
+    # paired contrast and the geometry interpretation
+    pd = an["arms"].get(prim, {}).get("paired_delta_auc", {})
+    d = pd.get("karma_t_minus_ruler_closeness_of_the_scored_pair")
+    vals["DELTA"] = f"{d['delta']:+.3f} AUC" if d else "n/a"
+    vals["DELTA_CI"] = (f"95% {d['ci'][0]:+.3f} to {d['ci'][1]:+.3f}") if d else "n/a"
+    ru = an["arms"].get(prim, {}).get("auc_retained", {}).get(
+        "ruler_closeness_of_the_scored_pair")
+    vals["AUC_RULER"] = f"{ru['auc']:.3f}" if ru else "n/a"
+    wm = an.get("what_it_measures", {})
+    vals["RHO_GEOM"] = (f"{wm['thumb_to_index_mm']['karma_t']['rho']:+.3f}"
+                        if "thumb_to_index_mm" in wm else "n/a")
+    vals["RHO_LREF"] = (f"{wm['l_ref_mm']['karma_t']['rho']:+.3f}"
+                        if "l_ref_mm" in wm else "n/a")
+    cf = an["arms"].get(prim, {}).get("auc_confirmed_among_retained", {})
+    vals["AUC_CONF_T"] = f"{cf['karma_t']['auc']:.3f}" if "karma_t" in cf else "n/a"
+    vals["AUC_CONF_R"] = f"{cf['karma_r']['auc']:.3f}" if "karma_r" in cf else "n/a"
+    vals["N_CONF"] = str(an["arms"].get(prim, {}).get("n_confirmed_among_retained", 0))
+
+    mc = an["arms"].get(prim, {}).get("rho_max_clip", {})
+    for k, v in (("RHO_CLIP_T", "karma_t"), ("RHO_CLIP_R", "karma_r")):
+        vals[k] = f"{mc[v]['rho']:+.3f}" if v in mc else "n/a"
+        vals[k + "_P"] = f"{mc[v]['p']:.1e}" if v in mc else "n/a"
+    vals["N_CLIP"] = str(an["arms"].get(prim, {}).get("n_with_clip", 0))
+
     rho = an["arms"].get(prim, {}).get("rho_nom_cos", {})
     for k, v in (("RHO_R", "karma_r"), ("RHO_T", "karma_t")):
         vals[k] = f"{rho[v]['rho']:+.3f}" if v in rho else "n/a"
