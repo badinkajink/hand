@@ -65,12 +65,20 @@ def auc_ci(score: np.ndarray, label: np.ndarray, n: int = 2000,
 
 def logistic_auc(X: np.ndarray, y: np.ndarray, seed: int = 0) -> float:
     """Cross-validated AUC of a logistic fit -- the honest number for a MULTIVARIATE
-    predictor, since an in-sample fit on six coordinates would flatter itself."""
+    predictor, since an in-sample fit on six coordinates would flatter itself.
+
+    KaRMA-S is undefined when only one seed is feasible, so rows carrying a non-finite
+    feature are dropped rather than imputed; the caller records how many.
+    """
     from sklearn.linear_model import LogisticRegression
     from sklearn.model_selection import StratifiedKFold
     from sklearn.preprocessing import StandardScaler
     from sklearn.pipeline import make_pipeline
 
+    keep = np.isfinite(X).all(axis=1)
+    X, y = X[keep], y[keep]
+    if len(np.unique(y)) < 2 or len(y) < 20:
+        return float("nan")
     oof = np.zeros(len(y))
     for tr, te in StratifiedKFold(5, shuffle=True, random_state=seed).split(X, y):
         m = make_pipeline(StandardScaler(), LogisticRegression(max_iter=2000))
@@ -120,12 +128,35 @@ def main() -> int:
                 lo, hi = auc_ci(v[ok], y[ok])
                 arm["auc_retained"][k] = {"auc": round(a, 3), "ci": [round(lo, 3), round(hi, 3)]}
 
+            # Single-number geometric baselines, measurable with a ruler and free. If a
+            # 220-core-second kinematic search does not beat these on this family, its
+            # ranking is a restatement of them.
+            M = np.array([r["mounts_mm"] for r in sub], float)
+            contact = {"thumb-index": (0, 2), "thumb-middle": (0, 4),
+                       "index-middle": (2, 4)}[pair]
+            i, j = contact
+            rulers = {
+                "pair_mount_distance_mm": -np.hypot(M[:, i] - M[:, j],
+                                                    M[:, i + 1] - M[:, j + 1]),
+                "x_sep_mm": -((M[:, 2] + M[:, 4]) / 2 - M[:, 0]),
+                "y_sep_mm": -np.abs(M[:, 3] - M[:, 5]),
+            }
+            for k, v in rulers.items():
+                if y.sum() in (0, len(y)):
+                    continue
+                lo, hi = auc_ci(v, y)
+                arm["auc_retained"]["ruler_" + k] = {
+                    "auc": round(auc(v, y), 3), "ci": [round(lo, 3), round(hi, 3)]}
+
             # The incumbent, computed on THIS sample so the comparison is like for like.
             X = np.array([r["mounts_mm"] for r in sub], float)
+            XK = np.array([[r["karma_t"], r["karma_r"],
+                            r["karma_s"] if r["karma_s"] is not None else np.nan]
+                           for r in sub], float)
+            arm["n_dropped_nonfinite_karma_s"] = int((~np.isfinite(XK).all(axis=1)).sum())
             try:
                 arm["auc_retained"]["six_mounts_logistic_cv"] = {
                     "auc": round(logistic_auc(X, y.astype(int)), 3), "ci": None}
-                XK = np.array([[r["karma_t"], r["karma_r"], r["karma_s"]] for r in sub], float)
                 arm["auc_retained"]["karma_trs_logistic_cv"] = {
                     "auc": round(logistic_auc(XK, y.astype(int)), 3), "ci": None}
                 arm["auc_retained"]["mounts_plus_karma_logistic_cv"] = {
@@ -196,6 +227,28 @@ def main() -> int:
             "p": float(p),
             "median_abs_log2_ratio": round(float(np.median(np.abs(
                 np.log2(np.maximum(tm, 1e-9) / np.maximum(ti, 1e-9))))), 3)}
+
+    # ── what is KaRMA measuring, in coordinates this programme already uses? ──
+    # x_sep (thumb-to-pair span) and y_sep (pair opening) are linear in the six mounts and
+    # are the two the retention screen demonstrably acts on, so they are the natural basis
+    # for asking what the metric's compression keeps.
+    sub = [r for r in rows if r["variant"] == "scaled" and r["pair"] == "thumb-index"]
+    if len(sub) >= 30:
+        M = np.array([r["mounts_mm"] for r in sub], float)
+        geom = {
+            "x_sep_mm": (M[:, 2] + M[:, 4]) / 2 - M[:, 0],
+            "y_sep_mm": np.abs(M[:, 3] - M[:, 5]),
+            "thumb_to_index_mm": np.hypot(M[:, 2] - M[:, 0], M[:, 3] - M[:, 1]),
+            "l_ref_mm": np.array([r["l_ref_mm"] for r in sub], float),
+        }
+        out["what_it_measures"] = {}
+        for gk, gv in geom.items():
+            out["what_it_measures"][gk] = {}
+            for k in ("karma_t", "karma_r", "n_voxels", "seed_depth_mm"):
+                v = np.array([r[k] for r in sub], float)
+                rho, p = stats.spearmanr(gv, v)
+                out["what_it_measures"][gk][k] = {"rho": round(float(rho), 3), "p": float(p)}
+        out["what_it_measures"]["n"] = len(sub)
 
     # ── the eight deployed hands, reported apart from the population ──────────
     dep = [r for r in rows if r.get("deployed") and r["variant"] == "scaled"
