@@ -36,7 +36,8 @@ ARM_KEYS = {"c": ("clear", lambda v: v / 1000.0), "r": ("repose_steps", int),
             "g": ("gait_scan", int), "o": ("release_mm", float), "t": ("turn_steps", int),
             "b": ("budget", float), "k": ("axis_k", float), "a": ("angle_deg", float),
             "f": ("force_target", float), "w": ("reg_band", float),
-            "v": ("force_rate", float), "x": ("track_gain", float)}
+            "v": ("force_rate", float), "x": ("track_gain", float),
+            "p": ("plant_kp", float)}
 
 
 def _knobs(arm: str) -> dict:
@@ -116,10 +117,15 @@ def _cell(job: dict):
     if fit is None:
         return {"tag": tag, "error": "prepare failed"}
     stem = job.get("stem") or f"20260905-{tag}" + ("" if sq is None else f"_sq{sq:g}") + f"_s{seed}"
+    knobs = dict(job.get("knobs", {}))
+    # `_p<kp>` in the arm tag names the plant the cell ran on; the film has to run on it too.
+    kp = knobs.pop("plant_kp", None)
+    plant = next((k for k, v in H.PLANT.items() if v and abs(v["kp"] - kp) < 1e-9), "shipped") \
+        if kp is not None else "shipped"
     kw = {"_hand": hand, "_fit": fit, "_tag": "film" if sq is None else f"film_sq{sq:g}",
-          "_table": job.get("table", True),
+          "_table": job.get("table", True), "_plant": plant,
           "load_target": 0.0, "seed": seed, "jitter": 0.0005, "cycles": job["cycles"],
-          **job.get("knobs", {}),
+          **knobs,
           "video": out / f"{stem}.mp4", "video_size": size,
           "film": out / f"{stem}_seams.png",
           "cam": tuple(job.get("cam") or (-60.0, -20.0, 0.42)),
