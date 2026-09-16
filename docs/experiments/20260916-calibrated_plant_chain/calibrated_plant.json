@@ -1,0 +1,1642 @@
+{
+ "n": {
+  "pivot": 128,
+  "squeeze": 127,
+  "budget": 128,
+  "relief": 128
+ },
+ "compare": [
+  {
+   "id": "D1",
+   "bench_hold": "6/7",
+   "shipped": {
+    "lift_N": 16.71,
+    "lift_pads": 3,
+    "held_turn": 0,
+    "n": 8,
+    "best_cos": 0.938,
+    "chains": 0
+   },
+   "corrected": {
+    "lift_N": 0.46,
+    "lift_pads": 3,
+    "held_turn": 0,
+    "n": 8,
+    "best_cos": -0.0,
+    "chains": 0
+   }
+  },
+  {
+   "id": "D2",
+   "bench_hold": "10/10",
+   "shipped": {
+    "lift_N": 24.85,
+    "lift_pads": 4,
+    "held_turn": 0,
+    "n": 8,
+    "best_cos": 0.001,
+    "chains": 0
+   },
+   "corrected": {
+    "lift_N": 0.94,
+    "lift_pads": 3,
+    "held_turn": 0,
+    "n": 8,
+    "best_cos": 0.001,
+    "chains": 0
+   }
+  },
+  {
+   "id": "D3",
+   "bench_hold": "4/10",
+   "shipped": {
+    "lift_N": 4.29,
+    "lift_pads": 3,
+    "held_turn": 4,
+    "n": 8,
+    "best_cos": 0.885,
+    "chains": 0
+   },
+   "corrected": {
+    "lift_N": 1.15,
+    "lift_pads": 3,
+    "held_turn": 0,
+    "n": 8,
+    "best_cos": -0.0,
+    "chains": 0
+   }
+  },
+  {
+   "id": "D4",
+   "bench_hold": "9/10",
+   "shipped": {
+    "lift_N": 5.75,
+    "lift_pads": 4,
+    "held_turn": 0,
+    "n": 8,
+    "best_cos": 0.584,
+    "chains": 0
+   },
+   "corrected": {
+    "lift_N": 0.89,
+    "lift_pads": 4,
+    "held_turn": 0,
+    "n": 8,
+    "best_cos": 0.0,
+    "chains": 0
+   }
+  },
+  {
+   "id": "D5",
+   "bench_hold": "3/10",
+   "shipped": {
+    "lift_N": 5.64,
+    "lift_pads": 4,
+    "held_turn": 8,
+    "n": 8,
+    "best_cos": 0.899,
+    "chains": 0
+   },
+   "corrected": {
+    "lift_N": 1.43,
+    "lift_pads": 4,
+    "held_turn": 4,
+    "n": 8,
+    "best_cos": 0.983,
+    "chains": 0
+   }
+  },
+  {
+   "id": "D6",
+   "bench_hold": "2/10",
+   "shipped": {
+    "lift_N": 4.43,
+    "lift_pads": 3,
+    "held_turn": 6,
+    "n": 8,
+    "best_cos": 0.771,
+    "chains": 1
+   },
+   "corrected": {
+    "lift_N": 1.26,
+    "lift_pads": 3,
+    "held_turn": 2,
+    "n": 8,
+    "best_cos": 0.05,
+    "chains": 0
+   }
+  },
+  {
+   "id": "D7",
+   "bench_hold": "10/10",
+   "shipped": {
+    "lift_N": 5.22,
+    "lift_pads": 4,
+    "held_turn": 0,
+    "n": 8,
+    "best_cos": 0.092,
+    "chains": 0
+   },
+   "corrected": {
+    "lift_N": 0.16,
+    "lift_pads": 3,
+    "held_turn": 0,
+    "n": 8,
+    "best_cos": 0.0,
+    "chains": 0
+   }
+  },
+  {
+   "id": "D8",
+   "bench_hold": "4/10",
+   "shipped": {
+    "lift_N": 21.27,
+    "lift_pads": 3,
+    "held_turn": 0,
+    "n": 8,
+    "best_cos": 0.0,
+    "chains": 0
+   },
+   "corrected": {
+    "lift_N": 0.0,
+    "lift_pads": 0,
+    "held_turn": 0,
+    "n": 8,
+    "best_cos": -0.0,
+    "chains": 0
+   }
+  }
+ ],
+ "squeeze": {
+  "values": [
+   4.0,
+   6.0,
+   8.0,
+   10.0
+  ],
+  "rows": [
+   {
+    "id": "D1",
+    "lift_N": [
+     1.54,
+     2.62,
+     3.63,
+     4.52
+    ],
+    "lift_pads": [
+     3,
+     3,
+     3,
+     3
+    ],
+    "held_turn": [
+     4,
+     4,
+     3,
+     4
+    ],
+    "n": [
+     4,
+     4,
+     3,
+     4
+    ]
+   },
+   {
+    "id": "D2",
+    "lift_N": [
+     1.75,
+     2.49,
+     3.16,
+     3.8
+    ],
+    "lift_pads": [
+     3,
+     3,
+     3,
+     3
+    ],
+    "held_turn": [
+     0,
+     0,
+     4,
+     4
+    ],
+    "n": [
+     4,
+     4,
+     4,
+     4
+    ]
+   },
+   {
+    "id": "D3",
+    "lift_N": [
+     1.9,
+     2.66,
+     3.36,
+     4.09
+    ],
+    "lift_pads": [
+     4,
+     4,
+     4,
+     4
+    ],
+    "held_turn": [
+     2,
+     4,
+     4,
+     4
+    ],
+    "n": [
+     4,
+     4,
+     4,
+     4
+    ]
+   },
+   {
+    "id": "D4",
+    "lift_N": [
+     1.55,
+     2.2,
+     2.82,
+     3.5
+    ],
+    "lift_pads": [
+     4,
+     4,
+     4,
+     4
+    ],
+    "held_turn": [
+     0,
+     2,
+     4,
+     4
+    ],
+    "n": [
+     4,
+     4,
+     4,
+     4
+    ]
+   },
+   {
+    "id": "D5",
+    "lift_N": [
+     1.33,
+     1.96,
+     2.56,
+     3.1
+    ],
+    "lift_pads": [
+     4,
+     4,
+     4,
+     4
+    ],
+    "held_turn": [
+     2,
+     4,
+     4,
+     4
+    ],
+    "n": [
+     4,
+     4,
+     4,
+     4
+    ]
+   },
+   {
+    "id": "D6",
+    "lift_N": [
+     2.12,
+     2.78,
+     3.43,
+     4.06
+    ],
+    "lift_pads": [
+     3,
+     3,
+     3,
+     3
+    ],
+    "held_turn": [
+     4,
+     4,
+     4,
+     4
+    ],
+    "n": [
+     4,
+     4,
+     4,
+     4
+    ]
+   },
+   {
+    "id": "D7",
+    "lift_N": [
+     1.12,
+     1.73,
+     2.3,
+     2.83
+    ],
+    "lift_pads": [
+     4,
+     4,
+     4,
+     4
+    ],
+    "held_turn": [
+     0,
+     4,
+     4,
+     4
+    ],
+    "n": [
+     4,
+     4,
+     4,
+     4
+    ]
+   },
+   {
+    "id": "D8",
+    "lift_N": [
+     0.0,
+     0.89,
+     2.45,
+     2.94
+    ],
+    "lift_pads": [
+     0,
+     2,
+     3,
+     3
+    ],
+    "held_turn": [
+     0,
+     0,
+     4,
+     4
+    ],
+    "n": [
+     4,
+     4,
+     4,
+     4
+    ]
+   }
+  ]
+ },
+ "budget": {
+  "values": [
+   0.5,
+   0.8,
+   1.1,
+   1.3
+  ],
+  "rows": [
+   {
+    "id": "D1",
+    "turn_deg": [
+     0.5,
+     0.8,
+     0.8,
+     0.8
+    ],
+    "force_N": [
+     2.86,
+     4.25,
+     4.55,
+     4.55
+    ],
+    "slide_mm": [
+     6.8,
+     6.6,
+     6.6,
+     6.6
+    ],
+    "held": [
+     4,
+     4,
+     4,
+     4
+    ],
+    "n": [
+     4,
+     4,
+     4,
+     4
+    ]
+   },
+   {
+    "id": "D2",
+    "turn_deg": [
+     7.1,
+     8.7,
+     9.2,
+     9.2
+    ],
+    "force_N": [
+     1.67,
+     1.94,
+     2.02,
+     2.03
+    ],
+    "slide_mm": [
+     1.9,
+     1.7,
+     1.6,
+     1.6
+    ],
+    "held": [
+     4,
+     4,
+     4,
+     4
+    ],
+    "n": [
+     4,
+     4,
+     4,
+     4
+    ]
+   },
+   {
+    "id": "D3",
+    "turn_deg": [
+     5.1,
+     6.2,
+     6.7,
+     6.7
+    ],
+    "force_N": [
+     2.62,
+     2.66,
+     2.68,
+     2.68
+    ],
+    "slide_mm": [
+     1.6,
+     1.4,
+     1.4,
+     1.4
+    ],
+    "held": [
+     4,
+     4,
+     4,
+     4
+    ],
+    "n": [
+     4,
+     4,
+     4,
+     4
+    ]
+   },
+   {
+    "id": "D4",
+    "turn_deg": [
+     -0.5,
+     2.5,
+     4.7,
+     5.5
+    ],
+    "force_N": [
+     1.31,
+     1.67,
+     2.14,
+     2.5
+    ],
+    "slide_mm": [
+     1.3,
+     2.6,
+     4.2,
+     4.8
+    ],
+    "held": [
+     4,
+     4,
+     4,
+     4
+    ],
+    "n": [
+     4,
+     4,
+     4,
+     4
+    ]
+   },
+   {
+    "id": "D5",
+    "turn_deg": [
+     0.9,
+     2.6,
+     3.2,
+     3.2
+    ],
+    "force_N": [
+     1.62,
+     2.41,
+     3.44,
+     3.6
+    ],
+    "slide_mm": [
+     2.5,
+     3.7,
+     4.2,
+     4.2
+    ],
+    "held": [
+     4,
+     4,
+     4,
+     4
+    ],
+    "n": [
+     4,
+     4,
+     4,
+     4
+    ]
+   },
+   {
+    "id": "D6",
+    "turn_deg": [
+     5.5,
+     7.0,
+     7.2,
+     7.2
+    ],
+    "force_N": [
+     2.9,
+     2.7,
+     2.46,
+     2.46
+    ],
+    "slide_mm": [
+     1.6,
+     1.8,
+     1.9,
+     1.9
+    ],
+    "held": [
+     4,
+     4,
+     4,
+     4
+    ],
+    "n": [
+     4,
+     4,
+     4,
+     4
+    ]
+   },
+   {
+    "id": "D7",
+    "turn_deg": [
+     -2.7,
+     -0.3,
+     1.1,
+     1.6
+    ],
+    "force_N": [
+     1.92,
+     2.57,
+     3.42,
+     3.75
+    ],
+    "slide_mm": [
+     1.5,
+     2.0,
+     3.0,
+     3.4
+    ],
+    "held": [
+     4,
+     4,
+     4,
+     4
+    ],
+    "n": [
+     4,
+     4,
+     4,
+     4
+    ]
+   },
+   {
+    "id": "D8",
+    "turn_deg": [
+     -65.5,
+     -65.5,
+     -65.5,
+     -65.5
+    ],
+    "force_N": [
+     1.1,
+     1.11,
+     1.11,
+     1.11
+    ],
+    "slide_mm": [
+     30.5,
+     30.5,
+     30.5,
+     30.5
+    ],
+    "held": [
+     4,
+     4,
+     4,
+     4
+    ],
+    "n": [
+     4,
+     4,
+     4,
+     4
+    ]
+   }
+  ]
+ },
+ "relief": {
+  "values": [
+   0.0,
+   4.0,
+   6.0,
+   8.0
+  ],
+  "rows": [
+   {
+    "id": "D1",
+    "turn_deg": [
+     0.8,
+     1.4,
+     0.6,
+     -0.0
+    ],
+    "force_N": [
+     4.25,
+     3.01,
+     2.42,
+     1.89
+    ],
+    "slide_mm": [
+     6.6,
+     5.2,
+     4.5,
+     4.3
+    ],
+    "held": [
+     4,
+     4,
+     4,
+     4
+    ],
+    "n": [
+     4,
+     4,
+     4,
+     4
+    ]
+   },
+   {
+    "id": "D2",
+    "turn_deg": [
+     8.7,
+     7.6,
+     7.7,
+     7.7
+    ],
+    "force_N": [
+     1.94,
+     2.76,
+     2.67,
+     2.47
+    ],
+    "slide_mm": [
+     1.7,
+     1.6,
+     1.5,
+     1.4
+    ],
+    "held": [
+     4,
+     4,
+     4,
+     4
+    ],
+    "n": [
+     4,
+     4,
+     4,
+     4
+    ]
+   },
+   {
+    "id": "D3",
+    "turn_deg": [
+     6.2,
+     5.6,
+     5.5,
+     5.8
+    ],
+    "force_N": [
+     2.66,
+     2.12,
+     1.98,
+     2.69
+    ],
+    "slide_mm": [
+     1.4,
+     0.9,
+     0.6,
+     1.0
+    ],
+    "held": [
+     4,
+     4,
+     4,
+     4
+    ],
+    "n": [
+     4,
+     4,
+     4,
+     4
+    ]
+   },
+   {
+    "id": "D4",
+    "turn_deg": [
+     2.5,
+     2.2,
+     2.3,
+     2.4
+    ],
+    "force_N": [
+     1.67,
+     1.49,
+     1.38,
+     1.25
+    ],
+    "slide_mm": [
+     2.6,
+     2.0,
+     1.8,
+     1.6
+    ],
+    "held": [
+     4,
+     4,
+     4,
+     4
+    ],
+    "n": [
+     4,
+     4,
+     4,
+     4
+    ]
+   },
+   {
+    "id": "D5",
+    "turn_deg": [
+     2.6,
+     3.5,
+     3.8,
+     4.6
+    ],
+    "force_N": [
+     2.41,
+     1.93,
+     1.87,
+     1.73
+    ],
+    "slide_mm": [
+     3.7,
+     3.4,
+     3.4,
+     3.5
+    ],
+    "held": [
+     4,
+     4,
+     4,
+     4
+    ],
+    "n": [
+     4,
+     4,
+     4,
+     4
+    ]
+   },
+   {
+    "id": "D6",
+    "turn_deg": [
+     7.0,
+     5.8,
+     5.0,
+     4.5
+    ],
+    "force_N": [
+     2.7,
+     2.35,
+     2.27,
+     2.07
+    ],
+    "slide_mm": [
+     1.8,
+     1.4,
+     1.5,
+     1.5
+    ],
+    "held": [
+     4,
+     4,
+     4,
+     4
+    ],
+    "n": [
+     4,
+     4,
+     4,
+     4
+    ]
+   },
+   {
+    "id": "D7",
+    "turn_deg": [
+     -0.3,
+     0.5,
+     0.8,
+     1.4
+    ],
+    "force_N": [
+     2.57,
+     2.46,
+     2.48,
+     2.34
+    ],
+    "slide_mm": [
+     2.0,
+     2.4,
+     2.8,
+     3.0
+    ],
+    "held": [
+     4,
+     4,
+     4,
+     4
+    ],
+    "n": [
+     4,
+     4,
+     4,
+     4
+    ]
+   },
+   {
+    "id": "D8",
+    "turn_deg": [
+     -65.5,
+     -53.6,
+     -52.4,
+     -25.8
+    ],
+    "force_N": [
+     1.11,
+     1.94,
+     2.08,
+     0.97
+    ],
+    "slide_mm": [
+     30.5,
+     26.7,
+     26.2,
+     87.2
+    ],
+    "held": [
+     4,
+     4,
+     4,
+     2
+    ],
+    "n": [
+     4,
+     4,
+     4,
+     4
+    ]
+   }
+  ]
+ },
+ "funnel": {
+  "phases": [
+   "lifted",
+   "turned",
+   "reoriented",
+   "regripped",
+   "staged",
+   "set_down",
+   "pressed",
+   "handover_thumb",
+   "handover_index",
+   "handover_middle",
+   "handover_grip",
+   "gait_grip",
+   "gaited"
+  ],
+  "rows": [
+   {
+    "id": "D1",
+    "n": 20,
+    "bench_hold": "6/7",
+    "carried": [
+     20,
+     20,
+     20,
+     4,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "staged_cos": 0.0,
+    "staged_N": 0.0,
+    "staged_pads": 0,
+    "final_tilt_med": null,
+    "turns_med": null,
+    "stood": 0,
+    "ok": 0
+   },
+   {
+    "id": "D2",
+    "n": 20,
+    "bench_hold": "10/10",
+    "carried": [
+     20,
+     20,
+     20,
+     20,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "staged_cos": 0.982,
+    "staged_N": 0.0,
+    "staged_pads": 0,
+    "final_tilt_med": null,
+    "turns_med": null,
+    "stood": 0,
+    "ok": 0
+   },
+   {
+    "id": "D3",
+    "n": 20,
+    "bench_hold": "4/10",
+    "carried": [
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     16,
+     16,
+     16,
+     16,
+     16,
+     8
+    ],
+    "staged_cos": 1.0,
+    "staged_N": 2.09,
+    "staged_pads": 3,
+    "final_tilt_med": 8.1,
+    "turns_med": 0.022,
+    "stood": 0,
+    "ok": 0
+   },
+   {
+    "id": "D4",
+    "n": 20,
+    "bench_hold": "9/10",
+    "carried": [
+     20,
+     20,
+     18,
+     17,
+     17,
+     17,
+     17,
+     12,
+     12,
+     12,
+     12,
+     12,
+     5
+    ],
+    "staged_cos": 1.0,
+    "staged_N": 1.34,
+    "staged_pads": 3,
+    "final_tilt_med": 45.4,
+    "turns_med": -0.005,
+    "stood": 2,
+    "ok": 0
+   },
+   {
+    "id": "D5",
+    "n": 20,
+    "bench_hold": "3/10",
+    "carried": [
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     19,
+     14,
+     13,
+     13,
+     12,
+     12,
+     1
+    ],
+    "staged_cos": 0.999,
+    "staged_N": 1.86,
+    "staged_pads": 3,
+    "final_tilt_med": 74.6,
+    "turns_med": -0.002,
+    "stood": 0,
+    "ok": 0
+   },
+   {
+    "id": "D6",
+    "n": 20,
+    "bench_hold": "2/10",
+    "carried": [
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     18,
+     14,
+     14,
+     16,
+     16,
+     7
+    ],
+    "staged_cos": 1.0,
+    "staged_N": 2.1,
+    "staged_pads": 3,
+    "final_tilt_med": 27.6,
+    "turns_med": 0.002,
+    "stood": 0,
+    "ok": 0
+   },
+   {
+    "id": "D7",
+    "n": 20,
+    "bench_hold": "10/10",
+    "carried": [
+     20,
+     20,
+     18,
+     18,
+     18,
+     18,
+     18,
+     14,
+     16,
+     16,
+     16,
+     16,
+     11
+    ],
+    "staged_cos": 0.999,
+    "staged_N": 2.05,
+    "staged_pads": 3,
+    "final_tilt_med": 56.3,
+    "turns_med": 0.011,
+    "stood": 0,
+    "ok": 0
+   },
+   {
+    "id": "D8",
+    "n": 20,
+    "bench_hold": "4/10",
+    "carried": [
+     20,
+     20,
+     20,
+     11,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "staged_cos": 0.0,
+    "staged_N": 0.0,
+    "staged_pads": 0,
+    "final_tilt_med": null,
+    "turns_med": null,
+    "stood": 0,
+    "ok": 0
+   }
+  ],
+  "n": 160
+ },
+ "probe": {
+  "shipped": {
+   "ok": false,
+   "drop": null,
+   "cycles": 1,
+   "turns": 0.109,
+   "final_tilt": 87.93,
+   "seams": [
+    {
+     "phase": "lifted",
+     "cos": 0.0475,
+     "pads": 3,
+     "N": 0.33,
+     "slide": 10.2,
+     "q_err": {
+      "thumb": 0.0,
+      "index": 0.0,
+      "middle": 0.0
+     },
+     "sat": {
+      "thumb": 0,
+      "index": 0,
+      "middle": 0
+     }
+    },
+    {
+     "phase": "turned",
+     "cos": 0.1733,
+     "pads": 0,
+     "N": 0.0,
+     "slide": 30.8,
+     "q_err": {
+      "thumb": 0.4,
+      "index": 0.6,
+      "middle": 0.1
+     },
+     "sat": {
+      "thumb": 0,
+      "index": 0,
+      "middle": 0
+     }
+    },
+    {
+     "phase": "reoriented",
+     "cos": 0.3967,
+     "pads": 1,
+     "N": 0.14,
+     "slide": 19.2,
+     "q_err": {
+      "thumb": 0.0,
+      "index": 0.0,
+      "middle": 0.0
+     },
+     "sat": {
+      "thumb": 0,
+      "index": 0,
+      "middle": 0
+     }
+    },
+    {
+     "phase": "regripped",
+     "cos": 0.4327,
+     "pads": 1,
+     "N": 0.18,
+     "slide": 17.5,
+     "q_err": {
+      "thumb": 0.0,
+      "index": 0.0,
+      "middle": 0.0
+     },
+     "sat": {
+      "thumb": 0,
+      "index": 0,
+      "middle": 0
+     }
+    },
+    {
+     "phase": "staged",
+     "cos": 0.9964,
+     "pads": 0,
+     "N": 0.0,
+     "slide": 15.0,
+     "q_err": {
+      "thumb": 0.0,
+      "index": 0.0,
+      "middle": 0.0
+     },
+     "sat": {
+      "thumb": 0,
+      "index": 0,
+      "middle": 0
+     }
+    },
+    {
+     "phase": "set_down",
+     "cos": -0.0311,
+     "pads": 0,
+     "N": 0.0,
+     "slide": 89.6,
+     "q_err": {
+      "thumb": 0.0,
+      "index": 0.0,
+      "middle": 0.0
+     },
+     "sat": {
+      "thumb": 0,
+      "index": 0,
+      "middle": 0
+     }
+    },
+    {
+     "phase": "pressed",
+     "cos": -0.0404,
+     "pads": 0,
+     "N": 0.0,
+     "slide": 89.3,
+     "q_err": {
+      "thumb": 0.0,
+      "index": 0.0,
+      "middle": 0.0
+     },
+     "sat": {
+      "thumb": 0,
+      "index": 0,
+      "middle": 0
+     }
+    },
+    {
+     "phase": "handover_thumb",
+     "cos": -0.0356,
+     "pads": 0,
+     "N": 0.0,
+     "slide": 90.5,
+     "q_err": {
+      "thumb": 0.0,
+      "index": 0.0,
+      "middle": 0.0
+     },
+     "sat": {
+      "thumb": 0,
+      "index": 0,
+      "middle": 0
+     }
+    },
+    {
+     "phase": "handover_index",
+     "cos": -0.0325,
+     "pads": 0,
+     "N": 0.0,
+     "slide": 92.0,
+     "q_err": {
+      "thumb": 0.0,
+      "index": 2.0,
+      "middle": 0.0
+     },
+     "sat": {
+      "thumb": 0,
+      "index": 0,
+      "middle": 0
+     }
+    },
+    {
+     "phase": "handover_middle",
+     "cos": -0.0341,
+     "pads": 0,
+     "N": 0.0,
+     "slide": 94.2,
+     "q_err": {
+      "thumb": 0.0,
+      "index": 1.9,
+      "middle": 0.0
+     },
+     "sat": {
+      "thumb": 0,
+      "index": 0,
+      "middle": 0
+     }
+    },
+    {
+     "phase": "handover_grip",
+     "cos": -0.0414,
+     "pads": 0,
+     "N": 0.0,
+     "slide": 94.9,
+     "q_err": {
+      "thumb": 0.0,
+      "index": 1.8,
+      "middle": 0.0
+     },
+     "sat": {
+      "thumb": 0,
+      "index": 0,
+      "middle": 0
+     }
+    },
+    {
+     "phase": "gait_grip",
+     "cos": -0.0414,
+     "pads": 0,
+     "N": 0.0,
+     "slide": 94.9,
+     "q_err": {
+      "thumb": 0.0,
+      "index": 1.8,
+      "middle": 0.0
+     },
+     "sat": {
+      "thumb": 0,
+      "index": 0,
+      "middle": 0
+     }
+    },
+    {
+     "phase": "gaited",
+     "cos": -0.0362,
+     "pads": 0,
+     "N": 0.0,
+     "slide": 97.8,
+     "q_err": {
+      "thumb": 0.0,
+      "index": 1.8,
+      "middle": 0.0
+     },
+     "sat": {
+      "thumb": 0,
+      "index": 0,
+      "middle": 0
+     }
+    }
+   ]
+  },
+  "corrected": {
+   "ok": false,
+   "drop": null,
+   "cycles": 8,
+   "turns": 0.002,
+   "final_tilt": 28.66,
+   "seams": [
+    {
+     "phase": "lifted",
+     "cos": 0.0232,
+     "pads": 3,
+     "N": 4.06,
+     "slide": 1.3,
+     "q_err": {
+      "thumb": 23.5,
+      "index": 22.7,
+      "middle": 7.3
+     },
+     "sat": {
+      "thumb": 0,
+      "index": 0,
+      "middle": 0
+     }
+    },
+    {
+     "phase": "turned",
+     "cos": 0.1165,
+     "pads": 3,
+     "N": 2.42,
+     "slide": 1.7,
+     "q_err": {
+      "thumb": 24.6,
+      "index": 29.5,
+      "middle": 35.8
+     },
+     "sat": {
+      "thumb": 0,
+      "index": 0,
+      "middle": 0
+     }
+    },
+    {
+     "phase": "reoriented",
+     "cos": 0.1967,
+     "pads": 3,
+     "N": 2.43,
+     "slide": 3.5,
+     "q_err": {
+      "thumb": 20.5,
+      "index": 22.5,
+      "middle": 28.2
+     },
+     "sat": {
+      "thumb": 0,
+      "index": 0,
+      "middle": 0
+     }
+    },
+    {
+     "phase": "regripped",
+     "cos": 0.2658,
+     "pads": 3,
+     "N": 2.5,
+     "slide": 5.6,
+     "q_err": {
+      "thumb": 16.9,
+      "index": 15.2,
+      "middle": 22.1
+     },
+     "sat": {
+      "thumb": 0,
+      "index": 0,
+      "middle": 0
+     }
+    },
+    {
+     "phase": "staged",
+     "cos": 0.9962,
+     "pads": 3,
+     "N": 2.12,
+     "slide": 7.7,
+     "q_err": {
+      "thumb": 14.0,
+      "index": 10.2,
+      "middle": 15.9
+     },
+     "sat": {
+      "thumb": 0,
+      "index": 0,
+      "middle": 0
+     }
+    },
+    {
+     "phase": "set_down",
+     "cos": 0.9989,
+     "pads": 3,
+     "N": 2.14,
+     "slide": 11.0,
+     "q_err": {
+      "thumb": 11.1,
+      "index": 8.0,
+      "middle": 10.2
+     },
+     "sat": {
+      "thumb": 0,
+      "index": 0,
+      "middle": 0
+     }
+    },
+    {
+     "phase": "pressed",
+     "cos": 0.9905,
+     "pads": 3,
+     "N": 2.02,
+     "slide": 14.8,
+     "q_err": {
+      "thumb": 8.4,
+      "index": 6.0,
+      "middle": 5.4
+     },
+     "sat": {
+      "thumb": 0,
+      "index": 0,
+      "middle": 0
+     }
+    },
+    {
+     "phase": "handover_thumb",
+     "cos": 0.987,
+     "pads": 3,
+     "N": 4.08,
+     "slide": 16.0,
+     "q_err": {
+      "thumb": 27.2,
+      "index": 5.3,
+      "middle": 4.1
+     },
+     "sat": {
+      "thumb": 0,
+      "index": 0,
+      "middle": 0
+     }
+    },
+    {
+     "phase": "handover_index",
+     "cos": 0.9707,
+     "pads": 3,
+     "N": 3.33,
+     "slide": 18.0,
+     "q_err": {
+      "thumb": 22.0,
+      "index": 42.3,
+      "middle": 2.7
+     },
+     "sat": {
+      "thumb": 0,
+      "index": 0,
+      "middle": 0
+     }
+    },
+    {
+     "phase": "handover_middle",
+     "cos": 0.9907,
+     "pads": 3,
+     "N": 3.04,
+     "slide": 19.1,
+     "q_err": {
+      "thumb": 17.7,
+      "index": 33.9,
+      "middle": 25.4
+     },
+     "sat": {
+      "thumb": 0,
+      "index": 0,
+      "middle": 0
+     }
+    },
+    {
+     "phase": "handover_grip",
+     "cos": 0.9943,
+     "pads": 2,
+     "N": 3.25,
+     "slide": 23.5,
+     "q_err": {
+      "thumb": 13.9,
+      "index": 30.0,
+      "middle": 19.7
+     },
+     "sat": {
+      "thumb": 0,
+      "index": 0,
+      "middle": 0
+     }
+    },
+    {
+     "phase": "gait_grip",
+     "cos": 0.9943,
+     "pads": 2,
+     "N": 3.25,
+     "slide": 23.5,
+     "q_err": {
+      "thumb": 13.9,
+      "index": 30.0,
+      "middle": 19.7
+     },
+     "sat": {
+      "thumb": 0,
+      "index": 0,
+      "middle": 0
+     }
+    },
+    {
+     "phase": "gaited",
+     "cos": 0.8775,
+     "pads": 2,
+     "N": 1.92,
+     "slide": 49.4,
+     "q_err": {
+      "thumb": 2.8,
+      "index": 14.4,
+      "middle": 37.7
+     },
+     "sat": {
+      "thumb": 0,
+      "index": 0,
+      "middle": 0
+     }
+    }
+   ]
+  }
+ }
+}
