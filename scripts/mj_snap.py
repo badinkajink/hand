@@ -56,7 +56,7 @@ def _body_names(model: mujoco.MjModel) -> list[str]:
 def _guess_lookat(model: mujoco.MjModel, data: mujoco.MjData) -> np.ndarray:
     names = _body_names(model)
     for candidate in names:
-        if candidate and any(k in candidate for k in ("screwdriver", "cube", "object", "drill", "prism")):
+        if candidate and any(k in candidate for k in ("screwdriver", "cube", "object", "drill", "prism", "ball")):
             return np.array(data.body(candidate).xpos, dtype=float)
     for candidate in ("palm", "palm_pose"):
         if candidate in names:
@@ -66,7 +66,7 @@ def _guess_lookat(model: mujoco.MjModel, data: mujoco.MjData) -> np.ndarray:
 
 def _object_body(model: mujoco.MjModel) -> str | None:
     for name in _body_names(model):
-        if name and any(k in name for k in ("screwdriver", "cube", "object", "drill", "prism")):
+        if name and any(k in name for k in ("screwdriver", "cube", "object", "drill", "prism", "ball")):
             return name
     return None
 

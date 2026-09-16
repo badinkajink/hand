@@ -1,4 +1,4 @@
-<mujoco model="real_v1_scene_screwdriver_medium">
+<mujoco model="hand_wide_r120_tn0d0300p0d0000p0d0000_ip0d0300p0d0300p0d0000_mp0d0300n0d0300p0d0000">
   <compiler angle="radian" autolimits="true" />
   <option timestep="0.002" gravity="0 0 -9.81" integrator="implicitfast" />
   <visual>
@@ -13,9 +13,6 @@
     <default class="pose">
       <joint damping="2.0" armature="0.01" />
       <position kp="4000" kv="100" forcerange="-1000 1000" />
-    </default>
-    <default class="morph">
-      <joint type="slide" damping="2000" armature="0.0001" />
     </default>
     <default class="ctrl">
       <joint type="hinge" damping="0.5" armature="0.001" />
@@ -34,28 +31,14 @@
   </asset>
   <worldbody>
     <light pos="0 0 1.5" dir="0 0 -1" directional="true" diffuse=".6 .6 .6" specular=".2 .2 .2" />
-    <light pos="0.5 0.5 1.0" dir="-1 -1 -1" directional="true" diffuse=".4 .4 .4" specular=".1 .1 .1" />
-    <geom name="floor" type="plane" size="1.5 1.5 0.1" material="groundplane" />
-    <body name="screwdriver_medium" pos="0.0 0.0 0.0125" quat="0.70711 0.70711 0 0">
-      <freejoint />
-      <geom type="cylinder" size="0.0125 0.05" density="500" material="object_mat" friction="2.4 0.2 0.02" />
-    </body>
+    <geom name="floor" type="plane" size="1.5 1.5 0.1" material="table_mat" contype="0" conaffinity="0" />
     <body gravcomp="1" name="palm_pose" pos="0 0 0.062500">
-      <joint class="pose" name="palm_px" type="slide" axis="1 0 0" range="-0.20 0.20" />
-      <joint class="pose" name="palm_py" type="slide" axis="0 1 0" range="-0.20 0.20" />
-      <joint class="pose" name="palm_pz" type="slide" axis="0 0 1" range="-0.15 0.35" />
-      <joint class="pose" name="palm_rx" type="hinge" axis="1 0 0" range="-1.57 1.57" />
-      <joint class="pose" name="palm_ry" type="hinge" axis="0 1 0" range="-1.57 1.57" />
-      <joint class="pose" name="palm_rz" type="hinge" axis="0 0 1" range="-3.14 3.14" />
       <geom name="palm_plate" type="box" pos="0 0 0.0250" size="0.0850 0.0900 0.0015" material="palm_mat" />
-      <!-- Mount workspaces from XY_space.png, visualisation only (sites never collide). -->
       <site name="workspace_thumb" type="box" pos="-0.050 0 0.0280" size="0.030 0.055 0.0005" rgba="0.85 0.30 0.30 0.14" />
       <site name="workspace_index" type="box" pos="0.050 0.055 0.0280" size="0.030 0.030 0.0005" rgba="0.30 0.55 0.85 0.14" />
       <site name="workspace_middle" type="box" pos="0.050 -0.055 0.0280" size="0.030 0.030 0.0005" rgba="0.30 0.75 0.45 0.14" />
-      <body name="thumb_mount" pos="-0.050000 0.000000 0">
+      <body name="thumb_mount" pos="-0.08 0 0">
         <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
-        <joint class="morph" name="thumb_x" axis="1 0 0" range="-0.030000 0.030000" />
-        <joint class="morph" name="thumb_y" axis="0 1 0" range="-0.055000 0.055000" />
         <body name="thumb_yaw_frame">
           <joint class="ctrl" name="thumb_yaw" axis="1 0 0" range="-1.483530 1.483530" />
           <geom type="capsule" fromto="0 0 0 0 0 -0.022900" size="0.010550" material="finger_mat" />
@@ -64,7 +47,6 @@
             <geom type="capsule" fromto="0 0 0 0 0 -0.022900" size="0.010550" material="finger_mat" />
             <body name="thumb_len_frame" pos="0 0 0">
               <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
-              <joint class="morph" name="thumb_len" axis="1 0 0" range="0 0" />
               <body name="thumb_pip_frame" pos="0 0 -0.020750">
                 <joint class="ctrl" name="thumb_pip" axis="0 -1 0" range="-0.314159 1.605703" />
                 <geom type="capsule" fromto="0 0 0 0 0 -0.016060" size="0.010550" material="finger_mat" friction="2.4 0.2 0.02" />
@@ -76,10 +58,8 @@
           </body>
         </body>
       </body>
-      <body name="index_mount" pos="0.050000 0.055000 0">
+      <body name="index_mount" pos="0.08 0.085 0">
         <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
-        <joint class="morph" name="index_x" axis="1 0 0" range="-0.030000 0.030000" />
-        <joint class="morph" name="index_y" axis="0 1 0" range="-0.030000 0.030000" />
         <body name="index_yaw_frame">
           <joint class="ctrl" name="index_yaw" axis="1 0 0" range="-1.483530 1.483530" />
           <geom type="capsule" fromto="0 0 0 0 0 -0.022900" size="0.010550" material="finger_mat" />
@@ -88,7 +68,6 @@
             <geom type="capsule" fromto="0 0 0 0 0 -0.022900" size="0.010550" material="finger_mat" />
             <body name="index_len_frame" pos="0 0 0">
               <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
-              <joint class="morph" name="index_len" axis="1 0 0" range="0 0" />
               <body name="index_pip_frame" pos="0 0 -0.020750">
                 <joint class="ctrl" name="index_pip" axis="0 1 0" range="-0.314159 1.605703" />
                 <geom type="capsule" fromto="0 0 0 0 0 -0.016060" size="0.010550" material="finger_mat" friction="2.4 0.2 0.02" />
@@ -100,10 +79,8 @@
           </body>
         </body>
       </body>
-      <body name="middle_mount" pos="0.050000 -0.055000 0">
+      <body name="middle_mount" pos="0.08 -0.085 0">
         <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
-        <joint class="morph" name="middle_x" axis="1 0 0" range="-0.030000 0.030000" />
-        <joint class="morph" name="middle_y" axis="0 1 0" range="-0.030000 0.030000" />
         <body name="middle_yaw_frame">
           <joint class="ctrl" name="middle_yaw" axis="1 0 0" range="-1.483530 1.483530" />
           <geom type="capsule" fromto="0 0 0 0 0 -0.022900" size="0.010550" material="finger_mat" />
@@ -112,7 +89,6 @@
             <geom type="capsule" fromto="0 0 0 0 0 -0.022900" size="0.010550" material="finger_mat" />
             <body name="middle_len_frame" pos="0 0 0">
               <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
-              <joint class="morph" name="middle_len" axis="1 0 0" range="0 0" />
               <body name="middle_pip_frame" pos="0 0 -0.020750">
                 <joint class="ctrl" name="middle_pip" axis="0 1 0" range="-0.314159 1.605703" />
                 <geom type="capsule" fromto="0 0 0 0 0 -0.016060" size="0.010550" material="finger_mat" friction="2.4 0.2 0.02" />
@@ -150,12 +126,6 @@
     <exclude body1="middle_mcp_frame" body2="middle_pip_frame" />
   </contact>
   <actuator>
-    <position class="pose" name="a_palm_px" joint="palm_px" ctrlrange="-0.20 0.20" />
-    <position class="pose" name="a_palm_py" joint="palm_py" ctrlrange="-0.20 0.20" />
-    <position class="pose" name="a_palm_pz" joint="palm_pz" ctrlrange="-0.15 0.35" />
-    <position class="pose" name="a_palm_rx" joint="palm_rx" ctrlrange="-1.57 1.57" />
-    <position class="pose" name="a_palm_ry" joint="palm_ry" ctrlrange="-1.57 1.57" />
-    <position class="pose" name="a_palm_rz" joint="palm_rz" ctrlrange="-3.14 3.14" />
     <position class="ctrl" name="a_thumb_yaw" joint="thumb_yaw" ctrlrange="-1.483530 1.483530" />
     <position class="ctrl" name="a_thumb_mcp" joint="thumb_mcp" ctrlrange="-0.261799 1.605703" />
     <position class="ctrl" name="a_thumb_pip" joint="thumb_pip" ctrlrange="-0.314159 1.605703" />
@@ -167,7 +137,6 @@
     <position class="ctrl" name="a_middle_pip" joint="middle_pip" ctrlrange="-0.314159 1.605703" />
   </actuator>
   <keyframe>
-    <key name="open_ik" qpos="0 0 0.0125 0.707107 0.707107 0 0 0 0 0.01 0 0 0 0 0 0 0.208613 0 0.770296 0 0 -0.421055 0.523357 0 0.0953978 0 0 0.421055 0.523357 0 0.0953978" ctrl="0 0 0.01 0 0 0 0 0.208613 0.770296 -0.421055 0.523357 0.0953978 0.421055 0.523357 0.0953978" />
-    <key name="open" qpos="0 0 0.0125 0.707107 0.707107 0 0 0 0 0.01 0 0 0 0 0 0 -0.167745 0 1.20758 0 0 -0.429327 0.0237063 0 0.770516 0 0 0.429327 0.0237063 0 0.770516" ctrl="0 0 0.01 0 0 0 0 -0.167745 1.20758 -0.429327 0.0237063 0.770516 0.429327 0.0237063 0.770516" />
+    <key name="open" qpos="&#10;        0 0.55 0.55 0 0.55 0.55 0 0.55 0.55&#10;      " ctrl="&#10;        0 0.55 0.55 0 0.55 0.55 0 0.55 0.55&#10;      " />
   </keyframe>
 </mujoco>
