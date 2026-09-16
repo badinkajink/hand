@@ -348,7 +348,8 @@ def _cell(kw):
     seam = {s["phase"]: s for s in r["seams"]}
     t, L = seam.get("turned", {}), seam.get("lifted", {})
     r["seams"] = [{k: s[k] for k in ("phase", "t", "cos", "tilt_deg", "z", "pad_contacts",
-                                     "pad_force_N", "spin_deg", "roll_deg", "slide_mm")
+                                     "pad_force_N", "spin_deg", "roll_deg", "slide_mm",
+                                     "q_err_deg", "sat")
                    if k in s} for s in r["seams"]]
     r.pop("cycles", None)
     r["arm"], r["tag"], r["set"] = tag, h["tag"], h["set"]
