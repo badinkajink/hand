@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reorientation mechanism on three plants</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#EEF1F4; --card:#FFFFFF; --sunk:#E4E9EE;
+  --ink:#1A2127; --ink2:#48545D; --ink3:#77848D; --rule:#D2DAE1; --rule2:#E2E8ED;
+  --s1:#BE7514; --s2:#4A7FC4; --s3:#5E8F5A; --ref:#8A959D;
+  --good:#3F7A46; --bad:#A8443C;
+  --shadow:0 1px 2px rgba(16,26,34,.06),0 8px 24px -14px rgba(16,26,34,.28);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
+  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
+  --s1:#E39A2E; --s2:#7BA7E0; --s3:#8AC286; --ref:#79858E; --good:#6FB076; --bad:#DE8078;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+}}
+:root[data-theme="dark"]{
+  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
+  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
+  --s1:#E39A2E; --s2:#7BA7E0; --s3:#8AC286; --ref:#79858E; --good:#6FB076; --bad:#DE8078;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);
+  font:400 17px/1.62 "Source Serif 4",Georgia,"Times New Roman",serif;
+  -webkit-font-smoothing:antialiased;padding:0 20px 96px;margin:0}
+.wrap{max-width:1020px;margin:0 auto}
+.col{max-width:70ch}
+h1,h2,h3,.mono,.tag,th{font-family:Archivo,"Helvetica Neue",Arial,sans-serif}
+.mono,code,td.num,.tick,.val,.ser,.mark,.note,.axlab,pre{
+  font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+header{padding:64px 0 30px;border-bottom:1px solid var(--rule)}
+.eyebrow{font:500 12px/1 "IBM Plex Mono",monospace;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--ink3)}
+h1{font-size:clamp(30px,4.6vw,48px);line-height:1.05;font-weight:700;letter-spacing:-.022em;
+  margin:16px 0 0;text-wrap:balance;max-width:22ch}
+.lede{font-size:20px;line-height:1.55;color:var(--ink2);margin:18px 0 0;max-width:62ch}
+.byline{margin-top:22px;font:400 13px/1.5 "IBM Plex Mono",monospace;color:var(--ink3)}
+section{padding:46px 0;border-bottom:1px solid var(--rule2)}
+section:last-of-type{border-bottom:0}
+h2{font-size:27px;font-weight:700;letter-spacing:-.018em;margin:0 0 6px;text-wrap:balance}
+h3{font-size:18px;font-weight:600;letter-spacing:-.008em;margin:34px 0 8px}
+h2 + .sub{color:var(--ink3);font:400 14px/1.5 "IBM Plex Mono",monospace;margin:0 0 24px}
+p{margin:0 0 17px}
+strong{font-weight:600}
+ul,ol{margin:0 0 17px;padding-left:20px}
+li{margin:0 0 8px}
+figure{margin:28px 0}
+figure video,figure img{display:block;width:100%;border-radius:10px;background:var(--sunk);
+  box-shadow:var(--shadow)}
+figcaption{margin-top:11px;font:400 14px/1.55 "IBM Plex Mono",monospace;color:var(--ink3);
+  max-width:82ch}
+.chart{display:block;width:100%;height:auto;background:var(--card);border:1px solid var(--rule);
+  border-radius:10px;margin:24px 0}
+.col > .tw,.col > figure,.col > .chart,.col > .duo{
+  width:min(1020px,calc(100vw - 40px));max-width:none}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:28px 0}
+@media (max-width:720px){.duo{grid-template-columns:1fr}}
+.duo figure{margin:0}
+.narrow{max-width:560px}
+.grid{stroke:var(--rule2)}
+.tick{font-size:11px;fill:var(--ink3)}
+.axlab{font-size:11.5px;fill:var(--ink3);letter-spacing:.05em}
+.val{font-size:12px;font-weight:500;fill:var(--ink2)}
+.ser{font-size:12.5px;font-weight:500}
+.note{font-size:11.5px;fill:var(--ink3)}
+.tw{overflow-x:auto;margin:24px 0;border:1px solid var(--rule);border-radius:10px;
+  background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th{font:600 12px/1.3 Archivo,sans-serif;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink3);text-align:left;padding:13px 14px;border-bottom:1px solid var(--rule);
+  white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid var(--rule2);vertical-align:top}
+td.wrap{white-space:normal;min-width:22ch}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;font-size:13.5px;
+  white-space:nowrap}
+tbody tr.hi td{background:color-mix(in oklab,var(--s1) 9%,transparent)}
+.ok{color:var(--good);font-weight:600}
+.no{color:var(--bad);font-weight:600}
+td.cell{text-align:center;font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:500}
+td.c4{background:color-mix(in oklab,var(--good) 28%,var(--card));color:var(--ink)}
+td.c3{background:color-mix(in oklab,var(--good) 16%,var(--card))}
+td.c2{background:color-mix(in oklab,var(--s1) 16%,var(--card))}
+td.c1{background:color-mix(in oklab,var(--bad) 12%,var(--card))}
+td.c0{background:color-mix(in oklab,var(--bad) 22%,var(--card));color:var(--ink2)}
+.keep{border:1px solid var(--rule);border-left:3px solid var(--s2);border-radius:10px;
+  padding:20px 24px;margin:28px 0;background:var(--card)}
+.keep .tag{display:block;font:700 12px/1 Archivo,sans-serif;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--s2);margin-bottom:11px}
+.keep p:last-child,.keep ul:last-child{margin-bottom:0}
+pre{background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:16px 18px;
+  overflow-x:auto;font-size:13px;line-height:1.6;margin:22px 0}
+code{font-size:.92em;background:var(--sunk);padding:1px 4px;border-radius:4px;
+  margin:0 -1px;white-space:nowrap}
+footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",monospace}
+footer a{color:var(--s2)}
+.dim{color:var(--ink3);font-size:.9em}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">MorphoHand &#183; real_v1 &#183; 16 September 2026</div>
+  <h1>Reorientation mechanism on three plants</h1>
+  <p class="lede">Every finger-driven reorientation the simulator has produced ran on a rigid,
+  instantaneous actuator. On the actuator the bench calibrated, the fingers turn a gripped tool
+  1&#8211;8&#176; on every hand at every setting tried; the bench maneuver the hardware has run 251
+  times is a 20&#8211;40&#176; tip of a tool resting on the pads at its own weight; and the
+  chain&#8217;s 90&#176; is the arm&#8217;s, with the tool held on three pads at 1.3&#8211;3.5 N on
+  eight of sixteen hands. The 2026-09-06 chain, the rv05 chain and the eight-hand ranking each
+  measured a different plant.</p>
+  <div class="byline">{{N_CHAIN}} chain rollouts and {{N_BENCH}} bench replays today &#183;
+  plants: shipped (kp 30, kv 0.5), calibrated (kp 0.5, kv 0.6), calibrated with the servo&#8217;s
+  speed (kp 0.5, kv 0.02), settled re-fit (kp 0.25, kv 0.02) &#183; hardware: the 2026-08-29
+  stepped runs and the 2026-09-02 archive &#183; signed cosine, +1 = tip down &#183; load test
+  at 0.240 N</div>
+</header>
+
+<section>
+<div class="col">
+<h2>What each plant does on each maneuver</h2>
+<p class="sub">the same hands, the same plans; only the actuator model changes</p>
+<p>Three maneuvers have been called &#8220;reorientation&#8221; in this program. The bench
+maneuver is the deployed plan replayed on a fixed palm: grip, the plan&#8217;s own per-step
+trajectory, hold. The chain&#8217;s finger turn is a contact-fixed IK rotation of a lifted tool
+about a pivot between the driver pads. The chain&#8217;s arm turn rotates the whole hand with
+the tool gripped. The table gives, for each, the grip force at the start, how far the tool
+turns, and whether it is still carried at the end.</p>
+</div>
+{{TABLE_THREE}}
+<div class="col">
+<p>The shipped plant and the hardware agree on the bench maneuver because that maneuver is
+carried by contact geometry at a load near the tool&#8217;s weight, where actuator stiffness
+hardly enters. They disagree on the chain because the chain&#8217;s grasp and finger turn load
+the actuators at 3&#8211;7 N, which the rigid plant supplies and the servo does not. The
+calibrated plant reverses the loss: it cannot roll a gripped tool with the fingers, and it holds
+one through the arm&#8217;s rotation at 1.3&#8211;3.5 N, where the rigid plant at the plans&#8217;
+10 mm squeeze either releases it (10 of 16) or cradles it at 0.3&#8211;0.7 N (6 of 16).</p>
+</div>
+</section>
+
+<section>
+<div class="col">
+<h2>The bench maneuver is a cradle tip</h2>
+<p class="sub">rv05_manual_b85, deployed plan, tool on the 100 mm post, palm fixed</p>
+<p>The per-step trace of the plan replay on the shipped and calibrated plants. Pad force is the
+sum over the three pads; the tool weighs 0.240 N.</p>
+</div>
+{{CHART_TRACE}}
+<div class="col">
+<p>On both plants the grip pose drives the tool up off the post (23 mm on the shipped plant,
+7 mm on the calibrated one) and the pad force is 2&#8211;3.5 N before the turn starts. Within the
+first quarter of the turn the pad force drops to 0.1&#8211;0.5 N on one or two pads, and the tool
+rides the fingers at its own weight for the rest of the maneuver. On the shipped plant the
+index pad leaves the tool at step 100 and never returns; the tool rests on the thumb and middle
+pads. The rotation is the fingers changing the shape of the cradle the tool rests in, and the
+&#8220;settle&#8221; after the last command is the same motion continuing under gravity.</p>
+<p>Removing the post after the grip changes nothing (the post carries 0.00 N at every step).
+Removing gravity on the calibrated plant leaves the tool floating out of the fingers with zero
+pad contact at the grip: the grip pose does not pinch the tool, gravity holds it in.</p>
+</div>
+{{TABLE_MECH}}
+<div class="duo">
+<figure><video controls muted playsinline preload="metadata" src="{{V_BENCH_SHIPPED}}"></video>
+<figcaption>Shipped plant, kp 30. The grip drives the tool up into the palm plate; the turn tips it in
+a cradle at 0.2 N. Final cos +0.35.</figcaption></figure>
+<figure><video controls muted playsinline preload="metadata" src="{{V_BENCH_CORRECTED}}"></video>
+<figcaption>Calibrated plant, kp 0.5. The tool sits in the fingers and tips nose-down over the last
+2 s of the trajectory. Final cos +0.65; bench +0.55.</figcaption></figure>
+</div>
+<figure><img src="{{I_BENCH_SHIPPED}}" alt="filmstrip, shipped plant">
+<figcaption>Shipped plant, frames at 0, 0.8, 1.3, 2.6, 3.5, 4.4 and 5.7 s. At 0.8 s the fingers have
+closed and the tool is pressed against the plate.</figcaption></figure>
+<figure><img src="{{I_BENCH_CORRECTED}}" alt="filmstrip, calibrated plant">
+<figcaption>Calibrated plant, same frames. The tool is visible between the fingers throughout and tips
+between 3.5 and 5.7 s.</figcaption></figure>
+<div class="col">
+<p>The hardware&#8217;s grip during this maneuver is in the same regime. The bench regrip walks
+each finger to a servo-load band (the station&#8217;s regulator at 250 units; the 2026-08-29
+held run at 435 / 210 / 0), and the sysid&#8217;s 0.018&#176; per load unit at kp 0.5 puts one
+load unit at 1.6&#215;10<sup>&#8722;4</sup> N&#183;m, so 250 units is about 0.8 N at the pad and the
+plan&#8217;s own un-relieved grip (525 / 350 / 210) about 3.4 N in total. Under that un-relieved
+grip the middle yaw stalled at 4&#176; of the 12.5&#176; asked; relieved, it travelled 13&#176; and
+the operator saw ~15&#176; of tool rotation. The hardware turns the tool when the grip is light
+enough for the tool to move in it, as the simulator does on both plants.</p>
+</div>
+</section>
+
+<section>
+<div class="col">
+<h2>The chain on the shipped plant jams the tool and tosses it</h2>
+<p class="sub">D3, D5, D6, D7 &#183; 10 mm squeeze &#183; pivot 0.15 and 0.25 &#183; two seeds each</p>
+<p>The chain&#8217;s grasp commands the pads 10 mm inside the shaft (the plans&#8217; own value).
+At kp 30 the fingers reach that command: the shaft is wedged upward until it escapes over the
+pads and rests against the palm plate, and the <code>lifted</code> seam reads two or three pads
+at 0.3&#8211;0.9 N against 0.240 N of tool. The finger turn then slides the tool 10&#8211;24 mm
+along the pads (the hardware&#8217;s ejection separator is 20 mm) while turning it 24&#8211;36&#176;.
+The <code>staged</code> seam, after the arm&#8217;s rotation, reads cos +0.98&#8211;1.00 with
+<strong>zero pads at zero force</strong> on 10 of the 16 rollouts: the tool has fallen tip-first
+into the countersink and is standing on its own. The other six read two or three pads at
+0.3&#8211;0.7 N, a cradle at the tool&#8217;s weight. That is the rv05 result of 2026-09-03 and its
+&#8220;release and swing&#8221;.</p>
+</div>
+{{TABLE_CHAINKV}}
+<div class="duo">
+<figure><video controls muted playsinline preload="metadata" src="{{V_D7_SHIPPED}}"></video>
+<figcaption>D7 (rv05_manual_b85), shipped plant. Jammed at the grasp, dangling tip-down after the
+arm&#8217;s turn, lying on the plate by set-down.</figcaption></figure>
+<figure><video controls muted playsinline preload="metadata" src="{{V_D6_SHIPPED}}"></video>
+<figcaption>D6 (sv1_u0308_b050), shipped plant, the hand of the 2026-09-06 chain. Same sequence.</figcaption></figure>
+</div>
+<figure><img src="{{I_D6_SHIPPED}}" alt="D6 seams on the shipped plant">
+<figcaption>D6 on the shipped plant, the thirteen seam frames. The tool is pressed to the plate from
+frame 2, hangs from the fingers at <code>staged</code> (frame 4), and lies released on the countersink
+from frame 5.</figcaption></figure>
+<div class="col">
+<p>The 2026-09-06 chain that completed on D6 used a 2 mm squeeze, which at kp 30 is a 6.9 N
+three-pad grip; the rigid fingers rolled that gripped tool 90&#176; and gaited it. The hardware
+cannot do either half: under a comparable grip its yaw servos stall at 12.6&#176; with the load
+register at 855&#8211;915 and the protective trip at ~800. The 2026-09-06 pivot and pole-flip
+mechanism is a property of kp 30.</p>
+</div>
+</section>
+
+<section>
+<div class="col">
+<h2>The chain on the calibrated plant holds the tool through the arm&#8217;s turn</h2>
+<p class="sub">same cells; the fingers turn 1&#8211;8&#176;; the arm does the 90&#176;</p>
+<p>At kp 0.5 the 10 mm squeeze is a spring preload rather than a position: the pads stop at the
+shaft and push with 3&#8211;4 N on three or four pads, the tool does not ride up, and it lifts
+flat (cos 0.00 &#177; 0.04). The finger turn moves it 1&#8211;8&#176; with 1.4&#8211;3.7 mm of slide.
+The arm then rotates the hand and the <code>staged</code> seam reads cos +0.95&#8211;0.99 on three
+pads at 1.3&#8211;3.5 N on D3, D5, D6 and D7 at both pivots and both seeds. The damping (next
+section) changes none of these numbers by more than 0.03 in cos or 0.5 N.</p>
+</div>
+<figure class="narrow"><video controls muted playsinline preload="metadata" src="{{V_D6_FAST}}"></video>
+<figcaption>D6, calibrated plant with the servo&#8217;s speed (kp 0.5, kv 0.02). Gripped flat,
+turned by the arm, held vertical in the countersink, disturbed 25&#176; by the handover, ends standing
+in the hand.</figcaption></figure>
+<figure><img src="{{I_D6_FAST}}" alt="D6 seams on the calibrated plant">
+<figcaption>The same rollout&#8217;s seam frames. Frame 4 (<code>staged</code>) is the tool vertical
+between thumb and index; frames 9&#8211;12 the handover; 13&#8211;17 the gait, which turns it 0.10 rev.</figcaption></figure>
+<div class="col">
+<h3>Sixteen hands, and the knobs that were tried</h3>
+<p>The eight deployed hands and the eight set-B hands on the kp 0.5 / kv 0.02 plant, then the
+deployed eight under each variation: no finger turn at all (the arm alone), the driver pads
+relieved 4 and 8 mm during the turn (the bench&#8217;s mechanism, attempted inside the chain),
+each plan&#8217;s own screened turn (its angle, pivot and budget), and the kp 0.25 plant the
+settled re-fit implies. Cells count rollouts whose <code>staged</code> seam is above cos 0.85 on
+at least two pads at more than the tool&#8217;s weight.</p>
+</div>
+{{TABLE_MATRIX}}
+<div class="col">
+<p>D2, the hardware&#8217;s 10-of-10 hand, loses a pad during the finger turn (3 pads at 3.65 N at
+the lift, 2 at 0.79 N after the turn) and drops at the arm&#8217;s rotation; with the finger turn
+removed it stages at cos +0.92 on three pads. D4 and D7 go the other way: without the 1&#8211;8&#176;
+pre-turn they drop at the regrip. The relief never produces a cradle tip inside the chain; the
+turn stays at 1&#8211;8&#176; at 4 and 8 mm on every hand. Each plan&#8217;s own screened turn inside
+the chain gives 4&#8211;15&#176; and the same four carriers. On the kp 0.25 plant the lift force
+halves to 1.4&#8211;2.2 N, D2 and D7 slide 50&#8211;66 mm out of the grip during the finger turn,
+and only D6 reaches <code>staged</code> held.</p>
+<p>The handover and gait remain the loss on every calibrated variant: the tool stands in the
+countersink held, the tripod never forms, and the gait turns 0.0&#8211;0.2 rev.</p>
+</div>
+</section>
+
+<section>
+<div class="col">
+<h2>The calibrated plant&#8217;s speed was never measured</h2>
+<p class="sub">apply_measured_plant.py --kv defaults to 0.6; at kp 0.5 that is a 1.2 s time constant</p>
+<p><code>apply_measured_plant.py</code> documents where kp, forcerange, frictionloss and the masses
+come from. It does not mention kv, which defaults to 0.6. A position actuator with kp 0.5 and
+kv 0.6 driving a link of negligible inertia is a first-order lag with time constant kv / kp =
+1.2 s. The hardware&#8217;s own logs bound the servo&#8217;s lag at under 40 ms: on the 2026-08-29
+stream run the flexion joints tracked a 1.08 s trajectory to under 1&#176;, and in the stepped
+free-air run the pip joint follows a ramp to within 0.5&#176; at 0.13 s per step.</p>
+</div>
+{{TABLE_HWLAG}}
+<div class="col">
+<p>The damping does not decide either maneuver. On the bench replay the turn is 29&#176; at kv 0.6
+and 24&#176; at kv 0.01; on the chain the finger turn is 1&#8211;7&#176; at kv 0.6 and 1&#8211;8&#176; at
+kv 0.02, and the staged cosines differ by under 0.03. It does decide what the seam errors mean:
+at kv 0.6 the fingers sit 10&#8211;30&#176; behind command at <code>turned</code>, at kv 0.02 they sit
+8&#8211;21&#176;, and the 8&#8211;21&#176; is the spring deflection a 3 N grip produces at kp 0.5
+(0.5 N&#183;m/rad &#215; 0.3 rad &#8776; 0.15 N&#183;m &#8776; 3 N at a 50 mm pad). No actuator reaches
+the 0.35 N&#183;m ceiling in any rollout.</p>
+</div>
+{{TABLE_KV}}
+<div class="col">
+<h3>The stiffness fit moves by 2&#215; when the settle is real</h3>
+<p>The 2026-09-02 calibration matched the simulated <code>ctrl &#8722; qpos</code> after a 2 s hold
+to the bench&#8217;s settled deficits and found kp 0.5. At kv 0.6 a 2 s hold is 1.7 time constants,
+so 19&#8201;% of any step and the lag from the preceding ramp are still in the reading. Re-run
+with kv 0.02, kp 0.5 reproduces +5.8&#176; of the measured +11.7&#176; on <code>middle_yaw</code>, and
+the fit lands at <strong>kp 0.25</strong>.</p>
+</div>
+{{TABLE_KPFIT}}
+<div class="col">
+<p>Both kp 0.25 and kp 0.5 at kv 0.02 reproduce the rv05 bench turn (40&#176; and 22&#176; against
+the bench&#8217;s 33&#176;), so the bench maneuver cannot tell them apart. The chain can: the carry
+set is D3&#8211;D7 at kp 0.5 and D6 alone at kp 0.25. The plant&#8217;s stiffness is known to a
+factor of two, and the chain&#8217;s outcome sits inside that factor.</p>
+</div>
+</section>
+
+<section>
+<div class="col">
+<h2>The bench maneuver per hand, against the bench</h2>
+<p class="sub">8 deployed plans &#183; 4 jittered replays each (4 mm, 0.09 rad, the gate&#8217;s own) &#183; 3 plants</p>
+<p>The plant calibration was cross-validated on one hand. Replayed on all eight with the
+gate&#8217;s spawn jitter, the simulated turn has a seed spread of 4&#8211;58&#176; and none of the
+three plants ranks the hands as the bench does: Spearman against the bench&#8217;s net turn on held
+trials is {{RHO_SHIPPED}} on the shipped plant, {{RHO_CORRECTED}} on the calibrated plant and
+{{RHO_FAST}} with the servo&#8217;s speed. The paper&#8217;s &#961;<sub>s</sub> = 0.33 was between the
+screened simulation, whose load regulator holds the grip at 0.4&#8211;1.8 N, and bench alignment;
+the raw replay on the same plant gives {{RHO_SHIPPED}}. With eight hands and this spread none of
+the coefficients is conclusive, and the correction does not improve them.</p>
+</div>
+{{CHART_BENCH}}
+{{TABLE_BENCHPLANTS}}
+</section>
+
+<section>
+<div class="col">
+<h2>What this settles, and the next measurements</h2>
+<ul>
+<li><strong>The finger-driven 90&#176; turn is retired as a chain element.</strong> It exists only at
+kp &#8805; 2 (the compliance band of 2026-09-02 says the same from the bench side). No relief,
+budget, pivot, angle or damping recovers it at kp 0.5 or 0.25.</li>
+<li><strong>The arm&#8217;s reorientation on the calibrated plant is the carry to test on
+hardware.</strong> D7 and D4 (the bench&#8217;s 10/10 and 9/10) and D3, D5, D6 hold it at kp 0.5;
+D2 holds it with the finger turn set to 0&#176;. The bench measurement is a UR5e (or the gantry
+wrist) rotating a gripped tool 90&#176; with the tag on the vane reading the tool&#8217;s axis; the
+prediction is retention on three pads and cos &gt; 0.9 at the end of the move. Acceptance: five
+of these six hands retain across 5 trials. Falsification: D7 drops, which the kp 0.25 plant
+predicts and the kp 0.5 plant does not, and would fix the stiffness at the same time.</li>
+<li><strong>Measure kv.</strong> One free-air step response per joint at 111 Hz (the bus rate the
+2026-09-02 latency fix allows), 20&#176; step, read position until settled; fit the time constant
+and the no-load speed. Then re-fit kp with that kv via <code>calibrate_plant_kp.py --kv</code>.
+Until then the chain runs at kp 0.5 and kp 0.25 both, and a result that differs between them is
+not a result.</li>
+<li><strong>The handover and gait</strong> stay position sequences composed on the rigid plant.
+The achieved-angle loop named on the 2026-09-16 chain page is still the next control test, now
+with a specific regime: the tool stands in the countersink under its own weight, so the loads are
+below the grip&#8217;s and the ceiling is not the constraint it is during the turn. Run it on D6
+at kp 0.5 and 0.25; accept if the tripod forms on 3 pads and the gait turns &#8805; 0.5 rev.</li>
+<li><strong>Per-hand ranking on the bench maneuver is not a plant test.</strong> The seed spread
+under 4 mm of spawn jitter exceeds the between-hand spread on every plant. A ranking claim needs
+either the screened maneuver&#8217;s load regulator in the replay or a jitter matched to the
+bench&#8217;s placement repeatability (0.03 mm rms on the tag), and 20+ seeds.</li>
+</ul>
+</div>
+</section>
+
+<footer>
+Built by <code>scripts/turn_mechanism_page.py</code> from
+<code>docs/experiments/20260916-turn_mechanism/turn_mechanism.json</code>
+(collected by <code>scripts/turn_mechanism_data.py</code>). Bench replays:
+<code>scripts/real_v1_turn_mechanism.py</code>, <code>scripts/real_v1_bench_plants.py</code>;
+chain sweeps: <code>scripts/real_v1_chain_hands.py --plant shipped|corrected|fast|soft</code>
+under <code>docs/experiments/20260916-plant_{kv,kv8,angle0,relief_fast,planturn,soft}/</code>;
+films: <code>scripts/real_v1_chain_films.py</code>; kp re-fit:
+<code>scripts/calibrate_plant_kp.py --kv 0.02</code>. Hardware:
+<code>docs/experiments/20260829-real_v1_bench_gripwindow/</code>,
+<code>docs/experiments/20260902-cb1-log-archive/</code>, <code>paper/figures/ranking.json</code>.
+</footer>
+</div>
+</html>

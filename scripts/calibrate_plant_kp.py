@@ -83,6 +83,9 @@ def main() -> int:
     ap.add_argument("--kps", default="30,16,8,4,2,1,0.5,0.25")
     ap.add_argument("--forcerange", type=float, default=10.0)
     ap.add_argument("--frictionloss", type=float, default=0.0)
+    ap.add_argument("--kv", type=float, default=0.6,
+                    help="actuator damping; apply_measured_plant's 0.6 is a 1.2 s time constant at "
+                         "kp 0.5, so part of a 2 s settle is still moving -- 0.02 is settled")
     ap.add_argument("--out", type=Path, default=None)
     a = ap.parse_args()
 
@@ -99,7 +102,7 @@ def main() -> int:
             subprocess.run([sys.executable, str(ROOT / "scripts/apply_measured_plant.py"),
                             "--scene", str(base), "--out", str(out), "--kp", str(kp),
                             "--forcerange", str(a.forcerange),
-                            "--frictionloss", str(a.frictionloss)],
+                            "--frictionloss", str(a.frictionloss), "--kv", str(a.kv)],
                            check=True, capture_output=True)
             try:
                 sim = simulate(out, plan)

@@ -263,7 +263,12 @@ TABLE = dict(obj="screwdriver_medium", lift=0.10, gap=0.002, angle_deg=0.0,
 # shipped-plant sweeps stays comparable and a corrected run is a new artifact beside it.
 PLANT = {
     "shipped": None,
-    "corrected": {"kp": 0.5, "forcerange": 0.35, "frictionloss": 0.0035},
+    # apply_measured_plant's default kv 0.6 is unmeasured; at kp 0.5 it is a 1.2 s time constant
+    # on every finger, 30x slower than the servo the bench logs show (tracks a 1 s ramp to <1 deg).
+    "corrected": {"kp": 0.5, "forcerange": 0.35, "frictionloss": 0.0035, "kv": 0.6},
+    "fast": {"kp": 0.5, "forcerange": 0.35, "frictionloss": 0.0035, "kv": 0.02},
+    # the kp the bench deficits imply once the settle is real (calibrate_plant_kp.py --kv 0.02)
+    "soft": {"kp": 0.25, "forcerange": 0.35, "frictionloss": 0.0035, "kv": 0.02},
 }
 
 
@@ -272,12 +277,13 @@ def plant_scene(arm: Path, plant: str) -> Path:
     spec = PLANT[plant]
     if spec is None:
         return arm
-    out = arm.with_name(f"{arm.stem}__kp{spec['kp']:g}.xml")
+    kv = spec.get("kv", 0.6)
+    out = arm.with_name(f"{arm.stem}__kp{spec['kp']:g}" + (f"_kv{kv:g}" if kv != 0.6 else "") + ".xml")
     if not out.exists():
         p = subprocess.run([sys.executable, str(ROOT / "scripts/apply_measured_plant.py"),
                             "--scene", str(arm), "--out", str(out),
                             "--kp", str(spec["kp"]), "--forcerange", str(spec["forcerange"]),
-                            "--frictionloss", str(spec["frictionloss"])],
+                            "--frictionloss", str(spec["frictionloss"]), "--kv", str(kv)],
                            capture_output=True, text=True)
         if p.returncode != 0:
             raise RuntimeError(f"apply_measured_plant failed on {arm}: {p.stderr[-400:]}")
@@ -355,6 +361,7 @@ def _cell(kw):
     r["arm"], r["tag"], r["set"] = tag, h["tag"], h["set"]
     r["parent"] = h.get("parent", h["tag"])
     r["plant"], r["plant_kp"] = plant, (PLANT[plant] or {}).get("kp", 30.0)
+    r["plant_kv"] = (PLANT[plant] or {}).get("kv", 0.5)
     r["straddle_mm"], r["depth_ask_mm"] = h["straddle"] * 1000, h["depth"] * 1000
     r["elevation_deg"] = h.get("elevation", 0.0)
     r["pads_turned"], r["force_turned_N"] = t.get("pad_contacts"), t.get("pad_force_N")
@@ -558,6 +565,8 @@ def main() -> int:
                     tg += f"_x{tk:g}"
                 if PLANT[pl] is not None:
                     tg += f"_p{PLANT[pl]['kp']:g}"
+                    if PLANT[pl].get("kv", 0.6) != 0.6:
+                        tg += f"v{PLANT[pl]['kv']:g}"
                 if lf is not None:
                     tg += f"_l{lf:g}"
                 kw = {"_hand": h, "_fit": f, "_tag": tg,

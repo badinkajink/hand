@@ -44,6 +44,10 @@ def _knobs(arm: str) -> dict:
     """`load0_sq2_t550_b0.5_k0.35_a-90` -> the kwargs that produced it."""
     out: dict = {}
     for part in (arm or "").split("_"):
+        pv = re.fullmatch(r"p([\d.]+)v([\d.]+)", part)   # `_p0.5v0.02`: plant kp and kv
+        if pv:
+            out["plant_kp"], out["plant_kv"] = float(pv.group(1)), float(pv.group(2))
+            continue
         m = re.fullmatch(r"([a-z])(-?[\d.]+)", part)
         if m and m.group(1) in ARM_KEYS:
             key, cast = ARM_KEYS[m.group(1)]
@@ -120,8 +124,10 @@ def _cell(job: dict):
     knobs = dict(job.get("knobs", {}))
     # `_p<kp>` in the arm tag names the plant the cell ran on; the film has to run on it too.
     kp = knobs.pop("plant_kp", None)
-    plant = next((k for k, v in H.PLANT.items() if v and abs(v["kp"] - kp) < 1e-9), "shipped") \
-        if kp is not None else "shipped"
+    kv = knobs.pop("plant_kv", 0.6)
+    plant = next((k for k, v in H.PLANT.items()
+                  if v and abs(v["kp"] - kp) < 1e-9 and abs(v.get("kv", 0.6) - kv) < 1e-9),
+                 "shipped") if kp is not None else "shipped"
     kw = {"_hand": hand, "_fit": fit, "_tag": "film" if sq is None else f"film_sq{sq:g}",
           "_table": job.get("table", True), "_plant": plant,
           "load_target": 0.0, "seed": seed, "jitter": 0.0005, "cycles": job["cycles"],
