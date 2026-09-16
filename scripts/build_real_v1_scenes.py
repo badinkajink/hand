@@ -53,7 +53,8 @@ parsers. Rather than fork all of that for one topology, each finger carries a ze
 `REAL_V1_WORKSPACE` sets len_min = len_max = 0 so no sampler can move it.
 
 Usage:
-    uv run python scripts/build_real_v1_scenes.py            # write the three files
+    uv run python scripts/build_real_v1_scenes.py            # write the four files
+    uv run python scripts/build_real_v1_scenes.py --keep-keyframes   # geometry-only rebuild
     uv run python scripts/build_real_v1_scenes.py --check    # verify without writing
     MUJOCO_GL=egl uv run python scripts/build_real_v1_scenes.py --fit-palm-z
 """
@@ -101,6 +102,14 @@ WORKSPACE = {                  # half-extents of each mount's rectangle
 # y +/-85 mm) with a 5 mm lip, so a mount is never hanging off the plate it is bolted to.
 PALM_HALF = (0.085, 0.090, 0.0015)
 
+# The plate's centre sits 25 mm ABOVE the mounting plane (+z in the palm frame, away from the
+# fingertips). The yaw servos are bolted to the underside of the real palm, so the yaw axes lie
+# 25 mm below the flat surface an object seats against; until 2026-09-16 the plate was drawn ON
+# the mounting plane, 25 mm too close to the fingertips. Only the plate moves: the mounts, the
+# workspace boxes and every link length are still the CAD numbers. The gap between the mounting
+# plane and the plate (the servo bank) carries no collision geometry.
+PALM_PLATE_Z = 0.025
+
 # Palm height above the table, solved by --fit-palm-z for the WIDEST design in the workspace
 # (all six morph slides at 0: thumb at x=-50, pair at x=+50, 100 mm apart). At 0.0625 the tripod
 # grasp on the shaft's mid-height works each finger at 0.80-0.86 of its flexing reach, which
@@ -118,6 +127,30 @@ PALM_Z = 0.0625
 
 # Thumb flexion axes are mirrored so that positive flexion opposes index/middle.
 FLEX_AXIS = {"thumb": "0 -1 0", "index": "0 1 0", "middle": "0 1 0"}
+
+# --- objects ------------------------------------------------------------------------------
+# One scene per object. `palm_z` is the mounting-plane height the scene's palm_pose body is
+# built at (palm_pz = 0); the grasp fitter moves it from there.
+#
+# basketball: a size-7 ball, 754 mm circumference (the FIBA/NBA lower bound) and 620 g. It is
+# 2.4x the thumb-to-pair mount separation and 3x the finger's flexing reach, so its grasp is a
+# friction cap grasp from above, not a pinch -- see scripts/real_v1_basketball_grasp.py. The
+# palm starts with its mounting plane at the ball's top pole (2R); the fit lowers it. Same
+# contact parameters as the screwdriver so the two studies share a friction model.
+OBJECTS = {
+    "screwdriver_medium": dict(
+        geom='<geom type="cylinder" size="0.0125 0.05" density="500" material="object_mat" friction="2.4 0.2 0.02" />',
+        pos="0.0 0.0 0.0125", quat="0.70711 0.70711 0 0",
+        key_qpos=[0, 0, 0.0125, 0.70711, 0.70711, 0, 0],
+        palm_z=PALM_Z,
+    ),
+    "basketball": dict(
+        geom='<geom type="sphere" size="0.120" mass="0.62" material="object_mat" friction="2.4 0.2 0.02" />',
+        pos="0.0 0.0 0.120", quat="1 0 0 0",
+        key_qpos=[0, 0, 0.120, 1, 0, 0, 0],
+        palm_z=0.240,
+    ),
+}
 
 FINGERS = ("thumb", "index", "middle")
 
@@ -166,8 +199,11 @@ def _finger_body(f: str, morph_joints: bool, indent: str) -> str:
 def _excludes(indent: str) -> str:
     """The 21 pairs that are in permanent contact by construction, not by accident.
 
-    15 x palm <-> every finger body: the yaw capsule's cap is centred ON the mounting plane, so
-    it is inside the palm plate, and a flexed finger sweeps back through it.
+    15 x palm <-> every finger body: kept from when the plate sat ON the mounting plane and
+    the yaw capsule's cap was inside it. With the plate 25 mm up (PALM_PLATE_Z) no finger body
+    can reach it -- the yaw cap tops out at +10.55 mm and no ROM folds a link above the
+    mounting plane -- so the pairs are inert; they stay so the exclude count every generated
+    design pins against the base does not move.
     3 x <f>_yaw_frame <-> <f>_pip_frame: consecutive links overlap by 12.70 mm, and MuJoCo only
     filters direct parent/child pairs, so the grandparent pair collides at 38 N in every pose.
     3 x <f>_mcp_frame <-> <f>_pip_frame: the same overlap one link further down. These two ARE
@@ -254,13 +290,17 @@ MORPH_ACTUATORS = "\n".join(
 # authored per design by `scripts/fit_real_v1_pose.py`, which writes `open_ik`.
 OPEN_MCP = 0.55
 OPEN_PIP = 0.55
-WORKSPACE_SITES = """      <!-- Mount workspaces from XY_space.png, visualisation only (sites never collide). -->
-      <site name="workspace_thumb" type="box" pos="-0.050 0 0.003" size="0.030 0.055 0.0005" rgba="0.85 0.30 0.30 0.14" />
-      <site name="workspace_index" type="box" pos="0.050 0.055 0.003" size="0.030 0.030 0.0005" rgba="0.30 0.55 0.85 0.14" />
-      <site name="workspace_middle" type="box" pos="0.050 -0.055 0.003" size="0.030 0.030 0.0005" rgba="0.30 0.75 0.45 0.14" />"""
+# The workspace sites are drawn on the plate's top face, so they ride up with it.
+_SITE_Z = PALM_PLATE_Z + 0.003
+WORKSPACE_SITES = f"""      <!-- Mount workspaces from XY_space.png, visualisation only (sites never collide). -->
+      <site name="workspace_thumb" type="box" pos="-0.050 0 {_SITE_Z:.4f}" size="0.030 0.055 0.0005" rgba="0.85 0.30 0.30 0.14" />
+      <site name="workspace_index" type="box" pos="0.050 0.055 {_SITE_Z:.4f}" size="0.030 0.030 0.0005" rgba="0.30 0.55 0.85 0.14" />
+      <site name="workspace_middle" type="box" pos="0.050 -0.055 {_SITE_Z:.4f}" size="0.030 0.030 0.0005" rgba="0.30 0.75 0.45 0.14" />"""
+PALM_PLATE_GEOM = (f'<geom name="palm_plate" type="box" pos="0 0 {PALM_PLATE_Z:.4f}" '
+                   f'size="{PALM_HALF[0]:.4f} {PALM_HALF[1]:.4f} {PALM_HALF[2]:.4f}" material="palm_mat" />')
 
 
-def _keyframe(is_scene: bool) -> str:
+def _keyframe(is_scene: bool, obj_qpos: list[float] | None = None) -> str:
     """A straight-finger `open` key in the layout the shared generator expects.
 
     Per-finger qpos block is [x, y, yaw, mcp, len, pip]; a scene prefixes the 7-value object
@@ -272,7 +312,7 @@ def _keyframe(is_scene: bool) -> str:
         #          x    y    yaw  mcp        len  pip
         finger_q += [0.0, 0.0, 0.0, OPEN_MCP, 0.0, OPEN_PIP]
     if is_scene:
-        qpos = [0, 0, 0.0125, 0.70711, 0.70711, 0, 0] + [0.0] * 6 + finger_q
+        qpos = list(obj_qpos or OBJECTS["screwdriver_medium"]["key_qpos"]) + [0.0] * 6 + finger_q
         ctrl = [0.0] * 6 + [0.0, OPEN_MCP, OPEN_PIP] * 3
     else:
         qpos = finger_q
@@ -293,7 +333,7 @@ def build_hand() -> str:
         '    <light pos="0 0 1.5" dir="0 0 -1" directional="true" diffuse=".6 .6 .6" specular=".2 .2 .2" />\n'
         '    <geom name="floor" type="plane" size="1.5 1.5 0.1" material="table_mat" contype="0" conaffinity="0" />\n'
         f'    <body gravcomp="1" name="palm_pose" pos="0 0 {PALM_Z:.6f}">\n'
-        f'      <geom type="box" size="{PALM_HALF[0]:.4f} {PALM_HALF[1]:.4f} {PALM_HALF[2]:.4f}" material="palm_mat" />\n'
+        f'      {PALM_PLATE_GEOM}\n'
         f'{WORKSPACE_SITES}\n'
         f'{bodies}\n'
         '    </body>\n'
@@ -309,28 +349,29 @@ def build_hand() -> str:
     )
 
 
-def build_scene(actuated: bool = False) -> str:
+def build_scene(actuated: bool = False, obj: str = "screwdriver_medium") -> str:
     bodies = "\n".join(_finger_body(f, morph_joints=True, indent="      ") for f in FINGERS)
-    model = "real_v1_scene_actuated" if actuated else "real_v1_scene_screwdriver_medium"
+    model = "real_v1_scene_actuated" if actuated else f"real_v1_scene_{obj}"
     actuators = POSE_ACTUATORS + "\n" + (MORPH_ACTUATORS + "\n" if actuated else "") + CTRL_ACTUATORS
+    o = OBJECTS[obj]
     return (
         HEADER.format(model=model)
         + '  <worldbody>\n'
         '    <light pos="0 0 1.5" dir="0 0 -1" directional="true" diffuse=".6 .6 .6" specular=".2 .2 .2" />\n'
         '    <light pos="0.5 0.5 1.0" dir="-1 -1 -1" directional="true" diffuse=".4 .4 .4" specular=".1 .1 .1" />\n'
         '    <geom name="floor" type="plane" size="1.5 1.5 0.1" material="groundplane" />\n'
-        '    <body name="screwdriver_medium" pos="0.0 0.0 0.0125" quat="0.70711 0.70711 0 0">\n'
+        f'    <body name="{obj}" pos="{o["pos"]}" quat="{o["quat"]}">\n'
         '      <freejoint />\n'
-        '      <geom type="cylinder" size="0.0125 0.05" density="500" material="object_mat" friction="2.4 0.2 0.02" />\n'
+        f'      {o["geom"]}\n'
         '    </body>\n'
-        f'    <body gravcomp="1" name="palm_pose" pos="0 0 {PALM_Z:.6f}">\n'
+        f'    <body gravcomp="1" name="palm_pose" pos="0 0 {o["palm_z"]:.6f}">\n'
         '      <joint class="pose" name="palm_px" type="slide" axis="1 0 0" range="-0.20 0.20" />\n'
         '      <joint class="pose" name="palm_py" type="slide" axis="0 1 0" range="-0.20 0.20" />\n'
         '      <joint class="pose" name="palm_pz" type="slide" axis="0 0 1" range="-0.15 0.35" />\n'
         '      <joint class="pose" name="palm_rx" type="hinge" axis="1 0 0" range="-1.57 1.57" />\n'
         '      <joint class="pose" name="palm_ry" type="hinge" axis="0 1 0" range="-1.57 1.57" />\n'
         '      <joint class="pose" name="palm_rz" type="hinge" axis="0 0 1" range="-3.14 3.14" />\n'
-        f'      <geom type="box" size="{PALM_HALF[0]:.4f} {PALM_HALF[1]:.4f} {PALM_HALF[2]:.4f}" material="palm_mat" />\n'
+        f'      {PALM_PLATE_GEOM}\n'
         f'{WORKSPACE_SITES}\n'
         f'{bodies}\n'
         '    </body>\n'
@@ -341,7 +382,7 @@ def build_scene(actuated: bool = False) -> str:
         '  <actuator>\n'
         f'{actuators}\n'
         '  </actuator>\n'
-        + _keyframe(is_scene=True)
+        + _keyframe(is_scene=True, obj_qpos=o["key_qpos"])
         + '</mujoco>\n'
     )
 
@@ -358,8 +399,29 @@ def _without_keyframes(xml: str) -> str:
 TARGETS = {
     "real_hand.xml": build_hand,
     "scenes/scene_screwdriver_medium.xml": lambda: build_scene(actuated=False),
+    "scenes/scene_basketball.xml": lambda: build_scene(actuated=False, obj="basketball"),
     "real_hand_morphology_actuated.xml": lambda: build_scene(actuated=True),
 }
+
+
+def _keyframe_block(xml: str) -> str | None:
+    m = re.search(r"  <keyframe>.*?</keyframe>\n", xml, flags=re.DOTALL)
+    return m.group(0) if m else None
+
+
+def _with_keyframes_from(new_xml: str, old_xml: str) -> str:
+    """`new_xml` carrying `old_xml`'s <keyframe> block.
+
+    A geometry-only rebuild (the palm plate moving, a new object scene) must not discard the
+    `open_ik` key that `scripts/fit_real_v1_pose.py` solved for the scene on disk: that key is
+    the CEM seed and the RL reset pose, and every generated design inherits it. Layout has to
+    match (same nq), which it does whenever the finger tree is untouched.
+    """
+    old_block = _keyframe_block(old_xml)
+    new_block = _keyframe_block(new_xml)
+    if old_block is None or new_block is None:
+        return new_xml
+    return new_xml.replace(new_block, old_block)
 
 
 def fit_palm_z(lo: float = 0.055, hi: float = 0.115, step: float = 0.0025) -> None:
@@ -400,6 +462,9 @@ def main() -> int:
                     help="compile and report; fail if any file on disk differs from the build")
     ap.add_argument("--fit-palm-z", action="store_true",
                     help="print the palm-height utilisation table instead of building")
+    ap.add_argument("--keep-keyframes", action="store_true",
+                    help="carry each file's on-disk <keyframe> block over (fitted open_ik keys "
+                         "survive a geometry-only rebuild)")
     args = ap.parse_args()
 
     if args.fit_palm_z:
@@ -418,6 +483,8 @@ def main() -> int:
                 stale.append(rel)
             continue
         path.parent.mkdir(parents=True, exist_ok=True)
+        if args.keep_keyframes and path.exists():
+            text = _with_keyframes_from(text, path.read_text())
         path.write_text(text)
         print(f"wrote {path.relative_to(ROOT)}")
 

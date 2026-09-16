@@ -36,11 +36,11 @@
     <light pos="0 0 1.5" dir="0 0 -1" directional="true" diffuse=".6 .6 .6" specular=".2 .2 .2" />
     <geom name="floor" type="plane" size="1.5 1.5 0.1" material="table_mat" contype="0" conaffinity="0" />
     <body gravcomp="1" name="palm_pose" pos="0 0 0.062500">
-      <geom type="box" size="0.0850 0.0900 0.0015" material="palm_mat" />
+      <geom name="palm_plate" type="box" pos="0 0 0.0250" size="0.0850 0.0900 0.0015" material="palm_mat" />
       <!-- Mount workspaces from XY_space.png, visualisation only (sites never collide). -->
-      <site name="workspace_thumb" type="box" pos="-0.050 0 0.003" size="0.030 0.055 0.0005" rgba="0.85 0.30 0.30 0.14" />
-      <site name="workspace_index" type="box" pos="0.050 0.055 0.003" size="0.030 0.030 0.0005" rgba="0.30 0.55 0.85 0.14" />
-      <site name="workspace_middle" type="box" pos="0.050 -0.055 0.003" size="0.030 0.030 0.0005" rgba="0.30 0.75 0.45 0.14" />
+      <site name="workspace_thumb" type="box" pos="-0.050 0 0.0280" size="0.030 0.055 0.0005" rgba="0.85 0.30 0.30 0.14" />
+      <site name="workspace_index" type="box" pos="0.050 0.055 0.0280" size="0.030 0.030 0.0005" rgba="0.30 0.55 0.85 0.14" />
+      <site name="workspace_middle" type="box" pos="0.050 -0.055 0.0280" size="0.030 0.030 0.0005" rgba="0.30 0.75 0.45 0.14" />
       <body name="thumb_mount" pos="-0.050000 0.000000 0">
         <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
         <joint class="morph" name="thumb_x" axis="1 0 0" range="-0.030000 0.030000" />
