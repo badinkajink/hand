@@ -6,6 +6,7 @@ changes. Regenerate with the builder named in each page's footer.
 
 | date | subject | local file | artifact |
 |---|---|---|---|
+| 2026-09-16 | Chain on the bench-calibrated plant | [20260916-calibrated_plant_chain/20260916-calibrated_plant_chain.html](20260916-calibrated_plant_chain/20260916-calibrated_plant_chain.html) | https://claude.ai/artifact/B7ZBqjURdMyChprN2kJNf5 |
 | 2026-09-10 | A kinematic rolling-pinch metric on the real_v1 design family | [20260910-karma_metric/20260910-karma_metric_evaluation.html](20260910-karma_metric/20260910-karma_metric_evaluation.html) | https://claude.ai/code/artifact/2719e5f5-766f-44a1-95ad-86f112e1c7c1 |
 | 2026-09-08 | Training throughput on the workstation and a DeltaAI GH200 | [20260908-compute_budget/20260908-compute_budget.html](20260908-compute_budget/20260908-compute_budget.html) | https://claude.ai/code/artifact/10e05a17-0472-4c4f-8e85-b85065c28f4a |
 | 2026-09-08 | Screwdriver reorientation across eight deployed hands | [20260908-reorientation_journey/20260908-reorientation_journey.html](20260908-reorientation_journey/20260908-reorientation_journey.html) | https://claude.ai/code/artifact/80256b16-4b80-45ac-a6c2-ff409c8b8f2b |
