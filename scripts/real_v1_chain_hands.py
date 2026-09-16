@@ -459,6 +459,10 @@ def main() -> int:
                     help="comma list of per-tick trim slew limits, rad. THE binding constraint "
                          "on the grip loop: the default 0.0006 caps the whole turn's correction "
                          "at 0.066 rad, and `gain` saturates it at any realistic force error.")
+    ap.add_argument("--reliefs", default=None,
+                    help="comma list, mm: pull the index and middle pads this far radially OUT of "
+                         "the shaft before the turn (thumb keeps the full squeeze). The "
+                         "corrected plant's grip/turn conflict; tag `_l<mm>`.")
     ap.add_argument("--plant", default="shipped",
                     help="comma list from shipped,corrected. `shipped` is the template's kp 30 "
                          "actuator every sweep before 2026-09-16 ran on; `corrected` is the "
@@ -497,7 +501,7 @@ def main() -> int:
         for v in plants:
             if v not in PLANT:
                 raise SystemExit(f"--plant {v!r}: choose from {', '.join(PLANT)}")
-        grid = [(c, rp, gs, rl, ts, bg, ak, an, ft, rb, fr, tk, pl) for c in ([None] if not args.clears else
+        grid = [(c, rp, gs, rl, ts, bg, ak, an, ft, rb, fr, tk, pl, lf) for c in ([None] if not args.clears else
                                       [float(v) for v in args.clears.split(",")])
                 for rp in ([None] if not args.reposes else
                            [int(v) for v in args.reposes.split(",")])
@@ -520,9 +524,11 @@ def main() -> int:
                            [float(v) for v in args.force_rates.split(",")])
                 for tk in ([None] if not args.tracks else
                            [float(v) for v in args.tracks.split(",")])
-                for pl in plants]
+                for pl in plants
+                for lf in ([None] if not args.reliefs else
+                           [float(v) for v in args.reliefs.split(",")])]
         for lt in (float(v) for v in args.loads.split(",")):
-          for cl, rp, gs, rl, ts, bg, ak, an, ft, rb, fr, tk, pl in grid:
+          for cl, rp, gs, rl, ts, bg, ak, an, ft, rb, fr, tk, pl, lf in grid:
             for rep in range(args.reps):
                 tg = f"load{lt:.0f}" + ("" if sq is None else f"_sq{sq:g}")
                 if cl is not None:
@@ -551,6 +557,8 @@ def main() -> int:
                     tg += f"_x{tk:g}"
                 if PLANT[pl] is not None:
                     tg += f"_p{PLANT[pl]['kp']:g}"
+                if lf is not None:
+                    tg += f"_l{lf:g}"
                 kw = {"_hand": h, "_fit": f, "_tag": tg,
                       "_table": args.stand == "table", "_plant": pl,
                       "load_target": lt, "seed": rep, "jitter": 0.0005,
@@ -582,6 +590,8 @@ def main() -> int:
                     kw["track_gain"] = tk
                     kw["track_rate"] = args.track_rate
                     kw["track_every"] = args.track_every
+                if lf is not None:
+                    kw["turn_relief"] = lf / 1000.0
                 if rep == args.video_seed and not args.no_video and len(grid) == 1 \
                         and len(sqs) == 1:
                     kw["video"] = vid / f"20260905-{h['tag']}_{args.stand}_{tg}.mp4"
