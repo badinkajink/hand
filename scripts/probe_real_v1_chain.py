@@ -504,7 +504,19 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
                 "pad_r_mm": {f: round(float(np.linalg.norm(
                     (d.body(TIPS[f]).xpos - p) - float((d.body(TIPS[f]).xpos - p) @
                      d.body(obj).xmat.reshape(3, 3)[:, 2]) *
-                     d.body(obj).xmat.reshape(3, 3)[:, 2])) * 1000, 1) for f in FINGERS}}
+                     d.body(obj).xmat.reshape(3, 3)[:, 2])) * 1000, 1) for f in FINGERS},
+                # THE SERVO STATE, per finger: the largest commanded-minus-achieved angle across
+                # the finger's joints, and how many of its actuators are on their force ceiling.
+                # On the shipped plant (kp 30, +-10 N m) both read ~0 and the seam says nothing;
+                # on the bench-calibrated plant (kp 0.5, +-0.35) they are the difference between
+                # a finger that is holding and one that is stalled.
+                "q_err_deg": {f: round(max(abs(float(np.degrees(
+                    d.ctrl[acts[j]] - d.qpos[m.jnt_qposadr[m.joint(j).id]])))
+                    for j in FINGERS[f] if j in acts), 1) for f in FINGERS},
+                "sat": {f: sum(1 for j in FINGERS[f] if j in acts and
+                               abs(float(d.actuator_force[acts[j]])) >=
+                               0.98 * float(m.actuator_forcerange[acts[j], 1]))
+                        for f in FINGERS}}
 
     seams = []
     if film is not None:
