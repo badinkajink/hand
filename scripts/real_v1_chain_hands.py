@@ -254,6 +254,36 @@ TABLE = dict(obj="screwdriver_medium", lift=0.10, gap=0.002, angle_deg=0.0,
              ring_az="pads", turn_steps=550, hold_steps=300)
 
 
+# THE PLANT THE CHAIN RUNS ON. Every chain scene is generated from the base template and so
+# ships the template's actuators: kp 30, forcerange +-10, no frictionloss, capsule-volume
+# masses. The bench calibrated that model as ~60x too stiff on 2026-09-02
+# (docs/experiments/20260902-servo-sysid/), and the corrected plant is what the drop gate and
+# every sim2real claim since have been made against. `apply_measured_plant.py` rewrites a scene;
+# it is applied here to the generated arm scene rather than to the template, so the record of
+# shipped-plant sweeps stays comparable and a corrected run is a new artifact beside it.
+PLANT = {
+    "shipped": None,
+    "corrected": {"kp": 0.5, "forcerange": 0.35, "frictionloss": 0.0035},
+}
+
+
+def plant_scene(arm: Path, plant: str) -> Path:
+    """The arm scene for `plant`, rewritten and cached beside the shipped one."""
+    spec = PLANT[plant]
+    if spec is None:
+        return arm
+    out = arm.with_name(f"{arm.stem}__kp{spec['kp']:g}.xml")
+    if not out.exists():
+        p = subprocess.run([sys.executable, str(ROOT / "scripts/apply_measured_plant.py"),
+                            "--scene", str(arm), "--out", str(out),
+                            "--kp", str(spec["kp"]), "--forcerange", str(spec["forcerange"]),
+                            "--frictionloss", str(spec["frictionloss"])],
+                           capture_output=True, text=True)
+        if p.returncode != 0:
+            raise RuntimeError(f"apply_measured_plant failed on {arm}: {p.stderr[-400:]}")
+    return out
+
+
 def _close_probe(m, open_qpos, grip, obj: str):
     """Hold the fitted grip for 0.8 s with the palm still, and see where the tool goes."""
     import mujoco
@@ -290,6 +320,7 @@ def _cell(kw):
     import probe_real_v1_chain as C
     h, fit, tag = kw.pop("_hand"), kw.pop("_fit"), kw.pop("_tag")
     table = bool(kw.pop("_table", False))
+    plant = kw.pop("_plant", "shipped")
     cell = dict(TABLE if table else BASE)
     seat = dict(place_xy=None, seat_z=None, tip_len=0.0) if table else dict(
         place_xy=fit["place_xy"], seat_z=fit["seat_z"], tip_len=fit["tip_len"])
@@ -304,12 +335,13 @@ def _cell(kw):
         base_kw = dict(axis_k=h["axis_k"], budget=h["budget"])
         for k in kw:
             base_kw.pop(k, None)
-        r = C.chain(Path(h["tag"]), arm_ik=Path(fit["ik"]), scene_path=Path(fit["arm"]),
+        r = C.chain(Path(h["tag"]), arm_ik=Path(fit["ik"]),
+                    scene_path=plant_scene(Path(fit["arm"]), plant),
                     anchor_ctrl=fit["anchor"], grip_depth=fit["depth_mm"] / 1000,
                     **base_kw, **seat, **cell, **kw)
     except Exception as exc:
         return {"arm": tag, "tag": h["tag"], "set": h["set"], "error": repr(exc), "ok": False,
-                "parent": h.get("parent", h["tag"]),
+                "parent": h.get("parent", h["tag"]), "plant": plant,
                 "straddle_mm": h["straddle"] * 1000, "depth_ask_mm": h["depth"] * 1000,
                 "elevation_deg": h.get("elevation", 0.0),
                 **{k: v for k, v in kw.items() if isinstance(v, (int, float))}}
@@ -321,6 +353,7 @@ def _cell(kw):
     r.pop("cycles", None)
     r["arm"], r["tag"], r["set"] = tag, h["tag"], h["set"]
     r["parent"] = h.get("parent", h["tag"])
+    r["plant"], r["plant_kp"] = plant, (PLANT[plant] or {}).get("kp", 30.0)
     r["straddle_mm"], r["depth_ask_mm"] = h["straddle"] * 1000, h["depth"] * 1000
     r["elevation_deg"] = h.get("elevation", 0.0)
     r["pads_turned"], r["force_turned_N"] = t.get("pad_contacts"), t.get("pad_force_N")
@@ -426,6 +459,12 @@ def main() -> int:
                     help="comma list of per-tick trim slew limits, rad. THE binding constraint "
                          "on the grip loop: the default 0.0006 caps the whole turn's correction "
                          "at 0.066 rad, and `gain` saturates it at any realistic force error.")
+    ap.add_argument("--plant", default="shipped",
+                    help="comma list from shipped,corrected. `shipped` is the template's kp 30 "
+                         "actuator every sweep before 2026-09-16 ran on; `corrected` is the "
+                         "bench-calibrated kp 0.5 / forcerange 0.35 / frictionloss 0.0035 / "
+                         "measured masses (docs/experiments/20260902-servo-sysid/). A "
+                         "corrected cell carries `_p0.5` in its arm tag.")
     ap.add_argument("--reg-bands", default=None,
                     help="comma list of regulator AUTHORITY limits, rad. `trim` is clipped to "
                          "+/-this, and it is added on top of the turn's own set-point. The "
@@ -454,7 +493,11 @@ def main() -> int:
             print(f"  {h['tag']}: NO POSE / BUILD FAILED", flush=True)
             continue
         fits[f["tag"]] = f
-        grid = [(c, rp, gs, rl, ts, bg, ak, an, ft, rb, fr, tk) for c in ([None] if not args.clears else
+        plants = [v.strip() for v in args.plant.split(",")]
+        for v in plants:
+            if v not in PLANT:
+                raise SystemExit(f"--plant {v!r}: choose from {', '.join(PLANT)}")
+        grid = [(c, rp, gs, rl, ts, bg, ak, an, ft, rb, fr, tk, pl) for c in ([None] if not args.clears else
                                       [float(v) for v in args.clears.split(",")])
                 for rp in ([None] if not args.reposes else
                            [int(v) for v in args.reposes.split(",")])
@@ -476,9 +519,10 @@ def main() -> int:
                 for fr in ([None] if not args.force_rates else
                            [float(v) for v in args.force_rates.split(",")])
                 for tk in ([None] if not args.tracks else
-                           [float(v) for v in args.tracks.split(",")])]
+                           [float(v) for v in args.tracks.split(",")])
+                for pl in plants]
         for lt in (float(v) for v in args.loads.split(",")):
-          for cl, rp, gs, rl, ts, bg, ak, an, ft, rb, fr, tk in grid:
+          for cl, rp, gs, rl, ts, bg, ak, an, ft, rb, fr, tk, pl in grid:
             for rep in range(args.reps):
                 tg = f"load{lt:.0f}" + ("" if sq is None else f"_sq{sq:g}")
                 if cl is not None:
@@ -505,8 +549,10 @@ def main() -> int:
                     tg += f"_v{fr:g}"
                 if tk is not None:
                     tg += f"_x{tk:g}"
+                if PLANT[pl] is not None:
+                    tg += f"_p{PLANT[pl]['kp']:g}"
                 kw = {"_hand": h, "_fit": f, "_tag": tg,
-                      "_table": args.stand == "table",
+                      "_table": args.stand == "table", "_plant": pl,
                       "load_target": lt, "seed": rep, "jitter": 0.0005,
                       "cycles": args.cycles}
                 if cl is not None:
@@ -554,7 +600,8 @@ def main() -> int:
     args.out.mkdir(parents=True, exist_ok=True)
     (args.out / "chain_hands.json").write_text(json.dumps(
         {"rows": rows, "skipped": skipped, "hands": H,
-         "base": TABLE if args.stand == "table" else BASE, "stand": args.stand}, separators=(",", ":")))
+         "base": TABLE if args.stand == "table" else BASE, "stand": args.stand,
+         "plants": {k: PLANT[k] for k in plants}}, separators=(",", ":")))
     print(f"-> {args.out / 'chain_hands.json'}")
 
     import statistics as st
