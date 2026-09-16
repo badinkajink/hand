@@ -151,8 +151,12 @@ def _regrasp_cmd(m, mik, dik, d, obj: str, acts: dict, ref: dict) -> dict:
     return {j: float(dik.qpos[mik.jnt_qposadr[mik.joint(j).id]]) for j in acts}
 
 
-def _squeeze_cmd(m, mik, dik, d, obj: str, acts: dict, depth: float) -> dict:
+def _squeeze_cmd(m, mik, dik, d, obj: str, acts: dict, depth) -> dict:
     """Push every pad `depth` further into the shaft, radially, FROM THE COMMANDED POSE.
+
+    `depth` is one number for every finger or a `{finger: depth}` dict; a NEGATIVE depth pulls
+    the pad radially OUT of the shaft, which is how a driver finger is relieved before a turn
+    on the compliant plant (see `turn_relief`).
 
     The carry's own re-squeeze (`probe_real_v1_carry --hold-squeeze`) with one correction, and
     the correction is the whole point. Grip force on a position servo is commanded-minus-actual,
@@ -175,13 +179,16 @@ def _squeeze_cmd(m, mik, dik, d, obj: str, acts: dict, depth: float) -> dict:
     dik.qvel[:] = 0.0
     mujoco.mj_forward(mik, dik)
     for f in FINGERS:
+        df = float(depth[f]) if isinstance(depth, dict) else float(depth)
+        if df == 0.0:
+            continue
         t = dik.body(TIPS[f]).xpos.copy()
         rel = t - o
         v = rel - float(rel @ ax) * ax
         n = float(np.linalg.norm(v))
         if n < 1e-6:
             continue
-        ik_finger(mik, dik, f, t - (v / n) * depth, iters=200)
+        ik_finger(mik, dik, f, t - (v / n) * df, iters=200)
     return {j: float(dik.qpos[mik.jnt_qposadr[mik.joint(j).id]]) for j in acts}
 
 
@@ -220,7 +227,7 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
           lift: float = 0.10, angle_deg: float = -90.0, axis_k: float = 0.25,
           turn_steps: int = 550, budget: float = 0.5, hold_steps: int = 500,
           gap: float = 0.002, press_mm: float = 2.0, carry_squeeze: float = 0.0,
-          turn_squeeze: float = 0.0,
+          turn_squeeze: float = 0.0, turn_relief: float = 0.0,
           repose_steps: int = 800, repose_iters: int = 8,
           descend_steps: int = 400, descend_iters: int = 1,
           press_steps: int = 300, settle_steps: int = 400,
@@ -569,6 +576,20 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
     if turn_squeeze > 0.0:
         sq = _squeeze_cmd(m, mik, dik, d, obj, acts, turn_squeeze)
         sq0 = {j: sq[j] - float(d.ctrl[a]) for j, a in acts.items()}
+    # RELIEVE THE DRIVERS, KEEP THE HOLDER. On the bench-calibrated plant (kp 0.5, 0.35 N m
+    # ceiling) a 10 mm squeeze on all three fingers parks every yaw and mcp servo on its torque
+    # ceiling holding the grip, and the turn then has no torque left to move anything: 0-10 deg
+    # at every budget from 0.5 to 1.3 rad (docs/experiments/20260916-plant_budget). The bench
+    # found the same stall on 2026-08-29 and the grip that turned was thumb firm / middle free
+    # (loads 435/210/0). Index and middle are the fingers that travel in this turn -- they
+    # straddle the shaft and describe the arcs about the pivot -- so they are the ones pulled
+    # `turn_relief` radially out of the shaft, from the COMMANDED pose, as a constant offset
+    # carried through the sweep. The thumb keeps the full squeeze and its moment arm.
+    if turn_relief > 0.0:
+        rl = _squeeze_cmd(m, mik, dik, d, obj, acts,
+                          {"thumb": 0.0, "index": -turn_relief, "middle": -turn_relief})
+        for j, a in acts.items():
+            sq0[j] += rl[j] - float(d.ctrl[a])
 
     def _turn(k):
         u = (k + 1) / turn_steps
@@ -1440,7 +1461,7 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         "load_target": load_target, "force_target": force_target, "reg_band": reg_band,
         "regrasp": bool(regrasp),
         "trim_max_deg": round(float(np.degrees(max(abs(v) for v in trim.values()))), 2),
-        "turn_squeeze_mm": turn_squeeze * 1000,
+        "turn_squeeze_mm": turn_squeeze * 1000, "turn_relief_mm": turn_relief * 1000,
         # HOW MUCH THE TOOL MOVED IN THE HAND, worst case from the settled grasp to the
         # moment it stands. Past "pressed" the chain is deliberately changing grasp, so the
         # measure stops there. A held carry reads ~0 on both however far the arm travels.
