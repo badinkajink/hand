@@ -1,0 +1,138 @@
+[
+ {
+  "plan": "rv05_manual_b85",
+  "hand": "D7",
+  "plate_mm": 0.0,
+  "angle_cmd": -60.0,
+  "plant": "fast",
+  "seed": 0,
+  "cos_grip": 0.2055,
+  "cos_turn_end": 0.5899,
+  "cos_end": 0.5621,
+  "turn_deg": 22.3,
+  "z_grip": 0.10855,
+  "z_end": 0.12546,
+  "dropped": false,
+  "f_pad_end": 0.311,
+  "n_pad_end": 2,
+  "f_post_end": 0.0,
+  "f_pad_end_by": {
+   "thumb": 0.131,
+   "index": 0.0,
+   "middle": 0.18
+  },
+  "q_err_end": {
+   "thumb_yaw": -0.42,
+   "thumb_mcp": 2.1,
+   "thumb_pip": 1.11,
+   "index_yaw": -1.38,
+   "index_mcp": 0.15,
+   "index_pip": 0.6,
+   "middle_yaw": 4.52,
+   "middle_mcp": 1.95,
+   "middle_pip": 3.41
+  }
+ },
+ {
+  "plan": "rv05_manual_b85",
+  "hand": "D7",
+  "plate_mm": 25.0,
+  "angle_cmd": -60.0,
+  "plant": "fast",
+  "seed": 0,
+  "cos_grip": 0.3176,
+  "cos_turn_end": 0.8619,
+  "cos_end": 0.9158,
+  "turn_deg": 47.8,
+  "z_grip": 0.11332,
+  "z_end": 0.11853,
+  "dropped": false,
+  "f_pad_end": 0.162,
+  "n_pad_end": 2,
+  "f_post_end": 0.0,
+  "f_pad_end_by": {
+   "thumb": 0.087,
+   "index": 0.075,
+   "middle": 0.0
+  },
+  "q_err_end": {
+   "thumb_yaw": -0.07,
+   "thumb_mcp": 1.9,
+   "thumb_pip": 1.02,
+   "index_yaw": -1.62,
+   "index_mcp": 0.55,
+   "index_pip": 0.66,
+   "middle_yaw": 3.61,
+   "middle_mcp": 0.42,
+   "middle_pip": 2.54
+  }
+ },
+ {
+  "plan": "sv1_w2360_b075",
+  "hand": "D2",
+  "plate_mm": 0.0,
+  "angle_cmd": -80.0,
+  "plant": "fast",
+  "seed": 0,
+  "cos_grip": 0.3458,
+  "cos_turn_end": 0.6073,
+  "cos_end": 0.685,
+  "turn_deg": 23.0,
+  "z_grip": 0.10288,
+  "z_end": 0.10787,
+  "dropped": false,
+  "f_pad_end": 0.394,
+  "n_pad_end": 3,
+  "f_post_end": 0.0,
+  "f_pad_end_by": {
+   "thumb": 0.21,
+   "index": 0.113,
+   "middle": 0.071
+  },
+  "q_err_end": {
+   "thumb_yaw": -2.96,
+   "thumb_mcp": 1.93,
+   "thumb_pip": 1.27,
+   "index_yaw": -2.11,
+   "index_mcp": 0.77,
+   "index_pip": 0.09,
+   "middle_yaw": 5.9,
+   "middle_mcp": 1.29,
+   "middle_pip": 3.09
+  }
+ },
+ {
+  "plan": "sv1_w2360_b075",
+  "hand": "D2",
+  "plate_mm": 25.0,
+  "angle_cmd": -80.0,
+  "plant": "fast",
+  "seed": 0,
+  "cos_grip": 0.3459,
+  "cos_turn_end": 0.9264,
+  "cos_end": 0.9605,
+  "turn_deg": 53.6,
+  "z_grip": 0.10288,
+  "z_end": 0.11126,
+  "dropped": false,
+  "f_pad_end": 0.32,
+  "n_pad_end": 3,
+  "f_post_end": 0.0,
+  "f_pad_end_by": {
+   "thumb": 0.157,
+   "index": 0.136,
+   "middle": 0.027
+  },
+  "q_err_end": {
+   "thumb_yaw": -2.71,
+   "thumb_mcp": 2.14,
+   "thumb_pip": 1.43,
+   "index_yaw": -2.36,
+   "index_mcp": 1.48,
+   "index_pip": 0.56,
+   "middle_yaw": 5.0,
+   "middle_mcp": -0.23,
+   "middle_pip": 2.37
+  }
+ }
+]

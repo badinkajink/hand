@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bench partial reorientation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#EEF1F4; --card:#FFFFFF; --sunk:#E4E9EE;
+  --ink:#1A2127; --ink2:#48545D; --ink3:#77848D; --rule:#D2DAE1; --rule2:#E2E8ED;
+  --s1:#BE7514; --s2:#4A7FC4; --s3:#5E8F5A; --ref:#8A959D;
+  --good:#3F7A46; --bad:#A8443C;
+  --shadow:0 1px 2px rgba(16,26,34,.06),0 8px 24px -14px rgba(16,26,34,.28);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
+  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
+  --s1:#E39A2E; --s2:#7BA7E0; --s3:#8AC286; --ref:#79858E; --good:#6FB076; --bad:#DE8078;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+}}
+:root[data-theme="dark"]{
+  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
+  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
+  --s1:#E39A2E; --s2:#7BA7E0; --s3:#8AC286; --ref:#79858E; --good:#6FB076; --bad:#DE8078;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);
+  font:400 17px/1.62 "Source Serif 4",Georgia,"Times New Roman",serif;
+  -webkit-font-smoothing:antialiased;padding:0 20px 96px;margin:0}
+.wrap{max-width:1020px;margin:0 auto}
+.col{max-width:70ch}
+h1,h2,h3,.mono,.tag,th{font-family:Archivo,"Helvetica Neue",Arial,sans-serif}
+.mono,code,td.num,.val,.note,pre{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+header{padding:64px 0 30px;border-bottom:1px solid var(--rule)}
+.eyebrow{font:500 12px/1 "IBM Plex Mono",monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3)}
+h1{font-size:clamp(30px,4.6vw,48px);line-height:1.05;font-weight:700;letter-spacing:-.022em;
+  margin:16px 0 0;text-wrap:balance;max-width:22ch}
+.lede{font-size:20px;line-height:1.55;color:var(--ink2);margin:18px 0 0;max-width:62ch}
+.byline{margin-top:22px;font:400 13px/1.5 "IBM Plex Mono",monospace;color:var(--ink3)}
+section{padding:46px 0;border-bottom:1px solid var(--rule2)}
+section:last-of-type{border-bottom:0}
+h2{font-size:27px;font-weight:700;letter-spacing:-.018em;margin:0 0 6px;text-wrap:balance}
+h3{font-size:18px;font-weight:600;letter-spacing:-.008em;margin:34px 0 8px}
+h2 + .sub{color:var(--ink3);font:400 14px/1.5 "IBM Plex Mono",monospace;margin:0 0 24px}
+p{margin:0 0 17px}
+strong{font-weight:600}
+ul,ol{margin:0 0 17px;padding-left:20px}
+li{margin:0 0 8px}
+figure{margin:28px 0}
+figure video,figure img{display:block;width:100%;border-radius:10px;background:var(--sunk);box-shadow:var(--shadow)}
+figcaption{margin-top:11px;font:400 14px/1.55 "IBM Plex Mono",monospace;color:var(--ink3);max-width:82ch}
+.col > .tw,.col > figure,.col > .duo{width:min(1020px,calc(100vw - 40px));max-width:none}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:28px 0}
+@media (max-width:720px){.duo{grid-template-columns:1fr}}
+.duo figure{margin:0}
+.tw{overflow-x:auto;margin:24px 0;border:1px solid var(--rule);border-radius:10px;background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th{font:600 12px/1.3 Archivo,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);
+  text-align:left;padding:13px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid var(--rule2);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;font-size:13.5px;white-space:nowrap}
+.ok{color:var(--good);font-weight:600}
+.no{color:var(--bad);font-weight:600}
+td.cell{text-align:center;font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:500;white-space:nowrap}
+td.c4{background:color-mix(in oklab,var(--good) 28%,var(--card));color:var(--ink)}
+td.c3{background:color-mix(in oklab,var(--good) 16%,var(--card))}
+td.c2{background:color-mix(in oklab,var(--s1) 16%,var(--card))}
+td.c1{background:color-mix(in oklab,var(--bad) 12%,var(--card))}
+td.c0{background:color-mix(in oklab,var(--bad) 22%,var(--card));color:var(--ink2)}
+.keep{border:1px solid var(--rule);border-left:3px solid var(--s2);border-radius:10px;
+  padding:20px 24px;margin:28px 0;background:var(--card)}
+.keep .tag{display:block;font:700 12px/1 Archivo,sans-serif;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--s2);margin-bottom:11px}
+.keep p:last-child,.keep ul:last-child{margin-bottom:0}
+pre{background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:16px 18px;
+  overflow-x:auto;font-size:13px;line-height:1.6;margin:22px 0}
+code{font-size:.92em;background:var(--sunk);padding:1px 4px;border-radius:4px;margin:0 -1px;white-space:nowrap}
+footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",monospace}
+footer a{color:var(--s2)}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">MorphoHand &#183; real_v1 &#183; 16 September 2026</div>
+  <h1>Bench partial reorientation: support geometry, plan family and a two-tip gait</h1>
+  <p class="lede">The deployed plan&#8217;s 50&#176; tip on the calibrated plant (cos 0.638 in simulation
+  against 0.593 on the bench, rv05) ends where the tool&#8217;s upper end meets the palm plate. In the
+  scene that produced the match the plate sits on the mounting plane; the built plate is 25 mm higher,
+  and with it in place the same plan tips the tool to {{D7_FAST_PL25}}&#176; from vertical on the
+  template contact model and drops it on the Coulomb-like one. Commanding a larger arc adds nothing,
+  and re-applying the plan&#8217;s turn after a regrip returns the tool to flat. An RL environment on
+  the calibrated plant now exists for D6.</p>
+  <div class="byline">{{N_PLATE}} bench replays across eight hands, two plants and two plate heights &#183;
+  {{N_ANGLE}} replays of the rv05 plan family &#183; two-tip gait on rv05 &#183; plants <code>fast</code>
+  (kp 0.5, kv 0.02, pyramidal cone, impratio 1, pad &#956; 2.4) and <code>cal</code> (same servo, elliptic
+  cone, impratio 10, &#956; 1.0) &#183; bench setting: palm fixed, tool on the 100 mm post</div>
+</header>
+
+<section><div class="col">
+<h2>The rv05 tip, contact by contact</h2>
+<p class="sub">deployed plan rv05_manual_b85 on <code>cal</code>, plate at 0 &#183; axial position of each
+pad&#8217;s contact along the shaft from the tool&#8217;s centre (+ toward the end that rises), normal force</p>
+<p>The plan lifts the tool off the post with three pads at 1.4, 1.1 and 0.3 N and 17&#176; of tilt already
+in the grip. Over the 1.1 s turn the middle pad slides 19 mm along the shaft toward the centre (its yaw
+and pip flexion carry it there), the index leaves at three quarters of the turn, and the thumb slides
+9 mm the other way. From half-way on, the tool is a two-pad pinch between thumb and middle at 1&#8211;1.9 N,
+and its upper end (+50 mm, the end of the 100 mm cylinder) presses on the palm plate at 0.4&#8211;0.5 N.
+That is the rest: a wedge between two pads and the plate, 50&#176; from vertical, retained by the pinch
+and not by gravity alone.</p>
+{{TABLE_TRACE}}
+<figure><img src="{{I_D7_STRIP}}" alt="rv05 two-tip gait on cal, eight frames">
+<figcaption>rv05 on <code>cal</code>, plate at 0, viewed along the shaft. Top row: grip (0.8 s), the turn
+(2.0, 3.2 s), rest (5.9 s). Bottom row: regrip (9.3 s), the plan&#8217;s turn re-applied (11.0 s), second
+rest (14.4 s), second regrip (17.8 s). The upper end of the tool is against the plate from 3.2 s.</figcaption></figure>
+</div></section>
+
+<section><div class="col">
+<h2>The plate is the stop, and the built plate is 25 mm higher</h2>
+<p class="sub">eight deployed plans &#183; three seeds (1 mm spawn jitter on seeds 1&#8211;2) &#183; degrees from
+vertical at the end of the hold for every held rollout &#183; bench column: the 2026-09-02 archive,
+251 runs</p>
+<p>Every bench replay so far, including the plant-correction gate of 2026-09-02, ran with the plate on the
+mounting plane. Moving it to the measured +25 mm changes the result on every hand that reaches it. On
+<code>fast</code>, rv05 goes from {{D7_CAL_PL0}}&#176; (plate at 0, <code>cal</code>) and 55&#8211;57&#176; (plate at 0,
+<code>fast</code>) to {{D7_FAST_PL25}}&#176; from vertical, D2 from 46&#8211;75&#176; to 16&#8211;22&#176;, D4 from
+57&#8211;61&#176; to 24&#8211;36&#176;; D1 and D8, which the plate at 0 kept in the hand, drop the tool
+during the turn with the plate at 25. The bench measured 57&#176; on rv05 and 42&#176; on D2. So the simulation that
+matched the bench had a support the built hand does not have at that height, and the simulation with the
+built plate over-turns.</p>
+<p>The 25 mm between the mounting plane and the plate is not empty on the hardware: the yaw servos are
+bolted to the underside of the palm and sit in that gap. The scene carries no collision geometry for
+them. The tool&#8217;s upper end at 50&#176; is where the old plate was, which is where the servo bank is.
+This is a hypothesis about what the tool rests on; the bench can settle it by looking (below).</p>
+<p>On <code>cal</code> the picture is different again: D1, D2 and D8 lose the tool at the grip on the post
+(the plan&#8217;s 10 mm squeeze at &#956; 1.0 pops it out before the turn), D6 holds only with the plate at
+25, and rv05 holds at plate 0 and drops at plate 25. The two contact models disagree about the grip itself,
+not only about the turn, and neither has been checked against the bench&#8217;s grip forces.</p>
+{{TABLE_PLATE}}
+<figure><img src="{{I_PLATE_STRIP}}" alt="rv05 on fast at plate 0 and plate 25">
+<figcaption>rv05 on <code>fast</code>. Top: plate at 0, the tool stops against it at 56&#176;. Bottom: plate at
++25 mm, the tool continues to 24&#176; into the gap where the yaw servos are on the built hand (the translucent
+boxes are the mount workspaces, drawn without collision).</figcaption></figure>
+<div class="duo">
+<figure><video controls muted playsinline preload="metadata" src="{{V_D7_PL0}}"></video>
+<figcaption>rv05, <code>fast</code>, plate at 0.</figcaption></figure>
+<figure><video controls muted playsinline preload="metadata" src="{{V_D7_PL25}}"></video>
+<figcaption>rv05, <code>fast</code>, plate at +25 mm.</figcaption></figure>
+</div>
+</div></section>
+
+<section><div class="col">
+<h2>Commanding a larger arc does not extend the tip</h2>
+<p class="sub">rv05 re-exported with the deployed plan&#8217;s grasp, pivot (axis_k 0.05) and budget (0.85 rad) at
+60, 75, 90 and 110&#176; &#183; plate at 0 &#183; two seeds</p>
+<p>The re-export at 60&#176; does not reproduce the deployed plan: its turn_end differs by up to 10&#176; on the
+middle mcp (the exporter is not bit-reproducible across the palm-plate and generator changes since
+2026-09-02), and it tips the tool only to 73&#8211;86&#176; from vertical. The 75, 90 and 110&#176; exports
+saturate the middle yaw and pip at the budget and land at 70&#8211;89&#176;. The deployed plan&#8217;s 50&#176; is a
+property of that one trajectory, not of the commanded angle.</p>
+{{TABLE_ANGLE}}
+</div></section>
+
+<section><div class="col">
+<h2>Two tips with a regrip between them</h2>
+<p class="sub">rv05 &#183; tip = the plan&#8217;s turn deltas applied from the current command &#183; rest 1.5 s &#183;
+regrip = each finger&#8217;s mcp closes 1&#176; per 0.1 s from its commanded pose until its pads carry 0.8 N</p>
+<p>The regrip works: on <code>cal</code> it brings the tool from two pads to three at 51&#176; without moving it.
+The second tip does not. The plan&#8217;s deltas are the specific asymmetric opening that lets the tool
+wedge against the plate from the flat grip; applied again from the regripped command they open the same
+fingers further and the tool falls back to flat (90&#176; from vertical, held on two pads on
+<code>cal</code>; lost on <code>fast</code>). A second step needs a second primitive, one that moves the
+pinch line rather than re-opening the grip, and nothing in the exported plans provides it.</p>
+{{TABLE_GAIT}}
+<figure><video controls muted playsinline preload="metadata" src="{{V_D7_GAIT}}"></video>
+<figcaption>rv05 on <code>cal</code>: tip, rest, regrip, the plan&#8217;s turn again, rest, regrip.</figcaption></figure>
+</div></section>
+
+<section><div class="col">
+<h2>An RL environment on the calibrated plant</h2>
+<p class="sub"><code>scripts/make_cal_morphology_run.py</code> &#183; <code>results/phase1/real_v1/20260916-&lt;hand&gt;_cal/</code></p>
+<p>The trainer reads a morphology-run directory: a frozen scene, the grip, and a reference rollout. The
+new builder takes the chain&#8217;s flat scene for a hand (the fitter&#8217;s grasp at 10 mm squeeze as the
+<code>open_ik</code> keyframe), applies the measured servo (kp 0.5, kv 0.02, forcerange 0.35 N&#183;m,
+frictionloss 0.0035, real masses), the Coulomb-like contact model (elliptic cone, impratio 10, pad &#956;
+1.0), moves the plate to +25 mm, and stores the Phase-1 evaluator&#8217;s own settle&#8211;lift&#8211;hold as
+the reference. MuJoCo-Warp compiles the elliptic cone and impratio 10: a 12-iteration smoke run at 1024
+environments trained at 3.05 s per iteration (8,000 steps/s).</p>
+<ul>
+<li><strong>D6</strong> (sv1_u0308_b050) holds the evaluator&#8217;s lift on <code>cal</code>: peak 97 mm, three
+pads at the end, contact persistence 1.00. A 20 M-step run (3072 environments, seed 0, the
+<code>b_liveA</code> recipe without a live Policy A, the residual active from step 58 on top of the scripted
+lift, friction DR 0.55&#8211;1.15, object pose in the observation) started at 21:44.</li>
+<li><strong>D8</strong> (sv1_w0099_b100) drops it: peak 86 mm, persistence 0.53, two pads through the ramp. The
+chain&#8217;s arm lift held D8 21 of 34 at 10 mm and 12 of 12 at 12 mm; a 12 mm flat scene has to be
+built before D8 trains.</li>
+<li>Not in the environment yet: servo-gain randomisation (kp 0.25&#8211;0.5) and torsional-friction
+randomisation (condim 4, 0&#8211;0.005). Both are unmeasured on the real pads and both changed the
+pinch-and-swing outcome on 2026-09-16.</li>
+</ul>
+</div></section>
+
+<section><div class="col">
+<h2>What this does not settle</h2>
+<ul>
+<li><strong>What the tool rests on at the bench&#8217;s 50&#176;.</strong> One bench run of rv05_manual_b85 with a
+look at the handle end at the rest: does it touch a yaw servo housing, the plate, or nothing? If a
+servo: add the servo-bank boxes to <code>assets/mjcf/real_v1/real_hand.xml</code> from the CAD and
+regenerate the bench scenes with <code>build_real_v1_scenes.py --keep-keyframes</code>; if nothing, the
+bench&#8217;s 50&#176; has a different cause than the simulation&#8217;s and the plant-correction gate needs
+re-running with the plate at 25.</li>
+<li><strong>Which contact model matches the bench&#8217;s grip.</strong> <code>cal</code> loses D1, D2 and D8 at the
+grip on the post; <code>fast</code> keeps all eight. The bench keeps all eight. Pad &#956; on the real pads, and
+whether the pop-out is a &#956; effect or an impratio effect: replay the grip alone with
+<code>real_v1_turn_probe.contact_variant</code> over &#956; 1.0&#8211;2.4 and impratio 1&#8211;10 on D8.</li>
+<li><strong>The RL run.</strong> Judge it on deterministic held-cos over seeds and plant draws, on the eval video,
+and on the input-replay test before any claim; the August policies on this hand ignored their
+observations.</li>
+</ul>
+</div></section>
+
+<footer>
+scripts: <code>real_v1_tip_gait.py</code>, <code>real_v1_plan_angle_sweep.py</code> (plate heights, hand table),
+<code>make_cal_morphology_run.py</code>, <code>tip_gait_data.py</code>, <code>tip_gait_page.py</code> &#183;
+data: <code>docs/experiments/20260916-tip_gait/</code> (plate_replay.json, plan_angle_sweep.json, tip_gait.json,
+tip_gait_data.json, deploy/ re-exports, videos/) &#183; earlier pages: 20260916-swing_reorient,
+20260916-turn_mechanism, 20260902-servo-sysid
+</footer>
+</div>

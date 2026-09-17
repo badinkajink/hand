@@ -6,6 +6,7 @@ changes. Regenerate with the builder named in each page's footer.
 
 | date | subject | local file | artifact |
 |---|---|---|---|
+| 2026-09-16 | Bench partial reorientation: support geometry, plan family and a two-tip gait | [20260916-tip_gait/20260916-bench_partial_reorientation.html](20260916-tip_gait/20260916-bench_partial_reorientation.html) | https://claude.ai/artifact/FquaN7cm7kNqF9mFAMvEEY |
 | 2026-09-16 | In-hand screwdriver reorientation on the calibrated plant by pinch and swing | [20260916-swing_reorient/20260916-swing_reorient.html](20260916-swing_reorient/20260916-swing_reorient.html) | https://claude.ai/artifact/D8gDHA9vLfGQVd6zWZySsh |
 | 2026-09-16 | Reorientation mechanism on three plants: shipped, calibrated and bench | [20260916-turn_mechanism/20260916-turn_mechanism.html](20260916-turn_mechanism/20260916-turn_mechanism.html) | https://claude.ai/artifact/B7e6WBCg4fwqCo6frWvx1s |
 | 2026-09-16 | Chain on the bench-calibrated plant | [20260916-calibrated_plant_chain/20260916-calibrated_plant_chain.html](20260916-calibrated_plant_chain/20260916-calibrated_plant_chain.html) | https://claude.ai/artifact/B7ZBqjURdMyChprN2kJNf5 |
