@@ -1,0 +1,22 @@
+{
+  "label": "d6_cal_gp025_60M_m812_stochastic",
+  "n": 64,
+  "steps": 250,
+  "align_thresh": 0.9,
+  "align_rate": 0.203125,
+  "hold_rate": 0.109375,
+  "success_rate": 0.078125,
+  "t_align_mean": 115.0,
+  "hold_steps_mean": 3.65625,
+  "hold_steps_sd": 14.395332088475763,
+  "final_cos_mean": 0.12630073726177216,
+  "final_cos_sd": 0.39622023701667786,
+  "final_z_mean": 0.02904604747891426,
+  "peak_cos_mean": 0.40323400497436523,
+  "drop_step_mean": 84.41025641025641,
+  "n_lost": 39,
+  "three_finger_share": 0.9865229110512129,
+  "mean_force_thumb": 10.751791954040527,
+  "mean_force_index": 5.2685041427612305,
+  "mean_force_middle": 4.878293514251709
+}

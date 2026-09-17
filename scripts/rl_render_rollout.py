@@ -20,7 +20,8 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from morphohand.rl.deploy import act, act_b, build_actor, ckpt_obs_dim, finger_ctrl_from_keyframe, make_env_cfg
+from morphohand.rl.deploy import (act, act_b, build_actor, ckpt_obs_dim, finger_ctrl_from_keyframe,
+                                  make_env_cfg, run_env_overrides)
 from morphohand.tools.video_paths import tmp_dir
 
 
@@ -37,6 +38,9 @@ def main() -> int:
     ap.add_argument("--height", type=int, default=720)
     ap.add_argument("--cam", default="0.32,120,-12", help="distance m, azimuth deg, elevation deg")
     ap.add_argument("--fps", type=int, default=25)
+    ap.add_argument("--residual-from-step", type=int, default=None,
+                    help="finger_residual_active_from_step; default = the run's config.yaml")
+    ap.add_argument("--stochastic", action="store_true", help="sample actions instead of the mean")
     ap.add_argument("--out", type=Path, required=True)
     args = ap.parse_args()
     import json
@@ -49,9 +53,17 @@ def main() -> int:
         bfc = tuple(float(v) for v in np.load(run / "best_rollout.npz")["best_finger_ctrl"].reshape(-1))
     obs_dim = ckpt_obs_dim(args.policy)
     is_b = obs_dim == 66
+    trained = run_env_overrides(args.policy)
+    residual_from = args.residual_from_step if args.residual_from_step is not None \
+        else int(trained.get("finger_residual_active_from_step", 0))
+    print(f"[render] residual active from step {residual_from}, reorient reward from step "
+          f"{trained.get('reorient_start_step', 10)} ({'run config.yaml' if trained else 'defaults'})")
     cfg = make_env_cfg(frozen, summ["keyframe"], run, bfc, enable_target_axis=is_b, num_steps=args.steps,
                        finger_residual_scale=args.finger_residual_scale, lift_delta=args.lift_delta,
-                       open_finger_from_keyframe=args.open_finger_from_keyframe, num_envs=1)
+                       open_finger_from_keyframe=args.open_finger_from_keyframe, num_envs=1,
+                       finger_residual_active_from_step=residual_from,
+                       reorient_start_step=int(trained.get("reorient_start_step", 10)),
+                       lift_phase_start_step=trained.get("lift_phase_start_step"))
     dist, az, el = (float(v) for v in args.cam.split(","))
     cfg.viewer_width, cfg.viewer_height = args.width, args.height
     cfg.viewer_distance, cfg.viewer_azimuth, cfg.viewer_elevation = dist, az, el
@@ -62,7 +74,7 @@ def main() -> int:
     with torch.no_grad():
         for s in range(args.steps):
             obs = obs_td["actor"]
-            actions = act_b(actor, obs_td, False) if is_b else act(actor, obs[:, :obs_dim])
+            actions = act_b(actor, obs_td, args.stochastic) if is_b else act(actor, obs[:, :obs_dim])
             obs_td, *_ = wrapped.step(actions)
             pose = env.unwrapped.scene["cube"].data.root_link_pose_w
             qx, qy = float(pose[0, 4]), float(pose[0, 5])

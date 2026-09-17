@@ -1,0 +1,22 @@
+{
+  "label": "d6_cal_gp025_60M_m812",
+  "n": 64,
+  "steps": 250,
+  "align_thresh": 0.9,
+  "align_rate": 1.0,
+  "hold_rate": 1.0,
+  "success_rate": 1.0,
+  "t_align_mean": 183.484375,
+  "hold_steps_mean": 66.09375,
+  "hold_steps_sd": 2.7597483467700457,
+  "final_cos_mean": 0.9328883290290833,
+  "final_cos_sd": 0.00251091574318707,
+  "final_z_mean": 0.13466204702854156,
+  "peak_cos_mean": 0.9342846870422363,
+  "drop_step_mean": null,
+  "n_lost": 0,
+  "three_finger_share": 1.0,
+  "mean_force_thumb": 10.939254760742188,
+  "mean_force_index": 5.37726354598999,
+  "mean_force_middle": 2.4776220321655273
+}

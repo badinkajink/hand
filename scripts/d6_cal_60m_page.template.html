@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>D6 reorientation policy on the calibrated plant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#EEF1F4; --card:#FFFFFF; --sunk:#E4E9EE;
+  --ink:#1A2127; --ink2:#48545D; --ink3:#77848D; --rule:#D2DAE1; --rule2:#E2E8ED;
+  --s1:#BE7514; --s2:#4A7FC4; --s3:#5E8F5A; --ref:#8A959D;
+  --good:#3F7A46; --bad:#A8443C;
+  --shadow:0 1px 2px rgba(16,26,34,.06),0 8px 24px -14px rgba(16,26,34,.28);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
+  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
+  --s1:#E39A2E; --s2:#7BA7E0; --s3:#8AC286; --ref:#79858E; --good:#6FB076; --bad:#DE8078;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+}}
+:root[data-theme="dark"]{
+  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
+  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
+  --s1:#E39A2E; --s2:#7BA7E0; --s3:#8AC286; --ref:#79858E; --good:#6FB076; --bad:#DE8078;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);
+  font:400 17px/1.62 "Source Serif 4",Georgia,"Times New Roman",serif;
+  -webkit-font-smoothing:antialiased;padding:0 20px 96px;margin:0}
+.wrap{max-width:1020px;margin:0 auto}
+.col{max-width:70ch}
+h1,h2,h3,.mono,.tag,th{font-family:Archivo,"Helvetica Neue",Arial,sans-serif}
+.mono,code,td.num,.val,.note,pre{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+header{padding:64px 0 30px;border-bottom:1px solid var(--rule)}
+.eyebrow{font:500 12px/1 "IBM Plex Mono",monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3)}
+h1{font-size:clamp(30px,4.6vw,48px);line-height:1.05;font-weight:700;letter-spacing:-.022em;
+  margin:16px 0 0;text-wrap:balance;max-width:22ch}
+.lede{font-size:20px;line-height:1.55;color:var(--ink2);margin:18px 0 0;max-width:62ch}
+.byline{margin-top:22px;font:400 13px/1.5 "IBM Plex Mono",monospace;color:var(--ink3)}
+section{padding:46px 0;border-bottom:1px solid var(--rule2)}
+section:last-of-type{border-bottom:0}
+h2{font-size:27px;font-weight:700;letter-spacing:-.018em;margin:0 0 6px;text-wrap:balance}
+h3{font-size:18px;font-weight:600;letter-spacing:-.008em;margin:34px 0 8px}
+h2 + .sub{color:var(--ink3);font:400 14px/1.5 "IBM Plex Mono",monospace;margin:0 0 24px}
+p{margin:0 0 17px}
+strong{font-weight:600}
+ul,ol{margin:0 0 17px;padding-left:20px}
+li{margin:0 0 8px}
+figure{margin:28px 0}
+figure video,figure img{display:block;width:100%;border-radius:10px;background:var(--sunk);box-shadow:var(--shadow)}
+figcaption{margin-top:11px;font:400 14px/1.55 "IBM Plex Mono",monospace;color:var(--ink3);max-width:82ch}
+.col > .tw,.col > figure,.col > .duo{width:min(1020px,calc(100vw - 40px));max-width:none}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:28px 0}
+@media (max-width:720px){.duo{grid-template-columns:1fr}}
+.duo figure{margin:0}
+.tw{overflow-x:auto;margin:24px 0;border:1px solid var(--rule);border-radius:10px;background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th{font:600 12px/1.3 Archivo,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);
+  text-align:left;padding:13px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid var(--rule2);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;font-size:13.5px;white-space:nowrap}
+.ok{color:var(--good);font-weight:600}
+.no{color:var(--bad);font-weight:600}
+td.cell{text-align:center;font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:500;white-space:nowrap}
+td.c4{background:color-mix(in oklab,var(--good) 28%,var(--card));color:var(--ink)}
+td.c3{background:color-mix(in oklab,var(--good) 16%,var(--card))}
+td.c2{background:color-mix(in oklab,var(--s1) 16%,var(--card))}
+td.c1{background:color-mix(in oklab,var(--bad) 12%,var(--card))}
+td.c0{background:color-mix(in oklab,var(--bad) 22%,var(--card));color:var(--ink2)}
+.keep{border:1px solid var(--rule);border-left:3px solid var(--s2);border-radius:10px;
+  padding:20px 24px;margin:28px 0;background:var(--card)}
+.keep .tag{display:block;font:700 12px/1 Archivo,sans-serif;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--s2);margin-bottom:11px}
+.keep p:last-child,.keep ul:last-child{margin-bottom:0}
+pre{background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:16px 18px;
+  overflow-x:auto;font-size:13px;line-height:1.6;margin:22px 0}
+code{font-size:.92em;background:var(--sunk);padding:1px 4px;border-radius:4px;margin:0 -1px;white-space:nowrap}
+footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",monospace}
+footer a{color:var(--s2)}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">MorphoHand &#183; real_v1 &#183; 17 September 2026</div>
+  <h1>D6 reorientation policy on the calibrated plant at 60 M steps</h1>
+  <p class="lede">A finger-only policy on the calibrated plant turns the screwdriver from flat to
+  <strong>cos {{COS60}} &#177; {{SD60}}</strong> ({{DEG60}}&#176; from vertical) and holds it there on three
+  pads in 64 of 64 deterministic rollouts. The tool rolls across the pads between steps 80 and 200
+  with no finger leaving the shaft. The same recipe at 20 M steps reads cos {{COS20}}: the plateau
+  reported on 2026-09-16 was an under-trained snapshot, not a workspace ceiling. Two defects found on the
+  way are recorded here: the evaluator applied the policy&#8217;s residual from step 0 while training masked
+  it until step 58, which turned a held tool into a dropped one standing on its end; and the grip-force
+  term went into this run with a positive weight, so it paid for over-clamp rather than against it.</p>
+  <div class="byline">D6 = sv1_u0308_b050, chain fitter grasp at 10 mm squeeze as <code>open_ik</code> &#183;
+  plant <code>cal</code>: kp 0.5, kv 0.02, elliptic cone, impratio 10, pad &#956; 1.0, plate at +25 mm &#183;
+  <code>b_liveA</code> recipe without a live Policy A, residual &#177;0.5 rad from step 58 over the scripted
+  100 mm lift, 3072 environments, friction DR 0.55&#8211;1.15, object pose observed &#183; seed 0 &#183;
+  <code>results/rl/20260917-1141-d6_cal_reorient_gp025_60M_s0</code>, 813 iterations, 1 h 48 min</div>
+</header>
+
+<section><div class="col">
+<h2>The turn at 60 M steps</h2>
+<p class="sub">deterministic actions &#183; 64 rollouts &#215; 250 steps &#183; held = tool above 60 mm with at least
+0.5 N on a pad at step 249 &#183; <code>policy_eval_suite.py</code> with the run&#8217;s own timing</p>
+{{TABLE_MAIN}}
+<p>The lift ends at step 40 with the tool at 109 mm, flat. From step 58 the residual is active; the roll
+starts at step 68 and the tool passes cos 0.5 at step 100, 0.77 at 140, 0.87 at 160 and crosses 0.9 at
+step {{TAL60}} &#177; 3, then holds the last {{HOLD60}} steps at 0.93 with the centre at {{Z60}} mm. The thumb
+carries the roll: its pad force rises from 3 N flat to 6 N as the roll starts and 10&#8211;12 N at the end,
+against 5&#8211;7 N on the index and 2&#8211;5 N on the middle (mean over the rollout {{F60}} N, {{FT60}} N
+total). The 10&#8211;90 % band of the final cos is 0.006 wide.</p>
+<figure><img src="{{I_STRIP}}" alt="D6 cal policy, model 812, eight frames">
+<figcaption>Model 812, one deterministic rollout at 960&#215;720. Steps 40 and 58: lifted, flat. Steps 80
+to 200: the handle end swings up past the index while the tip end drops between thumb and middle. Step
+249: held at cos +0.93.</figcaption></figure>
+<div class="duo">
+<figure><video controls muted playsinline preload="metadata" src="{{V_RL}}"></video>
+<figcaption>The same rollout.</figcaption></figure>
+<figure><img src="{{I_EVAL}}" alt="eval suite over 64 rollouts">
+<figcaption>64 rollouts: alignment cos (median and 10&#8211;90 %), height, total grip, fraction held.</figcaption></figure>
+</div>
+<p>The 2026-09-16 page read the 20 M policy&#8217;s cos 0.43 as the contact-fixed workspace ceiling of D6&#8217;s
+fitted grasp (the rigid-IK map put it at 20&#176;). The 60 M run passes through that value at iteration
+330 and continues to 0.93. The map was for a turn with fixed contacts; the policy rolls the tool on the
+pads, which the map does not describe. The ceiling claim is withdrawn.</p>
+</div></section>
+
+<section><div class="col">
+<h2>Training curve</h2>
+<p class="sub">alignment reward per episode (weight 100 on the target-axis term, gated from step 58), tip-lost
+terminations per reset batch, mean object height &#183; 15-iteration running mean over the logged values</p>
+<figure><img src="{{I_CURVES}}" alt="training curves of the 20 M and 60 M runs">
+<figcaption>The two runs share the recipe and seed and differ in the step budget and the grip term. The 20 M
+run ends at iteration 270; the 60 M run continues to 812.</figcaption></figure>
+<p>Alignment per episode: {{AL270}} at iteration 270 (the 20 M run&#8217;s end; the 60 M run reads
+{{AL60_270}} there), {{AL405}} at 405, {{AL567}} at 567, {{AL648}} at 648, {{AL729}} at 729, {{AL812}} at 812.
+The last 160 iterations added {{AL_LAST160}} %, so the curve is still rising slowly at the end of the budget.
+Tip-lost terminations return between iterations 300 and 500 (1&#8211;3 per reset batch of 3072
+environments) while the roll is being learned, and are near zero again by 600. Mean object height steps
+from 0.11 to 0.13 m at iteration 500, where the roll begins to raise the tool&#8217;s centre.</p>
+<p>A stopping rule for the ACCESS queue has to come from a per-checkpoint evaluation, because the
+episode reward keeps rising after the deterministic held-cos has stopped moving (the reward sums cos
+over the steps after 58, so it grows as the turn gets earlier). Checkpoints are saved every 50
+iterations; evaluating models 300&#8211;800 under the corrected evaluator gives the held-cos curve the rule
+is set from. That evaluation is queued behind the run in progress.</p>
+</div></section>
+
+<section><div class="col">
+<h2>The evaluator applied the residual through the lift</h2>
+<p class="sub"><code>morphohand.rl.deploy.make_env_cfg</code> &#183; <code>finger_residual_active_from_step</code>
+default 0, trained value 58 &#183; fixed 2026-09-17 by reading the run&#8217;s <code>config.yaml</code></p>
+{{TABLE_EVAL}}
+<p>The recipe masks the policy&#8217;s residual until step 58, after the scripted lift has finished, and the
+runs train that way. <code>make_env_cfg</code>, which <code>policy_eval_suite.py</code>,
+<code>rl_render_rollout.py</code> and four other scripts build their environment from, did not take that
+parameter and left it at 0. Under that evaluator the model-812 policy acts on the tool from the first step,
+during a lift it never controlled. Its residual pushes the grip before the tool is off the post, and in
+{{R0_LOST}} of 64 rollouts the tool leaves the hand at step {{R0_DROP}} and lands on the floor, often standing on
+its end (z = 50 mm, the half-length), where the alignment score reads 0.99 with no pad touching it. The evaluator reported
+{{R0_ALIGNED}} of 64 aligned and {{R0_HELD}} of 64 held; with sampled actions {{R0S_ALIGNED}} aligned and
+{{R0S_HELD}} held. Training logged episode lengths of 249.9 of 250 and a mean object height of 131 mm at
+the same iteration, which is what exposed the mismatch.</p>
+<figure><img src="{{I_STRIP_R0}}" alt="model 812 under the pre-fix evaluator, eight frames">
+<figcaption>Model 812 with the residual active from step 0. The tool is already 16&#176; off flat at step 40,
+during the lift; it leaves the hand between steps 100 and 110, stands on its end on the floor (cos 0.99, z 45 mm)
+for 30 steps and lies flat from step 150. In the 64-rollout evaluation about half the dropped tools were still
+standing at step 249, which is where the reported final cos of 0.54 &#177; 0.48 comes from. The two rollouts on
+this page differ only in that one parameter.</figcaption></figure>
+<div class="duo">
+<figure><video controls muted playsinline preload="metadata" src="{{V_R0}}"></video>
+<figcaption>The same rollout.</figcaption></figure>
+<figure><img src="{{I_EVAL20}}" alt="20 M checkpoint under the corrected evaluator">
+<figcaption>The 20 M checkpoint (model 270) under the corrected evaluator: 64 of 64 held at cos {{COS20}}.
+The pre-fix evaluator read {{COS20OLD}} for the same checkpoint; that policy&#8217;s residual was small
+enough that the lift survived it.</figcaption></figure>
+</div>
+<p><code>make_env_cfg</code> now takes <code>finger_residual_active_from_step</code>,
+<code>reorient_start_step</code> and <code>lift_phase_start_step</code>; <code>run_env_overrides(checkpoint)</code>
+reads them (with <code>finger_residual_scale</code> and <code>finger_close_easing</code>) from the
+<code>config.yaml</code> beside the checkpoint, and the eval suite and render script apply them and print what
+they applied. <code>policy_healthcheck.py</code>, <code>probe_obs_ablation.py</code>,
+<code>probe_joint_envelope.py</code> and <code>rl_demo_handoff_continuous.py</code> still call the builder with
+the default and need the same change before they are used on a <code>b_liveA</code>-style checkpoint. Every
+evaluation of a residual-from-58 policy made before this date with these tools carries the same defect; the
+only such evaluations are the two D6 runs on this page.</p>
+</div></section>
+
+<section><div class="col">
+<h2>The grip-force term went in with a positive weight</h2>
+<p class="sub"><code>grip_force_excess</code>: quadratic in the per-pad force above 4 N, scale 4 N, mean over
+pads &#183; returns a positive magnitude, so the weight must be negative</p>
+<p>This run was launched with <code>--grip-force-penalty-weight 0.25</code>. The term therefore paid for force
+above 4 N per pad. Its contribution was 0.09 per episode against 54 for alignment, so it did not shape the
+turn, but the grip it left is the wrong one to transfer: {{FT60}} N total at the end against 13 N for the 20 M
+policy and the 6.9 N the chain runs D6 at. A second run with the weight at &#8722;0.25 and everything else
+unchanged started at 16:53 (<code>results/rl/20260917-1653-d6_cal_reorient_gpm025_60M_s0</code>, 8.3 s per
+iteration, 1 h 52 min). Its evaluation is added to this page when it finishes.</p>
+</div></section>
+
+<section><div class="col">
+<h2>What this does not settle</h2>
+<ul>
+<li><strong>The grip.</strong> The &#8722;0.25 run answers whether the turn survives a 4 N per-pad cap. If it
+does not, the next lever is the threshold (6 N, the bench servos&#8217; measured holding force at &#956; 1.0)
+before the weight.</li>
+<li><strong>The chain.</strong> No benchmark checkpoint has run inside the chain environment. The adapter
+(the 66-dim observation from the CPU state, <code>act_b</code>, the residual on the chain&#8217;s finger ctrl during
+its reorient phase, inside <code>probe_real_v1_chain.py</code>) tests the arm lift, the 100 mm wrist stack, the
+screw-tip mesh, the plate at 0 and the CPU solver in one rollout. Until it runs, this page says nothing about
+the UR5e chain.</li>
+<li><strong>Seeds and hands.</strong> One seed, one hand. Three more D6 seeds at this budget give the band;
+the other seven hands need a <code>cal</code> morphology run each at the squeeze the chain&#8217;s arm lift
+held (D8 at 12 mm; D1 and D2 pop the tool out at 10 mm on <code>cal</code>) and the evaluator&#8217;s lift as the
+gate.</li>
+<li><strong>What the policy reads.</strong> The observation carries the tool pose. The input-replay test
+(<code>probe_obs_ablation.py</code>, replay mode, after it takes the run&#8217;s timing) says whether the turn
+depends on it; if it does, the next run blinds the actor to those terms (<code>actor_blind_terms</code>).</li>
+<li><strong>A stopping rule.</strong> Held-cos at checkpoints 300&#8211;800 under the corrected evaluator, then
+stop when it has not moved by 0.02 over the last 150 iterations. Not yet measured.</li>
+</ul>
+</div></section>
+
+<footer>
+scripts: <code>rl_train_cube.py --recipe b_liveA</code>, <code>policy_eval_suite.py</code> (<code>--stochastic</code>,
+<code>--residual-from-step</code>), <code>rl_render_rollout.py</code>, <code>policy_filmstrip.py</code>,
+<code>d6_cal_60m_page.py</code> &#183; data: <code>docs/experiments/20260917-d6_cal_60M/</code> (eval JSON and PNG for
+both checkpoints and both evaluator settings, training_curves.json, filmstrips, videos/) &#183; earlier pages:
+20260916-tip_gait (the 20 M run), 20260916-swing_reorient, 20260916-turn_mechanism
+</footer>
+</div>
+</body>
+</html>

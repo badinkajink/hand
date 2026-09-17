@@ -1,0 +1,7 @@
+{
+  "note": "policy_eval_suite.py BEFORE the 2026-09-17 fix: finger_residual_active_from_step left at its default 0 while the run trained with 58. Recorded from the terminal output; the JSON that run wrote was overwritten by the corrected evaluation at the same path.",
+  "deterministic": {"label": "d6_cal_gp025_60M_m812 (residual from step 0)", "n": 64, "align_rate": 0.906, "hold_rate": 0.188, "success_rate": 0.156,
+                    "t_align_mean": 109.8, "t_align_sd": 32.9, "final_cos_mean": 0.540, "final_cos_sd": 0.478, "final_z_mean": 0.047, "peak_cos_mean": 0.958,
+                    "drop_step_mean": 96.8, "drop_step_sd": 19.1, "n_lost": 52, "mean_force_thumb": 9.0, "mean_force_index": 6.4, "mean_force_middle": 3.1},
+  "stochastic_file": "20260917-d6_cal_60M_eval_stochastic.json"
+}
