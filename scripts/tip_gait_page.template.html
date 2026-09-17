@@ -93,8 +93,8 @@ footer a{color:var(--s2)}
   and with it in place the same plan tips the tool to {{D7_FAST_PL25}}&#176; from vertical on the
   template contact model and drops it on the Coulomb-like one. Commanding a larger arc adds nothing,
   and re-applying the plan&#8217;s turn after a regrip returns the tool to flat. A first RL policy on the
-  calibrated plant (D6, 20 M steps) lifts, rolls the tool 25&#176; on three pads and holds it 64 of 64,
-  stopping where the fingers&#8217; contact-fixed reach ends.</p>
+  calibrated plant (D6, 20 M steps) lifts, rolls the tool 25&#176; on three pads and holds it 64 of 64
+  (corrected 2026-09-17: at 60 M steps the same recipe reaches cos 0.933; the ceiling reading is withdrawn).</p>
   <div class="byline">{{N_PLATE}} bench replays across eight hands, two plants and two plate heights &#183;
   {{N_ANGLE}} replays of the rv05 plan family &#183; two-tip gait on rv05 &#183; plants <code>fast</code>
   (kp 0.5, kv 0.02, pyramidal cone, impratio 1, pad &#956; 2.4) and <code>cal</code> (same servo, elliptic
@@ -201,7 +201,11 @@ randomisation (condim 4, 0&#8211;0.005). Both are unmeasured on the real pads an
 pinch-and-swing outcome on 2026-09-16.</li>
 </ul>
 
-<h3>One run on D6: a held 25&#176; roll, and then the workspace ceiling</h3>
+<h3>One run on D6: a held 25&#176; roll at 20 M steps</h3>
+<p class="sub"><strong>Correction, 2026-09-17.</strong> The ceiling reading below is withdrawn: the same recipe at
+60 M steps reaches cos 0.933 &#177; 0.003 held 64 of 64, rolling the tool on the pads, and the evaluator used
+for the numbers below applied the residual from step 0 instead of the trained 58 (re-evaluated as trained the
+20 M checkpoint reads 0.463). See the 2026-09-17 page, <code>docs/experiments/20260917-d6_cal_60M/20260917-d6_reorient_policy_60M.html</code>.</p>
 <p class="sub"><code>results/rl/20260916-2142-d6_cal_reorient_s0</code> &#183; <code>b_liveA</code> recipe without a
 live Policy A, residual (&#177;0.5 rad) active from step 58 over the scripted lift, 3072 environments,
 20 M steps, seed 0, friction DR 0.55&#8211;1.15, object pose in the observation &#183; 36 min &#183; evaluated

@@ -43,6 +43,7 @@ import numpy as np
 import torch
 
 from morphohand.rl.deploy import (
+    run_env_overrides,
     act, act_b, build_actor, ckpt_obs_dim, finger_ctrl_from_keyframe, make_env_cfg,
 )
 from morphohand.tools.video_paths import tmp_dir
@@ -71,6 +72,15 @@ def main():
     ap.add_argument("--json-out", type=Path, default=None)
     ap.add_argument("--plot", type=Path, default=None, help="write a summary PNG here")
     ap.add_argument("--label", default=None)
+    ap.add_argument("--residual-from-step", type=int, default=None,
+                    help="finger_residual_active_from_step; default = the run's config.yaml "
+                         "(a policy trained with the residual masked through the lift must be "
+                         "evaluated the same way)")
+    ap.add_argument("--reorient-start-step", type=int, default=None,
+                    help="reward gate step; default = the run's config.yaml")
+    ap.add_argument("--stochastic", action="store_true",
+                    help="sample actions from the policy's distribution (the training-time "
+                         "behaviour) instead of its mean")
     args = ap.parse_args()
     _frs = [float(v) for v in str(args.finger_residual_scale).split(",")]
     args.finger_residual_scale = _frs[0] if len(_frs) == 1 else tuple(_frs)
@@ -86,12 +96,23 @@ def main():
 
     obs_dim = ckpt_obs_dim(args.policy)
     is_b = obs_dim == 66
+    trained = run_env_overrides(args.policy)
+    residual_from = args.residual_from_step if args.residual_from_step is not None \
+        else int(trained.get("finger_residual_active_from_step", 0))
+    reorient_from = args.reorient_start_step if args.reorient_start_step is not None \
+        else int(trained.get("reorient_start_step", 10))
+    print(f"[eval] env timing from the run's config: residual active from step {residual_from}, "
+          f"reorient reward from step {reorient_from}, lift_phase_start_step "
+          f"{trained.get('lift_phase_start_step', 'default')}  ({'config.yaml found' if trained else 'NO config.yaml beside the checkpoint'})")
     cfg = make_env_cfg(frozen, summ["keyframe"], run, bfc, enable_target_axis=is_b,
                        num_steps=args.steps,
                        finger_residual_scale=args.finger_residual_scale,
                        lift_delta=args.lift_delta,
                        open_finger_from_keyframe=args.open_finger_from_keyframe,
-                       num_envs=args.n)
+                       num_envs=args.n,
+                       finger_residual_active_from_step=residual_from,
+                       reorient_start_step=reorient_from,
+                       lift_phase_start_step=trained.get("lift_phase_start_step"))
     env, wrapped, actor = build_actor(cfg, args.policy, tmp_dir("evalsuite"))
     obs_td, _ = wrapped.reset()
 
@@ -108,7 +129,7 @@ def main():
     with torch.no_grad():
         for s in range(args.steps):
             obs = obs_td["actor"]
-            actions = act_b(actor, obs_td, False) if is_b else act(actor, obs[:, :obs_dim])
+            actions = act_b(actor, obs_td, args.stochastic) if is_b else act(actor, obs[:, :obs_dim])
             obs_td, *_ = wrapped.step(actions)
             pose = env.unwrapped.scene["cube"].data.root_link_pose_w      # (N, 7)
             qx, qy = pose[:, 4], pose[:, 5]

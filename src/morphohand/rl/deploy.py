@@ -57,7 +57,9 @@ def make_env_cfg(frozen, keyframe, morph, bfc, *, enable_target_axis: bool,
                  lift_delta: float = 0.10, open_finger_from_keyframe: bool = False,
                  num_envs: int = 1, hold_ctrl_from_keyframe: str = "",
                  hold_switch_from_sim_step: int = 0, hold_switch_steps: int = 60,
-                 hold_switch_align_thresh: float = 0.0, hold_switch_min_z: float = 0.0):
+                 hold_switch_align_thresh: float = 0.0, hold_switch_min_z: float = 0.0,
+                 finger_residual_active_from_step: int = 0, reorient_start_step: int = 10,
+                 lift_phase_start_step: int | None = None):
     """One env cfg. enable_target_axis=False -> 65-dim (Policy A's space);
     True -> 66-dim normal-lift reorient env (Policy B's space + dynamics).
     skip_lift_phase is always False here: the cylinder starts flat and is
@@ -82,15 +84,46 @@ def make_env_cfg(frozen, keyframe, morph, bfc, *, enable_target_axis: bool,
         hold_switch_steps=hold_switch_steps,
         hold_switch_align_thresh=hold_switch_align_thresh,
         hold_switch_min_z=hold_switch_min_z,
+        # The step the residual switches on is DYNAMICS, not reward: a policy trained with the
+        # residual masked through the scripted lift (b_liveA runs use 58) has never acted on
+        # the tool before it left the post. Evaluating it with the default 0 lets its residual
+        # into the lift and the grip it perturbs is one it never saw (2026-09-17: a D6 60M
+        # checkpoint "threw the tool to standing" in eval and held it 250/250 in training).
+        # Read these from the run's config.yaml with `run_env_overrides`.
+        finger_residual_active_from_step=int(finger_residual_active_from_step),
     )
+    if lift_phase_start_step is not None:
+        common["lift_phase_start_step"] = int(lift_phase_start_step)
     if not enable_target_axis:
         return MorphoHandEnvCfg(**common)
     return MorphoHandEnvCfg(
         **common,
         enable_target_axis_reward=True, target_axis_weight=100.0,
-        target_axis_alpha=4.0, reorient_start_step=10,
+        target_axis_alpha=4.0, reorient_start_step=int(reorient_start_step),
         target_axis_progress_weight=300.0,
     )
+
+
+RUN_ENV_KEYS = ("finger_residual_active_from_step", "reorient_start_step", "lift_phase_start_step",
+                "finger_residual_scale", "finger_close_easing")
+
+
+def run_env_overrides(checkpoint: Path) -> dict:
+    """The env settings a checkpoint was trained under, from its run's config.yaml
+    (`<run>/tensorboard/model_N.pt` -> `<run>/config.yaml`), restricted to RUN_ENV_KEYS:
+    the timing and residual knobs that change the dynamics the policy saw. {} if the
+    checkpoint has no run config beside it (a copied .pt)."""
+    import yaml
+    run = Path(checkpoint).resolve().parent
+    cfg = None
+    for _ in range(3):
+        if (run / "config.yaml").exists():
+            cfg = yaml.safe_load((run / "config.yaml").read_text())
+            break
+        run = run.parent
+    if not cfg or "env" not in cfg:
+        return {}
+    return {k: cfg["env"][k] for k in RUN_ENV_KEYS if k in cfg["env"]}
 
 
 def build_actor(env_cfg, checkpoint: Path, work_dir: Path, render_mode: str | None = None):
