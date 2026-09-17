@@ -122,6 +122,18 @@ def stepper_mm(finger: str, local_x_mm: float, local_y_mm: float) -> dict[int, f
     return {jx: x_off + x_sign * local_y_mm, jy: y_off + y_sign * local_x_mm}
 
 
+def palm_from_stepper(finger: str, axes_mm: dict[int, float]) -> tuple[float, float]:
+    """{firmware joint index: mm from home} -> palm-frame (x, y): the inverse of
+    `stepper_mm(local_from_palm(...))`. A homed or adopted gantry position is a known
+    palm-frame mount whether or not a plan is loaded to compare it against."""
+    fid = FINGER_ID[finger]
+    jx, jy = STEPPER_JOINTS[fid]
+    x_off, x_sign, y_off, y_sign = _TRANSFORM[fid]
+    local_y = (float(axes_mm[jx]) - x_off) / x_sign
+    local_x = (float(axes_mm[jy]) - y_off) / y_sign
+    return palm_from_local(finger, local_x, local_y)
+
+
 def local_envelope(finger: str,
                    travel_mm: dict[int, float] | None = None
                    ) -> tuple[tuple[float, float], tuple[float, float]]:

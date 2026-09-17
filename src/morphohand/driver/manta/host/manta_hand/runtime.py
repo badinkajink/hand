@@ -22,7 +22,7 @@ from typing import Protocol
 from .kinematics import (FULL_EXTENSION_MM, STEPPER_JOINTS, STEPS_PER_MM,
                           HomingAborted, _home_timeout_ms)
 from .plan import (FINGER_ID, FINGER_NAME, JOINT_SIGN, SIM_JOINT_TO_SERVO, HandPlan,
-                    Pose, local_from_palm, servo_deg, stepper_mm)
+                    Pose, local_from_palm, palm_from_stepper, servo_deg, stepper_mm)
 from .manual import (ManualCommandError, check_mount as manual_check_mount,
                      limits as manual_limits_payload, parse as manual_parse,
                      validate as manual_validate)
@@ -740,7 +740,10 @@ class HandRuntime:
             self._home_progress = None
             self._mounts_applied = False
             self._manual_mounts = False
-            self._mount_positions = None
+            # A homed axis sits at firmware 0 mm (the home is where the counter was
+            # zeroed), so the rails are at a known palm-frame place from here on and a
+            # manual gantry or joint command needs no plan to be bounds-checked against.
+            self._mount_positions = self._mounts_from_axes({o["joint"]: 0.0 for o in outcomes})
             self._current_pose = "zero"
             self._last_command = _zero_sim_pose()
             self._servo_torque = TORQUE_ON
@@ -799,6 +802,8 @@ class HandRuntime:
                                    for a in report["axes"]]
             self._current_pose = None
             adopted_mounts = False
+            self._mount_positions = self._mounts_from_axes(
+                {a["joint"]: a["position_mm"] for a in report["axes"]})
             if self._plan is not None:
                 targets: dict[int, float] = {}
                 for finger, (x, y) in self._plan.mounts_palm_mm.items():
@@ -873,8 +878,7 @@ class HandRuntime:
         if not joints:
             raise ValueError("no joints given")
         with self._lock:
-            self._require_motion_ready()
-            self._require_idle()
+            self._require_manual_ready()
             merged = {f: dict(self._last_command[f]) for f in FINGER_ORDER}
             for finger, values in joints.items():
                 if finger not in merged:
@@ -1388,6 +1392,37 @@ class HandRuntime:
                 f"home the gantries once in this daemon session first{detail}")
         if self._plan is None:
             raise RuntimeErrorState("load a validated hand plan first")
+
+    def _require_manual_ready(self) -> None:
+        """The manual panel's interlock: everything `_require_motion_ready` checks except
+        the plan and its morphology. A manual command is how a sign gets checked or a
+        finger gets walked clear before any plan exists; each joint is bounds-checked
+        against the servo's own calibrated range, and the rails are at a known place
+        from the moment the home completes."""
+        self._require_link()
+        self._require_idle()
+        if not self._homed:
+            detail = f" ({self._unhomed_reason})" if self._unhomed_reason else ""
+            raise RuntimeErrorState(
+                f"home the gantries once in this daemon session first{detail}")
+        if self._servo_torque is not None and self._servo_torque != TORQUE_ON:
+            raise RuntimeErrorState(
+                "servo torque is not ON -- position writes would be accepted and read back "
+                "correctly while nothing moves; enable torque first")
+        if not self.signs_checked:
+            raise RuntimeErrorState("aa signs have not been hardware-verified")
+
+    @staticmethod
+    def _mounts_from_axes(axes_mm: dict[int, float]) -> dict[str, dict[str, float]] | None:
+        """Palm-frame mount of every finger whose two axes the board reported, or None."""
+        out = {}
+        for finger in FINGER_ORDER:
+            jx, jy = STEPPER_JOINTS[FINGER_ID[finger]]
+            if jx not in axes_mm or jy not in axes_mm:
+                return None
+            x, y = palm_from_stepper(finger, axes_mm)
+            out[finger] = {"x": round(x, 3), "y": round(y, 3)}
+        return out
 
     def _require_motion_ready(self) -> None:
         self._require_link()
