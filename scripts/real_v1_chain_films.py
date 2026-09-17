@@ -44,9 +44,17 @@ def _knobs(arm: str) -> dict:
     """`load0_sq2_t550_b0.5_k0.35_a-90` -> the kwargs that produced it."""
     out: dict = {}
     for part in (arm or "").split("_"):
-        pv = re.fullmatch(r"p([\d.]+)v([\d.]+)", part)   # `_p0.5v0.02`: plant kp and kv
+        pv = re.fullmatch(r"p([\d.]+)v([\d.]+)(?:m([\d.]+))?", part)   # `_p0.5v0.02m1`: kp, kv, mu
         if pv:
             out["plant_kp"], out["plant_kv"] = float(pv.group(1)), float(pv.group(2))
+            if pv.group(3):
+                out["plant_mu"] = float(pv.group(3))
+            continue
+        px = re.fullmatch(r"x((?:[tim]a?-?[\d.]+)+)", part)   # `_xm20t-6i-6`, `_xma20`: pinch arm
+        if px:
+            out["turn_relief"] = {{"t": "thumb", "i": "index", "m": "middle"}[f]:
+                                  (("axial", float(mm[1:]) / 1000.0) if mm.startswith("a") else float(mm) / 1000.0)
+                                  for f, mm in re.findall(r"([tim])(a?-?[\d.]+)", px.group(1))}
             continue
         m = re.fullmatch(r"([a-z])(-?[\d.]+)", part)
         if m and m.group(1) in ARM_KEYS:
@@ -125,8 +133,10 @@ def _cell(job: dict):
     # `_p<kp>` in the arm tag names the plant the cell ran on; the film has to run on it too.
     kp = knobs.pop("plant_kp", None)
     kv = knobs.pop("plant_kv", 0.6)
+    mu = knobs.pop("plant_mu", None)
     plant = next((k for k, v in H.PLANT.items()
-                  if v and abs(v["kp"] - kp) < 1e-9 and abs(v.get("kv", 0.6) - kv) < 1e-9),
+                  if v and abs(v["kp"] - kp) < 1e-9 and abs(v.get("kv", 0.6) - kv) < 1e-9
+                  and (v.get("mu") == mu)),
                  "shipped") if kp is not None else "shipped"
     kw = {"_hand": hand, "_fit": fit, "_tag": "film" if sq is None else f"film_sq{sq:g}",
           "_table": job.get("table", True), "_plant": plant,

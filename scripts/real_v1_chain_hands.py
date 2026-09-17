@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
@@ -75,7 +76,7 @@ BASE = dict(obj="screwdriver_medium", lift=0.10, gap=0.002, descend_iters=1, des
 
 
 def variants(H: list[dict], straddles: str | None, depths: str | None,
-             elevations: str | None = None) -> list[dict]:
+             elevations: str | None = None, thumb_axials: str | None = None) -> list[dict]:
     """Clone each hand record at other GRASP operating points, keeping the hand itself fixed.
 
     Straddle (the axial spacing of the two straddling fingers) and grip depth (the palm's
@@ -85,16 +86,18 @@ def variants(H: list[dict], straddles: str | None, depths: str | None,
     bench fit returned, and set A's plans disagree by 8 mm of straddle and 16 mm of depth with
     no evidence that the chain wants the same point the bench carry did.
     """
-    if not straddles and not depths and not elevations:
+    if not straddles and not depths and not elevations and not thumb_axials:
         return H
     ss = [None] if not straddles else [float(v) for v in straddles.split(",")]
     dd = [None] if not depths else [float(v) for v in depths.split(",")]
     ee = [None] if not elevations else [float(v) for v in elevations.split(",")]
+    tt = [None] if not thumb_axials else [float(v) for v in thumb_axials.split(",")]
     out = []
     for h in H:
         for s in ss:
             for d in dd:
                 for e in ee:
+                  for t in tt:
                     v = dict(h)
                     if s is not None:
                         v["straddle"] = s / 1000.0
@@ -102,6 +105,10 @@ def variants(H: list[dict], straddles: str | None, depths: str | None,
                         v["depth"] = d / 1000.0
                     if e is not None:
                         v["elevation"] = e
+                    if t is not None:
+                        # the thumb's station along the shaft; at the index's station the two
+                        # form a pinch line perpendicular to the shaft, which a swing needs
+                        v["thumb_axial"] = t / 1000.0
                     v["tag"] = h["tag"]
                     if straddles:
                         v["tag"] += f"_s{v['straddle'] * 1000:g}"
@@ -109,6 +116,8 @@ def variants(H: list[dict], straddles: str | None, depths: str | None,
                         v["tag"] += f"_d{v['depth'] * 1000:g}"
                     if elevations:
                         v["tag"] += f"_e{v.get('elevation', 0.0):g}"
+                    if thumb_axials:
+                        v["tag"] += f"_ta{v['thumb_axial'] * 1000:g}"
                     v["parent"] = h["tag"]
                     out.append(v)
     return out
@@ -269,16 +278,37 @@ PLANT = {
     "fast": {"kp": 0.5, "forcerange": 0.35, "frictionloss": 0.0035, "kv": 0.02},
     # the kp the bench deficits imply once the settle is real (calibrate_plant_kp.py --kv 0.02)
     "soft": {"kp": 0.25, "forcerange": 0.35, "frictionloss": 0.0035, "kv": 0.02},
+    # `cal`: the servo (kp 0.5, kv 0.02) AND Coulomb-like contact. The template ships a
+    # pyramidal cone at impratio 1, under which a loaded pad creeps below mu*N (6-10 mm/s in the
+    # 2026-09-16 turn probe), and mu 2.4 on the pads, which brakes any swing at 0.3 N. Elliptic
+    # cone, impratio 10 and mu 1.0 are the settings the basketball study (2026-09-16) needed
+    # for any cap grasp to hold; mu 1.0 is an ASSUMPTION bracketed by 0.6 (the two-pad pinch
+    # drops the swinging tool) and 2.4 (nothing moves). `cal25` is the same at kp 0.25.
+    "cal": {"kp": 0.5, "forcerange": 0.35, "frictionloss": 0.0035, "kv": 0.02,
+            "cone": "elliptic", "impratio": 10.0, "mu": 1.0},
+    "cal25": {"kp": 0.25, "forcerange": 0.35, "frictionloss": 0.0035, "kv": 0.02,
+              "cone": "elliptic", "impratio": 10.0, "mu": 1.0},
 }
 
 
+
 def plant_scene(arm: Path, plant: str) -> Path:
-    """The arm scene for `plant`, rewritten and cached beside the shipped one."""
+    """The arm scene for `plant`, rewritten and cached beside the shipped one: actuators via
+    apply_measured_plant, then (for `cal`) the contact model via real_v1_turn_probe.contact_variant."""
     spec = PLANT[plant]
     if spec is None:
         return arm
     kv = spec.get("kv", 0.6)
     out = arm.with_name(f"{arm.stem}__kp{spec['kp']:g}" + (f"_kv{kv:g}" if kv != 0.6 else "") + ".xml")
+    out = _plant_scene_actuators(arm, spec, out)
+    if "cone" in spec or "mu" in spec:
+        from real_v1_turn_probe import contact_variant
+        out = contact_variant(out, spec.get("cone"), spec.get("impratio"), spec.get("mu"))
+    return out
+
+
+def _plant_scene_actuators(arm: Path, spec: dict, out: Path) -> Path:
+    kv = spec.get("kv", 0.6)
     if not out.exists():
         p = subprocess.run([sys.executable, str(ROOT / "scripts/apply_measured_plant.py"),
                             "--scene", str(arm), "--out", str(out),
@@ -362,6 +392,8 @@ def _cell(kw):
     r["parent"] = h.get("parent", h["tag"])
     r["plant"], r["plant_kp"] = plant, (PLANT[plant] or {}).get("kp", 30.0)
     r["plant_kv"] = (PLANT[plant] or {}).get("kv", 0.5)
+    r["yaw_deg"] = float(re.search(r"_y(\d+)", tag).group(1)) if re.search(r"_y(\d+)", tag) else 0.0
+    r["pinch"] = re.search(r"_x([tim]a?[-\d.]+)+", tag).group(0)[2:] if re.search(r"_x([tim]a?[-\d.]+)+", tag) else None
     r["straddle_mm"], r["depth_ask_mm"] = h["straddle"] * 1000, h["depth"] * 1000
     r["elevation_deg"] = h.get("elevation", 0.0)
     r["pads_turned"], r["force_turned_N"] = t.get("pad_contacts"), t.get("pad_force_N")
@@ -467,6 +499,17 @@ def main() -> int:
                     help="comma list of per-tick trim slew limits, rad. THE binding constraint "
                          "on the grip loop: the default 0.0006 caps the whole turn's correction "
                          "at 0.066 rad, and `gain` saturates it at any realistic force error.")
+    ap.add_argument("--thumb-axials", default=None,
+                    help="comma list of thumb stations along the shaft, mm (plans use 10); "
+                         "the grasp is re-fitted per value")
+    ap.add_argument("--pinch", default=None,
+                    help="comma list of <finger>:<mm> release arms for the turn phase, e.g. "
+                         "middle:20,index:20 -- the named finger is pulled that far out of the "
+                         "shaft (from the commanded pose) while the other two keep the grasp, and "
+                         "the tool swings about the pinch under gravity. Use with --angles 0.")
+    ap.add_argument("--yaws", default="0",
+                    help="comma list of tool headings on the table, deg (0 or 180); the swing "
+                         "drops whichever end lies beyond the pinch, so this picks tip-down.")
     ap.add_argument("--reliefs", default=None,
                     help="comma list, mm: pull the index and middle pads this far radially OUT of "
                          "the shaft before the turn (thumb keeps the full squeeze). The "
@@ -492,14 +535,22 @@ def main() -> int:
     if args.hands:
         keep = set(args.hands.split(","))
         H = [h for h in H if h["tag"] in keep]
-    H = variants(H, args.straddles, args.depths, args.elevations)
+    H = variants(H, args.straddles, args.depths, args.elevations, args.thumb_axials)
     print(f"{len(H)} hands: " + ", ".join(f"{h['tag']}[{h['set']}]" for h in H), flush=True)
     sqs = [None] if not args.squeeze_mm else [float(v) for v in args.squeeze_mm.split(",")]
     fits, jobs, skipped = {}, [], []
     vid = args.out / "videos"
+    yaws = [float(v) for v in args.yaws.split(",")]
+    # each arm is `finger:mm[+finger:mm...]`; positive mm pulls the pad OUT of the shaft,
+    # negative pushes it further IN (the pinch squeeze), all from the commanded pose
+    def _pv(t):
+        f, v = t.split(":")
+        return (f, ("axial", float(v[1:]))) if v.startswith("a") else (f, float(v))
+    pinches = [None] if not args.pinch else [[_pv(t) for t in v.split("+")] for v in args.pinch.split(",")]
     for h in H:
       for sq in sqs:
-        f = prepare(h, squeeze_mm=sq)
+       for yw in yaws:
+        f = prepare(h, yaw_deg=yw, squeeze_mm=sq)
         if f is None:
             skipped.append(h["tag"])
             print(f"  {h['tag']}: NO POSE / BUILD FAILED", flush=True)
@@ -509,7 +560,7 @@ def main() -> int:
         for v in plants:
             if v not in PLANT:
                 raise SystemExit(f"--plant {v!r}: choose from {', '.join(PLANT)}")
-        grid = [(c, rp, gs, rl, ts, bg, ak, an, ft, rb, fr, tk, pl, lf) for c in ([None] if not args.clears else
+        grid = [(c, rp, gs, rl, ts, bg, ak, an, ft, rb, fr, tk, pl, lf, pn) for c in ([None] if not args.clears else
                                       [float(v) for v in args.clears.split(",")])
                 for rp in ([None] if not args.reposes else
                            [int(v) for v in args.reposes.split(",")])
@@ -534,11 +585,12 @@ def main() -> int:
                            [float(v) for v in args.tracks.split(",")])
                 for pl in plants
                 for lf in ([None] if not args.reliefs else
-                           [float(v) for v in args.reliefs.split(",")])]
+                           [float(v) for v in args.reliefs.split(",")])
+                for pn in pinches]
         for lt in (float(v) for v in args.loads.split(",")):
-          for cl, rp, gs, rl, ts, bg, ak, an, ft, rb, fr, tk, pl, lf in grid:
+          for cl, rp, gs, rl, ts, bg, ak, an, ft, rb, fr, tk, pl, lf, pn in grid:
             for rep in range(args.reps):
-                tg = f"load{lt:.0f}" + ("" if sq is None else f"_sq{sq:g}")
+                tg = f"load{lt:.0f}" + ("" if sq is None else f"_sq{sq:g}") + ("" if not yw else f"_y{yw:g}")
                 if cl is not None:
                     tg += f"_c{cl*1000:.0f}"
                 if rp is not None:
@@ -567,8 +619,12 @@ def main() -> int:
                     tg += f"_p{PLANT[pl]['kp']:g}"
                     if PLANT[pl].get("kv", 0.6) != 0.6:
                         tg += f"v{PLANT[pl]['kv']:g}"
+                    if PLANT[pl].get("mu"):
+                        tg += f"m{PLANT[pl]['mu']:g}"
                 if lf is not None:
                     tg += f"_l{lf:g}"
+                if pn is not None:
+                    tg += "_x" + "".join(f"{f[0]}{'a' + format(mm[1], 'g') if isinstance(mm, tuple) else format(mm, 'g')}" for f, mm in pn)
                 kw = {"_hand": h, "_fit": f, "_tag": tg,
                       "_table": args.stand == "table", "_plant": pl,
                       "load_target": lt, "seed": rep, "jitter": 0.0005,
@@ -602,6 +658,8 @@ def main() -> int:
                     kw["track_every"] = args.track_every
                 if lf is not None:
                     kw["turn_relief"] = lf / 1000.0
+                if pn is not None:
+                    kw["turn_relief"] = {f: (("axial", mm[1] / 1000.0) if isinstance(mm, tuple) else mm / 1000.0) for f, mm in pn}
                 if rep == args.video_seed and not args.no_video and len(grid) == 1 \
                         and len(sqs) == 1:
                     kw["video"] = vid / f"20260905-{h['tag']}_{args.stand}_{tg}.mp4"

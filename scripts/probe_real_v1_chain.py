@@ -192,6 +192,31 @@ def _squeeze_cmd(m, mik, dik, d, obj: str, acts: dict, depth) -> dict:
     return {j: float(dik.qpos[mik.jnt_qposadr[mik.joint(j).id]]) for j in acts}
 
 
+def _slide_cmd(m, mik, dik, d, obj: str, acts: dict, slide: dict) -> dict:
+    """Move named pads ALONG the shaft's axis, from the commanded pose: `slide` is
+    {finger: metres}, positive = away from the shaft's centre (toward the near end), which is
+    how a pad is taken OFF a shaft when it has no radial room to retract -- the yaw joint has
+    the travel the flexion joints lack at 95% extension. Same IK-from-command rule as
+    `_squeeze_cmd`, for the same reason."""
+    o = d.body(obj).xpos.copy()
+    ax = d.body(obj).xmat.reshape(3, 3)[:, 2]
+    dik.qpos[:] = d.qpos
+    for a_i in range(m.nu):
+        jid = m.actuator_trnid[a_i, 0]
+        if jid >= 0 and m.jnt_type[jid] in (mujoco.mjtJoint.mjJNT_HINGE,
+                                            mujoco.mjtJoint.mjJNT_SLIDE):
+            dik.qpos[mik.jnt_qposadr[jid]] = float(d.ctrl[a_i])
+    dik.qvel[:] = 0.0
+    mujoco.mj_forward(mik, dik)
+    for f, sl in slide.items():
+        if not sl:
+            continue
+        t = dik.body(TIPS[f]).xpos.copy()
+        sgn = 1.0 if float((t - o) @ ax) >= 0.0 else -1.0
+        ik_finger(mik, dik, f, t + sgn * float(sl) * ax, iters=200)
+    return {j: float(dik.qpos[mik.jnt_qposadr[mik.joint(j).id]]) for j in acts}
+
+
 def _support(m, d, obj: str):
     """Contacts between the tool and whatever is holding it up -- floor, table, or seat.
 
@@ -257,7 +282,8 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
           video: Path | None = None, film: Path | None = None,
           cam=(120.0, -18.0, 0.36), video_every: int = 12, trace: bool = False,
           video_size=(640, 480), cam_look=None,
-          gait_scan: str = "grip") -> dict:
+          gait_scan: str = "grip",
+          step_hook=None, ctx: dict | None = None) -> dict:
     scene = Path(scene_path) if scene_path is not None else \
         morph_run / ("arm_scene.xml" if arm_ik is not None else "frozen_scene.xml")
     pg._MODEL_PATH["path"] = str(scene)
@@ -440,6 +466,8 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
                 d.xfrc_applied[bid_obj, 3:6] = -brake[0] * np.tanh(w / BRAKE_W0) * ax
             mujoco.mj_step(m, d)
             _integrate()
+            if step_hook is not None:
+                step_hook(step_i[0])
             step_i[0] += 1
             if watch[0] and step_i[0] % CONTROL_DECIMATION == 0:
                 npd = pg._hand(m, d, obj)[2]
@@ -578,6 +606,13 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         carry_ik = max(carry_ik, ik_finger(mik, dik, f, centroid + R @ (tip0[f] - centroid),
                                            iters=400))
     end = {j: float(dik.qpos[mik.jnt_qposadr[mik.joint(j).id]]) for j in acts}
+    if ctx is not None:
+        # What the turn is made of, for a per-step probe: the achieved tips it rotates, the
+        # pivot, the rigid-IK end pose and the grasp command it is added to.
+        ctx["turn"] = {"tip0": {f: tip0[f].tolist() for f in FINGERS}, "centroid": centroid.tolist(),
+                       "angle": float(angle), "q0": dict(q0), "end": dict(end), "anchor": dict(anchor),
+                       "step0": int(step_i[0]), "turn_steps": int(turn_steps), "budget": float(budget),
+                       "carry_ik_mm": float(carry_ik * 1e3)}
 
     # GRIP THROUGH THE TURN, or do not. `--carry-squeeze` closes the hand AFTER the hold, by
     # which time the shaft has already rolled itself upright inside a loose grasp; this closes
@@ -597,7 +632,24 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
     # straddle the shaft and describe the arcs about the pivot -- so they are the ones pulled
     # `turn_relief` radially out of the shaft, from the COMMANDED pose, as a constant offset
     # carried through the sweep. The thumb keeps the full squeeze and its moment arm.
-    if turn_relief > 0.0:
+    # A dict relieves named fingers by named amounts (m) -- {"middle": 0.02} opens the middle
+    # 20 mm and keeps thumb + index as a two-point pinch, about which the tool is free to swing.
+    if isinstance(turn_relief, dict):
+        radial = {f: -float(v) for f, v in turn_relief.items() if not isinstance(v, (list, tuple))}
+        axial = {f: float(v[1]) for f, v in turn_relief.items() if isinstance(v, (list, tuple))}
+        if radial:
+            rl = _squeeze_cmd(m, mik, dik, d, obj, acts, {f: radial.get(f, 0.0) for f in FINGERS})
+            for j, a in acts.items():
+                sq0[j] += rl[j] - float(d.ctrl[a])
+        if axial:
+            # from the pose the radial part leaves, so both compose
+            for j, a in acts.items():
+                d.ctrl[a] += sq0[j]
+            sl = _slide_cmd(m, mik, dik, d, obj, acts, axial)
+            for j, a in acts.items():
+                d.ctrl[a] -= sq0[j]
+                sq0[j] += sl[j] - (float(d.ctrl[a]) + sq0[j])
+    elif turn_relief > 0.0:
         rl = _squeeze_cmd(m, mik, dik, d, obj, acts,
                           {"thumb": 0.0, "index": -turn_relief, "middle": -turn_relief})
         for j, a in acts.items():
@@ -1473,7 +1525,7 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         "load_target": load_target, "force_target": force_target, "reg_band": reg_band,
         "regrasp": bool(regrasp),
         "trim_max_deg": round(float(np.degrees(max(abs(v) for v in trim.values()))), 2),
-        "turn_squeeze_mm": turn_squeeze * 1000, "turn_relief_mm": turn_relief * 1000,
+        "turn_squeeze_mm": turn_squeeze * 1000, "turn_relief_mm": ({f: (v * 1000 if not isinstance(v, (list, tuple)) else [v[0], v[1] * 1000]) for f, v in turn_relief.items()} if isinstance(turn_relief, dict) else turn_relief * 1000),
         # HOW MUCH THE TOOL MOVED IN THE HAND, worst case from the settled grasp to the
         # moment it stands. Past "pressed" the chain is deliberately changing grasp, so the
         # measure stops there. A held carry reads ~0 on both however far the arm travels.

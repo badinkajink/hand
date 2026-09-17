@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pinch-and-swing reorientation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#EEF1F4; --card:#FFFFFF; --sunk:#E4E9EE;
+  --ink:#1A2127; --ink2:#48545D; --ink3:#77848D; --rule:#D2DAE1; --rule2:#E2E8ED;
+  --s1:#BE7514; --s2:#4A7FC4; --s3:#5E8F5A; --ref:#8A959D;
+  --good:#3F7A46; --bad:#A8443C;
+  --shadow:0 1px 2px rgba(16,26,34,.06),0 8px 24px -14px rgba(16,26,34,.28);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
+  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
+  --s1:#E39A2E; --s2:#7BA7E0; --s3:#8AC286; --ref:#79858E; --good:#6FB076; --bad:#DE8078;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+}}
+:root[data-theme="dark"]{
+  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
+  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
+  --s1:#E39A2E; --s2:#7BA7E0; --s3:#8AC286; --ref:#79858E; --good:#6FB076; --bad:#DE8078;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);
+  font:400 17px/1.62 "Source Serif 4",Georgia,"Times New Roman",serif;
+  -webkit-font-smoothing:antialiased;padding:0 20px 96px;margin:0}
+.wrap{max-width:1020px;margin:0 auto}
+.col{max-width:70ch}
+h1,h2,h3,.mono,.tag,th{font-family:Archivo,"Helvetica Neue",Arial,sans-serif}
+.mono,code,td.num,.tick,.val,.ser,.mark,.note,.axlab,pre{
+  font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+header{padding:64px 0 30px;border-bottom:1px solid var(--rule)}
+.eyebrow{font:500 12px/1 "IBM Plex Mono",monospace;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--ink3)}
+h1{font-size:clamp(30px,4.6vw,48px);line-height:1.05;font-weight:700;letter-spacing:-.022em;
+  margin:16px 0 0;text-wrap:balance;max-width:22ch}
+.lede{font-size:20px;line-height:1.55;color:var(--ink2);margin:18px 0 0;max-width:62ch}
+.byline{margin-top:22px;font:400 13px/1.5 "IBM Plex Mono",monospace;color:var(--ink3)}
+section{padding:46px 0;border-bottom:1px solid var(--rule2)}
+section:last-of-type{border-bottom:0}
+h2{font-size:27px;font-weight:700;letter-spacing:-.018em;margin:0 0 6px;text-wrap:balance}
+h3{font-size:18px;font-weight:600;letter-spacing:-.008em;margin:34px 0 8px}
+h2 + .sub{color:var(--ink3);font:400 14px/1.5 "IBM Plex Mono",monospace;margin:0 0 24px}
+p{margin:0 0 17px}
+strong{font-weight:600}
+ul,ol{margin:0 0 17px;padding-left:20px}
+li{margin:0 0 8px}
+figure{margin:28px 0}
+figure video,figure img{display:block;width:100%;border-radius:10px;background:var(--sunk);
+  box-shadow:var(--shadow)}
+figcaption{margin-top:11px;font:400 14px/1.55 "IBM Plex Mono",monospace;color:var(--ink3);
+  max-width:82ch}
+.chart{display:block;width:100%;height:auto;background:var(--card);border:1px solid var(--rule);
+  border-radius:10px;margin:24px 0}
+.col > .tw,.col > figure,.col > .chart,.col > .duo{
+  width:min(1020px,calc(100vw - 40px));max-width:none}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:28px 0}
+@media (max-width:720px){.duo{grid-template-columns:1fr}}
+.duo figure{margin:0}
+.narrow{max-width:560px}
+.grid{stroke:var(--rule2)}
+.tick{font-size:11px;fill:var(--ink3)}
+.axlab{font-size:11.5px;fill:var(--ink3);letter-spacing:.05em}
+.val{font-size:12px;font-weight:500;fill:var(--ink2)}
+.ser{font-size:12.5px;font-weight:500}
+.note{font-size:11.5px;fill:var(--ink3)}
+.tw{overflow-x:auto;margin:24px 0;border:1px solid var(--rule);border-radius:10px;
+  background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th{font:600 12px/1.3 Archivo,sans-serif;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink3);text-align:left;padding:13px 14px;border-bottom:1px solid var(--rule);
+  white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid var(--rule2);vertical-align:top}
+td.wrap{white-space:normal;min-width:22ch}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;font-size:13.5px;
+  white-space:nowrap}
+tbody tr.hi td{background:color-mix(in oklab,var(--s1) 9%,transparent)}
+.ok{color:var(--good);font-weight:600}
+.no{color:var(--bad);font-weight:600}
+td.cell{text-align:center;font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:500}
+td.c4{background:color-mix(in oklab,var(--good) 28%,var(--card));color:var(--ink)}
+td.c3{background:color-mix(in oklab,var(--good) 16%,var(--card))}
+td.c2{background:color-mix(in oklab,var(--s1) 16%,var(--card))}
+td.c1{background:color-mix(in oklab,var(--bad) 12%,var(--card))}
+td.c0{background:color-mix(in oklab,var(--bad) 22%,var(--card));color:var(--ink2)}
+.keep{border:1px solid var(--rule);border-left:3px solid var(--s2);border-radius:10px;
+  padding:20px 24px;margin:28px 0;background:var(--card)}
+.keep .tag{display:block;font:700 12px/1 Archivo,sans-serif;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--s2);margin-bottom:11px}
+.keep p:last-child,.keep ul:last-child{margin-bottom:0}
+pre{background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:16px 18px;
+  overflow-x:auto;font-size:13px;line-height:1.6;margin:22px 0}
+code{font-size:.92em;background:var(--sunk);padding:1px 4px;border-radius:4px;
+  margin:0 -1px;white-space:nowrap}
+footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",monospace}
+footer a{color:var(--s2)}
+.dim{color:var(--ink3);font-size:.9em}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">MorphoHand &#183; real_v1 &#183; 16 September 2026</div>
+  <h1>In-hand screwdriver reorientation on the calibrated plant by pinch and swing</h1>
+  <p class="lede">On the bench-calibrated actuator with Coulomb-like contact, the fingers stand
+  the screwdriver up tip-down without the arm: one finger releases and the tool swings about the
+  thumb&#8211;index pinch under its own weight. D8 does it 6 of 6 at a 12 mm squeeze, D6 2 of 2
+  with the thumb at the index&#8217;s station, and D2 and D4, the bench&#8217;s 10-of-10 and
+  9-of-10 hands, with the thumb at 30 mm. The contact-fixed rotation every earlier result used
+  is unreachable from the fitter&#8217;s grasp on this hand, 0&#8211;20&#176; for any grasp it
+  accepts, and the rigid plant had been executing it by force.</p>
+  <div class="byline">{{N_SWING}} chain rollouts and {{N_PROBE}} instrumented runs &#183; plant
+  <code>cal</code>: kp 0.5, kv 0.02, force ceiling 0.35 N&#183;m, elliptic cone, impratio 10,
+  pad &#956; 1.0 (assumed; bracketed 0.6&#8211;1.5) &#183; <code>cal25</code>: the same at kp 0.25
+  &#183; signed cosine, +1 = tip down &#183; held = two pads at the tool&#8217;s 0.240 N</div>
+</header>
+
+<section>
+<div class="col">
+<h2>Why the contact-fixed turn stops on a compliant hand</h2>
+<p class="sub">D6, calibrated plant, the chain&#8217;s own turn: per-step joint, tip and contact record</p>
+<p>The chain&#8217;s turn rotates the achieved fingertips about a pivot between the driver pads
+and solves the joint angles that put the tips on those arcs with a rigid IK model. The
+per-step record on D6 shows where the command goes. The yaw joints, which carry the turn,
+move 18&#8211;40&#8201;% of what they are told: thumb 2.5&#176; of 13.7, index 5.0&#176; of 21.1,
+middle 11.4&#176; of 28.5. The error grows in proportion to the command, the actuator torque
+(0.5 N&#183;m/rad &#215; 0.3 rad &#8776; 0.15 N&#183;m, matching the recorded maximum) is balanced
+by tangential force at the pads, and the pads creep over the shaft at 6&#8211;10 mm/s. The
+tool turns 4.7&#176;.</p>
+</div>
+{{CHART_TRACE}}
+<div class="col">
+<p>Two things in the record say why. The rigid IK never reached the arcs: <code>carry_ik</code>
+is 42 mm, the distance by which the fingers fall short of the tips a 90&#176; contact-fixed
+rotation needs. And under a Coulomb-like contact model (elliptic cone, impratio 10) the yaws
+move even less (thumb +2.3&#176; against &#8722;13.2 asked), the pads hold, and the tool leaves
+the hand when the index pad loses contact at u = 0.91. The commanded motion is not a rigid
+rotation the fingers can make; it is executed only by force against friction, which the kp 30
+plant had and the servo does not.</p>
+</div>
+{{TABLE_PROBES}}
+<div class="col">
+<h3>The reachable rotation from the grasp is 0&#8211;20&#176;</h3>
+<p>Per-finger IK residual of the contact-fixed rotation from the lifted state, over angle and
+pivot height, D6. At 10&#176; the index is already 6 mm short of its arc: it sits at mcp 8&#176;,
+pip 13&#176;, nearly straight, and a tip-down rotation asks it to extend. The fitter places the
+grasp at 62.5 mm below the mounts, 95&#8201;% of the 68 mm mount-to-pad chain, and refuses every
+shallower depth at this straddle because a flexed finger&#8217;s pad lands inside the shaft.
+The pads can move up and along the shaft from this grasp, nothing else.</p>
+</div>
+{{TABLE_FEAS}}
+{{TABLE_WORKSPACE}}
+</section>
+
+<section>
+<div class="col">
+<h2>Pinch and swing</h2>
+<p class="sub">release the middle, keep thumb and index, let gravity turn the tool about the pinch line</p>
+<p>A rotation about the line through two contact points needs no finger motion at all. With
+the thumb and index pinching the shaft at one station and the middle pad off the shaft, the
+tool&#8217;s centre of mass is 15&#8211;30 mm from the pinch line and gravity turns it until the
+long end hangs below. Which end drops is set by which side of the pinch the centre lies on,
+and the tool is laid on the table with its tip on that side (<code>--yaws 180</code>). On D6
+the middle is the finger with room to release (27&#176; of mcp against the index&#8217;s 8&#176;);
+pulling its command 20 mm out takes it 2&#8211;5 mm off the shaft, and that is enough.</p>
+</div>
+<figure><img src="{{I_D6_STRIP}}" alt="D6 swing filmstrip">
+<figcaption>D6, calibrated plant, tool laid tip toward the middle&#8217;s side. Held flat on three pads until
+the middle lets go at ~1.8 s; a 0.3 s swing into a tip-down hang from the thumb&#8211;index pinch.</figcaption></figure>
+<div class="duo">
+<figure><video controls muted playsinline preload="metadata" src="{{V_D6}}"></video>
+<figcaption>D6, <code>--pinch middle:20</code>, thumb at the plans&#8217; 10 mm. Swing to cos +0.97 on two pads
+at 1.97 N; the arm only carries it to the seat; the handover loses it.</figcaption></figure>
+<figure><video controls muted playsinline preload="metadata" src="{{V_D8}}"></video>
+<figcaption>D8, 12 mm squeeze, <code>middle:20+thumb:-4+index:-4</code>. The chain never drops the tool: swing,
+carry, seat, handover and eight gait cycles, ending 9&#176; off vertical.</figcaption></figure>
+</div>
+<figure><img src="{{I_D2_SEAMS}}" alt="D2 seams">
+<figcaption>D2 (sv1_w2360_b075, the bench&#8217;s 10-of-10 hand), thumb at 30 mm. Swing to +0.50, regrip to
++0.99, carried to the seat and through the handover with the palm horizontal throughout; the gait
+knocks it over in frame 15.</figcaption></figure>
+<div class="col">
+<p>The contact model decides whether any of this is visible. Under the template&#8217;s
+pyramidal cone at impratio 1 the released middle pad still reads 0.26 N and the tool does not
+move; under the elliptic cone at impratio 10 it swings. The pad friction of 2.4 the flat pads
+ship with brakes the swing at 0.3 N of residual contact; at 1.0 it goes, at 0.6 the two-pad
+pinch loses the tool on D6 and holds it on D8.</p>
+</div>
+{{TABLE_D6PINCH}}
+</section>
+
+<section>
+<div class="col">
+<h2>Eight hands, three knobs</h2>
+<p class="sub">released finger, thumb station, pinch squeeze &#183; tip-down heading &#183; kp 0.5 and 0.25</p>
+<p>The swing succeeds when the released pad actually leaves the shaft and the remaining pinch
+holds the swinging tool. Both are grasp properties the fitter never scored. With the plans&#8217;
+grasp (thumb 10 mm from the shaft centre, index at 32&#8211;40, middle at &#8722;32 to &#8722;43) the
+middle releases on D3, D6, D7 and D8 and stays on the shaft on D1, D2, D4 and D5; the pinch
+holds on D6 and D8, holds D3 once squeezed 4&#8211;8 mm, and drops on D7 (1.0 N per pad). Moving
+the thumb to the index&#8217;s station makes a pinch line perpendicular to the shaft: D7 then
+holds, D2 and D4 swing, and D6 carries the tool through the whole chain.</p>
+</div>
+{{TABLE_HANDS}}
+<div class="col">
+<h3>Seeds, squeeze and plant</h3>
+<p>Six seeds at 0.5 mm of spawn jitter on the three hands that swing at the plans&#8217; thumb
+station. D8 needs the 12 mm squeeze to lift at all and then swings 6 of 6; D6 swings 4&#8211;5
+of 6 at 8&#8211;10 mm and the extra pinch squeeze hurts it (the tool is pushed onto the middle
+pad, which then cannot leave); D3 swings partially. At kp 0.25, the plant the settled re-fit
+implies, no hand swings: the pinch force halves to ~1 N per pad and the tool slides out during
+the swing on every hand. The pinch force is commandable (flexion is the direction these
+fingers have room in), so this is a control margin to size on the bench, not a wall.</p>
+</div>
+{{TABLE_SEEDS}}
+<div class="col">
+<h3>Friction and torsional friction at the pinch</h3>
+<p>D8 at 12 mm squeeze. Pad friction 0.6&#8211;1.0 swings fully; 1.2 swings to +0.72; 1.5 does not
+release. Torsional friction at the contacts (condim 4, coefficient in metres of effective patch
+radius) of 0.003 halves the swing and 0.01 stops it; the simulator&#8217;s default point contact
+has none. The real pads are flat 21 mm faces on a 25 mm shaft and their torsional resistance is
+unmeasured. It is the one number that decides whether the swing transfers, and a two-finger
+pinch with the middle opened, read by the vane tag, measures it directly.</p>
+</div>
+{{TABLE_SENS}}
+</section>
+
+<section>
+<div class="col">
+<h2>What this settles, and the next measurements</h2>
+<ul>
+<li><strong>The finger-only reorientation is recovered on the calibrated plant</strong>, as a
+release-and-swing about a two-pad pinch, with the tool ending vertical tip-down in the hand at
+cos +0.92&#8211;0.98 on two pads at 1.8&#8211;3.2 N. It runs on the hands the bench holds best
+once the thumb station is set per hand. It does not run at kp 0.25 at the plans&#8217; squeeze.</li>
+<li><strong>Bench test, first.</strong> Grip as the plan does, then open the middle finger to
+its open pose and read the vane tag: does the tool swing, how far, and does the pinch keep it.
+Do it on D8 and D6 at the plans&#8217; 10 mm squeeze and at 12&#8211;14, then on D2, D4 and D7 with
+the thumb re-fitted to 20&#8211;30 mm (<code>real_v1_export_plan.py</code> takes
+<code>thumb_axial</code>). Acceptance: a swing past 60&#176; retained on 4 of 5 trials on any
+hand. Falsification: no swing at any squeeze, which puts the pads&#8217; torsional friction above
+0.005 and sends the design to a rounder pad. This is the same station command sequence as the
+bench regrip; no new software.</li>
+<li><strong>Measure the pad&#8217;s torsional friction and &#956;</strong> from that test: the
+squeeze at which the swing starts, against the 0.0036 N&#183;m gravity torque, gives the
+torsional coefficient; the squeeze at which the pinch drops the tool gives &#956;. Then set
+<code>cal</code> from measurements instead of the 1.0 / 0 assumed here.</li>
+<li><strong>Re-fit the grasp for the swing.</strong> <code>fit_real_v1_pose.py</code> should
+score two things it does not: radial room for the middle pad to leave the shaft, and the thumb
+at the index&#8217;s station. <code>--thumb-axials</code> in the chain driver is the manual
+version; the fitter is where it belongs.</li>
+<li><strong>The re-close is the next element.</strong> After the swing the tool hangs from two
+pads. The chain&#8217;s regrip (0.3 mm on all three, from the lying-tool command) helps on D2 and
+D7 and hurts on D6; a middle re-close targeted at the now-vertical shaft at the pinch station
+is the primitive that turns the hang into a three-pad hold before the carry.</li>
+<li><strong>An RL policy on this plant is now a well-posed problem.</strong> The plant drops the
+tool (kp 0.25, &#956; 0.6, torsional 0.01), so there is a disturbance to learn, and the physics
+says the feasible in-hand turn is release-and-catch, not a contact-fixed roll. A reorient
+policy trained on <code>cal</code> with the tag pose in its observation and a residual on the
+pinch-and-release sequence is the training run to make; the 2026-08 policies were trained on
+the rigid plant against a roll the servo cannot produce.</li>
+</ul>
+</div>
+</section>
+
+<footer>
+Built by <code>scripts/swing_reorient_page.py</code> from
+<code>docs/experiments/20260916-swing_reorient/swing_reorient.json</code>
+(<code>scripts/swing_reorient_data.py</code>). Probes: <code>scripts/real_v1_turn_probe.py</code>
+(per-step record, contact variants, feasibility map), <code>scripts/real_v1_turn_workspace.py</code>;
+sweeps: <code>scripts/real_v1_chain_hands.py --plant cal --angles 0 --pinch ... --thumb-axials ...
+--yaws 180</code> under <code>docs/experiments/20260916-swing_{cal,cal25,pinch,axial,thumb,seeds}/</code>;
+tables: <code>scripts/real_v1_swing_summary.py</code>; films: <code>docs/experiments/20260916-turn_probe/films/</code>.
+Mechanism in <code>scripts/probe_real_v1_chain.py</code>: <code>turn_relief</code> as a per-finger dict
+(radial mm, or <code>("axial", m)</code>), <code>_slide_cmd</code>.
+</footer>
+</div>
+</html>

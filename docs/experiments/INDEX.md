@@ -6,6 +6,7 @@ changes. Regenerate with the builder named in each page's footer.
 
 | date | subject | local file | artifact |
 |---|---|---|---|
+| 2026-09-16 | In-hand screwdriver reorientation on the calibrated plant by pinch and swing | [20260916-swing_reorient/20260916-swing_reorient.html](20260916-swing_reorient/20260916-swing_reorient.html) | https://claude.ai/artifact/D8gDHA9vLfGQVd6zWZySsh |
 | 2026-09-16 | Reorientation mechanism on three plants: shipped, calibrated and bench | [20260916-turn_mechanism/20260916-turn_mechanism.html](20260916-turn_mechanism/20260916-turn_mechanism.html) | https://claude.ai/artifact/B7e6WBCg4fwqCo6frWvx1s |
 | 2026-09-16 | Chain on the bench-calibrated plant | [20260916-calibrated_plant_chain/20260916-calibrated_plant_chain.html](20260916-calibrated_plant_chain/20260916-calibrated_plant_chain.html) | https://claude.ai/artifact/B7ZBqjURdMyChprN2kJNf5 |
 | 2026-09-16 | Basketball grasp on the real_v1 hand: reach, seating and held lift across three gantry layouts | [20260916-basketball/20260916-basketball_grasp.html](20260916-basketball/20260916-basketball_grasp.html) | https://claude.ai/artifact/1xESTQVd7i2p2tR1EgsZWv |
