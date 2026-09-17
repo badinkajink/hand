@@ -49,7 +49,8 @@ def make_scene(base: Path, out: Path, kp: float, forcerange: float, frictionloss
 
 def replay(scene: Path, plan: dict, traj: Path | None, *, post: bool, gravity: bool,
            seed: int = 0, jitter_xy: float = 0.0, jitter_yaw: float = 0.0,
-           video: Path | None = None, fps: int = 30, width: int = 640, height: int = 480) -> dict:
+           video: Path | None = None, fps: int = 30, width: int = 640, height: int = 480,
+           cam_view: tuple[float, float, float] = (0.35, 150.0, -20.0)) -> dict:
     import mujoco
     m = mujoco.MjModel.from_xml_path(str(scene))
     if not gravity:
@@ -96,9 +97,7 @@ def replay(scene: Path, plan: dict, traj: Path | None, *, post: bool, gravity: b
         cam = mujoco.MjvCamera()
         cam.type = mujoco.mjtCamera.mjCAMERA_FREE
         cam.lookat[:] = d.xpos[bid]
-        cam.distance = 0.35
-        cam.azimuth = 150
-        cam.elevation = -20
+        cam.distance, cam.azimuth, cam.elevation = cam_view
     frame_every = max(1, int(round(1.0 / (fps * m.opt.timestep))))
     step_count = [0]
 
