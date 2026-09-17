@@ -107,16 +107,41 @@ def test_a_manual_gantry_move_keeps_fingers_legal_but_retires_the_morphology(tmp
     rt.close()
 
 
-def test_homing_forgets_a_manual_mount(tmp_path):
+def test_homing_forgets_a_manual_mount_but_knows_where_the_rails_are(tmp_path):
     rt = _ready(tmp_path)
     rt.manual_mounts({"thumb": (-45.0, 5.0)})
     wait_idle(rt)
     rt.home(HOME_CONFIRMATION, force=True)
     wait_idle(rt)
     st = rt.state()
-    assert st["manual_mounts"] is False and st["mount_positions"] is None
-    with pytest.raises(RuntimeErrorState, match="apply the selected morphology"):
+    assert st["manual_mounts"] is False and st["mounts_applied"] is False
+    # the home position is a known palm-frame mount, read back from the board
+    assert set(st["mount_positions"]) == {"thumb", "index", "middle"}
+    assert st["mount_positions"]["thumb"] != {"x": -45.0, "y": 5.0}
+    # ... so the fingers can be moved from the manual panel without re-applying a morphology
+    rt.manual_joints({"thumb": {"mcp": 10.0}})
+    assert rt.state()["last_command"]["thumb"]["mcp"] == 10.0
+    rt.close()
+
+
+def test_manual_control_needs_no_plan(tmp_path):
+    """The manual panel is how a sign gets checked or a finger walked clear before any
+    plan exists: home + torque + verified signs is the whole interlock."""
+    rt = HandRuntime(MockHardwareBackend(), logs_dir=tmp_path, signs_checked=True)
+    with pytest.raises(RuntimeErrorState, match="home the gantries"):
         rt.manual_joints({"thumb": {"mcp": 10.0}})
+    rt.home(HOME_CONFIRMATION)
+    wait_idle(rt)
+    assert rt.state()["plan"] is None
+    rt.manual_command("thumb_mcp -10")
+    assert rt.state()["last_command"]["thumb"]["mcp"] == -10.0
+    rt.manual_command("thumb_x -40")                 # one axis: the other is known from home
+    wait_idle(rt)
+    assert rt.state()["mount_positions"]["thumb"]["x"] == -40.0
+    assert rt.state()["manual_mounts"] is True
+    rt.set_servo_torque(2)                           # TORQUE_OFF
+    with pytest.raises(RuntimeErrorState, match="torque is not ON"):
+        rt.manual_joints({"thumb": {"mcp": 0.0}})
     rt.close()
 
 

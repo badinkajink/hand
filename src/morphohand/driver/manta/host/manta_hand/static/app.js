@@ -303,26 +303,29 @@ async function moveMount(finger) {
   }, `Moving the ${finger} gantry`);
 }
 
-function renderManual(s, {busy, blocked, motionReady}) {
+function renderManual(s, {busy, blocked}) {
+  /* The manual panel needs a home, torque and verified signs -- not a plan and not its
+   * morphology. Every joint is bounds-checked against the servo's calibrated range. */
+  const manualReady = s.homed && s.signs_checked && s.servo_torque === 1;
   const mountsOk = !busy && !blocked && s.homed;
   for (const btn of document.querySelectorAll('[data-mount-go]')) btn.disabled = !mountsOk;
   for (const el of document.querySelectorAll('[data-knob]')) {
     const joint = el.dataset.knob.startsWith('joint-');
-    const ok = joint ? (!busy && !blocked && motionReady) : mountsOk;
+    const ok = joint ? (!busy && !blocked && manualReady) : mountsOk;
     $(`${el.dataset.knob}-num`).disabled = !ok;
     $(`${el.dataset.knob}-range`).disabled = !ok;
   }
   $('manual-line').disabled = busy || blocked;
   $('manual-send').disabled = busy || blocked;
-  $('manual-zero').disabled = busy || blocked || !motionReady;
+  $('manual-zero').disabled = busy || blocked || !manualReady;
   $('manual-sync').disabled = busy || blocked;
 
   const mb = $('manual-mount-badge');
   mb.textContent = s.manual_mounts ? 'hand-placed' : (s.mounts_applied ? 'plan morphology' : 'unknown');
   mb.className = `badge ${s.manual_mounts ? '' : (s.mounts_applied ? '' : 'muted')}`;
   const jb = $('manual-joint-badge');
-  jb.textContent = motionReady ? 'live' : 'interlocked';
-  jb.className = `badge ${motionReady ? '' : 'muted'}`;
+  jb.textContent = manualReady ? 'live' : 'interlocked';
+  jb.className = `badge ${manualReady ? '' : 'muted'}`;
   if (VIEW_ONLY) {
     for (const el of $('panel-manual').querySelectorAll('button, input')) el.disabled = true;
   }
