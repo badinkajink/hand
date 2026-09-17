@@ -132,6 +132,9 @@ def main():
         "V_D7_PL0": uri("videos/rv05_manual_b85__fast_pl0__s0.mp4"),
         "V_D7_PL25": uri("videos/rv05_manual_b85__fast_pl25__s0.mp4"),
         "V_D7_GAIT": uri("videos/D7_rv05_manual_b85__cal__s0.mp4"),
+        "I_RL_STRIP": uri("d6_cal_rl_m270_strip.png"),
+        "I_RL_EVAL": uri("d6_cal_rl_eval.png"),
+        "V_RL": uri("videos/d6_cal_rl_m270.mp4"),
     }
     for k, v in sub.items():
         tpl = tpl.replace("{{" + k + "}}", v)
