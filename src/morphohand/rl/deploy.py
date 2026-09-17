@@ -93,9 +93,10 @@ def make_env_cfg(frozen, keyframe, morph, bfc, *, enable_target_axis: bool,
     )
 
 
-def build_actor(env_cfg, checkpoint: Path, work_dir: Path):
+def build_actor(env_cfg, checkpoint: Path, work_dir: Path, render_mode: str | None = None):
     """Build an env from env_cfg, instantiate the runner's actor sized to that
-    env, load the checkpoint, return (env, wrapped, actor)."""
+    env, load the checkpoint, return (env, wrapped, actor). `render_mode="rgb_array"`
+    makes `env.unwrapped.render()` return frames at the cfg's viewer size."""
     from mjlab.envs import ManagerBasedRlEnv
     from mjlab.rl import RslRlVecEnvWrapper
     from mjlab.tasks.manipulation.rl.runner import ManipulationOnPolicyRunner
@@ -103,7 +104,7 @@ def build_actor(env_cfg, checkpoint: Path, work_dir: Path):
     from morphohand.rl.ppo_config import PPOConfig
     from morphohand.rl.ppo_runner import build_runner_cfg
 
-    env = ManagerBasedRlEnv(cfg=to_mjlab_cfg(env_cfg), device="cuda:0", render_mode=None)
+    env = ManagerBasedRlEnv(cfg=to_mjlab_cfg(env_cfg), device="cuda:0", render_mode=render_mode)
     wrapped = RslRlVecEnvWrapper(env)
     runner = ManipulationOnPolicyRunner(
         env=wrapped,

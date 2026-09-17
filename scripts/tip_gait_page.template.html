@@ -92,8 +92,9 @@ footer a{color:var(--s2)}
   scene that produced the match the plate sits on the mounting plane; the built plate is 25 mm higher,
   and with it in place the same plan tips the tool to {{D7_FAST_PL25}}&#176; from vertical on the
   template contact model and drops it on the Coulomb-like one. Commanding a larger arc adds nothing,
-  and re-applying the plan&#8217;s turn after a regrip returns the tool to flat. An RL environment on
-  the calibrated plant now exists for D6.</p>
+  and re-applying the plan&#8217;s turn after a regrip returns the tool to flat. A first RL policy on the
+  calibrated plant (D6, 20 M steps) lifts, rolls the tool 25&#176; on three pads and holds it 64 of 64,
+  stopping where the fingers&#8217; contact-fixed reach ends.</p>
   <div class="byline">{{N_PLATE}} bench replays across eight hands, two plants and two plate heights &#183;
   {{N_ANGLE}} replays of the rv05 plan family &#183; two-tip gait on rv05 &#183; plants <code>fast</code>
   (kp 0.5, kv 0.02, pyramidal cone, impratio 1, pad &#956; 2.4) and <code>cal</code> (same servo, elliptic
@@ -191,9 +192,7 @@ the reference. MuJoCo-Warp compiles the elliptic cone and impratio 10: a 12-iter
 environments trained at 3.05 s per iteration (8,000 steps/s).</p>
 <ul>
 <li><strong>D6</strong> (sv1_u0308_b050) holds the evaluator&#8217;s lift on <code>cal</code>: peak 97 mm, three
-pads at the end, contact persistence 1.00. A 20 M-step run (3072 environments, seed 0, the
-<code>b_liveA</code> recipe without a live Policy A, the residual active from step 58 on top of the scripted
-lift, friction DR 0.55&#8211;1.15, object pose in the observation) started at 21:44.</li>
+pads at the end, contact persistence 1.00.</li>
 <li><strong>D8</strong> (sv1_w0099_b100) drops it: peak 86 mm, persistence 0.53, two pads through the ramp. The
 chain&#8217;s arm lift held D8 21 of 34 at 10 mm and 12 of 12 at 12 mm; a 12 mm flat scene has to be
 built before D8 trains.</li>
@@ -201,6 +200,33 @@ built before D8 trains.</li>
 randomisation (condim 4, 0&#8211;0.005). Both are unmeasured on the real pads and both changed the
 pinch-and-swing outcome on 2026-09-16.</li>
 </ul>
+
+<h3>One run on D6: a held 25&#176; roll, and then the workspace ceiling</h3>
+<p class="sub"><code>results/rl/20260916-2142-d6_cal_reorient_s0</code> &#183; <code>b_liveA</code> recipe without a
+live Policy A, residual (&#177;0.5 rad) active from step 58 over the scripted lift, 3072 environments,
+20 M steps, seed 0, friction DR 0.55&#8211;1.15, object pose in the observation &#183; 36 min &#183; evaluated
+deterministically over 64 rollouts of 250 steps (<code>policy_eval_suite.py</code>)</p>
+<p>The policy lifts the tool to 113 mm, keeps it on three pads through every step of every rollout,
+and rolls it from flat to <strong>cos 0.43 &#177; 0.01</strong> (65&#176; from vertical, a 25&#176; turn) between
+steps 30 and 100, then holds there. 64 of 64 held at the end, 0 of 64 reach cos 0.9, the 10&#8211;90 %
+band is 0.02 wide. Total pad force rises from 8 to 13 N as it turns (6.5 / 2.9 / 3.6 N on thumb /
+index / middle at the end), which is the over-clamp the health scorecard flags and more than the
+bench servos hold before their overload protection trips. The alignment term was still climbing at
+the last iteration (episode reward 2.7 at iteration 30, 16.7 at 270), so 20 M steps is not
+converged; the plateau at cos 0.43 is where the contact-fixed roll runs out of finger reach from
+this grasp (the 2026-09-16 workspace map put the ceiling at 20&#176; for D6&#8217;s fitted grasp, and
+the policy gets 25&#176; with a little pad sliding). The first policy on the calibrated plant does
+what the physics of that plant allows and stops where it says.</p>
+<figure><img src="{{I_RL_STRIP}}" alt="D6 cal policy, model 270, eight frames">
+<figcaption>D6, model 270, one deterministic rollout at 960&#215;720. Lift by step 30; the roll between
+steps 45 and 110 (the near end of the tool dips, the far end rises) with all three pads on the shaft; hold
+to step 249 at cos +0.45.</figcaption></figure>
+<div class="duo">
+<figure><video controls muted playsinline preload="metadata" src="{{V_RL}}"></video>
+<figcaption>The same rollout.</figcaption></figure>
+<figure><img src="{{I_RL_EVAL}}" alt="eval suite over 64 rollouts">
+<figcaption>64 rollouts: alignment cos (median and 10&#8211;90 %), height, total grip, fraction held.</figcaption></figure>
+</div>
 </div></section>
 
 <section><div class="col">
@@ -216,9 +242,16 @@ re-running with the plate at 25.</li>
 grip on the post; <code>fast</code> keeps all eight. The bench keeps all eight. Pad &#956; on the real pads, and
 whether the pop-out is a &#956; effect or an impratio effect: replay the grip alone with
 <code>real_v1_turn_probe.contact_variant</code> over &#956; 1.0&#8211;2.4 and impratio 1&#8211;10 on D8.</li>
-<li><strong>The RL run.</strong> Judge it on deterministic held-cos over seeds and plant draws, on the eval video,
-and on the input-replay test before any claim; the August policies on this hand ignored their
-observations.</li>
+<li><strong>The RL run is one seed at 20 M steps.</strong> Before any claim about what the policy can do:
+the input-replay test (<code>probe_obs_ablation.py</code>, replay mode) to show it reads the tool pose, three
+more seeds, and 60 M steps on one of them to see whether the plateau moves. A grasp that leaves the
+fingers room (the workspace map&#8217;s elevation &#8722;45 / depth 36.5 on D6 reaches 20&#176; by rigid IK; a
+policy may do better with sliding) and a residual budget that lets a finger leave the shaft are the two
+levers for the remaining 65&#176;; the reward has no term yet for the released-and-re-established finger
+the controlled turn needs.</li>
+<li><strong>Grip force.</strong> 13 N total at the end of the roll against the bench servos&#8217; overload
+cutoff: add the <code>grip_force_penalty</code> term (threshold 4 N) before the next run, or the policy
+will not transfer for a reason unrelated to the turn.</li>
 </ul>
 </div></section>
 
