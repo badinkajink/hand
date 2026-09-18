@@ -71,12 +71,13 @@ def forces(csv_name, lo=58, hi=250):
     return f, f.sum()
 
 
-def table_runs(e20, e60, e60m):
+def table_runs(e20, e60, e60m, eft):
     rows = []
     for label, run, w, e, csv in [
         ("20 M, model 270", "20260916-2142-d6_cal_reorient_s0", "off", e20, "20260917-d6_cal_20M_m270_trace.csv"),
         ("60 M, model 812", "20260917-1141-d6_cal_reorient_gp025_60M_s0", "+0.25 (wrong sign)", e60, "20260917-d6_cal_60M_gp025_m812_trace.csv"),
         ("60 M, model 812", "20260917-1653-d6_cal_reorient_gpm025_60M_s0", "&#8722;0.25", e60m, "20260917-d6_cal_60M_gpm025_m812_trace.csv"),
+        ("finetune of the +0.25 model 812, 20 M, model 270", "20260917-1844-d6_cal_reorient_ft_gpm5_20M_s0", "&#8722;5", eft, "20260917-d6_cal_ft_gpm5_m270_trace.csv"),
     ]:
         n = e["n"]
         held = int(round(e["hold_rate"] * n)); aligned = int(round(e["align_rate"] * n))
@@ -91,6 +92,7 @@ def table_runs(e20, e60, e60m):
 def main():
     e60 = load("20260917-d6_cal_60M_eval.json")
     e60m = load("20260917-d6_cal_60M_gpm025_eval.json")
+    eft = load("20260917-d6_cal_ft_gpm5_eval.json")
     e20 = load("20260917-d6_cal_20M_m270_eval_fixed.json")
     r0 = load("20260917-d6_cal_60M_eval_residual0.json")
     e60_r0 = r0["deterministic"]
@@ -117,13 +119,25 @@ def main():
         ks = sorted(d)
         k = min(ks, key=lambda x: abs(x - it))
         return d[k]
+    FT = "finetune of 60M +0.25 model 812, weight -5 (20M)"
     alm = dict(curves["60M (s0, grip term -0.25)"]["Episode_Reward/target_axis_alignment"])
     gm = dict(curves["60M (s0, grip term -0.25)"]["Episode_Reward/grip_force_excess"])
     sub = {
-        "TABLE_MAIN": table_main, "TABLE_EVAL": table_eval, "TABLE_RUNS": table_runs(e20, e60, e60m),
+        "TABLE_MAIN": table_main, "TABLE_EVAL": table_eval, "TABLE_RUNS": table_runs(e20, e60, e60m, eft),
         "COS60M": f"{e60m['final_cos_mean']:.3f}", "SD60M": f"{e60m['final_cos_sd']:.3f}", "DEG60M": deg(e60m["final_cos_mean"]),
         "ALM812": f"{at(alm, 812):.1f}", "GM812": f"{at(gm, 812):.2f}",
-        "FT_STATUS": os.environ.get("FT_STATUS", "Running at the time of writing; its evaluation is added here when it finishes."),
+        "COSFT": f"{eft['final_cos_mean']:.3f}", "SDFT": f"{eft['final_cos_sd']:.3f}", "DEGFT": deg(eft["final_cos_mean"]),
+        "TALFT": f"{eft['t_align_mean']:.0f}", "HOLDFT": f"{eft['hold_steps_mean']:.0f}", "ZFT": f"{eft['final_z_mean'] * 1000:.0f}",
+        "FFT": f"{eft['mean_force_thumb']:.1f} / {eft['mean_force_index']:.1f} / {eft['mean_force_middle']:.1f}",
+        "FT_TOT": f"{forces('20260917-d6_cal_ft_gpm5_m270_trace.csv')[1]:.1f}",
+        "FT_TOT_END": f"{forces('20260917-d6_cal_ft_gpm5_m270_trace.csv', 200)[1]:.1f}",
+        "FT_THUMB_MAX": f"{np.loadtxt(os.path.join(ROOT, '20260917-d6_cal_ft_gpm5_m270_trace.csv'), delimiter=',', skiprows=1)[:, 3].max():.1f}",
+        "GFT10": f"{at(dict(curves[FT]['Episode_Reward/grip_force_excess']), 10):.2f}",
+        "GFT270": f"{at(dict(curves[FT]['Episode_Reward/grip_force_excess']), 270):.2f}",
+        "AFT270": f"{at(dict(curves[FT]['Episode_Reward/target_axis_alignment']), 270):.1f}",
+        "I_STRIP_FT": uri("20260917-d6_cal_ft_gpm5_m270_strip.png"),
+        "V_RL_FT": uri("videos/d6_cal_ft_gpm5_m270.mp4"),
+        "I_EVAL_FT": uri("20260917-d6_cal_ft_gpm5_eval.png"),
         "I_STRIP_M": uri("20260917-d6_cal_60M_gpm025_m812_strip.png"),
         "V_RL_M": uri("videos/d6_cal_60M_gpm025_m812.mp4"),
         "I_EVAL_M": uri("20260917-d6_cal_60M_gpm025_eval.png"),

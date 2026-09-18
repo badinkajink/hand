@@ -1,0 +1,22 @@
+{
+  "label": "d6_cal_ft_gpm5_20M_m270",
+  "n": 64,
+  "steps": 250,
+  "align_thresh": 0.9,
+  "align_rate": 1.0,
+  "hold_rate": 1.0,
+  "success_rate": 1.0,
+  "t_align_mean": 143.125,
+  "hold_steps_mean": 106.78125,
+  "hold_steps_sd": 1.2050512177911776,
+  "final_cos_mean": 0.9688769578933716,
+  "final_cos_sd": 0.002495024586096406,
+  "final_z_mean": 0.13226619362831116,
+  "peak_cos_mean": 0.9699403047561646,
+  "drop_step_mean": null,
+  "n_lost": 0,
+  "three_finger_share": 0.9966369352244481,
+  "mean_force_thumb": 4.843014717102051,
+  "mean_force_index": 2.5275654792785645,
+  "mean_force_middle": 2.4023497104644775
+}
