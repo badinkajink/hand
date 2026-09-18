@@ -94,8 +94,10 @@ footer a{color:var(--s2)}
   reported on 2026-09-16 was an under-trained snapshot, not a workspace ceiling. A second 60 M run of the
   same recipe and seed, differing only in a grip term that contributed 0.3 % of the return, stops at cos
   {{COS60M}} ({{DEG60M}}&#176;), also held 64 of 64: the recipe&#8217;s run-to-run band on this hand is at
-  least 0.29 wide. Both 60 M policies clamp at 17&#8211;18 N over the turn. Two defects found on the way are
-  recorded here: the evaluator applied the policy&#8217;s residual from step 0 while training masked it
+  least 0.29 wide. Both 60 M policies clamp at 17&#8211;18 N over the turn; a 20 M finetune of the better one with the
+  grip term sized to the reward manager&#8217;s dt (weight &#8722;5 above 4 N per pad) takes the grip to
+  {{FT_TOT}} N and the turn to <strong>cos {{COSFT}} &#177; {{SDFT}}</strong>, held 64 of 64, crossing 0.9 forty steps
+  sooner. Two defects found on the way are recorded here: the evaluator applied the policy&#8217;s residual from step 0 while training masked it
   until step 58, which turned a held tool into a dropped one standing on its end; and the grip-force term
   was sized without the reward manager&#8217;s dt scaling, so at &#177;0.25 it did nothing in either
   direction.</p>
@@ -138,9 +140,10 @@ pads, which the map does not describe. The ceiling claim is withdrawn.</p>
 <p class="sub">alignment reward per episode (weight 100 on the target-axis term, gated from step 58), tip-lost
 terminations per reset batch, mean object height &#183; 15-iteration running mean over the logged values</p>
 <figure><img src="{{I_CURVES}}" alt="training curves of the 20 M and 60 M runs">
-<figcaption>The three runs share the recipe and seed and differ in the step budget and the grip term. The 20 M
-run ends at iteration 270; the two 60 M runs continue to 812 and reach 54 and {{ALM812}} on the alignment
-term.</figcaption></figure>
+<figcaption>The three from-scratch runs share the recipe and seed and differ in the step budget and the grip
+term. The 20 M run ends at iteration 270; the two 60 M runs continue to 812 and reach 54 and {{ALM812}} on the
+alignment term. The finetune starts from the +0.25 run&#8217;s model 812 and is plotted from its own iteration 0;
+its grip-excess term is the only one of the four that is not zero to the width of the line.</figcaption></figure>
 <p>Alignment per episode: {{AL270}} at iteration 270 (the 20 M run&#8217;s end; the 60 M run reads
 {{AL60_270}} there), {{AL405}} at 405, {{AL567}} at 567, {{AL648}} at 648, {{AL729}} at 729, {{AL812}} at 812.
 The last 160 iterations added {{AL_LAST160}} %, so the curve is still rising slowly at the end of the budget.
@@ -224,15 +227,38 @@ servos trip their overload protection well below 11 N on one pad. A weight that 
 the manager applies is &#8722;5: an 11 N thumb then costs 0.10 per step, a third of the alignment term&#8217;s
 0.28, and a 6 N thumb 0.008. That run is a finetune of the cos-{{COS60}} checkpoint (actor and critic
 warm-started, terminations unchanged, 20 M steps, <code>results/rl/20260917-1844-d6_cal_reorient_ft_gpm5_20M_s0</code>)
-rather than a fresh draw, so that the band above does not swallow the effect. {{FT_STATUS}}</p>
+rather than a fresh draw, so that the band above does not swallow the effect.</p>
+</div></section>
+
+<section><div class="col">
+<h2>The finetune at &#8722;5: cos {{COSFT}} at {{FT_TOT}} N</h2>
+<p class="sub">warm start from the +0.25 run&#8217;s model 812 (actor and critic), weight &#8722;5, threshold 4 N,
+20 M steps, 271 iterations, 36 min &#183; deterministic, 64 rollouts</p>
+<p>The finetune ends at <strong>cos {{COSFT}} &#177; {{SDFT}}</strong> ({{DEGFT}}&#176; from vertical), held 64 of 64,
+crossing 0.9 at step {{TALFT}} &#177; 1 (183 for its parent) and holding the last {{HOLDFT}} steps, three pads on
+99.7 % of the aligned steps. Pad force over the active phase is {{FT_TOT}} N total ({{FFT}} N on thumb / index /
+middle over the aligned steps) against 17.0 N for the parent, {{FT_TOT_END}} N in the last 50 steps against
+20.0, and the thumb peaks at {{FT_THUMB_MAX}} N. The grip-excess term reads {{GFT10}} per episode at iteration 10
+and {{GFT270}} at 270; alignment goes from 47 to {{AFT270}}. The penalty took 6 N off the grip and the turn got
+further and faster.</p>
+<figure><img src="{{I_STRIP_FT}}" alt="D6 cal finetune, model 270, eight frames">
+<figcaption>The finetune, model 270, one deterministic rollout. The roll is complete by step 140, 60 steps
+earlier than the parent, and the tool is held vertical through step 249.</figcaption></figure>
+<div class="duo">
+<figure><video controls muted playsinline preload="metadata" src="{{V_RL_FT}}"></video>
+<figcaption>The same rollout.</figcaption></figure>
+<figure><img src="{{I_EVAL_FT}}" alt="eval suite over 64 rollouts, finetune">
+<figcaption>64 rollouts of the finetune: alignment cos, height, total grip, fraction held.</figcaption></figure>
+</div>
 </div></section>
 
 <section><div class="col">
 <h2>What this does not settle</h2>
 <ul>
-<li><strong>The grip.</strong> The &#8722;5 finetune answers whether the turn survives a 4 N per-pad cap. If
-it does not, the next lever is the threshold (6 N, the bench servos&#8217; measured holding force at &#956; 1.0)
-before the weight.</li>
+<li><strong>The grip.</strong> {{FT_TOT}} N total with a {{FT_THUMB_MAX}} N thumb peak, against the 5&#8211;6 N
+per pad the bench servos held at &#956; 1.0 on the cap grasp: whether the thumb peak trips the overload
+protection, and whether the softer grip survives the real pads&#8217; friction, are bench questions. A threshold
+at 3 N, or the spread term, is the next step down in simulation.</li>
 <li><strong>The chain.</strong> No benchmark checkpoint has run inside the chain environment. The adapter
 (the 66-dim observation from the CPU state, <code>act_b</code>, the residual on the chain&#8217;s finger ctrl during
 its reorient phase, inside <code>probe_real_v1_chain.py</code>) tests the arm lift, the 100 mm wrist stack, the
