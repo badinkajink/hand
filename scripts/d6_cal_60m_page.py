@@ -64,8 +64,33 @@ def row(label, e, timing):
             f"{e['final_z_mean'] * 1000:.0f}", forces, f"{total:.1f}"]
 
 
+def forces(csv_name, lo=58, hi=250):
+    a = np.loadtxt(os.path.join(ROOT, csv_name), delimiter=",", skiprows=1)
+    m = (a[:, 0] >= lo) & (a[:, 0] < hi)
+    f = a[m, 3:6].mean(axis=0)
+    return f, f.sum()
+
+
+def table_runs(e20, e60, e60m):
+    rows = []
+    for label, run, w, e, csv in [
+        ("20 M, model 270", "20260916-2142-d6_cal_reorient_s0", "off", e20, "20260917-d6_cal_20M_m270_trace.csv"),
+        ("60 M, model 812", "20260917-1141-d6_cal_reorient_gp025_60M_s0", "+0.25 (wrong sign)", e60, "20260917-d6_cal_60M_gp025_m812_trace.csv"),
+        ("60 M, model 812", "20260917-1653-d6_cal_reorient_gpm025_60M_s0", "&#8722;0.25", e60m, "20260917-d6_cal_60M_gpm025_m812_trace.csv"),
+    ]:
+        n = e["n"]
+        held = int(round(e["hold_rate"] * n)); aligned = int(round(e["align_rate"] * n))
+        fa, ta = forces(csv); fe, te = forces(csv, 200)
+        rows.append([label, f"<code>{run}</code>", w, cellc(held / n, f"{held}/{n}"), cellc(aligned / n, f"{aligned}/{n}"),
+                     f"{e['final_cos_mean']:+.3f} &#177; {e['final_cos_sd']:.3f}", deg(e["final_cos_mean"]),
+                     f"{fa[0]:.1f} / {fa[1]:.1f} / {fa[2]:.1f} = {ta:.1f}", f"{fe[0]:.1f} / {fe[1]:.1f} / {fe[2]:.1f} = {te:.1f}"])
+    return table(["checkpoint", "run", "grip term weight", "held at end", "cos &#8805; 0.9 reached", "final cos",
+                  "#from vertical (deg)", "pad N th / ix / md, steps 58&#8211;249", "pad N, steps 200&#8211;249"], rows)
+
+
 def main():
     e60 = load("20260917-d6_cal_60M_eval.json")
+    e60m = load("20260917-d6_cal_60M_gpm025_eval.json")
     e20 = load("20260917-d6_cal_20M_m270_eval_fixed.json")
     r0 = load("20260917-d6_cal_60M_eval_residual0.json")
     e60_r0 = r0["deterministic"]
@@ -92,8 +117,16 @@ def main():
         ks = sorted(d)
         k = min(ks, key=lambda x: abs(x - it))
         return d[k]
+    alm = dict(curves["60M (s0, grip term -0.25)"]["Episode_Reward/target_axis_alignment"])
+    gm = dict(curves["60M (s0, grip term -0.25)"]["Episode_Reward/grip_force_excess"])
     sub = {
-        "TABLE_MAIN": table_main, "TABLE_EVAL": table_eval,
+        "TABLE_MAIN": table_main, "TABLE_EVAL": table_eval, "TABLE_RUNS": table_runs(e20, e60, e60m),
+        "COS60M": f"{e60m['final_cos_mean']:.3f}", "SD60M": f"{e60m['final_cos_sd']:.3f}", "DEG60M": deg(e60m["final_cos_mean"]),
+        "ALM812": f"{at(alm, 812):.1f}", "GM812": f"{at(gm, 812):.2f}",
+        "FT_STATUS": os.environ.get("FT_STATUS", "Running at the time of writing; its evaluation is added here when it finishes."),
+        "I_STRIP_M": uri("20260917-d6_cal_60M_gpm025_m812_strip.png"),
+        "V_RL_M": uri("videos/d6_cal_60M_gpm025_m812.mp4"),
+        "I_EVAL_M": uri("20260917-d6_cal_60M_gpm025_eval.png"),
         "COS60": f"{e60['final_cos_mean']:.3f}", "SD60": f"{e60['final_cos_sd']:.3f}", "DEG60": deg(e60["final_cos_mean"]),
         "TAL60": f"{e60['t_align_mean']:.0f}", "HOLD60": f"{e60['hold_steps_mean']:.0f}",
         "Z60": f"{e60['final_z_mean'] * 1000:.0f}",

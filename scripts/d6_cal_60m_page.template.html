@@ -91,10 +91,14 @@ footer a{color:var(--s2)}
   <strong>cos {{COS60}} &#177; {{SD60}}</strong> ({{DEG60}}&#176; from vertical) and holds it there on three
   pads in 64 of 64 deterministic rollouts. The tool rolls across the pads between steps 80 and 200
   with no finger leaving the shaft. The same recipe at 20 M steps reads cos {{COS20}}: the plateau
-  reported on 2026-09-16 was an under-trained snapshot, not a workspace ceiling. Two defects found on the
-  way are recorded here: the evaluator applied the policy&#8217;s residual from step 0 while training masked
-  it until step 58, which turned a held tool into a dropped one standing on its end; and the grip-force
-  term went into this run with a positive weight, so it paid for over-clamp rather than against it.</p>
+  reported on 2026-09-16 was an under-trained snapshot, not a workspace ceiling. A second 60 M run of the
+  same recipe and seed, differing only in a grip term that contributed 0.3 % of the return, stops at cos
+  {{COS60M}} ({{DEG60M}}&#176;), also held 64 of 64: the recipe&#8217;s run-to-run band on this hand is at
+  least 0.29 wide. Both 60 M policies clamp at 17&#8211;18 N over the turn. Two defects found on the way are
+  recorded here: the evaluator applied the policy&#8217;s residual from step 0 while training masked it
+  until step 58, which turned a held tool into a dropped one standing on its end; and the grip-force term
+  was sized without the reward manager&#8217;s dt scaling, so at &#177;0.25 it did nothing in either
+  direction.</p>
   <div class="byline">D6 = sv1_u0308_b050, chain fitter grasp at 10 mm squeeze as <code>open_ik</code> &#183;
   plant <code>cal</code>: kp 0.5, kv 0.02, elliptic cone, impratio 10, pad &#956; 1.0, plate at +25 mm &#183;
   <code>b_liveA</code> recipe without a live Policy A, residual &#177;0.5 rad from step 58 over the scripted
@@ -134,8 +138,9 @@ pads, which the map does not describe. The ceiling claim is withdrawn.</p>
 <p class="sub">alignment reward per episode (weight 100 on the target-axis term, gated from step 58), tip-lost
 terminations per reset batch, mean object height &#183; 15-iteration running mean over the logged values</p>
 <figure><img src="{{I_CURVES}}" alt="training curves of the 20 M and 60 M runs">
-<figcaption>The two runs share the recipe and seed and differ in the step budget and the grip term. The 20 M
-run ends at iteration 270; the 60 M run continues to 812.</figcaption></figure>
+<figcaption>The three runs share the recipe and seed and differ in the step budget and the grip term. The 20 M
+run ends at iteration 270; the two 60 M runs continue to 812 and reach 54 and {{ALM812}} on the alignment
+term.</figcaption></figure>
 <p>Alignment per episode: {{AL270}} at iteration 270 (the 20 M run&#8217;s end; the 60 M run reads
 {{AL60_270}} there), {{AL405}} at 405, {{AL567}} at 567, {{AL648}} at 648, {{AL729}} at 729, {{AL812}} at 812.
 The last 160 iterations added {{AL_LAST160}} %, so the curve is still rising slowly at the end of the budget.
@@ -190,29 +195,52 @@ only such evaluations are the two D6 runs on this page.</p>
 </div></section>
 
 <section><div class="col">
-<h2>The grip-force term went in with a positive weight</h2>
+<h2>The grip-force term at &#177;0.25 did nothing, and a second run of the recipe stops at 50&#176;</h2>
 <p class="sub"><code>grip_force_excess</code>: quadratic in the per-pad force above 4 N, scale 4 N, mean over
-pads &#183; returns a positive magnitude, so the weight must be negative</p>
-<p>This run was launched with <code>--grip-force-penalty-weight 0.25</code>. The term therefore paid for force
-above 4 N per pad. Its contribution was 0.09 per episode against 54 for alignment, so it did not shape the
-turn, but the grip it left is the wrong one to transfer: {{FT60}} N total at the end against 13 N for the 20 M
-policy and the 6.9 N the chain runs D6 at. A second run with the weight at &#8722;0.25 and everything else
-unchanged started at 16:53 (<code>results/rl/20260917-1653-d6_cal_reorient_gpm025_60M_s0</code>, 8.3 s per
-iteration, 1 h 52 min). Its evaluation is added to this page when it finishes.</p>
+pads &#183; returns a positive magnitude, so the weight must be negative &#183; the reward manager multiplies every
+term by the step dt (0.02 s) &#183; pad forces from the deterministic render, mean over the steps named</p>
+{{TABLE_RUNS}}
+<p>The first 60 M run was launched with the weight at +0.25 (a bonus for force above 4 N per pad); the
+second with &#8722;0.25 and nothing else changed. Neither mattered: at 0.25 &#215; 0.02 = 0.005 per unit of
+squared excess per step, against 100 &#215; 0.02 = 2.0 per unit of alignment, the term summed to +0.09 and
+{{GM812}} per episode against 54 and {{ALM812}} for alignment. The two runs are therefore two draws of the
+same recipe and seed on a non-deterministic GPU solver, and they end at cos {{COS60}} and {{COS60M}}. Both
+hold 64 of 64 and both roll the tool the same way; the second stops at {{DEG60M}}&#176; from step 140 and
+stays there. The turn-quality band of this recipe on D6 at 60 M steps is at least that wide, which is the
+seed-dominance result of the m05 program repeated on the calibrated plant, and it means one run per
+arm cannot rank a change to the recipe.</p>
+<figure><img src="{{I_STRIP_M}}" alt="D6 cal policy, -0.25 run, model 812, eight frames">
+<figcaption>The &#8722;0.25 run, model 812, one deterministic rollout. The same roll as above through step 110;
+from step 140 the tool rests at 50&#176; between the three pads.</figcaption></figure>
+<div class="duo">
+<figure><video controls muted playsinline preload="metadata" src="{{V_RL_M}}"></video>
+<figcaption>The same rollout.</figcaption></figure>
+<figure><img src="{{I_EVAL_M}}" alt="eval suite over 64 rollouts, -0.25 run">
+<figcaption>64 rollouts of the &#8722;0.25 run: alignment cos, height, total grip, fraction held.</figcaption></figure>
+</div>
+<p>Grip: the 20 M policy averages 12.5 N over the active phase; both 60 M policies 17&#8211;18 N, rising to
+20&#8211;23 N in the last 50 steps, with the thumb at 11 N. The chain runs D6 at 6.9 N total and the bench
+servos trip their overload protection well below 11 N on one pad. A weight that can move this in the units
+the manager applies is &#8722;5: an 11 N thumb then costs 0.10 per step, a third of the alignment term&#8217;s
+0.28, and a 6 N thumb 0.008. That run is a finetune of the cos-{{COS60}} checkpoint (actor and critic
+warm-started, terminations unchanged, 20 M steps, <code>results/rl/20260917-1844-d6_cal_reorient_ft_gpm5_20M_s0</code>)
+rather than a fresh draw, so that the band above does not swallow the effect. {{FT_STATUS}}</p>
 </div></section>
 
 <section><div class="col">
 <h2>What this does not settle</h2>
 <ul>
-<li><strong>The grip.</strong> The &#8722;0.25 run answers whether the turn survives a 4 N per-pad cap. If it
-does not, the next lever is the threshold (6 N, the bench servos&#8217; measured holding force at &#956; 1.0)
+<li><strong>The grip.</strong> The &#8722;5 finetune answers whether the turn survives a 4 N per-pad cap. If
+it does not, the next lever is the threshold (6 N, the bench servos&#8217; measured holding force at &#956; 1.0)
 before the weight.</li>
 <li><strong>The chain.</strong> No benchmark checkpoint has run inside the chain environment. The adapter
 (the 66-dim observation from the CPU state, <code>act_b</code>, the residual on the chain&#8217;s finger ctrl during
 its reorient phase, inside <code>probe_real_v1_chain.py</code>) tests the arm lift, the 100 mm wrist stack, the
 screw-tip mesh, the plate at 0 and the CPU solver in one rollout. Until it runs, this page says nothing about
 the UR5e chain.</li>
-<li><strong>Seeds and hands.</strong> One seed, one hand. Three more D6 seeds at this budget give the band;
+<li><strong>Seeds and hands.</strong> Two draws of one seed on one hand, 0.29 apart. Three more D6 seeds
+at this budget give the band properly, and any comparison between recipes needs either that many draws per
+arm or a finetune from a shared checkpoint;
 the other seven hands need a <code>cal</code> morphology run each at the squeeze the chain&#8217;s arm lift
 held (D8 at 12 mm; D1 and D2 pop the tool out at 10 mm on <code>cal</code>) and the evaluator&#8217;s lift as the
 gate.</li>
