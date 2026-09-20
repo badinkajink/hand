@@ -283,7 +283,13 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
           cam=(120.0, -18.0, 0.36), video_every: int = 12, trace: bool = False,
           video_size=(640, 480), cam_look=None,
           gait_scan: str = "grip",
-          step_hook=None, ctx: dict | None = None) -> dict:
+          step_hook=None, ctx: dict | None = None,
+          turn_ctrl=None) -> dict:
+    """`turn_ctrl(k, m, d, acts, anchor, sq0) -> {joint: ctrl} | None`, if given, replaces the
+    anchor sweep during the turn phase: it is asked every CONTROL_DECIMATION sim steps of the
+    `turn_steps` turn and its last answer is held in between (a 50 Hz policy in the loop; the
+    2026-09-19 chain test of the RL reorient policies). Everything before and after the turn --
+    grasp, arm lift, hold, re-pose, set-down, gait -- runs as it always has."""
     scene = Path(scene_path) if scene_path is not None else \
         morph_run / ("arm_scene.xml" if arm_ik is not None else "frozen_scene.xml")
     pg._MODEL_PATH["path"] = str(scene)
@@ -655,7 +661,18 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         for j, a in acts.items():
             sq0[j] += rl[j] - float(d.ctrl[a])
 
+    turn_cache: dict = {}
+
     def _turn(k):
+        if turn_ctrl is not None:
+            if k % CONTROL_DECIMATION == 0:
+                c = turn_ctrl(k, m, d, acts, anchor, sq0)
+                if c is not None:
+                    turn_cache.update(c)
+            for j, a in acts.items():
+                if j in turn_cache:
+                    d.ctrl[a] = turn_cache[j]
+            return
         u = (k + 1) / turn_steps
         for j, a in acts.items():
             d.ctrl[a] = (anchor[j] + sq0[j]

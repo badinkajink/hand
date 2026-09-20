@@ -89,6 +89,113 @@ def seg_seg(p1, q1, p2, q2):
     return np.linalg.norm((p1 + d1 * s) - (p2 + d2 * t))
 
 
+class CpuPolicy:
+    """The checkpoint's observation builder and actor over a CPU MjModel/MjData.
+
+    `obs(k, last_action, palm_dz)` rebuilds the 66-dim vector at policy step k (the benchmark's
+    step count, so the reference-trajectory terms line up: the residual is active from the run's
+    finger_residual_active_from_step); `act(obs)` is the deterministic mean action, clipped as
+    the run was; `finger_target(act, anchor)` is the position set-point per finger joint.
+    Scenes without palm joints (the chain's arm scene) report the palm terms as the benchmark
+    would see them: pz = palm_dz, everything else 0."""
+
+    def __init__(self, policy: Path, morph_run: Path, m, d, palm_body: str = "palm_pose"):
+        import mujoco
+        import yaml
+        sys.path.insert(0, str(ROOT / "src"))
+        from morphohand.rl.reference_trajectory import ReferenceTrajectory
+        run_cfg = yaml.safe_load(open(Path(policy).resolve().parent.parent / "config.yaml"))
+        env_c, ppo_c = run_cfg["env"], run_cfg.get("ppo", {})
+        self.settle = int(env_c.get("settle_steps", 240)); self.ramp = int(env_c.get("lift_ramp_steps", 80))
+        self.lift_dz = float(env_c.get("lift_delta_z", 0.1)); self.rscale = float(env_c.get("finger_residual_scale", 0.5))
+        self.easing = env_c.get("finger_close_easing", "ease_out_quad"); self.decim = int(env_c.get("decimation", 10))
+        self.active_from = int(env_c.get("finger_residual_active_from_step", 0)) * self.decim
+        self.clip = ppo_c.get("clip_actions")
+        self.m, self.d = m, d
+        morph = Path(morph_run).resolve()
+        self.summ = json.load(open(morph / "summary.json"))
+        ref_model = mujoco.MjModel.from_xml_path(str(morph / "frozen_scene.xml"))
+        self.ref = ReferenceTrajectory.from_run_dir(morph, ref_model)
+        self.jid = {n: mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_JOINT, n) for n in FINGER_JOINTS}
+        self.aid = {n: mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_ACTUATOR, f"a_{n}") for n in FINGER_JOINTS}
+        palm_j = {n: mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_JOINT, n) for n in PALM_JOINTS}
+        self.have_palm = all(v >= 0 for v in palm_j.values())
+        self.qadr = {n: int(m.jnt_qposadr[self.jid[n]]) for n in FINGER_JOINTS}
+        self.vadr = {n: int(m.jnt_dofadr[self.jid[n]]) for n in FINGER_JOINTS}
+        if self.have_palm:
+            self.qadr.update({n: int(m.jnt_qposadr[palm_j[n]]) for n in PALM_JOINTS})
+            self.vadr.update({n: int(m.jnt_dofadr[palm_j[n]]) for n in PALM_JOINTS})
+        # defaults = the benchmark keyframe (the run's own frozen scene), not the current scene's state
+        key = mujoco.mj_name2id(ref_model, mujoco.mjtObj.mjOBJ_KEY, self.summ["keyframe"])
+        self.default_q = {}
+        for n in list(PALM_JOINTS) + list(FINGER_JOINTS):
+            j = mujoco.mj_name2id(ref_model, mujoco.mjtObj.mjOBJ_JOINT, n)
+            if j >= 0:
+                self.default_q[n] = float(ref_model.key_qpos[key, int(ref_model.jnt_qposadr[j])])
+        self.tool = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, "screwdriver_medium")
+        self.palm_b = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, palm_body)
+        self.actor = load_actor(Path(policy))
+        self.step_dt = float(m.opt.timestep) * self.decim
+        self.robot_joints = list(PALM_JOINTS) + list(FINGER_JOINTS)
+
+    def tool_cos(self):
+        q = self.d.xquat[self.tool]
+        return 1.0 - 2.0 * (q[1] * q[1] + q[2] * q[2])
+
+    def pad_forces(self):
+        """Contact force magnitude (N) between each fingertip body's geoms and the tool."""
+        import mujoco
+        m, d = self.m, self.d
+        if not hasattr(self, "_tip_geoms"):
+            self._tool_geoms = set(np.where(m.geom_bodyid == self.tool)[0].tolist())
+            self._tip_geoms = {f: set(np.where(m.geom_bodyid == mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, f"{f}_tip"))[0].tolist())
+                               for f in ("thumb", "index", "middle")}
+        out = {f: 0.0 for f in self._tip_geoms}
+        fbuf = np.zeros(6)
+        for i in range(d.ncon):
+            c = d.contact[i]
+            for f, gs in self._tip_geoms.items():
+                if (c.geom1 in gs and c.geom2 in self._tool_geoms) or (c.geom2 in gs and c.geom1 in self._tool_geoms):
+                    mujoco.mj_contactForce(m, d, i, fbuf)
+                    out[f] += float(np.linalg.norm(fbuf[:3]))
+        return out
+
+    def obs(self, k: int, last_action, palm_dz: float | None = None):
+        d = self.d
+        jp = np.array([d.qpos[self.qadr[n]] - self.default_q[n] if n in self.qadr else 0.0 for n in self.robot_joints])
+        jv = np.array([d.qvel[self.vadr[n]] if n in self.vadr else 0.0 for n in self.robot_joints])
+        if not self.have_palm:
+            s = k * self.decim
+            jp[2] = palm_dz if palm_dz is not None else np.clip((s - self.settle + 1) / self.ramp, 0, 1) * self.lift_dz
+        palm_pos, palm_quat = d.xpos[self.palm_b].copy(), d.xquat[self.palm_b].copy()
+        tpos, tquat = d.xpos[self.tool].copy(), d.xquat[self.tool].copy()
+        pq_inv = quat_inv(palm_quat)
+        obj_pos = quat_rotate(pq_inv, tpos - palm_pos)
+        rq = quat_mul(pq_inv, tquat)
+        # q and -q are one rotation but two input vectors. The benchmark palm is the identity and
+        # the tool's quaternion keeps w > 0 through the turn, so that is what the policy saw; the
+        # chain's arm scene reports the palm body as (-1, 0, 0, 0) and flips every component.
+        if rq[0] < 0:
+            rq = -rq
+        rel = np.concatenate([obj_pos, rq])
+        rb = self.ref.batch_at([k * self.step_dt])
+        ref_fq = rb["finger_qpos"][0]
+        ref_op = np.concatenate([rb["object_pos"][0], rb["object_quat"][0]])
+        mis = np.array([np.arccos(np.clip(self.tool_cos(), -1, 1))])
+        return np.concatenate([jp, jv, obj_pos, rel, ref_fq, ref_op, last_action, mis]).astype(np.float32)
+
+    def act(self, o):
+        with torch.no_grad():
+            a = self.actor(torch.as_tensor(o).unsqueeze(0)).squeeze(0).numpy()
+        if self.clip is not None:
+            a = np.clip(a, -float(self.clip), float(self.clip))
+        return a.astype(np.float32)
+
+    def finger_target(self, act, anchor):
+        """anchor: (9,) grip set-point in FINGER_JOINTS order -> (9,) commanded positions."""
+        return np.asarray(anchor, dtype=float) + act * self.rscale
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--policy", type=Path, required=True)
