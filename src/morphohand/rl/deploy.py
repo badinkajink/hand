@@ -59,7 +59,8 @@ def make_env_cfg(frozen, keyframe, morph, bfc, *, enable_target_axis: bool,
                  hold_switch_from_sim_step: int = 0, hold_switch_steps: int = 60,
                  hold_switch_align_thresh: float = 0.0, hold_switch_min_z: float = 0.0,
                  finger_residual_active_from_step: int = 0, reorient_start_step: int = 10,
-                 lift_phase_start_step: int | None = None, actor_blind_terms=()):
+                 lift_phase_start_step: int | None = None, actor_blind_terms=(),
+                 extra_cfg: dict | None = None):
     """One env cfg. enable_target_axis=False -> 65-dim (Policy A's space);
     True -> 66-dim normal-lift reorient env (Policy B's space + dynamics).
     skip_lift_phase is always False here: the cylinder starts flat and is
@@ -97,6 +98,10 @@ def make_env_cfg(frozen, keyframe, morph, bfc, *, enable_target_axis: bool,
     )
     if lift_phase_start_step is not None:
         common["lift_phase_start_step"] = int(lift_phase_start_step)
+    # Evaluation-time perturbations of the reset distribution (spawn jitter, friction DR):
+    # every training run so far spawned the tool at one nominal pose, so 64 deterministic
+    # rollouts differ only by the GPU contact solve; a robustness read needs these.
+    common.update(extra_cfg or {})
     if not enable_target_axis:
         return MorphoHandEnvCfg(**common)
     return MorphoHandEnvCfg(
