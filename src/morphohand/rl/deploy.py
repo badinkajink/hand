@@ -123,10 +123,14 @@ def run_env_overrides(checkpoint: Path) -> dict:
         run = run.parent
     if not cfg or "env" not in cfg:
         return {}
-    return {k: cfg["env"][k] for k in RUN_ENV_KEYS if k in cfg["env"]}
+    out = {k: cfg["env"][k] for k in RUN_ENV_KEYS if k in cfg["env"]}
+    if "ppo" in cfg and cfg["ppo"].get("clip_actions") is not None:
+        out["clip_actions"] = float(cfg["ppo"]["clip_actions"])
+    return out
 
 
-def build_actor(env_cfg, checkpoint: Path, work_dir: Path, render_mode: str | None = None):
+def build_actor(env_cfg, checkpoint: Path, work_dir: Path, render_mode: str | None = None,
+                clip_actions: float | None = "auto"):
     """Build an env from env_cfg, instantiate the runner's actor sized to that
     env, load the checkpoint, return (env, wrapped, actor). `render_mode="rgb_array"`
     makes `env.unwrapped.render()` return frames at the cfg's viewer size."""
@@ -138,7 +142,9 @@ def build_actor(env_cfg, checkpoint: Path, work_dir: Path, render_mode: str | No
     from morphohand.rl.ppo_runner import build_runner_cfg
 
     env = ManagerBasedRlEnv(cfg=to_mjlab_cfg(env_cfg), device="cuda:0", render_mode=render_mode)
-    wrapped = RslRlVecEnvWrapper(env)
+    if clip_actions == "auto":
+        clip_actions = run_env_overrides(checkpoint).get("clip_actions")
+    wrapped = RslRlVecEnvWrapper(env, clip_actions=clip_actions)
     runner = ManipulationOnPolicyRunner(
         env=wrapped,
         train_cfg=dataclasses.asdict(build_runner_cfg(

@@ -702,6 +702,13 @@ def _build_rewards(cfg: MorphoHandEnvCfg) -> dict:
                         scale=float(cfg.grip_force_penalty_scale),
                         reduce=str(cfg.grip_force_penalty_reduce)),
         )
+    if cfg.finger_separation_weight != 0.0:
+        rewards["finger_separation"] = RewardTermCfg(
+            func=mjlab_terms.finger_separation_penalty,
+            weight=float(cfg.finger_separation_weight) * task_scale,
+            params=dict(min_clearance=float(cfg.finger_separation_min_m),
+                        fingers=("index", "middle")),
+        )
     if cfg.grip_force_spread_weight != 0.0:
         rewards["grip_force_spread"] = RewardTermCfg(
             func=mjlab_terms.grip_force_spread,

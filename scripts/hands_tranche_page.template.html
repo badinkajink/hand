@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reorientation policies across the deployed hands</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#EEF1F4; --card:#FFFFFF; --sunk:#E4E9EE;
+  --ink:#1A2127; --ink2:#48545D; --ink3:#77848D; --rule:#D2DAE1; --rule2:#E2E8ED;
+  --s1:#BE7514; --s2:#4A7FC4; --s3:#5E8F5A; --ref:#8A959D;
+  --good:#3F7A46; --bad:#A8443C;
+  --shadow:0 1px 2px rgba(16,26,34,.06),0 8px 24px -14px rgba(16,26,34,.28);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
+  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
+  --s1:#E39A2E; --s2:#7BA7E0; --s3:#8AC286; --ref:#79858E; --good:#6FB076; --bad:#DE8078;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+}}
+:root[data-theme="dark"]{
+  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
+  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
+  --s1:#E39A2E; --s2:#7BA7E0; --s3:#8AC286; --ref:#79858E; --good:#6FB076; --bad:#DE8078;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);
+  font:400 17px/1.62 "Source Serif 4",Georgia,"Times New Roman",serif;
+  -webkit-font-smoothing:antialiased;padding:0 20px 96px;margin:0}
+.wrap{max-width:1020px;margin:0 auto}
+.col{max-width:70ch}
+h1,h2,h3,.mono,.tag,th{font-family:Archivo,"Helvetica Neue",Arial,sans-serif}
+.mono,code,td.num,.val,.note,pre{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+header{padding:64px 0 30px;border-bottom:1px solid var(--rule)}
+.eyebrow{font:500 12px/1 "IBM Plex Mono",monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3)}
+h1{font-size:clamp(30px,4.6vw,48px);line-height:1.05;font-weight:700;letter-spacing:-.022em;
+  margin:16px 0 0;text-wrap:balance;max-width:22ch}
+.lede{font-size:20px;line-height:1.55;color:var(--ink2);margin:18px 0 0;max-width:62ch}
+.byline{margin-top:22px;font:400 13px/1.5 "IBM Plex Mono",monospace;color:var(--ink3)}
+section{padding:46px 0;border-bottom:1px solid var(--rule2)}
+section:last-of-type{border-bottom:0}
+h2{font-size:27px;font-weight:700;letter-spacing:-.018em;margin:0 0 6px;text-wrap:balance}
+h3{font-size:18px;font-weight:600;letter-spacing:-.008em;margin:34px 0 8px}
+h2 + .sub{color:var(--ink3);font:400 14px/1.5 "IBM Plex Mono",monospace;margin:0 0 24px}
+p{margin:0 0 17px}
+strong{font-weight:600}
+ul,ol{margin:0 0 17px;padding-left:20px}
+li{margin:0 0 8px}
+figure{margin:28px 0}
+figure video,figure img{display:block;width:100%;border-radius:10px;background:var(--sunk);box-shadow:var(--shadow)}
+figcaption{margin-top:11px;font:400 14px/1.55 "IBM Plex Mono",monospace;color:var(--ink3);max-width:82ch}
+.col > .tw,.col > figure,.col > .duo{width:min(1020px,calc(100vw - 40px));max-width:none}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:28px 0}
+@media (max-width:720px){.duo{grid-template-columns:1fr}}
+.duo figure{margin:0}
+.tw{overflow-x:auto;margin:24px 0;border:1px solid var(--rule);border-radius:10px;background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th{font:600 12px/1.3 Archivo,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);
+  text-align:left;padding:13px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid var(--rule2);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;font-size:13.5px;white-space:nowrap}
+.ok{color:var(--good);font-weight:600}
+.no{color:var(--bad);font-weight:600}
+td.cell{text-align:center;font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:500;white-space:nowrap}
+td.c4{background:color-mix(in oklab,var(--good) 28%,var(--card));color:var(--ink)}
+td.c3{background:color-mix(in oklab,var(--good) 16%,var(--card))}
+td.c2{background:color-mix(in oklab,var(--s1) 16%,var(--card))}
+td.c1{background:color-mix(in oklab,var(--bad) 12%,var(--card))}
+td.c0{background:color-mix(in oklab,var(--bad) 22%,var(--card));color:var(--ink2)}
+.keep{border:1px solid var(--rule);border-left:3px solid var(--s2);border-radius:10px;
+  padding:20px 24px;margin:28px 0;background:var(--card)}
+.keep .tag{display:block;font:700 12px/1 Archivo,sans-serif;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--s2);margin-bottom:11px}
+.keep p:last-child,.keep ul:last-child{margin-bottom:0}
+pre{background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:16px 18px;
+  overflow-x:auto;font-size:13px;line-height:1.6;margin:22px 0}
+code{font-size:.92em;background:var(--sunk);padding:1px 4px;border-radius:4px;margin:0 -1px;white-space:nowrap}
+footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",monospace}
+footer a{color:var(--s2)}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">MorphoHand &#183; real_v1 &#183; 19&#8211;20 September 2026 &#183; built {{BUILT}}</div>
+  <h1>Reorientation policies across the deployed hands on the calibrated plant</h1>
+  <p class="lede">{{LEDE}}</p>
+  <div class="byline">Seven hands (D1&#8211;D7; D8 drops the evaluator&#8217;s lift at every squeeze, ramp and plate
+  height and is excluded) &#183; plant <code>cal</code>: kp 0.5, kv 0.02, elliptic cone, impratio 10, pad &#956; 1.0,
+  plate +25 mm &#183; every job is a 20 M-step finetune (271 iterations, 3072 environments) warm-started, actor and
+  critic, from the D6 grip finetune <code>{{INIT}}</code> (cos 0.969 held 64 of 64 at 10.8 N) with the grip term
+  at &#8722;5 above 4 N per pad &#183; residual &#177;0.5 rad from step 58 over the scripted 100 mm lift, friction DR
+  0.55&#8211;1.15, object pose observed &#183; evaluated deterministically over 64 rollouts of 250 steps with each
+  run&#8217;s own timing and action clip</div>
+</header>
+
+<section><div class="col">
+<h2>The two arms, and why the residual is bounded</h2>
+<p>The unbounded D6 finetune of 2026-09-17 commands joint targets up to 384&#176; beyond the joint range and,
+after clamping to the range, runs up to 100&#176; ahead of the achieved joint: on the kp 0.5 plant that is a request
+for full force, on a real servo it is a stall into the overload cliff. Every job here therefore trains with the
+policy&#8217;s raw actions clipped to &#177;2, which with the 0.5 rad scale bounds the residual to &#177;1 rad
+around the grasp anchor (<code>--clip-actions 2.0</code>, applied in the rsl_rl wrapper and recorded in the
+run&#8217;s config so evaluation applies the same bound). The second arm adds a penalty on the index&#8211;middle
+link-chain clearance below 30 mm (surface to surface, three capsules of 10.55 mm radius per finger; weight
+&#8722;10, quadratic in the shortfall), because the built index and middle carry servo housings and cabling the
+capsules do not model and policies that run those two fingers close together have failed on the bench. The
+unbounded D6 policies are kept as the reference; the index&#8211;middle clearance of the D6 grip finetune is
+18 mm at its minimum and 25 mm at the end.</p>
+<p>Queue: <code>scripts/hands_tranche_queue.py</code>, one job at a time through <code>resguard.sh run</code>,
+each job waiting for the launch gate (MemAvailable &#8805; 8 GB, swap &#8804; 4 GB, load, 2 GB of VRAM) before it
+starts. Stretches spent waiting for the gate:</p>
+{{GATE}}
+</div></section>
+
+<section><div class="col">
+<h2>Hold and turn per hand and arm</h2>
+<p class="sub">deterministic, 64 rollouts &#215; 250 steps &#183; held = tool above 60 mm with &#8805; 0.5 N on a
+pad at step 249 &#183; pad force averaged over steps 58&#8211;249 of every rollout &#183; clearance = index&#8211;middle
+chain clearance, mean over rollouts of the per-rollout minimum, and at step 249</p>
+{{TABLE_MAIN}}
+{{EVALS}}
+</div></section>
+
+<section><div class="col">
+<h2>Physical plausibility</h2>
+<p class="sub">from the same 64 rollouts, steps 58&#8211;249 &#183; the residual scale is 0.5 rad, so |a| &gt; 1 is
+a command beyond the nominal &#177;0.5 rad budget (the clip at 2 bounds it at &#177;1 rad) &#183; the gap is the
+command clamped to the joint range minus the achieved joint, largest over joints and steps &#183; verdict flags: pad
+peak above 9 N, gap above 60&#176;, any command beyond the joint range, clearance under 10 mm, any drop</p>
+{{TABLE_PLAUS}}
+</div></section>
+
+<section><div class="col">
+<h2>Filmstrips</h2>
+<p class="sub">one deterministic rollout per job at 960&#215;720, eight frames</p>
+{{STRIPS}}
+</div></section>
+
+<section><div class="col">
+<h2>Training curves</h2>
+{{CURVES}}
+</div></section>
+
+<section><div class="col">
+<h2>What this does not settle</h2>
+<ul>
+<li><strong>Transfer.</strong> No policy here has run inside the UR5e chain environment or on the bench. The
+chain adapter (<code>scripts/real_v1_chain_policy.py</code>: the 66-dim observation from the CPU state, the
+actor, the residual on the chain&#8217;s finger ctrl during its reorient phase) is the sim-to-sim test; the bench
+needs a policy-driven controller on the station, which does not exist, since every deployed plan so far was an
+open-loop trajectory.</li>
+<li><strong>The clearance threshold.</strong> 30 mm between modelled capsule surfaces is a guess at the width the
+servo housings and cabling add; a caliper on the built index and middle at their closest approach during a bench
+turn gives the number.</li>
+<li><strong>D8.</strong> Its fitter grasp drops the tool in the evaluator&#8217;s palm lift at 4&#8211;14 mm of
+squeeze, with the plate at 0 or 25 mm and with a 200-step ramp; the chain&#8217;s arm lift held it at 12 mm. A
+grasp search for D8 on the calibrated plant (or the arm-lift reset) comes before it trains.</li>
+<li><strong>One draw per cell.</strong> Warm-started seeds have a small band on the m05 hand (sd 0.03) but the
+D6 clip seeds 1&#8211;2 at the end of the queue are the only replication here.</li>
+</ul>
+</div></section>
+
+<footer>
+scripts: <code>hands_tranche_queue.py</code> (queue), <code>build_cal_morphology_runs.sh</code> and
+<code>make_cal_morphology_run.py</code> (morphology runs), <code>rl_train_cube.py</code> (<code>--clip-actions</code>,
+<code>--finger-separation-weight/-min-m</code>), <code>policy_eval_suite.py</code> (plausibility block),
+<code>rl_render_rollout.py</code>, <code>policy_filmstrip.py</code>, <code>hands_tranche_page.py</code> &#183; data:
+<code>docs/experiments/20260919-hands_tranche/</code> (queue.json, tranche_results.json, per-job eval JSON/PNG,
+strips, traces; videos/ gitignored) &#183; earlier pages: 20260917-d6_cal_60M, 20260916-tip_gait
+</footer>
+</div>
+</body>
+</html>

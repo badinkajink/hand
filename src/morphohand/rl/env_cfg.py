@@ -587,6 +587,14 @@ class MorphoHandEnvCfg:
     """Normalisation (N) for the excess: penalty = ((force-thresh)/scale)**2."""
     grip_force_penalty_reduce: str = "mean"
     """'mean' (overall over-grip) or 'max' (worst finger) over the 3 fingertips."""
+    finger_separation_weight: float = 0.0
+    """Penalty weight on the index-middle chain clearance falling below
+    finger_separation_min_m (quadratic in the shortfall). NEGATIVE. 0 disables. The
+    bench fingers carry servo housings and cabling the capsules do not model; policies
+    that bring index and middle together in simulation fail on hardware."""
+    finger_separation_min_m: float = 0.02
+    """Surface-to-surface clearance (m) between the index and middle link chains below
+    which the separation penalty engages."""
     grip_force_spread_weight: float = 0.0
     """Penalty weight for grip IMBALANCE: per-finger force spread (max-min)/scale over
     the 3 fingertips. NEGATIVE. Pushes toward a balanced tripod (B4-like, all fingers

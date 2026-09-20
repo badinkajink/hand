@@ -33,6 +33,7 @@ from morphohand.rl.terms_common import (  # noqa: F401
     _in_lift_phase,
     _spawn_pose,
     _track,
+    finger_pair_clearance,
 )
 from morphohand.rl.terms_event import (  # noqa: F401
     inject_handoff_bank_at_onset,
@@ -71,6 +72,7 @@ from morphohand.rl.terms_reward import (  # noqa: F401
     fingertip_to_object_distance,
     grip_force,
     grip_force_excess,
+    finger_separation_penalty,
     grip_force_spread,
     handoff_target_proximity,
     object_ang_acc_l2,

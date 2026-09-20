@@ -207,6 +207,21 @@ def grip_force_excess(env: "ManagerBasedRlEnv",
     return excess.amax(dim=-1) if reduce == "max" else excess.mean(dim=-1)
 
 
+def finger_separation_penalty(env: "ManagerBasedRlEnv",
+                              min_clearance: float = 0.02,
+                              fingers: tuple[str, str] = ("index", "middle")) -> torch.Tensor:
+    """Positive penalty magnitude when the two fingers' link chains come closer than
+    `min_clearance` (m, surface to surface): ((min_clearance - clearance)/min_clearance)**2,
+    so it is 1 at contact and larger when the modelled capsules interpenetrate. Reward
+    weight should be NEGATIVE. The bench hand carries servo housings and cabling on the
+    index and middle that the capsules omit, and policies that run those two fingers
+    close together fail on hardware (user, 2026-09-19). Shape (num_envs,)."""
+    from morphohand.rl.terms_common import finger_pair_clearance
+    clearance = finger_pair_clearance(env, fingers)
+    short = (float(min_clearance) - clearance).clamp(min=0.0) / max(float(min_clearance), 1e-6)
+    return short.pow(2)
+
+
 def grip_force_spread(env: "ManagerBasedRlEnv",
                       sensor_name: str = "fingertip_cube_contact",
                       scale: float = 4.0) -> torch.Tensor:
