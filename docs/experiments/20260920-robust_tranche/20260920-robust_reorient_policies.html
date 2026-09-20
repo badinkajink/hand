@@ -87,7 +87,7 @@ footer a{color:var(--s2)}
 
 <div class="wrap">
 <header>
-  <div class="eyebrow">MorphoHand &#183; real_v1 &#183; 20 September 2026 &#183; built 2026-09-20 12:53</div>
+  <div class="eyebrow">MorphoHand &#183; real_v1 &#183; 20 September 2026 &#183; built 2026-09-20 13:01</div>
   <h1>Reorientation policies continued on the plant the chain and the bench use</h1>
   <p class="lede">5 of 12 continuation jobs have finished. Jittered hold (64 rollouts at &#177;3 mm / &#177;10&#176; with friction DR), continued against parent: D6 51 against 60; D3 50 against 51; D5 57 against 23; D1 47 against 29; D6 49 against 39. Chain at plate 25 mm, held by: D6 (separation), D5, D6.</p>
   <div class="byline">5 of 12 jobs &#183; each job continues its 2026-09-19 checkpoint for 20 M steps
@@ -500,10 +500,24 @@ without driving it.</p>
 <td>+1.00 / 50</td>
 <td>+1.00 / 50</td>
 <td>8 / -0.00</td>
-<td class="cell c4">stood, gripped, gaited</td>
+<td class="cell c4">stood, held through 8 cycles at -0.00 turns</td>
 </tr>
 </tbody></table></div>
-<figure><video controls muted loop playsinline preload="metadata" width="640" height="480" src="web/r_d6_clip_chain_pl0.mp4"></video><figcaption>D6, bounded residual (&#177;1 rad), plate 0 mm: grasp on the post, arm lift, the policy&#8217;s turn (5 s), arm re-pose, set-down, relay handover, gait. Outcome: the whole chain; 8 gait cycles, -0.002 screw turns, final tilt 3.8&#176;.</figcaption></figure>
+<p>The gait does not move the fingers on this plant. Finger commands and joint angles recorded every 60 sim steps through
+the D6 clip run at plate 0 (<code>r_d6_clip_chain_pl0_ctrl_qpos.json</code>): through the eight cycles the commanded angles
+vary by 5&#8211;27&#176; per joint (the ring table is built around the tool&#8217;s actual axis, 31 mm of IK residual) and the
+achieved angles by 0.3&#8211;9&#176;; the index pip sits 59&#176; behind its command for the whole gait (commanded 88&#176;, achieved
+26&#8211;31&#176;), the thumb and middle 3&#8211;15&#176;. The tool stands in the hole under 20 N of pad force and turns
+&#8722;0.002 revolutions. This is the 2026-09-16 result on the calibrated chain (fingers 14&#8211;38&#176; behind command through
+the gait, 0.00&#8211;0.02 rev) with the policy&#8217;s turn in front of it; the chain&#8217;s <code>ok</code> gate tests stance,
+grip and cycles run, not screw turns. The relay handover does move the fingers (commands change by 77&#8211;110&#176; on the
+index, achieved 21&#8211;44&#176;) and the tool stays at cos 0.99 through it.</p>
+<p>Plate height: the chain scenes in <code>assets/mjcf/experimental/20260904-chain_bothsets/</code> were generated with the
+palm plate at the mounting plane; the built hand carries it at +25 mm, which is where the training scenes put it. The
+probe moves the plate per run (<code>plate_variant</code>, a <code>__plate25.xml</code> beside the scene; only the plate geom
+moves), so the plate-25 rows are the built hand and the plate-0 rows the old geometry. The one film below is the plate-0
+run; the plate-25 film is queued behind the compute gate.</p>
+<figure><video controls muted loop playsinline preload="metadata" width="640" height="480" src="web/r_d6_clip_chain_pl0.mp4"></video><figcaption>D6, bounded residual (&#177;1 rad), plate 0 mm: grasp on the post, arm lift, the policy&#8217;s turn (5 s), arm re-pose, set-down, relay handover, gait. Plate at the chain scenes&#8217; original height, not the built hand&#8217;s 25 mm. Outcome: stood and held; 8 gait cycles commanded, -0.002 screw turns, final tilt 3.8&#176;.</figcaption></figure>
 </div></section>
 
 <section><div class="col">

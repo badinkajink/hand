@@ -308,7 +308,8 @@ def main():
             seam_rows.append([j["hand"], {"clip": "clip", "clipsep": "clip + separation"}.get(j["arm"], j["arm"]), str(pl), sc("turned"), sc("staged"), sc("set_down"),
                               sc("handover_grip"), sc("gaited"),
                               f"{cs.get('cycles_run', 0)} / {cs.get('turns', 0):+.2f}",
-                              ("stood, gripped, gaited" if ok else ", ".join(k for k, f in (("carried", "carry_ok"), ("stood", "stood_ok"), ("gripped", "grip_ok")) if cs.get(f)) or "lost",
+                              ((f"stood, held through {cs.get('cycles_run', 0)} cycles at {cs.get('turns', 0):+.2f} turns" if ok
+                                else ", ".join(k for k, f in (("carried", "carry_ok"), ("stood", "stood_ok"), ("gripped", "grip_ok")) if cs.get(f)) or "lost"),
                                "cell c4" if ok else ("cell c2" if cs.get("stood_ok") else "cell c0"))])
     table_chain = table(["hand", "arm", "plate 25 mm: end cos", "plate 0: end cos"], crow) if crow else "<p>No chain run yet.</p>"
     table_seams = table(["hand", "arm", "plate", "turned: cos / z (mm)", "staged", "set down", "handover grip", "gaited", "cycles / turns", "outcome"],
@@ -327,8 +328,9 @@ def main():
                 cs = c.get("chain_scalars", {})
                 chain_videos.append(f'<figure><video controls muted loop playsinline preload="metadata" width="640" height="480" src="web/{j["id"]}_chain_pl{pl}.mp4"></video>'
                                     f'<figcaption>{j["hand"]}, {ARM_LABEL.get(j["arm"], j["arm"])}, plate {pl} mm: grasp on the post, arm lift, the policy&#8217;s turn (5 s), '
-                                    f'arm re-pose, set-down, relay handover, gait. Outcome: {"the whole chain" if c.get("ok") else "lost after the turn"}; '
-                                    f'{cs.get("cycles_run", 0)} gait cycles, {cs.get("turns", 0):+.3f} screw turns, final tilt {cs.get("final_tilt_deg", float("nan")):.1f}&#176;.</figcaption></figure>')
+                                    f'arm re-pose, set-down, relay handover, gait. {"Plate at the chain scenes&#8217; original height, not the built hand&#8217;s 25 mm. " if pl == 0 else ""}'
+                                    f'Outcome: {"stood and held" if c.get("ok") else "lost after the turn"}; '
+                                    f'{cs.get("cycles_run", 0)} gait cycles commanded, {cs.get("turns", 0):+.3f} screw turns, final tilt {cs.get("final_tilt_deg", float("nan")):.1f}&#176;.</figcaption></figure>')
     chain_videos_html = "\n".join(chain_videos) if chain_videos else "<p>No chain film yet (the driver runs the chain without <code>--video</code>; films are rendered by hand for the policies that hold).</p>"
 
     # --- strips + videos (web/<id>.mp4 transcoded from videos/<id>.mp4 if missing)

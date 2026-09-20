@@ -149,6 +149,20 @@ tool&#8217;s cos to vertical and its height at that seam; <em>gaited</em> is the
 rotation the cycles put into the shaft; a chain that stands the tool and gaits 8 cycles at 0.00 turns is holding it
 without driving it.</p>
 {{TABLE_SEAMS}}
+<p>The gait does not move the fingers on this plant. Finger commands and joint angles recorded every 60 sim steps through
+the D6 clip run at plate 0 (<code>r_d6_clip_chain_pl0_ctrl_qpos.json</code>): through the eight cycles the commanded angles
+vary by 5&#8211;27&#176; per joint (the ring table is built around the tool&#8217;s actual axis, 31 mm of IK residual) and the
+achieved angles by 0.3&#8211;9&#176;; the index pip sits 59&#176; behind its command for the whole gait (commanded 88&#176;, achieved
+26&#8211;31&#176;), the thumb and middle 3&#8211;15&#176;. The tool stands in the hole under 20 N of pad force and turns
+&#8722;0.002 revolutions. This is the 2026-09-16 result on the calibrated chain (fingers 14&#8211;38&#176; behind command through
+the gait, 0.00&#8211;0.02 rev) with the policy&#8217;s turn in front of it; the chain&#8217;s <code>ok</code> gate tests stance,
+grip and cycles run, not screw turns. The relay handover does move the fingers (commands change by 77&#8211;110&#176; on the
+index, achieved 21&#8211;44&#176;) and the tool stays at cos 0.99 through it.</p>
+<p>Plate height: the chain scenes in <code>assets/mjcf/experimental/20260904-chain_bothsets/</code> were generated with the
+palm plate at the mounting plane; the built hand carries it at +25 mm, which is where the training scenes put it. The
+probe moves the plate per run (<code>plate_variant</code>, a <code>__plate25.xml</code> beside the scene; only the plate geom
+moves), so the plate-25 rows are the built hand and the plate-0 rows the old geometry. The one film below is the plate-0
+run; the plate-25 film is queued behind the compute gate.</p>
 {{CHAIN_VIDEOS}}
 </div></section>
 
