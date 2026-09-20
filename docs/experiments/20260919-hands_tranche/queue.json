@@ -29,11 +29,11 @@
   "--term-tip-lost-steps",
   "15",
   "--friction-dr",
-  "--grip-force-penalty-weight=-5",
+  "--grip-force-penalty-weight=-2",
   "--grip-force-penalty-thresh",
-  "4.0",
+  "6.0",
   "--init-actor-checkpoint",
-  "results/rl/20260917-1844-d6_cal_reorient_ft_gpm5_20M_s0/tensorboard/model_270.pt",
+  "results/rl/20260917-1141-d6_cal_reorient_gp025_60M_s0/tensorboard/model_812.pt",
   "--watchdog-collapse-z",
   "0.03",
   "--watchdog-from-iter",
@@ -41,8 +41,8 @@
  ],
  "train_mem": "10G",
  "train_cpu": 800,
- "init_checkpoint": "results/rl/20260917-1844-d6_cal_reorient_ft_gpm5_20M_s0/tensorboard/model_270.pt",
- "note": "warm-started from the D6 grip finetune (cos 0.969, 10.8 N); clip = residual bounded to +-1 rad; clipsep = clip + index-middle clearance >= 30 mm penalty (-10); D8 excluded (drops the evaluator lift at every squeeze)",
+ "init_checkpoint": "results/rl/20260917-1141-d6_cal_reorient_gp025_60M_s0/tensorboard/model_812.pt",
+ "note": "warm-started from the 60M (+0.25) D6 checkpoint (cos 0.933 held 64/64, 17 N grip; holds the UR5e chain's grasp seam 3/4 where the -5 grip finetune holds 1/4); grip penalty -2 above 6 N/pad (bench servo holding force); clip = residual bounded to +-1 rad; clipsep = clip + index-middle clearance >= 30 mm penalty (-10); D8 excluded (drops the evaluator lift at every squeeze). Changed 2026-09-19 20:30 before any job started.",
  "jobs": [
   {
    "id": "d6_clip_s0",
@@ -54,7 +54,7 @@
     "2.0"
    ],
    "status": "running",
-   "started": "2026-09-19 19:55:56"
+   "started": "2026-09-19 20:18:48"
   },
   {
    "id": "d6_clipsep_s0",
