@@ -62,6 +62,25 @@ def main():
                     help="what the staging and the descent carry over the socket: 'centre' = the "
                          "tool's body centre (the shipped chain; a residual lean puts the apex beside "
                          "the hole), 'tip' = the measured apex, then stand the tool up about the seated apex")
+    ap.add_argument("--angle-gain", type=float, default=0.0,
+                    help="achieved-joint-angle loop on the handover and gait (command = set-point + gain * shortfall, "
+                         "the host-side integral the servo lacks); 0 = off")
+    ap.add_argument("--angle-rate", type=float, default=0.01)
+    ap.add_argument("--reg-band", type=float, default=0.45, help="rad the regulator's trim may add to a set-point")
+    ap.add_argument("--regrip-ref", default="command", choices=("command", "achieved"),
+                    help="what the post-turn regrip measures its squeeze from: the policy's frozen command (shipped) "
+                         "or the achieved joint angles")
+    ap.add_argument("--press-regrip", type=float, default=0.0,
+                    help="mm of interference to re-seed the finger commands from the achieved angles once the tool is "
+                         "pressed into its seat (the handover and gait then start off the servo's ceiling); 0 = off")
+    ap.add_argument("--reindex", default=None, choices=("full", "relay", "track", "slide", "regrip"),
+                    help="the handover mode (probe_real_v1_chain reindex); the chain's base is 'relay', which keeps "
+                         "the grasp and cannot reach the gait ring; 'slide' flies the palm to the gait pose with the "
+                         "pads walking to the ring on the tool's surface")
+    ap.add_argument("--track-frac", type=float, default=None, help="share of the wrist move the slide handover makes")
+    ap.add_argument("--carry-squeeze", type=float, default=None,
+                    help="mm of pad squeeze the post-turn regrip commands (the chain's 0.3 by default; the plans use 10)")
+    ap.add_argument("--angle-from", default="pressed", choices=("start", "lifted", "pressed"))
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--jitter", type=float, default=0.0)
     ap.add_argument("--out", type=Path, required=True)
@@ -92,6 +111,12 @@ def main():
     if a.stages == "policy":
         cell.update(close_ease_steps=240, lift_ramp=80, post_lift_settle=260)
     cell["arm_kp_scale"] = a.arm_kp_scale
+    if a.carry_squeeze is not None:
+        cell["carry_squeeze"] = a.carry_squeeze / 1000.0
+    if a.reindex is not None:
+        cell["reindex"] = a.reindex
+    if a.track_frac is not None:
+        cell["track_frac"] = a.track_frac
     cell["finger_gravcomp"] = a.finger_gravcomp
 
     state = {"pol": None, "last": np.zeros(len(FINGER_JOINTS), dtype=np.float32), "k0": None, "trace": [],
@@ -161,17 +186,24 @@ def main():
 
     r = C.chain(Path(tag), arm_ik=Path(fit["ik"]), scene_path=scene, anchor_ctrl=fit["anchor"],
                 grip_depth=fit["depth_mm"] / 1000, axis_k=h["axis_k"], budget=h["budget"],
-                **seat, **cell, seat_aim=a.seat_aim, jitter=a.jitter, seed=a.seed, turn_ctrl=turn_ctrl,
+                **seat, **cell, seat_aim=a.seat_aim, angle_gain=a.angle_gain, angle_rate=a.angle_rate,
+                angle_from=a.angle_from, reg_band=a.reg_band, regrip_ref=a.regrip_ref,
+                press_regrip=a.press_regrip / 1000.0,
+                jitter=a.jitter, seed=a.seed, turn_ctrl=turn_ctrl,
                 step_hook=shadow, ctx=ctx, video=a.video, film=a.film)
     seams = {s["phase"]: s for s in r["seams"]}
-    keep = ("t", "cos", "tilt_deg", "z", "pad_contacts", "pad_force_N", "roll_deg", "slide_mm", "hand_contacts")
+    keep = ("t", "cos", "tilt_deg", "z", "pad_contacts", "pad_force_N", "roll_deg", "slide_mm", "hand_contacts",
+            "q_err_deg", "sat", "sp_err_deg", "trim_deg")
     out = {"hand": a.hand, "tag": tag, "policy": str(a.policy), "scene": str(scene), "squeeze_mm": a.squeeze, "plant": a.plant,
            "turn_steps": a.turn_steps, "stand": a.stand, "stages": a.stages, "arm_kp_scale": a.arm_kp_scale,
-           "seat_aim": a.seat_aim,
+           "seat_aim": a.seat_aim, "angle_gain": a.angle_gain, "angle_rate": a.angle_rate, "angle_from": a.angle_from,
+           "reg_band": a.reg_band, "regrip_ref": a.regrip_ref, "carry_squeeze_mm": cell["carry_squeeze"] * 1000,
+           "press_regrip_mm": a.press_regrip, "reindex": cell.get("reindex"), "track_frac": cell.get("track_frac"),
            "finger_gravcomp": a.finger_gravcomp,
            "seams": {ph: {k: s.get(k) for k in keep if k in s} for ph, s in seams.items()},
            "held_turn": bool((seams.get("turned", {}).get("pad_contacts") or 0) >= 2 and (seams.get("turned", {}).get("z") or 0) > 0.08),
            "ok": r.get("ok"), "cycles": r.get("n_cycles", r.get("cycles_ok")), "reorient_deg": r.get("reorient_deg"),
+           "per_cycle": r.get("cycles"),
            "policy_trace": state["trace"], "arm_tracking": state["arm"], "obs_at_active": state.get("obs0"),
            "shadow_steps": state["shadow_steps"], "turn_step0": int(ctx.get("turn", {}).get("step0", -1)),
            "chain_keys": sorted(k for k in r.keys() if isinstance(r[k], (int, float, bool, str)))[:40],

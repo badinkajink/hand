@@ -190,6 +190,33 @@ achieved-angle problem is the next item and this change does not touch it. Rows 
 centre is at 49.5) / pads on the tool at each seam.</p>
 {{TABLE_SEAT_AIM}}
 {{SEAT_AIM_VIDEOS}}
+<h3>The handover and the gait on the calibrated plant: the loop, the command reference and the ring&#8217;s reach</h3>
+<p>The 2026-09-16 measurement, run on the three seated policies. An achieved-joint-angle loop (<code>--angle-gain k</code>:
+command = set-point + k &#215; (set-point &#8722; achieved), slewed 0.01 rad per tick, clipped at 0.45 rad, armed from the
+press so the RL turn runs as trained) does not close the error, and the seams say why. At the press the servos are already on
+their ceiling: the thumb sits 76&#176; short of its set-point on D6 with an actuator at 0.35 N&#183;m, the index 28&#176;.
+The set-point is the policy&#8217;s last action, a residual frozen at its &#177;1 rad clip, 70&#8211;79&#176; past the
+achieved angle on every hand at <em>turned</em>; the chain&#8217;s 0.3 mm regrip, the relay&#8217;s pinned pads and the gait
+table&#8217;s rebase are all measured from that command, so every later grip inherits the saturation. The loop&#8217;s trim
+hits its 26&#176; band at once, <code>sat</code> rises to 2&#8211;3 actuators per finger, and the gait gains 3&#176; in
+its first cycles and stops (+0.02 turns). The command-referenced design is right on the kp-30 plant, where the deflection it
+preserves is a millimetre; here it is a radian.</p>
+<p>Re-seeding the command from the achieved angles (<code>_squeeze_cmd(from_achieved=True)</code>) takes the servos off the
+ceiling. Done right after the turn with the plans&#8217; 10 mm (<code>--regrip-ref achieved --carry-squeeze 10</code>) the
+grip drops from 16 N to 5 N; on D6 clip the arm then stages at 3.2&#176; instead of 13&#176;, seats at 0.3&#176;, and with
+the angle loop on top the gait turns the screw 6.0, 3.1, 2.4, 1.9, 1.9, 2.3, 4.3, 3.9&#176; per cycle, +0.071 turns in
+8 cycles at a final tilt of 0.8&#176;, the first non-zero turn on the calibrated plant. On D5 and the separation policy the
+same 3&#8211;4 N grip does not survive the arm&#8217;s levelling from 32&#8211;35&#176; of lean (lost before
+<em>staged</em>). Done at the press instead (<code>--press-regrip 10</code>), where the seat carries the tool, all three
+keep it (D6 clip 76/28/3&#176; &#8594; 11/12/13&#176;, <code>sat</code> 0) and the handover then drives the index
+45&#8211;102&#176; short and onto the ceiling on every run: the relay&#8217;s ring target is 17&#8211;27 mm beyond the
+finger&#8217;s reach (<code>ring_ik_grip_mm</code>, the same 20 mm the 2026-09-06 D6 chain carried, where a rigid finger
+turned an unreachable command into force). The gait then turns 5&#8211;6&#176; in its first cycle and stalls. The
+<code>slide</code> handover, written for a reachable ring with the grasp unbroken, moves the palm 49 mm and 45&#176; to the
+gait&#8217;s pose and pulls the tool out of the seat (z 53 &#8594; 82&#8211;96 mm). Columns: set-point error and actuators on
+the ceiling per finger at the seam the handover starts from; the index at <em>handover_index</em>; then the seams as above.</p>
+{{TABLE_HANDOVER}}
+{{HANDOVER_VIDEO}}
 </div></section>
 
 <section><div class="col">
@@ -330,6 +357,11 @@ turns 8&#176; into 7 mm (enters) and 14&#176; into 12 mm (misses); every plate-2
 14&#8211;27&#176; and missed the hole when the body centre was the aim point. Aiming the measured apex and taking the lean out
 about the seated tip lands all three within 1.5 mm and hands over at 0.4&#8211;6.3&#176;; the lean at the end of the turn
 costs nothing at the seat once the trajectory is written for the tip.</li>
+<li><strong>The calibrated servo needs a command it can reach; after an RL turn it has one it cannot.</strong> The frozen
+residual leaves the thumb 70&#8211;79&#176; past its achieved angle on the 0.35 N&#183;m ceiling, and every command-referenced
+composition downstream (regrip, relay, gait table) keeps it there; an achieved-angle loop adds nothing to a stalled servo. Re-seeding
+from the achieved angles at the press takes the servos off the ceiling; the gait ring is then the next unreachable command
+(17&#8211;27 mm of IK residual on every D5/D6 run, including the 09-06 chain that read as solved on kp 30).</li>
 <li><strong>Unattended follow-ups.</strong> Two of three scheduled session wake-ups never fired; the page build has
 to live in the detached driver (or a watcher beside it), not in the session.</li>
 </ul>
@@ -344,15 +376,16 @@ heights.</li>
 <li><strong>Turn quality on the matched plant.</strong> The continued policies end at cos 0.82&#8211;0.83 where their
 parents ended at 0.92&#8211;0.96: 20 M steps of continuation on a harder tool contact and a heavier tip is not yet
 converged, or the jitter costs turn. One 60 M continuation of the D6 separation job decides which.</li>
-<li><strong>The achieved-joint-angle loop on the handover and gait commands</strong> (the 2026-09-16 measurement, still
-open): the gait commands 5&#8211;27&#176; per joint and the calibrated servos deliver 0.3&#8211;9&#176;, so the ring the
-gait plans is never the ring the fingers make. Close the loop on the measured joint angles (command = target + gain &#215;
-(target &#8722; achieved), rate-limited) in <code>probe_real_v1_chain</code>&#8217;s gait and handover; accept q_err &lt;
-10&#176; through <code>handover_*</code> and &#8805; 0.5 rev in 8 cycles on the three tip-aimed plate-25 runs. The tip-aimed
-set-down (done above) is the precondition; the seat capture is no longer the blocker.</li>
-<li><strong>Make <code>--seat-aim tip</code> the driver&#8217;s default</strong> for the next tranche (the remaining rows of
-this one keep <code>centre</code> so the table stays comparable), and run it across the spawn-jitter seeds (<code>--jitter</code>,
-<code>--seed</code> on the probe) to get a rate rather than three single rollouts.</li>
+<li><strong>A gait ring the fingers can reach, at the palm pose the seat leaves.</strong> Solve the ring per hand
+(<code>_ring_here</code> on the pads&#8217; own azimuths, ring depth and radius chosen for an IK residual under 2 mm at the
+current palm pose) before the relay walks the pads onto it; accept <code>ring_ik_grip_mm</code> &lt; 2 and the index&#8217;s
+set-point error &lt; 10&#176; at <code>handover_index</code>. The alternative that needs no handover: gait on the contact set the
+press leaves (pads where they are, stroke about the tool axis, commands re-seeded from the achieved angles each cycle with the
+angle loop on), which turned 2&#8211;6&#176; per cycle whenever the servos were off the ceiling. Accept &#8805; 0.5 rev in 8
+cycles on D6.</li>
+<li><strong>Make <code>--seat-aim tip --press-regrip 10</code> the driver&#8217;s default</strong> for the next tranche (the
+remaining rows of this one keep the shipped settings so the table stays comparable), and run it across the spawn-jitter seeds
+(<code>--jitter</code>, <code>--seed</code> on the probe) to get a rate rather than three single rollouts.</li>
 <li><strong>Driver hygiene.</strong> <code>--video</code> on the driver&#8217;s chain call so every job gets its chain film;
 apply <code>--seed</code> in <code>rl_train_cube.py</code> (a dead flag today) after the queue; a second draw of the D4
 job is queued (<code>r_d4_clip_s1</code>) to tell a stochastic NaN from the D4 pads on the mesh tool.</li>
