@@ -170,11 +170,26 @@ the annulus beside the hole. D6 clip at plate 0 staged at cos 0.99 (8&#176;) and
 0.97 (14&#176;), the separation policy at 0.95 (18&#176;) and D5 at 0.89 (27&#176;), and in each film the tip comes down
 beside the hole. D6 clip then loses the tool at the handover grip (it tips off the post); D5 and the separation policy keep it
 in hand leaning on the post at 47&#8211;55&#176; through the gait. The staging already iterates the palm against the measured
-tool pose (eight corrections), so the residual angle is what the compliant grip gives back under the arm&#8217;s re-pose. The
-next measurement is the staging gate: keep correcting until cos &#8805; 0.99 before the descent (<code>--repose-iters</code>
-16 and an angle gate in <code>_stage</code>), on the three plate-25 runs that hold the turn; if the angle does not close, the
-seat needs a wider mouth or the descent needs its own tracking.</p>
+tool pose (eight corrections), so the residual angle is what the compliant grip gives back under the arm&#8217;s re-pose.</p>
 {{CHAIN_VIDEOS}}
+<h3>Aiming the tip at the seat instead of levelling the tool first</h3>
+<p>The residual angle does not have to close before the descent. The chain commands the tool&#8217;s pose and derives the
+palm&#8217;s from it (<code>_rigid_palm_pose</code>), and it already measures the tool&#8217;s low point every correction, so
+the staging and the descent can carry the <em>apex</em> over the socket rather than the body centre, and the lean can come out
+afterwards as a rotation about the seated tip with the floor carrying the weight (the <code>_upright(about_foot)</code> move
+the pivot order already uses). <code>real_v1_chain_policy.py --seat-aim tip</code> does that: <code>_stage</code> aims the
+measured apex at <code>place_xy</code>, <code>_descend</code> takes one aim on the apex at the top of its move, and a
+<code>seated</code> phase follows the set-down (eight corrections about the apex, walking it onto the socket centre).
+The shipped behaviour is <code>--seat-aim centre</code>, which is what every other chain row on this page ran.</p>
+<p>On the three plate-25 policies that hold the turn, the set-down now lands the apex within 1.5 mm of the socket centre at
+the lean the grip gives it (15.5&#176;, 30.5&#176; and 12.9&#176;), the seated correction takes the lean to 7.0&#176;,
+1.5&#176; and 2.8&#176;, and all three keep the tool through the relay handover and the eight gait cycles: D5 at
+0.4&#176;, D6 clip at 6.3&#176; with 17.4 N on the pads, D6 with separation at 2.9&#176; with 16.7 N. The chain&#8217;s
+<code>ok</code> passes at the built plate height for the first time. The turns column is unchanged at 0.00: the gait&#8217;s
+achieved-angle problem is the next item and this change does not touch it. Rows are tilt / tool centre z (mm; the seated
+centre is at 49.5) / pads on the tool at each seam.</p>
+{{TABLE_SEAT_AIM}}
+{{SEAT_AIM_VIDEOS}}
 </div></section>
 
 <section><div class="col">
@@ -310,9 +325,11 @@ plant the continued policies sit at 16&#8211;29 mm without it.</li>
 <li><strong>The chain&#8217;s <code>ok</code> is a hold, not a gait.</strong> The gate tests stance, grip and cycles run; on the
 calibrated plant the gait&#8217;s commands move the fingers 0.3&#8211;9&#176; (index pip 59&#176; behind its command) and put
 &#8722;0.002 turns into the screw. A chain that reads <code>ok</code> has stood the tool and held it for eleven seconds.</li>
-<li><strong>The seat has a capture radius, and the staged angle spends it.</strong> 50 mm of tip lever turns 8&#176; into 7 mm
-(enters) and 14&#176; into 12 mm (misses); every plate-25 chain that held the turn staged at 14&#8211;27&#176; and missed the hole.
-The turn&#8217;s end angle matters through the arm&#8217;s levelling, not on its own.</li>
+<li><strong>The seat has a capture radius, and aiming the body centre spends it on the lean.</strong> 50 mm of tip lever
+turns 8&#176; into 7 mm (enters) and 14&#176; into 12 mm (misses); every plate-25 chain that held the turn staged at
+14&#8211;27&#176; and missed the hole when the body centre was the aim point. Aiming the measured apex and taking the lean out
+about the seated tip lands all three within 1.5 mm and hands over at 0.4&#8211;6.3&#176;; the lean at the end of the turn
+costs nothing at the seat once the trajectory is written for the tip.</li>
 <li><strong>Unattended follow-ups.</strong> Two of three scheduled session wake-ups never fired; the page build has
 to live in the detached driver (or a watcher beside it), not in the session.</li>
 </ul>
@@ -327,11 +344,15 @@ heights.</li>
 <li><strong>Turn quality on the matched plant.</strong> The continued policies end at cos 0.82&#8211;0.83 where their
 parents ended at 0.92&#8211;0.96: 20 M steps of continuation on a harder tool contact and a heavier tip is not yet
 converged, or the jitter costs turn. One 60 M continuation of the D6 separation job decides which.</li>
-<li><strong>The staging gate before the descent.</strong> Correct the palm against the tool pose until cos &#8805; 0.99
-(<code>--repose-iters</code> 16 plus an angle gate) on the D6 clip, D6 separation and D5 plate-25 runs (10 s of CPU each);
-accept if the tip enters on all three. Then the achieved-joint-angle loop on the handover and gait commands (the
-2026-09-16 measurement, still open): accept q_err &lt; 10&#176; through <code>handover_*</code> and &#8805; 0.5 rev in 8
-cycles on D6.</li>
+<li><strong>The achieved-joint-angle loop on the handover and gait commands</strong> (the 2026-09-16 measurement, still
+open): the gait commands 5&#8211;27&#176; per joint and the calibrated servos deliver 0.3&#8211;9&#176;, so the ring the
+gait plans is never the ring the fingers make. Close the loop on the measured joint angles (command = target + gain &#215;
+(target &#8722; achieved), rate-limited) in <code>probe_real_v1_chain</code>&#8217;s gait and handover; accept q_err &lt;
+10&#176; through <code>handover_*</code> and &#8805; 0.5 rev in 8 cycles on the three tip-aimed plate-25 runs. The tip-aimed
+set-down (done above) is the precondition; the seat capture is no longer the blocker.</li>
+<li><strong>Make <code>--seat-aim tip</code> the driver&#8217;s default</strong> for the next tranche (the remaining rows of
+this one keep <code>centre</code> so the table stays comparable), and run it across the spawn-jitter seeds (<code>--jitter</code>,
+<code>--seed</code> on the probe) to get a rate rather than three single rollouts.</li>
 <li><strong>Driver hygiene.</strong> <code>--video</code> on the driver&#8217;s chain call so every job gets its chain film;
 apply <code>--seed</code> in <code>rl_train_cube.py</code> (a dead flag today) after the queue; a second draw of the D4
 job is queued (<code>r_d4_clip_s1</code>) to tell a stochastic NaN from the D4 pads on the mesh tool.</li>

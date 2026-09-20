@@ -39,3 +39,11 @@ Driver: `nohup setsid python3 scripts/hands_tranche_queue.py --queue docs/experi
   staged at 8 deg (7 mm) and entered. Next measurement: a staging gate (cos >= 0.99 before the descent). Page v5.
 - D7 continued: nominal 37/64 (parent 64), jittered 1->35; its strip shows the tool sliding out during the lift and
   standing on the floor at step 58. D2: nominal 64 at cos 0.65, turns 40-50 deg and holds, as its parent.
+- 14:55 The staging gate is not needed: the chain commands the tool pose and derives the palm's, so the set-down is
+  written for the tip instead (`probe_real_v1_chain.chain(seat_aim="tip")`, `real_v1_chain_policy.py --seat-aim tip`):
+  `_stage` aims the measured apex at the socket, `_descend` takes one aim on the apex, a `seated` phase stands the tool up
+  about the seated tip (the `_upright(about_foot)` move). The driver's rows keep `centre`. On the three plate-25 policies
+  that hold the turn: apex within 1.5 mm of the socket at 12.9-30.5 deg of lean, seated to 1.5-7.0 deg, all three hold
+  through the relay handover and 8 gait cycles (D5 0.4 deg, D6 clip 6.3 deg / 17.4 N, D6 sep 2.9 deg / 16.7 N); `ok`
+  at plate 25 for the first time. Turns still 0.00 (the achieved-angle loop is next). Outputs in `seat_aim/`, films
+  `seat_aim/videos/*_pl25_tip.mp4` -> `web/*_chain_pl25_tip.mp4`. Page v6.

@@ -335,6 +335,45 @@ def main():
                                     f'{cs.get("cycles_run", 0)} gait cycles commanded, {cs.get("turns", 0):+.3f} screw turns, final tilt {cs.get("final_tilt_deg", float("nan")):.1f}&#176;.</figcaption></figure>')
     chain_videos_html = "\n".join(chain_videos) if chain_videos else "<p>No chain film yet (the driver runs the chain without <code>--video</code>; films are rendered by hand for the policies that hold).</p>"
 
+    # --- the seat aim: seat_aim/<id>_pl25_tip.json (real_v1_chain_policy.py --seat-aim tip, by hand) against the
+    # driver's centre-aimed plate-25 run of the same policy; films seat_aim/videos/<id>_pl25_tip.mp4
+    SA = os.path.join(R, "seat_aim")
+    sa_rows, sa_videos = [], []
+    def sa_cell(c, name):
+        v = (c.get("seams") or {}).get(name)
+        if not v:
+            return "&#8211;"
+        return f"{v['tilt_deg']:.1f}&#176; / {v['z'] * 1000:.1f} / {v['pad_contacts']}"
+    for j in done:
+        tp = os.path.join(SA, f"{j['id']}_pl25_tip.json")
+        if not os.path.exists(tp):
+            continue
+        for label, cp in (("centre", os.path.join(R, f"{j['id']}_chain_pl25.json")), ("tip", tp)):
+            if not os.path.exists(cp):
+                continue
+            c = json.load(open(cp)); cs = c.get("chain_scalars", {}); ok = bool(c.get("ok"))
+            sa_rows.append([j["hand"], ARM_LABEL.get(j["arm"], j["arm"]), label, sa_cell(c, "staged"), sa_cell(c, "set_down"), sa_cell(c, "seated"),
+                            sa_cell(c, "handover_grip"), sa_cell(c, "gaited"),
+                            f1(cs.get("apex_seat_offset_mm"), "{:.1f}") if label == "tip" else "&#8211;",
+                            (f"stood, held through {cs.get('cycles_run', 0)} cycles at {cs.get('turns', 0):+.2f} turns" if ok
+                             else ", ".join(k for k, f in (("carried", "carry_ok"), ("stood", "stood_ok"), ("gripped", "grip_ok")) if cs.get(f)) or "lost",
+                             "cell c4" if ok else ("cell c2" if cs.get("stood_ok") else "cell c0"))])
+        src_v, web_v = os.path.join(SA, "videos", f"{j['id']}_pl25_tip.mp4"), os.path.join(R, "web", f"{j['id']}_chain_pl25_tip.mp4")
+        if os.path.exists(src_v) and not os.path.exists(web_v):
+            subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", src_v, "-vf", "scale=640:480", "-c:v", "libx264", "-crf", "28",
+                            "-preset", "medium", "-pix_fmt", "yuv420p", "-movflags", "+faststart", "-an", web_v], stdin=subprocess.DEVNULL)
+        if os.path.exists(web_v):
+            c = json.load(open(tp)); cs = c.get("chain_scalars", {})
+            sa_videos.append(f'<figure><video controls muted loop playsinline preload="metadata" width="640" height="480" src="web/{j["id"]}_chain_pl25_tip.mp4"></video>'
+                             f'<figcaption>{j["hand"]}, {ARM_LABEL.get(j["arm"], j["arm"])}, plate 25 mm, tip-aimed set-down: the same policy and turn as above, '
+                             f'then the apex carried over the socket, lowered into it at {(c.get("seams") or {}).get("set_down", {}).get("tilt_deg", float("nan")):.1f}&#176;, '
+                             f'stood up about the seated tip to {(c.get("seams") or {}).get("seated", {}).get("tilt_deg", float("nan")):.1f}&#176;, relay handover, gait. '
+                             f'Outcome: {"stood and held" if c.get("ok") else "lost"}; {cs.get("cycles_run", 0)} cycles, {cs.get("turns", 0):+.3f} screw turns, '
+                             f'final tilt {cs.get("final_tilt_deg", float("nan")):.1f}&#176;, apex {f1(cs.get("apex_seat_offset_mm"), "{:.1f}")} mm from the socket centre.</figcaption></figure>')
+    table_seat_aim = table(["hand", "arm", "aim", "staged: tilt / z (mm) / pads", "set down", "seated", "handover grip", "gaited", "apex off (mm)", "outcome"],
+                           sa_rows) if sa_rows else "<p>No tip-aimed run yet.</p>"
+    seat_aim_videos_html = "\n".join(sa_videos) if sa_videos else ""
+
     # --- strips + videos (web/<id>.mp4 transcoded from videos/<id>.mp4 if missing)
     strips = []
     os.makedirs(os.path.join(R, "web"), exist_ok=True)
@@ -373,7 +412,8 @@ def main():
                                                           if chain_cell(os.path.join(R, f"{j['id']}_chain_pl25.json"))[1].endswith("c4")) or "none") + "."))
     sub = {"LEDE": lede, "TABLE_PLANT": table(["", "2026-09-19 tranche", "here", "why"], [list(r) for r in PLANT_ROWS]),
            "TABLE_MAIN": table_main, "READING": reading, "TABLE_PLAUS": table_plaus, "TABLE_CHAIN": table_chain,
-           "STRIPS": strips_html, "TABLE_SEAMS": table_seams, "CHAIN_VIDEOS": chain_videos_html, "CURVES": curves_html, "N_JOBS": str(len(jobs)), "N_DONE": str(n_done),
+           "STRIPS": strips_html, "TABLE_SEAMS": table_seams, "CHAIN_VIDEOS": chain_videos_html,
+           "TABLE_SEAT_AIM": table_seat_aim, "SEAT_AIM_VIDEOS": seat_aim_videos_html, "CURVES": curves_html, "N_JOBS": str(len(jobs)), "N_DONE": str(n_done),
            "BUILT": time.strftime("%Y-%m-%d %H:%M")}
     sub.update(pipeline_blocks(res[done[0]["id"]]["run"], q.get("common_flags", ())) if done and res[done[0]["id"]].get("run") else
                {k: "<p>No finished run yet.</p>" for k in ("TIMELINE", "TABLE_OBS", "ACTION_NOTE", "TABLE_REWARD", "REWARD_NOTE", "TABLE_TERM", "TABLE_PPO", "TABLE_DECISIONS", "TABLE_EVAL")})
