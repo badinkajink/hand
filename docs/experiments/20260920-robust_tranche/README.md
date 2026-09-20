@@ -47,3 +47,18 @@ Driver: `nohup setsid python3 scripts/hands_tranche_queue.py --queue docs/experi
   through the relay handover and 8 gait cycles (D5 0.4 deg, D6 clip 6.3 deg / 17.4 N, D6 sep 2.9 deg / 16.7 N); `ok`
   at plate 25 for the first time. Turns still 0.00 (the achieved-angle loop is next). Outputs in `seat_aim/`, films
   `seat_aim/videos/*_pl25_tip.mp4` -> `web/*_chain_pl25_tip.mp4`. Page v6.
+- 15:50 The achieved-angle loop (09-16's named measurement) is FALSIFIED as specified: `--angle-gain k` (probe regulator
+  arm, armed from the press) finds the servos already on the ceiling at the press (D6 thumb 76 deg short, sat 1; the
+  policy's frozen residual is 70-79 deg past achieved at `turned` on every hand) and every downstream grip is
+  command-referenced (0.3 mm regrip, relay pins, gait-table rebase), so the trim clips at 26 deg, sat 2-3, sp_err
+  70-100 deg, +0.02 turns. Re-seeding from the ACHIEVED angles (`_squeeze_cmd(from_achieved=True)`):
+  `--regrip-ref achieved --carry-squeeze 10` right after the turn takes D6 clip off the ceiling (5 N), stages at 3.2
+  deg, seats at 0.3, and with gain 2 turns +0.071 rev in 8 cycles (2-6 deg/cycle, tilt 0.8) -- the first non-zero
+  turn on the calibrated plant -- but the 3-4 N grip loses D5/D6 sep during the levelling. `--press-regrip 10` (at the
+  press, seat carrying) keeps all three and the handover then saturates the INDEX 45-102 deg short on every run: the
+  relay's ring is 17-27 mm beyond reach (`ring_ik_grip_mm`; the 09-06 'solved' D6 chain carried 20 mm on kp 30).
+  `--reindex slide` (the reachable-ring mode) moves the palm 49 mm / 45 deg and pulls the tool out of the seat.
+  New flags on real_v1_chain_policy.py: --angle-gain/--angle-rate/--angle-from/--reg-band, --regrip-ref,
+  --carry-squeeze, --press-regrip, --reindex, --track-frac; seams carry sp_err_deg/trim_deg beside q_err_deg/sat;
+  per_cycle rows in the output. Next: a per-hand reachable ring at the seated palm pose (ring_ik_grip < 2 mm), or a
+  gait on the press's own contact set with achieved-referenced commands. Page v6; outputs seat_aim/*.json.

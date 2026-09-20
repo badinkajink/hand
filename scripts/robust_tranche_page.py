@@ -12,6 +12,7 @@ the queue (the rollout videos are web/<id>.mp4 beside the page, transcoded from 
 from __future__ import annotations
 
 import argparse
+import glob
 import json
 import os
 import subprocess
@@ -374,6 +375,67 @@ def main():
                            sa_rows) if sa_rows else "<p>No tip-aimed run yet.</p>"
     seat_aim_videos_html = "\n".join(sa_videos) if sa_videos else ""
 
+    # --- the handover and gait after the seat: every seat_aim/<id>_pl25_tip*.json configuration (angle loop,
+    # command reference, handover mode), read off the filename suffix
+    import re as _re
+    def cfg_label(suffix):
+        parts = []
+        if "_rgachieved" in suffix:
+            mm = _re.search(r"_cs(\d+)", suffix); parts.append(f"regrip from achieved ({mm.group(1) if mm else '?'} mm) after the turn")
+        pr = _re.search(r"_pr(\d+)", suffix)
+        if pr and pr.group(1) != "0":
+            parts.append(f"re-reference from achieved ({pr.group(1)} mm) at the press")
+        if "_slide" in suffix:
+            parts.append("slide handover")
+        ag = _re.search(r"_ag(\d+)", suffix)
+        if ag and ag.group(1) != "0":
+            parts.append(f"angle loop gain {ag.group(1)}")
+        return "; ".join(parts) if parts else "tip aim only (relay handover, command-referenced)"
+    def sv(c, ph, key, f=None):
+        v = ((c.get("seams") or {}).get(ph) or {}).get(key)
+        if v is None or f is None:
+            return v
+        return v.get(f) if isinstance(v, dict) else v
+    def fmt3(c, ph, key):
+        v = ((c.get("seams") or {}).get(ph) or {}).get(key)
+        return "&#8211;" if not isinstance(v, dict) else " / ".join(f"{v[k]:.0f}" for k in ("thumb", "index", "middle"))
+    hg_rows, hg_video = [], []
+    for j in done:
+        paths = sorted(glob.glob(os.path.join(SA, f"{j['id']}_pl25_tip*.json")))
+        paths = [pq for pq in paths if not pq.endswith("_video.json")]
+        for pq in paths:
+            c = json.load(open(pq)); cs = c.get("chain_scalars", {}); ok = bool(c.get("ok"))
+            suffix = os.path.basename(pq)[len(j["id"]) + len("_pl25_tip"):-len(".json")]
+            has_servo = sv(c, "pressed", "sp_err_deg") is not None
+            start = "re_referenced" if "re_referenced" in (c.get("seams") or {}) else "pressed"
+            pc = c.get("per_cycle") or []
+            gains = ", ".join(f"{x.get('gain_deg', 0):+.1f}" for x in pc[:4]) + (" &#8230;" if len(pc) > 4 else "")
+            hg = (c.get("seams") or {}).get("handover_grip") or {}; gd = (c.get("seams") or {}).get("gaited") or {}
+            hg_rows.append([j["hand"], ARM_LABEL.get(j["arm"], j["arm"]), cfg_label(suffix),
+                            (f"{fmt3(c, start, 'sp_err_deg')} | {fmt3(c, start, 'sat')}" if has_servo else "&#8211;"),
+                            (f"{fmt3(c, 'handover_index', 'sp_err_deg')} | {fmt3(c, 'handover_index', 'sat')}" if has_servo else "&#8211;"),
+                            f"{hg.get('tilt_deg', float('nan')):.1f}&#176; / {hg.get('pad_contacts', 0)} / {hg.get('pad_force_N', 0):.1f}" if hg else "&#8211;",
+                            f"{gd.get('tilt_deg', float('nan')):.1f}&#176; / {gd.get('pad_contacts', 0)} / {gd.get('pad_force_N', 0):.1f}" if gd else "&#8211;",
+                            (gains or "&#8211;") if cs.get("stood_ok") else "&#8211;",
+                            ((f"{cs.get('turns', 0):+.3f}", "cell c4" if abs(cs.get("turns", 0)) >= 0.05 else "") if cs.get("stood_ok") else "&#8211;"),
+                            ("held" if ok else ("stood" if cs.get("stood_ok") else "lost"), "cell c4" if ok else ("cell c2" if cs.get("stood_ok") else "cell c0"))])
+    table_handover = table(["hand", "arm", "configuration", "#set-point error at the start th / ix / md (&#176;) | actuators on the ceiling",
+                            "#index at handover_index: error (&#176;) | ceiling", "handover grip: tilt / pads / N", "gaited: tilt / pads / N",
+                            "gain per cycle (&#176;)", "turns / 8 cycles", "outcome"], hg_rows) if hg_rows else "<p>No handover run yet.</p>"
+    src_v, web_v = os.path.join(SA, "videos", "r_d6_clip_pl25_tip_rgachieved_cs10_ag2.mp4"), os.path.join(R, "web", "r_d6_clip_chain_pl25_tip_rg10_ag2.mp4")
+    if os.path.exists(src_v) and not os.path.exists(web_v):
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", src_v, "-vf", "scale=640:480", "-c:v", "libx264", "-crf", "28",
+                        "-preset", "medium", "-pix_fmt", "yuv420p", "-movflags", "+faststart", "-an", web_v], stdin=subprocess.DEVNULL)
+    handover_video_html = ""
+    if os.path.exists(web_v):
+        cq = os.path.join(SA, "r_d6_clip_pl25_tip_rgachieved_cs10_ag2.json")
+        c = json.load(open(cq)) if os.path.exists(cq) else {}; cs = c.get("chain_scalars", {})
+        handover_video_html = (f'<figure><video controls muted loop playsinline preload="metadata" width="640" height="480" src="web/r_d6_clip_chain_pl25_tip_rg10_ag2.mp4"></video>'
+                               f'<figcaption>D6, clip, plate 25 mm, tip-aimed set-down, regrip from the achieved angles (10 mm) after the turn, '
+                               f'angle loop gain 2 from the press: the gait turns the screw {cs.get("turns", 0):+.3f} turns in 8 cycles '
+                               f'(the first non-zero turn on the calibrated plant), final tilt {cs.get("final_tilt_deg", float("nan")):.1f}&#176;, '
+                               f'{((c.get("seams") or {}).get("gaited") or {}).get("pad_force_N", 0):.1f} N on the pads at the end.</figcaption></figure>')
+
     # --- strips + videos (web/<id>.mp4 transcoded from videos/<id>.mp4 if missing)
     strips = []
     os.makedirs(os.path.join(R, "web"), exist_ok=True)
@@ -413,7 +475,8 @@ def main():
     sub = {"LEDE": lede, "TABLE_PLANT": table(["", "2026-09-19 tranche", "here", "why"], [list(r) for r in PLANT_ROWS]),
            "TABLE_MAIN": table_main, "READING": reading, "TABLE_PLAUS": table_plaus, "TABLE_CHAIN": table_chain,
            "STRIPS": strips_html, "TABLE_SEAMS": table_seams, "CHAIN_VIDEOS": chain_videos_html,
-           "TABLE_SEAT_AIM": table_seat_aim, "SEAT_AIM_VIDEOS": seat_aim_videos_html, "CURVES": curves_html, "N_JOBS": str(len(jobs)), "N_DONE": str(n_done),
+           "TABLE_SEAT_AIM": table_seat_aim, "SEAT_AIM_VIDEOS": seat_aim_videos_html,
+           "TABLE_HANDOVER": table_handover, "HANDOVER_VIDEO": handover_video_html, "CURVES": curves_html, "N_JOBS": str(len(jobs)), "N_DONE": str(n_done),
            "BUILT": time.strftime("%Y-%m-%d %H:%M")}
     sub.update(pipeline_blocks(res[done[0]["id"]]["run"], q.get("common_flags", ())) if done and res[done[0]["id"]].get("run") else
                {k: "<p>No finished run yet.</p>" for k in ("TIMELINE", "TABLE_OBS", "ACTION_NOTE", "TABLE_REWARD", "REWARD_NOTE", "TABLE_TERM", "TABLE_PPO", "TABLE_DECISIONS", "TABLE_EVAL")})

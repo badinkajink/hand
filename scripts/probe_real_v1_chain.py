@@ -151,8 +151,16 @@ def _regrasp_cmd(m, mik, dik, d, obj: str, acts: dict, ref: dict) -> dict:
     return {j: float(dik.qpos[mik.jnt_qposadr[mik.joint(j).id]]) for j in acts}
 
 
-def _squeeze_cmd(m, mik, dik, d, obj: str, acts: dict, depth) -> dict:
+def _squeeze_cmd(m, mik, dik, d, obj: str, acts: dict, depth, from_achieved: bool = False) -> dict:
     """Push every pad `depth` further into the shaft, radially, FROM THE COMMANDED POSE.
+
+    `from_achieved` measures from the achieved pose instead, which is the right reference when
+    the command is not a millimetre of deflection but a radian: an RL residual frozen at its
+    clip leaves the thumb 76 deg past its achieved angle with the actuator on its 0.35 N m
+    ceiling (2026-09-20, D6 on the calibrated plant), and every grip composed from that command
+    -- the relay's pinned pads, the gait table's rebase -- inherits the saturation. Re-seeding
+    from the achieved angles with `depth` = the plans' 10 mm gives the servo a command it can
+    deflect toward, at 2.5-4.5 N on the pads rather than the ceiling.
 
     `depth` is one number for every finger or a `{finger: depth}` dict; a NEGATIVE depth pulls
     the pad radially OUT of the shaft, which is how a driver finger is relieved before a turn
@@ -171,11 +179,12 @@ def _squeeze_cmd(m, mik, dik, d, obj: str, acts: dict, depth) -> dict:
     o = d.body(obj).xpos.copy()
     ax = d.body(obj).xmat.reshape(3, 3)[:, 2]
     dik.qpos[:] = d.qpos
-    for a_i in range(m.nu):
-        jid = m.actuator_trnid[a_i, 0]
-        if jid >= 0 and m.jnt_type[jid] in (mujoco.mjtJoint.mjJNT_HINGE,
-                                            mujoco.mjtJoint.mjJNT_SLIDE):
-            dik.qpos[mik.jnt_qposadr[jid]] = float(d.ctrl[a_i])
+    if not from_achieved:
+        for a_i in range(m.nu):
+            jid = m.actuator_trnid[a_i, 0]
+            if jid >= 0 and m.jnt_type[jid] in (mujoco.mjtJoint.mjJNT_HINGE,
+                                                mujoco.mjtJoint.mjJNT_SLIDE):
+                dik.qpos[mik.jnt_qposadr[jid]] = float(d.ctrl[a_i])
     dik.qvel[:] = 0.0
     mujoco.mj_forward(mik, dik)
     for f in FINGERS:
@@ -275,6 +284,8 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
           reg_every: int = 5, force_target: float = 0.0, force_gain: float = 0.0015,
           force_rate: float = 0.0006,
           track_gain: float = 0.0, track_rate: float = 0.01, track_every: int = 25,
+          angle_gain: float = 0.0, angle_rate: float = 0.01, angle_from: str = "pressed",
+          regrip_ref: str = "command", press_regrip: float = 0.0,
           regrasp: bool = False, regrasp_steps: int = 150,
           arm_ik: Path | None = None, scene_path: Path | None = None,
           place_xy=None, place_err=(0.0, 0.0), seat_z: float | None = None,
@@ -392,7 +403,9 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
     # is not something a chain can be built on, and a grasp that does not fail is worth more than
     # an alignment that arrives by luck.
     trim = {j: 0.0 for j in acts}
-    reg = load_target > 0.0 or force_target > 0.0 or track_gain > 0.0
+    reg = load_target > 0.0 or force_target > 0.0 or track_gain > 0.0 or angle_gain > 0.0
+    angle_on = [angle_from == "start"]
+    qadr = {j: m.jnt_qposadr[m.joint(j).id] for j in acts}
     if reg:
         import real_v1_deploy_envelope as de
     # WHERE THE PADS ARE, not how hard they push. `_regrasp_cmd` restores each pad's (station,
@@ -425,6 +438,19 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
                 trim[j] = float(np.clip(trim[j] + float(np.clip(track_gain * e,
                                                                 -track_rate, track_rate)),
                                         -reg_band, reg_band))
+        # A FOURTH, and the only one that reads what the bench's own servo bus reports: the
+        # achieved joint angle. The SCS0009 is a spring (kp 0.5 on the calibrated plant) with
+        # no integral term, so every finger that meets a load stops short of its set-point --
+        # 25-36 deg behind through the 2026-09-16 handover and gait, with no actuator on its
+        # ceiling. This arm commands the set-point plus `angle_gain` times the shortfall,
+        # slewed `angle_rate` rad per tick and clipped to `reg_band`, which is the host-side
+        # integral the servo lacks. It is armed from `angle_from` (the press, so the RL turn
+        # runs as trained) and its falsifier is `sat` rising before `sp_err_deg` closes.
+        if angle_gain > 0.0 and angle_on[0]:
+            for j, a in acts.items():
+                sp = float(d.ctrl[a]) - trim[j]
+                want = float(np.clip(angle_gain * (sp - float(d.qpos[qadr[j]])), -reg_band, reg_band))
+                trim[j] = float(trim[j] + np.clip(want - trim[j], -angle_rate, angle_rate))
 
     mik = mujoco.MjModel.from_xml_path(str(scene))
     dik = mujoco.MjData(mik)
@@ -586,7 +612,14 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
                 "sat": {f: sum(1 for j in FINGERS[f] if j in acts and
                                abs(float(d.actuator_force[acts[j]])) >=
                                0.98 * float(m.actuator_forcerange[acts[j], 1]))
-                        for f in FINGERS}}
+                        for f in FINGERS},
+                # The PHASE's set-point minus the achieved angle (the servo error above includes
+                # whatever the regulator has added on top), and what it has added.
+                "sp_err_deg": {f: round(max(abs(float(np.degrees(
+                    d.ctrl[acts[j]] - trim[j] - d.qpos[qadr[j]])))
+                    for j in FINGERS[f] if j in acts), 1) for f in FINGERS},
+                "trim_deg": {f: round(max(abs(float(np.degrees(trim[j])))
+                                         for j in FINGERS[f] if j in acts), 1) for f in FINGERS}}
 
     seams = []
     if film is not None:
@@ -619,6 +652,8 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
     _run(lift_ramp, lambda k: palm.write(u0 + (u1 - u0) * (k + 1) / lift_ramp), every_step=True)
     _run(post_lift_settle)
     seams.append(_snap("lifted"))
+    if angle_from == "lifted":
+        angle_on[0] = True
     _shot()
 
     # THE PADS MOVED, SO PUT THEM BACK. The grasp closes at ~41 N and is holding 0.33 N by the
@@ -760,8 +795,9 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         # after the turn is a race. On the flat floor one continuous set-down fits inside the
         # budget; an insertion (level, carry across, level, go down) does not, and this is what
         # buys the time.
-        sq = _squeeze_cmd(m, mik, dik, d, obj, acts, carry_squeeze)
-        f0 = {j: float(d.ctrl[a]) for j, a in acts.items()}
+        sq = _squeeze_cmd(m, mik, dik, d, obj, acts, carry_squeeze,
+                          from_achieved=(regrip_ref == "achieved"))
+        f0 = {j: float(d.ctrl[a]) - trim[j] for j, a in acts.items()}
         _run(200, lambda k: [d.ctrl.__setitem__(
             a, f0[j] + (sq[j] - f0[j]) * min(1.0, (k + 1) / 200))
             for j, a in acts.items()], every_step=True)
@@ -1022,7 +1058,7 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
     if airgrip == "ring":
         z_air = float(d.body("palm_pose").xpos[2]) - grip_depth
         tgt_air, air_ik = _ring_targets(z_air, r_obj + pad_r - squeeze)
-        f0 = {j: float(d.ctrl[a]) for j, a in acts.items()}
+        f0 = {j: float(d.ctrl[a]) - trim[j] for j, a in acts.items()}
         _run(approach_steps, lambda k: [d.ctrl.__setitem__(
             a, f0[j] + (tgt_air[j] - f0[j]) * min(1.0, (k + 1) / approach_steps))
             for j, a in acts.items()], every_step=True)
@@ -1074,6 +1110,27 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
           hold=False, settle=settle_steps)
     seams.append(_snap("pressed"))
     _shot()
+    if press_regrip > 0.0:
+        # RE-REFERENCE THE GRIP ONCE THE SEAT CARRIES THE TOOL. The carry's command (an RL
+        # residual frozen at its clip, or the fitter's anchor plus squeeze) is what held the
+        # tool through the arm's re-pose, and on the calibrated plant that command is on the
+        # servo's ceiling: 70-79 deg past the achieved angle at `turned`, `sat` 1-2 per finger.
+        # Re-referencing it right after the turn (`regrip_ref="achieved"`) gives a 3-4 N grip
+        # the levelling loses on two hands of three. Here the tool is in its seat and the
+        # floor has the weight, so the command can be re-seeded from the achieved angles with
+        # `press_regrip` of interference and the handover and gait start from a set-point the
+        # servo can deflect toward instead of one it is already stalled against.
+        sq = _squeeze_cmd(m, mik, dik, d, obj, acts, press_regrip, from_achieved=True)
+        f0 = {j: float(d.ctrl[a]) - trim[j] for j, a in acts.items()}
+        n_rr = max(1, settle_steps // 4)
+        _run(n_rr, lambda k: [d.ctrl.__setitem__(
+            a, f0[j] + (sq[j] - f0[j]) * min(1.0, (k + 1) / n_rr))
+            for j, a in acts.items()], every_step=True)
+        _run(settle_steps // 4)
+        seams.append(_snap("re_referenced"))
+        _shot()
+    if angle_from == "pressed":
+        angle_on[0] = True
     stood = seams[-1]
     stood_ok = bool(stood["ground_contacts"] >= 1 and stood["tilt_deg"] < 14.0
                     and abs(stood["z"] - rest_z) < 0.010)
@@ -1364,7 +1421,7 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         table, ik_res, per_r = pg._ring_table(
             m, centre, z_ring, palm.joint_dict(u_tgt), [r_grip, r_open, r_wide], phis)
         open_ctrl = {j: float(m.key_ctrl[key][a]) for j, a in acts.items()}
-        cur_f = {j: float(d.ctrl[a]) for j, a in acts.items()}
+        cur_f = {j: float(d.ctrl[a]) - trim[j] for j, a in acts.items()}
         _run(approach_steps // 2, lambda k: [
             d.ctrl.__setitem__(a, cur_f[j] * (1 - min(1.0, (k + 1) / (approach_steps // 2)))
                                + open_ctrl[j] * min(1.0, (k + 1) / (approach_steps // 2)))
@@ -1404,7 +1461,7 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
 
     def _ramp(f, dst, n):
         """Drive ONE finger from wherever its command is to `dst`, leaving the others alone."""
-        src = [float(d.ctrl[acts[j]]) for j in FINGERS[f]]
+        src = [float(d.ctrl[acts[j]]) - trim[j] for j in FINGERS[f]]
 
         def _mv(k):
             u = min(1.0, (k + 1) / n)
@@ -1452,7 +1509,7 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         # deflection carrying the load.
         if relay_squeeze > 0.0:
             sq = _squeeze_cmd(m, mik, dik, d, obj, acts, relay_squeeze)
-            f0 = {j: float(d.ctrl[a]) for j, a in acts.items()}
+            f0 = {j: float(d.ctrl[a]) - trim[j] for j, a in acts.items()}
             _run(n_app, lambda k: [d.ctrl.__setitem__(
                 a, f0[j] + (sq[j] - f0[j]) * min(1.0, (k + 1) / n_app))
                 for j, a in acts.items()], every_step=True)
@@ -1467,10 +1524,10 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         # table by the difference keeps the sweep the gait study validated and starts it from
         # the grasp the hand has, which is the one that is holding the tool.
         for f in FINGERS:
-            off = np.array([float(d.ctrl[acts[j]]) for j in FINGERS[f]]) - table[f][0, 0]
+            off = np.array([float(d.ctrl[acts[j]]) - trim[j] for j in FINGERS[f]]) - table[f][0, 0]
             table[f] += off
     else:
-        cur_f = {j: float(d.ctrl[a]) for j, a in acts.items()}
+        cur_f = {j: float(d.ctrl[a]) - trim[j] for j, a in acts.items()}
 
         def _reach(k):
             u = min(1.0, (k + 1) / n_app)
@@ -1608,6 +1665,9 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         "gap_mm": gap * 1000, "press_mm": press_mm, "grip_depth": grip_depth,
         "carry_squeeze_mm": carry_squeeze * 1000,
         "load_target": load_target, "force_target": force_target, "reg_band": reg_band,
+        "angle_gain": angle_gain, "angle_rate": angle_rate, "angle_from": angle_from,
+        "regrip_ref": regrip_ref, "carry_squeeze_mm": carry_squeeze * 1000,
+        "press_regrip_mm": press_regrip * 1000,
         "regrasp": bool(regrasp),
         "trim_max_deg": round(float(np.degrees(max(abs(v) for v in trim.values()))), 2),
         "turn_squeeze_mm": turn_squeeze * 1000, "turn_relief_mm": ({f: (v * 1000 if not isinstance(v, (list, tuple)) else [v[0], v[1] * 1000]) for f, v in turn_relief.items()} if isinstance(turn_relief, dict) else turn_relief * 1000),
@@ -1766,6 +1826,18 @@ def main() -> int:
     ap.add_argument("--seat-aim", default="centre", choices=("centre", "tip"),
                     help="what the seated set-down carries over the socket: the tool's body centre "
                          "(shipped) or its measured apex, which is then stood up about the seat")
+    ap.add_argument("--angle-gain", type=float, default=0.0,
+                    help="achieved-joint-angle loop: command = set-point + gain * (set-point - achieved), "
+                         "the host-side integral the SCS0009 lacks; 0 = off (shipped)")
+    ap.add_argument("--angle-rate", type=float, default=0.01, help="rad per regulator tick the angle trim may move")
+    ap.add_argument("--angle-from", default="pressed", choices=("start", "lifted", "pressed"),
+                    help="the seam after which the angle loop is armed")
+    ap.add_argument("--regrip-ref", default="command", choices=("command", "achieved"),
+                    help="what the post-turn regrip's squeeze is measured from: the command (shipped; a "
+                         "millimetre of deflection on the kp-30 plant) or the achieved joint angles")
+    ap.add_argument("--press-regrip", type=float, default=0.0,
+                    help="mm of pad interference to re-seed every finger command from the ACHIEVED angles "
+                         "once the tool is pressed into its seat; 0 = keep the carry's command (shipped)")
     ap.add_argument("--stand-order", default="ground", choices=("ground", "air", "pivot"),
                     help="ground = set the tilted shaft's foot on the floor, then rotate it "
                          "upright about that foot; air = stand it up in mid-air first")
@@ -1849,7 +1921,9 @@ def main() -> int:
                           repose_iters=args.repose_iters, repose_steps=args.repose_steps,
                           descend_iters=args.descend_iters, descend_steps=args.descend_steps,
                           stand_order=args.stand_order, airgrip=args.airgrip,
-                          seat_aim=args.seat_aim,
+                          seat_aim=args.seat_aim, angle_gain=args.angle_gain,
+                          angle_rate=args.angle_rate, angle_from=args.angle_from,
+                          regrip_ref=args.regrip_ref, press_regrip=args.press_regrip / 1000.0,
                           reindex=args.reindex, relay_gait=args.relay_gait,
                           clear=args.clear,
                           track_frac=args.track_frac, relay_squeeze=args.relay_squeeze,
