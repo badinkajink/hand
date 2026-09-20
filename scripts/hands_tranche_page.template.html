@@ -154,15 +154,26 @@ queue runs: 6 CPU rollouts per cell with 2 mm of spawn jitter (<code>policy_cpu_
 job: 64 GPU rollouts &#183; cell: held at end &#183; final cos &#183; colour by the held fraction (and the aligned
 fraction when all hold)</p>
 {{TABLE_TRANSFER}}
-<p>These isolate the rows of the benchmark-versus-chain comparison that live in the scene. The solver row is closed
-separately: the observation and the lift/closing/residual schedule rebuilt in CPU MuJoCo
-(<code>policy_cpu_rollout.py</code>) reproduce the GPU evaluation of the D6 grip finetune (cos 0.972 against
-0.969 &#177; 0.002, 0.9 crossed at step 144 against 143 &#177; 1, clearance 19 mm against 18). The reproduction is
-not exact for a fragile draw: the D6 clip policy holds 56 of 64 on the GPU and 0 of 6 on the CPU at the same
-friction, with the two solvers landing on opposite sides of the same knife edge. The friction rows before
-2026-09-20 02:00 (including the &#956; rows of the 2026-09-17 D6 page) were copies of the base scene: the variant
-edited only geoms at the template&#8217;s &#956; 2.4 and the calibrated scenes carry 1.0; it now edits the pad and tool
-geoms by role.</p>
+<p>These isolate the rows of the benchmark-versus-chain comparison that live in the scene. Pad friction is the
+sharp axis, and it is inside the training band (every job trains with the sliding friction of every geom scaled
+by 0.55&#8211;1.15 at each reset): at &#956; 0.6 the D1 and D2 policies drop 64 of 64 under both arms and the D6 clip
+seed 0 drops 52 of 64, while at &#956; 1.5 D7 drops 64 of 64. The servo re-fit kp 0.25 removes D7 (0 of 64 under both
+arms), the D1 clip policy (4 of 64) and D4 (30 and 14 of 64). Tool mass &#215;1.3 costs D4 20 of 64 and nothing
+elsewhere; the plate on the mounting plane costs D3 61 of 64 and the D1 separation policy its alignment (0.73).</p>
+<p>The last column is the same checkpoint on the same scene in CPU MuJoCo (<code>policy_cpu_rollout.py</code>: the
+observation and the lift/closing/residual schedule rebuilt outside mjlab; it reproduced the D6 grip finetune of
+2026-09-17 to cos 0.972 against 0.969 &#177; 0.002, step 144 against 143). The two solvers agree on ten of sixteen
+policies and disagree outright on the rest: the D1 policies hold 64 of 64 on the GPU and 0 of 6 on the CPU under
+both arms, the D6 clip seed 1 64 of 64 against 1 of 6, the D5 separation policy 64 of 64 against 2 of 6, the D7 clip
+policy 64 of 64 against 0 of 6. For D1 the divergence is at the first step: the IK-retargeted &#8220;open&#8221;
+keyframe of this 32 mm-straddle hand has the index and middle pips at 54&#176; and 69&#176; with the pads already on the
+tool, the GPU solve starts at 2.7 N per pad and the CPU at 8.9 N, and the CPU replay loses the tool between the end
+of the lift (step 40, 2.6 N, same as the GPU) and the residual&#8217;s first step (step 58, 0 N) with the policy not
+yet acting. The chain and the bench are third and fourth solvers; a policy the two available ones disagree on is
+not a bench candidate, whatever its GPU row says. The friction rows before 2026-09-20 02:00 (including the &#956;
+rows of the 2026-09-17 D6 page) were copies of the base scene: the variant edited only geoms at the template&#8217;s
+&#956; 2.4 and the calibrated scenes carry 1.0; it now edits the pad and tool geoms by role. The tip-mesh column is
+CPU-only: the variant scene does not compile under mjlab (<code>mesh geom must have valid meshid</code>).</p>
 </div></section>
 
 <section><div class="col">
@@ -223,8 +234,18 @@ turn gives the number.</li>
 <li><strong>D8.</strong> Its fitter grasp drops the tool in the evaluator&#8217;s palm lift at 4&#8211;14 mm of
 squeeze, with the plate at 0 or 25 mm and with a 200-step ramp; the chain&#8217;s arm lift held it at 12 mm. A
 grasp search for D8 on the calibrated plant (or the arm-lift reset) comes before it trains.</li>
-<li><strong>One draw per cell.</strong> Warm-started seeds have a small band on the m05 hand (sd 0.03) but the
-D6 clip seeds 1&#8211;2 at the end of the queue are the only replication here.</li>
+<li><strong>One draw per cell.</strong> The three D6 clip seeds end at 0.834 (56 of 64 held), 0.965 and 0.962:
+one of three draws of the same recipe is the fragile one, so a hand&#8217;s row here is one draw and a
+hand-versus-hand difference smaller than 0.13 in cos or 8 of 64 in the hold is not resolved. Three seeds per
+cell is the minimum for a ranking.</li>
+<li><strong>The separation arm.</strong> It turns D3, D5 and D1 (0.95, 0.93, 0.95) at 5.7&#8211;11.7 mm of
+clearance, below the 30 mm target, and takes the turn away from D4 (0.81, 4 of 64 aligned, 21 mm) and D7
+(0.81, 0 aligned, 8 mm): those two turn by running the index and middle together. A weight between &#8722;3 and
+&#8722;10 and a threshold at the calipered clearance are the next two sweeps, on D4 and D7 only.</li>
+<li><strong>The CPU-side reconstruction.</strong> Whether the six policies the two solvers disagree on are
+fragile or the CPU reconstruction is wrong for them is decided by one run: the GPU evaluator on the
+CPU-replayed initial state, or the CPU rollout started from the GPU&#8217;s step-0 state, for D1. Until then the
+chain column for those six is not evidence either way.</li>
 </ul>
 </div></section>
 

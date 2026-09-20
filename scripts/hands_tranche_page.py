@@ -24,6 +24,17 @@ ARM_LABEL = {"clip": "bounded residual (&#177;1 rad)", "clipsep": "bounded resid
              "clip_scratch": "bounded residual, from scratch (60 M)", "asis": "unbounded residual"}
 
 
+def uri_jpeg(p, width=1600, quality=82):
+    """A PNG inlined as a JPEG at `width` px: sixteen 2560 px filmstrips at 1 MB each put the page over
+    the 16 MB artifact limit; the full-resolution PNGs stay beside the page in the repo."""
+    import io
+    from PIL import Image
+    im = Image.open(p).convert("RGB")
+    im = im.resize((width, int(width * im.size[1] / im.size[0])), Image.LANCZOS)
+    buf = io.BytesIO(); im.save(buf, "JPEG", quality=quality)
+    return "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode()
+
+
 def uri(p):
     return f"data:{mimetypes.guess_type(p)[0]};base64," + base64.b64encode(open(p, "rb").read()).decode()
 
@@ -200,27 +211,35 @@ def main():
                  "mu1.5": "pad &#956; 1.5", "mass1.3": "tool mass &#215; 1.3", "kp0.25": "servo kp 0.25"}
     trows, tvars = [], []
     for j in done:
-        # the GPU pass (64 rollouts) runs after the last training job; until then the per-job CPU
-        # probe (6 rollouts, 2 mm of spawn jitter) stands in and the cell says which it is
-        tp = os.path.join(R, f"{j['id']}_transfer.json")
-        if not os.path.exists(tp):
-            tp = os.path.join(R, f"{j['id']}_transfer_cpu.json")
-        if not os.path.exists(tp):
+        # the GPU pass (64 rollouts) runs after the last training job; the per-job CPU probe
+        # (6 rollouts, 2 mm of spawn jitter) stands in for a variant the GPU pass lacks (the
+        # tip-mesh scene does not compile under mjlab) and its base column is shown beside the
+        # GPU's, since the two solvers disagree on the fragile draws
+        tg = os.path.join(R, f"{j['id']}_transfer.json")
+        tc = os.path.join(R, f"{j['id']}_transfer_cpu.json")
+        t = json.load(open(tg)) if os.path.exists(tg) else {}
+        cpu = json.load(open(tc)) if os.path.exists(tc) else {}
+        if not t and not cpu:
             continue
-        t = json.load(open(tp))
         if not tvars:
-            tvars = [v for v in VAR_LABEL if v in t]
+            tvars = [v for v in VAR_LABEL if v in t or v in cpu]
         row = [j["hand"], ARM_LABEL.get(j["arm"], j["arm"])]
+        def cell(e, tag=""):
+            n = int(e.get("n", 64)); held = int(round(e["hold_rate"] * n))
+            return cellc(min(held / n, e["align_rate"] if e["hold_rate"] >= 0.99 else held / n),
+                         f"{held}/{n} &#183; {e['final_cos_mean']:+.2f}{tag}")
         for v in tvars:
             e = t.get(v, {})
-            if e.get("hold_rate") is None:
-                row.append(("err", "cell c0"))
+            if e.get("hold_rate") is not None:
+                row.append(cell(e))
+            elif cpu.get(v, {}).get("hold_rate") is not None:
+                row.append(cell(cpu[v], " (CPU)"))
             else:
-                n = int(e.get("n", 64)); held = int(round(e["hold_rate"] * n))
-                row.append(cellc(min(held / n, e["align_rate"] if e["hold_rate"] >= 0.99 else held / n),
-                                 f"{held}/{n} &#183; {e['final_cos_mean']:+.2f}"))
+                row.append(("&#8211;", "cell"))
+        eb = cpu.get("base", {})
+        row.append(cell(eb) if eb.get("hold_rate") is not None else ("&#8211;", "cell"))
         trows.append(row)
-    table_transfer = table(["hand", "arm"] + [f"{VAR_LABEL[v]}: held &#183; cos" for v in tvars], trows) if trows else "<p>No transfer probe has run yet.</p>"
+    table_transfer = table(["hand", "arm"] + [f"{VAR_LABEL[v]}: held &#183; cos" for v in tvars] + ["CPU replay of the trained scene"], trows) if trows else "<p>No transfer probe has run yet.</p>"
 
     # --- the policy inside the chain
     crows = []
@@ -254,7 +273,8 @@ def main():
             continue
         tr = json.load(open(cp)).get("policy_trace", [])
         end = tr[-1] if tr else None
-        name = j["hand"] + (" (clip)" if j["arm"] == "clip" else " (clip + separation)")
+        seed = j["id"].rsplit("_s", 1)[-1]
+        name = j["hand"] + (" (clip" if j["arm"] == "clip" else " (clip + separation") + (f", seed {seed})" if seed != "0" else ")")
         if end and end[2] > 0.06 and sum(end[4:7]) >= 0.5:
             ch_held.append(f"{name} at cos {end[1]:+.2f}")
         else:
@@ -295,7 +315,7 @@ def main():
         if not os.path.exists(sp):
             continue
         e = evals[j["id"]]
-        strips.append(f'<figure><img src="{uri(sp)}" alt="{j["id"]} filmstrip"><figcaption>{j["hand"]}, {ARM_LABEL.get(j["arm"], j["arm"])}: '
+        strips.append(f'<figure><img src="{uri_jpeg(sp)}" alt="{j["id"]} filmstrip"><figcaption>{j["hand"]}, {ARM_LABEL.get(j["arm"], j["arm"])}: '
                       f'held {int(round(e["hold_rate"] * e["n"]))}/{e["n"]}, final cos {e["final_cos_mean"]:+.3f}, '
                       f'clearance min {f1(e.get("clearance_min_mm_mean"))} mm. Steps 40, 58 (lifted, residual on), 80, 110, 140, 170, 200, 249.</figcaption></figure>')
     strips_html = "\n".join(strips) if strips else "<p>No filmstrip yet.</p>"

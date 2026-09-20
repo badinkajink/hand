@@ -54,3 +54,19 @@ Per-job logs: `logs/20260919-hands_tranche-<id>.log` (train), `-<id>_eval.log`, 
 - Page published: https://claude.ai/artifact/JfKA6nQBPuf13hGKjnU22n (same URL from now on).
 - The Read tool's hook timed out for the whole wake-up (host unreachable), so the filmstrips were not looked at
   by eye; the per-step traces (cos, z, three pad forces) were read instead. Look at the strips at wake-up 2.
+
+### 2026-09-20 08:50–09:20 (the two scheduled wake-ups did not fire; done by hand when the user returned)
+- Queue finished 08:37 (16/16 trained, GPU perturbation pass done, driver exited). All 16 strips viewed:
+  every job lifts and turns the tool in the air; D2 (both arms), D4 clipsep and D7 clipsep end 35–50° from
+  vertical and hold there; no dropped-standing artefact anywhere.
+- GPU perturbation pass: friction is the sharp axis (μ 0.6 drops D1/D2 64/64 both arms, D6 clip s0 52/64;
+  μ 1.5 drops D7 64/64); kp 0.25 removes D7 and D1-clip; the tipmesh scene does not compile under mjlab
+  (`mesh geom must have valid meshid`) → CPU-only column.
+- GPU vs CPU disagree on 6 of 16 policies (D1 both arms 64/64 vs 0/6; D6 clip s1 64/64 vs 1/6; D5 clipsep
+  64/64 vs 2/6; D7 clip 64/64 vs 0/6; D7 clipsep 64/64 vs 3/6). D1's divergence is at step 0: its IK
+  "open" keyframe has the pips at 54°/69° with the pads on the tool (GPU 2.7 N, CPU 8.9 N) and the CPU
+  replay loses the tool between steps 40 and 58 with the residual not yet active. Their chain column is
+  not evidence either way.
+- Page republished (version 2, same URL); strips inlined as 1600 px JPEGs (the 25 MB page exceeded the
+  16 MB artifact limit).
+
