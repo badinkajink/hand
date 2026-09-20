@@ -43,6 +43,7 @@ h1{font-size:clamp(30px,4.6vw,48px);line-height:1.05;font-weight:700;letter-spac
 section{padding:46px 0;border-bottom:1px solid var(--rule2)}
 section:last-of-type{border-bottom:0}
 h2{font-size:27px;font-weight:700;letter-spacing:-.018em;margin:0 0 6px;text-wrap:balance}
+ol.stages li{margin:0 0 10px}
 h3{font-size:18px;font-weight:600;letter-spacing:-.008em;margin:34px 0 8px}
 h2 + .sub{color:var(--ink3);font:400 14px/1.5 "IBM Plex Mono",monospace;margin:0 0 24px}
 p{margin:0 0 17px}
@@ -152,6 +153,106 @@ same rollout as a 640&#215;480 video (<code>web/&lt;job&gt;.mp4</code> beside th
 <section><div class="col">
 <h2>Training curves</h2>
 {{CURVES}}
+</div></section>
+
+<section><div class="col">
+<h2>Training pipeline: architecture and the decisions behind it</h2>
+<p>A policy on this page is a 9-dimensional residual on a scripted grasp-and-lift, trained by PPO on 3072 copies of one hand&#8217;s
+frozen scene in MuJoCo-Warp through mjlab, and warm-started from one D6 run of 2026-09-17. This section is the whole of that
+pipeline as it stands on 2026-09-20: the stages from the hardware model to a checkpoint, one episode, what the actor reads and
+writes, the reward and the terminations, the optimiser, the warm-start lineage, and a register of every setting with the
+reason on record and whether that reason is a measurement. The tables are read from the run configuration of the first finished
+job, so their numbers are the tranche&#8217;s own.</p>
+
+<h3>Stages, from the hardware model to a checkpoint</h3>
+<ol class="stages">
+<li><strong>Hand.</strong> <code>assets/mjcf/real_v1/real_hand.xml</code> is the CAD-matched three-finger hand; <code>real_v1_design_search.py</code>
+draws mount coordinates and link lengths from a Sobol sequence inside <code>REAL_V1_WORKSPACE</code>, filters on servo range,
+gantry travel and finger clearance, and the eight promoted hands (D1&#8211;D8) were built and run on the bench. The morphology is
+frozen into the scene (<code>freeze_scene_for_eval</code>) so no morphology joint drifts during a rollout.</li>
+<li><strong>Grasp.</strong> The chain fitter places the three pads on the shaft at or below its equator and writes the
+<code>open_ik</code> keyframe (finger joints with the pads just off the shaft) and the grip anchor (the same pose closed by a
+10 mm commanded squeeze). There is no CEM on these scenes; the anchor is the deployed plan&#8217;s own grip.</li>
+<li><strong>Plant.</strong> <code>apply_measured_plant.py</code> rewrites the scene to the servo sysid of 2026-09-02 (finger kp 0.5,
+kv 0.02, forcerange 0.35 N&#183;m, frictionloss 0.0035, measured link masses), the elliptic friction cone with impratio 10, and the
++25 mm palm plate the bench carries. The result is the <code>_cal</code> morphology run
+(<code>results/phase1/real_v1/20260916-&lt;hand&gt;_cal</code>), which also holds the open-loop reference rollout of that grip and lift
+(<code>best_rollout.npz</code>) that the tracking terms and the <code>ref_*</code> observations use.</li>
+<li><strong>Tool.</strong> <code>make_tipmesh_morphology_run.py</code> derives the <code>_cal_tip</code> run: the 25 mm screwdriver shaft with the
+screw-tip mesh the chain and the bench carry (25.6 g). This tranche is the first to train on it.</li>
+<li><strong>Environment.</strong> <code>morphohand.rl.env_build</code> turns the frozen scene into an mjlab task: the hand as the robot
+entity, the tool as an object entity that keeps the scene&#8217;s contact class and mesh assets, the scene&#8217;s own floor
+(<code>--scene-floor</code>), 2 ms physics, control at 50 Hz. Observations, rewards, terminations and reset events are the managers
+listed below; the finger action term is the eased set-point plus the residual, the palm action term is the scripted lift.</li>
+<li><strong>Optimiser.</strong> <code>rl_train_cube.py --recipe b_liveA</code> loads the blessed reorient recipe (the B10 reward block, the
+deploy-parity residual scale and easing, the contact gate, the relaxed slip guards) and the CLI adds the run-specific knobs; the
+trainer is rsl_rl PPO with the collapse watchdog attached. A warm start copies the parent&#8217;s actor and critic tensor by tensor.</li>
+<li><strong>Evaluation.</strong> The checkpoint is scored on 64 nominal and 64 jittered GPU rollouts, replayed on the CPU solver under
+the transfer variants, run through the UR5e chain at both plates, and filmed; the numbers on this page are those, never the reward.</li>
+</ol>
+
+<h3>One episode</h3>
+<figure>{{TIMELINE}}<figcaption>Sim steps (2 ms) above, policy steps (20 ms) and time below. The fingers ease from the open keyframe to the grip anchor
+over the first 80 sim steps, the tool seats to step 240, the palm lifts 100 mm over 80 steps, and the residual, the reorient
+reward and the tip-lost termination all begin at policy step 58 (sim 580), 0.52 s after the lift ramp ends. From there the policy
+has 192 steps (3.84 s) to turn the shaft to vertical and keep it.</figcaption></figure>
+
+<h3>What the actor reads and writes</h3>
+{{TABLE_OBS}}
+{{ACTION_NOTE}}
+
+<h3>Reward</h3>
+{{TABLE_REWARD}}
+{{REWARD_NOTE}}
+
+<h3>Terminations</h3>
+{{TABLE_TERM}}
+
+<h3>Optimiser</h3>
+{{TABLE_PPO}}
+
+<h3>Warm-start lineage</h3>
+<ol>
+<li><strong>2026-09-17, D6 from scratch, 60 M steps</strong> (<code>20260917-1141-d6_cal_reorient_gp025_60M_s0</code>): the b_liveA recipe on the
+D6 <code>_cal</code> scene, residual &#177;0.5 rad from step 58, friction DR, sighted. Held 64/64 at cos 0.933; the tool rolls across the pads
+from step 68 with the thumb load rising 3 &#8594; 12 N; total pad force 17&#8211;18 N. The grip term in that run had the wrong sign
+(+0.25, a bonus). The alignment reward was still rising at 60 M.</li>
+<li><strong>2026-09-17, grip finetune, 20 M</strong> (<code>ft_gpm5</code>): actor and critic warm-started, penalty &#8722;5 above 4 N; cos 0.969 at
+10.8 N. In the chain on 2026-09-19 it turned to 0.91 and dropped at 3.2 s; the 17 N parent held 3/4. The tranche therefore
+warm-starts from the parent and penalises only above 6 N.</li>
+<li><strong>2026-09-19 tranche, 16 jobs, 20 M each</strong>: the 60 M parent continued on each hand&#8217;s <code>_cal</code> scene with the action clip
+at 2.0 (residual &#177;1 rad), the &#8722;2 / 6 N grip penalty, and for six jobs the separation term. All arms sighted (a blind warm start
+had not recovered in 22 iterations). Clip 2.0 held 64/64 on every hand at the trained pose and collapsed under &#177;3 mm of spawn
+jitter on D7, D6 s1, D5 and D1.</li>
+<li><strong>2026-09-20 tranche (this page), {{N_JOBS}} jobs, 20 M each</strong>: each 2026-09-19 checkpoint continued on the <code>_cal_tip</code> scene with
+the scene floor, the scene&#8217;s contact class, spawn jitter &#177;3 mm / &#177;10&#176; and friction DR.</li>
+</ol>
+
+<h3>Decision register</h3>
+<p>Every setting the tranche runs under, with the reason the record gives and whether that reason is a measurement.
+&#8220;Inherited&#8221; means the value was carried from an earlier phase of the program (the m05 / b33 lineage of June&#8211;July or the
+first real_v1 scripts of late August) and has not been re-measured on the calibrated real_v1 plant.</p>
+{{TABLE_DECISIONS}}
+
+<h3>The numbers on this page</h3>
+{{TABLE_EVAL}}
+
+<h3>Inherited settings and the measurement that would settle each</h3>
+<ul>
+<li><strong>Tip-lost 15 steps.</strong> One hand (D6), two 20 M continuations from the same checkpoint at 3 and 15 consecutive steps,
+jittered hold and chain at both plates. The 3-step value ends a turn in which a pad lifts for 0.1 s; the 15-step value lets a
+two-pad pinch persist for 0.3 s.</li>
+<li><strong>The B10 reward block (100 / 300 / 15 / &#8722;8).</strong> A one-factor sweep of the progress weight (100, 300, 900) on D6 at the
+same budget, judged on jittered hold and end cos; the progress term is the one that pays for turning past 60&#176;.</li>
+<li><strong>Friction DR band [0.55, 1.15].</strong> &#956; 0.6 sits inside the band and still drops D1/D2 64/64 (2026-09-19); a band
+[0.4, 1.4] on one hand tells whether width helps or whether the policy relocates to the band&#8217;s middle as the compliance DR did.</li>
+<li><strong>Observation noise (&#177;0.01 rad, &#177;0.5 rad/s, &#177;5 mm).</strong> The bench servo telemetry and the tag tracker have their own
+error (0.03 mm rms on the tag; joint positions in commanded units against a 0.018&#176;/load-unit spring): the noise should be set
+from those, and a run with the tracker&#8217;s measured latency in the observation delay slot is the deploy-parity check.</li>
+<li><strong>Residual scale 0.5 rad and clip 2.0.</strong> The bound is stated in policy units; a scale-1.0 clip-1.0 run gives the same
+&#177;1 rad bound with a different exploration std and would show whether the bound or the std carried the 2026-09-19 gain.</li>
+<li><strong>20 M steps on the harder plant.</strong> One 60 M continuation of r_d6_clipsep (the first item under Next steps).</li>
+</ul>
 </div></section>
 
 <section><div class="col">
