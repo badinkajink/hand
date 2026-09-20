@@ -99,14 +99,17 @@ footer a{color:var(--s2)}
 </header>
 
 <section><div class="col">
-<h2>The two arms, blind actors, and why the residual is bounded</h2>
-<p>Every policy here is a <strong>blind actor</strong>: the three tool-pose terms of the 66-dim observation
-(<code>object_pos</code>, <code>object_pose_actual</code>, <code>target_axis_misalign</code>) are zeroed for the actor
-and kept for the critic (asymmetric actor-critic, <code>--actor-blind-terms</code>). The bench cannot supply that
-pose to a 50 Hz controller, and the sighted D6 policies depend on it: with those slots zeroed at run time in CPU
-MuJoCo, both 60 M checkpoints drop the tool in 4 of 4 rollouts and the grip finetune turns it to the wrong pole
-(cos &#8722;0.7, held). What a blind actor can still read is the servo position and velocity, the last action and
-the reference clock; under the kp 0.5 plant the commanded-minus-achieved deflection carries the load.</p>
+<h2>The two arms, the observation, and why the residual is bounded</h2>
+<p>Every policy here is a <strong>sighted actor</strong>: the 66-dim observation carries the tool pose in the
+palm frame (<code>object_pos</code>, <code>object_pose_actual</code>, <code>target_axis_misalign</code>), which
+on the bench the AprilTag tracker has to supply to the controller at 50 Hz. That dependence is real, not
+nominal: with those three terms zeroed at run time in CPU MuJoCo, both sighted 60 M D6 checkpoints drop the
+tool in 4 of 4 rollouts and the grip finetune turns it to the wrong pole (cos &#8722;0.7, held). A blind
+actor (asymmetric actor-critic, <code>--actor-blind-terms</code>: the critic keeps the pose, the actor reads
+servo position and velocity, the last action and the reference clock) warm-started from the sighted
+checkpoint did not recover the hold in its first 22 iterations (episodes ending at step 74 with the tool on
+the floor) and was stopped; the proprioceptive actor, with a motor-load term and an observation history in the
+RMA style, is a later item.</p>
 <p>The unbounded D6 finetune of 2026-09-17 commands joint targets up to 384&#176; beyond the joint range and,
 after clamping to the range, runs up to 100&#176; ahead of the achieved joint: on the kp 0.5 plant that is a request
 for full force, on a real servo it is a stall into the overload cliff. Every job here therefore trains with the
