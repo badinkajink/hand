@@ -98,9 +98,10 @@ def make_env_cfg(frozen, keyframe, morph, bfc, *, enable_target_axis: bool,
     )
     if lift_phase_start_step is not None:
         common["lift_phase_start_step"] = int(lift_phase_start_step)
-    # Evaluation-time perturbations of the reset distribution (spawn jitter, friction DR):
-    # every training run so far spawned the tool at one nominal pose, so 64 deterministic
-    # rollouts differ only by the GPU contact solve; a robustness read needs these.
+    # The floor the run trained on (scene_floor, from the run's config) and evaluation-time
+    # perturbations of the reset distribution (spawn jitter, friction DR): every training run
+    # before 2026-09-20 spawned the tool at one nominal pose, so 64 deterministic rollouts
+    # differ only by the GPU contact solve; a robustness read needs these.
     common.update(extra_cfg or {})
     if not enable_target_axis:
         return MorphoHandEnvCfg(**common)
@@ -113,7 +114,7 @@ def make_env_cfg(frozen, keyframe, morph, bfc, *, enable_target_axis: bool,
 
 
 RUN_ENV_KEYS = ("finger_residual_active_from_step", "reorient_start_step", "lift_phase_start_step",
-                "finger_residual_scale", "finger_close_easing", "actor_blind_terms")
+                "finger_residual_scale", "finger_close_easing", "actor_blind_terms", "scene_floor")
 
 
 def run_env_overrides(checkpoint: Path) -> dict:

@@ -64,7 +64,8 @@ def main() -> int:
                        finger_residual_active_from_step=residual_from,
                        reorient_start_step=int(trained.get("reorient_start_step", 10)),
                        lift_phase_start_step=trained.get("lift_phase_start_step"),
-                       actor_blind_terms=tuple(trained.get("actor_blind_terms", ()) or ()))
+                       actor_blind_terms=tuple(trained.get("actor_blind_terms", ()) or ()),
+                       extra_cfg=dict(scene_floor=bool(trained.get("scene_floor", False))))
     dist, az, el = (float(v) for v in args.cam.split(","))
     cfg.viewer_width, cfg.viewer_height = args.width, args.height
     cfg.viewer_distance, cfg.viewer_azimuth, cfg.viewer_elevation = dist, az, el
