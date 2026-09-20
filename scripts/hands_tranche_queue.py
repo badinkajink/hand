@@ -157,6 +157,15 @@ def main():
                    "--steps", "250", "--n", "64", "--held-min-n", "0.5", "--floor-z", "0.06",
                    "--json-out", str(ev_json), "--plot", str(qdir / f"{tag}_eval.png"), "--label", tag]
         rc_e = run_guarded(ev, "8G", 400, ROOT / "logs" / f"{qdir.name}-{tag}_eval.log", tag)
+        # the same 64 rollouts under a perturbed reset (spawn +-3 mm / +-10 deg, friction DR on): the
+        # nominal evaluation starts every rollout from one pose and reads only the GPU solve's spread
+        evj_json = qdir / f"{tag}_eval_j3dr.json"
+        if q.get("jitter_eval", True):
+            evj = [x for x in ev if x not in (str(ev_json), str(qdir / f"{tag}_eval.png"))]
+            evj = [x for x in evj if x not in ("--json-out", "--plot")]
+            evj += ["--spawn-jitter-mm", "3", "--spawn-yaw-deg", "10", "--friction-dr",
+                    "--json-out", str(evj_json), "--label", f"{tag}_j3dr"]
+            run_guarded(evj, "8G", 400, ROOT / "logs" / f"{qdir.name}-{tag}_eval_j3dr.log", tag)
         video = qdir / "videos" / f"{tag}.mp4"
         rd = UV + ["scripts/rl_render_rollout.py", "--policy", str(model), "--morphology-run", morph,
                    "--closed-ctrl-from-keyframe", "open_ik", "--open-finger-from-keyframe", "--lift-delta", "0.1",
@@ -215,6 +224,10 @@ def main():
                                               "force_active_index", "force_active_middle", "joint_speed_p99_deg_s",
                                               "residual_gt1_frac", "residual_absmax", "ctrl_gap_max_deg",
                                               "raw_cmd_beyond_range_deg")})
+        if evj_json.exists():
+            e = json.load(open(evj_json))
+            row.update({f"{k}_j3dr": e.get(k) for k in ("hold_rate", "align_rate", "final_cos_mean", "final_cos_sd",
+                                                        "t_align_mean", "clearance_min_mm_mean")})
         results = [r for r in results if r["id"] != tag] + [row]
         save_json(results_path, results)
         set_status("done", run=str(run_dir), finished=row["finished"])

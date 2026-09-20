@@ -317,6 +317,9 @@ class Args:
     it and dropping before the reorient reward fires. These blend steps are ALSO
     masked from the PPO update (only fully-B post-blend steps train B). 0 = off
     (legacy hard onset, the B10 path)."""
+    scene_floor: bool = False
+    """Keep the frozen scene's floor (the calibrated plant's contact class) instead of mjlab's
+    default ground plane; see env_cfg.scene_floor."""
     open_finger_from_keyframe: bool = False
     """Start fingers from the KEYFRAME's finger angles (not the baseline hardcoded
     open pose). REQUIRED for IK-retargeted morphologies (keyframe=open_ik) so the RL
@@ -541,6 +544,7 @@ def main() -> None:
         frozen_scene_xml=frozen,
         keyframe_name=keyframe,
         open_finger_from_keyframe=args.open_finger_from_keyframe,
+        scene_floor=args.scene_floor,
         foundational_run_dir=run,
         finger_default_ctrl=best_finger_ctrl,
         num_envs=args.num_envs,

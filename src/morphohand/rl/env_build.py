@@ -46,13 +46,14 @@ from morphohand.rl.env_cfg import (
 # Spec factories
 # ----------------------------------------------------------------------
 
-def make_hand_spec(frozen_scene_xml: Path, object_body_name: str = "cube"):
+def make_hand_spec(frozen_scene_xml: Path, object_body_name: str = "cube",
+                   keep_floor: bool = False):
     """Return an `mujoco.MjSpec` of the hand alone.
 
-    Drops: the object body (`object_body_name`), the floor geom, and all
-    keyframes (whose qpos arrays still reference the object freejoint
-    columns). Adds a `palm_pose_site` to the palm_pose body so mjlab's
-    site-based MDP terms have an anchor.
+    Drops: the object body (`object_body_name`), the floor geom (unless `keep_floor`, in which
+    case the scene's floor with its contact class stays and the env adds no mjlab terrain), and
+    all keyframes (whose qpos arrays still reference the object freejoint columns). Adds a
+    `palm_pose_site` to the palm_pose body so mjlab's site-based MDP terms have an anchor.
     """
     import mujoco
     spec = mujoco.MjSpec.from_file(str(frozen_scene_xml))
@@ -62,7 +63,7 @@ def make_hand_spec(frozen_scene_xml: Path, object_body_name: str = "cube"):
             spec.delete(body)
             break
     for geom in list(spec.worldbody.geoms):
-        if geom.name == "floor":
+        if geom.name == "floor" and not keep_floor:
             spec.delete(geom)
     # Keyframes reference cube qpos columns we just removed — drop them;
     # mjlab will create a new "init_state" keyframe from
@@ -138,8 +139,24 @@ def make_object_spec_from_frozen(frozen_scene_xml, object_body_name: str,
     spec = mujoco.MjSpec()
     new_body = spec.worldbody.add_body(name=rename_to, pos=(0.0, 0.0, 0.0))
     new_body.add_freejoint(name=f"{rename_to}_joint")
+    # Mesh assets the object's geoms reference (the screw tip): carried over by absolute file
+    # path, or the compile fails with "mesh geom must have valid meshid".
+    src_meshes = {mesh.name: mesh for mesh in src.meshes}
+    xml_dir = Path(str(frozen_scene_xml)).resolve().parent
+    mesh_dir = Path(src.meshdir) if src.meshdir else Path("")
+    if not mesh_dir.is_absolute():
+        mesh_dir = xml_dir / mesh_dir
+    copied_meshes = set()
     for i, src_geom in enumerate(src_body.geoms):
         geom_name = src_geom.name or f"{rename_to}_geom_{i}"
+        kw = {}
+        if src_geom.type == mujoco.mjtGeom.mjGEOM_MESH:
+            mesh = src_meshes[src_geom.meshname]
+            if mesh.name not in copied_meshes:
+                spec.add_mesh(name=mesh.name, file=str((mesh_dir / mesh.file).resolve()),
+                              scale=tuple(mesh.scale))
+                copied_meshes.add(mesh.name)
+            kw["meshname"] = mesh.name
         new_body.add_geom(
             name=geom_name,
             type=src_geom.type,
@@ -150,6 +167,16 @@ def make_object_spec_from_frozen(frozen_scene_xml, object_body_name: str,
             rgba=tuple(src_geom.rgba) if hasattr(src_geom, "rgba") else (0.18, 0.5, 0.9, 1.0),
             pos=tuple(src_geom.pos),
             quat=tuple(src_geom.quat),
+            # THE CONTACT MODEL IS PART OF THE PLANT. Before 2026-09-20 only type/size/mass/
+            # friction crossed over, so the object trained with MuJoCo's default solref 0.02 /
+            # solimp 0.9-0.95 against pads carrying the scene's 0.006 / 0.97-0.995 (the pair
+            # averages: timeconst 0.013, dmin 0.935), while every CPU scene -- the chain, the
+            # CPU replays, the bench-calibrated plant itself -- had the tool at the scene's values.
+            solref=tuple(src_geom.solref), solimp=tuple(src_geom.solimp), solmix=float(src_geom.solmix),
+            priority=int(src_geom.priority), condim=int(src_geom.condim), margin=float(src_geom.margin),
+            gap=float(src_geom.gap), contype=int(src_geom.contype), conaffinity=int(src_geom.conaffinity),
+            group=int(src_geom.group),
+            **kw,
         )
     return spec
 
@@ -295,7 +322,8 @@ def _build_entities(cfg: MorphoHandEnvCfg, ctx: _InitContext):
     from mjlab.entity import EntityArticulationInfoCfg, EntityCfg
 
     hand_entity = EntityCfg(
-        spec_fn=lambda: make_hand_spec(cfg.frozen_scene_xml, cfg.object_body_name),
+        spec_fn=lambda: make_hand_spec(cfg.frozen_scene_xml, cfg.object_body_name,
+                                       keep_floor=cfg.scene_floor),
         articulation=EntityArticulationInfoCfg(
             actuators=(
                 XmlPositionActuatorCfg(
@@ -1207,7 +1235,7 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
 
     return ManagerBasedRlEnvCfg(
         scene=SceneCfg(
-            terrain=TerrainEntityCfg(terrain_type="plane"),
+            terrain=None if cfg.scene_floor else TerrainEntityCfg(terrain_type="plane"),
             num_envs=cfg.num_envs,
             env_spacing=cfg.env_spacing,
             entities={"robot": hand_entity, "cube": cube_entity},

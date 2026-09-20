@@ -1,0 +1,199 @@
+{
+ "created": "2026-09-20",
+ "common_flags": [
+  "--recipe",
+  "b_liveA",
+  "--seed",
+  "0",
+  "--num-envs",
+  "3072",
+  "--total-timesteps",
+  "20000000",
+  "--closed-ctrl-from-keyframe",
+  "open_ik",
+  "--open-finger-from-keyframe",
+  "--lift-target-z-above-init",
+  "0.1",
+  "--lift-delta-z",
+  "0.1",
+  "--finger-residual-scale",
+  "0.5",
+  "--finger-close-easing",
+  "ease_out_quad",
+  "--lift-phase-start-step",
+  "58",
+  "--reorient-start-step",
+  "58",
+  "--finger-residual-active-from-step",
+  "58",
+  "--term-tip-lost-steps",
+  "15",
+  "--friction-dr",
+  "--grip-force-penalty-weight=-2",
+  "--grip-force-penalty-thresh",
+  "6.0",
+  "--watchdog-collapse-z",
+  "0.03",
+  "--watchdog-from-iter",
+  "40",
+  "--clip-actions",
+  "2.0",
+  "--scene-floor",
+  "--cube-spawn-xy-jitter",
+  "0.003",
+  "--cube-spawn-yaw-jitter",
+  "0.1745"
+ ],
+ "train_mem": "10G",
+ "train_cpu": 800,
+ "jitter_eval": true,
+ "transfer_variants": "base,plate0,mu0.6,mu1.5,mass1.3,kp0.25",
+ "note": "ROBUST recipe, 2026-09-20: every job continues its 2026-09-19 tranche checkpoint (20 M more steps) on a plant that matches the chain and the calibrated scene: the tool carries the screw-tip mesh (+1 g), the scene's own floor replaces mjlab's default plane (--scene-floor), the object entity keeps the scene's contact class (env_build fix: solref 0.006 / solimp 0.97-0.995 instead of MuJoCo's 0.02 / 0.9-0.95), and the tool spawns with +-3 mm / +-10 deg of jitter (the 2026-09-19 policies trained at one nominal pose and collapse under that jitter: D7 0/64, D6 clip s1 8/64, D5 26/64, D1 20/64). Evaluated nominal AND jittered (+DR).",
+ "jobs": [
+  {
+   "id": "r_d6_clipsep",
+   "hand": "D6",
+   "arm": "clipsep",
+   "morph_run": "results/phase1/real_v1/20260920-sv1_u0308_b050_cal_tip",
+   "flags": [
+    "--init-actor-checkpoint",
+    "results/rl/20260919-2229-d6_clipsep_s0/tensorboard/model_270.pt",
+    "--finger-separation-weight=-10",
+    "--finger-separation-min-m",
+    "0.03"
+   ],
+   "warm_start": "d6_clipsep_s0",
+   "status": "running",
+   "started": "2026-09-20 09:23:24"
+  },
+  {
+   "id": "r_d3_clip",
+   "hand": "D3",
+   "arm": "clip",
+   "morph_run": "results/phase1/real_v1/20260920-sv1_u1364_b080_sq10_cal_tip",
+   "flags": [
+    "--init-actor-checkpoint",
+    "results/rl/20260919-2307-d3_clip_s0/tensorboard/model_270.pt"
+   ],
+   "warm_start": "d3_clip_s0",
+   "status": "pending"
+  },
+  {
+   "id": "r_d5_clip",
+   "hand": "D5",
+   "arm": "clip",
+   "morph_run": "results/phase1/real_v1/20260920-sv1_u0060_b75_sq10_cal_tip",
+   "flags": [
+    "--init-actor-checkpoint",
+    "results/rl/20260920-0023-d5_clip_s0/tensorboard/model_270.pt"
+   ],
+   "warm_start": "d5_clip_s0",
+   "status": "pending"
+  },
+  {
+   "id": "r_d1_clip",
+   "hand": "D1",
+   "arm": "clip",
+   "morph_run": "results/phase1/real_v1/20260920-sv1_w6689_b060_sq10_cal_tip",
+   "flags": [
+    "--init-actor-checkpoint",
+    "results/rl/20260920-0139-d1_clip_s0/tensorboard/model_270.pt"
+   ],
+   "warm_start": "d1_clip_s0",
+   "status": "pending"
+  },
+  {
+   "id": "r_d6_clip",
+   "hand": "D6",
+   "arm": "clip",
+   "morph_run": "results/phase1/real_v1/20260920-sv1_u0308_b050_cal_tip",
+   "flags": [
+    "--init-actor-checkpoint",
+    "results/rl/20260920-0719-d6_clip_s2/tensorboard/model_270.pt"
+   ],
+   "warm_start": "d6_clip_s2",
+   "status": "pending"
+  },
+  {
+   "id": "r_d4_clip",
+   "hand": "D4",
+   "arm": "clip",
+   "morph_run": "results/phase1/real_v1/20260920-g12_b095_sq10_cal_tip",
+   "flags": [
+    "--init-actor-checkpoint",
+    "results/rl/20260919-2344-d4_clip_s0/tensorboard/model_270.pt"
+   ],
+   "warm_start": "d4_clip_s0",
+   "status": "pending"
+  },
+  {
+   "id": "r_d7_clip",
+   "hand": "D7",
+   "arm": "clip",
+   "morph_run": "results/phase1/real_v1/20260920-rv05_manual_b85_sq14_cal_tip",
+   "flags": [
+    "--init-actor-checkpoint",
+    "results/rl/20260920-0101-d7_clip_s0/tensorboard/model_270.pt"
+   ],
+   "warm_start": "d7_clip_s0",
+   "status": "pending"
+  },
+  {
+   "id": "r_d2_clip",
+   "hand": "D2",
+   "arm": "clip",
+   "morph_run": "results/phase1/real_v1/20260920-sv1_w2360_b075_sq10_cal_tip",
+   "flags": [
+    "--init-actor-checkpoint",
+    "results/rl/20260920-0216-d2_clip_s0/tensorboard/model_270.pt"
+   ],
+   "warm_start": "d2_clip_s0",
+   "status": "pending"
+  },
+  {
+   "id": "r_d3_clipsep",
+   "hand": "D3",
+   "arm": "clipsep",
+   "morph_run": "results/phase1/real_v1/20260920-sv1_u1364_b080_sq10_cal_tip",
+   "flags": [
+    "--init-actor-checkpoint",
+    "results/rl/20260920-0255-d3_clipsep_s0/tensorboard/model_270.pt",
+    "--finger-separation-weight=-10",
+    "--finger-separation-min-m",
+    "0.03"
+   ],
+   "warm_start": "d3_clipsep_s0",
+   "status": "pending"
+  },
+  {
+   "id": "r_d5_clipsep",
+   "hand": "D5",
+   "arm": "clipsep",
+   "morph_run": "results/phase1/real_v1/20260920-sv1_u0060_b75_sq10_cal_tip",
+   "flags": [
+    "--init-actor-checkpoint",
+    "results/rl/20260920-0411-d5_clipsep_s0/tensorboard/model_270.pt",
+    "--finger-separation-weight=-10",
+    "--finger-separation-min-m",
+    "0.03"
+   ],
+   "warm_start": "d5_clipsep_s0",
+   "status": "pending"
+  },
+  {
+   "id": "r_d1_clipsep",
+   "hand": "D1",
+   "arm": "clipsep",
+   "morph_run": "results/phase1/real_v1/20260920-sv1_w6689_b060_sq10_cal_tip",
+   "flags": [
+    "--init-actor-checkpoint",
+    "results/rl/20260920-0526-d1_clipsep_s0/tensorboard/model_270.pt",
+    "--finger-separation-weight=-10",
+    "--finger-separation-min-m",
+    "0.03"
+   ],
+   "warm_start": "d1_clipsep_s0",
+   "status": "pending"
+  }
+ ]
+}

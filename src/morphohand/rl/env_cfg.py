@@ -91,6 +91,13 @@ class MorphoHandEnvCfg:
         0.0, 0.0,  0.0,    # index_yaw, index_mcp, index_pip
         0.0, 0.0,  0.0,    # middle_yaw, middle_mcp, middle_pip
     )
+    scene_floor: bool = False
+    """Keep the frozen scene's own floor geom and add no mjlab terrain. mjlab's ground plane is
+    a bare MuJoCo plane (friction 1 / 0.005 / 0.0001, solref 0.02, solimp 0.9-0.95); the scene's
+    floor carries the calibrated plant's contact class (1.8 / 0.15 / 0.01, 0.006, 0.97-0.995) and
+    the tool lies on it through the closure and the start of the lift. Every run before
+    2026-09-20 trained on the mjlab plane and was replayed, chained and bench-compared on the
+    scene's floor."""
     open_finger_from_keyframe: bool = False
     """If True, start the fingers (both the reset pose AND the LerpFinger
     interpolation START) from the KEYFRAME's finger angles instead of the

@@ -138,6 +138,26 @@ chain clearance, mean over rollouts of the per-rollout minimum, and at step 249<
 </div></section>
 
 <section><div class="col">
+<h2>The same checkpoints under a perturbed reset</h2>
+<p class="sub">64 rollouts with the tool spawned at &#177;3 mm in x and y and &#177;10&#176; of yaw around the trained pose,
+and the same with every geom&#8217;s sliding friction scaled by 0.55&#8211;1.15 per rollout (the training band) &#183;
+<code>policy_eval_suite.py --spawn-jitter-mm 3 --spawn-yaw-deg 10 [--friction-dr]</code>, 2026-09-20 09:06&#8211;09:20 &#183;
+every training run spawned the tool at one nominal pose (<code>cube_spawn_xy_jitter 0</code>), so the nominal column
+is 64 copies of one rollout separated only by the GPU contact solve</p>
+{{TABLE_JITTER}}
+<p>Three millimetres of spawn jitter is what separates the policies: D7 goes from 64 of 64 to 0, the D6 clip seed 1
+from 64 to 8, D5 from 64 to 26, D1 from 64 to 20, D4 under the separation arm from 64 to 18. Four policies keep
+most of their hold, the D6 separation policy (64 and 60 of 64), the D4 clip policy (61, 62), the D6 clip seed 0
+(58, 43) and D2 (51, 44). This is the CPU-versus-GPU disagreement of the zero-shot section and the chain drops in
+one number: the CPU probe and the chain never start from the trained pose to the millimetre, and a policy trained
+at one pose has no reason to hold anywhere else. The 2026-09-20 continuation tranche
+(<code>docs/experiments/20260920-robust_tranche/</code>) trains every checkpoint 20 M steps further with this
+jitter in the reset, the tool carrying the tip mesh, the scene&#8217;s own floor and the scene&#8217;s contact class on
+the tool (the object entity had been compiled with MuJoCo&#8217;s default solref 0.02 / solimp 0.9&#8211;0.95 since the
+first mjlab run; the pads carry the scene&#8217;s 0.006 / 0.97&#8211;0.995, so the pair averaged to 0.013 / 0.935).</p>
+</div></section>
+
+<section><div class="col">
 <h2>Physical plausibility</h2>
 <p class="sub">from the same 64 rollouts, steps 58&#8211;249 &#183; the residual scale is 0.5 rad, so |a| &gt; 1 is
 a command beyond the nominal &#177;0.5 rad budget (the clip at 2 bounds it at &#177;1 rad) &#183; the gap is the

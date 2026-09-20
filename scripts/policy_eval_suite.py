@@ -121,7 +121,8 @@ def main():
                        reorient_start_step=reorient_from,
                        lift_phase_start_step=trained.get("lift_phase_start_step"),
                        actor_blind_terms=tuple(trained.get("actor_blind_terms", ()) or ()),
-                       extra_cfg=dict(cube_spawn_x_jitter=args.spawn_jitter_mm * 1e-3,
+                       extra_cfg=dict(scene_floor=bool(trained.get("scene_floor", False)),
+                                      cube_spawn_x_jitter=args.spawn_jitter_mm * 1e-3,
                                       cube_spawn_y_jitter=args.spawn_jitter_mm * 1e-3,
                                       cube_spawn_yaw_jitter=float(np.radians(args.spawn_yaw_deg)),
                                       friction_dr=bool(args.friction_dr)))

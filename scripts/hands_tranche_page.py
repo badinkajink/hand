@@ -206,6 +206,26 @@ def main():
                       f1(e.get("joint_speed_p99_deg_s"), "{:.0f}"), f1(e.get("clearance_min_mm_worst")), verdict])
     table_plaus = table(head2, rows2) if rows2 else "<p>No job has finished yet.</p>"
 
+    # --- the same checkpoints under a perturbed reset (robust/<id>_eval_j3.json, _j3dr.json)
+    jrows = []
+    for j in done:
+        e0 = evals[j["id"]]
+        row = [j["hand"], ARM_LABEL.get(j["arm"], j["arm"]),
+               cellc(e0["hold_rate"], f"{int(round(e0['hold_rate'] * e0['n']))}/{e0['n']} &#183; {e0['final_cos_mean']:+.2f}")]
+        for mode in ("j3", "j3dr"):
+            jp = os.path.join(R, "robust", f"{j['id']}_eval_{mode}.json")
+            if not os.path.exists(jp):
+                jp = os.path.join(R, f"{j['id']}_eval_{mode}.json")
+            if os.path.exists(jp):
+                e = json.load(open(jp))
+                row.append(cellc(e["hold_rate"], f"{int(round(e['hold_rate'] * e['n']))}/{e['n']} &#183; {e['final_cos_mean']:+.2f}"))
+                row.append(f"{f1(e.get('clearance_min_mm_mean'))}")
+            else:
+                row += [("&#8211;", "cell"), "&#8211;"]
+        jrows.append(row)
+    table_jitter = table(["hand", "arm", "nominal: held &#183; cos", "spawn &#177;3 mm, &#177;10&#176;: held &#183; cos", "clearance (mm)",
+                          "+ friction DR: held &#183; cos", "clearance (mm)"], jrows) if jrows else "<p>Not run yet.</p>"
+
     # --- zero-shot transfer probes
     VAR_LABEL = {"base": "as trained", "tipmesh": "screw-tip mesh on the tool", "plate0": "plate at 0", "mu0.6": "pad &#956; 0.6",
                  "mu1.5": "pad &#956; 1.5", "mass1.3": "tool mass &#215; 1.3", "kp0.25": "servo kp 0.25"}
@@ -363,7 +383,7 @@ def main():
             f"Separation arm keeping the index&#8211;middle chains 30 mm apart or more: {', '.join(sep_ok) or 'none yet'} "
             f"of {len(clipsep_done)} finished. " + chain_lede)
     sub = {"LEDE": lede, "TABLE_MAIN": table_main, "TABLE_PLAUS": table_plaus, "TABLE_TRANSFER": table_transfer, "TABLE_CHAIN": table_chain, "STRIPS": strips_html, "EVALS": ev_html,
-           "D6REF": d6ref_html,
+           "D6REF": d6ref_html, "TABLE_JITTER": table_jitter,
            "CURVES": curves_html, "GATE": gate_html, "N_JOBS": str(len(jobs)), "N_DONE": str(n_done),
            "BUILT": time.strftime("%Y-%m-%d %H:%M"), "INIT": q.get("init_checkpoint", "")}
     tpl = open("scripts/hands_tranche_page.template.html").read()
