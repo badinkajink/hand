@@ -93,7 +93,7 @@ footer a{color:var(--s2)}
   plate +25 mm &#183; every job is a 20 M-step finetune (271 iterations, 3072 environments) warm-started, actor and
   critic, from the D6 60 M checkpoint <code>{{INIT}}</code> (cos 0.933 held 64 of 64 at 17 N; it keeps the tool through
   the UR5e chain&#8217;s grasp seam in 3 of 4 rollouts where the 10.8 N grip finetune keeps it in 1 of 4) with the grip term
-  at &#8722;2 above 6 N per pad, the bench servos&#8217; measured holding force &#183; residual &#177;0.5 rad from step 58 over the scripted 100 mm lift, friction DR
+  at &#8722;2 above 6 N per pad, the bench servos&#8217; measured holding force &#183; residual = 0.5 rad &#215; the action clipped to &#177;2 (&#177;1 rad) from step 58 over the scripted 100 mm lift, friction DR
   0.55&#8211;1.15, object pose observed &#183; evaluated deterministically over 64 rollouts of 250 steps with each
   run&#8217;s own timing and action clip</div>
 </header>
