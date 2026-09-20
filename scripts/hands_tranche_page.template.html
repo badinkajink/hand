@@ -99,7 +99,14 @@ footer a{color:var(--s2)}
 </header>
 
 <section><div class="col">
-<h2>The two arms, and why the residual is bounded</h2>
+<h2>The two arms, blind actors, and why the residual is bounded</h2>
+<p>Every policy here is a <strong>blind actor</strong>: the three tool-pose terms of the 66-dim observation
+(<code>object_pos</code>, <code>object_pose_actual</code>, <code>target_axis_misalign</code>) are zeroed for the actor
+and kept for the critic (asymmetric actor-critic, <code>--actor-blind-terms</code>). The bench cannot supply that
+pose to a 50 Hz controller, and the sighted D6 policies depend on it: with those slots zeroed at run time in CPU
+MuJoCo, both 60 M checkpoints drop the tool in 4 of 4 rollouts and the grip finetune turns it to the wrong pole
+(cos &#8722;0.7, held). What a blind actor can still read is the servo position and velocity, the last action and
+the reference clock; under the kp 0.5 plant the commanded-minus-achieved deflection carries the load.</p>
 <p>The unbounded D6 finetune of 2026-09-17 commands joint targets up to 384&#176; beyond the joint range and,
 after clamping to the range, runs up to 100&#176; ahead of the achieved joint: on the kp 0.5 plant that is a request
 for full force, on a real servo it is a stall into the overload cliff. Every job here therefore trains with the
@@ -156,11 +163,14 @@ separately: the observation and the lift/closing/residual schedule rebuilt in CP
 built 25 mm and at the 0 every chain scene was generated with &#183; one rollout each &#183; held = tool above 60 mm
 with &#8805; 0.5 N on a pad when the policy&#8217;s 5 s end</p>
 {{TABLE_CHAIN}}
-<p>The D6 grip finetune of 2026-09-17 in this test: with the plate at 25 mm it turns the tool to cos 0.91 at 1.8 s on
-three pads, loses the middle pad at 2.1 s, decays to 0.85 and drops the tool at 3.2 s; with the plate at 0 it drops
-at 2.8 s. The chain&#8217;s own grasp seam is where the two differ from the benchmark: the chain&#8217;s
-&#8220;lifted&#8221; state already carries 5&#176; of roll, 2.2 mm of slide and 4.0 N on the pads against the
-benchmark&#8217;s eased closure at 5.6 N, and the policy was never trained on that seam.</p>
+<p>The sighted D6 references in this test, plate at 25 mm, four rollouts each (one nominal, three with 2 mm of
+spawn jitter): the 60 M checkpoint (17 N grip) holds the tool through the 5 s in 3 of 4 at cos 0.90&#8211;0.94 on
+thumb and index; the 10.8 N grip finetune turns fastest (0.91 at 1.8 s on three pads), loses the middle pad at
+2.1 s and drops in 3 of 4. Giving the chain the training environment&#8217;s stages (<code>--stages policy</code>:
+eased closure over 240 sim steps, the arm lift over 80, 260 of settle) changes little: 3 of 4 and 2 of 4. The
+&#8220;lifted&#8221; state is 4.0 N on the pads and 9 mm of slide under both profiles against the benchmark&#8217;s
+5.6 N and 4 mm, with identical actuator classes, contact model and tool in the two scenes; what remains between
+them is the arm&#8217;s IK lift path and 5 mm of wrist sag under load.</p>
 </div></section>
 
 <section><div class="col">

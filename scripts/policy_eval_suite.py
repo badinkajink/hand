@@ -101,6 +101,8 @@ def main():
         else int(trained.get("finger_residual_active_from_step", 0))
     reorient_from = args.reorient_start_step if args.reorient_start_step is not None \
         else int(trained.get("reorient_start_step", 10))
+    if trained.get("actor_blind_terms"):
+        print(f"[eval] actor blinded to {list(trained['actor_blind_terms'])} (from the run's config)")
     print(f"[eval] env timing from the run's config: residual active from step {residual_from}, "
           f"reorient reward from step {reorient_from}, lift_phase_start_step "
           f"{trained.get('lift_phase_start_step', 'default')}  ({'config.yaml found' if trained else 'NO config.yaml beside the checkpoint'})")
@@ -112,7 +114,8 @@ def main():
                        num_envs=args.n,
                        finger_residual_active_from_step=residual_from,
                        reorient_start_step=reorient_from,
-                       lift_phase_start_step=trained.get("lift_phase_start_step"))
+                       lift_phase_start_step=trained.get("lift_phase_start_step"),
+                       actor_blind_terms=tuple(trained.get("actor_blind_terms", ()) or ()))
     env, wrapped, actor = build_actor(cfg, args.policy, tmp_dir("evalsuite"))
     obs_td, _ = wrapped.reset()
 

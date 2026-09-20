@@ -44,6 +44,10 @@ def main():
     ap.add_argument("--turn-steps", type=int, default=1500, help="sim steps the policy is in the loop (10 per policy step)")
     ap.add_argument("--hold-steps", type=int, default=300)
     ap.add_argument("--stand", default="air", choices=("air", "table"))
+    ap.add_argument("--stages", default="policy", choices=("policy", "chain"),
+                    help="grasp and lift profile: 'policy' = the RL environment's (eased closure 240 sim steps, lift "
+                         "80, settle 260 -> the policy starts at sim step 580 as in training); 'chain' = the chain's "
+                         "own (snap to anchor, 250 settle, lift 200, settle 200)")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--jitter", type=float, default=0.0)
     ap.add_argument("--out", type=Path, required=True)
@@ -71,6 +75,8 @@ def main():
     if a.stand != "table":
         cell["angle_deg"] = h["angle_deg"]
     cell["turn_steps"], cell["hold_steps"] = a.turn_steps, a.hold_steps
+    if a.stages == "policy":
+        cell.update(close_ease_steps=240, lift_ramp=80, post_lift_settle=260)
 
     state = {"pol": None, "last": np.zeros(len(FINGER_JOINTS), dtype=np.float32), "k0": None, "trace": []}
 
@@ -97,7 +103,7 @@ def main():
     seams = {s["phase"]: s for s in r["seams"]}
     keep = ("t", "cos", "tilt_deg", "z", "pad_contacts", "pad_force_N", "roll_deg", "slide_mm", "hand_contacts")
     out = {"hand": a.hand, "tag": tag, "policy": str(a.policy), "scene": str(scene), "squeeze_mm": a.squeeze, "plant": a.plant,
-           "turn_steps": a.turn_steps, "stand": a.stand,
+           "turn_steps": a.turn_steps, "stand": a.stand, "stages": a.stages,
            "seams": {ph: {k: s.get(k) for k in keep if k in s} for ph, s in seams.items()},
            "held_turn": bool((seams.get("turned", {}).get("pad_contacts") or 0) >= 2 and (seams.get("turned", {}).get("z") or 0) > 0.08),
            "ok": r.get("ok"), "cycles": r.get("n_cycles", r.get("cycles_ok")), "reorient_deg": r.get("reorient_deg"),
