@@ -37,16 +37,12 @@
   "--watchdog-collapse-z",
   "0.03",
   "--watchdog-from-iter",
-  "40",
-  "--actor-blind-terms",
-  "object_pos",
-  "object_pose_actual",
-  "target_axis_misalign"
+  "40"
  ],
  "train_mem": "10G",
  "train_cpu": 800,
  "init_checkpoint": "results/rl/20260917-1141-d6_cal_reorient_gp025_60M_s0/tensorboard/model_812.pt",
- "note": "BLIND actors (asymmetric actor-critic: the actor gets zeros for object_pos, object_pose_actual, target_axis_misalign; the critic keeps them) because the 66-dim sighted observation does not transfer to the bench (user, 2026-09-19) and the CPU blind test shows the sighted D6 policies depend on it (both 60M checkpoints drop the tool blinded, the finetune turns to the wrong pole). Warm-started from the 60M (+0.25) sighted D6 checkpoint; grip penalty -2 above 6 N/pad; clip = residual bounded to +-1 rad; clipsep = clip + index-middle clearance >= 30 mm penalty (-10); D8 excluded.",
+ "note": "SIGHTED actors (the AprilTag pose is available to the controller, user 2026-09-19 21:45); the blind arm is deferred: a blind warm start from the sighted checkpoint did not recover in 22 iterations (episodes ending at step 74, tool on the floor). Warm-started from the 60M (+0.25) sighted D6 checkpoint; grip penalty -2 above 6 N/pad; clip = residual bounded to +-1 rad; clipsep = clip + index-middle clearance >= 30 mm penalty (-10); D8 excluded.",
  "jobs": [
   {
    "id": "d6_clip_s0",
@@ -58,7 +54,7 @@
     "2.0"
    ],
    "status": "running",
-   "started": "2026-09-19 21:38:39"
+   "started": "2026-09-19 21:51:56"
   },
   {
    "id": "d6_clipsep_s0",
@@ -72,7 +68,8 @@
     "--finger-separation-min-m",
     "0.03"
    ],
-   "status": "pending"
+   "status": "pending",
+   "started": "2026-09-19 21:51:29"
   },
   {
    "id": "d3_clip_s0",
