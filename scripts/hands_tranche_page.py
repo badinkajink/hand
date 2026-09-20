@@ -195,6 +195,29 @@ def main():
                       f1(e.get("joint_speed_p99_deg_s"), "{:.0f}"), f1(e.get("clearance_min_mm_worst")), verdict])
     table_plaus = table(head2, rows2) if rows2 else "<p>No job has finished yet.</p>"
 
+    # --- zero-shot transfer probes
+    VAR_LABEL = {"base": "as trained", "tipmesh": "screw-tip mesh on the tool", "plate0": "plate at 0", "mu0.6": "pad &#956; 0.6",
+                 "mu1.5": "pad &#956; 1.5", "mass1.3": "tool mass &#215; 1.3", "kp0.25": "servo kp 0.25"}
+    trows, tvars = [], []
+    for j in done:
+        tp = os.path.join(R, f"{j['id']}_transfer.json")
+        if not os.path.exists(tp):
+            continue
+        t = json.load(open(tp))
+        if not tvars:
+            tvars = [v for v in VAR_LABEL if v in t]
+        row = [j["hand"], ARM_LABEL.get(j["arm"], j["arm"])]
+        for v in tvars:
+            e = t.get(v, {})
+            if e.get("hold_rate") is None:
+                row.append(("err", "cell c0"))
+            else:
+                n = 64; held = int(round(e["hold_rate"] * n))
+                row.append(cellc(min(held / n, e["align_rate"] if e["hold_rate"] >= 0.99 else held / n),
+                                 f"{held}/{n} &#183; {e['final_cos_mean']:+.2f}"))
+        trows.append(row)
+    table_transfer = table(["hand", "arm"] + [f"{VAR_LABEL[v]}: held &#183; cos" for v in tvars], trows) if trows else "<p>No transfer probe has run yet (they run after the last training job).</p>"
+
     # --- filmstrips
     strips = []
     for j in done:
@@ -243,7 +266,7 @@ def main():
             f"hands that also reach cos 0.9 in every rollout: {', '.join(turned) or 'none yet'}. "
             f"Separation arm keeping the index&#8211;middle chains 30 mm apart or more: {', '.join(sep_ok) or 'none yet'} "
             f"of {len(clipsep_done)} finished.")
-    sub = {"LEDE": lede, "TABLE_MAIN": table_main, "TABLE_PLAUS": table_plaus, "STRIPS": strips_html, "EVALS": ev_html,
+    sub = {"LEDE": lede, "TABLE_MAIN": table_main, "TABLE_PLAUS": table_plaus, "TABLE_TRANSFER": table_transfer, "STRIPS": strips_html, "EVALS": ev_html,
            "CURVES": curves_html, "GATE": gate_html, "N_JOBS": str(len(jobs)), "N_DONE": str(n_done),
            "BUILT": time.strftime("%Y-%m-%d %H:%M"), "INIT": q.get("init_checkpoint", "")}
     tpl = open("scripts/hands_tranche_page.template.html").read()
