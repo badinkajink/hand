@@ -78,6 +78,11 @@ def main():
                          "evaluated the same way)")
     ap.add_argument("--reorient-start-step", type=int, default=None,
                     help="reward gate step; default = the run's config.yaml")
+    ap.add_argument("--spawn-jitter-mm", type=float, default=0.0,
+                    help="uniform tool spawn jitter in x and y, mm (the training runs used 0)")
+    ap.add_argument("--spawn-yaw-deg", type=float, default=0.0, help="uniform tool spawn yaw jitter, deg")
+    ap.add_argument("--friction-dr", action="store_true",
+                    help="scale every geom's sliding friction per env by the training band (0.55-1.15) at reset")
     ap.add_argument("--stochastic", action="store_true",
                     help="sample actions from the policy's distribution (the training-time "
                          "behaviour) instead of its mean")
@@ -115,7 +120,14 @@ def main():
                        finger_residual_active_from_step=residual_from,
                        reorient_start_step=reorient_from,
                        lift_phase_start_step=trained.get("lift_phase_start_step"),
-                       actor_blind_terms=tuple(trained.get("actor_blind_terms", ()) or ()))
+                       actor_blind_terms=tuple(trained.get("actor_blind_terms", ()) or ()),
+                       extra_cfg=dict(cube_spawn_x_jitter=args.spawn_jitter_mm * 1e-3,
+                                      cube_spawn_y_jitter=args.spawn_jitter_mm * 1e-3,
+                                      cube_spawn_yaw_jitter=float(np.radians(args.spawn_yaw_deg)),
+                                      friction_dr=bool(args.friction_dr)))
+    if args.spawn_jitter_mm or args.spawn_yaw_deg or args.friction_dr:
+        print(f"[eval] reset perturbations: spawn +-{args.spawn_jitter_mm:g} mm, yaw +-{args.spawn_yaw_deg:g} deg, "
+              f"friction DR {'on' if args.friction_dr else 'off'}")
     env, wrapped, actor = build_actor(cfg, args.policy, tmp_dir("evalsuite"))
     obs_td, _ = wrapped.reset()
 
@@ -284,6 +296,8 @@ def main():
         force_active_thumb=float(perf_t[act_from:, :, 0].mean()),
         force_active_index=float(perf_t[act_from:, :, 1].mean()),
         force_active_middle=float(perf_t[act_from:, :, 2].mean()),
+        spawn_jitter_mm=float(args.spawn_jitter_mm), spawn_yaw_deg=float(args.spawn_yaw_deg),
+        friction_dr=bool(args.friction_dr),
     )
     if args.json_out:
         args.json_out.parent.mkdir(parents=True, exist_ok=True)

@@ -51,6 +51,7 @@ ul,ol{margin:0 0 17px;padding-left:20px}
 li{margin:0 0 8px}
 figure{margin:28px 0}
 figure video,figure img{display:block;width:100%;border-radius:10px;background:var(--sunk);box-shadow:var(--shadow)}
+figure video{max-width:640px;margin:10px 0 0;height:auto}
 figcaption{margin-top:11px;font:400 14px/1.55 "IBM Plex Mono",monospace;color:var(--ink3);max-width:82ch}
 .col > .tw,.col > figure,.col > .duo{width:min(1020px,calc(100vw - 40px));max-width:none}
 .duo{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:28px 0}
@@ -204,8 +205,9 @@ references under the same configuration, plate at 25 mm, one nominal rollout and
 </div></section>
 
 <section><div class="col">
-<h2>Filmstrips</h2>
-<p class="sub">one deterministic rollout per job at 960&#215;720, eight frames</p>
+<h2>Filmstrips and videos</h2>
+<p class="sub">one deterministic rollout per job: eight frames from the 960&#215;720 render, and the same rollout as a
+640&#215;480 video (<code>web/&lt;job&gt;.mp4</code> beside the page; the original in <code>videos/</code>)</p>
 {{STRIPS}}
 </div></section>
 

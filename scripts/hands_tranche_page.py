@@ -315,9 +315,15 @@ def main():
         if not os.path.exists(sp):
             continue
         e = evals[j["id"]]
-        strips.append(f'<figure><img src="{uri_jpeg(sp)}" alt="{j["id"]} filmstrip"><figcaption>{j["hand"]}, {ARM_LABEL.get(j["arm"], j["arm"])}: '
+        # the rollout video sits beside the page as web/<id>.mp4 (640x480, published with the page as a
+        # supporting file); the 960x720 original is in videos/ (gitignored)
+        vp = os.path.join(R, "web", f"{j['id']}.mp4")
+        video = (f'<video controls muted loop playsinline preload="metadata" width="640" height="480" src="web/{j["id"]}.mp4">'
+                 f'web/{j["id"]}.mp4</video>') if os.path.exists(vp) else ""
+        strips.append(f'<figure><img src="{uri_jpeg(sp)}" alt="{j["id"]} filmstrip">{video}<figcaption>{j["hand"]}, {ARM_LABEL.get(j["arm"], j["arm"])}: '
                       f'held {int(round(e["hold_rate"] * e["n"]))}/{e["n"]}, final cos {e["final_cos_mean"]:+.3f}, '
-                      f'clearance min {f1(e.get("clearance_min_mm_mean"))} mm. Steps 40, 58 (lifted, residual on), 80, 110, 140, 170, 200, 249.</figcaption></figure>')
+                      f'clearance min {f1(e.get("clearance_min_mm_mean"))} mm. Steps 40, 58 (lifted, residual on), 80, 110, 140, 170, 200, 249; '
+                      f'the video is the same rollout at 25 fps (10 s).</figcaption></figure>')
     strips_html = "\n".join(strips) if strips else "<p>No filmstrip yet.</p>"
 
     evpngs = []
