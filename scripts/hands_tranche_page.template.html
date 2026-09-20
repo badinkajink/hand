@@ -122,7 +122,7 @@ capsules do not model and policies that run those two fingers close together hav
 unbounded D6 policies are kept as the reference; the index&#8211;middle clearance of the D6 grip finetune is
 18 mm at its minimum and 25 mm at the end.</p>
 <p>Queue: <code>scripts/hands_tranche_queue.py</code>, one job at a time through <code>resguard.sh run</code>,
-each job waiting for the launch gate (MemAvailable &#8805; 8 GB, swap &#8804; 4 GB, load, 2 GB of VRAM) before it
+each job waiting for the launch gate (MemAvailable &#8805; 8 GB, swap &#8804; 8 GB, load, 2 GB of VRAM) before it
 starts. Stretches spent waiting for the gate:</p>
 {{GATE}}
 </div></section>
@@ -148,32 +148,48 @@ peak above 9 N, gap above 60&#176;, any command beyond the joint range, clearanc
 <section><div class="col">
 <h2>Zero-shot on perturbed plants</h2>
 <p class="sub">the finished checkpoint, unchanged, on copies of its scene with one thing altered: the chain&#8217;s
-screw-tip mesh on the tool&#8217;s &#8722;z end, the plate on the mounting plane as in every chain scene, pad
-friction at the edges of the training band, tool mass, and the settled servo re-fit kp 0.25 &#183; 64 rollouts each
-&#183; cell: held at end &#183; final cos &#183; colour by the held fraction (and the aligned fraction when all hold)</p>
+screw-tip mesh on the tool&#8217;s &#8722;z end (+1 g), the plate on the mounting plane as in every chain scene, pad and
+tool friction at the edges of the training band, tool mass, and the settled servo re-fit kp 0.25 &#183; while the
+queue runs: 6 CPU rollouts per cell with 2 mm of spawn jitter (<code>policy_cpu_rollout.py</code>); after the last
+job: 64 GPU rollouts &#183; cell: held at end &#183; final cos &#183; colour by the held fraction (and the aligned
+fraction when all hold)</p>
 {{TABLE_TRANSFER}}
 <p>These isolate the rows of the benchmark-versus-chain comparison that live in the scene. The solver row is closed
 separately: the observation and the lift/closing/residual schedule rebuilt in CPU MuJoCo
 (<code>policy_cpu_rollout.py</code>) reproduce the GPU evaluation of the D6 grip finetune (cos 0.972 against
-0.969 &#177; 0.002, 0.9 crossed at step 144 against 143 &#177; 1, clearance 19 mm against 18).</p>
+0.969 &#177; 0.002, 0.9 crossed at step 144 against 143 &#177; 1, clearance 19 mm against 18). The reproduction is
+not exact for a fragile draw: the D6 clip policy holds 56 of 64 on the GPU and 0 of 6 on the CPU at the same
+friction, with the two solvers landing on opposite sides of the same knife edge. The friction rows before
+2026-09-20 02:00 (including the &#956; rows of the 2026-09-17 D6 page) were copies of the base scene: the variant
+edited only geoms at the template&#8217;s &#956; 2.4 and the calibrated scenes carry 1.0; it now edits the pad and tool
+geoms by role.</p>
 </div></section>
 
 <section><div class="col">
 <h2>The policy inside the UR5e chain</h2>
-<p class="sub"><code>real_v1_chain_policy.py</code>: the chain grasps on the post (anchor snapped, no easing), lifts
-100 mm with the arm through the 100 mm wrist stack over 0.4 s, then the policy drives the fingers at 50 Hz for
-5 s with the reference-trajectory clock resumed at its activation step &#183; plant <code>cal</code>, plate at the
-built 25 mm and at the 0 every chain scene was generated with &#183; one rollout each &#183; held = tool above 60 mm
-with &#8805; 0.5 N on a pad when the policy&#8217;s 5 s end</p>
+<p class="sub"><code>real_v1_chain_policy.py</code>: the UR5e carries the hand through its 100 mm wrist stack; the
+chain&#8217;s grasp and lift are the training environment&#8217;s (<code>--stages policy</code>: ease-out closure from
+the open keyframe to the grasp anchor over 240 sim steps, the arm lift of 100 mm over 80, 260 of settle, the policy
+active from sim step 580 and evaluated in shadow from step 0 so its <code>actions</code> input is its own previous
+output as in training); the policy then drives the fingers at 50 Hz for 5 s &#183; plant <code>cal</code>, plate at
+the built 25 mm and at the 0 every chain scene was generated with &#183; one nominal rollout each &#183; held = tool
+above 60 mm with &#8805; 0.5 N on a pad when the 5 s end</p>
 {{TABLE_CHAIN}}
-<p>The sighted D6 references in this test, plate at 25 mm, four rollouts each (one nominal, three with 2 mm of
-spawn jitter): the 60 M checkpoint (17 N grip) holds the tool through the 5 s in 3 of 4 at cos 0.90&#8211;0.94 on
-thumb and index; the 10.8 N grip finetune turns fastest (0.91 at 1.8 s on three pads), loses the middle pad at
-2.1 s and drops in 3 of 4. Giving the chain the training environment&#8217;s stages (<code>--stages policy</code>:
-eased closure over 240 sim steps, the arm lift over 80, 260 of settle) changes little: 3 of 4 and 2 of 4. The
-&#8220;lifted&#8221; state is 4.0 N on the pads and 9 mm of slide under both profiles against the benchmark&#8217;s
-5.6 N and 4 mm, with identical actuator classes, contact model and tool in the two scenes; what remains between
-them is the arm&#8217;s IK lift path and 5 mm of wrist sag under load.</p>
+<p>The arm holds its command. The menagerie UR5e servo (kp 2000 / kv 400 on the large joints, 500 / 100 on the
+wrist) is overdamped with its slow pole at kp/kv = 5 rad/s: 0.52 s after the 80-step lift the palm is still 4.9 mm
+below its command (shoulder 5.3 mrad, elbow 4.7, wrist_1 &#8722;10.4) and reaches 0.04 mm only a second later, so
+every chain rollout before 2026-09-20 handed the policy an arm that was still settling. That is not sag under
+load: the arm and the hand are gravity-compensated and a UR5e told its payload holds ~0.1 mm at the end of a move.
+The chain now runs the arm at ten times the position gain (<code>arm_kp_scale</code> 10, kv unchanged, slow pole
+50 rad/s): 0.004 mm below command at the seam and through the turn. The finger bodies carry their own weight on
+the finger servos again (<code>finger_gravcomp</code> 0; the payload declaration had compensated the whole hand
+subtree, fingers included, which the training scene and the bench hand do not do).</p>
+<p>With those three changes the observation the policy receives at its first active step in the chain matches the
+benchmark&#8217;s to within 1&#176; on every finger joint, 1.3 mm on the tool position and 0.015 on the relative
+quaternion (D6, separation arm, <code>obs_at_active</code> in both JSONs); the only remaining scene difference is
+the screw-tip mesh on the chain&#8217;s tool, the &#8220;tip mesh&#8221; column of the zero-shot table. The D6
+references under the same configuration, plate at 25 mm, one nominal rollout and three with 2 mm of spawn jitter:
+{{D6REF}}</p>
 </div></section>
 
 <section><div class="col">
@@ -190,11 +206,17 @@ them is the arm&#8217;s IK lift path and 5 mm of wrist sag under load.</p>
 <section><div class="col">
 <h2>What this does not settle</h2>
 <ul>
-<li><strong>Transfer.</strong> No policy here has run inside the UR5e chain environment or on the bench. The
-chain adapter (<code>scripts/real_v1_chain_policy.py</code>: the 66-dim observation from the CPU state, the
-actor, the residual on the chain&#8217;s finger ctrl during its reorient phase) is the sim-to-sim test; the bench
-needs a policy-driven controller on the station, which does not exist, since every deployed plan so far was an
-open-loop trajectory.</li>
+<li><strong>The bench.</strong> The chain table is the sim-to-sim test; no policy here has run on the hardware.
+The station needs a policy-driven controller (the 66-dim observation from the servo telemetry and the AprilTag
+pose at 50 Hz, the actor, the residual on the finger set-points), and the tracker&#8217;s x/y heading has to be
+calibrated first, since the policy reads the tool position in the palm frame.</li>
+<li><strong>The tip mesh.</strong> The training scene&#8217;s tool is a plain 25 mm cylinder; the chain&#8217;s and the
+real screwdriver carry the tip. Its column in the zero-shot table is the cost; a morphology run built with the
+tip mesh (<code>build_screw_scene.py</code> on the flat scene before <code>make_cal_morphology_run.py</code>) removes it
+from the next tranche.</li>
+<li><strong>Solver-side fragility.</strong> A draw that holds on the GPU and drops on the CPU at the same friction
+(D6 clip) is a policy on a knife edge, and the bench is a third solver. The CPU probe&#8217;s held fraction across
+the perturbation columns is the ranking to use for bench candidates, not the GPU hold rate alone.</li>
 <li><strong>The clearance threshold.</strong> 30 mm between modelled capsule surfaces is a guess at the width the
 servo housings and cabling add; a caliper on the built index and middle at their closest approach during a bench
 turn gives the number.</li>

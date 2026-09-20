@@ -139,7 +139,10 @@ def main():
                           "align_rate": sum(o["peak_cos"] >= 0.9 for o in outs) / len(outs),
                           "final_cos_mean": float(sum(fc) / len(fc)),
                           "final_cos_sd": float((sum((x - sum(fc) / len(fc)) ** 2 for x in fc) / len(fc)) ** 0.5),
-                          "t_align_mean": None, "n_lost": sum(not o["held_end"] for o in outs), "n": len(outs),
+                          "t_align_mean": (float(sum(o["t_align"] for o in outs if o["t_align"] is not None) /
+                                                 max(1, sum(o["t_align"] is not None for o in outs)))
+                                           if any(o["t_align"] is not None for o in outs) else None),
+                          "n_lost": sum(not o["held_end"] for o in outs), "n": len(outs),
                           "peak_cos_mean": float(sum(o["peak_cos"] for o in outs) / len(outs)),
                           "clearance_min_mm_mean": float(sum(o["clearance_min_mm"] for o in outs) / len(outs)),
                           "force_active_thumb": float(sum(o["force_active"][0] for o in outs) / len(outs)),

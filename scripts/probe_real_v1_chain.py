@@ -285,7 +285,8 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
           gait_scan: str = "grip",
           step_hook=None, ctx: dict | None = None,
           turn_ctrl=None, close_ease_steps: int = 0, lift_ramp: int = 200,
-          post_lift_settle: int = 200) -> dict:
+          post_lift_settle: int = 200, arm_kp_scale: float = 1.0,
+          finger_gravcomp: float | None = None) -> dict:
     """`turn_ctrl(k, m, d, acts, anchor, sq0) -> {joint: ctrl} | None`, if given, replaces the
     anchor sweep during the turn phase: it is asked every CONTROL_DECIMATION sim steps of the
     `turn_steps` turn and its last answer is held in between (a 50 Hz policy in the loop; the
@@ -295,11 +296,37 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
     ease-out-quad lerp from the keyframe's open finger pose to the anchor over that many sim steps,
     the arm lift (`lift_ramp` sim steps) starting when the closure completes, and `post_lift_settle`
     sim steps of hold before the turn. The RL policies train on 240 / 80 / 260 (residual active at
-    sim step 580), and the chain's own 0 / 200 / 200 arrives at the turn with a different grasp."""
+    sim step 580), and the chain's own 0 / 200 / 200 arrives at the turn with a different grasp.
+
+    `arm_kp_scale` multiplies the position gain of the six UR5e servos (kv unchanged). The
+    menagerie servo (kp 2000 / kv 400 on the large joints, 500 / 100 on the wrist) is overdamped
+    with its slow pole at kp/kv = 5 rad/s, so 0.52 s after an 80-step lift the palm still hangs
+    4.9 mm below its command (wrist_1 10 mrad; measured 2026-09-19 on the D6 chain) and only
+    reaches 0.04 mm after a further second. A UR5e told its payload holds ~0.1 mm at the end of
+    a move, so the seam should be read on an arm that is where it was told to be: at 10 the slow
+    pole is 50 rad/s and the palm is within 0.1 mm of its command 0.1 s after the lift.
+
+    `finger_gravcomp`, if given, overrides the gravity compensation of the twelve finger bodies.
+    `--payload-gravcomp` in the arm-scene builder compensates the whole hand subtree, fingers
+    included, which relieves the finger SERVOS of their links' weight; on the bench the arm's
+    payload compensation carries the hand at the flange and each finger servo still carries its
+    own links, as the RL training scene has it (gravcomp 0 on the fingers). 0 restores that;
+    with the arm stiffened the 2 N the fingers weigh moves the palm by ~0.01 mm."""
     scene = Path(scene_path) if scene_path is not None else \
         morph_run / ("arm_scene.xml" if arm_ik is not None else "frozen_scene.xml")
     pg._MODEL_PATH["path"] = str(scene)
     m = mujoco.MjModel.from_xml_path(str(scene))
+    if arm_ik is not None and arm_kp_scale != 1.0:
+        for n in ("shoulder_pan", "shoulder_lift", "elbow", "wrist_1", "wrist_2", "wrist_3"):
+            a = m.actuator(n).id
+            m.actuator_gainprm[a, 0] *= arm_kp_scale     # kp
+            m.actuator_biasprm[a, 1] *= arm_kp_scale     # -kp * qpos; biasprm[2] = -kv stays
+    if finger_gravcomp is not None:
+        for f in FINGERS:
+            for seg in ("yaw_frame", "mcp_frame", "pip_frame", "tip"):
+                b = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, f"{f}_{seg}")
+                if b >= 0:
+                    m.body_gravcomp[b] = float(finger_gravcomp)
     if pad_radius is not None:
         for f in FINGERS:
             for g in range(m.ngeom):
@@ -308,6 +335,8 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
                     m.geom_rbound[g] = float(pad_radius)
     pad_r = pg.PAD_RADIUS if pad_radius is None else float(pad_radius)
     d = mujoco.MjData(m)
+    if ctx is not None:
+        ctx["m"], ctx["d"] = m, d               # for a step_hook that needs the state before the turn
     r_obj, half = pg._obj_geom(m, obj)
     # Where the tool comes to rest once it is standing. On a plane that is its own half length;
     # in a countersink it is set by where the two cone radii match, and every "is it still

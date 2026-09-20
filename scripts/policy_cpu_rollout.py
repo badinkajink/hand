@@ -328,10 +328,13 @@ def main():
         cam = mujoco.MjvCamera(); cam.type = mujoco.mjtCamera.mjCAMERA_FREE
         cam.distance, cam.azimuth, cam.elevation = dist, az, el
     rows = []
+    obs_at_active = None
     last_action = np.zeros(len(FINGER_JOINTS), dtype=np.float32)
     with torch.no_grad():
         for k in range(a.steps):
             o = obs(k, last_action)
+            if k == active_from // decim:
+                obs_at_active = [round(float(v), 5) for v in o]   # what the policy sees at its first active step
             if a.blind:
                 o[30:40] = 0.0    # object_pos (3) + object_pose_actual (7)
                 o[65] = 0.0       # target_axis_misalign
@@ -374,7 +377,8 @@ def main():
                "t_align": int(aligned_steps[0]) if len(aligned_steps) else None,
                "force_active": [float(v) for v in arr[af:, 3:6].mean(axis=0)], "pad_peak": [float(v) for v in arr[af:, 3:6].max(axis=0)],
                "clearance_min_mm": float(arr[af:, 6].min()), "clearance_end_mm": float(arr[-1, 6]),
-               "act_absmax": float(arr[af:, 7].max()), "clip_actions": clip, "residual_active_from_step": af}
+               "act_absmax": float(arr[af:, 7].max()), "clip_actions": clip, "residual_active_from_step": af,
+               "obs_at_active": obs_at_active}
     json.dump(summary, open(a.out, "w"), indent=1)
     print(json.dumps({k: v for k, v in summary.items() if k not in ("policy", "scene")}))
     return 0

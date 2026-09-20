@@ -6,6 +6,7 @@ changes. Regenerate with the builder named in each page's footer.
 
 | date | subject | local file | artifact |
 |---|---|---|---|
+| 2026-09-19 | Reorientation policies across the deployed hands on the calibrated plant (bounded residual, index–middle separation, UR5e chain) | [20260919-hands_tranche/20260919-reorient_policies_across_hands.html](20260919-hands_tranche/20260919-reorient_policies_across_hands.html) | https://claude.ai/artifact/JfKA6nQBPuf13hGKjnU22n |
 | 2026-09-17 | D6 reorientation policy on the calibrated plant at 60 M steps, with a grip-force finetune | [20260917-d6_cal_60M/20260917-d6_reorient_policy_60M.html](20260917-d6_cal_60M/20260917-d6_reorient_policy_60M.html) | https://claude.ai/artifact/NgDVqffN5h1ZBhS2rt7Mb1 |
 | 2026-09-16 | Bench partial reorientation: support geometry, plan family and a two-tip gait | [20260916-tip_gait/20260916-bench_partial_reorientation.html](20260916-tip_gait/20260916-bench_partial_reorientation.html) | https://claude.ai/artifact/FquaN7cm7kNqF9mFAMvEEY |
 | 2026-09-16 | In-hand screwdriver reorientation on the calibrated plant by pinch and swing | [20260916-swing_reorient/20260916-swing_reorient.html](20260916-swing_reorient/20260916-swing_reorient.html) | https://claude.ai/artifact/D8gDHA9vLfGQVd6zWZySsh |

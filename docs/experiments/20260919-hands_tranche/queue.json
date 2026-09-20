@@ -53,8 +53,10 @@
     "--clip-actions",
     "2.0"
    ],
-   "status": "running",
-   "started": "2026-09-19 21:51:56"
+   "status": "done",
+   "started": "2026-09-19 21:51:56",
+   "run": "/home/humanoid/Programs/hand/results/rl/20260919-2151-d6_clip_s0",
+   "finished": "2026-09-19 22:29:22"
   },
   {
    "id": "d6_clipsep_s0",
@@ -68,8 +70,10 @@
     "--finger-separation-min-m",
     "0.03"
    ],
-   "status": "pending",
-   "started": "2026-09-19 21:51:29"
+   "status": "done",
+   "started": "2026-09-19 22:29:22",
+   "run": "/home/humanoid/Programs/hand/results/rl/20260919-2229-d6_clipsep_s0",
+   "finished": "2026-09-19 23:07:02"
   },
   {
    "id": "d3_clip_s0",
@@ -80,7 +84,10 @@
     "--clip-actions",
     "2.0"
    ],
-   "status": "pending"
+   "status": "done",
+   "started": "2026-09-19 23:07:02",
+   "run": "/home/humanoid/Programs/hand/results/rl/20260919-2307-d3_clip_s0",
+   "finished": "2026-09-19 23:44:40"
   },
   {
    "id": "d4_clip_s0",
@@ -91,7 +98,10 @@
     "--clip-actions",
     "2.0"
    ],
-   "status": "pending"
+   "status": "done",
+   "started": "2026-09-19 23:44:40",
+   "run": "/home/humanoid/Programs/hand/results/rl/20260919-2344-d4_clip_s0",
+   "finished": "2026-09-20 00:23:08"
   },
   {
    "id": "d5_clip_s0",
@@ -102,7 +112,10 @@
     "--clip-actions",
     "2.0"
    ],
-   "status": "pending"
+   "status": "done",
+   "started": "2026-09-20 00:23:08",
+   "run": "/home/humanoid/Programs/hand/results/rl/20260920-0023-d5_clip_s0",
+   "finished": "2026-09-20 01:01:23"
   },
   {
    "id": "d7_clip_s0",
@@ -113,7 +126,10 @@
     "--clip-actions",
     "2.0"
    ],
-   "status": "pending"
+   "status": "done",
+   "started": "2026-09-20 01:01:23",
+   "run": "/home/humanoid/Programs/hand/results/rl/20260920-0101-d7_clip_s0",
+   "finished": "2026-09-20 01:39:16"
   },
   {
    "id": "d1_clip_s0",
@@ -124,7 +140,8 @@
     "--clip-actions",
     "2.0"
    ],
-   "status": "pending"
+   "status": "running",
+   "started": "2026-09-20 01:39:16"
   },
   {
    "id": "d2_clip_s0",

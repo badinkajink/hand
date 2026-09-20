@@ -200,7 +200,11 @@ def main():
                  "mu1.5": "pad &#956; 1.5", "mass1.3": "tool mass &#215; 1.3", "kp0.25": "servo kp 0.25"}
     trows, tvars = [], []
     for j in done:
+        # the GPU pass (64 rollouts) runs after the last training job; until then the per-job CPU
+        # probe (6 rollouts, 2 mm of spawn jitter) stands in and the cell says which it is
         tp = os.path.join(R, f"{j['id']}_transfer.json")
+        if not os.path.exists(tp):
+            tp = os.path.join(R, f"{j['id']}_transfer_cpu.json")
         if not os.path.exists(tp):
             continue
         t = json.load(open(tp))
@@ -212,11 +216,11 @@ def main():
             if e.get("hold_rate") is None:
                 row.append(("err", "cell c0"))
             else:
-                n = 64; held = int(round(e["hold_rate"] * n))
+                n = int(e.get("n", 64)); held = int(round(e["hold_rate"] * n))
                 row.append(cellc(min(held / n, e["align_rate"] if e["hold_rate"] >= 0.99 else held / n),
                                  f"{held}/{n} &#183; {e['final_cos_mean']:+.2f}"))
         trows.append(row)
-    table_transfer = table(["hand", "arm"] + [f"{VAR_LABEL[v]}: held &#183; cos" for v in tvars], trows) if trows else "<p>No transfer probe has run yet (they run after the last training job).</p>"
+    table_transfer = table(["hand", "arm"] + [f"{VAR_LABEL[v]}: held &#183; cos" for v in tvars], trows) if trows else "<p>No transfer probe has run yet.</p>"
 
     # --- the policy inside the chain
     crows = []
@@ -234,14 +238,55 @@ def main():
                 return cand[0] if cand else None
             peak = max((r[1] for r in tr), default=float("nan"))
             t_peak = next((r[0] for r in tr if r[1] == peak), None)
+            t09 = next((r[0] for r in tr if r[1] >= 0.9), None)
             end = tr[-1] if tr else None
             held_end = bool(end and end[2] > 0.06 and sum(end[4:7]) >= 0.5) if end and len(end) >= 7 else None
-            row.append(f"{peak:+.2f} at step {t_peak}")
+            row.append(f"{peak:+.2f} at step {t_peak}" + (f", 0.9 at {t09}" if t09 is not None else ""))
             row.append(("held" if held_end else "lost", "cell c4" if held_end else "cell c0") if held_end is not None else "?")
             row.append(f"{end[1]:+.2f} &#183; {end[2]*1000:.0f} mm &#183; {end[4]:.1f}/{end[5]:.1f}/{end[6]:.1f} N" if end and len(end) >= 7 else "")
         crows.append(row)
     table_chain = table(["hand", "arm", "plate 25: peak cos", "at 5 s", "end: cos &#183; z &#183; pads N",
                          "plate 0: peak cos", "at 5 s", "end: cos &#183; z &#183; pads N"], crows) if crows else "<p>No chain run yet.</p>"
+    ch_held, ch_lost = [], []
+    for j in done:
+        cp = os.path.join(R, f"{j['id']}_chain_pl25.json")
+        if not os.path.exists(cp):
+            continue
+        tr = json.load(open(cp)).get("policy_trace", [])
+        end = tr[-1] if tr else None
+        name = j["hand"] + (" (clip)" if j["arm"] == "clip" else " (clip + separation)")
+        if end and end[2] > 0.06 and sum(end[4:7]) >= 0.5:
+            ch_held.append(f"{name} at cos {end[1]:+.2f}")
+        else:
+            ch_lost.append(name)
+    chain_lede = (f"Inside the UR5e chain with the training environment&#8217;s grasp and lift and the plate at 25 mm, one "
+                  f"nominal rollout each: the tool is still held after 5 s of the policy by {', '.join(ch_held) or 'none'}; "
+                  f"dropped by {', '.join(ch_lost) or 'none'}.") if (ch_held or ch_lost) else ""
+
+    # --- the two D6 reference checkpoints in the final chain configuration (chain/*_final.json)
+    def d6ref(name, label):
+        outs = []
+        for sd in range(4):
+            cp = os.path.join(R, "chain", f"{name}_policy_pl25_s{sd}_final.json")
+            if os.path.exists(cp):
+                c = json.load(open(cp)); tr = c.get("policy_trace", [])
+                end = tr[-1] if tr else None
+                held = bool(end and end[2] > 0.06 and sum(end[4:7]) >= 0.5)
+                outs.append((held, end[1] if end else float("nan"), sum(1 for v in end[4:7] if v >= 0.5) if end else 0,
+                             sum(end[4:7]) if end else 0.0, next((r[0] for r in tr if r[1] >= 0.9), None)))
+        if not outs:
+            return f"{label}: not run yet"
+        held = [o for o in outs if o[0]]
+        cs = sorted(o[1] for o in held)
+        t9 = [o[4] for o in outs if o[4] is not None]
+        def rng(lo, hi, fmt):
+            return fmt.format(lo) if fmt.format(lo) == fmt.format(hi) else f"{fmt.format(lo)}&#8211;{fmt.format(hi)}"
+        return (f"{label} holds {len(held)} of {len(outs)}" +
+                (f" at cos {rng(cs[0], cs[-1], '{:+.2f}')} on {rng(min(o[2] for o in held), max(o[2] for o in held), '{}')} pads, "
+                 f"{rng(min(o[3] for o in held), max(o[3] for o in held), '{:.0f}')} N" if held else "") +
+                (f", 0.9 first crossed at step {rng(min(t9), max(t9), '{}')} in {len(t9)} of {len(outs)}" if t9 else ""))
+    d6ref_html = ("the 60 M checkpoint (17 N grip, the warm start of every job) " + d6ref("d6_60M_gp025", "") .strip() +
+                  "; the 10.8 N grip finetune " + d6ref("d6_ft_gpm5", "").strip() + ".")
 
     # --- filmstrips
     strips = []
@@ -290,8 +335,9 @@ def main():
             f"Hands that hold the tool in 64 of 64 rollouts under a bounded residual: {', '.join(held_hands) or 'none yet'}; "
             f"hands that also reach cos 0.9 in every rollout: {', '.join(turned) or 'none yet'}. "
             f"Separation arm keeping the index&#8211;middle chains 30 mm apart or more: {', '.join(sep_ok) or 'none yet'} "
-            f"of {len(clipsep_done)} finished.")
+            f"of {len(clipsep_done)} finished. " + chain_lede)
     sub = {"LEDE": lede, "TABLE_MAIN": table_main, "TABLE_PLAUS": table_plaus, "TABLE_TRANSFER": table_transfer, "TABLE_CHAIN": table_chain, "STRIPS": strips_html, "EVALS": ev_html,
+           "D6REF": d6ref_html,
            "CURVES": curves_html, "GATE": gate_html, "N_JOBS": str(len(jobs)), "N_DONE": str(n_done),
            "BUILT": time.strftime("%Y-%m-%d %H:%M"), "INIT": q.get("init_checkpoint", "")}
     tpl = open("scripts/hands_tranche_page.template.html").read()
