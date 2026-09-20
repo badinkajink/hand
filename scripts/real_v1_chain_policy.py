@@ -58,6 +58,10 @@ def main():
                     help="gravity compensation on the finger bodies; the arm scene ships 1 (the payload declaration "
                          "compensates the whole hand subtree), the training scene and the bench hand carry the finger "
                          "links on the finger servos (0)")
+    ap.add_argument("--seat-aim", default="centre", choices=("centre", "tip"),
+                    help="what the staging and the descent carry over the socket: 'centre' = the "
+                         "tool's body centre (the shipped chain; a residual lean puts the apex beside "
+                         "the hole), 'tip' = the measured apex, then stand the tool up about the seated apex")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--jitter", type=float, default=0.0)
     ap.add_argument("--out", type=Path, required=True)
@@ -157,12 +161,13 @@ def main():
 
     r = C.chain(Path(tag), arm_ik=Path(fit["ik"]), scene_path=scene, anchor_ctrl=fit["anchor"],
                 grip_depth=fit["depth_mm"] / 1000, axis_k=h["axis_k"], budget=h["budget"],
-                **seat, **cell, jitter=a.jitter, seed=a.seed, turn_ctrl=turn_ctrl,
+                **seat, **cell, seat_aim=a.seat_aim, jitter=a.jitter, seed=a.seed, turn_ctrl=turn_ctrl,
                 step_hook=shadow, ctx=ctx, video=a.video, film=a.film)
     seams = {s["phase"]: s for s in r["seams"]}
     keep = ("t", "cos", "tilt_deg", "z", "pad_contacts", "pad_force_N", "roll_deg", "slide_mm", "hand_contacts")
     out = {"hand": a.hand, "tag": tag, "policy": str(a.policy), "scene": str(scene), "squeeze_mm": a.squeeze, "plant": a.plant,
            "turn_steps": a.turn_steps, "stand": a.stand, "stages": a.stages, "arm_kp_scale": a.arm_kp_scale,
+           "seat_aim": a.seat_aim,
            "finger_gravcomp": a.finger_gravcomp,
            "seams": {ph: {k: s.get(k) for k in keep if k in s} for ph, s in seams.items()},
            "held_turn": bool((seams.get("turned", {}).get("pad_contacts") or 0) >= 2 and (seams.get("turned", {}).get("z") or 0) > 0.08),

@@ -278,7 +278,7 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
           regrasp: bool = False, regrasp_steps: int = 150,
           arm_ik: Path | None = None, scene_path: Path | None = None,
           place_xy=None, place_err=(0.0, 0.0), seat_z: float | None = None,
-          tip_len: float = 0.0,
+          tip_len: float = 0.0, seat_aim: str = "centre",
           video: Path | None = None, film: Path | None = None,
           cam=(120.0, -18.0, 0.36), video_every: int = 12, trace: bool = False,
           video_size=(640, 480), cam_look=None,
@@ -854,8 +854,13 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
     def _gain(iters):
         return 1.0 - 0.02 ** (1.0 / max(1, iters))
 
-    def _descend(name, iters, steps_each, z_low_goal):
+    def _descend(name, iters, steps_each, z_low_goal, foot_xy=None):
         """Lower the shaft, orientation untouched, until its low edge is `z_low_goal` off the floor.
+
+        With `foot_xy` the descent also walks the MEASURED low point over that xy (the seat's
+        centre), so the apex of a tool that is still leaning in the grip comes down on the hole
+        and not beside it; the correction is `_gain(iters)` of the offset per iteration, as in
+        `_upright`, and with iters=1 it is one aim taken at the top of the move.
 
         THE ONE AXIS WHERE FEEDBACK IS A MISTAKE, and it took a sweep to believe it: 1 correction
         stands the shaft 4/4 at every descent speed from 0.2 s to 1.6 s, 8 corrections stand it
@@ -868,11 +873,15 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         lowering the palm further does not put it back.)
         """
         z0 = float(_low_point()[2])
+        g = _gain(iters)
         for it in range(iters):
             R_obj = d.body(obj).xmat.reshape(3, 3).copy()
             po = d.body(obj).xpos.copy()
-            dz = (z0 + (z_low_goal - z0) * (it + 1) / iters) - float(_low_point()[2])
-            _move(*_rigid_palm_pose(m, d, obj, R_obj, po + np.array([0.0, 0.0, dz])), steps_each)
+            low = _low_point()
+            dz = (z0 + (z_low_goal - z0) * (it + 1) / iters) - float(low[2])
+            dxy = (np.zeros(2) if foot_xy is None
+                   else g * (np.asarray(foot_xy, float) - low[:2]))
+            _move(*_rigid_palm_pose(m, d, obj, R_obj, po + np.array([dxy[0], dxy[1], dz])), steps_each)
             if DEBUG:
                 print("   ", {**_snap(name), "dz_mm": round(dz * 1000, 1),
                               "z_low_mm": round(float(_low_point()[2]) * 1000, 1),
@@ -938,11 +947,19 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
                 R_des = R_obj
             po = d.body(obj).xpos.copy()
             want = np.array([place_xy[0] + place_err[0], place_xy[1] + place_err[1]])
-            xy = po[:2] + (want - po[:2]) * g
+            # WHAT IS AIMED AT THE HOLE. `centre` carries the tool's body centre over the seat
+            # and leaves the apex wherever the residual lean puts it, (half + tip) * sin(theta)
+            # to the side -- 12 mm at the 14 deg the calibrated plant's grip stages at, twice
+            # the seat's capture radius. `tip` aims the measured low point instead, so the
+            # apex lands in the hole at whatever lean survives the levelling, and the lean is
+            # taken out afterwards about the seated apex, with the floor carrying the weight.
+            ref = _low_point()[:2] if seat_aim == "tip" else po[:2]
+            xy = po[:2] + (want - ref) * g
             _move(*_rigid_palm_pose(m, d, obj, R_des,
                                     np.array([xy[0], xy[1], po[2]])), steps_each)
             if DEBUG:
-                print("   ", {**_snap(name), "th_deg": round(float(np.degrees(th)), 2)})
+                print("   ", {**_snap(name), "th_deg": round(float(np.degrees(th)), 2),
+                              "apex_off_mm": round(float(np.linalg.norm(want - _low_point()[:2])) * 1000, 1)})
             if _lost():
                 break
         seams.append(_snap(name))
@@ -1035,7 +1052,14 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         # cone -- an 8 deg entry stops 3 mm into a 10 mm seat -- and the lateral carry has to
         # happen at height, but neither can be afforded its own phase.
         _stage("staged", max(1, transport_steps // max(1, transport_iters)), transport_iters)
-        _descend("set_down", descend_iters, max(1, descend_steps // descend_iters), z_low_goal)
+        want = (place_xy[0] + place_err[0], place_xy[1] + place_err[1])
+        _descend("set_down", descend_iters, max(1, descend_steps // descend_iters), z_low_goal,
+                 foot_xy=(want if seat_aim == "tip" else None))
+        if seat_aim == "tip" and not _lost():
+            # The seat holds the apex; the lean the grip kept through the staging comes out
+            # here, as a rotation about that apex and not about the tool's centre.
+            _upright("seated", repose_iters, max(1, repose_steps // repose_iters), True,
+                     foot_xy=want)
     elif stand_order == "ground":
         _descend("set_down", descend_iters, max(1, descend_steps // descend_iters), z_low_goal)
         _upright("upright", repose_iters, max(1, repose_steps // repose_iters), True)
@@ -1605,8 +1629,11 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
             [s for s in seams if s["phase"] == "turned"][0]["tilt_deg"]
             - [s for s in seams if s["phase"] == "reoriented"][0]["tilt_deg"]), 2),
         "repose_iters": repose_iters, "descend_iters": descend_iters,
-        "stand_order": stand_order, "airgrip": airgrip,
+        "stand_order": stand_order, "airgrip": airgrip, "seat_aim": seat_aim,
         "seat_z": round(rest_z, 5), "tip_len_mm": round(tip_len * 1000, 2),
+        "apex_seat_offset_mm": round(float(np.linalg.norm(
+            _low_point()[:2] - np.asarray(place_xy, float))) * 1000, 2)
+            if place_xy is not None else None,
         "place_xy": None if place_xy is None else [round(float(v), 5) for v in place_xy],
         "place_err_mm": [round(float(v) * 1000, 2) for v in place_err],
         "seat_offset_mm": round(float(np.linalg.norm(
@@ -1736,6 +1763,9 @@ def main() -> int:
                          "joint-space move between two grasps of the same object passes through "
                          "a configuration that holds neither, and in mid-air there is nothing "
                          "under the shaft. Changing grasp needs the floor.")
+    ap.add_argument("--seat-aim", default="centre", choices=("centre", "tip"),
+                    help="what the seated set-down carries over the socket: the tool's body centre "
+                         "(shipped) or its measured apex, which is then stood up about the seat")
     ap.add_argument("--stand-order", default="ground", choices=("ground", "air", "pivot"),
                     help="ground = set the tilted shaft's foot on the floor, then rotate it "
                          "upright about that foot; air = stand it up in mid-air first")
@@ -1819,6 +1849,7 @@ def main() -> int:
                           repose_iters=args.repose_iters, repose_steps=args.repose_steps,
                           descend_iters=args.descend_iters, descend_steps=args.descend_steps,
                           stand_order=args.stand_order, airgrip=args.airgrip,
+                          seat_aim=args.seat_aim,
                           reindex=args.reindex, relay_gait=args.relay_gait,
                           clear=args.clear,
                           track_frac=args.track_frac, relay_squeeze=args.relay_squeeze,
