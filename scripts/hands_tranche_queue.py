@@ -68,6 +68,13 @@ def latest_model(run_dir: Path) -> Path | None:
     return ms[-1] if ms else None
 
 
+def res_by_id(results, rid):
+    for r in results:
+        if r.get("id") == rid:
+            return r
+    return None
+
+
 def save_json(path: Path, obj):
     tmp = path.with_suffix(".tmp")
     with open(tmp, "w") as fh:
@@ -83,11 +90,35 @@ def main():
     qdir = a.queue.parent
     results_path = qdir / "tranche_results.json"
     results = json.load(open(results_path)) if results_path.exists() else []
+    # a job left "running" by a driver that died (no result row) goes back to pending
+    q0 = json.load(open(a.queue))
+    for jj in q0["jobs"]:
+        if jj.get("status") == "running" and res_by_id(results, jj["id"]) is None:
+            jj["status"] = "pending"
+            log(f"[{jj['id']}] was left running by a dead driver; back to pending")
+    save_json(a.queue, q0)
     while True:
         q = json.load(open(a.queue))
         pending = [j for j in q["jobs"] if j.get("status", "pending") == "pending"]
         if not pending:
-            log("queue empty; exiting")
+            # Final pass: zero-shot transfer probes (perturbed plants) for every finished job that
+            # lacks one, one at a time through the same gate, then exit. A wake-up that appends jobs
+            # relaunches the driver; it re-reads the queue and skips finished probes.
+            variants = q.get("transfer_variants", "base,tipmesh,plate0,mu0.6,mu1.5,mass1.3,kp0.25")
+            for j in q["jobs"]:
+                r = res_by_id(results, j["id"])
+                if j.get("status") != "done" or not r or not r.get("model"):
+                    continue
+                tj = qdir / f"{j['id']}_transfer.json"
+                have = json.load(open(tj)) if tj.exists() else {}
+                if all(v in have and have[v].get("hold_rate") is not None for v in variants.split(",")):
+                    continue
+                log(f"[{j['id']}] TRANSFER PROBE {variants}")
+                cmd = UV + ["scripts/policy_transfer_probe.py", "--policy", r["model"], "--morphology-run", j["morph_run"],
+                            "--variants", variants, "--n", "64", "--out", str(tj)]
+                rc = run_guarded(cmd, "8G", 400, ROOT / "logs" / f"{qdir.name}-{j['id']}_transfer.log", j["id"])
+                log(f"[{j['id']}] transfer probe rc={rc}")
+            log("queue empty and probes done; exiting")
             return 0
         j = pending[0]
         tag = j["id"]
