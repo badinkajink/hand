@@ -288,12 +288,48 @@ def main():
     table_plaus = table(["hand", "arm", "pad peak th / ix / md (N)", "pad force active th / ix / md (N)", "#joint speed p99 (&#176;/s)",
                          "#|a| &gt; 1 share", "#gap (&#176;)", "#raw cmd beyond range (&#176;)", "clearance min / end (mm)", "flags"], prow) if prow else "<p>No job has finished yet.</p>"
 
-    # --- chain
-    crow = []
+    # --- chain: the turn, then every seam the chain runs after it (re-pose, set-down, relay handover, gait)
+    def seam(c, name, key="cos"):
+        v = (c.get("seams") or {}).get(name) or {}
+        return v.get(key)
+    crow, seam_rows = [], []
     for j in done:
         crow.append([j["hand"], ARM_LABEL.get(j["arm"], j["arm"]),
                      chain_cell(os.path.join(R, f"{j['id']}_chain_pl25.json")), chain_cell(os.path.join(R, f"{j['id']}_chain_pl0.json"))])
+        for pl in (25, 0):
+            cp = os.path.join(R, f"{j['id']}_chain_pl{pl}.json")
+            if not os.path.exists(cp):
+                continue
+            c = json.load(open(cp)); cs = c.get("chain_scalars", {})
+            def sc(name):
+                v = seam(c, name); z = seam(c, name, "z")
+                return "&#8211;" if v is None else f"{v:+.2f} / {z * 1000:.0f}"
+            ok = bool(c.get("ok"))
+            seam_rows.append([j["hand"], {"clip": "clip", "clipsep": "clip + separation"}.get(j["arm"], j["arm"]), str(pl), sc("turned"), sc("staged"), sc("set_down"),
+                              sc("handover_grip"), sc("gaited"),
+                              f"{cs.get('cycles_run', 0)} / {cs.get('turns', 0):+.2f}",
+                              ("stood, gripped, gaited" if ok else ", ".join(k for k, f in (("carried", "carry_ok"), ("stood", "stood_ok"), ("gripped", "grip_ok")) if cs.get(f)) or "lost",
+                               "cell c4" if ok else ("cell c2" if cs.get("stood_ok") else "cell c0"))])
     table_chain = table(["hand", "arm", "plate 25 mm: end cos", "plate 0: end cos"], crow) if crow else "<p>No chain run yet.</p>"
+    table_seams = table(["hand", "arm", "plate", "turned: cos / z (mm)", "staged", "set down", "handover grip", "gaited", "cycles / turns", "outcome"],
+                        seam_rows) if seam_rows else "<p>No chain run yet.</p>"
+    # chain films: videos/<id>_chain_pl<pl>.mp4 (real_v1_chain_policy.py --video), transcoded beside the page
+    chain_videos = []
+    os.makedirs(os.path.join(R, "web"), exist_ok=True)
+    for j in done:
+        for pl in (25, 0):
+            src_v, web_v = os.path.join(R, "videos", f"{j['id']}_chain_pl{pl}.mp4"), os.path.join(R, "web", f"{j['id']}_chain_pl{pl}.mp4")
+            if os.path.exists(src_v) and not os.path.exists(web_v):
+                subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", src_v, "-vf", "scale=640:480", "-c:v", "libx264", "-crf", "28",
+                                "-preset", "medium", "-pix_fmt", "yuv420p", "-movflags", "+faststart", "-an", web_v], stdin=subprocess.DEVNULL)
+            if os.path.exists(web_v):
+                cp = os.path.join(R, f"{j['id']}_chain_pl{pl}.json"); c = json.load(open(cp)) if os.path.exists(cp) else {}
+                cs = c.get("chain_scalars", {})
+                chain_videos.append(f'<figure><video controls muted loop playsinline preload="metadata" width="640" height="480" src="web/{j["id"]}_chain_pl{pl}.mp4"></video>'
+                                    f'<figcaption>{j["hand"]}, {ARM_LABEL.get(j["arm"], j["arm"])}, plate {pl} mm: grasp on the post, arm lift, the policy&#8217;s turn (5 s), '
+                                    f'arm re-pose, set-down, relay handover, gait. Outcome: {"the whole chain" if c.get("ok") else "lost after the turn"}; '
+                                    f'{cs.get("cycles_run", 0)} gait cycles, {cs.get("turns", 0):+.3f} screw turns, final tilt {cs.get("final_tilt_deg", float("nan")):.1f}&#176;.</figcaption></figure>')
+    chain_videos_html = "\n".join(chain_videos) if chain_videos else "<p>No chain film yet (the driver runs the chain without <code>--video</code>; films are rendered by hand for the policies that hold).</p>"
 
     # --- strips + videos (web/<id>.mp4 transcoded from videos/<id>.mp4 if missing)
     strips = []
@@ -333,7 +369,7 @@ def main():
                                                           if chain_cell(os.path.join(R, f"{j['id']}_chain_pl25.json"))[1].endswith("c4")) or "none") + "."))
     sub = {"LEDE": lede, "TABLE_PLANT": table(["", "2026-09-19 tranche", "here", "why"], [list(r) for r in PLANT_ROWS]),
            "TABLE_MAIN": table_main, "READING": reading, "TABLE_PLAUS": table_plaus, "TABLE_CHAIN": table_chain,
-           "STRIPS": strips_html, "CURVES": curves_html, "N_JOBS": str(len(jobs)), "N_DONE": str(n_done),
+           "STRIPS": strips_html, "TABLE_SEAMS": table_seams, "CHAIN_VIDEOS": chain_videos_html, "CURVES": curves_html, "N_JOBS": str(len(jobs)), "N_DONE": str(n_done),
            "BUILT": time.strftime("%Y-%m-%d %H:%M")}
     sub.update(pipeline_blocks(res[done[0]["id"]]["run"], q.get("common_flags", ())) if done and res[done[0]["id"]].get("run") else
                {k: "<p>No finished run yet.</p>" for k in ("TIMELINE", "TABLE_OBS", "ACTION_NOTE", "TABLE_REWARD", "REWARD_NOTE", "TABLE_TERM", "TABLE_PPO", "TABLE_DECISIONS", "TABLE_EVAL")})
