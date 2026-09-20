@@ -1,0 +1,25 @@
+{
+ "policy": "/home/humanoid/Programs/hand/results/rl/20260919-2151-d6_clip_s0/tensorboard/model_270.pt",
+ "scene": "docs/experiments/20260919-hands_tranche/d6_clip_s0_transfer_cpu_variants/mass1.3/frozen_scene.xml",
+ "steps": 250,
+ "held_end": false,
+ "final_cos": 0.0,
+ "peak_cos": 0.9277,
+ "final_z": 0.0125,
+ "t_align": 122,
+ "force_active": [
+  2.113947916666667,
+  1.0089010416666666,
+  1.3329374999999999
+ ],
+ "pad_peak": [
+  8.365,
+  6.013,
+  7.603
+ ],
+ "clearance_min_mm": -1.14,
+ "clearance_end_mm": 6.58,
+ "act_absmax": 2.0,
+ "clip_actions": 2.0,
+ "residual_active_from_step": 58
+}

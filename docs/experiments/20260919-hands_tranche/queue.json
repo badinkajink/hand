@@ -140,8 +140,10 @@
     "--clip-actions",
     "2.0"
    ],
-   "status": "running",
-   "started": "2026-09-20 01:39:16"
+   "status": "done",
+   "started": "2026-09-20 01:39:16",
+   "run": "/home/humanoid/Programs/hand/results/rl/20260920-0139-d1_clip_s0",
+   "finished": "2026-09-20 02:16:53"
   },
   {
    "id": "d2_clip_s0",
@@ -152,7 +154,10 @@
     "--clip-actions",
     "2.0"
    ],
-   "status": "pending"
+   "status": "done",
+   "started": "2026-09-20 02:16:53",
+   "run": "/home/humanoid/Programs/hand/results/rl/20260920-0216-d2_clip_s0",
+   "finished": "2026-09-20 02:55:16"
   },
   {
    "id": "d3_clipsep_s0",
@@ -166,7 +171,10 @@
     "--finger-separation-min-m",
     "0.03"
    ],
-   "status": "pending"
+   "status": "done",
+   "started": "2026-09-20 02:55:16",
+   "run": "/home/humanoid/Programs/hand/results/rl/20260920-0255-d3_clipsep_s0",
+   "finished": "2026-09-20 03:33:08"
   },
   {
    "id": "d4_clipsep_s0",
@@ -180,7 +188,10 @@
     "--finger-separation-min-m",
     "0.03"
    ],
-   "status": "pending"
+   "status": "done",
+   "started": "2026-09-20 03:33:08",
+   "run": "/home/humanoid/Programs/hand/results/rl/20260920-0333-d4_clipsep_s0",
+   "finished": "2026-09-20 04:11:14"
   },
   {
    "id": "d5_clipsep_s0",
@@ -194,7 +205,10 @@
     "--finger-separation-min-m",
     "0.03"
    ],
-   "status": "pending"
+   "status": "done",
+   "started": "2026-09-20 04:11:14",
+   "run": "/home/humanoid/Programs/hand/results/rl/20260920-0411-d5_clipsep_s0",
+   "finished": "2026-09-20 04:48:39"
   },
   {
    "id": "d7_clipsep_s0",
@@ -208,7 +222,10 @@
     "--finger-separation-min-m",
     "0.03"
    ],
-   "status": "pending"
+   "status": "done",
+   "started": "2026-09-20 04:48:39",
+   "run": "/home/humanoid/Programs/hand/results/rl/20260920-0448-d7_clipsep_s0",
+   "finished": "2026-09-20 05:26:30"
   },
   {
    "id": "d1_clipsep_s0",
@@ -222,7 +239,10 @@
     "--finger-separation-min-m",
     "0.03"
    ],
-   "status": "pending"
+   "status": "done",
+   "started": "2026-09-20 05:26:30",
+   "run": "/home/humanoid/Programs/hand/results/rl/20260920-0526-d1_clipsep_s0",
+   "finished": "2026-09-20 06:03:57"
   },
   {
    "id": "d2_clipsep_s0",
@@ -236,7 +256,10 @@
     "--finger-separation-min-m",
     "0.03"
    ],
-   "status": "pending"
+   "status": "done",
+   "started": "2026-09-20 06:03:57",
+   "run": "/home/humanoid/Programs/hand/results/rl/20260920-0603-d2_clipsep_s0",
+   "finished": "2026-09-20 06:41:22"
   },
   {
    "id": "d6_clip_s1",
@@ -249,7 +272,10 @@
     "--seed",
     "1"
    ],
-   "status": "pending"
+   "status": "done",
+   "started": "2026-09-20 06:41:22",
+   "run": "/home/humanoid/Programs/hand/results/rl/20260920-0641-d6_clip_s1",
+   "finished": "2026-09-20 07:19:03"
   },
   {
    "id": "d6_clip_s2",
@@ -262,7 +288,10 @@
     "--seed",
     "2"
    ],
-   "status": "pending"
+   "status": "done",
+   "started": "2026-09-20 07:19:03",
+   "run": "/home/humanoid/Programs/hand/results/rl/20260920-0719-d6_clip_s2",
+   "finished": "2026-09-20 07:56:42"
   }
  ]
 }
