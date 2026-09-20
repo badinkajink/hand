@@ -218,6 +218,31 @@ def main():
         trows.append(row)
     table_transfer = table(["hand", "arm"] + [f"{VAR_LABEL[v]}: held &#183; cos" for v in tvars], trows) if trows else "<p>No transfer probe has run yet (they run after the last training job).</p>"
 
+    # --- the policy inside the chain
+    crows = []
+    for j in done:
+        row = [j["hand"], ARM_LABEL.get(j["arm"], j["arm"])]
+        for pl in (25, 0):
+            cp = os.path.join(R, f"{j['id']}_chain_pl{pl}.json")
+            if not os.path.exists(cp):
+                row += ["&#8211;", "&#8211;", "&#8211;"]
+                continue
+            c = json.load(open(cp))
+            tr = c.get("policy_trace", [])
+            def at(step):
+                cand = [r for r in tr if r[0] == step]
+                return cand[0] if cand else None
+            peak = max((r[1] for r in tr), default=float("nan"))
+            t_peak = next((r[0] for r in tr if r[1] == peak), None)
+            end = tr[-1] if tr else None
+            held_end = bool(end and end[2] > 0.06 and sum(end[4:7]) >= 0.5) if end and len(end) >= 7 else None
+            row.append(f"{peak:+.2f} at step {t_peak}")
+            row.append(("held" if held_end else "lost", "cell c4" if held_end else "cell c0") if held_end is not None else "?")
+            row.append(f"{end[1]:+.2f} &#183; {end[2]*1000:.0f} mm &#183; {end[4]:.1f}/{end[5]:.1f}/{end[6]:.1f} N" if end and len(end) >= 7 else "")
+        crows.append(row)
+    table_chain = table(["hand", "arm", "plate 25: peak cos", "at 5 s", "end: cos &#183; z &#183; pads N",
+                         "plate 0: peak cos", "at 5 s", "end: cos &#183; z &#183; pads N"], crows) if crows else "<p>No chain run yet.</p>"
+
     # --- filmstrips
     strips = []
     for j in done:
@@ -266,7 +291,7 @@ def main():
             f"hands that also reach cos 0.9 in every rollout: {', '.join(turned) or 'none yet'}. "
             f"Separation arm keeping the index&#8211;middle chains 30 mm apart or more: {', '.join(sep_ok) or 'none yet'} "
             f"of {len(clipsep_done)} finished.")
-    sub = {"LEDE": lede, "TABLE_MAIN": table_main, "TABLE_PLAUS": table_plaus, "TABLE_TRANSFER": table_transfer, "STRIPS": strips_html, "EVALS": ev_html,
+    sub = {"LEDE": lede, "TABLE_MAIN": table_main, "TABLE_PLAUS": table_plaus, "TABLE_TRANSFER": table_transfer, "TABLE_CHAIN": table_chain, "STRIPS": strips_html, "EVALS": ev_html,
            "CURVES": curves_html, "GATE": gate_html, "N_JOBS": str(len(jobs)), "N_DONE": str(n_done),
            "BUILT": time.strftime("%Y-%m-%d %H:%M"), "INIT": q.get("init_checkpoint", "")}
     tpl = open("scripts/hands_tranche_page.template.html").read()

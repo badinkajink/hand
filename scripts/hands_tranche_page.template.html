@@ -141,8 +141,25 @@ screw-tip mesh on the tool&#8217;s &#8722;z end, the plate on the mounting plane
 friction at the edges of the training band, tool mass, and the settled servo re-fit kp 0.25 &#183; 64 rollouts each
 &#183; cell: held at end &#183; final cos &#183; colour by the held fraction (and the aligned fraction when all hold)</p>
 {{TABLE_TRANSFER}}
-<p>These isolate the rows of the benchmark-versus-chain comparison that live in the scene; the arm lift, the wrist
-stack and the CPU solver are not among them and remain for the chain adapter.</p>
+<p>These isolate the rows of the benchmark-versus-chain comparison that live in the scene. The solver row is closed
+separately: the observation and the lift/closing/residual schedule rebuilt in CPU MuJoCo
+(<code>policy_cpu_rollout.py</code>) reproduce the GPU evaluation of the D6 grip finetune (cos 0.972 against
+0.969 &#177; 0.002, 0.9 crossed at step 144 against 143 &#177; 1, clearance 19 mm against 18).</p>
+</div></section>
+
+<section><div class="col">
+<h2>The policy inside the UR5e chain</h2>
+<p class="sub"><code>real_v1_chain_policy.py</code>: the chain grasps on the post (anchor snapped, no easing), lifts
+100 mm with the arm through the 100 mm wrist stack over 0.4 s, then the policy drives the fingers at 50 Hz for
+5 s with the reference-trajectory clock resumed at its activation step &#183; plant <code>cal</code>, plate at the
+built 25 mm and at the 0 every chain scene was generated with &#183; one rollout each &#183; held = tool above 60 mm
+with &#8805; 0.5 N on a pad when the policy&#8217;s 5 s end</p>
+{{TABLE_CHAIN}}
+<p>The D6 grip finetune of 2026-09-17 in this test: with the plate at 25 mm it turns the tool to cos 0.91 at 1.8 s on
+three pads, loses the middle pad at 2.1 s, decays to 0.85 and drops the tool at 3.2 s; with the plate at 0 it drops
+at 2.8 s. The chain&#8217;s own grasp seam is where the two differ from the benchmark: the chain&#8217;s
+&#8220;lifted&#8221; state already carries 5&#176; of roll, 2.2 mm of slide and 4.0 N on the pads against the
+benchmark&#8217;s eased closure at 5.6 N, and the policy was never trained on that seam.</p>
 </div></section>
 
 <section><div class="col">

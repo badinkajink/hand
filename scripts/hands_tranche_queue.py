@@ -190,8 +190,19 @@ def main():
                            cwd=ROOT, env={k: v for k, v in os.environ.items() if k != "PYTHONPATH"} | {"OMP_NUM_THREADS": "2", "MKL_NUM_THREADS": "2"},
                            capture_output=True, timeout=3600)
             log(f"[{tag}] cpu transfer probe -> {tj.name}")
+            # the policy inside the UR5e chain (CPU, ~5 s each): plate at the built 25 mm and at the chain
+            # scenes' 0, policy in the loop for 5 s with no frozen hold
+            sq = json.load(open(Path(morph) / "summary.json")).get("squeeze_mm", 10.0)
+            for pl in (25, 0):
+                cj = qdir / f"{tag}_chain_pl{pl}.json"
+                subprocess.run(["uv", "run", "--extra", "rl", "python", "scripts/real_v1_chain_policy.py", "--hand", j["hand"],
+                                "--policy", str(model), "--morphology-run", morph, "--squeeze", str(sq), "--plant", "cal",
+                                "--plate-mm", str(pl), "--turn-steps", "2500", "--hold-steps", "0", "--out", str(cj)],
+                               cwd=ROOT, env={k: v for k, v in os.environ.items() if k != "PYTHONPATH"} | {"OMP_NUM_THREADS": "2", "MKL_NUM_THREADS": "2"},
+                               capture_output=True, timeout=1800)
+            log(f"[{tag}] chain probes done")
         except Exception as e:
-            log(f"[{tag}] cpu transfer probe failed: {e}")
+            log(f"[{tag}] cpu transfer/chain probe failed: {e}")
         row = {"id": tag, "hand": j["hand"], "arm": j["arm"], "status": "done", "run": str(run_dir),
                "model": str(model), "train_min": train_min, "eval_rc": rc_e, "render_rc": rc_r,
                "finished": time.strftime("%F %T")}
