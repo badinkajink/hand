@@ -441,6 +441,15 @@ class Args:
     """Normalisation (N): penalty = ((force-thresh)/scale)**2."""
     grip_force_penalty_reduce: str = "mean"
     """'mean' or 'max' over the 3 fingertips."""
+    finger_separation_weight: float = 0.0
+    """Penalty on index-middle link-chain clearance below finger_separation_min_m
+    (quadratic in the shortfall). NEGATIVE. 0 off. The bench index/middle carry servo
+    housings and cabling the model omits; keep the chains apart."""
+    finger_separation_min_m: float = 0.02
+    """Surface clearance (m) between the index and middle chains below which the penalty engages."""
+    clip_actions: float | None = None
+    """Clamp raw policy actions to +-clip_actions before the env (rsl_rl wrapper). None = unbounded
+    (the residual "budget" is then only a scale). 1.0 makes finger_residual_scale a hard bound."""
     grip_force_spread_weight: float = 0.0
     """Penalty for grip IMBALANCE: per-finger force spread (max-min)/scale. NEGATIVE.
     Pushes toward a balanced tripod so no single finger carries the load. 0 off. Try -2..-8."""
@@ -661,6 +670,8 @@ def main() -> None:
         grip_force_penalty_thresh=args.grip_force_penalty_thresh,
         grip_force_penalty_scale=args.grip_force_penalty_scale,
         grip_force_penalty_reduce=args.grip_force_penalty_reduce,
+        finger_separation_weight=args.finger_separation_weight,
+        finger_separation_min_m=args.finger_separation_min_m,
         grip_force_spread_weight=args.grip_force_spread_weight,
         grip_force_spread_scale=args.grip_force_spread_scale,
         brace_distance_weight=args.brace_distance_weight,
@@ -685,6 +696,8 @@ def main() -> None:
         ppo_kwargs["learning_rate"] = args.learning_rate
     if args.lr_schedule is not None:
         ppo_kwargs["schedule"] = args.lr_schedule
+    if args.clip_actions is not None:
+        ppo_kwargs["clip_actions"] = float(args.clip_actions)
     ppo_cfg = PPOConfig(**ppo_kwargs)
 
     print(f"[rl_train_cube] building mjlab env cfg ...")
@@ -767,7 +780,9 @@ def main() -> None:
             name_prefix=args.tag,
         )
 
-    wrapped = RslRlVecEnvWrapper(env)
+    wrapped = RslRlVecEnvWrapper(env, clip_actions=ppo_cfg.clip_actions)
+    if ppo_cfg.clip_actions is not None:
+        print(f"[rl_train_cube] raw actions clipped to +-{ppo_cfg.clip_actions} before the env")
 
     train_cfg = dataclasses.asdict(runner_cfg)
     if live_a_actor is not None:

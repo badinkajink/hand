@@ -40,6 +40,13 @@ class PPOConfig:
     save_interval: int = 50         # checkpoints / N iterations
     eval_video_interval: int = 50   # record env[0] rollout video / N iterations
     eval_video_length: int = 250    # max frames per recording (~5 s @ 50 Hz)
+    clip_actions: float | None = None
+    """Clamp the policy's raw actions to +-clip_actions before the env (rsl_rl vec-env
+    wrapper). None = no clip: the +-finger_residual_scale "budget" is then only a scale
+    and a policy can command joint targets many radians past the anchor (the D6 cal
+    finetune of 2026-09-17 commands |a| up to 15.6). A real servo commanded to its limit
+    slams; a deployable residual needs a bound, so training with clip 1.0 makes the
+    budget a hard +-finger_residual_scale."""
     log_dir_root: str = "results/rl"
 
     # wandb

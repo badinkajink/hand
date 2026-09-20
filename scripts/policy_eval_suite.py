@@ -124,6 +124,35 @@ def main():
     # third finger ever bears load: a two-finger pinch and a three-finger chuck can report the
     # same total while one of them is the degenerate grasp we are trying to leave behind.
     perf_t = np.zeros((args.steps, N, 3), dtype=np.float32)
+    # Physical plausibility (2026-09-19): the bench index and middle carry servo housings and
+    # cabling the capsules omit, so the index-middle chain clearance is tracked per step; with
+    # it the largest raw residual (the +-0.5 rad "budget" is a scale, not a clip), the peak
+    # finger joint speed and the commanded-minus-achieved gap the servo model produces.
+    clear_t = np.zeros((args.steps, N), dtype=np.float32)
+    act_absmax_t = np.zeros((args.steps, N), dtype=np.float32)
+    act_gt1_t = np.zeros((args.steps, N), dtype=np.float32)
+    jvel_max_t = np.zeros((args.steps, N), dtype=np.float32)
+    gap_max_t = np.zeros((args.steps, N), dtype=np.float32)
+    from morphohand.rl.terms_common import finger_pair_clearance
+    robot = env.unwrapped.scene["robot"]
+    finger_j = [i for i, n in enumerate(robot.joint_names)
+                if n.split("_")[0] in ("thumb", "index", "middle")]
+    # actuator -> joint map through the MjModel, for the commanded-minus-achieved gap
+    import mujoco as _mj
+    mjm = env.unwrapped.sim.mj_model
+    act_ids, qadr = [], []
+    for a_id in range(mjm.nu):
+        if mjm.actuator_trntype[a_id] != _mj.mjtTrn.mjTRN_JOINT:
+            continue
+        jn = _mj.mj_id2name(mjm, _mj.mjtObj.mjOBJ_JOINT, int(mjm.actuator_trnid[a_id, 0])) or ""
+        if jn.split("/")[-1].split("_")[0] in ("thumb", "index", "middle"):
+            act_ids.append(a_id); qadr.append(int(mjm.jnt_qposadr[mjm.actuator_trnid[a_id, 0]]))
+    act_ids_t = torch.tensor(act_ids, device=env.unwrapped.device)
+    qadr_t = torch.tensor(qadr, device=env.unwrapped.device)
+    jr = np.array([mjm.jnt_range[int(mjm.actuator_trnid[a, 0])] for a in act_ids], dtype=np.float32)
+    jr_lo = torch.tensor(jr[:, 0], device=env.unwrapped.device)
+    jr_hi = torch.tensor(jr[:, 1], device=env.unwrapped.device)
+    raw_exc_t = np.zeros((args.steps, N), dtype=np.float32)   # raw command beyond the joint range (rad)
 
     sensor = "fingertip_cube_contact"
     with torch.no_grad():
@@ -140,6 +169,19 @@ def main():
                 mag = f.norm(dim=-1)                                  # (N, n_tips)
                 grip_t[s] = mag.sum(dim=-1).cpu().numpy()
                 perf_t[s, :, :mag.shape[1]] = mag[:, :3].cpu().numpy()
+            clear_t[s] = finger_pair_clearance(env.unwrapped).cpu().numpy()
+            a = actions.abs()
+            act_absmax_t[s] = a.amax(dim=-1).cpu().numpy()
+            act_gt1_t[s] = (a > 1.0).float().mean(dim=-1).cpu().numpy()
+            jvel_max_t[s] = robot.data.joint_vel[:, finger_j].abs().amax(dim=-1).cpu().numpy()
+            try:
+                ctrl_t = env.unwrapped.sim.data.ctrl[:, act_ids_t]
+                q_t = env.unwrapped.sim.data.qpos[:, qadr_t]
+                clamped = torch.maximum(torch.minimum(ctrl_t, jr_hi), jr_lo)
+                gap_max_t[s] = (clamped - q_t).abs().amax(dim=-1).cpu().numpy()
+                raw_exc_t[s] = ((ctrl_t - clamped).abs()).amax(dim=-1).cpu().numpy()
+            except Exception:
+                gap_max_t[s] = np.nan
     env.close()
 
     held_t = (grip_t > args.held_min_n) & (z_t > args.floor_z)      # (T, N)
@@ -197,6 +239,22 @@ def main():
     else:
         three, gf = 0.0, np.zeros((1, 3))
         print("│  three_finger                         — (never aligned AND held)")
+    act_from = max(0, int(residual_from))
+    clear_min = clear_t[act_from:].min(axis=0) * 1000.0                 # mm per rollout
+    clear_end = clear_t[-1] * 1000.0
+    pad_peak = perf_t[act_from:].max(axis=0)                            # (N, 3)
+    jvel_p99 = np.degrees(np.percentile(jvel_max_t[act_from:], 99))
+    act_gt1 = float(act_gt1_t[act_from:].mean())
+    act_max = float(act_absmax_t[act_from:].max())
+    gap_deg = float(np.degrees(np.nanmax(gap_max_t[act_from:]))) if np.isfinite(gap_max_t[act_from:]).any() else float("nan")
+    print(f"│  plausibility (steps >= {act_from}):")
+    print(f"│    index-middle clearance min      {stat(clear_min)} mm   (at end {clear_end.mean():.1f} mm)")
+    print(f"│    pad peak N thumb/index/middle   {pad_peak[:, 0].mean():.1f}/{pad_peak[:, 1].mean():.1f}/{pad_peak[:, 2].mean():.1f}")
+    print(f"│    finger joint speed p99          {jvel_p99:.0f} deg/s")
+    print(f"│    residual |a|>1 fraction / max   {act_gt1:.3f} / {act_max:.2f}")
+    raw_exc = float(np.degrees(raw_exc_t[act_from:].max()))
+    print(f"│    commanded-achieved gap max      {gap_deg:.1f} deg  (command clamped to the joint range; "
+          f"raw command beyond the range up to {raw_exc:.0f} deg)")
     print("└" + "─" * 60)
 
     out = dict(
@@ -214,6 +272,15 @@ def main():
         mean_force_thumb=float(gf[:, 0].mean()),
         mean_force_index=float(gf[:, 1].mean()),
         mean_force_middle=float(gf[:, 2].mean()),
+        clearance_min_mm_mean=float(clear_min.mean()), clearance_min_mm_sd=float(clear_min.std()),
+        clearance_min_mm_worst=float(clear_min.min()), clearance_end_mm_mean=float(clear_end.mean()),
+        pad_peak_thumb=float(pad_peak[:, 0].mean()), pad_peak_index=float(pad_peak[:, 1].mean()),
+        pad_peak_middle=float(pad_peak[:, 2].mean()),
+        joint_speed_p99_deg_s=float(jvel_p99), residual_gt1_frac=act_gt1, residual_absmax=act_max,
+        ctrl_gap_max_deg=gap_deg, raw_cmd_beyond_range_deg=raw_exc, residual_from_step=int(residual_from),
+        force_active_thumb=float(perf_t[act_from:, :, 0].mean()),
+        force_active_index=float(perf_t[act_from:, :, 1].mean()),
+        force_active_middle=float(perf_t[act_from:, :, 2].mean()),
     )
     if args.json_out:
         args.json_out.parent.mkdir(parents=True, exist_ok=True)

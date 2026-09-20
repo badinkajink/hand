@@ -183,3 +183,60 @@ def _contact_gate(env: "ManagerBasedRlEnv", sensor_name: str,
 def _in_lift_phase(env: "ManagerBasedRlEnv", lift_phase_start_step: int
                     ) -> torch.Tensor:
     return env.episode_length_buf >= int(lift_phase_start_step)
+
+
+# --- finger-finger clearance -------------------------------------------------------------
+# The real_v1 finger is three capsules of radius 10.55 mm strung between the yaw, mcp and pip
+# frames and the tip body. The index and middle fingers carry servo housings and cabling that
+# the capsules do not model, so a policy that brings the two chains close in simulation fails
+# on the bench (user, 2026-09-19). The clearance below is the minimum segment-segment distance
+# between the two chains minus two capsule radii: 0 = the modelled surfaces touch.
+FINGER_CHAIN_BODIES = ("{f}_yaw_frame", "{f}_mcp_frame", "{f}_pip_frame", "{f}_tip")
+FINGER_CAPSULE_RADIUS_M = 0.01055
+
+
+def _seg_seg_dist(p1: torch.Tensor, q1: torch.Tensor, p2: torch.Tensor, q2: torch.Tensor) -> torch.Tensor:
+    """Closest distance between segments p1-q1 and p2-q2, batched over leading dims (..., 3)."""
+    d1 = q1 - p1
+    d2 = q2 - p2
+    r = p1 - p2
+    a = (d1 * d1).sum(-1)
+    e = (d2 * d2).sum(-1)
+    f = (d2 * r).sum(-1)
+    c = (d1 * r).sum(-1)
+    b = (d1 * d2).sum(-1)
+    denom = a * e - b * b
+    eps = 1e-12
+    s = torch.where(denom > eps, ((b * f - c * e) / denom.clamp(min=eps)).clamp(0.0, 1.0), torch.zeros_like(a))
+    t = (b * s + f) / e.clamp(min=eps)
+    # clamp t to [0, 1] and recompute s for the clamped t
+    t_c = t.clamp(0.0, 1.0)
+    s = torch.where(t < 0.0, (-c / a.clamp(min=eps)).clamp(0.0, 1.0),
+                    torch.where(t > 1.0, ((b - c) / a.clamp(min=eps)).clamp(0.0, 1.0), s))
+    c1 = p1 + d1 * s.unsqueeze(-1)
+    c2 = p2 + d2 * t_c.unsqueeze(-1)
+    return (c1 - c2).norm(dim=-1)
+
+
+def finger_chain_points(env: "ManagerBasedRlEnv", finger: str) -> torch.Tensor:
+    """World positions of the finger's yaw, mcp, pip frames and tip: (B, 4, 3)."""
+    robot = env.scene["robot"]
+    ids = [robot.body_names.index(n.format(f=finger)) for n in FINGER_CHAIN_BODIES]
+    return robot.data.body_link_pose_w[:, ids, :3]
+
+
+def finger_pair_clearance(env: "ManagerBasedRlEnv", fingers: tuple[str, str] = ("index", "middle"),
+                          radius: float = FINGER_CAPSULE_RADIUS_M) -> torch.Tensor:
+    """Minimum surface clearance (m) between the two fingers' three-link chains, per env (B,).
+    Negative when the modelled capsules interpenetrate."""
+    a = finger_chain_points(env, fingers[0])          # (B, 4, 3)
+    b = finger_chain_points(env, fingers[1])
+    pa, qa = a[:, :3, :], a[:, 1:, :]                 # 3 segments each
+    pb, qb = b[:, :3, :], b[:, 1:, :]
+    # all 3x3 segment pairs
+    P1 = pa.unsqueeze(2).expand(-1, 3, 3, -1)
+    Q1 = qa.unsqueeze(2).expand(-1, 3, 3, -1)
+    P2 = pb.unsqueeze(1).expand(-1, 3, 3, -1)
+    Q2 = qb.unsqueeze(1).expand(-1, 3, 3, -1)
+    d = _seg_seg_dist(P1, Q1, P2, Q2).reshape(a.shape[0], -1).amin(dim=-1)
+    return d - 2.0 * float(radius)

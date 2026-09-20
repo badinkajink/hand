@@ -1,0 +1,250 @@
+{
+ "created": "2026-09-19",
+ "common_flags": [
+  "--recipe",
+  "b_liveA",
+  "--seed",
+  "0",
+  "--num-envs",
+  "3072",
+  "--total-timesteps",
+  "20000000",
+  "--closed-ctrl-from-keyframe",
+  "open_ik",
+  "--open-finger-from-keyframe",
+  "--lift-target-z-above-init",
+  "0.1",
+  "--lift-delta-z",
+  "0.1",
+  "--finger-residual-scale",
+  "0.5",
+  "--finger-close-easing",
+  "ease_out_quad",
+  "--lift-phase-start-step",
+  "58",
+  "--reorient-start-step",
+  "58",
+  "--finger-residual-active-from-step",
+  "58",
+  "--term-tip-lost-steps",
+  "15",
+  "--friction-dr",
+  "--grip-force-penalty-weight=-5",
+  "--grip-force-penalty-thresh",
+  "4.0",
+  "--init-actor-checkpoint",
+  "results/rl/20260917-1844-d6_cal_reorient_ft_gpm5_20M_s0/tensorboard/model_270.pt",
+  "--watchdog-collapse-z",
+  "0.03",
+  "--watchdog-from-iter",
+  "40"
+ ],
+ "train_mem": "10G",
+ "train_cpu": 800,
+ "init_checkpoint": "results/rl/20260917-1844-d6_cal_reorient_ft_gpm5_20M_s0/tensorboard/model_270.pt",
+ "note": "warm-started from the D6 grip finetune (cos 0.969, 10.8 N); clip = residual bounded to +-1 rad; clipsep = clip + index-middle clearance >= 30 mm penalty (-10); D8 excluded (drops the evaluator lift at every squeeze)",
+ "jobs": [
+  {
+   "id": "d6_clip_s0",
+   "hand": "D6",
+   "arm": "clip",
+   "morph_run": "results/phase1/real_v1/20260916-sv1_u0308_b050_cal",
+   "flags": [
+    "--clip-actions",
+    "2.0"
+   ],
+   "status": "running",
+   "started": "2026-09-19 19:55:56"
+  },
+  {
+   "id": "d6_clipsep_s0",
+   "hand": "D6",
+   "arm": "clipsep",
+   "morph_run": "results/phase1/real_v1/20260916-sv1_u0308_b050_cal",
+   "flags": [
+    "--clip-actions",
+    "2.0",
+    "--finger-separation-weight=-10",
+    "--finger-separation-min-m",
+    "0.03"
+   ],
+   "status": "pending"
+  },
+  {
+   "id": "d3_clip_s0",
+   "hand": "D3",
+   "arm": "clip",
+   "morph_run": "results/phase1/real_v1/20260919-sv1_u1364_b080_sq10_cal",
+   "flags": [
+    "--clip-actions",
+    "2.0"
+   ],
+   "status": "pending"
+  },
+  {
+   "id": "d4_clip_s0",
+   "hand": "D4",
+   "arm": "clip",
+   "morph_run": "results/phase1/real_v1/20260919-g12_b095_sq10_cal",
+   "flags": [
+    "--clip-actions",
+    "2.0"
+   ],
+   "status": "pending"
+  },
+  {
+   "id": "d5_clip_s0",
+   "hand": "D5",
+   "arm": "clip",
+   "morph_run": "results/phase1/real_v1/20260919-sv1_u0060_b75_sq10_cal",
+   "flags": [
+    "--clip-actions",
+    "2.0"
+   ],
+   "status": "pending"
+  },
+  {
+   "id": "d7_clip_s0",
+   "hand": "D7",
+   "arm": "clip",
+   "morph_run": "results/phase1/real_v1/20260919-rv05_manual_b85_sq14_cal",
+   "flags": [
+    "--clip-actions",
+    "2.0"
+   ],
+   "status": "pending"
+  },
+  {
+   "id": "d1_clip_s0",
+   "hand": "D1",
+   "arm": "clip",
+   "morph_run": "results/phase1/real_v1/20260919-sv1_w6689_b060_sq10_cal",
+   "flags": [
+    "--clip-actions",
+    "2.0"
+   ],
+   "status": "pending"
+  },
+  {
+   "id": "d2_clip_s0",
+   "hand": "D2",
+   "arm": "clip",
+   "morph_run": "results/phase1/real_v1/20260919-sv1_w2360_b075_sq10_cal",
+   "flags": [
+    "--clip-actions",
+    "2.0"
+   ],
+   "status": "pending"
+  },
+  {
+   "id": "d3_clipsep_s0",
+   "hand": "D3",
+   "arm": "clipsep",
+   "morph_run": "results/phase1/real_v1/20260919-sv1_u1364_b080_sq10_cal",
+   "flags": [
+    "--clip-actions",
+    "2.0",
+    "--finger-separation-weight=-10",
+    "--finger-separation-min-m",
+    "0.03"
+   ],
+   "status": "pending"
+  },
+  {
+   "id": "d4_clipsep_s0",
+   "hand": "D4",
+   "arm": "clipsep",
+   "morph_run": "results/phase1/real_v1/20260919-g12_b095_sq10_cal",
+   "flags": [
+    "--clip-actions",
+    "2.0",
+    "--finger-separation-weight=-10",
+    "--finger-separation-min-m",
+    "0.03"
+   ],
+   "status": "pending"
+  },
+  {
+   "id": "d5_clipsep_s0",
+   "hand": "D5",
+   "arm": "clipsep",
+   "morph_run": "results/phase1/real_v1/20260919-sv1_u0060_b75_sq10_cal",
+   "flags": [
+    "--clip-actions",
+    "2.0",
+    "--finger-separation-weight=-10",
+    "--finger-separation-min-m",
+    "0.03"
+   ],
+   "status": "pending"
+  },
+  {
+   "id": "d7_clipsep_s0",
+   "hand": "D7",
+   "arm": "clipsep",
+   "morph_run": "results/phase1/real_v1/20260919-rv05_manual_b85_sq14_cal",
+   "flags": [
+    "--clip-actions",
+    "2.0",
+    "--finger-separation-weight=-10",
+    "--finger-separation-min-m",
+    "0.03"
+   ],
+   "status": "pending"
+  },
+  {
+   "id": "d1_clipsep_s0",
+   "hand": "D1",
+   "arm": "clipsep",
+   "morph_run": "results/phase1/real_v1/20260919-sv1_w6689_b060_sq10_cal",
+   "flags": [
+    "--clip-actions",
+    "2.0",
+    "--finger-separation-weight=-10",
+    "--finger-separation-min-m",
+    "0.03"
+   ],
+   "status": "pending"
+  },
+  {
+   "id": "d2_clipsep_s0",
+   "hand": "D2",
+   "arm": "clipsep",
+   "morph_run": "results/phase1/real_v1/20260919-sv1_w2360_b075_sq10_cal",
+   "flags": [
+    "--clip-actions",
+    "2.0",
+    "--finger-separation-weight=-10",
+    "--finger-separation-min-m",
+    "0.03"
+   ],
+   "status": "pending"
+  },
+  {
+   "id": "d6_clip_s1",
+   "hand": "D6",
+   "arm": "clip",
+   "morph_run": "results/phase1/real_v1/20260916-sv1_u0308_b050_cal",
+   "flags": [
+    "--clip-actions",
+    "2.0",
+    "--seed",
+    "1"
+   ],
+   "status": "pending"
+  },
+  {
+   "id": "d6_clip_s2",
+   "hand": "D6",
+   "arm": "clip",
+   "morph_run": "results/phase1/real_v1/20260916-sv1_u0308_b050_cal",
+   "flags": [
+    "--clip-actions",
+    "2.0",
+    "--seed",
+    "2"
+   ],
+   "status": "pending"
+  }
+ ]
+}
