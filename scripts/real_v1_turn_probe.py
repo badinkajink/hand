@@ -50,10 +50,20 @@ def contact_variant(scene: Path, cone: str | None, impratio: float | None, mu: f
     if impratio:
         opt.set("impratio", f"{impratio:g}")
     if mu or torsional:
-        for g in root.iter("geom"):
-            fr = g.get("friction")
-            if fr and fr.split()[0] in ("2.4", f"{mu:g}" if mu else "2.4"):
-                parts = fr.split()
+        # THE PAD AND TOOL GEOMS, BY ROLE. Matching on the template's 2.4 (as before 2026-09-20)
+        # made every friction variant of a calibrated scene (pads and tool at 1.0) a silent copy
+        # of it: the cal-plant mu rows of 2026-09-17/19 were no-ops. The pads are the geoms of
+        # the `*_tip` bodies and the tool is the free body that carries the object; everything
+        # else (floor, plate, links) keeps its own friction.
+        def _role(body):
+            n = body.get("name", "")
+            return n.endswith("_tip") or n.startswith("screwdriver") or n.startswith("cube") or \
+                n.startswith("cylinder") or body.find("freejoint") is not None
+        for body in root.iter("body"):
+            if not _role(body):
+                continue
+            for g in body.findall("geom"):
+                parts = (g.get("friction") or "1 0.005 0.0001").split()
                 if mu:
                     parts[0] = f"{mu:g}"
                 if torsional:
