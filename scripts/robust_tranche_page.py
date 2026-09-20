@@ -19,7 +19,9 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from hands_tranche_page import ARM_LABEL, cellc, curves, f1, plot_curves, table, uri, uri_jpeg  # noqa: E402
+from hands_tranche_page import ARM_LABEL as _ARM_LABEL_LONG, cellc, curves, f1, plot_curves, table, uri, uri_jpeg  # noqa: E402
+
+ARM_LABEL = {"clip": "clip (&#177;1 rad)", "clipsep": "clip + separation"}
 
 PLANT_ROWS = [
     ("tool spawn", "one nominal pose", "&#177;3 mm in x and y, &#177;10&#176; of yaw", "a policy trained at one pose has no reason to hold elsewhere; the CPU probe and the chain never start at the trained pose to the millimetre"),
@@ -305,7 +307,7 @@ def main():
                 v = seam(c, name); z = seam(c, name, "z")
                 return "&#8211;" if v is None else f"{v:+.2f} / {z * 1000:.0f}"
             ok = bool(c.get("ok"))
-            seam_rows.append([j["hand"], {"clip": "clip", "clipsep": "clip + separation"}.get(j["arm"], j["arm"]), str(pl), sc("turned"), sc("staged"), sc("set_down"),
+            seam_rows.append([j["hand"], ARM_LABEL.get(j["arm"], j["arm"]), str(pl), sc("turned"), sc("staged"), sc("set_down"),
                               sc("handover_grip"), sc("gaited"),
                               f"{cs.get('cycles_run', 0)} / {cs.get('turns', 0):+.2f}",
                               ((f"stood, held through {cs.get('cycles_run', 0)} cycles at {cs.get('turns', 0):+.2f} turns" if ok

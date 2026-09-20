@@ -24,3 +24,18 @@ Driver: `nohup setsid python3 scripts/hands_tranche_queue.py --queue docs/experi
   every continued policy ends 30-45 deg short of vertical (cos 0.82-0.83 vs parents 0.92-0.96) -- see the page's
   next-steps item 2 (60 M continuation of one job decides converged-vs-jitter-cost).
 
+- 12:31 r_d4_clip aborted at iteration 9: NaN in the actor observation (tip_lost 29.6/episode before it) on the g12
+  tip-mesh scene; `r_d4_clip_s1` appended at the queue's end as a second draw (`--seed` is a dead flag: rl_train_cube.py
+  parses it and never applies it; every run is an unseeded draw).
+- 12:45 page v2: the training-pipeline section (stages, episode timeline, obs/action, reward, terminations, PPO, lineage,
+  decision register measured-vs-inherited, evaluation stack) built from the first finished run's config.yaml.
+- 12:55 page v3/v4: the chain's post-turn seams per policy and plate; the D6 clip plate-0 chain film. Finger commands and
+  angles recorded through that run (`r_d6_clip_chain_pl0_ctrl_qpos.json`): the gait's commands move 5-27 deg, the fingers
+  0.3-9 deg (index pip 59 deg behind), -0.002 turns; `ok` tests stance/grip/cycles, not turns. Plate 0 = the chain
+  scenes' original geometry; plate 25 (`plate_variant`, only the plate geom moves) = the built hand = the training scenes.
+- 14:20 7 of 12 done. Plate-25 chain films for D6 clip, D5 clip, D6 clipsep (the three that hold the turn): each stages at
+  14-27 deg off vertical, the tip (50 mm lever) lands 12-23 mm from the aimed centre against a 6 mm capture radius and
+  misses the hole; D6 clip then tips off at the handover grip, D5/D6 sep lean on the post at 47-55 deg. At plate 0 D6 clip
+  staged at 8 deg (7 mm) and entered. Next measurement: a staging gate (cos >= 0.99 before the descent). Page v5.
+- D7 continued: nominal 37/64 (parent 64), jittered 1->35; its strip shows the tool sliding out during the lift and
+  standing on the floor at step 58. D2: nominal 64 at cos 0.65, turns 40-50 deg and holds, as its parent.
