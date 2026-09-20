@@ -59,7 +59,7 @@ def make_env_cfg(frozen, keyframe, morph, bfc, *, enable_target_axis: bool,
                  hold_switch_from_sim_step: int = 0, hold_switch_steps: int = 60,
                  hold_switch_align_thresh: float = 0.0, hold_switch_min_z: float = 0.0,
                  finger_residual_active_from_step: int = 0, reorient_start_step: int = 10,
-                 lift_phase_start_step: int | None = None):
+                 lift_phase_start_step: int | None = None, actor_blind_terms=()):
     """One env cfg. enable_target_axis=False -> 65-dim (Policy A's space);
     True -> 66-dim normal-lift reorient env (Policy B's space + dynamics).
     skip_lift_phase is always False here: the cylinder starts flat and is
@@ -91,6 +91,9 @@ def make_env_cfg(frozen, keyframe, morph, bfc, *, enable_target_axis: bool,
         # checkpoint "threw the tool to standing" in eval and held it 250/250 in training).
         # Read these from the run's config.yaml with `run_env_overrides`.
         finger_residual_active_from_step=int(finger_residual_active_from_step),
+        # A blind-trained actor learned on zeros in the tool-pose slots; feeding it the pose at
+        # evaluation is as much a mismatch as the timing above. Comes from the run's config.yaml.
+        actor_blind_terms=tuple(actor_blind_terms or ()),
     )
     if lift_phase_start_step is not None:
         common["lift_phase_start_step"] = int(lift_phase_start_step)
@@ -105,7 +108,7 @@ def make_env_cfg(frozen, keyframe, morph, bfc, *, enable_target_axis: bool,
 
 
 RUN_ENV_KEYS = ("finger_residual_active_from_step", "reorient_start_step", "lift_phase_start_step",
-                "finger_residual_scale", "finger_close_easing")
+                "finger_residual_scale", "finger_close_easing", "actor_blind_terms")
 
 
 def run_env_overrides(checkpoint: Path) -> dict:

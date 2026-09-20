@@ -63,7 +63,8 @@ def main() -> int:
                        open_finger_from_keyframe=args.open_finger_from_keyframe, num_envs=1,
                        finger_residual_active_from_step=residual_from,
                        reorient_start_step=int(trained.get("reorient_start_step", 10)),
-                       lift_phase_start_step=trained.get("lift_phase_start_step"))
+                       lift_phase_start_step=trained.get("lift_phase_start_step"),
+                       actor_blind_terms=tuple(trained.get("actor_blind_terms", ()) or ()))
     dist, az, el = (float(v) for v in args.cam.split(","))
     cfg.viewer_width, cfg.viewer_height = args.width, args.height
     cfg.viewer_distance, cfg.viewer_azimuth, cfg.viewer_elevation = dist, az, el

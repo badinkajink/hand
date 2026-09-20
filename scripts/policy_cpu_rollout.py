@@ -111,6 +111,7 @@ class CpuPolicy:
         self.easing = env_c.get("finger_close_easing", "ease_out_quad"); self.decim = int(env_c.get("decimation", 10))
         self.active_from = int(env_c.get("finger_residual_active_from_step", 0)) * self.decim
         self.clip = ppo_c.get("clip_actions")
+        self.blind_terms = tuple(env_c.get("actor_blind_terms", ()) or ())
         self.m, self.d = m, d
         morph = Path(morph_run).resolve()
         self.summ = json.load(open(morph / "summary.json"))
@@ -182,7 +183,18 @@ class CpuPolicy:
         ref_fq = rb["finger_qpos"][0]
         ref_op = np.concatenate([rb["object_pos"][0], rb["object_quat"][0]])
         mis = np.array([np.arccos(np.clip(self.tool_cos(), -1, 1))])
-        return np.concatenate([jp, jv, obj_pos, rel, ref_fq, ref_op, last_action, mis]).astype(np.float32)
+        o = np.concatenate([jp, jv, obj_pos, rel, ref_fq, ref_op, last_action, mis]).astype(np.float32)
+        return self.blind(o)
+
+    # slot layout of the 66-dim vector
+    SLOTS = {"joint_pos": (0, 15), "joint_vel": (15, 30), "object_pos": (30, 33), "object_pose_actual": (33, 40),
+             "ref_finger_qpos": (40, 49), "ref_object_pose": (49, 56), "actions": (56, 65), "target_axis_misalign": (65, 66)}
+
+    def blind(self, o):
+        for t in self.blind_terms:
+            lo, hi = self.SLOTS[t]
+            o[lo:hi] = 0.0
+        return o
 
     def act(self, o):
         with torch.no_grad():
@@ -208,6 +220,9 @@ def main():
     ap.add_argument("--palm-body", default="palm_pose")
     ap.add_argument("--no-palm-drive", action="store_true", help="do not drive the palm joints (scene has none)")
     ap.add_argument("--jitter-xy", type=float, default=0.0, help="uniform tool spawn jitter, mm, seeded by --seed")
+    ap.add_argument("--blind", action="store_true",
+                    help="zero the object terms (object_pos, object_pose_actual, target_axis_misalign) as a blinded "
+                         "actor would see them: does the policy need the tool pose, or is it acting open loop?")
     ap.add_argument("--seed", type=int, default=0)
     a = ap.parse_args()
     import mujoco
@@ -317,6 +332,9 @@ def main():
     with torch.no_grad():
         for k in range(a.steps):
             o = obs(k, last_action)
+            if a.blind:
+                o[30:40] = 0.0    # object_pos (3) + object_pose_actual (7)
+                o[65] = 0.0       # target_axis_misalign
             act = actor(torch.as_tensor(o).unsqueeze(0)).squeeze(0).numpy()
             if clip is not None:
                 act = np.clip(act, -float(clip), float(clip))

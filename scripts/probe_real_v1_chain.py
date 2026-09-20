@@ -284,12 +284,18 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
           video_size=(640, 480), cam_look=None,
           gait_scan: str = "grip",
           step_hook=None, ctx: dict | None = None,
-          turn_ctrl=None) -> dict:
+          turn_ctrl=None, close_ease_steps: int = 0, lift_ramp: int = 200,
+          post_lift_settle: int = 200) -> dict:
     """`turn_ctrl(k, m, d, acts, anchor, sq0) -> {joint: ctrl} | None`, if given, replaces the
     anchor sweep during the turn phase: it is asked every CONTROL_DECIMATION sim steps of the
     `turn_steps` turn and its last answer is held in between (a 50 Hz policy in the loop; the
     2026-09-19 chain test of the RL reorient policies). Everything before and after the turn --
-    grasp, arm lift, hold, re-pose, set-down, gait -- runs as it always has."""
+    grasp, arm lift, hold, re-pose, set-down, gait -- runs as it always has, except that
+    `close_ease_steps > 0` replaces the snap to the anchor with the RL environment's closure: an
+    ease-out-quad lerp from the keyframe's open finger pose to the anchor over that many sim steps,
+    the arm lift (`lift_ramp` sim steps) starting when the closure completes, and `post_lift_settle`
+    sim steps of hold before the turn. The RL policies train on 240 / 80 / 260 (residual active at
+    sim step 580), and the chain's own 0 / 200 / 200 arrives at the turn with a different grasp."""
     scene = Path(scene_path) if scene_path is not None else \
         morph_run / ("arm_scene.xml" if arm_ik is not None else "frozen_scene.xml")
     pg._MODEL_PATH["path"] = str(scene)
@@ -343,9 +349,10 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
                   for i, (f, js) in enumerate(FINGERS.items()) for k, j in enumerate(js)}
 
     acts = _finger_act(m)
+    open_q = {j: float(d.qpos[m.jnt_qposadr[m.joint(j).id]]) for j in acts}
     palm = pd.make(m, d, arm_ik)
     for j, a in acts.items():
-        d.ctrl[a] = anchor[j]
+        d.ctrl[a] = open_q[j] if close_ease_steps > 0 else anchor[j]
     mujoco.mj_forward(m, d)
 
     # CLOSED-LOOP GRIP, THROUGH THE WHOLE CHAIN. The deployed bench maneuver runs this only in
@@ -565,15 +572,23 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
             return None
 
     # ---------------------------------------------------------------- 1. grasp, lift, settle
-    _run(250)
+    if close_ease_steps > 0:
+        def _close(k):
+            t = min(1.0, k / float(close_ease_steps))
+            al = 1.0 - (1.0 - t) ** 2
+            for j, a in acts.items():
+                d.ctrl[a] = (1.0 - al) * open_q[j] + al * anchor[j]
+        _run(close_ease_steps, _close, every_step=True)
+    else:
+        _run(250)
     pad_ref = _pad_frame(m, d, obj)          # where the pads sit once the grasp has settled
     pad_track["ref"] = pad_ref
     _grip_mark()
     R_c, p_c = palm.cmd_pose()
     u0 = palm.read()
     u1 = palm.solve(R_c, p_c + np.array([0.0, 0.0, lift]))[0]
-    _run(200, lambda k: palm.write(u0 + (u1 - u0) * (k + 1) / 200), every_step=True)
-    _run(200)
+    _run(lift_ramp, lambda k: palm.write(u0 + (u1 - u0) * (k + 1) / lift_ramp), every_step=True)
+    _run(post_lift_settle)
     seams.append(_snap("lifted"))
     _shot()
 
