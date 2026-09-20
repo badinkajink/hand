@@ -16,3 +16,11 @@ Driver: `nohup setsid python3 scripts/hands_tranche_queue.py --queue docs/experi
 
 ## Decision log
 - 09:23 launched; order: D6 clipsep, D3, D5, D1, D6 (clip s2), D4, D7, D2 clip, then D3/D5/D1 clipsep.
+- 11:40 page builder `scripts/robust_tranche_page.py` (+ template) written; page published
+  https://claude.ai/artifact/NZLr9wdDAWjZC1HM6ed6ed (same URL from now on; videos in web/ as supporting files).
+  A watcher (`logs/20260920-robust_page_watch.log`) rebuilds the local page every 10 min while the driver lives
+  and once after it exits; republishing the artifact needs a session (Artifact tool, same file path).
+- After 3 of 11: D5 jittered 23->57 of 64 and holds the chain (parent dropped); D6 clipsep 60->51, D3 51->50;
+  every continued policy ends 30-45 deg short of vertical (cos 0.82-0.83 vs parents 0.92-0.96) -- see the page's
+  next-steps item 2 (60 M continuation of one job decides converged-vs-jitter-cost).
+

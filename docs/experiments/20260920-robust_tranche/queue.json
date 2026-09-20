@@ -63,8 +63,10 @@
     "0.03"
    ],
    "warm_start": "d6_clipsep_s0",
-   "status": "running",
-   "started": "2026-09-20 09:23:24"
+   "status": "done",
+   "started": "2026-09-20 09:23:24",
+   "run": "/home/humanoid/Programs/hand/results/rl/20260920-0923-r_d6_clipsep",
+   "finished": "2026-09-20 10:01:02"
   },
   {
    "id": "r_d3_clip",
@@ -76,7 +78,10 @@
     "results/rl/20260919-2307-d3_clip_s0/tensorboard/model_270.pt"
    ],
    "warm_start": "d3_clip_s0",
-   "status": "pending"
+   "status": "done",
+   "started": "2026-09-20 10:01:02",
+   "run": "/home/humanoid/Programs/hand/results/rl/20260920-1001-r_d3_clip",
+   "finished": "2026-09-20 10:38:16"
   },
   {
    "id": "r_d5_clip",
@@ -88,7 +93,10 @@
     "results/rl/20260920-0023-d5_clip_s0/tensorboard/model_270.pt"
    ],
    "warm_start": "d5_clip_s0",
-   "status": "pending"
+   "status": "done",
+   "started": "2026-09-20 10:38:16",
+   "run": "/home/humanoid/Programs/hand/results/rl/20260920-1038-r_d5_clip",
+   "finished": "2026-09-20 11:15:39"
   },
   {
    "id": "r_d1_clip",
@@ -100,7 +108,8 @@
     "results/rl/20260920-0139-d1_clip_s0/tensorboard/model_270.pt"
    ],
    "warm_start": "d1_clip_s0",
-   "status": "pending"
+   "status": "running",
+   "started": "2026-09-20 11:15:40"
   },
   {
    "id": "r_d6_clip",

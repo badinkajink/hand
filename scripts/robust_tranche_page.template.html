@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reorientation policies continued on the matched plant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#EEF1F4; --card:#FFFFFF; --sunk:#E4E9EE;
+  --ink:#1A2127; --ink2:#48545D; --ink3:#77848D; --rule:#D2DAE1; --rule2:#E2E8ED;
+  --s1:#BE7514; --s2:#4A7FC4; --s3:#5E8F5A; --ref:#8A959D;
+  --good:#3F7A46; --bad:#A8443C;
+  --shadow:0 1px 2px rgba(16,26,34,.06),0 8px 24px -14px rgba(16,26,34,.28);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
+  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
+  --s1:#E39A2E; --s2:#7BA7E0; --s3:#8AC286; --ref:#79858E; --good:#6FB076; --bad:#DE8078;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+}}
+:root[data-theme="dark"]{
+  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
+  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
+  --s1:#E39A2E; --s2:#7BA7E0; --s3:#8AC286; --ref:#79858E; --good:#6FB076; --bad:#DE8078;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);
+  font:400 17px/1.62 "Source Serif 4",Georgia,"Times New Roman",serif;
+  -webkit-font-smoothing:antialiased;padding:0 20px 96px;margin:0}
+.wrap{max-width:1020px;margin:0 auto}
+.col{max-width:70ch}
+h1,h2,h3,.mono,.tag,th{font-family:Archivo,"Helvetica Neue",Arial,sans-serif}
+.mono,code,td.num,.val,.note,pre{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+header{padding:64px 0 30px;border-bottom:1px solid var(--rule)}
+.eyebrow{font:500 12px/1 "IBM Plex Mono",monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3)}
+h1{font-size:clamp(30px,4.6vw,48px);line-height:1.05;font-weight:700;letter-spacing:-.022em;
+  margin:16px 0 0;text-wrap:balance;max-width:22ch}
+.lede{font-size:20px;line-height:1.55;color:var(--ink2);margin:18px 0 0;max-width:62ch}
+.byline{margin-top:22px;font:400 13px/1.5 "IBM Plex Mono",monospace;color:var(--ink3)}
+section{padding:46px 0;border-bottom:1px solid var(--rule2)}
+section:last-of-type{border-bottom:0}
+h2{font-size:27px;font-weight:700;letter-spacing:-.018em;margin:0 0 6px;text-wrap:balance}
+h3{font-size:18px;font-weight:600;letter-spacing:-.008em;margin:34px 0 8px}
+h2 + .sub{color:var(--ink3);font:400 14px/1.5 "IBM Plex Mono",monospace;margin:0 0 24px}
+p{margin:0 0 17px}
+strong{font-weight:600}
+ul,ol{margin:0 0 17px;padding-left:20px}
+li{margin:0 0 8px}
+figure{margin:28px 0}
+figure video,figure img{display:block;width:100%;border-radius:10px;background:var(--sunk);box-shadow:var(--shadow)}
+figure video{max-width:640px;margin:10px 0 0;height:auto}
+figcaption{margin-top:11px;font:400 14px/1.55 "IBM Plex Mono",monospace;color:var(--ink3);max-width:82ch}
+.col > .tw,.col > figure,.col > .duo{width:min(1020px,calc(100vw - 40px));max-width:none}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:28px 0}
+@media (max-width:720px){.duo{grid-template-columns:1fr}}
+.duo figure{margin:0}
+.tw{overflow-x:auto;margin:24px 0;border:1px solid var(--rule);border-radius:10px;background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th{font:600 12px/1.3 Archivo,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);
+  text-align:left;padding:13px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid var(--rule2);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;font-size:13.5px;white-space:nowrap}
+.ok{color:var(--good);font-weight:600}
+.no{color:var(--bad);font-weight:600}
+td.cell{text-align:center;font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:500;white-space:nowrap}
+td.c4{background:color-mix(in oklab,var(--good) 28%,var(--card));color:var(--ink)}
+td.c3{background:color-mix(in oklab,var(--good) 16%,var(--card))}
+td.c2{background:color-mix(in oklab,var(--s1) 16%,var(--card))}
+td.c1{background:color-mix(in oklab,var(--bad) 12%,var(--card))}
+td.c0{background:color-mix(in oklab,var(--bad) 22%,var(--card));color:var(--ink2)}
+.keep{border:1px solid var(--rule);border-left:3px solid var(--s2);border-radius:10px;
+  padding:20px 24px;margin:28px 0;background:var(--card)}
+.keep .tag{display:block;font:700 12px/1 Archivo,sans-serif;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--s2);margin-bottom:11px}
+.keep p:last-child,.keep ul:last-child{margin-bottom:0}
+pre{background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:16px 18px;
+  overflow-x:auto;font-size:13px;line-height:1.6;margin:22px 0}
+code{font-size:.92em;background:var(--sunk);padding:1px 4px;border-radius:4px;margin:0 -1px;white-space:nowrap}
+footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",monospace}
+footer a{color:var(--s2)}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">MorphoHand &#183; real_v1 &#183; 20 September 2026 &#183; built {{BUILT}}</div>
+  <h1>Reorientation policies continued on the plant the chain and the bench use</h1>
+  <p class="lede">{{LEDE}}</p>
+  <div class="byline">{{N_DONE}} of {{N_JOBS}} jobs &#183; each job continues its 2026-09-19 checkpoint for 20 M steps
+  (271 iterations, 3072 environments, ~38 min) on the calibrated plant with four things changed: the tool spawns at
+  &#177;3 mm / &#177;10&#176; instead of one pose, the tool carries the screw-tip mesh, the scene&#8217;s own floor
+  replaces mjlab&#8217;s default plane, and the object entity keeps the scene&#8217;s contact class &#183; residual
+  = 0.5 rad &#215; the action clipped to &#177;2 from step 58, friction DR 0.55&#8211;1.15, grip term &#8722;2 above 6 N,
+  object pose observed &#183; evaluated deterministically over 64 rollouts at the trained pose and over 64 rollouts
+  at &#177;3 mm / &#177;10&#176; with friction DR (the number that matters)</div>
+</header>
+
+<section><div class="col">
+<h2>What changed in the plant, and why</h2>
+<p>The 2026-09-19 tranche (<a href="../20260919-hands_tranche/20260919-reorient_policies_across_hands.html">page</a>)
+ended with every hand holding 64 of 64 in the benchmark and most of them dropping the tool inside the UR5e chain.
+Re-evaluating the same checkpoints with the tool spawned 3 mm and 10&#176; off the trained pose gave the reason:
+training had spawned the tool at one pose (<code>cube_spawn_xy_jitter 0</code>), the evaluator inherited it, and the
+64 rollouts were one rollout under 64 GPU contact solves. Under the jitter D7 held 0 of 64, the D6 clip seed 1 8,
+D5 26, D1 20; the D6 separation policy 64. Three more differences between the training plant and the plant every
+CPU replay, chain rollout and bench comparison runs on came out while chasing that number:</p>
+{{TABLE_PLANT}}
+<p>The continuation recipe is the 2026-09-19 one plus <code>--scene-floor --cube-spawn-xy-jitter 0.003
+--cube-spawn-yaw-jitter 0.1745</code> on a tip-mesh morphology run (<code>make_tipmesh_morphology_run.py</code>),
+warm-started actor and critic from each hand and arm&#8217;s own 2026-09-19 checkpoint. Queue
+<code>docs/experiments/20260920-robust_tranche/queue.json</code>, driver <code>hands_tranche_queue.py</code> (it now
+also evaluates every checkpoint jittered).</p>
+</div></section>
+
+<section><div class="col">
+<h2>Continuation against its parent checkpoint</h2>
+<p class="sub">64 rollouts &#215; 250 steps &#183; held = tool above 60 mm with &#8805; 0.5 N on a pad at step 249 &#183;
+&#8220;jittered&#8221; = spawn &#177;3 mm / &#177;10&#176; with friction DR &#183; the parent is the 2026-09-19 checkpoint
+the job started from, evaluated the same two ways on its own plant &#183; chain = one nominal rollout inside the
+UR5e chain at plate 25 mm (stiff arm, training-matched grasp and lift, policy shadowed from step 0)</p>
+{{TABLE_MAIN}}
+{{READING}}
+</div></section>
+
+<section><div class="col">
+<h2>Physical plausibility</h2>
+<p class="sub">from the nominal 64 rollouts, steps 58&#8211;249 &#183; the gap is the command clamped to the joint range
+minus the achieved joint, largest over joints and steps &#183; flags: pad peak above 9 N, gap above 60&#176;, clearance
+under 10 mm, any drop</p>
+{{TABLE_PLAUS}}
+</div></section>
+
+<section><div class="col">
+<h2>The policy inside the UR5e chain</h2>
+<p class="sub"><code>real_v1_chain_policy.py</code>: the chain&#8217;s grasp and lift are the training environment&#8217;s
+(eased closure over 240 sim steps, arm lift over 80, 260 of settle, policy active from sim step 580 and shadowed from
+step 0), the UR5e at ten times the menagerie position gain (0.004 mm below command at the seam), the finger links
+on the finger servos &#183; plant <code>cal</code>, plate at 25 mm and at 0 &#183; one nominal rollout each</p>
+{{TABLE_CHAIN}}
+</div></section>
+
+<section><div class="col">
+<h2>Filmstrips and videos</h2>
+<p class="sub">one deterministic rollout per job at the trained pose: eight frames from the 960&#215;720 render and the
+same rollout as a 640&#215;480 video (<code>web/&lt;job&gt;.mp4</code> beside the page)</p>
+{{STRIPS}}
+</div></section>
+
+<section><div class="col">
+<h2>Training curves</h2>
+{{CURVES}}
+</div></section>
+
+<section><div class="col">
+<h2>Lessons from the two tranches</h2>
+<ul>
+<li><strong>Evaluate off the trained pose.</strong> A deterministic evaluator on a zero-jitter environment measures
+the GPU solver, not the policy. <code>policy_eval_suite.py --spawn-jitter-mm 3 --spawn-yaw-deg 10 --friction-dr</code>
+is now the number a policy is judged on, and the driver writes it for every job (<code>*_eval_j3dr.json</code>).</li>
+<li><strong>The training plant was not the calibrated plant.</strong> Three defects between the frozen scene and the
+mjlab environment (tool contact class, floor, tip) had been there since the first mjlab run; the CPU replay, the
+chain and the bench comparison all ran on the scene. Any earlier sim-to-sim gap is confounded by them.</li>
+<li><strong>Reading the arm.</strong> The 4.9 mm the palm sat below its command at the seam was the menagerie servo
+settling (slow pole kp/kv = 5 rad/s), not load: with the payload declared a UR5e holds ~0.1 mm, and the chain now
+runs the arm at ten times the position gain.</li>
+<li><strong>Two silent no-ops.</strong> The friction variants of the zero-shot table were copies of the base scene on
+every calibrated scene until 2026-09-20 02:00 (the variant matched the template&#8217;s &#956; 2.4), and
+<code>--payload-gravcomp</code> had been compensating the finger links as well as the hand. Both fixed.</li>
+<li><strong>The separation term.</strong> &#8722;10 below 30 mm buys 2&#8211;10 mm of index&#8211;middle clearance on
+D1/D3/D5/D6 and takes the turn away from D4 and D7, which turn by running the two fingers together; on the matched
+plant the continued policies sit at 16&#8211;29 mm without it.</li>
+<li><strong>Unattended follow-ups.</strong> Two of three scheduled session wake-ups never fired; the page build has
+to live in the detached driver (or a watcher beside it), not in the session.</li>
+</ul>
+</div></section>
+
+<section><div class="col">
+<h2>Next steps</h2>
+<ol>
+<li><strong>Finish the queue and rank on the jittered hold</strong> (remaining jobs listed in queue.json); the
+bench candidate is the hand whose continued policy holds &#8805; 60 of 64 jittered and holds the chain at both plate
+heights.</li>
+<li><strong>Turn quality on the matched plant.</strong> The continued policies end at cos 0.82&#8211;0.83 where their
+parents ended at 0.92&#8211;0.96: 20 M steps of continuation on a harder tool contact and a heavier tip is not yet
+converged, or the jitter costs turn. One 60 M continuation of the D6 separation job decides which.</li>
+<li><strong>The bench controller.</strong> A policy-driven station loop (servo telemetry + the AprilTag pose at
+50 Hz &#8594; the 66-dim observation &#8594; the residual on the finger set-points), after the tracker&#8217;s x/y
+heading calibration. Nothing here has run on hardware.</li>
+<li><strong>The privileged-critic blind actor</strong> (proprioception + motor load + history, critic with the
+pose), from scratch on the matched plant, once a sighted policy has been shown to transfer.</li>
+<li><strong>Clearance threshold from a caliper</strong> on the built index and middle housings, then the separation
+weight sweep (&#8722;3 &#8230; &#8722;10) on D4 and D7 only.</li>
+<li><strong>The friction rows of the 2026-09-17 D6 page</strong> re-run under the fixed variant (GPU).</li>
+</ol>
+</div></section>
+
+<footer>
+scripts: <code>hands_tranche_queue.py</code>, <code>robust_tranche_page.py</code>, <code>make_tipmesh_morphology_run.py</code>,
+<code>policy_eval_suite.py</code> (<code>--spawn-jitter-mm</code>, <code>--friction-dr</code>), <code>real_v1_chain_policy.py</code>
+(<code>--arm-kp-scale</code>, <code>--finger-gravcomp</code>), <code>src/morphohand/rl/env_build.py</code> (object contact class,
+mesh assets, <code>scene_floor</code>) &#183; data: <code>docs/experiments/20260920-robust_tranche/</code> (queue.json,
+tranche_results.json, per-job eval JSON/PNG, <code>*_eval_j3dr.json</code>, strips, traces, chain JSON; videos/ gitignored,
+web/ tracked) &#183; parent tranche: <code>docs/experiments/20260919-hands_tranche/</code>
+</footer>
+</div>
+</body>
+</html>

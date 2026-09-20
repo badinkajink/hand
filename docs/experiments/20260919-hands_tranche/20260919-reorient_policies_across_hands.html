@@ -86,7 +86,7 @@ footer a{color:var(--s2)}
 
 <div class="wrap">
 <header>
-  <div class="eyebrow">MorphoHand &#183; real_v1 &#183; 19&#8211;20 September 2026 &#183; built 2026-09-20 09:23</div>
+  <div class="eyebrow">MorphoHand &#183; real_v1 &#183; 19&#8211;20 September 2026 &#183; built 2026-09-20 11:39</div>
   <h1>Reorientation policies across the deployed hands on the calibrated plant</h1>
   <p class="lede">16 of 16 queued finetunes have finished (0 failed, 0 running, 0 pending). Hands that hold the tool in 64 of 64 rollouts under a bounded residual: D1, D2, D3, D4, D5, D6, D7; hands that also reach cos 0.9 in every rollout: D1, D3, D5, D6. Separation arm keeping the index&#8211;middle chains 30 mm apart or more: none yet of 7 finished. Inside the UR5e chain with the training environment&#8217;s grasp and lift and the plate at 25 mm, one nominal rollout each: the tool is still held after 5 s of the policy by D6 (clip + separation) at cos +0.94, D3 (clip) at cos +0.73, D2 (clip) at cos +0.80, D1 (clip + separation) at cos +0.76, D2 (clip + separation) at cos +0.66, D6 (clip, seed 1) at cos +0.84, D6 (clip, seed 2) at cos +0.96; dropped by D6 (clip), D4 (clip), D5 (clip), D7 (clip), D1 (clip), D3 (clip + separation), D4 (clip + separation), D5 (clip + separation), D7 (clip + separation).</p>
   <div class="byline">Seven hands (D1&#8211;D7; D8 drops the evaluator&#8217;s lift at every squeeze, ramp and plate
@@ -1268,6 +1268,9 @@ the 60 M checkpoint (17 N grip, the warm start of every job) holds 3 of 4 at cos
 
 <section><div class="col">
 <h2>What this does not settle</h2>
+<p>The continuation of every checkpoint on the matched plant with spawn jitter is the 2026-09-20 page,
+<a href="../20260920-robust_tranche/20260920-robust_reorient_policies.html">Reorientation policies continued on the
+plant the chain and the bench use</a>; the items below are what it does not cover.</p>
 <ul>
 <li><strong>The bench.</strong> The chain table is the sim-to-sim test; no policy here has run on the hardware.
 The station needs a policy-driven controller (the 66-dim observation from the servo telemetry and the AprilTag
