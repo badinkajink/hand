@@ -85,7 +85,7 @@ footer a{color:var(--s2)}
 
 <div class="wrap">
 <header>
-  <div class="eyebrow">MorphoHand &#183; real_v1 &#183; 19&#8211;20 September 2026 &#183; built 2026-09-20 08:55</div>
+  <div class="eyebrow">MorphoHand &#183; real_v1 &#183; 19&#8211;20 September 2026 &#183; built 2026-09-20 08:56</div>
   <h1>Reorientation policies across the deployed hands on the calibrated plant</h1>
   <p class="lede">16 of 16 queued finetunes have finished (0 failed, 0 running, 0 pending). Hands that hold the tool in 64 of 64 rollouts under a bounded residual: D1, D2, D3, D4, D5, D6, D7; hands that also reach cos 0.9 in every rollout: D1, D3, D5, D6. Separation arm keeping the index&#8211;middle chains 30 mm apart or more: none yet of 7 finished. Inside the UR5e chain with the training environment&#8217;s grasp and lift and the plate at 25 mm, one nominal rollout each: the tool is still held after 5 s of the policy by D6 (clip + separation) at cos +0.94, D3 (clip) at cos +0.73, D2 (clip) at cos +0.80, D1 (clip + separation) at cos +0.76, D2 (clip + separation) at cos +0.66, D6 (clip, seed 1) at cos +0.84, D6 (clip, seed 2) at cos +0.96; dropped by D6 (clip), D4 (clip), D5 (clip), D7 (clip), D1 (clip), D3 (clip + separation), D4 (clip + separation), D5 (clip + separation), D7 (clip + separation).</p>
   <div class="byline">Seven hands (D1&#8211;D7; D8 drops the evaluator&#8217;s lift at every squeeze, ramp and plate
@@ -93,7 +93,7 @@ footer a{color:var(--s2)}
   plate +25 mm &#183; every job is a 20 M-step finetune (271 iterations, 3072 environments) warm-started, actor and
   critic, from the D6 60 M checkpoint <code>results/rl/20260917-1141-d6_cal_reorient_gp025_60M_s0/tensorboard/model_812.pt</code> (cos 0.933 held 64 of 64 at 17 N; it keeps the tool through
   the UR5e chain&#8217;s grasp seam in 3 of 4 rollouts where the 10.8 N grip finetune keeps it in 1 of 4) with the grip term
-  at &#8722;2 above 6 N per pad, the bench servos&#8217; measured holding force &#183; residual &#177;0.5 rad from step 58 over the scripted 100 mm lift, friction DR
+  at &#8722;2 above 6 N per pad, the bench servos&#8217; measured holding force &#183; residual = 0.5 rad &#215; the action clipped to &#177;2 (&#177;1 rad) from step 58 over the scripted 100 mm lift, friction DR
   0.55&#8211;1.15, object pose observed &#183; evaluated deterministically over 64 rollouts of 250 steps with each
   run&#8217;s own timing and action clip</div>
 </header>
