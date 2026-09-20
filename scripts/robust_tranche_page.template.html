@@ -162,7 +162,18 @@ index, achieved 21&#8211;44&#176;) and the tool stays at cos 0.99 through it.</p
 palm plate at the mounting plane; the built hand carries it at +25 mm, which is where the training scenes put it. The
 probe moves the plate per run (<code>plate_variant</code>, a <code>__plate25.xml</code> beside the scene; only the plate geom
 moves), so the plate-25 rows are the built hand and the plate-0 rows the old geometry. The one film below is the plate-0
-run; the plate-25 film is queued behind the compute gate.</p>
+run; the plate-25 films are below it.</p>
+<p><strong>What decides the set-down is the angle the tool has when the arm has finished levelling it over the socket
+(<em>staged</em>).</strong> The tip sits 50 mm from the tool&#8217;s centre, so the tip&#8217;s lateral offset from the aimed
+centre is 50 mm &#215; sin(angle) against a 6 mm capture radius: 8&#176; is 7 mm and enters, 14&#176; is 12 mm and lands on
+the annulus beside the hole. D6 clip at plate 0 staged at cos 0.99 (8&#176;) and entered; at plate 25 the same policy staged at
+0.97 (14&#176;), the separation policy at 0.95 (18&#176;) and D5 at 0.89 (27&#176;), and in each film the tip comes down
+beside the hole. D6 clip then loses the tool at the handover grip (it tips off the post); D5 and the separation policy keep it
+in hand leaning on the post at 47&#8211;55&#176; through the gait. The staging already iterates the palm against the measured
+tool pose (eight corrections), so the residual angle is what the compliant grip gives back under the arm&#8217;s re-pose. The
+next measurement is the staging gate: keep correcting until cos &#8805; 0.99 before the descent (<code>--repose-iters</code>
+16 and an angle gate in <code>_stage</code>), on the three plate-25 runs that hold the turn; if the angle does not close, the
+seat needs a wider mouth or the descent needs its own tracking.</p>
 {{CHAIN_VIDEOS}}
 </div></section>
 
@@ -296,6 +307,12 @@ every calibrated scene until 2026-09-20 02:00 (the variant matched the template&
 <li><strong>The separation term.</strong> &#8722;10 below 30 mm buys 2&#8211;10 mm of index&#8211;middle clearance on
 D1/D3/D5/D6 and takes the turn away from D4 and D7, which turn by running the two fingers together; on the matched
 plant the continued policies sit at 16&#8211;29 mm without it.</li>
+<li><strong>The chain&#8217;s <code>ok</code> is a hold, not a gait.</strong> The gate tests stance, grip and cycles run; on the
+calibrated plant the gait&#8217;s commands move the fingers 0.3&#8211;9&#176; (index pip 59&#176; behind its command) and put
+&#8722;0.002 turns into the screw. A chain that reads <code>ok</code> has stood the tool and held it for eleven seconds.</li>
+<li><strong>The seat has a capture radius, and the staged angle spends it.</strong> 50 mm of tip lever turns 8&#176; into 7 mm
+(enters) and 14&#176; into 12 mm (misses); every plate-25 chain that held the turn staged at 14&#8211;27&#176; and missed the hole.
+The turn&#8217;s end angle matters through the arm&#8217;s levelling, not on its own.</li>
 <li><strong>Unattended follow-ups.</strong> Two of three scheduled session wake-ups never fired; the page build has
 to live in the detached driver (or a watcher beside it), not in the session.</li>
 </ul>
@@ -310,6 +327,14 @@ heights.</li>
 <li><strong>Turn quality on the matched plant.</strong> The continued policies end at cos 0.82&#8211;0.83 where their
 parents ended at 0.92&#8211;0.96: 20 M steps of continuation on a harder tool contact and a heavier tip is not yet
 converged, or the jitter costs turn. One 60 M continuation of the D6 separation job decides which.</li>
+<li><strong>The staging gate before the descent.</strong> Correct the palm against the tool pose until cos &#8805; 0.99
+(<code>--repose-iters</code> 16 plus an angle gate) on the D6 clip, D6 separation and D5 plate-25 runs (10 s of CPU each);
+accept if the tip enters on all three. Then the achieved-joint-angle loop on the handover and gait commands (the
+2026-09-16 measurement, still open): accept q_err &lt; 10&#176; through <code>handover_*</code> and &#8805; 0.5 rev in 8
+cycles on D6.</li>
+<li><strong>Driver hygiene.</strong> <code>--video</code> on the driver&#8217;s chain call so every job gets its chain film;
+apply <code>--seed</code> in <code>rl_train_cube.py</code> (a dead flag today) after the queue; a second draw of the D4
+job is queued (<code>r_d4_clip_s1</code>) to tell a stochastic NaN from the D4 pads on the mesh tool.</li>
 <li><strong>The bench controller.</strong> A policy-driven station loop (servo telemetry + the AprilTag pose at
 50 Hz &#8594; the 66-dim observation &#8594; the residual on the finger set-points), after the tracker&#8217;s x/y
 heading calibration. Nothing here has run on hardware.</li>
