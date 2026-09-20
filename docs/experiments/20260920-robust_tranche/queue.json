@@ -108,8 +108,10 @@
     "results/rl/20260920-0139-d1_clip_s0/tensorboard/model_270.pt"
    ],
    "warm_start": "d1_clip_s0",
-   "status": "running",
-   "started": "2026-09-20 11:15:40"
+   "status": "done",
+   "started": "2026-09-20 11:15:40",
+   "run": "/home/humanoid/Programs/hand/results/rl/20260920-1115-r_d1_clip",
+   "finished": "2026-09-20 11:53:16"
   },
   {
    "id": "r_d6_clip",
@@ -121,7 +123,10 @@
     "results/rl/20260920-0719-d6_clip_s2/tensorboard/model_270.pt"
    ],
    "warm_start": "d6_clip_s2",
-   "status": "pending"
+   "status": "done",
+   "started": "2026-09-20 11:53:16",
+   "run": "/home/humanoid/Programs/hand/results/rl/20260920-1153-r_d6_clip",
+   "finished": "2026-09-20 12:30:17"
   },
   {
    "id": "r_d4_clip",
@@ -133,7 +138,11 @@
     "results/rl/20260919-2344-d4_clip_s0/tensorboard/model_270.pt"
    ],
    "warm_start": "d4_clip_s0",
-   "status": "pending"
+   "status": "failed",
+   "started": "2026-09-20 12:30:17",
+   "rc": 1,
+   "run": "/home/humanoid/Programs/hand/results/rl/20260920-1230-r_d4_clip",
+   "fail_note": "NaN in the actor observation at iteration 9 (tip_lost 29.6 per episode before it); retried as r_d4_clip_s1 with seed 1 at the end of the queue"
   },
   {
    "id": "r_d7_clip",
@@ -145,7 +154,8 @@
     "results/rl/20260920-0101-d7_clip_s0/tensorboard/model_270.pt"
    ],
    "warm_start": "d7_clip_s0",
-   "status": "pending"
+   "status": "running",
+   "started": "2026-09-20 12:31:50"
   },
   {
    "id": "r_d2_clip",
@@ -203,6 +213,21 @@
    ],
    "warm_start": "d1_clipsep_s0",
    "status": "pending"
+  },
+  {
+   "id": "r_d4_clip_s1",
+   "hand": "D4",
+   "arm": "clip",
+   "morph_run": "results/phase1/real_v1/20260920-g12_b095_sq10_cal_tip",
+   "flags": [
+    "--init-actor-checkpoint",
+    "results/rl/20260919-2344-d4_clip_s0/tensorboard/model_270.pt",
+    "--seed",
+    "1"
+   ],
+   "warm_start": "d4_clip_s0",
+   "status": "pending",
+   "note": "retry of r_d4_clip (NaN in the actor observation at iteration 9, tip_lost 29.6 per episode before it); --seed 1 is a no-op (the trainer never applies it), so this is a second draw: it decides whether the NaN is a draw or the D4 pads on the mesh tool"
   }
  ]
 }
