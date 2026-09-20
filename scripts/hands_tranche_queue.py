@@ -177,6 +177,21 @@ def main():
             trace = video.with_suffix(".csv")
             if trace.exists():
                 (qdir / f"{tag}_trace.csv").write_text(trace.read_text())
+        # CPU transfer probe: 7 scene variants x 6 jittered rollouts at ~3 s each on one core. It does
+        # not go through resguard run (it is not heavy) but it does wait for 8 GB of MemAvailable.
+        try:
+            while float(subprocess.run(["awk", "/MemAvailable/{print $2/1048576}", "/proc/meminfo"],
+                                       capture_output=True, text=True).stdout or 0) < 8.0:
+                time.sleep(60)
+            tj = qdir / f"{tag}_transfer_cpu.json"
+            variants = q.get("transfer_variants", "base,tipmesh,plate0,mu0.6,mu1.5,mass1.3,kp0.25")
+            subprocess.run(["uv", "run", "--extra", "rl", "python", "scripts/policy_transfer_probe.py", "--policy", str(model),
+                            "--morphology-run", morph, "--variants", variants, "--cpu", "--n", "6", "--out", str(tj)],
+                           cwd=ROOT, env={k: v for k, v in os.environ.items() if k != "PYTHONPATH"} | {"OMP_NUM_THREADS": "2", "MKL_NUM_THREADS": "2"},
+                           capture_output=True, timeout=3600)
+            log(f"[{tag}] cpu transfer probe -> {tj.name}")
+        except Exception as e:
+            log(f"[{tag}] cpu transfer probe failed: {e}")
         row = {"id": tag, "hand": j["hand"], "arm": j["arm"], "status": "done", "run": str(run_dir),
                "model": str(model), "train_min": train_min, "eval_rc": rc_e, "render_rc": rc_r,
                "finished": time.strftime("%F %T")}

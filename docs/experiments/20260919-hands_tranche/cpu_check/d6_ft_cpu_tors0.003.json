@@ -1,0 +1,25 @@
+{
+ "policy": "results/rl/20260917-1844-d6_cal_reorient_ft_gpm5_20M_s0/tensorboard/model_270.pt",
+ "scene": "/tmp/claude-1001/-home-humanoid-Programs-hand/e8fe66c6-3118-4108-b6ce-8d68fafbfacb/scratchpad/cpuvar/tors0.003/frozen_scene.xml",
+ "steps": 250,
+ "held_end": true,
+ "final_cos": 0.9716,
+ "peak_cos": 0.9728,
+ "final_z": 0.1263,
+ "t_align": 144,
+ "force_active": [
+  5.554666666666663,
+  3.1564947916666655,
+  3.0370937500000017
+ ],
+ "pad_peak": [
+  8.653,
+  6.327,
+  6.399
+ ],
+ "clearance_min_mm": 19.11,
+ "clearance_end_mm": 26.1,
+ "act_absmax": 14.842,
+ "clip_actions": null,
+ "residual_active_from_step": 58
+}

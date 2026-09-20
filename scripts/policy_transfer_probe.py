@@ -104,6 +104,9 @@ def main():
     ap.add_argument("--steps", type=int, default=250)
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--work", type=Path, default=None, help="variant morphology-run dirs (default beside --out)")
+    ap.add_argument("--cpu", action="store_true", help="CPU MuJoCo rollouts (policy_cpu_rollout.py) with spawn jitter "
+                                                        "instead of the GPU eval suite; --n is then the number of seeds")
+    ap.add_argument("--jitter-xy", type=float, default=2.0, help="spawn jitter (mm) for --cpu rollouts")
     a = ap.parse_args()
     morph = a.morphology_run.resolve()
     work = a.work or a.out.parent / (a.out.stem + "_variants")
@@ -120,6 +123,37 @@ def main():
         # summary.json's frozen_scene_xml must point at the variant scene
         s = json.load(open(vd / "summary.json")); s["frozen_scene_xml"] = str(vd / "frozen_scene.xml")
         json.dump(s, open(vd / "summary.json", "w"), indent=1)
+        if a.cpu:
+            outs = []
+            for seed in range(1, a.n + 1):
+                oj = vd / f"cpu_s{seed}.json"
+                cmd = [sys.executable, str(ROOT / "scripts/policy_cpu_rollout.py"), "--policy", str(a.policy),
+                       "--morphology-run", str(morph), "--scene", str(vd / "frozen_scene.xml"), "--steps", str(a.steps),
+                       "--jitter-xy", str(a.jitter_xy), "--seed", str(seed), "--out", str(oj)]
+                p = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True)
+                if oj.exists():
+                    outs.append(json.load(open(oj)))
+            if outs:
+                fc = [o["final_cos"] for o in outs]
+                res[v] = {"hold_rate": sum(o["held_end"] for o in outs) / len(outs),
+                          "align_rate": sum(o["peak_cos"] >= 0.9 for o in outs) / len(outs),
+                          "final_cos_mean": float(sum(fc) / len(fc)),
+                          "final_cos_sd": float((sum((x - sum(fc) / len(fc)) ** 2 for x in fc) / len(fc)) ** 0.5),
+                          "t_align_mean": None, "n_lost": sum(not o["held_end"] for o in outs), "n": len(outs),
+                          "peak_cos_mean": float(sum(o["peak_cos"] for o in outs) / len(outs)),
+                          "clearance_min_mm_mean": float(sum(o["clearance_min_mm"] for o in outs) / len(outs)),
+                          "force_active_thumb": float(sum(o["force_active"][0] for o in outs) / len(outs)),
+                          "force_active_index": float(sum(o["force_active"][1] for o in outs) / len(outs)),
+                          "force_active_middle": float(sum(o["force_active"][2] for o in outs) / len(outs)),
+                          "backend": "cpu", "jitter_xy_mm": a.jitter_xy}
+                print(f"{v:10s} cpu hold {res[v]['hold_rate']:.2f} align {res[v]['align_rate']:.2f} cos {res[v]['final_cos_mean']:+.3f}", flush=True)
+            else:
+                res[v] = {"error": (p.stdout + p.stderr)[-600:]}
+            tmp = a.out.with_suffix(".tmp")
+            with open(tmp, "w") as fh:
+                json.dump(res, fh, indent=1); fh.flush(); os.fsync(fh.fileno())
+            os.replace(tmp, a.out)
+            continue
         ev_json = vd / "eval.json"
         cmd = [sys.executable, str(ROOT / "scripts/policy_eval_suite.py"), "--policy", str(a.policy),
                "--morphology-run", str(vd), "--closed-ctrl-from-keyframe", "open_ik", "--open-finger-from-keyframe",
