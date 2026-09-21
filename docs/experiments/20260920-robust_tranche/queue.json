@@ -244,7 +244,8 @@
    "note": "retry of r_d4_clip (NaN in the actor observation at iteration 9, tip_lost 29.6 per episode before it); --seed 1 is a no-op (the trainer never applies it), so this is a second draw: it decides whether the NaN is a draw or the D4 pads on the mesh tool",
    "started": "2026-09-20 22:11:03",
    "rc": 1,
-   "run": "/home/humanoid/Programs/hand/results/rl/20260920-2211-r_d4_clip_s1"
+   "run": "/home/humanoid/Programs/hand/results/rl/20260920-2211-r_d4_clip_s1",
+   "fail_note": "NaN in the actor observation at iteration 63 of 271 (the first draw: iteration 9); two draws, same failure on the g12 tip-mesh scene"
   }
  ]
 }
