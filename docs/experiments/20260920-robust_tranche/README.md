@@ -68,3 +68,8 @@ Driver: `nohup setsid python3 scripts/hands_tranche_queue.py --queue docs/experi
   retrained). Remaining: r_d5_clipsep eval/chain, r_d1_clipsep, r_d4_clip_s1, then the transfer probes; the page
   watcher (pid 976538) rebuilds every 10 min and commits when the driver exits. The artifact republish (v7) is a
   session action, pending.
+- 22:45 Queue finished (driver exited after the transfer probes; watcher committed cae41136). 10 of 12 trained:
+  r_d5_clipsep nominal 61/64 held at cos 0.81, jittered 56/64; r_d1_clipsep nominal 64/64 at cos 0.958 +- 0.006 with
+  64/64 aligned (the tranche's best turn), jittered 54/64 at 0.81 +- 0.35, chain plate 25 turned cos 0.75 on 3 pads
+  (D1 clip lost it); r_d4_clip_s1 NaN in the actor observation at iteration 63 (first draw: iteration 9): two draws,
+  same failure on the g12 tip-mesh scene, so it is the D4 pads on the mesh tool, not a stochastic event. Page v7.
