@@ -134,13 +134,24 @@ def main():
         morph = j["morph_run"]
         common = q["common_flags"] + j.get("flags", [])
         train = UV + ["scripts/rl_train_cube.py", "--morphology-run", morph, "--tag", tag] + common
-        log(f"[{tag}] TRAIN {' '.join(train[-len(common) - 4:])}")
         t0 = time.time()
-        rc = run_guarded(train, q.get("train_mem", "10G"), q.get("train_cpu", 800),
-                         ROOT / "logs" / f"{qdir.name}-{tag}.log", tag)
+        # RESUME A FINISHED TRAINING. A driver restarted after a stall (the 2026-09-20 queue sat 6 h
+        # behind a closed swap gate with r_d5_clipsep trained and unevaluated) must not retrain a job
+        # whose final checkpoint is already on disk: the run's own log ends in "[rl_train_cube] DONE".
         runs = sorted(glob.glob(str(ROOT / "results/rl" / f"*-{tag}")))
         run_dir = Path(runs[-1]) if runs else None
         model = latest_model(run_dir) if run_dir else None
+        tlog = ROOT / "logs" / f"{qdir.name}-{tag}.log"
+        done_before = bool(model and tlog.exists() and "[rl_train_cube] DONE" in tlog.read_text()[-4000:])
+        if done_before:
+            log(f"[{tag}] TRAIN already finished ({model}); resuming at the evaluation")
+            rc = 0
+        else:
+            log(f"[{tag}] TRAIN {' '.join(train[-len(common) - 4:])}")
+            rc = run_guarded(train, q.get("train_mem", "10G"), q.get("train_cpu", 800), tlog, tag)
+            runs = sorted(glob.glob(str(ROOT / "results/rl" / f"*-{tag}")))
+            run_dir = Path(runs[-1]) if runs else None
+            model = latest_model(run_dir) if run_dir else None
         if rc != 0 or model is None:
             log(f"[{tag}] TRAIN FAILED rc={rc} run={run_dir} model={model}")
             set_status("failed", rc=rc, run=str(run_dir))

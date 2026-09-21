@@ -62,3 +62,9 @@ Driver: `nohup setsid python3 scripts/hands_tranche_queue.py --queue docs/experi
   --carry-squeeze, --press-regrip, --reindex, --track-frac; seams carry sp_err_deg/trim_deg beside q_err_deg/sat;
   per_cycle rows in the output. Next: a per-hand reachable ring at the seated palm pose (ring_ik_grip < 2 mm), or a
   gait on the press's own contact set with achieved-referenced commands. Page v6; outputs seat_aim/*.json.
+- 21:32 The driver had waited since 15:00 behind the swap gate (8.3 > 8 GB, cold VS Code pages; RAM 15 GB free, PSI 0)
+  with r_d5_clipsep trained and unevaluated. Restarted with `RESGUARD_MAX_SWAP_GB=9` (user-authorised) after adding
+  resume-at-evaluation to `hands_tranche_queue.py` (a job whose training log ends in `[rl_train_cube] DONE` is not
+  retrained). Remaining: r_d5_clipsep eval/chain, r_d1_clipsep, r_d4_clip_s1, then the transfer probes; the page
+  watcher (pid 976538) rebuilds every 10 min and commits when the driver exits. The artifact republish (v7) is a
+  session action, pending.
