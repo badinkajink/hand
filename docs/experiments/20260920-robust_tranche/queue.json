@@ -154,8 +154,10 @@
     "results/rl/20260920-0101-d7_clip_s0/tensorboard/model_270.pt"
    ],
    "warm_start": "d7_clip_s0",
-   "status": "running",
-   "started": "2026-09-20 12:31:50"
+   "status": "done",
+   "started": "2026-09-20 12:31:50",
+   "run": "/home/humanoid/Programs/hand/results/rl/20260920-1231-r_d7_clip",
+   "finished": "2026-09-20 13:09:51"
   },
   {
    "id": "r_d2_clip",
@@ -167,7 +169,10 @@
     "results/rl/20260920-0216-d2_clip_s0/tensorboard/model_270.pt"
    ],
    "warm_start": "d2_clip_s0",
-   "status": "pending"
+   "status": "done",
+   "started": "2026-09-20 13:09:51",
+   "run": "/home/humanoid/Programs/hand/results/rl/20260920-1309-r_d2_clip",
+   "finished": "2026-09-20 13:47:17"
   },
   {
    "id": "r_d3_clipsep",
@@ -182,7 +187,10 @@
     "0.03"
    ],
    "warm_start": "d3_clipsep_s0",
-   "status": "pending"
+   "status": "done",
+   "started": "2026-09-20 13:47:17",
+   "run": "/home/humanoid/Programs/hand/results/rl/20260920-1347-r_d3_clipsep",
+   "finished": "2026-09-20 14:25:00"
   },
   {
    "id": "r_d5_clipsep",
@@ -197,7 +205,10 @@
     "0.03"
    ],
    "warm_start": "d5_clipsep_s0",
-   "status": "pending"
+   "status": "done",
+   "started": "2026-09-20 21:31:56",
+   "run": "/home/humanoid/Programs/hand/results/rl/20260920-1425-r_d5_clipsep",
+   "finished": "2026-09-20 21:34:00"
   },
   {
    "id": "r_d1_clipsep",
@@ -212,7 +223,10 @@
     "0.03"
    ],
    "warm_start": "d1_clipsep_s0",
-   "status": "pending"
+   "status": "done",
+   "started": "2026-09-20 21:34:00",
+   "run": "/home/humanoid/Programs/hand/results/rl/20260920-2134-r_d1_clipsep",
+   "finished": "2026-09-20 22:11:03"
   },
   {
    "id": "r_d4_clip_s1",
@@ -226,8 +240,11 @@
     "1"
    ],
    "warm_start": "d4_clip_s0",
-   "status": "pending",
-   "note": "retry of r_d4_clip (NaN in the actor observation at iteration 9, tip_lost 29.6 per episode before it); --seed 1 is a no-op (the trainer never applies it), so this is a second draw: it decides whether the NaN is a draw or the D4 pads on the mesh tool"
+   "status": "failed",
+   "note": "retry of r_d4_clip (NaN in the actor observation at iteration 9, tip_lost 29.6 per episode before it); --seed 1 is a no-op (the trainer never applies it), so this is a second draw: it decides whether the NaN is a draw or the D4 pads on the mesh tool",
+   "started": "2026-09-20 22:11:03",
+   "rc": 1,
+   "run": "/home/humanoid/Programs/hand/results/rl/20260920-2211-r_d4_clip_s1"
   }
  ]
 }
