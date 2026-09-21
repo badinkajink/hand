@@ -6,6 +6,7 @@ changes. Regenerate with the builder named in each page's footer.
 
 | date | subject | local file | artifact |
 |---|---|---|---|
+| 2026-09-21 | Program record behind the SR2 Hand workshop paper (funnel, bench definitions, ranking sensitivities, learned controllers, experiment record, future work, documentation) | [20260921-workshop_briefing/20260921-sr2_hand_program_record.html](20260921-workshop_briefing/20260921-sr2_hand_program_record.html) | https://claude.ai/artifact/ViHY2qreJTSDK8ECr4vqvK |
 | 2026-09-20 | Reorientation policies continued on the plant the chain and the bench use (spawn jitter, tip mesh, scene floor and contact class) | [20260920-robust_tranche/20260920-robust_reorient_policies.html](20260920-robust_tranche/20260920-robust_reorient_policies.html) | https://claude.ai/artifact/NZLr9wdDAWjZC1HM6ed6ed |
 | 2026-09-19 | Reorientation policies across the deployed hands on the calibrated plant (bounded residual, index–middle separation, UR5e chain) | [20260919-hands_tranche/20260919-reorient_policies_across_hands.html](20260919-hands_tranche/20260919-reorient_policies_across_hands.html) | https://claude.ai/artifact/JfKA6nQBPuf13hGKjnU22n |
 | 2026-09-17 | D6 reorientation policy on the calibrated plant at 60 M steps, with a grip-force finetune | [20260917-d6_cal_60M/20260917-d6_reorient_policy_60M.html](20260917-d6_cal_60M/20260917-d6_reorient_policy_60M.html) | https://claude.ai/artifact/NgDVqffN5h1ZBhS2rt7Mb1 |
