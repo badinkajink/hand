@@ -114,7 +114,8 @@ class Recorder:
 
 
 def _carry_from_state(m, d, scene, acts, anchor, R_, *, axis_k, angle_deg, budget,
-                      turn_steps, hold_steps, q_open, depth_mm=float("nan")) -> dict:
+                      turn_steps, hold_steps, q_open, depth_mm=float("nan"),
+                      hold_squeeze=0.0, squeeze_steps=200) -> dict:
     """The construction and the execution, from a settled grasp. Verbatim `make_plan` /
     `carry(linear_anchor=True)`: pads -> centroid -> raised pivot -> rotated targets ->
     per-finger IK -> joint deltas, then the clipped joint-space ramp and the hold."""
@@ -158,6 +159,36 @@ def _carry_from_state(m, d, scene, acts, anchor, R_, *, axis_k, angle_deg, budge
         R_.t += DT
         if k % REC == 0:
             R_.snap("turn", u)
+    # THE RE-SQUEEZE (`make_plan --hold-squeeze`, `carry(hold_squeeze=)`): position servos hold
+    # whatever commanded-minus-actual error is left, and after the turn that is a fraction of a
+    # newton. One more set-point puts each pad `hold_squeeze` back inside the rotated shaft's
+    # surface, solved from the live end-of-turn state and ramped over `squeeze_steps`.
+    sq_delta = None
+    if hold_squeeze > 0.0:
+        o = d.body(de.OBJ).xpos.copy()
+        ax = d.body(de.OBJ).xmat.reshape(3, 3)[:, 2]
+        dik.qpos[:] = d.qpos
+        dik.qvel[:] = 0.0
+        mujoco.mj_forward(mik, dik)
+        for f in FINGERS:
+            tp = d.body(TIPS[f]).xpos.copy()
+            v = (tp - o) - float((tp - o) @ ax) * ax
+            n = float(np.linalg.norm(v))
+            if n > 1e-6:
+                ik_finger(mik, dik, f, tp - (v / n) * hold_squeeze, iters=200)
+        sq_end = {j: float(dik.qpos[mik.jnt_qposadr[mik.joint(j).id]]) for j in acts}
+        sq_delta = {j: sq_end[j] - q0[j] for j in acts}
+        sq_start = {j: float(d.ctrl[a]) for j, a in acts.items()}
+        for k in range(1, squeeze_steps + 1):
+            u = k / squeeze_steps
+            for j, a in acts.items():
+                tgt = anchor[j] + sq_delta[j]
+                d.ctrl[a] = float(np.clip(sq_start[j] + (tgt - sq_start[j]) * u,
+                                          anchor[j] - budget, anchor[j] + budget))
+            mujoco.mj_step(m, d)
+            R_.t += DT
+            if k % REC == 0:
+                R_.snap("squeeze", 1.0)
     R_.run(hold_steps, "hold")
     for r in rec:
         if r["phase"] == "hold":
@@ -168,7 +199,8 @@ def _carry_from_state(m, d, scene, acts, anchor, R_, *, axis_k, angle_deg, budge
                 q_sent=q_sent, sent_tips=sent_tips, q_open=q_open,
                 q0=q0, end=end, anchor=anchor, delta=delta, clipped=clipped, budget=budget,
                 obj_grip=obj_grip, depth_mm=float(depth_mm), turn_s=turn_steps * DT,
-                hold_s=hold_steps * DT, t_turn0=t_turn0)
+                hold_s=hold_steps * DT, t_turn0=t_turn0, hold_squeeze=hold_squeeze,
+                squeeze_s=(squeeze_steps * DT if hold_squeeze > 0 else 0.0), sq_delta=sq_delta)
 
 
 def construct(meta: dict, design: str, budget: float, scene: Path | None = None,
@@ -215,10 +247,12 @@ def construct(meta: dict, design: str, budget: float, scene: Path | None = None,
 
 
 def construct_morph(run: Path, *, lift: float, axis_k: float, angle_deg: float, budget: float,
-                    turn_steps: int, hold_steps: int, jitter: float = 0.0, seed: int = 0) -> dict:
+                    turn_steps: int, hold_steps: int, jitter: float = 0.0, seed: int = 0,
+                    scene: Path | None = None, hold_squeeze: float = 0.0) -> dict:
     """A CEM morphology run's own grip on its frozen scene, lifted off the floor and turned in
-    the air: `probe_real_v1_carry.carry(..., linear_anchor=True)`, step for step."""
-    scene = run / "frozen_scene.xml"
+    the air: `probe_real_v1_carry.carry(..., linear_anchor=True)`, step for step. `scene`
+    substitutes a rewrite of the run's scene (same bodies and keyframes, another plant)."""
+    scene = run / "frozen_scene.xml" if scene is None else Path(scene)
     m = pc._load_model(scene)
     d = mujoco.MjData(m)
     key = m.key("open_ik").id
@@ -246,7 +280,7 @@ def construct_morph(run: Path, *, lift: float, axis_k: float, angle_deg: float, 
     R_.run(200, "settle")
     C = _carry_from_state(m, d, scene, acts, anchor, R_, axis_k=axis_k, angle_deg=angle_deg,
                           budget=budget, turn_steps=turn_steps, hold_steps=hold_steps,
-                          q_open=q_open)
+                          q_open=q_open, hold_squeeze=hold_squeeze)
     C["lift"] = lift
     return C
 
