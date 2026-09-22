@@ -1,0 +1,76 @@
+{
+ "source": "docs/experiments/20260829-real_v1_deploy/deploy/sv1_w6689_b060_plan.json",
+ "design": "sv1_w6689",
+ "did": "D1",
+ "budget": 0.6,
+ "axis_k": 0.15,
+ "theta_deg": -80.0,
+ "span_mm": 32.289932668907326,
+ "pivot_lift_mm": 4.843489900336099,
+ "grip_depth_mm": 50.500000000000014,
+ "tip0_mm": {
+  "thumb": [
+   -24.55,
+   9.23,
+   95.63
+  ],
+  "index": [
+   19.26,
+   32.39,
+   95.97
+  ],
+  "middle": [
+   17.98,
+   -32.19,
+   97.39
+  ]
+ },
+ "targets_mm": {
+  "thumb": [
+   -24.55,
+   -1.25,
+   94.22
+  ],
+  "index": [
+   19.26,
+   3.1,
+   71.47
+  ],
+  "middle": [
+   17.98,
+   -6.72,
+   135.32
+  ]
+ },
+ "ik_residual_mm": {
+  "thumb": 0.09955847911900553,
+  "index": 29.893350595929878,
+  "middle": 3.253139468375477
+ },
+ "delta_deg": {
+  "thumb_yaw": -9.47114749457602,
+  "thumb_mcp": -16.935685018429133,
+  "thumb_pip": 33.38721863184226,
+  "index_yaw": -11.291271275423588,
+  "index_mcp": 1.7213309620469723,
+  "index_pip": -30.461439463197877,
+  "middle_yaw": 60.321406908615835,
+  "middle_mcp": 5.693273839158634,
+  "middle_pip": 41.87165010474157
+ },
+ "clipped": {
+  "thumb_yaw": false,
+  "thumb_mcp": false,
+  "thumb_pip": false,
+  "index_yaw": false,
+  "index_mcp": false,
+  "index_pip": false,
+  "middle_yaw": true,
+  "middle_mcp": false,
+  "middle_pip": true
+ },
+ "final_cos": 0.7994614315668946,
+ "final_contacts": 4,
+ "final_force_N": 4.650019470833213,
+ "turn_end_cos": 0.756493384614106
+}

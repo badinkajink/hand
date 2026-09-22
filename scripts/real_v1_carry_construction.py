@@ -171,9 +171,13 @@ def _carry_from_state(m, d, scene, acts, anchor, R_, *, axis_k, angle_deg, budge
                 hold_s=hold_steps * DT, t_turn0=t_turn0)
 
 
-def construct(meta: dict, design: str, budget: float) -> dict:
-    """A shipped bench plan: `make_plan`, step for step. Fixed palm, tool on the post."""
-    scene = Path(meta["scene"])
+def construct(meta: dict, design: str, budget: float, scene: Path | None = None,
+              turn_steps: int | None = None, hold_steps: int = HOLD_STEPS,
+              close_ramp: bool = False) -> dict:
+    """A shipped bench plan: `make_plan`, step for step. Fixed palm, tool on the post.
+    `scene` replaces the plan's own (shipped-plant) scene, e.g. with its bench-calibrated
+    rewrite from `apply_measured_plant.py`; the construction is then run on that plant."""
+    scene = Path(meta["scene"]) if scene is None else Path(scene)
     built = pc._grip_from_fit(scene, meta["straddle_mm"] / 1000, 0.0, meta["squeeze_mm"] / 1000,
                               de.OBJ, _depth_req(meta, design), meta["thumb_axial_mm"] / 1000)
     if built is None:
@@ -184,16 +188,30 @@ def construct(meta: dict, design: str, budget: float) -> dict:
     d.qvel[:] = 0.0
     d.ctrl[:] = grip
     acts = pc._finger_act(m)
+    anchor = {j: float(grip[a]) for j, a in acts.items()}
+    # the CB1 ramps open -> grip over the plan's 0.5 s (poses[grip].ramp_s) and holds 0.8 s;
+    # `make_plan` steps to the grip and settles 650 steps. `close_ramp` picks the former.
+    q_open_j = {j: float(open_qpos[m.jnt_qposadr[m.joint(j).id]]) for j in acts}
+    if close_ramp:
+        for j, a in acts.items():
+            d.ctrl[a] = q_open_j[j]
     mujoco.mj_forward(m, d)
     R_ = Recorder(m, d, acts)
     R_.snap("open")
-    R_.run(CLOSE_STEPS, "close")
+    if close_ramp:
+        def ramp(k):
+            u = (k + 1) / CLOSE_STEPS
+            for j, a in acts.items():
+                d.ctrl[a] = q_open_j[j] + (anchor[j] - q_open_j[j]) * u
+        R_.run(CLOSE_STEPS, "close", ramp)
+    else:
+        R_.run(CLOSE_STEPS, "close")
     R_.run(SETTLE_STEPS, "settle")
-    anchor = {j: float(grip[a]) for j, a in acts.items()}
     return _carry_from_state(m, d, scene, acts, anchor, R_, axis_k=float(meta["axis_k"]),
                              angle_deg=float(meta["angle_deg"]), budget=budget,
-                             turn_steps=int(meta["turn_steps"]), hold_steps=HOLD_STEPS,
-                             q_open=open_qpos.copy(), depth_mm=float(depth_mm))
+                             turn_steps=int(turn_steps or meta["turn_steps"]),
+                             hold_steps=hold_steps, q_open=open_qpos.copy(),
+                             depth_mm=float(depth_mm))
 
 
 def construct_morph(run: Path, *, lift: float, axis_k: float, angle_deg: float, budget: float,
@@ -589,7 +607,10 @@ def draw_hold(ax, st, C):
             side = np.array([-(s - t)[1], (s - t)[0]])
             side /= max(np.linalg.norm(side), 1e-9)
             short = np.linalg.norm(C["sent_tips"][f] - C["targets"][f]) * 1000
-            why = "out of reach" if C["resid"][f] * 1000 > 3.0 else "clipped at ±b"
+            far = C["resid"][f] * 1000 > 6.0
+            clip = any(abs(C["delta"][j]) > C["budget"] for j in FINGERS[f])
+            why = ("out of reach" if far and not clip else "clipped at ±b" if clip and not far
+                   else "out of reach, clipped")
             _label(ax, mid + side * 22, f"{short:.0f} mm short: {why}", COL[f], dx=0, dy=0,
                    size=8.5, ha="center", weight="normal")
     _pivot(ax, P, size=60, label=False)
@@ -744,6 +765,19 @@ def _rc():
     return plt
 
 
+PLANT_NAMES = {"shipped": "shipped plant (kp 30)", "corrected": "bench-calibrated plant (kp 0.5, kv 0.6)",
+               "fast": "bench-calibrated plant (kp 0.5, kv 0.02)"}
+
+
+def _who(C, did, tag):
+    if C.get("lift"):
+        return f"{did} ({tag.split('_k')[0]}), CEM grasp, floor-free"
+    plan = tag.split("_corrected")[0].split("_fast")[0]
+    if C.get("plant", "shipped") == "shipped":
+        return f"{did}, deployed plan {plan}, {PLANT_NAMES['shipped']}"
+    return f"{did}, the construction of {plan} run on the {PLANT_NAMES[C['plant']]}"
+
+
 def fig_construction(C, st, plt, head):
     fig, axs = plt.subplots(1, 4, figsize=(18, 5.6))
     fig.subplots_adjust(left=0.006, right=0.994, top=0.86, bottom=0.01, wspace=0.03)
@@ -782,8 +816,7 @@ def figures(C, did, tag, stem: Path, dpi=200):
     st = Studio(C["m"], 1200, 1000)
     pars = (f"k = {C['k']:.2f}, θ = {C['theta']:.0f}°, b = {C['budget']:.2f} rad "
             f"({np.degrees(C['budget']):.0f}°), turn {C['turn_s']:.1f} s")
-    who = f"{did}, {tag}" if not C.get("lift") else (
-        f"{did} ({tag.split('_k')[0]}), CEM grasp, floor-free")
+    who = _who(C, did, tag)
     h1 = f"Open-loop geometric carry on {who}: construction.  {pars}"
     h2 = (f"Open-loop geometric carry on {who}: the joint-space ramp replayed in physics "
           f"(one nominal rollout)")
@@ -833,8 +866,7 @@ def video(C, did, tag, out: Path, speed=0.5, fps=30):
     i_turn0 = next(i for i, r in enumerate(rec) if r["phase"] == "turn")
     pars = (f"k = {C['k']:.2f}, θ = {C['theta']:.0f}°, b = {C['budget']:.2f} rad, "
             f"turn {C['turn_s']:.1f} s")
-    who = f"{did}, {tag}" if not C.get("lift") else (
-        f"{did} ({tag.split('_k')[0]}), CEM grasp, floor-free")
+    who = _who(C, did, tag)
     xhat = np.array([1.0, 0, 0])
     FS["scale"] = 1.45
     for k in range(n):
@@ -959,6 +991,12 @@ def fig_array(out_dir: Path, dpi=200):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--plan", default="sv1_w2360_b075")
+    ap.add_argument("--plant", default="shipped", choices=["shipped", "corrected", "fast"],
+                    help="which plant the shipped plan's construction runs on: the plan's own "
+                         "scene (kp 30), or its bench-calibrated rewrite (kp 0.5, kv 0.6 / 0.02) "
+                         "from docs/experiments/20260916-turn_mechanism/scenes")
+    ap.add_argument("--close-ramp", action="store_true",
+                    help="ramp open -> grip over the plan's 0.5 s instead of stepping to it")
     ap.add_argument("--morph-run", type=Path, default=None,
                     help="a CEM morphology run (its frozen scene and grip) instead of a shipped "
                          "plan; the carry is then floor-free, lifted by --lift")
@@ -993,8 +1031,14 @@ def main():
         meta, design = shipped["meta"], shipped["design"]
         budget = a.budget if a.budget is not None else float(meta["budget_rad"])
         did = DESIGN_ID.get(design, design)
-        C = construct(meta, design, budget)
-        tag = a.plan
+        scene = None
+        if a.plant != "shipped":
+            scene = ROOT / f"docs/experiments/20260916-turn_mechanism/scenes/{a.plan}__{a.plant}.xml"
+            if not scene.exists():
+                sys.exit(f"no {a.plant} scene for {a.plan}: run real_v1_bench_plants.py first")
+        C = construct(meta, design, budget, scene=scene, close_ramp=a.close_ramp)
+        C["plant"] = a.plant
+        tag = a.plan + ("" if a.plant == "shipped" else f"_{a.plant}")
     stem = a.out_dir / f"20260921-carry_construction_{did}_{tag}"
     figures(C, did, tag, stem)
     end = C["rec"][-1]
