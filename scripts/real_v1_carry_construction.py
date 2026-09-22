@@ -197,7 +197,7 @@ def construct(meta: dict, design: str, budget: float) -> dict:
 
 
 def construct_morph(run: Path, *, lift: float, axis_k: float, angle_deg: float, budget: float,
-                    turn_steps: int, hold_steps: int) -> dict:
+                    turn_steps: int, hold_steps: int, jitter: float = 0.0, seed: int = 0) -> dict:
     """A CEM morphology run's own grip on its frozen scene, lifted off the floor and turned in
     the air: `probe_real_v1_carry.carry(..., linear_anchor=True)`, step for step."""
     scene = run / "frozen_scene.xml"
@@ -206,6 +206,11 @@ def construct_morph(run: Path, *, lift: float, axis_k: float, angle_deg: float, 
     key = m.key("open_ik").id
     mujoco.mj_resetDataKeyframe(m, d, key)
     d.ctrl[:] = m.key_ctrl[key]
+    if jitter > 0.0:                       # the carry probe's spawn jitter, on the object's xy
+        rng = np.random.default_rng(seed)
+        adr = int(m.jnt_qposadr[m.body(de.OBJ).jntadr[0]])
+        d.qpos[adr + 0] += float(rng.normal(0.0, jitter))
+        d.qpos[adr + 1] += float(rng.normal(0.0, jitter))
     q_open = d.qpos.copy()
     closed = np.load(run / "best_rollout.npz")["best_finger_ctrl"]
     anchor = {j: float(closed[i * 3 + k])
@@ -960,7 +965,7 @@ def main():
     ap.add_argument("--lift", type=float, default=0.10)
     ap.add_argument("--axis-k", type=float, default=0.25)
     ap.add_argument("--angle-deg", type=float, default=-90.0)
-    ap.add_argument("--turn-steps", type=int, default=250)
+    ap.add_argument("--turn-steps", type=int, default=800)
     ap.add_argument("--hold-steps", type=int, default=500)
     ap.add_argument("--label", default=None, help="hand label on the figures (default: the run's design id)")
     ap.add_argument("--all", action="store_true",
@@ -980,7 +985,7 @@ def main():
         did = a.label or DESIGN_ID.get(base, base)
         C = construct_morph(a.morph_run, lift=a.lift, axis_k=a.axis_k, angle_deg=a.angle_deg,
                             budget=budget, turn_steps=a.turn_steps, hold_steps=a.hold_steps)
-        tag = f"{design}_k{a.axis_k:g}_b{budget:g}_a{abs(a.angle_deg):g}"
+        tag = f"{design}_k{a.axis_k:g}_b{budget:g}_a{abs(a.angle_deg):g}_t{a.turn_steps}"
         p = a.morph_run
     else:
         p = find_plan(a.plan)
