@@ -32,6 +32,9 @@ FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 #: overlay type sizes in tape pixels (x scale): the hand label is a tenth of the panel
 #: height and the angle a sixth, so both read from the back of a room.
 LABEL_PT, DEG_PT, CLOCK_PT = 30, 52, 20
+#: chip colour. Black boxes vanish into a greyscale IR frame; the ranking figures'
+#: bench blue (#1f4e79) lifted a step for the projector. White on it is 7.2:1.
+BOX = (36, 86, 160, 255)
 
 
 def readings(run_tag):
@@ -124,11 +127,11 @@ def compose(panels, t, scale, fonts, clock, gutter):
 
 
 def _chip(dr, xy, text, font, anchor, fill):
-    """White text on a translucent black box, the filmstrip's annotation style."""
+    """White text on an opaque blue box, so the annotation reads against a grey frame."""
     x, y = xy
     l, t, r, b = dr.textbbox((x, y), text, font=font, anchor=anchor)
     m = font.size * 0.22
-    dr.rectangle((l - m, t - m, r + m, b + m), fill=(0, 0, 0, 210))
+    dr.rectangle((l - m, t - m, r + m, b + m), fill=BOX)
     dr.text((x, y), text, font=font, fill=fill, anchor=anchor)
 
 
