@@ -60,7 +60,8 @@ def bench(per_design=10):
         s = d["summary"]
         run_id = os.path.basename(p).replace("_track_SUMMARY.json", "")
         m = re.match(r"(\d{8})-(\d{6})-(.+)-([0-9a-f]{6})$", run_id)
-        if m.group(4) in EXCLUDE:
+        # a service self-test (20260909-tokencheck-endtoend) is not a bench run
+        if m is None or m.group(4) in EXCLUDE:
             continue
         sc = S.get(run_id, {})
         # `--shaft-axis` names the direction in the TAG's frame from the cylinder centre

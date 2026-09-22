@@ -1,0 +1,107 @@
+{
+ "runs": [
+  {
+   "design": "D1",
+   "run_id": "20260831-120526-sv1_w6689-ac8aef",
+   "outcome": "HELD",
+   "cos_hold": 0.8647253340173773,
+   "deg_turned": 54.95565374359964,
+   "slip_mm": 7.967683587390461,
+   "base_deg": 85.069,
+   "label": "D1   6/7 held",
+   "n_frames": 23
+  },
+  {
+   "design": "D2",
+   "run_id": "20260831-122955-sv1_w2360-c9f62e",
+   "outcome": "HELD",
+   "cos_hold": 0.8630600235567205,
+   "deg_turned": 58.40743548187011,
+   "slip_mm": 4.3290431633139965,
+   "base_deg": 88.719,
+   "label": "D2   10/10 held",
+   "n_frames": 22
+  },
+  {
+   "design": "D3",
+   "run_id": "20260831-124429-sv1_u1364-df4984",
+   "outcome": "HELD",
+   "cos_hold": 0.7787162039850453,
+   "deg_turned": 49.75199219832145,
+   "slip_mm": 6.745616800201641,
+   "base_deg": 88.614,
+   "label": "D3   4/10 held",
+   "n_frames": 22
+  },
+  {
+   "design": "D4",
+   "run_id": "20260831-142420-g12-48cb54",
+   "outcome": "HELD",
+   "cos_hold": null,
+   "deg_turned": 53.57598462850068,
+   "slip_mm": 7.113714354712126,
+   "base_deg": 88.325,
+   "label": "D4   9/10 held",
+   "n_frames": 22
+  },
+  {
+   "design": "D5",
+   "run_id": "20260831-141614-sv1_u0060-6bbfa7",
+   "outcome": "HELD",
+   "cos_hold": 0.9515187432458573,
+   "deg_turned": 72.10479200001686,
+   "slip_mm": 7.889847859487353,
+   "base_deg": 89.965,
+   "label": "D5   3/10 held",
+   "n_frames": 22
+  },
+  {
+   "design": "D6",
+   "run_id": "20260831-143806-sv1_u0308-1de24a",
+   "outcome": "HELD",
+   "cos_hold": 0.6220780509841212,
+   "deg_turned": 35.96007602748531,
+   "slip_mm": 4.621577606458811,
+   "base_deg": 87.448,
+   "label": "D6   2/10 held",
+   "n_frames": 22
+  },
+  {
+   "design": "D7",
+   "run_id": "20260831-132015-rv05_manual-df02cf",
+   "outcome": "HELD",
+   "cos_hold": 0.6161311957791418,
+   "deg_turned": 36.33418695648499,
+   "slip_mm": 12.788621594620306,
+   "base_deg": 88.316,
+   "label": "D7   10/10 held",
+   "n_frames": 22
+  },
+  {
+   "design": "D8",
+   "run_id": "20260831-144850-sv1_w0099-b18421",
+   "outcome": "HELD",
+   "cos_hold": 0.8394560475707676,
+   "deg_turned": 51.97418425014505,
+   "slip_mm": 6.105492492407586,
+   "base_deg": 84.453,
+   "label": "D8   4/10 held",
+   "n_frames": 22
+  }
+ ],
+ "crop": [
+  310,
+  45,
+  640,
+  345
+ ],
+ "scale": 3,
+ "fps": 30,
+ "speed": 1.0,
+ "size": [
+  4020,
+  1836
+ ],
+ "t_end_s": 5.898,
+ "tol_s": 0.2
+}
