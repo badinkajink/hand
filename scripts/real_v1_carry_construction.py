@@ -87,8 +87,92 @@ def find_plan(tag: str) -> Path:
     return hits[0]
 
 
+class Recorder:
+    """One control-step record per REC sim steps: pose, command, pads, object, contacts."""
+
+    def __init__(self, m, d, acts):
+        self.m, self.d, self.acts, self.rec, self.t = m, d, acts, [], 0.0
+
+    def snap(self, phase, u=None):
+        m, d = self.m, self.d
+        n, f = pc._contacts_hand(m, d, de.OBJ)
+        self.rec.append(dict(t=self.t, phase=phase, u=u, qpos=d.qpos.copy(),
+                             ctrl={j: float(d.ctrl[a]) for j, a in self.acts.items()},
+                             tips={k: d.body(TIPS[k]).xpos.copy() for k in FINGERS},
+                             obj=d.body(de.OBJ).xpos.copy(),
+                             axis=d.body(de.OBJ).xmat.reshape(3, 3)[:, 2].copy(),
+                             cos=pc._cos(m, d, de.OBJ), ncon=n, force=f))
+
+    def run(self, n, phase, before=None):
+        for k in range(n):
+            if before is not None:
+                before(k)
+            mujoco.mj_step(self.m, self.d)
+            self.t += DT
+            if (k + 1) % REC == 0:
+                self.snap(phase)
+
+
+def _carry_from_state(m, d, scene, acts, anchor, R_, *, axis_k, angle_deg, budget,
+                      turn_steps, hold_steps, q_open, depth_mm=float("nan")) -> dict:
+    """The construction and the execution, from a settled grasp. Verbatim `make_plan` /
+    `carry(linear_anchor=True)`: pads -> centroid -> raised pivot -> rotated targets ->
+    per-finger IK -> joint deltas, then the clipped joint-space ramp and the hold."""
+    rec = R_.rec
+    tip0 = {k: d.body(TIPS[k]).xpos.copy() for k in FINGERS}
+    centroid = np.mean([tip0[k] for k in FINGERS], axis=0)
+    span = abs(tip0["index"][1] - tip0["middle"][1]) / 2.0
+    pivot = centroid.copy()
+    pivot[2] += axis_k * span
+    q0 = {j: float(d.qpos[m.jnt_qposadr[m.joint(j).id]]) for j in acts}
+    R = pc._rotx(np.radians(angle_deg))
+    targets = {k: pivot + R @ (tip0[k] - pivot) for k in FINGERS}
+    mik = mujoco.MjModel.from_xml_path(str(scene))
+    dik = mujoco.MjData(mik)
+    dik.qpos[:] = d.qpos
+    dik.qvel[:] = 0.0
+    mujoco.mj_forward(mik, dik)
+    resid = {k: ik_finger(mik, dik, k, targets[k], iters=400) for k in FINGERS}
+    end = {j: float(dik.qpos[mik.jnt_qposadr[mik.joint(j).id]]) for j in acts}
+    reached = {k: dik.body(TIPS[k]).xpos.copy() for k in FINGERS}
+    q_hold = dik.qpos.copy()
+    delta = {j: end[j] - q0[j] for j in acts}
+    clipped = {j: float(np.clip(delta[j], -budget, budget)) for j in acts}
+    obj_grip = (d.body(de.OBJ).xpos.copy(), d.body(de.OBJ).xmat.reshape(3, 3).copy())
+    q_grip = d.qpos.copy()
+    t_turn0 = R_.t
+    # the hold pose the servos are actually sent: anchor + clipped delta, kinematically
+    dik.qpos[:] = d.qpos
+    for j in acts:
+        dik.qpos[mik.jnt_qposadr[mik.joint(j).id]] = q0[j] + clipped[j]
+    mujoco.mj_forward(mik, dik)
+    q_sent = dik.qpos.copy()
+    sent_tips = {k: dik.body(TIPS[k]).xpos.copy() for k in FINGERS}
+
+    # execution: the ramp, then the hold, on the same live state
+    for k in range(1, turn_steps + 1):
+        u = k / turn_steps
+        for j, a in acts.items():
+            d.ctrl[a] = anchor[j] + float(np.clip(delta[j] * u, -budget, budget))
+        mujoco.mj_step(m, d)
+        R_.t += DT
+        if k % REC == 0:
+            R_.snap("turn", u)
+    R_.run(hold_steps, "hold")
+    for r in rec:
+        if r["phase"] == "hold":
+            r["u"] = 1.0
+    return dict(m=m, scene=scene, acts=acts, rec=rec, tip0=tip0, centroid=centroid, span=span,
+                pivot=pivot, R=R, theta=float(angle_deg), k=float(axis_k),
+                targets=targets, reached=reached, resid=resid, q_grip=q_grip, q_hold=q_hold,
+                q_sent=q_sent, sent_tips=sent_tips, q_open=q_open,
+                q0=q0, end=end, anchor=anchor, delta=delta, clipped=clipped, budget=budget,
+                obj_grip=obj_grip, depth_mm=float(depth_mm), turn_s=turn_steps * DT,
+                hold_s=hold_steps * DT, t_turn0=t_turn0)
+
+
 def construct(meta: dict, design: str, budget: float) -> dict:
-    """`make_plan`, step for step, returning what it computes on the way to anchor/delta."""
+    """A shipped bench plan: `make_plan`, step for step. Fixed palm, tool on the post."""
     scene = Path(meta["scene"])
     built = pc._grip_from_fit(scene, meta["straddle_mm"] / 1000, 0.0, meta["squeeze_mm"] / 1000,
                               de.OBJ, _depth_req(meta, design), meta["thumb_axial_mm"] / 1000)
@@ -101,79 +185,47 @@ def construct(meta: dict, design: str, budget: float) -> dict:
     d.ctrl[:] = grip
     acts = pc._finger_act(m)
     mujoco.mj_forward(m, d)
-    rec = []
-    t = 0.0
-
-    def snap(phase, u=None):
-        n, f = pc._contacts_hand(m, d, de.OBJ)
-        rec.append(dict(t=t, phase=phase, u=u, qpos=d.qpos.copy(),
-                        ctrl={j: float(d.ctrl[a]) for j, a in acts.items()},
-                        tips={k: d.body(TIPS[k]).xpos.copy() for k in FINGERS},
-                        obj=d.body(de.OBJ).xpos.copy(),
-                        axis=d.body(de.OBJ).xmat.reshape(3, 3)[:, 2].copy(),
-                        cos=pc._cos(m, d, de.OBJ), ncon=n, force=f))
-
-    snap("open")
-    for k in range(CLOSE_STEPS + SETTLE_STEPS):
-        mujoco.mj_step(m, d)
-        t += DT
-        if (k + 1) % REC == 0:
-            snap("close" if k < CLOSE_STEPS else "settle")
-
-    # the construction proper, verbatim from make_plan
-    tip0 = {k: d.body(TIPS[k]).xpos.copy() for k in FINGERS}
-    centroid = np.mean([tip0[k] for k in FINGERS], axis=0)
-    span = abs(tip0["index"][1] - tip0["middle"][1]) / 2.0
-    pivot = centroid.copy()
-    pivot[2] += meta["axis_k"] * span
-    q0 = {j: float(d.qpos[m.jnt_qposadr[m.joint(j).id]]) for j in acts}
-    R = pc._rotx(np.radians(meta["angle_deg"]))
-    targets = {k: pivot + R @ (tip0[k] - pivot) for k in FINGERS}
-    mik = mujoco.MjModel.from_xml_path(str(scene))
-    dik = mujoco.MjData(mik)
-    dik.qpos[:] = d.qpos
-    dik.qvel[:] = 0.0
-    mujoco.mj_forward(mik, dik)
-    resid = {k: ik_finger(mik, dik, k, targets[k], iters=400) for k in FINGERS}
-    end = {j: float(dik.qpos[mik.jnt_qposadr[mik.joint(j).id]]) for j in acts}
-    reached = {k: dik.body(TIPS[k]).xpos.copy() for k in FINGERS}
-    q_hold = dik.qpos.copy()
+    R_ = Recorder(m, d, acts)
+    R_.snap("open")
+    R_.run(CLOSE_STEPS, "close")
+    R_.run(SETTLE_STEPS, "settle")
     anchor = {j: float(grip[a]) for j, a in acts.items()}
-    delta = {j: end[j] - q0[j] for j in acts}
-    clipped = {j: float(np.clip(delta[j], -budget, budget)) for j in acts}
-    obj_grip = (d.body(de.OBJ).xpos.copy(), d.body(de.OBJ).xmat.reshape(3, 3).copy())
-    q_grip = d.qpos.copy()
-    # the hold pose the servos are actually sent: anchor + clipped delta, kinematically
-    dik.qpos[:] = d.qpos
-    for j in acts:
-        dik.qpos[mik.jnt_qposadr[mik.joint(j).id]] = q0[j] + clipped[j]
-    mujoco.mj_forward(mik, dik)
-    q_sent = dik.qpos.copy()
-    sent_tips = {k: dik.body(TIPS[k]).xpos.copy() for k in FINGERS}
+    return _carry_from_state(m, d, scene, acts, anchor, R_, axis_k=float(meta["axis_k"]),
+                             angle_deg=float(meta["angle_deg"]), budget=budget,
+                             turn_steps=int(meta["turn_steps"]), hold_steps=HOLD_STEPS,
+                             q_open=open_qpos.copy(), depth_mm=float(depth_mm))
 
-    # execution: the shipped ramp, then the hold, on the same live state
-    turn = int(meta["turn_steps"])
-    for k in range(1, turn + 1):
-        u = k / turn
-        for j, a in acts.items():
-            d.ctrl[a] = anchor[j] + float(np.clip(delta[j] * u, -budget, budget))
-        mujoco.mj_step(m, d)
-        t += DT
-        if k % REC == 0:
-            snap("turn", u)
-    for k in range(HOLD_STEPS):
-        mujoco.mj_step(m, d)
-        t += DT
-        if (k + 1) % REC == 0:
-            snap("hold", 1.0)
 
-    return dict(m=m, scene=scene, acts=acts, rec=rec, tip0=tip0, centroid=centroid, span=span,
-                pivot=pivot, R=R, theta=float(meta["angle_deg"]), k=float(meta["axis_k"]),
-                targets=targets, reached=reached, resid=resid, q_grip=q_grip, q_hold=q_hold,
-                q_sent=q_sent, sent_tips=sent_tips, q_open=open_qpos.copy(),
-                q0=q0, end=end, anchor=anchor, delta=delta, clipped=clipped, budget=budget,
-                obj_grip=obj_grip, depth_mm=float(depth_mm), turn_s=turn * DT,
-                t_turn0=(CLOSE_STEPS + SETTLE_STEPS) * DT)
+def construct_morph(run: Path, *, lift: float, axis_k: float, angle_deg: float, budget: float,
+                    turn_steps: int, hold_steps: int) -> dict:
+    """A CEM morphology run's own grip on its frozen scene, lifted off the floor and turned in
+    the air: `probe_real_v1_carry.carry(..., linear_anchor=True)`, step for step."""
+    scene = run / "frozen_scene.xml"
+    m = pc._load_model(scene)
+    d = mujoco.MjData(m)
+    key = m.key("open_ik").id
+    mujoco.mj_resetDataKeyframe(m, d, key)
+    d.ctrl[:] = m.key_ctrl[key]
+    q_open = d.qpos.copy()
+    closed = np.load(run / "best_rollout.npz")["best_finger_ctrl"]
+    anchor = {j: float(closed[i * 3 + k])
+              for i, (f, js) in enumerate(FINGERS.items()) for k, j in enumerate(js)}
+    acts = pc._finger_act(m)
+    pz_a = next(k for k in range(m.nu) if m.actuator(k).name == "a_palm_pz")
+    for j, a in acts.items():
+        d.ctrl[a] = anchor[j]
+    mujoco.mj_forward(m, d)
+    R_ = Recorder(m, d, acts)
+    R_.snap("open")
+    R_.run(250, "close")
+    pz0 = float(d.ctrl[pz_a])
+    R_.run(200, "lift", lambda k: d.ctrl.__setitem__(pz_a, pz0 + lift * (k + 1) / 200))
+    R_.run(200, "settle")
+    C = _carry_from_state(m, d, scene, acts, anchor, R_, axis_k=axis_k, angle_deg=angle_deg,
+                          budget=budget, turn_steps=turn_steps, hold_steps=hold_steps,
+                          q_open=q_open)
+    C["lift"] = lift
+    return C
 
 
 # --------------------------------------------------------------------------------------------
@@ -195,7 +247,7 @@ class Studio:
             if b.startswith("palm"):
                 rgba = (0.40, 0.43, 0.47, 1.0)
             if m.geom(g).name == "floor":
-                rgba = (0, 0, 0, 0)                   # not drawn: no floor, no floor shadow
+                rgba = (0.905, 0.915, 0.925, 1.0)     # a plain ground; shadows are off
             if m.geom(g).name == "tool_post":
                 rgba = (0.66, 0.69, 0.73, 1.0)
             if rgba is not None:
@@ -350,10 +402,12 @@ def palm_z(C):
     return float(d.body("palm_pose").xpos[2])
 
 
-def frame_at(C):
-    """Where the orthographic front view looks: the pads' y, and a height that keeps the palm
-    plate, the pads, their targets and the standing shaft inside a 165 mm window."""
-    return np.array([C["centroid"][0], C["centroid"][1], 0.118])
+def frame_at(C, tips=None):
+    """Where the orthographic front view looks: the pads' y, and 15 mm above the pads, which
+    keeps the palm plate, the pads, their targets and the standing shaft inside a 165 mm
+    window. With `tips` (a record's) the frame follows the hand through a lift."""
+    c = C["centroid"] if tips is None else np.mean([tips[f] for f in FINGERS], axis=0)
+    return np.array([C["centroid"][0], C["centroid"][1], c[2] + 0.015])
 
 
 def arc_points(C, finger, n=60, frac=1.0):
@@ -437,8 +491,13 @@ def draw_grasp(ax, st, C):
     s_end = [r for r in rec if r["phase"] == "settle"][-1]
     dz = (s_end["obj"][2] - rec[0]["obj"][2]) * 1000
     tilt = np.degrees(np.arcsin(np.clip(abs(s_end["cos"]), 0, 1)))
-    ax.text(0.02, 0.03, f"grip depth {C['depth_mm']:.1f} mm, pads driven 10 mm into the shaft\n"
-            f"after the close: {s_end['ncon']} hand contacts, {s_end['force']:.1f} N; "
+    if C.get("lift"):
+        first = (f"CEM grasp from the morphology run, palm lifted {C['lift'] * 1000:.0f} mm\n"
+                 f"after the lift: ")
+    else:
+        first = (f"grip depth {C['depth_mm']:.1f} mm, pads driven 10 mm into the shaft\n"
+                 f"after the close: ")
+    ax.text(0.02, 0.03, first + f"{s_end['ncon']} hand contacts, {s_end['force']:.1f} N; "
             f"shaft {dz:+.0f} mm, tilted {tilt:.0f}°",
             transform=ax.transAxes, fontsize=8.5, color=INK, va="bottom",
             bbox=dict(fc="white", ec="none", alpha=0.85, pad=2))
@@ -615,13 +674,16 @@ def draw_schedule(ax_q, ax_c, C, cursor=None, legend=True):
         for j in FINGERS[f]:
             cmd = np.degrees(np.array([r["ctrl"][j] for r in rec]) - C["anchor"][j])
             ax_q.plot(ts, cmd, color=COL[f], lw=1.7, ls=styles[j.rpartition("_")[2]])
-            if abs(C["delta"][j]) > C["budget"]:
-                t_sat = C["budget"] / abs(C["delta"][j]) * C["turn_s"]
-                y = np.sign(C["delta"][j]) * b
-                ax_q.annotate(f"{j.replace('_', ' ')} asks {np.degrees(C['delta'][j]):+.0f}°, "
-                              f"hits the clip at {t_sat:.2f} s", xy=(t_sat, y),
-                              xytext=(t_sat + 0.12, y * 0.62), fontsize=_fs(8.5), color=COL[f],
-                              va="center", arrowprops=dict(arrowstyle="-", color=COL[f], lw=0.7))
+    clipped = [(j, f) for f in ORDER for j in FINGERS[f] if abs(C["delta"][j]) > C["budget"]]
+    for i, (j, f) in enumerate(sorted(clipped, key=lambda jf: abs(C["delta"][jf[0]]),
+                                      reverse=True)):
+        t_sat = C["budget"] / abs(C["delta"][j]) * C["turn_s"]
+        y = np.sign(C["delta"][j]) * b
+        ax_q.plot([t_sat], [y], marker="o", ms=_fs(4), color=COL[f], zorder=6)
+        ax_q.text(C["turn_s"] + 0.03 * (ts[-1] - C["turn_s"]), b * (0.62 - 0.2 * i),
+                  f"{j.replace('_', ' ')} asks {np.degrees(C['delta'][j]):+.0f}°, "
+                  f"clipped from {t_sat:.2f} s", fontsize=_fs(8.5), color=COL[f], va="center",
+                  ha="left")
     for a in (ax_q, ax_c):
         a.axvspan(0, C["turn_s"], color=INK, alpha=0.05, lw=0)
         a.set_xlim(ts[0], ts[-1])
@@ -631,9 +693,10 @@ def draw_schedule(ax_q, ax_c, C, cursor=None, legend=True):
     ax_q.set_ylabel("commanded joint delta from the grip (°)", fontsize=_fs(9))
     ax_q.set_ylim(-b * 1.25, b * 1.25)
     ytop = b * 1.12
-    ax_q.text(-t0 / 2, ytop, "close, settle", fontsize=_fs(8.5), ha="center", color=MUTE)
+    ax_q.text(-t0 / 2, ytop, "close, lift, settle" if any(r["phase"] == "lift" for r in rec)
+              else "close, settle", fontsize=_fs(8.5), ha="center", color=MUTE)
     ax_q.text(C["turn_s"] / 2, ytop, "turn ramp", fontsize=_fs(8.5), ha="center", color=INK)
-    ax_q.text(C["turn_s"] + HOLD_STEPS * DT / 2, ytop, "hold", fontsize=_fs(8.5), ha="center",
+    ax_q.text(C["turn_s"] + C["hold_s"] / 2, ytop, "hold", fontsize=_fs(8.5), ha="center",
               color=MUTE)
     if legend:
         from matplotlib.lines import Line2D
@@ -680,7 +743,8 @@ def fig_construction(C, st, plt, head):
     fig, axs = plt.subplots(1, 4, figsize=(18, 5.6))
     fig.subplots_adjust(left=0.006, right=0.994, top=0.86, bottom=0.01, wspace=0.03)
     draw_grasp(axs[0], st, C)
-    _title(axs[0], "a", "grasp: the fitted grip, closed and settled")
+    _title(axs[0], "a", "grasp: the CEM grip, closed, lifted and settled" if C.get("lift")
+           else "grasp: the fitted grip, closed and settled")
     draw_construction(axs[1], st, C)
     _title(axs[1], "b", "construction: rotate the three pads by θ about P")
     draw_hold(axs[2], st, C)
@@ -713,10 +777,12 @@ def figures(C, did, tag, stem: Path, dpi=200):
     st = Studio(C["m"], 1200, 1000)
     pars = (f"k = {C['k']:.2f}, θ = {C['theta']:.0f}°, b = {C['budget']:.2f} rad "
             f"({np.degrees(C['budget']):.0f}°), turn {C['turn_s']:.1f} s")
-    h1 = f"Open-loop geometric carry on {did} ({tag}): construction.  {pars}"
-    h2 = (f"Open-loop geometric carry on {did} ({tag}): the joint-space ramp replayed in physics "
-          f"(one nominal rollout on the plan's own scene)")
-    h3 = f"Open-loop geometric carry on {did} ({tag}): what the servos are sent and what the shaft does"
+    who = f"{did}, {tag}" if not C.get("lift") else (
+        f"{did} ({tag.split('_k')[0]}), CEM grasp, floor-free")
+    h1 = f"Open-loop geometric carry on {who}: construction.  {pars}"
+    h2 = (f"Open-loop geometric carry on {who}: the joint-space ramp replayed in physics "
+          f"(one nominal rollout)")
+    h3 = f"Open-loop geometric carry on {who}: what the servos are sent and what the shaft does"
     for name, mk in (("construction", lambda: fig_construction(C, st, plt, h1)),
                      ("execution", lambda: fig_execution(C, st, plt, h2)),
                      ("schedule", lambda: fig_schedule(C, plt, h3))):
@@ -762,6 +828,8 @@ def video(C, did, tag, out: Path, speed=0.5, fps=30):
     i_turn0 = next(i for i, r in enumerate(rec) if r["phase"] == "turn")
     pars = (f"k = {C['k']:.2f}, θ = {C['theta']:.0f}°, b = {C['budget']:.2f} rad, "
             f"turn {C['turn_s']:.1f} s")
+    who = f"{did}, {tag}" if not C.get("lift") else (
+        f"{did} ({tag.split('_k')[0]}), CEM grasp, floor-free")
     xhat = np.array([1.0, 0, 0])
     FS["scale"] = 1.45
     for k in range(n):
@@ -774,7 +842,8 @@ def video(C, did, tag, out: Path, speed=0.5, fps=30):
                               left=0.008, right=0.992, top=0.935, bottom=0.075, wspace=0.02,
                               hspace=0.16)
         ax = fig.add_subplot(gs[0, 0])
-        st.view("front", frame_at(C))
+        st.view("front", frame_at(C, r["tips"] if r["phase"] in ("open", "close", "lift")
+                                  else None))
         img = st.render(r["qpos"], [ghost_tool(C, 0.14)] if show_geo else [])
         _panel(ax, img)
         if show_geo:
@@ -790,8 +859,8 @@ def video(C, did, tag, out: Path, speed=0.5, fps=30):
                                 solid_capstyle="round")
                 _dot(ax, st.project(r["tips"][f]), COL[f], size=56)
             _pivot(ax, st.project(C["pivot"]), size=90)
-        phase = {"open": "open pose", "close": "close onto the tool", "settle": "settle",
-                 "turn": "turn ramp", "hold": "hold"}[r["phase"]]
+        phase = {"open": "open pose", "close": "close onto the tool", "lift": "lift",
+                 "settle": "settle", "turn": "turn ramp", "hold": "hold"}[r["phase"]]
         if r["phase"] == "turn":
             phase += f"  {r['u'] * 100:.0f} %"
         ax.text(0.02, 0.975, phase, transform=ax.transAxes, fontsize=20, color=INK, va="top",
@@ -804,7 +873,8 @@ def video(C, did, tag, out: Path, speed=0.5, fps=30):
         ax.text(0.98, 0.135, f"{r['ncon']} contacts, {r['force']:.1f} N",
                 transform=ax.transAxes, fontsize=13, color=MUTE, ha="right", va="bottom")
         ax2 = fig.add_subplot(gs[0, 1])
-        st_iso.view("iso", C["centroid"] + np.array([0, 0, 0.02]))
+        st_iso.view("iso", (C["centroid"] if show_geo else
+                            np.mean([r["tips"][f] for f in FINGERS], axis=0)) + np.array([0, 0, 0.02]))
         extras = []
         if show_geo:
             extras = [ghost_tool(C, 0.14),
@@ -832,7 +902,7 @@ def video(C, did, tag, out: Path, speed=0.5, fps=30):
                        loc="left", fontsize=13, color=INK)
         ax_c.set_title("shaft alignment (black) and hand contact force (amber)", loc="left",
                        fontsize=13, color=INK)
-        fig.suptitle(f"Open-loop geometric carry on {did} ({tag}).  {pars}", fontsize=17,
+        fig.suptitle(f"Open-loop geometric carry on {who}.  {pars}", fontsize=17,
                      x=0.008, ha="left", y=0.985, color=INK)
         canvas.draw()
         ff.stdin.write(np.asarray(canvas.buffer_rgba()).tobytes())
@@ -884,6 +954,15 @@ def fig_array(out_dir: Path, dpi=200):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--plan", default="sv1_w2360_b075")
+    ap.add_argument("--morph-run", type=Path, default=None,
+                    help="a CEM morphology run (its frozen scene and grip) instead of a shipped "
+                         "plan; the carry is then floor-free, lifted by --lift")
+    ap.add_argument("--lift", type=float, default=0.10)
+    ap.add_argument("--axis-k", type=float, default=0.25)
+    ap.add_argument("--angle-deg", type=float, default=-90.0)
+    ap.add_argument("--turn-steps", type=int, default=250)
+    ap.add_argument("--hold-steps", type=int, default=500)
+    ap.add_argument("--label", default=None, help="hand label on the figures (default: the run's design id)")
     ap.add_argument("--all", action="store_true",
                     help="also the 2x4 array of the construction on the eight bench hands")
     ap.add_argument("--budget", type=float, default=None, help="override the plan's clip")
@@ -894,17 +973,27 @@ def main():
     a.out_dir.mkdir(parents=True, exist_ok=True)
     if a.all:
         fig_array(a.out_dir)
-    p = find_plan(a.plan)
-    shipped = json.loads(p.read_text())
-    meta, design = shipped["meta"], shipped["design"]
-    budget = a.budget if a.budget is not None else float(meta["budget_rad"])
-    did = DESIGN_ID.get(design, design)
-    C = construct(meta, design, budget)
-    a.out_dir.mkdir(parents=True, exist_ok=True)
-    stem = a.out_dir / f"20260921-carry_construction_{did}_{a.plan}"
-    figures(C, did, a.plan, stem)
+    if a.morph_run is not None:
+        budget = a.budget if a.budget is not None else 0.5
+        design = a.morph_run.name
+        base = design.replace("_stored", "")
+        did = a.label or DESIGN_ID.get(base, base)
+        C = construct_morph(a.morph_run, lift=a.lift, axis_k=a.axis_k, angle_deg=a.angle_deg,
+                            budget=budget, turn_steps=a.turn_steps, hold_steps=a.hold_steps)
+        tag = f"{design}_k{a.axis_k:g}_b{budget:g}_a{abs(a.angle_deg):g}"
+        p = a.morph_run
+    else:
+        p = find_plan(a.plan)
+        shipped = json.loads(p.read_text())
+        meta, design = shipped["meta"], shipped["design"]
+        budget = a.budget if a.budget is not None else float(meta["budget_rad"])
+        did = DESIGN_ID.get(design, design)
+        C = construct(meta, design, budget)
+        tag = a.plan
+    stem = a.out_dir / f"20260921-carry_construction_{did}_{tag}"
+    figures(C, did, tag, stem)
     end = C["rec"][-1]
-    summary = dict(plan=str(p.relative_to(ROOT)), design=design, did=did, budget=budget,
+    summary = dict(source=str(p.resolve().relative_to(ROOT)), design=design, did=did, budget=budget,
                    axis_k=C["k"], theta_deg=C["theta"], span_mm=C["span"] * 1000,
                    pivot_lift_mm=C["k"] * C["span"] * 1000, grip_depth_mm=C["depth_mm"],
                    tip0_mm={f: (C["tip0"][f] * 1000).round(2).tolist() for f in FINGERS},
@@ -919,7 +1008,7 @@ def main():
                      indent=1))
     print(f"wrote {stem}.png (+ _construction/_execution/_schedule .png/.pdf) and .json")
     if a.video:
-        video(C, did, a.plan, Path(f"{stem}.mp4"), speed=a.speed)
+        video(C, did, tag, Path(f"{stem}.mp4"), speed=a.speed)
         print(f"wrote {stem}.mp4")
 
 

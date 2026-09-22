@@ -1,0 +1,76 @@
+{
+ "source": "results/phase1/real_v1/rv05_manual_stored",
+ "design": "rv05_manual_stored",
+ "did": "D7",
+ "budget": 0.5,
+ "axis_k": 0.25,
+ "theta_deg": -90.0,
+ "span_mm": 32.9425864562679,
+ "pivot_lift_mm": 8.235646614066974,
+ "grip_depth_mm": NaN,
+ "tip0_mm": {
+  "thumb": [
+   -21.08,
+   0.65,
+   113.63
+  ],
+  "index": [
+   21.06,
+   27.76,
+   111.53
+  ],
+  "middle": [
+   29.29,
+   -38.12,
+   111.21
+  ]
+ },
+ "targets_mm": {
+  "thumb": [
+   -21.08,
+   -9.97,
+   116.47
+  ],
+  "index": [
+   21.06,
+   -12.06,
+   89.36
+  ],
+  "middle": [
+   29.29,
+   -12.39,
+   155.25
+  ]
+ },
+ "ik_residual_mm": {
+  "thumb": 0.09628068784985758,
+  "index": 25.29000689933483,
+  "middle": 12.932352651842228
+ },
+ "delta_deg": {
+  "thumb_yaw": -10.514969383875915,
+  "thumb_mcp": -4.193485480624096,
+  "thumb_pip": 9.267349933611468,
+  "index_yaw": -26.291394815823477,
+  "index_mcp": 18.36242488433991,
+  "index_pip": -45.83044738323785,
+  "middle_yaw": 53.7712774106835,
+  "middle_mcp": -4.9370569277733924,
+  "middle_pip": 63.68913223318872
+ },
+ "clipped": {
+  "thumb_yaw": false,
+  "thumb_mcp": false,
+  "thumb_pip": false,
+  "index_yaw": false,
+  "index_mcp": false,
+  "index_pip": true,
+  "middle_yaw": true,
+  "middle_mcp": false,
+  "middle_pip": true
+ },
+ "final_cos": 0.9678293669501022,
+ "final_contacts": 3,
+ "final_force_N": 6.328621833020783,
+ "turn_end_cos": 0.9929417229046608
+}

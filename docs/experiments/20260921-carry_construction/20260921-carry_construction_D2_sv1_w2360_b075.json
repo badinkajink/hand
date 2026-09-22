@@ -1,5 +1,5 @@
 {
- "plan": "docs/experiments/20260829-real_v1_deploy/deploy/sv1_w2360_b075_plan.json",
+ "source": "docs/experiments/20260829-real_v1_deploy/deploy/sv1_w2360_b075_plan.json",
  "design": "sv1_w2360",
  "did": "D2",
  "budget": 0.75,
