@@ -69,8 +69,8 @@
   "middle_mcp": false,
   "middle_pip": true
  },
- "final_cos": 0.9678293669501022,
+ "final_cos": 0.9979051229922151,
  "final_contacts": 3,
- "final_force_N": 6.328621833020783,
- "turn_end_cos": 0.9929417229046608
+ "final_force_N": 7.747028480233494,
+ "turn_end_cos": 0.8891280361351186
 }
