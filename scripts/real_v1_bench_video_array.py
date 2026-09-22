@@ -35,6 +35,10 @@ LABEL_PT, DEG_PT, CLOCK_PT = 30, 52, 20
 #: chip colour. Black boxes vanish into a greyscale IR frame; the ranking figures'
 #: bench blue (#1f4e79) lifted a step for the projector. White on it is 7.2:1.
 BOX = (36, 86, 160, 255)
+#: hold counts printed instead of the session's own. The workshop PDF (paper_iros26_rmr)
+#: gives D1 as 9/10: its 6/7 session plus the three scored holds of the 2026-09-01 re-run,
+#: which the corrected record keeps in the alignment pool only. The talk matches the PDF.
+HELD_AS_PUBLISHED = {"D1": "9/10"}
 
 
 def readings(run_tag):
@@ -74,7 +78,8 @@ def pick(B):
 
 class Panel:
     def __init__(self, dsg, run, nh, n, scale):
-        self.label = f"{DESIGN_ID[dsg]}   {nh}/{n} held"
+        did = DESIGN_ID[dsg]
+        self.label = f"{did}   {HELD_AS_PUBLISHED.get(did, f'{nh}/{n}')} held"
         self.run = run
         fs, self.ts = tape(run["tag"])
         raw = [np.asarray(Image.open(f).convert("L").crop(CROP), dtype=float) for f in fs]
