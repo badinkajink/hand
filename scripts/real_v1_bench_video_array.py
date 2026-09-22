@@ -28,7 +28,10 @@ from real_v1_filmstrip import CROP, LO_PCT, HI_PCT, _tone, tape         # noqa: 
 
 OUT = "docs/experiments/20260921-bench_video_array"
 TOL_S = 0.2                     # a detection this close to the instant is "the reading"
-FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+#: overlay type sizes in tape pixels (x scale): the hand label is a tenth of the panel
+#: height and the angle a sixth, so both read from the back of a room.
+LABEL_PT, DEG_PT, CLOCK_PT = 30, 52, 20
 
 
 def readings(run_tag):
@@ -100,14 +103,17 @@ def compose(panels, t, scale, fonts, clock, gutter):
     for i, P in enumerate(panels):
         im = P.frame_at(t).copy()
         dr = ImageDraw.Draw(im, "RGBA")
-        pad = 6 * scale
+        pad = 10 * scale
         # hand label, top-left
         _chip(dr, (pad, pad), P.label, f_lab, anchor="la", fill=(255, 255, 255, 255))
         # net turn, bottom-right
         turn = P.turn_at(t)
-        txt = "tag lost" if turn is None else f"{turn:+.0f}°"
-        _chip(dr, (W - pad, H - pad), txt, f_deg, anchor="rd",
-              fill=(221, 221, 221, 255) if turn is None else (255, 255, 255, 255))
+        if turn is None:        # at the angle's size "tag lost" would span the panel
+            _chip(dr, (W - pad, H - pad), "tag lost", f_lab, anchor="rd",
+                  fill=(221, 221, 221, 255))
+        else:
+            _chip(dr, (W - pad, H - pad), f"{turn:+.0f}°", f_deg, anchor="rd",
+                  fill=(255, 255, 255, 255))
         if clock:
             _chip(dr, (pad, H - pad), f"{t:.1f} s", f_clk, anchor="ld",
                   fill=(221, 221, 221, 255))
@@ -121,8 +127,8 @@ def _chip(dr, xy, text, font, anchor, fill):
     """White text on a translucent black box, the filmstrip's annotation style."""
     x, y = xy
     l, t, r, b = dr.textbbox((x, y), text, font=font, anchor=anchor)
-    m = font.size * 0.28
-    dr.rectangle((l - m, t - m, r + m, b + m), fill=(0, 0, 0, 170))
+    m = font.size * 0.22
+    dr.rectangle((l - m, t - m, r + m, b + m), fill=(0, 0, 0, 210))
     dr.text((x, y), text, font=font, fill=fill, anchor=anchor)
 
 
@@ -142,8 +148,7 @@ def main():
     B = bench(10)
     P = pick(B)
     panels = [Panel(dsg, *P[dsg], a.scale) for dsg in sorted(B, key=lambda d: DESIGN_ID[d])]
-    fonts = (ImageFont.truetype(FONT, 13 * a.scale), ImageFont.truetype(FONT, 22 * a.scale),
-             ImageFont.truetype(FONT, 12 * a.scale))
+    fonts = tuple(ImageFont.truetype(FONT, pt * a.scale) for pt in (LABEL_PT, DEG_PT, CLOCK_PT))
     gutter = 4 * a.scale
     t_end = max(p.t_end for p in panels)
     n = int(round(t_end * a.fps / a.speed)) + 1
