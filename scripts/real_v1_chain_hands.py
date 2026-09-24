@@ -288,18 +288,27 @@ PLANT = {
             "cone": "elliptic", "impratio": 10.0, "mu": 1.0},
     "cal25": {"kp": 0.25, "forcerange": 0.35, "frictionloss": 0.0035, "kv": 0.02,
               "cone": "elliptic", "impratio": 10.0, "mu": 1.0},
+    # `cal` keeps the template's joint damping 0.5, a ~1 s finger time constant at kp 0.5; the
+    # bench servo settles a free-air step within 0.13 s. `calfast` removes it (total damping =
+    # kv 0.02, tau 40 ms), which is what `fast` and `cal` were meant to be on 2026-09-16.
+    "calfast": {"kp": 0.5, "forcerange": 0.35, "frictionloss": 0.0035, "kv": 0.02, "damping": 0.0,
+                "cone": "elliptic", "impratio": 10.0, "mu": 1.0},
 }
 
 
 
-def plant_scene(arm: Path, plant: str) -> Path:
+def plant_scene(arm: Path, plant: str, damping: float | None = None) -> Path:
     """The arm scene for `plant`, rewritten and cached beside the shipped one: actuators via
-    apply_measured_plant, then (for `cal`) the contact model via real_v1_turn_probe.contact_variant."""
+    apply_measured_plant, then (for `cal`) the contact model via real_v1_turn_probe.contact_variant.
+    `damping` overrides the plant's finger joint damping."""
     spec = PLANT[plant]
     if spec is None:
         return arm
+    if damping is not None:
+        spec = dict(spec, damping=float(damping))
     kv = spec.get("kv", 0.6)
-    out = arm.with_name(f"{arm.stem}__kp{spec['kp']:g}" + (f"_kv{kv:g}" if kv != 0.6 else "") + ".xml")
+    out = arm.with_name(f"{arm.stem}__kp{spec['kp']:g}" + (f"_kv{kv:g}" if kv != 0.6 else "")
+                        + (f"_d{spec['damping']:g}" if spec.get("damping") is not None else "") + ".xml")
     out = _plant_scene_actuators(arm, spec, out)
     if "cone" in spec or "mu" in spec:
         from real_v1_turn_probe import contact_variant
@@ -313,7 +322,8 @@ def _plant_scene_actuators(arm: Path, spec: dict, out: Path) -> Path:
         p = subprocess.run([sys.executable, str(ROOT / "scripts/apply_measured_plant.py"),
                             "--scene", str(arm), "--out", str(out),
                             "--kp", str(spec["kp"]), "--forcerange", str(spec["forcerange"]),
-                            "--frictionloss", str(spec["frictionloss"]), "--kv", str(kv)],
+                            "--frictionloss", str(spec["frictionloss"]), "--kv", str(kv)]
+                           + (["--damping", str(spec["damping"])] if spec.get("damping") is not None else []),
                            capture_output=True, text=True)
         if p.returncode != 0:
             raise RuntimeError(f"apply_measured_plant failed on {arm}: {p.stderr[-400:]}")
