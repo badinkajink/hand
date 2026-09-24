@@ -29,6 +29,7 @@ PLANT_ROWS = [
     ("tool", "25 mm cylinder, 24.5 g", "+ screw-tip mesh, 25.6 g", "the chain&#8217;s tool and the real screwdriver carry it"),
     ("floor", "mjlab plane: &#956; 1 / 0.005 / 0.0001, solref 0.02, solimp 0.9&#8211;0.95", "the scene&#8217;s floor: &#956; 1.8 / 0.15 / 0.01, solref 0.006, solimp 0.97&#8211;0.995", "the tool lies on it through the closure and the start of the lift (<code>--scene-floor</code>)"),
     ("tool contact class", "MuJoCo defaults (solref 0.02, solimp 0.9&#8211;0.95); the pair with a pad averaged to 0.013 / 0.935", "the scene&#8217;s (0.006, 0.97&#8211;0.995), the same as the pads", "<code>make_object_spec_from_frozen</code> copied only type, size, mass and friction since the first mjlab run"),
+    ("finger joint damping", "0.5 N&#183;m&#183;s/rad (template)", "0.5, unchanged", "found 2026-09-23: at kp 0.5 it is a 1.04 s time constant, against a bench servo that tracks a 1.08 s trajectory to under 1&#176;; with it removed every policy here drops the tool in its turn (<a href=\"../20260923-chain_handover_gait/20260923-chain_handover_gait.html\">2026-09-23 page</a>)"),
 ]
 
 
@@ -52,8 +53,8 @@ DECISIONS = [
      "only hands generated from <code>assets/mjcf/real_v1/real_hand.xml</code> and exportable through the plan pipeline count; all eight were run on hardware (251 runs)", "measured"),
     ("Grasp", "chain-fitter anchor, <code>open_ik</code> keyframe, pads at or below the shaft equator, 10 mm commanded squeeze", "2026-08-27, 2026-09-16",
      "pads above the equator wedge the shaft out in 0.6 s of standing still (SLIP.md); at kp 0.5 a 2 mm squeeze lifts at 0.16&#8211;1.43 N, 10 mm at 2.5&#8211;4.5 N on 3&#8211;4 pads, which is what the exported plans carry", "measured"),
-    ("Finger plant", "kp 0.5, kv 0.02, forcerange 0.35 N&#183;m, frictionloss 0.0035, elliptic cone with impratio 10, pad &#956; 1.0, palm plate +25 mm", "2026-09-02, 2026-09-16",
-     "the shipped kp 30 predicts a +0.03&#176; deficit where the bench measures +11.7&#176;; the corrected plant drops 6 % of jittered trials against the bench&#8217;s 8 %", "measured (servo sysid, drop gate)"),
+    ("Finger plant", "kp 0.5, kv 0.02, forcerange 0.35 N&#183;m, frictionloss 0.0035, joint damping 0.5 (template), elliptic cone with impratio 10, pad &#956; 1.0, palm plate +25 mm", "2026-09-02, 2026-09-16",
+     "the shipped kp 30 predicts a +0.03&#176; deficit where the bench measures +11.7&#176;; the corrected plant drops 6 % of jittered trials against the bench&#8217;s 8 %. The joint damping was never changed: the finger time constant is 1.04 s, far slower than the bench servo", "kp measured (static); dynamics unmeasured"),
     ("Tool and floor", "screw-tip mesh (25.6 g), the scene&#8217;s floor and contact class inside mjlab", "2026-09-20",
      "the object entity had trained on MuJoCo&#8217;s default solref/solimp on mjlab&#8217;s plane since the first mjlab run; the chain and the bench carry the tip", "measured (this page)"),
     ("Control", "9 finger residuals on a set-point that eases (quadratic ease-out) from the open keyframe to the grip anchor over 80 sim steps; residual = 0.5 rad &#215; action, action clipped to &#177;2", "scale 0.5: 2026-07; clip 2.0: 2026-09-19",
@@ -336,106 +337,6 @@ def main():
                                     f'{cs.get("cycles_run", 0)} gait cycles commanded, {cs.get("turns", 0):+.3f} screw turns, final tilt {cs.get("final_tilt_deg", float("nan")):.1f}&#176;.</figcaption></figure>')
     chain_videos_html = "\n".join(chain_videos) if chain_videos else "<p>No chain film yet (the driver runs the chain without <code>--video</code>; films are rendered by hand for the policies that hold).</p>"
 
-    # --- the seat aim: seat_aim/<id>_pl25_tip.json (real_v1_chain_policy.py --seat-aim tip, by hand) against the
-    # driver's centre-aimed plate-25 run of the same policy; films seat_aim/videos/<id>_pl25_tip.mp4
-    SA = os.path.join(R, "seat_aim")
-    sa_rows, sa_videos = [], []
-    def sa_cell(c, name):
-        v = (c.get("seams") or {}).get(name)
-        if not v:
-            return "&#8211;"
-        return f"{v['tilt_deg']:.1f}&#176; / {v['z'] * 1000:.1f} / {v['pad_contacts']}"
-    for j in done:
-        tp = os.path.join(SA, f"{j['id']}_pl25_tip.json")
-        if not os.path.exists(tp):
-            continue
-        for label, cp in (("centre", os.path.join(R, f"{j['id']}_chain_pl25.json")), ("tip", tp)):
-            if not os.path.exists(cp):
-                continue
-            c = json.load(open(cp)); cs = c.get("chain_scalars", {}); ok = bool(c.get("ok"))
-            sa_rows.append([j["hand"], ARM_LABEL.get(j["arm"], j["arm"]), label, sa_cell(c, "staged"), sa_cell(c, "set_down"), sa_cell(c, "seated"),
-                            sa_cell(c, "handover_grip"), sa_cell(c, "gaited"),
-                            f1(cs.get("apex_seat_offset_mm"), "{:.1f}") if label == "tip" else "&#8211;",
-                            (f"stood, held through {cs.get('cycles_run', 0)} cycles at {cs.get('turns', 0):+.2f} turns" if ok
-                             else ", ".join(k for k, f in (("carried", "carry_ok"), ("stood", "stood_ok"), ("gripped", "grip_ok")) if cs.get(f)) or "lost",
-                             "cell c4" if ok else ("cell c2" if cs.get("stood_ok") else "cell c0"))])
-        src_v, web_v = os.path.join(SA, "videos", f"{j['id']}_pl25_tip.mp4"), os.path.join(R, "web", f"{j['id']}_chain_pl25_tip.mp4")
-        if os.path.exists(src_v) and not os.path.exists(web_v):
-            subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", src_v, "-vf", "scale=640:480", "-c:v", "libx264", "-crf", "28",
-                            "-preset", "medium", "-pix_fmt", "yuv420p", "-movflags", "+faststart", "-an", web_v], stdin=subprocess.DEVNULL)
-        if os.path.exists(web_v):
-            c = json.load(open(tp)); cs = c.get("chain_scalars", {})
-            sa_videos.append(f'<figure><video controls muted loop playsinline preload="metadata" width="640" height="480" src="web/{j["id"]}_chain_pl25_tip.mp4"></video>'
-                             f'<figcaption>{j["hand"]}, {ARM_LABEL.get(j["arm"], j["arm"])}, plate 25 mm, tip-aimed set-down: the same policy and turn as above, '
-                             f'then the apex carried over the socket, lowered into it at {(c.get("seams") or {}).get("set_down", {}).get("tilt_deg", float("nan")):.1f}&#176;, '
-                             f'stood up about the seated tip to {(c.get("seams") or {}).get("seated", {}).get("tilt_deg", float("nan")):.1f}&#176;, relay handover, gait. '
-                             f'Outcome: {"stood and held" if c.get("ok") else "lost"}; {cs.get("cycles_run", 0)} cycles, {cs.get("turns", 0):+.3f} screw turns, '
-                             f'final tilt {cs.get("final_tilt_deg", float("nan")):.1f}&#176;, apex {f1(cs.get("apex_seat_offset_mm"), "{:.1f}")} mm from the socket centre.</figcaption></figure>')
-    table_seat_aim = table(["hand", "arm", "aim", "staged: tilt / z (mm) / pads", "set down", "seated", "handover grip", "gaited", "apex off (mm)", "outcome"],
-                           sa_rows) if sa_rows else "<p>No tip-aimed run yet.</p>"
-    seat_aim_videos_html = "\n".join(sa_videos) if sa_videos else ""
-
-    # --- the handover and gait after the seat: every seat_aim/<id>_pl25_tip*.json configuration (angle loop,
-    # command reference, handover mode), read off the filename suffix
-    import re as _re
-    def cfg_label(suffix):
-        parts = []
-        if "_rgachieved" in suffix:
-            mm = _re.search(r"_cs(\d+)", suffix); parts.append(f"regrip from achieved ({mm.group(1) if mm else '?'} mm) after the turn")
-        pr = _re.search(r"_pr(\d+)", suffix)
-        if pr and pr.group(1) != "0":
-            parts.append(f"re-reference from achieved ({pr.group(1)} mm) at the press")
-        if "_slide" in suffix:
-            parts.append("slide handover")
-        ag = _re.search(r"_ag(\d+)", suffix)
-        if ag and ag.group(1) != "0":
-            parts.append(f"angle loop gain {ag.group(1)}")
-        return "; ".join(parts) if parts else "tip aim only (relay handover, command-referenced)"
-    def sv(c, ph, key, f=None):
-        v = ((c.get("seams") or {}).get(ph) or {}).get(key)
-        if v is None or f is None:
-            return v
-        return v.get(f) if isinstance(v, dict) else v
-    def fmt3(c, ph, key):
-        v = ((c.get("seams") or {}).get(ph) or {}).get(key)
-        return "&#8211;" if not isinstance(v, dict) else " / ".join(f"{v[k]:.0f}" for k in ("thumb", "index", "middle"))
-    hg_rows, hg_video = [], []
-    for j in done:
-        paths = sorted(glob.glob(os.path.join(SA, f"{j['id']}_pl25_tip*.json")))
-        paths = [pq for pq in paths if not pq.endswith("_video.json")]
-        for pq in paths:
-            c = json.load(open(pq)); cs = c.get("chain_scalars", {}); ok = bool(c.get("ok"))
-            suffix = os.path.basename(pq)[len(j["id"]) + len("_pl25_tip"):-len(".json")]
-            has_servo = sv(c, "pressed", "sp_err_deg") is not None
-            start = "re_referenced" if "re_referenced" in (c.get("seams") or {}) else "pressed"
-            pc = c.get("per_cycle") or []
-            gains = ", ".join(f"{x.get('gain_deg', 0):+.1f}" for x in pc[:4]) + (" &#8230;" if len(pc) > 4 else "")
-            hg = (c.get("seams") or {}).get("handover_grip") or {}; gd = (c.get("seams") or {}).get("gaited") or {}
-            hg_rows.append([j["hand"], ARM_LABEL.get(j["arm"], j["arm"]), cfg_label(suffix),
-                            (f"{fmt3(c, start, 'sp_err_deg')} | {fmt3(c, start, 'sat')}" if has_servo else "&#8211;"),
-                            (f"{fmt3(c, 'handover_index', 'sp_err_deg')} | {fmt3(c, 'handover_index', 'sat')}" if has_servo else "&#8211;"),
-                            f"{hg.get('tilt_deg', float('nan')):.1f}&#176; / {hg.get('pad_contacts', 0)} / {hg.get('pad_force_N', 0):.1f}" if hg else "&#8211;",
-                            f"{gd.get('tilt_deg', float('nan')):.1f}&#176; / {gd.get('pad_contacts', 0)} / {gd.get('pad_force_N', 0):.1f}" if gd else "&#8211;",
-                            (gains or "&#8211;") if cs.get("stood_ok") else "&#8211;",
-                            ((f"{cs.get('turns', 0):+.3f}", "cell c4" if abs(cs.get("turns", 0)) >= 0.05 else "") if cs.get("stood_ok") else "&#8211;"),
-                            ("held" if ok else ("stood" if cs.get("stood_ok") else "lost"), "cell c4" if ok else ("cell c2" if cs.get("stood_ok") else "cell c0"))])
-    table_handover = table(["hand", "arm", "configuration", "#set-point error at the start th / ix / md (&#176;) | actuators on the ceiling",
-                            "#index at handover_index: error (&#176;) | ceiling", "handover grip: tilt / pads / N", "gaited: tilt / pads / N",
-                            "gain per cycle (&#176;)", "turns / 8 cycles", "outcome"], hg_rows) if hg_rows else "<p>No handover run yet.</p>"
-    src_v, web_v = os.path.join(SA, "videos", "r_d6_clip_pl25_tip_rgachieved_cs10_ag2.mp4"), os.path.join(R, "web", "r_d6_clip_chain_pl25_tip_rg10_ag2.mp4")
-    if os.path.exists(src_v) and not os.path.exists(web_v):
-        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", src_v, "-vf", "scale=640:480", "-c:v", "libx264", "-crf", "28",
-                        "-preset", "medium", "-pix_fmt", "yuv420p", "-movflags", "+faststart", "-an", web_v], stdin=subprocess.DEVNULL)
-    handover_video_html = ""
-    if os.path.exists(web_v):
-        cq = os.path.join(SA, "r_d6_clip_pl25_tip_rgachieved_cs10_ag2.json")
-        c = json.load(open(cq)) if os.path.exists(cq) else {}; cs = c.get("chain_scalars", {})
-        handover_video_html = (f'<figure><video controls muted loop playsinline preload="metadata" width="640" height="480" src="web/r_d6_clip_chain_pl25_tip_rg10_ag2.mp4"></video>'
-                               f'<figcaption>D6, clip, plate 25 mm, tip-aimed set-down, regrip from the achieved angles (10 mm) after the turn, '
-                               f'angle loop gain 2 from the press: the gait turns the screw {cs.get("turns", 0):+.3f} turns in 8 cycles '
-                               f'(the first non-zero turn on the calibrated plant), final tilt {cs.get("final_tilt_deg", float("nan")):.1f}&#176;, '
-                               f'{((c.get("seams") or {}).get("gaited") or {}).get("pad_force_N", 0):.1f} N on the pads at the end.</figcaption></figure>')
-
     # --- strips + videos (web/<id>.mp4 transcoded from videos/<id>.mp4 if missing)
     strips = []
     os.makedirs(os.path.join(R, "web"), exist_ok=True)
@@ -467,16 +368,19 @@ def main():
         curves_html = f'<figure><img src="{uri(png)}" alt="training curves"><figcaption>Per-iteration alignment reward, tip-lost termination share, object height and grip excess for every finished job (10-iteration moving mean).</figcaption></figure>'
 
     n_done = len(done)
-    lede = (f"{n_done} of {len(jobs)} continuation jobs have finished. " +
-            (("Jittered hold (64 rollouts at &#177;3 mm / &#177;10&#176; with friction DR), continued against parent: " +
-              "; ".join(f"{h} {c} against {p}" for h, a_, p, c, pc, cc in reading_bits) + ". ") if reading_bits else "") +
-            ("Chain at plate 25 mm, held by: " + (", ".join(j["hand"] + ("" if j["arm"] == "clip" else " (separation)") for j in done
-                                                          if chain_cell(os.path.join(R, f"{j['id']}_chain_pl25.json"))[1].endswith("c4")) or "none") + "."))
+    failed = [j for j in jobs if res.get(j["id"], {}).get("status") == "failed" or j.get("status") == "failed"]
+    rank = sorted(reading_bits, key=lambda b: -b[3])
+    lede = (f"{n_done} of {len(jobs)} continuation jobs trained"
+            + (f" ({', '.join(sorted(set(j['hand'] for j in failed)))} stopped on NaN observations)" if failed else "") + ". "
+            + ("Under &#177;3 mm / &#177;10&#176; spawn jitter with friction DR the continued policies hold the tool in "
+               + ", ".join(f"{h}{'' if a_ == 'clip' else ' + separation'} {c}" for h, a_, p, c, pc, cc in rank)
+               + " of 64 rollouts. " if rank else "")
+            + "Every policy here trained on a plant whose finger joints carry the template&#8217;s 0.5 N&#183;m&#183;s/rad of "
+              "damping, a 1&#8202;s time constant; the chain after the turn and that plant defect are on the 2026-09-23 page.")
     sub = {"LEDE": lede, "TABLE_PLANT": table(["", "2026-09-19 tranche", "here", "why"], [list(r) for r in PLANT_ROWS]),
            "TABLE_MAIN": table_main, "READING": reading, "TABLE_PLAUS": table_plaus, "TABLE_CHAIN": table_chain,
            "STRIPS": strips_html, "TABLE_SEAMS": table_seams, "CHAIN_VIDEOS": chain_videos_html,
-           "TABLE_SEAT_AIM": table_seat_aim, "SEAT_AIM_VIDEOS": seat_aim_videos_html,
-           "TABLE_HANDOVER": table_handover, "HANDOVER_VIDEO": handover_video_html, "CURVES": curves_html, "N_JOBS": str(len(jobs)), "N_DONE": str(n_done),
+ "CURVES": curves_html, "N_JOBS": str(len(jobs)), "N_DONE": str(n_done),
            "BUILT": time.strftime("%Y-%m-%d %H:%M")}
     sub.update(pipeline_blocks(res[done[0]["id"]]["run"], q.get("common_flags", ())) if done and res[done[0]["id"]].get("run") else
                {k: "<p>No finished run yet.</p>" for k in ("TIMELINE", "TABLE_OBS", "ACTION_NOTE", "TABLE_REWARD", "REWARD_NOTE", "TABLE_TERM", "TABLE_PPO", "TABLE_DECISIONS", "TABLE_EVAL")})

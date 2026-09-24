@@ -1353,12 +1353,26 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         worst, per = 0.0, [0.0] * len(radii)
         for f, joints in FINGERS.items():
             qadr = [mikr.jnt_qposadr[mikr.joint(j).id] for j in joints]
+            q_key = np.array([float(dikr.qpos[q]) for q in qadr])
             for ri, r in enumerate(radii):
                 for pi, phi in enumerate(phis_):
                     a = az[f] + phi
                     tgt = np.array([centre_xy[0] + r * np.cos(a),
                                     centre_xy[1] + r * np.sin(a), z_r])
-                    res = ik_finger(mikr, dikr, f, tgt, iters=200)
+                    if pi == 0:
+                        # the first entry of each radius from two seeds, the keyframe and the last
+                        # solve (a sequential warm start alone left D6's approach ring 10 mm short)
+                        q_prev = np.array([float(dikr.qpos[q]) for q in qadr])
+                        best_q, res = None, float("inf")
+                        for q0 in (q_key, q_prev):
+                            dikr.qpos[qadr] = q0
+                            rr = ik_finger(mikr, dikr, f, tgt, iters=200)
+                            if rr < res:
+                                res, best_q = rr, np.array([float(dikr.qpos[q]) for q in qadr])
+                        dikr.qpos[qadr] = best_q
+                        mujoco.mj_forward(mikr, dikr)
+                    else:
+                        res = ik_finger(mikr, dikr, f, tgt, iters=200)
                     worst = max(worst, res)
                     per[ri] = max(per[ri], res)
                     tbl[f][ri, pi] = [float(dikr.qpos[q]) for q in qadr]
@@ -1838,6 +1852,7 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         "ring_ik_mm": round(ik_res * 1000, 2),
         "ring_ik_grip_mm": round(per_r[0] * 1000, 2),
         "ring_ik_open_mm": round(per_r[1] * 1000, 2),
+        "ring_ik_approach_mm": round(per_r[2] * 1000, 2) if len(per_r) > 2 else None,
         "pad_radius": round(pad_r, 6), "gear_ratio": round(gear, 4),
         "wrist": palm.kind,
         "arm_ik_pos_mm": round(getattr(palm, "worst_pos", 0.0) * 1000, 3),
