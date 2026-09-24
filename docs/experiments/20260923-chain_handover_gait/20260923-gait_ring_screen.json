@@ -1,6 +1,6 @@
 {
  "args": {
-  "hands": "D5",
+  "hands": "D1,D2,D3,D5,D6,D7",
   "squeeze": 2.0,
   "release": 6.0,
   "stroke": 30.0,
@@ -10,7 +10,7 @@
   "link_tol": 1.0,
   "refine": 6,
   "iters": 40,
-  "out": "/tmp/claude-1001/-home-humanoid-Programs-hand/e8fe66c6-3118-4108-b6ce-8d68fafbfacb/scratchpad/ring_D5.json"
+  "out": "docs/experiments/20260923-chain_handover_gait/20260923-gait_ring_screen.json"
  },
  "hands": {
   "D1": {
@@ -1039,5 +1039,6 @@
    ],
    "stroke_deg": 30.0
   }
- }
+ },
+ "command": "python3 scripts/real_v1_gait_ring_screen.py --hands <hand> --out <file>, one process per hand, merged"
 }
