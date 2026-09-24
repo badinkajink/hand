@@ -1,0 +1,824 @@
+{
+ "hand": "D7",
+ "tag": "rv05_manual_b85",
+ "policy": "None",
+ "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/20260904-chain_bothsets/rv05_manual_b85_sq14_arm__kp0.5_kv0.02_d0__c_elliptic_ir10_mu1__plate25.xml",
+ "squeeze_mm": 14.0,
+ "plant": "calfast",
+ "turn_steps": 550,
+ "stand": "air",
+ "stages": "chain",
+ "arm_kp_scale": 10.0,
+ "chain_overrides": {
+  "angle_deg": 0,
+  "seat_aim": "tip",
+  "press_regrip": 0.01,
+  "reindex": "over",
+  "twist_steps": 250,
+  "move_steps": 150,
+  "grip_settle_steps": 500,
+  "squeeze": 0.005,
+  "angle_gain": 2,
+  "angle_from": "gait"
+ },
+ "finger_damping": null,
+ "finger_gravcomp": 0.0,
+ "seams": {
+  "lifted": {
+   "t": 1.3,
+   "cos": 0.0028,
+   "tilt_deg": 89.84,
+   "z": 0.1126,
+   "pad_contacts": 4,
+   "pad_force_N": 4.19,
+   "roll_deg": 0.64,
+   "slide_mm": 0.4,
+   "hand_contacts": 4,
+   "q_err_deg": {
+    "thumb": 13.3,
+    "index": 8.0,
+    "middle": 5.0
+   },
+   "sat": {
+    "thumb": 0,
+    "index": 0,
+    "middle": 0
+   },
+   "sp_err_deg": {
+    "thumb": 13.3,
+    "index": 8.0,
+    "middle": 5.0
+   },
+   "trim_deg": {
+    "thumb": 0.0,
+    "index": 0.0,
+    "middle": 0.0
+   },
+   "apex_off_mm": 83.5,
+   "ground_contacts": 0,
+   "xy_mm": [
+    -3.5,
+    -0.2
+   ],
+   "palm_tilt_deg": 0.0,
+   "palm_z": 0.1785
+  },
+  "turned": {
+   "t": 2.4,
+   "cos": 0.0009,
+   "tilt_deg": 89.95,
+   "z": 0.1126,
+   "pad_contacts": 4,
+   "pad_force_N": 4.19,
+   "roll_deg": 0.84,
+   "slide_mm": 0.5,
+   "hand_contacts": 4,
+   "q_err_deg": {
+    "thumb": 13.4,
+    "index": 7.9,
+    "middle": 5.0
+   },
+   "sat": {
+    "thumb": 0,
+    "index": 0,
+    "middle": 0
+   },
+   "sp_err_deg": {
+    "thumb": 13.4,
+    "index": 7.9,
+    "middle": 5.0
+   },
+   "trim_deg": {
+    "thumb": 0.0,
+    "index": 0.0,
+    "middle": 0.0
+   },
+   "apex_off_mm": 83.5,
+   "ground_contacts": 0,
+   "xy_mm": [
+    -3.6,
+    -0.3
+   ],
+   "palm_tilt_deg": 0.0,
+   "palm_z": 0.1785
+  },
+  "reoriented": {
+   "t": 3.0,
+   "cos": -0.0002,
+   "tilt_deg": 90.01,
+   "z": 0.1125,
+   "pad_contacts": 4,
+   "pad_force_N": 4.19,
+   "roll_deg": 0.91,
+   "slide_mm": 0.5,
+   "hand_contacts": 4,
+   "q_err_deg": {
+    "thumb": 13.4,
+    "index": 7.9,
+    "middle": 5.0
+   },
+   "sat": {
+    "thumb": 0,
+    "index": 0,
+    "middle": 0
+   },
+   "sp_err_deg": {
+    "thumb": 13.4,
+    "index": 7.9,
+    "middle": 5.0
+   },
+   "trim_deg": {
+    "thumb": 0.0,
+    "index": 0.0,
+    "middle": 0.0
+   },
+   "apex_off_mm": 83.5,
+   "ground_contacts": 0,
+   "xy_mm": [
+    -3.6,
+    -0.3
+   ],
+   "palm_tilt_deg": 0.0,
+   "palm_z": 0.1785
+  },
+  "regripped": {
+   "t": 3.6,
+   "cos": -0.0013,
+   "tilt_deg": 90.07,
+   "z": 0.1125,
+   "pad_contacts": 4,
+   "pad_force_N": 4.25,
+   "roll_deg": 0.99,
+   "slide_mm": 0.5,
+   "hand_contacts": 4,
+   "q_err_deg": {
+    "thumb": 13.6,
+    "index": 8.0,
+    "middle": 5.1
+   },
+   "sat": {
+    "thumb": 0,
+    "index": 0,
+    "middle": 0
+   },
+   "sp_err_deg": {
+    "thumb": 13.6,
+    "index": 8.0,
+    "middle": 5.1
+   },
+   "trim_deg": {
+    "thumb": 0.0,
+    "index": 0.0,
+    "middle": 0.0
+   },
+   "apex_off_mm": 83.5,
+   "ground_contacts": 0,
+   "xy_mm": [
+    -3.6,
+    -0.3
+   ],
+   "palm_tilt_deg": 0.0,
+   "palm_z": 0.1785
+  },
+  "staged": {
+   "t": 4.4,
+   "cos": -0.8511,
+   "tilt_deg": 148.33,
+   "z": 0.049,
+   "pad_contacts": 0,
+   "pad_force_N": 0.0,
+   "roll_deg": 161.32,
+   "slide_mm": 43.5,
+   "hand_contacts": 2,
+   "q_err_deg": {
+    "thumb": 5.9,
+    "index": 12.2,
+    "middle": 3.5
+   },
+   "sat": {
+    "thumb": 0,
+    "index": 0,
+    "middle": 0
+   },
+   "sp_err_deg": {
+    "thumb": 5.9,
+    "index": 12.2,
+    "middle": 3.5
+   },
+   "trim_deg": {
+    "thumb": 0.0,
+    "index": 0.0,
+    "middle": 0.0
+   },
+   "apex_off_mm": 128.1,
+   "ground_contacts": 2,
+   "xy_mm": [
+    -55.2,
+    7.3
+   ],
+   "palm_tilt_deg": 68.0,
+   "palm_z": 0.0747
+  },
+  "set_down": {
+   "t": 5.4,
+   "cos": -0.9511,
+   "tilt_deg": 162.0,
+   "z": 0.0514,
+   "pad_contacts": 1,
+   "pad_force_N": 0.06,
+   "roll_deg": 151.18,
+   "slide_mm": 51.3,
+   "hand_contacts": 2,
+   "q_err_deg": {
+    "thumb": 2.7,
+    "index": 2.9,
+    "middle": 3.0
+   },
+   "sat": {
+    "thumb": 0,
+    "index": 0,
+    "middle": 0
+   },
+   "sp_err_deg": {
+    "thumb": 2.7,
+    "index": 2.9,
+    "middle": 3.0
+   },
+   "trim_deg": {
+    "thumb": 0.0,
+    "index": 0.0,
+    "middle": 0.0
+   },
+   "apex_off_mm": 75.9,
+   "ground_contacts": 1,
+   "xy_mm": [
+    -20.4,
+    56.9
+   ],
+   "palm_tilt_deg": 65.4,
+   "palm_z": 0.0975
+  },
+  "seated": {
+   "t": 6.2,
+   "cos": 0.1368,
+   "tilt_deg": 82.14,
+   "z": 0.0149,
+   "pad_contacts": 0,
+   "pad_force_N": 0.0,
+   "roll_deg": 117.16,
+   "slide_mm": 140.9,
+   "hand_contacts": 0,
+   "q_err_deg": {
+    "thumb": 0.5,
+    "index": 1.3,
+    "middle": 2.1
+   },
+   "sat": {
+    "thumb": 0,
+    "index": 0,
+    "middle": 0
+   },
+   "sp_err_deg": {
+    "thumb": 0.5,
+    "index": 1.3,
+    "middle": 2.1
+   },
+   "trim_deg": {
+    "thumb": 0.0,
+    "index": 0.0,
+    "middle": 0.0
+   },
+   "apex_off_mm": 190.9,
+   "ground_contacts": 1,
+   "xy_mm": [
+    45.2,
+    123.6
+   ],
+   "palm_tilt_deg": 26.3,
+   "palm_z": 0.1253
+  },
+  "pressed": {
+   "t": 7.6,
+   "cos": 0.0331,
+   "tilt_deg": 88.1,
+   "z": 0.0124,
+   "pad_contacts": 0,
+   "pad_force_N": 0.0,
+   "roll_deg": 56.79,
+   "slide_mm": 201.2,
+   "hand_contacts": 0,
+   "q_err_deg": {
+    "thumb": 0.7,
+    "index": 1.3,
+    "middle": 1.8
+   },
+   "sat": {
+    "thumb": 0,
+    "index": 0,
+    "middle": 0
+   },
+   "sp_err_deg": {
+    "thumb": 0.7,
+    "index": 1.3,
+    "middle": 1.8
+   },
+   "trim_deg": {
+    "thumb": 0.0,
+    "index": 0.0,
+    "middle": 0.0
+   },
+   "apex_off_mm": 205.3,
+   "ground_contacts": 1,
+   "xy_mm": [
+    160.1,
+    83.2
+   ],
+   "palm_tilt_deg": 26.3,
+   "palm_z": 0.1153
+  },
+  "re_referenced": {
+   "t": 8.0,
+   "cos": -0.0,
+   "tilt_deg": 90.0,
+   "z": -0.024,
+   "pad_contacts": 0,
+   "pad_force_N": 0.0,
+   "roll_deg": 23.83,
+   "slide_mm": 284.4,
+   "hand_contacts": 0,
+   "q_err_deg": {
+    "thumb": 0.7,
+    "index": 1.2,
+    "middle": 1.4
+   },
+   "sat": {
+    "thumb": 0,
+    "index": 0,
+    "middle": 0
+   },
+   "sp_err_deg": {
+    "thumb": 0.7,
+    "index": 1.2,
+    "middle": 1.4
+   },
+   "trim_deg": {
+    "thumb": 0.0,
+    "index": 0.0,
+    "middle": 0.0
+   },
+   "apex_off_mm": 252.0,
+   "ground_contacts": 3,
+   "xy_mm": [
+    247.8,
+    47.5
+   ],
+   "palm_tilt_deg": 26.3,
+   "palm_z": 0.1153
+  },
+  "released": {
+   "t": 9.1,
+   "cos": -0.0001,
+   "tilt_deg": 90.0,
+   "z": -0.024,
+   "pad_contacts": 0,
+   "pad_force_N": 0.0,
+   "roll_deg": 66.78,
+   "slide_mm": 641.7,
+   "hand_contacts": 0,
+   "q_err_deg": {
+    "thumb": 3.1,
+    "index": 10.4,
+    "middle": 0.3
+   },
+   "sat": {
+    "thumb": 0,
+    "index": 0,
+    "middle": 0
+   },
+   "sp_err_deg": {
+    "thumb": 3.1,
+    "index": 10.4,
+    "middle": 0.3
+   },
+   "trim_deg": {
+    "thumb": 0.0,
+    "index": 0.0,
+    "middle": 0.0
+   },
+   "apex_off_mm": 584.8,
+   "ground_contacts": 1,
+   "xy_mm": [
+    608.9,
+    -50.1
+   ],
+   "palm_tilt_deg": 26.3,
+   "palm_z": 0.1303
+  },
+  "cleared": {
+   "t": 9.732,
+   "cos": -0.0,
+   "tilt_deg": 90.0,
+   "z": -0.024,
+   "pad_contacts": 0,
+   "pad_force_N": 0.0,
+   "roll_deg": 107.43,
+   "slide_mm": 832.6,
+   "hand_contacts": 0,
+   "q_err_deg": {
+    "thumb": 3.1,
+    "index": 10.4,
+    "middle": 0.5
+   },
+   "sat": {
+    "thumb": 0,
+    "index": 0,
+    "middle": 0
+   },
+   "sp_err_deg": {
+    "thumb": 3.1,
+    "index": 10.4,
+    "middle": 0.5
+   },
+   "trim_deg": {
+    "thumb": 0.0,
+    "index": 0.0,
+    "middle": 0.0
+   },
+   "apex_off_mm": 773.0,
+   "ground_contacts": 2,
+   "xy_mm": [
+    796.8,
+    -100.6
+   ],
+   "palm_tilt_deg": 26.3,
+   "palm_z": 0.1303
+  },
+  "over": {
+   "t": 10.364,
+   "cos": -0.0,
+   "tilt_deg": 90.0,
+   "z": -0.024,
+   "pad_contacts": 0,
+   "pad_force_N": 0.0,
+   "roll_deg": 103.96,
+   "slide_mm": 813.7,
+   "hand_contacts": 0,
+   "q_err_deg": {
+    "thumb": 3.4,
+    "index": 10.4,
+    "middle": 2.0
+   },
+   "sat": {
+    "thumb": 0,
+    "index": 0,
+    "middle": 0
+   },
+   "sp_err_deg": {
+    "thumb": 3.4,
+    "index": 10.4,
+    "middle": 2.0
+   },
+   "trim_deg": {
+    "thumb": 0.0,
+    "index": 0.0,
+    "middle": 0.0
+   },
+   "apex_off_mm": 953.5,
+   "ground_contacts": 2,
+   "xy_mm": [
+    974.7,
+    -148.3
+   ],
+   "palm_tilt_deg": 0.1,
+   "palm_z": 0.1211
+  },
+  "reindexed": {
+   "t": 15.496,
+   "cos": -0.0001,
+   "tilt_deg": 90.0,
+   "z": -0.024,
+   "pad_contacts": 0,
+   "pad_force_N": 0.0,
+   "roll_deg": 25.8,
+   "slide_mm": 1674.2,
+   "hand_contacts": 0,
+   "q_err_deg": {
+    "thumb": 2.9,
+    "index": 3.2,
+    "middle": 2.7
+   },
+   "sat": {
+    "thumb": 0,
+    "index": 0,
+    "middle": 0
+   },
+   "sp_err_deg": {
+    "thumb": 2.9,
+    "index": 3.2,
+    "middle": 2.7
+   },
+   "trim_deg": {
+    "thumb": 0.0,
+    "index": 0.0,
+    "middle": 0.0
+   },
+   "apex_off_mm": 1827.6,
+   "ground_contacts": 2,
+   "xy_mm": [
+    1826.7,
+    -374.2
+   ],
+   "palm_tilt_deg": 0.2,
+   "palm_z": 0.0383
+  },
+  "gait_grip": {
+   "t": 17.096,
+   "cos": -0.0,
+   "tilt_deg": 90.0,
+   "z": -0.024,
+   "pad_contacts": 0,
+   "pad_force_N": 0.0,
+   "roll_deg": 85.23,
+   "slide_mm": 1817.4,
+   "hand_contacts": 0,
+   "q_err_deg": {
+    "thumb": 2.3,
+    "index": 3.1,
+    "middle": 1.7
+   },
+   "sat": {
+    "thumb": 0,
+    "index": 0,
+    "middle": 0
+   },
+   "sp_err_deg": {
+    "thumb": 2.3,
+    "index": 3.1,
+    "middle": 1.7
+   },
+   "trim_deg": {
+    "thumb": 0.0,
+    "index": 0.0,
+    "middle": 0.0
+   },
+   "apex_off_mm": 1970.3,
+   "ground_contacts": 2,
+   "xy_mm": [
+    1965.2,
+    -410.5
+   ],
+   "palm_tilt_deg": 0.2,
+   "palm_z": 0.0383
+  },
+  "gaited": {
+   "t": 20.596,
+   "cos": -0.0,
+   "tilt_deg": 90.0,
+   "z": -0.024,
+   "pad_contacts": 0,
+   "pad_force_N": 0.0,
+   "roll_deg": 46.47,
+   "slide_mm": 2061.7,
+   "hand_contacts": 0,
+   "q_err_deg": {
+    "thumb": 2.4,
+    "index": 3.4,
+    "middle": 2.0
+   },
+   "sat": {
+    "thumb": 0,
+    "index": 0,
+    "middle": 0
+   },
+   "sp_err_deg": {
+    "thumb": 0.8,
+    "index": 1.1,
+    "middle": 0.7
+   },
+   "trim_deg": {
+    "thumb": 1.6,
+    "index": 2.3,
+    "middle": 1.4
+   },
+   "apex_off_mm": 2213.9,
+   "ground_contacts": 3,
+   "xy_mm": [
+    2201.6,
+    -472.5
+   ],
+   "palm_tilt_deg": 0.2,
+   "palm_z": 0.0383
+  }
+ },
+ "held_turn": true,
+ "ok": false,
+ "cycles": null,
+ "reorient_deg": -58.33,
+ "per_cycle": [
+  {
+   "cycle": 1,
+   "spin_deg": -1119.86,
+   "gain_deg": -1119.86,
+   "tilt_deg": 90.0,
+   "z": -0.024,
+   "drift_mm": 244.32,
+   "hand_contacts": 0,
+   "hand_force_N": 0.0,
+   "pad_contacts": 0,
+   "pad_force_N": 0.0,
+   "ground_contacts": 3,
+   "ground_force_N": 0.249,
+   "phases": [
+    [
+     "twist",
+     -186.4,
+     0
+    ],
+    [
+     "release_thumb",
+     -294.0,
+     0
+    ],
+    [
+     "return_thumb",
+     -398.2,
+     0
+    ],
+    [
+     "regrasp_thumb",
+     -499.2,
+     0
+    ],
+    [
+     "release_index",
+     -597.4,
+     0
+    ],
+    [
+     "return_index",
+     -692.5,
+     0
+    ],
+    [
+     "regrasp_index",
+     -784.2,
+     0
+    ],
+    [
+     "release_middle",
+     -872.7,
+     0
+    ],
+    [
+     "return_middle",
+     -958.0,
+     0
+    ],
+    [
+     "regrasp_middle",
+     -1040.5,
+     0
+    ]
+   ]
+  }
+ ],
+ "policy_trace": [],
+ "arm_tracking": [],
+ "obs_at_active": null,
+ "shadow_steps": 0,
+ "turn_step0": 650,
+ "chain_keys": [
+  "airgrip",
+  "angle_deg",
+  "angle_from",
+  "angle_gain",
+  "angle_rate",
+  "apex_seat_offset_mm",
+  "approach_mm",
+  "arm_ik_fails",
+  "arm_ik_pos_mm",
+  "arm_ik_rot_deg",
+  "axis_k",
+  "brake_pumped",
+  "carry_ik_residual_mm",
+  "carry_ok",
+  "carry_squeeze_mm",
+  "centre_x",
+  "cycles_asked",
+  "cycles_run",
+  "descend_iters",
+  "descend_steps",
+  "drift_mm",
+  "drop_stage",
+  "final_tilt_deg",
+  "final_z",
+  "force_target",
+  "free_frac",
+  "gain_mean_deg",
+  "gain_sd_deg",
+  "gait_depth_mm",
+  "gap_mm",
+  "gear_ratio",
+  "grip_depth",
+  "grip_ok",
+  "ground_contacts",
+  "ground_force_N",
+  "ground_frac",
+  "hand_contacts",
+  "hand_force_N",
+  "held_reorient",
+  "hold_steps"
+ ],
+ "chain_scalars": {
+  "palm_move_mm": 224.19,
+  "palm_move_deg": 26.54,
+  "track_frac": 1.0,
+  "relay_squeeze_mm": 1.5,
+  "relay_gait": true,
+  "tilt_deg": 0.0,
+  "tilt_dir": 0.0,
+  "screw_torque": 0.0,
+  "sup_steps": 629,
+  "min_pads": 0,
+  "mean_pads": 0.0,
+  "free_frac": 1.0,
+  "one_frac": 1.0,
+  "ground_frac": 1.0,
+  "angle_deg": 0,
+  "axis_k": 0.05,
+  "turn_steps": 550,
+  "hold_steps": 300,
+  "descend_steps": 400,
+  "lift": 0.1,
+  "gap_mm": 2.0,
+  "press_mm": 10.0,
+  "grip_depth": 0.066,
+  "carry_squeeze_mm": 0.3,
+  "load_target": 0.0,
+  "force_target": 0.0,
+  "reg_band": 0.45,
+  "angle_gain": 2,
+  "angle_rate": 0.01,
+  "press_regrip_mm": 10.0,
+  "approach_mm": 12.0,
+  "regrasp": false,
+  "trim_max_deg": 2.27,
+  "turn_squeeze_mm": 0.0,
+  "turn_relief_mm": 0.0,
+  "roll_max_deg": 161.32,
+  "slide_max_mm": 201.2,
+  "tilt_turned_deg": 89.95,
+  "tilt_settled_deg": 90.01,
+  "settle_deg": -0.06,
+  "repose_iters": 8,
+  "descend_iters": 1,
+  "seat_z": 0.0495,
+  "tip_len_mm": 10.0,
+  "apex_seat_offset_mm": 2213.17,
+  "seat_offset_mm": 2210.29,
+  "centre_x": 0.004,
+  "ring_z": 0.001,
+  "gait_depth_mm": 66.0,
+  "squeeze_mm": 5.0,
+  "release_mm": 6.0,
+  "stroke_deg": 30.0,
+  "cycles_asked": 8,
+  "cycles_run": 1,
+  "no_floor_gait": false,
+  "seed": 0,
+  "carry_ik_residual_mm": 0.0,
+  "repose_deg": 89.93,
+  "ring_ik_mm": 27.01,
+  "ring_ik_grip_mm": 21.91,
+  "ring_ik_open_mm": 22.79,
+  "pad_radius": 0.01055,
+  "gear_ratio": 1.444,
+  "arm_ik_pos_mm": 46.574,
+  "arm_ik_rot_deg": 0.159,
+  "arm_ik_fails": 30,
+  "carry_ok": true,
+  "stood_ok": false,
+  "grip_ok": false,
+  "reorient_deg": -58.33,
+  "upright_pads": 0,
+  "upright_force_N": 0.0,
+  "held_reorient": false,
+  "reorient_ok": false,
+  "spin_deg": -1119.86,
+  "turns": -3.111,
+  "gain_mean_deg": -1119.86,
+  "gain_sd_deg": 0.0,
+  "transmission": -25.851,
+  "brake_pumped": false,
+  "final_tilt_deg": 90.0,
+  "final_z": -0.024,
+  "z_gait0": -0.024,
+  "slip_mm_per_cycle": -0.0,
+  "drift_mm": 244.32,
+  "hand_contacts": 0,
+  "hand_force_N": 0.0,
+  "ground_contacts": 3,
+  "ground_force_N": 0.249,
+  "ok": false
+ }
+}

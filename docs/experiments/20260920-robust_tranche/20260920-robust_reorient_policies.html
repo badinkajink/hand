@@ -87,27 +87,35 @@ footer a{color:var(--s2)}
 
 <div class="wrap">
 <header>
-  <div class="eyebrow">MorphoHand &#183; real_v1 &#183; 20 September 2026 &#183; built 2026-09-20 23:06</div>
+  <div class="eyebrow">MorphoHand &#183; real_v1 &#183; 20 September 2026 &#183; built 2026-09-23 21:46</div>
   <h1>Reorientation policies continued on the plant the chain and the bench use</h1>
-  <p class="lede">10 of 12 continuation jobs have finished. Jittered hold (64 rollouts at &#177;3 mm / &#177;10&#176; with friction DR), continued against parent: D6 51 against 60; D3 50 against 51; D5 57 against 23; D1 47 against 29; D6 49 against 39; D7 35 against 1; D2 48 against 44; D3 50 against 38; D5 56 against 36; D1 54 against 33. Chain at plate 25 mm, held by: D6 (separation), D5, D6, D2, D5 (separation), D1 (separation).</p>
-  <div class="byline">10 of 12 jobs &#183; each job continues its 2026-09-19 checkpoint for 20 M steps
-  (271 iterations, 3072 environments, ~38 min) on the calibrated plant with four things changed: the tool spawns at
-  &#177;3 mm / &#177;10&#176; instead of one pose, the tool carries the screw-tip mesh, the scene&#8217;s own floor
-  replaces mjlab&#8217;s default plane, and the object entity keeps the scene&#8217;s contact class &#183; residual
-  = 0.5 rad &#215; the action clipped to &#177;2 from step 58, friction DR 0.55&#8211;1.15, grip term &#8722;2 above 6 N,
-  object pose observed &#183; evaluated deterministically over 64 rollouts at the trained pose and over 64 rollouts
-  at &#177;3 mm / &#177;10&#176; with friction DR (the number that matters)</div>
+  <p class="lede">10 of 12 continuation jobs trained (D4 stopped on NaN observations). Under &#177;3 mm / &#177;10&#176; spawn jitter with friction DR the continued policies hold the tool in D5 57, D5 + separation 56, D1 + separation 54, D6 + separation 51, D3 50, D3 + separation 50, D6 49, D2 48, D1 47, D7 35 of 64 rollouts. Every policy here trained on a plant whose finger joints carry the template&#8217;s 0.5 N&#183;m&#183;s/rad of damping, a 1&#8202;s time constant; the chain after the turn and that plant defect are on the 2026-09-23 page.</p>
+  <div class="byline">10 of 12 jobs &#183; each continues its 2026-09-19 checkpoint for 20 M steps
+  (271 iterations, 3072 environments, ~38 min) with spawn jitter &#177;3 mm / &#177;10&#176;, the screw-tip mesh, the
+  scene&#8217;s floor and the scene&#8217;s tool contact class &#183; residual 0.5 rad &#215; action clipped to &#177;2 from
+  step 58 &#183; friction DR 0.55&#8211;1.15 &#183; evaluated over 64 rollouts at the trained pose and 64 at &#177;3 mm /
+  &#177;10&#176; with friction DR</div>
 </header>
+
+<section><div class="col">
+<div class="keep"><span class="tag">Corrections, 2026-09-23</span>
+<p>The calibrated plant keeps the template&#8217;s finger joint damping (0.5&#8202;N&#183;m&#183;s/rad), so at kp 0.5 the fingers
+respond with a 1.04&#8202;s time constant; the bench servo is far faster. Every policy on this page trained on it, and with the
+damping removed all ten drop the tool in their turn. The chain analysis this page carried after the turn (seat, handover,
+gait) is superseded by the
+<a href="../20260923-chain_handover_gait/20260923-chain_handover_gait.html">2026-09-23 page</a>, which also lists the
+statements below that it corrects.</p></div>
+</div></section>
 
 <section><div class="col">
 <h2>What changed in the plant, and why</h2>
 <p>The 2026-09-19 tranche (<a href="../20260919-hands_tranche/20260919-reorient_policies_across_hands.html">page</a>)
-ended with every hand holding 64 of 64 in the benchmark and most of them dropping the tool inside the UR5e chain.
-Re-evaluating the same checkpoints with the tool spawned 3 mm and 10&#176; off the trained pose gave the reason:
-training had spawned the tool at one pose (<code>cube_spawn_xy_jitter 0</code>), the evaluator inherited it, and the
-64 rollouts were one rollout under 64 GPU contact solves. Under the jitter D7 held 0 of 64, the D6 clip seed 1 8,
-D5 26, D1 20; the D6 separation policy 64. Three more differences between the training plant and the plant every
-CPU replay, chain rollout and bench comparison runs on came out while chasing that number:</p>
+ended with every hand holding 64 of 64 in the benchmark and most of them dropping the tool in the UR5e chain. Training
+had spawned the tool at one pose (<code>cube_spawn_xy_jitter 0</code>) and the evaluator inherited it, so the 64
+rollouts were one rollout under 64 GPU contact solves. With the tool spawned 3&#8202;mm and 10&#176; off that pose, D7
+held 0 of 64, D6 clip seed 1 8, D5 26, D1 20 and the D6 separation policy 64. The mjlab environment also differed from
+the scene every CPU replay, chain rollout and bench comparison uses, in three places; a fourth difference, shared by
+both, was found on 2026-09-23:</p>
 <div class="tw"><table><thead><tr>
 <th></th>
 <th>2026-09-19 tranche</th>
@@ -138,12 +146,17 @@ CPU replay, chain rollout and bench comparison runs on came out while chasing th
 <td>the scene&#8217;s (0.006, 0.97&#8211;0.995), the same as the pads</td>
 <td><code>make_object_spec_from_frozen</code> copied only type, size, mass and friction since the first mjlab run</td>
 </tr>
+<tr>
+<td>finger joint damping</td>
+<td>0.5 N&#183;m&#183;s/rad (template)</td>
+<td>0.5, unchanged</td>
+<td>found 2026-09-23: at kp 0.5 it is a 1.04 s time constant, against a bench servo that tracks a 1.08 s trajectory to under 1&#176;; with it removed every policy here drops the tool in its turn (<a href="../20260923-chain_handover_gait/20260923-chain_handover_gait.html">2026-09-23 page</a>)</td>
+</tr>
 </tbody></table></div>
-<p>The continuation recipe is the 2026-09-19 one plus <code>--scene-floor --cube-spawn-xy-jitter 0.003
---cube-spawn-yaw-jitter 0.1745</code> on a tip-mesh morphology run (<code>make_tipmesh_morphology_run.py</code>),
-warm-started actor and critic from each hand and arm&#8217;s own 2026-09-19 checkpoint. Queue
-<code>docs/experiments/20260920-robust_tranche/queue.json</code>, driver <code>hands_tranche_queue.py</code> (it now
-also evaluates every checkpoint jittered).</p>
+<p>Recipe: the 2026-09-19 flags plus <code>--scene-floor --cube-spawn-xy-jitter 0.003 --cube-spawn-yaw-jitter
+0.1745</code> on a tip-mesh morphology run (<code>make_tipmesh_morphology_run.py</code>), actor and critic warm-started
+from each job&#8217;s own 2026-09-19 checkpoint. Queue <code>queue.json</code>, driver <code>hands_tranche_queue.py</code>,
+which evaluates every checkpoint at the trained pose and jittered.</p>
 </div></section>
 
 <section><div class="col">
@@ -525,13 +538,12 @@ on the finger servos &#183; plant <code>cal</code>, plate at 25 mm and at 0 &#18
 <td class="cell c0">lost &#183; -0.00 (peak 0.73)</td>
 </tr>
 </tbody></table></div>
-<h3>After the turn: re-pose, set-down, relay handover, gait</h3>
-<p>The probe does not stop when the policy&#8217;s 5 s end: the fingers freeze at their last set-point and the chain continues
-with its own stages, the arm re-posing the palm so the shaft points down, lowering the shaft into the post&#8217;s hole,
-the relay handover (one finger re-grips at a time, the tool never released) and eight gait cycles. Each cell is the
-tool&#8217;s cos to vertical and its height at that seam; <em>gaited</em> is the last. The gait&#8217;s screw turns are the
-rotation the cycles put into the shaft; a chain that stands the tool and gaits 8 cycles at 0.00 turns is holding it
-without driving it.</p>
+<h3>After the turn, as run on 2026-09-20</h3>
+<p>After the policy&#8217;s 5&#8202;s the fingers hold their last set-point and the chain continues with its own stages: the
+arm levels the tool over the socket, lowers it in, the relay handover moves one pad at a time onto the gait ring, and
+eight gait cycles follow. Each cell is the tool&#8217;s cos to vertical and its height at that seam. The chain&#8217;s
+<code>ok</code> tests stance, grip and cycles run, not screw rotation; every row turned the screw 0.00&#8211;0.02 rev.
+Plate 25 is the built hand and the training scenes; plate 0 is the geometry the chain scenes were generated with.</p>
 <div class="tw"><table><thead><tr>
 <th>hand</th>
 <th>arm</th>
@@ -785,439 +797,14 @@ without driving it.</p>
 <td class="cell c0">lost</td>
 </tr>
 </tbody></table></div>
-<p>The gait does not move the fingers on this plant. Finger commands and joint angles recorded every 60 sim steps through
-the D6 clip run at plate 0 (<code>r_d6_clip_chain_pl0_ctrl_qpos.json</code>): through the eight cycles the commanded angles
-vary by 5&#8211;27&#176; per joint (the ring table is built around the tool&#8217;s actual axis, 31 mm of IK residual) and the
-achieved angles by 0.3&#8211;9&#176;; the index pip sits 59&#176; behind its command for the whole gait (commanded 88&#176;, achieved
-26&#8211;31&#176;), the thumb and middle 3&#8211;15&#176;. The tool stands in the hole under 20 N of pad force and turns
-&#8722;0.002 revolutions. This is the 2026-09-16 result on the calibrated chain (fingers 14&#8211;38&#176; behind command through
-the gait, 0.00&#8211;0.02 rev) with the policy&#8217;s turn in front of it; the chain&#8217;s <code>ok</code> gate tests stance,
-grip and cycles run, not screw turns. The relay handover does move the fingers (commands change by 77&#8211;110&#176; on the
-index, achieved 21&#8211;44&#176;) and the tool stays at cos 0.99 through it.</p>
-<p>Plate height: the chain scenes in <code>assets/mjcf/experimental/20260904-chain_bothsets/</code> were generated with the
-palm plate at the mounting plane; the built hand carries it at +25 mm, which is where the training scenes put it. The
-probe moves the plate per run (<code>plate_variant</code>, a <code>__plate25.xml</code> beside the scene; only the plate geom
-moves), so the plate-25 rows are the built hand and the plate-0 rows the old geometry. The one film below is the plate-0
-run; the plate-25 films are below it.</p>
-<p><strong>What decides the set-down is the angle the tool has when the arm has finished levelling it over the socket
-(<em>staged</em>).</strong> The tip sits 50 mm from the tool&#8217;s centre, so the tip&#8217;s lateral offset from the aimed
-centre is 50 mm &#215; sin(angle) against a 6 mm capture radius: 8&#176; is 7 mm and enters, 14&#176; is 12 mm and lands on
-the annulus beside the hole. D6 clip at plate 0 staged at cos 0.99 (8&#176;) and entered; at plate 25 the same policy staged at
-0.97 (14&#176;), the separation policy at 0.95 (18&#176;) and D5 at 0.89 (27&#176;), and in each film the tip comes down
-beside the hole. D6 clip then loses the tool at the handover grip (it tips off the post); D5 and the separation policy keep it
-in hand leaning on the post at 47&#8211;55&#176; through the gait. The staging already iterates the palm against the measured
-tool pose (eight corrections), so the residual angle is what the compliant grip gives back under the arm&#8217;s re-pose.</p>
+<p>At plate 25 the three policies that held the turn staged 14&#8211;27&#176; off vertical and set the tip down beside the
+6&#8202;mm socket. Why the gait turned nothing, what it takes to seat the tool, hand it over and turn the screw, and the
+finger damping behind the first of these are on the
+<a href="../20260923-chain_handover_gait/20260923-chain_handover_gait.html">2026-09-23 page</a>.</p>
 <figure><video controls muted loop playsinline preload="metadata" width="640" height="480" src="web/r_d6_clipsep_chain_pl25.mp4"></video><figcaption>D6, clip + separation, plate 25 mm: grasp on the post, arm lift, the policy&#8217;s turn (5 s), arm re-pose, set-down, relay handover, gait. Outcome: lost after the turn; 1 gait cycles commanded, +0.014 screw turns, final tilt 55.3&#176;.</figcaption></figure>
 <figure><video controls muted loop playsinline preload="metadata" width="640" height="480" src="web/r_d5_clip_chain_pl25.mp4"></video><figcaption>D5, clip (&#177;1 rad), plate 25 mm: grasp on the post, arm lift, the policy&#8217;s turn (5 s), arm re-pose, set-down, relay handover, gait. Outcome: lost after the turn; 1 gait cycles commanded, +0.009 screw turns, final tilt 47.1&#176;.</figcaption></figure>
 <figure><video controls muted loop playsinline preload="metadata" width="640" height="480" src="web/r_d6_clip_chain_pl25.mp4"></video><figcaption>D6, clip (&#177;1 rad), plate 25 mm: grasp on the post, arm lift, the policy&#8217;s turn (5 s), arm re-pose, set-down, relay handover, gait. Outcome: lost after the turn; 1 gait cycles commanded, +1.553 screw turns, final tilt 90.0&#176;.</figcaption></figure>
 <figure><video controls muted loop playsinline preload="metadata" width="640" height="480" src="web/r_d6_clip_chain_pl0.mp4"></video><figcaption>D6, clip (&#177;1 rad), plate 0 mm: grasp on the post, arm lift, the policy&#8217;s turn (5 s), arm re-pose, set-down, relay handover, gait. Plate at the chain scenes&#8217; original height, not the built hand&#8217;s 25 mm. Outcome: stood and held; 8 gait cycles commanded, -0.002 screw turns, final tilt 3.8&#176;.</figcaption></figure>
-<h3>Aiming the tip at the seat instead of levelling the tool first</h3>
-<p>The residual angle does not have to close before the descent. The chain commands the tool&#8217;s pose and derives the
-palm&#8217;s from it (<code>_rigid_palm_pose</code>), and it already measures the tool&#8217;s low point every correction, so
-the staging and the descent can carry the <em>apex</em> over the socket rather than the body centre, and the lean can come out
-afterwards as a rotation about the seated tip with the floor carrying the weight (the <code>_upright(about_foot)</code> move
-the pivot order already uses). <code>real_v1_chain_policy.py --seat-aim tip</code> does that: <code>_stage</code> aims the
-measured apex at <code>place_xy</code>, <code>_descend</code> takes one aim on the apex at the top of its move, and a
-<code>seated</code> phase follows the set-down (eight corrections about the apex, walking it onto the socket centre).
-The shipped behaviour is <code>--seat-aim centre</code>, which is what every other chain row on this page ran.</p>
-<p>On the three plate-25 policies that hold the turn, the set-down now lands the apex within 1.5 mm of the socket centre at
-the lean the grip gives it (15.5&#176;, 30.5&#176; and 12.9&#176;), the seated correction takes the lean to 7.0&#176;,
-1.5&#176; and 2.8&#176;, and all three keep the tool through the relay handover and the eight gait cycles: D5 at
-0.4&#176;, D6 clip at 6.3&#176; with 17.4 N on the pads, D6 with separation at 2.9&#176; with 16.7 N. The chain&#8217;s
-<code>ok</code> passes at the built plate height for the first time. The turns column is unchanged at 0.00: the gait&#8217;s
-achieved-angle problem is the next item and this change does not touch it. Rows are tilt / tool centre z (mm; the seated
-centre is at 49.5) / pads on the tool at each seam.</p>
-<div class="tw"><table><thead><tr>
-<th>hand</th>
-<th>arm</th>
-<th>aim</th>
-<th>staged: tilt / z (mm) / pads</th>
-<th>set down</th>
-<th>seated</th>
-<th>handover grip</th>
-<th>gaited</th>
-<th>apex off (mm)</th>
-<th>outcome</th>
-</tr></thead><tbody>
-<tr>
-<td>D6</td>
-<td>clip + separation</td>
-<td>centre</td>
-<td>18.1&#176; / 106.9 / 1</td>
-<td>37.5&#176; / 49.1 / 2</td>
-<td>&#8211;</td>
-<td>48.0&#176; / 48.9 / 3</td>
-<td>55.3&#176; / 48.9 / 2</td>
-<td>&#8211;</td>
-<td class="cell c0">carried</td>
-</tr>
-<tr>
-<td>D6</td>
-<td>clip + separation</td>
-<td>tip</td>
-<td>6.6&#176; / 113.5 / 2</td>
-<td>12.9&#176; / 53.7 / 2</td>
-<td>2.8&#176; / 52.2 / 2</td>
-<td>1.8&#176; / 50.6 / 2</td>
-<td>2.9&#176; / 50.5 / 2</td>
-<td>0.5</td>
-<td class="cell c4">stood, held through 8 cycles at +0.00 turns</td>
-</tr>
-<tr>
-<td>D5</td>
-<td>clip (&#177;1 rad)</td>
-<td>centre</td>
-<td>27.4&#176; / 124.7 / 1</td>
-<td>33.5&#176; / 51.1 / 1</td>
-<td>&#8211;</td>
-<td>46.0&#176; / 43.5 / 1</td>
-<td>47.1&#176; / 43.0 / 1</td>
-<td>&#8211;</td>
-<td class="cell c0">carried</td>
-</tr>
-<tr>
-<td>D5</td>
-<td>clip (&#177;1 rad)</td>
-<td>tip</td>
-<td>24.9&#176; / 123.2 / 2</td>
-<td>30.5&#176; / 49.5 / 2</td>
-<td>1.5&#176; / 58.9 / 1</td>
-<td>0.8&#176; / 49.8 / 2</td>
-<td>0.4&#176; / 49.5 / 0</td>
-<td>0.1</td>
-<td class="cell c4">stood, held through 8 cycles at +0.00 turns</td>
-</tr>
-<tr>
-<td>D6</td>
-<td>clip (&#177;1 rad)</td>
-<td>centre</td>
-<td>13.2&#176; / 117.5 / 1</td>
-<td>20.5&#176; / 57.0 / 1</td>
-<td>&#8211;</td>
-<td>90.0&#176; / 12.5 / 0</td>
-<td>90.0&#176; / -24.0 / 0</td>
-<td>&#8211;</td>
-<td class="cell c0">carried</td>
-</tr>
-<tr>
-<td>D6</td>
-<td>clip (&#177;1 rad)</td>
-<td>tip</td>
-<td>13.1&#176; / 117.7 / 1</td>
-<td>15.5&#176; / 50.7 / 1</td>
-<td>7.0&#176; / 55.4 / 2</td>
-<td>4.5&#176; / 52.9 / 2</td>
-<td>6.3&#176; / 50.8 / 2</td>
-<td>1.5</td>
-<td class="cell c4">stood, held through 8 cycles at +0.01 turns</td>
-</tr>
-</tbody></table></div>
-<figure><video controls muted loop playsinline preload="metadata" width="640" height="480" src="web/r_d6_clipsep_chain_pl25_tip.mp4"></video><figcaption>D6, clip + separation, plate 25 mm, tip-aimed set-down: the same policy and turn as above, then the apex carried over the socket, lowered into it at 12.9&#176;, stood up about the seated tip to 2.8&#176;, relay handover, gait. Outcome: stood and held; 8 cycles, +0.002 screw turns, final tilt 2.9&#176;, apex 0.5 mm from the socket centre.</figcaption></figure>
-<figure><video controls muted loop playsinline preload="metadata" width="640" height="480" src="web/r_d5_clip_chain_pl25_tip.mp4"></video><figcaption>D5, clip (&#177;1 rad), plate 25 mm, tip-aimed set-down: the same policy and turn as above, then the apex carried over the socket, lowered into it at 30.5&#176;, stood up about the seated tip to 1.5&#176;, relay handover, gait. Outcome: stood and held; 8 cycles, +0.001 screw turns, final tilt 0.4&#176;, apex 0.1 mm from the socket centre.</figcaption></figure>
-<figure><video controls muted loop playsinline preload="metadata" width="640" height="480" src="web/r_d6_clip_chain_pl25_tip.mp4"></video><figcaption>D6, clip (&#177;1 rad), plate 25 mm, tip-aimed set-down: the same policy and turn as above, then the apex carried over the socket, lowered into it at 15.5&#176;, stood up about the seated tip to 7.0&#176;, relay handover, gait. Outcome: stood and held; 8 cycles, +0.009 screw turns, final tilt 6.3&#176;, apex 1.5 mm from the socket centre.</figcaption></figure>
-<h3>The handover and the gait on the calibrated plant: the loop, the command reference and the ring&#8217;s reach</h3>
-<p>The 2026-09-16 measurement, run on the three seated policies. An achieved-joint-angle loop (<code>--angle-gain k</code>:
-command = set-point + k &#215; (set-point &#8722; achieved), slewed 0.01 rad per tick, clipped at 0.45 rad, armed from the
-press so the RL turn runs as trained) does not close the error, and the seams say why. At the press the servos are already on
-their ceiling: the thumb sits 76&#176; short of its set-point on D6 with an actuator at 0.35 N&#183;m, the index 28&#176;.
-The set-point is the policy&#8217;s last action, a residual frozen at its &#177;1 rad clip, 70&#8211;79&#176; past the
-achieved angle on every hand at <em>turned</em>; the chain&#8217;s 0.3 mm regrip, the relay&#8217;s pinned pads and the gait
-table&#8217;s rebase are all measured from that command, so every later grip inherits the saturation. The loop&#8217;s trim
-hits its 26&#176; band at once, <code>sat</code> rises to 2&#8211;3 actuators per finger, and the gait gains 3&#176; in
-its first cycles and stops (+0.02 turns). The command-referenced design is right on the kp-30 plant, where the deflection it
-preserves is a millimetre; here it is a radian.</p>
-<p>Re-seeding the command from the achieved angles (<code>_squeeze_cmd(from_achieved=True)</code>) takes the servos off the
-ceiling. Done right after the turn with the plans&#8217; 10 mm (<code>--regrip-ref achieved --carry-squeeze 10</code>) the
-grip drops from 16 N to 5 N; on D6 clip the arm then stages at 3.2&#176; instead of 13&#176;, seats at 0.3&#176;, and with
-the angle loop on top the gait turns the screw 6.0, 3.1, 2.4, 1.9, 1.9, 2.3, 4.3, 3.9&#176; per cycle, +0.071 turns in
-8 cycles at a final tilt of 0.8&#176;, the first non-zero turn on the calibrated plant. On D5 and the separation policy the
-same 3&#8211;4 N grip does not survive the arm&#8217;s levelling from 32&#8211;35&#176; of lean (lost before
-<em>staged</em>). Done at the press instead (<code>--press-regrip 10</code>), where the seat carries the tool, all three
-keep it (D6 clip 76/28/3&#176; &#8594; 11/12/13&#176;, <code>sat</code> 0) and the handover then drives the index
-45&#8211;102&#176; short and onto the ceiling on every run: the relay&#8217;s ring target is 17&#8211;27 mm beyond the
-finger&#8217;s reach (<code>ring_ik_grip_mm</code>, the same 20 mm the 2026-09-06 D6 chain carried, where a rigid finger
-turned an unreachable command into force). The gait then turns 5&#8211;6&#176; in its first cycle and stalls. The
-<code>slide</code> handover, written for a reachable ring with the grasp unbroken, moves the palm 49 mm and 45&#176; to the
-gait&#8217;s pose and pulls the tool out of the seat (z 53 &#8594; 82&#8211;96 mm). Columns: set-point error and actuators on
-the ceiling per finger at the seam the handover starts from; the index at <em>handover_index</em>; then the seams as above.</p>
-<div class="tw"><table><thead><tr>
-<th>hand</th>
-<th>arm</th>
-<th>configuration</th>
-<th class=num>set-point error at the start th / ix / md (&#176;) | actuators on the ceiling</th>
-<th class=num>index at handover_index: error (&#176;) | ceiling</th>
-<th>handover grip: tilt / pads / N</th>
-<th>gaited: tilt / pads / N</th>
-<th>gain per cycle (&#176;)</th>
-<th>turns / 8 cycles</th>
-<th>outcome</th>
-</tr></thead><tbody>
-<tr>
-<td>D6</td>
-<td>clip + separation</td>
-<td>tip aim only (relay handover, command-referenced)</td>
-<td class=num>&#8211;</td>
-<td class=num>&#8211;</td>
-<td>1.8&#176; / 2 / 11.3</td>
-<td>2.9&#176; / 2 / 16.7</td>
-<td>&#8211;</td>
-<td class="">+0.002</td>
-<td class="cell c4">held</td>
-</tr>
-<tr>
-<td>D6</td>
-<td>clip + separation</td>
-<td>re-reference from achieved (10 mm) at the press</td>
-<td class=num>48 / 14 / 13 | 1 / 0 / 0</td>
-<td class=num>13 / 83 / 7 | 0 / 1 / 0</td>
-<td>2.1&#176; / 2 / 10.8</td>
-<td>3.5&#176; / 2 / 18.2</td>
-<td>+5.6, -0.1, -0.4, -0.4 &#8230;</td>
-<td class="">+0.013</td>
-<td class="cell c4">held</td>
-</tr>
-<tr>
-<td>D6</td>
-<td>clip + separation</td>
-<td>re-reference from achieved (10 mm) at the press; angle loop gain 2</td>
-<td class=num>48 / 14 / 13 | 1 / 0 / 0</td>
-<td class=num>14 / 82 / 4 | 0 / 1 / 0</td>
-<td>1.4&#176; / 2 / 21.6</td>
-<td>3.6&#176; / 2 / 22.3</td>
-<td>-0.1, -1.1, -1.4, -0.2 &#8230;</td>
-<td class="">-0.009</td>
-<td class="cell c4">held</td>
-</tr>
-<tr>
-<td>D6</td>
-<td>clip + separation</td>
-<td>regrip from achieved (10 mm) after the turn</td>
-<td class=num>2 / 3 / 2 | 0 / 0 / 0</td>
-<td class=num>24 / 27 / 2 | 0 / 0 / 0</td>
-<td>90.0&#176; / 0 / 0.0</td>
-<td>90.0&#176; / 0 / 0.0</td>
-<td>&#8211;</td>
-<td>&#8211;</td>
-<td class="cell c0">lost</td>
-</tr>
-<tr>
-<td>D6</td>
-<td>clip + separation</td>
-<td>regrip from achieved (10 mm) after the turn; angle loop gain 2</td>
-<td class=num>2 / 3 / 2 | 0 / 0 / 0</td>
-<td class=num>18 / 26 / 1 | 1 / 0 / 0</td>
-<td>90.0&#176; / 0 / 0.0</td>
-<td>90.0&#176; / 0 / 0.0</td>
-<td>&#8211;</td>
-<td>&#8211;</td>
-<td class="cell c0">lost</td>
-</tr>
-<tr>
-<td>D5</td>
-<td>clip (&#177;1 rad)</td>
-<td>tip aim only (relay handover, command-referenced)</td>
-<td class=num>&#8211;</td>
-<td class=num>&#8211;</td>
-<td>0.8&#176; / 2 / 8.5</td>
-<td>0.4&#176; / 0 / 0.0</td>
-<td>&#8211;</td>
-<td class="">+0.001</td>
-<td class="cell c4">held</td>
-</tr>
-<tr>
-<td>D5</td>
-<td>clip (&#177;1 rad)</td>
-<td>re-reference from achieved (10 mm) at the press</td>
-<td class=num>17 / 11 / 25 | 0 / 0 / 0</td>
-<td class=num>39 / 45 / 16 | 0 / 1 / 0</td>
-<td>1.7&#176; / 3 / 19.4</td>
-<td>1.5&#176; / 1 / 4.6</td>
-<td>+0.9, -0.1, +0.1, -0.0 &#8230;</td>
-<td class="">+0.002</td>
-<td class="cell c4">held</td>
-</tr>
-<tr>
-<td>D5</td>
-<td>clip (&#177;1 rad)</td>
-<td>re-reference from achieved (10 mm) at the press; angle loop gain 2</td>
-<td class=num>17 / 11 / 25 | 0 / 0 / 0</td>
-<td class=num>33 / 44 / 9 | 1 / 1 / 0</td>
-<td>1.2&#176; / 1 / 4.6</td>
-<td>0.6&#176; / 1 / 5.0</td>
-<td>-0.8, -0.2, -0.1, -0.1 &#8230;</td>
-<td class="">-0.003</td>
-<td class="cell c2">stood</td>
-</tr>
-<tr>
-<td>D5</td>
-<td>clip (&#177;1 rad)</td>
-<td>regrip from achieved (10 mm) after the turn</td>
-<td class=num>2 / 1 / 2 | 0 / 0 / 0</td>
-<td class=num>22 / 48 / 2 | 0 / 1 / 0</td>
-<td>90.0&#176; / 0 / 0.0</td>
-<td>90.0&#176; / 0 / 0.0</td>
-<td>&#8211;</td>
-<td>&#8211;</td>
-<td class="cell c0">lost</td>
-</tr>
-<tr>
-<td>D5</td>
-<td>clip (&#177;1 rad)</td>
-<td>regrip from achieved (10 mm) after the turn; angle loop gain 2</td>
-<td class=num>2 / 1 / 2 | 0 / 0 / 0</td>
-<td class=num>22 / 48 / 1 | 0 / 1 / 0</td>
-<td>90.0&#176; / 0 / 0.0</td>
-<td>90.0&#176; / 0 / 0.0</td>
-<td>&#8211;</td>
-<td>&#8211;</td>
-<td class="cell c0">lost</td>
-</tr>
-<tr>
-<td>D6</td>
-<td>clip (&#177;1 rad)</td>
-<td>tip aim only (relay handover, command-referenced)</td>
-<td class=num>&#8211;</td>
-<td class=num>&#8211;</td>
-<td>4.5&#176; / 2 / 12.6</td>
-<td>6.3&#176; / 2 / 17.4</td>
-<td>&#8211;</td>
-<td class="">+0.009</td>
-<td class="cell c4">held</td>
-</tr>
-<tr>
-<td>D6</td>
-<td>clip (&#177;1 rad)</td>
-<td>angle loop gain 1</td>
-<td class=num>76 / 28 / 3 | 1 / 0 / 0</td>
-<td class=num>73 / 101 / 2 | 2 / 1 / 0</td>
-<td>4.7&#176; / 2 / 19.7</td>
-<td>6.2&#176; / 2 / 18.7</td>
-<td>+3.1, +2.3, +1.6, -0.5 &#8230;</td>
-<td class="">+0.019</td>
-<td class="cell c4">held</td>
-</tr>
-<tr>
-<td>D6</td>
-<td>clip (&#177;1 rad)</td>
-<td>angle loop gain 2</td>
-<td class=num>76 / 28 / 3 | 1 / 0 / 0</td>
-<td class=num>73 / 101 / 1 | 2 / 1 / 0</td>
-<td>4.5&#176; / 2 / 20.5</td>
-<td>6.0&#176; / 2 / 19.6</td>
-<td>+3.2, +2.4, +1.7, -0.3 &#8230;</td>
-<td class="">+0.022</td>
-<td class="cell c4">held</td>
-</tr>
-<tr>
-<td>D6</td>
-<td>clip (&#177;1 rad)</td>
-<td>angle loop gain 4</td>
-<td class=num>76 / 28 / 3 | 1 / 0 / 0</td>
-<td class=num>73 / 101 / 1 | 2 / 1 / 0</td>
-<td>4.6&#176; / 2 / 20.4</td>
-<td>5.9&#176; / 2 / 19.5</td>
-<td>+3.3, +2.7, +1.9, -0.0 &#8230;</td>
-<td class="">+0.024</td>
-<td class="cell c4">held</td>
-</tr>
-<tr>
-<td>D6</td>
-<td>clip (&#177;1 rad)</td>
-<td>re-reference from achieved (10 mm) at the press</td>
-<td class=num>11 / 12 / 13 | 0 / 0 / 0</td>
-<td class=num>26 / 56 / 5 | 0 / 1 / 0</td>
-<td>7.4&#176; / 2 / 13.9</td>
-<td>6.8&#176; / 2 / 14.2</td>
-<td>-0.2, -0.1, -0.2, -0.1 &#8230;</td>
-<td class="">-0.003</td>
-<td class="cell c4">held</td>
-</tr>
-<tr>
-<td>D6</td>
-<td>clip (&#177;1 rad)</td>
-<td>re-reference from achieved (10 mm) at the press; angle loop gain 2</td>
-<td class=num>11 / 12 / 13 | 0 / 0 / 0</td>
-<td class=num>26 / 102 / 1 | 0 / 1 / 0</td>
-<td>6.3&#176; / 2 / 20.5</td>
-<td>5.6&#176; / 2 / 18.6</td>
-<td>+6.4, +3.5, +1.9, +0.1 &#8230;</td>
-<td class="">+0.033</td>
-<td class="cell c4">held</td>
-</tr>
-<tr>
-<td>D6</td>
-<td>clip (&#177;1 rad)</td>
-<td>regrip from achieved (10 mm) after the turn</td>
-<td class=num>10 / 8 / 2 | 0 / 0 / 0</td>
-<td class=num>14 / 55 / 1 | 0 / 1 / 0</td>
-<td>8.4&#176; / 2 / 9.5</td>
-<td>8.7&#176; / 2 / 10.2</td>
-<td>-0.1, -0.3, -0.3, -0.4 &#8230;</td>
-<td class="">-0.007</td>
-<td class="cell c4">held</td>
-</tr>
-<tr>
-<td>D6</td>
-<td>clip (&#177;1 rad)</td>
-<td>regrip from achieved (10 mm) after the turn; angle loop gain 2</td>
-<td class=num>10 / 8 / 2 | 0 / 0 / 0</td>
-<td class=num>10 / 57 / 1 | 0 / 1 / 0</td>
-<td>4.4&#176; / 2 / 18.5</td>
-<td>0.8&#176; / 2 / 13.8</td>
-<td>+6.0, +3.1, +2.4, +1.9 &#8230;</td>
-<td class="cell c4">+0.071</td>
-<td class="cell c4">held</td>
-</tr>
-<tr>
-<td>D6</td>
-<td>clip (&#177;1 rad)</td>
-<td>regrip from achieved (5 mm) after the turn</td>
-<td class=num>7 / 2 / 3 | 0 / 0 / 0</td>
-<td class=num>28 / 65 / 3 | 0 / 1 / 0</td>
-<td>2.6&#176; / 2 / 10.0</td>
-<td>5.5&#176; / 2 / 12.7</td>
-<td>-0.1, -0.1, -0.0, +0.0 &#8230;</td>
-<td class="">-0.001</td>
-<td class="cell c4">held</td>
-</tr>
-<tr>
-<td>D6</td>
-<td>clip (&#177;1 rad)</td>
-<td>slide handover</td>
-<td class=num>76 / 28 / 3 | 1 / 0 / 0</td>
-<td class=num>28 / 14 / 28 | 0 / 0 / 0</td>
-<td>122.5&#176; / 3 / 2.3</td>
-<td>121.8&#176; / 2 / 1.2</td>
-<td>-16.8</td>
-<td class="">-0.047</td>
-<td class="cell c2">stood</td>
-</tr>
-<tr>
-<td>D6</td>
-<td>clip (&#177;1 rad)</td>
-<td>re-reference from achieved (10 mm) at the press; slide handover</td>
-<td class=num>11 / 12 / 13 | 0 / 0 / 0</td>
-<td class=num>29 / 36 / 29 | 0 / 0 / 0</td>
-<td>45.7&#176; / 2 / 23.2</td>
-<td>45.7&#176; / 2 / 20.2</td>
-<td>+7.2</td>
-<td class="">+0.020</td>
-<td class="cell c2">stood</td>
-</tr>
-<tr>
-<td>D6</td>
-<td>clip (&#177;1 rad)</td>
-<td>re-reference from achieved (10 mm) at the press; slide handover; angle loop gain 2</td>
-<td class=num>11 / 12 / 13 | 0 / 0 / 0</td>
-<td class=num>30 / 17 / 2 | 1 / 1 / 0</td>
-<td>90.0&#176; / 0 / 0.0</td>
-<td>90.0&#176; / 0 / 0.0</td>
-<td>+538.0</td>
-<td class="cell c4">+1.495</td>
-<td class="cell c2">stood</td>
-</tr>
-</tbody></table></div>
-<figure><video controls muted loop playsinline preload="metadata" width="640" height="480" src="web/r_d6_clip_chain_pl25_tip_rg10_ag2.mp4"></video><figcaption>D6, clip, plate 25 mm, tip-aimed set-down, regrip from the achieved angles (10 mm) after the turn, angle loop gain 2 from the press: the gait turns the screw +0.071 turns in 8 cycles (the first non-zero turn on the calibrated plant), final tilt 0.8&#176;, 13.8 N on the pads at the end.</figcaption></figure>
 </div></section>
 
 <section><div class="col">
@@ -1243,12 +830,9 @@ same rollout as a 640&#215;480 video (<code>web/&lt;job&gt;.mp4</code> beside th
 
 <section><div class="col">
 <h2>Training pipeline: architecture and the decisions behind it</h2>
-<p>A policy on this page is a 9-dimensional residual on a scripted grasp-and-lift, trained by PPO on 3072 copies of one hand&#8217;s
-frozen scene in MuJoCo-Warp through mjlab, and warm-started from one D6 run of 2026-09-17. This section is the whole of that
-pipeline as it stands on 2026-09-20: the stages from the hardware model to a checkpoint, one episode, what the actor reads and
-writes, the reward and the terminations, the optimiser, the warm-start lineage, and a register of every setting with the
-reason on record and whether that reason is a measurement. The tables are read from the run configuration of the first finished
-job, so their numbers are the tranche&#8217;s own.</p>
+<p>A policy on this page is a 9-dimensional residual on a scripted grasp-and-lift, trained by PPO on 3072 copies of one
+hand&#8217;s frozen scene in MuJoCo-Warp through mjlab and warm-started from one D6 run of 2026-09-17. The tables below are
+read from the first finished job&#8217;s run configuration.</p>
 
 <h3>Stages, from the hardware model to a checkpoint</h3>
 <ol class="stages">
@@ -1260,8 +844,8 @@ frozen into the scene (<code>freeze_scene_for_eval</code>) so no morphology join
 <code>open_ik</code> keyframe (finger joints with the pads just off the shaft) and the grip anchor (the same pose closed by a
 10 mm commanded squeeze). There is no CEM on these scenes; the anchor is the deployed plan&#8217;s own grip.</li>
 <li><strong>Plant.</strong> <code>apply_measured_plant.py</code> rewrites the scene to the servo sysid of 2026-09-02 (finger kp 0.5,
-kv 0.02, forcerange 0.35 N&#183;m, frictionloss 0.0035, measured link masses), the elliptic friction cone with impratio 10, and the
-+25 mm palm plate the bench carries. The result is the <code>_cal</code> morphology run
+kv 0.02, forcerange 0.35 N&#183;m, frictionloss 0.0035, measured link masses; the template&#8217;s joint damping 0.5 is left in
+place, a 1&#8202;s finger time constant), the elliptic friction cone with impratio 10, and the +25 mm palm plate the bench carries. The result is the <code>_cal</code> morphology run
 (<code>results/phase1/real_v1/20260916-&lt;hand&gt;_cal</code>), which also holds the open-loop reference rollout of that grip and lift
 (<code>best_rollout.npz</code>) that the tracking terms and the <code>ref_*</code> observations use.</li>
 <li><strong>Tool.</strong> <code>make_tipmesh_morphology_run.py</code> derives the <code>_cal_tip</code> run: the 25 mm screwdriver shaft with the
@@ -1581,10 +1165,10 @@ first real_v1 scripts of late August) and has not been re-measured on the calibr
 </tr>
 <tr>
 <td>Finger plant</td>
-<td>kp 0.5, kv 0.02, forcerange 0.35 N&#183;m, frictionloss 0.0035, elliptic cone with impratio 10, pad &#956; 1.0, palm plate +25 mm</td>
+<td>kp 0.5, kv 0.02, forcerange 0.35 N&#183;m, frictionloss 0.0035, joint damping 0.5 (template), elliptic cone with impratio 10, pad &#956; 1.0, palm plate +25 mm</td>
 <td>2026-09-02, 2026-09-16</td>
-<td>the shipped kp 30 predicts a +0.03&#176; deficit where the bench measures +11.7&#176;; the corrected plant drops 6 % of jittered trials against the bench&#8217;s 8 %</td>
-<td>measured (servo sysid, drop gate)</td>
+<td>the shipped kp 30 predicts a +0.03&#176; deficit where the bench measures +11.7&#176;; the corrected plant drops 6 % of jittered trials against the bench&#8217;s 8 %. The joint damping was never changed: the finger time constant is 1.04 s, far slower than the bench servo</td>
+<td>kp measured (static); dynamics unmeasured</td>
 </tr>
 <tr>
 <td>Tool and floor</td>
@@ -1740,69 +1324,44 @@ from those, and a run with the tracker&#8217;s measured latency in the observati
 <section><div class="col">
 <h2>Lessons from the two tranches</h2>
 <ul>
-<li><strong>Evaluate off the trained pose.</strong> A deterministic evaluator on a zero-jitter environment measures
-the GPU solver, not the policy. <code>policy_eval_suite.py --spawn-jitter-mm 3 --spawn-yaw-deg 10 --friction-dr</code>
-is now the number a policy is judged on, and the driver writes it for every job (<code>*_eval_j3dr.json</code>).</li>
-<li><strong>The training plant was not the calibrated plant.</strong> Three defects between the frozen scene and the
-mjlab environment (tool contact class, floor, tip) had been there since the first mjlab run; the CPU replay, the
-chain and the bench comparison all ran on the scene. Any earlier sim-to-sim gap is confounded by them.</li>
-<li><strong>Reading the arm.</strong> The 4.9 mm the palm sat below its command at the seam was the menagerie servo
-settling (slow pole kp/kv = 5 rad/s), not load: with the payload declared a UR5e holds ~0.1 mm, and the chain now
-runs the arm at ten times the position gain.</li>
-<li><strong>Two silent no-ops.</strong> The friction variants of the zero-shot table were copies of the base scene on
-every calibrated scene until 2026-09-20 02:00 (the variant matched the template&#8217;s &#956; 2.4), and
-<code>--payload-gravcomp</code> had been compensating the finger links as well as the hand. Both fixed.</li>
-<li><strong>The separation term.</strong> &#8722;10 below 30 mm buys 2&#8211;10 mm of index&#8211;middle clearance on
-D1/D3/D5/D6 and takes the turn away from D4 and D7, which turn by running the two fingers together; on the matched
-plant the continued policies sit at 16&#8211;29 mm without it.</li>
-<li><strong>The chain&#8217;s <code>ok</code> is a hold, not a gait.</strong> The gate tests stance, grip and cycles run; on the
-calibrated plant the gait&#8217;s commands move the fingers 0.3&#8211;9&#176; (index pip 59&#176; behind its command) and put
-&#8722;0.002 turns into the screw. A chain that reads <code>ok</code> has stood the tool and held it for eleven seconds.</li>
-<li><strong>The seat has a capture radius, and aiming the body centre spends it on the lean.</strong> 50 mm of tip lever
-turns 8&#176; into 7 mm (enters) and 14&#176; into 12 mm (misses); every plate-25 chain that held the turn staged at
-14&#8211;27&#176; and missed the hole when the body centre was the aim point. Aiming the measured apex and taking the lean out
-about the seated tip lands all three within 1.5 mm and hands over at 0.4&#8211;6.3&#176;; the lean at the end of the turn
-costs nothing at the seat once the trajectory is written for the tip.</li>
-<li><strong>The calibrated servo needs a command it can reach; after an RL turn it has one it cannot.</strong> The frozen
-residual leaves the thumb 70&#8211;79&#176; past its achieved angle on the 0.35 N&#183;m ceiling, and every command-referenced
-composition downstream (regrip, relay, gait table) keeps it there; an achieved-angle loop adds nothing to a stalled servo. Re-seeding
-from the achieved angles at the press takes the servos off the ceiling; the gait ring is then the next unreachable command
-(17&#8211;27 mm of IK residual on every D5/D6 run, including the 09-06 chain that read as solved on kp 30).</li>
-<li><strong>Unattended follow-ups.</strong> Two of three scheduled session wake-ups never fired; the page build has
-to live in the detached driver (or a watcher beside it), not in the session.</li>
+<li><strong>Evaluate off the trained pose.</strong> A deterministic evaluator on a zero-jitter environment measures the
+GPU solver. <code>policy_eval_suite.py --spawn-jitter-mm 3 --spawn-yaw-deg 10 --friction-dr</code> is the number a policy is
+judged on, and the driver writes it for every job (<code>*_eval_j3dr.json</code>).</li>
+<li><strong>Four differences between the training plant and the bench.</strong> The tool&#8217;s contact class, the floor and
+the tip had differed between the mjlab environment and the scene since the first mjlab run. The finger joint damping is shared
+by both and differs from the servo: a 1&#8202;s time constant that the policies rely on.</li>
+<li><strong>The arm&#8217;s settling.</strong> The 4.9&#8202;mm the palm sat below its command at the turn was the menagerie
+servo settling (kp/kv = 5&#8202;rad/s). A UR5e told its payload holds about 0.1&#8202;mm, and the chain runs the arm at ten times
+the position gain.</li>
+<li><strong>Two silent no-ops.</strong> The friction variants of the zero-shot table were copies of the base scene on every
+calibrated scene until 2026-09-20 02:00 (the variant matched the template&#8217;s &#956; 2.4), and
+<code>--payload-gravcomp</code> compensated the finger links as well as the hand. Both fixed.</li>
+<li><strong>The separation term.</strong> &#8722;10 below 30&#8202;mm buys 2&#8211;10&#8202;mm of index&#8211;middle clearance on
+D1, D3, D5 and D6 and removes the turn on D4 and D7, which turn by running the two fingers together.</li>
+<li><strong>Unattended follow-ups.</strong> Two of three scheduled session wake-ups never fired; the page build lives in a
+watcher beside the detached driver.</li>
 </ul>
 </div></section>
 
 <section><div class="col">
 <h2>Next steps</h2>
 <ol>
-<li><strong>Finish the queue and rank on the jittered hold</strong> (remaining jobs listed in queue.json); the
-bench candidate is the hand whose continued policy holds &#8805; 60 of 64 jittered and holds the chain at both plate
-heights.</li>
-<li><strong>Turn quality on the matched plant.</strong> The continued policies end at cos 0.82&#8211;0.83 where their
-parents ended at 0.92&#8211;0.96: 20 M steps of continuation on a harder tool contact and a heavier tip is not yet
-converged, or the jitter costs turn. One 60 M continuation of the D6 separation job decides which.</li>
-<li><strong>A gait ring the fingers can reach, at the palm pose the seat leaves.</strong> Solve the ring per hand
-(<code>_ring_here</code> on the pads&#8217; own azimuths, ring depth and radius chosen for an IK residual under 2 mm at the
-current palm pose) before the relay walks the pads onto it; accept <code>ring_ik_grip_mm</code> &lt; 2 and the index&#8217;s
-set-point error &lt; 10&#176; at <code>handover_index</code>. The alternative that needs no handover: gait on the contact set the
-press leaves (pads where they are, stroke about the tool axis, commands re-seeded from the achieved angles each cycle with the
-angle loop on), which turned 2&#8211;6&#176; per cycle whenever the servos were off the ceiling. Accept &#8805; 0.5 rev in 8
-cycles on D6.</li>
-<li><strong>Make <code>--seat-aim tip --press-regrip 10</code> the driver&#8217;s default</strong> for the next tranche (the
-remaining rows of this one keep the shipped settings so the table stays comparable), and run it across the spawn-jitter seeds
-(<code>--jitter</code>, <code>--seed</code> on the probe) to get a rate rather than three single rollouts.</li>
-<li><strong>Driver hygiene.</strong> <code>--video</code> on the driver&#8217;s chain call so every job gets its chain film;
-apply <code>--seed</code> in <code>rl_train_cube.py</code> (a dead flag today) after the queue; a second draw of the D4
-job is queued (<code>r_d4_clip_s1</code>) to tell a stochastic NaN from the D4 pads on the mesh tool.</li>
-<li><strong>The bench controller.</strong> A policy-driven station loop (servo telemetry + the AprilTag pose at
-50 Hz &#8594; the 66-dim observation &#8594; the residual on the finger set-points), after the tracker&#8217;s x/y
-heading calibration. Nothing here has run on hardware.</li>
-<li><strong>The privileged-critic blind actor</strong> (proprioception + motor load + history, critic with the
-pose), from scratch on the matched plant, once a sighted policy has been shown to transfer.</li>
-<li><strong>Clearance threshold from a caliper</strong> on the built index and middle housings, then the separation
-weight sweep (&#8722;3 &#8230; &#8722;10) on D4 and D7 only.</li>
-<li><strong>The friction rows of the 2026-09-17 D6 page</strong> re-run under the fixed variant (GPU).</li>
+<li><strong>Measure the finger dynamics on the bench</strong> (free-air step and a loaded back-drive per joint; the
+2026-09-23 page names both), fit the plant to them, and continue these checkpoints on it. No policy here is a hardware
+candidate before that.</li>
+<li><strong>Turn quality.</strong> The continued policies end their turns at cos 0.80&#8211;0.96. One 60&#8202;M continuation
+of the D6 separation job on the fitted plant separates convergence from what the jitter costs.</li>
+<li><strong>D4.</strong> Both draws stopped on NaN observations (iterations 9 and 63) on the g12 tip-mesh scene; inspect the
+D4 pads against the tip mesh at spawn before another D4 job.</li>
+<li><strong>Driver hygiene.</strong> Apply <code>--seed</code> in <code>rl_train_cube.py</code> (a dead flag: every run is an
+unseeded draw) and pass <code>--video</code> to the driver&#8217;s chain call.</li>
+<li><strong>The bench controller.</strong> Servo telemetry and the AprilTag pose at 50&#8202;Hz into the 66-dim observation, the
+residual onto the finger set-points, after the tracker&#8217;s x/y heading calibration.</li>
+<li><strong>The privileged-critic blind actor</strong> (proprioception, motor load and history; critic with the pose), once a
+sighted policy transfers.</li>
+<li><strong>Clearance from a caliper</strong> on the built index and middle housings, then the separation weight
+(&#8722;3 &#8230; &#8722;10) on D4 and D7 only.</li>
+<li><strong>The friction rows of the 2026-09-17 D6 page</strong> re-run under the fixed variant.</li>
 </ol>
 </div></section>
 
