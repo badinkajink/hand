@@ -17,6 +17,11 @@ WHAT IT CHANGES, AND WHERE EACH NUMBER COMES FROM
                 `protective_torque` (20 %) after sustained overload, which on the bench pins the
                 reported load at exactly 200 and roughly doubles both deflection and scatter.
 
+  damping       The template's `ctrl` joints carry damping 0.5, sized for its kp 30 (tau = (0.5 + kv) / kp
+                = 33 ms). At kp 0.5 the same damping is a ~1 s time constant, against a bench servo
+                that settles a free-air step within 0.13 s. `--damping` replaces it; left unset, the
+                scene keeps 0.5, which is what every calibrated-plant result before 2026-09-23 ran on.
+
   frictionloss  Absent from every MJCF in the repo.  The free-hanging staircase measures a
                 friction cone of 0.70-1.50 deg on five joints.  NOTE this is known to be an
                 UNDER-estimate: under a real grasp the same joint's cone is 12.26 deg, and a
@@ -73,6 +78,8 @@ def main() -> int:
                     help="N*m ceiling per finger actuator; the protective_torque cliff")
     ap.add_argument("--frictionloss", type=float, default=0.0035,
                     help="N*m. 0 disables. The free-hanging cone; an under-estimate under load")
+    ap.add_argument("--damping", type=float, default=None,
+                    help="finger joint damping (N m s/rad); unset keeps the template's 0.5")
     ap.add_argument("--no-mass", action="store_true", help="leave the shipped masses alone")
     a = ap.parse_args()
 
@@ -94,6 +101,10 @@ def main() -> int:
             for jt in d.findall("joint"):
                 jt.set("frictionloss", f"{a.frictionloss:g}")
                 changes.append(f"ctrl joint: frictionloss -> {a.frictionloss:g}")
+        if a.damping is not None:
+            for jt in d.findall("joint"):
+                changes.append(f"ctrl joint: damping {jt.get('damping')} -> {a.damping:g}")
+                jt.set("damping", f"{a.damping:g}")
 
     if not a.no_mass:
         for body in root.iter("body"):
