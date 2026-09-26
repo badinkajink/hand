@@ -1,0 +1,314 @@
+{
+ "D8": {
+  "tag": "sv1_w0099_b100_y180_sq10",
+  "scene": "assets/mjcf/experimental/20260904-chain_bothsets/sv1_w0099_b100_y180_sq10__flat.xml",
+  "mass_g": 24.5,
+  "pinch_axis_vs_shaft_deg": 37.1,
+  "pinch_axis_vs_horizontal_deg": 9.3,
+  "cg_from_pinch_mm": 9.8,
+  "gravity_moment_mNm": 1.73,
+  "middle_from_pinch_mm": 43.8,
+  "middle_lever_mm_signed": -35.98,
+  "pad_dist_mm": {
+   "thumb": -6.49,
+   "index": -10.48,
+   "middle": -0.38
+  },
+  "middle_normal": [
+   -0.685,
+   -0.0,
+   -0.728
+  ],
+  "middle_reach_of_10mm": {
+   "-z": 2.2,
+   "+z": 9.9,
+   "-x": 2.7,
+   "+x": 4.4,
+   "-y": 9.4,
+   "+y": 9.3
+  },
+  "middle_q_deg": {
+   "middle_yaw": 0.6,
+   "middle_mcp": 42.7,
+   "middle_pip": 0.0
+  },
+  "middle_ik_res_fixed_mm": {
+   "10": 7.3,
+   "20": 15.3,
+   "30": 23.5,
+   "45": 35.6,
+   "60": 46.9,
+   "75": 57.0,
+   "90": 65.5
+  },
+  "middle_ik_res_slide_mm": {
+   "10": 7.0,
+   "20": 13.6,
+   "30": 19.5,
+   "45": 27.3,
+   "60": 35.1,
+   "75": 42.3,
+   "90": 48.6
+  }
+ },
+ "D8 sq12": {
+  "tag": "sv1_w0099_b100_sq12",
+  "scene": "assets/mjcf/experimental/20260904-chain_bothsets/sv1_w0099_b100_sq12__flat.xml",
+  "mass_g": 24.5,
+  "pinch_axis_vs_shaft_deg": 25.5,
+  "pinch_axis_vs_horizontal_deg": 1.0,
+  "cg_from_pinch_mm": 11.8,
+  "gravity_moment_mNm": 1.55,
+  "middle_from_pinch_mm": 35.8,
+  "middle_lever_mm_signed": -25.6,
+  "pad_dist_mm": {
+   "thumb": -6.39,
+   "index": -10.92,
+   "middle": -0.15
+  },
+  "middle_normal": [
+   -0.697,
+   -0.0,
+   -0.718
+  ],
+  "middle_reach_of_10mm": {
+   "-z": 2.4,
+   "+z": 9.9,
+   "-x": 2.6,
+   "+x": 4.2,
+   "-y": 9.4,
+   "+y": 9.3
+  },
+  "middle_q_deg": {
+   "middle_yaw": 0.6,
+   "middle_mcp": 44.2,
+   "middle_pip": 0.0
+  },
+  "middle_ik_res_fixed_mm": {
+   "10": 5.9,
+   "20": 12.5,
+   "30": 19.6,
+   "45": 30.2,
+   "60": 40.3,
+   "75": 49.5,
+   "90": 57.4
+  },
+  "middle_ik_res_slide_mm": {
+   "10": 5.8,
+   "20": 12.1,
+   "30": 18.3,
+   "45": 26.9,
+   "60": 34.3,
+   "75": 41.1,
+   "90": 46.9
+  }
+ },
+ "D6 ta20": {
+  "tag": "sv1_u0308_b050_ta20_y180_sq10",
+  "scene": "assets/mjcf/experimental/20260904-chain_bothsets/sv1_u0308_b050_ta20_y180_sq10__flat.xml",
+  "mass_g": 24.5,
+  "pinch_axis_vs_shaft_deg": 47.6,
+  "pinch_axis_vs_horizontal_deg": 0.8,
+  "cg_from_pinch_mm": 15.4,
+  "gravity_moment_mNm": 3.7,
+  "middle_from_pinch_mm": 58.8,
+  "middle_lever_mm_signed": -27.85,
+  "pad_dist_mm": {
+   "thumb": -10.28,
+   "index": -11.1,
+   "middle": -5.96
+  },
+  "middle_normal": [
+   -0.854,
+   -0.0,
+   -0.52
+  ],
+  "middle_reach_of_10mm": {
+   "-z": 1.9,
+   "+z": 9.9,
+   "-x": 3.9,
+   "+x": 5.9,
+   "-y": 9.4,
+   "+y": 6.3
+  },
+  "middle_q_deg": {
+   "middle_yaw": 21.9,
+   "middle_mcp": 33.2,
+   "middle_pip": 0.0
+  },
+  "middle_ik_res_fixed_mm": {
+   "10": 8.4,
+   "20": 18.1,
+   "30": 28.3,
+   "45": 43.7,
+   "60": 58.5,
+   "75": 72.0,
+   "90": 83.7
+  },
+  "middle_ik_res_slide_mm": {
+   "10": 7.3,
+   "20": 18.1,
+   "30": 27.7,
+   "45": 39.3,
+   "60": 49.0,
+   "75": 58.4,
+   "90": 66.7
+  }
+ },
+ "D4 ta30": {
+  "tag": "g12_b095_ta30_y180_sq10",
+  "scene": "assets/mjcf/experimental/20260904-chain_bothsets/g12_b095_ta30_y180_sq10__flat.xml",
+  "mass_g": 24.5,
+  "pinch_axis_vs_shaft_deg": 56.8,
+  "pinch_axis_vs_horizontal_deg": 11.9,
+  "cg_from_pinch_mm": 21.8,
+  "gravity_moment_mNm": 5.13,
+  "middle_from_pinch_mm": 55.3,
+  "middle_lever_mm_signed": -20.94,
+  "pad_dist_mm": {
+   "thumb": -7.12,
+   "index": -9.46,
+   "middle": -9.46
+  },
+  "middle_normal": [
+   -0.803,
+   -0.0,
+   -0.596
+  ],
+  "middle_reach_of_10mm": {
+   "-z": 1.5,
+   "+z": 9.9,
+   "-x": 3.6,
+   "+x": 5.6,
+   "-y": 9.3,
+   "+y": 9.3
+  },
+  "middle_q_deg": {
+   "middle_yaw": 0.0,
+   "middle_mcp": 34.9,
+   "middle_pip": 0.1
+  },
+  "middle_ik_res_fixed_mm": {
+   "10": 8.5,
+   "20": 18.0,
+   "30": 27.9,
+   "45": 42.6,
+   "60": 56.4,
+   "75": 68.7,
+   "90": 79.2
+  },
+  "middle_ik_res_slide_mm": {
+   "10": 8.2,
+   "20": 16.5,
+   "30": 23.9,
+   "45": 33.6,
+   "60": 42.9,
+   "75": 51.3,
+   "90": 58.5
+  }
+ },
+ "D7 ta20": {
+  "tag": "rv05_manual_b85_ta20_y180_sq10",
+  "scene": "assets/mjcf/experimental/20260904-chain_bothsets/rv05_manual_b85_ta20_y180_sq10__flat.xml",
+  "mass_g": 24.5,
+  "pinch_axis_vs_shaft_deg": 37.7,
+  "pinch_axis_vs_horizontal_deg": 7.0,
+  "cg_from_pinch_mm": 15.2,
+  "gravity_moment_mNm": 3.46,
+  "middle_from_pinch_mm": 39.0,
+  "middle_lever_mm_signed": -27.62,
+  "pad_dist_mm": {
+   "thumb": -7.67,
+   "index": -9.97,
+   "middle": -3.62
+  },
+  "middle_normal": [
+   -0.726,
+   -0.0,
+   -0.688
+  ],
+  "middle_reach_of_10mm": {
+   "-z": 1.6,
+   "+z": 9.9,
+   "-x": 3.5,
+   "+x": 5.5,
+   "-y": 8.3,
+   "+y": 9.7
+  },
+  "middle_q_deg": {
+   "middle_yaw": -7.2,
+   "middle_mcp": 35.9,
+   "middle_pip": 0.0
+  },
+  "middle_ik_res_fixed_mm": {
+   "10": 8.4,
+   "20": 17.3,
+   "30": 26.4,
+   "45": 39.5,
+   "60": 51.7,
+   "75": 62.5,
+   "90": 71.6
+  },
+  "middle_ik_res_slide_mm": {
+   "10": 6.8,
+   "20": 13.6,
+   "30": 19.8,
+   "45": 29.0,
+   "60": 38.0,
+   "75": 46.2,
+   "90": 53.4
+  }
+ },
+ "D2 ta30": {
+  "tag": "sv1_w2360_b075_ta30_y180_sq10",
+  "scene": "assets/mjcf/experimental/20260904-chain_bothsets/sv1_w2360_b075_ta30_y180_sq10__flat.xml",
+  "mass_g": 24.5,
+  "pinch_axis_vs_shaft_deg": 73.4,
+  "pinch_axis_vs_horizontal_deg": 12.9,
+  "cg_from_pinch_mm": 35.8,
+  "gravity_moment_mNm": 8.41,
+  "middle_from_pinch_mm": 80.5,
+  "middle_lever_mm_signed": -60.91,
+  "pad_dist_mm": {
+   "thumb": -9.14,
+   "index": -9.96,
+   "middle": -5.26
+  },
+  "middle_normal": [
+   -0.824,
+   -0.0,
+   -0.567
+  ],
+  "middle_reach_of_10mm": {
+   "-z": 2.5,
+   "+z": 9.9,
+   "-x": 2.9,
+   "+x": 4.7,
+   "-y": 8.8,
+   "+y": 6.9
+  },
+  "middle_q_deg": {
+   "middle_yaw": 19.4,
+   "middle_mcp": 41.1,
+   "middle_pip": 0.0
+  },
+  "middle_ik_res_fixed_mm": {
+   "10": 10.8,
+   "20": 22.2,
+   "30": 33.7,
+   "45": 50.4,
+   "60": 65.8,
+   "75": 79.5,
+   "90": 91.1
+  },
+  "middle_ik_res_slide_mm": {
+   "10": 10.6,
+   "20": 21.8,
+   "30": 30.8,
+   "45": 41.3,
+   "60": 51.4,
+   "75": 60.8,
+   "90": 69.0
+  }
+ }
+}
