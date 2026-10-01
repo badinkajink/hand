@@ -1,0 +1,15 @@
+{
+ "tiles": [
+  "drake:point",
+  "drake:hydro:E1e7:r1:rt0.01",
+  "drake:hydro:E1e7:r1",
+  "drake:hydro:E1e7:r1:rt0.02",
+  "mj:point3",
+  "mj:spheres:s0.5:rs0.75:ir100:tr0.02",
+  "mj:spheres:s0.5:rs0.75:ir100:tr0.1",
+  "mj:point4s:fit0.000996044x0.2498:ir100"
+ ],
+ "frames": 138,
+ "fps": 25,
+ "file": "media/20261001-brake_eight_models.mp4"
+}

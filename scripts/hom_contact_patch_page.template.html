@@ -1,0 +1,316 @@
+<title>Hydroelastic pinch in MuJoCo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* House layout of the MorphoHand result pages: one reading column, figures and tables break out to 1020px.
+   Series colours: Drake hydroelastic blue, MuJoCo sphere pads orange, MuJoCo condim 4 green (dashed),
+   analytic and quasi-static references grey dashed; validated for CVD in both themes. */
+:root{
+  --paper:#EEF1F4; --card:#FFFFFF; --sunk:#E4E9EE;
+  --ink:#1A2127; --ink2:#48545D; --ink3:#77848D; --rule:#D2DAE1; --rule2:#E2E8ED;
+  --s1:#BE7514; --s2:#4A7FC4; --s3:#5E8F5A; --ref:#8A959D;
+  --good:#3F7A46; --bad:#A8443C;
+  --c-drake:#4A7FC4; --c-sphere:#BE7514; --c-c4:#25875A; --c-ref:#8A959D;
+  --shadow:0 1px 2px rgba(16,26,34,.06),0 8px 24px -14px rgba(16,26,34,.28);
+  --f-display:Archivo,"Helvetica Neue",Arial,sans-serif;
+  --f-body:"Source Serif 4",Georgia,"Times New Roman",serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
+  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
+  --s1:#E39A2E; --s2:#7BA7E0; --s3:#8AC286; --ref:#79858E; --good:#6FB076; --bad:#DE8078;
+  --c-drake:#6496DD; --c-sphere:#C47D1C; --c-c4:#3AA56E; --c-ref:#79858E;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
+  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
+  --s1:#E39A2E; --s2:#7BA7E0; --s3:#8AC286; --ref:#79858E; --good:#6FB076; --bad:#DE8078;
+  --c-drake:#6496DD; --c-sphere:#C47D1C; --c-c4:#3AA56E; --c-ref:#79858E;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font:400 17px/1.62 var(--f-body);
+  -webkit-font-smoothing:antialiased;padding-inline:20px;padding-block:0 96px;margin:0}
+.wrap{max-width:1020px;margin:0 auto}
+.col{max-width:70ch}
+h1,h2,h3,.tag,th{font-family:var(--f-display)}
+.mono,code,td.num,.note,pre{font-family:var(--f-mono)}
+header{padding:64px 0 30px;border-bottom:1px solid var(--rule)}
+.eyebrow{font:500 12px/1.4 var(--f-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--ink3)}
+h1{font-size:clamp(28px,4.4vw,44px);line-height:1.08;font-weight:700;letter-spacing:-.022em;
+  margin:16px 0 0;text-wrap:balance;max-width:26ch}
+.lede{font-size:19px;line-height:1.58;color:var(--ink2);margin:18px 0 0;max-width:66ch}
+.byline{margin-top:22px;font:400 13px/1.55 var(--f-mono);color:var(--ink3);max-width:96ch}
+section{padding:46px 0;border-bottom:1px solid var(--rule2)}
+section:last-of-type{border-bottom:0}
+h2{font-size:26px;font-weight:700;letter-spacing:-.018em;margin:0 0 6px;text-wrap:balance}
+h3{font-size:18px;font-weight:600;letter-spacing:-.008em;margin:34px 0 8px}
+h2 + .sub{color:var(--ink3);font:400 14px/1.5 var(--f-mono);margin:0 0 24px}
+p{margin:0 0 17px}
+strong{font-weight:600}
+ul,ol{margin:0 0 17px;padding-left:20px}
+li{margin:0 0 8px}
+figure{margin:28px 0}
+figure video,figure img{display:block;width:100%;max-width:100%;height:auto;border-radius:10px;background:var(--sunk);box-shadow:var(--shadow)}
+figcaption{margin-top:11px;font:400 14px/1.55 var(--f-mono);color:var(--ink3);max-width:86ch}
+.col > .tw,.col > figure,.col > .duo{width:min(1020px,calc(100vw - 40px));max-width:none}
+.col > figure.narrow{width:min(780px,calc(100vw - 40px))}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:28px 0}
+.duo > *{min-width:0}
+@media (max-width:760px){.duo{grid-template-columns:1fr}}
+.duo figure{margin:0}
+.tw{overflow-x:auto;margin:24px 0;border:1px solid var(--rule);border-radius:10px;background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th{font:600 12px/1.3 var(--f-display);letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);
+  text-align:left;padding:13px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+td{padding:10px 14px;border-bottom:1px solid var(--rule2);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;font-size:13.5px;white-space:nowrap}
+td.cell{text-align:center;font-family:var(--f-mono);font-size:13px;font-weight:500;white-space:nowrap}
+td.c4{background:color-mix(in oklab,var(--good) 28%,var(--card));color:var(--ink)}
+td.c3{background:color-mix(in oklab,var(--good) 14%,var(--card))}
+td.c2{background:color-mix(in oklab,var(--s1) 16%,var(--card))}
+td.c0{background:color-mix(in oklab,var(--bad) 20%,var(--card));color:var(--ink2)}
+tr.grp td{background:var(--sunk);font:600 12px/1.3 var(--f-display);letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)}
+.key{display:inline-block;width:18px;height:0;border-top:2.5px solid;vertical-align:middle;margin-right:7px}
+.key.dash{border-top-style:dashed}
+.keep{border:1px solid var(--rule);border-left:3px solid var(--s2);border-radius:10px;
+  padding:20px 24px;margin:28px 0;background:var(--card)}
+.keep .tag{display:block;font:700 12px/1 var(--f-display);letter-spacing:.16em;text-transform:uppercase;
+  color:var(--s2);margin-bottom:11px}
+.keep p:last-child,.keep ul:last-child{margin-bottom:0}
+pre{background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:16px 18px;
+  overflow-x:auto;font-size:13px;line-height:1.6;margin:22px 0}
+code{font-size:.9em;background:var(--sunk);padding:1px 4px;border-radius:4px;margin:0 -1px}
+footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 var(--f-mono)}
+footer a,.col a{color:var(--s2)}
+a:focus-visible{outline:2px solid var(--s2);outline-offset:2px;border-radius:2px}
+/* charts */
+.chart{position:relative;background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:14px 12px 8px}
+.chart h4{font:600 14px/1.35 var(--f-display);margin:2px 6px 2px;color:var(--ink)}
+.chart .unit{font:400 12.5px/1.4 var(--f-mono);color:var(--ink3);margin:0 6px 6px}
+.chart svg{display:block;width:100%;height:auto;overflow:visible;touch-action:pan-y}
+.chart .legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin:6px 6px 4px;font:400 12.5px/1.4 var(--f-mono);color:var(--ink2)}
+.chart .gl{stroke:var(--rule2);stroke-width:1}
+.chart .ax{stroke:var(--rule);stroke-width:1}
+.chart .tk{fill:var(--ink3);font:400 12px var(--f-mono)}
+.chart .lb{fill:var(--ink2);font:500 12px var(--f-mono)}
+.chart .at{fill:var(--ink3);font:400 12px var(--f-mono)}
+.chart .ln{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.chart .mk{stroke:var(--card);stroke-width:2}
+.chart .xh{stroke:var(--ink3);stroke-width:1;opacity:0}
+.chart .tip{position:absolute;pointer-events:none;background:var(--card);border:1px solid var(--rule);border-radius:8px;
+  padding:8px 10px;font:400 12px/1.5 var(--f-mono);color:var(--ink);box-shadow:var(--shadow);opacity:0;
+  transition:opacity .08s;white-space:nowrap;z-index:2}
+.chart .tip b{font-weight:500}
+.chart .tip i{display:inline-block;width:10px;height:3px;margin-right:6px;vertical-align:middle;font-style:normal}
+@media (prefers-reduced-motion: reduce){.chart .tip{transition:none}}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">MorphoHand &#183; contact models for the pinch hinge &#183; real_v1 fingertip and screwdriver &#183; 1 October 2026 &#183; built {{BUILT}}</div>
+  <h1>Pinch friction torque in Drake hydroelastic and MuJoCo contact models</h1>
+  <p class="lede">Wang, Oh and Pollard load a screwdriver by loosening a two-finger pinch until gravity turns the
+  tool about the pinch axis, and they used Drake&#8217;s hydroelastic contact because a point contact has no friction
+  torque about that axis. On a two-pad rig with the real_v1 fingertip and screwdriver, Drake&#8217;s hydroelastic
+  pad at E&#8202;=&#8202;10&#8202;MPa resists that rotation with &#956;N&#183;r&#772; per pad, r&#772;&#8202;=&#8202;{{C_FIT}}&#8202;mm&#183;(N&#8202;/&#8202;1&#8202;N)<sup>{{P_FIT}}</sup>.
+  MuJoCo reproduces the torque two ways: condim&#160;4 with the torsional coefficient rescheduled every step from the
+  pad&#8217;s normal force, within {{ERR_P4S}}&#8202;%, and fingertip pads packed with 0.75&#8202;mm spheres at
+  0.5&#8211;1&#8202;mm spacing, within {{ERR_SP}}&#8202;%, with stiffness set from E and nothing fitted to Drake. With a
+  short contact relaxation time, lowering the pinch from 6&#8202;N to 0.2&#8202;N lowers the tool to vertical along the
+  quasi-static brake law in both simulators: 45&#176; is passed at {{N45_REF}}&#8202;N in Drake and {{N45_SP}}&#8202;N with
+  the sphere pads, against {{N45_QS}}&#8202;N predicted. At Drake&#8217;s default relaxation of 0.1&#8202;s the brake gives way
+  as the tool speeds up and the tool swings past vertical, to {{MAX_DEF}}&#176;. With point contact in either simulator
+  the tool swings over the top as soon as its weight comes on.</p>
+  <div class="byline">rig: two 10.55&#8202;mm sphere pads on force-controlled rails (20&#8202;g, 5&#8202;N&#183;s/m), free
+  24.5&#8202;g cylinder of radius 12.5&#8202;mm and length 100&#8202;mm, &#956;&#8202;1.0, 1&#8202;ms step &#183; Drake {{DRAKE_V}}, SAP, compliant
+  hydroelastic pads (E&#8202;10&#8202;MPa, 1&#8202;mm tetrahedra), rigid hydroelastic tool (0.5&#8202;mm) &#183; MuJoCo {{MUJOCO_V}},
+  implicitfast, Newton, elliptic cone &#183; <code>scripts/hom_contact_rig.py</code>,
+  <code>scripts/hom_contact_study.py</code> &#183; arXiv 2609.25619 (v2, 26 Sep 2026)</div>
+</header>
+
+<section><div class="col">
+<h2>The pinch in the paper and the rig</h2>
+<p class="sub">what the load step asks of the contact model</p>
+<p>The paper&#8217;s pinch sub-assembly acts as a fixed joint when its two contact forces are large and as a revolute
+joint about the pinch axis when they are small. The load step lowers the force until the tool turns under gravity.
+The torque a pinch resists about its own axis is friction spread over the contact patch, &#956;&#8747;p&#8202;&#961;&#8202;dA,
+which a single contact point does not produce. The paper also takes the centre of pressure of each hydroelastic
+contact surface as the instantaneous contact point from which it builds its generalized contact frames.</p>
+<p>The rig isolates that hinge. Two spheres of the real_v1 fingertip radius ride on rails along the pinch axis and
+push with a set force N each. They squeeze the real_v1 screwdriver cylinder, whose axis starts horizontal and
+perpendicular to the pinch axis with its centre of mass d from the pinch line. Masses, geometry, friction and the
+time step are the same in both simulators; only the contact model changes.</p>
+{{TABLE_MODELS}}
+</div></section>
+
+<section><div class="col">
+<h2>Friction torque against pinch force</h2>
+<p class="sub">gravity off &#183; the tool is spun about the pinch axis at 2&#8202;rad/s by a stiff drive &#183; r&#772; = steady drive torque / (2&#8202;&#956;&#8202;N)</p>
+<p>Drake&#8217;s torque arm follows the elastic-foundation law of a sphere pressed into a cylinder. Drake&#8217;s
+pressure field for a compliant sphere is linear in depth, p&#8202;=&#8202;E&#183;depth&#8202;/&#8202;R. Pressed on a rigid plate
+(<code>exp_plate</code>, 0.25&#8211;4&#8202;N), the pad&#8217;s penetration gives F&#8202;=&#8202;&#960;E&#948;&#178; to within
+{{PLATE_ERR}}&#8202;% and a pressure-weighted arm of {{PLATE_RATIO}} of the patch radius, against 8/15&#8202;=&#8202;0.533
+for a paraboloidal pressure field. On the cylinder the arm is {{R1_DRAKE}}&#8202;mm at 1&#8202;N, against {{R1_WINKLER}}&#8202;mm
+from the foundation integral, and it grows as N<sup>{{P_FIT}}</sup>, so a fourfold force widens it by {{GROW4}}&#8202;%.</p>
+{{CHART_TORSION}}
+<p>Both point contact models give zero torque at every force. condim&#160;4 with a constant &#956;<sub>t</sub> equal to
+Drake&#8217;s arm at 1&#8202;N is exact there and {{ERR_P4_025}}&#8202;% high at 0.25&#8202;N and {{ERR_P4_4}}&#8202;% low at
+4&#8202;N; rescheduling &#956;<sub>t</sub> every step removes that error. The sphere pads come within {{ERR_S1}}&#8202;% of
+Drake at 1&#8202;mm spacing ({{NC_S1}} spheres in contact at 1&#8202;N) and {{ERR_S05}}&#8202;% at 0.5&#8202;mm ({{NC_S05}}).
+At 2&#8202;mm spacing one or two spheres touch below 1&#8202;N and the arm falls to {{R025_S2}}&#8202;mm at 0.25&#8202;N.</p>
+{{TABLE_TORSION}}
+</div></section>
+
+<section><div class="col">
+<h2>Rate dependence and the contact relaxation time</h2>
+<p class="sub">torque arm per pad at 1&#8202;N (4&#8202;N where marked), spun at 0.5 and 2&#8202;rad/s</p>
+<p>Drake&#8217;s hydroelastic torque is independent of the spin rate only when the contact&#8217;s relaxation time is
+short. At SAP&#8217;s default of 0.1&#8202;s the arm at 1&#8202;N drops from {{RT01_W05}}&#8202;mm at 0.5&#8202;rad/s to
+{{RT01_W2}}&#8202;mm at 2&#8202;rad/s, and the contact surface loses about half its faces. Turning the tool about the
+pinch axis moves the cylinder&#8217;s surface along the pad normal at &#969;&#183;y&#183;z&#8202;/&#8202;R<sub>c</sub> inside the
+patch, toward the pad in two quadrants and away from it in the other two. The Kelvin&#8211;Voigt term adds force where
+the surface approaches and removes it where it recedes; the receding quadrants leave the patch and the arm shrinks.
+The sphere pads with a 0.1&#8202;s relaxation lose {{SP01_LOSS}}&#8202;% the same way. The sphere pads at 0.02&#8202;s and
+Drake at 0.01 and 0.02&#8202;s change by {{SHORT_CHANGE}}&#8202;% or less between the two rates.</p>
+<p>MuJoCo&#8217;s friction is also regularized. At impratio&#160;10, the value in the calibrated real_v1 plant, condim&#160;4 at
+4&#8202;N delivers {{IR10_C4}}&#8202;% of its torque at 0.5&#8202;rad/s and the sphere pads {{IR10_SP}}&#8202;%; at impratio&#160;100
+both are rate-independent.</p>
+{{TABLE_RATE}}
+</div></section>
+
+<section><div class="col">
+<h2>The gravity brake</h2>
+<p class="sub">gravity on &#183; centre of mass d from the pinch line &#183; pinch held at 6&#8202;N, then lowered geometrically to
+0.2&#8202;N over 4&#8202;s &#183; &#966;&#8202;=&#8202;rotation of the tool axis about the pinch axis, 0 horizontal, 90&#176; hanging</p>
+<p>Every model with friction torque lowers the tool to vertical as the pinch force falls. From about 45&#176; on, the
+angle follows the quasi-static brake law cos&#8202;&#966;&#8202;=&#8202;2&#956;&#8202;N&#8202;r&#772;(N)&#8202;/&#8202;(m&#8202;g&#8202;d), corrected for
+the friction the pads spend carrying the weight. For d&#8202;=&#8202;15&#8202;mm it places 45&#176; at {{N45_QS}}&#8202;N and
+80&#176; at {{N80_QS}}&#8202;N. Drake at 0.01&#8202;s passes them at {{N45_REF}} and {{N80_REF}}&#8202;N, the 0.5&#8202;mm sphere
+pads at {{N45_SP}} and {{N80_SP}}&#8202;N, and the rescheduled condim&#160;4 at {{N45_P4S}} and {{N80_P4S}}&#8202;N.</p>
+<div class="duo">
+{{CHART_BRAKE_A}}
+{{CHART_BRAKE_B}}
+</div>
+<p>Near horizontal, cos&#8202;&#966; is flat, so the equilibrium angle moves quickly with N; every model breaks away there
+and sticks past the quasi-static angle before the falling force catches up. A 12&#8202;s ramp lowers Drake&#8217;s peak
+swing rate from {{PEAK4_REF}} to {{PEAK12_REF}}&#8202;deg/s and the sphere pads&#8217; from {{PEAK4_SP}} to
+{{PEAK12_SP}}&#8202;deg/s.</p>
+<p>With the 0.1&#8202;s relaxation the brake weakens as the tool speeds up. Drake drops the tool from 45&#176; to 80&#176;
+between {{N45_DEF}} and {{N80_DEF}}&#8202;N and swings it to {{MAX_DEF}}&#176;, past vertical; the sphere pads with the same
+relaxation swing it to {{MAX_SP01}}&#176;. At 0.02&#8202;s Drake still falls through 80&#176; at {{N80_RT02}}&#8202;N on the 4&#8202;s
+ramp, while the sphere pads at 0.02&#8202;s pass 80&#176; at {{N80_SP}}&#8202;N, so per second of relaxation the weakening is
+stronger in Drake than in MuJoCo. On the 12&#8202;s ramp the swing is slower and Drake at 0.02&#8202;s follows the law to
+80&#176; ({{N80_RT02_12}}&#8202;N).</p>
+<p>With point contact there is no friction torque. The tool swings through {{MAX_DPT}}&#176; in Drake and
+{{MAX_MPT}}&#176; in MuJoCo as its weight comes on at 6&#8202;N and keeps swinging. At impratio&#160;10 the condim&#160;4
+pinch creeps from the start and passes 10&#176; before the ramp begins.</p>
+{{TABLE_BRAKE}}
+<figure>
+<video src="{{FILM}}" poster="{{POSTER}}" controls muted loop playsinline preload="metadata"></video>
+<figcaption>The brake at d&#8202;=&#8202;15&#8202;mm, 4&#8202;s ramp, real time. Top row Drake, bottom row MuJoCo. Columns: point
+contact; elastic patch (Drake hydroelastic at 0.01&#8202;s, MuJoCo 0.5&#8202;mm sphere pads at 0.02&#8202;s); patch with a
+0.1&#8202;s relaxation; Drake at 0.02&#8202;s above the rescheduled condim&#160;4. Drake runs are replayed through the MuJoCo
+renderer from their recorded poses. <code>{{FILM_PATH}}</code></figcaption>
+</figure>
+</div></section>
+
+<section><div class="col">
+<h2>Centre of pressure</h2>
+<p class="sub">one pad at 0.21&#8202;mm penetration (about 1&#8202;N), rotated about its own centre through 20&#176; in 0.25&#176; steps &#183;
+tangential distance of the centre of pressure from the analytic contact point</p>
+<p>For a sphere against a cylinder the centre of pressure stays at the closest point, so any tangential motion of it
+under a pad rotation is error in the generalized contact frame&#8217;s origin. MuJoCo&#8217;s single sphere&#8211;cylinder
+contact is the analytic point. Drake&#8217;s contact surface stays within {{COP_DRAKE}}&#8202;&#181;m. The sphere pads&#8217;
+penetration-weighted centroid stays within {{COP_S05}}&#8202;mm at 0.5&#8202;mm spacing and {{COP_S1}}&#8202;mm at 1&#8202;mm, and
+wanders {{COP_S2}}&#8202;mm at 2&#8202;mm, jumping {{STEP_S2}}&#8202;mm between neighbouring poses.</p>
+{{TABLE_COP}}
+</div></section>
+
+<section><div class="col">
+<h2>What a MuJoCo port of the load step needs</h2>
+<ul>
+<li>For the pinch hinge, condim&#160;4 with an elliptic cone and impratio&#160;100, &#956;<sub>t</sub> rescheduled every step from the
+pad&#8217;s normal force as &#956;&#183;r&#772;(N), r&#772;&#8202;=&#8202;{{C_FIT}}&#8202;mm&#183;(N&#8202;/&#8202;1&#8202;N)<sup>1/4</sup> for the real_v1 fingertip
+at 10&#8202;MPa. The arm scales as E<sup>&#8722;1/4</sup>R<sup>1/2</sup>. One contact per pad; the reschedule is a write to
+<code>geom_friction</code> (or <code>pair_friction</code>) before each step and costs nothing measurable.</li>
+<li>Where the patch itself matters (a flat or mesh pad, a centre of pressure off a non-primitive finger), sphere
+pads: 0.75&#8202;mm spheres at 1&#8202;mm spacing, 126 per 35&#176; cap and 9&#8211;22 in contact, stiffness from E. The 4&#8202;s brake
+run takes {{WALL_S1}}&#8202;s of CPU for 5.5&#8202;s simulated, against {{WALL_P4S}}&#8202;s for condim&#160;4 and {{WALL_DRAKE}}&#8202;s
+for Drake.</li>
+<li>The calibrated real_v1 plant runs impratio&#160;10, at which both MuJoCo pinches creep; a brake needs 100.</li>
+<li>A Drake reproduction of the paper should set the hydroelastic relaxation time explicitly: 0.02&#8202;s already turns
+the lower half of the swing into a fall.</li>
+</ul>
+</div></section>
+
+<section><div class="col">
+<h2>What this does not settle</h2>
+<ol>
+<li><strong>The pad modulus.</strong> E&#8202;=&#8202;10&#8202;MPa is Drake&#8217;s default, not a measurement of the real_v1 pads; at a
+given force the torque scales as E<sup>&#8722;1/4</sup>, so 1&#8202;MPa gives 1.78&#215; of it. The bench measurement open since
+2026-09-16 fixes it: pinch with thumb and index, middle open, step the pinch load down and read the tag angle at each
+step. The law is falsified if the held cos&#8202;&#966; does not scale as N<sup>5/4</sup>.</li>
+<li><strong>The hand.</strong> The rails here are force-controlled; real_v1&#8217;s fingers are position servos with a
+1&#8202;s time constant on the calibrated plant. The next run is this brake on SR2 in both simulators, Drake through the
+2026-10-01 port (<code>scripts/drake_sr2_hand.py</code>) with compliant-hydroelastic fingertips and MuJoCo with
+rescheduled-condim-4 or sphere-packed fingertips, from a grasp of the 2026-09-16 swing set.</li>
+<li><strong>The controller.</strong> The paper&#8217;s generalized contact frames, least-squares relative-velocity planner
+and complementary filter (its Eqs. 1&#8211;6) are not implemented here. Their inputs, body twists and Jacobians, closest
+points from <code>mj_geomDistance</code> and centres of pressure from contacts, are all available in MuJoCo 3.6.</li>
+<li><strong>MuJoCo Warp.</strong> Sphere pads multiply each pad&#8217;s contact count by 10&#8211;50; their cost at 4096
+parallel environments is unmeasured.</li>
+</ol>
+</div></section>
+
+<footer>
+<p>Reproduce (CPU, about 8&#8202;min, one core):</p>
+<pre>uv venv logs/20261001-hom_contact/venv --python .venv/bin/python
+uv pip install --python logs/20261001-hom_contact/venv/bin/python drake==1.57.0 mujoco==3.6.0 numpy scipy imageio imageio-ffmpeg
+MUJOCO_GL=egl OMP_NUM_THREADS=1 logs/20261001-hom_contact/venv/bin/python scripts/hom_contact_study.py \
+    --out docs/experiments/20261001-hom_contact_patch
+python3 scripts/hom_contact_patch_page.py</pre>
+<p>Data: <code>docs/experiments/20261001-hom_contact_patch/</code> torsion.jsonl ({{N_TORSION}} rows), brake.jsonl
+({{N_BRAKE}} rows with 100&#8202;Hz traces), cop.jsonl, calibration.json, media/. Page:
+<code>docs/experiments/20261001-hom_contact_patch/20261001-hom_pinch_contact_models.html</code>, built by
+<code>scripts/hom_contact_patch_page.py</code>. Paper: Wang, Oh, Pollard, &#8220;Relative Contact Velocity-Controlled
+Hand-Object Mechanism for Dexterous Tool Manipulation&#8221;, <a href="https://arxiv.org/abs/2609.25619">arXiv 2609.25619</a>.</p>
+</footer>
+</div>
+
+<script>
+(function(){
+  function fmt(v,d){return (v===null||v===undefined||isNaN(v))?'–':v.toFixed(d)}
+  document.querySelectorAll('.chart').forEach(function(ch){
+    var svg=ch.querySelector('svg'), data=JSON.parse(ch.querySelector('script[type="application/json"]').textContent);
+    var tip=ch.querySelector('.tip'), xh=svg.querySelector('.xh');
+    var P=data.plot;  // {x0,x1,y0,y1, xmin,xmax, log, rev}
+    function toData(px){var f=(px-P.x0)/(P.x1-P.x0); if(P.rev) f=1-f;
+      return P.log? Math.exp(Math.log(P.xmin)+f*(Math.log(P.xmax)-Math.log(P.xmin))) : P.xmin+f*(P.xmax-P.xmin)}
+    function toPx(x){var f=P.log?(Math.log(x)-Math.log(P.xmin))/(Math.log(P.xmax)-Math.log(P.xmin)):(x-P.xmin)/(P.xmax-P.xmin);
+      if(P.rev) f=1-f; return P.x0+f*(P.x1-P.x0)}
+    function move(ev){
+      var r=svg.getBoundingClientRect(), vb=svg.viewBox.baseVal, sx=vb.width/r.width;
+      var px=(ev.clientX-r.left)*sx; if(px<P.x0||px>P.x1){leave();return}
+      var x=toData(px), rows=[], xs=null;
+      data.series.forEach(function(s){
+        var best=null,bd=1e9; s.pts.forEach(function(p){var d=Math.abs((P.log?Math.log(p[0])-Math.log(x):p[0]-x)); if(d<bd){bd=d;best=p}});
+        if(best){rows.push('<i style="background:'+s.color+'"></i>'+s.name+' <b>'+fmt(best[1],data.yd)+'</b>'); if(xs===null) xs=best[0]}
+      });
+      var xpx=toPx(xs===null?x:xs); xh.setAttribute('x1',xpx); xh.setAttribute('x2',xpx); xh.style.opacity=.6;
+      tip.innerHTML='<div>'+data.xname+' <b>'+fmt(xs===null?x:xs,data.xd)+'</b></div>'+rows.join('<br>');
+      var cr=ch.getBoundingClientRect(), left=ev.clientX-cr.left+14;
+      if(left+tip.offsetWidth>cr.width-6) left=ev.clientX-cr.left-tip.offsetWidth-14;
+      tip.style.left=Math.max(6,left)+'px'; tip.style.top=(ev.clientY-cr.top+12)+'px'; tip.style.opacity=1;
+    }
+    function leave(){tip.style.opacity=0; xh.style.opacity=0}
+    svg.addEventListener('pointermove',move); svg.addEventListener('pointerleave',leave);
+  });
+})();
+</script>
