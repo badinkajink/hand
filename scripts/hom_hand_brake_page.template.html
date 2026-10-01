@@ -1,0 +1,232 @@
+<title>SR2 pinch-brake loading</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* House layout of the MorphoHand result pages: one reading column, figures and tables break out to 1020px.
+   Series colours: Drake hydroelastic blue, MuJoCo sphere pads orange, MuJoCo condim 4 green (dashed),
+   analytic and quasi-static references grey dashed; validated for CVD in both themes. */
+:root{
+  --paper:#EEF1F4; --card:#FFFFFF; --sunk:#E4E9EE;
+  --ink:#1A2127; --ink2:#48545D; --ink3:#77848D; --rule:#D2DAE1; --rule2:#E2E8ED;
+  --s1:#BE7514; --s2:#4A7FC4; --s3:#5E8F5A; --ref:#8A959D;
+  --good:#3F7A46; --bad:#A8443C;
+  --c-drake:#4A7FC4; --c-sphere:#BE7514; --c-c4:#25875A; --c-ref:#8A959D;
+  --shadow:0 1px 2px rgba(16,26,34,.06),0 8px 24px -14px rgba(16,26,34,.28);
+  --f-display:Archivo,"Helvetica Neue",Arial,sans-serif;
+  --f-body:"Source Serif 4",Georgia,"Times New Roman",serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
+  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
+  --s1:#E39A2E; --s2:#7BA7E0; --s3:#8AC286; --ref:#79858E; --good:#6FB076; --bad:#DE8078;
+  --c-drake:#6496DD; --c-sphere:#C47D1C; --c-c4:#3AA56E; --c-ref:#79858E;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
+  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
+  --s1:#E39A2E; --s2:#7BA7E0; --s3:#8AC286; --ref:#79858E; --good:#6FB076; --bad:#DE8078;
+  --c-drake:#6496DD; --c-sphere:#C47D1C; --c-c4:#3AA56E; --c-ref:#79858E;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font:400 17px/1.62 var(--f-body);
+  -webkit-font-smoothing:antialiased;padding-inline:20px;padding-block:0 96px;margin:0}
+.wrap{max-width:1020px;margin:0 auto}
+.col{max-width:70ch}
+h1,h2,h3,.tag,th{font-family:var(--f-display)}
+.mono,code,td.num,.note,pre{font-family:var(--f-mono)}
+header{padding:64px 0 30px;border-bottom:1px solid var(--rule)}
+.eyebrow{font:500 12px/1.4 var(--f-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--ink3)}
+h1{font-size:clamp(28px,4.4vw,44px);line-height:1.08;font-weight:700;letter-spacing:-.022em;
+  margin:16px 0 0;text-wrap:balance;max-width:26ch}
+.lede{font-size:19px;line-height:1.58;color:var(--ink2);margin:18px 0 0;max-width:66ch}
+.byline{margin-top:22px;font:400 13px/1.55 var(--f-mono);color:var(--ink3);max-width:96ch}
+section{padding:46px 0;border-bottom:1px solid var(--rule2)}
+section:last-of-type{border-bottom:0}
+h2{font-size:26px;font-weight:700;letter-spacing:-.018em;margin:0 0 6px;text-wrap:balance}
+h3{font-size:18px;font-weight:600;letter-spacing:-.008em;margin:34px 0 8px}
+h2 + .sub{color:var(--ink3);font:400 14px/1.5 var(--f-mono);margin:0 0 24px}
+p{margin:0 0 17px}
+strong{font-weight:600}
+ul,ol{margin:0 0 17px;padding-left:20px}
+li{margin:0 0 8px}
+figure{margin:28px 0}
+figure video,figure img{display:block;width:100%;max-width:100%;height:auto;border-radius:10px;background:var(--sunk);box-shadow:var(--shadow)}
+figcaption{margin-top:11px;font:400 14px/1.55 var(--f-mono);color:var(--ink3);max-width:86ch}
+.col > .tw,.col > figure,.col > .duo{width:min(1020px,calc(100vw - 40px));max-width:none}
+.col > figure.narrow{width:min(780px,calc(100vw - 40px))}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:28px 0}
+.duo > *{min-width:0}
+@media (max-width:760px){.duo{grid-template-columns:1fr}}
+.duo figure{margin:0}
+.tw{overflow-x:auto;margin:24px 0;border:1px solid var(--rule);border-radius:10px;background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th{font:600 12px/1.3 var(--f-display);letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);
+  text-align:left;padding:13px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+td{padding:10px 14px;border-bottom:1px solid var(--rule2);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;font-size:13.5px;white-space:nowrap}
+td.cell{text-align:center;font-family:var(--f-mono);font-size:13px;font-weight:500;white-space:nowrap}
+td.c4{background:color-mix(in oklab,var(--good) 28%,var(--card));color:var(--ink)}
+td.c3{background:color-mix(in oklab,var(--good) 14%,var(--card))}
+td.c2{background:color-mix(in oklab,var(--s1) 16%,var(--card))}
+td.c0{background:color-mix(in oklab,var(--bad) 20%,var(--card));color:var(--ink2)}
+tr.grp td{background:var(--sunk);font:600 12px/1.3 var(--f-display);letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)}
+.key{display:inline-block;width:18px;height:0;border-top:2.5px solid;vertical-align:middle;margin-right:7px}
+.key.dash{border-top-style:dashed}
+.keep{border:1px solid var(--rule);border-left:3px solid var(--s2);border-radius:10px;
+  padding:20px 24px;margin:28px 0;background:var(--card)}
+.keep .tag{display:block;font:700 12px/1 var(--f-display);letter-spacing:.16em;text-transform:uppercase;
+  color:var(--s2);margin-bottom:11px}
+.keep p:last-child,.keep ul:last-child{margin-bottom:0}
+pre{background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:16px 18px;
+  overflow-x:auto;font-size:13px;line-height:1.6;margin:22px 0}
+code{font-size:.9em;background:var(--sunk);padding:1px 4px;border-radius:4px;margin:0 -1px}
+footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 var(--f-mono)}
+footer a,.col a{color:var(--s2)}
+a:focus-visible{outline:2px solid var(--s2);outline-offset:2px;border-radius:2px}
+/* charts */
+.chart{position:relative;background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:14px 12px 8px}
+.chart h4{font:600 14px/1.35 var(--f-display);margin:2px 6px 2px;color:var(--ink)}
+.chart .unit{font:400 12.5px/1.4 var(--f-mono);color:var(--ink3);margin:0 6px 6px}
+.chart svg{display:block;width:100%;height:auto;overflow:visible;touch-action:pan-y}
+.chart .legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin:6px 6px 4px;font:400 12.5px/1.4 var(--f-mono);color:var(--ink2)}
+.chart .gl{stroke:var(--rule2);stroke-width:1}
+.chart .ax{stroke:var(--rule);stroke-width:1}
+.chart .tk{fill:var(--ink3);font:400 12px var(--f-mono)}
+.chart .lb{fill:var(--ink2);font:500 12px var(--f-mono)}
+.chart .at{fill:var(--ink3);font:400 12px var(--f-mono)}
+.chart .ln{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.chart .mk{stroke:var(--card);stroke-width:2}
+.chart .xh{stroke:var(--ink3);stroke-width:1;opacity:0}
+.chart .tip{position:absolute;pointer-events:none;background:var(--card);border:1px solid var(--rule);border-radius:8px;
+  padding:8px 10px;font:400 12px/1.5 var(--f-mono);color:var(--ink);box-shadow:var(--shadow);opacity:0;
+  transition:opacity .08s;white-space:nowrap;z-index:2}
+.chart .tip b{font-weight:500}
+.chart .tip i{display:inline-block;width:10px;height:3px;margin-right:6px;vertical-align:middle;font-style:normal}
+@media (prefers-reduced-motion: reduce){.chart .tip{transition:none}}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">MorphoHand &#183; real_v1 / SR2 hand, D8 gantry &#183; load step of arXiv 2609.25619 &#183; 1 October 2026 &#183; built {{BUILT}}</div>
+  <h1>Pinch-brake loading of the screwdriver on the SR2 hand in Drake and MuJoCo</h1>
+  <p class="lede">On the SR2 hand (D8 gantry, calibrated position servos), thumb and index lower the real_v1
+  screwdriver from horizontal to hanging by relaxing their pinch, the load step of Wang, Oh and Pollard. Drake with
+  hydroelastic fingertips at a 0.01&#8202;s relaxation passes 45&#176; at {{H45_D}}&#8202;N and 80&#176; at {{H80_D}}&#8202;N of pad force;
+  MuJoCo with condim&#160;4 and a rescheduled &#956;<sub>t</sub> passes them at {{H45_C4}} and {{H80_C4}}&#8202;N, and MuJoCo with
+  sphere-packed fingertips at {{H45_SP}} and {{H80_SP}}&#8202;N. The two-pad rig&#8217;s quasi-static law predicts {{Q45}} and
+  {{Q80}}&#8202;N. At Drake&#8217;s default 0.1&#8202;s relaxation the tool falls through the lower half of the swing once it moves,
+  and with point contact in either simulator it swings away at release.</p>
+  <div class="byline">D8 gantry from <code>sv1_w0099_b100_plan.json</code> baked into <code>real_hand.xml</code>, palm fixed
+  250&#8202;mm up &#183; fingers: kp 0.5&#8202;N&#183;m/rad, kv 0.02, effort 0.35&#8202;N&#183;m, no joint damping or friction loss &#183; tool
+  24.5&#8202;g, r 12.5&#8202;mm, centre of mass d from the pinch line &#183; &#956;&#8202;1.0, 1&#8202;ms step &#183; Drake {{DRAKE_V}} SAP, MuJoCo
+  {{MUJOCO_V}} impratio 100 &#183; <code>scripts/hom_hand_brake.py</code>, <code>scripts/hom_hand_drake.py</code> &#183; the contact
+  models are characterized on the two-pad rig, <a href="{{RIG_URL}}">page</a> (<code>{{RIG_PATH}}</code>)</div>
+</header>
+
+<section><div class="col">
+<h2>Setup</h2>
+<p class="sub">one grasp, one force schedule, eight contact models, two centre-of-mass offsets</p>
+<p>The pinch point sits 45&#8202;mm below the gantry plane, midway between the thumb and index mounts, with the tool axis
+horizontal and perpendicular to the thumb&#8211;index line; the middle finger is parked straight and tilted back. IK
+places the thumb and index tip spheres touching the tool. The pinch force is commanded through the position servos as
+q&#8202;=&#8202;q<sub>touch</sub>&#8202;+&#8202;J<sup>T</sup>(F&#8202;&#251;)&#8202;/&#8202;k<sub>p</sub>, so each pad pushes along the pinch axis; a target placed
+inside the tool by IK instead pushes along the servo&#8217;s joint-space stiffness, and in a first run that yawed the tool
+20&#176; out of the swing plane while the fingers closed. The fingers close on the tool at F&#8202;=&#8202;4&#8202;N with its weight
+compensated, the weight is released, F is held for 0.6&#8202;s and then lowered geometrically to 0.5&#8202;N over 4&#8202;s.</p>
+<p>The calibrated plant&#8217;s joint friction loss (0.0035&#8202;N&#183;m) is left out of both simulators because Drake&#8217;s SAP
+has none. On this hand it costs about 0.2&#8202;N of pad force at low commands, and with it a 0.27&#8202;N command drops the
+tool.</p>
+</div></section>
+
+<section><div class="col">
+<h2>Swing angle against pad force</h2>
+<p class="sub">pad force = mean normal force of thumb and index on the tool &#183; d&#8202;=&#8202;15&#8202;mm &#183; the dashed curve is the
+quasi-static law with the rig&#8217;s Drake torsion law r&#772;&#8202;=&#8202;{{C_FIT}}&#8202;mm&#183;(N&#8202;/&#8202;1&#8202;N)<sup>1/4</sup></p>
+<div class="duo">
+{{CHART_A}}
+{{CHART_B}}
+</div>
+<p>All three short-relaxation models hold the tool horizontal down to about 1.5&#8202;N, break away, stick near 65&#8211;80&#176;
+and then follow the law to the end of the ramp. Drake and the rescheduled condim&#160;4 agree within {{AGREE_C4}}&#8202;% at the
+45&#176; and 80&#176; crossings; the sphere fingertips sit {{AGREE_SP}}&#8202;% higher. At 0.1&#8202;s relaxation both Drake and the
+sphere fingertips pass 80&#176; within {{DROP_GAP}}&#8202;N of the 45&#176; crossing. On this hand Drake at 0.02&#8202;s still
+follows the law, where on the rig&#8217;s rails it fell.</p>
+</div></section>
+
+<section><div class="col">
+<h2>All cells</h2>
+{{TABLE}}
+<figure>
+<video src="{{FILM}}" poster="{{POSTER}}" controls muted loop playsinline preload="metadata"></video>
+<figcaption>d&#8202;=&#8202;15&#8202;mm, 4&#8202;s ramp, real time, camera along the pinch axis. Top row Drake: point contact; hydroelastic
+at 0.01, 0.02 and 0.1&#8202;s. Bottom row MuJoCo: point contact; 1&#8202;mm sphere fingertips at 0.02&#8202;s; condim&#160;4 with
+&#956;<sub>t</sub> rescheduled; sphere fingertips at 0.1&#8202;s. Drake runs are replayed through the MuJoCo renderer.
+<code>{{FILM_PATH}}</code></figcaption>
+</figure>
+</div></section>
+
+<section><div class="col">
+<h2>What this does not settle</h2>
+<ol>
+<li><strong>The grasp.</strong> The tool is placed in the pinch by IK in the air. On the 2026-09-16 swing grasps, which
+pick the tool off the table, it already hangs on two pads when the lift ends, so the brake has to be set before the
+lift. The next run is this force schedule inside <code>probe_real_v1_chain.chain()</code> on the D8 swing grasp, in
+MuJoCo with condim&#160;4 rescheduled at impratio 100.</li>
+<li><strong>The servo.</strong> The force command assumes the bench servo is the calibrated kp&#8202;0.5 with no friction
+loss. In MuJoCo the calibrated friction loss lowers the low end of the pad force by about 0.2&#8202;N. A bench step-down of
+the commanded force with the tag reading the angle measures both it and &#956;<sub>t</sub>/&#956; (open since 2026-09-16).</li>
+<li><strong>The pusher.</strong> The paper sets the final angle with a third finger pushing the tool about the pinch
+axis. Here the tool&#8217;s short end points toward the parked middle finger; whether the middle can reach and turn it is
+the paper&#8217;s Experiment 3 and is not run.</li>
+<li><strong>The controller.</strong> The schedule is open loop. The paper&#8217;s relative-contact-velocity controller with
+generalized contact frames is not implemented.</li>
+</ol>
+</div></section>
+
+<footer>
+<p>Reproduce (CPU, about 2&#8202;min, one core):</p>
+<pre>MUJOCO_GL=egl OMP_NUM_THREADS=1 logs/20261001-hom_contact/venv/bin/python scripts/hom_hand_brake.py study
+python3 scripts/hom_hand_brake_page.py</pre>
+<p>Data: <code>docs/experiments/20261001-hom_hand_brake/hand_brake.jsonl</code> ({{N_ROWS}} rows, 100&#8202;Hz traces) and
+<code>media/</code>. Page: <code>docs/experiments/20261001-hom_hand_brake/20261001-hom_hand_brake.html</code>, built by
+<code>scripts/hom_hand_brake_page.py</code>.</p>
+</footer>
+</div>
+
+<script>
+(function(){
+  function fmt(v,d){return (v===null||v===undefined||isNaN(v))?'–':v.toFixed(d)}
+  document.querySelectorAll('.chart').forEach(function(ch){
+    var svg=ch.querySelector('svg'), data=JSON.parse(ch.querySelector('script[type="application/json"]').textContent);
+    var tip=ch.querySelector('.tip'), xh=svg.querySelector('.xh');
+    var P=data.plot;  // {x0,x1,y0,y1, xmin,xmax, log, rev}
+    function toData(px){var f=(px-P.x0)/(P.x1-P.x0); if(P.rev) f=1-f;
+      return P.log? Math.exp(Math.log(P.xmin)+f*(Math.log(P.xmax)-Math.log(P.xmin))) : P.xmin+f*(P.xmax-P.xmin)}
+    function toPx(x){var f=P.log?(Math.log(x)-Math.log(P.xmin))/(Math.log(P.xmax)-Math.log(P.xmin)):(x-P.xmin)/(P.xmax-P.xmin);
+      if(P.rev) f=1-f; return P.x0+f*(P.x1-P.x0)}
+    function move(ev){
+      var r=svg.getBoundingClientRect(), vb=svg.viewBox.baseVal, sx=vb.width/r.width;
+      var px=(ev.clientX-r.left)*sx; if(px<P.x0||px>P.x1){leave();return}
+      var x=toData(px), rows=[], xs=null;
+      data.series.forEach(function(s){
+        var best=null,bd=1e9; s.pts.forEach(function(p){var d=Math.abs((P.log?Math.log(p[0])-Math.log(x):p[0]-x)); if(d<bd){bd=d;best=p}});
+        if(best){rows.push('<i style="background:'+s.color+'"></i>'+s.name+' <b>'+fmt(best[1],data.yd)+'</b>'); if(xs===null) xs=best[0]}
+      });
+      var xpx=toPx(xs===null?x:xs); xh.setAttribute('x1',xpx); xh.setAttribute('x2',xpx); xh.style.opacity=.6;
+      tip.innerHTML='<div>'+data.xname+' <b>'+fmt(xs===null?x:xs,data.xd)+'</b></div>'+rows.join('<br>');
+      var cr=ch.getBoundingClientRect(), left=ev.clientX-cr.left+14;
+      if(left+tip.offsetWidth>cr.width-6) left=ev.clientX-cr.left-tip.offsetWidth-14;
+      tip.style.left=Math.max(6,left)+'px'; tip.style.top=(ev.clientY-cr.top+12)+'px'; tip.style.opacity=1;
+    }
+    function leave(){tip.style.opacity=0; xh.style.opacity=0}
+    svg.addEventListener('pointermove',move); svg.addEventListener('pointerleave',leave);
+  });
+})();
+</script>

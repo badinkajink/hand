@@ -257,10 +257,12 @@ the lower half of the swing into a fall.</li>
 given force the torque scales as E<sup>&#8722;1/4</sup>, so 1&#8202;MPa gives 1.78&#215; of it. The bench measurement open since
 2026-09-16 fixes it: pinch with thumb and index, middle open, step the pinch load down and read the tag angle at each
 step. The law is falsified if the held cos&#8202;&#966; does not scale as N<sup>5/4</sup>.</li>
-<li><strong>The hand.</strong> The rails here are force-controlled; real_v1&#8217;s fingers are position servos with a
-1&#8202;s time constant on the calibrated plant. The next run is this brake on SR2 in both simulators, Drake through the
-2026-10-01 port (<code>scripts/drake_sr2_hand.py</code>) with compliant-hydroelastic fingertips and MuJoCo with
-rescheduled-condim-4 or sphere-packed fingertips, from a grasp of the 2026-09-16 swing set.</li>
+<li><strong>The hand.</strong> The rails here are force-controlled. The same brake on SR2 (D8 gantry, calibrated
+position servos, pad force commanded through J<sup>T</sup>) is on its own page,
+<a href="https://claude.ai/artifact/DJLxG63vLZXs2Ey6hiCBuc">SR2 pinch-brake loading</a>
+(<code>docs/experiments/20261001-hom_hand_brake/20261001-hom_hand_brake.html</code>): Drake hydroelastic and MuJoCo
+rescheduled condim&#160;4 agree within 3&#8202;% at the 45&#176; and 80&#176; crossings. Still open there: the grasp picked
+off the table inside the chain, where the tool already hangs on two pads when the lift ends.</li>
 <li><strong>The controller.</strong> The paper&#8217;s generalized contact frames, least-squares relative-velocity planner
 and complementary filter (its Eqs. 1&#8211;6) are not implemented here. Their inputs, body twists and Jacobians, closest
 points from <code>mj_geomDistance</code> and centres of pressure from contacts, are all available in MuJoCo 3.6.</li>
