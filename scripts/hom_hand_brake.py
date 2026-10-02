@@ -69,6 +69,8 @@ def parse_spec(spec):
         if p.startswith("fit"):
             c, pw = p[3:].split("x")
             out["fit"] = (float(c), float(pw))
+        elif p.startswith("hr"):                       # Drake compliant-hydroelastic resolution hint, mm
+            out["res"] = float(p[2:]) * 1e-3
         elif p.startswith("rs"):
             out["rs"] = float(p[2:]) * 1e-3
         elif p.startswith("rt"):

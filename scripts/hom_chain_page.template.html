@@ -110,70 +110,143 @@ a:focus-visible{outline:2px solid var(--s2);outline-offset:2px;border-radius:2px
 .chart .tip b{font-weight:500}
 .chart .tip i{display:inline-block;width:10px;height:3px;margin-right:6px;vertical-align:middle;font-style:normal}
 @media (prefers-reduced-motion: reduce){.chart .tip{transition:none}}
+
+.diagram svg{display:block;width:100%;height:auto;color:var(--ink);overflow:visible}
+.diagram{margin:30px 0}
+.handoff h3{font:600 16px/1.4 var(--f-display);margin:26px 0 8px}
+.handoff li{margin:6px 0}
+.handoff pre{white-space:pre-wrap}
 </style>
 
 <div class="wrap">
 <header>
   <div class="eyebrow">MorphoHand &#183; real_v1 / SR2 hand, D8 gantry &#183; controller of arXiv 2609.25619 &#183; 1&#8211;2 October 2026 &#183; built {{BUILT}}</div>
   <h1>Relative contact-velocity control of the screwdriver pick, braked swing and peg-hole insertion on the SR2 hand in MuJoCo and Drake</h1>
-  <p class="lede">On the nominal trial the chain completes in the three contact models that carry pinch friction torque.
-  D8 picks the screwdriver off two posts with a thumb&#8211;index pinch, lifts it, brakes its gravity swing to hanging,
-  squeezes it to {{F_HOLD}}&#8202;N and pushes it {{DEPTH_RANGE}}&#8202;mm into a 1&#8202;mm-clearance peg hole. A closed-loop brake that sets
-  the pinch force every 10&#8202;ms ends the swing at {{PHI_DHY}}&#176; in Drake hydroelastic, {{PHI_S1}}&#176; with MuJoCo 1&#8202;mm sphere
-  fingertips and {{PHI_P4S}}&#176; with MuJoCo condim&#160;4. The paper&#8217;s open-loop force reduction stops at {{PHI_OPEN}}&#176;. Point
-  contact fails in both simulators: with no pinch torque the tool swings free as soon as it is lifted. Across ten
+  <p class="lede">A pad of small spheres gives MuJoCo the pinch friction torque that Drake gets from its hydroelastic
+  pressure field. On the nominal trial, the controller of Wang, Oh and Pollard drives the same pick, braked swing, squeeze
+  and peg-hole insertion in Drake and in MuJoCo. A closed-loop brake ends the swing at {{PHI_DHY}}&#176; in Drake hydroelastic,
+  {{PHI_S05}}, {{PHI_S1}} and {{PHI_S2}}&#176; with 0.5, 1 and 2&#8202;mm sphere pads, and {{PHI_P4S}}&#176; with condim&#160;4. In each case
+  the tool goes {{DEPTH_RANGE}}&#8202;mm into a 1&#8202;mm-clearance hole. Point contact fails in both simulators. Across ten
   perturbed seeds the pick fails in {{PICK_FAIL}} of 10, so the brake&#8217;s reliability is not yet measured. Per simulated
-  second, MuJoCo condim&#160;4 costs {{MS_P4S}}&#8202;ms of one core, 1&#8202;mm sphere fingertips {{MS_S1}}&#8202;ms and Drake hydroelastic
-  {{MS_DHY}}&#8202;ms.</p>
+  second on one core, the physics costs {{MS_P4S}}&#8202;ms with condim&#160;4, {{MS_S1}}&#8202;ms with the 1&#8202;mm pad and {{MS_DHY}}&#8202;ms with
+  Drake hydroelastic at its default 1&#8202;mm mesh.</p>
   <div class="byline">D8 gantry from <code>sv1_w0099_b100_plan.json</code> on a four-axis palm stage (x, y, z, yaw; the arm)
   &#183; fingers: kp 0.5&#8202;N&#183;m/rad, kv 0.02, effort 0.35&#8202;N&#183;m, no joint damping or friction loss &#183; tool 24.5&#8202;g, r 12.5&#8202;mm,
   100&#8202;mm, pinched 15&#8202;mm from its centre of mass &#183; &#956;&#8202;1.0 pad&#8211;tool, 0.3 tool&#8211;environment &#183; Drake {{DRAKE_V}} SAP,
   MuJoCo {{MUJOCO_V}} impratio 100, 1&#8202;ms step &#183; <code>scripts/hom_control.py</code>, <code>scripts/hom_chain.py</code>,
-  <code>scripts/hom_chain_study.py</code> &#183; contact models from the two-pad rig (<code>{{RIG_PATH}}</code>, <a href="{{RIG_URL}}">artifact</a>)
-  and the hand brake (<code>{{BRAKE_PATH}}</code>, <a href="{{BRAKE_URL}}">artifact</a>)</div>
+  <code>scripts/hom_chain_study.py</code>, <code>scripts/hom_chain_figures.py</code> &#183; earlier pages: two-pad rig
+  (<code>{{RIG_PATH}}</code>, <a href="{{RIG_URL}}">artifact</a>) and hand brake (<code>{{BRAKE_PATH}}</code>,
+  <a href="{{BRAKE_URL}}">artifact</a>)</div>
 </header>
+
+<section><div class="col">
+<h2>Problem and hypothesis</h2>
+<p class="sub">a pinch brake needs a contact area, and MuJoCo resolves contact at points</p>
+<p>The paper&#8217;s load step turns the thumb&#8211;index pinch into a brake. The tool hangs between the two pads and
+turns about the line through them. Only friction spread over each contact area resists that turn:
+T&#8202;=&#8202;&#956;&#8202;&#8747;p&#8202;&#961;&#8202;dA, with p the contact pressure and &#961; the distance from the contact normal. A point
+contact has no area, so it transmits no torque about its normal. With point contact the pinched tool is a free hinge, in
+MuJoCo and in Drake alike; the point-contact films below drop it into a hang as soon as it leaves the posts. The paper
+uses Drake&#8217;s hydroelastic contact for this reason. The question here is whether MuJoCo can carry the same controller
+without it.</p>
+<p>Drake&#8217;s compliant-hydroelastic fingertip carries a pressure field p&#8202;=&#8202;E&#183;d/R, with d the depth below its
+surface. Drake evaluates the field on the rigid tool surface wherever the two overlap (Figure&#160;1, left). For a sphere on a plane
+the integrals give the elastic-foundation laws F&#8202;=&#8202;&#960;E&#948;&#8320;&#178; and T&#8202;=&#8202;&#956;F&#183;(8/15)a with
+a&#8202;=&#8202;&#8730;(2R&#948;&#8320;), so the friction arm T/&#956;F grows as F<sup>1/4</sup>. Take the real_v1 fingertip (R&#8202;=&#8202;10.55&#8202;mm)
+on the screwdriver (r&#8202;=&#8202;12.5&#8202;mm) at Drake&#8217;s default E&#8202;=&#8202;10&#8202;MPa. At 3&#8202;N the integrated field covers
+{{HI_AREA}}&#8202;mm&#178; and gives an arm of {{HI_ARM}}&#8202;mm, against {{HI_RIG}}&#8202;mm measured in Drake on the two-pad rig.</p>
+<p>The hypothesis is that springs can replace the field. MuJoCo resolves each overlapping pair of geoms as one soft
+contact. At steady state that contact acts as a linear spring of stiffness 1/(t<sub>c</sub>&#178;(1&#8722;d<sub>0</sub>)&#923;),
+for solref (t<sub>c</sub>,&#8202;1) and a constant solimp d<sub>0</sub>; &#923; is MuJoCo&#8217;s inverse-inertia estimate for
+the contact. Cover the fingertip with small spheres and give each the foundation&#8217;s stiffness over its share of the pad,
+k&#8202;=&#8202;(E/R)&#183;A<sub>s</sub>&#183;((R&#8722;r<sub>s</sub>)/R)&#178;. The spring forces then sample &#8747;p&#8202;dA and their moments sample
+&#8747;p&#8202;&#961;&#8202;dA (Figure&#160;1, right). Contact area, centre of pressure and pinch torque come out of ordinary point contacts, with
+no change to MuJoCo. The spacing has to be fine compared with the contact patch (Figure&#160;2).</p>
+<ul>
+<li><b>At 3&#8202;N:</b> every spacing gives the field&#8217;s arm within {{HI_DEV_MAX}}&#8202;%.</li>
+<li><b>At 0.5&#8202;N</b>, the force at which the brake sets the end of the swing: the 2&#8202;mm pad touches with only
+{{LO_N2}} spheres and its arm is {{LO_DEV2}}&#8202;% long. The 1 and 0.5&#8202;mm pads stay within {{LO_DEV_FINE}}&#8202;%.</li>
+</ul>
+<figure class="diagram">
+{{FIG_SECTION}}
+<figcaption>Figure&#160;1. Section along the tool axis through the thumb contact at 3&#8202;N, true scale. Left: Drake overlaps the
+undeformed fingertip with the rigid tool and applies p&#8202;=&#8202;E&#183;d/R over the overlap (shaded); the pressure on the
+tool surface is plotted beneath. Right: the 1&#8202;mm pad&#8217;s spheres along the same line. Each overlap is one spring,
+and its force divided by the sphere&#8217;s share of the pad area (bars) samples the field&#8217;s profile (dashed). Each
+model&#8217;s fingertip is placed separately for 3&#8202;N. Computed by <code>scripts/hom_chain_figures.py</code>.</figcaption>
+</figure>
+<figure class="diagram">
+{{FIG_PATCH}}
+<figcaption>Figure&#160;2. The thumb&#8217;s contact area seen through the tool, at the hold force (3&#8202;N) and at the end of the
+brake (0.5&#8202;N); x runs along the tool axis. Left: the field&#8217;s pressure contours. Right: the sphere centres of the
+three pads, where a touching sphere&#8217;s disc area is proportional to its force. The dotted circle is the friction arm, the radius at
+which &#956;F gives the same torque about the normal. Static contact on the real geometry; per-sphere stiffness as in the
+simulations.</figcaption>
+</figure>
+<p>A second, cheaper surrogate keeps a single contact point and supplies the torque directly: condim&#160;4, with a
+torsional coefficient &#956;<sub>t</sub>&#8202;=&#8202;&#956;&#183;r&#772;(N) recomputed every step from the measured law. Earlier results:</p>
+<ul>
+<li><b>Two-pad rig:</b> the rescheduled condim&#160;4 matched Drake&#8217;s torque within 1&#8202;%; the 1 and 0.5&#8202;mm pads matched it within 7 and 3&#8202;%.</li>
+<li><b>Hand load step:</b> all three agreed with Drake within 3&#8211;9&#8202;%.</li>
+</ul>
+<p>This page asks whether the surrogates carry a controller through a whole task with one code base driving Drake and
+MuJoCo, and what each costs. Figure&#160;3 follows the thumb contact through the nominal chain in five of the models.</p>
+<figure>
+<video src="{{CLOSEUP_FILM}}" poster="{{CLOSEUP_POSTER}}" controls muted loop playsinline preload="metadata"></video>
+<figcaption>Figure&#160;3. The thumb pad through the nominal chain, real time, tool and index drawn see-through. Left to
+right: Drake hydroelastic (contact-surface faces), MuJoCo 0.5, 1 and 2&#8202;mm sphere pads (the collision spheres, not
+the visual fingertip), and condim&#160;4 (one contact point with its normal-force arrow). Faces and spheres share one
+colour scale, 0&#8211;0.3&#8202;MPa; a sphere&#8217;s value is its force over its share of the pad area. The black dot is the centre of
+pressure. <code>{{CLOSEUP_PATH}}</code></figcaption>
+</figure>
+</div></section>
 
 <section><div class="col">
 <h2>Controller and chain</h2>
 <p class="sub">the paper&#8217;s generalized contact frames and least squares, a pad force through the servos, a closed-loop brake</p>
-<p>Each fingertip gets a generalized contact frame on the tool: origin at the witness points, x along the tool&#8217;s
-signed-distance gradient, y the finger&#8217;s flexion axis projected on the tangent plane. The relative contact twist
-(spin, two roll, separation, two slide components; paper Eq.&#8202;1) is linear in the finger&#8217;s three joint rates. The
-joint-rate reference is the bounded least squares of Eq.&#8202;2, with damping and healthy-pose terms, integrated into the
-servo targets at 100&#8202;Hz. For a sphere against a cylinder the frames are exact in closed form and stay smooth through
-contact, so the paper&#8217;s geodesic filter on the hydroelastic centre of pressure is left out. The controller runs on a
-kinematic MuJoCo copy of the scene, so the same code drives the MuJoCo and the Drake plant.</p>
+<p>Each fingertip gets a generalized contact frame on the tool. Its origin is at the witness points, x runs along the
+tool&#8217;s signed-distance gradient, and y is the finger&#8217;s flexion axis projected onto the tangent plane. The relative
+contact twist (spin, two roll, separation and two slide components; paper Eq.&#8202;1) is linear in the finger&#8217;s three
+joint rates. The joint-rate reference is the bounded least squares of Eq.&#8202;2, with damping and healthy-pose terms,
+integrated into the servo targets at 100&#8202;Hz. For a sphere against a cylinder the frames are exact in closed form and
+stay smooth through contact, so the paper&#8217;s geodesic filter on the hydroelastic centre of pressure is left out. The
+controller runs on a kinematic MuJoCo copy of the scene, so the same code drives the MuJoCo and the Drake plant.</p>
 <p>The chain has seven steps.</p>
 <ul>
 <li><b>Pick:</b> the palm descends with thumb and index 8&#8202;mm open. They close along their contact normals
 (v<sub>sep</sub>&#8202;=&#8202;&#8722;15&#8202;mm/s, slide held at zero) and switch to force at contact. Pad force F enters as
-q&#8202;=&#8202;q<sub>touch</sub>&#8202;+&#8202;J<sup>T</sup>(&#8722;F&#8202;n)/k<sub>p</sub>&#8202;+&#8202;&#964;<sub>g</sub>/k<sub>p</sub>, with
-&#964;<sub>g</sub> the fingers&#8217; own weight.</li>
+q&#8202;=&#8202;q<sub>touch</sub>&#8202;+&#8202;J<sup>T</sup>(&#8722;F&#8202;n)/k<sub>p</sub>&#8202;+&#8202;&#964;<sub>g</sub>/k<sub>p</sub>, where
+&#964;<sub>g</sub> is the fingers&#8217; own weight.</li>
 <li><b>Lift:</b> the palm rises 90&#8202;mm at F&#8202;=&#8202;4&#8202;N.</li>
-<li><b>Brake:</b> the swing about the pinch axis runs open loop (4&#8202;&#8594;&#8202;0.5&#8202;N over 3&#8202;s) or closed loop. The
-closed-loop brake tracks a 1.8&#8202;s minimum-jerk profile to 90&#176;. It inverts I&#966;&#776;&#8202;=&#8202;mgd&#8202;cos&#966;&#8202;&#8722;&#8202;&#964;<sub>f</sub>(N)
-through the rig&#8217;s brake law, with nominal mass and &#956;. Its force floor starts at twice the slip limit W/2&#956;, falls while
-the tool stalls off vertical, and rises 50&#8202;% when the tool slides along its axis. It accepts the swing within 2.5&#176;.</li>
-<li><b>Hold firm:</b> F rises to {{F_HOLD}}&#8202;N.</li>
-<li><b>Transport and aim:</b> the palm carries the tool&#8217;s lower end, aimed from its measured pose, 8&#8202;mm over the hole
-and corrects once.</li>
+<li><b>Brake:</b> the swing about the pinch axis runs open loop (4&#8202;&#8594;&#8202;0.5&#8202;N over 3&#8202;s) or closed loop.
+The closed-loop brake tracks a 1.8&#8202;s minimum-jerk profile to 90&#176;. It inverts
+I&#966;&#776;&#8202;=&#8202;mgd&#8202;cos&#966;&#8202;&#8722;&#8202;&#964;<sub>f</sub>(N) through the rig&#8217;s brake law, with nominal mass and &#956;. Its force
+floor starts at twice the slip limit W/2&#956;, falls while the tool stalls off vertical, and rises 50&#8202;% when the tool
+slides along its axis. It accepts the swing within 2.5&#176;.</li>
+<li><b>Hold firm:</b> F rises to 3&#8202;N.</li>
+<li><b>Transport and aim:</b> the palm carries the tool&#8217;s lower end, aimed from its measured pose, 8&#8202;mm over the
+hole and corrects once.</li>
 <li><b>Insert:</b> the palm descends 30&#8202;mm at 15&#8202;mm/s.</li>
 </ul>
-<p>The pinch line is the thumb&#8211;index mount line turned 45&#176; about the palm normal, 50&#8202;mm below the mounts. There both
-fingers keep 0.55&#8202;rad of joint range from 4&#8202;mm squeeze to 12&#8202;mm open. The 2026-10-01 brake study&#8217;s line through the mount
-midpoint at 45&#8202;mm puts the index on its mcp and pip limits at contact, and the pinch cannot open there.</p>
+<p>The pinch line is the thumb&#8211;index mount line turned 45&#176; about the palm normal, 50&#8202;mm below the mounts. There
+both fingers keep 0.55&#8202;rad of joint range from 4&#8202;mm squeeze to 12&#8202;mm open. The 2026-10-01 brake study&#8217;s line
+through the mount midpoint at 45&#8202;mm puts the index on its mcp and pip limits at contact, and the pinch cannot open
+there.</p>
 </div></section>
 
 <section><div class="col">
-<h2>Nominal chain in six contact models</h2>
+<h2>Nominal chain in eight contact models</h2>
 {{NOMINAL_TABLE}}
 <figure>
 <video src="{{FILM}}" poster="{{POSTER}}" controls muted loop playsinline preload="metadata"></video>
-<figcaption>Nominal trial, real time, camera along the pinch axis; the hole is at left. Top row: Drake hydroelastic
-(0.01&#8202;s relaxation), MuJoCo 1&#8202;mm sphere fingertips, MuJoCo condim&#160;4 with &#956;<sub>t</sub> rescheduled, all with the
-closed-loop brake. Bottom row: Drake point contact and MuJoCo point contact with the closed-loop brake, MuJoCo condim&#160;4 with
-the open-loop brake. Drake runs are replayed through the MuJoCo renderer. The tool&#8217;s lower end is red. <code>{{FILM_PATH}}</code></figcaption>
+<figcaption>Six of the models side by side, real time, camera along the pinch axis; the hole is at left. Top row: Drake
+hydroelastic, MuJoCo 1&#8202;mm sphere pad and MuJoCo condim&#160;4, all under the closed-loop brake. Bottom row: Drake
+point contact and MuJoCo point contact under the closed-loop brake, and condim&#160;4 under the open-loop brake. Sphere-pad
+fingertips are drawn as their collision spheres, with the visual fingertip as a faint ghost. Drake runs are replayed
+through the MuJoCo renderer. The tool&#8217;s lower end is red. <code>{{FILM_PATH}}</code></figcaption>
 </figure>
+<p>Each model on its own, wide shot beside the thumb-pad close-up:</p>
+{{MODEL_FILMS}}
 </div></section>
 
 <section><div class="col">
@@ -183,6 +256,7 @@ the open-loop brake. Drake runs are replayed through the MuJoCo renderer. The to
 <p>The pick is the first step that breaks. In {{TIMEOUT_N}} seeds one finger stalls short of contact within the 2.5&#8202;s
 close window. In {{DROP_N}} more the pinch closes late and the tool falls out during the lift. The same seeds fail in
 both contact models and under both brakes, before the brake runs. {{BATCH_PROSE}}</p>
+{{PERTURBED_FILMS}}
 </div></section>
 
 <section><div class="col">
@@ -191,7 +265,8 @@ both contact models and under both brakes, before the brake runs. {{BATCH_PROSE}
 {{EXP1_TABLE}}
 <p>With all six components weighted equally, as in the paper&#8217;s protocol, a three-joint finger cannot follow a pure
 step. It translates its tip only by turning it, so the least squares trades each commanded component against the five held
-at zero. The gain is the median ratio of achieved to commanded on the stepped component. {{EXP1_PROSE}} The paper reports RMSE for five hands in a figure without stating the values in its text.</p>
+at zero. The gain is the median ratio of achieved to commanded on the stepped component. {{EXP1_PROSE}} The paper reports
+RMSE for five hands in a figure without stating the values in its text.</p>
 <figure class="duo">
 <video src="{{EXP1_FILM_CAL}}" controls muted loop playsinline preload="metadata"></video>
 <video src="{{EXP1_FILM_STIFF}}" controls muted loop playsinline preload="metadata"></video>
@@ -201,60 +276,49 @@ Right: template servo. <code>{{EXP1_PATHS}}</code></figcaption>
 </div></section>
 
 <section><div class="col">
-<h2>Sphere-packed fingertips</h2>
-<figure>
-<img src="{{CLOSEUP}}" alt="thumb fingertip pad packed with spheres at 2, 1 and 0.5 mm spacing, pressed against the tool">
-<figcaption>Thumb pad pressed 0.4&#8202;mm into the tool (tool drawn transparent; contact points drawn). The 10.55&#8202;mm tip
-sphere is replaced by 0.75&#8202;mm spheres on a 45&#176; cap facing the tool, with per-sphere stiffness set from Drake&#8217;s
-E&#8202;=&#8202;10&#8202;MPa. <code>{{CLOSEUP_PATH}}</code></figcaption>
+<h2>Simulation cost</h2>
+<p class="sub">the nominal chain under the closed-loop brake, one core, {{REP_RANGE}} repeats per model</p>
+<p>Physics is the time spent inside the simulator&#8217;s step, at a 1&#8202;ms step. The controller is the same code in every
+model: state read-out, mirror kinematics, contact frames, least squares and brake. It costs {{CTRL_MJ}}&#8202;ms per simulated
+second against MuJoCo and {{CTRL_DK}}&#8202;ms against Drake, whose state read-out is slower. Repeats agree within {{REP_SPREAD}}&#8202;%.</p>
+<ul>
+<li><b>Against condim&#160;4:</b> the 1&#8202;mm sphere pad costs {{X_S1_P4S}}&#215; as much.</li>
+<li><b>Against Drake hydroelastic at its default 1&#8202;mm mesh:</b> the 1&#8202;mm pad is {{X_DHY_S1}}&#215; cheaper and the 0.5&#8202;mm pad {{X_DHY_S05}}&#215;
+cheaper.</li>
+<li><b>What scales the cost:</b> a sphere pad&#8217;s cost follows its spheres in contact, {{NC_S1}} in the hold for the 1&#8202;mm pad and
+{{NC_S05}} for the 0.5&#8202;mm pad. Drake&#8217;s follows its contact-surface faces, {{NC_DHY}} in the hold at 1&#8202;mm, and roughly doubles
+each time the mesh halves.</li>
+<li><b>Stage:</b> the stages at full pinch force (lift at 4&#8202;N; hold, transport and insert at 3&#8202;N) cost two to three
+times the brake. In the brake the force falls below 1&#8202;N and the patch shrinks.</li>
+</ul>
+<figure class="diagram">
+{{FIG_BENCH}}
+<figcaption>Figure&#160;4. Physics time per simulated second, one core, log scale. Each dot is the median over repeats and its bar the
+range. The open tick is the controller&#8217;s share. Hover a row for its numbers.</figcaption>
 </figure>
+{{BENCH_TABLE}}
+{{STAGE_TABLE}}
 </div></section>
 
-<section><div class="col">
-<h2>Compute cost</h2>
-{{PERF_TABLE}}
-<p>The cost is the wall time of the nominal chain with the closed-loop brake and no film, on one core of the workstation. It
-covers 10&#8211;13&#8202;s of simulation at a 1&#8202;ms step plus the 100&#8202;Hz controller, IK setup included. The 0.5&#8202;mm sphere
-pad (819 spheres) is not timed: its per-sphere spring cannot reach a 0.02&#8202;s relaxation inside MuJoCo&#8217;s soft-contact
-range. The rig page reports its torque accuracy at a 0.02&#8202;s relaxation on the two-pad rig.</p>
-</div></section>
-
-<section><div class="col">
-<h2>What this does not settle</h2>
-<ol>
-<li><strong>The pick under perturbation.</strong> Eight of ten perturbed picks fail before the brake. The next step is a
-per-seed trace of the close phase in <code>hom_chain.run_chain</code>: tip-to-surface distance, joint margins and tool
-displacement on the posts. Candidate fixes are position feedback on the slide references (the closing tilts the pinch
-line 1.3&#176;) and a V-cradle instead of flat posts. Re-run seeds 1&#8211;10. The brake comparison counts only once the pick
-holds on at least 9 of 10 seeds.</li>
-<li><strong>The closed-loop brake&#8217;s drop on seed 9.</strong> With a 9&#8202;% heavier tool and &#956;&#8202;1.17 the closed-loop brake lost the
-tool mid-swing in both MuJoCo models, where the open-loop schedule completed the chain. The brake inverts the law with the
-nominal mass, and its force floor of 2&#8202;W/2&#956; is set from it. That trace (<code>hom_chain.py run --spec mj:point4s --seed 9</code>)
-is the first to read: floor, commanded force and axial slip against time.</li>
-<li><strong>Brake reliability.</strong> With picks fixed, run 20 seeds per brake in condim&#160;4 and the sphere model, and 10 in
-Drake hydroelastic (about 5&#8202;min). Report the final-angle spread and drops. The open-loop schedule should be tuned on the
-nominal trial first, since the paper&#8217;s operator ended the force reduction by eye.</li>
-<li><strong>Out-of-plane tilt.</strong> In MuJoCo the hanging tool leans 1.5&#8211;2.3&#176; out of the swing plane, following the
-pinch line&#8217;s tilt; in Drake about 1&#176;. A hold-phase correction moving the two tips about 0.8&#8202;mm vertically in opposite
-directions is written up in the session notes but not run.</li>
-<li><strong>The three-pad hold.</strong> &#8220;Hold firm again&#8221; is a two-pad squeeze here. D8&#8217;s deploy-plan grasp, where the
-middle releases and re-closes on the hanging shaft (the 2026-09-16 swing), is the follow-up chain.</li>
-<li><strong>The bench.</strong> The closed-loop brake reads the swing angle at 100&#8202;Hz from the tool pose. The AprilTag
-tracker&#8217;s rate and latency, and the pad modulus behind E&#8202;=&#8202;10&#8202;MPa, are unmeasured.</li>
-</ol>
+<section><div class="col handoff">
+<h2>Next steps and handoff</h2>
+<p class="sub">state of the work at {{BUILT}}, written for the next session</p>
+{{HANDOFF}}
 </div></section>
 
 <footer>
-<p>Reproduce (CPU, about 5&#8202;min, one core):</p>
-<pre>MUJOCO_GL=egl OMP_NUM_THREADS=1 logs/20261001-hom_contact/venv/bin/python scripts/hom_chain_study.py
-MUJOCO_GL=egl OMP_NUM_THREADS=1 logs/20261001-hom_contact/venv/bin/python scripts/hom_chain_study.py perf
+<p>Reproduce (CPU, one core; about 2&#8202;min for the films, 6&#8202;min for the timing runs, 5&#8202;min for the rest):</p>
+<pre>MUJOCO_GL=egl OMP_NUM_THREADS=1 logs/20261001-hom_contact/venv/bin/python scripts/hom_chain_study.py         # Exp 1, nominal, perturbed batch
+MUJOCO_GL=egl OMP_NUM_THREADS=1 logs/20261001-hom_contact/venv/bin/python scripts/hom_chain_study.py films   # every film
+MUJOCO_GL=egl OMP_NUM_THREADS=1 logs/20261001-hom_contact/venv/bin/python scripts/hom_chain_study.py bench   # timing
 python3 scripts/hom_chain_page.py</pre>
-<p>Data: <code>docs/experiments/20261002-hom_chain/chain.jsonl</code> ({{N_ROWS}} rows; nominal runs carry 50&#8202;Hz
-traces), <code>exp1.jsonl</code>, <code>perf.jsonl</code> and <code>media/</code>. Page:
-<code>docs/experiments/20261002-hom_chain/20261002-hom_screwdriver_chain.html</code>, built by
-<code>scripts/hom_chain_page.py</code>.</p>
+<p>Data: <code>docs/experiments/20261002-hom_chain/</code>: <code>films.jsonl</code> (the filmed runs, 50&#8202;Hz
+traces), <code>chain.jsonl</code> (perturbed batch), <code>bench.jsonl</code> (timing), <code>exp1.jsonl</code> and
+<code>media/</code>. Page: <code>docs/experiments/20261002-hom_chain/20261002-hom_screwdriver_chain.html</code>, built by
+<code>scripts/hom_chain_page.py</code> from <code>scripts/hom_chain_page.template.html</code>.</p>
 </footer>
 </div>
+
 
 
 <script>

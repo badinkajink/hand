@@ -150,3 +150,86 @@ def perf():
 
 if __name__ == "__main__" and len(sys.argv) > 1 and sys.argv[1] == "perf":
     perf()
+
+
+FILMS = {   # key: (spec, brake, seed); nominal films of every contact model, then perturbed trials
+    "dhy_closed": ("drake:hydro:rt0.01", "closed", 0),
+    "s05_closed": ("mj:spheres:s0.5:rs0.75:tr0.03", "closed", 0),
+    "s1_closed": ("mj:spheres:s1:rs0.75:tr0.02", "closed", 0),
+    "s2_closed": ("mj:spheres:s2:rs0.75:tr0.02", "closed", 0),
+    "p4s_closed": ("mj:point4s", "closed", 0),
+    "p4s_open": ("mj:point4s", "open", 0),
+    "mp3_closed": ("mj:point3", "closed", 0),
+    "dpt_closed": ("drake:point", "closed", 0),
+    "p4s_closed_s1": ("mj:point4s", "closed", 1),
+    "p4s_closed_s4": ("mj:point4s", "closed", 4),
+    "p4s_closed_s3": ("mj:point4s", "closed", 3),
+    "p4s_open_s3": ("mj:point4s", "open", 3),
+    "p4s_closed_s9": ("mj:point4s", "closed", 9),
+    "p4s_open_s9": ("mj:point4s", "open", 9),
+}
+
+
+def films():
+    """Every FILMS entry rendered as wide shot + thumb-pad close-up (rows in films.jsonl), then two grids:
+    the six-model wide shots and the five contact close-ups side by side."""
+    import imageio.v2 as imageio
+    from PIL import Image
+    MEDIA.mkdir(parents=True, exist_ok=True)
+    p = OUT / "films.jsonl"
+    have = done(p, lambda r: r["key"])
+    for key, (spec, brake, seed) in FILMS.items():
+        film = MEDIA / f"20261002-chain_{key}.mp4"
+        if key in have and film.exists():
+            continue
+        r = K.run_chain(spec, seed, brake, film=str(film))
+        r["key"] = key
+        H.append_row(p, r)
+        print("film", key, r["phi_end"], r["chain_ok"], round(r["wall_s"], 1), flush=True)
+    rd = lambda k: [f for f in imageio.get_reader(str(MEDIA / f"20261002-chain_{k}.mp4"))]  # noqa: E731
+    fr = {k: rd(k) for k in ("dhy_closed", "s1_closed", "p4s_closed", "dpt_closed", "mp3_closed", "p4s_open",
+                             "s2_closed", "s05_closed")}
+    n = max(len(v) for v in fr.values())
+    get = lambda k, i: fr[k][min(i, len(fr[k]) - 1)]  # noqa: E731
+    order = ["dhy_closed", "s1_closed", "p4s_closed", "dpt_closed", "mp3_closed", "p4s_open"]
+    grid = [np.concatenate([np.concatenate([get(k, i)[:, :480] for k in order[:3]], 1),
+                            np.concatenate([get(k, i)[:, :480] for k in order[3:]], 1)], 0) for i in range(n)]
+    H.write_mp4(grid, MEDIA / "20261002-chain_six_models.mp4", fps=25)
+    Image.fromarray(grid[min(n - 1, 130)]).save(MEDIA / "20261002-chain_six_models_poster.png")
+    close = ["dhy_closed", "s05_closed", "s1_closed", "s2_closed", "p4s_closed"]
+    strip = [np.concatenate([get(k, i)[:, 480:] for k in close], 1) for i in range(n)]
+    H.write_mp4(strip, MEDIA / "20261002-contact_closeups.mp4", fps=25)
+    Image.fromarray(strip[min(n - 1, 60)]).save(MEDIA / "20261002-contact_closeups_poster.png")
+    print("grids done", flush=True)
+
+
+BENCH = [("mj:point3", 5), ("mj:point4s", 5), ("mj:spheres:s2:rs0.75:tr0.02", 5), ("mj:spheres:s1:rs0.75:tr0.02", 5),
+         ("mj:spheres:s0.5:rs0.75:tr0.03", 3), ("drake:point", 3), ("drake:hydro:rt0.01:hr2", 3),
+         ("drake:hydro:rt0.01", 3), ("drake:hydro:rt0.01:hr0.5", 2)]
+
+
+def bench():
+    """Nominal chain, closed-loop brake, no film, one core: physics time per stage (inside the simulator's step),
+    controller time (mirror, frames, least squares, brake), contacts per stage. Repeated runs per model."""
+    import time
+    p = OUT / "bench.jsonl"
+    have = done(p, lambda r: (r["spec"], r["rep"]))
+    for spec, reps in BENCH:
+        for rep in range(reps):
+            if (spec, rep) in have:
+                continue
+            r = K.run_chain(spec, 0, "closed")
+            ix = {c: i for i, c in enumerate(r["trace_cols"])}
+            ncon = {}
+            for row in r["trace"]:
+                ncon.setdefault(row[ix["phase"]], []).append(row[ix["n_thumb"]] + row[ix["n_index"]])
+            H.append_row(p, {"spec": spec, "rep": rep, "wall_s": r["wall_s"], "sim_s": r["sim_s"], "perf": r["perf"],
+                             "ncon": {k: float(np.mean(v)) for k, v in ncon.items()}, "phi_end": r["phi_end"],
+                             "chain_ok": r["chain_ok"], "n_spheres": (r.get("info") or {}).get("n_spheres"),
+                             "when": time.strftime("%Y-%m-%d %H:%M")})
+            print("bench", spec, rep, round(r["wall_s"], 2), round(sum(r["perf"]["phys"].values()), 2),
+                  round(r["perf"]["ctrl"], 2), flush=True)
+
+
+if __name__ == "__main__" and len(sys.argv) > 1 and sys.argv[1] in ("films", "bench"):
+    {"films": films, "bench": bench}[sys.argv[1]]()
