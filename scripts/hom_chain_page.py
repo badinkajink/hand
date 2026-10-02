@@ -626,6 +626,76 @@ def svg_law():
     return "".join(out)
 
 
+# ------------------------------------------------------------------------------------------ task traces
+
+COL = {"s1": "var(--c-sphere)", "p4s": "var(--c-c4)", "mp3": "var(--ink3)", "dhy": "var(--c-drake)"}
+SHORT = {"s1": "1 mm sphere pad", "p4s": "condim 4", "mp3": "point contact", "dhy": "Drake hydroelastic"}
+
+
+def _axes(out, x0, y0, w, h, xs, ys, xt, yt, xlab, ylab):
+    fx = lambda v: x0 + (v - xs[0]) / (xs[1] - xs[0]) * w  # noqa: E731
+    fy = lambda v: y0 + h - (v - ys[0]) / (ys[1] - ys[0]) * h  # noqa: E731
+    for v in yt:
+        out.append(f'<line x1="{x0}" x2="{x0 + w}" y1="{fy(v):.1f}" y2="{fy(v):.1f}" style="stroke:var(--rule2)"/>'
+                   f'<text x="{x0 - 8}" y="{fy(v) + 4:.1f}" text-anchor="end" style="fill:var(--ink3)">{num(v, "g")}</text>')
+    for v in xt:
+        out.append(f'<text x="{fx(v):.1f}" y="{y0 + h + 17}" text-anchor="middle" style="fill:var(--ink3)">{v:g}</text>')
+    out.append(f'<line x1="{x0}" x2="{x0 + w}" y1="{y0 + h}" y2="{y0 + h}" style="stroke:var(--ink3)"/>'
+               f'<text x="{x0 + w / 2}" y="{y0 + h + 38}" text-anchor="middle" style="fill:var(--ink2)">{xlab}</text>'
+               f'<text x="{x0}" y="{y0 - 12}" style="fill:var(--ink2)">{ylab}</text>')
+    return fx, fy
+
+
+def _legend(out, x, y, items):
+    for name, col, dash in items:
+        out.append(f'<line x1="{x}" x2="{x + 22}" y1="{y - 4}" y2="{y - 4}" style="stroke:{col};stroke-width:2.2'
+                   f'{";stroke-dasharray:5 4" if dash else ""}"/><text x="{x + 28}" y="{y}" style="fill:var(--ink2)">{name}</text>')
+        x += 40 + 7.2 * len(name)
+
+
+def svg_exp3_trace():
+    out = ['<svg viewBox="0 0 980 340" role="img" aria-label="Exp 3: the tool angle about the pinch axis follows the integrated '
+           'pinch-velocity reference through two plus and minus 10 degree cycles in the sphere-pad, condim 4 and Drake models." '
+           'font-family="var(--f-mono)" font-size="12">']
+    rs = {k: PT[("exp3", k)] for k in ("s1", "p4s", "dhy")}
+    T = max(r["trace"][-1][0] - r["trace"][0][0] for r in rs.values())
+    fx, fy = _axes(out, 70, 60, 880, 220, (0, T), (-12, 12), [i for i in range(0, int(T) + 1)], (-10, -5, 0, 5, 10),
+                   "time from the first pinch-velocity step (s)", "angle about the pinch axis (deg)")
+    r0 = rs["s1"]["trace"]
+    out.append('<path d="M' + " L".join(f"{fx(row[0] - r0[0][0]):.1f},{fy(row[4]):.1f}" for row in r0) +
+               '" style="fill:none;stroke:var(--ink3);stroke-width:1.6;stroke-dasharray:6 5"/>')
+    for k, r in rs.items():
+        tr = r["trace"]
+        out.append('<path d="M' + " L".join(f"{fx(row[0] - tr[0][0]):.1f},{fy(row[3]):.1f}" for row in tr) +
+                   f'" style="fill:none;stroke:{COL[k]};stroke-width:2"/>')
+    _legend(out, 300, 30, [("reference", "var(--ink3)", True)] + [(SHORT[k], COL[k], False) for k in rs])
+    out.append("</svg>")
+    return "".join(out)
+
+
+def svg_wield_steps():
+    out = ['<svg viewBox="0 0 980 360" role="img" aria-label="Wield: cumulative turn of the tool after each twist and each '
+           'release over six cycles; the twists match across models, the condim 4, point-contact and Drake runs gain extra '
+           'turn in some releases, the sphere pad gives back about one degree per release." font-family="var(--f-mono)" font-size="12">']
+    fx, fy = _axes(out, 70, 60, 880, 240, (0, 6), (0, 140), range(0, 7), (0, 20, 40, 60, 80, 100, 120, 140),
+                   "cycle (twist, then release, open, return and close)", "tool turned about its own axis (deg)")
+    out.append('<path d="M' + " L".join(f"{fx(x):.1f},{fy(20 * x):.1f}" for x in range(7)) +
+               '" style="fill:none;stroke:var(--ink3);stroke-width:1.6;stroke-dasharray:6 5"/>')
+    for k in PK:
+        cum, pts = 0.0, [(0, 0.0)]
+        for i, c in enumerate(PT[("wield", k)]["per_cycle"]):
+            cum += c["twist_deg"]
+            pts.append((i + 0.5, cum))
+            cum += c["release_open_deg"] + c["return_close_deg"]
+            pts.append((i + 1, cum))
+        out.append('<path d="M' + " L".join(f"{fx(x):.1f},{fy(y):.1f}" for x, y in pts) +
+                   f'" style="fill:none;stroke:{COL[k]};stroke-width:2"/>')
+        out.append(f'<text x="{fx(6) + 6:.1f}" y="{fy(cum) + 4:.1f}" style="fill:{COL[k]}">{cum:.0f}°</text>')
+    _legend(out, 160, 30, [("commanded 20° per cycle", "var(--ink3)", True)] + [(SHORT[k], COL[k], False) for k in PK])
+    out.append("</svg>")
+    return "".join(out)
+
+
 # ------------------------------------------------------------------------------------------ math
 
 TEX_RE = re.compile(r"\\\[(.+?)\\\]|\\\((.+?)\\\)", re.S)
@@ -712,6 +782,7 @@ def main():
     v["EXP3_FILMS"] = paper_film("exp3", "s1", "Exp&#160;3, pusher cycles and the tripod lift:") + paper_tile("exp3", "Exp&#160;3")
     v["EXP2_FILMS"] = paper_film("exp2", "s1", "Exp&#160;2, the six twist steps:") + paper_tile("exp2", "Exp&#160;2")
     v["CHECK_LEAD"], v["CHECK_TABLE"], v["CHECK_PROSE"], v["ONE_TABLE"] = check_tables(b)
+    v["FIG_EXP3"], v["FIG_WIELD"] = svg_exp3_trace(), svg_wield_steps()
     v["HANDOFF"] = HANDOFF
     for k, val in v.items():
         t = t.replace("{{" + k + "}}", val)
