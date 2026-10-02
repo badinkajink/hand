@@ -588,6 +588,25 @@ class DrakeChainPlant:
             out[key]["n"] += 1
         return out
 
+    def point_contacts(self):
+        """[(finger, pos, normal into the pad, normal force)] for point-pair contacts between fingertips and tool."""
+        out = []
+        cr = self.plant.get_contact_results_output_port().Eval(self.pc)
+        for i in range(cr.num_point_pair_contacts()):
+            info = cr.point_pair_contact_info(i)
+            pp = info.point_pair()
+            if not ({pp.id_A, pp.id_B} & self.tool_gids):
+                continue
+            f = self.geom_finger.get(pp.id_A) or self.geom_finger.get(pp.id_B)
+            if f is None:
+                continue
+            n = np.array(pp.nhat_BA_W)
+            if pp.id_B in self.geom_finger:
+                n = -n
+            fN = float(abs(np.array(info.contact_force()) @ np.array(pp.nhat_BA_W)))
+            out.append((f, np.array(info.contact_point()), n, fN))
+        return out
+
     def surfaces(self):
         """Hydroelastic contact surfaces between fingertips and tool: list of (finger, centroids, normals,
         areas, pressures) for rendering."""
@@ -722,7 +741,7 @@ def run_chain(spec, seed=0, brake="closed", d_cg=0.015, clearance=0.001, film=No
     F = {"thumb": 0.0, "index": 0.0}
     t_contact = {}
     rows, frames, events = [], [], {}
-    renderer = ChainRenderer(plant, lay, closeup=closeup) if film else None
+    renderer = ChainRenderer(plant, lay, spec, closeup=closeup if closeup is not None else True) if film else None
     brake_ctl = ClosedBrake(d_cg) if brake == "closed" else None
     phi_prev, sax_prev = None, None
     a0 = u_w = None
@@ -747,7 +766,9 @@ def run_chain(spec, seed=0, brake="closed", d_cg=0.015, clearance=0.001, film=No
         s, _, _ = minjerk(t, T)
         return frm + s * (to - frm)
 
+    perf = {"phys": {}, "sim": {}, "ctrl": 0.0, "log": 0.0, "render": 0.0}
     while plant.t < T_MAX and phase != "end":
+        tc0 = time.perf_counter()
         st = plant.state()
         mirror.set_state(st["q"], st["v"], st["tool_pos"], st["tool_quat"], st["tool_v"], st["tool_w"],
                          st["palm_q"], st["palm_v"])
@@ -857,6 +878,8 @@ def run_chain(spec, seed=0, brake="closed", d_cg=0.015, clearance=0.001, film=No
             pass
         q_cmd = pinch_targets(q_ref, F) + mirror.gravity() / kp
         plant.set_targets(q_cmd, palm_tgt)
+        tc1 = time.perf_counter()
+        perf["ctrl"] += tc1 - tc0
         # ------------------------------------------------------------------ log
         k = int(round(t / dt))
         if k % 2 == 0 or phase == "end":
@@ -874,9 +897,15 @@ def run_chain(spec, seed=0, brake="closed", d_cg=0.015, clearance=0.001, film=No
                          round(math.degrees(math.asin(max(-1.0, min(1.0, float(
                              (mirror.d.xpos[mirror.tip["index"]] - mirror.d.xpos[mirror.tip["thumb"]])[2]
                              / np.linalg.norm(mirror.d.xpos[mirror.tip["index"]] - mirror.d.xpos[mirror.tip["thumb"]])))))), 3)])
+        tc2 = time.perf_counter()
+        perf["log"] += tc2 - tc1
         if renderer is not None and k % film_every == 0:
-            frames.append(renderer.frame(plant, st, label(spec, brake), phase, phi, F["thumb"]))
+            frames.append(renderer.frame(plant, st, label(spec, brake), phase, phi, F["thumb"], frs["thumb"]))
+        tc3 = time.perf_counter()
+        perf["render"] += tc3 - tc2
         plant.step(dt)
+        perf["phys"][phase] = perf["phys"].get(phase, 0.0) + time.perf_counter() - tc3
+        perf["sim"][phase] = perf["sim"].get(phase, 0.0) + dt
     tr = rows
     cols = ["t", "phase", "F_thumb", "F_index", "phi", "phidot", "N_thumb", "N_index", "N_middle", "N_support",
             "n_thumb", "n_index", "sax_mm", "end_z_mm", "end_off_mm", "tilt_deg", "floor", "oop_deg", "pinch_tilt_deg"]
@@ -884,6 +913,8 @@ def run_chain(spec, seed=0, brake="closed", d_cg=0.015, clearance=0.001, film=No
     res.update(_score(tr, cols, events, lay))
     res["wall_s"] = time.time() - t0w
     res["sim_s"] = plant.t
+    res["perf"] = perf
+    res["info"] = getattr(plant, "info", {})
     res["trace_cols"] = cols
     res["trace"] = tr
     if renderer is not None:
@@ -929,6 +960,8 @@ def label(spec, brake=None):
     sp = B.parse_spec(spec)
     if sp["sim"] == "drake":
         s = "Drake point" if sp["model"] == "point" else f"Drake hydroelastic {sp.get('rt', 0.1):g} s"
+        if sp["model"] == "hydro" and abs(sp["res"] - 1e-3) > 1e-9:
+            s += f", {sp['res'] * 1e3:g} mm mesh"
     else:
         s = {"point3": "MuJoCo point, condim 3", "point4s": "MuJoCo condim 4, mu_t rescheduled",
              "spheres": f"MuJoCo {sp.get('s', 0) * 1e3:g} mm spheres"}[sp["model"]]
@@ -939,24 +972,60 @@ def label(spec, brake=None):
 
 # -------------------------------------------------------------------------------------- films
 
+def heat(x):
+    """Dark violet -> red -> orange -> pale yellow for x in [0, 1]."""
+    x = min(max(float(x), 0.0), 1.0)
+    stops = [(0.0, (0.22, 0.06, 0.38)), (0.35, (0.70, 0.13, 0.32)), (0.7, (0.96, 0.47, 0.10)), (1.0, (1.0, 0.94, 0.45))]
+    for (x0, c0), (x1, c1) in zip(stops, stops[1:]):
+        if x <= x1:
+            f = (x - x0) / (x1 - x0)
+            return [c0[i] + f * (c1[i] - c0[i]) for i in range(3)] + [1.0]
+    return list(stops[-1][1]) + [1.0]
+
+
+SCALE_POINT_N, SCALE_PRESSURE = 4.0, 3e5      # colour full scale in the close-up: point force; pressure, or a
+                                               # sphere's force over its share of pad area
+
+
 class ChainRenderer:
-    def __init__(self, plant, lay, w=480, h=360, closeup=None):
+    """Wide shot (480 x 360, camera along the pinch axis) beside a close-up of the thumb pad (360 x 360), tool and
+    index see-through. Sphere-packed tips are drawn as their collision spheres (the visual tip sphere is a ghost in
+    the wide shot and hidden in the close-up), each sphere coloured by its normal force; Drake hydroelastic contact
+    is drawn as its contact-surface faces coloured by pressure; point contacts as a dot coloured by force with a
+    normal-force arrow. The black dot is the centre of pressure."""
+
+    def __init__(self, plant, lay, spec, w=480, h=360, cw=360, closeup=True):
         import mujoco
         self.mj = mujoco
+        self.sp = B.parse_spec(spec)
+        self.spheres = self.sp["model"] == "spheres"
         if plant.sim == "mujoco":
             self.m = plant.m
         else:
             self.m = mujoco.MjModel.from_xml_string(plant.xml_mirror)
-        self.d = mujoco.MjData(self.m)
-        self.r = mujoco.Renderer(self.m, h, w)
+        m = self.m
+        self.d = mujoco.MjData(m)
+        self.r = mujoco.Renderer(m, h, w)
+        self.rc = mujoco.Renderer(m, h, cw, max_geom=20000) if closeup else None
         self.cam = mujoco.MjvCamera()
         mid = 0.5 * (lay["s_nom"] + lay["hole"])
         self.cam.lookat[:] = [mid[0], mid[1], 0.075]
         self.cam.distance = 0.42
         self.cam.azimuth = math.degrees(math.atan2(lay["u"][1], lay["u"][0]))
         self.cam.elevation = -12.0
-        self.closeup = closeup
+        self.camc = mujoco.MjvCamera()
+        self.camc.distance, self.camc.elevation = 0.036, -20.0
         self.opt = mujoco.MjvOption()
+        self.optc = mujoco.MjvOption()
+        self.rgba0 = m.geom_rgba.copy()
+        self.tool_g = [g for g in range(m.ngeom) if m.body(m.geom_bodyid[g]).name == "tool"]
+        self.tip_vis = [m.geom(f"{f}_tipsphere").id for f in ("thumb", "index")]
+        self.index_g = [g for g in range(m.ngeom) if m.body(m.geom_bodyid[g]).name.startswith("index_")]
+        self.pads = {f: [g for g in range(m.ngeom) if (m.geom(g).name or "").startswith(f"{f}_pad")] for f in ("thumb", "index")}
+        n_sph = max(1, len(self.pads["thumb"]))
+        cap = math.radians(self.sp.get("cap_deg", 45.0))
+        self.A_s = 2 * math.pi * B.R_TIP ** 2 * (1 - math.cos(cap)) / n_sph      # each sphere's share of pad area
+        self.closeup = closeup
 
     def sync(self, plant, st):
         m, d = self.m, self.d
@@ -974,13 +1043,125 @@ class ChainRenderer:
             d.qpos[qa + 3:qa + 7] = st["tool_quat"]
         self.mj.mj_forward(m, d)
 
-    def frame(self, plant, st, title, phase, phi, F):
+    def thumb_contacts(self, plant):
+        """[(pos, normal, force_N, geom)] for thumb-tool contacts in a MuJoCo plant (from the plant's own data)."""
+        out = []
+        f6 = np.zeros(6)
+        pm, pd = plant.m, plant.d
+        for i in range(pd.ncon):
+            cc = pd.contact[i]
+            g0, g1 = int(cc.geom[0]), int(cc.geom[1])
+            if plant.tool not in (pm.geom_bodyid[g0], pm.geom_bodyid[g1]):
+                continue
+            g = g0 if plant.side.get(g0) == "thumb" else (g1 if plant.side.get(g1) == "thumb" else None)
+            if g is None:
+                continue
+            self.mj.mj_contactForce(pm, pd, i, f6)
+            n = np.array(cc.frame[:3])
+            if pm.geom_bodyid[g0] == plant.tool:
+                n = -n                                   # normal pointing from the tool into the pad
+            out.append((np.array(cc.pos), n, float(f6[0]), g))
+        return out
+
+    def frame(self, plant, st, title, phase, phi, F, fr_thumb=None):
         self.sync(plant, st)
-        self.r.update_scene(self.d, self.cam, self.opt)
-        img = self.r.render().copy()
+        m = self.m
+        mujoco = self.mj
         ph = "  -  " if phi is None else f"{math.degrees(phi):5.1f}"
-        return H.annotate_bottom(H.annotate(img, title, size=14),
+        sphere_force = {}
+        cons = []
+        if plant.sim == "mujoco":
+            cons = self.thumb_contacts(plant)
+            for pos, n, fN, g in cons:
+                sphere_force[g] = sphere_force.get(g, 0.0) + fN
+        # ---------------------------------------------------------------- wide
+        m.geom_rgba[:] = self.rgba0
+        if self.spheres:
+            for g in self.tip_vis:
+                m.geom_rgba[g, 3] = 0.12
+            for f in ("thumb", "index"):
+                for g in self.pads[f]:
+                    m.geom_rgba[g] = heat(sphere_force[g] / self.A_s / SCALE_PRESSURE) if g in sphere_force else [0.95, 0.55, 0.15, 1]
+        self.r.update_scene(self.d, self.cam, self.opt)
+        wide = H.annotate_bottom(H.annotate(self.r.render().copy(), title, size=14),
                                  f"{phase:9s} phi {ph} deg  F {F:4.2f} N  t {plant.t:5.2f} s", size=13)
+        if not self.closeup or fr_thumb is None:
+            m.geom_rgba[:] = self.rgba0
+            return wide
+        # ---------------------------------------------------------------- close-up of the thumb pad
+        for g in self.tool_g:
+            m.geom_rgba[g, 3] = 0.22
+        for g in self.index_g:
+            m.geom_rgba[g, 3] = 0.12
+        if self.spheres:
+            for g in self.tip_vis:
+                m.geom_rgba[g, 3] = 0.0
+            for g in self.pads["thumb"]:
+                m.geom_rgba[g] = heat(sphere_force[g] / self.A_s / SCALE_PRESSURE) if g in sphere_force else [0.80, 0.80, 0.82, 1]
+            for g in self.pads["index"]:
+                m.geom_rgba[g, 3] = 0.0
+        else:
+            for g in self.tip_vis[:1]:
+                m.geom_rgba[g, 3] = 0.35
+        n = fr_thumb["n"]
+        self.camc.lookat[:] = fr_thumb["p_fing"]
+        self.camc.azimuth = math.degrees(math.atan2(n[1], n[0])) + 35.0
+        self.rc.update_scene(self.d, self.camc, self.optc)
+        scn = self.rc.scene
+        line = ""
+        pts, wts = [], []
+        if plant.sim == "mujoco":
+            Ntot = sum(fN for _, _, fN, _ in cons)
+            if self.spheres:
+                line = f"thumb pad {Ntot:4.2f} N on {sum(1 for c in cons if c[2] > 1e-4)} of {len(self.pads['thumb'])} spheres"
+            else:
+                line = f"thumb pad {Ntot:4.2f} N, {len(cons)} contact point{'s' if len(cons) != 1 else ''}"
+                for pos, nn, fN, g in cons:
+                    C.add_sphere(scn, pos, 0.0007, heat(fN / SCALE_POINT_N))
+                    C.add_connector(scn, mujoco.mjtGeom.mjGEOM_ARROW, pos, pos + nn * 0.004 * fN, 0.0005, (0.1, 0.1, 0.1, 1))
+            for pos, nn, fN, g in cons:
+                pts.append(pos)
+                wts.append(max(fN, 0.0))
+        elif plant.sim == "drake":
+            if self.sp["model"] == "hydro":
+                area_tot, nf, Ntot = 0.0, 0, 0.0
+                for f, cen, nor, area, pres in plant.surfaces():
+                    if f != "thumb":
+                        continue
+                    for c, nv, a_, p_ in zip(cen, nor, area, pres):
+                        r_ = math.sqrt(max(a_, 1e-12) / math.pi)
+                        if scn.ngeom < scn.maxgeom:
+                            gg = scn.geoms[scn.ngeom]
+                            Rm = H._rot_z_to(nv)
+                            mujoco.mjv_initGeom(gg, mujoco.mjtGeom.mjGEOM_CYLINDER, np.array([r_ * 1.15, r_ * 1.15, 0.00006]),
+                                                np.asarray(c, float), Rm.reshape(-1), np.asarray(heat(p_ / SCALE_PRESSURE), np.float32))
+                            scn.ngeom += 1
+                        pts.append(c)
+                        wts.append(max(p_, 0.0) * a_)
+                        area_tot += a_
+                        nf += 1
+                Ntot = plant.contacts()["thumb"]["N"]
+                line = f"thumb patch {Ntot:4.2f} N, {area_tot * 1e6:4.1f} mm^2, {nf} faces"
+            else:
+                Ntot, k = 0.0, 0
+                for f, pos, nn, fN in plant.point_contacts():
+                    if f != "thumb":
+                        continue
+                    C.add_sphere(scn, pos, 0.0007, heat(fN / SCALE_POINT_N))
+                    C.add_connector(scn, mujoco.mjtGeom.mjGEOM_ARROW, pos, pos + nn * 0.004 * fN, 0.0005, (0.1, 0.1, 0.1, 1))
+                    pts.append(pos)
+                    wts.append(fN)
+                    Ntot += fN
+                    k += 1
+                line = f"thumb pad {Ntot:4.2f} N, {k} contact point{'s' if k != 1 else ''}"
+        if pts and sum(wts) > 0:
+            cop = np.average(np.array(pts), axis=0, weights=np.array(wts))
+            C.add_sphere(scn, cop, 0.00045, (0.02, 0.02, 0.02, 1))
+        close = self.rc.render().copy()
+        m.geom_rgba[:] = self.rgba0
+        close = H.annotate(close, "thumb pad, tool and index see-through", size=13)
+        close = H.annotate_bottom(close, line or "no contact", size=12)
+        return np.concatenate([wide, close], 1)
 
 
 def still(out):
