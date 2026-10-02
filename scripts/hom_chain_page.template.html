@@ -465,9 +465,22 @@ the normals. The fingers return to the open posture, and the cycle closes again.
 </ul>
 <h3>Wield</h3>
 {{WIELD_TABLE}}
+<figure class="diagram">
+{{FIG_WIELD}}
+<figcaption>Figure&#160;5. Cumulative turn of the tool after each twist (half cycles) and after each release, open, return and
+close (whole cycles); the dashed line is the commanded 20&#176; per cycle. The twists agree across models within 1&#176;. The
+releases do not: with condim&#160;4, point contact and Drake some releases spin the tool on, by up to 23&#176;, while the sphere pad
+gives back about 1&#176; each time. The tool&#8217;s end stands on one support contact with no torsional friction in every model.</figcaption>
+</figure>
 {{WIELD_FILMS}}
 <h3>Exp&#160;3: pusher and tripod</h3>
 {{EXP3_TABLE}}
+<figure class="diagram">
+{{FIG_EXP3}}
+<figcaption>Figure&#160;6. The tool&#8217;s angle about the pinch axis through the two pinch-velocity cycles (&#177;20&#8202;&#176;/s,
+&#177;10&#176;), with the integrated reference dashed. Pushing the far end down is positive; on the way back gravity turns the tool
+and the middle retreats ahead of it. The three models with a pinch friction torque track within about 1&#176;.</figcaption>
+</figure>
 {{EXP3_FILMS}}
 <h3>Exp&#160;2: object twist</h3>
 {{EXP2_TABLE}}
@@ -496,7 +509,7 @@ times the brake. In the brake the force falls below 1&#8202;N and the patch shri
 </ul>
 <figure class="diagram">
 {{FIG_BENCH}}
-<figcaption>Figure&#160;5. Physics time per simulated second, one core, log scale. Each dot is the median over repeats and its bar the
+<figcaption>Figure&#160;7. Physics time per simulated second, one core, log scale. Each dot is the median over repeats and its bar the
 range. The open tick is the controller&#8217;s share. Hover a row for its numbers.</figcaption>
 </figure>
 {{BENCH_TABLE}}
