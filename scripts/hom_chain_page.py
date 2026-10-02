@@ -696,6 +696,38 @@ def svg_wield_steps():
     return "".join(out)
 
 
+def svg_exp2_drift():
+    out = ['<svg viewBox="0 0 980 340" role="img" aria-label="Exp 2: the tool angle about the pinch axis, integrated over the '
+           'twist steps; with spin free it ratchets about 50 degrees toward hanging in the sphere-pad, condim 4 and Drake '
+           'models, and about half as far with the spin rows held." font-family="var(--f-mono)" font-size="12">']
+    keys = [k for k in ("s1", "p4s", "dhy", "s1spin") if ("exp2", k) in PT]
+    col = dict(COL, s1spin="var(--c-sphere)")
+    T = max(PT[("exp2", k)]["trace"][-1][0] - PT[("exp2", k)]["trace"][0][0] for k in keys)
+    fx, fy = _axes(out, 70, 60, 880, 220, (0, T), (-60, 10), [i for i in range(0, int(T) + 1)], (-60, -40, -20, 0),
+                   "time from the first twist step (s)", "tool angle about the pinch axis (deg)")
+    tr0 = PT[("exp2", "s1")]["trace"]
+    comps = ["v_pinch", "v_up", "v_tool", "w_pinch", "w_up", "w_tool"]
+    t_prev, c_prev = None, None
+    for row in tr0:                                                      # step labels at each component's start
+        if row[1] != c_prev:
+            out.append(f'<text x="{fx(row[0] - tr0[0][0]) + 3:.1f}" y="{fy(8):.1f}" style="fill:var(--ink3)">{row[1].replace("_", " ")}</text>'
+                       f'<line x1="{fx(row[0] - tr0[0][0]):.1f}" x2="{fx(row[0] - tr0[0][0]):.1f}" y1="{fy(10):.1f}" y2="{fy(-60):.1f}" style="stroke:var(--rule)"/>')
+            c_prev = row[1]
+    for k in keys:
+        tr = PT[("exp2", k)]["trace"]
+        ang, pts = 0.0, []
+        for i, row in enumerate(tr):
+            if i:
+                ang += row[11] * (row[0] - tr[i - 1][0]) * 57.29578
+            pts.append((row[0] - tr[0][0], ang))
+        dash = ";stroke-dasharray:6 4" if k == "s1spin" else ""
+        out.append('<path d="M' + " L".join(f"{fx(x):.1f},{fy(y):.1f}" for x, y in pts) +
+                   f'" style="fill:none;stroke:{col[k]};stroke-width:2{dash}"/>')
+    _legend(out, 220, 30, [(SHORT[k] if k != "s1spin" else "sphere pad, spin rows held", col[k], k == "s1spin") for k in keys])
+    out.append("</svg>")
+    return "".join(out)
+
+
 # ------------------------------------------------------------------------------------------ math
 
 TEX_RE = re.compile(r"\\\[(.+?)\\\]|\\\((.+?)\\\)", re.S)
@@ -782,7 +814,7 @@ def main():
     v["EXP3_FILMS"] = paper_film("exp3", "s1", "Exp&#160;3, pusher cycles and the tripod lift:") + paper_tile("exp3", "Exp&#160;3")
     v["EXP2_FILMS"] = paper_film("exp2", "s1", "Exp&#160;2, the six twist steps:") + paper_tile("exp2", "Exp&#160;2")
     v["CHECK_LEAD"], v["CHECK_TABLE"], v["CHECK_PROSE"], v["ONE_TABLE"] = check_tables(b)
-    v["FIG_EXP3"], v["FIG_WIELD"] = svg_exp3_trace(), svg_wield_steps()
+    v["FIG_EXP3"], v["FIG_WIELD"], v["FIG_EXP2"] = svg_exp3_trace(), svg_wield_steps(), svg_exp2_drift()
     v["HANDOFF"] = HANDOFF
     for k, val in v.items():
         t = t.replace("{{" + k + "}}", val)
