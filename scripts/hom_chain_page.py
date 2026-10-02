@@ -556,6 +556,76 @@ changes.</li>
 """
 
 
+# ------------------------------------------------------------------------------------------ law figure
+
+def svg_law():
+    """Figure 4: (a) the torsional coefficient the patch law asks for at each pad force, against a fixed condim-4 value
+    set at the 3 N hold; (b) the two pads' torque capacity tau_cap(N) against the swing's demand m g d cos(phi)."""
+    import math
+    c, W, mgd = 0.996e-3, 0.024544 * 9.81, 0.024544 * 9.81 * 0.015
+    W_, H_ = 980, 380
+    out = [f'<svg viewBox="0 0 {W_} {H_}" role="img" aria-label="Left: the torsional coefficient mu_t that reproduces the '
+           f'hydroelastic patch grows as N to the one quarter, so a fixed value set at 3 N is 57 percent too high at 0.5 N. '
+           f'Right: the pinch torque capacity rises from zero at the 0.12 N slip limit and meets the gravity demand at '
+           f'1.61 N horizontal, 1.22 N at 45 degrees and 0.41 N at 80 degrees." font-family="var(--f-mono)" font-size="12">']
+
+    def panel(x0, y0, w, h, xs, ys, xlab, ylab, xt, yt, logx):
+        fx = (lambda v: x0 + (math.log(v) - math.log(xs[0])) / (math.log(xs[1]) - math.log(xs[0])) * w) if logx else \
+            (lambda v: x0 + (v - xs[0]) / (xs[1] - xs[0]) * w)
+        fy = lambda v: y0 + h - (v - ys[0]) / (ys[1] - ys[0]) * h  # noqa: E731
+        for v in yt:
+            out.append(f'<line x1="{x0}" x2="{x0 + w}" y1="{fy(v):.1f}" y2="{fy(v):.1f}" style="stroke:var(--rule2)"/>'
+                       f'<text x="{x0 - 8}" y="{fy(v) + 4:.1f}" text-anchor="end" style="fill:var(--ink3)">{v:g}</text>')
+        for v in xt:
+            out.append(f'<line x1="{fx(v):.1f}" x2="{fx(v):.1f}" y1="{y0}" y2="{y0 + h}" style="stroke:var(--rule2)"/>'
+                       f'<text x="{fx(v):.1f}" y="{y0 + h + 17}" text-anchor="middle" style="fill:var(--ink3)">{v:g}</text>')
+        out.append(f'<line x1="{x0}" x2="{x0 + w}" y1="{y0 + h}" y2="{y0 + h}" style="stroke:var(--ink3)"/>'
+                   f'<text x="{x0 + w / 2}" y="{y0 + h + 38}" text-anchor="middle" style="fill:var(--ink2)">{xlab}</text>'
+                   f'<text x="{x0}" y="{y0 - 12}" style="fill:var(--ink2)">{ylab}</text>')
+        return fx, fy
+
+    def path(fx, fy, pts, style):
+        d = "M" + " L".join(f"{fx(x):.1f},{fy(y):.1f}" for x, y in pts)
+        out.append(f'<path d="{d}" style="fill:none;stroke-width:2.2;{style}"/>')
+
+    # (a) torsional coefficient
+    fx, fy = panel(70, 50, 360, 250, (0.1, 6.0), (0.0, 1.8), "pad force N (N), log scale", "(a) torsional coefficient \u03bc<tspan dy='3' font-size='10'>t</tspan><tspan dy='-3'> (mm), \u03bc = 1</tspan>",
+                   (0.1, 0.3, 1, 3, 6), (0, 0.5, 1.0, 1.5), True)
+    Ns = [0.1 * (60 ** (i / 80)) for i in range(81)]
+    path(fx, fy, [(N, c * 1e3 * N ** 0.25) for N in Ns], "stroke:var(--c-c4)")
+    path(fx, fy, [(0.1, c * 1e3 * 3 ** 0.25), (6.0, c * 1e3 * 3 ** 0.25)], "stroke:var(--c-ref);stroke-dasharray:6 5")
+    for N in (0.5, 3.0):
+        out.append(f'<circle cx="{fx(N):.1f}" cy="{fy(c * 1e3 * N ** 0.25):.1f}" r="4.5" style="fill:var(--c-c4);stroke:var(--card);stroke-width:2"/>')
+    x5 = fx(0.5)
+    out.append(f'<line x1="{x5:.1f}" x2="{x5:.1f}" y1="{fy(c * 1e3 * 0.5 ** 0.25):.1f}" y2="{fy(c * 1e3 * 3 ** 0.25):.1f}" '
+               f'style="stroke:var(--bad);stroke-width:1.5"/>'
+               f'<text x="{x5 + 6:.1f}" y="{fy(1.07):.1f}" style="fill:var(--bad)">fixed value 57 % high at 0.5 N</text>'
+               f'<text x="{fx(0.11):.1f}" y="{fy(1.31) - 8:.1f}" style="fill:var(--ink3)">fixed \u03bc<tspan dy="3" font-size="10">t</tspan><tspan dy="-3"> set at the 3 N hold</tspan></text>'
+               f'<text x="{fx(0.75):.1f}" y="{fy(0.62):.1f}" style="fill:var(--c-c4)">law: \u03bc<tspan dy="3" font-size="10">t</tspan><tspan dy="-3"> = \u03bc c N</tspan><tspan dy="-5" font-size="10">1/4</tspan></text>'
+               f'<text x="{fx(0.75):.1f}" y="{fy(0.62) + 16:.1f}" style="fill:var(--ink3)">rescheduled each 1 ms step</text>')
+    # (b) brake capacity against demand
+    cap = lambda N: 0.0 if N <= W / 2 else 2 * N * c * N ** 0.25 * math.sqrt(1 - (W / (2 * N)) ** 2)  # noqa: E731
+    fx, fy = panel(580, 50, 360, 250, (0.0, 2.0), (0.0, 5.0), "pad force N (N)", "(b) torque about the pinch axis (mN\u00b7m)",
+                   (0, 0.5, 1.0, 1.5, 2.0), (0, 1, 2, 3, 4, 5), False)
+    path(fx, fy, [(N, cap(N) * 1e3) for N in [W / 2 + i * (2.0 - W / 2) / 120 for i in range(121)]], "stroke:var(--c-c4)")
+    out.append(f'<text x="{fx(1.62):.1f}" y="{fy(4.75):.1f}" style="fill:var(--c-c4)">\u03c4<tspan dy="3" font-size="10">cap</tspan><tspan dy="-3">(N), Eq. (11)</tspan></text>'
+               f'<text x="{fx(W / 2) + 6:.1f}" y="{fy(0) - 7:.1f}" style="fill:var(--ink3)">← slip limit 0.12 N</text>')
+    for phi, lab_dy in ((0, -7), (45, -7), (80, -7)):
+        dem = mgd * math.cos(math.radians(phi)) * 1e3
+        lo, hi = W / 2, 6.0
+        for _ in range(60):
+            mid = 0.5 * (lo + hi)
+            lo, hi = (mid, hi) if cap(mid) * 1e3 < dem else (lo, mid)
+        xl, anchor = (fx(1.98), ' text-anchor="end"') if phi == 80 else (fx(0.03), '')
+        out.append(f'<line x1="{fx(0):.1f}" x2="{fx(2.0):.1f}" y1="{fy(dem):.1f}" y2="{fy(dem):.1f}" '
+                   f'style="stroke:var(--c-ref);stroke-dasharray:6 5"/>'
+                   f'<circle cx="{fx(hi):.1f}" cy="{fy(dem):.1f}" r="4.5" style="fill:var(--c-sphere);stroke:var(--card);stroke-width:2"/>'
+                   f'<text x="{xl:.1f}" y="{fy(dem) + lab_dy:.1f}"{anchor} style="fill:var(--ink3)">demand at {phi}\u00b0</text>'
+                   f'<text x="{fx(hi) + 9:.1f}" y="{fy(dem) - 8:.1f}" style="fill:var(--c-sphere)">N* = {hi:.2f} N</text>')
+    out.append("</svg>")
+    return "".join(out)
+
+
 # ------------------------------------------------------------------------------------------ math
 
 TEX_RE = re.compile(r"\\\[(.+?)\\\]|\\\((.+?)\\\)", re.S)
@@ -596,6 +666,7 @@ def main():
     v["LO_N2"] = str(lo[0.002]["n_in"])
     v["LO_DEV2"] = f"{dev(lo, 0.002):.0f}"
     v["LO_DEV_FINE"] = f"{max(abs(dev(lo, s)) for s in (0.001, 0.0005)):.0f}"
+    v["FIG_LAW"] = svg_law()
     v["FIG_SECTION"] = G.svg_section(hi)
     v["FIG_PATCH"] = G.svg_patch(hi, lo)
     v["CLOSEUP_FILM"] = R.data_uri(os.path.join(M, "20261002-contact_closeups.mp4"), "video/mp4")

@@ -111,7 +111,7 @@ a:focus-visible{outline:2px solid var(--s2);outline-offset:2px;border-radius:2px
 .chart .tip i{display:inline-block;width:10px;height:3px;margin-right:6px;vertical-align:middle;font-style:normal}
 @media (prefers-reduced-motion: reduce){.chart .tip{transition:none}}
 
-.diagram svg{display:block;width:100%;height:auto;color:var(--ink);overflow:visible}
+.diagram > svg{display:block;width:100%;height:auto;color:var(--ink);overflow:visible}
 /* math: LaTeX pre-rendered to SVG by scripts/texsvg.py; glyphs draw in currentColor */
 .tex-d{display:block;margin:.5em auto;max-width:100%;height:auto}
 .eq{position:relative;margin:18px 0;padding:0 3.4em}
@@ -311,6 +311,16 @@ the pad force that meets the demand:</p>
 \(N^\ast\)&#8202;=&#8202;1.61&#8202;N. At 45&#176; it is 2.55&#215;10<sup>&#8722;3</sup>&#8202;N&#183;m and 1.22&#8202;N; at 60&#176;, 0.93&#8202;N; at 80&#176;,
 6.3&#215;10<sup>&#8722;4</sup>&#8202;N&#183;m and 0.41&#8202;N; at 85&#176;, 0.25&#8202;N. At 90&#176; only the 0.12&#8202;N slip limit remains. These are
 the forces of the 10-01 load step, where Drake passed 45&#176; at 1.26&#8202;N and 80&#176; at 0.40&#8202;N.</p></div>
+<figure class="diagram">
+{{FIG_LAW}}
+<figcaption>Figure&#160;4. The law behind steps&#160;3 and 5, for the nominal tool and \(\mu=1\). (a) The torsional coefficient
+that makes one MuJoCo contact carry the hydroelastic patch&#8217;s torque grows as \(N^{1/4}\) (green). condim&#160;4 stores one
+value per geom; set at the 3&#8202;N hold (dashed), it is right only there and 57&#8202;% too high at the 0.5&#8202;N end of the
+swing. Rescheduling reads \(N\) each step and moves \(\mu_t\) along the green curve. (b) The torque the two pads can carry
+about the pinch axis, (11), starts at the 0.12&#8202;N slip limit, where the weight uses all the friction. Each dashed line is the
+gravity torque \(mgd\cos\varphi\) at one swing angle. Where it meets the curve is the pad force (12) that holds the tool still
+there. The brake commands a little less than \(N^\ast\) to let the tool swing on, and a little more to slow it.</figcaption>
+</figure>
 <p>The floor starts at twice the slip limit, 0.24&#8202;N, so the tool cannot slide out along its axis near vertical. It rises
 50&#8202;% when the tool slides and decays while the tool stalls off vertical. \(N_\text{max}\)&#8202;=&#8202;6&#8202;N keeps the yaw joint at
 0.28&#8202;N&#183;m, inside the servo&#8217;s 0.35&#8202;N&#183;m. The same three moves carry over to other grasps. Write the object&#8217;s equation of
@@ -486,7 +496,7 @@ times the brake. In the brake the force falls below 1&#8202;N and the patch shri
 </ul>
 <figure class="diagram">
 {{FIG_BENCH}}
-<figcaption>Figure&#160;4. Physics time per simulated second, one core, log scale. Each dot is the median over repeats and its bar the
+<figcaption>Figure&#160;5. Physics time per simulated second, one core, log scale. Each dot is the median over repeats and its bar the
 range. The open tick is the controller&#8217;s share. Hover a row for its numbers.</figcaption>
 </figure>
 {{BENCH_TABLE}}
