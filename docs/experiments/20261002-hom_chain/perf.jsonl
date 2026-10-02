@@ -1,0 +1,7 @@
+{"key": "mp3", "spec": "mj:point3", "wall_s": 0.5542445182800293, "sim_s": 12.849999999998317, "phi_end": -2.784, "chain_ok": false, "n_spheres": null, "when": "2026-10-02 11:09"}
+{"key": "p4s", "spec": "mj:point4s", "wall_s": 0.4080538749694824, "sim_s": 10.31999999999972, "phi_end": 88.219, "chain_ok": true, "n_spheres": null, "when": "2026-10-02 11:09"}
+{"key": "s2", "spec": "mj:spheres:s2:rs0.75:tr0.02", "wall_s": 0.5919597148895264, "sim_s": 11.279999999999188, "phi_end": 90.929, "chain_ok": true, "n_spheres": null, "when": "2026-10-02 11:09"}
+{"key": "s1", "spec": "mj:spheres:s1:rs0.75:tr0.02", "wall_s": 1.0783443450927734, "sim_s": 10.329999999999714, "phi_end": 90.462, "chain_ok": true, "n_spheres": null, "when": "2026-10-02 11:09"}
+{"key": "s05", "spec": "mj:spheres:s0.5:rs0.75:tr0.02", "error": "relaxation 0.02 s below this pad's floor"}
+{"key": "dpt", "spec": "drake:point", "wall_s": 2.627828359603882, "sim_s": 12.919999999999769, "phi_end": -0.626, "chain_ok": false, "n_spheres": null, "when": "2026-10-02 11:09"}
+{"key": "dhy", "spec": "drake:hydro:rt0.01", "wall_s": 26.923389673233032, "sim_s": 12.169999999999785, "phi_end": 92.446, "chain_ok": true, "n_spheres": null, "when": "2026-10-02 11:10"}

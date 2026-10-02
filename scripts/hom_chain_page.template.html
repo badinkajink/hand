@@ -1,0 +1,289 @@
+<title>SR2 screwdriver chain control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* House layout of the MorphoHand result pages: one reading column, figures and tables break out to 1020px.
+   Series colours: Drake hydroelastic blue, MuJoCo sphere pads orange, MuJoCo condim 4 green (dashed),
+   analytic and quasi-static references grey dashed; validated for CVD in both themes. */
+:root{
+  --paper:#EEF1F4; --card:#FFFFFF; --sunk:#E4E9EE;
+  --ink:#1A2127; --ink2:#48545D; --ink3:#77848D; --rule:#D2DAE1; --rule2:#E2E8ED;
+  --s1:#BE7514; --s2:#4A7FC4; --s3:#5E8F5A; --ref:#8A959D;
+  --good:#3F7A46; --bad:#A8443C;
+  --c-drake:#4A7FC4; --c-sphere:#BE7514; --c-c4:#25875A; --c-ref:#8A959D;
+  --shadow:0 1px 2px rgba(16,26,34,.06),0 8px 24px -14px rgba(16,26,34,.28);
+  --f-display:Archivo,"Helvetica Neue",Arial,sans-serif;
+  --f-body:"Source Serif 4",Georgia,"Times New Roman",serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
+  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
+  --s1:#E39A2E; --s2:#7BA7E0; --s3:#8AC286; --ref:#79858E; --good:#6FB076; --bad:#DE8078;
+  --c-drake:#6496DD; --c-sphere:#C47D1C; --c-c4:#3AA56E; --c-ref:#79858E;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
+  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
+  --s1:#E39A2E; --s2:#7BA7E0; --s3:#8AC286; --ref:#79858E; --good:#6FB076; --bad:#DE8078;
+  --c-drake:#6496DD; --c-sphere:#C47D1C; --c-c4:#3AA56E; --c-ref:#79858E;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font:400 17px/1.62 var(--f-body);
+  -webkit-font-smoothing:antialiased;padding-inline:20px;padding-block:0 96px;margin:0}
+.wrap{max-width:1020px;margin:0 auto}
+.col{max-width:70ch}
+h1,h2,h3,.tag,th{font-family:var(--f-display)}
+.mono,code,td.num,.note,pre{font-family:var(--f-mono)}
+header{padding:64px 0 30px;border-bottom:1px solid var(--rule)}
+.eyebrow{font:500 12px/1.4 var(--f-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--ink3)}
+h1{font-size:clamp(28px,4.4vw,44px);line-height:1.08;font-weight:700;letter-spacing:-.022em;
+  margin:16px 0 0;text-wrap:balance;max-width:26ch}
+.lede{font-size:19px;line-height:1.58;color:var(--ink2);margin:18px 0 0;max-width:66ch}
+.byline{margin-top:22px;font:400 13px/1.55 var(--f-mono);color:var(--ink3);max-width:96ch}
+section{padding:46px 0;border-bottom:1px solid var(--rule2)}
+section:last-of-type{border-bottom:0}
+h2{font-size:26px;font-weight:700;letter-spacing:-.018em;margin:0 0 6px;text-wrap:balance}
+h3{font-size:18px;font-weight:600;letter-spacing:-.008em;margin:34px 0 8px}
+h2 + .sub{color:var(--ink3);font:400 14px/1.5 var(--f-mono);margin:0 0 24px}
+p{margin:0 0 17px}
+strong{font-weight:600}
+ul,ol{margin:0 0 17px;padding-left:20px}
+li{margin:0 0 8px}
+figure{margin:28px 0}
+figure video,figure img{display:block;width:100%;max-width:100%;height:auto;border-radius:10px;background:var(--sunk);box-shadow:var(--shadow)}
+figcaption{margin-top:11px;font:400 14px/1.55 var(--f-mono);color:var(--ink3);max-width:86ch}
+.col > .tw,.col > figure,.col > .duo{width:min(1020px,calc(100vw - 40px));max-width:none}
+.col > figure.narrow{width:min(780px,calc(100vw - 40px))}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:28px 0}
+.duo > *{min-width:0}
+@media (max-width:760px){.duo{grid-template-columns:1fr}}
+.duo figure{margin:0}
+.tw{overflow-x:auto;margin:24px 0;border:1px solid var(--rule);border-radius:10px;background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th{font:600 12px/1.3 var(--f-display);letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);
+  text-align:left;padding:13px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+td{padding:10px 14px;border-bottom:1px solid var(--rule2);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;font-size:13.5px;white-space:nowrap}
+td.cell{text-align:center;font-family:var(--f-mono);font-size:13px;font-weight:500;white-space:nowrap}
+td.c4{background:color-mix(in oklab,var(--good) 28%,var(--card));color:var(--ink)}
+td.c3{background:color-mix(in oklab,var(--good) 14%,var(--card))}
+td.c2{background:color-mix(in oklab,var(--s1) 16%,var(--card))}
+td.c0{background:color-mix(in oklab,var(--bad) 20%,var(--card));color:var(--ink2)}
+tr.grp td{background:var(--sunk);font:600 12px/1.3 var(--f-display);letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)}
+.key{display:inline-block;width:18px;height:0;border-top:2.5px solid;vertical-align:middle;margin-right:7px}
+.key.dash{border-top-style:dashed}
+.keep{border:1px solid var(--rule);border-left:3px solid var(--s2);border-radius:10px;
+  padding:20px 24px;margin:28px 0;background:var(--card)}
+.keep .tag{display:block;font:700 12px/1 var(--f-display);letter-spacing:.16em;text-transform:uppercase;
+  color:var(--s2);margin-bottom:11px}
+.keep p:last-child,.keep ul:last-child{margin-bottom:0}
+pre{background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:16px 18px;
+  overflow-x:auto;font-size:13px;line-height:1.6;margin:22px 0}
+code{font-size:.9em;background:var(--sunk);padding:1px 4px;border-radius:4px;margin:0 -1px}
+footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 var(--f-mono)}
+footer a,.col a{color:var(--s2)}
+a:focus-visible{outline:2px solid var(--s2);outline-offset:2px;border-radius:2px}
+/* charts */
+.chart{position:relative;background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:14px 12px 8px}
+.chart h4{font:600 14px/1.35 var(--f-display);margin:2px 6px 2px;color:var(--ink)}
+.chart .unit{font:400 12.5px/1.4 var(--f-mono);color:var(--ink3);margin:0 6px 6px}
+.chart svg{display:block;width:100%;height:auto;overflow:visible;touch-action:pan-y}
+.chart .legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin:6px 6px 4px;font:400 12.5px/1.4 var(--f-mono);color:var(--ink2)}
+.chart .gl{stroke:var(--rule2);stroke-width:1}
+.chart .ax{stroke:var(--rule);stroke-width:1}
+.chart .tk{fill:var(--ink3);font:400 12px var(--f-mono)}
+.chart .lb{fill:var(--ink2);font:500 12px var(--f-mono)}
+.chart .at{fill:var(--ink3);font:400 12px var(--f-mono)}
+.chart .ln{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.chart .mk{stroke:var(--card);stroke-width:2}
+.chart .xh{stroke:var(--ink3);stroke-width:1;opacity:0}
+.chart .tip{position:absolute;pointer-events:none;background:var(--card);border:1px solid var(--rule);border-radius:8px;
+  padding:8px 10px;font:400 12px/1.5 var(--f-mono);color:var(--ink);box-shadow:var(--shadow);opacity:0;
+  transition:opacity .08s;white-space:nowrap;z-index:2}
+.chart .tip b{font-weight:500}
+.chart .tip i{display:inline-block;width:10px;height:3px;margin-right:6px;vertical-align:middle;font-style:normal}
+@media (prefers-reduced-motion: reduce){.chart .tip{transition:none}}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">MorphoHand &#183; real_v1 / SR2 hand, D8 gantry &#183; controller of arXiv 2609.25619 &#183; 1&#8211;2 October 2026 &#183; built {{BUILT}}</div>
+  <h1>Relative contact-velocity control of the screwdriver pick, braked swing and peg-hole insertion on the SR2 hand in MuJoCo and Drake</h1>
+  <p class="lede">On the nominal trial the chain completes in the three contact models that carry pinch friction torque.
+  D8 picks the screwdriver off two posts with a thumb&#8211;index pinch, lifts it, brakes its gravity swing to hanging,
+  squeezes it to {{F_HOLD}}&#8202;N and pushes it {{DEPTH_RANGE}}&#8202;mm into a 1&#8202;mm-clearance peg hole. A closed-loop brake that sets
+  the pinch force every 10&#8202;ms ends the swing at {{PHI_DHY}}&#176; in Drake hydroelastic, {{PHI_S1}}&#176; with MuJoCo 1&#8202;mm sphere
+  fingertips and {{PHI_P4S}}&#176; with MuJoCo condim&#160;4. The paper&#8217;s open-loop force reduction stops at {{PHI_OPEN}}&#176;. Point
+  contact fails in both simulators: with no pinch torque the tool swings free as soon as it is lifted. Across ten
+  perturbed seeds the pick fails in {{PICK_FAIL}} of 10, so the brake&#8217;s reliability is not yet measured. Per simulated
+  second, MuJoCo condim&#160;4 costs {{MS_P4S}}&#8202;ms of one core, 1&#8202;mm sphere fingertips {{MS_S1}}&#8202;ms and Drake hydroelastic
+  {{MS_DHY}}&#8202;ms.</p>
+  <div class="byline">D8 gantry from <code>sv1_w0099_b100_plan.json</code> on a four-axis palm stage (x, y, z, yaw; the arm)
+  &#183; fingers: kp 0.5&#8202;N&#183;m/rad, kv 0.02, effort 0.35&#8202;N&#183;m, no joint damping or friction loss &#183; tool 24.5&#8202;g, r 12.5&#8202;mm,
+  100&#8202;mm, pinched 15&#8202;mm from its centre of mass &#183; &#956;&#8202;1.0 pad&#8211;tool, 0.3 tool&#8211;environment &#183; Drake {{DRAKE_V}} SAP,
+  MuJoCo {{MUJOCO_V}} impratio 100, 1&#8202;ms step &#183; <code>scripts/hom_control.py</code>, <code>scripts/hom_chain.py</code>,
+  <code>scripts/hom_chain_study.py</code> &#183; contact models from the two-pad rig (<code>{{RIG_PATH}}</code>, <a href="{{RIG_URL}}">artifact</a>)
+  and the hand brake (<code>{{BRAKE_PATH}}</code>, <a href="{{BRAKE_URL}}">artifact</a>)</div>
+</header>
+
+<section><div class="col">
+<h2>Controller and chain</h2>
+<p class="sub">the paper&#8217;s generalized contact frames and least squares, a pad force through the servos, a closed-loop brake</p>
+<p>Each fingertip gets a generalized contact frame on the tool: origin at the witness points, x along the tool&#8217;s
+signed-distance gradient, y the finger&#8217;s flexion axis projected on the tangent plane. The relative contact twist
+(spin, two roll, separation, two slide components; paper Eq.&#8202;1) is linear in the finger&#8217;s three joint rates. The
+joint-rate reference is the bounded least squares of Eq.&#8202;2, with damping and healthy-pose terms, integrated into the
+servo targets at 100&#8202;Hz. For a sphere against a cylinder the frames are exact in closed form and stay smooth through
+contact, so the paper&#8217;s geodesic filter on the hydroelastic centre of pressure is left out. The controller runs on a
+kinematic MuJoCo copy of the scene, so the same code drives the MuJoCo and the Drake plant.</p>
+<p>The chain has seven steps.</p>
+<ul>
+<li><b>Pick:</b> the palm descends with thumb and index 8&#8202;mm open. They close along their contact normals
+(v<sub>sep</sub>&#8202;=&#8202;&#8722;15&#8202;mm/s, slide held at zero) and switch to force at contact. Pad force F enters as
+q&#8202;=&#8202;q<sub>touch</sub>&#8202;+&#8202;J<sup>T</sup>(&#8722;F&#8202;n)/k<sub>p</sub>&#8202;+&#8202;&#964;<sub>g</sub>/k<sub>p</sub>, with
+&#964;<sub>g</sub> the fingers&#8217; own weight.</li>
+<li><b>Lift:</b> the palm rises 90&#8202;mm at F&#8202;=&#8202;4&#8202;N.</li>
+<li><b>Brake:</b> the swing about the pinch axis runs open loop (4&#8202;&#8594;&#8202;0.5&#8202;N over 3&#8202;s) or closed loop. The
+closed-loop brake tracks a 1.8&#8202;s minimum-jerk profile to 90&#176;. It inverts I&#966;&#776;&#8202;=&#8202;mgd&#8202;cos&#966;&#8202;&#8722;&#8202;&#964;<sub>f</sub>(N)
+through the rig&#8217;s brake law, with nominal mass and &#956;. Its force floor starts at twice the slip limit W/2&#956;, falls while
+the tool stalls off vertical, and rises 50&#8202;% when the tool slides along its axis. It accepts the swing within 2.5&#176;.</li>
+<li><b>Hold firm:</b> F rises to {{F_HOLD}}&#8202;N.</li>
+<li><b>Transport and aim:</b> the palm carries the tool&#8217;s lower end, aimed from its measured pose, 8&#8202;mm over the hole
+and corrects once.</li>
+<li><b>Insert:</b> the palm descends 30&#8202;mm at 15&#8202;mm/s.</li>
+</ul>
+<p>The pinch line is the thumb&#8211;index mount line turned 45&#176; about the palm normal, 50&#8202;mm below the mounts. There both
+fingers keep 0.55&#8202;rad of joint range from 4&#8202;mm squeeze to 12&#8202;mm open. The 2026-10-01 brake study&#8217;s line through the mount
+midpoint at 45&#8202;mm puts the index on its mcp and pip limits at contact, and the pinch cannot open there.</p>
+</div></section>
+
+<section><div class="col">
+<h2>Nominal chain in six contact models</h2>
+{{NOMINAL_TABLE}}
+<figure>
+<video src="{{FILM}}" poster="{{POSTER}}" controls muted loop playsinline preload="metadata"></video>
+<figcaption>Nominal trial, real time, camera along the pinch axis; the hole is at left. Top row: Drake hydroelastic
+(0.01&#8202;s relaxation), MuJoCo 1&#8202;mm sphere fingertips, MuJoCo condim&#160;4 with &#956;<sub>t</sub> rescheduled, all with the
+closed-loop brake. Bottom row: Drake point contact and MuJoCo point contact with the closed-loop brake, MuJoCo condim&#160;4 with
+the open-loop brake. Drake runs are replayed through the MuJoCo renderer. The tool&#8217;s lower end is red. <code>{{FILM_PATH}}</code></figcaption>
+</figure>
+</div></section>
+
+<section><div class="col">
+<h2>Ten perturbed trials</h2>
+<p class="sub">tool &#177;3&#8202;mm and &#177;5&#176; on the posts, &#956; 0.7&#8211;1.3, mass &#177;20&#8202;%, perception noise 0.5&#8202;mm and 1&#176;</p>
+{{BATCH_TABLE}}
+<p>The pick is the first step that breaks. In {{TIMEOUT_N}} seeds one finger stalls short of contact within the 2.5&#8202;s
+close window. In {{DROP_N}} more the pinch closes late and the tool falls out during the lift. The same seeds fail in
+both contact models and under both brakes, before the brake runs. {{BATCH_PROSE}}</p>
+</div></section>
+
+<section><div class="col">
+<h2>Experiment 1: contact-free tracking</h2>
+<p class="sub">the index steps each relative-velocity component at 40&#8202;&#176;/s or 20&#8202;mm/s while the other five are held at zero</p>
+{{EXP1_TABLE}}
+<p>With all six components weighted equally, as in the paper&#8217;s protocol, a three-joint finger cannot follow a pure
+step. It translates its tip only by turning it, so the least squares trades each commanded component against the five held
+at zero. The gain is the median ratio of achieved to commanded on the stepped component. {{EXP1_PROSE}} The paper reports RMSE for five hands in a figure without stating the values in its text.</p>
+<figure class="duo">
+<video src="{{EXP1_FILM_CAL}}" controls muted loop playsinline preload="metadata"></video>
+<video src="{{EXP1_FILM_STIFF}}" controls muted loop playsinline preload="metadata"></video>
+<figcaption>Generalized contact frames drawn at both witness points (x red, y green, z blue). Left: calibrated servo.
+Right: template servo. <code>{{EXP1_PATHS}}</code></figcaption>
+</figure>
+</div></section>
+
+<section><div class="col">
+<h2>Sphere-packed fingertips</h2>
+<figure>
+<img src="{{CLOSEUP}}" alt="thumb fingertip pad packed with spheres at 2, 1 and 0.5 mm spacing, pressed against the tool">
+<figcaption>Thumb pad pressed 0.4&#8202;mm into the tool (tool drawn transparent; contact points drawn). The 10.55&#8202;mm tip
+sphere is replaced by 0.75&#8202;mm spheres on a 45&#176; cap facing the tool, with per-sphere stiffness set from Drake&#8217;s
+E&#8202;=&#8202;10&#8202;MPa. <code>{{CLOSEUP_PATH}}</code></figcaption>
+</figure>
+</div></section>
+
+<section><div class="col">
+<h2>Compute cost</h2>
+{{PERF_TABLE}}
+<p>The cost is the wall time of the nominal chain with the closed-loop brake and no film, on one core of the workstation. It
+covers 10&#8211;13&#8202;s of simulation at a 1&#8202;ms step plus the 100&#8202;Hz controller, IK setup included. The 0.5&#8202;mm sphere
+pad (819 spheres) is not timed: its per-sphere spring cannot reach a 0.02&#8202;s relaxation inside MuJoCo&#8217;s soft-contact
+range. The rig page reports its torque accuracy at a 0.02&#8202;s relaxation on the two-pad rig.</p>
+</div></section>
+
+<section><div class="col">
+<h2>What this does not settle</h2>
+<ol>
+<li><strong>The pick under perturbation.</strong> Eight of ten perturbed picks fail before the brake. The next step is a
+per-seed trace of the close phase in <code>hom_chain.run_chain</code>: tip-to-surface distance, joint margins and tool
+displacement on the posts. Candidate fixes are position feedback on the slide references (the closing tilts the pinch
+line 1.3&#176;) and a V-cradle instead of flat posts. Re-run seeds 1&#8211;10. The brake comparison counts only once the pick
+holds on at least 9 of 10 seeds.</li>
+<li><strong>The closed-loop brake&#8217;s drop on seed 9.</strong> With a 9&#8202;% heavier tool and &#956;&#8202;1.17 the closed-loop brake lost the
+tool mid-swing in both MuJoCo models, where the open-loop schedule completed the chain. The brake inverts the law with the
+nominal mass, and its force floor of 2&#8202;W/2&#956; is set from it. That trace (<code>hom_chain.py run --spec mj:point4s --seed 9</code>)
+is the first to read: floor, commanded force and axial slip against time.</li>
+<li><strong>Brake reliability.</strong> With picks fixed, run 20 seeds per brake in condim&#160;4 and the sphere model, and 10 in
+Drake hydroelastic (about 5&#8202;min). Report the final-angle spread and drops. The open-loop schedule should be tuned on the
+nominal trial first, since the paper&#8217;s operator ended the force reduction by eye.</li>
+<li><strong>Out-of-plane tilt.</strong> In MuJoCo the hanging tool leans 1.5&#8211;2.3&#176; out of the swing plane, following the
+pinch line&#8217;s tilt; in Drake about 1&#176;. A hold-phase correction moving the two tips about 0.8&#8202;mm vertically in opposite
+directions is written up in the session notes but not run.</li>
+<li><strong>The three-pad hold.</strong> &#8220;Hold firm again&#8221; is a two-pad squeeze here. D8&#8217;s deploy-plan grasp, where the
+middle releases and re-closes on the hanging shaft (the 2026-09-16 swing), is the follow-up chain.</li>
+<li><strong>The bench.</strong> The closed-loop brake reads the swing angle at 100&#8202;Hz from the tool pose. The AprilTag
+tracker&#8217;s rate and latency, and the pad modulus behind E&#8202;=&#8202;10&#8202;MPa, are unmeasured.</li>
+</ol>
+</div></section>
+
+<footer>
+<p>Reproduce (CPU, about 5&#8202;min, one core):</p>
+<pre>MUJOCO_GL=egl OMP_NUM_THREADS=1 logs/20261001-hom_contact/venv/bin/python scripts/hom_chain_study.py
+MUJOCO_GL=egl OMP_NUM_THREADS=1 logs/20261001-hom_contact/venv/bin/python scripts/hom_chain_study.py perf
+python3 scripts/hom_chain_page.py</pre>
+<p>Data: <code>docs/experiments/20261002-hom_chain/chain.jsonl</code> ({{N_ROWS}} rows; nominal runs carry 50&#8202;Hz
+traces), <code>exp1.jsonl</code>, <code>perf.jsonl</code> and <code>media/</code>. Page:
+<code>docs/experiments/20261002-hom_chain/20261002-hom_screwdriver_chain.html</code>, built by
+<code>scripts/hom_chain_page.py</code>.</p>
+</footer>
+</div>
+
+
+<script>
+(function(){
+  function fmt(v,d){return (v===null||v===undefined||isNaN(v))?'–':v.toFixed(d)}
+  document.querySelectorAll('.chart').forEach(function(ch){
+    var svg=ch.querySelector('svg'), data=JSON.parse(ch.querySelector('script[type="application/json"]').textContent);
+    var tip=ch.querySelector('.tip'), xh=svg.querySelector('.xh');
+    var P=data.plot;  // {x0,x1,y0,y1, xmin,xmax, log, rev}
+    function toData(px){var f=(px-P.x0)/(P.x1-P.x0); if(P.rev) f=1-f;
+      return P.log? Math.exp(Math.log(P.xmin)+f*(Math.log(P.xmax)-Math.log(P.xmin))) : P.xmin+f*(P.xmax-P.xmin)}
+    function toPx(x){var f=P.log?(Math.log(x)-Math.log(P.xmin))/(Math.log(P.xmax)-Math.log(P.xmin)):(x-P.xmin)/(P.xmax-P.xmin);
+      if(P.rev) f=1-f; return P.x0+f*(P.x1-P.x0)}
+    function move(ev){
+      var r=svg.getBoundingClientRect(), vb=svg.viewBox.baseVal, sx=vb.width/r.width;
+      var px=(ev.clientX-r.left)*sx; if(px<P.x0||px>P.x1){leave();return}
+      var x=toData(px), rows=[], xs=null;
+      data.series.forEach(function(s){
+        var best=null,bd=1e9; s.pts.forEach(function(p){var d=Math.abs((P.log?Math.log(p[0])-Math.log(x):p[0]-x)); if(d<bd){bd=d;best=p}});
+        if(best){rows.push('<i style="background:'+s.color+'"></i>'+s.name+' <b>'+fmt(best[1],data.yd)+'</b>'); if(xs===null) xs=best[0]}
+      });
+      var xpx=toPx(xs===null?x:xs); xh.setAttribute('x1',xpx); xh.setAttribute('x2',xpx); xh.style.opacity=.6;
+      tip.innerHTML='<div>'+data.xname+' <b>'+fmt(xs===null?x:xs,data.xd)+'</b></div>'+rows.join('<br>');
+      var cr=ch.getBoundingClientRect(), left=ev.clientX-cr.left+14;
+      if(left+tip.offsetWidth>cr.width-6) left=ev.clientX-cr.left-tip.offsetWidth-14;
+      tip.style.left=Math.max(6,left)+'px'; tip.style.top=(ev.clientY-cr.top+12)+'px'; tip.style.opacity=1;
+    }
+    function leave(){tip.style.opacity=0; xh.style.opacity=0}
+    svg.addEventListener('pointermove',move); svg.addEventListener('pointerleave',leave);
+  });
+})();
+</script>
