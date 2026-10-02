@@ -231,5 +231,180 @@ def bench():
                   round(r["perf"]["ctrl"], 2), flush=True)
 
 
-if __name__ == "__main__" and len(sys.argv) > 1 and sys.argv[1] in ("films", "bench"):
-    {"films": films, "bench": bench}[sys.argv[1]]()
+CHECK = ["mj:point3", "mj:point4s", "mj:spheres:s2:rs0.75:tr0.02", "mj:spheres:s1:rs0.75:tr0.02",
+         "mj:spheres:s0.5:rs0.75:tr0.03", "drake:point", "drake:hydro:rt0.01:hr2", "drake:hydro:rt0.01"]
+
+
+class _Stop(Exception):
+    pass
+
+
+def _hold_times():
+    """Middle of the hold phase (tool pinched at 3 N) in each model's filmed nominal run."""
+    out = {}
+    for line in open(OUT / "films.jsonl"):
+        r = json.loads(line)
+        if r.get("brake") != "closed" or r["trial"]["seed"] != 0:
+            continue
+        ix = {c: i for i, c in enumerate(r["trace_cols"])}
+        ts = [row[ix["t"]] for row in r["trace"] if row[ix["phase"]] == "hold"]
+        if ts:
+            out[r["spec"]] = 0.5 * (ts[0] + ts[-1])
+    return out
+
+
+def bench_check():
+    """Independent check of the cost table. The nominal chain runs to the middle of its hold phase; the controller
+    then stops and the bare physics is timed from that state, servo targets frozen, three windows of 1 s simulated.
+    MuJoCo: mj_step(m, d, nstep=1000) inside C on a copy of the state, and the plant's own Python step loop (which
+    adds the condim-4 rescheduling); Drake: Simulator.AdvanceTo. Then a one-contact scene in each simulator: one
+    fingertip on a vertical slide resting on the fixed tool cylinder, nothing else."""
+    import time
+    import mujoco
+    p = OUT / "bench_check.jsonl"
+    hold = _hold_times()
+    have = done(p, lambda r: r.get("spec") or r.get("model"))
+    for spec in CHECK:
+        if spec in have:
+            continue
+        sp = B.parse_spec(spec)
+        res = {"spec": spec, "t_snap": hold.get(spec) or hold["drake:hydro:rt0.01"], "when": time.strftime("%Y-%m-%d %H:%M")}
+        cls = K.MjChainPlant if sp["sim"] == "mj" else K.DrakeChainPlant
+        orig = cls.step
+
+        def step(self, T, _orig=orig, _res=res):
+            _orig(self, T)
+            if self.t < _res["t_snap"]:
+                return
+            if self.sim == "mujoco":
+                m, d = self.m, self.d
+                c_us, ncon, nefc, nit = [], [], [], []
+                for _ in range(3):
+                    d2 = mujoco.MjData(m)
+                    mujoco.mj_copyData(d2, m, d)
+                    t0 = time.perf_counter()
+                    mujoco.mj_step(m, d2, nstep=1000)
+                    c_us.append((time.perf_counter() - t0) * 1e3)
+                d2 = mujoco.MjData(m)
+                mujoco.mj_copyData(d2, m, d)
+                for _ in range(300):
+                    mujoco.mj_step(m, d2)
+                    ncon.append(d2.ncon)
+                    nefc.append(d2.nefc)
+                    nit.append(int(d2.solver_niter[0]))
+                py = []
+                for _ in range(3):
+                    t0 = time.perf_counter()
+                    _orig(self, 1.0)
+                    py.append((time.perf_counter() - t0) * 1e3)
+                _res.update(c_us_per_step=c_us, plant_us_per_step=py, ncon=float(np.mean(ncon)), nefc=float(np.mean(nefc)),
+                            solver_iter=float(np.mean(nit)), nv=int(m.nv), ngeom=int(m.ngeom),
+                            held=bool(self.contacts()["thumb"]["n"] > 0 and self.contacts()["index"]["n"] > 0))
+            else:
+                py = []
+                for _ in range(3):
+                    t0 = time.perf_counter()
+                    self.simulator.AdvanceTo(self.t + 1.0)
+                    py.append((time.perf_counter() - t0) * 1e3)
+                cc = self.contacts()
+                _res.update(plant_us_per_step=py, contacts=cc["thumb"]["n"] + cc["index"]["n"],
+                            held=bool(cc["thumb"]["n"] > 0 and cc["index"]["n"] > 0),
+                            nv=int(self.plant.num_velocities()))
+            raise _Stop
+
+        cls.step = step
+        try:
+            K.run_chain(spec, 0, "closed")
+        except _Stop:
+            pass
+        finally:
+            cls.step = orig
+        H.append_row(p, res)
+        print("check", spec, {k: v for k, v in res.items() if k not in ("spec", "when")}, flush=True)
+    for model in ("mj:point3", "mj:point4", "mj:spheres1", "drake:point", "drake:hydro"):
+        if model in have:
+            continue
+        r = one_contact(model)
+        r["when"] = time.strftime("%Y-%m-%d %H:%M")
+        H.append_row(p, r)
+        print("one contact", r, flush=True)
+
+
+def one_contact(model, T=1.0):
+    """One fingertip sphere (r 10.55 mm, 20 g) on a vertical slide, resting by its weight on the fixed tool
+    cylinder (r 12.5 mm, axis horizontal); same solver settings as the chain. Wall time per 1 ms step."""
+    import time
+    r_t, r_c = B.R_TIP, H.R_TOOL
+    z0 = r_c + r_t - 1e-4
+    if model.startswith("mj"):
+        import mujoco
+        cond = {"mj:point3": 'condim="3" friction="1 0 0"', "mj:point4": 'condim="4" friction="1 0.001 0"',
+                "mj:spheres1": 'condim="3" friction="1 0 0" contype="0" conaffinity="0"'}[model]
+        pads = ""
+        if model == "mj:spheres1":
+            s, rs, cap = 0.001, 0.00075, math.radians(45.0)
+            area = 2 * math.pi * r_t ** 2 * (1 - math.cos(cap))
+            n = int(round(area / s ** 2))
+            K_s = 1e7 / r_t * area / n * ((r_t - rs) / r_t) ** 2
+            tc = 0.01
+            diag = 1.0 / 0.02                         # the tip's inverse mass; the cylinder is fixed
+            d0 = 1.0 - 1.0 / (tc ** 2 * K_s * diag)
+            for i, dv in enumerate(H.fib_cap(n, cap)):
+                q = (r_t - rs) * np.array([dv[0], dv[1], -dv[2]])
+                pads += (f'<geom type="sphere" size="{rs}" pos="{q[0]:.7f} {q[1]:.7f} {q[2]:.7f}" condim="3" friction="1 0 0" '
+                         f'priority="1" solref="{tc} 1" solimp="{d0:.5f} {d0:.5f} 0.001 0.5 2" mass="0"/>')
+        xml = f"""<mujoco><option timestep="0.001" cone="elliptic" impratio="100" solver="Newton" iterations="200" tolerance="1e-10"/>
+<worldbody><geom type="cylinder" size="{r_c} 0.05" euler="90 0 0" friction="0.3 0 0" solref="0.006 1" solimp="0.97 0.995 0.0005"/>
+<body pos="0 0 {z0}"><joint type="slide" axis="0 0 1"/>
+<geom type="sphere" size="{r_t}" mass="0.02" priority="1" solref="0.006 1" solimp="0.97 0.995 0.0005" {cond}/>{pads}</body>
+</worldbody></mujoco>"""
+        m = mujoco.MjModel.from_xml_string(xml)
+        d = mujoco.MjData(m)
+        mujoco.mj_step(m, d, nstep=200)
+        ts = []
+        for _ in range(3):
+            t0 = time.perf_counter()
+            mujoco.mj_step(m, d, nstep=int(T * 1000))
+            ts.append((time.perf_counter() - t0) * 1e3 / T)
+        return {"model": model, "c_us_per_step": ts, "ncon": int(d.ncon), "nefc": int(d.nefc)}
+    from pydrake.all import (AddCompliantHydroelasticProperties, AddContactMaterial, AddMultibodyPlant,
+                             AddRigidHydroelasticProperties, CoulombFriction, Cylinder, DiagramBuilder,
+                             MultibodyPlantConfig, PrismaticJoint, ProximityProperties, RigidTransform,
+                             RotationMatrix, Simulator, SpatialInertia, Sphere)
+    hydro = model == "drake:hydro"
+    b = DiagramBuilder()
+    plant, sg = AddMultibodyPlant(MultibodyPlantConfig(time_step=1e-3, discrete_contact_approximation="sap",
+                                                       contact_model="hydroelastic_with_fallback" if hydro else "point"), b)
+    tip = plant.AddRigidBody("tip", SpatialInertia.SolidSphereWithMass(0.02, r_t))
+    plant.AddJoint(PrismaticJoint("z", plant.world_frame(), tip.body_frame(), [0, 0, 1]))
+    pc_ = ProximityProperties()
+    if hydro:
+        AddCompliantHydroelasticProperties(1e-3, 1e7, pc_)
+    AddContactMaterial(dissipation=10.0, point_stiffness=1e4, friction=CoulombFriction(1.0, 1.0), properties=pc_)
+    pc_.AddProperty("material", "relaxation_time", 0.01)
+    plant.RegisterCollisionGeometry(tip, RigidTransform(), Sphere(r_t), "tip", pc_)
+    pr = ProximityProperties()
+    if hydro:
+        AddRigidHydroelasticProperties(0.0005, pr)
+    AddContactMaterial(dissipation=10.0, point_stiffness=1e4, friction=CoulombFriction(1.0, 1.0), properties=pr)
+    pr.AddProperty("material", "relaxation_time", 0.01)
+    plant.RegisterCollisionGeometry(plant.world_body(), RigidTransform(RotationMatrix.MakeXRotation(math.pi / 2), [0, 0, 0]),
+                                    Cylinder(r_c, 0.1), "tool", pr)
+    plant.Finalize()
+    sim = Simulator(b.Build())
+    ctx = sim.get_mutable_context()
+    plant.GetJointByName("z").set_translation(plant.GetMyMutableContextFromRoot(ctx), z0)
+    sim.Initialize()
+    sim.AdvanceTo(0.2)
+    ts = []
+    for _ in range(3):
+        t0 = time.perf_counter()
+        sim.AdvanceTo(ctx.get_time() + T)
+        ts.append((time.perf_counter() - t0) * 1e3 / T)
+    cr = plant.get_contact_results_output_port().Eval(plant.GetMyContextFromRoot(ctx))
+    nf = sum(cr.hydroelastic_contact_info(i).contact_surface().num_faces() for i in range(cr.num_hydroelastic_contacts()))
+    return {"model": model, "plant_us_per_step": ts, "faces": nf, "point_pairs": cr.num_point_pair_contacts()}
+
+
+if __name__ == "__main__" and len(sys.argv) > 1 and sys.argv[1] in ("films", "bench", "check"):
+    {"films": films, "bench": bench, "check": bench_check}[sys.argv[1]]()

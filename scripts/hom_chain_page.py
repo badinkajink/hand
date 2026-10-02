@@ -1,17 +1,21 @@
 #!/usr/bin/env python3
-"""Build docs/experiments/20261002-hom_chain/20261002-hom_screwdriver_chain.html from the study's jsonl files.
+r"""Build docs/experiments/20261002-hom_chain/20261002-hom_screwdriver_chain.html from the study's jsonl files.
 
     python3 scripts/hom_chain_page.py
 
 Reads films.jsonl (filmed runs: nominal per contact model and the perturbed films), chain.jsonl (perturbed batch),
-bench.jsonl (timing) and exp1.jsonl, all written by scripts/hom_chain_study.py; Figures 1, 2 and 4 come from
-scripts/hom_chain_figures.py; tables reuse scripts/hom_contact_patch_page.py's helpers. Every number in the prose is
-computed here.
+bench.jsonl (timing), bench_check.jsonl (bare-physics timing check) and exp1.jsonl, written by
+scripts/hom_chain_study.py, and paper_tasks.jsonl (Exp 2, Exp 3, wield) from scripts/hom_paper_tasks.py. Figures 1, 2
+and 4 come from scripts/hom_chain_figures.py; tables reuse scripts/hom_contact_patch_page.py's helpers. Math in the
+template, \( \) inline and \[ \] display, is LaTeX rendered to inline SVG by scripts/texsvg.py (cached in
+texsvg_cache.json beside the data, so a rebuild without TeX works while no formula changes). Every number in the prose
+is computed here.
 """
 from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 import time
 
@@ -21,6 +25,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "scripts"))
 import hom_chain_figures as G  # noqa: E402
 import hom_contact_patch_page as R  # noqa: E402
+import texsvg  # noqa: E402
 
 D = os.path.join(ROOT, "docs/experiments/20261002-hom_chain")
 M = os.path.join(D, "media")
@@ -48,6 +53,22 @@ CH = load("chain.jsonl")
 BAT = [r for r in CH if r["trial"]["seed"] != 0]
 BN = load("bench.jsonl")
 E1 = load("exp1.jsonl")
+BC = load("bench_check.jsonl")
+PT = {(r["task"], r["key"]): r for r in load("paper_tasks.jsonl")}
+PK = ["s1", "p4s", "mp3", "dhy"]
+PLBL = {"s1": "MuJoCo 1&#8202;mm sphere pad", "p4s": "MuJoCo condim&#160;4, &#956;<sub>t</sub> rescheduled",
+        "mp3": "MuJoCo point contact, condim&#160;3", "dhy": "Drake hydroelastic, 1&#8202;mm mesh",
+        "s1spin": "MuJoCo 1&#8202;mm sphere pad, spin rows held"}
+TEX_CACHE = os.path.join(D, "texsvg_cache.json")
+TEX_SCALE = 1.1                     # Computer Modern x-height to Source Serif 4 at 17 px
+
+
+def num(x, fmt=".1f"):
+    """A number with a typographic minus sign."""
+    return format(x, fmt).replace("-", "&#8722;")
+
+
+US = '<span style="text-transform:none">&#181;s</span>'      # th is upper-cased; keep the micro sign a micro sign
 
 
 def yn(v):
@@ -88,7 +109,10 @@ def nominal_table():
         'phase ends (90&#176; = hanging). After squeeze = the same angle once the pad force is at the hold value. Inserted = depth of '
         'the lower end below the block top when the palm stops (goal 20&#8202;mm, hole 30&#8202;mm deep). Lower end tilt = tool axis from '
         'vertical, in and out of the swing plane. Axial slip = travel of the tool along its axis through the pinch from the brake '
-        'onward. Chain = pick, swing within 5&#176;, hold within 5&#176;, and inserted 15&#8202;mm or more on two pads.</p>')
+        'onward. Chain = pick, swing within 5&#176;, hold within 5&#176;, and inserted 15&#8202;mm or more on two pads. The Drake rows were '
+        're-run on 2026-10-02 after the hand&#8217;s collision exclusions were restored (Known issues): the hydroelastic swing end moved '
+        'from 92.4&#176; to its value here, the insertion depth from 22.1&#8202;mm by less than 0.1&#8202;mm, and point contact still swings '
+        'free.</p>')
 
 
 def caption(r):
@@ -229,6 +253,204 @@ def stage_table(b):
         'the brake.</p>')
 
 
+# ------------------------------------------------------------------------------------------ paper tasks
+
+def wield_table():
+    head = ["contact model", "turned, 6 cycles", "twist phase per cycle", "while released per cycle", "twist gain", "pad slide",
+            "max tilt", "re-closes"]
+    body = []
+    for k in PK:
+        r = PT[("wield", k)]
+        pc = r["per_cycle"]
+        tw = [c["twist_deg"] for c in pc]
+        rel = [c["release_open_deg"] + c["return_close_deg"] for c in pc]
+        body.append([PLBL[k], f"{r['turned_deg']:.1f}&#176;", f"{np.mean(tw):.1f}&#176; ({min(tw):.1f}&#8211;{max(tw):.1f})",
+                     f"{num(np.mean(rel), '+.1f')}&#176; ({num(min(rel), '+.1f')} to {num(max(rel), '+.1f')})", f"{r['gain_w']:.2f}",
+                     f"{r['slide_rms_mmps']:.2f}&#8202;mm/s", f"{r['tilt_max_deg']:.1f}&#176;", f"{sum(c['closed'] for c in pc)}/{len(pc)}"])
+    return R.table(head, body, cls_num={1, 2, 3, 4, 5, 6, 7}) + (
+        '<p class="note" style="font-size:13.5px;color:var(--ink3)">Twist phase = the tool&#8217;s rotation about its own axis '
+        'while the pads roll it, 20&#176; commanded per cycle; mean and range over the six cycles. While released = rotation '
+        'during release, opening, return and re-close; positive continues the twist. Twist gain = median achieved over '
+        'commanded angular velocity in the twist. Pad slide = RMS slide speed of the faster pad relative to the tool '
+        'in the twist. Max tilt = tool axis from vertical.</p>')
+
+
+def exp3_table():
+    head = ["contact model", "pusher reaches", "pinch-velocity gain", "RMSE while stepped", "angle range", "angle error",
+            "pusher slide", "pusher roll", "tripod holds", "middle in the tripod", "drift in the lift"]
+    body = []
+    for k in PK:
+        r = PT[("exp3", k)]
+        lo, hi = r["phi_range_deg"]
+        if not r["pusher_closed"]:
+            body.append([PLBL[k], yn(False), "&#8211;", "&#8211;", f"{num(lo, '+.0f')} to {num(hi, '+.0f')}&#176;", "&#8211;", "&#8211;", "&#8211;",
+                         yn(False), "&#8211;", "&#8211;"])
+            continue
+        body.append([PLBL[k], yn(True), f"{r['gain_s']:.2f}", f"{r['rmse_s_on_dps']:.1f}&#8202;&#176;/s",
+                     f"{num(lo, '+.1f')} to {num(hi, '+.1f')}&#176;", f"{r['phi_track_rmse_deg']:.2f}&#176;",
+                     f"{r['pusher_slide_rms_mmps']:.2f}&#8202;mm/s", f"{r['pusher_roll_rms_dps']:.0f}&#8202;&#176;/s",
+                     yn(r["tripod_held"]), f"{r['tripod_N']['middle']:.2f}&#8202;N",
+                     f"{num(r['tripod_phi_drift_deg'], '+.2f')}&#176;"])
+    return R.table(head, body, cls_num={2, 3, 4, 5, 6, 7, 9, 10}) + (
+        '<p class="note" style="font-size:13.5px;color:var(--ink3)">Pinch velocity s = the tool&#8217;s angular velocity about '
+        'the pinch axis; gain = median achieved over commanded while stepped (&#177;20&#8202;&#176;/s). Angle error = RMS of the angle '
+        'about the pinch axis against the integrated reference over both cycles. Pusher slide and roll = RMS of the middle&#8217;s '
+        'relative contact velocities while stepped (16). Middle in the tripod = the middle&#8217;s normal force with the pinch at 3&#8202;N: '
+        'the pinch&#8217;s friction torque, 7.9&#215;10<sup>&#8722;3</sup>&#8202;N&#183;m by (11), carries the 2.4&#215;10<sup>&#8722;3</sup>&#8202;N&#183;m of gravity, '
+        'so the third contact stays nearly unloaded. Drift = change of the angle while the palm lifts 30&#8202;mm on the tripod.</p>')
+
+
+EXP2_COMPS = [("v_pinch", "along pinch axis"), ("v_up", "vertical"), ("v_tool", "along tool axis"),
+              ("w_pinch", "about pinch axis"), ("w_up", "about vertical"), ("w_tool", "about tool axis")]
+
+
+def exp2_table():
+    head = ["contact model"] + [h for _, h in EXP2_COMPS] + ["RMSE linear", "RMSE angular", "pad slide", "net turn about pinch axis"]
+    body = []
+    for k in PK + ["s1spin"]:
+        r = PT.get(("exp2", k))
+        if r is None:
+            continue
+        pc = r["per_comp"]
+        body.append([PLBL[k] + (" (tool hanging from the lift)" if k == "mp3" else "")]
+                    + [num(pc[c]['gain'], '.2f') for c, _ in EXP2_COMPS]
+                    + [f"{r['rmse_lin_mmps']:.1f}&#8202;mm/s", f"{r['rmse_ang_dps']:.1f}&#8202;&#176;/s",
+                       f"{max(pc[c]['slide_rms_mmps'] for c, _ in EXP2_COMPS):.2f}&#8202;mm/s",
+                       f"{num(r['pinch_angle_end_deg'], '+.0f')}&#176;"])
+    return R.table(head, body, cls_num=set(range(1, 11))) + (
+        '<p class="note" style="font-size:13.5px;color:var(--ink3)">Gain = median achieved over commanded on the stepped '
+        'component of the tool&#8217;s twist (translations of the pinch midpoint at 20&#8202;mm/s, rotations at 40&#8202;&#176;/s). RMSE over '
+        'the whole sequence, all three linear or all three angular components. Pad slide = the largest RMS slide speed of a pad '
+        'relative to the tool during any step. Net turn = the tool&#8217;s angle about the pinch axis at the end of the 7.8&#8202;s '
+        'sequence, from the start of the steps; every reference integrates to zero. Spin rows held: Eq.&#8202;(17) also holds each '
+        'pad&#8217;s spin about its normal at the tool&#8217;s. With point contact the pinch cannot hold the tool horizontal, so it hangs '
+        'from the lift on and its row is not comparable.</p>')
+
+
+def paper_film(task, key, what):
+    r = PT[(task, key)]
+    path = os.path.join(M, f"20261002-paper_{task}_{key}.mp4")
+    return (f'<figure>{vid(path)}<figcaption>{what} {PLBL[key]}, real time; left the wide shot, right the '
+            f'{"middle" if task == "exp3" else "thumb"} pad with its collision spheres coloured by pressure (0&#8211;0.3&#8202;MPa) and '
+            f'the centre of pressure in black. <code>media/20261002-paper_{task}_{key}.mp4</code></figcaption></figure>')
+
+
+def paper_tile(task, what):
+    path = os.path.join(M, f"20261002-paper_{task}_models.mp4")
+    poster = R.data_uri(os.path.join(M, f"20261002-paper_{task}_models_poster.jpg"), "image/jpeg")
+    v = (f'<video src="{R.data_uri(path, "video/mp4")}" poster="{poster}" controls muted loop playsinline '
+         f'preload="metadata"></video>')
+    return (f'<figure>{v}<figcaption>{what} in four contact models, wide shots, real time. Top: MuJoCo '
+            f'1&#8202;mm sphere pad, MuJoCo condim&#160;4. Bottom: MuJoCo point contact, Drake hydroelastic (replayed through the MuJoCo '
+            f'renderer). <code>media/20261002-paper_{task}_models.mp4</code></figcaption></figure>')
+
+
+def paper_text():
+    w, e3, e2 = PT[("wield", "s1")], PT[("exp3", "s1")], PT[("exp2", "s1")]
+    tw = np.mean([c["twist_deg"] for c in w["per_cycle"]])
+    rel = np.mean([c["release_open_deg"] + c["return_close_deg"] for c in w["per_cycle"]])
+    tr = [e2["per_comp"][c]["gain"] for c in ("v_pinch", "v_up", "v_tool")]
+    lead = (f"All three tasks ran with the 1&#8202;mm sphere pad on the first attempt. The setups below come from the reach scan "
+            f"and the brake law, not from tuning runs. The wield turned the tool {w['turned_deg']:.0f}&#176; in six retract-turn "
+            f"cycles: each twist delivered {tw:.1f}&#176; of the commanded 20&#176;, and each release gave back {abs(rel):.1f}&#176;. "
+            f"The pusher tracked the pinch velocity at gain {e3['gain_s']:.2f}, with the angle within {e3['phi_track_rmse_deg']:.1f}&#176; RMS "
+            f"over &#177;10&#176; cycles, and the tripod held through a 30&#8202;mm lift. The pinch carried the tool&#8217;s translations at "
+            f"gains {min(tr):.2f}&#8211;{max(tr):.2f}. It does not turn the tool about the pinch axis (gain "
+            f"{num(e2['per_comp']['w_pinch']['gain'], '.2f')}), the axis the paper also reports as worst tracked. Drake hydroelastic and "
+            f"condim&#160;4 give the same tracking numbers within a few percent. Point contact fails Exp&#160;3 at the lift.")
+    lede = (f"The paper&#8217;s other simulated tasks also run on the 1&#8202;mm sphere pad under the same controller. Six "
+            f"retract-turn cycles of the wield turn the tool {w['turned_deg']:.0f}&#176; in the peg hole. A middle-finger pusher turns "
+            f"the pinched tool about the pinch axis at gain {e3['gain_s']:.2f}, and a tripod then holds it. A derivation section "
+            f"explains the pinch friction torque, the rescheduled torsional coefficient and the pad force the brake commands.")
+    mp = PT[("wield", "mp3")]
+    spin = max(c["release_open_deg"] + c["return_close_deg"] for k in ("p4s", "mp3", "dhy") for c in PT[("wield", k)]["per_cycle"])
+    mp3_3 = PT[("exp3", "mp3")]
+    cross = [e2["per_comp"][c]["cross_ang_dps"] for c in ("v_pinch", "v_up", "v_tool")]
+    sp = PT.get(("exp2", "s1spin"))
+    models = (f"Turning the tool about its own axis takes only the pads&#8217; tangential forces, so point contact completes the "
+              f"wield as well ({np.mean([c['twist_deg'] for c in mp['per_cycle']]):.1f}&#176; per twist). It fails Exp&#160;3 for the "
+              f"brake&#8217;s reason. With no friction torque the pinch is a free hinge, and the tool swings toward hanging during the "
+              f"lift ({num(mp3_3['phi_range_deg'][0], '.0f')}&#176;) before the middle arrives. In every model except the sphere pad the "
+              f"release sometimes spins the tool on, by up to {spin:.0f}&#176; in one cycle. The tool stands on a single support "
+              f"contact with no torsional friction, so tangential load left in the pads at release turns it freely. The sphere pad "
+              f"unloads without this. In Exp&#160;2 the translation steps also turn the tool, mostly about the pinch axis, at "
+              f"{min(cross):.0f}&#8211;{max(cross):.0f}&#8202;&#176;/s RMS, and over the 7.8&#8202;s sequence they ratchet it "
+              f"{abs(e2['pinch_angle_end_deg']):.0f}&#176; toward hanging. Equation&#8202;(17) leaves each pad&#8217;s spin about its normal "
+              f"free. The friction torque that brakes the swing then drags the tool round with the pads, and gravity biases each "
+              f"excursion downward. At 4&#8202;N the pinch holds the tool wherever it is left.")
+    if sp is not None:
+        spc = sp["per_comp"]
+        models += (f" Holding the spin rows makes the rotation about the pinch axis follow at gain {spc['w_pinch']['gain']:.2f}. It cuts "
+                   f"the cross-coupling to {min(spc[c]['cross_ang_dps'] for c in ('v_pinch', 'v_up', 'v_tool')):.0f}&#8211;"
+                   f"{max(spc[c]['cross_ang_dps'] for c in ('v_pinch', 'v_up', 'v_tool')):.0f}&#8202;&#176;/s and the net turn to "
+                   f"{num(sp['pinch_angle_end_deg'], '+.0f')}&#176;. The vertical translation "
+                   f"pays for it (gain {e2['per_comp']['v_up']['gain']:.2f} to {spc['v_up']['gain']:.2f}): three joints per finger "
+                   f"cannot hold all four rows.")
+    return lead, lede, models
+
+
+# ------------------------------------------------------------------------------------------ timing check
+
+def check_tables(b):
+    mj = {r["spec"]: r for r in BC if "spec" in r}
+    one = {r["model"]: r for r in BC if "model" in r}
+    head = ["contact model", f"bare physics, C ({US}/step)", f"plant step loop ({US}/step)", "contacts at the hold",
+            f"bench, hold stage ({US}/step)", f"bench, whole chain ({US}/step)"]
+    body = []
+    for spec in [s for s in LBL if s in mj]:
+        r = mj[spec]
+        c = f"{np.median(r['c_us_per_step']):.1f}" if "c_us_per_step" in r else "&#8211;"
+        unit = "faces" if "hydro" in spec else ("spheres" if "spheres" in spec else "points")
+        n = r.get("ncon", r.get("contacts"))
+        body.append([LBL[spec][0], c, f"{np.median(r['plant_us_per_step']):.1f}", f"{n:.0f} {unit}",
+                     f"{b[spec]['stage'].get('hold', float('nan')):.1f}" if spec in b else "&#8211;",
+                     f"{b[spec]['phys_med']:.1f}" if spec in b else "&#8211;"])
+    t1 = R.table(head, body, cls_num={1, 2, 3, 4, 5}) + (
+        '<p class="note" style="font-size:13.5px;color:var(--ink3)">&#181;s of one core per 1&#8202;ms step (= ms per simulated '
+        'second). Bare physics: the chain stopped in the middle of its hold, servo targets frozen, the median of three 1&#8202;s '
+        'windows; C = <code>mj_step(m, d, nstep=1000)</code> on a copy of the state; plant step loop = the plant&#8217;s own Python '
+        'loop, which for condim&#160;4 includes rewriting &#956;<sub>t</sub> every step; Drake = <code>Simulator.AdvanceTo</code>. Contacts '
+        'at the hold: all MuJoCo contacts, or Drake&#8217;s pad contact-surface faces or point pairs. Bench = the timing table '
+        'above, with the controller running.</p>')
+    names = {"mj:point3": "MuJoCo, condim&#160;3", "mj:point4": "MuJoCo, condim&#160;4",
+             "mj:spheres1": "MuJoCo, 1&#8202;mm sphere pad on the fingertip", "drake:point": "Drake point contact",
+             "drake:hydro": "Drake hydroelastic, 1&#8202;mm mesh"}
+    body = []
+    for k in names:
+        r = one[k]
+        us = np.median(r.get("c_us_per_step") or r.get("plant_us_per_step"))
+        n = (f"{r['ncon']} contact{'s' if r['ncon'] != 1 else ''}" if "ncon" in r else
+             (f"{r['faces']} faces" if r.get("faces") else f"{r['point_pairs']} point pair"))
+        body.append([names[k], f"{us:.1f}", n])
+    t2 = R.table(["one fingertip on the tool", f"{US} per step", "contacts"], body, cls_num={1}) + (
+        '<p class="note" style="font-size:13.5px;color:var(--ink3)">A fingertip sphere (20&#8202;g) on a vertical slide resting '
+        'by its weight on the fixed tool cylinder, nothing else in the scene; same solver settings as the chain.</p>')
+    sp = lambda s: mj[s]  # noqa: E731
+    c_mp3 = np.median(sp("mj:point3")["c_us_per_step"])
+    loop_p4s = np.median(sp("mj:point4s")["plant_us_per_step"]) - np.median(sp("mj:point4s")["c_us_per_step"])
+    hold_ratio = [np.median(mj[s]["plant_us_per_step"]) / b[s]["stage"]["hold"] for s in mj if s in b and "hold" in b[s]["stage"]]
+    dhy = np.median(sp("drake:hydro:rt0.01")["plant_us_per_step"])
+    dpt = np.median(sp("drake:point")["plant_us_per_step"])
+    per_face = (dhy - dpt) / sp("drake:hydro:rt0.01")["contacts"]
+    s1 = sp("mj:spheres:s1:rs0.75:tr0.02")
+    per_sph = (np.median(s1["c_us_per_step"]) - c_mp3) / (s1["ncon"] - 2)
+    lead = ("The timing table runs the whole chain with the controller in the loop. As a check, each model&#8217;s chain is stopped "
+            "in the middle of its hold, with the tool pinched at 3&#8202;N. The bare physics is then timed from that state with the "
+            "servo targets frozen. A one-contact scene in each simulator gives the cost of contact alone.")
+    prose = (f"At the hold, MuJoCo point contact takes {c_mp3:.1f}&#8202;&#181;s per step in C, and a single fingertip on the tool takes "
+             f"{np.median(one['mj:point3']['c_us_per_step']):.1f}&#8202;&#181;s. Most of the scene&#8217;s cost is therefore the 19-degree-of-freedom "
+             f"multibody and the collision pass over its geometries, not the contact. Each touching sphere of the 1&#8202;mm pad adds "
+             f"about {per_sph:.1f}&#8202;&#181;s. Rewriting &#956;<sub>t</sub> every step in Python adds {loop_p4s:.1f}&#8202;&#181;s to condim&#160;4, about half "
+             f"of that model&#8217;s cost in the bench; done in C it would cost nothing measurable. The hold values are "
+             f"{min(hold_ratio):.2f}&#8211;{max(hold_ratio):.2f} times the bench&#8217;s hold stage, where the controller changes the "
+             f"targets every 10&#8202;ms. The whole-chain averages are higher than the hold because the lift and transport, where the "
+             f"palm accelerates the pinched tool, cost two to three times as much. Drake&#8217;s point contact takes {dpt:.0f}&#8202;&#181;s per "
+             f"step in the full scene and {np.median(one['drake:point']['plant_us_per_step']):.0f}&#8202;&#181;s with one contact. Its "
+             f"hydroelastic contact adds about {per_face:.1f}&#8202;&#181;s per contact-surface face and step, so the "
+             f"{sp('drake:hydro:rt0.01')['contacts']:.0f} faces of the hold make {dhy / 1e3:.1f}&#8202;ms per step.")
+    return lead, t1, prose, t2
+
+
 # ------------------------------------------------------------------------------------------ handoff
 
 HANDOFF = """
@@ -245,8 +467,12 @@ per-stage timing) and <code>ChainRenderer</code> (wide shot plus thumb close-up)
 &#956;<sub>t</sub> rescheduled); <code>mj:spheres:s&lt;mm&gt;:rs0.75:tr&lt;s&gt;</code> (pad spacing, sphere radius, relaxation time;
 0.5&#8202;mm needs tr&#8202;&#8805;&#8202;0.03); <code>drake:point</code>; <code>drake:hydro:rt0.01[:hr&lt;mm&gt;]</code> (relaxation time,
 mesh resolution).</li>
-<li><code>scripts/hom_chain_study.py</code> (default run, <code>films</code>, <code>bench</code>), <code>scripts/hom_chain_figures.py</code>
-(Figures&#160;1, 2 and 4), and <code>scripts/hom_chain_page.py</code> with its template. The contact models were characterised in
+<li><code>scripts/hom_paper_tasks.py</code>: the paper&#8217;s Exp&#160;2, Exp&#160;3 and wield on the chain&#8217;s scene (<code>Rollout</code> =
+plant, mirror and joint references one 100&#8202;Hz tick at a time; <code>hom(f, vref, w, twist=...)</code> is one Eq.&#8202;(17) step with
+the tool&#8217;s reference twist; <code>all</code> runs every task and model with films, <code>tiles</code> builds the four-model grids).</li>
+<li><code>scripts/hom_chain_study.py</code> (default run, <code>films</code>, <code>bench</code>, <code>check</code>), <code>scripts/hom_chain_figures.py</code>
+(Figures&#160;1, 2 and 4), <code>scripts/texsvg.py</code> (LaTeX to inline SVG; formulas cached in <code>texsvg_cache.json</code>), and
+<code>scripts/hom_chain_page.py</code> with its template. The contact models were characterised in
 <code>hom_contact_rig.py</code> (two-pad rig) and <code>hom_hand_brake.py</code> with <code>hom_hand_drake.py</code> (hand load step).</li>
 <li>Environment: <code>logs/20261001-hom_contact/venv</code> (drake 1.57.0, mujoco 3.6.0; gitignored). A MuJoCo chain run takes
 1&#8211;4&#8202;s and a Drake hydroelastic run about 25&#8202;s.</li>
@@ -262,6 +488,10 @@ ran 0.12&#8211;0.15&#8202;N under command at low force.</li>
 friction viscous (rig page). Drake uses a 0.01&#8202;s relaxation time; its default 0.1&#8202;s weakens the brake as the swing speeds up.</li>
 <li><b>Sphere pads:</b> per-sphere stiffness from E, as in Figure&#160;1, with spacing no coarser than 1&#8202;mm (Figure&#160;2). The
 controller runs at 100&#8202;Hz; the servo bus runs at 111&#8202;Hz.</li>
+<li><b>Drake hand:</b> apply the MJCF&#8217;s <code>&lt;contact&gt;&lt;exclude&gt;</code> pairs as collision filters
+(<code>DrakeChainPlant</code> does since 2026-10-02). Without them each distal link sits 23&#8202;mm inside its own yaw-link capsule at
+up to 230&#8202;N, and friction locks mcp and pip. Other Drake ports (<code>hom_hand_drake.py</code>, <code>drake_sr2_hand.py</code>)
+keep the <code>&lt;contact&gt;</code> element; check any new port with a contact dump at rest.</li>
 </ul>
 <h3>Known issues</h3>
 <ul>
@@ -273,6 +503,13 @@ yaw axes are not mirror images about the pinch plane. The hanging tool then lean
 MuJoCo and about 1&#176; in Drake.</li>
 <li><b>Brake end band:</b> near vertical a friction brake cannot do better than about 2&#176;. The gravity torque vanishes
 while the pads must still carry the weight (2&#956;N&#8202;&#8805;&#8202;W), so the brake accepts 2.5&#176;.</li>
+<li><b>Drake results before the exclusion fix:</b> every Drake number on the first two versions of this page came from a hand
+whose mcp and pip were locked by self-contact. The re-run moved the hydroelastic swing end from 92.4 to 91.3&#176; and Drake
+point-contact physics from 143 to the value in the timing table; the wield did not turn at all before the fix. The old rows
+are kept in <code>logs/20261002-hom_chain/pre_exclude_fix/</code>.</li>
+<li><b>Wield release:</b> the tool&#8217;s end stands on one support contact with no torsional friction, so a release that leaves
+tangential load in the pads spins it on (up to 23&#176; in a cycle with condim&#160;4). The sphere pad gives back 1&#176; or less.</li>
+<li><b>condim&#160;4 cost:</b> half of its cost is the per-step &#956;<sub>t</sub> rewrite in Python (timing check), not MuJoCo.</li>
 </ul>
 <h3>Next steps, in order</h3>
 <ol>
@@ -296,8 +533,11 @@ directions, sized from the measured out-of-plane tilt. Accept a tilt under 1&#17
 deploy-plan grasp (<code>docs/experiments/20260829-real_v1_deploy/deploy/sv1_w0099_b100_plan.json</code>: straddle 40&#8202;mm, thumb
 axial 10&#8202;mm, grip depth 63&#8202;mm). The middle releases for the swing and re-closes on the hanging tool, as the 2026-09-16
 open-loop swing did (<code>real_v1_chain_hands.py --pinch</code>).</li>
-<li><strong>Run the paper&#8217;s wield.</strong> Drive the screw-turning gait with object-twist references through the same controller, and
-compare it with the relay gait (23&#176; per cycle).</li>
+<li><strong>Load the wield.</strong> The wield runs (Exp&#160;2, Exp&#160;3 and the wield are in <code>paper_tasks.jsonl</code>), but against a
+tool that spins freely on its support. Give the tool&#8217;s end a torsional resistance (condim&#160;4 on the tool&#8211;table pair, or a
+screw-like seat with a set torque). Hold each pad&#8217;s tangential position while the force ramps down at release, and run
+pick, load, insert and wield as one rollout. Accept when the net turn per cycle stays within 10&#8202;% of the twist phase over
+20 cycles in the 1&#8202;mm pad and Drake hydroelastic, and compare it with the relay gait (23&#176; per cycle).</li>
 <li><strong>Bench measurements.</strong> Measure the tag tracker&#8217;s rate and latency, which matter because the brake reads the swing angle at 100&#8202;Hz.
 Measure the pad modulus behind E&#8202;=&#8202;10&#8202;MPa, and &#956;<sub>t</sub>/&#956; from a step-down of pinch force with the tag reading the
 angle.</li>
@@ -314,6 +554,19 @@ changes.</li>
 <code>docs/experiments/20261001-drake-port/</code>) and its INDEX row are uncommitted and belong to Codex.</li>
 </ul>
 """
+
+
+# ------------------------------------------------------------------------------------------ math
+
+TEX_RE = re.compile(r"\\\[(.+?)\\\]|\\\((.+?)\\\)", re.S)
+
+
+def render_tex(t):
+    r"""Every \( \) and \[ \] in the page becomes an inline SVG (scripts/texsvg.py)."""
+    items = [((m.group(1) if m.group(1) is not None else m.group(2)).strip(), m.group(1) is not None)
+             for m in TEX_RE.finditer(t)]
+    svgs = iter(texsvg.render(items, cache_path=TEX_CACHE, scale=TEX_SCALE))
+    return TEX_RE.sub(lambda m: next(svgs), t), len(items)
 
 
 # ------------------------------------------------------------------------------------------ main
@@ -381,12 +634,21 @@ def main():
     v["NC_S1"] = f"{b['mj:spheres:s1:rs0.75:tr0.02']['nc_hold']:.0f}"
     v["NC_S05"] = f"{b['mj:spheres:s0.5:rs0.75:tr0.03']['nc_hold']:.0f}"
     v["NC_DHY"] = f"{b['drake:hydro:rt0.01']['nc_hold']:.0f}"
+    # the paper's other tasks
+    v["PAPER_LEAD"], v["PAPER_LEDE"], v["PAPER_MODELS"] = paper_text()
+    v["WIELD_TABLE"], v["EXP3_TABLE"], v["EXP2_TABLE"] = wield_table(), exp3_table(), exp2_table()
+    v["WIELD_FILMS"] = paper_film("wield", "s1", "Wield, six retract-turn cycles in the peg hole:") + paper_tile("wield", "The wield")
+    v["EXP3_FILMS"] = paper_film("exp3", "s1", "Exp&#160;3, pusher cycles and the tripod lift:") + paper_tile("exp3", "Exp&#160;3")
+    v["EXP2_FILMS"] = paper_film("exp2", "s1", "Exp&#160;2, the six twist steps:") + paper_tile("exp2", "Exp&#160;2")
+    v["CHECK_LEAD"], v["CHECK_TABLE"], v["CHECK_PROSE"], v["ONE_TABLE"] = check_tables(b)
     v["HANDOFF"] = HANDOFF
     for k, val in v.items():
         t = t.replace("{{" + k + "}}", val)
     left = sorted(set(x.split("}}")[0] for x in t.split("{{")[1:]))
     if left:
         raise SystemExit(f"unfilled placeholders: {left}")
+    t, n_tex = render_tex(t)
+    print("formulas", n_tex)
     open(OUT, "w").write(t)
     print(f"wrote {OUT} ({os.path.getsize(OUT) / 1e6:.2f} MB)")
     for k in ("HI_AREA", "HI_ARM", "HI_RIG", "HI_DEV_MAX", "LO_N2", "LO_DEV2", "LO_DEV_FINE", "CTRL_MJ", "CTRL_DK", "REP_SPREAD",
