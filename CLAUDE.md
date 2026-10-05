@@ -64,6 +64,12 @@ will serve — three of the four plans sitting on the CB1 in 2026-09 were ones t
 *excluded* for finger interpenetration. A plan's `chord` and its `_traj.csv` are **different
 paths**; the gate passes them separately and a plan can clear one and not the other.
 
+## Writing
+
+Prose rules for every page, report, commit message and runbook are the **Writing** section of the
+global `~/.claude/CLAUDE.md` (titles, anti-patterns, editorial judgement, defining every term). `AGENTS.md` carries a
+condensed copy for Codex; if the two differ, `~/.claude/CLAUDE.md` wins.
+
 ## Result pages — an HTML doc page, ALWAYS. Never a RESULTS.md.
 
 **The deliverable for any experiment worth reporting is a dated HTML page, not a markdown file.**

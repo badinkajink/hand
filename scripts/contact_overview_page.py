@@ -3,7 +3,7 @@ r"""Build docs/experiments/20261005-contact_overview/20261005-sphere_pad_contact
 
     python3 scripts/contact_overview_page.py
 
-The overview page of the fingertip contact work of 1-5 October 2026: what a fingertip contact model has to carry,
+The overview page of the fingertip contact work of 1-5 October 2026: the components of a fingertip contact model,
 the contact mechanics (patch torque, Winkler/hydroelastic and Hertz arms, lateral coupling), the sphere-packed pad in
 MuJoCo (sampling, the soft-contact spring law, inverse-inertia calibration, friction creep, the collective step bound,
 condim 4), the reference models, and the evidence: the comparison bed (docs/experiments/20261005-contact_bed/), the
@@ -103,8 +103,57 @@ td.cap-p{color:var(--s1)}
 .pending{border:1px dashed var(--rule);border-radius:10px;padding:18px 20px;color:var(--ink3);font:400 14px/1.55 var(--f-mono);background:var(--card)}
 .open li{margin:0 0 12px}
 .open b{font-family:var(--f-display);font-weight:600}
+dl.glossary{display:grid;grid-template-columns:minmax(9em,13em) 1fr;gap:10px 22px;margin:8px 0 0;font-size:15.5px}
+dl.glossary dt{font:600 14px/1.5 var(--f-display);color:var(--ink)}
+dl.glossary dd{margin:0;color:var(--ink2)}
+@media (max-width:640px){dl.glossary{grid-template-columns:1fr}dl.glossary dd{margin-bottom:8px}}
 .legendrow{display:flex;flex-wrap:wrap;gap:6px 18px;margin:8px 0 0;font:400 12.5px/1.4 var(--f-mono);color:var(--ink2)}
 """
+
+
+# ------------------------------------------------------------------------------------------ terms and metrics
+
+GLOSSARY = [
+    ("pad", "One fingertip&#8217;s contact with the tool. On the bed rig two pads, one per fingertip, pinch the tool; N is the "
+            "normal force of each pad."),
+    ("friction arm \\(\\bar r\\)", "Pressure-weighted mean distance of the contact patch from its centre, (1), in mm. A pad transmits "
+            "at most \\(\\mu N\\bar r\\) about its normal before it spins. The hydroelastic law gives 0.84, 1.00 and 1.31&#8202;mm at 0.5, 1 "
+            "and 3&#8202;N."),
+    ("slip onset, effective &#956;", "Task&#160;1 raises an axial force on the tool at 2&#8202;N/s. Before onset the tool slides slowly at a "
+            "speed proportional to the force; onset is the force at which the speed leaves that trend. Effective &#956; is the onset "
+            "force divided by 2N (two pads). Rigid Coulomb friction gives 1.000."),
+    ("creep", "Steady sliding of the tool while the load stays below the slip force. Task&#160;1 holds the axial force at half the onset "
+            "force for 1&#8202;s and reports the sliding speed in &#181;m/s; task&#160;2 holds half the onset torque and reports the turning "
+            "speed in &#176;/s; in task&#160;4 it is the drift per cycle below the Coulomb threshold. Rigid Coulomb friction gives zero."),
+    ("slip speed", "Mean sliding speed of the tool over the 50&#8202;ms after onset in task&#160;1, in mm/s. Rigid Coulomb friction with "
+            "equal static and kinetic &#956; gives 34&#8202;mm/s."),
+    ("arm at spin onset", "Task&#160;2 raises a torque about the pinch axis; the onset torque divided by 2&#956;N, in mm per pad. "
+            "<i>Sliding arm</i>: the steady torque while the tool is driven to spin at 1&#8202;rad/s, divided by 2&#956;N. "
+            "<i>Onset / law</i>: onset torque over the hydroelastic law&#8217;s 2&#956;N&#183;cN<sup>1/4</sup>."),
+    ("drift per cycle", "Net displacement of the tool along its axis per 5&#8202;Hz shake cycle in task&#160;4. <i>Coulomb load ratio</i>: "
+            "m(g&#8202;+&#8202;a<sub>pk</sub>)/(2&#956;N); rigid Coulomb friction slips above 1."),
+    ("swing end, peak rate", "Task&#160;5 lowers the pinch force until the tool swings about the pinch axis. Swing end is the final angle "
+            "(90&#176; = hanging); peak rate the largest angular speed of the swing, in &#176;/s."),
+    ("physics step &#916;t", "The simulator&#8217;s integration step; 1&#8202;ms unless stated. <i>&#181;s per step</i>: wall time of one physics "
+            "step on one CPU core, controller and rendering excluded. <i>World-steps per second</i>: on the GPU, the number of parallel "
+            "simulations times the steps each completes per second."),
+    ("t<sub>c</sub>, d<sub>0</sub>, &#923;&#770;", "MuJoCo contact parameters. t<sub>c</sub>, the <code>solref</code> time constant, sets how fast a "
+            "penetration is corrected; d<sub>0</sub>, the <code>solimp</code> impedance, sets what fraction of that correction the solver "
+            "enforces; &#923;&#770; is MuJoCo&#8217;s estimate of the contact&#8217;s inverse inertia (47.2&#8202;kg<sup>&#8722;1</sup> for a pad on the "
+            "real tool). Together they set the sphere stiffness, (10)."),
+    ("impratio, condim", "<code>impratio</code>: ratio of friction-row to normal-row stiffness in MuJoCo; larger values make friction "
+            "stick harder. <code>condim</code>&#160;3: normal force and two friction directions; condim&#160;4 adds torsional friction about "
+            "the normal."),
+    ("pad spacing", "Distance between neighbouring sphere centres on a sphere pad. The 2, 1 and 0.5&#8202;mm pads have 51, 205 and 819 "
+            "spheres on a 45&#176; cap."),
+    ("relaxation time t<sub>r</sub>", "Drake&#8217;s dissipation time for hydroelastic contact; the pads use t<sub>c</sub>&#8202;=&#8202;t<sub>r</sub>/2 so "
+            "both damp at the same rate."),
+]
+
+
+def glossary_html(keys=None):
+    items = [g for g in GLOSSARY if keys is None or g[0] in keys]
+    return ('<dl class="glossary">' + "".join(f"<dt>{t}</dt><dd>{d}</dd>" for t, d in items) + "</dl>")
 
 
 # ------------------------------------------------------------------------------------------ data
@@ -470,14 +519,14 @@ def mass_text(cal):
     hi = [lt[(m, 3.0)]["rbar_mm"] for m in (0.25, 1.0, 4.0)]
     lawlo, lawhi = C_LAW * 1e3 * 0.5 ** EXP_LAW, C_LAW * 1e3 * 3 ** EXP_LAW
     return (f"Calibrated with the nominal tool and reused for a tool four times heavier, each sphere comes out "
-            f"{k4:.2f}&#215; too stiff, and for a tool four times lighter {k025:.2f}&#215;. The cure costs nothing at run time: take "
-            f"\\(\\hat\\Lambda\\) from the compiled model for each pad&#8211;object pair when the model loads and set \\(d_0\\) from it. "
-            f"In MuJoCo&#160;3.6 \\(\\hat\\Lambda\\) is the sum of the bodies&#8217; <code>body_invweight0</code> and does not change with "
+            f"{k4:.2f}&#215; too stiff, and for a tool four times lighter {k025:.2f}&#215;. Computing \\(\\hat\\Lambda\\) from the compiled "
+            f"model for each pad&#8211;object pair at load, and \\(d_0\\) from it, removes the dependence at no run-time cost. "
+            f"In MuJoCo&#160;3.6 \\(\\hat\\Lambda\\) is the sum of the bodies&#8217; <code>body_invweight0</code>, which is independent of "
             f"pose, so the load-time value is exact. With it the arm is {_rng(lo)}&#8202;mm at 0.5&#8202;N and "
             f"{_rng(hi)}&#8202;mm at 3&#8202;N for all three masses, {abs(statistics.mean(lo) / lawlo - 1) * 100:.0f} and "
             f"{abs(statistics.mean(hi) / lawhi - 1) * 100:.0f}&#8202;% under the hydroelastic law; with the fixed value it moves by "
             f"{num(d025, '+.0f')} and {num(d4, '+.0f')}&#8202;% (Figure&#160;5). The chain&#8217;s plant already calibrates each trial this way, "
-            f"so Codex&#8217;s per-step remapping of every contact has no remaining job.")
+            f"so the per-step remapping of every contact that Codex built is unnecessary.")
 
 
 # ------------------------------------------------------------------------------------------ creep and stability text
@@ -508,8 +557,8 @@ def creep_text(pull, creep):
     if creep:
         out.append(creep_t6_text(creep))
     else:
-        out.append("Equation (12) names the levers: a larger <code>impratio</code> or more rows in contact. MuJoCo&#8217;s "
-                   "<code>noslip_iterations</code> removes the residual slip after the main solve; bed task&#160;6 measures both.")
+        out.append("By (12), creep falls with a larger <code>impratio</code> and with more rows in contact; MuJoCo&#8217;s "
+                   "<code>noslip_iterations</code> removes residual slip after the main solve. Bed task&#160;6, which tests both, has not run.")
     return " ".join(out)
 
 
@@ -669,11 +718,11 @@ def metrics(T):
     pull = T["pull"]
     add("1 pull", "effective &#956; at slip, 1&#8202;N", "", 3, pull, lambda r: r["mu_eff"], N=1.0, dt_ms=1.0)
     add("1 pull", "slip speed, first 50&#8202;ms, 1&#8202;N", "mm/s", 1, pull, lambda r: r["v_slip_mean50_mm_s"], N=1.0, dt_ms=1.0)
-    add("1 pull", "creep at half the slip force, 1&#8202;N", "&#181;m/s", 2, pull, lambda r: r["creep_mm_s"] * 1e3, N=1.0, dt_ms=1.0)
+    add("1 pull", "creep: sliding speed at half the slip force, 1&#8202;N", "&#181;m/s", 2, pull, lambda r: r["creep_mm_s"] * 1e3, N=1.0, dt_ms=1.0)
     tw = T["twist"]
     add("2 twist", "arm at spin onset, 0.5&#8202;N", "mm", 3, tw, twist_arm, N=0.5, dt_ms=1.0)
     add("2 twist", "arm at spin onset, 3&#8202;N", "mm", 3, tw, twist_arm, N=3.0, dt_ms=1.0)
-    add("2 twist", "rotation creep at half onset, 1&#8202;N", "&#176;/s", 3, tw,
+    add("2 twist", "creep: turning speed at half the onset torque, 1&#8202;N", "&#176;/s", 3, tw,
         lambda r: first(r, "creep_deg_s", "creep_rate_deg_s"), N=1.0, dt_ms=1.0)
     ro = T["roll"]
     add("3 roll", "rolling ratio, 1&#8202;N, 10&#8202;mm/s", "", 3, ro,
@@ -857,15 +906,15 @@ def cap_table(cost, newton_us):
     Y, N_, P = "cap-y", "cap-n", "cap-p"
     rows = [
         ("point contact, condim&#160;3", [(Y, "one spring"), (P, "creeps"), (N_, "none"), (N_, "one point"), (N_, "no"), (N_, "no"), us("mj_point3"), (Y, "MuJoCo-Warp")]),
-        ("condim&#160;4, &#956;<sub>t</sub> rescheduled", [(Y, "one spring"), (P, "creeps"), (P, "fitted law"), (N_, "one point"), (N_, "no"), (N_, "no"), us("mj_point4s"), (P, "needs a kernel")]),
-        ("1&#8202;mm sphere pad", [(Y, "sampled foundation"), (P, "creeps"), (Y, "emerges"), (Y, "sampled"), (N_, "no"), (N_, "no"), us("mj_pads1"), (Y, "MuJoCo-Warp")]),
-        ("Drake hydroelastic", [(Y, "pressure field"), (Y, "SAP, near stick"), (Y, "integrated"), (Y, "surface mesh"), (N_, "no"), (N_, "no"), us("drake_hydro"), (N_, "CPU only")]),
-        ("Newton hydroelastic", [(Y, "pressure field"), (P, "MuJoCo-Warp rows"), (P, "reduction cuts it"), (Y, "voxel surface"), (N_, "no"), (N_, "no"),
+        ("condim&#160;4, &#956;<sub>t</sub> rescheduled", [(Y, "one spring"), (P, "creeps"), (P, "fitted law, rescheduled"), (N_, "one point"), (N_, "no"), (N_, "no"), us("mj_point4s"), (P, "needs a per-step write")]),
+        ("1&#8202;mm sphere pad", [(Y, "sampled foundation"), (P, "creeps"), (Y, "from the sphere spread"), (Y, "sampled"), (N_, "no"), (N_, "no"), us("mj_pads1"), (Y, "MuJoCo-Warp")]),
+        ("Drake hydroelastic", [(Y, "pressure field"), (Y, "creeps 100&#215; less"), (Y, "integrated"), (Y, "surface mesh"), (N_, "no"), (N_, "no"), us("drake_hydro"), (N_, "CPU only")]),
+        ("Newton hydroelastic", [(Y, "pressure field"), (P, "MuJoCo-Warp rows"), (P, "2.3&#8211;2.9&#215; the law"), (Y, "voxel surface"), (N_, "no"), (N_, "no"),
                                  (f"{newton_us:.0f} (GPU)" if newton_us else "&#8211;"), (Y, "Warp")]),
-        ("Sphere lattice, CSLC", [(Y, "anchor springs"), (P, "presliding only"), (Y, "emerges"), (Y, "lattice"), (P, "presliding"), (Y, "lateral springs"), "&#8211;", (P, "see paper")]),
+        ("Sphere lattice, CSLC", [(Y, "anchor springs"), (P, "presliding; no sliding dynamics"), (Y, "from the lattice"), (Y, "lattice"), (P, "presliding"), (Y, "lateral springs"), "&#8211;", (P, "&#8211;")]),
     ]
     head = ["contact model", "compliance", "stick, slip", "friction torque", "area, CoP",
-            "pre-slip shear", "lateral spread", "&#181;s per step", "GPU batch"]
+            "pre-slip shear", "lateral spread", f"{US} per step", "GPU batch"]
     out = ["<table class='cap'><thead><tr>" + "".join(f"<th>{h}</th>" for h in head) + "</tr></thead><tbody>"]
     for name, cells in rows:
         tds = []
@@ -979,6 +1028,7 @@ def main():
     v["CHAIN_FILM"] = R.data_uri(os.path.join(CHAIN_D, "media/20261002-chain_six_models.mp4"), "video/mp4")
     v["CHAIN_POSTER"] = R.data_uri(os.path.join(CHAIN_D, "media/20261002-chain_six_models_poster.png"), "image/png")
     v["RELATED"] = related()
+    v["GLOSSARY"] = glossary_html()
     ctx = dict(T=T, M=M, cost=cost, cal=cal, stab=stab, step_rows=step_rows, gpu_pads=gpu_pads, gpu_newton=gpu_newton,
                tor=tor, have_onset=have_onset, newton_us=newton_us, deviations=deviations(M), bed_url=u)
     v.update(OT.blocks(ctx))

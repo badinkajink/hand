@@ -23,8 +23,8 @@ def _get(M, label_start, model):
 
 def lede(ctx):
     M, cost, gpu = ctx["M"], ctx["cost"], ctx["gpu_pads"]
-    parts = ["A fingertip covered with small MuJoCo contact spheres carries the friction torque and contact area of a soft pad "
-             "without any change to MuJoCo."]
+    parts = ["Covering a fingertip with small MuJoCo contact spheres reproduces the friction torque and contact area of a soft pad "
+             "without modifying MuJoCo."]
     mu_p, mu_d = _get(M, "effective", "mj_pads1"), _get(M, "effective", "drake_hydro")
     vs_p, vs_d = _get(M, "slip speed", "mj_pads1"), _get(M, "slip speed", "drake_hydro")
     a5_p, a5_d = _get(M, "arm at spin onset, 0.5", "mj_pads1"), _get(M, "arm at spin onset, 0.5", "drake_hydro")
@@ -32,32 +32,27 @@ def lede(ctx):
     s = []
     if mu_p and mu_d:
         d = abs(_pct(mu_p, mu_d))
-        s.append("slip onset at the same force as Drake hydroelastic to 0.1&#8202;%" if d < 0.1 else
-                 f"slip onset within {d:.1f}&#8202;% of Drake hydroelastic")
+        s.append("slips at the same force as Drake hydroelastic to within 0.1&#8202;%" if d < 0.1 else
+                 f"slips at a force within {d:.1f}&#8202;% of Drake hydroelastic")
     if vs_p and vs_d:
-        s.append(f"slip speed within {abs(_pct(vs_p, vs_d)):.0f}&#8202;%")
+        s.append(f"slides at a speed within {abs(_pct(vs_p, vs_d)):.0f}&#8202;%")
     if a5_p and a5_d and a3_p and a3_d:
-        s.append(f"friction arm at the onset of spin within {max(abs(_pct(a5_p, a5_d)), abs(_pct(a3_p, a3_d))):.0f}&#8202;% from 0.5 to 3&#8202;N")
-    else:
-        lt = [r for r in ctx["cal"] if r.get("exp") == "pinch" and r.get("calib") != "fixed" and P._eq(r.get("dt_ms"), 1.0)]
-        if lt:
-            d = max(abs(_pct(r["rbar_mm"], P.C_LAW * 1e3 * r["N_cmd"] ** P.EXP_LAW)) for r in lt)
-            s.append(f"friction arm within {d:.0f}&#8202;% of the hydroelastic law from 0.5 to 3&#8202;N")
+        lo, hi = sorted((abs(_pct(a5_p, a5_d)), abs(_pct(a3_p, a3_d))))
+        rng = f"{lo:.0f}" if f"{lo:.0f}" == f"{hi:.0f}" else f"{lo:.0f}&#8211;{hi:.0f}"
+        s.append(f"starts to spin at a torque {rng}&#8202;% under Drake&#8217;s from 0.5 to 3&#8202;N")
     if s:
-        parts.append("On the two-pad pinch of the real_v1 fingertip and screwdriver, the 1&#8202;mm pad puts its " +
-                     ", its ".join(s[:-1]) + (", and its " if len(s) > 1 else "") + s[-1] + ".")
+        parts.append("On the two-pad pinch of the real_v1 fingertip and screwdriver, the 1&#8202;mm pad " +
+                     ", ".join(s[:-1]) + (", and " if len(s) > 1 else "") + s[-1] + ".")
     if "mj_pads1" in cost and "drake_hydro" in cost:
         g = [r["world_steps_per_s"] for r in gpu if r.get("key", "").startswith("legacy_s1.0") and r.get("status") == "complete"]
-        tail = f", and one GPU runs {max(g) / 1e6:.2f} million pad world-steps per second" if g else ""
-        parts.append(f"It costs {cost['mj_pads1']:.0f}&#8202;&#181;s per physics step on one core against {cost['drake_hydro']:.0f}&#8202;&#181;s "
-                     f"for Drake, gives the same task result from 50&#8202;&#181;s to 10&#8202;ms steps{tail}.")
-    cr_p = _get(M, "creep at half", "mj_pads1")
-    cr_d = _get(M, "creep at half", "drake_hydro")
+        tail = f"; one GPU runs {max(g) / 1e6:.2f} million pad world-steps per second" if g else ""
+        parts.append(f"A pad step costs {cost['mj_pads1']:.0f}&#8202;&#181;s on one CPU core against {cost['drake_hydro']:.0f}&#8202;&#181;s for Drake, "
+                     f"and task results are unchanged from 50&#8202;&#181;s to 10&#8202;ms steps{tail}.")
+    cr_p = _get(M, "creep: sliding", "mj_pads1")
+    cr_d = _get(M, "creep: sliding", "drake_hydro")
     if cr_p and cr_d:
-        parts.append(f"Its largest disagreement with the references is creep under a held load, {cr_p / cr_d:.0f}&#215; Drake&#8217;s.")
-    parts.append("This page derives why a sphere-sampled elastic foundation inside MuJoCo&#8217;s soft constraints works, which "
-                 "parameters set its stiffness, creep and step limit, and what it leaves out: lateral load spreading and elastic "
-                 "shear before slip. The bed page holds the task-by-task evidence and films.")
+        parts.append(f"The largest disagreement is creep, the slow sliding under a load below the slip force: the pad creeps "
+                     f"{cr_p / cr_d:.0f}&#215; faster than Drake.")
     return " ".join(parts)
 
 
@@ -73,15 +68,15 @@ def refs_text(ctx):
           and r.get("dt_ms") == 1.0 and r.get("tau_onset_over_law")]
     newton_tw = ""
     if tw:
-        newton_tw = (f" In bed task&#160;2 it carries {min(r['tau_onset_over_law'] for r in tw):.1f}&#8211;{max(r['tau_onset_over_law'] for r in tw):.1f}&#215; "
-                     "the hydroelastic law&#8217;s torque at the onset of spin, with and without reduction, while Drake carries 0.97&#8211;1.00&#215;; its "
+        newton_tw = (f" In bed task&#160;2 it starts to spin at {min(r['tau_onset_over_law'] for r in tw):.1f}&#8211;{max(r['tau_onset_over_law'] for r in tw):.1f}&#215; "
+                     "the hydroelastic law&#8217;s torque, with and without reduction, where Drake spins at 0.97&#8211;1.00&#215;; its "
                      "5&#8202;ms runs spin at once or eject the tool. One GPU world costs 0.5&#8202;ms per step with reduction and 1.5&#8202;ms without.")
     return f"""
 <h3>Drake hydroelastic</h3>
 <p>Drake gives each compliant body a pressure field on a tetrahedral mesh, \\(p=E\\,\\delta/R\\) for the fingertip sphere at a
-1&#8202;mm resolution, and computes the contact surface as the rigid tool&#8217;s surface inside it. Each face carries a pressure,
-and the SAP solver integrates force and friction over the faces with a convex, regularised friction law that sticks far
-more firmly than MuJoCo&#8217;s soft rows. It is the reference for every task on these pages and costs 1&#8211;2&#8202;ms per
+1&#8202;mm resolution, and computes the contact surface as the rigid tool&#8217;s surface inside it. Each face has a pressure,
+and the SAP solver integrates force and friction over the faces with a convex, regularised friction law; under a held load it
+creeps about 100&#215; less than MuJoCo&#8217;s soft friction rows. It is the reference for every task on these pages and costs 1&#8211;2&#8202;ms per
 step on one core. Importing the hand from MJCF needs the model&#8217;s contact exclusions applied as collision filters; without
 them the distal links locked against their own yaw links (chain page).</p>
 <h3>Newton hydroelastic</h3>
@@ -109,10 +104,10 @@ def cslc_text(ctx):
 def evidence_lead(ctx):
     T = ctx["T"]
     n = sum(len(v) for v in T.values())
-    return (f"The comparison bed runs five pinch tasks on the two-pad rig of the 10-01 study in every model that can carry them, "
-            f"at 1 and 5&#8202;ms steps, {n} cases so far. Pull and twist load the contact until it slides or spins, roll moves one "
-            f"pad to roll the tool between them, shake drives the held tool at 5&#8202;Hz under gravity, and brake lowers the pinch force "
-            f"until the tool swings to hanging. Table&#160;2 collects one or two metrics per task.")
+    return (f"The comparison bed runs five tasks on the two-pad rig of the 10-01 study at 1 and 5&#8202;ms steps ({n} cases). Pull and "
+            f"twist load the pinch until the tool slides or spins; roll moves one pad so the tool rolls between them; shake drives the "
+            f"held tool at 5&#8202;Hz under gravity; brake lowers the pinch force until the tool swings toward hanging. Table&#160;2 lists one "
+            f"or two metrics per task.")
 
 
 def evidence_tasks(ctx):
@@ -125,9 +120,9 @@ def evidence_tasks(ctx):
                    + ", ".join(f"{g('drake_hydro', N)['rbar_onset_mm']:.3f}" for N in (0.5, 1.0, 3.0)) +
                    "&#8202;mm at 0.5, 1 and 3&#8202;N, within 3&#8202;% of the law it was fitted to; the 1&#8202;mm pad gives "
                    + ", ".join(f"{g('mj_pads1', N)['rbar_onset_mm']:.3f}" for N in (0.5, 1.0, 3.0)) +
-                   "&#8202;mm, 6&#8211;9&#8202;% under it, and its sliding arm is 2&#8211;3&#8202;% under. Both grow by 1.52 between 0.5 and 3&#8202;N, "
-                   "the foundation ratio rather than Hertz&#8217;s 1.82 (Figure&#160;2). condim&#160;4 is 3&#8211;6&#8202;% over at onset and exact while "
-                   "sliding. Under half the onset torque the pad creeps at 1.1&#8211;1.6&#8202;&#176;/s against Drake&#8217;s 0.01.</p>")
+                   "&#8202;mm, 6&#8211;9&#8202;% under it, and its sliding arm is 2&#8211;3&#8202;% under. Both arms grow by 1.52 between 0.5 and 3&#8202;N, "
+                   "close to the foundation ratio of 1.565; Hertz gives 1.82 (Figure&#160;2). condim&#160;4 is 3&#8211;6&#8202;% over at onset and exact while "
+                   "sliding. Held at half the onset torque, the pad turns at 1.1&#8211;1.6&#8202;&#176;/s and Drake at 0.01&#8202;&#176;/s.</p>")
     br = [r for r in T["brake"] if r.get("role", "bed") == "bed"]
     b = lambda k: P.pick(br, k, dt_ms=1.0)  # noqa: E731
     if b("mj_pads1") and b("drake_hydro"):
@@ -138,10 +133,10 @@ def evidence_tasks(ctx):
     sh = T["shake"]
     s = lambda k: P.pick(sh, k, N=0.5, a_pk_g=2.0, dt_ms=1.0)  # noqa: E731
     if s("mj_pads1") and s("drake_hydro"):
-        out.append(f"<p><b>Shake.</b> At 0.5&#8202;N and 2&#8202;g the grip is below rigid-Coulomb slip, so all drift is creep: "
+        out.append(f"<p><b>Shake.</b> At 0.5&#8202;N and 2&#8202;g the load stays below the rigid-Coulomb slip threshold, so the drift is creep: "
                    f"{abs(s('mj_pads1')['drift_per_cycle_mm']) * 1e3:.1f}&#8202;&#181;m per cycle with the pad against "
                    f"{abs(s('drake_hydro')['drift_per_cycle_mm']) * 1e3:.2f}&#8202;&#181;m in Drake.</p>")
-    out.append("<p>Roll, the creep study and the stability map were cut off before they ran; their scripts are written and the bed page lists them.</p>")
+    out.append("<p>Roll, the creep study and the stability map have not run; their scripts are listed on the bed page.</p>")
     return "".join(out)
 
 
@@ -157,8 +152,8 @@ def cost_text(ctx):
         gp = (f" On one GPU, MuJoCo-Warp runs the 1&#8202;mm pads at up to {best['world_steps_per_s'] / 1e3:.0f}k world-steps per second "
               f"({best['key'].split('_n')[1].split('_')[0]} worlds), {best['sim_s_per_wall_s']:.0f} simulated seconds per wall second; the "
               f"curve flattens beyond 4096 worlds (Figure&#160;9).")
-    return (f"Median physics step of the two-pad pinch at 1&#8202;ms on one core, from bed task&#160;1: {s}. Cost is half the comparison; "
-            f"Figure&#160;8 sets it against each model&#8217;s distance from Drake over the bed&#8217;s metrics." + gp)
+    return (f"Median physics step of the two-pad pinch at 1&#8202;ms on one core, from bed task&#160;1: {s}. Figure&#160;8 plots it against "
+            f"each model&#8217;s deviation from Drake over the metrics of Table&#160;2." + gp)
 
 
 def open_list(ctx):
@@ -168,10 +163,10 @@ def open_list(ctx):
          "equation (5)."),
         ("Coupling length of the TPU print.", "Indent the print at one point and map the surface displacement around it; fit "
          "\\(u(r)\\propto e^{-r/\\ell}\\) and compare \\(\\ell\\) with the 1.6&#8211;2.5&#8202;mm patch radius (asides page)."),
-        ("Creep that a grip should not have.", "Bed task&#160;6 tests <code>impratio</code> and <code>noslip_iterations</code>; the "
-         "chain&#8217;s hold and the wield should be re-run with the setting that brings creep near Drake&#8217;s, and the cost recorded."),
-        ("Newton in the same tasks.", "The probe holds and twists; the bed rows for Newton and its GPU throughput at 1k&#8211;8k worlds "
-         "decide whether it is the faster pressure-field reference on a GPU."),
+        ("Creep.", "Run bed task&#160;6 (<code>impratio</code> 1000, <code>noslip_iterations</code> 10). If one setting brings creep near "
+         "Drake&#8217;s, re-run the chain&#8217;s hold and the wield with it and record the cost."),
+        ("Newton&#8217;s torsion.", "Newton spins the tool at 2.3&#8211;2.9&#215; the law&#8217;s torque in bed task&#160;2. Repeat it with Newton&#8217;s "
+         "friction gain at 1 and the tool at the pad&#8217;s stiffness; then finish its GPU batches at 4096&#8211;8192 worlds."),
         ("The modulus.", "Every model here uses Drake&#8217;s default E&#8202;=&#8202;10&#8202;MPa. The arm scales as \\(E^{-1/4}\\), so a "
          "TPU tip at 2&#8211;5&#8202;MPa lengthens it by 19&#8211;50&#8202;%; refit c once the tip is measured."),
         ("Pre-slip shear.", "No model here stores elastic tangential displacement. A slow tangential load cycle on the printed tip "
@@ -205,13 +200,13 @@ def blocks(ctx):
         "STAB_NOTE": "Squares are point contact (n&#8202;=&#8202;1), whose bound is \\(t_c\\).",
         "REFS_TEXT": refs_text(ctx),
         "EVIDENCE_LEAD": evidence_lead(ctx),
-        "AGREE_NOTE": "A dash marks a model or task not run.",
+        "AGREE_NOTE": "A dash marks a case not run.",
         "EVIDENCE_TASKS": evidence_tasks(ctx),
         "COST_TEXT": cost_text(ctx),
         "COST_NOTE": "Drake sits at zero deviation by construction.",
-        "GPU_NOTE": ("Newton&#8217;s rows stop at 4096 worlds with contact reduction and 1024 without; the batches beyond were cut off. "
-                     "Both fixtures hold the same SR2 pinch, but Newton carries 2.4&#8211;2.9&#215; the torque on the two-pad rig, so the "
-                     "comparison is of cost, not of equal physics." if ctx["gpu_newton"] else "Newton&#8217;s rows are not written yet."),
+        "GPU_NOTE": ("Newton&#8217;s rows stop at 4096 worlds with contact reduction and 1024 without; larger batches were not run. On the "
+                     "two-pad rig Newton spins the tool at 2.3&#8211;2.9&#215; the pads&#8217; torque, so these two curves are for models that "
+                     "disagree in torsion." if ctx["gpu_newton"] else "Newton&#8217;s rows are not written yet."),
         "OPEN_LIST": open_list(ctx),
         "LIT": lit(ctx),
     }

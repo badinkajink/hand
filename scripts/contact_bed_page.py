@@ -98,9 +98,8 @@ def setup(T):
             f"Tasks add one load or motion each. The protocol (<code>docs/experiments/20261005-contact_bed/PROTOCOL.md</code>) "
             f"fixes the parameters, metrics and row fields for every script, so rows written by different scripts and simulators "
             f"compare directly. {n} rows so far. Model strings:</p>" + table(["model", "spec"], rows) +
-            "<p>Drake hydroelastic and Newton hydroelastic are pressure-field references, not ground truth. The analytic limits "
-            "are rigid Coulomb friction and the hydroelastic arm law. The real fingertip, printed TPU, is modelled by none of "
-            "them.</p>")
+            "<p>Agreement is shaded against Drake hydroelastic. Rigid Coulomb friction and the hydroelastic arm law are the "
+            "analytic comparisons.</p>")
 
 
 def summary(T, M):
@@ -119,7 +118,8 @@ def summary(T, M):
 def t1(rows):
     if not rows:
         return P.pending("No pull rows.")
-    out = []
+    out = ["<p>Protocol: the pinch settles at N for 0.4&#8202;s, then an axial force on the tool rises at 2&#8202;N/s until the tool "
+           "slides faster than 10&#8202;mm/s. A second run holds the force at half the onset force for 1&#8202;s to measure creep.</p>"]
     head = ["model, N per pad", "&#956; at slip", "displacement before onset (&#181;m)", "creep at half load (&#181;m/s)",
             "slip speed, 50&#8202;ms (mm/s)", "sliding &#956;", f"{US} per step"]
     body = []
@@ -172,7 +172,8 @@ def svg_pull(rows):
 def t4(rows):
     if not rows:
         return P.pending("No shake rows.")
-    out = []
+    out = ["<p>Protocol: gravity acts along the tool axis; an inertial force shakes the tool along its axis at 5&#8202;Hz with peak "
+           "acceleration 0.5, 1, 2 and 4&#8202;g for 2&#8202;s, at N&#8202;=&#8202;0.2 and 0.5&#8202;N per pad.</p>"]
     head = ["model, N, a<sub>pk</sub>", "Coulomb load ratio", "rigid Coulomb drift (mm/cycle)", "drift (mm/cycle)",
             "peak relative displacement (mm)", "dropped", f"{US} per step"]
     body = []
@@ -248,7 +249,10 @@ def t2(rows):
             body.append([f"{N:g}&#8202;N", fmt(r.get("rbar_onset_mm"), 3), fmt(r.get("tau_onset_over_law"), 3), fmt(r.get("rbar_kin_mm"), 3),
                          fmt(r.get("rot_pre_deg"), 2), fmt(r.get("creep_deg_s"), 3), fmt(r.get("us_per_step_median"), 0)])
     fig, _ = P.svg_scaling(rows, [])
-    out = [figure(fig, "Per-pad friction arm at the onset of spin, task&#160;2, 1&#8202;ms step, against the hydroelastic law and a Hertz "
+    out = ["<p>Protocol: after settling, a torque about the pinch axis rises at the law&#8217;s torque per second until the tool turns "
+           "faster than 30&#8202;&#176;/s. A second run holds half the onset torque for 1&#8202;s to measure creep, and a third drives the tool to "
+           "spin at 1&#8202;rad/s to measure the sliding arm.</p>",
+           figure(fig, "Per-pad friction arm at the onset of spin, task&#160;2, 1&#8202;ms step, against the hydroelastic law and a Hertz "
                   "arm equal at 1&#8202;N. Right: the arm ratio between 3 and 0.5&#8202;N."),
            table(head, body),
            "<p class='tnote'>Table: task&#160;2 at a 1&#8202;ms step. The law is the hydroelastic arm fitted to Drake on this rig, "
@@ -258,7 +262,7 @@ def t2(rows):
     nw = [r for r in rows if r.get("model", "").startswith("newton") and ok(r) and r.get("tau_onset_over_law")]
     if nw:
         lo, hi = min(r["tau_onset_over_law"] for r in nw if r["dt_ms"] == 1.0), max(r["tau_onset_over_law"] for r in nw if r["dt_ms"] == 1.0)
-        out.append(f"<p>Newton hydroelastic carries {lo:.1f}&#8211;{hi:.1f}&#215; the law&#8217;s torque at onset with and without contact "
+        out.append(f"<p>Newton hydroelastic starts to spin at {lo:.1f}&#8211;{hi:.1f}&#215; the law&#8217;s torque with and without contact "
                    "reduction, and its 5&#8202;ms runs spin at once or eject the tool. Its static pinch on the same rig has the expected "
                    "normal force, so the excess is in the friction it applies across the patch. The probe&#8217;s friction gain "
                    "(<code>kf10</code> in the spec) and the 100&#215; stiffer tool are the first two settings to vary.</p>")
@@ -281,7 +285,9 @@ def t5(rows):
         body.append([H.get(k, k), fmt(r.get("phi_end_deg"), 1), fmt(r.get("phi_max_deg"), 1), fmt(r.get("peak_rate_deg_s"), 0),
                      fmt(r.get("t_80_s"), 2), fmt(r.get("slip_end_mm"), 2), "yes" if r.get("pinched_end") else "no",
                      fmt(r.get("us_per_step_median"), 0)])
-    out = [table(head, body),
+    out = ["<p>Protocol: gravity on, centre of mass 15&#8202;mm from the pinch line; the pinch is held at 6&#8202;N for 0.5&#8202;s and lowered "
+           "geometrically to 0.2&#8202;N over 4&#8202;s, so the tool swings about the pinch axis toward hanging.</p>",
+           table(head, body),
            "<p class='tnote'>Table: task&#160;5 at a 1&#8202;ms step: gravity on, centre of mass 15&#8202;mm from the pinch line, the pinch held "
            "at 6&#8202;N for 0.5&#8202;s and lowered geometrically to 0.2&#8202;N over 4&#8202;s. 90&#176; is hanging.</p>"]
     out.append(film("media/brake_models.mp4", "Task&#160;5 in every model, side by side.", "media/brake_models.jpg"))
@@ -352,7 +358,7 @@ def open_items(T):
              ("Newton&#8217;s torsion.", "Repeat task&#160;2 in Newton with the friction gain at 1 and the tool at the pad&#8217;s stiffness; an arm "
               "near the law would locate the 2.4&#8211;2.9&#215; excess in those settings."),
              ("Newton on the GPU.", "Its throughput rows stop at 1024 worlds unreduced and 4096 reduced; finish 4096&#8211;8192 with "
-              "<code>scripts/newton_scaling.py</code> once task&#160;2 agrees, so the comparison is between models that carry the same torque."),
+              "<code>scripts/newton_scaling.py</code> once task&#160;2 agrees, so that the throughput comparison is between models that agree in torsion."),
              ("CPU against GPU pads.", "<code>scripts/pads_cpu_gpu_consistency.py</code> wrote three CPU rows; the MuJoCo-Warp twins decide whether "
               "the GPU throughput describes the same physics."),
              ("Creep.", "Every MuJoCo model creeps about 100&#215; faster than Drake under a held load; task&#160;6 tests <code>impratio</code> 1000 "
@@ -380,13 +386,13 @@ def lede(T, M):
                      "less torque than Drake hydroelastic from 0.5 to 3&#8202;N, slips at the same pull force, and brakes the swing to within 1&#176; of Drake.")
     except (TypeError, KeyError):
         pass
-    parts.append("condim&#160;4 with its torsional coefficient rescheduled matches the torque within 6&#8202;% but has no patch. Point contact "
-                 "carries no torque and lets the tool swing through.")
+    parts.append("condim&#160;4 with its torsional coefficient rescheduled is within 6&#8202;% of the torque but has a single contact point. "
+                 "Point contact transmits no torque, and the tool swings through.")
     nw = [r for r in tw if r.get("model") == "newton_hydro" and ok(r) and r.get("dt_ms") == 1.0 and r.get("tau_onset_over_law")]
     if nw:
-        parts.append(f"Newton hydroelastic, now stable at 1&#8202;ms, carries {min(r['tau_onset_over_law'] for r in nw):.1f}&#8211;"
-                     f"{max(r['tau_onset_over_law'] for r in nw):.1f}&#215; the torque at onset, the largest disagreement in the bed.")
-    parts.append("Every MuJoCo model creeps about 100&#215; faster than Drake under a held load. The pad costs 13&#8211;24&#8202;&#181;s per step against "
+        parts.append(f"Newton hydroelastic, now stable at 1&#8202;ms, starts to spin at {min(r['tau_onset_over_law'] for r in nw):.1f}&#8211;"
+                     f"{max(r['tau_onset_over_law'] for r in nw):.1f}&#215; the law&#8217;s torque, the largest disagreement in the bed.")
+    parts.append("Under a held load below the slip force, every MuJoCo model creeps (slides slowly) about 100&#215; faster than Drake. The pad costs 13&#8211;24&#8202;&#181;s per step against "
                  "1&#8211;2&#8202;ms for Drake and 0.5&#8211;3&#8202;ms for Newton on one GPU world. Roll, creep and the stability map were cut off "
                  "and are listed at the end with their scripts.")
     return " ".join(parts)
@@ -403,6 +409,7 @@ def main():
     u = open(OVERVIEW_URL_FILE).read().strip() if os.path.exists(OVERVIEW_URL_FILE) else ""
     v["OVERVIEW_LINK"] = f", <a href=\"{u}\">artifact</a>" if u else ""
     v["LEDE"] = lede(T, M)
+    v["GLOSSARY"] = P.glossary_html()
     v["SETUP"] = setup(T)
     v["SUMMARY"] = summary(T, M)
     v["T1"] = t1(T["pull"])
