@@ -1,0 +1,45 @@
+# Contact-model comparison bed: pull-to-slip runbook
+
+Task 1 of the bed: a pinched tool pulled along its own axis until it slips. Four contact models on
+the two-pad pinch rig of the 10-01 study (`scripts/hom_contact_rig.py`), gravity off, mu 1, the
+real_v1 fingertip sphere (r 10.55 mm) and screwdriver (r 12.5 mm, 24.5 g).
+
+| chain spec (`hom_chain.make_plant`) | rig spec used here |
+|---|---|
+| `mj:point3` | `mj:point3:ir100` |
+| `mj:point4s` | `mj:point4s:fit0.000996044x0.2498:ir100` |
+| `mj:spheres:s1:rs0.75:tr0.02` | `mj:spheres:s1:rs0.75:ir100:tr0.02` (cap 35 deg, the rig default) |
+| `drake:hydro:rt0.01` | `drake:hydro:E1e7:r1:rt0.01` |
+
+The rig specs are the ones `docs/experiments/20261001-hom_contact_patch/torsion.jsonl` was measured
+with, so the torsion numbers of that study apply to the same models.
+
+## Re-run
+
+    PY=logs/20261001-hom_contact/venv/bin/python        # MuJoCo 3.6 + Drake 1.57
+    ~/.claude/bin/resguard.sh status
+    ~/.claude/bin/resguard.sh run --mem 1G --cpu 100 -- env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 \
+        $PY scripts/contact_bed_pull.py --out docs/experiments/20261005-contact_bed/pull_slip.jsonl
+
+Set the thread limits inside the wrapped command, not before `resguard.sh`: the gate reads `nproc`,
+which honours `OMP_NUM_THREADS`, and with 1 it refuses every launch.
+
+The script skips (model, N, dt) cases already in the output and appends one fsynced JSON line per
+case. One case: `--models mj:point3 --N 1 --dt 1`. The whole grid (4 models x N 0.5, 1, 3 N x
+dt 1, 5 ms) ran single-core in 29 s at 412 MB peak RSS on 2026-10-05; Drake takes 27 s of it.
+
+## What a row holds
+
+Per case: settle normal forces, `F_onset` and `mu_eff = F_onset / (2N)`, `u_pre_mm` (axial
+displacement before onset), `v_at_half_onset_mm_s` and `v_at_090_onset_mm_s` (pre-slip creep speed
+during the ramp), `creep_mm_s` and `hold_disp_mm` (1 s hold at 50 % of the onset force),
+`v_slip_mean50_mm_s` (mean slip speed over the first 50 ms after onset; rigid Coulomb with equal
+static and kinetic friction gives `v_slip_mean50_coulomb_mm_s` = 34 mm/s), `v_slip_cv50` (its
+per-step coefficient of variation: 0.89 for smooth Coulomb slip, higher values flag stick-slip),
+`mu_slide` ((F - m a) / 2N, a from a quadratic fit of the displacement over 5-60 ms after onset), `us_per_step_median` (wall time of the rig's step call), plus 5 ms ramp and 10 ms hold
+traces.
+
+Onset definition: before onset the tool creeps at v = c F (c fitted between 30 and 80 % of the force
+at which the speed first passes 10 mm/s). Onset is the last step on that law; every later step up to
+detection has v > 2 c F + 0.2 mm/s. Force resolution is the ramp step, 2 mN at 1 ms and 10 mN at 5 ms. At 5 ms the MuJoCo point contacts'
+solref time constant (6 ms) is clamped by MuJoCo to 2 dt = 10 ms.
