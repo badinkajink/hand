@@ -1,0 +1,213 @@
+That is the first result that really cuts against the strong version of the story.
+It says the static part is nice and clean:
+\[
+k_i \rightarrow \text{runtime inertia compensation} \rightarrow F_i \approx k_i\delta_i
+\]
+but once the contact is actually doing interesting manipulation, MuJoCo is no longer behaving like the local constitutive model you intended. The acceleration term and friction-cone coupling are not small corrections; they are materially changing the normal force.
+That matters because your whole finite-patch torsional behavior comes downstream of the normal pressure distribution. If the normal forces move substantially away from the intended spring-damper field during slip, then even if the aggregate screwdriver trajectory happens to match Drake, you have to be careful about interpreting that as “MuJoCo is discretizing hydroelastic contact.”
+The larger-\(R\) / stronger-regularization experiment Codex is doing is exactly the right one. Conceptually, it is testing whether you can move the native constraint dynamics toward
+\[
+f_i \approx k_i\delta_i + c_i\dot\delta_i
+\]
+by making the regularization dominate the inertial coupling terms, while preserving the same physical \(k,c\) through the parameter translation.
+If that works, then you may have a tunable regime:
+\[
+\text{native MuJoCo contact}
+\xrightarrow[\text{larger regularization}]{}
+\text{approximately local compliant foundation}
+\]
+and you can quantify the tradeoff between fidelity and whatever numerical cost/stability/penetration it induces.
+If it doesn't work, I think the scientific conclusion becomes very crisp rather than disastrous:
+Native MuJoCo soft contacts can be parameterized to reproduce a prescribed local compliant law at static equilibrium, including correcting for configuration-dependent Delassus scaling, but their dynamic forces are intrinsically coupled through rigid-body acceleration and friction-cone constraints and therefore do not in general realize independent Winkler elements during slip.
+
+That's actually a useful result.
+Then there are two possible directions.
+One is pragmatic/control-equivalent: maybe the aggregate wrench and controlled-slip trajectory are still good enough. Your screwdriver task is evidence that this could happen despite incorrect local force decomposition. For learning/MPC, that may honestly be sufficient.
+The other is mechanics-faithful: if you really require each quadrature point to obey the local foundation law dynamically, you probably need to step outside stock MuJoCo's contact-law semantics—custom applied forces, a custom constraint formulation, or something closer to CSLC.
+The particularly interesting experiment now is not just “does the force error decrease with regularization?” I would have Codex produce a decomposition like
+\[
+f_i^{MJ}
+=
+\underbrace{f_i^{\text{local target}}}_{k_i\delta_i+c_i\dot\delta_i}
++
+\underbrace{\Delta f_i^{\text{accel}}}_{J\ddot q}
++
+\underbrace{\Delta f_i^{\text{cone/coupling}}}_{\text{friction solve}}
++\cdots
+\]
+even if that decomposition is approximate. Plotting those terms over the brake would tell you why and when the Winkler interpretation breaks.
+And there is a subtle upside: this gives the Sathya/Delassus connection even more teeth. The off-diagonal/inertial coupling isn't some theoretical nuisance anymore. You just measured it corrupting the desired local contact law during the exact regime you care about.
+So I'm less bullish on “we have native MuJoCo hydroelastic contact” than an hour ago, but still bullish on the project. The question has become sharper:
+Can a dense, fixed, robot-side compliant contact basis deliver useful finite-patch dynamics for manipulation despite the solver's nonlocal constraint coupling—and what minimal modification makes it behave like the intended constitutive model?
+
+That's a better scientific question than simply showing that lots of spheres match Drake.
+
+
+
+
+
+
+    
+
+
+
+
+
+
+
+
+i guess the other concern that all this work ontop will kill the speedup benefits. and then we hsould have just been using drake all along
+
+
+
+
+
+ 
+
+
+
+
+
+
+Yes, that is now the main pragmatic risk.
+If the path becomes
+\[
+\text{dense spheres}
++\text{runtime Delassus diagonal}
++\text{per-contact reparameterization}
++\text{extra regularization}
++\text{dynamic corrections}
++\text{special handling near slip}
+\]
+then you can absolutely end up eroding the original reason this was attractive: native MuJoCo simplicity and speed.
+The important thing is to distinguish overhead that is basically free from overhead that changes the computational class.
+The current static correction is probably not a dealbreaker. Reading or computing a per-contact diagonal term and updating a scalar impedance is cheap compared with collision detection + constraint solve, especially if newer MuJoCo already exposes the relevant runtime diagonal efficiently. That could still preserve most of the speed advantage.
+What would worry me is if getting dynamic fidelity requires:
+- evaluating substantial off-diagonal Delassus structure,
+- iterative per-contact corrections,
+- custom force solves,
+- very large regularization that forces smaller timesteps/more iterations,
+- or effectively reconstructing a local compliant solve around every patch.
+At that point you are rebuilding the machinery that Drake/Newton already have, except inside a representation that started out less principled.
+And your baseline gap was large enough that there is room before that happens. You had roughly:
+\[
+74\text{ ms/sim-s}
+\]
+for the 1 mm MuJoCo sphere model versus about
+\[
+2407\text{ ms/sim-s}
+\]
+for the Drake hydroelastic case on that CPU setup.
+So you had something like a 30× margin. You do not need every refinement to be free. Even a 3–5× slowdown could leave this meaningfully attractive.
+But I would now explicitly make speed–fidelity Pareto one of the core experiments rather than treating speed as an incidental benchmark.
+For each variant:
+\[
+\text{baseline}
+\rightarrow
+\text{static-\(\Lambda\) compensated}
+\rightarrow
+\text{diagexact}
+\rightarrow
+\text{stronger regularization}
+\rightarrow
+\text{whatever dynamic fix comes next}
+\]
+measure both:
+\[
+\text{contact-law / task error}
+\]
+and
+\[
+\text{wall-clock cost}.
+\]
+Then you get a plot with something like:
+- x-axis: runtime relative to baseline MuJoCo
+- y-axis: error versus Drake/Newton
+- points: each model variant.
+That graph probably decides the project.
+If the curve looks like:
+\[
+1\times \text{ cost} \rightarrow 20\%\text{ error}
+\]
+\[
+1.2\times \rightarrow 5\%
+\]
+\[
+1.5\times \rightarrow 2\%
+\]
+great. Strong result.
+If it looks like:
+\[
+1\times \rightarrow 20\%
+\]
+\[
+5\times \rightarrow 10\%
+\]
+\[
+20\times \rightarrow 5\%
+\]
+then, yeah, the obvious question becomes “why aren't we just using Drake/Newton?”
+There is still one possible saving grace even in the latter case: learning throughput. MuJoCo's ecosystem, batching, GPU paths, and integration with RL/MPC stacks can make a representation useful even if one single-environment CPU benchmark loses some of its original margin. But you would need to actually demonstrate that; you cannot lean on it rhetorically.
+So I think your decision rule should be pretty ruthless:
+If the minimally corrected native-contact model preserves the finite-patch behaviors you care about while remaining at least several-times faster than the physically richer alternatives, keep going.
+
+If not, then the experiments still did something useful: they told you precisely where native MuJoCo stops being the right substrate.
+And scientifically, that is a much better outcome than spending six months polishing a contact model that only works because the evaluation never pushed it into the regime where its assumptions break.
+
+
+
+
+
+
+    
+
+
+
+
+
+
+
+
+you were pretty bangon:
+
+The finer-step trial is promising: the dense 819-sphere plane model keeps the target stiffness and damping, slides, and stops again. Its normal-force error is about 0.20% over the evaluated interval and 1.29% during sliding. Achieving that required a smaller timestep and separate tangential damping parameters; runtime inertia compensation alone was insufficient. I’m checking transfer across masses, cylinder contact, and resolution now.
+
+
+
+
+
+ 
+
+
+
+
+
+
+Yeah — that is exactly the regime I was hoping existed.
+The important part is that the correction stack is still small and interpretable:
+- runtime inertia compensation for the normal compliance,
+- a smaller timestep,
+- separate tangential damping,
+- no custom contact solver yet.
+And the error numbers are actually good enough to matter: ~0.20% normal-force error overall and ~1.29% during sliding on the dense 819-sphere case is not “qualitatively similar”; that is pretty tight for a native MuJoCo approximation.
+The next question is whether this is a robust operating regime or just one carefully chosen point. If it transfers across mass, curvature, and resolution without per-case retuning, then I think the story becomes substantially stronger:
+\[
+\text{physical local law}
+\rightarrow
+\text{runtime inertia-normalized MuJoCo parameters}
+\rightarrow
+\text{small-step native solve}
+\]
+with low dynamic error.
+If instead every change in mass/curvature/resolution needs another hand-tuned damping/timestep choice, then it’s less compelling.
+The speed question also just became concrete rather than hypothetical. Measure the slowdown from:
+1. baseline 1 mm model,
+2. compensated 1 mm,
+3. compensated + smaller timestep,
+4. dense 0.5 mm / 819-sphere case.
+If the “good dynamics” regime is still, say, several-times faster than Drake/Newton, I’d be pretty excited. If the smaller timestep alone costs 4× but you started with ~30× headroom, that may still be completely acceptable.
+What I’d want to see next is one plot or table with:
+\[
+\text{mass} \times \text{geometry} \times \text{resolution}
+\]
+and columns for dynamic force error, slip/brake trajectory error, and runtime. That will tell you very quickly whether you found a real usable regime or a fragile one.

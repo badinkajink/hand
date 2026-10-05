@@ -48,6 +48,12 @@ STICK = np.array([0.0, 0.0, 0.0, 1.0, 1.0, 1.0])     # Eq. 2 weights: separation
 RATE_LIN, RATE_ANG = 0.020, math.radians(40.0)       # the paper's step magnitudes
 
 
+class TaskEscape(RuntimeError):
+    def __init__(self, rollout, reason):
+        self.rollout = rollout
+        super().__init__(reason)
+
+
 def unit(v):
     return v / np.linalg.norm(v)
 
@@ -55,10 +61,16 @@ def unit(v):
 class Rollout:
     """Plant, mirror and the controller's joint references, advanced one 100 Hz tick at a time."""
 
+    # New matched-timestep studies can suppress a one-tick floating-point overshoot.
+    # Zero preserves the historical task schedule for existing callers.
+    time_tolerance = 0.0
+
     def __init__(self, spec, trial, q_init, palm_init, geom_dirs=None, tool_pose=None, film=None, title="",
-                 focus="thumb", wide=None):
+                 focus="thumb", wide=None, contact_policy="legacy", physics_dt=None):
         self.spec, self.trial = spec, trial
-        self.plant = K.make_plant(spec, trial, q_init, palm_init, geom_dirs)
+        self.contact_policy = contact_policy
+        self.plant = K.make_plant(spec, trial, q_init, palm_init, geom_dirs,
+                                  contact_policy=contact_policy, physics_dt=physics_dt)
         if tool_pose is not None:
             self.set_tool(*tool_pose)
         sp = B.parse_spec(spec)
@@ -134,7 +146,7 @@ class Rollout:
             if log:
                 row.update(log)
             self.rows.append(row)
-        if self.renderer is not None and self.k % 4 == 0:
+        if self.renderer is not None and self.k % max(1, round(K.RATE / 25)) == 0:
             self.frames.append(self.renderer.frame(self.plant, self.st, self.title, phase, None, self.F["thumb"],
                                                    self.fr[self.focus], line=line))
         t2 = time.perf_counter()
@@ -144,6 +156,12 @@ class Rollout:
         self.perf["sim"] += self.dt
         self.k += 1
         self.t_ctrl0 = time.perf_counter()
+        if self.contact_policy.startswith("physical"):
+            state = self.plant.state()
+            if (not all(np.isfinite(v).all() for v in (state["q"], state["tool_pos"], state["tool_v"], state["tool_w"]))
+                    or np.linalg.norm(state["tool_pos"] - self.lay["c"]) > 0.5
+                    or np.max(np.abs(state["tool_w"])) > 2000):
+                raise TaskEscape(self, "nonfinite/0.5 m escape/2000 rad/s bound")
         self.read()
 
     def hom(self, f, vref, w, twist=None, q_h=None):
@@ -188,15 +206,15 @@ class Rollout:
                 if self.mode[f] == "force":
                     self.F[f] = F_on * min(1.0, (self.t - t_c[f]) / ramp)
             self.tick(phase, line)
-            if len(t_c) == len(fingers) and self.t - max(t_c.values()) > settle:
+            if len(t_c) == len(fingers) and self.t - max(t_c.values()) > settle + self.time_tolerance:
                 return True
-            if self.t - t0 > timeout:
+            if self.t - t0 > timeout + self.time_tolerance:
                 return False
 
     def ramp_force(self, fingers, F_to, T, phase, geometric=True, line=None, log=None):
         F_from = {f: self.F[f] for f in fingers}
         t0 = self.t
-        while self.t - t0 < T:
+        while self.t - t0 < T - self.time_tolerance:
             s = min(1.0, (self.t - t0) / T)
             for f in fingers:
                 a, b = F_from[f], F_to
@@ -220,7 +238,8 @@ class Rollout:
 
 # ------------------------------------------------------------------------------------------- pick
 
-def pick_and_lift(spec, trial, film=None, title="", focus="thumb", wide=None, geom_dirs=None):
+def pick_and_lift(spec, trial, film=None, title="", focus="thumb", wide=None, geom_dirs=None,
+                  contact_policy="legacy", physics_dt=None):
     """The chain's pick (approach, close at F0, lift 90 mm), returning the rollout and whether both pads hold."""
     lay = K.world_layout(trial)
     P, a = lay["P"], lay["a"]
@@ -237,16 +256,17 @@ def pick_and_lift(spec, trial, film=None, title="", focus="thumb", wide=None, ge
     start[2] += 0.060
     if geom_dirs is None and B.parse_spec(spec)["model"] == "spheres":
         geom_dirs = K.contact_dirs(q_open)
-    ro = Rollout(spec, trial, q_open, start, geom_dirs=geom_dirs, film=film, title=title, focus=focus, wide=wide)
+    ro = Rollout(spec, trial, q_open, start, geom_dirs=geom_dirs, film=film, title=title,
+                 focus=focus, wide=wide, contact_policy=contact_policy, physics_dt=physics_dt)
     t0 = ro.t
-    while ro.t - t0 < 1.1:
+    while ro.t - t0 < 1.1 - ro.time_tolerance:
         s, _, _ = K.minjerk(ro.t - t0, 1.0)
         ro.palm = start + s * (pick - start)
         ro.tick("approach")
     ok = ro.close(("thumb", "index"), K.F0)
     lift_from = ro.palm.copy()
     t0 = ro.t
-    while ro.t - t0 < 1.5:
+    while ro.t - t0 < 1.5 - ro.time_tolerance:
         s, _, _ = K.minjerk(ro.t - t0, 1.2)
         ro.palm = lift_from + s * np.array([0, 0, K.LIFT, 0])
         ro.tick("lift")
@@ -268,13 +288,16 @@ def wide_in_hand(trial, el=-3.0, dist=0.24):
 EXP2_SEQ = ("v_pinch", "v_up", "v_tool", "w_pinch", "w_up", "w_tool")
 
 
-def exp2(spec=SPEC, film=None, T_step=0.4, T_rest=0.3, w_spin=0.0):
+def exp2(spec=SPEC, film=None, T_step=0.4, T_rest=0.3, w_spin=0.0,
+         contact_policy="legacy", physics_dt=None):
     """w_spin > 0 also holds each pad's spin about its normal at the tool's (Eq. 2 spin row)."""
     t0w = time.time()
     trial = K.make_trial(0)
     title = f"Exp 2, tool twist in the pinch: {K.label(spec)}"
-    ro, ok = pick_and_lift(spec, trial, film, title, wide=wide_in_hand(trial))
-    res = {"task": "exp2", "spec": spec, "pick_ok": ok, "w_spin": w_spin}
+    ro, ok = pick_and_lift(spec, trial, film, title, wide=wide_in_hand(trial),
+                           contact_policy=contact_policy, physics_dt=physics_dt)
+    res = {"task": "exp2", "spec": spec, "pick_ok": ok, "w_spin": w_spin,
+           "contact_policy": contact_policy, "physics_dt": physics_dt or H.DT}
     # task frame at the start: e1 pinch axis (thumb -> index), e3 tool axis, e2 = e3 x e1 turned upward
     e1 = unit(ro.fr["index"]["p_fing"] - ro.fr["thumb"]["p_fing"])
     e3 = ro.st["tool_R"][:, 2]
@@ -294,7 +317,7 @@ def exp2(spec=SPEC, film=None, T_step=0.4, T_rest=0.3, w_spin=0.0):
         ref = np.zeros(6)
         ref[k] = val
         t0 = ro.t
-        while ro.t - t0 < T:
+        while ro.t - t0 < T - ro.time_tolerance:
             c = ro.pinch_mid()
             v_ref = Ef @ ref[:3]
             w_ref = Ef @ ref[3:]
@@ -596,7 +619,7 @@ def run_all(keys=("s1", "p4s", "mp3"), tasks=("wield", "exp3", "exp2")):
     p = OUT / "paper_tasks.jsonl"
     have = set()
     if p.exists():
-        have = {(json.loads(l)["task"], json.loads(l)["key"]) for l in open(p) if l.strip()}
+        have = {(json.loads(line)["task"], json.loads(line)["key"]) for line in open(p) if line.strip()}
     for task in tasks:
         for key in keys:
             spec = MODELS[key]

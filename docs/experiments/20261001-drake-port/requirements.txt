@@ -1,0 +1,4 @@
+# Isolated study environment; do not sync this into the main project env.
+drake==1.57.0
+mujoco==3.6.0
+numpy==2.5.3

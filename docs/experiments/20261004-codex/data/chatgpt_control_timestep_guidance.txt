@@ -1,0 +1,44 @@
+Source: user-supplied ChatGPT commentary, 4 October 2026.
+Status: proposal, not an experiment result. Archived verbatim below (plain-text formatting).
+
+That is why I think the reduced surface model is increasingly attractive. A Winkler/Pasternak/CSLC-like model does not necessarily imply tiny timesteps if you formulate it as an implicit/quasi-static contact solve rather than a pile of explicit stiff springs.
+
+For your application, the dynamics you care about are probably:
+
+- object rolling/sliding,
+- patch migration,
+- gross shear buildup,
+- stick/slip transitions,
+- controller response,
+
+not the 5–50 kHz elastic vibration modes of a printed gyroid cell.
+
+So I would explicitly integrate out those fast modes.
+
+My current hierarchy would be:
+
+| Model | 10–20 ms direct step? | 1 ms internal + 10–20 ms control? |
+| --- | --- | --- |
+| Current dense native MuJoCo spheres | probably no | maybe, but currently not demonstrated |
+| Drake hydroelastic | probably too coarse for raw physics | yes, depending on task |
+| Newton hydroelastic | unknown / likely similar issue | plausible |
+| Explicit CSLC-like stiff lattice | probably no | perhaps |
+| Implicit/quasi-static reduced fingertip | plausibly yes | very plausible |
+
+And for Sunyu-type velocity-controlled manipulation, I would absolutely test the practical question before designing a new model:
+
+Run the exact same rolling task with a 20 ms controller and sweep the internal physics timestep:
+
+\[ 50\mu s,\ 0.5\text{ ms},\ 1\text{ ms},\ 2\text{ ms},\ 5\text{ ms},\ 10\text{ ms}. \]
+
+Compare MuJoCo spheres against Drake at the task level, not \(k\delta\):
+
+\[ \text{roll angle},\quad \text{slip distance},\quad \text{object pose},\quad \text{wrench},\quad \text{success}. \]
+
+It's entirely possible that the local constitutive law looks terrible at 2 ms but the closed-loop rolling task is basically unchanged. If so, great: that's the operating point you care about.
+
+If performance collapses above 50–100 µs, then I would stop trying to rescue the native-sphere model and build the reduced implicit skin.
+
+So no, 50–100 Hz control is not the problem. That's exactly the right regime.
+
+The real question is whether we can get the internal contact model cheap enough that each 10–20 ms control interval does not require hundreds of expensive physics solves.

@@ -1,0 +1,205 @@
+I think you have finally reached the experiment that decides whether the whole thing matters:
+\[
+\boxed{\text{Can coarse, fast MuJoCo distributed contact reproduce Drake-level rolling behavior?}}
+\]
+Forget perfect Winkler dynamics for a bit and test that.
+
+
+
+
+
+
+    
+
+
+
+
+
+
+
+
+let's say i wanted to better model a tpu printed finger, using either eflesh (venkatesh et al) cell cut microstructures, or a more traditional sparse gyroid infll. there's some work suggesting that gyroid infills can better approximate a winkler surface, but there is still going to be some kind of lateral coupling. fundamentally, would i have to use CLSC, newton, drake, or some other kind of contact model? again, i'm not wed to the spheres. but from wha ti unhderstand, nothing can really do what i want to do: either fast enough and coarse enough for online contorl (recdeing horizon mpc) or parallel sim for RL policies
+
+
+
+
+
+ 
+
+
+
+
+
+
+Worked for 1m 12s
+
+
+
+I think the important realization is: you do not fundamentally have to choose CSLC, Drake, or Newton. In fact, if the target is a printed TPU fingertip with gyroid/cut-cell mechanics, none of those is really “ground truth.”
+eFlesh is explicitly using tiled cut-cell microstructures to tune the sensor's mechanical response, and gyroid structures are amenable to homogenization into effective elastic properties; published work finds gyroids can be close to elastically isotropic at the continuum scale. GitHub But a homogenized gyroid still has finite shear modulus/Poisson effects, so it is not literally a bed of uncoupled Winkler springs.
+The useful way to think about it is that there are two different shear effects you may want:
+\[
+\text{normal deformation at }i
+\longleftrightarrow
+\text{normal deformation at neighboring }j
+\]
+from lateral load spreading through the TPU, and
+\[
+\text{relative tangential motion}
+\longrightarrow
+\text{pre-slip shear deformation}
+\longrightarrow
+\text{Coulomb slip}
+\]
+from the skin deforming tangentially before sliding.
+Your current MuJoCo construction doesn't really contain either one as a material state. CSLC does: every surface element has a 3-D displacement, including tangential deformation, and neighboring elements are coupled by lateral springs.     22_Compliant_Sphere_Lattice_Co
+But Drake doesn't actually solve those mechanics either. Its documentation explicitly says hydroelastic contact does not model true deformation and therefore does not capture effects such as tangential compliance. It precomputes a pressure field so that it can cheaply approximate a distributed normal contact patch. Drake
+Newton's current hydroelastic model is much closer to Drake in that respect than to FEM: distributed pressure/SDF geometry, followed by contact resolution and potentially aggressive reduction. Your own Newton experiment is illustrative: 920 raw pressure contacts became 24 while essentially retaining normal force, but the torsional friction envelope was not perfectly preserved even with moment matching.     Articulated contact: holding, t…
+So I would rank them roughly as:
+model	normal patch	lateral elastic coupling	tangential elastic state	plausible large-scale speed
+Your current MuJoCo spheres	yes-ish	no	no	excellent → poor when forced to high fidelity
+Drake hydroelastic	good	implicit only through pressure-field construction, not actual deformation	no	moderate
+Newton hydroelastic	good	similar class of approximation	no	potentially very good on GPU
+CSLC	yes	yes	yes	unclear / currently custom solve
+FEM/MPM of TPU microstructure	best physical reference	yes	yes	terrible for your inner loop
+
+
+So CSLC is conceptually closest to what you want, but I would not conclude “therefore use CSLC.” CSLC is one discretization of a more general reduced model.
+I think your actual desired model sits between Winkler and FEM
+There is a very natural extension of Winkler called a Pasternak/shear-layer foundation: instead of independent springs, neighboring foundation elements interact through shear. More generally, you can represent the surface by a sparse operator:
+\[
+\mathbf f_n
+=
+K_n\boldsymbol\delta_n
++
+K_{\ell n}L\boldsymbol\delta_n
++
+C_n\dot{\boldsymbol\delta}_n
+\]
+where \(L\) is the surface graph Laplacian.
+Then add a tangential state \(\boldsymbol\xi_i\) at each surface element:
+\[
+\mathbf f_{t,i}
+=
+K_t\boldsymbol\xi_i
++
+K_{\ell t}(L\boldsymbol\xi)_i
++
+C_t\mathbf v_{t,i},
+\]
+until
+\[
+\|\mathbf f_{t,i}\|=\mu f_{n,i},
+\]
+at which point that element slips.
+That gives you:
+\[
+\boxed{
+\text{normal compliance}
++
+\text{lateral load spreading}
++
+\text{pre-slip shear}
++
+\text{distributed Coulomb slip}
+}
+\]
+without tetrahedralizing the fingertip.
+This is essentially a CSLC-like surface constitutive model without committing to spheres. You could use a triangular surface mesh, regular UV grid, taxel locations, whatever is convenient.
+And there is actually decades of precedent for the tangential part: brush models for tires do almost exactly this. A distributed contact patch carries tangential spring/bristle deformation as material enters and leaves the patch, with the local traction eventually saturating at Coulomb friction. They were developed precisely to cheaply model rolling, braking, slip, and distributed contact without running FEM. The Contact Patch There are even brush-type models shown to reproduce normal and shear forces similar to much more expensive FE models in rolling contact. ScienceDirect
+That seems extremely relevant to the rolling tasks you've been thinking about.
+The hardware gives you a very useful simplification
+You don't need to simulate individual gyroid cells online.
+Do expensive work once:
+\[
+\text{cell-scale FEM / hardware experiments}
+\rightarrow
+\text{homogenized fingertip surface model}
+\]
+and use the reduced model during control.
+For example, indent one location and measure the spatial displacement/force response:
+\[
+u(r)\sim e^{-r/\ell}.
+\]
+That gives you an effective lateral coupling length \(\ell\). Do shear and torsional experiments to identify tangential stiffness, damping, and friction. Do a couple of rates to identify TPU hysteresis.
+Then your online model might need only
+\[
+k_n,\quad k_t,\quad \ell_n,\quad\ell_t,\quad c_n,\quad c_t,\quad\mu
+\]
+plus perhaps nonlinear lookup tables versus compression.
+For an eFlesh cut-cell design, you could extract those parameters from cell-scale FE and then verify them experimentally. For gyroid, homogenized moduli are already a standard thing to compute; the literature explicitly derives effective elastic moduli as functions of infill geometry/density. MDPI
+There is also a useful physical decision criterion:
+\[
+\frac{\ell_{\rm coupling}}{r_{\rm patch}}.
+\]
+If
+\[
+\ell_{\rm coupling}\ll r_{\rm patch},
+\]
+your original Winkler idea is probably sufficient.
+If
+\[
+\ell_{\rm coupling}\sim r_{\rm patch},
+\]
+you want this sparse coupled-foundation model.
+If
+\[
+\ell_{\rm coupling}\gg r_{\rm patch},
+\]
+then the deformation is genuinely global and you probably need a small modal/shell model rather than local springs.
+That's something you can design the TPU around, too.
+And this may actually solve your computational problem
+The reason your current MuJoCo experiment became ridiculous at 50 µs is that you're asking the entire articulated rigid-body solver to resolve hundreds of stiff soft constraints.
+You don't have to do that.
+A robot-fixed surface model has a fixed topology. Its elastic operator is fixed:
+\[
+K =
+K_n I + K_\ell L.
+\]
+That is an enormously exploitable structure. You could pre-factorize it, use a handful of Jacobi iterations, run it as a sparse GPU stencil, or reduce it into perhaps 10–30 deformation modes per fingertip.
+Then the simulation can look like:
+\[
+(q,\dot q)
+\rightarrow
+\text{surface penetration/velocity}
+\rightarrow
+\boxed{\text{cheap fingertip constitutive solve}}
+\rightarrow
+(F,\tau)
+\rightarrow
+\text{rigid-body dynamics}.
+\]
+You can integrate the little skin model implicitly or subcycle it without advancing the entire hand at 20 kHz.
+For MPC, I would be especially attracted to a modal contact skin:
+\[
+\boldsymbol\delta \approx \Phi z,
+\qquad z\in\mathbb R^{10\text{–}30}
+\]
+rather than 800 physical states. The modes can come from FE of the actual printed fingertip or from measured influence functions. Then each fingertip contact solve is tiny.
+For RL, the same constitutive model can run directly as a GPU kernel over all the surface nodes/worlds. There is nothing inherently sequential about local springs + sparse neighbor coupling + friction projection.
+So I don't think the fundamental situation is:
+“Realistic soft contact is inherently too expensive for MPC/RL.”
+
+I think it is closer to:
+General-purpose soft-contact simulators are solving a more general problem than you need.
+
+You know the robot-side soft body in advance. Its geometry, topology, microstructure, deformation modes, and sensor layout are fixed. The environment objects are the unknown things.
+That asymmetry is extremely valuable.
+This actually makes the hardware/simulation co-design idea stronger
+Imagine deliberately making your TPU fingertip such that:
+- the cell size is small relative to typical contact patches,
+- normal response is approximately local,
+- lateral coupling has a short, well-characterized length,
+- tangential compliance is predictable,
+- hysteresis isn't outrageous,
+- tactile samples correspond naturally to the reduced surface states.
+Then you're not asking:
+“Which simulator can perfectly simulate this TPU fingertip?”
+
+You're asking:
+“What TPU fingertip can I manufacture whose relevant contact mechanics admit a cheap reduced-order model?”
+
+eFlesh is particularly appealing because its cut-cell construction is already designed to tune mechanical response. GitHub
+So I don't think there's currently an off-the-shelf package that gives you actual microstructured TPU mechanics + shear memory + 1 ms-ish MPC simulation + thousands of parallel RL environments.
+But I also don't think that's a fundamental dead end. I increasingly think the interesting solution is a homogenized, robot-fixed compliant surface model—something between Winkler and CSLC, probably with a brush/friction state and sparse lateral coupling.
+And that would be a substantially more coherent research direction than spending another week trying to convince stock MuJoCo contacts to impersonate that material.

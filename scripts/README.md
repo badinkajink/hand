@@ -17,6 +17,13 @@ the `.sh` launchers handle both).
 
 ## The `real_v1` hardware hand (2026-08-27)
 
+The optional Drake planning study uses a separate CPU environment, with setup commands in
+`drake_sr2_probe.py`. `drake_sr2_hand.py` adapts the source hand into frozen, locked-gantry or
+actuated models; `drake_sr2_probe.py` checks kinematics, collision-constrained IK, morphology
+optimization and import limitations. `drake_sr2_page.py` rebuilds the local
+[planning report](../docs/experiments/20261001-drake-port/20261001-drake_sr2_planning.html).
+This is a planning prototype, not an entry in the production backend factory.
+
 The CAD-matched hand: 33.45/33.45/37.16 mm links that OVERLAP by 12.70 mm, CAD ROM, and real XY
 gantry travel. It is a separate topology from the m05/baseline lineage and **nothing transfers
 onto it** — a10/b33 were trained on a 117 mm finger with coincident yaw/MCP axes.
@@ -108,6 +115,10 @@ telemetry stops while a writer owns the bus, so a careless probe reads one stale
 
 | script | role |
 |---|---|
+| `distributed_contact.py`, `distributed_contact_dynamics.py`, `distributed_contact_page.py` | frozen SR2 chain regression; plane/cylinder, mass/solver and 6 mm fillet audits; isolated newer-MuJoCo runtime inertia, acceleration and controlled-slip tests; resumable manifests and DOCX/HTML report. Runbook: `docs/experiments/20261004-codex/README.md` |
+| `distributed_contact_transfer.py`, `distributed_contact_gpu.py`, `distributed_contact_drake.py`, `distributed_contact_newton.py`, `distributed_contact_pressure.py`, `profile_contact_mapping.py`, `distributed_contact_transfer_page.py` | articulated SR2 holding/torsion and payload tests with fixed sample area/stiffness; vectorized or precomputed physical mapping; measured CPU stages, mjlab CUDA batches, matched Drake and Newton pressure/reduction controls; HTML report and portable traces. Same runbook as above. |
+| `distributed_contact_videos.py`, `distributed_contact_video_snapshots.py`, `distributed_contact_video_page.py` | capture native trajectories without overwriting experiments, render force-colored close-ups and synchronized comparisons, and build the contact video gallery; includes failed runs, archived GPU poses and explicitly static pressure/fillet snapshots. Same runbook as above. |
+| `distributed_contact_tasks.py`, `distributed_contact_diagexact_tasks.py`, `distributed_contact_geometry_videos.py`, `distributed_contact_task_page.py` | SR2 pickup/brake/insertion and Wang-style rolling task across MuJoCo/Drake; MuJoCo 3.14 exact-diagonal ablation; guided and force-ramp sliding across plane, cylinders and spheres; native films and task report. Same runbook as above. |
 | `morph_pipeline_sweep.py` (+`_plots`) | co-design sweep: per design XML→IK→CEM→A→B→handoff eval, health-gated. Runbook: `docs/rl/morph_sweep_STATUS.md` |
 | `probe_queue.sh` | policy-bottleneck probe queue (P1 rescue → P2 avar): A best-of-N + paired imit/self B. Plan+decision tree: `morph_sweep_STATUS.md` §probes |
 | `make_sweep_video_grids.py` | labeled ffmpeg comparison grids from a sweep tag (best replica/design): lift-phase grid, reorient-phase grid, optional highlights row |

@@ -366,7 +366,11 @@ class Scene:
     def set_finger_flat_pads(self, *, reach: float = 0.01055, width: float = 0.0148,
                              depth: float | None = None, pad_len: float = 0.0148,
                              links: bool = True) -> "Scene":
-        """Replace the round capsules/sphere with the real flat-faced cross-section.
+        """Replace the round capsules/sphere with the legacy sharp-box approximation.
+
+        This is not the current hardware's high-fidelity shape: the user confirmed a
+        6 mm edge fillet on 2026-10-04. Preserve this mutator for reproducing older
+        experiments; see docs/experiments/20261004-codex for the separate fillet audit.
 
         `reach`   joint axis to the object-facing flat face (the one number that is preserved)
         `width`   across the finger, along the bend axis

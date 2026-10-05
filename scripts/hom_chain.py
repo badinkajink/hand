@@ -300,15 +300,48 @@ def contact_dirs(q9):
 class MjChainPlant:
     sim = "mujoco"
 
-    def __init__(self, spec, trial, q_init, palm_init, geom_dirs=None):
+    def __init__(self, spec, trial, q_init, palm_init, geom_dirs=None,
+                 contact_policy="legacy", physics_dt=None):
         import mujoco
         self.mj, self.sp, self.trial = mujoco, B.parse_spec(spec), trial
+        self.physics_dt = physics_dt or H.DT
+        tangent_ratio = 1000.0 if "ct1000" in contact_policy else 100.0 if "ct100" in contact_policy else 10.0
         if self.sp["model"] == "spheres" and geom_dirs is None:
             geom_dirs = contact_dirs(q_init)
         elif self.sp["model"] != "spheres":
             geom_dirs = None
         xml, self.info, self.lay = chain_scene(spec, trial, geom_dirs)
-        if self.sp["model"] == "spheres":
+        if self.sp["model"] == "spheres" and contact_policy.startswith("physical"):
+            from contact_surface.scaling import compensated_solref
+            root = ET.fromstring(xml)
+            option = root.find("option")
+            option.set("impratio", "10000")
+            pair_parent = root.find("contact")
+            if pair_parent is None:
+                pair_parent = ET.SubElement(root, "contact")
+            m0 = mujoco.MjModel.from_xml_string(xml)
+            d0, relaxation, ir = 0.0001, 0.03, 10000.0
+            selected = []
+            for geom in root.iter("geom"):
+                name = geom.get("name", "")
+                if not name.startswith(("thumb_pad", "index_pad")):
+                    continue
+                gid = m0.geom(name).id
+                lam = float(m0.body_invweight0[m0.geom_bodyid[gid], 0]
+                            + m0.body_invweight0[m0.body("tool").id, 0])
+                sr = compensated_solref(self.info["K_sphere"], relaxation, d0, lam)
+                selected.append(lam)
+                ET.SubElement(pair_parent, "pair", geom1=name, geom2="tool", condim="3",
+                              friction=f"{trial['mu']:g} {trial['mu']:g} 0 0 0",
+                              solref=f"{sr[0]:.12g} {sr[1]:.12g}",
+                              solimp=f"{d0} {d0} .001 .5 2",
+                              solreffriction=f"0 {sr[1] * tangent_ratio / ir:.12g}")
+            xml = ET.tostring(root, encoding="unicode")
+            self.info.update(contact_policy="physical_selected_direct", sample_stiffness_N_per_m=self.info["K_sphere"],
+                             relaxation_s=relaxation, impedance=d0, impratio=ir,
+                             tangent_damping_ratio=tangent_ratio,
+                             selected_inverse_inertia_range=[min(selected), max(selected)])
+        elif self.sp["model"] == "spheres":
             m0 = mujoco.MjModel.from_xml_string(xml)
             diag = m0.body_invweight0[m0.body("thumb_tip").id, 0] + m0.body_invweight0[m0.body("tool").id, 0]
             tc = self.sp["tr"] / 2.0
@@ -319,7 +352,24 @@ class MjChainPlant:
             self.info.update(solref_timeconst=tc, solimp_d0=d0, diagApprox=float(diag))
         self.xml = xml
         m = self.m = mujoco.MjModel.from_xml_string(xml)
+        if contact_policy.endswith("diagexact"):
+            m.opt.enableflags |= mujoco.mjtEnableBit.mjENBL_DIAGEXACT
+        m.opt.timestep = self.physics_dt
         self.d = mujoco.MjData(m)
+        self.runtime_contact_parameters = None
+        if contact_policy.startswith("physical_runtime"):
+            stiffness_by_geom = np.zeros(m.ngeom)
+            for geom_id in range(m.ngeom):
+                if m.geom(geom_id).name.startswith(("thumb_pad", "index_pad")):
+                    stiffness_by_geom[geom_id] = self.info["K_sphere"]
+            self.runtime_contact_parameters = dict(
+                mapping_policy="runtime_selected_direct",
+                sample_stiffness_by_geom=stiffness_by_geom,
+                relaxation=0.03,
+                tangent_damping_ratio=tangent_ratio,
+            )
+        self.info["diagexact"] = bool(m.opt.enableflags & mujoco.mjtEnableBit.mjENBL_DIAGEXACT) if hasattr(mujoco.mjtEnableBit, "mjENBL_DIAGEXACT") else False
+        self.info["runtime_contact_mapping"] = self.runtime_contact_parameters is not None
         self.fq = np.array([m.jnt_qposadr[m.joint(n).id] for f in B.FINGERS for n in B.JOINTS[f]])
         self.fv = np.array([m.jnt_dofadr[m.joint(n).id] for f in B.FINGERS for n in B.JOINTS[f]])
         self.pq = np.array([m.jnt_qposadr[m.joint(n).id] for n in ("palm_x", "palm_y", "palm_z", "palm_yaw")])
@@ -354,14 +404,19 @@ class MjChainPlant:
         self.d.ctrl[9:13] = palm4
 
     def step(self, T):
-        n = max(1, int(round(T / H.DT)))
+        n = max(1, int(round(T / self.physics_dt)))
         c, pw = self.fit
         mu = self.trial["mu"]
         for _ in range(n):
             if self.resched:
                 for g, N in self.lastN.items():
                     self.m.geom_friction[g, 1] = mu * c * max(N, 1e-3) ** pw
-            self.mj.mj_step(self.m, self.d)
+            if self.runtime_contact_parameters is None:
+                self.mj.mj_step(self.m, self.d)
+            else:
+                from contact_surface.runtime import step1
+                step1(self.m, self.d, self.runtime_contact_parameters)
+                self.mj.mj_step2(self.m, self.d)
             if self.resched:
                 self.lastN = self.per_geom_N()
 
@@ -411,7 +466,7 @@ class DrakeChainPlant:
     and environment, PD servos with the calibrated gains, stiff PD palm stage with weight feedforward."""
     sim = "drake"
 
-    def __init__(self, spec, trial, q_init, palm_init):
+    def __init__(self, spec, trial, q_init, palm_init, physics_dt=None):
         from pydrake.all import (
             AddCompliantHydroelasticProperties, AddContactMaterial, AddMultibodyPlant,
             AddRigidHydroelasticProperties, CoulombFriction, DiagramBuilder, MultibodyPlantConfig,
@@ -445,7 +500,7 @@ class DrakeChainPlant:
                 if child.tag == "geom" and child.get("rgba") in ("0.85 0.3 0.2 1", "0.12 0.13 0.16 1"):
                     parent.remove(child)
         b = DiagramBuilder()
-        cfg = MultibodyPlantConfig(time_step=H.DT, discrete_contact_approximation="sap",
+        cfg = MultibodyPlantConfig(time_step=physics_dt or H.DT, discrete_contact_approximation="sap",
                                    contact_model="hydroelastic_with_fallback" if hydro else "point")
         plant, sg = AddMultibodyPlant(cfg, b)
         parser = Parser(plant, sg)
@@ -653,13 +708,14 @@ class DrakeChainPlant:
         return out
 
 
-def make_plant(spec, trial, q_init, palm_init, geom_dirs=None):
+def make_plant(spec, trial, q_init, palm_init, geom_dirs=None,
+               contact_policy="legacy", physics_dt=None):
     """geom_dirs (MuJoCo sphere pads only): {finger: tip-frame direction of its pad's cap}; default thumb and index
     toward the pinch."""
     sp = B.parse_spec(spec)
     if sp["sim"] == "mj":
-        return MjChainPlant(spec, trial, q_init, palm_init, geom_dirs)
-    return DrakeChainPlant(spec, trial, q_init, palm_init)
+        return MjChainPlant(spec, trial, q_init, palm_init, geom_dirs, contact_policy, physics_dt)
+    return DrakeChainPlant(spec, trial, q_init, palm_init, physics_dt)
 
 
 # -------------------------------------------------------------------------------------- the brake
@@ -729,7 +785,8 @@ class ClosedBrake:
 # ---------------------------------------------------------------------------------- the chain
 
 def run_chain(spec, seed=0, brake="closed", d_cg=0.015, clearance=0.001, film=None, perturb=True,
-              F1=0.5, T_ramp=3.0, insert_force=None, verbose=False, film_every=4, closeup=None):
+              F1=0.5, T_ramp=3.0, insert_force=None, verbose=False, film_every=4, closeup=None,
+              contact_policy="legacy", physics_dt=None):
     """One chain rollout. Returns a result row (metrics per stage, a decimated trace)."""
     t0w = time.time()
     trial = make_trial(seed, d_cg, clearance, perturb)
@@ -749,13 +806,12 @@ def run_chain(spec, seed=0, brake="closed", d_cg=0.015, clearance=0.001, film=No
     pick[3] = psi
     start = pick.copy()
     start[2] += 0.060
-    plant = make_plant(spec, trial, q_open, start)
+    plant = make_plant(spec, trial, q_open, start, contact_policy=contact_policy, physics_dt=physics_dt)
     mirror = C.Mirror(plant.xml if plant.sim == "mujoco" else plant.xml_mirror)
     if plant.sim == "mujoco" and B.parse_spec(spec)["model"] == "spheres":
         mirror = C.Mirror(chain_scene("mj:point3", trial)[0])
     kp = B.PLANT["kp"]
     dt = 1.0 / RATE
-    n_sub = int(round(dt / H.DT))
     q_ref = q_open.copy()
     palm_tgt = start.copy()
     phase, t_phase = "approach", 0.0
@@ -767,7 +823,8 @@ def run_chain(spec, seed=0, brake="closed", d_cg=0.015, clearance=0.001, film=No
     brake_ctl = ClosedBrake(d_cg) if brake == "closed" else None
     phi_prev, sax_prev = None, None
     a0 = u_w = None
-    res = {"exp": "chain", "spec": spec, "brake": brake, "trial": trial, "ik_err_mm": ik_err * 1e3}
+    res = {"exp": "chain", "spec": spec, "brake": brake, "trial": trial, "ik_err_mm": ik_err * 1e3,
+           "contact_policy": contact_policy, "physics_dt": physics_dt or H.DT}
     stable_t = 0.0
     lift_from = palm_from = None
     hole = lay["hole"]
@@ -926,6 +983,13 @@ def run_chain(spec, seed=0, brake="closed", d_cg=0.015, clearance=0.001, film=No
         tc3 = time.perf_counter()
         perf["render"] += tc3 - tc2
         plant.step(dt)
+        if contact_policy.startswith("physical"):
+            nxt = plant.state()
+            if (not all(np.isfinite(v).all() for v in (nxt["q"], nxt["tool_pos"], nxt["tool_v"], nxt["tool_w"]))
+                    or np.linalg.norm(nxt["tool_pos"] - lay["c"]) > 0.5
+                    or np.max(np.abs(nxt["tool_w"])) > 2000):
+                res["guard_failure"] = "nonfinite/0.5 m escape/2000 rad/s bound"
+                break
         perf["phys"][phase] = perf["phys"].get(phase, 0.0) + time.perf_counter() - tc3
         perf["sim"][phase] = perf["sim"].get(phase, 0.0) + dt
     tr = rows
