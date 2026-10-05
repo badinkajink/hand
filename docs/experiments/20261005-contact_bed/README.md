@@ -43,3 +43,24 @@ Onset definition: before onset the tool creeps at v = c F (c fitted between 30 a
 at which the speed first passes 10 mm/s). Onset is the last step on that law; every later step up to
 detection has v > 2 c F + 0.2 mm/s. Force resolution is the ramp step, 2 mN at 1 ms and 10 mN at 5 ms. At 5 ms the MuJoCo point contacts'
 solref time constant (6 ms) is clamped by MuJoCo to 2 dt = 10 ms.
+
+## Status at the end of 2026-10-05 (session limit)
+
+The bed was run by six parallel agents that all stopped at the account's session limit. Rows on disk:
+`pull_slip.jsonl` (36, incl. the pad consistency set), `twist_slip.jsonl` (36), `shake.jsonl` (68, written by the
+first version of `contact_bed_shake.py`; the agent had moved them aside to re-run with two extra Coulomb fields, and
+they were restored unchanged), `brake.jsonl` (13), and Newton's `pull_slip_newton.jsonl`, `twist_slip_newton.jsonl`,
+`static_newton.jsonl`; GPU rows in `../20261005-gpu_scaling/newton_scaling.jsonl` and `cpu_gpu_consistency.jsonl`.
+
+Not run (scripts written, each resumes from its JSONL):
+
+    PY=logs/20261001-hom_contact/venv/bin/python
+    ~/.claude/bin/resguard.sh run --mem 2G --cpu 100 -- env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 $PY scripts/contact_bed_roll.py
+    ~/.claude/bin/resguard.sh run --mem 2G --cpu 100 -- env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 $PY scripts/contact_bed_creep.py
+    ~/.claude/bin/resguard.sh run --mem 2G --cpu 100 -- env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 $PY scripts/contact_bed_stability.py
+    logs/20261004-contact-transfer/venv/bin/python scripts/newton_scaling.py      # 4096-8192 worlds, unreduced 4096+
+    logs/20261004-contact-transfer/venv/bin/python scripts/contact_bed_newton.py  # Newton shake, brake, roll
+
+Pages: `python3 scripts/contact_bed_page.py` and `python3 scripts/contact_overview_page.py`, then republish to the
+URLs in `artifact_url.txt` beside each page. Open finding: Newton carries 2.3-2.9x the hydroelastic law's torque at
+spin onset (task 2); vary its friction gain (`kf10` in the spec) and the 100x tool stiffness first.

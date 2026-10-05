@@ -1,0 +1,111 @@
+<title>Fingertip contact model bed</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+{{STYLE}}
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">MorphoHand &#183; real_v1 fingertip and screwdriver, two-pad rig &#183; contact comparison bed &#183; 5 October 2026 &#183; built {{BUILT}}</div>
+  <h1>Agreement and cost of five fingertip contact models on pinch, twist, roll, shake and brake tasks</h1>
+  <p class="lede">{{LEDE}}</p>
+  <div class="byline">two real_v1 fingertip spheres (R&#8202;10.55&#8202;mm, 20&#8202;g) on force-controlled rails squeeze the real_v1 screwdriver
+  (r&#8202;12.5&#8202;mm, 100&#8202;mm, 24.5&#8202;g), &#956;&#8202;1 &#183; MuJoCo 3.6, Drake 1.57 SAP, Newton {{NEWTON_REV}} with MuJoCo-Warp 3.14 &#183;
+  protocol <code>docs/experiments/20261005-contact_bed/PROTOCOL.md</code> &#183; scripts <code>scripts/contact_bed_*.py</code>,
+  <code>scripts/pad_mass_calibration.py</code>, <code>scripts/gpu_scaling_mjwarp.py</code>, <code>scripts/newton_scaling.py</code> &#183;
+  builder <code>scripts/contact_bed_page.py</code> &#183; overview and derivations: <code>{{OVERVIEW_PATH}}</code>{{OVERVIEW_LINK}}</div>
+</header>
+
+<nav class="toc"><div class="col">
+<ol>
+<li><a href="#setup">Rig, models and protocol</a></li>
+<li><a href="#summary">Summary of agreement</a></li>
+<li><a href="#t1">Task 1: pull to slip</a></li>
+<li><a href="#t2">Task 2: twist to spin</a></li>
+<li><a href="#t3">Task 3: roll between the pads</a></li>
+<li><a href="#t4">Task 4: shake while held</a></li>
+<li><a href="#t5">Task 5: brake to hanging</a></li>
+<li><a href="#t6">Task 6: creep, impratio and noslip</a></li>
+<li><a href="#t7">Task 7: largest stable step</a></li>
+<li><a href="#consist">Consistency of the pads</a></li>
+<li><a href="#cost">Cost on CPU and GPU</a></li>
+<li><a href="#open">What this does not settle</a></li>
+</ol>
+</div></nav>
+
+<section id="setup"><div class="col">
+<h2>Rig, models and protocol</h2>
+<p class="sub">one rig, five contact models, seven tasks, one row per case</p>
+{{SETUP}}
+</div></section>
+
+<section id="summary"><div class="col">
+<h2>Summary of agreement</h2>
+<p class="sub">task metrics against Drake hydroelastic, the analytic limits, and where the models part</p>
+{{SUMMARY}}
+</div></section>
+
+<section id="t1"><div class="col">
+<h2>Task 1: pull to slip</h2>
+<p class="sub">an axial force ramp at 2&#8202;N/s until the tool slides, and a hold at half the slip force</p>
+{{T1}}
+</div></section>
+
+<section id="t2"><div class="col">
+<h2>Task 2: twist to spin</h2>
+<p class="sub">a torque ramp about the pinch axis until the tool spins, the friction arm at onset, and creep under half the torque</p>
+{{T2}}
+</div></section>
+
+<section id="t3"><div class="col">
+<h2>Task 3: roll between the pads</h2>
+<p class="sub">one pad translates across the tool while both press it, so the tool rolls</p>
+{{T3}}
+</div></section>
+
+<section id="t4"><div class="col">
+<h2>Task 4: shake while held</h2>
+<p class="sub">the held tool, axis vertical, shaken along its axis at 5&#8202;Hz</p>
+{{T4}}
+</div></section>
+
+<section id="t5"><div class="col">
+<h2>Task 5: brake to hanging</h2>
+<p class="sub">the pinch force lowered from 6 to 0.2&#8202;N so the tool swings about the pinch axis toward hanging</p>
+{{T5}}
+</div></section>
+
+<section id="t6"><div class="col">
+<h2>Task 6: creep, impratio and noslip</h2>
+<p class="sub">what removes MuJoCo&#8217;s creep under a held load, and what it costs</p>
+{{T6}}
+</div></section>
+
+<section id="t7"><div class="col">
+<h2>Task 7: largest stable step</h2>
+<p class="sub">the collective damping bound of a pad against measured stability</p>
+{{T7}}
+</div></section>
+
+<section id="consist"><div class="col">
+<h2>Consistency of the pads</h2>
+<p class="sub">the same tasks at physics steps from 0.5 to 5&#8202;ms and pad spacings of 2, 1 and 0.5&#8202;mm</p>
+{{CONSIST}}
+</div></section>
+
+<section id="cost"><div class="col">
+<h2>Cost on CPU and GPU</h2>
+<p class="sub">physics wall time per step on one core, and batched throughput on one GPU</p>
+{{COST}}
+</div></section>
+
+<section id="open"><div class="col">
+<h2>What this does not settle</h2>
+<p class="sub">each item names the run that would settle it</p>
+{{OPEN}}
+</div></section>
+
+<footer><div class="col">
+{{FOOTER}}
+</div></footer>
+</div>

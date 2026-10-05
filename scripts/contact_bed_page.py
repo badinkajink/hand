@@ -1,0 +1,432 @@
+#!/usr/bin/env python3
+r"""Build docs/experiments/20261005-contact_bed/20261005-contact_model_bed.html from the bed's JSONL rows.
+
+    python3 scripts/contact_bed_page.py
+
+Reads the task rows written by scripts/contact_bed_*.py (pull_slip, twist_slip, roll, shake, brake, creep, stability,
+and the *_newton.jsonl twins from scripts/contact_bed_newton.py), the GPU rows of 20261005-gpu_scaling/, and the films
+under media/. Shares its figure helpers, model table and style with scripts/contact_overview_page.py. Every number in
+the prose is computed here; a task whose rows are missing renders a note instead.
+"""
+from __future__ import annotations
+
+import math
+import os
+import statistics
+import sys
+import time
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(ROOT, "scripts"))
+import contact_overview_page as P  # noqa: E402
+import texsvg  # noqa: E402
+
+BED = P.BED
+OUT = os.path.join(BED, "20261005-contact_model_bed.html")
+TPL = os.path.join(ROOT, "scripts/contact_bed_page.template.html")
+TEX_CACHE = os.path.join(BED, "texsvg_cache.json")
+OVERVIEW_PATH = "docs/experiments/20261005-contact_overview/20261005-sphere_pad_contact_model.html"
+OVERVIEW_URL_FILE = os.path.join(P.D, "artifact_url.txt")
+
+ALL = P.ORDER + ["newton_hydro_unreduced", "mj_pads2", "mj_pads05"]
+CONS = ["mj_pads2", "mj_pads1", "mj_pads05"]
+COL = {k: v[1] for k, v in P.MODELS.items()}
+COL.update({"mj_pads2": "var(--s1)", "mj_pads05": "var(--c-sphere)", "newton_hydro_unreduced": "var(--c-newton)"})
+SHAPE = {k: v[2] for k, v in P.MODELS.items()}
+SHAPE.update({"mj_pads2": "square", "mj_pads05": "diamond", "newton_hydro_unreduced": "diamond"})
+LBL = {k: v[0] for k, v in P.MODELS.items()}
+LBL.update({"mj_pads2": "MuJoCo 2 mm sphere pad", "mj_pads05": "MuJoCo 0.5 mm sphere pad",
+            "newton_hydro_unreduced": "Newton hydroelastic, unreduced"})
+H = P.HTML_LBL
+num, fmt, first, pick, _eq = P.num, P.fmt, P.first, P.pick, P._eq
+US = P.US
+
+
+def ok(r):
+    return r is not None and r.get("status", "complete") == "complete"
+
+
+def table(head, rows, cls=""):
+    out = [f"<table{' class=' + repr(cls) if cls else ''}><thead><tr>" +
+           "".join(f"<th{' class=num' if i else ''}>{h}</th>" for i, h in enumerate(head)) + "</tr></thead><tbody>"]
+    for r in rows:
+        if isinstance(r, str):
+            out.append(f"<tr class='grp'><td colspan='{len(head)}'>{r}</td></tr>")
+            continue
+        out.append("<tr>" + "".join(f"<td{' class=num' if i else ''}>{c}</td>" for i, c in enumerate(r)) + "</tr>")
+    out.append("</tbody></table>")
+    return "<div class='tw'>" + "".join(out) + "</div>"
+
+
+def film(path_rel, caption, poster_rel=None):
+    p = os.path.join(BED, path_rel)
+    if not os.path.exists(p):
+        return ""
+    pp = os.path.join(BED, poster_rel) if poster_rel else None
+    poster = f' poster="{P.R.data_uri(pp, "image/jpeg")}"' if pp and os.path.exists(pp) else ""
+    return (f'<figure><video src="{P.R.data_uri(p, "video/mp4")}"{poster} controls muted loop playsinline preload="metadata">'
+            f'</video><figcaption>{caption} <code>docs/experiments/20261005-contact_bed/{path_rel}</code></figcaption></figure>')
+
+
+FIG = [0]
+
+
+def fignum():
+    FIG[0] += 1
+    return FIG[0]
+
+
+def figure(svg, caption):
+    return f'<figure class="diagram">{svg}<figcaption>Figure&#160;{fignum()}. {caption}</figcaption></figure>'
+
+
+def models_present(rows, keys=ALL):
+    return [k for k in keys if any(r.get("model") == k for r in rows)]
+
+
+# ------------------------------------------------------------------------------------------ setup and summary
+
+def setup(T):
+    n = sum(len(v) for v in T.values())
+    specs = {}
+    for rows in T.values():
+        for r in rows:
+            specs.setdefault(r.get("model"), r.get("rig_spec") or r.get("spec"))
+    rows = [[H.get(k, k), f"<code>{specs[k]}</code>"] for k in ALL if specs.get(k)]
+    return (f"<p>Every case runs on the two-pad pinch rig of the 10-01 study (<code>scripts/hom_contact_rig.py</code>): two real_v1 "
+            f"fingertip spheres on rails along x press the screwdriver, whose axis lies along y, with a commanded force N per pad. "
+            f"Tasks add one load or motion each. The protocol (<code>docs/experiments/20261005-contact_bed/PROTOCOL.md</code>) "
+            f"fixes the parameters, metrics and row fields for every script, so rows written by different scripts and simulators "
+            f"compare directly. {n} rows so far. Model strings:</p>" + table(["model", "spec"], rows) +
+            "<p>Drake hydroelastic and Newton hydroelastic are pressure-field references, not ground truth. The analytic limits "
+            "are rigid Coulomb friction and the hydroelastic arm law. The real fingertip, printed TPU, is modelled by none of "
+            "them.</p>")
+
+
+def summary(T, M):
+    dev = P.deviations(M)
+    lines = []
+    for k in P.ORDER:
+        if dev.get(k):
+            lines.append(f"{H[k]}: median {statistics.median(dev[k]):.1f}&#8202;% over {len(dev[k])} metrics")
+    return (P.agree_table(M) + "<p class='tnote'>Shading compares each model with Drake hydroelastic: within 10&#8202;% (dark green), "
+            "10&#8211;25&#8202;% (light), 25&#8211;50&#8202;% (amber), beyond 50&#8202;% or a failed case (red). A dash marks a case not run.</p>" +
+            ("<p>Median absolute deviation from Drake over the metrics above: " + "; ".join(lines) + ".</p>" if lines else ""))
+
+
+# ------------------------------------------------------------------------------------------ task 1: pull
+
+def t1(rows):
+    if not rows:
+        return P.pending("No pull rows.")
+    out = []
+    head = ["model, N per pad", "&#956; at slip", "displacement before onset (&#181;m)", "creep at half load (&#181;m/s)",
+            "slip speed, 50&#8202;ms (mm/s)", "sliding &#956;", f"{US} per step"]
+    body = []
+    for k in models_present(rows):
+        body.append(H.get(k, k))
+        for N in (0.5, 1.0, 3.0):
+            r = pick(rows, k, N=N, dt_ms=1.0)
+            if not r:
+                continue
+            if not ok(r):
+                body.append([f"{N:g}&#8202;N", r.get("status", "failed")] + [""] * 5)
+                continue
+            body.append([f"{N:g}&#8202;N", fmt(r.get("mu_eff"), 3), fmt(first(r, "u_pre_mm") * 1e3 if first(r, "u_pre_mm") is not None else None, 1),
+                         fmt(r["creep_mm_s"] * 1e3 if r.get("creep_mm_s") is not None else None, 2),
+                         fmt(r.get("v_slip_mean50_mm_s"), 1), fmt(r.get("mu_slide"), 3), fmt(r.get("us_per_step_median"), 1)])
+    out.append(table(head, body))
+    out.append("<p class='tnote'>Table: task&#160;1 at a 1&#8202;ms step. Rigid Coulomb friction with equal static and kinetic &#956; "
+               "slides at 34&#8202;mm/s on average over the first 50&#8202;ms.</p>")
+    out.append(figure(svg_pull(rows), "Tool speed against the pull force during the 2&#8202;N/s ramp, N&#8202;=&#8202;1&#8202;N per pad, "
+                      "1&#8202;ms step. Below the onset each model creeps at a speed proportional to the load; the MuJoCo models creep "
+                      "two orders of magnitude faster than Drake. The vertical line is rigid Coulomb onset, F&#8202;=&#8202;2&#956;N."))
+    return "".join(out)
+
+
+def svg_pull(rows):
+    W, Hh = 980, 400
+    out = P._svg_open(W, Hh, "Tool speed against pull force, log scale; MuJoCo models creep about a hundred times faster than "
+                             "Drake before onset, and all slide past 2 N.")
+    fx, fy = P._panel(out, 90, 46, 640, 290, (0.0, 2.6), (1e-5, 1e3), (0, 0.5, 1.0, 1.5, 2.0, 2.5),
+                      (1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1, 10, 100, 1000), "pull force (N)", "tool speed along its axis (mm/s), log scale",
+                      False, True, yfmt=lambda v: f"{v:g}")
+    out.append(f'<line x1="{fx(2.0):.1f}" x2="{fx(2.0):.1f}" y1="46" y2="336" style="stroke:var(--c-ref);stroke-dasharray:6 5"/>'
+               f'<text x="{fx(2.0) + 6:.1f}" y="62" style="fill:var(--ink3)">2&#956;N</text>')
+    leg = []
+    for k in models_present(rows, P.ORDER):
+        r = pick(rows, k, N=1.0, dt_ms=1.0)
+        if not ok(r) or not r.get("ramp"):
+            continue
+        cols = r["ramp_cols"]
+        iF, iv = cols.index("F"), cols.index("v_mm_s")
+        pts = [(p[iF], max(abs(p[iv]), 1e-5)) for p in r["ramp"] if p[iF] <= 2.6]
+        P._path(out, fx, fy, pts, COL[k], dashed=P.MODELS[k][3], width=1.8)
+        leg.append((LBL[k], COL[k], P.MODELS[k][3], None))
+    out.append("</svg>")
+    return "".join(out) + P._legend_html(leg)
+
+
+# ------------------------------------------------------------------------------------------ task 4: shake
+
+def t4(rows):
+    if not rows:
+        return P.pending("No shake rows.")
+    out = []
+    head = ["model, N, a<sub>pk</sub>", "Coulomb load ratio", "rigid Coulomb drift (mm/cycle)", "drift (mm/cycle)",
+            "peak relative displacement (mm)", "dropped", f"{US} per step"]
+    body = []
+    for k in models_present(rows):
+        body.append(H.get(k, k))
+        for N in (0.2, 0.5):
+            for g in (0.5, 1.0, 2.0, 4.0):
+                r = pick(rows, k, N=N, a_pk_g=g, dt_ms=1.0)
+                if not r:
+                    continue
+                if not ok(r):
+                    body.append([f"{N:g}&#8202;N, {g:g}&#8202;g", "", "", r.get("status", "failed"), "", "", ""])
+                    continue
+                body.append([f"{N:g}&#8202;N, {g:g}&#8202;g", fmt(r.get("coulomb_load_ratio"), 2), fmt(r.get("coulomb_drift_per_cycle_mm"), 3),
+                             fmt(r.get("drift_per_cycle_mm"), 4), fmt(r.get("peak_rel_disp_mm"), 3),
+                             ("yes" if r.get("drop") else "no"), fmt(r.get("us_per_step_median"), 1)])
+    out.append(figure(svg_shake(rows), "Net drift of the tool along its axis per 5&#8202;Hz cycle against peak shake acceleration, "
+                      "1&#8202;ms step, gravity along the axis. Grey: rigid Coulomb friction, which slips once m(g&#8202;+&#8202;a<sub>pk</sub>) "
+                      "exceeds 2&#956;N. Below that threshold every drift is creep."))
+    out.append(table(head, body))
+    out.append(film("media/shake_models.mp4", "Task&#160;4 at N&#8202;=&#8202;0.5&#8202;N and 2&#8202;g in every model, side by side.",
+                    "media/shake_models_poster.jpg"))
+    return "".join(out)
+
+
+def svg_shake(rows):
+    W, Hh = 980, 400
+    out = P._svg_open(W, Hh, "Drift per cycle against shake acceleration for two pinch forces.")
+    leg = {}
+    for j, N in enumerate((0.2, 0.5)):
+        x0 = 80 + j * 470
+        fx, fy = P._panel(out, x0, 46, 380, 280, (0.4, 5.0), (1e-5, 30.0), (0.5, 1, 2, 4), (1e-4, 1e-3, 1e-2, 0.1, 1, 10),
+                          "peak acceleration a_pk (g), log scale", f"N = {N:g} N per pad: |drift| per cycle (mm), log", True, True,
+                          yfmt=lambda v: f"{v:g}")
+        cpts = []
+        for g in (0.5, 1.0, 2.0, 4.0):
+            r = next((q for q in rows if _eq(q.get("N"), N) and _eq(q.get("a_pk_g"), g) and q.get("coulomb_drift_per_cycle_mm") is not None), None)
+            if r:
+                cpts.append((g, max(r["coulomb_drift_per_cycle_mm"], 1e-5)))
+        P._path(out, fx, fy, cpts, "var(--c-ref)", dashed=True, width=2)
+        for k in models_present(rows):
+            pts = []
+            for g in (0.5, 1.0, 2.0, 4.0):
+                r = pick(rows, k, N=N, a_pk_g=g, dt_ms=1.0)
+                if ok(r) and r.get("drift_per_cycle_mm") is not None:
+                    pts.append((g, max(abs(r["drift_per_cycle_mm"]), 1e-5)))
+            if pts and k in P.ORDER:
+                P._path(out, fx, fy, pts, COL[k], width=1.6)
+                for g, v in pts:
+                    P._marker(out, fx(g), fy(v), COL[k], SHAPE[k], title=f"{LBL[k]}, {N:g} N, {g:g} g: {v:.4f} mm/cycle")
+                leg[k] = (LBL[k], COL[k], False, SHAPE[k])
+    out.append("</svg>")
+    return "".join(out) + P._legend_html([("rigid Coulomb", "var(--c-ref)", True, None)] + list(leg.values()))
+
+
+# ------------------------------------------------------------------------------------------ task 2: twist
+
+def t2(rows):
+    if not rows:
+        return P.pending("Task&#160;2 rows are not written yet.")
+    head = ["model, N", "arm at onset (mm)", "onset / law", "sliding arm (mm)", "turn before onset (&#176;)",
+            "creep (&#176;/s)", f"{US}/step"]
+    body = []
+    for k in models_present(rows):
+        body.append(H.get(k, k))
+        for N in (0.5, 1.0, 3.0):
+            r = pick(rows, k, N=N, dt_ms=1.0)
+            if not r:
+                continue
+            if not ok(r):
+                body.append([f"{N:g}&#8202;N", r.get("status", "failed")] + [""] * 5)
+                continue
+            body.append([f"{N:g}&#8202;N", fmt(r.get("rbar_onset_mm"), 3), fmt(r.get("tau_onset_over_law"), 3), fmt(r.get("rbar_kin_mm"), 3),
+                         fmt(r.get("rot_pre_deg"), 2), fmt(r.get("creep_deg_s"), 3), fmt(r.get("us_per_step_median"), 0)])
+    fig, _ = P.svg_scaling(rows, [])
+    out = [figure(fig, "Per-pad friction arm at the onset of spin, task&#160;2, 1&#8202;ms step, against the hydroelastic law and a Hertz "
+                  "arm equal at 1&#8202;N. Right: the arm ratio between 3 and 0.5&#8202;N."),
+           table(head, body),
+           "<p class='tnote'>Table: task&#160;2 at a 1&#8202;ms step. The law is the hydroelastic arm fitted to Drake on this rig, "
+           "0.996&#8202;mm&#183;N<sup>&#8722;1/4</sup>. Point contact has no torsional friction; its onset value is the torque at which its creep "
+           "reached the detection speed.</p>"]
+    out.append(film("media/twist_models.mp4", "Task&#160;2 at N&#8202;=&#8202;1&#8202;N in every model, side by side.", "media/twist_models.jpg"))
+    nw = [r for r in rows if r.get("model", "").startswith("newton") and ok(r) and r.get("tau_onset_over_law")]
+    if nw:
+        lo, hi = min(r["tau_onset_over_law"] for r in nw if r["dt_ms"] == 1.0), max(r["tau_onset_over_law"] for r in nw if r["dt_ms"] == 1.0)
+        out.append(f"<p>Newton hydroelastic carries {lo:.1f}&#8211;{hi:.1f}&#215; the law&#8217;s torque at onset with and without contact "
+                   "reduction, and its 5&#8202;ms runs spin at once or eject the tool. Its static pinch on the same rig has the expected "
+                   "normal force, so the excess is in the friction it applies across the patch. The probe&#8217;s friction gain "
+                   "(<code>kf10</code> in the spec) and the 100&#215; stiffer tool are the first two settings to vary.</p>")
+    return "".join(out)
+
+
+# ------------------------------------------------------------------------------------------ task 5: brake
+
+def t5(rows):
+    if not rows:
+        return P.pending("Task&#160;5 rows are not written yet.")
+    rows = [r for r in rows if r.get("role", "bed") == "bed"]
+    head = ["model", "swing end (&#176;)", "largest angle (&#176;)", "peak rate (&#176;/s)", "time to 80&#176; (s)", "axial slip at the end (mm)",
+            "still pinched", f"{US} per step"]
+    body = []
+    for k in models_present(rows):
+        r = pick(rows, k, dt_ms=1.0)
+        if not r:
+            continue
+        body.append([H.get(k, k), fmt(r.get("phi_end_deg"), 1), fmt(r.get("phi_max_deg"), 1), fmt(r.get("peak_rate_deg_s"), 0),
+                     fmt(r.get("t_80_s"), 2), fmt(r.get("slip_end_mm"), 2), "yes" if r.get("pinched_end") else "no",
+                     fmt(r.get("us_per_step_median"), 0)])
+    out = [table(head, body),
+           "<p class='tnote'>Table: task&#160;5 at a 1&#8202;ms step: gravity on, centre of mass 15&#8202;mm from the pinch line, the pinch held "
+           "at 6&#8202;N for 0.5&#8202;s and lowered geometrically to 0.2&#8202;N over 4&#8202;s. 90&#176; is hanging.</p>"]
+    out.append(film("media/brake_models.mp4", "Task&#160;5 in every model, side by side.", "media/brake_models.jpg"))
+    return "".join(out)
+
+
+def t3(rows):
+    return P.pending("Task&#160;3 (roll) was not run: <code>scripts/contact_bed_roll.py</code> is written and smoke-tested on one case per "
+                     "model, and the batch was cut off by the session limit. Re-run: "
+                     "<code>logs/20261001-hom_contact/venv/bin/python scripts/contact_bed_roll.py</code>.") if not rows else generic(rows, "roll")
+
+
+def t6(rows):
+    return P.pending("Task&#160;6 (creep) was not run: <code>scripts/contact_bed_creep.py</code> is written; its launches were refused by the "
+                     "memory guard while swap stood above 15&#8202;GB, then the session limit stopped the agent.") if not rows else generic(rows, "creep")
+
+
+def t7(rows):
+    if not rows:
+        return P.pending("Task&#160;7 (stability map) was not run: <code>scripts/contact_bed_stability.py</code> is written. The bound it tests is "
+                         "equation (14) of the overview page; Codex&#8217;s step sweep and the load-time calibration study already bracket it "
+                         "at two points (the 4&#215; tool holds at 2.5&#8202;ms and fails at 3&#8202;ms against d<sub>0</sub>t<sub>c</sub>&#8202;=&#8202;2.65&#8202;ms).")
+    return figure(P.svg_stab(rows), "Largest stable step against the bound of the overview&#8217;s equation (14).") + "<p>" + P.stab_text(rows) + "</p>"
+
+
+def generic(rows, name):
+    keys = [k for k in rows[0] if isinstance(rows[0][k], (int, float)) and not isinstance(rows[0][k], bool)][:8]
+    body = [[H.get(r.get("model"), r.get("model"))] + [fmt(r.get(k), 3) if isinstance(r.get(k), (int, float)) else str(r.get(k)) for k in keys]
+            for r in rows[:40]]
+    return table(["model"] + keys, body)
+
+
+def consist(T):
+    head = ["metric", "2&#8202;mm pad, 1&#8202;ms", "1&#8202;mm, 0.5&#8202;ms", "1&#8202;mm, 1&#8202;ms", "1&#8202;mm, 2&#8202;ms", "1&#8202;mm, 5&#8202;ms", "0.5&#8202;mm pad, 1&#8202;ms"]
+    cols = [("mj_pads2", 1.0), ("mj_pads1", 0.5), ("mj_pads1", 1.0), ("mj_pads1", 2.0), ("mj_pads1", 5.0), ("mj_pads05", 1.0)]
+    specs = [("Task 1, &#956; at slip, 1&#8202;N", T["pull"], dict(N=1.0), lambda r: r.get("mu_eff"), 3),
+             ("Task 1, creep at half load, 1&#8202;N (&#181;m/s)", T["pull"], dict(N=1.0), lambda r: r["creep_mm_s"] * 1e3, 1),
+             ("Task 2, arm at onset, 0.5&#8202;N (mm)", T["twist"], dict(N=0.5), lambda r: r.get("rbar_onset_mm"), 3),
+             ("Task 2, arm at onset, 3&#8202;N (mm)", T["twist"], dict(N=3.0), lambda r: r.get("rbar_onset_mm"), 3),
+             ("Task 4, drift per cycle, 0.5&#8202;N, 2&#8202;g (mm)", T["shake"], dict(N=0.5, a_pk_g=2.0), lambda r: r.get("drift_per_cycle_mm"), 4),
+             ("Task 5, swing end (&#176;)", [r for r in T["brake"] if r.get("role", "bed") == "bed"], {}, lambda r: r.get("phi_end_deg"), 1),
+             ("Physics step, task 1, 1&#8202;N (" + US + ")", T["pull"], dict(N=1.0), lambda r: r.get("us_per_step_median"), 1)]
+    body = []
+    for lab, rows, kw, fn, nd in specs:
+        cells = []
+        for k, dt in cols:
+            r = pick(rows, k, dt_ms=dt, **kw)
+            try:
+                cells.append(fmt(fn(r), nd) if ok(r) else "&#8211;")
+            except (TypeError, KeyError):
+                cells.append("&#8211;")
+        body.append([lab] + cells)
+    return ("<p>The 1&#8202;mm pad gives the same task results from 0.5 to 5&#8202;ms steps: the arm at onset moves by under 1&#8202;% and the "
+            "swing end by under 0.1&#176;. The 0.5&#8202;mm pad agrees with it; the 2&#8202;mm pad touches with too few spheres at 0.5&#8202;N, "
+            "and its arm there is less than half the law&#8217;s.</p>" + table(head, body))
+
+
+def cost(T, gpu_pads, gpu_newton):
+    c = P.step_cost(T["pull"])
+    rows = [[H[k], fmt(c.get(k), 1)] for k in P.ORDER if k in c]
+    return (table(["model", f"{US} per physics step, 1&#8202;ms, task&#160;1"], rows) +
+            figure(P.svg_gpu(gpu_pads, gpu_newton), "Batched GPU throughput, SR2 thumb&#8211;index holding fixture."))
+
+
+def open_items(T):
+    items = [("Roll, creep and the stability map.", "Run <code>scripts/contact_bed_roll.py</code>, <code>scripts/contact_bed_creep.py</code> and "
+              "<code>scripts/contact_bed_stability.py</code> (written, not run; each resumes from its JSONL)."),
+             ("Newton&#8217;s torsion.", "Repeat task&#160;2 in Newton with the friction gain at 1 and the tool at the pad&#8217;s stiffness; an arm "
+              "near the law would locate the 2.4&#8211;2.9&#215; excess in those settings."),
+             ("Newton on the GPU.", "Its throughput rows stop at 1024 worlds unreduced and 4096 reduced; finish 4096&#8211;8192 with "
+              "<code>scripts/newton_scaling.py</code> once task&#160;2 agrees, so the comparison is between models that carry the same torque."),
+             ("CPU against GPU pads.", "<code>scripts/pads_cpu_gpu_consistency.py</code> wrote three CPU rows; the MuJoCo-Warp twins decide whether "
+              "the GPU throughput describes the same physics."),
+             ("Creep.", "Every MuJoCo model creeps about 100&#215; faster than Drake under a held load; task&#160;6 tests <code>impratio</code> 1000 "
+              "and <code>noslip_iterations</code> 10.")]
+    return "<ul class='open'>" + "".join(f"<li><b>{a}</b> {b}</li>" for a, b in items) + "</ul>"
+
+
+# ------------------------------------------------------------------------------------------ main
+
+def render_tex(t):
+    items = [((m.group(1) if m.group(1) is not None else m.group(2)).strip(), m.group(1) is not None)
+             for m in P.TEX_RE.finditer(t)]
+    svgs = iter(texsvg.render(items, cache_path=TEX_CACHE, scale=P.TEX_SCALE))
+    return P.TEX_RE.sub(lambda m: next(svgs), t), len(items)
+
+
+def lede(T, M):
+    tw = T["twist"]
+    g = lambda k, N: pick(tw, k, N=N, dt_ms=1.0)  # noqa: E731
+    parts = []
+    try:
+        pd = [g("mj_pads1", N)["rbar_onset_mm"] / g("drake_hydro", N)["rbar_onset_mm"] - 1 for N in (0.5, 1.0, 3.0)]
+        lo_, hi_ = f"{min(abs(x) for x in pd) * 100:.0f}", f"{max(abs(x) for x in pd) * 100:.0f}"
+        parts.append(f"The 1&#8202;mm sphere pad spins the screwdriver at {lo_ if lo_ == hi_ else lo_ + '&#8211;' + hi_}&#8202;% "
+                     "less torque than Drake hydroelastic from 0.5 to 3&#8202;N, slips at the same pull force, and brakes the swing to within 1&#176; of Drake.")
+    except (TypeError, KeyError):
+        pass
+    parts.append("condim&#160;4 with its torsional coefficient rescheduled matches the torque within 6&#8202;% but has no patch. Point contact "
+                 "carries no torque and lets the tool swing through.")
+    nw = [r for r in tw if r.get("model") == "newton_hydro" and ok(r) and r.get("dt_ms") == 1.0 and r.get("tau_onset_over_law")]
+    if nw:
+        parts.append(f"Newton hydroelastic, now stable at 1&#8202;ms, carries {min(r['tau_onset_over_law'] for r in nw):.1f}&#8211;"
+                     f"{max(r['tau_onset_over_law'] for r in nw):.1f}&#215; the torque at onset, the largest disagreement in the bed.")
+    parts.append("Every MuJoCo model creeps about 100&#215; faster than Drake under a held load. The pad costs 13&#8211;24&#8202;&#181;s per step against "
+                 "1&#8211;2&#8202;ms for Drake and 0.5&#8211;3&#8202;ms for Newton on one GPU world. Roll, creep and the stability map were cut off "
+                 "and are listed at the end with their scripts.")
+    return " ".join(parts)
+
+
+def main():
+    T = {name: P.bed(fn) for name, fn in (("pull", "pull_slip"), ("twist", "twist_slip"), ("roll", "roll"),
+                                           ("shake", "shake"), ("brake", "brake"), ("creep", "creep"))}
+    stab = P.stab_rows()
+    gpu_pads = P.load(os.path.join(P.GPU, "gpu_scaling.jsonl"))
+    gpu_newton = P.load(os.path.join(P.GPU, "newton_scaling.jsonl"))
+    M = P.metrics(T)
+    v = {"STYLE": P.style_block(), "BUILT": time.strftime("%Y-%m-%d %H:%M"), "NEWTON_REV": "009158e6", "OVERVIEW_PATH": OVERVIEW_PATH}
+    u = open(OVERVIEW_URL_FILE).read().strip() if os.path.exists(OVERVIEW_URL_FILE) else ""
+    v["OVERVIEW_LINK"] = f", <a href=\"{u}\">artifact</a>" if u else ""
+    v["LEDE"] = lede(T, M)
+    v["SETUP"] = setup(T)
+    v["SUMMARY"] = summary(T, M)
+    v["T1"] = t1(T["pull"])
+    v["T2"] = t2(T["twist"])
+    v["T3"] = t3(T["roll"])
+    v["T4"] = t4(T["shake"])
+    v["T5"] = t5(T["brake"])
+    v["T6"] = t6(T["creep"])
+    v["T7"] = t7(stab)
+    v["CONSIST"] = consist(T)
+    v["COST"] = cost(T, gpu_pads, gpu_newton)
+    v["OPEN"] = open_items(T)
+    v["FOOTER"] = ("<p>Rebuild: <code>python3 scripts/contact_bed_page.py</code>. Rows: <code>docs/experiments/20261005-contact_bed/*.jsonl</code>; "
+                   "films: <code>docs/experiments/20261005-contact_bed/media/</code>.</p>")
+    t = open(TPL).read()
+    for k, val in v.items():
+        t = t.replace("{{" + k + "}}", val)
+    left = sorted(set(x.split("}}")[0] for x in t.split("{{")[1:]))
+    if left:
+        raise SystemExit(f"unfilled placeholders: {left}")
+    t, n = render_tex(t)
+    open(OUT, "w").write(t)
+    print(f"formulas {n}; wrote {OUT} ({os.path.getsize(OUT) / 1e6:.2f} MB)")
+
+
+if __name__ == "__main__":
+    main()
