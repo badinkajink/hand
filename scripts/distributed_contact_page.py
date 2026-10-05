@@ -190,7 +190,8 @@ def research_asides():
     <a href="#deligrasp">DeliGrasp</a><a href="#delassus">Delassus operator</a>
     <a href="#coupled-skin">Lateral coupling / friction</a><a href="#skin-solve">Reduced skin solve</a>
     <a href="#skin-identification">Printed TPU identification</a>
-    <a href="#timestep-benchmark">20 ms controller benchmark</a><a href="#priority">Priorities</a></nav>
+    <a href="#timestep-benchmark">20 ms controller benchmark</a>
+    <a href="#hardware-tip">Printed tip plan (not pursued now)</a><a href="#priority">Priorities</a></nav>
     <p>Original October 4 commentary: <a href="data/chatgpt_lateral_coupling_guidance.txt">attached
     lateral-coupling / tangential-friction discussion</a> and
     <a href="data/chatgpt_control_timestep_guidance.txt">controller / physics timestep proposal</a>.
@@ -285,6 +286,7 @@ def research_asides():
         "delassus",
     )
     body += reduced_skin_asides()
+    body += hardware_tip_asides()
     body += section(
         "When to revisit",
         """
@@ -487,6 +489,173 @@ fₙ ≥ 0                            ‖fₜ,ᵢ‖ ≤ μᵢ fₙ,ᵢ</pre>
         "timestep-benchmark",
     )
     return body
+
+
+RIG_ARM_MM = 0.996  # per-pad torsion arm at 1 N, Drake hydroelastic E 10 MPa (20261001 pinch rig law)
+R_TIP_MM = 10.55
+
+
+def hardware_tip_asides():
+    """Forward planning for the printed TPU fingertip (not pursued now); reads the flexcomp probe."""
+    probe = json.loads((DOC / "data/flexcomp_skin_probe.json").read_text())
+    by = {r["label"]: r for r in probe["rows"]}
+    loads = []
+    for n in (0.5, 3.0):
+        rbar = RIG_ARM_MM * n ** 0.25
+        a = 15 / 8 * rbar
+        loads.append((n, a, rbar))
+    (_, a_lo, rb_lo), (_, a_hi, rb_hi) = loads
+    cap_sites = 2 * np.pi * R_TIP_MM**2 * (1 - np.cos(np.radians(35)))
+
+    def us(label):
+        return f'{by[label]["us_per_step"]:.0f}'
+
+    def pitch(label):
+        return f'{np.sqrt(4 * np.pi * R_TIP_MM**2 / by[label]["nflexvert"]):.1f}'
+
+    probe_rows = []
+    for r in probe["rows"]:
+        if r["compiled"]:
+            outcome = (f'{r["ncon_skin_box"]} contacts, {r["vertical_force_N"]:.3f} N up, '
+                       f'tip speed {r["tip_speed_mm_s"]:.0f} mm/s')
+            probe_rows.append([r["label"], r["integrator"], r["nflexvert"], r["nv"],
+                               f'{r["us_per_step"]:.0f}', outcome])
+        else:
+            probe_rows.append([r["label"], r["integrator"], "–", "–", "–", r["error"]])
+    rad, imp = by["radial"], by["radial, implicitfast"]
+
+    return section(
+        "Coupled-foundation models for the printed fingertip",
+        f"""
+    <p><strong>Status: not pursued now.</strong> Forward planning for the hardware fingertip, which will
+    probably be a TPU print, possibly with gyroid infill. The current work is the 1 mm sphere-packed pads
+    in MuJoCo, scored on task-level friction torque, contact area and tangential friction against Drake
+    and Newton hydroelastic, with simulation speed as the main goal. Per-contact Winkler fidelity is not
+    a target of that work, and nothing in this section changes it.</p>
+    <p>The sections above carry most of the <a href="data/chatgpt_lateral_coupling_guidance.txt">archived
+    commentary</a>. Four of its items were missing and are recorded here.</p>
+    <ul>
+    <li><strong>The named model.</strong> The commentary calls the normal law a Pasternak (shear-layer)
+    foundation, f<sub>n</sub> = K<sub>n</sub>δ<sub>n</sub> + K<sub>ℓn</sub>Lδ<sub>n</sub> +
+    C<sub>n</sub>δ̇<sub>n</sub> with L the surface graph Laplacian, and gives each surface element a
+    tangential state ξ<sub>i</sub> with f<sub>t,i</sub> = K<sub>t</sub>ξ<sub>i</sub> +
+    K<sub>ℓt</sub>(Lξ)<sub>i</sub> + C<sub>t</sub>v<sub>t,i</sub> until ‖f<sub>t,i</sub>‖ =
+    μf<sub>n,i</sub>, where that element slips. This is the H<sub>n</sub>, H<sub>t</sub> sketch above
+    with α = K<sub>ℓ</sub>. The surface can be sampled by spheres, a triangle mesh, a UV grid or taxel
+    sites; no tetrahedral mesh of the fingertip is needed.</li>
+    <li><strong>The online parameter set.</strong> After an offline identification the reduced model needs
+    k<sub>n</sub>, k<sub>t</sub>, ℓ<sub>n</sub>, ℓ<sub>t</sub>, c<sub>n</sub>, c<sub>t</sub> and μ, with
+    lookup tables against compression where the print stiffens. The commentary states that homogenized
+    gyroid moduli against infill density are standard in the literature. That claim has not been checked
+    against a source here.</li>
+    <li><strong>The interface to the rigid bodies.</strong> (q, q̇) → surface penetration and velocity →
+    fingertip constitutive solve → (F, τ) → rigid-body dynamics. The skin is integrated implicitly or
+    subcycled, so the hand is not stepped at the skin's rate (the commentary's example is 20 kHz).
+    K = K<sub>n</sub>I + K<sub>ℓ</sub>L has fixed topology: it can be factorized once, relaxed with a
+    few Jacobi iterations, run as a GPU stencil, or reduced to 10–30 modes per fingertip (δ ≈ Φz) taken
+    from FEM of the printed tip or from measured influence functions.</li>
+    <li><strong>The intended consumers.</strong> A modal skin keeps each MPC contact solve to 10–30 states
+    per fingertip, and the local operator runs as one GPU kernel over surface nodes and worlds for RL.
+    The <a href="#skin-solve">skin-solve section</a> gives the reasons neither speedup is established.</li>
+    </ul>
+
+    <h3>What it would take on the hardware tip</h3>
+    <p><strong>Our numbers.</strong> The hydroelastic law that the 1 mm pads reproduce gives a torsion arm
+    per pad r̄ = {RIG_ARM_MM:.3f} mm (N / 1 N)<sup>1/4</sup> on the real_v1 fingertip
+    (<a href="../20261001-hom_contact_patch/20261001-hom_pinch_contact_models.html">pinch-torque rig</a>,
+    E = 10 MPa, Drake's default rather than a measured TPU modulus). The pressure is paraboloidal, so the
+    contact radius is a = (15/8) r̄. The rig recorded 9–22 spheres in contact per pad.</p>
+    """
+        + table(
+            ["Pad force", "Contact radius a", "Friction arm r̄", "1 mm sites in the patch, πa² / (1 mm)²"],
+            [[f"{n:g} N", f"{a:.1f} mm", f"{rb:.2f} mm", f"{np.pi * a * a:.0f}"] for n, a, rb in loads],
+        )
+        + f"""
+    <p><strong>Where the sphere pads sit.</strong> Each pad sphere is a Winkler element. At rest its MuJoCo
+    contact is an independent spring, K = 1 / (t<sub>c</sub>²(1 − d<sub>0</sub>) diagApprox), and the
+    per-sphere friction cones give distributed Coulomb slip, so the patch carries the torsion that a point
+    contact lacks (point contact gives zero torque in both simulators on the rig). Indenting one sphere
+    does not load its neighbours, so the pads have no lateral coupling; the coupling the audit measures in
+    motion runs through the Delassus operator, which is rigid-body inertia and not material. The pads also
+    have no elastic tangential pre-slip state. MuJoCo's friction law is first order with zero stiffness,
+    so below the cone the pads creep at a regularized rate instead of storing shear.</p>
+    <p><strong>Hydroelastic contact and CSLC.</strong> Hydroelastic contact is also Winkler-type: the
+    pressure at a point of the contact surface depends only on the local field value, and Drake's guide
+    excludes deformation and tangential compliance. The pads and the hydroelastic patch are therefore one
+    class of model with the same per-area stiffness E/R, which is why the pads reproduce the hydroelastic
+    torque from E alone. This page describes CSLC as a three-dimensional displacement per sphere with
+    anchor and lateral springs, solved quasistatically by damped Jacobi iterations, with presliding
+    friction that saturates smoothly and no tangential state by its authors' account. On that description
+    the pads and the hydroelastic patch correspond to CSLC's anchor springs alone, and CSLC's lateral
+    springs are the K<sub>ℓ</sub>L term.</p>
+    """
+        + table(
+            ["Model", "Normal law", "Lateral coupling", "Tangential state", "Torsion"],
+            [
+                ["1 mm sphere pads (MuJoCo)", "Winkler, per sphere", "None", "None; regularized creep", "Distributed slip"],
+                ["Drake / Newton hydroelastic", "Winkler, per surface point", "None", "None", "Distributed slip; Newton's contact reduction alters it"],
+                ["CSLC, as described on this page", "Anchor springs", "Lateral springs", "3-D displacement, tangentially stateless", "Distributed slip"],
+                ["Pasternak foundation + brush state (proposal)", "Kₙ + K_ℓ L", "K_ℓ L", "ξ with stick and slip", "Distributed slip with pre-slip"],
+            ],
+        )
+        + f"""
+    <p><strong>A MuJoCo-native route to try before a custom solver.</strong> A flexcomp skin whose vertices
+    play the pad spheres gives each contact site its own DOF. With <code>dof="radial"</code> each vertex
+    gets one slider along its radius, and that slider's spring is the Winkler anchor.
+    <code>dof="trilinear"</code> and <code>"quadratic"</code> interpolate the whole skin from 8 or 27
+    control bodies with three sliders each, close to a modal skin with fixed shape functions. A compile
+    probe on MuJoCo {probe["meta"]["mujoco"]} (<code>scripts/flexcomp_skin_probe.py</code>,
+    <a href="data/flexcomp_skin_probe.json">JSON</a>) pressed an ellipsoid skin of the fingertip's
+    10.55 mm radius onto a box at {probe["meta"]["press_N"]:g} N with a {probe["meta"]["timestep_s"] * 1e3:g} ms
+    step, slider stiffness E/R times each vertex's area share, and wall time taken over
+    {probe["meta"]["timed_steps"]} steps after a {probe["meta"]["settle_steps"]}-step settle on one core.</p>
+    """
+        + table(["Case", "Integrator", "Vertices", "nv", "µs / step", "End state or compile error"], probe_rows)
+        + f"""
+    <p>All four keywords exist in {probe["meta"]["mujoco"]}: full, radial, trilinear and quadratic; an
+    unknown keyword fails at parse. Under <code>integrator="discrete"</code> every compiled skin settled
+    on the box with the pressing force carried and zero tip speed. The {rad["nflexvert"]}-vertex radial
+    skin ({rad["nv"] - 1} sliders; one vertex has none) costs {us("radial")} µs per step, the
+    {by["radial, 11-grid"]["nflexvert"]}-vertex one {us("radial, 11-grid")} µs, and the trilinear skin
+    {us("trilinear")} µs with {by["trilinear"]["nv"] - 1} DOFs. Under implicitfast the explicit slider
+    springs chattered: after 3 s the radial skin still moved at {imp["tip_speed_mm_s"]:.0f} mm/s and held
+    {imp["ncon_skin_box"]} contacts, the <code>mjMAXCONPAIR</code> cap per geom pair, at
+    {us("radial, implicitfast")} µs per step.</p>
+    <p>Contact stiffness decides whether the skin holds at all. MuJoCo's contact stiffness scales with the
+    effective mass, and with the box's default <code>solref</code> and <code>solimp</code> mixed in, a
+    5 mg vertex contact is near 1 N/m; the first probe fell through the box. The probe puts the normal
+    compliance in the slider springs and stiffens the contact with solimp {probe["meta"]["contact_solimp"].split()[0]}
+    on both the skin and the box, because <code>solmix</code> averages the two geoms' parameters. A
+    calibrated skin would need the audit's per-contact compensation instead.</p>
+    <p>None of the native coupling options tested gives Pasternak-type load spreading on a moving finger.
+    Edge stiffness exists only for dim=1 flexes. Shell stretch is rejected under implicit and implicitfast
+    and runs under discrete ({us("radial + shell stretch")} µs per step), and with radial DOFs alone its first-order strain along
+    an edge on a sphere is (w<sub>i</sub> + w<sub>j</sub>)/2R, which adds local hoop stiffness and does not
+    spread an indentation to the neighbours; this follows from the kinematics and was not measured. Shell
+    bending, which would give a plate-on-springs coupling length (D/k)<sup>1/4</sup>, did not compile with
+    radial DOFs on the jointed tip body or on a jointless mount body. The remaining native option is a
+    passive-force callback (<code>mjcb_passive</code>) that applies K<sub>ℓ</sub>L to the slider
+    coordinates; its stability at 1 ms would need its own test. A skin at the pads' 1 mm spacing also
+    needs a cap mesh over the 35° pad, about {cap_sites:.0f} vertices, rather than the whole sphere, which
+    the two ellipsoids above sample at about {pitch("radial")} and {pitch("radial, 11-grid")} mm.</p>
+    <p><strong>Measurements that decide it on the printed tip.</strong> Indent one site with a probe much
+    smaller than a (0.5 mm tip) at 0.5, 1 and 3 N and record the displacement u(r) of the surrounding
+    surface, by DIC on a speckled tip or by a second probe stepped outward. Fit u(r) ∼ exp(−r/ℓ) and
+    compare ℓ with a = {a_lo:.1f}–{a_hi:.1f} mm. Repeat at two indentation rates for hysteresis, and once
+    over a lattice wall and once over a void: a gyroid period comparable to the {2 * a_lo:.1f}–{2 * a_hi:.1f} mm
+    patch diameter would make the law depend on where the patch lands, and no homogenized surface model
+    would hold. A torsion sweep on the pinch rig over 0.5–3 N measures the task quantity directly. The arm
+    r̄ grows by 6<sup>1/4</sup> = {6 ** 0.25:.2f} over that range under a Winkler-type law and by
+    6<sup>1/3</sup> = {6 ** (1 / 3):.2f} under a Hertzian half-space, where the whole surface is coupled.
+    A shear test at fixed normal load gives k<sub>t</sub> and the pre-slip displacement before gross slip.</p>
+    <p><strong>What would trigger the implementation.</strong> Either ℓ above about 0.5 a on the chosen
+    TPU or gyroid, which is {0.5 * a_lo:.1f} mm at 0.5 N and {0.5 * a_hi:.1f} mm at 3 N, or a task metric
+    that the pad model misses against hardware, such as the rolling ratio or pre-slip creep under a
+    sustained tangential load. A torsion-arm exponent clearly above 1/4 in the sweep counts as such a
+    miss.</p>
+    """,
+        "hardware-tip",
+    )
 
 
 def stiffness_points(results, phase, runs):
