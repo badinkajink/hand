@@ -35,6 +35,7 @@ import json
 import os
 import queue
 import shutil
+import signal
 import subprocess
 import sys
 import threading
@@ -672,6 +673,10 @@ def record(a, rs, cv2, Detector):
 
 
 def main() -> int:
+    # A detached shell launch can pass SIG_IGN through the service to this child.
+    # Restore KeyboardInterrupt so the service's SIGINT saves the trace and closes
+    # the camera, instead of recording until its 30 s shutdown timeout kills us.
+    signal.signal(signal.SIGINT, signal.default_int_handler)
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--probe", action="store_true", help="one frame, print the geometry, exit")
