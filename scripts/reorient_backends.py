@@ -9,7 +9,8 @@ more grip, a 1.1 s turn of all three fingers, 1.6 s hold), then 1.5 s of hold (t
   fingertip  `legacy`  the sharp 21.1 x 14.8 mm box the plans were exported against
              `sphere`  the 10.55 mm sphere of real_hand.xml (every contact study before 2026-10-06)
              `tpu<r>`  the printed TPU block (fingertip_geometry.py) with fillet r mm on its front edges
-  model      MuJoCo point contact on the single geom (`pt`); MuJoCo 1 mm sphere pads on the block (`pads`,
+  model      MuJoCo point contact on the single geom (`pt`); MuJoCo 1 mm sphere pads on the block (`pads`; `padsT`: pads
+             that touch only the tool, the block's mesh taking every other contact,
              stiffness E/h A_s with the inverse weight taken once at load, per finger); Drake hydroelastic
              with the tip as a compliant shape (E 10 MPa, relaxation 0.01 s, SAP)
   impratio   100 (the bed's) or 10000 (Drake's creep on the bed, 2026-10-06)
@@ -104,6 +105,21 @@ def _palm_and_start(base: Path, plan: dict):
     return d.xpos[pb].copy(), d.xquat[pb].copy(), d.qpos[a:a + 7].copy(), q
 
 
+PLANT_KEYS = {"kp": "kp", "kv": "kv", "fr": "forcerange", "fl": "frictionloss", "dp": "damping"}
+
+
+def plant_args(plant: str) -> dict:
+    """apply_measured_plant.py arguments of a PLANTS key or of a spec 'kp2_kv0.02_fr0.35_fl0_dp0.06' (dp = finger
+    joint damping; without it the template's 0.5 stays)."""
+    if plant in PLANTS:
+        return dict(PLANTS[plant])
+    out = {}
+    for tok in plant.split("_"):
+        k = tok.rstrip("0123456789.e-")
+        out[PLANT_KEYS[k]] = float(tok[len(k):])
+    return out
+
+
 def plant_scene(hand: str, plant: str, out_dir: Path = SCENES) -> Path:
     """The plan's bench scene rewritten by apply_measured_plant.py with the plant's gains and the measured masses."""
     import subprocess
@@ -112,11 +128,15 @@ def plant_scene(hand: str, plant: str, out_dir: Path = SCENES) -> Path:
     out = out_dir / "plants" / f"{HANDS[hand][0]}__{plant}.xml"
     if not out.exists():
         out.parent.mkdir(parents=True, exist_ok=True)
-        P = PLANTS[plant]
+        P = plant_args(plant)
+        args = ["--kp", f"{P['kp']:g}", "--kv", f"{P['kv']:g}", "--forcerange", f"{P['forcerange']:g}",
+                "--frictionloss", f"{P['frictionloss']:g}"]
+        if "damping" in P:
+            args += ["--damping", f"{P['damping']:g}"]
+        tmp = out.with_name(f"{out.stem}.{os.getpid()}.xml")
         subprocess.run([sys.executable, str(ROOT / "scripts/apply_measured_plant.py"), "--scene", str(base),
-                        "--out", str(out), "--kp", f"{P['kp']:g}", "--kv", f"{P['kv']:g}",
-                        "--forcerange", f"{P['forcerange']:g}", "--frictionloss", f"{P['frictionloss']:g}"],
-                       check=True, capture_output=True)
+                        "--out", str(tmp)] + args, check=True, capture_output=True)
+        os.replace(tmp, out)
     return out
 
 
@@ -176,6 +196,28 @@ def build_scene(hand: str, tip: str, model: str, plant: str, numerics: str, ir: 
     meta = {"hand": hand, "tag": HANDS[hand][0], "tip": tip, "model": model, "plant": plant, "impratio": ir,
             "numerics": numerics, "mu": MU, "post_top_z": post_top, "base_scene": str(base), "q0": q0, "tool7": tool7.tolist(), "palm_pos": palm_p.tolist(),
             "palm_quat": palm_q.tolist()}
+    meshes, pads_meta = replace_tips(root, tip, model, MU, out_dir, tool=OBJ, tool_only=(model == "padsT"))
+    meta.update(pads_meta)
+    meta["meshes"] = {str(k): str(v) for k, v in meshes.items()}
+    out_dir.mkdir(parents=True, exist_ok=True)
+    name = f"{hand}_{tip}_{model}_{plant}_{numerics}_ir{ir:g}_mu{MU:g}.xml"
+    path = out_dir / name
+    tmp = path.with_name(path.name + f".{os.getpid()}.tmp")
+    ET.ElementTree(root).write(tmp)
+    os.replace(tmp, path)
+    return path, meta
+
+
+def replace_tips(root, tip: str, model: str, MU: float, out_dir: Path, tool: str = OBJ, s: float = PAD_S,
+                 rs: float = PAD_RS, tr: float = PAD_TR, E: float = E_TPU, region=None, tool_only: bool = False):
+    """Replace each fingertip of a parsed real_v1 scene by `tip` ('legacy' keeps the geoms, 'sphere', 'tpu<r>') as
+    `model` ('pt' one geom, 'pads' sphere pads at spacing `s`, radius `rs`, relaxation `tr`). `region(C, N, sign)`
+    optionally masks the pads (C centres, N normals in the tip frame, sign = the palmar face's x direction). Pad stiffness K_s = E/h A_s is reached at
+    load through solimp d0 = 1 - 1/(tc^2 K diag), diag = inverse weights of the tip body and `tool`.
+    `tool_only`: the pads collide with the tool alone (contype 2, conaffinity 0; tool geoms contype 2, conaffinity 3)
+    and the block's convex mesh takes every other contact (floor, other fingers: contype 4, conaffinity 1).
+    Returns (meshes, meta)."""
+    import mujoco
     r = tip_r(tip)
     meshes = {}
     if r is not None:
@@ -210,40 +252,48 @@ def build_scene(hand: str, tip: str, model: str, plant: str, numerics: str, ir: 
             ET.SubElement(tipb, "geom", name=f"{f}_tipgeom", type="mesh", mesh=mesh, material="finger_mat",
                           friction=f"{MU:g} 0.005 0.0001")
         else:
-            ET.SubElement(tipb, "geom", name=f"{f}_tipvis", type="mesh", mesh=mesh, contype="0",
-                          conaffinity="0", group="1", rgba="0.85 0.55 0.35 0.35")
-            C, Nn, A, K = G.pad_spheres(r, PAD_S, PAD_RS, sgn, E_TPU)
+            vis = ET.SubElement(tipb, "geom", name=f"{f}_tipvis", type="mesh", mesh=mesh, contype="0",
+                                conaffinity="0", group="1", rgba="0.85 0.55 0.35 0.35")
+            if tool_only:
+                vis.set("contype", "4")
+                vis.set("conaffinity", "1")
+                vis.set("friction", f"{MU:g} 0.005 0.0001")
+            C, Nn, A, K = G.pad_spheres(r, s, rs, sgn, E)
+            if region is not None:
+                keep = region(C, Nn, sgn)
+                C, Nn, A, K = C[keep], Nn[keep], A[keep], K[keep]
             pads[f] = (C, float(np.median(K)))
             for i, c in enumerate(C):
-                ET.SubElement(tipb, "geom", name=f"{f}_pad{i}", type="sphere", size=f"{PAD_RS}",
-                              pos=f"{c[0]:.7f} {c[1]:.7f} {c[2]:.7f}", condim="3", priority="1",
-                              friction=f"{MU:g} 0 0", rgba="0.75 0.4 0.25 1", mass="0")
+                g = ET.SubElement(tipb, "geom", name=f"{f}_pad{i}", type="sphere", size=f"{rs}",
+                                  pos=f"{c[0]:.7f} {c[1]:.7f} {c[2]:.7f}", condim="3", priority="1",
+                                  friction=f"{MU:g} 0 0", rgba="0.75 0.4 0.25 1", mass="0")
+                if tool_only:
+                    g.set("contype", "2")
+                    g.set("conaffinity", "0")
+    meta = {}
+    if pads and tool_only:
+        for g in root.find(f".//body[@name='{tool}']").iter("geom"):
+            if g.get("contype", "1") != "0" or g.get("conaffinity", "1") != "0":
+                g.set("contype", "2")
+                g.set("conaffinity", "3")
     if pads:
-        # pad stiffness: K_s = 1 / (tc^2 (1 - d0) diag), diag = inverse weights of the tip body and the tool
         m0 = mujoco.MjModel.from_xml_string(ET.tostring(root, encoding="unicode"))
-        tc = PAD_TR / 2.0
+        tc = tr / 2.0
         d0s = {}
         for f, (C, K) in pads.items():
-            diag = m0.body_invweight0[m0.body(f"{f}_tip").id, 0] + m0.body_invweight0[m0.body(OBJ).id, 0]
+            diag = m0.body_invweight0[m0.body(f"{f}_tip").id, 0] + m0.body_invweight0[m0.body(tool).id, 0]
             d0 = 1.0 - 1.0 / (tc ** 2 * K * diag)
             if d0 < 0.05:
-                raise ValueError(f"{hand} {f}: pad d0 {d0:.3f} below 0.05 at relaxation {PAD_TR} s")
+                raise ValueError(f"{f}: pad d0 {d0:.3f} below 0.05 at relaxation {tr} s")
             d0s[f] = d0
             tipb = root.find(f".//body[@name='{f}_tip']")
             for g in tipb.findall("geom"):
                 if g.get("name", "").startswith(f"{f}_pad"):
                     g.set("solref", f"{tc:.6g} 1")
                     g.set("solimp", f"{d0:.6g} {d0:.6g} 0.001 0.5 2")
-        meta.update(pad_d0=d0s, pad_K=float(np.median([k for _, k in pads.values()])),
+        meta = dict(pad_d0=d0s, pad_K=float(np.median([k for _, k in pads.values()])),
                     n_pads={f: len(c) for f, (c, _) in pads.items()})
-    meta["meshes"] = {str(k): str(v) for k, v in meshes.items()}
-    out_dir.mkdir(parents=True, exist_ok=True)
-    name = f"{hand}_{tip}_{model}_{plant}_{numerics}_ir{ir:g}_mu{MU:g}.xml"
-    path = out_dir / name
-    tmp = path.with_name(path.name + f".{os.getpid()}.tmp")
-    ET.ElementTree(root).write(tmp)
-    os.replace(tmp, path)
-    return path, meta
+    return meshes, meta
 
 
 # ---------------------------------------------------------------------------------- schedule
@@ -459,7 +509,7 @@ class DrakeBench:
         plant, sg = AddMultibodyPlant(cfg, b)
         parser = Parser(plant, sg)
         self.instance, = parser.AddModelsFromString(ET.tostring(root, encoding="unicode"), "xml")
-        P = PLANTS[meta["plant"]]
+        P = plant_args(meta["plant"])
         self.joints = [f"{f}_{j}" for f in FINGERS for j in JOINTS]
         for n in self.joints:
             j = plant.GetJointByName(n)

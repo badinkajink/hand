@@ -28,6 +28,7 @@ Conventions in these scenes, relied on below:
 """
 from __future__ import annotations
 
+import os
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -70,6 +71,51 @@ def _pin_inertial(body: ET.Element, inertials: dict[str, dict[str, str]]) -> Non
 def _bodies(root: ET.Element, names) -> list[ET.Element]:
     want = set(names)
     return [b for b in root.iter("body") if b.get("name") in want]
+
+
+def _geom_lowest_z(m: mujoco.MjModel, d: mujoco.MjData, g: int) -> float:
+    """World z of a compiled geom's lowest surface point."""
+    R = d.geom_xmat[g].reshape(3, 3)
+    z, s, t = float(d.geom_xpos[g][2]), m.geom_size[g], m.geom_type[g]
+    az = abs(R[2, 2])
+    if t == mujoco.mjtGeom.mjGEOM_SPHERE:
+        return z - s[0]
+    if t == mujoco.mjtGeom.mjGEOM_CAPSULE:
+        return z - (s[0] + s[1] * az)
+    if t == mujoco.mjtGeom.mjGEOM_CYLINDER:
+        return z - (s[0] * np.sqrt(max(0.0, 1.0 - az * az)) + s[1] * az)
+    if t == mujoco.mjtGeom.mjGEOM_BOX:
+        return z - float(np.abs(R[2, :]) @ s)
+    if t == mujoco.mjtGeom.mjGEOM_ELLIPSOID:
+        return z - float(np.linalg.norm(R[2, :] * s))
+    if t == mujoco.mjtGeom.mjGEOM_MESH:
+        mid = m.geom_dataid[g]
+        v = m.mesh_vert[m.mesh_vertadr[mid]:m.mesh_vertadr[mid] + m.mesh_vertnum[mid]]
+        return z + float((v @ R[2, :]).min())
+    return z - float(m.geom_rbound[g])
+
+
+def seated_scene(path: Path | str, out_dir: Path | str | None = None) -> Path:
+    """A copy of a bench scene with its post lowered so the tool rests on it (see `set_object_platform`).
+
+    Scenes without a `tool_platform`, or whose post already meets the tool, are returned unchanged. The copy is
+    written beside the source as `<stem>__seated.xml` (or into `out_dir`) and reused when it exists."""
+    path = Path(path)
+    out = (Path(out_dir) if out_dir else path.parent) / f"{path.stem}__seated.xml"
+    if out.exists():
+        return out
+    sc = Scene(path)
+    post_b = sc.root.find(".//body[@name='tool_platform']")
+    if post_b is None:
+        return path
+    old = float(post_b.find("geom").get("size").split()[1])
+    sc.seat_object_on_platform()
+    if abs(float(post_b.find("geom").get("size").split()[1]) - old) < 1e-6:
+        return path
+    tmp = out.with_name(f"{out.name}.{os.getpid()}.tmp")
+    sc.write(tmp)
+    os.replace(tmp, out)
+    return out
 
 
 # --------------------------------------------------------------------------- tip shape family
@@ -325,17 +371,24 @@ class Scene:
         The post is deliberately thin, and `post_y` moves it along the tool. That matters: under
         a -90 degree turn the +Y end of the tool descends by most of its half-length, straight
         through where a CENTRED post is, so the support has to sit under the half that rises.
+
+        `height` is the tool's CENTRE, which the exported plans' grip poses are relative to. The
+        post's top sits at the tool's lowest point (`height` minus the tool radius when flat).
+        Until 2026-10-06 the post's top was at `height` too, so every scene this wrote started
+        the tool 12.5 mm inside the post and ejected it in the first 20 ms; those scenes are
+        repaired on load by `seated_scene`.
         """
         for b in _bodies(self.root, [OBJECT_BODY]):
             x, y, z = _parse_xyz(b.get("pos", "0 0 0"))
             b.set("pos", _fmt_xyz((x, y, height)))
+        top = height - self._object_drop()
         world = self.root.find("worldbody")
         world.append(ET.Element("body", {"name": "tool_platform",
-                                         "pos": f"0 {post_y:.6f} {height / 2:.6f}"}))
+                                         "pos": f"0 {post_y:.6f} {top / 2:.6f}"}))
         post = world[-1]
         post.append(ET.Element("geom", {
             "name": "tool_post", "type": "cylinder",
-            "size": f"{post_r:.6f} {height / 2:.6f}",
+            "size": f"{post_r:.6f} {top / 2:.6f}",
             "material": "table_mat", "friction": "1.0 0.1 0.01"}))
         for key in self.root.iter("key"):
             q = (key.get("qpos") or "").split()
@@ -343,6 +396,37 @@ class Scene:
                 q[2] = f"{height:.6g}"
                 key.set("qpos", " ".join(q))
         return self
+
+    def seat_object_on_platform(self) -> "Scene":
+        """Lower an existing `tool_platform` post so its top meets the tool's lowest point."""
+        post_b = self.root.find(".//body[@name='tool_platform']")
+        if post_b is None:
+            return self
+        tool = _bodies(self.root, [OBJECT_BODY])[0]
+        top = _parse_xyz(tool.get("pos", "0 0 0"))[2] - self._object_drop()
+        px, py, _ = _parse_xyz(post_b.get("pos"))
+        post_b.set("pos", _fmt_xyz((px, py, top / 2)))
+        pg = post_b.find("geom")
+        pg.set("size", f"{float(pg.get('size').split()[0]):.6f} {top / 2:.6f}")
+        return self
+
+    def _object_drop(self) -> float:
+        """Distance from the tool body's origin down to its lowest collision point, in its XML pose."""
+        tmp = self.src.with_name(f".{self.src.stem}.drop{os.getpid()}.xml")
+        self.write(tmp)                             # beside the source, so relative asset paths resolve
+        try:
+            m = mujoco.MjModel.from_xml_path(str(tmp))
+        finally:
+            tmp.unlink(missing_ok=True)
+        d = mujoco.MjData(m)
+        mujoco.mj_forward(m, d)
+        bid = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, OBJECT_BODY)
+        z0 = float(d.xpos[bid][2])
+        low = z0
+        for g in range(m.ngeom):
+            if m.geom_bodyid[g] == bid and (m.geom_contype[g] or m.geom_conaffinity[g]):
+                low = min(low, _geom_lowest_z(m, d, g))
+        return z0 - low
 
     # -- the real finger cross-section --------------------------------------
     # WHAT THE SHIPPED SCENE GETS WRONG. Every phalanx is a capsule of radius 10.55 mm and every

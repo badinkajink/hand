@@ -20,6 +20,9 @@ from pathlib import Path
 
 import numpy as np
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+from morphohand.studies.scene_mutate import seated_scene  # noqa: E402  (tool resting on the post)
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 from real_v1_turn_mechanism import make_scene, replay  # noqa: E402
@@ -58,7 +61,7 @@ def main() -> int:
         plan_p = ROOT / "docs/experiments" / folder / "deploy" / f"{tag}_plan.json"
         plan = json.loads(plan_p.read_text())
         traj = plan_p.with_name(f"{tag}_traj.csv")
-        base = Path(plan["meta"]["scene"])
+        base = seated_scene(plan["meta"]["scene"])
         for pname, spec in PLANTS.items():
             scene = make_scene(base, scenes / f"{tag}__{pname}.xml", spec["kp"], spec["forcerange"],
                                spec["frictionloss"], mass=spec["mass"], kv=spec["kv"])

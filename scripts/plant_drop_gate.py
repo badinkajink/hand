@@ -31,6 +31,9 @@ from pathlib import Path
 
 import numpy as np
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+from morphohand.studies.scene_mutate import seated_scene  # noqa: E402  (tool resting on the post)
+
 ROOT = Path(__file__).resolve().parents[1]
 FINGERS = ("thumb", "index", "middle")
 JOINTS = ("yaw", "mcp", "pip")
@@ -138,7 +141,7 @@ def main() -> int:
     a = ap.parse_args()
 
     plan = json.loads(a.plan.read_text())
-    base = Path(plan["meta"]["scene"])
+    base = seated_scene(plan["meta"]["scene"])
     results = {}
     with tempfile.TemporaryDirectory() as td:
         variants = {

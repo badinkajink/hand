@@ -28,6 +28,9 @@ from pathlib import Path
 
 import numpy as np
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+from morphohand.studies.scene_mutate import seated_scene  # noqa: E402  (tool resting on the post)
+
 ROOT = Path(__file__).resolve().parents[1]
 FINGERS = ("thumb", "index", "middle")
 JOINTS = ("yaw", "mcp", "pip")
@@ -41,7 +44,11 @@ SCORED = ("middle_yaw", "thumb_mcp", "thumb_yaw", "index_yaw")
 
 
 def simulate(scene: Path, plan: dict, settle_s: float = 2.0) -> dict[str, float]:
-    """Run open -> grip -> turn_end and return ctrl - qpos per finger joint at the hold."""
+    """Run grip -> turn_end from the plan's replay state and return ctrl - qpos per finger joint at the hold.
+
+    Until 2026-10-06 this reset from the scene's keyframe 0, which puts the palm at 10 mm under a tool on a
+    100 mm post: the fingers closed on air and the fitted deficits (kp 0.5) were gravity and unsettled lag.
+    `scripts/bench_replay_calibration.py` replaces this fit; it replays the bench's own logged commands."""
     import mujoco
     m = mujoco.MjModel.from_xml_path(str(scene))
     d = mujoco.MjData(m)
@@ -52,7 +59,10 @@ def simulate(scene: Path, plan: dict, settle_s: float = 2.0) -> dict[str, float]
             aid[(f, j)] = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_ACTUATOR, f"a_{f}_{j}")
             jid = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_JOINT, f"{f}_{j}")
             qadr[(f, j)] = m.jnt_qposadr[jid]
-    mujoco.mj_resetDataKeyframe(m, d, 0) if m.nkey else mujoco.mj_resetData(m, d)
+    mujoco.mj_resetData(m, d)
+    d.qpos[:] = np.asarray(plan["meta"]["replay_initial_qpos"], dtype=float)
+    d.ctrl[:] = np.asarray(plan["meta"]["replay_base_ctrl"], dtype=float)
+    mujoco.mj_forward(m, d)
 
     def hold(pose, seconds):
         for f in FINGERS:
@@ -61,7 +71,6 @@ def simulate(scene: Path, plan: dict, settle_s: float = 2.0) -> dict[str, float]
         for _ in range(int(seconds / m.opt.timestep)):
             mujoco.mj_step(m, d)
 
-    hold(poses["open"], 0.6)
     hold(poses["grip"], 1.2)
     # ramp to turn_end the way the plan does, then settle
     a, b = poses["grip"], poses["turn_end"]
@@ -90,7 +99,7 @@ def main() -> int:
     a = ap.parse_args()
 
     plan = json.loads(a.plan.read_text())
-    base = Path(plan["meta"]["scene"])
+    base = seated_scene(plan["meta"]["scene"])
     rows = []
     print(f"plan {a.plan.name}   base scene {base.name}")
     print(f"target deficits (bench, n=3): " +

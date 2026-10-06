@@ -1,0 +1,59 @@
+<title>Three-finger turn control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+{{STYLE}}
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">MorphoHand &#183; SR2 hand, real_v1 screwdriver &#183; servo plant, hand-object control and RL contact cost &#183; 6 October 2026 &#183; built {{BUILT}}</div>
+  <h1>Servo plant refit, hand-object control of the three-finger turn, and the cost of sphere-pad fingertips in RL training</h1>
+  <p class="lede">{{LEDE}}</p>
+  <div class="byline">MuJoCo 3.6 and MuJoCo-Warp 3.6 (mjlab), MuJoCo-Warp 3.14 and Newton 1.7.0.dev0, Drake 1.57 SAP &#183;
+  printed TPU fingertip with 2.7&#8202;mm fillets &#183; scripts <code>scripts/bench_replay_calibration.py</code>,
+  <code>scripts/hom_turn3.py</code> (<code>_films</code>), <code>scripts/make_pad_morphology_run.py</code>,
+  <code>scripts/rl_contact_throughput.py</code>, <code>scripts/newton_hand_throughput.py</code> &#183;
+  generator fix in <code>src/morphohand/studies/scene_mutate.py</code> &#183; builder <code>scripts/hom_turn_rl_contact_page.py</code> &#183;
+  rows <code>docs/experiments/20261006-servo_recalibration/</code>, <code>docs/experiments/20261006-hom_turn3/</code>,
+  <code>docs/experiments/20261006-rl_contact/</code> &#183; previous page <code>{{PREV_PATH}}</code>{{PREV_LINK}}</div>
+</header>
+
+<nav class="toc"><div class="col">
+<ol>
+<li><a href="#terms">Terms and metrics</a></li>
+<li><a href="#plant">Bench post and servo plant</a></li>
+<li><a href="#hom">Relative contact-velocity control of the three-finger turn</a></li>
+<li><a href="#rl">Cost of sphere-pad fingertips in RL training</a></li>
+<li><a href="#next">Next measurements</a></li>
+</ol>
+</div></nav>
+
+<section id="terms"><div class="col">
+<h2>Terms and metrics</h2>
+{{GLOSSARY}}
+</div></section>
+
+<section id="plant"><div class="col">
+<h2>Bench post and servo plant</h2>
+{{PLANT}}
+</div></section>
+
+<section id="hom"><div class="col">
+<h2>Relative contact-velocity control of the three-finger turn</h2>
+{{HOM}}
+</div></section>
+
+<section id="rl"><div class="col">
+<h2>Cost of sphere-pad fingertips in RL training</h2>
+{{RL}}
+</div></section>
+
+<section id="next"><div class="col">
+<h2>Next measurements</h2>
+{{NEXT}}
+</div></section>
+
+<footer><div class="col">
+{{FOOTER}}
+</div></footer>
+</div>

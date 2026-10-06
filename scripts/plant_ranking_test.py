@@ -25,6 +25,9 @@ from pathlib import Path
 
 import numpy as np
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+from morphohand.studies.scene_mutate import seated_scene  # noqa: E402  (tool resting on the post)
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 import plant_drop_gate as G  # noqa: E402
@@ -63,7 +66,7 @@ def main() -> int:
     with tempfile.TemporaryDirectory() as td:
         for tag, bench_cos in BENCH.items():
             plan = json.loads((a.deploy_dir / f"{tag}_plan.json").read_text())
-            base = Path(plan["meta"]["scene"])
+            base = seated_scene(plan["meta"]["scene"])
             row = {"bench": bench_cos}
             for vname, flags in variants.items():
                 scene = Path(td) / f"{tag}_{vname}.xml"

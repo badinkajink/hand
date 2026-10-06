@@ -18,6 +18,9 @@ from pathlib import Path
 
 import numpy as np
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+from morphohand.studies.scene_mutate import seated_scene  # noqa: E402  (tool resting on the post)
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 from real_v1_tip_gait import HANDS, plant_scene  # noqa: E402
@@ -71,7 +74,7 @@ def main() -> int:
         plan = json.loads(plan_p.read_text())
         tag = plan_p.name.replace("_plan.json", "")
         traj = plan_p.with_name(f"{tag}_traj.csv")
-        base = Path(plan["meta"]["scene"])
+        base = seated_scene(plan["meta"]["scene"])
         for pname in a.plants.split(","):
           for plate in (float(v) for v in a.plates.split(",")):
             scene = plate_variant(plant_scene(base, scenes, plan["meta"].get("design", tag), pname), plate)
