@@ -25,6 +25,8 @@ exceed mu f_n are capped at mu f_n. Noslip re-solves the friction rows with R = 
     PY=logs/20261001-hom_contact/venv/bin/python
     $PY scripts/contact_bed_creep.py --parts T1 --models mj_pads1 --N 1 --dt 1     # one case, 4 variants
     $PY scripts/contact_bed_creep.py                       # T6 grid, then the formula against pull_slip.jsonl
+    $PY scripts/contact_bed_creep.py --parts T1 T2 T4 T5 --models mj_pads1 mj_pads1_tr05 mj_pads1_tr10 \
+        --variants 0:100 1:100 3:100 10:100 0:300 0:1000 10:1000    # the 2026-10-06 pad grid
 """
 from __future__ import annotations
 
@@ -40,6 +42,7 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
+import contact_bed_brake as BR  # noqa: E402
 import contact_bed_common as CB  # noqa: E402
 import contact_bed_pull as P  # noqa: E402
 import contact_bed_shake as SH  # noqa: E402
@@ -48,6 +51,15 @@ import contact_bed_twist as TW  # noqa: E402
 H = CB.H
 OUT = CB.BED / "creep.jsonl"
 MODELS6 = ["mj_point3", "mj_point4s", "mj_pads1"]
+# 1 mm pads at longer relaxation times. At the calibrated sphere stiffness K the creep law reads
+# v = F_t / (impratio n K tr), so tr 0.05 and 0.1 s should creep 2.5x and 5x slower than tr 0.02 s.
+EXTRA_MODELS = {
+    "mj_pads1_tr05": ("mj:spheres:s1:rs0.75:ir100:tr0.05", "mj:spheres:s1:rs0.75:tr0.05"),
+    "mj_pads1_tr10": ("mj:spheres:s1:rs0.75:ir100:tr0.1", "mj:spheres:s1:rs0.75:tr0.1"),
+}
+for _k, (_rig, _chain) in EXTRA_MODELS.items():
+    CB.MODELS.setdefault(_k, (_rig, _chain))
+    P.MODELS.setdefault(_chain, _rig)
 VARIANTS = [(0, 100.0), (10, 100.0), (0, 1000.0), (10, 1000.0)]   # (noslip_iterations, impratio)
 T1_N = [0.5, 1.0, 3.0]
 T2_N = [0.5, 1.0, 3.0]
@@ -211,6 +223,16 @@ def run_t4(model, N, a_g, dt_ms, ns, ir):
     return row
 
 
+def run_t5(model, dt_ms, ns, ir):
+    row = _base("T5", model, None, dt_ms, ns, ir)
+    with variant(ns, ir):
+        r = BR.run_case(model, dt_ms, film=False)
+    r.pop("task", None)
+    row.update(r)
+    row["base_task"] = "brake"
+    return row
+
+
 def formula_vs_pull(out):
     """The creep law against every MuJoCo row of the T1 table (pull_slip.jsonl), at its own hold force."""
     have = CB.done(out, key=("case_id",))
@@ -263,6 +285,8 @@ def main():
                         jobs += [("T2", model, N, dt, ns, ir, None) for N in (a.N or T2_N)]
                     elif part == "T4":
                         jobs += [("T4", model, N, dt, ns, ir, ag) for N, ag in T4_CASES if not a.N or N in a.N]
+                    elif part == "T5":
+                        jobs.append(("T5", model, None, dt, ns, ir, None))
     for part, model, N, dt, ns, ir, ag in jobs:
         cid = f"{part}|{model}|{N}|{dt}|{ag}|{ns}|{ir}"
         if (cid,) in have:
@@ -273,6 +297,8 @@ def main():
                 r = run_t1(model, N, dt, ns, ir)
             elif part == "T2":
                 r = run_t2(model, N, dt, ns, ir)
+            elif part == "T5":
+                r = run_t5(model, dt, ns, ir)
             else:
                 r = run_t4(model, N, ag, dt, ns, ir)
         except Exception as e:                           # a failed case is a row, not a lost run
@@ -283,7 +309,8 @@ def main():
         H.append_row(a.out, r)
         keys = {"T1": ("mu_eff", "u_pre_mm", "creep_mm_s", "pred_v_rows_mm_s", "v_slip_mean50_mm_s", "mu_slide"),
                 "T2": ("tau_onset_Nm", "rbar_onset_mm", "rot_pre_deg", "creep_deg_s", "rbar_kin_mm"),
-                "T4": ("creep_g_mm_s", "drift_per_cycle_mm", "pp_last_cycle_mm", "N_sum_max_over_2N")}[part]
+                "T4": ("creep_g_mm_s", "drift_per_cycle_mm", "pp_last_cycle_mm", "N_sum_max_over_2N"),
+                "T5": ("phi_end_deg", "overshoot_deg", "peak_rate_deg_s", "N_at_45_N", "N_at_80_N", "slip_end_mm")}[part]
         print(part, model, N, dt, ag, ns, ir, r.get("status"),
               {k: round(r[k], 6) for k in keys + ("us_per_step_median",) if isinstance(r.get(k), (int, float))},
               flush=True)

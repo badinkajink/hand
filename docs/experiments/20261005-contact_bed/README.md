@@ -52,6 +52,11 @@ first version of `contact_bed_shake.py`; the agent had moved them aside to re-ru
 they were restored unchanged), `brake.jsonl` (13), and Newton's `pull_slip_newton.jsonl`, `twist_slip_newton.jsonl`,
 `static_newton.jsonl`; GPU rows in `../20261005-gpu_scaling/newton_scaling.jsonl` and `cpu_gpu_consistency.jsonl`.
 
+Task 6 (creep) ran on 2026-10-06: `creep.jsonl` holds the 1 mm pads at relaxation 0.02, 0.05 and 0.1 s crossed with
+impratio 100-10 000 and noslip 1-10 iterations on tasks 1, 2, 4 and 5 (`--variants 0:100 1:100 3:100 10:100 0:300 0:1000
+10:1000`, then `0:3000 0:10000` on tasks 1, 2 and 5). Results and the printed-fingertip rig:
+`docs/experiments/20261006-fingertip_backends/20261006-fingertip_contact_backends.html`.
+
 Not run (scripts written, each resumes from its JSONL):
 
     PY=logs/20261001-hom_contact/venv/bin/python
