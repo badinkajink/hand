@@ -93,6 +93,9 @@ The pattern, followed by every page in `docs/experiments/INDEX.md`:
    first. Update it whenever a page is published or renamed.
 4. **The artifact**, a copy of that file published to claude.ai. Updating a page means editing
    the local file and republishing to the **same URL** — never a second artifact for one result.
+   The contact-model overview is the exception on the file side (owner, 2026-10-07): each revision
+   is a new dated file built by the same builder from the previous revision's content, published
+   to the overview's one artifact; INDEX.md keeps a row per file with that URL.
 
 **Always quote the local path next to the URL, in the same sentence.** The user will not accept
 results that live only on claude.ai. Titles are descriptive noun phrases in the style of
