@@ -114,6 +114,9 @@ def grip_targets(meta):
     return {f"{f}_{j}": float(np.radians(poses["grip"][f][j])) for f in FINGERS for j in JOINTS}
 
 
+MJW = {"broadphase": "sap", "nconmax": None, "njmax": None, "used": None}
+
+
 def run_mjw(xml, meta, nworld, nblocks):
     import mujoco
     import mujoco_warp as mjw
@@ -130,8 +133,11 @@ def run_mjw(xml, meta, nworld, nblocks):
         d.ctrl[m.actuator(f"a_{n}").id] = v
     mujoco.mj_forward(m, d)
     wm = mjw.put_model(m)
-    wm.opt.broadphase = mjw.BroadphaseType.SAP_SEGMENTED     # what mjlab selects for the RL env
+    if MJW["broadphase"] == "sap":
+        wm.opt.broadphase = mjw.BroadphaseType.SAP_SEGMENTED  # rows before 2026-10-06 20:00; mjlab keeps put_model's
+    MJW["used"] = int(wm.opt.broadphase)
     nconmax, njmax = (64, 256) if m.ngeom < 100 else (320, 1024)
+    nconmax, njmax = MJW["nconmax"] or nconmax, MJW["njmax"] or njmax
     wd = mjw.put_data(m, d, nworld=nworld, nconmax=nconmax, njmax=njmax)
 
     def block():
@@ -152,7 +158,8 @@ def run_mjw(xml, meta, nworld, nblocks):
     nacon = int(wd.nacon.numpy()[0])
     return dict(us_per_world_step=1e6 * el / (nblocks * BLOCK * nworld), contacts_per_world=nacon / nworld,
                 nefc_world_max=int(wd.nefc.numpy().max()), held_frac=held, ngeom=m.ngeom,
-                sim_s=round(0.4 + (nblocks + 1) * BLOCK * DT, 3))
+                sim_s=round(0.4 + (nblocks + 1) * BLOCK * DT, 3), broadphase=MJW["used"], nconmax=nconmax,
+                njmax=njmax)
 
 
 TOOL = "screwdriver_medium"
@@ -361,9 +368,14 @@ def main():
     ap.add_argument("--out", type=Path, default=OUT)
     ap.add_argument("--buffer-fraction", type=float, default=1.0, help="hydroelastic stage buffers")
     ap.add_argument("--buffer-mult-broad", type=int, default=1)
+    ap.add_argument("--broadphase", choices=["sap", "auto"], default="sap",
+                    help="mjw: SAP_SEGMENTED (the earlier rows) or put_model's choice (NXN here, as in mjlab)")
+    ap.add_argument("--nconmax", type=int, default=None, help="mjw: contacts per world (the broadphase fills it)")
+    ap.add_argument("--njmax", type=int, default=None)
     ap.add_argument("--pad-d0", choices=["mjcf", "newton"], default="mjcf",
                     help="pads: solimp d0 from the MJCF compile's inverse weights or from Newton's model")
     a = ap.parse_args()
+    MJW.update(broadphase=a.broadphase, nconmax=a.nconmax, njmax=a.njmax)
     xml, meta = scene_xml(a.tip)
     import mujoco_warp
     import warp

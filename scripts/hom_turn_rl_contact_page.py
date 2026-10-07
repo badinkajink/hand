@@ -670,45 +670,6 @@ def rl_section():
         if r["mode"] == "nt_hydro" and tip == "mesh":
             tip = "mesh_sized" if (r.get("buffer_fraction") or 1.0) < 1.0 else "mesh_default"
         NT.setdefault((mode, tip, r["nworld"]), []).append(r)
-    ROWS_NT = [("mjw3.14.0", "legacy", "MuJoCo-Warp 3.14, box tip"), ("mjw3.6.0", "legacy", "MuJoCo-Warp 3.6, box tip"),
-               ("nt_mjc", "legacy", "Newton, MuJoCo-Warp collision, box tip"),
-               ("nt_pt", "legacy", "Newton, own pipeline, box tip"),
-               ("mjw3.14.0", "mesh", "MuJoCo-Warp 3.14, TPU block mesh"),
-               ("nt_pt", "mesh", "Newton, own pipeline, TPU block mesh"),
-               ("nt_hydro", "mesh_sized", "<b>Newton, hydroelastic, TPU block mesh</b>, buffers sized"),
-               ("nt_hydro", "mesh_default", "Newton, hydroelastic, TPU block mesh, default buffers"),
-               ("nt_hydro", "legacy", "Newton, hydroelastic, box tip"),
-               ("mjw3.14.0", "pads", "MuJoCo-Warp 3.14, TPU 1&#8202;mm pads"),
-               ("mjw3.6.0", "pads", "MuJoCo-Warp 3.6, TPU 1&#8202;mm pads"),
-               ("nt_pt", "pads", "<b>Newton, sphere pads</b> (own pipeline), TPU 1&#8202;mm pads"),
-               ("nt_mjc", "pads", "Newton, MuJoCo-Warp collision, TPU 1&#8202;mm pads")]
-    nrows = []
-    sizes = (64, 256, 1024, 2048, 4096)
-    for mode, tip, lab in ROWS_NT:
-        if not any(NT.get((mode, tip, n)) for n in sizes + (128, 512)):
-            continue
-        cells = [(lab, "lab")]
-        first, held_all = None, []
-        for n in sizes:
-            rs = [r for r in NT.get((mode, tip, n), []) if r.get("status") == "ok"]
-            if rs:
-                us = sorted(r["us_per_world_step"] for r in rs)
-                held = rs[-1]["held_frac"]
-                held_all.append(held)
-                txt = f(us[0], 2) + (f"&#8211;{f(us[-1], 2)}" if len(us) > 1 and us[-1] - us[0] > 0.005 else "")
-                cells.append((txt, "bad") if held < 0.95 else txt)
-                first = first or rs[-1]
-            else:
-                errs = [r.get("error", "") for r in NT.get((mode, tip, n), [])]
-                cells.append("GPU mem." if any("allocate" in e for e in errs) else ("failed" if errs else "&#8211;"))
-        cells.append(f(first["contacts_per_world"], 0) if first else "&#8211;")
-        cells.append(f(min(held_all), 2) if held_all else "&#8211;")
-        big = max((r for n in sizes + (128, 512) for r in NT.get((mode, tip, n), []) if r.get("status") == "ok"
-                   and r.get("gpu_used_mb")), key=lambda r: r["nworld"], default=None)
-        cells.append(f"{num(big['gpu_used_mb'], ',.0f')} @ {big['nworld']:,}" if big else "&#8211;")
-        nrows.append(cells)
-    tab_nt = table(["Engine, fingertip", "64 worlds", "256", "1,024", "2,048", "4,096", "contacts/world",
-                    "lowest holding", "GPU MB @ worlds"], nrows)
     # training budget
     eta = {}
     for v, rr in (("legacy", leg[2048]), ("pads1", p1[2048])):
@@ -741,32 +702,7 @@ def rl_section():
         "box tip at 4,096; the full 1&#8202;mm pads at 4,096 envs did not complete. Throughput does not grow past 2,048 envs "
         "for any fingertip.</p>",
         sensor_paragraph(T),
-        "<h3>Newton hydroelastic on the printed fingertip</h3>",
-        "<p>Newton models a compliant fingertip without sphere packing: its hydroelastic contact computes a pressure "
-        "field on the tip&#8217;s own shape from a signed-distance grid. The comparison is therefore the printed TPU block "
-        "as one mesh in Newton with hydroelastic contact, against the 1&#8202;mm pads in MuJoCo-Warp and against point "
-        "contact. The RL env has no Newton version, so all engines run D6&#8217;s bench scene held at the plan&#8217;s grip "
-        "with gravity (tool on its post, palm welded, working plant) at the trainer&#8217;s solver settings, stepping "
-        "graph-captured blocks of 50 steps (<code>scripts/newton_hand_throughput.py</code>; Newton 1.7.0.dev0 with "
-        "MuJoCo-Warp 3.14). Hydroelastic settings: pressure stiffness E/h = 1.18&#8202;&#215;&#8202;10<sup>9</sup>&#8202;N/m<sup>3</sup> "
-        "on the tips (the pads&#8217; and Drake&#8217;s modulus), 100 times that on the tool, 0.5&#8202;mm grid, &#177;6&#8202;mm "
-        "band, contact reduction on. The block mesh is built from the OBJ&#8217;s vertices and its grid cooked with "
-        "<code>Mesh.build_sdf</code>, since Newton&#8217;s file importer needs <code>trimesh</code>, which its environment "
-        "lacks. Two import fixes came first: Newton&#8217;s default contact gap reported every shape pair within centimetres "
-        "and filled the contact buffer (margin 0 and a 0.5&#8202;mm gap restore MuJoCo&#8217;s five contacts in the box-tip "
-        "grip), and its MuJoCo model has no actuator names, so servo targets are mapped through each actuator&#8217;s joint. "
-        "Newton&#8217;s default hydroelastic buffers are sized for the worst case: in a calibration hold at 32 worlds every "
-        "stage peaked below 1&#8202;% of its capacity, and buffers set to 1.5 times those peaks (fraction 0.013) cut the GPU "
-        "memory at 128 worlds from 13.8 to 2.0&#8202;GB. Raw MuJoCo-Warp uses the SAP_SEGMENTED broadphase, as mjlab does.</p>",
-        tab_nt,
-        tcap("Physics wall time per world-step (&#181;s) on D6&#8217;s held grip, by number of worlds (rows "
-             "<code>docs/experiments/20261006-rl_contact/newton_throughput.jsonl</code>; a range is repeated runs). Contacts per "
-             "world at the smallest batch; lowest holding: the smallest fraction of worlds still holding the tool after "
-             "1&#8202;s over the batch sizes. Shaded: "
-             "fewer than 95&#8202;% of worlds still held the tool after 1&#8202;s, so that time is the cost of a failing grip. "
-             "&#8216;GPU mem.&#8217;: an allocation did not fit. Newton with sphere pads at 1,024 worlds needs 7.5&#8202;GB of "
-             "host memory to build its model (1,024 &#215; 3,177 pad spheres)."),
-        newton_paragraph(NT),
+        same_state_section(NT),
         "<h3>Training comparison, not yet run</h3>",
         "<p>Proposed queue, serial, one GPU job at a time: the D6 reorientation from scratch with the b_liveA recipe "
         "(as the 2026-09-17 run, no warm start) on the working plant, box tip against 1&#8202;mm pads, two runs each at "
@@ -822,55 +758,122 @@ def sensor_paragraph(T):
     return txt
 
 
-def newton_paragraph(NT):
-    def ok(mode, tip, n):
-        rs = [r for r in NT.get((mode, tip, n), []) if r.get("status") == "ok"]
+SS_ROWS = [("mjlab", "3.6.0", "legacy", "mjlab env (reference), box tip"),
+           ("mjlab", "3.6.0", "mesh", "mjlab env (reference), TPU block mesh"),
+           ("mjlab", "3.6.0", "pads1", "mjlab env (reference), TPU 1&#8202;mm pads"),
+           ("mjw", "3.6.0", "legacy", "MuJoCo-Warp 3.6, box tip"),
+           ("mjw", "3.6.0", "mesh", "MuJoCo-Warp 3.6, TPU block mesh"),
+           ("mjw", "3.6.0", "pads1", "<b>MuJoCo-Warp 3.6, TPU 1&#8202;mm pads</b>"),
+           ("mjw", "3.14.0", "legacy", "MuJoCo-Warp 3.14, box tip"),
+           ("mjw", "3.14.0", "mesh", "MuJoCo-Warp 3.14, TPU block mesh"),
+           ("mjw", "3.14.0", "pads1", "MuJoCo-Warp 3.14, TPU 1&#8202;mm pads"),
+           ("nt_pt", "3.14.0", "legacy", "Newton, point contact, box tip"),
+           ("nt_pt", "3.14.0", "mesh", "Newton, point contact, TPU block mesh"),
+           ("nt_pt", "3.14.0", "pads1", "<b>Newton, sphere pads</b> (Newton&#8217;s d0)"),
+           ("nt_hydro", "3.14.0", "mesh", "<b>Newton, hydroelastic, TPU block mesh</b>, mass-corrected")]
+
+
+def same_state_section(NT):
+    R = defaultdict(list)
+    for r in jl(os.path.join(RLD, "same_state_timing.jsonl")):
+        if r.get("status") == "ok":
+            R[(r["engine"], r.get("mujoco_warp"), r["variant"], r["nworld"])].append(r)
+
+    def get(e, v, var, n):
+        rs = R.get((e, v, var, n))
         return rs[-1] if rs else None
-    hy = {n: ok("nt_hydro", "mesh_sized", n) for n in (1024, 2048)}
-    box = [ok("mjw3.14.0", "legacy", 1024), ok("nt_pt", "legacy", 1024), ok("nt_mjc", "legacy", 1024)]
-    pads14, pads36 = ok("mjw3.14.0", "pads", 1024), ok("mjw3.6.0", "pads", 1024)
-    ptm = ok("nt_pt", "mesh", 1024)
-    if not (hy[1024] and all(box)):
-        return ""
-    txt = (f"<p>Hydroelastic Newton on the printed block holds the tool in {f(100 * hy[1024]['held_frac'], 1)}&#8202;% of "
-           f"1,024 worlds at {f(hy[1024]['us_per_world_step'], 1)}&#8202;&#181;s per world-step"
-           + (f" and {f(hy[2048]['us_per_world_step'], 1)}&#8202;&#181;s at 2,048 ({num(hy[2048]['gpu_used_mb'], ',.0f')}&#8202;MB of GPU)"
-              if hy[2048] else "")
-           + f", with about {f(hy[1024]['contacts_per_world'], 0)} reduced contact points per world. Point contact on the "
-           f"box tip costs {f(min(r['us_per_world_step'] for r in box), 1)}&#8211;{f(max(r['us_per_world_step'] for r in box), 1)}&#8202;&#181;s "
-           "in either engine, so the hydroelastic tip is about ten times the physics of point contact. ")
-    if pads14 and pads36:
-        txt += (f"On this grip the MuJoCo-Warp pads are slower still, {f(pads14['us_per_world_step'], 0)}&#8202;&#181;s (3.14) "
-                f"and {f(pads36['us_per_world_step'], 0)}&#8202;&#181;s (3.6) with about 100 contacts per world, and "
-                f"{f(100 * (1 - pads14['held_frac']), 0)}&#8202;% of worlds lose the tool, while the same pads cost 2.4&#8211;2.6&#8202;&#181;s "
-                "in the RL env after its scripted grasp (Table&#160;5, 50 contacts per world). The plan&#8217;s grip squeezes at "
-                "5&#8211;13&#8202;N; why it costs the pads seven to ten times more than the training grasp is not established, "
-                "and the two engines have not yet been timed on the same RL state (Section&#160;6). ")
-    if ptm:
-        txt += (f"Newton&#8217;s point-contact pipeline on the plain block mesh holds the grip at 1,024 worlds with "
-                f"{f(ptm['contacts_per_world'], 0)} contacts per world ({f(ptm['us_per_world_step'], 1)}&#8202;&#181;s) and "
-                "loses the tool at 4,096. ")
-    ntp = ok("nt_pt", "pads", 1024)
-    if ntp and ntp.get("invweight0_newton"):
-        wn, wm = ntp["invweight0_newton"], ntp["invweight0_mjcf"]
-        dw = max(abs(wn[k] - wm[k]) / wm[k] for k in wm)
-        held = [r["held_frac"] for key in (("mjw3.14.0", "pads"), ("mjw3.6.0", "pads"), ("nt_mjc", "pads"))
-                for n in (64, 256, 1024, 2048, 4096) for r in NT.get(key + (n,), []) if r.get("status") == "ok"]
-        lose = (min(held), max(held)) if held else (None, None)
-        txt += (f"With the same 1&#8202;mm pads, Newton&#8217;s own collision pipeline holds the tool in "
-                f"{f(100 * ntp['held_frac'], 0)}&#8202;% of 1,024 worlds at {f(ntp['us_per_world_step'], 2)}&#8202;&#181;s per "
-                f"world-step with {f(ntp['contacts_per_world'], 0)} contacts per world, while MuJoCo-Warp&#8217;s collision of the "
-                f"same pads, inside Newton or alone, loses the tool in {f(100 * (1 - lose[1]), 0)}&#8211;{f(100 * (1 - lose[0]), 0)}"
-                "&#8202;% of worlds. The pads reach their stiffness "
-                "through solimp d0, computed from the inverse weights of the MJCF compile; Newton&#8217;s MuJoCo model gives the "
-                f"tips {f(wn['thumb_tip'], 3)} and the tool {f(wn['screwdriver_medium'], 2)}&#8202;1/kg, the compile&#8217;s "
-                f"values to {'1 part in 10<sup>6</sup>' if dw < 1e-6 else f'{100 * dw:.2g}&#8202;%'}, and passes the pads&#8217; solimp to its contacts unchanged "
-                f"(d0 {f(ntp['pad_solimp_solver'][0], 4)}), so the pads need no correction in Newton "
-                "(<code>newton_hand_throughput.py --pad-d0</code> recomputes d0 from Newton&#8217;s values when they differ). ")
-    if ptm:
-        txt += ("The hydroelastic rows of Table&#160;6 use kh = E/h without the effective-mass correction "
-                "of Section&#160;4.")
-    return txt + "</p>"
+    rows = []
+    for e, v, var, lab in SS_ROWS:
+        a, b = get(e, v, var, 1024), get(e, v, var, 2048)
+        if not (a or b):
+            continue
+        cells = [(lab, "lab")]
+        for r in (a, b):
+            if r is None:
+                cells.append("&#8211;")
+                continue
+            txt = f(r["us_per_world_step"], 2)
+            cells.append((txt, "bad") if r["held_frac"] < 0.95 else txt)
+        ref = a or b
+        cells += [f(ref["contacts_per_world"], 1), f(ref["nefc_world_mean"], 0),
+                  f(min(r["held_frac"] for r in (a, b) if r), 2),
+                  num(max(r["gpu_used_mb"] for r in (a, b) if r and r.get("gpu_used_mb")), ",.0f")]
+        rows.append(cells)
+    tab = table(["Engine, fingertip", "&#181;s/world-step, 1,024 worlds", "2,048", "contacts/world",
+                 "constraint rows/world", "lowest holding", "GPU MB (largest batch)"], rows)
+    D = jl(os.path.join(RLD, "same_state_timing_diagnostics.jsonl"))
+    sap = next((r for r in D if r.get("broadphase") == "SAP_SEGMENTED" and r["variant"] == "pads1"
+                and r["nworld"] == 1024 and r.get("ls_parallel")), None)
+    small = next((r for r in D if r.get("broadphase") not in (None, "SAP_SEGMENTED") and r["variant"] == "pads1"
+                  and r["nworld"] == 1024), None)
+    m36 = get("mjw", "3.6.0", "pads1", 1024)
+    lab_p = get("mjlab", "3.6.0", "pads1", 1024)
+    hyd = get("nt_hydro", "3.14.0", "mesh", 1024)
+    hyd2 = get("nt_hydro", "3.14.0", "mesh", 2048)
+    ntp = get("nt_pt", "3.14.0", "pads1", 1024)
+    box = [x for x in (get("mjw", "3.6.0", "legacy", 2048), get("nt_pt", "3.14.0", "legacy", 2048)) if x]
+    m14 = get("mjw", "3.14.0", "pads1", 1024)
+    ntm2 = get("nt_pt", "3.14.0", "mesh", 2048)
+    bench = next((r for r in reversed(jl(os.path.join(RLD, "newton_throughput.jsonl"))) if r.get("mode") == "mjw"
+                  and r.get("tip") == "pads" and r.get("status") == "ok" and r.get("broadphase") == 0), None)
+    st = json.load(open(os.path.join(ROOT, "logs/20261006-rl_contact/state_pads1/state.json"))) \
+        if os.path.exists(os.path.join(ROOT, "logs/20261006-rl_contact/state_pads1/state.json")) else {}
+    out = ["<h3>Physics cost on one held RL state</h3>",
+           "<p>Each engine starts from the same state of the RL env: D6 after its scripted grasp and lift (60 zero-action "
+           "policy steps, 64 worlds, every tool held; with 1&#8202;mm pads "
+           f"{f(st.get('ncon_world_mean'), 0)} contacts and {f(st.get('nefc_world_mean'), 0)} constraint rows per world), "
+           "exported with mjlab&#8217;s scene writer (<code>scripts/rl_state_export.py</code>; free-body positions relative to "
+           "each world&#8217;s grid origin, which mjlab adds per world). Every engine loads that MJCF with each body&#8217;s "
+           "compiled inertia pinned, the trainer&#8217;s options (2&#8202;ms, implicitfast, elliptic cone, impratio 10, 10 "
+           "solver and 20 line-search iterations), the exported joint angles tiled over the batch, the exported servo targets "
+           "and zero velocity, and steps 22 graph-captured blocks of 50 steps (<code>scripts/same_state_timing.py</code>, rows "
+           "<code>docs/experiments/20261006-rl_contact/same_state_timing.jsonl</code>). Newton 1.7.0.dev0 uses its own "
+           "collision pipeline (contact gap 0.5&#8202;mm, margin 0), the TPU block re-added as a mesh from its OBJ, and for "
+           "hydroelastic contact kh = E/h on the tips multiplied by the tip&#8211;tool 1/m<sub>eff</sub> of its solver model "
+           "(Section&#160;4; tip inverse weights 4.95&#8211;5.14, tool 39.1&#8202;1/kg), 100 times that on the tool, 0.5&#8202;mm "
+           "grid, &#177;6&#8202;mm band, contact reduction, buffers at 1.3&#8202;% of Newton&#8217;s defaults. The pads&#8217; "
+           "solimp d0 in Newton is recomputed from its solver model&#8217;s inverse weights, which equal the MJCF "
+           "compile&#8217;s to 10<sup>&#8722;8</sup>, so d0 is unchanged. The first rows run the live mjlab env for the same "
+           "number of steps; its step includes the contact sensors.</p>",
+           tab,
+           tcap("Physics wall time per world-step on one held state of the D6 RL env, by number of worlds. Contacts and "
+                "constraint rows per world at the end of the 1,024-world run; lowest holding: the smaller fraction of "
+                "worlds whose tool stayed within 20&#8202;mm of its exported position over the 2.2&#8202;s run. Shaded: fewer "
+                "than 95&#8202;% held. Not run: MuJoCo-Warp 3.14 pads at 2,048 worlds (GPU memory) and Newton pads at 2,048 "
+                "(its model build takes 7.5&#8202;GB of host memory at 1,024)."),
+           ]
+    if m36 and lab_p and sap and small:
+        out.append(
+            f"<p>The 1&#8202;mm pads cost {f(m36['us_per_world_step'], 2)}&#8202;&#181;s per world-step in MuJoCo-Warp 3.6 "
+            f"from this state (mjlab&#8217;s env {f(lab_p['us_per_world_step'], 2)}) and hold every tool. The 17&#8211;26&#8202;&#181;s "
+            "and 13&#8202;% drops measured earlier on the bench grip came from two settings of the raw MuJoCo-Warp script: "
+            + (f"rerun with both corrected, the bench grip costs {f(bench['us_per_world_step'], 2)}&#8202;&#181;s with "
+               f"{f(bench['contacts_per_world'], 0)} contacts per world and holds {f(100 * bench['held_frac'], 0)}&#8202;% "
+               "(rows <code>newton_throughput.jsonl</code>). " if bench else "")
+            + "First, it forced the SAP_SEGMENTED broadphase; "
+            "MuJoCo-Warp&#8217;s <code>put_model</code>, and therefore mjlab, chooses NXN over the contype-filtered geom pairs "
+            "when they number under 250,000, and the pads touch only the tool, so the pair list is short. On this state SAP "
+            f"costs {f(sap['us_per_world_step'], 1)}&#8202;&#181;s. Second, the broadphase writes its candidate pairs into the "
+            "per-world contact buffer, and on the pads they exceed 250 per world for about 43 contacts; a buffer of "
+            f"{small['nconmax']} contacts per world overflowed and dropped pad contacts, and "
+            f"{f(100 * (1 - small['held_frac']), 0)}&#8202;% of worlds lost the tool. With 512 contacts per world both versions "
+            f"hold every tool; MuJoCo-Warp 3.14 takes {f(m14['us_per_world_step'], 2)}&#8202;&#181;s.</p>" if m14 else "</p>")
+    if hyd and ntp and box:
+        out.append(
+            f"<p>Newton&#8217;s mass-corrected hydroelastic tip holds every tool at {f(hyd['us_per_world_step'], 2)}&#8202;&#181;s "
+            f"per world-step (1,024 worlds; {f(hyd2['us_per_world_step'], 2) if hyd2 else '&#8211;'} at 2,048, "
+            f"{num(hyd2['gpu_used_mb'], ',.0f') if hyd2 else '&#8211;'}&#8202;MB of GPU) with "
+            f"{f(hyd['contacts_per_world'], 0)} reduced contact points and {f(hyd['nefc_world_mean'], 0)} constraint rows "
+            f"per world: {f(hyd['us_per_world_step'] / m36['us_per_world_step'], 1)} times the MuJoCo-Warp pads at "
+            f"1,024 worlds and {f((hyd2 or hyd)['us_per_world_step'] / max(r['us_per_world_step'] for r in box), 1)}&#8211;"
+            f"{f((hyd2 or hyd)['us_per_world_step'] / min(r['us_per_world_step'] for r in box), 1)} times point contact on "
+            f"the box tip at 2,048. Newton with sphere pads takes {f(ntp['us_per_world_step'], 2)}&#8202;&#181;s; its "
+            f"0.5&#8202;mm contact gap reports {f(ntp['contacts_per_world'], 0)} pad contacts per world, of which about as many "
+            "become constraint rows as in MuJoCo-Warp."
+            + (f" Newton&#8217;s point contact on the block mesh loses the tool in "
+               f"{f(100 * (1 - ntm2['held_frac']), 0)}&#8202;% of worlds at 2,048, as it did at 4,096 on the bench grip." if ntm2 and ntm2['held_frac'] < 0.95 else "")
+            + "</p>")
+    return "\n".join(out)
 
 
 # ------------------------------------------------------------------------------------------ next, lede
@@ -890,9 +893,6 @@ def next_section():
         "<b>Newton&#8217;s turn without rotation on D3 and D8.</b> Log the per-finger normal force and the tip slip speed "
         "in <code>newton_turn.py</code> and compare them with MuJoCo&#8217;s pad forces on D3 and D8, seeds 1&#8211;4, where the "
         "mass-corrected Newton grip holds the tool but does not turn it.",
-        "<b>Pads and hydroelastic Newton on the same RL state.</b> Export the D6 env&#8217;s state after its scripted grasp "
-        "and time MuJoCo-Warp pads and hydroelastic Newton from it, to settle whether the pads cost 2.5 or 17&#8211;26&#8202;&#181;s "
-        "per world-step in a training grasp.",
         "<b>RL comparison.</b> The queue above, after the trainer applies <code>--seed</code>.",
     ]
     return "<ol>" + "".join(f"<li>{x}</li>" for x in items) + "</ol>"
@@ -921,8 +921,10 @@ def lede():
             f"{f(min(gv), 0)}&#8211;{f(max(gv), 0)}&#176;, because the deployed grips leave the pips no extension; without its "
             f"stop rule it drops the tool on {len(fm)} of 8 hands. Sphere pads at 1&#8202;mm cost "
             f"{f(100 * (1 - r1), 0) if r1 else '&#8211;'}&#8202;% of RL env throughput at 2,048 envs, because physics is a "
-            "small part of an env step. Newton&#8217;s hydroelastic contact on the plain fingertip shape costs about ten times "
-            "the physics of point contact. SolverMuJoCo realises its stiffness times the tip&#8211;tool effective mass; with kh "
+            "small part of an env step; from one held RL state the pads cost 2.2&#8211;2.4&#8202;&#181;s of physics per world-step "
+            "in MuJoCo-Warp, Newton&#8217;s hydroelastic contact on the plain fingertip shape 4.3&#8202;&#181;s, point contact "
+            "0.6&#8211;1.4&#8202;&#181;s. SolverMuJoCo realises Newton&#8217;s hydroelastic stiffness times the tip&#8211;tool "
+            "effective mass; with kh "
             f"divided by that mass the deployed plans hold the tool on {n_mc_held} of {len(mc)} placements in Newton (10 "
             "uncorrected) and turn it within 5&#176; of MuJoCo on four of eight hands. The 2026-09-02 "
             "servo-gain fit closed the fingers on air; the bench readbacks fix the finger time constant and favour &#956; 1 but "
