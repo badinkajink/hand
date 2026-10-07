@@ -50,10 +50,23 @@ def skin_damping(sk):
     """Slide and hinge damping at damping ratio zeta on the skin's inertia (mass or moment plus armature)."""
     return (2 * sk["zeta"] * math.sqrt(sk["kt"] * (sk["m"] + sk["arm"])),
             2 * sk["zeta"] * math.sqrt(sk["kth"] * (sk["I"] + sk["arm_t"])))
+# (e) Rolling bristles (owner, 2026-10-07): each pad sphere on its own body with a ball joint at its centre, resisted by a
+# rotational spring k_theta = k_t rs^2, so that the contact point rolls elastically by rs * theta before that sphere's
+# Coulomb contact slips (a brush with one bristle per sphere). k_t = G A_s / h, with h = 2.7 mm chosen so that the ~11
+# spheres in contact per pad at 1 N give Mindlin's initial stiffness 13.8 kN/m; damping k_theta x 1 ms (implicit, so the
+# 0.1 ms bristle period does not limit the step); sphere bodies 1 mg each, taken off the pad's 20 g. `:bristle<deg>` gives
+# joints to the spheres within <deg> of the pad's pole only (the rest stay on the pad).
+BRISTLE = dict(h=2.7e-3, tau=1e-3, m=1e-6)
 CANDIDATES = {
     "mj_pads1_ir1000": "mj:spheres:s1:rs0.75:ir1000:tr0.02",
     "mj_pads1_skin": "mj:spheres:s1:rs0.75:ir1000:tr0.02:skin",
+    "mj_pads1_bristle": "mj:spheres:s1:rs0.75:ir1000:tr0.02:bristle",
+    "mj_pads1_bristle20": "mj:spheres:s1:rs0.75:ir1000:tr0.02:bristle20",
+    "mj_pads1_bristle20a": "mj:spheres:s1:rs0.75:ir1000:tr0.02:bristle20a",
 }
+# As specified (1 mg spheres, no armature) the bristles go unstable under tangential load at 1 and 2 ms; armature worth
+# 0.2 g at the contact still does; 2 g at the contact (1.1e-9 kg m^2 per ball-joint dof) runs (suffix `a`).
+BRISTLE_ARM = 2e-3 * 0.75e-3 ** 2
 
 
 def add_skin(xml, sk):
@@ -110,12 +123,85 @@ class SkinRig(H.MjRig):
         return {s: [float(self.d.qpos[self.m.joint(f"skin{s}_{j}").qposadr[0]]) for j in "yzt"] for s in "LR"}
 
 
+def add_bristles(xml, sp, info, cap_deg=None, br=None):
+    """Put each pad sphere (within cap_deg of the pole, or all) on its own body with a spring-loaded ball joint."""
+    br = dict(BRISTLE, **(br or {}))
+    G = _mat["G"]
+    A_s = info["area_per_sphere_mm2"] * 1e-6
+    rs = sp["rs"]
+    kt = G * A_s / br["h"]
+    kth = kt * rs ** 2
+    I = 0.4 * br["m"] * rs ** 2
+    n_b = {"L": 0, "R": 0}
+    for side, face in (("L", 1.0), ("R", -1.0)):
+        for g in re.findall(rf'<geom name="pad{side}_s(\d+)"[^>]*/>', xml):
+            pass
+        for m in list(re.finditer(rf'<geom name="pad{side}_s(\d+)" type="sphere" size="([^"]+)" pos="([^"]+)"([^>]*)/>', xml)):
+            pos = np.array([float(v) for v in m.group(3).split()])
+            ang = math.degrees(math.acos(np.clip(face * pos[0] / np.linalg.norm(pos), -1, 1)))
+            if cap_deg is not None and ang > cap_deg:
+                continue
+            i = m.group(1)
+            arm = f' armature="{br["arm"]:.6g}"' if br.get("arm") else ""
+            body = (f'<body name="pad{side}_b{i}" pos="{m.group(3)}"><joint name="pad{side}_j{i}" type="ball" '
+                    f'stiffness="{kth:.6g}" damping="{kth * br["tau"]:.6g}"{arm}/><inertial pos="0 0 0" mass="{br["m"]:.6g}" '
+                    f'diaginertia="{I:.6g} {I:.6g} {I:.6g}"/><geom name="pad{side}_s{i}" type="sphere" size="{m.group(2)}"{m.group(4)}/></body>')
+            xml = xml.replace(m.group(0), body, 1)
+            n_b[side] += 1
+    for side in "LR":                                   # keep each fingertip at 20 g
+        xml = xml.replace(f'<body name="pad{side}" pos=', f'<body name="pad{side}" pos=', 1)
+    m_pad = H.M_PAD - n_b["L"] * br["m"]
+    xml = re.sub(rf'mass="{H.M_PAD}"', f'mass="{m_pad:.6g}"', xml)
+    return xml, dict(kt_sphere=kt, kth_sphere=kth, n_bristles=n_b, h=br["h"], tau=br["tau"], m_sphere=br["m"])
+
+
+class BristleRig(H.MjRig):
+    """hom_contact_rig.MjRig with spring-loaded ball joints under the pad spheres (candidate e)."""
+
+    def __init__(self, sp, d_cg, gravity, kinematic=False, cap_deg=None, arm=None):
+        import mujoco
+        self.mj, self.sp, self.d_cg = mujoco, sp, d_cg
+        self.x0 = H.tool_touch(sp)
+        xml, info = H.mj_xml(sp, d_cg, gravity, kinematic)
+        br = {"arm": arm} if arm else None
+        x1, _ = add_bristles(xml, sp, info, cap_deg, br)
+        m0 = mujoco.MjModel.from_xml_string(x1)
+        bid = m0.body("padL_b0").id if cap_deg is None or "padL_b0" in x1 else m0.body("padL").id
+        diag = float(m0.body_invweight0[bid, 0] + m0.body_invweight0[m0.body("tool").id, 0])
+        tc = sp["tr"] / 2.0
+        d0 = 1.0 - 1.0 / (tc ** 2 * info["K_sphere"] * diag)
+        xml, self.info = H.mj_xml(sp, d_cg, gravity, kinematic, pad_stiff=(tc, d0))
+        self.xml, binfo = add_bristles(xml, sp, self.info, cap_deg, br)
+        self.info.update(solref_timeconst=tc, solimp_d0=d0, relaxation_s=2 * tc, diagApprox=diag, bristle=binfo)
+        self.m = mujoco.MjModel.from_xml_string(self.xml)
+        self.d = mujoco.MjData(self.m)
+        self.tool = self.m.body("tool").id
+        self.pads = {s: self.m.body("pad" + s).id for s in "LR"}
+        self.tool_geom = self.m.geom("tool").id
+        root = {b: b for b in range(self.m.nbody)}
+        self.geom_side = {}
+        for gi in range(self.m.ngeom):
+            b = int(self.m.geom_bodyid[gi])
+            for s in "LR":
+                if (b == self.pads[s] or self.m.body_parentid[b] == self.pads[s]) and self.m.geom_contype[gi]:
+                    self.geom_side[gi] = s
+        self.pad_geom = {}
+        self.lastN = {"L": 0.0, "R": 0.0}
+        self.f6 = np.zeros(6)
+        mujoco.mj_forward(self.m, self.d)
+        self.theta_prev, self.theta_unwrap = None, 0.0
+
+
 _orig_make_rig = H.make_rig
 
 
 def make_rig(spec, d_cg=0.0, gravity=True, kinematic=False):
     if spec.endswith(":skin"):
         return SkinRig(H.parse_spec(spec[:-5]), d_cg, gravity, kinematic)
+    mb = re.search(r":bristle(\d*)(a?)$", spec)
+    if mb:
+        return BristleRig(H.parse_spec(spec[:mb.start()]), d_cg, gravity, kinematic,
+                          cap_deg=float(mb.group(1)) if mb.group(1) else None, arm=BRISTLE_ARM if mb.group(2) else None)
     return _orig_make_rig(spec, d_cg, gravity, kinematic)
 
 
