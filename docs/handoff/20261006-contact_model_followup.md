@@ -3,14 +3,13 @@ Task: the user's message of 2026-10-06 18:00: what "calibrating Newton's kh" mea
 Read first: this note; the page above; memory project_hom_turn_rl_contact_2026_10_06.md; scripts/contact_bed_newton.py (models newton_hydro_mc*, --outdir); docs/experiments/20261006-newton_mass_scaling/*.jsonl; logs/20261006-rl_contact/pad_match_count.py.
 State:
 - Usage tooling done (~/.claude/autopilot, hook ~/.claude/bin/usage_ping.py, skill autopilot, CLAUDE.md section); self-test passed 18:08.
-- Newton mismatch: SolverMuJoCo realises each hydroelastic contact's stiffness times the pad-tool effective mass (Newton ShapeConfig.kh note; newton-src docs/solvers/mujoco.rst). Bed: solver/law force 0.0174 (17.4 g), sink 7.3x Drake. kh x 90.7 (MJCF inverse weights) gives sink 0.82x and kinetic torque 0.69x Drake (rows *_mc_mjcf). kh x 1/m_eff from solver.mj_model running: logs/20261006-newton_mass_scaling/run3.log.
+- Newton mismatch: SolverMuJoCo realises each hydroelastic contact's stiffness times the pad-tool effective mass (Newton ShapeConfig.kh note; newton-src docs/solvers/mujoco.rst). Bed: solver/law force 0.0174 (17.4 g), sink 7.3x Drake. kh x 90.7 (MJCF inverse weights) gives sink 0.82x and kinetic torque 0.69x Drake (rows *_mc_mjcf). kh x 57.4 from solver.mj_model (newton_hydro_mc): sink 1.02-1.04x Drake; twist onset 0.81/0.76/0.88x and kinetic 0.76/0.78/0.90x Drake at 0.5/1/3 N (unreduced: onset 1.01/1.02x at 0.5/1 N, erratic at 3 N). Committed 27d8eedd. Memory project_newton_mass_scaling_2026_10_06.md.
 - Contact sensor: MuJoCo-Warp match buffer contact_sensor_maxmatch 64 (external/mujoco_warp/.../sensor.py:2377); RL fingertip sensor reduce "none", num_slots 1 reads one pad. D6 bench grip: 56-58 / 39-41 / 25-27 pad contacts per fingertip, 117 at impact. RL timing state: 48 contacts, 159 rows per world; bench grip 122 contacts, 372 rows.
-- Reply to the user: being written in the 18:00 session.
+- Reply to the user sent 18:30 with these numbers; the page does not have them yet (step 3).
 Next:
-1. Read run3.log rows (static, twist; newton_hydro_mc, newton_hydro_unreduced_mc): pen against Drake 0.153/0.213/0.365 mm, tau_kin against 0.84/2.0/7.86 mN m.
-2. Mass-correct scripts/newton_turn.py (kh x (invweight0 tip + invweight0 tool) per finger, from solver.mj_model through solver.mjc_body_to_newton) and rerun the deployed plans (40 placements, bed numerics) into docs/experiments/20261006-hom_turn3/plans_newton_mc.jsonl; compare hold counts with plans_mujoco.jsonl and plans_drake.jsonl.
-3. Page: a section on effective-mass scaling of Newton's hydroelastic stiffness (with Terms), Table 3 column F from the corrected rows, the contact-sensor paragraph in the RL section, the HOM grasp plan under next steps; rebuild, republish to the same URL.
-4. Commit own files only.
+1. Mass-correct scripts/newton_turn.py (kh x (invweight0 tip + invweight0 tool) per finger, from solver.mj_model through solver.mjc_body_to_newton) and rerun the deployed plans (40 placements, bed numerics) into docs/experiments/20261006-hom_turn3/plans_newton_mc.jsonl; compare hold counts with plans_mujoco.jsonl and plans_drake.jsonl.
+2. Page: a section on effective-mass scaling of Newton's hydroelastic stiffness (with Terms), Table 3 column F from the corrected rows, the contact-sensor paragraph in the RL section, the HOM grasp plan under next steps; rebuild, republish to the same URL.
+3. Commit own files only.
 Claimed: scripts/contact_bed_newton.py, scripts/newton_turn.py, scripts/hom_turn_rl_contact_page.py, scripts/hom_turn_rl_contact_page.template.html, docs/experiments/20261006-hom_turn3/, docs/experiments/20261006-newton_mass_scaling/.
 Waiting on owner: the RL training queue (D6, box tip against 1 mm pads, 2 x 20 M steps at 2,048 envs, about 2.5 GPU hours).
 Do not: start RL training; push; touch others' uncommitted files (.gitignore, .vscode/settings.json, docs/hardware_control_station.md, external/mujoco_warp, scripts/real_v1_tracker_service.py).
