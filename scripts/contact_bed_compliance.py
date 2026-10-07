@@ -4,7 +4,7 @@ references of scripts/contact_reference_laws.py (Mindlin, Hertz) and the pressur
 
   T8 cycle   gravity off; settle 0.4 s at N; an axial force on the tool cycled as a triangle 0 -> +F* (0.5 s) -> -F*
              (1 s) -> +F* (1 s) -> 0 (0.5 s), F* = mu N, half the slip force 2 mu N. Metrics: presliding displacement
-             u(+F*) at the first peak; recovered displacement u(+F*) - u(F = 0) on the first unloading; loop area, the work
+             u(+F*) at the first peak (t 0.5 s); recovered displacement u(+F*) - u(F = 0) on the first unloading (t 1.0 s); loop area, the work
              of the force around the full cycle +F* -> -F* -> +F* (uJ); drift per cycle u(end of cycle) - u(start).
              Mindlin gives a closed loop (drift 0) with u, recovery and area from contact_reference_laws.mindlin_cycle;
              rigid Coulomb friction gives zeros; a model whose tool creeps at v = c F gives u = c * integral of F dt, no
@@ -99,7 +99,7 @@ def run_t8(model, N, dt_ms):
         m = (T >= 0.5) & (T <= 2.5)
         loop = float(np.sum(0.5 * (F[m][1:] + F[m][:-1]) * np.diff(U[m])))
         ref = L.mindlin_cycle(N)
-        row.update(u_presliding_um=at(0.5) * 1e6, u_recovered_um=(at(0.5) - at(0.75)) * 1e6, loop_area_uJ=loop * 1e6,
+        row.update(u_presliding_um=at(0.5) * 1e6, u_recovered_um=(at(0.5) - at(1.0)) * 1e6, loop_area_uJ=loop * 1e6,
                    drift_per_cycle_um=(at(2.5) - at(0.5)) * 1e6, u_end_um=at(3.2) * 1e6,
                    mindlin_u_presliding_um=ref["u_presliding"] * 1e6, mindlin_u_recovered_um=ref["u_recovered"] * 1e6,
                    mindlin_loop_area_uJ=ref["loop_area"] * 1e6)
