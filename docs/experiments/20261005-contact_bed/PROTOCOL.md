@@ -70,6 +70,19 @@ over 0.2-0.95 and tc = 5, 10, 20 ms; largest step that holds 1 s without ejectio
 prediction dt_max = d0 tc for many spheres in contact (collective damping rate 2 d' / (d0 tc),
 d' = n d0 / (n d0 + 1 - d0), explicit in velocity).
 
+**T8 cycle** (2026-10-07, `scripts/contact_bed_compliance.py t8`, rows `docs/experiments/20261007-native_compliance/t8_cycle.jsonl`):
+gravity off; settle 0.4 s at N; an axial force on the tool cycled as a triangle 0 -> +F* (0.5 s) -> -F* (1 s) -> +F* (1 s)
+-> 0 (0.5 s), F* = mu N (half the slip force). Report the presliding displacement u(+F*) at the first peak, the displacement
+recovered on the first unloading to F = 0, the loop area (work of the force over the full cycle +F* -> -F* -> +F*, uJ) and
+the drift per cycle. Reference: Cattaneo-Mindlin with the Mindlin-Deresiewicz unloading rule on the Hertz contact
+(`scripts/contact_reference_laws.py`, TPU stated as E 10 MPa, nu 0.45); rigid Coulomb friction gives zeros; creep at v = c F
+gives no recovery while F > 0. N = 0.5, 1, 3.
+
+**T9 sweep** (2026-10-07, `scripts/contact_bed_compliance.py t9`, rows `.../t9_sweep.jsonl`): gravity off; settle 1 s at
+N = 0.25, 0.5, 1, 2, 4 N. Report the approach, the force-weighted RMS radius of the -x pad's contacts about their centroid in
+the plane normal to the pinch axis, the fraction of the normal load outside the overlap of the undeformed bodies, and the
+log-log slopes against N: pressure law 1/2 (approach) and 1/4 (radius), Hertz 2/3 and 1/3.
+
 ## Row fields (all tasks)
 
 `task`, `model`, `rig_spec`, `N`, `dt_ms`, task parameters, metrics, `us_per_step_median` (wall
