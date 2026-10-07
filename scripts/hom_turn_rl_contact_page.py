@@ -907,6 +907,64 @@ def sensor_paragraph(T):
     return txt
 
 
+def rl_film(tag, caption):
+    """One RL policy film: the close-up render of scripts/rl_render_reorient.py, its poster and the filmstrip cut
+    from it by scripts/policy_filmstrip.py --video."""
+    base = os.path.join(RLD, "media", tag)
+    mp4, jpg, strip = base + "_final.mp4", base + "_final.jpg", base + "_strip.jpg"
+    if not os.path.exists(mp4):
+        return ""
+    po = f' poster="{P.R.data_uri(jpg, "image/jpeg")}"' if os.path.exists(jpg) else ""
+    st = (f'<img src="{P.R.data_uri(strip, "image/jpeg")}" alt="frames of {tag}" style="margin-top:.4em">'
+          if os.path.exists(strip) else "")
+    FIG[0] += 1
+    return (f'<figure><video src="{P.R.data_uri(mp4, "video/mp4")}"{po} controls muted loop playsinline '
+            f'preload="metadata"></video>{st}<figcaption>Figure&#160;{FIG[0]}. {caption} '
+            f'<code>docs/experiments/20261006-rl_contact/media/{tag}_final.mp4</code></figcaption></figure>')
+
+
+def films_paragraph(R):
+    """What the four final policies do, from their films and the 64-rollout evaluation of the final checkpoint."""
+    fin = {t: rs[-1] for t, rs in R.items() if rs and rs[-1]["env_steps"] > 19e6}
+    if len(fin) < 4:
+        return ""
+
+    def turn(t):
+        return 90.0 - math.degrees(math.acos(max(-1.0, min(1.0, fin[t]["final_cos_mean"]))))
+    mesh = sorted(t for t in fin if "pads1" not in t)
+    pads = sorted(t for t in fin if "pads1" in t)
+
+    def rng(ts, key, nd=0):
+        v = [fin[t][key] for t in ts]
+        a, b = f(min(v), nd), f(max(v), nd)
+        return a if a == b else f"{a}&#8211;{b}"
+    tm, tp = [turn(t) for t in mesh], [turn(t) for t in pads]
+
+    def span(v):
+        a, b = f(min(v), 0), f(max(v), 0)
+        return a if a == b else f"{a}&#8211;{b}"
+    lost = [(t, fin[t]) for t in mesh if fin[t]["n_lost"]]
+    lost_txt = "".join(f" Seed {t[-1]} drops the tool in {r['n_lost']} of 64 rollouts at a mean step of "
+                       f"{f(r['drop_step_mean'], 0)}, and {round(64 * r['align_rate'])} pass cos 0.9 at a mean step of "
+                       f"{f(r['t_align_mean'], 0)}: the tool swings upright as the grip opens, then falls; the first "
+                       "render of this checkpoint caught one such drop." for t, r in lost)
+    return (f"<p>The films (Figures&#160;{FIG[0] + 1}&#8211;{FIG[0] + 4}) show one rollout of each final policy. With the "
+            "mesh tip both seeds raise the middle finger&#8217;s end of the tool once the residual acts and reach their "
+            f"angle by step 90: {span(tm)}&#176; above horizontal (from the mean final cosine). "
+            "The middle fingertip rides on the raised end, the thumb pushes under the middle of the shaft and the index "
+            f"holds the low end; the tool stays at that angle to the end of the episode.{lost_txt} With the 1&#8202;mm pads "
+            "both seeds roll the thumb along the shaft and hold the tool at "
+            f"{span(tp)}&#176;; seed 1 brings the thumb back under the shaft after step 170 "
+            "without turning it further. The pads load the thumb and index more and the middle finger less (mean contact "
+            f"force from step 58: thumb {rng(pads, 'force_active_thumb')}, index {rng(pads, 'force_active_index')}, middle "
+            f"{rng(pads, 'force_active_middle')}&#8202;N, against {rng(mesh, 'force_active_thumb')}, "
+            f"{rng(mesh, 'force_active_index')} and {rng(mesh, 'force_active_middle')}&#8202;N with the mesh tip). The pad "
+            f"policies turn the tool {f(mean(tm) - mean(tp), 0)}&#176; less on average and hold it in every rollout of "
+            "both seeds, with a final-cosine "
+            f"spread (sd over 64 rollouts) of {' and '.join(f(fin[t]['final_cos_sd'], 3) for t in pads)}, against "
+            f"{' and '.join(f(fin[t]['final_cos_sd'], 3) for t in mesh)} with the mesh tip.</p>")
+
+
 RUN_LBL = {"tpu27mesh": "TPU block mesh (point contact)", "tpu27pads1": "TPU 1&#8202;mm pads"}
 RUN_COL = {"tpu27mesh": "var(--s1)", "tpu27pads1": "var(--c-sphere)"}
 
@@ -1006,13 +1064,13 @@ def training_section(eta):
                     "the end; pad force: mean summed contact force per fingertip from the residual onset on."))
     if paras:
         out.append("<p>" + " ".join(paras) + "</p>")
+    out.append(films_paragraph(R))
     for tag in sorted(R):
-        png = os.path.join(RLD, "media", f"{tag}_strip.jpg")
-        if os.path.exists(png):
-            FIG[0] += 1
-            out.append(f'<figure><img src="{P.R.data_uri(png, "image/jpeg")}" alt="filmstrip {tag}"><figcaption>Figure&#160;'
-                       f'{FIG[0]}. {tag}: frames of the run&#8217;s last training video at its phase marks '
-                       f'(<code>policy_filmstrip.py</code>).</figcaption></figure>')
+        var = "tpu27pads1" if "pads1" in tag else "tpu27mesh"
+        out.append(rl_film(tag, f"{RUN_LBL[var]}, seed {tag[-1]}, final checkpoint (20&#8202;M steps): one deterministic "
+                                "rollout of 250 policy steps in MuJoCo-Warp, camera on the palm looking along the "
+                                "tool&#8217;s starting axis (thumb in front, index left, middle right). Below: frames at "
+                                "steps 0&#8211;245; the residual acts from step 58."))
     rep = jl(os.path.join(RLD, "policy_replay.jsonl"))
     if rep:
         def drop_t(r):
