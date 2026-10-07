@@ -1,9 +1,16 @@
 #!/usr/bin/env python3
-r"""Build docs/experiments/20261005-contact_overview/20261005-sphere_pad_contact_model.html.
+r"""Build docs/experiments/20261007-contact_overview/20261007-sphere_pad_contact_model.html.
 
     python3 scripts/contact_overview_page.py
 
-The overview page of the fingertip contact work of 1-5 October 2026: the components of a fingertip contact model,
+Each revision of the overview is a new dated file published to the overview's one artifact (artifact_url.txt beside
+the page); the 2026-10-05 revision stays at docs/experiments/20261005-contact_overview/20261005-sphere_pad_contact_model.html.
+The 2026-10-07 revision adds the agreement of the pads with Drake across MuJoCo, MuJoCo-Warp and Newton
+(scripts/simulator_agreement_figure.py), the effective-mass argument that the pads build in and Newton's
+hydroelastic contact lacked, the cost on one RL state and the replay of learned policies across implementations
+(docs/experiments/20261006-hom_turn3/, 20261006-rl_contact/, 20261006-simulator_agreement/).
+
+The overview page of the fingertip contact work of 1-7 October 2026: the components of a fingertip contact model,
 the contact mechanics (patch torque, Winkler/hydroelastic and Hertz arms, lateral coupling), the sphere-packed pad in
 MuJoCo (sampling, the soft-contact spring law, inverse-inertia calibration, friction creep, the collective step bound,
 condim 4), the reference models, and the evidence: the comparison bed (docs/experiments/20261005-contact_bed/), the
@@ -31,8 +38,8 @@ import hom_contact_patch_page as R  # noqa: E402
 import texsvg  # noqa: E402
 
 EXP = os.path.join(ROOT, "docs/experiments")
-D = os.path.join(EXP, "20261005-contact_overview")
-OUT = os.path.join(D, "20261005-sphere_pad_contact_model.html")
+D = os.path.join(EXP, "20261007-contact_overview")
+OUT = os.path.join(D, "20261007-sphere_pad_contact_model.html")
 TPL = os.path.join(ROOT, "scripts/contact_overview_page.template.html")
 CHAIN_TPL = os.path.join(ROOT, "scripts/hom_chain_page.template.html")
 BED = os.path.join(EXP, "20261005-contact_bed")
@@ -40,6 +47,11 @@ CAL = os.path.join(EXP, "20261005-pad_calibration/mass_calibration.jsonl")
 GPU = os.path.join(EXP, "20261005-gpu_scaling")
 CODEX = os.path.join(EXP, "20261004-codex")
 CHAIN_D = os.path.join(EXP, "20261002-hom_chain")
+MSC = os.path.join(EXP, "20261006-newton_mass_scaling")      # Newton hydroelastic with k_h divided by m_eff
+SAD = os.path.join(EXP, "20261006-simulator_agreement")      # GPU pad rows of the bed, Newton brake
+HT3 = os.path.join(EXP, "20261006-hom_turn3")
+RLD = os.path.join(EXP, "20261006-rl_contact")
+HT3_PATH = "docs/experiments/20261006-hom_turn3/20261006-servo_refit_hom_turn_pad_cost.html"
 TEX_CACHE = os.path.join(D, "texsvg_cache.json")
 TEX_SCALE = 1.1
 
@@ -60,18 +72,19 @@ MODELS = {
     "mj_point4s": ("MuJoCo condim 4, μt rescheduled", "var(--c-c4)", "square", True),
     "mj_pads1": ("MuJoCo 1 mm sphere pad", "var(--c-sphere)", "circle", False),
     "drake_hydro": ("Drake hydroelastic", "var(--c-drake)", "circle", False),
-    "newton_hydro": ("Newton hydroelastic", "var(--c-newton)", "diamond", True),
+    "newton_hydro_mc": ("Newton hydroelastic, kh/m_eff", "var(--c-newton)", "diamond", True),
 }
-ORDER = ["mj_point3", "mj_point4s", "mj_pads1", "drake_hydro", "newton_hydro"]
+ORDER = ["mj_point3", "mj_point4s", "mj_pads1", "drake_hydro", "newton_hydro_mc"]
 HTML_LBL = {
     "mj_point3": "MuJoCo point contact, condim&#160;3",
-    "mj_point4s": "MuJoCo condim&#160;4, &#956;<sub>t</sub> rescheduled",
+    "mj_point4s": "MuJoCo condim&#160;4, \\(\\mu_t\\) rescheduled",
     "mj_pads1": "MuJoCo 1&#8202;mm sphere pad",
     "mj_pads2": "MuJoCo 2&#8202;mm sphere pad",
     "mj_pads05": "MuJoCo 0.5&#8202;mm sphere pad",
     "drake_hydro": "Drake hydroelastic",
     "newton_hydro": "Newton hydroelastic",
     "newton_hydro_unreduced": "Newton hydroelastic, unreduced",
+    "newton_hydro_mc": "Newton hydroelastic, \\(k_h/m_\\text{eff}\\)",
 }
 # chain specs (hom_chain.make_plant) and rig specs (hom_contact_rig.make_rig) -> bed model keys
 SPEC_KEY = {
@@ -114,40 +127,53 @@ dl.glossary dd{margin:0;color:var(--ink2)}
 # ------------------------------------------------------------------------------------------ terms and metrics
 
 GLOSSARY = [
-    ("pad", "One fingertip&#8217;s contact with the tool. On the bed rig two pads, one per fingertip, pinch the tool; N is the "
-            "normal force of each pad."),
+    ("pad", "One fingertip&#8217;s contact with the tool. On the bed rig two pads, one per fingertip, pinch the tool; \\(N\\) is "
+            "the normal force of each pad."),
     ("friction arm \\(\\bar r\\)", "Pressure-weighted mean distance of the contact patch from its centre, (1), in mm. A pad transmits "
             "at most \\(\\mu N\\bar r\\) about its normal before it spins. The hydroelastic law gives 0.84, 1.00 and 1.31&#8202;mm at 0.5, 1 "
             "and 3&#8202;N."),
-    ("slip onset, effective &#956;", "Task&#160;1 raises an axial force on the tool at 2&#8202;N/s. Before onset the tool slides slowly at a "
-            "speed proportional to the force; onset is the force at which the speed leaves that trend. Effective &#956; is the onset "
-            "force divided by 2N (two pads). Rigid Coulomb friction gives 1.000."),
+    ("slip onset, effective \\(\\mu\\)", "Task&#160;1 raises an axial force on the tool at 2&#8202;N/s. Before onset the tool slides slowly "
+            "at a speed proportional to the force; onset is the force at which the speed leaves that trend. Effective \\(\\mu\\) is the "
+            "onset force divided by \\(2N\\) (two pads). Rigid Coulomb friction gives 1.000."),
     ("creep", "Steady sliding of the tool while the load stays below the slip force. Task&#160;1 holds the axial force at half the onset "
             "force for 1&#8202;s and reports the sliding speed in &#181;m/s; task&#160;2 holds half the onset torque and reports the turning "
             "speed in &#176;/s; in task&#160;4 it is the drift per cycle below the Coulomb threshold. Rigid Coulomb friction gives zero."),
     ("slip speed", "Mean sliding speed of the tool over the 50&#8202;ms after onset in task&#160;1, in mm/s. Rigid Coulomb friction with "
-            "equal static and kinetic &#956; gives 34&#8202;mm/s."),
-    ("arm at spin onset", "Task&#160;2 raises a torque about the pinch axis; the onset torque divided by 2&#956;N, in mm per pad. "
-            "<i>Sliding arm</i>: the steady torque while the tool is driven to spin at 1&#8202;rad/s, divided by 2&#956;N. "
-            "<i>Onset / law</i>: onset torque over the hydroelastic law&#8217;s 2&#956;N&#183;cN<sup>1/4</sup>."),
+            "equal static and kinetic \\(\\mu\\) gives 34&#8202;mm/s."),
+    ("arm at spin onset", "Task&#160;2 raises a torque about the pinch axis; the onset torque divided by \\(2\\mu N\\), in mm per pad. "
+            "<i>Sliding arm</i>: the steady torque while the tool is driven to spin at 1&#8202;rad/s, divided by \\(2\\mu N\\). "
+            "<i>Onset / law</i>: onset torque over the hydroelastic law&#8217;s \\(2\\mu N\\,cN^{1/4}\\). <i>Onset torque</i> on its own "
+            "is the torque at spin onset, in mN&#8202;m; Drake gives 0.84, 1.97 and 7.65&#8202;mN&#8202;m at 0.5, 1 and 3&#8202;N."),
     ("drift per cycle", "Net displacement of the tool along its axis per 5&#8202;Hz shake cycle in task&#160;4. <i>Coulomb load ratio</i>: "
-            "m(g&#8202;+&#8202;a<sub>pk</sub>)/(2&#956;N); rigid Coulomb friction slips above 1."),
-    ("swing end, peak rate", "Task&#160;5 lowers the pinch force until the tool swings about the pinch axis. Swing end is the final angle "
-            "(90&#176; = hanging); peak rate the largest angular speed of the swing, in &#176;/s."),
-    ("physics step &#916;t", "The simulator&#8217;s integration step; 1&#8202;ms unless stated. <i>&#181;s per step</i>: wall time of one physics "
-            "step on one CPU core, controller and rendering excluded. <i>World-steps per second</i>: on the GPU, the number of parallel "
-            "simulations times the steps each completes per second."),
-    ("t<sub>c</sub>, d<sub>0</sub>, &#923;&#770;", "MuJoCo contact parameters. t<sub>c</sub>, the <code>solref</code> time constant, sets how fast a "
-            "penetration is corrected; d<sub>0</sub>, the <code>solimp</code> impedance, sets what fraction of that correction the solver "
-            "enforces; &#923;&#770; is MuJoCo&#8217;s estimate of the contact&#8217;s inverse inertia (47.2&#8202;kg<sup>&#8722;1</sup> for a pad on the "
-            "real tool). Together they set the sphere stiffness, (10)."),
+            "\\(m(g+a_\\text{pk})/(2\\mu N)\\); rigid Coulomb friction slips above 1."),
+    ("swing end, largest swing, peak rate", "Task&#160;5 lowers the pinch force from 6 to 0.2&#8202;N over 4&#8202;s, with the tool&#8217;s "
+            "centre of mass 15&#8202;mm off the pinch line, until the tool swings about the pinch axis. Swing end is the final angle "
+            "(90&#176; = hanging), largest swing the largest angle over the run (Drake: 87.3&#176;), peak rate the largest angular "
+            "speed of the swing, in &#176;/s."),
+    ("tool turn, within 3&#176;, grip force", "Plan replay of the three-finger turn (Figure&#160;7): tool turn is the rotation "
+            "of the tool axis toward vertical from its pose at the end of the grip, in degrees; a replay is within 3&#176; when its "
+            "turn is within 3&#176; of Drake&#8217;s on the same hand and placement with the tool held in both; grip force is the sum of "
+            "the three fingertips&#8217; normal forces on the tool at the end of the hold, in N."),
+    ("physics step \\(\\Delta t\\)", "The simulator&#8217;s integration step; 1&#8202;ms unless stated. <i>&#181;s per step</i>: wall time of "
+            "one physics step on one CPU core, controller and rendering excluded. <i>World-steps per second</i>: on the GPU, the number "
+            "of parallel simulations times the steps each completes per second; <i>&#181;s per world-step</i> is its inverse."),
+    ("\\(t_c\\), \\(d_0\\), \\(\\hat\\Lambda\\)", "MuJoCo contact parameters. \\(t_c\\), the <code>solref</code> time constant, sets how fast a "
+            "penetration is corrected; \\(d_0\\), the <code>solimp</code> impedance, sets what fraction of that correction the solver "
+            "enforces; \\(\\hat\\Lambda\\) is MuJoCo&#8217;s estimate of the contact&#8217;s inverse inertia (47.2&#8202;kg\\(^{-1}\\) for a pad on "
+            "the real tool). Together they set the sphere stiffness, (10)."),
+    ("inverse weight \\(w\\), effective mass \\(m_\\text{eff}\\)", "\\(w_b\\) is MuJoCo&#8217;s <code>body_invweight0</code> of body \\(b\\), its "
+            "translational inverse inertia at the reference pose in 1/kg; for a contact between bodies 1 and 2, "
+            "\\(\\hat\\Lambda = w_1 + w_2\\) and \\(m_\\text{eff} = 1/\\hat\\Lambda\\)."),
+    ("\\(k_h\\), \\(k_f\\)", "Newton&#8217;s per-shape hydroelastic stiffness (pressure per unit depth, \\(E/h\\) for a layer of modulus "
+            "\\(E\\) and thickness \\(h\\), in N/m&#179;) and its friction gain, which SolverMuJoCo turns into the friction-row time "
+            "constant of each contact."),
     ("impratio, condim", "<code>impratio</code>: ratio of friction-row to normal-row stiffness in MuJoCo; larger values make friction "
             "stick harder. <code>condim</code>&#160;3: normal force and two friction directions; condim&#160;4 adds torsional friction about "
             "the normal."),
     ("pad spacing", "Distance between neighbouring sphere centres on a sphere pad. The 2, 1 and 0.5&#8202;mm pads have 51, 205 and 819 "
             "spheres on a 45&#176; cap."),
-    ("relaxation time t<sub>r</sub>", "Drake&#8217;s dissipation time for hydroelastic contact; the pads use t<sub>c</sub>&#8202;=&#8202;t<sub>r</sub>/2 so "
-            "both damp at the same rate."),
+    ("relaxation time \\(t_r\\)", "Drake&#8217;s dissipation time for hydroelastic contact; the pads use \\(t_c=t_r/2\\) so both damp at "
+            "the same rate."),
 ]
 
 
@@ -176,6 +202,7 @@ def load(path):
 def bed(name):
     """Rows of one bed task, CPU models and Newton merged, with a `model` key on every row."""
     rows = load(os.path.join(BED, f"{name}.jsonl")) + load(os.path.join(BED, f"{name}_newton.jsonl"))
+    rows += load(os.path.join(MSC, f"{name}_newton.jsonl")) + load(os.path.join(SAD, f"{name}_newton.jsonl"))
     for r in rows:
         if "model" not in r:
             r["model"] = SPEC_KEY.get(r.get("chain_spec")) or SPEC_KEY.get(r.get("spec")) or _pad_key(r.get("spec", ""))
@@ -690,7 +717,7 @@ def step_text(rows):
             f"every step from 0.5&#8202;ms up, and the {len(mok)} that finished at 50&#8202;&#181;s ended at "
             f"{num(min(r['pinch_angle_end_deg'] for r in mok), '.0f')} to {num(max(r['pinch_angle_end_deg'] for r in mok), '.0f')}&#176;. "
             f"At equal step the pad costs {cost(dk, 0.001) / cost(leg, 0.001):.0f}&#215; less than Drake at 1&#8202;ms and "
-            f"{cost(dk, 0.01) / cost(leg, 0.01):.0f}&#215; less at 10&#8202;ms (Figure&#160;7).")
+            f"{cost(dk, 0.01) / cost(leg, 0.01):.0f}&#215; less at 10&#8202;ms (Figure&#160;8).")
 
 
 # ------------------------------------------------------------------------------------------ Table 2: agreement
@@ -716,7 +743,7 @@ def metrics(T):
             out.append((group, label, unit, nd, vals))
 
     pull = T["pull"]
-    add("1 pull", "effective &#956; at slip, 1&#8202;N", "", 3, pull, lambda r: r["mu_eff"], N=1.0, dt_ms=1.0)
+    add("1 pull", "effective \\(\\mu\\) at slip, 1&#8202;N", "", 3, pull, lambda r: r["mu_eff"], N=1.0, dt_ms=1.0)
     add("1 pull", "slip speed, first 50&#8202;ms, 1&#8202;N", "mm/s", 1, pull, lambda r: r["v_slip_mean50_mm_s"], N=1.0, dt_ms=1.0)
     add("1 pull", "creep: sliding speed at half the slip force, 1&#8202;N", "&#181;m/s", 2, pull, lambda r: r["creep_mm_s"] * 1e3, N=1.0, dt_ms=1.0)
     tw = T["twist"]
@@ -761,7 +788,7 @@ def agree_class(v, ref):
 
 
 SHORT_TH = {"mj_point3": "point", "mj_point4s": "condim 4", "mj_pads1": "1 mm pad", "drake_hydro": "Drake",
-            "newton_hydro": "Newton"}
+            "newton_hydro_mc": "Newton, mass-corrected"}
 TASK_NAME = {"1 pull": "Task 1, pull to slip", "2 twist": "Task 2, twist to spin", "3 roll": "Task 3, roll between the pads",
              "4 shake": "Task 4, shake while held", "5 brake": "Task 5, brake to hanging"}
 
@@ -906,10 +933,10 @@ def cap_table(cost, newton_us):
     Y, N_, P = "cap-y", "cap-n", "cap-p"
     rows = [
         ("point contact, condim&#160;3", [(Y, "one spring"), (P, "creeps"), (N_, "none"), (N_, "one point"), (N_, "no"), (N_, "no"), us("mj_point3"), (Y, "MuJoCo-Warp")]),
-        ("condim&#160;4, &#956;<sub>t</sub> rescheduled", [(Y, "one spring"), (P, "creeps"), (P, "fitted law, rescheduled"), (N_, "one point"), (N_, "no"), (N_, "no"), us("mj_point4s"), (P, "needs a per-step write")]),
+        ("condim&#160;4, \\(\\mu_t\\) rescheduled", [(Y, "one spring"), (P, "creeps"), (P, "fitted law, rescheduled"), (N_, "one point"), (N_, "no"), (N_, "no"), us("mj_point4s"), (P, "needs a per-step write")]),
         ("1&#8202;mm sphere pad", [(Y, "sampled foundation"), (P, "creeps"), (Y, "from the sphere spread"), (Y, "sampled"), (N_, "no"), (N_, "no"), us("mj_pads1"), (Y, "MuJoCo-Warp")]),
         ("Drake hydroelastic", [(Y, "pressure field"), (Y, "creeps 100&#215; less"), (Y, "integrated"), (Y, "surface mesh"), (N_, "no"), (N_, "no"), us("drake_hydro"), (N_, "CPU only")]),
-        ("Newton hydroelastic", [(Y, "pressure field"), (P, "MuJoCo-Warp rows"), (P, "2.3&#8211;2.9&#215; the law"), (Y, "voxel surface"), (N_, "no"), (N_, "no"),
+        ("Newton hydroelastic, \\(k_h/m_\\text{eff}\\)", [(Y, "pressure field"), (P, "MuJoCo-Warp rows"), (P, "0.76&#8211;0.88 of Drake"), (Y, "voxel surface"), (N_, "no"), (N_, "no"),
                                  (f"{newton_us:.0f} (GPU)" if newton_us else "&#8211;"), (Y, "Warp")]),
         ("Sphere lattice, CSLC", [(Y, "anchor springs"), (P, "presliding; no sliding dynamics"), (Y, "from the lattice"), (Y, "lattice"), (P, "presliding"), (Y, "lateral springs"), "&#8211;", (P, "&#8211;")]),
     ]
@@ -928,8 +955,16 @@ def cap_table(cost, newton_us):
     return "".join(out)
 
 
+def _url(path):
+    return open(path).read().strip() if os.path.exists(path) else None
+
+
 def related():
     items = [
+        ("Servo plant refit, hand-object control of the three-finger turn, contact-model agreement, effective-mass scaling "
+         "and the cost of sphere-pad fingertips in RL training", HT3_PATH, _url(os.path.join(HT3, "artifact_url.txt"))),
+        ("Previous revision of this page (2026-10-05)", "docs/experiments/20261005-contact_overview/20261005-sphere_pad_contact_model.html",
+         None),
         ("Chain control on the SR2 hand (derivation, eight contact models, the paper&#8217;s tasks, cost)", CHAIN_PATH, CHAIN_URL),
         ("Pinch friction torque in Drake and MuJoCo contact models (two-pad rig)",
          "docs/experiments/20261001-hom_contact_patch/20261001-hom_pinch_contact_models.html", "https://claude.ai/artifact/Rvfw1yQFgfWV8PdTvv7jsc"),
@@ -1020,6 +1055,8 @@ def main():
     v["AGREE_TABLE"] = agree_table(M)
     v["FIG_COST"] = svg_cost(M, cost)
     v["FIG_GPU"] = svg_gpu(gpu_pads, gpu_newton)
+    import simulator_agreement_figure as SAF
+    v["FIG_AGREE_SIM"] = SAF.svg_agreement() + SAF.legend()
     v["GPU_NEWTON_SCRIPT"] = ", <code>scripts/newton_scaling.py</code>" if gpu_newton else ""
     fl = CP.FL
     v["PHI_DHY"], v["PHI_S1"] = f"{fl['dhy_closed']['phi_end']:.1f}", f"{fl['s1_closed']['phi_end']:.1f}"

@@ -6,10 +6,10 @@
 
 <div class="wrap">
 <header>
-  <div class="eyebrow">MorphoHand &#183; real_v1 / SR2 fingertip &#183; contact model overview &#183; 1&#8211;5 October 2026 &#183; built {{BUILT}}</div>
+  <div class="eyebrow">MorphoHand &#183; real_v1 / SR2 fingertip &#183; contact model overview &#183; 1&#8211;7 October 2026 &#183; built {{BUILT}}</div>
   <h1>Sphere-packed fingertip pads as a distributed contact model for dexterous manipulation in MuJoCo</h1>
   <p class="lede">{{LEDE}}</p>
-  <div class="byline">real_v1 fingertip sphere R&#8202;10.55&#8202;mm on the real_v1 screwdriver (r&#8202;12.5&#8202;mm, 24.5&#8202;g), &#956;&#8202;1, E&#8202;10&#8202;MPa
+  <div class="byline">real_v1 fingertip sphere R&#8202;10.55&#8202;mm on the real_v1 screwdriver (r&#8202;12.5&#8202;mm, 24.5&#8202;g), \(\mu=1\), \(E=10\)&#8202;MPa
   &#183; MuJoCo 3.6 (CPU) and MuJoCo-Warp, Drake 1.57 SAP, Newton {{NEWTON_REV}} &#183; builder <code>scripts/contact_overview_page.py</code>,
   equations LaTeX rendered to SVG by <code>scripts/texsvg.py</code> &#183; task results on the bed page
   (<code>{{BED_PATH}}</code>{{BED_LINK}}) and the chain page (<code>{{CHAIN_PATH}}</code>, <a href="{{CHAIN_URL}}">artifact</a>)</div>
@@ -45,7 +45,7 @@ controller corrects a consistent model error from measured state, provided the m
 the task uses.</p>
 <div class="tw">{{CAP_TABLE}}</div>
 <p class="tnote">Table&#160;1. Contact quantities each model represents. Cost is the physics step of the two-pad pinch rig at
-1&#8202;ms on one CPU core (bed task&#160;1); GPU throughput is in Figure&#160;9. {{CAP_NOTE}}</p>
+1&#8202;ms on one CPU core (bed task&#160;1); GPU throughput is in Figure&#160;10. {{CAP_NOTE}}</p>
 <figure class="diagram">
 {{FIG_MODELS}}
 <figcaption>Figure&#160;1. Five representations of a fingertip pressed on the tool. (a) A point contact transmits normal force
@@ -82,9 +82,9 @@ T&=\mu\int_0^a \frac{E}{R}\Bigl(\delta_0-\frac{\rho^2}{2R}\Bigr)\,2\pi\rho^2\,d\
 \end{aligned}\]<span class="eqno">(2)</span></div>
 <p>Eliminating \(\delta_0\) gives the arm as a power of the load:</p>
 <div class="eq">\[\bar r_W=\frac{8}{15}\sqrt{2R}\,\Bigl(\frac{F}{\pi E}\Bigr)^{1/4}=c\,F^{1/4}.\]<span class="eqno">(3)</span></div>
-<p>For the real_v1 fingertip at Drake&#8217;s default \(E\)&#8202;=&#8202;10&#8202;MPa, a flat face gives \(c\)&#8202;=&#8202;1.035&#8202;mm&#183;N<sup>&#8722;1/4</sup>.
+<p>For the real_v1 fingertip at Drake&#8217;s default \(E\)&#8202;=&#8202;10&#8202;MPa, a flat face gives \(c=1.035\ \mathrm{mm\,N^{-1/4}}\).
 On the 12.5&#8202;mm screwdriver the patch is narrower across the tool axis, and a fit to Drake&#8217;s torque gives
-\(c\)&#8202;=&#8202;0.996&#8202;mm&#183;N<sup>&#8722;1/4</sup> with exponent 0.2498: an arm of 0.84&#8202;mm at 0.5&#8202;N and 1.31&#8202;mm at 3&#8202;N. The
+\(c=0.996\ \mathrm{mm\,N^{-1/4}}\) with exponent 0.2498: an arm of 0.84&#8202;mm at 0.5&#8202;N and 1.31&#8202;mm at 3&#8202;N. The
 springs are uncoupled, so the pressure is zero outside the geometric overlap.</p>
 
 <h3><span class="step">3</span>Hertz contact</h3>
@@ -166,6 +166,7 @@ the contact. {{MASS_TEXT}} The friction arm depends on the stiffness only throug
 compiled model for each pad&#8211;object pair at load. Grey: the hydroelastic law. With the fixed value the arm moves by
 \(k^{-1/4}\) of the stiffness error, (11).</figcaption>
 </figure>
+<p>{{MEFF_TEXT}}</p>
 
 <h3><span class="step">8</span>Creep under MuJoCo&#8217;s soft friction</h3>
 <p>Creep is the steady sliding of a contact under a tangential load below its friction limit; rigid Coulomb friction gives
@@ -185,7 +186,7 @@ rate \(\lambda\):</p>
 <div class="eq">\[\Delta t<t_c\Bigl(d_0+\frac{1-d_0}{n}\Bigr)\;\longrightarrow\;\begin{cases}d_0\,t_c, & n\,d_0\gg1,\\ t_c/n, & n\,d_0\ll1.\end{cases}\]<span class="eqno">(14)</span></div>
 <p>For the 1&#8202;mm pads (\(d_0\)&#8202;=&#8202;0.74&#8211;0.89, \(t_c\)&#8202;=&#8202;10&#8211;15&#8202;ms) the bound is 7&#8211;13&#8202;ms, and it cannot fall as more spheres
 touch because \(d'\le1\). The pads gave the same task results from 50&#8202;&#181;s to 10&#8202;ms steps in Codex&#8217;s 50&#8202;Hz sweep
-(Figure&#160;7). Codex&#8217;s per-contact mapping set \(d_0=10^{-4}\) to impose each sphere&#8217;s spring and damper exactly. Then
+(Figure&#160;8). Codex&#8217;s per-contact mapping set \(d_0=10^{-4}\) to impose each sphere&#8217;s spring and damper exactly. Then
 \(nd_0\ll1\), and the summed contact damping \(nC\hat\Lambda\), with \(C\)&#8202;=&#8202;24.5&#8202;N&#183;s/m per sphere, requires
 \(\Delta t<2/(nC\hat\Lambda)\): 60&#8211;90&#8202;&#181;s for 20&#8211;30 spheres. Those runs diverged at every step from 0.5 to 10&#8202;ms and
 completed only at 50&#8202;&#181;s. MuJoCo applies its clamp \(t_c\ge2\Delta t\) per row, which leaves this collective mode
@@ -220,11 +221,23 @@ that uses it (<code>{{CHAIN_PATH}}</code>, steps&#160;3 and 5).</p>
 of the page. Shading compares each model with Drake hydroelastic: within 10&#8202;% (dark), 10&#8211;25&#8202;% (light), 25&#8211;50&#8202;% (amber),
 beyond 50&#8202;% or a failed case (red). {{AGREE_NOTE}}</p>
 {{EVIDENCE_TASKS}}
+<h3>Agreement of the pads with Drake across MuJoCo, MuJoCo-Warp and Newton</h3>
+<p>{{AGREE_SIM_TEXT}}</p>
+<figure class="diagram">
+{{FIG_AGREE_SIM}}
+<figcaption>Figure&#160;7. Agreement with Drake hydroelastic, one fingertip shape (the printed TPU block, 2.7&#8202;mm fillets) and
+one control method (open-loop replay). Columns: the bed twist (onset torque at 0.5, 1 and 3&#8202;N, ratio to Drake), the bed
+brake (largest swing, difference from Drake), and the plan replay of the three-finger turn on D1&#8211;D8 (tool turn and grip force
+at the hold, 24 placements paired with Drake). The blue line is Drake, the band &#177;3&#176; or &#177;10&#8202;%; hollow markers dropped
+or released the tool. Rows and script: <code>docs/experiments/20261006-simulator_agreement/</code>,
+<code>scripts/simulator_agreement_figure.py</code>.</figcaption>
+</figure>
+<p>{{RL_REPLAY_TEXT}}</p>
 <h3>Consistency across step size</h3>
 <p>{{STEP_TEXT}}</p>
 <figure class="diagram">
 {{FIG_STEP}}
-<figcaption>Figure&#160;7. Codex&#8217;s 50&#8202;Hz controller sweep of the Exp&#160;2 twist sequence on the SR2 hand
+<figcaption>Figure&#160;8. Codex&#8217;s 50&#8202;Hz controller sweep of the Exp&#160;2 twist sequence on the SR2 hand
 (<code>scripts/distributed_contact_timestep.py</code>). (a) The tool&#8217;s angle about the pinch axis at the end of the sequence,
 against the physics step; a cross marks a diverged run. (b) Physics wall time per simulated second, one core.</figcaption>
 </figure>
@@ -232,12 +245,12 @@ against the physics step; a cross marks a diverged run. (b) Physics wall time pe
 <p>{{COST_TEXT}}</p>
 <figure class="diagram">
 {{FIG_COST}}
-<figcaption>Figure&#160;8. Agreement against cost on the bed tasks: each model&#8217;s median absolute deviation from Drake over the
+<figcaption>Figure&#160;9. Agreement against cost on the bed tasks: each model&#8217;s median absolute deviation from Drake over the
 metrics of Table&#160;2, against its median physics step on one core at 1&#8202;ms. {{COST_NOTE}}</figcaption>
 </figure>
 <figure class="diagram">
 {{FIG_GPU}}
-<figcaption>Figure&#160;9. Batched GPU throughput on one RTX 4070 Ti SUPER (16&#8202;GB), SR2 thumb&#8211;index holding fixture, 1&#8202;ms step
+<figcaption>Figure&#160;10. Batched GPU throughput on one RTX 4070 Ti SUPER (16&#8202;GB), SR2 thumb&#8211;index holding fixture, 1&#8202;ms step
 unless marked (<code>scripts/gpu_scaling_mjwarp.py</code>{{GPU_NEWTON_SCRIPT}}). Simulated seconds per wall second equal world-steps
 per second times the step. {{GPU_NOTE}}</figcaption>
 </figure>
@@ -248,13 +261,13 @@ swing at {{PHI_DHY}}&#176; in Drake hydroelastic and {{PHI_S1}}&#176; with the 1
 drops it. The films below are from that page (<code>{{CHAIN_PATH}}</code>, <a href="{{CHAIN_URL}}">artifact</a>).</p>
 <figure>
 <video src="{{CLOSEUP_FILM}}" poster="{{CLOSEUP_POSTER}}" controls muted loop playsinline preload="metadata"></video>
-<figcaption>Figure&#160;10. The thumb pad through the nominal chain, real time. Left to right: Drake hydroelastic (contact-surface
+<figcaption>Figure&#160;11. The thumb pad through the nominal chain, real time. Left to right: Drake hydroelastic (contact-surface
 faces), MuJoCo 0.5, 1 and 2&#8202;mm sphere pads (the collision spheres), and condim&#160;4 (one contact point). Faces and spheres
 share one colour scale, 0&#8211;0.3&#8202;MPa; the black dot is the centre of pressure.</figcaption>
 </figure>
 <figure>
 <video src="{{CHAIN_FILM}}" poster="{{CHAIN_POSTER}}" controls muted loop playsinline preload="metadata"></video>
-<figcaption>Figure&#160;11. The nominal chain in six contact models, real time: pick, closed-loop brake to vertical, squeeze and
+<figcaption>Figure&#160;12. The nominal chain in six contact models, real time: pick, closed-loop brake to vertical, squeeze and
 insertion.</figcaption>
 </figure>
 </div></section>
@@ -266,7 +279,9 @@ insertion.</figcaption>
 
 <footer><div class="col">
 <p>Rebuild: <code>python3 scripts/contact_overview_page.py</code> (reads the bed rows under
-<code>docs/experiments/20261005-contact_bed/</code>, <code>20261005-pad_calibration/</code>, <code>20261005-gpu_scaling/</code>,
+<code>docs/experiments/20261005-contact_bed/</code>, <code>20261006-newton_mass_scaling/</code>,
+<code>20261006-simulator_agreement/</code>, <code>20261005-pad_calibration/</code>, <code>20261005-gpu_scaling/</code>,
+the turn, timing and replay rows under <code>20261006-hom_turn3/</code> and <code>20261006-rl_contact/</code>,
 Codex&#8217;s <code>20261004-codex/data/task_timestep_results.json</code> and the chain page&#8217;s figure code; equations are cached in
 <code>{{TEX_CACHE_REL}}</code>).</p>
 <p>Related pages: {{RELATED}}</p>

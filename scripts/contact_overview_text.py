@@ -48,6 +48,16 @@ def lede(ctx):
         tail = f"; one GPU runs {max(g) / 1e6:.2f} million pad world-steps per second" if g else ""
         parts.append(f"A pad step costs {cost['mj_pads1']:.0f}&#8202;&#181;s on one CPU core against {cost['drake_hydro']:.0f}&#8202;&#181;s for Drake, "
                      f"and task results are unchanged from 50&#8202;&#181;s to 10&#8202;ms steps{tail}.")
+    import simulator_agreement_figure as SAF
+    A = SAF.data()
+    w = [A[k]["within"] for k in ("mj_pads", "mjw_pads", "nt_pads") if "turn" in A[k]]
+    sc = _state_cost()
+    if len(w) == 3 and sc:
+        parts.append("The same pads in MuJoCo-Warp and in Newton agree with Drake to the same degree on the bed and on the "
+                     "open-loop three-finger turn of the eight deployed hands (turn within 3&#176; of Drake on "
+                     f"{w[0]}, {w[1]} and {w[2]} of {A['mj_pads']['n']} placements), because each sphere&#8217;s impedance divides "
+                     "out the contact&#8217;s effective mass, which Newton&#8217;s hydroelastic contact did not; on one RL state they "
+                     f"cost {min(sc['pads']):.1f}&#8211;{max(sc['pads']):.1f}&#8202;&#181;s of physics per world-step in MuJoCo-Warp.")
     cr_p = _get(M, "creep: sliding", "mj_pads1")
     cr_d = _get(M, "creep: sliding", "drake_hydro")
     if cr_p and cr_d:
@@ -58,19 +68,19 @@ def lede(ctx):
 
 def refs_text(ctx):
     nw = ctx["gpu_newton"]
-    newton_dyn = ""
-    st = [r for r in P.load(P.os.path.join(P.BED, "static_newton.jsonl")) if P.first(r, "rbar_mm", "rbar_per_pad_mm")]
-    if st:
-        newton_dyn = (" On the two-pad rig its static pinch gives an arm of " +
-                      "; ".join(f"{P.first(r, 'rbar_mm', 'rbar_per_pad_mm'):.3f}&#8202;mm at {P.first(r, 'N', 'N_cmd'):g}&#8202;N"
-                                for r in st) + ".")
-    tw = [r for r in ctx["T"]["twist"] if str(r.get("model", "")).startswith("newton") and r.get("status") == "complete"
-          and r.get("dt_ms") == 1.0 and r.get("tau_onset_over_law")]
+    sink = _static_sink()
+    Ns = (0.5, 1.0, 3.0)
+    raw = [sink[("newton_hydro", N)] / sink[("drake_hydro", N)] for N in Ns if ("newton_hydro", N) in sink and ("drake_hydro", N) in sink]
+    mc = [sink[("newton_hydro_mc", N)] / sink[("drake_hydro", N)] for N in Ns if ("newton_hydro_mc", N) in sink and ("drake_hydro", N) in sink]
+    tw = {(r["model"], r["N"]): r["tau_onset_Nm"] for r in ctx["T"]["twist"] if r.get("dt_ms") == 1.0
+          and r.get("status") == "complete" and r.get("tau_onset_Nm")}
+    on = [tw[("newton_hydro_mc", N)] / tw[("drake_hydro", N)] for N in Ns if ("newton_hydro_mc", N) in tw and ("drake_hydro", N) in tw]
     newton_tw = ""
-    if tw:
-        newton_tw = (f" In bed task&#160;2 it starts to spin at {min(r['tau_onset_over_law'] for r in tw):.1f}&#8211;{max(r['tau_onset_over_law'] for r in tw):.1f}&#215; "
-                     "the hydroelastic law&#8217;s torque, with and without reduction, where Drake spins at 0.97&#8211;1.00&#215;; its "
-                     "5&#8202;ms runs spin at once or eject the tool. One GPU world costs 0.5&#8202;ms per step with reduction and 1.5&#8202;ms without.")
+    if raw and mc:
+        newton_tw = (f" SolverMuJoCo realises each contact&#8217;s stiffness times the effective mass, so the bed&#8217;s pads sank "
+                     f"{_ratio_rng(raw, 1)} times as deep as Drake; with \\(k_h\\) divided by \\(m_\\text{{eff}}\\) (step&#160;7) they sink "
+                     f"{_ratio_rng(mc)} times Drake&#8217;s depth" + (f" and start to spin at {_ratio_rng(on)} of Drake&#8217;s onset torque" if on else "")
+                     + ". One GPU world costs 0.5&#8202;ms per step with reduction and 1.5&#8202;ms without.")
     return f"""
 <h3>Drake hydroelastic</h3>
 <p>Drake gives each compliant body a pressure field on a tetrahedral mesh, \\(p=E\\,\\delta/R\\) for the fingertip sphere at a
@@ -85,9 +95,9 @@ shapes&#8217; pressures balance by marching cubes, and hands each triangle to th
 An optional reduction merges them into a few representative contacts. Friction stays per point in the MuJoCo-Warp or XPBD
 solver, so the friction torque comes from the spread of the points, as with the sphere pads. Codex&#8217;s static check on the
 SR2 pinch put the torque capacity within 1&#8211;6&#8202;% of the continuum at 0.25&#8202;mm voxels without reduction; reduction
-lowered it by 16&#8211;25&#8202;% and 1&#8202;mm voxels by up to 69&#8202;%. Every dynamic run blew up during the preload until
-the probe of 5 October found the cause in Newton&#8217;s MJCF importer: a one-value default <code>solref</code> was stored with
-damping ratio 0, and contacts with zero Newton stiffness fell back to it.{newton_dyn}{newton_tw}</p>
+lowered it by 16&#8211;25&#8202;% and 1&#8202;mm voxels by up to 69&#8202;%. Newton&#8217;s MJCF importer stores a one-value default
+<code>solref</code> with damping ratio 0, and contacts with zero Newton stiffness fall back to it, so the bed and hand scenes are
+imported with two-value solrefs.{newton_tw}</p>
 <h3>Compliant Sphere Lattice Contact</h3>
 <p>{cslc_text(ctx)}</p>
 """
@@ -136,7 +146,7 @@ def evidence_tasks(ctx):
         out.append(f"<p><b>Shake.</b> At 0.5&#8202;N and 2&#8202;g the load stays below the rigid-Coulomb slip threshold, so the drift is creep: "
                    f"{abs(s('mj_pads1')['drift_per_cycle_mm']) * 1e3:.1f}&#8202;&#181;m per cycle with the pad against "
                    f"{abs(s('drake_hydro')['drift_per_cycle_mm']) * 1e3:.2f}&#8202;&#181;m in Drake.</p>")
-    out.append("<p>Roll, the creep study and the stability map have not run; their scripts are listed on the bed page.</p>")
+    out.append("<p>Roll and the stability map have not run; their scripts are listed on the bed page.</p>")
     return "".join(out)
 
 
@@ -151,8 +161,8 @@ def cost_text(ctx):
         best = max(g, key=lambda r: r["world_steps_per_s"])
         gp = (f" On one GPU, MuJoCo-Warp runs the 1&#8202;mm pads at up to {best['world_steps_per_s'] / 1e3:.0f}k world-steps per second "
               f"({best['key'].split('_n')[1].split('_')[0]} worlds), {best['sim_s_per_wall_s']:.0f} simulated seconds per wall second; the "
-              f"curve flattens beyond 4096 worlds (Figure&#160;9).")
-    return (f"Median physics step of the two-pad pinch at 1&#8202;ms on one core, from bed task&#160;1: {s}. Figure&#160;8 plots it against "
+              f"curve flattens beyond 4096 worlds (Figure&#160;10).")
+    return (f"Median physics step of the two-pad pinch at 1&#8202;ms on one core, from bed task&#160;1: {s}. Figure&#160;9 plots it against "
             f"each model&#8217;s deviation from Drake over the metrics of Table&#160;2." + gp)
 
 
@@ -163,12 +173,14 @@ def open_list(ctx):
          "equation (5)."),
         ("Coupling length of the TPU print.", "Indent the print at one point and map the surface displacement around it; fit "
          "\\(u(r)\\propto e^{-r/\\ell}\\) and compare \\(\\ell\\) with the 1.6&#8211;2.5&#8202;mm patch radius (asides page)."),
-        ("Creep.", "Run bed task&#160;6 (<code>impratio</code> 1000, <code>noslip_iterations</code> 10). If one setting brings creep near "
-         "Drake&#8217;s, re-run the chain&#8217;s hold and the wield with it and record the cost."),
-        ("Newton&#8217;s torsion.", "Newton spins the tool at 2.3&#8211;2.9&#215; the law&#8217;s torque in bed task&#160;2. Repeat it with Newton&#8217;s "
-         "friction gain at 1 and the tool at the pad&#8217;s stiffness; then finish its GPU batches at 4096&#8211;8192 worlds."),
-        ("The modulus.", "Every model here uses Drake&#8217;s default E&#8202;=&#8202;10&#8202;MPa. The arm scales as \\(E^{-1/4}\\), so a "
-         "TPU tip at 2&#8211;5&#8202;MPa lengthens it by 19&#8211;50&#8202;%; refit c once the tip is measured."),
+        ("Creep in the whole task.", "Re-run the chain&#8217;s hold and the wield with <code>impratio</code> 1000, the setting at which bed "
+         "task&#160;6 brings the pad&#8217;s creep toward Drake&#8217;s (step&#160;8), and record the cost per step."),
+        ("Friction rows of Newton&#8217;s hydroelastic contact.", "The 2026-10-05 friction gain \\(k_f=10\\) gives its friction rows a "
+         "3.9&#8202;ms time constant, and the braked tool swings to 130&#176;. Run <code>contact_bed_newton.py brake --models newton_hydro_mc</code> "
+         "with \\(k_f\\) set for 2, 5, 10 and 20&#8202;ms; a swing within 3&#176; of Drake&#8217;s 87.3&#176; at one setting, kept on the "
+         "turn&#8217;s 40 placements, would make the remaining disagreement a friction-row setting."),
+        ("The modulus.", "Every model here uses Drake&#8217;s default \\(E=10\\)&#8202;MPa. The arm scales as \\(E^{-1/4}\\), so a "
+         "TPU tip at 2&#8211;5&#8202;MPa lengthens it by 19&#8211;50&#8202;%; refit \\(c\\) once the tip is measured."),
         ("Pre-slip shear.", "No model here stores elastic tangential displacement. A slow tangential load cycle on the printed tip "
          "(hysteresis loop below the slip force) measures whether the tip needs a tangential state."),
     ]
@@ -182,6 +194,149 @@ def lit(ctx):
             "hydroelastic) and <code>docs/experiments/20261004-codex/22_Compliant_Sphere_Lattice_Co.pdf</code> (CSLC); notes in "
             "<code>docs/notes/20261005-contact_literature_notes.md</code>. Wang, Oh and Pollard, arXiv 2609.25619 (the controller "
             "and tasks).")
+
+
+
+# ------------------------------------------------------------------------------- 2026-10-07: effective mass, agreement
+
+def _static_sink():
+    """Sink per pad (mm) by (model, N) at 1 ms from the bed's and the mass-scaling folder's static rows."""
+    out = {}
+    for path in (P.os.path.join(P.BED, "static_newton.jsonl"), P.os.path.join(P.MSC, "static_newton.jsonl")):
+        for r in P.load(path):
+            if r.get("dt_ms", 1.0) == 1.0 and r.get("status", "complete") == "complete" and "pen_mm" in r:
+                out[(r["model"], r["N"])] = r["pen_mm"]
+    return out
+
+
+def _ratio_rng(vals, nd=2):
+    v = [x for x in vals if x is not None]
+    if not v:
+        return "&#8211;"
+    a, b = f"{min(v):.{nd}f}", f"{max(v):.{nd}f}"
+    return a if a == b else f"{a}&#8211;{b}"
+
+
+def meff_text(ctx):
+    sink = _static_sink()
+    Ns = (0.5, 1.0, 3.0)
+    raw = [sink[("newton_hydro", N)] / sink[("drake_hydro", N)] for N in Ns if ("newton_hydro", N) in sink and ("drake_hydro", N) in sink]
+    mc = [sink[("newton_hydro_mc", N)] / sink[("drake_hydro", N)] for N in Ns if ("newton_hydro_mc", N) in sink and ("drake_hydro", N) in sink]
+    br = {r["model"]: r for r in P.load(P.os.path.join(P.SAD, "brake_newton.jsonl"))}
+    old = {r["model"]: r for r in P.load(P.os.path.join(P.SAD, "newton_pads_kf1000/brake_newton.jsonl"))}
+    d0 = (br.get("newton_pads1") or {}).get("pad_d0") or {}
+    w = (br.get("newton_pads1") or {}).get("inv_weight0") or {}
+    swing = (f" With Newton&#8217;s default \\(k_f=1000\\) the friction rows get \\(t_f=4\\times10^{{-5}}\\)&#8202;s and the braked tool "
+             f"swung to {old['newton_pads1']['phi_max_deg']:.0f}&#176;; with \\(t_f=t_c\\) it swings to "
+             f"{br['newton_pads1']['phi_max_deg']:.1f}&#176;, as in MuJoCo." if "newton_pads1" in old and "newton_pads1" in br else "")
+    return (
+        "The same factor sets the stiffness of every MuJoCo contact, not only of the pads: solref is a spring on the constraint "
+        "acceleration, so a contact realises its solref stiffness times the effective mass \\(m_\\text{eff}=1/\\hat\\Lambda\\) as a "
+        "force stiffness, and the pads&#8217; \\(d_0\\) divides that mass out. Newton&#8217;s hydroelastic contact passes each patch point "
+        "to MuJoCo-Warp with a force stiffness \\(c\\) and writes it as \\(t_c=\\sqrt{1/(c(1-d))}\\) without the factor, so on the bed "
+        f"(\\(m_\\text{{eff}}\\)&#8202;=&#8202;17.4&#8202;g) it sank {_ratio_rng(raw, 1)} times as deep as Drake. Multiplying its \\(k_h\\) "
+        "by the inverse-weight sum of the solver&#8217;s own MuJoCo model, \\(k_h\\,(w_1+w_2)\\), gives "
+        f"{_ratio_rng(mc)} times Drake&#8217;s sink with no parameter fitted (<code>{P.HT3_PATH}</code>, Section&#160;4). The pads "
+        "carry into Newton&#8217;s point-contact pipeline with two settings: \\(d_0\\) recomputed from the inverse weights of "
+        f"Newton&#8217;s MuJoCo model, which gives the bed&#8217;s railed pads {w.get('padL', 16.7):.1f}&#8202;1/kg against the MJCF "
+        f"compile&#8217;s 50 (\\(d_0\\) {d0.get('mjcf', 0):.3f} &#8594; {d0.get('solver', 0):.3f}), and a friction gain \\(k_f\\) for "
+        "which SolverMuJoCo&#8217;s friction-row time constant \\(t_f=2/(k_f\\,\\hat\\Lambda\\,((1-d_0)/\\kappa+d_0))\\) equals the "
+        f"pads&#8217; \\(t_c\\) ({d0.get('kf', 0):.1f} on the bed).{swing}")
+
+
+def agree_sim_text(ctx):
+    import simulator_agreement_figure as SAF
+    A = SAF.data()
+    pads = [k for k in ("mj_pads", "mjw_pads", "nt_pads") if A[k].get("twist")]
+    tw = [x for k in pads for x in A[k]["twist"]]
+    br = [abs(A[k]["brake"][0][0]) for k in pads if A[k].get("brake")]
+    gr = [g for k in pads for g, _ in A[k].get("grip", [])]
+    hy, pt = A["nt_hydro"], A["mj_pt"]
+    held = {k: (sum(r["held_end"] for r in P.load(str(path))), len(P.load(str(path))))
+            for k, _l, _c, _s, path, _b in SAF.MODELS}
+    drake_swing = next((r["phi_max_deg"] for r in P.load(P.os.path.join(P.BED, "brake.jsonl"))
+                        if r.get("model") == "drake_hydro" and r.get("dt_ms") == 1.0), None)
+    return (
+        "The pads are the same contact model in CPU MuJoCo, MuJoCo-Warp and Newton&#8217;s point-contact pipeline once Newton gets "
+        "the solver&#8217;s inverse weights (step&#160;7). Figure&#160;7 compares the three, Newton&#8217;s mass-corrected hydroelastic "
+        "contact on the plain block and MuJoCo point contact with Drake on the bed&#8217;s twist and brake and on the open-loop plan "
+        "replay of the three-finger turn on the eight deployed hands (working servo plant, \\(\\mu=1\\), 24 placements paired with "
+        "Drake by hand and placement). The three pad implementations agree with Drake to the same degree: onset torque "
+        f"{_ratio_rng(tw)} of Drake&#8217;s at 0.5&#8211;3&#8202;N, largest swing within {max(br):.1f}&#176; of Drake&#8217;s "
+        f"{drake_swing:.1f}&#176;, the turn within 3&#176; of Drake on {A['mj_pads']['within']}, {A['mjw_pads']['within']} and "
+        f"{A['nt_pads']['within']} of {A['mj_pads']['n']} placements, "
+        + ("every one of the 40 placements held in all three" if all(held[k][0] == held[k][1] for k in ("mj_pads", "mjw_pads", "nt_pads"))
+           else f"{held['mj_pads'][0]}, {held['mjw_pads'][0]} and {held['nt_pads'][0]} of 40 placements held")
+        + f", and grip force {_ratio_rng(gr)} of "
+        f"Drake&#8217;s. The mass-corrected hydroelastic contact reaches {_ratio_rng(hy.get('twist', []))} of Drake&#8217;s onset "
+        f"torque but swings the braked tool to {drake_swing + hy['brake'][0][0]:.0f}&#176; and turns within 3&#176; on "
+        f"{hy.get('within', 0)} of {hy.get('n', 0)}; point contact holds every placement of the turn but transmits "
+        f"{_ratio_rng(pt.get('twist', []))} of the onset torque and lets the braked tool spin out of the pinch "
+        f"(<code>{P.HT3_PATH}</code>, Section&#160;5).")
+
+
+def rl_replay_text(ctx):
+    ev = {}
+    for r in P.load(P.os.path.join(P.RLD, "train_eval.jsonl")):
+        if r.get("status") == "ok" and r["env_steps"] > 19e6:
+            ev[r["tag"]] = r
+    rep = P.load(P.os.path.join(P.RLD, "policy_replay.jsonl"))
+
+    def cpu(tag):
+        return next((x for x in reversed(rep) if x.get("engine") == "mujoco" and x.get("status") == "ok"
+                     and x.get("hold_test_s") is None and x.get("dir", "").endswith(tag)), None)
+    pads = sorted(t for t in ev if "pads1" in t)
+    mesh = sorted(t for t in ev if "pads1" not in t)
+    if not pads or not mesh:
+        return ""
+    rec = {x["tag"]: x for x in rep if x.get("kind") == "record"}
+    cp = [cpu(t) for t in pads]
+    if not all(cp) or not all(t in rec for t in pads):
+        return ""
+    d = max(abs(c["cos_end"] - rec[t]["mjw_cos_end"][0]) for c, t in zip(cp, pads))
+    mesh_drop = all(cpu(t) is not None and not cpu(t)["held_end"] for t in mesh)
+    held_p = [round(64 * ev[t]["hold_rate"]) for t in pads]
+    return (
+        "The pads also carry learned behaviour between implementations. The D6 reorientation trained from scratch in MuJoCo-Warp for "
+        f"20&#8202;M steps holds the tool in {' and '.join(map(str, held_p))} of 64 deterministic rollouts with the 1&#8202;mm pads "
+        f"(final cosine with vertical {min(ev[t]['final_cos_mean'] for t in pads):.2f}&#8211;"
+        f"{max(ev[t]['final_cos_mean'] for t in pads):.2f}). Replayed open loop from the reorientation onset in CPU MuJoCo, the pad "
+        f"policies end within {d:.2f} in cosine of MuJoCo-Warp with the tool held"
+        + ("; the policies trained on the TPU block as one convex mesh lose the tool in CPU MuJoCo within 0.3&#8202;s" if mesh_drop else "")
+        + f". Films of the four policies and the replays in Drake and Newton: <code>{P.HT3_PATH}</code>, Section&#160;6.")
+
+
+def _state_cost():
+    """us per world-step on the held D6 RL state (the last row per engine, version, fingertip and batch, as on the
+    hom_turn3 page): MuJoCo-Warp 3.6 pads and mesh, Newton mass-corrected hydroelastic."""
+    R = {}
+    for r in P.load(P.os.path.join(P.RLD, "same_state_timing.jsonl")):
+        if r.get("status") == "ok":
+            R[(r["engine"], r.get("mujoco_warp"), r["variant"], r["nworld"])] = r
+    v36 = next((v for v in sorted({k[1] for k in R if k[0] == "mjw" and k[1]}) if str(v).startswith("3.6")), None)
+    out = {"pads": [R[k]["us_per_world_step"] for k in R if k[0] == "mjw" and k[1] == v36 and k[2] == "pads1"],
+           "mesh": [R[k]["us_per_world_step"] for k in R if k[0] == "mjw" and k[1] == v36 and k[2] == "mesh"],
+           "hydro": [R[k]["us_per_world_step"] for k in R if k[0] == "nt_hydro"]}
+    return out if out["pads"] else None
+
+
+def state_cost_text(ctx):
+    sc = _state_cost()
+    if not sc:
+        return ""
+    pads, mesh, hyd = sc["pads"], sc["mesh"], sc["hydro"]
+    T = {}
+    for r in P.load(P.os.path.join(P.RLD, "throughput.jsonl")):
+        if r.get("status") == "ok" and r.get("sensor_reduce") != "netforce":
+            T[(r["variant"], r["num_envs"])] = r
+    env = ""
+    if ("pads1", 2048) in T and ("legacy", 2048) in T:
+        env = (f"; the RL env with the pads runs {100 * (1 - T[('pads1', 2048)]['env_steps_per_s'] / T[('legacy', 2048)]['env_steps_per_s']):.0f}"
+               "&#8202;% fewer env steps per second than with the box tip at 2,048 envs, because physics is about a tenth of an env step")
+    return (f" On one held state of the D6 RL env at 1,024 and 2,048 worlds (the trainer&#8217;s 2&#8202;ms step), MuJoCo-Warp steps the "
+            f"1&#8202;mm pads in {min(pads):.1f}&#8211;{max(pads):.1f}&#8202;&#181;s of physics per world-step, the TPU block as one "
+            f"mesh in {min(mesh):.1f}&#8211;{max(mesh):.1f}&#8202;&#181;s and Newton&#8217;s mass-corrected hydroelastic block in "
+            f"{min(hyd):.1f}&#8211;{max(hyd):.1f}&#8202;&#181;s{env}.")
 
 
 def blocks(ctx):
@@ -202,11 +357,13 @@ def blocks(ctx):
         "EVIDENCE_LEAD": evidence_lead(ctx),
         "AGREE_NOTE": "A dash marks a case not run.",
         "EVIDENCE_TASKS": evidence_tasks(ctx),
-        "COST_TEXT": cost_text(ctx),
+        "COST_TEXT": cost_text(ctx) + state_cost_text(ctx),
         "COST_NOTE": "Drake sits at zero deviation by construction.",
-        "GPU_NOTE": ("Newton&#8217;s rows stop at 4096 worlds with contact reduction and 1024 without; larger batches were not run. On the "
-                     "two-pad rig Newton spins the tool at 2.3&#8211;2.9&#215; the pads&#8217; torque, so these two curves are for models that "
-                     "disagree in torsion." if ctx["gpu_newton"] else "Newton&#8217;s rows are not written yet."),
+        "GPU_NOTE": ("Newton&#8217;s rows stop at 4096 worlds with contact reduction and 1024 without; larger batches were not run. Its "
+                     "curves are for \\(k_h=E/h\\), before the effective-mass correction of step&#160;7." if ctx["gpu_newton"] else "Newton&#8217;s rows are not written yet."),
         "OPEN_LIST": open_list(ctx),
+        "MEFF_TEXT": meff_text(ctx),
+        "AGREE_SIM_TEXT": agree_sim_text(ctx),
+        "RL_REPLAY_TEXT": rl_replay_text(ctx),
         "LIT": lit(ctx),
     }
