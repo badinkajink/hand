@@ -146,6 +146,18 @@ GLOSSARY = [
                        "reference relative velocities (their Eq. 2). Defined in Section 3."),
     ("governor", "the HOM controller&#8217;s stop rule: when a pad&#8217;s normal force falls below 30&#8202;% of its "
                  "target or the tool lags the reference by more than 6&#176;, the reference stops and the angle reached is held."),
+    ("inverse weight", "MuJoCo&#8217;s <code>body_invweight0[b, 0]</code>: the translational inverse inertia of body b at the "
+                       "model&#8217;s reference pose, in 1/kg, computed at compile time from the joint-space mass matrix; 1/mass "
+                       "for a free body, and for a fingertip the inverse of the inertia the whole finger chain and its servo "
+                       "armature present at the tip."),
+    ("effective mass m<sub>eff</sub>", "of a contact between bodies 1 and 2: 1/(inverse weight of 1 + inverse weight of 2), in kg. "
+                                       "MuJoCo&#8217;s solref is a spring on the constraint acceleration, so a contact realises "
+                                       "its solref stiffness times m<sub>eff</sub> as a force stiffness."),
+    ("sink", "steady penetration of each pad into the tool in the contact bed&#8217;s static pinch, in mm, after 1&#8202;s at "
+             "the set normal force with gravity off; Drake hydroelastic gives 0.153, 0.213 and 0.365&#8202;mm at 0.5, 1 and 3&#8202;N."),
+    ("onset torque", "contact bed, twist task: a torque about the pinch axis ramps up on the pinched tool; the onset torque is the "
+                     "last value at which the spin speed still follows the creep law w = k&#8202;&#964;, in mN&#8202;m. "
+                     "Drake hydroelastic gives 0.84, 1.97 and 7.65&#8202;mN&#8202;m at 0.5, 1 and 3&#8202;N."),
     ("env steps/s", "policy steps per second summed over all parallel environments of the RL training env; one env step "
                     "is 10 physics steps of 2&#8202;ms plus observations, rewards and terminations."),
     ("physics &#181;s per world-step", "wall time of one batched physics step divided by the number of worlds."),
@@ -274,7 +286,7 @@ def plant_section():
         "that part of the fit is not used here.</p>",
         "<p>The rest of this page runs the <b>working plant</b>: kp 4&#8202;N&#8202;m/rad, &#964; 0.02&#8202;s (joint damping "
         "0.08), torque limit 1&#8202;N&#8202;m, no joint friction, &#956; 1.0 (<code>reorient_backends</code> plant spec "
-        "<code>kp4_kv0_fr1_fl0_dp0.08</code>). A gain measurement needs a known torque on a joint (Section&#160;5).</p>",
+        "<code>kp4_kv0_fr1_fl0_dp0.08</code>). A gain measurement needs a known torque on a joint (Section&#160;6).</p>",
     ]
     return "\n".join(out)
 
@@ -294,11 +306,12 @@ def hom_data():
             continue
         mode = "gov" if r.get("prm_governor") else "free"
         hom[(r["hand"], r["sim"], mode)].append(r)
-    plans_nt = defaultdict(list)
-    for r in jl(os.path.join(D, "plans_newton.jsonl")):
-        if r.get("status") == "complete":
-            plans_nt[r["hand"]].append(r)
-    hom["plans_nt"] = plans_nt
+    for key, fn in (("plans_nt", "plans_newton_mc.jsonl"), ("plans_nt_raw", "plans_newton.jsonl")):
+        rows = defaultdict(list)
+        for r in jl(os.path.join(D, fn)):
+            if r.get("status") == "complete":
+                rows[r["hand"]].append(r)
+        hom[key] = rows
     return plans_mj, plans_dk, hom
 
 
@@ -343,7 +356,7 @@ def svg_turns(plans_mj, plans_dk, hom):
     out.append("</svg>")
     leg = P._legend_html([("open-loop plan, MuJoCo", "var(--ink3)", False, "square"),
                           ("open-loop plan, Drake", "var(--c-drake)", False, "square"),
-                          ("open-loop plan, Newton hydroelastic", "var(--c-newton)", False, "square"),
+                          ("open-loop plan, Newton hydroelastic, mass-corrected", "var(--c-newton)", False, "square"),
                           ("HOM with governor, MuJoCo (end)", "var(--s1)", False, "circle"),
                           ("HOM with governor, Drake (end)", "var(--s2)", False, "circle"),
                           ("HOM without governor, MuJoCo (held peak)", "var(--bad)", False, "diamond")])
@@ -394,8 +407,6 @@ def hom_section():
                  "D (&#176;)", "held", "E (&#176;)", "held"], rows)
     pnt_all = [r for h in HANDS for r in hom["plans_nt"].get(h, [])]
     n_nt, n_nt_held = len(pnt_all), sum(r["held_end"] for r in pnt_all)
-    n_nt_grip = sum(1 for r in pnt_all if r["z_grip"] < 0.05)
-    nt_rise = sum(1 for r in pnt_all if r["z_grip"] > 0.110)
     out = [
         "<p>The question was whether the hand-object controls of Wang, Oh and Pollard can carry out our reorientation, in "
         "which all three fingers move the tool together, in place of the deployed open-loop joint trajectories. The scene is "
@@ -433,7 +444,8 @@ def hom_section():
              "end. A: deployed open-loop plan (grip and joint trajectory, <code>reorient_backends.py</code>), MuJoCo. "
              "B: the plan in Drake. C: HOM controller with governor, MuJoCo, turn at the end. D: the same in Drake. "
              "E: HOM controller without governor, MuJoCo, held peak. F: the plan in Newton with the TPU block as one "
-             "hydroelastic mesh (<code>newton_turn.py</code>)."),
+             "hydroelastic mesh, stiffness divided by the tip&#8211;tool effective mass (<code>newton_turn.py --mass-correct</code>, "
+             "rows <code>plans_newton_mc.jsonl</code>)."),
         figure(svg_turns(plans_mj, plans_dk, hom),
                "Tool turn of every rollout of Table&#160;3. Hollow markers dropped the tool by the end."),
         f"<p>On the working plant the deployed open-loop plans hold the tool on {n_pm_held} of {n_pm} MuJoCo placements and "
@@ -441,14 +453,9 @@ def hom_section():
         + (f"; Drake holds {n_pd_held} of {n_pd} and turns within a few degrees of MuJoCo" if n_pd else "")
         + ". The drops and the near-zero turns in the films of the previous page came from that page&#8217;s plant (kp "
         "0.5, 1&#8202;s fingers, &#956; 2.4).</p>",
-        (f"<p>Newton&#8217;s hydroelastic contact on the same fingertip shape (the printed block as one mesh with a "
-         "0.5&#8202;mm signed-distance grid, pressure stiffness E/h = 1.18&#8202;&#215;&#8202;10<sup>9</sup>&#8202;N/m<sup>3</sup> "
-         "as for the pads and Drake, the bed&#8217;s solver settings) does not reproduce the turn: the plan holds the tool "
-         f"on {n_nt_held} of {n_nt} placements, {n_nt_grip} of them lose it during the 0.8&#8202;s grip, and on {nt_rise} the "
-         "tool rises more than 10&#8202;mm while the fingers close. The RL solver settings (2&#8202;ms, 10 iterations, "
-         "impratio 10) do not change this on D1 and D8. On the contact bed of 2026-10-05 Newton&#8217;s hydroelastic pinch "
-         "carried 2.3&#8211;2.9 times Drake&#8217;s torque at the same modulus, so its pressure stiffness has to be "
-         "calibrated against Drake on the bed before its task results can be compared (Section&#160;5).</p>" if n_nt else ""),
+        (f"<p>Newton&#8217;s hydroelastic contact on the same fingertip shape, with its stiffness divided by the "
+         f"tip&#8211;tool effective mass (Section&#160;4), holds the tool on {n_nt_held} of {n_nt} placements "
+         "(column F).</p>" if n_nt else ""),
         f"<p>With its governor the HOM controller holds {n_g_held} of {n_g} placements in MuJoCo"
         + (f" and {n_gd_held} of {n_gd} in Drake" if n_gd else "")
         + f", but stops at {f(min(gov_vals), 0)}&#8211;{f(max(gov_vals), 0)}&#176; (hand medians), "
@@ -472,6 +479,134 @@ def hom_section():
         film("media/D2_s0_three.mp4", "D2, seed 0, as Figure&#160;2.", "media/D2_s0_three.jpg"),
         film("media/D5_s0_three.mp4", "D5, seed 0, as Figure&#160;2.", "media/D5_s0_three.jpg"),
     ]
+    return "\n".join(out)
+
+
+# ------------------------------------------------------------------------------------------ Newton mass scaling
+
+BED = os.path.join(ROOT, "docs/experiments/20261005-contact_bed")
+MSC = os.path.join(ROOT, "docs/experiments/20261006-newton_mass_scaling")
+
+
+def bed_rows():
+    """Static sink (mm) and twist onset torque (mN m) per (model, N) at 1 ms, from the 10-05 bed and the 10-06 rows."""
+    sink, onset, scale = {}, {}, {}
+    for r in jl(os.path.join(BED, "static_newton.jsonl")) + jl(os.path.join(MSC, "static_newton.jsonl")):
+        if r.get("dt_ms", 1.0) == 1.0 and r.get("status", "complete") == "complete" and "pen_mm" in r:
+            sink[(r["model"], r["N"])] = r["pen_mm"]
+            if r.get("kh_scale"):
+                scale[r["model"]] = r["kh_scale"]
+    for r in (jl(os.path.join(BED, "twist_slip.jsonl")) + jl(os.path.join(BED, "twist_slip_newton.jsonl"))
+              + jl(os.path.join(MSC, "twist_slip_newton.jsonl"))):
+        if r.get("dt_ms", 1.0) == 1.0 and r.get("status", "complete") == "complete" and r.get("tau_onset_Nm"):
+            onset[(r["model"], r["N"])] = 1e3 * r["tau_onset_Nm"]
+    return sink, onset, scale
+
+
+def newton_section():
+    sink, onset, scale = bed_rows()
+    Ns = (0.5, 1.0, 3.0)
+    models = [("drake_hydro", "Drake hydroelastic"), ("newton_hydro", "Newton, kh = E/h"),
+              ("newton_hydro_mc", "Newton, kh &#215; 1/m<sub>eff</sub> (solver&#8217;s inverse weights)"),
+              ("newton_hydro_mc_mjcf", "Newton, kh &#215; 1/m<sub>eff</sub> (MJCF compile)")]
+    rows = []
+    for m, lab in models:
+        rows.append([(lab, "lab")] + [f(sink.get((m, N)), 3) for N in Ns] + [f(onset.get((m, N)), 2) for N in Ns])
+    tab = table(["Contact", "sink 0.5&#8202;N (mm)", "1&#8202;N", "3&#8202;N", "onset torque 0.5&#8202;N (mN&#8202;m)",
+                 "1&#8202;N", "3&#8202;N"], rows)
+
+    def ratio(m, d, N):
+        a, b = d.get((m, N)), d.get(("drake_hydro", N))
+        return a / b if a and b else None
+    raw_sink = [ratio("newton_hydro", sink, N) for N in Ns]
+    mc_sink = [ratio("newton_hydro_mc", sink, N) for N in Ns]
+    mj_sink = [ratio("newton_hydro_mc_mjcf", sink, N) for N in Ns]
+    raw_on = [ratio("newton_hydro", onset, N) for N in Ns]
+    mc_on = [ratio("newton_hydro_mc", onset, N) for N in Ns]
+
+    def rng(v, nd=2):
+        v = [x for x in v if x is not None]
+        return f"{f(min(v), nd)}&#8211;{f(max(v), nd)}" if v else "&#8211;"
+    # the hand
+    plans_mj, plans_dk, hom = hom_data()
+    mc = [r for h in HANDS for r in hom["plans_nt"].get(h, [])]
+    raw = [r for h in HANDS for r in hom["plans_nt_raw"].get(h, [])]
+    corr = next((r["mass_correct"] for r in mc if r.get("mass_correct")), None)
+    out = [
+        "<p>Newton passes each hydroelastic contact point to MuJoCo-Warp with a force stiffness c in N/m (the point&#8217;s "
+        "share of the pressure field: patch area times the two shapes&#8217; kh in series). SolverMuJoCo writes it as "
+        "solref time constant &#8730;(1/(c(1&#8722;d))), damping ratio 1 and solimp (d, d, 0.001, 1, 0.5) "
+        "(<code>newton/_src/solvers/mujoco/kernels.py</code>, lines 599&#8211;618 at Newton commit 009158e). MuJoCo treats "
+        "solref as a spring on the constraint acceleration, so the contact holds c&#8202;&#215;&#8202;m<sub>eff</sub> per metre "
+        "of penetration, not c. Newton&#8217;s shape-material path multiplies its stiffness by the inverse-weight sum before the "
+        "same conversion (<code>docs/solvers/mujoco.rst</code>, &#8220;Shape-material contact stiffness and damping&#8221;); "
+        "the hydroelastic path does not, and the <code>ShapeConfig.kh</code> docstring (<code>newton/_src/sim/builder.py</code>) "
+        "says that SolverMuJoCo scales the stiffness by masses and that kh should be tuned with that in mind. The MuJoCo "
+        "sphere pads already divide m<sub>eff</sub> out: their solimp d0 = 1 &#8722; 1/(t<sub>c</sub><sup>2</sup> K "
+        "(w<sub>tip</sub> + w<sub>tool</sub>)) uses the same inverse weights (<code>reorient_backends.replace_tips</code>), "
+        "which is why they matched Drake without fitting. The correction is therefore kh &#215; (w<sub>1</sub> + "
+        "w<sub>2</sub>), with the inverse weights read from the solver&#8217;s own MuJoCo model "
+        "(<code>solver.mj_model.body_invweight0</code> through <code>solver.mjc_body_to_newton</code>); kh = E/h stays a "
+        "material constant.</p>",
+        f"<p>On the 2026-10-05 contact bed (two 20&#8202;g pads on rails pinching the 24.5&#8202;g tool, rows "
+        "<code>docs/experiments/20261006-newton_mass_scaling/</code>, <code>contact_bed_newton.py</code> models "
+        "<code>newton_hydro_mc*</code>) the solver&#8217;s model gives each pad an inverse weight of 16.7&#8202;1/kg and the "
+        f"tool 40.7, so m<sub>eff</sub> = 17.4&#8202;g and uncorrected Newton sank {rng(raw_sink, 1)} times as deep as Drake "
+        f"with {rng(raw_on, 1)} times Drake&#8217;s onset torque. Multiplied by {f(scale.get('newton_hydro_mc'), 1)}&#8202;1/kg, "
+        f"Newton sinks {rng(mc_sink)} times Drake&#8217;s depth and reaches {rng(mc_on)} of its onset torque, with no "
+        "parameter fitted. Inverse weights from a separate MuJoCo compile of the bed&#8217;s MJCF give a factor of "
+        f"{f(scale.get('newton_hydro_mc_mjcf'), 1)} and over-stiffen the contact (sink {rng(mj_sink)} times Drake), so the "
+        "factor has to come from the solver&#8217;s model.</p>",
+        tab,
+        tcap("Contact bed, static pinch and twist at 1&#8202;ms: sink per pad and onset torque by normal force. Drake and "
+             "uncorrected Newton rows from <code>docs/experiments/20261005-contact_bed/</code>, corrected rows from "
+             "<code>docs/experiments/20261006-newton_mass_scaling/</code>; contact reduction on."),
+    ]
+    if mc and corr:
+        w, kh = corr["invweight0"], corr["kh_tip"]
+        wt = next(v for k, v in w.items() if k.endswith("_tip"))
+        wtool = next(v for k, v in w.items() if not k.endswith("_tip"))
+        mt = next(v for k, v in corr["body_mass"].items() if k.endswith("_tip"))
+        n_held = sum(r["held_end"] for r in mc)
+        turned = [r for r in mc if r["held_end"] and r["turn_end_deg"] > 10]
+        still = [r for r in mc if r["held_end"] and r["turn_end_deg"] <= 10]
+        fell_grip = [r for r in mc if r["z_grip"] < 0.05]
+        lost_turn = [r for r in mc if not r["held_end"] and r["z_grip"] >= 0.05]
+        raw_held = sum(r["held_end"] for r in raw)
+        raw_grip = sum(1 for r in raw if r["z_grip"] < 0.05)
+        close, short, further = [], [], []
+        for h in HANDS:
+            t_nt = med([r["turn_end_deg"] for r in turned if r["hand"] == h])
+            t_mj = med([r["turn_end_deg"] for r in plans_mj.get(h, [])])
+            if t_nt is None or t_mj is None:
+                continue
+            d = t_nt - t_mj
+            (close if abs(d) <= 5 else short if d < 0 else further).append((h, d))
+        by_hand = defaultdict(list)
+        for r in still:
+            by_hand[r["hand"]].append(r["seed"])
+        still_txt = "; ".join(f"{h} seeds {', '.join(map(str, sorted(v)))}" for h, v in sorted(by_hand.items()))
+        cmp_txt = f"within 5&#176; of MuJoCo on {', '.join(h for h, _ in close)}"
+        if further:
+            cmp_txt += "; " + ", ".join(f"{h} {f(d, 0)}&#176; further" for h, d in further)
+        if short:
+            cmp_txt += (f"; {f(min(-d for _, d in short), 0)}&#8211;{f(max(-d for _, d in short), 0)}&#176; short on "
+                        f"{', '.join(h for h, _ in short)}")
+        out += [
+            "<h3>The deployed turn with the correction</h3>",
+            f"<p>In the turn scene each fingertip (4.9&#8202;g, the same body in Newton&#8217;s model and the MJCF) has an "
+            f"inverse weight of {f(wt, 2)}&#8202;1/kg, the finger chain and its servo armature seen at the tip, and the tool "
+            f"{f(wtool, 1)}; m<sub>eff</sub> = {f(1e3 / (wt + wtool), 1)}&#8202;g, so each tip&#8217;s kh is multiplied by "
+            f"{f(wt + wtool, 1)}&#8202;1/kg and the tool&#8217;s kh is 100 times the largest tip kh "
+            f"(<code>scripts/newton_turn.py --mass-correct</code>). The deployed plans then hold the tool on {n_held} of "
+            f"{len(mc)} placements, against {raw_held} of {len(raw)} uncorrected (Table&#160;3, column F; uncorrected rows "
+            f"<code>plans_newton.jsonl</code>, {raw_grip} of the 40 lost the tool during the grip). {len(turned)} of the "
+            f"held placements turn the tool more than 10&#176;. On {len(still)} ({still_txt}) the tool stays in the grip "
+            f"but turns less than 5&#176;. {len(fell_grip)} placements "
+            f"({', '.join(sorted(r['hand'] + ' seed ' + str(r['seed']) for r in fell_grip))}) drop the tool during the "
+            f"0.8&#8202;s grip and {len(lost_turn)} lose it during the turn. Where the tool turns, the hand median is "
+            f"{cmp_txt}.</p>",
+        ]
     return "\n".join(out)
 
 
@@ -668,14 +803,15 @@ def newton_paragraph(NT):
         txt += (f"On this grip the MuJoCo-Warp pads are slower still, {f(pads14['us_per_world_step'], 0)}&#8202;&#181;s (3.14) "
                 f"and {f(pads36['us_per_world_step'], 0)}&#8202;&#181;s (3.6) with about 100 contacts per world, and "
                 f"{f(100 * (1 - pads14['held_frac']), 0)}&#8202;% of worlds lose the tool, while the same pads cost 2.4&#8211;2.6&#8202;&#181;s "
-                "in the RL env after its scripted grasp (Table&#160;4, 50 contacts per world). The plan&#8217;s grip squeezes at "
+                "in the RL env after its scripted grasp (Table&#160;5, 50 contacts per world). The plan&#8217;s grip squeezes at "
                 "5&#8211;13&#8202;N; why it costs the pads seven to ten times more than the training grasp is not established, "
-                "and the two engines have not yet been timed on the same RL state (Section&#160;5). ")
+                "and the two engines have not yet been timed on the same RL state (Section&#160;6). ")
     if ptm:
         txt += (f"Newton&#8217;s point-contact pipeline on the plain block mesh holds the grip at 1,024 worlds with "
                 f"{f(ptm['contacts_per_world'], 0)} contacts per world ({f(ptm['us_per_world_step'], 1)}&#8202;&#181;s) and "
                 "loses the tool at 4,096. The Newton rows with sphere pads time Newton&#8217;s handling of 3,200 spheres, not its "
-                "hydroelastic model. On the task, hydroelastic Newton fails the deployed grips (Table&#160;3, column F).")
+                "hydroelastic model. The hydroelastic rows of Table&#160;6 use kh = E/h without the effective-mass correction "
+                "of Section&#160;4.")
     return txt + "</p>"
 
 
@@ -693,10 +829,9 @@ def next_section():
         "<b>A second contact mode in the HOM controller.</b> When a finger&#8217;s pip reaches its limit, give that "
         "finger&#8217;s contact a slide reference along the tool axis while the other two hold; measure the reachable turn "
         "and the drop rate on the same 40 placements.",
-        "<b>Newton&#8217;s hydroelastic stiffness on the bed.</b> Run the 2026-10-05 bed&#8217;s static pinch and twist "
-        "(<code>contact_bed_newton.py</code>) with the TPU block mesh and scale Newton&#8217;s pressure stiffness until its "
-        "contact patch and twist onset agree with Drake&#8217;s; then repeat column F of Table&#160;3. Holding at least 38 "
-        "of 40 placements and turns within 5&#176; of Drake&#8217;s would make it usable for the sim-to-sim checks.",
+        "<b>Newton&#8217;s turn without rotation on D3 and D8.</b> Log the per-finger normal force and the tip slip speed "
+        "in <code>newton_turn.py</code> and compare them with MuJoCo&#8217;s pad forces on D3 and D8, seeds 1&#8211;4, where the "
+        "mass-corrected Newton grip holds the tool but does not turn it.",
         "<b>Pads and hydroelastic Newton on the same RL state.</b> Export the D6 env&#8217;s state after its scripted grasp "
         "and time MuJoCo-Warp pads and hydroelastic Newton from it, to settle whether the pads cost 2.5 or 17&#8211;26&#8202;&#181;s "
         "per world-step in a training grasp.",
@@ -717,6 +852,8 @@ def lede():
     for r in jl(os.path.join(RLD, "throughput.jsonl")):
         if r.get("status") == "ok":
             T[(r["variant"], r["num_envs"])] = r
+    mc = [r for h in HANDS for r in hom["plans_nt"].get(h, [])]
+    n_mc_held = sum(r["held_end"] for r in mc)
     r1 = (T[("pads1", 2048)]["env_steps_per_s"] / T[("legacy", 2048)]["env_steps_per_s"]
           if ("pads1", 2048) in T and ("legacy", 2048) in T else None)
     return (f"The deployed open-loop three-finger turn holds the tool on {sum(r['held_end'] for r in pm)} of {len(pm)} "
@@ -728,7 +865,9 @@ def lede():
             f"stop rule it drops the tool on {len(fm)} of 8 hands. Sphere pads at 1&#8202;mm cost "
             f"{f(100 * (1 - r1), 0) if r1 else '&#8211;'}&#8202;% of RL env throughput at 2,048 envs, because physics is a "
             "small part of an env step. Newton&#8217;s hydroelastic contact on the plain fingertip shape costs about ten times "
-            "the physics of point contact and, at the pads&#8217; modulus, drops the tool in most deployed grips. The 2026-09-02 "
+            "the physics of point contact. SolverMuJoCo realises its stiffness times the tip&#8211;tool effective mass; with kh "
+            f"divided by that mass the deployed plans hold the tool on {n_mc_held} of {len(mc)} placements in Newton (10 "
+            "uncorrected) and turn it within 5&#176; of MuJoCo on four of eight hands. The 2026-09-02 "
             "servo-gain fit closed the fingers on air; the bench readbacks fix the finger time constant and favour &#956; 1 but "
             "do not identify the gain.")
 
@@ -741,6 +880,7 @@ def main():
     v["GLOSSARY"] = glossary()
     v["PLANT"] = plant_section()
     v["HOM"] = hom_section()
+    v["NEWTON"] = newton_section()
     v["RL"] = rl_section()
     v["NEXT"] = next_section()
     v["LEDE"] = lede()

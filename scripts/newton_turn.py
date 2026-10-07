@@ -13,6 +13,11 @@ pose, seeds 1-4 jittered 2 mm / 2 deg (reorient_backends.jitter).
     PY=logs/20261004-contact-transfer/venv/bin/python
     WARP_CACHE_PATH=$(mktemp -d) $PY scripts/newton_turn.py --hands D7 --seeds 0 1 2 3 4
 Rows: docs/experiments/20261006-hom_turn3/plans_newton.jsonl, one fsynced line per hand x placement.
+
+--mass-correct (rows plans_newton_mc.jsonl): SolverMuJoCo realises each hydroelastic contact's stiffness times the
+tip-tool effective mass m_eff = 1 / (invweight0[tip] + invweight0[tool]) (contact_bed_newton.py, models *_mc). Each
+tip's kh is multiplied by invweight0[tip] + invweight0[tool], read from solver.mj_model through
+solver.mjc_body_to_newton, and the tool's kh is 100x the largest tip kh.
 """
 from __future__ import annotations
 
@@ -34,6 +39,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import reorient_backends as RB  # noqa: E402
 
 OUT = ROOT / "docs/experiments/20261006-hom_turn3/plans_newton.jsonl"
+OUT_MC = ROOT / "docs/experiments/20261006-hom_turn3/plans_newton_mc.jsonl"
 SCENES = ROOT / "logs/20261006-hom_turn3/scenes"
 PLANT = "kp4_kv0_fr1_fl0_dp0.08"
 KH_TIP = 1e7 / 0.0085
@@ -62,6 +68,40 @@ def quat_wxyz_to_xyzw(q):
 
 
 NUM = dict(dt=0.001, iterations=100, ls_iterations=50, impratio=100.0, tolerance=1e-10)
+OPT = dict(mass_correct=False)
+
+
+def mass_correct(model, solver):
+    """Multiply each tip's hydroelastic kh by 1/m_eff = invweight0[tip] + invweight0[tool] of the solver's own MuJoCo
+    model; the tool's kh becomes 100x the largest tip kh. Returns the per-finger inverse weights and kh."""
+    mjm = solver.mj_model
+    labels = [x.split("/")[-1] for x in model.body_label]
+    m2n = solver.mjc_body_to_newton.numpy()[0]          # MuJoCo body -> Newton body, world 0
+    w = {}
+    for bi in range(mjm.nbody):
+        nb = int(m2n[bi])
+        nm = labels[nb] if 0 <= nb < len(labels) else ""
+        if nm in (TOOL,) + tuple(f"{f}_tip" for f in RB.FINGERS):
+            w[nm] = float(mjm.body_invweight0[bi, 0])
+            w[nm + "_mass"] = float(mjm.body_mass[bi])
+    kh_tip = {f: KH_TIP * (w[f"{f}_tip"] + w[TOOL]) for f in RB.FINGERS}
+    kh_tool = 100.0 * max(kh_tip.values())
+    shape_body = model.shape_body.numpy()
+    flags = model.shape_flags.numpy()
+    kh = model.shape_material_kh.numpy()
+    for i in range(len(kh)):
+        b = int(shape_body[i])
+        if b < 0 or not flags[i] & int(__import__("newton").ShapeFlags.HYDROELASTIC):
+            continue
+        nm = labels[b]
+        if nm == TOOL:
+            kh[i] = kh_tool
+        elif nm.endswith("_tip"):
+            kh[i] = kh_tip[nm[:-4]]
+    model.shape_material_kh.assign(kh)                 # the hydroelastic pipeline reads this array
+    return {"invweight0": {k: v for k, v in w.items() if not k.endswith("_mass")},
+            "body_mass": {k[:-5]: v for k, v in w.items() if k.endswith("_mass")},
+            "kh_tip": kh_tip, "kh_tool": kh_tool}
 
 
 def build(hand, seeds):
@@ -128,6 +168,7 @@ def build(hand, seeds):
         jq[a:a + 3] = tool7[:3] + [dx, dy, 0.0]
         jq[a + 3:a + 7] = quat_wxyz_to_xyzw(q / np.linalg.norm(q))
     model.joint_q.assign(jq)
+    meta["mass_correct"] = mass_correct(model, solver) if OPT["mass_correct"] else None
     return model, pipe, solver, meta
 
 
@@ -220,7 +261,8 @@ def run(hand, seeds):
                      "plant": PLANT, "mu": 1.0, "cos_grip": g[3], "cos_hold": h[3], "cos_end": e[3],
                      "turn_hold_deg": turn(g, h), "turn_end_deg": turn(g, e), "z_grip": g[2], "z_end": e[2],
                      "fingers_end": nf[w], "dropped_end": bool(dropped), "held_end": (not dropped) and nf[w] >= 2,
-                     "wall_s_batch": round(wall, 1), "n_worlds": nw})
+                     "wall_s_batch": round(wall, 1), "n_worlds": nw,
+                     "mass_correct": meta["mass_correct"]})
     return rows
 
 
@@ -228,10 +270,14 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--hands", nargs="+", default=list(RB.HANDS))
     ap.add_argument("--seeds", nargs="+", type=int, default=[0, 1, 2, 3, 4])
-    ap.add_argument("--out", type=Path, default=OUT)
+    ap.add_argument("--out", type=Path, default=None, help="default plans_newton.jsonl, or plans_newton_mc.jsonl")
+    ap.add_argument("--mass-correct", action="store_true", help="divide each tip's kh by the tip-tool m_eff")
     ap.add_argument("--rl-numerics", action="store_true",
                     help="the RL trainer's 2 ms step, 10/20 iterations, impratio 10, tolerance 1e-8")
     a = ap.parse_args()
+    OPT["mass_correct"] = a.mass_correct
+    if a.out is None:
+        a.out = OUT_MC if a.mass_correct else OUT
     if a.rl_numerics:
         NUM.update(dt=0.002, iterations=10, ls_iterations=20, impratio=10.0, tolerance=1e-8)
     import newton
