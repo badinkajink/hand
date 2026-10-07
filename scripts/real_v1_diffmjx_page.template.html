@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Contact gradients in the real_v1 screwdriver grasp</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+{{STYLE}}
+</head><body><div class="wrap">
+<header>
+<div class="eyebrow">MorphoHand &#183; real_v1 / D1 &#183; 7 October 2026 &#183; built {{BUILT}}</div>
+<h1>Contact gradients in the real_v1 screwdriver grasp</h1>
+<p class="lede">{{LEDE}}</p>
+<div class="byline">Deployed D1 hand and grip plan &#183; 1 ms step &#183; CPU MuJoCo, native MJX 3.6, released DiffMJX fork of MJX 3.3.1 &#183; scripts <code>scripts/real_v1_diffmjx_gate.py</code>, <code>scripts/real_v1_diffmjx_official_gate.py</code>, <code>scripts/real_v1_diffmjx_local_search.py</code> &#183; builder <code>scripts/real_v1_diffmjx_page.py</code></div>
+</header>
+
+<section id="terms"><div class="col"><h2>Terms and metrics</h2>
+<p><strong>MuJoCo XLA (MJX)</strong> is MuJoCo&#8217;s JAX simulation backend. <strong>Central processing unit (CPU)</strong> identifies the processor used for every measured JAX run. <strong>Jacobian-vector product (JVP)</strong> is one directional automatic derivative of a simulator output.</p>
+<p><strong>Contact gap</strong> is the signed minimum distance between a fingertip sphere and the tool surface, in millimetres; a negative value is penetration and zero is first touch. <strong>Forward error</strong> is the largest absolute difference in generalized position or velocity after the same command from the same initial state. The position maximum mixes metres, radians and quaternion components. The velocity maximum mixes metres per second and radians per second. The position column multiplies its raw numerical value by 10<sup>6</sup>; it is a parity check, not a physical distance.</p>
+<p><strong>Control derivative</strong> is the change in a final tool quantity per radian of finger-yaw servo target bias. Automatic differentiation (AD) differentiates JAX code. Central finite difference (FD) evaluates positive and negative yaw-target perturbations; the step size appears beside each result. <strong>Vertical cosine</strong> is the cosine between the tool axis and world vertical; 1 is upright. <strong>Contact torque</strong> is the tool constraint torque around world x, in newton-metres, at the end of the stated rollout. <strong>AD error</strong> is the absolute difference between AD and CPU FD divided by the magnitude of CPU FD for the indicated yaw target. <strong>Direction cosine</strong> is the dot product of two unit-length three-yaw gradient directions; 1 means identical directions. <strong>Action gain</strong> is final vertical cosine minus the unchanged-yaw result after 20 ms.</p>
+</div></section>
+
+<section id="context"><div class="col"><h2>Software and earlier experiments</h2>
+<p>Our April <code>diffmjx-mvp</code> used ordinary MJX with a sigmoid distance reward on a cube. It did not run the authors&#8217; DiffMJX code. The released <a href="https://github.com/martius-lab/diffmjx">DiffMJX project</a> supplies an <a href="https://github.com/martius-lab/mujoco/tree/diffmjx/mjx">MJX fork</a> with contacts from distance, a scan-based solver loop and smooth collision options, plus <a href="https://github.com/martius-lab/mjx_diffrax">adaptive integration</a>. This study ran the fork&#8217;s first two switches. Sphere-to-capsule collision already has a smooth collision routine; the soft collision option was off.</p>
+<p><a href="https://github.com/google-deepmind/mujoco_playground">MuJoCo Playground</a> can use MJX-JAX or MJX-Warp. Its reinforcement-learning examples use trajectory samples for policy-gradient training. Simulator derivatives enter through a trajectory-optimization or differentiable-learning algorithm. Our current reorientation trainer uses MuJoCo-Warp through mjlab.</p>
+</div></section>
+
+<section id="forward"><div class="col"><h2>Contact geometry and forward dynamics</h2>
+<p>{{SCENE_TEXT}}</p>
+<figure class="diagram">{{GAP_FIG}}<figcaption>Figure 1. Absolute difference between CPU MuJoCo and each MJX implementation in each finger&#8217;s minimum tool gap at the 0.8 s held state. All scenes use the cylinder tool. The post is disabled in the continuation.</figcaption></figure>
+<div class="tw">{{FORWARD_TABLE}}</div>
+<p class="tnote">Table 1. One-step forward comparison from the same held state. The first compiled step includes JAX compilation. Position and velocity maxima include mixed coordinate types, as defined above. The CPU reference uses the MuJoCo version installed alongside each MJX package.</p>
+</div></section>
+
+<section id="gradients"><div class="col"><h2>Derivatives during sustained contact</h2>
+<p>{{GRADIENT_TEXT}}</p>
+<figure class="diagram">{{GRADIENT_FIG}}<figcaption>Figure 2. Derivative with respect to the index-finger yaw target, divided by the CPU finite-difference derivative for each final quantity. The horizon and fingertip model are stated in the text. The 1.0 line is agreement with CPU MuJoCo.</figcaption></figure>
+<div class="tw">{{GRADIENT_TABLE}}</div>
+<p class="tnote">Table 2. Index-yaw derivatives at the stated horizon. The released fork ran with 64-bit JAX on CPU.</p>
+<h3>Twenty-millisecond control response</h3>
+<p>{{JAC_TEXT}}</p>
+<p>{{CFD_TEXT}}</p>
+<p>{{SWEEP_TEXT}}</p>
+<figure class="diagram">{{SWEEP_FIG}}<figcaption>Figure 3. The index-yaw vertical-cosine finite difference changes with perturbation size in the released fork. The horizontal 1.0 line is the plain fork automatic derivative at the same held state. CPU MuJoCo 3.3.1 supplies the second curve.</figcaption></figure>
+<div class="tw">{{SWEEP_TABLE}}</div>
+<p class="tnote">Table 3. Twenty-millisecond index-yaw derivatives on the 1 mm packed surface. Contact torque is the final tool constraint torque around world x. Each finite difference uses positive and negative yaw-target perturbations of the stated size.</p>
+</div></section>
+
+<section id="search"><div class="col"><h2>Local control search</h2>
+<p>{{SEARCH_TEXT}}</p>
+<figure class="diagram">{{SEARCH_FIG}}<figcaption>Figure 4. Changes in vertical cosine from 128 sampled directions on the 1 mm packed-tip cylinder scene. The lines show the best sample and the three gradient-based actions. Every direction has a 0.1 rad three-control norm and is scored in CPU MuJoCo 3.3.1.</figcaption></figure>
+<div class="tw">{{SEARCH_TABLE}}</div>
+<p class="tnote">Table 4. Each direction has Euclidean length 0.1 rad across three yaw targets. CPU MuJoCo 3.3.1 supplies the tool vertical cosine and smallest fingertip normal force after 20 ms. The random-search row is the best of 128 fixed-seed directions. Gradient search times are warm three-direction evaluations; CPU and sample search times are their finite-difference or sample batches.</p>
+</div></section>
+
+<section id="decision"><div class="col"><h2>Implications for the task suite</h2>
+<p>The released fork produced finite force and motion derivatives on the packed held grasp. Its plain gradient selected a turn action with the same gain as CPU finite differences at substantially higher CPU cost. Contact-from-distance with the scan-loop solver changed the gradient and slightly reduced this action's 20 ms CPU score. First-touch optimization is the remaining test of that contact-gradient modification.</p>
+<div class="tw">{{DECISION_TABLE}}</div>
+<p>The next measurements are a 100 ms forward comparison at the turn onset and a first-touch grasp search from tool gaps of 0&#8211;3 mm. Both use the 1 mm packed scene. The longer-turn comparison should score retained grasps, vertical turn and wall time over D1&#8211;D8.</p>
+</div></section>
+
+<section id="methods"><div class="col"><h2>Methods and reproducibility</h2>
+<p>{{METHODS}}</p>
+<p>Source revisions and installation commands are in <code>docs/experiments/20261007-diffmjx/README.md</code>. The JSON measurements are in the same directory. The historical strategy is <code>src/morphohand/optimization/phase1_strategy_diffmjx.py</code>. The <a href="https://mujoco.readthedocs.io/en/latest/mjx.html">MuJoCo MJX documentation</a> describes the JAX and Warp backends; the <a href="https://openreview.net/pdf?id=2EGtfFwxx8">DiffMJX paper</a> describes its backward contact forces and integration experiments.</p>
+</div></section>
+
+<footer><div class="col">Local source: <code>docs/experiments/20261007-diffmjx/20261007-contact_gradients_real_v1.html</code> &#183; Regenerate: <code>python scripts/real_v1_diffmjx_page.py</code>.</div></footer>
+</div></body></html>

@@ -106,6 +106,11 @@ Artifacts:
 
 ## DiffMJX MVP Follow-Up (Completed)
 
+The `diffmjx-mvp` name below refers to our MJX strategy with a sigmoid distance reward, implemented in
+`src/morphohand/optimization/phase1_strategy_diffmjx.py`. It did not use the authors' released DiffMJX
+fork. The released-code study is
+[`20261007-contact_gradients_real_v1.html`](../experiments/20261007-diffmjx/20261007-contact_gradients_real_v1.html).
+
 After Phase A MJX A/B, DiffMJX MVP was executed on the same cube scene with GPU JAX active in the project `uv` environment.
 
 Environment check:

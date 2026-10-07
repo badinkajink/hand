@@ -3,7 +3,10 @@
 
 *Based on: Paulus, Geist et al. — "Differentiable Simulation of Hard Contacts with Soft Gradients for Learning and Control" (arXiv:2506.14186v2, March 2026)*
 
-*Note: The `martius-lab/diffmjx` repository exists but has no code published as of this writing. This document extracts everything the paper describes with enough specificity to reimplement independently.*
+*Historical note, updated 2026-10-07: the authors have published the DiffMJX code at
+[`martius-lab/diffmjx`](https://github.com/martius-lab/diffmjx). This document records the earlier
+paper-based reimplementation plan. The released-code experiment is
+[`20261007-contact_gradients_real_v1.html`](../experiments/20261007-diffmjx/20261007-contact_gradients_real_v1.html).*
 
 ---
 

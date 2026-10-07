@@ -141,7 +141,7 @@ def plant_scene(hand: str, plant: str, out_dir: Path = SCENES) -> Path:
 
 
 def build_scene(hand: str, tip: str, model: str, plant: str, numerics: str, ir: float, mu,
-                out_dir: Path = SCENES):
+                out_dir: Path = SCENES, pad_s: float = PAD_S):
     """MJCF of the bench scene and its metadata. The palm is welded at the plan's pose, the finger servos carry
     the plant (apply_measured_plant.py), `numerics` 'scene' keeps the deploy scene's solver options and 'bed'
     sets a 1 ms step, the elliptic cone and impratio `ir`; `mu` 'scene' keeps the scene's friction (2.4 on the
@@ -196,11 +196,15 @@ def build_scene(hand: str, tip: str, model: str, plant: str, numerics: str, ir: 
     meta = {"hand": hand, "tag": HANDS[hand][0], "tip": tip, "model": model, "plant": plant, "impratio": ir,
             "numerics": numerics, "mu": MU, "post_top_z": post_top, "base_scene": str(base), "q0": q0, "tool7": tool7.tolist(), "palm_pos": palm_p.tolist(),
             "palm_quat": palm_q.tolist()}
-    meshes, pads_meta = replace_tips(root, tip, model, MU, out_dir, tool=OBJ, tool_only=(model == "padsT"))
+    meshes, pads_meta = replace_tips(root, tip, model, MU, out_dir, tool=OBJ,
+                                     s=pad_s, tool_only=(model == "padsT"))
     meta.update(pads_meta)
+    if model in ("pads", "padsT"):
+        meta["pad_spacing_m"] = pad_s
     meta["meshes"] = {str(k): str(v) for k, v in meshes.items()}
     out_dir.mkdir(parents=True, exist_ok=True)
-    name = f"{hand}_{tip}_{model}_{plant}_{numerics}_ir{ir:g}_mu{MU:g}.xml"
+    spacing_tag = f"_s{pad_s * 1000:g}" if model in ("pads", "padsT") and pad_s != PAD_S else ""
+    name = f"{hand}_{tip}_{model}_{plant}_{numerics}_ir{ir:g}_mu{MU:g}{spacing_tag}.xml"
     path = out_dir / name
     tmp = path.with_name(path.name + f".{os.getpid()}.tmp")
     ET.ElementTree(root).write(tmp)
