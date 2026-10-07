@@ -1099,17 +1099,18 @@ CONTACT_SENSOR_REDUCE = "netforce"
 CONTACT_SENSOR_MAXMATCH = 256
 
 
-def _contact_buffers(cfg: MorphoHandEnvCfg) -> tuple[int, int]:
-    """Per-world contact and constraint-row buffers. 64 / 400 for the point-contact tips every run before 2026-10-06
-    used. A sphere-pad tip (over 500 geoms in the frozen scene) needs more: MuJoCo-Warp's broadphase writes its
-    candidate pairs into the contact buffer, about 290 per world for the 1 mm pads under the working plant's grip
-    against ~120 contacts, and an overflowing buffer drops pad contacts and fed NaN observations to the first
-    2026-10-06 pad runs."""
+def _contact_buffers(cfg: MorphoHandEnvCfg) -> tuple[int, int, int]:
+    """Per-world contact buffer, constraint-row buffer and contact-sensor match buffer. 64 / 400 / 256 for the
+    point-contact tips every run before 2026-10-06 used. A sphere-pad tip (over 500 geoms in the frozen scene) needs
+    more: MuJoCo-Warp's broadphase writes its candidate pairs into the contact buffer (about 290 per world for the
+    1 mm pads under the working plant's grip, against ~120 contacts), and in training the exploring policy presses
+    pads into the tool until a world asks for 1,491 constraint rows and a fingertip sensor for 316 matches. An
+    overflowing buffer drops contacts or rows, and fed NaN observations to the first 2026-10-06 pad runs."""
     try:
         n_geom = Path(str(cfg.frozen_scene_xml)).read_text().count("<geom")
     except OSError:
         n_geom = 0
-    return (512, 1024) if n_geom > 500 else (64, 400)
+    return (512, 2048, 512) if n_geom > 500 else (64, 400, CONTACT_SENSOR_MAXMATCH)
 
 
 def _build_sensors(cfg: MorphoHandEnvCfg) -> tuple:
@@ -1255,7 +1256,7 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
     ctx = _init_context(cfg)
     hand_entity, cube_entity = _build_entities(cfg, ctx)
     rewards = _build_rewards(cfg)
-    nconmax, njmax = _contact_buffers(cfg)
+    nconmax, njmax, maxmatch = _contact_buffers(cfg)
 
     return ManagerBasedRlEnvCfg(
         scene=SceneCfg(
@@ -1285,7 +1286,7 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
         sim=SimulationCfg(
             nconmax=nconmax,
             njmax=njmax,
-            contact_sensor_maxmatch=CONTACT_SENSOR_MAXMATCH,
+            contact_sensor_maxmatch=maxmatch,
             mujoco=MujocoCfg(
                 timestep=cfg.sim_timestep,
                 iterations=10,
