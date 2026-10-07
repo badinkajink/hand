@@ -288,6 +288,8 @@ def plan(preset):
         add("legacy", 1.0, 0.001, [1024, 4096, 8192], cap1)
         add("legacy", 1.0, 0.0005, [1024, 4096, 8192], cap1)
         add("compiled", 1.0, 0.0005, [1024], codex)  # capacity effect at equal nworld
+    if preset in ("small", "all"):   # 2026-10-07: the small batches, for Figure 10 of the overview next to Newton's
+        add("legacy", 1.0, 0.001, [1, 64, 256, 2048], cap1)
     if preset in ("fine", "all"):
         add("compiled", 0.5, 0.0005, [1024, 4096], cap05)
         add("compiled", 0.5, 0.001, [1024, 4096], cap05)
@@ -321,7 +323,7 @@ def consolidate(raw_files, out):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--preset", default="all", choices=["main", "fine", "all"])
+    ap.add_argument("--preset", default="all", choices=["main", "fine", "small", "all"])
     ap.add_argument("--out", type=Path, default=OUT)
     ap.add_argument("--min-free-mib", type=float, default=2048.0)
     ap.add_argument("--limit", type=int)
@@ -336,7 +338,7 @@ def main():
     if args.out.exists():
         for line in args.out.read_text().splitlines():
             r = json.loads(line)
-            if r.get("status") in ("complete", "failed", "skipped") and not r.get("contention"):
+            if r.get("status") in ("complete", "failed") and not r.get("contention"):   # a skip is a prediction
                 done.add(r["key"])
     try:
         wp.set_mempool_release_threshold("cuda:0", 0)
@@ -369,8 +371,8 @@ def main():
             after = gpu_snapshot()
             row["gpu_after"] = after
             row["contention"] = contended(before) or contended(after, after=True)
-            if row.get("vram_alloc_mib"):
-                vram_per_world[fam] = max(vram_per_world.get(fam, 0.0), row["vram_alloc_mib"] / pt["nworld"])
+            if row.get("vram_alloc_mib") and pt["nworld"] >= 64:   # 1 world is all fixed allocation; take the latest batch
+                vram_per_world[fam] = row["vram_alloc_mib"] / pt["nworld"]
             with open(args.out, "a") as fh:
                 fh.write(json.dumps(row) + "\n")
                 fh.flush()

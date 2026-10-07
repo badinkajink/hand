@@ -26,6 +26,17 @@ What this script adds to the probe:
   force per pad, tool slip relative to the fingertip pair, torsion capacity
   mu * sum(r_i f_i) about the pressure-centre axis and about the fixed pinch point P.
 
+Models and fixtures (2026-10-07). `--model hydro` is the 10-05 hydroelastic tip, kh = E/h; `hydro_mc` divides out
+the tip-tool effective mass as in contact_bed_newton.py and newton_turn.py: each tip's kh is multiplied by
+invweight0[tip] + invweight0[tool] of the solver's own MuJoCo model, the tool's is 100x the largest tip's; `pads1` is
+the MuJoCo-Warp pad fixture of scripts/gpu_scaling_mjwarp.py imported into Newton: 1 mm sphere pads (205 per tip,
+r 0.75 mm) with the legacy mapping (solref (0.015, 1), solimp d0 from the MJCF inverse weights, impratio 100),
+d0 rescaled to the inverse weights of Newton's MuJoCo model and the friction gain kf matched to the 15 ms solref
+(contact_bed_newton.NewtonRig._match_friction), shape gap 0.5 mm, margin 0. `--fixture hold` is the 10-05 0.5 s hold
+without torque; `--fixture twist` is the MuJoCo-Warp pad fixture's 0.8 s run with the two opposing 12 mN m
+raised-cosine torque pulses about the pinch axis at 0.3-0.6 s (distributed_contact_gpu.guide). Rows of the new models
+carry the fixture in their key.
+
 Run with logs/20261004-contact-transfer/venv/bin/python and WARP_CACHE_PATH=$(mktemp -d).
 Rows: docs/experiments/20261005-gpu_scaling/newton_scaling.jsonl, one fsynced line each.
 """
@@ -146,6 +157,110 @@ def hold_guide(bodyq: wp.array[wp.transform], bodyv: wp.array[wp.spatial_vector]
     bodyf[b] = wp.spatial_vector(force, torque)
 
 
+@wp.kernel
+def twist_guide(bodyq: wp.array[wp.transform], bodyv: wp.array[wp.spatial_vector],
+                bodyf: wp.array[wp.spatial_vector], tools: wp.array[wp.int32], center: wp.vec3,
+                axis: wp.vec3, peak: float, times: wp.array[float]):
+    # distributed_contact_gpu.guide: centring guide plus two opposing raised-cosine torque pulses about the axis.
+    b = tools[wp.tid()]
+    t = times[0]
+    tau = float(0.0)
+    if t >= 0.3 and t < 0.45:
+        tau = peak * wp.pow(wp.sin(wp.pi * (t - 0.3) / 0.15), 2.0)
+    elif t >= 0.45 and t < 0.6:
+        tau = -peak * wp.pow(wp.sin(wp.pi * (t - 0.45) / 0.15), 2.0)
+    position = wp.transform_get_translation(bodyq[b])
+    force = 20.0 * (center - position) - 0.05 * wp.spatial_top(bodyv[b])
+    torque = tau * axis - 0.00002 * wp.spatial_bottom(bodyv[b])
+    bodyf[b] = wp.spatial_vector(force, torque)
+
+
+@wp.kernel
+def advance_time(times: wp.array[float], dt: float):
+    times[0] = times[0] + dt
+
+
+FIXTURES = {"hold": dict(peak=0.0, duration=0.5), "twist": dict(peak=0.012, duration=0.8)}
+MODELS = ("hydro", "hydro_mc", "pads1")
+PAD_TC = 0.015            # the legacy pads' solref time constant (gpu_scaling_mjwarp.apply_legacy)
+
+
+def apply_legacy(m, spacing):
+    """gpu_scaling_mjwarp.apply_legacy (that module imports mjlab, which the Newton venv lacks): plain positive-format
+    solref (0.015, 1) and solimp d0 = 1 - 1/(tc^2 K_sphere diag) on every pad, impratio 100."""
+    import hom_chain as C
+    qdict, _ = C.postures([0.0])
+    dirs = C.contact_dirs(qdict[0.0])
+    trial = C.make_trial(0, d_cg=0.0, perturb=False)
+    trial["mscale"] = 1.0
+    _, info, _ = C.chain_scene(f"mj:spheres:s{spacing}:rs0.75:tr0.03:ir100", trial, dirs, pad_tc=(0.015, 0.9))
+    K = float(info["K_sphere"])
+    tc = PAD_TC
+    diag = float(m.body_invweight0[m.body("thumb_tip").id, 0] + m.body_invweight0[m.body("tool").id, 0])
+    d0 = 1.0 - 1.0 / (tc**2 * K * diag)
+    m.opt.impratio = 100.0
+    imp = [d0, d0, 0.001, 0.5, 2.0]
+    for i in range(m.npair):
+        m.pair_solref[i] = [tc, 1.0]
+        m.pair_solimp[i] = imp
+        m.pair_solreffriction[i] = [0.0, 0.0]
+    for g in range(m.ngeom):
+        if m.geom(g).name.startswith(("thumb_pad", "index_pad")):
+            m.geom_solref[g] = [tc, 1.0]
+            m.geom_solimp[g] = imp
+    return dict(mapping="legacy_positive_solref", K_sphere=K, solref=[tc, 1.0], solimp=imp,
+                diag_invweight=diag, impratio=100.0)
+
+
+def pad_world_builder(dt, directory):
+    """The MuJoCo-Warp pad fixture (gpu_scaling_mjwarp.run_point, policy 'legacy', 1 mm) as a Newton builder: the MJCF
+    saved right after build(), the pads' legacy solref and solimp written into it, and d0 rescaled to the tip + tool
+    inverse weight of the MuJoCo model SolverMuJoCo builds (probed on one world), d0' = 1 - (1 - d0) w_mjcf / w_solver.
+    Returns the builder, meta and the mapping."""
+    m, d, p, meta = build(dict(spacing_mm=1.0, timestep=dt, policy="compiled", torque_peak=0.012, duration=0.8))
+    directory.mkdir(parents=True, exist_ok=True)
+    mujoco.mj_saveLastXML(str(directory / "pads_source.xml"), m)    # before apply_legacy compiles other models
+    mapping = apply_legacy(m, 1.0)
+    tc, d0 = mapping["solref"][0], mapping["solimp"][0]
+    tree = ET.parse(directory / "pads_source.xml").getroot()
+    contact = tree.find("contact")
+    if contact is not None:      # explicit pairs only repeat the pads' solref; the bitmasks select the same pairs
+        tree.remove(contact)
+
+    def xml_with(d0x):
+        for g in tree.iter("geom"):
+            if g.get("name", "").startswith(("thumb_pad", "index_pad")):
+                g.set("solref", f"{tc:g} 1")
+                g.set("solimp", f"{d0x:.6g} {d0x:.6g} 0.001 0.5 2")
+        return ET.tostring(tree, encoding="unicode")
+
+    def builder(xml):
+        b = newton.ModelBuilder(gravity=(0.0, 0.0, 0.0))
+        b.add_mjcf(xml, ctrl_direct=True, parse_sites=False, parse_visuals=False)
+        for i in range(len(b.shape_gap)):
+            b.shape_gap[i] = 0.0005
+            b.shape_margin[i] = 0.0
+        for f, qq in zip(("thumb", "index", "middle"), np.array(meta["qtouch"]).reshape(3, 3)):
+            for name, q in zip((f + "_yaw", f + "_mcp", f + "_pip"), qq):
+                j = next(i for i, x in enumerate(b.joint_label) if x.split("/")[-1] == name)
+                b.joint_q[b.joint_q_start[j]] = float(q)
+        return b
+
+    pm = builder(xml_with(d0)).finalize(device="cuda:0")
+    ps = newton.solvers.SolverMuJoCo(pm, use_mujoco_contacts=False, disable_sensors=True, njmax=64, nconmax=16)
+    labels = [x.split("/")[-1] for x in pm.body_label]
+    m2n = ps.mjc_body_to_newton.numpy()[0]
+    w = {labels[int(m2n[bi])]: float(ps.mj_model.body_invweight0[bi, 0]) for bi in range(ps.mj_model.nbody)
+         if 0 <= int(m2n[bi]) < len(labels)}
+    w_new = w["thumb_tip"] + w["tool"]
+    d0_new = 1.0 - (1.0 - d0) * mapping["diag_invweight"] / w_new
+    del ps, pm
+    xml = xml_with(d0_new)
+    (directory / "hand_pads.xml").write_text(xml)
+    mapping.update(d0_solver=d0_new, w_solver=w_new, n_pad_geoms_xml=xml.count('name="thumb_pad') + xml.count('name="index_pad'))
+    return builder(xml), meta, mapping
+
+
 def world_builder(dt, directory):
     """Single-world builder exactly as distributed_contact_newton.setup builds it, with the
     probe's soft fallback solref written into the MJCF before add_mjcf."""
@@ -197,21 +312,37 @@ def world_builder(dt, directory):
 class Sim:
     """nworld replicated holding fixtures with one shared collision pipeline and solver."""
 
-    def __init__(self, nworld, reduce, caps, dt=0.001):
+    def __init__(self, nworld, reduce, caps, dt=0.001, model="hydro", fixture="hold"):
         self.nworld, self.reduce, self.caps, self.dt = nworld, reduce, dict(caps), dt
-        b, self.meta, self.n_fix = world_builder(dt, WORK / f"model_dt{dt}")
+        self.kind, self.fixture = model, fixture
+        self.pads = model == "pads1"
+        self.pad_info = None
+        if self.pads:
+            b, self.meta, mapping = pad_world_builder(dt, WORK / f"model_pads_dt{dt}")
+            self.n_fix = 0
+            self.pad_info = dict(mapping)
+        else:
+            b, self.meta, self.n_fix = world_builder(dt, WORK / f"model_dt{dt}")
         scene = newton.ModelBuilder(gravity=(0.0, 0.0, 0.0))
         scene.replicate(b, nworld)
         self.model = model = scene.finalize(device="cuda:0")
-        hydro = HydroelasticSDF.Config(reduce_contacts=reduce, anchor_contact=True, moment_matching=False,
-                                       buffer_fraction=caps["buffer_fraction"],
-                                       buffer_mult_broad=int(caps.get("buffer_mult_broad", 1)))
+        kw = {}
+        if not self.pads:
+            kw["sdf_hydroelastic_config"] = HydroelasticSDF.Config(
+                reduce_contacts=reduce, anchor_contact=True, moment_matching=False,
+                buffer_fraction=caps["buffer_fraction"], buffer_mult_broad=int(caps.get("buffer_mult_broad", 1)))
         self.pipe = newton.CollisionPipeline(model, reduce_contacts=reduce, rigid_contact_max=nworld * caps["rigid"],
-                                             broad_phase="explicit", sdf_hydroelastic_config=hydro)
+                                             broad_phase="explicit", **kw)
         self.solver = newton.solvers.SolverMuJoCo(
             model, use_mujoco_contacts=False, disable_sensors=True, njmax=caps["njmax"], nconmax=caps["nconmax"],
             iterations=200, ls_iterations=50, cone="elliptic", jacobian="dense", integrator="implicitfast",
             tolerance=1e-8, impratio=100.0)
+        self.inv_w = self._inv_weights()
+        if self.kind == "hydro_mc":
+            self.mass_correction = self._mass_correct()
+        if self.pads:
+            self.pad_info.update(self._pad_contact())
+        self.times = wp.zeros(1, dtype=float, device="cuda:0")
         self.s0, self.s1 = model.state(), model.state()
         self.ctrl = model.control()
         c = self.ctrl.mujoco.ctrl
@@ -236,23 +367,77 @@ class Sim:
         names = [mm.geom(g).name.split("/")[-1] for g in range(mm.ngeom)]
         self.geom_pad = np.full(mm.ngeom, -1)
         for g, n in enumerate(names):
-            if n.startswith("thumb_tipsphere"):
+            if n.startswith(("thumb_tipsphere", "thumb_pad")):
                 self.geom_pad[g] = 0
-            elif n.startswith("index_tipsphere"):
+            elif n.startswith(("index_tipsphere", "index_pad")):
                 self.geom_pad[g] = 1
         self.hs = getattr(self.pipe, "hydroelastic_sdf", None)
         self.init_pose = self.poses()
         self.steps = 0
 
+    # ------------------------------------------------------------------ model set-up
+    def _inv_weights(self):
+        """invweight0 of the tips and the tool in the solver's own MuJoCo model (world 0)."""
+        mjm = self.solver.mj_model
+        labels = [x.split("/")[-1] for x in self.model.body_label]
+        m2n = self.solver.mjc_body_to_newton.numpy()[0]
+        w = {}
+        for bi in range(mjm.nbody):
+            nb = int(m2n[bi])
+            nm = labels[nb] if 0 <= nb < len(labels) else ""
+            if nm in ("thumb_tip", "index_tip", "tool"):
+                w[nm] = float(mjm.body_invweight0[bi, 0])
+        return w
+
+    def _mass_correct(self):
+        """kh of each tip x (invweight0[tip] + invweight0[tool]); the tool 100x the largest tip (newton_turn.mass_correct)."""
+        w = self.inv_w
+        kh_tip = {f: KH_PAD * (w[f + "_tip"] + w["tool"]) for f in ("thumb", "index")}
+        kh_tool = TOOL_RATIO * max(kh_tip.values())
+        lab = [x.split("/")[-1] for x in self.model.shape_label]
+        kh = self.model.shape_material_kh.numpy()
+        for i, n in enumerate(lab):
+            if n == "tool":
+                kh[i] = kh_tool
+            elif n in ("thumb_tipsphere", "index_tipsphere"):
+                kh[i] = kh_tip[n.split("_")[0]]
+        self.model.shape_material_kh.assign(kh)
+        return dict(invweight0=w, kh_tip=kh_tip, kh_tool=kh_tool)
+
+    def _pad_contact(self):
+        """Check the pads' d0 in the solver model against the rescaled value; set the friction gain kf on pads and tool
+        so that the friction rows keep the pads' 15 ms solref (contact_bed_newton.NewtonRig._match_friction)."""
+        d0, w_new = self.pad_info["d0_solver"], self.inv_w["thumb_tip"] + self.inv_w["tool"]
+        mjm = self.solver.mj_model
+        gi = [g for g in range(mjm.ngeom) if (mjm.geom(g).name or "").split("/")[-1].startswith(("thumb_pad", "index_pad"))]
+        out = dict(n_pad_geoms_solver=len(gi), d0_solver_model=float(mjm.geom_solimp[gi[0], 0]) if gi else None,
+                   w_check=w_new)
+        kf = 2.0 / (PAD_TC * w_new * ((1.0 - d0) / 100.0 + d0))
+        lab = [x.split("/")[-1] for x in self.model.shape_label]
+        kfa = self.model.shape_material_kf.numpy()
+        for i, n in enumerate(lab):
+            if n.startswith(("thumb_pad", "index_pad", "tool")):
+                kfa[i] = kf
+        self.model.shape_material_kf.assign(kfa)
+        out["kf"] = kf
+        return out
+
     # ------------------------------------------------------------------ stepping
     def step_block(self):
+        fx = FIXTURES[self.fixture]
         for _ in range(BLOCK):
             self.s0.clear_forces()
-            wp.launch(hold_guide, dim=self.nworld,
-                      inputs=[self.s0.body_q, self.s0.body_qd, self.s0.body_f, self.tools, wp.vec3(self.P)])
+            if self.fixture == "hold":
+                wp.launch(hold_guide, dim=self.nworld,
+                          inputs=[self.s0.body_q, self.s0.body_qd, self.s0.body_f, self.tools, wp.vec3(self.P)])
+            else:
+                wp.launch(twist_guide, dim=self.nworld,
+                          inputs=[self.s0.body_q, self.s0.body_qd, self.s0.body_f, self.tools, wp.vec3(self.P),
+                                  wp.vec3(self.u), fx["peak"], self.times])
             self.pipe.collide(self.s0, self.cc)
             self.solver.step(self.s0, self.s1, self.ctrl, self.cc, self.dt)
             self.s0, self.s1 = self.s1, self.s0
+            wp.launch(advance_time, dim=1, inputs=[self.times, self.dt])
 
     def capture(self, poll_in_capture=False):
         """Record one block as a CUDA graph. The hydroelastic host poll is moved out of the
@@ -364,7 +549,7 @@ class Sim:
                     tool_disp_mm=disp * 1e3, tool_twist_deg=rot, contacts=ncon.astype(float))
 
     def free(self):
-        for k in ("cc", "pipe", "solver", "s0", "s1", "ctrl", "model", "tools", "hs"):
+        for k in ("cc", "pipe", "solver", "s0", "s1", "ctrl", "model", "tools", "hs", "times"):
             if hasattr(self, k):
                 delattr(self, k)
 
@@ -386,12 +571,13 @@ def summarize(f, ok):
     return out
 
 
-def run_point(nworld, reduce, caps, duration=0.5, use_graph=True, poll_in_capture=False):
+def run_point(nworld, reduce, caps, duration=None, use_graph=True, poll_in_capture=False, model="hydro", fixture="hold"):
+    duration = FIXTURES[fixture]["duration"] if duration is None else duration
     dev = wp.get_device("cuda:0")
     wp.synchronize()
     free_before = dev.free_memory
     t0 = time.perf_counter()
-    sim = Sim(nworld, reduce, caps)
+    sim = Sim(nworld, reduce, caps, model=model, fixture=fixture)
     nblocks = round(duration / (BLOCK * sim.dt))
     # first block eager: compiles kernels and starts the hold; it is not timed
     sim.step_block()
@@ -472,6 +658,8 @@ def run_point(nworld, reduce, caps, duration=0.5, use_graph=True, poll_in_captur
         vram_process_mib=snap_alloc.get("own_mib"), gpu_free_after_alloc_mib=snap_alloc.get("free_mib"),
         fidelity=summarize(fid, ok),
         fallback_solref_replacements=sim.n_fix,
+        mass_correction=getattr(sim, "mass_correction", None), pad_contact=sim.pad_info,
+        host_maxrss_mib=__import__("resource").getrusage(__import__("resource").RUSAGE_SELF).ru_maxrss / 1024.0,
     )
     sim.free()
     del sim, graph
@@ -503,12 +691,16 @@ def right_size(cal):
                 buffer_mult_broad=mult_broad)
 
 
-def model_name(reduce):
-    return "newton_hydro" if reduce else "newton_hydro_unreduced"
+def model_name(reduce, model="hydro"):
+    if model == "pads1":
+        return "newton_pads1"
+    base = "newton_hydro_mc" if model == "hydro_mc" else "newton_hydro"
+    return base if reduce else base + "_unreduced" if model == "hydro" else "newton_hydro_unreduced_mc"
 
 
-def key(kind, reduce, nworld, repeat, graph=True):
-    return f"{kind}_{model_name(reduce)}_n{nworld}_r{repeat}{'' if graph else '_nograph'}"
+def key(kind, reduce, nworld, repeat, graph=True, model="hydro", fixture="hold"):
+    fx = "" if fixture == "hold" else f"_{fixture}"
+    return f"{kind}_{model_name(reduce, model)}{fx}_n{nworld}_r{repeat}{'' if graph else '_nograph'}"
 
 
 def write(row, out):
@@ -525,13 +717,20 @@ def load(out):
     return [json.loads(x) for x in out.read_text().splitlines() if x.strip()]
 
 
-def base_row(kind, reduce, nworld, repeat, graph, caps):
+def base_row(kind, reduce, nworld, repeat, graph, caps, model="hydro", fixture="hold"):
+    if model == "pads1":
+        spec = "newton:spheres:s1:rs0.75:legacy_solref[0.015 1]:ir100:gap0.5:kfmatch"
+    else:
+        spec = (f"newton:hydro:kh{KH_PAD:.4g}:tool{TOOL_RATIO:g}x:vox0.5mm:kf10:ir100:"
+                f"{'reduce' if reduce else 'noreduce'}:fallback_solref[{FALLBACK_SOLREF}]"
+                f"{':kh_over_meff_solver' if model == 'hydro_mc' else ''}")
+    fx_text = ("0.5 s hold, 20 N/m centring guide, no torque" if fixture == "hold" else
+               "0.8 s, 20 N/m centring guide, two opposing 12 mN m raised-cosine torque pulses at 0.3-0.6 s "
+               "(the MuJoCo-Warp pad fixture of gpu_scaling_mjwarp.py)")
     return dict(
-        task="gpu_scaling", kind=kind, key=key(kind, reduce, nworld, repeat, graph), model=model_name(reduce),
-        rig_spec=(f"newton:hydro:kh{KH_PAD:.4g}:tool{TOOL_RATIO:g}x:vox0.5mm:kf10:ir100:"
-                  f"{'reduce' if reduce else 'noreduce'}:fallback_solref[{FALLBACK_SOLREF}]"),
-        fixture="SR2 thumb-index pinch, distributed_contact_newton.setup; 0.5 s hold, 20 N/m centring guide, "
-                "no torque; ctrl targets for 2 N pad load",
+        task="gpu_scaling", kind=kind, key=key(kind, reduce, nworld, repeat, graph, model, fixture),
+        model=model_name(reduce, model), fixture_name=fixture, rig_spec=spec,
+        fixture=f"SR2 thumb-index pinch, distributed_contact_transfer.build; {fx_text}; ctrl targets for 2 N pad load",
         dt_ms=1.0, nworld=nworld, repeat=repeat, reduce_contacts=reduce, requested_caps=caps,
         script="scripts/newton_scaling.py", git_rev=git_rev(), host=os.uname().nodename,
         versions=dict(newton=newton.__version__, warp=wp.__version__, mujoco=mujoco.__version__,
@@ -550,7 +749,10 @@ def main():
     ap.add_argument("--out", type=Path, default=OUT)
     ap.add_argument("--min-free-mib", type=float, default=2048.0)
     ap.add_argument("--max-wait-s", type=float, default=1800.0)
+    ap.add_argument("--model", choices=MODELS, default="hydro")
+    ap.add_argument("--fixture", choices=list(FIXTURES), default="hold")
     args = ap.parse_args()
+    MK = dict(model=args.model, fixture=args.fixture)
     wp.init()
     try:
         wp.set_mempool_release_threshold("cuda:0", 0)
@@ -562,10 +764,10 @@ def main():
         reduce = args.reduce[0]
         caps = GENEROUS
         snap, waited = wait_clear(args.max_wait_s)
-        row = base_row("diag906", reduce, 1, int(args.poll_in_capture), True, caps)
+        row = base_row("diag906", reduce, 1, int(args.poll_in_capture), True, caps, **MK)
         row.update(gpu_before=snap, waited_s=waited, poll_in_capture=bool(args.poll_in_capture))
         try:
-            row.update(run_point(1, bool(reduce), caps, duration=0.1, poll_in_capture=bool(args.poll_in_capture)))
+            row.update(run_point(1, bool(reduce), caps, duration=0.1, poll_in_capture=bool(args.poll_in_capture), **MK))
         except Exception as e:  # noqa: BLE001
             row.update(status="error", error=repr(e)[:600], traceback=traceback.format_exc()[-2000:])
         row["gpu_after"] = gpu_snapshot()
@@ -576,13 +778,14 @@ def main():
     for reduce in args.reduce:
         reduce = bool(reduce)
         cal = [r for r in rows if r.get("kind") == "calibration" and r["reduce_contacts"] == reduce
+               and r.get("model") == model_name(reduce, args.model) and r.get("fixture_name", "hold") == args.fixture
                and r.get("status") == "complete" and not r.get("contention")]
         if args.mode == "calibrate" or not cal:
             snap, waited = wait_clear(args.max_wait_s)
-            row = base_row("calibration", reduce, 1, 0, True, GENEROUS)
+            row = base_row("calibration", reduce, 1, 0, True, GENEROUS, **MK)
             row.update(gpu_before=snap, waited_s=waited)
             try:
-                row.update(run_point(1, reduce, GENEROUS))
+                row.update(run_point(1, reduce, GENEROUS, **MK))
             except Exception as e:  # noqa: BLE001
                 row.update(status="error", error=repr(e)[:600], traceback=traceback.format_exc()[-2000:])
             row["gpu_after"] = gpu_snapshot()
@@ -600,17 +803,21 @@ def main():
             print("no calibration for reduce", reduce, flush=True)
             continue
         caps = cal[-1]["right_sized_caps"]
-        vram_per_world = 0.0
+        # VRAM per world from the largest batch run so far (smaller batches carry the fixed allocation)
+        prev = [r for r in rows if r.get("kind") == "timing" and r.get("model") == model_name(reduce, args.model)
+                and r.get("fixture_name", "hold") == args.fixture and r.get("nworld", 0) >= 64 and r.get("vram_alloc_mib")]
+        big = max(prev, key=lambda r: r["nworld"], default=None)
+        vram_per_world = big["vram_alloc_mib"] / big["nworld"] if big else 0.0
         for nworld in args.nworld:
             for rep in range(args.repeats):
-                k = key("timing", reduce, nworld, rep, not args.no_graph)
+                k = key("timing", reduce, nworld, rep, not args.no_graph, **MK)
                 done = [r for r in rows if r.get("key") == k and not r.get("contention")
-                        and r.get("status") in ("complete", "partial", "failed", "skipped")]
+                        and r.get("status") in ("complete", "partial", "failed")]
                 if done:
                     continue
                 for attempt in range(2):
                     snap, waited = wait_clear(args.max_wait_s)
-                    row = base_row("timing", reduce, nworld, rep, not args.no_graph, caps)
+                    row = base_row("timing", reduce, nworld, rep, not args.no_graph, caps, **MK)
                     row.update(attempt=attempt, gpu_before=snap, waited_s=waited)
                     predicted = vram_per_world * nworld * 1.15
                     if predicted and snap.get("free_mib", 1e9) - predicted < args.min_free_mib:
@@ -618,14 +825,14 @@ def main():
                                    f"than {args.min_free_mib:.0f} MiB free (free {snap.get('free_mib')} MiB)")
                     else:
                         try:
-                            row.update(run_point(nworld, reduce, caps, use_graph=not args.no_graph))
+                            row.update(run_point(nworld, reduce, caps, use_graph=not args.no_graph, **MK))
                         except Exception as e:  # noqa: BLE001
                             row.update(status="error", error=repr(e)[:600], traceback=traceback.format_exc()[-2000:])
                             gc.collect()
                     row["gpu_after"] = gpu_snapshot()
                     row["contention"] = contended(row["gpu_before"]) or contended(row["gpu_after"], after=True)
-                    if row.get("vram_alloc_mib"):
-                        vram_per_world = max(vram_per_world, row["vram_alloc_mib"] / nworld)
+                    if row.get("vram_alloc_mib") and nworld >= 64:
+                        vram_per_world = row["vram_alloc_mib"] / nworld
                     write(row, args.out)
                     rows.append(row)
                     f = row.get("fidelity") or {}
