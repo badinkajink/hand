@@ -620,6 +620,8 @@ VAR_LBL = {"legacy": "box tip, point contact (every RL run so far)", "mesh": "TP
 def rl_section():
     T = {}
     for r in jl(os.path.join(RLD, "throughput.jsonl")):
+        if r.get("sensor_reduce") == "netforce":       # rows after the sensor change: sensor_paragraph
+            continue
         if r.get("status") != "ok":
             T.setdefault((r["variant"], r["num_envs"]), r)
             continue
@@ -738,10 +740,7 @@ def rl_section():
         "for the 1&#8202;mm pads at 2,048 envs and 10.5&#8202;GB for the front-half pads at 4,096, against 4.4&#8202;GB for the "
         "box tip at 4,096; the full 1&#8202;mm pads at 4,096 envs did not complete. Throughput does not grow past 2,048 envs "
         "for any fingertip.</p>",
-        "<p>One change is required before training on pads: mjlab&#8217;s fingertip contact sensor matches at most 64 "
-        "contacts and overflowed with the pads (it asked for up to 106), so the grip-force reward terms would read a "
-        "truncated force; <code>contact_sensor_maxmatch</code> has to be raised to 128 or more and the sensor&#8217;s "
-        "<code>reduce</code> set to sum the pads.</p>",
+        sensor_paragraph(T),
         "<h3>Newton hydroelastic on the printed fingertip</h3>",
         "<p>Newton models a compliant fingertip without sphere packing: its hydroelastic contact computes a pressure "
         "field on the tip&#8217;s own shape from a signed-distance grid. The comparison is therefore the printed TPU block "
@@ -780,6 +779,47 @@ def rl_section():
         "trainer&#8217;s <code>--seed</code> flag is still not applied (2026-09-20), so the two runs per arm are two draws.</p>",
     ]
     return "\n".join(out)
+
+
+def sensor_paragraph(T):
+    rows = jl(os.path.join(RLD, "sensor_check.jsonl"))
+    leg = next((r for r in reversed(rows) if r["check"] == "legacy"), None)
+    pad = next((r for r in reversed(rows) if r["check"] == "pads1"), None)
+    if not (leg and pad):
+        return ""
+    new = {}
+    for r in jl(os.path.join(RLD, "throughput.jsonl")):
+        if r.get("status") == "ok" and r.get("sensor_reduce") == "netforce":
+            new[(r["variant"], r["num_envs"])] = r
+    old = {v: T.get((v, 2048)) for v in ("legacy", "pads1")}
+    term_max = max(leg["term_max_abs_diff"].values())
+    fmax = leg["force_norm_max_abs_diff_N"]["fingertip_cube_contact"]
+    txt = ("<h3>Contact sensor for sphere pads</h3>"
+           "<p>The fingertip and palm contact sensors now sum every matched contact (mjlab <code>reduce=\"netforce\"</code>, a "
+           "world-frame vector) and the simulation allocates 256 matches per sensor (<code>contact_sensor_maxmatch</code>; "
+           "mjlab&#8217;s default of 64 overflowed with the pads), set in <code>src/morphohand/rl/env_build.py</code>. Before, each "
+           "fingertip reported one contact chosen by match order (<code>reduce=\"none\"</code>, one slot): the whole force of "
+           "the box tip, one pad&#8217;s share on the pad tip. Every consumer (grip-force, force-excess, force-spread and brace "
+           "rewards, contact gates, tip-lost terminations, the deploy read-outs) takes the vector norm and "
+           "<code>found&#8202;&gt;&#8202;0</code>, so the change of frame does not reach them. Regression "
+           "(<code>scripts/rl_contact_sensor_check.py</code>, rows <code>docs/experiments/20261006-rl_contact/sensor_check.jsonl</code>): "
+           f"on the box tip the old and new sensors, read side by side in one env for {leg['steps']} steps at "
+           f"{leg['num_envs']} envs, give every sensor-reading reward term the same value (largest difference "
+           f"{term_max:g}) and force norms within {fmax:.1e}&#8202;N; no fingertip had more than one matched contact. On "
+           f"the 1&#8202;mm pads ({pad['num_envs']} envs, {len(pad['at_steps'])} instants after the grasp, {pad['n_tip_samples']} "
+           f"fingertip samples, up to {pad['found_max']} pad contacts per tip) the sensor equals the sum of the pad contact "
+           f"forces of the same GPU solve to {pad['rel_err_same_solve_max']:.0e} and a CPU MuJoCo re-solve of the same state "
+           f"to {f(100 * pad['rel_err_cpu_resolve_max'], 1)}&#8202;%.")
+    nl, npd = new.get(("legacy", 2048)), new.get(("pads1", 2048))
+    if nl and npd and old["legacy"] and old["pads1"]:
+        txt += (f" At 2,048 envs the env runs {num(nl['env_steps_per_s'], ',.0f')} (box tip) and "
+                f"{num(npd['env_steps_per_s'], ',.0f')} (pads) env steps/s with the summed sensor, against "
+                f"{num(old['legacy']['env_steps_per_s'], ',.0f')} and {num(old['pads1']['env_steps_per_s'], ',.0f')} in "
+                "Table&#160;5 with the one-contact sensor.")
+    txt += ("</p><p>The env has no mass randomisation. Adding one requires recomputing each pad&#8217;s solimp d0 per world, "
+            "since d0 holds the inverse weights of the nominal tip and tool. The compliance randomisation "
+            "(<code>randomize_geom_solimp</code>) overwrites d0 and is off in the configuration the training below copies.</p>")
+    return txt
 
 
 def newton_paragraph(NT):
@@ -853,8 +893,7 @@ def next_section():
         "<b>Pads and hydroelastic Newton on the same RL state.</b> Export the D6 env&#8217;s state after its scripted grasp "
         "and time MuJoCo-Warp pads and hydroelastic Newton from it, to settle whether the pads cost 2.5 or 17&#8211;26&#8202;&#181;s "
         "per world-step in a training grasp.",
-        "<b>RL comparison.</b> The queue above, after <code>contact_sensor_maxmatch</code> and <code>reduce</code> are "
-        "changed for the pads and the trainer applies <code>--seed</code>.",
+        "<b>RL comparison.</b> The queue above, after the trainer applies <code>--seed</code>.",
     ]
     return "<ol>" + "".join(f"<li>{x}</li>" for x in items) + "</ol>"
 
@@ -868,7 +907,7 @@ def lede():
     fm = [h for h in HANDS if hom.get((h, "mujoco", "free")) and sum(r["held"] for r in hom[(h, "mujoco", "free")]) == 0]
     T = {}
     for r in jl(os.path.join(RLD, "throughput.jsonl")):
-        if r.get("status") == "ok":
+        if r.get("status") == "ok" and r.get("sensor_reduce") != "netforce":
             T[(r["variant"], r["num_envs"])] = r
     mc = [r for h in HANDS for r in hom["plans_nt"].get(h, [])]
     n_mc_held = sum(r["held_end"] for r in mc)

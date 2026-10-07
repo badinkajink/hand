@@ -1089,6 +1089,16 @@ def _build_terminations(cfg: MorphoHandEnvCfg) -> dict:
     return terminations
 
 
+# Contact sensors sum every matched contact per primary body ("netforce", a global-frame vector; 2026-10-06). The
+# earlier reduce="none" with one slot returned one contact per fingertip in match order: the whole force of the box tip
+# (never more than one match per tip, 200 steps x 64 envs) but one pad's share on sphere-pad tips (up to 31 pad
+# contacts per tip after the grasp). Every consumer takes the vector norm and found > 0, so the frame change does not
+# reach them; scripts/rl_contact_sensor_check.py is the regression. MuJoCo-Warp collects matches before the reduction
+# in a buffer of contact_sensor_maxmatch (mjlab default 64), which the pads overflowed (up to 106).
+CONTACT_SENSOR_REDUCE = "netforce"
+CONTACT_SENSOR_MAXMATCH = 256
+
+
 def _build_sensors(cfg: MorphoHandEnvCfg) -> tuple:
     from mjlab.sensor import ContactMatch, ContactSensorCfg
 
@@ -1101,7 +1111,7 @@ def _build_sensors(cfg: MorphoHandEnvCfg) -> tuple:
         ),
         secondary=ContactMatch(mode="body", pattern="cube", entity="cube"),
         fields=("found", "force"),  # force added for grip-strength (Phase 3 brace) reward
-        reduce="none",
+        reduce=CONTACT_SENSOR_REDUCE,
         num_slots=1,
         history_length=0,
     )
@@ -1113,7 +1123,7 @@ def _build_sensors(cfg: MorphoHandEnvCfg) -> tuple:
         primary=ContactMatch(mode="body", pattern="palm_pose", entity="robot"),
         secondary=ContactMatch(mode="body", pattern="cube", entity="cube"),
         fields=("found", "force"),
-        reduce="none",
+        reduce=CONTACT_SENSOR_REDUCE,
         num_slots=1,
         history_length=0,
     )
@@ -1261,6 +1271,7 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
         sim=SimulationCfg(
             nconmax=64,
             njmax=400,
+            contact_sensor_maxmatch=CONTACT_SENSOR_MAXMATCH,
             mujoco=MujocoCfg(
                 timestep=cfg.sim_timestep,
                 iterations=10,

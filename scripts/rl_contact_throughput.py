@@ -170,7 +170,9 @@ def main():
         print(f"{v}: ngeom {m.ngeom}, calibration max {cmax} contacts / {emax} constraints per world -> "
               f"nconmax {nconmax}, njmax {njmax}", flush=True)
         for n in a.envs:
+            from morphohand.rl import env_build
             row = {"variant": v, "run": RUNS[v], "ngeom": m.ngeom, "num_envs": n, "nconmax": nconmax, "njmax": njmax,
+                   "sensor_reduce": env_build.CONTACT_SENSOR_REDUCE, "sensor_maxmatch": env_build.CONTACT_SENSOR_MAXMATCH,
                    "impratio": a.impratio or 10.0, "cal_ncon_world_max": cmax, "cal_nefc_world_max": emax,
                    "gpu_used_before_mb": gpu_used_mb(), "when": time.strftime("%Y-%m-%d %H:%M")}
             try:
