@@ -20,6 +20,11 @@ MuJoCo-Warp collision uses the SAP_SEGMENTED broadphase (mjlab's choice; put_mod
             pads      the TPU block as 1 mm sphere pads (1059 per tip) that touch only the tool; the block's convex
                       mesh takes the other contacts (as in the RL scenes of make_pad_morphology_run.py)
 
+--pad-d0 newton (pads only): the pads reach their stiffness through solimp d0 = 1 - 1/(tc^2 K (w_tip + w_tool)) with the
+inverse weights w of the MJCF compile (reorient_backends.replace_tips). Newton forwards the pads' solref/solimp to its
+contacts unchanged, so d0 is recomputed from the inverse weights of Newton's own MuJoCo model (a one-world build first):
+d0' = 1 - (1 - d0) (w_tip + w_tool)_mjcf / (w_tip + w_tool)_newton. Every row records both sets of inverse weights.
+
 Newton shapes get margin 0 and a 0.5 mm contact gap (its default gap reports every pair within centimetres and filled
 the 64-contact buffer). Measured: us per world-step (wall time of a block / steps / nworld), contacts and constraints per world, GPU memory
 in use (nvidia-smi), and the fraction of worlds still holding the tool (centre within 20 mm of its start) after 1 s.
@@ -150,10 +155,58 @@ def run_mjw(xml, meta, nworld, nblocks):
                 sim_s=round(0.4 + (nblocks + 1) * BLOCK * DT, 3))
 
 
-def run_newton(xml, meta, nworld, nblocks, mode, tip, buffer_fraction=1.0, buffer_mult_broad=1):
+TOOL = "screwdriver_medium"
+
+
+def mjcf_invweights(xml):
+    """Inverse weights and masses of the tips and the tool in a plain MuJoCo compile of the scene."""
+    import mujoco
+    m = mujoco.MjModel.from_xml_string(xml)
+    names = [f"{f}_tip" for f in FINGERS] + [TOOL]
+    return ({n: float(m.body_invweight0[m.body(n).id, 0]) for n in names},
+            {n: float(m.body_mass[m.body(n).id]) for n in names})
+
+
+def solver_invweights(model, solver):
+    """The same from Newton's own MuJoCo model (world 0), the one MuJoCo-Warp steps."""
+    mjm = solver.mj_model
+    labels = [x.split("/")[-1] for x in model.body_label]
+    m2n = solver.mjc_body_to_newton.numpy()[0]
+    names = [f"{f}_tip" for f in FINGERS] + [TOOL]
+    w, mass = {}, {}
+    for bi in range(mjm.nbody):
+        nb = int(m2n[bi])
+        nm = labels[nb] if 0 <= nb < len(labels) else ""
+        if nm in names:
+            w[nm], mass[nm] = float(mjm.body_invweight0[bi, 0]), float(mjm.body_mass[bi])
+    return w, mass
+
+
+def pad_d0_from(xml, meta, w_mjcf, w_new):
+    """Rewrite each finger's pad solimp with d0' = 1 - (1 - d0)(w_tip + w_tool)_mjcf / (w_tip + w_tool)_newton."""
+    d0n = {}
+    for f in FINGERS:
+        d0 = float(meta["pad_d0"][f])
+        d0n[f] = 1.0 - (1.0 - d0) * (w_mjcf[f"{f}_tip"] + w_mjcf[TOOL]) / (w_new[f"{f}_tip"] + w_new[TOOL])
+        xml = re.sub(rf'(<geom name="{f}_pad\d+"[^>]*?solimp=")[0-9.eE+-]+ [0-9.eE+-]+',
+                     lambda m_, d=d0n[f]: f"{m_.group(1)}{d:.6g} {d:.6g}", xml)
+    return xml, d0n
+
+
+def run_newton(xml, meta, nworld, nblocks, mode, tip, buffer_fraction=1.0, buffer_mult_broad=1, pad_d0="mjcf",
+               _probe=False):
     import newton
     import warp as wp
     hydro = mode == "nt_hydro"
+    extra = {}
+    if tip == "pads" and not _probe:
+        w_mjcf, m_mjcf = mjcf_invweights(xml)
+        w_new, m_new = run_newton(xml, meta, 1, 0, mode, tip, _probe=True)
+        extra = dict(invweight0_mjcf=w_mjcf, invweight0_newton=w_new, body_mass_mjcf=m_mjcf, body_mass_newton=m_new,
+                     pad_d0_mjcf={f: float(meta["pad_d0"][f]) for f in FINGERS}, pad_d0_mode=pad_d0)
+        if pad_d0 == "newton":
+            xml, d0n = pad_d0_from(xml, meta, w_mjcf, w_new)
+            extra["pad_d0_newton"] = d0n
     if tip in ("pads", "mesh"):
         # Newton's MJCF importer loads mesh files through trimesh, which its environment lacks: drop the block mesh
         # here and, for the mesh tip, add it back below from the OBJ's own vertices
@@ -225,9 +278,16 @@ def run_newton(xml, meta, nworld, nblocks, mode, tip, buffer_fraction=1.0, buffe
                                          njmax=njmax, nconmax=nconmax, iterations=ITER, ls_iterations=LS,
                                          cone="elliptic", integrator="implicitfast", tolerance=1e-8,
                                          impratio=IMPRATIO)
+    if _probe:
+        return solver_invweights(model, solver)
     if hasattr(solver, "mjw_model"):
         import mujoco_warp as mjw
         solver.mjw_model.opt.broadphase = mjw.BroadphaseType.SAP_SEGMENTED
+    if tip == "pads":
+        mm0 = solver.mj_model
+        pad_gi = [g for g in range(mm0.ngeom) if "_pad" in (mm0.geom(g).name or "")]
+        if pad_gi:
+            extra["pad_solimp_solver"] = [float(x) for x in mm0.geom_solimp[pad_gi[0]]]
     s0, s1 = model.state(), model.state()
     ctrl = model.control()
     mm = solver.mj_model
@@ -274,7 +334,7 @@ def run_newton(xml, meta, nworld, nblocks, mode, tip, buffer_fraction=1.0, buffe
     out = dict(us_per_world_step=1e6 * el / (nblocks * BLOCK * nworld), contacts_per_world=na / nworld,
                nefc_world_max=int(md.nefc.numpy().max()), held_frac=held, ngeom=int(mm.ngeom),
                sim_s=round(0.4 + (nblocks + 1) * BLOCK * DT, 3), buffer_fraction=buffer_fraction,
-               buffer_mult_broad=int(buffer_mult_broad))
+               buffer_mult_broad=int(buffer_mult_broad), **extra)
     if hs is not None:
         # stage fullness (newton_scaling.right_size): iso-refinement and face-contact stages at 1.5x their peak,
         # the broad phase by an integer multiplier that restores its count at that fraction
@@ -301,6 +361,8 @@ def main():
     ap.add_argument("--out", type=Path, default=OUT)
     ap.add_argument("--buffer-fraction", type=float, default=1.0, help="hydroelastic stage buffers")
     ap.add_argument("--buffer-mult-broad", type=int, default=1)
+    ap.add_argument("--pad-d0", choices=["mjcf", "newton"], default="mjcf",
+                    help="pads: solimp d0 from the MJCF compile's inverse weights or from Newton's model")
     a = ap.parse_args()
     xml, meta = scene_xml(a.tip)
     import mujoco_warp
@@ -312,7 +374,7 @@ def main():
                "gpu_before_mb": gpu_used_mb()}
         try:
             r = run_mjw(xml, meta, nw, a.blocks) if a.mode == "mjw" else run_newton(
-                xml, meta, nw, a.blocks, a.mode, a.tip, a.buffer_fraction, a.buffer_mult_broad)
+                xml, meta, nw, a.blocks, a.mode, a.tip, a.buffer_fraction, a.buffer_mult_broad, a.pad_d0)
             row.update(r, status="ok", gpu_used_mb=gpu_used_mb())
             try:
                 import newton

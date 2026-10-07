@@ -678,7 +678,7 @@ def rl_section():
                ("nt_hydro", "legacy", "Newton, hydroelastic, box tip"),
                ("mjw3.14.0", "pads", "MuJoCo-Warp 3.14, TPU 1&#8202;mm pads"),
                ("mjw3.6.0", "pads", "MuJoCo-Warp 3.6, TPU 1&#8202;mm pads"),
-               ("nt_pt", "pads", "Newton, own pipeline, TPU 1&#8202;mm pads"),
+               ("nt_pt", "pads", "<b>Newton, sphere pads</b> (own pipeline), TPU 1&#8202;mm pads"),
                ("nt_mjc", "pads", "Newton, MuJoCo-Warp collision, TPU 1&#8202;mm pads")]
     nrows = []
     sizes = (64, 256, 1024, 2048, 4096)
@@ -765,8 +765,8 @@ def rl_section():
              "world at the smallest batch; lowest holding: the smallest fraction of worlds still holding the tool after "
              "1&#8202;s over the batch sizes. Shaded: "
              "fewer than 95&#8202;% of worlds still held the tool after 1&#8202;s, so that time is the cost of a failing grip. "
-             "&#8216;GPU mem.&#8217;: an allocation did not fit; &#8216;failed&#8217;: Newton&#8217;s host-side model of "
-             "1,024 worlds &#215; 3,200 pad spheres exceeded the job&#8217;s 5&#8202;GB."),
+             "&#8216;GPU mem.&#8217;: an allocation did not fit. Newton with sphere pads at 1,024 worlds needs 7.5&#8202;GB of "
+             "host memory to build its model (1,024 &#215; 3,177 pad spheres)."),
         newton_paragraph(NT),
         "<h3>Training comparison, not yet run</h3>",
         "<p>Proposed queue, serial, one GPU job at a time: the D6 reorientation from scratch with the b_liveA recipe "
@@ -809,8 +809,26 @@ def newton_paragraph(NT):
     if ptm:
         txt += (f"Newton&#8217;s point-contact pipeline on the plain block mesh holds the grip at 1,024 worlds with "
                 f"{f(ptm['contacts_per_world'], 0)} contacts per world ({f(ptm['us_per_world_step'], 1)}&#8202;&#181;s) and "
-                "loses the tool at 4,096. The Newton rows with sphere pads time Newton&#8217;s handling of 3,200 spheres, not its "
-                "hydroelastic model. The hydroelastic rows of Table&#160;6 use kh = E/h without the effective-mass correction "
+                "loses the tool at 4,096. ")
+    ntp = ok("nt_pt", "pads", 1024)
+    if ntp and ntp.get("invweight0_newton"):
+        wn, wm = ntp["invweight0_newton"], ntp["invweight0_mjcf"]
+        dw = max(abs(wn[k] - wm[k]) / wm[k] for k in wm)
+        held = [r["held_frac"] for key in (("mjw3.14.0", "pads"), ("mjw3.6.0", "pads"), ("nt_mjc", "pads"))
+                for n in (64, 256, 1024, 2048, 4096) for r in NT.get(key + (n,), []) if r.get("status") == "ok"]
+        lose = (min(held), max(held)) if held else (None, None)
+        txt += (f"With the same 1&#8202;mm pads, Newton&#8217;s own collision pipeline holds the tool in "
+                f"{f(100 * ntp['held_frac'], 0)}&#8202;% of 1,024 worlds at {f(ntp['us_per_world_step'], 2)}&#8202;&#181;s per "
+                f"world-step with {f(ntp['contacts_per_world'], 0)} contacts per world, while MuJoCo-Warp&#8217;s collision of the "
+                f"same pads, inside Newton or alone, loses the tool in {f(100 * (1 - lose[1]), 0)}&#8211;{f(100 * (1 - lose[0]), 0)}"
+                "&#8202;% of worlds. The pads reach their stiffness "
+                "through solimp d0, computed from the inverse weights of the MJCF compile; Newton&#8217;s MuJoCo model gives the "
+                f"tips {f(wn['thumb_tip'], 3)} and the tool {f(wn['screwdriver_medium'], 2)}&#8202;1/kg, the compile&#8217;s "
+                f"values to {'1 part in 10<sup>6</sup>' if dw < 1e-6 else f'{100 * dw:.2g}&#8202;%'}, and passes the pads&#8217; solimp to its contacts unchanged "
+                f"(d0 {f(ntp['pad_solimp_solver'][0], 4)}), so the pads need no correction in Newton "
+                "(<code>newton_hand_throughput.py --pad-d0</code> recomputes d0 from Newton&#8217;s values when they differ). ")
+    if ptm:
+        txt += ("The hydroelastic rows of Table&#160;6 use kh = E/h without the effective-mass correction "
                 "of Section&#160;4.")
     return txt + "</p>"
 
