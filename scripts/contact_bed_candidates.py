@@ -65,6 +65,9 @@ CANDIDATES = {
     "mj_pads1_bristle20a": "mj:spheres:s1:rs0.75:ir1000:tr0.02:bristle20a",
     "mj_pads2_bristle20a": "mj:spheres:s2:rs0.75:ir1000:tr0.02:bristle20a",
     "mj_pads1_soft": "mj:spheres:s1:rs0.75:ir100:tr0.02:soft",
+    "mj_pads1_lattice0": "mj:spheres:s1:rs0.75:ir100:tr0.02:lattice0",
+    "mj_pads1_lattice1": "mj:spheres:s1:rs0.75:ir100:tr0.02:lattice1",
+    "mj_pads1_lattice2": "mj:spheres:s1:rs0.75:ir100:tr0.02:lattice2",
 }
 # As specified (1 mg spheres, no armature) the bristles go unstable under tangential load at 1 and 2 ms; armature worth
 # 0.2 g at the contact still does; 2 g at the contact (1.1e-9 kg m^2 per ball-joint dof) runs (suffix `a`).
@@ -254,10 +257,88 @@ class SoftRig(H.MjRig):
         mujoco.mj_forward(self.m, self.d)
 
 
+# (c) Lattice (CSLC in MuJoCo), spec suffix `:lattice<ell_mm>`: each sphere within 20 deg of the pole on its own body with a
+# slide joint along its normal (anchor spring K_a, damping K_a x 1 ms, 1 g armature), neighbours (centres within 1.4 x the
+# spacing) coupled by fixed tendons on q_i - q_j (Pasternak shear, k_n = K_a (ell/s)^2 2/3); the sphere contact made 10x
+# stiffer than the pad's K_s and K_a = 10/9 K_s, so that one isolated node keeps the pad's normal stiffness.
+LATTICE = dict(cap=20.0, tau=1e-3, m=1e-6, arm=1e-3, stiff=10.0)
+
+
+def add_lattice(xml, sp, info, ell, la=None):
+    la = dict(LATTICE, **(la or {}))
+    K_s = info["K_sphere"]
+    Ka = K_s * la["stiff"] / (la["stiff"] - 1.0)
+    s_ = sp["s"]
+    kn = Ka * (ell / s_) ** 2 * 2.0 / 3.0
+    tendons = []
+    nodes = {}
+    for side, face in (("L", 1.0), ("R", -1.0)):
+        nodes[side] = []
+        for mt in list(re.finditer(rf'<geom name="pad{side}_s(\d+)" type="sphere" size="([^"]+)" pos="([^"]+)"([^>]*)/>', xml)):
+            pos = np.array([float(v) for v in mt.group(3).split()])
+            nrm = pos / np.linalg.norm(pos)
+            if math.degrees(math.acos(np.clip(face * nrm[0], -1, 1))) > la["cap"]:
+                continue
+            i = mt.group(1)
+            body = (f'<body name="pad{side}_n{i}" pos="{mt.group(3)}"><joint name="pad{side}_q{i}" type="slide" '
+                    f'axis="{nrm[0]:.6f} {nrm[1]:.6f} {nrm[2]:.6f}" stiffness="{Ka:.6g}" damping="{Ka * la["tau"]:.6g}" '
+                    f'armature="{la["arm"]:.6g}"/><inertial pos="0 0 0" mass="{la["m"]:.6g}" diaginertia="1e-12 1e-12 1e-12"/>'
+                    f'<geom name="pad{side}_s{i}" type="sphere" size="{mt.group(2)}"{mt.group(4)}/></body>')
+            xml = xml.replace(mt.group(0), body, 1)
+            nodes[side].append((i, pos))
+        for a in range(len(nodes[side])):
+            for b in range(a + 1, len(nodes[side])):
+                if np.linalg.norm(nodes[side][a][1] - nodes[side][b][1]) < 1.4 * s_:
+                    ia, ib = nodes[side][a][0], nodes[side][b][0]
+                    tendons.append(f'<fixed name="pad{side}_t{ia}_{ib}" stiffness="{kn:.6g}" damping="{kn * la["tau"]:.6g}" '
+                                   f'springlength="0 0"><joint joint="pad{side}_q{ia}" coef="1"/><joint joint="pad{side}_q{ib}" coef="-1"/></fixed>')
+    if tendons:
+        xml = xml.replace("</worldbody>", "</worldbody>\n  <tendon>\n    " + "\n    ".join(tendons) + "\n  </tendon>", 1)
+    return xml, dict(K_a=Ka, k_n=kn, ell=ell, n_nodes={k: len(v) for k, v in nodes.items()}, n_links=len(tendons), **la)
+
+
+class LatticeRig(H.MjRig):
+    """hom_contact_rig.MjRig with the front-cap pad spheres on normal slides coupled to their neighbours (candidate c)."""
+
+    def __init__(self, sp, d_cg, gravity, kinematic=False, ell=1e-3):
+        import mujoco
+        self.mj, self.sp, self.d_cg = mujoco, sp, d_cg
+        self.x0 = H.tool_touch(sp)
+        xml, info = H.mj_xml(sp, d_cg, gravity, kinematic)
+        x1, _ = add_lattice(xml, sp, info, ell)
+        m0 = mujoco.MjModel.from_xml_string(x1)
+        node = [b for b in range(m0.nbody) if (m0.body(b).name or "").startswith("padL_n")][0]
+        diag = float(m0.body_invweight0[node, 0] + m0.body_invweight0[m0.body("tool").id, 0])
+        tc = sp["tr"] / 2.0
+        d0 = 1.0 - 1.0 / (tc ** 2 * LATTICE["stiff"] * info["K_sphere"] * diag)
+        xml, self.info = H.mj_xml(sp, d_cg, gravity, kinematic, pad_stiff=(tc, d0))
+        self.xml, linfo = add_lattice(xml, sp, self.info, ell)
+        self.info.update(solref_timeconst=tc, solimp_d0=d0, diagApprox=diag, lattice=linfo)
+        self.m = mujoco.MjModel.from_xml_string(self.xml)
+        self.d = mujoco.MjData(self.m)
+        self.tool = self.m.body("tool").id
+        self.pads = {s: self.m.body("pad" + s).id for s in "LR"}
+        self.tool_geom = self.m.geom("tool").id
+        self.geom_side = {}
+        for gi in range(self.m.ngeom):
+            b = int(self.m.geom_bodyid[gi])
+            for s in "LR":
+                if (b == self.pads[s] or self.m.body_parentid[b] == self.pads[s]) and self.m.geom_contype[gi]:
+                    self.geom_side[gi] = s
+        self.pad_geom = {}
+        self.lastN = {"L": 0.0, "R": 0.0}
+        self.f6 = np.zeros(6)
+        mujoco.mj_forward(self.m, self.d)
+        self.theta_prev, self.theta_unwrap = None, 0.0
+
+
 _orig_make_rig = H.make_rig
 
 
 def make_rig(spec, d_cg=0.0, gravity=True, kinematic=False):
+    ml = re.search(r":lattice([0-9.]+)$", spec)
+    if ml:
+        return LatticeRig(H.parse_spec(spec[:ml.start()]), d_cg, gravity, kinematic, ell=float(ml.group(1)) * 1e-3)
     if spec.endswith(":soft"):
         return SoftRig(H.parse_spec(spec[:-5]), d_cg, gravity, kinematic)
     if spec.endswith(":skin"):
