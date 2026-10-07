@@ -220,9 +220,23 @@ def cands(t8, t9, tw, pu, br, cost):
                             + (f", {c[4096]['us_per_world_step']:.2f}&#8202;&#181;s per world-step in a 4,096-world MuJoCo-Warp batch" if 4096 in c else "")
                             + ".</p>"))
         out.append("".join(parts))
-    return "".join(out) + figure(svg_loops(t8), "Task&#160;8 at 1&#8202;N, 1&#8202;ms: the tool&#8217;s axial displacement against the force "
-                                 "over the whole cycle for the pads, the compliant skin and the rolling bristles, against Mindlin&#8217;s "
-                                 "closed form.")
+    return ("".join(out) + figure(svg_loops(t8), "Task&#160;8 at 1&#8202;N, 1&#8202;ms: the tool&#8217;s axial displacement against the force "
+                                  "over the whole cycle for the pads, the compliant skin and the rolling bristles, against Mindlin&#8217;s "
+                                  "closed form.") + film("media/t8_mj_pads1_bristle20a.mp4",
+                                                         "Task&#160;8 at 1&#8202;N on the rolling bristles, real time: the &#8722;x pad seen through "
+                                                         "the tool, its spheres coloured by contact force (dark to light), the tool&#8217;s "
+                                                         "displacement traced along the bottom.", "media/t8_mj_pads1_bristle20a.jpg"))
+
+
+def film(rel, caption, poster_rel=None):
+    p = os.path.join(D, rel)
+    if not os.path.exists(p):
+        return ""
+    pp = os.path.join(D, poster_rel) if poster_rel else None
+    poster = f' poster="{P.R.data_uri(pp, "image/jpeg")}"' if pp and os.path.exists(pp) else ""
+    FIG[0] += 1
+    return (f'<figure><video src="{P.R.data_uri(p, "video/mp4")}"{poster} controls muted loop playsinline preload="metadata"></video>'
+            f'<figcaption>Figure&#160;{FIG[0]}. {caption} <code>docs/experiments/20261007-native_compliance/{rel}</code></figcaption></figure>')
 
 
 def compare(t8, t9, tw, br, cost):

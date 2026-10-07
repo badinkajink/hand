@@ -322,16 +322,105 @@ def mjw_cost(model, nworlds=(1, 1024, 4096), N=1.0, blocks=20, block=10):
     return rows
 
 
+def film_t8(model="mj_pads1_bristle20a", N=1.0, out=None, every=0.02, w=640, h=400):
+    """Film of task 8 on a candidate: the -x pad's contact seen along the pinch axis, the pad spheres coloured by their contact
+    force (0 to the 98th percentile), the tool's displacement magnified 100x in a trace along the bottom. H.264, 25 fps."""
+    import mujoco
+    import contact_bed_compliance as CC
+    from PIL import Image, ImageDraw, ImageFont
+    import subprocess
+    install()
+    dt = 1e-3
+    rig = CC.new_rig(model, dt)
+    rig.set_pad_force(N)
+    rig.set_tool_wrench(np.zeros(3), np.zeros(3))
+    rig.step(0.4)
+    st0 = rig.tool_state()
+    p0, a0 = st0["pos"].copy(), st0["axis"].copy()
+    m, d = rig.m, rig.d
+    r = mujoco.Renderer(m, h, w)
+    cam = mujoco.MjvCamera()
+    cam.lookat[:] = [-H.R_TOOL, 0.0, 0.0]
+    cam.distance, cam.azimuth, cam.elevation = 0.028, 180.0, -8.0
+    side_geoms = [g for g, s_ in rig.geom_side.items() if s_ == "L"]
+    rgba0 = m.geom_rgba.copy()
+    f6 = np.zeros(6)
+    frames, hist = [], []
+    Fs = H.MU * N
+    stride = int(round(every / dt))
+    fmax = None
+    for k in range(int(round(3.2 / dt))):
+        t = (k + 1) * dt
+        F = CC.f_cycle(t - dt / 2, Fs)
+        rig.set_tool_wrench(F * a0, np.zeros(3))
+        rig.step(dt)
+        u = float((rig.tool_state()["pos"] - p0) @ a0)
+        hist.append((t, F, u))
+        if k % stride:
+            continue
+        force = {}
+        for i in range(d.ncon):
+            c = d.contact[i]
+            for g in (int(c.geom[0]), int(c.geom[1])):
+                if g in side_geoms:
+                    mujoco.mj_contactForce(m, d, i, f6)
+                    force[g] = float(f6[0])
+        fmax = fmax or max(max(force.values(), default=0.05), 0.05)
+        m.geom_rgba[:] = rgba0
+        for g in range(m.ngeom):                    # far pad hidden, tool translucent: the -x pad seen through the tool
+            if rig.geom_side.get(g) == "R" or (m.geom(g).name or "").startswith("padR"):
+                m.geom_rgba[g, 3] = 0.0
+            elif m.geom_bodyid[g] == rig.tool:
+                m.geom_rgba[g, 3] = 0.18
+        for g in side_geoms:
+            x = min(force.get(g, 0.0) / fmax, 1.0)
+            m.geom_rgba[g] = B.heat(x) if g in force else [0.75, 0.6, 0.5, 0.6]
+        r.update_scene(d, cam)
+        img = Image.fromarray(r.render().copy())
+        dr = ImageDraw.Draw(img)
+        try:
+            font = ImageFont.truetype("DejaVuSansMono.ttf", 14)
+        except Exception:
+            font = ImageFont.load_default()
+        dr.rectangle([0, 0, w, 22], fill=(255, 255, 255))
+        dr.text((8, 4), f"T8, N {N:g} N   t {t:4.2f} s   F {F:+.3f} N   u {u * 1e6:+6.1f} um   spheres: contact force", fill=(20, 20, 20), font=font)
+        hh = np.array(hist)
+        x0, y0, ww, hh_ = 10, h - 70, w - 20, 60
+        dr.rectangle([x0, y0, x0 + ww, y0 + hh_], fill=(250, 250, 250), outline=(180, 180, 180))
+        pts = [(x0 + ww * (tt / 3.2), y0 + hh_ / 2 - (uu * 1e6) / 60 * (hh_ / 2)) for tt, _, uu in hh[::5]]
+        if len(pts) > 1:
+            dr.line(pts, fill=(122, 79, 166), width=2)
+        dr.text((x0 + 4, y0 + 2), "tool displacement, +-60 um", fill=(90, 90, 90), font=font)
+        frames.append(np.asarray(img))
+    r.close()
+    m.geom_rgba[:] = rgba0
+    out = Path(out or OUT / "media" / f"t8_{model}.mp4")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    cmd = ["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{w}x{h}", "-r", "25", "-i", "-",
+           "-c:v", "libx264", "-crf", "27", "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(out)]
+    pr = subprocess.Popen(cmd, stdin=subprocess.PIPE)
+    for im in frames:
+        pr.stdin.write(np.ascontiguousarray(im[:, :, :3]).tobytes())
+    pr.stdin.close()
+    pr.wait()
+    Image.fromarray(frames[len(frames) // 3][:, :, :3]).save(out.with_suffix(".jpg"), quality=88)
+    return out, len(frames)
+
+
 def main():
     import contact_bed_compliance as CC
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("task", choices=["t1", "t2", "t5", "t8", "t9", "cost"])
+    ap.add_argument("task", choices=["t1", "t2", "t5", "t8", "t9", "cost", "film"])
     ap.add_argument("--models", nargs="+", default=list(CANDIDATES))
     ap.add_argument("--N", nargs="+", type=float)
     ap.add_argument("--dt", nargs="+", type=float, default=[1.0])
     a = ap.parse_args()
     install()
     OUT.mkdir(parents=True, exist_ok=True)
+    if a.task == "film":
+        for model in a.models:
+            print(film_t8(model, (a.N or [1.0])[0]))
+        return
     if a.task == "cost":
         import warp as wp
         wp.init()
