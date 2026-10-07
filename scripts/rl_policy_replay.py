@@ -53,6 +53,7 @@ ONSET, STEPS, DT_POLICY = 58, 250, 0.02
 TRAINER_OPT = dict(timestep="0.002", iterations="10", ls_iterations="20", tolerance="1e-08", impratio="10",
                    cone="elliptic", integrator="implicitfast", gravity="0 0 -9.81")
 NEWTON_DIR = [None]
+NEWTON_NUM = [None]
 
 
 # ---------------------------------------------------------------------------------- record (GPU)
@@ -271,7 +272,24 @@ def replay_newton(d, meta, targets, newton_dir=None, nworld=1):
     import same_state_timing as SS
     nd = Path(newton_dir) if newton_dir else Path(str(d).replace("pads1", "mesh"))
     xml = (nd / "bench.xml").read_text()
+    # as same_state_timing.engine_xml: one-value solrefs get damping ratio 1 (Newton's importer would set 0) and every
+    # massive body's compiled inertia is pinned, so the shapes Newton drops or re-adds cannot change the masses
+    m0 = mujoco.MjModel.from_xml_string(xml)
+    root = ET.fromstring(xml)
+    for b in root.iter("body"):
+        nm = b.get("name")
+        if not nm or m0.body_mass[m0.body(nm).id] <= 0:
+            continue
+        i = m0.body(nm).id
+        for old in b.findall("inertial"):
+            b.remove(old)
+        b.insert(0, ET.Element("inertial", pos=" ".join(f"{x:.9g}" for x in m0.body_ipos[i]),
+                               quat=" ".join(f"{x:.9g}" for x in m0.body_iquat[i]), mass=f"{m0.body_mass[i]:.9g}",
+                               diaginertia=" ".join(f"{x:.9g}" for x in m0.body_inertia[i])))
+    xml = re.sub(r'solref="([0-9.eE+-]+)"', r'solref="\1 1"', ET.tostring(root, encoding="unicode"))
     m = mujoco.MjModel.from_xml_string(xml)
+    if NEWTON_NUM[0]:                       # e.g. the contact bed's 1 ms / 100 iterations / 50 line search
+        m.opt.timestep, m.opt.iterations, m.opt.ls_iterations = NEWTON_NUM[0]
     sm = {"tool_body": TOOL, "tip_bodies": {f: f"{f}_tip" for f in FINGERS}}
     extra = {}
     model, pipe, solver = SS.build_newton(xml, m, sm, nworld, "nt_hydro", "mesh", 0.013, 40, extra)
@@ -343,7 +361,7 @@ def replay_newton(d, meta, targets, newton_dir=None, nworld=1):
         for t, o in ((bi, bj), (bj, bi)):
             if t == tool_id and o >= 0 and body_finger[o]:
                 touch.add(body_finger[o])
-    return {"engine": "newton", "newton_scene": str(nd), "cos_start": cos0, "cos_end": cos1, "z_start_mm": 1e3 * z0,
+    return {"engine": "newton", "newton_scene": str(nd), "dt": dt, "iterations": int(m.opt.iterations), "cos_start": cos0, "cos_end": cos1, "z_start_mm": 1e3 * z0,
             "z_end_mm": 1e3 * z1, "fingers_end": len(touch), "held_end": bool(z1 > 0.06 and len(touch) >= 2),
             "steps": len(targets), "wall_s": round(time.perf_counter() - w0, 1), "kh_tip": extra.get("kh_tip"),
             "invweight0_newton": extra.get("invweight0_newton"), "trace": trace}
@@ -368,6 +386,7 @@ def main():
     r.add_argument("--hold", type=float, default=None, help="hold the onset targets this long instead (a test)")
     r.add_argument("--out", type=Path, default=OUT)
     r.add_argument("--newton-dir", type=Path, default=None, help="newton: the bench.xml to take the geometry from")
+    r.add_argument("--newton-num", default=None, help="newton: dt,iterations,ls_iterations (default: the scene's)")
     a = ap.parse_args()
     if a.cmd == "record":
         os.environ.setdefault("MUJOCO_GL", "egl")
@@ -382,6 +401,9 @@ def main():
         bench(a.dir, a.world, a.plant)
         return 0
     NEWTON_DIR[0] = a.newton_dir
+    if a.newton_num:
+        dt_, it_, ls_ = a.newton_num.split(",")
+        NEWTON_NUM[0] = (float(dt_), int(it_), int(ls_))
     row = {"dir": str(a.dir), "when": time.strftime("%Y-%m-%d %H:%M"), "hold_test_s": a.hold}
     try:
         row.update(replay(a.dir, a.engine, a.hold), status="ok")

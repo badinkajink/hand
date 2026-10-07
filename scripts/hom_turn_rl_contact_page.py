@@ -905,8 +905,10 @@ def training_section(eta):
         ang = [math.degrees(math.acos(max(-1, min(1, c)))) for c in cosv]
         rising = [t for t in tags if len(R[t]) >= 3 and R[t][-1]["final_cos_mean"] > R[t][-3]["final_cos_mean"] + 0.02]
         lost = [t for t in tags if any(r["hold_rate"] == 0 for r in R[t][1:])]
+        ang_txt = (f"{f(min(ang), 0)}&#176;" if round(min(ang)) == round(max(ang))
+                   else f"{f(min(ang), 0)}&#8211;{f(max(ang), 0)}&#176;")
         paras.append(f"With the {RUN_LBL[var]} the final policies end at cos {f(min(cosv), 3)}&#8211;{f(max(cosv), 3)} "
-                     f"({f(min(ang), 0)}&#8211;{f(max(ang), 0)}&#176; from vertical), holding the tool in "
+                     f"({ang_txt} from vertical), holding the tool in "
                      f"{' and '.join(str(round(64 * r['hold_rate'])) for r in fin)} of 64 rollouts; "
                      f"{sum(round(64 * r['success_rate']) for r in fin)} of {64 * len(fin)} reach cos 0.9. "
                      + (f"The cosine still rises over the last 4&#8202;M steps on {len(rising)} of {len(fin)} runs. " if rising else "")
@@ -918,28 +920,61 @@ def training_section(eta):
     if paras:
         out.append("<p>" + " ".join(paras) + "</p>")
     for tag in sorted(R):
-        png = os.path.join(RLD, "media", f"{tag}_strip.png")
+        png = os.path.join(RLD, "media", f"{tag}_strip.jpg")
         if os.path.exists(png):
             FIG[0] += 1
-            out.append(f'<figure><img src="{P.R.data_uri(png, "image/png")}" alt="filmstrip {tag}"><figcaption>Figure&#160;'
+            out.append(f'<figure><img src="{P.R.data_uri(png, "image/jpeg")}" alt="filmstrip {tag}"><figcaption>Figure&#160;'
                        f'{FIG[0]}. {tag}: frames of the run&#8217;s last training video at its phase marks '
                        f'(<code>policy_filmstrip.py</code>).</figcaption></figure>')
     rep = jl(os.path.join(RLD, "policy_replay.jsonl"))
     if rep:
+        def drop_t(r):
+            tr = r.get("trace") or []
+            zi = 2
+            for x in tr:
+                z = x[zi]
+                if z is None or z != z or z < 0.06:
+                    return x[0]
+            return None
+
+        def cell(r):
+            if r is None:
+                return "&#8211;"
+            if r["held_end"]:
+                return f"{f(r['cos_end'], 3)}, held"
+            t = drop_t(r)
+            return f"dropped{' at ' + f(t, 1) + '&#8202;s' if t is not None else ''}"
         rr = []
         for tag in sorted(R):
+            var = "tpu27pads1" if "pads1" in tag else "tpu27mesh"
             rec = next((r for r in reversed(rep) if r.get("kind") == "record" and r.get("tag") == tag), None)
-            cells = [(tag, "lab")]
-            cells.append(f"{f(rec['mjw_cos_end'][0], 3)}, z {f(rec['mjw_z_end_mm'][0], 0)}" if rec else "&#8211;")
-            for eng in ("mujoco", "drake", "newton"):
-                r = next((x for x in reversed(rep) if x.get("engine") == eng and x.get("status") == "ok"
-                          and x.get("hold_test_s") is None and x.get("dir", "").endswith(tag)), None)
-                cells.append(f"{f(r['cos_end'], 3)} ({'held' if r['held_end'] else 'dropped'})" if r else "&#8211;")
+            cells = [(f"{RUN_LBL[var]}, seed {tag[-1]}", "lab"),
+                     f"{f(rec['mjw_cos_end'][0], 3)}, held" if rec else "&#8211;"]
+
+            def pick(eng, dt=None):
+                return next((x for x in reversed(rep) if x.get("engine") == eng and x.get("status") == "ok"
+                             and x.get("hold_test_s") is None and x.get("dir", "").endswith(tag)
+                             and (dt is None or abs((x.get("dt") or 0.002) - dt) < 1e-9)), None)
+            cells += [cell(pick("mujoco")), cell(pick("drake")), cell(pick("newton", 0.002)), cell(pick("newton", 0.001))]
             rr.append(cells)
-        out.append(table(["Run", "MuJoCo-Warp (recorded)", "CPU MuJoCo", "Drake", "Newton hydroelastic"], rr))
-        out.append(tcap("The final policy&#8217;s finger targets from the reorientation onset (step 58), world 0, "
-                        "replayed open loop (<code>scripts/rl_policy_replay.py</code>, rows <code>policy_replay.jsonl</code>): "
-                        "final cosine of the tool with vertical and whether it is held."))
+        out.append(table(["Run", "MuJoCo-Warp (recorded)", "CPU MuJoCo", "Drake", "Newton, 2&#8202;ms", "Newton, 1&#8202;ms"], rr))
+        out.append(tcap("The final policy&#8217;s finger targets from the reorientation onset (step 58) of world 0, replayed "
+                        "open loop for 3.84&#8202;s on a bench-like copy of the RL scene (palm fixed at its lifted pose; "
+                        "<code>scripts/rl_policy_replay.py</code>, rows <code>policy_replay.jsonl</code>): final cosine of the "
+                        "tool with vertical when it is still held, else the time the tool fell below 60&#8202;mm. CPU MuJoCo "
+                        "steps the run&#8217;s own fingertip; Drake (compliant TPU convex) and Newton (hydroelastic TPU block, "
+                        "kh divided by the tip&#8211;tool effective mass) step the plain block for both runs. Newton at the "
+                        "trainer&#8217;s 2&#8202;ms and 10 iterations, and at the contact bed&#8217;s 1&#8202;ms and 100 "
+                        "iterations."))
+        out.append("<p>CPU MuJoCo reproduces the pad policies within 0.02 in cosine of MuJoCo-Warp and holds the tool. "
+                   "From the same onset state it ejects the tool of both mesh-tip policies within 0.3&#8202;s, also when "
+                   "the onset servo targets are held constant, although the three block contacts penetrate only "
+                   "0.2&#8211;0.3&#8202;mm there; the point contact of a convex block on the cylinder does not carry over "
+                   "between the two MuJoCo implementations. Drake and Newton, both with the plain block, follow the mesh "
+                   "policies through the turn (Newton at 1&#8202;ms: cos 0.5&#8211;0.64 for the first 1.4&#8202;s) and lose "
+                   "the tool before the end in three of four replays; Drake holds one at cos 0.588. The pad policies "
+                   "replayed on the plain block in Drake and Newton turn the tool toward the other pole (Newton: cos "
+                   "&#8722;0.59 and &#8722;0.83, held) or drop it.</p>")
     return "\n".join(out)
 
 
@@ -1081,7 +1116,17 @@ def next_section():
         "<b>Newton&#8217;s turn without rotation on D3 and D8.</b> Log the per-finger normal force and the tip slip speed "
         "in <code>newton_turn.py</code> and compare them with MuJoCo&#8217;s pad forces on D3 and D8, seeds 1&#8211;4, where the "
         "mass-corrected Newton grip holds the tool but does not turn it.",
-        "<b>RL comparison.</b> The queue above, after the trainer applies <code>--seed</code>.",
+        "<b>Longer training.</b> Both fingertips are still rising at 20&#8202;M steps (Figure&#160;5). Continue the four runs "
+        "to 60&#8202;M (the 2026-09-17 budget) from their final checkpoints with the critic and optimizer warm-started, "
+        "and compare the held cosine at 40 and 60&#8202;M; a pad run that stays below the mesh runs by more than their "
+        "seed spread (0.05) at 60&#8202;M would make the fingertip model, not the budget, the difference.",
+        "<b>Mesh-tip contact between MuJoCo-Warp and CPU MuJoCo.</b> At the replay onset state of the mesh runs, list the "
+        "three block&#8211;tool contacts (position, normal, depth, efc force) in both implementations "
+        "(<code>rl_policy_replay.py</code> record&#8217;s scene and <code>same_state_timing.py</code>&#8217;s GPU arrays); "
+        "a normal that differs by more than 10&#176; between them would explain the CPU ejection.",
+        "<b>Newton under the learned grip.</b> Log the per-tip hydroelastic force and the tool slip in the Newton replay of "
+        "the mesh policies and compare with the MuJoCo-Warp recording; the drop after 1.2&#8211;2.8&#8202;s on a grip of "
+        "20&#8202;N on the thumb is the next Newton discrepancy.",
     ]
     return "<ol>" + "".join(f"<li>{x}</li>" for x in items) + "</ol>"
 
@@ -1114,7 +1159,10 @@ def lede():
             "0.6&#8211;1.4&#8202;&#181;s. SolverMuJoCo realises Newton&#8217;s hydroelastic stiffness times the tip&#8211;tool "
             "effective mass; with kh "
             f"divided by that mass the deployed plans hold the tool on {n_mc_held} of {len(mc)} placements in Newton (10 "
-            "uncorrected) and turn it within 5&#176; of MuJoCo on four of eight hands. The 2026-09-02 "
+            "uncorrected) and turn it within 5&#176; of MuJoCo on four of eight hands. Trained from scratch for "
+            "20&#8202;M steps on the working plant, the D6 reorientation ends at cos 0.64&#8211;0.69 with the TPU block "
+            "as one mesh and 0.43&#8211;0.44 with 1&#8202;mm pads, holding the tool in 60&#8211;64 of 64 rollouts; no run "
+            "reaches cos 0.9, and the pad envs need 640 contacts and 3,072 constraint rows per world. The 2026-09-02 "
             "servo-gain fit closed the fingers on air; the bench readbacks fix the finger time constant and favour &#956; 1 but "
             "do not identify the gain.")
 
