@@ -52,6 +52,7 @@ class Args:
     num_envs: int = 1024
     """Parallel envs (default 1024 for 16 GB VRAM; try 512 if OOM)."""
     seed: int = 42
+    """Seeds python, numpy, torch and Warp through the mjlab env cfg (applied since 2026-10-06)."""
     wandb: bool = True
     """Sync to wandb. Use --no-wandb to log to tensorboard only."""
     wandb_project: str = "morphohand-rl"
@@ -462,6 +463,8 @@ class Args:
     """Override the morphology-run's frozen_scene.xml (e.g. a hardened-contact variant).
     None = use <morphology_run>/frozen_scene.xml. Lets a run change the contact physics
     (solref/solimp = less penetration) WITHOUT editing the canonical lineage scene."""
+    save_interval: int | None = None
+    """PPO iterations between checkpoints (PPOConfig default 50). 41 at 2,048 envs x 24 steps = one per 2.0 M steps."""
     watchdog_collapse_z: float | None = None
     """Trainer-side collapse watchdog (gotcha #10): abort the run when the episode-mean
     object height (Metrics/lift_height/object_height) sits below this (m) after
@@ -702,12 +705,21 @@ def main() -> None:
         ppo_kwargs["schedule"] = args.lr_schedule
     if args.clip_actions is not None:
         ppo_kwargs["clip_actions"] = float(args.clip_actions)
+    if args.save_interval is not None:
+        ppo_kwargs["save_interval"] = int(args.save_interval)
     ppo_cfg = PPOConfig(**ppo_kwargs)
 
     print(f"[rl_train_cube] building mjlab env cfg ...")
     mj_env_cfg = build_env_cfg_and_dump(env_cfg, ppo_cfg, out_dir)
+    # --seed was parsed and never applied before 2026-10-06, so every earlier run is an unseeded draw. mjlab seeds
+    # python, numpy, torch and Warp from the env cfg when the env is constructed, before the scene, the reset events
+    # and the runner's networks exist. The GPU contact solve stays non-deterministic, so seeds narrow the draw band
+    # without removing it.
+    mj_env_cfg.seed = int(args.seed)
     runner_cfg = build_runner_cfg(ppo_cfg, out_dir, run_name=args.tag)
+    runner_cfg.seed = int(args.seed)
     dump_runner_cfg(runner_cfg, out_dir)
+    print(f"[rl_train_cube] seed {args.seed} (env cfg and runner cfg)")
     print(f"[rl_train_cube] dumped config.yaml + rsl_rl_cfg.json")
 
     if args.dry_run:
