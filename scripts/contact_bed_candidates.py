@@ -7,7 +7,7 @@ scripts by patching hom_contact_rig.make_rig for their specs.
     the Cattaneo-Mindlin initial stiffness of the Hertz contact at the reference load N_ref = 1 N
     (scripts/contact_reference_laws.py, TPU stated as E 10 MPa, nu 0.45): k_t = 8 G a / (2 - nu) = 13.8 kN/m, the shear
     stiffness G A / h of a layer of area pi a^2 and thickness pi a (2 - nu) / 8 = 0.47 mm, and k_theta = 16 G a^3 / 3 =
-    8.55 mN m/rad; damping c = k t_r with the pads' relaxation time t_r = 20 ms. Skin mass 2 g. The sphere contacts keep
+    8.55 mN m/rad; damping critical on the skin's inertia. Skin 2 g with 18 g of armature. The sphere contacts keep
     the pad calibration, with the inverse weight of the skin body in place of the pad's. Friction is made stiff with
     impratio 1000 so that the skin, not the friction rows, carries the presliding motion.
 
@@ -39,8 +39,17 @@ _a = L.hertz(N_REF)["a"]
 # Skin 2 g with 18 g of armature on its slides (5e-7 kg m^2 on the hinge): the sphere contacts' inverse weight follows the
 # skin body, and MuJoCo softens a contact's friction rows in proportion to it; with the bare 2 g skin the tool slid 49 um
 # over the spheres during a 2 N/s ramp and returned when the ramp stopped (20 g: 5 um, 200 g: 1 um).
-SKIN = dict(kt=8 * _mat["G"] * _a / (2 - _mat["nu"]), kth=16 * _mat["G"] * _a ** 3 / 3, tr=0.02, m=0.002, I=5e-8, arm=0.018,
+# Damping: critical (zeta 1) at the skin's own inertia. With c = k t_r at the pads' t_r = 20 ms (8x critical) the tool led
+# the skin by +5 um while the force rose at 2 N/s and trailed it by 3 um while it fell (17 um at 8 N/s), which reversed
+# the T8 loop; at t_r 2 ms the offset was under 1 um.
+SKIN = dict(kt=8 * _mat["G"] * _a / (2 - _mat["nu"]), kth=16 * _mat["G"] * _a ** 3 / 3, zeta=1.0, m=0.002, I=5e-8, arm=0.018,
             arm_t=5e-7)
+
+
+def skin_damping(sk):
+    """Slide and hinge damping at damping ratio zeta on the skin's inertia (mass or moment plus armature)."""
+    return (2 * sk["zeta"] * math.sqrt(sk["kt"] * (sk["m"] + sk["arm"])),
+            2 * sk["zeta"] * math.sqrt(sk["kth"] * (sk["I"] + sk["arm_t"])))
 CANDIDATES = {
     "mj_pads1_ir1000": "mj:spheres:s1:rs0.75:ir1000:tr0.02",
     "mj_pads1_skin": "mj:spheres:s1:rs0.75:ir1000:tr0.02:skin",
@@ -49,14 +58,15 @@ CANDIDATES = {
 
 def add_skin(xml, sk):
     """Move each pad's sphere geoms onto a child body `skin<side>` with two tangential slides and a normal hinge."""
+    ct, cth = skin_damping(sk)
     for s in "LR":
         geoms = re.findall(rf'<geom name="pad{s}_s\d+"[^>]*/>', xml)
         for g in geoms:
             xml = xml.replace(g, "", 1)
         body = (f'<body name="skin{s}">\n'
-                f'        <joint name="skin{s}_y" type="slide" axis="0 1 0" stiffness="{sk["kt"]:.6g}" damping="{sk["kt"] * sk["tr"]:.6g}" armature="{sk["arm"]:.6g}"/>\n'
-                f'        <joint name="skin{s}_z" type="slide" axis="0 0 1" stiffness="{sk["kt"]:.6g}" damping="{sk["kt"] * sk["tr"]:.6g}" armature="{sk["arm"]:.6g}"/>\n'
-                f'        <joint name="skin{s}_t" type="hinge" axis="1 0 0" stiffness="{sk["kth"]:.6g}" damping="{sk["kth"] * sk["tr"]:.6g}" armature="{sk["arm_t"]:.6g}"/>\n'
+                f'        <joint name="skin{s}_y" type="slide" axis="0 1 0" stiffness="{sk["kt"]:.6g}" damping="{ct:.6g}" armature="{sk["arm"]:.6g}"/>\n'
+                f'        <joint name="skin{s}_z" type="slide" axis="0 0 1" stiffness="{sk["kt"]:.6g}" damping="{ct:.6g}" armature="{sk["arm"]:.6g}"/>\n'
+                f'        <joint name="skin{s}_t" type="hinge" axis="1 0 0" stiffness="{sk["kth"]:.6g}" damping="{cth:.6g}" armature="{sk["arm_t"]:.6g}"/>\n'
                 f'        <inertial pos="0 0 0" mass="{sk["m"]}" diaginertia="{sk["I"]} {sk["I"]} {sk["I"]}"/>\n        '
                 + "\n        ".join(geoms) + "\n      </body>")
         vis = re.search(rf'<geom name="pad{s}_vis"[^>]*/>', xml).group(0)
