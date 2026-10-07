@@ -44,10 +44,14 @@ def lede(ctx):
         parts.append("On the two-pad pinch of the real_v1 fingertip and screwdriver, the 1&#8202;mm pad " +
                      ", ".join(s[:-1]) + (", and " if len(s) > 1 else "") + s[-1] + ".")
     if "mj_pads1" in cost and "drake_hydro" in cost:
-        g = [r["world_steps_per_s"] for r in gpu if r.get("key", "").startswith("legacy_s1.0") and r.get("status") == "complete"]
-        tail = f"; one GPU runs {max(g) / 1e6:.2f} million pad world-steps per second" if g else ""
-        parts.append(f"A pad step costs {cost['mj_pads1']:.0f}&#8202;&#181;s on one CPU core against {cost['drake_hydro']:.0f}&#8202;&#181;s for Drake, "
-                     f"and task results are unchanged from 50&#8202;&#181;s to 10&#8202;ms steps{tail}.")
+        curves = ctx.get("curves") or {}
+        tail = ""
+        if curves.get("mjw_pads1"):
+            tail = f"; one GPU runs {max(curves['mjw_pads1'].values()) / 1e6:.2f} million pad world-steps per second in MuJoCo-Warp"
+            if curves.get("newton_pads1"):
+                tail += f" and {max(curves['newton_pads1'].values()) / 1e6:.2f} million in Newton"
+        parts.append(f"A pad step costs {cost['mj_pads1']:.0f}&#8202;&#181;s on one CPU core against {P.num(cost['drake_hydro'], ',.0f')}&#8202;&#181;s "
+                     f"for Drake, and task results are unchanged from 50&#8202;&#181;s to 10&#8202;ms steps{tail}.")
     import simulator_agreement_figure as SAF
     A = SAF.data()
     w = [A[k]["within"] for k in ("mj_pads", "mjw_pads", "nt_pads") if "turn" in A[k]]

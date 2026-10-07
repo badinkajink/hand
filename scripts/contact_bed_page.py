@@ -366,7 +366,7 @@ def t7(rows):
     if not st:
         return P.pending("Task&#160;7 rows are not written yet.")
     out = ["<p>Protocol: the 1&#8202;mm pad pinch holds the tool at N&#8202;=&#8202;1&#8202;N per pad with gravity on, across the tool axis. Every "
-           "contact gets <code>solref</code> (\\(t_c\\), 1) and <code>solimp</code> (\\(d_0\\), \\(d_0\\), 0.001, 0.5, 2) set directly. "
+           "contact gets <code>solref</code> (\\(t_c\\), 1) and <code>solimp</code> (\\(d_0\\), \\(d_0\\), 0.001, 0.5, 2). "
            "Each step runs a 0.4&#8202;s settle with the weight compensated and a 1&#8202;s hold without it; a case holds when the state "
            "stays finite, the tool centre stays within 5&#8202;mm and both pads keep a contact. Every pair runs with MuJoCo&#8217;s clamp "
            "\\(t_c\\ge2\\Delta t\\) off, which tests the bound, and on, as MuJoCo runs by default.</p>",
