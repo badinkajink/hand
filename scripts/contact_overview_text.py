@@ -21,10 +21,26 @@ def _get(M, label_start, model):
     return None
 
 
+def _law(N):
+    """Friction arm (mm) of the pressure law integrated over the screwdriver patch, (3)."""
+    return P.C_LAW * 1e3 * N ** P.EXP_LAW
+
+
+def _dev(devs):
+    """Phrase for signed % deviations from a reference: 'within x % of', 'x-y % above' or 'x-y % below'."""
+    lo, hi = min(devs), max(devs)
+    rng = lambda a, b: f"{a:.1f}" if f"{a:.1f}" == f"{b:.1f}" else f"{a:.1f}&#8211;{b:.1f}"  # noqa: E731
+    if lo > 0:
+        return f"{rng(lo, hi)}&#8202;% above"
+    if hi < 0:
+        return f"{rng(-hi, -lo)}&#8202;% below"
+    return f"within {max(-lo, hi):.1f}&#8202;% of"
+
+
 def lede(ctx):
     M, cost, gpu = ctx["M"], ctx["cost"], ctx["gpu_pads"]
-    parts = ["Covering a fingertip with small MuJoCo contact spheres reproduces the friction torque and contact area of a soft pad "
-             "without modifying MuJoCo."]
+    parts = ["Covering a fingertip with small MuJoCo contact spheres samples the pressure law of hydroelastic contact, so the pad "
+             "reproduces the friction torque and contact area of a soft fingertip without modifying MuJoCo."]
     mu_p, mu_d = _get(M, "effective", "mj_pads1"), _get(M, "effective", "drake_hydro")
     vs_p, vs_d = _get(M, "slip speed", "mj_pads1"), _get(M, "slip speed", "drake_hydro")
     a5_p, a5_d = _get(M, "arm at spin onset, 0.5", "mj_pads1"), _get(M, "arm at spin onset, 0.5", "drake_hydro")
@@ -43,6 +59,12 @@ def lede(ctx):
     if s:
         parts.append("On the two-pad pinch of the real_v1 fingertip and screwdriver, the 1&#8202;mm pad " +
                      ", ".join(s[:-1]) + (", and " if len(s) > 1 else "") + s[-1] + ".")
+    tw = ctx["T"]["twist"]
+    kin = {k: [(P.pick(tw, k, N=N, dt_ms=1.0) or {}).get("rbar_kin_mm") for N in (0.5, 1.0, 3.0)] for k in ("mj_pads1", "drake_hydro")}
+    if all(all(v) for v in kin.values()):
+        dv = {k: [(a / _law(N) - 1) * 100 for a, N in zip(v, (0.5, 1.0, 3.0))] for k, v in kin.items()}
+        parts.append(f"While it spins, its friction arm is {_dev(dv['mj_pads1'])} the pressure law integrated over the patch, "
+                     f"and Drake&#8217;s is {_dev(dv['drake_hydro']).replace(' of', '')} it.")
     if "mj_pads1" in cost and "drake_hydro" in cost:
         curves = ctx.get("curves") or {}
         tail = ""
@@ -57,11 +79,11 @@ def lede(ctx):
     w = [A[k]["within"] for k in ("mj_pads", "mjw_pads", "nt_pads") if "turn" in A[k]]
     sc = _state_cost()
     if len(w) == 3 and sc:
-        parts.append("The same pads in MuJoCo-Warp and in Newton agree with Drake to the same degree on the bed and on the "
-                     "open-loop three-finger turn of the eight deployed hands (turn within 3&#176; of Drake on "
-                     f"{w[0]}, {w[1]} and {w[2]} of {A['mj_pads']['n']} placements), because each sphere&#8217;s impedance divides "
-                     "out the contact&#8217;s effective mass, which Newton&#8217;s hydroelastic contact did not; on one RL state they "
-                     f"cost {min(sc['pads']):.1f}&#8211;{max(sc['pads']):.1f}&#8202;&#181;s of physics per world-step in MuJoCo-Warp.")
+        parts.append("MuJoCo-Warp and Newton run MuJoCo&#8217;s constraint solver on the GPU, and the pads agree with Drake to the "
+                     "same degree in all three, on the bed and on the open-loop three-finger turn of the eight deployed hands (turn "
+                     f"within 3&#176; of Drake on {w[0]}, {w[1]} and {w[2]} of {A['mj_pads']['n']} placements). Each sphere&#8217;s "
+                     "impedance divides out the contact&#8217;s effective mass, which Newton&#8217;s hydroelastic contact did not; on one "
+                     f"RL state the pads cost {min(sc['pads']):.1f}&#8211;{max(sc['pads']):.1f}&#8202;&#181;s of physics per world-step in MuJoCo-Warp.")
     cr_p = _get(M, "creep: sliding", "mj_pads1")
     cr_d = _get(M, "creep: sliding", "drake_hydro")
     if cr_p and cr_d:
@@ -130,13 +152,22 @@ def evidence_tasks(ctx):
     tw = T["twist"]
     g = lambda k, N: P.pick(tw, k, N=N, dt_ms=1.0)  # noqa: E731
     if g("mj_pads1", 0.5) and g("drake_hydro", 0.5):
+        Ns = (0.5, 1.0, 3.0)
+        dev = lambda k, f: [(g(k, N)[f] / _law(N) - 1) * 100 for N in Ns]  # noqa: E731
+        rot = lambda k: [g(k, N)["rot_pre_deg"] for N in Ns]  # noqa: E731
+        rr = lambda v, d: f"{min(v):.{d}f}&#8211;{max(v):.{d}f}"  # noqa: E731
         out.append("<p><b>Twist.</b> Drake&#8217;s arm at the onset of spin is "
-                   + ", ".join(f"{g('drake_hydro', N)['rbar_onset_mm']:.3f}" for N in (0.5, 1.0, 3.0)) +
-                   "&#8202;mm at 0.5, 1 and 3&#8202;N, within 3&#8202;% of the law it was fitted to; the 1&#8202;mm pad gives "
-                   + ", ".join(f"{g('mj_pads1', N)['rbar_onset_mm']:.3f}" for N in (0.5, 1.0, 3.0)) +
-                   "&#8202;mm, 6&#8211;9&#8202;% under it, and its sliding arm is 2&#8211;3&#8202;% under. Both arms grow by 1.52 between 0.5 and 3&#8202;N, "
-                   "close to the foundation ratio of 1.565; Hertz gives 1.82 (Figure&#160;2). condim&#160;4 is 3&#8211;6&#8202;% over at onset and exact while "
-                   "sliding. Held at half the onset torque, the pad turns at 1.1&#8211;1.6&#8202;&#176;/s and Drake at 0.01&#8202;&#176;/s.</p>")
+                   + ", ".join(f"{g('drake_hydro', N)['rbar_onset_mm']:.3f}" for N in Ns) +
+                   f"&#8202;mm at 0.5, 1 and 3&#8202;N, {_dev(dev('drake_hydro', 'rbar_onset_mm'))} the integrated law (3); the 1&#8202;mm pad gives "
+                   + ", ".join(f"{g('mj_pads1', N)['rbar_onset_mm']:.3f}" for N in Ns) +
+                   f"&#8202;mm, {_dev(dev('mj_pads1', 'rbar_onset_mm'))} it. Once every sphere slides, the pad&#8217;s arm is "
+                   f"{_dev(dev('mj_pads1', 'rbar_kin_mm'))} the law and Drake&#8217;s {_dev(dev('drake_hydro', 'rbar_kin_mm'))} it. The pad&#8217;s "
+                   f"shortfall appears only at onset, where the tool turns {rr(rot('mj_pads1'), 1)}&#176; before it spins (Drake "
+                   f"{rr(rot('drake_hydro'), 2)}&#176;), which points to MuJoCo&#8217;s soft friction rows rather than the pressure law. "
+                   "Both arms grow by 1.52 between 0.5 and 3&#8202;N, close to the foundation ratio of 1.565; Hertz gives 1.82 (Figure&#160;2). "
+                   f"condim&#160;4, whose \\(\\mu_t\\) follows the fit to Drake&#8217;s torque (step&#160;10), is {_dev(dev('mj_point4s', 'rbar_onset_mm'))} "
+                   f"the law at onset and {_dev(dev('mj_point4s', 'rbar_kin_mm'))} it while sliding. Held at half the onset torque, the pad turns at "
+                   "1.1&#8211;1.6&#8202;&#176;/s and Drake at 0.01&#8202;&#176;/s.</p>")
     br = [r for r in T["brake"] if r.get("role", "bed") == "bed"]
     b = lambda k: P.pick(br, k, dt_ms=1.0)  # noqa: E731
     if b("mj_pads1") and b("drake_hydro"):
@@ -239,7 +270,9 @@ def lit(ctx):
             "The two uploaded papers: <code>docs/experiments/20261004-codex/11_GPU_Accelerated_Hydroelasti.pdf</code> (Newton "
             "hydroelastic) and <code>docs/experiments/20261004-codex/22_Compliant_Sphere_Lattice_Co.pdf</code> (CSLC); notes in "
             "<code>docs/notes/20261005-contact_literature_notes.md</code>. Wang, Oh and Pollard, arXiv 2609.25619 (the controller "
-            "and tasks).")
+            "and tasks). Xydas and Kao, &#8220;Modeling of contact mechanics and friction limit surfaces for soft fingers in robotics, "
+            "with experimental results&#8221;, IJRR 1999 (contact radius of soft fingertips against load). Drake&#8217;s hydroelastic user guide "
+            "(the model has no state, so no tangential compliance).")
 
 
 
@@ -304,7 +337,9 @@ def agree_sim_text(ctx):
                         if r.get("model") == "drake_hydro" and r.get("dt_ms") == 1.0), None)
     return (
         "The pads are the same contact model in CPU MuJoCo, MuJoCo-Warp and Newton&#8217;s point-contact pipeline once Newton gets "
-        "the solver&#8217;s inverse weights (step&#160;7). Figure&#160;7 compares the three, Newton&#8217;s mass-corrected hydroelastic "
+        "the solver&#8217;s inverse weights (step&#160;7). MuJoCo-Warp ports MuJoCo&#8217;s constraint solver to the GPU and Newton&#8217;s "
+        "SolverMuJoCo runs MuJoCo-Warp, so the three are one solver in three implementations; Newton&#8217;s hydroelastic contact and "
+        "Drake are the independent comparisons. Figure&#160;7 compares the three, Newton&#8217;s mass-corrected hydroelastic "
         "contact on the plain block and MuJoCo point contact with Drake on the bed&#8217;s twist and brake and on the open-loop plan "
         "replay of the three-finger turn on the eight deployed hands (working servo plant, \\(\\mu=1\\), 24 placements paired with "
         "Drake by hand and placement). The three pad implementations agree with Drake to the same degree: onset torque "
@@ -410,7 +445,8 @@ def blocks(ctx):
                       "world alone on the GPU on the SR2 holding fixture of Figure&#160;10 (MuJoCo-Warp, Newton). Hollow markers: wall "
                       "time per world-step on the same fixture at the batch of highest throughput. "
                       "Models closer in deviation than a label&#8217;s height (the 1&#8202;mm pad in three simulators and condim&#160;4, "
-                      "5.7&#8211;6.2&#8202;%) are drawn apart vertically in their order. Drake sits at zero deviation by construction."),
+                      "5.7&#8211;6.2&#8202;%) are drawn apart vertically in their order. condim&#160;4&#8217;s torsional coefficient follows a fit to "
+                      "Drake&#8217;s torque (step&#160;10). Drake sits at zero deviation by construction."),
         "GPU_NOTE": gpu_note(ctx),
         "OPEN_LIST": open_list(ctx),
         "MEFF_TEXT": meff_text(ctx),

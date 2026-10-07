@@ -62,7 +62,10 @@ BED_URL_FILE = os.path.join(BED, "artifact_url.txt")          # written after th
 ASIDES_PATH = "docs/experiments/20261004-codex/20261004-contact_research_asides.html"
 LIT_NOTES = os.path.join(ROOT, "docs/notes/20261005-contact_literature_notes.md")
 
-C_LAW, EXP_LAW = 0.996e-3, 0.2498          # hydroelastic arm on the screwdriver, fitted to Drake (10-01 rig)
+# Friction arm of the hydroelastic pressure law on the screwdriver: the field integrated over the sphere-cylinder overlap
+# (scripts/hydroelastic_arm_integral.py: 0.820, 0.974, 1.281 mm at 0.5, 1, 3 N; c N^(1/4) to within 0.1 %). condim 4's
+# mu_t schedule (mj:point4s:fit0.000996044x0.2498) keeps the earlier fit to Drake's torque, 2.3 % above it.
+C_LAW, EXP_LAW = 0.974e-3, 0.25
 MU = 1.0
 M_TOOL = 0.024544
 R_TOOL_MM = 12.5                           # screwdriver radius on the bed rig
@@ -138,8 +141,8 @@ GLOSSARY = [
     ("pad", "One fingertip&#8217;s contact with the tool. On the bed rig two pads, one per fingertip, pinch the tool; \\(N\\) is "
             "the normal force of each pad."),
     ("friction arm \\(\\bar r\\)", "Pressure-weighted mean distance of the contact patch from its centre, (1), in mm. A pad transmits "
-            "at most \\(\\mu N\\bar r\\) about its normal before it spins. The hydroelastic law gives 0.84, 1.00 and 1.31&#8202;mm at 0.5, 1 "
-            "and 3&#8202;N."),
+            "at most \\(\\mu N\\bar r\\) about its normal before it spins. The hydroelastic law (3), integrated over the screwdriver patch, "
+            f"gives {C_LAW * 1e3 * 0.5 ** EXP_LAW:.2f}, {C_LAW * 1e3:.2f} and {C_LAW * 1e3 * 3 ** EXP_LAW:.2f}&#8202;mm at 0.5, 1 and 3&#8202;N."),
     ("slip onset, effective \\(\\mu\\)", "Task&#160;1 raises an axial force on the tool at 2&#8202;N/s. Before onset the tool slides slowly "
             "at a speed proportional to the force; onset is the force at which the speed leaves that trend. Effective \\(\\mu\\) is the "
             "onset force divided by \\(2N\\) (two pads). Rigid Coulomb friction gives 1.000."),
@@ -185,8 +188,8 @@ GLOSSARY = [
             "the normal."),
     ("pad spacing", "Distance between neighbouring sphere centres on a sphere pad. The 2, 1 and 0.5&#8202;mm pads have 51, 205 and 819 "
             "spheres on a 45&#176; cap."),
-    ("relaxation time \\(t_r\\)", "Drake&#8217;s dissipation time for hydroelastic contact; the pads use \\(t_c=t_r/2\\) so both damp at "
-            "the same rate."),
+    ("relaxation time \\(t_r\\)", "Drake&#8217;s dissipation time for hydroelastic contact, 10&#8202;ms on the bed. A pad sphere&#8217;s "
+            "equivalent is \\(2t_c\\), (10): 20&#8202;ms for the 1&#8202;mm pad and 30&#8202;ms for the 0.5&#8202;mm pad."),
 ]
 
 
@@ -446,7 +449,7 @@ def svg_scaling(tw, tor):
     Ns = [0.2 * (25 ** (k / 60)) for k in range(61)]
     _path(out, fx, fy, [(N, C_LAW * 1e3 * N ** EXP_LAW) for N in Ns], "var(--c-ref)")
     _path(out, fx, fy, [(N, C_LAW * 1e3 * N ** (1 / 3)) for N in Ns], "var(--c-ref)", dashed=True)
-    out.append(f'<text x="{fx(0.36):.1f}" y="{fy(C_LAW * 1e3 * 0.36 ** EXP_LAW) - 12:.1f}" text-anchor="middle" style="fill:var(--ink3)">'
+    out.append(f'<text x="{fx(0.3):.1f}" y="{fy(C_LAW * 1e3 * 0.3 ** EXP_LAW) - 12:.1f}" text-anchor="middle" style="fill:var(--ink3)">'
                f'foundation, c N¹ᐟ⁴</text>'
                f'<text x="{fx(4.4):.1f}" y="{fy(C_LAW * 1e3 * 4.4 ** (1 / 3)) - 9:.1f}" text-anchor="end" style="fill:var(--ink3)">'
                f'Hertz, N¹ᐟ³</text>')

@@ -52,7 +52,7 @@ world alone and per world-step at the batch of highest throughput; the pad&#8217
 {{FIG_MODELS}}
 <figcaption>Figure&#160;1. Five representations of a fingertip pressed on the tool. (a) A point contact transmits normal force
 and friction at one point and no torque about the normal. (b) condim&#160;4 adds a torsional friction coefficient at that point,
-rescheduled every step from the hydroelastic law. (c) The sphere pad replaces the fingertip surface with small spheres;
+rescheduled every step from a fit to Drake&#8217;s torque. (c) The sphere pad replaces the fingertip surface with small spheres;
 each touching sphere is a soft contact with its own Coulomb cone, and the friction torque is the moment of their friction
 forces. (d) The hydroelastic field assigns a pressure to the overlap volume and integrates it over the contact surface.
 (e) A lattice (CSLC) adds lateral springs between neighbouring elements, which spread load beyond the overlap.</figcaption>
@@ -85,9 +85,11 @@ T&=\mu\int_0^a \frac{E}{R}\Bigl(\delta_0-\frac{\rho^2}{2R}\Bigr)\,2\pi\rho^2\,d\
 <p>Eliminating \(\delta_0\) gives the arm as a power of the load:</p>
 <div class="eq">\[\bar r_W=\frac{8}{15}\sqrt{2R}\,\Bigl(\frac{F}{\pi E}\Bigr)^{1/4}=c\,F^{1/4}.\]<span class="eqno">(3)</span></div>
 <p>For the real_v1 fingertip at Drake&#8217;s default \(E\)&#8202;=&#8202;10&#8202;MPa, a flat face gives \(c=1.035\ \mathrm{mm\,N^{-1/4}}\).
-On the 12.5&#8202;mm screwdriver the patch is narrower across the tool axis, and a fit to Drake&#8217;s torque gives
-\(c=0.996\ \mathrm{mm\,N^{-1/4}}\) with exponent 0.2498: an arm of 0.84&#8202;mm at 0.5&#8202;N and 1.31&#8202;mm at 3&#8202;N. The
-springs are uncoupled, so the pressure is zero outside the geometric overlap.</p>
+On the 12.5&#8202;mm screwdriver the patch is narrower across the tool axis. Integrating the same field over the sphere&#8211;cylinder
+overlap (<code>scripts/hydroelastic_arm_integral.py</code>) gives an arm of 0.820, 0.974 and 1.281&#8202;mm at 0.5, 1 and 3&#8202;N,
+\(c=0.974\ \mathrm{mm\,N^{-1/4}}\) with the exponent 1/4 to within 0.1&#8202;%. This integral is the reference of the twist task;
+Drake and the sphere pads are two discretizations of it. The springs are uncoupled, so the pressure is zero outside the
+geometric overlap.</p>
 
 <h3><span class="step">3</span>Hertz contact</h3>
 <p>A homogeneous elastic body transmits load sideways through shear, so its surface deflects outside the loaded region and
@@ -106,7 +108,7 @@ is needed for \(\ell\sim a\), and a shell or modal model for \(\ell\gg a\). {{CS
 \(\ell\) would be measured on the printed tip ({{ASIDES_REF}}).</p>
 <figure class="diagram">
 {{FIG_SCALING}}
-<figcaption>Figure&#160;2. Friction arm against pad force. Grey: the foundation law (3) fitted to Drake on the screwdriver; dashed:
+<figcaption>Figure&#160;2. Friction arm against pad force. Grey: the foundation law (3) integrated over the screwdriver patch; dashed:
 a Hertz arm (4) equal to it at 1&#8202;N. Markers: the arm at spin onset in bed task&#160;2 (torque ramp about the pinch axis),
 \(\bar r=\tau_\text{onset}/2\mu N\). {{SCALING_NOTE}}</figcaption>
 </figure>
@@ -154,8 +156,11 @@ inertia. The constrained acceleration is \(a=a_0+Af=a_\text{ref}-Rf\). At rest \
 <p>The coupling through \(A\), dense when many spheres press one body, cancels at rest. Each sphere is a spring of stiffness
 \(k_s\) regardless of how many neighbours touch, so in statics the pad is a discrete Winkler foundation. Codex&#8217;s static audit
 measured the force per overlap equal to (10) to floating-point precision
-(<code>docs/experiments/20261004-codex/20261004-distributed_contact.html</code>). Setting \(t_c=t_r/2\) from Drake&#8217;s relaxation
-time and solving (10) gives the impedance \(d_0=1-1/(t_c^2k_s\hat\Lambda)\): 0.741 for the 1&#8202;mm pad at \(t_c\)&#8202;=&#8202;10&#8202;ms.</p>
+(<code>docs/experiments/20261004-codex/20261004-distributed_contact.html</code>). Solving (10) for the
+impedance gives \(d_0=1-1/(t_c^2k_s\hat\Lambda)\), which is positive only for \(t_c>(k_s\hat\Lambda)^{-1/2}\): 5.1&#8202;ms for the
+1&#8202;mm pad and 10.2&#8202;ms for the 0.5&#8202;mm pad, so a softer sphere needs a longer time constant. The 1&#8202;mm pad uses
+\(t_c\)&#8202;=&#8202;10&#8202;ms (\(d_0\)&#8202;=&#8202;0.741) and relaxes in \(2t_c\)&#8202;=&#8202;20&#8202;ms, twice Drake&#8217;s 10&#8202;ms on the bed;
+the slip force and the friction arm are measured in quasi-static ramps and do not depend on it.</p>
 
 <h3><span class="step">7</span>Inverse-inertia calibration</h3>
 <p>\(\hat\Lambda_i\) is the sum of the two bodies&#8217; inverse weights, so by (10) a sphere&#8217;s stiffness depends on the mass behind
@@ -205,7 +210,9 @@ equality with (14). {{STAB_NOTE}}</figcaption>
 elliptic cone \((f_1^2+f_2^2)/\mu^2+\tau^2/\mu_t^2\le N^2\). Matching (3) requires \(\mu_t=\mu\bar r(N)\), which varies with load,
 so the plant rewrites it before every step from the last normal force:</p>
 <div class="eq">\[\mu_t[k]=\mu\,c\,N[k-1]^{1/4}\quad\Longrightarrow\quad \tau_\text{max}[k]\approx\mu\,c\,N^{5/4}.\]<span class="eqno">(15)</span></div>
-<p>It reproduces the torque of the fitted law at the cost of one coefficient write per contact per step. With a single contact
+<p>The bed&#8217;s condim&#160;4 takes \(c\) and the exponent from a fit to Drake&#8217;s torque on this rig
+(\(c=0.996\ \mathrm{mm\,N^{-1/4}}\), 0.2498), so it reproduces Drake&#8217;s torque by construction, at the cost of one
+coefficient write per contact per step. With a single contact
 point, its centre of pressure is fixed, and under a pure pull or roll it behaves as condim&#160;3. The chain page derives the brake
 that uses it (<code>{{CHAIN_PATH}}</code>, steps&#160;3 and 5).</p>
 </div></section>
@@ -277,6 +284,11 @@ insertion.</figcaption>
 <section id="open"><div class="col">
 <h2>What this does not settle</h2>
 {{OPEN_LIST}}
+<p>Drake serves as the reference because it integrates the same pressure law, which is local and has no state: neither Drake
+nor the spheres represent shear compliance before slip, hysteresis or the lateral spread of load in an elastic tip, and both
+give a contact radius growing as \(N^{1/4}\), where measured soft fingertips give exponents from 0 to 1/3 depending on the
+material (Xydas and Kao). The spheres add the creep of MuJoCo&#8217;s soft friction rows and miss surface features finer than
+their 1&#8202;mm spacing.</p>
 </div></section>
 
 <footer><div class="col">

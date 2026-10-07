@@ -247,7 +247,7 @@ def t2(rows):
             if not ok(r):
                 body.append([f"{N:g}&#8202;N", r.get("status", "failed")] + [""] * 5)
                 continue
-            body.append([f"{N:g}&#8202;N", fmt(r.get("rbar_onset_mm"), 3), fmt(r.get("tau_onset_over_law"), 3), fmt(r.get("rbar_kin_mm"), 3),
+            body.append([f"{N:g}&#8202;N", fmt(r.get("rbar_onset_mm"), 3), fmt(r["rbar_onset_mm"] / (P.C_LAW * 1e3 * N ** P.EXP_LAW) if r.get("rbar_onset_mm") else None, 3), fmt(r.get("rbar_kin_mm"), 3),
                          fmt(r.get("rot_pre_deg"), 2), fmt(r.get("creep_deg_s"), 3), fmt(r.get("us_per_step_median"), 0)])
     fig, _ = P.svg_scaling(rows, [])
     out = ["<p>Protocol: after settling, a torque about the pinch axis rises at the law&#8217;s torque per second until the tool turns "
@@ -256,12 +256,12 @@ def t2(rows):
            figure(fig, "Per-pad friction arm at the onset of spin, task&#160;2, 1&#8202;ms step, against the hydroelastic law and a Hertz "
                   "arm equal at 1&#8202;N. Right: the arm ratio between 3 and 0.5&#8202;N."),
            table(head, body),
-           "<p class='tnote'>Table: task&#160;2 at a 1&#8202;ms step. The law is the hydroelastic arm fitted to Drake on this rig, "
-           "0.996&#8202;mm&#183;N<sup>&#8722;1/4</sup>. Point contact has no torsional friction; its onset value is the torque at which its creep "
+           "<p class='tnote'>Table: task&#160;2 at a 1&#8202;ms step. The law is the hydroelastic pressure field integrated over this rig&#8217;s "
+           f"sphere&#8211;cylinder patch, {P.C_LAW * 1e3:.3f}&#8202;mm&#183;N<sup>&#8722;1/4</sup> (<code>scripts/hydroelastic_arm_integral.py</code>). Point contact has no torsional friction; its onset value is the torque at which its creep "
            "reached the detection speed.</p>"]
     out.append(film("media/twist_models.mp4", "Task&#160;2 at N&#8202;=&#8202;1&#8202;N in every model, side by side.", "media/twist_models.jpg"))
-    law = lambda k: [r["tau_onset_over_law"] for r in rows if r.get("model") == k and ok(r) and r.get("dt_ms") == 1.0  # noqa: E731
-                     and r.get("tau_onset_over_law")]
+    law = lambda k: [r["rbar_onset_mm"] / (P.C_LAW * 1e3 * r["N"] ** P.EXP_LAW) for r in rows  # noqa: E731
+                     if r.get("model") == k and ok(r) and r.get("dt_ms") == 1.0 and r.get("rbar_onset_mm")]
     raw, mc = law("newton_hydro"), law("newton_hydro_mc")
     if raw and mc:
         out.append(f"<p>Newton hydroelastic with \\(k_h=E/h\\) starts to spin at {min(raw):.1f}&#8211;{max(raw):.1f}&#215; the law&#8217;s "
