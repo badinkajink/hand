@@ -70,7 +70,18 @@ MODELS = {
     "newton_hydro_unreduced_mc_mjcf": dict(reduce=False, mass_correct="mjcf"),
     "newton_pads1": dict(reduce=False, pads="mj:spheres:s1:rs0.75:ir100:tr0.02"),
 }
-MJW_MODELS = {"mjw_pads1": "mj:spheres:s1:rs0.75:ir100:tr0.02"}
+# Friction rows of the mass-corrected hydroelastic tip (2026-10-07): the friction gain kf solved for a friction-row time
+# constant tf on the pad-tool pair (NewtonRig._match_friction with the solver model's inverse weights, solimp d0 0.9,
+# impratio 100). The base kf 10 gives tf 3.9 ms; the pads use their solref time constant, 10 ms. 1, 3, 7, 15 and 40 ms
+# locate the brake's overshoot band.
+for _tf in (1, 2, 3, 5, 7, 10, 15, 20, 40):
+    MODELS[f"newton_hydro_mc_tf{_tf}"] = dict(reduce=True, mass_correct="solver", tf=_tf * 1e-3)
+# Contact reduction and SDF voxel size (2026-10-07): the mass-corrected tip at 0.25 and 1 mm voxels.
+MODELS["newton_hydro_mc_vox025"] = dict(reduce=True, mass_correct="solver", voxel=0.25e-3)
+MODELS["newton_hydro_mc_vox1"] = dict(reduce=True, mass_correct="solver", voxel=1e-3)
+# Edge test (2026-10-07, scripts/contact_bed_edge.py): the square bar of side 20 mm, an edge toward each pad
+MODELS["newton_hydro_mc_bar"] = dict(reduce=True, mass_correct="solver", bar=0.02)
+MJW_MODELS = {"mjw_pads1": "mj:spheres:s1:rs0.75:ir100:tr0.02", "mjw_pads1_bar": "mj:spheres:s1:rs0.75:ir100:tr0.02:bar20"}
 BASE = dict(kh=KH_PAD, tool_ratio=100.0, voxel=0.5e-3, band=0.006, impratio=100.0, kf=10.0,
             solimp="0.9 0.9 0.001 0.5 2", fallback="0.5 1", iterations=200, ls_iterations=50,
             tolerance=1e-8)
@@ -90,9 +101,11 @@ def rig_spec(model):
     if MODELS[model].get("pads"):
         return "newton:" + MODELS[model]["pads"] + ":gap0.5:d0solver:kfmatch"
     c = dict(BASE, **MODELS[model])
+    kf = f"kfmatch_tf{c['tf'] * 1e3:g}ms" if c.get("tf") else f"kf{c['kf']:g}"
     return (f"newton:hydro:kh{c['kh']:.3g}:tool{c['tool_ratio']:g}:vox{c['voxel'] * 1e3:g}:ir{c['impratio']:g}"
-            f":kf{c['kf']:g}:{'reduced' if c['reduce'] else 'unreduced'}:solimp0.9:fallback0.5x1"
-            f"{':mass_corrected_' + c['mass_correct'] if c.get('mass_correct') else ''}")
+            f":{kf}:{'reduced' if c['reduce'] else 'unreduced'}:solimp0.9:fallback0.5x1"
+            f"{':mass_corrected_' + c['mass_correct'] if c.get('mass_correct') else ''}"
+            f"{':bar' + format(c['bar'] * 1e3, 'g') if c.get('bar') else ''}")
 
 
 def done(path, key):
@@ -113,6 +126,11 @@ def finish_row(row, task, model, dt_ms, status="complete", film=None):
         row.setdefault("inv_weight0", last.inv_w)
         if getattr(last, "pad_d0", None):
             row.setdefault("pad_d0", last.pad_d0)
+        if getattr(last, "kf", None) is not None:
+            row.setdefault("kf", last.kf)
+            row.setdefault("tf_target_ms", last.cfg["tf"] * 1e3 if last.cfg.get("tf") else None)
+            if hasattr(last, "compiled_friction"):
+                row.setdefault("friction_rows", last.compiled_friction())
     known = model in MODELS or model in MJW_MODELS
     row.update(task=task, model=model, rig_spec=rig_spec(model) if known else row.get("rig_spec"),
                dt_ms=dt_ms, status=row.get("status", status), film=film, script=SCRIPT, git_rev=git_rev(),
@@ -147,7 +165,8 @@ class NewtonRig:
                 cpu = H.MjRig(H.parse_spec(pads), d_cg, gravity)
                 xml, d0_mjcf, w_mjcf = cpu.xml, cpu.info["solimp_d0"], cpu.info["diagApprox"]
             else:
-                xml, _ = H.mj_xml(H.parse_spec("mj:point3:ir100"), d_cg, gravity)
+                xml, _ = H.mj_xml(H.parse_spec("mj:point3:ir100" + (f":bar{c['bar'] * 1e3:g}" if c.get("bar") else "")),
+                                  d_cg, gravity)
         finally:
             H.DT = dt_old
         if xml_hook is not None:
@@ -165,6 +184,7 @@ class NewtonRig:
             xml = xml.replace(f'solimp="{d0_mjcf:.6g} {d0_mjcf:.6g} ', f'solimp="{d0_new:.6g} {d0_new:.6g} ')
             self.pad_d0 = {"mjcf": d0_mjcf, "solver": d0_new, "w_mjcf": w_mjcf, "w_solver": w_new}
         self.xml = xml
+        self.x0 = H.tool_touch(H.parse_spec(pads) if pads else {"bar": c.get("bar")})   # pad centre at first touch
         self.kh_scale = 1.0
         if c.get("mass_correct") == "mjcf":
             import mujoco
@@ -240,6 +260,11 @@ class NewtonRig:
             for i in self.hydro_shapes:
                 kh[i] *= self.kh_scale
             self.model.shape_material_kh.assign(kh)  # the hydroelastic pipeline holds this array
+        self.kf = None if pads else float(c["kf"])
+        if c.get("tf") and not pads:
+            # hydroelastic contacts take solimp (d, d, ...) with d = the geom solimp's dmax, 0.9 here
+            self.kf = self._match_friction(self.model, float(c["solimp"].split()[1]),
+                                           self.inv_w["padL"] + self.inv_w["tool"], c["impratio"], tc=c["tf"])
         self.kh_eff = self.kh_scale * c["kh"] * c["tool_ratio"] / (1.0 + c["tool_ratio"])
         NewtonRig.last = self
         self.N = 0.0
@@ -326,6 +351,26 @@ class NewtonRig:
         fn = np.where(addr >= 0, force[np.clip(addr, 0, None)], 0.0)
         side = [self.geom_side.get(int(g0)) or self.geom_side.get(int(g1)) for g0, g1 in geom]
         return pos, frame[:, 0, :], fn, side
+
+    def compiled_friction(self):
+        """solref, solreffriction and solimp that SolverMuJoCo wrote into the MuJoCo-Warp contacts of the last step (pad
+        contacts only): the friction rows' time constant confirms the kf mapping."""
+        d = self.solver.mjw_data
+        n = int(d.nacon.numpy()[0])
+        if n == 0:
+            return {"n": 0}
+        geom = d.contact.geom.numpy()[:n]
+        m = np.array([(int(a) in self.geom_side) or (int(b) in self.geom_side) for a, b in geom], bool)
+        if not m.any():
+            return {"n": 0}
+        sf = d.contact.solreffriction.numpy()[:n][m].astype(float)
+        sr = d.contact.solref.numpy()[:n][m].astype(float)
+        si = d.contact.solimp.numpy()[:n][m].astype(float)
+        return {"n": int(m.sum()), "solreffriction_tc_ms": [float(sf[:, 0].min() * 1e3), float(np.median(sf[:, 0]) * 1e3),
+                                                            float(sf[:, 0].max() * 1e3)],
+                "solreffriction_dampratio": float(np.median(sf[:, 1])),
+                "solref_tc_ms_median": float(np.median(sr[:, 0]) * 1e3), "solref_dampratio_median": float(np.median(sr[:, 1])),
+                "solimp_d0_median": float(np.median(si[:, 0]))}
 
     def contacts(self):
         pos, nrm, fn, side = self.mj_contacts()
@@ -497,7 +542,13 @@ LABEL = {"newton_hydro": "Newton hydroelastic, reduced contacts",
          "newton_hydro_mc": "Newton hydroelastic, kh / m_eff",
          "newton_hydro_unreduced_mc": "Newton hydroelastic, all faces, kh / m_eff",
          "newton_pads1": "Newton, 1 mm sphere pads",
-         "mjw_pads1": "MuJoCo-Warp, 1 mm sphere pads"}
+         "mjw_pads1": "MuJoCo-Warp, 1 mm sphere pads",
+         "newton_hydro_mc_vox025": "Newton hydroelastic, kh / m_eff, 0.25 mm voxels",
+         "newton_hydro_mc_vox1": "Newton hydroelastic, kh / m_eff, 1 mm voxels",
+         "newton_hydro_mc_bar": "Newton hydroelastic, kh / m_eff, square bar",
+         "mjw_pads1_bar": "MuJoCo-Warp, 1 mm sphere pads, square bar"}
+LABEL.update({f"newton_hydro_mc_tf{tf}": f"Newton hydroelastic, kh / m_eff, friction rows {tf} ms"
+              for tf in (1, 2, 3, 5, 7, 10, 15, 20, 40)})
 
 
 def render_film(frames, path, model, d_cg=0.0, view=None, poster=None, fscale=None):
@@ -599,7 +650,7 @@ def static_newton(model, N, dt_ms, T=1.0):
         st = rig.tool_state()
         px = rig.pad_x()
         c = rig.contacts()
-        snaps.append(dict(t=round(rig.t, 4), pen_L_mm=(H.X0 + px["L"]) * 1e3, pen_R_mm=(H.X0 - px["R"]) * 1e3,
+        snaps.append(dict(t=round(rig.t, 4), pen_L_mm=(rig.x0 + px["L"]) * 1e3, pen_R_mm=(rig.x0 - px["R"]) * 1e3,
                           N_L=c["L"]["N"], N_R=c["R"]["N"], tool_disp_mm=float(np.linalg.norm(st["pos"])) * 1e3))
         if rig._nonfinite or abs(snaps[-1]["pen_L_mm"]) > 6:
             status = "failed"
