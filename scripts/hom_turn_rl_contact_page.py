@@ -895,8 +895,12 @@ VAR_LBL = {"legacy": "box tip, point contact (every RL run so far)", "mesh": "TP
 
 def rl_section():
     T = {}
+    LIM = {}                                           # (variant, envs) -> the limit that kept a case from running
     for r in jl(os.path.join(RLD, "throughput.jsonl")):
         if r.get("sensor_reduce") == "netforce":       # rows after the sensor change: sensor_paragraph
+            continue
+        if r.get("status") == "not_run":
+            LIM[(r["variant"], r["num_envs"])] = r["limit"]
             continue
         if r.get("status") != "ok":
             T.setdefault((r["variant"], r["num_envs"]), r)
@@ -913,7 +917,7 @@ def rl_section():
         for n in (1024, 2048, 4096):
             r = T.get((v, n))
             cells.append(num(r["env_steps_per_s"], ",.0f") if r and r.get("status") == "ok" else
-                         ("incomplete" if r else "&#8211;"))
+                         LIM.get((v, n)) or ("incomplete" if r else "&#8211;"))
         for n in (1024, 2048, 4096):
             r = T.get((v, n))
             cells.append(f(r["physics_us_per_world_step"], 2) if r and r.get("status") == "ok" else "&#8211;")
@@ -1259,9 +1263,12 @@ SS_ROWS = [("mjlab", "3.6.0", "legacy", "mjlab env (reference), box tip"),
 
 def same_state_section(NT):
     R = defaultdict(list)
+    LIM = {}
     for r in jl(os.path.join(RLD, "same_state_timing.jsonl")):
         if r.get("status") == "ok":
             R[(r["engine"], r.get("mujoco_warp"), r["variant"], r["nworld"])].append(r)
+        elif r.get("status") == "not_run":
+            LIM[(r["engine"], r.get("mujoco_warp"), r["variant"], r["nworld"])] = r["limit"]
 
     def get(e, v, var, n):
         rs = R.get((e, v, var, n))
@@ -1272,9 +1279,9 @@ def same_state_section(NT):
         if not (a or b):
             continue
         cells = [(lab, "lab")]
-        for r in (a, b):
+        for n, r in ((1024, a), (2048, b)):
             if r is None:
-                cells.append("&#8211;")
+                cells.append(LIM.get((e, v, var, n)) or "&#8211;")
                 continue
             txt = f(r["us_per_world_step"], 2)
             cells.append((txt, "bad") if r["held_frac"] < 0.95 else txt)

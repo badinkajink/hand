@@ -57,6 +57,9 @@ def base_cfg(run: Path):
                         open_finger_from_keyframe=True, num_envs=1)
 
 
+SENSOR_MAXMATCH = None
+
+
 def make_env(cfg, num_envs, nconmax, njmax, impratio=None):
     import torch  # noqa: F401
     from mjlab.envs import ManagerBasedRlEnv
@@ -64,6 +67,8 @@ def make_env(cfg, num_envs, nconmax, njmax, impratio=None):
     mj = to_mjlab_cfg(dataclasses.replace(cfg, num_envs=num_envs))
     mj.sim.nconmax = int(nconmax)
     mj.sim.njmax = int(njmax)
+    if SENSOR_MAXMATCH is not None:     # --sensor legacy: env_build sizes pad scenes' sensors at 768 otherwise
+        mj.sim.contact_sensor_maxmatch = SENSOR_MAXMATCH
     if impratio is not None:
         mj.sim.mujoco.impratio = float(impratio)
     return ManagerBasedRlEnv(cfg=mj, device="cuda:0", render_mode=None)
@@ -151,8 +156,16 @@ def main():
     ap.add_argument("--phys-steps", type=int, default=200)
     ap.add_argument("--impratio", type=float, default=None, help="default: the trainer's 10")
     ap.add_argument("--out", type=Path, default=OUT)
+    ap.add_argument("--sensor", choices=["current", "legacy"], default="current",
+                    help="legacy: the fingertip contact sensors before 2026-10-06 19:00 (reduce 'none', mjlab's maxmatch 64), "
+                         "the setting of the throughput table's first rows")
     a = ap.parse_args()
     os.environ.setdefault("MUJOCO_GL", "egl")
+    if a.sensor == "legacy":
+        from morphohand.rl import env_build
+        env_build.CONTACT_SENSOR_REDUCE, env_build.CONTACT_SENSOR_MAXMATCH = "none", 64
+        global SENSOR_MAXMATCH
+        SENSOR_MAXMATCH = 64
     a.out.parent.mkdir(parents=True, exist_ok=True)
     for v in a.variants:
         run = ROOT / RUNS[v]

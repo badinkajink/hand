@@ -28,15 +28,16 @@ TEX_CACHE = os.path.join(BED, "texsvg_cache.json")
 OVERVIEW_PATH = "docs/experiments/20261005-contact_overview/20261005-sphere_pad_contact_model.html"
 OVERVIEW_URL_FILE = os.path.join(P.D, "artifact_url.txt")
 
-ALL = P.ORDER + ["newton_hydro_unreduced", "mj_pads2", "mj_pads05"]
+ALL = P.TABLE_ORDER + ["newton_hydro", "newton_hydro_unreduced", "mj_pads2", "mj_pads05"]
 CONS = ["mj_pads2", "mj_pads1", "mj_pads05"]
 COL = {k: v[1] for k, v in P.MODELS.items()}
-COL.update({"mj_pads2": "var(--s1)", "mj_pads05": "var(--c-sphere)", "newton_hydro_unreduced": "var(--c-newton)"})
+COL.update({"mj_pads2": "var(--s1)", "mj_pads05": "var(--c-sphere)", "newton_hydro_unreduced": "var(--c-newton)",
+            "newton_hydro": "var(--c-newton)"})
 SHAPE = {k: v[2] for k, v in P.MODELS.items()}
-SHAPE.update({"mj_pads2": "square", "mj_pads05": "diamond", "newton_hydro_unreduced": "diamond"})
+SHAPE.update({"mj_pads2": "square", "mj_pads05": "diamond", "newton_hydro_unreduced": "diamond", "newton_hydro": "diamond"})
 LBL = {k: v[0] for k, v in P.MODELS.items()}
 LBL.update({"mj_pads2": "MuJoCo 2 mm sphere pad", "mj_pads05": "MuJoCo 0.5 mm sphere pad",
-            "newton_hydro_unreduced": "Newton hydroelastic, unreduced"})
+            "newton_hydro_unreduced": "Newton hydroelastic, unreduced", "newton_hydro": "Newton hydroelastic, kh = E/h"})
 H = P.HTML_LBL
 num, fmt, first, pick, _eq = P.num, P.fmt, P.first, P.pick, P._eq
 US = P.US
@@ -259,13 +260,16 @@ def t2(rows):
            "0.996&#8202;mm&#183;N<sup>&#8722;1/4</sup>. Point contact has no torsional friction; its onset value is the torque at which its creep "
            "reached the detection speed.</p>"]
     out.append(film("media/twist_models.mp4", "Task&#160;2 at N&#8202;=&#8202;1&#8202;N in every model, side by side.", "media/twist_models.jpg"))
-    nw = [r for r in rows if r.get("model", "").startswith("newton") and ok(r) and r.get("tau_onset_over_law")]
-    if nw:
-        lo, hi = min(r["tau_onset_over_law"] for r in nw if r["dt_ms"] == 1.0), max(r["tau_onset_over_law"] for r in nw if r["dt_ms"] == 1.0)
-        out.append(f"<p>Newton hydroelastic starts to spin at {lo:.1f}&#8211;{hi:.1f}&#215; the law&#8217;s torque with and without contact "
-                   "reduction, and its 5&#8202;ms runs spin at once or eject the tool. Its static pinch on the same rig has the expected "
-                   "normal force, so the excess is in the friction it applies across the patch. The probe&#8217;s friction gain "
-                   "(<code>kf10</code> in the spec) and the 100&#215; stiffer tool are the first two settings to vary.</p>")
+    law = lambda k: [r["tau_onset_over_law"] for r in rows if r.get("model") == k and ok(r) and r.get("dt_ms") == 1.0  # noqa: E731
+                     and r.get("tau_onset_over_law")]
+    raw, mc = law("newton_hydro"), law("newton_hydro_mc")
+    if raw and mc:
+        out.append(f"<p>Newton hydroelastic with \\(k_h=E/h\\) starts to spin at {min(raw):.1f}&#8211;{max(raw):.1f}&#215; the law&#8217;s "
+                   "torque. SolverMuJoCo writes each hydroelastic contact&#8217;s stiffness as a <code>solref</code> time constant, which "
+                   "MuJoCo turns into a force stiffness multiplied by the contact&#8217;s effective mass; dividing \\(k_h\\) by the "
+                   "pad&#8211;tool effective mass of the solver&#8217;s own model (17.4&#8202;g) gives "
+                   f"{min(mc):.2f}&#8211;{max(mc):.2f}&#215; the law, with no fitted parameter (overview, step&#160;7; rows "
+                   "<code>../20261006-newton_mass_scaling/</code>).</p>")
     return "".join(out)
 
 
@@ -444,16 +448,19 @@ def P_TEXT_GPU_NOTE(gpu_newton):
 
 
 def open_items(T):
-    items = [("Roll, creep and the stability map.", "Run <code>scripts/contact_bed_roll.py</code>, <code>scripts/contact_bed_creep.py</code> and "
-              "<code>scripts/contact_bed_stability.py</code> (written, not run; each resumes from its JSONL)."),
-             ("Newton&#8217;s torsion.", "Repeat task&#160;2 in Newton with the friction gain at 1 and the tool at the pad&#8217;s stiffness; an arm "
-              "near the law would locate the 2.4&#8211;2.9&#215; excess in those settings."),
-             ("Newton on the GPU.", "Its throughput rows stop at 1024 worlds unreduced and 4096 reduced; finish 4096&#8211;8192 with "
-              "<code>scripts/newton_scaling.py</code> once task&#160;2 agrees, so that the throughput comparison is between models that agree in torsion."),
-             ("CPU against GPU pads.", "<code>scripts/pads_cpu_gpu_consistency.py</code> wrote three CPU rows; the MuJoCo-Warp twins decide whether "
-              "the GPU throughput describes the same physics."),
-             ("Creep.", "Every MuJoCo model creeps about 100&#215; faster than Drake under a held load; task&#160;6 tests <code>impratio</code> 1000 "
-              "and <code>noslip_iterations</code> 10.")]
+    items = [("Friction rows of Newton&#8217;s hydroelastic contact.", "Its friction gain \\(k_f=10\\) gives the friction rows a 3.9&#8202;ms "
+              "time constant where the pads use 10&#8202;ms. Repeat task&#160;5 with <code>contact_bed_newton.py brake --models newton_hydro_mc</code> "
+              "at \\(k_f\\) for 2, 5, 10 and 20&#8202;ms; a swing within 3&#176; of Drake&#8217;s at one setting would make the remaining "
+              "creep and swing differences a friction-row setting."),
+             ("Creep against Drake.", "Every MuJoCo model creeps 150&#8211;260&#215; faster than Drake under a held load (task&#160;1). Task&#160;6 "
+              "lowers it with <code>impratio</code> and <code>noslip_iterations</code>; the next measurement is the chain&#8217;s hold and wield "
+              "at <code>impratio</code> 1000, which decides whether creep matters at the task level."),
+             ("Largest steps of the stability map.", "At \\(t_c\\)&#8202;=&#8202;20&#8202;ms and \\(d_0\\) 0.9 and 0.95 the tool is ejected at "
+              "15&#8202;ms, below the bound of 18&#8211;19&#8202;ms. Run <code>contact_bed_stability.py --d0 0.9 0.95 --tc 20 --dt 11 12 13 14 "
+              "--refsafe 0</code> to locate the failing step and compare it with the numerical bound (15&#8211;16&#8202;ms)."),
+             ("One GPU world.", "The bed&#8217;s Newton rig steps one world from the host without a CUDA graph (2.0&#8211;2.8&#8202;ms per step) "
+              "where the MuJoCo-Warp rig captures one (0.27&#8202;ms). Capturing Newton&#8217;s step in the rig would give its one-world cost "
+              "without the launch overhead.")]
     return "<ul class='open'>" + "".join(f"<li><b>{a}</b> {b}</li>" for a, b in items) + "</ul>"
 
 
@@ -469,23 +476,32 @@ def render_tex(t):
 def lede(T, M):
     tw = T["twist"]
     g = lambda k, N: pick(tw, k, N=N, dt_ms=1.0)  # noqa: E731
+    dev = {k: statistics.median(v) for k, v in P.deviations(M).items() if v}
     parts = []
     try:
         pd = [g("mj_pads1", N)["rbar_onset_mm"] / g("drake_hydro", N)["rbar_onset_mm"] - 1 for N in (0.5, 1.0, 3.0)]
         lo_, hi_ = f"{min(abs(x) for x in pd) * 100:.0f}", f"{max(abs(x) for x in pd) * 100:.0f}"
-        parts.append(f"The 1&#8202;mm sphere pad spins the screwdriver at {lo_ if lo_ == hi_ else lo_ + '&#8211;' + hi_}&#8202;% "
-                     "less torque than Drake hydroelastic from 0.5 to 3&#8202;N, slips at the same pull force, and brakes the swing to within 1&#176; of Drake.")
+        parts.append(f"The 1&#8202;mm sphere pad spins the screwdriver at {lo_ if lo_ == hi_ else lo_ + '&#8211;' + hi_}"
+                     f"&#8202;% less torque than Drake hydroelastic from 0.5 to 3&#8202;N, slips at the "
+                     "same pull force, rolls the tool as Drake does and brakes the swing to within 1&#176; of Drake.")
     except (TypeError, KeyError):
         pass
-    parts.append("condim&#160;4 with its torsional coefficient rescheduled is within 6&#8202;% of the torque but has a single contact point. "
-                 "Point contact transmits no torque, and the tool swings through.")
-    nw = [r for r in tw if r.get("model") == "newton_hydro" and ok(r) and r.get("dt_ms") == 1.0 and r.get("tau_onset_over_law")]
-    if nw:
-        parts.append(f"Newton hydroelastic, now stable at 1&#8202;ms, starts to spin at {min(r['tau_onset_over_law'] for r in nw):.1f}&#8211;"
-                     f"{max(r['tau_onset_over_law'] for r in nw):.1f}&#215; the law&#8217;s torque, the largest disagreement in the bed.")
-    parts.append("Under a held load below the slip force, every MuJoCo model creeps (slides slowly) about 100&#215; faster than Drake. The pad costs 13&#8211;24&#8202;&#181;s per step against "
-                 "1&#8211;2&#8202;ms for Drake and 0.5&#8211;3&#8202;ms for Newton on one GPU world. Roll, creep and the stability map were cut off "
-                 "and are listed at the end with their scripts.")
+    if all(k in dev for k in ("mj_pads1", "mjw_pads1", "newton_pads1", "newton_hydro_mc", "mj_point4s", "mj_point3")):
+        parts.append(f"Over the nine metrics of the agreement table its median deviation from Drake is {dev['mj_pads1']:.1f}&#8202;% in MuJoCo, "
+                     f"{dev['mjw_pads1']:.1f}&#8202;% in MuJoCo-Warp and {dev['newton_pads1']:.1f}&#8202;% in Newton; condim&#160;4 gives "
+                     f"{dev['mj_point4s']:.1f}&#8202;% with a single contact point, Newton&#8217;s mass-corrected hydroelastic tip "
+                     f"{dev['newton_hydro_mc']:.1f}&#8202;% and point contact, which transmits no torque, {dev['mj_point3']:.0f}&#8202;%.")
+    st = P.stab_stats(P.stab_rows())
+    if st:
+        parts.append(f"The pad&#8217;s largest stable step follows \\(t_c(d_0+(1-d_0)/n)\\) in {len(st['inside'])} of {st['n']} settings.")
+    c = P.step_cost(T["pull"])
+    bat = P.gpu_batched(P.gpu_curves(P.load(os.path.join(P.GPU, "gpu_scaling.jsonl")), P.load(os.path.join(P.GPU, "newton_scaling.jsonl"))))
+    if "mj_pads1" in c and "drake_hydro" in c and "mjw_pads1" in bat:
+        parts.append(f"A pad step costs {c['mj_pads1']:.0f}&#8202;&#181;s on one CPU core against {num(c['drake_hydro'], ',.0f')}&#8202;&#181;s "
+                     f"for Drake, and {bat['mjw_pads1'][0]:.2f}&#8202;&#181;s per world-step in a MuJoCo-Warp batch on one GPU"
+                     + (f" ({bat['newton_pads1'][0]:.2f} in Newton)" if "newton_pads1" in bat else "") + ".")
+    parts.append("Under a held load at half the slip force every MuJoCo model creeps (slides slowly) 150&#8211;260&#215; faster than Drake, "
+                 "and Newton&#8217;s hydroelastic tip 25&#8211;50&#215;.")
     return " ".join(parts)
 
 
