@@ -48,6 +48,7 @@ NAMES = [f"{f}_{j}" for f in FINGERS for j in JOINTS]
 TOOL = "screwdriver_medium"
 PALM_JOINTS = ("palm_px", "palm_py", "palm_pz", "palm_rx", "palm_ry", "palm_rz")
 ONSET, STEPS, DT_POLICY = 58, 250, 0.02
+NEWTON_DIR = [None]
 
 
 # ---------------------------------------------------------------------------------- record (GPU)
@@ -224,7 +225,7 @@ def replay(d: Path, engine: str, hold: float | None = None, seed: int = 0):
     else:
         targets = rec["finger_targets"][meta["world"]]          # (steps after onset, 9)
     if engine == "newton":
-        return replay_newton(d, meta, targets)
+        return replay_newton(d, meta, targets, newton_dir=NEWTON_DIR[0])
     plant = make_plant(engine, d, meta)
     plant.reset(seed)
     s0 = plant.state()
@@ -245,10 +246,93 @@ def replay(d: Path, engine: str, hold: float | None = None, seed: int = 0):
             "trace": trace[:: max(1, len(trace) // 50)]}
 
 
-def replay_newton(d, meta, targets):
-    raise NotImplementedError("Newton replay: build the bench-like scene as newton_turn.build does (TPU block "
-                              "meshes from meta['meshes'], hydroelastic, kh x (invweight0 tip + tool)) and step "
-                              "the targets; not written yet")
+def replay_newton(d, meta, targets, newton_dir=None, nworld=1):
+    """The bench-like scene in Newton with hydroelastic TPU blocks, kh x (invweight0 tip + invweight0 tool) of the
+    solver's model, tool kh 100x (same_state_timing.build_newton, engine nt_hydro). The geometry comes from
+    `newton_dir`'s bench.xml (default: the mesh run of the same seed), since a pad run's tips are sphere pads and
+    Newton's hydroelastic tip is the plain block; the state and targets are this run's."""
+    import mujoco
+    import newton
+    import warp as wp
+    import same_state_timing as SS
+    nd = Path(newton_dir) if newton_dir else Path(str(d).replace("pads1", "mesh"))
+    xml = (nd / "bench.xml").read_text()
+    m = mujoco.MjModel.from_xml_string(xml)
+    sm = {"tool_body": TOOL, "tip_bodies": {f: f"{f}_tip" for f in FINGERS}}
+    extra = {}
+    model, pipe, solver = SS.build_newton(xml, m, sm, nworld, "nt_hydro", "mesh", 0.013, 40, extra)
+    mm = solver.mj_model
+    jmap = SS.joint_map(m, mm)
+    qs, qds = model.joint_q_start.numpy(), model.joint_qd_start.numpy()
+    jq = model.joint_q.numpy()
+    nj = model.joint_count
+    j2d = solver.mjc_jnt_to_newton_dof.numpy()
+    dof_joint = np.zeros(int(model.joint_dof_count), int)
+    for jn in range(nj):
+        dof_joint[qds[jn]:qds[jn + 1] if jn + 1 < nj else len(dof_joint)] = jn
+    q_mj = np.zeros(m.nq)
+    for n in NAMES:
+        q_mj[m.jnt_qposadr[m.joint(n).id]] = meta["q0"][n]
+    ta = m.jnt_qposadr[m.body_jntadr[m.body(TOOL).id]]
+    q_mj[ta:ta + 7] = meta["tool7"]
+    for w in range(nworld):
+        for j, j0 in enumerate(jmap):
+            dof = int(j2d[w, j])
+            jn = dof_joint[dof]
+            a = m.jnt_qposadr[j0]
+            if m.jnt_type[j0] == mujoco.mjtJoint.mjJNT_FREE:
+                q = q_mj[a:a + 7]
+                jq[qs[jn]:qs[jn] + 3] = q[:3]
+                jq[qs[jn] + 3:qs[jn] + 7] = [q[4], q[5], q[6], q[3]]
+            else:
+                jq[qs[jn] + (dof - qds[jn])] = q_mj[a]
+    model.joint_q.assign(jq)
+    model.joint_qd.zero_()
+    s0, s1 = model.state(), model.state()
+    ctrl = model.control()
+    newton.eval_fk(model, model.joint_q, model.joint_qd, s0)
+    order = [NAMES.index(m.joint(jmap[int(mm.actuator_trnid[a, 0])]).name) for a in range(mm.nu)]
+    cc = pipe.contacts()
+    labels = [x.split("/")[-1] for x in model.body_label]
+    tool_id = labels.index(TOOL)
+    body_finger = np.array([next((f for f in FINGERS if x.startswith(f + "_")), "") for x in labels])
+    shape_body = model.shape_body.numpy()
+    dt = float(m.opt.timestep)
+    sub = int(round(DT_POLICY / dt))
+    st = {"s0": s0, "s1": s1}
+
+    def tool_state():
+        x, y, z, qx, qy, qz, qw = st["s0"].body_q.numpy()[tool_id]
+        return 1.0 - 2.0 * (qx * qx + qy * qy), float(z)
+
+    cos0, z0 = tool_state()
+    w0 = time.perf_counter()
+    trace = []
+    for k, tg in enumerate(targets):
+        row = np.asarray(tg, np.float32)[order]
+        ctrl.mujoco.ctrl.assign(np.tile(row, nworld).reshape(ctrl.mujoco.ctrl.shape))
+        for _ in range(sub):
+            st["s0"].clear_forces()
+            pipe.collide(st["s0"], cc)
+            solver.step(st["s0"], st["s1"], ctrl, cc, dt)
+            st["s0"], st["s1"] = st["s1"], st["s0"]
+        if k % 10 == 0:
+            c, z = tool_state()
+            trace.append((round((k + 1) * DT_POLICY, 3), c, z))
+    wp.synchronize()
+    cos1, z1 = tool_state()
+    n = int(cc.rigid_contact_count.numpy()[0])
+    a_, b_ = cc.rigid_contact_shape0.numpy()[:n], cc.rigid_contact_shape1.numpy()[:n]
+    touch = set()
+    for i, j in zip(a_, b_):
+        bi, bj = shape_body[i], shape_body[j]
+        for t, o in ((bi, bj), (bj, bi)):
+            if t == tool_id and o >= 0 and body_finger[o]:
+                touch.add(body_finger[o])
+    return {"engine": "newton", "newton_scene": str(nd), "cos_start": cos0, "cos_end": cos1, "z_start_mm": 1e3 * z0,
+            "z_end_mm": 1e3 * z1, "fingers_end": len(touch), "held_end": bool(z1 > 0.06 and len(touch) >= 2),
+            "steps": len(targets), "wall_s": round(time.perf_counter() - w0, 1), "kh_tip": extra.get("kh_tip"),
+            "invweight0_newton": extra.get("invweight0_newton"), "trace": trace}
 
 
 # ---------------------------------------------------------------------------------- CLI
@@ -269,6 +353,7 @@ def main():
     r.add_argument("--engine", required=True, choices=["mujoco", "drake", "newton"])
     r.add_argument("--hold", type=float, default=None, help="hold the onset targets this long instead (a test)")
     r.add_argument("--out", type=Path, default=OUT)
+    r.add_argument("--newton-dir", type=Path, default=None, help="newton: the bench.xml to take the geometry from")
     a = ap.parse_args()
     if a.cmd == "record":
         os.environ.setdefault("MUJOCO_GL", "egl")
@@ -282,6 +367,7 @@ def main():
     if a.cmd == "bench":
         bench(a.dir, a.world, a.plant)
         return 0
+    NEWTON_DIR[0] = a.newton_dir
     row = {"dir": str(a.dir), "when": time.strftime("%Y-%m-%d %H:%M"), "hold_test_s": a.hold}
     try:
         row.update(replay(a.dir, a.engine, a.hold), status="ok")
