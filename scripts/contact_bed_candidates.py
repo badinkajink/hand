@@ -126,16 +126,69 @@ def install():
         B.MODELS[k] = (spec, spec)
 
 
+def mjw_cost(model, nworlds=(1, 1024, 4096), N=1.0, blocks=20, block=10):
+    """World-steps per second of a bed model in MuJoCo-Warp from a pinched state (settled 0.4 s at N on the CPU), 1 ms step,
+    10-step CUDA graphs, put_model's broadphase, 512 contacts and 2048 constraint rows per world."""
+    import mujoco_warp as mjw
+    import warp as wp
+    rig = B.new_rig(B.MODELS[model][0] if model in B.MODELS else model, 1e-3)
+    rig.set_pad_force(N)
+    rig.set_tool_wrench(np.zeros(3), np.zeros(3))
+    rig.step(0.4)
+    m, d = rig.m, rig.d
+    rows = []
+    for nw in nworlds:
+        wp.synchronize()
+        dev = wp.get_device("cuda:0")
+        free0 = dev.free_memory
+        wm = mjw.put_model(m)
+        wd = mjw.make_data(m, nworld=nw, nconmax=512, njmax=2048)
+        wd.qpos.assign(np.tile(d.qpos, (nw, 1)).astype(np.float32))
+        wd.qvel.assign(np.tile(d.qvel, (nw, 1)).astype(np.float32))
+        wd.ctrl.assign(np.tile(d.ctrl, (nw, 1)).astype(np.float32))
+        mjw.forward(wm, wd)
+        wp.synchronize()
+        with wp.ScopedCapture() as cap:
+            for _ in range(block):
+                mjw.step(wm, wd)
+        ticks = []
+        for _ in range(blocks):
+            wp.synchronize()
+            t0 = time.perf_counter()
+            wp.capture_launch(cap.graph)
+            wp.synchronize()
+            ticks.append(time.perf_counter() - t0)
+        q = wd.qpos.numpy()
+        tq = m.jnt_qposadr[m.body_jntadr[rig.tool]]
+        held = float((np.linalg.norm(q[:, tq:tq + 3] - d.qpos[tq:tq + 3], axis=1) < 1e-3).mean())
+        per = float(np.median(ticks)) / block
+        rows.append(dict(task="mjw_cost", model=model, nworld=nw, N=N, dt_ms=1.0, ms_per_step=per * 1e3,
+                         world_steps_per_s=nw / per, us_per_world_step=per / nw * 1e6, held_fraction=held,
+                         nacon_per_world=float(wd.nacon.numpy()[0]) / nw, vram_mib=(free0 - dev.free_memory) / 2 ** 20,
+                         graph_steps=block, script="scripts/contact_bed_candidates.py", git_rev=B.git_rev(),
+                         when=time.strftime("%Y-%m-%d %H:%M")))
+        print(model, nw, {k: round(v, 3) for k, v in rows[-1].items() if isinstance(v, float)}, flush=True)
+        del wd, wm
+    return rows
+
+
 def main():
     import contact_bed_compliance as CC
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("task", choices=["t1", "t2", "t5", "t8", "t9", "stability"])
+    ap.add_argument("task", choices=["t1", "t2", "t5", "t8", "t9", "cost"])
     ap.add_argument("--models", nargs="+", default=list(CANDIDATES))
     ap.add_argument("--N", nargs="+", type=float)
     ap.add_argument("--dt", nargs="+", type=float, default=[1.0])
     a = ap.parse_args()
     install()
     OUT.mkdir(parents=True, exist_ok=True)
+    if a.task == "cost":
+        import warp as wp
+        wp.init()
+        for model in a.models:
+            for r in mjw_cost(model):
+                H.append_row(OUT / "mjw_cost.jsonl", r)
+        return
     if a.task in ("t8", "t9"):
         out = OUT / ("t8_cycle.jsonl" if a.task == "t8" else "t9_sweep.jsonl")
         have = B.done(out)
