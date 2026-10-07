@@ -2,9 +2,11 @@
 """The bench reorientation of reorient_backends.py on MuJoCo-Warp: one batch of seeds per hand and condition.
 
 Same scene file (reorient_backends.build_scene), same schedule and scoring; each world is one seed (tool jitter
-of reorient_backends.jitter, seed 0 unjittered). A pad counts as engaged when the finger has at least one contact
-with the tool at penetration below zero; MuJoCo-Warp exposes no per-contact force here, so the row's pad forces
-are contact counts. This is the backend the RL pipeline trains on (mjlab, 2026-09).
+of reorient_backends.jitter, seed 0 unjittered, so world k pairs with the CPU and Drake rows of seed k). A pad
+force is the sum of the finger's contact normal forces on the tool (elliptic cone: the efc row at efc_address[c, 0]),
+and a finger counts as engaged when one of its contacts carries more than 1e-6 N, as in reorient_backends.run_mujoco
+(rows before 2026-10-07 hold contact counts in the force fields and count contacts at penetration below zero). This
+is the backend the RL pipeline trains on (mjlab, 2026-09).
 
     uv run --extra rl --extra gpu python scripts/reorient_backends_gpu.py --hands D7 --tips tpu6 --worlds 64
 Rows: docs/experiments/20261006-fingertip_backends/reorient_gpu.jsonl
@@ -36,6 +38,7 @@ def run_batch(hand, tip, model, plant, ir, mu, seeds, nconmax=768, njmax=3072, b
     plan, traj = RB.load_plan(hand)
     scene, meta = RB.build_scene(hand, tip, model, plant, "bed", ir, mu)
     m = mujoco.MjModel.from_xml_path(str(scene))
+    assert m.opt.cone == mujoco.mjtCone.mjCONE_ELLIPTIC, "normal force is read from the first efc row"
     d = mujoco.MjData(m)
     tb = m.body(RB.OBJ).id
     qa = m.jnt_qposadr[m.body_jntadr[tb]]
@@ -83,26 +86,32 @@ def run_batch(hand, tip, model, plant, ir, mu, seeds, nconmax=768, njmax=3072, b
     mjw.forward(wm, wd)
     wp.synchronize()
 
+    njmax_ = wd.efc.force.shape[1]
+
     def snap(t):
         q = wd.qpos.numpy()
         nacon = int(wd.nacon.numpy()[0])
         g = wd.contact.geom.numpy()[:nacon]
         wid = wd.contact.worldid.numpy()[:nacon]
-        dist = wd.contact.dist.numpy()[:nacon]
+        adr = wd.contact.efc_address.numpy()[:nacon, 0]
+        efc_f = wd.efc.force.numpy()
         cnt = np.zeros((nw, 3), int)
-        sel = (dist < 0) & (is_tool[g[:, 0]] | is_tool[g[:, 1]])
-        for (g0, g1), w in zip(g[sel], wid[sel]):
+        frc = np.zeros((nw, 3))
+        sel = (is_tool[g[:, 0]] | is_tool[g[:, 1]]) & (adr >= 0) & (adr < njmax_)
+        for (g0, g1), w, a in zip(g[sel], wid[sel], adr[sel]):
             o = g1 if is_tool[g0] else g0
             k = finger_of[o]
-            if k >= 0:
+            fn = float(efc_f[w, a])
+            if k >= 0 and fn > 1e-6:
                 cnt[w, k] += 1
+                frc[w, k] += fn
         for w in range(nw):
             qw = q[w, qa + 3:qa + 7].astype(float)
             qw /= np.linalg.norm(qw)
             R9 = np.zeros(9)
             mujoco.mju_quat2Mat(R9, qw)
             traces[w].append({"t": round(t, 4), "cos": float(R9[8]), "x": float(q[w, qa]), "y": float(q[w, qa + 1]),
-                              "z": float(q[w, qa + 2]), "F": {f: float(cnt[w, k]) for k, f in enumerate(RB.FINGERS)},
+                              "z": float(q[w, qa + 2]), "F": {f: round(float(frc[w, k]), 4) for k, f in enumerate(RB.FINGERS)},
                               "n": {f: int(cnt[w, k]) for k, f in enumerate(RB.FINGERS)}})
 
     t = 0.0
@@ -126,7 +135,7 @@ def run_batch(hand, tip, model, plant, ir, mu, seeds, nconmax=768, njmax=3072, b
         tr = traces[w]
         bad = (not all(np.isfinite([x["z"] for x in tr]))) or any(abs(x["z"]) > 2.0 for x in tr)
         res = RB.score(tr, segs) if not bad else {}
-        res.update(status="ejected" if bad else "complete", seed=s, jitter=RB.jitter(s),
+        res.update(status="ejected" if bad else "complete", seed=s, jitter=RB.jitter(s), F_unit="N",
                    trace_coarse=[[x["t"], round(x["cos"], 4), round(x["z"], 5), round(sum(x["F"].values()), 3),
                                   sum(1 for f in RB.FINGERS if x["n"][f] > 0)] for x in tr[::5]])
         rows.append(res)

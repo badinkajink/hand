@@ -13,8 +13,10 @@ hand and seed). Contact: 1 mm sphere pads in MuJoCo CPU, MuJoCo-Warp and Newton;
 the solver's inverse-weight sum; MuJoCo point contact (condim 3). A model without rows draws as "not run".
 
 Rows: the bed (20261005-contact_bed, 20261006-newton_mass_scaling), the plan replays (20261006-hom_turn3) and
-20261006-simulator_agreement (point contact; MuJoCo-Warp and Newton pads: plans_mjwarp_pads.jsonl,
-plans_newton_pads.jsonl, and twist_slip.jsonl / brake.jsonl rows with model mjw_pads1 or newton_pads1).
+20261006-simulator_agreement: point contact (plans_mujoco_pt.jsonl), MuJoCo-Warp and Newton pads
+(plans_mjwarp_pads.jsonl, plans_newton_pads.jsonl), the mass-corrected Newton turn rerun with pad forces
+(plans_newton_hydro_mc.jsonl), and the bed rows of contact_bed_newton.py --outdir there (twist_slip_newton.jsonl,
+brake_newton.jsonl: models mjw_pads1, newton_pads1, newton_hydro_mc).
 
   python3 scripts/simulator_agreement_figure.py   # writes a preview PNG next to the rows
 """
@@ -43,7 +45,7 @@ MODELS = [
     ("mj_pads", "MuJoCo CPU, 1 mm pads", "var(--c-sphere)", "circle", HT / "plans_mujoco.jsonl", "mj_pads1"),
     ("mjw_pads", "MuJoCo-Warp, 1 mm pads", "var(--c-c4)", "circle", SA / "plans_mjwarp_pads.jsonl", "mjw_pads1"),
     ("nt_pads", "Newton, 1 mm pads", "var(--c-newton)", "circle", SA / "plans_newton_pads.jsonl", "newton_pads1"),
-    ("nt_hydro", "Newton hydro, mass-corrected", "var(--c-newton)", "diamond", HT / "plans_newton_mc.jsonl",
+    ("nt_hydro", "Newton hydro, mass-corrected", "var(--c-newton)", "diamond", SA / "plans_newton_hydro_mc.jsonl",
      "newton_hydro_mc"),
     ("mj_pt", "MuJoCo CPU, point contact", "var(--ink3)", "square", SA / "plans_mujoco_pt.jsonl", "mj_point3"),
 ]
@@ -73,8 +75,8 @@ def _bed(files, field):
 def data():
     """Per model: twist ratios (0.5/1/3 N), brake (swing difference, held), turn pairs and grip-force ratios."""
     tw = _bed([BED / "twist_slip.jsonl", BED / "twist_slip_newton.jsonl", MSC / "twist_slip_newton.jsonl",
-               SA / "twist_slip.jsonl"], "tau_onset_Nm")
-    br = _bed([BED / "brake.jsonl", SA / "brake.jsonl"], "phi_max_deg")
+               SA / "twist_slip_newton.jsonl"], "tau_onset_Nm")
+    br = _bed([BED / "brake.jsonl", SA / "brake_newton.jsonl"], "phi_max_deg")
     dk = {(r["hand"], int(r["seed"])): r for r in jl(HT / "plans_drake.jsonl") if _ok(r)}
     out = {}
     for key, _lab, _col, _shape, turn_rows, bed_model in MODELS:
@@ -185,7 +187,7 @@ def svg_turn_pairs(D=None):
     D = D or data()
     PW, ML, MT, MB, GAP = 124, 40, 52, 44, 18
     W = ML + len(MODELS) * (PW + GAP)
-    lim = (-15.0, 75.0)
+    lim = (-20.0, 80.0)
     out = P._svg_open(W, MT + PW + MB, "Tool turn of each plan replay against Drake, one panel per contact model")
     span = lim[1] - lim[0]
     for i, (mk, _lab, col, shape, _f, _b) in enumerate(MODELS):
@@ -228,9 +230,19 @@ def svg_turn_pairs(D=None):
 
 
 def legend():
-    return P._legend_html([("filled: tool held to the end", "var(--ink2)", False, "circle"),
-                           ("hollow: tool dropped", "var(--ink2)", False, None),
-                           ("Drake hydroelastic and &#177;3&#176; or &#177;10&#8202;% band", "var(--c-drake)", False, None)])
+    def key(draw):
+        out = ['<svg viewBox="0 0 26 14" width="26" height="14" style="vertical-align:-2px">']
+        draw(out)
+        out.append("</svg>")
+        return "".join(out)
+    held = key(lambda o: P._marker(o, 13, 7, "var(--ink2)", r=4.2))
+    drop = key(lambda o: P._marker(o, 13, 7, "var(--ink2)", hollow=True, r=4.2))
+    drake = key(lambda o: o.append('<rect x="1" y="2" width="24" height="10" style="fill:color-mix(in srgb,'
+                                   'var(--c-drake) 16%,transparent)"/><line x1="1" x2="25" y1="7" y2="7" '
+                                   'style="stroke:var(--c-drake);stroke-width:1.5"/>'))
+    items = [(held, "tool held to the end"), (drop, "tool dropped or released"),
+             (drake, "Drake hydroelastic, &#177;3&#176; or &#177;10&#8202;% band")]
+    return ('<div class="legendrow">' + "".join(f"<span>{k} {t}</span>" for k, t in items) + "</div>")
 
 
 def main():

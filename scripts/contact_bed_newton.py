@@ -15,6 +15,13 @@ implicitfast, 200 iterations. Contact solimp is ".9 .9 .001 .5 2" on pads and to
 value of the SR2 probe rig. Models: `newton_hydro` (contact reduction on, anchor contact) and
 `newton_hydro_unreduced`.
 
+Sphere pads on the GPU backends (2026-10-07): `newton_pads1` puts the bed's 1 mm sphere pads (contact_bed_common
+`mj_pads1`, 127 spheres of 0.75 mm per pad) into Newton's point-contact pipeline, with each sphere's solimp d0
+recomputed from the inverse weights of Newton's own MuJoCo model, d0' = 1 - (1 - d0) w_mjcf / w_solver, where w is
+invweight0[pad] + invweight0[tool] (Newton's import gives the railed pad 16.7 1/kg against the MJCF compile's 50),
+and the friction gain kf set so that the friction rows keep the pads' 10 ms solref (NewtonRig._match_friction);
+`mjw_pads1` steps hom_contact_rig.MjRig's own model on MuJoCo-Warp in one world.
+
 The task logic is imported where it exists: T1 is `contact_bed_pull.run_case` on a Newton rig object
 with the MjRig/DrakeRig interface, T5 is `hom_contact_rig.exp_brake`, the T2 kinetic torque is
 `hom_contact_rig.exp_torsion`, T2 uses `contact_bed_twist.py` when present. One fsynced JSON line per
@@ -61,7 +68,9 @@ MODELS = {
     "newton_hydro_unreduced_mc": dict(reduce=False, mass_correct="solver"),
     "newton_hydro_mc_mjcf": dict(reduce=True, mass_correct="mjcf"),
     "newton_hydro_unreduced_mc_mjcf": dict(reduce=False, mass_correct="mjcf"),
+    "newton_pads1": dict(reduce=False, pads="mj:spheres:s1:rs0.75:ir100:tr0.02"),
 }
+MJW_MODELS = {"mjw_pads1": "mj:spheres:s1:rs0.75:ir100:tr0.02"}
 BASE = dict(kh=KH_PAD, tool_ratio=100.0, voxel=0.5e-3, band=0.006, impratio=100.0, kf=10.0,
             solimp="0.9 0.9 0.001 0.5 2", fallback="0.5 1", iterations=200, ls_iterations=50,
             tolerance=1e-8)
@@ -76,6 +85,10 @@ def git_rev():
 
 
 def rig_spec(model):
+    if model in MJW_MODELS:
+        return "mjw:" + MJW_MODELS[model]
+    if MODELS[model].get("pads"):
+        return "newton:" + MODELS[model]["pads"] + ":gap0.5:d0solver:kfmatch"
     c = dict(BASE, **MODELS[model])
     return (f"newton:hydro:kh{c['kh']:.3g}:tool{c['tool_ratio']:g}:vox{c['voxel'] * 1e3:g}:ir{c['impratio']:g}"
             f":kf{c['kf']:g}:{'reduced' if c['reduce'] else 'unreduced'}:solimp0.9:fallback0.5x1"
@@ -95,10 +108,13 @@ def done(path, key):
 
 def finish_row(row, task, model, dt_ms, status="complete", film=None):
     last = getattr(NewtonRig, "last", None)
-    if model in MODELS and last is not None and last.model_name == model:
+    if (model in MODELS or model in MJW_MODELS) and last is not None and last.model_name == model:
         row.setdefault("kh_scale", last.kh_scale)
         row.setdefault("inv_weight0", last.inv_w)
-    row.update(task=task, model=model, rig_spec=rig_spec(model) if model in MODELS else row.get("rig_spec"),
+        if getattr(last, "pad_d0", None):
+            row.setdefault("pad_d0", last.pad_d0)
+    known = model in MODELS or model in MJW_MODELS
+    row.update(task=task, model=model, rig_spec=rig_spec(model) if known else row.get("rig_spec"),
                dt_ms=dt_ms, status=row.get("status", status), film=film, script=SCRIPT, git_rev=git_rev(),
                when=time.strftime("%Y-%m-%d %H:%M"))
     return row
@@ -121,15 +137,33 @@ class NewtonRig:
         self.wp, self.newton = wp, newton
         c = dict(BASE, **MODELS[model])
         self.cfg, self.model_name, self.dt = c, model, dt
-        sp = H.parse_spec("mj:point3:ir100")
+        pads = c.get("pads")
+        self.pad_d0 = None
         dt_old = H.DT
         H.DT = dt
-        xml, _ = H.mj_xml(sp, d_cg, gravity)
-        H.DT = dt_old
+        try:
+            if pads:
+                # MjRig's two-pass compile sets each sphere's solimp d0 from the MJCF inverse weights
+                cpu = H.MjRig(H.parse_spec(pads), d_cg, gravity)
+                xml, d0_mjcf, w_mjcf = cpu.xml, cpu.info["solimp_d0"], cpu.info["diagApprox"]
+            else:
+                xml, _ = H.mj_xml(H.parse_spec("mj:point3:ir100"), d_cg, gravity)
+        finally:
+            H.DT = dt_old
         if xml_hook is not None:
             xml = xml_hook(xml)
-        xml = re.sub(r'solref="[^"]*"', f'solref="{c["fallback"]}"', xml)
-        xml = re.sub(r'solimp="[^"]*"', f'solimp="{c["solimp"]}"', xml)
+        if not pads:
+            xml = re.sub(r'solref="[^"]*"', f'solref="{c["fallback"]}"', xml)
+            xml = re.sub(r'solimp="[^"]*"', f'solimp="{c["solimp"]}"', xml)
+        else:
+            # Newton's import gives the railed pads other inverse weights than the MJCF compile: probe its model
+            # and rescale d0 so that each sphere contact keeps K_s = 1 / (tc^2 (1 - d0) w)
+            w_new = self._probe_invweight(xml, gravity)
+            d0_new = 1.0 - (1.0 - d0_mjcf) * w_mjcf / w_new
+            if d0_new < 0.05:
+                raise ValueError(f"pad d0 {d0_new:.3f} below 0.05 on Newton's inverse weights")
+            xml = xml.replace(f'solimp="{d0_mjcf:.6g} {d0_mjcf:.6g} ', f'solimp="{d0_new:.6g} {d0_new:.6g} ')
+            self.pad_d0 = {"mjcf": d0_mjcf, "solver": d0_new, "w_mjcf": w_mjcf, "w_solver": w_new}
         self.xml = xml
         self.kh_scale = 1.0
         if c.get("mass_correct") == "mjcf":
@@ -141,9 +175,13 @@ class NewtonRig:
         b = newton.ModelBuilder(gravity=tuple(float(x) for x in g))
         b.add_mjcf(xml, ctrl_direct=True, parse_sites=False, parse_visuals=False)
         self.hydro_shapes = {}
+        if pads:
+            for i in range(len(b.shape_gap)):      # MuJoCo's margin 0; a 0.5 mm gap as in newton_turn.py
+                b.shape_gap[i] = 0.0005
+                b.shape_margin[i] = 0.0
         for i, label in enumerate(b.shape_label):
             name = label.split("/")[-1]
-            if name not in ("padL", "padR", "tool"):
+            if pads or name not in ("padL", "padR", "tool"):
                 continue
             b.shape_flags[i] |= int(newton.ShapeFlags.HYDROELASTIC)
             b.shape_sdf_target_voxel_size[i] = c["voxel"]
@@ -158,9 +196,10 @@ class NewtonRig:
             b.shape_material_mu_rolling[i] = 0.0
             self.hydro_shapes[i] = name
         self.model = b.finalize(device="cuda:0")
-        hc = HydroelasticSDF.Config(reduce_contacts=c["reduce"], anchor_contact=True)
+        kw = {} if pads else {"sdf_hydroelastic_config": HydroelasticSDF.Config(reduce_contacts=c["reduce"],
+                                                                                anchor_contact=True)}
         self.pipe = newton.CollisionPipeline(self.model, reduce_contacts=c["reduce"], rigid_contact_max=8192,
-                                             broad_phase="explicit", sdf_hydroelastic_config=hc)
+                                             broad_phase="explicit", **kw)
         self.solver = newton.solvers.SolverMuJoCo(
             self.model, use_mujoco_contacts=False, disable_sensors=True, njmax=16384, nconmax=8192,
             iterations=c["iterations"], ls_iterations=c["ls_iterations"], cone="elliptic", jacobian="dense",
@@ -175,17 +214,26 @@ class NewtonRig:
         self.shape_side = {i: n[-1] for i, n in self.hydro_shapes.items() if n.startswith("pad")}
         mjm = self.solver.mj_model
         self.geom_side = {}
+        m2n = self.solver.mjc_body_to_newton.numpy()[0]  # MuJoCo body -> Newton body (world 0)
         for gi in range(mjm.ngeom):
+            if pads:                                     # every colliding sphere on a pad body
+                nb = int(m2n[int(mjm.geom_bodyid[gi])])
+                nm = labels[nb] if 0 <= nb < len(labels) else ""
+                if nm in ("padL", "padR") and (mjm.geom_contype[gi] or mjm.geom_conaffinity[gi]):
+                    self.geom_side[gi] = nm[-1]
+                continue
             nm = re.sub(r"_\d+$", "", (mjm.geom(gi).name or "").split("/")[-1])
             if nm in ("padL", "padR"):
                 self.geom_side[gi] = nm[-1]
         self.inv_w = {}
-        m2n = self.solver.mjc_body_to_newton.numpy()[0]  # MuJoCo body -> Newton body (world 0)
         for bi in range(mjm.nbody):
             nb = int(m2n[bi])
             nm = labels[nb] if 0 <= nb < len(labels) else ""
             if nm in ("padL", "padR", "tool"):
                 self.inv_w[nm] = float(mjm.body_invweight0[bi, 0])
+        if pads:
+            self.pad_d0["kf"] = self._match_friction(self.model, self.pad_d0["solver"], self.inv_w["padL"] + self.inv_w["tool"],
+                                                     c["impratio"])
         if c.get("mass_correct") == "solver":
             self.kh_scale = self.inv_w["padL"] + self.inv_w["tool"]  # 1 / m_eff of the pad-tool contact, 1/kg
             kh = self.model.shape_material_kh.numpy()
@@ -207,6 +255,33 @@ class NewtonRig:
             body_f[bi] = wp.spatial_vector(f, tau)
 
         self._wrench_kernel = _wrench
+
+    @staticmethod
+    def _match_friction(model, d0, w, impratio, tc=0.01):
+        """Friction gain kf on every shape so that SolverMuJoCo's elliptic-cone mapping, friction time constant
+        2 / (kf w ((1 - d0) / impratio + d0)) (kernels.py, 'force-space friction slope'), gives the friction rows the
+        pads' own solref time constant tc, MuJoCo's default (solreffriction 0 = solref). Newton's importer sets kf
+        1000, a 4e-5 s time constant. Returns kf."""
+        kf = 2.0 / (tc * w * ((1.0 - d0) / impratio + d0))
+        model.shape_material_kf.assign(np.full(model.shape_count, kf, dtype=np.float32))
+        return float(kf)
+
+    @staticmethod
+    def _probe_invweight(xml, gravity):
+        """invweight0[pad] + invweight0[tool] of the MuJoCo model SolverMuJoCo builds from this MJCF."""
+        import newton
+        b = newton.ModelBuilder(gravity=(0.0, 0.0, -H.G) if gravity else (0.0, 0.0, 0.0))
+        b.add_mjcf(xml, ctrl_direct=True, parse_sites=False, parse_visuals=False)
+        m = b.finalize(device="cuda:0")
+        sol = newton.solvers.SolverMuJoCo(m, use_mujoco_contacts=False, disable_sensors=True, njmax=64, nconmax=16)
+        labels = [x.split("/")[-1] for x in m.body_label]
+        m2n = sol.mjc_body_to_newton.numpy()[0]
+        w = {}
+        for bi in range(sol.mj_model.nbody):
+            nb = int(m2n[bi])
+            if 0 <= nb < len(labels):
+                w[labels[nb]] = float(sol.mj_model.body_invweight0[bi, 0])
+        return w["padL"] + w["tool"]
 
     @property
     def t(self):
@@ -307,6 +382,94 @@ class NewtonRig:
     def pad_x(self):
         q = self.s0.body_q.numpy()
         return {s: float(q[b, 0]) for s, b in self.pads.items()}
+
+
+class MjwRig(H.MjRig):
+    """hom_contact_rig.MjRig stepped by MuJoCo-Warp in one world: the same MJCF, pad solimp and solver options.
+    ctrl and xfrc_applied go from the CPU MjData to the device before each step call and qpos, qvel and time come
+    back after it, so tool_state and pad_x read the CPU data unchanged. One step is captured as a CUDA graph.
+    Contact normal forces are the elliptic-cone rows efc_address[c, 0]."""
+
+    sim = "mujoco"
+
+    def __init__(self, model, dt, d_cg=0.0, gravity=False, recorder=None):
+        import mujoco_warp as mjw
+        import warp as wp
+        self.model_name, self.dt, self.mjw, self.wp = model, dt, mjw, wp
+        dt_old = H.DT
+        H.DT = dt
+        try:
+            super().__init__(H.parse_spec(MJW_MODELS[model]), d_cg, gravity)
+        finally:
+            H.DT = dt_old
+        self.kh_scale, self.inv_w = 1.0, {n: float(self.m.body_invweight0[self.m.body(n).id, 0])
+                                          for n in ("padL", "padR", "tool")}
+        self.pad_d0 = {"mjcf": self.info["solimp_d0"], "solver": self.info["solimp_d0"]}
+        self.N, self.f_tool, self.tau_tool = 0.0, np.zeros(3), np.zeros(3)
+        self.wm = mjw.put_model(self.m)
+        self.wd = mjw.make_data(self.m, nworld=1, nconmax=1024, njmax=4096)
+        q0, v0 = self.d.qpos.copy(), self.d.qvel.copy()
+        mjw.forward(self.wm, self.wd)
+        wp.synchronize()
+        with wp.ScopedCapture() as cap:
+            mjw.step(self.wm, self.wd)
+        self.graph = cap.graph
+        self.wd.qpos.assign(q0[None].astype(np.float32))
+        self.wd.qvel.assign(v0[None].astype(np.float32))
+        self.wd.time.zero_()
+        if hasattr(self.wd, "qacc_warmstart"):
+            self.wd.qacc_warmstart.zero_()
+        mjw.forward(self.wm, self.wd)
+        wp.synchronize()
+        NewtonRig.last = self
+
+    def set_pad_force(self, N):
+        self.N = float(N)
+        super().set_pad_force(N)
+
+    def set_tool_wrench(self, f, tau):
+        self.f_tool, self.tau_tool = np.asarray(f, float), np.asarray(tau, float)
+        super().set_tool_wrench(f, tau)
+
+    def step(self, T):
+        n = max(1, int(round(T / self.dt)))
+        self.wd.ctrl.assign(self.d.ctrl[None].astype(np.float32))
+        self.wd.xfrc_applied.assign(self.d.xfrc_applied[None].astype(np.float32))
+        for _ in range(n):
+            self.wp.capture_launch(self.graph)
+        self.d.qpos[:] = self.wd.qpos.numpy()[0]
+        self.d.qvel[:] = self.wd.qvel.numpy()[0]
+        self.d.time = float(self.wd.time.numpy()[0])
+
+    def contacts(self):
+        out = {s: {"N": 0.0, "cop": np.zeros(3), "n": 0} for s in "LR"}
+        n = int(self.wd.nacon.numpy()[0])
+        if n == 0:
+            return out
+        geom = self.wd.contact.geom.numpy()[:n]
+        adr = self.wd.contact.efc_address.numpy()[:n, 0]
+        pos = self.wd.contact.pos.numpy()[:n].astype(float)
+        force = self.wd.efc.force.numpy()[0]
+        acc = {s: np.zeros(3) for s in "LR"}
+        for (g0, g1), a, pc in zip(geom, adr, pos):
+            side = self.geom_side.get(int(g0)) or self.geom_side.get(int(g1))
+            if side is None or a < 0 or a >= force.shape[0]:
+                continue
+            fn = float(force[a])
+            out[side]["N"] += fn
+            out[side]["n"] += 1 if fn > 1e-6 else 0
+            acc[side] += fn * pc
+        for side in "LR":
+            if out[side]["N"] > 1e-9:
+                out[side]["cop"] = acc[side] / out[side]["N"]
+        return out
+
+
+def bed_rig(model, dt, d_cg=0.0, gravity=False, recorder=None):
+    """The rig of a bed model: MuJoCo-Warp for MJW_MODELS, Newton otherwise."""
+    if model in MJW_MODELS:
+        return MjwRig(model, dt, d_cg=d_cg, gravity=gravity)
+    return NewtonRig(model, dt, d_cg=d_cg, gravity=gravity, recorder=recorder)
 
 
 # ------------------------------------------------------------------------------------- films
@@ -586,11 +749,11 @@ def run_twist(model, N, dt_ms, film=None):
         recorder = None
         if film and rec["n"] == 1:
             recorder = rec["ramp"] = Recorder(0.02, info=info)
-        return NewtonRig(model, dt, d_cg=d_cg, gravity=gravity, recorder=recorder)
+        return bed_rig(model, dt, d_cg=d_cg, gravity=gravity, recorder=recorder)
 
     def make_rig(spec, d_cg=0.0, gravity=True, kinematic=False):
         recorder = rec["spin"] = Recorder(0.04, info=info) if film else None
-        return NewtonRig(model, H.DT, d_cg=d_cg, gravity=gravity, recorder=recorder)
+        return bed_rig(model, H.DT, d_cg=d_cg, gravity=gravity, recorder=recorder)
 
     B.new_rig = new_rig
     H.make_rig = make_rig
@@ -649,7 +812,7 @@ def run_brake(model, dt_ms, film=None):
 
     def make_rig(spec, d_cg=0.0, gravity=True, kinematic=False):
         rec["r"] = Recorder(0.04, info=info) if film else None
-        return NewtonRig(model, H.DT, d_cg=d_cg, gravity=gravity, recorder=rec["r"])
+        return bed_rig(model, H.DT, d_cg=d_cg, gravity=gravity, recorder=rec["r"])
 
     H.make_rig = make_rig
     row = BR.run_case(model, dt_ms, film=False)

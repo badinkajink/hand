@@ -22,10 +22,12 @@ from collections import defaultdict
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "scripts"))
 import contact_overview_page as P  # noqa: E402
+import simulator_agreement_figure as SAF  # noqa: E402
 
 D = os.path.join(ROOT, "docs/experiments/20261006-hom_turn3")
 CAL = os.path.join(ROOT, "docs/experiments/20261006-servo_recalibration")
 RLD = os.path.join(ROOT, "docs/experiments/20261006-rl_contact")
+SAD = os.path.join(ROOT, "docs/experiments/20261006-simulator_agreement")
 OUT = os.path.join(D, "20261006-servo_refit_hom_turn_pad_cost.html")
 TPL = os.path.join(ROOT, "scripts/hom_turn_rl_contact_page.template.html")
 PREV_PATH = "docs/experiments/20261006-fingertip_backends/20261006-fingertip_contact_backends.html"
@@ -97,6 +99,13 @@ def table(head, rows, cls=""):
 
 
 FIG, TAB = [0], [0]
+REF = {}        # figure and table numbers that later sections cite
+
+
+def mark(key):
+    """Record the number of the table just captioned under `key`, for a later section to cite."""
+    REF[key] = TAB[0]
+    return ""
 
 
 def figure(svg, caption):
@@ -158,6 +167,14 @@ GLOSSARY = [
     ("onset torque", "contact bed, twist task: a torque about the pinch axis ramps up on the pinched tool; the onset torque is the "
                      "last value at which the spin speed still follows the creep law w = k&#8202;&#964;, in mN&#8202;m. "
                      "Drake hydroelastic gives 0.84, 1.97 and 7.65&#8202;mN&#8202;m at 0.5, 1 and 3&#8202;N."),
+    ("largest swing", "contact bed, brake task: the pinch on the tool, whose centre of mass sits 15&#8202;mm off the pinch "
+                      "line, is held at 6&#8202;N for 0.5&#8202;s and lowered geometrically to 0.2&#8202;N over 4&#8202;s; the "
+                      "largest swing is the largest angle of the tool axis below horizontal over the run, in degrees "
+                      "(90&#176; = hanging). Drake hydroelastic gives 87.3&#176;."),
+    ("grip force", "sum of the three fingertips&#8217; normal forces on the tool at the end of the hold of an open-loop plan "
+                   "replay, in N."),
+    ("within 3&#176;", "a plan replay whose tool turn at the end is within 3&#176; of Drake&#8217;s on the same hand and "
+                       "placement, with the tool held in both."),
     ("env steps/s", "policy steps per second summed over all parallel environments of the RL training env; one env step "
                     "is 10 physics steps of 2&#8202;ms plus observations, rewards and terminations."),
     ("physics &#181;s per world-step", "wall time of one batched physics step divided by the number of worlds."),
@@ -286,7 +303,7 @@ def plant_section():
         "that part of the fit is not used here.</p>",
         "<p>The rest of this page runs the <b>working plant</b>: kp 4&#8202;N&#8202;m/rad, &#964; 0.02&#8202;s (joint damping "
         "0.08), torque limit 1&#8202;N&#8202;m, no joint friction, &#956; 1.0 (<code>reorient_backends</code> plant spec "
-        "<code>kp4_kv0_fr1_fl0_dp0.08</code>). A gain measurement needs a known torque on a joint (Section&#160;6).</p>",
+        "<code>kp4_kv0_fr1_fl0_dp0.08</code>). A gain measurement needs a known torque on a joint (Section&#160;7).</p>",
     ]
     return "\n".join(out)
 
@@ -306,61 +323,15 @@ def hom_data():
             continue
         mode = "gov" if r.get("prm_governor") else "free"
         hom[(r["hand"], r["sim"], mode)].append(r)
-    for key, fn in (("plans_nt", "plans_newton_mc.jsonl"), ("plans_nt_raw", "plans_newton.jsonl")):
+    for key, path in (("plans_nt", os.path.join(SAD, "plans_newton_hydro_mc.jsonl")),
+                      ("plans_nt_1006", os.path.join(D, "plans_newton_mc.jsonl")),
+                      ("plans_nt_raw", os.path.join(D, "plans_newton.jsonl"))):
         rows = defaultdict(list)
-        for r in jl(os.path.join(D, fn)):
+        for r in jl(path):
             if r.get("status") == "complete":
                 rows[r["hand"]].append(r)
         hom[key] = rows
     return plans_mj, plans_dk, hom
-
-
-def svg_turns(plans_mj, plans_dk, hom):
-    W, Hh = 720, 380
-    x0, y0, w, h = 70, 24, 610, 300
-    out = P._svg_open(W, Hh, "Tool turn per hand: open-loop plan and HOM controller in MuJoCo and Drake")
-    xs = (-10, 90)
-    fx = lambda v: x0 + (v - xs[0]) / (xs[1] - xs[0]) * w  # noqa: E731
-    rowh = h / len(HANDS)
-    for v in range(0, 91, 15):
-        out.append(f'<line x1="{fx(v):.1f}" x2="{fx(v):.1f}" y1="{y0}" y2="{y0 + h}" style="stroke:var(--rule2)"/>')
-        out.append(f'<text x="{fx(v):.1f}" y="{y0 + h + 16}" text-anchor="middle" style="fill:var(--ink3)">{v}</text>')
-    out.append(f'<text x="{x0 + w / 2:.1f}" y="{y0 + h + 34}" text-anchor="middle" style="fill:var(--ink2)">'
-               'tool turn (&#176;); hollow = dropped by the end</text>')
-    series = [("plan", "var(--ink3)", "square", -0.33), ("plan_dk", "var(--c-drake)", "square", -0.2),
-              ("plan_nt", "var(--c-newton)", "square", -0.07), ("gov", "var(--s1)", "circle", 0.07),
-              ("gov_dk", "var(--s2)", "circle", 0.2), ("free", "var(--bad)", "diamond", 0.33)]
-    for i, hd in enumerate(HANDS):
-        yc = y0 + (i + 0.5) * rowh
-        out.append(f'<text x="{x0 - 12}" y="{yc + 4:.1f}" text-anchor="end" style="fill:var(--ink)">{hd}</text>')
-        out.append(f'<line x1="{x0}" x2="{x0 + w}" y1="{y0 + (i + 1) * rowh:.1f}" y2="{y0 + (i + 1) * rowh:.1f}" '
-                   f'style="stroke:var(--rule)"/>')
-        for key, col, shape, off in series:
-            if key == "plan":
-                pts = [(r["turn_end_deg"], r["held_end"]) for r in plans_mj.get(hd, [])]
-            elif key == "plan_dk":
-                pts = [(r["turn_end_deg"], r["held_end"]) for r in plans_dk.get(hd, [])]
-            elif key == "plan_nt":
-                pts = [(r["turn_end_deg"], r["held_end"]) for r in hom["plans_nt"].get(hd, [])]
-            elif key == "gov":
-                pts = [(r["turn_end_deg"], r["held"]) for r in hom.get((hd, "mujoco", "gov"), [])]
-            elif key == "gov_dk":
-                pts = [(r["turn_end_deg"], r["held"]) for r in hom.get((hd, "drake", "gov"), [])]
-            else:
-                pts = [(r["turn_held2_max_deg"], r["held"]) for r in hom.get((hd, "mujoco", "free"), [])]
-            for v, held in pts:
-                if v is None or v < xs[0] - 50:
-                    continue
-                v = max(xs[0], min(xs[1], v))
-                P._marker(out, fx(v), yc + off * rowh, col, shape=shape, hollow=not held, r=3.6)
-    out.append("</svg>")
-    leg = P._legend_html([("open-loop plan, MuJoCo", "var(--ink3)", False, "square"),
-                          ("open-loop plan, Drake", "var(--c-drake)", False, "square"),
-                          ("open-loop plan, Newton hydroelastic, mass-corrected", "var(--c-newton)", False, "square"),
-                          ("HOM with governor, MuJoCo (end)", "var(--s1)", False, "circle"),
-                          ("HOM with governor, Drake (end)", "var(--s2)", False, "circle"),
-                          ("HOM without governor, MuJoCo (held peak)", "var(--bad)", False, "diamond")])
-    return "\n".join(out) + leg
 
 
 def hom_section():
@@ -445,9 +416,12 @@ def hom_section():
              "B: the plan in Drake. C: HOM controller with governor, MuJoCo, turn at the end. D: the same in Drake. "
              "E: HOM controller without governor, MuJoCo, held peak. F: the plan in Newton with the TPU block as one "
              "hydroelastic mesh, stiffness divided by the tip&#8211;tool effective mass (<code>newton_turn.py --mass-correct</code>, "
-             "rows <code>plans_newton_mc.jsonl</code>)."),
-        figure(svg_turns(plans_mj, plans_dk, hom),
-               "Tool turn of every rollout of Table&#160;3. Hollow markers dropped the tool by the end."),
+             "rows <code>docs/experiments/20261006-simulator_agreement/plans_newton_hydro_mc.jsonl</code>)."),
+        figure(SAF.svg_turn_pairs() + SAF.legend(),
+               "Tool turn at the end of each open-loop plan replay against Drake&#8217;s on the same hand and placement "
+               "(D1&#8211;D8, placements 0&#8211;2: 24 pairs per panel), one panel per contact model, all on the TPU tip "
+               "with 2.7&#8202;mm fillets and the working plant. The shaded band is &#177;3&#176; about Drake. Hollow "
+               "markers dropped the tool by the end. Section&#160;5 compares the same models on the contact bed."),
         f"<p>On the working plant the deployed open-loop plans hold the tool on {n_pm_held} of {n_pm} MuJoCo placements and "
         f"turn it {f(min(plan_vals), 0)}&#8211;{f(max(plan_vals), 0)}&#176; (hand medians)"
         + (f"; Drake holds {n_pd_held} of {n_pd} and turns within a few degrees of MuJoCo" if n_pd else "")
@@ -475,11 +449,13 @@ def hom_section():
         "earlier squeeze phase that ramped the force target up from 0&#8202;N let D7 reach 52&#8211;65&#176; on all five "
         "placements and dropped D1 on two of five; the rows above use the version that holds 2&#8202;N from the start.</p>",
         grasp_search_section(),
-        film("media/D7_s0_three.mp4", "D7, seed 0. Left: deployed open-loop plan. Middle: HOM controller with governor. "
-             "Right: without governor. Pads touching the tool are red. MuJoCo, working plant.", "media/D7_s0_three.jpg"),
-        film("media/D2_s0_three.mp4", "D2, seed 0, as Figure&#160;2.", "media/D2_s0_three.jpg"),
-        film("media/D5_s0_three.mp4", "D5, seed 0, as Figure&#160;2.", "media/D5_s0_three.jpg"),
     ]
+    out.append(film("media/D7_s0_three.mp4", "D7, seed 0. Left: deployed open-loop plan. Middle: HOM controller with "
+                    "governor. Right: without governor. Pads touching the tool are red. MuJoCo, working plant.",
+                    "media/D7_s0_three.jpg"))
+    n7 = FIG[0]
+    out.append(film("media/D2_s0_three.mp4", f"D2, seed 0, as Figure&#160;{n7}.", "media/D2_s0_three.jpg"))
+    out.append(film("media/D5_s0_three.mp4", f"D5, seed 0, as Figure&#160;{n7}.", "media/D5_s0_three.jpg"))
     return "\n".join(out)
 
 
@@ -502,6 +478,21 @@ def bed_rows():
         if r.get("dt_ms", 1.0) == 1.0 and r.get("status", "complete") == "complete" and r.get("tau_onset_Nm"):
             onset[(r["model"], r["N"])] = 1e3 * r["tau_onset_Nm"]
     return sink, onset, scale
+
+
+def nt_vs_mujoco(plans_mj, mc):
+    """Hands whose median Newton turn (held placements turned more than 10 deg) is within 5 deg of MuJoCo's median,
+    short of it, or further: three lists of (hand, Newton minus MuJoCo in deg)."""
+    close, short, further = [], [], []
+    turned = [r for r in mc if r["held_end"] and r["turn_end_deg"] > 10]
+    for h in HANDS:
+        t_nt = med([r["turn_end_deg"] for r in turned if r["hand"] == h])
+        t_mj = med([r["turn_end_deg"] for r in plans_mj.get(h, [])])
+        if t_nt is None or t_mj is None:
+            continue
+        d = t_nt - t_mj
+        (close if abs(d) <= 5 else short if d < 0 else further).append((h, d))
+    return close, short, further
 
 
 def newton_section():
@@ -575,14 +566,8 @@ def newton_section():
         lost_turn = [r for r in mc if not r["held_end"] and r["z_grip"] >= 0.05]
         raw_held = sum(r["held_end"] for r in raw)
         raw_grip = sum(1 for r in raw if r["z_grip"] < 0.05)
-        close, short, further = [], [], []
-        for h in HANDS:
-            t_nt = med([r["turn_end_deg"] for r in turned if r["hand"] == h])
-            t_mj = med([r["turn_end_deg"] for r in plans_mj.get(h, [])])
-            if t_nt is None or t_mj is None:
-                continue
-            d = t_nt - t_mj
-            (close if abs(d) <= 5 else short if d < 0 else further).append((h, d))
+        close, short, further = nt_vs_mujoco(plans_mj, mc)
+        n_1006 = sum(r["held_end"] for h in HANDS for r in hom["plans_nt_1006"].get(h, []))
         by_hand = defaultdict(list)
         for r in still:
             by_hand[r["hand"]].append(r["seed"])
@@ -600,7 +585,8 @@ def newton_section():
             f"{f(wtool, 1)}; m<sub>eff</sub> = {f(1e3 / (wt + wtool), 1)}&#8202;g, so each tip&#8217;s kh is multiplied by "
             f"{f(wt + wtool, 1)}&#8202;1/kg and the tool&#8217;s kh is 100 times the largest tip kh "
             f"(<code>scripts/newton_turn.py --mass-correct</code>). The deployed plans then hold the tool on {n_held} of "
-            f"{len(mc)} placements, against {raw_held} of {len(raw)} uncorrected (Table&#160;3, column F; uncorrected rows "
+            f"{len(mc)} placements ({n_1006} in a run of the same placements on 2026-10-06), against {raw_held} of "
+            f"{len(raw)} uncorrected (Table&#160;3, column F; uncorrected rows "
             f"<code>plans_newton.jsonl</code>, {raw_grip} of the 40 lost the tool during the grip). {len(turned)} of the "
             f"held placements turn the tool more than 10&#176;. On {len(still)} ({still_txt}) the tool stays in the grip "
             f"but turns less than 5&#176;. {len(fell_grip)} placements "
@@ -609,6 +595,105 @@ def newton_section():
             f"{cmp_txt}.</p>",
         ]
     return "\n".join(out)
+
+
+AG_LABEL = {"mj_pads": "MuJoCo CPU, 1&#8202;mm pads", "mjw_pads": "MuJoCo-Warp, 1&#8202;mm pads",
+            "nt_pads": "Newton, 1&#8202;mm pads", "nt_hydro": "Newton hydroelastic, mass-corrected",
+            "mj_pt": "MuJoCo CPU, point contact"}
+
+
+def agreement_section():
+    A = SAF.data()
+    dk = [r for r in jl(os.path.join(D, "plans_drake.jsonl")) if r.get("status", "complete") == "complete"]
+    rows, brake_drake = [], None
+    for r in jl(os.path.join(BED, "brake.jsonl")):
+        if r.get("model") == "drake_hydro" and r.get("dt_ms") == 1.0:
+            brake_drake = r["phi_max_deg"]
+    allrows = {}
+    for key, _lab, _col, _shape, path, _bed in SAF.MODELS:
+        allrows[key] = [r for r in jl(str(path)) if r.get("status", "complete") == "complete"]
+
+    def rng(v, nd=2):
+        v = [x for x in v if x is not None]
+        if not v:
+            return "&#8211;"
+        a, b = f(min(v), nd), f(max(v), nd)
+        return a if a == b else f"{a}&#8211;{b}"
+    for key, *_ in SAF.MODELS:
+        a = A[key]
+        tw = " / ".join(f(x, 2) for x in a["twist"]) if a.get("twist") else "not run"
+        br = (f"{'+' if a['brake'][0][0] >= 0 else '&#8722;'}{f(abs(a['brake'][0][0]), 1)}"
+              + ("" if a["brake"][0][1] else " (released)")) if a.get("brake") else "not run"
+        ar = allrows[key]
+        rows.append([(AG_LABEL[key], "lab"), tw, br,
+                     f"{a['within']}/{a['n']}" if "turn" in a else "&#8211;",
+                     f"{a['held']}/{a['n']}" if "turn" in a else "&#8211;",
+                     f"{sum(r['held_end'] for r in ar)}/{len(ar)}" if ar else "&#8211;",
+                     rng([g for g, _ in a.get("grip", [])])])
+    tab = table(["Contact model", "onset torque &#247; Drake", "swing &#8722; Drake (&#176;)", "within 3&#176;",
+                 "held, pairs", "held, all", "grip &#247; Drake"], rows)
+    pads = [k for k in ("mj_pads", "mjw_pads", "nt_pads") if A[k].get("twist")]
+    tw_p = [x for k in pads for x in A[k]["twist"]]
+    br_p = [abs(A[k]["brake"][0][0]) for k in pads if A[k].get("brake")]
+    gr_p = [g for k in pads for g, _ in A[k].get("grip", [])]
+    nt, hy, pt = A["nt_pads"], A["nt_hydro"], A["mj_pt"]
+    kf_row = next((r for r in jl(os.path.join(SAD, "brake_newton.jsonl")) if r.get("model") == "newton_pads1"), {})
+    kf_bed = (kf_row.get("pad_d0") or {}).get("kf")
+    d0b = kf_row.get("pad_d0") or {}
+    kf_hand = next((r.get("pad_kf") for r in allrows["nt_pads"] if r.get("pad_kf")), None)
+    old_br = next((r for r in jl(os.path.join(ROOT, "logs/20261007-agreement/brake_newton_newton_pads1_kf1000.jsonl"))), {})
+    out = [
+        "<p>Figure&#160;{fig} compares five fingertip contact models with Drake&#8217;s hydroelastic contact (the TPU block "
+        "as a compliant convex, E 10&#8202;MPa, Section&#160;3) on three tasks with one fingertip shape (the TPU block with "
+        "2.7&#8202;mm fillets), one control method (open-loop replay) and one sphere packing (0.75&#8202;mm spheres at "
+        "1&#8202;mm): the twist and the brake on the two-pad contact bed of 2026-10-05, and the plan replay of the "
+        "three-finger turn on D1&#8211;D8, paired with Drake by hand and placement (placements 0&#8211;2, 24 pairs). The "
+        "models are the 1&#8202;mm pads in CPU MuJoCo, in MuJoCo-Warp (<code>reorient_backends_gpu.py</code>; bed model "
+        "<code>mjw_pads1</code> in <code>contact_bed_newton.py</code>) and in Newton&#8217;s point-contact pipeline "
+        "(<code>newton_turn.py --contact pads</code>; bed model <code>newton_pads1</code>), Newton&#8217;s hydroelastic contact "
+        "on the plain block with kh divided by the effective mass (Section&#160;4), and MuJoCo point contact on the block "
+        "mesh (condim 3). Rows: <code>docs/experiments/20261006-simulator_agreement/</code>; figure "
+        "<code>scripts/simulator_agreement_figure.py</code>.</p>",
+        "<p>Newton needs two settings carried over for the pads to be the same model as MuJoCo&#8217;s. The pads&#8217; "
+        "solimp d0 holds the inverse weights of the model it was computed on; Newton&#8217;s import gives the bed&#8217;s "
+        f"railed pads {f((kf_row.get('inv_weight0') or {}).get('padL'), 1)}&#8202;1/kg against the MJCF "
+        f"compile&#8217;s 50, so d0 is recomputed from the solver&#8217;s model ({f(d0b.get('mjcf'), 3)} &#8594; "
+        f"{f(d0b.get('solver'), 3)}); on the hand the two sets of inverse weights agree to 10<sup>&#8722;7</sup>. Newton&#8217;s "
+        "importer also gives every shape a friction gain kf of 1000, which SolverMuJoCo turns into a friction-row time "
+        "constant of 4&#215;10<sup>&#8722;5</sup>&#8202;s for elliptic cones, where MuJoCo gives the friction rows the "
+        "pads&#8217; own solref, 10&#8202;ms"
+        + (f". With kf 1000 the braked tool swung to {f(old_br['phi_max_deg'], 0)}&#176;, past hanging" if old_br else "")
+        + f"; with kf set so that the friction rows keep 10&#8202;ms ({f(kf_bed, 1)} on the bed"
+        + (f", {rng(list(kf_hand.values()), 1)} on the three fingertips" if kf_hand else "")
+        + ") the swing matches MuJoCo&#8217;s.</p>",
+        "FIGURE",
+        tab,
+        tcap("Agreement with Drake hydroelastic per contact model (Figure&#160;{fig}). Onset torque: contact bed twist at "
+             "0.5 / 1 / 3&#8202;N, divided by Drake&#8217;s. Swing: largest swing in the contact bed brake, difference from "
+             f"Drake&#8217;s {f(brake_drake, 1)}&#176;; released = the tool left the pinch. Within 3&#176; and held, pairs: the "
+             "24 plan replays paired with Drake; held, all: placements 0&#8211;4 on D1&#8211;D8. Grip: grip force divided "
+             "by Drake&#8217;s on the pairs held in both, range."),
+        f"<p>The three pad implementations agree with Drake to the same degree: onset torque {rng(tw_p)} of Drake&#8217;s, "
+        f"largest swing within {f(max(br_p), 1)}&#176; of Drake&#8217;s, and grip force {rng(gr_p)} of Drake&#8217;s. CPU "
+        f"MuJoCo and MuJoCo-Warp turn the tool within 3&#176; of Drake on {A['mj_pads']['within']} and "
+        f"{A['mjw_pads']['within']} of {A['mj_pads']['n']} pairs and hold every placement; Newton&#8217;s pads turn within "
+        f"3&#176; on {nt.get('within', 0)} of {nt.get('n', 0)} pairs and hold {sum(r['held_end'] for r in allrows['nt_pads'])} "
+        f"of {len(allrows['nt_pads'])} placements. The mass-corrected hydroelastic contact reaches "
+        f"{rng(hy.get('twist', []))} of Drake&#8217;s onset torque, swings the braked tool to "
+        f"{f(brake_drake + hy['brake'][0][0], 0) if hy.get('brake') else '&#8211;'}&#176;, turns within 3&#176; on "
+        f"{hy.get('within', 0)} of {hy.get('n', 0)} pairs and holds {sum(r['held_end'] for r in allrows['nt_hydro'])} of "
+        f"{len(allrows['nt_hydro'])} placements. Point contact holds every placement of the turn, but its onset torque is "
+        f"{rng(pt.get('twist', []))} of Drake&#8217;s and the braked tool spins out of the pinch; its turns fall within "
+        f"3&#176; of Drake on {pt.get('within', 0)} of {pt.get('n', 0)} pairs.</p>",
+    ]
+    html = "\n".join(out)
+    html = html.replace("FIGURE", figure(SAF.svg_agreement(A) + SAF.legend(),
+                                         "Agreement of five contact models with Drake hydroelastic. Rows: contact models; "
+                                         "columns: the bed twist (onset torque at 0.5, 1 and 3&#8202;N, ratio to Drake), "
+                                         "the bed brake (largest swing, difference from Drake), the plan-replay turn and "
+                                         "the grip force at the hold (24 pairs). The blue line is Drake, the band "
+                                         "&#177;3&#176; or &#177;10&#8202;%. Hollow: tool dropped or released."), 1)
+    return html.replace("{fig}", str(FIG[0]))
 
 
 def grasp_search_section():
@@ -763,6 +848,7 @@ def rl_section():
              "rows <code>docs/experiments/20261006-rl_contact/throughput.jsonl</code>). Contacts/world: largest count in one "
              "world after the grasp. GPU memory: nvidia-smi with the env alive. &#8216;Incomplete&#8217;: the run ran out of GPU memory "
              "in a process holding earlier envs and was stopped by the memory watchdog when repeated alone."),
+        mark("throughput"),
         f"<p>Physics is a small part of an env step: at 2,048 envs the box tip&#8217;s physics takes "
         f"{f(100 * phys_frac, 0) if phys_frac else '&#8211;'}&#8202;% of the wall time, the rest is observation, reward, "
         "sensor and termination code. The 1&#8202;mm pads make physics "
@@ -814,7 +900,7 @@ def sensor_paragraph(T):
         txt += (f" At 2,048 envs the env runs {num(nl['env_steps_per_s'], ',.0f')} (box tip) and "
                 f"{num(npd['env_steps_per_s'], ',.0f')} (pads) env steps/s with the summed sensor, against "
                 f"{num(old['legacy']['env_steps_per_s'], ',.0f')} and {num(old['pads1']['env_steps_per_s'], ',.0f')} in "
-                "Table&#160;6 with the one-contact sensor.")
+                f"Table&#160;{REF['throughput']} with the one-contact sensor.")
     txt += ("</p><p>The env has no mass randomisation. Adding one requires recomputing each pad&#8217;s solimp d0 per world, "
             "since d0 holds the inverse weights of the nominal tip and tool. The compliance randomisation "
             "(<code>randomize_geom_solimp</code>) overwrites d0 and is off in the configuration the training below copies.</p>")
@@ -885,6 +971,7 @@ def training_section(eta):
         return "\n".join(out)
     out.append(figure(svg_training(R), "Final cosine of the tool axis with vertical (mean over 64 deterministic "
                                       "rollouts) of each checkpoint against env steps."))
+    REF["training"] = FIG[0]
     rows = []
     for tag, rs in sorted(R.items()):
         r = rs[-1]
@@ -1099,6 +1186,14 @@ def same_state_section(NT):
 # ------------------------------------------------------------------------------------------ next, lede
 
 def next_section():
+    _pm, _pd, hom = hom_data()
+    still = defaultdict(list)
+    for h in HANDS:
+        for r in hom["plans_nt"].get(h, []):
+            if r["held_end"] and r["turn_end_deg"] <= 5:
+                still[h].append(r["seed"])
+    parts = [f"{h} (seed{'s' if len(v) > 1 else ''} {', '.join(map(str, sorted(v)))})" for h, v in sorted(still.items())]
+    still_txt = (", ".join(parts[:-1]) + " and " + parts[-1]) if len(parts) > 1 else (parts[0] if parts else "&#8211;")
     items = [
         "<b>Servo gain with a known load.</b> At the bench, with the servo holding a commanded angle, hang 50, 100 and "
         "200&#8202;g from a fingertip on a measured lever and read the deficit from the servo readback; the slope is kp "
@@ -1113,10 +1208,16 @@ def next_section():
         "<b>A second contact mode in the HOM controller.</b> When a finger&#8217;s pip reaches its limit, give that "
         "finger&#8217;s contact a slide reference along the tool axis while the other two hold; measure the reachable turn "
         "and the drop rate on the same 40 placements.",
-        "<b>Newton&#8217;s turn without rotation on D3 and D8.</b> Log the per-finger normal force and the tip slip speed "
-        "in <code>newton_turn.py</code> and compare them with MuJoCo&#8217;s pad forces on D3 and D8, seeds 1&#8211;4, where the "
-        "mass-corrected Newton grip holds the tool but does not turn it.",
-        "<b>Longer training.</b> Both fingertips are still rising at 20&#8202;M steps (Figure&#160;5). Continue the four runs "
+        f"<b>Newton&#8217;s turn without rotation.</b> Log the per-finger normal force and the tip slip speed "
+        f"in <code>newton_turn.py</code> and compare them with MuJoCo&#8217;s pad forces on {still_txt}, where the "
+        "mass-corrected Newton grip holds the tool but turns it less than 5&#176;.",
+        "<b>Friction rows of Newton&#8217;s hydroelastic contact.</b> The 2026-10-05 friction gain kf 10 gives the "
+        "hydroelastic friction rows a time constant of 3.9&#8202;ms on the bed (Section&#160;5). Run "
+        "<code>contact_bed_newton.py brake --models newton_hydro_mc</code> with kf set for 2, 5, 10 and 20&#8202;ms; the "
+        "pads&#8217; 108&#176; swing became MuJoCo&#8217;s 88&#176; at 10&#8202;ms. A setting at which the hydroelastic swing "
+        "falls within 3&#176; of Drake&#8217;s 87.3&#176;, rerun on the turn&#8217;s 40 placements, would show whether the "
+        "130&#176; swing and the two drops during the grip come from the friction rows.",
+        f"<b>Longer training.</b> Both fingertips are still rising at 20&#8202;M steps (Figure&#160;{REF.get('training', '')}). Continue the four runs "
         "to 60&#8202;M (the 2026-09-17 budget) from their final checkpoints with the critic and optimizer warm-started, "
         "and compare the held cosine at 40 and 60&#8202;M; a pad run that stays below the mesh runs by more than their "
         "seed spread (0.05) at 60&#8202;M would make the fingertip model, not the budget, the difference.",
@@ -1144,6 +1245,10 @@ def lede():
             T[(r["variant"], r["num_envs"])] = r
     mc = [r for h in HANDS for r in hom["plans_nt"].get(h, [])]
     n_mc_held = sum(r["held_end"] for r in mc)
+    n_close = len(nt_vs_mujoco(plans_mj, mc)[0])
+    A = SAF.data()
+    pads_w = [A[k]["within"] for k in ("mj_pads", "mjw_pads", "nt_pads") if "turn" in A[k]]
+    pads_tw = [x for k in ("mj_pads", "mjw_pads", "nt_pads") for x in A[k].get("twist", [])]
     r1 = (T[("pads1", 2048)]["env_steps_per_s"] / T[("legacy", 2048)]["env_steps_per_s"]
           if ("pads1", 2048) in T and ("legacy", 2048) in T else None)
     return (f"The deployed open-loop three-finger turn holds the tool on {sum(r['held_end'] for r in pm)} of {len(pm)} "
@@ -1159,7 +1264,10 @@ def lede():
             "0.6&#8211;1.4&#8202;&#181;s. SolverMuJoCo realises Newton&#8217;s hydroelastic stiffness times the tip&#8211;tool "
             "effective mass; with kh "
             f"divided by that mass the deployed plans hold the tool on {n_mc_held} of {len(mc)} placements in Newton (10 "
-            "uncorrected) and turn it within 5&#176; of MuJoCo on four of eight hands. Trained from scratch for "
+            f"uncorrected) and turn it within 5&#176; of MuJoCo on {n_close} of 8 hands. Against Drake, the 1&#8202;mm "
+            "pads agree to the same degree in CPU MuJoCo, MuJoCo-Warp and Newton (twist onset torque "
+            f"{f(min(pads_tw), 2)}&#8211;{f(max(pads_tw), 2)} of Drake&#8217;s; plan turn within 3&#176; of Drake on "
+            f"{' / '.join(str(x) for x in pads_w)} of 24 placements). Trained from scratch for "
             "20&#8202;M steps on the working plant, the D6 reorientation ends at cos 0.64&#8211;0.69 with the TPU block "
             "as one mesh and 0.43&#8211;0.44 with 1&#8202;mm pads, holding the tool in 60&#8211;64 of 64 rollouts; no run "
             "reaches cos 0.9, and the pad envs need 640 contacts and 3,072 constraint rows per world. The 2026-09-02 "
@@ -1176,6 +1284,7 @@ def main():
     v["PLANT"] = plant_section()
     v["HOM"] = hom_section()
     v["NEWTON"] = newton_section()
+    v["AGREE"] = agreement_section()
     v["RL"] = rl_section()
     v["NEXT"] = next_section()
     v["LEDE"] = lede()
