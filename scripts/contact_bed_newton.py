@@ -81,6 +81,9 @@ MODELS["newton_hydro_mc_vox025"] = dict(reduce=True, mass_correct="solver", voxe
 MODELS["newton_hydro_mc_vox1"] = dict(reduce=True, mass_correct="solver", voxel=1e-3)
 # Edge test (2026-10-07, scripts/contact_bed_edge.py): the square bar of side 20 mm, an edge toward each pad
 MODELS["newton_hydro_mc_bar"] = dict(reduce=True, mass_correct="solver", bar=0.02)
+MODELS["newton_hydro_unreduced_mc_bar"] = dict(reduce=False, mass_correct="solver", bar=0.02)
+for _v, _k in ((0.25e-3, "vox025"), (1e-3, "vox1")):    # does the voxel SDF cut the edge?
+    MODELS[f"newton_hydro_unreduced_mc_bar_{_k}"] = dict(reduce=False, mass_correct="solver", bar=0.02, voxel=_v)
 MJW_MODELS = {"mjw_pads1": "mj:spheres:s1:rs0.75:ir100:tr0.02", "mjw_pads1_bar": "mj:spheres:s1:rs0.75:ir100:tr0.02:bar20"}
 BASE = dict(kh=KH_PAD, tool_ratio=100.0, voxel=0.5e-3, band=0.006, impratio=100.0, kf=10.0,
             solimp="0.9 0.9 0.001 0.5 2", fallback="0.5 1", iterations=200, ls_iterations=50,
@@ -546,6 +549,7 @@ LABEL = {"newton_hydro": "Newton hydroelastic, reduced contacts",
          "newton_hydro_mc_vox025": "Newton hydroelastic, kh / m_eff, 0.25 mm voxels",
          "newton_hydro_mc_vox1": "Newton hydroelastic, kh / m_eff, 1 mm voxels",
          "newton_hydro_mc_bar": "Newton hydroelastic, kh / m_eff, square bar",
+         "newton_hydro_unreduced_mc_bar": "Newton hydroelastic, all faces, kh / m_eff, square bar",
          "mjw_pads1_bar": "MuJoCo-Warp, 1 mm sphere pads, square bar"}
 LABEL.update({f"newton_hydro_mc_tf{tf}": f"Newton hydroelastic, kh / m_eff, friction rows {tf} ms"
               for tf in (1, 2, 3, 5, 7, 10, 15, 20, 40)})

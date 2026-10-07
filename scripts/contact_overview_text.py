@@ -123,7 +123,9 @@ solver, so the friction torque comes from the spread of the points, as with the 
 SR2 pinch put the torque capacity within 1&#8211;6&#8202;% of the continuum at 0.25&#8202;mm voxels without reduction; reduction
 lowered it by 16&#8211;25&#8202;% and 1&#8202;mm voxels by up to 69&#8202;%. Newton&#8217;s MJCF importer stores a one-value default
 <code>solref</code> with damping ratio 0, and contacts with zero Newton stiffness fall back to it, so the bed and hand scenes are
-imported with two-value solrefs.{newton_tw}</p>
+imported with two-value solrefs.{newton_tw} On the bed, all faces at 0.5&#8202;mm voxels give the pressure law&#8217;s friction arm at 0.5
+and 1&#8202;N and the reduced contacts 0.77&#8211;0.88 of it, and friction rows of 10&#8202;ms or longer stop the braked tool at hanging
+where the default 3.9&#8202;ms swings it to 130&#176; (<code>docs/experiments/20261007-newton_hydro_tests/</code>).</p>
 <h3>Compliant Sphere Lattice Contact</h3>
 <p>{cslc_text(ctx)}</p>
 """
@@ -252,10 +254,10 @@ def open_list(ctx):
          "\\(u(r)\\propto e^{-r/\\ell}\\) and compare \\(\\ell\\) with the 1.6&#8211;2.5&#8202;mm patch radius (asides page)."),
         ("Creep in the whole task.", "Re-run the chain&#8217;s hold and the wield with <code>impratio</code> 1000, the setting at which bed "
          "task&#160;6 brings the pad&#8217;s creep toward Drake&#8217;s (step&#160;8), and record the cost per step."),
-        ("Friction rows of Newton&#8217;s hydroelastic contact.", "The 2026-10-05 friction gain \\(k_f=10\\) gives its friction rows a "
-         "3.9&#8202;ms time constant, and the braked tool swings to 130&#176;. Run <code>contact_bed_newton.py brake --models newton_hydro_mc</code> "
-         "with \\(k_f\\) set for 2, 5, 10 and 20&#8202;ms; a swing within 3&#176; of Drake&#8217;s 87.3&#176; at one setting, kept on the "
-         "turn&#8217;s 40 placements, would make the remaining disagreement a friction-row setting."),
+        ("Newton&#8217;s braked swing.", "With friction rows of 10&#8202;ms Newton&#8217;s hydroelastic tip stops the braked tool at "
+         "hanging but lets it fall through 80&#176; at 1.2&#8211;1.3&#8202;N, where Drake passes 80&#176; at 0.39&#8202;N, and a 10&#8211;25&#8202;% "
+         "shorter arm does not reproduce that in condim&#160;4. Log the torque of Newton&#8217;s contact forces about the pinch axis during "
+         "the fall (2026-10-07 Newton page, open items)."),
         ("The modulus.", "Every model here uses Drake&#8217;s default \\(E=10\\)&#8202;MPa. The arm scales as \\(E^{-1/4}\\), so a "
          "TPU tip at 2&#8211;5&#8202;MPa lengthens it by 19&#8211;50&#8202;%; refit \\(c\\) once the tip is measured."),
         ("Pre-slip shear.", "No model here stores elastic tangential displacement. A slow tangential load cycle on the printed tip "

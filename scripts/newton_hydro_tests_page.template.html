@@ -1,0 +1,63 @@
+<title>Newton hydroelastic tests</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+{{STYLE}}
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">MorphoHand &#183; contact comparison bed, two-pad rig &#183; Newton hydroelastic, Drake, MuJoCo sphere pads &#183; 7 October 2026 &#183; built {{BUILT}}</div>
+  <h1>Friction-row time constant, contact reduction and edge contact in Newton&#8217;s hydroelastic fingertip model</h1>
+  <p class="lede">{{LEDE}}</p>
+  <div class="byline">two real_v1 fingertip spheres (R&#8202;10.55&#8202;mm, 20&#8202;g) on force-controlled rails squeeze the real_v1 screwdriver
+  (r&#8202;12.5&#8202;mm, 24.5&#8202;g) or a 20&#8202;mm square bar of the same mass, &#956;&#8202;1 &#183; Newton {{NEWTON_REV}} with MuJoCo-Warp,
+  Drake 1.57 SAP, MuJoCo 3.6 &#183; rows <code>docs/experiments/20261007-newton_hydro_tests/</code> &#183; scripts
+  <code>scripts/contact_bed_newton.py</code>, <code>scripts/contact_bed_edge.py</code>, <code>scripts/hydroelastic_arm_integral.py</code> &#183;
+  builder <code>scripts/newton_hydro_tests_page.py</code> &#183; bed page <code>{{BED_PATH}}</code>{{BED_LINK}} &#183; overview <code>{{OVERVIEW_PATH}}</code></div>
+</header>
+
+<nav class="toc"><div class="col">
+<ol>
+<li><a href="#terms">Terms and metrics</a></li>
+<li><a href="#setup">Rig, models and the pressure-law reference</a></li>
+<li><a href="#friction">Friction-row time constant</a></li>
+<li><a href="#reduction">Contact reduction and voxel size</a></li>
+<li><a href="#edge">Contact on a square edge</a></li>
+<li><a href="#open">What this does not settle</a></li>
+</ol>
+</div></nav>
+
+<section id="terms"><div class="col">
+<h2>Terms and metrics</h2>
+{{GLOSSARY}}
+</div></section>
+
+<section id="setup"><div class="col">
+<h2>Rig, models and the pressure-law reference</h2>
+{{SETUP}}
+</div></section>
+
+<section id="friction"><div class="col">
+<h2>Friction-row time constant</h2>
+{{FRICTION}}
+</div></section>
+
+<section id="reduction"><div class="col">
+<h2>Contact reduction and voxel size</h2>
+{{REDUCTION}}
+</div></section>
+
+<section id="edge"><div class="col">
+<h2>Contact on a square edge</h2>
+{{EDGE}}
+</div></section>
+
+<section id="open"><div class="col">
+<h2>What this does not settle</h2>
+{{OPEN}}
+</div></section>
+
+<footer><div class="col">
+{{FOOTER}}
+</div></footer>
+</div>

@@ -269,7 +269,10 @@ def t2(rows):
                    "MuJoCo turns into a force stiffness multiplied by the contact&#8217;s effective mass; dividing \\(k_h\\) by the "
                    "pad&#8211;tool effective mass of the solver&#8217;s own model (17.4&#8202;g) gives "
                    f"{min(mc):.2f}&#8211;{max(mc):.2f}&#215; the law, with no fitted parameter (overview, step&#160;7; rows "
-                   "<code>../20261006-newton_mass_scaling/</code>).</p>")
+                   "<code>../20261006-newton_mass_scaling/</code>). The rest of the deficit is Newton&#8217;s contact reduction: "
+                   "over all faces of the contact surface the onset arm is 1.04 and 1.03&#215; the law at 0.5 and 1&#8202;N, though "
+                   "that solve fails at 3&#8202;N; the friction-row time constant changes the creep and leaves the onset arm within "
+                   "2&#8202;% (<code>docs/experiments/20261007-newton_hydro_tests/20261007-newton_hydroelastic_friction_reduction_edge.html</code>).</p>")
     return "".join(out)
 
 
@@ -454,10 +457,10 @@ def P_TEXT_GPU_NOTE(gpu_newton):
 
 
 def open_items(T):
-    items = [("Friction rows of Newton&#8217;s hydroelastic contact.", "Its friction gain \\(k_f=10\\) gives the friction rows a 3.9&#8202;ms "
-              "time constant where the pads use 10&#8202;ms. Repeat task&#160;5 with <code>contact_bed_newton.py brake --models newton_hydro_mc</code> "
-              "at \\(k_f\\) for 2, 5, 10 and 20&#8202;ms; a swing within 3&#176; of Drake&#8217;s at one setting would make the remaining "
-              "creep and swing differences a friction-row setting."),
+    items = [("Newton&#8217;s braked swing.", "Run 2026-10-07 (<code>docs/experiments/20261007-newton_hydro_tests/</code>): at friction-row "
+              "time constants of 10&#8211;40&#8202;ms Newton&#8217;s hydroelastic tip stops the braked tool within 2&#176; of Drake&#8217;s "
+              "87.3&#176; (130&#176; at the default 3.9&#8202;ms), but it falls through 80&#176; at 1.2&#8211;1.3&#8202;N where Drake passes "
+              "it at 0.39&#8202;N. Next: the torque of Newton&#8217;s contact forces about the pinch axis during that fall."),
              ("Creep against Drake.", "Every MuJoCo model creeps 150&#8211;260&#215; faster than Drake under a held load (task&#160;1). Task&#160;6 "
               "lowers it with <code>impratio</code> and <code>noslip_iterations</code>; the next measurement is the chain&#8217;s hold and wield "
               "at <code>impratio</code> 1000, which decides whether creep matters at the task level."),

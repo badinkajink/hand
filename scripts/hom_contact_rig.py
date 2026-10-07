@@ -98,10 +98,23 @@ def parse_spec(spec: str) -> dict:
         elif p.startswith("fit"):
             c, pw = p[3:].split("x")
             out["fit_c"], out["fit_p"] = float(c), float(pw)
+        elif p.startswith("bar"):
+            out["bar"] = float(p[3:]) * 1e-3
         else:
             raise ValueError(f"unknown spec field {p!r} in {spec}")
     out.setdefault("E", 1e7)
     return out
+
+
+def tool_touch(sp: dict) -> float:
+    """Pad-centre distance from the pinch axis at first touch: the screwdriver cylinder, or for a `bar<mm>` spec the
+    square bar of that side with an edge toward each pad (vertex at side / sqrt 2)."""
+    return R_PAD + (sp["bar"] / math.sqrt(2.0) if sp.get("bar") else R_TOOL)
+
+
+def bar_inertia(a: float) -> tuple[float, float]:
+    """Transverse and axial moments of the square bar of side a, length 2 HL_TOOL, mass M_TOOL, about its centre."""
+    return M_TOOL * (a ** 2 + (2 * HL_TOOL) ** 2) / 12.0, M_TOOL * a ** 2 / 6.0
 
 
 def rbar_sphere_flat(N, E, R=R_PAD):
@@ -228,6 +241,17 @@ def mj_xml(sp: dict, d_cg: float, gravity: bool, kinematic: bool = False,
     pad_joint = {s: ('<freejoint/>' if kinematic else
                      f'<joint name="rail{s}" type="slide" axis="1 0 0" damping="{RAIL_DAMP}"/>') for s in "LR"}
     I_pad = 0.4 * M_PAD * R_PAD ** 2
+    x0 = tool_touch(sp)
+    if sp.get("bar"):
+        a = sp["bar"]
+        I_t, I_a = bar_inertia(a)
+        # square cross-section turned 45 deg about the tool axis: an edge toward each pad (body x = world x)
+        tool_geom = (f'<geom name="tool" type="box" size="{a / 2} {a / 2} {HL_TOOL}" quat="0.92387953 0 0 0.38268343" '
+                     f'contype="0" conaffinity="1"\n            {tool_contact} rgba="0.55 0.6 0.68 1"/>')
+    else:
+        I_t, I_a = I_TOOL_T, I_TOOL_A
+        tool_geom = (f'<geom name="tool" type="cylinder" size="{R_TOOL} {HL_TOOL}" contype="0" conaffinity="1"\n'
+                     f'            {tool_contact} rgba="0.55 0.6 0.68 1"/>')
     xml = f"""<mujoco model="hom_pinch_rig">
   <option timestep="{DT}" integrator="implicitfast" cone="elliptic" impratio="{sp['ir']}"
           solver="Newton" iterations="200" ls_iterations="50" tolerance="1e-12" gravity="{g}"/>
@@ -239,21 +263,20 @@ def mj_xml(sp: dict, d_cg: float, gravity: bool, kinematic: bool = False,
     <light pos="0.3 -0.3 0.5" dir="-0.5 0.5 -1" directional="true" diffuse=".7 .7 .7" castshadow="false"/>
     <light pos="-0.2 -0.3 0.4" dir="0.4 0.6 -1" directional="true" diffuse=".3 .3 .3" castshadow="false"/>
     <geom name="floor" type="plane" pos="0 0 -0.09" size="0.4 0.4 0.01" material="grid" contype="0" conaffinity="0"/>
-    <body name="padL" pos="{-X0} 0 0">
+    <body name="padL" pos="{-x0} 0 0">
       {pad_joint['L']}
       <inertial pos="0 0 0" mass="{M_PAD}" diaginertia="{I_pad} {I_pad} {I_pad}"/>
       {pad_geoms['L']}
     </body>
-    <body name="padR" pos="{X0} 0 0">
+    <body name="padR" pos="{x0} 0 0">
       {pad_joint['R']}
       <inertial pos="0 0 0" mass="{M_PAD}" diaginertia="{I_pad} {I_pad} {I_pad}"/>
       {pad_geoms['R']}
     </body>
     <body name="tool" pos="0 {d_cg} 0" quat="0.70710678 -0.70710678 0 0">
       <freejoint/>
-      <inertial pos="0 0 0" mass="{M_TOOL}" diaginertia="{I_TOOL_T} {I_TOOL_T} {I_TOOL_A}"/>
-      <geom name="tool" type="cylinder" size="{R_TOOL} {HL_TOOL}" contype="0" conaffinity="1"
-            {tool_contact} rgba="0.55 0.6 0.68 1"/>
+      <inertial pos="0 0 0" mass="{M_TOOL}" diaginertia="{I_t} {I_t} {I_a}"/>
+      {tool_geom}
       <geom type="box" pos="0 0 {HL_TOOL}" size="0.0016 {R_TOOL * 0.8} 0.0008" contype="0" conaffinity="0" rgba="0.1 0.1 0.1 1"/>
     </body>
   </worldbody>
@@ -271,6 +294,7 @@ class MjRig:
     def __init__(self, sp: dict, d_cg: float, gravity: bool, kinematic: bool = False):
         import mujoco
         self.mj, self.sp, self.d_cg = mujoco, sp, d_cg
+        self.x0 = tool_touch(sp)
         xml, self.info = mj_xml(sp, d_cg, gravity, kinematic)
         if sp["model"] == "spheres":
             # second pass: per-sphere stiffness from the compiled inverse weights, so that every
@@ -379,7 +403,7 @@ class MjRig:
                 "pos": self.d.qpos[qa:qa + 3].copy(), "axis": a.copy()}
 
     def pad_x(self):
-        return {s: float(self.d.qpos[self.m.jnt_qposadr[self.m.body_jntadr[b]]]) + (-X0 if s == "L" else X0)
+        return {s: float(self.d.qpos[self.m.jnt_qposadr[self.m.body_jntadr[b]]]) + (-self.x0 if s == "L" else self.x0)
                 for s, b in self.pads.items()}
 
 
@@ -391,11 +415,12 @@ class DrakeRig:
     def __init__(self, sp: dict, d_cg: float, gravity: bool, kinematic: bool = False):
         from pydrake.all import (
             AddCompliantHydroelasticProperties, AddContactMaterial, AddMultibodyPlant,
-            AddRigidHydroelasticProperties, CoulombFriction, Cylinder, DiagramBuilder,
+            AddRigidHydroelasticProperties, Box, CoulombFriction, Cylinder, DiagramBuilder,
             FixedOffsetFrame, MultibodyPlantConfig, PrismaticJoint, ProximityProperties,
             RigidTransform, RotationMatrix, Simulator, SpatialInertia, Sphere,
         )
         self.sp, self.d_cg = sp, d_cg
+        self.x0 = x0 = tool_touch(sp)
         hydro = sp["model"] == "hydro"
         b = DiagramBuilder()
         cfg = MultibodyPlantConfig(time_step=sp.get("dt", DT), discrete_contact_approximation="sap",
@@ -417,13 +442,14 @@ class DrakeRig:
             self.pad_bodies[side] = body
             if not kinematic:
                 fr = plant.AddFrame(FixedOffsetFrame("slot" + side, plant.world_frame(),
-                                                     RigidTransform([sgn * X0, 0.0, 0.0])))
+                                                     RigidTransform([sgn * x0, 0.0, 0.0])))
                 j = plant.AddJoint(PrismaticJoint("rail" + side, fr, body.body_frame(), [1.0, 0.0, 0.0],
                                                   damping=RAIL_DAMP))
                 plant.AddJointActuator("f" + side, j)
                 self.joints[side] = j
-        tool = plant.AddRigidBody("tool", SpatialInertia.SolidCylinderWithMass(
-            M_TOOL, R_TOOL, 2 * HL_TOOL, [0.0, 0.0, 1.0]))
+        bar = sp.get("bar")
+        tool = plant.AddRigidBody("tool", SpatialInertia.SolidBoxWithMass(M_TOOL, bar, bar, 2 * HL_TOOL) if bar else
+                                  SpatialInertia.SolidCylinderWithMass(M_TOOL, R_TOOL, 2 * HL_TOOL, [0.0, 0.0, 1.0]))
         tp = ProximityProperties()
         if hydro:
             AddRigidHydroelasticProperties(sp.get("res_tool", 0.0005), tp)
@@ -431,7 +457,11 @@ class DrakeRig:
                            friction=CoulombFriction(MU, MU), properties=tp)
         if "rt" in sp:
             tp.AddProperty("material", "relaxation_time", sp["rt"])
-        plant.RegisterCollisionGeometry(tool, RigidTransform(), Cylinder(R_TOOL, 2 * HL_TOOL), "tool", tp)
+        if bar:     # square cross-section turned 45 deg about the tool axis: an edge toward each pad
+            plant.RegisterCollisionGeometry(tool, RigidTransform(RotationMatrix.MakeZRotation(math.pi / 4)),
+                                            Box(bar, bar, 2 * HL_TOOL), "tool", tp)
+        else:
+            plant.RegisterCollisionGeometry(tool, RigidTransform(), Cylinder(R_TOOL, 2 * HL_TOOL), "tool", tp)
         plant.Finalize()
         self.plant, self.sg, self.toolb = plant, sg, tool
         self.diagram = b.Build()
