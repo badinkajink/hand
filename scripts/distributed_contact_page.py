@@ -191,7 +191,8 @@ def research_asides():
     <a href="#coupled-skin">Lateral coupling / friction</a><a href="#skin-solve">Reduced skin solve</a>
     <a href="#skin-identification">Printed TPU identification</a>
     <a href="#timestep-benchmark">20 ms controller benchmark</a>
-    <a href="#hardware-tip">Printed tip plan (not pursued now)</a><a href="#priority">Priorities</a></nav>
+    <a href="#hardware-tip">Printed tip plan (not pursued now)</a>
+    <a href="#diff-pads">Differentiable sphere pads</a><a href="#priority">Priorities</a></nav>
     <p>Original October 4 commentary: <a href="data/chatgpt_lateral_coupling_guidance.txt">attached
     lateral-coupling / tangential-friction discussion</a> and
     <a href="data/chatgpt_control_timestep_guidance.txt">controller / physics timestep proposal</a>.
@@ -287,6 +288,7 @@ def research_asides():
     )
     body += reduced_skin_asides()
     body += hardware_tip_asides()
+    body += differentiable_pads_aside()
     body += section(
         "When to revisit",
         """
@@ -314,6 +316,60 @@ def research_asides():
             body,
             "Backlog · hypotheses, not experimental conclusions · user-provided discussion",
         )
+    )
+
+
+def differentiable_pads_aside():
+    """Assessment of 2026-10-06: gradients through the sphere-pad fingertip, tabled."""
+    return section(
+        "Differentiable sphere pads (tabled 2026-10-06)",
+        """
+    <p><strong>Status: tabled; nothing was implemented or run.</strong> MuJoCo-Warp, on which the RL trainer and
+    the contact comparisons run, has no gradient path: its README states that differentiability via Warp is not
+    currently available (<code>external/mujoco_warp/README.md</code>, commit 89be29a, 2026-03-17). Gradients would
+    come from MJX (JAX). Each pad contact is a sphere&#8211;tool distance, smooth in the pad centre and the tip pose
+    while the set of touching pads does not change, and the pad stiffness enters through solimp d0 = 1 &#8722;
+    1/(t<sub>c</sub><sup>2</sup> K (w<sub>tip</sub> + w<sub>tool</sub>)), so the contact force has derivatives with
+    respect to the pad positions, the modulus and the relaxation time.</p>
+    <p>Uses, in order of how directly they follow: fitting the pad and plant parameters (E, h, relaxation, &#956;,
+    servo gain) to bench readbacks or to Drake by gradient descent; optimising the grasp and the tip shape (pad
+    centres as a function of fillet radius and block size); and analytic policy gradients for the reorientation.</p>
+    <p>Reasons to wait. The plant fit has four parameters and a grid of 504 coarse and 144 fine plants already covers
+    it (<code>scripts/bench_replay_calibration.py</code>). The policies train with PPO, which needs no simulator
+    gradient. Through stiff and discontinuous contact, first-order gradient estimates can have larger variance than
+    zeroth-order ones and are biased at discontinuities (Suh, Simchowitz, Zhang and Tedrake, &#8220;Do Differentiable
+    Simulators Give Better Policy Gradients?&#8221;, ICML 2022), and a pad entering or leaving contact is such a
+    discontinuity. When masses become fit parameters, d0 has to be recomputed from the model&#8217;s inverse weights
+    inside the differentiated graph, as Newton&#8217;s hydroelastic stiffness has to be (Section&#160;4 of
+    <code>docs/experiments/20261006-hom_turn3/20261006-servo_refit_hom_turn_pad_cost.html</code>).</p>
+    <p><strong>Earlier MJX work in this repository.</strong> <code>docs/simulators/backends.md</code> assigns MJX the
+    autodiff lane of the morphology optimiser and lists a planned &#8220;diffmjx-lite&#8221; variant;
+    <code>docs/notes/simulator_backends.md</code> compares MJX (JAX autodiff) with MuJoCo-Warp and ComFree Warp (no
+    gradients) and notes that MJX gives primal but not contact-force sensitivities;
+    <code>scripts/archive/setup_gpu_mjx_env.sh</code> builds a GPU JAX environment (<code>.venv-gpu</code>) and checks
+    the CUDA device and the <code>mujoco.mjx</code> import. <code>docs/notes/diffmjx.md</code> is a guide written from
+    the DiffMJX paper before its code was public: smooth collision branches, contacts from distance (CFD) with a
+    straight-through estimator, and adaptive integration; <code>docs/simulators/diffmjx_plan.md</code> orders the first
+    two before the third and validates against finite differences. None of it was run with the pads.</p>
+    <p><strong>DiffMJX release</strong> (<a href="https://github.com/martius-lab/diffmjx">github.com/martius-lab/diffmjx</a>,
+    checked 2026-10-06; not evaluated). Apache-2.0, created 2026-02-09, last push 2026-07-27 (commit b5453ea), for
+    Paulus, Geist, Schumacher, Musil, Rappenecker and Martius, &#8220;Differentiable Simulation of Hard Contacts with
+    Soft Gradients for Learning and Control&#8221; (ICLR 2026, arXiv 2506.14186). The repository holds a uv project,
+    <code>setup.sh</code> and four experiments: a 1-D point mass (integration step and gradients), object tosses
+    (adaptive integration), billiards (CFD) and a cube toss timing compilation and gradient cost. <code>setup.sh</code>
+    clones three public components: the MJX fork <code>martius-lab/mujoco</code>, branch <code>diffmjx</code> (CFD,
+    smooth collision through SoftJax, a scan-based solver loop; updated 2026-07-27), <code>martius-lab/mjx_diffrax</code>
+    (Diffrax adaptive integrators for MJX) and <code>a-paulus/softjax</code>. Its README states that sphere&#8211;plane
+    and sphere&#8211;sphere collisions are already smooth in MJX, that plane&#8211;cylinder and box collisions are
+    softened, that mesh&#8211;mesh collisions are not supported, and that compiling MJX gradient functions is slow and
+    slower with adaptive integration.</p>
+    <p><strong>First measurement if revisited.</strong> Port the 2026-10-05 contact bed&#8217;s static pinch and twist
+    (<code>scripts/contact_bed_newton.py</code> geometry) to the DiffMJX fork with 2&#8202;mm pads (290 per tip),
+    compare <code>jax.grad</code> of the sink and of the onset torque with respect to E against central differences at
+    0.5, 1 and 3&#8202;N, and time one step against MuJoCo-Warp. Gradients within 5&#8202;% of the differences and a
+    step under ten times MuJoCo-Warp&#8217;s would make a gradient fit of the pad parameters worth building.</p>
+    """,
+        "diff-pads",
     )
 
 
