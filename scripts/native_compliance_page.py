@@ -38,7 +38,8 @@ FIG = [0]
 LBL = {"mj_point3": "MuJoCo point contact", "mj_pads1": "1&#8202;mm sphere pads", "drake_hydro": "Drake hydroelastic",
        "mj_pads1_ir1000": "1&#8202;mm pads, impratio 1000", "mj_pads1_skin": "(a) compliant skin",
        "mj_pads1_soft": "(d) softening solimp", "mj_pads1_bristle20a": "(e) rolling bristles, 1&#8202;mm",
-       "mj_pads2_bristle20a": "(e) rolling bristles, 2&#8202;mm pad", "mj_pads1_bristle20": "(e) bristles, no armature"}
+       "mj_pads2_bristle20a": "(e) rolling bristles, 2&#8202;mm pad", "mj_pads1_bristle20": "(e) bristles, no armature",
+       "mj_pads1_lattice1": "(c) lattice, coupling 1&#8202;mm"}
 COL = {"mj_point3": "var(--ink3)", "mj_pads1": "var(--c-sphere)", "drake_hydro": "var(--c-drake)", "mj_pads1_skin": "var(--s1)",
        "mj_pads1_bristle20a": "var(--c-newton)", "mindlin": "var(--c-ref)"}
 
@@ -183,6 +184,12 @@ CANDS = [
      "\\(K_s\\sqrt{r\\,r_\\text{ref}}\\) over 0.03&#8211;0.5&#8202;mm (within 7&#8202;%), equal to the linear sphere at "
      "\\(r_\\text{ref}\\) = 0.2&#8202;mm. Inside the solimp width MuJoCo&#8217;s static force is "
      "\\(f = r\\,d(r)/\\big(d_{\\max}^2(1-d(r))\\,t_c^2 w\\big)\\), measured on a sphere&#8211;plane contact. No tangential change."),
+    ("mj_pads1_lattice1", "(c) Lattice",
+     "Each sphere within 20&#176; of the pole sits on a slide along its normal with an anchor spring, and neighbouring slides are "
+     "coupled by fixed tendons on the difference of their deflections, the shear layer of a Pasternak foundation (coupling length "
+     "1&#8202;mm); the contact is made 10&#215; stiffer so that the lattice springs carry the compliance. With the coupling off it "
+     "reproduces the pads; at 2&#8202;mm it is unstable at 1&#8202;ms. The 1&#8202;g nodes raise the contacts&#8217; inverse weight, "
+     "which softens their friction rows as with the bare skin, and the friction tasks fail."),
     ("mj_pads1_bristle20a", "(e) Rolling bristles",
      "Each sphere within 20&#176; of the pad&#8217;s pole sits on its own body with a ball joint at its centre and a rotational spring "
      "\\(k_\\theta = k_t r_s^2\\), \\(k_t = G A_s/h\\) with \\(h\\) = 2.7&#8202;mm so that the ~11 spheres in contact at 1&#8202;N give "
@@ -203,6 +210,12 @@ def cands(t8, t9, tw, pu, br, cost):
         t5 = pick(br, m, dt_ms=1.0)
         c = {r["nworld"]: r for r in cost if r["model"] == m}
         parts = [f"<h3>{title}</h3><p>{text}</p>"]
+        if not any(r8.values()) and sl:
+            parts.append(f"<p>T9 exponents {fmt(sl.get('delta_exp'), 3)} (approach) and {fmt(sl.get('r_rms_exp'), 3)} (radius); "
+                         + (f"T2 onset arm {fmt(t2[1.0]['rbar_onset_mm'] / LAW[1.0], 2)} of the law at 1&#8202;N; " if ok(t2[1.0]) else "")
+                         + (f"T1 effective \\(\\mu\\) {fmt(t1['mu_eff'], 3)}; " if t1 else "")
+                         + (f"T5 largest swing {fmt(t5['phi_max_deg'], 1)}&#176;; " if ok(t5) else "")
+                         + (f"{c[4096]['us_per_world_step']:.2f}&#8202;&#181;s per world-step at 4,096 worlds." if 4096 in c else "") + "</p>")
         if all(ok(r) for r in r8.values()):
             parts.append(f"<p>T8: presliding {fmt(r8[0.5]['u_presliding_um'], 1)}, {fmt(r8[1.0]['u_presliding_um'], 1)} and "
                          f"{fmt(r8[3.0]['u_presliding_um'], 1)}&#8202;&#181;m at 0.5, 1 and 3&#8202;N (Mindlin 25.4, 40.3, 83.8), recovered "
@@ -242,7 +255,8 @@ def film(rel, caption, poster_rel=None):
 def compare(t8, t9, tw, br, cost):
     import contact_bed_compliance as CC
     body = []
-    for m in ("mj_pads1", "mj_pads1_ir1000", "mj_pads1_skin", "mj_pads1_soft", "mj_pads1_bristle20a", "mj_pads2_bristle20a"):
+    for m in ("mj_pads1", "mj_pads1_ir1000", "mj_pads1_skin", "mj_pads1_soft", "mj_pads1_lattice1", "mj_pads1_bristle20a",
+              "mj_pads2_bristle20a"):
         r1 = pick(t8, m, N=1.0, dt_ms=1.0)
         sl = CC.add_slopes(os.path.join(D, "t9_sweep.jsonl"), m, 1.0)
         t5 = pick(br, m, dt_ms=1.0) or (pick(P.bed("brake"), "mj_pads1", dt_ms=1.0) if m == "mj_pads1" else None)
