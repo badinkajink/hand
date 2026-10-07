@@ -63,6 +63,7 @@ CANDIDATES = {
     "mj_pads1_bristle": "mj:spheres:s1:rs0.75:ir1000:tr0.02:bristle",
     "mj_pads1_bristle20": "mj:spheres:s1:rs0.75:ir1000:tr0.02:bristle20",
     "mj_pads1_bristle20a": "mj:spheres:s1:rs0.75:ir1000:tr0.02:bristle20a",
+    "mj_pads2_bristle20a": "mj:spheres:s2:rs0.75:ir1000:tr0.02:bristle20a",
 }
 # As specified (1 mg spheres, no armature) the bristles go unstable under tangential load at 1 and 2 ms; armature worth
 # 0.2 g at the contact still does; 2 g at the contact (1.1e-9 kg m^2 per ball-joint dof) runs (suffix `a`).
