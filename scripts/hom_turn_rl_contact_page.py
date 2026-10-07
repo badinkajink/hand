@@ -8,12 +8,17 @@ runs.json), the three-finger turn rows of scripts/hom_turn3.py and scripts/reori
 (20261006-hom_turn3/turn3.jsonl, plans_mujoco.jsonl, plans_drake.jsonl), the films in 20261006-hom_turn3/media/ and
 the throughput rows of scripts/rl_contact_throughput.py and scripts/newton_hand_throughput.py
 (20261006-rl_contact/throughput.jsonl, newton_throughput.jsonl). Every number in the prose is computed here.
+
+Mathematics is LaTeX: \( ... \) inline and \[ ... \] display (helpers im and eq), algorithms are algorithmic blocks
+(helper alg); scripts/texsvg.py turns them into inline SVG at the end of the build, cached in
+docs/experiments/20261006-hom_turn3/texsvg_cache.json.
 """
 from __future__ import annotations
 
 import json
 import math
 import os
+import re
 import statistics
 import sys
 import time
@@ -23,6 +28,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "scripts"))
 import contact_overview_page as P  # noqa: E402
 import simulator_agreement_figure as SAF  # noqa: E402
+import texsvg  # noqa: E402
 
 D = os.path.join(ROOT, "docs/experiments/20261006-hom_turn3")
 CAL = os.path.join(ROOT, "docs/experiments/20261006-servo_recalibration")
@@ -30,6 +36,7 @@ RLD = os.path.join(ROOT, "docs/experiments/20261006-rl_contact")
 SAD = os.path.join(ROOT, "docs/experiments/20261006-simulator_agreement")
 OUT = os.path.join(D, "20261006-servo_refit_hom_turn_pad_cost.html")
 TPL = os.path.join(ROOT, "scripts/hom_turn_rl_contact_page.template.html")
+TEX_CACHE = os.path.join(D, "texsvg_cache.json")
 PREV_PATH = "docs/experiments/20261006-fingertip_backends/20261006-fingertip_contact_backends.html"
 HANDS = ["D1", "D2", "D3", "D4", "D5", "D6", "D7", "D8"]
 JOINTS = [f"{f}_{j}" for f in ("thumb", "index", "middle") for j in ("yaw", "mcp", "pip")]
@@ -43,8 +50,9 @@ EXTRA_CSS = """
 td.lab{white-space:normal;min-width:14em}
 td.bad{background:color-mix(in srgb,var(--bad) 14%,transparent)}
 td.good{background:color-mix(in srgb,var(--good) 14%,transparent)}
-.eqn{font-family:var(--f-mono);font-size:.92em;margin:.6em 0 .6em 1.2em;line-height:1.7}
-"""
+figure.alg{margin:1.2em 0;padding:.6em 1em;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+figure.alg figcaption{margin:0 0 .3em}
+""" + texsvg.BLOCK_CSS + "\n"
 
 
 # ------------------------------------------------------------------------------------------ helpers
@@ -98,6 +106,44 @@ def table(head, rows, cls=""):
     return "<div class='tw'>" + "".join(out) + "</div>"
 
 
+def im(tex):
+    """Inline mathematics, typeset by texsvg at the end of the build."""
+    return "\\(" + tex + "\\)"
+
+
+M_EFF, K_H, K_F, D_0 = im(r"m_\text{eff}"), im("k_h"), im("k_f"), im("d_0")
+
+
+def eq(tex, n=None):
+    """A display equation, numbered when `n` is given."""
+    no = f'<span class="eqno">({n})</span>' if n is not None else ""
+    return f'<div class="eq">\\[{tex}\\]{no}</div>'
+
+
+ALG = [0]
+ALG_RE = re.compile(r"\\begin\{algorithmic\}.*?\\end\{algorithmic\}", re.S)
+
+
+def alg(caption, body):
+    """An algorithm: `body` is the inside of an algorithmic environment (algpseudocode commands)."""
+    ALG[0] += 1
+    return (f'<figure class="alg"><figcaption><b>Algorithm&#160;{ALG[0]}.</b> {caption}</figcaption>'
+            f"\\begin{{algorithmic}}[1]\n{body}\n\\end{{algorithmic}}</figure>")
+
+
+def render_tex(t):
+    """Replace every algorithmic block, then every \\( \\) and \\[ \\] item, with its texsvg SVG."""
+    blocks = ALG_RE.findall(t)
+    t = ALG_RE.sub(lambda m: "\x00ALG\x00", t)
+    maths = [((m.group(1) if m.group(1) is not None else m.group(2)).strip(), m.group(1) is not None)
+             for m in P.TEX_RE.finditer(t)]
+    svgs = texsvg.render(maths + [(b, "block") for b in blocks], cache_path=TEX_CACHE, scale=P.TEX_SCALE)
+    it = iter(svgs[:len(maths)])
+    t = P.TEX_RE.sub(lambda m: next(it), t)
+    ib = iter(svgs[len(maths):])
+    return re.sub("\x00ALG\x00", lambda m: next(ib), t), len(maths), len(blocks)
+
+
 FIG, TAB = [0], [0]
 REF = {}        # figure and table numbers that later sections cite
 
@@ -142,31 +188,42 @@ GLOSSARY = [
     ("joint readback error", "mean over the nine finger joints and over the bench&#8217;s three servo readbacks of one run "
                              "(before the turn, during it, at the settled hold) of |simulated &#8722; bench achieved angle|, "
                              "in degrees; the replay applies the run&#8217;s own logged command frames at their logged times."),
-    ("kp", "servo position gain of the simulated finger actuator, N&#8202;m/rad: torque = kp (command &#8722; angle), "
-           "clipped at the torque limit."),
-    ("time constant &#964;", "finger joint damping divided by kp, in seconds: the time a free finger joint takes to cover "
-                             "63&#8202;% of a step command (actuator velocity gain 0)."),
-    ("&#956;", "Coulomb friction coefficient of the fingertip pads on the tool."),
+    (im("k_p"), "servo position gain of the simulated finger actuator, N&#8202;m/rad: joint torque "
+           + im(r"k_p\,(q_\text{cmd} - q)") + " for command " + im(r"q_\text{cmd}") + " and angle " + im("q")
+           + ", clipped at the torque limit."),
+    ("time constant " + im(r"\tau"), "finger joint damping divided by " + im("k_p") + ", in seconds: the time a free "
+                                     "finger joint takes to cover 63&#8202;% of a step command (actuator velocity gain 0)."),
+    (im(r"\mu"), "Coulomb friction coefficient of the fingertip pads on the tool."),
     ("pads", "the printed TPU block (17 &#215; 14.8 &#215; 22&#8202;mm, 2.7&#8202;mm fillets on the front and end edges) "
-             "covered with 0.75&#8202;mm spheres at 1&#8202;mm spacing (1,059 per tip; 290 at 2&#8202;mm); stiffness E/h "
-             "per sphere area with E 10&#8202;MPa, h 8.5&#8202;mm, reached at load through solimp."),
+             "covered with 0.75&#8202;mm spheres at 1&#8202;mm spacing (1,059 per tip; 290 at 2&#8202;mm); stiffness "
+             + im("E/h") + " per sphere area with " + im("E") + " = 10&#8202;MPa, " + im("h") + " = 8.5&#8202;mm, "
+             "reached at load through solimp."),
     ("HOM controller", "the relative contact-velocity controller of Wang, Oh and Pollard (arXiv 2609.25619): per fingertip, "
                        "a contact frame from the closest points of tip and tool, joint rates from bounded least squares on "
                        "reference relative velocities (their Eq. 2). Defined in Section 3."),
     ("governor", "the HOM controller&#8217;s stop rule: when a pad&#8217;s normal force falls below 30&#8202;% of its "
                  "target or the tool lags the reference by more than 6&#176;, the reference stops and the angle reached is held."),
-    ("inverse weight", "MuJoCo&#8217;s <code>body_invweight0[b, 0]</code>: the translational inverse inertia of body b at the "
-                       "model&#8217;s reference pose, in 1/kg, computed at compile time from the joint-space mass matrix; 1/mass "
-                       "for a free body, and for a fingertip the inverse of the inertia the whole finger chain and its servo "
-                       "armature present at the tip."),
-    ("effective mass m<sub>eff</sub>", "of a contact between bodies 1 and 2: 1/(inverse weight of 1 + inverse weight of 2), in kg. "
-                                       "MuJoCo&#8217;s solref is a spring on the constraint acceleration, so a contact realises "
-                                       "its solref stiffness times m<sub>eff</sub> as a force stiffness."),
+    ("inverse weight " + im("w_b"), "MuJoCo&#8217;s <code>body_invweight0[b, 0]</code>: the translational inverse inertia "
+                                    "of body " + im("b") + " at the model&#8217;s reference pose, in 1/kg, computed at compile "
+                                    "time from the joint-space mass matrix; " + im("1/m") + " for a free body of mass "
+                                    + im("m") + ", and for a fingertip the inverse of the inertia the whole finger chain and "
+                                    "its servo armature present at the tip."),
+    ("effective mass " + im(r"m_\text{eff}"), "of a contact between bodies 1 and 2: " + im(r"m_\text{eff} = 1/(w_1 + w_2)")
+                                              + ", in kg. MuJoCo&#8217;s solref is a spring on the constraint acceleration, "
+                                              "so a contact realises its solref stiffness times " + im(r"m_\text{eff}")
+                                              + " as a force stiffness."),
+    (im("k_h"), "hydroelastic stiffness of a Newton shape, in N/m&#179;: pressure per unit penetration depth, "
+                + im("k_h = E/h") + " for an elastic layer of modulus " + im("E") + " and thickness " + im("h") + "."),
+    (im("d_0"), "solimp impedance of a sphere pad (constant over penetration), set so that each pad contact is a spring of "
+                "stiffness " + im("K") + "; see Eq.&#160;(4)."),
     ("sink", "steady penetration of each pad into the tool in the contact bed&#8217;s static pinch, in mm, after 1&#8202;s at "
              "the set normal force with gravity off; Drake hydroelastic gives 0.153, 0.213 and 0.365&#8202;mm at 0.5, 1 and 3&#8202;N."),
-    ("onset torque", "contact bed, twist task: a torque about the pinch axis ramps up on the pinched tool; the onset torque is the "
-                     "last value at which the spin speed still follows the creep law w = k&#8202;&#964;, in mN&#8202;m. "
-                     "Drake hydroelastic gives 0.84, 1.97 and 7.65&#8202;mN&#8202;m at 0.5, 1 and 3&#8202;N."),
+    ("onset torque", "contact bed, twist task: a torque " + im("T") + " about the pinch axis ramps up on the pinched tool; "
+                     "the onset torque is the last value at which the spin speed " + im(r"\omega") + " still follows the "
+                     "creep law " + im(r"\omega = k\,T") + ", in mN&#8202;m. Drake hydroelastic gives 0.84, 1.97 and "
+                     "7.65&#8202;mN&#8202;m at 0.5, 1 and 3&#8202;N."),
+    ("creep rate " + im("k"), "the slope of the creep law " + im(r"\omega = k\,T") + " below the onset torque, in "
+                              "&#176;/s per mN&#8202;m; rigid Coulomb friction gives 0."),
     ("largest swing", "contact bed, brake task: the pinch on the tool, whose centre of mass sits 15&#8202;mm off the pinch "
                       "line, is held at 6&#8202;N for 0.5&#8202;s and lowered geometrically to 0.2&#8202;N over 4&#8202;s; the "
                       "largest swing is the largest angle of the tool axis below horizontal over the run, in degrees "
@@ -216,7 +273,7 @@ def plant_section():
         return [r for r in rows if r["plant"] == spec[0] and str(r.get("mu")) == spec[1]]
     W, O, S = sel(WORK), sel(OLD), sel(SHIP)
     pw, po, ps = phase_err(W), phase_err(O), phase_err(S)
-    tab1 = table(["Plant", "kp (N&#8202;m/rad)", "&#964; (s)", "torque limit (N&#8202;m)", "&#956;", "before (&#176;)",
+    tab1 = table(["Plant", "\\(k_p\\) (N&#8202;m/rad)", "\\(\\tau\\) (s)", "torque limit (N&#8202;m)", "\\(\\mu\\)", "before (&#176;)",
                   "during (&#176;)", "settled hold (&#176;)", "all (&#176;)"],
                  [[("Working plant (this page)", "lab"), "4", "0.02", "1", "1.0", f(pw.get("before"), 2),
                    f(pw.get("during"), 2), f(pw.get("after"), 2), (f(mean([r["joint_mae"] for r in W]), 2), "good")],
@@ -245,16 +302,16 @@ def plant_section():
     def best(i, val, mu):
         v = [e for k, e in J.items() if k[i] == val and k[4] == mu]
         return min(v) if v else None
-    grid_rows = ["Finger time constant &#964; (s)"]
+    grid_rows = ["Finger time constant \\(\\tau\\) (s)"]
     for t in (0.02, 0.06, 0.2, 0.6):
         grid_rows.append([f"{t:g}", f(best(1, t, "1.0"), 2), f(best(1, t, "scene"), 2)])
-    grid_rows.append("Servo gain kp (N&#8202;m/rad)")
+    grid_rows.append("Servo gain \\(k_p\\) (N&#8202;m/rad)")
     for kp in (0.25, 0.5, 1, 2, 4, 8, 30):
         grid_rows.append([f"{kp:g}", f(best(0, kp, "1.0"), 2), f(best(0, kp, "scene"), 2)])
     grid_rows.append("Torque limit (N&#8202;m)")
     for fr in (0.2, 0.35, 1.0):
         grid_rows.append([f"{fr:g}", f(best(2, fr, "1.0"), 2), f(best(2, fr, "scene"), 2)])
-    tab2 = table(["Parameter value", "best joint readback error, &#956; 1.0 (&#176;)", "&#956; 2.4 (&#176;)"], grid_rows)
+    tab2 = table(["Parameter value", "best joint readback error, \\(\\mu = 1.0\\) (&#176;)", "\\(\\mu = 2.4\\) (&#176;)"], grid_rows)
     kp_lo = min(best(0, kp, "1.0") for kp in (0.25, 0.5, 1, 2, 4, 8, 30))
     kp_hi = max(best(0, kp, "1.0") for kp in (0.25, 0.5, 1, 2, 4, 8, 30))
     t_fast = best(1, 0.02, "1.0")
@@ -274,8 +331,8 @@ def plant_section():
         "<p><code>calibrate_plant_kp.py</code> reset each candidate scene from its keyframe&#160;0, which puts the palm at "
         "10&#8202;mm; the plan&#8217;s replay state puts it at 103.5&#8202;mm, above the tool on its 100&#8202;mm post. The "
         "fingers closed on air while the palm rested against the tool and the post, so the +11.09&#176; middle-yaw deficit "
-        "that matched the bench&#8217;s +11.68&#176; at kp&#160;0.5 came from the fingers&#8217; own response, with no load from "
-        "the tool (time constant 1.04&#8202;s at kp&#160;0.5 with the template&#8217;s joint damping 0.5, read 2&#8202;s after the "
+        "that matched the bench&#8217;s +11.68&#176; at \\(k_p\\)&#160;=&#160;0.5 came from the fingers&#8217; own response, with no load from "
+        "the tool (time constant 1.04&#8202;s at \\(k_p\\)&#160;=&#160;0.5 with the template&#8217;s joint damping 0.5, read 2&#8202;s after the "
         "last command). The script now starts from the plan&#8217;s replay state; its fit is superseded by the replays below.</p>",
         "<h3>Replaying the bench&#8217;s own runs</h3>",
         f"<p>The archive holds {n_runs} complete reorientation runs of the eight deployed hands with servo readbacks and "
@@ -283,8 +340,8 @@ def plant_section():
         "bench scene (palm welded at the plan&#8217;s pose, tool resting on the repaired post, TPU pads, 1&#8202;ms step, "
         "elliptic cone, impratio 100), holds the plan&#8217;s grip for 0.8&#8202;s, applies the run&#8217;s logged command "
         "frames at their logged times and compares the nine joint angles at the run&#8217;s three servo readbacks. The plant "
-        "is set on the compiled model: kp, joint damping = &#964;&#160;kp (actuator velocity gain 0), torque limit, joint "
-        f"friction. A coarse grid of {n_pl // 2} servo settings at &#956; 1.0 and 2.4 on the median-turn run of each hand and "
+        "is set on the compiled model: \\(k_p\\), joint damping \\(\\tau\\,k_p\\) (actuator velocity gain 0), torque limit, joint "
+        f"friction. A coarse grid of {n_pl // 2} servo settings at \\(\\mu = 1.0\\) and 2.4 on the median-turn run of each hand and "
         f"a finer grid of 144 plants on three runs per hand preceded the full replay in Table&#160;1.</p>",
         tab1,
         tcap(f"Joint readback error of the {n_runs} tracked bench runs replayed on three plants, by readback (before the "
@@ -292,17 +349,17 @@ def plant_section():
         tab2,
         tcap(f"Best joint readback error over the other three parameters for each value of one parameter (coarse grid, "
              f"{n_pl // 2} servo settings per friction value, the median-turn run of each of the eight hands)."),
-        f"<p>The readbacks fix two things. The finger time constant is short: &#964; at or below 0.2&#8202;s gives "
+        f"<p>The readbacks fix two things. The finger time constant is short: \\(\\tau\\) at or below 0.2&#8202;s gives "
         f"{f(t_fast, 2)}&#8211;{f(best(1, 0.2, '1.0'), 2)}&#176; and 0.6&#8202;s gives {f(t_slow, 2)}&#176;, which rules out "
         "the 1&#8202;s fingers every calibrated-plant result since 2026-09-16 ran on. Friction near 1 fits better than the "
-        "scenes&#8217; 2.4 by about 1&#176;. The servo gain is not identified: across kp&#160;0.25&#8211;30 the best error "
+        "scenes&#8217; 2.4 by about 1&#176;. The servo gain is not identified: across \\(k_p\\)&#160;=&#160;0.25&#8211;30 the best error "
         f"stays within {f(kp_lo, 2)}&#8211;{f(kp_hi, 2)}&#176;, because a finger pressing on the tool stops at the tool, "
         "and its deficit is set by the grip geometry, whatever the stiffness behind it. The torque limit is not identified "
-        "either. The fit&#8217;s cost also included the tool&#8217;s tracked tilt, and with it the best plants had kp 2&#8211;10 and "
-        "&#956; 0.8&#8211;1.3; bench task outcomes depend on how the tool was placed and on contacts the scene does not model, so "
+        "either. The fit&#8217;s cost also included the tool&#8217;s tracked tilt, and with it the best plants had \\(k_p\\) = 2&#8211;10 and "
+        "\\(\\mu\\) between 0.8 and 1.3; bench task outcomes depend on how the tool was placed and on contacts the scene does not model, so "
         "that part of the fit is not used here.</p>",
-        "<p>The rest of this page runs the <b>working plant</b>: kp 4&#8202;N&#8202;m/rad, &#964; 0.02&#8202;s (joint damping "
-        "0.08), torque limit 1&#8202;N&#8202;m, no joint friction, &#956; 1.0 (<code>reorient_backends</code> plant spec "
+        "<p>The rest of this page runs the <b>working plant</b>: \\(k_p\\) = 4&#8202;N&#8202;m/rad, \\(\\tau\\) 0.02&#8202;s (joint damping "
+        "0.08), torque limit 1&#8202;N&#8202;m, no joint friction, \\(\\mu = 1.0\\) (<code>reorient_backends</code> plant spec "
         "<code>kp4_kv0_fr1_fl0_dp0.08</code>). A gain measurement needs a known torque on a joint (Section&#160;7).</p>",
     ]
     return "\n".join(out)
@@ -383,32 +440,61 @@ def hom_section():
         "which all three fingers move the tool together, in place of the deployed open-loop joint trajectories. The scene is "
         "the bench maneuver of each deployed hand D1&#8211;D8: palm fixed, the 25&#8202;mm, 24.5&#8202;g tool lying on its post, "
         "the plan&#8217;s grip held 0.8&#8202;s, the working plant, the TPU tip as 1&#8202;mm pads in MuJoCo and as a compliant "
-        "convex (E 10&#8202;MPa, relaxation 0.01&#8202;s) in Drake. Placements: seed 0 at the plan&#8217;s pose, seeds 1&#8211;4 "
-        "jittered by 2&#8202;mm and 2&#176; (MuJoCo 5 placements per hand, Drake 3).</p>",
+        "convex (" + im("E") + " = 10&#8202;MPa, relaxation 0.01&#8202;s) in Drake. Placements: seed 0 at the plan&#8217;s "
+        "pose, seeds 1&#8211;4 jittered by 2&#8202;mm and 2&#176; (MuJoCo 5 placements per hand, Drake 3).</p>",
         "<h3>Controller</h3>",
         "<p>At 100&#8202;Hz the controller reads the nine joint angles and the tool pose, poses a kinematic MuJoCo copy of "
-        "the scene with the TPU block as one convex mesh per tip, and builds the paper&#8217;s contact frame per finger: "
-        "origin at the closest points of block and tool (<code>mj_geomDistance</code>), x the tool&#8217;s surface normal "
-        "toward the finger, y the finger&#8217;s flexion axis projected on the tangent plane. The paper commands relative "
-        "contact velocities (finger minus tool at the contact). For a turn that keeps all three contacts, each "
-        "contact&#8217;s reference is the velocity of the tool&#8217;s material point under the desired tool motion, so "
-        "the relative velocity is zero while the tool follows, plus a normal term that regulates the pad force:</p>",
-        "<div class='eqn'>&#969;<sub>d</sub> = a<sub>0</sub> (d&#952;<sub>ref</sub>/dt + K<sub>R</sub>(&#952;<sub>ref</sub> &#8722; &#952;)) "
-        "+ K<sub>R</sub> (u &#215; u<sub>ref</sub>),&#8195; v<sub>d</sub> = K<sub>P</sub> (c<sub>ref</sub> &#8722; c)<br>"
-        "v<sub>i</sub> = v<sub>d</sub> + &#969;<sub>d</sub> &#215; (p<sub>i</sub> &#8722; c) + n<sub>i</sub> K<sub>F</sub> "
-        "(F<sub>i</sub> &#8722; F<sub>d</sub>)</div>",
-        "<p>Here &#952; is the tool turn, a<sub>0</sub> the horizontal axis normal to the starting tool axis, u the tool axis "
-        "and u<sub>ref</sub> the starting axis turned by &#952;<sub>ref</sub> about a<sub>0</sub>, c the tool&#8217;s material "
-        "point at the starting centroid of the three contacts (held 5&#8202;mm above its start), p<sub>i</sub> and n<sub>i</sub> "
-        "the contact point and normal of finger i, F<sub>i</sub> its pad force from the simulator&#8217;s contact solution "
-        "and F<sub>d</sub> = 2&#8202;N. K<sub>R</sub> = K<sub>P</sub> = 3&#8202;s<sup>&#8722;1</sup>, K<sub>F</sub> = "
-        "0.03&#8202;m/(s&#8202;N). The paper&#8217;s Eq. 2 then gives each finger&#8217;s joint rates by bounded least squares "
-        "on the three translational rows (weight 1, scaled by 1/20&#8202;mm) and the three rotational rows (weight 0.01), "
-        "with joint-rate damping 10<sup>&#8722;3</sup>, joint limits and |rate| &#8804; 2&#8202;rad/s. The servo targets "
-        "integrate the rates and stay within 0.3&#8202;rad of the measured angles. The reference turns at 30&#176;/s toward "
-        "vertical after a 0.5&#8202;s squeeze in which the plan&#8217;s 5&#8211;13&#8202;N grip relaxes to 2&#8202;N, and the "
-        "rollout ends 2&#8202;s after the reference stops. Code: <code>scripts/hom_turn3.py</code>; the same controller drives "
-        "MuJoCo and Drake.</p>",
+        "the scene with the TPU block as one convex mesh per tip, and builds the paper&#8217;s contact frame "
+        + im("E_i") + " per finger " + im("i") + ": origin at the closest points of block and tool "
+        "(<code>mj_geomDistance</code>), " + im("x") + " the tool&#8217;s surface normal toward the finger, " + im("y")
+        + " the finger&#8217;s flexion axis projected on the tangent plane. The paper commands relative contact velocities "
+        "(finger minus tool at the contact). For a turn that keeps all three contacts, each contact&#8217;s reference is the "
+        "velocity of the tool&#8217;s material point under the desired tool motion, so the relative velocity is zero while "
+        "the tool follows, plus a normal term that regulates the pad force:</p>",
+        eq(r"\begin{aligned}\omega_d &= a_0\bigl(\dot\theta_\text{ref} + K_R(\theta_\text{ref}-\theta)\bigr)"
+           r" + K_R\,(u\times u_\text{ref}), \qquad v_d = K_P\,(c_\text{ref}-c),\\"
+           r" v_i &= v_d + \omega_d\times(p_i-c) + n_i\,K_F\,(F_i-F_d).\end{aligned}", 1),
+        "<p>Here " + im(r"\theta") + " is the tool turn, " + im("a_0") + " the horizontal axis normal to the starting tool "
+        "axis, " + im("u") + " the tool axis and " + im(r"u_\text{ref}") + " the starting axis turned by "
+        + im(r"\theta_\text{ref}") + " about " + im("a_0") + ", " + im("c") + " the tool&#8217;s material point at the "
+        "starting centroid of the three contacts and " + im(r"c_\text{ref}") + " that point 5&#8202;mm above its start, "
+        + im("p_i") + " and " + im("n_i") + " the contact point and normal of finger " + im("i") + ", " + im("F_i")
+        + " its pad force from the simulator&#8217;s contact solution and " + im(r"F_d = 2") + "&#8202;N; "
+        + im(r"K_R = K_P = 3\ \text{s}^{-1}") + ", " + im(r"K_F = 0.03\ \text{m}/(\text{s}\,\text{N})") + ". The "
+        "paper&#8217;s Eq.&#160;2 then gives each finger&#8217;s joint rates by bounded least squares:</p>",
+        eq(r"\begin{aligned}\dot q_i = \operatorname*{arg\,min}_{\dot q_\text{lo}\le\dot q\le\dot q_\text{hi}}\ "
+           r"&\frac{1}{\ell^2}\bigl\|E_i^\top(J_{p,i}\,\dot q - v_i)\bigr\|^2"
+           r" + w_r\bigl\|E_i^\top(J_{r,i}\,\dot q - \omega_d)\bigr\|^2\\"
+           r" &+ w_d\,\|\dot q\|^2 + w_p\,\bigl\|\dot q - (q_\text{post} - q_i)\bigr\|^2\end{aligned}", 2),
+        "<p>with " + im(r"\ell = 20") + "&#8202;mm, " + im("w_r = 0.01") + ", " + im("w_d = 10^{-3}") + ", "
+        + im("w_p = 10^{-5}") + ", " + im("J_{p,i}") + " and " + im("J_{r,i}") + " the translational and rotational "
+        "Jacobians of finger " + im("i") + " at its contact point, " + im(r"q_\text{post}") + " the grip pose, and bounds "
+        "from the joint limits and " + im(r"|\dot q| \le 2") + "&#8202;rad/s. Algorithm&#160;1 is one control tick. The "
+        "reference turns at 30&#176;/s toward vertical after a 0.5&#8202;s squeeze in which the plan&#8217;s "
+        "5&#8211;13&#8202;N grip relaxes to 2&#8202;N, and the rollout ends 2&#8202;s after the reference stops. Code: "
+        "<code>scripts/hom_turn3.py</code>; the same controller drives MuJoCo and Drake.</p>",
+        alg("One tick of the HOM controller with its governor (" + im(r"\Delta t = 0.01") + "&#8202;s).",
+            r"""\Require joint angles \(q\), tool pose \((p, R)\), pad forces \(F_i\), servo targets \(q_\text{cmd}\)
+\If{the governor has not stopped the reference}
+\State \(\theta_\text{ref} \gets \min(\theta_\text{ref} + \dot\theta_\text{ref}\,\Delta t,\ 90^\circ)\)
+\EndIf
+\State pose the kinematic copy at \((q, p, R)\); \(\theta \gets\) turn of the tool axis \(u\)
+\State \(\omega_d,\ v_d \gets\) Eq.~(1)
+\For{each finger \(i\)}
+\State \(E_i,\ p_i,\ n_i \gets\) contact frame from the closest points of block and tool
+\If{finger \(i\) touches the tool}
+\State \(s_i \gets K_F\,(F_i - F_d)\)
+\Else
+\State \(s_i \gets -0.02\ \text{m/s}\) \Comment{approach}
+\EndIf
+\State \(v_i \gets v_d + \omega_d \times (p_i - c) + s_i\,n_i\)
+\State \(\dot q_i \gets\) bounded least squares, Eq.~(2)
+\State \(q_{\text{cmd},i} \gets q_{\text{cmd},i} + \dot q_i\,\Delta t\), clipped to \(q_i \pm 0.3\) rad and the joint limits
+\EndFor
+\If{\(\min_i F_i < 0.3\,F_d\) or \(\theta_\text{ref} - \theta > 6^\circ\), for 3 ticks in a row}
+\State stop the reference at \(\theta\) \Comment{governor}
+\EndIf
+\State send \(q_\text{cmd}\) to the servos"""),
         "<h3>Results</h3>",
         tab,
         tcap("Tool turn per hand on the working plant, median over placements, and the number of placements held at the "
@@ -425,8 +511,8 @@ def hom_section():
         f"<p>On the working plant the deployed open-loop plans hold the tool on {n_pm_held} of {n_pm} MuJoCo placements and "
         f"turn it {f(min(plan_vals), 0)}&#8211;{f(max(plan_vals), 0)}&#176; (hand medians)"
         + (f"; Drake holds {n_pd_held} of {n_pd} and turns within a few degrees of MuJoCo" if n_pd else "")
-        + ". The drops and the near-zero turns in the films of the previous page came from that page&#8217;s plant (kp "
-        "0.5, 1&#8202;s fingers, &#956; 2.4).</p>",
+        + ". The drops and the near-zero turns in the films of the previous page came from that page&#8217;s plant "
+        "(\\(k_p = 0.5\\), 1&#8202;s fingers, \\(\\mu = 2.4\\)).</p>",
         (f"<p>Newton&#8217;s hydroelastic contact on the same fingertip shape, with its stiffness divided by the "
          f"tip&#8211;tool effective mass (Section&#160;4), holds the tool on {n_nt_held} of {n_nt} placements "
          "(column F).</p>" if n_nt else ""),
@@ -498,9 +584,9 @@ def nt_vs_mujoco(plans_mj, mc):
 def newton_section():
     sink, onset, scale = bed_rows()
     Ns = (0.5, 1.0, 3.0)
-    models = [("drake_hydro", "Drake hydroelastic"), ("newton_hydro", "Newton, kh = E/h"),
-              ("newton_hydro_mc", "Newton, kh &#215; 1/m<sub>eff</sub> (solver&#8217;s inverse weights)"),
-              ("newton_hydro_mc_mjcf", "Newton, kh &#215; 1/m<sub>eff</sub> (MJCF compile)")]
+    models = [("drake_hydro", "Drake hydroelastic"), ("newton_hydro", "Newton, " + im("k_h = E/h")),
+              ("newton_hydro_mc", "Newton, " + im(r"k_h/m_\text{eff}") + " (solver&#8217;s inverse weights)"),
+              ("newton_hydro_mc_mjcf", "Newton, " + im(r"k_h/m_\text{eff}") + " (MJCF compile)")]
     rows = []
     for m, lab in models:
         rows.append([(lab, "lab")] + [f(sink.get((m, N)), 3) for N in Ns] + [f(onset.get((m, N)), 2) for N in Ns])
@@ -525,25 +611,29 @@ def newton_section():
     raw = [r for h in HANDS for r in hom["plans_nt_raw"].get(h, [])]
     corr = next((r["mass_correct"] for r in mc if r.get("mass_correct")), None)
     out = [
-        "<p>Newton passes each hydroelastic contact point to MuJoCo-Warp with a force stiffness c in N/m (the point&#8217;s "
-        "share of the pressure field: patch area times the two shapes&#8217; kh in series). SolverMuJoCo writes it as "
-        "solref time constant &#8730;(1/(c(1&#8722;d))), damping ratio 1 and solimp (d, d, 0.001, 1, 0.5) "
-        "(<code>newton/_src/solvers/mujoco/kernels.py</code>, lines 599&#8211;618 at Newton commit 009158e). MuJoCo treats "
-        "solref as a spring on the constraint acceleration, so the contact holds c&#8202;&#215;&#8202;m<sub>eff</sub> per metre "
-        "of penetration, not c. Newton&#8217;s shape-material path multiplies its stiffness by the inverse-weight sum before the "
-        "same conversion (<code>docs/solvers/mujoco.rst</code>, &#8220;Shape-material contact stiffness and damping&#8221;); "
-        "the hydroelastic path does not, and the <code>ShapeConfig.kh</code> docstring (<code>newton/_src/sim/builder.py</code>) "
-        "says that SolverMuJoCo scales the stiffness by masses and that kh should be tuned with that in mind. The MuJoCo "
-        "sphere pads already divide m<sub>eff</sub> out: their solimp d0 = 1 &#8722; 1/(t<sub>c</sub><sup>2</sup> K "
-        "(w<sub>tip</sub> + w<sub>tool</sub>)) uses the same inverse weights (<code>reorient_backends.replace_tips</code>), "
-        "which is why they matched Drake without fitting. The correction is therefore kh &#215; (w<sub>1</sub> + "
-        "w<sub>2</sub>), with the inverse weights read from the solver&#8217;s own MuJoCo model "
-        "(<code>solver.mj_model.body_invweight0</code> through <code>solver.mjc_body_to_newton</code>); kh = E/h stays a "
-        "material constant.</p>",
+        "<p>Newton passes each hydroelastic contact point to MuJoCo-Warp with a force stiffness " + im("c") + " in N/m "
+        "(the point&#8217;s share of the pressure field: patch area times the two shapes&#8217; " + im("k_h") + " in "
+        "series). SolverMuJoCo writes it as a solref time constant, damping ratio 1 and solimp " + im("(d, d, 0.001, 1, 0.5)")
+        + " (<code>newton/_src/solvers/mujoco/kernels.py</code>, lines 599&#8211;618 at Newton commit 009158e). MuJoCo "
+        "treats solref as a spring on the constraint acceleration, so the contact holds " + im(r"c\,m_\text{eff}")
+        + " per metre of penetration, not " + im("c") + ":</p>",
+        eq(r"t_c = \sqrt{\frac{1}{c\,(1-d)}}, \qquad k_\text{realised} = c\,m_\text{eff}, \qquad "
+           r"m_\text{eff} = \frac{1}{w_1 + w_2}.", 3),
+        "<p>Newton&#8217;s shape-material path multiplies its stiffness by the inverse-weight sum before the same conversion "
+        "(<code>docs/solvers/mujoco.rst</code>, &#8220;Shape-material contact stiffness and damping&#8221;); the hydroelastic "
+        "path does not, and the <code>ShapeConfig.kh</code> docstring (<code>newton/_src/sim/builder.py</code>) says that "
+        "SolverMuJoCo scales the stiffness by masses and that " + im("k_h") + " should be tuned with that in mind. The "
+        "MuJoCo sphere pads already divide " + im(r"m_\text{eff}") + " out: each pad reaches its stiffness " + im("K")
+        + " at relaxation " + im("t_c") + " through the solimp impedance</p>",
+        eq(r"d_0 = 1 - \frac{1}{t_c^2\,K\,(w_\text{tip} + w_\text{tool})},", 4),
+        "<p>which uses the same inverse weights (<code>reorient_backends.replace_tips</code>); this is why they matched "
+        "Drake without fitting. The correction is therefore " + im(r"k_h\,(w_1 + w_2)") + ", with the inverse weights read "
+        "from the solver&#8217;s own MuJoCo model (<code>solver.mj_model.body_invweight0</code> through "
+        "<code>solver.mjc_body_to_newton</code>); " + im("k_h = E/h") + " stays a material constant.</p>",
         f"<p>On the 2026-10-05 contact bed (two 20&#8202;g pads on rails pinching the 24.5&#8202;g tool, rows "
         "<code>docs/experiments/20261006-newton_mass_scaling/</code>, <code>contact_bed_newton.py</code> models "
         "<code>newton_hydro_mc*</code>) the solver&#8217;s model gives each pad an inverse weight of 16.7&#8202;1/kg and the "
-        f"tool 40.7, so m<sub>eff</sub> = 17.4&#8202;g and uncorrected Newton sank {rng(raw_sink, 1)} times as deep as Drake "
+        f"tool 40.7, so {M_EFF} = 17.4&#8202;g and uncorrected Newton sank {rng(raw_sink, 1)} times as deep as Drake "
         f"with {rng(raw_on, 1)} times Drake&#8217;s onset torque. Multiplied by {f(scale.get('newton_hydro_mc'), 1)}&#8202;1/kg, "
         f"Newton sinks {rng(mc_sink)} times Drake&#8217;s depth and reaches {rng(mc_on)} of its onset torque, with no "
         "parameter fitted. Inverse weights from a separate MuJoCo compile of the bed&#8217;s MJCF give a factor of "
@@ -582,8 +672,8 @@ def newton_section():
             "<h3>The deployed turn with the correction</h3>",
             f"<p>In the turn scene each fingertip (4.9&#8202;g, the same body in Newton&#8217;s model and the MJCF) has an "
             f"inverse weight of {f(wt, 2)}&#8202;1/kg, the finger chain and its servo armature seen at the tip, and the tool "
-            f"{f(wtool, 1)}; m<sub>eff</sub> = {f(1e3 / (wt + wtool), 1)}&#8202;g, so each tip&#8217;s kh is multiplied by "
-            f"{f(wt + wtool, 1)}&#8202;1/kg and the tool&#8217;s kh is 100 times the largest tip kh "
+            f"{f(wtool, 1)}; {M_EFF} = {f(1e3 / (wt + wtool), 1)}&#8202;g, so each tip&#8217;s {K_H} is multiplied by "
+            f"{f(wt + wtool, 1)}&#8202;1/kg and the tool&#8217;s {K_H} is 100 times the largest tip {K_H} "
             f"(<code>scripts/newton_turn.py --mass-correct</code>). The deployed plans then hold the tool on {n_held} of "
             f"{len(mc)} placements ({n_1006} in a run of the same placements on 2026-10-06), against {raw_held} of "
             f"{len(raw)} uncorrected (Table&#160;3, column F; uncorrected rows "
@@ -641,29 +731,32 @@ def agreement_section():
     kf_bed = (kf_row.get("pad_d0") or {}).get("kf")
     d0b = kf_row.get("pad_d0") or {}
     kf_hand = next((r.get("pad_kf") for r in allrows["nt_pads"] if r.get("pad_kf")), None)
-    old_br = next((r for r in jl(os.path.join(ROOT, "logs/20261007-agreement/brake_newton_newton_pads1_kf1000.jsonl"))), {})
+    old_br = next((r for r in jl(os.path.join(SAD, "newton_pads_kf1000/brake_newton.jsonl"))), {})
     out = [
         "<p>Figure&#160;{fig} compares five fingertip contact models with Drake&#8217;s hydroelastic contact (the TPU block "
-        "as a compliant convex, E 10&#8202;MPa, Section&#160;3) on three tasks with one fingertip shape (the TPU block with "
+        "as a compliant convex, " + im("E") + " = 10&#8202;MPa, Section&#160;3) on three tasks with one fingertip shape (the TPU block with "
         "2.7&#8202;mm fillets), one control method (open-loop replay) and one sphere packing (0.75&#8202;mm spheres at "
         "1&#8202;mm): the twist and the brake on the two-pad contact bed of 2026-10-05, and the plan replay of the "
         "three-finger turn on D1&#8211;D8, paired with Drake by hand and placement (placements 0&#8211;2, 24 pairs). The "
         "models are the 1&#8202;mm pads in CPU MuJoCo, in MuJoCo-Warp (<code>reorient_backends_gpu.py</code>; bed model "
         "<code>mjw_pads1</code> in <code>contact_bed_newton.py</code>) and in Newton&#8217;s point-contact pipeline "
         "(<code>newton_turn.py --contact pads</code>; bed model <code>newton_pads1</code>), Newton&#8217;s hydroelastic contact "
-        "on the plain block with kh divided by the effective mass (Section&#160;4), and MuJoCo point contact on the block "
+        "on the plain block with " + K_H + " divided by the effective mass (Section&#160;4), and MuJoCo point contact on the block "
         "mesh (condim 3). Rows: <code>docs/experiments/20261006-simulator_agreement/</code>; figure "
         "<code>scripts/simulator_agreement_figure.py</code>.</p>",
         "<p>Newton needs two settings carried over for the pads to be the same model as MuJoCo&#8217;s. The pads&#8217; "
-        "solimp d0 holds the inverse weights of the model it was computed on; Newton&#8217;s import gives the bed&#8217;s "
-        f"railed pads {f((kf_row.get('inv_weight0') or {}).get('padL'), 1)}&#8202;1/kg against the MJCF "
-        f"compile&#8217;s 50, so d0 is recomputed from the solver&#8217;s model ({f(d0b.get('mjcf'), 3)} &#8594; "
-        f"{f(d0b.get('solver'), 3)}); on the hand the two sets of inverse weights agree to 10<sup>&#8722;7</sup>. Newton&#8217;s "
-        "importer also gives every shape a friction gain kf of 1000, which SolverMuJoCo turns into a friction-row time "
-        "constant of 4&#215;10<sup>&#8722;5</sup>&#8202;s for elliptic cones, where MuJoCo gives the friction rows the "
-        "pads&#8217; own solref, 10&#8202;ms"
-        + (f". With kf 1000 the braked tool swung to {f(old_br['phi_max_deg'], 0)}&#176;, past hanging" if old_br else "")
-        + f"; with kf set so that the friction rows keep 10&#8202;ms ({f(kf_bed, 1)} on the bed"
+        "solimp " + D_0 + " (Eq.&#160;4) holds the inverse weights of the model it was computed on; Newton&#8217;s import "
+        f"gives the bed&#8217;s railed pads {f((kf_row.get('inv_weight0') or {}).get('padL'), 1)}&#8202;1/kg against the "
+        f"MJCF compile&#8217;s 50, so {D_0} is recomputed from the solver&#8217;s model ({f(d0b.get('mjcf'), 3)} &#8594; "
+        f"{f(d0b.get('solver'), 3)}); on the hand the two sets of inverse weights agree to " + im("10^{-7}") + ". For "
+        "elliptic cones SolverMuJoCo also sets every contact&#8217;s friction-row time constant from the shapes&#8217; "
+        "friction gain " + K_F + " (<code>kernels.py</code>, &#8220;force-space friction slope&#8221;):</p>",
+        eq(r"t_f = \frac{2}{k_f\,(w_1 + w_2)\,\bigl((1-d_0)/r + d_0\bigr)},", 5),
+        "<p>with " + im("r") + " the impratio, where MuJoCo gives the friction rows the pads&#8217; own solref, "
+        + im(r"t_c = 10") + "&#8202;ms. Newton&#8217;s importer sets " + im("k_f = 1000") + ", which gives "
+        + im(r"t_f = 4\times10^{-5}") + "&#8202;s"
+        + (f"; with it the braked tool swung to {f(old_br['phi_max_deg'], 0)}&#176;, past hanging" if old_br else "")
+        + ". With " + K_F + " set so that " + im(r"t_f = t_c") + f" ({f(kf_bed, 1)} on the bed"
         + (f", {rng(list(kf_hand.values()), 1)} on the three fingertips" if kf_hand else "")
         + ") the swing matches MuJoCo&#8217;s.</p>",
         "FIGURE",
@@ -741,7 +834,7 @@ def grasp_search_section():
         "kinematics of the finger&#8217;s three joints puts its pad point within 1&#8202;mm of the contact, inside the joint "
         "limits less a margin, with the pad normal within 45&#176; of the tool&#8217;s surface normal) and pad forces exist "
         "that hold the tool (a linear program over the three contact forces: they balance the tool&#8217;s weight and "
-        "moments, lie in the &#956; 1 friction pyramid with at least 0.5&#8202;N normal, and load no finger joint beyond the "
+        "moments, lie in the \\(\\mu = 1\\) friction pyramid with at least 0.5&#8202;N normal, and load no finger joint beyond the "
         "1&#8202;N&#8202;m servo limit). The grasp is the tool&#8217;s offset on its post (&#177;12&#8202;mm along its axis, "
         "&#177;5&#8202;mm across, &#177;15&#176; yaw) and each finger&#8217;s contact on the cylinder (position along the axis "
         "and angle around it); CEM with 96 samples, 8 elites and 15 iterations maximises the range from the deployed "
@@ -749,6 +842,32 @@ def grasp_search_section():
         "<code>turn3_best_grasp.jsonl</code>). The controller then starts from the searched grasp: grip targets from the "
         "inverse kinematics at 0&#176; with each pad commanded 2&#8202;mm into the tool, fingers starting with the pads 8&#8202;mm "
         "outside their contacts (from the plan&#8217;s open pose, the 3&#176;-margin grasps knocked the tool off its post).</p>",
+        alg("Grasp search by turn range (cross-entropy method, <code>hom_grasp_search.cem</code>).",
+            r"""\Require deployed grasp \(x_0\): tool offset \((a, b, \psi)\) on the post; per finger \(i\) the axial position \(s_i\) and angle \(\phi_i\) of its contact
+\State \(\bar x \gets x_0\), \(\sigma \gets \sigma_0\), \(x^\ast \gets x_0\), \(R^\ast \gets\) \Call{Range}{\(x_0\)}
+\For{iteration \(1, \dots, 15\)}
+\State draw 96 grasps \(x_k \sim \mathcal{N}(\bar x, \operatorname{diag}\sigma^2)\) within the bounds; \(x_1 \gets x^\ast\)
+\State \(R_k \gets\) \Call{Range}{\(x_k\)} for every \(k\)
+\State \(\mathcal{E} \gets\) the 8 grasps with the largest \(R_k\)
+\State \(\bar x \gets \operatorname{mean}\mathcal{E}\), \(\sigma \gets \max(\operatorname{std}\mathcal{E},\ \sigma_0/4)\)
+\If{\(\max_k R_k > R^\ast\)}
+\State \(x^\ast, R^\ast \gets\) the best grasp and its range
+\EndIf
+\EndFor
+\State \Return \(x^\ast\)
+\Function{Range}{\(x\)}
+\For{\(\theta = 0^\circ, 3^\circ, \dots, 90^\circ\)}
+\State turn the tool by \(\theta\) about \(a_0\) through the contacts' centroid
+\State solve each finger's inverse kinematics to its contact point, inside the joint limits less the margin
+\If{a pad misses its point by more than 1 mm or its normal is more than \(45^\circ\) off}
+\State \Return \(\theta - 3^\circ\)
+\EndIf
+\If{no pad forces in the \(\mu = 1\) friction pyramid, each at least 0.5 N, hold the tool within 1 N\,m per joint}
+\State \Return \(\theta - 3^\circ\)
+\EndIf
+\EndFor
+\State \Return \(90^\circ\)
+\EndFunction"""),
         tab,
         tcap("Kinematic turn range of the deployed grasp and of the searched grasps (joint-limit margin 3&#176; or 8&#176;), "
              "and the governed HOM turn at the end of the rollout from each, median over seeds 0&#8211;2 with the number "
@@ -901,9 +1020,9 @@ def sensor_paragraph(T):
                 f"{num(npd['env_steps_per_s'], ',.0f')} (pads) env steps/s with the summed sensor, against "
                 f"{num(old['legacy']['env_steps_per_s'], ',.0f')} and {num(old['pads1']['env_steps_per_s'], ',.0f')} in "
                 f"Table&#160;{REF['throughput']} with the one-contact sensor.")
-    txt += ("</p><p>The env has no mass randomisation. Adding one requires recomputing each pad&#8217;s solimp d0 per world, "
-            "since d0 holds the inverse weights of the nominal tip and tool. The compliance randomisation "
-            "(<code>randomize_geom_solimp</code>) overwrites d0 and is off in the configuration the training below copies.</p>")
+    txt += ("</p><p>The env has no mass randomisation. Adding one requires recomputing each pad&#8217;s solimp \\(d_0\\) per world, "
+            "since \\(d_0\\) holds the inverse weights of the nominal tip and tool. The compliance randomisation "
+            "(<code>randomize_geom_solimp</code>) overwrites \\(d_0\\) and is off in the configuration the training below copies.</p>")
     return txt
 
 
@@ -1014,7 +1133,7 @@ def training_section(eta):
            "(<code>results/rl/20260917-1141-d6_cal_reorient_gp025_60M_s0/config.yaml</code>; a dry-run diff leaves only the "
            "number of envs, the step budget and the checkpoint interval), on scenes with the working plant "
            "(<code>scripts/make_work_plant_runs.py</code>: finger kp 4&#8202;N&#8202;m/rad, kv 0, 1&#8202;N&#8202;m, damping 0.08, "
-           "frictionloss 0, &#956; 1) and two fingertips: the TPU block as one convex mesh (point contact) and as 1&#8202;mm "
+           "frictionloss 0, \\(\\mu = 1\\)) and two fingertips: the TPU block as one convex mesh (point contact) and as 1&#8202;mm "
            "sphere pads"
            + (f" ({' / '.join(f(x, 0) for x in pads_c)} pad contacts on thumb / index / middle in the zero-action grasp)" if pads_c else "")
            + ". Both scenes lift and hold the tool in 64 of 64 envs with zero residual actions. Two seeds per fingertip "
@@ -1038,7 +1157,7 @@ def training_section(eta):
                      f"{f(r['final_cos_mean'], 3)} &#177; {f(r['final_cos_sd'], 3)}",
                      f"{round(64 * r['hold_rate'])}/64", f"{round(64 * r['success_rate'])}/64", f(r["peak_cos_mean"], 3),
                      f"{f(r['force_active_thumb'], 1)} / {f(r['force_active_index'], 1)} / {f(r['force_active_middle'], 1)}"])
-    out.append(table(["Run", "env steps (M)", "final cos", "held", "cos &#8805; 0.9 and held", "peak cos",
+    out.append(table(["Run", "env steps (M)", "final cos", "held", "cos \\(\\ge 0.9\\) and held", "peak cos",
                       "pad force thumb / index / middle (N)"], rows))
     paras = []
     for var in ("tpu27mesh", "tpu27pads1"):
@@ -1108,7 +1227,7 @@ def training_section(eta):
                         "<code>scripts/rl_policy_replay.py</code>, rows <code>policy_replay.jsonl</code>): final cosine of the "
                         "tool with vertical when it is still held, else the time the tool fell below 60&#8202;mm. CPU MuJoCo "
                         "steps the run&#8217;s own fingertip; Drake (compliant TPU convex) and Newton (hydroelastic TPU block, "
-                        "kh divided by the tip&#8211;tool effective mass) step the plain block for both runs. Newton at the "
+                        "\\(k_h\\) divided by the tip&#8211;tool effective mass) step the plain block for both runs. Newton at the "
                         "trainer&#8217;s 2&#8202;ms and 10 iterations, and at the contact bed&#8217;s 1&#8202;ms and 100 "
                         "iterations."))
         out.append("<p>CPU MuJoCo reproduces the pad policies within 0.02 in cosine of MuJoCo-Warp and holds the tool. "
@@ -1134,7 +1253,7 @@ SS_ROWS = [("mjlab", "3.6.0", "legacy", "mjlab env (reference), box tip"),
            ("mjw", "3.14.0", "pads1", "MuJoCo-Warp 3.14, TPU 1&#8202;mm pads"),
            ("nt_pt", "3.14.0", "legacy", "Newton, point contact, box tip"),
            ("nt_pt", "3.14.0", "mesh", "Newton, point contact, TPU block mesh"),
-           ("nt_pt", "3.14.0", "pads1", "<b>Newton, sphere pads</b> (Newton&#8217;s d0)"),
+           ("nt_pt", "3.14.0", "pads1", "<b>Newton, sphere pads</b> (Newton&#8217;s \\(d_0\\))"),
            ("nt_hydro", "3.14.0", "mesh", "<b>Newton, hydroelastic, TPU block mesh</b>, mass-corrected")]
 
 
@@ -1194,11 +1313,11 @@ def same_state_section(NT):
            "and zero velocity, and steps 22 graph-captured blocks of 50 steps (<code>scripts/same_state_timing.py</code>, rows "
            "<code>docs/experiments/20261006-rl_contact/same_state_timing.jsonl</code>). Newton 1.7.0.dev0 uses its own "
            "collision pipeline (contact gap 0.5&#8202;mm, margin 0), the TPU block re-added as a mesh from its OBJ, and for "
-           "hydroelastic contact kh = E/h on the tips multiplied by the tip&#8211;tool 1/m<sub>eff</sub> of its solver model "
+           "hydroelastic contact \\(k_h = E/h\\) on the tips multiplied by the tip&#8211;tool \\(1/m_\\text{eff}\\) of its solver model "
            "(Section&#160;4; tip inverse weights 4.95&#8211;5.14, tool 39.1&#8202;1/kg), 100 times that on the tool, 0.5&#8202;mm "
            "grid, &#177;6&#8202;mm band, contact reduction, buffers at 1.3&#8202;% of Newton&#8217;s defaults. The pads&#8217; "
-           "solimp d0 in Newton is recomputed from its solver model&#8217;s inverse weights, which equal the MJCF "
-           "compile&#8217;s to 10<sup>&#8722;8</sup>, so d0 is unchanged. The first rows run the live mjlab env for the same "
+           "solimp \\(d_0\\) in Newton is recomputed from its solver model&#8217;s inverse weights, which equal the MJCF "
+           "compile&#8217;s to \\(10^{-8}\\), so \\(d_0\\) is unchanged. The first rows run the live mjlab env for the same "
            "number of steps; its step includes the contact sensors.</p>",
            tab,
            tcap("Physics wall time per world-step on one held state of the D6 RL env, by number of worlds. Contacts and "
@@ -1254,9 +1373,9 @@ def next_section():
     still_txt = (", ".join(parts[:-1]) + " and " + parts[-1]) if len(parts) > 1 else (parts[0] if parts else "&#8211;")
     items = [
         "<b>Servo gain with a known load.</b> At the bench, with the servo holding a commanded angle, hang 50, 100 and "
-        "200&#8202;g from a fingertip on a measured lever and read the deficit from the servo readback; the slope is kp "
+        "200&#8202;g from a fingertip on a measured lever and read the deficit from the servo readback; the slope is \\(k_p\\) "
         "in N&#8202;m/rad. The replays cannot give it (Table&#160;2). A 20&#176; free-air step per joint at 111&#8202;Hz "
-        "gives &#964;; anything above 0.2&#8202;s falsifies the working plant.",
+        "gives \\(\\tau\\); anything above 0.2&#8202;s falsifies the working plant.",
         "<b>Grasp search scored after the grip.</b> In <code>hom_grasp_search.py</code>, simulate each CEM candidate&#8217;s "
         "0.8&#8202;s grip in MuJoCo (1&#8202;mm pads, working plant) and score the kinematic turn range from the pad contacts "
         "the grip actually reaches, rejecting candidates whose tool leaves its post or whose pads end more than 2&#8202;mm "
@@ -1269,9 +1388,9 @@ def next_section():
         f"<b>Newton&#8217;s turn without rotation.</b> Log the per-finger normal force and the tip slip speed "
         f"in <code>newton_turn.py</code> and compare them with MuJoCo&#8217;s pad forces on {still_txt}, where the "
         "mass-corrected Newton grip holds the tool but turns it less than 5&#176;.",
-        "<b>Friction rows of Newton&#8217;s hydroelastic contact.</b> The 2026-10-05 friction gain kf 10 gives the "
+        "<b>Friction rows of Newton&#8217;s hydroelastic contact.</b> The 2026-10-05 friction gain \\(k_f = 10\\) gives the "
         "hydroelastic friction rows a time constant of 3.9&#8202;ms on the bed (Section&#160;5). Run "
-        "<code>contact_bed_newton.py brake --models newton_hydro_mc</code> with kf set for 2, 5, 10 and 20&#8202;ms; the "
+        "<code>contact_bed_newton.py brake --models newton_hydro_mc</code> with \\(k_f\\) set for \\(t_f\\) = 2, 5, 10 and 20&#8202;ms (Eq.&#160;5); the "
         "pads&#8217; 108&#176; swing became MuJoCo&#8217;s 88&#176; at 10&#8202;ms. A setting at which the hydroelastic swing "
         "falls within 3&#176; of Drake&#8217;s 87.3&#176;, rerun on the turn&#8217;s 40 placements, would show whether the "
         "130&#176; swing and the two drops during the grip come from the friction rows.",
@@ -1320,7 +1439,7 @@ def lede():
             "small part of an env step; from one held RL state the pads cost 2.2&#8211;2.4&#8202;&#181;s of physics per world-step "
             "in MuJoCo-Warp, Newton&#8217;s hydroelastic contact on the plain fingertip shape 4.3&#8202;&#181;s, point contact "
             "0.6&#8211;1.4&#8202;&#181;s. SolverMuJoCo realises Newton&#8217;s hydroelastic stiffness times the tip&#8211;tool "
-            "effective mass; with kh "
+            "effective mass; with \\(k_h\\) "
             f"divided by that mass the deployed plans hold the tool on {n_mc_held} of {len(mc)} placements in Newton (10 "
             f"uncorrected) and turn it within 5&#176; of MuJoCo on {n_close} of 8 hands. Against Drake, the 1&#8202;mm "
             "pads agree to the same degree in CPU MuJoCo, MuJoCo-Warp and Newton (twist onset torque "
@@ -1329,7 +1448,7 @@ def lede():
             "20&#8202;M steps on the working plant, the D6 reorientation ends at cos 0.64&#8211;0.69 with the TPU block "
             "as one mesh and 0.43&#8211;0.44 with 1&#8202;mm pads, holding the tool in 60&#8211;64 of 64 rollouts; no run "
             "reaches cos 0.9, and the pad envs need 640 contacts and 3,072 constraint rows per world. The 2026-09-02 "
-            "servo-gain fit closed the fingers on air; the bench readbacks fix the finger time constant and favour &#956; 1 but "
+            "servo-gain fit closed the fingers on air; the bench readbacks fix the finger time constant and favour \\(\\mu = 1\\) but "
             "do not identify the gain.")
 
 
@@ -1356,8 +1475,9 @@ def main():
     left = sorted(set(x.split("}}")[0] for x in t.split("{{")[1:]))
     if left:
         raise SystemExit(f"unfilled placeholders: {left}")
+    t, n_math, n_alg = render_tex(t)
     open(OUT, "w").write(t)
-    print(f"wrote {OUT} ({os.path.getsize(OUT) / 1e6:.2f} MB)")
+    print(f"formulas {n_math}, algorithms {n_alg}; wrote {OUT} ({os.path.getsize(OUT) / 1e6:.2f} MB)")
 
 
 if __name__ == "__main__":
