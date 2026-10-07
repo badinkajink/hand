@@ -84,6 +84,9 @@ The pattern, followed by every page in `docs/experiments/INDEX.md`:
 1. **A builder script** `scripts/<topic>_page.py` + `scripts/<topic>_page.template.html`. The
    builder reads the study's own JSON and substitutes `{{PLACEHOLDER}}`s, so the page regenerates
    from data and cannot drift from it. Media are inlined as data URIs — the artifact is one file.
+   Mathematics and algorithms are LaTeX rendered to inline SVG by `scripts/texsvg.py`, cached beside
+   the page (`contact_overview_page.render_tex` shows the `$...$` / `$$...$$` convention); never a
+   monospace font (global rule "Mathematics and algorithms").
 2. **The output file** `docs/experiments/<YYYYMMDD-topic>/<YYYYMMDD-name>.html`. Date-prefix the
    **filename**, not just the folder, so a flat listing sorts.
 3. **A row in `docs/experiments/INDEX.md`** — date, subject, local file, artifact URL, newest
