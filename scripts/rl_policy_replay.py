@@ -48,6 +48,10 @@ NAMES = [f"{f}_{j}" for f in FINGERS for j in JOINTS]
 TOOL = "screwdriver_medium"
 PALM_JOINTS = ("palm_px", "palm_py", "palm_pz", "palm_rx", "palm_ry", "palm_rz")
 ONSET, STEPS, DT_POLICY = 58, 250, 0.02
+# the trainer's solver options (env_build MujocoCfg); mjlab applies them to the compiled model, not to the spec its
+# Scene.write exports, so an exported scene carries MuJoCo's defaults (pyramidal cone, impratio 1, Euler) without them
+TRAINER_OPT = dict(timestep="0.002", iterations="10", ls_iterations="20", tolerance="1e-08", impratio="10",
+                   cone="elliptic", integrator="implicitfast", gravity="0 0 -9.81")
 NEWTON_DIR = [None]
 
 
@@ -63,7 +67,8 @@ def record(tag: str, ckpt: str | None, n: int = 16):
         ckpt = max((rd / "tensorboard").glob("model_*.pt"), key=lambda p: int(re.findall(r"\d+", p.stem)[0]))
     ckpt = Path(ckpt)
     trained = run_env_overrides(ckpt)
-    morph = Path(trained["foundational_run_dir"]) if trained.get("foundational_run_dir") else None
+    import yaml
+    morph = Path(yaml.safe_load(open(rd / "config.yaml"))["env"]["foundational_run_dir"])
     frozen = morph / "frozen_scene.xml"
     summ = json.loads((morph / "summary.json").read_text())
     bfc = finger_ctrl_from_keyframe(frozen, "open_ik")
@@ -174,6 +179,11 @@ def bench(d: Path, world: int = 0, plant: str = "kp4_kv0_fr1_fl0_dp0.08", mu: fl
     for tag in ("sensor", "keyframe"):
         for el in root.findall(tag):
             root.remove(el)
+    opt = root.find("option")
+    if opt is None:
+        opt = ET.Element("option")
+        root.insert(0, opt)
+    opt.attrib.update(TRAINER_OPT)
     meshes = {}
     for ms in root.iter("mesh"):
         if ms.get("name", "").split("/")[-1] in ("tpu_pos", "tpu_neg"):
@@ -203,18 +213,22 @@ def bench(d: Path, world: int = 0, plant: str = "kp4_kv0_fr1_fl0_dp0.08", mu: fl
 # ---------------------------------------------------------------------------------- engines
 
 def make_plant(engine, d, meta):
+    """CPU MuJoCo steps the run's own scene (its pads or its mesh tip). Drake takes the TPU block as a compliant
+    convex from the mesh run's scene (a pad scene's tip geoms are spheres), with this run's state."""
     import hom_turn3 as H3
     if engine == "mujoco":
         return H3.MjPlant(d / "bench.xml", meta)
     if engine == "drake":
-        return H3.DrakePlant(d / "bench.xml", meta)
+        return H3.DrakePlant(Path(str(d).replace("pads1", "mesh")) / "bench.xml", meta)
     raise ValueError(engine)
 
 
 def replay(d: Path, engine: str, hold: float | None = None, seed: int = 0):
     meta = json.loads((d / "bench_meta.json").read_text())
     rec = dict(np.load(d / "rec.npz")) if (d / "rec.npz").exists() else None
-    if hold is not None or rec is None:
+    if hold is not None and rec is not None:
+        targets = np.tile(rec["finger_targets"][meta["world"]][0], (int(round(hold / DT_POLICY)), 1))
+    elif hold is not None or rec is None:
         targets = np.tile([meta["q0"][n] for n in NAMES], (int(round((hold or 1.0) / DT_POLICY)), 1))
         if rec is None and (d / "state.npz").exists():
             st = dict(np.load(d / "state.npz"))
@@ -360,7 +374,7 @@ def main():
         row = record(a.tag, a.checkpoint, a.n)
         row.update(kind="record", when=time.strftime("%Y-%m-%d %H:%M"))
         with open(OUT, "a") as fh:
-            fh.write(json.dumps(row) + "\n")
+            fh.write(json.dumps(row, default=float) + "\n")
             fh.flush()
             os.fsync(fh.fileno())
         return 0
@@ -374,7 +388,7 @@ def main():
     except Exception as e:
         row.update(engine=a.engine, status="error", error=f"{type(e).__name__}: {e}", tb=traceback.format_exc()[-1500:])
     with open(a.out, "a") as fh:
-        fh.write(json.dumps(row) + "\n")
+        fh.write(json.dumps(row, default=float) + "\n")
         fh.flush()
         os.fsync(fh.fileno())
     print({k: v for k, v in row.items() if k not in ("trace", "tb")}, flush=True)
