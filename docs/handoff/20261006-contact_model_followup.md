@@ -1,4 +1,4 @@
-Status: active
+Status: superseded by docs/handoff/20261006-overnight_simulators_rl.md (2026-10-06 18:45)
 Task: the user's message of 2026-10-06 18:00: what "calibrating Newton's kh" means and whether it scales; why mjlab's contact sensor overflows; HOM grasps for the fixed-contact turn; differentiable pads; usage tooling. Findings go on docs/experiments/20261006-hom_turn3/20261006-servo_refit_hom_turn_pad_cost.html (builder scripts/hom_turn_rl_contact_page.py + .template.html), republished to https://claude.ai/artifact/WKjBtGUY27UrcMqCH9Ujdj.
 Read first: this note; the page above; memory project_hom_turn_rl_contact_2026_10_06.md; scripts/contact_bed_newton.py (models newton_hydro_mc*, --outdir); docs/experiments/20261006-newton_mass_scaling/*.jsonl; logs/20261006-rl_contact/pad_match_count.py.
 State:
