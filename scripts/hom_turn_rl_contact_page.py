@@ -474,6 +474,7 @@ def hom_section():
         "<p>Placement sensitivity: the governed turn depends on how the grip settles before the reference starts. An "
         "earlier squeeze phase that ramped the force target up from 0&#8202;N let D7 reach 52&#8211;65&#176; on all five "
         "placements and dropped D1 on two of five; the rows above use the version that holds 2&#8202;N from the start.</p>",
+        grasp_search_section(),
         film("media/D7_s0_three.mp4", "D7, seed 0. Left: deployed open-loop plan. Middle: HOM controller with governor. "
              "Right: without governor. Pads touching the tool are red. MuJoCo, working plant.", "media/D7_s0_three.jpg"),
         film("media/D2_s0_three.mp4", "D2, seed 0, as Figure&#160;2.", "media/D2_s0_three.jpg"),
@@ -608,6 +609,77 @@ def newton_section():
             f"{cmp_txt}.</p>",
         ]
     return "\n".join(out)
+
+
+def grasp_search_section():
+    S = defaultdict(dict)
+    for r in jl(os.path.join(D, "grasp_search.jsonl")):
+        S[r["hand"]][r["criteria"]["lim_deg"]] = r
+    H = defaultdict(list)
+    for r in jl(os.path.join(D, "turn3_best_grasp.jsonl")):
+        if r.get("status") == "ok":
+            key = "deployed" if r["grasp"] == "deployed" else f"best{r.get('search_lim_deg', 3.0):g}"
+            H[(r["hand"], key, r["sim"])].append(r)
+    hands = [h for h in ("D7", "D2", "D5") if h in S]
+    if not hands:
+        return ""
+
+    def hom(h, key, sim):
+        rs = H.get((h, key, sim), [])
+        if not rs:
+            return "&#8211;"
+        return f"{f(med([r['turn_end_deg'] for r in rs]) + 0.0, 0)} ({sum(r['held'] for r in rs)}/{len(rs)})"
+    rows = []
+    for h in hands:
+        r3, r8 = S[h].get(3.0), S[h].get(8.0)
+        rows.append([h, f(r3["deployed"]["range_deg"], 0) if r3 else "&#8211;",
+                     f(r3["best"]["range_deg"], 0) if r3 else "&#8211;", f(r8["best"]["range_deg"], 0) if r8 else "&#8211;",
+                     hom(h, "deployed", "mujoco"), hom(h, "deployed", "drake"), hom(h, "best3", "mujoco"),
+                     hom(h, "best8", "mujoco"), hom(h, "best8", "drake")])
+    tab = table(["Hand", "deployed range (&#176;)", "searched, 3&#176; margin", "searched, 8&#176; margin",
+                 "HOM, deployed, MuJoCo", "Drake", "HOM, searched 3&#176;, MuJoCo", "HOM, searched 8&#176;, MuJoCo",
+                 "Drake"], rows)
+    best = [S[h][8.0]["best"] for h in hands if 8.0 in S[h]]
+    dep = [S[h][3.0]["deployed"] for h in hands if 3.0 in S[h]]
+    s_dep = [abs(c["s_mm"]) for b in dep for k, c in b["contacts"].items() if k != "thumb"]
+    s_best = [abs(c["s_mm"]) for b in best for k, c in b["contacts"].items() if k != "thumb"]
+    pip0 = [b["q_start_deg"][i] for b in best for i in (5, 8)]
+    b8 = [r for h in hands for r in H.get((h, "best8", "mujoco"), []) + H.get((h, "best8", "drake"), [])]
+    on_floor = sum(1 for r in b8 if r["z_grip_mm"] < 50)
+    held8 = [r for r in b8 if r["held"]]
+    b3 = [r for h in hands for r in H.get((h, "best3", "mujoco"), []) + H.get((h, "best3", "drake"), [])]
+    return "".join([
+        "<h3>Grasp search by turn range</h3>",
+        "<p>The turn range of a grasp is the largest rotation of the tool toward vertical, about the horizontal axis "
+        "normal to its starting axis through the contacts&#8217; centroid (the rotation the controller commands), at which, "
+        "for every smaller angle in 3&#176; steps, each fingertip still reaches its tool-fixed contact point (inverse "
+        "kinematics of the finger&#8217;s three joints puts its pad point within 1&#8202;mm of the contact, inside the joint "
+        "limits less a margin, with the pad normal within 45&#176; of the tool&#8217;s surface normal) and pad forces exist "
+        "that hold the tool (a linear program over the three contact forces: they balance the tool&#8217;s weight and "
+        "moments, lie in the &#956; 1 friction pyramid with at least 0.5&#8202;N normal, and load no finger joint beyond the "
+        "1&#8202;N&#8202;m servo limit). The grasp is the tool&#8217;s offset on its post (&#177;12&#8202;mm along its axis, "
+        "&#177;5&#8202;mm across, &#177;15&#176; yaw) and each finger&#8217;s contact on the cylinder (position along the axis "
+        "and angle around it); CEM with 96 samples, 8 elites and 15 iterations maximises the range from the deployed "
+        "grip&#8217;s contacts (<code>scripts/hom_grasp_search.py</code>, rows <code>grasp_search.jsonl</code>, "
+        "<code>turn3_best_grasp.jsonl</code>). The controller then starts from the searched grasp: grip targets from the "
+        "inverse kinematics at 0&#176; with each pad commanded 2&#8202;mm into the tool, fingers starting with the pads 8&#8202;mm "
+        "outside their contacts (from the plan&#8217;s open pose, the 3&#176;-margin grasps knocked the tool off its post).</p>",
+        tab,
+        tcap("Kinematic turn range of the deployed grasp and of the searched grasps (joint-limit margin 3&#176; or 8&#176;), "
+             "and the governed HOM turn at the end of the rollout from each, median over seeds 0&#8211;2 with the number "
+             "of rollouts that held the tool."),
+        f"<p>The search raises the range from {f(min(b['range_deg'] for b in dep), 0)}&#8211;{f(max(b['range_deg'] for b in dep), 0)}&#176; "
+        f"to {f(min(b['range_deg'] for b in best), 0)}&#8211;{f(max(b['range_deg'] for b in best), 0)}&#176; (8&#176; margin). The "
+        f"searched grasps move the index and middle contacts toward the tool&#8217;s centre ({f(min(s_best), 0)}&#8211;"
+        f"{f(max(s_best), 0)}&#8202;mm from it against {f(min(s_dep), 0)}&#8211;{f(max(s_dep), 0)}&#8202;mm) and start "
+        f"those pips at {f(min(pip0), 0)} to {f(max(pip0), 0)}&#176;. The controller does not carry them out: from the "
+        "8&#176;-margin grasps the tool is held in "
+        f"{len(held8)} of {len(b8)} rollouts ({on_floor} lose it during the grip) and the held ones turn it "
+        f"{f(min(r['turn_end_deg'] for r in held8), 0) if held8 else '&#8211;'} to "
+        f"{f(max(r['turn_end_deg'] for r in held8), 0) if held8 else '&#8211;'}&#176;, away from vertical; from the "
+        f"3&#176;-margin grasps {sum(r['held'] for r in b3)} of {len(b3)} hold. Most rollouts lose the tool during the grip, "
+        "which the kinematic score leaves out.</p>",
+    ])
 
 
 # ------------------------------------------------------------------------------------------ RL contact cost
@@ -751,7 +823,7 @@ def sensor_paragraph(T):
         txt += (f" At 2,048 envs the env runs {num(nl['env_steps_per_s'], ',.0f')} (box tip) and "
                 f"{num(npd['env_steps_per_s'], ',.0f')} (pads) env steps/s with the summed sensor, against "
                 f"{num(old['legacy']['env_steps_per_s'], ',.0f')} and {num(old['pads1']['env_steps_per_s'], ',.0f')} in "
-                "Table&#160;5 with the one-contact sensor.")
+                "Table&#160;6 with the one-contact sensor.")
     txt += ("</p><p>The env has no mass randomisation. Adding one requires recomputing each pad&#8217;s solimp d0 per world, "
             "since d0 holds the inverse weights of the nominal tip and tool. The compliance randomisation "
             "(<code>randomize_geom_solimp</code>) overwrites d0 and is off in the configuration the training below copies.</p>")
@@ -884,9 +956,12 @@ def next_section():
         "200&#8202;g from a fingertip on a measured lever and read the deficit from the servo readback; the slope is kp "
         "in N&#8202;m/rad. The replays cannot give it (Table&#160;2). A 20&#176; free-air step per joint at 111&#8202;Hz "
         "gives &#964;; anything above 0.2&#8202;s falsifies the working plant.",
-        "<b>A grasp chosen for the fixed-contact turn.</b> For each hand, search grip poses (pips flexed, contact points "
-        "on the tool) by the reachable turn of <code>hom_turn3.py</code> with the governor, starting from the plan&#8217;s "
-        "contact points; the turn is now capped by pip extension at the deployed grips.",
+        "<b>Grasp search scored after the grip.</b> In <code>hom_grasp_search.py</code>, simulate each CEM candidate&#8217;s "
+        "0.8&#8202;s grip in MuJoCo (1&#8202;mm pads, working plant) and score the kinematic turn range from the pad contacts "
+        "the grip actually reaches, rejecting candidates whose tool leaves its post or whose pads end more than 2&#8202;mm "
+        "from the planned contacts. A searched grasp that the governed controller turns past the deployed grasp&#8217;s "
+        "angle on D7, D2 and D5 (6, 42 and 23&#176;) would confirm grasp choice as the limit; none would point at the "
+        "controller.",
         "<b>A second contact mode in the HOM controller.</b> When a finger&#8217;s pip reaches its limit, give that "
         "finger&#8217;s contact a slide reference along the tool axis while the other two hold; measure the reachable turn "
         "and the drop rate on the same 40 placements.",
