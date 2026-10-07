@@ -64,6 +64,7 @@ CANDIDATES = {
     "mj_pads1_bristle20": "mj:spheres:s1:rs0.75:ir1000:tr0.02:bristle20",
     "mj_pads1_bristle20a": "mj:spheres:s1:rs0.75:ir1000:tr0.02:bristle20a",
     "mj_pads2_bristle20a": "mj:spheres:s2:rs0.75:ir1000:tr0.02:bristle20a",
+    "mj_pads1_soft": "mj:spheres:s1:rs0.75:ir100:tr0.02:soft",
 }
 # As specified (1 mg spheres, no armature) the bristles go unstable under tangential load at 1 and 2 ms; armature worth
 # 0.2 g at the contact still does; 2 g at the contact (1.1e-9 kg m^2 per ball-joint dof) runs (suffix `a`).
@@ -193,10 +194,72 @@ class BristleRig(H.MjRig):
         self.theta_prev, self.theta_unwrap = None, 0.0
 
 
+# (d) The exponent alone, spec suffix `:soft`: each pad sphere's solimp softens with depth (d_min > d_max) so that its static
+# force follows K_s sqrt(r r_ref) (p ~ depth^(1/2): Hertz's N^(2/3) approach and N^(1/3) radius on a Winkler bed) instead of
+# K_s r, equal at r_ref = 0.2 mm. MuJoCo's static law inside the solimp width, measured on a sphere-plane contact, is
+# f = r d(r) / (d_max^2 (1 - d(r)) t_c^2 w); fitted over 0.03-0.5 mm with a 0.7 mm width.
+SOFT = dict(r_ref=0.2e-3, width=0.7e-3, r_lo=0.03e-3, r_hi=0.5e-3)   # 0.005-0.6 mm fits only to 46 %; this range to 7 %
+
+
+def solimp_d(r, si):
+    dmin, dmax, width, mid, p = si
+    x = np.clip(np.asarray(r, float) / width, 0, 1)
+    y = np.where(x <= mid, x ** p / mid ** (p - 1), 1 - (1 - x) ** p / (1 - mid) ** (p - 1))
+    return dmin + y * (dmax - dmin)
+
+
+def fit_soft(K_s, tc, w, so=None):
+    """solimp (dmin, dmax, width, mid, power) whose static force follows K_s sqrt(r r_ref) over r_lo..r_hi."""
+    from scipy.optimize import minimize
+    so = dict(SOFT, **(so or {}))
+    r = np.geomspace(so["r_lo"], so["r_hi"], 60)
+    target = K_s * np.sqrt(r * so["r_ref"])
+
+    def force(v):
+        dmin, dmax, mid, p = v
+        d = solimp_d(r, (dmin, dmax, so["width"], mid, p))
+        return r * d / (dmax ** 2 * (1 - d) * tc ** 2 * w)
+
+    def cost(v):
+        dmin, dmax, mid, p = v
+        if not (0.05 < dmax < dmin < 0.9999 and 0.05 < mid < 0.95 and 1 <= p <= 8):
+            return 1e9
+        return float(np.mean(np.log(force(v) / target) ** 2))
+    best = None
+    for x0 in ([0.95, 0.6, 0.3, 2], [0.98, 0.5, 0.2, 3], [0.9, 0.7, 0.5, 1.5], [0.99, 0.4, 0.1, 4]):
+        res = minimize(cost, x0, method="Nelder-Mead", options=dict(maxiter=4000, xatol=1e-7, fatol=1e-12))
+        if best is None or res.fun < best.fun:
+            best = res
+    dmin, dmax, mid, p = best.x
+    err = float(np.max(np.abs(force(best.x) / target - 1)))
+    return (float(dmin), float(dmax), so["width"], float(mid), float(p)), err
+
+
+class SoftRig(H.MjRig):
+    """hom_contact_rig.MjRig with the pad spheres' solimp softening with depth (candidate d)."""
+
+    def __init__(self, sp, d_cg, gravity, kinematic=False):
+        import mujoco
+        H.MjRig.__init__(self, sp, d_cg, gravity, kinematic)
+        tc, w = self.info["solref_timeconst"], self.info["diagApprox"]
+        si, err = fit_soft(self.info["K_sphere"], tc, w)
+        d0 = self.info["solimp_d0"]
+        old = f'solimp="{d0:.6g} {d0:.6g} 0.001 0.5 2"'
+        new = f'solimp="{si[0]:.6g} {si[1]:.6g} {si[2]:.6g} {si[3]:.6g} {si[4]:.6g}"'
+        assert old in self.xml
+        self.xml = self.xml.replace(old, new)
+        self.info.update(soft_solimp=si, soft_fit_err=err, soft=dict(SOFT))
+        self.m = mujoco.MjModel.from_xml_string(self.xml)
+        self.d = mujoco.MjData(self.m)
+        mujoco.mj_forward(self.m, self.d)
+
+
 _orig_make_rig = H.make_rig
 
 
 def make_rig(spec, d_cg=0.0, gravity=True, kinematic=False):
+    if spec.endswith(":soft"):
+        return SoftRig(H.parse_spec(spec[:-5]), d_cg, gravity, kinematic)
     if spec.endswith(":skin"):
         return SkinRig(H.parse_spec(spec[:-5]), d_cg, gravity, kinematic)
     mb = re.search(r":bristle(\d*)(a?)$", spec)
