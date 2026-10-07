@@ -1099,6 +1099,19 @@ CONTACT_SENSOR_REDUCE = "netforce"
 CONTACT_SENSOR_MAXMATCH = 256
 
 
+def _contact_buffers(cfg: MorphoHandEnvCfg) -> tuple[int, int]:
+    """Per-world contact and constraint-row buffers. 64 / 400 for the point-contact tips every run before 2026-10-06
+    used. A sphere-pad tip (over 500 geoms in the frozen scene) needs more: MuJoCo-Warp's broadphase writes its
+    candidate pairs into the contact buffer, about 290 per world for the 1 mm pads under the working plant's grip
+    against ~120 contacts, and an overflowing buffer drops pad contacts and fed NaN observations to the first
+    2026-10-06 pad runs."""
+    try:
+        n_geom = Path(str(cfg.frozen_scene_xml)).read_text().count("<geom")
+    except OSError:
+        n_geom = 0
+    return (512, 1024) if n_geom > 500 else (64, 400)
+
+
 def _build_sensors(cfg: MorphoHandEnvCfg) -> tuple:
     from mjlab.sensor import ContactMatch, ContactSensorCfg
 
@@ -1242,6 +1255,7 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
     ctx = _init_context(cfg)
     hand_entity, cube_entity = _build_entities(cfg, ctx)
     rewards = _build_rewards(cfg)
+    nconmax, njmax = _contact_buffers(cfg)
 
     return ManagerBasedRlEnvCfg(
         scene=SceneCfg(
@@ -1269,8 +1283,8 @@ def to_mjlab_cfg(cfg: MorphoHandEnvCfg):
             height=cfg.viewer_height,
         ),
         sim=SimulationCfg(
-            nconmax=64,
-            njmax=400,
+            nconmax=nconmax,
+            njmax=njmax,
             contact_sensor_maxmatch=CONTACT_SENSOR_MAXMATCH,
             mujoco=MujocoCfg(
                 timestep=cfg.sim_timestep,
