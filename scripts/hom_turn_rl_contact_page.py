@@ -775,16 +775,7 @@ def rl_section():
         "for any fingertip.</p>",
         sensor_paragraph(T),
         same_state_section(NT),
-        "<h3>Training comparison, not yet run</h3>",
-        "<p>Proposed queue, serial, one GPU job at a time: the D6 reorientation from scratch with the b_liveA recipe "
-        "(as the 2026-09-17 run, no warm start) on the working plant, box tip against 1&#8202;mm pads, two runs each at "
-        "20&#8202;M steps and 2,048 envs, held-cosine evaluated as a distribution of 64 rollouts every 2&#8202;M steps so "
-        "that convergence is read from the curve. At the measured throughput a run takes "
-        f"{f(eta.get('legacy'), 0) if eta.get('legacy') else '&#8211;'}&#8202;min (box) and "
-        f"{f(eta.get('pads1'), 0) if eta.get('pads1') else '&#8211;'}&#8202;min (pads); the queue is about "
-        f"{f(2 * (eta.get('legacy', 0) + eta.get('pads1', 0)) / 60.0, 1)}&#8202;h of GPU. Each final policy&#8217;s "
-        "joint-target trajectory is then replayed open loop in MuJoCo on CPU, in Drake (TPU convex) and in Newton. The "
-        "trainer&#8217;s <code>--seed</code> flag is still not applied (2026-09-20), so the two runs per arm are two draws.</p>",
+        training_section(eta),
     ]
     return "\n".join(out)
 
@@ -828,6 +819,109 @@ def sensor_paragraph(T):
             "since d0 holds the inverse weights of the nominal tip and tool. The compliance randomisation "
             "(<code>randomize_geom_solimp</code>) overwrites d0 and is off in the configuration the training below copies.</p>")
     return txt
+
+
+RUN_LBL = {"tpu27mesh": "TPU block mesh (point contact)", "tpu27pads1": "TPU 1&#8202;mm pads"}
+RUN_COL = {"tpu27mesh": "var(--s1)", "tpu27pads1": "var(--c-sphere)"}
+
+
+def svg_training(R):
+    W, Hh = 720, 330
+    x0, y0, w, h = 60, 20, 620, 250
+    out = P._svg_open(W, Hh, "Final tool cosine of the deterministic policy against training steps")
+    fx = lambda v: x0 + v / 20.5 * w  # noqa: E731
+    fy = lambda v: y0 + (1.0 - v) / 2.0 * h  # noqa: E731
+    for v in (-1.0, -0.5, 0.0, 0.5, 1.0):
+        out.append(f'<line x1="{x0}" x2="{x0 + w}" y1="{fy(v):.1f}" y2="{fy(v):.1f}" style="stroke:var(--rule2)"/>')
+        out.append(f'<text x="{x0 - 8}" y="{fy(v) + 4:.1f}" text-anchor="end" style="fill:var(--ink3)">{v:+.1f}</text>')
+    for v in range(0, 21, 4):
+        out.append(f'<text x="{fx(v):.1f}" y="{y0 + h + 16}" text-anchor="middle" style="fill:var(--ink3)">{v}</text>')
+    out.append(f'<text x="{x0 + w / 2:.1f}" y="{y0 + h + 34}" text-anchor="middle" style="fill:var(--ink2)">'
+               'env steps (millions); hollow = fewer than 48 of 64 envs hold the tool at the end</text>')
+    leg = []
+    for tag, rs in sorted(R.items()):
+        var = "tpu27pads1" if "pads1" in tag else "tpu27mesh"
+        col = RUN_COL[var]
+        dash = "4 3" if tag.endswith("s1") else ""
+        pts = [(r["env_steps"] / 1e6, r["final_cos_mean"], r["hold_rate"]) for r in rs]
+        out.append('<polyline points="' + " ".join(f"{fx(a):.1f},{fy(b):.1f}" for a, b, _ in pts) +
+                   f'" style="fill:none;stroke:{col};stroke-width:2;stroke-dasharray:{dash or "none"}"/>')
+        for a, b, hr in pts:
+            P._marker(out, fx(a), fy(b), col, shape="circle", hollow=hr < 0.75, r=3.4)
+        leg.append((f"{RUN_LBL[var]}, seed {tag[-1]}", col, bool(dash), "circle"))
+    out.append("</svg>")
+    return "\n".join(out) + P._legend_html(leg)
+
+
+def training_section(eta):
+    R = defaultdict(list)
+    for r in jl(os.path.join(RLD, "train_eval.jsonl")):
+        if r.get("status") == "ok":
+            R[r["tag"]].append(r)
+    for k in R:
+        R[k].sort(key=lambda r: r["iteration"])
+    chk = {}
+    pj = os.path.join(RLD, "work_plant_runs.json")
+    if os.path.exists(pj):
+        chk = {os.path.basename(c["run"]): c for c in json.load(open(pj))["checks"]}
+    pads_c = chk.get("20261006-sv1_u0308_b050_work_tip_tpu2.7pads1", {}).get("step150", {}).get("tip_contacts_mean")
+    out = ["<h3>RL training: TPU block mesh against 1&#8202;mm pads</h3>",
+           "<p>The D6 reorientation trained from scratch with the b_liveA recipe and the flags of the 2026-09-17 60&#8202;M run "
+           "(<code>results/rl/20260917-1141-d6_cal_reorient_gp025_60M_s0/config.yaml</code>; a dry-run diff leaves only the "
+           "number of envs, the step budget and the checkpoint interval), on scenes with the working plant "
+           "(<code>scripts/make_work_plant_runs.py</code>: finger kp 4&#8202;N&#8202;m/rad, kv 0, 1&#8202;N&#8202;m, damping 0.08, "
+           "frictionloss 0, &#956; 1) and two fingertips: the TPU block as one convex mesh (point contact) and as 1&#8202;mm "
+           "sphere pads"
+           + (f" ({' / '.join(f(x, 0) for x in pads_c)} pad contacts on thumb / index / middle in the zero-action grasp)" if pads_c else "")
+           + ". Both scenes lift and hold the tool in 64 of 64 envs with zero residual actions. Two seeds per fingertip "
+           "(the trainer&#8217;s <code>--seed</code> is now applied: it seeds python, numpy, torch and Warp through the env "
+           "config; the GPU contact solve stays non-deterministic), 20&#8202;M steps at 2,048 envs, friction randomised "
+           "0.55&#8211;1.15&#215; per env, checkpoints every 41 iterations (2.0&#8202;M steps), one run at a time "
+           "(<code>scripts/rl_contact_train_queue.sh</code>). Every checkpoint is rolled out deterministically in 64 envs "
+           "for 250 policy steps without randomisation (<code>scripts/rl_contact_eval.py</code> over "
+           "<code>policy_eval_suite.py</code>, rows <code>docs/experiments/20261006-rl_contact/train_eval.jsonl</code>).</p>"]
+    if not R:
+        out.append(P.pending("Training queue running; rows appear in train_eval.jsonl as checkpoints are evaluated."))
+        return "\n".join(out)
+    out.append(figure(svg_training(R), "Final cosine of the tool axis with vertical (mean over 64 deterministic "
+                                      "rollouts) of each checkpoint against env steps."))
+    rows = []
+    for tag, rs in sorted(R.items()):
+        r = rs[-1]
+        var = "tpu27pads1" if "pads1" in tag else "tpu27mesh"
+        rows.append([(f"{RUN_LBL[var]}, seed {tag[-1]}", "lab"), f(r["env_steps"] / 1e6, 1),
+                     f"{f(r['final_cos_mean'], 3)} &#177; {f(r['final_cos_sd'], 3)}",
+                     f"{round(64 * r['hold_rate'])}/64", f"{round(64 * r['success_rate'])}/64", f(r["peak_cos_mean"], 3),
+                     f"{f(r['force_active_thumb'], 1)} / {f(r['force_active_index'], 1)} / {f(r['force_active_middle'], 1)}"])
+    out.append(table(["Run", "env steps (M)", "final cos", "held", "cos &#8805; 0.9 and held", "peak cos",
+                      "pad force thumb / index / middle (N)"], rows))
+    out.append(tcap("Final checkpoint of each run, 64 deterministic rollouts. Final cos: cosine of the tool axis with "
+                    "vertical at the end (mean &#177; sd); held: fingertip force above 0.5&#8202;N and tool above 60&#8202;mm at "
+                    "the end; pad force: mean summed contact force per fingertip from the residual onset on."))
+    for tag in sorted(R):
+        png = os.path.join(RLD, "media", f"{tag}_strip.png")
+        if os.path.exists(png):
+            FIG[0] += 1
+            out.append(f'<figure><img src="{P.R.data_uri(png, "image/png")}" alt="filmstrip {tag}"><figcaption>Figure&#160;'
+                       f'{FIG[0]}. {tag}: frames of the run&#8217;s last training video at its phase marks '
+                       f'(<code>policy_filmstrip.py</code>).</figcaption></figure>')
+    rep = jl(os.path.join(RLD, "policy_replay.jsonl"))
+    if rep:
+        rr = []
+        for tag in sorted(R):
+            rec = next((r for r in reversed(rep) if r.get("kind") == "record" and r.get("tag") == tag), None)
+            cells = [(tag, "lab")]
+            cells.append(f"{f(rec['mjw_cos_end'][0], 3)}, z {f(rec['mjw_z_end_mm'][0], 0)}" if rec else "&#8211;")
+            for eng in ("mujoco", "drake", "newton"):
+                r = next((x for x in reversed(rep) if x.get("engine") == eng and x.get("status") == "ok"
+                          and x.get("hold_test_s") is None and x.get("dir", "").endswith(tag)), None)
+                cells.append(f"{f(r['cos_end'], 3)} ({'held' if r['held_end'] else 'dropped'})" if r else "&#8211;")
+            rr.append(cells)
+        out.append(table(["Run", "MuJoCo-Warp (recorded)", "CPU MuJoCo", "Drake", "Newton hydroelastic"], rr))
+        out.append(tcap("The final policy&#8217;s finger targets from the reorientation onset (step 58), world 0, "
+                        "replayed open loop (<code>scripts/rl_policy_replay.py</code>, rows <code>policy_replay.jsonl</code>): "
+                        "final cosine of the tool with vertical and whether it is held."))
+    return "\n".join(out)
 
 
 SS_ROWS = [("mjlab", "3.6.0", "legacy", "mjlab env (reference), box tip"),
