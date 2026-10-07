@@ -895,9 +895,28 @@ def training_section(eta):
                      f"{f(r['force_active_thumb'], 1)} / {f(r['force_active_index'], 1)} / {f(r['force_active_middle'], 1)}"])
     out.append(table(["Run", "env steps (M)", "final cos", "held", "cos &#8805; 0.9 and held", "peak cos",
                       "pad force thumb / index / middle (N)"], rows))
+    paras = []
+    for var in ("tpu27mesh", "tpu27pads1"):
+        tags = [t for t in sorted(R) if (("pads1" in t) == (var == "tpu27pads1"))]
+        fin = [R[t][-1] for t in tags if R[t][-1]["env_steps"] > 19e6]
+        if not fin:
+            continue
+        cosv = [r["final_cos_mean"] for r in fin]
+        ang = [math.degrees(math.acos(max(-1, min(1, c)))) for c in cosv]
+        rising = [t for t in tags if len(R[t]) >= 3 and R[t][-1]["final_cos_mean"] > R[t][-3]["final_cos_mean"] + 0.02]
+        lost = [t for t in tags if any(r["hold_rate"] == 0 for r in R[t][1:])]
+        paras.append(f"With the {RUN_LBL[var]} the final policies end at cos {f(min(cosv), 3)}&#8211;{f(max(cosv), 3)} "
+                     f"({f(min(ang), 0)}&#8211;{f(max(ang), 0)}&#176; from vertical), holding the tool in "
+                     f"{' and '.join(str(round(64 * r['hold_rate'])) for r in fin)} of 64 rollouts; "
+                     f"{sum(round(64 * r['success_rate']) for r in fin)} of {64 * len(fin)} reach cos 0.9. "
+                     + (f"The cosine still rises over the last 4&#8202;M steps on {len(rising)} of {len(fin)} runs. " if rising else "")
+                     + (f"{len(lost)} run{'s' if len(lost) > 1 else ''} lost the tool in every rollout at an intermediate "
+                        "checkpoint before recovering." if lost else ""))
     out.append(tcap("Final checkpoint of each run, 64 deterministic rollouts. Final cos: cosine of the tool axis with "
                     "vertical at the end (mean &#177; sd); held: fingertip force above 0.5&#8202;N and tool above 60&#8202;mm at "
                     "the end; pad force: mean summed contact force per fingertip from the residual onset on."))
+    if paras:
+        out.append("<p>" + " ".join(paras) + "</p>")
     for tag in sorted(R):
         png = os.path.join(RLD, "media", f"{tag}_strip.png")
         if os.path.exists(png):
