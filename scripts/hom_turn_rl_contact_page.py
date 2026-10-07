@@ -888,6 +888,7 @@ def grasp_search_section():
 
 # ------------------------------------------------------------------------------------------ RL contact cost
 
+MU_S = '<span style="text-transform:none">&#181;s</span>'     # table headers are upper-cased; keep the micro sign
 VAR_LBL = {"legacy": "box tip, point contact (every RL run so far)", "mesh": "TPU block, one convex mesh",
            "pads2": "TPU block, 2&#8202;mm pads (290 per tip)", "pads1f": "TPU block, 1&#8202;mm pads, front half (684 per tip)",
            "pads1": "TPU block, 1&#8202;mm pads (1,059 per tip)"}
@@ -920,13 +921,14 @@ def rl_section():
                          LIM.get((v, n)) or ("incomplete" if r else "&#8211;"))
         for n in (1024, 2048, 4096):
             r = T.get((v, n))
-            cells.append(f(r["physics_us_per_world_step"], 2) if r and r.get("status") == "ok" else "&#8211;")
+            cells.append(f(r["physics_us_per_world_step"], 2) if r and r.get("status") == "ok" else
+                         ("not run (host memory)" if "host memory" in LIM.get((v, n), "") else "&#8211;"))
         r4 = max((T[(v, n)] for n in (1024, 2048, 4096) if (v, n) in T and T[(v, n)].get("gpu_used_mb")),
                  key=lambda r: r["num_envs"], default=None)
-        cells.append(f"{num(r4['gpu_used_mb'], ',.0f')} @ {r4['num_envs']}" if r4 else "&#8211;")
+        cells.append(f"{num(r4['gpu_used_mb'], ',.0f')} @ {num(r4['num_envs'], ',d')}" if r4 else "&#8211;")
         rows.append(cells)
     tab_env = table(["Fingertip", "geoms", "contacts/world", "env steps/s, 1,024 envs", "2,048", "4,096",
-                     "physics &#181;s/world-step, 1,024", "2,048", "4,096", "GPU MB @ envs"], rows)
+                     f"physics {MU_S}/world-step, 1,024", "2,048", "4,096", "GPU MB @ envs"], rows)
     leg = {n: T.get(("legacy", n)) for n in (1024, 2048, 4096)}
     p1 = {n: T.get(("pads1", n)) for n in (1024, 2048, 4096)}
     p2 = {n: T.get(("pads2", n)) for n in (1024, 2048, 4096)}
@@ -969,8 +971,9 @@ def rl_section():
         tab_env,
         tcap("Throughput of the D6 RL training env per fingertip model (<code>scripts/rl_contact_throughput.py</code>, "
              "rows <code>docs/experiments/20261006-rl_contact/throughput.jsonl</code>). Contacts/world: largest count in one "
-             "world after the grasp. GPU memory: nvidia-smi with the env alive. &#8216;Incomplete&#8217;: the run ran out of GPU memory "
-             "in a process holding earlier envs and was stopped by the memory watchdog when repeated alone."),
+             "world after the grasp. GPU memory: nvidia-smi with the env alive, at the largest batch measured. The 1&#8202;mm pads at "
+             "4,096 envs: on 2026-10-06 a GPU allocation failed in a process holding earlier envs; on 2026-10-07, alone, the "
+             "watchdog stopped the build at its 11&#8202;GB memory cap, where the TPU mesh env at 4,096 envs uses 5.1&#8202;GB."),
         mark("throughput"),
         f"<p>Physics is a small part of an env step: at 2,048 envs the box tip&#8217;s physics takes "
         f"{f(100 * phys_frac, 0) if phys_frac else '&#8211;'}&#8202;% of the wall time, the rest is observation, reward, "
@@ -978,15 +981,27 @@ def rl_section():
         f"{f(ph1, 1) if ph1 else '&#8211;'}&#215; slower per world-step at 1,024 envs and the env "
         f"{f(100 * (1 - r1_1024), 0) if r1_1024 else '&#8211;'}&#8202;% slower at 1,024 envs and "
         f"{f(100 * (1 - r1_2048), 0) if r1_2048 else '&#8211;'}&#8202;% at 2,048; the 2&#8202;mm pads cost "
-        f"{f(100 * (1 - r2_2048), 0) if r2_2048 else '&#8211;'}&#8202;% at 2,048. GPU memory grows with the pads: 6.2&#8202;GB "
-        "for the 1&#8202;mm pads at 2,048 envs and 10.5&#8202;GB for the front-half pads at 4,096, against 4.4&#8202;GB for the "
-        "box tip at 4,096; the full 1&#8202;mm pads at 4,096 envs did not complete. Throughput does not grow past 2,048 envs "
-        "for any fingertip.</p>",
+        f"{f(100 * (1 - r2_2048), 0) if r2_2048 else '&#8211;'}&#8202;% at 2,048. " + memory_sentence(T, LIM) +
+        " Throughput does not grow past 2,048 envs for any fingertip.</p>",
         sensor_paragraph(T),
         same_state_section(NT),
         training_section(eta),
     ]
     return "\n".join(out)
+
+
+def memory_sentence(T, LIM):
+    """GPU memory of the env per fingertip at its largest measured batch, and the limit of a batch that did not run."""
+    def gb(v, n):
+        r = T.get((v, n))
+        return r["gpu_used_mb"] / 1e3 if r and r.get("status") == "ok" and r.get("gpu_used_mb") else None
+    parts = []
+    for v, lab in (("pads1", "the 1&#8202;mm pads"), ("pads1f", "the front-half pads"), ("mesh", "the TPU block mesh"),
+                   ("legacy", "the box tip")):
+        n = max((n for n in (1024, 2048, 4096) if gb(v, n)), default=None)
+        if n:
+            parts.append(f"{gb(v, n):.1f}&#8202;GB for {lab} at {num(n, ',d')} envs")
+    return "GPU memory, the whole card as nvidia-smi reports it with the env alive, grows with the pads: " + "; ".join(parts) + "."
 
 
 def sensor_paragraph(T):
@@ -1261,6 +1276,9 @@ SS_ROWS = [("mjlab", "3.6.0", "legacy", "mjlab env (reference), box tip"),
            ("nt_hydro", "3.14.0", "mesh", "<b>Newton, hydroelastic, TPU block mesh</b>, mass-corrected")]
 
 
+SS_LABEL = {(e, v, var): re.sub(r"<[^>]+>", "", lab) for e, v, var, lab in SS_ROWS}
+
+
 def same_state_section(NT):
     R = defaultdict(list)
     LIM = {}
@@ -1290,7 +1308,7 @@ def same_state_section(NT):
                   f(min(r["held_frac"] for r in (a, b) if r), 2),
                   num(max(r["gpu_used_mb"] for r in (a, b) if r and r.get("gpu_used_mb")), ",.0f")]
         rows.append(cells)
-    tab = table(["Engine, fingertip", "&#181;s/world-step, 1,024 worlds", "2,048", "contacts/world",
+    tab = table(["Engine, fingertip", f"{MU_S}/world-step, 1,024 worlds", "2,048", "contacts/world",
                  "constraint rows/world", "lowest holding", "GPU MB (largest batch)"], rows)
     D = jl(os.path.join(RLD, "same_state_timing_diagnostics.jsonl"))
     sap = next((r for r in D if r.get("broadphase") == "SAP_SEGMENTED" and r["variant"] == "pads1"
@@ -1330,8 +1348,8 @@ def same_state_section(NT):
            tcap("Physics wall time per world-step on one held state of the D6 RL env, by number of worlds. Contacts and "
                 "constraint rows per world at the end of the 1,024-world run; lowest holding: the smaller fraction of "
                 "worlds whose tool stayed within 20&#8202;mm of its exported position over the 2.2&#8202;s run. Shaded: fewer "
-                "than 95&#8202;% held. Not run: MuJoCo-Warp 3.14 pads at 2,048 worlds (GPU memory) and Newton pads at 2,048 "
-                "(its model build takes 7.5&#8202;GB of host memory at 1,024)."),
+                "than 95&#8202;% held." + ("".join(f" {SS_LABEL.get((k[0], k[1], k[2]), k[2])} at {num(k[3], ',d')} worlds did not run: {t}."
+                                                     for k, t in sorted(LIM.items())))),
            ]
     if m36 and lab_p and sap and small:
         out.append(
