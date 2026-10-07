@@ -1105,12 +1105,13 @@ def _contact_buffers(cfg: MorphoHandEnvCfg) -> tuple[int, int, int]:
     more: MuJoCo-Warp's broadphase writes its candidate pairs into the contact buffer (about 290 per world for the
     1 mm pads under the working plant's grip, against ~120 contacts), and in training the exploring policy presses
     pads into the tool until a world asks for 1,491 constraint rows and a fingertip sensor for 316 matches. An
-    overflowing buffer drops contacts or rows, and fed NaN observations to the first 2026-10-06 pad runs."""
+    overflowing buffer drops contacts or rows, and fed NaN observations to the first 2026-10-06 pad runs (at 512 / 2,048 / 512 a run reached 13 M steps; its worlds then asked for
+    516 contacts on average, 2,442 rows and 595 matches). 640 / 3,072 / 768 takes 11.9 GB of GPU at 2,048 envs."""
     try:
         n_geom = Path(str(cfg.frozen_scene_xml)).read_text().count("<geom")
     except OSError:
         n_geom = 0
-    return (512, 2048, 512) if n_geom > 500 else (64, 400, CONTACT_SENSOR_MAXMATCH)
+    return (640, 3072, 768) if n_geom > 500 else (64, 400, CONTACT_SENSOR_MAXMATCH)
 
 
 def _build_sensors(cfg: MorphoHandEnvCfg) -> tuple:
