@@ -1,0 +1,299 @@
+#!/usr/bin/env python3
+"""Open-loop replay of a trained reorientation policy's finger targets in other simulators (2026-10-06).
+
+The RL contact comparison (scripts/rl_contact_train_queue.sh) trains on MuJoCo-Warp. This replays what a final policy
+commanded, from the state at its reorientation onset, in CPU MuJoCo (1 mm pads or the TPU block mesh), Drake (the TPU
+block as a compliant hydroelastic convex, reorient_backends.DrakeBench) and Newton (hydroelastic TPU block with kh
+divided by the tip-tool effective mass, as newton_turn.py --mass-correct).
+
+  record   (uv environment, GPU) the run's env with the deterministic policy, N worlds: at policy step ONSET (58,
+           the reorientation start; the palm has finished its lift) the scene is written (mjlab Scene.write) and each
+           world's state saved relative to its grid origin; the finger servo targets of every later policy step and
+           the tool's pose are recorded. Out: logs/20261006-rl_contact/replay/<tag>/{scene.xml, rec.npz}.
+  bench    turn that scene into a bench-like one: prefixes stripped, the tool renamed screwdriver_medium, the palm's
+           six joints removed and the palm body placed at its pose at the onset (it does not move after the lift),
+           sensors and the mocap flag dropped. Out: bench.xml and bench_meta.json (plant, mu, TPU meshes, the onset
+           finger angles and tool pose) next to the scene.
+  replay   step the bench-like scene from the onset state through the recorded targets (one per 20 ms) in one
+           engine, and report the tool's final cosine with vertical, whether it is held (above 60 mm, >= 2 fingers
+           in contact) and the per-finger pad force, against the recorded MuJoCo-Warp outcome.
+
+    uv run --extra rl --extra gpu python scripts/rl_policy_replay.py record --tag <run tag>
+    PY=logs/20261001-hom_contact/venv/bin/python; $PY scripts/rl_policy_replay.py bench --dir <replay dir>
+    $PY scripts/rl_policy_replay.py replay --dir <dir> --engine mujoco|drake [--hold 1.0]
+    logs/20261004-contact-transfer/venv/bin/python scripts/rl_policy_replay.py replay --dir <dir> --engine newton
+Rows: docs/experiments/20261006-rl_contact/policy_replay.jsonl.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import math
+import os
+import re
+import sys
+import time
+import traceback
+import xml.etree.ElementTree as ET
+from pathlib import Path
+
+import numpy as np
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
+OUT = ROOT / "docs/experiments/20261006-rl_contact/policy_replay.jsonl"
+REPLAY = ROOT / "logs/20261006-rl_contact/replay"
+FINGERS, JOINTS = ("thumb", "index", "middle"), ("yaw", "mcp", "pip")
+NAMES = [f"{f}_{j}" for f in FINGERS for j in JOINTS]
+TOOL = "screwdriver_medium"
+PALM_JOINTS = ("palm_px", "palm_py", "palm_pz", "palm_rx", "palm_ry", "palm_rz")
+ONSET, STEPS, DT_POLICY = 58, 250, 0.02
+
+
+# ---------------------------------------------------------------------------------- record (GPU)
+
+def record(tag: str, ckpt: str | None, n: int = 16):
+    """Deterministic rollout of a run's checkpoint in its own env; scene + onset state + later finger targets."""
+    import mujoco
+    import torch
+    from morphohand.rl.deploy import act_b, build_actor, finger_ctrl_from_keyframe, make_env_cfg, run_env_overrides
+    rd = ROOT / "results/rl" / tag
+    if ckpt is None:
+        ckpt = max((rd / "tensorboard").glob("model_*.pt"), key=lambda p: int(re.findall(r"\d+", p.stem)[0]))
+    ckpt = Path(ckpt)
+    trained = run_env_overrides(ckpt)
+    morph = Path(trained["foundational_run_dir"]) if trained.get("foundational_run_dir") else None
+    frozen = morph / "frozen_scene.xml"
+    summ = json.loads((morph / "summary.json").read_text())
+    bfc = finger_ctrl_from_keyframe(frozen, "open_ik")
+    cfg = make_env_cfg(frozen, summ["keyframe"], morph, bfc, enable_target_axis=True, num_steps=STEPS,
+                       finger_residual_scale=0.5, lift_delta=0.1, open_finger_from_keyframe=True, num_envs=n,
+                       finger_residual_active_from_step=int(trained.get("finger_residual_active_from_step", ONSET)),
+                       reorient_start_step=int(trained.get("reorient_start_step", ONSET)),
+                       lift_phase_start_step=trained.get("lift_phase_start_step"))
+    out = REPLAY / tag
+    out.mkdir(parents=True, exist_ok=True)
+    env, wrapped, actor = build_actor(cfg, ckpt, out / "tmp")
+    mjm = env.unwrapped.sim.mj_model
+    wd = env.unwrapped.sim.wp_data
+    acts = [mjm.joint(int(mjm.actuator_trnid[a, 0])).name.split("/")[-1] for a in range(mjm.nu)]
+    fa = [acts.index(nm) for nm in NAMES]
+    names = [mjm.body(i).name for i in range(mjm.nbody)]
+    tool = next(i for i, x in enumerate(names) if x.split("/")[-1] == "cube")
+    root_b = next(i for i in range(1, mjm.nbody) if mjm.body_parentid[i] == 0 and names[i].startswith("robot/"))
+    obs_td, _ = wrapped.reset()
+    rec = {"finger_targets": [], "tool_cos": [], "tool_z": []}
+    with torch.no_grad():
+        for k in range(STEPS):
+            if k == ONSET:
+                env.unwrapped.scene.write(out)
+                qpos = wd.qpos.numpy().copy()
+                d0 = mujoco.MjData(mujoco.MjModel.from_xml_path(str(out / "scene.xml")))
+                m0 = d0.model if hasattr(d0, "model") else mujoco.MjModel.from_xml_path(str(out / "scene.xml"))
+                off = np.zeros((n, 3))
+                for w in range(n):
+                    d0.qpos[:] = qpos[w]
+                    mujoco.mj_kinematics(m0, d0)
+                    off[w] = wd.xpos.numpy()[w, root_b] - d0.xpos[root_b]
+                for j in range(m0.njnt):
+                    if m0.jnt_type[j] == mujoco.mjtJoint.mjJNT_FREE:
+                        a = m0.jnt_qposadr[j]
+                        qpos[:, a:a + 3] -= off
+                rec["qpos"] = qpos
+                rec["env_offset"] = off
+            obs_td, *_ = wrapped.step(act_b(actor, obs_td, False))
+            if k >= ONSET:
+                rec["finger_targets"].append(wd.ctrl.numpy()[:, fa].copy())
+                xm = wd.xmat.numpy()[:, tool].reshape(n, 3, 3)
+                rec["tool_cos"].append(xm[:, 2, 2].copy())
+                rec["tool_z"].append(wd.xpos.numpy()[:, tool, 2].copy())
+    np.savez(out / "rec.npz", qpos=rec["qpos"], env_offset=rec["env_offset"],
+             finger_targets=np.stack(rec["finger_targets"], axis=1), tool_cos=np.stack(rec["tool_cos"], axis=1),
+             tool_z=np.stack(rec["tool_z"], axis=1))
+    env.close()
+    cz = np.stack(rec["tool_z"], axis=1)[:, -1]
+    cc = np.stack(rec["tool_cos"], axis=1)[:, -1]
+    print(f"{tag}: recorded {n} worlds from step {ONSET}; MuJoCo-Warp final cos {cc.mean():+.3f}, tool above 60 mm "
+          f"in {(cz > 0.06).sum()}/{n}; checkpoint {ckpt.name}", flush=True)
+    return {"tag": tag, "checkpoint": str(ckpt.relative_to(ROOT)), "n": n, "mjw_cos_end": cc.tolist(),
+            "mjw_z_end_mm": (1e3 * cz).tolist()}
+
+
+# ---------------------------------------------------------------------------------- bench-like scene
+
+def bench(d: Path, world: int = 0, plant: str = "kp4_kv0_fr1_fl0_dp0.08", mu: float = 1.0):
+    """bench.xml + bench_meta.json from d/scene.xml and the onset state of `world` in d/rec.npz (or d/state.npz)."""
+    import mujoco
+    st = dict(np.load(d / ("rec.npz" if (d / "rec.npz").exists() else "state.npz")))
+    qpos = st["qpos"][world] if st["qpos"].ndim == 2 else st["qpos"]
+    src = (d / "scene.xml").read_text()
+    m0 = mujoco.MjModel.from_xml_string(src)
+    d0 = mujoco.MjData(m0)
+    d0.qpos[:] = qpos
+    mujoco.mj_kinematics(m0, d0)
+    palm = m0.body("robot/palm_pose").id
+    palm_pos, palm_quat = d0.xpos[palm].copy(), d0.xquat[palm].copy()
+    tool_b = next(i for i in range(m0.nbody) if m0.body(i).name.split("/")[-1] == "cube")
+    tool7 = np.r_[d0.xpos[tool_b], d0.xquat[tool_b]]
+    q0 = {n: float(qpos[m0.jnt_qposadr[m0.joint("robot/" + n).id]]) for n in NAMES}
+    root = ET.fromstring(src)
+    # bodies, joints, geoms, sites, actuators and their references lose the entity prefix; assets (meshes, textures,
+    # materials) and default classes keep it, since the two entities define some under the same names
+    act_tags = {"position", "motor", "general", "velocity"}
+    for el in root.iter():
+        keys = ()
+        if el.tag in ("body", "joint", "freejoint", "geom", "site"):
+            keys = ("name",)
+        elif el.tag in act_tags:
+            keys = ("name", "joint")
+        elif el.tag in ("exclude", "pair"):
+            keys = ("body1", "body2", "geom1", "geom2")
+        for k in keys:
+            v = el.get(k)
+            if v and re.match(r"(robot|cube)/", v):
+                el.set(k, v.split("/", 1)[1])
+    for b in root.iter("body"):
+        if b.get("name") == "cube":
+            b.set("name", TOOL)
+        if b.get("mocap") == "true":
+            del b.attrib["mocap"]
+        if b.get("name") == "palm_pose":
+            for j in list(b.findall("joint")):
+                if j.get("name") in PALM_JOINTS:
+                    b.remove(j)
+            b.set("pos", " ".join(f"{v:.9g}" for v in palm_pos))
+            b.set("quat", " ".join(f"{v:.9g}" for v in palm_quat))
+    for j in root.iter("joint"):
+        if j.get("name") == "cube_joint":
+            j.set("name", f"{TOOL}_joint")
+    for act in root.findall("actuator"):
+        for a in list(act):
+            if a.get("joint") in PALM_JOINTS:
+                act.remove(a)
+    for tag in ("sensor", "keyframe"):
+        for el in root.findall(tag):
+            root.remove(el)
+    meshes = {}
+    for ms in root.iter("mesh"):
+        if ms.get("name", "").split("/")[-1] in ("tpu_pos", "tpu_neg"):
+            sgn = 1.0 if ms.get("name").endswith("tpu_pos") else -1.0
+            meshes[str(sgn)] = meshes[str(int(sgn))] = ms.get("file")
+    (d / "bench.xml").write_text(ET.tostring(root, encoding="unicode"))
+    m1 = mujoco.MjModel.from_xml_path(str(d / "bench.xml"))
+    assert m1.nq == m0.nq - len(PALM_JOINTS) and m1.nu == m0.nu - len(PALM_JOINTS)
+    meta = {"hand": "D6", "plant": plant, "mu": mu, "meshes": meshes, "q0": q0, "tool7": tool7.tolist(),
+            "palm_pos": palm_pos.tolist(), "palm_quat": palm_quat.tolist(), "world": world}
+    (d / "bench_meta.json").write_text(json.dumps(meta, indent=1))
+    # check: the same contacts on CPU at the onset state
+    d1 = mujoco.MjData(m1)
+    t = m1.body(TOOL).id
+    a = m1.jnt_qposadr[m1.body_jntadr[t]]
+    d1.qpos[a:a + 7] = tool7
+    for n, v in q0.items():
+        d1.qpos[m1.jnt_qposadr[m1.joint(n).id]] = v
+    mujoco.mj_forward(m1, d1)
+    d0.qpos[:] = qpos
+    mujoco.mj_forward(m0, d0)
+    print(f"{d.name}: bench.xml, palm at {np.round(1e3 * palm_pos, 1)} mm; contacts {d1.ncon} (scene {d0.ncon})",
+          flush=True)
+    return meta
+
+
+# ---------------------------------------------------------------------------------- engines
+
+def make_plant(engine, d, meta):
+    import hom_turn3 as H3
+    if engine == "mujoco":
+        return H3.MjPlant(d / "bench.xml", meta)
+    if engine == "drake":
+        return H3.DrakePlant(d / "bench.xml", meta)
+    raise ValueError(engine)
+
+
+def replay(d: Path, engine: str, hold: float | None = None, seed: int = 0):
+    meta = json.loads((d / "bench_meta.json").read_text())
+    rec = dict(np.load(d / "rec.npz")) if (d / "rec.npz").exists() else None
+    if hold is not None or rec is None:
+        targets = np.tile([meta["q0"][n] for n in NAMES], (int(round((hold or 1.0) / DT_POLICY)), 1))
+        if rec is None and (d / "state.npz").exists():
+            st = dict(np.load(d / "state.npz"))
+            sc = ET.parse(d / "scene.xml").getroot()
+            acts = [a.get("joint").split("/")[-1] for act in sc.findall("actuator") for a in act]
+            row = st["ctrl"][meta["world"]]
+            targets = np.tile([row[acts.index(n)] for n in NAMES], (targets.shape[0], 1))
+    else:
+        targets = rec["finger_targets"][meta["world"]]          # (steps after onset, 9)
+    if engine == "newton":
+        return replay_newton(d, meta, targets)
+    plant = make_plant(engine, d, meta)
+    plant.reset(seed)
+    s0 = plant.state()
+    t, trace = 0.0, []
+    w0 = time.perf_counter()
+    for k, tg in enumerate(targets):
+        plant.set_targets(np.asarray(tg, float))
+        t += DT_POLICY
+        plant.advance(t)
+        s = plant.state()
+        trace.append((round(t, 3), float(s["R"][2, 2]), float(s["p"][2]), sum(1 for f in FINGERS if s["n"][f] > 0)))
+    s = plant.state()
+    nf = sum(1 for f in FINGERS if s["n"][f] > 0)
+    return {"engine": engine, "cos_start": float(s0["R"][2, 2]), "cos_end": float(s["R"][2, 2]),
+            "z_start_mm": 1e3 * float(s0["p"][2]), "z_end_mm": 1e3 * float(s["p"][2]), "fingers_end": nf,
+            "held_end": bool(s["p"][2] > 0.06 and nf >= 2), "F_end": {f: round(s["F"][f], 3) for f in FINGERS},
+            "steps": len(targets), "wall_s": round(time.perf_counter() - w0, 1),
+            "trace": trace[:: max(1, len(trace) // 50)]}
+
+
+def replay_newton(d, meta, targets):
+    raise NotImplementedError("Newton replay: build the bench-like scene as newton_turn.build does (TPU block "
+                              "meshes from meta['meshes'], hydroelastic, kh x (invweight0 tip + tool)) and step "
+                              "the targets; not written yet")
+
+
+# ---------------------------------------------------------------------------------- CLI
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    rc = sub.add_parser("record")
+    rc.add_argument("--tag", required=True)
+    rc.add_argument("--checkpoint", default=None, help="default: the run's newest model_*.pt")
+    rc.add_argument("--n", type=int, default=16)
+    b = sub.add_parser("bench")
+    b.add_argument("--dir", type=Path, required=True)
+    b.add_argument("--world", type=int, default=0)
+    b.add_argument("--plant", default="kp4_kv0_fr1_fl0_dp0.08")
+    r = sub.add_parser("replay")
+    r.add_argument("--dir", type=Path, required=True)
+    r.add_argument("--engine", required=True, choices=["mujoco", "drake", "newton"])
+    r.add_argument("--hold", type=float, default=None, help="hold the onset targets this long instead (a test)")
+    r.add_argument("--out", type=Path, default=OUT)
+    a = ap.parse_args()
+    if a.cmd == "record":
+        os.environ.setdefault("MUJOCO_GL", "egl")
+        row = record(a.tag, a.checkpoint, a.n)
+        row.update(kind="record", when=time.strftime("%Y-%m-%d %H:%M"))
+        with open(OUT, "a") as fh:
+            fh.write(json.dumps(row) + "\n")
+            fh.flush()
+            os.fsync(fh.fileno())
+        return 0
+    if a.cmd == "bench":
+        bench(a.dir, a.world, a.plant)
+        return 0
+    row = {"dir": str(a.dir), "when": time.strftime("%Y-%m-%d %H:%M"), "hold_test_s": a.hold}
+    try:
+        row.update(replay(a.dir, a.engine, a.hold), status="ok")
+    except Exception as e:
+        row.update(engine=a.engine, status="error", error=f"{type(e).__name__}: {e}", tb=traceback.format_exc()[-1500:])
+    with open(a.out, "a") as fh:
+        fh.write(json.dumps(row) + "\n")
+        fh.flush()
+        os.fsync(fh.fileno())
+    print({k: v for k, v in row.items() if k not in ("trace", "tb")}, flush=True)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
