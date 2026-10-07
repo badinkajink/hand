@@ -493,7 +493,11 @@ class Recorder:
 
 
 LABEL = {"newton_hydro": "Newton hydroelastic, reduced contacts",
-         "newton_hydro_unreduced": "Newton hydroelastic, all faces"}
+         "newton_hydro_unreduced": "Newton hydroelastic, all faces",
+         "newton_hydro_mc": "Newton hydroelastic, kh / m_eff",
+         "newton_hydro_unreduced_mc": "Newton hydroelastic, all faces, kh / m_eff",
+         "newton_pads1": "Newton, 1 mm sphere pads",
+         "mjw_pads1": "MuJoCo-Warp, 1 mm sphere pads"}
 
 
 def render_film(frames, path, model, d_cg=0.0, view=None, poster=None, fscale=None):
@@ -697,8 +701,8 @@ def run_pull(model, N, dt_ms, film=None):
         if film and "rec" not in rec:
             rec["rec"] = Recorder(0.02, info=lambda r, st: f"N {r.N:4.2f} N   pull {float(np.linalg.norm(r.f_tool)):5.3f} N   "
                                                          f"u {float((st['pos'][1])) * 1e3:6.3f} mm")
-            return NewtonRig(model, dt, gravity=False, recorder=rec["rec"])
-        return NewtonRig(model, dt, gravity=False)
+            return bed_rig(model, dt, gravity=False, recorder=rec["rec"])
+        return bed_rig(model, dt, gravity=False)
 
     P.MODELS[model] = rig_spec(model)
     P.new_rig = factory
@@ -782,7 +786,7 @@ def run_shake(model, N, a_g, dt_ms, film=None):
                                                 f"y {st['pos'][1] * 1e3:+7.3f} mm") if film else None
 
     def new_rig(spec, dt, d_cg=0.0, gravity=False):
-        return NewtonRig(model, dt, d_cg=d_cg, gravity=gravity, recorder=rec)
+        return bed_rig(model, dt, d_cg=d_cg, gravity=gravity, recorder=rec)
 
     CB.new_rig = new_rig
     row = SH.run_case(model, N, dt_ms, a_g, film=None)
@@ -896,6 +900,83 @@ class NewtonRollRig(NewtonRig):
         return out
 
 
+class MjwRollRig(MjwRig):
+    """The roll rig of contact_bed_roll.py on MuJoCo-Warp in one world: MjwRig with the +x pad's z slide (liftR)
+    added to the MJCF; the slide force goes to the device as qfrc_applied, contacts are read from the device."""
+
+    def __init__(self, model, dt, recorder=None):
+        import contact_bed_roll as RL
+        orig = H.mj_xml
+
+        def wrapped(*a, **k):        # MjRig builds its MJCF (twice for sphere pads) through H.mj_xml
+            xml, info = orig(*a, **k)
+            return RL.add_lift(xml), info
+        H.mj_xml = wrapped
+        try:
+            super().__init__(model, dt)
+        finally:
+            H.mj_xml = orig
+        j = self.m.joint("liftR")
+        self.lift_q, self.lift_v = int(j.qposadr[0]), int(j.dofadr[0])
+        self.rail = {s: (int(self.m.joint("rail" + s).qposadr[0]), int(self.m.joint("rail" + s).dofadr[0]))
+                     for s in "LR"}
+        tj = self.m.body_jntadr[self.tool]
+        self.tq, self.tv = int(self.m.jnt_qposadr[tj]), int(self.m.jnt_dofadr[tj])
+        self.lift_mass = RL.M_LIFT + H.M_PAD
+        self._RL = RL
+
+    def set_lift_force(self, u):
+        self.d.qfrc_applied[self.lift_v] = u
+
+    def step(self, T):
+        self.wd.qfrc_applied.assign(self.d.qfrc_applied[None].astype(np.float32))
+        super().step(T)
+
+    def lift_state(self):
+        return float(self.d.qpos[self.lift_q]), float(self.d.qvel[self.lift_v])
+
+    def tool_kin(self):
+        return self._RL.MjRollRig.tool_kin(self)
+
+    def pad_kin(self):
+        return self._RL.MjRollRig.pad_kin(self)
+
+    def contact_patches(self, detail=False):
+        out = {s: {"F": np.zeros(3), "cop": None, "n": 0, "pts": []} for s in "LR"}
+        n = int(self.wd.nacon.numpy()[0])
+        if n == 0:
+            return out
+        pos = self.wd.contact.pos.numpy()[:n].astype(float)
+        frame = self.wd.contact.frame.numpy()[:n].astype(float)
+        geom = self.wd.contact.geom.numpy()[:n]
+        adr = self.wd.contact.efc_address.numpy()[:n]
+        force = self.wd.efc.force.numpy()[0].astype(float)
+        acc = {s: np.zeros(3) for s in "LR"}
+        wsum = {s: 0.0 for s in "LR"}
+        for i in range(n):
+            g0, g1 = int(geom[i][0]), int(geom[i][1])
+            s = self.geom_side.get(g0) or self.geom_side.get(g1)
+            if s is None or adr[i, 0] < 0:
+                continue
+            f3 = np.array([force[adr[i, j]] if adr[i, j] >= 0 else 0.0 for j in range(3)])  # rows are not contiguous
+            fr = frame[i].reshape(3, 3)
+            f = fr.T @ f3
+            if g1 in self.geom_side:
+                f = -f
+            out[s]["F"] += f
+            fn = float(f3[0])
+            if fn > 1e-9:
+                acc[s] += fn * pos[i]
+                wsum[s] += fn
+                out[s]["n"] += 1
+                if detail:
+                    out[s]["pts"].append((pos[i].copy(), fr[0].copy(), fn, 0.0005, "f"))
+        for s in "LR":
+            if wsum[s] > 0:
+                out[s]["cop"] = acc[s] / wsum[s]
+        return out
+
+
 def run_roll(model, N, dt_ms, v_mm_s, film=None):
     """contact_bed_roll.run_roll + summarize on the Newton roll rig."""
     import contact_bed_roll as RL
@@ -905,7 +986,7 @@ def run_roll(model, N, dt_ms, v_mm_s, film=None):
            "T_settle_s": RL.T_SETTLE, "T_hold_s": RL.T_HOLD, "mu": H.MU, "gravity": False,
            "lift_mass_kg": RL.M_LIFT + H.M_PAD, "lift_wn_rad_s": RL.LIFT_WN, "logic": "contact_bed_roll.run_roll"}
     snaps = []
-    rig = NewtonRollRig(model, dt)
+    rig = (MjwRollRig if model in MJW_MODELS else NewtonRollRig)(model, dt)
     met, (cols, tr), W = RL.run_roll(rig, N, dt, V, T, film_every=(RL.FILM_SPEED / RL.FILM_FPS) if film else None,
                                      on_frame=snaps.append if film else None)
     row.update(RL.summarize(met, cols, tr, N, dt, V, T))
@@ -925,6 +1006,8 @@ def run_roll(model, N, dt_ms, v_mm_s, film=None):
         frames = [fr.frame(sn, top, sub, RL.film_bottom(sn)) for sn in snaps]
         fpath = FILMDIR / f"roll_{model}.mp4"
         RL.encode(fpath, frames)
+        RL.FRAMES_DIR.mkdir(parents=True, exist_ok=True)          # raw frames for contact_bed_roll.py tile
+        np.save(RL.FRAMES_DIR / f"frames_{model}.npy", np.stack(frames))
         from PIL import Image
         Image.fromarray(frames[len(frames) // 2]).save(fpath.with_suffix(".jpg"), quality=88)
     row["wall_s"] = time.time() - t0w

@@ -146,7 +146,21 @@ def evidence_tasks(ctx):
         out.append(f"<p><b>Shake.</b> At 0.5&#8202;N and 2&#8202;g the load stays below the rigid-Coulomb slip threshold, so the drift is creep: "
                    f"{abs(s('mj_pads1')['drift_per_cycle_mm']) * 1e3:.1f}&#8202;&#181;m per cycle with the pad against "
                    f"{abs(s('drake_hydro')['drift_per_cycle_mm']) * 1e3:.2f}&#8202;&#181;m in Drake.</p>")
-    out.append("<p>Roll and the stability map have not run; their scripts are listed on the bed page.</p>")
+    ro = T["roll"]
+    r = lambda k, N=1.0: P.pick(ro, k, N=N, dt_ms=1.0, v_mm_s=10.0)  # noqa: E731
+    have = [k for k in ("drake_hydro", "mj_pads1", "mj_point3", "mj_point4s", "newton_hydro_mc") if r(k)]
+    if "drake_hydro" in have and "mj_pads1" in have:
+        allr = [x for x in ro if x.get("status") == "complete" and x.get("model") in P.ORDER]
+        slip = [max(x.get("slip_path_L_mm") or 0, x.get("slip_path_R_mm") or 0) * 1e3 for x in allr]
+        lost = [x for x in ro if x.get("model") in P.ORDER and not x.get("success")]
+        out.append("<p><b>Roll.</b> Moving one pad 10&#8202;mm along the tool at 10&#8202;mm/s rolls the tool between the pads in every "
+                   "model, at 0.5 to 3&#8202;N and both steps. At 1&#8202;N the rolling ratio is "
+                   + ", ".join(f"{r(k)['rho']:.4f} ({P.HTML_LBL[k]})" for k in have) +
+                   f"; no-slip rolling between the spheres gives {r('drake_hydro')['rho_noslip_geom']:.4f}. The differences follow the "
+                   f"depth of the contact point: the pad&#8217;s lies {12.5 - r('mj_pads1')['r_contact_L_mm']:.2f}&#8202;mm inside the tool "
+                   f"surface and Drake&#8217;s {12.5 - r('drake_hydro')['r_contact_L_mm']:.2f}&#8202;mm, and a contact at a smaller radius "
+                   f"turns the tool further for the same travel. The contacts slip at most {max(slip):.0f}&#8202;&#181;m over 5&#8202;mm of "
+                   f"rolling, and {'no model loses' if not lost else str(len(lost)) + ' cases lose'} the tool.</p>")
     return "".join(out)
 
 
@@ -352,7 +366,9 @@ def blocks(ctx):
         "ASIDES_REF": f"<code>{P.ASIDES_PATH}</code>, section on coupled-foundation models",
         "SCALING_NOTE": ("" if have else "Until bed task&#160;2 is written, hollow markers show the 10-01 rig&#8217;s steady sliding "
                          "torque at 0.5&#8202;rad/s, per pad; point contact carries none and is off the log axis."),
-        "STAB_NOTE": "Squares are point contact (n&#8202;=&#8202;1), whose bound is \\(t_c\\).",
+        "STAB_NOTE": ("MuJoCo&#8217;s clamp \\(t_c\\ge2\\Delta t\\) is off. Each bar runs from the largest step that held the tool "
+                      "for 1&#8202;s (filled) to the first that failed (&#215;: the state diverged; open circle: the pads ejected the "
+                      "tool at hundreds of mm/s); a dotted bar held at every step up to 15&#8202;ms."),
         "REFS_TEXT": refs_text(ctx),
         "EVIDENCE_LEAD": evidence_lead(ctx),
         "AGREE_NOTE": "A dash marks a case not run.",

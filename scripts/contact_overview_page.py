@@ -65,6 +65,7 @@ LIT_NOTES = os.path.join(ROOT, "docs/notes/20261005-contact_literature_notes.md"
 C_LAW, EXP_LAW = 0.996e-3, 0.2498          # hydroelastic arm on the screwdriver, fitted to Drake (10-01 rig)
 MU = 1.0
 M_TOOL = 0.024544
+R_TOOL_MM = 12.5                           # screwdriver radius on the bed rig
 
 # model key -> (label, colour variable, marker, dashed)
 MODELS = {
@@ -150,6 +151,11 @@ GLOSSARY = [
             "centre of mass 15&#8202;mm off the pinch line, until the tool swings about the pinch axis. Swing end is the final angle "
             "(90&#176; = hanging), largest swing the largest angle over the run (Drake: 87.3&#176;), peak rate the largest angular "
             "speed of the swing, in &#176;/s."),
+    ("rolling ratio", "Task&#160;3 moves one pad 10&#8202;mm along the tool&#8217;s surface at 10 or 50&#8202;mm/s while both pads press at "
+            "\\(N\\), so the tool rolls between them. The rolling ratio is the tool&#8217;s rotation times its radius over half the pad "
+            "travel. Rolling without slip gives 1 between flat pads and 1.008 between the two spheres, whose line of centres tilts as "
+            "the pad moves; a contact point inside the tool surface rolls on a smaller radius and raises it. <i>Slip</i>: the path "
+            "length of the relative motion of tool and pad at the contact point over the travel, in &#181;m."),
     ("tool turn, within 3&#176;, grip force", "Plan replay of the three-finger turn (Figure&#160;7): tool turn is the rotation "
             "of the tool axis toward vertical from its pose at the end of the grip, in degrees; a replay is within 3&#176; when its "
             "turn is within 3&#176; of Drake&#8217;s on the same hand and placement with the tool held in both; grip force is the sum of "
@@ -615,49 +621,117 @@ def stab_rows():
     return load(os.path.join(BED, "stability.jsonl"))
 
 
+def stab_summaries(rows, refsafe=False, model=None):
+    """Summary rows of bed task 7 (one per model, d0, tc and refsafe setting)."""
+    return [r for r in rows if r.get("kind") == "summary" and bool(r.get("refsafe")) == refsafe
+            and (model is None or r.get("model") == model)]
+
+
+def stab_fail_kind(r):
+    """'diverged' (non-finite state) or 'ejected' (the tool left the pinch) at the first failed step; None if none failed."""
+    ff = r.get("dt_first_fail_ms")
+    if ff is None:
+        return None
+    st = (r.get("status_by_dt") or {}).get(str(ff))
+    return "diverged" if st == "failed" else "ejected"
+
+
+def stab_bound(r):
+    """Bound (14) for the summary row: n = spheres in contact on one pad at the end of the settle."""
+    n = r.get("n_L_ref") or 0
+    return r["tc_ms"] * (r["d0"] + (1 - r["d0"]) / n) if n else None
+
+
 def svg_stab(rows):
-    pts = []
-    for r in rows:
-        d0, tc = first(r, "d0"), first(r, "tc_ms", "tc")
-        dtm = first(r, "dt_max_ms", "dt_stable_ms")
-        if d0 is None or tc is None or dtm is None:
-            continue
-        tc_ms = tc * 1e3 if tc < 1 else tc
-        n = first(r, "n_contact", "n_spheres_contact") or 0
-        pred = tc_ms * (d0 + (1 - d0) / n) if n else d0 * tc_ms
-        pts.append((pred, dtm, tc_ms, d0, n, r.get("model", "mj_pads1"), r.get("bracket_hi_ms")))
-    if not pts:
+    S = [r for r in stab_summaries(rows, model="mj_pads1") if stab_bound(r)]
+    if not S:
         return pending("Bed task&#160;7 rows (<code>stability.jsonl</code>) are not written yet.")
-    W, H = 980, 420
-    out = _svg_open(W, H, "Largest stable step against the collective-damping bound; points near the diagonal confirm it.")
-    fx, fy = _panel(out, 80, 46, 600, 300, (0.1, 30.0), (0.1, 30.0), (0.1, 0.3, 1, 3, 10, 30), (0.1, 0.3, 1, 3, 10, 30),
-                    "bound t_c (d₀ + (1 − d₀)/n) (ms), log scale", "largest stable step found (ms), log scale", True, True)
-    out.append(f'<line x1="{fx(0.1):.1f}" y1="{fy(0.1):.1f}" x2="{fx(30):.1f}" y2="{fy(30):.1f}" style="stroke:var(--c-ref);stroke-dasharray:6 5"/>')
+    W, H = 980, 430
+    out = _svg_open(W, H, "Largest stable step against the collective-damping bound (14) for the 1 mm pad at three time constants "
+                          "and seven impedances; each bar spans the largest step that held and the first that failed, and the "
+                          "diagonal passes through 19 of the 21 bars.")
+    lo, hi = 0.7, 25.0
+    tk = (1, 2, 5, 10, 20)
+    fx, fy = _panel(out, 80, 46, 620, 300, (lo, hi), (lo, hi), tk, tk,
+                    "bound of equation (14), n spheres on one pad (ms), log scale",
+                    "physics step (ms), log scale: largest held ●, first failed × or ○", True, True)
+    out.append(f'<line x1="{fx(lo):.1f}" y1="{fy(lo):.1f}" x2="{fx(hi):.1f}" y2="{fy(hi):.1f}" style="stroke:var(--c-ref);stroke-dasharray:6 5"/>')
     cols = {5.0: "var(--c-c4)", 10.0: "var(--c-sphere)", 20.0: "var(--c-drake)"}
-    for pred, dtm, tc_ms, d0, n, model, hi in pts:
-        col = cols.get(round(tc_ms, 1), "var(--ink3)")
-        shape = "square" if "point" in str(model) else "circle"
-        _marker(out, fx(max(min(pred, 29), 0.11)), fy(max(min(dtm, 29), 0.11)), col, shape,
-                title=f"d0 {d0:g}, tc {tc_ms:g} ms, n {n}: bound {pred:.2f} ms, stable to {dtm:g} ms")
+    for r in S:
+        b, held, ff = stab_bound(r), r.get("dt_max_held_ms"), r.get("dt_first_fail_ms")
+        point = "point" in str(r.get("model"))
+        col = "var(--ink3)" if point else cols.get(round(r["tc_ms"], 1), "var(--ink3)")
+        x = fx(b)
+        tag = (f"{'point contact' if point else '1 mm pad'}, d0 {r['d0']:g}, tc {r['tc_ms']:g} ms, n {r.get('n_L_ref')}: "
+               f"bound {b:.2f} ms, held to {held} ms, first failure {ff} ms ({stab_fail_kind(r) or 'none'})")
+        if held and ff:
+            out.append(f'<line x1="{x:.1f}" x2="{x:.1f}" y1="{fy(held):.1f}" y2="{fy(ff):.1f}" style="stroke:{col};stroke-width:2"/>')
+        elif held:
+            out.append(f'<line x1="{x:.1f}" x2="{x:.1f}" y1="{fy(held):.1f}" y2="{fy(hi):.1f}" style="stroke:{col};stroke-width:2;stroke-dasharray:2 3"/>')
+        if held:
+            _marker(out, x, fy(held), col, "square" if point else "circle", r=4.2, title=tag)
+        if ff:
+            if stab_fail_kind(r) == "diverged":
+                _marker(out, x, fy(ff), col, "cross", r=4.2, title=tag)
+            else:
+                _marker(out, x, fy(ff), col, "circle", hollow=True, r=4.2, title=tag)
     out.append("</svg>")
-    return "".join(out) + _legend_html([("t_c 5 ms", "var(--c-c4)", False, "circle"), ("t_c 10 ms", "var(--c-sphere)", False, "circle"),
-                                        ("t_c 20 ms", "var(--c-drake)", False, "circle"), ("point contact", "var(--ink3)", False, "square"),
-                                        ("bound (14)", "var(--c-ref)", True, None)])
+    return "".join(out) + _legend_html([("1 mm pad, time constant 5 ms", "var(--c-c4)", False, "circle"),
+                                        ("10 ms", "var(--c-sphere)", False, "circle"),
+                                        ("20 ms", "var(--c-drake)", False, "circle"),
+                                        ("step equal to the bound", "var(--c-ref)", True, None)])
+
+
+def stab_stats(rows):
+    """Counts and values for the stability text: pads with the clamp off against (14), the exceptions, point contact,
+    and the pads with MuJoCo's default clamp."""
+    pads = [r for r in stab_summaries(rows, model="mj_pads1") if stab_bound(r)]
+    if not pads:
+        return None
+    inside, outside = [], []
+    for r in pads:
+        b, held, ff = stab_bound(r), r.get("dt_max_held_ms") or 0.0, r.get("dt_first_fail_ms")
+        (inside if held <= b * 1.0001 and (ff is None or ff > b) else outside).append(r)
+    pt = sorted(stab_summaries(rows, model="mj_point3"), key=lambda r: r["d0"])
+    on = stab_summaries(rows, refsafe=True, model="mj_pads1")
+    stiff = [r for r in on if r["d0"] >= 0.5]
+    soft = [r for r in on if r["d0"] < 0.5]
+    return dict(n=len(pads), inside=inside, outside=outside, point=pt, stiff=stiff, soft=soft,
+                d0=sorted({r["d0"] for r in pads}), tc=sorted({r["tc_ms"] for r in pads}))
+
+
+def _lst(v, unit=""):
+    v = [f"{x:g}" for x in v]
+    return (", ".join(v[:-1]) + " and " + v[-1] if len(v) > 1 else v[0]) + unit
 
 
 def stab_text(rows):
-    vals = []
-    for r in rows:
-        d0, tc, dtm = first(r, "d0"), first(r, "tc_ms", "tc"), first(r, "dt_max_ms", "dt_stable_ms")
-        n = first(r, "n_contact", "n_spheres_contact")
-        if None in (d0, tc, dtm) or not n or "point" in str(r.get("model", "")):
-            continue
-        tc_ms = tc * 1e3 if tc < 1 else tc
-        vals.append(dtm / (tc_ms * (d0 + (1 - d0) / n)))
-    if not vals:
+    st = stab_stats(rows)
+    if not st:
         return ""
-    return (f"Over {len(vals)} (\\(d_0\\), \\(t_c\\)) pairs the largest stable step is {min(vals):.2f}&#8211;{max(vals):.2f} times the bound "
-            f"(median {statistics.median(vals):.2f}); the step grid brackets each value between two tested steps (Figure&#160;6).")
+    out = [f"Bed task&#160;7 holds the tool against gravity at 1&#8202;N per pad for 1&#8202;s with \\(d_0\\) from {st['d0'][0]:g} to "
+           f"{st['d0'][-1]:g}, \\(t_c\\) of {_lst(st['tc'], '&#8202;ms')} and steps from 0.25 to 15&#8202;ms, with MuJoCo&#8217;s clamp "
+           f"switched off so that \\(t_c\\) stays as set. For {len(st['inside'])} of the {st['n']} pairs the largest step that held and "
+           f"the first that failed bracket (14) (Figure&#160;6)."]
+    if st["outside"]:
+        ex = sorted(st["outside"], key=lambda r: (r["tc_ms"], r["d0"]))
+        kinds = {stab_fail_kind(r) for r in ex}
+        how = "the tool is ejected" if kinds == {"ejected"} else "the run fails"
+        out.append(f"In the other {len(ex)}, \\(d_0\\)&#8202;=&#8202;{_lst([r['d0'] for r in ex])} at \\(t_c\\)&#8202;=&#8202;"
+                   f"{_lst(sorted({r['tc_ms'] for r in ex}), '&#8202;ms')}, {how} at {_lst(sorted({r['dt_first_fail_ms'] for r in ex}), '&#8202;ms')}, "
+                   f"below bounds of {min(stab_bound(r) for r in ex):.0f}&#8211;{max(stab_bound(r) for r in ex):.0f}&#8202;ms.")
+    if st["point"]:
+        pt = st["point"]
+        out.append(f"Point contact, one row per pad, fails at {_lst([r['dt_first_fail_ms'] for r in pt], '&#8202;ms')} for \\(d_0\\) "
+                   f"{_lst([r['d0'] for r in pt])} at \\(t_c\\)&#8202;=&#8202;{pt[0]['tc_ms']:g}&#8202;ms: at the first tested step above "
+                   f"\\(d_0t_c\\), well below the \\(t_c\\) that (14) gives for \\(n\\)&#8202;=&#8202;1.")
+    if st["stiff"] and st["soft"]:
+        out.append(f"With the clamp on, as MuJoCo runs by default, the pads with \\(d_0\\)&#8202;&#8805;&#8202;0.5 hold at every step up to "
+                   f"{min(r['dt_max_held_ms'] for r in st['stiff']):g}&#8202;ms at all three \\(t_c\\), and those with \\(d_0\\) "
+                   f"{_lst(sorted({r['d0'] for r in st['soft']}))} fail from {min(r['dt_first_fail_ms'] for r in st['soft']):g} to "
+                   f"{max(r['dt_first_fail_ms'] for r in st['soft']):g}&#8202;ms, where the clamped bound "
+                   f"\\(2\\Delta t\\,(d_0+(1-d_0)/n)\\) falls below \\(\\Delta t\\).")
+    return " ".join(out)
 
 
 # ------------------------------------------------------------------------------------------ Figure 7: step sweep
@@ -754,8 +828,6 @@ def metrics(T):
     ro = T["roll"]
     add("3 roll", "rolling ratio, 1&#8202;N, 10&#8202;mm/s", "", 3, ro,
         lambda r: first(r, "rolling_ratio", "rho"), N=1.0, dt_ms=1.0, **_roll_kw(ro))
-    add("3 roll", "slip at the moving pad, 1&#8202;N", "mm", 3, ro,
-        lambda r: first(r, "slip_moving_mm", "slip_plus_mm", "slip_B_mm", "slip_mm_moving"), N=1.0, dt_ms=1.0, **_roll_kw(ro))
     sh = T["shake"]
     add("4 shake", "drift per cycle, 0.5&#8202;N, 2&#8202;g", "&#181;m", 2, sh,
         lambda r: abs(first(r, "drift_per_cycle_mm", "net_drift_per_cycle_mm")) * 1e3, N=0.5, dt_ms=1.0, **_shake_kw(sh, 2.0))

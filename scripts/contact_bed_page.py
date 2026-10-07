@@ -294,23 +294,105 @@ def t5(rows):
     return "".join(out)
 
 
+ROLL_MODELS = ["mj_point3", "mj_point4s", "mj_pads1", "mjw_pads1", "newton_pads1", "drake_hydro", "newton_hydro_mc"]
+GPU_LBL = {"mjw_pads1": "MuJoCo-Warp 1&#8202;mm sphere pad, one GPU world", "newton_pads1": "Newton 1&#8202;mm sphere pad, one GPU world"}
+
+
 def t3(rows):
-    return P.pending("Task&#160;3 (roll) was not run: <code>scripts/contact_bed_roll.py</code> is written and smoke-tested on one case per "
-                     "model, and the batch was cut off by the session limit. Re-run: "
-                     "<code>logs/20261001-hom_contact/venv/bin/python scripts/contact_bed_roll.py</code>.") if not rows else generic(rows, "roll")
+    if not rows:
+        return P.pending("Task&#160;3 rows are not written yet.")
+    out = ["<p>Protocol: gravity off; after the pinch settles at N per pad, the +x pad moves 10&#8202;mm along z (across the tool axis) "
+           "at 10&#8202;mm/s for 1&#8202;s, or 50&#8202;mm/s for 0.2&#8202;s, driven by a stiff servo on a 100&#8202;kg slide, while both pads stay "
+           "force-controlled at N along x; then a 0.2&#8202;s hold. The tool rolls between the pads. Rows: "
+           "<code>roll.jsonl</code> (<code>scripts/contact_bed_roll.py</code>) and <code>../20261006-simulator_agreement/roll_newton.jsonl</code> "
+           "(<code>scripts/contact_bed_newton.py roll</code>).</p>"]
+    head = ["model, N per pad", "rolling ratio", "no-slip ratio at the contact point", "contact depth (&#181;m)",
+            "slip, fixed pad (&#181;m)", "slip, moving pad (&#181;m)", "largest friction use, moving pad", f"{US} per step"]
+    body = []
+    for k in models_present(rows, ROLL_MODELS):
+        body.append(GPU_LBL.get(k) or H.get(k, k))
+        for N in (0.5, 1.0, 3.0):
+            r = pick(rows, k, N=N, dt_ms=1.0, v_mm_s=10.0)
+            if not r:
+                continue
+            if not ok(r):
+                body.append([f"{N:g}&#8202;N", r.get("status", "failed")] + [""] * 6)
+                continue
+            body.append([f"{N:g}&#8202;N", fmt(r.get("rho"), 4), fmt(r.get("rho_noslip_contact"), 4),
+                         fmt((P.R_TOOL_MM - r["r_contact_L_mm"]) * 1e3 if r.get("r_contact_L_mm") else None, 0),
+                         fmt(r["slip_path_L_mm"] * 1e3 if r.get("slip_path_L_mm") is not None else None, 1),
+                         fmt(r["slip_path_R_mm"] * 1e3 if r.get("slip_path_R_mm") is not None else None, 1),
+                         fmt(r.get("util_R_max"), 3), fmt(r.get("us_per_step_median"), 0)])
+    out.append(table(head, body))
+    out.append("<p class='tnote'>Table: task&#160;3 at a 1&#8202;ms step and 10&#8202;mm/s. Rolling ratio: tool rotation times its radius over half "
+               "the pad travel. No-slip ratio at the contact point: the ratio for rolling without slip about the force-weighted contact "
+               "point, which lies inside the tool surface by the contact depth; the line of centres of the two spheres tilts by 12.6&#176; "
+               "over the travel, so no-slip rolling on the surface gives 1.008. Slip: path length of the relative motion of tool and pad at "
+               "the contact point. Friction use: tangential over &#956; times normal force at the moving pad; 1 is sliding.</p>")
+    ok_rows = [r for r in rows if ok(r) and r.get("model") in ROLL_MODELS]
+    if ok_rows:
+        ron = [r["rho_over_noslip"] for r in ok_rows if r.get("rho_over_noslip")]
+        slip = [max(r.get("slip_path_L_mm") or 0, r.get("slip_path_R_mm") or 0) * 1e3 for r in ok_rows]
+        util = [r["util_R_max"] for r in ok_rows if r.get("util_R_max") is not None]
+        lost = [r for r in rows if r.get("model") in ROLL_MODELS and not r.get("success")]
+        out.append(f"<p>Every model rolls the tool at 0.5 to 3&#8202;N, 10 and 50&#8202;mm/s and 1 and 5&#8202;ms ({len(ok_rows)} cases, "
+                   f"{'none' if not lost else len(lost)} lost). The rolling ratio is {min(ron):.3f}&#8211;{max(ron):.3f} of each model&#8217;s own "
+                   f"no-slip value, the contacts slip at most {max(slip):.0f}&#8202;&#181;m over 5&#8202;mm of rolling, and the moving pad uses at "
+                   f"most {max(util) * 100:.0f}&#8202;% of its friction. The ratios differ between models by where the contact point sits: "
+                   "the deeper the point lies inside the tool, the smaller the radius it rolls on and the larger the ratio. Point contact "
+                   "and condim&#160;4 place it at the deepest penetration point, the pads at the force-weighted centre of their spheres, "
+                   "and Drake and Newton at the centroid of the pressure field.</p>")
+    out.append(film("media/roll_models.mp4", "Task&#160;3 at N&#8202;=&#8202;1&#8202;N, 10&#8202;mm/s, 1&#8202;ms step, played at quarter speed, "
+                    "viewed from the tool&#8217;s &#8722;y end; the red stripe and dot mark the roll.", "media/roll_models_poster.jpg"))
+    return "".join(out)
 
 
 def t6(rows):
-    return P.pending("Task&#160;6 (creep) was not run: <code>scripts/contact_bed_creep.py</code> is written; its launches were refused by the "
-                     "memory guard while swap stood above 15&#8202;GB, then the session limit stopped the agent.") if not rows else generic(rows, "creep")
+    if not rows:
+        return P.pending("Task&#160;6 rows are not written yet.")
+    return (f"<p>Task&#160;6 ran on 2026-10-06 ({len(rows)} rows in <code>creep.jsonl</code>): the 1&#8202;mm pads at relaxation times "
+            "0.02, 0.05 and 0.1&#8202;s crossed with <code>impratio</code> 100&#8211;10&#8202;000 and 1&#8211;10 <code>noslip_iterations</code> on tasks 1, "
+            f"2, 4 and 5. {P.creep_t6_text(rows)} The analysis is on the fingertip page, "
+            "<code>docs/experiments/20261006-fingertip_backends/20261006-fingertip_contact_backends.html</code>, "
+            "<a href=\"https://claude.ai/artifact/E2uy8dWtKngLNgn253SynL\">artifact</a>.</p>")
 
 
 def t7(rows):
-    if not rows:
-        return P.pending("Task&#160;7 (stability map) was not run: <code>scripts/contact_bed_stability.py</code> is written. The bound it tests is "
-                         "equation (14) of the overview page; Codex&#8217;s step sweep and the load-time calibration study already bracket it "
-                         "at two points (the 4&#215; tool holds at 2.5&#8202;ms and fails at 3&#8202;ms against d<sub>0</sub>t<sub>c</sub>&#8202;=&#8202;2.65&#8202;ms).")
-    return figure(P.svg_stab(rows), "Largest stable step against the bound of the overview&#8217;s equation (14).") + "<p>" + P.stab_text(rows) + "</p>"
+    st = P.stab_stats(rows)
+    if not st:
+        return P.pending("Task&#160;7 rows are not written yet.")
+    out = ["<p>Protocol: the 1&#8202;mm pad pinch holds the tool at N&#8202;=&#8202;1&#8202;N per pad with gravity on, across the tool axis. Every "
+           "contact gets <code>solref</code> (\\(t_c\\), 1) and <code>solimp</code> (\\(d_0\\), \\(d_0\\), 0.001, 0.5, 2) set directly. "
+           "Each step runs a 0.4&#8202;s settle with the weight compensated and a 1&#8202;s hold without it; a case holds when the state "
+           "stays finite, the tool centre stays within 5&#8202;mm and both pads keep a contact. Every pair runs with MuJoCo&#8217;s clamp "
+           "\\(t_c\\ge2\\Delta t\\) off, which tests the bound, and on, as MuJoCo runs by default.</p>",
+           figure(P.svg_stab(rows), "Largest stable step of the 1&#8202;mm pad against the bound (14) of the overview, clamp off. Each bar "
+                  "runs from the largest step that held (filled) to the first that failed (&#215;: diverged; open circle: the tool was "
+                  "ejected); the dotted bar held at every step up to 15&#8202;ms. The diagonal is equality with the bound."),
+           f"<p>{P.stab_text(rows)}</p>"]
+    S = {(r["d0"], r["tc_ms"], bool(r["refsafe"])): r for r in P.stab_summaries(rows, model="mj_pads1")}
+    S.update({(r["d0"], r["tc_ms"], bool(r["refsafe"])): r for r in P.stab_summaries(rows, refsafe=True, model="mj_pads1")})
+    d0s = sorted({k[0] for k in S})
+    body = []
+    for rs in (False, True):
+        body.append("clamp \\(t_c\\ge2\\Delta t\\) " + ("on (MuJoCo default)" if rs else "off"))
+        for tc in sorted({k[1] for k in S}):
+            cells = []
+            for d0 in d0s:
+                r = S.get((d0, tc, rs))
+                if not r:
+                    cells.append("&#8211;")
+                    continue
+                ff = r.get("dt_first_fail_ms")
+                b = P.stab_bound(r)
+                cells.append(f"{r.get('dt_max_held_ms') or 0:g} / {('&gt;15' if ff is None else f'{ff:g}')}" +
+                             (f" ({b:.1f})" if not rs and b else ""))
+            body.append([f"\\(t_c\\)&#8202;=&#8202;{tc:g}&#8202;ms"] + cells)
+    out.append(table(["\\(t_c\\)"] + [f"\\(d_0\\)&#8202;=&#8202;{d:g}" for d in d0s], body))
+    out.append("<p class='tnote'>Table: largest step that held / first step that failed, in ms, for the 1&#8202;mm pad; in brackets the "
+               "bound (14) with \\(n\\) the spheres touching one pad at the end of the settle. Tested steps: 0.25, 0.5, 1, 2, 3, 4, 5, 7, 10 "
+               "and 15&#8202;ms.</p>")
+    return "".join(out)
 
 
 def generic(rows, name):

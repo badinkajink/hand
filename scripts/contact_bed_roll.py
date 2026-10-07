@@ -872,11 +872,12 @@ def cmd_films(a):
 
 
 def cmd_tile(a):
-    """2 x 2 tile of the per-model films (raw frames kept in FRAMES_DIR) and a JPEG poster."""
+    """Tile of the per-model films, 2 columns up to four models and 3 beyond (raw frames kept in FRAMES_DIR;
+    contact_bed_newton.py roll --film writes Newton's there), and a JPEG poster."""
     from PIL import Image
     stacks = [np.load(FRAMES_DIR / f"frames_{m}.npy") for m in a.models]
     n = min(len(s) for s in stacks)
-    cols = 2
+    cols = 2 if len(stacks) <= 4 else 3
     rows_ = int(math.ceil(len(stacks) / cols))
     h, w = stacks[0].shape[1:3]
     blank = np.full((h, w, 3), 255, np.uint8)
@@ -923,7 +924,7 @@ def main():
     fl = sub.add_parser("films")
     fl.add_argument("--models", nargs="+", default=MAIN_MODELS, choices=list(MODELS))
     t = sub.add_parser("tile")
-    t.add_argument("--models", nargs="+", default=MAIN_MODELS, choices=list(MODELS))
+    t.add_argument("--models", nargs="+", default=MAIN_MODELS + ["newton_hydro_mc"])
     tb = sub.add_parser("table")
     tb.add_argument("--out", default=str(OUT))
     a = ap.parse_args()
