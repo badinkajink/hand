@@ -175,15 +175,15 @@ def cost_text(ctx):
     cpu = [k for k in ("mj_point3", "mj_point4s", "mj_pads1", "drake_hydro") if k in cost]
     gpu = [k for k in P.GPU_MODELS if k in cost]
     us = lambda v: P.num(v, ",.1f" if v < 100 else ",.0f")  # noqa: E731
-    out = [f"The cost of one physics step of the bed rig at 1&#8202;ms, from task&#160;1. On one CPU core: "
+    out = [f"The cost of one physics step at 1&#8202;ms. On one CPU core, on the bed rig in task&#160;1: "
            + "; ".join(f"{P.HTML_LBL[k]}, {us(cost[k])}&#8202;&#181;s" for k in cpu) + "."]
     if gpu:
-        out.append(" One world alone on the GPU, stepped from the host with the state copied back after each step: "
-                   + "; ".join(f"{P.HTML_LBL[k]}, {us(cost[k])}&#8202;&#181;s" for k in gpu))
+        out.append(" One world alone on the GPU, on the SR2 holding fixture of Figure&#160;10 with each 10-step block captured as "
+                   "a CUDA graph: " + "; ".join(f"{P.HTML_LBL[k]}, {us(cost[k])}&#8202;&#181;s" for k in gpu))
     s = "".join(out) + "."
     b = [k for k in P.GPU_MODELS if k in bat]
     if b:
-        s += (" A single GPU world is bound by kernel launches and the copy. In a batch on the SR2 holding fixture the cost per "
+        s += (" A single GPU world is bound by kernel launches. In a batch on the same fixture the cost per "
               "world-step at the batch of highest throughput (Figure&#160;10) is "
               + ", ".join(f"{bat[k][0]:.2f}&#8202;&#181;s for the {P.HTML_LBL[k].replace('Newton hydroelastic', 'Newton hydroelastic tip')} "
                           f"({P.num(bat[k][1], ',d')} worlds)" for k in b) + ".")
@@ -406,9 +406,9 @@ def blocks(ctx):
         "AGREE_NOTE": "A dash marks a case not run.",
         "EVIDENCE_TASKS": evidence_tasks(ctx),
         "COST_TEXT": cost_text(ctx) + state_cost_text(ctx),
-        "COST_NOTE": ("Filled markers: one physics step on one CPU core (MuJoCo, Drake) or of one world alone on the GPU, "
-                      "stepped from the host (MuJoCo-Warp, Newton), bed task&#160;1 at 1&#8202;ms. Hollow markers: wall time per "
-                      "world-step in a GPU batch on the SR2 holding fixture, at the batch of highest throughput in Figure&#160;10. "
+        "COST_NOTE": ("Filled markers: one physics step at 1&#8202;ms on one CPU core in bed task&#160;1 (MuJoCo, Drake), or of one "
+                      "world alone on the GPU on the SR2 holding fixture of Figure&#160;10 (MuJoCo-Warp, Newton). Hollow markers: wall "
+                      "time per world-step on the same fixture at the batch of highest throughput. "
                       "Models closer in deviation than a label&#8217;s height (the 1&#8202;mm pad in three simulators and condim&#160;4, "
                       "5.7&#8211;6.2&#8202;%) are drawn apart vertically in their order. Drake sits at zero deviation by construction."),
         "GPU_NOTE": gpu_note(ctx),

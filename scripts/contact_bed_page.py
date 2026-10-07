@@ -25,7 +25,7 @@ BED = P.BED
 OUT = os.path.join(BED, "20261005-contact_model_bed.html")
 TPL = os.path.join(ROOT, "scripts/contact_bed_page.template.html")
 TEX_CACHE = os.path.join(BED, "texsvg_cache.json")
-OVERVIEW_PATH = "docs/experiments/20261005-contact_overview/20261005-sphere_pad_contact_model.html"
+OVERVIEW_PATH = os.path.relpath(P.OUT, P.ROOT)  # the current overview revision
 OVERVIEW_URL_FILE = os.path.join(P.D, "artifact_url.txt")
 
 ALL = P.TABLE_ORDER + ["newton_hydro", "newton_hydro_unreduced", "mj_pads2", "mj_pads05"]
@@ -373,7 +373,7 @@ def t7(rows):
            figure(P.svg_stab(rows), "Largest stable step of the 1&#8202;mm pad against the bound (14) of the overview, clamp off. Each bar "
                   "runs from the largest step that held (filled) to the first that failed (&#215;: diverged; open circle: the tool was "
                   "ejected); the dotted bar held at every step up to 15&#8202;ms. The diagonal is equality with the bound."),
-           f"<p>{P.stab_text(rows)}</p>"]
+           f"<p>{P.stab_text(rows, fig=FIG[0])}</p>"]
     S = {(r["d0"], r["tc_ms"], bool(r["refsafe"])): r for r in P.stab_summaries(rows, model="mj_pads1")}
     S.update({(r["d0"], r["tc_ms"], bool(r["refsafe"])): r for r in P.stab_summaries(rows, refsafe=True, model="mj_pads1")})
     d0s = sorted({k[0] for k in S})
@@ -435,9 +435,15 @@ def cost(T, gpu_pads, gpu_newton):
     c = P.step_cost(T["pull"])
     curves = P.gpu_curves(gpu_pads, gpu_newton)
     bat = P.gpu_batched(curves)
+    one = P.gpu_one_world(curves)
     rows = [[H[k], fmt(c.get(k), 1), "one GPU world" if k in P.GPU_MODELS else "one CPU core",
+             (fmt(one[k], 0) if k in one else "&#8211;"),
              (f"{bat[k][0]:.2f} at {bat[k][1]:,d} worlds" if k in bat else "&#8211;")] for k in P.TABLE_ORDER if k in c]
-    return (table(["model", f"{US} per physics step, 1&#8202;ms, task&#160;1", "stepped on", f"{US} per world-step, GPU batch"], rows) +
+    return (table(["model", f"{US} per physics step, 1&#8202;ms, task&#160;1", "stepped on",
+                   f"{US} per step, one GPU world, SR2 fixture", f"{US} per world-step, GPU batch"], rows) +
+            "<p class='tnote'>The bed rig steps MuJoCo-Warp as a CUDA graph and Newton without one, so its GPU column compares "
+            "the rigs. The SR2 holding fixture of the batched sweep captures every 10-step block as a CUDA graph in both "
+            "simulators; its one-world column compares the simulators.</p>" +
             figure(P.svg_gpu(curves), "Batched GPU throughput, SR2 thumb&#8211;index holding fixture, 1&#8202;ms step. " +
                    P_TEXT_GPU_NOTE(gpu_newton)))
 
@@ -516,7 +522,8 @@ def main():
     u = open(OVERVIEW_URL_FILE).read().strip() if os.path.exists(OVERVIEW_URL_FILE) else ""
     v["OVERVIEW_LINK"] = f", <a href=\"{u}\">artifact</a>" if u else ""
     v["LEDE"] = lede(T, M)
-    v["GLOSSARY"] = P.glossary_html()
+    # the bed has no plan replay: leave out the overview's turn terms
+    v["GLOSSARY"] = P.glossary_html([g[0] for g in P.GLOSSARY if not g[0].startswith("tool turn")])
     v["SETUP"] = setup(T)
     v["SUMMARY"] = summary(T, M)
     v["T1"] = t1(T["pull"])

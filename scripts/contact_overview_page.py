@@ -712,14 +712,14 @@ def _lst(v, unit=""):
     return (", ".join(v[:-1]) + " and " + v[-1] if len(v) > 1 else v[0]) + unit
 
 
-def stab_text(rows):
+def stab_text(rows, fig=6):
     st = stab_stats(rows)
     if not st:
         return ""
     out = [f"Bed task&#160;7 holds the tool against gravity at 1&#8202;N per pad for 1&#8202;s with \\(d_0\\) from {st['d0'][0]:g} to "
            f"{st['d0'][-1]:g}, \\(t_c\\) of {_lst(st['tc'], '&#8202;ms')} and steps from 0.25 to 15&#8202;ms, with MuJoCo&#8217;s clamp "
            f"switched off so that \\(t_c\\) stays as set. For {len(st['inside'])} of the {st['n']} pairs the largest step that held and "
-           f"the first that failed bracket (14) (Figure&#160;6)."]
+           f"the first that failed bracket (14) (Figure&#160;{fig})."]
     if st["outside"]:
         ex = sorted(st["outside"], key=lambda r: (r["tc_ms"], r["d0"]))
         kinds = {stab_fail_kind(r) for r in ex}
@@ -730,8 +730,8 @@ def stab_text(rows):
     if st["point"]:
         pt = st["point"]
         out.append(f"Point contact, one row per pad, fails at {_lst([r['dt_first_fail_ms'] for r in pt], '&#8202;ms')} for \\(d_0\\) "
-                   f"{_lst([r['d0'] for r in pt])} at \\(t_c\\)&#8202;=&#8202;{pt[0]['tc_ms']:g}&#8202;ms: at the first tested step above "
-                   f"\\(d_0t_c\\), well below the \\(t_c\\) that (14) gives for \\(n\\)&#8202;=&#8202;1.")
+                   f"{_lst([r['d0'] for r in pt])} at \\(t_c\\)&#8202;=&#8202;{pt[0]['tc_ms']:g}&#8202;ms, the first tested steps above "
+                   f"\\(d_0t_c\\), where (14) with \\(n\\)&#8202;=&#8202;1 gives \\(t_c\\)&#8202;=&#8202;{pt[0]['tc_ms']:g}&#8202;ms.")
     if st["stiff"] and st["soft"]:
         out.append(f"With the clamp on, as MuJoCo runs by default, the pads with \\(d_0\\)&#8202;&#8805;&#8202;0.5 hold at every step up to "
                    f"{min(r['dt_max_held_ms'] for r in st['stiff']):g}&#8202;ms at all three \\(t_c\\), and those with \\(d_0\\) "
@@ -944,6 +944,13 @@ def gpu_curves(pads, newton):
             continue
         out.setdefault(r["model"], {}).setdefault(int(r["nworld"]), []).append(r["world_steps_per_s"])
     return {k: {n: statistics.median(v) for n, v in sorted(d.items())} for k, d in out.items()}
+
+
+def gpu_one_world(curves):
+    """Wall time (us) of one world alone on the GPU per model, from the 1-world rows of the Figure 10 sweep: the SR2
+    holding fixture with each 10-step block captured as a CUDA graph, in MuJoCo-Warp and Newton alike. The bed rig's
+    own GPU timing is not comparable across simulators: its Newton rig steps without a CUDA graph."""
+    return {k: 1e6 / curves[k][1] for k in GPU_MODELS if 1 in curves.get(k, {})}
 
 
 def gpu_batched(curves):
@@ -1171,6 +1178,7 @@ def main():
     M = metrics(T)
     curves = gpu_curves(gpu_pads, gpu_newton)
     batched = gpu_batched(curves)
+    cost.update(gpu_one_world(curves))
 
     t = open(TPL).read()
     v = {"STYLE": style_block(), "BUILT": time.strftime("%Y-%m-%d %H:%M"), "CHAIN_PATH": CHAIN_PATH, "CHAIN_URL": CHAIN_URL,
