@@ -44,8 +44,10 @@ analytic limits on task-level metrics, by consistency across step size and resol
 controller corrects a consistent model error from measured state, provided the model contains the friction torque and slip
 the task uses.</p>
 <div class="tw">{{CAP_TABLE}}</div>
-<p class="tnote">Table&#160;1. Contact quantities each model represents. Cost is the physics step of the two-pad pinch rig at
-1&#8202;ms on one CPU core (bed task&#160;1); GPU throughput is in Figure&#160;10. {{CAP_NOTE}}</p>
+<p class="tnote">Table&#160;1. Contact quantities each model represents. Cost: wall time of one physics step of the two-pad pinch
+rig at 1&#8202;ms (bed task&#160;1) on one CPU core or of one world alone on the GPU, and for GPU models the wall time per world-step
+in a batch on the SR2 holding fixture at the batch of highest throughput (Figure&#160;10); the pad&#8217;s GPU numbers are
+MuJoCo-Warp&#8217;s. {{CAP_NOTE}}</p>
 <figure class="diagram">
 {{FIG_MODELS}}
 <figcaption>Figure&#160;1. Five representations of a fingertip pressed on the tool. (a) A point contact transmits normal force
@@ -246,7 +248,7 @@ against the physics step; a cross marks a diverged run. (b) Physics wall time pe
 <figure class="diagram">
 {{FIG_COST}}
 <figcaption>Figure&#160;9. Agreement against cost on the bed tasks: each model&#8217;s median absolute deviation from Drake over the
-metrics of Table&#160;2, against its median physics step on one core at 1&#8202;ms. {{COST_NOTE}}</figcaption>
+metrics of Table&#160;2, against the cost of one physics step at 1&#8202;ms. {{COST_NOTE}}</figcaption>
 </figure>
 <figure class="diagram">
 {{FIG_GPU}}

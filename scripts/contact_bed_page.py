@@ -429,9 +429,18 @@ def consist(T):
 
 def cost(T, gpu_pads, gpu_newton):
     c = P.step_cost(T["pull"])
-    rows = [[H[k], fmt(c.get(k), 1)] for k in P.ORDER if k in c]
-    return (table(["model", f"{US} per physics step, 1&#8202;ms, task&#160;1"], rows) +
-            figure(P.svg_gpu(gpu_pads, gpu_newton), "Batched GPU throughput, SR2 thumb&#8211;index holding fixture."))
+    curves = P.gpu_curves(gpu_pads, gpu_newton)
+    bat = P.gpu_batched(curves)
+    rows = [[H[k], fmt(c.get(k), 1), "one GPU world" if k in P.GPU_MODELS else "one CPU core",
+             (f"{bat[k][0]:.2f} at {bat[k][1]:,d} worlds" if k in bat else "&#8211;")] for k in P.TABLE_ORDER if k in c]
+    return (table(["model", f"{US} per physics step, 1&#8202;ms, task&#160;1", "stepped on", f"{US} per world-step, GPU batch"], rows) +
+            figure(P.svg_gpu(curves), "Batched GPU throughput, SR2 thumb&#8211;index holding fixture, 1&#8202;ms step. " +
+                   P_TEXT_GPU_NOTE(gpu_newton)))
+
+
+def P_TEXT_GPU_NOTE(gpu_newton):
+    import contact_overview_text as OT
+    return OT.gpu_note({"gpu_newton": gpu_newton})
 
 
 def open_items(T):

@@ -70,12 +70,17 @@ R_TOOL_MM = 12.5                           # screwdriver radius on the bed rig
 # model key -> (label, colour variable, marker, dashed)
 MODELS = {
     "mj_point3": ("MuJoCo point, condim 3", "var(--ink3)", "circle", False),
-    "mj_point4s": ("MuJoCo condim 4, μt rescheduled", "var(--c-c4)", "square", True),
+    "mj_point4s": ("MuJoCo condim 4, torsion rescheduled", "var(--c-c4)", "square", True),
     "mj_pads1": ("MuJoCo 1 mm sphere pad", "var(--c-sphere)", "circle", False),
     "drake_hydro": ("Drake hydroelastic", "var(--c-drake)", "circle", False),
-    "newton_hydro_mc": ("Newton hydroelastic, kh/m_eff", "var(--c-newton)", "diamond", True),
+    "newton_hydro_mc": ("Newton hydroelastic, mass-corrected", "var(--c-newton)", "diamond", True),
+    "mjw_pads1": ("MuJoCo-Warp 1 mm sphere pad", "var(--c-sphere)", "square", True),
+    "newton_pads1": ("Newton 1 mm sphere pad", "var(--c-sphere)", "diamond", True),
 }
 ORDER = ["mj_point3", "mj_point4s", "mj_pads1", "drake_hydro", "newton_hydro_mc"]
+# Table 2 and Figure 9: the same pads stepped by MuJoCo-Warp and by Newton (bed rows of 20261006-simulator_agreement/)
+TABLE_ORDER = ["mj_point3", "mj_point4s", "mj_pads1", "mjw_pads1", "newton_pads1", "drake_hydro", "newton_hydro_mc"]
+GPU_MODELS = ("mjw_pads1", "newton_pads1", "newton_hydro_mc")
 HTML_LBL = {
     "mj_point3": "MuJoCo point contact, condim&#160;3",
     "mj_point4s": "MuJoCo condim&#160;4, \\(\\mu_t\\) rescheduled",
@@ -86,6 +91,8 @@ HTML_LBL = {
     "newton_hydro": "Newton hydroelastic",
     "newton_hydro_unreduced": "Newton hydroelastic, unreduced",
     "newton_hydro_mc": "Newton hydroelastic, \\(k_h/m_\\text{eff}\\)",
+    "mjw_pads1": "MuJoCo-Warp 1&#8202;mm sphere pad",
+    "newton_pads1": "Newton 1&#8202;mm sphere pad",
 }
 # chain specs (hom_chain.make_plant) and rig specs (hom_contact_rig.make_rig) -> bed model keys
 SPEC_KEY = {
@@ -802,7 +809,7 @@ def metrics(T):
 
     def add(group, label, unit, nd, rows, fn, **kw):
         vals = {}
-        for k in ORDER:
+        for k in TABLE_ORDER:
             r = pick(rows, k, **kw)
             if r is not None and r.get("status", "complete") in ("complete", None):
                 try:
@@ -859,8 +866,9 @@ def agree_class(v, ref):
     return "cell c4" if d < 0.10 else "cell c3" if d < 0.25 else "cell c2" if d < 0.5 else "cell c0"
 
 
-SHORT_TH = {"mj_point3": "point", "mj_point4s": "condim 4", "mj_pads1": "1 mm pad", "drake_hydro": "Drake",
-            "newton_hydro_mc": "Newton, mass-corrected"}
+SHORT_TH = {"mj_point3": "point", "mj_point4s": "condim 4", "mj_pads1": "1 mm pad, MuJoCo", "mjw_pads1": "1 mm pad, MuJoCo-Warp",
+            "newton_pads1": "1 mm pad, Newton", "drake_hydro": "Drake hydro&#173;elastic",
+            "newton_hydro_mc": "Newton hydro&#173;elastic, mass-corrected"}
 TASK_NAME = {"1 pull": "Task 1, pull to slip", "2 twist": "Task 2, twist to spin", "3 roll": "Task 3, roll between the pads",
              "4 shake": "Task 4, shake while held", "5 brake": "Task 5, brake to hanging"}
 
@@ -868,16 +876,16 @@ TASK_NAME = {"1 pull": "Task 1, pull to slip", "2 twist": "Task 2, twist to spin
 def agree_table(M):
     if not M:
         return pending("No bed rows yet.")
-    head = "".join(f"<th class='num'>{SHORT_TH[k]}</th>" for k in ORDER)
+    head = "".join(f"<th class='num'>{SHORT_TH[k]}</th>" for k in TABLE_ORDER)
     out = [f"<table class='agree'><thead><tr><th>metric</th>{head}</tr></thead><tbody>"]
     last = None
     for group, label, unit, nd, vals in M:
         if group != last:
-            out.append(f"<tr class='grp'><td colspan='{len(ORDER) + 1}'>{TASK_NAME.get(group, group)}</td></tr>")
+            out.append(f"<tr class='grp'><td colspan='{len(TABLE_ORDER) + 1}'>{TASK_NAME.get(group, group)}</td></tr>")
             last = group
         ref = vals.get("drake_hydro")
         cells = []
-        for k in ORDER:
+        for k in TABLE_ORDER:
             v = vals.get(k)
             if v is None:
                 cells.append("<td class='cell'>&#8211;</td>")
@@ -893,12 +901,12 @@ def agree_table(M):
 
 
 def deviations(M):
-    dev = {k: [] for k in ORDER}
+    dev = {k: [] for k in TABLE_ORDER}
     for _, _, _, _, vals in M:
         ref = vals.get("drake_hydro")
         if not isinstance(ref, (int, float)) or ref == 0:
             continue
-        for k in ORDER:
+        for k in TABLE_ORDER:
             v = vals.get(k)
             if isinstance(v, (int, float)) and k != "drake_hydro":
                 dev[k].append(abs(v / ref - 1) * 100)
@@ -908,112 +916,177 @@ def deviations(M):
 # ------------------------------------------------------------------------------------------ cost
 
 def step_cost(pull):
-    """Median physics us/step at 1 ms on one core, per model, from bed task 1."""
+    """Median physics us/step at 1 ms per model from bed task 1: one CPU core for MuJoCo and Drake, one GPU world for
+    MuJoCo-Warp and Newton (the bed rig steps the GPU from the host and copies the state back each step)."""
     c = {}
-    for k in ORDER:
+    for k in TABLE_ORDER:
         v = [r["us_per_step_median"] for r in pull if r.get("model") == k and _eq(r.get("dt_ms"), 1.0) and r.get("us_per_step_median")]
         if v:
             c[k] = statistics.median(v)
     return c
 
 
-def svg_cost(M, cost):
+def gpu_curves(pads, newton):
+    """World-steps per second by batch for each GPU series of Figure 10: the median over repeats of complete rows.
+    Keys: MuJoCo-Warp pads ('legacy', 'compiled', 0.5 mm) and the Newton rows of the twist fixture by model."""
+    out = {}
+    for r in pads:
+        key = r.get("key", "")
+        m = re.match(r"(legacy|compiled)_s([0-9.]+)_dt([0-9.]+)_n(\d+)_", key)
+        if not m or r.get("status") != "complete":
+            continue
+        name = {("legacy", "1.0", "0.001"): "mjw_pads1", ("compiled", "1.0", "0.001"): "mjw_pads1_compiled",
+                ("legacy", "0.5", "0.001"): "mjw_pads05"}.get((m.group(1), m.group(2), m.group(3)))
+        if name:
+            out.setdefault(name, {}).setdefault(int(m.group(4)), []).append(r["world_steps_per_s"])
+    for r in newton:
+        if r.get("kind") != "timing" or r.get("status") != "complete" or r.get("fixture_name") != "twist" or r.get("contention"):
+            continue
+        out.setdefault(r["model"], {}).setdefault(int(r["nworld"]), []).append(r["world_steps_per_s"])
+    return {k: {n: statistics.median(v) for n, v in sorted(d.items())} for k, d in out.items()}
+
+
+def gpu_batched(curves):
+    """Per-world-step cost (us) at the batch with the highest throughput, per series: {key: (us, nworld)}."""
+    out = {}
+    for k, d in curves.items():
+        n = max(d, key=d.get)
+        out[k] = (1e6 / d[n], n)
+    return out
+
+
+def spread(ys, gap):
+    """Positions in the order of ys with neighbours at least `gap` apart, each group centred on its members' mean."""
+    order = sorted(range(len(ys)), key=lambda i: ys[i])
+    groups = []
+    for i in order:
+        groups.append([i])
+        while len(groups) > 1:
+            g0, g1 = groups[-2], groups[-1]
+            c0 = sum(ys[j] for j in g0) / len(g0)
+            c1 = sum(ys[j] for j in g1) / len(g1)
+            if (c1 - (len(g1) - 1) * gap / 2) - (c0 + (len(g0) - 1) * gap / 2) >= gap:
+                break
+            groups[-2:] = [g0 + g1]
+    out = [0.0] * len(ys)
+    for g in groups:
+        c = sum(ys[j] for j in g) / len(g)
+        for r, j in enumerate(g):
+            out[j] = c + (r - (len(g) - 1) / 2) * gap
+    return out
+
+
+def svg_cost(M, cost, batched=None):
     dev = deviations(M)
-    pts = [(cost[k], max(statistics.median(dev[k]), 0.1), k) for k in ORDER if k in cost and dev.get(k)]
+    batched = batched or {}
+    pts = [(cost[k], max(statistics.median(dev[k]), 0.1), k) for k in TABLE_ORDER if k in cost and dev.get(k)]
     if not pts:
         return pending("Needs task rows with Drake references and step costs.")
-    W, H = 980, 380
-    out = _svg_open(W, H, "Median deviation from Drake over the bed metrics against the physics step cost per model.")
+    W, H = 980, 400
+    out = _svg_open(W, H, "Median deviation from Drake over the bed metrics against the cost of a physics step: one CPU core for "
+                          "MuJoCo and Drake; for MuJoCo-Warp and Newton one GPU world (filled) joined to the batched cost per "
+                          "world-step (hollow).")
     ytop = 10 ** math.ceil(math.log10(max(p[1] for p in pts) * 1.5))
-    yt = [v for v in (0.1, 1, 10, 100, 1000, 10000) if v <= ytop]
-    fx, fy = _panel(out, 80, 46, 600, 260, (1.0, 5000.0), (0.1, ytop), (1, 10, 100, 1000), yt,
-                    "physics step on one core, 1 ms step (µs), log scale",
+    yt = [v for v in (1, 10, 100, 1000) if v <= ytop]
+    fx, fy = _panel(out, 80, 46, 540, 280, (0.5, 5000.0), (1.0, ytop), (1, 10, 100, 1000), yt,
+                    "cost of one physics step at 1 ms (µs), log scale",
                     "median |deviation from Drake| over the metrics of Table 2 (%), log scale", True, True, yfmt="{:g}")
-    placed = []
-    for c, d, k in sorted(pts, key=lambda p: -p[1]):
-        lab, col, shape, _ = MODELS[k]
-        x, y = fx(c), fy(d)
-        ly = y + 4
-        while any(abs(ly - py) < 15 and abs(x - px) < 260 for px, py in placed):
-            ly += 15
-        placed.append((x, ly))
-        _marker(out, x, y, col, shape, r=6, title=f"{lab}: {c:.1f} us/step, median deviation {d:.1f} %")
-        out.append(f'<text x="{x + 12:.1f}" y="{ly:.1f}" style="fill:{col}">{lab}, {d:.1f} %</text>')
     if "drake_hydro" in cost:
         x = fx(cost["drake_hydro"])
-        out.append(f'<line x1="{x:.1f}" x2="{x:.1f}" y1="46" y2="306" style="stroke:var(--c-drake);stroke-dasharray:6 5"/>'
+        out.append(f'<line x1="{x:.1f}" x2="{x:.1f}" y1="46" y2="326" style="stroke:var(--c-drake);stroke-dasharray:6 5"/>'
                    f'<text x="{x - 8:.1f}" y="62" text-anchor="end" style="fill:var(--c-drake)">Drake hydroelastic, '
                    f'{cost["drake_hydro"]:.0f} µs (the reference)</text>')
+    # models closer than one label height in deviation are spread apart in their order, so that every line shows
+    ys = spread([fy(d) for _, d, _ in pts], 14.0)
+    xr = fx(5000.0) + 16
+    for (c, d, k), y in zip(pts, ys):
+        lab, col, shape, _ = MODELS[k]
+        xs = [fx(c)]
+        if k in batched:
+            b, n = batched[k]
+            xs.append(fx(b))
+            out.append(f'<line x1="{fx(b):.1f}" x2="{fx(c):.1f}" y1="{y:.1f}" y2="{y:.1f}" style="stroke:{col};stroke-width:1.6"/>')
+            _marker(out, fx(b), y, col, shape, hollow=True, r=5.5,
+                    title=f"{lab}: {b:.2f} us per world-step batched at {n} worlds, median deviation {d:.1f} %")
+        out.append(f'<line x1="{fx(c) + 8:.1f}" x2="{xr - 4:.1f}" y1="{y:.1f}" y2="{y:.1f}" '
+                   f'style="stroke:{col};stroke-width:1;stroke-dasharray:1 4;opacity:.7"/>')
+        _marker(out, fx(c), y, col, shape, r=5.5,
+                title=f"{lab}: {c:.1f} us per step ({'one GPU world' if k in GPU_MODELS else 'one CPU core'}), "
+                      f"median deviation {d:.1f} %")
+        out.append(f'<text x="{xr:.1f}" y="{y + 4:.1f}" style="fill:{col}">{lab}, {d:.1f} %</text>')
     out.append("</svg>")
-    return "".join(out)
+    return "".join(out) + _legend_html([("filled: one CPU core (MuJoCo, Drake) or one GPU world (MuJoCo-Warp, Newton)", "var(--ink2)", False, "circle"),
+                                        ("&#9675; hollow: per world-step in a GPU batch", "var(--ink2)", False, None)])
 
 
 def _si(v):
     return f"{v / 1e6:g}M" if v >= 1e6 else f"{v / 1e3:g}k" if v >= 1e3 else f"{v:g}"
 
 
-def svg_gpu(pads, newton):
-    if not pads:
+GPU_SERIES = [   # key, label, colour, dashed, marker
+    ("mjw_pads1", "MuJoCo-Warp, 1 mm sphere pad", "var(--c-sphere)", False, "square"),
+    ("mjw_pads1_compiled", "MuJoCo-Warp, 1 mm pad, Codex mapping", "var(--c-sphere)", True, "square"),
+    ("mjw_pads05", "MuJoCo-Warp, 0.5 mm sphere pad", "var(--ink3)", False, "square"),
+    ("newton_pads1", "Newton, 1 mm sphere pad", "var(--c-sphere)", False, "diamond"),
+    ("newton_hydro_mc", "Newton hydroelastic, mass-corrected, contact reduction", "var(--c-newton)", False, "diamond"),
+    ("newton_hydro_unreduced_mc", "Newton hydroelastic, mass-corrected, all faces", "var(--c-newton)", True, "diamond"),
+]
+
+
+def svg_gpu(curves):
+    if not curves:
         return pending("GPU rows missing.")
-    W, H = 980, 400
-    out = _svg_open(W, H, "World-steps per second against the number of parallel worlds on one GPU.")
-    ys = [r["world_steps_per_s"] for r in pads + newton if r.get("world_steps_per_s")]
-    fx, fy = _panel(out, 90, 46, 600, 290, (0.8, 12000.0), (max(min(ys) / 2, 10.0), max(ys) * 2), (1, 10, 100, 1000, 10000),
-                    [v for v in (1e2, 1e3, 1e4, 1e5, 1e6) if max(min(ys) / 2, 10.0) <= v <= max(ys) * 2],
+    W, H = 980, 420
+    out = _svg_open(W, H, "World-steps per second against the number of parallel worlds on one GPU, for the 1 mm sphere pads "
+                          "in MuJoCo-Warp and Newton and for Newton's hydroelastic tip.")
+    ys = [v for d in curves.values() for v in d.values()]
+    lo, hi = max(min(ys) / 2, 100.0), max(ys) * 2
+    fx, fy = _panel(out, 90, 46, 600, 300, (0.8, 12000.0), (lo, hi), (1, 10, 100, 1000, 10000),
+                    [v for v in (1e3, 1e4, 1e5, 1e6) if lo <= v <= hi],
                     "parallel worlds, log scale", "world-steps per second, log scale", True, True, yfmt=_si)
     series = []
-    for (mapping, sp, dt), (lab, col, dashed, shape) in {
-            ("legacy", 1.0, 0.001): ("1 mm sphere pad, 1 ms", "var(--c-sphere)", False, "circle"),
-            ("compiled", 1.0, 0.001): ("1 mm sphere pad, Codex mapping, 1 ms", "var(--c-sphere)", True, "square"),
-            ("legacy", 0.5, 0.001): ("0.5 mm sphere pad, 1 ms", "var(--ink3)", False, "circle")}.items():
-        rs = []
-        for r in pads:
-            key = r.get("key", "")
-            if key.startswith(mapping + "_s" + f"{sp:.1f}") and f"_dt{dt:g}_" in key + "_" and r.get("status") == "complete":
-                n = int(re.search(r"_n(\d+)", key).group(1))
-                rs.append((n, r["world_steps_per_s"]))
-        rs = sorted(dict(rs).items())
-        if rs:
-            _path(out, fx, fy, rs, col, dashed=dashed, width=1.8)
-            for n, v in rs:
-                _marker(out, fx(n), fy(v), col, shape, title=f"{lab}: {n} worlds, {v / 1e3:.0f}k world-steps/s")
-            series.append((lab, col, dashed, shape))
-    nw = {}
-    for r in newton:
-        n = first(r, "nworld", "worlds")
-        v = first(r, "world_steps_per_s")
-        red = first(r, "reduce_contacts", "reduction")
-        if n and v and r.get("status", "complete") == "complete":
-            nw.setdefault(bool(red), {})[int(n)] = v
-    for red, d in nw.items():
+    for key, lab, col, dashed, shape in GPU_SERIES:
+        d = curves.get(key)
+        if not d:
+            continue
         pts = sorted(d.items())
-        lab = "Newton hydroelastic, reduced" if red else "Newton hydroelastic, unreduced"
-        _path(out, fx, fy, pts, "var(--c-newton)", dashed=not red, width=1.8)
+        _path(out, fx, fy, pts, col, dashed=dashed, width=1.8)
         for n, v in pts:
-            _marker(out, fx(n), fy(v), "var(--c-newton)", "diamond", title=f"{lab}: {n} worlds, {v / 1e3:.1f}k world-steps/s")
-        series.append((lab, "var(--c-newton)", not red, "diamond"))
+            _marker(out, fx(n), fy(v), col, shape, title=f"{lab}: {n} worlds, {v / 1e3:.1f}k world-steps/s, {1e6 / v:.2f} us per world-step")
+        series.append((lab, col, dashed, shape))
     out.append("</svg>")
     return "".join(out) + _legend_html(series)
 
 
 # ------------------------------------------------------------------------------------------ tables and text
 
-def cap_table(cost, newton_us):
-    def us(k):
-        v = cost.get(k)
-        return f"{v:.0f}" if v else "&#8211;"
+def cap_table(cost, batched=None):
+    batched = batched or {}
+
+    def us(k, gpu=None):
+        """Cost cell: one CPU core, or one GPU world and the batched cost per world-step (gpu = the GPU model key)."""
+        parts = []
+        if cost.get(k):
+            parts.append(f"{num(cost[k], ',.0f')} {'one GPU world' if k in GPU_MODELS else 'CPU core'}")
+        g = gpu or (k if k in GPU_MODELS else None)
+        if g and cost.get(g) and g != k:
+            parts.append(f"{num(cost[g], ',.0f')} one GPU world")
+        if g and g in batched:
+            b, n = batched[g]
+            parts.append(f"{b:.2f} batched ({num(n, ',d')} worlds)")
+        return "<br>".join(parts) or "&#8211;"
     Y, N_, P = "cap-y", "cap-n", "cap-p"
     rows = [
         ("point contact, condim&#160;3", [(Y, "one spring"), (P, "creeps"), (N_, "none"), (N_, "one point"), (N_, "no"), (N_, "no"), us("mj_point3"), (Y, "MuJoCo-Warp")]),
         ("condim&#160;4, \\(\\mu_t\\) rescheduled", [(Y, "one spring"), (P, "creeps"), (P, "fitted law, rescheduled"), (N_, "one point"), (N_, "no"), (N_, "no"), us("mj_point4s"), (P, "needs a per-step write")]),
-        ("1&#8202;mm sphere pad", [(Y, "sampled foundation"), (P, "creeps"), (Y, "from the sphere spread"), (Y, "sampled"), (N_, "no"), (N_, "no"), us("mj_pads1"), (Y, "MuJoCo-Warp")]),
+        ("1&#8202;mm sphere pad", [(Y, "sampled foundation"), (P, "creeps"), (Y, "from the sphere spread"), (Y, "sampled"), (N_, "no"), (N_, "no"), us("mj_pads1", "mjw_pads1"), (Y, "MuJoCo-Warp, Newton")]),
         ("Drake hydroelastic", [(Y, "pressure field"), (Y, "creeps 100&#215; less"), (Y, "integrated"), (Y, "surface mesh"), (N_, "no"), (N_, "no"), us("drake_hydro"), (N_, "CPU only")]),
         ("Newton hydroelastic, \\(k_h/m_\\text{eff}\\)", [(Y, "pressure field"), (P, "MuJoCo-Warp rows"), (P, "0.76&#8211;0.88 of Drake"), (Y, "voxel surface"), (N_, "no"), (N_, "no"),
-                                 (f"{newton_us:.0f} (GPU)" if newton_us else "&#8211;"), (Y, "Warp")]),
+                                 us("newton_hydro_mc"), (Y, "Warp")]),
         ("Sphere lattice, CSLC", [(Y, "anchor springs"), (P, "presliding; no sliding dynamics"), (Y, "from the lattice"), (Y, "lattice"), (P, "presliding"), (Y, "lateral springs"), "&#8211;", (P, "&#8211;")]),
     ]
     head = ["contact model", "compliance", "stick, slip", "friction torque", "area, CoP",
-            "pre-slip shear", "lateral spread", f"{US} per step", "GPU batch"]
+            "pre-slip shear", "lateral spread", f"cost ({US} per step)", "GPU batch"]
     out = ["<table class='cap'><thead><tr>" + "".join(f"<th>{h}</th>" for h in head) + "</tr></thead><tbody>"]
     for name, cells in rows:
         tds = []
@@ -1096,10 +1169,8 @@ def main():
     stab = stab_rows()
     cost = step_cost(T["pull"])
     M = metrics(T)
-    newton_us = None
-    one = [r for r in gpu_newton if first(r, "nworld", "worlds") == 1 and r.get("status", "complete") == "complete"]
-    if one:
-        newton_us = statistics.median(first(r, "ms_per_step_median") * 1e3 for r in one if first(r, "ms_per_step_median"))
+    curves = gpu_curves(gpu_pads, gpu_newton)
+    batched = gpu_batched(curves)
 
     t = open(TPL).read()
     v = {"STYLE": style_block(), "BUILT": time.strftime("%Y-%m-%d %H:%M"), "CHAIN_PATH": CHAIN_PATH, "CHAIN_URL": CHAIN_URL,
@@ -1114,7 +1185,7 @@ def main():
     v["FIG_SECTION"] = G.svg_section(hi)
     v["FIG_PATCH"] = G.svg_patch(hi, lo)
     v["FIG_MODELS"] = svg_models()
-    v["CAP_TABLE"] = cap_table(cost, newton_us)
+    v["CAP_TABLE"] = cap_table(cost, batched)
     fig, have_onset = svg_scaling(T["twist"], tor)
     v["FIG_SCALING"] = fig
     v["FIG_MASS"] = svg_mass(cal)
@@ -1125,8 +1196,8 @@ def main():
     v["FIG_STEP"] = svg_step(step_rows)
     v["STEP_TEXT"] = step_text(step_rows)
     v["AGREE_TABLE"] = agree_table(M)
-    v["FIG_COST"] = svg_cost(M, cost)
-    v["FIG_GPU"] = svg_gpu(gpu_pads, gpu_newton)
+    v["FIG_COST"] = svg_cost(M, cost, batched)
+    v["FIG_GPU"] = svg_gpu(curves)
     import simulator_agreement_figure as SAF
     v["FIG_AGREE_SIM"] = SAF.svg_agreement() + SAF.legend()
     v["GPU_NEWTON_SCRIPT"] = ", <code>scripts/newton_scaling.py</code>" if gpu_newton else ""
@@ -1139,7 +1210,7 @@ def main():
     v["RELATED"] = related()
     v["GLOSSARY"] = glossary_html()
     ctx = dict(T=T, M=M, cost=cost, cal=cal, stab=stab, step_rows=step_rows, gpu_pads=gpu_pads, gpu_newton=gpu_newton,
-               tor=tor, have_onset=have_onset, newton_us=newton_us, deviations=deviations(M), bed_url=u)
+               tor=tor, have_onset=have_onset, curves=curves, batched=batched, deviations=deviations(M), bed_url=u)
     v.update(OT.blocks(ctx))
     for k, val in v.items():
         t = t.replace("{{" + k + "}}", val)

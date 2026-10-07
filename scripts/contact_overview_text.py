@@ -165,19 +165,47 @@ def evidence_tasks(ctx):
 
 
 def cost_text(ctx):
-    cost, gpu = ctx["cost"], ctx["gpu_pads"]
+    cost, bat = ctx["cost"], ctx.get("batched") or {}
     if not cost:
         return ""
-    s = ", ".join(f"{P.HTML_LBL[k]} {cost[k]:.1f}&#8202;&#181;s" for k in P.ORDER if k in cost)
-    g = [r for r in gpu if r.get("status") == "complete"]
-    gp = ""
-    if g:
-        best = max(g, key=lambda r: r["world_steps_per_s"])
-        gp = (f" On one GPU, MuJoCo-Warp runs the 1&#8202;mm pads at up to {best['world_steps_per_s'] / 1e3:.0f}k world-steps per second "
-              f"({best['key'].split('_n')[1].split('_')[0]} worlds), {best['sim_s_per_wall_s']:.0f} simulated seconds per wall second; the "
-              f"curve flattens beyond 4096 worlds (Figure&#160;10).")
-    return (f"Median physics step of the two-pad pinch at 1&#8202;ms on one core, from bed task&#160;1: {s}. Figure&#160;9 plots it against "
-            f"each model&#8217;s deviation from Drake over the metrics of Table&#160;2." + gp)
+    cpu = [k for k in ("mj_point3", "mj_point4s", "mj_pads1", "drake_hydro") if k in cost]
+    gpu = [k for k in P.GPU_MODELS if k in cost]
+    us = lambda v: P.num(v, ",.1f" if v < 100 else ",.0f")  # noqa: E731
+    out = [f"The cost of one physics step of the bed rig at 1&#8202;ms, from task&#160;1. On one CPU core: "
+           + "; ".join(f"{P.HTML_LBL[k]}, {us(cost[k])}&#8202;&#181;s" for k in cpu) + "."]
+    if gpu:
+        out.append(" One world alone on the GPU, stepped from the host with the state copied back after each step: "
+                   + "; ".join(f"{P.HTML_LBL[k]}, {us(cost[k])}&#8202;&#181;s" for k in gpu))
+    s = "".join(out) + "."
+    b = [k for k in P.GPU_MODELS if k in bat]
+    if b:
+        s += (" A single GPU world is bound by kernel launches and the copy. In a batch on the SR2 holding fixture the cost per "
+              "world-step at the batch of highest throughput (Figure&#160;10) is "
+              + ", ".join(f"{bat[k][0]:.2f}&#8202;&#181;s for the {P.HTML_LBL[k].replace('Newton hydroelastic', 'Newton hydroelastic tip')} "
+                          f"({P.num(bat[k][1], ',d')} worlds)" for k in b) + ".")
+    return s + " Figure&#160;9 plots both costs against each model&#8217;s deviation from Drake over the metrics of Table&#160;2."
+
+
+def gpu_note(ctx):
+    """Figure 10 caption: the Newton fixture and every batch of 1-8192 worlds that did not run, with its limit."""
+    rows = [r for r in ctx["gpu_newton"] if r.get("kind") == "timing" and r.get("fixture_name") == "twist"]
+    if not rows:
+        return "Newton&#8217;s rows on the pad fixture are not written yet."
+    lab = {"newton_pads1": "Newton with the pads", "newton_hydro_mc": "Newton hydroelastic with reduction",
+           "newton_hydro_unreduced_mc": "Newton hydroelastic without reduction"}
+    miss = []
+    for mdl, name in lab.items():
+        rs = [r for r in rows if r["model"] == mdl]
+        done = {r["nworld"] for r in rs if r.get("status") == "complete"}
+        for n in (1, 64, 256, 1024, 2048, 4096, 8192):
+            if n in done:
+                continue
+            why = next((r.get("failure") or r.get("error") for r in rs if r["nworld"] == n and r.get("status") != "complete"), None)
+            miss.append(f"{name} at {P.num(n, ',d')} worlds ({why or 'not run'})")
+    txt = ("Newton runs the MuJoCo-Warp pad fixture: the same SR2 thumb&#8211;index pinch at 2&#8202;N per pad for 0.8&#8202;s, with two "
+           "opposing 12&#8202;mN&#8202;m torque pulses about the pinch axis at 0.3&#8211;0.6&#8202;s; its hydroelastic tip has \\(k_h\\) divided by "
+           "the tip&#8211;tool effective mass (step&#160;7).")
+    return txt + (" Not run: " + "; ".join(miss) + "." if miss else " Every batch from 1 to 8,192 worlds ran.")
 
 
 def open_list(ctx):
@@ -374,9 +402,12 @@ def blocks(ctx):
         "AGREE_NOTE": "A dash marks a case not run.",
         "EVIDENCE_TASKS": evidence_tasks(ctx),
         "COST_TEXT": cost_text(ctx) + state_cost_text(ctx),
-        "COST_NOTE": "Drake sits at zero deviation by construction.",
-        "GPU_NOTE": ("Newton&#8217;s rows stop at 4096 worlds with contact reduction and 1024 without; larger batches were not run. Its "
-                     "curves are for \\(k_h=E/h\\), before the effective-mass correction of step&#160;7." if ctx["gpu_newton"] else "Newton&#8217;s rows are not written yet."),
+        "COST_NOTE": ("Filled markers: one physics step on one CPU core (MuJoCo, Drake) or of one world alone on the GPU, "
+                      "stepped from the host (MuJoCo-Warp, Newton), bed task&#160;1 at 1&#8202;ms. Hollow markers: wall time per "
+                      "world-step in a GPU batch on the SR2 holding fixture, at the batch of highest throughput in Figure&#160;10. "
+                      "Models closer in deviation than a label&#8217;s height (the 1&#8202;mm pad in three simulators and condim&#160;4, "
+                      "5.7&#8211;6.2&#8202;%) are drawn apart vertically in their order. Drake sits at zero deviation by construction."),
+        "GPU_NOTE": gpu_note(ctx),
         "OPEN_LIST": open_list(ctx),
         "MEFF_TEXT": meff_text(ctx),
         "AGREE_SIM_TEXT": agree_sim_text(ctx),
