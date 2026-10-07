@@ -51,6 +51,16 @@ SCRIPT = "scripts/contact_bed_newton.py"
 MODELS = {
     "newton_hydro": dict(reduce=True),
     "newton_hydro_unreduced": dict(reduce=False),
+    # kh divided by the pad-tool effective mass (2026-10-06): SolverMuJoCo writes each hydroelastic contact's
+    # force-space stiffness c as solref timeconst sqrt(1/(c (1-d))), damping ratio 1, which MuJoCo realises as
+    # a force stiffness c * m_eff with m_eff = 1 / (invweight0[pad] + invweight0[tool]) (Newton's ShapeConfig.kh
+    # note and docs/solvers/mujoco.rst). The pads in reorient_backends.replace_tips divide m_eff out the same way.
+    # m_eff from the inverse weights of the solver's own MuJoCo model (what MuJoCo-Warp uses); the "_mjcf"
+    # variants take them from the bed MJCF compiled by MuJoCo, which Newton's import does not reproduce.
+    "newton_hydro_mc": dict(reduce=True, mass_correct="solver"),
+    "newton_hydro_unreduced_mc": dict(reduce=False, mass_correct="solver"),
+    "newton_hydro_mc_mjcf": dict(reduce=True, mass_correct="mjcf"),
+    "newton_hydro_unreduced_mc_mjcf": dict(reduce=False, mass_correct="mjcf"),
 }
 BASE = dict(kh=KH_PAD, tool_ratio=100.0, voxel=0.5e-3, band=0.006, impratio=100.0, kf=10.0,
             solimp="0.9 0.9 0.001 0.5 2", fallback="0.5 1", iterations=200, ls_iterations=50,
@@ -68,7 +78,8 @@ def git_rev():
 def rig_spec(model):
     c = dict(BASE, **MODELS[model])
     return (f"newton:hydro:kh{c['kh']:.3g}:tool{c['tool_ratio']:g}:vox{c['voxel'] * 1e3:g}:ir{c['impratio']:g}"
-            f":kf{c['kf']:g}:{'reduced' if c['reduce'] else 'unreduced'}:solimp0.9:fallback0.5x1")
+            f":kf{c['kf']:g}:{'reduced' if c['reduce'] else 'unreduced'}:solimp0.9:fallback0.5x1"
+            f"{':mass_corrected_' + c['mass_correct'] if c.get('mass_correct') else ''}")
 
 
 def done(path, key):
@@ -83,6 +94,10 @@ def done(path, key):
 
 
 def finish_row(row, task, model, dt_ms, status="complete", film=None):
+    last = getattr(NewtonRig, "last", None)
+    if model in MODELS and last is not None and last.model_name == model:
+        row.setdefault("kh_scale", last.kh_scale)
+        row.setdefault("inv_weight0", last.inv_w)
     row.update(task=task, model=model, rig_spec=rig_spec(model) if model in MODELS else row.get("rig_spec"),
                dt_ms=dt_ms, status=row.get("status", status), film=film, script=SCRIPT, git_rev=git_rev(),
                when=time.strftime("%Y-%m-%d %H:%M"))
@@ -116,6 +131,12 @@ class NewtonRig:
         xml = re.sub(r'solref="[^"]*"', f'solref="{c["fallback"]}"', xml)
         xml = re.sub(r'solimp="[^"]*"', f'solimp="{c["solimp"]}"', xml)
         self.xml = xml
+        self.kh_scale = 1.0
+        if c.get("mass_correct") == "mjcf":
+            import mujoco
+            m0 = mujoco.MjModel.from_xml_string(xml)
+            w = m0.body_invweight0[:, 0]
+            self.kh_scale = float(w[m0.body("padL").id] + w[m0.body("tool").id])  # 1 / m_eff, 1/kg
         g = gravity_vec if gravity_vec is not None else ((0.0, 0.0, -H.G) if gravity else (0.0, 0.0, 0.0))
         b = newton.ModelBuilder(gravity=tuple(float(x) for x in g))
         b.add_mjcf(xml, ctrl_direct=True, parse_sites=False, parse_visuals=False)
@@ -130,7 +151,7 @@ class NewtonRig:
             b.shape_sdf_padding[i] = c["band"]
             b.shape_margin[i] = 0.0
             b.shape_gap[i] = 0.0
-            b.shape_material_kh[i] = c["kh"] * (c["tool_ratio"] if name == "tool" else 1.0)
+            b.shape_material_kh[i] = c["kh"] * self.kh_scale * (c["tool_ratio"] if name == "tool" else 1.0)
             b.shape_material_mu[i] = H.MU
             b.shape_material_kf[i] = c["kf"]
             b.shape_material_mu_torsional[i] = 0.0
@@ -158,7 +179,21 @@ class NewtonRig:
             nm = re.sub(r"_\d+$", "", (mjm.geom(gi).name or "").split("/")[-1])
             if nm in ("padL", "padR"):
                 self.geom_side[gi] = nm[-1]
-        self.kh_eff = c["kh"] * c["kh"] * c["tool_ratio"] / (c["kh"] + c["kh"] * c["tool_ratio"])
+        self.inv_w = {}
+        m2n = self.solver.mjc_body_to_newton.numpy()[0]  # MuJoCo body -> Newton body (world 0)
+        for bi in range(mjm.nbody):
+            nb = int(m2n[bi])
+            nm = labels[nb] if 0 <= nb < len(labels) else ""
+            if nm in ("padL", "padR", "tool"):
+                self.inv_w[nm] = float(mjm.body_invweight0[bi, 0])
+        if c.get("mass_correct") == "solver":
+            self.kh_scale = self.inv_w["padL"] + self.inv_w["tool"]  # 1 / m_eff of the pad-tool contact, 1/kg
+            kh = self.model.shape_material_kh.numpy()
+            for i in self.hydro_shapes:
+                kh[i] *= self.kh_scale
+            self.model.shape_material_kh.assign(kh)  # the hydroelastic pipeline holds this array
+        self.kh_eff = self.kh_scale * c["kh"] * c["tool_ratio"] / (1.0 + c["tool_ratio"])
+        NewtonRig.last = self
         self.N = 0.0
         self.f_tool, self.tau_tool = np.zeros(3), np.zeros(3)
         self._t = 0.0
@@ -841,7 +876,13 @@ def main():
     ap.add_argument("--a", nargs="+", type=float, help="T4 peak accelerations, g")
     ap.add_argument("--v", nargs="+", type=float, help="T3 pad speeds, mm/s")
     ap.add_argument("--film", action="store_true", help="film the protocol case (N 1, dt 1 ms; T4 N 0.5, 2 g)")
+    ap.add_argument("--outdir", help="directory for the result rows (default: the 10-05 bed folder)")
     a = ap.parse_args()
+    if a.outdir:
+        global OUTDIR, FILMDIR
+        OUTDIR = Path(a.outdir).resolve()
+        FILMDIR = OUTDIR / "media"
+        OUTDIR.mkdir(parents=True, exist_ok=True)
     if a.task == "compare":
         for dt in a.dt:
             compare(dt)
