@@ -1124,14 +1124,15 @@ def _contact_buffers(cfg: MorphoHandEnvCfg) -> tuple[int, int, int]:
     overflowing buffer drops contacts or rows, and fed NaN observations to the first 2026-10-06 pad runs (at 512 / 2,048 / 512 a run reached 13 M steps; its worlds then asked for
     516 contacts on average, 2,442 rows and 595 matches). 640 / 3,072 / 768 takes 11.9 GB of GPU at 2,048 envs.
     The compliant-skin scenes of 2026-10-08 (pads on a spring-mounted child body) ask the broadphase for 644-672
-    candidates per world while the fingers close, and at 640 lost the tool in 61 of 64 worlds; they get 1,024."""
+    candidates per world while the fingers close, and at 640 lost the tool in 61 of 64 worlds; they get 768 (1,024
+    does not fit the 16 GB GPU at 2,048 envs: each slot costs about 8 MB across the worlds)."""
     try:
         txt = Path(str(cfg.frozen_scene_xml)).read_text()
     except OSError:
         txt = ""
     if txt.count("<geom") <= 500:
         return (64, 400, CONTACT_SENSOR_MAXMATCH)
-    return (1024, 3072, 768) if "_tipskin" in txt else (640, 3072, 768)
+    return (768, 3072, 768) if "_tipskin" in txt else (640, 3072, 768)
 
 
 def _build_sensors(cfg: MorphoHandEnvCfg) -> tuple:

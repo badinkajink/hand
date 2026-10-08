@@ -8,7 +8,8 @@
 # file is re-read after every run, so jobs can be added or reordered while the queue runs. A job whose final checkpoint
 # (model_<iters-1>.pt, iters = timesteps // (2,048 x 24)) exists is skipped. A run that ends without it is moved to
 # <tag>_failed<k> and retried, at most twice; its log is kept as train_<tag>_failed<k>.log. Each run goes through
-# resguard (10 GB, 8 cores) under /usr/bin/time -v; GPU memory is sampled every 30 s into gpu_mem.tsv.
+# resguard (10 GB, 8 cores) under /usr/bin/time -v; GPU memory is sampled every 30 s into gpu_mem.tsv. After each run
+# the queue runs $LOGS/after_run.sh <tag> <run> <timesteps> if that file exists (checkpoint evaluations).
 #
 #   nohup setsid bash scripts/rl_contact_train_queue_20261008.sh logs/20261008-contact_model_policies/jobs.txt \
 #       > logs/20261008-contact_model_policies/train_queue.log 2>&1 &
@@ -72,5 +73,12 @@ while true; do
     echo "$(date '+%F %H:%M:%S') FAILED $tag exit $rc (attempt $k): $(grep -i -m1 -o '.\{0,80\}nan.\{0,40\}\|error.\{0,120\}' "$LOGS/train_${tag}_failed$k.log" | head -1)"
   fi
   sleep 90                     # let the GPU memory of the finished Warp process drop
+  # optional per-run hook (checkpoint evaluations, step 2), read at call time so it can be written while the queue runs
+  if [ -f "$LOGS/after_run.sh" ]; then
+    echo "$(date '+%F %H:%M:%S') hook $tag"
+    bash "$LOGS/after_run.sh" "$tag" "$run" "$steps" >> "$LOGS/after_run.log" 2>&1
+    echo "$(date '+%F %H:%M:%S') hook $tag exit $?"
+    sleep 30
+  fi
 done
 echo "$(date '+%F %H:%M:%S') queue done"
