@@ -238,6 +238,8 @@ def make_plant(engine, d, meta):
     if engine == "mujoco":
         return H3.MjPlant(d / "bench.xml", meta)
     if engine == "drake":
+        if not meta.get("meshes"):       # the box run's scene has no TPU meshes: take the block run's
+            meta = dict(meta, meshes=json.loads((block_dir(d) / "bench_meta.json").read_text())["meshes"])
         return H3.DrakePlant(block_dir(d) / "bench.xml", meta)
     raise ValueError(engine)
 
