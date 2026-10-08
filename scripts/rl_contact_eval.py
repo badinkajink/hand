@@ -25,7 +25,8 @@ tool's weight) and the tool above 60 mm.
     $PY scripts/rl_contact_eval.py robust --all --perturb friction=0.7 friction=1.3 mass=0.8 mass=1.2 kp=2 kp=6 kp=10 \\
         dt=0.001 noise=2,5
     uv run --extra rl python scripts/rl_contact_eval.py tb --all   # training curves from the event files (CPU)
-Rows (fsynced): docs/experiments/20261008-contact_model_policies/{ckpt_eval,final_eval,transfer,robust,tb_dynamics}.jsonl
+    uv run --extra rl python scripts/rl_contact_eval.py costs       # s/it, wall time, GPU memory, RSS, failures
+Rows (fsynced): docs/experiments/20261008-contact_model_policies/{ckpt_eval,final_eval,transfer,robust,tb_dynamics,run_costs}.jsonl
 """
 from __future__ import annotations
 
@@ -490,11 +491,50 @@ def cmd_tb(args):
     print(f"{out}: {sum(len(v) for v in rows.values())} rows, {len(rows)} runs")
 
 
+def cmd_costs(args):
+    """Per run: median seconds per iteration and wall time (its trainer log), peak GPU memory (the queue's 30 s
+    samples, whole card), peak host RSS (/usr/bin/time), and the failed attempts before it (the queue log)."""
+    logs = ROOT / "logs/20261008-contact_model_policies"
+    gpu = {}
+    if (logs / "gpu_mem.tsv").exists():
+        for line in open(logs / "gpu_mem.tsv"):
+            f = line.split("\t")
+            if len(f) == 3 and f[2].strip().isdigit():
+                gpu[f[1]] = max(gpu.get(f[1], 0), int(f[2]))
+    qlog = (logs / "train_queue.log").read_text() if (logs / "train_queue.log").exists() else ""
+    out = OUT8 / "run_costs.jsonl"
+    rows = []
+    for tag, arm, seed, steps in jobs():
+        lg = logs / f"train_{tag}.log"
+        if not lg.exists():
+            continue
+        txt = lg.read_text(errors="replace")
+        its = [float(x) for x in re.findall(r"Iteration time: ([0-9.]+)s", txt)]
+        el = re.findall(r"Time elapsed: (\d+):(\d+):(\d+)", txt)
+        rss = re.findall(r"Maximum resident set size \(kbytes\): (\d+)", txt)
+        fails = re.findall(rf"FAILED {re.escape(tag)} exit (\S+) \(attempt (\d+)\): (.*)", qlog)
+        rows.append(dict(tag=tag, arm=arm, seed=seed, iterations=len(its), finished=final_ckpt(tag, steps).exists(),
+                         s_per_it_median=float(np.median(its)) if its else None,
+                         s_per_it_mean=float(np.mean(its)) if its else None,
+                         wall_h=(int(el[-1][0]) + int(el[-1][1]) / 60 + int(el[-1][2]) / 3600) if el else None,
+                         gpu_mem_peak_mb=gpu.get(tag), host_rss_peak_gb=int(rss[-1]) / 1e6 if rss else None,
+                         failed_attempts=len(fails), failures=[f[2][:200] for f in fails],
+                         overflow_lines=txt.count("overflow"), nan_lines=len(re.findall(r"\bnan\b", txt, re.I))))
+    tmp = out.with_suffix(".tmp")
+    with open(tmp, "w") as fh:
+        for r in rows:
+            fh.write(json.dumps(r) + "\n")
+        fh.flush()
+        os.fsync(fh.fileno())
+    tmp.replace(out)
+    print(f"{out}: {len(rows)} runs")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd")
     sub.add_parser("legacy")
-    for name in ("ckpts", "final", "transfer", "robust", "tb"):
+    for name in ("ckpts", "final", "transfer", "robust", "tb", "costs"):
         s = sub.add_parser(name)
         s.add_argument("--tags", nargs="*", default=[])
         s.add_argument("--all", action="store_true", help="every finished run of the 2026-10-08 queue")
@@ -510,7 +550,8 @@ def main():
     if a.cmd in (None, "legacy"):
         legacy()
         return 0
-    {"ckpts": cmd_ckpts, "final": cmd_final, "transfer": cmd_transfer, "robust": cmd_robust, "tb": cmd_tb}[a.cmd](a)
+    {"ckpts": cmd_ckpts, "final": cmd_final, "transfer": cmd_transfer, "robust": cmd_robust, "tb": cmd_tb,
+     "costs": cmd_costs}[a.cmd](a)
     return 0
 
 
