@@ -1,4 +1,4 @@
-Status: armed 2026-10-07 15:40 for colorado (Opus 5.5, effort max)
+Status: done (2026-10-08 11:45 MDT; steps 1-6, 11 and 12 done, 7-8 dropped; pages publish pending, see Waiting on owner)
 Task (owner, 2026-10-07 15:30), two parts:
 (1) Find where Newton's hydroelastic contact departs from the pads, Drake and the pressure law: run the bed page's open item (friction-row time constant) and two experiments that separate Newton's implementation from its pressure field.
 (2) Explore native-MuJoCo ways to add what the pressure law and the pads lack: shear compliance before slip, hysteresis, lateral spread of load (CSLC, Hydrosoft). Owner: "keeping things as fast and native-mujoco as possible ... this work so far has only fared well when we stuck close to the original simulation. i wonder if somehow that could extend to these contact modes that it was never supposed to be good at".
