@@ -43,6 +43,18 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 OUT = ROOT / "docs/experiments/20261006-rl_contact/policy_replay.jsonl"
 REPLAY = ROOT / "logs/20261006-rl_contact/replay"
+# --study 20261008: the contact-model policy study (scripts/rl_contact_train_queue_20261008.sh)
+STUDIES = {"20261008": (ROOT / "docs/experiments/20261008-contact_model_policies/policy_replay.jsonl",
+                        ROOT / "logs/20261008-contact_model_policies/replay")}
+
+
+def block_dir(d: Path) -> Path:
+    """The replay dir of the TPU block mesh run of the same seed, whose bench.xml gives Drake and Newton the plain
+    block geometry (pad and skin runs have sphere tips, the box run the legacy box)."""
+    n = d.name
+    for a, b in (("pads1", "mesh"), ("tpu27skin", "tpu27mesh"), ("_box_", "_tpu27mesh_")):
+        n = n.replace(a, b)
+    return d.with_name(n)
 FINGERS, JOINTS = ("thumb", "index", "middle"), ("yaw", "mcp", "pip")
 NAMES = [f"{f}_{j}" for f in FINGERS for j in JOINTS]
 TOOL = "screwdriver_medium"
@@ -220,7 +232,7 @@ def make_plant(engine, d, meta):
     if engine == "mujoco":
         return H3.MjPlant(d / "bench.xml", meta)
     if engine == "drake":
-        return H3.DrakePlant(Path(str(d).replace("pads1", "mesh")) / "bench.xml", meta)
+        return H3.DrakePlant(block_dir(d) / "bench.xml", meta)
     raise ValueError(engine)
 
 
@@ -254,11 +266,41 @@ def replay(d: Path, engine: str, hold: float | None = None, seed: int = 0):
         trace.append((round(t, 3), float(s["R"][2, 2]), float(s["p"][2]), sum(1 for f in FINGERS if s["n"][f] > 0)))
     s = plant.state()
     nf = sum(1 for f in FINGERS if s["n"][f] > 0)
-    return {"engine": engine, "cos_start": float(s0["R"][2, 2]), "cos_end": float(s["R"][2, 2]),
+    return {"engine": engine, "world": meta.get("world"), "cos_start": float(s0["R"][2, 2]), "cos_end": float(s["R"][2, 2]),
             "z_start_mm": 1e3 * float(s0["p"][2]), "z_end_mm": 1e3 * float(s["p"][2]), "fingers_end": nf,
             "held_end": bool(s["p"][2] > 0.06 and nf >= 2), "F_end": {f: round(s["F"][f], 3) for f in FINGERS},
             "steps": len(targets), "wall_s": round(time.perf_counter() - w0, 1),
             "trace": trace[:: max(1, len(trace) // 50)]}
+
+
+def match_hydro_friction(model, solver, impratio, tc=0.01, d0=0.9):
+    """Friction gain kf of the hydroelastic tip and tool shapes for which SolverMuJoCo's elliptic-cone mapping gives
+    the friction rows the pads' 10 ms solref time constant: t_f = 2 / (kf w ((1 - d0) / impratio + d0)), w the solver
+    model's inverse weights of tip and tool, d0 0.9 the hydroelastic contacts' solimp (contact_bed_newton
+    NewtonRig._match_friction). build_newton's kf 10 gives t_f 3.9 ms on the bed. The tool's shapes take the mean of
+    the three fingers' values. Returns kf per finger."""
+    mjm = solver.mj_model
+    labels = [x.split("/")[-1] for x in model.body_label]
+    m2n = solver.mjc_body_to_newton.numpy()[0]
+    w = {labels[int(m2n[bi])]: float(mjm.body_invweight0[bi, 0]) for bi in range(mjm.nbody)
+         if 0 <= int(m2n[bi]) < len(labels)}
+    kf_f = {f: 2.0 / (tc * (w[f"{f}_tip"] + w[TOOL]) * ((1.0 - d0) / impratio + d0)) for f in FINGERS}
+    kf = model.shape_material_kf.numpy()
+    body = model.shape_body.numpy()
+    for i in range(len(kf)):
+        if body[i] < 0:
+            continue
+        bl = labels[body[i]]
+        for f in FINGERS:
+            if bl == f"{f}_tip":
+                kf[i] = kf_f[f]
+        if bl == TOOL:
+            kf[i] = float(np.mean(list(kf_f.values())))
+    model.shape_material_kf.assign(kf)
+    return kf_f
+
+
+KF_MATCH = [False]
 
 
 def replay_newton(d, meta, targets, newton_dir=None, nworld=1):
@@ -270,7 +312,7 @@ def replay_newton(d, meta, targets, newton_dir=None, nworld=1):
     import newton
     import warp as wp
     import same_state_timing as SS
-    nd = Path(newton_dir) if newton_dir else Path(str(d).replace("pads1", "mesh"))
+    nd = Path(newton_dir) if newton_dir else block_dir(d)
     xml = (nd / "bench.xml").read_text()
     # as same_state_timing.engine_xml: one-value solrefs get damping ratio 1 (Newton's importer would set 0) and every
     # massive body's compiled inertia is pinned, so the shapes Newton drops or re-adds cannot change the masses
@@ -294,6 +336,8 @@ def replay_newton(d, meta, targets, newton_dir=None, nworld=1):
     extra = {}
     model, pipe, solver = SS.build_newton(xml, m, sm, nworld, "nt_hydro", "mesh", 0.013, 40, extra)
     mm = solver.mj_model
+    if KF_MATCH[0]:
+        extra["kf_tip"] = match_hydro_friction(model, solver, float(m.opt.impratio))
     jmap = SS.joint_map(m, mm)
     qs, qds = model.joint_q_start.numpy(), model.joint_qd_start.numpy()
     jq = model.joint_q.numpy()
@@ -361,15 +405,16 @@ def replay_newton(d, meta, targets, newton_dir=None, nworld=1):
         for t, o in ((bi, bj), (bj, bi)):
             if t == tool_id and o >= 0 and body_finger[o]:
                 touch.add(body_finger[o])
-    return {"engine": "newton", "newton_scene": str(nd), "dt": dt, "iterations": int(m.opt.iterations), "cos_start": cos0, "cos_end": cos1, "z_start_mm": 1e3 * z0,
+    return {"engine": "newton", "world": meta.get("world"), "newton_scene": str(nd), "dt": dt, "iterations": int(m.opt.iterations), "cos_start": cos0, "cos_end": cos1, "z_start_mm": 1e3 * z0,
             "z_end_mm": 1e3 * z1, "fingers_end": len(touch), "held_end": bool(z1 > 0.06 and len(touch) >= 2),
             "steps": len(targets), "wall_s": round(time.perf_counter() - w0, 1), "kh_tip": extra.get("kh_tip"),
-            "invweight0_newton": extra.get("invweight0_newton"), "trace": trace}
+            "invweight0_newton": extra.get("invweight0_newton"), "kf_matched": extra.get("kf_tip"), "trace": trace}
 
 
 # ---------------------------------------------------------------------------------- CLI
 
 def main():
+    global OUT, REPLAY
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
     rc = sub.add_parser("record")
@@ -387,7 +432,15 @@ def main():
     r.add_argument("--out", type=Path, default=OUT)
     r.add_argument("--newton-dir", type=Path, default=None, help="newton: the bench.xml to take the geometry from")
     r.add_argument("--newton-num", default=None, help="newton: dt,iterations,ls_iterations (default: the scene's)")
+    for sp in (rc, b, r):
+        sp.add_argument("--study", choices=sorted(STUDIES), default=None,
+                        help="write rows and replay dirs to that study's folders")
     a = ap.parse_args()
+    if a.study:
+        OUT, REPLAY = STUDIES[a.study]
+        KF_MATCH[0] = True       # 2026-10-08: Newton's hydroelastic friction rows at the pads' 10 ms
+        if a.cmd == "replay" and a.out == ROOT / "docs/experiments/20261006-rl_contact/policy_replay.jsonl":
+            a.out = OUT
     if a.cmd == "record":
         os.environ.setdefault("MUJOCO_GL", "egl")
         row = record(a.tag, a.checkpoint, a.n)
