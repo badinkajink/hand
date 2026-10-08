@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-r"""Build docs/experiments/20261007-contact_overview/20261007-sphere_pad_contact_model.html.
+r"""Build docs/experiments/20261008-contact_overview/20261008-sphere_pad_contact_model.html.
 
     python3 scripts/contact_overview_page.py
 
@@ -8,7 +8,9 @@ the page); the 2026-10-05 revision stays at docs/experiments/20261005-contact_ov
 The 2026-10-07 revision adds the agreement of the pads with Drake across MuJoCo, MuJoCo-Warp and Newton
 (scripts/simulator_agreement_figure.py), the effective-mass argument that the pads build in and Newton's
 hydroelastic contact lacked, the cost on one RL state and the replay of learned policies across implementations
-(docs/experiments/20261006-hom_turn3/, 20261006-rl_contact/, 20261006-simulator_agreement/).
+(docs/experiments/20261006-hom_turn3/, 20261006-rl_contact/, 20261006-simulator_agreement/). The 2026-10-08 revision updates
+the pre-slip open item with the native-compliance candidates (docs/experiments/20261007-native_compliance/) and links that
+page and the Newton hydroelastic tests (docs/experiments/20261007-newton_hydro_tests/); the 2026-10-07 file stays.
 
 The overview page of the fingertip contact work of 1-7 October 2026: the components of a fingertip contact model,
 the contact mechanics (patch torque, Winkler/hydroelastic and Hertz arms, lateral coupling), the sphere-packed pad in
@@ -38,8 +40,8 @@ import hom_contact_patch_page as R  # noqa: E402
 import texsvg  # noqa: E402
 
 EXP = os.path.join(ROOT, "docs/experiments")
-D = os.path.join(EXP, "20261007-contact_overview")
-OUT = os.path.join(D, "20261007-sphere_pad_contact_model.html")
+D = os.path.join(EXP, "20261008-contact_overview")
+OUT = os.path.join(D, "20261008-sphere_pad_contact_model.html")
 TPL = os.path.join(ROOT, "scripts/contact_overview_page.template.html")
 CHAIN_TPL = os.path.join(ROOT, "scripts/hom_chain_page.template.html")
 BED = os.path.join(EXP, "20261005-contact_bed")
@@ -1118,7 +1120,14 @@ def related():
     items = [
         ("Servo plant refit, hand-object control of the three-finger turn, contact-model agreement, effective-mass scaling "
          "and the cost of sphere-pad fingertips in RL training", HT3_PATH, _url(os.path.join(HT3, "artifact_url.txt"))),
-        ("Previous revision of this page (2026-10-05)", "docs/experiments/20261005-contact_overview/20261005-sphere_pad_contact_model.html",
+        ("Presliding compliance, hysteresis and Hertz load exponents with native MuJoCo elements (skin, rolling bristles, softening "
+         "impedance, lattice, flex)", "docs/experiments/20261007-native_compliance/20261007-native_presliding_compliance.html", None),
+        ("Friction-row time constant, contact reduction and edge contact in Newton&#8217;s hydroelastic fingertip model",
+         "docs/experiments/20261007-newton_hydro_tests/20261007-newton_hydroelastic_friction_reduction_edge.html",
+         _url(os.path.join(EXP, "20261007-newton_hydro_tests", "artifact_url.txt"))),
+        ("Previous revision of this page (2026-10-07)", "docs/experiments/20261007-contact_overview/20261007-sphere_pad_contact_model.html",
+         None),
+        ("Revision of 2026-10-05", "docs/experiments/20261005-contact_overview/20261005-sphere_pad_contact_model.html",
          None),
         ("Chain control on the SR2 hand (derivation, eight contact models, the paper&#8217;s tasks, cost)", CHAIN_PATH, CHAIN_URL),
         ("Pinch friction torque in Drake and MuJoCo contact models (two-pad rig)",

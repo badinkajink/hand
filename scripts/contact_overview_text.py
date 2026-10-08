@@ -260,8 +260,11 @@ def open_list(ctx):
          "the fall (2026-10-07 Newton page, open items)."),
         ("The modulus.", "Every model here uses Drake&#8217;s default \\(E=10\\)&#8202;MPa. The arm scales as \\(E^{-1/4}\\), so a "
          "TPU tip at 2&#8211;5&#8202;MPa lengthens it by 19&#8211;50&#8202;%; refit \\(c\\) once the tip is measured."),
-        ("Pre-slip shear.", "No model here stores elastic tangential displacement. A slow tangential load cycle on the printed tip "
-         "(hysteresis loop below the slip force) measures whether the tip needs a tangential state."),
+        ("Pre-slip shear.", "The pads and Drake store no elastic tangential displacement. Mounting the spheres on a child body with "
+         "spring-loaded tangential slides and a normal hinge gives Mindlin&#8217;s presliding at 1.3&#215; the pads&#8217; GPU cost and keeps "
+         "the bed&#8217;s pull and brake results and the twist onset to 1&#8202;N; ball joints under the spheres add Mindlin&#8217;s hysteresis at 27&#215; "
+         "(<code>docs/experiments/20261007-native_compliance/</code>). A slow tangential load cycle on the printed tip (hysteresis loop "
+         "below the slip force) measures whether the tip needs either."),
     ]
     return "<ul class=\"open\">" + "".join(f"<li><b>{a}</b> {b}</li>" for a, b in items) + "</ul>"
 
