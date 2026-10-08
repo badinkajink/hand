@@ -68,6 +68,7 @@ CANDIDATES = {
     "mj_pads1_lattice0": "mj:spheres:s1:rs0.75:ir100:tr0.02:lattice0",
     "mj_pads1_lattice1": "mj:spheres:s1:rs0.75:ir100:tr0.02:lattice1",
     "mj_pads1_lattice2": "mj:spheres:s1:rs0.75:ir100:tr0.02:lattice2",
+    "mj_pads1_flex20": "mj:spheres:s1:rs0.75:ir100:tr0.02:flex20",
 }
 # As specified (1 mg spheres, no armature) the bristles go unstable under tangential load at 1 and 2 ms; armature worth
 # 0.2 g at the contact still does; 2 g at the contact (1.1e-9 kg m^2 per ball-joint dof) runs (suffix `a`).
@@ -332,10 +333,129 @@ class LatticeRig(H.MjRig):
         self.theta_prev, self.theta_unwrap = None, 0.0
 
 
+# (b) MuJoCo flex, spec suffix `:flex<deg>`: the pad spheres within <deg> of the pole are replaced by a 3D flexcomp (full
+# dofs, St Venant-Kirchhoff on linear tetrahedra) at the stated TPU modulus: hex columns at 1 mm mapped onto the cap, two
+# prism layers of 1.5 mm split into tetrahedra, the back layer and the rim pinned to the pad, mass at the TPU density
+# (0.10 g per cap), Rayleigh damping 1 ms. Its surface tetrahedra collide with the tool (priority 1, so the flex's
+# solref/solimp apply unmixed). MuJoCo 3.14 accepts flex elasticity only under the `discrete` integrator, which
+# MuJoCo-Warp 3.14 does not have; under 3.6 `implicitfast` the elasticity is explicit and the cap diverges at 1 ms with
+# 2-100 g of armature per vertex dof. Run with MuJoCo >= 3.14:
+#     PY=logs/20261004-contact-transfer/venv/bin/python
+#     $PY scripts/contact_bed_candidates.py t8 --models mj_pads1_flex20 --N 1
+FLEX = dict(s=1e-3, depth=3e-3, layers=2, E=1e7, nu=0.45, rho=1200.0, beta=1e-3, c_tc=2e-3, c_d=0.9999,
+            integrator="discrete", solver="CG")
+
+
+def cap_mesh(R_out, cap_deg, s, depth, layers):
+    """Tetrahedral mesh of a spherical cap layer, pole along +z: hex-lattice columns at spacing s mapped onto the sphere of
+    radius R_out by the azimuthal-equidistant map, `layers` prism layers down to R_out - depth, each prism split into three
+    tetrahedra by the index-ordered rule (conforming across neighbours). Returns points, tetrahedra and pinned point ids
+    (the innermost layer and the rim columns of every layer)."""
+    from scipy.spatial import Delaunay
+    rho = R_out * math.radians(cap_deg)
+    nrow = int(math.ceil(rho / (s * math.sqrt(3) / 2))) + 1
+    p2 = np.array([(i * s + (0.5 * s if j % 2 else 0.0), j * s * math.sqrt(3) / 2) for j in range(-nrow, nrow + 1)
+                   for i in range(-nrow - 1, nrow + 2)])
+    p2 = p2[np.hypot(p2[:, 0], p2[:, 1]) <= rho + 1e-12]
+    tri = []
+    for t in Delaunay(p2).simplices:                   # drop rim slivers
+        a, b, c = p2[t]
+        if 0.5 * abs((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])) > 0.2 * (math.sqrt(3) / 4) * s * s:
+            tri.append(sorted(int(v) for v in t))
+    ncol = len(p2)
+    r2 = np.hypot(p2[:, 0], p2[:, 1])
+    phi, az = r2 / R_out, np.arctan2(p2[:, 1], p2[:, 0])
+    dirs = np.stack([np.sin(phi) * np.cos(az), np.sin(phi) * np.sin(az), np.cos(phi)], 1)
+    h = depth / layers
+    P = np.concatenate([dirs * (R_out - k * h) for k in range(layers + 1)])
+    T = []
+    for k in range(layers):
+        o, o2 = k * ncol, (k + 1) * ncol
+        for a, b, c in tri:
+            T += [(o + a, o + b, o + c, o2 + c), (o + a, o + b, o2 + b, o2 + c), (o + a, o2 + a, o2 + b, o2 + c)]
+    rim = np.where(r2 > rho - 0.6 * s)[0]
+    pinned = sorted(set(range(layers * ncol, (layers + 1) * ncol)) | {k * ncol + int(c) for k in range(layers) for c in rim})
+    return P, np.array(T), pinned, dict(ncol=ncol, ntri=len(tri), nrim=len(rim), layer_h=h)
+
+
+def add_flex(xml, cap_deg, fx):
+    """Replace each pad's spheres within cap_deg of its pole by a flexcomp on a welded child body (class `flexv`)."""
+    P, T, pinned, minfo = cap_mesh(H.R_PAD, cap_deg, fx["s"], fx["depth"], fx["layers"])
+    vol = float(np.abs(np.einsum("ij,ij->i", np.cross(P[T[:, 1]] - P[T[:, 0]], P[T[:, 2]] - P[T[:, 0]]), P[T[:, 3]] - P[T[:, 0]])).sum() / 6)
+    for side, face in (("L", [1.0, 0, 0]), ("R", [-1.0, 0, 0])):
+        Pw = P @ H._rot_z_to(face).T
+        for mt in list(re.finditer(rf'<geom name="pad{side}_s(\d+)" type="sphere" size="([^"]+)" pos="([^"]+)"([^>]*)/>', xml)):
+            pos = np.array([float(v) for v in mt.group(3).split()])
+            if math.degrees(math.acos(np.clip(pos @ np.array(face) / np.linalg.norm(pos), -1, 1))) <= cap_deg:
+                xml = xml.replace(mt.group(0), "", 1)
+        blk = (f'<body name="pad{side}_flexbody" childclass="flexv">\n'
+               f'        <flexcomp name="flex{side}" type="direct" dim="3" radius="0" mass="{vol * fx["rho"]:.6g}" rgba="0.3 0.65 0.7 1" '
+               f'point="{" ".join(f"{v:.7f}" for v in Pw.ravel())}" element="{" ".join(str(int(v)) for v in T.ravel())}">\n'
+               f'          <elasticity young="{fx["E"]:.6g}" poisson="{fx["nu"]}" damping="{fx["beta"]}"/>\n'
+               f'          <contact condim="3" friction="{H.MU} 0 0" solref="{fx["c_tc"]} 1" solimp="{fx["c_d"]} {fx["c_d"]} 0.001 0.5 2" '
+               f'priority="1" selfcollide="none" internal="false" contype="1" conaffinity="0"/>\n'
+               f'          <pin id="{" ".join(str(v) for v in pinned)}"/>\n        </flexcomp>\n      </body>')
+        vis = re.search(rf'<geom name="pad{side}_vis"[^>]*/>', xml).group(0)
+        xml = xml.replace(vis, vis + "\n      " + blk, 1)
+    xml = xml.replace("<worldbody>", '<default><default class="flexv"><joint armature="0"/></default></default>\n  <worldbody>', 1)
+    xml = xml.replace('integrator="implicitfast"', f'integrator="{fx["integrator"]}"').replace('solver="Newton"', f'solver="{fx["solver"]}"')
+    return xml, dict(minfo, npoint=len(P), ntet=len(T), npinned=len(pinned), cap_volume_mm3=vol * 1e9, cap_mass_g=vol * fx["rho"] * 1e3,
+                     cap_deg=cap_deg, **fx)
+
+
+class FlexRig(H.MjRig):
+    """hom_contact_rig.MjRig with a 3D flex over each pad's front cap (candidate b); the remaining spheres keep the pad calibration."""
+
+    def __init__(self, sp, d_cg, gravity, kinematic=False, cap_deg=20.0, fx=None):
+        import mujoco
+        fx = dict(FLEX, **(fx or {}))
+        H.MjRig.__init__(self, sp, d_cg, gravity, kinematic)          # pad calibration (tc, d0) for the outer spheres
+        self.xml, finfo = add_flex(self.xml, cap_deg, fx)
+        self.info.update(flex=finfo, mujoco=mujoco.__version__)
+        self.m = mujoco.MjModel.from_xml_string(self.xml)
+        self.d = mujoco.MjData(self.m)
+        self.tool = self.m.body("tool").id
+        self.pads = {s: self.m.body("pad" + s).id for s in "LR"}
+        self.tool_geom = self.m.geom("tool").id
+        self.geom_side = {gi: s for gi in range(self.m.ngeom) for s in "LR"
+                          if self.m.geom_bodyid[gi] == self.pads[s] and self.m.geom_contype[gi]}
+        self.flex_side = {mujoco.mj_name2id(self.m, mujoco.mjtObj.mjOBJ_FLEX, "flex" + s): s for s in "LR"}
+        self.pad_geom = {}
+        self.lastN = {"L": 0.0, "R": 0.0}
+        self.f6 = np.zeros(6)
+        mujoco.mj_forward(self.m, self.d)
+        self.theta_prev, self.theta_unwrap = None, 0.0
+
+    def side_of(self, c):
+        return (self.geom_side.get(int(c.geom[0])) or self.geom_side.get(int(c.geom[1])) or self.flex_side.get(int(c.flex[0]))
+                or self.flex_side.get(int(c.flex[1])))
+
+    def contacts(self):
+        out = {s: {"N": 0.0, "cop": np.zeros(3), "n": 0} for s in "LR"}
+        acc = {s: np.zeros(3) for s in "LR"}
+        for i in range(self.d.ncon):
+            c = self.d.contact[i]
+            s = self.side_of(c)
+            if s is None:
+                continue
+            self.mj.mj_contactForce(self.m, self.d, i, self.f6)
+            fn = float(self.f6[0])
+            out[s]["N"] += fn
+            out[s]["n"] += 1 if fn > 1e-6 else 0
+            acc[s] += fn * np.array(c.pos)
+        for s in "LR":
+            if out[s]["N"] > 1e-9:
+                out[s]["cop"] = acc[s] / out[s]["N"]
+        return out
+
+
 _orig_make_rig = H.make_rig
 
 
 def make_rig(spec, d_cg=0.0, gravity=True, kinematic=False):
+    mf = re.search(r":flex([0-9.]+)$", spec)
+    if mf:
+        return FlexRig(H.parse_spec(spec[:mf.start()]), d_cg, gravity, kinematic, cap_deg=float(mf.group(1)))
     ml = re.search(r":lattice([0-9.]+)$", spec)
     if ml:
         return LatticeRig(H.parse_spec(spec[:ml.start()]), d_cg, gravity, kinematic, ell=float(ml.group(1)) * 1e-3)

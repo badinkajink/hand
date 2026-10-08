@@ -54,6 +54,13 @@ def spec_of(model):
     return getattr(EXTRA.get(model), "spec", None) or B.MODELS.get(model, (model,))[0]
 
 
+def engine(rig):
+    """MuJoCo version and integrator of a MuJoCo rig (the flex candidate needs 3.14's discrete integrator)."""
+    if getattr(rig, "sim", None) != "mujoco":
+        return {}
+    return dict(mujoco=rig.mj.__version__, integrator=rig.mj.mjtIntegrator(int(rig.m.opt.integrator)).name)
+
+
 # ------------------------------------------------------------------------------------------ T8
 
 def f_cycle(t, Fs):
@@ -94,6 +101,7 @@ def run_t8(model, N, dt_ms):
     T, F, U = np.array(T), np.array(F), np.array(U)
     status = "complete" if len(T) >= int(round(3.2 / dt)) - 1 else "ejected"
     row = dict(task="t8_cycle", model=model, rig_spec=spec_of(model), N=N, dt_ms=dt_ms, F_star=Fs, mu=H.MU, gravity=False)
+    row.update(engine(rig))
     if status == "complete":
         at = lambda t: float(np.interp(t, T, U))  # noqa: E731
         m = (T >= 0.5) & (T <= 2.5)
@@ -138,6 +146,7 @@ def run_t9(model, N, dt_ms, T=1.0):
     delta = 0.5 * ((x0 + px["L"]) + (x0 - px["R"]))
     pts, f = contacts_L(rig)
     row = dict(task="t9_sweep", model=model, rig_spec=spec_of(model), N=N, dt_ms=dt_ms, settle_s=T, delta_mm=delta * 1e3)
+    row.update(engine(rig))
     keep = f > 1e-9
     pts, f = pts[keep], f[keep]
     if len(f):

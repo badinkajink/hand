@@ -89,12 +89,13 @@ def mj_contacts(rig):
     for i in range(rig.d.ncon):
         c = rig.d.contact[i]
         g1, g2 = int(c.geom[0]), int(c.geom[1])
-        s = rig.geom_side.get(g1) or rig.geom_side.get(g2)
+        fs = getattr(rig, "flex_side", {})   # flex contacts (contact_bed_candidates.FlexRig): geom -1, flex id on the pad side
+        s = rig.geom_side.get(g1) or rig.geom_side.get(g2) or fs.get(int(c.flex[0])) or fs.get(int(c.flex[1]))
         if s is None:
             continue
         rig.mj.mj_contactForce(rig.m, rig.d, i, f6)
         n = np.array(c.frame[:3])
-        if g2 in rig.geom_side:             # MuJoCo's normal points from geom 1 to geom 2
+        if g2 in rig.geom_side or int(c.flex[1]) in fs:   # MuJoCo's normal points from object 1 to object 2
             n = -n
         out.append((s, np.array(c.pos), n, float(f6[0])))
     return out
