@@ -42,6 +42,17 @@ from morphohand.rl.env_cfg import (
 )
 
 
+def _scene_has_skin(cfg: MorphoHandEnvCfg) -> bool:
+    """Whether the scene is a compliant-skin scene of 2026-10-08 (scripts/make_work_plant_runs.py skin_variant): pad
+    spheres on `<f>_tipskin` child bodies held by three spring joints each. With a skin, the joint observations keep
+    the hand's finger and palm joints (the skin's deflection is not a hardware signal, and the observation stays
+    66-dim) and the fingertip contact sensor matches each tip's subtree. No other scene is affected."""
+    try:
+        return "_tipskin" in Path(str(cfg.frozen_scene_xml)).read_text()
+    except OSError:
+        return False
+
+
 # ----------------------------------------------------------------------
 # Spec factories
 # ----------------------------------------------------------------------
@@ -424,14 +435,19 @@ def _build_observations(cfg: MorphoHandEnvCfg) -> dict:
     from mjlab.utils.noise import UniformNoiseCfg as Unoise
     from morphohand.rl import mjlab_terms
 
+    skin = _scene_has_skin(cfg)
+    jparams = ({"asset_cfg": SceneEntityCfg("robot", joint_names=tuple(FINGER_JOINT_NAMES + PALM_JOINT_NAMES))}
+               if skin else {})
     if cfg.obs_mode == "full":
         actor_terms = {
             "joint_pos": ObservationTermCfg(
                 func=velocity_mdp.joint_pos_rel,
+                params=dict(jparams),
                 noise=Unoise(n_min=-0.01, n_max=0.01),
             ),
             "joint_vel": ObservationTermCfg(
                 func=velocity_mdp.joint_vel_rel,
+                params=dict(jparams),
                 noise=Unoise(n_min=-0.5, n_max=0.5),
             ),
             "object_pos": ObservationTermCfg(
@@ -1106,21 +1122,26 @@ def _contact_buffers(cfg: MorphoHandEnvCfg) -> tuple[int, int, int]:
     1 mm pads under the working plant's grip, against ~120 contacts), and in training the exploring policy presses
     pads into the tool until a world asks for 1,491 constraint rows and a fingertip sensor for 316 matches. An
     overflowing buffer drops contacts or rows, and fed NaN observations to the first 2026-10-06 pad runs (at 512 / 2,048 / 512 a run reached 13 M steps; its worlds then asked for
-    516 contacts on average, 2,442 rows and 595 matches). 640 / 3,072 / 768 takes 11.9 GB of GPU at 2,048 envs."""
+    516 contacts on average, 2,442 rows and 595 matches). 640 / 3,072 / 768 takes 11.9 GB of GPU at 2,048 envs.
+    The compliant-skin scenes of 2026-10-08 (pads on a spring-mounted child body) ask the broadphase for 644-672
+    candidates per world while the fingers close, and at 640 lost the tool in 61 of 64 worlds; they get 1,024."""
     try:
-        n_geom = Path(str(cfg.frozen_scene_xml)).read_text().count("<geom")
+        txt = Path(str(cfg.frozen_scene_xml)).read_text()
     except OSError:
-        n_geom = 0
-    return (640, 3072, 768) if n_geom > 500 else (64, 400, CONTACT_SENSOR_MAXMATCH)
+        txt = ""
+    if txt.count("<geom") <= 500:
+        return (64, 400, CONTACT_SENSOR_MAXMATCH)
+    return (1024, 3072, 768) if "_tipskin" in txt else (640, 3072, 768)
 
 
 def _build_sensors(cfg: MorphoHandEnvCfg) -> tuple:
     from mjlab.sensor import ContactMatch, ContactSensorCfg
 
+    skin = _scene_has_skin(cfg)
     fingertip_cube_sensor = ContactSensorCfg(
         name="fingertip_cube_contact",
         primary=ContactMatch(
-            mode="body",
+            mode="subtree" if skin else "body",
             pattern=("thumb_tip", "index_tip", "middle_tip"),
             entity="robot",
         ),
