@@ -33,11 +33,13 @@ def main() -> None:
     parser.add_argument("--skip-gradient", action="store_true")
     parser.add_argument("--one-direction-gradient", action="store_true")
     parser.add_argument("--direction-index", type=int, choices=(0, 1, 2), default=1)
+    parser.add_argument("--warm-repeats", type=int, default=3)
+    parser.add_argument("--float32", action="store_true")
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()
 
     import jax
-    jax.config.update("jax_enable_x64", True)
+    jax.config.update("jax_enable_x64", not args.float32)
     import jax.numpy as jnp
     import mujoco
     from mujoco import mjx
@@ -59,8 +61,10 @@ def main() -> None:
     vadr = int(model.jnt_dofadr[model.body_jntadr[obj]])
     yaw_ids = np.array([model.actuator(f"a_{finger}_yaw").id for finger in gate.rb.FINGERS])
     cpu = gate.clone_data(model, held)
+    t0 = time.perf_counter()
     for _ in range(args.steps):
         mujoco.mj_step(model, cpu)
+    cpu_rollout_s = time.perf_counter() - t0
 
     t0 = time.perf_counter()
     mx = mjx.put_model(model)
@@ -77,11 +81,12 @@ def main() -> None:
     mx = mx.replace(opt=opt)
     md = mjx.put_data(model, held)
     print("put_data complete", flush=True)
-    md = md.replace(contact=md.contact.replace(
-        geom1=md.contact.geom1.astype(jnp.int64),
-        geom2=md.contact.geom2.astype(jnp.int64),
-        geom=md.contact.geom.astype(jnp.int64),
-    ))
+    if not args.float32:
+        md = md.replace(contact=md.contact.replace(
+            geom1=md.contact.geom1.astype(jnp.int64),
+            geom2=md.contact.geom2.astype(jnp.int64),
+            geom=md.contact.geom.astype(jnp.int64),
+        ))
 
     @jax.jit
     def rollout(delta):
@@ -109,6 +114,11 @@ def main() -> None:
     final = rollout(zero)
     final.qpos.block_until_ready()
     first_s = time.perf_counter() - t0
+    warm_times = []
+    for _ in range(args.warm_repeats):
+        t0 = time.perf_counter()
+        rollout(zero).qpos.block_until_ready()
+        warm_times.append(time.perf_counter() - t0)
     grad_fields = {}
     if not args.skip_gradient:
         eps = 0.01
@@ -226,6 +236,9 @@ def main() -> None:
         "initial_compile_s": initial_s,
         "put_model_s": put_model_s,
         "rollout_compile_s": first_s,
+        "rollout_warm_s": warm_times,
+        "rollout_warm_median_s": float(np.median(warm_times)) if warm_times else None,
+        "cpu_rollout_s": cpu_rollout_s,
         **grad_fields,
     }
     args.out.parent.mkdir(parents=True, exist_ok=True)

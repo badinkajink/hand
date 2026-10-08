@@ -156,6 +156,7 @@ def main() -> None:
     parser.add_argument("--contact-model", choices=("pt", "pads", "padsT"), default="pt")
     parser.add_argument("--pad-spacing-mm", type=float, default=1.0)
     parser.add_argument("--gradient", action="store_true")
+    parser.add_argument("--warm-repeats", type=int, default=1)
     parser.add_argument("--out", type=Path, default=ROOT / "docs/experiments/20261007-diffmjx/20261007-mjx_gate.json")
     args = parser.parse_args()
 
@@ -212,8 +213,10 @@ def main() -> None:
     def forward(data):
         return mjx.forward(mx, data)
 
+    t0 = time.perf_counter()
     jinitial = forward(md)
     jinitial.qpos.block_until_ready()
+    forward_compile_s = time.perf_counter() - t0
     print("mjx.forward compiled", flush=True)
 
     @jax.jit
@@ -227,10 +230,13 @@ def main() -> None:
     jdata = rollout(md)
     jdata.qpos.block_until_ready()
     mjx_first_s = time.perf_counter() - t0
-    t0 = time.perf_counter()
-    jdata = rollout(md)
-    jdata.qpos.block_until_ready()
-    mjx_warm_s = time.perf_counter() - t0
+    warm_times = []
+    for _ in range(args.warm_repeats):
+        t0 = time.perf_counter()
+        jdata = rollout(md)
+        jdata.qpos.block_until_ready()
+        warm_times.append(time.perf_counter() - t0)
+    mjx_warm_s = float(np.median(warm_times))
 
     jpos = np.asarray(jdata.qpos)
     jvel = np.asarray(jdata.qvel)
@@ -259,6 +265,7 @@ def main() -> None:
         "max_qvel_abs_error": float(np.max(np.abs(cpu.qvel - jvel))),
         "cpu_rollout_s": cpu_s, "mjx_first_s": mjx_first_s,
         "mjx_warm_s": mjx_warm_s,
+        "mjx_warm_repeats_s": warm_times, "forward_compile_s": forward_compile_s,
     }
 
     if args.gradient:

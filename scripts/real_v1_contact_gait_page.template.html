@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Contact release and reorientation in the real_v1 fingertip models</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+{{STYLE}}</head><body><div class="wrap">
+<header><div class="eyebrow">MorphoHand &#183; real_v1 / D1 &#183; 7 October 2026 &#183; built {{BUILT}}</div>
+<h1>Contact release and reorientation in the real_v1 fingertip models</h1>
+<p class="lede">{{LEDE}}</p>
+<div class="byline">D1 hardware-derived hand &#183; 0.8 s supported grasp, then 0.4 s unsupported continuation &#183; 1 mm packed pads, convex mesh pad, and single-sphere control &#183; 1 ms integration step</div></header>
+
+<section><div class="col"><h2>Terms and metrics</h2>
+<p><strong>Vertical cosine</strong> is the cosine between the screwdriver axis and world vertical; 1 is upright. <strong>Orientation gain</strong> is final minus initial vertical cosine. <strong>Held</strong> means the tool stayed within 8 mm of its starting height and each fingertip supplied at least 0.5 N normal force at 400 ms. <strong>Release duration</strong> counts 10 ms samples at which the index fingertip supplied less than 0.05 N. <strong>Recontact</strong> means at least 20 ms of release followed by at least 0.5 N index force at 400 ms.</p>
+<p><strong>Cross-entropy method (CEM)</strong> repeatedly samples control plans and shifts a Gaussian distribution toward high-scoring plans. <strong>Local gradient search</strong> uses L-BFGS-B, an optimizer with control limits, and two-point numerical control derivatives in central processing unit (CPU) MuJoCo. <strong>Hybrid</strong> uses half of its 256 forward evaluations for CEM and half for local refinement. <strong>MuJoCo XLA (MJX)</strong> is the JAX simulation backend; <strong>MuJoCo-Warp</strong> is the graphics processing unit (GPU) backend used by the current mjlab trainer. <strong>Automatic differentiation (AD)</strong> computes derivatives through MJX. A <strong>finite difference (FD)</strong> estimates a derivative from positive and negative control perturbations. The 400 ms searches used numerical derivatives, while the prior 20 ms study measured AD on the released DiffMJX fork. <strong>MCP</strong> denotes the metacarpophalangeal finger joint.</p>
+</div></section>
+
+<section><div class="col"><h2>Orientation search after the grasp</h2>
+<p>The plan changes three yaw targets at 0, 120 and 240 ms. It also opens the index and middle fingers during the first 180 ms and changes their closing targets thereafter. The 13 values were searched from the same held state with 256 simulator evaluations per method. The score rewarded orientation gain and penalized tool descent and weak final fingertip force; held status was checked separately.</p>
+<figure class="diagram">{{SEARCH_FIG}}<figcaption>Figure 1. Orientation gain in the seed-1 CPU MuJoCo 3.6 continuation. Each bar represents a 256-evaluation search; all nine plans held the tool in this starting grasp.</figcaption></figure>
+<div class="tw">{{SEARCH_TABLE}}</div><p class="tnote">Table 1. Each result is one 400 ms rollout from its geometry-specific seed-1 held state. The mesh is one convex printed-tip surface per finger; the packed surface has 796 spheres per finger.</p>
+</div></section>
+
+<section><div class="col"><h2>Deliberate index release and recontact</h2>
+<p>The release search commanded the index flexion targets fully open until 180 ms; the other 12 plan values remained free. This created a contact-transition task within the same grasp. {{RELEASE_TEXT}}</p>
+<figure class="diagram">{{TRACE_FIG}}<figcaption>Figure 2. Seed-1 trajectories under the forced-release search. The shaded interval is the commanded index opening. Index normal force below 0.05 N defines release; the horizontal reference in the height panel is the starting tool height.</figcaption></figure>
+<div class="tw">{{RELEASE_TABLE}}</div><p class="tnote">Table 2. The starting plan opens the index without compensating motion. The optimized plans each had 256 forward evaluations. A large orientation gain with a dropped tool fails the held criterion.</p>
+</div></section>
+
+<section><div class="col"><h2>Control derivative through index recontact</h2>
+<p>{{JVP_TEXT}}</p>
+<div class="tw">{{JVP_TABLE}}</div><p class="tnote">Table 3. Derivatives are with respect to one radian of index MCP target bias. CPU and fork finite differences used positive and negative 0.01 rad perturbations. CFD is the released fork's contacts-from-distance backward rule together with its scan-loop solver. The 2 mm pad model has 681 spheres.</p>
+<p>{{CFD_TEXT}}</p>
+</div></section>
+
+<section><div class="col"><h2>Grip perturbations and simulator transfer</h2>
+<p>Eight deterministic screwdriver pose jitters were replayed from the 0.8 s grasp. MuJoCo 3.3.1, MuJoCo 3.6 and MuJoCo-Warp started from their corresponding CPU held states. The Warp test changes the simulation backend while retaining the MuJoCo contact model. Plans were fixed after seed-1 search.</p>
+<p>{{TRANSFER_TEXT}}</p>
+<figure class="diagram">{{TRANSFER_FIG}}<figcaption>Figure 3. Held rollouts among eight grip jitters. Packed-pad plans were searched in CPU MuJoCo 3.6. Warp bars use 16 or 32 parallel GPU worlds with two or four plans for each jitter. Mesh bars replay those plans on the convex mesh fingertip.</figcaption></figure>
+<div class="tw">{{TRANSFER_TABLE}}</div><p class="tnote">Table 4. Orientation gain is averaged only over held rollouts. The recontact column counts all eight rollouts. The mesh replay changes fingertip geometry and therefore starts from a geometry-specific grasp.</p>
+</div></section>
+
+<section><div class="col"><h2>Simulation cost and contact fidelity</h2>
+<p>Native MJX 3.6 and the released DiffMJX fork ran on the same RTX 4070 Ti SUPER. Each 20 ms GPU test used one world and 64-bit arithmetic except the row labeled 32-bit. The 2 mm packed surface has {{PAD2_COUNT}} spheres; the task surface has 2,388 spheres. The fork's exact 1 mm forward compilation completed, but its 20 ms rollout compilation remained unfinished when the run stopped at {{EXACT_STOP_MIN}} min and {{EXACT_RSS_GIB}} GiB peak resident memory. The smaller 2 mm benchmark supplies a measured GPU throughput reference.</p>
+<div class="tw">{{COMPUTE_TABLE}}</div><p class="tnote">Table 5. CPU times come from one 400 ms trajectory in a 256-sample CEM batch. Warp times are warm GPU batch steps. MJX times separate compilation from warm execution; the TPU mesh comparator uses a capsule tool because this MJX build cannot collide that mesh with the cylinder.</p>
+<p>{{THROUGHPUT_TEXT}}</p>
+<p>{{SLOT_TEXT}}</p>
+<p>{{FIDELITY_TEXT}}</p>
+</div></section>
+
+<section><div class="col"><h2>Planning on a coarser packed surface</h2>
+<p>{{COARSE_TEXT}}</p>
+<div class="tw">{{COARSE_TABLE}}</div><p class="tnote">Table 6. Every plan was searched on 2 mm pads in seed 1, then replayed without changing controls across eight geometry-specific grasp jitters. Orientation gain is averaged only over held rollouts.</p>
+</div></section>
+
+<section><div class="col"><h2>Implications for differentiable contact</h2>
+<p>{{DECISION_TEXT}}</p>
+<p>The released <a href="https://arxiv.org/pdf/2506.14186">DiffMJX study</a> also found gradient control effective in two in-hand tasks, while contacts from distance had little effect there because gravity supplied contact. Its appendix reports multi-hour gradient planning in a MyoHand task and a 35 min 1,024-sample baseline. The reported contact-from-distance forces can oppose grasp acquisition when several fingertips approach from different sides. Our <a href="../20261007-diffmjx/20261007-contact_gradients_real_v1.html">20 ms contact-gradient study</a> measured the fork's AD on the exact packed surface; this 400 ms search measures whether local control derivatives help select a manipulation plan.</p>
+<div class="tw">{{NEXT_TABLE}}</div>
+</div></section>
+
+<section><div class="col"><h2>Methods and reproducibility</h2>
+<p>The D1 scene is generated from <code>assets/mjcf/real_v1/real_hand.xml</code> and the deployed D1 grasp plan. The palm display plate and support post are disabled during continuation. The packed-pad test masks pad-to-pad collisions while retaining sphere-to-tool contacts. The source is <code>scripts/real_v1_contact_gait_search.py</code>; cross-model CPU replay is <code>scripts/real_v1_contact_gait_transfer.py</code>; Warp replay is <code>scripts/real_v1_contact_gait_warp.py</code>. Full commands, software versions, raw JSON and the stopped MJX job are listed in <code>docs/experiments/20261007-contact-gait/README.md</code>.</p>
+<p><a href="https://mujoco.readthedocs.io/en/latest/mjx.html">MuJoCo's MJX documentation</a> describes automatic differentiation in MJX-JAX and its contact-graph performance limits. <a href="https://github.com/google-deepmind/mujoco_playground">MuJoCo Playground</a> offers policy-gradient training on MJX-JAX and MJX-Warp. Its ordinary policy-gradient run estimates policy updates from sampled trajectories.</p>
+</div></section>
+<footer><div class="col">Local source: <code>docs/experiments/20261007-contact-gait/20261007-contact_release_real_v1.html</code> &#183; Regenerate: <code>python scripts/real_v1_contact_gait_page.py</code>.</div></footer>
+</div></body></html>
