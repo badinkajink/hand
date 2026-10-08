@@ -101,7 +101,8 @@ def record(tag: str, ckpt: str | None, n: int = 16):
     tool = next(i for i, x in enumerate(names) if x.split("/")[-1] == "cube")
     root_b = next(i for i in range(1, mjm.nbody) if mjm.body_parentid[i] == 0 and names[i].startswith("robot/"))
     obs_td, _ = wrapped.reset()
-    rec = {"finger_targets": [], "tool_cos": [], "tool_z": []}
+    rec = {"finger_targets": [], "tool_cos": [], "tool_z": [], "qpos_t": []}
+    free_q = []
     with torch.no_grad():
         for k in range(STEPS):
             if k == ONSET:
@@ -118,6 +119,7 @@ def record(tag: str, ckpt: str | None, n: int = 16):
                     if m0.jnt_type[j] == mujoco.mjtJoint.mjJNT_FREE:
                         a = m0.jnt_qposadr[j]
                         qpos[:, a:a + 3] -= off
+                        free_q.append(a)
                 rec["qpos"] = qpos
                 rec["env_offset"] = off
             obs_td, *_ = wrapped.step(act_b(actor, obs_td, False))
@@ -126,9 +128,13 @@ def record(tag: str, ckpt: str | None, n: int = 16):
                 xm = wd.xmat.numpy()[:, tool].reshape(n, 3, 3)
                 rec["tool_cos"].append(xm[:, 2, 2].copy())
                 rec["tool_z"].append(wd.xpos.numpy()[:, tool, 2].copy())
+                q = wd.qpos.numpy().copy()          # every world's state after the step, grid offset removed (films)
+                for a in free_q:
+                    q[:, a:a + 3] -= rec["env_offset"]
+                rec["qpos_t"].append(q.astype(np.float32))
     np.savez(out / "rec.npz", qpos=rec["qpos"], env_offset=rec["env_offset"],
              finger_targets=np.stack(rec["finger_targets"], axis=1), tool_cos=np.stack(rec["tool_cos"], axis=1),
-             tool_z=np.stack(rec["tool_z"], axis=1))
+             tool_z=np.stack(rec["tool_z"], axis=1), qpos_t=np.stack(rec["qpos_t"], axis=1))
     env.close()
     cz = np.stack(rec["tool_z"], axis=1)[:, -1]
     cc = np.stack(rec["tool_cos"], axis=1)[:, -1]
@@ -303,7 +309,7 @@ def match_hydro_friction(model, solver, impratio, tc=0.01, d0=0.9):
 KF_MATCH = [False]
 
 
-def replay_newton(d, meta, targets, newton_dir=None, nworld=1):
+def replay_newton(d, meta, targets, newton_dir=None, nworld=1, film_cb=None):
     """The bench-like scene in Newton with hydroelastic TPU blocks, kh x (invweight0 tip + invweight0 tool) of the
     solver's model, tool kh 100x (same_state_timing.build_newton, engine nt_hydro). The geometry comes from
     `newton_dir`'s bench.xml (default: the mesh run of the same seed), since a pad run's tips are sphere pads and
@@ -395,6 +401,21 @@ def replay_newton(d, meta, targets, newton_dir=None, nworld=1):
         if k % 10 == 0:
             c, z = tool_state()
             trace.append((round((k + 1) * DT_POLICY, 3), c, z))
+        if film_cb is not None and k % film_cb[2] == 0:
+            fr, frames, _, head = film_cb
+            jq_now = st["s0"].joint_q.numpy() if hasattr(st["s0"], "joint_q") and st["s0"].joint_q is not None else None
+            if jq_now is None:
+                jq_now = model.joint_q.numpy()
+            q9 = np.zeros(9)
+            for j, j0 in enumerate(jmap):
+                nm = m.joint(j0).name
+                if nm in NAMES:
+                    dof = int(j2d[0, j])
+                    jn = dof_joint[dof]
+                    q9[NAMES.index(nm)] = jq_now[qs[jn] + (dof - qds[jn])]
+            x, y, z_, qx, qy, qz, qw = st["s0"].body_q.numpy()[tool_id]
+            c, _ = tool_state()
+            frames.append(fr.draw(q9, [x, y, z_], [qw, qx, qy, qz], head + [f"t {(k + 1) * DT_POLICY:4.2f} s  cos {c:+.2f}"]))
     wp.synchronize()
     cos1, z1 = tool_state()
     n = int(cc.rigid_contact_count.numpy()[0])
@@ -409,6 +430,138 @@ def replay_newton(d, meta, targets, newton_dir=None, nworld=1):
             "z_end_mm": 1e3 * z1, "fingers_end": len(touch), "held_end": bool(z1 > 0.06 and len(touch) >= 2),
             "steps": len(targets), "wall_s": round(time.perf_counter() - w0, 1), "kh_tip": extra.get("kh_tip"),
             "invweight0_newton": extra.get("invweight0_newton"), "kf_matched": extra.get("kf_tip"), "trace": trace}
+
+
+# ---------------------------------------------------------------------------------- films
+
+CAM = dict(distance=0.24, elevation=-6.0, azimuth=0.0)     # feedback_rl_films_rerender_close_up: the turn in the image plane
+ENGINE_LBL = {"mjw": "MuJoCo-Warp (training)", "mujoco": "CPU MuJoCo", "drake": "Drake hydroelastic", "newton": "Newton hydroelastic"}
+
+
+def _label(frame, lines):
+    from PIL import Image, ImageDraw
+    im = Image.fromarray(frame)
+    dr = ImageDraw.Draw(im)
+    y = 6
+    for ln in lines:
+        dr.rectangle([4, y - 1, 8 + 7 * len(ln), y + 13], fill=(255, 255, 255))
+        dr.text((6, y), ln, fill=(20, 20, 20))
+        y += 15
+    return np.asarray(im)
+
+
+class FilmRenderer:
+    """A MuJoCo copy of the bench-like scene that draws any engine's state: the finger angles and the tool's pose."""
+
+    def __init__(self, xml_path: Path, lookat, w=640, h=480):
+        import mujoco
+        self.mj = mujoco
+        self.m = mujoco.MjModel.from_xml_path(str(xml_path))
+        self.m.vis.global_.offwidth, self.m.vis.global_.offheight = max(w, 640), max(h, 480)
+        self.d = mujoco.MjData(self.m)
+        self.r = mujoco.Renderer(self.m, h, w)
+        self.cam = mujoco.MjvCamera()
+        self.cam.type = mujoco.mjtCamera.mjCAMERA_FREE
+        self.cam.distance, self.cam.elevation, self.cam.azimuth = CAM["distance"], CAM["elevation"], CAM["azimuth"]
+        self.cam.lookat[:] = np.asarray(lookat, float)
+        self.qadr = [self.m.jnt_qposadr[self.m.joint(n).id] for n in NAMES]
+        tb = self.m.body(TOOL).id
+        self.qa = self.m.jnt_qposadr[self.m.body_jntadr[tb]]
+
+    def draw(self, q9, p, quat, lines, qfull=None):
+        if qfull is not None:
+            self.d.qpos[:] = qfull
+        else:
+            self.d.qpos[self.qadr] = q9
+            self.d.qpos[self.qa:self.qa + 3] = p
+            self.d.qpos[self.qa + 3:self.qa + 7] = quat
+        self.mj.mj_forward(self.m, self.d)
+        self.r.update_scene(self.d, self.cam)
+        return _label(self.r.render().copy(), lines)
+
+
+def _scene_to_bench_map(d: Path):
+    """Index of every bench.xml qpos entry in the exported scene.xml qpos (the bench drops the palm's six joints)."""
+    import mujoco
+    m0 = mujoco.MjModel.from_xml_path(str(d / "scene.xml"))
+    m1 = mujoco.MjModel.from_xml_path(str(d / "bench.xml"))
+    idx = np.zeros(m1.nq, int)
+    for j in range(m1.njnt):
+        n = m1.joint(j).name
+        cand = [k for k in range(m0.njnt) if m0.joint(k).name.split("/", 1)[-1] in (n, "cube_joint" if n == f"{TOOL}_joint" else n)]
+        k = cand[0]
+        w = {0: 7, 1: 4}.get(int(m1.jnt_type[j]), 1)
+        idx[m1.jnt_qposadr[j]:m1.jnt_qposadr[j] + w] = np.arange(m0.jnt_qposadr[k], m0.jnt_qposadr[k] + w)
+    return idx
+
+
+def film(d: Path, engine: str, out: Path, fps: int = 25, w: int = 640, h: int = 480, title: str = ""):
+    """One clip of the replay of bench_meta.json's world in `engine` (mjw: the recorded MuJoCo-Warp rollout itself)."""
+    import imageio.v2 as imageio
+    meta = json.loads((d / "bench_meta.json").read_text())
+    rec = dict(np.load(d / "rec.npz"))
+    world = int(meta["world"])
+    look = np.asarray(meta["tool7"][:3], float) + [0.0, 0.0, 0.01]
+    own = engine in ("mjw", "mujoco")
+    fr = FilmRenderer((d if own else block_dir(d)) / "bench.xml", look, w, h)
+    frames = []
+    every = max(1, int(round(1.0 / fps / DT_POLICY)))
+    head = [title or d.name, ENGINE_LBL[engine]]
+    if engine == "mjw":
+        idx = _scene_to_bench_map(d)
+        Q = rec["qpos_t"][world]
+        for k in range(0, Q.shape[0], every):
+            q = Q[k][idx]
+            R9 = np.zeros(9)
+            fr.mj.mju_quat2Mat(R9, q[fr.qa + 3:fr.qa + 7])
+            frames.append(fr.draw(None, None, None, head + [f"t {(k + 1) * DT_POLICY:4.2f} s  cos {R9[8]:+.2f}"], qfull=q))
+    elif engine == "newton":
+        replay_newton(d, meta, rec["finger_targets"][world], newton_dir=NEWTON_DIR[0], film_cb=(fr, frames, every, head))
+    else:
+        plant = make_plant(engine, d, meta)
+        plant.reset(0)
+        t = 0.0
+        for k, tg in enumerate(rec["finger_targets"][world]):
+            plant.set_targets(np.asarray(tg, float))
+            t += DT_POLICY
+            plant.advance(t)
+            if k % every == 0:
+                s = plant.state()
+                frames.append(fr.draw(s["q"], s["p"], s["quat"], head + [f"t {t:4.2f} s  cos {s['R'][2, 2]:+.2f}"]))
+    out.parent.mkdir(parents=True, exist_ok=True)
+    wr = imageio.get_writer(str(out), fps=fps, codec="libx264", quality=None, pixelformat="yuv420p", macro_block_size=8,
+                            ffmpeg_params=["-crf", "26", "-preset", "medium"], ffmpeg_log_level="error")
+    for f_ in frames:
+        wr.append_data(f_)
+    wr.close()
+    print(f"{out}: {len(frames)} frames ({engine}, world {world})", flush=True)
+    return len(frames)
+
+
+def tile(clips, out: Path, out_jpg: Path | None = None, poster_at: float = 0.75, fps: int = 25):
+    """Clips side by side, frame by frame; a shorter clip holds its last frame."""
+    import imageio.v2 as imageio
+    from PIL import Image
+    rd = [imageio.get_reader(str(c)) for c in clips]
+    its = [iter(r) for r in rd]
+    n = max(r.count_frames() for r in rd)
+    last = [None] * len(clips)
+    wr = imageio.get_writer(str(out), fps=fps, codec="libx264", quality=None, pixelformat="yuv420p", macro_block_size=8,
+                            ffmpeg_params=["-crf", "27", "-preset", "medium"], ffmpeg_log_level="error")
+    kp = int(round(poster_at * (n - 1)))
+    for k in range(n):
+        for i, it in enumerate(its):
+            try:
+                last[i] = np.asarray(next(it))[:, :, :3]
+            except StopIteration:
+                pass
+        canvas = np.concatenate(last, axis=1)
+        wr.append_data(canvas)
+        if out_jpg is not None and k == kp:
+            Image.fromarray(canvas).save(out_jpg, quality=88)
+    wr.close()
+    for r in rd:
+        r.close()
 
 
 # ---------------------------------------------------------------------------------- CLI
@@ -432,7 +585,17 @@ def main():
     r.add_argument("--out", type=Path, default=OUT)
     r.add_argument("--newton-dir", type=Path, default=None, help="newton: the bench.xml to take the geometry from")
     r.add_argument("--newton-num", default=None, help="newton: dt,iterations,ls_iterations (default: the scene's)")
-    for sp in (rc, b, r):
+    fm = sub.add_parser("film")
+    fm.add_argument("--dir", type=Path, required=True)
+    fm.add_argument("--engine", required=True, choices=["mjw", "mujoco", "drake", "newton"])
+    fm.add_argument("--out", type=Path, required=True)
+    fm.add_argument("--title", default="")
+    fm.add_argument("--newton-dir", type=Path, default=None)
+    tl = sub.add_parser("tile")
+    tl.add_argument("--clips", type=Path, nargs="+", required=True)
+    tl.add_argument("--out", type=Path, required=True)
+    tl.add_argument("--poster", type=Path, default=None)
+    for sp in (rc, b, r, fm, tl):
         sp.add_argument("--study", choices=sorted(STUDIES), default=None,
                         help="write rows and replay dirs to that study's folders")
     a = ap.parse_args()
@@ -452,6 +615,14 @@ def main():
         return 0
     if a.cmd == "bench":
         bench(a.dir, a.world, a.plant)
+        return 0
+    if a.cmd == "film":
+        os.environ.setdefault("MUJOCO_GL", "egl")
+        NEWTON_DIR[0] = a.newton_dir
+        film(a.dir, a.engine, a.out, title=a.title)
+        return 0
+    if a.cmd == "tile":
+        tile(a.clips, a.out, a.poster)
         return 0
     NEWTON_DIR[0] = a.newton_dir
     if a.newton_num:
