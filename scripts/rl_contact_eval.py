@@ -493,7 +493,8 @@ def cmd_tb(args):
 
 def cmd_costs(args):
     """Per run: median seconds per iteration and wall time (its trainer log), peak GPU memory (the queue's 30 s
-    samples, whole card), peak host RSS (/usr/bin/time), and the failed attempts before it (the queue log)."""
+    samples of the whole card, and the run's own process where gpu_proc_sampler.sh sampled it), peak host RSS
+    (/usr/bin/time), and the failed attempts before it (the queue log)."""
     logs = ROOT / "logs/20261008-contact_model_policies"
     gpu = {}
     if (logs / "gpu_mem.tsv").exists():
@@ -501,6 +502,12 @@ def cmd_costs(args):
             f = line.split("\t")
             if len(f) == 3 and f[2].strip().isdigit():
                 gpu[f[1]] = max(gpu.get(f[1], 0), int(f[2]))
+    proc = {}                        # the run's own process (gpu_proc_sampler.sh, from 2026-10-08 15:20)
+    if (logs / "gpu_proc.tsv").exists():
+        for line in open(logs / "gpu_proc.tsv"):
+            f = line.rstrip("\n").split("\t")
+            if len(f) == 4 and f[3].strip().isdigit():
+                proc[f[2]] = max(proc.get(f[2], 0), int(f[3]))
     qlog = (logs / "train_queue.log").read_text() if (logs / "train_queue.log").exists() else ""
     out = OUT8 / "run_costs.jsonl"
     rows = []
@@ -517,7 +524,8 @@ def cmd_costs(args):
                          s_per_it_median=float(np.median(its)) if its else None,
                          s_per_it_mean=float(np.mean(its)) if its else None,
                          wall_h=(int(el[-1][0]) + int(el[-1][1]) / 60 + int(el[-1][2]) / 3600) if el else None,
-                         gpu_mem_peak_mb=gpu.get(tag), host_rss_peak_gb=int(rss[-1]) / 1e6 if rss else None,
+                         gpu_mem_peak_mb=gpu.get(tag), gpu_mem_proc_mb=proc.get(tag),
+                         host_rss_peak_gb=int(rss[-1]) / 1e6 if rss else None,
                          failed_attempts=len(fails), failures=[f[2][:200] for f in fails],
                          overflow_lines=txt.count("overflow"), nan_lines=len(re.findall(r"\bnan\b", txt, re.I))))
     tmp = out.with_suffix(".tmp")
