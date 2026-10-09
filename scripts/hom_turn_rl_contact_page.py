@@ -1436,46 +1436,26 @@ def next_section():
 
 
 def lede():
+    """About 100 words (owner 2026-10-09): the plant refit, the turn on it, and the pads' cost and agreement."""
     plans_mj, plans_dk, hom = hom_data()
     pm = [r for h in HANDS for r in plans_mj.get(h, [])]
     pv = [med([r["turn_end_deg"] for r in plans_mj[h]]) for h in HANDS if plans_mj.get(h)]
     gm = [r for h in HANDS for r in hom.get((h, "mujoco", "gov"), [])]
     gv = [med([r["turn_end_deg"] for r in hom[(h, "mujoco", "gov")]]) for h in HANDS if hom.get((h, "mujoco", "gov"))]
-    fm = [h for h in HANDS if hom.get((h, "mujoco", "free")) and sum(r["held"] for r in hom[(h, "mujoco", "free")]) == 0]
     T = {}
     for r in jl(os.path.join(RLD, "throughput.jsonl")):
         if r.get("status") == "ok" and r.get("sensor_reduce") != "netforce":
             T[(r["variant"], r["num_envs"])] = r
-    mc = [r for h in HANDS for r in hom["plans_nt"].get(h, [])]
-    n_mc_held = sum(r["held_end"] for r in mc)
-    n_close = len(nt_vs_mujoco(plans_mj, mc)[0])
-    A = SAF.data()
-    pads_w = [A[k]["within"] for k in ("mj_pads", "mjw_pads", "nt_pads") if "turn" in A[k]]
-    pads_tw = [x for k in ("mj_pads", "mjw_pads", "nt_pads") for x in A[k].get("twist", [])]
     r1 = (T[("pads1", 2048)]["env_steps_per_s"] / T[("legacy", 2048)]["env_steps_per_s"]
           if ("pads1", 2048) in T and ("legacy", 2048) in T else None)
-    return (f"The deployed open-loop three-finger turn holds the tool on {sum(r['held_end'] for r in pm)} of {len(pm)} "
-            f"placements and turns it {f(min(pv), 0)}&#8211;{f(max(pv), 0)}&#176; in MuJoCo once the scene carries the servo "
-            "response the bench readbacks show (0.02&#8202;s instead of 1&#8202;s), friction near 1 and the tool resting on its "
-            "post. The relative contact-velocity controller of Wang, Oh and Pollard, keeping all three contacts and regulating "
-            f"pad force, holds {sum(r['held'] for r in gm)} of {len(gm)} placements but stops at "
-            f"{f(min(gv), 0)}&#8211;{f(max(gv), 0)}&#176;, because the deployed grips leave the pips no extension; without its "
-            f"stop rule it drops the tool on {len(fm)} of 8 hands. Sphere pads at 1&#8202;mm cost "
-            f"{f(100 * (1 - r1), 0) if r1 else '&#8211;'}&#8202;% of RL env throughput at 2,048 envs, because physics is a "
-            "small part of an env step; from one held RL state the pads cost 2.2&#8211;2.4&#8202;&#181;s of physics per world-step "
-            "in MuJoCo-Warp, Newton&#8217;s hydroelastic contact on the plain fingertip shape 4.3&#8202;&#181;s, point contact "
-            "0.6&#8211;1.4&#8202;&#181;s. SolverMuJoCo realises Newton&#8217;s hydroelastic stiffness times the tip&#8211;tool "
-            "effective mass; with \\(k_h\\) "
-            f"divided by that mass the deployed plans hold the tool on {n_mc_held} of {len(mc)} placements in Newton (10 "
-            f"uncorrected) and turn it within 5&#176; of MuJoCo on {n_close} of 8 hands. Against Drake, the 1&#8202;mm "
-            "pads agree to the same degree in CPU MuJoCo, MuJoCo-Warp and Newton (twist onset torque "
-            f"{f(min(pads_tw), 2)}&#8211;{f(max(pads_tw), 2)} of Drake&#8217;s; plan turn within 3&#176; of Drake on "
-            f"{' / '.join(str(x) for x in pads_w)} of 24 placements). Trained from scratch for "
-            "20&#8202;M steps on the working plant, the D6 reorientation ends at cos 0.64&#8211;0.69 with the TPU block "
-            "as one mesh and 0.43&#8211;0.44 with 1&#8202;mm pads, holding the tool in 60&#8211;64 of 64 rollouts; no run "
-            "reaches cos 0.9, and the pad envs need 640 contacts and 3,072 constraint rows per world. The 2026-09-02 "
-            "servo-gain fit closed the fingers on air; the bench readbacks fix the finger time constant and favour \\(\\mu = 1\\) but "
-            "do not identify the gain.")
+    return ("Replaying 177 tracked bench runs fixes the simulated servo model: fingers with a 0.02&#8202;s time constant and "
+            "friction near 1 reproduce the joint readings within 2.89&#176;, though the gain stays unidentified. On this "
+            f"model the deployed open-loop plans hold the tool in {sum(r['held_end'] for r in pm)} of {len(pm)} placements "
+            f"and turn it {f(min(pv), 0)}&#8211;{f(max(pv), 0)}&#176;; the hand-object controller of Wang, Oh and Pollard holds "
+            f"{sum(r['held'] for r in gm)} of {len(gm)} but stops at {f(min(gv), 0)}&#8211;{f(max(gv), 0)}&#176;, because the "
+            "grips leave the fingers no extension. Sphere-pad fingertips cost "
+            f"{f(100 * (1 - r1), 0) if r1 else '&#8211;'}&#8202;% of RL throughput and agree with Drake to the same degree in "
+            "CPU MuJoCo, MuJoCo-Warp and Newton.")
 
 
 def main():
