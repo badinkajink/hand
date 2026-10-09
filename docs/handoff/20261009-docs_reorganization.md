@@ -15,6 +15,16 @@ Overviews (step 4), reader for all = a collaborator new to the project; takeaway
 - grasp_to_gait_chain.html (1,000): (1) hardware: 8 hands, 77 scored trials, 48 held, rho_s 0.50 (p 0.21), open-loop grasp and turn only; (2) simulation: the whole chain on a UR5e completes (rv05 6/6 at kp 30; 12/20 on D5/D6 with the RL turn on the 1 s plant), losses at the handover; (3) owed before hardware: re-run on the working plant, export/clearance/servo gates for every chained trajectory.
 - hand_plant_bench.html (1,000): (1) 6 gantry + 9 SCS0009 servos; spring 0.0186 deg/load unit with a protective-torque cliff; yaw reaches 0.44-0.90 of command; (2) three plants; the working plant (kp 4, tau 0.02 s, mu 1.0) replays 177 bench runs at 2.89 deg, kp unidentified; (3) instruments: AprilTags 0.017 deg / 0.030 mm, z_bench = z_sim + 44 mm, bus 111 Hz, UR5e payload declared.
 - morphology_design.html (1,000): (1) funnel 8,198 -> 227 -> 8 built, 48/77 held, rho_s 0.50, the eight concentrated (43.6 mm median separation); (2) the grasp predicts the turn (thumb moment arm AUC 0.821), mount layout and kinematic scores (KaRMA AUC 0.80) predict retention only; (3) object size: mounts 35-37 mm outside the object's surface, hold and turn optima differ, 47-cell bench protocol written.
+Detailed pages (step 5), reader for all = a collaborator new to the project; takeaways and budget per page:
+- bench_geometry (2,600): payload declared -> wrist stacks 0-150 mm free (8/8), pedestal free; undeclared sag faked 23 deg of turn.
+- journey (2,500): D6 chain open loop 3/4 (fingers 39.5 of 90 deg); three scoring defects; pivot picks the pole, fitter leaves 0.44-1.26 mm.
+- program record (9,000): sources of the paper's numbers and corrected counts; funnel; the experiment record as one table.
+- chain_handover_gait (2,300): D5/D6 policies complete the chain on the 1 s plant; at bench finger speed none holds; corrections to 09-20.
+- servo_sysid (2,400): spring 0.0186 deg/load unit and the cutoff at 200; 12.3 deg loaded friction band; gain 0.5 fixes one hand's level, not the order.
+- chain_countersink (2,300): rv05 chain 6/6 floating and on a UR5e; set-down is a race (creep 1.5 mm/s); countersink costs a sixth of the turn, cuts walk 16x.
+- tip_gait (1,950): bench 50 deg rest is the palm plate at its old height; larger arcs and a second tip do not help.
+- robust_tranche (4,000): plant differences fixed; jittered hold ranking; pipeline reference.
+- contact_bed (3,400): pads 1 mm against Drake on five tasks; median deviation per simulator; creep 150-260x.
 Topics: (1) hand, plant and bench; (2) morphology and design search, with hand-object scaling; (3) reorientation mechanisms and control; (4) RL policies; (5) grasp-to-gait chain and sim-to-real; (6) fingertip contact model.
 <!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
 Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap step add <job> "text"` adds one):
