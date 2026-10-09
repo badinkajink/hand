@@ -109,6 +109,17 @@ class Data:
         self.watch = last_by(rows("watch.jsonl"), ("tag", "iteration"))
         self.verdict = {(r["tag"], r["iteration"]): r for r in last_by(rows("watch_verdicts.jsonl"), ("tag", "iteration"))}
         self.stops = {r["tag"]: r for r in rows("stops.jsonl")}
+        self.pauses = []        # (t0, t1) epoch s: the training run was paused (checkpoint watch, short GPU jobs)
+        pp = os.path.join(ROOT, "logs/20261008-contact_model_policies/watch_pauses.tsv")
+        if os.path.exists(pp):
+            for line in open(pp):
+                f = line.rstrip("\n").split("\t")
+                if len(f) == 5:
+                    self.pauses.append((float(f[2]), float(f[3])))
+
+    def paused(self, a, b):
+        """Seconds of pause between epoch times a and b."""
+        return sum(max(0.0, min(b, t1) - max(a, t0)) for t0, t1 in self.pauses)
 
     def finals(self, arm):
         return sorted((r for r in self.fin if r["arm"] == arm), key=lambda r: r["seed"])
@@ -126,9 +137,9 @@ class Data:
         if not w or it not in w or w.get(it) is None:
             return None
         t0 = w[min(w)]
-        # the first logged iteration ends one iteration time after the start
+        # the first logged iteration ends one iteration time after the start; pauses for the watch are not training
         c = self.cost.get(tag, {})
-        return (w[it] - t0 + (c.get("s_per_it_median") or 0.0)) / 3600.0
+        return (w[it] - t0 - self.paused(t0, w[it]) + (c.get("s_per_it_median") or 0.0)) / 3600.0
 
     def replays(self, arm, engine):
         return [r for r in self.rep if r["engine"] == engine and f"_{arm}_40M_" in r["dir"]]
@@ -208,41 +219,50 @@ def _band(out, fx, fy, xs, lo, hi, colour):
     out.append(f'<path d="{d}" style="fill:{colour};fill-opacity:.14;stroke:none"/>')
 
 
-def _series(X: Data, arm, key, xkind):
-    """Median and seed range of `key` (n_held | held_cos) at each evaluated checkpoint, x in M steps or hours."""
-    cur = X.curve(arm)
-    by_it = {}
-    for seed, pts in cur.items():
+SEED_SHAPE = {0: "circle", 1: "square", 2: "diamond"}
+
+
+def _seed_lines(X: Data, arm, key, xkind):
+    """{tag: [(x, value)]} of `key` (n_held | held_cos) at each evaluated checkpoint of each seed, x in M steps or
+    training hours."""
+    out = {}
+    for seed, pts in X.curve(arm).items():
         for it, steps, nh, hc, cm, tag in pts:
             x = steps / 1e6 if xkind == "steps" else X.hours(tag, it)
-            v = nh if key == "n_held" else hc
-            by_it.setdefault(it, []).append((x, v))
-    xs, med, lo, hi, n = [], [], [], [], []
-    for it in sorted(by_it):
-        vals = [v for _, v in by_it[it] if v is not None]
-        xx = [x for x, _ in by_it[it] if x is not None]
-        if not xx:
-            continue
-        xs.append(float(np.median(xx)))
-        med.append(float(np.median(vals)) if vals else None)
-        lo.append(min(vals) if vals else None)
-        hi.append(max(vals) if vals else None)
-        n.append(len(by_it[it]))
-    return xs, med, lo, hi, n
+            if x is None:
+                continue
+            out.setdefault(tag, []).append((x, nh if key == "n_held" else hc))
+    return out
+
+
+def _draw_seeds(out, X: Data, fx, fy, lines, arm, clamp=None):
+    """One thin line per seed with the seed's marker shape; a stopped run ends in a cross."""
+    for tag, pts in sorted(lines.items()):
+        seed = int(tag[-1])
+        ys = [None if v is None else (clamp(v) if clamp else v) for _, v in pts]
+        _gap_path(out, fx, fy, [x for x, _ in pts], ys, COL[arm], dashed=(arm == "box"), width=1.6)
+        for (x, _), y in zip(pts, ys):
+            if y is not None:
+                P._marker(out, fx(x), fy(y), COL[arm], shape=SEED_SHAPE.get(seed, "circle"), r=2.8,
+                          title=f"{SHORT[arm]} s{seed}: {y:.3g}")
+        if tag in X.stops and pts:
+            x, y = pts[-1][0], next((v for v in reversed(ys) if v is not None), None)
+            if y is not None:
+                P._marker(out, fx(x) + 9, fy(y), COL[arm], shape="cross", r=4.5, title=f"{SHORT[arm]} s{seed} stopped")
 
 
 def svg_curves(X: Data):
     if not X.ck:
         return P.pending("Checkpoint evaluations not written yet (ckpt_eval.jsonl).")
     W, H = 990, 600
-    out = P._svg_open(W, H, "Held rollouts and held cosine of the deterministic policy at its checkpoints, per contact "
-                            "model, against environment steps and against training wall-clock time")
+    out = P._svg_open(W, H, "Held rollouts and held cosine of the deterministic policy at its checkpoints, one line per "
+                            "seed and contact model, against environment steps and against training wall-clock time")
     hmax = max([X.hours(r["tag"], r["iteration"]) or 0 for r in X.ck] + [0.5])
     hx = [0, 1, 2, 3] if hmax <= 3.2 else [0, 1, 2, 3, 4]
     panels = [(70, 40, "steps", "n_held"), (570, 40, "hours", "n_held"), (70, 330, "steps", "held_cos"),
               (570, 330, "hours", "held_cos")]
     for x0, y0, xk, key in panels:
-        xs_rng = (0, 40) if xk == "steps" else (0, max(hx))
+        xs_rng = (0, 41) if xk == "steps" else (0, max(hx))
         xt = (0, 10, 20, 30, 40) if xk == "steps" else hx
         ys, yt, ylab = ((0, 64), (0, 16, 32, 48, 64), "rollouts held at 5 s (of 64)") if key == "n_held" else \
             ((-0.2, 1.0), (0.0, 0.25, 0.5, 0.75, 1.0), "held cosine (mean over held rollouts)")
@@ -254,15 +274,7 @@ def svg_curves(X: Data):
                        f'style="stroke:var(--ink3);stroke-dasharray:2 4"/><text x="{x0 + 362}" y="{fy(0.9) + 4:.1f}" '
                        f'style="fill:var(--ink3)">0.9</text>')
         for arm in ARMS:
-            xs, med, lo, hi, n = _series(X, arm, key, xk)
-            if not xs:
-                continue
-            _band(out, fx, fy, xs, lo, hi, COL[arm])
-            _gap_path(out, fx, fy, xs, med, COL[arm], dashed=(arm == "box"))
-            for x, m, k in zip(xs, med, n):
-                if m is not None:
-                    P._marker(out, fx(x), fy(m), COL[arm], r=3.2,
-                              title=f"{SHORT[arm]}: {m:.3g} (median of {k} seed{'s' if k > 1 else ''})")
+            _draw_seeds(out, X, fx, fy, _seed_lines(X, arm, key, xk), arm)
     out.append("</svg>")
     return "".join(out)
 
@@ -370,21 +382,18 @@ def svg_transfer(X: Data):
     return "".join(out)
 
 
-WATCH_SIG = [("ang_jerk_hold_median", "tool angular jerk in the hold (1/s&#178;)", (1, 1000), (1, 10, 100, 1000), True, 1.0),
+WATCH_SIG = [("ang_jerk_hold_median", "tool shaking in the hold (rad/s&#178;)", (1, 1000), (1, 10, 100, 1000), True, 1.0),
              ("dact_held", "|&#916;a| per policy step (action units)", (0, 0.8), (0, 0.2, 0.4, 0.6, 0.8), False, 1.0),
              ("ctrl_sat_frac", "servo targets at a range limit (%)", (0, 30), (0, 10, 20, 30), False, 100.0),
              ("share_min", "smallest finger share of the grip (%)", (0, 34), (0, 10, 20, 30), False, 100.0)]
 
 
-def _watch_series(X: Data, arm, key, scale):
-    by_it = {}
-    for r in X.watch:
-        if r["arm"] != arm or r.get(key) is None:
-            continue
-        by_it.setdefault(r["iteration"], []).append(r[key] * scale)
-    xs = [(it + 1) * STEPS_PER_IT / 1e6 for it in sorted(by_it)]
-    vals = [by_it[it] for it in sorted(by_it)]
-    return xs, [float(np.median(v)) for v in vals], [min(v) for v in vals], [max(v) for v in vals], [len(v) for v in vals]
+def _watch_lines(X: Data, arm, key, scale):
+    out = {}
+    for r in sorted((r for r in X.watch if r["arm"] == arm), key=lambda r: r["iteration"]):
+        v = r.get(key)
+        out.setdefault(r["tag"], []).append(((r["iteration"] + 1) * STEPS_PER_IT / 1e6, None if v is None else v * scale))
+    return out
 
 
 def svg_watch(X: Data):
@@ -392,7 +401,7 @@ def svg_watch(X: Data):
         return P.pending("Checkpoint watch rows not written yet (watch.jsonl).")
     W, H = 990, 600
     out = P._svg_open(W, H, "Checkpoint watch signals per contact model against environment steps: the tool's angular "
-                            "jerk in the hold, the action change per policy step, the servo targets at a range limit and "
+                            "shaking in the hold, the action change per policy step, the servo targets at a range limit and "
                             "the smallest finger's share of the grip force")
     for k, (key, lab, ys, yt, logy, scale) in enumerate(WATCH_SIG):
         x0, y0 = (70, 570)[k % 2], (40, 330)[k // 2]
@@ -404,17 +413,9 @@ def svg_watch(X: Data):
         else:
             fx, fy = P._panel(out, x0, y0, 360, 200, (0, 41), ys, (0, 10, 20, 30, 40), yt,
                               "environment steps (millions)", lab, yfmt="{:g}")
-        clamp = (lambda v: min(max(v, ys[0]), ys[1])) if not logy else (lambda v: min(max(v, ys[0]), ys[1]))
+        clamp = lambda v: min(max(v, ys[0]), ys[1])  # noqa: E731
         for arm in ARMS:
-            xs, med, lo, hi, n = _watch_series(X, arm, key, scale)
-            if not xs:
-                continue
-            med, lo, hi = [clamp(v) for v in med], [clamp(v) for v in lo], [clamp(v) for v in hi]
-            _band(out, fx, fy, xs, lo, hi, COL[arm])
-            _gap_path(out, fx, fy, xs, med, COL[arm], dashed=(arm == "box"))
-            for x, m, c in zip(xs, med, n):
-                P._marker(out, fx(x), fy(m), COL[arm], r=3.0,
-                          title=f"{SHORT[arm]}: {m:.3g} (median of {c} seed{'s' if c > 1 else ''})")
+            _draw_seeds(out, X, fx, fy, _watch_lines(X, arm, key, scale), arm, clamp=clamp)
     out.append("</svg>")
     return "".join(out)
 
@@ -449,12 +450,55 @@ def stops_table(X: Data):
                      f"{(last['iteration'] + 1) * STEPS_PER_IT / 1e6:.1f}&#8202;M",
                      f"{last['n_held']}/64" + (f", cos {last['held_cos_mean']:.2f}" if last.get("held_cos_mean") is not None else ""),
                      f"{(so[0] + 1) * STEPS_PER_IT / 1e6:.1f}&#8202;M" if so else "&#8211;",
-                     so[1].replace("1/s^2", "1/s&#178;").replace("->", "&#8594;") if so else "&#8211;", outcome])
+                     so[1].replace("tool jerk", "shaking").replace("1/s^2", "rad/s&#178;").replace("->", "&#8594;") if so else "&#8211;", outcome])
     cap = ("The owner&#8217;s stopping rule applied at every watched checkpoint (4.0&#8202;M steps apart): stop when every "
            "checkpoint of the last 10&#8202;M steps is degenerate, or when the held cosine gained under 0.02 (and the held "
            "count under 8 of 64) over 10&#8202;M steps; the films decide. The seed-0 runs finished before the watch existed "
            "and were watched afterwards.")
     return table(head, body, cap, text_cols=(0, 4, 5))
+
+
+TB_SIG = [("Train/mean_reward", "mean episode return", (0, 500), (0, 100, 200, 300, 400, 500)),
+          ("Train/mean_episode_length", "mean episode length (policy steps, of 250)", (0, 260), (0, 50, 100, 150, 200, 250)),
+          ("Episode_Termination/tip_lost", "tip-lost terminations per iteration (of 2,048 envs)", (0, 50), (0, 10, 20, 30, 40, 50)),
+          ("Episode_Reward/target_axis_alignment", "alignment reward per episode", (0, 70), (0, 10, 20, 30, 40, 50, 60, 70))]
+
+
+def _tb_lines(X: Data, arm, key, every=8, win=9):
+    """{tag: [(M steps, value)]}: `key` per iteration smoothed over `win` iterations, every `every`-th iteration."""
+    by_tag = {}
+    for r in X.tb:
+        if tag_arm(r["tag"]) == arm and r.get(key) is not None:
+            by_tag.setdefault(r["tag"], {})[r["iteration"]] = r[key]
+    out = {}
+    for tag, d in by_tag.items():
+        its = sorted(d)
+        v = np.array([d[i] for i in its], float)
+        vs = np.convolve(np.pad(v, (win // 2, win // 2), mode="edge"), np.ones(win) / win, mode="valid")
+        out[tag] = [((i + 1) * STEPS_PER_IT / 1e6, float(x)) for i, x in zip(its, vs) if i % every == 0 or i == its[-1]]
+    return out
+
+
+def svg_tb(X: Data):
+    if not X.tb:
+        return P.pending("Training curves not extracted yet (tb_dynamics.jsonl).")
+    W, H = 990, 600
+    out = P._svg_open(W, H, "Training curves per contact model against environment steps: episode return, episode "
+                            "length, tip-lost terminations and the alignment reward")
+    for k, (key, lab, ys, yt) in enumerate(TB_SIG):
+        x0, y0 = (70, 570)[k % 2], (40, 330)[k // 2]
+        fx, fy = P._panel(out, x0, y0, 360, 200, (0, 41), ys, (0, 10, 20, 30, 40), yt, "environment steps (millions)",
+                          lab, yfmt="{:g}")
+        clamp = lambda v: min(max(v, ys[0]), ys[1])  # noqa: E731
+        for arm in ARMS:
+            for tag, pts in sorted(_tb_lines(X, arm, key).items()):
+                _gap_path(out, fx, fy, [x for x, _ in pts], [clamp(v) for _, v in pts], COL[arm], dashed=(arm == "box"),
+                          width=1.5)
+                if tag in X.stops and pts:
+                    P._marker(out, fx(pts[-1][0]) + 8, fy(clamp(pts[-1][1])), COL[arm], shape="cross", r=4.5,
+                              title=f"{SHORT[arm]} s{tag[-1]} stopped")
+    out.append("</svg>")
+    return "".join(out)
 
 
 SHEET_ITS = (82, 164, 328, 574, 812)
@@ -664,6 +708,19 @@ GLOSSARY = [
     ("peak force", "Largest single-fingertip net force over a rollout&#8217;s held steps, N; mean over held rollouts."),
     ("transfer gap", "Held fraction (or held cosine) under another contact model or simulator minus that under the "
      "policy&#8217;s own contact model in MuJoCo-Warp."),
+    ("shaking", "Mean absolute change of the tool&#8217;s angular speed between consecutive policy steps, divided by the "
+     "20&#8202;ms step, over the held steps of the hold after the turn (policy steps 150&#8211;250), rad/s&#178;; median "
+     "over held rollouts. A tool resting in a still grip reads near 0; <code>trajectory_health</code> fails a policy for "
+     "jitter above 40&#8202;rad/s&#178;."),
+    ("checkpoint watch", "At every 82nd iteration (4.0&#8202;M env steps) the training run is paused, the checkpoint "
+     "evaluated (64 rollouts) and its median and worst rollouts rendered as frame strips and a film, which are looked at "
+     "before the run continues; the owner&#8217;s rule stops a run that is degenerate for 10&#8202;M steps (drops every "
+     "rollout, an idle finger, jitter, saturated actions, or the tool on the palm) or whose held cosine gains under 0.02 "
+     "over 10&#8202;M steps. Jitter counts when the shaking exceeds 40&#8202;rad/s&#178; and the consecutive-step frames "
+     "show the tool moving in the grip."),
+    ("servo targets at a limit", "Share of the nine finger servo targets (anchor plus residual) at their actuator&#8217;s "
+     "range limit over the active steps; the residual itself is not clipped in these runs."),
+    ("finger share", "One fingertip&#8217;s share of the summed fingertip-tool force over the held steps."),
     ("open-loop replay", "From the state at policy step 58 of a MuJoCo-Warp rollout, the policy&#8217;s recorded finger "
      "targets are played into another simulator at 50&#8202;Hz with the palm welded at its lifted pose "
      "(<code>scripts/rl_policy_replay.py</code>); the policy does not see that simulator&#8217;s state."),
@@ -674,51 +731,72 @@ def glossary():
     return '<dl class="glossary">' + "".join(f"<dt>{a}</dt><dd>{b}</dd>" for a, b in GLOSSARY) + "</dl>"
 
 
+PROBE_TAG = {"box": "a_box", "tpu27mesh": "b_mesh", "tpu27pads1": "c_pads1", "tpu27meshc4": "d_meshc4", "tpu27skin": "e_skin"}
+
+
+def probe_spit(arm):
+    """Median s/it of the five-iteration probe run of 2026-10-08 (idle GPU, before the queue)."""
+    import re
+    p = os.path.join(ROOT, f"logs/20261008-contact_model_policies/train_20261008-d6_work_probe5_{PROBE_TAG[arm]}.log")
+    if not os.path.exists(p):
+        return None
+    its = [float(x) for x in re.findall(r"Iteration time: ([0-9.]+)s", open(p, errors="replace").read())]
+    return float(np.median(its)) if its else None
+
+
+def run_hours(X: Data, tag):
+    """Training wall-clock hours of a run with the watch pauses removed (queue log start to end)."""
+    import re
+    q = open(os.path.join(ROOT, "logs/20261008-contact_model_policies/train_queue.log")).read()
+    st = re.findall(rf"(\S+ \S+) start {re.escape(tag)} ", q)
+    en = re.findall(rf"(\S+ \S+) (?:end|FAILED) {re.escape(tag)} ", q)
+    if not st or not en:
+        return None
+    t0, t1 = (time.mktime(time.strptime(x, "%Y-%m-%d %H:%M:%S")) for x in (st[-1], en[-1]))
+    return (t1 - t0 - X.paused(t0, t1)) / 3600.0
+
+
 def arms_section(X: Data):
     sk = json.load(open(os.path.join(P.ROOT, "results/phase1/real_v1/20261008-sv1_u0308_b050_work_tip_tpu2.7skin/summary.json")))
     s = sk.get("fingertip", {}).get("skin", {})
-    head = ["contact model", "contact", "s per iteration", "hours per 40&#8202;M", "GPU (GB)", "host RSS (GB)",
-            "failed runs"]
+    head = ["contact model", "contact", "s per iteration, idle GPU", "s per iteration, runs", "GPU-h per 40&#8202;M",
+            "GPU-h spent", "GPU memory (GB)", "failed runs"]
     body = []
-    desc = {"box": ("one 10.55&#215;21.1&#215;15&#8202;mm box per tip", "point, condim 3"),
-            "tpu27mesh": ("the printed TPU block, 2.7&#8202;mm fillets, one convex mesh", "point, condim 3"),
-            "tpu27meshc4": ("the TPU block mesh", "point, condim 4"),
-            "tpu27pads1": ("1,060 spheres of 0.75&#8202;mm on the block per tip", "pads (sphere-packed patch)"),
-            "tpu27skin": ("the pads on a sprung skin body per tip", "pads + presliding spring")}
+    contact = {"box": "point, condim 3", "tpu27mesh": "point, condim 3", "tpu27meshc4": "point, condim 4",
+               "tpu27pads1": "1,060 spheres per tip", "tpu27skin": "the pads on a sprung skin"}
     for a in SCENES:
-        cs = [c for t, c in X.cost.items() if tag_arm(t) == a and c.get("finished")]
+        cs = [c for t, c in X.cost.items() if tag_arm(t) == a]
         spi = [c["s_per_it_median"] for c in cs if c.get("s_per_it_median")]
-        hrs = [c["wall_h"] for c in cs if c.get("wall_h")]
-        gpu = [c["gpu_mem_peak_mb"] for c in cs if c.get("gpu_mem_peak_mb")]
-        rss = [c["host_rss_peak_gb"] for c in cs if c.get("host_rss_peak_gb")]
-        fl = sum(c.get("failed_attempts", 0) for c in X.cost.values() if tag_arm(c["tag"]) == a)
+        h40 = [run_hours(X, c["tag"]) for c in cs if c.get("finished")]
+        spent = [run_hours(X, c["tag"]) for c in cs]
+        gpu = [c.get("gpu_mem_proc_mb") or c.get("gpu_mem_peak_mb") for c in cs if c.get("gpu_mem_proc_mb") or c.get("gpu_mem_peak_mb")]
+        fl = sum(c.get("failed_attempts", 0) for c in cs if not c.get("stopped_at"))
         trained = a in ARMS
-        body.append([f"{swatch(a) if trained else ''}{LBL[a]}", desc[a][1],
-                     f1(np.median(spi), 2) if spi else ("probe 5.31" if a == "tpu27meshc4" else "&#8211;"),
-                     f1(np.median(hrs), 2) if hrs else ("not trained" if not trained else "&#8211;"),
-                     f1(max(gpu) / 1e3, 1) if gpu else "&#8211;", f1(max(rss), 1) if rss else "&#8211;",
-                     str(fl) if trained else "&#8211;"])
-    txt = ("<p>The legacy box tip is the fingertip every policy of this program trained on through 2026-10-05: one box "
-           "geom of 10.55&#215;21.1&#215;15&#8202;mm per tip, friction 1 (torsional and rolling coefficients present but "
-           "inactive at condim 3), MuJoCo point contact. The TPU arms replace it by the printed tip, a 17&#215;14.8&#215;22&#8202;mm "
-           "block with 2.7&#8202;mm fillets. Condim 4 bounds the spin torque of a point contact by "
-           "\\(\\mu_\\text{spin} N\\) with \\(\\mu_\\text{spin} = \\mu\\,\\bar r_\\text{on}\\), the pads&#8217; twist-onset arm on "
-           "the TPU tip at the policies&#8217; grip: 2.52, 2.74, 2.96 and 3.12&#8202;mm at 1, 3, 10 and 20&#8202;N "
-           "(<code>twist_onset/tip_T2.jsonl</code>), 3.0&#8202;mm at the typical 12&#8202;N. "
-           f"The skin is the presliding candidate kept on the native-compliance page (<code>{COMPLIANCE_PAGE}</code>): "
-           "each tip&#8217;s pads sit on a child body joined by two slides tangent to the palmar face and a hinge about its "
-           "normal, with Mindlin&#8217;s and Lubkin&#8217;s initial stiffness "
-           "\\(k_t = 8Ga/(2-\\nu)\\), \\(k_\\theta = 16Ga^3/3\\) "
-           f"on the pads&#8217; own patch at 12&#8202;N (\\(a\\) = {f1(1e3 * s.get('a', float('nan')), 2)}&#8202;mm, "
-           f"{f1(s.get('kt', float('nan')) / 1e3, 0)}&#8202;kN/m and {f1(s.get('kth', float('nan')), 2)}&#8202;N&#8202;m/rad) "
-           "and critical damping. Three changes from the bed version were needed on the hand: impratio 1000 diverges under "
-           "the trainer&#8217;s ten solver iterations for the pads and the skin alike, so the skin keeps the env&#8217;s 10; "
-           "MuJoCo-Warp threw the tool within 0.1&#8202;s at the bed&#8217;s armature (spring period \\(\\omega\\,\\Delta t\\) "
-           "3.6), so the armature is set to \\(\\omega\\,\\Delta t\\) = 1 (0.26&#8202;kg on the slides, acting on the "
-           "skin&#8217;s own micrometre motion only); and its broadphase needs 768 contact slots per world.</p>")
-    cap = ("Contact models, training cost per 40&#8202;M-step run on one RTX 4070 Ti SUPER, and failed runs. Condim 4 was "
-           "timed (five iterations) and is evaluated in the transfer matrix; the 24 GPU-hour cap fitted four trained arms "
-           "of three seeds. GPU memory is the whole card, desktop included.")
+        body.append([f"{swatch(a) if trained else ''}{LBL[a]}", contact[a], f1(probe_spit(a), 2),
+                     f1(float(np.median(spi)), 2) if spi else "&#8211;",
+                     f1(float(np.median([h for h in h40 if h])), 2) if any(h40) else ("not trained" if not trained else "&#8211;"),
+                     f1(sum(h for h in spent if h), 2) if any(spent) else "&#8211;",
+                     f1(max(gpu) / 1e3, 1) if gpu else "&#8211;", str(fl) if trained else "&#8211;"])
+    tot = sum(h for c in X.cost.values() if (h := run_hours(X, c["tag"])))
+    txt = ("<p>All arms train the same hand, plant, tool, solver, recipe and flags and differ only in the fingertip. The "
+           "box tip is the fingertip every policy of this program trained on until 2026-10-05. The TPU arms replace it by "
+           "the printed tip, a 17&#215;14.8&#215;22&#8202;mm block with 2.7&#8202;mm fillets, as one convex mesh with "
+           "point contact, or as the 1&#8202;mm sphere pads of the overview page "
+           f"(<code>{OVERVIEW}</code>). The skin mounts each tip&#8217;s pads on a child body with two tangent slides and "
+           "a hinge about the palmar normal, sprung by Mindlin&#8217;s and Lubkin&#8217;s initial stiffness "
+           "\\(k_t = 8Ga/(2-\\nu)\\) and \\(k_\\theta = 16Ga^3/3\\) "
+           f"on the pads&#8217; patch at 12&#8202;N (\\(a\\) = {f1(1e3 * s.get('a', float('nan')), 2)}&#8202;mm, "
+           f"{f1(s.get('kt', float('nan')) / 1e3, 0)}&#8202;kN/m, {f1(s.get('kth', float('nan')), 2)}&#8202;N&#8202;m/rad) "
+           f"and critically damped; it is the presliding candidate kept on the native-compliance page "
+           f"(<code>{COMPLIANCE_PAGE}</code>). On the hand it runs at the env&#8217;s impratio 10 (1000 diverges under ten "
+           "solver iterations) with the slide armature set to \\(\\omega\\,\\Delta t = 1\\). Condim 4, a point "
+           "contact whose spin torque is bounded by \\(\\mu_\\text{spin} N\\) with \\(\\mu_\\text{spin}\\) = 3.0&#8202;mm "
+           "(the pads&#8217; twist-onset arm at 10&#8211;20&#8202;N, <code>twist_onset/tip_T2.jsonl</code>), is evaluated "
+           f"in the transfer matrix but not trained. Training used {tot:.1f} of the 24 GPU-hours budgeted.</p>")
+    cap = ("Contact models and training cost on one RTX 4070 Ti SUPER. Idle GPU: median of a five-iteration probe before the "
+           "queue. Runs: median over each arm&#8217;s runs, which shared the workstation with other jobs (an Isaac Lab "
+           "evaluation on about ten CPU cores for most of the night). GPU-hours exclude the watch&#8217;s pauses; "
+           "&#8216;spent&#8217; includes the runs stopped early. GPU memory: the training process.")
     return txt + table(head, body, cap, text_cols=(0, 1))
 
 
@@ -726,14 +804,18 @@ def curves_section(X: Data):
     svg = svg_curves(X)
     cap = ("Deterministic evaluation of every second saved checkpoint (82 iterations, 4.0&#8202;M env steps) and the final "
            "one: rollouts held at 5&#8202;s (top) and their mean final cosine (bottom), against env steps (left) and "
-           "training wall-clock time (right). Line: median of the seeds; band: their range. A gap in the bottom row is an "
-           "evaluation in which no rollout held.")
+           "training wall-clock time (right). One line per seed (marker: circle s0, square s1, diamond s2); a cross "
+           "ends a run stopped by the checkpoint watch. A gap in the bottom row is an evaluation in which no rollout held.")
     out = figure(svg, cap, legend()) + curves_text(X)
-    wcap = ("Signals of the checkpoint watch at the same checkpoints: the tool&#8217;s angular jerk over the hold after the "
+    wcap = ("Signals of the checkpoint watch at the same checkpoints: the tool&#8217;s shaking over the hold after the "
             "turn (policy steps 150&#8211;250; dashed line: trajectory_health&#8217;s jitter limit), the mean action change "
             "per policy step over the held steps, the share of finger servo targets at their actuator&#8217;s range limit, "
-            "and the smallest of the three fingers&#8217; shares of the grip force. Medians over held rollouts; line and "
-            "band as above.")
+            "and the smallest of the three fingers&#8217; shares of the grip force. Medians over held rollouts; one line "
+            "per seed as above.")
+    tcap = ("Training curves from the event files, smoothed over nine iterations: the stochastic policy&#8217;s mean "
+            "episode return and length, tip-lost terminations (a fingertip off the tool for 15 steps ends the episode) and "
+            "the alignment term of the return. One line per seed; a cross ends a stopped run.")
+    out += figure(svg_tb(X), tcap, legend())
     out += figure(svg_watch(X), wcap, legend()) + stops_table(X) + watch_sheets(X)
     return out
 
@@ -749,8 +831,8 @@ def final_section(X: Data):
     out = figure(svg, cap, legend())
     h1 = ["contact model", "held", "held cos, median seed", "seed spread", "rollout spread", "reach 0.9 held",
           "step at 0.9"]
-    h2 = ["contact model", "grip (N)", "peak force (N)", "penetration (mm)", "creep (mm/s)", "creep (&#176;/s)", "|&#916;a|",
-          "contacts"]
+    h2 = ["contact model", "grip (N)", "peak force (N)", "penetration (mm)", "creep (mm/s)", "creep (&#176;/s)",
+          "shaking (rad/s&#178;)", "|&#916;a|", "pinned targets"]
     b1, b2 = [], []
     for a in ARMS:
         fs = X.finals(a)
@@ -762,13 +844,18 @@ def final_section(X: Data):
                    f1(float(np.median(hcs)), 3) if hcs else "&#8211;",
                    f1(max(hcs) - min(hcs), 3) if len(hcs) > 1 else "&#8211;", f1(md("held_cos_sd"), 3),
                    frac(sum(r["n_reach09_held"] for r in fs), N_ROLL * len(fs)), f1(md("t09_median"), 0)])
+        wf = [w for w in X.watch if w["tag"] in {r["tag"] for r in fs} and w["iteration"] == fs[0]["iteration"]]
+        shk = [w["ang_jerk_hold_median"] for w in wf if w.get("ang_jerk_hold_median") is not None]
+        pin = sorted({j.replace("_", " ") for w in wf for j in (w.get("joints_pinned90") or [])})
         b2.append([f"{swatch(a)}{LBL[a]}", f1(md("grip_N"), 1), f1(md("peak_force_N_mean"), 0), f1(md("pen_max_mm_mean"), 2),
-                   f1(md("creep_mm_s_median"), 2), f1(md("creep_deg_s_median"), 2), f1(md("dact_held"), 2),
-                   f1(md("contacts_per_step"), 1)])
+                   f1(md("creep_mm_s_median"), 2), f1(md("creep_deg_s_median"), 2),
+                   f1(float(np.median(shk)), 0) if shk else "&#8211;", f1(md("dact_held"), 2),
+                   ", ".join(pin) if pin else "none"])
     out += table(h1, b1, "Final policies, 64 rollouts per seed: held rollouts and the turn. Held and reach-0.9 counts "
                          "pool the seeds; the other columns are medians over seeds.")
-    out += table(h2, b2, "Final policies over their held steps: forces, penetration, creep in the last second, action "
-                         "change and contacts (definitions in Terms and metrics); medians over seeds.")
+    out += table(h2, b2, "Final policies over their held steps: forces, penetration, creep in the last second, shaking "
+                         "in the hold, action change, and the servo targets held at their range limit in 90&#8202;% of "
+                         "the steps (definitions in Terms and metrics); medians over seeds.", text_cols=(0, 8))
     return out
 
 
@@ -842,8 +929,9 @@ def lede(X: Data):
     jc = [j for a in comp for j in S[a]["jerk"]]
     stopped = [t for a in point for t in S[a]["stopped"]]
     if jp and jc:
-        parts.append(f"In their own simulator the point-contact policies shake the tool: its angular jerk over the hold is "
-                     f"{_rng(jp, 0)}&#8202;1/s&#178; at 40&#8202;M steps against {_rng(jc, 0)}&#8202;1/s&#178; for "
+        parts.append(f"In their own simulator the point-contact policies shake the tool: the mean change of its angular "
+                     f"speed over the hold is {_rng(jp, 0)}&#8202;rad/s&#178; at 40&#8202;M steps against "
+                     f"{_rng(jc, 0)}&#8202;rad/s&#178; for "
                      f"the pads and the skin" + (f", and the checkpoint watch stopped {len(stopped)} of their later "
                      f"seeds at 16&#8202;M steps for jitter." if stopped else "."))
     hb, hm, hp, hs = (S[a]["hcos"] for a in ARMS)
