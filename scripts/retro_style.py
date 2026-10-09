@@ -99,11 +99,28 @@ button.theme, .theme-toggle, [data-theme-toggle] { display:none !important; }
 
 FONT_LINK_RE = re.compile(r'<link[^>]+(fonts\.googleapis\.com|fonts\.gstatic\.com)[^>]*>\s*', re.I)
 OLD_RE = re.compile(r'<style id="retro">.*?</style>\s*', re.S)
+TH_RE = re.compile(r'(<th\b[^>]*>)((?:\s|<[^>]+>)*)([a-z][^<]*)')
+# lower-case words that name a parameter, a unit or an abbreviation and stay as written at the start of a header
+KEEP = {"condim", "impratio", "solref", "solimp", "mjlab", "rms", "sd", "id", "ok", "kp", "kv", "dt", "nv", "nc", "rel"}
+
+
+def sentence_case_headers(html: str) -> str:
+    """Table headers in sentence case (owner, 2026-10-09): capitalise the first letter of a header that starts with a
+    plain lower-case word of three or more letters; symbols (q, kp, z_rel), identifiers (rv05_manual) and KEEP stay."""
+    def sub(m):
+        text = m.group(3)
+        word = re.match(r"[A-Za-z]+", text).group(0)
+        rest = text[len(word):]
+        if len(word) < 3 or word in KEEP or (rest[:1] in ("_",) or rest[:1].isdigit()):
+            return m.group(0)
+        return m.group(1) + m.group(2) + text[0].upper() + text[1:]
+    return TH_RE.sub(sub, html)
 
 
 def apply(html: str) -> str:
-    """Restyle a built page: drop web-font links, add the plain sheet after every other style block."""
-    html = FONT_LINK_RE.sub('', OLD_RE.sub('', html))
+    """Restyle a built page: drop web-font links, add the plain sheet after every other style block, and set the table
+    headers in sentence case."""
+    html = sentence_case_headers(FONT_LINK_RE.sub('', OLD_RE.sub('', html)))
     tag = '<style id="retro">' + RETRO_CSS.strip() + '</style>\n'
     i = html.lower().rfind('</head>')
     if i < 0:  # artifact-style fragment without <head>: the sheet goes after the last style block
