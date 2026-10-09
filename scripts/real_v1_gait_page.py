@@ -59,7 +59,7 @@ def chart_endurance(rows) -> str:
     w, h = 760, 380
     s, sx, sy = axes(w, h, dict(l=64, r=118, t=14, b=42), (0, 40), (-1, 7.0),
                      [0, 10, 20, 30, 40], [0, 1, 2, 3, 4, 5, 6, 7],
-                     "gait cycle", "accumulated rotation (turns)")
+                     "Gait cycle", "Accumulated rotation (turns)")
     seen = set()
     for r in sorted(end, key=lambda r: -abs(r["spin_deg"])):
         d = r["design"]
@@ -89,13 +89,13 @@ def chart_press(rows) -> str:
     w, h = 760, 330
     s, sx, sy = axes(w, h, dict(l=64, r=24, t=14, b=42), (-7, 11), (0, 100),
                      [-6, -4, -2, 0, 2, 4, 6, 8, 10], [0, 25, 50, 75, 100],
-                     "press (mm the closed grip is driven down after the grasp)",
-                     "rotation per cycle (deg)")
+                     "Press (mm)",
+                     "Rotation per cycle (deg)")
     ideal = 1.684 * 30
     s.append(f'<line class="ref" x1="{sx(-7):.1f}" y1="{sy(ideal):.1f}" x2="{sx(11):.1f}" '
              f'y2="{sy(ideal):.1f}"/>')
     s.append(f'<text class="reflab" x="{sx(-6.6):.1f}" y="{sy(ideal) - 7:.1f}">'
-             f'slip-free ceiling, 50.5 deg</text>')
+             f'Slip-free ceiling, 50.5 deg</text>')
     pts, fails = [], []
     for k in sorted(g):
         cs = g[k]
@@ -112,7 +112,7 @@ def chart_press(rows) -> str:
         s.append(f'<text class="flab" x="{sx(k):.1f}" y="{sy(v) - 12:.1f}">{ok}/{n}</text>')
     s.append(f'<rect class="band" x="{sx(6.9):.1f}" y="14" width="{sx(11) - sx(6.9):.1f}" '
              f'height="{h - 56}"/>')
-    s.append(f'<text class="bandlab" x="{sx(9):.1f}" y="{h - 56:.0f}">tips over</text>')
+    s.append(f'<text class="bandlab" x="{sx(9):.1f}" y="{h - 56:.0f}">Tips over</text>')
     s.append("</svg>")
     return "".join(s)
 
@@ -125,7 +125,7 @@ def chart_padr(rows) -> str:
     w, h = 760, 330
     s, sx, sy = axes(w, h, dict(l=64, r=24, t=14, b=42), (4, 21), (0, 100),
                      [5, 7.5, 10.55, 13, 16, 20], [0, 25, 50, 75, 100],
-                     "fingertip sphere radius (mm)", "rotation per cycle (deg)")
+                     "Fingertip sphere radius (mm)", "Rotation per cycle (deg)")
     ce, pts, fails = [], [], []
     for k in sorted(g):
         cs = g[k]
@@ -138,7 +138,7 @@ def chart_padr(rows) -> str:
     s.append('<polyline class="ceil" points="' +
              " ".join(f"{sx(m):.1f},{sy(v):.1f}" for m, v in ce) + '"/>')
     s.append(f'<text class="reflab" x="{sx(5.4):.1f}" y="{sy(ce[0][1]) - 9:.1f}">'
-             f'slip-free ceiling = gear ratio x 30 deg</text>')
+             f'Slip-free ceiling, gear ratio &#215; 30 deg</text>')
     s.append('<polyline class="ln thick" points="' +
              " ".join(f"{sx(m):.1f},{sy(v):.1f}" for m, v, _, _ in pts) +
              f'" stroke="{HUE["rv05_manual_stored"]}"/>')
@@ -150,7 +150,7 @@ def chart_padr(rows) -> str:
         s.append(f'<text class="flab" x="{sx(m):.1f}" y="{sy(v) - 12:.1f}">{ok}/{n}</text>')
     s.append(f'<line class="ship" x1="{sx(10.55):.1f}" y1="14" x2="{sx(10.55):.1f}" '
              f'y2="{h - 42}"/>')
-    s.append(f'<text class="shiplab" x="{sx(10.55) + 6:.1f}" y="28">shipped pad</text>')
+    s.append(f'<text class="shiplab" x="{sx(10.55) + 6:.1f}" y="28">Shipped pad</text>')
     s.append("</svg>")
     return "".join(s)
 
@@ -182,7 +182,7 @@ def chart_phase(rows) -> str:
             s.append(f'<rect class="pbar" x="{xa:.1f}" y="{y + 3:.1f}" '
                      f'width="{max(xb - xa, 1.5):.1f}" height="{row_h - 6:.1f}" rx="3" '
                      f'fill="{HUE[d]}" opacity="{0.95 if p == "twist" else 0.55}"/>')
-            s.append(f'<text class="plab" x="92" y="{y + row_h / 2 + 4:.1f}">{p}</text>')
+            s.append(f'<text class="plab" x="92" y="{y + row_h / 2 + 4:.1f}">{p.capitalize()}</text>')
             s.append(f'<text class="pval" x="{(xb + 6) if v >= 0 else (xa - 6):.1f}" '
                      f'y="{y + row_h / 2 + 4:.1f}" '
                      f'text-anchor="{"start" if v >= 0 else "end"}">{v:+.0f}</text>')
@@ -190,7 +190,7 @@ def chart_phase(rows) -> str:
         y += 4
     s.append(f'<line class="axis" x1="{sx(0):.1f}" y1="24" x2="{sx(0):.1f}" y2="{h - 40}"/>')
     s.append(f'<text class="axlab" x="{(x0 + x1) / 2:.0f}" y="{h - 4}">'
-             f'degrees of shaft rotation per cycle, by gait phase</text>')
+             f'Rotation per cycle by gait phase (deg)</text>')
     s.append("</svg>")
     return "".join(s)
 
@@ -205,9 +205,9 @@ def premise_table(rows) -> str:
     order = ["rv05_manual_stored", "rv03_narrowy_sp30", "rv03_narrowy_sp40", "rv04_mid_sp30",
              "rv04_mid_sp40", "rv00_wide_sp30", "rv00_wide_sp40", "rv01_compact_sp30",
              "rv01_compact_sp40", "rv02_narrowx_sp40"]
-    out = ['<div class="tw"><table><thead><tr><th>design</th><th>grip force</th>'
-           '<th>ring IK, grip</th><th>ring IK, release</th>'
-           '<th>deg / cycle</th><th>on the ground</th><th>in the air</th></tr></thead><tbody>']
+    out = ['<div class="tw"><table><thead><tr><th>Hand</th><th>Grip force</th>'
+           '<th>Ring IK residual, grip</th><th>Ring IK residual, release</th>'
+           '<th>Rotation per cycle (deg)</th><th>Held on the ground</th><th>Held in the air</th></tr></thead><tbody>']
     for d in order:
         gr, ai = g.get((d, "premise_ground")), g.get((d, "premise_air"))
         if not gr:
@@ -233,8 +233,8 @@ def squeeze_table(rows) -> str:
     for r in rows:
         if r["arm"] == "squeeze":
             g[r["squeeze_mm"]].append(r)
-    out = ['<div class="tw"><table><thead><tr><th>commanded interference</th>'
-           '<th>pad force</th><th>deg / cycle</th><th>transmission</th><th>held</th>'
+    out = ['<div class="tw"><table><thead><tr><th>Commanded interference</th>'
+           '<th>Grip force</th><th>Rotation per cycle (deg)</th><th>Transmission</th><th>Held</th>'
            '</tr></thead><tbody>']
     for k in sorted(g):
         cs = g[k]
@@ -253,8 +253,8 @@ def stroke_table(rows) -> str:
     for r in rows:
         if r["arm"] == "stroke":
             g[r["stroke_deg"]].append(r)
-    out = ['<div class="tw"><table><thead><tr><th>stroke</th><th>pad arc</th>'
-           '<th>deg / cycle</th><th>transmission</th><th>final tilt</th><th>held</th>'
+    out = ['<div class="tw"><table><thead><tr><th>Stroke</th><th>Pad arc</th>'
+           '<th>Rotation per cycle (deg)</th><th>Transmission</th><th>Final tilt</th><th>Held</th>'
            '</tr></thead><tbody>']
     for k in sorted(g):
         cs = g[k]

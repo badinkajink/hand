@@ -1,4 +1,4 @@
-<title>Ground-Supported Gaiting</title>
+<title>Ground-supported gaiting</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 :root{
@@ -49,7 +49,7 @@ header{padding:76px 0 0}
   font-family:"IBM Plex Mono",monospace; font-size:.74rem; letter-spacing:.16em;
   text-transform:uppercase; color:var(--accent); margin:0 0 1.4rem;
 }
-.standfirst{font-size:1.24rem; line-height:1.5; color:var(--ink2); margin:1.6rem 0 0; max-width:640px}
+.lede,.standfirst{font-size:1.24rem; line-height:1.5; color:var(--ink2); margin:1.6rem 0 0; max-width:640px}
 .meta{
   display:flex; flex-wrap:wrap; gap:0 2rem; margin:2.4rem 0 0; padding:1rem 0 0;
   border-top:1px solid var(--rule); font-family:"IBM Plex Mono",monospace;
@@ -152,296 +152,258 @@ footer{margin-top:72px; padding-top:1.2rem; border-top:1px solid var(--rule);
 <div class="wrap">
 <header>
   <p class="kicker">MorphoHand &middot; real_v1 &middot; 2026-09-02</p>
-  <h1>Ground-Supported Gaiting</h1>
-  <p class="standfirst">A three-fingered hand turns a standing shaft {{TURNS}} full revolutions
-  in forty grasp&ndash;twist&ndash;release cycles, open loop, with no policy and no sensing of the
-  object. Take the floor away after the grasp is set and the identical command stream loses the
-  shaft in the first cycle.</p>
+  <h1>Ground-supported gaiting</h1>
+  <p class="lede">On rv05_manual, an open-loop cycle of twist, release, return and regrasp turns a
+  screwdriver standing on the floor {{TURNS}} revolutions about its axis in 40 cycles (SD
+  {{TURNS_SD}}, 3 rollouts), and the shaft ends 0.5&deg; from vertical after 0.3&nbsp;mm of drift.
+  With the floor removed after the grasp, no hand keeps the shaft (0 of 6 rollouts each). Five of
+  the ten hand scenes cannot reach the gripping ring; rv04_mid cannot release it, so its return
+  stroke undoes its twist. A 13&nbsp;mm fingertip turns the shaft 52.6&deg; per cycle, against
+  45.0&deg; for the shipped tip.</p>
   <div class="meta">
-    <span>{{NCELLS}} rollouts</span><span>10 real_v1 hands</span>
+    <span>{{NCELLS}} rollouts</span><span>10 real_v1 hand scenes</span>
     <span>CPU MuJoCo, 33 s</span><span>scripts/probe_real_v1_gait.py</span>
   </div>
 </header>
 
-<section class="col">
-  <p class="eyebrow">Where this sits</p>
-  <h2>The program can stand the tool up. It has never let go of it.</h2>
-  <p>Every reorientation result on this hand ends in the same posture: the shaft vertical, the
-  grip fixed, and the three contacts sitting on the same material points they closed on. That is
-  not incidental &mdash; it is the mechanism. The reorient was blocked by the grasp rather than the
-  hand, and the fix was to raise the rotation axis above the contact plane so the fingers pay for
-  the turn in retraction instead of extension. It reaches cos 0.996 open loop on this hand, with no
-  controller beyond a straight line in joint space from the grasp anchor to one end pose.</p>
-  <p>Turning a screwdriver is the opposite problem. It is unbounded rotation about the tool's own
-  axis, and three fingers with about twelve millimetres of tangential stroke cannot deliver it in
-  one motion. It needs a gait: advance the contacts, let go, put them back, advance again. Letting
-  go is the one thing every result in this program depends on not doing, which is why gaiting was
-  catalogued and left alone.</p>
-  <p>The framing that makes it tractable is to stand the tool on the ground. A 100&nbsp;mm shaft of
-  12.5&nbsp;mm radius resting on its end face is statically stable until it tilts past
-  atan(12.5/50) = 14.0&deg;, so the fingers may leave it entirely and find it where they left it.
-  The floor does not merely catch a dropped tool; it removes the failure mode that made the
-  release unaffordable.</p>
-  <div class="note">
-    <h3>Hypothesis</h3>
-    <p style="margin:0">With the shaft standing on the floor, a fixed set-point cycle of
-    grasp&ndash;twist&ndash;release&ndash;return accumulates unbounded rotation about the shaft
-    axis while the shaft stays upright and in place; and the ground contact is <em>necessary</em>,
-    not merely convenient, so the same commands fail without it.</p>
-  </div>
+<section class="col" id="terms">
+  <h2>Terms and metrics</h2>
+  <dl class="terms">
+    <dt><b>Gait cycle</b></dt><dd>One twist, release, return and regrasp of the three pads; a rollout
+    runs 8 cycles, an endurance run 40.</dd>
+    <dt><b>Ring</b></dt><dd>Circle of pad-centre targets around the standing shaft, thumb at 180&deg;
+    and the other two fingers at &plusmn;60&deg;; 21.05&nbsp;mm in radius when gripping, 6&nbsp;mm
+    wider when released.</dd>
+    <dt><b>Commanded interference</b></dt><dd>Depth of the gripping ring inside the shaft surface, in
+    mm (2&nbsp;mm unless stated).</dd>
+    <dt><b>Grip force</b></dt><dd>Summed normal force of the pads on the shaft at the start of the
+    gait, in N.</dd>
+    <dt><b>Ring IK residual</b></dt><dd>Largest distance from a commanded pad position to the nearest
+    one its finger reaches, in mm, on the gripping and the released ring.</dd>
+    <dt><b>Stroke and pad arc</b></dt><dd>Azimuth the ring advances per twist, in degrees
+    (30&deg; unless stated); the pad arc is the stroke times 21.05&nbsp;mm.</dd>
+    <dt><b>Press</b></dt><dd>Distance the closed grip is driven down after the grasp, in mm; positive
+    loads the shaft onto the floor, negative lifts it.</dd>
+    <dt><b>Rotation per cycle</b></dt><dd>Rotation of the shaft about its own axis per cycle, in
+    degrees, mean over a rollout; accumulated rotation is the sum, in turns.</dd>
+    <dt><b>Slip-free ceiling</b></dt><dd>Rotation per cycle if the pads did not slip: the stroke times
+    the gear ratio, the gripping-ring radius over the 12.5&nbsp;mm shaft radius (1.684 for the shipped
+    10.55&nbsp;mm pad, 50.5&deg; for a 30&deg; stroke).</dd>
+    <dt><b>Transmission</b></dt><dd>Rotation per cycle over the slip-free ceiling; 1 means no
+    slip.</dd>
+    <dt><b>Held</b></dt><dd>Rollouts, of n spawn-jittered repeats, that end with the shaft less than
+    14&deg; from vertical, touched by the hand and standing on the floor; in the air, the floor is
+    removed once the grasp is established.</dd>
+    <dt><b>Final tilt</b></dt><dd>Angle of the shaft axis from vertical at the end of a rollout, in
+    degrees.</dd>
+    <dt><b>Hand contact</b></dt><dd>Mean number of hand-shaft contacts during a phase of the
+    cycle.</dd>
+    <dt><b>Hand tags</b></dt><dd>real_v1 designs from the <a
+    href="../20260828-real_v1_search/20260828-real_v1_design_search.html">design search</a>, such as
+    rv05_manual_stored; the suffixes _sp30 and _sp40 mark two stored scenes of one layout.</dd>
+  </dl>
 </section>
 
 <section>
   <div class="col">
-    <p class="eyebrow">What is commanded</p>
-    <h2>A tripod on a ring, and four phases</h2>
-    <p>Three pads ride a ring around the standing shaft at azimuths of 180&deg; for the thumb and
-    &plusmn;60&deg; for the pair &mdash; the same tripod the vertical-hold probe uses. The ring is
-    commanded two millimetres inside the shaft surface, because these are position servos and the
-    grip force <em>is</em> the commanded-minus-actual error; commanding a pad exactly onto the
-    surface zeroes it and the hand lets go.</p>
+    <h2>Gait on a standing shaft</h2>
+    <p>Driving a screw needs unbounded rotation about the tool's own axis, which three fingers with
+    about 12&nbsp;mm of tangential stroke deliver only as a gait: advance the contacts, let go,
+    return and regrasp. A 100&nbsp;mm shaft of 12.5&nbsp;mm radius standing on its end face stays up
+    until it tilts past 14.0&deg;, so the hand can let go of it. The gripping ring is commanded
+    2&nbsp;mm inside the shaft surface because the position servos make grip force from the
+    commanded-minus-actual error.</p>
   </div>
   <ol class="cycle col">
-    <li><span class="n">01</span><span class="w">twist</span><span class="d">all three azimuths
-      advance by the stroke, carrying the shaft with them</span></li>
-    <li><span class="n">02</span><span class="w">release</span><span class="d">the pads retract
-      radially by 6&nbsp;mm; the shaft is left standing on the floor</span></li>
-    <li><span class="n">03</span><span class="w">return</span><span class="d">the azimuths run back
-      to the start while retracted</span></li>
-    <li><span class="n">04</span><span class="w">regrasp</span><span class="d">the pads close again
-      onto the ring, on new material</span></li>
+    <li><span class="n">01</span><span class="w">Twist</span><span class="d">All three azimuths
+      advance by the stroke and carry the shaft.</span></li>
+    <li><span class="n">02</span><span class="w">Release</span><span class="d">The pads retract
+      radially by 6&nbsp;mm; the shaft stands on the floor.</span></li>
+    <li><span class="n">03</span><span class="w">Return</span><span class="d">The azimuths run back
+      to the start while retracted.</span></li>
+    <li><span class="n">04</span><span class="w">Regrasp</span><span class="d">The pads close onto
+      the ring again, on new material.</span></li>
   </ol>
   <div class="col">
-    <p>The joint targets are solved once into a table indexed by ring radius and azimuth and then
-    played back, so a rollout is pure integration and the command stream is a set-point list of the
-    same shape the bench already runs. There is no policy here, no reward, and nothing reads the
-    object.</p>
-    <p>Two geometric facts had to be fixed before any of it worked. The mounts are not symmetric
-    about the palm origin &mdash; a ring centred there asks the thumb for 19.5&nbsp;mm of horizontal
-    reach and the pair for 36.9&nbsp;mm &mdash; so the ring is offset 4&nbsp;mm in <span
-    class="mono">+x</span>, which brings every grip target inside 0.7&nbsp;mm. And the approach has
-    to come in radially at the ring height: ramping from the scene's open keyframe sweeps the pads
-    18&nbsp;mm upward across the shaft and drags it 8&nbsp;mm off the floor, which is the opposite
-    of the condition under test.</p>
+    <p>The joint targets are solved once into a table indexed by ring radius and azimuth and played
+    back as a set-point list of the shape the bench runs, with no policy and no object sensing. The
+    mounts are asymmetric about the palm origin, so the ring is offset 4&nbsp;mm in +x, which brings
+    every grip target within 0.7&nbsp;mm; the pads approach radially at ring height, since a ramp
+    from the open keyframe lifts the shaft 8&nbsp;mm off the floor.</p>
   </div>
 </section>
 
 <section>
   <div class="col">
-    <p class="eyebrow">Result</p>
-    <h2>Five turns, and the tool does not move</h2>
+    <h2>Rotation over forty cycles</h2>
   </div>
   <div class="headline">
-    <div class="stat"><b>{{TURNS}}</b><span>turns in 40 cycles (n=3, sd {{TURNS_SD}})</span></div>
-    <div class="stat"><b>0.5&deg;</b><span>final tilt from vertical</span></div>
-    <div class="stat"><b>0.3 mm</b><span>lateral drift over the whole run</span></div>
-    <div class="stat"><b>0/6</b><span>retained with the floor removed</span></div>
+    <div class="stat"><b>{{TURNS}}</b><span>Turns in 40 cycles (n = 3, SD {{TURNS_SD}})</span></div>
+    <div class="stat"><b>0.5&deg;</b><span>Final tilt from vertical</span></div>
+    <div class="stat"><b>0.3 mm</b><span>Lateral drift over the run</span></div>
+    <div class="stat"><b>0/6</b><span>Held with the floor removed</span></div>
   </div>
   <figure>
     {{C_END}}
-    <figcaption><b>Accumulated rotation over forty cycles</b>, three spawn-jittered repeats per
-    hand, 30&deg; commanded stroke. rv05_manual and rv03_narrowy climb linearly and never stop;
-    rv04_mid holds the shaft perfectly for all forty cycles and delivers 0.25 turns; rv00_wide
-    never closes on the ring at all. Each line is one rollout.</figcaption>
+    <figcaption>Accumulated rotation, three spawn-jittered rollouts per hand (one line each),
+    30&deg; stroke. rv05_manual and rv03_narrowy climb linearly; rv04_mid holds the shaft for 40
+    cycles and turns it 0.25 revolutions; rv00_wide never closes on the ring.</figcaption>
   </figure>
   <div class="vgrid">
     <figure>
       <video controls loop muted playsinline preload="metadata"
         src="data:video/mp4;base64,{{V_GROUND}}"></video>
-      <figcaption><b>On the ground.</b> Eight cycles on rv05_manual. The red and blue dots are
-      painted onto the shaft at render time &mdash; an untextured cylinder rotating about its own
-      axis is invisible otherwise.</figcaption>
+      <figcaption>Eight cycles on rv05_manual with the floor; dots painted on the shaft at render
+      time show its rotation.</figcaption>
     </figure>
     <figure>
       <video controls loop muted playsinline preload="metadata"
         src="data:video/mp4;base64,{{V_AIR}}"></video>
-      <figcaption><b>The control.</b> Identical hand, grasp and set-points; the floor is deleted
-      once the grasp is established. The shaft is gone inside the first release.</figcaption>
+      <figcaption>The same hand, grasp and set-points with the floor removed after the grasp; the
+      shaft falls in the first release.</figcaption>
     </figure>
   </div>
   <figure>
     <img class="strip" alt="Eight frames, one per gait cycle, of the hand turning the standing
       shaft; the coloured markers migrate around the shaft" src="data:image/png;base64,{{STRIP}}">
-    <figcaption>One frame per cycle. The markers travel roughly one full revolution over the eight
-    frames, which is what 46&deg; per cycle predicts.</figcaption>
+    <figcaption>One frame per cycle. The markers travel about one revolution over the eight frames,
+    as 46&deg; per cycle predicts.</figcaption>
   </figure>
 </section>
 
 <section>
   <div class="col">
-    <p class="eyebrow">The control, and the design split</p>
-    <h2>The ground is necessary; so is being able to let go</h2>
-    <p>Removing the floor at load time is a degenerate control &mdash; the shaft falls before the
-    hand reaches it, so the cell measures nothing. Removing it once the grasp is established holds
-    the grip, the press and the command stream fixed and varies only whether the ground is there
-    during the release. Every hand that grips at all retains the shaft 6/6 with the floor and 0/6
-    without.</p>
+    <h2>Floor removal across ten hand scenes</h2>
+    <p>The floor is removed once the grasp is established, so grip, press and commands stay fixed
+    and only the support during the release changes.</p>
   </div>
   <figure>
     {{T_PREMISE}}
-    <figcaption>Eight cycles, six spawn-jittered repeats. <b>Ring IK</b> is the worst residual
-    between a commanded pad position and where that finger can actually put its pad, reported
-    separately for the gripping ring and the retracted one.</figcaption>
+    <figcaption>Eight cycles, six spawn-jittered repeats per scene.</figcaption>
   </figure>
   <div class="col">
-    <p>The table separates two different failures that a single success rate would have merged.
-    rv00_wide, rv01_compact and rv02_narrowx cannot reach the gripping ring &mdash; 13 to 20&nbsp;mm
-    of residual, pad force under 0.05&nbsp;N &mdash; so they never touch the shaft and the gait is
-    not being measured on them at all. rv04_mid is the interesting one. It solves the gripping ring
-    to 1.78&nbsp;mm, holds the shaft for forty cycles at 34&nbsp;N with a final tilt of 6&deg;, and
-    turns it 2.2&deg; per cycle. It cannot <em>release</em>: 9.85&nbsp;mm of residual on the
-    retracted ring, and its pads are still on the shaft through the return stroke, which drags the
-    shaft back as far as the twist advanced it.</p>
-    <p>That is a design criterion this program has not had before. The reorient's criterion was the
-    thumb's moment arm and the extension budget; the gait's is whether the hand can withdraw its
-    pads at the far end of the stroke. rv04_mid was the design the vertical-hold probe singled out
-    as both reachable and commandable, and it is the one that gaits backwards.</p>
+    <p>The table separates two failures. rv00_wide, rv01_compact and rv02_narrowx cannot reach the
+    gripping ring (13 to 20&nbsp;mm residual, grip force under 0.05&nbsp;N) and never touch the
+    shaft. rv04_mid reaches it to 1.78&nbsp;mm and holds the shaft for 40 cycles at 34&nbsp;N with a
+    final tilt of 6&deg;, but its released ring has a residual of 9.85&nbsp;mm: the pads stay on the
+    shaft through the return and drag it back almost as far as the twist advanced it, for 2.2&deg;
+    per cycle.</p>
+    <p>The ability to withdraw the pads at the end of the stroke is therefore a design criterion of
+    the gait, beside the thumb's moment arm and the extension budget that decide the turn.</p>
   </div>
 </section>
 
 <section>
   <div class="col">
-    <p class="eyebrow">Mechanism</p>
-    <h2>The twist does the work, the regrasp gives some back</h2>
+    <h2>Rotation by gait phase</h2>
   </div>
   <figure>
     {{C_PHASE}}
-    <figcaption><b>Rotation per cycle attributed to each phase.</b> The return stroke is the
-    phase that separates these hands, and it tracks how completely each one lets go: mean
-    whole-hand contact during the release is 0.00 for rv05_manual, 0.45 for rv03_narrowy and
-    1.59 for rv04_mid, against return-phase rotations of +2.0&deg;, &minus;5.4&deg; and
-    &minus;39.6&deg;. rv04_mid's return is very nearly the mirror image of its twist.</figcaption>
+    <figcaption>Rotation per cycle by phase. The return stroke separates the hands and follows how
+    completely each lets go: hand contact during the release is 0.00 for rv05_manual, 0.45 for
+    rv03_narrowy and 1.59 for rv04_mid, and their return phases turn the shaft +2.0&deg;,
+    &minus;5.4&deg; and &minus;39.6&deg;.</figcaption>
   </figure>
   <div class="col">
-    <p>An early version of this measurement claimed the shaft gained 59&deg; across the release and
-    return with no hand contact at all. It was wrong twice over. The rotation was being integrated
-    at the 50&nbsp;Hz control rate over an angular velocity that changes at 500&nbsp;Hz, and phase
-    contact was sampled once at the end of each phase rather than throughout. The control that
-    settled it is direct: spin the standing shaft at 10&nbsp;rad/s with no hand present and it
-    coasts <b>0.6&deg;</b> and stops in 12&nbsp;ms. Nothing accumulates while the fingers are off
-    the tool. What survives the correction is small and has a different cause: rv05_manual still
-    shows +5.1&deg; in the release phase at zero hand contact, which is the position servos still
-    catching up to a twist set-point that has already reached its end value. The phase boundaries
-    are command boundaries, not contact boundaries.</p>
-    <p>The other correction is geometric, and it changes what a good result looks like. The pad
-    centres ride a ring of radius 21.05&nbsp;mm about a shaft of radius 12.5&nbsp;mm. A pad that
-    sweeps <span class="mono">d&phi;</span> of azimuth translates tangentially by
-    <span class="mono">r_ring &middot; d&phi;</span>, and if it does not slip, the shaft surface
-    must follow &mdash; so the shaft turns by <span class="mono">(r_ring / r_obj) &middot;
-    d&phi;</span>. That ratio is <b>1.684</b>. A 30&deg; stroke has a slip-free ceiling of 50.5&deg;
-    of shaft rotation, not 30&deg;, and the first sweep's readings above 1.0 were this ratio rather
-    than an artifact. Ratio-normalised, rv05_manual delivers 0.89 of the slip-free transmission.</p>
+    <p>Rotation is integrated at the 500&nbsp;Hz physics rate. A free shaft spun at 10&nbsp;rad/s
+    coasts 0.6&deg; and stops within 12&nbsp;ms, so nothing accumulates while the fingers are off
+    the tool; the +5.1&deg; that rv05_manual gains in the release phase at zero hand contact is the
+    servos still completing the commanded twist.</p>
   </div>
 </section>
 
 <section>
   <div class="col">
-    <p class="eyebrow">Operating window</p>
-    <h2>Some contact with the ground, and not too much</h2>
-    <p>Press is how far the closed grip is driven down after the grasp is established: positive
-    loads the shaft onto the floor, negative lifts it clear. It is a finger command, not a wrist
-    move, so it is deliverable on a hand with no wrist.</p>
+    <h2>Operating window of press, stroke and grip force</h2>
   </div>
   <figure>
     {{C_PRESS}}
-    <figcaption>Rotation per cycle against press, rv05_manual, six repeats of eight cycles. The
-    hand keeps the shaft from &minus;6 to +6&nbsp;mm and tips it over at +8. Hollow markers are
-    cells that lost the tool; the fraction beside them is how many repeats survived.</figcaption>
+    <figcaption>Rotation per cycle against press, rv05_manual, six repeats of eight cycles. Hollow
+    markers are cells that lost the shaft, labelled with the repeats that kept it.</figcaption>
   </figure>
   <div class="col">
-    <p>The band is wide and the failure at the top is not an overload &mdash; ground normal force
-    at +8&nbsp;mm is 0.58&nbsp;N against a 0.24&nbsp;N tool. It is the asymmetric downward drag
-    levering the shaft off its footprint. Transmission is flat to within 15% across the whole
-    surviving band, so this is not a knob that needs tuning, which is the useful thing about it.</p>
-    <p>One caveat on the negative half: at &minus;6&nbsp;mm the grip lifts the shaft only about
-    7&nbsp;mm, and the shaft falls that far during a 0.12&nbsp;s release. Those cells are still
-    ground-assisted. The floor-removal control is the only honest in-air comparison here.</p>
+    <p>Press is a finger command, so a hand without a wrist can deliver it. The shaft is kept from
+    &minus;6 to +6&nbsp;mm, with transmission varying by less than 15&nbsp;%, and tips over at
+    +8&nbsp;mm, where the downward drag of the pads levers it off its footprint at a ground normal
+    force of 0.58&nbsp;N against its 0.24&nbsp;N weight. At &minus;6&nbsp;mm the shaft is lifted
+    only about 7&nbsp;mm and falls back to the floor during the 0.12&nbsp;s release.</p>
   </div>
   <figure>
     {{T_STROKE}}
-    <figcaption><b>Stroke.</b> The pad arc is how far each pad travels along the ring. The hand is
-    safe to 30&deg;, marginal at 45&deg; and unusable at 75&deg;, where the shaft is levered over
-    inside the first cycle. Nothing about the ceiling is a torque limit; it is how far the pads can
-    go before the tripod stops being a tripod.</figcaption>
+    <figcaption>Stroke, rv05_manual, six repeats. The shaft is held at every stroke to 30&deg;, in 5
+    of 6 repeats at 45&deg; and in none at 75&deg;, where the pads lever it over in the first
+    cycle.</figcaption>
   </figure>
   <figure>
     {{T_SQUEEZE}}
-    <figcaption><b>Grip force.</b> The gait runs from 5.6&nbsp;N to 52&nbsp;N of summed pad normal
-    force with no change in retention; at 75&nbsp;N it still holds the tool but transmission falls to 0.35. Because the floor carries the weight, the fingers supply
-    torque and nothing else &mdash; the resisting torque at the rim is
-    &mu;&middot;N&middot;r &asymp; 0.0072&nbsp;N&middot;m against a 0.24&nbsp;N tool, which three
-    pads can beat with a fraction of a newton each.</figcaption>
+    <figcaption>Commanded interference, rv05_manual, six repeats. Retention is unchanged from 5.6 to
+    52&nbsp;N of grip force; at 75&nbsp;N the shaft is held but transmission falls to 0.35. The
+    floor bears the weight, so the fingers supply only torque, against about 0.0072&nbsp;N&middot;m
+    of friction at the rim.</figcaption>
   </figure>
 </section>
 
 <section>
   <div class="col">
-    <p class="eyebrow">Co-design</p>
-    <h2>The fingertip radius is the gear ratio</h2>
-    <p>Because the transmission is <span class="mono">(r_obj + r_pad &minus; squeeze) /
-    r_obj</span>, the pad radius is not a contact-mechanics detail here &mdash; it is the only term
-    in the gear ratio the hand controls. A larger tip turns the tool further per degree of finger
-    sweep.</p>
+    <h2>Fingertip radius and the gear ratio</h2>
+    <p>Without slip, a pad moving along the ring moves the shaft surface the same tangential
+    distance, so the shaft turns by the stroke times the gear ratio. The ring radius is the shaft
+    radius plus the pad radius minus the commanded interference, so the pad radius is the term of the
+    ratio the hand's design sets. rv05_manual delivers 0.89 of the shipped pad's 50.5&deg;
+    ceiling.</p>
   </div>
   <figure>
     {{C_PADR}}
-    <figcaption>Pad sphere resized in place across six values, everything else fixed. Delivered
-    rotation tracks the slip-free ceiling to 13&nbsp;mm, falls away at 16&nbsp;mm as the ring
-    approaches the edge of the fingers' workspace, and at 20&nbsp;mm the hand cannot close on the
-    shaft at all.</figcaption>
+    <figcaption>Rotation per cycle against fingertip sphere radius, rv05_manual, everything else
+    fixed. Delivered rotation follows the slip-free ceiling to 13&nbsp;mm and falls at 16&nbsp;mm as
+    the ring nears the edge of the fingers' workspace; at 20&nbsp;mm the hand cannot close on the
+    shaft.</figcaption>
   </figure>
   <div class="col">
-    <p>The optimum sits at <b>13&nbsp;mm</b> &mdash; 52.6&deg; per cycle against the shipped pad's
-    45.0&deg;, a 17% gain for a part change and no control change. This is worth stating carefully
-    because it runs against the fingertip verdict the reorientation work reached, where compact
-    convex point contact won every comparison, every enlargement of the contact patch lost, and the
-    radius optimum was 5&ndash;6&nbsp;mm. Both results are about the same hand and the same tool.
-    They disagree because the two tasks load the tip differently: the reorient is a roll, and a
-    patch that resists rolling destroys it, whereas the gait is a tangential drive whose leverage
-    grows with tip radius. A hand asked to do both has a real trade to make, and 13&nbsp;mm is not
-    obviously the right answer for the pair &mdash; it is the right answer for the half measured
-    here.</p>
+    <p>A 13&nbsp;mm pad turns the shaft 52.6&deg; per cycle against 45.0&deg; for the shipped pad,
+    17&nbsp;% more with the same commands. The 2026-08-18 fingertip study of the learned
+    reorientation on the earlier m05 hand found compact convex point contact best, with an optimum
+    radius of 5 to 6&nbsp;mm: the turn rolls the shaft between the pads and a larger patch resists
+    the roll, while the gait drives the shaft tangentially with a lever arm that grows with the pad
+    radius.</p>
   </div>
 </section>
 
 <section class="col">
-  <p class="eyebrow">Limits</p>
-  <h2>What this does not show</h2>
+  <h2>Limitations</h2>
   <ul class="plain">
-    <li><b>The initial condition is granted, not chained.</b> The shaft is placed upright on the
-    floor under the hand rather than delivered there by the reorient. That is what the brief
-    asked for, and the sim supports the palm pose it implies &mdash; six actuated palm degrees of
-    freedom &mdash; but the seam between the carry's end state and this start state is untested.</li>
-    <li><b>No hardware.</b> Nothing here has been exported through the plan mechanism or run past
-    the trajectory-clearance and servo-limit gates, and no collision-safe gait plan exists. The
-    per-joint travel this schedule asks for has not been checked against the family's measured
-    ~1.34&nbsp;rad clip ceiling.</li>
-    <li><b>A flat floor is not a screw.</b> The load here is rim friction against a plane,
-    0.0072&nbsp;N&middot;m. A driven fastener resists with a torque that rises as it seats, and
-    nothing in this study says where the gait stalls against a real one.</li>
-    <li><b>Contact stiffness is the sim's.</b> The reorient on this hand was measured to be
-    one-sidedly fragile to pad friction, shaft diameter and contact stiffness. Those axes have not
-    been swept here, and the gait's dependence on them is unknown rather than absent.</li>
-    <li><b>Ten hands, one object.</b> Six of the ten never grip the vertical ring, so the design
-    conclusion rests on four. Spawn jitter is 0.5&nbsp;mm; no pose error, mass or friction
-    randomisation was applied.</li>
+    <li>The shaft starts upright under the hand; the chain from the turn into this gait ran 6 of 6
+    seeds on 2026-09-03 (<a href="../20260903-real_v1_chain/20260903-real_v1_chain_and_countersink.html">carry-to-gait
+    seam and countersink seating</a>).</li>
+    <li>No gait plan has been exported or passed the trajectory-clearance and servo-limit gates.</li>
+    <li>The load is about 7&nbsp;mN&middot;m of rim friction on a flat floor. Loaded in a countersink
+    (<a href="../20260904-real_v1_bench/20260904-real_v1_bench_geometry.html">wrist-geometry
+    page</a>), the relay gait starts losing seeds at 8&nbsp;mN&middot;m.</li>
+    <li>Pad friction, shaft diameter and contact stiffness were held fixed; a 0.5&nbsp;mm spawn jitter
+    is the only randomisation. Five scenes of three layouts grip the ring.</li>
   </ul>
 </section>
 
 <section class="col">
-  <p class="eyebrow">Next</p>
-  <h2>The three things worth doing</h2>
-  <p>Chain it. Run the raised-pivot carry to its vertical end state, then set the palm down onto
-  the floor and hand the gait the pose it actually produces. The carry is known to be sensitive at
-  the 1e-6 level and its end state is a distribution, not a point, so this is a real test rather
-  than plumbing.</p>
-  <p>Gate it for the bench. The clearance gate, the servo-limit check and the plan export already
-  exist; a gait plan is a longer set-point list than a carry plan and nothing about it is new
-  except its length. Forty cycles at 50&nbsp;Hz is about ninety seconds of bus time, well inside
-  what the station sustains, but sustained cyclic loading is exactly the regime the servos'
-  overload protection exists for.</p>
-  <p>Make the release a design variable. It is the criterion that separates the hands here, it is
-  cheap to evaluate &mdash; one IK table, no rollout &mdash; and no existing screen measures it.</p>
+  <h2>Future work</h2>
+  <ul class="plain">
+    <li><b>Bench gait plan.</b> Export a 40-cycle plan (about 90&nbsp;s of bus time at 50&nbsp;Hz)
+    and pass it through <code>scripts/real_v1_trajectory_clearance.py</code> and the servo-limit
+    check, including the family's clip ceiling of about 1.34&nbsp;rad. The gait fails on the bench if
+    the shaft turns less than one revolution in 8 cycles or a servo reaches its protective
+    cutoff.</li>
+    <li><b>Release residual in the design screen.</b> Compute the released-ring IK residual (one IK
+    table, no rollout) for the eight deployed hands and run the premise arm of
+    <code>scripts/real_v1_gait_study.py</code> on each; the criterion fails if the residual does not
+    separate the hands that turn the shaft from those whose return undoes the twist.</li>
+    <li><b>One fingertip for both tasks.</b> Sweep the pad radius from 5 to 16&nbsp;mm
+    (<code>probe_real_v1_gait.py --pad-radius</code>) on a hand that also runs the fixed-contact
+    turn, scoring both; the trade holds if no radius keeps both tasks within 10&nbsp;% of their
+    optima.</li>
+    <li><b>Contact sensitivity.</b> Vary pad friction, shaft diameter and contact stiffness in the
+    premise arm over the ranges the turn tolerates; the gait is the more fragile task if it loses the
+    shaft inside them.</li>
+  </ul>
 </section>
 
 <footer>
