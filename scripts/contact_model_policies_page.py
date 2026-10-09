@@ -112,12 +112,15 @@ class Data:
         self.verdict = {(r["tag"], r["iteration"]): r for r in last_by(rows("watch_verdicts.jsonl"), ("tag", "iteration"))}
         self.stops = {r["tag"]: r for r in rows("stops.jsonl")}
         self.pauses = []        # (t0, t1) epoch s: the training run was paused (checkpoint watch, short GPU jobs)
+        self.live = set()       # runs watched while they trained (the others were watched after their run)
         pp = os.path.join(ROOT, "logs/20261008-contact_model_policies/watch_pauses.tsv")
         if os.path.exists(pp):
             for line in open(pp):
                 f = line.rstrip("\n").split("\t")
                 if len(f) == 5:
                     self.pauses.append((float(f[2]), float(f[3])))
+                    if ":" not in f[0]:
+                        self.live.add(f[0])
 
     def paused(self, a, b):
         """Seconds of pause between epoch times a and b."""
@@ -458,6 +461,36 @@ def stop_outcome(X: Data, tag):
     return None
 
 
+STOP_KIND = {"drops every rollout": "every rollout dropped", "jitter": "the tool shaken",
+             "rocking": "the tool rocking every policy step", "idle finger": "an idle finger",
+             "saturated": "servo targets pinned", "palm": "the tool on the palm"}
+
+
+def degenerate_stops(X: Data, arm):
+    """[(seed, env steps in millions, kinds, live)] of an arm's runs that meet the stop rule for a degenerate reason:
+    those the watch stopped, and the finished ones at which the recomputed rule fires before 40 M. `kinds` are the
+    degenerate flags raised over the rule's 10 M window."""
+    import rl_contact_eval as E
+    out = []
+    for tag in sorted({r["tag"] for r in X.watch if r["arm"] == arm}):
+        so = stop_outcome(X, tag)
+        st = X.stops.get(tag)
+        if not st and not (so and so[0] < 812 and so[1].startswith("degenerate")):
+            continue
+        it = st["iteration"] if st else so[0]
+        m = (it + 1) * STEPS_PER_IT / 1e6
+        rs = [dict(r, cos_step_hold_median=watch_value(r, "cos_step_hold_median")) for r in X.watch
+              if r["tag"] == tag and m - 10.5 <= (r["iteration"] + 1) * STEPS_PER_IT / 1e6 <= m]
+        kinds = []
+        for r in rs:
+            for f in E.degenerate_flags(r):
+                k = next((v for key, v in STOP_KIND.items() if f.startswith(key)), None)
+                if k and k not in kinds:
+                    kinds.append(k)
+        out.append((int(tag[-1]), m, kinds, bool(st)))
+    return out
+
+
 def stops_table(X: Data):
     if not X.watch:
         return ""
@@ -472,7 +505,7 @@ def stops_table(X: Data):
         if st:
             outcome = f"stopped at {(st['iteration'] + 1) * STEPS_PER_IT / 1e6:.1f}&#8202;M"
         elif last["iteration"] >= 812:
-            outcome = "trained to 40&#8202;M" + (" (watched after the run)" if tag.endswith("_s0") else "")
+            outcome = "trained to 40&#8202;M" + (" (watched after the run)" if tag not in X.live else "")
         else:
             outcome = "training"
         body.append([f"{swatch(tag_arm(tag))}{SHORT[tag_arm(tag)]} s{tag[-1]}",
@@ -482,8 +515,9 @@ def stops_table(X: Data):
                      so[1].replace("tool jerk", "shaking").replace("1/s^2", "rad/s&#178;").replace("->", "&#8594;") if so else "&#8211;", outcome])
     cap = ("The owner&#8217;s stopping rule applied at every watched checkpoint (4.0&#8202;M steps apart): stop when every "
            "checkpoint of the last 10&#8202;M steps is degenerate, or when the held cosine gained under 0.02 (and the held "
-           "count under 8 of 64) over 10&#8202;M steps; the films decide. The seed-0 runs finished before the watch existed "
-           "and were watched afterwards.")
+           "count under 8 of 64) over 10&#8202;M steps; the films decide. The seed-0 runs finished before the watch existed, "
+           "and the skin trainer leaves too little GPU memory for a second process: those runs were watched after they "
+           "ended.")
     return table(head, body, cap, text_cols=(0, 4, 5))
 
 
@@ -1164,17 +1198,34 @@ def lede(X: Data):
              f"1&#8202;mm sphere pads and on the pads mounted on a sprung skin kept the screwdriver in "
              f"{rc[0]} of {rc[1]} replays, and those trained with MuJoCo point contact on the box tip or the TPU block "
              f"mesh in {rp[0]} of {rp[1]}."]
+    WORD = {0: "none", 1: "one", 2: "two", 3: "three"}
+    NAME = {"box": "box-tip", "tpu27mesh": "TPU-mesh", "tpu27pads1": "pad", "tpu27skin": "skin"}
+    phr, hind = [], 0
+    for arm in ARMS:
+        ds = degenerate_stops(X, arm)
+        n = len({r["tag"] for r in X.watch if r["arm"] == arm})
+        hind += sum(1 for d in ds if not d[3])
+        if not ds:
+            phr.append(f"no {NAME[arm]} seed")
+            continue
+        ms = sorted({round(d[1]) for d in ds})
+        kinds = []
+        for d in ds:
+            kinds += [k for k in d[2][:2] if k not in kinds and k != "an idle finger"]
+        phr.append(f"{WORD.get(len(ds), len(ds))} of {WORD.get(n, n)} {NAME[arm]} seeds at "
+                   f"{' and '.join(str(m) for m in ms)}&#8202;M ({' or '.join(kinds)})")
+    parts.append("Under the owner&#8217;s rule of stopping a run that is degenerate for 10&#8202;M steps at its checkpoints, "
+                 + ", ".join(phr[:-1]) + " and " + phr[-1] + " meet it"
+                 + (f"; {WORD.get(hind, hind)} of these runs had finished before the watch existed and meet the rule in "
+                    "hindsight." if hind else "."))
     jp = [j for a in point for j in S[a]["jerk"]]
     jc = [j for a in comp for j in S[a]["jerk"]]
-    stopped = [t for a in point for t in S[a]["stopped"]]
     if jp and jc:
-        parts.append(f"In their own simulator the point-contact policies shake the tool: the mean change of its angular "
-                     f"speed over the hold is {_rng(jp, 0)}&#8202;rad/s&#178; at 40&#8202;M steps against "
-                     f"{_rng(jc, 0)}&#8202;rad/s&#178; for "
-                     f"the pads and the skin" + (f", and the checkpoint watch stopped {len(stopped)} of their later "
-                     f"seeds at 16&#8202;M steps for jitter." if stopped else "."))
+        parts.append(f"In the hold of the policies that finished, the mean change of the tool&#8217;s angular speed per step "
+                     f"is {_rng(jp, 0)}&#8202;rad/s&#178; with point contact and {_rng(jc, 0)}&#8202;rad/s&#178; with the "
+                     f"pads and the skin.")
     hb, hm, hp, hs = (S[a]["hcos"] for a in ARMS)
-    parts.append(f"They turn further where they hold: final held cosine {_rng(hb)} for the box tip "
+    parts.append(f"The point-contact policies turn further where they hold: final held cosine {_rng(hb)} for the box tip "
                  f"({S['box']['held']}/{S['box']['n']} rollouts held) and {_rng(hm)} for the TPU mesh, against "
                  f"{_rng(hp)} for the pads and {_rng(hs)} for the skin, all of whose rollouts held "
                  f"({S['tpu27pads1']['held'] + S['tpu27skin']['held']}/{S['tpu27pads1']['n'] + S['tpu27skin']['n']}).")
