@@ -569,7 +569,7 @@ def stops_table(X: Data):
             outcome = "trained to 40&#8202;M" + (" (watched after the run)" if tag not in X.live else "")
         else:
             outcome = "training"
-        body.append([f"{swatch(tag_arm(tag))}{SHORT[tag_arm(tag)]} s{tag[-1]}",
+        body.append([f"<span style='white-space:nowrap'>{swatch(tag_arm(tag))}{SHORT[tag_arm(tag)]} s{tag[-1]}</span>",
                      f"{(last['iteration'] + 1) * STEPS_PER_IT / 1e6:.1f}&#8202;M",
                      f"{last['n_held']}/64" + (f", cos {last['held_cos_mean']:.2f}" if last.get("held_cos_mean") is not None else ""),
                      f"{(so[0] + 1) * STEPS_PER_IT / 1e6:.1f}&#8202;M" if so else "&#8211;",
@@ -851,6 +851,8 @@ GLOSSARY = [
      "the training&#8217;s timing (residual and reorientation reward from step 58, after the scripted grasp and lift), no "
      "early termination and no randomisation; 256 per cell of the transfer matrix and 128 per perturbation. The rollouts "
      "differ only through the GPU contact solve."),
+    ("reach 0.9, step at 0.9", "Rollouts whose tool passes cos 0.9 at a step at which it is held, whether or not it is "
+     "still held at 5&#8202;s; the median policy step at which it first does."),
     ("seed spread", "Range of the held cosines (or held fractions) of one arm&#8217;s seeds that trained to 40&#8202;M steps."),
     ("rollout spread", "Standard deviation of the final cos over the held rollouts of one evaluation, averaged over seeds."),
     ("grip", "Sum of the three fingertips&#8217; net contact force on the tool, mean over the held steps from step 58, N."),
@@ -1014,7 +1016,7 @@ def curves_text(X: Data):
         return ""
     return ("<p>The checkpoint at which a run first held at least 60 of 64 rollouts: " + "; ".join(parts) + ". An "
             "episode ends 15 steps after a fingertip leaves the tool, so a policy that drops the tool collects the return "
-            "of about 75 steps (Figure " + str(FIG[0] + 1) + "); the box tip&#8217;s seed 0 stayed there for 28&#8202;M "
+            "of about 75 steps (Figure " + str(FIG[0] + 2) + "); the box tip&#8217;s seed 0 stayed there for 28&#8202;M "
             "steps.</p>")
 
 
@@ -1385,6 +1387,7 @@ def lede(X: Data):
                      f"{pct(*T['tpu27skin'][:2])} of the rollouts, the pad policies {pct(*T['tpu27pads1'][:2])} and the "
                      f"TPU-mesh policies {pct(*T['tpu27mesh'][:2])} ({' and '.join(pct(*v) for v in ms)} for its two "
                      f"seeds).")
+    n_transfer = len(parts)          # the first paragraph: transfer; the second: training and the final policies
     WORD = {0: "no", 1: "one", 2: "two", 3: "three"}
     NAME = {"box": "box-tip", "tpu27mesh": "TPU-mesh", "tpu27pads1": "pad", "tpu27skin": "skin"}
     VERB = {"every rollout dropped": "dropping every rollout", "the tool shaken": "shaking the tool",
@@ -1438,7 +1441,7 @@ def lede(X: Data):
     if pm and pp and ps:
         parts.append(f"On an idle GPU a training iteration costs {pp / pm:.1f}&#215; the TPU mesh&#8217;s time with the "
                      f"pads and {ps / pm:.1f}&#215; with the skin.")
-    return " ".join(parts)
+    return " ".join(parts[:n_transfer]) + '</p><p class="lede">' + " ".join(parts[n_transfer:])
 
 
 def open_items(X: Data):
@@ -1504,9 +1507,9 @@ def main():
     v["GLOSSARY"] = glossary()
     v["ARMS"] = arms_section(X)
     v["FILMS"] = films(X)
+    v["TRANSFER"] = transfer_section(X)
     v["CURVES"] = curves_section(X)
     v["FINAL"] = final_section(X)
-    v["TRANSFER"] = transfer_section(X)
     v["ROBUST"] = robust_section(X)
     v["OPEN"] = open_items(X)
     v["FOOTER"] = ("<p>Rebuild: <code>logs/20261001-hom_contact/venv/bin/python scripts/contact_model_policies_page.py</code>. "
