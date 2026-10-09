@@ -162,8 +162,8 @@ def main() -> int:
     ref = {t: [r for r in loop_rows if r["tag"] == t and r["arm"] == "load0"] for t in ORDER}
     V["CLOSURE_FIG"] = fig_closure(clo)
     V["CLOSURE_TBL"] = table(
-        ["hand", "id", "pads below<br>the equator", "z_rel", "span", "F<sub>z,pad</sub>",
-         "&Delta;z at close", "carry (chain)", "bench<br>retention"],
+        ["Hand", "ID", "Pads below<br>the equator", "Mean z_rel", "Span", "F<sub>z,pad</sub>",
+         "&Delta;z at close", "Carry (chain)", "Bench<br>retention"],
         [[f"<code>{t}</code>", DID[t], f'{clo[t]["n_below"]}/{clo[t]["n_pads"]}',
           f'{clo[t]["z_rel_mean"]:+.3f}', f'{clo[t]["span_deg"]:.0f}&#176;',
           f'<span class="{"ok" if clo[t]["Fz_pad"] > 0 else "no"}">{clo[t]["Fz_pad"]:+.3f} N</span>',
