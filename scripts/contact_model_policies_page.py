@@ -1368,6 +1368,11 @@ def lede(X: Data):
 
 
 def open_items(X: Data):
+    W = {1: "one", 2: "two", 3: "three"}
+    NM = {"box": "box-tip", "tpu27mesh": "TPU-mesh", "tpu27pads1": "pad", "tpu27skin": "skin"}
+    parts = [f"{W.get(len(X.finals(a)), len(X.finals(a)))} {NM[a]} seed{'s' if len(X.finals(a)) != 1 else ''}"
+             for a in ARMS]
+    fin_txt = ", ".join(parts[:-1]) + " and " + parts[-1] + " with a final policy"
     items = [
         ("Bench replay of the finger targets.", "The replays test the policies in three simulators and none of them is the "
          "printed fingertip. The next measurement plays the recorded finger targets of the median rollout of the pads, "
@@ -1383,9 +1388,12 @@ def open_items(X: Data):
          "and one pip servo target per compliant policy sits at its extension limit in 95&#8202;% of the steps (Table 4). A "
          "deployable residual needs <code>clip_actions</code> 1.0 (<code>src/morphohand/rl/ppo_config.py</code>); "
          "retrain one seed per compliant arm with it and compare the held cosine."),
-        ("Seeds of the point-contact arms.", "The watch stopped point-contact runs at 16&#8202;M steps for jitter, so those "
-         "arms have fewer seeds at 40&#8202;M than the compliant ones; their seed spread rests on the runs that "
-         "finished."),
+        ("Seeds of the point-contact arms.", f"The stop rule leaves {fin_txt}; the point-contact seed spread rests on "
+         "those runs, and the box tip&#8217;s only finished seed meets the rule in hindsight. Two more box-tip and "
+         "TPU-mesh seeds trained to 40&#8202;M without the rule (about 1.3&#8202;GPU-h each) show whether a "
+         "point-contact policy that keeps the tool still exists; one that holds 64/64 with a shaking under "
+         "40&#8202;rad/s&#178; and survives the CPU MuJoCo replay would contradict the finding that point-contact "
+         "training shakes the tool loose."),
     ]
     return "<ul class='open'>" + "".join(f"<li><b>{a}</b> {b}</li>" for a, b in items) + "</ul>"
 
