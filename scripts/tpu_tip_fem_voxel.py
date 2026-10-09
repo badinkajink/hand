@@ -69,6 +69,45 @@ def voxelize(V, F, h, origin=None, shape=None, chunk=256):
     return occ.reshape(nx, ny, nz), np.asarray(origin, float)
 
 
+def surface_height(V, F, ys, zs, chunk=256):
+    """Largest x at which the line through (y, z) parallel to x crosses the mesh, for every (y, z) of the grid
+    ys x zs (NaN where the line misses): the outer surface seen by an indenter moving along -x."""
+    Y, Z = np.meshgrid(np.asarray(ys, float), np.asarray(zs, float), indexing="ij")
+    return surface_height_points(V, F, np.stack([Y.ravel(), Z.ravel()], 1), chunk).reshape(len(ys), len(zs))
+
+
+def surface_height_points(V, F, YZ, chunk=256):
+    """surface_height at the points YZ (n, 2)."""
+    T = V[F][:, :, [1, 2, 0]]                          # scan along x: project on (y, z)
+    P = np.asarray(YZ, float) + np.array([2.11e-7, 1.37e-7])
+    out = np.full(len(P), np.nan)
+    a, b, c = T[:, 0], T[:, 1], T[:, 2]
+    tmin = np.minimum(np.minimum(a[:, :2], b[:, :2]), c[:, :2])
+    tmax = np.maximum(np.maximum(a[:, :2], b[:, :2]), c[:, :2])
+    det = (b[:, 0] - a[:, 0]) * (c[:, 1] - a[:, 1]) - (c[:, 0] - a[:, 0]) * (b[:, 1] - a[:, 1])
+    ok = np.abs(det) > 1e-18
+    a, b, c, tmin, tmax, det = a[ok], b[ok], c[ok], tmin[ok], tmax[ok], det[ok]
+    for s in range(0, len(P), chunk):
+        p = P[s:s + chunk]
+        inbox = ((p[:, None, 0] >= tmin[None, :, 0]) & (p[:, None, 0] <= tmax[None, :, 0])
+                 & (p[:, None, 1] >= tmin[None, :, 1]) & (p[:, None, 1] <= tmax[None, :, 1]))
+        ci, ti = np.nonzero(inbox)
+        if len(ci) == 0:
+            continue
+        px, py = p[ci, 0], p[ci, 1]
+        A, B, C, D = a[ti], b[ti], c[ti], det[ti]
+        l1 = ((B[:, 0] - px) * (C[:, 1] - py) - (C[:, 0] - px) * (B[:, 1] - py)) / D
+        l2 = ((C[:, 0] - px) * (A[:, 1] - py) - (A[:, 0] - px) * (C[:, 1] - py)) / D
+        l3 = 1.0 - l1 - l2
+        hit = (l1 >= 0) & (l2 >= 0) & (l3 >= 0)
+        x = l1 * A[:, 2] + l2 * B[:, 2] + l3 * C[:, 2]
+        ci, x = ci[hit], x[hit]
+        best = np.full(len(p), -np.inf)
+        np.maximum.at(best, ci, x)
+        out[s:s + len(p)] = np.where(np.isfinite(best), best, np.nan)
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("mesh")

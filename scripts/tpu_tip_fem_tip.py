@@ -302,10 +302,29 @@ def tributary_areas(model, nodes):
     return half(y, g.ys) * half(z, g.zs)
 
 
+TRUE_SURFACE = False      # gaps from the STL surface instead of the grid nodes (set by `run --surface`)
+
+
+def surface_x(model, nodes):
+    """x of the face nodes, replaced by the STL surface height at their (y, z) where the node lies within half of its
+    top cell of that surface (the grid's staircase on the fillets)."""
+    from tpu_tip_fem_voxel import load_stl, surface_height_points
+    X = model.X[nodes]
+    V, F = load_stl(TIP_STL)
+    xt = surface_height_points(V, F, X[:, 1:])
+    xs = model.g.xs
+    k = np.clip(np.searchsorted(xs, X[:, 0] - 1e-9), 1, len(xs) - 1)
+    tol = 0.5 * (xs[k] - xs[k - 1]) + 1e-6
+    use = np.isfinite(xt) & (np.abs(xt - X[:, 0]) <= tol)
+    return np.where(use, xt, X[:, 0])
+
+
 def gap0(model, nodes, indenter, z_c=Z_C):
     """Initial normal gap (mm, along -x) between each face node and the indenter at zero approach, the indenter
     touching the face at x = X_FACE."""
-    X = model.X[nodes]
+    X = model.X[nodes].copy()
+    if TRUE_SURFACE:
+        X[:, 0] = surface_x(model, nodes)
     if indenter == "cyl":
         dz = np.clip(np.abs(X[:, 2] - z_c), 0, R_TOOL)
         surf = X_FACE + (R_TOOL - np.sqrt(R_TOOL ** 2 - dz ** 2))
@@ -625,25 +644,6 @@ RECIPES = {
 }
 
 
-if __name__ == "__main__":
-    import argparse
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("cmd", choices=["validate", "size", "run"])
-    ap.add_argument("--grid", default="coarse")
-    ap.add_argument("--recipes", nargs="*", default=list(RECIPES))
-    ap.add_argument("--out", default=str(ROOT / "docs/experiments/20261009-tpu_tip_fem/tip_runs.jsonl"))
-    ap.add_argument("--data", default=str(ROOT / "docs/experiments/20261009-tpu_tip_fem/data"))
-    a = ap.parse_args()
-    if a.cmd == "validate":
-        validate(a.grid)
-    elif a.cmd == "size":
-        g = Grid.named(a.grid)
-        print("cells", g.nc, int(np.prod(g.nc)), "nodes", int(np.prod(g.nn)))
-    else:
-        for name in a.recipes:
-            run_recipe(name, RECIPES[name], a.grid, out=a.out, data_dir=a.data)
-
-
 # ------------------------------------------------------------------------------------------ resolved print voxels
 
 def resolved_voxels(recipe, h=0.1, shift=(0.0, 0.0), out=None):
@@ -660,7 +660,10 @@ def resolved_voxels(recipe, h=0.1, shift=(0.0, 0.0), out=None):
     core = c == 3
     rho = recipe.get("rho")
     if recipe.get("core") == "solid" or rho is None or rho >= 0.999:
-        return solid | core, origin
+        occ = solid | core
+        if out:
+            np.savez_compressed(out, occ=occ, origin=origin, h=h, recipe=json.dumps(recipe), shift=np.array(shift))
+        return occ, origin
     ax = {"x": 0, "y": 1, "z": 2}[build_dir]
     inplane = [a for a in range(3) if a != ax]
     L, _ = CE.slicer_period(rho)
@@ -692,3 +695,34 @@ def resolved_voxels(recipe, h=0.1, shift=(0.0, 0.0), out=None):
     if out:
         np.savez_compressed(out, occ=occ, origin=origin, h=h, recipe=json.dumps(recipe), shift=np.array(shift))
     return occ, origin
+
+
+if __name__ == "__main__":
+    import argparse
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("cmd", choices=["validate", "size", "run", "voxels"])
+    ap.add_argument("--grid", default="coarse")
+    ap.add_argument("--recipes", nargs="*", default=list(RECIPES))
+    ap.add_argument("--out", default=str(ROOT / "docs/experiments/20261009-tpu_tip_fem/tip_runs.jsonl"))
+    ap.add_argument("--data", default=str(ROOT / "docs/experiments/20261009-tpu_tip_fem/data"))
+    ap.add_argument("--name", help="voxels: output name under assets/fem/20261009-tpu_tip/voxels/")
+    ap.add_argument("--rho", type=float, help="voxels: infill fraction (omit for a solid core)")
+    ap.add_argument("--build", default="x", help="voxels: build axis x (layers across the load) or z (along)")
+    ap.add_argument("--h", type=float, default=0.1, help="voxels: voxel side, mm")
+    ap.add_argument("--shift", type=float, nargs=2, default=[0.0, 0.0], help="voxels: in-plane gyroid phase shift, mm")
+    ap.add_argument("--surface", action="store_true", help="run: contact gaps from the STL surface")
+    a = ap.parse_args()
+    TRUE_SURFACE = a.surface
+    if a.cmd == "validate":
+        validate(a.grid)
+    elif a.cmd == "size":
+        g = Grid.named(a.grid)
+        print("cells", g.nc, int(np.prod(g.nc)), "nodes", int(np.prod(g.nn)))
+    elif a.cmd == "voxels":
+        rec = dict(core="homog", rho=a.rho, build=a.build) if a.rho else dict(core="solid", build=a.build)
+        out = AUX_CACHE / "voxels" / f"{a.name}.npz"
+        occ, o = resolved_voxels(rec, h=a.h, shift=tuple(a.shift), out=out)
+        print(f"{out}: {occ.shape}, solid {occ.mean():.4f}, {int(occ.sum())} voxels")
+    else:
+        for name in a.recipes:
+            run_recipe(name, RECIPES[name], a.grid, out=a.out, data_dir=a.data)

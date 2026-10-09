@@ -121,6 +121,23 @@ def gap0(X, indenter, z_c=Z_C, y_c=0.0):
     return surf - X[:, 0]
 
 
+SURFACE = ROOT / "assets/fem/20261009-tpu_tip/surface_x_h0.1.npz"
+
+
+def true_surface_x(Xn, path=SURFACE, tol=None):
+    """Height of the STL surface (tpu_tip_fem_voxel.surface_height on the node grid) at the face nodes Xn, where the
+    voxel node lies within half a voxel of it (the staircase), else the node's own x (strut tops below the surface)."""
+    S = np.load(path)
+    ys, zs, xs = S["ys"], S["zs"], S["x"]
+    h = float(ys[1] - ys[0])
+    j = np.clip(np.round((Xn[:, 1] - ys[0]) / h).astype(int), 0, len(ys) - 1)
+    k = np.clip(np.round((Xn[:, 2] - zs[0]) / h).astype(int), 0, len(zs) - 1)
+    xt = xs[j, k]
+    tol = 0.5 * h + 1e-6 if tol is None else tol
+    use = np.isfinite(xt) & (np.abs(xt - Xn[:, 0]) <= tol)
+    return np.where(use, xt, Xn[:, 0]), use
+
+
 def contact(tip, nodes, g0, delta, x0=None, active0=None, tol=1e-6, max_outer=30, verbose=False):
     """Displacement-controlled frictionless contact; returns (p, x, active, info)."""
     dev = tip.dev
@@ -176,6 +193,7 @@ def main():
     ap.add_argument("--out")
     ap.add_argument("--save")
     ap.add_argument("--tag", default="")
+    ap.add_argument("--surface", action="store_true", help="contact gaps from the STL surface instead of the voxel tops")
     a = ap.parse_args()
     D = np.load(a.voxels, allow_pickle=True)
     occ, origin, h = D["occ"], D["origin"], float(D["h"])
@@ -183,7 +201,12 @@ def main():
     t0 = time.time()
     tip = GpuTip(occ, origin, h, a.E, a.nu)
     nodes = face_nodes(tip.X, tip.fixed_dof[0::3])
-    g0 = gap0(tip.X[nodes], a.indenter)
+    Xg = tip.X[nodes].copy()
+    if a.surface:
+        Xg[:, 0], used = true_surface_x(Xg)
+        print(f"  gaps from the STL surface on {used.sum()} of {len(nodes)} face nodes; mean |x_voxel - x_surface| "
+              f"{np.abs(tip.X[nodes][used, 0] - Xg[used, 0]).mean() * 1e3:.1f} um", flush=True)
+    g0 = gap0(Xg, a.indenter)
     print(f"{a.voxels}: {tip.n_el} el, {tip.ndof} dof, {len(nodes)} face nodes, {tip.n_fixed} fixed nodes, x range "
           f"{tip.X[:, 0].min():.3f}..{tip.X[:, 0].max():.3f}, setup {tip.t_setup:.1f}s", flush=True)
     x, active = None, None
@@ -195,7 +218,7 @@ def main():
         torch.cuda.synchronize()
         m = metrics(tip.X, nodes, p, g0, dl)
         row = dict(voxels=a.voxels, tag=a.tag, recipe=recipe, shift=D["shift"].tolist() if "shift" in D else None,
-                   indenter=a.indenter, delta_mm=dl, E_s=a.E, nu=a.nu, h_mm=h, n_el=tip.n_el, n_dof=tip.ndof,
+                   indenter=a.indenter, delta_mm=dl, surface=bool(a.surface), E_s=a.E, nu=a.nu, h_mm=h, n_el=tip.n_el, n_dof=tip.ndof,
                    t_solve_s=time.time() - ts, gpu_mem_GB=torch.cuda.max_memory_allocated() / 1e9,
                    script="scripts/tpu_tip_fem_gpu.py", **info, **m)
         print(f"  delta {dl * 1e3:.1f} um: F {m['F']:.4f} N, r_rms {m['r_rms']:.3f} mm, arm {m['arm']:.3f} mm, half y/z "
@@ -208,7 +231,13 @@ def main():
                 os.fsync(fh.fileno())
     if a.save:
         u = x.view(-1, 3).cpu().numpy()
-        np.savez_compressed(a.save, X_face=tip.X[nodes], g0=g0, ux_face=u[nodes, 0], **saved)
+        keep = {}
+        if os.path.exists(a.save):                   # a rerun at further approaches adds its maps to the saved ones
+            old = np.load(a.save)
+            if old["X_face"].shape == tip.X[nodes].shape and np.allclose(old["X_face"], tip.X[nodes]):
+                keep = {k: old[k] for k in old.files if k.startswith("p_")}
+        keep.update(saved)
+        np.savez_compressed(a.save, X_face=tip.X[nodes], g0=g0, ux_face=u[nodes, 0], ux_delta=a.delta[-1], **keep)
     print(f"total {time.time() - t0:.1f}s")
 
 
