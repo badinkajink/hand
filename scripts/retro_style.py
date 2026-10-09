@@ -112,14 +112,15 @@ KEEP = {"condim", "impratio", "solref", "solimp", "mjlab", "rms", "sd", "id", "o
 def sentence_case_headers(html: str) -> str:
     """Table headers and cells in sentence case (owner, 2026-10-09): capitalise the first letter of a header that starts
     with a plain lower-case word of three or more letters, and of a cell that does and has more than one word; symbols
-    (q, kp, z_rel), identifiers (rv05_manual, code, .m chips), single-word cells and KEEP stay as written."""
+    (q, kp, z_rel), identifiers (rv05_manual, code, .m chips), file paths (docs/..., cells of class mono), single-word
+    cells and KEEP stay as written."""
     def fix(m, cell):
         text, lead = m.group(3), m.group(2)
-        if "<code" in lead or 'class="m"' in lead or "<kbd" in lead:
+        if "<code" in lead or 'class="m"' in lead or "<kbd" in lead or (cell and "mono" in m.group(1)):
             return m.group(0)
         word = re.match(r"[A-Za-z]+", text).group(0)
         rest = text[len(word):]
-        if (len(word) < 3 and word not in SHORT_WORDS) or word in KEEP or (rest[:1] in ("_",) or rest[:1].isdigit()):
+        if (len(word) < 3 and word not in SHORT_WORDS) or word in KEEP or (rest[:1] in ("_", "/", ".") or rest[:1].isdigit()):
             return m.group(0)
         if cell and not rest.strip():
             return m.group(0)

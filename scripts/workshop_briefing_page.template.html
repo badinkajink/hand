@@ -457,24 +457,24 @@ record.</p>
 <h2>Completed and proposed items of the paper</h2>
 <p class="sub">Every claim in Sections II&#8211;IV and Appendix D of the paper, with its status in the record</p>
 <div class="tw"><table><thead><tr><th>Item in the paper</th><th>Status</th><th>Record</th></tr></thead><tbody>
-<tr><td>15-DoF platform, firmware, bus, homing (II-A, II-B)</td><td><span class="chip kept">built</span></td><td class="small">251 archived bench runs over 11 morphologies; bus, homing and overload protection measured</td></tr>
-<tr><td>CEM grasp + open-loop geometric plan (II-C a)</td><td><span class="chip kept">completed</span></td><td class="small">the deployed controller on every bench run; on the population the grasp is the closed-form fit, CEM only on the anchors and the earlier 108-hand search</td></tr>
-<tr><td>Sobol sampling and the funnel (II-C b)</td><td><span class="chip kept">completed</span></td><td class="small"><a href="#funnel">&#167;2</a>; counts reproduce from disk to the unit</td></tr>
-<tr><td>Eight hands, 80 trials, rigid mount (III-A)</td><td><span class="chip kept">completed</span></td><td class="small">2026-08-31 / 09-01 sessions; corrected count 77 (<a href="#reconcile">item 1</a>)</td></tr>
-<tr><td>Sim-to-hardware rank comparison, &#961;<sub>s</sub> = 0.50</td><td><span class="chip kept">completed</span></td><td class="small">n = 8, p = 0.21; <a href="#ranking">&#167;4</a></td></tr>
-<tr><td>Failure analysis: ejection (D6), stall (D3)</td><td><span class="chip kept">completed</span></td><td class="small">established by slip and by rotation shortfall; &#8220;overshoot&#8221; withdrawn</td></tr>
-<tr><td>Correlations with simulated force and contact count</td><td><span class="chip kept">completed</span></td><td class="small">descriptive at n = 8</td></tr>
-<tr><td>Residual RL on the geometric reference (II-C, &#8220;residual RL&#8221; in the tex)</td><td><span class="chip open">simulation only</span></td><td class="small">policies trained on the calibrated plant through 2026-09-20; none has run on hardware (<a href="#learned">&#167;7</a>)</td></tr>
-<tr><td>Bi-level co-design J<sub>sim</sub>, J<sub>real</sub>, &#916;(m) (III-B, Eq. 1&#8211;3)</td><td><span class="chip proposed">proposed</span></td><td class="small">J<sub>sim</sub> exists for one task and one controller; J<sub>real</sub> exists for eight hands; no update of the simulator from &#916;(m) has been run, and the one correction tried (the servo plant) did not move the ordering</td></tr>
-<tr><td>Hardware-in-the-loop search with sparse queries (III-B, App. D ii)</td><td><span class="chip proposed">proposed</span></td><td class="small">no design was selected from a hardware result; the eight were selected in simulation</td></tr>
-<tr><td>Warm-started / conditioned controllers as morphology changes (III-B, App. D iii)</td><td><span class="chip proposed">proposed</span></td><td class="small">a shared warm start cuts the per-design draw sd from 0.3&#8211;0.5 to 0.032 in simulation (b33 seed band); no design-conditioned policy has been built; nothing on hardware</td></tr>
-<tr><td>Local and global sim-to-real agreement (App. D i)</td><td><span class="chip open">partial</span></td><td class="small">global: the n = 8 study. Local: within-family clip repeats (g12 at four clips, u0060 at two, u0100 at two) were exported and are on the station; the within-family bench contrast in the protocol&#8217;s &#167;7.3 was not run</td></tr>
-<tr><td>Task-conditioned specialisation persisting on hardware (App. D iv)</td><td><span class="chip proposed">proposed</span></td><td class="small">one task, one object on hardware; the basketball study (2026-09-16) is simulation only</td></tr>
-<tr><td>Morphologies trading nominal performance for robustness (App. D v)</td><td><span class="chip open">simulation only</span></td><td class="small">rv04_mid: best nominal (0.997) and worst under placement error (0.46); the robustness re-ranking was never taken to the bench as a comparison</td></tr>
-<tr><td>Additional motorised parameters: phalange length, contact geometry, compliance (Disc. 5, App. D)</td><td><span class="chip proposed">proposed</span></td><td class="small">simulation results in <a href="#future">&#167;10</a>; no hardware</td></tr>
-<tr><td>Automated reset (Disc. 1)</td><td><span class="chip proposed">proposed</span></td><td class="small">every trial re-staged by hand</td></tr>
-<tr><td>Actuator sysid (Disc. 3)</td><td><span class="chip kept">completed</span></td><td class="small">2026-09-02: one spring constant for the hand, the overload cliff, kp 0.5 in the simulator; the correction reproduces one hand&#8217;s level and not the ordering</td></tr>
-<tr><td>Sensorised fingertips, palms (Disc. 4)</td><td><span class="chip proposed">proposed</span></td><td class="small">the only object sensing is the external tag; the servo has no current register</td></tr>
+<tr><td>15-DoF platform, firmware, bus, homing (II-A, II-B)</td><td><span class="chip kept">Built</span></td><td class="small">251 archived bench runs over 11 morphologies; bus, homing and overload protection measured</td></tr>
+<tr><td>CEM grasp + open-loop geometric plan (II-C a)</td><td><span class="chip kept">Completed</span></td><td class="small">the deployed controller on every bench run; on the population the grasp is the closed-form fit, CEM only on the anchors and the earlier 108-hand search</td></tr>
+<tr><td>Sobol sampling and the funnel (II-C b)</td><td><span class="chip kept">Completed</span></td><td class="small"><a href="#funnel">&#167;2</a>; counts reproduce from disk to the unit</td></tr>
+<tr><td>Eight hands, 80 trials, rigid mount (III-A)</td><td><span class="chip kept">Completed</span></td><td class="small">2026-08-31 / 09-01 sessions; corrected count 77 (<a href="#reconcile">item 1</a>)</td></tr>
+<tr><td>Sim-to-hardware rank comparison, &#961;<sub>s</sub> = 0.50</td><td><span class="chip kept">Completed</span></td><td class="small">n = 8, p = 0.21; <a href="#ranking">&#167;4</a></td></tr>
+<tr><td>Failure analysis: ejection (D6), stall (D3)</td><td><span class="chip kept">Completed</span></td><td class="small">established by slip and by rotation shortfall; &#8220;overshoot&#8221; withdrawn</td></tr>
+<tr><td>Correlations with simulated force and contact count</td><td><span class="chip kept">Completed</span></td><td class="small">descriptive at n = 8</td></tr>
+<tr><td>Residual RL on the geometric reference (II-C, &#8220;residual RL&#8221; in the tex)</td><td><span class="chip open">Simulation only</span></td><td class="small">policies trained on the calibrated plant through 2026-09-20; none has run on hardware (<a href="#learned">&#167;7</a>)</td></tr>
+<tr><td>Bi-level co-design J<sub>sim</sub>, J<sub>real</sub>, &#916;(m) (III-B, Eq. 1&#8211;3)</td><td><span class="chip proposed">Proposed</span></td><td class="small">J<sub>sim</sub> exists for one task and one controller; J<sub>real</sub> exists for eight hands; no update of the simulator from &#916;(m) has been run, and the one correction tried (the servo plant) did not move the ordering</td></tr>
+<tr><td>Hardware-in-the-loop search with sparse queries (III-B, App. D ii)</td><td><span class="chip proposed">Proposed</span></td><td class="small">no design was selected from a hardware result; the eight were selected in simulation</td></tr>
+<tr><td>Warm-started / conditioned controllers as morphology changes (III-B, App. D iii)</td><td><span class="chip proposed">Proposed</span></td><td class="small">a shared warm start cuts the per-design draw sd from 0.3&#8211;0.5 to 0.032 in simulation (b33 seed band); no design-conditioned policy has been built; nothing on hardware</td></tr>
+<tr><td>Local and global sim-to-real agreement (App. D i)</td><td><span class="chip open">Partial</span></td><td class="small">global: the n = 8 study. Local: within-family clip repeats (g12 at four clips, u0060 at two, u0100 at two) were exported and are on the station; the within-family bench contrast in the protocol&#8217;s &#167;7.3 was not run</td></tr>
+<tr><td>Task-conditioned specialisation persisting on hardware (App. D iv)</td><td><span class="chip proposed">Proposed</span></td><td class="small">one task, one object on hardware; the basketball study (2026-09-16) is simulation only</td></tr>
+<tr><td>Morphologies trading nominal performance for robustness (App. D v)</td><td><span class="chip open">Simulation only</span></td><td class="small">rv04_mid: best nominal (0.997) and worst under placement error (0.46); the robustness re-ranking was never taken to the bench as a comparison</td></tr>
+<tr><td>Additional motorised parameters: phalange length, contact geometry, compliance (Disc. 5, App. D)</td><td><span class="chip proposed">Proposed</span></td><td class="small">simulation results in <a href="#future">&#167;10</a>; no hardware</td></tr>
+<tr><td>Automated reset (Disc. 1)</td><td><span class="chip proposed">Proposed</span></td><td class="small">every trial re-staged by hand</td></tr>
+<tr><td>Actuator sysid (Disc. 3)</td><td><span class="chip kept">Completed</span></td><td class="small">2026-09-02: one spring constant for the hand, the overload cliff, kp 0.5 in the simulator; the correction reproduces one hand&#8217;s level and not the ordering</td></tr>
+<tr><td>Sensorised fingertips, palms (Disc. 4)</td><td><span class="chip proposed">Proposed</span></td><td class="small">the only object sensing is the external tag; the servo has no current register</td></tr>
 </tbody></table></div>
 <p>The hardware results cover one task, one object, eight morphologies, one open-loop controller and one session per
 morphology. Closing a loop, conditioning a controller on the design and searching with hardware in the loop are plans
@@ -550,449 +550,67 @@ has run on the hand; a bench controller that feeds a policy the tag pose at 50 H
 
 <section id="record"><div class="col">
 <h2>Experiment record, April to September 2026</h2>
-<p class="sub">Commits by month: {{COMMITS}} &#183; each entry gives the aim, the method, the result and the files
-&#183; status: <span class="chip kept">kept</span> standing method or result &#183; <span class="chip closed">closed</span> answered
-or abandoned &#183; <span class="chip retracted">retracted</span> a reported result withdrawn &#183; <span class="chip open">open</span>
-current</p>
+<p class="sub">Commits by month: {{COMMITS}} &#183; status: <span class="chip kept">Kept</span> (standing method or result),
+<span class="chip closed">Closed</span> (answered or abandoned), <span class="chip retracted">Retracted</span> (a reported result
+withdrawn), <span class="chip open">Open</span> (current)</p>
 
-<div class="rec">
-<div class="era">April &#8211; May: the simulation-first grasp stack</div>
-
-<div class="entry"><div class="when">2026-04-10 &#8594; 04-30</div><div class="body">
-<h4>Minimum viable grasp, and the frozen-scene protocol <span class="chip kept">kept</span></h4>
-<p><b>Aim.</b> Score a nine-parameter hand (per-finger mount x, y and proximal length) by a lift-and-hold rollout over
-nine finger targets found by cross-entropy search, with morphology as slide joints in one MJCF template.</p>
-<p><b>Result.</b> The unactuated morphology joints drift under contact. Freezing them into body transforms
-(<code>freeze_scene_for_eval</code>, nq 31 &#8594; 22) flipped one benchmark&#8217;s sign (&#8722;0.28 &#8594; +0.33) and
-lowered inflated drill scores (8.46 &#8594; 7.89); every later evaluation freezes first.</p>
-<p class="where">src/morphohand/sampling/scene.py &#183; docs/frozen_scene_protocol.md &#183; paper/speculative/main.tex &#167;III-C, &#167;IV-E</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-04-13</div><div class="body">
-<h4>Foundational-pose sampling, 500 morphologies on a cube and three prisms <span class="chip closed">closed</span></h4>
-<p><b>Aim.</b> Test whether a pre-grasp keyframe found on the base hand transfers across 500 sampled morphologies, and
-measure the gain from per-morphology adaptation.</p>
-<p><b>Result.</b> Feasibility 64.8 / 98.6 / 100 / 100 % by scene; adaptation recovers 22 % more feasible candidates, and
-sparse per-morphology perturbation gives the best gain per second (1.42/s). Retired when the RL pipeline replaced grasp
-scores as the design objective.</p>
-<p class="where">results/phase1/run_20260413_pollard_* &#183; docs/architecture/4-13_pollard_sampling.md &#183; paper/speculative &#167;V-C</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-04-20 &#8594; 04-21</div><div class="body">
-<h4>1,000-morphology, three-keyframe screwdriver sweep <span class="chip closed">closed</span></h4>
-<p><b>Aim.</b> Measure how the pre-grasp pose (flat, vertical, 90&#176;-vertical) changes which morphologies can grasp a
-25 &#215; 100 mm cylinder.</p>
-<p><b>Result.</b> Feasibility 0.994 / 0.884 / 0.696 by keyframe, 60.3 % feasible in all three: the keyframe moved the
-landscape by 30 points before morphology varied.</p>
-<p class="where">scripts/run6_combined_multitask.py &#183; paper/speculative &#167;V-B</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-04-13 &#8594; 04-14</div><div class="body">
-<h4>Differentiable physics: MJX autodiff and a DiffMJX lane <span class="chip closed">closed</span></h4>
-<p><b>Aim.</b> Replace 24 CEM iterations with a few gradient steps through <code>mjx.step</code>.</p>
-<p><b>Result.</b> From the open keyframe the gradient lane scores 1.6 (two contacts, drops); from a foundational keyframe
-6.9, equal to CEM, so the gradient needs the warm start CEM was meant to make unnecessary. Reverse-mode tracing through the
-variable-length contact list failed intermittently on MJX 3.6.</p>
-<p class="where">morphohand/optimization/phase1_strategy_mjx_autodiff.py, phase1_strategy_diffmjx.py &#183; docs/simulators/diffmjx_plan.md &#183; paper/speculative App. A</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-04-14</div><div class="body">
-<h4>GPU backends for the evaluator (mjwarp, comfree-warp) <span class="chip closed">closed</span></h4>
-<p><b>Aim.</b> Move the rollouts to a GPU backend to speed the 1,000-morphology sweeps.</p>
-<p><b>Result.</b> mjwarp reproduced the metrics at 47&#215; slower than CPU MuJoCo at batch size one, since every metric read
-is a device-to-host copy; comfree-warp reported a 104 m lift. GPU physics returned in May inside mjlab, with thousands of
-environments per batch.</p>
-<p class="where">docs/architecture/warp_mujoco_bottleneck.md, 4-14_experiments.md &#183; paper/speculative App. B</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-05-12</div><div class="body">
-<h4>Grasp specification methods: contact-target patches, eigengrasp subspace, force-closure energy <span class="chip closed">closed</span></h4>
-<p><b>Aim.</b> Give CEM a gradient toward an opposed pinch on long objects, where the closest-point distance is flat.</p>
-<p><b>Result.</b> Contact-target patches add 0.32 to the mean oracle score over eight benchmarks, almost all on the long
-prism (all-finger persistence 0.26 &#8594; 1.00); the combined configuration fails through an infinite-energy guard. Kept
-as options; the later program did not use them.</p>
-<p class="where">docs/grasp_methods.md, contact_targets.md, eigengrasp.md, force_closure.md, eval_suite.md &#183; paper/speculative &#167;III-G, &#167;V-D, App. D</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-04-24 &#8594; 05-20</div><div class="body">
-<h4>Power-drill pivot-to-down (runs 8, 12&#8211;16) <span class="chip closed">closed</span></h4>
-<p><b>Aim.</b> Find a grasp on a YCB drill that survives a 90&#176; wrist pivot.</p>
-<p><b>Result.</b> All-finger contact persistence 0 on every seed: the <code>open_flat</code> keyframe places the fingertips
-tangent to the barrel, so no closing grasp exists in the search basin, and Lightning Grasp converged to the same
-non-gripping family. An authored gripping keyframe was prepared and never run.</p>
-<p class="where">results/phase1/run13&#8211;15 &#183; docs/architecture/4-24_power_drill_run8_recovery.md &#183; paper/speculative &#167;V-F</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-05-17 &#8594; 05-20</div><div class="body">
-<h4>Lightning Grasp on the morphohand <span class="chip closed">closed</span></h4>
-<p><b>Aim.</b> Compare a GPU contact-field grasp generator with CEM on candidate quality per second.</p>
-<p><b>Result.</b> 363 cube grasps in 34 s, best 4.93 against CEM&#8217;s 6.70; the hand&#8217;s 3&#8211;5 cm finger spacing made the
-generator&#8217;s self-collision check reject every valid pose.</p>
-<p class="where">scripts/build_morphohand_urdf.py, lightning_grasp_runner.py, lightning_grasp_eval.py &#183; paper/speculative &#167;III-H</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-05-22 &#8594; 05-29</div><div class="body">
-<h4>The RL pipeline on mjlab / MuJoCo-Warp: lift a cube, then a prism and a screwdriver <span class="chip kept">kept</span></h4>
-<p><b>Aim.</b> Make the design objective a manipulation the hand performs: a PPO residual on a scripted close that lifts and
-holds.</p>
-<p><b>Result.</b> A palm-distance reward misleads on a static palm, and with lift weighted 80 the policy caged the cube without
-fingertip contact until contact terms became primary. The resulting recipe (<code>a_lift</code>) is the lift half of every
-later policy.</p>
-<p class="where">docs/rl/phases.md, training.md, architecture.md &#183; configs/recipes/a_lift.yaml</p>
-</div></div>
-
-<div class="era">June: in-hand reorientation and the hand-off seam</div>
-
-<div class="entry"><div class="when">2026-05-29 &#8594; 06-01</div><div class="body">
-<h4>In-hand reorientation v1&#8211;v5 <span class="chip closed">closed</span></h4>
-<p><b>Aim.</b> Extend the lift policy to turn the flat cylinder to vertical with the fingers only.</p>
-<p><b>Result.</b> v2 could not rotate because an orientation-drift penalty paid against rotation; v3 gated the reorient
-reward at step 50 while terminations ended every episode at step 40; v4 rotated by bracing the cylinder against the floor;
-v5, floor forbidden, did not rotate. Every later recipe keeps terminations compatible with rotation and the reward gate
-before episode end.</p>
-<p class="where">docs/rl/reorientation.md &#167;Phases &#183; results/rl/20260530-2159-inhand_reorient_v4</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-06-01 &#8594; 06-02</div><div class="body">
-<h4>Policy B: the two-policy split <span class="chip closed">closed</span></h4>
-<p><b>Aim.</b> Train the turn as its own policy B from a pre-lifted spawn, since a single policy warm-started from a lift
-prior would not override it.</p>
-<p><b>Result.</b> Alignment reward 3.2&#215; v4; a 5&#215; smoothness ramp halved jerk and kept the rotation, 10&#215; stopped it.
-The critic must be warm-started with the actor; an actor-only warm start lost verticality.</p>
-<p class="where">docs/rl/reorientation.md &#167;Policy B &#183; results/rl/REGISTRY.md (B1&#8211;B4)</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-06-02 &#8594; 06-10</div><div class="body">
-<h4>The A&#8594;B hand-off seam (branches A&#8211;F, B5&#8211;B27) <span class="chip kept">kept</span></h4>
-<p><b>Aim.</b> Stop B, trained from a teleported spawn, from dropping the cylinder when it takes over from A&#8217;s
-delivery.</p>
-<p><b>Result.</b> Every teleport-based variant (spawn randomisation, banks of A&#8217;s terminal states, gated switches,
-injected state, co-adaptation) left a post-handoff minimum height of 0.002&#8211;0.012 m against a 0.05 m bar. The live-A
-reset, in which a frozen A drives steps 0&#8211;40 of B&#8217;s episodes and those steps are masked from the update, held at
-0.110 m on 2026-06-10 (B24).</p>
-<p class="where">src/morphohand/rl/live_a_runner.py &#183; scripts/train_handoff_liveA_reset.sh &#183; docs/rl/reorientation.md &#167;2026-06-10</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-06-10 &#8594; 06-13</div><div class="body">
-<h4>Reorientation quality after the seam, and the force chase (B24&#8594;B29, B30&#8211;B34) <span class="chip closed">closed</span></h4>
-<p><b>Aim.</b> Raise the post-hand-off hold from cos 0.75 toward the standalone 0.988 and make the grip gentle.</p>
-<p><b>Result.</b> 0.751 &#8594; 0.784 (b29); b33, with a force penalty, held at 0.891 with force 11 &#8594; 7.5 N and jerk
-113 &#8594; 49 and became the reference. The &#8220;gentle B3&#8221; premise was false: B3 grips 7.0 N, and its &#8220;3 N&#8221;
-was a reward cap.</p>
-<p class="where">docs/rl/reorientation.md &#167;2026-06-12/13 &#183; results/rl/b33_*</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-06-22</div><div class="body">
-<h4>Smooth, low-force pivot, and the thumb that cannot be recruited <span class="chip closed">closed</span></h4>
-<p><b>Aim.</b> A smooth, low-force grasp and turn, the owner&#8217;s objective in place of verticality.</p>
-<p><b>Result.</b> The grip is a pinch: thumb 1.6 N, index and middle 8 N each, and a force-spread reward moved the thumb only
-to 1.8 N. The thumb&#8217;s placement cannot oppose the pair, so the program turned to morphology.</p>
-<p class="where">scripts/probe_grip_balance.py &#183; docs/rl/morphology_optimization_plan.md</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-06-22 &#8594; 06-23</div><div class="body">
-<h4>GraspGenX zero-shot grasps on the morphohand <span class="chip closed">closed</span></h4>
-<p><b>Aim.</b> Seed grasps across morphologies with a generator that takes any gripper from a URDF and a config.</p>
-<p><b>Result.</b> Confidence 0.9+ on the screwdriver, but the baseline hand holds 1&#8211;2 of 10 grasps on every object
-because three same-curling fingers flick the object instead of caging it.</p>
-<p class="where">branch graspgenx-morphology-eval &#183; scripts/graspgenx_*.py &#183; docs/graspgenx/</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-06-25 &#8594; 07-02</div><div class="body">
-<h4>The morphology landscape and the fair per-design A&#8594;B pipeline (m05) <span class="chip kept">kept</span></h4>
-<p><b>Aim.</b> Measure whether the hand&#8217;s geometry changes the reorientation, and define a fair score for a design.</p>
-<p><b>Result.</b> A fair score needs the grasp keyframe IK-retargeted in world coordinates (joint-space transfer gave
-spurious two-finger verdicts), a lift policy A trained from scratch per design, and the trajectory-health scorecard, added
-after a video showed a &#8220;cos 0.94&#8221; hand-off was a two-finger grasp. <code>handoff_m05_FIXED</code> reached cos
-0.898 on three loaded pads, and the a10 &#8594; b33 pair on m05 became the reference for August.</p>
-<p class="where">scripts/retarget_keyframe_ik.py, morph_pipeline_sweep.py &#183; src/morphohand/rl/trajectory_health.py &#183; docs/rl/reorientation.md &#167;2026-07-01</p>
-</div></div>
-
-<div class="era">July: co-design sweeps and their variance</div>
-
-<div class="entry"><div class="when">2026-07-03 &#8594; 07-05</div><div class="body">
-<h4>Per-design sweeps: initial8, large16, confirm <span class="chip closed">closed</span></h4>
-<p><b>Aim.</b> Test whether a local perturbation of m05 (&#177;8 mm) changes the turn under the fair pipeline.</p>
-<p><b>Result.</b> 14 of 16 local designs held and turned; the leader&#8217;s 0.76 was one draw of a distribution spanning
-&#8722;0.36 to 0.76 (m05 itself 0.32 &#177; 0.38, n = 5), and the between-design gap of 0.07 sat inside pooled seed noise of
-0.41. No design was promoted.</p>
-<p class="where">docs/experiments/MORPH_PIPELINE_large16_TABLE.md, MORPH_PIPELINE_confirm.txt &#183; docs/rl/morph_sweep_STATUS.md</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-07-06 &#8594; 07-07</div><div class="body">
-<h4>Variance reduction: fixed A, shared warm start, object-frame imitation <span class="chip kept">kept</span></h4>
-<p><b>Aim.</b> Bring the evaluator&#8217;s noise below the design effects it looks for.</p>
-<p><b>Result.</b> Fixing A cuts the held-cos sd from 0.38 to 0.09, a shared warm start to 0.04, and a reward imitating a
-recorded turn&#8217;s fingertip path in the object frame to 0.02; the designs then separate (m05 0.82 against L01_13 0.72).
-<code>b33</code>&#8217;s own seed band, measured in August at n = 16, is 0.032.</p>
-<p class="where">src/morphohand/rl/imitation.py &#183; scripts/reorient_variance_study.py &#183; docs/experiments/REORIENT_VARIANCE.txt, B33_SEED_BAND.txt</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-07-07 &#8594; 07-10</div><div class="body">
-<h4>Contact hardening, compliance robustness, compliance domain randomisation <span class="chip closed">closed</span></h4>
-<p><b>Aim.</b> Test the policies under a harder contact than solimp 0.97/0.995, which lets pads interpenetrate.</p>
-<p><b>Result.</b> Retrained at 0.985/0.999, the grasp recovers and the rolling turn does not (alignment 13 against 48).
-Policies trained with randomised stiffness show the baseline&#8217;s fragility, and their deployed turn is about 0. Closed by
-the owner.</p>
-<p class="where">docs/experiments/COMPLIANCE_ROBUSTNESS.txt, COMPLIANCE_RATE.txt &#183; docs/rl/compliance_dr_plan.md</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-07-10 &#8594; 07-22</div><div class="body">
-<h4>The policy-bottleneck probes (P1, P2) and the global sweeps (12 &#215; 2 over 9 dimensions, 12 &#215; 2 over 6) <span class="chip closed">closed</span></h4>
-<p><b>Aim.</b> Determine whether the optimiser or the geometry limits the landscape (about 70 GPU-hours, pre-registered).</p>
-<p><b>Result.</b> Pick-up failures were draw noise (5/5 rescued), and the reference&#8217;s clean draws give {0.82, 0.49,
-&#8722;0.16}. In the nine-dimensional box no design cleared the 0.5 bar at n = 4; with the lengths frozen, H06_04 reached a
-mean of 0.748 over four draws, the first replicated design win. Replication cannot rank designs whose means differ by less
-than about 0.25 at feasible cost; a design-conditioned policy was scoped and never built.</p>
-<p class="where">docs/experiments/MORPH_PIPELINE_global12x2_POOLED.md, MORPH_PIPELINE_global6xy_POOLED.md &#183; docs/rl/morph_sweep_STATUS.md &#183; docs/notes/morph_conditioned_policy_spike.md</p>
-</div></div>
-
-<div class="era">Late July &#8211; August: topology, external methods, sim-to-real cliffs</div>
-
-<div class="entry"><div class="when">2026-07-28 &#8594; 08-19</div><div class="body">
-<h4>The opposed-pair (&#8220;perp&#8221;) topology <span class="chip closed">closed</span></h4>
-<p><b>Aim.</b> Turn the tool with gravity by rotating index and middle 90&#176; to face each other, so that a pinch off the
-centre of mass acts as a pin joint.</p>
-<p><b>Result.</b> Trained r4 aligns 100 % of rollouts, holds about 5 s and drops at step 389 of 600; the thumb never bears
-load, and the yaw servo (&#177;45&#176;) cannot produce the 90&#176; opposition. Dropped on 2026-08-18 for the inline
-arrangement, whose 0.911 held beats a 0.995 that drops.</p>
-<p class="where">docs/rl/perp_topology.md &#183; docs/experiments/20260818-perp_review_page/ (<a href="https://claude.ai/code/artifact/fc6e4cfa-1e25-4176-a75a-3dcb9324628d">published</a>) &#183; assets/mjcf/perp/</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-07-31 &#8594; 08-01</div><div class="body">
-<h4>The perp mount workspace, and two wrong diagnoses <span class="chip closed">closed</span></h4>
-<p><b>Result.</b> The r5 morphology queue returned 0 of 5. Palm&#8211;finger interference was blamed twice, wrongly: the queue
-had inherited a 0.05 m lift from a launcher that omitted the flag (r4 trained at 0.14 m). Launchers are now checked against
-the last working run&#8217;s config.</p>
-<p class="where">docs/rl/perp_topology.md &#183; scripts/assert_config_parity.py</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-07 &#8594; 08-03</div><div class="body">
-<h4>UHAS (unified hand action space), E0&#8211;E8 <span class="chip closed">closed</span></h4>
-<p><b>Aim.</b> Score designs without per-design training through a cross-embodiment cube-reposing policy.</p>
-<p><b>Result.</b> Its offline &#8220;authority&#8221; metric orders drop rate at &#961; &#8722;0.94 and reorientation at &#8722;0.03; a
-finetune moved success from 0 to 0 %, and on video the fingers barely move. Closed by the owner.</p>
-<p class="where">branch experiment/uhas &#183; src/morphohand/uhas/</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-08-17 &#8594; 08-18</div><div class="body">
-<h4>Fingertip shape and the three sim-to-real cliffs on b33 <span class="chip kept">kept</span></h4>
-<p><b>Result.</b> Pad friction &#215;0.5 drops b33&#8217;s hold to 0.09, a 15 % thinner shaft to 0.03, and contact stiffness
-dmax 0.997 the reorientation to 0.09 (N = 32 per point). A compact convex tip of radius 5&#8211;6 mm is best and every
-enlarged patch loses, which set the fingertip and placement spec (&#177;2 mm, &#177;0.1 rad, &#956; &#8819; 1.7, 1&#8211;3 mm pad
-deflection).</p>
-<p class="where">docs/experiments/SIM2REAL_ROBUSTNESS.txt, FINGERTIP_POLICY.txt &#183; scripts/sim2real_robustness_sweep.py, fingertip_policy_sweep.py</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-08-18</div><div class="body">
-<h4>Hardening b33 by domain randomisation (compliance, friction, both) <span class="chip closed">closed</span></h4>
-<p><b>Result.</b> Nothing hardened: both compliance arms lost the soft end they had worked at and peaked in the middle of the
-band, and the friction arm kept its nominal 0.94.</p>
-<p class="where">docs/experiments/HARDEN_B33.txt &#183; scripts/harden_b33_queue.py</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-08-19</div><div class="body">
-<h4>A 25 mm proximal (sp25) hand, length as the only variable <span class="chip open">unresolved</span></h4>
-<p><b>Result.</b> Grips better than m05 (hold 1.000 against 0.969, 5.5 N against 9.7 N); its reorientation of
-0.41&#8211;0.56 at n = 1 is inside the draw sd of 0.3&#8211;0.5, and from-scratch B failed 0/4.</p>
-<p class="where">docs/experiments/SHORTPROX25.txt</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-08-20 &#8594; 08-21</div><div class="body">
-<h4>DeltaAI, and the b33 seed band <span class="chip kept">kept</span></h4>
-<p><b>Result.</b> A GH200 runs mjwarp at 0.66&#215; the workstation&#8217;s 4070 Ti SUPER (6,950 against 10,530 steps/s), so
-the cluster adds concurrency. Sixteen warm-started draws of b33&#8217;s recipe: mean 0.873, sd 0.032, with b33 at 0.891.</p>
-<p class="where">docs/notes/20260820-deltaai_bulk_training_runbook.md &#183; docs/experiments/B33_SEED_BAND.txt &#183; docs/experiments/20260908-compute_budget/</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-08-27</div><div class="body">
-<h4>The link-length gate, and what &#8220;proximal length&#8221; had meant <span class="chip closed">closed</span></h4>
-<p><b>Result.</b> Every published finger length named a co-design parameter spanning several links: m05&#8217;s
-&#8220;proximal&#8221; is 75.8&#8211;80.9 mm, and the hardware target is 32 (yaw) / 40 / 30 mm. With the 32 mm yaw link all four
-candidate lengths clear the geometric ceiling, so only a trained turn could rank them; none was trained.</p>
-<p class="where">docs/experiments/LINK_LENGTH_GATE.txt &#183; scripts/build_link_length_variants.py</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-08-27</div><div class="body">
-<h4>The object-frame reorientation primitive <span class="chip closed">closed</span></h4>
-<p><b>Aim.</b> Describe the learned turn without reference to the hand, so that it can be replayed on any morphology.</p>
-<p><b>Result.</b> Fingertip positions in a tilt frame inside the object reproduce the tips to 2&#8211;3 mm; 69 % (b33) and
-46 % (r4) of the alignment gain occurs while the shaft touches the floor, and the wrist contributes 0 %. On a real_v1 hand
-the primitive holds cos 0.848, below the object&#8217;s own rigid-body schedule (0.909).</p>
-<p class="where">scripts/reorient_primitive.py &#183; docs/experiments/REORIENT_PRIMITIVE.txt, 20260827-reorient_primitive/</p>
-</div></div>
-
-<div class="era">Late August: the real_v1 hand</div>
-
-<div class="entry"><div class="when">2026-08-27</div><div class="body">
-<h4>The real_v1 hand built from the CAD: builder, pose fitter, pipeline <span class="chip kept">kept</span></h4>
-<p><b>Result.</b> One spec emits the hand, the scene and a morphology-actuated variant. The shipped MJCF had three silent
-defects: no tip geometry, 223 N of palm interpenetration at rest, and a palm 30 mm too high for any grasp. Because the
-fitter re-centres the palm, the design set reduces to two coordinates (thumb&#8211;pair x separation, pair y separation),
-and only a held lift may gate graspability.</p>
-<p class="where">scripts/build_real_v1_scenes.py, fit_real_v1_pose.py, real_v1_pipeline.py &#183; docs/experiments/20260827-real_v1/</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-08-27 &#8594; 08-28</div><div class="body">
-<h4>The rotational lock, and the raised axis <span class="chip kept">kept</span></h4>
-<p><b>Aim.</b> Explain why four real_v1 designs held the A&#8594;B hand-off and turned the shaft only 0.9&#8211;4.0&#176;.</p>
-<p><b>Result.</b> A turn of &#952; about the pinch axis with pads on fixed material points drives the descending pad down by
-straddle &#183; sin &#952;, paid in finger extension; the fitter had taken the deepest palm, leaving a ceiling of
-2.5&#8211;10.2&#176;. Raising the rotation axis above the contact plane moves the cost to retraction, and open loop
-rv05_manual reaches cos 0.996 floor-free on three pads at 12 N; this two-keyframe controller is the paper&#8217;s.</p>
-<p class="where">scripts/probe_real_v1_carry.py &#183; docs/experiments/20260827-real_v1/</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-08-28</div><div class="body">
-<h4>The 108-hand design search <span class="chip kept">kept</span></h4>
-<p><b>Result.</b> 80 of 108 designs admit a grasp and 49 reorient, all by one contact style (a pinch-roll with thumb and
-middle on the shaft). The thumb&#8217;s moment arm about the pinch axis predicts reorientation (&#961; +0.443, AUC 0.821); the
-kinematic ceiling does not (&#961; +0.096).</p>
-<p class="where">docs/experiments/20260828-real_v1_search/ &#183; scripts/real_v1_design_search.py</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-08-29</div><div class="body">
-<h4>The deployment envelope <span class="chip kept">kept</span></h4>
-<p><b>Aim.</b> Measure how a plan, loaded before the tool is placed, tolerates a hand, tool and servo that differ from the
-simulated ones.</p>
-<p><b>Result.</b> Grasp and lift survive every perturbation and the turn does not (servo zeros &#177;2&#176;: 39 % kept).
-rv04_mid, best nominal at 0.997, is the worst deployable at 0.46; the built hand&#8217;s flat pads tolerate 8 mm axial
-placement bands.</p>
-<p class="where">docs/experiments/20260829-real_v1_deploy/DEPLOY.md &#183; scripts/real_v1_deploy_envelope.py</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-08-29 &#8594; 08-30</div><div class="body">
-<h4>First bench night: timing, the grip window, the servo bus, overload protection, self-collision <span class="chip kept">kept</span></h4>
-<p><b>Result.</b> The first trajectory ran at 50.9 Hz with zero bus errors and dropped the tool. The exported grip is a
-position the simulator reaches with 10 mm of pad penetration, which position control turns into clamp force that stalls the
-turn at 12.6&#176; of 28.6&#176;; the stall is the servo&#8217;s overload protection (load plateau at exactly 200), which fires on
-42 % of middle-yaw runs. Setting the FTDI latency timer to 1 ms raised the read rate from 6.95 to 111 Hz, and two of four
-exported plans had fingers interpenetrating along the trajectory.</p>
-<p class="where">docs/experiments/20260829-real_v1_bench_gripwindow/, 20260830-real_v1_bench_suite/ &#183; scripts/real_v1_trajectory_clearance.py</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-08-30</div><div class="body">
-<h4>The Sobol-128 pilot, and the hold that was a fall <span class="chip kept">kept</span></h4>
-<p><b>Result.</b> Scored 1.6 s after the turn, the finalists looked held; re-run to 12.8 s, every one drops by
-3.2&#8211;8.0 s, because the &#177;0.5 rad clip stopped a middle finger that needed 62&#8211;92&#176;. Later screens score at a
-convergent hold and sweep the clip.</p>
-<p class="where">docs/experiments/20260830-real_v1-sobol128/HOLD_REVIEW.md &#183; scripts/probe_hold_convergence.py</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-08-30</div><div class="body">
-<h4>The 4,096 retention screen and the clip re-screen <span class="chip kept">kept</span></h4>
-<p><b>Result.</b> 28,000 rollouts across five clips; eleven of the sixteen best hands by proof-lift retention keep the tool
-at no clip on the bench schedule, and the three that pass both became D2, D3 and D6.</p>
-<p class="where">docs/experiments/20260830-real_v1-budget-rescreen/, 20260830-real_v1-sobol4096/ &#183; scripts/real_v1_budget_rescreen.sh, real_v1_select_budget.py</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-08-30</div><div class="body">
-<h4>Observation ablation, and the blind-actor 2 &#215; 2 <span class="chip closed">closed</span></h4>
-<p><b>Result.</b> b33 ignores its input (replayed observations 0.900 against 0.895); zeroing an input collapses the policy
-(0.28) because the value is off-manifold. A sighted/blind &#215; nominal/jittered finetune grid across three hands was
-inconclusive, with three of six arms collapsed.</p>
-<p class="where">docs/experiments/20260830-obs_ablation/, 20260830-real_v1-obs-transfer/ &#183; scripts/probe_obs_ablation.py</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-08-30 &#8594; 08-31</div><div class="body">
-<h4>AprilTag object tracking <span class="chip kept">kept</span></h4>
-<p><b>Result.</b> Two tags give the tool&#8217;s pose at 0.017&#176; and 0.030 mm rms; the bench height equals the simulated
-height plus 44.0 mm. The vane tag was reprinted at 40 mm after going dark on about 40 % of runs at 30 mm.</p>
-<p class="where">src/morphohand/bench/tags.py &#183; scripts/real_v1_tag_tracker.py, real_v1_tracker_service.py &#183; docs/experiments/20260831-real_v1-object-tracking/</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-08-31</div><div class="body">
-<h4>Sobol-8,192 and promotion <span class="chip kept">kept</span></h4>
-<p><b>Result.</b> The paper&#8217;s funnel (<a href="#funnel">&#167;2</a>). Doubling the population roughly doubled the retained
-and confirmed counts (269 &#8594; 535, 119 &#8594; 227); <code>sv1_w6689</code> (D1) shipped as the best-aligned plan.</p>
-<p class="where">docs/experiments/20260831-real_v1-sobol8192/README.md &#183; scripts/real_v1_sobol8192.sh, real_v1_promote_designs.py</p>
-</div></div>
-
-<div class="era">September: the bench study, the plant, and the chain</div>
-
-<div class="entry"><div class="when">2026-08-31 &#8594; 09-01</div><div class="body">
-<h4>The transfer study: protocol, stage-1 repeatability, eight hands, and two corrections <span class="chip kept">kept</span></h4>
-<p><b>Result.</b> With the protocol fixed before the first trial and a stage-1 repeatability of sd 0.011 on one plan, the eight
-hands gave &#961;<sub>s</sub> = 0.50 (p = 0.21) on 77 trials, with ejection on D6 and stall on D3. The pooled &#8220;drops
-overshoot&#8221; claim was withdrawn once the tag was shown to report rotation during the fall. This is the paper&#8217;s
-Section III.</p>
-<p class="where">docs/experiments/20260831-real_v1-transfer-protocol/, 20260901-real_v1-transfer-firstpass/ &#183; scripts/real_v1_transfer_figures.py &#183; paper/transfer_corrections.tex</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-09-02</div><div class="body">
-<h4>Servo system identification and the plant correction <span class="chip kept">kept</span></h4>
-<p><b>Result.</b> Over 236 archived runs the deflection is 0.018&#176; per load unit, one constant for four loaded joints
-(R&#178; 0.94&#8211;0.99), with the protection cliff. The fitted gain of about 0.5, against the shipped 30, reproduces
-rv05&#8217;s level (retention 0.94 against the bench&#8217;s 0.92) and leaves the eight-hand ordering where it was.</p>
-<p class="where">docs/experiments/20260902-servo-sysid/, 20260902-servo-compliance/ &#183; scripts/fit_servo_compliance.py, apply_measured_plant.py, calibrate_plant_kp.py, plant_drop_gate.py</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-09-02</div><div class="body">
-<h4>Ground-supported gaiting <span class="chip kept">kept</span></h4>
-<p><b>Aim.</b> After the turn, drive a standing screw with three pads.</p>
-<p><b>Result.</b> A four-phase set-point cycle turns a shaft standing on its end 5.0 turns in 40 cycles (sd 0.07); without
-the floor every hand loses the shaft in cycle 1. The pad ring acts as a 1.684:1 gear, with an optimum fingertip radius of
-13 mm.</p>
-<p class="where">docs/experiments/20260902-real_v1_gait/ &#183; scripts/probe_real_v1_gait.py</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-09-03</div><div class="body">
-<h4>The chain on a UR5e into a countersink; the relay handover <span class="chip kept">kept</span></h4>
-<p><b>Result.</b> Grasp, lift, turn, set-down and gait run 6/6 on rv05 on a floating palm and on the UR5e. A 45&#176;
-countersink takes 18 % of the turn per cycle with 16&#215; less walk, and a relay handover changes grasp without releasing
-(0.4 % of the task uncontacted against 49 %).</p>
-<p class="where">docs/experiments/20260903-real_v1_chain/, 20260903-real_v1_handover/, 20260903-real_v1_screw/ &#183; scripts/probe_real_v1_chain.py, palm_driver.py</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-09-04 &#8594; 09-05</div><div class="body">
-<h4>Bench geometry, post-turn drift on the ranked hands, the table stand and the spread of the eight <span class="chip retracted">one retracted</span></h4>
-<p><b>Result.</b> With the payload declared, pedestal and wrist stack cost nothing and the turn ends 8&#176; from vertical on
-rv05 (31&#176; undeclared). On the ranked hands the post-turn drift ranges from +29.8 to &#8722;16.7&#176;. The table-supported
-reorientation (&#8220;89.1&#176; sd 0.9&#8221;) was retracted: 116 of 177 stands had zero pads on the tool.</p>
-<p class="where">docs/experiments/20260904-real_v1_bench/, 20260904-real_v1_held/ (retracted), 20260904-real_v1_ranked/ &#183; scripts/paper_morphology_diversity.py</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-09-06</div><div class="body">
-<h4>Control diagnosis on the deployed hands: pole flip, fitter extension, held turn, grip loop, one completed chain <span class="chip kept">kept</span></h4>
-<p><b>Result.</b> Over sixteen sweeps and 2,214 rollouts, three scoring defects each produced a result that did not exist.
-The plans&#8217; pivot height turns the tool to the wrong pole (cos &#8722;0.988), and the fitter leaves 0.4&#8211;1.3 mm of
-extension where the turn needs 2.7. D6 completes the whole chain at pivot 0.15 open loop on 3 of 4 seeds, with the
-arm&#8217;s re-pose making the last 50&#176;.</p>
-<p class="where">docs/experiments/20260906-control_diagnosis/, 20260906-screen_vs_chain/, 20260906-pad_elevation/ (retracted), 20260908-reorientation_journey/</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-09-10</div><div class="body">
-<h4>The KaRMA kinematic metric on 504 real_v1 designs <span class="chip kept">kept</span></h4>
-<p><b>Result.</b> AUC 0.802 for retention and &#961; 0.105 against the screened turn: the kinematic metric separates the hands
-that keep the tool and does not rank the turn.</p>
-<p class="where">docs/experiments/20260910-karma_metric/ &#183; scripts/karma_export_urdf.py</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-09-16</div><div class="body">
-<h4>The chain on the calibrated plant; the turn mechanism on three plants; pinch-and-swing; the two-tip gait; the basketball <span class="chip open">open</span></h4>
-<p><b>Result.</b> At the calibrated gain (kp 0.5) the fingers turn the tool 0&#8211;10&#176; at every budget and pivot, the arm
-stands it on three pads for five hands, and the handover and gait fail everywhere; the finger-driven 90&#176; turn exists only
-at kp &#8805; 2. Releasing the middle pad swings the tool 80&#176; in 0.3 s (pinch-and-swing, rejected as primary), and a
-basketball is a friction cap grasp, &#952; &#8804; 65&#176; on the widest layout.</p>
-<p class="where">docs/experiments/20260916-calibrated_plant_chain/, 20260916-turn_mechanism/, 20260916-swing_reorient/, 20260916-tip_gait/, 20260916-basketball/</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-09-17</div><div class="body">
-<h4>D6 reorientation policy on the calibrated plant, 60 M steps, and a grip finetune <span class="chip kept">kept</span></h4>
-<p><b>Result.</b> 64/64 held at cos 0.933, with the tool rolling across the pads; a second 60 M draw landed at 0.640, so one run
-per arm cannot rank a recipe change. A grip-penalty finetune reached 0.969 at 10.8 N.</p>
-<p class="where">docs/experiments/20260917-d6_cal_60M/ &#183; results/rl/20260917-1844-d6_cal_reorient_ft_gpm5_20M_s0</p>
-</div></div>
-
-<div class="entry"><div class="when">2026-09-19 &#8594; 09-20</div><div class="body">
-<h4>The hands tranche and the robust tranche <span class="chip open">current</span></h4>
-<p><b>Result.</b> Sixteen, then twelve finetunes across the deployed hands with a clipped residual (<a href="#learned">&#167;7</a>);
-&#8220;64/64 held&#8221; was one rollout repeated under 64 contact solves until the spawn was jittered. Three plant defects in
-the mjlab environment were fixed (object contact class, floor, tip mesh), and <code>--seed</code> was found to be a dead
-flag.</p>
-<p class="where">docs/experiments/20260919-hands_tranche/, 20260920-robust_tranche/ &#183; scripts/hands_tranche_queue.py, real_v1_chain_policy.py</p>
-</div></div>
-</div>
+<div class="tw"><table><thead><tr><th>Dates</th><th>Experiment</th><th>Status</th><th>Result and files</th></tr></thead><tbody>
+<tr><td colspan="4"><b>April &#8211; May: the simulation-first grasp stack</b></td></tr>
+<tr><td class="small" style="white-space:nowrap">04-10 &#8594; 04-30</td><td>Minimum viable grasp and the frozen-scene protocol</td><td><span class="chip kept">Kept</span></td><td class="small">Unactuated morphology joints drift under contact; freezing them into body transforms flipped one benchmark&#8217;s sign, and every later evaluation freezes first.<br><span class="mono">src/morphohand/sampling/scene.py</span></td></tr>
+<tr><td class="small" style="white-space:nowrap">04-13</td><td>Foundational-pose sampling, 500 morphologies</td><td><span class="chip closed">Closed</span></td><td class="small">Per-morphology adaptation recovered 22 % more feasible grasps; retired when RL replaced grasp scores as the objective.<br><span class="mono">docs/architecture/4-13_pollard_sampling.md</span></td></tr>
+<tr><td class="small" style="white-space:nowrap">04-20 &#8594; 04-21</td><td>1,000-morphology, three-keyframe screwdriver sweep</td><td><span class="chip closed">Closed</span></td><td class="small">The pre-grasp keyframe moved feasibility by 30 points (0.994 / 0.884 / 0.696) before morphology varied.<br><span class="mono">scripts/run6_combined_multitask.py</span></td></tr>
+<tr><td class="small" style="white-space:nowrap">04-13 &#8594; 04-14</td><td>MJX autodiff and a DiffMJX lane</td><td><span class="chip closed">Closed</span></td><td class="small">Gradient steps equalled CEM (6.9) only from a foundational keyframe, the warm start CEM was meant to make unnecessary.<br><span class="mono">docs/simulators/diffmjx_plan.md</span></td></tr>
+<tr><td class="small" style="white-space:nowrap">04-14</td><td>GPU backends for the evaluator</td><td><span class="chip closed">Closed</span></td><td class="small">The mjwarp backend ran 47&#215; slower than CPU MuJoCo at batch size one; GPU physics returned in May inside mjlab.<br><span class="mono">docs/architecture/warp_mujoco_bottleneck.md</span></td></tr>
+<tr><td class="small" style="white-space:nowrap">05-12</td><td>Contact-target patches, eigengrasps, force-closure energy</td><td><span class="chip closed">Closed</span></td><td class="small">Contact-target patches helped only the long prism (+3.26); the later program did not use them.<br><span class="mono">docs/grasp_methods.md</span></td></tr>
+<tr><td class="small" style="white-space:nowrap">04-24 &#8594; 05-20</td><td>Power-drill pivot-to-down</td><td><span class="chip closed">Closed</span></td><td class="small">No closing grasp exists from the <code>open_flat</code> keyframe, which places the fingertips tangent to the barrel.<br><span class="mono">docs/architecture/4-24_power_drill_run8_recovery.md</span></td></tr>
+<tr><td class="small" style="white-space:nowrap">05-17 &#8594; 05-20</td><td>Lightning Grasp on the morphohand</td><td><span class="chip closed">Closed</span></td><td class="small">363 cube grasps in 34 s, the best at 4.93 against CEM&#8217;s 6.70.<br><span class="mono">scripts/lightning_grasp_runner.py</span></td></tr>
+<tr><td class="small" style="white-space:nowrap">05-22 &#8594; 05-29</td><td>RL pipeline on mjlab and MuJoCo-Warp</td><td><span class="chip kept">Kept</span></td><td class="small">The <code>a_lift</code> recipe, a PPO residual on a scripted close, is the lift half of every later policy.<br><span class="mono">configs/recipes/a_lift.yaml</span></td></tr>
+<tr><td colspan="4"><b>June: in-hand reorientation and the hand-off</b></td></tr>
+<tr><td class="small" style="white-space:nowrap">05-29 &#8594; 06-01</td><td>In-hand reorientation v1&#8211;v5</td><td><span class="chip closed">Closed</span></td><td class="small">v4 rotated by bracing the cylinder against the floor and v5, with the floor forbidden, did not rotate.<br><span class="mono">docs/rl/reorientation.md</span></td></tr>
+<tr><td class="small" style="white-space:nowrap">06-01 &#8594; 06-02</td><td>Policy B, the two-policy split</td><td><span class="chip closed">Closed</span></td><td class="small">A separate turn policy reached 3.2&#215; v4&#8217;s alignment reward; the critic must be warm-started with the actor.<br><span class="mono">docs/rl/reorientation.md</span></td></tr>
+<tr><td class="small" style="white-space:nowrap">06-02 &#8594; 06-10</td><td>A&#8594;B hand-off</td><td><span class="chip kept">Kept</span></td><td class="small">Every teleport-based variant dropped the cylinder at the hand-off; the live-A reset held it at 0.110 m (B24).<br><span class="mono">src/morphohand/rl/live_a_runner.py</span></td></tr>
+<tr><td class="small" style="white-space:nowrap">06-10 &#8594; 06-13</td><td>Turn quality after the hand-off, and the force chase</td><td><span class="chip closed">Closed</span></td><td class="small">b33 held at cos 0.891 with a grip force of 7.5 N and became the reference policy.<br><span class="mono">results/rl/b33_*</span></td></tr>
+<tr><td class="small" style="white-space:nowrap">06-22</td><td>Smooth, low-force pivot</td><td><span class="chip closed">Closed</span></td><td class="small">The grip is a pinch (thumb 1.6 N, index and middle 8 N each), so the program turned to morphology.<br><span class="mono">scripts/probe_grip_balance.py</span></td></tr>
+<tr><td class="small" style="white-space:nowrap">06-22 &#8594; 06-23</td><td>GraspGenX zero-shot grasps</td><td><span class="chip closed">Closed</span></td><td class="small">The baseline hand held 1&#8211;2 of 10 grasps per object, because its same-curling fingers cannot cage.<br><span class="mono">docs/graspgenx/</span></td></tr>
+<tr><td class="small" style="white-space:nowrap">06-25 &#8594; 07-02</td><td>Morphology landscape and the per-design pipeline (m05)</td><td><span class="chip kept">Kept</span></td><td class="small">IK-retargeted keyframes, a lift policy per design and the trajectory-health scorecard; a10 &#8594; b33 on m05 reached cos 0.898.<br><span class="mono">src/morphohand/rl/trajectory_health.py</span></td></tr>
+<tr><td colspan="4"><b>July: co-design sweeps and their variance</b></td></tr>
+<tr><td class="small" style="white-space:nowrap">07-03 &#8594; 07-05</td><td>Per-design sweeps</td><td><span class="chip closed">Closed</span></td><td class="small">The between-design gap of 0.07 sat inside a pooled seed noise of 0.41.<br><span class="mono">docs/rl/morph_sweep_STATUS.md</span></td></tr>
+<tr><td class="small" style="white-space:nowrap">07-06 &#8594; 07-07</td><td>Variance reduction</td><td><span class="chip kept">Kept</span></td><td class="small">A fixed A, a shared warm start and object-frame imitation cut the held-cos sd from 0.38 to 0.02.<br><span class="mono">src/morphohand/rl/imitation.py</span></td></tr>
+<tr><td class="small" style="white-space:nowrap">07-07 &#8594; 07-10</td><td>Contact hardening and compliance randomisation</td><td><span class="chip closed">Closed</span></td><td class="small">A harder contact keeps the grasp and collapses the turn (alignment 13 against 48).<br><span class="mono">docs/experiments/COMPLIANCE_ROBUSTNESS.txt</span></td></tr>
+<tr><td class="small" style="white-space:nowrap">07-10 &#8594; 07-22</td><td>Policy-bottleneck probes and global sweeps</td><td><span class="chip closed">Closed</span></td><td class="small">Only H06_04 replicated a design win (0.748 over four draws); ranking designs closer than about 0.25 costs too many draws.<br><span class="mono">docs/rl/morph_sweep_STATUS.md</span></td></tr>
+<tr><td colspan="4"><b>Late July &#8211; August: topology, external methods, sim-to-real cliffs</b></td></tr>
+<tr><td class="small" style="white-space:nowrap">07-28 &#8594; 08-19</td><td>Opposed-pair (&#8220;perp&#8221;) topology</td><td><span class="chip closed">Closed</span></td><td class="small">It aligned the tool in 100 % of rollouts and dropped it in every one; the inline arrangement (0.911 held) replaced it.<br><span class="mono">docs/rl/perp_topology.md</span></td></tr>
+<tr><td class="small" style="white-space:nowrap">07-31 &#8594; 08-01</td><td>Perp mount workspace</td><td><span class="chip closed">Closed</span></td><td class="small">A 0-of-5 queue came from a launcher missing the lift-height flag; launchers are now checked against the last working config.<br><span class="mono">scripts/assert_config_parity.py</span></td></tr>
+<tr><td class="small">2026-07 &#8594; 08-03</td><td>UHAS (unified hand action space)</td><td><span class="chip closed">Closed</span></td><td class="small">Its design metric ordered drops (&#961; &#8722;0.94) and not reorientation (&#8722;0.03).<br><span class="mono">src/morphohand/uhas/</span></td></tr>
+<tr><td class="small" style="white-space:nowrap">08-17 &#8594; 08-18</td><td>Fingertip shape and the sim-to-real cliffs</td><td><span class="chip kept">Kept</span></td><td class="small">Halved friction, a 15 % thinner shaft or a stiffer contact each drop b33 below 0.1; a convex tip of 5&#8211;6 mm radius is best.<br><span class="mono">docs/experiments/SIM2REAL_ROBUSTNESS.txt</span></td></tr>
+<tr><td class="small" style="white-space:nowrap">08-18</td><td>Hardening b33 by domain randomisation</td><td><span class="chip closed">Closed</span></td><td class="small">No randomisation arm widened the working band.<br><span class="mono">docs/experiments/HARDEN_B33.txt</span></td></tr>
+<tr><td class="small" style="white-space:nowrap">08-19</td><td>A 25 mm proximal (sp25) hand</td><td><span class="chip open">Open</span></td><td class="small">It grips better than m05; its turn at n = 1 lies inside the draw noise.<br><span class="mono">docs/experiments/SHORTPROX25.txt</span></td></tr>
+<tr><td class="small" style="white-space:nowrap">08-20 &#8594; 08-21</td><td>DeltaAI and the b33 seed band</td><td><span class="chip kept">Kept</span></td><td class="small">A GH200 runs mjwarp at 0.66&#215; the workstation; warm-started draws of b33&#8217;s recipe have an sd of 0.032.<br><span class="mono">docs/experiments/B33_SEED_BAND.txt</span></td></tr>
+<tr><td class="small" style="white-space:nowrap">08-27</td><td>Link-length gate</td><td><span class="chip closed">Closed</span></td><td class="small">With the 32 mm yaw link all four candidate lengths clear the geometric ceiling; none was trained.<br><span class="mono">docs/experiments/LINK_LENGTH_GATE.txt</span></td></tr>
+<tr><td class="small" style="white-space:nowrap">08-27</td><td>Object-frame reorientation primitive</td><td><span class="chip closed">Closed</span></td><td class="small">69 % of b33&#8217;s alignment gain occurs while the shaft touches the floor.<br><span class="mono">scripts/reorient_primitive.py</span></td></tr>
+<tr><td colspan="4"><b>Late August: the real_v1 hand</b></td></tr>
+<tr><td class="small" style="white-space:nowrap">08-27</td><td>real_v1 hand built from the CAD</td><td><span class="chip kept">Kept</span></td><td class="small">The shipped MJCF had no tip geometry, pressed the palm into the fingers with 223 N at rest and sat 30 mm too high for any grasp.<br><span class="mono">scripts/build_real_v1_scenes.py</span></td></tr>
+<tr><td class="small" style="white-space:nowrap">08-27 &#8594; 08-28</td><td>Rotational lock and the raised axis</td><td><span class="chip kept">Kept</span></td><td class="small">Raising the rotation axis above the contact plane turned rv05_manual to cos 0.996 floor-free, open loop.<br><span class="mono">scripts/probe_real_v1_carry.py</span></td></tr>
+<tr><td class="small" style="white-space:nowrap">08-28</td><td>108-hand design search</td><td><span class="chip kept">Kept</span></td><td class="small">49 of 108 designs reorient, and the thumb&#8217;s moment arm predicts which (AUC 0.821).<br><span class="mono">docs/experiments/20260828-real_v1_search/</span></td></tr>
+<tr><td class="small" style="white-space:nowrap">08-29</td><td>Deployment envelope</td><td><span class="chip kept">Kept</span></td><td class="small">Servo zero offsets of &#177;2&#176; cut retention through the turn to 39 %; a 2 mm mount error costs nothing.<br><span class="mono">scripts/real_v1_deploy_envelope.py</span></td></tr>
+<tr><td class="small" style="white-space:nowrap">08-29 &#8594; 08-30</td><td>First bench night</td><td><span class="chip kept">Kept</span></td><td class="small">The first trajectory ran at 50.9 Hz and dropped the tool; the stall was the servo&#8217;s overload protection.<br><span class="mono">docs/experiments/20260830-real_v1_bench_suite/</span></td></tr>
+<tr><td class="small" style="white-space:nowrap">08-30</td><td>Sobol-128 pilot</td><td><span class="chip kept">Kept</span></td><td class="small">Every finalist dropped within 3.2&#8211;8.0 s once the hold ran to 12.8 s, because the &#177;0.5 rad clip stopped the middle finger.<br><span class="mono">docs/experiments/20260830-real_v1-sobol128/</span></td></tr>
+<tr><td class="small" style="white-space:nowrap">08-30</td><td>4,096 screen and clip re-screen</td><td><span class="chip kept">Kept</span></td><td class="small">Eleven of the sixteen best hands kept the tool at no clip on the bench schedule.<br><span class="mono">scripts/real_v1_select_budget.py</span></td></tr>
+<tr><td class="small" style="white-space:nowrap">08-30</td><td>Observation ablation</td><td><span class="chip closed">Closed</span></td><td class="small">b33 ignores its input (0.900 with replayed observations against 0.895).<br><span class="mono">scripts/probe_obs_ablation.py</span></td></tr>
+<tr><td class="small" style="white-space:nowrap">08-30 &#8594; 08-31</td><td>AprilTag object tracking</td><td><span class="chip kept">Kept</span></td><td class="small">0.017&#176; and 0.030 mm rms; the bench height equals the simulated height plus 44.0 mm.<br><span class="mono">src/morphohand/bench/tags.py</span></td></tr>
+<tr><td class="small" style="white-space:nowrap">08-31</td><td>Sobol-8,192 and promotion</td><td><span class="chip kept">Kept</span></td><td class="small">The paper&#8217;s funnel (<a href="#funnel">&#167;2</a>).<br><span class="mono">docs/experiments/20260831-real_v1-sobol8192/</span></td></tr>
+<tr><td colspan="4"><b>September: the bench study, the plant and the chain</b></td></tr>
+<tr><td class="small" style="white-space:nowrap">08-31 &#8594; 09-01</td><td>Transfer study on eight hands</td><td><span class="chip kept">Kept</span></td><td class="small">&#961;<sub>s</sub> = 0.50 (p = 0.21) on 77 trials; the paper&#8217;s Section III.<br><span class="mono">docs/experiments/20260901-real_v1-transfer-firstpass/</span></td></tr>
+<tr><td class="small" style="white-space:nowrap">09-02</td><td>Servo identification</td><td><span class="chip kept">Kept</span></td><td class="small">0.018&#176; of deflection per load unit on every loaded joint, and a protective-torque cutoff.<br><span class="mono">docs/experiments/20260902-servo-sysid/</span></td></tr>
+<tr><td class="small" style="white-space:nowrap">09-02</td><td>Ground-supported gaiting</td><td><span class="chip kept">Kept</span></td><td class="small">5.0 turns in 40 cycles with the shaft standing on the floor, and none without the floor.<br><span class="mono">docs/experiments/20260902-real_v1_gait/</span></td></tr>
+<tr><td class="small" style="white-space:nowrap">09-03</td><td>Chain on a UR5e and the relay handover</td><td><span class="chip kept">Kept</span></td><td class="small">The chain runs 6/6 on rv05, and the relay changes grasp without releasing the tool.<br><span class="mono">docs/experiments/20260903-real_v1_chain/</span></td></tr>
+<tr><td class="small" style="white-space:nowrap">09-04 &#8594; 09-05</td><td>Bench geometry, ranked drift, table stand</td><td><span class="chip retracted">Retracted</span></td><td class="small">With the payload declared the wrist stack costs nothing; the table stand was retracted (116 of 177 stands had no pad on the tool).<br><span class="mono">docs/experiments/20260904-real_v1_bench/</span></td></tr>
+<tr><td class="small" style="white-space:nowrap">09-06</td><td>Control diagnosis on the deployed hands</td><td><span class="chip kept">Kept</span></td><td class="small">The plans&#8217; pivot turned the tool to the wrong pole, and D6 completed the chain open loop on 3 of 4 seeds.<br><span class="mono">docs/experiments/20260908-reorientation_journey/</span></td></tr>
+<tr><td class="small" style="white-space:nowrap">09-10</td><td>KaRMA kinematic metric</td><td><span class="chip kept">Kept</span></td><td class="small">AUC 0.802 for retention and &#961; 0.105 against the turn.<br><span class="mono">docs/experiments/20260910-karma_metric/</span></td></tr>
+<tr><td class="small" style="white-space:nowrap">09-16</td><td>Calibrated-plant chain, turn mechanism, swing, gait, basketball</td><td><span class="chip open">Open</span></td><td class="small">At kp 0.5 the fingers turn the tool 0&#8211;10&#176;; the finger-driven 90&#176; turn exists only at kp &#8805; 2.<br><span class="mono">docs/experiments/20260916-turn_mechanism/</span></td></tr>
+<tr><td class="small" style="white-space:nowrap">09-17</td><td>D6 reorientation policy, 60 M steps</td><td><span class="chip kept">Kept</span></td><td class="small">64/64 held at cos 0.933; a grip finetune reached 0.969 at 10.8 N.<br><span class="mono">docs/experiments/20260917-d6_cal_60M/</span></td></tr>
+<tr><td class="small" style="white-space:nowrap">09-19 &#8594; 09-20</td><td>Hands and robust tranches</td><td><span class="chip open">Open</span></td><td class="small">Clipped residuals on D1&#8211;D7, three mjlab plant defects fixed, and <code>--seed</code> found to be a dead flag.<br><span class="mono">docs/experiments/20260920-robust_tranche/</span></td></tr>
+</tbody></table></div>
 </div></section>
 
 <section id="future"><div class="col">
