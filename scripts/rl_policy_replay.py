@@ -50,11 +50,16 @@ STUDIES = {"20261008": (ROOT / "docs/experiments/20261008-contact_model_policies
 
 def block_dir(d: Path) -> Path:
     """The replay dir of the TPU block mesh run of the same seed, whose bench.xml gives Drake and Newton the plain
-    block geometry (pad and skin runs have sphere tips, the box run the legacy box)."""
+    block geometry (pad and skin runs have sphere tips, the box run the legacy box). A seed whose mesh run was stopped
+    before its final checkpoint takes seed 0's: every run lifts the palm to the same pose (to 1e-7 m) and the mesh
+    scene is the same file for all seeds."""
     n = d.name
     for a, b in (("pads1", "mesh"), ("tpu27skin", "tpu27mesh"), ("_box_", "_tpu27mesh_")):
         n = n.replace(a, b)
-    return d.with_name(n)
+    bd = d.with_name(n)
+    if bd != d and "_40M_s" in n and not (ROOT / "results/rl" / n / "tensorboard" / "model_812.pt").exists():
+        bd = d.with_name(re.sub(r"_s\d+$", "_s0", n))
+    return bd
 FINGERS, JOINTS = ("thumb", "index", "middle"), ("yaw", "mcp", "pip")
 NAMES = [f"{f}_{j}" for f in FINGERS for j in JOINTS]
 TOOL = "screwdriver_medium"
