@@ -398,7 +398,7 @@ def reduced_skin_asides():
     displacement, anchor springs and lateral springs. Its presliding friction saturates smoothly;
     the authors describe it as tangentially stateless and exclude kinetic sliding dynamics.
     CSLC is relevant prior art; the proposed rolling shear-history model goes beyond it.
-    A stiff lattice integrated explicitly is one possible implementation.</p>
+    A stiff lattice with an explicit integrator is one possible implementation.</p>
     <p><a href="https://drake.mit.edu/doxygen_cxx/group__hydroelastic__user__guide.html">Drake's hydroelastic
     guide</a> excludes true deformation and tangential compliance. Its pressure patch remains
     a useful task comparator. Our tested Newton hydroelastic path also needs qualification: contact
