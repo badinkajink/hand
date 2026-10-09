@@ -257,7 +257,7 @@ def cells_section(X: Data):
            f"function at that height with a 0.45&#8202;mm bead, and beads of successive layers bond where they overlap. Built that "
            f"way in voxels of 0.05&#8202;mm and homogenized over one periodic cell, the 20&#8202;% infill ({f1(100 * c20['rho'])}&#8202;% solid) "
            f"has \\(E_x = {c20['Ex']:.3f}\\,E_s\\) in the layer plane and \\(E_z = {c20['Ez']:.3f}\\,E_s\\) along the build direction; the ideal "
-           f"sheet gyroid of the same solid fraction is isotropic at {s20['Ex']:.3f}\\,\\(E_s\\). Over 11&#8211;42&#8202;% solid the printed infill "
+           f"sheet gyroid of the same solid fraction is isotropic at \\({s20['Ex']:.3f}\\,E_s\\). Over 11&#8211;42&#8202;% solid the printed infill "
            f"follows \\(E_x/E_s = {fit[('slicer', 'Ex')][0]:.2f}\\,\\rho^{{{fit[('slicer', 'Ex')][1]:.2f}}}\\) and "
            f"\\(E_z/E_s = {fit[('slicer', 'Ez')][0]:.2f}\\,\\rho^{{{fit[('slicer', 'Ez')][1]:.2f}}}\\) (Figure&#160;1), between Gibson and Ashby&#8217;s "
            f"bending-dominated \\(\\rho^2\\) and stretching-dominated \\(\\rho/3\\). At \\(E_s\\) = 30&#8202;MPa, 20&#8202;% infill is "
@@ -418,12 +418,14 @@ def recipes_section(X: Data):
         txt += "</p>"
     if "g20x_s0" in G and "g20z_s0" in G and "g10x_s0" in G and "g10z_s0" in G:
         a = {t: G[t]["delta_um"].get(1.0) for t in ("g20x_s0", "g20z_s0", "g10x_s0", "g10z_s0")}
+        g10r = sorted([r for r in X.gpu if r["tag"] == "g10x_s0" and r["indenter"] == "cyl"], key=lambda r: r["F"])
+        w10 = float(np.interp(1.0, [r["F"] for r in g10r], [r["half_z"] for r in g10r]))
         txt += (f"<p>Printing the layers along the load instead of across it softens the resolved tip by "
                 f"{100 * (a['g20z_s0'] / a['g20x_s0'] - 1):.0f}&#8202;% at 20&#8202;% and {100 * (a['g10z_s0'] / a['g10x_s0'] - 1):.0f}&#8202;% "
                 f"at 10&#8202;%. The homogenized core is within {100 * abs(a['g20x_s0'] / T['g20_across']['delta_um'][1.0] - 1):.0f}&#8211;"
                 f"{100 * abs(a['g20z_s0'] / T['g20_along']['delta_um'][1.0] - 1):.0f}&#8202;% of the resolved approach at 20&#8202;% and "
                 f"{100 * abs(a['g10x_s0'] / T['g10_across']['delta_um'][1.0] - 1):.0f}&#8211;{100 * abs(a['g10z_s0'] / T['g10_along']['delta_um'][1.0] - 1):.0f}&#8202;% "
-                f"at 10&#8202;%, where the 10.4&#8202;mm period is three times the contact width.</p>")
+                f"at 10&#8202;%, where the 10.4&#8202;mm period is {10.4 / (2 * w10):.0f} times the {2 * w10:.1f}&#8202;mm contact width.</p>")
     extra = [(t, G[t]) for t in ("g05x_s0", "g05z_s0", "eflesh_c8") if t in G]
     if extra:
         body2 = [[GPU_LBL[t], f1(g["delta_um"].get(0.5)), f1(g["delta_um"].get(1.0)), f1(g["delta_um"].get(3.0)), f2(g["force_exponent"])]
