@@ -1150,6 +1150,22 @@ def transfer_section(X: Data):
     return figure(svg_transfer(X), cap) + transfer_text(X)
 
 
+def replay_stats(X: Data, arms, engine):
+    """(fall times in s of the replays that dropped the tool, cos_end minus the MuJoCo-Warp rollout's final cosine of
+    the replays that held it) for the finished runs of `arms` replayed in `engine`."""
+    rec = {r["tag"]: r for r in X.rec}
+    fall, dcos = [], []
+    for arm in arms:
+        for r in X.replays(arm, engine):
+            if not r.get("held_end"):
+                t = next((x[0] for x in r["trace"] if x[2] < 0.06), None)
+                if t is not None:
+                    fall.append(t)
+            elif r["dir"] in rec:
+                dcos.append(r["cos_end"] - rec[r["dir"]]["mjw_cos_end"][r["world"]])
+    return fall, dcos
+
+
 def transfer_text(X: Data):
     """Sentences on the transfer matrix (MuJoCo-Warp, other contact models) and the replays, from the rows."""
     out = []
@@ -1174,6 +1190,24 @@ def transfer_text(X: Data):
             if e:
                 parts.append(f"{SHORT[arm]}: {', '.join(e)}")
         out.append("Open-loop replays held, per contact model the policy trained on: " + "; ".join(parts) + ".")
+        pt, comp = ("box", "tpu27mesh"), ("tpu27pads1", "tpu27skin")
+        fm, _ = replay_stats(X, pt, "mujoco")
+        fd, _ = replay_stats(X, pt, "drake")
+        fn, _ = replay_stats(X, pt, "newton")
+        _, cm = replay_stats(X, comp, "mujoco")
+        _, cd = replay_stats(X, comp, "drake")
+        _, cn = replay_stats(X, comp, "newton")
+        if fm and fd and cm and cd:
+            md = lambda v: float(np.median(v))  # noqa: E731
+            out.append(f"CPU MuJoCo steps each policy&#8217;s own fingertip model, so for the point-contact policies only "
+                       f"the implementation changes, and their tool falls a median {md(fm):.2f}&#8202;s after the onset "
+                       f"there ({md(fd):.2f}&#8202;s in Drake" + (f", {md(fn):.2f}&#8202;s in Newton" if fn else "")
+                       + ").")
+            sg = lambda v, nd: f"{v:+.{nd}f}".replace("-", "&#8722;")  # noqa: E731
+            rel = lambda v: f"{abs(v):.2f} {'below' if v < 0 else 'above'} it"  # noqa: E731
+            out.append(f"The pad and skin replays end within a median {abs(md(cm)):.3f} of the MuJoCo-Warp rollout&#8217;s "
+                       f"final cosine in CPU MuJoCo ({sg(min(cm), 3)} to {sg(max(cm), 3)}), a median {rel(md(cd))} in "
+                       f"Drake" + (f" and {rel(md(cn))} in Newton" if cn else "") + ".")
         for tag in sorted(X.degen):
             arm = tag_arm(tag)
             e = [f"{'CPU MuJoCo' if g == 'mujoco' else ENG_LBL[g].split()[0]} "
