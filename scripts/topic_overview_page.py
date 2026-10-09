@@ -73,6 +73,8 @@ def expand_links(html: str) -> str:
 
 
 def figure_png(key: str, name: str, spec: dict, refresh: bool) -> str:
+    if spec.get("image"):                     # an image file of its own (a photo), path from the repository root
+        return os.path.join(ROOT, spec["image"])
     src = os.path.join(ROOT, "docs", "experiments", spec["page"])
     cache = os.path.join(MEDIA, f"{key}_{name}.png")
     stale = (not os.path.exists(cache)) or os.path.getmtime(src) > os.path.getmtime(cache)
@@ -88,7 +90,7 @@ def figure_html(key: str, name: str, spec: dict, refresh: bool) -> tuple[str, in
     if spec.get("crop"):                                # (left, top, right, bottom) as fractions of the image
         l, t, r, b = spec["crop"]
         im = im.crop((int(l * im.width), int(t * im.height), int(r * im.width), int(b * im.height)))
-    disp = min(DISPLAY_W, spec.get("width", DISPLAY_W), im.width // 2)
+    disp = min(DISPLAY_W, spec.get("width", DISPLAY_W), im.width if spec.get("image") else im.width // 2)
     w = min(im.width, 2 * disp)
     if im.width > w:
         im = im.resize((w, round(im.height * w / im.width)), Image.LANCZOS)
@@ -102,10 +104,11 @@ def figure_html(key: str, name: str, spec: dict, refresh: bool) -> tuple[str, in
     data = buf.getvalue()
     h = round(im.height * disp / im.width)
     uri = f"data:{mime};base64," + base64.b64encode(data).decode()
-    src_path = os.path.join("docs", "experiments", spec["page"])
     cap = spec["caption"].rstrip()
-    cap += (f' From <a href="{rel(src_path)}">{spec.get("source", "the source page")}</a>, '
-            f'Figure&#160;{spec.get("source_n", spec["n"])}.')
+    if spec.get("page"):
+        src_path = os.path.join("docs", "experiments", spec["page"])
+        cap += (f' From <a href="{rel(src_path)}">{spec.get("source", "the source page")}</a>, '
+                f'Figure&#160;{spec.get("source_n", spec["n"])}.')
     return (f'<figure><img src="{uri}" width="{disp}" height="{h}" alt="{spec.get("alt", "")}">'
             f'<figcaption>Figure&#160;{{N}}. {cap}</figcaption></figure>'), len(data)
 
