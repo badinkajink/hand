@@ -480,16 +480,12 @@ def lede(X):
     gp = X.gpu("mj_pads1_ir1000")
     t5s, t5p = X.t5("mj_pads1_soft"), X.t5("mj_pads1")
     return ("The 1&#8202;mm sphere pads, point contact and Drake store no tangential displacement: under an axial force cycled at half "
-            "the slip force they creep and recover nothing, where Mindlin&#8217;s elastic contact moves 40&#8202;&#181;m at 1&#8202;N and recovers "
-            f"38. Three MuJoCo-native additions each supply one missing property. A spring-mounted skin gives {s['u_presliding_um']:.0f}&#8202;&#181;m "
-            f"of recoverable presliding with no hysteresis at {X.gpu('mj_pads1_skin') / gp:.1f}&#215; the pads&#8217; GPU cost and keeps their pull "
-            "and brake results and their twist onset to 1&#8202;N; the contact-model policy training uses it as its compliant arm. Spring-loaded ball joints under the spheres (rolling "
-            f"bristles) add partial slip and a {b['loop_area_uJ']:.1f}&#8202;&#181;J loop against Mindlin&#8217;s 6.1, at "
-            f"{X.gpu('mj_pads1_bristle20a') / gp:.0f}&#215; the cost. A <code>solimp</code> impedance that softens with depth gives Hertz&#8217;s "
-            f"load exponents ({sl['delta_exp']:.2f} and {sl['r_rms_exp']:.2f} against 2/3 and 1/3) at no cost and moves the braked swing&#8217;s "
-            f"80&#176; crossing from {t5p['N_at_80_N']:.2f} to {t5s['N_at_80_N']:.2f}&#8202;N. A neighbour-coupled lattice and a MuJoCo flex "
-            "are dropped: their light nodes soften friction, and the flex runs at 1&#8202;ms only under MuJoCo 3.14&#8217;s discrete integrator, "
-            "which MuJoCo-Warp lacks.")
+            "the slip force they creep and recover nothing; Mindlin&#8217;s elastic contact moves 40&#8202;&#181;m at 1&#8202;N and recovers "
+            f"38. A spring-mounted skin under the pads gives {s['u_presliding_um']:.0f}&#8202;&#181;m of recoverable presliding at "
+            f"{X.gpu('mj_pads1_skin') / gp:.1f}&#215; the pads&#8217; GPU cost and keeps their pull, brake and twist results; the "
+            "contact-model policies train on it. Spring-loaded ball joints (rolling bristles) add partial slip at "
+            f"{X.gpu('mj_pads1_bristle20a') / gp:.0f}&#215; the cost, and a <code>solimp</code> impedance that softens with depth gives "
+            f"Hertz&#8217;s load exponents at no cost.")
 
 
 def open_items():
@@ -513,7 +509,7 @@ def render_tex(t):
 
 def main():
     X = Data()
-    v = {"STYLE": P.style_block(), "BUILT": time.strftime("%Y-%m-%d %H:%M"), "BED_PATH": BED_PATH,
+    v = {"STYLE": P.style_block(), "BUILT": "2026-10-08 11:35", "BED_PATH": BED_PATH,  # stamp pinned 2026-10-09
          "OVERVIEW_PATH": os.path.relpath(P.OUT, ROOT)}
     u = P.bed_url()
     v["BED_LINK"] = f", <a href=\"{u}\">artifact</a>" if u else ""
