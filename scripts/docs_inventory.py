@@ -6,7 +6,7 @@
 
 The home page (scripts/docs_home_page.py) and the topic overviews import records() and TOPICS. Titles come from the
 page's row in docs/experiments/INDEX.md (the descriptive subject), else from its <title>. The topic of each result
-folder is set by hand in FOLDER_TOPIC (owner, 2026-10-09: six topics).
+folder is set by hand in FOLDER_TOPIC (owner, 2026-10-09: six topics), with per-page exceptions in FILE_TOPIC.
 """
 from __future__ import annotations
 
@@ -84,6 +84,13 @@ FOLDER_TOPIC = {
     "20261009-contact_overview": "contact",
 }
 
+# pages whose topic differs from their folder's
+FILE_TOPIC = {
+    "20260827-real_v1_first_night.html": "hardware",
+    "20260827-real_v1_rotational_lock.html": "mechanisms",
+    "20260827-real_v1_routes_to_vertical.html": "mechanisms",
+}
+
 # dated revisions of a page that a newer file replaces
 SUPERSEDED = {"20261005-contact_overview", "20261007-contact_overview", "20261008-contact_overview"}
 
@@ -106,25 +113,28 @@ def index_rows():
     return out
 
 
-OUT_RE = re.compile(r"^\s*(OUT|OUT_HTML|PAGE|HTML|OUTPUT|out_path|page_path)\w*\s*=.*?(\d{8}-[\w.-]+\.html)", re.M)
+PAGE_RE = re.compile(r"\d{8}-[\w.-]+\.html")
+# a line that writes or assigns the output: OUT = ..., out = args.out or (D / "..."), (DOC / "...").write_text(...),
+# open(..., "w"), a "--out PATH" usage line
+WRITE_RE = re.compile(r"""\b(OUT\w*|out|output|out_path|page_path|PAGE|HTML)\s*=|write_text\(|--out\b|open\([^)]*["']w["']""")
 
 
 def _builders():
-    """{page file name: builder script}: the scripts/*_page.py that assigns the page as its output path; a page named by
-    several builders goes to the one whose file name shares the most words with the page's folder."""
+    """{page file name: builder script}: the script under scripts/ that writes the page, i.e. names its file on a line
+    that assigns or writes the output; a page named by several scripts goes to a *_page.py builder first, then to the
+    one whose file name shares the most words with the page's name."""
     cand = {}
-    for b in sorted(glob.glob(os.path.join(ROOT, "scripts", "*_page.py"))):
-        t = open(b, encoding="utf-8", errors="replace").read()
-        for m in OUT_RE.finditer(t):
-            cand.setdefault(m.group(2), []).append(os.path.relpath(b, ROOT))
-        for m in re.finditer(r'os\.path\.join\(\w+,\s*"(\d{8}-[\w.-]+\.html)"\)', t):
-            line = t[t.rfind("\n", 0, m.start()) + 1:m.start()]
-            if re.search(r"\b(OUT|out|PAGE|page)\w*\s*=", line):
-                cand.setdefault(m.group(1), []).append(os.path.relpath(b, ROOT))
+    for b in sorted(glob.glob(os.path.join(ROOT, "scripts", "*.py"))):
+        for line in open(b, encoding="utf-8", errors="replace"):
+            if not WRITE_RE.search(line):
+                continue
+            for name in PAGE_RE.findall(line):
+                cand.setdefault(name, []).append(os.path.relpath(b, ROOT))
     out = {}
     for name, bs in cand.items():
         words = set(re.split(r"[-_.]", name.lower()))
-        out[name] = max(sorted(set(bs)), key=lambda b: len(words & set(re.split(r"[-_./]", b.lower()))))
+        out[name] = max(sorted(set(bs)), key=lambda b: (b.endswith("_page.py"),
+                                                         len(words & set(re.split(r"[-_./]", b.lower())))))
     return out
 
 
@@ -151,7 +161,7 @@ def records():
             "folder": folder,
             "title": subject or _title(path),
             "page_title": _title(path),
-            "topic": FOLDER_TOPIC.get(folder),
+            "topic": FILE_TOPIC.get(name) or FOLDER_TOPIC.get(folder),
             "builder": builders.get(name),
             "artifact": url,
             "status": "superseded" if folder in SUPERSEDED else "retracted" if retracted else "current",
