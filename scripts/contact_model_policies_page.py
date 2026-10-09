@@ -21,6 +21,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import re
 import sys
 import time
 
@@ -64,6 +65,8 @@ figure.films video,figure.films img{width:100%;border-radius:8px}
 figure.films figcaption{grid-column:1/-1}
 figure.sheet img{width:100%;border-radius:6px}
 @media (max-width:640px){figure.films{grid-template-columns:1fr}}
+details.sheets{margin:24px 0;border:1px solid var(--rule);border-radius:10px;padding:10px 16px;background:var(--card)}
+details.sheets summary{cursor:pointer;font-family:var(--f-display);font-size:14.5px;color:var(--ink2)}
 """
 
 
@@ -394,7 +397,7 @@ def svg_transfer(X: Data):
 
 WATCH_SIG = [("ang_jerk_hold_median", "tool shaking in the hold (rad/s&#178;)", (1, 1000), (1, 10, 100, 1000), True, 1.0),
              ("cos_step_hold_median", "tool rocking: cosine change per policy step", (0.0001, 0.1), (0.0001, 0.001, 0.01, 0.1), True, 1.0),
-             ("dact_held", "|&#916;a| per policy step (action units)", (0, 0.8), (0, 0.2, 0.4, 0.6, 0.8), False, 1.0),
+             ("dact_held", "|&#916;a| per policy step (action units)", (0, 1.0), (0, 0.25, 0.5, 0.75, 1.0), False, 1.0),
              ("resid_over_frac", "actions at or past the residual budget (%)", (0, 60), (0, 20, 40, 60), False, 100.0),
              ("ctrl_sat_frac", "servo targets at a range limit (%)", (0, 30), (0, 10, 20, 30), False, 100.0),
              ("share_min", "smallest finger share of the grip (%)", (0, 34), (0, 10, 20, 30), False, 100.0)]
@@ -479,8 +482,10 @@ def degenerate_stops(X: Data, arm):
             continue
         it = st["iteration"] if st else so[0]
         m = (it + 1) * STEPS_PER_IT / 1e6
-        rs = [dict(r, cos_step_hold_median=watch_value(r, "cos_step_hold_median")) for r in X.watch
-              if r["tag"] == tag and m - 10.5 <= (r["iteration"] + 1) * STEPS_PER_IT / 1e6 <= m]
+        rs = sorted((dict(r, cos_step_hold_median=watch_value(r, "cos_step_hold_median")) for r in X.watch
+                     if r["tag"] == tag and r["iteration"] <= it), key=lambda r: r["iteration"])
+        back = [r for r in rs if (r["iteration"] + 1) * STEPS_PER_IT <= (it + 1) * STEPS_PER_IT - 10_000_000]
+        rs = [r for r in rs if not back or r["iteration"] >= back[-1]["iteration"]]     # the rule's window
         kinds = []
         for r in rs:
             for f in E.degenerate_flags(r):
@@ -499,6 +504,22 @@ def stops_table(X: Data):
     head = ["run", "evaluated to", "held at the last watch", "stop rule fired at", "reason", "outcome"]
     body = []
     tags = sorted({r["tag"] for r in X.watch}, key=lambda t: (t[-1], ARMS.index(tag_arm(t)) if tag_arm(t) else 9))
+    kinds = {}
+    for arm in ARMS:
+        for d in degenerate_stops(X, arm):
+            kinds[(arm, d[0])] = d[2]
+    msteps = lambda it: f"{(int(it) + 1) * STEPS_PER_IT / 1e6:.1f}&#8202;M"  # noqa: E731
+
+    def reason(tag, so):
+        m = re.match(r"degenerate at every checkpoint from it (\d+) to (\d+)", so[1])
+        if m:
+            k = kinds.get((tag_arm(tag), int(tag[-1])), [])
+            return f"every checkpoint from {msteps(m.group(1))} to {msteps(m.group(2))} degenerate: {', '.join(k)}"
+        m = re.match(r"held cos ([\d.]+) at it (\d+) -> ([\d.]+) at it (\d+)", so[1])
+        if m:
+            return (f"held cosine {m.group(1)} at {msteps(m.group(2))} &#8594; {m.group(3)} at {msteps(m.group(4))}, "
+                    "a gain under 0.02")
+        return so[1]
     for tag in tags:
         rs = sorted((r for r in X.watch if r["tag"] == tag), key=lambda r: r["iteration"])
         last = rs[-1]
@@ -514,7 +535,7 @@ def stops_table(X: Data):
                      f"{(last['iteration'] + 1) * STEPS_PER_IT / 1e6:.1f}&#8202;M",
                      f"{last['n_held']}/64" + (f", cos {last['held_cos_mean']:.2f}" if last.get("held_cos_mean") is not None else ""),
                      f"{(so[0] + 1) * STEPS_PER_IT / 1e6:.1f}&#8202;M" if so else "&#8211;",
-                     so[1].replace("tool jerk", "shaking").replace("1/s^2", "rad/s&#178;").replace("->", "&#8594;") if so else "&#8211;", outcome])
+                     reason(tag, so) if so else "&#8211;", outcome])
     cap = ("The owner&#8217;s stopping rule applied at every watched checkpoint (4.0&#8202;M steps apart): stop when every "
            "checkpoint of the last 10&#8202;M steps is degenerate, or when the held cosine gained under 0.02 (and the held "
            "count under 8 of 64) over 10&#8202;M steps; the films decide. The seed-0 runs finished before the watch existed, "
@@ -596,6 +617,17 @@ def watch_sheet(tag, its=SHEET_ITS):
 
 
 def watch_sheets(X: Data):
+    """The seed-0 runs' checkpoint sheets, collapsed under one summary line."""
+    f0 = FIG[0] + 1
+    body = _watch_sheets(X)
+    if not body:
+        return ""
+    return (f'<details class="sheets"><summary>Checkpoint sheets of the four seed-0 runs: the median rollout at 4, 8, 16, 28 '
+            f'and 40&#8202;M steps, with what each checkpoint showed (Figures&#160;{f0}&#8211;{FIG[0]})</summary>{body}'
+            '</details>')
+
+
+def _watch_sheets(X: Data):
     out = []
     for arm in ARMS:
         tags = sorted({r["tag"] for r in X.watch if r["arm"] == arm})
@@ -775,8 +807,9 @@ GLOSSARY = [
      "counted only where the hand still carries the tool."),
     ("evaluation", "64 rollouts of the deterministic policy (its mean action) in parallel envs for 250 policy steps, with "
      "the training&#8217;s timing (residual and reorientation reward from step 58, after the scripted grasp and lift), no "
-     "early termination and no randomisation. The 64 differ only through the GPU contact solve."),
-    ("seed spread", "Range of the three seeds&#8217; held cosines (or held fractions) of one arm."),
+     "early termination and no randomisation; 256 per cell of the transfer matrix and 128 per perturbation. The rollouts "
+     "differ only through the GPU contact solve."),
+    ("seed spread", "Range of the held cosines (or held fractions) of one arm&#8217;s seeds that trained to 40&#8202;M steps."),
     ("rollout spread", "Standard deviation of the final cos over the held rollouts of one evaluation, averaged over seeds."),
     ("grip", "Sum of the three fingertips&#8217; net contact force on the tool, mean over the held steps from step 58, N."),
     ("|&#916;a|", "Mean absolute change of the 9-dimensional action between consecutive policy steps, in action units "
@@ -791,14 +824,15 @@ GLOSSARY = [
      "policy&#8217;s own contact model in MuJoCo-Warp."),
     ("shaking", "Mean absolute change of the tool&#8217;s angular speed between consecutive policy steps, divided by the "
      "20&#8202;ms step, over the held steps of the hold after the turn (policy steps 150&#8211;250), rad/s&#178;; median "
-     "over held rollouts. A tool resting in a still grip reads near 0; <code>trajectory_health</code> fails a policy for "
-     "jitter above 40&#8202;rad/s&#178;."),
+     "over held rollouts. <code>trajectory_health</code> fails a policy for jitter above 40&#8202;rad/s&#178;; the still "
+     "pad and skin holds of the final policies read 9&#8211;18&#8202;rad/s&#178;."),
     ("checkpoint watch", "At every 82nd iteration (4.0&#8202;M env steps) the training run is paused, the checkpoint "
      "evaluated (64 rollouts) and its median and worst rollouts rendered as frame strips and a film, which are looked at "
      "before the run continues; the owner&#8217;s rule stops a run that is degenerate for 10&#8202;M steps (drops every "
      "rollout, an idle finger, jitter, saturated actions, or the tool on the palm) or whose held cosine gains under 0.02 "
-     "over 10&#8202;M steps. Jitter counts when the shaking exceeds 40&#8202;rad/s&#178; and the consecutive-step frames "
-     "show the tool moving in the grip."),
+     "over 10&#8202;M steps. Jitter counts when the shaking exceeds 40&#8202;rad/s&#178; while the rocking exceeds 0.005, "
+     "and rocking above 0.005 counts on its own when the tilting velocity reverses at most steps; the consecutive-step "
+     "frames of the hold decide."),
     ("servo targets at a limit", "Share of the nine finger servo targets (anchor plus residual) at their actuator&#8217;s "
      "range limit over the active steps; the residual itself is not clipped in these runs."),
     ("finger share", "One fingertip&#8217;s share of the summed fingertip-tool force over the held steps."),
@@ -891,7 +925,9 @@ def curves_section(X: Data):
     cap = ("Deterministic evaluation of every second saved checkpoint (82 iterations, 4.0&#8202;M env steps) and the final "
            "one: rollouts held at 5&#8202;s (top) and their mean final cosine (bottom), against env steps (left) and "
            "training wall-clock time (right). One line per seed (marker: circle s0, square s1, diamond s2); a cross "
-           "ends a run stopped by the checkpoint watch. A gap in the bottom row is an evaluation in which no rollout held.")
+           "ends a run stopped by the checkpoint watch. A gap in the bottom row is an evaluation in which no rollout held. "
+           "At iteration 0 the residual is near zero and the scripted grasp holds the tool about level (cos &#8722;0.10 to "
+           "&#8722;0.02) in every rollout.")
     out = figure(svg, cap, legend()) + curves_text(X)
     wcap = ("Signals of the checkpoint watch at the same checkpoints, over the hold after the turn (policy steps "
             "150&#8211;250): the tool&#8217;s shaking (dashed: trajectory_health&#8217;s jitter limit) and rocking, the "
@@ -1065,11 +1101,11 @@ def final_section(X: Data):
                   "time; rollouts that held the tool at 5&#8202;s in the arm&#8217;s colour, the others in red. Dashed: the residual "
                   "policy&#8217;s onset after the scripted grasp and lift (step 58).")
     out += final_text(X)
-    h1 = ["contact model", "held", "held cos, median seed", "seed spread", "rollout spread", "reach 0.9 held",
-          "step at 0.9"]
-    h2 = ["contact model", "grip (N)", "grip change per step (N)", "peak force (N)", "penetration (mm)", "creep (mm/s)",
-          "creep (&#176;/s)", "shaking (rad/s&#178;)", "|&#916;a|", "pinned targets"]
-    b1, b2 = [], []
+    h1 = ["contact model", "held", "held cos,<br>median of seeds", "seed<br>spread", "rollout<br>spread",
+          "reach 0.9<br>held", "step<br>at 0.9"]
+    h2 = ["contact model", "grip<br>(N)", "grip change<br>per step (N)", "peak<br>force (N)", "penetration<br>(mm)",
+          "creep<br>(mm/s)", "creep<br>(&#176;/s)", "shaking<br>(rad/s&#178;)", "|&#916;a|"]
+    b1, b2, pins = [], [], []
     for a in ARMS:
         fs = X.finals(a)
         if not fs:
@@ -1087,13 +1123,13 @@ def final_section(X: Data):
         b2.append([f"{swatch(a)}{LBL[a]}", f1(md("grip_N"), 1), f1(float(np.median(gc)), 1) if gc else "&#8211;",
                    f1(md("peak_force_N_mean"), 0), f1(md("pen_max_mm_mean"), 2),
                    f1(md("creep_mm_s_median"), 2), f1(md("creep_deg_s_median"), 2),
-                   f1(float(np.median(shk)), 0) if shk else "&#8211;", f1(md("dact_held"), 2),
-                   ", ".join(pin) if pin else "none"])
+                   f1(float(np.median(shk)), 0) if shk else "&#8211;", f1(md("dact_held"), 2)])
+        pins.append(f"{SHORT[a]} {', '.join(pin) if pin else 'none'}")
     out += table(h1, b1, "Final policies, 64 rollouts per seed: held rollouts and the turn. Held and reach-0.9 counts "
                          "pool the seeds; the other columns are medians over seeds.")
     out += table(h2, b2, "Final policies over their held steps: forces, penetration, creep in the last second, shaking "
-                         "in the hold, action change, and the servo targets held at their range limit in 90&#8202;% of "
-                         "the steps (definitions in Terms and metrics); medians over seeds.", text_cols=(0, 9))
+                         "in the hold and action change (definitions in Terms and metrics); medians over seeds.",
+                 note="Servo targets at their range limit in 90&#8202;% of the active steps: " + "; ".join(pins) + ".")
     return out
 
 
