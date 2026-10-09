@@ -152,8 +152,9 @@ def main() -> int:
     body = []
     for r in T:
         cls = "ok" if r["ok"] == r["n"] else ("part" if r["stood"] else "bad")
-        cells = " ".join(
-            f'<span class="chip{" hi" if s == r["best"] else ""}">{r["cells"][s]["ok"]}</span>'
+        cells = " ".join(  # the reported squeeze in bold: retro_style draws chips as plain text
+            (f'<span class="chip hi"><b>{r["cells"][s]["ok"]}</b></span>' if s == r["best"]
+             else f'<span class="chip">{r["cells"][s]["ok"]}</span>')
             for s in SQ)
         v = clip.get(r["tag"])
         vid = (f'<video src="{v}" controls muted loop playsinline preload="none"></video>'

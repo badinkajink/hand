@@ -91,9 +91,12 @@ footer{font-family:var(--sans);font-size:12.5px;color:var(--muted);
 <header>
   <div class="kicker">real_v1 &middot; negative result &middot; 2026-09-05</div>
   <h1>Table-supported reorientation across sixteen hands</h1>
-  <p class="lede">The maneuver does not reorient the tool in the hand. Of {{NALL}} runs,
-  {{NSTOOD}} end with the tool vertical and {{HELD}} of those still have two loaded pads on it.
-  The rest set the tool down, release it, and it settles upright on its own.</p>
+  <p class="lede">On a simulated UR5e, the table-supported maneuver stands the screwdriver upright in
+  {{NSTOOD}} of {{NALL}} runs across sixteen hands, but only {{HELD}} runs still hold it with two loaded
+  pads at that moment; in {{P0}} stands no pad touches the tool. The table stands the tool up after the
+  hand lets go. The deployed plans' 10 mm squeeze ejects a tool lying on the table, and smaller squeezes
+  trade the carry against the handover: 2 mm loses 24 of 64 runs in the carry, 6 mm loses 32 at the
+  handover.</p>
   <div class="path">
     <b>page</b> docs/experiments/20260904-real_v1_held/20260904-real_v1_table_stand.html<br>
     <b>data</b> docs/experiments/20260904-real_v1_held/squeeze_sweep/chain_hands.json &middot;
@@ -104,178 +107,162 @@ footer{font-family:var(--sans);font-size:12.5px;color:var(--muted);
 </header>
 
 <div class="stats">
-  <div class="stat"><b>{{HELD}}/{{NALL}}</b><span>runs hold the tool through the
-    turn (2 pads, &gt;1 N)</span></div>
-  <div class="stat"><b>{{P0}}/{{NSTOOD}}</b><span>&ldquo;stands&rdquo; with zero pads on the
-    tool</span></div>
-  <div class="stat"><b>{{BELOW}}/{{NSTOOD}}</b><span>end below the table top</span></div>
-  <div class="stat"><b>0</b><span>runs with a tip, a socket, or a relay</span></div>
+  <div class="stat"><b>{{HELD}}/{{NALL}}</b><span>Runs that hold the tool at upright (two pads,
+    more than 1 N)</span></div>
+  <div class="stat"><b>{{P0}}/{{NSTOOD}}</b><span>Stands with no pad on the tool</span></div>
+  <div class="stat"><b>{{BELOW}}/{{NSTOOD}}</b><span>Stands that end below the table top</span></div>
+  <div class="stat"><b>0</b><span>Runs with a tool tip, a countersink or a relay</span></div>
 </div>
 
-<h2>What the gate was measuring</h2>
-<p><span class="m">stood_ok</span> is <span class="m">ground_contacts &ge; 1</span> and
-<span class="m">tilt_deg &lt; 14</span> and the tool within 10 mm of its rest height. It never
-tested whether the tool was still in the grasp. Counting pad contacts at the
-<span class="m">upright</span> seam, over the {{NSTOOD}} runs the gate passed:</p>
+<section id="terms">
+<h2>Terms and metrics</h2>
+<dl class="terms">
+<dt><b>Chain</b></dt><dd>The simulated UR5e task: grasp the screwdriver lying on the table, carry it, turn it upright
+against the table, release it, move the palm over it (re-index), re-grasp it and gait it.</dd>
+<dt><b>Set A, set B</b></dt><dd>A: the eight hands bench-tested for reorientation. B: the eight promoted by the
+Sobol-8192 screen. <span class="m">sv1_w6689</span> is in both.</dd>
+<dt><b>Squeeze</b></dt><dd>Commanded interference of the pads with the tool at the grasp, in mm.</dd>
+<dt><b>Stand</b></dt><dd>A run that passes the stand gate <span class="m">stood_ok</span>: a tool&ndash;table contact,
+tilt below 14&deg; and the tool within 10 mm of its rest height.</dd>
+<dt><b>Upright seam</b></dt><dd>The step at which the maneuver reports the tool vertical.</dd>
+<dt><b>Held turn</b></dt><dd>A stand with two or more pads on the tool and over 1 N of pad force at the upright seam
+(<span class="m">held_reorient</span>).</dd>
+<dt><b>Tilt, reorient</b></dt><dd>Tilt: angle of the tool axis from vertical, in degrees. Reorient: 90&deg; minus the
+tilt at the upright seam, mean &plusmn; SD over the stands.</dd>
+<dt><b>Lost in carry, standing, at handover, gaiting</b></dt><dd>The first gate a run fails, in order: carry, stand,
+re-grasp after the re-index, gait. Complete: passes all four.</dd>
+<dt><b>Close probe</b></dt><dd>The grasp closed on the lying tool with the palm still. Rise: upward displacement of
+the tool, in mm. Pad: pad force, in N. Non-pad: contacts on anything but a pad.</dd>
+<dt><b>Carry, stands, chain (k/n)</b></dt><dd>Runs, of n at the hand's best squeeze, that pass the carry gate, the
+stand gate and every gate.</dd>
+<dt><b>Max pads at upright</b></dt><dd>Most pads on the tool at the upright seam over the hand's stands.</dd>
+</dl>
+</section>
+
+<h2>Stand gate and pad load at upright</h2>
+<p><span class="m">stood_ok</span> requires <span class="m">ground_contacts &ge; 1</span>,
+<span class="m">tilt_deg &lt; 14</span> and the tool within 10 mm of its rest height; it does not test whether the
+hand holds the tool. Pad contacts at the upright seam over the {{NSTOOD}} stands:</p>
 
 <div class="scroll"><table>
-<thead><tr><th>pads on the tool at <span class="m">upright</span></th><th>runs</th></tr></thead>
+<thead><tr><th>Pads on the tool at upright</th><th>Runs</th></tr></thead>
 <tbody>
 <tr class="bad"><td>0</td><td class="num strong">{{P0}}</td></tr>
 <tr class="part"><td>1</td><td class="num">{{P1}}</td></tr>
 <tr class="ok"><td>2</td><td class="num">{{P2}}</td></tr>
 </tbody></table></div>
 
-<p>Pad force at that seam has a median of <b>0.000 N</b> over the {{NSTOOD}} stands, and exceeds
-the tool's own 0.24 N weight in 2 of them. The table carries the tool. So the 89&deg; of turn
-that a previous version of this page reported as the result is the
-tilt of a tool the hand has let go of. Adding the load test &mdash; two pads carrying more than
-1 N &mdash; leaves <b>{{HELD}} of {{NALL}}</b>. This is the same defect as reading a peak
-alignment without a final height, and as a dropped shaft reading vertical because it fell into a
-countersink; the guard is now in <span class="m">chain()</span> as
-<span class="m">held_reorient</span>, and <span class="m">reorient_ok</span> requires it.</p>
+<p>The median pad force there is <b>0.000 N</b>, above the tool's 0.24 N weight in 2 stands: the table holds the
+tool, and the 89&deg; turn that an earlier version of this page reported is the tilt of a released tool.
+<span class="m">chain()</span> now records the load test as <span class="m">held_reorient</span>, and
+<span class="m">reorient_ok</span> requires it; <b>{{HELD}} of {{NALL}}</b> runs pass.</p>
 
-<h2>Three things the maneuver does not do</h2>
+<h2>Task elements absent from these runs</h2>
 <ol>
-  <li><b>It does not put a tip down.</b> <span class="m">tip_len_mm = 0.0</span> on every run,
-  so the object is a plain cylinder and the tool axis is folded &mdash; standing on either end
-  scores <span class="m">tilt_deg = 0</span>. Which end finishes downward was never measured.</li>
-  <li><b>It does not use the countersink.</b> <span class="m">place_xy = None</span> on every
-  run. The tool stands on flat table, and {{BELOW}} of the {{NSTOOD}} stands end below the table
-  top &mdash; knocked off it.</li>
-  <li><b>It does not relay.</b> <span class="m">reindex = "full"</span> sets the tool down,
-  releases it, moves the palm, and closes again. There is no transfer from the reorient grasp to
-  the gait grasp; <span class="m">reindex = "relay"</span> exists and was not what ran.</li>
+  <li><b>Tool tip.</b> <span class="m">tip_len_mm = 0.0</span>: the tool is a plain cylinder, and either end down
+  scores <span class="m">tilt_deg = 0</span>.</li>
+  <li><b>Countersink.</b> <span class="m">place_xy = None</span>: the tool stands on the flat table, and {{BELOW}} of
+  the {{NSTOOD}} stands end below the table top, knocked off it.</li>
+  <li><b>Relay.</b> <span class="m">reindex = "full"</span> releases the tool for the re-index; the relay
+  (<span class="m">reindex = "relay"</span>), which keeps a grasp on it, did not run.</li>
 </ol>
 
 <figure>
   <video src="{{GRID}}" controls muted loop playsinline preload="metadata"></video>
-  <figcaption>Every hand's furthest-reaching run at its own best grasp squeeze. Read the hands
-  that end with the tool standing: the fingers are beside the shaft, not loaded on it. The
-  filmstrips below are shots taken through each run, not one frame per seam.</figcaption>
+  <figcaption>Each hand's furthest-reaching run at its best squeeze. Where the tool ends standing, the fingers rest
+  beside the shaft with no load on it.</figcaption>
 </figure>
 
-<h2>The rest of the chain, on the released stand</h2>
-<p>The numbers below describe the chain as it actually runs &mdash; grasp, carry, set down,
-release, re-index, re-grasp, gait &mdash; with the reorientation unheld. They are reported
-because the carry and the handover are real measurements of those two moves, not because the
-sequence is the task.</p>
+<h2>Chain outcome by squeeze on the released stand</h2>
+<p>The chain as built, with the tool released at the stand; its carry and handover counts measure those two
+moves.</p>
 
 <div class="scroll"><table>
-<thead><tr><th>squeeze (mm)</th><th>lost in carry</th><th>lost standing</th>
-<th>lost at handover</th><th>lost gaiting</th><th>complete</th>
-<th>reorient (deg)</th></tr></thead>
+<thead><tr><th>Squeeze (mm)</th><th>Lost in carry</th><th>Lost standing</th>
+<th>Lost at handover</th><th>Lost gaiting</th><th>Complete</th>
+<th>Reorient (deg)</th></tr></thead>
 <tbody>{{FUNNEL}}</tbody>
 </table></div>
 
-<p>The two losses pull in opposite directions. A 2 mm squeeze puts the tool where it was and
-loses 24 runs in the carry; a 6 mm squeeze carries the tool and loses 32 at the handover. The
-chain rate peaks at 2 mm ({{OK2}}) and 4 mm ({{OK4}}), and choosing the squeeze per hand rather
-than for the population is worth {{BEST}}. Two sweeps looked for the handover: scanning the gait
-palm height against the open ring instead of the closed one is worse (21 chains against 44 over
-128 runs per arm), and opening the pads wider before the descent changes the handover count by
-exactly zero at 6, 11, 16 and 22 mm &mdash; the open ring's IK residual grows one-for-one with
-the target, so the fingers are already as open as they go.</p>
+<p>2 mm loses 24 runs in the carry; 6 mm loses 32 at the handover. Complete chains peak at 2 mm ({{OK2}}) and
+4 mm ({{OK4}}); a squeeze chosen per hand gives {{BEST}}. Two handover sweeps did not raise the count: scanning the
+gait palm height against the open ring gives 21 chains against 44 for the closed ring (128 runs per arm), and opening
+the pads to 6&ndash;22 mm before the descent changes nothing, since the open ring's IK residual grows one-for-one with
+the target.</p>
 
-<h2>Why 10 mm of squeeze ejects the tool</h2>
-<p>Every deployed plan carries <span class="m">squeeze_mm = 10.0</span>. That drives the pad
-centres to <span class="m">r_obj + r_pad + gap &minus; squeeze</span> = 12.5 + 10.55 + 1
-&minus; 10 = 14.05 mm from the shaft axis, where contact needs 23.05 &mdash; nine millimetres
-inside the surface. The number was fitted on a bench scene where the shaft floats at 100 mm
-on a post that takes the reaction. On a table nothing takes it, so the pinch drives the tool
-up and out.</p>
-<p>Measured with the palm held still and the tool lying on the table,
-<span class="m">g12_b095</span> rises +3.8, +8.9, +12.8 and +18.6 mm at 2, 4, 6 and 10 mm of
-squeeze while its pad force falls 10.4, 5.4, 1.8, 0.5 N &mdash; the force falls because the
-shaft has escaped over the top of the pads. Nine of sixteen hands rise more than their own
-12.5 mm radius at 10 mm and finish riding on <span class="m">thumb_pip_frame</span>.</p>
-<p class="note">The fitter's own hold probe cannot catch this. It measures retained lift
-against the object's height <em>before</em> the close, so a tool thrown 18 mm upward reads as
-18 mm of successful lift &mdash; <span class="m">held &asymp; lift_probe + dz</span> is an
-identity. Grasps &ldquo;passing&rdquo; a 20 mm gate at 65&ndash;75 mm on a 50 mm probe passed
-by the amount they ejected the tool. <span class="m">_grip_from_fit</span> then passes
-<span class="m">hold_min=&minus;1.0</span> and discards the gate anyway.</p>
+<h2>Tool ejection at the deployed 10 mm squeeze</h2>
+<p>Every deployed plan sets <span class="m">squeeze_mm = 10.0</span>, which drives the pad centres to
+<span class="m">r_obj + r_pad + gap &minus; squeeze</span> = 12.5 + 10.55 + 1 &minus; 10 = 14.05 mm from the shaft
+axis, nine millimetres inside the 23.05 mm at which contact begins. The value was fitted on a bench scene where a
+100 mm post under the shaft takes the reaction; on a table nothing does, and the pinch drives the tool up and out.</p>
+<p>With the palm still, <span class="m">g12_b095</span> lifts the tool +3.8, +8.9, +12.8 and +18.6 mm at 2, 4, 6
+and 10 mm of squeeze while its pad force falls through 10.4, 5.4, 1.8 and 0.5 N. At 10 mm, nine of the sixteen hands
+lift the tool by more than its 12.5 mm radius, onto <span class="m">thumb_pip_frame</span>.</p>
+<p class="note">The fitter's hold probe measures lift against the tool's height before the close, so an 18 mm
+ejection reads as 18 mm of lift (<span class="m">held &asymp; lift_probe + dz</span>), and
+<span class="m">_grip_from_fit</span> passes <span class="m">hold_min=&minus;1.0</span>, which disables the probe's
+20 mm gate.</p>
 
-<h2>Per hand</h2>
-<p>Each hand at its own best squeeze. <b>held turns</b> counts, over all 16 runs of that
-hand, how many kept two loaded pads on the tool at <span class="m">upright</span>; the rest let
-go of it. The close probe columns are what closing the grasp does before the palm moves:
-<span class="m">rise</span> is how far the tool moves at closure,
-<span class="m">non-pad</span> counts contacts on anything that is not a pad. The four chips
-are the chain count at 2, 3, 4 and 6 mm; the filled one is the squeeze the row reports.</p>
+<h2>Outcome per hand</h2>
+<p>Each hand at its best squeeze. Held turns: held turns over all 16 runs. Rise, pad and non-pad: the close
+probe. Last column: complete chains at 2, 3, 4 and 6 mm, the reported squeeze in bold.</p>
 
 <div class="scroll"><table>
-<thead><tr><th>hand</th><th>set</th><th>sq (mm)</th><th>rise (mm)</th><th>pad (N)</th>
-<th>non&#8209;pad</th><th>carry</th><th>stands</th><th>max pads<br>at upright</th>
-<th>held turns</th><th>chain</th>
-<th>2 / 3 / 4 / 6</th></tr></thead>
+<thead><tr><th>Hand</th><th>Set</th><th>Squeeze (mm)</th><th>Rise (mm)</th><th>Pad (N)</th>
+<th>Non&#8209;pad</th><th>Carry</th><th>Stands</th><th>Max pads<br>at upright</th>
+<th>Held turns</th><th>Chain</th>
+<th>Chains at 2 / 3 / 4 / 6 mm</th></tr></thead>
 <tbody>{{ROWS}}</tbody>
 </table></div>
 
-<h2>What the films show</h2>
+<h2>Films of the chain, the handover and the grasp</h2>
 
 <figure>
   <img src="{{FILM_OK}}" alt="Sixteen phase-aligned frames: the hand grasps a screwdriver
   lying on a table, lifts it, pivots it upright against the table, sets it down standing,
   releases, re-indexes the palm overhead, closes three fingers around the standing shaft and
   gaits it.">
-  <figcaption><b>The sequence running end to end.</b> <span class="m">sv1_u1364_b080</span> at
-  2 mm. The tool stands where it was set down, the palm lifts clear, translates and descends
-  around it, and the gait turns it. Across this hand's 16 runs the pad load at
-  <span class="m">upright</span> is 0.00&ndash;0.08 N on a 0.24 N tool: the shots that look like
-  a held tool are a hand resting beside one the table is holding.</figcaption>
+  <figcaption><b>Chain end to end.</b> <span class="m">sv1_u1364_b080</span> at 2 mm: the palm leaves the
+  standing tool, re-indexes around it, and the gait turns it. Pad load at upright: 0.00&ndash;0.08 N over the hand's
+  16 runs, on a 0.24 N tool.</figcaption>
 </figure>
 
 <figure>
   <img src="{{FILM_HAND}}" alt="Eleven phase-aligned frames: the same sequence up to a
   standing tool, then the palm departs and the tool is lying well clear of the table disc for
   the remaining frames.">
-  <figcaption><b>The handover.</b> <span class="m">sv1_w2360_b075</span> passes the stand gate
-  on every seed and completes none. Its seam record goes 1.03&deg; and z = 50.1 mm at
-  <span class="m">released</span> to 86.1&deg; and z = &minus;20.6 mm at
-  <span class="m">reindexed</span>: the palm move takes the tool off the table. Across all
-  handover failures at 2&ndash;4 mm, 53 of 58 follow that trace. The later shots here show the
-  tool clear of the disc entirely.</figcaption>
+  <figcaption><b>Handover.</b> <span class="m">sv1_w2360_b075</span> passes the stand gate on every seed and
+  completes none: between <span class="m">released</span> and <span class="m">reindexed</span> the tool goes from
+  1.03&deg; and z = 50.1 mm to 86.1&deg; and z = &minus;20.6 mm, knocked off the table by the palm move. 53 of the 58
+  handover failures at 2&ndash;4 mm follow this trace.</figcaption>
 </figure>
 
 <figure>
   <img src="{{FILM_DROP}}" alt="Eleven phase-aligned frames: the tool is in the pinch in the
   first frame and lying on the table in the second, with the hand empty for the rest of the
   sequence.">
-  <figcaption><b>The grasp.</b> <span class="m">sv1_w6689_b050</span> holds the lift and has
-  the tool out of the pinch one seam later, at every squeeze. Its close probe reads
-  &minus;0.4 mm of rise with two non-pad contacts and 28&ndash;67 N &mdash; it crushes the
-  tool into the floor rather than pinching it. The probe predicts every one of its 0/16
-  runs.</figcaption>
+  <figcaption><b>Grasp.</b> <span class="m">sv1_w6689_b050</span> loses the tool from the pinch one seam after
+  the lift, at every squeeze; its close probe (&minus;0.4 mm rise, two non-pad contacts, 28&ndash;67 N) shows the
+  grasp crushing the tool into the table.</figcaption>
 </figure>
 
-<h2>What would have to change</h2>
+<h2>Future work</h2>
 <ol>
-  <li><b>The turn has to be carried by the fingers, not the table.</b> Requiring two pads above
-  1 N at <span class="m">upright</span> is now <span class="m">held_reorient</span> in
-  <span class="m">chain()</span> and <span class="m">reorient_ok</span> depends on it. Any
-  maneuver proposed for this task has to clear that gate before its tilt is quoted; on this one
-  it is {{HELD}}/{{NALL}}, so the maneuver is not a candidate.</li>
-  <li><b>The close probe is a gate that is not being applied.</b>
-  <span class="m">close_nonpad &ge; 2</span> selects exactly the hands that eject the tool
-  (<span class="m">sv1_w6689_b050</span>, <span class="m">_b060</span> at every squeeze,
-  <span class="m">sv1_u5855_b050</span> at 2 mm), and those hands account for 0/16 and 0/4.
-  Applying it in <span class="m">prepare()</span> removes them from the denominator on
-  evidence rather than by hand.</li>
-  <li><b>The squeeze optimum is bracketed but not resolved.</b> The carry wants more and the
-  handover wants less; 2 mm and 4 mm are within two runs of each other over 64. Per-hand
-  selection is worth {{BEST}}/{{N}} against {{OK2}}/{{N}}, on n=4 per cell, which does not
-  separate a 3-run difference from noise. Eight seeds per cell on the surviving hands would.</li>
-  <li><b>The task needs a tip, a socket and a relay, and none of the three is in these runs.</b>
-  <span class="m">tip_len_mm = 0</span> makes the axis foldable so either end down scores the
-  same; <span class="m">place_xy = None</span> removes the countersink; and
-  <span class="m">reindex = "full"</span> releases rather than transferring the grasp. The
-  relay path (<span class="m">reindex = "relay"</span>, 0.4% of the task uncontacted against
-  49%) already exists and has never been run against this maneuver.</li>
-  <li><b>The gait gain is not guarded against the gear ceiling.</b> The pad ring is a 1.684
-  gear, so a 30&deg; stroke cannot exceed 50.5&deg; per cycle;
-  <span class="m">gain_mean_deg</span> reads &minus;67 to &minus;86 on g12 and +188 on u5860.
-  Those are the shaft being spun or thrown, and they currently read as fast gaits.</li>
+  <li><b>Close-probe gate.</b> <span class="m">close_nonpad &ge; 2</span> selects exactly the hands that eject the
+  tool (<span class="m">sv1_w6689_b050</span> and <span class="m">_b060</span>, <span class="m">sv1_u5855_b050</span>
+  at 2 mm), which complete no chain. Apply it in <span class="m">prepare()</span> of
+  <span class="m">scripts/real_v1_chain_hands.py</span>; a removed hand that completes a chain would falsify it.</li>
+  <li><b>Squeeze between 2 and 4 mm.</b> The per-hand choice ({{BEST}}/{{N}} against {{OK2}}/{{N}}) rests on 4 runs
+  per cell. Rerun with 8 seeds per cell on the hands that complete any chain; it holds if its margin exceeds the seed
+  spread.</li>
+  <li><b>Tip, countersink and relay.</b> Rerun with a nonzero <span class="m">tip_len_mm</span>,
+  <span class="m">place_xy</span> at the countersink and <span class="m">reindex = "relay"</span> (<a
+  href="../20260903-real_v1_handover/20260903-real_v1_relay_handover.html">relay hand-over page</a>); the maneuver
+  qualifies only if it then passes <span class="m">held_reorient</span>.</li>
+  <li><b>Gear ceiling on the gait gain.</b> The pad ring turns the shaft by 1.684 times the stroke, so a 30&deg;
+  stroke gives at most 50.5&deg; per gait cycle; <span class="m">gain_mean_deg</span>, the mean rotation per cycle,
+  reads &minus;67 to &minus;86&deg; on g12 and +188&deg; on u5860, a spun or thrown shaft. Count a cycle above the
+  ceiling as a gait loss.</li>
 </ol>
 
 <footer>
