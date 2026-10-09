@@ -97,18 +97,39 @@ footer a{color:var(--s2)}
   <div class="byline">plant <code>cal</code>: finger kp 0.5, kv 0.02, joint damping 0.5, forcerange 0.35 N&#183;m,
   elliptic cone, &#956; 1.0, palm plate at 25 mm &#183; policies of the 2026-09-20 robust tranche
   (<a href="../20260920-robust_tranche/20260920-robust_reorient_policies.html">page</a>) &#183; CPU MuJoCo, one rollout
-  per cell, nominal spawn and four spawns at 2 mm jitter &#183; no torsional load on the screw</div>
+  per cell, nominal spawn and four spawns at 2 mm jitter &#183; no torsional load on the screw &#183; the calibrated plant
+  was withdrawn on 2026-10-06; the <a href="../../overviews/hand_plant_bench.html">hardware overview</a> gives the current
+  one</div>
 </header>
+
+<section id="terms"><div class="col">
+<h2>Terms and metrics</h2>
+<dl class="terms">
+<dt><b>Chain</b></dt><dd>Grasp the lying screwdriver, lift it, turn it upright with a learned policy, stand it up with
+the arm, seat it in a 45&#176; countersink, hand it over to a gait grasp and gait it for eight cycles, on a simulated
+UR5e.</dd>
+<dt><b>Completed rollout</b></dt><dd>One that keeps the tool in the seat through all eight gait cycles.</dd>
+<dt><b>Lost</b></dt><dd>The tool tilted past 45&#176; on fewer than two pads, or its centre below 30 mm.</dd>
+<dt><b>Turns (rev)</b></dt><dd>Net rotation of the tool about its own axis over the eight gait cycles, in revolutions;
+positive drives the screw in.</dd>
+<dt><b>Clip, clip + separation</b></dt><dd>The two policy variants of the 2026-09-20 robust tranche: a residual clipped at
+&#177;1 rad, and the same with an index&#8211;middle separation reward.</dd>
+<dt><b>Ring</b></dt><dd>The three fingertip positions around the standing tool from which the gait grasps it, at a radius
+and height per hand.</dd>
+<dt><b>Boost</b></dt><dd>A host-side correction on the achieved joint angle: command = set-point + 2 &#215; shortfall,
+rate-limited.</dd>
+<dt><b>Finger time constant</b></dt><dd>(Joint damping + kv) / kp: the time a free finger takes to cover 63 % of a step,
+in s.</dd>
+</dl>
+</div></section>
 
 <section><div class="col">
 <h2>Outcome over five spawns</h2>
-<p class="sub">cell = the stage at which the tool left the hand, or the tool&#8217;s net rotation in the seat over eight
-gait cycles when the chain completed &#183; lost = tilted past 45&#176; on fewer than two pads, or centre below 30 mm</p>
+<p class="sub">Cell: the stage at which the tool was lost, or its net rotation in the seat over eight gait cycles when
+the chain completed</p>
 {{TABLE_OUTCOME}}
-<p>One chain setting for every policy. The six policies are the ones that held the tool through their turn in the
-2026-09-20 nominal chain run; the other four drop it in the turn and are not repeated here. On the four D5 and D6
-policies {{N_COMP4}} of {{N_RUNS4}} rollouts complete. D1 with the separation term and D2 lose the tool before the seat on
-every spawn, at the post-turn regrip or in the arm&#8217;s staging, where the tool hangs on two pads while the palm rotates
+<p>The six policies are those that held the tool through their turn in the 2026-09-20 nominal chain run; the other four
+drop it in the turn. D1 with the separation term and D2 lose the tool before the seat on every spawn, at the post-turn regrip or in the arm&#8217;s staging, where the tool hangs on two pads while the palm rotates
 25&#8211;50&#176;.</p>
 <div class="keep"><span class="tag">Chain setting</span>
 <p><code>real_v1_chain_policy.py --plant cal --plate-mm 25 --turn-steps 2500 --hold-steps 0 --gait-ring
@@ -120,18 +141,17 @@ stroke_deg=20, squeeze=0.005, relay_gait=false, angle_gain=2, angle_from=gait. S
 
 <section><div class="col">
 <h2>Films</h2>
-<p class="sub">nominal spawn, one per policy, 640&#215;480 at twice real time (<code>web/&lt;policy&gt;_chain.mp4</code>)</p>
+<p class="sub">Nominal spawn, one per policy, 640&#215;480 at twice real time (<code>web/&lt;policy&gt;_chain.mp4</code>)</p>
 {{FILMS}}
 </div></section>
 
 <section><div class="col">
 <h2>What happens after the turn, stage by stage</h2>
-<p>Each change below was made against a measured failure; the seams record the apex&#8217;s offset from the socket, the
-palm&#8217;s tilt, the set-point error and the actuators on their force ceiling at every stage.</p>
+<p>Each change below answers a measured failure.</p>
 <ol class="stages">
 <li><strong>Staging.</strong> The arm stands the tool up in three corrections over 3&#8202;s instead of one move over
 0.6&#8202;s. In the single move D5 with the separation term lost the tool on two pads; in three it reaches the seat.</li>
-<li><strong>Seat.</strong> Unchanged from 2026-09-20: the arm carries the tool&#8217;s apex over the socket and stands
+<li><strong>Seat.</strong> Unchanged from 2026-09-20: the arm moves the tool&#8217;s apex over the socket and stands
 the tool up about the seated tip. After the single-move staging D6 clip&#8217;s tool sat on the countersink wall (apex
 4.9&#8202;mm off-centre, 4&#8202;mm proud); after the three-step staging it seats (apex 0.6&#8202;mm). A tool left on the wall
 drops into the seat when released, or falls over (D5 clip, seed 1).</li>
@@ -140,30 +160,27 @@ press depth plus 5&#8202;mm. The press leaves the palm plate bearing on the tool
 middle pad, which cannot reach the open radius at its station, stays pinned at 36&#8202;N until that load is removed;
 lifted without the unload, it drags the tool over.</li>
 <li><strong>Re-pose.</strong> The palm goes straight up until no fingertip can reach below the tool&#8217;s top, then
-levels over the gait pose. At the press the palm is 23&#8211;35&#176; off level on the D5 and D6 policies. From there the
-relay handover&#8217;s best ring, on the pads&#8217; own azimuths at the best height, is 5&#8211;24&#8202;mm out of reach
-at the grip radius and 12&#8211;21&#8202;mm at the open radius, and its gait turns the tool 0.00 rev
-(<code>runs/relay/</code>). A palm that moves while two pads hold the seated tool pulls it out of the seat (the
-<code>slide</code> handover of 2026-09-20 lifted it from 53 to 82&#8211;96&#8202;mm). The tool therefore stands alone in
-the countersink for 6.4&#8202;s between the release and the descent.</li>
+levels over the gait pose. At the press the palm is 23&#8211;35&#176; off level, and from there the relay handover&#8217;s best ring is
+5&#8211;24&#8202;mm out of reach and its gait turns the tool 0.00 rev (<code>runs/relay/</code>); a palm that moves while two
+pads hold the seated tool pulls it out of the seat. The tool therefore stands alone in the countersink for 6.4&#8202;s
+between the release and the descent.</li>
 <li><strong>Ring.</strong> Placed per hand by <code>real_v1_gait_ring_screen.py</code> (below), solved on the released
 tool and centred on its axis at the ring height. The first entry of each radius is solved from two IK seeds; the
 sequential warm start alone left D6&#8217;s approach ring 10&#8202;mm short, and its index pad came down on the tool&#8217;s
 rim.</li>
 <li><strong>Descent.</strong> The fingers open to the approach ring (16&#8202;mm clear of the tool) at the top and the
-palm waits until every joint is within 2&#176; of its command before it descends. With a fixed settle the fingers were up
+palm waits until every joint is within 2&#176; of its command before it descends. With a fixed wait the fingers were up
 to 53&#176; short of the approach pose and landed on the tool.</li>
 <li><strong>Gait.</strong> Twist 2&#8202;s, release, return and regrasp 1.5&#8202;s each, 20&#176; stroke, 5&#8202;mm squeeze,
 all three pads released together, and a host-side boost on the achieved joint angle (command = set-point + 2 &#215;
 shortfall, rate-limited) armed at the ring grasp. Without the boost the pads move 0.1&#8211;1.2&#176; of a
-20&#8211;25&#176; commanded twist and the regrasp turns the tool 7&#8211;8&#176; back each cycle. At a 30&#176; stroke the grip
-ring is 5.2&#8211;5.8&#8202;mm out of reach and the gait knocked the tool over on two of four policies; at 20&#176; it is
-4.5&#8211;4.8&#8202;mm and all four turned the tool. In the completed rollouts above the tool turns a median 11.8&#176; per
+20&#8211;25&#176; commanded twist; at a 30&#176; stroke the gait knocked the tool over on two of four policies, and at
+20&#176; all four turned it. In the completed rollouts above the tool turns a median 11.8&#176; per
 cycle (10th&#8211;90th percentile 5.6&#8211;21.3&#176;) on two or three pads, against the 34&#176; a slip-free 20&#176; stroke
 delivers through the 1.68 gear of the pad ring.</li>
 </ol>
 <h3>Where each hand can hold the standing tool</h3>
-<p class="sub">palm level; worst fingertip IK residual over the grip and open rings through a 30&#176; stroke, and over the
+<p class="sub">Palm level; worst fingertip IK residual over the grip and open rings through a 30&#176; stroke, and over the
 approach ring at stroke 0 (12 mm clearance); the last column is the chain&#8217;s previous ring (tool 4 mm ahead of the
 palm, pads at 180 / +60 / &#8722;60&#176;, best depth)</p>
 {{TABLE_RING}}
@@ -186,23 +203,22 @@ which <code>apply_measured_plant.py</code> never changed. The finger time consta
 2026-08-29 stream run the flexion joints tracked a 1.08&#8202;s trajectory to under 1&#176;, and in the stepped free-air run
 the pip follows 0.13&#8202;s steps to within 0.5&#176;. Every calibrated-plant result since 2026-09-16, including the training
 of these policies, ran with the 1&#8202;s fingers.</p>
-<p class="sub">the same chain with only the finger joint damping changed (<code>--finger-damping</code>) &#183; cell = the
+<p class="sub">The same chain with only the finger joint damping changed (<code>--finger-damping</code>) &#183; cell = the
 tool&#8217;s tilt and pads at the end of the learned turn</p>
 {{TABLE_DAMPING}}
 <p>Policies holding the tool at the end of their turn: {{HELD_05}} of 10 at the trained damping, {{HELD_025}} at 0.25,
 {{HELD_01}} at 0.1 and {{HELD_0}} at 0. With bench-speed fingers the policies&#8217; saturated &#177;1&#8202;rad residuals
 are executed within tens of milliseconds and the tool leaves the hand 8&#8211;20 policy steps after the policy takes over;
 the grasp and lift before it hold on every hand (3&#8211;4 pads, 3.1&#8211;4.4&#8202;N).</p>
-<p class="sub">the chain without a policy at damping 0 (<code>calfast</code>): the chain&#8217;s own open-loop finger turn,
+<p class="sub">The chain without a policy at damping 0 (<code>calfast</code>): the chain&#8217;s own open-loop finger turn,
 and no finger turn at all</p>
 {{TABLE_CALFAST}}
 <p>At damping 0 the chain fails before the seat on every hand whether or not the fingers turn the tool, including the case
-where the arm alone stands the gripped tool up, which the damped plant did on five hands on 2026-09-16. The damping is
-doing two things in the model: it slows the response to a command about 25&#215; past the servo&#8217;s, and it resists the
-tool back-driving the fingers. The real gear train resists back-driving through friction that grows with the transmitted
-load (the 2026-09-02 sysid measured a 12.3&#176; friction cone under a grasp and 0.7&#8211;1.5&#176; hanging free), which
-a constant <code>frictionloss</code> cannot express. Neither plant reproduces both measurements, so the chain&#8217;s
-dynamics, and the policies trained on them, are not validated for hardware.</p>
+where the arm alone stands the gripped tool up, which the damped plant did on five hands on 2026-09-16. In the model the
+damping both slows the response to a command about 25&#215; past the servo&#8217;s and resists the tool back-driving the
+fingers; the real gear train resists back-driving through friction that grows with the load (a 12.3&#176; friction cone
+under a grasp and 0.7&#8211;1.5&#176; hanging free, 2026-09-02), which a constant <code>frictionloss</code> cannot express.
+Neither plant reproduces both measurements.</p>
 </div></section>
 
 <section><div class="col">
@@ -210,19 +226,19 @@ dynamics, and the policies trained on them, are not validated for hardware.</p>
 <ul>
 <li>&#8220;All three keep the tool through the relay handover and the eight gait cycles&#8221;: D5 ended the gait with no pad
 on the tool, standing in the seat, and D6 clip&#8217;s tool sat on the countersink wall through the whole gait. The
-&#8220;within 1.5&#8202;mm of the socket&#8221; figures were measured at the end of the run, not at the set-down.</li>
+&#8220;within 1.5&#8202;mm of the socket&#8221; figures were measured at the end of the run, after the gait.</li>
 <li>&#8220;The first non-zero turn on the calibrated plant&#8221; (+0.071 rev in 8 cycles): withdrawn; it is 2&#8211;6&#176;
 per cycle in a gait that does not track its commands.</li>
 <li>&#8220;The achieved-angle loop is falsified&#8221;: true of a loop armed while the servos sit on their force ceiling. Armed
 at the ring grasp, the same loop is what makes the gait above turn.</li>
 <li>&#8220;The gait does not move the fingers on this plant&#8221;: the cause is the 1&#8202;s finger time constant against
-0.12&#8211;0.24&#8202;s gait phases, not the load.</li>
-<li>The calibrated plant described as kp 0.5, kv 0.02 on that page and on 2026-09-16 carries joint damping 0.5 as well.</li>
+0.12&#8211;0.24&#8202;s gait phases.</li>
+<li>The calibrated plant described as kp 0.5, kv 0.02 on that page and on 2026-09-16 also has joint damping 0.5.</li>
 </ul>
 </div></section>
 
 <section><div class="col">
-<h2>What this does not settle</h2>
+<h2>Future work</h2>
 <ol>
 <li><strong>The finger dynamics.</strong> On the bench, per joint: a 20&#176; free-air step read at 111&#8202;Hz (time
 constant and no-load speed), and a pad pushed with a force gauge while the servo holds position (deflection against time
@@ -244,7 +260,7 @@ screen places their gait rings at 4.4 and 3.2&#8202;mm, so their handover and ga
 </div></section>
 
 <footer>
-scripts: <code>real_v1_chain_policy.py</code> (<code>--chain</code>, <code>--gait-ring</code>, <code>--finger-damping</code>,
+Scripts: <code>real_v1_chain_policy.py</code> (<code>--chain</code>, <code>--gait-ring</code>, <code>--finger-damping</code>,
 no <code>--policy</code> = open-loop turn), <code>probe_real_v1_chain.py</code> (<code>reindex="over"</code>),
 <code>real_v1_gait_ring_screen.py</code>, <code>apply_measured_plant.py --damping</code>, <code>real_v1_chain_hands.py</code>
 (plant <code>calfast</code>), <code>chain_handover_gait_page.py</code> &#183; data:

@@ -32,9 +32,12 @@ POL = {"r_d6_clip": ("D6", "clip"), "r_d6_clipsep": ("D6", "clip + separation"),
        "r_d7_clip": ("D7", "clip")}
 SEAMS = ["turned", "regripped", "staged", "set_down", "seated", "pressed", "re_referenced", "released", "cleared",
          "over", "reindexed", "gait_grip", "gaited"]
-STAGE = {"turned": "learned turn", "regripped": "regrip", "staged": "arm staging", "set_down": "set-down",
-         "seated": "seat", "pressed": "press", "re_referenced": "re-reference", "released": "release",
-         "cleared": "lift", "over": "re-pose", "reindexed": "descent", "gait_grip": "ring close", "gaited": "gait"}
+STAGE = {"turned": "Learned turn", "regripped": "Regrip", "staged": "Arm staging", "set_down": "Set-down",
+         "seated": "Seat", "pressed": "Press", "re_referenced": "Re-reference", "released": "Release",
+         "cleared": "Lift", "over": "Re-pose", "reindexed": "Descent", "gait_grip": "Ring close", "gaited": "Gait"}
+
+
+BUILT = "2026-09-23 21:46"  # build time of the record; pinned 2026-10-09 so that restyling rebuilds keep it
 
 
 def lost_at(c):
@@ -71,7 +74,7 @@ def outcome_table(final):
             else:
                 cells.append((STAGE[l], "cell c0"))
         summary[pid] = (done, tsum)
-        rows.append([POL[pid][0], POL[pid][1]] + cells + [f"{done} / 5"])
+        rows.append([POL[pid][0], POL[pid][1].capitalize()] + cells + [f"{done} / 5"])
     head = ["hand", "policy", "nominal", "seed 1", "seed 2", "seed 3", "seed 4", "#complete"]
     return table(head, rows), summary
 
@@ -93,9 +96,9 @@ def damping_table():
             t = c["seams"].get("turned", {})
             held = t.get("pad_contacts", 0) >= 2 and t.get("z", 0) > 0.08
             counts[dmp] = counts.get(dmp, 0) + int(held)
-            cells.append((f"{t.get('tilt_deg', 90):.0f}&#176; on {t.get('pad_contacts', 0)}" if held else "dropped",
+            cells.append((f"{t.get('tilt_deg', 90):.0f}&#176; on {t.get('pad_contacts', 0)}" if held else "Dropped",
                           "cell c4" if held and t.get("tilt_deg", 90) < 40 else ("cell c2" if held else "cell c0")))
-        rows.append([POL[pid][0], POL[pid][1]] + cells)
+        rows.append([POL[pid][0], POL[pid][1].capitalize()] + cells)
     head = ["hand", "policy", "0.5 (trained; &#964; 1.04 s)", "0.25 (&#964; 0.54 s)", "0.1 (&#964; 0.24 s)", "0 (&#964; 0.04 s)"]
     return table(head, rows), counts
 
@@ -186,7 +189,7 @@ def main():
     fwd = sum(1 for t in ts if t > 0.05)
     four = [p for p in ("r_d6_clip", "r_d6_clipsep", "r_d5_clip", "r_d5_clipsep") if p in summ]
     comp4 = sum(summ[p][0] for p in four)
-    sub = {"BUILT": time.strftime("%Y-%m-%d %H:%M"), "TABLE_OUTCOME": t_out, "TABLE_DAMPING": t_damp,
+    sub = {"BUILT": BUILT, "TABLE_OUTCOME": t_out, "TABLE_DAMPING": t_damp,
            "TABLE_CALFAST": calfast_table(), "TABLE_RING": ring_table(), "TABLE_SWEEP": sweep_table(),
            "FILMS": films(final), "N_POL": str(n_pol), "N_RUNS": str(len(final)), "N_COMPLETE": str(comp),
            "N_FWD": str(fwd), "N_COMP4": str(comp4), "N_RUNS4": str(5 * len(four)),
