@@ -82,6 +82,8 @@ figure { margin:16px 0 !important; padding:0 !important; border:0 !important; te
 figure > img, figure > video, figure > svg, figure > .chart, figure > .duo, .chart > svg, .diagram > svg {
   display:block !important; margin-left:auto !important; margin-right:auto !important; }
 .chart .legendrow, .chart .legend { justify-content:center !important; }
+/* two-up chart grids stack: a chart drawn for the full column shows its text at half size side by side */
+.duo, .pair, .two, .grid2, .fig-row { grid-template-columns:1fr !important; }
 figure img, figure video, figure svg { border:1px solid #000 !important; border-radius:0 !important; max-width:100% !important; }
 .eq svg, .tex-d svg, .tex-i svg, svg.tex, .chart svg, .diagram svg { border:0 !important; }
 figcaption { text-align:left !important; font-size:16px !important; line-height:1.35 !important; color:#000 !important; margin-top:4px !important; }

@@ -6,9 +6,10 @@ displayed, in headless Chrome.
     python3 scripts/page_figure_check.py --no-shots PAGE.html              # report only
     python3 scripts/page_figure_check.py --all                             # every page in docs_inventory
 
-For every <figure> on the page (and every chart <svg>, .chart or .diagram outside one) the script lays the figure
-out alone at the page's width (900 px window, the plain style's 860 px column) and measures, for each <text> of each
-inline SVG chart, the font size as displayed: the computed size times the SVG's scale on screen. It flags text under
+For every <figure> on the page (and every chart <svg>, .chart or .diagram outside one) the script measures, in the page's
+own layout at a 900 px window (the plain style's 860 px column, grids of small charts included), for each <text> of each
+inline SVG chart, the font size as displayed: the computed size times the SVG's scale on screen. The screenshots lay
+each figure out alone at column width. It flags text under
 13 px (owner 2026-10-09: chart text at least 13 px as displayed), pairs of labels whose boxes overlap, and labels
 that run outside the SVG's box, where the browser clips them. Raster images report their downscale (displayed over
 natural width); their text has to be read from the screenshot.
@@ -44,9 +45,16 @@ window.addEventListener('load', function(){ setTimeout(function(){
   function inter(a,b){var x=Math.max(0,Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x));
                       var y=Math.max(0,Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y));return x*y;}
   var out=[];
-  document.querySelectorAll('.figcheck').forEach(function(box){
-    var R={i:+box.dataset.i, top:rect(box).y, height:box.offsetHeight, svgs:[], imgs:[], videos:0};
-    box.querySelectorAll('svg').forEach(function(svg){
+  var boxes=[].slice.call(document.querySelectorAll('.figcheck'));
+  if(!boxes.length){            // the page itself: its top-level figures, as figures() finds them in the source
+    var cand=[].slice.call(document.querySelectorAll('figure, svg:not(.tex), div.chart, div.diagram'));
+    boxes=cand.filter(function(e){ return !cand.some(function(o){ return o!==e && o.contains(e); }); });
+    boxes.forEach(function(b,k){ b.dataset.i=k; });
+  }
+  boxes.forEach(function(box){
+    var R={i:+box.dataset.i, top:rect(box).y, height:box.getBoundingClientRect().height, svgs:[], imgs:[], videos:0};
+    var svgs=box.tagName.toLowerCase()==='svg' ? [box] : [].slice.call(box.querySelectorAll('svg'));
+    svgs.forEach(function(svg){
       if(svg.classList.contains('tex')||svg.closest('svg.tex')) return;
       if(svg.parentElement && svg.parentElement.closest('svg')) return;   // nested svg: measured with its root
       var texts=[].slice.call(svg.querySelectorAll('text')).filter(function(t){return (t.textContent||'').trim().length>0;});
@@ -137,8 +145,15 @@ def chrome(args, timeout=180):
 
 
 def measure(page: str, figs, tmpdir: str, base: str):
+    """Measure every figure in the page's own layout (grids of small charts included): the page with the measuring
+    script added, its relative media resolved against its folder."""
     path = os.path.join(tmpdir, "measure.html")
-    open(path, "w", encoding="utf-8").write(harness(page, figs, True, base))
+    tag = f'<base href="file://{base.rstrip("/")}/">'
+    body = page.replace("<head>", "<head>" + tag, 1) if "<head>" in page else tag + page
+    i = body.lower().rfind("</body>")
+    script = f"<script>{MEASURE_JS}</script>"
+    body = body[:i] + script + body[i:] if i >= 0 else body + script
+    open(path, "w", encoding="utf-8").write(body)
     dom = chrome([f"--window-size={WIDTH},2000", "--virtual-time-budget=15000", "--dump-dom", "file://" + path])
     m = re.search(r'<pre id="figcheck-report">(.*?)</pre>', dom, re.S)
     if not m:
