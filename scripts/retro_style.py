@@ -96,7 +96,11 @@ footer, footer p { border-top:0 !important; font:16px/1.4 "Times New Roman",Time
 footer { border-top:1px solid #000 !important; margin-top:32px !important; padding-top:6px !important; }
 footer code { font-family:"Courier New",Courier,monospace !important; font-size:14px !important; }
 .chip, .pill, .badge { background:none !important; border:0 !important; padding:0 !important; border-radius:0 !important;
-                       font:inherit !important; color:#000 !important; }
+                       font:inherit !important; color:#000 !important; text-transform:none !important;
+                       letter-spacing:normal !important; }
+.stats { background:none !important; border:0 !important; border-radius:0 !important; box-shadow:none !important; }
+.stat { background:none !important; color:#000 !important; border:0 !important; box-shadow:none !important; }
+.stat .num, .stat b, .stat small, .stat .sub, .stat span { color:#000 !important; }
 button.theme, .theme-toggle, [data-theme-toggle] { display:none !important; }
 """
 
