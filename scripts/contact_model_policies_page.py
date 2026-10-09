@@ -1046,10 +1046,10 @@ def lede(X: Data):
                  f"({S['box']['held']}/{S['box']['n']} rollouts held) and {_rng(hm)} for the TPU mesh, against "
                  f"{_rng(hp)} for the pads and {_rng(hs)} for the skin, all of whose rollouts held "
                  f"({S['tpu27pads1']['held'] + S['tpu27skin']['held']}/{S['tpu27pads1']['n'] + S['tpu27skin']['n']}).")
-    if S["tpu27skin"]["spit"] and S["tpu27mesh"]["spit"]:
-        parts.append(f"A training iteration costs {S['tpu27pads1']['spit'] / S['tpu27mesh']['spit']:.1f}&#215; the "
-                     f"TPU mesh&#8217;s GPU time with the pads and {S['tpu27skin']['spit'] / S['tpu27mesh']['spit']:.1f}"
-                     f"&#215; with the skin.")
+    pm, pp, ps = probe_spit("tpu27mesh"), probe_spit("tpu27pads1"), probe_spit("tpu27skin")
+    if pm and pp and ps:
+        parts.append(f"On an idle GPU a training iteration costs {pp / pm:.1f}&#215; the TPU mesh&#8217;s time with the "
+                     f"pads and {ps / pm:.1f}&#215; with the skin.")
     return " ".join(parts)
 
 
