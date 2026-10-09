@@ -89,7 +89,7 @@ SUPERSEDED = {"20261005-contact_overview", "20261007-contact_overview", "2026100
 
 
 def index_rows():
-    """{file name: (subject, artifact URL or None)} from docs/experiments/INDEX.md."""
+    """{file name: (subject, artifact URL or None, retracted)} from docs/experiments/INDEX.md."""
     out = {}
     path = os.path.join(EXP, "INDEX.md")
     for line in open(path, encoding="utf-8"):
@@ -98,11 +98,11 @@ def index_rows():
         cells = [c.strip() for c in line.strip().strip("|").split("|")]
         if len(cells) < 3:
             continue
-        subject = re.sub(r"\s*\(.*", "", cells[1]).strip()
+        subject = re.sub(r"\s*\(.*", "", cells[1]).strip(" *")
         f = re.search(r"\(([^)]+\.html)\)", cells[2]) or re.search(r"([\w./-]+\.html)", cells[2])
-        url = re.search(r"https://claude\.ai/artifact/\w+", cells[3] if len(cells) > 3 else "")
+        url = re.search(r"https://claude\.ai/(?:code/)?artifact/[\w-]+", cells[3] if len(cells) > 3 else "")
         if f:
-            out[os.path.basename(f.group(1))] = (subject, url.group(0) if url else None)
+            out[os.path.basename(f.group(1))] = (subject, url.group(0) if url else None, "RETRACTED" in cells[1])
     return out
 
 
@@ -141,7 +141,7 @@ def records():
         name, folder = os.path.basename(path), os.path.basename(os.path.dirname(path))
         if name.endswith(".src.html"):
             continue
-        subject, url = idx.get(name, (None, None))
+        subject, url, retracted = idx.get(name, (None, None, False))
         art = os.path.join(os.path.dirname(path), "artifact_url.txt")
         if not url and os.path.exists(art):
             url = open(art).read().strip() or None
@@ -154,7 +154,7 @@ def records():
             "topic": FOLDER_TOPIC.get(folder),
             "builder": builders.get(name),
             "artifact": url,
-            "status": "superseded" if folder in SUPERSEDED else "current",
+            "status": "superseded" if folder in SUPERSEDED else "retracted" if retracted else "current",
             "mb": round(os.path.getsize(path) / 1e6, 1),
         })
     return out
@@ -175,7 +175,7 @@ def main():
         rs = [r for r in R if r["topic"] == key]
         print(f"\n{title} ({len(rs)} pages)")
         for r in rs:
-            flag = " (superseded)" if r["status"] != "current" else ""
+            flag = f" ({r['status']})" if r["status"] != "current" else ""
             print(f"  {r['date']}  {r['title'][:80]}{flag}\n              {r['file']}  builder: {r['builder'] or '-'}  "
                   f"{'artifact' if r['artifact'] else 'local'}  {r['mb']} MB")
 
