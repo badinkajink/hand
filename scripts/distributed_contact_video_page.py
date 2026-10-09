@@ -29,7 +29,7 @@ def comparisons(films):
         ),
         (
             "backends",
-            "Matched pulse across CPU, GPU and Drake",
+            "One pulse on CPU, GPU and Drake",
             [
                 "transfer-fine_s1.0_tau0.012",
                 "mjlab_transfer-fine_s1.0_batch128",
@@ -47,7 +47,7 @@ def comparisons(films):
                 "friction_refine-creep_ct1000_dt6.25",
                 "drake_transfer-drake_tau0.003",
             ],
-            "The same 3 mN·m pulses with Cₜ/Cᵢ = 10, 100 and 1000, then Drake. The 1000 case uses 6.25 µs; the other CPU cases use 50 µs. These are declared operating points, not a solver-only comparison.",
+            "The same 3 mN·m pulses with Cₜ/Cᵢ = 10, 100 and 1000, then Drake. The 1000 case uses 6.25 µs and the other CPU cases 50 µs, so each panel is a declared operating point of solver and step together.",
         ),
         (
             "holding",
@@ -73,7 +73,7 @@ def comparisons(films):
         ),
         (
             "payload",
-            "Payload retention at matched resolution",
+            "Payload retention at 1 and 0.5 mm resolution",
             [
                 "payload-payload_s1_m8",
                 "payload-payload_s05_m8",
@@ -102,7 +102,7 @@ def comparisons(films):
                 "friction_transfer-creep_ct1000.0",
                 "transfer_compiled_fine-compiled_fine_s05",
             ],
-            "Original impedance / 500 µs, fine normal law / 50 µs, underresolved strong-friction damping / 50 µs, and the precomputed fine mapping / 50 µs. The third panel uses the smaller 3 mN·m pulse; its oscillation must not be read as a matched-input improvement.",
+            "Original impedance / 500 µs, fine normal law / 50 µs, underresolved strong-friction damping / 50 µs, and the precomputed fine mapping / 50 µs. The third panel uses the smaller 3 mN·m pulse, so its smaller oscillation comes from a different input.",
         ),
         (
             "isolated",
@@ -276,13 +276,13 @@ def main():
         "task-reference",
     )
     body += section(
-        "Reproduce and inspect",
-        """<p><a href="README.md">The runbook</a> includes capture and rendering commands. Raw state logs, native contact records, exact configurations, summaries and capture-source hashes live under <code>results/20261004-distributed-contact/video_capture/</code>. MP4s and JPEG posters are portable under <code>media/</code>. Rendering uses forward kinematics of saved state, with no contact re-solve.</p><p>Videos make gross motion, contact location, retention, release and obvious numerical failure inspectable. Their finite state-sampling rate cannot resolve every physics-step oscillation or establish a stiffness coefficient by itself. The raw contact audits and videos remain paired evidence.</p>""",
+        "Reproduction",
+        """<p><a href="README.md">The runbook</a> includes capture and rendering commands. Raw state logs, native contact records, exact configurations, summaries and capture-source hashes live under <code>results/20261004-distributed-contact/video_capture/</code>. MP4s and JPEG posters are portable under <code>media/</code>. Rendering uses forward kinematics of saved state, with no contact re-solve.</p><p>The videos show gross motion, contact location, retention, release and numerical failure; their state-sampling rate cannot resolve every physics-step oscillation, and the raw contact audits give the stiffness.</p>""",
         "reproduce",
     )
     page = frame(
-        "Contact videos: native trajectories and close-ups",
-        "Watch the behavior behind the force, holding and speed comparisons.",
+        "Native trajectories and close-ups of the fingertip contact models",
+        "Films of the force, holding, creep, payload, release and timestep runs of the distributed-contact audit, rendered from the saved states of each run: 1, 0.5 and 0.25 mm sphere pads in MuJoCo against Drake hydroelastic contact, the same pulse on CPU and GPU, and the cases that stopped at their guards.",
         body,
         "Recorded native state · fixed cameras · full failures retained",
     )
