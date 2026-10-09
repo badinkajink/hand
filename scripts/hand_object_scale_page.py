@@ -221,7 +221,7 @@ def glossary():
                       "the object is within 20&#8202;mm of its start; 0 otherwise. Median of three placements (object "
                       "offset 2&#8202;mm, yaw 2&#176;), best of the cell&#8217;s grasps."),
         ("HOM controller", "the relative contact-velocity controller of Wang, Oh and Pollard (arXiv 2609.25619) as "
-                           "<code>scripts/hom_turn3.py</code>: contact frames from the TPU block mesh, bounded least squares "
+                           "<code>scripts/hom_turn3.py</code>: contact frames from the TPU block mesh, least squares within joint-rate limits "
                            "on the reference relative velocities, pad force regulated to 2&#8202;N, 30&#176;/s toward "
                            "90&#176;, a governor that stops the reference when a pad&#8217;s force falls under 30&#8202;% "
                            "of its target or the object lags by 6&#176;. One parameter set for every cell."),
@@ -1026,9 +1026,9 @@ def paper_section(L, prot):
             ("8", "Simulated against measured scores cell by cell, and ridge locations with intervals", "sim and bench"),
             ("9", "Ridges under the 1&#8202;mm pads against point contact on the TPU block", "sim"),
             ("10", "Stills from the bench and simulation films of three layouts per object", "sim and bench")]
-    out = ["<p><b>Question.</b> How does the best finger-base layout of a three-finger hand with fixed phalanges move "
-           "with object size, does the answer differ between grasping and in-hand reorientation, and does a simulator "
-           "with a calibrated contact model predict where the best layout lies?</p>",
+    out = ["<p><b>Question.</b> How the best finger-base layout of a three-finger hand with fixed phalanges moves with "
+           "object size, whether the answer differs between grasping and in-hand reorientation, and whether a simulator "
+           "with a calibrated contact model predicts where the best layout lies.</p>",
            "<p><b>Contributions.</b></p><ol>"
            "<li>A dense morphology-by-object-size map on one hardware hand: 17 layouts &#215; 18 objects in simulation and "
            f"{len(prot['cells']) if prot else '&#8211;'} cells on the bench, with the same fingers, servos, tips and "
@@ -1085,30 +1085,21 @@ def next_section():
 # ------------------------------------------------------------------------------------------ lede and main
 
 def lede(L, R, prot):
+    """About 100 words (owner 2026-10-09): the scaling law, how the task moves the optimum, the bench protocol."""
     F = L["families"]["diag"]
     fs, fc = F["fits"].get("sphere:kin"), F["fits"].get("cylinder:kin")
     fh, ft = F["fits"].get("cylinder:hold"), F["fits"].get("cylinder:turn")
-    ratio = (min(fc["ratio"] + fs["ratio"]), max(fc["ratio"] + fs["ratio"])) if fc and fs else (None, None)
     sh, st_ = band_edges(L, "hold", "sphere"), band_edges(L, "turn", "sphere")
-    off = lambda fit: fit["beta_mm"] - 11.55 if fit else None  # noqa: E731
     H = prot["hours"] if prot else {}
-    return (f"Simulated over 17 layouts of the SR2 tripod (thumb&#8211;pair span 40&#8211;160&#8202;mm) and 18 objects "
-            "(cylinders of 6&#8211;80&#8202;mm, spheres of 10&#8211;160&#8202;mm), the best layout for each task grows "
-            "with the object by a fixed offset rather than in proportion to it. The fixed-contact workspace peaks where "
-            f"the mounts sit the object radius plus {f(fc['beta_mm'] if fc else None, 0)} (cylinders) or "
-            f"{f(fs['beta_mm'] if fs else None, 0)}&#8202;mm (spheres) from its axis or centre, with slope "
-            f"{f(fc['alpha'] if fc else None, 2)} and residuals of {f(fs['rms_mm'] if fs else None, 1)}&#8202;mm rms. That "
-            "offset is half the 68&#8202;mm finger, the rule Borr&#224;s and Dollar derived; the ratio of mount distance "
-            f"to radius runs from {f(ratio[0], 1)} to {f(ratio[1], 1)}. On cylinders, grasp robustness and the held turn "
-            "of the Wang&#8211;Oh&#8211;Pollard controller peak on parallel lines inside the workspace ridge: each pad meets "
-            f"the shaft {f(off(fh), 0)}, {f(off(ft), 0)} and {f(off(fc), 0)}&#8202;mm inboard of its mount for the three "
-            f"tasks. On spheres, robustness peaks at the compact edge of each object&#8217;s feasible band "
-            f"({sh['compact']} of {sh['n']}) and the turn at the wide edge ({st_['wide']} of {st_['n']}). The contact angle "
-            "separates the two: straight fingers press face-on and resist pull-out, and bent fingers keep the travel the "
-            "turn spends. No published study maps finger placement against controlled object size on one physical "
-            f"multi-finger hand. The bench protocol measures both dynamic ridges at {len(prot['cells']) if prot else '&#8211;'} "
-            f"cells in {f(H.get('total'), 0)} bench hours (a core set of eight objects in {f(H.get('core_trials_only'), 0)}"
-            "&#8202;h of trials), and the paper plan targets RA-L.")
+    return ("Over 17 simulated layouts of the SR2 tripod and 18 objects, the layout with the largest fixed-contact "
+            f"workspace puts the mounts the object radius plus {f(fc['beta_mm'] if fc else None, 0)}&#8202;mm "
+            f"(cylinders) or {f(fs['beta_mm'] if fs else None, 0)}&#8202;mm (spheres) from its axis, about half the "
+            "68&#8202;mm finger. The task moves the optimum: a cylinder is held best at the radius plus "
+            f"{f(fh['beta_mm'] if fh else None, 0)}&#8202;mm and turned furthest at the radius plus "
+            f"{f(ft['beta_mm'] if ft else None, 0)}&#8202;mm; for spheres robustness peaks at the compact edge of the feasible "
+            f"band ({sh['compact']} of {sh['n']}), the turn at the wide edge ({st_['wide']} of {st_['n']}). "
+            f"A bench protocol of {len(prot['cells']) if prot else '&#8211;'} cells ({f(H.get('total'), 0)}&#8202;h) is "
+            "written.")
 
 
 def main():
@@ -1127,7 +1118,7 @@ def main():
     v["LEDE"] = lede(L, R, prot)
     v["FOOTER"] = (f"<p>Rebuild: <code>.venv/bin/python scripts/hand_object_scale_page.py</code> after "
                    "<code>hand_object_scale_landscape.py</code> and <code>hand_object_scale_protocol.py</code>. Rows and "
-                   f"films: <code>{REL}/</code>; cell scenes (0.7&#8202;MB each, not in git): "
+                   f"films: <code>{REL}/</code>; cell scenes (0.7&#8202;MB each, kept out of git): "
                    "<code>logs/20261008-hand_object_scale/scenes/</code>; design scenes from the real_v1 base: "
                    "<code>assets/mjcf/experimental/20261008-hand_object_scale/</code>.</p>")
     t = open(TPL).read()
