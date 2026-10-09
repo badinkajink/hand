@@ -105,6 +105,7 @@ OLD_RE = re.compile(r'<style id="retro">.*?</style>\s*', re.S)
 TH_RE = re.compile(r'(<th\b[^>]*>)((?:\s|<[^>]+>)*)([a-z][^<]*)')
 TD_RE = re.compile(r'(<td\b[^>]*>)((?:\s|<[^>]+>)*)([a-z][^<]*)')
 # lower-case words that name a parameter, a unit or an abbreviation and stay as written at the start of a header
+SHORT_WORDS = {"a", "an", "at", "by", "if", "in", "is", "no", "of", "on", "or", "to", "up"}   # short words that open a phrase
 KEEP = {"condim", "impratio", "solref", "solimp", "mjlab", "rms", "sd", "id", "ok", "kp", "kv", "dt", "nv", "nc", "rel"}
 
 
@@ -118,7 +119,7 @@ def sentence_case_headers(html: str) -> str:
             return m.group(0)
         word = re.match(r"[A-Za-z]+", text).group(0)
         rest = text[len(word):]
-        if len(word) < 3 or word in KEEP or (rest[:1] in ("_",) or rest[:1].isdigit()):
+        if (len(word) < 3 and word not in SHORT_WORDS) or word in KEEP or (rest[:1] in ("_",) or rest[:1].isdigit()):
             return m.group(0)
         if cell and not rest.strip():
             return m.group(0)
