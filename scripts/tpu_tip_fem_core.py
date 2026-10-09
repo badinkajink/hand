@@ -180,7 +180,32 @@ def factor(K):
 
 # ------------------------------------------------------------------------------------------ homogenization
 
-def homogenize(occ, h, E=1.0, nu=0.45, Emap=None, incompatible=True, verbose=True):
+def amg_solve(K, F, tol=1e-9, maxiter=2000, verbose=False):
+    """Solve K X = F (columns of F) by conjugate gradients preconditioned with smoothed-aggregation AMG, the three
+    rigid translations as near-null space. Returns (X, info)."""
+    import pyamg
+    n = K.shape[0]
+    B = np.zeros((n, 3))
+    for c in range(3):
+        B[c::3, c] = 1.0
+    t0 = time.time()
+    ml = pyamg.smoothed_aggregation_solver(K.tocsr(), B=B, symmetry="symmetric", max_coarse=2000,
+                                           strength=("symmetric", {"theta": 0.0}),
+                                           smooth=("energy", {"krylov": "cg", "maxiter": 2}))
+    t1 = time.time()
+    X = np.zeros_like(F)
+    its = []
+    for j in range(F.shape[1]):
+        res = []
+        X[:, j] = ml.solve(F[:, j], tol=tol, accel="cg", maxiter=maxiter, residuals=res)
+        its.append(len(res))
+    info = dict(t_setup=t1 - t0, t_solve=time.time() - t1, iterations=its, operator_complexity=ml.operator_complexity())
+    if verbose:
+        print("  amg:", info)
+    return X, info
+
+
+def homogenize(occ, h, E=1.0, nu=0.45, Emap=None, incompatible=True, verbose=True, solver="cholmod"):
     """Effective 6x6 elasticity tensor of a periodic voxel cell. occ: bool (nx, ny, nz); h: voxel side (scalar
     or 3-vector); Emap: optional per-voxel modulus array. Returns dict(C, rho, n_dof, times)."""
     t0 = time.time()
@@ -210,10 +235,16 @@ def homogenize(occ, h, E=1.0, nu=0.45, Emap=None, incompatible=True, verbose=Tru
     keep = np.ones(3 * nn, bool)
     keep[:3] = False
     Kr = K[keep][:, keep]
-    fac = factor(Kr)
-    t2 = time.time()
     U = np.zeros((3 * nn, 6))
-    U[keep] = fac(-F[keep])
+    amg_info = None
+    if solver == "cholmod":
+        fac = factor(Kr)
+        t2 = time.time()
+        U[keep] = fac(-F[keep])
+    else:
+        t2 = time.time()
+        U[keep], amg_info = amg_solve(Kr, -F[keep])
+        fac = None
     t3 = time.time()
     Vcell = nx * ny * nz * np.prod(h)
     Vs = E_e.sum() * np.prod(h) / max(E, 1e-30) if Emap is None else None
@@ -222,7 +253,10 @@ def homogenize(occ, h, E=1.0, nu=0.45, Emap=None, incompatible=True, verbose=Tru
     C = 0.5 * (C + C.T)
     out = dict(C=C, rho=ne / (nx * ny * nz), n_dof=int(keep.sum()), n_el=ne,
                t_assemble=t1 - t0, t_factor=t2 - t1, t_solve=t3 - t2, nnz_K=int(K.nnz))
-    out["nnz_L"] = fac.nnz
+    if fac is not None:
+        out["nnz_L"] = fac.nnz
+    if amg_info is not None:
+        out["amg"] = amg_info
     if verbose:
         print(f"  homogenize: {ne} el, {out['n_dof']} dof, rho {out['rho']:.4f}, assemble {t1 - t0:.1f}s factor "
               f"{t2 - t1:.1f}s solve {t3 - t2:.1f}s")
