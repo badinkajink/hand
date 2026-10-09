@@ -306,9 +306,9 @@ def main():
             ch_held.append(f"{name} at cos {end[1]:+.2f}")
         else:
             ch_lost.append(name)
-    chain_lede = (f"Inside the UR5e chain with the training environment&#8217;s grasp and lift and the plate at 25 mm, one "
-                  f"nominal rollout each: the tool is still held after 5 s of the policy by {', '.join(ch_held) or 'none'}; "
-                  f"dropped by {', '.join(ch_lost) or 'none'}.") if (ch_held or ch_lost) else ""
+    chain_lede = (f"In the UR5e chain at plate 25 mm, one rollout per policy, {len(ch_held)} of "
+                  f"{len(ch_held) + len(ch_lost)} policies hold the tool after the policy&#8217;s 5 s. All 64 rollouts of a hand "
+                  "started from one spawn pose; the 2026-09-20 continuation adds spawn jitter.") if (ch_held or ch_lost) else ""
 
     # --- the two D6 reference checkpoints in the final chain configuration (chain/*_final.json)
     def d6ref(name, label):
@@ -384,11 +384,10 @@ def main():
     turned = sorted({j["hand"] for j in done if evals[j["id"]]["align_rate"] >= 0.99 and evals[j["id"]]["hold_rate"] >= 0.99})
     clipsep_done = [j for j in done if j["arm"] == "clipsep"]
     sep_ok = sorted({j["hand"] for j in clipsep_done if (evals[j["id"]].get("clearance_min_mm_mean") or 0) >= 30})
-    lede = (f"{n_done} of {len(jobs)} queued finetunes have finished ({n_fail} failed, {n_run} running, {n_pend} pending). "
-            f"Hands that hold the tool in 64 of 64 rollouts with a clipped residual: {', '.join(held_hands) or 'none yet'}; "
-            f"hands that also reach cos 0.9 in every rollout: {', '.join(turned) or 'none yet'}. "
-            f"Separation arm keeping the index&#8211;middle chains 30 mm apart or more: {', '.join(sep_ok) or 'none yet'} "
-            f"of {len(clipsep_done)} finished. " + chain_lede)
+    lede = (f"Of {n_done} finetunes with the residual clipped at &#177;1 rad, the hands that hold the tool in 64 of 64 rollouts "
+            f"at the trained pose are {', '.join(held_hands) or 'none'}, and those that also reach cos 0.9 in all "
+            f"{', '.join(turned) or 'none'}. The separation arm keeps index and middle 30 mm apart on "
+            f"{', '.join(sep_ok) or 'none'} of {len(clipsep_done)}. " + chain_lede)
     sub = {"LEDE": lede, "TABLE_MAIN": table_main, "TABLE_PLAUS": table_plaus, "TABLE_TRANSFER": table_transfer, "TABLE_CHAIN": table_chain, "STRIPS": strips_html, "EVALS": ev_html,
            "D6REF": d6ref_html, "TABLE_JITTER": table_jitter,
            "CURVES": curves_html, "GATE": gate_html, "N_JOBS": str(len(jobs)), "N_DONE": str(n_done),
