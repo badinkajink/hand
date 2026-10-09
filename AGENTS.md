@@ -37,5 +37,7 @@ file wins where they differ. They apply to every page, report, commit message an
 - Make each point once and name where its detail is; do not restate earlier answers or route through change IDs.
 - Delete every qualifier, caveat and method adjective no reader asked for. The numbers and sample sizes already show
   the limits.
-- State negative results flatly. A "what this does not settle" section lists actionable items, each naming the
-  measurement, script or flag.
+- State negative results flatly. A "Future work" section lists actionable items, each naming the measurement, script or
+  flag. Never use "serves" or "settle".
+- Sentence case for labels, table text, legends and axis titles. Fix a word budget before drafting (a lede of about
+  100 words) and cut to it.

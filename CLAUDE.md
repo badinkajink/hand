@@ -108,8 +108,10 @@ The pattern, followed by every page in `docs/experiments/INDEX.md`:
 results that live only on claude.ai. Titles are descriptive noun phrases in the style of
 `paper/hand_iros26-4.pdf` — not images, not phrases, no cute half after a colon.
 
-Copy the newest builder + template as the starting point; they carry the house palette,
-the light/dark token blocks and the table/figure/chip components.
+Copy the newest builder + template as the starting point; they carry the table and figure components.
+**Page style (owner, 2026-10-09):** the plain 1990s-homepage look of `scripts/retro_style.py` (Times on white,
+default link colours, 1px black rules); builders call `retro_style.apply(html)` before writing. Figures are
+centred and chart text is at least 13 px as displayed.
 
 ## Documentation — where things go (keep all three in sync for real work)
 
