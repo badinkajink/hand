@@ -174,12 +174,12 @@ def table_mech(d):
     for r in d["bench_mechanism"]:
         if r["plant"] not in ("shipped", "corrected"):
             continue
-        rows.append((PLANT_LABEL[r["plant"]], "kept" if r["post"] else "removed after the grip",
-                     "on" if r["gravity"] else "off",
+        rows.append((PLANT_LABEL[r["plant"]], "Kept" if r["post"] else "Removed after the grip",
+                     "On" if r["gravity"] else "Off",
                      f"{r['f_post_max_turn']:.2f}", f"{r['cos_grip']:+.3f}", f"{r['cos_end']:+.3f}",
                      f"{r['turn_deg']:+.1f}", f"{r['f_pad_grip']:.2f} &#8594; {r['f_pad_end']:.2f} / {r['n_pad_end']}",
-                     '<span class="ok">held</span>' if not r["dropped"] else '<span class="no">dropped</span>'))
-    return table(["plant", "post", "gravity", "#post force, N (max)", "#cos at grip", "#cos at end",
+                     '<span class="ok">Held</span>' if not r["dropped"] else '<span class="no">Dropped</span>'))
+    return table(["Plant", "Post", "Gravity", "#Post force, N (max)", "#Cos at grip", "#Cos at end",
                   "#turn, deg", "#pads N grip &#8594; end / n", "outcome"], rows)
 
 

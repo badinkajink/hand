@@ -160,8 +160,8 @@ first quarter of the turn the pad force drops to 0.1&#8211;0.5 N on one or two p
 rides the fingers at its own weight for the rest of the maneuver. On the shipped plant the
 index pad leaves the tool at step 100 and never returns; the tool rests on the thumb and middle
 pads. The rotation is the fingers changing the shape of the cradle the tool rests in, and the
-&#8220;settle&#8221; after the last command is the same motion continuing under gravity.</p>
-<p>Removing the post after the grip changes nothing (the post carries 0.00 N at every step).
+motion after the last command is the same motion continuing under gravity.</p>
+<p>Removing the post after the grip changes nothing (the post bears 0.00 N at every step).
 Removing gravity on the calibrated plant leaves the tool floating out of the fingers with zero
 pad contact at the grip: the grip pose does not pinch the tool, gravity holds it in.</p>
 </div>
@@ -232,7 +232,7 @@ mechanism is a property of kp 30.</p>
 <div class="col">
 <h2>The chain on the calibrated plant holds the tool through the arm&#8217;s turn</h2>
 <p class="sub">same cells; the fingers turn 1&#8211;8&#176;; the arm does the 90&#176;</p>
-<p>At kp 0.5 the 10 mm squeeze is a spring preload rather than a position: the pads stop at the
+<p>At kp 0.5 the 10 mm squeeze acts as a spring preload: the pads stop at the
 shaft and push with 3&#8211;4 N on three or four pads, the tool does not ride up, and it lifts
 flat (cos 0.00 &#177; 0.04). The finger turn moves it 1&#8211;8&#176; with 1.4&#8211;3.7 mm of slide.
 The arm then rotates the hand and the <code>staged</code> seam reads cos +0.95&#8211;0.99 on three
@@ -293,12 +293,12 @@ the 0.35 N&#183;m ceiling in any rollout.</p>
 </div>
 {{TABLE_KV}}
 <div class="col">
-<h3>The stiffness fit moves by 2&#215; when the settle is real</h3>
-<p>The 2026-09-02 calibration matched the simulated <code>ctrl &#8722; qpos</code> after a 2 s hold
+<h3>Stiffness fit with a converged hold</h3>
+<p>The 2026-09-02 calibration fitted the simulated <code>ctrl &#8722; qpos</code> after a 2 s hold
 to the bench&#8217;s settled deficits and found kp 0.5. At kv 0.6 a 2 s hold is 1.7 time constants,
 so 19&#8201;% of any step and the lag from the preceding ramp are still in the reading. Re-run
 with kv 0.02, kp 0.5 reproduces +5.8&#176; of the measured +11.7&#176; on <code>middle_yaw</code>, and
-the fit lands at <strong>kp 0.25</strong>.</p>
+the fit gives <strong>kp 0.25</strong>, half the earlier value.</p>
 </div>
 {{TABLE_KPFIT}}
 <div class="col">
@@ -352,7 +352,7 @@ below the grip&#8217;s and the ceiling is not the constraint it is during the tu
 at kp 0.5 and 0.25; accept if the tripod forms on 3 pads and the gait turns &#8805; 0.5 rev.</li>
 <li><strong>Per-hand ranking on the bench maneuver is not a plant test.</strong> The seed spread
 under 4 mm of spawn jitter exceeds the between-hand spread on every plant. A ranking claim needs
-either the screened maneuver&#8217;s load regulator in the replay or a jitter matched to the
+either the screened maneuver&#8217;s load regulator in the replay or a jitter equal to the
 bench&#8217;s placement repeatability (0.03 mm rms on the tag), and 20+ seeds.</li>
 </ul>
 </div>
