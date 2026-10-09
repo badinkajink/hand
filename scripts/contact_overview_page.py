@@ -241,7 +241,14 @@ def fmt(x, nd=2):
 
 # ------------------------------------------------------------------------------------------ svg helpers
 
+def _sentence(label):
+    """Capitalise an axis title that starts with a plain lower-case word (sentence case); symbols such as kp stay."""
+    w = label.split(" ", 1)[0]
+    return label[0].upper() + label[1:] if len(w) > 2 and w.isalpha() and w.islower() else label
+
+
 def _panel(out, x0, y0, w, h, xs, ys, xt, yt, xlab, ylab, logx=False, logy=False, xfmt="{:g}", yfmt="{:g}"):
+    xlab, ylab = _sentence(xlab), _sentence(ylab)
     tx = (lambda v: math.log10(v)) if logx else (lambda v: v)
     ty = (lambda v: math.log10(v)) if logy else (lambda v: v)
     fx = lambda v: x0 + (tx(v) - tx(xs[0])) / (tx(xs[1]) - tx(xs[0])) * w  # noqa: E731
@@ -285,9 +292,14 @@ def _marker(out, x, y, colour, shape="circle", hollow=False, r=4.6, title=None):
         out.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{r:.1f}" style="fill:{fill};stroke:{stroke};stroke-width:2">{t}</circle>')
 
 
+COLUMN_PX = 828                     # width of the plain style's text column; charts scale to it
+
+
 def _svg_open(w, h, label, fs=12):
-    """fs: default text size; the plain-style pages use 16 where the layout has room (owner 2026-10-09: larger chart text)."""
-    return [f'<svg viewBox="0 0 {w} {h}" role="img" aria-label="{label}" font-family="var(--f-mono)" font-size="{fs}">']
+    """fs: default text size in viewBox units, raised so that text shows at 13 px or more once the chart is scaled to
+    the 828 px column (owner 2026-10-09: chart text at least 13 px as displayed)."""
+    fs = max(fs, math.ceil(13.0 * w / COLUMN_PX * 10) / 10)
+    return [f'<svg viewBox="0 0 {w} {h}" role="img" aria-label="{label}" font-family="var(--f-mono)" font-size="{fs:g}">']
 
 
 def _legend_html(items):
@@ -308,7 +320,7 @@ def pending(text):
 # ------------------------------------------------------------------------------------------ Figure 1: representations
 
 def svg_models():
-    W, H = 990, 250
+    W, H = 990, 262
     out = _svg_open(W, H, "Five fingertip contact representations: point contact, condim 4 with a torsional coefficient, "
                           "a pad of small spheres, a hydroelastic pressure field over the overlap, and a lattice with "
                           "lateral springs.", fs=12)
@@ -327,10 +339,10 @@ def svg_models():
         cx = x0 + 96
         soft = i >= 2
         cy = yl - Rr + (7.0 if soft else 0.0)
-        out.append(f'<text x="{cx}" y="22" text-anchor="middle" style="fill:var(--ink);font:600 13px var(--f-display)">{titles[i]}</text>')
+        out.append(f'<text x="{cx}" y="22" text-anchor="middle" style="fill:var(--ink);font:600 16.5px var(--f-display)">{titles[i]}</text>')
         # tool
         out.append(f'<rect x="{x0 + 6}" y="{yl}" width="180" height="34" rx="3" style="fill:var(--sunk);stroke:var(--ink3);stroke-width:1"/>')
-        out.append(f'<text x="{x0 + 176}" y="{yl + 22}" text-anchor="end" style="fill:var(--ink3);font-size:14.5px">tool</text>')
+        out.append(f'<text x="{x0 + 176}" y="{yl + 22}" text-anchor="end" style="fill:var(--ink3);font-size:16px">tool</text>')
         if i in (0, 1):
             out.append(f'<circle cx="{cx}" cy="{cy:.1f}" r="{Rr}" style="fill:var(--card);stroke:var(--ink2);stroke-width:1.6"/>')
             out.append(f'<line x1="{cx}" y1="{yl}" x2="{cx}" y2="{yl - 52}" style="stroke:var(--ink2);stroke-width:1.8" marker-end="url(#ovar)"/>'
@@ -378,8 +390,8 @@ def svg_models():
                 prof.append((x, yl + 4 + depth * 2.6))
             d = f"M{cx - hx:.1f},{yl + 4} " + " ".join(f"L{x:.1f},{y:.1f}" for x, y in prof) + f" L{cx + hx:.1f},{yl + 4} Z"
             out.append(f'<path d="{d}" style="fill:var(--c-drake);fill-opacity:.55;stroke:var(--c-drake);stroke-width:1.2"/>')
-        out.append(f'<text x="{cx}" y="{yl + 56}" text-anchor="middle" style="fill:var(--ink2);font-size:13px">{notes[i][0]}</text>'
-                   f'<text x="{cx}" y="{yl + 73}" text-anchor="middle" style="fill:var(--ink3);font-size:13px">{notes[i][1]}</text>')
+        out.append(f'<text x="{cx}" y="{yl + 58}" text-anchor="middle" style="fill:var(--ink2);font:16px var(--f-display)">{notes[i][0]}</text>'
+                   f'<text x="{cx}" y="{yl + 78}" text-anchor="middle" style="fill:var(--ink3);font:16px var(--f-display)">{notes[i][1]}</text>')
     out.append("</svg>")
     return "".join(out)
 
@@ -735,7 +747,7 @@ def svg_step(rows):
               "runtime_exact": ("per-contact mapping, runtime, exact Λ", "var(--c-c4)", True, "square"),
               "physical": ("per-contact mapping, fixed", "var(--ink3)", True, "square")}
     fx, fy = _panel(out, 70, 46, 380, 280, (0.04, 13.0), (-72.0, -40.0), (0.05, 0.1, 0.5, 1, 2, 5, 10), (-70, -60, -50, -40),
-                    "physics step (ms), log scale", "(a) tool angle about the pinch axis at the end (°)", True, False)
+                    "Physics step (ms), log scale", "(a) Tool angle about the pinch axis at the end (°)", True, False)
     for key, (lab, col, dashed, shape) in series.items():
         rs = sorted([r for r in rows if r["case"]["label"] == key], key=lambda r: r["case"]["physics_dt"])
         ok = [(r["case"]["physics_dt"] * 1e3, r["pinch_angle_end_deg"]) for r in rs if r["status"] == "complete"]
@@ -747,7 +759,7 @@ def svg_step(rows):
             _marker(out, fx(x), fy(-41.5), col, "cross", title=f"{lab}, {x:g} ms: diverged")
     out.append(f'<text x="{fx(0.5):.1f}" y="{fy(-43.6):.1f}" style="fill:var(--ink3)">× diverged</text>')
     fx, fy = _panel(out, 560, 46, 380, 280, (0.04, 13.0), (0.003, 100.0), (0.05, 0.1, 0.5, 1, 2, 5, 10), (0.01, 0.1, 1, 10, 100),
-                    "physics step (ms), log scale", "(b) physics wall s per simulated s, one core", True, True)
+                    "Physics step (ms), log scale", "(b) Wall time per simulated second (s)", True, True)
     for key, (lab, col, dashed, shape) in series.items():
         rs = sorted([r for r in rows if r["case"]["label"] == key and r["status"] == "complete"], key=lambda r: r["case"]["physics_dt"])
         pts = [(r["case"]["physics_dt"] * 1e3, (r.get("timing") or {}).get("physics_seconds_per_sim_second")) for r in rs]
@@ -984,7 +996,7 @@ def svg_cost(M, cost, batched=None):
                    f'<text x="{x - 8:.1f}" y="62" text-anchor="end" style="fill:var(--c-drake)">Drake hydroelastic, '
                    f'{cost["drake_hydro"]:.0f} µs (the reference)</text>')
     # models closer than one label height in deviation are spread apart in their order, so that every line shows
-    ys = spread([fy(d) for _, d, _ in pts], 14.0)
+    ys = spread([fy(d) for _, d, _ in pts], 19.0)
     xr = fx(5000.0) + 16
     for (c, d, k), y in zip(pts, ys):
         lab, col, shape, _ = MODELS[k]

@@ -568,7 +568,7 @@ def svg_law():
     out = [f'<svg viewBox="0 0 {W_} {H_}" role="img" aria-label="Left: the torsional coefficient mu_t that reproduces the '
            f'hydroelastic patch grows as N to the one quarter, so a fixed value set at 3 N is 57 percent too high at 0.5 N. '
            f'Right: the pinch torque capacity rises from zero at the 0.12 N slip limit and meets the gravity demand at '
-           f'1.61 N horizontal, 1.22 N at 45 degrees and 0.41 N at 80 degrees." font-family="var(--f-mono)" font-size="12">']
+           f'1.61 N horizontal, 1.22 N at 45 degrees and 0.41 N at 80 degrees." font-family="var(--f-mono)" font-size="15.5">']
 
     def panel(x0, y0, w, h, xs, ys, xlab, ylab, xt, yt, logx):
         fx = (lambda v: x0 + (math.log(v) - math.log(xs[0])) / (math.log(xs[1]) - math.log(xs[0])) * w) if logx else \
@@ -590,7 +590,7 @@ def svg_law():
         out.append(f'<path d="{d}" style="fill:none;stroke-width:2.2;{style}"/>')
 
     # (a) torsional coefficient
-    fx, fy = panel(70, 50, 360, 250, (0.1, 6.0), (0.0, 1.8), "pad force N (N), log scale", "(a) torsional coefficient \u03bc<tspan dy='3' font-size='10'>t</tspan><tspan dy='-3'> (mm), \u03bc = 1</tspan>",
+    fx, fy = panel(70, 50, 360, 250, (0.1, 6.0), (0.0, 1.8), "pad force N (N), log scale", "(a) torsional coefficient \u03bc<tspan dy='3' font-size='12.5'>t</tspan><tspan dy='-3'> (mm), \u03bc = 1</tspan>",
                    (0.1, 0.3, 1, 3, 6), (0, 0.5, 1.0, 1.5), True)
     Ns = [0.1 * (60 ** (i / 80)) for i in range(81)]
     path(fx, fy, [(N, c * 1e3 * N ** 0.25) for N in Ns], "stroke:var(--c-c4)")
@@ -601,15 +601,15 @@ def svg_law():
     out.append(f'<line x1="{x5:.1f}" x2="{x5:.1f}" y1="{fy(c * 1e3 * 0.5 ** 0.25):.1f}" y2="{fy(c * 1e3 * 3 ** 0.25):.1f}" '
                f'style="stroke:var(--bad);stroke-width:1.5"/>'
                f'<text x="{x5 + 6:.1f}" y="{fy(1.07):.1f}" style="fill:var(--bad)">fixed value 57 % high at 0.5 N</text>'
-               f'<text x="{fx(0.11):.1f}" y="{fy(1.31) - 8:.1f}" style="fill:var(--ink3)">fixed \u03bc<tspan dy="3" font-size="10">t</tspan><tspan dy="-3"> set at the 3 N hold</tspan></text>'
-               f'<text x="{fx(0.75):.1f}" y="{fy(0.62):.1f}" style="fill:var(--c-c4)">law: \u03bc<tspan dy="3" font-size="10">t</tspan><tspan dy="-3"> = \u03bc c N</tspan><tspan dy="-5" font-size="10">1/4</tspan></text>'
+               f'<text x="{fx(0.11):.1f}" y="{fy(1.31) - 8:.1f}" style="fill:var(--ink3)">fixed \u03bc<tspan dy="3" font-size="12.5">t</tspan><tspan dy="-3"> set at the 3 N hold</tspan></text>'
+               f'<text x="{fx(0.75):.1f}" y="{fy(0.62):.1f}" style="fill:var(--c-c4)">law: \u03bc<tspan dy="3" font-size="12.5">t</tspan><tspan dy="-3"> = \u03bc c N</tspan><tspan dy="-5" font-size="12.5">1/4</tspan></text>'
                f'<text x="{fx(0.75):.1f}" y="{fy(0.62) + 16:.1f}" style="fill:var(--ink3)">rescheduled each 1 ms step</text>')
     # (b) brake capacity against demand
     cap = lambda N: 0.0 if N <= W / 2 else 2 * N * c * N ** 0.25 * math.sqrt(1 - (W / (2 * N)) ** 2)  # noqa: E731
     fx, fy = panel(580, 50, 360, 250, (0.0, 2.0), (0.0, 5.0), "pad force N (N)", "(b) torque about the pinch axis (mN\u00b7m)",
                    (0, 0.5, 1.0, 1.5, 2.0), (0, 1, 2, 3, 4, 5), False)
     path(fx, fy, [(N, cap(N) * 1e3) for N in [W / 2 + i * (2.0 - W / 2) / 120 for i in range(121)]], "stroke:var(--c-c4)")
-    out.append(f'<text x="{fx(1.62):.1f}" y="{fy(4.75):.1f}" style="fill:var(--c-c4)">\u03c4<tspan dy="3" font-size="10">cap</tspan><tspan dy="-3">(N), Eq. (11)</tspan></text>'
+    out.append(f'<text x="{fx(1.62):.1f}" y="{fy(4.75):.1f}" style="fill:var(--c-c4)">\u03c4<tspan dy="3" font-size="12.5">cap</tspan><tspan dy="-3">(N), Eq. (11)</tspan></text>'
                f'<text x="{fx(W / 2) + 6:.1f}" y="{fy(0) - 7:.1f}" style="fill:var(--ink3)">← slip limit 0.12 N</text>')
     for phi, lab_dy in ((0, -7), (45, -7), (80, -7)):
         dem = mgd * math.cos(math.radians(phi)) * 1e3
@@ -657,7 +657,7 @@ def _legend(out, x, y, items):
 def svg_exp3_trace():
     out = ['<svg viewBox="0 0 980 340" role="img" aria-label="Exp 3: the tool angle about the pinch axis follows the integrated '
            'pinch-velocity reference through two plus and minus 10 degree cycles in the sphere-pad, condim 4 and Drake models." '
-           'font-family="var(--f-mono)" font-size="12">']
+           'font-family="var(--f-mono)" font-size="15.5">']
     rs = {k: PT[("exp3", k)] for k in ("s1", "p4s", "dhy")}
     T = max(r["trace"][-1][0] - r["trace"][0][0] for r in rs.values())
     fx, fy = _axes(out, 70, 60, 880, 220, (0, T), (-12, 12), [i for i in range(0, int(T) + 1)], (-10, -5, 0, 5, 10),
@@ -677,7 +677,7 @@ def svg_exp3_trace():
 def svg_wield_steps():
     out = ['<svg viewBox="0 0 980 360" role="img" aria-label="Wield: cumulative turn of the tool after each twist and each '
            'release over six cycles; the twists match across models, the condim 4, point-contact and Drake runs gain extra '
-           'turn in some releases, the sphere pad gives back about one degree per release." font-family="var(--f-mono)" font-size="12">']
+           'turn in some releases, the sphere pad gives back about one degree per release." font-family="var(--f-mono)" font-size="15.5">']
     fx, fy = _axes(out, 70, 60, 880, 240, (0, 6), (0, 140), range(0, 7), (0, 20, 40, 60, 80, 100, 120, 140),
                    "cycle (twist, then release, open, return and close)", "tool turned about its own axis (deg)")
     out.append('<path d="M' + " L".join(f"{fx(x):.1f},{fy(20 * x):.1f}" for x in range(7)) +
@@ -700,7 +700,7 @@ def svg_wield_steps():
 def svg_exp2_drift():
     out = ['<svg viewBox="0 0 980 340" role="img" aria-label="Exp 2: the tool angle about the pinch axis, integrated over the '
            'twist steps; with spin free it ratchets about 50 degrees toward hanging in the sphere-pad, condim 4 and Drake '
-           'models, and about half as far with the spin rows held." font-family="var(--f-mono)" font-size="12">']
+           'models, and about half as far with the spin rows held." font-family="var(--f-mono)" font-size="15.5">']
     keys = [k for k in ("s1", "p4s", "dhy", "s1spin") if ("exp2", k) in PT]
     col = dict(COL, s1spin="var(--c-sphere)")
     T = max(PT[("exp2", k)]["trace"][-1][0] - PT[("exp2", k)]["trace"][0][0] for k in keys)

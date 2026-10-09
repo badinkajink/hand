@@ -138,19 +138,20 @@ COLS = [  # key, task, metric, relation to Drake, axis, limits, ticks, Drake ban
 
 def svg_agreement(D=None):
     D = D or data()
-    LW, CW, GAP = 222, 132, 28
+    LW, CW, GAP = 252, 132, 28
     W = LW + len(COLS) * (CW + GAP)
-    y0, RH = 62, 46
+    y0, RH = 68, 50
+    sm = math.ceil(13.0 * W / P.COLUMN_PX * 10) / 10     # small text: 13 px as displayed in the 828 px column
     yb = y0 + RH * len(MODELS)
-    out = P._svg_open(W, yb + 34, "Agreement of five contact models with Drake hydroelastic on three tasks")
+    out = P._svg_open(W, yb + 36, "Agreement of five contact models with Drake hydroelastic on three tasks")
     for i in range(len(MODELS) + 1):
         out.append(f'<line x1="8" x2="{W - 4}" y1="{y0 + i * RH}" y2="{y0 + i * RH}" style="stroke:var(--rule2)"/>')
     for j, (ck, t1, t2, t3, kind, lim, ticks, band) in enumerate(COLS):
         x0 = LW + j * (CW + GAP)
         fx = _scale(kind, lim, x0, CW)
         out.append(_text(x0 + CW / 2, 17, t1, "middle"))
-        out.append(_text(x0 + CW / 2, 33, t2, "middle", "var(--ink2)", 11))
-        out.append(_text(x0 + CW / 2, 48, t3, "middle", "var(--ink2)", 11))
+        out.append(_text(x0 + CW / 2, 35, t2, "middle", "var(--ink2)", sm))
+        out.append(_text(x0 + CW / 2, 53, t3, "middle", "var(--ink2)", sm))
         out.append(f'<rect x="{fx(band[0]):.1f}" y="{y0}" width="{fx(band[1]) - fx(band[0]):.1f}" height="{yb - y0}" '
                    'style="fill:color-mix(in srgb,var(--c-drake) 16%,transparent)"/>')
         ref = 1.0 if kind == "log" else 0.0
@@ -159,13 +160,13 @@ def svg_agreement(D=None):
         out.append(f'<line x1="{x0}" x2="{x0 + CW}" y1="{yb}" y2="{yb}" style="stroke:var(--ink3)"/>')
         for t in ticks:
             out.append(f'<line x1="{fx(t):.1f}" x2="{fx(t):.1f}" y1="{yb}" y2="{yb + 4}" style="stroke:var(--ink3)"/>')
-            out.append(_text(fx(t), yb + 17, f"{t:g}", "middle", "var(--ink3)", 11))
+            out.append(_text(fx(t), yb + 18, f"{t:g}", "middle", "var(--ink3)", sm))
         for i, (mk, _lab, col, shape, _f, _b) in enumerate(MODELS):
             yc = y0 + (i + 0.5) * RH
             vals = D[mk].get(ck)
             if not vals:
                 out.append(_text(x0 + CW / 2, yc + 4, "not run" if ck != "grip" or "turn" not in D[mk]
-                                 else "not recorded", "middle", "var(--ink3)", 11, ' font-style="italic"'))
+                                 else "not recorded", "middle", "var(--ink3)", sm, ' font-style="italic"'))
                 continue
             vals = [(v, True) if not isinstance(v, tuple) else v for v in vals]
             xs = [fx(v) for v, _h in vals]
@@ -175,10 +176,10 @@ def svg_agreement(D=None):
     for i, (mk, lab, col, _shape, _f, _b) in enumerate(MODELS):
         yc = y0 + (i + 0.5) * RH
         d = D[mk]
-        out.append(_text(LW - 12, yc - 2, lab, "end", col if col != "var(--ink3)" else "var(--ink)"))
+        out.append(_text(LW - 12, yc - 3, lab, "end", col if col != "var(--ink3)" else "var(--ink)"))
         sub = (f"turn &#177;{TOL_DEG:g}&#176;: {d['within']}/{d['n']}, held {d['held']}/{d['n']}"
                if "turn" in d else "turn not run")
-        out.append(_text(LW - 12, yc + 13, sub, "end", "var(--ink3)", 11))
+        out.append(_text(LW - 12, yc + 15, sub, "end", "var(--ink3)", sm))
     out.append("</svg>")
     return "\n".join(out)
 

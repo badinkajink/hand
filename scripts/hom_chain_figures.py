@@ -94,8 +94,10 @@ def _poly(pts):
 
 
 DRAKE, SPHERE, C4 = "var(--c-drake)", "var(--c-sphere)", "var(--c-c4)"
-TXT = 'font-family="var(--f-mono)" font-size="12" fill="currentColor"'
-TXT2 = 'font-family="var(--f-mono)" font-size="11.5" fill="currentColor" opacity="0.72"'
+# text sizes in viewBox units: the 1040- and 1102-unit drawings show at 0.80 and 0.75 of size in the 828 px column,
+# so 17.5 units display at 13 px or more (owner 2026-10-09)
+TXT = 'font-family="var(--f-mono)" font-size="17.5" fill="currentColor"'
+TXT2 = 'font-family="var(--f-mono)" font-size="17.5" fill="currentColor" opacity="0.72"'
 
 
 def svg_section(res, spacing=0.001):
@@ -104,7 +106,7 @@ def svg_section(res, spacing=0.001):
     F = res["F"]
     fd, pd = res["field"], res[spacing]
     k = 66.0                                  # px per mm
-    W, X0 = 1040, (30.0, 550.0)
+    W, X0 = 1040, (56.0, 566.0)
     xmin, xmax = -3.5, 3.5
     zt, zb = 1.95, -0.62                      # mm above/below the tool surface shown
     yt = 58.0
@@ -163,12 +165,12 @@ def svg_section(res, spacing=0.001):
         out.append(f'<line x1="{Xp(xmin):.1f}" y1="{y0:.1f}" x2="{Xp(xmax):.1f}" y2="{y0:.1f}" stroke="currentColor" stroke-width="1.6"/>')
         out.append('</g>')
         # labels on the section
-        title = ("Drake hydroelastic: a pressure field over the overlap" if side == "field"
-                 else f"MuJoCo sphere pad ({spacing * 1e3:g} mm): one spring per overlap")
-        out.append(f'<text x="{X:.1f}" y="{yt - 30:.1f}" {TXT} font-size="13" font-weight="600">{title}</text>')
+        title = ("Drake hydroelastic: pressure field" if side == "field"
+                 else f"MuJoCo {spacing * 1e3:g} mm sphere pad")
+        out.append(f'<text x="{X:.1f}" y="{yt - 30:.1f}" {TXT} font-size="17.5" font-weight="600">{title}</text>')
         if side == "field":
-            out.append(f'<text x="{Xp(xmax) - 6:.1f}" y="{ybot - 7:.1f}" text-anchor="end" {TXT2}>rigid tool (r 12.5 mm)</text>')
-        out.append(f'<text x="{Xp(xmin) + 6:.1f}" y="{yt + 12:.1f}" {TXT2}>fingertip (R 10.55 mm)</text>')
+            out.append(f'<text x="{Xp(xmax) - 6:.1f}" y="{ybot - 7:.1f}" text-anchor="end" {TXT2}>tool, r 12.5 mm</text>')
+        out.append(f'<text x="{Xp(xmin) + 6:.1f}" y="{yt + 16:.1f}" {TXT2}>fingertip, R 10.55 mm</text>')
         if side == "field":
             out.append(f'<line x1="{Xp(0):.1f}" y1="{y0:.1f}" x2="{Xp(0):.1f}" y2="{Y(-d0):.1f}" stroke="currentColor" '
                        f'stroke-width="1" marker-start="url(#f1a)" marker-end="url(#f1a)"/>')
@@ -177,23 +179,23 @@ def svg_section(res, spacing=0.001):
             out.append(f'<line x1="{Xp(-a):.1f}" y1="{y0 - 10:.1f}" x2="{Xp(a):.1f}" y2="{y0 - 10:.1f}" stroke="currentColor" '
                        f'stroke-width="1" marker-start="url(#f1a)" marker-end="url(#f1a)" opacity="0.7"/>')
             out.append(f'<text x="{Xp(0):.1f}" y="{y0 - 15:.1f}" text-anchor="middle" {TXT2}>2a = {2 * a:.1f} mm</text>')
-            out.append(f'<text x="{Xp(-a) + 4:.1f}" y="{ybot - 7:.1f}" {TXT}>overlap: p = E&#183;d / R</text>')
+            out.append(f'<text x="{Xp(xmin) + 6:.1f}" y="{ybot - 7:.1f}" {TXT}>p = E&#183;d / R</text>')
         else:
-            out.append(f'<text x="{Xp(xmin) + 6:.1f}" y="{ybot - 7:.1f}" {TXT}>each overlap &#948; is a spring: f = k&#948;, k = {pd["K"]:.0f} N/m</text>')
+            out.append(f'<text x="{Xp(xmin) + 6:.1f}" y="{ybot - 7:.1f}" {TXT}>f = k&#948;, k = {pd["K"]:.0f} N/m</text>')
         # pressure strip
         out.append(f'<line x1="{Xp(xmin):.1f}" y1="{ps1:.1f}" x2="{Xp(xmax):.1f}" y2="{ps1:.1f}" stroke="currentColor" opacity="0.5"/>')
         for t in (0.0, 0.1, 0.2, 0.3):
             out.append(f'<line x1="{Xp(xmin):.1f}" y1="{P(t):.1f}" x2="{Xp(xmax):.1f}" y2="{P(t):.1f}" stroke="currentColor" '
                        f'opacity="0.10"/>')
-            out.append(f'<text x="{Xp(xmin) - 5:.1f}" y="{P(t) + 4:.1f}" text-anchor="end" {TXT2} font-size="10.5">{t:.1f}</text>')
+            out.append(f'<text x="{Xp(xmin) - 5:.1f}" y="{P(t) + 5:.1f}" text-anchor="end" {TXT2}>{t:.1f}</text>')
         a_f = math.sqrt(R_mm ** 2 - (R_mm - fd["delta0"] * 1e3) ** 2)
         prof = [(Xp(x), P(E * (math.sqrt(R_mm ** 2 - x ** 2) - (R_mm - fd["delta0"] * 1e3)) / R_mm * 1e-6))
                 for x in np.linspace(-a_f, a_f, 81)]
         if side == "field":
             out.append(f'<polygon points="{_poly([(Xp(-a_f), P(0))] + prof + [(Xp(a_f), P(0))])}" style="fill:{DRAKE}" opacity="0.35"/>')
             out.append(f'<polyline points="{_poly(prof)}" fill="none" style="stroke:{DRAKE}" stroke-width="2"/>')
-            out.append(f'<text x="{Xp(xmin):.1f}" y="{ps1 + 30:.1f}" {TXT2}>pressure on the tool surface, MPa '
-                       f'(peak {fd["pmax"] / 1e6:.2f}, friction arm {fd["arm"] * 1e3:.2f} mm)</text>')
+            out.append(f'<text x="{Xp(xmin):.1f}" y="{ps1 + 30:.1f}" {TXT2}>Pressure on the tool, MPa '
+                       f'(peak {fd["pmax"] / 1e6:.2f})</text>')
         else:
             out.append(f'<polyline points="{_poly(prof)}" fill="none" style="stroke:{DRAKE}" stroke-width="1.5" '
                        f'stroke-dasharray="5 4"/>')
@@ -207,8 +209,7 @@ def svg_section(res, spacing=0.001):
                 peq = pd["K"] * over * 1e-3 / pd["A_s"] * 1e-6
                 out.append(f'<rect x="{Xp(cx) - 4:.1f}" y="{P(peq):.1f}" width="8" height="{P(0) - P(peq):.1f}" rx="2" '
                            f'style="fill:{SPHERE}"/>')
-            out.append(f'<text x="{Xp(xmin):.1f}" y="{ps1 + 30:.1f}" {TXT2}>spring force / its share of pad area, MPa '
-                       f'(dashed: the field)</text>')
+            out.append(f'<text x="{Xp(xmin):.1f}" y="{ps1 + 30:.1f}" {TXT2}>Spring force over sphere area, MPa</text>')
     out.append('</svg>')
     return "\n".join(out)
 
@@ -232,16 +233,16 @@ def svg_patch(res_hi, res_lo):
     for each pad spacing, the sphere centres with each touching sphere's force as the area of its disc."""
     cols = ["field", 0.002, 0.001, 0.0005]
     cw, chh, k = 246.0, 196.0, 30.0          # cell size, px per mm
-    x_l, y_t = 112.0, 44.0
+    x_l, y_t = 112.0, 54.0
     W = int(x_l + 4 * cw + 6)
-    H_ = int(y_t + 2 * chh + 50)
+    H_ = int(y_t + 2 * chh + 84)
     out = [f'<svg viewBox="0 0 {W} {H_}" role="img" aria-label="Contact area of the thumb pad on the tool at '
            f'{res_hi["F"]:g} N and {res_lo["F"]:g} N: Drake pressure contours against the sphere centres of the 2, 1 and '
            f'0.5 mm pads; at the low force the 2 mm pad touches with two spheres.">']
     heads = {"field": "Drake field", 0.002: "2 mm pad", 0.001: "1 mm pad", 0.0005: "0.5 mm pad"}
     for j, c in enumerate(cols):
         sub = "pressure contours" if c == "field" else f"{res_hi[c]['n']} spheres"
-        out.append(f'<text x="{x_l + j * cw + cw / 2:.1f}" y="{y_t - 22:.1f}" text-anchor="middle" {TXT} font-size="13" '
+        out.append(f'<text x="{x_l + j * cw + cw / 2:.1f}" y="{y_t - 24:.1f}" text-anchor="middle" {TXT} font-size="17.5" '
                    f'font-weight="600">{heads[c]}</text>')
         out.append(f'<text x="{x_l + j * cw + cw / 2:.1f}" y="{y_t - 7:.1f}" text-anchor="middle" {TXT2}>{sub}</text>')
     for i, res in enumerate((res_hi, res_lo)):
@@ -249,9 +250,9 @@ def svg_patch(res_hi, res_lo):
         cont = _contours(fd)
         yc0 = y_t + i * chh
         label = f"{res['F']:g} N"
-        out.append(f'<text x="{x_l - 14:.1f}" y="{yc0 + chh / 2 - 4:.1f}" text-anchor="end" {TXT} font-size="13" font-weight="600">{label}</text>')
-        out.append(f'<text x="{x_l - 14:.1f}" y="{yc0 + chh / 2 + 12:.1f}" text-anchor="end" {TXT2}>'
-                   f'{"hold" if i == 0 else "end of brake"}</text>')
+        out.append(f'<text x="{x_l - 14:.1f}" y="{yc0 + chh / 2 - 6:.1f}" text-anchor="end" {TXT} font-size="17.5" font-weight="600">{label}</text>')
+        out.append(f'<text x="{x_l - 14:.1f}" y="{yc0 + chh / 2 + 14:.1f}" text-anchor="end" {TXT2}>'
+                   f'{"hold" if i == 0 else "brake end"}</text>')
         for j, c in enumerate(cols):
             cx, cy = x_l + j * cw + cw / 2, yc0 + chh / 2 - 8
             out.append(f'<rect x="{x_l + j * cw + 6:.1f}" y="{yc0 + 4:.1f}" width="{cw - 12:.1f}" height="{chh - 34:.1f}" rx="8" '
@@ -263,7 +264,7 @@ def svg_patch(res_hi, res_lo):
                 lv, ax, ay = cont[0]
                 out.append(f'<ellipse cx="{cx:.1f}" cy="{cy:.1f}" rx="{ax * k:.1f}" ry="{ay * k:.1f}" fill="none" '
                            f'style="stroke:{DRAKE}" stroke-width="1.5"/>')
-                arm, foot = fd["arm"], f"{fd['area'] * 1e6:.1f} mm&#178; &#183; arm {fd['arm'] * 1e3:.2f} mm"
+                arm, foot = fd["arm"], (f"{fd['area'] * 1e6:.1f} mm&#178;", f"arm {fd['arm'] * 1e3:.2f} mm")
             else:
                 pdq = res[c]
                 lv, ax, ay = cont[0]
@@ -285,26 +286,28 @@ def svg_patch(res_hi, res_lo):
                                    f'stroke="currentColor" opacity="0.3"/>')
                 arm = pdq["arm"]
                 dev = (pdq["arm"] / fd["arm"] - 1) * 100
-                foot = f"{pdq['n_in']} touching &#183; arm {pdq['arm'] * 1e3:.2f} mm ({dev:+.0f} %)"
+                foot = (f"{pdq['n_in']} touching", f"arm {pdq['arm'] * 1e3:.2f} mm ({dev:+.0f} %)")
             # friction arm as a dashed circle
             out.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{arm * 1e3 * k:.1f}" fill="none" stroke="currentColor" '
                        f'stroke-width="1" stroke-dasharray="2 3" opacity="0.75"/>')
-            out.append(f'<text x="{cx:.1f}" y="{yc0 + chh - 14:.1f}" text-anchor="middle" {TXT2}>{foot}</text>')
-    # scale bar and key, two lines
-    yk = y_t + 2 * chh + 14
+            out.append(f'<text x="{cx:.1f}" y="{yc0 + chh - 26:.1f}" text-anchor="middle" {TXT2}>{foot[0]}</text>')
+            out.append(f'<text x="{cx:.1f}" y="{yc0 + chh - 7:.1f}" text-anchor="middle" {TXT2}>{foot[1]}</text>')
+    # scale bar and key, one item per line
+    yk = y_t + 2 * chh + 16
     out.append(f'<line x1="{x_l + 8:.1f}" y1="{yk:.1f}" x2="{x_l + 8 + k:.1f}" y2="{yk:.1f}" stroke="currentColor" stroke-width="2"/>')
-    out.append(f'<text x="{x_l + 16 + k:.1f}" y="{yk + 4:.1f}" {TXT2}>1 mm</text>')
-    out.append(f'<circle cx="{x_l + 140:.1f}" cy="{yk:.1f}" r="{11 * math.sqrt(0.25):.1f}" style="fill:{SPHERE}"/>')
-    out.append(f'<text x="{x_l + 152:.1f}" y="{yk + 4:.1f}" {TXT2}>touching sphere: disc area &#8733; its force (0.25 N shown)</text>')
-    out.append(f'<circle cx="{x_l + 600:.1f}" cy="{yk:.1f}" r="2" fill="none" stroke="currentColor" opacity="0.35"/>')
-    out.append(f'<text x="{x_l + 610:.1f}" y="{yk + 4:.1f}" {TXT2}>sphere not touching</text>')
-    yk += 22
+    out.append(f'<text x="{x_l + 16 + k:.1f}" y="{yk + 5:.1f}" {TXT2}>1 mm</text>')
+    out.append(f'<circle cx="{x_l + 160:.1f}" cy="{yk:.1f}" r="{11 * math.sqrt(0.25):.1f}" style="fill:{SPHERE}"/>')
+    out.append(f'<text x="{x_l + 174:.1f}" y="{yk + 5:.1f}" {TXT2}>touching sphere, disc area &#8733; force (0.25 N shown)</text>')
+    yk += 26
     out.append(f'<circle cx="{x_l + 16:.1f}" cy="{yk:.1f}" r="8" fill="none" stroke="currentColor" stroke-width="1" '
                f'stroke-dasharray="2 3"/>')
-    out.append(f'<text x="{x_l + 32:.1f}" y="{yk + 4:.1f}" {TXT2}>friction arm (torque about the normal = &#956;&#183;F&#183;arm)</text>')
-    out.append(f'<ellipse cx="{x_l + 470:.1f}" cy="{yk:.1f}" rx="12" ry="7" fill="none" style="stroke:{DRAKE}" '
+    out.append(f'<text x="{x_l + 32:.1f}" y="{yk + 5:.1f}" {TXT2}>friction arm (torque about the normal = &#956;&#183;F&#183;arm)</text>')
+    yk += 26
+    out.append(f'<ellipse cx="{x_l + 16:.1f}" cy="{yk:.1f}" rx="12" ry="7" fill="none" style="stroke:{DRAKE}" '
                f'stroke-dasharray="4 3"/>')
-    out.append(f'<text x="{x_l + 488:.1f}" y="{yk + 4:.1f}" {TXT2}>edge of the field&#8217;s contact area</text>')
+    out.append(f'<text x="{x_l + 36:.1f}" y="{yk + 5:.1f}" {TXT2}>edge of the field&#8217;s contact area</text>')
+    out.append(f'<circle cx="{x_l + 560:.1f}" cy="{yk:.1f}" r="2" fill="none" stroke="currentColor" opacity="0.35"/>')
+    out.append(f'<text x="{x_l + 572:.1f}" y="{yk + 5:.1f}" {TXT2}>sphere not touching</text>')
     out.append('</svg>')
     return "\n".join(out)
 
