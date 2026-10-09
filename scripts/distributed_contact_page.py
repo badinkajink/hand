@@ -132,7 +132,7 @@ def convert_spec():
     )
     content = '<section><div class="col">' + "".join(parts) + "</div></section>"
     page = frame(
-        "Distributed fingertip contact: experiment specification",
+        "Specification of the distributed fingertip contact experiment",
         note,
         content,
         "Source document, preserved separately from measured findings",
@@ -315,7 +315,7 @@ def research_asides():
     )
     (DOC / "20261004-contact_research_asides.html").write_text(
         retro_style.apply(frame(
-            "Contact research asides: priors, coupling and reduced skin",
+            "Notes on grasp-force priors, Delassus coupling, TPU skin and a timestep benchmark",
             "DeliGrasp, the Delassus operator, printed TPU mechanics and a task-level timestep benchmark.",
             body,
             "Backlog · hypotheses, not experimental conclusions · user-provided discussion",
@@ -1939,7 +1939,7 @@ PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 .venv/bin/python -m pytest tests/test_distribut
     body += f'Git base: <code>{version["git_commit"]}</code>, dirty workspace captured in <a href="data/versions.json">metadata</a>.</p>'
     parts.append(section("Data and reproducible commands", body, "reproduce"))
     page = frame(
-        "Distributed contacts: springs at rest, coupled in motion",
+        "Audit of the distributed sphere-pad fingertip contact in MuJoCo",
         "A measured audit of the SR2 sphere surface in MuJoCo: preserved nominal behavior, explicit mass dependence, "
         "retained redundant constraints, and a first 6 mm fillet test.",
         "".join(parts),
