@@ -203,7 +203,7 @@ def exp1_prose():
     ang = {p: np.mean([g[p][c]["commanded_gain"] for c in ("spin", "roll_y", "roll_z")]) for p in g}
     return (f"The mean gain on the linear steps is {lin['cal']:.2f} on the calibrated servo and {lin['stiff']:.2f} on the "
             f"template servo; on the angular steps it is {ang['cal']:.2f} and {ang['stiff']:.2f}. The two servos agree, so the "
-            f"shortfall is the finger&#8217;s kinematics, not servo lag.")
+            f"shortfall comes from the finger&#8217;s kinematics and servo lag plays no part.")
 
 
 # ------------------------------------------------------------------------------------------ cost
@@ -297,7 +297,7 @@ def exp3_table():
         'the pinch axis; gain = median achieved over commanded while stepped (&#177;20&#8202;&#176;/s). Angle error = RMS of the angle '
         'about the pinch axis against the integrated reference over both cycles. Pusher slide and roll = RMS of the middle&#8217;s '
         'relative contact velocities while stepped (16). Middle in the tripod = the middle&#8217;s normal force with the pinch at 3&#8202;N: '
-        'the pinch&#8217;s friction torque, 7.9&#215;10<sup>&#8722;3</sup>&#8202;N&#183;m by (11), carries the 2.4&#215;10<sup>&#8722;3</sup>&#8202;N&#183;m of gravity, '
+        'the pinch&#8217;s friction torque, 7.9&#215;10<sup>&#8722;3</sup>&#8202;N&#183;m by (11), holds the 2.4&#215;10<sup>&#8722;3</sup>&#8202;N&#183;m of gravity, '
         'so the third contact stays nearly unloaded. Drift = change of the angle while the palm lifts 30&#8202;mm on the tripod.</p>')
 
 
@@ -352,7 +352,7 @@ def paper_text():
     rel = np.mean([c["release_open_deg"] + c["return_close_deg"] for c in w["per_cycle"]])
     tr = [e2["per_comp"][c]["gain"] for c in ("v_pinch", "v_up", "v_tool")]
     lead = (f"All three tasks ran with the 1&#8202;mm sphere pad on the first attempt. The setups below come from the reach scan "
-            f"and the brake law, not from tuning runs. The wield turned the tool {w['turned_deg']:.0f}&#176; in six retract-turn "
+            f"and the brake law, with no tuning runs. The wield turned the tool {w['turned_deg']:.0f}&#176; in six retract-turn "
             f"cycles: each twist delivered {tw:.1f}&#176; of the commanded 20&#176;, and each release gave back {abs(rel):.1f}&#176;. "
             f"The pusher tracked the pinch velocity at gain {e3['gain_s']:.2f}, with the angle within {e3['phi_track_rmse_deg']:.1f}&#176; RMS "
             f"over &#177;10&#176; cycles, and the tripod held through a 30&#8202;mm lift. The pinch carried the tool&#8217;s translations at "
@@ -385,7 +385,7 @@ def paper_text():
                    f"the cross-coupling to {min(spc[c]['cross_ang_dps'] for c in ('v_pinch', 'v_up', 'v_tool')):.0f}&#8211;"
                    f"{max(spc[c]['cross_ang_dps'] for c in ('v_pinch', 'v_up', 'v_tool')):.0f}&#8202;&#176;/s and the net turn to "
                    f"{num(sp['pinch_angle_end_deg'], '+.0f')}&#176;. The vertical translation "
-                   f"pays for it (gain {e2['per_comp']['v_up']['gain']:.2f} to {spc['v_up']['gain']:.2f}): three joints per finger "
+                   f"loses gain instead (gain {e2['per_comp']['v_up']['gain']:.2f} to {spc['v_up']['gain']:.2f}): three joints per finger "
                    f"cannot hold all four rows.")
     return lead, lede, models
 
@@ -440,7 +440,7 @@ def check_tables(b):
             "servo targets frozen. A one-contact scene in each simulator gives the cost of contact alone.")
     prose = (f"At the hold, MuJoCo point contact takes {c_mp3:.1f}&#8202;&#181;s per step in C, and a single fingertip on the tool takes "
              f"{np.median(one['mj:point3']['c_us_per_step']):.1f}&#8202;&#181;s. Most of the scene&#8217;s cost is therefore the 19-degree-of-freedom "
-             f"multibody and the collision pass over its geometries, not the contact. Each touching sphere of the 1&#8202;mm pad adds "
+             f"multibody and the collision pass over its geometries; the contact itself costs little. Each touching sphere of the 1&#8202;mm pad adds "
              f"about {per_sph:.1f}&#8202;&#181;s. Rewriting &#956;<sub>t</sub> every step in Python adds {loop_p4s:.1f}&#8202;&#181;s to condim&#160;4, about half "
              f"of that model&#8217;s cost in the bench; done in C it would cost nothing measurable. The hold values are "
              f"{min(hold_ratio):.2f}&#8211;{max(hold_ratio):.2f} times the bench&#8217;s hold stage, where the controller changes the "
@@ -458,7 +458,7 @@ HANDOFF = """
 <h3>Where things are</h3>
 <ul>
 <li><code>scripts/hom_control.py</code>: generalized contact frames for a sphere against a cylinder (closed form), the relative
-contact twist, Eq.&#8202;2 (scipy bounded least squares), the kinematic <code>Mirror</code> that lets one controller drive MuJoCo
+contact twist, Eq.&#8202;2 (scipy least squares with bounds), the kinematic <code>Mirror</code> that lets one controller drive MuJoCo
 or Drake, and Exp&#160;1.</li>
 <li><code>scripts/hom_chain.py</code>: the scene (four-axis palm stage, posts, 32-sector chamfered hole), <code>MjChainPlant</code>
 and <code>DrakeChainPlant</code> behind one interface, <code>ClosedBrake</code>, <code>run_chain</code> (stage machine, scoring,
@@ -516,7 +516,7 @@ tangential load in the pads spins it on (up to 23&#176; in a cycle with condim&#
 <ol>
 <li><strong>Make the pick hold under perturbation.</strong> For seeds 1, 2, 4&#8211;8 and 10 in <code>mj:point4s</code>, trace the
 close phase per finger: tip-to-surface distance, least-squares bound activity and tool displacement on the posts. The
-trace already carries <code>pinch_tilt_deg</code>; add the per-finger frame distance. Candidate fixes are position feedback on the
+trace already records <code>pinch_tilt_deg</code>; add the per-finger frame distance. Candidate fixes are position feedback on the
 slide references, so both contacts land on the station at equal height; a V-cradle instead of flat posts; and a longer
 close window. Accept when <code>pick_ok</code> holds on at least 9 of seeds 1&#8211;10 in both <code>mj:point4s</code> and
 <code>mj:spheres:s1:rs0.75:tr0.02</code>.</li>

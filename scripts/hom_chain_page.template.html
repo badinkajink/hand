@@ -151,7 +151,7 @@ a:focus-visible{outline:2px solid var(--s2);outline-offset:2px;border-radius:2px
 
 <section id="problem"><div class="col">
 <h2>Problem and hypothesis</h2>
-<p class="sub">a pinch brake needs a contact area, and MuJoCo resolves contact at points</p>
+<p class="sub">A pinch brake needs a contact area, and MuJoCo resolves contact at points</p>
 <p>The paper&#8217;s load step turns the thumb&#8211;index pinch into a brake. The tool hangs between the two pads and
 turns about the line through them. Only friction spread over each contact area resists that turn:
 \(T=\mu\int_A p\,\rho\,dA\), with \(p\) the contact pressure and \(\rho\) the distance from the contact normal. A point
@@ -159,7 +159,7 @@ contact has no area, so it transmits no torque about its normal. With point cont
 MuJoCo and in Drake alike; the point-contact films below drop it into a hang as soon as it leaves the posts. The paper
 uses Drake&#8217;s hydroelastic contact for this reason. The question here is whether MuJoCo can carry the same controller
 without it.</p>
-<p>Drake&#8217;s compliant-hydroelastic fingertip carries a pressure field \(p=E\,\delta/R\), with \(\delta\) the depth below its
+<p>Drake&#8217;s compliant-hydroelastic fingertip has a pressure field \(p=E\,\delta/R\), with \(\delta\) the depth below its
 surface. Drake evaluates the field on the rigid tool surface wherever the two overlap (Figure&#160;1, left). For a sphere on a plane
 the integrals give the elastic-foundation laws \(F=\pi E\delta_0^2\) and \(T=\mu F\cdot\tfrac{8}{15}a\) with
 \(a=\sqrt{2R\delta_0}\), so the friction arm \(T/\mu F\) grows as \(F^{1/4}\) (derived step by step in the next section). Take the
@@ -194,10 +194,10 @@ three pads, where a touching sphere&#8217;s disc area is proportional to its for
 which &#956;F gives the same torque about the normal. Static contact on the real geometry; per-sphere stiffness as in the
 simulations.</figcaption>
 </figure>
-<p>A second, cheaper surrogate keeps a single contact point and supplies the torque directly: condim&#160;4, with a
+<p>A second, cheaper surrogate keeps a single contact point and supplies the torque: condim&#160;4, with a
 torsional coefficient \(\mu_t=\mu\,\bar r(N)\) recomputed every step from the measured law (step&#160;3 of the next section). Earlier results:</p>
 <ul>
-<li><b>Two-pad rig:</b> the rescheduled condim&#160;4 matched Drake&#8217;s torque within 1&#8202;%; the 1 and 0.5&#8202;mm pads matched it within 7 and 3&#8202;%.</li>
+<li><b>Two-pad rig:</b> the rescheduled condim&#160;4 agreed with Drake&#8217;s torque within 1&#8202;%; the 1 and 0.5&#8202;mm pads agreed with it within 7 and 3&#8202;%.</li>
 <li><b>Hand load step:</b> all three agreed with Drake within 3&#8211;9&#8202;%.</li>
 </ul>
 <p>This page asks whether the surrogates carry a controller through a whole task with one code base driving Drake and
@@ -214,7 +214,7 @@ pressure. <code>{{CLOSEUP_PATH}}</code></figcaption>
 
 <section id="derive"><div class="col derive">
 <h2>Friction torque of a soft pinch and the force that supplies it</h2>
-<p class="sub">a derivation from contact pressure to servo targets, with the numbers of the nominal trial</p>
+<p class="sub">A derivation from contact pressure to servo targets, with the numbers of the nominal trial</p>
 <p>The brake needs two quantities at every 10&#8202;ms tick: the friction torque the pinch must transmit about its axis, and
 the pad force at which the pads transmit it. Steps&#160;1 and 2 derive the torque a soft pad can carry and show that it grows
 faster than the normal force. Steps&#160;3 and 4 show how each MuJoCo surrogate reproduces that law: condim&#160;4 by rewriting its
@@ -228,12 +228,12 @@ are for the nominal trial: fingertip radius \(R\)&#8202;=&#8202;10.55&#8202;mm, 
 contact normal relative to the pad, every area element slides on a circle about the patch centre, and its friction
 \(\mu p\,dA\) acts at lever \(\rho\):</p>
 <div class="eq">\[F=\int_A p\,dA,\qquad T=\mu\int_A p\,\rho\,dA=\mu F\,\bar r,\qquad \bar r=\frac{\int_A p\,\rho\,dA}{\int_A p\,dA}.\]<span class="eqno">(1)</span></div>
-<p>\(T\) is the largest torque the contact carries before it spins; below it the contact sticks. The friction arm \(\bar r\) is
+<p>\(T\) is the largest torque the contact transmits before it spins; below it the contact sticks. The friction arm \(\bar r\) is
 the pressure-weighted mean distance from the patch centre. A point contact has \(\rho=0\) and transmits no torque, so a pinch
 between two point contacts is a free hinge.</p>
 
 <h3><span class="step">2</span>The hydroelastic fingertip: an arm that grows as \(F^{1/4}\)</h3>
-<p>Drake&#8217;s compliant-hydroelastic fingertip carries a pressure field that rises linearly with depth below its surface,
+<p>Drake&#8217;s compliant-hydroelastic fingertip has a pressure field that rises linearly with depth below its surface,
 \(p=E\,\delta/R\). In contact, Drake evaluates the field on the rigid tool&#8217;s surface inside the overlap. For a sphere
 pressed \(\delta_0\) into a flat face, the depth at distance \(\rho\) from the patch centre is
 \(\delta(\rho)\approx\delta_0-\rho^2/2R\) for \(\delta_0\ll R\). The patch is a disc of radius \(a=\sqrt{2R\delta_0}\), and</p>
@@ -249,30 +249,30 @@ tool axis, and a fit to Drake&#8217;s torque on the two-pad rig gives \(c\)&#820
 pad therefore resists spin with \(T=\mu c\,F^{5/4}\), which is not proportional to \(F\).</p>
 
 <h3><span class="step">3</span>MuJoCo condim&#160;4: a torsional coefficient rewritten every step</h3>
-<p>A MuJoCo contact with condim&#160;4 carries a normal force \(N\), two friction forces \(f_1,f_2\) in the tangent plane and one
-torque \(\tau\) about the normal. With the elliptic cone used here they are bounded together:</p>
+<p>A MuJoCo contact with condim&#160;4 has a normal force \(N\), two friction forces \(f_1,f_2\) in the tangent plane and one
+torque \(\tau\) about the normal. With the elliptic cone used here they are limited together:</p>
 <div class="eq">\[\frac{f_1^2+f_2^2}{\mu^2}+\frac{\tau^2}{\mu_t^2}\le N^2 .\]<span class="eqno">(4)</span></div>
 <p>The torsional coefficient \(\mu_t\) is the second entry of the geom&#8217;s <code>friction</code> and has units of length. With no
-tangential load the contact carries up to \(\mu_t N\), so it reproduces the patch of (1) when \(\mu_t=\mu\bar r\). By (3), \(\bar r\)
+tangential load the contact transmits up to \(\mu_t N\), so it reproduces the patch of (1) when \(\mu_t=\mu\bar r\). By (3), \(\bar r\)
 depends on \(N\), and MuJoCo stores one \(\mu_t\) per geom. A fixed value is therefore right at one force only. Set for the 3&#8202;N
 hold, it makes the brake 57&#8202;% too strong at the 0.5&#8202;N end of the swing, the ratio \((3/0.5)^{1/4}=1.57\) of the two arms. The
 plant therefore rewrites the coefficient before every 1&#8202;ms step from the normal force the solver returned on the step before:</p>
 <div class="eq">\[\mu_t[k]=\mu\,c\,N[k-1]^{1/4}\quad\Longrightarrow\quad \tau_\text{max}[k]=\mu_t[k]\,N[k]\approx\mu\,c\,N^{5/4}.\]<span class="eqno">(5)</span></div>
 <p>The code is one line in <code>MjChainPlant.step</code>: <code>geom_friction[g, 1] = mu * c * max(N, 1e-3) ** 0.25</code>. The one-step lag
 has no measurable effect. The command changes over 0.25&#8202;s ramps or in 10&#8202;ms brake ticks, so \(N\) moves by well under
-1&#8202;% between steps. On the two-pad rig the rescheduled contact matched Drake&#8217;s torque within 1&#8202;%. The law is fitted to
+1&#8202;% between steps. On the two-pad rig the rescheduled contact agreed with Drake&#8217;s torque within 1&#8202;%. The law is fitted to
 Drake, so it has to be refitted when \(E\), \(R\) or the tool radius changes. The contact still has one point, so its centre of
 pressure cannot move across the pad.</p>
 
 <h3><span class="step">4</span>Sphere pads: the same law from geometry</h3>
 <p>The sphere pad replaces the field with \(n\) spheres of radius \(r_s\) whose outer surface is the fingertip. Each sphere is an
-ordinary condim&#160;3 contact that carries force only; the torque is the moment of the friction forces spread over the patch:</p>
+ordinary condim&#160;3 contact that transmits force only; the torque is the moment of the friction forces spread over the patch:</p>
 <div class="eq">\[F\approx\sum_i N_i,\qquad T\approx\sum_i \rho_i\,f_{t,i}.\]<span class="eqno">(6)</span></div>
 <p>Each sphere gets the foundation&#8217;s stiffness over its share of the pad. The 45&#176; cap has area
 \(2\pi R^2(1-\cos 45^\circ)\)&#8202;=&#8202;205&#8202;mm&#178;, so each of the \(n\) spheres covers \(A_s\)&#8202;=&#8202;205&#8202;mm&#178;/\(n\). The
 centres lie on radius \(R-r_s\), which packs them \((R/(R-r_s))^2\) more densely on the tool than on the fingertip:</p>
 <div class="eq">\[k_s=\frac{E}{R}\,A_s\Bigl(\frac{R-r_s}{R}\Bigr)^2 .\]<span class="eqno">(7)</span></div>
-<p>MuJoCo does not accept a stiffness directly. For a contact at rest with <code>solref</code> \((t_c,1)\), a constant
+<p>MuJoCo has no stiffness parameter. For a contact at rest with <code>solref</code> \((t_c,1)\), a constant
 <code>solimp</code> \(d_0\) and penetration \(x\), the solver returns the force \(f=a_\text{ref}/R_\text{reg}\), with
 reference acceleration \(a_\text{ref}=x/(d_0t_c^2)+2\dot x/(d_0t_c)\) and regularizer \(R_\text{reg}=\Lambda(1-d_0)/d_0\). So
 each contact is a spring and a damper,</p>
@@ -298,9 +298,9 @@ in Figure&#160;2.</p>
 <p>with \(k_p\)&#8202;=&#8202;64&#8202;s<sup>&#8722;2</sup> and \(k_d\)&#8202;=&#8202;24&#8202;s<sup>&#8722;1</sup>. Gravity dominates the demand. The
 reference&#8217;s peak acceleration, 2.8&#8202;rad/s&#178;, takes 7.5&#215;10<sup>&#8722;5</sup>&#8202;N&#183;m, which is 2&#8202;% of the
 3.6&#215;10<sup>&#8722;3</sup>&#8202;N&#183;m the weight exerts at horizontal.</p>
-<p>The pads also carry the weight. The pinch axis is horizontal, so \(W=mg\) lies in both pads&#8217; tangent planes and each pad
-carries \(W/2\) tangentially. Putting \(f_1^2+f_2^2=(W/2)^2\) and \(\mu_t=\mu\bar r(N)\) into (4) gives the torque the two pads can
-still carry together:</p>
+<p>The pads also hold the weight. The pinch axis is horizontal, so \(W=mg\) lies in both pads&#8217; tangent planes and each pad
+takes \(W/2\) tangentially. Putting \(f_1^2+f_2^2=(W/2)^2\) and \(\mu_t=\mu\bar r(N)\) into (4) gives the torque the two pads can
+still transmit together:</p>
 <div class="eq">\[\tau_\text{cap}(N)=2\,\mu\,N\,\bar r(N)\sqrt{1-\Bigl(\frac{W}{2\mu N}\Bigr)^2}.\]<span class="eqno">(11)</span></div>
 <p>\(\tau_\text{cap}\) is zero at the slip limit \(N=W/2\mu\)&#8202;=&#8202;0.12&#8202;N and rises monotonically above it, so bisection finds
 the pad force that meets the demand:</p>
@@ -343,7 +343,7 @@ force puts on mcp. Without \(\tau_g\) the pads pressed 0.12&#8211;0.15&#8202;N l
 
 <section id="controller"><div class="col">
 <h2>Controller and chain</h2>
-<p class="sub">the paper&#8217;s generalized contact frames and least squares, a pad force through the servos, a closed-loop brake</p>
+<p class="sub">The paper&#8217;s generalized contact frames and least squares, a pad force through the servos, a closed-loop brake</p>
 <p>Each fingertip gets a generalized contact frame on the tool. For the fingertip sphere (centre \(c\), radius \(r_\text{tip}\))
 against the tool cylinder (axis point \(p\), unit axis \(a\), radius \(r\)), every element has a closed form. Take the nearest
 point on the axis segment, \(s^\ast=\operatorname{clamp}\bigl((c-p)\cdot a,\,-h,\,h\bigr)\). Then</p>
@@ -363,7 +363,7 @@ the tool&#8217;s, written in \(E=[n\;y\;z]\). It is linear in the finger&#8217;s
 \(v_o(p)=v_o(c_o)+\omega_o\times(p-c_o)\) its velocity at a point. Stacked, with the linear rows divided by
 \(\ell\)&#8202;=&#8202;20&#8202;mm so that 20&#8202;mm/s weighs like 1&#8202;rad/s, the six rows are \(A\,u+b\) (paper Eq.&#8202;1, with the sign set so that
 \(v_\text{sep}>0\) opens the gap). Pass the tool&#8217;s measured twist and the controller follows the tool. Pass a reference twist
-and the fingers move the tool, as in the tasks of the paper below. The joint-rate reference is the bounded least squares of
+and the fingers move the tool, as in the tasks of the paper below. The joint-rate reference is the least squares, with bounds on the joint rates, of
 the paper&#8217;s Eq.&#8202;2:</p>
 <div class="eq">\[\begin{aligned}
 u^\ast=\arg\min_u\ &\sum_i w_i\bigl(v_{i,\text{ref}}-v_i(u)\bigr)^2+w_\text{damp}\|u\|^2\\
@@ -371,7 +371,7 @@ u^\ast=\arg\min_u\ &\sum_i w_i\bigl(v_{i,\text{ref}}-v_i(u)\bigr)^2+w_\text{damp
 \text{s.t.}\ \ &q_\text{min}\le q+\Delta t\,u\le q_\text{max},\qquad |u|\le u_\text{max},
 \end{aligned}\]<span class="eqno">(17)</span></div>
 <p>with \(w_\text{h}\ll w_\text{damp}\ll w_i\) (\(10^{-5}\), \(10^{-3}\) and 1), \(u_\text{max}\)&#8202;=&#8202;2&#8202;rad/s, solved by
-bounded-variable least squares and integrated into the servo targets at 100&#8202;Hz, \(q_\text{ref}\leftarrow q_\text{ref}+\Delta t\,u^\ast\).
+least squares with bounds on the variables and integrated into the servo targets at 100&#8202;Hz, \(q_\text{ref}\leftarrow q_\text{ref}+\Delta t\,u^\ast\).
 For a sphere against a cylinder the frames of (15) are exact and stay smooth through contact, so the paper&#8217;s geodesic filter
 on the hydroelastic centre of pressure is left out. The controller runs on a kinematic MuJoCo copy of the scene, so the
 same code drives the MuJoCo and the Drake plant.</p>
@@ -386,7 +386,7 @@ The closed-loop brake tracks a 1.8&#8202;s minimum-jerk profile to 90&#176; thro
 mass and \(\mu\). Its force floor starts at twice the slip limit \(W/2\mu\), falls while the tool stalls off vertical, and
 rises 50&#8202;% when the tool slides along its axis. It accepts the swing within 2.5&#176;.</li>
 <li><b>Hold firm:</b> F rises to 3&#8202;N.</li>
-<li><b>Transport and aim:</b> the palm carries the tool&#8217;s lower end, aimed from its measured pose, 8&#8202;mm over the
+<li><b>Transport and aim:</b> the palm moves the tool&#8217;s lower end, aimed from its measured pose, 8&#8202;mm over the
 hole and corrects once.</li>
 <li><b>Insert:</b> the palm descends 30&#8202;mm at 15&#8202;mm/s.</li>
 </ul>
@@ -413,7 +413,7 @@ through the MuJoCo renderer. The tool&#8217;s lower end is red. <code>{{FILM_PAT
 
 <section id="perturbed"><div class="col">
 <h2>Ten perturbed trials</h2>
-<p class="sub">tool &#177;3&#8202;mm and &#177;5&#176; on the posts, &#956; 0.7&#8211;1.3, mass &#177;20&#8202;%, perception noise 0.5&#8202;mm and 1&#176;</p>
+<p class="sub">Tool &#177;3&#8202;mm and &#177;5&#176; on the posts, &#956; 0.7&#8211;1.3, mass &#177;20&#8202;%, perception noise 0.5&#8202;mm and 1&#176;</p>
 {{BATCH_TABLE}}
 <p>The pick is the first step that breaks. In {{TIMEOUT_N}} seeds one finger stalls short of contact within the 2.5&#8202;s
 close window. In {{DROP_N}} more the pinch closes late and the tool falls out during the lift. The same seeds fail in
@@ -423,7 +423,7 @@ both contact models and under both brakes, before the brake runs. {{BATCH_PROSE}
 
 <section id="exp1"><div class="col">
 <h2>Experiment 1: contact-free tracking</h2>
-<p class="sub">the index steps each relative-velocity component at 40&#8202;&#176;/s or 20&#8202;mm/s while the other five are held at zero</p>
+<p class="sub">The index steps each relative-velocity component at 40&#8202;&#176;/s or 20&#8202;mm/s while the other five are held at zero</p>
 {{EXP1_TABLE}}
 <p>With all six components weighted equally, as in the paper&#8217;s protocol, a three-joint finger cannot follow a pure
 step. It translates its tip only by turning it, so the least squares trades each commanded component against the five held
@@ -495,7 +495,7 @@ Holding the spin rows (dashed) halves the drift.</figcaption>
 
 <section id="cost"><div class="col">
 <h2>Simulation cost</h2>
-<p class="sub">the nominal chain under the closed-loop brake, one core, {{REP_RANGE}} repeats per model</p>
+<p class="sub">The nominal chain under the closed-loop brake, one core, {{REP_RANGE}} repeats per model</p>
 <p>Physics is the time spent inside the simulator&#8217;s step, in ms of one core per simulated second. One simulated second
 is 1000 steps of 1&#8202;ms, so 10.5&#8202;ms per second is 10.5&#8202;&#181;s per step. The scene is the whole task: 19 degrees of
 freedom (hand, four-axis palm stage, free tool) and 114 collision geometries before the pads, 96 of them the peg block. The
@@ -527,8 +527,7 @@ range. The open tick is the controller&#8217;s share. Hover a row for its number
 </div></section>
 
 <section id="handoff"><div class="col handoff">
-<h2>Next steps and handoff</h2>
-<p class="sub">state of the work on 2026-10-02, written for the next session</p>
+<h2>Future work</h2>
 {{HANDOFF}}
 </div></section>
 
