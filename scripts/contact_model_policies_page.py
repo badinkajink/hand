@@ -1163,7 +1163,7 @@ def final_section(X: Data):
                    f1(float(np.median(hcs)), 3) if hcs else "&#8211;",
                    f1(max(hcs) - min(hcs), 3) if len(hcs) > 1 else "&#8211;", f1(md("held_cos_sd"), 3),
                    frac(sum(r["n_reach09_held"] for r in fs), N_ROLL * len(fs)), f1(md("t09_median"), 0)])
-        wf = [w for w in X.watch if w["tag"] in {r["tag"] for r in fs} and w["iteration"] == fs[0]["iteration"]]
+        wf = [w for r in fs for w in X.watch if w["tag"] == r["tag"] and w["iteration"] == r["iteration"]]
         shk = [w["ang_jerk_hold_median"] for w in wf if w.get("ang_jerk_hold_median") is not None]
         pin = sorted({d for r in fs for d in (pinned_desc(r["tag"], r["iteration"]) or [])})
         gc = [v for v in (grip_chatter(r["tag"]) for r in fs) if v is not None]
@@ -1462,6 +1462,12 @@ def open_items(X: Data):
          "and one pip servo target per compliant policy sits at its extension limit in 95&#8202;% of the steps (Table 4). A "
          "deployable residual needs <code>clip_actions</code> 1.0 (<code>src/morphohand/rl/ppo_config.py</code>); "
          "retrain one seed per compliant arm with it and compare the held cosine."),
+        ("Servo gain.", "Every final policy but skin seed 2 loses the tool at \\(k_p\\) = 10&#8202;N&#8202;m/rad, the top of "
+         "the 2026-10-06 readback range, and the runs train at 4. Fine-tune the pad and skin finals with \\(k_p\\) drawn per "
+         "episode from 2&#8211;10 (a reset event in <code>_build_events</code> of "
+         "<code>src/morphohand/rl/env_build.py</code>, which has none yet) and repeat <code>scripts/rl_contact_eval.py "
+         "robust --perturb kp=2 kp=6 kp=10</code>; a fine-tuned policy that still loses the tool at 10 would mean the "
+         "turn depends on the soft servo."),
         ("Seeds of the point-contact arms.", f"The stop rule leaves {fin_txt}; the point-contact seed spread rests on "
          "those runs, and the box tip&#8217;s only finished seed meets the rule in hindsight. Two more box-tip and "
          "TPU-mesh seeds trained to 40&#8202;M without the rule (about 1.3&#8202;GPU-h each) show whether a "

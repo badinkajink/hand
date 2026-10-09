@@ -409,12 +409,18 @@ def policy_text(ctx):
     n_c = sum(S[a]["n_fin"] for a in comp)
     n_p = sum(S[a]["n_fin"] for a in point)
     pm, pp, ps = (CMP.probe_spit(a) for a in ("tpu27mesh", "tpu27pads1", "tpu27skin"))
-    cost = (f", at {pp / pm:.1f}&#215; and {ps / pm:.1f}&#215; the TPU mesh&#8217;s training time per iteration"
-            if pm and pp and ps else "")
+    cost = (f"; pad and skin training cost {pp / pm:.1f}&#215; and {ps / pm:.1f}&#215; the TPU mesh&#8217;s time per "
+            f"iteration" if pm and pp and ps else "")
+    T = {a: CMP.tpu_transfer(X, a) for a in ("tpu27mesh", "tpu27pads1", "tpu27skin")}
+    pct = lambda t: f"{100 * t[0] / t[1]:.0f}&#8202;%"  # noqa: E731
+    closed = (f" Closed loop in MuJoCo-Warp under the other contact models of the TPU block, the skin policies hold "
+              f"{pct(T['tpu27skin'])} of the rollouts, the pad policies {pct(T['tpu27pads1'])} and the TPU-mesh policies "
+              f"{pct(T['tpu27mesh'])}" if all(T.values()) else "")
     return (f" Trained for 40&#8202;M steps on four fingertip contact models, the D6 reorientation policies on the 1&#8202;mm "
             f"pads and on the pads mounted on a sprung skin ({n_c} policies) keep the tool in {rc[0]} of {rc[1]} open-loop "
-            f"replays of their finger targets in CPU MuJoCo, Drake and Newton{cost}; the {n_p} policies trained with "
-            f"point contact on the box tip or the TPU block keep it in {rp[0]} of {rp[1]}: <code>{POLICY_PAGE}</code>.")
+            f"replays of their finger targets in CPU MuJoCo, Drake and Newton, and the {n_p} policies trained with "
+            f"point contact on the box tip or the TPU block in {rp[0]} of {rp[1]}.{closed}{cost}: "
+            f"<code>{POLICY_PAGE}</code>.")
 
 
 SCALE_PAGE = "docs/experiments/20261008-hand_object_scale/20261008-finger_spacing_object_size.html"
