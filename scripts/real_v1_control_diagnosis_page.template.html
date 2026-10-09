@@ -1,4 +1,4 @@
-<title>Why the deployed hands stopped reorienting the screwdriver</title>
+<title>Effect of pivot height, residual clip and grasp fit on the deployed hands’ reorientation</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -88,202 +88,181 @@ footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",mo
 <div class="wrap">
 <header>
   <div class="eyebrow">MorphoHand &#183; real_v1 &#183; 6 September 2026</div>
-  <h1>Why the deployed hands stopped reorienting the screwdriver</h1>
-  <p class="lede">One configuration has ever run this task end to end, and it still does. Four
-  things changed on the way to the deployed plans; ablating them one at a time shows the pivot
-  height decides which end of the tool points down, and the grasp fitter spends the finger
-  travel the turn is paid for in. Three of the eight deployed hands do reach a held, floor-free,
-  tip-down turn once the pivot is set per hand, and every one of them loses the tool at the
-  set-down seam.</p>
-  <div class="byline">Ablation off the reproduced 2026-09-03 chain &#183; 492 rollouts, plus a
-  96-rollout pivot sweep re-run on film &#183; scored on the SIGNED cosine with a load test
-  &#183; no hardware run</div>
+  <h1>Effect of pivot height, residual clip and grasp fit on the deployed hands&#8217; reorientation</h1>
+  <p class="lede">Changing the one configuration that completes the chain (rv05_manual_stored, 169/169) toward the
+  deployed plans one factor at a time identifies two causes of the lost reorientation. The plans&#8217; pivot
+  height turns the tool to the wrong pole (cos &minus;0.988 at axis_k 0.05), and the geometric grasp fitter leaves
+  the fingers 0.44&ndash;1.26 mm of extension headroom against the reference grasp&#8217;s 2.74 mm, so no squeeze
+  completes the chain. With a per-hand pivot and a clip of 0.50, three of the eight deployed hands hold a tip-down,
+  floor-free turn (D3 at cos +0.987); all three lose the tool at the set-down.</p>
+  <div class="byline">Ablation from the reproduced 2026-09-03 chain &#183; 492 rollouts and a 96-rollout pivot
+  sweep, filmed &#183; signed cosine with a load test &#183; simulation only</div>
 </header>
 
-<section class="col">
-  <h2>The reference, and why it had to be recovered first</h2>
-  <p class="sub">results/phase1/real_v1/rv05_manual_stored &#183; 169/169 on 2026-09-03</p>
-
-  <p>The fingers take the shaft from horizontal to 4.8&#176; off vertical in the air, on three
-  pads, tip down, then the arm sets it into the countersink and the hand gaits it eight cycles:</p>
-
-<pre>lifted      cos -0.0005  z 0.1121  3 pads   5.55 N
-turned      cos +0.8404  z 0.1145  3 pads  22.32 N
-reoriented  cos +0.9939  z 0.1129  3 pads  10.47 N
-upright     cos +1.0000  z 0.0499  2 pads          tip down
-gaited      cos +0.9946                    8/8 cycles   OK</pre>
-
-  <p>On 2026-09-06 that configuration would not execute at all. <code>GantryPalm</code> has no
-  <code>worst_pos</code>, which <code>probe_real_v1_chain</code> reads unconditionally when
-  <code>reindex</code> is <code>"full"</code>, so the entire floating-palm path raised
-  <code>AttributeError</code>. Nothing had noticed, because every run since the arm work went
-  through the arm path. One line in <code>palm_driver.py</code>, and it reproduces.</p>
-
-  <p>It is now pinned by <code>tests/test_chain_reference.py</code>, which asserts the signed
-  cosine above 0.90 at <code>reoriented</code>, at least two pads carrying at least the tool's
-  0.240 N, floor-free, and 8 of 8 gait cycles. Verified to discriminate: at the deployed pivot
-  height it fails with cos 0.0008.</p>
+<section id="terms" class="col">
+  <h2>Terms and metrics</h2>
+  <dl class="terms">
+    <dt><b>Chain</b></dt><dd>Lift the screwdriver from the table, turn it tip-down in the air, set it into the
+      countersink and gait it 8 cycles, in simulation with a floating palm; k/n counts the rollouts of n that
+      complete it.</dd>
+    <dt><b>Reference chain</b></dt><dd><code>rv05_manual_stored</code> with its stored CEM grasp, sphere pads, pivot
+      0.25, clip 0.50 and a &minus;90&#176; turn; 169/169 completed on 2026-09-03.</dd>
+    <dt><b>Seams</b></dt><dd>The chain&#8217;s checkpoints <code>lifted</code>, <code>turned</code>,
+      <code>reoriented</code>, <code>upright</code> (set into the countersink) and <code>gaited</code>.</dd>
+    <dt><b>Signed cosine (cos)</b></dt><dd>Cosine of the tool&#8217;s own +z axis with world +z: +1 tip down,
+      &minus;1 handle down.</dd>
+    <dt><b>Pads / N</b></dt><dd>Pads in contact with the tool and their total force at a seam, mean over
+      rollouts.</dd>
+    <dt><b>Held</b></dt><dd>Two or more pads carrying at least the tool&#8217;s 0.240 N weight at
+      <code>reoriented</code>, the tool clear of the floor.</dd>
+    <dt><b>Pivot (axis_k)</b></dt><dd>Height of the point the finger anchor is rotated about during the turn, in
+      half-straddles above the contact plane.</dd>
+    <dt><b>Clip</b></dt><dd>Largest excursion of a finger joint from the grasp anchor that the turn may command, in
+      rad.</dd>
+    <dt><b>Squeeze</b></dt><dd>Commanded interference of the pads with the tool in the fitted grasp, in mm.</dd>
+    <dt><b>Extension, headroom</b></dt><dd>Mount-to-pad distance of each finger at the closed grip, in mm; headroom
+      is full extension, 68.11 mm, minus the largest of the three.</dd>
+    <dt><b>Bench band</b></dt><dd>Range of clips, in rad, over which a plan holds the tool in the bench
+      maneuver.</dd>
+    <dt><b>Tool height, lost at</b></dt><dd>Height of the tool at <code>reoriented</code>, in mm; the seam at which
+      a run loses the tool.</dd>
+  </dl>
 </section>
 
 <section class="col">
-  <h2>One factor at a time</h2>
-  <p class="sub">scripts/real_v1_chain_ablate.py &#183; 32 rollouts &#183; cos is the tool's own
-  +z against world +z, so tip down is +1 and handle down is &minus;1</p>
+  <h2>Reference chain and its regression test</h2>
+  <p class="sub">results/phase1/real_v1/rv05_manual_stored &#183; 169/169 on 2026-09-03</p>
+
+  <p>The fingers turn the shaft tip down in the air on three pads; the arm then sets it into the countersink and
+  the hand gaits it eight cycles:</p>
+
+  <div class="tw"><table><thead><tr><th>Seam</th><th class=num>Signed cos</th><th class=num>Tool height (mm)</th>
+  <th class=num>Pads</th><th class=num>Pad force (N)</th></tr></thead><tbody>
+  <tr><td><code>lifted</code></td><td class=num>&minus;0.0005</td><td class=num>112.1</td><td class=num>3</td><td class=num>5.55</td></tr>
+  <tr><td><code>turned</code></td><td class=num>+0.8404</td><td class=num>114.5</td><td class=num>3</td><td class=num>22.32</td></tr>
+  <tr><td><code>reoriented</code></td><td class=num>+0.9939</td><td class=num>112.9</td><td class=num>3</td><td class=num>10.47</td></tr>
+  <tr><td><code>upright</code></td><td class=num>+1.0000</td><td class=num>49.9</td><td class=num>2</td><td class=num>&#8212;</td></tr>
+  <tr><td><code>gaited</code></td><td class=num>+0.9946</td><td class=num>&#8212;</td><td class=num>&#8212;</td><td class=num>8/8 cycles</td></tr>
+  </tbody></table></div>
+
+  <p>A one-line fix in <code>palm_driver.py</code> restored the floating-palm path on 2026-09-06, and
+  <code>tests/test_chain_reference.py</code> now pins the chain: a signed cosine above 0.90 at
+  <code>reoriented</code>, two or more pads carrying at least 0.240 N, a floor-free tool and 8 of 8 gait cycles. At
+  the deployed pivot height the test fails with cos 0.0008.</p>
+</section>
+
+<section class="col">
+  <h2>Single-factor ablation from the reference</h2>
+  <p class="sub">scripts/real_v1_chain_ablate.py &#183; 32 rollouts</p>
 
   {{ABLATE_TBL}}
 
-  <p><strong>The pivot height is the 180&#176;.</strong> <code>axis_k</code> sets the height of
-  the point the finger anchor is rotated about, in half-straddles above the contact plane. At
-  0.05 the lift is bit-for-bit identical to the reference &#8212; three pads, 5.55 N, z 0.1121,
-  because the pivot only enters after the lift &#8212; and the turn then carries the tool to
-  cos &minus;0.988: within 9&#176; of vertical, standing on its handle, and it drops. Every
-  deployed plan carries 0.05 to 0.15.</p>
+  <p><strong>Pivot.</strong> At <code>axis_k</code> 0.05 the lift is the reference&#8217;s, since the pivot enters
+  after it, and the turn takes the tool to cos &minus;0.988: within 9&#176; of vertical, standing on its handle, and
+  it drops. Every deployed plan sets 0.05 to 0.15.</p>
 
-  <p><strong>The clip bleeds the grip.</strong> At 0.85 the tool reorients correctly, cos
-  +0.970, and the pad force falls from 5.55 N to 0.15 N across the same 1.1 s against a 0.240 N
-  tool. It arrives vertical in a hand that is no longer holding it, and is lost on the way down.
-  The plan angle of &minus;60&#176; simply under-rotates and still chains 3 of 4.</p>
+  <p><strong>Clip.</strong> At 0.85 the tool reaches cos +0.970 while the pad force falls from 5.55 N to 0.15 N,
+  below the tool&#8217;s 0.240 N weight, so it arrives vertical in a hand that no longer holds it. The plan angle of
+  &minus;60&#176; under-rotates and still chains 3 of 4.</p>
 
-  <p><strong>The two pad arms are not evidence about pads.</strong> Both fail at the
-  <em>lift</em>, at z 0.0124 with zero contacts: the stored CEM anchor replayed on a flat pad
-  whose contacting face sits 3 mm further out, and the fitter's anchor replayed on spherical
-  pads. Flat pads <em>with a grasp fitted for them</em> &#8212; the last row &#8212; lift on
-  three pads at 3.37 N and turn to cos +0.755. The pad shape is not the blocker.</p>
+  <p><strong>Pads and grasp.</strong> Both pad arms fail at the lift, with no contacts, because each grasp was
+  fitted for the other pad shape; flat pads with a grasp fitted for them (last row) lift on three pads at 3.37 N
+  and turn to cos +0.755.</p>
 </section>
 
 <section class="col">
-  <h2>What the fitter spends</h2>
-  <p class="sub">mount-to-pad distance at the closed grip, against the 68.11 mm chain</p>
+  <h2>Finger-extension headroom left by the grasp fitter</h2>
+  <p class="sub">Mount-to-pad distance at the closed grip; full extension is 68.11 mm</p>
 
-  <p>The reference grasp comes from a CEM search over rollouts. The deployed hands are
-  Sobol-sampled and have no CEM run, so their grasp comes from
-  <code>probe_real_v1_carry._grip_from_fit</code>, a geometric IK fit. Its own docstring names
-  the problem it creates:</p>
-
-<pre>GRIP DEPTH IS A VARIABLE, NOT AN OPTIMUM. `fit` normally takes the DEEPEST reachable
-palm height, for clearance over the shaft's upper half once it stands up. On this hand
-that lands every design at 52-65 mm of a 68.11 mm mount-to-pad chain -- 95% extension, the
-boundary of the reach shell, where the fingertip has no radial workspace left and so
-cannot carry the object anywhere.</pre>
-
-  <p>Measured, it is worse than the comment says. The turn is paid for in finger extension, and
-  the fitted grasp arrives at the turn with between 0.44 and 1.26 mm of chain left, against the
-  reference grasp's 2.74 mm.</p>
+  <p>The deployed hands have no CEM run; their grasp comes from <code>probe_real_v1_carry._grip_from_fit</code>,
+  a geometric IK fit that takes the deepest reachable palm height. The turn draws on finger extension, and the
+  fitted grasps start it with 0.44 to 1.26 mm of headroom against the CEM grasp&#8217;s 2.74 mm (the table rounds
+  extensions to 0.1 mm).</p>
 
   {{EXT_FIG}}
   {{EXT_TBL}}
 
-  <p>Squeeze moves it in the right direction and never far enough: 2 mm leaves 0.44 mm of
-  headroom and 12 mm leaves 1.26 mm, still half the reference. Swept through the chain on the
-  reference hand with spherical pads at reference pivot and clip, so the fitter is the only
-  thing that differs, no squeeze value produces a chain:</p>
+  <p>No squeeze completes the chain. Swept on the reference hand with spherical pads at the reference pivot and
+  clip, so that only the fitted grasp differs:</p>
 
   {{SQ_TBL}}
 
-  <p>The 4 mm cell is the one that matters. It lifts on three pads at <strong>8.79 N</strong>
-  &#8212; more grip than the reference's 5.55 N &#8212; and is on the floor by the next seam.
-  Grip force at the lift is therefore not the missing quantity; travel left in the fingers is.</p>
-
-  <p>Lowering the palm is the direct fix and the fitter will not do it: asked for 62, 58, 54, 50
-  and 46 mm of grip depth on this hand, <code>_grip_from_fit</code> returns no pose at every
-  one. Its clamp searches only <code>[depth &minus; 8 mm, depth]</code>, and on this hand the
-  only depth that solves is the deepest. The feasible set of the fitter lies entirely inside the
-  reach shell, so this is not a flag to turn down.</p>
+  <p>At 4 mm the grasp lifts on three pads at <strong>8.79 N</strong>, above the reference&#8217;s 5.55 N, and
+  still drops the tool by the next seam, so finger travel limits the turn at that grip force. Lowering the palm
+  would add headroom, and the fitter cannot: asked for 62, 58, 54, 50 and 46 mm of grip depth on this hand,
+  <code>_grip_from_fit</code> returns no pose, because its clamp searches only
+  <code>[depth &minus; 8 mm, depth]</code> and only the deepest depth solves.</p>
 </section>
 
 <section class="col">
-  <h2>The clip belongs to a maneuver, not to a hand</h2>
+  <h2>Clip values per maneuver and the chain&#8217;s clip band</h2>
   <p class="sub">docs/experiments/OPERATING_POINTS.json</p>
 
-  <p>Three maneuvers in this program use the same field names for different numbers: the
-  <strong>bench</strong> (fixed palm, tool on a 100 mm post, 9.6 s hold, what the plans were
-  fitted on and what the CB1 replays), the <strong>carry</strong> (floor-free, the tool lifted
-  clear and turned in the air), and the <strong>chain</strong>. They disagree, and
-  <code>rv05_manual</code> is the proof: its bench band is 0.75&#8211;2.00 with a clip of 0.50
-  holding 0 of 4, while in the floor-free carry a clip of 0.50 gives cos 0.971 6 of 6 and 0.85
-  drops the tool at every pivot height.</p>
+  <p>The bench maneuver (fixed palm, tool on a 100 mm post, 9.6 s hold; the plans were fitted on it), the
+  floor-free carry and the chain use the same field names for different numbers: on <code>rv05_manual</code> a clip
+  of 0.50 holds 0 of 4 on the bench and gives cos 0.971 in 6 of 6 in the carry, where 0.85 drops the tool at every
+  pivot height.</p>
 
   {{OP_TBL}}
 
-  <p>Sweeping the chain's own band per hand &#8212; clip 0.40 to 1.15 against pivot 0.15, 0.25
-  and 0.35, at &minus;90&#176; &#8212; gives {{BAND_OK}} chains in {{BAND_N}} rollouts.
-  {{BAND_HELD}} of them held the tool at <code>reoriented</code> on two or more pads at or above
-  its weight. The pole flip is gone; the grip is not there.</p>
+  <p>A sweep of the chain&#8217;s own band per hand (clip 0.40 to 1.15 against pivot 0.15, 0.25 and 0.35, at
+  &minus;90&#176;) gives {{BAND_OK}} chains in {{BAND_N}} rollouts; {{BAND_HELD}} hold the tool at
+  <code>reoriented</code> on two or more pads at or above its weight. The wrong-pole turn is gone and the grip is
+  missing.</p>
 
   {{BAND_TBL}}
 
-  <p>Two shapes, and the load test separates them. <code>sv1_u0060_b75</code> reaches cos +0.989
-  on 0.3 pads at 0.09 N &#8212; a tool that has left the hand and happens to be vertical.
-  <code>rv05_manual_b85</code> holds three pads through the turn and reaches +0.83 at 0.41 N,
-  which is real and 34&#176; short, on a grip 25 times weaker than the reference's 10.47 N. The
-  same hand holds the turn at 14.13 N one clip away from this grid, which is the next
-  section.</p>
+  <p>The load test separates two cases: D5 reaches cos +0.989 on 0.3 pads at 0.09 N, a released tool standing
+  vertical, while D7 holds three pads through the turn and reaches +0.83, 34&#176; short, at 0.41 N against the
+  reference&#8217;s 10.47 N.</p>
 </section>
 
 <section class="col">
-  <h2>The turn on the deployed hands</h2>
+  <h2>Held turns on the deployed hands at a per-hand pivot</h2>
   <p class="sub">docs/experiments/20260906-pivot &#183; docs/experiments/20260906-held_turn_films</p>
 
-  <p>Three of the eight hands do turn the tool tip-down and carry it there. The pivot sweep runs
-  the same three heights at a clip of 0.50, {{PIVOT_N}} rollouts, and {{PIVOT_HELD}} hands hold
-  the tool at <code>reoriented</code> on two or more pads at or above its 0.240 N weight, clear
-  of the floor. The pivot that does it is a per-hand number: 0.15 for D5, 0.35 for D3 and D1.</p>
+  <p>At a clip of 0.50, a value the band sweep stepped over, a pivot sweep of the same three heights
+  ({{PIVOT_N}} rollouts) gives {{PIVOT_HELD}} hands that hold the tool at <code>reoriented</code> on two or more pads
+  at or above its 0.240 N weight, clear of the floor. The pivot is per hand: 0.15 for D5, 0.35 for D3 and D6.</p>
 
   {{PIVOT_TBL}}
 
-  <p>The clip is why the band sweep missed this. It stepped 0.40, 0.55, 0.70, 0.85, 1.00, 1.15
-  and never tried 0.50, which is the value all three of these turns run at.</p>
-
-  <p>Every one of them then loses the tool at the same place. D5 holds the shaft vertical on two
-  pads at 14.13 N, descends with it, and the tool is flat on the disc one seam later. D3 holds it
-  at cos +0.987 and the arm drives the wrist into the table on the way down. Neither is a turn
-  failure.</p>
+  <p>All three lose the tool at the set-down seam. D5 holds the shaft vertical on two pads at 14.13 N and descends
+  with it, and the tool is flat on the disc one seam later. D3 holds it at cos +0.987, and the arm drives the wrist
+  into the table on the way down.</p>
 
   <figure>
     <video controls preload="metadata" src="{{FILM_GRID}}"></video>
-    <figcaption>All eight hands, each re-run at its own best pivot, ranked by the signed held
-      turn. Labels carry cos, pad count and pad force at <code>reoriented</code> and the seam the
-      run was lost at. <code>docs/experiments/20260906-held_turn_films/20260906-chain_grid.mp4</code>
-    </figcaption>
+    <figcaption>All eight hands at their best pivots, ranked by the signed held turn; labels give cos, pads and pad
+      force at <code>reoriented</code> and the seam at which the run was lost.</figcaption>
   </figure>
 
   <figure>
     <img src="{{FILM_D5}}" alt="D5 seam frames: the tool held vertical, then flat on the table">
-    <figcaption>D5, <code>sv1_u0060_b75</code>, pivot 0.15. Frames 2&#8211;4: the shaft vertical
-      and tip-down in the grip, descending. Frame 5: on the disc, horizontal. The hand completes
-      the rest of the chain empty.</figcaption>
+    <figcaption>D5 (<code>sv1_u0060_b75</code>, pivot 0.15): vertical and tip down in frames 2&#8211;4, flat on the
+      disc in frame 5.</figcaption>
   </figure>
 
   <figure>
     <img src="{{FILM_D3}}" alt="D3 seam frames: the wrist descending into the table">
-    <figcaption>D3, <code>sv1_u1364_b080</code>, pivot 0.35, the strongest turn in the set at cos
-      +0.987. From frame 4 the UR5e wrist is lying across the disc.</figcaption>
+    <figcaption>D3 (<code>sv1_u1364_b080</code>, pivot 0.35): the UR5e wrist lies across the disc from frame
+      4.</figcaption>
   </figure>
 </section>
 
 <section class="col">
-  <h2>What this does not settle</h2>
+  <h2>Future work</h2>
   <ul>
-    <li><strong>The fix to the fitter is not written.</strong> It needs an
-      extension-headroom constraint &#8212; reject a pose leaving under about 2.5 mm of the
-      68.11 mm chain &#8212; and a palm-height search wider than the current 8 mm clamp, since
-      the constraint is unsatisfiable inside it. Falsified if a headroom-constrained fit on
-      <code>rv05_manual_stored</code> does not reproduce the reference chain.</li>
-    <li><strong>2.74 mm is one hand's number, not a threshold.</strong> It comes from a single
-      CEM grasp. Measure headroom against reorientation outcome across the eight deployed hands
-      before treating it as a gate.</li>
-    <li><strong>The set-down seam has not been measured.</strong> Three hands arrive at it
-      holding a vertical tool and none leaves it holding one. Name the mechanism per hand
-      &#8212; the tool toppling out of the pads against the disc, or the arm driving the wrist
-      into the table &#8212; by re-running those three cells with the descent instrumented.
-      Nothing about the fitter is implicated until that is separated.</li>
-    <li><strong>The pivot values are one clip's.</strong> 0.15 for D5 and 0.35 for D3/D1 come
-      from a single clip of 0.50, and 0.50 is below the bench band for four of the eight hands.
-      Sweep the pivot against each hand's own bench band before treating these as the hands'
-      pivots.</li>
-    <li><strong>Nothing here is hardware.</strong> The bench record for these eight hands is 251
-      runs in <code>docs/experiments/20260902-cb1-log-archive</code>, all at the deployed pivot
-      and clip. No corrected grasp has been closed on a real tool.</li>
+    <li><strong>Headroom constraint in the fitter.</strong> Reject a pose that leaves under about 2.5 mm of the
+      68.11 mm chain, and widen the palm-height search beyond the 8 mm clamp, inside which the constraint cannot be
+      met. If the constrained fit on <code>rv05_manual_stored</code> does not reproduce the reference chain, headroom
+      is not the cause.</li>
+    <li><strong>Headroom against outcome across hands.</strong> The 2.74 mm comes from one CEM grasp; measure
+      headroom against reorientation outcome on the eight deployed hands before using it as a gate.</li>
+    <li><strong>Set-down seam.</strong> Re-run the held cells of D3, D5 and D6 with the descent instrumented, to
+      separate the tool toppling out of the pads from the arm driving the wrist into the table.</li>
+    <li><strong>Pivot over each hand&#8217;s bench band.</strong> A clip of 0.50 lies below the bench band of four
+      of the eight hands; sweep the pivot over each hand&#8217;s own band.</li>
   </ul>
 </section>
 
@@ -293,6 +272,7 @@ cannot carry the object anywhere.</pre>
   Built by <code>scripts/real_v1_control_diagnosis_page.py</code> from
   <code>20260906-ablate</code>, <code>20260906-fitter_force</code>,
   <code>20260906-chain_band</code>, <code>20260906-pivot</code>,
-  <code>20260906-held_turn_films</code> and <code>OPERATING_POINTS.json</code>.
+  <code>20260906-held_turn_films</code> and <code>OPERATING_POINTS.json</code>. Simulation only; the 251 bench
+  runs of these hands (<code>docs/experiments/20260902-cb1-log-archive</code>) used the deployed pivot and clip.
 </footer>
 </div>

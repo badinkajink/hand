@@ -108,8 +108,8 @@ def main() -> int:
         return fmt.format(v) if v is not None else "&#8212;"
 
     V["ABLATE_TBL"] = table(
-        ["one factor changed", "lift: pads / N", "turned: cos", "reoriented: cos",
-         "reoriented: pads / N", "chain"],
+        ["One factor changed", "Lift: pads / N", "Turned: cos", "Reoriented: cos",
+         "Reoriented: pads / N", "Chain"],
         [[LABEL[a],
           f'{cell(g, "lifted", "pad_contacts", "{:.1f}")} / '
           f'{cell(g, "lifted", "pad_force_N", "{:.2f}")}',
@@ -124,7 +124,7 @@ def main() -> int:
 
     V["EXT_FIG"] = fig_ext()
     V["EXT_TBL"] = table(
-        ["grasp", "thumb", "index", "middle", "% of the chain", "headroom"],
+        ["Grasp", "Thumb", "Index", "Middle", "Largest, % of full extension", "Headroom"],
         [[k] + [f"{v:.1f} mm" for v in ext]
          + [f"{max(ext)/CHAIN_MM*100:.1f}%", f"{CHAIN_MM - max(ext):.2f} mm"]
          for k, ext in EXT.items()],
@@ -132,7 +132,7 @@ def main() -> int:
 
     sq = rows_of(E / "20260906-fitter_force/ablate.json")
     V["SQ_TBL"] = table(
-        ["fitted grasp", "lift: cos / z", "lift: pads / N", "reoriented: cos", "chain"],
+        ["Fitted grasp", "Lift: cos / z (m)", "Lift: pads / N", "Reoriented: cos", "Chain"],
         [[a.replace("fit_sq", "squeeze ").replace("mm", " mm").replace("baseline",
                                                                       "the reference"),
           f'{cell(g, "lifted", "cos", "{:+.2f}")} / {cell(g, "lifted", "z", "{:.3f}")}',
@@ -146,14 +146,13 @@ def main() -> int:
 
     op = json.loads((E / "OPERATING_POINTS.json").read_text())
     V["OP_TBL"] = table(
-        ["hand", "id", "plan clip", "bench band", "plan inside it?", "carry", "chain"],
+        ["Hand", "ID", "Plan clip (rad)", "Bench band (rad)", "Plan clip inside the band"],
         [[f'<code>{t}</code>', op["hands"][t]["id"],
           f'{op["hands"][t]["plan"]["budget_rad"]:.2f}',
-          str(op["hands"][t]["bench"]["clip_band_rad"] or "no data"),
-          ('<span class="ok">yes</span>' if op["hands"][t]["bench"]["clip_at_plan_holds"]
-           else '<span class="no">no</span>'),
-          "unmeasured", "unmeasured"] for t in ORDER],
-        nums={2, 3, 4, 5, 6})
+          str(op["hands"][t]["bench"]["clip_band_rad"] or "No data"),
+          ('<span class="ok">Yes</span>' if op["hands"][t]["bench"]["clip_at_plan_holds"]
+           else '<span class="no">No</span>')] for t in ORDER],
+        nums={2, 3, 4})
 
     band = rows_of(E / "20260906-chain_band/chain_hands.json")
     held = lambda s: s and (s.get("pad_contacts") or 0) >= 2 and (s.get("pad_force_N") or 0) >= 0.24
@@ -172,7 +171,7 @@ def main() -> int:
                              seam(g, "reoriented", "pad_force_N")))
     best.sort(key=lambda x: -x[0])
     V["BAND_TBL"] = table(
-        ["id", "pivot / clip", "reoriented: cos", "pads", "force"],
+        ["ID", "Clip / pivot", "Reoriented: cos", "Pads", "Force"],
         [[i, a.replace("load0_t550_b", "clip ").replace("_k", " / pivot ").replace("_a-90", ""),
           f"{c:+.3f}", f"{p:.1f}", f'<span class="{"ok" if F >= 0.24 else "no"}">{F:.2f} N</span>']
          for c, i, a, p, F in best[:8]],
@@ -198,7 +197,7 @@ def main() -> int:
     rows.sort(key=lambda r: (-r[8], -r[3]))
     V["PIVOT_HELD"] = str(sum(1 for r in rows if r[8]))
     V["PIVOT_TBL"] = table(
-        ["id", "hand", "pivot", "reoriented: cos", "pads", "force", "z", "lost at"],
+        ["ID", "Hand", "Pivot", "Reoriented: cos", "Pads", "Force", "Tool height", "Lost at"],
         [[i, f"<code>{t}</code>", f"{ak:.2f}", f"{c:+.3f}", f"{p_:d}",
           f'<span class="{"ok" if F >= 0.24 and p_ >= 2 else "no"}">{F:.2f} N</span>',
           f"{z*1000:.0f} mm", f"<code>{d}</code>" if d else "&#8212;"]
