@@ -865,6 +865,28 @@ def svg_traces(X: Data):
     return "".join(out) if drawn else P.pending("Final traces not written yet (final_traces/).")
 
 
+JN9 = [f"{f} {j}" for f in ("thumb", "index", "middle") for j in ("yaw", "mcp", "pip")]
+
+
+def pinned_desc(tag, it):
+    """Servo targets at a range limit in 90 % of the active steps of most rollouts, with the limit's side (the lower
+    limit of an mcp or pip joint is its extension limit), from the watch traces of checkpoint `it`."""
+    p = os.path.join(ROOT, "logs/20261008-contact_model_policies/watch_traces", f"{tag}_it{it:04d}.npz")
+    if not os.path.exists(p):
+        return None
+    tr = np.load(p)
+    c = tr["ctrl"].astype(float)[int(tr["residual_from"]):]
+    lo, hi = tr["ctrl_lo"], tr["ctrl_hi"]
+    out = []
+    for j in range(9):
+        at_lo = ((c[:, :, j] <= lo[j] + 1e-3).mean(0) > 0.9).mean()
+        at_hi = ((c[:, :, j] >= hi[j] - 1e-3).mean(0) > 0.9).mean()
+        if max(at_lo, at_hi) > 0.5:
+            side = ("extension" if at_lo > at_hi else "flexion") if "yaw" not in JN9[j] else ("lower" if at_lo > at_hi else "upper")
+            out.append(f"{JN9[j]} at its {side} limit")
+    return out
+
+
 def grip_chatter(tag):
     """Median |change of the summed fingertip force| between consecutive policy steps over the hold (steps 150-249),
     over the held steps of all rollouts of the final evaluation, N."""
@@ -907,7 +929,7 @@ def final_section(X: Data):
                    frac(sum(r["n_reach09_held"] for r in fs), N_ROLL * len(fs)), f1(md("t09_median"), 0)])
         wf = [w for w in X.watch if w["tag"] in {r["tag"] for r in fs} and w["iteration"] == fs[0]["iteration"]]
         shk = [w["ang_jerk_hold_median"] for w in wf if w.get("ang_jerk_hold_median") is not None]
-        pin = sorted({j.replace("_", " ") for w in wf for j in (w.get("joints_pinned90") or [])})
+        pin = sorted({d for r in fs for d in (pinned_desc(r["tag"], r["iteration"]) or [])})
         gc = [v for v in (grip_chatter(r["tag"]) for r in fs) if v is not None]
         b2.append([f"{swatch(a)}{LBL[a]}", f1(md("grip_N"), 1), f1(float(np.median(gc)), 1) if gc else "&#8211;",
                    f1(md("peak_force_N_mean"), 0), f1(md("pen_max_mm_mean"), 2),
@@ -1010,9 +1032,26 @@ def lede(X: Data):
 
 
 def open_items(X: Data):
-    items = []
-    return "<ul class='open'>" + "".join(f"<li><b>{a}</b> {b}</li>" for a, b in items) + "</ul>" if items else \
-        P.pending("Written with the findings.")
+    items = [
+        ("Bench replay of the finger targets.", "The replays test the policies in three simulators and none of them is the "
+         "printed fingertip. The next measurement plays the recorded finger targets of the median rollout of the pads, "
+         "skin and TPU-mesh final policies on the hand at 50&#8202;Hz from the lifted grasp (a plan exported from "
+         "<code>logs/20261008-contact_model_policies/replay/&lt;tag&gt;/rec.npz</code> through the real_v1 deploy "
+         "format, 10 trials each, tracked). The result that contradicts this page: the TPU-mesh targets hold the tool as "
+         "often as the pad or skin targets."),
+        ("Grip force.", "The recipe copied from the 2026-09-17 60&#8202;M run gives the grip term a weight of +0.25, a small "
+         "bonus above 4&#8202;N per pad, and every final policy grips with 40&#8211;100&#8202;N on a 24.5&#8202;g tool. "
+         "Fine-tune the pads and skin finals with weight &#8722;5 (the 2026-09-17 finetune setting) and repeat the "
+         "replays; the comparison holds if the replays still keep the tool at a grip near 10&#8202;N."),
+        ("Unclipped residual.", "The runs train without an action clip: actions reach 3 units (1.5&#8202;rad past the anchor) "
+         "and one pip servo target per compliant policy sits at its extension limit in 95&#8202;% of the steps (Table 4). A "
+         "deployable residual needs <code>clip_actions</code> 1.0 (<code>src/morphohand/rl/ppo_config.py</code>); "
+         "retrain one seed per compliant arm with it and compare the held cosine."),
+        ("Seeds of the point-contact arms.", "The watch stopped point-contact runs at 16&#8202;M steps for jitter, so those "
+         "arms have fewer seeds at 40&#8202;M than the compliant ones; their seed spread rests on the runs that "
+         "finished."),
+    ]
+    return "<ul class='open'>" + "".join(f"<li><b>{a}</b> {b}</li>" for a, b in items) + "</ul>"
 
 
 def byline():
