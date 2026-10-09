@@ -414,47 +414,35 @@ needs the bench.</p>
 simulated sensitivity to tool placement</p>
 
 <h3>Morphology positioning</h3>
-<p>The six gantries run on T5 &#215; 1 lead screws at 3,216 steps/mm, homed sensorlessly against a hard stop by TMC5160
-StallGuard2 with a timeout fallback sized to cover the full travel (J3 and J5 do not trip StallGuard at the current
-tuning and home on the timeout every time, which is still a hard-stop home). A 45 mm caliper check on J1/J3/J5 found
-0.0 % scale error (<code>verify_frame_mapping.py --travel</code>), and the station adopts an existing home when the
-gantries sit within 0.5 mm of a plan&#8217;s targets. No dial-indicator repeatability of the home itself is on record; that
-measurement (home ten times, read one mount against a fixed indicator) takes half an hour. Two simulated results limit its
-importance: the deployment envelope&#8217;s mount-error axis at
-2 mm changes retention through the turn from 77 % to 80 % pooled over 18 designs (placement and servo zeros matter far
-more), and the nearest pair of deployed hands is 14.4 mm apart, so a sub-millimetre home does not confuse one design
-with another.</p>
+<p>The six gantries run on T5 &#215; 1 lead screws at 3,216 steps/mm and home sensorlessly against a hard stop (TMC5160
+StallGuard2, with a timeout fallback on which J3 and J5 always home). A 45 mm caliper check on J1/J3/J5 found 0.0 % scale
+error (<code>verify_frame_mapping.py --travel</code>). The home&#8217;s repeatability has not been measured (home ten times and
+read one mount against a dial indicator, half an hour); in simulation a 2 mm mount error changes retention through the turn
+from 77 % to 80 % over 18 designs, and the nearest two deployed hands are 14.4 mm apart.</p>
 
 <h3>Trial-to-trial repeatability</h3>
-<p>Stage 1 of the transfer protocol ran twelve consecutive trials of one plan (<code>sv1_w6689_b060</code>, D1) with a full
-re-stage between each (open, remove the tool, re-seat it). Seven carried a hold-window cosine: mean +0.881, sd 0.011,
-95 % interval on the sd [0.007, 0.024] (<code>docs/experiments/20260831-real_v1-transfer-protocol/sessions/20260831-1845-sv1_w6689-stage1/README.md</code>).
-Five lost the vane tag at 1.4&#8211;2.4 s and carried no cosine, which is what led to the 40 mm tag reprint. Against the
-simulated between-plan spread of 0.24 that is a 22:1 ratio: four trials per plan resolve a design difference of 0.02.
-In the study itself D1&#8217;s own session had sd 0.032 over six holds; adding the three holds from the later session
-tripled it to 0.092 (turns of 41, 55 and 72&#176; from one plan), so re-staging is the variance. Session-to-session drift on
-the same plan and the same tag is &#177;5&#176; (u0060 +4.0, u0308 +4.8, w0099 &#8722;4.5&#176; between sessions), and w6689
-moved 14.5&#176; between two consecutive sessions in the 30 mm-tag era. Within-design sd for six of the seven measurable
-designs is 0.027&#8211;0.061 against a between-design spread of 0.49&#8211;0.94, so the bench separates the hands; D3 is the
-exception at 0.221 because its trials are a mixture of held grips and partial slips (0.21, 0.30, 0.32, 0.33, 0.61, 0.66,
-0.70, 0.78).</p>
+<p>Stage 1 of the protocol ran twelve consecutive trials of D1&#8217;s plan with a full re-stage between each; the seven with a
+hold-window cosine give a mean of +0.881 and an sd of 0.011 (95 % interval on the sd 0.007&#8211;0.024), and the other five
+lost the vane tag, which led to the 40 mm tag
+(<code>docs/experiments/20260831-real_v1-transfer-protocol/sessions/20260831-1845-sv1_w6689-stage1/README.md</code>). Against
+the simulated between-plan spread of 0.24, four trials per plan resolve a design difference of 0.02. Re-staging is the
+variance: three holds from a later session tripled D1&#8217;s sd from 0.032 to 0.092, and the same plan drifts &#177;5&#176;
+between sessions. Within-design sd for six of the seven measurable hands is 0.027&#8211;0.061 against a between-design spread
+of 0.49&#8211;0.94; D3 is the exception at 0.221, a mixture of held grips and partial slips.</p>
 
 <h3>Tag tracker</h3>
-<p>Two AprilTags: a 40 mm static tag as the world-up datum and a 30 mm (later 40 mm) tag on a vane 71 mm (later 77 mm)
-along the shaft, read by a RealSense D435 at 30 fps. Noise floor against a static target: 0.017&#176; rms in angle,
-0.030 mm rms in height. The operator&#8217;s by-eye estimate was &#177;5&#176; and could not see axial slip; two earlier
-results were traced to it (a &#8220;90&#176;&#8221; that was the shaft falling through the grasp). The vane is placed on the
-end of the shaft that rises, normal to the pinch axis, so the turn is an in-plane image rotation.</p>
+<p>A 40 mm static tag gives the world-up datum, and a tag on a vane along the shaft (30 mm on a 71 mm vane at first, then
+40 mm on a 77 mm vane) gives the tool&#8217;s pose, read by a RealSense D435 at 30 fps with 0.017&#176; rms angle noise and
+0.030 mm rms height noise. The operator&#8217;s by-eye estimate was &#177;5&#176; and missed axial slip: one earlier
+&#8220;90&#176;&#8221; was the shaft falling through the grasp.</p>
 
 <h3>Simulated sensitivity to manual placement</h3>
-<p>The bench has no placement jig: the operator centres the cylinder on the post by eye at a simulation-derived height.
-The deployment envelope (<code>scripts/real_v1_deploy_envelope.py</code>) measures what that costs by planning on the nominal
-hand and replaying the unchanged plan on a perturbed scene. Two forms: one-at-a-time maps, and an ensemble in which
-everything is wrong at once. The ensemble at level L draws placement N(0, 3 mm &#183; L) in x and y, yaw N(0, 8&#176; &#183; L),
-mount error |N(0, 1.5 mm &#183; L)|, a servo zero offset |N(0, 2&#176; &#183; L)| per joint, and log-uniform multipliers on
-mass (0.6&#8211;2.0), radius (0.92&#8211;1.08), friction (0.45&#8211;1.8), contact stiffness, servo gain (0.3&#8211;2.5), torque
-(0.35&#8211;1.5) and damping. &#8220;Half error&#8221; is L = 0.5 (the staging tolerance a careful operator holds), &#8220;full
-error&#8221; L = 1.0.</p>
+<p>The operator centres the cylinder on the post by eye. The deployment envelope
+(<code>scripts/real_v1_deploy_envelope.py</code>) plans on the nominal hand and replays the unchanged plan on perturbed
+scenes, one factor at a time and as an ensemble at level L: placement N(0, 3 mm &#183; L) in x and y, yaw N(0, 8&#176; &#183; L),
+mount error |N(0, 1.5 mm &#183; L)|, a servo zero offset |N(0, 2&#176; &#183; L)| per joint, and log-uniform multipliers on mass
+(0.6&#8211;2.0), radius (0.92&#8211;1.08), friction (0.45&#8211;1.8), contact stiffness, servo gain (0.3&#8211;2.5), torque
+(0.35&#8211;1.5) and damping. Half error is L = 0.5, the tolerance a careful operator holds; full error is L = 1.0.</p>
 <div class="tw"><table><thead><tr><th>Design (D4 = g12)</th><th>Platform height</th><th>Along the tool</th><th>Across it</th><th>Yaw</th></tr></thead><tbody>
 <tr><td class="mono">g23</td><td class="num">&#8722;2 .. +4 mm</td><td class="num">&#8722;8 .. +3 mm</td><td class="num">&#8722;7 .. +8 mm</td><td class="num">&#8722;12 .. +18&#176;</td></tr>
 <tr><td class="mono">g24</td><td class="num">&#8722;3 .. +4</td><td class="num">&#8722;8 .. +2</td><td class="num">&#8722;7 .. +8</td><td class="num">&#8722;12 .. +18</td></tr>
@@ -466,18 +454,13 @@ error&#8221; L = 1.0.</p>
 <p class="small" style="color:var(--ink3)">Width of the placement band inside which the win rate stays above 50 %, 20 draws per
 point, flat-pad hand, fixed palm, each design at its bench-tuned cell (<code>docs/experiments/20260829-real_v1_deploy/DEPLOY.md</code>
 &#167;11). Platform height is one-sided on every design: too low is too little squeeze.</p>
-<p>Axial placement is the tight axis (2&#8211;6 mm bands) and its basin is often off-centre: the fitter rings
-the pads on the tool&#8217;s mid-length and for half the designs the working band sits 1&#8211;4 mm to one side, so the shipped
-plan starts near the edge of its own tolerance (rv04_mid reads 40 % at nominal and 100 % from &#8722;8 to &#8722;1 mm).
-Yaw and transverse placement are forgiving on the better designs. For the six Sobol hands the full-error ensemble retained
-4&#8211;15 of 20 draws (table above), which is the simulator predicting, before any bench trial, that these plans would
-drop the tool on a quarter to three quarters of realistically staged attempts; the bench&#8217;s 2/10&#8211;10/10 is inside
-that range, though the two do not order the hands alike (&#961;<sub>s</sub> = &#8722;0.14 over the six).</p>
-<p>The one-at-a-time result that matters most for staging: pooled over 18 designs, a servo zero offset of &#177;1&#176;
-takes retention through the turn from 77 % to 60 %, &#177;2&#176; to 39 %, while a 2 mm mount error costs nothing. The turn
-is decided by degrees at the joints more than by millimetres at the mounts, which is why the bench&#8217;s measured yaw
-shortfall (arrival at 0.44&#8211;0.90 of command, a 0.018&#176; per load-unit spring plus the overload cliff) is the largest
-sim-to-real term on record.</p>
+<p>Axial placement is the tight axis (2&#8211;6 mm bands), and for half the designs the working band sits 1&#8211;4 mm to one
+side of the shipped placement (rv04_mid reads 40 % at nominal and 100 % from &#8722;8 to &#8722;1 mm). For the six Sobol hands
+the full-error ensemble retained 4&#8211;15 of 20 draws; the bench&#8217;s 2/10&#8211;10/10 lies inside that range, though the two
+order the hands differently (&#961;<sub>s</sub> = &#8722;0.14 over the six). Pooled over 18 designs, a servo zero offset of
+&#177;1&#176; takes retention through the turn from 77 % to 60 % and &#177;2&#176; to 39 %, while a 2 mm mount error costs
+nothing; the servos&#8217; measured yaw shortfall (arrival at 0.44&#8211;0.90 of command) is the largest sim-to-real term on
+record.</p>
 </div></section>
 
 <section id="status"><div class="col">
