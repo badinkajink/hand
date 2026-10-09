@@ -105,7 +105,8 @@ def table():
 
 def main():
     t = open(TPL).read()
-    v = {"BUILT": time.strftime("%Y-%m-%d %H:%M"), "DRAKE_V": R.DRAKE_V, "MUJOCO_V": R.MUJOCO_V,
+    v = {"BUILT": "2026-10-01 17:08",  # pinned 2026-10-09
+          "DRAKE_V": R.DRAKE_V, "MUJOCO_V": R.MUJOCO_V,
          "RIG_URL": RIG_URL, "RIG_PATH": RIG_PATH, "C_FIT": f"{R.CF * 1e3:.2f}", "N_ROWS": str(len(ROWS))}
     for key, tag in (("d001", "D"), ("p4s", "C4"), ("s1", "SP")):
         r = row(key)

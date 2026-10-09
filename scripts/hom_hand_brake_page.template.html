@@ -121,8 +121,7 @@ a:focus-visible{outline:2px solid var(--s2);outline-offset:2px;border-radius:2px
   hydroelastic fingertips at a 0.01&#8202;s relaxation passes 45&#176; at {{H45_D}}&#8202;N and 80&#176; at {{H80_D}}&#8202;N of pad force;
   MuJoCo with condim&#160;4 and a rescheduled &#956;<sub>t</sub> passes them at {{H45_C4}} and {{H80_C4}}&#8202;N, and MuJoCo with
   sphere-packed fingertips at {{H45_SP}} and {{H80_SP}}&#8202;N. The two-pad rig&#8217;s quasi-static law predicts {{Q45}} and
-  {{Q80}}&#8202;N. At Drake&#8217;s default 0.1&#8202;s relaxation the tool falls through the lower half of the swing once it moves,
-  and with point contact in either simulator it swings away at release.</p>
+  {{Q80}}&#8202;N. With point contact the tool swings away at release.</p>
   <div class="byline">D8 gantry from <code>sv1_w0099_b100_plan.json</code> baked into <code>real_hand.xml</code>, palm fixed
   250&#8202;mm up &#183; fingers: kp 0.5&#8202;N&#183;m/rad, kv 0.02, effort 0.35&#8202;N&#183;m, no joint damping or friction loss &#183; tool
   24.5&#8202;g, r 12.5&#8202;mm, centre of mass d from the pinch line &#183; &#956;&#8202;1.0, 1&#8202;ms step &#183; Drake {{DRAKE_V}} SAP, MuJoCo
@@ -173,7 +172,7 @@ at 0.01, 0.02 and 0.1&#8202;s. Bottom row MuJoCo: point contact; 1&#8202;mm sphe
 </div></section>
 
 <section><div class="col">
-<h2>What this does not settle</h2>
+<h2>Future work</h2>
 <ol>
 <li><strong>The grasp.</strong> The tool is placed in the pinch by IK in the air. On the 2026-09-16 swing grasps, which
 pick the tool off the table, it already hangs on two pads when the lift ends, so the brake has to be set before the
