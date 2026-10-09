@@ -35,6 +35,16 @@ TOPICS = [  # key, title, scope
     ("program", "Program record", "Records that span every topic."),
 ]
 
+# the topic overviews: docs/overviews/<file> (owner, 2026-10-09: stable undated names, ordinary git files)
+OVERVIEW = {
+    "contact": "contact_model.html",
+    "mechanisms": "reorientation.html",
+    "policies": "rl_policies.html",
+    "chain": "grasp_to_gait_chain.html",
+    "hardware": "hand_plant_bench.html",
+    "design": "morphology_design.html",
+}
+
 FOLDER_TOPIC = {
     "20260818-perp_review_page": "design",
     "20260827-real_v1": "chain",
