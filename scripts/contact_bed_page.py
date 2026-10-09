@@ -99,7 +99,7 @@ def setup(T):
             f"fingertip spheres on rails along x press the screwdriver, whose axis lies along y, with a commanded force N per pad. "
             f"Tasks add one load or motion each. The protocol (<code>docs/experiments/20261005-contact_bed/PROTOCOL.md</code>) "
             f"fixes the parameters, metrics and row fields for every script, so rows written by different scripts and simulators "
-            f"compare directly. {n} rows so far. Model strings:</p>" + table(["model", "spec"], rows) +
+            f"compare. {n} rows so far. Model strings:</p>" + table(["model", "spec"], rows) +
             "<p>Agreement is shaded against Drake hydroelastic. Rigid Coulomb friction and the hydroelastic arm law are the "
             "analytic comparisons.</p>")
 
@@ -120,7 +120,7 @@ def summary(T, M):
 def t1(rows):
     if not rows:
         return P.pending("No pull rows.")
-    out = ["<p>Protocol: the pinch settles at N for 0.4&#8202;s, then an axial force on the tool rises at 2&#8202;N/s until the tool "
+    out = ["<p>Protocol: the pinch holds at N for 0.4&#8202;s, then an axial force on the tool rises at 2&#8202;N/s until the tool "
            "slides faster than 10&#8202;mm/s. A second run holds the force at half the onset force for 1&#8202;s to measure creep.</p>"]
     head = ["model, N per pad", "&#956; at slip", "displacement before onset (&#181;m)", "creep at half load (&#181;m/s)",
             "slip speed, 50&#8202;ms (mm/s)", "sliding &#956;", f"{US} per step"]
@@ -309,7 +309,7 @@ GPU_LBL = {"mjw_pads1": "MuJoCo-Warp 1&#8202;mm sphere pad, one GPU world", "new
 def t3(rows):
     if not rows:
         return P.pending("Task&#160;3 rows are not written yet.")
-    out = ["<p>Protocol: gravity off; after the pinch settles at N per pad, the +x pad moves 10&#8202;mm along z (across the tool axis) "
+    out = ["<p>Protocol: gravity off; after the pinch reaches N per pad, the +x pad moves 10&#8202;mm along z (across the tool axis) "
            "at 10&#8202;mm/s for 1&#8202;s, or 50&#8202;mm/s for 0.2&#8202;s, driven by a stiff servo on a 100&#8202;kg slide, while both pads stay "
            "force-controlled at N along x; then a 0.2&#8202;s hold. The tool rolls between the pads. Rows: "
            "<code>roll.jsonl</code> (<code>scripts/contact_bed_roll.py</code>) and <code>../20261006-simulator_agreement/roll_newton.jsonl</code> "
@@ -371,7 +371,7 @@ def t7(rows):
         return P.pending("Task&#160;7 rows are not written yet.")
     out = ["<p>Protocol: the 1&#8202;mm pad pinch holds the tool at N&#8202;=&#8202;1&#8202;N per pad with gravity on, across the tool axis. Every "
            "contact gets <code>solref</code> (\\(t_c\\), 1) and <code>solimp</code> (\\(d_0\\), \\(d_0\\), 0.001, 0.5, 2). "
-           "Each step runs a 0.4&#8202;s settle with the weight compensated and a 1&#8202;s hold without it; a case holds when the state "
+           "Each step runs a 0.4&#8202;s rest with the weight compensated and a 1&#8202;s hold without it; a case holds when the state "
            "stays finite, the tool centre stays within 5&#8202;mm and both pads keep a contact. Every pair runs with MuJoCo&#8217;s clamp "
            "\\(t_c\\ge2\\Delta t\\) off, which tests the bound, and on, as MuJoCo runs by default.</p>",
            figure(P.svg_stab(rows), "Largest stable step of the 1&#8202;mm pad against the bound (14) of the overview, clamp off. Each bar "
@@ -398,7 +398,7 @@ def t7(rows):
             body.append([f"\\(t_c\\)&#8202;=&#8202;{tc:g}&#8202;ms"] + cells)
     out.append(table(["\\(t_c\\)"] + [f"\\(d_0\\)&#8202;=&#8202;{d:g}" for d in d0s], body))
     out.append("<p class='tnote'>Table: largest step that held / first step that failed, in ms, for the 1&#8202;mm pad; in brackets the "
-               "bound (14) with \\(n\\) the spheres touching one pad at the end of the settle. Tested steps: 0.25, 0.5, 1, 2, 3, 4, 5, 7, 10 "
+               "bound (14) with \\(n\\) the spheres touching one pad at the end of the rest. Tested steps: 0.25, 0.5, 1, 2, 3, 4, 5, 7, 10 "
                "and 15&#8202;ms.</p>")
     return "".join(out)
 
@@ -497,21 +497,11 @@ def lede(T, M):
     except (TypeError, KeyError):
         pass
     if all(k in dev for k in ("mj_pads1", "mjw_pads1", "newton_pads1", "newton_hydro_mc", "mj_point4s", "mj_point3")):
-        parts.append(f"Over the nine metrics of the agreement table its median deviation from Drake is {dev['mj_pads1']:.1f}&#8202;% in MuJoCo, "
-                     f"{dev['mjw_pads1']:.1f}&#8202;% in MuJoCo-Warp and {dev['newton_pads1']:.1f}&#8202;% in Newton; condim&#160;4 gives "
-                     f"{dev['mj_point4s']:.1f}&#8202;% with a single contact point, Newton&#8217;s mass-corrected hydroelastic tip "
-                     f"{dev['newton_hydro_mc']:.1f}&#8202;% and point contact, which transmits no torque, {dev['mj_point3']:.0f}&#8202;%.")
-    st = P.stab_stats(P.stab_rows())
-    if st:
-        parts.append(f"The pad&#8217;s largest stable step follows \\(t_c(d_0+(1-d_0)/n)\\) in {len(st['inside'])} of {st['n']} settings.")
-    c = P.step_cost(T["pull"])
-    bat = P.gpu_batched(P.gpu_curves(P.load(os.path.join(P.GPU, "gpu_scaling.jsonl")), P.load(os.path.join(P.GPU, "newton_scaling.jsonl"))))
-    if "mj_pads1" in c and "drake_hydro" in c and "mjw_pads1" in bat:
-        parts.append(f"A pad step costs {c['mj_pads1']:.0f}&#8202;&#181;s on one CPU core against {num(c['drake_hydro'], ',.0f')}&#8202;&#181;s "
-                     f"for Drake, and {bat['mjw_pads1'][0]:.2f}&#8202;&#181;s per world-step in a MuJoCo-Warp batch on one GPU"
-                     + (f" ({bat['newton_pads1'][0]:.2f} in Newton)" if "newton_pads1" in bat else "") + ".")
-    parts.append("Under a held load at half the slip force every MuJoCo model creeps (slides slowly) 150&#8211;260&#215; faster than Drake, "
-                 "and Newton&#8217;s hydroelastic tip 25&#8211;50&#215;.")
+        parts.append(f"Its median deviation from Drake over nine metrics is {dev['mj_pads1']:.1f}&#8202;% in MuJoCo, "
+                     f"{dev['mjw_pads1']:.1f}&#8202;% in MuJoCo-Warp and {dev['newton_pads1']:.1f}&#8202;% in Newton, against "
+                     f"{dev['mj_point4s']:.1f}&#8202;% for condim&#160;4 and {dev['mj_point3']:.0f}&#8202;% for point contact, which "
+                     "transmits no torque.")
+        parts.append("Under a held load at half the slip force every MuJoCo model creeps 150&#8211;260&#215; faster than Drake.")
     return " ".join(parts)
 
 
@@ -522,7 +512,8 @@ def main():
     gpu_pads = P.load(os.path.join(P.GPU, "gpu_scaling.jsonl"))
     gpu_newton = P.load(os.path.join(P.GPU, "newton_scaling.jsonl"))
     M = P.metrics(T)
-    v = {"STYLE": P.style_block(), "BUILT": time.strftime("%Y-%m-%d %H:%M"), "NEWTON_REV": "009158e6", "OVERVIEW_PATH": OVERVIEW_PATH}
+    v = {"STYLE": P.style_block(), "BUILT": "2026-10-07 16:02",  # build of the record, pinned 2026-10-09
+          "NEWTON_REV": "009158e6", "OVERVIEW_PATH": OVERVIEW_PATH}
     u = open(OVERVIEW_URL_FILE).read().strip() if os.path.exists(OVERVIEW_URL_FILE) else ""
     v["OVERVIEW_LINK"] = f", <a href=\"{u}\">artifact</a>" if u else ""
     v["LEDE"] = lede(T, M)
