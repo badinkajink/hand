@@ -9,6 +9,7 @@ import subprocess
 
 from contact_surface.records import ROOT, write_json
 from distributed_contact_page import frame, section
+import retro_style
 
 DOC = ROOT / "docs/experiments/20261004-codex"
 RESULTS = ROOT / "results/20261004-distributed-contact"
@@ -330,7 +331,7 @@ MUJOCO_GL=egl logs/20261001-hom_contact/venv/bin/python scripts/distributed_cont
     @media(max-width:760px){.video-cards{grid-template-columns:1fr}}
     </style>""")
     output = DOC / "20261004-task_contact_benchmark.html"
-    output.write_text(page)
+    output.write_text(retro_style.apply(page))  # plain page style (owner, 2026-10-09)
     print(output, len(force), len(guided))
 
 

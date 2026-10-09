@@ -14,6 +14,7 @@ import os
 import re
 
 import numpy as np
+import retro_style
 
 ROOT = "docs/experiments/20260916-swing_reorient"
 DATA = f"{ROOT}/swing_reorient.json"
@@ -265,7 +266,7 @@ def main():
     missing = re.findall(r"\{\{[A-Z_0-9]+\}\}", html)
     if missing:
         raise SystemExit(f"unfilled placeholders: {sorted(set(missing))}")
-    open(OUT, "w").write(html)
+    open(OUT, "w").write(retro_style.apply(html))  # plain page style (owner, 2026-10-09)
     print(f"wrote {OUT}  {os.path.getsize(OUT) / 1048576:.1f} MB")
 
 

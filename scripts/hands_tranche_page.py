@@ -18,6 +18,7 @@ import re
 import time
 
 import numpy as np
+import retro_style
 
 HANDS = ["D6", "D3", "D4", "D5", "D7", "D1", "D2", "D8"]
 ARM_LABEL = {"clip": "bounded residual (&#177;1 rad)", "clipsep": "bounded residual + index&#8211;middle clearance &#8805; 30 mm",
@@ -392,7 +393,7 @@ def main():
     left = [ln for ln in tpl.splitlines() if "{{" in ln]
     assert not left, left[:3]
     out = os.path.join(R, "20260919-reorient_policies_across_hands.html")
-    open(out, "w").write(tpl)
+    open(out, "w").write(retro_style.apply(tpl))  # plain page style (owner, 2026-10-09)
     print(f"wrote {out} ({os.path.getsize(out) / 1e6:.1f} MB)")
 
 

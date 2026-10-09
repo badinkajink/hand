@@ -18,6 +18,7 @@ import numpy as np
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "scripts"))
 import hom_contact_patch_page as R  # noqa: E402  (shared table/chart helpers, quasi-static law)
+import retro_style  # noqa: E402
 
 D = os.path.join(ROOT, "docs/experiments/20261001-hom_hand_brake")
 OUT = os.path.join(D, "20261001-hom_hand_brake.html")
@@ -125,7 +126,7 @@ def main():
     left = sorted(set(x.split("}}")[0] for x in t.split("{{")[1:]))
     if left:
         raise SystemExit(f"unfilled placeholders: {left}")
-    open(OUT, "w").write(t)
+    open(OUT, "w").write(retro_style.apply(t))  # plain page style (owner, 2026-10-09)
     print(f"wrote {OUT} ({os.path.getsize(OUT) / 1e6:.2f} MB)")
 
 

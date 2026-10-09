@@ -17,6 +17,7 @@ import json
 import mimetypes
 import os
 import statistics as st
+import retro_style
 
 ROOT = "docs/experiments/20260910-karma_metric"
 MEDIA = f"{ROOT}/media"
@@ -486,7 +487,7 @@ def main() -> None:
     left = [t for t in html.split("{{")[1:] if "}}" in t]
     if left:
         print("WARNING unfilled placeholders:", sorted({t.split("}}")[0] for t in left}))
-    open(OUT, "w").write(html)
+    open(OUT, "w").write(retro_style.apply(html))  # plain page style (owner, 2026-10-09)
     print(f"wrote {OUT}  ({os.path.getsize(OUT)/1e6:.2f} MB)")
 
 

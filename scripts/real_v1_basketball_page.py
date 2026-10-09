@@ -22,6 +22,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import real_v1_basketball_grasp as G  # noqa: E402
+import retro_style  # noqa: E402
 
 ROOT = "docs/experiments/20260916-basketball"
 SWEEP = f"{ROOT}/sweep"
@@ -347,7 +348,7 @@ def main():
     left = [l for l in html.split("{{")[1:]]
     if left:
         print("UNFILLED:", [l.split("}}")[0] for l in left][:10])
-    Path(OUT).write_text(html)
+    Path(OUT).write_text(retro_style.apply(html))  # plain page style (owner, 2026-10-09)
     print(f"wrote {OUT}  ({len(html)/1e6:.2f} MB)")
 
 

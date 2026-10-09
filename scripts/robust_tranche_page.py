@@ -21,6 +21,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from hands_tranche_page import ARM_LABEL as _ARM_LABEL_LONG, cellc, curves, f1, plot_curves, table, uri, uri_jpeg  # noqa: E402
+import retro_style  # noqa: E402
 
 ARM_LABEL = {"clip": "clip (&#177;1 rad)", "clipsep": "clip + separation"}
 
@@ -390,7 +391,7 @@ def main():
     left = [ln for ln in tpl.splitlines() if "{{" in ln]
     assert not left, left[:3]
     out = os.path.join(R, "20260920-robust_reorient_policies.html")
-    open(out, "w").write(tpl)
+    open(out, "w").write(retro_style.apply(tpl))  # plain page style (owner, 2026-10-09)
     print(f"wrote {out} ({os.path.getsize(out) / 1e6:.1f} MB)")
 
 

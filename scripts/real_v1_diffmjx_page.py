@@ -8,6 +8,7 @@ import math
 import re
 from datetime import datetime
 from pathlib import Path
+import retro_style
 
 ROOT = Path(__file__).resolve().parents[1]
 D = ROOT / "docs/experiments/20261007-diffmjx"
@@ -400,7 +401,7 @@ def main():
     for key,value in replacements.items():
         page=page.replace('{{'+key+'}}',value)
     assert not re.search(r'{{[A-Z_]+}}',page)
-    OUT.write_text(page)
+    OUT.write_text(retro_style.apply(page))  # plain page style (owner, 2026-10-09)
     print(OUT)
 
 

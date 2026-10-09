@@ -6,6 +6,7 @@
 """
 from __future__ import annotations
 import base64, json, mimetypes, os
+import retro_style
 
 ROOT = "docs/experiments/20260916-calibrated_plant_chain"
 DATA = f"{ROOT}/calibrated_plant.json"
@@ -188,7 +189,7 @@ def main():
         sub["MEDIA_" + name.replace(".", "_").upper()] = uri(name)
     for k, v in sub.items():
         tpl = tpl.replace("{{" + k + "}}", v)
-    open(OUT, "w").write(tpl)
+    open(OUT, "w").write(retro_style.apply(tpl))  # plain page style (owner, 2026-10-09)
     left = sorted({t.split("}}")[0] for t in tpl.split("{{")[1:] if "}}" in t})
     print(f"-> {OUT}  {os.path.getsize(OUT) / 1e6:.2f} MB" + (f"  UNSUBSTITUTED {left}" if left else ""))
 

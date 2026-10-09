@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import math
 from pathlib import Path
+import retro_style
 
 ROOT = Path(__file__).resolve().parent.parent
 DIR = ROOT / "docs/experiments/20260908-compute_budget"
@@ -393,7 +394,7 @@ def main() -> None:
     missing = set(__import__("re").findall(r"\{\{([A-Z0-9_]+)\}\}", html))
     if missing:
         raise SystemExit(f"unsubstituted placeholders: {sorted(missing)}")
-    OUT.write_text(html)
+    OUT.write_text(retro_style.apply(html))  # plain page style (owner, 2026-10-09)
     print(f"{OUT}  ({len(html) / 1024:.0f} KB)")
 
 

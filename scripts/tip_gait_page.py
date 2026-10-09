@@ -12,6 +12,7 @@ import mimetypes
 import os
 
 import numpy as np
+import retro_style
 
 ROOT = "docs/experiments/20260916-tip_gait"
 DATA = f"{ROOT}/tip_gait_data.json"
@@ -140,7 +141,7 @@ def main():
         tpl = tpl.replace("{{" + k + "}}", v)
     left = [ln for ln in tpl.splitlines() if "{{" in ln]
     assert not left, left[:3]
-    open(OUT, "w").write(tpl)
+    open(OUT, "w").write(retro_style.apply(tpl))  # plain page style (owner, 2026-10-09)
     print(f"wrote {OUT} ({os.path.getsize(OUT) / 1e6:.1f} MB)")
 
 

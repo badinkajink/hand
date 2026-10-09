@@ -23,6 +23,7 @@ import subprocess
 import time
 
 import numpy as np
+import retro_style
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 POP = os.path.join(ROOT, "docs/experiments/20260831-real_v1-sobol8192")
@@ -283,7 +284,7 @@ def main():
     if left:
         raise SystemExit(f"unfilled placeholders: {left}")
     os.makedirs(os.path.dirname(a.out), exist_ok=True)
-    open(a.out, "w").write(page)
+    open(a.out, "w").write(retro_style.apply(page))  # plain page style (owner, 2026-10-09)
     print(f"wrote {a.out} ({os.path.getsize(a.out)/1024:.0f} kB)")
 
 

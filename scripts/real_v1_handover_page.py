@@ -21,6 +21,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from real_v1_chain_page import A, B, REF, b64, bars, jpeg, lines, okcell  # noqa: E402
+import retro_style  # noqa: E402
 
 MODES = {
     "full": ("release", "open the hand, fly the palm to the gait's pose, close on the ring"),
@@ -432,7 +433,7 @@ scorecard entry and no design metric, on either topology that has shown it.</p>
     html = tpl.replace("{{BODY}}", body).replace("{{STATS}}", stats)
     for k, v in K.items():
         html = html.replace("{{" + k + "}}", str(v))
-    out.write_text(html, encoding="utf-8")
+    out.write_text(retro_style.apply(html), encoding="utf-8")  # plain page style (owner, 2026-10-09)
     print(f"-> {out}  ({len(html) / 1e6:.2f} MB)")
     return 0
 

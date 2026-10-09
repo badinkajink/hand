@@ -23,6 +23,7 @@ sys.path.insert(0, os.path.join(ROOT, "scripts"))
 import contact_overview_page as P  # noqa: E402
 import fingertip_geometry as FG  # noqa: E402
 import reorient_backends_summary as RS  # noqa: E402
+import retro_style  # noqa: E402
 
 D = os.path.join(ROOT, "docs/experiments/20261006-fingertip_backends")
 BED = os.path.join(ROOT, "docs/experiments/20261005-contact_bed")
@@ -971,7 +972,7 @@ def main():
     left = sorted(set(x.split("}}")[0] for x in t.split("{{")[1:]))
     if left:
         raise SystemExit(f"unfilled placeholders: {left}")
-    open(OUT, "w").write(t)
+    open(OUT, "w").write(retro_style.apply(t))  # plain page style (owner, 2026-10-09)
     print(f"wrote {OUT} ({os.path.getsize(OUT) / 1e6:.2f} MB)")
 
 

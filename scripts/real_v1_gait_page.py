@@ -15,6 +15,7 @@ import json
 from pathlib import Path
 
 import numpy as np
+import retro_style
 
 # Categorical hues, validated 2026-09-02 against the six checks (OKLab x100): worst adjacent-pair
 # CVD separation 12.0 against a target of 8, worst normal-vision separation 16.9 against a floor
@@ -303,7 +304,7 @@ def main() -> int:
     html = PAGE
     for k, v in subs.items():
         html = html.replace("{{" + k + "}}", v)
-    out.write_text(html)
+    out.write_text(retro_style.apply(html))  # plain page style (owner, 2026-10-09)
     print(f"wrote {out}  ({out.stat().st_size / 1e6:.2f} MB)")
     return 0
 

@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 import re
 import xml.etree.ElementTree as ET
+import retro_style
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "docs/experiments/20261001-drake-port"
@@ -85,7 +86,7 @@ def build():
     if remaining:
         raise ValueError(f"Unresolved placeholders: {remaining}")
     out = DATA / "20261001-drake_sr2_planning.html"
-    out.write_text(template)
+    out.write_text(retro_style.apply(template))  # plain page style (owner, 2026-10-09)
     print(out)
 
 

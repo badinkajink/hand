@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import base64, json, statistics as st
 from pathlib import Path
+import retro_style
 
 ROOT = Path(__file__).resolve().parents[1]
 E = ROOT / "docs/experiments"
@@ -218,7 +219,7 @@ def main() -> int:
         html = html.replace("{{" + k + "}}", v)
     assert "{{" not in html, [s[:36] for s in html.split("{{")[1:]]
     OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(html)
+    OUT.write_text(retro_style.apply(html))  # plain page style (owner, 2026-10-09)
     print(f"-> {OUT}  ({OUT.stat().st_size/1e6:.2f} MB)")
     return 0
 

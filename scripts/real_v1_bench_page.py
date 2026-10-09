@@ -19,6 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from real_v1_chain_page import A, B, REF, b64, bars, jpeg, lines, okcell  # noqa: E402
+import retro_style  # noqa: E402
 
 
 def sel(rows, **kw):
@@ -915,7 +916,7 @@ attempting a persistent-grasp gait.</li>
     tpl = (ROOT / "scripts/real_v1_bench_page.template.html").read_text()
     html = tpl.replace("{{NCELLS}}", str(K["NCELLS"])).replace(
         "{{STATS}}", stats).replace("{{BODY}}", body)
-    out.write_text(html)
+    out.write_text(retro_style.apply(html))  # plain page style (owner, 2026-10-09)
     print(f"-> {out}  {len(html) / 1e6:.2f} MB")
     return 0
 

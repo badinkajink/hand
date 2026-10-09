@@ -26,6 +26,7 @@ sys.path.insert(0, os.path.join(ROOT, "scripts"))
 import hom_chain_figures as G  # noqa: E402
 import hom_contact_patch_page as R  # noqa: E402
 import texsvg  # noqa: E402
+import retro_style  # noqa: E402
 
 D = os.path.join(ROOT, "docs/experiments/20261002-hom_chain")
 M = os.path.join(D, "media")
@@ -823,7 +824,7 @@ def main():
         raise SystemExit(f"unfilled placeholders: {left}")
     t, n_tex = render_tex(t)
     print("formulas", n_tex)
-    open(OUT, "w").write(t)
+    open(OUT, "w").write(retro_style.apply(t))  # plain page style (owner, 2026-10-09)
     print(f"wrote {OUT} ({os.path.getsize(OUT) / 1e6:.2f} MB)")
     for k in ("HI_AREA", "HI_ARM", "HI_RIG", "HI_DEV_MAX", "LO_N2", "LO_DEV2", "LO_DEV_FINE", "CTRL_MJ", "CTRL_DK", "REP_SPREAD",
               "X_S1_P4S", "X_DHY_S1", "X_DHY_S05", "NC_S1", "NC_S05", "NC_DHY", "DEPTH_RANGE", "PICK_FAIL"):

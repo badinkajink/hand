@@ -21,6 +21,7 @@ import numpy as np
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "scripts"))
 import hom_contact_rig as H  # noqa: E402  (numpy-only at import; no simulator needed)
+import retro_style  # noqa: E402
 
 D = os.path.join(ROOT, "docs/experiments/20261001-hom_contact_patch")
 OUT = os.path.join(D, "20261001-hom_pinch_contact_models.html")
@@ -462,7 +463,7 @@ def main():
     if left:
         raise SystemExit(f"unfilled placeholders: {left}")
     with open(OUT, "w") as fh:
-        fh.write(t)
+        fh.write(retro_style.apply(t))  # plain page style (owner, 2026-10-09)
     print(f"wrote {OUT} ({os.path.getsize(OUT) / 1e6:.2f} MB)")
 
 

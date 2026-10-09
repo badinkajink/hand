@@ -13,6 +13,7 @@ import base64
 import json
 import statistics as stx
 from pathlib import Path
+import retro_style
 
 ROOT = Path(__file__).resolve().parents[1]
 DIR = ROOT / "docs/experiments/20260904-real_v1_held"
@@ -193,7 +194,7 @@ def main() -> int:
         "{{FILM_DROP}}": b64(FILMS / "20260905-sv1_w6689_b050_sq2_s0_seams.png", "image/png"),
     }.items():
         html = html.replace(k, v)
-    OUT.write_text(html)
+    OUT.write_text(retro_style.apply(html))  # plain page style (owner, 2026-10-09)
     print(f"-> {OUT}  ({OUT.stat().st_size / 1e6:.1f} MB)")
     return 0
 

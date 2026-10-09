@@ -18,6 +18,7 @@ import statistics as st
 import subprocess
 import tempfile
 from pathlib import Path
+import retro_style
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -371,7 +372,7 @@ def main() -> int:
     html = tpl.replace("{{NCELLS}}", str(ncells)).replace("{{STATS}}", stats)
     html = html.replace("{{BODY}}", body)
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(html, encoding="utf-8")
+    out.write_text(retro_style.apply(html), encoding="utf-8")  # plain page style (owner, 2026-10-09)
     print(f"-> {out}  ({out.stat().st_size / 1e6:.2f} MB)")
     return 0
 

@@ -9,6 +9,7 @@ URIs, so the output file is the whole artifact.
 """
 from __future__ import annotations
 import base64, json, mimetypes, os
+import retro_style
 
 ROOT = "docs/experiments/20260908-reorientation_journey"
 DATA = f"{ROOT}/journey.json"
@@ -388,7 +389,7 @@ def main():
         sub["MEDIA_" + name.replace(".", "_").upper()] = uri(name)
     for k, v in sub.items():
         tpl = tpl.replace("{{" + k + "}}", v)
-    open(OUT, "w").write(tpl)
+    open(OUT, "w").write(retro_style.apply(tpl))  # plain page style (owner, 2026-10-09)
     print(f"-> {OUT}  {os.path.getsize(OUT) / 1e6:.2f} MB")
     left = [t for t in tpl.split("{{")[1:] if "}}" in t]
     if left:

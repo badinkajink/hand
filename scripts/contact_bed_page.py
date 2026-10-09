@@ -20,6 +20,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "scripts"))
 import contact_overview_page as P  # noqa: E402
 import texsvg  # noqa: E402
+import retro_style  # noqa: E402
 
 BED = P.BED
 OUT = os.path.join(BED, "20261005-contact_model_bed.html")
@@ -548,7 +549,7 @@ def main():
     if left:
         raise SystemExit(f"unfilled placeholders: {left}")
     t, n = render_tex(t)
-    open(OUT, "w").write(t)
+    open(OUT, "w").write(retro_style.apply(t))  # plain page style (owner, 2026-10-09)
     print(f"formulas {n}; wrote {OUT} ({os.path.getsize(OUT) / 1e6:.2f} MB)")
 
 

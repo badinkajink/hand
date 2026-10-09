@@ -21,6 +21,7 @@ import time
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "scripts"))
 from hands_tranche_page import table  # noqa: E402
+import retro_style  # noqa: E402
 
 D = os.path.join(ROOT, "docs/experiments/20260923-chain_handover_gait")
 OUT = os.path.join(D, "20260923-chain_handover_gait.html")
@@ -198,7 +199,7 @@ def main():
     left = [w for w in html.split("{{")[1:]]
     if left:
         raise SystemExit(f"unfilled placeholders: {[w.split('}}')[0] for w in left]}")
-    open(OUT, "w").write(html)
+    open(OUT, "w").write(retro_style.apply(html))  # plain page style (owner, 2026-10-09)
     print(f"wrote {OUT} ({os.path.getsize(OUT) / 1e6:.1f} MB)")
 
 

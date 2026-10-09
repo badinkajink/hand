@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import base64, json, math, statistics as st
 from pathlib import Path
+import retro_style
 
 ROOT = Path(__file__).resolve().parents[1]
 BAND = ROOT / "docs/experiments/20260906-rv05_band"
@@ -164,7 +165,7 @@ def main() -> int:
         html = html.replace(k, v)
     assert "{{" not in html, "unfilled placeholder: " + html[html.index("{{"):][:40]
     OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(html)
+    OUT.write_text(retro_style.apply(html))  # plain page style (owner, 2026-10-09)
     print(f"{OUT}  ({OUT.stat().st_size/1e6:.2f} MB)")
     print(f"retention vs mean alignment, spearman "
           f"{spearman([per[d]['hold'] for d in order], [per[d]['cos'] for d in order]):+.2f}")

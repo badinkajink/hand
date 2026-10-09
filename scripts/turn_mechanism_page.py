@@ -12,6 +12,7 @@ import mimetypes
 import os
 
 import numpy as np
+import retro_style
 
 ROOT = "docs/experiments/20260916-turn_mechanism"
 DATA = f"{ROOT}/turn_mechanism.json"
@@ -374,7 +375,7 @@ def main():
     missing = re.findall(r"\{\{[A-Z_]+\}\}", html)
     if missing:
         raise SystemExit(f"unfilled placeholders: {sorted(set(missing))}")
-    open(OUT, "w").write(html)
+    open(OUT, "w").write(retro_style.apply(html))  # plain page style (owner, 2026-10-09)
     print(f"wrote {OUT}  {os.path.getsize(OUT) / 1048576:.1f} MB")
 
 

@@ -25,6 +25,7 @@ import numpy as np
 from contact_surface.records import ROOT, write_json
 from contact_surface.scaling import physical_coefficients
 from distributed_contact import DOC, summarize
+import retro_style
 
 COLORS = {2.0: "#BE7514", 1.0: "#4A7FC4", 0.5: "#25875A"}
 SOURCE = DOC / "SR2_distributed_fingertip_contact_experiment_spec.docx"
@@ -133,7 +134,7 @@ def convert_spec():
         content,
         "Source document, preserved separately from measured findings",
     )
-    (DOC / "20261004-distributed_contact_spec.html").write_text(page)
+    (DOC / "20261004-distributed_contact_spec.html").write_text(retro_style.apply(page))  # plain page style (owner, 2026-10-09)
     # Validate every paragraph/cell text survives conversion, independent of formatting.
     from html.parser import HTMLParser
 
@@ -310,12 +311,12 @@ def research_asides():
         "priority",
     )
     (DOC / "20261004-contact_research_asides.html").write_text(
-        frame(
+        retro_style.apply(frame(
             "Contact research asides: priors, coupling and reduced skin",
             "DeliGrasp, the Delassus operator, printed TPU mechanics and a task-level timestep benchmark.",
             body,
             "Backlog · hypotheses, not experimental conclusions · user-provided discussion",
-        )
+        ))
     )
 
 
@@ -1942,7 +1943,7 @@ PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 .venv/bin/python -m pytest tests/test_distribut
         f"{len(all_rows)} declared runs · MuJoCo 3.6.0 + isolated 3.14.0 / Drake 1.57.0 · static and dynamic audit · "
         '<a href="20261004-distributed_contact_spec.html">Read the converted specification</a>',
     )
-    (DOC / "20261004-distributed_contact.html").write_text(page)
+    (DOC / "20261004-distributed_contact.html").write_text(retro_style.apply(page))  # plain page style (owner, 2026-10-09)
     print(
         f"Report: {len(all_rows)} runs, {len(failed)} missing/failed, {len(unsettled)} unsettled load runs"
     )
