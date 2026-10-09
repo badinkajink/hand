@@ -1,8 +1,8 @@
 # SR² Hand
 
 SR² Hand is a self-reconfigurable three-finger hand for sim-to-real verification of optimized
-morphologies. We search morphology and control together in simulation, build the selected hands on
-the bench, and measure whether the simulated ordering survives.
+morphologies. We search morphology and control together in simulation, configure the selected hands on
+hardware, and measure simulation fidelity.
 
 The platform has 15 DoF. Six are morphology: the planar finger-base coordinates
 m = [x_T, y_T, x_I, y_I, x_M, y_M], driven by stepper gantries. The thumb base spans 110 × 60 mm,
