@@ -100,7 +100,7 @@ footer a{color:var(--s2)}
 </header>
 
 <section><div class="col">
-<h2>The two arms, the observation, and why the residual is bounded</h2>
+<h2>The two arms, the observation and the residual clip</h2>
 <p>Every policy here is a <strong>sighted actor</strong>: the 66-dim observation carries the tool pose in the
 palm frame (<code>object_pos</code>, <code>object_pose_actual</code>, <code>target_axis_misalign</code>), which
 on the bench the AprilTag tracker has to supply to the controller at 50 Hz. That dependence is real, not
@@ -111,7 +111,7 @@ servo position and velocity, the last action and the reference clock) warm-start
 checkpoint did not recover the hold in its first 22 iterations (episodes ending at step 74 with the tool on
 the floor) and was stopped; the proprioceptive actor, with a motor-load term and an observation history in the
 RMA style, is a later item.</p>
-<p>The unbounded D6 finetune of 2026-09-17 commands joint targets up to 384&#176; beyond the joint range and,
+<p>The unclipped D6 finetune of 2026-09-17 commands joint targets up to 384&#176; beyond the joint range and,
 after clamping to the range, runs up to 100&#176; ahead of the achieved joint: on the kp 0.5 plant that is a request
 for full force, on a real servo it is a stall into the overload cliff. Every job here therefore trains with the
 policy&#8217;s raw actions clipped to &#177;2, which with the 0.5 rad scale bounds the residual to &#177;1 rad
@@ -120,7 +120,7 @@ run&#8217;s config so evaluation applies the same bound). The second arm adds a 
 link-chain clearance below 30 mm (surface to surface, three capsules of 10.55 mm radius per finger; weight
 &#8722;10, quadratic in the shortfall), because the built index and middle carry servo housings and cabling the
 capsules do not model and policies that run those two fingers close together have failed on the bench. The
-unbounded D6 policies are kept as the reference; the index&#8211;middle clearance of the D6 grip finetune is
+unclipped D6 policies are kept as the reference; the index&#8211;middle clearance of the D6 grip finetune is
 18 mm at its minimum and 25 mm at the end.</p>
 <p>Queue: <code>scripts/hands_tranche_queue.py</code>, one job at a time through <code>resguard.sh run</code>,
 each job waiting for the launch gate (MemAvailable &#8805; 8 GB, swap &#8804; 8 GB, load, 2 GB of VRAM) before it
@@ -237,7 +237,7 @@ references under the same configuration, plate at 25 mm, one nominal rollout and
 </div></section>
 
 <section><div class="col">
-<h2>What this does not settle</h2>
+<h2>Future work</h2>
 <p>The continuation of every checkpoint on the matched plant with spawn jitter is the 2026-09-20 page,
 <a href="../20260920-robust_tranche/20260920-robust_reorient_policies.html">Reorientation policies continued on the
 plant the chain and the bench use</a>; the items below are what it does not cover.</p>
