@@ -748,7 +748,9 @@ def cmd_tb(args):
         for line in open(out):
             r = json.loads(line)
             rows.setdefault(r["tag"], []).append(r)
-    for tag, arm, seed, steps in (finished() if args.all else [j for j in jobs() if j[0] in args.tags]):
+    stopped = [j for j in jobs(include_stopped=True) if j not in jobs() and (RL / j[0] / "tensorboard").exists()]
+    for tag, arm, seed, steps in ((finished() + stopped) if args.all else
+                                  [j for j in jobs(include_stopped=True) if j[0] in args.tags]):
         ea = EventAccumulator(str(RL / tag / "tensorboard"), size_guidance={"scalars": 0})
         ea.Reload()
         by_it = {}
@@ -791,7 +793,12 @@ def cmd_costs(args):
     qlog = (logs / "train_queue.log").read_text() if (logs / "train_queue.log").exists() else ""
     out = OUT8 / "run_costs.jsonl"
     rows = []
-    for tag, arm, seed, steps in jobs():
+    stops = {}
+    if (OUT8 / "stops.jsonl").exists():
+        for line in open(OUT8 / "stops.jsonl"):
+            r = json.loads(line)
+            stops[r["tag"]] = r
+    for tag, arm, seed, steps in jobs(include_stopped=True):
         lg = logs / f"train_{tag}.log"
         if not lg.exists():
             continue
@@ -801,6 +808,7 @@ def cmd_costs(args):
         rss = re.findall(r"Maximum resident set size \(kbytes\): (\d+)", txt)
         fails = re.findall(rf"FAILED {re.escape(tag)} exit (\S+) \(attempt (\d+)\): (.*)", qlog)
         rows.append(dict(tag=tag, arm=arm, seed=seed, iterations=len(its), finished=final_ckpt(tag, steps).exists(),
+                         stopped_at=stops[tag]["iteration"] if tag in stops else None,
                          s_per_it_median=float(np.median(its)) if its else None,
                          s_per_it_mean=float(np.mean(its)) if its else None,
                          wall_h=(int(el[-1][0]) + int(el[-1][1]) / 60 + int(el[-1][2]) / 3600) if el else None,
