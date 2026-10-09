@@ -141,8 +141,10 @@ class Data:
         c = self.cost.get(tag, {})
         return (w[it] - t0 - self.paused(t0, w[it]) + (c.get("s_per_it_median") or 0.0)) / 3600.0
 
-    def replays(self, arm, engine):
-        return [r for r in self.rep if r["engine"] == engine and f"_{arm}_40M_" in r["dir"]]
+    def replays(self, arm, engine, stopped=False):
+        """Replay rows of an arm's finished runs (or, with `stopped`, of its runs stopped early)."""
+        return [r for r in self.rep if r["engine"] == engine and f"_{arm}_40M_" in r["dir"]
+                and ((os.path.basename(r["dir"]) in self.stops) == stopped)]
 
 
 def tag_arm(tag):
@@ -1029,6 +1031,15 @@ def transfer_text(X: Data):
             if e:
                 parts.append(f"{SHORT[arm]}: {', '.join(e)}")
         out.append("Open-loop replays held, per contact model the policy trained on: " + "; ".join(parts) + ".")
+        for tag in sorted(X.stops):
+            arm = tag_arm(tag)
+            e = [f"{'CPU MuJoCo' if g == 'mujoco' else ENG_LBL[g].split()[0]} "
+                 f"{sum(1 for r in X.replays(arm, g, True) if r.get('held_end') and r['dir'].endswith(tag))}/"
+                 f"{sum(1 for r in X.replays(arm, g, True) if r['dir'].endswith(tag))}" for g in ENGINES]
+            if any(not x.endswith("/0") for x in e):
+                out.append(f"The last checkpoint of {SHORT[arm]} s{tag[-1]}, stopped at "
+                           f"{(X.stops[tag]['iteration'] + 1) * STEPS_PER_IT / 1e6:.0f}&#8202;M steps, held "
+                           f"{', '.join(e)}.")
     return f"<p>{' '.join(out)}</p>" if out else ""
 
 
