@@ -686,9 +686,9 @@ def _watch_sheets(X: Data):
     return "".join(out)
 
 
-PERT = [("friction", "sliding friction, x nominal", (0.7, 1.0, 1.3)), ("mass", "tool mass, x nominal", (0.8, 1.0, 1.2)),
+PERT = [("friction", "sliding friction (&#215; nominal)", (0.7, 1.0, 1.3)), ("mass", "tool mass (&#215; nominal)", (0.8, 1.0, 1.2)),
         ("kp", "finger servo kp (N m/rad)", (2.0, 4.0, 6.0, 10.0)), ("dt", "physics step (ms)", (1.0, 2.0)),
-        ("noise", "grasp-pose noise (mm, deg)", (0.0, 1.0))]
+        ("noise", "pose noise (mm, &#176;)", (0.0, 1.0))]
 
 
 def _rb_value(X, arm, kind, v):
@@ -1290,7 +1290,46 @@ def robust_section(X: Data):
            "servos&#8217; position gain over the 2&#8211;10&#8202;N&#8202;m/rad range of the 2026-10-06 bench readbacks, "
            "a 1&#8202;ms physics step (the training step is 2&#8202;ms; the policy stays at 50&#8202;Hz), and the tool "
            "spawned with uniform noise of &#177;2&#8202;mm and &#177;5&#176;.")
-    return figure(svg_robust(X), cap, legend())
+    return figure(svg_robust(X), cap, legend()) + robust_text(X)
+
+
+def robust_text(X: Data):
+    """Sentences on the perturbation rows: the servo gain, the other perturbations, from robust.jsonl."""
+    if len(X.rb) < len(X.fin) * 10:
+        return ""
+    rb = {(r["tag"], r["perturb"]): r for r in X.rb}
+    tags = sorted({r["tag"] for r in X.fin}, key=lambda t: (ARMS.index(tag_arm(t)), t))
+    pt = [t for t in tags if tag_arm(t) in ("box", "tpu27mesh")]
+    cp = [t for t in tags if tag_arm(t) in ("tpu27pads1", "tpu27skin")]
+    nm = lambda t: f"{SHORT[tag_arm(t)]} seed {t[-1]}"  # noqa: E731
+    held = lambda t, p: f"{rb[(t, p)]['n_held']} of {rb[(t, p)]['n']}"  # noqa: E731
+
+    def pool(ts, p):
+        return sum(rb[(t, p)]["n_held"] for t in ts), sum(rb[(t, p)]["n"] for t in ts)
+    k10 = [t for t in tags if rb[(t, "kp=10")]["n_held"] > 0.25 * rb[(t, "kp=10")]["n"]]
+    lost = [rb[(t, "kp=10")]["lost_step_median"] for t in tags if rb[(t, "kp=10")].get("lost_step_median") is not None]
+    p6, c6 = pool(pt, "kp=6"), pool(cp, "kp=6")
+    exc = (" in all but " + ", ".join(f"{nm(t)} ({held(t, 'kp=10')} held)" for t in k10)) if k10 else ""
+    out = [f"The servo gain is the perturbation that separates the policies. At \\(k_p\\) = 10&#8202;N&#8202;m/rad, "
+           f"2.5&#215; the training plant&#8217;s, the policies lose the tool after the onset (median loss at policy step "
+           f"{min(lost):.0f}&#8211;{max(lost):.0f}){exc}; at 6&#8202;N&#8202;m/rad the point-contact policies held "
+           f"{p6[0]} of {p6[1]} rollouts and the pad and skin policies {c6[0]} of {c6[1]}."]
+    other = ("friction=0.7", "friction=1.3", "mass=0.8", "mass=1.2", "dt=0.001", "noise=2,5")
+    low = [(t, p) for t in tags if tag_arm(t) != "box" for p in other if rb[(t, p)]["n_held"] < 0.95 * rb[(t, p)]["n"]]
+    lab = lambda p: {"dt=0.001": "the 1&#8202;ms step", "noise=2,5": "the pose noise"}.get(p, p.replace("=", " &#215;"))  # noqa: E731
+    bx = [rb[(t, p)]["n_held"] for t in pt if tag_arm(t) == "box" for p in ("nominal",) + other]
+    out.append("Friction &#177;30&#8202;%, tool mass &#177;20&#8202;%, the 1&#8202;ms step and the grasp-pose noise "
+               "keep every TPU-block policy at 95&#8202;% held or more"
+               + (" except " + " and ".join(f"{nm(t)} at {lab(p)} ({held(t, p)})" for t, p in low) if low else "")
+               + (f"; the box-tip policy holds {min(bx)}&#8211;{max(bx)} of 128 under these and at the nominal." if bx
+                  else "."))
+    turn = [t for t in tags if rb[(t, "kp=2")].get("held_cos_mean") is not None
+            and rb[(t, "kp=2")]["held_cos_mean"] < rb[(t, "nominal")]["held_cos_mean"] - 0.1]
+    if turn:
+        out.append("At 2&#8202;N&#8202;m/rad "
+                   + " and ".join(f"{nm(t)} turns the tool to {rb[(t, 'kp=2')]['held_cos_mean']:.2f} instead of "
+                                  f"{rb[(t, 'nominal')]['held_cos_mean']:.2f}" for t in turn) + ".")
+    return "<p>" + " ".join(out) + "</p>"
 
 
 def summary(X: Data):
