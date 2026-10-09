@@ -633,3 +633,53 @@ if __name__ == "__main__":
     else:
         for name in a.recipes:
             run_recipe(name, RECIPES[name], a.grid, out=a.out, data_dir=a.data)
+
+
+# ------------------------------------------------------------------------------------------ resolved print voxels
+
+def resolved_voxels(recipe, h=0.1, shift=(0.0, 0.0), out=None):
+    """Uniform voxels (side h) of the printed insert: walls and skins solid, the core filled with the slicer's gyroid
+    beads layer by layer in the print frame (build axis recipe['build']), the gyroid phase shifted in-plane by `shift`
+    (mm, along the two in-plane tip axes in increasing order). Returns (solid bool array, origin)."""
+    import tpu_tip_fem_cells as CE
+    build_dir = recipe.get("build", "x")
+    cls, o, ha = classify(build_dir, cache=AUX_CACHE / f"classes_build{build_dir}_h0.05.npz")
+    step = int(round(h / ha))
+    c = cls[step // 2::step, step // 2::step, step // 2::step]
+    origin = np.asarray(o, float).copy()                     # coarse voxel k covers auxiliary voxels step k .. step k + step - 1
+    solid = (c == 1) | (c == 2)
+    core = c == 3
+    rho = recipe.get("rho")
+    if recipe.get("core") == "solid" or rho is None or rho >= 0.999:
+        return solid | core, origin
+    ax = {"x": 0, "y": 1, "z": 2}[build_dir]
+    inplane = [a for a in range(3) if a != ax]
+    L, _ = CE.slicer_period(rho)
+    n = int(round(L / h))
+    per = int(round(CE.LAYER / h))
+    shp = c.shape
+    # coordinates along the build axis of each voxel layer, measured from the part's first layer
+    nb = shp[ax]
+    beads = np.zeros(shp, bool)
+    cache = {}
+    for kb in range(nb):
+        layer = kb // per
+        zc = (layer + 0.5) * CE.LAYER
+        key = round(zc % L, 6)
+        if key not in cache:
+            cache[key] = CE.slicer_layer_mask(L, zc, h)          # periodic n x n
+        m = cache[key]
+        # tile to the in-plane extent with the phase shift
+        s0 = int(round(shift[0] / h)) % n
+        s1 = int(round(shift[1] / h)) % n
+        mm = np.roll(np.roll(m, s0, 0), s1, 1)
+        reps = (shp[inplane[0]] // n + 2, shp[inplane[1]] // n + 2)
+        tiled = np.tile(mm, reps)[:shp[inplane[0]], :shp[inplane[1]]]
+        sl = [slice(None)] * 3
+        sl[ax] = kb
+        beads[tuple(sl)] = tiled
+    occ = solid | (core & beads)
+    occ = C.largest_component(occ)
+    if out:
+        np.savez_compressed(out, occ=occ, origin=origin, h=h, recipe=json.dumps(recipe), shift=np.array(shift))
+    return occ, origin
