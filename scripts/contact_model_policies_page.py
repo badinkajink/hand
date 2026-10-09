@@ -272,9 +272,10 @@ def svg_final(X: Data):
     x0, y0, w, h = 70, 30, 880, 230
     fy = lambda v: y0 + h - (v + 1.0) / 2.0 * h  # noqa: E731
     for v in (-1.0, -0.5, 0.0, 0.5, 0.9, 1.0):
+        lab = (f'<text x="{x0 + w + 4}" y="{fy(v) + 4:.1f}" style="fill:var(--ink3)">0.9</text>' if v == 0.9 else
+               f'<text x="{x0 - 8}" y="{fy(v) + 4:.1f}" text-anchor="end" style="fill:var(--ink3)">{v:+.1f}</text>')
         out.append(f'<line x1="{x0}" x2="{x0 + w}" y1="{fy(v):.1f}" y2="{fy(v):.1f}" style="stroke:var(--rule2)'
-                   f'{";stroke-dasharray:2 4" if v == 0.9 else ""}"/><text x="{x0 - 8}" y="{fy(v) + 4:.1f}" '
-                   f'text-anchor="end" style="fill:var(--ink3)">{v:+.1f}</text>')
+                   f'{";stroke-dasharray:2 4" if v == 0.9 else ""}"/>{lab}')
     out.append(f'<text x="{x0}" y="{y0 - 12}" style="fill:var(--ink2)">final cosine of the tool axis with vertical (+1 tip down)</text>')
     gw = w / len(ARMS)
     rng = np.random.default_rng(7)
@@ -321,7 +322,7 @@ def svg_transfer(X: Data):
     cols = [("mjw", s) for s in SCENES] + [("rep", e) for e in ENGINES]
     W = 990
     cw, ch, x0, y0 = 96, 58, 190, 70
-    H = y0 + ch * len(ARMS) + 70
+    H = y0 + ch * len(ARMS) + 20
     out = P._svg_open(W, H, "Held fraction of every training arm's final policies evaluated under each contact model in "
                             "MuJoCo-Warp and replayed open loop in CPU MuJoCo, Drake and Newton")
     for j, (kind, s) in enumerate(cols):
@@ -357,9 +358,6 @@ def svg_transfer(X: Data):
                            f'font-size:13px;font-weight:500">{100 * v:.0f}%</text>')
                 out.append(f'<text x="{cx + cw / 2:.1f}" y="{cy + ch / 2 + 14:.1f}" text-anchor="middle" style="fill:{ink};'
                            f'font-size:11px">{("cos %.2f" % np.mean(hc)) if hc else "&#8211;"}</text>')
-    out.append(f'<text x="{x0}" y="{H - 24}" style="fill:var(--ink3);font-size:11.5px">Cell: rollouts held at the end '
-               f'(load test), pooled over seeds, and the mean final cosine of the held ones. Outlined: the contact model '
-               f'the policy trained on.</text>')
     out.append("</svg>")
     return "".join(out)
 
@@ -601,7 +599,9 @@ def final_section(X: Data):
 
 
 def transfer_section(X: Data):
-    cap = ("Transfer of the final policies. Left: closed-loop evaluation in MuJoCo-Warp under every contact model "
+    cap = ("Transfer of the final policies. Cell: rollouts held at the end (load test), pooled over seeds, and the mean "
+           "final cosine of the held ones; outlined, the contact model the policy trained on. "
+           "Left: closed-loop evaluation in MuJoCo-Warp under every contact model "
            "(the condim-4 TPU mesh was not trained). Right: open-loop replay of the recorded finger targets from the onset "
            "of the turn in CPU MuJoCo (each arm&#8217;s own tips), Drake and Newton (the TPU block as a hydroelastic tip; "
            "Newton with \\(k_h\\) divided by the tip-tool effective mass and its friction rows at the pads&#8217; "
