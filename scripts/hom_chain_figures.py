@@ -319,21 +319,21 @@ def svg_bench(rows):
     """Figure 3: physics time per simulated second (dot = median over repeats, bar = range), log axis, one row per
     model, coloured by family; the controller's share is the open tick."""
     rows = sorted(rows, key=lambda r: r["phys_med"])
-    W, xl, xr = 1040, 300.0, 960.0
+    W, xl, xr = 1040, 430.0, 960.0
     lo, hi = 10.0, 5000.0
     X = lambda v: xl + (math.log10(v) - math.log10(lo)) / (math.log10(hi) - math.log10(lo)) * (xr - xl)  # noqa: E731
-    rh, yt = 30.0, 58.0
-    H_ = int(yt + rh * len(rows) + 54)
+    rh, yt = 32.0, 84.0
+    H_ = int(yt + rh * len(rows) + 56)
     out = [f'<svg viewBox="0 0 {W} {H_}" role="img" aria-label="Physics time per simulated second for each contact '
            f'model on one core, log scale; the sphere pads sit between MuJoCo point contact and Drake hydroelastic.">']
     # legend
-    lx = xl
+    lx = 20
     for fam, name in (("point", "MuJoCo, one contact point"), ("spheres", "MuJoCo, sphere pads"), ("drake", "Drake")):
         out.append(f'<circle cx="{lx + 6:.1f}" cy="18" r="6" style="fill:{FAMILY[fam]}"/>')
-        out.append(f'<text x="{lx + 18:.1f}" y="22" {TXT}>{name}</text>')
-        lx += 22 + 8.2 * len(name) + 30
+        out.append(f'<text x="{lx + 18:.1f}" y="24" {TXT}>{name}</text>')
+        lx += 22 + 10.6 * len(name) + 30
     out.append(f'<line x1="{lx:.1f}" y1="18" x2="{lx + 14:.1f}" y2="18" stroke="currentColor" stroke-width="2"/>')
-    out.append(f'<text x="{lx + 20:.1f}" y="22" {TXT}>controller</text>')
+    out.append(f'<text x="{lx + 20:.1f}" y="24" {TXT}>Controller</text>')
     yb = yt + rh * len(rows)
     for v in (10, 30, 100, 300, 1000, 3000):
         out.append(f'<line x1="{X(v):.1f}" y1="{yt - 8:.1f}" x2="{X(v):.1f}" y2="{yb:.1f}" stroke="currentColor" opacity="0.10"/>')
@@ -341,8 +341,7 @@ def svg_bench(rows):
     out.append(f'<line x1="{X(1000):.1f}" y1="{yt - 8:.1f}" x2="{X(1000):.1f}" y2="{yb:.1f}" stroke="currentColor" '
                f'stroke-dasharray="4 3" opacity="0.6"/>')
     out.append(f'<text x="{X(1000) + 5:.1f}" y="{yt - 12:.1f}" {TXT2}>real time</text>')
-    out.append(f'<text x="{(xl + xr) / 2:.1f}" y="{yb + 40:.1f}" text-anchor="middle" {TXT2}>ms of one core per simulated second '
-               f'(physics only; log scale)</text>')
+    out.append(f'<text x="{(xl + xr) / 2:.1f}" y="{yb + 40:.1f}" text-anchor="middle" {TXT2}>Physics time, ms per simulated second, log scale</text>')
     for i, r in enumerate(rows):
         y = yt + rh * i + rh / 2
         col = FAMILY[r["family"]]

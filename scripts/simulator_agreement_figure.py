@@ -188,6 +188,7 @@ def svg_turn_pairs(D=None):
     D = D or data()
     PW, ML, MT, MB, GAP = 124, 40, 52, 44, 18
     W = ML + len(MODELS) * (PW + GAP)
+    sm = math.ceil(13.0 * W / P.COLUMN_PX * 10) / 10     # small text: 13 px as displayed in the 828 px column
     lim = (-20.0, 80.0)
     out = P._svg_open(W, MT + PW + MB, "Tool turn of each plan replay against Drake, one panel per contact model")
     span = lim[1] - lim[0]
@@ -197,16 +198,16 @@ def svg_turn_pairs(D=None):
         fy = lambda v: MT + PW - (min(max(v, lim[0]), lim[1]) - lim[0]) / span * PW  # noqa: E731
         t1, t2 = TITLES[mk]
         out.append(_text(x0 + PW / 2, 14, t1, "middle", col if col != "var(--ink3)" else "var(--ink)"))
-        out.append(_text(x0 + PW / 2, 28, t2, "middle", "var(--ink2)", 11))
+        out.append(_text(x0 + PW / 2, 28, t2, "middle", "var(--ink2)", sm))
         d = D[mk]
         out.append(f'<clipPath id="tp{i}"><rect x="{x0}" y="{MT}" width="{PW}" height="{PW}"/></clipPath>')
         out.append(f'<rect x="{x0}" y="{MT}" width="{PW}" height="{PW}" style="fill:none;stroke:var(--rule)"/>')
         for t in (0, 30, 60):
             out.append(f'<line x1="{fx(t):.1f}" x2="{fx(t):.1f}" y1="{MT}" y2="{MT + PW}" style="stroke:var(--rule2)"/>')
             out.append(f'<line x1="{x0}" x2="{x0 + PW}" y1="{fy(t):.1f}" y2="{fy(t):.1f}" style="stroke:var(--rule2)"/>')
-            out.append(_text(fx(t), MT + PW + 14, f"{t}", "middle", "var(--ink3)", 11))
+            out.append(_text(fx(t), MT + PW + 14, f"{t}", "middle", "var(--ink3)", sm))
             if i == 0:
-                out.append(_text(x0 - 6, fy(t) + 4, f"{t}", "end", "var(--ink3)", 11))
+                out.append(_text(x0 - 6, fy(t) + 4, f"{t}", "end", "var(--ink3)", sm))
         a, b = lim
         band = (f"{fx(a):.1f},{fy(a + TOL_DEG):.1f} {fx(b):.1f},{fy(b + TOL_DEG):.1f} "
                 f"{fx(b):.1f},{fy(b - TOL_DEG):.1f} {fx(a):.1f},{fy(a - TOL_DEG):.1f}")
@@ -215,11 +216,11 @@ def svg_turn_pairs(D=None):
                    f'<line x1="{fx(a):.1f}" y1="{fy(a):.1f}" x2="{fx(b):.1f}" y2="{fy(b):.1f}" '
                    'style="stroke:var(--c-drake);stroke-width:1.2"/></g>')
         if "pairs" not in d:
-            out.append(_text(x0 + PW / 2, MT + PW / 2 + 4, "not run", "middle", "var(--ink3)", 11,
+            out.append(_text(x0 + PW / 2, MT + PW / 2 + 4, "not run", "middle", "var(--ink3)", sm,
                              ' font-style="italic"'))
             continue
         out.append(_text(x0 + PW / 2, 42, f"{d['within']}/{d['n']} within {TOL_DEG:g}&#176;", "middle",
-                         "var(--ink2)", 11))
+                         "var(--ink2)", sm))
         for xd, ym, held in d["pairs"]:
             P._marker(out, fx(xd), fy(ym), col, shape=shape, hollow=not held, r=3.0)
     out.append(_text(ML + (W - ML) / 2, MT + PW + 34, "Drake hydroelastic: tool turn (&#176;)", "middle",

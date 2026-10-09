@@ -579,9 +579,10 @@ def svg_law():
                        f'<text x="{x0 - 8}" y="{fy(v) + 4:.1f}" text-anchor="end" style="fill:var(--ink3)">{v:g}</text>')
         for v in xt:
             out.append(f'<line x1="{fx(v):.1f}" x2="{fx(v):.1f}" y1="{y0}" y2="{y0 + h}" style="stroke:var(--rule2)"/>'
-                       f'<text x="{fx(v):.1f}" y="{y0 + h + 17}" text-anchor="middle" style="fill:var(--ink3)">{v:g}</text>')
+                       f'<text x="{fx(v):.1f}" y="{y0 + h + 22}" text-anchor="middle" style="fill:var(--ink3)">{v:g}</text>')
+        xlab, ylab = xlab[0].upper() + xlab[1:], (ylab[:4] + ylab[4].upper() + ylab[5:]) if ylab.startswith("(") else ylab
         out.append(f'<line x1="{x0}" x2="{x0 + w}" y1="{y0 + h}" y2="{y0 + h}" style="stroke:var(--ink3)"/>'
-                   f'<text x="{x0 + w / 2}" y="{y0 + h + 38}" text-anchor="middle" style="fill:var(--ink2)">{xlab}</text>'
+                   f'<text x="{x0 + w / 2}" y="{y0 + h + 44}" text-anchor="middle" style="fill:var(--ink2)">{xlab}</text>'
                    f'<text x="{x0}" y="{y0 - 12}" style="fill:var(--ink2)">{ylab}</text>')
         return fx, fy
 
@@ -603,13 +604,13 @@ def svg_law():
                f'<text x="{x5 + 6:.1f}" y="{fy(1.07):.1f}" style="fill:var(--bad)">fixed value 57 % high at 0.5 N</text>'
                f'<text x="{fx(0.11):.1f}" y="{fy(1.31) - 8:.1f}" style="fill:var(--ink3)">fixed \u03bc<tspan dy="3" font-size="12.5">t</tspan><tspan dy="-3"> set at the 3 N hold</tspan></text>'
                f'<text x="{fx(0.75):.1f}" y="{fy(0.62):.1f}" style="fill:var(--c-c4)">law: \u03bc<tspan dy="3" font-size="12.5">t</tspan><tspan dy="-3"> = \u03bc c N</tspan><tspan dy="-5" font-size="12.5">1/4</tspan></text>'
-               f'<text x="{fx(0.75):.1f}" y="{fy(0.62) + 16:.1f}" style="fill:var(--ink3)">rescheduled each 1 ms step</text>')
+               f'<text x="{fx(0.75):.1f}" y="{fy(0.62) + 20:.1f}" style="fill:var(--ink3)">rescheduled each 1 ms step</text>')
     # (b) brake capacity against demand
     cap = lambda N: 0.0 if N <= W / 2 else 2 * N * c * N ** 0.25 * math.sqrt(1 - (W / (2 * N)) ** 2)  # noqa: E731
     fx, fy = panel(580, 50, 360, 250, (0.0, 2.0), (0.0, 5.0), "pad force N (N)", "(b) torque about the pinch axis (mN\u00b7m)",
                    (0, 0.5, 1.0, 1.5, 2.0), (0, 1, 2, 3, 4, 5), False)
     path(fx, fy, [(N, cap(N) * 1e3) for N in [W / 2 + i * (2.0 - W / 2) / 120 for i in range(121)]], "stroke:var(--c-c4)")
-    out.append(f'<text x="{fx(1.62):.1f}" y="{fy(4.75):.1f}" style="fill:var(--c-c4)">\u03c4<tspan dy="3" font-size="12.5">cap</tspan><tspan dy="-3">(N), Eq. (11)</tspan></text>'
+    out.append(f'<text x="{fx(0.06):.1f}" y="{fy(4.6):.1f}" style="fill:var(--c-c4)">\u03c4<tspan dy="3" font-size="12.5">cap</tspan><tspan dy="-3">(N), Eq. (11)</tspan></text>'
                f'<text x="{fx(W / 2) + 6:.1f}" y="{fy(0) - 7:.1f}" style="fill:var(--ink3)">← slip limit 0.12 N</text>')
     for phi, lab_dy in ((0, -7), (45, -7), (80, -7)):
         dem = mgd * math.cos(math.radians(phi)) * 1e3
@@ -622,7 +623,8 @@ def svg_law():
                    f'style="stroke:var(--c-ref);stroke-dasharray:6 5"/>'
                    f'<circle cx="{fx(hi):.1f}" cy="{fy(dem):.1f}" r="4.5" style="fill:var(--c-sphere);stroke:var(--card);stroke-width:2"/>'
                    f'<text x="{xl:.1f}" y="{fy(dem) + lab_dy:.1f}"{anchor} style="fill:var(--ink3)">demand at {phi}\u00b0</text>'
-                   f'<text x="{fx(hi) + 9:.1f}" y="{fy(dem) - 8:.1f}" style="fill:var(--c-sphere)">N* = {hi:.2f} N</text>')
+                   f'<text x="{fx(hi) + (-9 if hi > 1.4 else 9):.1f}" y="{fy(dem) - 8:.1f}" '
+                   f'text-anchor="{"end" if hi > 1.4 else "start"}" style="fill:var(--c-sphere)">N* = {hi:.2f} N</text>')
     out.append("</svg>")
     return "".join(out)
 
@@ -651,7 +653,7 @@ def _legend(out, x, y, items):
     for name, col, dash in items:
         out.append(f'<line x1="{x}" x2="{x + 22}" y1="{y - 4}" y2="{y - 4}" style="stroke:{col};stroke-width:2.2'
                    f'{";stroke-dasharray:5 4" if dash else ""}"/><text x="{x + 28}" y="{y}" style="fill:var(--ink2)">{name}</text>')
-        x += 40 + 7.2 * len(name)
+        x += 44 + 9.4 * len(name)                     # 15.5-unit mono text
 
 
 def svg_exp3_trace():
@@ -675,13 +677,14 @@ def svg_exp3_trace():
 
 
 def svg_wield_steps():
-    out = ['<svg viewBox="0 0 980 360" role="img" aria-label="Wield: cumulative turn of the tool after each twist and each '
+    out = ['<svg viewBox="0 0 980 384" role="img" aria-label="Wield: cumulative turn of the tool after each twist and each '
            'release over six cycles; the twists match across models, the condim 4, point-contact and Drake runs gain extra '
            'turn in some releases, the sphere pad gives back about one degree per release." font-family="var(--f-mono)" font-size="15.5">']
-    fx, fy = _axes(out, 70, 60, 880, 240, (0, 6), (0, 140), range(0, 7), (0, 20, 40, 60, 80, 100, 120, 140),
-                   "cycle (twist, then release, open, return and close)", "tool turned about its own axis (deg)")
+    fx, fy = _axes(out, 70, 84, 830, 240, (0, 6), (0, 140), range(0, 7), (0, 20, 40, 60, 80, 100, 120, 140),
+                   "Cycle (twist, then release, open, return and close)", "Tool turned about its own axis (deg)")
     out.append('<path d="M' + " L".join(f"{fx(x):.1f},{fy(20 * x):.1f}" for x in range(7)) +
                '" style="fill:none;stroke:var(--ink3);stroke-width:1.6;stroke-dasharray:6 5"/>')
+    ends = []
     for k in PK:
         cum, pts = 0.0, [(0, 0.0)]
         for i, c in enumerate(PT[("wield", k)]["per_cycle"]):
@@ -691,8 +694,14 @@ def svg_wield_steps():
             pts.append((i + 1, cum))
         out.append('<path d="M' + " L".join(f"{fx(x):.1f},{fy(y):.1f}" for x, y in pts) +
                    f'" style="fill:none;stroke:{COL[k]};stroke-width:2"/>')
-        out.append(f'<text x="{fx(6) + 6:.1f}" y="{fy(cum) + 4:.1f}" style="fill:{COL[k]}">{cum:.0f}°</text>')
-    _legend(out, 160, 30, [("commanded 20° per cycle", "var(--ink3)", True)] + [(SHORT[k], COL[k], False) for k in PK])
+        ends.append((fy(cum) + 5, f"{cum:.0f}°", COL[k]))
+    prev = None
+    for y, lab, col in sorted(ends):                  # end labels at least one line apart
+        y = y if prev is None else max(y, prev + 17)
+        out.append(f'<text x="{fx(6) + 8:.1f}" y="{y:.1f}" style="fill:{col}">{lab}</text>')
+        prev = y
+    _legend(out, 20, 20, [("Commanded, 20° per cycle", "var(--ink3)", True)])
+    _legend(out, 20, 42, [(SHORT[k], COL[k], False) for k in PK])
     out.append("</svg>")
     return "".join(out)
 
@@ -724,7 +733,7 @@ def svg_exp2_drift():
         dash = ";stroke-dasharray:6 4" if k == "s1spin" else ""
         out.append('<path d="M' + " L".join(f"{fx(x):.1f},{fy(y):.1f}" for x, y in pts) +
                    f'" style="fill:none;stroke:{col[k]};stroke-width:2{dash}"/>')
-    _legend(out, 220, 30, [(SHORT[k] if k != "s1spin" else "sphere pad, spin rows held", col[k], k == "s1spin") for k in keys])
+    _legend(out, 20, 30, [(SHORT[k] if k != "s1spin" else "Sphere pad, spin rows held", col[k], k == "s1spin") for k in keys])
     out.append("</svg>")
     return "".join(out)
 

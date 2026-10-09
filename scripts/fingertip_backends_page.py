@@ -374,8 +374,8 @@ def svg_tip_shapes():
     out = _svg_open(W, H, "Sections of the four fingertip models at the same scale: the sphere of every earlier contact study, the "
                           "printed TPU block with 6 mm and 2.7 mm fillets, and the sharp box.")
     s = 7.0          # px per mm
-    shapes = [("sphere", "10.55&#8202;mm sphere"), ("6", "TPU, r<tspan baseline-shift='sub' font-size='9'>f</tspan> 6&#8202;mm"),
-              ("2.7", "TPU, r<tspan baseline-shift='sub' font-size='9'>f</tspan> 2.7&#8202;mm"), ("0", "sharp box")]
+    shapes = [("sphere", "10.55&#8202;mm sphere"), ("6", "TPU, r<tspan baseline-shift='sub' font-size='12.5'>f</tspan> 6&#8202;mm"),
+              ("2.7", "TPU, r<tspan baseline-shift='sub' font-size='12.5'>f</tspan> 2.7&#8202;mm"), ("0", "sharp box")]
     for i, (key, lab) in enumerate(shapes):
         cx, cy = 125 + i * 240, 165
         col = TIP_COL[key]
@@ -398,7 +398,7 @@ def svg_tip_shapes():
             flat = max(0.0, 14.8 - 2 * r)
             out.append(f'<line x1="{cx + 10.55 * s + 5:.1f}" x2="{cx + 10.55 * s + 5:.1f}" y1="{cy - flat / 2 * s:.1f}" y2="{cy + flat / 2 * s:.1f}" '
                        f'style="stroke:var(--ink);stroke-width:3"/>')
-            out.append(f'<text x="{cx + 10.55 * s + 10:.1f}" y="{cy + 4:.1f}" style="fill:var(--ink2);font-size:11px">{flat:.1f}</text>')
+            out.append(f'<text x="{cx + 10.55 * s + 10:.1f}" y="{cy + 4:.1f}" style="fill:var(--ink2);font-size:15.5px">{flat:.1f}</text>')
         # tool cross-section is a line contact here: draw the tool's axis direction (along y) as a band at the palmar face
         out.append(f'<rect x="{cx + 10.55 * s:.1f}" y="{cy - 9 * s:.1f}" width="6" height="{18 * s:.1f}" '
                    f'style="fill:color-mix(in srgb,var(--ink3) 30%,transparent)"/>')

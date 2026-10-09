@@ -436,7 +436,7 @@ def svg_maps(kin):
         cx, cy, sx, sz = x0 + pw / 2, 120, (pw - 24) / (2 * ymax), 70 / zmax
         out.append(f'<rect x="{x0 + 4:.1f}" y="40" width="{pw - 8:.1f}" height="165" rx="6" style="fill:var(--card);stroke:var(--rule2)"/>'
                    f'<line x1="{x0 + 10:.1f}" x2="{x0 + pw - 10:.1f}" y1="{cy}" y2="{cy}" style="stroke:var(--rule);stroke-dasharray:3 3"/>'
-                   f'<text x="{cx:.1f}" y="30" text-anchor="middle" style="fill:var(--ink2);font-size:11px">{lab.replace("&#8202;", " ")}</text>')
+                   f'<text x="{cx:.1f}" y="30" text-anchor="middle" style="fill:var(--ink2);font-size:14px">{lab.replace("&#8202;", " ")}</text>')
         if m == "law":
             b = A.bar_law(1.0)
             delta, h = b["delta"], 0.02 / math.sqrt(2)
@@ -462,7 +462,7 @@ def svg_maps(kin):
             rad = 1.2 + 6.0 * math.sqrt(max(f, 0) / fmax)
             out.append(f'<circle cx="{cx + y_mm * sx:.1f}" cy="{cy - z_mm * sz:.1f}" r="{rad:.1f}" '
                        f'style="fill:{col};fill-opacity:0.45;stroke:{col};stroke-width:0.8"/>')
-        out.append(f'<text x="{cx:.1f}" y="198" text-anchor="middle" style="fill:var(--ink3);font-size:11px">'
+        out.append(f'<text x="{cx:.1f}" y="200" text-anchor="middle" style="fill:var(--ink3);font-size:14px">'
                    f'{len(rr)} contacts, {r["F_x"]:.2f} N</text>')
     out.append(f'<text x="{W / 2}" y="{Hh - 10}" text-anchor="middle" style="fill:var(--ink3)">horizontal: along the edge, '
                f'&#177;{ymax:g} mm; vertical: across it, &#177;{zmax:g} mm</text></svg>')
