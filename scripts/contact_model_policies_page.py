@@ -721,6 +721,8 @@ GLOSSARY = [
     ("servo targets at a limit", "Share of the nine finger servo targets (anchor plus residual) at their actuator&#8217;s "
      "range limit over the active steps; the residual itself is not clipped in these runs."),
     ("finger share", "One fingertip&#8217;s share of the summed fingertip-tool force over the held steps."),
+    ("grip change per step", "Median absolute change of the summed fingertip-tool force between consecutive policy "
+     "steps over the held steps of the hold (steps 150&#8211;250), N; a steady grip reads near 0."),
     ("open-loop replay", "From the state at policy step 58 of a MuJoCo-Warp rollout, the policy&#8217;s recorded finger "
      "targets are played into another simulator at 50&#8202;Hz with the palm welded at its lifted pose "
      "(<code>scripts/rl_policy_replay.py</code>); the policy does not see that simulator&#8217;s state."),
@@ -863,6 +865,22 @@ def svg_traces(X: Data):
     return "".join(out) if drawn else P.pending("Final traces not written yet (final_traces/).")
 
 
+def grip_chatter(tag):
+    """Median |change of the summed fingertip force| between consecutive policy steps over the hold (steps 150-249),
+    over the held steps of all rollouts of the final evaluation, N."""
+    p = os.path.join(D, "final_traces", f"{tag}.npz")
+    if not os.path.exists(p):
+        return None
+    tr = np.load(p)
+    fo, z = tr["force"].astype(float), tr["z"].astype(float)
+    held = (z > 0.06) & ((fo >= 0.24).sum(-1) >= 2)
+    g = fo.sum(-1)[150:]
+    h = held[150:]
+    m = h[1:] & h[:-1]
+    dg = np.abs(np.diff(g, axis=0))[m]
+    return float(np.median(dg)) if dg.size else None
+
+
 def final_section(X: Data):
     svg = svg_final(X)
     cap = ("Final cosine of each rollout of the final policies (64 per seed), held (filled) and dropped (hollow); bar: "
@@ -874,8 +892,8 @@ def final_section(X: Data):
                   "policy&#8217;s onset after the scripted grasp and lift (step 58).")
     h1 = ["contact model", "held", "held cos, median seed", "seed spread", "rollout spread", "reach 0.9 held",
           "step at 0.9"]
-    h2 = ["contact model", "grip (N)", "peak force (N)", "penetration (mm)", "creep (mm/s)", "creep (&#176;/s)",
-          "shaking (rad/s&#178;)", "|&#916;a|", "pinned targets"]
+    h2 = ["contact model", "grip (N)", "grip change per step (N)", "peak force (N)", "penetration (mm)", "creep (mm/s)",
+          "creep (&#176;/s)", "shaking (rad/s&#178;)", "|&#916;a|", "pinned targets"]
     b1, b2 = [], []
     for a in ARMS:
         fs = X.finals(a)
@@ -890,7 +908,9 @@ def final_section(X: Data):
         wf = [w for w in X.watch if w["tag"] in {r["tag"] for r in fs} and w["iteration"] == fs[0]["iteration"]]
         shk = [w["ang_jerk_hold_median"] for w in wf if w.get("ang_jerk_hold_median") is not None]
         pin = sorted({j.replace("_", " ") for w in wf for j in (w.get("joints_pinned90") or [])})
-        b2.append([f"{swatch(a)}{LBL[a]}", f1(md("grip_N"), 1), f1(md("peak_force_N_mean"), 0), f1(md("pen_max_mm_mean"), 2),
+        gc = [v for v in (grip_chatter(r["tag"]) for r in fs) if v is not None]
+        b2.append([f"{swatch(a)}{LBL[a]}", f1(md("grip_N"), 1), f1(float(np.median(gc)), 1) if gc else "&#8211;",
+                   f1(md("peak_force_N_mean"), 0), f1(md("pen_max_mm_mean"), 2),
                    f1(md("creep_mm_s_median"), 2), f1(md("creep_deg_s_median"), 2),
                    f1(float(np.median(shk)), 0) if shk else "&#8211;", f1(md("dact_held"), 2),
                    ", ".join(pin) if pin else "none"])
@@ -898,7 +918,7 @@ def final_section(X: Data):
                          "pool the seeds; the other columns are medians over seeds.")
     out += table(h2, b2, "Final policies over their held steps: forces, penetration, creep in the last second, shaking "
                          "in the hold, action change, and the servo targets held at their range limit in 90&#8202;% of "
-                         "the steps (definitions in Terms and metrics); medians over seeds.", text_cols=(0, 8))
+                         "the steps (definitions in Terms and metrics); medians over seeds.", text_cols=(0, 9))
     return out
 
 
