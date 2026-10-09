@@ -1,0 +1,81 @@
+{
+ "geometry": [
+  {
+   "mesh": "block.msh",
+   "volume_selection": 1,
+   "surface_selection": [
+    {
+     "id": 1,
+     "axis": "-z",
+     "position": 0.001
+    }
+   ]
+  },
+  {
+   "mesh": "sphere.obj",
+   "is_obstacle": true,
+   "surface_selection": 2
+  }
+ ],
+ "contact": {
+  "enabled": true,
+  "dhat": 0.002,
+  "friction_coefficient": 1.0,
+  "epsv": 0.0005
+ },
+ "time": {
+  "tend": 2.0,
+  "time_steps": 20,
+  "quasistatic": true
+ },
+ "space": {
+  "discr_order": 1
+ },
+ "boundary_conditions": {
+  "dirichlet_boundary": [
+   {
+    "id": 1,
+    "value": [
+     0,
+     0,
+     0
+    ]
+   }
+  ],
+  "obstacle_displacements": [
+   {
+    "id": 2,
+    "value": [
+     "0.2*max(t-1,0)",
+     "0",
+     "-0.105*min(t,1)"
+    ]
+   }
+  ]
+ },
+ "materials": {
+  "type": "NeoHookean",
+  "E": 1.0,
+  "nu": 0.3,
+  "rho": 0.001
+ },
+ "solver": {
+  "linear": {
+   "solver": "Eigen::SimplicialLDLT"
+  },
+  "contact": {
+   "friction_iterations": 2
+  }
+ },
+ "output": {
+  "json": "stats.json",
+  "paraview": {
+   "file_name": "out.vtu",
+   "options": {
+    "contact_forces": true,
+    "friction_forces": true,
+    "forces": true
+   }
+  }
+ }
+}
