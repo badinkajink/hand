@@ -496,419 +496,352 @@ def main() -> int:
 
     stats = "".join(
         f'<div class="stat"><b>{v}</b><span>{s}</span></div>' for v, s in [
-            ("8/8 at 150 mm", "wrist stack the arm carries once told its payload"),
-            (f'{K["TURN_C"]}&#176;', f'tilt the turn then delivers directly, sd {K["SD_C"]}'),
-            (f'{K["TURN_U"]}&#176;', "the same turn on an arm that has not been told"),
-            ("0 mm", "of pedestal the task needs"),
+            ("8/8 at 150 mm", "Chains completed with a 150 mm wrist stack, payload declared"),
+            (f'{K["TURN_C"]}&#176;', f'Tilt at the end of the turn, payload declared (SD {K["SD_C"]}&#176;)'),
+            (f'{K["TURN_U"]}&#176;', "Tilt at the end of the same turn, payload not declared"),
+            ("0 mm", "Pedestal height the task needs"),
         ])
 
     body = f"""
-<section><div class="col">
-<h2>What was not in the scene</h2>
-<p class="sub">one flat table, 100 mm of wrist hardware, and a declared payload</p>
-
-<p>The chained task &mdash; grasp, lift, reorient, set into a countersink, gait &mdash; has run on
-a UR5e since 2026-09-03 with three assumptions that were never variables. The robot stood on a
-300&nbsp;mm pedestal. The palm plate was bolted straight to the tool flange, because the
-menagerie UR5e's attachment site is where a gripper goes. And the arm carried the hand without
-knowing it was there.</p>
-
-<p>None of the three is the bench. The robot is bolted to the same flat table as the work; there
-is a coupling, a servo bank and its wiring between the flange and the first finger joint, about
-100&nbsp;mm of it; and a real UR5e is told its payload with <code>set_payload</code>, after which
-its servo loop holds position under a load it is rated to 5&nbsp;kg for. All three are now
-parameters of <code>build_real_v1_arm_scene.py</code> (<code>--base</code>,
-<code>--wrist-stack</code>, <code>--stack-density</code>, <code>--payload-gravcomp</code>). The
-stack is a 40&nbsp;mm cylinder at 700&nbsp;kg/m&sup3;, taking the hand from {K["PAY0"]} to
-{K["PAY100"]}&nbsp;g.</p>
-
-<figure><video src="{vid_wide}" autoplay loop muted playsinline></video>
-<figcaption>The chain on the bench as specified: mount on the table surface, 100&nbsp;mm of wrist
-stack (the dark cylinder above the palm plate), tool driven into a 45&#176; countersink and
-gaited there without the hand releasing it.</figcaption></figure>
-
-<div class="callout"><span class="tag">A bug the change exposed</span>
-<p>The arm scene builder copied the design scene's world by whitelist &mdash; lights, floor,
-object. Building an arm scene from a countersink scene therefore dropped the countersink, and the
-tool stood on a bare plane while the file name said otherwise. It now copies everything except
-the hand.</p></div>
+<section id="terms"><div class="col">
+<h2>Terms and metrics</h2>
+<dl class="terms">
+<dt><b>Chain</b></dt><dd>The simulated task on the UR5e: grasp the screwdriver, lift it, turn it upright, set it into a
+45&#176; countersink and gait it (8 cycles of re-grasps that rotate it about its own axis).</dd>
+<dt><b>Relay and release</b></dt><dd>The two gaits. The relay passes the tool between finger pairs without letting go;
+the release lets go and re-grasps while the countersink holds the tool.</dd>
+<dt><b>Completed (k/n)</b></dt><dd>Seeds, of n spawn-jittered rollouts, in which the chain finishes its 8 gait cycles
+with the tool in the seat.</dd>
+<dt><b>Wrist stack</b></dt><dd>Hardware between the tool flange and the palm plate (coupling, servo bank, wiring),
+modelled as a 40&nbsp;mm cylinder at 700&nbsp;kg/m&#179;.</dd>
+<dt><b>Payload declaration</b></dt><dd>Telling the arm controller the mass of the hand and the stack
+(<code>set_payload</code> on the UR5e, gravity compensation in simulation).</dd>
+<dt><b>Palm droop</b></dt><dd>Distance of the palm from its commanded position at the top of the lift, in mm.</dd>
+<dt><b>Carry grip</b></dt><dd>Commanded interference of the pads with the tool during the carry, in mm; the grip force
+follows from the commanded minus the achieved closure.</dd>
+<dt><b>Tilt</b></dt><dd>Angle between the tool axis and vertical, in degrees, 0 upright; counted only while two pads hold
+the tool clear of the seat.</dd>
+<dt><b>Post-turn drift</b></dt><dd>Tilt at the last commanded step of the turn minus tilt after the hold that follows it,
+in degrees; positive is toward vertical.</dd>
+<dt><b>Deg/cy</b></dt><dd>Rotation of the tool about its own axis per gait cycle, in degrees.</dd>
+<dt><b>Uncontacted</b></dt><dd>Share of the gait during which no pad touches the tool, in %.</dd>
+<dt><b>Ranked hands</b></dt><dd>The eight hands of the 8,192-hand Sobol population promoted to exported plans; a tag
+such as <code>sv1_u5860_b070</code> names one.</dd>
+<dt><b>Confirmation cosine</b></dt><dd>Cosine of the tool axis with vertical in the screen&rsquo;s confirmation run; +1 is
+upright.</dd>
+</dl>
 </div></section>
 
 <section><div class="col">
-<h2>The pedestal is free</h2>
-<p class="sub">8 spawn-jittered seeds per cell &middot; 8 gait cycles &middot; no wrist stack</p>
+<h2>Mount, wrist stack and payload in the arm scene</h2>
 
-<p>Lowering the mount from 300&nbsp;mm to the table surface changes nothing measurable. Every
-height solves the home pose on the same IK branch with the arm's lowest link at +0.163&nbsp;m
-&mdash; the shoulder &mdash; and no link below the table. Across the study the differential IK
-reports {K["IKFAIL"]} unreachable poses in {K["NCELLS"]} rollouts, all at one standing position:
-650&nbsp;mm back and 200&nbsp;mm across, where 6 of 8 seeds ask for a pose the arm cannot make.
-The second table can go.</p>
+<p>Until 2026-09-04 the simulated chain ran with three fixed assumptions: the UR5e stood on a 300&nbsp;mm pedestal, the
+palm plate was bolted to the tool flange, and the arm controller did not know the hand&rsquo;s mass. On the bench the robot
+stands on the table that holds the work, about 100&nbsp;mm of coupling, servo bank and wiring sit between the flange and
+the first finger joint, and the UR5e is told its payload with <code>set_payload</code>. All three are
+now parameters of <code>build_real_v1_arm_scene.py</code> (<code>--base</code>, <code>--wrist-stack</code>,
+<code>--stack-density</code>, <code>--payload-gravcomp</code>). A 100&nbsp;mm stack takes the hand from {K["PAY0"]} to
+{K["PAY100"]}&nbsp;g.</p>
+
+<figure><video src="{vid_wide}" autoplay loop muted playsinline></video>
+<figcaption>The chain with the bench geometry: mount on the table surface, 100&nbsp;mm of wrist stack (the dark cylinder
+above the palm plate), tool pressed into a 45&#176; countersink and gaited there without the hand releasing it.
+</figcaption></figure>
+</div></section>
+
+<section><div class="col">
+<h2>Mount height</h2>
+<p class="sub">8 spawn-jittered seeds per cell, 8 gait cycles, no wrist stack</p>
+
+<p>Mount heights from 0 to 300&nbsp;mm give the same results within one seed. At every height the IK solves the home
+pose on the same branch, with the arm&rsquo;s lowest link, the shoulder, at +0.163&nbsp;m and no link below the table.
+The differential IK reports {K["IKFAIL"]} unreachable poses in {K["NCELLS"]} rollouts, all at one standing
+position (650&nbsp;mm back, 200&nbsp;mm across). The bench needs no pedestal.</p>
 
 <div class="tw"><table>
-<thead><tr><th class="num">mount height (mm)</th><th class="num">relay</th>
-<th class="num">release</th><th class="num">relay deg/cy</th><th class="num">release deg/cy</th>
-<th class="num">droop mm</th></tr></thead>
+<thead><tr><th class="num">Mount height (mm)</th><th class="num">Relay</th>
+<th class="num">Release</th><th class="num">Relay deg/cy</th><th class="num">Release deg/cy</th>
+<th class="num">Droop (mm)</th></tr></thead>
 <tbody>{t_table}</tbody></table></div>
 </div></section>
 
 <section><div class="col">
-<h2>Told its payload, the arm carries the stack for free</h2>
-<p class="sub">tool driven into the 45&#176; seat, published carry grip of 0.3 mm, 500 mm standoff</p>
+<h2>Wrist stack with the payload declared</h2>
+<p class="sub">Tool pressed into the 45&#176; seat, carry grip 0.3&nbsp;mm, robot base 500&nbsp;mm from the work</p>
 
-<p>The wrist stack costs nothing at any length tested. Declaring the payload takes the palm's
-error at the top of the lift from {K["DR100"]} to {K["DRC"]}&nbsp;mm, and with that, 0, 50, 100 and 150&nbsp;mm of stack all complete every seed at
+<p>Declaring the payload takes the palm droop at the top of the lift from {K["DR100"]} to {K["DRC"]}&nbsp;mm at
+100&nbsp;mm of stack. With the declaration, 0, 50, 100 and 150&nbsp;mm of stack all complete every seed at
 {pay[(100, 0.30, "relay")]["deg"]:.0f}&nbsp;deg/cycle, and the tool ends within
-{max(pay[(s, 0.30, "relay")]["tilt"] for s in (0, 50, 100, 150)):.1f}&#176; of vertical in every
-case. Without the declaration the same 150&nbsp;mm loses the tool on every seed.</p>
+{max(pay[(s, 0.30, "relay")]["tilt"] for s in (0, 50, 100, 150)):.1f}&#176; of vertical. Without it a 150&nbsp;mm stack
+loses the tool on every seed.</p>
 
 <div class="tw"><table>
-<thead><tr><th class="num">stack (mm)</th><th class="num">payload (g)</th>
-<th class="num">relay, declared</th><th class="num">deg/cy</th><th class="num">end tilt</th>
-<th class="num">relay, not declared</th><th class="num">droop mm</th></tr></thead>
+<thead><tr><th class="num">Stack (mm)</th><th class="num">Payload (g)</th>
+<th class="num">Relay, declared</th><th class="num">Deg/cy</th><th class="num">End tilt (&#176;)</th>
+<th class="num">Relay, undeclared</th><th class="num">Droop (mm)</th></tr></thead>
 <tbody>{t_pay}</tbody></table></div>
 
-<figure>{c_pay}<figcaption>The whole cost of the wrist stack is a payload the controller was not
-told about.</figcaption></figure>
+<figure>{c_pay}<figcaption>Chains completed against wrist-stack length, with the payload declared and without.
+</figcaption></figure>
 
-<p>The declaration also inverts the grip that works. On the sagging arm the seam needed more
-commanded interference the longer the wrist got; on the stiff one the published 0.3&nbsp;mm is
-already right and more is worse, because the extra closure torques the tool out of the seat on
-the way down rather than compensating a deflection that is no longer there.</p>
+<p>The declaration also changes which grip works. On the sagging arm the set-down into the countersink needed more
+commanded interference the longer the stack; on the compensated arm the published 0.3&nbsp;mm works and more fails,
+because the extra closure torques the tool out of the seat on the way down and there is no deflection left for it to
+make up.</p>
 
 <div class="tw"><table>
-<thead><tr><th>wrist stack</th><th class="num" colspan="2">0.3 mm grip</th>
+<thead><tr><th>Wrist stack</th><th class="num" colspan="2">0.3 mm grip</th>
 <th class="num" colspan="2">0.8 mm</th><th class="num" colspan="2">1.5 mm</th></tr>
-<tr><th></th><th class="num">relay</th><th class="num">rel.</th><th class="num">relay</th>
-<th class="num">rel.</th><th class="num">relay</th><th class="num">rel.</th></tr></thead>
+<tr><th></th><th class="num">Relay</th><th class="num">Release</th><th class="num">Relay</th>
+<th class="num">Release</th><th class="num">Relay</th><th class="num">Release</th></tr></thead>
 <tbody>{t_paygrid}</tbody></table></div>
 
-<div class="callout"><span class="tag">Bench specification</span>
-<p>One flat table, no pedestal. Mount at 500&nbsp;mm, which is where the reach study left it and
-which now needs no adjustment. Declare the hand's payload to the controller. Carry grip
-0.3&nbsp;mm, as published. Wrist stack anywhere from 0 to 150&nbsp;mm. Nothing about the hand,
-the grasp or the gait set-points changes.</p></div>
 </div></section>
 
 <section><div class="col">
-<h2>What an undeclared payload costs, and where it starts</h2>
-<p class="sub">kept because it is the diagnostic: any wrist that sags behaves this way</p>
+<h2>Palm droop on an uncompensated wrist</h2>
 
-<p>The uncompensated sweeps are still the useful characterisation of a compliant wrist, and they
-collapse onto one number. Stack length, stack mass and standing distance are three independent
-bench specs, and each moves only <b>palm droop</b> &mdash; how far the palm ends up from where it
-was commanded while holding a load the controller does not model. Droop is deterministic, so it
-does not inherit the seam's seed-to-seed chaos.</p>
+<p>Without the declaration, stack length, stack mass and the robot&rsquo;s distance from the work each act on the chain
+only through palm droop, and so would any compliant wrist. Droop is the same in every seed, so it orders the geometries
+without the seed-to-seed scatter of the set-down.</p>
 
-<div class="pair"><figure>{c_droop_s}<figcaption>Linear in stack length, about
-6&nbsp;&micro;m per millimetre.</figcaption></figure><figure>{c_droop_x}<figcaption>Monotone in
-standoff: a folded arm is a stiff arm.</figcaption></figure></div>
+<div class="pair"><figure>{c_droop_s}<figcaption>Droop against stack length: about 6&nbsp;&micro;m per millimetre of
+stack.</figcaption></figure><figure>{c_droop_x}<figcaption>Droop against the robot&rsquo;s distance from the work; a
+folded arm deflects less.</figcaption></figure></div>
 
-<p>Sweeping the carry grip at each geometry and taking its best cell orders exactly on droop.
-Every seed completes up to {K["CUT"]}&nbsp;mm; 0.97&nbsp;mm gives 3 of 8 and 1.29&nbsp;mm gives
-none. The grip each geometry needs rises with droop over the same range, which is the mechanism:
-commanded interference minus deflection is the force, so a wrist that deflects more needs a
-larger command for the same grip.</p>
+<p>With the carry grip swept at each geometry, the best cell orders by droop. Every seed completes up to
+{K["CUT"]}&nbsp;mm of droop; 0.97&nbsp;mm gives 3 of 8 and 1.29&nbsp;mm none. The grip each geometry needs rises with
+droop over the same range, because the grip force is commanded interference minus deflection: a wrist that deflects
+more needs a larger command for the same force.</p>
 
 <div class="tw"><table>
-<thead><tr><th>geometry</th><th class="num">droop (mm)</th><th class="num">best grip (mm)</th>
-<th class="num">relay</th><th class="num">release</th><th class="num">deg/cy</th></tr></thead>
+<thead><tr><th>Geometry</th><th class="num">Droop (mm)</th><th class="num">Best grip (mm)</th>
+<th class="num">Relay</th><th class="num">Release</th><th class="num">Deg/cy</th></tr></thead>
 <tbody>{t_best}</tbody></table></div>
 
-<div class="pair"><figure>{c_best}<figcaption>The threshold is {K["CUT"]}&nbsp;mm of droop.
-</figcaption></figure><figure>{c_cs}<figcaption>And the grip needed to work around it.
+<div class="pair"><figure>{c_best}<figcaption>Chains completed at the best grip against droop; every seed completes up
+to {K["CUT"]}&nbsp;mm.</figcaption></figure><figure>{c_cs}<figcaption>Best carry grip against droop.
 </figcaption></figure></div>
 
-<p>Two supporting sweeps are in the data and not plotted here: a massless 100&nbsp;mm stack runs
-every seed, which is what identifies the payload rather than the reach as the cause; and stack
-length at the published grip breaks the relay at 50&nbsp;mm while leaving the release chain
-untouched out to 125, because the release chain rebuilds its grasp on a tool the floor is holding
-and the relay places every pad on a tool it is still carrying.</p>
+<p>Two further sweeps are in the data and not plotted. A massless 100&nbsp;mm stack completes every seed, so the
+payload causes the failures and the reach does not. At the published grip, stack length breaks the relay at
+50&nbsp;mm and leaves the release gait intact out to 125&nbsp;mm: the release rebuilds its grasp on a tool the seat
+holds, and the relay places every pad on a tool the hand still holds.</p>
 
 <div class="pair"><div class="tw"><table>
-<thead><tr><th class="num">stack</th><th class="num">g</th><th class="num">droop</th>
-<th class="num">relay</th><th class="num">rel.</th></tr></thead>
+<thead><tr><th class="num">Stack (mm)</th><th class="num">Mass (g)</th><th class="num">Droop (mm)</th>
+<th class="num">Relay</th><th class="num">Release</th></tr></thead>
 <tbody>{t_stack}</tbody></table></div>
 <div class="tw"><table>
-<thead><tr><th class="num">density</th><th class="num">g</th><th class="num">droop</th>
-<th class="num">relay</th><th class="num">rel.</th></tr></thead>
+<thead><tr><th class="num">Density (kg/m&#179;)</th><th class="num">Mass (g)</th><th class="num">Droop (mm)</th>
+<th class="num">Relay</th><th class="num">Release</th></tr></thead>
 <tbody>{t_mass}</tbody></table></div></div>
 </div></section>
 
 <section><div class="col">
-<h2>Where the reorientation's alignment comes from</h2>
-<p class="sub">a new <code>turned</code> seam, taken at the last commanded step of the turn</p>
+<h2>Alignment from the turn and from the hold</h2>
+<p class="sub">A new checkpoint, <code>turned</code>, taken at the last commanded step of the turn</p>
 
-<p>The turn is an IK sweep of the finger anchor, clipped to &plusmn;0.5&nbsp;rad, followed by a
-hold with the finger commands frozen. Any alignment gained during that hold is the shaft rolling
-itself upright inside the grasp. Until now there was no snapshot between the two, so the two
-contributions were reported as one number.</p>
+<p>The turn is an IK sweep of the finger anchor, clipped to &plusmn;0.5&nbsp;rad, followed by a hold with the finger
+commands frozen. Alignment gained during the hold is the shaft rolling upright inside the grasp.</p>
 
-<p>With them separated, the settle is mostly a correction for the wrist. On an arm that has not
-been told its payload the turn ends {K["TURN_U"]}&#176; off vertical and the hold pulls it back
-to {K["SETTLE_U"]}&#176;. On the same arm with the payload declared the turn ends
-<b>{K["TURN_C"]}&#176;</b> off vertical, with a spread of {K["SD_C"]}&#176; across spawn jitter,
-and the hold then makes it worse. Everything in this section is <code>rv05_manual</code>; the
-next section runs the same measurement on the hands the design study ranks, and neither number
-survives.</p>
+<p>Without the declaration the turn ends {K["TURN_U"]}&#176; from vertical and the hold brings the tool back to
+{K["SETTLE_U"]}&#176;. With the payload declared the turn ends <b>{K["TURN_C"]}&#176;</b> from vertical, SD
+{K["SD_C"]}&#176; across spawn jitter, and the hold makes it worse. This section uses <code>rv05_manual</code>; the next repeats the measurement on
+the ranked hands, where both numbers differ.</p>
 
 <div class="tw"><table>
-<thead><tr><th class="num">settling steps</th><th class="num">seconds</th>
-<th class="num">tilt, declared</th><th class="num">sd</th><th class="num">ok</th>
-<th class="num">tilt, not declared</th><th class="num">ok</th></tr></thead>
+<thead><tr><th class="num">Hold steps</th><th class="num">Seconds</th>
+<th class="num">Tilt, declared (&#176;)</th><th class="num">SD</th><th class="num">Completed</th>
+<th class="num">Tilt, undeclared (&#176;)</th><th class="num">Completed</th></tr></thead>
 <tbody>{t_hold}</tbody></table></div>
 
-<figure>{c_hold}<figcaption>Most of the 28&#176; of settle that the published chain depends on was
-the wrist sagging through the turn and the tool rolling most of it back.</figcaption></figure>
+<figure>{c_hold}<figcaption>Tilt against hold length with the payload declared and without. Most of the 28&#176; of
+post-turn drift the published chain relied on was the tool rolling back after the wrist sagged during the turn.
+</figcaption></figure>
 
-<h3>Can the slip be predicted, controlled and measured?</h3>
+<h3>Prediction, control and measurement of the post-turn drift</h3>
 
-<p><b>Predicted:</b> yes, to about a degree, and it degrades with exposure. Tilt at the last
-commanded turn step is {K["SD_C"]}&#176; sd over spawn jitter; after 150 settling steps the
-settled tilt has sd {wri[(True, 150)]["settle_sd"]:.2f}&#176;, after 900 it is
-{wri[(True, 900)]["settle_sd"]:.2f}&#176;. The shaft is rolling away from an unstable
-configuration, so the longer it is allowed to roll the less the seeds agree.</p>
+<p><b>Prediction.</b> The tilt at the last commanded step has an SD of {K["SD_C"]}&#176; over spawn jitter, after 150
+hold steps {wri[(True, 150)]["settle_sd"]:.2f}&#176; and after 900 steps {wri[(True, 900)]["settle_sd"]:.2f}&#176;: the
+shaft rolls away from an unstable configuration and the seeds diverge.</p>
 
-<p><b>Controlled:</b> by settling time, and only downwards. The best cell is 150 steps
-(0.3&nbsp;s) at {K["BEST_HOLD_TILT"]}&#176;; longer holds drift back out. Gripping through the
-turn does not work as the other control: extra closure held through the sweep takes the
-commanded tilt from {slp[(0.0, 0)]["turned"]:.1f}&#176; to
-{slp[(2.0, 0)]["turned"]:.1f}&#176; and nothing completes at any of the four non-zero
-settings.</p>
+<p><b>Control.</b> The hold length lowers the tilt only up to a point: the best cell is 150 steps (0.3&nbsp;s) at
+{K["BEST_HOLD_TILT"]}&#176;, and longer holds drift back out. Extra closure held through the sweep raises the tilt at the
+last turn step from {slp[(0.0, 0)]["turned"]:.1f}&#176; to {slp[(2.0, 0)]["turned"]:.1f}&#176;, and no seed completes at
+any of the four non-zero settings.</p>
 
 <div class="tw"><table>
-<thead><tr><th class="num">closure through the turn (mm)</th>
-<th class="num">tilt at the last turn step</th><th class="num">after 300 steps</th>
-<th class="num">ok at 150</th><th class="num">ok at 500</th></tr></thead>
+<thead><tr><th class="num">Closure through the turn (mm)</th>
+<th class="num">Tilt at the last turn step (&#176;)</th><th class="num">After 300 steps (&#176;)</th>
+<th class="num">Completed, 150-step hold</th><th class="num">Completed, 500-step hold</th></tr></thead>
 <tbody>{t_tsq}</tbody></table></div>
 
-<figure>{c_tsq}<figcaption>Squeezing through the turn fights it. The fingers are driving the shaft
-round by rolling it, and a tighter grip removes the rolling.</figcaption></figure>
+<figure>{c_tsq}<figcaption>Tilt against the closure held through the turn.</figcaption></figure>
 
-<p><b>Measured:</b> already, on the bench, at 0.017&#176; rms. The reorientation turns the shaft
-about a horizontal axis, so the vane tag stays in the camera's view for the whole sweep and
-<code>morphohand.bench.tags</code> reports the tool's tilt directly. This is the opposite of the
-gait, where the shaft spins about the vertical and a single tag leaves view within about
-60&#176;.</p>
-
-<p>So on this hand the settle is not needed once the payload is declared. It was worth 23&#176;
-on a sagging wrist and it is worth nothing on a stiff one, where <code>rv05_manual</code>
-delivers {K["TURN_C"]}&#176; directly and repeatably. The remaining use for the
-<code>turned</code> seam is as a monitor: it separates a hand that reoriented the tool from a
-wrist that dropped it into place, and the next section is what that gate is for.</p>
+<p><b>Measurement.</b> The bench tracker reads this tilt at 0.017&#176; rms: the turn rotates the shaft about a
+horizontal axis, so the vane tag stays in the camera&rsquo;s view (<code>morphohand.bench.tags</code>). The
+<code>turned</code> checkpoint stays as a monitor that separates a hand that turned the tool from a wrist that sagged it
+into place.</p>
 </div></section>
 
 <section><div class="col">
 <h2>The same turn on the ranked hands</h2>
-<p class="sub">the {K["RK_N"]} promoted hands of the Sobol&#8209;8192 population, each at its own
-operating point, in the maneuver they were screened on &mdash; {K["RK_ROWS"]} rollouts</p>
+<p class="sub">The {K["RK_N"]} promoted hands of the Sobol&#8209;8192 population, each at its own operating point, in the
+maneuver they were screened on; {K["RK_ROWS"]} rollouts</p>
 
-<p>Everything above was measured on <code>rv05_manual</code>. The population the design study
-samples and ranks is <code>20260831-real_v1-sobol8192</code>: 8,192 hands sampled, 535 selected,
-227 confirmed, {K["RK_N"]} promoted to exported plans across {K["RK_NDES"]} distinct designs.
-Each of those runs here at the operating point it was screened at &mdash; its straddle,
-thumb-axial offset, fitted grip depth and residual clip, from the confirmed design table and
-<code>promotion.json</code> &mdash; through the screen's own planner and rollout, on the bench
-scene its plan names: the tool standing on a 100&nbsp;mm platform, palm fixed, close, settle,
-turn, hold, with the load regulator and the two servo torque ceilings of the retention screen.
-Nothing is retuned and nothing is carried over from <code>rv05_manual</code>.</p>
-
-<div class="callout"><div class="lab">the maneuver has to be the screened one</div>
-<p>Rebuilding this out of <code>probe_real_v1_carry</code> on a flat table with a palm lift
-&mdash; the geometry the chain uses &mdash; put every ranked hand at 78&ndash;89&#176; of residual
-tilt, which is no reorientation at all. That is a measurement of the substitution. Replayed
-through the screen's own code the same hands reproduce their confirmation cos to three decimals
-on {K["RK_MATCH"]} of the {K["RK_HASCELL"]} tags that have a confirmation at their clip, so the
-numbers below are the ranking's own maneuver rather than a reconstruction of it.</p></div>
+<p>The design study ranks the population <code>20260831-real_v1-sobol8192</code>: 8,192 hands sampled, 535 selected,
+227 confirmed and {K["RK_N"]} promoted to exported plans ({K["RK_NDES"]} distinct designs). Each runs here at its
+screened operating point (straddle, thumb-axial offset, fitted grip depth and residual clip, from
+<code>promotion.json</code>) through the screen&rsquo;s own planner and rollout: the tool on a 100&nbsp;mm platform,
+palm fixed, close, pause, turn and hold, with the load regulator and servo torque ceilings of the retention screen. The
+replay reproduces the confirmation cosine to three decimals on {K["RK_MATCH"]} of the {K["RK_HASCELL"]} tags confirmed
+at their clip; a flat-table rebuild of the maneuver had put every hand at 78&ndash;89&#176; of tilt.</p>
 
 <div class="tw"><table>
-<thead><tr><th>tag</th><th class="num">confirmation cos</th><th class="num">this replay</th>
-<th class="num">difference</th></tr></thead>
+<thead><tr><th>Tag</th><th class="num">Confirmation cosine</th><th class="num">This replay</th>
+<th class="num">Difference</th></tr></thead>
 <tbody>{t_rkv}</tbody></table></div>
 
-<p>On this population the turn ends between <b>{K["RK_LO"]}&#176;</b> and
-<b>{K["RK_HI"]}&#176;</b> off vertical, with a seed spread of {K["RK_SDLO"]}&ndash;{K["RK_SDHI"]}&#176;
-against <code>rv05_manual</code>'s 0.42. The 8&#176; is not in this population's range, and
-neither is its repeatability &mdash; three of the {K["RK_N"]} hands are inside a degree, the
-other five are not. Every hand carries the tool through the turn and through the hold, which is
-what selection bought: the failure mode here is alignment, not dropping.</p>
+<p>On this population the turn ends between <b>{K["RK_LO"]}&#176;</b> and <b>{K["RK_HI"]}&#176;</b> from vertical, with a
+seed SD of {K["RK_SDLO"]}&ndash;{K["RK_SDHI"]}&#176; against 0.42&#176; for <code>rv05_manual</code>. None of the eight
+reaches 8&#176;, and three are repeatable within a degree. Every hand keeps the tool through the turn and the hold; the
+ranked hands fall short on alignment.</p>
 
 <div class="tw"><table>
-<thead><tr><th>tag</th><th class="num">holds</th><th class="num">pad force (N)</th>
-<th class="num">tilt at the turn (&#176;)</th><th class="num">sd</th>
-<th class="num">after the hold (&#176;)</th><th class="num">sd</th>
-<th class="num">settle</th><th class="num">ok</th></tr></thead>
+<thead><tr><th>Tag</th><th class="num">Held at the turn</th><th class="num">Pad force (N)</th>
+<th class="num">Tilt at the turn (&#176;)</th><th class="num">SD</th>
+<th class="num">After the hold (&#176;)</th><th class="num">SD</th>
+<th class="num">Post-turn drift (&#176;)</th><th class="num">Held at the end</th></tr></thead>
 <tbody>{t_rk}</tbody></table></div>
 
-<h3>The settle is the larger term here, and its sign is a property of the hand</h3>
+<h3>Post-turn drift on the ranked hands</h3>
 
-<p>On the stiff-wrist chain the hold was worth nothing and the turn delivered its 8&#176;
-directly. On the ranked hands the hold is worth up to {K["RK_SETTLE_HI"]}&#176; and as little as
-{K["RK_SETTLE_LO"]}&#176;: it helps {K["RK_HELPED"]} of {K["RK_N"]} and on the rest the shaft
-falls back out of the alignment the command produced. It is also not finished at 900 steps on any
-of them &mdash; the screened hold of 2,500 is doing real work, so &ldquo;settle for 150 steps and
-stop&rdquo; is another <code>rv05_manual</code> number.</p>
+<p>On the ranked hands the post-turn drift ranges from {K["RK_SETTLE_HI"]}&#176; to {K["RK_SETTLE_LO"]}&#176;: the hold improves the alignment on
+{K["RK_HELPED"]} of {K["RK_N"]} hands, and on the rest the shaft falls back out of the alignment the turn produced. The
+tilt is still changing at 900 steps on every hand, so the screened hold of 2,500 steps matters and the 150-step optimum
+of <code>rv05_manual</code> does not transfer.</p>
 
 <div class="tw"><table>
-<thead><tr><th>tag</th>{TH_RKH}<th class="num">settle</th></tr></thead>
+<thead><tr><th>Tag</th>{TH_RKH}<th class="num">Post-turn drift</th></tr></thead>
 <tbody>{t_rkh}</tbody></table></div>
 
-<p class="sub">tilt from vertical after N settling steps, degrees, mean of 5 seeds</p>
+<p class="sub">Tilt from vertical after N hold steps, in degrees, mean of 5 seeds</p>
 
-<figure>{c_rk}<figcaption>The three hands that bracket the behaviour, of the {K["RK_N"]} in the
-table above: the largest settle toward vertical, the flattest, and the one that falls back out.
-The curves do not share a shape, so settling time is not a control that transfers.</figcaption>
+<figure>{c_rk}<figcaption>Tilt against hold length for three of the {K["RK_N"]} hands: the largest drift toward
+vertical, the flattest, and the one that falls back out.</figcaption>
 </figure>
 
-<h3>Neither knob controls it</h3>
+<h3>Load regulator and squeeze</h3>
 
-<p>The deployed maneuver already closes one loop: a regulator that trims each finger's flexion to
-hold its share of the servo load, active only in the hold phase. Turning it off moves the settled
-tilt by at most {K["RK_REGMAX"]}&#176; on any hand. The settle is gravity acting through a grip
-that has decayed, and the one controller in the maneuver does not reach it.</p>
+<p>The deployed maneuver has one feedback loop: a regulator that trims each finger&rsquo;s flexion to hold its share of
+the servo load, active only in the hold. Switching it off moves the tilt after the hold by at most
+{K["RK_REGMAX"]}&#176; on any hand. The post-turn drift is gravity acting through a grip that has weakened, and the
+regulator does not change it.</p>
 
 <div class="pair"><div class="tw"><table>
-<thead><tr><th>tag</th><th class="num">regulator on</th><th class="num">off</th>
+<thead><tr><th>Tag</th><th class="num">Regulator on</th><th class="num">Off</th>
 <th class="num">&Delta;</th></tr></thead>
 <tbody>{t_rko}</tbody></table></div>
 <div class="tw"><table>
-<thead><tr><th>tag</th><th class="num">no squeeze</th><th class="num">0.5&nbsp;mm</th>
+<thead><tr><th>Tag</th><th class="num">No squeeze</th><th class="num">0.5&nbsp;mm</th>
 <th class="num">1&nbsp;mm</th><th class="num">2&nbsp;mm</th></tr></thead>
 <tbody>{t_rkq}</tbody></table></div></div>
 
-<p>Re-gripping at the top of the turn is the other candidate, and it is the one claim that
-survives from the single-hand study: 2&nbsp;mm of extra closure leaves every hand further from
-vertical than no squeeze at all. It does not destroy the maneuver the way it did on the chain
-&mdash; all five seeds still complete on every hand &mdash; it just gives up alignment. The
-fingers turn the shaft by letting it roll, and a tighter grip removes the rolling.</p>
+<p>Re-gripping at the top of the turn gives the result it gave on <code>rv05_manual</code>: 2&nbsp;mm of extra closure
+leaves every hand further from vertical than no squeeze. On the chain the squeeze stopped every seed from completing;
+here all five seeds complete on every hand, with worse alignment. The fingers turn the shaft by letting it roll, and a
+tighter grip stops the rolling.</p>
 
-<h3>The legacy family, and why a tilt number needs a contact gate</h3>
+<h3>Five-design family and the contact gate on tilt</h3>
 
-<p>The first version of this section ran <code>results/phase1/real_v1/rv0*</code> through the
-chain instead. That is the five-design screening family, not the ranked population, and the chain
-is not the maneuver any of them was screened on; the table is kept because of what it showed
-about the measurement. Of {K["MH_N"]} legacy designs only {K["MH_HELD"]} were still holding the
-tool at the last commanded turn step and {K["MH_CHAIN"]} finished the chain in any seed.</p>
-
-<div class="callout"><div class="lab">why the seam needs a contact gate</div>
-<p>In {K["MH_FALSE_N"]} of 8 seeds <code>rv04_mid_sp40</code> reaches that seam with zero pads on
-the tool and the tool sitting at z&nbsp;=&nbsp;{K["MH_FALSE_Z"]}&nbsp;mm, the depth of the
-countersink. It dropped the shaft during the turn and the shaft landed in its seat, which is
-vertical by construction, so the seam reads {K["MH_FALSE_MIN"]}&#176; of tilt at best and
-{K["MH_FALSE"]}&#176; on average &mdash; a better number than the hand that actually turned it.
-Every tilt in this page is therefore gated on the hand still carrying the tool clear at that
-step, and the bench&rsquo;s AprilTag read needs the same gate: a seated tool and a held one are
-equally vertical to the camera.</p></div>
+<p>An earlier version of this section ran the five-design family <code>results/phase1/real_v1/rv0*</code> through
+the chain: {K["MH_HELD"]} of {K["MH_N"]} designs still held the tool at the last turn step and {K["MH_CHAIN"]} finished
+the chain in any seed. In {K["MH_FALSE_N"]} of 8 seeds <code>rv04_mid_sp40</code> reaches the <code>turned</code> checkpoint with no pad on the
+tool and the tool at z&nbsp;=&nbsp;{K["MH_FALSE_Z"]}&nbsp;mm, the depth of the countersink. It dropped the shaft during
+the turn and the shaft landed in its seat, which is vertical by construction, so the checkpoint reads
+{K["MH_FALSE_MIN"]}&#176; of tilt at best and {K["MH_FALSE"]}&#176; on average, better than the hand that turned the
+tool. Every tilt on this page is therefore counted only while two pads hold the tool clear, and the bench tracker needs
+the same gate: a seated tool and a held one look equally vertical to the camera.</p>
 
 <div class="tw"><table>
-<thead><tr><th>design</th><th class="num">holds</th><th class="num">pad force (N)</th>
-<th class="num">tilt (&#176;)</th><th class="num">sd</th>
-<th class="num">best settled (&#176;)</th><th class="num">chain</th></tr></thead>
+<thead><tr><th>Design</th><th class="num">Held at the turn</th><th class="num">Pad force (N)</th>
+<th class="num">Tilt (&#176;)</th><th class="num">SD</th>
+<th class="num">Best after the hold (&#176;)</th><th class="num">Chain</th></tr></thead>
 <tbody>{t_mh}</tbody></table></div>
 </div></section>
 
 <section><div class="col">
-<h2>What load it can drive</h2>
-<p class="sub">a Coulomb brake about the tool's own axis, armed once the tool is seated</p>
+<h2>Load torque the gait can drive</h2>
+<p class="sub">A Coulomb brake about the tool&rsquo;s own axis, active once the tool is seated</p>
 
-<p>A countersink is a friction brake, not a thread: it returns &mu;<i>Nr</i> and the press sets
-<i>N</i> through the wedge, so the resisting torque a gaiting hand has ever worked against is
-whatever the geometry supplied &mdash; about 7&nbsp;mN&middot;m on a flat plane.
-<code>--screw-torque</code> adds a named one, opposing whatever rotation there is and doing no
-work when the tool is still.</p>
+<p>A countersink acts as a friction brake: it returns &mu;<i>Nr</i>, and the press sets <i>N</i> through the wedge, so
+the resisting torque in every earlier gait was whatever the geometry supplied, about 7&nbsp;mN&middot;m on a flat plane.
+<code>--screw-torque</code> adds a set torque that opposes any rotation and does no work when the tool is still.</p>
 
 <div class="tw"><table>
-<thead><tr><th class="num">torque (mN&middot;m)</th><th class="num">relay</th>
-<th class="num">release</th><th class="num">relay deg/cy</th>
-<th class="num">release, % uncontacted</th></tr></thead>
+<thead><tr><th class="num">Torque (mN&middot;m)</th><th class="num">Relay</th>
+<th class="num">Release</th><th class="num">Relay deg/cy</th>
+<th class="num">Release, % uncontacted</th></tr></thead>
 <tbody>{t_tq}</tbody></table></div>
 
-<figure>{c_tq}<figcaption>At the published 0.3&nbsp;mm grip the relay drives
-{tq[(0.004, "relay")]["deg"]:.0f}&nbsp;deg/cycle against 4&nbsp;mN&middot;m and starts losing
-seeds by 8.</figcaption></figure>
+<figure>{c_tq}<figcaption>At the published 0.3&nbsp;mm grip the relay turns the tool
+{tq[(0.004, "relay")]["deg"]:.0f}&nbsp;deg/cycle against 4&nbsp;mN&middot;m and starts losing seeds at
+8&nbsp;mN&middot;m.</figcaption></figure>
 
-<p>Raising the commanded grip does not extend that. Crossing torque with
-<code>--carry-squeeze</code> on one scene, 0.8&nbsp;mm is worse than 0.3 at every torque
-including zero, because on a stiff wrist the extra closure is interference rather than
-compensation.</p>
+<p>A larger commanded grip does not raise that limit. With torque crossed with <code>--carry-squeeze</code> on one
+scene, 0.8&nbsp;mm completes fewer seeds than 0.3&nbsp;mm at every torque including zero, as in the grip sweep
+above.</p>
 
 <div class="tw"><table>
-<thead><tr><th class="num">torque (mN&middot;m)</th><th class="num">0.3 mm grip</th>
-<th class="num">deg/cy</th><th class="num">0.8 mm grip</th><th class="num">deg/cy</th></tr></thead>
+<thead><tr><th class="num">Torque (mN&middot;m)</th><th class="num">0.3 mm grip</th>
+<th class="num">Deg/cy</th><th class="num">0.8 mm grip</th><th class="num">Deg/cy</th></tr></thead>
 <tbody>{t_tqg}</tbody></table></div>
 
-<p>On the sagging arm the same relay ran flat to 20&nbsp;mN&middot;m at 1.5&nbsp;mm of commanded
-grip. Both cells are the same fingers on the same seat, and they differ in commanded
-interference, achieved pad force and wrist stiffness at once, so they do not compare as grip
-settings. What separates them is pad force, which this chain commands open-loop and never
-measures &mdash; the drivable torque cannot be quoted as a number for this hand until it
-does.</p>
+<p>On the sagging arm the same relay kept its rate up to 20&nbsp;mN&middot;m at 1.5&nbsp;mm of commanded grip. The
+two arms differ in pad force and wrist stiffness at once, and the chain does not measure pad force, so the drivable
+torque of this hand has no number yet.</p>
 
-<div class="callout"><span class="tag">The knob's validity, and its bench equivalent</span>
-<p>The tool is 24&nbsp;g with an axial inertia of 1.9&times;10<sup>-6</sup>&nbsp;kg&middot;m&sup2;,
-so a brake much past 20&nbsp;mN&middot;m can overshoot zero inside a timestep and pump the shaft
-instead of stopping it. That reads as a turn past the 1.684 gear ceiling and is flagged per
-rollout; {K["PUMPED"]} cells trip it here ({K["PUMPED_AT"]}), which marks where the range ends. On
-the bench a cone cannot supply a set torque at all &mdash; the only knobs are the press and the
-seat material. A calibrated one needs a brake under the receptacle: the socket on a short shaft
-in a bushing with a preloaded friction washer, and the preload screw sets a direction-independent
-torque a wrench can read.</p></div>
+<div class="callout"><span class="tag">Range of the brake and a bench equivalent</span>
+<p>The tool is 24&nbsp;g with an axial inertia of 1.9&times;10<sup>&#8722;6</sup>&nbsp;kg&middot;m&sup2;, so a brake
+much above 20&nbsp;mN&middot;m can overshoot zero inside a timestep and pump the shaft. A pumped rollout (shaft turning up to
+&plusmn;450&nbsp;deg/cycle) is flagged; {K["PUMPED"]} cells trip the flag here ({K["PUMPED_AT"]}), the end of the valid
+range. On the bench a cone cannot supply a
+set torque, and the press and the seat material are the only settings. A calibrated brake needs the socket on a short
+shaft in a bushing with a preloaded friction washer, whose preload screw sets a torque a wrench can read.</p></div>
 </div></section>
 
 <section><div class="col">
-<h2>Next measurements</h2>
+<h2>Future work</h2>
 
 <ol>
-<li><b>Take the settle to the bench on <code>w5120_b070</code> and
-<code>u5860_b070</code>.</b> They are the two ends of it: {rk_s[(RPICK[0], 0)]["turn"]:.0f}&#176;
-&rarr; {rk_s[(RPICK[0], 2500)]["fin"]:.0f}&#176; over the hold on one, and
-{rk_s[(RPICK[2], 0)]["turn"]:.0f}&#176; &rarr; {rk_s[(RPICK[2], 2500)]["fin"]:.0f}&#176; the wrong
-way on the other, from the same commanded schedule. Both have exported plans, the vane tag reads
-this rotation directly at 0.017&#176; rms, and the prediction is a signed 30&#176; difference
-&mdash; large enough that the bench either confirms the mechanism or kills it. This is the only
-item here that a hardware run can settle.</li>
+<li><b>Bench the post-turn drift on <code>w5120_b070</code> and <code>u5860_b070</code></b>, the two ends of its range:
+{rk_s[(RPICK[0], 0)]["turn"]:.0f}&#176; &rarr; {rk_s[(RPICK[0], 2500)]["fin"]:.0f}&#176; over the hold on one and
+{rk_s[(RPICK[2], 0)]["turn"]:.0f}&#176; &rarr; {rk_s[(RPICK[2], 2500)]["fin"]:.0f}&#176; on the other, from the same
+commanded schedule. Both have exported plans, and the vane tag reads this rotation at 0.017&#176; rms. The simulation
+predicts a signed difference of 30&#176;; a bench difference near zero refutes the mechanism.</li>
 
-<li><b>Sweep the settle across the 227 confirmed hands, not the 8 promoted ones.</b> The eight
-were promoted on clearance and servo limits, and they are a concentrated set: the settle ranges
-over 46&#176; inside them, which says nothing about how it is distributed over the population the
-study samples. The screen costs about three seconds a rollout and the confirmed table is already
-on disk, so this is one overnight job, and it is what would turn the settle from an observation
-into a design variable.</li>
+<li><b>Sweep the post-turn drift over the 227 confirmed hands</b> with the screen (about 3&nbsp;s a rollout, one
+overnight job). The eight promoted hands span 46&#176; of drift; the sweep shows whether the drift can be a design
+variable.</li>
 
-<li><b>Put the contact gate in every tilt report.</b> A tool dropped into a countersink reads
-vertical, and <code>rv04_mid_sp40</code> scores better than <code>rv05_manual</code> on tilt
-alone. <code>held_turn</code> (two pads, tool above 80&nbsp;mm) is one line in
-<code>probe_real_v1_chain</code>; the same substitution belongs in the scorecard and in the
-bench&rsquo;s AprilTag read, where a seated tool and a held one are equally vertical to the
-camera.</li>
+<li><b>Gate every tilt report on contact</b>: add <code>held_turn</code> (two pads, tool above 80&nbsp;mm, one line in
+<code>probe_real_v1_chain</code>) to the scorecard and to the bench tracker&rsquo;s tilt read.</li>
 
-<li><b>Cross the thread load with the grip.</b> The drivable torque moved from 4&ndash;12 to
-20&nbsp;mN&middot;m when the commanded grip went 0.3&nbsp;&rarr;&nbsp;1.5&nbsp;mm, but those two
-cells also differ in wrist stiffness. Run <code>--screw-torque</code> &times;
-<code>--carry-squeeze</code> on one scene and report torque per millimetre of commanded
-interference; that is the number a fastener spec would be checked against.</li>
+<li><b>Cross <code>--screw-torque</code> with <code>--carry-squeeze</code></b> on one scene and report the drivable
+torque per millimetre of commanded interference; the change from 4&ndash;12 to 20&nbsp;mN&middot;m between the two arms
+mixes grip with wrist stiffness.</li>
 
-<li><b>Close the grip loop.</b> Pad force is commanded minus achieved, the finger servos
-calibrate to one spring constant across the hand, and position is readable at the control rate.
-Estimate force from deflection and trim <code>--carry-squeeze</code> to hold a target rather than
-searching for an open-loop value that depends on the robot. This is the only item above that
-removes a whole class of sweep.</li>
+<li><b>Close the grip loop.</b> The finger servos share one spring constant and their positions are readable at the
+control rate, so pad force can be estimated from deflection and <code>--carry-squeeze</code> trimmed to a force
+target.</li>
 
-<li><b>Run the relay's Cartesian legs through the gates.</b>
-<code>scripts/real_v1_trajectory_clearance.py</code> and the servo-limit check, then export a
-plan. It is a new path shape, and three of the four plans that have reached the control station
-failed exactly that check.</li>
+<li><b>Run the relay&rsquo;s Cartesian legs through <code>scripts/real_v1_trajectory_clearance.py</code></b> and the
+servo-limit check before exporting a plan; three of the four plans that reached the control station failed the
+clearance check.</li>
 
-<li><b>Build the tag collar for the gait.</b> Three AprilTags at 120&#176; on a
-60&nbsp;mm printed collar above the pad ring, so the one camera reads the spin through a full
-turn instead of the &plusmn;60&#176; a single tag covers. <code>morphohand.bench.tags</code>
-already carries the geometry for a vane; the collar is the same maths with an ID lookup and an
-unwrap.</li>
-
-<li><b>Instrument the axial slip.</b> The floor-free relay holds the tool for every cycle and
-lowers it 11&nbsp;mm per cycle; <code>slip_mm_per_cycle</code> reports it and no reward term,
-scorecard entry or design metric on either topology does. Add it to the scorecard before
-attempting a persistent-grasp gait.</li>
+<li><b>Add <code>slip_mm_per_cycle</code> to the scorecard</b> before attempting a gait that keeps the grasp; the
+floor-free relay lowers the tool 11&nbsp;mm per cycle and no metric reports it.</li>
 </ol>
 </div></section>
 """
