@@ -120,10 +120,10 @@ GLOSSARY = [
     ("voxel size", "Grid spacing of the signed-distance fields from which Newton builds each shape&#8217;s pressure field; 0.5&#8202;mm "
               "unless stated."),
     ("approach \\(\\delta\\)", "Distance the pad centre has moved toward the tool past first touch, in mm."),
-    ("force at the law&#8217;s approach", "The pad placed at the approach at which the pressure law carries \\(N\\), and the force "
+    ("force at the law&#8217;s approach", "The pad placed at the approach at which the pressure law gives \\(N\\), and the force "
               "along the pinch axis that each model&#8217;s contact law gives there, with no solver dynamics and no friction; over "
               "\\(N\\). The law gives 1."),
-    ("patch half-length", "Largest distance along the edge (world \\(y\\)) of a contact carrying over 1&#8202;% of the largest, in mm."),
+    ("patch half-length", "Largest distance along the edge (world \\(y\\)) of a contact with over 1&#8202;% of the largest force, in mm."),
     ("relaxation time \\(t_r\\)", "Drake&#8217;s dissipation time for hydroelastic contact, 10&#8202;ms on the bed."),
 ]
 
@@ -393,8 +393,8 @@ def reduction(tw, st, brk, bed):
         txt.append(f"<p>Finer or coarser voxels keep the reduced arm short: at 0.25 and 1&#8202;mm the onset arm is "
                    f"{lo:.2f}&#8211;{hi:.2f} of the law over 0.5&#8211;3&#8202;N, and the static arm at 0.5&#8202;N is "
                    f"{v['newton_hydro_mc_vox025']['rbar_law_L_mm']:.3f} and {v['newton_hydro_mc_vox1']['rbar_law_L_mm']:.3f}&#8202;mm "
-                   f"against {r_[0.5]['rbar_law_L_mm']:.3f} at 0.5&#8202;mm. The voxel size moves which faces the reduction keeps, not the "
-                   "pressure field&#8217;s arm.</p>")
+                   f"against {r_[0.5]['rbar_law_L_mm']:.3f} at 0.5&#8202;mm. The voxel size changes which faces the reduction keeps and "
+                   "leaves the pressure field&#8217;s arm unchanged.</p>")
     bl = [(lab, pick(brk, m)) for m, lab in RED if ok(pick(brk, m))]
     if bl:
         txt.append("<p>Task&#160;5 largest swing at \\(t_f\\) = 3.9&#8202;ms: " +
@@ -511,9 +511,9 @@ def edge(kin, st, tw, probe):
                     f"{pd[0]['F_x_over_law']:.2f}, {pd[1]['F_x_over_law']:.2f} and {pd[2]['F_x_over_law']:.2f} of it at 0.5, 1 and "
                     f"3&#8202;N: a pad sphere of radius 0.75&#8202;mm touches the edge over &#177;"
                     f"{math.sqrt(0.75 ** 2 - (0.75 - laws[1.0]['delta'] * 1e3) ** 2):.2f}&#8202;mm across it at 1&#8202;N and pushes along "
-                    f"the line from the edge to its centre, so each sphere near the edge carries its full share of pad area where the "
+                    f"the line from the edge to its centre, so each sphere near the edge takes its full share of pad area where the "
                     f"law loads a strip {math.sqrt(2) * laws[1.0]['delta'] * 1e3:.2f}&#8202;mm wide on each face. The excess falls as "
-                    "the edge sinks past the sphere radius and the faces carry the load (Table&#160;3, Figure&#160;3).</p>")
+                    "the edge sinks past the sphere radius and the faces bear the load (Table&#160;3, Figure&#160;3).</p>")
     v25 = [pick(kin, "newton_hydro_unreduced_mc_bar_vox025", N=N) for N in (0.5, 1.0, 3.0)]
     v1 = [pick(kin, "newton_hydro_unreduced_mc_bar_vox1", N=N) for N in (0.5, 1.0, 3.0)]
     if all(nu) and all(nr) and all(v25) and all(v1):
@@ -554,7 +554,7 @@ def edge(kin, st, tw, probe):
         para2.append(f"<p>Held at N with &#956; = 1, the pads come to rest short of the law&#8217;s approach: Drake at "
                      f"{sd[1]['pen_mm']:.3f}&#8202;mm and the pads at {sp[1]['pen_mm']:.3f}&#8202;mm for 1&#8202;N against the law&#8217;s "
                      f"{laws[1.0]['delta'] * 1e3:.3f}. The faces meet the pinch axis at 45&#176;, the friction angle of &#956; = 1, so "
-                     f"friction along the faces can hold the pad wherever it stops: in Drake the pressure carries "
+                     f"friction along the faces can hold the pad wherever it stops: in Drake the pressure supports "
                      f"{rng(sh, 100)}&#8202;% of the pinch force at 0.5&#8211;3&#8202;N and friction the rest. The settled "
                      "approach and the patch it gives then depend on how each model&#8217;s friction lets the pad creep in, which is "
                      "why Table&#160;3 compares the contact laws at a set approach.</p>")
@@ -599,10 +599,10 @@ def open_items():
          "faces unloaded. Rerun <code>contact_bed_newton.py static --models newton_hydro_unreduced_mc --N 3</code> with 500 solver "
          "iterations and a sparse Jacobian; an approach that returns to 0.363&#8202;mm puts the shortfall in the solve."),
         ("Voxel size on the hand.", "On the edge Newton needs 0.25&#8202;mm voxels to come within 17&#8202;% of the law&#8217;s force. "
-         "The printed fingertip&#8217;s 2.7&#8202;mm fillets and the screwdriver are curved, not sharp; set <code>SDF_VOXEL</code> in "
+         "The printed fingertip&#8217;s 2.7&#8202;mm fillets and the screwdriver are curved; set <code>SDF_VOXEL</code> in "
          "<code>scripts/newton_turn.py</code> to 0.25&#8202;mm and rerun the 40 placements of the three-finger turn: a turn that "
          "changes by more than its 0.5&#8202;mm run-to-run spread puts the hand&#8217;s Newton result in the voxel size."),
-        ("Pad resolution on an edge.", "The 1&#8202;mm pads carry 2&#215; the law&#8217;s force on the edge at 0.5&#8202;N. Run "
+        ("Pad resolution on an edge.", "The 1&#8202;mm pads give 2&#215; the law&#8217;s force on the edge at 0.5&#8202;N. Run "
          "<code>contact_bed_edge.py kinematic</code> with a 0.5&#8202;mm pad (spec <code>mj:spheres:s0.5:rs0.375:ir100:tr0.03:bar20</code>): "
          "the excess should scale with the sphere radius if it is the rounding of the edge."),
         ("Drake&#8217;s dissipation on inclined faces.", "Repeat task&#160;2 on the bar in Drake at \\(t_r\\) = 1, 3, 10, 30 and 100&#8202;ms; an "
@@ -623,18 +623,8 @@ def lede(brk, st, tw, kin, bed):
                      f"instead of swinging to {b[KF10_TF]['phi_max_deg']:.0f}&#176; at the default 3.9&#8202;ms.")
     s1, r1 = pick(st, "newton_hydro_unreduced_mc", N=1.0, dt_ms=1.0), pick(st, "newton_hydro_mc", N=1.0, dt_ms=1.0)
     if s1 and r1:
-        parts.append(f"Its pressure field gives the law&#8217;s friction arm (0.973 against 0.974&#8202;mm at 1&#8202;N over all faces); "
-                     f"the contact reduction cuts it to {r1['rbar_law_L_mm']:.3f}&#8202;mm, which is the 12&#8211;23&#8202;% torque deficit.")
-    dk = [pick(kin, "drake_hydro_bar", N=N) for N in (0.5, 1.0, 3.0)]
-    pd = [pick(kin, "mj_pads1_bar", N=N) for N in (0.5, 1.0, 3.0)]
-    if all(dk) and all(pd):
-        nu = [pick(kin, "newton_hydro_unreduced_mc_bar", N=N) for N in (0.5, 1.0, 3.0)]
-        v25 = [pick(kin, "newton_hydro_unreduced_mc_bar_vox025", N=N) for N in (0.5, 1.0, 3.0)]
-        parts.append(f"On a square edge Drake&#8217;s field matches the law within {max(abs(r['F_x_over_law'] - 1) for r in dk) * 100:.0f}&#8202;%; "
-                     f"the 1&#8202;mm pads, whose spheres press along the line from the edge, carry {pd[0]['F_x_over_law']:.1f}&#215; the "
-                     f"law&#8217;s force at 0.5&#8202;N and {pd[2]['F_x_over_law']:.2f}&#215; at 3&#8202;N"
-                     + (f"; Newton&#8217;s voxel field rounds the edge off and carries {nu[0]['F_x_over_law']:.2f}&#215; at 0.5&#8202;N with "
-                        f"0.5&#8202;mm voxels and {v25[0]['F_x_over_law']:.2f}&#215; with 0.25&#8202;mm" if all(nu) and all(v25) else "") + ".")
+        parts.append(f"Its pressure field gives the law&#8217;s friction arm (0.973 against 0.974&#8202;mm at 1&#8202;N); the contact "
+                     f"reduction cuts it to {r1['rbar_law_L_mm']:.3f}&#8202;mm, the 12&#8211;23&#8202;% torque deficit.")
     return " ".join(parts)
 
 
@@ -651,7 +641,7 @@ def main():
     brk, tw, pu, st = rows("brake_newton.jsonl"), rows("twist_slip_newton.jsonl"), rows("pull_slip_newton.jsonl"), rows("static_newton.jsonl")
     kin, est, etw, probe = rows("edge_kinematic.jsonl"), rows("edge_static.jsonl"), rows("edge_twist.jsonl"), rows("edge_twist_probe.jsonl")
     bed = {"brake": P.bed("brake"), "twist": P.bed("twist_slip"), "pull": P.bed("pull_slip")}
-    v = {"STYLE": P.style_block(), "BUILT": time.strftime("%Y-%m-%d %H:%M"), "NEWTON_REV": "009158e6", "BED_PATH": BED_PATH,
+    v = {"STYLE": P.style_block(), "BUILT": "2026-10-07 16:01", "NEWTON_REV": "009158e6", "BED_PATH": BED_PATH,
          "OVERVIEW_PATH": OVERVIEW_PATH}
     u = P.bed_url()
     v["BED_LINK"] = f", <a href=\"{u}\">artifact</a>" if u else ""
