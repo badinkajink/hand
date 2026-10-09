@@ -2,8 +2,12 @@
 
 Standing guidance for this repo is `CLAUDE.md`; read it first (hardware, compute safety, result pages, naming).
 
-Large files: media, data rows and detailed result pages under `docs/` are Git LFS files (`.gitattributes`); overview
-pages marked `!filter` there stay ordinary files. History before 2026-10-09 is in `badinkajink/hand-archive`.
+Readable docs: open `docs/index.html` in a browser; it links the topic overviews `docs/overviews/<topic>.html` (stable
+undated names) and they link the dated result pages. `webpaper/` is retired.
+
+Large files: media, data rows and detailed result pages under `docs/` are Git LFS files (`.gitattributes`); the home
+page, the overviews and the pages marked `!filter` there stay ordinary files. History before 2026-10-09 is in
+`badinkajink/hand-archive`.
 
 ## Writing
 

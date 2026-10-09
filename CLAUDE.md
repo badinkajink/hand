@@ -100,9 +100,10 @@ The pattern, followed by every page in `docs/experiments/INDEX.md`:
    first. Update it whenever a page is published or renamed.
 4. **The artifact**, a copy of that file published to claude.ai. Updating a page means editing
    the local file and republishing to the **same URL** — never a second artifact for one result.
-   The contact-model overview is the exception on the file side (owner, 2026-10-07): each revision
-   is a new dated file built by the same builder from the previous revision's content, published
-   to the overview's one artifact; INDEX.md keeps a row per file with that URL.
+   The home page `docs/index.html` and the topic overviews `docs/overviews/<topic>.html` are the
+   exception on the file side (owner, 2026-10-09): stable undated names, ordinary git files, their
+   revisions kept in git history, one artifact each. The contact overview's dated revisions of
+   2026-10-05 to 10-09 stay in `docs/experiments/` as snapshots.
 
 **Always quote the local path next to the URL, in the same sentence.** The user will not accept
 results that live only on claude.ai. Titles are descriptive noun phrases in the style of
@@ -115,14 +116,13 @@ centred and chart text is at least 13 px as displayed.
 
 ## Documentation — where things go (keep all three in sync for real work)
 
-- **`webpaper/` (Typst → HTML) = the canonical readable doc**, tutorial-style: *foundation →
-  experimentation → results → analysis*. Critical narrative in the main flow; comprehensive details
-  in **collapsible dropdowns** via `#det(summary, body, kind: "…", open: false)` (there's a
-  "full-paper" toggle that opens all). Pillars: `morphology.typ`, `rl.typ`, `hardware.typ`. Build:
-  `webpaper/build.sh`. Authoring gotchas: compile needs `--features html`; inline math must be
-  **Unicode prose** (bare `$…$` is dropped; only *display* `$ … $` survives); never put raw
-  `_ * ^ ` in prose (Typst markup breaks compile); sources must live under `$HOME` (Typst is
-  snap-confined). Helpers: `#media`, `#fig`, `#callout`.
+- **`docs/index.html` = the readable docs** (owner, 2026-10-09): the home page links the topic
+  overviews `docs/overviews/<topic>.html`, and they link the dated result pages. A visitor opens it
+  in a browser from a clone; nothing is served or built. Every page under `docs/` must open from
+  the file system: relative links, media inlined as data URIs, no `fetch()` of data files. The home
+  page and the overviews are ordinary git files and open in a plain clone; the result pages are LFS
+  files. `webpaper/`, the earlier Typst site, is retired: nothing new goes into it, and it moves to
+  `docs/archive/webpaper/`.
 - **LaTeX papers** (`paper/main.tex` = simulation/morphology stack; `hand_paper/main.tex` =
   hardware). Split content **main body vs appendix**; since results are still preliminary/negative,
   detailed sweeps + variance characterization go in the **appendix**, methodology + the durable
