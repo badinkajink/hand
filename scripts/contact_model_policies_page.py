@@ -380,10 +380,11 @@ def svg_transfer(X: Data):
     if not X.tr and not X.rep:
         return P.pending("Transfer matrix and replays not written yet (transfer.jsonl, policy_replay.jsonl).")
     cols = [("mjw", s) for s in SCENES] + [("rep", e) for e in ENGINES]
+    pol = sorted({(r["arm"], r["tag"]) for r in X.fin}, key=lambda p: (ARMS.index(p[0]), p[1]))
     W = 990
-    cw, ch, x0, y0 = 96, 58, 190, 70
-    H = y0 + ch * len(ARMS) + 20
-    out = P._svg_open(W, H, "Held fraction of every training arm's final policies evaluated under each contact model in "
+    cw, ch, x0, y0 = 96, 46, 190, 70
+    H = y0 + ch * len(pol) + 6 * (len({a for a, _ in pol}) - 1) + 20
+    out = P._svg_open(W, H, "Held fraction of every final policy evaluated under each contact model in "
                             "MuJoCo-Warp and replayed open loop in CPU MuJoCo, Drake and Newton")
     for j, (kind, s) in enumerate(cols):
         cx = x0 + j * cw + (24 if kind == "rep" else 0)
@@ -392,37 +393,40 @@ def svg_transfer(X: Data):
     nr = sorted({r["n"] for r in X.tr})
     rl = f"{nr[0]}" if len(nr) == 1 else (f"{nr[0]}&#8211;{nr[-1]}" if nr else "&#8211;")
     out.append(f'<text x="{x0 + 2.5 * cw:.1f}" y="{y0 - 34}" text-anchor="middle" style="fill:var(--ink)">'
-               f'MuJoCo-Warp, closed loop, {rl} rollouts per seed</text>')
-    fin = {r["tag"] for r in X.fin}
-    nw = sorted({len([r for r in X.rep if r["dir"] == d and r["engine"] == e and r.get("hold_test_s") is None])
-                 for d in fin for e in ENGINES} - {0})
+               f'MuJoCo-Warp, closed loop, {rl} rollouts</text>')
+    nw = sorted({len([r for r in X.rep if r["dir"] == t and r["engine"] == e and r.get("hold_test_s") is None])
+                 for _, t in pol for e in ENGINES} - {0})
     wl = f"{nw[0]}" if len(nw) == 1 else (f"{nw[0]}&#8211;{nw[-1]}" if nw else "&#8211;")
     out.append(f'<text x="{x0 + 5 * cw + 24 + 1.5 * cw:.1f}" y="{y0 - 34}" text-anchor="middle" style="fill:var(--ink)">'
-               f'open-loop replay, {wl} worlds per seed</text>')
-    for i, arm in enumerate(ARMS):
-        cy = y0 + i * ch
+               f'open-loop replay, {wl} worlds</text>')
+    cy, prev = y0 - ch, None
+    for arm, tag in pol:
+        cy += ch + (6 if prev and arm != prev else 0)
+        prev = arm
         out.append(f'<text x="{x0 - 12}" y="{cy + ch / 2 + 4:.1f}" text-anchor="end" style="fill:var(--ink2)">'
-                   f'trained: {SHORT[arm]}</text>')
+                   f'{SHORT[arm]} s{tag[-1]}</text>')
+        out.append(f'<rect x="{x0 - 8}" y="{cy + 6}" width="4" height="{ch - 12}" style="fill:{COL[arm]}"/>')
         for j, (kind, s) in enumerate(cols):
             cx = x0 + j * cw + (24 if kind == "rep" else 0)
             if kind == "mjw":
-                rs = [r for r in X.tr if r["arm"] == arm and r["scene"] == s]
+                rs = [r for r in X.tr if r["tag"] == tag and r["scene"] == s]
                 nh, nn = sum(r["n_held"] for r in rs), sum(r["n"] for r in rs)
                 hc = [r["held_cos_mean"] for r in rs if r.get("held_cos_mean") is not None]
             else:
-                rs = X.replays(arm, s)
+                rs = [r for r in X.replays(arm, s) if r["dir"] == tag]
                 nh, nn = sum(1 for r in rs if r.get("held_end")), len(rs)
                 hc = [r["cos_end"] for r in rs if r.get("held_end")]
             v = nh / nn if nn else None
             fill, ink = _hm_class(v)
             own = kind == "mjw" and s == arm
             out.append(f'<rect x="{cx + 2}" y="{cy + 2}" width="{cw - 4}" height="{ch - 4}" rx="4" style="fill:{fill};'
-                       f'stroke:{"var(--ink)" if own else "none"};stroke-width:2"><title>{SHORT[arm]} on '
+                       f'stroke:{"var(--ink)" if own else "none"};stroke-width:2"><title>{SHORT[arm]} s{tag[-1]} on '
                        f'{SHORT.get(s, s)}: held {nh}/{nn}{", held cos %.3f" % np.mean(hc) if hc else ""}</title></rect>')
             if nn:
+                lab = f"{100 * v:.0f}%" if kind == "mjw" else f"{nh}/{nn}"
                 out.append(f'<text x="{cx + cw / 2:.1f}" y="{cy + ch / 2 - 2:.1f}" text-anchor="middle" style="fill:{ink};'
-                           f'font-size:13px;font-weight:500">{100 * v:.0f}%</text>')
-                out.append(f'<text x="{cx + cw / 2:.1f}" y="{cy + ch / 2 + 14:.1f}" text-anchor="middle" style="fill:{ink};'
+                           f'font-size:13px;font-weight:500">{lab}</text>')
+                out.append(f'<text x="{cx + cw / 2:.1f}" y="{cy + ch / 2 + 13:.1f}" text-anchor="middle" style="fill:{ink};'
                            f'font-size:11px">{("cos %.2f" % np.mean(hc)) if hc else "&#8211;"}</text>')
     out.append("</svg>")
     return "".join(out)
@@ -1177,8 +1181,9 @@ def final_section(X: Data):
 
 
 def transfer_section(X: Data):
-    cap = ("Transfer of the final policies. Cell: rollouts held at the end (load test), pooled over seeds, and the mean "
-           "final cosine of the held ones; outlined, the contact model the policy trained on. "
+    cap = ("Transfer of the final policies, one row per contact model and seed. Cell: the share of rollouts held at the end "
+           "(load test; for the replays, worlds held of worlds replayed) and the mean final cosine of the held ones; "
+           "outlined, the contact model the policy trained on. "
            "Left: closed-loop evaluation in MuJoCo-Warp under every contact model "
            "(the condim-4 TPU mesh was not trained). Right: open-loop replay of the recorded finger targets from the onset "
            "of the turn in CPU MuJoCo (each arm&#8217;s own tips), Drake and Newton (the TPU block as a hydroelastic tip; "
@@ -1203,22 +1208,42 @@ def replay_stats(X: Data, arms, engine):
     return fall, dcos
 
 
+TPU_SCENES = ("tpu27mesh", "tpu27meshc4", "tpu27pads1", "tpu27skin")
+
+
+def tpu_transfer(X: Data, arm):
+    """(held, rollouts, {seed: (held, rollouts)}) of an arm's final policies evaluated closed loop in MuJoCo-Warp under
+    the contact models of the TPU block other than their own, or None before the matrix is complete."""
+    rs = [r for r in X.tr if r["arm"] == arm and r["scene"] in TPU_SCENES and r["scene"] != arm]
+    if len(rs) < len(X.finals(arm)) * (len(TPU_SCENES) - (arm in TPU_SCENES)):
+        return None
+    per = {}
+    for r in rs:
+        h, n = per.get(r["seed"], (0, 0))
+        per[r["seed"]] = (h + r["n_held"], n + r["n"])
+    return sum(r["n_held"] for r in rs), sum(r["n"] for r in rs), per
+
+
 def transfer_text(X: Data):
     """Sentences on the transfer matrix (MuJoCo-Warp, other contact models) and the replays, from the rows."""
     out = []
-    if X.tr:
-        def pooled(arms, own):
-            rs = [r for r in X.tr if r["arm"] in arms and ((r["scene"] == r["arm"]) == own)]
-            n = sum(r["n"] for r in rs)
-            return (sum(r["n_held"] for r in rs), n) if n else None
-        c_own, c_oth = pooled(("tpu27pads1", "tpu27skin"), True), pooled(("tpu27pads1", "tpu27skin"), False)
-        p_own, p_oth = pooled(("box", "tpu27mesh"), True), pooled(("box", "tpu27mesh"), False)
-        if c_oth and p_oth:
-            out.append(f"Under the other contact models in MuJoCo-Warp the compliant-tip policies held "
-                       f"{c_oth[0]}/{c_oth[1]} rollouts ({100 * c_oth[0] / c_oth[1]:.0f}&#8202;%; "
-                       f"{100 * c_own[0] / c_own[1]:.0f}&#8202;% under their own) and the point-contact policies "
-                       f"{p_oth[0]}/{p_oth[1]} ({100 * p_oth[0] / p_oth[1]:.0f}&#8202;%; "
-                       f"{100 * p_own[0] / p_own[1]:.0f}&#8202;% under their own).")
+    T = {a: tpu_transfer(X, a) for a in ARMS}
+    if all(T.values()):
+        pc = lambda t, w="": f"{t[0]:,} of {t[1]:,}{w} ({100 * t[0] / t[1]:.0f}&#8202;%"  # noqa: E731
+        m = sorted(T["tpu27mesh"][2].items(), key=lambda kv: -kv[1][0])
+        ms = ", ".join(f"seed {s} {'held ' if k == 0 else ''}{h:,}" for k, (s, (h, n)) in enumerate(m))
+        box = [r for r in X.tr if r["scene"] == "box" and r["arm"] != "box"]
+        bh = {a: (sum(r["n_held"] for r in box if r["arm"] == a), sum(r["n"] for r in box if r["arm"] == a))
+              for a in ARMS if a != "box"}
+        held_box = [a for a, (h, n) in bh.items() if h > 0.25 * n]
+        out.append(f"Closed loop in MuJoCo-Warp under the other contact models of the TPU block, the skin policies held "
+                   f"{pc(T['tpu27skin'], ' rollouts')}), the pad policies {pc(T['tpu27pads1'])}) and the TPU-mesh "
+                   f"policies {pc(T['tpu27mesh'])}: {ms}). The box-tip policy held {pc(T['box'])}) on the TPU block, and on the box "
+                   f"tip, a different shape, " + (f"only the {' and '.join(SHORT[a] for a in held_box)} policies held more "
+                   f"than a quarter of the rollouts ("
+                   + (f"{bh[held_box[0]][0]} of {bh[held_box[0]][1]}" if len(held_box) == 1 else
+                      ', '.join(f'{SHORT[a]} {bh[a][0]} of {bh[a][1]}' for a in held_box)) + ")."
+                   if held_box else "no other policy held more than a quarter of the rollouts."))
     if X.rep:
         parts = []
         for arm in ARMS:
@@ -1313,6 +1338,14 @@ def lede(X: Data):
              f"1&#8202;mm sphere pads and on the pads mounted on a sprung skin kept the screwdriver in "
              f"{rc[0]} of {rc[1]} replays, and those trained with MuJoCo point contact on the box tip or the TPU block "
              f"mesh in {rp[0]} of {rp[1]}."]
+    T = {a: tpu_transfer(X, a) for a in ("tpu27mesh", "tpu27pads1", "tpu27skin")}
+    if all(T.values()):
+        pct = lambda h, n: f"{100 * h / n:.0f}&#8202;%"  # noqa: E731
+        ms = sorted(T["tpu27mesh"][2].values(), key=lambda v: -v[0])
+        parts.append(f"Closed loop in MuJoCo-Warp under the other contact models of the TPU block, the skin policies held "
+                     f"{pct(*T['tpu27skin'][:2])} of the rollouts, the pad policies {pct(*T['tpu27pads1'][:2])} and the "
+                     f"TPU-mesh policies {pct(*T['tpu27mesh'][:2])} ({' and '.join(pct(*v) for v in ms)} for its two "
+                     f"seeds).")
     WORD = {0: "no", 1: "one", 2: "two", 3: "three"}
     NAME = {"box": "box-tip", "tpu27mesh": "TPU-mesh", "tpu27pads1": "pad", "tpu27skin": "skin"}
     VERB = {"every rollout dropped": "dropping every rollout", "the tool shaken": "shaking the tool",
@@ -1348,16 +1381,15 @@ def lede(X: Data):
     hit = [g for g in (gp, gc) if g]
     parts.append("The stopping rule of the checkpoint watch (every watched checkpoint degenerate for 10&#8202;M steps) stops "
                  + (", and ".join(hit) if hit else "no run")
-                 + ("; " + " and ".join(miss) + (" meets it." if len(miss) == 1 else " meet it.") if miss else ".")
-                 + (f" {WORD.get(hind, hind).capitalize()} of these runs were watched only after they had trained to "
-                    "40&#8202;M steps; they meet the rule in hindsight, and their final policies are evaluated with the "
-                    "others." if hind else ""))
+                 + ("; " + " and ".join(miss) + (" meets it" if len(miss) == 1 else " meet it") if miss else "")
+                 + (f" ({WORD.get(hind, hind)} of these runs in hindsight: they were watched after training to "
+                    "40&#8202;M steps, and their final policies are kept)." if hind else "."))
     jp = [j for a in point for j in S[a]["jerk"]]
     jc = [j for a in comp for j in S[a]["jerk"]]
     if jp and jc:
-        parts.append(f"In the hold of the policies that finished, the mean change of the tool&#8217;s angular speed per step "
-                     f"is {_rng(jp, 0)}&#8202;rad/s&#178; with point contact and {_rng(jc, 0)}&#8202;rad/s&#178; with the "
-                     f"pads and the skin.")
+        parts.append(f"In the hold of the final policies the tool&#8217;s shaking is {_rng(jp, 0)}&#8202;rad/s&#178; with "
+                     f"point contact and {_rng(jc, 0)}&#8202;rad/s&#178; with the pads and the skin "
+                     f"(<code>trajectory_health</code> fails a policy above 40).")
     hb, hm, hp, hs = (S[a]["hcos"] for a in ARMS)
     parts.append(f"The point-contact policies turn further where they hold: final held cosine {_rng(hb)} for the box tip "
                  f"({S['box']['held']}/{S['box']['n']} rollouts held) and {_rng(hm)} for the TPU mesh, against "
