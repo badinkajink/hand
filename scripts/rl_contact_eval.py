@@ -263,6 +263,7 @@ class Evaluator:
             palm = np.zeros((T, N), bool)
             qpos = np.zeros((T, N, self.mjm.nq), np.float32)
             angv = np.zeros((T, N), np.float32)      # tool angular speed, rad/s
+            angw = np.zeros((T, N, 3), np.float32)   # tool angular velocity in world, rad/s
         obs_td, _ = self.wrapped.reset()
         with torch.no_grad():
             for s in range(T):
@@ -271,7 +272,9 @@ class Evaluator:
                 if self.watch:
                     ctrl[s] = wd.ctrl.numpy()[:, self.act9]
                     qpos[s] = wd.qpos.numpy()
-                    angv[s] = self.cube.data.root_link_ang_vel_w.norm(dim=-1).cpu().numpy()
+                    wv = self.cube.data.root_link_ang_vel_w
+                    angv[s] = wv.norm(dim=-1).cpu().numpy()
+                    angw[s] = wv.cpu().numpy()
                     if s == 0:
                         xroot = wd.xpos.numpy()[:, self.root_b].copy()
                     nc = int(wd.nacon.numpy()[0])
@@ -306,7 +309,7 @@ class Evaluator:
                             pen[s] = p
         out = dict(cos=cos, z=z, force=force, found=found, acts=acts, rel=rel, axis=axis, fvel=fvel, pen=pen)
         if self.watch:
-            out.update(ctrl=ctrl, palm=palm, qpos=qpos, xroot=xroot, angv=angv)
+            out.update(ctrl=ctrl, palm=palm, qpos=qpos, xroot=xroot, angv=angv, angw=angw)
         return out
 
     def render_world(self, r: dict, w: int, steps, width: int = 480, height: int = 360, lines=None):
@@ -457,12 +460,22 @@ def watch_metrics(r: dict, ev: "Evaluator") -> dict:
     spin_h = np.array([np.median(r["angv"][150:, e][held_t[150:, e]]) if held_t[150:, e].sum() > 2 else np.nan
                        for e in range(act.shape[1])])
     pinned = sat.mean(0)                                                      # (N, 9) fraction of steps at a limit
+    # the tool's angular velocity in the hold split into spin about its own axis and tilting, and how often the tilting
+    # component reverses between consecutive policy steps (1 = a vibration at half the policy rate or faster)
+    hh = held_t[150:]
+    wv, ax = r["angw"][150:], r["axis"][150:]
+    roll = (wv * ax).sum(-1)
+    tilt = wv - roll[..., None] * ax
+    rev = ((tilt[1:] * tilt[:-1]).sum(-1) < 0) & hh[1:] & hh[:-1]
     return dict(
         idle_rollouts={f: int(idle[:, k].sum()) for k, f in enumerate(FINGERS)},
         touch_frac_median=[float(np.median(touch[hr, k])) if hr.any() else None for k in range(3)],
         ang_jerk_median=float(np.nanmedian(jerk)) if np.isfinite(jerk).any() else None,
         ang_jerk_hold_median=float(np.nanmedian(jerk_h)) if np.isfinite(jerk_h).any() else None,
         ang_speed_hold_median=float(np.nanmedian(spin_h)) if np.isfinite(spin_h).any() else None,
+        spin_axis_hold_median=float(np.median(np.abs(roll)[hh])) if hh.any() else None,
+        tilt_rate_hold_median=float(np.median(np.linalg.norm(tilt, axis=-1)[hh])) if hh.any() else None,
+        tilt_reversal_frac=float(rev.sum() / max(1, (hh[1:] & hh[:-1]).sum())) if hh.any() else None,
         joints_pinned90=[n for n, v in zip(jn, (pinned > 0.9).mean(0)) if v > 0.5],
         resid_over_frac=float((absa >= 1.0).mean()),
         resid_over_frac_held=float((absa >= 1.0)[act].mean()) if act.any() else None,
@@ -599,7 +612,7 @@ def cmd_watch(args):
         tdir = ROOT / "logs/20261008-contact_model_policies/watch_traces"
         tdir.mkdir(parents=True, exist_ok=True)
         np.savez_compressed(tdir / f"{tag}_it{it:04d}.npz", **{k: r[k].astype(np.float16) for k in
-                            ("cos", "z", "force", "found", "acts", "ctrl", "angv")}, palm=r["palm"],
+                            ("cos", "z", "force", "found", "acts", "ctrl", "angv", "angw", "axis")}, palm=r["palm"],
                             ctrl_lo=ev.ctrl_lo, ctrl_hi=ev.ctrl_hi, residual_from=ev.residual_from)
         fc = r["cos"][-1]
         held = np.array(row["held_final"])
