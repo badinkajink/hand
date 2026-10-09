@@ -60,10 +60,10 @@ def table_trace(d):
         def cell(k):
             v = c.get(k)
             return "&#8211;" if v is None else f"{v['axial_mm']:+.0f} mm &#183; {v['N']:.2f} N"
-        rows.append([s["phase"], f"{s['t']:.2f}", f"{s['from_vertical_deg']:.0f}", f"{s['z_mm']:.0f}",
+        rows.append([s["phase"].capitalize(), f"{s['t']:.2f}", f"{s['from_vertical_deg']:.0f}", f"{s['z_mm']:.0f}",
                      cell("thumb"), cell("index"), cell("middle"), cell("plate"), cell("post")])
-    return table(["phase", "#t (s)", "#from vertical (deg)", "#centre z (mm)", "thumb", "index", "middle",
-                  "palm plate", "post"], rows)
+    return table(["Phase", "#Time (s)", "#From vertical (deg)", "#Centre z (mm)", "Thumb", "Index", "Middle",
+                  "Palm plate", "Post"], rows)
 
 
 def table_plate(d):
@@ -80,9 +80,9 @@ def table_plate(d):
                 r.append(degs)
                 r.append(cellc(len(held), len(cells), f" ({lost} lost at grip)" if lost else ""))
         rows.append(r)
-    return table(["hand", "bench hold", "#bench, from vertical (deg)",
-                  "fast, plate 0: deg", "held", "fast, plate +25: deg", "held",
-                  "cal, plate 0: deg", "held", "cal, plate +25: deg", "held"], rows)
+    return table(["Hand", "Bench hold", "#Bench, from vertical (deg)",
+                  "Fast, plate 0 (deg)", "Held", "Fast, plate +25 (deg)", "Held",
+                  "Cal, plate 0 (deg)", "Held", "Cal, plate +25 (deg)", "Held"], rows)
 
 
 def table_angle(d):
@@ -92,7 +92,7 @@ def table_angle(d):
         rs = [x for x in d["angle"] if x["plan"] == tag]
         if not rs:
             continue
-        r = ["deployed plan (b85)" if tag.endswith("b85") else f"re-export, {abs(rs[0]['angle_cmd']):.0f}&#176;",
+        r = ["Deployed plan (b85)" if tag.endswith("b85") else f"Re-export, {abs(rs[0]['angle_cmd']):.0f}&#176;",
              f"{abs(rs[0]['angle_cmd']):.0f}"]
         for plant in ("fast", "cal"):
             xs = [x for x in rs if x["plant"] == plant]
@@ -100,21 +100,21 @@ def table_angle(d):
             r.append(", ".join(f"{x['f_pad_end']:.2f}" for x in xs))
             r.append(f"{sum(1 for x in xs if not x['dropped'])}/{len(xs)}")
         rows.append(r)
-    return table(["plan", "#commanded turn (deg)", "fast: from vertical (deg)", "pad N", "held",
-                  "cal: from vertical (deg)", "pad N", "held"], rows)
+    return table(["Plan", "#Commanded turn (deg)", "Fast: from vertical (deg)", "Pad force (N)", "Held",
+                  "Cal: from vertical (deg)", "Pad force (N)", "Held"], rows)
 
 
 def table_gait(d):
     rows = []
     for r in d["gait"]:
         for t in r["tips"]:
-            rows.append([r["plant"], f"tip {t['tip']}", f"{np.degrees(np.arccos(np.clip(t['cos_rest'], -1, 1))):.0f}",
+            rows.append([r["plant"].capitalize(), f"Tip {t['tip']}", f"{np.degrees(np.arccos(np.clip(t['cos_rest'], -1, 1))):.0f}",
                          f"{t['pads_rest']}", f"{t['f_pad_rest']['thumb']:.2f} / {t['f_pad_rest']['index']:.2f} / {t['f_pad_rest']['middle']:.2f}",
                          f"{np.degrees(np.arccos(np.clip(t['cos_regrip'], -1, 1))):.0f}", f"{t['pads_regrip']}",
                          f"{t['closure_deg']['thumb']:+.0f} / {t['closure_deg']['index']:+.0f} / {t['closure_deg']['middle']:+.0f}",
-                         ("carried", "ok") if t["carried"] else ("lost", "no")])
-    return table(["plant", "step", "#rest: from vertical (deg)", "#pads &#8805; 0.24 N", "pad N th / ix / md",
-                  "#regrip: from vertical (deg)", "#pads", "regrip closure th / ix / md (deg)", "tool"], rows)
+                         ("Carried", "ok") if t["carried"] else ("Lost", "no")])
+    return table(["Plant", "Step", "#Rest: from vertical (deg)", "#Pads &#8805; 0.24 N", "Pad force th / ix / md (N)",
+                  "#Regrip: from vertical (deg)", "#Pads", "Regrip closure th / ix / md (deg)", "Tool"], rows)
 
 
 def main():
