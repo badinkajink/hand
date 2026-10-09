@@ -571,8 +571,9 @@ def stops_table(X: Data):
                      f"{(so[0] + 1) * STEPS_PER_IT / 1e6:.1f}&#8202;M" if so else "&#8211;",
                      reason(tag, so) if so else "&#8211;", outcome])
     cap = ("The owner&#8217;s stopping rule applied at every watched checkpoint (4.0&#8202;M steps apart): stop when every "
-           "checkpoint of the last 10&#8202;M steps is degenerate, or when the held cosine gained under 0.02 (and the held "
-           "count under 8 of 64) over 10&#8202;M steps; the films decide. The seed-0 runs finished before the watch existed, "
+           "checkpoint of the last 10&#8202;M steps is degenerate (a flag of the checkpoint watch), or when the held cosine "
+           "gained under 0.02 (and the held count under 8 of 64) over 10&#8202;M steps. The seed-0 runs finished before the "
+           "watch existed, "
            "and the skin trainer leaves too little GPU memory for a second process: those runs were watched after they "
            "ended.")
     return table(head, body, cap, text_cols=(0, 4, 5))
@@ -868,8 +869,9 @@ GLOSSARY = [
      "before the run continues; the owner&#8217;s rule stops a run that is degenerate for 10&#8202;M steps (drops every "
      "rollout, an idle finger, jitter, saturated actions, or the tool on the palm) or whose held cosine gains under 0.02 "
      "over 10&#8202;M steps. Jitter counts when the shaking exceeds 40&#8202;rad/s&#178; while the rocking exceeds 0.005, "
-     "and rocking above 0.005 counts on its own when the tilting velocity reverses at most steps; the consecutive-step "
-     "frames of the hold decide."),
+     "and rocking above 0.005 counts on its own when the tilting velocity reverses at most steps; the strips and the "
+     "consecutive-step frames of the hold were looked at for every checkpoint. The seed-0 runs and the skin runs were "
+     "watched on the same checkpoints after training."),
     ("servo targets at a limit", "Share of the nine finger servo targets (anchor plus residual) at their actuator&#8217;s "
      "range limit over the active steps; the residual itself is not clipped in these runs."),
     ("finger share", "One fingertip&#8217;s share of the summed fingertip-tool force over the held steps."),
@@ -1347,8 +1349,9 @@ def lede(X: Data):
     parts.append("The stopping rule of the checkpoint watch (every watched checkpoint degenerate for 10&#8202;M steps) stops "
                  + (", and ".join(hit) if hit else "no run")
                  + ("; " + " and ".join(miss) + (" meets it." if len(miss) == 1 else " meet it.") if miss else ".")
-                 + (f" {WORD.get(hind, hind).capitalize()} of these runs had finished before the watch existed and meet "
-                    "the rule in hindsight." if hind else ""))
+                 + (f" {WORD.get(hind, hind).capitalize()} of these runs were watched only after they had trained to "
+                    "40&#8202;M steps; they meet the rule in hindsight, and their final policies are evaluated with the "
+                    "others." if hind else ""))
     jp = [j for a in point for j in S[a]["jerk"]]
     jc = [j for a in comp for j in S[a]["jerk"]]
     if jp and jc:
