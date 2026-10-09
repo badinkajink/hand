@@ -819,15 +819,15 @@ def lambda_section(results, sensitivity, compensation):
     )
     original_error = max(abs(r["prediction_relative_error"]) for r in original)
     forward_error = max(abs(r["prediction_relative_error"]) for r in dynamic_frozen)
-    body += f"""<p>The requested comparison now directly overlays: the largest relative error across
-    {len(original)} original static contacts is {original_error:.3g} (dimensionless, floating-point precision).
+    body += f"""<p>Across {len(original)} original static contacts the largest relative error of the prediction is
+    {original_error:.3g}, at floating-point precision.
     The separate forward load tests agree within {forward_error * 100:.4f}% at every retained contact.
     These predictions use contact parameters and the compiler scaling; no measured force enters the prediction.</p>
     <p>The Λ in this formula is MuJoCo’s <code>efc_diagApprox</code>, shown as Λ̂. The exact
     <code>J M⁻¹ Jᵀ</code> diagonal is also logged but is not the scaling used by MuJoCo’s regularizer.
     Static inverse/forward agreement alone is an internal consistency check; the forward load runs provide a
     separate integration check from an initially unloaded state.</p>"""
-    parts = section("Measured stiffness lands on the analytic prediction", body, "lambda")
+    parts = section("Measured stiffness against the analytic prediction", body, "lambda")
 
     fig, ax = plt.subplots(1, 2, figsize=(10, 3.8), constrained_layout=True)
     mapping_colors = {"frozen": COLORS[1.0], "lambda_compensated_direct": COLORS[0.5]}
@@ -946,13 +946,12 @@ def followup_section(results, datasets):
     3.10. Normal rows are exact when the flag is enabled. Friction-row regularizers receive additional adjustments.</p>
     <p>One API caveat matters for this rig: <code>efc_AR</code> is empty under the Newton primal solver
     in both tested versions, even after <code>mj_projectConstraint</code>. That matrix is assembled for
-    dual solvers. We recover A directly from the exposed Jacobian and mass matrix, without changing solvers:</p>
+    dual solvers. A is recovered from the exposed Jacobian and mass matrix without changing solvers:</p>
     <pre>M = mass_matrix(model, data)  # handles the version-specific mj_fullM API
 J = data.efc_J.reshape(data.nefc, model.nv)  # this harness uses dense J
 A = J @ numpy.linalg.solve(M, J.T)</pre>
-    <p><strong>Correction to the suggested interpretation:</strong> the earlier 3.6 compensation used a compiled
-    body-level approximation, not configuration-dependent inertia. The new adapter genuinely uses the diagonal
-    selected at the current configuration, changes native per-contact <code>solref</code>, then rebuilds the
+    <p><strong>Correction.</strong> The earlier 3.6 compensation used a compiled body-level approximation of the
+    inertia; the new adapter uses the diagonal selected at the current configuration, changes native per-contact <code>solref</code>, then rebuilds the
     constraint and reference stages before solving. It does not overwrite contact forces.</p>
     <p><a href="https://mujoco.readthedocs.io/en/3.14.0/XMLreference.html#option-flag-diagexact">The exact diagonal</a>
     is Aᵢᵢ = Jᵢ M⁻¹ Jᵢᵀ. Changing from the approximation to Aᵢᵢ retains mass normalization. With fixed positive
@@ -998,8 +997,8 @@ A = J @ numpy.linalg.solve(M, J.T)</pre>
 Rᵢ = [(1−d₀)/d₀] Λᵢ
 γᵢ = force correction from the unilateral/friction-cone boundary</pre>
     <p>The <a href="https://mujoco.readthedocs.io/en/3.14.0/computation/index.html#constraint-model">joint constraint
-    solve</a> determines q̈; its full A contains the rigid-body coupling. Thus exact diagonal compensation
-    guarantees the translated coefficients, not the instantaneous spring force. The benchmark checks the physical
+    solve</a> determines q̈; its full A contains the rigid-body coupling. Exact diagonal compensation therefore
+    fixes the translated coefficients, while the instantaneous spring force still depends on the coupling. The benchmark checks the physical
     unilateral law <code>max(0, Kᵢδᵢ − Cᵢvₙ,ᵢ)</code> against <code>mj_contactForce</code>, sums absolute
     per-point errors so they cannot cancel, and records the acceleration and cone terms separately.</p>
     <p>The sphere pad is fixed and the object has six freely integrated coordinates. Normal loading is 1 N;
@@ -1066,7 +1065,8 @@ Rᵢ = [(1−d₀)/d₀] Λᵢ
     <code>solreffriction</code>. This reduces friction-cone feedback on normal force while retaining the same
     physical tangential viscous coefficient as the compensated baseline: Cₜ = 10 Cᵢ. Because Rₜ=Rₙ/impratio, its
     direct friction damping parameter is the normal damping parameter times 10/impratio. Changing
-    impratio alone would change tangential damping. This is a shared analytic translation, not a force fit.</p>
+    impratio alone would change tangential damping. The translation is analytic and shared by all cases; no
+    force is fitted.</p>
     <p>Fine steps are 50 μs at 1×/4× mass and 25 μs at 0.25×; the timestep check halves the nominal step.
     The friction law is velocity-regularized Coulomb contact. Small motion below the cone boundary is creep,
     so velocity onset and first cone activation are both reported.</p>"""
@@ -1419,15 +1419,15 @@ def report(results):
             + """
     <blockquote>“The solver collapsed my per-point forces into a few effective constraints … redundant contacts on
     one body don’t act like parallel springs.”</blockquote>
-    <p>The observation about coupled, mass-normalized dynamics is supported. The diagnostic below separates
-    force saturation from contact-row reduction: it retains every row, including 32 coincident
+    <p>The observation about coupled, mass-normalized dynamics holds. The test below separates force
+    saturation from contact-row reduction by retaining every row, including 32 coincident
     contacts with a rank-one normal Jacobian. Their aggregate force saturates during unsupported acceleration,
     but grows linearly with the number of contacts in a supported static equilibrium.</p>
-    <p><strong>The current fixed mapping is not a transferable material law.</strong> At a fixed indentation, force
-    scales directly with object mass in this free-body fixture. The nominal task still reproduces, so this qualifies
-    the mechanical explanation rather than invalidating that particular screwdriver demonstration.</p>
+    <p>At a fixed indentation the force of the current fixed mapping scales with the object&#8217;s mass in this free-body
+    fixture, so the mapping does not transfer as a material law. The nominal screwdriver task still reproduces; what changes
+    is its mechanical explanation.</p>
     <p>The explicit follow-up now verifies the analytic stiffness prediction and tests a compensated mapping.
-    <strong>Normal stiffness becomes mass-independent in the isolated plane/cylinder fixture.</strong>
+    Normal stiffness becomes mass-independent in the plane and cylinder fixtures.
     The original frozen sweep and nominal chain remain a separate baseline.</p>
     <p>The newer-engine extension tests runtime exact inertia, acceleration and controlled slip.
     Exact inertia alone does not restore physical stiffness. Runtime coefficient translation works,
@@ -1536,8 +1536,8 @@ def report(results):
     Rᵢ = ((1 − dᵢ) / dᵢ) Λ̂ᵢ
     k_actual,i = 1 / [t_c² (1 − dᵢ) Λ̂ᵢ]
     k_actual,i / k_target,i = Λ_nominal / Λ̂ᵢ</pre>
-    <p>This is the measured static scaling law, not an assertion that arbitrary sliding contacts remain
-    independent springs. Cone-boundary constraints and nonzero accelerations couple the response.
+    <p>This is the measured static scaling law; under sliding, cone-boundary constraints and nonzero accelerations
+    couple the contacts.
     <a href="https://mujoco.readthedocs.io/en/3.6.0/computation/index.html#parameters">MuJoCo 3.6 constraint equations</a>.</p>"""
     parts.append(section("The physical stiffness changes with mass", body, "mass"))
     if compensation:
@@ -1940,8 +1940,12 @@ PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 .venv/bin/python -m pytest tests/test_distribut
     parts.append(section("Data and reproducible commands", body, "reproduce"))
     page = frame(
         "Audit of the distributed sphere-pad fingertip contact in MuJoCo",
-        "A measured audit of the SR2 sphere surface in MuJoCo: preserved nominal behavior, explicit mass dependence, "
-        "retained redundant constraints, and a first 6 mm fillet test.",
+        "In MuJoCo the distributed sphere-pad fingertip reproduces the nominal screwdriver task, while its fixed contact "
+        "mapping makes the force at a given indentation scale with the object&#8217;s mass, as the analytic stiffness prediction "
+        "gives to floating-point precision. An analytic compensation makes the normal stiffness independent of mass in the plane "
+        "and cylinder fixtures, and with a fine timestep and separate tangential damping the 819-sphere model keeps the normal "
+        "force within 0.2 % of the target law during controlled slip and braking. Redundant contacts stay in the solve, and a "
+        "6 mm fillet has a first static test.",
         "".join(parts),
         f"{len(all_rows)} declared runs · MuJoCo 3.6.0 + isolated 3.14.0 / Drake 1.57.0 · static and dynamic audit · "
         '<a href="20261004-distributed_contact_spec.html">Read the converted specification</a>',
