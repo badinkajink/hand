@@ -159,7 +159,7 @@ def convert_spec():
 def save_figure(fig, name, caption):
     figures = DOC / "figures"
     figures.mkdir(exist_ok=True)
-    fig.savefig(figures / f"{name}.svg", bbox_inches="tight")
+    fig.savefig(figures / f"{name}.svg", bbox_inches="tight", metadata={"Date": None})  # no build date: rebuilds stay identical
     fig.savefig(figures / f"{name}.png", dpi=180, bbox_inches="tight")
     plt.close(fig)
     # Embed SVG in the page so the report remains portable; export standalone files as well.
@@ -180,6 +180,23 @@ def choose(rows, **where):
 
 def section(title, body, anchor):
     return f'<section id="{anchor}"><div class="col"><h2>{title}</h2>{body}</div></section>'
+
+
+def terms(entries):
+    """Terms and metrics block (owner, 2026-10-09: result pages open with one): [(term, one-line definition)]."""
+    rows = "".join(f"<dt><b>{t}</b></dt><dd>{d}</dd>" for t, d in entries)
+    return f'<section id="terms"><div class="col"><h2>Terms and metrics</h2><dl class="terms">{rows}</dl></div></section>'
+
+
+# contact variants, as defined on the controller-timestep page (20261004-controller_timestep.html)
+VARIANT_TERMS = [
+    ("Legacy (frozen) mapping", "The sphere-pad contact parameters fixed at the nominal object, whose normal stiffness "
+     "scales with the effective mass of the contact."),
+    ("Physical (compensated) mapping", "Contact parameters compensated analytically so that the normal stiffness is "
+     "the physical value whatever the mass."),
+    ("Runtime (approx, exact)", "The same compensation computed at run time from the solver&#8217;s inverse inertia; "
+     "<code>_exact</code> uses MuJoCo&#8217;s exact diagonal (<code>diagexact</code>, MuJoCo 3.9 and later)."),
+]
 
 
 def research_asides():
@@ -822,10 +839,8 @@ def lambda_section(results, sensitivity, compensation):
     {original_error:.3g}, at floating-point precision.
     The separate forward load tests agree within {forward_error * 100:.4f}% at every retained contact.
     These predictions use contact parameters and the compiler scaling; no measured force enters the prediction.</p>
-    <p>The Λ in this formula is MuJoCo’s <code>efc_diagApprox</code>, shown as Λ̂. The exact
-    <code>J M⁻¹ Jᵀ</code> diagonal is also logged but is not the scaling used by MuJoCo’s regularizer.
-    Static inverse/forward agreement alone is an internal consistency check; the forward load runs provide a
-    separate integration check from an initially unloaded state.</p>"""
+    <p>The exact diagonal Aᵢᵢ is logged as well; MuJoCo&#8217;s regularizer uses Λ̂. The static inverse and forward
+    solves check consistency, and the forward load runs from an unloaded state check the integration.</p>"""
     parts = section("Measured stiffness against the analytic prediction", body, "lambda")
 
     fig, ax = plt.subplots(1, 2, figsize=(10, 3.8), constrained_layout=True)
@@ -897,10 +912,10 @@ def lambda_section(results, sensitivity, compensation):
             values.append(f"{np.median([r['measured_stiffness'] for r in contacts]):.6f}")
         rows.append([mass_scale, *values])
     body += table(["Mass scale", "Plane stiffness (N/m)", "Cylinder stiffness (N/m)"], rows)
-    body += f"""<p><strong>Yes: compensation restores one common static kᵢ = {target:.6f} N/m.</strong>
+    body += f"""<p>Compensation gives one static kᵢ = {target:.6f} N/m at every mass.
     The largest relative error against the physical target is {static_error:.3g} for static contacts and
     {load_error * 100:.4f}% for the independently integrated load equilibria. Every compensated run met the
-    equilibrium criterion. These are mechanics results for the fixed-pad/free-object fixture.</p>
+    equilibrium criterion.</p>
     <pre>cᵢ = kᵢ × relaxation
     sᵢ = (1 − d₀) Λ̂ᵢ
     solrefᵢ = (−kᵢ sᵢ, −cᵢ sᵢ)  [native direct format]</pre>
@@ -909,14 +924,13 @@ def lambda_section(results, sensitivity, compensation):
     backend. Direct-format solref permits stiffness and damping to be scaled independently; changing the format
     without this normalization would not compensate anything.
     <a href="https://mujoco.readthedocs.io/en/3.6.0/modeling.html#reference">MuJoCo direct-format definition</a>.</p>
-    <p>This resolves the mass dependence of the static normal law and makes the distributed surface worth
-    pursuing. The newer-engine section below now tests controlled slip: acceleration terms and friction-cone
-    coupling still participate in the solve. No compensated articulated-hand or sliding-torque result is claimed here.</p>
+    <p>The newer-engine section below tests controlled slip, where acceleration terms and friction-cone
+    coupling still enter the solve.</p>
     <p><a href="data/stiffness_validation.csv">Per-contact comparison CSV</a> ·
     <a href="data/compensation.csv">Paired-run aggregate</a> ·
     <a href="data/compensation_versions.json">Extension version metadata</a></p>"""
     return parts + section(
-        "Λ compensation restores the common normal stiffness", body, "compensation"
+        "Λ-compensated mapping across object mass", body, "compensation"
     )
 
 
@@ -936,9 +950,9 @@ def followup_section(results, datasets):
         "runtime_exact": "#8553A4",
         "fine": "#25875A",
     }
-    body = """<p>The requested follow-up was to upgrade an isolated copy, enable <code>diagexact</code>,
-    retain the original sphere parameters, repeat the mass sweep, and then test controlled slip. The upgrade
-    and flag claims are verified; the expectation of automatic physical-stiffness invariance is not supported.</p>
+    body = """<p>An isolated copy upgraded to MuJoCo 3.14 repeats the mass sweep with <code>diagexact</code> and the
+    original sphere parameters, then tests controlled slip. The flag alone leaves the stiffness proportional to
+    mass.</p>
     <p><a href="https://mujoco.readthedocs.io/en/3.14.0/changelog.html#version-3-9-0-may-27-2026">MuJoCo 3.9.0
     added the exact-diagonal flag on 27 May 2026</a>. The tested isolated environment uses 3.14.0; the project's
     pinned 3.6.0 environment is preserved. The <code>efc_diagApprox</code> field became <code>efc_diagA</code> in
@@ -989,7 +1003,7 @@ A = J @ numpy.linalg.solve(M, J.T)</pre>
     exact_points = [p for p in static_points if p["run_id"] in {r["run_id"] for r in exact}]
     if exact_points:
         body += f"<p>Maximum relative static error after runtime compensation: <strong>{max(abs(r['target_relative_error']) for r in exact_points):.3g}</strong>. All five masses are tested against both geometries, with separate forward load runs.</p>"
-    body += """<h3>What acceleration and sliding add</h3>
+    body += """<h3>Acceleration and friction-cone terms in the normal force</h3>
     <p>The normal interior-cone relation is <code>Rᵢ fᵢ = a_ref,i − Jᵢ q̈</code>. Once coefficients are
     translated to physical Kᵢ and Cᵢ, it becomes:</p>
     <pre>fᵢ = Kᵢ δᵢ − Cᵢ vₙ,ᵢ − (Jᵢ q̈)/Rᵢ + γᵢ
@@ -1056,7 +1070,7 @@ Rᵢ = [(1−d₀)/d₀] Λᵢ
             "dynamic_force_decomposition",
             "Interior contacts obey the acceleration correction. Contacts on the friction-cone boundary add a separate normal-force correction.",
         )
-    body += """<h3>A native route toward independent spring behavior</h3>
+    body += """<h3>Fine-step variant with separated friction damping</h3>
     <p>The additional experiment increases R by reducing d₀ to 0.0001 while analytically holding Kᵢ and Cᵢ
     fixed. This reduces the acceleration correction. It exposes explicit contact-damping timestep limits:
     the 0.5 ms trials can oscillate severely, and merely increasing R does not remove cone coupling.</p>
@@ -1071,7 +1085,7 @@ Rᵢ = [(1−d₀)/d₀] Λᵢ
     so velocity onset and first cone activation are both reported.</p>"""
     coarse_failed = [r for r in dynamic if r["status"] == "failed"]
     coarse_stress = choose(dynamic, group="runtime_exact_high_R")
-    body += f"<p>The coarse dynamic manifest contains {len(coarse_failed)} failed cases. Its high-R stress cases and friction/timestep controls remain in the exported aggregate, including complete cases with oscillatory or zero-target intervals. The fine-step results below are a separate manifest.</p>"
+    body += f"<p>The coarse dynamic manifest has {len(coarse_failed)} failed cases; its high-R stress cases and friction and timestep controls stay in the exported aggregate, including complete cases with oscillatory or zero-target intervals.</p>"
     if coarse_stress:
         body += table(
             ["Coarse high-R run", "Mass", "Spacing", "Scenario", "Force L1 error", "Restuck"],
@@ -1281,9 +1295,8 @@ Rᵢ = [(1−d₀)/d₀] Λᵢ
             ["Geometry", "Check", "Slip-distance change", "Peak-speed change", "Force L1 error"],
             convergence,
         )
-        body += """<p>These transfer checks measure the visited trajectory and local normal law. They do not establish
-        continuum convergence of the entire pressure field. Fine stepping and the Python parameter adapter carry
-        a substantial computational cost, so these runs validate the mechanics and say nothing about real-time or GPU throughput.</p>"""
+        body += """<p>These checks cover the visited trajectory and the local normal law. Fine stepping and the Python
+        parameter adapter are slow; batched GPU cost is on the articulated page.</p>"""
         lower_ratio = choose(fine, group="fine_friction_ratio")
         if lower_ratio:
             body += f"<p>The fine-step control with impratio=100, while retaining the same physical tangential damping, has {lower_ratio[0]['normal_law_L1_error'] * 100:.3g}% force L1 error. Fine stepping alone is insufficient: the cone regularizer ratio materially affects normal-force fidelity.</p>"
@@ -1293,7 +1306,7 @@ Rᵢ = [(1−d₀)/d₀] Λᵢ
         if core:
             normal = [r for r in core if r["scenario"] == "normal_pulse"]
             sliding = [r for r in core if r["scenario"] == "controlled_slip"]
-            body += f"<p><strong>Measured conclusion:</strong> the fine-step native variant has normal-load-pulse L1 error up to {max(r['normal_law_L1_error'] for r in normal) * 100:.4g}% and controlled-slip interval error up to {max(r['normal_law_L1_error'] for r in sliding) * 100:.4g}%. Maximum sliding-frame median error is {max(r['sliding_normal_law_L1_median'] for r in sliding) * 100:.3g}%. These bounds are measured on this fixture.</p>"
+            body += f"<p>Over both scenarios the fine-step variant has a force L1 error of at most {max(r['normal_law_L1_error'] for r in normal) * 100:.4g}% in the normal pulse and {max(r['normal_law_L1_error'] for r in sliding) * 100:.4g}% in controlled slip.</p>"
     # Keep full normal coupling matrices local, but export their compact diagnostics.
     coupling = []
     for phase, runs in [("slip", complete_dynamic), ("slip_fine", completed_fine)]:
@@ -1324,16 +1337,45 @@ Rᵢ = [(1−d₀)/d₀] Λᵢ
     body += """<p>Five snapshots per dynamic run store the full normal block of J M⁻¹ Jᵀ, the selected diagonal,
     R and sample IDs. <a href="data/contact_coupling.json">Portable coupling diagnostics</a> expose its rank and
     normalized off-diagonal entries. Dense sampling retains rigid-body coupling; row count is not rank.</p>
-    <p>These runs extend the native MuJoCo test of normal load and axial slip. The
-    <a href="20261004-contact_videos.html#slip_fine">native isolated
-    fixture videos</a> now show normal pulses and controlled sliding, with force-colored sample spheres.
-    The specification&#8217;s full D4 torsion and brake comparison against Drake, point and condim-4 models,
-    and hardware validation remain open. The separate <a href="20261004-articulated_contact_transfer.html">articulated
-    follow-up</a> now measures holding ramps, torsional transfer, Drake, mjlab GPU batches and Newton
-    pressure/reduction controls. The 6 mm fillet under dynamic slip remains untested.
-    The checks evaluate the force law on the states the solver visited, without a separate frictional-contact
-    integrator; timestep and density checks bound the numerical error.</p>"""
+    <p>The <a href="20261004-contact_videos.html#slip_fine">isolated fixture videos</a> show the normal pulses and
+    controlled sliding with force-coloured sample spheres. The <a href="20261004-articulated_contact_transfer.html">
+    articulated follow-up</a> measures holding ramps, torsion, Drake, mjlab GPU batches and Newton pressure and
+    reduction.</p>"""
     return section("Runtime inverse inertia and controlled slip", body, "dynamic")
+
+
+AUDIT_TERMS = [
+    ("Sphere pad, spacing", "The fingertip surface sampled by rigid spheres on a lattice of 2, 1 or 0.5 mm spacing "
+     "(819 spheres in the dense model); every sphere-object contact is its own constraint row."),
+] + VARIANT_TERMS + [
+    ("Mass scale", "Object mass and inertia over the nominal 24.54 g object of the isolated fixture."),
+    ("Λ̂, Aᵢᵢ", "Inverse inertia of a contact row in kg⁻¹: MuJoCo&#8217;s approximation (<code>efc_diagApprox</code>) "
+     "and the exact diagonal Jᵢ M⁻¹ Jᵢᵀ."),
+    ("Local stiffness kᵢ", "Normal force of one sphere contact over its overlap at rest, in N/m; the physical "
+     "target is 817.21 N/m."),
+    ("f/(kδ)", "Aggregate normal force over target stiffness times indentation; 1 is the physical law."),
+    ("Active contacts", "Sphere contacts carrying normal force."),
+    ("Normal pulse, controlled slip", "The dynamic scenarios: 0.5 N added for 20 ms to a 1 N preload; a tangential "
+     "force ramped to 1.2 N, held, lowered."),
+    ("Force L1 error", "Absolute per-sphere deviation from the law max(0, Kδ − Cv), integrated over t ≥ 0.35 s and "
+     "divided by the integrated target, in %."),
+    ("Sliding median error", "Median of that error over the frames in which the object slides, in %."),
+    ("Slip, restuck", "Tangential travel of the object in mm; restuck when it stops again after the shear is "
+     "lowered."),
+    ("High-R, fine step", "d₀ = 0.0001, which raises the regularizer R at fixed K and C; fine step: 50 μs (25 μs at "
+     "0.25×) with impratio 10,000 and a separate friction solref."),
+    ("Arm error", "Error of the pressure-weighted torsion arm against the Winkler continuum at the same "
+     "indentation, in %."),
+    ("Normal rank; static and free force", "Rank of the normal Jacobian rows (coincident contacts give 1); total "
+     "normal force at a supported 0.2 mm overlap and under unsupported acceleration, in N."),
+    ("Deviation from the scaling law", "Measured stiffness ratio minus Λ_nominal/Λ̂, in %; unsettled load runs did "
+     "not reach equilibrium within their duration."),
+    ("Force difference to 0.5 mm", "Fillet force at 2 or 1 mm spacing minus that at 0.5 mm, over the latter, in %."),
+    ("Swing end, insertion", "End angle of the braked swing (deg) and insertion depth (mm) of the screwdriver chain; "
+     "the regression passes within 0.1° and 0.1 mm of the published films."),
+    ("Gates A–H", "The specification&#8217;s decision gates: regression, local stiffness, resolution, mass scaling, "
+     "controlled slip and the articulated D4 tasks."),
+]
 
 
 def report(results):
@@ -1403,42 +1445,35 @@ def report(results):
     followup_lede = ""
     if dense_slip:
         followup_lede = (
-            f"<p><strong>The controlled-slip discriminator gives a qualified positive result.</strong> "
-            f"With common physical coefficients, a fine timestep and separated tangential damping, the dense "
-            f"819-sphere model has at most {max(r['normal_law_L1_error'] for r in dense_slip) * 100:.3g}% "
-            f"normal-force L1 error over the evaluated slip/brake interval, and at most "
-            f"{max(r['sliding_normal_law_L1_median'] for r in dense_slip) * 100:.3g}% median error during sliding. "
-            f"The tests cover plane/cylinder contact at 0.25×, 1× and 4× mass. This approximate agreement "
-            f"requires more than the exact-diagonal flag; coarse high-R variants can diverge.</p>"
+            f"<p>In controlled slip, with physical coefficients, a fine timestep and separated tangential damping, "
+            f"the dense 819-sphere model has at most {max(r['normal_law_L1_error'] for r in dense_slip) * 100:.3g}% "
+            f"force L1 error over the slip and brake interval and at most "
+            f"{max(r['sliding_normal_law_L1_median'] for r in dense_slip) * 100:.3g}% sliding median error, on the "
+            f"plane and the cylinder at 0.25, 1 and 4 times the mass. The exact-diagonal flag alone does not give "
+            f"this, and coarse high-R variants diverge.</p>"
         )
     parts.append(
         section(
-            "What the solver actually did",
-            followup_lede
-            + """
+            "Hypothesis and findings",
+            """
+    <p>The <a href="20261004-distributed_contact_spec.html">specification</a> started from one hypothesis:</p>
     <blockquote>“The solver collapsed my per-point forces into a few effective constraints … redundant contacts on
     one body don’t act like parallel springs.”</blockquote>
-    <p>The observation about coupled, mass-normalized dynamics holds. The test below separates force
-    saturation from contact-row reduction by retaining every row, including 32 coincident
-    contacts with a rank-one normal Jacobian. Their aggregate force saturates during unsupported acceleration,
-    but grows linearly with the number of contacts in a supported static equilibrium.</p>
-    <p>At a fixed indentation the force of the current fixed mapping scales with the object&#8217;s mass in this free-body
-    fixture, so the mapping does not transfer as a material law. The nominal screwdriver task still reproduces; what changes
-    is its mechanical explanation.</p>
-    <p>The explicit follow-up now verifies the analytic stiffness prediction and tests a compensated mapping.
-    Normal stiffness becomes mass-independent in the plane and cylinder fixtures.
-    The original frozen sweep and nominal chain remain a separate baseline.</p>
-    <p>The newer-engine extension tests runtime exact inertia, acceleration and controlled slip.
-    Exact inertia alone does not restore physical stiffness. Runtime coefficient translation works,
-    but force fidelity during motion also depends on regularization, friction coupling and timestep.</p>
-    <p>Spherical fingertips remain the primary design. The additional 6 mm fillet audit tests whether a rounded
-    face/edge/corner transition causes numerical singularities; it is not a replacement fingertip or controller.</p>
+    <p>The solve keeps every row. Thirty-two coincident contacts with a rank-one normal Jacobian give 32 times the
+    force of one in a supported equilibrium; their sum saturates only under unsupported acceleration, where the
+    coupled, mass-normalized dynamics act. The frozen mapping makes the force at a given indentation scale with the
+    object&#8217;s mass, so it does not transfer as a material law; the nominal screwdriver task still reproduces. A
+    compensated mapping removes the mass dependence of the static normal law.</p>"""
+            + followup_lede
+            + """
+    <p>Spherical fingertips remain the design; the 6 mm fillet section tests only whether a rounded face, edge and
+    corner cause numerical singularities.</p>
     <nav class="toc"><a href="#baseline">Regression</a><a href="#mass">Mass scaling</a>
     <a href="#lambda">Analytic prediction</a><a href="#compensation">Λ compensation</a><a href="#redundancy">Redundancy</a>
     <a href="#dynamic">Runtime inertia and slip</a>
     <a href="20261004-contact_research_asides.html">DeliGrasp / Sathya notes</a>
     <a href="#static">Static fields</a><a href="#solver">Solver sensitivity</a><a href="#fillet">6 mm fillet</a>
-    <a href="#limits">Limits and next step</a><a href="#reproduce">Reproduce</a></nav>""",
+    <a href="#limits">Gates and limits</a><a href="#future">Future work</a><a href="#reproduce">Reproduce</a></nav>""",
             "answer",
         )
     )
@@ -1538,7 +1573,7 @@ def report(results):
     <p>This is the measured static scaling law; under sliding, cone-boundary constraints and nonzero accelerations
     couple the contacts.
     <a href="https://mujoco.readthedocs.io/en/3.6.0/computation/index.html#parameters">MuJoCo 3.6 constraint equations</a>.</p>"""
-    parts.append(section("The physical stiffness changes with mass", body, "mass"))
+    parts.append(section("Normal stiffness of the frozen mapping against object mass", body, "mass"))
     if compensation:
         parts.append(lambda_section(results, sensitivity, compensation))
     if datasets["diagexact"]:
@@ -1582,13 +1617,13 @@ def report(results):
             for r, s in zip(redundant, free)
         ],
     )
-    body += """<p>This artificial duplicate-contact test checks the solver; as a quadrature of a physical fingertip it would
-    be inadmissible. Each copy deliberately keeps its full stiffness. It distinguishes rank redundancy,
-    which is expected for forces acting on one rigid body, from deletion or reduction of contact rows.</p>
+    body += """<p>Each duplicate copy keeps its full stiffness, so the test checks the solver and is no quadrature of a
+    fingertip. It distinguishes rank redundancy, expected for forces on one rigid body, from deletion or reduction of
+    contact rows.</p>
     <p>For identical normal rows under free acceleration, <code>F = n a_ref / (R + n A)</code>.
     A supported equilibrium instead gives <code>F = n a_ref / R</code>. Joint solving can therefore look like
     “collapse” in the first experiment while preserving distributed static compliance in the second.</p>"""
-    parts.append(section("Redundant rows remain; free acceleration saturates", body, "redundancy"))
+    parts.append(section("Redundant contact rows in static support and free acceleration", body, "redundancy"))
     fig, ax = plt.subplots(1, 3, figsize=(11, 3.6), constrained_layout=True)
     for spacing in [2.0, 1.0, 0.5]:
         rows = sorted(
@@ -1765,7 +1800,7 @@ def report(results):
     while preserving mass. Negative/direct-format <code>solref</code> offers independent stiffness and damping
     settings but still enters the same regularized equations; merely changing its format does not remove mass scaling.
     <a href="https://mujoco.readthedocs.io/en/3.6.0/modeling.html#reference">MuJoCo parameter formats</a>.</p>"""
-    parts.append(section("Solver settings do not remove the scaling law", body, "solver"))
+    parts.append(section("Scaling law under solver settings", body, "solver"))
     fig, ax = plt.subplots(1, 2, figsize=(10, 3.5), constrained_layout=True)
     for az, axis in zip([0.0, 45.0], ax):
         for spacing in [2.0, 1.0, 0.5]:
@@ -1813,19 +1848,18 @@ def report(results):
     )
     nfillet = len(fillet)
     neq = sum(r.get("equilibrium", False) for r in fillet)
-    body += f"""<p>{neq}/{nfillet} static cases passed the forward equilibrium check. No solver singularity was observed
-    in this test. Coarse edge contacts can nevertheless be sparse and strongly resolution-dependent; this does not
-    certify geometry co-design or dynamic controlled slip.</p>
+    body += f"""<p>{neq} of {nfillet} static cases passed the forward equilibrium check, with no solver singularity.
+    Coarse edge contacts are sparse and depend strongly on the sphere spacing.</p>
     <p><strong>Geometry provenance:</strong> the 6 mm fillet is the user’s hardware measurement. The older sharp box
     is obsolete. This audit uses an analytic front-face roundover with a 14.8 × 14.8 mm footprint. Width comes from
     the repository’s hardware-facing dimensions; pad length and front-only fillet topology remain assumptions pending
-    CAD confirmation. It is not claimed to be the actual high-fidelity hardware mesh. The back surface is omitted, and
+    CAD confirmation. The back surface is omitted, and
     the 85° case can be affected by that boundary.</p>
     <p>Areas come from the flat face, quarter cylinders and sphere octants. Offsetting sample centers inward changes
     the local area by 1, (1 − rₛ/r_f), or (1 − rₛ/r_f)² respectively. The foundation modulus stays E/10.55 mm across
     those regions: a flat face is not assigned stiffness by dividing by local curvature. There is no sharp-edge
     curvature singularity in this construction.</p>"""
-    parts.append(section("The hardware’s 6 mm fillet", body, "fillet"))
+    parts.append(section("Fingertip with the 6 mm hardware fillet", body, "fillet"))
     median = (
         np.median(
             [
@@ -1836,7 +1870,7 @@ def report(results):
         * 100
     )
     body = table(
-        ["Gate", "Result", "Interpretation"],
+        ["Gate", "Result", "Basis"],
         [
             ["A: regression", "Pass", "Both backends reproduce within 0.1° / 0.1 mm"],
             [
@@ -1866,15 +1900,10 @@ def report(results):
             ],
         ],
     )
-    body += """<p>The follow-up measures acceleration and friction-cone effects during isolated controlled slip.
-    A fine-step native variant approaches the independent normal spring-damper law on the tested states.
-    Static agreement or exact coefficients alone do not establish transient contact fidelity.</p>
-    <p>No torsional capacity is inferred from a resting friction wrench. The pressure-weighted arm is only a proxy.
-    The continuum reference integrates the stated Winkler law numerically, independently of Drake&#8217;s
-    hydroelastic solver. Drake is reproduced in the full-task regression; static Drake, wider curvature sweeps,
-    and the full brake/hardware task remain open. The <a href="20261004-articulated_contact_transfer.html">
-    articulated transfer report</a> adds torque/weight comparisons across resolution, actual hydroelastic
-    and GPU trials, and measured mapping costs.</p>"""
+    body += """<p>The pressure-weighted arm is a geometric proxy for torsion; the continuum reference integrates the
+    Winkler law numerically, apart from Drake&#8217;s hydroelastic solver. Torque against weight across resolution,
+    hydroelastic and GPU trials and the mapping cost are on the <a href="20261004-articulated_contact_transfer.html">
+    articulated transfer page</a>.</p>"""
     body += f"<p>{len(unsettled)} load runs did not meet the equilibrium criterion within their declared duration. They remain in all tables and raw outputs as convergence limits.</p>"
     if unsettled:
         body += table(
@@ -1898,6 +1927,20 @@ def report(results):
             [[r["run_id"], r["status"], r.get("error", "")] for r in failed],
         )
     parts.append(section("Decision gates and practical limits", body, "limits"))
+    parts.append(section("Future work", """<ol>
+    <li><p><strong>Full D4 torsion and brake against Drake.</strong> Run the specification&#8217;s articulated torsion
+    and brake comparison with the compensated mapping beside Drake hydroelastic, point contact and condim 4. A
+    compensated pad whose torque at slide onset falls outside the spread between the frozen pads and Drake would
+    show that the static correction does not carry over to the articulated hand.</p></li>
+    <li><p><strong>Fillet under controlled slip.</strong> Add the 6 mm fillet geometry to the <code>slip</code> phase of
+    <code>scripts/distributed_contact_dynamics.py</code> with the fine-step configuration
+    (<code>configs/slip_fine.json</code>) at 0.25, 1 and 4 times the mass. A force L1 error well above the 0.2 % of the
+    spherical cap would show that the edge needs a finer sphere lattice.</p></li>
+    <li><p><strong>Static Drake and wider curvature.</strong> Repeat the static plane and cylinder sweeps in Drake and
+    extend the cylinder radius beyond 12.5 mm; an arm error that grows with curvature would bound the sphere spacing
+    for small tools.</p></li>
+    <li><p><strong>Hardware.</strong> Compare the pinch torque at slide onset of the printed fingertip with the
+    compensated pads at the same normal load.</p></li></ol>""", "future"))
     body = (
         counts
         + """<p>Every run has a configuration, versions and source hashes, summary, stdout log and time series.
@@ -1945,7 +1988,7 @@ PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 .venv/bin/python -m pytest tests/test_distribut
         "and cylinder fixtures, and with a fine timestep and separate tangential damping the 819-sphere model keeps the normal "
         "force within 0.2 % of the target law during controlled slip and braking. Redundant contacts stay in the solve, and a "
         "6 mm fillet has a first static test.",
-        "".join(parts),
+        terms(AUDIT_TERMS) + "".join(parts),
         f"{len(all_rows)} declared runs · MuJoCo 3.6.0 + isolated 3.14.0 / Drake 1.57.0 · static and dynamic audit · "
         '<a href="20261004-distributed_contact_spec.html">Read the converted specification</a>',
     )
