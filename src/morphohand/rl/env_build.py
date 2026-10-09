@@ -1125,14 +1125,23 @@ def _contact_buffers(cfg: MorphoHandEnvCfg) -> tuple[int, int, int]:
     516 contacts on average, 2,442 rows and 595 matches). 640 / 3,072 / 768 takes 11.9 GB of GPU at 2,048 envs.
     The compliant-skin scenes of 2026-10-08 (pads on a spring-mounted child body) ask the broadphase for 644-672
     candidates per world while the fingers close, and at 640 lost the tool in 61 of 64 worlds; they get 768 (1,024
-    does not fit the 16 GB GPU at 2,048 envs: each slot costs about 8 MB across the worlds)."""
+    does not fit the 16 GB GPU at 2,048 envs: each slot costs about 8 MB across the worlds).
+
+    The contact buffer is shared by all worlds (MuJoCo-Warp allocates nconmax x nworld), so one world may exceed
+    nconmax while the average stays under it: 2,048 training worlds never overflow, but a single-world render of a
+    pad policy asks for 656 candidates every step and 64-128 evaluation worlds overflowed for 6-16 of 250 steps
+    (2026-10-09). MORPHOHAND_NCONMAX raises the per-world contact buffer of such small batches; training leaves it
+    unset."""
     try:
         txt = Path(str(cfg.frozen_scene_xml)).read_text()
     except OSError:
         txt = ""
     if txt.count("<geom") <= 500:
-        return (64, 400, CONTACT_SENSOR_MAXMATCH)
-    return (768, 3072, 768) if "_tipskin" in txt else (640, 3072, 768)
+        n, j, m = (64, 400, CONTACT_SENSOR_MAXMATCH)
+    else:
+        n, j, m = (768, 3072, 768) if "_tipskin" in txt else (640, 3072, 768)
+    import os
+    return (max(n, int(os.environ.get("MORPHOHAND_NCONMAX", "0") or 0)), j, m)
 
 
 def _build_sensors(cfg: MorphoHandEnvCfg) -> tuple:

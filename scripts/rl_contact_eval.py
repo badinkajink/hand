@@ -107,6 +107,8 @@ def _it(p: Path) -> int:
 
 
 def append(path: Path, row: dict):
+    if os.environ.get("MORPHOHAND_NCONMAX"):     # per-world contact buffer raised for this batch (env_build)
+        row = dict(row, nconmax_per_world=int(os.environ["MORPHOHAND_NCONMAX"]))
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "a") as fh:
         fh.write(json.dumps(row) + "\n")
@@ -580,11 +582,12 @@ def save_traces(tag: str, r: dict, sub: str = "final_traces"):
 
 def cmd_ckpts(args):
     out = OUT8 / "ckpt_eval.jsonl"
-    have = done_keys(out, ("tag", "iteration"))
+    have = set() if args.redo else done_keys(out, ("tag", "iteration"))
     for tag, arm, seed, steps in pick(args):
         cks = sorted((RL / tag / "tensorboard").glob("model_*.pt"), key=_it)
         last = _it(final_ckpt(tag, steps))
-        todo = [c for c in cks if (_it(c) % args.every == 0 or _it(c) == last) and (tag, _it(c)) not in have]
+        todo = [c for c in cks if (_it(c) % args.every == 0 or _it(c) == last) and (tag, _it(c)) not in have
+                and (not args.iterations or _it(c) in args.iterations)]
         if not todo:
             continue
         ev = Evaluator(ARMS[arm], todo[0], n=args.n, steps=args.steps)
@@ -740,7 +743,7 @@ def _parse_perturb(s: str):
 def cmd_robust(args):
     """Each final checkpoint on its own arm's scene under one perturbation at a time (and the nominal)."""
     out = OUT8 / "robust.jsonl"
-    have = done_keys(out, ("tag", "perturb"))
+    have = set() if args.redo else done_keys(out, ("tag", "perturb"))
     perts = [("nominal", None)] + [_parse_perturb(p) for p in args.perturb]
     by_arm = {}
     for j in pick(args):
@@ -875,6 +878,9 @@ def main():
         s.add_argument("--steps", type=int, default=250)
         if name == "ckpts":
             s.add_argument("--every", type=int, default=82, help="iterations between evaluated checkpoints")
+            s.add_argument("--iterations", type=int, nargs="*", default=[], help="only these checkpoints")
+        if name in ("ckpts", "robust"):
+            s.add_argument("--redo", action="store_true", help="evaluate again rows that exist (the newest row counts)")
         if name == "watch":
             s.add_argument("--iterations", type=int, nargs="+", required=True)
             s.add_argument("--redo", action="store_true", help="evaluate again checkpoints that have a watch row")

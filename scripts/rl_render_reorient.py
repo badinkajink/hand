@@ -141,6 +141,9 @@ def main():
 
     os.environ.setdefault("MUJOCO_GL", "egl")
     os.environ.setdefault("PYOPENGL_PLATFORM", "egl")
+    # one world has no other worlds' share of the contact buffer to overflow into: a pad scene asks the broadphase for
+    # ~656 candidates per step against its 640-slot buffer (env_build._contact_buffers), so raise it for the render
+    os.environ.setdefault("MORPHOHAND_NCONMAX", "2048")
 
     ckpt = args.run / "tensorboard" / args.checkpoint
     if not ckpt.exists():

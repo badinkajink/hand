@@ -301,9 +301,19 @@ def svg_curves(X: Data):
                           "env steps (M)", LBL[arm], yfmt="{:.2f}" if k == 0 else (lambda v: ""))
         out.append(f'<line x1="{x0}" x2="{x0 + pw}" y1="{fy(0.9):.1f}" y2="{fy(0.9):.1f}" '
                    f'style="stroke:var(--ink3);stroke-dasharray:2 4"/>')
+        off = {0: -0.7, 1: 0.0, 2: 0.7}
+        for r in X.ck:              # 10th-90th percentile of the held rollouts' final cosine, behind the markers
+            if r["arm"] != arm or not r["n_held"] or r["iteration"] == 0:
+                continue
+            held = [c for c, h in zip(r.get("final_cos") or [], r.get("held_final") or []) if h]
+            if len(held) >= 2:
+                q10, q90 = np.percentile(held, [10, 90])
+                xb = fx(r["env_steps"] / 1e6 + off.get(r["seed"], 0.0))
+                out.append(f'<line x1="{xb:.1f}" x2="{xb:.1f}" y1="{fy(q10):.1f}" y2="{fy(q90):.1f}" style="stroke:'
+                           f'{COL[arm]};stroke-width:3;stroke-opacity:.35"/>')
         for seed, pts in sorted(X.curve(arm).items()):
             tag = pts[0][5]
-            xs = [s / 1e6 for _, s, _, _, _, _ in pts]
+            xs = [s / 1e6 + (off.get(seed, 0.0) if it else 0.0) for it, s, _, _, _, _ in pts]
             ys = [hc if nh > 0 else None for _, _, nh, hc, _, _ in pts]
             _gap_path(out, fx, fy, xs, ys, COL[arm], dashed=(arm == "box"), width=1.5)
             for (it, s, nh, hc, cm, _), x in zip(pts, xs):
@@ -896,23 +906,35 @@ def films(X: Data):
     return "".join(out)
 
 
-FILM_NOTES = {       # run tag -> what its final film shows, written after watching it (numbers from final_traces)
-    "20261008-d6_work_box_40M_s0": "The tool flips to vertical within a quarter second of the onset between the thumb and "
-    "the index finger, the middle finger mostly off it; in the hold the summed tip force ranges over 41&#8211;148&#8202;N.",
-    "20261008-d6_work_tpu27mesh_40M_s0": "Three pads flip the tool to 0.75 within a quarter second, and it creeps on to "
-    "0.86; the summed tip force ranges over 38&#8211;62&#8202;N.",
-    "20261008-d6_work_tpu27mesh_40M_s1": "Three pads flip the tool to 0.73 within a quarter second and to 0.80 by "
-    "0.7&#8202;s; the summed tip force ranges over 44&#8211;67&#8202;N.",
-    "20261008-d6_work_tpu27pads1_40M_s0": "Three pads flip the tool to 0.63 within a quarter second, and it creeps on to "
-    "0.70; the summed tip force stays at 42&#8211;44&#8202;N.",
-    "20261008-d6_work_tpu27pads1_40M_s2": "Three pads flip the tool to 0.56 within a tenth of a second, lifting it 19&#8202;mm "
-    "in the grip, and hold it at 0.61 from 0.3&#8202;s with a summed tip force of 52&#8211;57&#8202;N. Stopped at "
-    "36&#8202;M steps on the plateau test.",
-    "20261008-d6_work_tpu27skin_40M_s0": "Three pads turn the tool to 0.67 within a quarter second and to 0.79 by 0.7&#8202;s, "
-    "then hold it at 46&#8211;52&#8202;N.",
-    "20261008-d6_work_tpu27skin_40M_s1": "Three pads flip the tool to 0.55 within 0.14&#8202;s, the summed tip force dipping "
-    "to 23&#8202;N during the flip in this rollout, and it creeps on to 0.63 by 5&#8202;s; the summed tip force stays at "
-    "46&#8211;49&#8202;N.",
+FILM_NOTES = {       # run tag -> what its final film shows, written after watching it (numbers from final_traces);
+    # "<tag>:replay" -> what its three-engine replay film shows (overlay cosines read off the frames)
+    "20261008-d6_work_box_40M_s0:replay": "In MuJoCo-Warp the box tip stands the tool up (cos 1.00 at 0.42&#8202;s) and "
+    "holds it at 0.94&#8211;0.96. Replayed open loop, the same targets throw the tool sideways: it is on the floor "
+    "0.56&#8202;s after the onset in Drake and 0.22&#8202;s after it in Newton.",
+    "20261008-d6_work_tpu27mesh_40M_s1:replay": "MuJoCo-Warp turns the tool to cos 0.81 by 0.42&#8202;s and holds it at "
+    "0.84. Replayed in Drake, the targets turn it to 0.80 and hold it at 0.74&#8211;0.78 until it drops at "
+    "3.4&#8202;s; in Newton the tool slips from 0.64 and is on the floor within a second.",
+    "20261008-d6_work_tpu27pads1_40M_s2:replay": "MuJoCo-Warp, Drake and Newton hold the tool at the same angle: cos "
+    "0.61, 0.61 and 0.62 at 0.42&#8202;s, and 0.61, 0.58 and 0.60 at 3.8&#8202;s.",
+    "20261008-d6_work_tpu27skin_40M_s1:replay": "All three simulators hold the tool: MuJoCo-Warp turns it to cos 0.59 by "
+    "0.42&#8202;s and 0.63 by 3.8&#8202;s, Drake and Newton to 0.53 by 0.42&#8202;s and keep it at "
+    "0.55&#8211;0.56.",
+    "20261008-d6_work_box_40M_s0": "The thumb and the index finger stand the tool up within a quarter second of the onset, "
+    "the middle finger mostly off it, and the held tool tilts by a few degrees from one frame to the next; in the hold "
+    "the summed tip force ranges over 41&#8211;148&#8202;N.",
+    "20261008-d6_work_tpu27mesh_40M_s0": "The three fingertips turn the tool to cos 0.75 within a quarter second, and it "
+    "creeps on to 0.86 by 5&#8202;s; the summed tip force ranges over 38&#8211;62&#8202;N.",
+    "20261008-d6_work_tpu27mesh_40M_s1": "The three fingertips turn the tool to cos 0.73 within a quarter second and to "
+    "0.80 by 0.7&#8202;s, and hold it there; the summed tip force ranges over 44&#8211;67&#8202;N.",
+    "20261008-d6_work_tpu27pads1_40M_s0": "The three pads turn the tool to cos 0.63 within a quarter second, and it "
+    "creeps on to 0.70 by 5&#8202;s; the summed tip force stays at 42&#8211;44&#8202;N.",
+    "20261008-d6_work_tpu27pads1_40M_s2": "The three pads turn the tool to cos 0.56 within a tenth of a second, sliding "
+    "it 19&#8202;mm up in the grip, and hold it still at 0.61 from 0.3&#8202;s with a summed tip force of "
+    "52&#8211;57&#8202;N. The watch stopped the run at 36&#8202;M steps on the plateau test.",
+    "20261008-d6_work_tpu27skin_40M_s0": "The three pads turn the tool to cos 0.67 within a quarter second and to 0.79 by "
+    "0.7&#8202;s, then hold it still at 46&#8211;52&#8202;N.",
+    "20261008-d6_work_tpu27skin_40M_s1": "The three pads turn the tool to cos 0.55 within 0.14&#8202;s, and it creeps on "
+    "to 0.63 by 5&#8202;s; the summed tip force stays at 46&#8211;49&#8202;N.",
 }
 
 
@@ -931,10 +953,11 @@ GLOSSARY = [
      "down, the goal of the turn; the tool starts horizontal (cos&#8202;0)."),
     ("held cosine", "The mean of the final cos over the held rollouts of one evaluation. The turn the policy achieved, "
      "counted only where the hand still carries the tool."),
-    ("evaluation", "64 rollouts of the deterministic policy (its mean action) in parallel envs for 250 policy steps, with "
-     "the training&#8217;s timing (residual and reorientation reward from step 58, after the scripted grasp and lift), no "
-     "early termination and no randomisation; 256 per cell of the transfer matrix and 128 per perturbation. The rollouts "
-     "differ only through the GPU contact solve."),
+    ("evaluation, closed loop", "64 rollouts of the deterministic policy (its mean action) in parallel MuJoCo-Warp envs "
+     "for 250 policy steps, the policy acting on the simulated state at every step, with the training&#8217;s timing "
+     "(residual and reorientation reward from step 58, after the scripted grasp and lift), no early termination and no "
+     "randomisation; 256 per cell of the transfer matrix and 128 per perturbation. The rollouts differ only through the "
+     "GPU contact solve."),
     ("reach 0.9, step at 0.9", "Rollouts whose tool passes cos 0.9 at a step at which it is held, whether or not it is "
      "still held at 5&#8202;s; the median policy step at which it first does."),
     ("seed spread", "Range of the held cosines (or held fractions) of one arm&#8217;s seeds that trained to 40&#8202;M steps."),
@@ -1057,15 +1080,13 @@ def curves_section(X: Data):
     cap = ("Deterministic evaluation of every second saved checkpoint (82 iterations, 4.0&#8202;M env steps) and the final "
            "one. Top: the held cosine of each seed against env steps, one panel per contact model (marker: circle s0, "
            "square s1, diamond s2; filled when at least 60 of the 64 rollouts held, hollow when fewer, a tick on the "
-           "floor when none held); a cross ends a run stopped by the checkpoint watch. Bottom: the median over seeds "
+           "floor when none held; seeds set 0.7&#8202;M apart), with a bar from the 10th to the 90th percentile of the "
+           "held rollouts&#8217; final cosine; a cross ends a run stopped by the checkpoint watch. Bottom: the median "
+           "over seeds "
            "(line) and the seeds&#8217; range (band) of the held cosine against env steps and against training "
            "wall-clock time with the watch&#8217;s pauses removed. At iteration 0 the residual is near zero and the "
            "scripted grasp holds the tool about level (cos &#8722;0.10 to &#8722;0.02) in every rollout.")
     out = figure(svg, cap, legend()) + curves_text(X)
-    out += figure(svg_ckpt_dist(X), "Final cosine of the held rollouts of each checkpoint evaluation (64 rollouts): the "
-                  "bar spans the 10th to 90th percentile and the marker is the median; seeds side by side (circle s0, "
-                  "square s1, diamond s2) and the bar fainter when fewer rollouts held. Checkpoints at which no "
-                  "rollout held are left out. The dotted line is cos 0.9.")
     wcap = ("Signals of the checkpoint watch at the same checkpoints, over the hold after the turn (policy steps "
             "150&#8211;250): the tool&#8217;s shaking (dashed: trajectory_health&#8217;s jitter limit) and rocking, the "
             "median change of its cosine between policy steps (dashed: 0.005); the mean action change per policy step; the "
@@ -1077,7 +1098,7 @@ def curves_section(X: Data):
             "episode return and length, tip-lost terminations (a fingertip off the tool for 15 steps ends the episode), "
             "the alignment term of the return, the standard deviation of the policy&#8217;s Gaussian action noise "
             "(0.30 at the start) and the grip-force term (weight +0.25 on the tip force above 4&#8202;N per pad). One "
-            "line per seed; a cross ends a stopped run. Against wall-clock time: Figure " + str(FIG[0] - 1) + " and "
+            "line per seed; a cross ends a stopped run. Against wall-clock time: Figure " + str(FIG[0]) + " and "
             "Table 1.")
     out += figure(svg_tb(X), tcap, legend()) + tb_text(X)
     out += figure(svg_watch(X), wcap, legend()) + stops_table(X) + watch_sheets(X)
@@ -1122,7 +1143,7 @@ def curves_text(X: Data):
         return ""
     return ("<p>The checkpoint at which a run first held at least 60 of 64 rollouts: " + "; ".join(parts) + ". An "
             "episode ends 15 steps after a fingertip leaves the tool, so a policy that drops the tool collects the return "
-            "of about 75 steps (Figure " + str(FIG[0] + 2) + "); the box tip&#8217;s seed 0 stayed there for 28&#8202;M "
+            "of about 75 steps (Figure " + str(FIG[0] + 1) + "); the box tip&#8217;s seed 0 stayed there for 28&#8202;M "
             "steps.</p>")
 
 
@@ -1224,10 +1245,10 @@ def final_text(X: Data):
             parts.append(f"{SHORT[arm]} " + ", ".join(f"{lo:.0f}&#8211;{hi:.0f}" for lo, hi in rr))
     if not parts:
         return ""
-    return (f"<p>Every final policy brings the tool to 90&#8202;% of its final cosine within {max(tt):.2f}&#8202;s of the "
-            "onset and then holds it (Figure " + str(FIG[0]) + "). The grip in that hold separates the contact models: the "
-            "summed fingertip force "
-            "spans (10th&#8211;90th percentile over the held steps, per seed) " + "; ".join(parts) + "&#8202;N.</p>")
+    return (f"<p>In the rollouts that hold the tool at 5&#8202;s, every final policy brings it to 90&#8202;% of its final "
+            f"cosine within {max(tt):.2f}&#8202;s of the onset (Figure " + str(FIG[0]) + "). The grip in the hold is "
+            "steady on the pads and the skin and fluctuates with point contact: the summed fingertip force spans "
+            "(10th&#8211;90th percentile over the held steps, per seed) " + "; ".join(parts) + "&#8202;N.</p>")
 
 
 def grip_chatter(tag):
@@ -1355,14 +1376,8 @@ def transfer_text(X: Data):
                    + (f"{bh[held_box[0]][0]} of {bh[held_box[0]][1]}" if len(held_box) == 1 else
                       ', '.join(f'{SHORT[a]} {bh[a][0]} of {bh[a][1]}' for a in held_box)) + ")."
                    if held_box else "no other policy held more than a quarter of the rollouts."))
+    rep_txt = []
     if X.rep:
-        parts = []
-        for arm in ARMS:
-            e = [f"{ENG_LBL[g].split()[0] if g != 'mujoco' else 'CPU MuJoCo'} {sum(1 for r in X.replays(arm, g) if r.get('held_end'))}"
-                 f"/{len(X.replays(arm, g))}" for g in ENGINES if X.replays(arm, g)]
-            if e:
-                parts.append(f"{SHORT[arm]}: {', '.join(e)}")
-        out.append("Open-loop replays held, per contact model the policy trained on: " + "; ".join(parts) + ".")
         pt, comp = ("box", "tpu27mesh"), ("tpu27pads1", "tpu27skin")
         fm, _ = replay_stats(X, pt, "mujoco")
         fd, _ = replay_stats(X, pt, "drake")
@@ -1372,25 +1387,42 @@ def transfer_text(X: Data):
         _, cn = replay_stats(X, comp, "newton")
         if fm and fd and cm and cd:
             md = lambda v: float(np.median(v))  # noqa: E731
-            out.append(f"CPU MuJoCo steps each policy&#8217;s own fingertip model, so for the point-contact policies only "
-                       f"the implementation changes, and their tool falls a median {md(fm):.2f}&#8202;s after the onset "
-                       f"there ({md(fd):.2f}&#8202;s in Drake" + (f", {md(fn):.2f}&#8202;s in Newton" if fn else "")
-                       + ").")
+            rep_txt.append(f"In the open-loop replays (Figure&#160;{FIG[0]}, right), CPU MuJoCo runs each policy&#8217;s "
+                           f"own fingertip model, so for the point-contact policies only the implementation changes; their "
+                           f"tool falls a median {md(fm):.2f}&#8202;s after the onset there ({md(fd):.2f}&#8202;s in Drake"
+                           + (f", {md(fn):.2f}&#8202;s in Newton" if fn else "") + ").")
             sg = lambda v, nd: f"{v:+.{nd}f}".replace("-", "&#8722;")  # noqa: E731
             rel = lambda v: f"{abs(v):.2f} {'below' if v < 0 else 'above'} it"  # noqa: E731
-            out.append(f"The pad and skin replays end within a median {abs(md(cm)):.3f} of the MuJoCo-Warp rollout&#8217;s "
-                       f"final cosine in CPU MuJoCo ({sg(min(cm), 3)} to {sg(max(cm), 3)}), a median {rel(md(cd))} in "
-                       f"Drake" + (f" and {rel(md(cn))} in Newton" if cn else "") + ".")
-        for tag in sorted(X.degen):
+            gap = lambda v: f"{v:+.3f}".replace("-", "&#8722;") if abs(v) < 0.01 else f"{v:+.2f}".replace("-", "&#8722;")  # noqa: E731
+            rep_txt.append(f"The transfer gap in cosine of the pad and skin replays, their final cosine minus that of the "
+                           f"MuJoCo-Warp rollout they replay, is a median {gap(md(cm))} in CPU MuJoCo ({sg(min(cm), 3)} to "
+                           f"{sg(max(cm), 3)}), {gap(md(cd))} in Drake" + (f" and {gap(md(cn))} in Newton" if cn else "")
+                           + ".")
+        WHY = {"the tool rocking every policy step": "rocking the tool", "the tool shaken": "shaking the tool",
+               "every rollout dropped": "dropping every rollout"}
+        st = []
+        for tag in sorted(X.degen, key=lambda t: (ARMS.index(tag_arm(t)), t)):
             arm = tag_arm(tag)
-            e = [f"{'CPU MuJoCo' if g == 'mujoco' else ENG_LBL[g].split()[0]} "
-                 f"{sum(1 for r in X.replays(arm, g, True) if r.get('held_end') and r['dir'].endswith(tag))}/"
-                 f"{sum(1 for r in X.replays(arm, g, True) if r['dir'].endswith(tag))}" for g in ENGINES]
-            if any(not x.endswith("/0") for x in e):
-                out.append(f"The last checkpoint of {SHORT[arm]} s{tag[-1]}, stopped at "
-                           f"{(X.degen[tag]['iteration'] + 1) * STEPS_PER_IT / 1e6:.0f}&#8202;M steps, held "
-                           f"{', '.join(e)}.")
-    return f"<p>{' '.join(out)}</p>" if out else ""
+            cnt = {g: (sum(1 for r in X.replays(arm, g, True) if r.get("held_end") and r["dir"].endswith(tag)),
+                       sum(1 for r in X.replays(arm, g, True) if r["dir"].endswith(tag))) for g in ENGINES}
+            if not any(n for _, n in cnt.values()):
+                continue
+            kinds = next((d[2] for d in degenerate_stops(X, arm) if d[0] == int(tag[-1])), [])
+            why = next((WHY[k] for k in ("the tool rocking every policy step", "the tool shaken", "every rollout dropped")
+                        if k in kinds), "")
+            name = {"box": "box-tip", "tpu27mesh": "TPU-mesh", "tpu27pads1": "pad", "tpu27skin": "skin"}[arm]
+            m = (X.degen[tag]["iteration"] + 1) * STEPS_PER_IT / 1e6
+            st.append((f"{name} seed {tag[-1]} ({m:.0f}&#8202;M steps" + (f", {why}" if why else "") + ")", cnt))
+        if st:
+            def cn_(c):
+                return (f"{c['drake'][0]} of {c['drake'][1]} Drake, {c['mujoco'][0]} of {c['mujoco'][1]} CPU MuJoCo and "
+                        f"{c['newton'][0]} of {c['newton'][1]} Newton replays")
+            rep_txt.append("The last checkpoints of runs the watch stopped kept the tool in " +
+                           "; ".join(f"{cn_(c)} for {lab}" for lab, c in st) + ".")
+    out = [" ".join(out)] if out else []
+    if rep_txt:
+        out.append(" ".join(rep_txt))
+    return "".join(f"<p>{x}</p>" for x in out)
 
 
 def robust_section(X: Data):
@@ -1421,7 +1453,7 @@ def robust_text(X: Data):
     lost = [rb[(t, "kp=10")]["lost_step_median"] for t in tags if rb[(t, "kp=10")].get("lost_step_median") is not None]
     p6, c6 = pool(pt, "kp=6"), pool(cp, "kp=6")
     exc = (" in all but " + ", ".join(f"{nm(t)} ({held(t, 'kp=10')} held)" for t in k10)) if k10 else ""
-    out = [f"The servo gain is the perturbation that separates the policies. At \\(k_p\\) = 10&#8202;N&#8202;m/rad, "
+    out = [f"At a finger servo gain \\(k_p\\) of 10&#8202;N&#8202;m/rad, "
            f"2.5&#215; the training plant&#8217;s, the policies lose the tool after the onset (median loss at policy step "
            f"{min(lost):.0f}&#8211;{max(lost):.0f}){exc}; at 6&#8202;N&#8202;m/rad the point-contact policies held "
            f"{p6[0]} of {p6[1]} rollouts and the pad and skin policies {c6[0]} of {c6[1]}."]
@@ -1484,7 +1516,10 @@ def lede(X: Data):
     point = [a for a in ("box", "tpu27mesh")]
     rep = lambda arms: [sum(S[a]["rep"][e][k] for a in arms for e in ENGINES) for k in (0, 1)]  # noqa: E731
     rc, rp = rep(comp), rep(point)
-    parts = [f"Replayed open loop in CPU MuJoCo, Drake and Newton, the finger targets of the policies trained on the "
+    n_runs = len({r["tag"] for r in X.watch})
+    parts = [f"PPO trained the D6 hand&#8217;s finger-only turn of the screwdriver from scratch in MuJoCo-Warp on four "
+             f"fingertip contact models, {n_runs} runs of up to 40&#8202;M steps. "
+             f"Replayed open loop in CPU MuJoCo, Drake and Newton, the finger targets of the policies trained on the "
              f"1&#8202;mm sphere pads and on the pads mounted on a sprung skin kept the screwdriver in "
              f"{rc[0]} of {rc[1]} replays, and those trained with MuJoCo point contact on the box tip or the TPU block "
              f"mesh in {rp[0]} of {rp[1]}."]
@@ -1498,40 +1533,53 @@ def lede(X: Data):
                      f"seeds).")
     n_transfer = len(parts)          # the first paragraph: transfer; the second: training and the final policies
     WORD = {0: "none", 1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six"}
-    VERB = {"every rollout dropped": "dropping every rollout", "the tool shaken": "shaking the tool",
-            "the tool rocking every policy step": "rocking the tool at the policy rate",
-            "servo targets pinned": "pinning servo targets", "the tool on the palm": "resting the tool on the palm"}
+    # the reasons as verbs; the second clause repeats rocking and shaking in short ("for rocking or shaking it")
+    VERB = {"every rollout dropped": ("dropping every rollout",), "the tool shaken": ("shaking the tool",),
+            "the tool rocking every policy step": ("rocking it at the 50&#8202;Hz policy rate",),
+            "servo targets pinned": ("pinning servo targets",), "the tool on the palm": ("resting the tool on the palm",),
+            "an idle finger": ("idling a finger",)}
+    ORDER = list(VERB)
 
     def fired(arms):
-        """(runs watched, runs on which the degenerate rule fires, M steps at which it fires, kinds as verbs)."""
+        """(runs watched, runs on which the degenerate rule fires, M steps at which it fires, reasons)."""
         n = sum(len({r["tag"] for r in X.watch if r["arm"] == a}) for a in arms)
         ds = [d for a in arms for d in degenerate_stops(X, a)]
-        kinds = []
-        for d in ds:
-            kinds += [VERB[k] for k in d[2] if k in VERB and VERB[k] not in kinds]
+        kinds = sorted({k for d in ds for k in d[2] if k in VERB and k != "an idle finger"}, key=ORDER.index)
         return n, len(ds), sorted({round(d[1]) for d in ds}), kinds
+
+    seen = set()
 
     def says(arms, fam):
         n, k, ms, kinds = fired(arms)
         if not k:
             return f"on none of the {WORD.get(n, n)} {fam} runs"
-        kk = ", ".join(kinds[:-1]) + (" or " if len(kinds) > 1 else "") + kinds[-1] if kinds else ""
+        bare = {"the tool rocking every policy step": "rocking", "the tool shaken": "shaking"}
+        if kinds and all(x in seen and x in bare for x in kinds):        # "for rocking or shaking it"
+            vv = " or ".join(bare[x] for x in sorted(kinds, key=lambda x: list(bare).index(x))) + " it"
+        else:
+            vs = [VERB[x][0] for x in kinds]
+            vv = ", ".join(vs[:-1]) + (" or " if len(vs) > 1 else "") + vs[-1] if vs else ""
+        seen.update(kinds)
         at = " and ".join(str(m) for m in ms)
         return (f"on {WORD.get(k, k)} of the {WORD.get(n, n)} {fam} runs by {at}&#8202;M steps" if len(ms) == 1 else
-                f"on {WORD.get(k, k)} of the {WORD.get(n, n)} {fam} runs, at {at}&#8202;M steps,") + (f" for {kk}" if kk else "")
-    parts.append("The stopping rule of the checkpoint watch (every checkpoint degenerate over 10&#8202;M steps) fires "
+                f"on {WORD.get(k, k)} of the {WORD.get(n, n)} {fam} runs, at {at}&#8202;M steps,") + \
+            (f" for {vv}" if vv else "")
+    parts.append("The stopping rule of the checkpoint watch (every checkpoint over 10&#8202;M steps degenerate) fires "
                  + says(point, "point-contact") + ", and " + says(comp, "pad and skin") + ".")
     jp = [j for a in point for j in S[a]["jerk"]]
     jc = [j for a in comp for j in S[a]["jerk"]]
     if jp and jc:
-        parts.append(f"In the hold of the final policies the tool&#8217;s shaking is {_rng(jp, 0)}&#8202;rad/s&#178; with "
-                     f"point contact and {_rng(jc, 0)}&#8202;rad/s&#178; with the pads and the skin "
-                     f"(<code>trajectory_health</code> fails a policy above 40).")
+        parts.append(f"In the hold of the final policies the tool&#8217;s shaking, the mean change of its angular speed per "
+                     f"20&#8202;ms policy step, is {_rng(jp, 0)}&#8202;rad/s&#178; with point contact and {_rng(jc, 0)}"
+                     f"&#8202;rad/s&#178; with the pads and the skin (<code>trajectory_health</code> fails a policy above "
+                     f"40).")
     hb, hm, hp, hs = (S[a]["hcos"] for a in ARMS)
-    parts.append(f"The point-contact policies turn further where they hold: final held cosine {_rng(hb)} for the box tip "
-                 f"({S['box']['held']}/{S['box']['n']} rollouts held) and {_rng(hm)} for the TPU mesh, against "
-                 f"{_rng(hp)} for the pads and {_rng(hs)} for the skin, all of whose rollouts held "
-                 f"({S['tpu27pads1']['held'] + S['tpu27skin']['held']}/{S['tpu27pads1']['n'] + S['tpu27skin']['n']}).")
+    nc = S["tpu27pads1"]["n"] + S["tpu27skin"]["n"]
+    allc = S["tpu27pads1"]["held"] + S["tpu27skin"]["held"] == nc
+    parts.append(f"The point-contact policies turn the tool further where they hold it: at 5&#8202;s the cosine of its "
+                 f"axis with vertical (1 is tip down, the goal) averages {_rng(hb)} over the box tip&#8217;s held rollouts "
+                 f"({S['box']['held']} of {S['box']['n']}) and {_rng(hm)} for the TPU mesh, against {_rng(hp)} for the "
+                 f"pads and {_rng(hs)} for the skin" + (f", all of whose {nc} rollouts held." if allc else "."))
     pm, pp, ps = probe_spit("tpu27mesh"), probe_spit("tpu27pads1"), probe_spit("tpu27skin")
     if pm and pp and ps:
         parts.append(f"On an idle GPU a training iteration costs {pp / pm:.1f}&#215; the TPU mesh&#8217;s time with the "
