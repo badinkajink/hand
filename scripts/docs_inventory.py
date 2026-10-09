@@ -92,6 +92,7 @@ FOLDER_TOPIC = {
     "20261008-contact_overview": "contact",
     "20261008-hand_object_scale": "design",
     "20261009-contact_overview": "contact",
+    "20261009-tpu_tip_fem": "contact",
 }
 
 # pages whose topic differs from their folder's
@@ -107,20 +108,24 @@ SUPERSEDED = {"20261005-contact_overview", "20261007-contact_overview", "2026100
 
 
 def index_rows():
-    """{file name: (subject, artifact URL or None, retracted)} from docs/experiments/INDEX.md."""
-    out = {}
+    """{file name: (subject, artifact URL or None, retracted, topic title)} from docs/experiments/INDEX.md; columns are
+    found by their header (Date, Topic, Subject, Local file, Artifact)."""
+    out, col = {}, {"subject": 1, "local file": 2, "artifact": 3}
     path = os.path.join(EXP, "INDEX.md")
     for line in open(path, encoding="utf-8"):
-        if not re.match(r"\| 20\d\d-\d\d-\d\d", line):
-            continue
         cells = [c.strip() for c in line.strip().strip("|").split("|")]
-        if len(cells) < 3:
+        if line.startswith("|") and cells and cells[0].lower() == "date":
+            col = {c.lower(): i for i, c in enumerate(cells)}
             continue
-        subject = re.sub(r"\s*\(.*", "", cells[1]).strip(" *")
-        f = re.search(r"\(([^)]+\.html)\)", cells[2]) or re.search(r"([\w./-]+\.html)", cells[2])
-        url = re.search(r"https://claude\.ai/(?:code/)?artifact/[\w-]+", cells[3] if len(cells) > 3 else "")
+        if not re.match(r"\| 20\d\d-\d\d-\d\d", line) or len(cells) <= col["local file"]:
+            continue
+        get = lambda k: cells[col[k]] if k in col and col[k] < len(cells) else ""  # noqa: E731
+        subject = re.sub(r"\s*\(.*", "", get("subject")).strip(" *")
+        f = re.search(r"\(([^)]+\.html)\)", get("local file")) or re.search(r"([\w./-]+\.html)", get("local file"))
+        url = re.search(r"https://claude\.ai/(?:code/)?artifact/[\w-]+", get("artifact"))
         if f:
-            out[os.path.basename(f.group(1))] = (subject, url.group(0) if url else None, "RETRACTED" in cells[1])
+            out[os.path.basename(f.group(1))] = (subject, url.group(0) if url else None, "RETRACTED" in get("subject"),
+                                                 get("topic"))
     return out
 
 
@@ -162,7 +167,7 @@ def records():
         name, folder = os.path.basename(path), os.path.basename(os.path.dirname(path))
         if name.endswith(".src.html"):
             continue
-        subject, url, retracted = idx.get(name, (None, None, False))
+        subject, url, retracted, _ = idx.get(name, (None, None, False, ""))
         art = os.path.join(os.path.dirname(path), "artifact_url.txt")
         if not url and os.path.exists(art):
             url = open(art).read().strip() or None
@@ -189,8 +194,15 @@ def main():
     if a.check:
         missing = [r["file"] for r in R if not r["topic"]]
         empty = [k for k, *_ in TOPICS if not any(r["topic"] == k for r in R)]
+        title = {k: t for k, t, _ in TOPICS}
+        idx = index_rows()
+        unlisted = [r["file"] for r in R if os.path.basename(r["file"]) not in idx]
+        disagree = [f"{n}: INDEX '{v[3]}', inventory '{title.get(r['topic'])}'" for r in R
+                    for n, v in idx.items() if n == os.path.basename(r["file"]) and v[3] and v[3] != title.get(r["topic"])]
         print("pages with no topic:", missing or "none")
         print("topics with no page:", empty or "none")
+        print("pages without their own INDEX.md row:", unlisted or "none")
+        print("INDEX.md topics that differ from FOLDER_TOPIC/FILE_TOPIC:", disagree or "none")
         return
     for key, title, _ in TOPICS:
         rs = [r for r in R if r["topic"] == key]
