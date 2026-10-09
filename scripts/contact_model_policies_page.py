@@ -1031,8 +1031,7 @@ def lede(X: Data):
     parts = [f"Replayed open loop in CPU MuJoCo, Drake and Newton, the finger targets of the policies trained on the "
              f"1&#8202;mm sphere pads and on the pads mounted on a sprung skin kept the screwdriver in "
              f"{rc[0]} of {rc[1]} replays, and those trained with MuJoCo point contact on the box tip or the TPU block "
-             f"mesh in {rp[0]} of {rp[1]}; the films show the point-contact replays throwing the tool out of the fingers "
-             f"within half a second."]
+             f"mesh in {rp[0]} of {rp[1]}."]
     jp = [j for a in point for j in S[a]["jerk"]]
     jc = [j for a in comp for j in S[a]["jerk"]]
     stopped = [t for a in point for t in S[a]["stopped"]]
