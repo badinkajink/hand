@@ -130,11 +130,11 @@ WRITE_RE = re.compile(r"""\b(OUT\w*|out|output|out_path|page_path|PAGE|HTML)\s*=
 
 
 def _builders():
-    """{page file name: builder script}: the script under scripts/ that writes the page, i.e. names its file on a line
-    that assigns or writes the output; a page named by several scripts goes to a *_page.py builder first, then to the
+    """{page file name: builder script}: the script under scripts/ (or in the page's own folder) that writes the page,
+    i.e. names its file on a line that assigns or writes the output; a page named by several scripts goes to a *_page.py builder first, then to the
     one whose file name shares the most words with the page's name."""
     cand = {}
-    for b in sorted(glob.glob(os.path.join(ROOT, "scripts", "*.py"))):
+    for b in sorted(glob.glob(os.path.join(ROOT, "scripts", "*.py")) + glob.glob(os.path.join(EXP, "*", "*.py"))):
         for line in open(b, encoding="utf-8", errors="replace"):
             if not WRITE_RE.search(line):
                 continue

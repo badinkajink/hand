@@ -12,10 +12,10 @@ import glob
 import json
 import mimetypes
 import re
+import sys
 from pathlib import Path
 
 import numpy as np
-import sys
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
@@ -277,8 +277,10 @@ def main() -> None:
         assert "{{" + token + "}}" in src, token
         src = src.replace("{{" + token + "}}", value)
     src = re.sub(r"\{\{ASSET:([^}]+)\}\}", inline, src)
-    out = HERE / "report_search.html"
-    out.write_text(src)
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import retro_style  # plain page style (owner, 2026-10-09)
+    out = HERE / "20260828-real_v1_design_search.html"
+    out.write_text(retro_style.apply(src))
     print(f"wrote {out.relative_to(ROOT)}  ({out.stat().st_size/1e6:.2f} MB)")
 
 
