@@ -21,6 +21,8 @@ PY
 
 uv run python - "$TMP" "$V" "$OUT" <<'PY'
 import base64, sys, os
+sys.path.insert(0, "scripts")
+import retro_style
 tmp, V, OUT = sys.argv[1], sys.argv[2], sys.argv[3]
 assets = {"r4_video":(os.path.join(V,"r4_600steps.mp4"),"video/mp4"),
           "r4_strip":(os.path.join(tmp,"r4_filmstrip.jpg"),"image/jpeg"),
@@ -30,10 +32,16 @@ assets = {"r4_video":(os.path.join(V,"r4_600steps.mp4"),"video/mp4"),
           "base_video":(os.path.join(V,"baseline_a10_b33_handoff.mp4"),"video/mp4"),
           "base_strip":(os.path.join(tmp,"baseline_b33_filmstrip.jpg"),"image/jpeg")}
 html = open(os.path.join(OUT,"page.src.html")).read()
+import re, texsvg   # mathematics: $...$ inline and $$...$$ display, LaTeX rendered to inline SVG (cache beside the page)
+TEX_RE = re.compile(r"\$\$(.+?)\$\$|\$(.+?)\$", re.S)
+items = [((m.group(1) if m.group(1) is not None else m.group(2)).strip(), m.group(1) is not None) for m in TEX_RE.finditer(html)]
+svgs = iter(texsvg.render(items, cache_path=os.path.join(OUT, "texsvg_cache.json")))
+html = TEX_RE.sub(lambda m: next(svgs), html).replace("</style>", texsvg.CSS + "\n</style>", 1)
 for k,(p,mime) in assets.items():
     html = html.replace("{{ASSET:%s}}"%k,
                         "data:%s;base64,%s"%(mime, base64.b64encode(open(p,"rb").read()).decode()))
 assert "{{ASSET" not in html, "unreplaced asset token"
-dst = os.path.join(OUT,"perp_reorientation.html"); open(dst,"w").write(html)
+html = retro_style.apply(html)
+dst = os.path.join(OUT,"20260818-perp_reorientation.html"); open(dst,"w").write(html)
 print("wrote %s  %.2f MB" % (dst, os.path.getsize(dst)/1048576))
 PY
