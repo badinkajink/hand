@@ -13,8 +13,10 @@ from the rows in docs/experiments/20261008-contact_model_policies/; a section wh
 Style, SVG helpers and LaTeX rendering are those of scripts/contact_overview_page.py.
 
 The arm palette is the dataviz reference instance's slots 1-3 (blue, orange, aqua) for the three TPU arms with the legacy
-box tip as the dashed ink reference; checked in both modes with the reference validator's formulas (all pairs: CVD
-Delta E >= 9.2, normal >= 20.9; aqua is 2.8:1 on white, so every series is also labelled in text and tables).
+box tip as the dashed ink reference; checked with the reference validator's formulas (all pairs: CVD Delta E >= 9.2,
+normal >= 20.9; aqua is 2.8:1 on white, so every series is also labelled in text and tables). The page is written in the
+plain light style of scripts/retro_style.py (owner, 2026-10-09), and its charts set text at 16 units on a 990-unit
+viewBox, 13.4 px in the 828 px column.
 """
 from __future__ import annotations
 
@@ -30,6 +32,7 @@ import numpy as np
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "scripts"))
 import contact_overview_page as P  # noqa: E402
+import retro_style  # noqa: E402
 import texsvg  # noqa: E402
 
 D = os.path.join(P.EXP, "20261008-contact_model_policies")
@@ -44,9 +47,11 @@ fmt, num = P.fmt, P.num
 ARMS = ("box", "tpu27mesh", "tpu27pads1", "tpu27skin")
 SCENES = ("box", "tpu27mesh", "tpu27meshc4", "tpu27pads1", "tpu27skin")
 ENGINES = ("mujoco", "drake", "newton")
-LBL = {"box": "box tip, point contact", "tpu27mesh": "TPU block, point contact", "tpu27meshc4": "TPU block, condim 4",
+LBL = {"box": "Box tip, point contact", "tpu27mesh": "TPU block, point contact", "tpu27meshc4": "TPU block, condim 4",
        "tpu27pads1": "TPU block, 1&#8202;mm pads", "tpu27skin": "TPU block, pads on a skin"}
 SHORT = {"box": "box", "tpu27mesh": "TPU mesh", "tpu27meshc4": "condim 4", "tpu27pads1": "pads", "tpu27skin": "skin"}
+CAP = {"box": "Box tip", "tpu27mesh": "TPU mesh", "tpu27meshc4": "Condim 4", "tpu27pads1": "Pads", "tpu27skin": "Skin"}
+PANEL = {"box": "Box tip", "tpu27mesh": "TPU mesh", "tpu27pads1": "1&#8202;mm pads", "tpu27skin": "Pads on a skin"}
 COL = {"box": "var(--a-box)", "tpu27mesh": "var(--a-mesh)", "tpu27pads1": "var(--a-pads)", "tpu27skin": "var(--a-skin)"}
 ENG_LBL = {"mujoco": "CPU MuJoCo", "drake": "Drake hydroelastic", "newton": "Newton hydroelastic"}
 STEPS_PER_IT = 2048 * 24
@@ -55,22 +60,19 @@ FIG, TAB = [0], [0]
 EXTRA_CSS = """
 :root{--a-box:#48545D;--a-mesh:#2a78d6;--a-pads:#eb6834;--a-skin:#1baf7a;--hm0:#eef3f9;--hm1:#cde2fb;--hm2:#9ec5f4;
 --hm3:#6da7ec;--hm4:#3987e5;--hm5:#256abf;--hm6:#184f95}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--a-box:#A8B4BD;--a-mesh:#3987e5;--a-pads:#d95926;
---a-skin:#199e70;--hm0:#1f262c;--hm1:#104281;--hm2:#184f95;--hm3:#1c5cab;--hm4:#2a78d6;--hm5:#5598e7;--hm6:#86b6ef}}
-:root[data-theme="dark"]{--a-box:#A8B4BD;--a-mesh:#3987e5;--a-pads:#d95926;--a-skin:#199e70;--hm0:#1f262c;--hm1:#104281;
---hm2:#184f95;--hm3:#1c5cab;--hm4:#2a78d6;--hm5:#5598e7;--hm6:#86b6ef}
-figure.films{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-figure.films.three{grid-template-columns:1fr 1fr 1fr}
+.col > figure,.col > .tw{width:auto !important;max-width:100% !important}
+figure.films{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+figure.films.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+figure.films .cell,figure.replays .cell{min-width:0}
 figure.replays .cell{margin-bottom:14px}
-figure.replays video{width:100%;border-radius:8px}
-figure.replays .cell p.filmlab{font-size:13px;margin:4px 0 0 0;line-height:1.35}
-figure.films .cell p.filmlab{font-size:13px;margin:4px 0 0 0;line-height:1.35}
-figure.films video,figure.films img{width:100%;border-radius:8px}
+figure.films video,figure.films img,figure.replays video{width:100%;height:auto}
+figure .cell p.filmlab{font-size:16px !important;line-height:1.35 !important;text-align:left !important;margin:4px 0 0 0}
+figure .cell p.filmlab code{overflow-wrap:anywhere}
 figure.films figcaption{grid-column:1/-1}
-figure.sheet img{width:100%;border-radius:6px}
-@media (max-width:640px){figure.films,figure.films.three{grid-template-columns:1fr}}
-details.sheets{margin:24px 0;border:1px solid var(--rule);border-radius:10px;padding:10px 16px;background:var(--card)}
-details.sheets summary{cursor:pointer;font-family:var(--f-display);font-size:14.5px;color:var(--ink2)}
+figure.diagram .legendrow{justify-content:center}
+@media (max-width:640px){figure.films,figure.films.three{grid-template-columns:minmax(0,1fr)}}
+details.sheets{margin:24px 0;border:1px solid #000;padding:8px 12px}
+details.sheets summary{cursor:pointer;font-size:17px}
 """
 
 
@@ -238,19 +240,6 @@ def _band(out, fx, fy, xs, lo, hi, colour):
 SEED_SHAPE = {0: "circle", 1: "square", 2: "diamond"}
 
 
-def _seed_lines(X: Data, arm, key, xkind):
-    """{tag: [(x, value)]} of `key` (n_held | held_cos) at each evaluated checkpoint of each seed, x in M steps or
-    training hours."""
-    out = {}
-    for seed, pts in X.curve(arm).items():
-        for it, steps, nh, hc, cm, tag in pts:
-            x = steps / 1e6 if xkind == "steps" else X.hours(tag, it)
-            if x is None:
-                continue
-            out.setdefault(tag, []).append((x, nh if key == "n_held" else hc))
-    return out
-
-
 def _draw_seeds(out, X: Data, fx, fy, lines, arm, clamp=None):
     """One thin line per seed with the seed's marker shape; a stopped run ends in a cross."""
     for tag, pts in sorted(lines.items()):
@@ -292,13 +281,13 @@ def svg_curves(X: Data):
     if not X.ck:
         return P.pending("Checkpoint evaluations not written yet (ckpt_eval.jsonl).")
     W, H = 990, 640
-    out = P._svg_open(W, H, "Held cosine of each seed's checkpoints per contact model against environment steps, and the "
+    out = P._svg_open(W, H, fs=16, label="Held cosine of each seed's checkpoints per contact model against environment steps, and the "
                             "median over seeds of the held cosine and the held rollouts against training wall-clock time")
     pw = 185
     for k, arm in enumerate(ARMS):
         x0 = 62 + k * 236
         fx, fy = P._panel(out, x0, 40, pw, 200, (0, 41), (-0.2, 1.0), (0, 10, 20, 30, 40), (0.0, 0.25, 0.5, 0.75, 1.0),
-                          "env steps (M)", LBL[arm], yfmt="{:.2f}" if k == 0 else (lambda v: ""))
+                          "Env steps (M)", PANEL[arm], yfmt="{:.2f}" if k == 0 else (lambda v: ""))
         out.append(f'<line x1="{x0}" x2="{x0 + pw}" y1="{fy(0.9):.1f}" y2="{fy(0.9):.1f}" '
                    f'style="stroke:var(--ink3);stroke-dasharray:2 4"/>')
         off = {0: -0.7, 1: 0.0, 2: 0.7}
@@ -332,12 +321,12 @@ def svg_curves(X: Data):
     hx = [0, 1, 2, 3] if hmax <= 3.2 else [0, 1, 2, 3, 4]
     for j, xk in enumerate(("steps", "hours")):
         x0 = 62 + j * 492
-        xr, xt, xlab = ((0, 41), (0, 10, 20, 30, 40), "environment steps (millions)") if xk == "steps" else \
-            ((0, max(hx)), hx, "training wall-clock time (h)")
+        xr, xt, xlab = ((0, 41), (0, 10, 20, 30, 40), "Environment steps (millions)") if xk == "steps" else \
+            ((0, max(hx)), hx, "Training wall-clock time (h)")
         fx, fy = P._panel(out, x0, 360, 410, 200, xr, (-0.2, 1.0), xt, (0.0, 0.25, 0.5, 0.75, 1.0), xlab,
-                          "held cosine, median of seeds and their range", yfmt="{:.2f}")
+                          "Held cosine, median of seeds and range", yfmt="{:.2f}")
         out.append(f'<line x1="{x0}" x2="{x0 + 410}" y1="{fy(0.9):.1f}" y2="{fy(0.9):.1f}" '
-                   f'style="stroke:var(--ink3);stroke-dasharray:2 4"/><text x="{x0 + 412}" y="{fy(0.9) + 4:.1f}" '
+                   f'style="stroke:var(--ink3);stroke-dasharray:2 4"/><text x="{x0 + 6}" y="{fy(0.9) - 5:.1f}" '
                    f'style="fill:var(--ink3)">0.9</text>')
         for arm in ARMS:
             ser = _arm_median(X, arm, "held_cos", xk)
@@ -353,71 +342,39 @@ def svg_curves(X: Data):
     return "".join(out)
 
 
-def svg_ckpt_dist(X: Data):
-    """Per contact model, the final cosine of the held rollouts at each evaluated checkpoint: 10th-90th percentile bar
-    and median marker per seed (seeds side by side)."""
-    if not X.ck:
-        return P.pending("Checkpoint evaluations not written yet (ckpt_eval.jsonl).")
-    W, H = 990, 600
-    out = P._svg_open(W, H, "Distribution of the held rollouts' final cosine at every evaluated checkpoint, per contact "
-                            "model and seed: 10th to 90th percentile bar and median marker")
-    off = {0: -0.75, 1: 0.0, 2: 0.75}
-    for k, arm in enumerate(ARMS):
-        x0, y0 = (70, 570)[k % 2], (40, 330)[k // 2]
-        fx, fy = P._panel(out, x0, y0, 360, 200, (-1, 42), (-0.2, 1.0), (0, 10, 20, 30, 40),
-                          (0.0, 0.25, 0.5, 0.75, 1.0), "environment steps (millions)",
-                          f"{LBL[arm]}: final cosine of the held rollouts", yfmt="{:.2f}")
-        out.append(f'<line x1="{x0}" x2="{x0 + 360}" y1="{fy(0.9):.1f}" y2="{fy(0.9):.1f}" '
-                   f'style="stroke:var(--ink3);stroke-dasharray:2 4"/>')
-        for r in sorted((r for r in X.ck if r["arm"] == arm), key=lambda r: (r["seed"], r["iteration"])):
-            held = [c for c, h in zip(r.get("final_cos") or [], r.get("held_final") or []) if h]
-            if not held or r["iteration"] == 0:
-                continue
-            q10, q50, q90 = np.percentile(held, [10, 50, 90])
-            x = fx(r["env_steps"] / 1e6 + off.get(r["seed"], 0.0))
-            tip = (f"{SHORT[arm]} s{r['seed']} at {r['env_steps'] / 1e6:.1f} M: {len(held)}/{r['n']} held, median "
-                   f"{q50:.3f}, 10th-90th {q10:.3f}-{q90:.3f}")
-            out.append(f'<line x1="{x:.1f}" x2="{x:.1f}" y1="{fy(q10):.1f}" y2="{fy(q90):.1f}" style="stroke:{COL[arm]};'
-                       f'stroke-width:2.4;stroke-opacity:{0.35 + 0.65 * len(held) / r["n"]:.2f}"><title>{tip}</title></line>')
-            P._marker(out, x, fy(q50), COL[arm], shape=SEED_SHAPE.get(r["seed"], "circle"), r=2.6, title=tip)
-    out.append("</svg>")
-    return "".join(out)
-
-
 def svg_final(X: Data):
     """Final cosine of the held rollouts of every final policy, per arm and seed, on the held range of the axis; the
     rollouts that dropped the tool are counted under each seed."""
     if not X.fin:
         return P.pending("Final-policy evaluations not written yet (final_eval.jsonl).")
-    W, H = 990, 330
-    out = P._svg_open(W, H, "Final cosine of the tool axis with vertical in each held rollout of 64 per seed, per contact "
+    W, H = 990, 350
+    out = P._svg_open(W, H, fs=16, label="Final cosine of the tool axis with vertical in each held rollout of 64 per seed, per contact "
                             "model, and the number of rollouts that dropped the tool")
-    x0, y0, w, h = 70, 30, 880, 220
+    x0, y0, w, h = 96, 34, 870, 220
     lo, hi = 0.5, 1.0
     fy = lambda v: y0 + h - (v - lo) / (hi - lo) * h  # noqa: E731
     for v in (0.5, 0.6, 0.7, 0.8, 0.9, 1.0):
         out.append(f'<line x1="{x0}" x2="{x0 + w}" y1="{fy(v):.1f}" y2="{fy(v):.1f}" style="stroke:var(--rule2)'
                    f'{";stroke-dasharray:2 4" if v == 0.9 else ""}"/><text x="{x0 - 8}" y="{fy(v) + 4:.1f}" '
                    f'text-anchor="end" style="fill:var(--ink3)">{v:.1f}</text>')
-    out.append(f'<text x="{x0}" y="{y0 - 12}" style="fill:var(--ink2)">final cosine of the tool axis with vertical in '
+    out.append(f'<text x="{x0}" y="{y0 - 14}" style="fill:var(--ink2)">Final cosine of the tool axis with vertical in '
                f'the held rollouts (+1 tip down)</text>')
-    out.append(f'<text x="{x0 - 8}" y="{y0 + h + 38}" text-anchor="end" style="fill:var(--ink3);font-size:11px">dropped</text>')
+    out.append(f'<text x="{x0 - 8}" y="{y0 + h + 44}" text-anchor="end" style="fill:var(--ink3)">Dropped</text>')
     gw = w / len(ARMS)
     rng = np.random.default_rng(7)
     for i, arm in enumerate(ARMS):
         gx = x0 + i * gw
-        out.append(f'<text x="{gx + gw / 2:.1f}" y="{y0 + h + 58}" text-anchor="middle" style="fill:var(--ink2)">'
-                   f'{LBL[arm]}</text>')
+        out.append(f'<text x="{gx + gw / 2:.1f}" y="{y0 + h + 72}" text-anchor="middle" style="fill:var(--ink2)">'
+                   f'{PANEL[arm]}</text>')
         fins = X.finals(arm)
         for j, seed in enumerate((0, 1, 2)):
             r = next((r for r in fins if r["seed"] == seed), None)
             cx = gx + gw * (j + 1) / 4
-            out.append(f'<text x="{cx:.1f}" y="{y0 + h + 18}" text-anchor="middle" style="fill:var(--ink3);font-size:11px">'
+            out.append(f'<text x="{cx:.1f}" y="{y0 + h + 20}" text-anchor="middle" style="fill:var(--ink3)">'
                        f's{seed}</text>')
             if r is None:
-                why = "stopped" if any(t.endswith(f"_{arm}_40M_s{seed}") for t in X.degen) else "&#8211;"
-                out.append(f'<text x="{cx:.1f}" y="{y0 + h + 38}" text-anchor="middle" style="fill:var(--ink3);'
-                           f'font-size:11px">{why}</text>')
+                out.append(f'<text x="{cx:.1f}" y="{y0 + h + 44}" text-anchor="middle" style="fill:var(--ink3)">'
+                           f'&#8211;</text>')
                 continue
             cs, hs = r["final_cos"], r["held_final"]
             held = [c for c, hd in zip(cs, hs) if hd]
@@ -425,8 +382,8 @@ def svg_final(X: Data):
             for c, dx in zip(held, jit):
                 out.append(f'<circle cx="{cx + dx:.1f}" cy="{fy(min(max(c, lo), hi)):.1f}" r="2.5" style="fill:{COL[arm]};'
                            f'fill-opacity:.7;stroke:var(--card);stroke-width:.5"/>')
-            out.append(f'<text x="{cx:.1f}" y="{y0 + h + 38}" text-anchor="middle" style="fill:'
-                       f'{"var(--bad)" if len(held) < len(cs) else "var(--ink3)"};font-size:11px">{len(cs) - len(held)}</text>')
+            out.append(f'<text x="{cx:.1f}" y="{y0 + h + 44}" text-anchor="middle" style="fill:'
+                       f'{"var(--bad)" if len(held) < len(cs) else "var(--ink3)"}">{len(cs) - len(held)}</text>')
             if r.get("held_cos_mean") is not None:
                 yv = fy(r["held_cos_mean"])
                 out.append(f'<line x1="{cx - gw / 8:.1f}" x2="{cx + gw / 8:.1f}" y1="{yv:.1f}" y2="{yv:.1f}" '
@@ -449,29 +406,29 @@ def svg_transfer(X: Data):
     cols = [("mjw", s) for s in SCENES] + [("rep", e) for e in ENGINES]
     pol = sorted({(r["arm"], r["tag"]) for r in X.fin}, key=lambda p: (ARMS.index(p[0]), p[1]))
     W = 990
-    cw, ch, x0, y0 = 96, 46, 190, 70
+    cw, ch, x0, y0 = 96, 54, 190, 84
     H = y0 + ch * len(pol) + 6 * (len({a for a, _ in pol}) - 1) + 20
-    out = P._svg_open(W, H, "Held fraction of every final policy evaluated under each contact model in "
+    out = P._svg_open(W, H, fs=16, label="Held fraction of every final policy evaluated under each contact model in "
                             "MuJoCo-Warp and replayed open loop in CPU MuJoCo, Drake and Newton")
     for j, (kind, s) in enumerate(cols):
         cx = x0 + j * cw + (24 if kind == "rep" else 0)
-        lab = SHORT[s] if kind == "mjw" else ENG_LBL[s].split()[0] + (" MuJoCo" if s == "mujoco" else "")
-        out.append(f'<text x="{cx + cw / 2:.1f}" y="{y0 - 10}" text-anchor="middle" style="fill:var(--ink2)">{lab}</text>')
+        lab = CAP[s] if kind == "mjw" else ENG_LBL[s].split()[0] + (" MuJoCo" if s == "mujoco" else "")
+        out.append(f'<text x="{cx + cw / 2:.1f}" y="{y0 - 12}" text-anchor="middle" style="fill:var(--ink2)">{lab}</text>')
     nr = sorted({r["n"] for r in X.tr})
     rl = f"{nr[0]}" if len(nr) == 1 else (f"{nr[0]}&#8211;{nr[-1]}" if nr else "&#8211;")
-    out.append(f'<text x="{x0 + 2.5 * cw:.1f}" y="{y0 - 34}" text-anchor="middle" style="fill:var(--ink)">'
+    out.append(f'<text x="{x0 + 2.5 * cw:.1f}" y="{y0 - 42}" text-anchor="middle" style="fill:var(--ink)">'
                f'MuJoCo-Warp, closed loop, {rl} rollouts</text>')
     nw = sorted({len([r for r in X.rep if r["dir"] == t and r["engine"] == e and r.get("hold_test_s") is None])
                  for _, t in pol for e in ENGINES} - {0})
     wl = f"{nw[0]}" if len(nw) == 1 else (f"{nw[0]}&#8211;{nw[-1]}" if nw else "&#8211;")
-    out.append(f'<text x="{x0 + 5 * cw + 24 + 1.5 * cw:.1f}" y="{y0 - 34}" text-anchor="middle" style="fill:var(--ink)">'
-               f'open-loop replay, {wl} worlds</text>')
+    out.append(f'<text x="{x0 + 5 * cw + 24 + 1.5 * cw:.1f}" y="{y0 - 42}" text-anchor="middle" style="fill:var(--ink)">'
+               f'Open-loop replay, {wl} worlds</text>')
     cy, prev = y0 - ch, None
     for arm, tag in pol:
         cy += ch + (6 if prev and arm != prev else 0)
         prev = arm
-        out.append(f'<text x="{x0 - 12}" y="{cy + ch / 2 + 4:.1f}" text-anchor="end" style="fill:var(--ink2)">'
-                   f'{SHORT[arm]} s{tag[-1]}</text>')
+        out.append(f'<text x="{x0 - 12}" y="{cy + ch / 2 + 5:.1f}" text-anchor="end" style="fill:var(--ink2)">'
+                   f'{CAP[arm]} s{tag[-1]}</text>')
         out.append(f'<rect x="{x0 - 8}" y="{cy + 6}" width="4" height="{ch - 12}" style="fill:{COL[arm]}"/>')
         for j, (kind, s) in enumerate(cols):
             cx = x0 + j * cw + (24 if kind == "rep" else 0)
@@ -491,20 +448,20 @@ def svg_transfer(X: Data):
                        f'{SHORT.get(s, s)}: held {nh}/{nn}{", held cos %.3f" % np.mean(hc) if hc else ""}</title></rect>')
             if nn:
                 lab = f"{100 * v:.0f}%" if kind == "mjw" else f"{nh}/{nn}"
-                out.append(f'<text x="{cx + cw / 2:.1f}" y="{cy + ch / 2 - 2:.1f}" text-anchor="middle" style="fill:{ink};'
-                           f'font-size:13px;font-weight:500">{lab}</text>')
-                out.append(f'<text x="{cx + cw / 2:.1f}" y="{cy + ch / 2 + 13:.1f}" text-anchor="middle" style="fill:{ink};'
-                           f'font-size:11px">{("cos %.2f" % np.mean(hc)) if hc else "&#8211;"}</text>')
+                out.append(f'<text x="{cx + cw / 2:.1f}" y="{cy + ch / 2 - 3:.1f}" text-anchor="middle" style="fill:{ink};'
+                           f'font-size:16px;font-weight:600">{lab}</text>')
+                out.append(f'<text x="{cx + cw / 2:.1f}" y="{cy + ch / 2 + 15:.1f}" text-anchor="middle" style="fill:{ink};'
+                           f'font-size:15.5px">{("cos %.2f" % np.mean(hc)) if hc else "&#8211;"}</text>')
     out.append("</svg>")
     return "".join(out)
 
 
-WATCH_SIG = [("ang_jerk_hold_median", "tool shaking in the hold (rad/s&#178;)", (1, 1000), (1, 10, 100, 1000), True, 1.0),
-             ("cos_step_hold_median", "tool rocking: cosine change per policy step", (0.0001, 0.1), (0.0001, 0.001, 0.01, 0.1), True, 1.0),
+WATCH_SIG = [("ang_jerk_hold_median", "Tool shaking in the hold (rad/s&#178;)", (1, 1000), (1, 10, 100, 1000), True, 1.0),
+             ("cos_step_hold_median", "Tool rocking, cosine change per step", (0.0001, 0.1), (0.0001, 0.001, 0.01, 0.1), True, 1.0),
              ("dact_held", "|&#916;a| per policy step (action units)", (0, 1.0), (0, 0.25, 0.5, 0.75, 1.0), False, 1.0),
-             ("resid_over_frac", "actions at or past the residual budget (%)", (0, 60), (0, 20, 40, 60), False, 100.0),
-             ("ctrl_sat_frac", "servo targets at a range limit (%)", (0, 30), (0, 10, 20, 30), False, 100.0),
-             ("share_min", "smallest finger share of the grip (%)", (0, 34), (0, 10, 20, 30), False, 100.0)]
+             ("resid_over_frac", "Actions at or past the budget (%)", (0, 60), (0, 20, 40, 60), False, 100.0),
+             ("ctrl_sat_frac", "Servo targets at a range limit (%)", (0, 30), (0, 10, 20, 30), False, 100.0),
+             ("share_min", "Smallest finger share of the grip (%)", (0, 34), (0, 10, 20, 30), False, 100.0)]
 
 
 def watch_value(r, key):
@@ -534,20 +491,20 @@ def svg_watch(X: Data):
     if not X.watch:
         return P.pending("Checkpoint watch rows not written yet (watch.jsonl).")
     W, H = 990, 890
-    out = P._svg_open(W, H, "Checkpoint watch signals per contact model against environment steps: the tool's shaking and "
+    out = P._svg_open(W, H, fs=16, label="Checkpoint watch signals per contact model against environment steps: the tool's shaking and "
                             "rocking in the hold, the action change per policy step, the actions at or past the residual "
                             "budget, the servo targets at a range limit and the smallest finger's share of the grip force")
     for k, (key, lab, ys, yt, logy, scale) in enumerate(WATCH_SIG):
         x0, y0 = (70, 570)[k % 2], (40, 330, 620)[k // 2]
         if logy:
             fx, fy = P._panel(out, x0, y0, 360, 200, (0, 41), ys, (0, 10, 20, 30, 40), yt,
-                              "environment steps (millions)", lab, logy=True, yfmt="{:g}")
+                              "Environment steps (millions)", lab, logy=True, yfmt="{:g}")
             lim = 40 if key == "ang_jerk_hold_median" else 0.005
             out.append(f'<line x1="{x0}" x2="{x0 + 360}" y1="{fy(lim):.1f}" y2="{fy(lim):.1f}" style="stroke:var(--ink3);'
                        f'stroke-dasharray:2 4"/><text x="{x0 + 362}" y="{fy(lim) + 4:.1f}" style="fill:var(--ink3)">{lim:g}</text>')
         else:
             fx, fy = P._panel(out, x0, y0, 360, 200, (0, 41), ys, (0, 10, 20, 30, 40), yt,
-                              "environment steps (millions)", lab, yfmt="{:g}")
+                              "Environment steps (millions)", lab, yfmt="{:g}")
         clamp = lambda v: min(max(v, ys[0]), ys[1])  # noqa: E731
         for arm in ARMS:
             _draw_seeds(out, X, fx, fy, _watch_lines(X, arm, key, scale), arm, clamp=clamp)
@@ -605,23 +562,23 @@ def degenerate_stops(X: Data, arm):
 def stops_table(X: Data):
     if not X.watch:
         return ""
-    head = ["run", "evaluated to", "held at the last watch", "stop rule fired at", "reason", "outcome"]
+    head = ["Run", "Last watch", "Rule fired", "Reason", "Outcome"]
     body = []
     tags = sorted({r["tag"] for r in X.watch}, key=lambda t: (t[-1], ARMS.index(tag_arm(t)) if tag_arm(t) else 9))
     kinds = {}
     for arm in ARMS:
         for d in degenerate_stops(X, arm):
             kinds[(arm, d[0])] = d[2]
-    msteps = lambda it: f"{(int(it) + 1) * STEPS_PER_IT / 1e6:.1f}&#8202;M"  # noqa: E731
+    mst = lambda it: f"{(int(it) + 1) * STEPS_PER_IT / 1e6:.1f}"  # noqa: E731
 
     def reason(tag, so):
         m = re.match(r"degenerate at every checkpoint from it (\d+) to (\d+)", so[1])
         if m:
             k = kinds.get((tag_arm(tag), int(tag[-1])), [])
-            return f"every checkpoint from {msteps(m.group(1))} to {msteps(m.group(2))} degenerate: {', '.join(k)}"
+            return f"Degenerate from {mst(m.group(1))} to {mst(m.group(2))}&#8202;M: {', '.join(k)}"
         m = re.match(r"held cos ([\d.]+) at it (\d+) -> ([\d.]+) at it (\d+)", so[1])
         if m:
-            return (f"held cosine {m.group(1)} at {msteps(m.group(2))} &#8594; {m.group(3)} at {msteps(m.group(4))}, "
+            return (f"Held cosine {m.group(1)} at {mst(m.group(2))}&#8202;M, {m.group(3)} at {mst(m.group(4))}&#8202;M: "
                     "a gain under 0.02")
         return so[1]
     for tag in tags:
@@ -630,32 +587,31 @@ def stops_table(X: Data):
         so = stop_outcome(X, tag)
         st = X.stops.get(tag)
         if st:
-            outcome = f"stopped at {(st['iteration'] + 1) * STEPS_PER_IT / 1e6:.1f}&#8202;M" + \
+            outcome = f"Stopped at {mst(st['iteration'])}&#8202;M" + \
                 ("; its last checkpoint is the final policy" if tag not in X.degen else "")
         elif last["iteration"] >= 812:
-            outcome = "trained to 40&#8202;M" + (" (watched after the run)" if tag not in X.live else "")
+            outcome = "Trained to 40&#8202;M" + ("; watched after the run" if tag not in X.live else "")
         else:
-            outcome = "training"
-        body.append([f"<span style='white-space:nowrap'>{swatch(tag_arm(tag))}{SHORT[tag_arm(tag)]} s{tag[-1]}</span>",
-                     f"{(last['iteration'] + 1) * STEPS_PER_IT / 1e6:.1f}&#8202;M",
-                     f"{last['n_held']}/64" + (f", cos {last['held_cos_mean']:.2f}" if last.get("held_cos_mean") is not None else ""),
-                     f"{(so[0] + 1) * STEPS_PER_IT / 1e6:.1f}&#8202;M" if so else "&#8211;",
+            outcome = "Training"
+        body.append([f"<span style='white-space:nowrap'>{swatch(tag_arm(tag))}{CAP[tag_arm(tag)]} s{tag[-1]}</span>",
+                     f"<span style='white-space:nowrap'>{last['n_held']}/64</span>" +
+                     (f"<br>cos {last['held_cos_mean']:.2f}" if last.get("held_cos_mean") is not None else ""),
+                     f"{mst(so[0])}&#8202;M" if so else "&#8211;",
                      reason(tag, so) if so else "&#8211;", outcome])
-    cap = ("The owner&#8217;s stopping rule applied at every watched checkpoint (4.0&#8202;M steps apart): stop when every "
-           "checkpoint of the last 10&#8202;M steps is degenerate (a flag of the checkpoint watch), or when the held cosine "
-           "gained under 0.02 (and the held count under 8 of 64) over 10&#8202;M steps. The seed-0 runs finished before the "
-           "watch existed, "
-           "and the skin trainer leaves too little GPU memory for a second process: those runs were watched after they "
-           "ended.")
-    return table(head, body, cap, text_cols=(0, 4, 5))
+    cap = ("The owner&#8217;s stopping rule at every watched checkpoint (4.0&#8202;M steps apart): stop when every "
+           "checkpoint of the last 10&#8202;M steps is degenerate, or when the held cosine gained under 0.02 (and the held "
+           "count under 8 of 64) over 10&#8202;M steps. Last watch: rollouts held and held cosine at the last watched "
+           "checkpoint. The seed-0 runs finished before the watch existed, and the skin trainer leaves too little GPU "
+           "memory for a second process: those runs were watched after they ended.")
+    return table(head, body, cap, text_cols=(0, 3, 4))
 
 
-TB_SIG = [("Train/mean_reward", "mean episode return", (0, 500), (0, 100, 200, 300, 400, 500)),
-          ("Train/mean_episode_length", "mean episode length (policy steps, of 250)", (0, 260), (0, 50, 100, 150, 200, 250)),
-          ("Episode_Termination/tip_lost", "tip-lost terminations per iteration (of 2,048 envs)", (0, 50), (0, 10, 20, 30, 40, 50)),
-          ("Episode_Reward/target_axis_alignment", "alignment reward per episode", (0, 70), (0, 10, 20, 30, 40, 50, 60, 70)),
-          ("Policy/mean_std", "action noise of the policy (std, action units)", (0, 0.45), (0, 0.1, 0.2, 0.3, 0.4)),
-          ("Episode_Reward/grip_force_excess", "grip-force term per episode", (0, 8), (0, 2, 4, 6, 8))]
+TB_SIG = [("Train/mean_reward", "Mean episode return", (0, 500), (0, 100, 200, 300, 400, 500)),
+          ("Train/mean_episode_length", "Mean episode length (steps, of 250)", (0, 260), (0, 50, 100, 150, 200, 250)),
+          ("Episode_Termination/tip_lost", "Tip-lost terminations per iteration", (0, 50), (0, 10, 20, 30, 40, 50)),
+          ("Episode_Reward/target_axis_alignment", "Alignment reward per episode", (0, 70), (0, 10, 20, 30, 40, 50, 60, 70)),
+          ("Policy/mean_std", "Action noise of the policy (std)", (0, 0.45), (0, 0.1, 0.2, 0.3, 0.4)),
+          ("Episode_Reward/grip_force_excess", "Grip-force term per episode", (0, 8), (0, 2, 4, 6, 8))]
 
 
 def _tb_lines(X: Data, arm, key, every=8, win=9):
@@ -677,12 +633,12 @@ def svg_tb(X: Data):
     if not X.tb:
         return P.pending("Training curves not extracted yet (tb_dynamics.jsonl).")
     W, H = 990, 890
-    out = P._svg_open(W, H, "Training curves per contact model against environment steps: episode return, episode "
+    out = P._svg_open(W, H, fs=16, label="Training curves per contact model against environment steps: episode return, episode "
                             "length, tip-lost terminations, the alignment reward, the policy's action noise and the "
                             "grip-force term")
     for k, (key, lab, ys, yt) in enumerate(TB_SIG):
         x0, y0 = (70, 570)[k % 2], (40, 330, 620)[k // 2]
-        fx, fy = P._panel(out, x0, y0, 360, 200, (0, 41), ys, (0, 10, 20, 30, 40), yt, "environment steps (millions)",
+        fx, fy = P._panel(out, x0, y0, 360, 200, (0, 41), ys, (0, 10, 20, 30, 40), yt, "Environment steps (millions)",
                           lab, yfmt="{:g}")
         clamp = lambda v: min(max(v, ys[0]), ys[1])  # noqa: E731
         for arm in ARMS:
@@ -756,9 +712,9 @@ def _watch_sheets(X: Data):
     return "".join(out)
 
 
-PERT = [("friction", "sliding friction (&#215; nominal)", (0.7, 1.0, 1.3)), ("mass", "tool mass (&#215; nominal)", (0.8, 1.0, 1.2)),
-        ("kp", "finger servo kp (N m/rad)", (2.0, 4.0, 6.0, 10.0)), ("dt", "physics step (ms)", (1.0, 2.0)),
-        ("noise", "pose noise (mm, &#176;)", (0.0, 1.0))]
+PERT = [("friction", "Friction (&#215;)", (0.7, 1.0, 1.3)), ("mass", "Tool mass (&#215;)", (0.8, 1.0, 1.2)),
+        ("kp", "Servo gain (N m/rad)", (2.0, 4.0, 6.0, 10.0)), ("dt", "Physics step (ms)", (1.0, 2.0)),
+        ("noise", "Pose noise (mm, &#176;)", (0.0, 1.0))]
 
 
 def _rb_value(X, arm, kind, v):
@@ -780,18 +736,18 @@ def svg_robust(X: Data):
     if not X.rb:
         return P.pending("Perturbation rows not written yet (robust.jsonl).")
     W, H = 990, 300
-    out = P._svg_open(W, H, "Held fraction of each arm's final policies under one perturbation at a time")
-    pw, gap, x0 = 150, 46, 60
+    out = P._svg_open(W, H, fs=16, label="Held fraction of each arm's final policies under one perturbation at a time")
+    pw, gap, x0 = 140, 46, 66
     for k, (kind, lab, vals) in enumerate(PERT):
         px = x0 + k * (pw + gap)
         pos = {v: i for i, v in enumerate(vals)}
         fx0, fy = P._panel(out, px, 40, pw, 170, (-0.4, len(vals) - 0.6), (0, 1), [], (0, 0.5, 1),
-                           lab, "held fraction" if k == 0 else "", yfmt="{:g}")
+                           lab, "Held fraction" if k == 0 else "", yfmt="{:g}")
         for v in vals:
             tx = fx0(pos[v])
             vt = ("1" if kind == "dt" and v == 1.0 else "2") if kind == "dt" else \
                 (("0" if v == 0 else "2, 5") if kind == "noise" else f"{v:g}")
-            out.append(f'<text x="{tx:.1f}" y="{40 + 170 + 17}" text-anchor="middle" style="fill:var(--ink3)">{vt}</text>')
+            out.append(f'<text x="{tx:.1f}" y="{40 + 170 + 19}" text-anchor="middle" style="fill:var(--ink3)">{vt}</text>')
         for arm in ARMS:
             pts = []
             for v in vals:
@@ -941,61 +897,50 @@ FILM_NOTES = {       # run tag -> what its final film shows, written after watch
 # ------------------------------------------------------------------------------------------ sections
 
 GLOSSARY = [
-    ("arm", "One fingertip contact model the policies train on. All arms share the hand (real_v1 D6), the working plant "
-     "(finger servo kp 4&#8202;N&#8202;m/rad, damping 0.08&#8202;N&#8202;m&#8202;s/rad, torque limit 1&#8202;N&#8202;m), "
-     "the tool (the 24.5&#8202;g screwdriver, \\(\\mu\\) = 1), the solver (MuJoCo-Warp, 2&#8202;ms, 10 Newton iterations, "
-     "elliptic cones, impratio 10), the recipe and its flags, and differ only in the fingertip."),
-    ("env step, iteration", "One env step is one 20&#8202;ms policy step of one of the 2,048 parallel envs; one PPO "
-     "iteration collects 24 steps per env, 49,152 env steps. 40&#8202;M env steps are 813 iterations."),
-    ("held (load test)", "At a policy step, at least two fingertips each press on the tool with at least 0.24&#8202;N (its "
-     "weight) and the tool is above 60&#8202;mm. A rollout is held when this is true at its last step (5&#8202;s)."),
-    ("cos", "The signed cosine of the tool&#8217;s own axis with world vertical, \\(\\cos\\theta = R_{zz}\\); +1 is tip "
-     "down, the goal of the turn; the tool starts horizontal (cos&#8202;0)."),
-    ("held cosine", "The mean of the final cos over the held rollouts of one evaluation. The turn the policy achieved, "
-     "counted only where the hand still carries the tool."),
-    ("evaluation, closed loop", "64 rollouts of the deterministic policy (its mean action) in parallel MuJoCo-Warp envs "
-     "for 250 policy steps, the policy acting on the simulated state at every step, with the training&#8217;s timing "
-     "(residual and reorientation reward from step 58, after the scripted grasp and lift), no early termination and no "
-     "randomisation; 256 per cell of the transfer matrix and 128 per perturbation. The rollouts differ only through the "
-     "GPU contact solve."),
-    ("reach 0.9, step at 0.9", "Rollouts whose tool passes cos 0.9 at a step at which it is held, whether or not it is "
-     "still held at 5&#8202;s; the median policy step at which it first does."),
-    ("seed spread", "Range of the held cosines (or held fractions) of one arm&#8217;s seeds that trained to 40&#8202;M steps."),
-    ("rollout spread", "Standard deviation of the final cos over the held rollouts of one evaluation, averaged over seeds."),
-    ("grip", "Sum of the three fingertips&#8217; net contact force on the tool, mean over the held steps from step 58, N."),
-    ("|&#916;a|", "Mean absolute change of the 9-dimensional action between consecutive policy steps, in action units "
-     "(one unit is 0.5&#8202;rad of servo target); 0 for a policy that holds still."),
-    ("contacts per step", "Fingertip-tool contacts summed over the three tips (the fingertip sensor&#8217;s match count), mean "
-     "over the held steps."),
-    ("penetration", "Deepest fingertip-tool penetration over a rollout&#8217;s held steps, mm; mean over held rollouts."),
-    ("creep", "Displacement of the tool against the palm over the last second of the rollout divided by 0.98&#8202;s "
-     "(mm/s), and the rotation of its axis over the same second (&#176;/s); median over held rollouts."),
-    ("peak force", "Largest single-fingertip net force over a rollout&#8217;s held steps, N; mean over held rollouts."),
-    ("transfer gap", "Held fraction (or held cosine) under another contact model or simulator minus that under the "
-     "policy&#8217;s own contact model in MuJoCo-Warp."),
-    ("shaking", "Mean absolute change of the tool&#8217;s angular speed between consecutive policy steps, divided by the "
-     "20&#8202;ms step, over the held steps of the hold after the turn (policy steps 150&#8211;250), rad/s&#178;; median "
-     "over held rollouts. <code>trajectory_health</code> fails a policy for jitter above 40&#8202;rad/s&#178;; the still "
-     "pad and skin holds of the final policies read 9&#8211;18&#8202;rad/s&#178;."),
-    ("checkpoint watch", "At every 82nd iteration (4.0&#8202;M env steps) the training run is paused, the checkpoint "
-     "evaluated (64 rollouts) and its median and worst rollouts rendered as frame strips and a film, which are looked at "
-     "before the run continues; the owner&#8217;s rule stops a run that is degenerate for 10&#8202;M steps (drops every "
-     "rollout, an idle finger, jitter, saturated actions, or the tool on the palm) or whose held cosine gains under 0.02 "
-     "over 10&#8202;M steps. Jitter counts when the shaking exceeds 40&#8202;rad/s&#178; while the rocking exceeds 0.005, "
-     "and rocking above 0.005 counts on its own when the tilting velocity reverses at most steps; the strips and the "
-     "consecutive-step frames of the hold were looked at for every checkpoint. The seed-0 runs and the skin runs were "
-     "watched on the same checkpoints after training."),
+    ("arm", "One fingertip contact model. The arms share the hand (real_v1 D6), the working plant (servo gain \\(k_p\\) = "
+     "4&#8202;N&#8202;m/rad, damping 0.08&#8202;N&#8202;m&#8202;s/rad), the 24.5&#8202;g screwdriver (\\(\\mu\\) = 1), "
+     "MuJoCo-Warp at 2&#8202;ms with impratio 10, and the recipe."),
+    ("env step, iteration", "One 20&#8202;ms policy step of one of 2,048 parallel envs; a PPO iteration is 24 steps per "
+     "env, 49,152 env steps, and 40&#8202;M env steps are 813 iterations."),
+    ("held (load test)", "At least two fingertips press on the tool with 0.24&#8202;N (its weight) or more and the tool is "
+     "above 60&#8202;mm; a rollout is held when this is true at 5&#8202;s."),
+    ("cos", "Cosine of the tool axis with world vertical, \\(R_{zz}\\): +1 is tip down, the goal; the tool starts "
+     "horizontal, at 0."),
+    ("held cosine", "Mean final cos over the held rollouts of one evaluation."),
+    ("evaluation, closed loop", "64 rollouts of the deterministic policy in parallel MuJoCo-Warp envs over 250 policy steps, "
+     "with the training&#8217;s timing (policy from step 58, after the scripted grasp and lift), no early termination "
+     "and no randomisation; 256 per transfer cell, 128 per perturbation."),
+    ("reach 0.9, step at 0.9", "Rollouts whose tool passes cos 0.9 while held, and the median policy step at which it "
+     "first does."),
+    ("seed spread", "Range of the held cosines of an arm&#8217;s seeds with a final policy."),
+    ("rollout spread", "Standard deviation of the final cos over one evaluation&#8217;s held rollouts."),
+    ("grip", "Summed net force of the three fingertips on the tool, mean over the held steps from step 58, in N."),
+    ("grip change per step", "Median absolute change of the grip between policy steps in the hold (steps "
+     "150&#8211;250), in N."),
+    ("peak force", "Largest single-fingertip force over a rollout&#8217;s held steps, in N."),
+    ("penetration", "Deepest fingertip&#8211;tool penetration over a rollout&#8217;s held steps, in mm."),
+    ("creep", "Tool displacement against the palm over the last second, in mm/s, and rotation of its axis, in "
+     "&#176;/s."),
+    ("|&#916;a|", "Mean absolute change of the 9-dimensional action between policy steps; one action unit is "
+     "0.5&#8202;rad of servo target."),
+    ("shaking", "Mean absolute change of the tool&#8217;s angular speed per policy step in the hold, divided by 20&#8202;ms, "
+     "in rad/s&#178;; <code>trajectory_health</code> fails a policy above 40."),
+    ("rocking", "Median absolute change of cos between policy steps in the hold; the tool rocks at the policy rate above "
+     "0.005 when its tilt also reverses at most steps."),
     ("servo targets at a limit", "Share of the nine finger servo targets (anchor plus residual) at their actuator&#8217;s "
-     "range limit over the active steps; the residual itself is not clipped in these runs."),
-    ("finger share", "One fingertip&#8217;s share of the summed fingertip-tool force over the held steps."),
-    ("rocking", "Median absolute change of the tool&#8217;s cos between consecutive policy steps over the held steps of "
-     "the hold (steps 150&#8211;250). Above 0.005 with the tilting velocity reversing at most steps, the tool rocks at "
-     "the policy rate, an oscillation the shaking misses because the angular speed keeps its magnitude."),
-    ("grip change per step", "Median absolute change of the summed fingertip-tool force between consecutive policy "
-     "steps over the held steps of the hold (steps 150&#8211;250), N; a steady grip reads near 0."),
-    ("open-loop replay", "From the state at policy step 58 of a MuJoCo-Warp rollout, the policy&#8217;s recorded finger "
-     "targets are played into another simulator at 50&#8202;Hz with the palm welded at its lifted pose "
-     "(<code>scripts/rl_policy_replay.py</code>); the policy does not see that simulator&#8217;s state."),
+     "range limit; the runs do not clip the residual."),
+    ("finger share", "One fingertip&#8217;s share of the grip over the held steps."),
+    ("checkpoint watch", "Every 82 iterations (4.0&#8202;M env steps) the run pauses for an evaluation and films of its "
+     "median and worst rollouts, looked at before it goes on. The owner&#8217;s rule stops a run that is degenerate "
+     "(every rollout dropped, an idle finger, shaking above 40 with rocking above 0.005, rocking at the policy rate, "
+     "pinned servo targets or the tool on the palm) at every checkpoint for 10&#8202;M steps, or whose held cosine gains "
+     "under 0.02 over 10&#8202;M steps."),
+    ("condim", "MuJoCo&#8217;s contact dimension: 3 gives a point contact with sliding friction, 4 adds a torsional "
+     "friction bounded by \\(\\mu_\\text{spin} N\\)."),
+    ("open-loop replay", "The recorded finger targets of a MuJoCo-Warp rollout from step 58, played at 50&#8202;Hz into "
+     "another simulator with the palm welded at its lifted pose (<code>scripts/rl_policy_replay.py</code>)."),
+    ("transfer gap", "Held fraction or held cosine under another contact model or simulator minus that in the training "
+     "model in MuJoCo-Warp."),
 ]
 
 
@@ -1031,11 +976,9 @@ def run_hours(X: Data, tag):
 def arms_section(X: Data):
     sk = json.load(open(os.path.join(P.ROOT, "results/phase1/real_v1/20261008-sv1_u0308_b050_work_tip_tpu2.7skin/summary.json")))
     s = sk.get("fingertip", {}).get("skin", {})
-    head = ["contact model", "contact", "s/it, idle GPU", "s/it, runs", "GPU-h per 40&#8202;M", "GPU-h spent",
-            "GPU (GB)", "failed starts"]
+    head = ["Contact model", "Iteration (s)<br>idle GPU", "Iteration (s)<br>runs", "GPU-h per<br>40&#8202;M steps",
+            "GPU-h<br>spent", "GPU memory<br>(GB)", "Failed<br>starts"]
     body = []
-    contact = {"box": "point, condim 3", "tpu27mesh": "point, condim 3", "tpu27meshc4": "point, condim 4",
-               "tpu27pads1": "1,060 spheres per tip", "tpu27skin": "the pads on a sprung skin"}
     for a in SCENES:
         cs = [c for t, c in X.cost.items() if tag_arm(t) == a]
         spi = [c["s_per_it_median"] for c in cs if c.get("s_per_it_median")]
@@ -1047,17 +990,17 @@ def arms_section(X: Data):
             [c["gpu_mem_peak_mb"] for c in cs if c.get("gpu_mem_peak_mb")]
         fl = sum(c.get("failed_attempts", 0) for c in cs if not c.get("stopped_at"))
         trained = a in ARMS
-        body.append([f"{swatch(a) if trained else ''}{LBL[a]}", contact[a], f1(probe_spit(a), 2),
+        body.append([f"{swatch(a) if trained else ''}{LBL[a]}", f1(probe_spit(a), 2),
                      f1(float(np.median(spi)), 2) if spi else "&#8211;",
-                     f1(float(np.median([h for h in h40 if h])), 2) if any(h40) else ("not trained" if not trained else "&#8211;"),
+                     f1(float(np.median([h for h in h40 if h])), 2) if any(h40) else ("Not trained" if not trained else "&#8211;"),
                      f1(sum(h for h in spent if h), 2) if any(spent) else "&#8211;",
                      f1(max(gpu) / 1e3, 1) if gpu else "&#8211;", str(fl) if trained else "&#8211;"])
     tot = sum(h for c in X.cost.values() if (h := run_hours(X, c["tag"])))
     txt = ("<p>All arms train the same hand, plant, tool, solver, recipe and flags and differ only in the fingertip. The "
            "box tip is the fingertip every policy of this program trained on until 2026-10-05. The TPU arms replace it by "
            "the printed tip, a 17&#215;14.8&#215;22&#8202;mm block with 2.7&#8202;mm fillets, as one convex mesh with "
-           "point contact, or as the 1&#8202;mm sphere pads of the overview page "
-           f"(<code>{OVERVIEW}</code>). The skin mounts each tip&#8217;s pads on a child body with two tangent slides and "
+           "point contact (condim 3, like the box tip), or as the 1&#8202;mm sphere pads of the overview page, 1,060 "
+           f"spheres per tip (<code>{OVERVIEW}</code>). The skin mounts each tip&#8217;s pads on a child body with two tangent slides and "
            "a hinge about the palmar normal, sprung by Mindlin&#8217;s and Lubkin&#8217;s initial stiffness "
            "\\(k_t = 8Ga/(2-\\nu)\\) and \\(k_\\theta = 16Ga^3/3\\) "
            f"on the pads&#8217; patch at 12&#8202;N (\\(a\\) = {f1(1e3 * s.get('a', float('nan')), 2)}&#8202;mm, "
@@ -1068,11 +1011,12 @@ def arms_section(X: Data):
            "contact whose spin torque is bounded by \\(\\mu_\\text{spin} N\\) with \\(\\mu_\\text{spin}\\) = 3.0&#8202;mm "
            "(the pads&#8217; twist-onset arm at 10&#8211;20&#8202;N, <code>twist_onset/tip_T2.jsonl</code>), is evaluated "
            f"in the transfer matrix but not trained. Training used {tot:.1f} of the 24 GPU-hours budgeted.</p>")
-    cap = ("Contact models and training cost on one RTX 4070 Ti SUPER. Idle GPU: median of a five-iteration probe before the "
-           "queue. Runs: median over each arm&#8217;s runs, which shared the workstation with other jobs (an Isaac Lab "
-           "evaluation on about ten CPU cores for most of the night). GPU-hours exclude the watch&#8217;s pauses; "
-           "&#8216;spent&#8217; includes the runs stopped early. GPU memory: the training process.")
-    return txt + table(head, body, cap, text_cols=(0, 1))
+    cap = ("Contact models and training cost on one RTX 4070 Ti SUPER. Iteration: wall time of one PPO iteration, on an idle "
+           "GPU the median of a five-iteration probe before the queue, in the runs the median over each arm&#8217;s runs, "
+           "which shared the workstation with other jobs (an Isaac Lab evaluation on about ten CPU cores for most of the "
+           "night). GPU-hours exclude the watch&#8217;s pauses; &#8216;spent&#8217; includes the runs stopped early. GPU "
+           "memory: the training process.")
+    return txt + table(head, body, cap, text_cols=(0,))
 
 
 def curves_section(X: Data):
@@ -1095,7 +1039,8 @@ def curves_section(X: Data):
             "smallest of the three fingers&#8217; shares of the grip force. Medians over held rollouts; one line per seed "
             "as above.")
     tcap = ("Training curves from the event files, smoothed over nine iterations: the stochastic policy&#8217;s mean "
-            "episode return and length, tip-lost terminations (a fingertip off the tool for 15 steps ends the episode), "
+            "episode return and length, tip-lost terminations per iteration of 2,048 envs (a fingertip off the tool for 15 steps "
+            "ends the episode), "
             "the alignment term of the return, the standard deviation of the policy&#8217;s Gaussian action noise "
             "(0.30 at the start) and the grip-force term (weight +0.25 on the tip force above 4&#8202;N per pad). One "
             "line per seed; a cross ends a stopped run. Against wall-clock time: Figure " + str(FIG[0]) + " and "
@@ -1150,10 +1095,10 @@ def curves_text(X: Data):
 def svg_traces(X: Data):
     """cos(t) of the 64 rollouts of each arm's median seed (final policy), held at 5 s in the arm's colour, dropped in
     grey; grip force (sum of the three tips) below."""
-    W, H = 990, 470
-    out = P._svg_open(W, H, "Tool cosine against time in each of the 64 rollouts of every contact model's median-seed final "
+    W, H = 990, 520
+    out = P._svg_open(W, H, fs=16, label="Tool cosine against time in each of the 64 rollouts of every contact model's median-seed final "
                             "policy, and the summed fingertip force")
-    pw, gap, x0 = 210, 32, 60
+    pw, gap, x0 = 190, 40, 66
     drawn = 0
     for k, arm in enumerate(ARMS):
         r = median_seed(X, arm)
@@ -1168,15 +1113,15 @@ def svg_traces(X: Data):
         t = (np.arange(T) + 1) * 0.02
         px = x0 + k * (pw + gap)
         fx, fy = P._panel(out, px, 40, pw, 200, (0, 5), (-1, 1), (0, 1, 2, 3, 4, 5), (-1, -0.5, 0, 0.5, 1),
-                          "time (s)", f"{SHORT[arm]} s{r['seed']}: cos" if k == 0 else f"{SHORT[arm]} s{r['seed']}",
-                          yfmt="{:g}")
+                          "Time (s)", f"{CAP[arm]} s{r['seed']}, cos" if k == 0 else f"{CAP[arm]} s{r['seed']}",
+                          xfmt="{:g}", yfmt="{:g}" if k == 0 else (lambda v: ""))
         out.append(f'<line x1="{fx(1.16):.1f}" x2="{fx(1.16):.1f}" y1="40" y2="240" style="stroke:var(--ink3);'
                    f'stroke-dasharray:2 4"/>')
         for e in np.argsort(held):                       # dropped first, held on top
             pts = list(zip(t[::3], cos[::3, e]))
             P._path(out, fx, fy, pts, COL[arm] if held[e] else "var(--bad)", width=0.9)
-        fx2, fy2 = P._panel(out, px, 300, pw, 110, (0, 5), (0, 150), (0, 1, 2, 3, 4, 5), (0, 50, 100, 150), "time (s)",
-                            "grip (N)" if k == 0 else "", yfmt="{:g}")
+        fx2, fy2 = P._panel(out, px, 336, pw, 110, (0, 5), (0, 150), (0, 1, 2, 3, 4, 5), (0, 50, 100, 150), "Time (s)",
+                            "Grip (N)" if k == 0 else "", yfmt="{:g}" if k == 0 else (lambda v: ""))
         g = f.sum(-1)
         for e in np.argsort(held):
             P._path(out, fx2, fy2, list(zip(t[::3], np.minimum(g[::3, e], 150))), COL[arm] if held[e] else "var(--bad)",
@@ -1273,17 +1218,18 @@ def final_section(X: Data):
                         for t, r in sorted(X.degen.items(), key=lambda kv: (ARMS.index(tag_arm(kv[0])), kv[0])))
     cap = ("Final cosine of the held rollouts of the final policies (64 rollouts per seed; the axis starts at 0.5, below "
            "every held rollout) and, under each seed, the number of rollouts that dropped the tool; bar: the seed&#8217;s "
-           "held cosine. The runs the watch stopped as degenerate have no final policy: " + stopped + " steps.")
+           "held cosine. A dash marks a run the watch stopped as degenerate, which has no final policy: " + stopped +
+           " steps.")
     out = figure(svg, cap)
     out += figure(svg_traces(X), "The 64 rollouts of each contact model&#8217;s median-seed final policy: the tool&#8217;s "
                   "cosine with vertical (top) and the summed fingertip force on it (bottom, clipped at 150&#8202;N) against "
                   "time; rollouts that held the tool at 5&#8202;s in the arm&#8217;s colour, the others in red. Dashed: the residual "
                   "policy&#8217;s onset after the scripted grasp and lift (step 58).")
     out += final_text(X)
-    h1 = ["contact model", "held", "held cos,<br>median of seeds", "seed<br>spread", "rollout<br>spread",
-          "reach 0.9<br>held", "step<br>at 0.9"]
-    h2 = ["contact model", "grip<br>(N)", "grip change<br>per step (N)", "peak<br>force (N)", "penetration<br>(mm)",
-          "creep<br>(mm/s)", "creep<br>(&#176;/s)", "shaking<br>(rad/s&#178;)", "|&#916;a|"]
+    h1 = ["Contact model", "Held", "Held cos,<br>median of seeds", "Seed<br>spread", "Rollout<br>spread",
+          "Reach 0.9<br>held", "Step<br>at 0.9"]
+    h2 = ["Contact model", "Grip<br>(N)", "Grip change<br>per step (N)", "Peak<br>force (N)", "Penetration<br>(mm)",
+          "Creep<br>(mm/s)", "Creep<br>(&#176;/s)", "Shaking<br>(rad/s&#178;)", "|&#916;a|"]
     b1, b2, pins = [], [], []
     for a in ARMS:
         fs = X.finals(a)
@@ -1508,95 +1454,39 @@ def _rng(v, nd=2):
 
 
 def lede(X: Data):
+    """About 120 words (owner, 2026-10-09: a lede of about 100 words): the transfer, then training and the trade."""
     S = summary(X)
     if not all(S[a]["n_fin"] for a in ARMS):
         done = ", ".join(f"{SHORT[a]} {S[a]['n_fin']}" for a in ARMS)
         return f"Training in progress: finished seeds per contact model {done}."
-    comp = [a for a in ("tpu27pads1", "tpu27skin")]
-    point = [a for a in ("box", "tpu27mesh")]
+    comp, point = ("tpu27pads1", "tpu27skin"), ("box", "tpu27mesh")
+    W = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 12: "Twelve"}
     rep = lambda arms: [sum(S[a]["rep"][e][k] for a in arms for e in ENGINES) for k in (0, 1)]  # noqa: E731
     rc, rp = rep(comp), rep(point)
     n_runs = len({r["tag"] for r in X.watch})
-    parts = [f"PPO trained the D6 hand&#8217;s finger-only turn of the screwdriver from scratch in MuJoCo-Warp on four "
-             f"fingertip contact models, {n_runs} runs of up to 40&#8202;M steps. "
-             f"Replayed open loop in CPU MuJoCo, Drake and Newton, the finger targets of the policies trained on the "
-             f"1&#8202;mm sphere pads and on the pads mounted on a sprung skin kept the screwdriver in "
-             f"{rc[0]} of {rc[1]} replays, and those trained with MuJoCo point contact on the box tip or the TPU block "
-             f"mesh in {rp[0]} of {rp[1]}."]
+    p1 = [f"{W.get(n_runs, n_runs) if n_runs > 6 else n_runs} PPO runs of up to 40&#8202;M steps trained the D6 "
+          f"screwdriver turn in MuJoCo-Warp on four fingertip contact models. Replayed open loop in CPU MuJoCo, Drake and "
+          f"Newton, the finger targets of the pad and skin policies (1&#8202;mm sphere pads, bare or on a sprung skin) kept "
+          f"the tool in {rc[0]} of {rc[1]} replays, those of the point-contact policies in {rp[0]} of {rp[1]}."]
     T = {a: tpu_transfer(X, a) for a in ("tpu27mesh", "tpu27pads1", "tpu27skin")}
     if all(T.values()):
-        pct = lambda h, n: f"{100 * h / n:.0f}&#8202;%"  # noqa: E731
-        ms = sorted(T["tpu27mesh"][2].values(), key=lambda v: -v[0])
-        parts.append(f"Closed loop in MuJoCo-Warp under the other contact models of the TPU block, the skin policies held "
-                     f"{pct(*T['tpu27skin'][:2])} of the rollouts, the pad policies {pct(*T['tpu27pads1'][:2])} and the "
-                     f"TPU-mesh policies {pct(*T['tpu27mesh'][:2])} ({' and '.join(pct(*v) for v in ms)} for its two "
-                     f"seeds).")
-    n_transfer = len(parts)          # the first paragraph: transfer; the second: training and the final policies
-    WORD = {0: "none", 1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six"}
-    # the reasons as verbs; the second clause repeats rocking and shaking in short ("for rocking or shaking it")
-    VERB = {"every rollout dropped": ("dropping every rollout",), "the tool shaken": ("shaking the tool",),
-            "the tool rocking every policy step": ("rocking it at the 50&#8202;Hz policy rate",),
-            "servo targets pinned": ("pinning servo targets",), "the tool on the palm": ("resting the tool on the palm",),
-            "an idle finger": ("idling a finger",)}
-    ORDER = list(VERB)
-
-    def fired(arms):
-        """(runs watched, runs on which the degenerate rule fires, M steps at which it fires, reasons)."""
-        n = sum(len({r["tag"] for r in X.watch if r["arm"] == a}) for a in arms)
-        ds = [d for a in arms for d in degenerate_stops(X, a)]
-        kinds = sorted({k for d in ds for k in d[2] if k in VERB and k != "an idle finger"}, key=ORDER.index)
-        return n, len(ds), sorted({round(d[1]) for d in ds}), kinds
-
-    seen = set()
-
-    def says(arms, fam):
-        n, k, ms, kinds = fired(arms)
-        if not k:
-            return f"on none of the {WORD.get(n, n)} {fam} runs"
-        bare = {"the tool rocking every policy step": "rocking", "the tool shaken": "shaking"}
-        if kinds and all(x in seen and x in bare for x in kinds):        # "for rocking or shaking it"
-            vv = " or ".join(bare[x] for x in sorted(kinds, key=lambda x: list(bare).index(x))) + " it"
-        else:
-            vs = [VERB[x][0] for x in kinds]
-            vv = ", ".join(vs[:-1]) + (" or " if len(vs) > 1 else "") + vs[-1] if vs else ""
-        seen.update(kinds)
-        at = " and ".join(str(m) for m in ms)
-        return (f"on {WORD.get(k, k)} of the {WORD.get(n, n)} {fam} runs by {at}&#8202;M steps" if len(ms) == 1 else
-                f"on {WORD.get(k, k)} of the {WORD.get(n, n)} {fam} runs, at {at}&#8202;M steps,") + \
-            (f" for {vv}" if vv else "")
-    parts.append("The stopping rule of the checkpoint watch (every checkpoint over 10&#8202;M steps degenerate) fires "
-                 + says(point, "point-contact") + ", and " + says(comp, "pad and skin") + ".")
-    jp = [j for a in point for j in S[a]["jerk"]]
-    jc = [j for a in comp for j in S[a]["jerk"]]
-    if jp and jc:
-        parts.append(f"In the hold of the final policies the tool&#8217;s shaking, the mean change of its angular speed per "
-                     f"20&#8202;ms policy step, is {_rng(jp, 0)}&#8202;rad/s&#178; with point contact and {_rng(jc, 0)}"
-                     f"&#8202;rad/s&#178; with the pads and the skin (<code>trajectory_health</code> fails a policy above "
-                     f"40).")
-    hb, hm, hp, hs = (S[a]["hcos"] for a in ARMS)
-    nc = S["tpu27pads1"]["n"] + S["tpu27skin"]["n"]
-    allc = S["tpu27pads1"]["held"] + S["tpu27skin"]["held"] == nc
-    parts.append(f"The point-contact policies turn the tool further where they hold it: at 5&#8202;s the cosine of its "
-                 f"axis with vertical (1 is tip down, the goal) averages {_rng(hb)} over the box tip&#8217;s held rollouts "
-                 f"({S['box']['held']} of {S['box']['n']}) and {_rng(hm)} for the TPU mesh, against {_rng(hp)} for the "
-                 f"pads and {_rng(hs)} for the skin" + (f", all of whose {nc} rollouts held." if allc else "."))
+        pct = lambda t: f"{100 * t[0] / t[1]:.0f}&#8202;%"  # noqa: E731
+        p1.append(f"Closed loop under the other TPU-block contact models, the skin policies held {pct(T['tpu27skin'])} of "
+                  f"rollouts, the pad policies {pct(T['tpu27pads1'])} and the TPU-mesh ones {pct(T['tpu27mesh'])}.")
+    deg = {fam: (sum(len(degenerate_stops(X, a)) for a in arms), sum(len({r["tag"] for r in X.watch if r["arm"] == a})
+                                                                      for a in arms))
+           for fam, arms in (("point", point), ("comp", comp))}
+    wd = lambda n: W.get(n, n)  # noqa: E731
+    p2 = [f"The checkpoint watch found {wd(deg['point'][0])} of {wd(deg['point'][1])} point-contact runs and "
+          f"{wd(deg['comp'][0])} of {wd(deg['comp'][1])} pad and skin runs degenerate for 10&#8202;M steps, the tool "
+          f"dropped, shaken or rocked."]
+    hp = [h for a in point for h in S[a]["hcos"]]
+    hc = [h for a in comp for h in S[a]["hcos"]]
     pm, pp, ps = probe_spit("tpu27mesh"), probe_spit("tpu27pads1"), probe_spit("tpu27skin")
-    if pm and pp and ps:
-        parts.append(f"On an idle GPU a training iteration costs {pp / pm:.1f}&#215; the TPU mesh&#8217;s time with the "
-                     f"pads and {ps / pm:.1f}&#215; with the skin.")
-    rb = {(r["tag"], r["perturb"]): r for r in X.rb}
-    fin = sorted({r["tag"] for r in X.fin}, key=lambda t: (ARMS.index(tag_arm(t)), t))
-    if fin and all((t, "kp=10") in rb for t in fin):
-        k10 = [t for t in fin if rb[(t, "kp=10")]["n_held"] > 0.25 * rb[(t, "kp=10")]["n"]]
-        rest = max([rb[(t, "kp=10")]["n_held"] for t in fin if t not in k10] or [0])
-        n10 = rb[(fin[0], "kp=10")]["n"]
-        keep = " and ".join(f"{SHORT[tag_arm(t)]} seed {t[-1]} holds {rb[(t, 'kp=10')]['n_held']} of "
-                            f"{rb[(t, 'kp=10')]['n']} rollouts" for t in k10)
-        parts.append(f"With the finger servo gain raised from the training plant&#8217;s 4 to 10&#8202;N&#8202;m/rad, "
-                     f"the top of the bench readback range, " + (f"{keep} and every other final policy at most {rest}."
-                                                                if k10 else f"no final policy holds more than {rest} of "
-                                                                f"{n10} rollouts."))
-    return " ".join(parts[:n_transfer]) + '</p><p class="lede">' + " ".join(parts[n_transfer:])
+    cost = (f"; pad and skin training cost {pp / pm:.1f}&#215; and {ps / pm:.1f}&#215; per iteration" if pm and pp and ps
+            else "")
+    p2.append(f"Point-contact policies turned the tool further (cosine with vertical {_rng(hp)} against {_rng(hc)}){cost}.")
+    return " ".join(p1) + '</p><p class="lede">' + " ".join(p2)
 
 
 def open_items(X: Data):
@@ -1617,9 +1507,9 @@ def open_items(X: Data):
          "Fine-tune the pads and skin finals with weight &#8722;5 (the 2026-09-17 finetune setting) and repeat the "
          "replays; the comparison holds if the replays still keep the tool at a grip near 10&#8202;N."),
         ("Unclipped residual.", "The runs train without an action clip: actions reach 3 units (1.5&#8202;rad past the anchor) "
-         "and one pip servo target per compliant policy sits at its extension limit in 95&#8202;% of the steps (Table 4). A "
+         "and one pip servo target per pad or skin policy sits at its extension limit in 95&#8202;% of the steps (Table 4). A "
          "deployable residual needs <code>clip_actions</code> 1.0 (<code>src/morphohand/rl/ppo_config.py</code>); "
-         "retrain one seed per compliant arm with it and compare the held cosine."),
+         "retrain one pad and one skin seed with it and compare the held cosine."),
         ("Servo gain.", "Every final policy but skin seed 2 loses the tool at \\(k_p\\) = 10&#8202;N&#8202;m/rad, the top of "
          "the 2026-10-06 readback range, and the runs train at 4. Fine-tune the pad and skin finals with \\(k_p\\) drawn per "
          "episode from 2&#8211;10 (a reset event in <code>_build_events</code> of "
@@ -1677,6 +1567,7 @@ def main():
     if left:
         raise SystemExit(f"unfilled placeholders: {left}")
     t, n = render_tex(t)
+    t = retro_style.apply(t)  # plain page style (owner, 2026-10-09)
     open(OUT, "w").write(t)
     print(f"formulas {n}; wrote {OUT} ({os.path.getsize(OUT) / 1e6:.2f} MB)")
 
