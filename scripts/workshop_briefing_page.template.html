@@ -510,107 +510,69 @@ with simulation results behind them.</p>
 
 <section id="learned"><div class="col">
 <h2>Learned controllers and the derived controller the paper deploys</h2>
-<p class="sub">What was trained, what it established, why it is not on the bench, and its state on 2026-09-20 &#183; the
-pipeline with a decision register is on the robust-tranche page
+<p class="sub">What was trained, why it is not on the bench, and its state on 2026-09-20 &#183; the pipeline with a decision
+register is on the robust-tranche page
 (<a href="../20260920-robust_tranche/20260920-robust_reorient_policies.html">local</a> &#183;
 <a href="https://claude.ai/artifact/NZLr9wdDAWjZC1HM6ed6ed">published</a>)</p>
 
 <h3>Training setup</h3>
-<p>The task is the paper&#8217;s: a 25 mm &#215; 100 mm cylinder lying on the floor is closed on, lifted 100 mm, and turned to
-vertical by the nine finger joints alone. The policy is a residual: at 50 Hz it emits nine numbers, each scaled by 0.5 rad
-and added to a scripted finger set-point that eases from the open keyframe to the fitted grip over the first 80 physics
-steps; the six palm joints follow a scripted lift and are never learned. Action zero reproduces the open-loop grasp and
-lift, which is the property that lets the same recipe run on any hand with a fitted grip. The actor is an MLP
-512-256-128 reading 66 numbers: 15 joint positions and 15 velocities, the tool position (3) and pose (7) in the palm frame,
-the finger joints (9) and tool pose (7) of a reference rollout of the same grip at this step, the previous action (9), and
-1 &#8722; cos between the shaft and vertical. PPO (rsl_rl) on 3,072 copies of the frozen scene in MuJoCo-Warp through mjlab,
-24 steps per iteration, 20 M steps in about 36 min on the workstation&#8217;s RTX 4070 Ti SUPER; the GPU is saturated at
-about 10,000 steps/s, and more environments do not raise it.</p>
-<p>The reward that converged, in order of weight: a progress term (300 &#215; the per-step change in cosine), an alignment
-term (100 &#215; exp(&#8722;4(1 &#8722; cos)&#178;)), a lift term during the lift, contact terms (all three pads on the tool, mean
-pad contact), tracking terms against the reference rollout, and penalties on lateral drift, finger drift from the grip,
-action rate, joint limits and pad force above 6 N. Both reorientation terms switch on at policy step 58, half a second
-after the lift ramp ends, together with the tip-lost termination (fewer than three pads for 15 consecutive steps). The
-episode is 5 s. The recipe is <code>configs/recipes/b_liveA.yaml</code> plus the run&#8217;s own flags.</p>
-<p>The two-policy architecture came from the hand-off between lift and turn. A single lift-and-turn policy could not be
-trained: a warm start from a lift policy kept a hold-still prior that PPO never overrode, and from scratch the rewards
-conflicted. The fix was two policies, A for the
-lift and B for the turn, which created a new problem at the hand-off: a B trained from a teleported pre-lifted spawn drops
-A&#8217;s organic delivery (post-handoff minimum height 0.002&#8211;0.012 m across every injection and co-adaptation variant
-tried, June 2&#8211;9). The <em>live-A reset</em> closed it on 2026-06-10: a frozen A drives the first 40 steps of every B
-episode in real physics and those steps are masked from the PPO update, so B sees the delivery it will get. On the real_v1
-hand the lift is scripted (the fitter&#8217;s grip plus the palm ramp), so there is no A, and the &#8220;live-A&#8221; recipe runs
-with the script in A&#8217;s place.</p>
+<p>The task is the paper&#8217;s: a 25 &#215; 100 mm cylinder lying on the floor is grasped, lifted 100 mm and turned to vertical by
+the nine finger joints. The policy is a residual: at 50 Hz it emits nine numbers, scaled by 0.5 rad and added to a scripted
+finger set-point that eases from the open keyframe to the fitted grip, while the palm follows a scripted lift. Action zero
+reproduces the open-loop grasp and lift, so the recipe runs on any hand with a fitted grip. The actor is an MLP
+(512-256-128) reading 66 numbers: joint positions and velocities, the tool pose in the palm frame, the finger joints and
+tool pose of a reference rollout at the same step, the previous action, and 1 &#8722; cos of the shaft with vertical. PPO
+(rsl_rl) runs on 3,072 copies of the frozen scene in MuJoCo-Warp through mjlab: 20 M steps take about 36 min on the
+workstation&#8217;s RTX 4070 Ti SUPER, about 10,000 steps/s.</p>
+<p>The reward weights progress (300 &#215; the per-step change in cosine) and alignment (100 &#215; exp(&#8722;4(1 &#8722;
+cos)&#178;)) most, then lift, contact and tracking terms, with penalties on drift, action rate, joint limits and pad force
+above 6 N; the reorientation terms and the tip-lost termination switch on at policy step 58 (recipe
+<code>configs/recipes/b_liveA.yaml</code>). Two policies, A for the lift and B for the turn, replaced a single policy whose
+rewards conflicted, and the live-A reset, in which a frozen A drives the first 40 steps of every B episode and those steps
+are masked from the update, closed the hand-off on 2026-06-10. On the real_v1 hand a script takes A&#8217;s place.</p>
 
 <h3>Results of the learned policies</h3>
 <ul>
-<li>The turn is achievable in-hand on the earlier m05 hand: <code>b33</code> holds the continuous hand-off at cos 0.891 (peak
-0.99) on three loaded pads; a warm-started reorient draw has a seed sd of 0.032 across 16 draws.</li>
-<li>Their terminal poses and the shape of the finger motion are what the geometric plan reproduces. The
-<code>hold_target_ctrl</code> anchor lerp that became the deployed controller was written for the opposed-pair hand as the
-policy&#8217;s set-point schedule; the &#177;0.5 rad clip that every screen inherited was the policy&#8217;s action budget.</li>
-<li>They set the evaluation rules the bench work then used: score the deterministic held cosine and never the reward,
-look at the rollout before explaining its numbers, count a hold only after the hold window, and evaluate as a
-distribution.</li>
+<li>On the earlier m05 hand, <code>b33</code> holds the continuous hand-off at cos 0.891 on three loaded pads; warm-started
+draws of its recipe have a seed sd of 0.032 over 16 draws.</li>
+<li>The deployed geometric plan descends from them: the anchor lerp that became the deployed controller was the
+policy&#8217;s set-point schedule, and the &#177;0.5 rad clip every screen inherited was the policy&#8217;s action budget.</li>
+<li>They set the evaluation rules the bench work used: score the deterministic held cosine and never the reward, look at
+the rollout before explaining its numbers, count a hold only after the hold window, and evaluate as a distribution.</li>
 </ul>
 
 <h3>Reasons for deploying the derived controller</h3>
 <ol>
-<li><strong>A trained controller&#8217;s quality varied with the draw more than with the hand.</strong> From-scratch reorient
-training on one design spans held cos &#8722;0.29 to 0.78 across seeds (m05, n = 5, sd 0.38); a local design&#8217;s apparent lead
-of 0.07 sat inside pooled noise of 0.41. Seventy GPU-hours of probes (July 10&#8211;13) traced pick-up failures to draw noise in 5 of 5 cases, and no
-property of the delivered grasp predicted the turn (n = 50).
-Comparing hands needs a controller whose quality does not depend on the hand; a derived plan applies the identical
-computation to every morphology.</li>
-<li><strong>The reference policy ignored its observations.</strong> Replaying another environment&#8217;s values over the whole
-66-dimensional input leaves <code>b33</code>&#8217;s held cosine at 0.900 against 0.895 (2026-08-30; reproduced on the real_v1
-geometry by an independent implementation). It is a learned open-loop residual indexed by step, so deploying it closed loop
-would add no feedback, and its 5 mm / 5&#176; spawn sensitivity (hold 0.97 &#8594; 0.41) is that of an open-loop plan.</li>
-<li><strong>Most of the learned turn was floor work.</strong> Re-expressed in the object frame, 69 % of <code>b33</code>&#8217;s
-alignment gain and 46 % of the opposed hand&#8217;s occurs while the shaft still touches the floor, and the wrist contributes
-0 %. The first floor-free turn in the program was the raised-axis geometric plan of 2026-08-27.</li>
-<li><strong>The rolling turn depends on the contact model.</strong> Hardening the contact (solimp 0.97/0.995 &#8594;
-0.985/0.999) leaves the grasp intact and collapses the turn (alignment 13 against 48); pad friction &#215;0.5 drops the hold
-to 0.09, a 15 % thinner shaft to 0.03, a stiffer contact the reorient to 0.09. Compliance domain randomisation relocated the
-policy to the middle of its band instead of broadening it (July 8&#8211;10, and again August 18 with friction and compliance
-arms). The turn worked only inside a narrow band of contact parameters.</li>
-<li><strong>The topology changed.</strong> Every policy through August 26 was trained on m05, a 117 mm finger with
-coincident yaw and MCP axes and a proximal-length slide. The CAD hand of 2026-08-27 has 33/33/37 mm links, a 32 mm yaw
-link and no length joint; <code>b33</code> reaches peak cos 0.019 on it. Four fresh real_v1 A&#8594;B pipelines held the hand-off
-and turned the shaft 0.9&#8211;4.0&#176;, because the fitted grasp was a rotational lock (the turn was paid for in finger
-extension, of which 1&#8211;7 mm remained). The open-loop probe found the lock and raised the axis; training did not.</li>
-<li><strong>The hardware could not supply the observation.</strong> On 2026-08-29 the platform&#8217;s feedback was nine joint
-positions at 6.95 Hz (the FTDI latency timer), no object pose, no contact and no current register; the policy needed 66
-inputs at 50 Hz including the tool pose. The bus was brought to 111 Hz and the AprilTag pair added on 08-30/31, after the
-plans were exported; the deployed stream is still write-only.</li>
-<li><strong>The simulator&#8217;s actuator was 60&#215; too stiff.</strong> The scenes shipped with finger kp 30; the bench
-calibrates to about 0.5. At kp 30 a commanded angle is an achieved angle and the finger-driven 90&#176; turn exists; at
-the calibrated gain the fingers move the tool 0&#8211;10&#176; through the same plan and the bench&#8217;s 20&#8211;50&#176;
-tip is what the calibrated plant reproduces (cos 0.64 against 0.59 on rv05). Every policy before 2026-09-16 trained on the
-stiff plant, and every one before 2026-09-20 on an object with MuJoCo&#8217;s default contact parameters and on mjlab&#8217;s
-default floor instead of the scene&#8217;s.</li>
-<li><strong>Unclipped residuals were unphysical.</strong> The D6 finetunes of September 17 emit |a| &gt; 1 on 73 % of
-steps and command joints up to 384&#176; beyond their range, where a real servo would sit on its overload cliff. Clipping
-the residual at &#177;1 rad (September 19) gave policies whose commands a plan can contain.</li>
+<li><strong>Draw variance.</strong> From-scratch training on one design spans held cos &#8722;0.29 to 0.78 across seeds (m05,
+n = 5, sd 0.38), more than the differences between designs; a derived plan applies the same computation to every
+morphology.</li>
+<li><strong>Ignored observations.</strong> Replaying another environment&#8217;s values over <code>b33</code>&#8217;s whole input
+leaves its held cosine at 0.900 against 0.895, so it is an open-loop residual indexed by step.</li>
+<li><strong>Floor work.</strong> 69 % of <code>b33</code>&#8217;s alignment gain occurs while the shaft touches the floor; the
+first floor-free turn in the program was the raised-axis geometric plan of 2026-08-27.</li>
+<li><strong>Contact-model dependence.</strong> A harder contact (solimp 0.985/0.999) keeps the grasp and collapses the turn
+(alignment 13 against 48), and domain randomisation did not widen the working band.</li>
+<li><strong>New topology.</strong> Every policy through 2026-08-26 was trained on m05, with 117 mm fingers and a
+proximal-length slide; <code>b33</code> reaches a peak cos of 0.019 on the CAD hand, and fresh real_v1 pipelines turned the
+shaft 0.9&#8211;4.0&#176; until the open-loop probe found the rotational lock.</li>
+<li><strong>Missing observations on the hardware.</strong> On 2026-08-29 the platform read nine joint positions at 6.95 Hz,
+with no object pose, contact or current, against the policy&#8217;s 66 inputs at 50 Hz. The bus reached 111 Hz and the tag
+tracker arrived after the plans were exported, and the deployed stream is write-only.</li>
+<li><strong>Actuator stiffness.</strong> The scenes shipped with finger kp 30 against a bench fit of about 0.5, and every
+policy before 2026-09-16 trained on the stiff plant.</li>
+<li><strong>Unclipped residuals.</strong> The D6 finetunes of 2026-09-17 command joints up to 384&#176; beyond their range;
+clipping the residual at &#177;1 rad (2026-09-19) gave policies whose commands a plan can contain.</li>
 </ol>
 
 <h3>State on 2026-09-20</h3>
-<p>Policies are now trained on the calibrated plant (kp 0.5, kv 0.02, 0.35 N&#183;m, elliptic cone, the built +25 mm palm
-plate, the screw-tip tool, the scene&#8217;s floor and contact class) with the object pose observed. D6 from scratch at 60 M
-steps holds 64/64 at cos 0.933 with the tool rolling across the pads from step 68; a 20 M grip finetune reaches 0.969 at
-10.8 N (<a href="../20260917-d6_cal_60M/20260917-d6_reorient_policy_60M.html">page</a>). Warm-started from it, sixteen jobs
-across D1&#8211;D7 with the residual clipped at &#177;1 rad hold 64/64 at the trained pose on every hand but one draw (D6
-seed 0, 56/64), while the separation term kills the turn on D4 and D7; evaluated with the tool spawned 3 mm and 10&#176;
-off, D7 holds 0/64 and D5 26/64, because training had spawned the tool at one pose
-(<a href="../20260919-hands_tranche/20260919-reorient_policies_across_hands.html">page</a>). Continued with spawn jitter,
-ten of twelve jobs trained (D4 NaN twice on the mesh tool); the jittered hold ranking is D5 57/64, D5 with separation 56,
-D1 with separation 54 (cos 0.958, the tranche&#8217;s best turn), D6 with separation 51, D3 50, D6 49, D2 48, D1 47, D7 35.
-Inside the UR5e chain at the built plate, D5 and both D6 policies hold the turn and, with the set-down aimed at the tool&#8217;s
-tip, seat it and keep it through the handover and eight gait cycles; the gait itself moves the fingers 0.3&#8211;9&#176;
-against 5&#8211;27&#176; commanded and turns the screw &#8722;0.002 revolutions, because the servo sits on its torque ceiling at
-the calibrated gain. Not built: the bench controller that would feed a policy the tag pose and stream its commands at 50 Hz;
-the blind actor with a privileged critic; a seeded trainer (<code>--seed</code> is parsed and never applied). Nothing learned
-has run on the hand.</p>
+<p>Policies are trained on the calibrated plant (kp 0.5) with the built palm plate, the screw-tip tool and the object pose
+observed. D6 from scratch at 60 M steps holds 64/64 at cos 0.933, and a 20 M grip finetune reaches 0.969 at 10.8 N
+(<a href="../20260917-d6_cal_60M/20260917-d6_reorient_policy_60M.html">page</a>). Sixteen warm-started jobs across D1&#8211;D7
+with the residual clipped at &#177;1 rad hold 64/64 at the trained pose; with the spawn jittered the hold ranking runs from D5
+at 57/64 to D7 at 35/64 (<a href="../20260919-hands_tranche/20260919-reorient_policies_across_hands.html">page</a>). In the
+UR5e chain D5 and both D6 policies hold the turn and keep the tool through the handover and eight gait cycles, while the
+gait turns the screw &#8722;0.002 revolutions because the servo sits on its torque ceiling at the calibrated gain. Nothing learned
+has run on the hand; a bench controller that feeds a policy the tag pose at 50 Hz is still to be built.</p>
 </div></section>
 
 <section id="record"><div class="col">
