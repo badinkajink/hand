@@ -712,6 +712,9 @@ FILM_NOTES = {       # run tag -> what its final film shows, written after watch
     "0.70; the summed tip force stays at 42&#8211;44&#8202;N.",
     "20261008-d6_work_tpu27skin_40M_s0": "Three pads turn the tool to 0.67 within a quarter second and to 0.79 by 0.7&#8202;s, "
     "then hold it at 46&#8211;52&#8202;N.",
+    "20261008-d6_work_tpu27skin_40M_s1": "Three pads flip the tool to 0.55 within 0.14&#8202;s, the summed tip force dipping "
+    "to 23&#8202;N during the flip in this rollout, and it creeps on to 0.63 by 5&#8202;s; the summed tip force stays at "
+    "46&#8211;49&#8202;N.",
 }
 
 
