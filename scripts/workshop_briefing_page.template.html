@@ -184,134 +184,123 @@ given</p>
 </div></section>
 
 <section id="funnel"><div class="col">
-<h2>The sampling and filtering funnel</h2>
+<h2>Sampling and filtering funnel</h2>
 <p class="sub">{{N_SAMPLED}} &#8594; {{N_REACH}} &#8594; {{N_GRASP}} &#8594; {{N_SEL}} &#8594; {{N_CON}} &#8594; 19 exported &#8594; 8 on the bench
 &#183; <code>scripts/real_v1_sobol8192.sh</code> runs stages A&#8211;E; <code>scripts/real_v1_budget_confirm.sh</code> runs
 the confirmation; <code>scripts/real_v1_promote_designs.py</code> exports and gates</p>
-<figure>{{FUNNEL_SVG}}<figcaption>Bar length is the count at each stage, on a common scale. The grasp fit removes half the
-population, the retention screen removes 84 % of what is left, and confirmation removes 58 % of that. Export and the bench
-are selections, not filters.</figcaption></figure>
+<figure>{{FUNNEL_SVG}}<figcaption>Count at each stage, on a common scale. The grasp fit removes half the population, the
+retention screen 84 % of the rest and confirmation 58 % of that; export and the bench select among the
+survivors.</figcaption></figure>
 {{FUNNEL_TABLE}}
 
-<h3>The design space is six numbers</h3>
-<p>A configuration is the palm-frame (x, y) of each finger mount: thumb inside a 60 &#215; 110 mm box, index and middle
-inside 60 &#215; 60 mm boxes, all centred on the CAD-nominal mounts at (&#8722;50, 0), (50, 55) and (50, &#8722;55) mm. The
-fingers are identical CAD parts (links 33.45 / 33.45 / 37.16 mm axis-to-surface, capsule radius 10.55 mm, joints
-overlapping 12.70 mm), so nothing else varies and a sampled hand is realised by driving three gantries. The earlier
-simulation program used nine parameters, the ninth per finger being a proximal-length slide; <code>REAL_V1_WORKSPACE</code>
-pins those three to zero because the hardware has no such joint. All six slides at zero is the CAD-nominal hand, which is
-also the widest tripod the machine offers.</p>
+<h3>Design space</h3>
+<p>A configuration is the palm-frame (x, y) of each finger mount: the thumb inside a 60 &#215; 110 mm box, index and
+middle inside 60 &#215; 60 mm boxes, centred on the CAD-nominal mounts at (&#8722;50, 0), (50, 55) and (50, &#8722;55) mm.
+The fingers are identical CAD parts (links 33.45, 33.45 and 37.16 mm axis to surface, capsule radius 10.55 mm), so a
+sampled hand is realised by driving three gantries. The earlier simulation program had nine parameters, the extra three
+being proximal-length slides; <code>REAL_V1_WORKSPACE</code> pins them to zero because the hardware has no such joint. All
+six slides at zero is the CAD-nominal hand, the widest tripod the machine offers.</p>
 
 <h3>Stage A: the population ({{N_SAMPLED}})</h3>
 <p>The population is a scrambled Sobol sequence in seven dimensions (<code>scipy.stats.qmc.Sobol(d=7, scramble=True,
-seed=20260830)</code>). Six coordinates map to the six mounts. The seventh is a stratum selector: points with
-u<sub>7</sub> &lt; 0.25 have their index-x and middle-x coordinates transformed by u &#8594; u<sup>0.75</sup>, which
-shifts them toward the outward end of their travel. That stratum encodes a packaging intuition about wider finger pairs
-without letting the intuition remove coverage: three quarters of the population stays uniform. Tags carry the stratum
-(<code>sv1_u</code> uniform, <code>sv1_w</code> biased). Two properties decided the sampler:</p>
-<ul>
-<li><strong>Prefix stability.</strong> The first N points of a longer draw are exactly the shorter draw, so the 128-point
-pilot, the 4,096 screen and the 8,192 screen are nested and a design keeps its tag and its generated scene across passes.
-Only the new half of each pass costs anything. D5 (<code>sv1_u0060</code>) was promoted from the 128-point prefix and is
-the same point in the full draw.</li>
-<li><strong>Low discrepancy inside the selector.</strong> Keeping the stratum choice in the Sobol sequence keeps the
-25 % mix even at every prefix, which a coin flip per point would not.</li>
-</ul>
-<p>Six anchor hands are added to every population so a new pass can be read against the existing evidence:
-<code>rv00_wide</code>, <code>rv01_compact</code>, <code>rv03_narrowy</code>, <code>rv04_mid</code> (the 2 &#215; 2 factorial
-plus centre of the first real_v1 study), <code>rv05_manual</code> (the hand-authored design) and <code>g12</code> (the
-first design with a collision-safe exported plan). 8,192 + 6 = {{N_SAMPLED}}.</p>
+seed=20260830)</code>). Six coordinates map to the mounts. The seventh selects a stratum: points with u<sub>7</sub> &lt;
+0.25 have their index-x and middle-x transformed by u &#8594; u<sup>0.75</sup>, which shifts them toward the outward end of
+their travel, and three quarters of the population stays uniform. Tags name the stratum (<code>sv1_u</code> uniform,
+<code>sv1_w</code> biased). The first N points of a longer draw are exactly the shorter draw, so the 128-point pilot, the
+4,096 screen and the 8,192 screen are nested and a design keeps its tag and scene across passes; D5
+(<code>sv1_u0060</code>) was promoted from the 128-point prefix. Keeping the stratum choice inside the sequence keeps the
+25 % mix even at every prefix.</p>
+<p>Six anchor hands are added to every population so that each pass can be compared with the earlier results:
+<code>rv00_wide</code>, <code>rv01_compact</code>, <code>rv03_narrowy</code>, <code>rv04_mid</code> (the 2 &#215; 2
+factorial plus centre of the first real_v1 study), <code>rv05_manual</code> (the hand-authored design) and
+<code>g12</code> (the first design with a collision-safe exported plan). 8,192 + 6 = {{N_SAMPLED}}.</p>
 
 <h3>Stage A2: the rails ({{N_REACH}})</h3>
-<p>Each design&#8217;s three mounts are checked against the gantry travel with the same <code>mount_violations</code> call the
-deployment plan uses, computed from the design vector rather than the manifest&#8217;s rounded mounts (seven designs sit
-within 0.05 mm of a limit, where rounding flips the verdict). The travel envelope in force on 2026-08-30 was short on three
-axes, which is the caveat in <a href="#reconcile">item 3</a>; <code>rv01_compact</code> is among the {{N_REJ}} rejected.</p>
+<p>Each design&#8217;s mounts are checked against the gantry travel with the <code>mount_violations</code> call the
+deployment plan uses, on the design vector itself: seven designs sit within 0.05 mm of a limit, where the manifest&#8217;s
+rounded mounts flip the verdict. The envelope in force on 2026-08-30 was short on three axes (<a href="#reconcile">item
+3</a>); <code>rv01_compact</code> is among the {{N_REJ}} rejected.</p>
 
 <h3>Stage B: the grasp fit ({{N_GRASP}} designs, {{N_CELLS}} rows)</h3>
 <p><code>fit_real_v1_pose.py</code> solves, in closed form and then by IK, a palm height and nine finger angles that put
-three pads on a 25 mm shaft lying on a 100 mm post: the index and middle pads straddle the thumb along the shaft by a
-straddle distance, the thumb sits an axial offset along the shaft from their midpoint, and every pad lands at or below the
-shaft&#8217;s equator (a pad above the equator wedges the shaft out; measured on 2026-09-06, the tool rises and escapes in
-0.6 s of standing still). The fit is run at four cells: straddle 32 or 40 mm &#215; thumb axial offset 10 or 20 mm, with the
-grip depth searched automatically and a 4 mm commanded squeeze. A design admits a pose in a cell when all three pads
-reach their targets inside joint limits without the MCP hitting its &#8722;15&#176; stop; compact hands fail because the
-pads cannot ring the shaft, wide hands because the pair cannot reach across it. {{N_GRASP}} of {{N_REACH}} admit at least one
-cell; rows by cell: {{CELLS_BY_GRASP}}. The thumb offset is in the cell grid because on the earlier 108-hand search it was the
-single largest lever: sliding the thumb 20 mm along the shaft took <code>rv04_mid</code> from held cos 0.000 (0/8 kept) to
+three pads on a 25 mm shaft lying on a 100 mm post. The index and middle pads straddle the thumb along the shaft, the
+thumb sits an axial offset from their midpoint, and every pad sits at or below the shaft&#8217;s equator; a pad above the
+equator wedges the shaft out within 0.6 s of standing still (measured 2026-09-06). The fit runs at four cells, straddle 32
+or 40 mm &#215; thumb offset 10 or 20 mm, with the grip depth searched and a 4 mm commanded squeeze. A design admits a cell
+when all three pads reach their targets inside joint limits without the MCP reaching its &#8722;15&#176; stop; compact hands
+fail because the pads cannot ring the shaft, wide hands because the pair cannot reach across it. {{N_GRASP}} of
+{{N_REACH}} admit at least one cell; rows by cell: {{CELLS_BY_GRASP}}. The thumb offset is in the grid because in the
+earlier 108-hand search sliding the thumb 20 mm along the shaft took <code>rv04_mid</code> from held cos 0.000 (0/8) to
 0.972 (8/8), by giving the thumb&#8217;s normal force a moment arm about the pinch axis.</p>
 
 <h3>Stage D: the retention screen ({{N_SEL}})</h3>
-<p>Every (design, cell) row is executed once at each of five residual clips, 0.5, 0.7, 0.9, 1.1 and 1.3 rad, for
-{{N_ROLLOUTS}} rollouts on CPU MuJoCo (2 ms steps, 18 workers, about an hour). One rollout is the maneuver the bench runs:</p>
+<p>Every (design, cell) row runs once at each of five residual clips, 0.5, 0.7, 0.9, 1.1 and 1.3 rad, for
+{{N_ROLLOUTS}} rollouts on CPU MuJoCo (2 ms steps, 18 workers, about an hour). One rollout is the bench maneuver:</p>
 <ol>
-<li>The tool stands on a 100 mm post at y = &#8722;35 mm; the palm is fixed; the pads are the built hand&#8217;s flat
+<li>The tool stands on a 100 mm post at y = &#8722;35 mm with the palm fixed; the pads are the built hand&#8217;s flat
 14.8 &#215; 21.1 mm faces (<code>--flat-pads</code>), since the earlier round-capsule model made point contact and mis-sized
 every grasp by 2&#8211;5 mm.</li>
-<li>The fingers close to the fitted grip with a 10 mm commanded squeeze, then a 400-step capture (0.8 s) under a
-proprioceptive load regulator (target 250 load units, the bench&#8217;s per-finger relief) and the servo&#8217;s turn-phase torque
-ceiling of 0.180 N&#183;m (80 % of the SCS0009 stall torque, where its overload protection fires).</li>
-<li>The turn: the grasp anchor is rotated by &#8722;80&#176; about an axis parallel to the pinch axis and raised above the contact
-plane by <code>axis_k</code> = 0.15 of the half-straddle (5&#8211;6 mm), per-finger IK maps the moving pad targets to joints, and a straight
-line in joint space from the anchor to that end pose is played over 550 steps (1.1 s). Each joint&#8217;s excursion from the
-anchor is clipped to &#177;clip. The torque ceiling then drops to the rated 0.069 N&#183;m for the hold.</li>
-<li>A proof lift: the palm rises 60 mm over 700 steps (1.4 s). Only a captured tool follows; a tool resting on a finger or
-the post does not.</li>
-<li>A 2,500-step hold (5.0 s), during which the tool may slip at most 10 mm.</li>
+<li>The fingers close to the fitted grip with a 10 mm commanded squeeze, then hold a 400-step capture (0.8 s) under a
+load regulator (target 250 load units per finger, as on the bench) and a turn-phase torque ceiling of 0.180 N&#183;m
+(80 % of the SCS0009 stall torque, where its overload protection fires).</li>
+<li>The turn rotates the grasp anchor by &#8722;80&#176; about an axis parallel to the pinch axis, raised above the contact
+plane by <code>axis_k</code> = 0.15 of the half-straddle (5&#8211;6 mm). Per-finger IK maps the moving pad targets to
+joints, and a straight joint-space line from the anchor to the end pose plays over 550 steps (1.1 s), each joint&#8217;s
+excursion clipped to &#177;clip. The torque ceiling then drops to the rated 0.069 N&#183;m for the hold.</li>
+<li>A proof lift raises the palm 60 mm over 700 steps (1.4 s); only a captured tool follows.</li>
+<li>A 2,500-step hold (5.0 s) follows, during which the tool may slip at most 10 mm.</li>
 </ol>
-<p>The rollout is <em>retained</em> (<code>ok</code>) when at least one hand contact remains, the tool&#8217;s minimum height
-stays within 20 mm of its lifted height, it never touches the post, the proof lift raised it at least 48 mm (80 % of the
-commanded 60), and it slipped at most 10 mm through the hold. A (cell, clip) row passes when it is retained, its final
-signed cosine to vertical is at least 0.7 (within 45.6&#176; of vertical), the index&#8211;middle clearance along the turn is
-at least 5 mm, and no commanded joint exceeds the servo&#8217;s measured range. A design passes when any of its rows does.
-{{N_SEL}} pass; {{N_SEL05}} of them pass at 0.5 rad and {{N_SEL_INV}} only at another clip (selected clips: {{SEL_BY_CLIP}}).</p>
-<p>Why the clip is swept: every screen before 2026-08-30 planned the turn at 0.5 rad, a number inherited from the
-reinforcement-learning residual&#8217;s action budget, where it means something else. Re-screening the Sobol-4096 population
-across five clips showed each hand keeps the tool only inside a contiguous band of clips and drops it on both sides, that
-alignment is not monotone inside the band, and that a single-clip screen leaves 14 % of the passing population unseen.
-Why one trial per row: a single trial on a contact solver is a filter, not a measurement, and its job here is to be cheap
-enough to run {{N_ROLLOUTS}} times; the confirmation spends the saved compute on the survivors.</p>
+<p>A rollout is <em>retained</em> (<code>ok</code>) when at least one hand contact remains, the tool&#8217;s minimum
+height stays within 20 mm of its lifted height, it never touches the post, the proof lift raised it at least 48 mm (80 %
+of the commanded 60) and it slipped at most 10 mm through the hold. A (cell, clip) row passes when it is retained, its
+final signed cosine to vertical is at least 0.7 (within 45.6&#176; of vertical), the index&#8211;middle clearance along the
+turn is at least 5 mm and no commanded joint exceeds the servo&#8217;s measured range. A design passes when any of its rows
+does. {{N_SEL}} pass, {{N_SEL05}} of them at 0.5 rad and {{N_SEL_INV}} only at another clip (selected clips:
+{{SEL_BY_CLIP}}).</p>
+<p>The clip is swept because every screen before 2026-08-30 planned the turn at 0.5 rad, the action budget of the
+reinforcement-learning residual. Re-screening the Sobol-4096 population over five clips showed that each hand keeps the
+tool only inside a contiguous band of clips, that alignment is not monotone inside the band, and that a single-clip
+screen misses 14 % of the passing population. One trial per row keeps the screen cheap enough to run {{N_ROLLOUTS}}
+times; the confirmation repeats the survivors.</p>
 
 <h3>Stage 3: confirmation ({{N_CON}})</h3>
-<p>Each of the {{N_SEL}} designs is re-run at its own selected (cell, clip): five nominal replicates (0.5 mm spawn jitter)
-and four draws from the half-error ensemble described in <a href="#repeat">&#167;5</a>. A design confirms when at least three
-of the five nominal replicates are retained, the mean held cosine (a released replicate scoring 0) is at least 0.7, and the
-clearance and servo gates still pass. {{N_CON}} confirm; {{N_CON05}} at 0.5 rad ({{CON_BY_CLIP}}). Stage 4 then draws twenty
+<p>Each of the {{N_SEL}} designs is re-run at its selected (cell, clip): five nominal replicates (0.5 mm spawn jitter) and
+four draws from the half-error ensemble of <a href="#repeat">&#167;5</a>. A design confirms when at least three of the
+five nominal replicates are retained, the mean held cosine (a released replicate scoring 0) is at least 0.7, and the
+clearance and servo gates still pass. {{N_CON}} confirm, {{N_CON05}} at 0.5 rad ({{CON_BY_CLIP}}). Stage 4 draws twenty
 full-error rollouts per confirmed design ({{N_FULL}} cells); its outputs, <code>ens_kept</code> and <code>ens_win</code>
-(retained with cosine &#8805; 0.7), rank robustness and are what the promotion reads.</p>
+(retained with cosine &#8805; 0.7), rank robustness for the promotion.</p>
 
-<h3>From {{N_CON}} to eight</h3>
-<p>Promotion is a separate, hand-triggered step per pass. The leaders of each pass by full-error win are exported
-(<code>real_v1_export_plan.py</code>: a plan of three set-points with the clip, a 50 Hz per-joint trajectory CSV, a build
-sheet and a pose sheet) and run through four gates: every commanded joint inside the servo&#8217;s measured range (with the
-&#177;70&#176; yaw cap); every mount inside the gantry travel; index&#8211;middle clearance at least 5 mm along both the
-three-set-point chord the station interpolates and the CSV path (they are different paths, and a plan can clear one and not
-the other); and plan validity. The survivors are then band-scanned on the bench schedule (33 clips &#215; 4 replicates,
-9.6 s hold) and shipped at a clip inside the band, at least 0.10 rad above its lower edge to absorb the measured yaw
-droop, with the best alignment among the clips the servos can be told. The retention gate and the bench schedule keep
-disagreeing about which hands work: of the five gate-passers promoted from the 8,192 pass, two had a bench band
-(<code>sv1_w6689</code>, <code>sv1_u7952</code>); of sixteen from the 4,096 re-screen, eleven kept the tool at no clip on the
-bench schedule. Nineteen plans reached the station across all passes.</p>
+<h3>Promotion from {{N_CON}} to eight</h3>
+<p>Promotion is a hand-triggered step per pass. The leaders of each pass by full-error win are exported
+(<code>real_v1_export_plan.py</code>: three set-points with the clip, a 50 Hz per-joint trajectory CSV, a build sheet
+and a pose sheet) and gated: every commanded joint inside the servo&#8217;s measured range with the &#177;70&#176; yaw cap,
+every mount inside the gantry travel, index&#8211;middle clearance of at least 5 mm along both the three-set-point chord the
+station interpolates and the CSV path (a plan can clear one and not the other), and plan validity. The survivors are
+band-scanned on the bench schedule (33 clips &#215; 4 replicates, 9.6 s hold) and shipped at a clip inside the band, at
+least 0.10 rad above its lower edge to absorb the measured yaw droop. The retention gate and the bench schedule disagree
+about which hands work: of the five gate-passers promoted from the 8,192 pass, two had a bench band
+(<code>sv1_w6689</code>, <code>sv1_u7952</code>), and of sixteen from the 4,096 re-screen, eleven kept the tool at no clip on
+the bench schedule. Nineteen plans reached the station across all passes.</p>
 <p>The eight bench hands are the top eight distinct morphologies among the sixteen exported, clearance-safe plans, ordered
 by the bench-schedule replay (<code>docs/experiments/20260831-real_v1-transfer-protocol/README.md</code>, &#167;3). Six are
-Sobol members (D1, D2, D3, D5, D6, D8), D4 is the <code>g12</code> anchor and D7 is the manual hand. Three exported plans
-were excluded before the study by the clearance gate: <code>g23</code> (0.8 mm), <code>rv04_mid</code> (&#8722;2.6 mm) and
+Sobol members (D1, D2, D3, D5, D6, D8), D4 is the <code>g12</code> anchor and D7 the manual hand. The clearance gate
+excluded three exported plans before the study: <code>g23</code> (0.8 mm), <code>rv04_mid</code> (&#8722;2.6 mm) and
 <code>g24</code> (&#8722;5.2 mm; the simulator scores it 0.750, which would have placed it second).</p>
 
-<h3>What the funnel selects, and what it never scored</h3>
+<h3>Selected region of the design space</h3>
 <p>Selection moves toward compact tripods. In the plane of thumb-to-pair span and index&#8211;middle opening (both linear in
 the six mounts), the quadrant below the population medians holds 25 % of the reachable population, 65 % of the retained,
-71 % of the confirmed and seven of the eight deployed; the screen cuts the spread of those two coordinates to 0.59 and 0.74
-of the population&#8217;s and leaves the pair&#8217;s x offset and y midpoint alone. Principal components of the retained 535
-carry 47/21/17 % on three directions and 8/4/2 % on the rest, so the survivors lie on a roughly three-dimensional sheet
-inside the six-dimensional box. The depth of the grasp fit separates retained from discarded designs at AUC 0.80 and
-predicts alignment not at all (&#961;<sub>s</sub> +0.08 over the 535); it is a gate on whether a hand works, not a ranking
-among the hands that do. The KaRMA rolling-pinch metric behaves the same way on this family (AUC 0.80 for retention,
+71 % of the confirmed and seven of the eight deployed; the screen cuts the spread of those two coordinates to 0.59 and
+0.74 of the population&#8217;s. Principal components of the 535 retained designs explain 47, 21 and 17 % on three
+directions and 8, 4 and 2 % on the rest, so the survivors lie near a three-dimensional sheet in the six-dimensional box.
+The depth of the grasp fit separates retained from discarded designs at AUC 0.80 and does not predict alignment
+(&#961;<sub>s</sub> +0.08 over the 535); the KaRMA rolling-pinch metric behaves the same way (AUC 0.80 for retention,
 &#961;<sub>s</sub> 0.11 against the screened turn).</p>
-<p>The funnel trained no policy and scored one maneuver. The retention gate&#8217;s proof lift is a different maneuver from the
-bench&#8217;s fixed-palm hold, and the two order hands differently; the ranking the paper tests is the bench schedule&#8217;s.
-The simulator retained the tool on all four replicates of seven of the eight deployed plans, so its retention prediction
-carries no information about the bench&#8217;s 2/10&#8211;10/10.</p>
+<p>The funnel trained no policy and scored one maneuver. The retention gate&#8217;s proof lift differs from the
+bench&#8217;s fixed-palm hold, the two order hands differently, and the paper tests the bench schedule&#8217;s ranking. The
+simulator retained the tool on all four replicates of seven of the eight deployed plans, so its retention prediction
+does not distinguish the bench&#8217;s 2/10 from its 10/10.</p>
 </div></section>
 
 <section id="definitions"><div class="col">
