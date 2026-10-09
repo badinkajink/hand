@@ -701,6 +701,8 @@ FILM_NOTES = {       # run tag -> what its final film shows, written after watch
     "the index finger, the middle finger mostly off it; in the hold the summed tip force ranges over 41&#8211;148&#8202;N.",
     "20261008-d6_work_tpu27mesh_40M_s0": "Three pads flip the tool to 0.75 within a quarter second, and it creeps on to "
     "0.86; the summed tip force ranges over 38&#8211;62&#8202;N.",
+    "20261008-d6_work_tpu27mesh_40M_s1": "Three pads flip the tool to 0.73 within a quarter second and to 0.80 by "
+    "0.7&#8202;s; the summed tip force ranges over 44&#8211;67&#8202;N.",
     "20261008-d6_work_tpu27pads1_40M_s0": "Three pads flip the tool to 0.63 within a quarter second, and it creeps on to "
     "0.70; the summed tip force stays at 42&#8211;44&#8202;N.",
     "20261008-d6_work_tpu27skin_40M_s0": "Three pads turn the tool to 0.67 within a quarter second and to 0.79 by 0.7&#8202;s, "
@@ -799,8 +801,8 @@ def run_hours(X: Data, tag):
 def arms_section(X: Data):
     sk = json.load(open(os.path.join(P.ROOT, "results/phase1/real_v1/20261008-sv1_u0308_b050_work_tip_tpu2.7skin/summary.json")))
     s = sk.get("fingertip", {}).get("skin", {})
-    head = ["contact model", "contact", "s per iteration, idle GPU", "s per iteration, runs", "GPU-h per 40&#8202;M",
-            "GPU-h spent", "GPU memory (GB)", "failed runs"]
+    head = ["contact model", "contact", "s/it, idle GPU", "s/it, runs", "GPU-h per 40&#8202;M", "GPU-h spent",
+            "GPU (GB)", "failed starts"]
     body = []
     contact = {"box": "point, condim 3", "tpu27mesh": "point, condim 3", "tpu27meshc4": "point, condim 4",
                "tpu27pads1": "1,060 spheres per tip", "tpu27skin": "the pads on a sprung skin"}
