@@ -485,6 +485,8 @@ def degenerate_stops(X: Data, arm):
         for r in rs:
             for f in E.degenerate_flags(r):
                 k = next((v for key, v in STOP_KIND.items() if f.startswith(key)), None)
+                if f.startswith("jitter") and (r.get("tilt_reversal_frac") or 0) > 0.5:
+                    k = STOP_KIND["rocking"]          # the jerk test fired, and the tilt reverses at most steps
                 if k and k not in kinds:
                     kinds.append(k)
         out.append((int(tag[-1]), m, kinds, bool(st)))
@@ -1198,26 +1200,44 @@ def lede(X: Data):
              f"1&#8202;mm sphere pads and on the pads mounted on a sprung skin kept the screwdriver in "
              f"{rc[0]} of {rc[1]} replays, and those trained with MuJoCo point contact on the box tip or the TPU block "
              f"mesh in {rp[0]} of {rp[1]}."]
-    WORD = {0: "none", 1: "one", 2: "two", 3: "three"}
+    WORD = {0: "no", 1: "one", 2: "two", 3: "three"}
     NAME = {"box": "box-tip", "tpu27mesh": "TPU-mesh", "tpu27pads1": "pad", "tpu27skin": "skin"}
-    phr, hind = [], 0
-    for arm in ARMS:
-        ds = degenerate_stops(X, arm)
-        n = len({r["tag"] for r in X.watch if r["arm"] == arm})
-        hind += sum(1 for d in ds if not d[3])
-        if not ds:
-            phr.append(f"no {NAME[arm]} seed")
-            continue
-        ms = sorted({round(d[1]) for d in ds})
-        kinds = []
-        for d in ds:
-            kinds += [k for k in d[2][:2] if k not in kinds and k != "an idle finger"]
-        phr.append(f"{WORD.get(len(ds), len(ds))} of {WORD.get(n, n)} {NAME[arm]} seeds at "
-                   f"{' and '.join(str(m) for m in ms)}&#8202;M ({' or '.join(kinds)})")
-    parts.append("Under the owner&#8217;s rule of stopping a run that is degenerate for 10&#8202;M steps at its checkpoints, "
-                 + ", ".join(phr[:-1]) + " and " + phr[-1] + " meet it"
-                 + (f"; {WORD.get(hind, hind)} of these runs had finished before the watch existed and meet the rule in "
-                    "hindsight." if hind else "."))
+    VERB = {"every rollout dropped": "dropping every rollout", "the tool shaken": "shaking the tool",
+            "the tool rocking every policy step": "rocking the tool at every policy step",
+            "servo targets pinned": "pinning servo targets", "the tool on the palm": "resting the tool on the palm"}
+    hind = 0
+
+    def group(arms):
+        """('all three box-tip seeds and two of three TPU-mesh seeds at 16 M steps for ...', ['no skin seed'])."""
+        nonlocal hind
+        cnt, ms, kinds, miss = [], set(), [], []
+        for arm in arms:
+            ds = degenerate_stops(X, arm)
+            n = len({r["tag"] for r in X.watch if r["arm"] == arm})
+            hind += sum(1 for d in ds if not d[3])
+            ms |= {round(d[1]) for d in ds}
+            for d in ds:
+                kinds += [VERB[k] for k in d[2] if k in VERB and VERB[k] not in kinds]
+            if not ds:
+                miss.append(f"no {NAME[arm]} seed")
+            else:
+                cnt.append(f"all {WORD.get(n, n)} {NAME[arm]} seeds" if len(ds) == n and n > 1 else
+                           f"{WORD.get(len(ds), len(ds))} of {WORD.get(n, n)} {NAME[arm]} seeds")
+        if not cnt:
+            return "", miss
+        k = ", ".join(kinds[:-1]) + (" or " if len(kinds) > 1 else "") + kinds[-1] if kinds else ""
+        return (" and ".join(cnt) + f" at {' and '.join(str(m) for m in sorted(ms))}&#8202;M steps"
+                + (f" for {k}" if k else "")), miss
+
+    gp, mp = group(point)
+    gc, mc = group(comp)
+    miss = mp + mc
+    hit = [g for g in (gp, gc) if g]
+    parts.append("The stopping rule of the checkpoint watch (every watched checkpoint degenerate for 10&#8202;M steps) stops "
+                 + (", and ".join(hit) if hit else "no run")
+                 + ("; " + " and ".join(miss) + (" meets it." if len(miss) == 1 else " meet it.") if miss else ".")
+                 + (f" {WORD.get(hind, hind).capitalize()} of these runs had finished before the watch existed and meet "
+                    "the rule in hindsight." if hind else ""))
     jp = [j for a in point for j in S[a]["jerk"]]
     jc = [j for a in comp for j in S[a]["jerk"]]
     if jp and jc:
