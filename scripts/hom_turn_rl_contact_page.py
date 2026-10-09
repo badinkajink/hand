@@ -200,7 +200,7 @@ GLOSSARY = [
              + im("E/h") + " per sphere area with " + im("E") + " = 10&#8202;MPa, " + im("h") + " = 8.5&#8202;mm, "
              "reached at load through solimp."),
     ("HOM controller", "the relative contact-velocity controller of Wang, Oh and Pollard (arXiv 2609.25619): per fingertip, "
-                       "a contact frame from the closest points of tip and tool, joint rates from bounded least squares on "
+                       "a contact frame from the closest points of tip and tool, joint rates from least squares, within joint-rate limits, on "
                        "reference relative velocities (their Eq. 2). Defined in Section 3."),
     ("governor", "the HOM controller&#8217;s stop rule: when a pad&#8217;s normal force falls below 30&#8202;% of its "
                  "target or the tool lags the reference by more than 6&#176;, the reference stops and the angle reached is held."),
@@ -332,7 +332,7 @@ def plant_section():
         "<p><code>calibrate_plant_kp.py</code> reset each candidate scene from its keyframe&#160;0, which puts the palm at "
         "10&#8202;mm; the plan&#8217;s replay state puts it at 103.5&#8202;mm, above the tool on its 100&#8202;mm post. The "
         "fingers closed on air while the palm rested against the tool and the post, so the +11.09&#176; middle-yaw deficit "
-        "that matched the bench&#8217;s +11.68&#176; at \\(k_p\\)&#160;=&#160;0.5 came from the fingers&#8217; own response, with no load from "
+        "that agreed with the bench&#8217;s +11.68&#176; at \\(k_p\\)&#160;=&#160;0.5 came from the fingers&#8217; own response, with no load from "
         "the tool (time constant 1.04&#8202;s at \\(k_p\\)&#160;=&#160;0.5 with the template&#8217;s joint damping 0.5, read 2&#8202;s after the "
         "last command). The script now starts from the plan&#8217;s replay state; its fit is superseded by the replays below.</p>",
         "<h3>Replaying the bench&#8217;s own runs</h3>",
@@ -462,7 +462,7 @@ def hom_section():
         + im("p_i") + " and " + im("n_i") + " the contact point and normal of finger " + im("i") + ", " + im("F_i")
         + " its pad force from the simulator&#8217;s contact solution and " + im(r"F_d = 2") + "&#8202;N; "
         + im(r"K_R = K_P = 3\ \text{s}^{-1}") + ", " + im(r"K_F = 0.03\ \text{m}/(\text{s}\,\text{N})") + ". The "
-        "paper&#8217;s Eq.&#160;2 then gives each finger&#8217;s joint rates by bounded least squares:</p>",
+        "paper&#8217;s Eq.&#160;2 then gives each finger&#8217;s joint rates by least squares within joint-rate limits:</p>",
         eq(r"\begin{aligned}\dot q_i = \operatorname*{arg\,min}_{\dot q_\text{lo}\le\dot q\le\dot q_\text{hi}}\ "
            r"&\frac{1}{\ell^2}\bigl\|E_i^\top(J_{p,i}\,\dot q - v_i)\bigr\|^2"
            r" + w_r\bigl\|E_i^\top(J_{r,i}\,\dot q - \omega_d)\bigr\|^2\\"
@@ -489,7 +489,7 @@ def hom_section():
 \State \(s_i \gets -0.02\ \text{m/s}\) \Comment{approach}
 \EndIf
 \State \(v_i \gets v_d + \omega_d \times (p_i - c) + s_i\,n_i\)
-\State \(\dot q_i \gets\) bounded least squares, Eq.~(2)
+\State \(\dot q_i \gets\) least squares within rate limits, Eq.~(2)
 \State \(q_{\text{cmd},i} \gets q_{\text{cmd},i} + \dot q_i\,\Delta t\), clipped to \(q_i \pm 0.3\) rad and the joint limits
 \EndFor
 \If{\(\min_i F_i < 0.3\,F_d\) or \(\theta_\text{ref} - \theta > 6^\circ\), for 3 ticks in a row}
@@ -627,7 +627,7 @@ def newton_section():
         "MuJoCo sphere pads already divide " + im(r"m_\text{eff}") + " out: each pad reaches its stiffness " + im("K")
         + " at relaxation " + im("t_c") + " through the solimp impedance</p>",
         eq(r"d_0 = 1 - \frac{1}{t_c^2\,K\,(w_\text{tip} + w_\text{tool})},", 4),
-        "<p>which uses the same inverse weights (<code>reorient_backends.replace_tips</code>); this is why they matched "
+        "<p>which uses the same inverse weights (<code>reorient_backends.replace_tips</code>); this is why they agreed with "
         "Drake without fitting. The correction is therefore " + im(r"k_h\,(w_1 + w_2)") + ", with the inverse weights read "
         "from the solver&#8217;s own MuJoCo model (<code>solver.mj_model.body_invweight0</code> through "
         "<code>solver.mjc_body_to_newton</code>); " + im("k_h = E/h") + " stays a material constant.</p>",
@@ -1019,7 +1019,7 @@ def sensor_paragraph(T):
     term_max = max(leg["term_max_abs_diff"].values())
     fmax = leg["force_norm_max_abs_diff_N"]["fingertip_cube_contact"]
     txt = ("<h3>Contact sensor for sphere pads</h3>"
-           "<p>The fingertip and palm contact sensors now sum every matched contact (mjlab <code>reduce=\"netforce\"</code>, a "
+           "<p>The fingertip and palm contact sensors now sum every contact they detect (mjlab <code>reduce=\"netforce\"</code>, a "
            "world-frame vector) and the simulation allocates 256 matches per sensor (<code>contact_sensor_maxmatch</code>; "
            "mjlab&#8217;s default of 64 overflowed with the pads), set in <code>src/morphohand/rl/env_build.py</code>. Before, each "
            "fingertip reported one contact chosen by match order (<code>reduce=\"none\"</code>, one slot): the whole force of "
@@ -1029,7 +1029,7 @@ def sensor_paragraph(T):
            "(<code>scripts/rl_contact_sensor_check.py</code>, rows <code>docs/experiments/20261006-rl_contact/sensor_check.jsonl</code>): "
            f"on the box tip the old and new sensors, read side by side in one env for {leg['steps']} steps at "
            f"{leg['num_envs']} envs, give every sensor-reading reward term the same value (largest difference "
-           f"{term_max:g}) and force norms within {fmax:.1e}&#8202;N; no fingertip had more than one matched contact. On "
+           f"{term_max:g}) and force norms within {fmax:.1e}&#8202;N; no fingertip had more than one detected contact. On "
            f"the 1&#8202;mm pads ({pad['num_envs']} envs, {len(pad['at_steps'])} instants after the grasp, {pad['n_tip_samples']} "
            f"fingertip samples, up to {pad['found_max']} pad contacts per tip) the sensor equals the sum of the pad contact "
            f"forces of the same GPU solve to {pad['rel_err_same_solve_max']:.0e} and a CPU MuJoCo re-solve of the same state "
@@ -1423,7 +1423,7 @@ def next_section():
         f"<b>Longer training.</b> Both fingertips are still rising at 20&#8202;M steps (Figure&#160;{REF.get('training', '')}). Continue the four runs "
         "to 60&#8202;M (the 2026-09-17 budget) from their final checkpoints with the critic and optimizer warm-started, "
         "and compare the held cosine at 40 and 60&#8202;M; a pad run that stays below the mesh runs by more than their "
-        "seed spread (0.05) at 60&#8202;M would make the fingertip model, not the budget, the difference.",
+        "seed spread (0.05) at 60&#8202;M would point to the fingertip model and away from the step budget.",
         "<b>Mesh-tip contact between MuJoCo-Warp and CPU MuJoCo.</b> At the replay onset state of the mesh runs, list the "
         "three block&#8211;tool contacts (position, normal, depth, efc force) in both implementations "
         "(<code>rl_policy_replay.py</code> record&#8217;s scene and <code>same_state_timing.py</code>&#8217;s GPU arrays); "

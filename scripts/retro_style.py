@@ -103,21 +103,28 @@ button.theme, .theme-toggle, [data-theme-toggle] { display:none !important; }
 FONT_LINK_RE = re.compile(r'<link[^>]+(fonts\.googleapis\.com|fonts\.gstatic\.com)[^>]*>\s*', re.I)
 OLD_RE = re.compile(r'<style id="retro">.*?</style>\s*', re.S)
 TH_RE = re.compile(r'(<th\b[^>]*>)((?:\s|<[^>]+>)*)([a-z][^<]*)')
+TD_RE = re.compile(r'(<td\b[^>]*>)((?:\s|<[^>]+>)*)([a-z][^<]*)')
 # lower-case words that name a parameter, a unit or an abbreviation and stay as written at the start of a header
 KEEP = {"condim", "impratio", "solref", "solimp", "mjlab", "rms", "sd", "id", "ok", "kp", "kv", "dt", "nv", "nc", "rel"}
 
 
 def sentence_case_headers(html: str) -> str:
-    """Table headers in sentence case (owner, 2026-10-09): capitalise the first letter of a header that starts with a
-    plain lower-case word of three or more letters; symbols (q, kp, z_rel), identifiers (rv05_manual) and KEEP stay."""
-    def sub(m):
-        text = m.group(3)
+    """Table headers and cells in sentence case (owner, 2026-10-09): capitalise the first letter of a header that starts
+    with a plain lower-case word of three or more letters, and of a cell that does and has more than one word; symbols
+    (q, kp, z_rel), identifiers (rv05_manual, code, .m chips), single-word cells and KEEP stay as written."""
+    def fix(m, cell):
+        text, lead = m.group(3), m.group(2)
+        if "<code" in lead or 'class="m"' in lead or "<kbd" in lead:
+            return m.group(0)
         word = re.match(r"[A-Za-z]+", text).group(0)
         rest = text[len(word):]
         if len(word) < 3 or word in KEEP or (rest[:1] in ("_",) or rest[:1].isdigit()):
             return m.group(0)
-        return m.group(1) + m.group(2) + text[0].upper() + text[1:]
-    return TH_RE.sub(sub, html)
+        if cell and not rest.strip():
+            return m.group(0)
+        return m.group(1) + lead + text[0].upper() + text[1:]
+    html = TH_RE.sub(lambda m: fix(m, False), html)
+    return TD_RE.sub(lambda m: fix(m, True), html)
 
 
 def apply(html: str) -> str:
