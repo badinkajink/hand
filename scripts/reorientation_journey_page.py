@@ -43,8 +43,8 @@ def chart_attrition(d) -> str:
     mx = max(r["n"] for r in rows)
     out = [f'<svg class="chart" viewBox="0 0 {W} {h}" role="img" '
            f'aria-label="Where the tool is lost across {tot} air-mode rollouts">']
-    out.append(f'<text class="axlab" x="{PAD_L}" y="18">SEAM AT WHICH THE TOOL IS ON THE '
-               f'FLOOR WITH NO PAD ON IT &#183; n = {tot}</text>')
+    out.append(f'<text class="axlab" x="{PAD_L}" y="18">Seam at which the tool is on the '
+               f'floor with no pad on it (n = {tot})</text>')
     for i, r in enumerate(rows):
         y = 36 + i * (bh + gap)
         wpx = (r["n"] / mx) * (x1 - x0)
@@ -71,8 +71,7 @@ def chart_hands(d) -> str:
     x0, x1 = PAD_L, W - PAD_R - 96
     out = [f'<svg class="chart" viewBox="0 0 {W} {h}" role="img" '
            f'aria-label="Per-hand outcome fractions">']
-    out.append(f'<text class="axlab" x="{PAD_L}" y="18">FRACTION OF THAT HAND\'S AIR-MODE '
-               f'ROLLOUTS</text>')
+    out.append(f'<text class="axlab" x="{PAD_L}" y="18">Fraction of the hand\'s air-mode rollouts</text>')
     for f in (0, .25, .5, .75, 1.0):
         x = x0 + f * (x1 - x0)
         out.append(f'<line class="grid" x1="{x:.1f}" y1="30" x2="{x:.1f}" y2="{h - 56}"/>')
@@ -112,8 +111,8 @@ def chart_pivot(d) -> str:
     x0 = PAD_L
     out = [f'<svg class="chart" viewBox="0 0 {W} {h}" role="img" '
            f'aria-label="Best signed cosine at the turn, by hand and pivot height">']
-    out.append(f'<text class="axlab" x="{x0}" y="18">BEST SIGNED COSINE AT THE TURN &#183; '
-               f'OPEN LOOP &#183; +1 IS TIP DOWN, &#8722;1 IS HANDLE DOWN</text>')
+    out.append(f'<text class="axlab" x="{x0}" y="18">Best signed cosine at the turn, open loop '
+               f'(+1 tip down, &#8722;1 handle down)</text>')
     for j, k in enumerate(ks):
         out.append(f'<text class="tick" x="{x0 + j * (cw + gap) + cw / 2:.0f}" y="46" '
                    f'text-anchor="middle">axis_k {k:.2f}</text>')
@@ -154,8 +153,7 @@ def chart_ledger(d) -> str:
     top, bot = 44, h - 62
     out = [f'<svg class="chart" viewBox="0 0 {W} {h}" role="img" '
            f'aria-label="Rollouts per sweep and what survived">']
-    out.append(f'<text class="axlab" x="{x0}" y="18">ROLLOUTS PER SWEEP, AND WHAT SURVIVED '
-               f'THE TURN</text>')
+    out.append(f'<text class="axlab" x="{x0}" y="18">Rollouts per sweep and those that kept the tool through the turn</text>')
     for i, r in enumerate(rows):
         x = x0 + i * (bw + gap)
         hh = (r["n"] / mx) * (bot - top)
@@ -206,8 +204,7 @@ def chart_d6(d) -> str:
         return b2 - v / fmax * (b2 - t2)
     out = [f'<svg class="chart" viewBox="0 0 {W} {h}" role="img" '
            f'aria-label="The completed chain on D6, seam by seam">']
-    out.append(f'<text class="axlab" x="{x0}" y="18">D6 &#183; SIGNED COSINE (ABOVE) AND PAD '
-               f'FORCE (BELOW), AT EVERY SEAM</text>')
+    out.append(f'<text class="axlab" x="{x0}" y="18">D6: signed cosine (above) and pad force (below) at every seam</text>')
     for v, lab in ((1, "+1 tip down"), (0, "0 horizontal"), (-1, "&#8722;1 handle down")):
         y = ycos(v)
         out.append(f'<line class="grid" x1="{x0}" y1="{y:.1f}" x2="{x1}" y2="{y:.1f}"/>')

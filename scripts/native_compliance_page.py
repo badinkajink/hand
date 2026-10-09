@@ -139,7 +139,7 @@ GLOSSARY = [
      "gravity off. Approach: the pad centre&#8217;s travel past first touch, in mm. RMS patch radius: force-weighted RMS distance of "
      "the &#8722;x pad&#8217;s contacts from their centroid, in the plane normal to the pinch axis, in mm. Load exponents: the slopes of "
      "log approach and log radius against log \\(N\\); the pressure law gives 1/2 and 1/4, Hertz 2/3 and 1/3."),
-    ("slip onset, effective \\(\\mu\\) (T1)", _OV["slip onset, effective \\(\\mu\\)"]),
+    ("slip onset, effective \\(\\mu\\) (T1)", _OV["effective \\(\\mu\\)"]),
     ("onset arm, arm ratio (T2)", "Task&#160;2 raises a torque about the pinch axis until the tool turns faster than 30&#8202;&#176;/s; the "
      "torque at that onset over \\(2\\mu N\\), in mm per pad, and its ratio to the pressure law&#8217;s arm (0.820, 0.974 and 1.281&#8202;mm "
      "at 0.5, 1 and 3&#8202;N). Arm ratio: the onset arm at 3&#8202;N over that at 0.5&#8202;N (pressure law 1.565, Hertz 1.817). "
@@ -159,7 +159,8 @@ GLOSSARY = [
      "enforces; \\(\\hat\\Lambda\\) is MuJoCo&#8217;s estimate of the contact&#8217;s inverse inertia. A contact&#8217;s static stiffness "
      "is \\(1/\\big(t_c^2(1-d_0)\\hat\\Lambda\\big)\\), and its friction rows are softened in the same proportion to "
      "\\(\\hat\\Lambda\\), so contacts on light bodies are soft unless \\(d_0\\) is recalibrated."),
-    ("inverse weight \\(w\\)", _OV["inverse weight \\(w\\), effective mass \\(m_\\text{eff}\\)"]),
+    ("inverse weight \\(w\\)", "MuJoCo&#8217;s <code>body_invweight0</code> of a body, its translational inverse inertia in 1/kg; "
+     "a contact between bodies 1 and 2 has \\(\\hat\\Lambda = w_1 + w_2\\) and \\(m_\\text{eff} = 1/\\hat\\Lambda\\)."),
     ("impratio", "MuJoCo&#8217;s ratio of friction-row to normal-row stiffness; larger values make friction stick harder. The bed&#8217;s "
      "pads use 100."),
     ("armature", "Inertia added to a joint&#8217;s own degree of freedom (kg on a slide, kg&#8202;m&#178; on a hinge or ball joint), which "

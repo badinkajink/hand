@@ -25,16 +25,37 @@ def esc(s):
     return str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
+def end_labels(items, gap=19.0, hi=None):
+    """Right-end line labels pushed apart to at least `gap` in y, order kept; labels at the same y merge into one.
+    items: (y, text, colour); returns the same with adjusted y."""
+    merged = []
+    for y, text, col in sorted(items):
+        if merged and abs(merged[-1][0] - y) < 0.5:
+            merged[-1][1].append(text)
+            if merged[-1][2] != col:
+                merged[-1][2] = "var(--ink3)"
+        else:
+            merged.append([y, [text], col])
+    ys = [m[0] for m in merged]
+    for i in range(1, len(ys)):
+        ys[i] = max(ys[i], ys[i - 1] + gap)
+    if hi is not None and ys and ys[-1] > hi:
+        ys[-1] = hi
+        for i in range(len(ys) - 2, -1, -1):
+            ys[i] = min(ys[i], ys[i + 1] - gap)
+    return [(y, ", ".join(m[1]), m[2]) for y, m in zip(ys, merged)]
+
+
 def chart_lift(d):
     """Pad force at the lift, shipped against corrected, at the chain's 2 mm squeeze."""
     rows = d["compare"]
     bh, sub, gap = 12, 3, 14
     grp = bh * 2 + sub
-    h = 60 + len(rows) * (grp + gap) + 40
+    h = 60 + len(rows) * (grp + gap) + 48
     x0, x1 = PAD_L, W - PAD_R - 90
     mx = max(max(r["shipped"]["lift_N"] or 0, r["corrected"]["lift_N"] or 0) for r in rows)
     out = [f'<svg class="chart" viewBox="0 0 {W} {h}" role="img" aria-label="Pad force at the lift on both plants">']
-    out.append(f'<text class="axlab" x="{x0}" y="18">PAD FORCE AT THE LIFT, N &#183; THE CHAIN&#8217;S 2 MM SQUEEZE &#183; TOOL WEIGHT 0.240 N</text>')
+    out.append(f'<text class="axlab" x="{x0}" y="18">Pad force at the lift (N) at the chain&#8217;s 2 mm squeeze; tool weight 0.240 N</text>')
     for v in (0, 5, 10, 15, 20, 25):
         if v > mx:
             break
@@ -52,11 +73,11 @@ def chart_lift(d):
             out.append(f'<rect x="{x0}" y="{yy}" width="{max(v / mx * (x1 - x0), 1.5):.1f}" height="{bh}" rx="3" fill="{col}"/>')
             out.append(f'<text class="val" x="{x0 + v / mx * (x1 - x0) + 8:.1f}" y="{yy + bh - 1}">{v:.2f}</text>')
     lx = x0
-    for lab, col in (("shipped plant, kp 30", "var(--ref)"), ("calibrated plant, kp 0.5", "var(--s1)")):
-        out.append(f'<rect x="{lx}" y="{h - 12}" width="9" height="9" rx="2" fill="{col}"/>')
-        out.append(f'<text class="note" x="{lx + 14}" y="{h - 4}">{lab}</text>')
-        lx += 28 + len(lab) * 6.9
-    out.append(f'<text class="note" x="{lx + 10}" y="{h - 4}" fill="var(--bad)">dashed: the tool&#8217;s own weight</text>')
+    for lab, col in (("Shipped plant, kp 30", "var(--ref)"), ("Calibrated plant, kp 0.5", "var(--s1)")):
+        out.append(f'<rect x="{lx}" y="{h - 16}" width="12" height="12" rx="2" fill="{col}"/>')
+        out.append(f'<text class="note" x="{lx + 18}" y="{h - 5}">{lab}</text>')
+        lx += 40 + len(lab) * 8.2
+    out.append(f'<text class="note" x="{lx + 10}" y="{h - 5}" fill="var(--bad)">Dashed: the tool&#8217;s weight</text>')
     return "\n".join(out) + "</svg>"
 
 
@@ -65,10 +86,10 @@ def chart_squeeze(d):
     sq = d["squeeze"]
     vals, rows = sq["values"], sq["rows"]
     h = 300
-    x0, x1, t, b = PAD_L, W - PAD_R - 20, 40, h - 60
+    x0, x1, t, b = PAD_L, W - PAD_R - 90, 40, h - 70
     mx = max(v for r in rows for v in r["lift_N"] if v is not None)
     out = [f'<svg class="chart" viewBox="0 0 {W} {h}" role="img" aria-label="Lift force against squeeze">']
-    out.append(f'<text class="axlab" x="{x0}" y="18">PAD FORCE AT THE LIFT ON THE CALIBRATED PLANT, BY SQUEEZE &#183; MEDIAN OF 4 ROLLOUTS</text>')
+    out.append(f'<text class="axlab" x="{x0}" y="18">Pad force at the lift on the calibrated plant against squeeze, median of 4 rollouts</text>')
     xs = [x0 + i / (len(vals) - 1) * (x1 - x0) for i in range(len(vals))]
     for v in (0, 1, 2, 3, 4, 5):
         y = b - v / mx * (b - t)
@@ -77,15 +98,18 @@ def chart_squeeze(d):
         out.append(f'<line class="grid" x1="{x0}" y1="{y:.1f}" x2="{x1}" y2="{y:.1f}"/>')
         out.append(f'<text class="tick" x="{x0 - 10}" y="{y + 4:.1f}" text-anchor="end">{v} N</text>')
     for x, v in zip(xs, vals):
-        out.append(f'<text class="tick" x="{x:.1f}" y="{b + 18}" text-anchor="middle">{v:g} mm</text>')
+        out.append(f'<text class="tick" x="{x:.1f}" y="{b + 22}" text-anchor="middle">{v:g} mm</text>')
+    labels = []
     for r in rows:
         pts = [(x, r["lift_N"][i]) for i, x in enumerate(xs) if r["lift_N"][i] is not None]
         col = "var(--s2)" if r["id"] in ("D3", "D4", "D5", "D6", "D7") else "var(--ref)"
         out.append('<polyline fill="none" stroke="' + col + '" stroke-width="2" points="'
                    + " ".join(f"{x:.1f},{b - v / mx * (b - t):.1f}" for x, v in pts) + '"/>')
         x, v = pts[-1]
-        out.append(f'<text class="ser" x="{x + 8:.1f}" y="{b - v / mx * (b - t) + 4:.1f}" fill="{col}">{r["id"]}</text>')
-    out.append(f'<text class="note" x="{x0}" y="{h - 8}">Blue: the five hands that go on to carry the tool to the countersink. Grey: D1, D2, D8. D8 does not close on the tool below 6 mm.</text>')
+        labels.append((b - v / mx * (b - t) + 5, r["id"], col))
+    for y, lab, col in end_labels(labels, hi=b + 5):
+        out.append(f'<text class="ser" x="{x1 + 8:.1f}" y="{y:.1f}" fill="{col}">{lab}</text>')
+    out.append(f'<text class="note" x="{x0}" y="{h - 10}">Blue: the five hands that carry the tool on to the countersink. Grey: D1, D2, D8; D8 does not close on the tool below 6 mm.</text>')
     return "\n".join(out) + "</svg>"
 
 
@@ -93,22 +117,25 @@ def chart_funnel(d):
     """Rollouts still carried at each seam, calibrated plant, per hand."""
     f = d["funnel"]
     ph, rows = f["phases"], f["rows"]
-    h = 330
-    x0, x1, t, b = PAD_L, W - PAD_R - 30, 40, h - 90
+    h = 420
+    x0, x1, t, b = PAD_L, W - PAD_R - 110, 40, h - 170
     xs = [x0 + i / (len(ph) - 1) * (x1 - x0) for i in range(len(ph))]
     out = [f'<svg class="chart" viewBox="0 0 {W} {h}" role="img" aria-label="Rollouts carried at each seam">']
-    out.append(f'<text class="axlab" x="{x0}" y="18">ROLLOUTS STILL CARRYING THE TOOL (&#8805;2 PADS &#8805; 0.240 N) AT EACH SEAM &#183; CALIBRATED PLANT, 10 MM SQUEEZE &#183; 20 PER HAND</text>')
+    out.append(f'<text class="axlab" x="{x0}" y="18">Rollouts carrying the tool (two pads at 0.240 N or more) at each seam, of 20 per hand</text>')
     for v in (0, 5, 10, 15, 20):
         y = b - v / 20 * (b - t)
         out.append(f'<line class="grid" x1="{x0}" y1="{y:.1f}" x2="{x1}" y2="{y:.1f}"/>')
-        out.append(f'<text class="tick" x="{x0 - 10}" y="{y + 4:.1f}" text-anchor="end">{v}</text>')
+        out.append(f'<text class="tick" x="{x0 - 18}" y="{y + 5:.1f}" text-anchor="end">{v}</text>')
     for x, p in zip(xs, ph):
-        out.append(f'<text class="tick" x="{x:.1f}" y="{b + 14}" text-anchor="end" transform="rotate(-40 {x:.1f} {b + 14})">{esc(p)}</text>')
+        out.append(f'<text class="tick" x="{x + 5:.1f}" y="{b + 12}" text-anchor="end" transform="rotate(-90 {x + 5:.1f} {b + 12})">{esc(p)}</text>')
+    labels = []
     for r in rows:
         col = "var(--s2)" if r["id"] in ("D3", "D4", "D5", "D6", "D7") else "var(--ref)"
         out.append('<polyline fill="none" stroke="' + col + '" stroke-width="2" points="'
                    + " ".join(f"{x:.1f},{b - v / 20 * (b - t):.1f}" for x, v in zip(xs, r["carried"])) + '"/>')
-        out.append(f'<text class="ser" x="{xs[-1] + 8:.1f}" y="{b - r["carried"][-1] / 20 * (b - t) + 4:.1f}" fill="{col}">{r["id"]}</text>')
+        labels.append((b - r["carried"][-1] / 20 * (b - t) + 5, r["id"], col))
+    for y, lab, col in end_labels(labels, hi=b + 5):
+        out.append(f'<text class="ser" x="{xs[-1] + 8:.1f}" y="{y:.1f}" fill="{col}">{lab}</text>')
     return "\n".join(out) + "</svg>"
 
 

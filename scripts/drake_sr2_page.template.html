@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SR² Hand planning and morphology optimization in Drake</title>
+<style>
+:root{
+  --paper:#EEF1F4; --card:#FFFFFF; --sunk:#E4E9EE;
+  --ink:#1A2127; --ink2:#48545D; --ink3:#77848D; --rule:#D2DAE1; --rule2:#E2E8ED;
+  --s1:#BE7514; --s2:#4A7FC4; --s3:#5E8F5A; --ref:#8A959D;
+  --good:#3F7A46; --bad:#A8443C;
+  --shadow:0 1px 2px rgba(16,26,34,.06),0 8px 24px -14px rgba(16,26,34,.28);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
+  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
+  --s1:#E39A2E; --s2:#7BA7E0; --s3:#8AC286; --ref:#79858E; --good:#6FB076; --bad:#DE8078;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+}}
+:root[data-theme="dark"]{
+  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
+  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
+  --s1:#E39A2E; --s2:#7BA7E0; --s3:#8AC286; --ref:#79858E; --good:#6FB076; --bad:#DE8078;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);
+  font:400 17px/1.62 "Source Serif 4",Georgia,"Times New Roman",serif;
+  -webkit-font-smoothing:antialiased;padding:0 20px 96px;margin:0}
+.wrap{max-width:1020px;margin:0 auto}
+.col{max-width:70ch}
+h1,h2,h3,.mono,.tag,th{font-family:Archivo,"Helvetica Neue",Arial,sans-serif}
+.mono,code,td.num,.val,.note,pre{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+header{padding:64px 0 30px;border-bottom:1px solid var(--rule)}
+.eyebrow{font:500 12px/1 "IBM Plex Mono",monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3)}
+h1{font-size:clamp(30px,4.6vw,48px);line-height:1.05;font-weight:700;letter-spacing:-.022em;
+  margin:16px 0 0;text-wrap:balance;max-width:22ch}
+.lede{font-size:20px;line-height:1.55;color:var(--ink2);margin:18px 0 0;max-width:62ch}
+.byline{margin-top:22px;font:400 13px/1.5 "IBM Plex Mono",monospace;color:var(--ink3)}
+section{padding:46px 0;border-bottom:1px solid var(--rule2)}
+section:last-of-type{border-bottom:0}
+h2{font-size:27px;font-weight:700;letter-spacing:-.018em;margin:0 0 6px;text-wrap:balance}
+ol.stages li{margin:0 0 10px}
+h3{font-size:18px;font-weight:600;letter-spacing:-.008em;margin:34px 0 8px}
+h2 + .sub{color:var(--ink3);font:400 14px/1.5 "IBM Plex Mono",monospace;margin:0 0 24px}
+p{margin:0 0 17px}
+strong{font-weight:600}
+ul,ol{margin:0 0 17px;padding-left:20px}
+li{margin:0 0 8px}
+figure{margin:28px 0}
+figure video,figure img{display:block;width:100%;border-radius:10px;background:var(--sunk);box-shadow:var(--shadow)}
+figure video{max-width:640px;margin:10px 0 0;height:auto}
+figcaption{margin-top:11px;font:400 14px/1.55 "IBM Plex Mono",monospace;color:var(--ink3);max-width:82ch}
+.col > .tw,.col > figure,.col > .duo{width:min(1020px,calc(100vw - 40px));max-width:none}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:28px 0}
+@media (max-width:720px){.duo{grid-template-columns:1fr}}
+.duo figure{margin:0}
+.tw{overflow-x:auto;margin:24px 0;border:1px solid var(--rule);border-radius:10px;background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th{font:600 12px/1.3 Archivo,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);
+  text-align:left;padding:13px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid var(--rule2);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;font-size:13.5px;white-space:nowrap}
+.ok{color:var(--good);font-weight:600}
+.no{color:var(--bad);font-weight:600}
+td.cell{text-align:center;font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:500;white-space:nowrap}
+td.c4{background:color-mix(in oklab,var(--good) 28%,var(--card));color:var(--ink)}
+td.c3{background:color-mix(in oklab,var(--good) 16%,var(--card))}
+td.c2{background:color-mix(in oklab,var(--s1) 16%,var(--card))}
+td.c1{background:color-mix(in oklab,var(--bad) 12%,var(--card))}
+td.c0{background:color-mix(in oklab,var(--bad) 22%,var(--card));color:var(--ink2)}
+.keep{border:1px solid var(--rule);border-left:3px solid var(--s2);border-radius:10px;
+  padding:20px 24px;margin:28px 0;background:var(--card)}
+.keep .tag{display:block;font:700 12px/1 Archivo,sans-serif;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--s2);margin-bottom:11px}
+.keep p:last-child,.keep ul:last-child{margin-bottom:0}
+pre{background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:16px 18px;
+  overflow-x:auto;font-size:13px;line-height:1.6;margin:22px 0}
+code{font-size:.92em;background:var(--sunk);padding:1px 4px;border-radius:4px;margin:0 -1px;white-space:nowrap}
+footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",monospace}
+footer a{color:var(--s2)}
+</style>
+<style>
+a{color:var(--s2)} pre{overflow-x:auto;padding:16px;background:var(--sunk);border-radius:8px;font-size:12px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin:24px 0}
+.card{padding:20px;border:1px solid var(--rule);border-radius:10px;background:var(--card)}
+.card strong{display:block;font:600 24px Archivo,Arial,sans-serif;color:var(--good)}
+.note{font-size:13px;color:var(--ink2)} .controls label{display:grid;grid-template-columns:90px 1fr 65px;align-items:center;gap:8px;font-size:14px}
+.controls input{width:100%;accent-color:var(--s2)} .controls select{padding:8px;background:var(--card);color:var(--ink);border:1px solid var(--rule);border-radius:5px;margin-bottom:12px}
+svg{width:100%;height:auto;background:var(--card);border-radius:10px} details{margin:20px 0} summary{cursor:pointer;font-weight:600}
+</style></head>
+<body><main class="wrap">
+<header><div class="eyebrow">SR² Hand · planning study · 1 October 2026</div>
+<h1>Hand planning and morphology optimization in Drake</h1>
+<p class="lede">A Drake planning port is feasible. The existing real_v1 geometry supports fixed-hand IK and joint morphology/posture optimization after a small, explicit MJCF adaptation.</p>
+<p class="byline">Tested locally: Drake {{DRAKE}}, MuJoCo {{MUJOCO}}, Python {{PYTHON}} · fixed palm · CPU · no hardware commands</p></header>
+<section><h2>What was demonstrated</h2>
+<div class="cards"><div class="card"><strong>{{SAMPLES}} configurations</strong>MuJoCo ↔ Drake pose and Jacobian comparison</div><div class="card"><strong>{{IK_COUNT}} / {{IK_COUNT}} IK solves</strong>Joint limits and a 1 mm minimum enabled-pair clearance</div><div class="card"><strong>{{FK_ERROR}} m</strong>Largest fingertip coordinate discrepancy</div></div>
+<p>The three fixed morphologies were tested as both a nine-position frozen model and a fifteen-position model with six locked gantry coordinates. A seventh solve chose morphology and posture together; freezing its resulting morphology reproduced its fingertip targets. These are reachable, nearby synthetic targets, with warm starts. They establish integration, not manipulation success or a global morphology optimum.</p>
+{{CHECK_TABLE}}
+<p class="note">The mass-matrix audit compares the 15 physical coordinates, including reflected actuator inertia. Removing the three zero-travel length shims does not add a hardware degree of freedom. No contact-force, retention, or real-hardware equivalence is claimed.</p>
+</section>
+<section><h2>Recommended architecture</h2>
+<p>Keep the measured geometry and existing morphology records as the source of truth. Add Drake as a planning and design-optimization component alongside the current MuJoCo evaluation pipeline. The prototype reads the existing MJCF and resolves actuator defaults with MuJoCo; it does not duplicate the CAD dimensions.</p>
+<div class="tw"><table><thead><tr><th>Use</th><th>Representation</th><th>Behavior</th></tr></thead><tbody>
+<tr><td>Evaluate a chosen design</td><td>Frozen model: 9 positions</td><td>Bake the six mount offsets into body transforms. Rebuild for a new morphology. This is the simplest first production target.</td></tr>
+<tr><td>Many fixed-design IK problems</td><td>One 15-position plant; a context per candidate</td><td>Set six prismatic coordinates, lock them, then construct IK with that context. The tested IK preserves all six coordinates exactly.</td></tr>
+<tr><td>Joint morphology and posture search</td><td>15-position model, gantries free in the optimization</td><td>Use the six gantry positions as decision variables. Bounds and fingertip Jacobians are available directly.</td></tr>
+<tr><td>Moving gantries during manipulation</td><td>15-position dynamics with trajectory commands</td><td>Separate future work: motor/rail identification, collision geometry and transition handling. A live unlock currently fails in the tested Drake build.</td></tr>
+</tbody></table></div>
+<p>For a trajectory or several task poses, share <strong>one six-coordinate morphology</strong> across all knots/tasks and optimize the nine finger angles at each knot. Otherwise an optimizer can improve its objective by changing the hand during a task intended to use a fixed morphology. Generic mathematical programs do not automatically inherit the IK constructor’s locked-coordinate constraints.</p>
+<pre>m = [x_T, y_T, x_I, y_I, x_M, y_M]             # mount-relative meters
+q_k = [yaw_T, mcp_T, pip_T, ...]                # radians, at task knot k
+minimize  Σ_k task_cost(FK(m, q_k)) + motion_cost(q) + design_cost(m)
+subject to workspace bounds, hardware ROM, collision clearance,
+           task/contact conditions, and the same m at every knot</pre>
+<p>A practical next stage is fixed-morphology <a href="https://drake.mit.edu/doxygen_cxx/classdrake_1_1planning_1_1trajectory__optimization_1_1_kinematic_trajectory_optimization.html">kinematic trajectory optimization</a>, followed by dense path-clearance checks and MuJoCo rollouts. That class is documented by Drake; trajectory optimization itself was not implemented in this study. Grasp-force feasibility needs additional contact and force constraints. A fingertip-position solution alone does not certify a grasp.</p>
+</section>
+<section><h2>Reconfiguration in the palm plane</h2>
+<p>Only the six XY gantry offsets are hardware morphology. The old length variables are zero-range generator shims. The rectangles below are the source MJCF travel bounds. Slider values are offsets from each mount’s nominal origin; the plot uses absolute palm coordinates in millimeters.</p>
+<div class="duo"><div><svg id="mount-plot" viewBox="0 0 520 500" role="img" aria-label="Top view of three gantry workspaces and configurable mount positions"></svg></div><div class="controls"><label for="design">Example</label><select id="design"></select><div id="sliders"></div><p class="note">This is a workspace illustration, not a collision or reachability solver. Moving a slider does not rerun IK. Rails and carriages are absent from the source hand’s collision geometry.</p></div></div>
+{{MORPH_TABLE}}
+</section>
+<section><h2>Planning results</h2>
+{{IK_TABLE}}
+<p>Each IK problem constrains three fingertip centers in world coordinates to a ±1 μm box, respects source joint limits, and requests 1 mm clearance between enabled collision pairs. Numerical solver tolerance explains the small excess beyond 1 μm. The smallest resulting clearance is {{MIN_CLEARANCE}} mm. The named compact and asymmetric examples are synthetic study designs, not the deployed D1–D8 hands.</p>
+<p class="note">Solver: {{SOLVERS}}. Solve times are single local measurements for small, easy instances, excluding model construction and problem setup; they are not a throughput benchmark. Full configurations and target positions are stored in the study data.</p>
+</section>
+<section><h2>Why a raw MJCF import is insufficient</h2>
+{{IMPORT_TABLE}}
+<p>All three original files parse, but parsing is not behavioral equivalence. The source contains six optional palm-pose coordinates, a free object and three length shims; that explains why scene counts exceed the hand’s 15 physical coordinates.</p>
+<div class="tw"><table><thead><tr><th>Issue</th><th>Observed behavior / consequence</th><th>Prototype treatment</th></tr></thead><tbody>
+<tr><td>Position control range vs effort</td><td>Raw thumb yaw effort limit is {{RAW_YAW}} rather than 10 N·m. Raw thumb X effort limit is {{RAW_X}} rather than 10 N.</td><td>Recreate native actuators from compiled source gains and force limits; bound position targets separately.</td></tr>
+<tr><td>Derivative gain</td><td>Raw finger derivative gain is {{RAW_KD}} rather than 0.5. The tested parser reads kd; the MJCF uses kv.</td><td>Read MuJoCo’s resolved bias parameters and configure native PD gains.</td></tr>
+<tr><td>Contact semantics</td><td>solref/solimp do not transfer. The importer warns that torsional/rolling friction terms are unsupported.</td><td>Explicit point-contact approximation with sliding friction only; no contact-parity claim.</td></tr>
+<tr><td>Keyframes and display</td><td>Keyframes, sites, textures and other display settings are skipped.</td><td>Initialize named joints explicitly; retain body transforms, primitives, inertials, colors and exclusions.</td></tr>
+<tr><td>Gantry locks in live simulation</td><td>{{UNLOCK_STATUS}}</td><td>Fixed-design planning and independently initialized locked/unlocked rollouts work. Treat live lock-mode switching as unresolved.</td></tr>
+</tbody></table></div>
+<p>The <a href="https://raw.githubusercontent.com/RobotLocomotion/drake/v1.57.0/multibody/parsing/detail_mujoco_parser.cc">Drake 1.57 parser source</a> explains the actuator mismatch. The adapter removes imported actuators and adds native ones, rather than relying on version-specific XML workarounds. The adapted model passes strict parsing. Drake documents its broader <a href="https://drake.mit.edu/doxygen_cxx/group__multibody__parsing.html">MJCF limitations</a> and <a href="https://drake.mit.edu/doxygen_cxx/classdrake_1_1multibody_1_1_inverse_kinematics.html">context-dependent joint locks for IK</a>.</p>
+<details><summary>Raw parser warnings and live-unlock reproduction</summary>{{WARNINGS}}<pre>{{UNLOCK_LOG}}</pre></details>
+</section>
+<section><h2>What must be added before using planned motions</h2>
+<ol><li><strong>Use the bench limits and current plant calibration.</strong> The tested source has nominal ±85° yaw and up to 92° flexion, while the driver caps yaw at ±70° and some flexion joints are tighter. For example, index MCP ends at 64.75°. Preserve the sign/unit conversion in <code>manta_hand/plan.py</code> and measured ranges in <code>servos.py</code>.</li>
+<li><strong>Port the intended geometry variant and collision policy.</strong> This spike uses the capsule/sphere source, not deployed flat-pad variants, rail/carriage geometry, an object, the table, or a UR5e. Its 21 source exclusion declarations intentionally omit some self-contact. A “collision-free” result refers only to enabled pairs in this simplified hand. Preserve the source gate’s physical intent when adding missing shapes.</li>
+<li><strong>Connect fixed-morphology planning to the existing evaluator.</strong> Import chosen design records, solve task targets with hardware limits, optimize a motion path, export the named-joint trajectory, then use existing MuJoCo clearance/retention/perturbation checks and plan export. Compare D1–D8 only after matching pad shape, source plant and initialization.</li>
+<li><strong>Introduce contact optimization separately.</strong> Drake’s <a href="https://drake.mit.edu/doxygen_cxx/group__hydroelastic__user__guide.html">hydroelastic contact</a> is worth testing for distributed pad contact. It requires physical calibration and does not reproduce MuJoCo rolling/torsional coefficients merely by selecting a solver. At least one compliant hydroelastic participant is needed for a hydroelastic contact pair.</li>
+<li><strong>Keep dynamics claims calibrated.</strong> The prototype preserves shipped finger kp=30, kv=0.5 and a 10 N·m cap for conversion checks. The repository’s later calibrated chain uses kp=0.5, kv=0.02 and a 0.35 N·m cap. Gantry damping=2000 with kp=30 is also a simulation placeholder, not measured stepper behavior. In a separate 0.2 s unlocked rollout, maximum travel was only {{GANTRY_MOVE}} mm.</li></ol>
+<p>The current backend factory and RL stack are MuJoCo/Warp-oriented. This study does not make Drake a drop-in backend, preserve MJX/GPU batch throughput, or validate contact derivatives. The useful first deliverable is a planning interface that accepts a morphology, task targets and limits, and returns named-joint trajectories plus feasibility diagnostics.</p>
+</section>
+<section><h2>Reproduce and inspect</h2>
+<p>The project environment and lockfile are unchanged. Drake was installed into a separate ignored environment under <code>logs/20261001-drake-port/venv</code>. It ran on this Ubuntu 22.04 host; that local success does not establish official support. Check the <a href="https://drake.mit.edu/installation.html">current supported configurations</a> before choosing a deployment host.</p>
+<pre>uv venv --python .venv/bin/python logs/20261001-drake-port/venv
+uv pip install --python logs/20261001-drake-port/venv/bin/python \
+  -r docs/experiments/20261001-drake-port/requirements.txt
+logs/20261001-drake-port/venv/bin/python scripts/drake_sr2_probe.py
+python3 scripts/drake_sr2_page.py</pre>
+<p>The probe asserts pose/Jacobian agreement, IK success and clearance, frozen/locked agreement, frozen optimized-design targets, lock stability and actuator parameters. The live-unlock case runs in a subprocess because the tested Drake build exits on an internal assertion; its failure is recorded instead of killing the planning audit.</p>
+<details><summary>Files and data provenance</summary><ul><li><code>scripts/drake_sr2_hand.py</code>: restricted source adapter and named-coordinate interface</li><li><code>scripts/drake_sr2_probe.py</code>: numerical and solver checks</li><li><code>scripts/drake_sr2_page.py</code> and its HTML template: this report</li><li><code>docs/experiments/20261001-drake-port/probe.json</code>: results, solutions, source hashes and warnings</li></ul><pre>{{PROVENANCE}}</pre></details>
+</section><footer>Local study artifact · rebuilt from probe.json by scripts/drake_sr2_page.py · not externally published</footer>
+</main><script id="study-data" type="application/json">{{VIEWER_DATA}}</script>
+<script>
+const data=JSON.parse(document.getElementById('study-data').textContent);
+const fingers=['thumb','index','middle'], colors=['#BE7514','#4A7FC4','#5E8F5A'];
+const select=document.getElementById('design'), sliders=document.getElementById('sliders');
+for(const name of Object.keys(data.designs)){const o=document.createElement('option');o.value=name;o.textContent=name;select.append(o);}
+const inputs=[];
+for(let i=0;i<6;i++){const label=document.createElement('label');const text=document.createElement('span');text.textContent=fingers[Math.floor(i/2)]+' '+(i%2?'Y':'X');
+const input=document.createElement('input');input.type='range';input.min=data.lower[i]*1000;input.max=data.upper[i]*1000;input.step=.1;input.setAttribute('aria-label',text.textContent+' offset in millimeters');
+const out=document.createElement('output');input.addEventListener('input',draw);label.append(text,input,out);sliders.append(label);inputs.push({input,out});}
+function draw(){const m=inputs.map(({input,out})=>{const v=Number(input.value);out.textContent=v.toFixed(1)+' mm';return v;});let s='';
+const px=x=>260+x*2.35,py=y=>240-y*2.35;
+s+='<path d="M30 240H490 M260 25V455" stroke="var(--rule)"/><text x="463" y="263" fill="var(--ink2)" font-size="14">+X</text><text x="270" y="30" fill="var(--ink2)" font-size="14">+Y</text>';
+for(let f=0;f<3;f++){const i=2*f,o=data.origins[f].map(x=>1000*x);let l=data.lower[i]*1000,u=data.upper[i]*1000,b=data.lower[i+1]*1000,t=data.upper[i+1]*1000;
+s+=`<rect x="${px(o[0]+l)}" y="${py(o[1]+t)}" width="${(u-l)*2.35}" height="${(t-b)*2.35}" fill="${colors[f]}" fill-opacity=".12" stroke="${colors[f]}"/>`;
+s+=`<circle cx="${px(o[0]+m[i])}" cy="${py(o[1]+m[i+1])}" r="7" fill="${colors[f]}"/><text x="${px(o[0]+l)+5}" y="${py(o[1]+b)-7}" fill="var(--ink)" font-size="14">${fingers[f]}</text>`;}
+s+='<text x="25" y="482" fill="var(--ink2)" font-size="13">Palm coordinates · nominal origins: (−50, 0), (50, ±55) mm</text>';document.getElementById('mount-plot').innerHTML=s;}
+function pick(){data.designs[select.value].forEach((v,i)=>inputs[i].input.value=1000*v);draw();}select.addEventListener('change',pick);pick();
+</script></body></html>

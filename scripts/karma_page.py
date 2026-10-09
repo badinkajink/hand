@@ -61,8 +61,7 @@ def chart_spread(tab, pub) -> str:
     h = 250
     o = [f'<svg class="chart" viewBox="0 0 {W} {h}" role="img" aria-label="KaRMA-T for '
          f'{len(ours)} real_v1 designs against the sixteen published hands">']
-    o.append(f'<text class="axlab" x="{x0}" y="18">KaRMA-T &#183; LOG SCALE &#183; '
-             f'DIMENSIONLESS REACHABLE OBJECT-CENTRE VOLUME</text>')
+    o.append(f'<text class="axlab" x="{x0}" y="18">KaRMA-T, dimensionless reachable object-centre volume (log scale)</text>')
     for e in range(int(math.floor(lo)), int(math.ceil(hi)) + 1):
         v = 10.0 ** e
         if not (lo <= math.log10(v) <= hi):
@@ -129,9 +128,8 @@ def chart_auc(an, arm_key: str) -> str:
 
     o = [f'<svg class="chart" viewBox="0 0 {W} {h}" role="img" aria-label="AUC for '
          f'predicting retention">']
-    o.append(f'<text class="axlab" x="{PAD_L}" y="18">AUC FOR PREDICTING WHICH DESIGNS '
-             f'SURVIVE THE RETENTION SCREEN &#183; n = {arm["n"]}, '
-             f'{arm["n_retained"]} RETAINED</text>')
+    o.append(f'<text class="axlab" x="{PAD_L}" y="18">AUC for predicting which designs pass the retention screen '
+             f'(n = {arm["n"]}, {arm["n_retained"]} retained)</text>')
     for t in (0.5, 0.6, 0.7, 0.8, 0.9):
         o.append(f'<line class="grid" x1="{X(t):.1f}" y1="34" x2="{X(t):.1f}" y2="{h-52}"/>')
         o.append(f'<text class="tick" x="{X(t):.1f}" y="{h-36}" text-anchor="middle">'
@@ -176,11 +174,11 @@ def chart_depth(tab, ops) -> str:
     mx = max(bins)
     o = [f'<svg class="chart" viewBox="0 0 {W} {h}" role="img" aria-label="Depth below the '
          f'palm at which KaRMA chose to pinch">']
-    o.append(f'<text class="axlab" x="{x0}" y="18">DEPTH BELOW THE MOUNTING PLANE, mm</text>')
+    o.append(f'<text class="axlab" x="{x0}" y="18">Depth below the mounting plane, mm</text>')
     o.append(f'<rect x="{X(grips[0]):.1f}" y="32" width="{X(grips[-1])-X(grips[0]):.1f}" '
              f'height="{h-92}" fill="{B}" fill-opacity="0.13"/>')
-    o.append(f'<text class="mark" x="{X(grips[0])+7:.1f}" y="46">GRIP DEPTH OF THE EIGHT '
-             f'DEPLOYED PLANS &#183; {grips[0]:.1f}&#8211;{grips[-1]:.1f} mm</text>')
+    o.append(f'<text class="mark" x="{X(grips[0])+7:.1f}" y="46">Grip depth of the eight '
+             f'deployed plans, {grips[0]:.1f}&#8211;{grips[-1]:.1f} mm</text>')
     for i, c in enumerate(bins):
         if not c:
             continue
@@ -223,8 +221,8 @@ def chart_clip(tab, an) -> str:
 
     o = [f'<svg class="chart" viewBox="0 0 {W} {h}" role="img" aria-label="KaRMA-T against '
          f'the highest residual clip a design still passes at">']
-    o.append(f'<text class="axlab" x="{PAD_L}" y="18">KaRMA-T (log) BY THE HIGHEST RESIDUAL '
-             f'CLIP THE DESIGN STILL PASSES RETENTION AT &#183; n = {len(sub)}</text>')
+    o.append(f'<text class="axlab" x="{PAD_L}" y="18">KaRMA-T (log) by the highest residual clip at which '
+             f'the design passes retention (n = {len(sub)})</text>')
     for i, c in enumerate(clips):
         x = PAD_L + i * (cw + gap)
         grp = [r["karma_t"] for r in sub if r["max_clip_rad"] == c]
@@ -271,9 +269,8 @@ def chart_pairs(tab) -> str:
     def Y(v):
         return 34 + S - (math.log10(v) - lo) / (hi - lo) * S
 
-    o.append(f'<text class="axlab" x="{PAD_L}" y="18">KaRMA-T, THUMB&#8211;INDEX (x) '
-             f'AGAINST THUMB&#8211;MIDDLE (y) &#183; LOG&#8211;LOG &#183; '
-             f'n = {len(pts)}</text>')
+    o.append(f'<text class="axlab" x="{PAD_L}" y="18">KaRMA-T, thumb&#8211;index (x) against thumb&#8211;middle (y), '
+             f'log&#8211;log (n = {len(pts)})</text>')
     o.append(f'<line x1="{PAD_L}" y1="{34+S}" x2="{PAD_L+S}" y2="34" stroke="{REF}" '
              f'stroke-width="1.2" stroke-dasharray="4 3"/>')
     for e in range(int(math.floor(lo)), int(math.ceil(hi)) + 1):

@@ -84,7 +84,7 @@ def fig_closure(clo: dict) -> str:
                  f'{z:+.1f}</text>')
     p.append(f'<line x1="{sx(0):.1f}" y1="28" x2="{sx(0):.1f}" y2="{H-38}" '
              f'stroke="var(--ink3)" stroke-width="1.5"/>')
-    p.append(f'<text class="mark" x="{sx(0):.1f}" y="20" text-anchor="middle">EQUATOR</text>')
+    p.append(f'<text class="mark" x="{sx(0):.1f}" y="20" text-anchor="middle">Equator</text>')
     y = 44
     for tag in ORDER:
         c = clo[tag]
@@ -100,7 +100,7 @@ def fig_closure(clo: dict) -> str:
                  f'{c["Fz_pad"]:+.3f} N</text>')
         y += 27
     p.append(f'<text class="axlab" x="{(x0+x1)/2:.0f}" y="{H-6}" text-anchor="middle">'
-             f'PAD CONTACT HEIGHT ABOVE THE SHAFT AXIS / SHAFT RADIUS</text>')
+             f'Pad contact height above the shaft axis over the shaft radius</text>')
     p.append("</svg>")
     return "".join(p)
 
@@ -137,7 +137,7 @@ def fig_elev(grid: dict) -> str:
                      f'fill="{"var(--ink)" if f > 0.45 else "var(--ink2)"}">'
                      f'{g["ok"]}/6 &#183; {g["stood_ok"]} stood</text>')
     p.append(f'<text class="axlab" x="{L+2.5*cw:.0f}" y="{H-8}" text-anchor="middle">'
-             f'PAD-RING ELEVATION ABOUT THE SHAFT</text>')
+             f'Pad-ring elevation about the shaft</text>')
     p.append("</svg>")
     return "".join(p)
 

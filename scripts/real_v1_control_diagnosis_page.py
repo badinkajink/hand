@@ -85,7 +85,7 @@ def fig_ext() -> str:
                  f'{CHAIN_MM - max(ext):.2f} mm left</text>')
         y += 28
     p.append(f'<text class="axlab" x="{(x0+x1)/2:.0f}" y="{H-6}" text-anchor="middle">'
-             f'MOUNT-TO-PAD DISTANCE AT THE CLOSED GRIP / mm</text>')
+             f'Mount-to-pad distance at the closed grip, mm</text>')
     p.append("</svg>")
     return "".join(p)
 

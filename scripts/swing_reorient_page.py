@@ -66,7 +66,7 @@ def chart_trace(d):
     out = [f'<svg class="chart" viewBox="0 0 {W} {h}" role="img" aria-label="D6 turn record">']
     # panel 1: yaw cmd vs achieved (default plant)
     t0, b0 = 34, 214
-    out.append(f'<text class="axlab" x="{x0}" y="18">YAW JOINTS, DEG: COMMANDED (DASHED) AND ACHIEVED (SOLID) &#183; D6, kp 0.5 / kv 0.02, TEMPLATE CONTACT &#183; u = FRACTION OF THE TURN</text>')
+    out.append(f'<text class="axlab" x="{x0}" y="18">Yaw joints, deg: commanded (dashed) and achieved (solid); D6, kp 0.5, kv 0.02</text>')
     lo, hi = -35, 55
     for v in range(-30, 60, 15):
         y = b0 - (v - lo) / (hi - lo) * (b0 - t0)
@@ -80,7 +80,7 @@ def chart_trace(d):
             out.append(f'<polyline points="{pts}" fill="none" stroke="{col}" stroke-width="2"' + (f' stroke-dasharray="{dash}"' if dash else "") + '/>')
     # panel 2: cos, both contact models
     t1, b1 = 262, 420
-    out.append(f'<text class="axlab" x="{x0}" y="{t1 - 10}">SIGNED COSINE OF THE TOOL AXIS &#183; TEMPLATE CONTACT (GREY) AND ELLIPTIC / IMPRATIO 10 (BLACK)</text>')
+    out.append(f'<text class="axlab" x="{x0}" y="{t1 - 10}">Signed cosine of the tool axis: template contact (grey), elliptic with impratio 10 (black)</text>')
     clo, chi = -0.3, 1.05
     for v in (-0.25, 0, 0.25, 0.5, 0.75, 1.0):
         y = b1 - (v - clo) / (chi - clo) * (b1 - t1)

@@ -20,8 +20,8 @@ DATA = DIR / "compute_budget.json"
 TPL = ROOT / "scripts/compute_budget_page.template.html"
 OUT = DIR / "20260908-compute_budget.html"
 
-W = 1020
-PAD_L, PAD_R = 190, 24
+W = 828                                       # the plain style's text column, so chart text shows at its own size
+PAD_L, PAD_R = 214, 16
 NSPE = 24                                     # num_steps_per_env
 
 
@@ -29,13 +29,9 @@ def esc(s) -> str:
     return str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
-def note(x, y, text, width_chars=112, dy=15):
-    """Footnote text wrapped to the drawing width. SVG does not wrap, so do it here."""
-    import textwrap
-    return "\n".join(
-        f'<text class="note" x="{x}" y="{y + i * dy}">{ln}</text>'
-        for i, ln in enumerate(textwrap.wrap(text, width_chars,
-                                             break_long_words=False)))
+def figure(svg: str, caption: str) -> str:
+    """A chart and its note as a figure with a caption (the note used to be SVG text under the plot)."""
+    return f'<figure class="chartfig">{svg}<figcaption>{caption}</figcaption></figure>'
 
 
 def gh_rows(d):
@@ -54,32 +50,32 @@ def chart_throughput(d) -> str:
     loc, ghs = d["local"]["by_env"], gh_rows(d)
     ref = d["published_local_reference_sps"]
     lo, hi = 6000, 11000
-    bh, gap = 26, 12
+    bh, gap = 24, 22
     rows = [("3072", loc["3072"], "local"), ("2048", loc["2048"], "local")]
     rows += [(str(g["envs"]), g, "gh") for g in ghs]
-    h = 62 + len(rows) * (bh + gap) + 62
-    x0, x1 = PAD_L, W - PAD_R - 108
+    h = 44 + len(rows) * (bh + gap) + 58
+    x0, x1 = PAD_L, W - PAD_R - 64
 
     def X(v):
         return x0 + (v - lo) / (hi - lo) * (x1 - x0)
 
     o = [f'<svg class="chart" viewBox="0 0 {W} {h}" role="img" aria-label="Training '
          f'throughput, workstation population versus GH200">']
-    o.append(f'<text class="axlab" x="{PAD_L}" y="20">ENV-STEPS PER SECOND, STEADY STATE '
-             f'(ITERATION 0 EXCLUDED)</text>')
+    o.append(f'<text class="axlab" x="{PAD_L}" y="20">Env-steps per second, steady state '
+             f'(iteration 0 excluded)</text>')
     for v in range(6000, 11001, 1000):
         o.append(f'<line class="grid" x1="{X(v):.1f}" y1="32" x2="{X(v):.1f}" '
-                 f'y2="{h - 46}"/>')
-        o.append(f'<text class="tick" x="{X(v):.1f}" y="{h - 30}" text-anchor="middle">'
+                 f'y2="{h - 40}"/>')
+        o.append(f'<text class="tick" x="{X(v):.1f}" y="{h - 22}" text-anchor="middle">'
                  f'{v // 1000}k</text>')
     for i, (lab, r, kind) in enumerate(rows):
         y = 44 + i * (bh + gap)
         col = "var(--s2)" if kind == "local" else "var(--s1)"
-        name = ("workstation" if kind == "local" else "GH200") + f" &#183; {lab} envs"
+        name = ("Workstation" if kind == "local" else "GH200") + f", {lab} envs"
         n = f'n = {r["n"]}' if kind == "local" else "n = 1"
         o.append(f'<text class="ser" x="{PAD_L - 12}" y="{y + bh * .72}" text-anchor="end" '
                  f'fill="var(--ink)">{name}</text>')
-        o.append(f'<text class="tick" x="{PAD_L - 12}" y="{y + bh * .72 + 13}" '
+        o.append(f'<text class="tick" x="{PAD_L - 12}" y="{y + bh * .72 + 17}" '
                  f'text-anchor="end">{n}</text>')
         if kind == "local":
             o.append(f'<line x1="{X(r["min"]):.1f}" y1="{y + bh / 2:.1f}" '
@@ -101,23 +97,22 @@ def chart_throughput(d) -> str:
                      f'fill="{col}"/>')
             o.append(f'<text class="val" x="{x1 + 12}" y="{y + bh * .74}">'
                      f'{r["sps"]:,.0f}</text>')
-    o.append(f'<line x1="{X(ref):.1f}" y1="32" x2="{X(ref):.1f}" y2="{h - 46}" '
+    o.append(f'<line x1="{X(ref):.1f}" y1="32" x2="{X(ref):.1f}" y2="{h - 40}" '
              f'stroke="var(--bad)" stroke-width="1.5" stroke-dasharray="4 3"/>')
-    o.append(f'<text class="mark" x="{X(ref) - 8:.1f}" y="{h - 52}" text-anchor="end" '
-             f'fill="var(--bad)">{ref:,} &#8212; THE REFERENCE THE 0.66&#215; RATIO USED</text>')
-    o.append(note(PAD_L, h - 24,
-                  f'Box is the interquartile range, bar the median, whiskers the min and max '
-                  f'of the per-run medians. No run in the {loc["3072"]["n"]}-run population at '
-                  f'3072 envs reached {ref:,}; the highest was {loc["3072"]["max"]:,.0f}.'))
-    return "\n".join(o) + "</svg>"
+    o.append(f'<text class="mark" x="{X(ref) - 8:.1f}" y="{h - 46}" text-anchor="end" '
+             f'fill="var(--bad)">{ref:,}: the reference of the 0.66&#215; ratio</text>')
+    return figure("\n".join(o) + "</svg>",
+                  f'Box: interquartile range; bar: median; whiskers: minimum and maximum of the per-run medians. '
+                  f'No run in the {loc["3072"]["n"]}-run population at 3072 envs reached {ref:,}; the highest was '
+                  f'{loc["3072"]["max"]:,.0f}.')
 
 
 def chart_cost(d) -> str:
     """Collection cost per simulated env-step, against batch width."""
     loc, ghs = d["local"]["by_env"], gh_rows(d)
     widths = [1024, 2048, 3072, 8192, 16384]
-    h, top, bot = 332, 44, 214
-    x0, x1 = PAD_L + 56, W - PAD_R - 118
+    h, top, bot = 280, 44, 214
+    x0, x1 = PAD_L - 40, W - PAD_R - 118
     lo, hi = 0, 160
 
     def Y(v):
@@ -128,21 +123,21 @@ def chart_cost(d) -> str:
 
     o = [f'<svg class="chart" viewBox="0 0 {W} {h}" role="img" aria-label="Per-env-step '
          f'collection cost against batch width">']
-    o.append(f'<text class="axlab" x="{PAD_L}" y="20">MICROSECONDS OF COLLECTION PER '
-             f'SIMULATED ENV-STEP &#183; LOWER IS FASTER</text>')
+    o.append(f'<text class="axlab" x="{x0 - 50}" y="20">Microseconds of collection per '
+             f'simulated env-step (lower is faster)</text>')
     for v in (0, 40, 80, 120, 160):
         o.append(f'<line class="grid" x1="{x0}" y1="{Y(v):.1f}" x2="{x1}" y2="{Y(v):.1f}"/>')
-        o.append(f'<text class="tick" x="{x0 - 22}" y="{Y(v) + 4:.1f}" text-anchor="end">'
+        o.append(f'<text class="tick" x="{x0 - 36}" y="{Y(v) + 4:.1f}" text-anchor="end">'
                  f'{v}</text>')
     for i, wv in enumerate(widths):
         o.append(f'<text class="tick" x="{X(i):.1f}" y="{bot + 20}" text-anchor="middle">'
                  f'{wv:,}</text>')
-    o.append(f'<text class="axlab" x="{(x0 + x1) / 2:.1f}" y="{bot + 42}" '
-             f'text-anchor="middle">PARALLEL ENVIRONMENTS</text>')
+    o.append(f'<text class="axlab" x="{(x0 + x1) / 2:.1f}" y="{bot + 46}" '
+             f'text-anchor="middle">Parallel environments</text>')
     series = [
-        ("workstation", "var(--s2)", +22,
+        ("Workstation", "var(--s2)", +24,
          [(widths.index(int(k)), v["us_per_env_step"]) for k, v in loc.items()]),
-        ("GH200", "var(--s1)", -13,
+        ("GH200", "var(--s1)", -14,
          [(widths.index(g["envs"]), g["us"]) for g in ghs]),
     ]
     for name, col, lab_dy, pts in series:
@@ -157,11 +152,9 @@ def chart_cost(d) -> str:
         li, lv = pts[-1]
         o.append(f'<text class="ser" x="{X(li) + 14:.1f}" y="{Y(lv) + 4:.1f}" fill="{col}">'
                  f'{name}</text>')
-    o.append(note(PAD_L, h - 40,
-                  'Both machines are flat: tripling the batch moves the workstation\u2019s '
-                  'cost by 0.01%. The vertical gap between the two lines is the whole '
-                  'result, and it closes at no width either machine can hold.'))
-    return "\n".join(o) + "</svg>"
+    return figure("\n".join(o) + "</svg>",
+                  'Both machines are flat: tripling the batch moves the workstation\u2019s cost by 0.01%. The '
+                  'gap between the two lines does not close at any width either machine can hold.')
 
 
 def chart_duty(d) -> str:
@@ -171,8 +164,8 @@ def chart_duty(d) -> str:
     d0 = dt.date.fromisoformat(d["local"]["first_day"])
     d1 = dt.date.fromisoformat(d["local"]["last_day"])
     days = [(d0 + dt.timedelta(days=i)) for i in range((d1 - d0).days + 1)]
-    h, top, bot = 300, 44, 200
-    x0, x1 = PAD_L, W - PAD_R - 40
+    h, top, bot = 236, 44, 200
+    x0, x1 = 70, W - PAD_R - 10
     bw = (x1 - x0) / len(days)
 
     def Y(v):
@@ -180,8 +173,8 @@ def chart_duty(d) -> str:
 
     o = [f'<svg class="chart" viewBox="0 0 {W} {h}" role="img" aria-label="Training hours '
          f'per calendar day">']
-    o.append(f'<text class="axlab" x="{PAD_L}" y="20">GPU-HOURS OF TRAINING PER CALENDAR '
-             f'DAY &#183; {d0.isoformat()} TO {d1.isoformat()}</text>')
+    o.append(f'<text class="axlab" x="{x0}" y="20">GPU-hours of training per calendar '
+             f'day, {d0.isoformat()} to {d1.isoformat()}</text>')
     for v in (0, 8, 16, 24):
         o.append(f'<line class="grid" x1="{x0}" y1="{Y(v):.1f}" x2="{x1}" y2="{Y(v):.1f}"/>')
         o.append(f'<text class="tick" x="{x0 - 10}" y="{Y(v) + 4:.1f}" text-anchor="end">'
@@ -200,22 +193,21 @@ def chart_duty(d) -> str:
         o.append(f'<text class="tick" x="{x0 + i * bw + bw / 2:.1f}" y="{bot + 20}" '
                  f'text-anchor="middle">{lab}</text>')
     dc = d["local"]["duty_cycle"]
-    o.append(note(PAD_L, h - 56,
+    return figure("\n".join(o) + "</svg>",
                   f'{d["local"]["train_hours"]} hours of training spread over '
                   f'{d["local"]["span_days"]} days, a duty cycle of {dc}%. '
                   f'{d["local"]["active_days"]} days carried a run; the other '
                   f'{d["local"]["span_days"] - d["local"]["active_days"]} are the grey '
                   f'baseline. On the days it ran at all the GPU averaged '
                   f'{d["local"]["train_hours"] / d["local"]["active_days"]:.1f} hours, so the '
-                  f'idle time is not runs queueing for the card.'))
-    return "\n".join(o) + "</svg>"
+                  f'idle time is not runs queueing for the card.')
 
 
 def chart_budget(d) -> str:
     """What a run asks for against where it converged."""
     c = d["convergence"]
-    h = 190
-    x0, x1 = PAD_L, W - PAD_R - 150
+    h = 150
+    x0, x1 = 150, W - PAD_R - 130
     bh = 30
 
     def X(i):
@@ -223,39 +215,37 @@ def chart_budget(d) -> str:
 
     o = [f'<svg class="chart" viewBox="0 0 {W} {h}" role="img" aria-label="Converged '
          f'iteration against requested budget">']
-    o.append(f'<text class="axlab" x="{PAD_L}" y="20">PPO ITERATIONS &#183; b33&#8217;S OWN '
-             f'20M-TIMESTEP RUN</text>')
+    o.append(f'<text class="axlab" x="{x0}" y="20">PPO iterations of b33&#8217;s own 20 M-timestep run</text>')
     y = 46
-    o.append(f'<text class="ser" x="{PAD_L - 12}" y="{y + bh * .7}" text-anchor="end" '
-             f'fill="var(--ink)">requested</text>')
+    o.append(f'<text class="ser" x="{x0 - 12}" y="{y + bh * .7}" text-anchor="end" '
+             f'fill="var(--ink)">Requested</text>')
     o.append(f'<rect x="{x0}" y="{y}" width="{x1 - x0:.1f}" height="{bh}" rx="4" '
              f'fill="var(--sunk)" stroke="var(--rule)"/>')
     o.append(f'<rect x="{x0}" y="{y}" width="{X(c["converged_iter"]) - x0:.1f}" '
              f'height="{bh}" rx="4" fill="var(--good)"/>')
     o.append(f'<text class="val" x="{x1 + 12}" y="{y + bh * .7}">'
-             f'{c["budget_iters"]} iters</text>')
+             f'{c["budget_iters"]} iterations</text>')
     o.append(f'<text class="val" x="{X(c["converged_iter"]) + 10:.1f}" '
              f'y="{y + bh * .7}" fill="var(--good)">converged at iteration '
              f'{c["converged_iter"]}</text>')
-    yy = y + bh + 30
-    for lab, it, v in (("iteration 26", 26, c["align_it26"]),
-                       ("iteration 134", 134, c["align_it134"]),
-                       ("iteration 270", 270, c["align_it270"])):
+    yy = y + bh + 32
+    for lab, it, v in (("Iteration 26", 26, c["align_it26"]),
+                       ("Iteration 134", 134, c["align_it134"]),
+                       ("Iteration 270", 270, c["align_it270"])):
         o.append(f'<line x1="{X(it):.1f}" y1="{y + bh}" x2="{X(it):.1f}" y2="{yy - 6:.1f}" '
                  f'stroke="var(--rule)" stroke-width="1"/>')
         o.append(f'<text class="tick" x="{X(it):.1f}" y="{yy + 6}" text-anchor="middle">'
                  f'{lab}</text>')
-        o.append(f'<text class="val" x="{X(it):.1f}" y="{yy + 24}" text-anchor="middle">'
+        o.append(f'<text class="val" x="{X(it):.1f}" y="{yy + 26}" text-anchor="middle">'
                  f'{v}</text>')
-    o.append(f'<text class="mark" x="{PAD_L - 12}" y="{yy + 24}" text-anchor="end">'
-             f'TARGET-AXIS ALIGNMENT</text>')
-    o.append(note(PAD_L, h - 26,
+    o.append(f'<text class="mark" x="{x0 - 12}" y="{yy + 26}" text-anchor="end">'
+             f'Alignment</text>')
+    return figure("\n".join(o) + "</svg>",
                   f'Target-axis alignment moves {c["align_it26"]} \u2192 {c["align_it134"]} '
                   f'\u2192 {c["align_it270"]} over the remaining '
                   f'{c["budget_iters"] - c["converged_iter"]} iterations, which cost '
                   f'{(c["budget_iters"] - c["converged_iter"]) / c["budget_iters"] * 20:.1f}M '
-                  f'of the 20M timesteps.'))
-    return "\n".join(o) + "</svg>"
+                  f'of the 20M timesteps.')
 
 
 # ---------------------------------------------------------------- tables

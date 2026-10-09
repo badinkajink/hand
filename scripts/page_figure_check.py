@@ -181,6 +181,45 @@ def shots(page: str, figs, rep, tmpdir: str, outdir: str, base: str):
                 im.crop(box).save(os.path.join(outdir, f"fig{i + 1:02d}.png"))
 
 
+def render_figure(page_path: str, n: int, out_png: str, scale: float = 2.0, caption: bool = False) -> str:
+    """Render the n-th figure (1-based, the order of figures()) of a page alone, with the page's styles, to a PNG
+    trimmed to its content; the topic overviews (scripts/topic_overview_page.py) inline these. scale is the device
+    pixel ratio of the screenshot."""
+    from PIL import Image, ImageChops
+    page = open(page_path, encoding="utf-8", errors="replace").read()
+    figs = figures(page)
+    if not 1 <= n <= len(figs):
+        raise IndexError(f"{page_path} has {len(figs)} figures, asked for {n}")
+    one = [(n - 1, figs[n - 1])]
+    base = os.path.dirname(os.path.abspath(page_path))
+    tmpdir = tempfile.mkdtemp(prefix="figrender-")
+    try:
+        h = harness(page, one, True, base)
+        if not caption:
+            h = h.replace("</head>", "<style>figcaption{display:none !important}</style></head>")
+        path = os.path.join(tmpdir, "one.html")
+        open(path, "w", encoding="utf-8").write(h)
+        dom = chrome([f"--window-size={WIDTH},2000", "--virtual-time-budget=15000", "--dump-dom", "file://" + path])
+        m = re.search(r'<pre id="figcheck-report">(.*?)</pre>', dom, re.S)
+        rep = json.loads(htmlmod.unescape(m.group(1)))[0]
+        total = int(rep["top"] + rep["height"]) + 20
+        png = os.path.join(tmpdir, "one.png")
+        chrome([f"--window-size={WIDTH},{total}", f"--force-device-scale-factor={scale:g}", "--virtual-time-budget=15000",
+                f"--screenshot={png}", "file://" + path])
+        im = Image.open(png).convert("RGB")
+        top = int(rep["top"] * scale)
+        im = im.crop((0, top, im.width, min(im.height, int((rep["top"] + rep["height"]) * scale))))
+        bbox = ImageChops.difference(im, Image.new("RGB", im.size, (255, 255, 255))).getbbox()
+        if bbox:
+            pad = int(4 * scale)
+            im = im.crop((max(0, bbox[0] - pad), max(0, bbox[1] - pad), min(im.width, bbox[2] + pad),
+                          min(im.height, bbox[3] + pad)))
+        im.save(out_png)
+        return out_png
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)
+
+
 def flags(r):
     out = []
     for k, s in enumerate(r["svgs"]):

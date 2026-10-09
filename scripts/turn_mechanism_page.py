@@ -129,14 +129,14 @@ def chart_trace(d):
     out = [f'<svg class="chart" viewBox="0 0 {W} {h}" role="img" aria-label="Bench replay trace">']
     # panel 1: cos
     t0, b0 = 34, 214
-    out.append(f'<text class="axlab" x="{x0}" y="18">SIGNED COSINE OF THE TOOL AXIS (+1 = TIP DOWN) &#183; rv05_manual_b85 PLAN REPLAY</text>')
+    out.append(f'<text class="axlab" x="{x0}" y="18">Signed cosine of the tool axis (+1 tip down), rv05_manual_b85 plan replay</text>')
     for v in (-0.25, 0, 0.25, 0.5, 0.75, 1.0):
         y = b0 - (v + 0.3) / 1.35 * (b0 - t0)
         out.append(f'<line class="grid" x1="{x0}" y1="{y:.1f}" x2="{x1}" y2="{y:.1f}"/>')
         out.append(f'<text class="tick" x="{x0 - 8}" y="{y + 4:.1f}" text-anchor="end">{v:+.2f}</text>')
     # panel 2: pad force
     t1, b1 = 262, 420
-    out.append(f'<text class="axlab" x="{x0}" y="{t1 - 10}">TOTAL PAD FORCE, N &#183; TOOL WEIGHT 0.240 N DASHED</text>')
+    out.append(f'<text class="axlab" x="{x0}" y="{t1 - 10}">Total pad force, N (dashed: tool weight, 0.240 N)</text>')
     fmax = 4.0
     for v in (0, 1, 2, 3, 4):
         y = b1 - v / fmax * (b1 - t1)
@@ -296,7 +296,7 @@ def chart_bench(d):
     x0, x1, t, b = PAD_L + 20, W - PAD_R - 20, 40, h - 76
     lo, hi = -35, 75
     out = [f'<svg class="chart" viewBox="0 0 {W} {h}" role="img" aria-label="Bench turn per hand per plant">']
-    out.append(f'<text class="axlab" x="{x0}" y="18">NET TURN ON THE BENCH MANEUVER, DEG &#183; BENCH (HELD TRIALS) AGAINST EACH PLANT&#8217;S 4-SEED MEAN &#177; SD</text>')
+    out.append(f'<text class="axlab" x="{x0}" y="18">Net turn of the bench maneuver, deg: bench held trials against each plant&#8217;s 4-seed mean &#177; sd</text>')
     for v in range(-20, 80, 20):
         y = b - (v - lo) / (hi - lo) * (b - t)
         out.append(f'<line class="grid" x1="{x0}" y1="{y:.1f}" x2="{x1}" y2="{y:.1f}"/>')
