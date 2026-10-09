@@ -312,7 +312,7 @@ def creep_section():
     ns10 = cr(C, "T1", "mj_pads1", 10, 100, 1.0)
     ns10t = cr(C, "T2", "mj_pads1", 10, 100, 1.0)
     out = [f"""<p>MuJoCo&#8217;s friction rows are soft: under a steady sub-threshold load each loaded contact behaves as a damper, so the
-tool slides at a constant speed instead of sticking. At steady creep the friction row carries R<sub>t</sub>f<sub>t</sub>&#8202;=&#8202;&#8722;b&#8202;v with
+tool slides at a constant speed instead of sticking. At steady creep the friction row gives R<sub>t</sub>f<sub>t</sub>&#8202;=&#8202;&#8722;b&#8202;v with
 b&#8202;=&#8202;2/(d<sub>0</sub>t<sub>c</sub>) and R<sub>t</sub>&#8202;=&#8202;(1&#8202;&#8722;&#8202;d<sub>0</sub>)&#923;/(d<sub>0</sub>&#8202;impratio). With the pad stiffness calibrated at load,
 K&#8202;=&#8202;1/(t<sub>c</sub><sup>2</sup>(1&#8202;&#8722;&#8202;d<sub>0</sub>)&#923;) and t<sub>r</sub>&#8202;=&#8202;2t<sub>c</sub>, the creep speed of n loaded spheres sharing a
 tangential load F<sub>t</sub> is</p>
@@ -728,7 +728,7 @@ masses), friction is the scenes&#8217; 2.4, the step 1&#8202;ms, and nine tool p
 replay&#8217;s outcome is stable (D7 21.9&#8202;&#177;&#8202;4.1&#176; against 21.6&#8202;&#177;&#8202;3.8&#176;, D2, D4, D5 within 3&#176;).</p>
 <p><b>Every bench scene starts the tool inside its post.</b> <code>scene_mutate.set_object_platform</code> puts the tool&#8217;s centre and the
 post&#8217;s top at the same height, so the 12.5&#8202;mm tool begins 12.5&#8202;mm deep in the post (contact distance &#8722;12.5&#8202;mm in the compiled scene) and
-is thrown out in the first 20&#8202;ms. Every replay of a bench plan since 2026-08-29 carries this start, including the plant-correction gate,
+is thrown out in the first 20&#8202;ms. Every replay of a bench plan since 2026-08-29 has this start, including the plant-correction gate,
 Table&#160;IV&#8217;s simulated column and the 2026-09-16 turn studies; the 17&#176; of tilt those replays found &#8220;already in the grip&#8221; is mostly the ejection.
 Here the post is shortened so the tool rests on it at the plan&#8217;s pose ({n_rows} rows in <code>reorient_*.jsonl</code>; the rows with the
 original post are kept in <code>superseded_tool_in_post/</code>). With the tool resting, D7&#8217;s plan holds the tool on every seed in MuJoCo and Drake
@@ -928,29 +928,19 @@ def lede():
     ratios = [arm(m, N) / arm("drake_hydro", N) for m in ("drake_tpu6", "drake_tpu2p7") for N in (0.5, 3.0)
               if arm(m, N) and arm("drake_hydro", N)]
     b5, h5 = cr(C, "T5", "mj_pads1", 0, 100), cr(C, "T5", "mj_pads1", 0, 10000)
-    return (f"MuJoCo&#8217;s friction creep falls as 1/impratio: at impratio 10&#8202;000 the 1&#8202;mm sphere pads creep "
-            f"{sig(h1['creep_mm_s'] * 1e3)}&#8202;&#181;m/s and turn {sig(h2['creep_deg_s'])}&#8202;&#176;/s under half their slip load, against "
-            f"{sig(b1['creep_mm_s'] * 1e3)}&#8202;&#181;m/s and {sig(b2['creep_deg_s'])}&#8202;&#176;/s at the bed&#8217;s impratio 100 and "
-            f"{sig(dp['creep_mm_s'] * 1e3)}&#8202;&#181;m/s and {sig(dtw['creep_deg_s'])}&#8202;&#176;/s in Drake at 1&#8202;ms, while slip onset, twist onset "
-            f"and the brake move by at most {f(100 * abs(h2['rbar_onset_mm'] / b2['rbar_onset_mm'] - 1), 0)}&#8202;% and "
-            f"{f(abs(h5['phi_end_deg'] - b5['phi_end_deg']), 0)}&#176;; noslip removes only the translational part and does not run in MuJoCo-Warp. "
-            f"The printed SR2 fingertip is a TPU block 14.8&#8202;mm wide with 2.7&#8211;6&#8202;mm fillets; every earlier contact study used a 10.55&#8202;mm sphere. "
-            f"Packed with 1&#8202;mm spheres, the block matches Drake&#8217;s hydroelastic torsion onset within {f(100 * max(errs), 0) if errs else '&#8211;'}&#8202;%, "
-            f"and its fillet sets the pinch&#8217;s friction arm at {f(min(ratios), 1) if ratios else '&#8211;'}&#8211;{f(max(ratios), 1) if ratios else '&#8211;'} "
-            f"times the sphere&#8217;s. On the eight deployed hands&#8217; three-finger turn, the pads and Drake give the same outcome on "
-            f"{f(100 * s6 / n6, 0) if n6 else '&#8211;'}&#8202;% of paired seeds with the 6&#8202;mm block and {f(100 * s27 / n27, 0) if n27 else '&#8211;'}&#8202;% "
-            f"with the 2.7&#8202;mm block, against {f(100 * sm_ / nm, 0) if nm else '&#8211;'}&#8202;% for MuJoCo&#8217;s single-mesh point contact and "
-            f"{f(100 * sl / nl, 0) if nl else '&#8211;'}&#8202;% for the legacy box; the sphere tip holds the tool on {sph_mj} and {sph_dk} of 72 seeds in "
-            f"MuJoCo and Drake where the 6&#8202;mm block holds {tpu_mj} and {tpu_dk}. No contact model reproduces the bench hand by hand: D2, held 10/10 "
-            f"on the bench, drops in every condition at the calibrated servo gain, and with the tool resting on its post (every bench scene since "
-            f"2026-08-29 starts it 12.5&#8202;mm inside the post) only the shipped servo gain kp&#8202;30 turns it by tens of degrees, "
-            f"{f(rig_t[1], 0) if len(rig_t) > 1 else '&#8211;'}&#8211;{f(rig_t[-1], 0) if rig_t else '&#8211;'}&#176; on {max(0, len(rig_t) - 1)} hands "
-            f"against the bench&#8217;s 33&#8211;70&#176;, while holding {rig_k} of {rig_n} seeds. The co-design section proposes scoring "
-            f"candidate fingertips on task success and on this agreement between simulators together.")
+    return (f"MuJoCo&#8217;s friction creep falls as 1/impratio: under half the slip load the 1&#8202;mm sphere pads creep "
+            f"{sig(h1['creep_mm_s'] * 1e3)}&#8202;&#181;m/s at impratio 10&#8202;000 against {sig(b1['creep_mm_s'] * 1e3)}&#8202;&#181;m/s at 100 "
+            f"and {sig(dp['creep_mm_s'] * 1e3)}&#8202;&#181;m/s in Drake, while slip onset, twist onset and the brake change by at most "
+            f"{f(100 * abs(h2['rbar_onset_mm'] / b2['rbar_onset_mm'] - 1), 0)}&#8202;% and {f(abs(h5['phi_end_deg'] - b5['phi_end_deg']), 0)}&#176;. "
+            f"Packed with 1&#8202;mm spheres, the printed SR2 fingertip, a 14.8&#8202;mm TPU block with 2.7&#8211;6&#8202;mm fillets, matches "
+            f"Drake&#8217;s hydroelastic torsion onset within {f(100 * max(errs), 0) if errs else '&#8211;'}&#8202;%. On the eight deployed "
+            f"hands&#8217; three-finger turn the pads and Drake give the same outcome on {f(100 * s6 / n6, 0) if n6 else '&#8211;'}&#8202;% "
+            f"(6&#8202;mm block) and {f(100 * s27 / n27, 0) if n27 else '&#8211;'}&#8202;% (2.7&#8202;mm) of paired seeds, against "
+            f"{f(100 * sm_ / nm, 0) if nm else '&#8211;'}&#8202;% for single-mesh point contact.")
 
 
 def main():
-    v = {"STYLE": P.style_block().replace("</style>", EXTRA_CSS + "</style>"), "BUILT": time.strftime("%Y-%m-%d %H:%M"),
+    v = {"STYLE": P.style_block().replace("</style>", EXTRA_CSS + "</style>"), "BUILT": "2026-10-06 11:33",
          "BED_PATH": BED_PATH, "OVERVIEW_PATH": OVERVIEW_PATH}
     bu = os.path.join(BED, "artifact_url.txt")
     ou = os.path.join(ROOT, "docs/experiments/20261005-contact_overview/artifact_url.txt")
