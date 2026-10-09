@@ -824,11 +824,54 @@ def curves_text(X: Data):
     return ""
 
 
+def svg_traces(X: Data):
+    """cos(t) of the 64 rollouts of each arm's median seed (final policy), held at 5 s in the arm's colour, dropped in
+    grey; grip force (sum of the three tips) below."""
+    W, H = 990, 470
+    out = P._svg_open(W, H, "Tool cosine against time in each of the 64 rollouts of every contact model's median-seed final "
+                            "policy, and the summed fingertip force")
+    pw, gap, x0 = 210, 32, 60
+    drawn = 0
+    for k, arm in enumerate(ARMS):
+        r = median_seed(X, arm)
+        p = os.path.join(D, "final_traces", f"{r['tag']}.npz") if r else None
+        if not p or not os.path.exists(p):
+            continue
+        tr = np.load(p)
+        cos, z = tr["cos"].astype(float), tr["z"].astype(float)
+        f = tr["force"].astype(float)
+        T = cos.shape[0]
+        held = np.array(r["held_final"])
+        t = (np.arange(T) + 1) * 0.02
+        px = x0 + k * (pw + gap)
+        fx, fy = P._panel(out, px, 40, pw, 200, (0, 5), (-1, 1), (0, 1, 2, 3, 4, 5), (-1, -0.5, 0, 0.5, 1),
+                          "time (s)", f"{SHORT[arm]} s{r['seed']}: cos" if k == 0 else f"{SHORT[arm]} s{r['seed']}",
+                          yfmt="{:g}")
+        out.append(f'<line x1="{fx(1.16):.1f}" x2="{fx(1.16):.1f}" y1="40" y2="240" style="stroke:var(--ink3);'
+                   f'stroke-dasharray:2 4"/>')
+        for e in np.argsort(held):                       # dropped first, held on top
+            pts = list(zip(t[::3], cos[::3, e]))
+            P._path(out, fx, fy, pts, COL[arm] if held[e] else "var(--bad)", width=0.9)
+        fx2, fy2 = P._panel(out, px, 300, pw, 110, (0, 5), (0, 150), (0, 1, 2, 3, 4, 5), (0, 50, 100, 150), "time (s)",
+                            "grip (N)" if k == 0 else "", yfmt="{:g}")
+        g = f.sum(-1)
+        for e in np.argsort(held):
+            P._path(out, fx2, fy2, list(zip(t[::3], np.minimum(g[::3, e], 150))), COL[arm] if held[e] else "var(--bad)",
+                    width=0.7)
+        drawn += 1
+    out.append("</svg>")
+    return "".join(out) if drawn else P.pending("Final traces not written yet (final_traces/).")
+
+
 def final_section(X: Data):
     svg = svg_final(X)
     cap = ("Final cosine of each rollout of the final policies (64 per seed), held (filled) and dropped (hollow); bar: "
            "the seed&#8217;s held cosine.")
     out = figure(svg, cap, legend())
+    out += figure(svg_traces(X), "The 64 rollouts of each contact model&#8217;s median-seed final policy: the tool&#8217;s "
+                  "cosine with vertical (top) and the summed fingertip force on it (bottom, clipped at 150&#8202;N) against "
+                  "time; rollouts that held the tool at 5&#8202;s in the arm&#8217;s colour, the others in red. Dashed: the residual "
+                  "policy&#8217;s onset after the scripted grasp and lift (step 58).")
     h1 = ["contact model", "held", "held cos, median seed", "seed spread", "rollout spread", "reach 0.9 held",
           "step at 0.9"]
     h2 = ["contact model", "grip (N)", "peak force (N)", "penetration (mm)", "creep (mm/s)", "creep (&#176;/s)",
