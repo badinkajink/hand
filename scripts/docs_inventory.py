@@ -102,7 +102,8 @@ FILE_TOPIC = {
 }
 
 # dated revisions of a page that a newer file replaces
-SUPERSEDED = {"20261005-contact_overview", "20261007-contact_overview", "20261008-contact_overview"}
+SUPERSEDED = {"20261005-contact_overview", "20261007-contact_overview", "20261008-contact_overview",
+              "20261009-contact_overview"}                    # snapshots of docs/overviews/contact_model.html
 
 
 def index_rows():

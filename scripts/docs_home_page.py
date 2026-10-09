@@ -68,7 +68,7 @@ TOPICS = [
      "Covering each fingertip with 1&#8202;mm MuJoCo contact spheres reproduces the friction torque of a soft "
      "fingertip: on a two-pad pinch the pads slip within 0.1&#8202;% of the force of Drake's hydroelastic model and "
      "spin 6&#8202;% under its torque, at 15&#8202;&#181;s per step against Drake's 1,298&#8202;&#181;s.",
-     [("sphere-packed pads", E + "20261009-contact_overview/20261009-sphere_pad_contact_model.html"),
+     [("policies on four contact models", E + "20261008-contact_model_policies/20261008-fingertip_contact_model_policies.html"),
       ("comparison bed", E + "20261005-contact_bed/20261005-contact_model_bed.html")]),
 ]
 

@@ -1,20 +1,15 @@
 #!/usr/bin/env python3
-r"""Build docs/experiments/20261009-contact_overview/20261009-sphere_pad_contact_model.html.
+r"""Build docs/overviews/contact_model.html, the topic overview of the fingertip contact model.
 
     python3 scripts/contact_overview_page.py
 
-Each revision of the overview is a new dated file published to the overview's one artifact (artifact_url.txt beside
-the page); the 2026-10-05 revision stays at docs/experiments/20261005-contact_overview/20261005-sphere_pad_contact_model.html.
-The 2026-10-07 revision adds the agreement of the pads with Drake across MuJoCo, MuJoCo-Warp and Newton
-(scripts/simulator_agreement_figure.py), the effective-mass argument that the pads build in and Newton's
-hydroelastic contact lacked, the cost on one RL state and the replay of learned policies across implementations
-(docs/experiments/20261006-hom_turn3/, 20261006-rl_contact/, 20261006-simulator_agreement/). The 2026-10-08 revision updates
-the pre-slip open item with the native-compliance candidates (docs/experiments/20261007-native_compliance/) and links that
-page and the Newton hydroelastic tests (docs/experiments/20261007-newton_hydro_tests/); the 2026-10-07 file stays. Later on
-2026-10-08 the same revision gained one sentence and a link to the hand-object scale page
-(docs/experiments/20261008-hand_object_scale/). The 2026-10-09 revision adds one sentence and a link to the page of
-D6 policies trained on four fingertip contact models (docs/experiments/20261008-contact_model_policies/); the 2026-10-08
-file stays.
+Since 2026-10-09 the overview has a stable name and its revisions are the file's git history (owner, 2026-10-09); the
+dated revisions of 2026-10-05 to 10-09 stay in docs/experiments/<date>-contact_overview/ as snapshots, and the page keeps
+its artifact (artifact_url.txt in the 2026-10-09 folder).
+
+Until 2026-10-09 each revision was a new dated file: 2026-10-05 (first), 10-07 (agreement of the pads with Drake
+across MuJoCo, MuJoCo-Warp and Newton; effective mass; cost on one RL state), 10-08 (native-compliance candidates, Newton
+hydroelastic tests, hand-object scale) and 10-09 (policies on four fingertip models; the plain page style).
 
 The overview page of the fingertip contact work of 1-7 October 2026: the components of a fingertip contact model,
 the contact mechanics (patch torque, Winkler/hydroelastic and Hertz arms, lateral coupling), the sphere-packed pad in
@@ -24,7 +19,7 @@ inverse-inertia study (20261005-pad_calibration/), the GPU batches (20261005-gpu
 (20261004-codex/data/task_timestep_results.json) and the chain page (20261002-hom_chain/), whose style block, Figures 1-2
 and films are reused. Every number in the prose is computed here from those rows; figures whose rows are not yet written
 render a short note instead. Math in the template, \( \) inline and \[ \] display, is LaTeX rendered to inline SVG by
-scripts/texsvg.py, cached beside the page.
+scripts/texsvg.py, cached in docs/overviews/media/contact_texsvg_cache.json.
 """
 from __future__ import annotations
 
@@ -45,8 +40,8 @@ import texsvg  # noqa: E402
 import retro_style  # noqa: E402
 
 EXP = os.path.join(ROOT, "docs/experiments")
-D = os.path.join(EXP, "20261009-contact_overview")
-OUT = os.path.join(D, "20261009-sphere_pad_contact_model.html")
+D = os.path.join(EXP, "20261009-contact_overview")                 # last dated snapshot; its artifact_url.txt
+OUT = os.path.join(ROOT, "docs", "overviews", "contact_model.html")
 TPL = os.path.join(ROOT, "scripts/contact_overview_page.template.html")
 CHAIN_TPL = os.path.join(ROOT, "scripts/hom_chain_page.template.html")
 BED = os.path.join(EXP, "20261005-contact_bed")
@@ -59,7 +54,7 @@ SAD = os.path.join(EXP, "20261006-simulator_agreement")      # GPU pad rows of t
 HT3 = os.path.join(EXP, "20261006-hom_turn3")
 RLD = os.path.join(EXP, "20261006-rl_contact")
 HT3_PATH = "docs/experiments/20261006-hom_turn3/20261006-servo_refit_hom_turn_pad_cost.html"
-TEX_CACHE = os.path.join(D, "texsvg_cache.json")
+TEX_CACHE = os.path.join(ROOT, "docs", "overviews", "media", "contact_texsvg_cache.json")
 TEX_SCALE = 1.1
 
 CHAIN_PATH = "docs/experiments/20261002-hom_chain/20261002-hom_screwdriver_chain.html"
@@ -1137,6 +1132,8 @@ RELATED = [  # (group, date, title, path relative to the repository, contents)
      "How the coupling length would be measured"),
     ("Codex audit, 2026-10-04", "2026-10-04", "Video gallery", "docs/experiments/20261004-codex/20261004-contact_videos.html",
      "Films of the audit"),
+    ("Earlier revisions of this page", "2026-10-09", "Revision of 2026-10-09",
+     "docs/experiments/20261009-contact_overview/20261009-sphere_pad_contact_model.html", ""),
     ("Earlier revisions of this page", "2026-10-08", "Revision of 2026-10-08",
      "docs/experiments/20261008-contact_overview/20261008-sphere_pad_contact_model.html", ""),
     ("Earlier revisions of this page", "2026-10-07", "Revision of 2026-10-07",
@@ -1194,7 +1191,7 @@ def render_tex(t):
 
 def main():
     import contact_overview_text as OT  # prose blocks that depend on the literature notes and the bed findings
-    os.makedirs(D, exist_ok=True)
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
     T = {name: bed(fn) for name, fn in (("pull", "pull_slip"), ("twist", "twist_slip"), ("roll", "roll"),
                                          ("shake", "shake"), ("brake", "brake"), ("creep", "creep"))}
     tor = load(os.path.join(EXP, "20261001-hom_contact_patch/torsion.jsonl"))
