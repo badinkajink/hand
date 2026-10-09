@@ -262,6 +262,7 @@ class Evaluator:
             ctrl = np.zeros((T, N, 9), np.float32)
             palm = np.zeros((T, N), bool)
             qpos = np.zeros((T, N, self.mjm.nq), np.float32)
+            angv = np.zeros((T, N), np.float32)      # tool angular speed, rad/s
         obs_td, _ = self.wrapped.reset()
         with torch.no_grad():
             for s in range(T):
@@ -270,6 +271,7 @@ class Evaluator:
                 if self.watch:
                     ctrl[s] = wd.ctrl.numpy()[:, self.act9]
                     qpos[s] = wd.qpos.numpy()
+                    angv[s] = self.cube.data.root_link_ang_vel_w.norm(dim=-1).cpu().numpy()
                     if s == 0:
                         xroot = wd.xpos.numpy()[:, self.root_b].copy()
                     nc = int(wd.nacon.numpy()[0])
@@ -304,7 +306,7 @@ class Evaluator:
                             pen[s] = p
         out = dict(cos=cos, z=z, force=force, found=found, acts=acts, rel=rel, axis=axis, fvel=fvel, pen=pen)
         if self.watch:
-            out.update(ctrl=ctrl, palm=palm, qpos=qpos, xroot=xroot)
+            out.update(ctrl=ctrl, palm=palm, qpos=qpos, xroot=xroot, angv=angv)
         return out
 
     def render_world(self, r: dict, w: int, steps, width: int = 480, height: int = 360, lines=None):
@@ -438,7 +440,21 @@ def watch_metrics(r: dict, ev: "Evaluator") -> dict:
     share = (fsum / fsum.sum()).tolist() if fsum.sum() > 0 else [None] * 3
     palm = r["palm"][a0:]
     jn = [f"{f}_{j}" for f in FINGERS for j in ("yaw", "mcp", "pip")]
+    # trajectory_health's idle-finger and jitter tests, per held rollout over its held steps: a finger touching under
+    # half of them or carrying under 1 N on average is idle; the tool's angular jerk (mean |d omega| per policy step
+    # x 50, 1/s^2) above 40 is jitter
+    touch = np.where(act[..., None], r["found"][a0:] > 0, False).sum(0) / np.maximum(act.sum(0), 1)[:, None]
+    fmean = np.where(act[..., None], r["force"][a0:], 0.0).sum(0) / np.maximum(act.sum(0), 1)[:, None]
+    hr = act.sum(0) >= 10
+    idle = ((touch < 0.5) | (fmean < 1.0)) & hr[:, None]                      # (N, 3)
+    dw = np.abs(np.diff(r["angv"][a0:], axis=0)) * 50.0
+    jerk = np.array([dw[act[1:, e], e].mean() if act[1:, e].sum() > 2 else np.nan for e in range(act.shape[1])])
+    pinned = sat.mean(0)                                                      # (N, 9) fraction of steps at a limit
     return dict(
+        idle_rollouts={f: int(idle[:, k].sum()) for k, f in enumerate(FINGERS)},
+        touch_frac_median=[float(np.median(touch[hr, k])) if hr.any() else None for k in range(3)],
+        ang_jerk_median=float(np.nanmedian(jerk)) if np.isfinite(jerk).any() else None,
+        joints_pinned90=[n for n, v in zip(jn, (pinned > 0.9).mean(0)) if v > 0.5],
         resid_over_frac=float((absa >= 1.0).mean()),
         resid_over_frac_held=float((absa >= 1.0)[act].mean()) if act.any() else None,
         act_abs_p50=float(np.median(absa)), act_abs_p95=float(np.percentile(absa, 95)), act_abs_max=float(absa.max()),
@@ -456,16 +472,25 @@ WATCH_STEPS = (20, 57, 90, 130, 180, 249)         # policy steps of the strip's 
 
 
 def degenerate_flags(row: dict) -> list[str]:
-    """The owner's degeneracy list as thresholds on one checkpoint's row; the films decide."""
+    """The owner's degeneracy list (2026-10-08 21:50) as thresholds on one checkpoint's row; the films decide. Drops
+    every rollout: no rollout held at 5 s. Idle finger: trajectory_health's test (touching under half the held steps or
+    under 1 N mean) in more than half the held rollouts, or a finger with under 5 % of the grip force. Jitter:
+    trajectory_health's FAIL, the tool's angular jerk above 40 1/s^2 (median over held rollouts). Saturated: three or
+    more of the nine servo targets at their range limit for 90 % of the active steps in most rollouts, i.e. the policy
+    commands a third of the hand bang-bang. Palm: the tool on the palm plate in more than half the held steps."""
     out = []
+    n = max(row["n_held"], 1)
     if row["n_held"] == 0:
         out.append("drops every rollout")
+    idle = [f for f, k in (row.get("idle_rollouts") or {}).items() if k > n / 2]
     if row.get("share_min") is not None and row["share_min"] < 0.05:
-        out.append(f"idle finger (share {row['share_min']:.3f})")
-    if row.get("dact_held") is not None and row["dact_held"] > 0.5:
-        out.append(f"jitter (|da| {row['dact_held']:.2f})")
-    if row.get("resid_over_frac", 0) > 0.5:
-        out.append(f"residual at budget {row['resid_over_frac']:.2f}")
+        idle.append(FINGERS[[row["share_thumb"], row["share_index"], row["share_middle"]].index(row["share_min"])])
+    if idle:
+        out.append(f"idle finger ({', '.join(sorted(set(idle)))})")
+    if row.get("ang_jerk_median") is not None and row["ang_jerk_median"] > 40.0:
+        out.append(f"jitter (tool jerk {row['ang_jerk_median']:.0f} 1/s^2)")
+    if len(row.get("joints_pinned90") or []) >= 3:
+        out.append(f"saturated ({', '.join(row['joints_pinned90'])})")
     if row.get("palm_contact_frac") is not None and row["palm_contact_frac"] > 0.5:
         out.append(f"tool on the palm {row['palm_contact_frac']:.2f}")
     return out
@@ -486,9 +511,13 @@ def stop_rule(rows: list[dict], window: int = 10_000_000) -> tuple[bool, str]:
     if all(degenerate_flags(r) for r in span):
         return True, (f"degenerate at every checkpoint from it {span[0]['iteration']} to {now['iteration']}: "
                       + "; ".join(degenerate_flags(now)))
-    h0, h1 = back[-1].get("held_cos_mean"), now.get("held_cos_mean")
-    if h0 is not None and h1 is not None and h1 - h0 < 0.02:
-        return True, f"held cos {h0:.3f} at it {back[-1]['iteration']} -> {h1:.3f} at it {now['iteration']} (< +0.02)"
+    # plateau: the held cosine gained under 0.02 and the held count under 8 of 64; the cosine is compared only when
+    # both checkpoints hold at least half the rollouts (three held rollouts give no turn to compare)
+    b = back[-1]
+    h0, h1 = b.get("held_cos_mean"), now.get("held_cos_mean")
+    if b["n_held"] >= 32 and now["n_held"] >= 32 and now["n_held"] - b["n_held"] < 8 and h1 - h0 < 0.02:
+        return True, (f"held cos {h0:.3f} at it {b['iteration']} -> {h1:.3f} at it {now['iteration']} (< +0.02), held "
+                      f"{b['n_held']} -> {now['n_held']}")
     return False, ""
 
 
@@ -537,7 +566,7 @@ def cmd_watch(args):
     tag = args.tags[0]
     arm, seed, steps = next((j[1], j[2], j[3]) for j in jobs(include_stopped=True) if j[0] == tag)
     out = OUT8 / "watch.jsonl"
-    have = done_keys(out, ("tag", "iteration"))
+    have = set() if args.redo else done_keys(out, ("tag", "iteration"))
     have_ck = done_keys(OUT8 / "ckpt_eval.jsonl", ("tag", "iteration"))
     its = [i for i in args.iterations if (tag, i) not in have]
     if not its:
@@ -588,8 +617,11 @@ def cmd_watch(args):
         row.update(world_median=med, world_worst=worst, strip=str(strip.relative_to(ROOT)),
                    film=str(film.relative_to(ROOT)), flags=degenerate_flags(row),
                    wall_s=round(time.perf_counter() - t0, 1), when=time.strftime("%Y-%m-%d %H:%M"))
-        prev = [json.loads(l) for l in open(out)] if out.exists() else []
-        stop, why = stop_rule([p for p in prev if p["tag"] == tag and p.get("status") == "ok"] + [row])
+        prev = {}                                    # the newest row per checkpoint before this one
+        for p in ([json.loads(l) for l in open(out)] if out.exists() else []):
+            if p["tag"] == tag and p.get("status") == "ok" and p["iteration"] < it:
+                prev[p["iteration"]] = p
+        stop, why = stop_rule(list(prev.values()) + [row])
         row.update(stop_rule=stop, stop_reason=why)
         append(out, row)
         print(f"{tag} it {it}: held {row['n_held']}/64 held cos {row['held_cos_mean']} |a|>=1 "
@@ -778,6 +810,7 @@ def main():
             s.add_argument("--every", type=int, default=82, help="iterations between evaluated checkpoints")
         if name == "watch":
             s.add_argument("--iterations", type=int, nargs="+", required=True)
+            s.add_argument("--redo", action="store_true", help="evaluate again checkpoints that have a watch row")
         if name == "transfer":
             s.add_argument("--scene", required=True, choices=sorted(ARMS))
         if name == "robust":
