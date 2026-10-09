@@ -2,7 +2,7 @@
 <html lang="en">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Reorientation policies continued on the matched plant</title>
+<title>Reorientation policies continued on the plant the chain and the bench use</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -128,7 +128,7 @@ which evaluates every checkpoint at the trained pose and jittered.</p>
 <p class="sub">64 rollouts &#215; 250 steps &#183; held = tool above 60 mm with &#8805; 0.5 N on a pad at step 249 &#183;
 &#8220;jittered&#8221; = spawn &#177;3 mm / &#177;10&#176; with friction DR &#183; the parent is the 2026-09-19 checkpoint
 the job started from, evaluated the same two ways on its own plant &#183; chain = one nominal rollout inside the
-UR5e chain at plate 25 mm (stiff arm, training-matched grasp and lift, policy shadowed from step 0)</p>
+UR5e chain at plate 25 mm (stiff arm, the grasp and lift of training, policy shadowed from step 0)</p>
 {{TABLE_MAIN}}
 {{READING}}
 </div></section>
@@ -144,7 +144,7 @@ under 10 mm, any drop</p>
 <section><div class="col">
 <h2>The policy inside the UR5e chain</h2>
 <p class="sub"><code>real_v1_chain_policy.py</code>: the chain&#8217;s grasp and lift are the training environment&#8217;s
-(eased closure over 240 sim steps, arm lift over 80, 260 of settle, policy active from sim step 580 and shadowed from
+(eased closure over 240 sim steps, arm lift over 80, a 260-step wait, policy active from sim step 580 and shadowed from
 step 0), the UR5e at ten times the menagerie position gain (0.004 mm below command at the seam), the finger links
 on the finger servos &#183; plant <code>cal</code>, plate at 25 mm and at 0 &#183; one nominal rollout each</p>
 {{TABLE_CHAIN}}
@@ -152,7 +152,7 @@ on the finger servos &#183; plant <code>cal</code>, plate at 25 mm and at 0 &#18
 <p>After the policy&#8217;s 5&#8202;s the fingers hold their last set-point and the chain continues with its own stages: the
 arm levels the tool over the socket, lowers it in, the relay handover moves one pad at a time onto the gait ring, and
 eight gait cycles follow. Each cell is the tool&#8217;s cos to vertical and its height at that seam. The chain&#8217;s
-<code>ok</code> tests stance, grip and cycles run, not screw rotation; every row turned the screw 0.00&#8211;0.02 rev.
+<code>ok</code> tests stance, grip and cycles run without screw rotation; every row turned the screw 0.00&#8211;0.02 rev.
 Plate 25 is the built hand and the training scenes; plate 0 is the geometry the chain scenes were generated with.</p>
 {{TABLE_SEAMS}}
 <p>At plate 25 the three policies that held the turn staged 14&#8211;27&#176; off vertical and set the tip down beside the
@@ -182,7 +182,7 @@ read from the first finished job&#8217;s run configuration.</p>
 
 <h3>Stages, from the hardware model to a checkpoint</h3>
 <ol class="stages">
-<li><strong>Hand.</strong> <code>assets/mjcf/real_v1/real_hand.xml</code> is the CAD-matched three-finger hand; <code>real_v1_design_search.py</code>
+<li><strong>Hand.</strong> <code>assets/mjcf/real_v1/real_hand.xml</code> is the three-finger hand built from the CAD; <code>real_v1_design_search.py</code>
 draws mount coordinates and link lengths from a Sobol sequence inside <code>REAL_V1_WORKSPACE</code>, filters on servo range,
 gantry travel and finger clearance, and the eight promoted hands (D1&#8211;D8) were built and run on the bench. The morphology is
 frozen into the scene (<code>freeze_scene_for_eval</code>) so no morphology joint drifts during a rollout.</li>
@@ -191,7 +191,7 @@ frozen into the scene (<code>freeze_scene_for_eval</code>) so no morphology join
 10 mm commanded squeeze). There is no CEM on these scenes; the anchor is the deployed plan&#8217;s own grip.</li>
 <li><strong>Plant.</strong> <code>apply_measured_plant.py</code> rewrites the scene to the servo sysid of 2026-09-02 (finger kp 0.5,
 kv 0.02, forcerange 0.35 N&#183;m, frictionloss 0.0035, measured link masses; the template&#8217;s joint damping 0.5 is left in
-place, a 1&#8202;s finger time constant), the elliptic friction cone with impratio 10, and the +25 mm palm plate the bench carries. The result is the <code>_cal</code> morphology run
+place, a 1&#8202;s finger time constant), the elliptic friction cone with impratio 10, and the +25 mm palm plate of the built hand. The result is the <code>_cal</code> morphology run
 (<code>results/phase1/real_v1/20260916-&lt;hand&gt;_cal</code>), which also holds the open-loop reference rollout of that grip and lift
 (<code>best_rollout.npz</code>) that the tracking terms and the <code>ref_*</code> observations use.</li>
 <li><strong>Tool.</strong> <code>make_tipmesh_morphology_run.py</code> derives the <code>_cal_tip</code> run: the 25 mm screwdriver shaft with the
@@ -253,13 +253,13 @@ first real_v1 scripts of late August) and has not been re-measured on the calibr
 <h3>The numbers on this page</h3>
 {{TABLE_EVAL}}
 
-<h3>Inherited settings and the measurement that would settle each</h3>
+<h3>Inherited settings and the measurement that would test each</h3>
 <ul>
 <li><strong>Tip-lost 15 steps.</strong> One hand (D6), two 20 M continuations from the same checkpoint at 3 and 15 consecutive steps,
 jittered hold and chain at both plates. The 3-step value ends a turn in which a pad lifts for 0.1 s; the 15-step value lets a
 two-pad pinch persist for 0.3 s.</li>
 <li><strong>The B10 reward block (100 / 300 / 15 / &#8722;8).</strong> A one-factor sweep of the progress weight (100, 300, 900) on D6 at the
-same budget, judged on jittered hold and end cos; the progress term is the one that pays for turning past 60&#176;.</li>
+same budget, judged on jittered hold and end cos; the progress term is the one that rewards turning past 60&#176;.</li>
 <li><strong>Friction DR band [0.55, 1.15].</strong> &#956; 0.6 sits inside the band and still drops D1/D2 64/64 (2026-09-19); a band
 [0.4, 1.4] on one hand tells whether width helps or whether the policy relocates to the band&#8217;s middle as the compliance DR did.</li>
 <li><strong>Observation noise (&#177;0.01 rad, &#177;0.5 rad/s, &#177;5 mm).</strong> The bench servo telemetry and the tag tracker have their own
@@ -284,17 +284,17 @@ by both and differs from the servo: a 1&#8202;s time constant that the policies 
 servo settling (kp/kv = 5&#8202;rad/s). A UR5e told its payload holds about 0.1&#8202;mm, and the chain runs the arm at ten times
 the position gain.</li>
 <li><strong>Two silent no-ops.</strong> The friction variants of the zero-shot table were copies of the base scene on every
-calibrated scene until 2026-09-20 02:00 (the variant matched the template&#8217;s &#956; 2.4), and
+calibrated scene until 2026-09-20 02:00 (the variant used the template&#8217;s &#956; 2.4), and
 <code>--payload-gravcomp</code> compensated the finger links as well as the hand. Both fixed.</li>
-<li><strong>The separation term.</strong> &#8722;10 below 30&#8202;mm buys 2&#8211;10&#8202;mm of index&#8211;middle clearance on
+<li><strong>The separation term.</strong> &#8722;10 below 30&#8202;mm gives 2&#8211;10&#8202;mm of index&#8211;middle clearance on
 D1, D3, D5 and D6 and removes the turn on D4 and D7, which turn by running the two fingers together.</li>
-<li><strong>Unattended follow-ups.</strong> Two of three scheduled session wake-ups never fired; the page build lives in a
+<li><strong>Unattended follow-ups.</strong> Two of three scheduled session wake-ups never fired; the page build is in a
 watcher beside the detached driver.</li>
 </ul>
 </div></section>
 
 <section><div class="col">
-<h2>Next steps</h2>
+<h2>Future work</h2>
 <ol>
 <li><strong>Measure the finger dynamics on the bench</strong> (free-air step and a loaded back-drive per joint; the
 2026-09-23 page names both), fit the plant to them, and continue these checkpoints on it. No policy here is a hardware

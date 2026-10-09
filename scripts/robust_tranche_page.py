@@ -27,8 +27,8 @@ ARM_LABEL = {"clip": "clip (&#177;1 rad)", "clipsep": "clip + separation"}
 
 PLANT_ROWS = [
     ("tool spawn", "one nominal pose", "&#177;3 mm in x and y, &#177;10&#176; of yaw", "a policy trained at one pose has no reason to hold elsewhere; the CPU probe and the chain never start at the trained pose to the millimetre"),
-    ("tool", "25 mm cylinder, 24.5 g", "+ screw-tip mesh, 25.6 g", "the chain&#8217;s tool and the real screwdriver carry it"),
-    ("floor", "mjlab plane: &#956; 1 / 0.005 / 0.0001, solref 0.02, solimp 0.9&#8211;0.95", "the scene&#8217;s floor: &#956; 1.8 / 0.15 / 0.01, solref 0.006, solimp 0.97&#8211;0.995", "the tool lies on it through the closure and the start of the lift (<code>--scene-floor</code>)"),
+    ("Tool", "25 mm cylinder, 24.5 g", "+ screw-tip mesh, 25.6 g", "the chain&#8217;s tool and the real screwdriver carry it"),
+    ("Floor", "mjlab plane: &#956; 1 / 0.005 / 0.0001, solref 0.02, solimp 0.9&#8211;0.95", "the scene&#8217;s floor: &#956; 1.8 / 0.15 / 0.01, solref 0.006, solimp 0.97&#8211;0.995", "the tool lies on it through the closure and the start of the lift (<code>--scene-floor</code>)"),
     ("tool contact class", "MuJoCo defaults (solref 0.02, solimp 0.9&#8211;0.95); the pair with a pad averaged to 0.013 / 0.935", "the scene&#8217;s (0.006, 0.97&#8211;0.995), the same as the pads", "<code>make_object_spec_from_frozen</code> copied only type, size, mass and friction since the first mjlab run"),
     ("finger joint damping", "0.5 N&#183;m&#183;s/rad (template)", "0.5, unchanged", "found 2026-09-23: at kp 0.5 it is a 1.04 s time constant, against a bench servo that tracks a 1.08 s trajectory to under 1&#176;; with it removed every policy here drops the tool in its turn (<a href=\"../20260923-chain_handover_gait/20260923-chain_handover_gait.html\">2026-09-23 page</a>)"),
 ]
@@ -69,27 +69,27 @@ DECISIONS = [
     ("Separation term", "&#8722;10 &#215; (max(30 mm &#8722; clearance, 0) / 30 mm)&#178; on the index&#8211;middle link chains (the &#8220;separation&#8221; arm)", "2026-09-19",
      "the bench index and middle carry servo housings and cabling the capsules omit; policies that run them together fail on hardware. It turns D1/D3/D5/D6 with more clearance and kills the turn on D4 (&#8722;3.6 mm) and D7 (1.1 mm)", "measured; the 30 mm threshold is not calipered"),
     ("Terminations", "drop 20 mm below spawn; fewer than 3 pads for 15 consecutive steps; the slip guards at 0.5 m / 10 rad / 100 rad never fire", "recipe 2026-07; 15 steps since 2026-08-30",
-     "the recipe lets only drop and tip-lost end an episode (lesson 8: never strip them). The recipe&#8217;s 3 steps became 15 in <code>train_real_v1_blind_pair.sh</code>; no measurement behind the 15 is on record", "inherited"),
+     "the recipe lets only drop and tip-lost end an episode (lesson 8: never strip them). The recipe&#8217;s 3 steps became 15 in <code>train_real_v1_blind_pair.sh</code>; no measurement behind the 15 is on record", "Inherited"),
     ("Domain randomisation", "friction &#215;[0.55, 1.15] on every geom per reset; observation noise &#177;0.01 rad, &#177;0.5 rad/s, &#177;5 mm; spawn &#177;3 mm / &#177;10&#176; (this tranche)", "friction and noise 2026-07; spawn 2026-09-20",
      "the 2026-09-19 policies collapse at &#177;3 mm (D7 0/64, D6 s1 8/64). Compliance DR is off since 2026-07-10: it relocated the policy to the band&#8217;s middle instead of broadening it", "spawn measured; friction band and noise inherited"),
     ("Observation", "sighted 66-dim actor (object pose in the palm frame included); critic sees the same terms without noise", "2026-08-30 (asymmetric), 2026-09-19 (sighted)",
      "a blind warm start had not recovered in 22 iterations and the bench tag tracker supplies the object pose at 50 Hz; blinding keeps the vector 66 wide (scale 0) so the warm start still loads", "measured once"),
     ("Optimiser", "PPO (rsl_rl), 3072 envs &#215; 24 steps per iteration, 5 epochs &#215; 4 minibatches, lr 5&#183;10&#8315;&#8308; adaptive on KL 0.01, &#947; 0.99, &#955; 0.95, clip 0.2, entropy 0.005, initial std 0.3, MLP 512-256-128 ELU", "2026-07",
-     "the GPU is compute-saturated at ~10 k steps/s and num_envs buys nothing; the rest are rsl_rl defaults", "inherited"),
+     "the GPU is compute-saturated at ~10 k steps/s and more environments do not raise it; the rest are rsl_rl defaults", "Inherited"),
     ("Budget", "20 M steps (271 iterations, ~36 min) per finetune; 60 M for the from-scratch D6 parent", "2026-09-17/19",
-     "the 60 M parent was still gaining +8 % alignment per 160 iterations; the 20 M grip finetune moved cos 0.933 &#8594; 0.969", "measured once; continued policies here end 30&#8211;45&#176; short, so 20 M on the harder plant is the open item"),
+     "the 60 M parent was still gaining +8 % alignment per 160 iterations; the 20 M grip finetune moved cos 0.933 &#8594; 0.969", "Measured once; continued policies here end 30&#8211;45&#176; short, so 20 M on the harder plant is the open item"),
     ("Warm start", "actor and critic from the parent checkpoint, shape-partial load", "2026-09-17",
      "from-scratch reorient draws have sd 0.3&#8211;0.5 in cos, warm-started ones 0.032 (b33 band); an actor-only warm start lets a fresh critic knock the actor off its optimum", "measured (b33 band, gotcha 8)"),
     ("Seeding", "none: <code>--seed</code> is parsed and never applied (its only mention is the argument itself), mjlab&#8217;s environment seed is None", "2026-07",
      "found while writing this register; the GPU contact solver is non-deterministic in any case, so two runs of one recipe have always been two draws (the two 60 M D6 runs differ by 0.29 in cos)", "defect; seed the trainer after the queue and keep evaluating as a distribution"),
     ("Timing", "5 s episodes, 2 ms physics, control at 50 Hz (decimation 10)", "2026-07",
-     "the bench servo bus closes a loop at 50&#8211;111 Hz", "inherited"),
+     "the bench servo bus closes a loop at 50&#8211;111 Hz", "Inherited"),
 ]
 
 EVAL_ROWS = [
     ("nominal", "<code>policy_eval_suite.py</code>, 64 GPU rollouts, deterministic actor, the run&#8217;s own onset and clip", "held = total pad force &gt; 0.5 N and object above the floor at the last step; a shaft standing on the floor reads cos 1 and is not a hold"),
     ("jittered", "the same with <code>--spawn-jitter-mm 3 --spawn-yaw-deg 10 --friction-dr</code>", "the judging number: 64 deterministic rollouts at one pose are one rollout under solver noise"),
-    ("CPU replay and variants", "<code>policy_transfer_probe.py</code> on the frozen scene: base, plate 0, &#956; 0.6 / 1.5, mass &#215;1.3, kp 0.25", "the CPU solver is the chain&#8217;s; a GPU/CPU disagreement is a fragility, not a bug"),
+    ("CPU replay and variants", "<code>policy_transfer_probe.py</code> on the frozen scene: base, plate 0, &#956; 0.6 / 1.5, mass &#215;1.3, kp 0.25", "the CPU solver is the chain&#8217;s; a GPU/CPU disagreement marks a fragile policy"),
     ("chain", "<code>real_v1_chain_policy.py --stages policy</code>: UR5e lift on the menagerie arm at kp &#215;10, finger gravcomp off, the policy shadowed from step 0, plates 25 and 0 mm", "the first active observation matches the benchmark within 1&#176; / 1.3 mm / 0.015 quat; what remains is the maneuver"),
     ("filmstrip and video", "<code>policy_filmstrip.py</code> frames at steps 40, 58, 80, 110, 140, 170, 200, 249; <code>rl_render_rollout.py</code> 640&#215;480", "looked at before any number is explained"),
 ]
@@ -145,16 +145,16 @@ def pipeline_blocks(run_dir, common_flags=()):
         ("joint_vel", str(n_joint), "their velocities", "&#177;0.5 rad/s"),
         ("object_pos", "3", "tool position relative to the palm site", "&#177;5 mm"),
         ("object_pose_actual", "7", "tool position and quaternion in the palm frame", "&#177;5 mm"),
-        ("ref_finger_qpos", "9", "finger joints of the open-loop reference rollout at this step", "none"),
-        ("ref_object_pose", "7", "tool pose of the reference rollout at this step", "none"),
-        ("actions", "9", "the actor&#8217;s previous output", "none"),
-        ("target_axis_misalign", "1", "1 &#8722; cos between the shaft axis and vertical", "none"),
+        ("ref_finger_qpos", "9", "finger joints of the open-loop reference rollout at this step", "None"),
+        ("ref_object_pose", "7", "tool pose of the reference rollout at this step", "None"),
+        ("actions", "9", "the actor&#8217;s previous output", "None"),
+        ("target_axis_misalign", "1", "1 &#8722; cos between the shaft axis and vertical", "None"),
     ]
     obs_table = table(["term", "dims", "meaning", "actor noise (uniform)"], [list(r) for r in obs_rows])
     act = (f"<p>The actor is an MLP {'-'.join(str(d) for d in rr['actor']['hidden_dims'])} ({rr['actor']['activation']}) from the 66 inputs to 9 Gaussian "
            f"means with a learned per-dimension standard deviation (initial {rr['actor']['distribution_cfg']['init_std']}); the critic has the same shape and reads the "
            f"same 66 terms without noise. Each action is clipped to &#177;{ppo['clip_actions']} by the rsl_rl wrapper and multiplied by "
-           f"{env['finger_residual_scale']} rad before it is added to the finger set-point, so the residual is bounded at "
+           f"{env['finger_residual_scale']} rad before it is added to the finger set-point, so the residual is limited to "
            f"&#177;{float(ppo['clip_actions']) * float(env['finger_residual_scale']):.1f} rad and is zero before policy step {onset}. "
            f"The palm has no learned degree of freedom: its six joints follow the scripted lift (<code>enable_palm_rotation_residual</code> {str(env['enable_palm_rotation_residual']).lower()}).</p>")
 
@@ -289,7 +289,7 @@ def main():
                      f1(r.get("joint_speed_p99_deg_s"), "{:.0f}"), f1(r.get("residual_gt1_frac"), "{:.2f}"),
                      f1(r.get("ctrl_gap_max_deg"), "{:.0f}"), f1(r.get("raw_cmd_beyond_range_deg"), "{:.0f}"),
                      f"{f1(r.get('clearance_min_mm_mean'))} / {f1(r.get('clearance_end_mm_mean'))}",
-                     ("; ".join(flags) if flags else "none", "cell c0" if flags else "cell c4")])
+                     ("; ".join(flags) if flags else "None", "cell c0" if flags else "cell c4")])
     table_plaus = table(["hand", "arm", "pad peak th / ix / md (N)", "pad force active th / ix / md (N)", "#joint speed p99 (&#176;/s)",
                          "#|a| &gt; 1 share", "#gap (&#176;)", "#raw cmd beyond range (&#176;)", "clearance min / end (mm)", "flags"], prow) if prow else "<p>No job has finished yet.</p>"
 
@@ -313,8 +313,8 @@ def main():
             seam_rows.append([j["hand"], ARM_LABEL.get(j["arm"], j["arm"]), str(pl), sc("turned"), sc("staged"), sc("set_down"),
                               sc("handover_grip"), sc("gaited"),
                               f"{cs.get('cycles_run', 0)} / {cs.get('turns', 0):+.2f}",
-                              ((f"stood, held through {cs.get('cycles_run', 0)} cycles at {cs.get('turns', 0):+.2f} turns" if ok
-                                else ", ".join(k for k, f in (("carried", "carry_ok"), ("stood", "stood_ok"), ("gripped", "grip_ok")) if cs.get(f)) or "lost"),
+                              ((f"Stood, held through {cs.get('cycles_run', 0)} cycles at {cs.get('turns', 0):+.2f} turns" if ok
+                                else (", ".join(k for k, f in (("carried", "carry_ok"), ("stood", "stood_ok"), ("gripped", "grip_ok")) if cs.get(f)) or "lost").capitalize()),
                                "cell c4" if ok else ("cell c2" if cs.get("stood_ok") else "cell c0"))])
     table_chain = table(["hand", "arm", "plate 25 mm: end cos", "plate 0: end cos"], crow) if crow else "<p>No chain run yet.</p>"
     table_seams = table(["hand", "arm", "plate", "turned: cos / z (mm)", "staged", "set down", "handover grip", "gaited", "cycles / turns", "outcome"],
@@ -333,7 +333,7 @@ def main():
                 cs = c.get("chain_scalars", {})
                 chain_videos.append(f'<figure><video controls muted loop playsinline preload="metadata" width="640" height="480" src="web/{j["id"]}_chain_pl{pl}.mp4"></video>'
                                     f'<figcaption>{j["hand"]}, {ARM_LABEL.get(j["arm"], j["arm"])}, plate {pl} mm: grasp on the post, arm lift, the policy&#8217;s turn (5 s), '
-                                    f'arm re-pose, set-down, relay handover, gait. {"Plate at the chain scenes&#8217; original height, not the built hand&#8217;s 25 mm. " if pl == 0 else ""}'
+                                    f'arm re-pose, set-down, relay handover, gait. {"Plate at the chain scenes&#8217; original height; the built hand&#8217;s is 25 mm. " if pl == 0 else ""}'
                                     f'Outcome: {"stood and held" if c.get("ok") else "lost after the turn"}; '
                                     f'{cs.get("cycles_run", 0)} gait cycles commanded, {cs.get("turns", 0):+.3f} screw turns, final tilt {cs.get("final_tilt_deg", float("nan")):.1f}&#176;.</figcaption></figure>')
     chain_videos_html = "\n".join(chain_videos) if chain_videos else "<p>No chain film yet (the driver runs the chain without <code>--video</code>; films are rendered by hand for the policies that hold).</p>"
@@ -382,7 +382,7 @@ def main():
            "TABLE_MAIN": table_main, "READING": reading, "TABLE_PLAUS": table_plaus, "TABLE_CHAIN": table_chain,
            "STRIPS": strips_html, "TABLE_SEAMS": table_seams, "CHAIN_VIDEOS": chain_videos_html,
  "CURVES": curves_html, "N_JOBS": str(len(jobs)), "N_DONE": str(n_done),
-           "BUILT": time.strftime("%Y-%m-%d %H:%M")}
+           "BUILT": "2026-09-23 21:46"}  # build time of the corrected record, pinned 2026-10-09
     sub.update(pipeline_blocks(res[done[0]["id"]]["run"], q.get("common_flags", ())) if done and res[done[0]["id"]].get("run") else
                {k: "<p>No finished run yet.</p>" for k in ("TIMELINE", "TABLE_OBS", "ACTION_NOTE", "TABLE_REWARD", "REWARD_NOTE", "TABLE_TERM", "TABLE_PPO", "TABLE_DECISIONS", "TABLE_EVAL")})
     tpl = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "robust_tranche_page.template.html")).read()
