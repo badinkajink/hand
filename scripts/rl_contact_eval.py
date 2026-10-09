@@ -26,7 +26,13 @@ tool's weight) and the tool above 60 mm.
         dt=0.001 noise=2,5
     uv run --extra rl python scripts/rl_contact_eval.py tb --all   # training curves from the event files (CPU)
     uv run --extra rl python scripts/rl_contact_eval.py costs       # s/it, wall time, GPU memory, RSS, failures
-Rows (fsynced): docs/experiments/20261008-contact_model_policies/{ckpt_eval,final_eval,transfer,robust,tb_dynamics,run_costs}.jsonl
+    $PY scripts/rl_contact_eval.py watch --tags <tag> --iterations 82 164   # checkpoint watch (owner, 2026-10-08 21:50)
+Rows (fsynced): docs/experiments/20261008-contact_model_policies/{ckpt_eval,final_eval,transfer,robust,tb_dynamics,run_costs,
+watch}.jsonl. `watch` adds to the checkpoint evaluation the fraction of residual actions at or past the nominal budget
+(|a| >= 1, i.e. 0.5 rad), the fraction of servo targets at the actuator's range limit, each finger's share of the grip
+force, the tool resting on the palm plate, and a strip and a film of the median and the worst rollout (watch/<tag>/);
+logs/20261008-contact_model_policies/watch_daemon.sh runs it at every 82nd iteration of the training run with the trainer
+paused.
 """
 from __future__ import annotations
 
@@ -118,10 +124,13 @@ def done_keys(path: Path, keys: tuple[str, ...]) -> set:
     return out
 
 
-def jobs(path: Path = JOBS8):
-    """(tag, arm, seed, timesteps) of the 2026-10-08 queue, in queue order."""
+def jobs(path: Path = JOBS8, include_stopped: bool = False):
+    """(tag, arm, seed, timesteps) of the 2026-10-08 queue, in queue order. A run stopped early by the checkpoint
+    watch keeps its line behind '#stopped# ' (the queue skips it); `include_stopped` lists it too."""
     out = []
     for line in open(path):
+        if include_stopped and line.startswith("#stopped# "):
+            line = line[len("#stopped# "):]
         line = line.split("#")[0].split()
         if len(line) == 4:
             tag = line[0]
@@ -151,11 +160,11 @@ class Evaluator:
     place (the captured CUDA graphs read the same arrays), `rollout` runs the 64 deterministic rollouts."""
 
     def __init__(self, scene_dir: Path, ckpt: Path, n: int = 64, steps: int = 250, dt: float | None = None,
-                 noise: tuple[float, float] | None = None, physics: bool = False):
+                 noise: tuple[float, float] | None = None, physics: bool = False, watch: bool = False):
         import torch
         from morphohand.rl.deploy import build_actor, finger_ctrl_from_keyframe, make_env_cfg, run_env_overrides
         from morphohand.tools.video_paths import tmp_dir
-        self.torch, self.n, self.steps, self.physics = torch, n, steps, physics
+        self.torch, self.n, self.steps, self.physics, self.watch = torch, n, steps, physics, watch
         trained = run_env_overrides(ckpt)
         self.residual_from = int(trained.get("finger_residual_active_from_step", 58))
         frozen = scene_dir / "frozen_scene.xml"
@@ -196,6 +205,14 @@ class Evaluator:
         self.tool_geom = np.array([mjm.geom_bodyid[g] == self.tool_body for g in range(mjm.ngeom)])
         self.fing_act = [a for a in range(mjm.nu) if mjm.joint(int(mjm.actuator_trnid[a, 0])).name.split("/")[-1]
                          .split("_")[0] in FINGERS]
+        # watch: the finger servo targets in thumb/index/middle x yaw/mcp/pip order, their ctrl ranges, the palm plate
+        anames = [mjm.joint(int(mjm.actuator_trnid[a, 0])).name.split("/")[-1] for a in range(mjm.nu)]
+        self.act9 = [anames.index(f"{f}_{j}") for f in FINGERS for j in ("yaw", "mcp", "pip")]
+        self.ctrl_lo, self.ctrl_hi = mjm.actuator_ctrlrange[self.act9, 0], mjm.actuator_ctrlrange[self.act9, 1]
+        self.palm_geom = np.array([bname[mjm.geom_bodyid[g]] == "palm_pose" for g in range(mjm.ngeom)])
+        self.root_b = next(i for i in range(1, mjm.nbody) if mjm.body_parentid[i] == 0
+                           and mjm.body(i).name.startswith("robot/"))
+        self.palm_b = next(i for i, b in enumerate(bname) if b == "palm_pose")
         self.nominal = {k: self._raw(k).clone() for k in ("geom_friction", "body_mass", "body_inertia",
                                                            "actuator_gainprm", "actuator_biasprm")}
         self.kp0 = float(self.nominal["actuator_gainprm"][..., self.fing_act[0], 0].flatten()[0])
@@ -241,11 +258,27 @@ class Evaluator:
         fvel = np.zeros((T, N), np.float32)          # fastest finger joint, rad/s
         pen = np.zeros((T, N), np.float32)           # deepest tip-tool penetration, m (physics only)
         wd = self.u.sim.wp_data
+        if self.watch:                               # servo targets, tool-palm contact, every world's state (films)
+            ctrl = np.zeros((T, N, 9), np.float32)
+            palm = np.zeros((T, N), bool)
+            qpos = np.zeros((T, N, self.mjm.nq), np.float32)
         obs_td, _ = self.wrapped.reset()
         with torch.no_grad():
             for s in range(T):
                 a = act_b(self.actor, obs_td, False)
                 obs_td, *_ = self.wrapped.step(a)
+                if self.watch:
+                    ctrl[s] = wd.ctrl.numpy()[:, self.act9]
+                    qpos[s] = wd.qpos.numpy()
+                    if s == 0:
+                        xroot = wd.xpos.numpy()[:, self.root_b].copy()
+                    nc = int(wd.nacon.numpy()[0])
+                    if nc:
+                        g = wd.contact.geom.numpy()[:nc]
+                        hit = (self.palm_geom[g[:, 0]] & self.tool_geom[g[:, 1]]) | \
+                              (self.palm_geom[g[:, 1]] & self.tool_geom[g[:, 0]])
+                        if hit.any():
+                            palm[s, np.unique(wd.contact.worldid.numpy()[:nc][hit])] = True
                 pose = self.cube.data.root_link_pose_w
                 w, x, y, zq = pose[:, 3], pose[:, 4], pose[:, 5], pose[:, 6]
                 cos[s] = (1.0 - 2.0 * (x * x + y * y)).cpu().numpy()
@@ -269,7 +302,60 @@ class Evaluator:
                             p = np.zeros(N, np.float32)
                             np.maximum.at(p, wid[tip], np.maximum(-dist[tip], 0.0))
                             pen[s] = p
-        return dict(cos=cos, z=z, force=force, found=found, acts=acts, rel=rel, axis=axis, fvel=fvel, pen=pen)
+        out = dict(cos=cos, z=z, force=force, found=found, acts=acts, rel=rel, axis=axis, fvel=fvel, pen=pen)
+        if self.watch:
+            out.update(ctrl=ctrl, palm=palm, qpos=qpos, xroot=xroot)
+        return out
+
+    def render_world(self, r: dict, w: int, steps, width: int = 480, height: int = 360, lines=None):
+        """Frames of world `w`'s recorded rollout at the policy steps `steps`, drawn by CPU MuJoCo from the env's own
+        model with the close-up camera of feedback_rl_films_rerender_close_up (distance 0.24 m, elevation -6 deg,
+        azimuth 0: the turn in the image plane). The camera follows the palm, aimed at the tool's grasp point at the
+        reorientation onset. `lines(k)` gives the label of step k."""
+        import mujoco
+        m = self.mjm
+        m.vis.global_.offwidth, m.vis.global_.offheight = max(width, 640), max(height, 480)
+        d = mujoco.MjData(m)
+        if not hasattr(self, "_renderer") or self._renderer[0] != (width, height):
+            self._renderer = ((width, height), mujoco.Renderer(m, height, width))
+        rr = self._renderer[1]
+        cam = mujoco.MjvCamera()
+        cam.type = mujoco.mjtCamera.mjCAMERA_FREE
+        cam.distance, cam.elevation, cam.azimuth = 0.24, -6.0, 0.0
+        free = [m.jnt_qposadr[j] for j in range(m.njnt) if m.jnt_type[j] == mujoco.mjtJoint.mjJNT_FREE]
+        d.qpos[:] = r["qpos"][0, w]
+        mujoco.mj_kinematics(m, d)
+        off = r["xroot"][w] - d.xpos[self.root_b]          # the world's grid origin
+
+        def state(k):
+            d.qpos[:] = r["qpos"][k, w]
+            for a in free:
+                d.qpos[a:a + 3] -= off
+            mujoco.mj_kinematics(m, d)
+            return d.xpos[self.palm_b].copy(), d.xpos[self.tool_body].copy()
+
+        k0 = min(max(1, self.residual_from), r["qpos"].shape[0] - 1)
+        p0, t0 = state(k0)
+        aim = t0 - p0 + [0.0, 0.0, 0.01]
+        frames = []
+        for k in steps:
+            p, _ = state(k)
+            mujoco.mj_forward(m, d)
+            cam.lookat[:] = p + aim
+            rr.update_scene(d, cam)
+            fr = rr.render().copy()
+            if lines is not None:
+                from PIL import Image, ImageDraw
+                im = Image.fromarray(fr)
+                dr = ImageDraw.Draw(im)
+                y = 5
+                for ln in lines(k):
+                    dr.rectangle([3, y - 1, 7 + 6 * len(ln), y + 11], fill=(255, 255, 255))
+                    dr.text((5, y), ln, fill=(20, 20, 20))
+                    y += 13
+                fr = np.asarray(im)
+            frames.append(fr)
+        return frames
 
     def close(self):
         self.env.close()
@@ -337,6 +423,75 @@ def metrics(r: dict, residual_from: int = 58, physics: bool = False) -> dict:
     return out
 
 
+def watch_metrics(r: dict, ev: "Evaluator") -> dict:
+    """The owner's checkpoint signals (2026-10-08 21:50): how often the policy commands the residual at or past its
+    nominal budget, how often a servo target sits at the actuator's range limit, each finger's share of the grip
+    force, and how often the tool rests on the palm plate. All over the active phase (the residual's onset to the end);
+    shares and the palm fraction over the held steps."""
+    a0 = max(1, ev.residual_from)
+    held_t = (r["z"] > FLOOR_Z) & ((r["force"] >= HELD_N).sum(-1) >= 2)
+    act = held_t[a0:]
+    absa = np.abs(r["acts"][a0:])                                         # (T - a0, N, 9), action units
+    ctrl = r["ctrl"][a0:]
+    sat = (ctrl <= ev.ctrl_lo + 1e-4) | (ctrl >= ev.ctrl_hi - 1e-4)
+    fsum = np.where(act[..., None], r["force"][a0:], 0.0).sum((0, 1))     # N x steps per finger, held steps
+    share = (fsum / fsum.sum()).tolist() if fsum.sum() > 0 else [None] * 3
+    palm = r["palm"][a0:]
+    jn = [f"{f}_{j}" for f in FINGERS for j in ("yaw", "mcp", "pip")]
+    return dict(
+        resid_over_frac=float((absa >= 1.0).mean()),
+        resid_over_frac_held=float((absa >= 1.0)[act].mean()) if act.any() else None,
+        act_abs_p50=float(np.median(absa)), act_abs_p95=float(np.percentile(absa, 95)), act_abs_max=float(absa.max()),
+        ctrl_sat_frac=float(sat.mean()),
+        ctrl_sat_by_joint={n: round(float(v), 4) for n, v in zip(jn, sat.mean((0, 1)))},
+        share_thumb=share[0], share_index=share[1], share_middle=share[2],
+        share_min=min(share) if share[0] is not None else None,
+        palm_contact_frac=float(palm[act].mean()) if act.any() else None,
+        palm_contact_rollouts=int(palm.any(0).sum()),
+        held_steps_frac=float(act.mean()),
+    )
+
+
+WATCH_STEPS = (20, 57, 90, 130, 180, 249)         # policy steps of the strip's frames (residual onset after 57)
+
+
+def degenerate_flags(row: dict) -> list[str]:
+    """The owner's degeneracy list as thresholds on one checkpoint's row; the films decide."""
+    out = []
+    if row["n_held"] == 0:
+        out.append("drops every rollout")
+    if row.get("share_min") is not None and row["share_min"] < 0.05:
+        out.append(f"idle finger (share {row['share_min']:.3f})")
+    if row.get("dact_held") is not None and row["dact_held"] > 0.5:
+        out.append(f"jitter (|da| {row['dact_held']:.2f})")
+    if row.get("resid_over_frac", 0) > 0.5:
+        out.append(f"residual at budget {row['resid_over_frac']:.2f}")
+    if row.get("palm_contact_frac") is not None and row["palm_contact_frac"] > 0.5:
+        out.append(f"tool on the palm {row['palm_contact_frac']:.2f}")
+    return out
+
+
+def stop_rule(rows: list[dict], window: int = 10_000_000) -> tuple[bool, str]:
+    """Stop when every watched checkpoint over the last `window` env steps is degenerate, or when the held cosine
+    gained less than 0.02 over it. The window reaches back to the newest watched checkpoint at or before
+    (now - window), so the earliest stop is the fourth checkpoint at 4 M spacing."""
+    rows = sorted(rows, key=lambda r: r["env_steps"])
+    if len(rows) < 2:
+        return False, ""
+    now = rows[-1]
+    back = [r for r in rows if r["env_steps"] <= now["env_steps"] - window]
+    if not back:
+        return False, ""
+    span = [r for r in rows if r["env_steps"] >= back[-1]["env_steps"]]
+    if all(degenerate_flags(r) for r in span):
+        return True, (f"degenerate at every checkpoint from it {span[0]['iteration']} to {now['iteration']}: "
+                      + "; ".join(degenerate_flags(now)))
+    h0, h1 = back[-1].get("held_cos_mean"), now.get("held_cos_mean")
+    if h0 is not None and h1 is not None and h1 - h0 < 0.02:
+        return True, f"held cos {h0:.3f} at it {back[-1]['iteration']} -> {h1:.3f} at it {now['iteration']} (< +0.02)"
+    return False, ""
+
+
 def save_traces(tag: str, r: dict, sub: str = "final_traces"):
     """Compact per-step traces of one evaluation for the page's figures (float16)."""
     d = OUT8 / sub
@@ -371,6 +526,77 @@ def cmd_ckpts(args):
             print(f"{tag} it {row['iteration']}: held {row.get('n_held')}/64, cos {row.get('cos_mean', float('nan')):+.3f}, "
                   f"held cos {row.get('held_cos_mean')}", flush=True)
         ev.close()
+
+
+def cmd_watch(args):
+    """One run's checkpoints at the owner's watch points: the 64-rollout evaluation (also written to ckpt_eval.jsonl
+    when that row is missing), the watch signals, and a strip and film of the median rollout and the worst one (the
+    first dropped rollout, else the lowest final cosine). Rows in watch.jsonl; media in watch/<tag>/."""
+    import imageio.v2 as imageio
+    from PIL import Image
+    tag = args.tags[0]
+    arm, seed, steps = next((j[1], j[2], j[3]) for j in jobs(include_stopped=True) if j[0] == tag)
+    out = OUT8 / "watch.jsonl"
+    have = done_keys(out, ("tag", "iteration"))
+    have_ck = done_keys(OUT8 / "ckpt_eval.jsonl", ("tag", "iteration"))
+    its = [i for i in args.iterations if (tag, i) not in have]
+    if not its:
+        return
+    cks = [RL / tag / "tensorboard" / f"model_{i}.pt" for i in its]
+    ev = Evaluator(ARMS[arm], cks[0], n=args.n, steps=args.steps, watch=True)
+    mdir = OUT8 / "watch" / tag
+    mdir.mkdir(parents=True, exist_ok=True)
+    for it, ck in zip(its, cks):
+        t0 = time.perf_counter()
+        ev.load(ck)
+        r = ev.rollout()
+        row = dict(tag=tag, arm=arm, seed=seed, iteration=it, env_steps=(it + 1) * STEPS_PER_IT,
+                   checkpoint=str(ck.relative_to(ROOT)), scene=arm, **metrics(r, ev.residual_from), status="ok")
+        if (tag, it) not in have_ck:
+            append(OUT8 / "ckpt_eval.jsonl", dict(row, wall_s=round(time.perf_counter() - t0, 1),
+                                                  when=time.strftime("%Y-%m-%d %H:%M")))
+        row.update(watch_metrics(r, ev))
+        fc = r["cos"][-1]
+        held = np.array(row["held_final"])
+        if held.any():
+            hw = np.nonzero(held)[0]
+            med = int(hw[np.argsort(fc[hw])[len(hw) // 2]])
+        else:
+            med = int(np.argsort(fc)[len(fc) // 2])
+        worst = int(np.nonzero(~held)[0][0]) if (~held).any() else int(np.argmin(np.where(held, fc, np.inf)))
+        held_t = (r["z"] > FLOOR_Z) & ((r["force"] >= HELD_N).sum(-1) >= 2)
+
+        def lines(w, name):
+            return lambda k: [f"{name} rollout {w}, it {it} ({(it + 1) * STEPS_PER_IT / 1e6:.1f} M)",
+                              f"step {k + 1} cos {r['cos'][k, w]:+.2f} z {1e3 * r['z'][k, w]:.0f} mm",
+                              f"pads {(r['force'][k, w] >= HELD_N).sum()} grip {r['force'][k, w].sum():.1f} N"
+                              + ("" if held_t[k, w] else "  NOT HELD")]
+        rows_img = []
+        for w, name in ((med, "median"), (worst, "worst")):
+            fr = ev.render_world(r, w, WATCH_STEPS, 320, 240, lines(w, name))
+            rows_img.append(np.concatenate(fr, axis=1))
+        strip = mdir / f"it{it:04d}_strip.jpg"
+        Image.fromarray(np.concatenate(rows_img, axis=0)).save(strip, quality=88)
+        film = mdir / f"it{it:04d}_median.mp4"
+        frames = ev.render_world(r, med, range(0, args.steps, 2), 480, 360, lines(med, "median"))
+        wr = imageio.get_writer(str(film), fps=25, codec="libx264", quality=None, pixelformat="yuv420p",
+                                macro_block_size=8, ffmpeg_params=["-crf", "27", "-preset", "medium"],
+                                ffmpeg_log_level="error")
+        for f_ in frames:
+            wr.append_data(f_)
+        wr.close()
+        row.update(world_median=med, world_worst=worst, strip=str(strip.relative_to(ROOT)),
+                   film=str(film.relative_to(ROOT)), flags=degenerate_flags(row),
+                   wall_s=round(time.perf_counter() - t0, 1), when=time.strftime("%Y-%m-%d %H:%M"))
+        prev = [json.loads(l) for l in open(out)] if out.exists() else []
+        stop, why = stop_rule([p for p in prev if p["tag"] == tag and p.get("status") == "ok"] + [row])
+        row.update(stop_rule=stop, stop_reason=why)
+        append(out, row)
+        print(f"{tag} it {it}: held {row['n_held']}/64 held cos {row['held_cos_mean']} |a|>=1 "
+              f"{row['resid_over_frac']:.3f} sat {row['ctrl_sat_frac']:.3f} shares {row['share_thumb']} "
+              f"{row['share_index']} {row['share_middle']} palm {row['palm_contact_frac']} flags {row['flags']} "
+              f"stop {stop} {why} -> {strip}", flush=True)
+    ev.close()
 
 
 def cmd_final(args):
@@ -542,7 +768,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd")
     sub.add_parser("legacy")
-    for name in ("ckpts", "final", "transfer", "robust", "tb", "costs"):
+    for name in ("ckpts", "final", "transfer", "robust", "tb", "costs", "watch"):
         s = sub.add_parser(name)
         s.add_argument("--tags", nargs="*", default=[])
         s.add_argument("--all", action="store_true", help="every finished run of the 2026-10-08 queue")
@@ -550,6 +776,8 @@ def main():
         s.add_argument("--steps", type=int, default=250)
         if name == "ckpts":
             s.add_argument("--every", type=int, default=82, help="iterations between evaluated checkpoints")
+        if name == "watch":
+            s.add_argument("--iterations", type=int, nargs="+", required=True)
         if name == "transfer":
             s.add_argument("--scene", required=True, choices=sorted(ARMS))
         if name == "robust":
@@ -559,7 +787,7 @@ def main():
         legacy()
         return 0
     {"ckpts": cmd_ckpts, "final": cmd_final, "transfer": cmd_transfer, "robust": cmd_robust, "tb": cmd_tb,
-     "costs": cmd_costs}[a.cmd](a)
+     "costs": cmd_costs, "watch": cmd_watch}[a.cmd](a)
     return 0
 
 
