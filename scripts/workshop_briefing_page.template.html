@@ -105,71 +105,68 @@ footer a{color:var(--s2)}
 <header>
   <div class="eyebrow">MorphoHand &#183; SR2 Hand &#183; 21 September 2026 &#183; built {{BUILT}}</div>
   <h1>Program record behind the SR2 Hand workshop paper</h1>
-  <p class="lede">The paper reports a sampling funnel, eight hands on a bench, and a plan. This page holds the record
-  behind each of them: how {{N_SAMPLED}} sampled configurations became {{N_CON}} candidates and eight bench hands, what a
-  trial measures and what &#8220;success&#8221; means on the bench and in the simulator, how scoring on held trials and
-  the D4 substitution act on the ranking, what repeatability was measured, which parts of the plan are proposals, why
-  the learned controllers never reached the bench, and the experiments run from April to September 2026 that led here.</p>
-  <div class="byline">sources: <code>paper/</code> (tex, corrections, review notes), <code>docs/experiments/</code>
-  ({{N_DIRS}} dated folders, {{N_PAGES}} result pages in <code>INDEX.md</code>), <code>docs/rl/</code> logs, the scripts
-  themselves, and the session memory &#183; every count and correlation with a JSON source is recomputed by the builder;
-  numbers from markdown records name their file beside them &#183; the paper: sr2-hand.github.io/paper_iros26_rmr.pdf</div>
+  <p class="lede">The workshop paper reports a sampling funnel, eight hands on a bench and a plan. Of {{N_SAMPLED}}
+  sampled finger layouts, {{N_CON}} passed the simulated retention screen and its confirmation, 19 were exported as plans
+  and eight were built. On the bench the eight held the tool in 48 of 77 scored trials, and the simulated and measured
+  alignment rank them at &#961;<sub>s</sub> = {{RHO_ALL}} (p = {{P_ALL}}). No learned controller reached the bench. This
+  page gives the source and definition of each number in the paper and the record of the experiments from April to
+  September 2026.</p>
+  <div class="byline">Sources: <code>paper/</code> (tex, corrections, review notes), <code>docs/experiments/</code>
+  ({{N_DIRS}} dated folders, {{N_PAGES}} result pages in <code>INDEX.md</code> at the time), <code>docs/rl/</code> logs and
+  the scripts &#183; counts and correlations with a JSON source are recomputed by the builder; numbers from markdown records
+  name their file &#183; the paper: sr2-hand.github.io/paper_iros26_rmr.pdf</div>
   <nav class="toc">
-    <a href="#reconcile">before presenting</a> &#183; <a href="#provenance">where the numbers come from</a> &#183;
-    <a href="#funnel">the funnel</a> &#183; <a href="#definitions">retention, alignment, success</a> &#183;
-    <a href="#ranking">held-trial scoring and the ranking</a> &#183; <a href="#repeat">repeatability and placement</a> &#183;
-    <a href="#status">completed and proposed</a> &#183; <a href="#learned">the learned controllers</a> &#183;
-    <a href="#record">the experiment record</a> &#183; <a href="#future">future work, expounded</a> &#183;
-    <a href="#docs">one documentation system</a>
+    <a href="#reconcile">Discrepancies with the PDF</a> &#183; <a href="#provenance">Sources of the numbers</a> &#183;
+    <a href="#funnel">Funnel</a> &#183; <a href="#definitions">Retention, alignment, success</a> &#183;
+    <a href="#ranking">Held-trial scoring and the ranking</a> &#183; <a href="#repeat">Repeatability and placement</a> &#183;
+    <a href="#status">Completed and proposed</a> &#183; <a href="#learned">Learned controllers</a> &#183;
+    <a href="#record">Experiment record</a> &#183; <a href="#future">Future work</a> &#183;
+    <a href="#docs">Documentation</a>
   </nav>
 </header>
 
 <section id="reconcile"><div class="col">
-<h2>Eight things to reconcile before presenting</h2>
-<p class="sub">each one is a place where the PDF and the record disagree, or where a question is likely and the answer is
-not in the paper</p>
-<div class="keep warn"><span class="tag">read first</span>
+<h2>Discrepancies between the PDF and the record</h2>
+<p class="sub">Places where the PDF and the record disagree, and likely questions the paper does not answer</p>
+<div class="keep warn"><span class="tag">Read first</span>
 <ol>
 <li><strong>Trial count and D1&#8217;s hold rate.</strong> The PDF reports 80 trials, 51 held, D1 9/10. The corrected
 analysis of 2026-09-01 (<code>paper/transfer_corrections.tex</code>,
-<code>docs/experiments/20260901-real_v1-transfer-firstpass/NUMBERS_CHANGED.md</code>) is 77 trials, 48 held, 28
-dropped, 1 unresolved, with D1 at 6/7. The three extra D1 holds come from a 15-trial session of which the operator scored
-three, all holds; they enter D1&#8217;s alignment pool (n<sub>c</sub> = 9) and are excluded from its rate because they
-were retained on the outcome being measured. The PDF&#8217;s 9/10 counts them. The 6/7 version is the defensible one.</li>
+<code>docs/experiments/20260901-real_v1-transfer-firstpass/NUMBERS_CHANGED.md</code>) gives 77 trials, 48 held, 28
+dropped and 1 unresolved, with D1 at 6/7. The three extra D1 holds come from a 15-trial session in which the operator
+scored three trials, all holds; they enter D1&#8217;s alignment pool (n<sub>c</sub> = 9) and are excluded from its hold rate
+because they were kept for the outcome being measured. Use 6/7.</li>
 <li><strong>&#8220;64 % success rate in reorientation&#8221; is the hold rate</strong> (51 of 80 held). The paper has no
-separate reorientation criterion; <a href="#definitions">&#167;3</a> gives one that the data supports and its caveat.</li>
-<li><strong>The 6,629 &#8220;hardware-feasible&#8221; count was computed under rail limits that were later corrected.</strong>
-On 2026-08-30 the driver believed J1/J3/J5 travelled 56.2/56.0/54.1 mm; on 2026-09-01 all six axes were measured at
-their full nominal travel (110 mm, 60 mm). All {{N_REJ}} rejections are on the x axes by 3.8&#8211;5.9 mm
-({{RAILS_NOTE}}). Under the corrected rails every one of the {{N_SAMPLED}} fits. The rejected corner is the compact end of x,
-which is also the direction the retention screen favours, so the filter removed some of the population the screen would
-have kept. Say &#8220;6,629 under the travel envelope measured at the time&#8221;.</li>
-<li><strong>The simulated prediction in Table IV is the bench-schedule replay, not the retention-screen score.</strong>
-Each &#8220;Sim c&#8221; is the mean held cosine over four replicates of the exported plan on a fixed palm with the tool on the
-100 mm post and a 9.6 s hold (<code>deploy_plan_bands_all.json</code>). The retention screen that selected the population
-ranks the same hands differently (D3 leads it at 0.913; D1 leads the replay at 0.827). Both are in the table in
-<a href="#ranking">&#167;4</a>.</li>
+separate reorientation criterion; <a href="#definitions">&#167;3</a> proposes one that the data supports.</li>
+<li><strong>The 6,629 &#8220;hardware-feasible&#8221; count used rail limits that were later corrected.</strong> On
+2026-08-30 the driver took J1/J3/J5 to travel 56.2/56.0/54.1 mm; on 2026-09-01 all six axes were measured at their full
+nominal travel (110 mm, 60 mm). All {{N_REJ}} rejections are on the x axes by 3.8&#8211;5.9 mm ({{RAILS_NOTE}}); under
+the corrected rails all {{N_SAMPLED}} fit. The rejected corner is the compact end of x, which the retention screen
+favours. Quote &#8220;6,629 under the travel envelope measured at the time&#8221;.</li>
+<li><strong>Table IV&#8217;s simulated prediction is the bench-schedule replay.</strong> Each &#8220;Sim c&#8221; is the
+mean held cosine of four replicates of the exported plan on a fixed palm, with the tool on the 100 mm post and a 9.6 s
+hold (<code>deploy_plan_bands_all.json</code>). The retention screen that selected the population ranks the same hands
+differently (D3 first at 0.913; D1 first in the replay at 0.827); <a href="#ranking">&#167;4</a> tabulates both.</li>
 <li><strong>D4&#8217;s peak substitution is the most favourable value it could take.</strong> Over every value D4&#8217;s
 bench cosine could hold, &#961;<sub>s</sub> ranges {{SENS_LO}}&#8211;{{SENS_HI}}; the substituted 0.819 gives {{RHO_ALL}},
 and dropping D4 gives {{RHO_NO4}} on seven hands.</li>
-<li><strong>The eight hands are a concentrated set.</strong> Median pairwise mount separation 43.6 mm against 66.9 mm for
-eight random members of the population, below the first percentile of 20,000 random eights; seven of eight sit in the
-compact quadrant. A rank correlation over them is a statement about a corner of the design space.</li>
-<li><strong>Table I&#8217;s yaw range is the servo&#8217;s.</strong> &#177;85&#176; is the measured range; the live command cap is
-&#177;70&#176; (<code>manta_hand/plan.py</code>, item 4), and one promoted design (<code>sv1_w0116</code>) was undeployable
-because its turn needed &#8722;84&#176; of middle yaw.</li>
-<li><strong>&#8220;Up to 110 Hz control&#8221; is the read rate.</strong> Nine position reads run at 111 Hz after the FTDI
-latency timer is set to 1 ms; a write-plus-nine-reads loop runs at 75 Hz; the deployed policy stream is write-only by design
-(no servo reads during a stream), so a residual policy on the current path would see the AprilTag pose and its own commands
-and nothing from the servos.</li>
+<li><strong>The eight hands are a concentrated set.</strong> Their median pairwise mount separation is 43.6 mm against
+66.9 mm for eight random members of the population, below the first percentile of 20,000 random draws of eight; seven of
+the eight sit in the compact quadrant. A rank correlation over them describes one corner of the design space.</li>
+<li><strong>Table I&#8217;s yaw range is the servo&#8217;s.</strong> &#177;85&#176; is the measured range; the live command
+cap is &#177;70&#176; (<code>manta_hand/plan.py</code>), and one promoted design (<code>sv1_w0116</code>) could not be
+deployed because its turn needed &#8722;84&#176; of middle yaw.</li>
+<li><strong>&#8220;Up to 110 Hz control&#8221; is the read rate.</strong> Nine position reads run at 111 Hz with the FTDI
+latency timer at 1 ms, and a write-plus-nine-reads loop at 75 Hz. The deployed policy stream writes without reading the
+servos, so a residual policy on the current path would see the AprilTag pose and its own commands only.</li>
 </ol></div>
 </div></section>
 
 <section id="provenance"><div class="col">
-<h2>Where the paper&#8217;s numbers come from</h2>
-<p class="sub">quantity &#8594; file &#8594; how it was computed; the folders are under <code>docs/experiments/</code> unless
-another root is given</p>
-<div class="tw"><table><thead><tr><th>in the paper</th><th>value</th><th>source</th><th>computation</th></tr></thead><tbody>
+<h2>Sources of the paper&#8217;s numbers</h2>
+<p class="sub">Quantity, file and computation; folders are under <code>docs/experiments/</code> unless another root is
+given</p>
+<div class="tw"><table><thead><tr><th>In the paper</th><th>Value</th><th>Source</th><th>Computation</th></tr></thead><tbody>
 <tr><td>sampled configurations</td><td class="num">{{N_SAMPLED}}</td><td class="mono">20260831-real_v1-sobol8192/grasp_screen_manifest.json</td><td class="small">8,192 scrambled Sobol points (<code>sobol_designs</code>, seed 20260830) plus six anchor hands</td></tr>
 <tr><td>hardware-feasible samples</td><td class="num">{{N_REACH}}</td><td class="mono">&#8230;/hardware_manifest.json, reachable.txt</td><td class="small"><code>real_v1_filter_reachable.py</code>: <code>mount_violations</code> against the travel envelope of 2026-08-30</td></tr>
 <tr><td>retention-screened</td><td class="num">{{N_SEL}}</td><td class="mono">&#8230;/selected/summary.json</td><td class="small"><code>real_v1_select_budget.py</code> over <code>band_s*.json</code>: pass at any clip</td></tr>

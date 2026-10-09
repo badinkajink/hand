@@ -238,6 +238,13 @@ def commits_by_month():
     return " &#183; ".join(f"{m} {n}" for m, n in sorted(c.items()))
 
 
+# Repository state when the record was built (2026-09-21). Pinned on 2026-10-09: the history rewrite of that day moved
+# the earlier commits to badinkajink/hand-archive, so commits_by_month() no longer reproduces these counts.
+BUILT = "2026-09-21 16:39"
+COMMITS = "2026-04 27 &#183; 2026-05 19 &#183; 2026-06 103 &#183; 2026-07 160 &#183; 2026-08 147 &#183; 2026-09 123"
+N_PAGES, N_DIRS = "29", "106"
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=os.path.join(
@@ -246,12 +253,8 @@ def main():
     f = funnel()
     rows = ranking_rows()
     st = rho_block(rows)
-    n_pages = sum(1 for line in open(os.path.join(ROOT, "docs/experiments/INDEX.md"))
-                  if line.startswith("| 2026"))
-    n_dirs = sum(1 for d in os.listdir(os.path.join(ROOT, "docs/experiments"))
-                 if os.path.isdir(os.path.join(ROOT, "docs/experiments", d)))
     subs = {
-        "BUILT": time.strftime("%Y-%m-%d %H:%M"),
+        "BUILT": BUILT,
         "FUNNEL_TABLE": funnel_table(f),
         "FUNNEL_SVG": funnel_svg(f),
         "RAILS_NOTE": rails_note(f),
@@ -275,7 +278,7 @@ def main():
         "RHO_FORCE": num(st["r_force"], 2), "RHO_CONT": num(st["r_cont"], 2),
         "RHO_HOLD_BENCH": num(st["r_hold_bench"], 2), "RHO_PEAK_BENCH": num(st["r_peak_bench"], 2),
         "RHO_SIM_HOLD": num(st["r_sim_hold"], 2), "RHO_HOLD_PEAK": num(st["r_hold_peak"], 2),
-        "COMMITS": commits_by_month(), "N_PAGES": str(n_pages), "N_DIRS": str(n_dirs),
+        "COMMITS": COMMITS, "N_PAGES": N_PAGES, "N_DIRS": N_DIRS,
     }
     page = open(TEMPLATE).read()
     for k, v in subs.items():
