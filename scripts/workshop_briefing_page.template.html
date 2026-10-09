@@ -918,68 +918,58 @@ kinematic ceiling does not (&#961; +0.096).</p>
 
 <div class="entry"><div class="when">2026-08-29</div><div class="body">
 <h4>The deployment envelope <span class="chip kept">kept</span></h4>
-<p><b>Aim.</b> The plan is loaded on the robot before the tool is placed; measure how it tolerates a hand, tool and servo that
-differ from the simulated ones.</p>
-<p><b>Result.</b> Grasp and lift survive every error; the turn does not (servo zeros &#177;2&#176;: 39 % kept). rv04_mid, best
-nominal at 0.997, is the worst deployable at 0.46 careful-bench win; choosing each design&#8217;s operating point for its
-neighbours&#8217; behaviour doubles ensemble win. The built pads are flat, and every grasp in the 108 search had been fitted for
-a round hand; corrected, the flat pad&#8217;s line contact is more tolerant (8 mm axial bands, &#177;15&#176; yaw on g23/g24).
-A palm lift is worth about 19 points of robustness and is not a prerequisite.</p>
+<p><b>Aim.</b> Measure how a plan, loaded before the tool is placed, tolerates a hand, tool and servo that differ from the
+simulated ones.</p>
+<p><b>Result.</b> Grasp and lift survive every perturbation and the turn does not (servo zeros &#177;2&#176;: 39 % kept).
+rv04_mid, best nominal at 0.997, is the worst deployable at 0.46; the built hand&#8217;s flat pads tolerate 8 mm axial
+placement bands.</p>
 <p class="where">docs/experiments/20260829-real_v1_deploy/DEPLOY.md &#183; scripts/real_v1_deploy_envelope.py</p>
 </div></div>
 
 <div class="entry"><div class="when">2026-08-29 &#8594; 08-30</div><div class="body">
 <h4>First bench night: timing, the grip window, the servo bus, overload protection, self-collision <span class="chip kept">kept</span></h4>
-<p><b>Result.</b> The first trajectory ran at 50.9 Hz with zero bus errors and dropped the tool; the yaw joints arrived
-4&#8211;6&#176; short on the loaded fingers. The exported grip is a position the simulator reaches with 10 mm of pad
-penetration, which position control turns into clamp force: commanded as it stands it stalls the turn at 12.6&#176; of 28.6&#176;
-(free air 25.8&#176;); thumb firm and middle relieved runs the path and holds with about 15&#176; of real rotation. The
-FTDI latency timer (16 ms) was 99 % of the read cost: 6.95 &#8594; 111 Hz. SYNC READ does not exist on the SCS0009. The stall
-is the servo&#8217;s own overload protection (load plateau at exactly 200 = 20 % <code>protective_torque</code>), which fires on
-42 % of middle-yaw runs. Two of four exported plans interpenetrate their own fingers along the trajectory.</p>
-<p class="where">docs/experiments/20260829-real_v1_bench_gripwindow/, 20260830-real_v1_bench_suite/ &#183; scripts/real_v1_trajectory_clearance.py &#183; webpaper/src/control.typ</p>
+<p><b>Result.</b> The first trajectory ran at 50.9 Hz with zero bus errors and dropped the tool. The exported grip is a
+position the simulator reaches with 10 mm of pad penetration, which position control turns into clamp force that stalls the
+turn at 12.6&#176; of 28.6&#176;; the stall is the servo&#8217;s overload protection (load plateau at exactly 200), which fires on
+42 % of middle-yaw runs. Setting the FTDI latency timer to 1 ms raised the read rate from 6.95 to 111 Hz, and two of four
+exported plans had fingers interpenetrating along the trajectory.</p>
+<p class="where">docs/experiments/20260829-real_v1_bench_gripwindow/, 20260830-real_v1_bench_suite/ &#183; scripts/real_v1_trajectory_clearance.py</p>
 </div></div>
 
 <div class="entry"><div class="when">2026-08-30</div><div class="body">
 <h4>The Sobol-128 pilot, and the hold that was a fall <span class="chip kept">kept</span></h4>
-<p><b>Result.</b> The pilot scored each rollout 1.6 s after the turn; re-run to 12.8 s every finalist drops by 3.2&#8211;8.0 s,
-and the four highest nominal cosines fall fastest. The gate had counted one fingertip as held and allowed 20 mm of descent.
-The &#177;0.5 rad clip was the cause: the middle finger wanted 62&#8211;92&#176;. Re-scored at 1.0 rad the ranking inverts. The
-lesson (score at a convergent hold, report time-to-drop, sweep the clip) shaped the 4,096 and 8,192 screens.</p>
+<p><b>Result.</b> Scored 1.6 s after the turn, the finalists looked held; re-run to 12.8 s, every one drops by
+3.2&#8211;8.0 s, because the &#177;0.5 rad clip stopped a middle finger that needed 62&#8211;92&#176;. Later screens score at a
+convergent hold and sweep the clip.</p>
 <p class="where">docs/experiments/20260830-real_v1-sobol128/HOLD_REVIEW.md &#183; scripts/probe_hold_convergence.py</p>
 </div></div>
 
 <div class="entry"><div class="when">2026-08-30</div><div class="body">
 <h4>The 4,096 retention screen and the clip re-screen <span class="chip kept">kept</span></h4>
-<p><b>Result.</b> 28,000 rollouts across five clips; a per-hand band; the servo-command gate inside the screen rejects about
-8 % of hands the single-clip screen had passed; eleven of the sixteen best hands by proof-lift retention keep the tool at no
-clip on the bench schedule. Three survive both and became the station&#8217;s ranks 1, 2 and 5 (D2, D3, D6).</p>
+<p><b>Result.</b> 28,000 rollouts across five clips; eleven of the sixteen best hands by proof-lift retention keep the tool
+at no clip on the bench schedule, and the three that pass both became D2, D3 and D6.</p>
 <p class="where">docs/experiments/20260830-real_v1-budget-rescreen/, 20260830-real_v1-sobol4096/ &#183; scripts/real_v1_budget_rescreen.sh, real_v1_select_budget.py</p>
 </div></div>
 
 <div class="entry"><div class="when">2026-08-30</div><div class="body">
 <h4>Observation ablation, and the blind-actor 2 &#215; 2 <span class="chip closed">closed</span></h4>
-<p><b>Result.</b> b33 ignores its input (replay 0.900 against 0.895); zeroing an input instead of replaying it collapses the
-policy (0.28) because the value is off-manifold, so zero ablations lie. A sighted/blind &#215; nominal/jittered finetune grid
-across three hands was inconclusive: three of six arms collapsed, one sighted arm learned to rotate while dropping. The
-distillation program written for the hardware (<code>partial_observation_transfer.md</code>) lost its premise.</p>
+<p><b>Result.</b> b33 ignores its input (replayed observations 0.900 against 0.895); zeroing an input collapses the policy
+(0.28) because the value is off-manifold. A sighted/blind &#215; nominal/jittered finetune grid across three hands was
+inconclusive, with three of six arms collapsed.</p>
 <p class="where">docs/experiments/20260830-obs_ablation/, 20260830-real_v1-obs-transfer/ &#183; scripts/probe_obs_ablation.py</p>
 </div></div>
 
 <div class="entry"><div class="when">2026-08-30 &#8594; 08-31</div><div class="body">
 <h4>AprilTag object tracking <span class="chip kept">kept</span></h4>
-<p><b>Result.</b> Two tags replace the operator&#8217;s eye at 0.017&#176; / 0.030 mm rms; the floor tie-in is z_bench = z_sim +
-44.0 mm; the vane tag went dark on about 40 % of runs at 30 mm and was reprinted at 40 mm. The camera stack runs under the miniconda
-interpreter; the repository&#8217;s uv environment lacks it.</p>
-<p class="where">src/morphohand/bench/tags.py &#183; scripts/real_v1_tag_tracker.py, real_v1_tracker_service.py &#183; docs/experiments/20260831-real_v1-object-tracking/ (<a href="https://claude.ai/code/artifact/56cfae1b-3922-48ae-8e20-94ea2a7f66ca">published</a>)</p>
+<p><b>Result.</b> Two tags give the tool&#8217;s pose at 0.017&#176; and 0.030 mm rms; the bench height equals the simulated
+height plus 44.0 mm. The vane tag was reprinted at 40 mm after going dark on about 40 % of runs at 30 mm.</p>
+<p class="where">src/morphohand/bench/tags.py &#183; scripts/real_v1_tag_tracker.py, real_v1_tracker_service.py &#183; docs/experiments/20260831-real_v1-object-tracking/</p>
 </div></div>
 
 <div class="entry"><div class="when">2026-08-31</div><div class="body">
 <h4>Sobol-8,192 and promotion <span class="chip kept">kept</span></h4>
-<p><b>Result.</b> The paper&#8217;s funnel (<a href="#funnel">&#167;2</a>). The population doubled and the retained and confirmed
-counts roughly doubled (269 &#8594; 535, 119 &#8594; 227), so the search is not saturating; the 4,096 pass&#8217;s leader reproduced its
-full-error win to the number from an independent run. Two of five gate-passers had a bench band; <code>sv1_w6689</code> (D1)
-shipped as the best-aligned plan on the station.</p>
+<p><b>Result.</b> The paper&#8217;s funnel (<a href="#funnel">&#167;2</a>). Doubling the population roughly doubled the retained
+and confirmed counts (269 &#8594; 535, 119 &#8594; 227); <code>sv1_w6689</code> (D1) shipped as the best-aligned plan.</p>
 <p class="where">docs/experiments/20260831-real_v1-sobol8192/README.md &#183; scripts/real_v1_sobol8192.sh, real_v1_promote_designs.py</p>
 </div></div>
 
@@ -987,102 +977,85 @@ shipped as the best-aligned plan on the station.</p>
 
 <div class="entry"><div class="when">2026-08-31 &#8594; 09-01</div><div class="body">
 <h4>The transfer study: protocol, stage-1 repeatability, eight hands, and two corrections <span class="chip kept">kept</span></h4>
-<p><b>Method.</b> A protocol fixed in writing before the first trial (plan set, measurement, exclusions, statistics); stage 1
-on one plan (sd 0.011); the eight-hand sessions; then the D3 session-selection fix and the retirement of a floor-height
-filter that had removed trials in proportion to how far they turned.</p>
-<p><b>Result.</b> &#961;<sub>s</sub> = 0.50 (p = 0.21) on 77 trials; ejection on D6 and stall on D3 established; the pooled
-&#8220;drops overshoot&#8221; claim withdrawn once the tag was shown to report rotation during the fall; a quarter of trials had
-no measured ending. The paper&#8217;s Section III.</p>
+<p><b>Result.</b> With the protocol fixed before the first trial and a stage-1 repeatability of sd 0.011 on one plan, the eight
+hands gave &#961;<sub>s</sub> = 0.50 (p = 0.21) on 77 trials, with ejection on D6 and stall on D3. The pooled &#8220;drops
+overshoot&#8221; claim was withdrawn once the tag was shown to report rotation during the fall. This is the paper&#8217;s
+Section III.</p>
 <p class="where">docs/experiments/20260831-real_v1-transfer-protocol/, 20260901-real_v1-transfer-firstpass/ &#183; scripts/real_v1_transfer_figures.py &#183; paper/transfer_corrections.tex</p>
 </div></div>
 
 <div class="entry"><div class="when">2026-09-02</div><div class="body">
 <h4>Servo system identification and the plant correction <span class="chip kept">kept</span></h4>
-<p><b>Result.</b> 236 archived runs: deflection 0.018&#176; per load unit, one constant for four loaded joints (R&#178;
-0.94&#8211;0.99), no stiction, and the protection cliff; the shipped finger gain of 30 predicts +0.03&#176; of deficit where the
-bench measures +11.7&#176; and the calibrated gain is about 0.5. The corrected plant passes a drop gate on rv05 (retention
-0.94 against 0.92, cos 0.638 against 0.593) and leaves the eight-hand ordering where it was (+0.107).</p>
-<p class="where">docs/experiments/20260902-servo-sysid/, 20260902-servo-compliance/ (<a href="https://claude.ai/code/artifact/865c4572-ce31-40b9-a616-da5ca28a9f57">published</a>) &#183; scripts/fit_servo_compliance.py, apply_measured_plant.py, calibrate_plant_kp.py, plant_drop_gate.py</p>
+<p><b>Result.</b> Over 236 archived runs the deflection is 0.018&#176; per load unit, one constant for four loaded joints
+(R&#178; 0.94&#8211;0.99), with the protection cliff. The fitted gain of about 0.5, against the shipped 30, reproduces
+rv05&#8217;s level (retention 0.94 against the bench&#8217;s 0.92) and leaves the eight-hand ordering where it was.</p>
+<p class="where">docs/experiments/20260902-servo-sysid/, 20260902-servo-compliance/ &#183; scripts/fit_servo_compliance.py, apply_measured_plant.py, calibrate_plant_kp.py, plant_drop_gate.py</p>
 </div></div>
 
 <div class="entry"><div class="when">2026-09-02</div><div class="body">
 <h4>Ground-supported gaiting <span class="chip kept">kept</span></h4>
 <p><b>Aim.</b> After the turn, drive a standing screw with three pads.</p>
-<p><b>Result.</b> A four-phase set-point cycle turns a shaft standing on its end 5.0 turns in 40 cycles (sd 0.07, tilt 0.5&#176;).
-The floor is the enabling constraint (delete it and every hand loses the shaft in cycle 1). The design criterion is
-whether a hand can retract its pads, which orders the hands differently from the hold; the pad ring is a 1.684:1 gear and
-fingertip radius is the gear ratio (optimum 13 mm). Three measurement errors that each read as a result are recorded.</p>
-<p class="where">docs/experiments/20260902-real_v1_gait/ (<a href="https://claude.ai/code/artifact/f6bb51d5-4028-41ad-a830-03f1e1a6b237">results</a>, <a href="https://claude.ai/code/artifact/13ba9a07-c78b-43ee-84fa-7e31c5a5455e">open problems</a>) &#183; scripts/probe_real_v1_gait.py</p>
+<p><b>Result.</b> A four-phase set-point cycle turns a shaft standing on its end 5.0 turns in 40 cycles (sd 0.07); without
+the floor every hand loses the shaft in cycle 1. The pad ring acts as a 1.684:1 gear, with an optimum fingertip radius of
+13 mm.</p>
+<p class="where">docs/experiments/20260902-real_v1_gait/ &#183; scripts/probe_real_v1_gait.py</p>
 </div></div>
 
 <div class="entry"><div class="when">2026-09-03</div><div class="body">
 <h4>The chain on a UR5e into a countersink; the relay handover <span class="chip kept">kept</span></h4>
-<p><b>Result.</b> grasp &#8594; lift &#8594; turn &#8594; set-down &#8594; gait runs 6/6 on rv05 on a floating palm and on the UR5e; the
-set-down seam is a race against a cradled tool that creeps 1.5 mm/s (height feedback makes it worse, tilt feedback is
-fine); a 45&#176; countersink takes 18 % of the turn per cycle for 16&#215; less walk; a relay handover changes grasp without
-releasing (0.4 % of the task uncontacted against 49 %). The UR5e must be told its payload or the whole chain reads
-wrist droop.</p>
-<p class="where">docs/experiments/20260903-real_v1_chain/, 20260903-real_v1_handover/, 20260903-real_v1_screw/ (<a href="https://claude.ai/code/artifact/6473c3b4-7d2b-4fd1-81ab-d5bfc9753349">chain</a>, <a href="https://claude.ai/code/artifact/1aa2f26a-8281-407c-9298-88138b51d59f">handover</a>) &#183; scripts/probe_real_v1_chain.py, palm_driver.py</p>
+<p><b>Result.</b> Grasp, lift, turn, set-down and gait run 6/6 on rv05 on a floating palm and on the UR5e. A 45&#176;
+countersink takes 18 % of the turn per cycle with 16&#215; less walk, and a relay handover changes grasp without releasing
+(0.4 % of the task uncontacted against 49 %).</p>
+<p class="where">docs/experiments/20260903-real_v1_chain/, 20260903-real_v1_handover/, 20260903-real_v1_screw/ &#183; scripts/probe_real_v1_chain.py, palm_driver.py</p>
 </div></div>
 
 <div class="entry"><div class="when">2026-09-04 &#8594; 09-05</div><div class="body">
 <h4>Bench geometry, post-turn drift on the ranked hands, the table stand and the spread of the eight <span class="chip retracted">one retracted</span></h4>
-<p><b>Result.</b> With the payload declared, pedestal and wrist stack are free and the turn ends 8&#176; from vertical on rv05
-(31&#176; undeclared: the &#8220;controlled slip&#8221; had been correcting the wrist). On the ranked population the post-turn drift ranges from +29.8 to &#8722;16.7&#176;, its sign set by the hand. The table-supported reorientation
-(&#8220;89.1&#176; sd 0.9&#8221;) was retracted: 116 of 177 stands had zero pads on the tool. The diversity analysis
-(median separation 43.6 mm, three-dimensional sheet, depth-of-fit as a gate) is in the paper&#8217;s Fig. 5.</p>
-<p class="where">docs/experiments/20260904-real_v1_bench/ (<a href="https://claude.ai/code/artifact/0942dd45-e94f-485b-ad17-aaac1b1d3f1b">published</a>), 20260904-real_v1_held/ (<a href="https://claude.ai/code/artifact/96207fa7-6175-4ffa-b6b8-34d73116cf47">retracted page</a>), 20260904-real_v1_ranked/ &#183; scripts/paper_morphology_diversity.py</p>
+<p><b>Result.</b> With the payload declared, pedestal and wrist stack cost nothing and the turn ends 8&#176; from vertical on
+rv05 (31&#176; undeclared). On the ranked hands the post-turn drift ranges from +29.8 to &#8722;16.7&#176;. The table-supported
+reorientation (&#8220;89.1&#176; sd 0.9&#8221;) was retracted: 116 of 177 stands had zero pads on the tool.</p>
+<p class="where">docs/experiments/20260904-real_v1_bench/, 20260904-real_v1_held/ (retracted), 20260904-real_v1_ranked/ &#183; scripts/paper_morphology_diversity.py</p>
 </div></div>
 
 <div class="entry"><div class="when">2026-09-06</div><div class="body">
-<h4>Control diagnosis on the deployed hands: pole flip, the extension the fitter spends, the held turn, the grip loop, one completed chain <span class="chip kept">kept</span></h4>
-<p><b>Result.</b> Sixteen sweeps, 2,214 rollouts, three scoring defects that each produced a positive result which did not
-exist (tilt folds handle-down onto tip-down; a stand in table mode is a released tool; the success flag read the wrong
-seam). The plans&#8217; pivot height turns the tool to the wrong pole (cos &#8722;0.988); the fitter leaves 0.4&#8211;1.3 mm of
-extension where the turn needs 2.7. Three deployed hands hold a floor-free tip-down turn (D5 +0.894 at 14 N, D3 +0.987,
-D1 +0.913) and lose it at set-down; the per-finger force loop had been unreachable from the sweep tool and slew-limited to
-0.066 rad per turn; D6 completes the whole chain at pivot 0.15 open loop on 3 of 4 seeds, with the arm&#8217;s re-pose finishing
-the last 50&#176;.</p>
-<p class="where">docs/experiments/20260906-control_diagnosis/ (<a href="https://claude.ai/code/artifact/f10f07dd-6812-4c1b-a55c-9bd58c125924">published</a>), 20260906-screen_vs_chain/, 20260906-pad_elevation/ (retracted), 20260908-reorientation_journey/ (<a href="https://claude.ai/code/artifact/80256b16-4b80-45ac-a6c2-ff409c8b8f2b">the synthesis</a>)</p>
+<h4>Control diagnosis on the deployed hands: pole flip, fitter extension, held turn, grip loop, one completed chain <span class="chip kept">kept</span></h4>
+<p><b>Result.</b> Over sixteen sweeps and 2,214 rollouts, three scoring defects each produced a result that did not exist.
+The plans&#8217; pivot height turns the tool to the wrong pole (cos &#8722;0.988), and the fitter leaves 0.4&#8211;1.3 mm of
+extension where the turn needs 2.7. D6 completes the whole chain at pivot 0.15 open loop on 3 of 4 seeds, with the
+arm&#8217;s re-pose making the last 50&#176;.</p>
+<p class="where">docs/experiments/20260906-control_diagnosis/, 20260906-screen_vs_chain/, 20260906-pad_elevation/ (retracted), 20260908-reorientation_journey/</p>
 </div></div>
 
 <div class="entry"><div class="when">2026-09-10</div><div class="body">
 <h4>The KaRMA kinematic metric on 504 real_v1 designs <span class="chip kept">kept</span></h4>
-<p><b>Result.</b> AUC 0.802 for retention (beating the best mount-plate distance by 0.085), &#961; 0.105 against the screened
-turn, AUC 0.557 for separating confirmed from retained. A kinematic metric gates hands and does not rank the turn, as the
-depth-of-fit result showed and as the metric&#8217;s authors state.</p>
-<p class="where">docs/experiments/20260910-karma_metric/ (<a href="https://claude.ai/code/artifact/2719e5f5-766f-44a1-95ad-86f112e1c7c1">published</a>) &#183; scripts/karma_export_urdf.py</p>
+<p><b>Result.</b> AUC 0.802 for retention and &#961; 0.105 against the screened turn: the kinematic metric separates the hands
+that keep the tool and does not rank the turn.</p>
+<p class="where">docs/experiments/20260910-karma_metric/ &#183; scripts/karma_export_urdf.py</p>
 </div></div>
 
 <div class="entry"><div class="when">2026-09-16</div><div class="body">
 <h4>The chain on the calibrated plant; the turn mechanism on three plants; pinch-and-swing; the two-tip gait; the basketball <span class="chip open">open</span></h4>
-<p><b>Result.</b> Every chain rollout before this ran at kp 30. At the calibrated gain the fingers turn the tool 0&#8211;10&#176; at
-every budget and pivot (they do not stall; they do not develop the torque), the arm stands it on three pads at 1.3&#8211;3.5 N
-for five hands, and the handover and gait fail everywhere because the commands were composed on the rigid plant. The
-finger-driven 90&#176; exists only at kp &#8805; 2; the bench&#8217;s 20&#8211;50&#176; tip is what the calibrated plant reproduces, and
-the bench&#8217;s 50&#176; rest stops on the palm plate at its old height (the plate moved +25 mm). Releasing the middle pad lets
-gravity swing the tool 80&#176; in 0.3 s on D8 and D6 (plan Z: ballistic, rejected as primary). A basketball is a friction
-cap grasp on this hand, &#952; &#8804; 65&#176; on the widest layout, needing the servo driven to its cliff.</p>
-<p class="where">docs/experiments/20260916-calibrated_plant_chain/ (<a href="https://claude.ai/artifact/B7ZBqjURdMyChprN2kJNf5">published</a>), 20260916-turn_mechanism/ (<a href="https://claude.ai/artifact/B7e6WBCg4fwqCo6frWvx1s">published</a>), 20260916-swing_reorient/ (<a href="https://claude.ai/artifact/D8gDHA9vLfGQVd6zWZySsh">published</a>), 20260916-tip_gait/ (<a href="https://claude.ai/artifact/FquaN7cm7kNqF9mFAMvEEY">published</a>), 20260916-basketball/ (<a href="https://claude.ai/artifact/1xESTQVd7i2p2tR1EgsZWv">published</a>)</p>
+<p><b>Result.</b> At the calibrated gain (kp 0.5) the fingers turn the tool 0&#8211;10&#176; at every budget and pivot, the arm
+stands it on three pads for five hands, and the handover and gait fail everywhere; the finger-driven 90&#176; turn exists only
+at kp &#8805; 2. Releasing the middle pad swings the tool 80&#176; in 0.3 s (pinch-and-swing, rejected as primary), and a
+basketball is a friction cap grasp, &#952; &#8804; 65&#176; on the widest layout.</p>
+<p class="where">docs/experiments/20260916-calibrated_plant_chain/, 20260916-turn_mechanism/, 20260916-swing_reorient/, 20260916-tip_gait/, 20260916-basketball/</p>
 </div></div>
 
 <div class="entry"><div class="when">2026-09-17</div><div class="body">
 <h4>D6 reorientation policy on the calibrated plant, 60 M steps, and a grip finetune <span class="chip kept">kept</span></h4>
-<p><b>Result.</b> 64/64 held at cos 0.933, the tool rolling across the pads with the thumb load rising 3 &#8594; 12 N; the 20 M
-checkpoint&#8217;s 0.463 had been under-training, and a second 60 M draw landed at 0.640, so one run per arm cannot rank a
-recipe change. A grip penalty finetune: 0.969 at 10.8 N, the current best D6 checkpoint. The grip term had shipped with the
-wrong sign.</p>
-<p class="where">docs/experiments/20260917-d6_cal_60M/ (<a href="https://claude.ai/artifact/NgDVqffN5h1ZBhS2rt7Mb1">published</a>) &#183; results/rl/20260917-1844-d6_cal_reorient_ft_gpm5_20M_s0</p>
+<p><b>Result.</b> 64/64 held at cos 0.933, with the tool rolling across the pads; a second 60 M draw landed at 0.640, so one run
+per arm cannot rank a recipe change. A grip-penalty finetune reached 0.969 at 10.8 N.</p>
+<p class="where">docs/experiments/20260917-d6_cal_60M/ &#183; results/rl/20260917-1844-d6_cal_reorient_ft_gpm5_20M_s0</p>
 </div></div>
 
 <div class="entry"><div class="when">2026-09-19 &#8594; 09-20</div><div class="body">
 <h4>The hands tranche and the robust tranche <span class="chip open">current</span></h4>
-<p><b>Result.</b> <a href="#learned">&#167;7</a>. Sixteen then twelve finetunes across the deployed hands with a clipped residual and an
-index&#8211;middle separation term; &#8220;64/64 held&#8221; was one rollout under 64 contact solves until the spawn was jittered;
-three plant defects in the mjlab environment fixed (object contact class, floor, tip mesh); the chain seats three policies
-at the built plate with a tip-aimed set-down; the achieved-angle loop for the gait falsified (servos already on the
-ceiling); <code>--seed</code> found to be a dead flag.</p>
-<p class="where">docs/experiments/20260919-hands_tranche/ (<a href="https://claude.ai/artifact/JfKA6nQBPuf13hGKjnU22n">published</a>), 20260920-robust_tranche/ (<a href="https://claude.ai/artifact/NZLr9wdDAWjZC1HM6ed6ed">published</a>) &#183; scripts/hands_tranche_queue.py, real_v1_chain_policy.py</p>
+<p><b>Result.</b> Sixteen, then twelve finetunes across the deployed hands with a clipped residual (<a href="#learned">&#167;7</a>);
+&#8220;64/64 held&#8221; was one rollout repeated under 64 contact solves until the spawn was jittered. Three plant defects in
+the mjlab environment were fixed (object contact class, floor, tip mesh), and <code>--seed</code> was found to be a dead
+flag.</p>
+<p class="where">docs/experiments/20260919-hands_tranche/, 20260920-robust_tranche/ &#183; scripts/hands_tranche_queue.py, real_v1_chain_policy.py</p>
 </div></div>
 </div>
 </div></section>
