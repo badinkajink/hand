@@ -1464,8 +1464,8 @@ def lede(X: Data):
     rep = lambda arms: [sum(S[a]["rep"][e][k] for a in arms for e in ENGINES) for k in (0, 1)]  # noqa: E731
     rc, rp = rep(comp), rep(point)
     n_runs = len({r["tag"] for r in X.watch})
-    p1 = [f"{W.get(n_runs, n_runs) if n_runs > 6 else n_runs} PPO runs of up to 40&#8202;M steps trained the D6 "
-          f"screwdriver turn in MuJoCo-Warp on four fingertip contact models. Replayed open loop in CPU MuJoCo, Drake and "
+    p1 = [f"{W.get(n_runs, n_runs) if n_runs > 6 else n_runs} PPO runs of up to 40&#8202;M steps in MuJoCo-Warp trained "
+          f"the D6 screwdriver turn. Replayed open loop in CPU MuJoCo, Drake and "
           f"Newton, the finger targets of the pad and skin policies (1&#8202;mm sphere pads, bare or on a sprung skin) kept "
           f"the tool in {rc[0]} of {rc[1]} replays, those of the point-contact policies in {rp[0]} of {rp[1]}."]
     T = {a: tpu_transfer(X, a) for a in ("tpu27mesh", "tpu27pads1", "tpu27skin")}
@@ -1478,14 +1478,15 @@ def lede(X: Data):
            for fam, arms in (("point", point), ("comp", comp))}
     wd = lambda n: W.get(n, n)  # noqa: E731
     p2 = [f"The checkpoint watch found {wd(deg['point'][0])} of {wd(deg['point'][1])} point-contact runs and "
-          f"{wd(deg['comp'][0])} of {wd(deg['comp'][1])} pad and skin runs degenerate for 10&#8202;M steps, the tool "
-          f"dropped, shaken or rocked."]
+          f"{wd(deg['comp'][0])} of {wd(deg['comp'][1])} pad and skin runs degenerate for 10&#8202;M steps: every "
+          f"rollout dropped, or the tool shaken or rocked."]
     hp = [h for a in point for h in S[a]["hcos"]]
     hc = [h for a in comp for h in S[a]["hcos"]]
     pm, pp, ps = probe_spit("tpu27mesh"), probe_spit("tpu27pads1"), probe_spit("tpu27skin")
     cost = (f"; pad and skin training cost {pp / pm:.1f}&#215; and {ps / pm:.1f}&#215; per iteration" if pm and pp and ps
             else "")
-    p2.append(f"Point-contact policies turned the tool further (cosine with vertical {_rng(hp)} against {_rng(hc)}){cost}.")
+    p2.append(f"Point-contact policies turned the tool further where they held it (cosine with vertical {_rng(hp)} against "
+              f"{_rng(hc)}){cost}.")
     return " ".join(p1) + '</p><p class="lede">' + " ".join(p2)
 
 
