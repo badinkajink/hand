@@ -38,57 +38,41 @@ def _dev(devs):
 
 
 def lede(ctx):
-    M, cost, gpu = ctx["M"], ctx["cost"], ctx["gpu_pads"]
-    parts = ["Covering a fingertip with small MuJoCo contact spheres samples the pressure law of hydroelastic contact, so the pad "
-             "reproduces the friction torque and contact area of a soft fingertip without modifying MuJoCo."]
+    """Opening paragraph, about 100 words: the method, its agreement with Drake and the pressure law, its cost and its largest
+    error (owner 2026-10-09: cut for clarity; the GPU, effective-mass and step-size findings are in their sections)."""
+    M, cost = ctx["M"], ctx["cost"]
+    parts = ["Covering a fingertip with small MuJoCo contact spheres samples the pressure law of hydroelastic contact, so "
+             "unmodified MuJoCo reproduces the friction torque and contact area of a soft fingertip."]
     mu_p, mu_d = _get(M, "effective", "mj_pads1"), _get(M, "effective", "drake_hydro")
-    vs_p, vs_d = _get(M, "slip speed", "mj_pads1"), _get(M, "slip speed", "drake_hydro")
     a5_p, a5_d = _get(M, "arm at spin onset, 0.5", "mj_pads1"), _get(M, "arm at spin onset, 0.5", "drake_hydro")
     a3_p, a3_d = _get(M, "arm at spin onset, 3", "mj_pads1"), _get(M, "arm at spin onset, 3", "drake_hydro")
     s = []
     if mu_p and mu_d:
         d = abs(_pct(mu_p, mu_d))
-        s.append("slips at the same force as Drake hydroelastic to within 0.1&#8202;%" if d < 0.1 else
-                 f"slips at a force within {d:.1f}&#8202;% of Drake hydroelastic")
-    if vs_p and vs_d:
-        s.append(f"slides at a speed within {abs(_pct(vs_p, vs_d)):.0f}&#8202;%")
+        s.append("slips at Drake hydroelastic&#8217;s force to within 0.1&#8202;%" if d < 0.1 else
+                 f"slips at a force within {d:.1f}&#8202;% of Drake hydroelastic&#8217;s")
     if a5_p and a5_d and a3_p and a3_d:
         lo, hi = sorted((abs(_pct(a5_p, a5_d)), abs(_pct(a3_p, a3_d))))
         rng = f"{lo:.0f}" if f"{lo:.0f}" == f"{hi:.0f}" else f"{lo:.0f}&#8211;{hi:.0f}"
-        s.append(f"starts to spin at a torque {rng}&#8202;% under Drake&#8217;s from 0.5 to 3&#8202;N")
-    if s:
-        parts.append("On the two-pad pinch of the real_v1 fingertip and screwdriver, the 1&#8202;mm pad " +
-                     ", ".join(s[:-1]) + (", and " if len(s) > 1 else "") + s[-1] + ".")
+        s.append(f"starts to spin at a torque {rng}&#8202;% under Drake&#8217;s")
     tw = ctx["T"]["twist"]
-    kin = {k: [(P.pick(tw, k, N=N, dt_ms=1.0) or {}).get("rbar_kin_mm") for N in (0.5, 1.0, 3.0)] for k in ("mj_pads1", "drake_hydro")}
-    if all(all(v) for v in kin.values()):
-        dv = {k: [(a / _law(N) - 1) * 100 for a, N in zip(v, (0.5, 1.0, 3.0))] for k, v in kin.items()}
-        parts.append(f"While it spins, its friction arm is {_dev(dv['mj_pads1'])} the pressure law integrated over the patch, "
-                     f"and Drake&#8217;s is {_dev(dv['drake_hydro']).replace(' of', '')} it.")
-    if "mj_pads1" in cost and "drake_hydro" in cost:
-        curves = ctx.get("curves") or {}
-        tail = ""
-        if curves.get("mjw_pads1"):
-            tail = f"; one GPU runs {max(curves['mjw_pads1'].values()) / 1e6:.2f} million pad world-steps per second in MuJoCo-Warp"
-            if curves.get("newton_pads1"):
-                tail += f" and {max(curves['newton_pads1'].values()) / 1e6:.2f} million in Newton"
-        parts.append(f"A pad step costs {cost['mj_pads1']:.0f}&#8202;&#181;s on one CPU core against {P.num(cost['drake_hydro'], ',.0f')}&#8202;&#181;s "
-                     f"for Drake, and task results are unchanged from 50&#8202;&#181;s to 10&#8202;ms steps{tail}.")
+    kin = [(P.pick(tw, "mj_pads1", N=N, dt_ms=1.0) or {}).get("rbar_kin_mm") for N in (0.5, 1.0, 3.0)]
+    arm = ""
+    if all(kin):
+        arm = (f"; while it spins, its friction arm is "
+               f"{_dev([(a / _law(N) - 1) * 100 for a, N in zip(kin, (0.5, 1.0, 3.0))])} the pressure law")
+    if s:
+        parts.append("On the two-pad pinch of the real_v1 fingertip and screwdriver, the 1&#8202;mm pad " + " and ".join(s) + arm + ".")
     import simulator_agreement_figure as SAF
     A = SAF.data()
-    w = [A[k]["within"] for k in ("mj_pads", "mjw_pads", "nt_pads") if "turn" in A[k]]
-    sc = _state_cost()
-    if len(w) == 3 and sc:
-        parts.append("MuJoCo-Warp and Newton run MuJoCo&#8217;s constraint solver on the GPU, and the pads agree with Drake to the "
-                     "same degree in all three, on the bed and on the open-loop three-finger turn of the eight deployed hands (turn "
-                     f"within 3&#176; of Drake on {w[0]}, {w[1]} and {w[2]} of {A['mj_pads']['n']} placements). Each sphere&#8217;s "
-                     "impedance divides out the contact&#8217;s effective mass, which Newton&#8217;s hydroelastic contact did not; on one "
-                     f"RL state the pads cost {min(sc['pads']):.1f}&#8211;{max(sc['pads']):.1f}&#8202;&#181;s of physics per world-step in MuJoCo-Warp.")
-    cr_p = _get(M, "creep: sliding", "mj_pads1")
-    cr_d = _get(M, "creep: sliding", "drake_hydro")
+    if all("turn" in A[k] for k in ("mj_pads", "mjw_pads", "nt_pads")):
+        parts.append("The pads agree with Drake to the same degree in CPU MuJoCo, MuJoCo-Warp and Newton.")
+    if "mj_pads1" in cost and "drake_hydro" in cost:
+        parts.append(f"A pad step costs {cost['mj_pads1']:.0f}&#8202;&#181;s on one CPU core, against "
+                     f"{P.num(cost['drake_hydro'], ',.0f')}&#8202;&#181;s for Drake.")
+    cr_p, cr_d = _get(M, "creep: sliding", "mj_pads1"), _get(M, "creep: sliding", "drake_hydro")
     if cr_p and cr_d:
-        parts.append(f"The largest disagreement is creep, the slow sliding under a load below the slip force: the pad creeps "
-                     f"{cr_p / cr_d:.0f}&#215; faster than Drake.")
+        parts.append(f"Under loads below slip the pad creeps {cr_p / cr_d:.0f}&#215; faster than Drake.")
     return " ".join(parts)
 
 

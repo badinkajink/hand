@@ -23,7 +23,8 @@
 <li><a href="#pads">Sphere-packed pads in MuJoCo</a></li>
 <li><a href="#references">Reference models</a></li>
 <li><a href="#evidence">Comparison with the reference models</a></li>
-<li><a href="#open">What this does not settle</a></li>
+<li><a href="#open">Future work</a></li>
+<li><a href="#index">Index of linked pages</a></li>
 </ol>
 </div></nav>
 
@@ -282,23 +283,19 @@ insertion.</figcaption>
 </div></section>
 
 <section id="open"><div class="col">
-<h2>What this does not settle</h2>
+<h2>Future work</h2>
 {{OPEN_LIST}}
-<p>Drake serves as the reference because it integrates the same pressure law, which is local and has no state: neither Drake
-nor the spheres represent shear compliance before slip, hysteresis or the lateral spread of load in an elastic tip, and both
-give a contact radius growing as \(N^{1/4}\), where measured soft fingertips give exponents from 0 to 1/3 depending on the
-material (Xydas and Kao). The spheres add the creep of MuJoCo&#8217;s soft friction rows and miss surface features finer than
-their 1&#8202;mm spacing.</p>
+<p>Drake and the spheres integrate the same pressure law, which is local and has no state. Neither represents shear
+compliance before slip, hysteresis or the lateral spread of load in an elastic tip, and both give a contact radius growing as
+\(N^{1/4}\); measured soft fingertips give exponents from 0 to 1/3, depending on the material (Xydas and Kao). The spheres
+add the creep of MuJoCo&#8217;s soft friction rows and miss surface features finer than their 1&#8202;mm spacing.</p>
 </div></section>
 
 <footer><div class="col">
-<p>Rebuild: <code>python3 scripts/contact_overview_page.py</code> (reads the bed rows under
-<code>docs/experiments/20261005-contact_bed/</code>, <code>20261006-newton_mass_scaling/</code>,
-<code>20261006-simulator_agreement/</code>, <code>20261005-pad_calibration/</code>, <code>20261005-gpu_scaling/</code>,
-the turn, timing and replay rows under <code>20261006-hom_turn3/</code> and <code>20261006-rl_contact/</code>,
-Codex&#8217;s <code>20261004-codex/data/task_timestep_results.json</code> and the chain page&#8217;s figure code; equations are cached in
-<code>{{TEX_CACHE_REL}}</code>).</p>
-<p>Related pages: {{RELATED}}</p>
+<h2 id="index">Index of linked pages</h2>
+<div class="tw">{{RELATED}}</div>
 <p>Literature: {{LIT}}</p>
+<p>Built by <code>python3 scripts/contact_overview_page.py</code> from the rows its docstring lists; equations are cached in
+<code>{{TEX_CACHE_REL}}</code>.</p>
 </div></footer>
 </div>

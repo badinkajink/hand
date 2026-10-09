@@ -42,6 +42,7 @@ import hom_chain_figures as G  # noqa: E402
 import hom_chain_page as CP  # noqa: E402
 import hom_contact_patch_page as R  # noqa: E402
 import texsvg  # noqa: E402
+import retro_style  # noqa: E402
 
 EXP = os.path.join(ROOT, "docs/experiments")
 D = os.path.join(EXP, "20261009-contact_overview")
@@ -123,7 +124,7 @@ nav.toc a:hover{color:var(--s2);text-decoration:underline}
 @media (max-width:640px){nav.toc ol{columns:1}}
 tr.grp td{text-transform:none}
 .tnote{font:400 14px/1.55 var(--f-mono);color:var(--ink3);margin:-12px 0 24px;max-width:86ch}
-table.cap td,table.agree td{font-size:13.5px}
+table.cap td,table.agree td{font-size:15px}
 table.cap th,table.agree th{white-space:normal}
 table.agree td:first-child{min-width:15em}
 td.ref{background:var(--sunk)}
@@ -137,65 +138,32 @@ dl.glossary{display:grid;grid-template-columns:minmax(9em,13em) 1fr;gap:10px 22p
 dl.glossary dt{font:600 14px/1.5 var(--f-display);color:var(--ink)}
 dl.glossary dd{margin:0;color:var(--ink2)}
 @media (max-width:640px){dl.glossary{grid-template-columns:1fr}dl.glossary dd{margin-bottom:8px}}
-.legendrow{display:flex;flex-wrap:wrap;gap:6px 18px;margin:8px 0 0;font:400 12.5px/1.4 var(--f-mono);color:var(--ink2)}
+.legendrow{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 18px;margin:8px 0 0;font:400 15px/1.4 var(--f-mono);color:var(--ink2)}
 """
 
 
 # ------------------------------------------------------------------------------------------ terms and metrics
 
 GLOSSARY = [
-    ("pad", "One fingertip&#8217;s contact with the tool. On the bed rig two pads, one per fingertip, pinch the tool; \\(N\\) is "
-            "the normal force of each pad."),
-    ("friction arm \\(\\bar r\\)", "Pressure-weighted mean distance of the contact patch from its centre, (1), in mm. A pad transmits "
-            "at most \\(\\mu N\\bar r\\) about its normal before it spins. The hydroelastic law (3), integrated over the screwdriver patch, "
-            f"gives {C_LAW * 1e3 * 0.5 ** EXP_LAW:.2f}, {C_LAW * 1e3:.2f} and {C_LAW * 1e3 * 3 ** EXP_LAW:.2f}&#8202;mm at 0.5, 1 and 3&#8202;N."),
-    ("slip onset, effective \\(\\mu\\)", "Task&#160;1 raises an axial force on the tool at 2&#8202;N/s. Before onset the tool slides slowly "
-            "at a speed proportional to the force; onset is the force at which the speed leaves that trend. Effective \\(\\mu\\) is the "
-            "onset force divided by \\(2N\\) (two pads). Rigid Coulomb friction gives 1.000."),
-    ("creep", "Steady sliding of the tool while the load stays below the slip force. Task&#160;1 holds the axial force at half the onset "
-            "force for 1&#8202;s and reports the sliding speed in &#181;m/s; task&#160;2 holds half the onset torque and reports the turning "
-            "speed in &#176;/s; in task&#160;4 it is the drift per cycle below the Coulomb threshold. Rigid Coulomb friction gives zero."),
-    ("slip speed", "Mean sliding speed of the tool over the 50&#8202;ms after onset in task&#160;1, in mm/s. Rigid Coulomb friction with "
-            "equal static and kinetic \\(\\mu\\) gives 34&#8202;mm/s."),
-    ("arm at spin onset", "Task&#160;2 raises a torque about the pinch axis; the onset torque divided by \\(2\\mu N\\), in mm per pad. "
-            "<i>Sliding arm</i>: the steady torque while the tool is driven to spin at 1&#8202;rad/s, divided by \\(2\\mu N\\). "
-            "<i>Onset / law</i>: onset torque over the hydroelastic law&#8217;s \\(2\\mu N\\,cN^{1/4}\\). <i>Onset torque</i> on its own "
-            "is the torque at spin onset, in mN&#8202;m; Drake gives 0.84, 1.97 and 7.65&#8202;mN&#8202;m at 0.5, 1 and 3&#8202;N."),
-    ("drift per cycle", "Net displacement of the tool along its axis per 5&#8202;Hz shake cycle in task&#160;4. <i>Coulomb load ratio</i>: "
-            "\\(m(g+a_\\text{pk})/(2\\mu N)\\); rigid Coulomb friction slips above 1."),
-    ("swing end, largest swing, peak rate", "Task&#160;5 lowers the pinch force from 6 to 0.2&#8202;N over 4&#8202;s, with the tool&#8217;s "
-            "centre of mass 15&#8202;mm off the pinch line, until the tool swings about the pinch axis. Swing end is the final angle "
-            "(90&#176; = hanging), largest swing the largest angle over the run (Drake: 87.3&#176;), peak rate the largest angular "
-            "speed of the swing, in &#176;/s."),
-    ("rolling ratio", "Task&#160;3 moves one pad 10&#8202;mm along the tool&#8217;s surface at 10 or 50&#8202;mm/s while both pads press at "
-            "\\(N\\), so the tool rolls between them. The rolling ratio is the tool&#8217;s rotation times its radius over half the pad "
-            "travel. Rolling without slip gives 1 between flat pads and 1.008 between the two spheres, whose line of centres tilts as "
-            "the pad moves; a contact point inside the tool surface rolls on a smaller radius and raises it. <i>Slip</i>: the path "
-            "length of the relative motion of tool and pad at the contact point over the travel, in &#181;m."),
-    ("tool turn, within 3&#176;, grip force", "Plan replay of the three-finger turn (Figure&#160;7): tool turn is the rotation "
-            "of the tool axis toward vertical from its pose at the end of the grip, in degrees; a replay is within 3&#176; when its "
-            "turn is within 3&#176; of Drake&#8217;s on the same hand and placement with the tool held in both; grip force is the sum of "
-            "the three fingertips&#8217; normal forces on the tool at the end of the hold, in N."),
-    ("physics step \\(\\Delta t\\)", "The simulator&#8217;s integration step; 1&#8202;ms unless stated. <i>&#181;s per step</i>: wall time of "
-            "one physics step on one CPU core, controller and rendering excluded. <i>World-steps per second</i>: on the GPU, the number "
-            "of parallel simulations times the steps each completes per second; <i>&#181;s per world-step</i> is its inverse."),
-    ("\\(t_c\\), \\(d_0\\), \\(\\hat\\Lambda\\)", "MuJoCo contact parameters. \\(t_c\\), the <code>solref</code> time constant, sets how fast a "
-            "penetration is corrected; \\(d_0\\), the <code>solimp</code> impedance, sets what fraction of that correction the solver "
-            "enforces; \\(\\hat\\Lambda\\) is MuJoCo&#8217;s estimate of the contact&#8217;s inverse inertia (47.2&#8202;kg\\(^{-1}\\) for a pad on "
-            "the real tool). Together they set the sphere stiffness, (10)."),
-    ("inverse weight \\(w\\), effective mass \\(m_\\text{eff}\\)", "\\(w_b\\) is MuJoCo&#8217;s <code>body_invweight0</code> of body \\(b\\), its "
-            "translational inverse inertia at the reference pose in 1/kg; for a contact between bodies 1 and 2, "
-            "\\(\\hat\\Lambda = w_1 + w_2\\) and \\(m_\\text{eff} = 1/\\hat\\Lambda\\)."),
-    ("\\(k_h\\), \\(k_f\\)", "Newton&#8217;s per-shape hydroelastic stiffness (pressure per unit depth, \\(E/h\\) for a layer of modulus "
-            "\\(E\\) and thickness \\(h\\), in N/m&#179;) and its friction gain, which SolverMuJoCo turns into the friction-row time "
-            "constant of each contact."),
-    ("impratio, condim", "<code>impratio</code>: ratio of friction-row to normal-row stiffness in MuJoCo; larger values make friction "
-            "stick harder. <code>condim</code>&#160;3: normal force and two friction directions; condim&#160;4 adds torsional friction about "
-            "the normal."),
-    ("pad spacing", "Distance between neighbouring sphere centres on a sphere pad. The 2, 1 and 0.5&#8202;mm pads have 51, 205 and 819 "
-            "spheres on a 45&#176; cap."),
-    ("relaxation time \\(t_r\\)", "Drake&#8217;s dissipation time for hydroelastic contact, 10&#8202;ms on the bed. A pad sphere&#8217;s "
-            "equivalent is \\(2t_c\\), (10): 20&#8202;ms for the 1&#8202;mm pad and 30&#8202;ms for the 0.5&#8202;mm pad."),
+    ("pad", "One fingertip&#8217;s contact with the tool; \\(N\\) is its normal force."),
+    ("friction arm \\(\\bar r\\)", "Pressure-weighted mean distance of the contact patch from its centre, in mm; a pad turns once "
+            "the torque about its normal exceeds \\(\\mu N\\bar r\\)."),
+    ("effective \\(\\mu\\)", "Pull force at slip onset (task&#160;1) divided by \\(2N\\); rigid Coulomb friction gives 1."),
+    ("creep", "Sliding under half the slip load, in &#181;m/s (pull) or &#176;/s (twist); rigid Coulomb friction gives 0."),
+    ("slip speed", "Mean sliding speed in the 50&#8202;ms after slip onset, in mm/s."),
+    ("arm at spin onset", "Twist torque at spin onset (task&#160;2) divided by \\(2\\mu N\\), in mm per pad."),
+    ("rolling ratio", "Tool rotation times its radius over half the pad travel (task&#160;3); rolling without slip gives 1.008."),
+    ("drift per cycle", "Tool displacement per 5&#8202;Hz shake cycle below the slip load (task&#160;4), in &#181;m."),
+    ("swing end", "Final tool angle as the pinch force falls from 6 to 0.2&#8202;N (task&#160;5); 90&#176; is hanging."),
+    ("tool turn", "Rotation of the tool axis toward vertical in a replayed three-finger turn; <i>within 3&#176;</i> counts replays "
+            "that end within 3&#176; of Drake&#8217;s."),
+    ("&#181;s per step", "Wall time of one 1&#8202;ms physics step on one CPU core; per world-step on the GPU."),
+    ("\\(t_c\\), \\(d_0\\), \\(\\hat\\Lambda\\), \\(m_\\text{eff}\\)", "MuJoCo&#8217;s <code>solref</code> time constant, "
+            "<code>solimp</code> impedance and contact inverse inertia, with \\(m_\\text{eff} = 1/\\hat\\Lambda\\); together they set "
+            "the sphere stiffness, (10)."),
+    ("\\(k_h\\), \\(k_f\\)", "Newton&#8217;s hydroelastic stiffness \\(E/h\\), in N/m&#179;, and its friction gain."),
+    ("impratio, condim", "MuJoCo&#8217;s friction-to-normal stiffness ratio; condim&#160;4 adds torsional friction to condim&#160;3."),
+    ("relaxation time \\(t_r\\)", "Drake&#8217;s contact dissipation time, 10&#8202;ms; a pad sphere&#8217;s equivalent is \\(2t_c\\)."),
 ]
 
 
@@ -317,8 +285,9 @@ def _marker(out, x, y, colour, shape="circle", hollow=False, r=4.6, title=None):
         out.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{r:.1f}" style="fill:{fill};stroke:{stroke};stroke-width:2">{t}</circle>')
 
 
-def _svg_open(w, h, label):
-    return [f'<svg viewBox="0 0 {w} {h}" role="img" aria-label="{label}" font-family="var(--f-mono)" font-size="12">']
+def _svg_open(w, h, label, fs=12):
+    """fs: default text size; the plain-style pages use 16 where the layout has room (owner 2026-10-09: larger chart text)."""
+    return [f'<svg viewBox="0 0 {w} {h}" role="img" aria-label="{label}" font-family="var(--f-mono)" font-size="{fs}">']
 
 
 def _legend_html(items):
@@ -342,16 +311,16 @@ def svg_models():
     W, H = 990, 250
     out = _svg_open(W, H, "Five fingertip contact representations: point contact, condim 4 with a torsional coefficient, "
                           "a pad of small spheres, a hydroelastic pressure field over the overlap, and a lattice with "
-                          "lateral springs.")
+                          "lateral springs.", fs=12)
     out.append('<defs><marker id="ovar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" '
                'orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--ink2)"/></marker></defs>')
     titles = ["(a) point contact", "(b) condim 4, μt(N)", "(c) sphere pad", "(d) hydroelastic field",
               "(e) sphere lattice (CSLC)"]
     notes = [("no torque about n", "one Coulomb cone"),
-             ("τ ≤ μt N", "μt = μ c N¹ᐟ⁴, each step"),
+             ("τ ≤ μt N", "μt = μ c N<tspan dy='-5' font-size='0.8em'>1/4</tspan><tspan dy='5'>, each step</tspan>"),
              ("a soft contact per sphere", "T = Σ ρᵢ fₜᵢ"),
-             ("p = E·δ/R", "integrated over the surface"),
-             ("anchor + lateral springs", "spreads past the overlap")]
+             ("p = E·δ/R", "summed over the surface"),
+             ("anchor + side springs", "spread past the overlap")]
     Rr, yl = 62.0, 150.0                     # fingertip radius (px) and tool surface
     for i in range(5):
         x0 = 8 + i * 197
@@ -361,7 +330,7 @@ def svg_models():
         out.append(f'<text x="{cx}" y="22" text-anchor="middle" style="fill:var(--ink);font:600 13px var(--f-display)">{titles[i]}</text>')
         # tool
         out.append(f'<rect x="{x0 + 6}" y="{yl}" width="180" height="34" rx="3" style="fill:var(--sunk);stroke:var(--ink3);stroke-width:1"/>')
-        out.append(f'<text x="{x0 + 176}" y="{yl + 22}" text-anchor="end" style="fill:var(--ink3);font-size:11px">tool</text>')
+        out.append(f'<text x="{x0 + 176}" y="{yl + 22}" text-anchor="end" style="fill:var(--ink3);font-size:14.5px">tool</text>')
         if i in (0, 1):
             out.append(f'<circle cx="{cx}" cy="{cy:.1f}" r="{Rr}" style="fill:var(--card);stroke:var(--ink2);stroke-width:1.6"/>')
             out.append(f'<line x1="{cx}" y1="{yl}" x2="{cx}" y2="{yl - 52}" style="stroke:var(--ink2);stroke-width:1.8" marker-end="url(#ovar)"/>'
@@ -409,8 +378,8 @@ def svg_models():
                 prof.append((x, yl + 4 + depth * 2.6))
             d = f"M{cx - hx:.1f},{yl + 4} " + " ".join(f"L{x:.1f},{y:.1f}" for x, y in prof) + f" L{cx + hx:.1f},{yl + 4} Z"
             out.append(f'<path d="{d}" style="fill:var(--c-drake);fill-opacity:.55;stroke:var(--c-drake);stroke-width:1.2"/>')
-        out.append(f'<text x="{cx}" y="{yl + 56}" text-anchor="middle" style="fill:var(--ink2);font-size:11.5px">{notes[i][0]}</text>'
-                   f'<text x="{cx}" y="{yl + 73}" text-anchor="middle" style="fill:var(--ink3);font-size:11.5px">{notes[i][1]}</text>')
+        out.append(f'<text x="{cx}" y="{yl + 56}" text-anchor="middle" style="fill:var(--ink2);font-size:13px">{notes[i][0]}</text>'
+                   f'<text x="{cx}" y="{yl + 73}" text-anchor="middle" style="fill:var(--ink3);font-size:13px">{notes[i][1]}</text>')
     out.append("</svg>")
     return "".join(out)
 
@@ -447,18 +416,18 @@ def twist_arm(r):
 
 
 def svg_scaling(tw, tor):
-    W, H = 980, 420
+    W, H = 900, 440
     out = _svg_open(W, H, "Friction arm against pad force on log axes: the foundation law, a Hertz law of the same value at "
-                          "1 N, and the arm each simulator delivers.")
-    fx, fy = _panel(out, 80, 46, 560, 300, (0.2, 5.0), (0.5, 4.2), (0.25, 0.5, 1, 2, 4), (0.5, 0.7, 1.0, 1.5, 2.0, 3.0, 4.0),
+                          "1 N, and the arm each simulator delivers.", fs=16)
+    fx, fy = _panel(out, 80, 46, 480, 300, (0.2, 5.0), (0.5, 4.2), (0.25, 0.5, 1, 2, 4), (0.5, 0.7, 1.0, 1.5, 2.0, 3.0, 4.0),
                     "pad force N per pad (N), log scale", "friction arm r̄ per pad (mm), log scale", True, True)
     Ns = [0.2 * (25 ** (k / 60)) for k in range(61)]
     _path(out, fx, fy, [(N, C_LAW * 1e3 * N ** EXP_LAW) for N in Ns], "var(--c-ref)")
     _path(out, fx, fy, [(N, C_LAW * 1e3 * N ** (1 / 3)) for N in Ns], "var(--c-ref)", dashed=True)
     out.append(f'<text x="{fx(0.3):.1f}" y="{fy(C_LAW * 1e3 * 0.3 ** EXP_LAW) - 12:.1f}" text-anchor="middle" style="fill:var(--ink3)">'
-               f'foundation, c N¹ᐟ⁴</text>'
+               f'Foundation, c N<tspan dy="-6" font-size="0.8em">1/4</tspan><tspan dy="6"> </tspan></text>'
                f'<text x="{fx(4.4):.1f}" y="{fy(C_LAW * 1e3 * 4.4 ** (1 / 3)) - 9:.1f}" text-anchor="end" style="fill:var(--ink3)">'
-               f'Hertz, N¹ᐟ³</text>')
+               f'Hertz, N<tspan dy="-6" font-size="0.8em">1/3</tspan><tspan dy="6"> </tspan></text>')
     legend = []
     have_onset = False
     for k in ORDER:
@@ -489,23 +458,25 @@ def svg_scaling(tw, tor):
                     _marker(out, fx(N), fy(a), col, shape, hollow=True, title=f"{lab}: {a:.3f} mm at {N:g} N (sliding)")
                 legend.append((lab + " (sliding, 10-01 rig)", col, dashed, shape))
     # ratio panel
-    x0 = 720
-    out.append(f'<text x="{x0}" y="58" style="fill:var(--ink2)">arm ratio, 3 N over 0.5 N</text>')
-    rows = [("foundation 6¹ᐟ⁴", 6 ** 0.25, "var(--c-ref)"), ("Hertz 6¹ᐟ³", 6 ** (1 / 3), "var(--c-ref)")]
+    x0 = 615
+    out.append(f'<text x="{x0}" y="50" style="fill:var(--ink2)">Arm ratio, 3 N over 0.5 N</text>')
+    rows = [("Foundation, 6<tspan dy='-6' font-size='0.8em'>1/4</tspan><tspan dy='6'> </tspan>", 6 ** 0.25, "var(--c-ref)"), ("Hertz, 6<tspan dy='-6' font-size='0.8em'>1/3</tspan><tspan dy='6'> </tspan>", 6 ** (1 / 3), "var(--c-ref)")]
     for k in ORDER:
         lo = pick(tw, k, N=0.5, dt_ms=1.0)
         hi = pick(tw, k, N=3.0, dt_ms=1.0)
         if lo and hi and twist_arm(lo) and twist_arm(hi) and 1.3 <= twist_arm(hi) / twist_arm(lo) <= 2.0:
-            rows.append((MODELS[k][0].replace("MuJoCo ", ""), twist_arm(hi) / twist_arm(lo), MODELS[k][1]))
-    bx = lambda v: x0 + (v - 1.3) / (2.0 - 1.3) * 220  # noqa: E731
+            lab = MODELS[k][0].replace("MuJoCo ", "").replace(", torsion rescheduled", ", rescheduled").replace(", mass-corrected", "")
+            rows.append((lab[:1].upper() + lab[1:], twist_arm(hi) / twist_arm(lo), MODELS[k][1]))
+    bx = lambda v: x0 + (v - 1.3) / (2.0 - 1.3) * 180  # noqa: E731
     for j, (lab, val, col) in enumerate(rows):
-        y = 84 + j * 34
-        out.append(f'<line x1="{x0}" x2="{x0 + 220}" y1="{y + 8}" y2="{y + 8}" style="stroke:var(--rule2)"/>'
-                   f'<text x="{x0}" y="{y}" style="fill:var(--ink3);font-size:11.5px">{lab}</text>'
-                   f'<circle cx="{bx(val):.1f}" cy="{y + 8}" r="4.5" style="fill:{col};stroke:var(--card);stroke-width:2"/>'
-                   f'<text x="{bx(val) + 9:.1f}" y="{y + 12}" style="fill:var(--ink2);font-size:11.5px">{val:.3f}</text>')
+        y = 82 + j * 40
+        # label above its own line and the value past the line's right end, so no line crosses a number
+        out.append(f'<text x="{x0}" y="{y}" style="fill:var(--ink2);font-size:15px">{lab}</text>'
+                   f'<line x1="{x0}" x2="{x0 + 180}" y1="{y + 12}" y2="{y + 12}" style="stroke:var(--rule2)"/>'
+                   f'<circle cx="{bx(val):.1f}" cy="{y + 12}" r="5" style="fill:{col};stroke:var(--card);stroke-width:2"/>'
+                   f'<text x="{x0 + 190}" y="{y + 17}" style="fill:var(--ink);font-size:15px">{val:.3f}</text>')
     for v in (1.4, 1.6, 1.8, 2.0):
-        out.append(f'<text x="{bx(v):.1f}" y="{84 + len(rows) * 34 + 8}" text-anchor="middle" style="fill:var(--ink3);font-size:11px">{v:g}</text>')
+        out.append(f'<text x="{bx(v):.1f}" y="{82 + len(rows) * 40 + 4}" text-anchor="middle" style="fill:var(--ink3);font-size:14.5px">{v:g}</text>')
     out.append("</svg>")
     return "".join(out) + _legend_html([("foundation law (3)", "var(--c-ref)", False, None),
                                         ("Hertz, equal at 1 N", "var(--c-ref)", True, None)] + legend), have_onset
@@ -520,7 +491,7 @@ def svg_mass(cal):
     W, H = 980, 380
     out = _svg_open(W, H, "Friction arm of the 1 mm pad against tool mass: with the inverse inertia fixed at its nominal value "
                           "the arm grows for a light tool and shrinks for a heavy one; calibrated at load it stays on the "
-                          "hydroelastic law.")
+                          "hydroelastic law.", fs=16)
     fx, fy = _panel(out, 80, 46, 600, 260, (0.2, 5.0), (0.4, 2.0), (0.25, 0.5, 1, 2, 4), (0.5, 1.0, 1.5, 2.0),
                     "tool mass relative to the real screwdriver (24.5 g), log scale", "friction arm r̄ per pad (mm)",
                     True, False, xfmt="{:g}×")
@@ -665,7 +636,7 @@ def svg_stab(rows):
     W, H = 980, 430
     out = _svg_open(W, H, "Largest stable step against the collective-damping bound (14) for the 1 mm pad at three time constants "
                           "and seven impedances; each bar spans the largest step that held and the first that failed, and the "
-                          "diagonal passes through 19 of the 21 bars.")
+                          "diagonal passes through 19 of the 21 bars.", fs=16)
     lo, hi = 0.7, 25.0
     tk = (1, 2, 5, 10, 20)
     fx, fy = _panel(out, 80, 46, 620, 300, (lo, hi), (lo, hi), tk, tk,
@@ -758,7 +729,7 @@ def svg_step(rows):
     W, H = 980, 400
     out = _svg_open(W, H, "Left: the tool angle at the end of the twist sequence stays within a few degrees for the sphere pad "
                           "and Drake from 50 microseconds to 10 milliseconds; the per-contact mapping diverges at every step "
-                          "from 0.5 ms. Right: wall time per simulated second.")
+                          "from 0.5 ms. Right: wall time per simulated second.", fs=16)
     series = {"legacy": ("1 mm sphere pad", "var(--c-sphere)", False, "circle"),
               "drake": ("Drake hydroelastic", "var(--c-drake)", False, "circle"),
               "runtime_exact": ("per-contact mapping, runtime, exact Λ", "var(--c-c4)", True, "square"),
@@ -1001,7 +972,7 @@ def svg_cost(M, cost, batched=None):
     W, H = 980, 400
     out = _svg_open(W, H, "Median deviation from Drake over the bed metrics against the cost of a physics step: one CPU core for "
                           "MuJoCo and Drake; for MuJoCo-Warp and Newton one GPU world (filled) joined to the batched cost per "
-                          "world-step (hollow).")
+                          "world-step (hollow).", fs=14)
     ytop = 10 ** math.ceil(math.log10(max(p[1] for p in pts) * 1.5))
     yt = [v for v in (1, 10, 100, 1000) if v <= ytop]
     fx, fy = _panel(out, 80, 46, 540, 280, (0.5, 5000.0), (1.0, ytop), (1, 10, 100, 1000), yt,
@@ -1029,7 +1000,8 @@ def svg_cost(M, cost, batched=None):
         _marker(out, fx(c), y, col, shape, r=5.5,
                 title=f"{lab}: {c:.1f} us per step ({'one GPU world' if k in GPU_MODELS else 'one CPU core'}), "
                       f"median deviation {d:.1f} %")
-        out.append(f'<text x="{xr:.1f}" y="{y + 4:.1f}" style="fill:{col}">{lab}, {d:.1f} %</text>')
+        short = lab.replace(', torsion rescheduled', ', rescheduled').replace(', mass-corrected', '')
+        out.append(f'<text x="{xr:.1f}" y="{y + 4:.1f}" style="fill:{col}">{short}, {d:.1f} %</text>')
     out.append("</svg>")
     return "".join(out) + _legend_html([("filled: one CPU core (MuJoCo, Drake) or one GPU world (MuJoCo-Warp, Newton)", "var(--ink2)", False, "circle"),
                                         ("&#9675; hollow: per world-step in a GPU batch", "var(--ink2)", False, None)])
@@ -1054,7 +1026,7 @@ def svg_gpu(curves):
         return pending("GPU rows missing.")
     W, H = 980, 420
     out = _svg_open(W, H, "World-steps per second against the number of parallel worlds on one GPU, for the 1 mm sphere pads "
-                          "in MuJoCo-Warp and Newton and for Newton's hydroelastic tip.")
+                          "in MuJoCo-Warp and Newton and for Newton's hydroelastic tip.", fs=16)
     ys = [v for d in curves.values() for v in d.values()]
     lo, hi = max(min(ys) / 2, 100.0), max(ys) * 2
     fx, fy = _panel(out, 90, 46, 600, 300, (0.8, 12000.0), (lo, hi), (1, 10, 100, 1000, 10000),
@@ -1093,16 +1065,16 @@ def cap_table(cost, batched=None):
         return "<br>".join(parts) or "&#8211;"
     Y, N_, P = "cap-y", "cap-n", "cap-p"
     rows = [
-        ("point contact, condim&#160;3", [(Y, "one spring"), (P, "creeps"), (N_, "none"), (N_, "one point"), (N_, "no"), (N_, "no"), us("mj_point3"), (Y, "MuJoCo-Warp")]),
-        ("condim&#160;4, \\(\\mu_t\\) rescheduled", [(Y, "one spring"), (P, "creeps"), (P, "fitted law, rescheduled"), (N_, "one point"), (N_, "no"), (N_, "no"), us("mj_point4s"), (P, "needs a per-step write")]),
-        ("1&#8202;mm sphere pad", [(Y, "sampled foundation"), (P, "creeps"), (Y, "from the sphere spread"), (Y, "sampled"), (N_, "no"), (N_, "no"), us("mj_pads1", "mjw_pads1"), (Y, "MuJoCo-Warp, Newton")]),
-        ("Drake hydroelastic", [(Y, "pressure field"), (Y, "creeps 100&#215; less"), (Y, "integrated"), (Y, "surface mesh"), (N_, "no"), (N_, "no"), us("drake_hydro"), (N_, "CPU only")]),
-        ("Newton hydroelastic, \\(k_h/m_\\text{eff}\\)", [(Y, "pressure field"), (P, "MuJoCo-Warp rows"), (P, "0.76&#8211;0.88 of Drake"), (Y, "voxel surface"), (N_, "no"), (N_, "no"),
+        ("Point contact, condim&#160;3", [(Y, "One spring"), (P, "Creeps"), (N_, "None"), (N_, "One point"), (N_, "No"), (N_, "No"), us("mj_point3"), (Y, "MuJoCo-Warp")]),
+        ("Condim&#160;4, \\(\\mu_t\\) rescheduled", [(Y, "One spring"), (P, "Creeps"), (P, "Fitted law, rescheduled"), (N_, "One point"), (N_, "No"), (N_, "No"), us("mj_point4s"), (P, "Needs a per-step write")]),
+        ("1&#8202;mm sphere pad", [(Y, "Sampled foundation"), (P, "Creeps"), (Y, "From the sphere spread"), (Y, "Sampled"), (N_, "No"), (N_, "No"), us("mj_pads1", "mjw_pads1"), (Y, "MuJoCo-Warp, Newton")]),
+        ("Drake hydroelastic", [(Y, "Pressure field"), (Y, "Creeps 100&#215; less"), (Y, "Integrated"), (Y, "Surface mesh"), (N_, "No"), (N_, "No"), us("drake_hydro"), (N_, "CPU only")]),
+        ("Newton hydroelastic, \\(k_h/m_\\text{eff}\\)", [(Y, "Pressure field"), (P, "MuJoCo-Warp rows"), (P, "0.76&#8211;0.88 of Drake"), (Y, "Voxel surface"), (N_, "No"), (N_, "No"),
                                  us("newton_hydro_mc"), (Y, "Warp")]),
-        ("Sphere lattice, CSLC", [(Y, "anchor springs"), (P, "presliding; no sliding dynamics"), (Y, "from the lattice"), (Y, "lattice"), (P, "presliding"), (Y, "lateral springs"), "&#8211;", (P, "&#8211;")]),
+        ("Sphere lattice, CSLC", [(Y, "Anchor springs"), (P, "Presliding; no sliding dynamics"), (Y, "From the lattice"), (Y, "Lattice"), (P, "Presliding"), (Y, "Lateral springs"), "&#8211;", (P, "&#8211;")]),
     ]
-    head = ["contact model", "compliance", "stick, slip", "friction torque", "area, CoP",
-            "pre-slip shear", "lateral spread", f"cost ({US} per step)", "GPU batch"]
+    head = ["Contact model", "Compliance", "Stick, slip", "Friction torque", "Area, CoP",
+            "Pre-slip shear", "Lateral spread", f"Cost ({US} per step)", "GPU batch"]
     out = ["<table class='cap'><thead><tr>" + "".join(f"<th>{h}</th>" for h in head) + "</tr></thead><tbody>"]
     for name, cells in rows:
         tds = []
@@ -1120,43 +1092,67 @@ def _url(path):
     return open(path).read().strip() if os.path.exists(path) else None
 
 
+RELATED = [  # (group, date, title, path relative to the repository, contents)
+    ("Evidence on other pages", "2026-10-05", "Contact comparison bed", "BED",
+     "Five tasks on the two-pad rig for every model, with films and the numbers of Table 2"),
+    ("Evidence on other pages", "2026-10-06", "Servo plant refit and the three-finger turn", "HT3",
+     "Hand-object control of the turn, agreement across simulators, effective mass, pad cost in RL"),
+    ("Evidence on other pages", "2026-10-07", "Newton hydroelastic tests",
+     "docs/experiments/20261007-newton_hydro_tests/20261007-newton_hydroelastic_friction_reduction_edge.html",
+     "Friction rows, contact reduction, voxel size and edge contact"),
+    ("Evidence on other pages", "2026-10-07", "Presliding compliance with native MuJoCo elements",
+     "docs/experiments/20261007-native_compliance/20261007-native_presliding_compliance.html",
+     "Skin, rolling-bristle, softening and lattice candidates against Hertz and Mindlin"),
+    ("Evidence on other pages", "2026-10-08", "Policies trained on four fingertip contact models",
+     "docs/experiments/20261008-contact_model_policies/20261008-fingertip_contact_model_policies.html",
+     "D6 reorientation: training, checkpoint watch, transfer and replays"),
+    ("Evidence on other pages", "2026-10-08", "Finger-base spacing against object size",
+     "docs/experiments/20261008-hand_object_scale/20261008-finger_spacing_object_size.html",
+     "Simulated landscape on the 1 mm pads, bench protocol and paper plan"),
+    ("Evidence on other pages", "2026-10-02", "Chain control on the SR2 hand", "CHAIN",
+     "Derivation, eight contact models, the tasks of arXiv 2609.25619, cost"),
+    ("Evidence on other pages", "2026-10-01", "Pinch friction torque in Drake and MuJoCo",
+     "docs/experiments/20261001-hom_contact_patch/20261001-hom_pinch_contact_models.html", "First two-pad rig"),
+    ("Evidence on other pages", "2026-10-01", "Pinch-brake loading on the SR2 hand",
+     "docs/experiments/20261001-hom_hand_brake/20261001-hom_hand_brake.html", "Brake in Drake and MuJoCo on the hand"),
+    ("Codex audit, 2026-10-04", "2026-10-04", "Distributed fingertip contact audit",
+     "docs/experiments/20261004-codex/20261004-distributed_contact.html", "Static stiffness, regression and the newer-MuJoCo check"),
+    ("Codex audit, 2026-10-04", "2026-10-04", "Articulated holding, torsion, GPU and Newton",
+     "docs/experiments/20261004-codex/20261004-articulated_contact_transfer.html", "Follow-up on the hand"),
+    ("Codex audit, 2026-10-04", "2026-10-04", "Controller and physics-step sweep",
+     "docs/experiments/20261004-codex/20261004-controller_timestep.html", "50 Hz control at steps from 50 &#181;s to 10 ms"),
+    ("Codex audit, 2026-10-04", "2026-10-04", "Coupled-foundation models for the printed tip", "ASIDES",
+     "How the coupling length would be measured"),
+    ("Codex audit, 2026-10-04", "2026-10-04", "Video gallery", "docs/experiments/20261004-codex/20261004-contact_videos.html",
+     "Films of the audit"),
+    ("Earlier revisions of this page", "2026-10-08", "Revision of 2026-10-08",
+     "docs/experiments/20261008-contact_overview/20261008-sphere_pad_contact_model.html", ""),
+    ("Earlier revisions of this page", "2026-10-07", "Revision of 2026-10-07",
+     "docs/experiments/20261007-contact_overview/20261007-sphere_pad_contact_model.html", ""),
+    ("Earlier revisions of this page", "2026-10-05", "Revision of 2026-10-05",
+     "docs/experiments/20261005-contact_overview/20261005-sphere_pad_contact_model.html", ""),
+]
+
+
 def related():
-    items = [
-        ("Servo plant refit, hand-object control of the three-finger turn, contact-model agreement, effective-mass scaling "
-         "and the cost of sphere-pad fingertips in RL training", HT3_PATH, _url(os.path.join(HT3, "artifact_url.txt"))),
-        ("D6 reorientation policies trained on four fingertip contact models (box tip, TPU block mesh, 1&#8202;mm pads, pads on a "
-         "sprung skin): training dynamics, checkpoint watch, transfer, replays in CPU MuJoCo, Drake and Newton, films",
-         "docs/experiments/20261008-contact_model_policies/20261008-fingertip_contact_model_policies.html", None),
-        ("Finger-base spacing against object size on the SR2 hand (simulated landscape on the 1&#8202;mm pads, bench protocol, "
-         "paper plan)", "docs/experiments/20261008-hand_object_scale/20261008-finger_spacing_object_size.html", None),
-        ("Presliding compliance, hysteresis and Hertz load exponents with native MuJoCo elements (skin, rolling bristles, softening "
-         "impedance, lattice, flex)", "docs/experiments/20261007-native_compliance/20261007-native_presliding_compliance.html", None),
-        ("Friction-row time constant, contact reduction and edge contact in Newton&#8217;s hydroelastic fingertip model",
-         "docs/experiments/20261007-newton_hydro_tests/20261007-newton_hydroelastic_friction_reduction_edge.html",
-         _url(os.path.join(EXP, "20261007-newton_hydro_tests", "artifact_url.txt"))),
-        ("Previous revision of this page (2026-10-08)", "docs/experiments/20261008-contact_overview/20261008-sphere_pad_contact_model.html",
-         None),
-        ("Revision of 2026-10-07", "docs/experiments/20261007-contact_overview/20261007-sphere_pad_contact_model.html", None),
-        ("Revision of 2026-10-05", "docs/experiments/20261005-contact_overview/20261005-sphere_pad_contact_model.html",
-         None),
-        ("Chain control on the SR2 hand (derivation, eight contact models, the paper&#8217;s tasks, cost)", CHAIN_PATH, CHAIN_URL),
-        ("Pinch friction torque in Drake and MuJoCo contact models (two-pad rig)",
-         "docs/experiments/20261001-hom_contact_patch/20261001-hom_pinch_contact_models.html", "https://claude.ai/artifact/Rvfw1yQFgfWV8PdTvv7jsc"),
-        ("Pinch-brake loading on the SR2 hand", "docs/experiments/20261001-hom_hand_brake/20261001-hom_hand_brake.html",
-         "https://claude.ai/artifact/DJLxG63vLZXs2Ey6hiCBuc"),
-        ("Distributed fingertip contact audit (Codex)", "docs/experiments/20261004-codex/20261004-distributed_contact.html", None),
-        ("Articulated holding, torsion, GPU and Newton follow-up (Codex)", "docs/experiments/20261004-codex/20261004-articulated_contact_transfer.html", None),
-        ("50&#8202;Hz controller and physics-step sweep (Codex)", "docs/experiments/20261004-codex/20261004-controller_timestep.html", None),
-        ("Research asides: coupled-foundation models for the printed tip", ASIDES_PATH, None),
-        ("Video gallery (Codex)", "docs/experiments/20261004-codex/20261004-contact_videos.html", None),
-    ]
-    url = bed_url()
-    items.insert(0, ("Contact comparison bed: tasks, films and numbers", BED_PATH, url))
-    out = []
-    for name, path, u in items:
-        link = f", <a href=\"{u}\">artifact</a>" if u else " (local)"
-        out.append(f"{name}: <code>{path}</code>{link}")
-    return "<br>".join(out)
+    """Index of linked pages: a table grouped by kind, each title linked to the local file and, where one exists, the
+    artifact (owner 2026-10-09: a more usable index at the bottom)."""
+    alias = {"BED": BED_PATH, "HT3": HT3_PATH, "CHAIN": CHAIN_PATH, "ASIDES": ASIDES_PATH}
+    here = os.path.dirname(os.path.relpath(OUT, ROOT))
+    out, group = ["<table class='index'><thead><tr><th>Date</th><th>Page</th><th>Contents</th><th>Artifact</th></tr></thead><tbody>"], None
+    for g, date, title, path, what in RELATED:
+        path = alias.get(path, path)
+        if g != group:
+            out.append(f"<tr class='grp'><td colspan='4'>{g}</td></tr>")
+            group = g
+        u = _url(os.path.join(ROOT, os.path.dirname(path), "artifact_url.txt"))
+        if path == CHAIN_PATH:
+            u = u or CHAIN_URL
+        art = f"<a href='{u}'>link</a>" if u else ""
+        out.append(f"<tr><td class='num'>{date}</td><td><a href='{os.path.relpath(os.path.join(ROOT, path), os.path.join(ROOT, here))}'>"
+                   f"{title}</a></td><td>{what}</td><td>{art}</td></tr>")
+    out.append("</tbody></table>")
+    return "".join(out)
 
 
 def bed_url():
@@ -1248,6 +1244,7 @@ def main():
     if left:
         raise SystemExit(f"unfilled placeholders: {left}")
     t, n_tex = render_tex(t)
+    t = retro_style.apply(t)  # plain page style (owner, 2026-10-09)
     open(OUT, "w").write(t)
     print(f"formulas {n_tex}; wrote {OUT} ({os.path.getsize(OUT) / 1e6:.2f} MB)")
 
