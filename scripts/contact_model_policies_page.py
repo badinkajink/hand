@@ -383,15 +383,32 @@ def svg_transfer(X: Data):
 
 
 WATCH_SIG = [("ang_jerk_hold_median", "tool shaking in the hold (rad/s&#178;)", (1, 1000), (1, 10, 100, 1000), True, 1.0),
+             ("cos_step_hold_median", "tool rocking: cosine change per policy step", (0.0001, 0.1), (0.0001, 0.001, 0.01, 0.1), True, 1.0),
              ("dact_held", "|&#916;a| per policy step (action units)", (0, 0.8), (0, 0.2, 0.4, 0.6, 0.8), False, 1.0),
+             ("resid_over_frac", "actions at or past the residual budget (%)", (0, 60), (0, 20, 40, 60), False, 100.0),
              ("ctrl_sat_frac", "servo targets at a range limit (%)", (0, 30), (0, 10, 20, 30), False, 100.0),
              ("share_min", "smallest finger share of the grip (%)", (0, 34), (0, 10, 20, 30), False, 100.0)]
+
+
+def watch_value(r, key):
+    """A watch row's signal; the rocking of rows written before it existed comes from the row's saved traces."""
+    if r.get(key) is not None or key != "cos_step_hold_median":
+        return r.get(key)
+    p = os.path.join(ROOT, "logs/20261008-contact_model_policies/watch_traces", f"{r['tag']}_it{r['iteration']:04d}.npz")
+    if not os.path.exists(p):
+        return None
+    tr = np.load(p)
+    cos, z, fo = tr["cos"].astype(float), tr["z"].astype(float), tr["force"].astype(float)
+    held = (z > 0.06) & ((fo >= 0.24).sum(-1) >= 2)
+    hh = held[150:]
+    d = np.abs(np.diff(cos[150:], axis=0))[hh[1:] & hh[:-1]]
+    return float(np.median(d)) if d.size else None
 
 
 def _watch_lines(X: Data, arm, key, scale):
     out = {}
     for r in sorted((r for r in X.watch if r["arm"] == arm), key=lambda r: r["iteration"]):
-        v = r.get(key)
+        v = watch_value(r, key)
         out.setdefault(r["tag"], []).append(((r["iteration"] + 1) * STEPS_PER_IT / 1e6, None if v is None else v * scale))
     return out
 
@@ -399,17 +416,18 @@ def _watch_lines(X: Data, arm, key, scale):
 def svg_watch(X: Data):
     if not X.watch:
         return P.pending("Checkpoint watch rows not written yet (watch.jsonl).")
-    W, H = 990, 600
-    out = P._svg_open(W, H, "Checkpoint watch signals per contact model against environment steps: the tool's angular "
-                            "shaking in the hold, the action change per policy step, the servo targets at a range limit and "
-                            "the smallest finger's share of the grip force")
+    W, H = 990, 890
+    out = P._svg_open(W, H, "Checkpoint watch signals per contact model against environment steps: the tool's shaking and "
+                            "rocking in the hold, the action change per policy step, the actions at or past the residual "
+                            "budget, the servo targets at a range limit and the smallest finger's share of the grip force")
     for k, (key, lab, ys, yt, logy, scale) in enumerate(WATCH_SIG):
-        x0, y0 = (70, 570)[k % 2], (40, 330)[k // 2]
+        x0, y0 = (70, 570)[k % 2], (40, 330, 620)[k // 2]
         if logy:
             fx, fy = P._panel(out, x0, y0, 360, 200, (0, 41), ys, (0, 10, 20, 30, 40), yt,
                               "environment steps (millions)", lab, logy=True, yfmt="{:g}")
-            out.append(f'<line x1="{x0}" x2="{x0 + 360}" y1="{fy(40):.1f}" y2="{fy(40):.1f}" style="stroke:var(--ink3);'
-                       f'stroke-dasharray:2 4"/><text x="{x0 + 362}" y="{fy(40) + 4:.1f}" style="fill:var(--ink3)">40</text>')
+            lim = 40 if key == "ang_jerk_hold_median" else 0.005
+            out.append(f'<line x1="{x0}" x2="{x0 + 360}" y1="{fy(lim):.1f}" y2="{fy(lim):.1f}" style="stroke:var(--ink3);'
+                       f'stroke-dasharray:2 4"/><text x="{x0 + 362}" y="{fy(lim) + 4:.1f}" style="fill:var(--ink3)">{lim:g}</text>')
         else:
             fx, fy = P._panel(out, x0, y0, 360, 200, (0, 41), ys, (0, 10, 20, 30, 40), yt,
                               "environment steps (millions)", lab, yfmt="{:g}")
@@ -421,11 +439,15 @@ def svg_watch(X: Data):
 
 
 def stop_outcome(X: Data, tag):
-    """(iteration, reason) of the first watched checkpoint at which the stop rule fired, or None."""
-    rs = sorted((r for r in X.watch if r["tag"] == tag), key=lambda r: r["iteration"])
-    for r in rs:
-        if r.get("stop_rule"):
-            return r["iteration"], r.get("stop_reason", "")
+    """(iteration, reason) of the first watched checkpoint at which the stop rule (rl_contact_eval.stop_rule, with the
+    rocking of rows written before it existed taken from their traces) fires, or None."""
+    import rl_contact_eval as E
+    rs = sorted((dict(r, cos_step_hold_median=watch_value(r, "cos_step_hold_median")) for r in X.watch if r["tag"] == tag),
+                key=lambda r: r["iteration"])
+    for k in range(len(rs)):
+        stop, why = E.stop_rule(rs[:k + 1])
+        if stop:
+            return rs[k]["iteration"], why
     return None
 
 
@@ -721,6 +743,9 @@ GLOSSARY = [
     ("servo targets at a limit", "Share of the nine finger servo targets (anchor plus residual) at their actuator&#8217;s "
      "range limit over the active steps; the residual itself is not clipped in these runs."),
     ("finger share", "One fingertip&#8217;s share of the summed fingertip-tool force over the held steps."),
+    ("rocking", "Median absolute change of the tool&#8217;s cos between consecutive policy steps over the held steps of "
+     "the hold (steps 150&#8211;250). Above 0.005 with the tilting velocity reversing at most steps, the tool rocks at "
+     "the policy rate, an oscillation the shaking misses because the angular speed keeps its magnitude."),
     ("grip change per step", "Median absolute change of the summed fingertip-tool force between consecutive policy "
      "steps over the held steps of the hold (steps 150&#8211;250), N; a steady grip reads near 0."),
     ("open-loop replay", "From the state at policy step 58 of a MuJoCo-Warp rollout, the policy&#8217;s recorded finger "
@@ -809,11 +834,13 @@ def curves_section(X: Data):
            "training wall-clock time (right). One line per seed (marker: circle s0, square s1, diamond s2); a cross "
            "ends a run stopped by the checkpoint watch. A gap in the bottom row is an evaluation in which no rollout held.")
     out = figure(svg, cap, legend()) + curves_text(X)
-    wcap = ("Signals of the checkpoint watch at the same checkpoints: the tool&#8217;s shaking over the hold after the "
-            "turn (policy steps 150&#8211;250; dashed line: trajectory_health&#8217;s jitter limit), the mean action change "
-            "per policy step over the held steps, the share of finger servo targets at their actuator&#8217;s range limit, "
-            "and the smallest of the three fingers&#8217; shares of the grip force. Medians over held rollouts; one line "
-            "per seed as above.")
+    wcap = ("Signals of the checkpoint watch at the same checkpoints, over the hold after the turn (policy steps "
+            "150&#8211;250): the tool&#8217;s shaking (dashed: trajectory_health&#8217;s jitter limit) and rocking, the "
+            "median change of its cosine between policy steps (dashed: 0.005); the mean action change per policy step; the "
+            "share of action components at or past one unit (0.5&#8202;rad, the residual&#8217;s nominal budget; the runs "
+            "do not clip actions); the share of finger servo targets at their actuator&#8217;s range limit; and the "
+            "smallest of the three fingers&#8217; shares of the grip force. Medians over held rollouts; one line per seed "
+            "as above.")
     tcap = ("Training curves from the event files, smoothed over nine iterations: the stochastic policy&#8217;s mean "
             "episode return and length, tip-lost terminations (a fingertip off the tool for 15 steps ends the episode) and "
             "the alignment term of the return. One line per seed; a cross ends a stopped run.")

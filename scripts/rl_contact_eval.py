@@ -467,6 +467,7 @@ def watch_metrics(r: dict, ev: "Evaluator") -> dict:
     roll = (wv * ax).sum(-1)
     tilt = wv - roll[..., None] * ax
     rev = ((tilt[1:] * tilt[:-1]).sum(-1) < 0) & hh[1:] & hh[:-1]
+    dcos = np.abs(np.diff(r["cos"][150:], axis=0))[hh[1:] & hh[:-1]]       # frame-to-frame rocking at 50 Hz
     return dict(
         idle_rollouts={f: int(idle[:, k].sum()) for k, f in enumerate(FINGERS)},
         touch_frac_median=[float(np.median(touch[hr, k])) if hr.any() else None for k in range(3)],
@@ -476,6 +477,7 @@ def watch_metrics(r: dict, ev: "Evaluator") -> dict:
         spin_axis_hold_median=float(np.median(np.abs(roll)[hh])) if hh.any() else None,
         tilt_rate_hold_median=float(np.median(np.linalg.norm(tilt, axis=-1)[hh])) if hh.any() else None,
         tilt_reversal_frac=float(rev.sum() / max(1, (hh[1:] & hh[:-1]).sum())) if hh.any() else None,
+        cos_step_hold_median=float(np.median(dcos)) if dcos.size else None,
         joints_pinned90=[n for n, v in zip(jn, (pinned > 0.9).mean(0)) if v > 0.5],
         resid_over_frac=float((absa >= 1.0).mean()),
         resid_over_frac_held=float((absa >= 1.0)[act].mean()) if act.any() else None,
@@ -498,9 +500,11 @@ def degenerate_flags(row: dict) -> list[str]:
     every rollout: no rollout held at 5 s. Idle finger: trajectory_health's test (touching under half the held steps or
     under 1 N mean) in more than half the held rollouts, or a finger with under 5 % of the grip force. Jitter:
     trajectory_health's FAIL, the tool's angular jerk above 40 1/s^2 over the hold after the turn (steps 150-249; median
-    over held rollouts; the turn itself accelerates the tool and is excluded). Saturated: three or
-    more of the nine servo targets at their range limit for 90 % of the active steps in most rollouts, i.e. the policy
-    commands a third of the hand bang-bang. Palm: the tool on the palm plate in more than half the held steps."""
+    over held rollouts; the turn itself accelerates the tool and is excluded), with the tool's cosine moving by more than
+    0.005 per policy step (the visible rocking); or that rocking with the tilting velocity reversing at most steps (an
+    oscillation at the policy rate, which keeps the angular speed's magnitude and so escapes the jerk test). Saturated:
+    three or more of the nine servo targets at their range limit for 90 % of the active steps in most rollouts, i.e. the
+    policy commands a third of the hand bang-bang. Palm: the tool on the palm plate in more than half the held steps."""
     out = []
     n = max(row["n_held"], 1)
     if row["n_held"] == 0:
@@ -511,8 +515,11 @@ def degenerate_flags(row: dict) -> list[str]:
     if idle:
         out.append(f"idle finger ({', '.join(sorted(set(idle)))})")
     jh = row.get("ang_jerk_hold_median", row.get("ang_jerk_median"))
-    if jh is not None and jh > 40.0:
+    rk = row.get("cos_step_hold_median")
+    if jh is not None and jh > 40.0 and (rk is None or rk > 0.005):
         out.append(f"jitter (tool jerk {jh:.0f} 1/s^2 in the hold)")
+    elif (rk or 0) > 0.005 and (row.get("tilt_reversal_frac") or 0) > 0.5:
+        out.append(f"rocking (cosine moves {rk:.3f} per step, reversing)")
     if len(row.get("joints_pinned90") or []) >= 3:
         out.append(f"saturated ({', '.join(row['joints_pinned90'])})")
     if row.get("palm_contact_frac") is not None and row["palm_contact_frac"] > 0.5:
