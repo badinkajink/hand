@@ -818,7 +818,7 @@ def main():
     v["NC_S05"] = f"{b['mj:spheres:s0.5:rs0.75:tr0.03']['nc_hold']:.0f}"
     v["NC_DHY"] = f"{b['drake:hydro:rt0.01']['nc_hold']:.0f}"
     # the paper's other tasks
-    v["PAPER_LEAD"], v["PAPER_LEDE"], v["PAPER_MODELS"] = paper_text()
+    v["PAPER_LEAD"], _, v["PAPER_MODELS"] = paper_text()      # the paper lede no longer goes in the page lede
     v["WIELD_TABLE"], v["EXP3_TABLE"], v["EXP2_TABLE"] = wield_table(), exp3_table(), exp2_table()
     v["WIELD_FILMS"] = paper_film("wield", "s1", "Wield, six retract-turn cycles in the peg hole:") + paper_tile("wield", "The wield")
     v["EXP3_FILMS"] = paper_film("exp3", "s1", "Exp&#160;3, pusher cycles and the tripod lift:") + paper_tile("exp3", "Exp&#160;3")

@@ -133,14 +133,12 @@ a:focus-visible{outline:2px solid var(--s2);outline-offset:2px;border-radius:2px
 <header>
   <div class="eyebrow">MorphoHand &#183; real_v1 / SR2 hand, D8 gantry &#183; controller of arXiv 2609.25619 &#183; 1&#8211;2 October 2026 &#183; built {{BUILT}}</div>
   <h1>Relative contact-velocity control of the screwdriver pick, braked swing, peg-hole insertion and wield on the SR2 hand in MuJoCo and Drake</h1>
-  <p class="lede">A pad of small spheres gives MuJoCo the pinch friction torque that Drake gets from its hydroelastic
-  pressure field. On the nominal trial, the controller of Wang, Oh and Pollard drives the same pick, braked swing, squeeze
-  and peg-hole insertion in Drake and in MuJoCo. A closed-loop brake ends the swing at {{PHI_DHY}}&#176; in Drake hydroelastic,
-  {{PHI_S05}}, {{PHI_S1}} and {{PHI_S2}}&#176; with 0.5, 1 and 2&#8202;mm sphere pads, and {{PHI_P4S}}&#176; with condim&#160;4. In each case
-  the tool goes {{DEPTH_RANGE}}&#8202;mm into a 1&#8202;mm-clearance hole. Point contact fails in both simulators. Across ten
-  perturbed seeds the pick fails in {{PICK_FAIL}} of 10, so the brake&#8217;s reliability is not yet measured. Per simulated
-  second on one core, the physics costs {{MS_P4S}}&#8202;ms with condim&#160;4, {{MS_S1}}&#8202;ms with the 1&#8202;mm pad and {{MS_DHY}}&#8202;ms with
-  Drake hydroelastic at its default 1&#8202;mm mesh. {{PAPER_LEDE}}</p>
+  <p class="lede">With the controller of Wang, Oh and Pollard, the SR2 hand picks the screwdriver, brakes its swing to
+  hanging and inserts it in a peg hole, in simulation. The closed-loop brake ends the swing at {{PHI_DHY}}&#176; in
+  Drake hydroelastic, {{PHI_S1}}&#176; with 1&#8202;mm sphere pads and {{PHI_P4S}}&#176; with condim&#160;4, and
+  the tool goes {{DEPTH_RANGE}}&#8202;mm into its hole; point contact, without friction torque, drops it. The pick
+  fails on {{PICK_FAIL}} of 10 perturbed seeds. Per simulated second the physics costs {{MS_P4S}}&#8202;ms with
+  condim&#160;4, {{MS_S1}}&#8202;ms with 1&#8202;mm pads and {{MS_DHY}}&#8202;ms with Drake hydroelastic.</p>
   <div class="byline">D8 gantry from <code>sv1_w0099_b100_plan.json</code> on a four-axis palm stage (x, y, z, yaw; the arm)
   &#183; fingers: kp 0.5&#8202;N&#183;m/rad, kv 0.02, effort 0.35&#8202;N&#183;m, no joint damping or friction loss &#183; tool 24.5&#8202;g, r 12.5&#8202;mm,
   100&#8202;mm, pinched 15&#8202;mm from its centre of mass &#183; &#956;&#8202;1.0 pad&#8211;tool, 0.3 tool&#8211;environment &#183; Drake {{DRAKE_V}} SAP,
