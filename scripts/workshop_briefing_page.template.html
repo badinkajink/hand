@@ -114,7 +114,9 @@ footer a{color:var(--s2)}
   <div class="byline">Sources: <code>paper/</code> (tex, corrections, review notes), <code>docs/experiments/</code>
   ({{N_DIRS}} dated folders, {{N_PAGES}} result pages in <code>INDEX.md</code> at the time), <code>docs/rl/</code> logs and
   the scripts &#183; counts and correlations with a JSON source are recomputed by the builder; numbers from markdown records
-  name their file &#183; the paper: sr2-hand.github.io/paper_iros26_rmr.pdf</div>
+  name their file &#183; the paper: sr2-hand.github.io/paper_iros26_rmr.pdf &#183; the calibrated servo model (kp 0.5) named
+  here was withdrawn on 2026-10-06; the <a href="../../overviews/hand_plant_bench.html">hardware overview</a> gives the
+  current one</div>
   <nav class="toc">
     <a href="#reconcile">Discrepancies with the PDF</a> &#183; <a href="#provenance">Sources of the numbers</a> &#183;
     <a href="#funnel">Funnel</a> &#183; <a href="#definitions">Retention, alignment, success</a> &#183;
@@ -305,8 +307,8 @@ does not distinguish the bench&#8217;s 2/10 from its 10/10.</p>
 
 <section id="definitions"><div class="col">
 <h2>Retention, alignment and reorientation success</h2>
-<p class="sub">what a trial measures, in the simulator and on the bench, with the thresholds and the durations</p>
-<div class="tw"><table><thead><tr><th>quantity</th><th>simulator (retention screen and bench-schedule replay)</th><th>bench</th></tr></thead><tbody>
+<p class="sub">What a trial measures in the simulator and on the bench, with thresholds and durations</p>
+<div class="tw"><table><thead><tr><th>Quantity</th><th>Simulator (retention screen and bench-schedule replay)</th><th>Bench</th></tr></thead><tbody>
 <tr><td><strong>retention</strong></td><td class="small"><code>ok</code>: &#8805; 1 hand contact at the end, minimum height within 20 mm of the lifted height, no post contact, proof-lift rise &#8805; 48 mm, slip &#8804; 10 mm through the 5.0 s hold. The bench-schedule replay uses the same rule with a 9.6 s hold and no proof lift.</td><td class="small">the operator&#8217;s verdict at the end of the trial (the trajectory is 3.98 s; the camera runs 2.5 s past it; Fig. 3&#8217;s final frame is 1 s after the trajectory ends). The instrument&#8217;s fallback, used only when no verdict exists: a fall &#8805; 25 mm sustained &#8805; 0.4 s. A trial with neither is <em>unresolved</em>.</td></tr>
 <tr><td><strong>alignment c</strong></td><td class="small">the signed cosine between the shaft axis and world vertical at the last step of the hold; a released rollout contributes 0 to the mean</td><td class="small"><code>cos_up</code> from the vane tag against the static reference tag, averaged over the last 1.0 s of the recording (<code>HOLD_WINDOW_S</code>); reported over held trials only; void when the tag is not seen in that window (D4&#8217;s case)</td></tr>
 <tr><td><strong>net turn</strong></td><td class="small">&#8212;</td><td class="small">tag angle at the last reading minus the first, degrees; on a dropped trial it includes rotation during the fall</td></tr>
@@ -314,28 +316,27 @@ does not distinguish the bench&#8217;s 2/10 from its 10/10.</p>
 <tr><td><strong>reorientation success</strong></td><td class="small"><code>win</code>: retained <em>and</em> c &#8805; 0.7, i.e. within 45.6&#176; of vertical after the hold</td><td class="small">none in the paper; hold rate and alignment are reported separately</td></tr>
 <tr><td><strong>holding duration</strong></td><td class="small">5.0 s after a 1.4 s proof lift (screen); 9.6 s (replay)</td><td class="small">~1 s at the end of the trajectory plus the 2.5 s post-roll; the servos hold their last command</td></tr>
 </tbody></table></div>
-<p>The simulator and the bench disagree in one convention. The simulator&#8217;s held cosine counts a release as zero, so
-it is a retention-weighted alignment. The bench cosine averages the trials that held. The pre-registered protocol asked
-for parity (&#8220;a bench trial that released the tool contributes cos_up = 0&#8221;); the analysis went the other way because
-the tag cannot tell a turn from a fall, so a dropped trial has no honest alignment to contribute. The two conventions give
-different rankings, in <a href="#ranking">&#167;4</a>.</p>
+<p>The simulator and the bench differ in one convention. The simulator&#8217;s held cosine counts a release as zero, a
+retention-weighted alignment; the bench cosine averages the trials that held. The pre-registered protocol asked for parity
+(&#8220;a bench trial that released the tool contributes cos_up = 0&#8221;); the analysis averaged held trials because the tag
+cannot tell a turn from a fall. The two conventions rank the hands differently (<a href="#ranking">&#167;4</a>).</p>
 
-<h3>A success criterion the data supports</h3>
+<h3>Proposed reorientation criterion</h3>
 <p>Forty-four of the 48 held trials finish between 20&#176; and 60&#176; of net turn, against 4 of the 28 drops. The
 drops leave that band in both directions: 12 pass 60&#176;, 12 stop short of 20&#176;. The proposal from the record
 (<code>project_eight_hand_bench_record</code>): a trial is a reorientation when it is <em>held</em>, its net turn is inside
 20&#8211;60&#176;, and its slip is under 20 mm (held slips run 4.9&#8211;10.9 mm; ejections 24&#8211;54 mm). Under that rule the
-eight hands score 44/77 rather than 51/80, and every count stays attributable to a trial.</p>
-<p>The caveat belongs in the same sentence: restricting each trial to rotation recorded while the cylinder was still rising
-moves the drop side of the contingency from 4/28 to 17/28. Most drops turn as far as the holds before they let go; the
-20&#8211;60&#176; band separates outcomes after the fact more than it describes a mechanism. What the tag cannot supply is
+eight hands score 44/77, against the PDF&#8217;s 51/80, and every count is attributable to a trial.</p>
+<p>Restricting each trial to rotation recorded while the cylinder was still rising
+moves the drop side of the contingency from 4/28 to 17/28: most drops turn as far as the holds before they let go, so
+the 20&#8211;60&#176; band separates outcomes after the fact. What the tag cannot supply is
 a contact signal, and the transfer sessions logged no servo load (fixed at the source for later sessions:
-<code>--telemetry-hz 10 --servo-fields load</code>). The two drop modes that survive the correction are established by
-lateral travel and by a shortfall in rotation, not by the peak: D6&#8217;s seven drops travel 24&#8211;54 mm with no net turn
+<code>--telemetry-hz 10 --servo-fields load</code>). The two drop modes that remain after the correction are identified
+by lateral travel and by a shortfall in rotation: D6&#8217;s seven drops travel 24&#8211;54 mm with no net turn
 (ejection), and D3&#8217;s five drops travel like a hold and stop at 25&#176; against its holds&#8217; 42&#176; (stall, p = 0.040).
 &#8220;Overshoot&#8221; was withdrawn: D8&#8217;s held and dropped trials are identical to 1.4 s, then the holds finish at
 46&#8211;59&#176;/s and stop at 52&#176; while the drops rotate at 166&#8211;217&#176;/s with the centre descending at about half
-of g. The extra 20&#176; is the shaft being flung.</p>
+of g, so the extra 20&#176; is the shaft being flung.</p>
 <p>A rotation threshold that the simulator and the bench could share is c &#8805; 0.7 on a held trial. Against the
 corrected per-hand means, D1 (0.834), D2 (0.797), D4 (0.819, peak), D5 (0.938) and D8 (0.773) sit above it and D3 (0.689),
 D6 (0.614) and D7 (0.553) below; D7, the hand that retains every trial, is 0.15 short of it with sd 0.049. A per-trial
@@ -345,9 +346,9 @@ window when asked to rebuild it.</p>
 </div></section>
 
 <section id="ranking"><div class="col">
-<h2>Scoring on held trials, the D4 substitution, and eight hands</h2>
-<p class="sub">the transfer table with both simulated scores, the correlations recomputed from
-<code>paper/figures/ranking.json</code>, and the sensitivity of each to the choices the reviewer asks about</p>
+<h2>Scoring on held trials, the D4 substitution and the eight-hand ranking</h2>
+<p class="sub">The transfer table with both simulated scores, the correlations recomputed from
+<code>paper/figures/ranking.json</code>, and their sensitivity to the scoring choices</p>
 {{EIGHT_TABLE}}
 <p class="small" style="color:var(--ink3)">sim c: bench-schedule replay, 4 replicates, released = 0 &#183; sim kept: fraction of those
 retained &#183; retention-screen c: the confirmation pass&#8217;s nominal mean at the clip the screen selected (not the shipped
@@ -356,22 +357,22 @@ clip; D5 and D7 were not in the 8,192 confirmation) &#183; full-error kept: reta
 includes three later holds &#183; * D4 reports peak alignment</p>
 {{RHO_TABLE}}
 
-<h3>What scoring on held trials does to the ranking</h3>
+<h3>Effect of scoring on held trials</h3>
 <p>The alignment column is conditioned on survival, and the survival fraction runs from 0.2 to 1.0 across the eight. D5&#8217;s
 0.938 is the mean of the three trials that held; its seven drops turned to 73&#176; on average and left. D6&#8217;s 0.614
 rests on two trials. The simulator&#8217;s convention scores a release as zero, which produces a retention-weighted alignment:
 D1 0.715, D2 0.797, D3 0.275, D4 0.737, D5 0.281, D6 0.123, D7 0.553, D8 0.309. Against the simulated column that gives
-&#961;<sub>s</sub> = {{RHO_RW}} (p = {{P_RW}}) instead of {{RHO_ALL}}, and D5 moves from first to sixth. Neither convention is
-wrong; they answer different questions. Held-only alignment asks how far a hand turns the tool when it keeps it, which is
-the quantity the geometric plan predicts. Retention-weighted alignment asks how often a trial ends with a turned, held tool,
-which is what a downstream task needs. The paper reports the first and should say so, and report the second beside it.</p>
+&#961;<sub>s</sub> = {{RHO_RW}} (p = {{P_RW}}) instead of {{RHO_ALL}}, and D5 moves from first to sixth. Held-only alignment measures how far a hand turns the tool when it keeps it, the
+quantity the geometric plan predicts; retention-weighted alignment measures how often a trial ends with a turned, held
+tool, the quantity a downstream task needs. The paper reports the first; it should say so and report the second beside
+it.</p>
 <p>The conditioning also explains the near-zero correlation between hold rate and alignment (&#961;<sub>s</sub> =
 {{RHO_HOLD_BENCH}}): the hands that turn furthest when they hold are the ones that most often do not hold (D5, D8), and the
 hand that always holds turns least (D7). Retention and alignment are two outcomes of one open-loop plan, and the plan trades
-them: in the simulated chain, past about 59&#176; of turn no cell carries the tool and every cell that turns 44&#176; or
-less carries 4/4 (<code>docs/experiments/20260906-screened_turn/</code>). The mechanism is in the simulator&#8217;s own per-finger trace: through
-the turn the index pad leaves at about half of it and the total pad force falls from 28 N to 0.3 N by 70 %, so the last
-third of the rotation is the tool settling into vertical in a hand that is barely holding it.</p>
+them: in the simulated chain, past about 59&#176; of turn no cell holds the tool and every cell that turns 44&#176; or
+less holds it 4/4 (<code>docs/experiments/20260906-screened_turn/</code>). The mechanism is in the simulator&#8217;s own per-finger trace: through
+the turn the index pad leaves at about half of it and the total pad force falls from 28 N to 0.3 N by 70 %, so in the last
+third of the rotation the tool falls toward vertical in a hand that barely holds it.</p>
 
 <h3>The D4 peak substitution</h3>
 <p>On every one of D4&#8217;s nine held trials the vane leaves the decodable image near vertical, so its hold-window cosine is
@@ -387,10 +388,9 @@ the centre instead of 77 mm cuts the swept arc by a third and keeps the 40 mm ta
 <p>The eight-point coefficient {{RHO_ALL}} has p = {{P_ALL}} and a bootstrap 95 % interval over hands of
 [{{BOOT_LO}}, {{BOOT_HI}}]; the two-sided 5 % critical value at n = 8 is 0.74. The pre-registered protocol (n = 16 plans)
 stated the critical value of 0.50 for its design and called itself powered for a strong correlation and underpowered for a
-weak one; the study ran eight morphologies at ten trials rather than sixteen plans at four. The secondary correlations
-are descriptive at this n: contact force {{RHO_FORCE}} (p = 0.09), contact count {{RHO_CONT}}, and nothing simulated
-orders hold rate (&#8722;0.29 &#8804; &#961;<sub>s</sub> &#8804; 0.27). Two further reasons to read them as hypotheses rather
-than results:</p>
+weak one; the study ran eight morphologies at ten trials each instead. The secondary correlations are descriptive at this n:
+contact force {{RHO_FORCE}} (p = 0.09), contact count {{RHO_CONT}}, and nothing simulated orders hold rate (&#8722;0.29
+&#8804; &#961;<sub>s</sub> &#8804; 0.27). Two further limits apply to them:</p>
 <ul>
 <li><strong>Within-eight correlations inherit the selection.</strong> The eight were chosen in simulated-alignment order, so
 any variable correlated with the selection correlates with alignment inside the set. The depth of the grasp fit reads
@@ -410,8 +410,8 @@ needs the bench.</p>
 
 <section id="repeat"><div class="col">
 <h2>Repeatability and placement sensitivity</h2>
-<p class="sub">morphology positioning, trial-to-trial repeatability on one plan, session-to-session drift, and the
-simulated sensitivity to where the tool is put</p>
+<p class="sub">Morphology positioning, trial-to-trial repeatability on one plan, session-to-session drift and the
+simulated sensitivity to tool placement</p>
 
 <h3>Morphology positioning</h3>
 <p>The six gantries run on T5 &#215; 1 lead screws at 3,216 steps/mm, homed sensorlessly against a hard stop by TMC5160
@@ -419,8 +419,8 @@ StallGuard2 with a timeout fallback sized to cover the full travel (J3 and J5 do
 tuning and home on the timeout every time, which is still a hard-stop home). A 45 mm caliper check on J1/J3/J5 found
 0.0 % scale error (<code>verify_frame_mapping.py --travel</code>), and the station adopts an existing home when the
 gantries sit within 0.5 mm of a plan&#8217;s targets. No dial-indicator repeatability of the home itself is on record; that
-measurement (home ten times, read one mount against a fixed indicator) is a half-hour item and should be reported as a
-number rather than an assumption. Two sim-side facts bound its importance: the deployment envelope&#8217;s mount-error axis at
+measurement (home ten times, read one mount against a fixed indicator) takes half an hour. Two simulated results limit its
+importance: the deployment envelope&#8217;s mount-error axis at
 2 mm changes retention through the turn from 77 % to 80 % pooled over 18 designs (placement and servo zeros matter far
 more), and the nearest pair of deployed hands is 14.4 mm apart, so a sub-millimetre home does not confuse one design
 with another.</p>
@@ -439,14 +439,14 @@ designs is 0.027&#8211;0.061 against a between-design spread of 0.49&#8211;0.94,
 exception at 0.221 because its trials are a mixture of held grips and partial slips (0.21, 0.30, 0.32, 0.33, 0.61, 0.66,
 0.70, 0.78).</p>
 
-<h3>The instrument</h3>
+<h3>Tag tracker</h3>
 <p>Two AprilTags: a 40 mm static tag as the world-up datum and a 30 mm (later 40 mm) tag on a vane 71 mm (later 77 mm)
 along the shaft, read by a RealSense D435 at 30 fps. Noise floor against a static target: 0.017&#176; rms in angle,
 0.030 mm rms in height. The operator&#8217;s by-eye estimate was &#177;5&#176; and could not see axial slip; two earlier
 results were traced to it (a &#8220;90&#176;&#8221; that was the shaft falling through the grasp). The vane is placed on the
 end of the shaft that rises, normal to the pinch axis, so the turn is an in-plane image rotation.</p>
 
-<h3>Sensitivity to manual placement, in simulation</h3>
+<h3>Simulated sensitivity to manual placement</h3>
 <p>The bench has no placement jig: the operator centres the cylinder on the post by eye at a simulation-derived height.
 The deployment envelope (<code>scripts/real_v1_deploy_envelope.py</code>) measures what that costs by planning on the nominal
 hand and replaying the unchanged plan on a perturbed scene. Two forms: one-at-a-time maps, and an ensemble in which
@@ -455,7 +455,7 @@ mount error |N(0, 1.5 mm &#183; L)|, a servo zero offset |N(0, 2&#176; &#183; L)
 mass (0.6&#8211;2.0), radius (0.92&#8211;1.08), friction (0.45&#8211;1.8), contact stiffness, servo gain (0.3&#8211;2.5), torque
 (0.35&#8211;1.5) and damping. &#8220;Half error&#8221; is L = 0.5 (the staging tolerance a careful operator holds), &#8220;full
 error&#8221; L = 1.0.</p>
-<div class="tw"><table><thead><tr><th>design (D4 = g12)</th><th>platform height</th><th>along the tool</th><th>across it</th><th>yaw</th></tr></thead><tbody>
+<div class="tw"><table><thead><tr><th>Design (D4 = g12)</th><th>Platform height</th><th>Along the tool</th><th>Across it</th><th>Yaw</th></tr></thead><tbody>
 <tr><td class="mono">g23</td><td class="num">&#8722;2 .. +4 mm</td><td class="num">&#8722;8 .. +3 mm</td><td class="num">&#8722;7 .. +8 mm</td><td class="num">&#8722;12 .. +18&#176;</td></tr>
 <tr><td class="mono">g24</td><td class="num">&#8722;3 .. +4</td><td class="num">&#8722;8 .. +2</td><td class="num">&#8722;7 .. +8</td><td class="num">&#8722;12 .. +18</td></tr>
 <tr><td class="mono">g12 (D4)</td><td class="num">&#8722;1.5 .. +4</td><td class="num">&#8722;2 .. +4</td><td class="num">&#8722;8 .. +8</td><td class="num">&#8722;8 .. +2</td></tr>
@@ -463,10 +463,10 @@ error&#8221; L = 1.0.</p>
 <tr><td class="mono">g01</td><td class="num">&#8722;4 .. +4</td><td class="num">&#8722;3 .. +1</td><td class="num">&#8722;4 .. +7</td><td class="num">0 .. +10</td></tr>
 <tr><td class="mono">rv04_mid</td><td class="num">+0.5 .. +4</td><td class="num">&#8722;8 .. &#8722;1</td><td class="num">+3 .. +8</td><td class="num">+2 .. +12</td></tr>
 </tbody></table></div>
-<p class="small" style="color:var(--ink3)">width of the placement band inside which the win rate stays above 50 %, 20 draws per
+<p class="small" style="color:var(--ink3)">Width of the placement band inside which the win rate stays above 50 %, 20 draws per
 point, flat-pad hand, fixed palm, each design at its bench-tuned cell (<code>docs/experiments/20260829-real_v1_deploy/DEPLOY.md</code>
 &#167;11). Platform height is one-sided on every design: too low is too little squeeze.</p>
-<p>Two readings. Axial placement is the tight axis (2&#8211;6 mm bands) and its basin is often off-centre: the fitter rings
+<p>Axial placement is the tight axis (2&#8211;6 mm bands) and its basin is often off-centre: the fitter rings
 the pads on the tool&#8217;s mid-length and for half the designs the working band sits 1&#8211;4 mm to one side, so the shipped
 plan starts near the edge of its own tolerance (rv04_mid reads 40 % at nominal and 100 % from &#8722;8 to &#8722;1 mm).
 Yaw and transverse placement are forgiving on the better designs. For the six Sobol hands the full-error ensemble retained
@@ -481,9 +481,9 @@ sim-to-real term on record.</p>
 </div></section>
 
 <section id="status"><div class="col">
-<h2>What is completed and what is proposed</h2>
-<p class="sub">every claim in Sections II&#8211;IV and Appendix D of the paper, with its status in the record</p>
-<div class="tw"><table><thead><tr><th>item in the paper</th><th>status</th><th>evidence</th></tr></thead><tbody>
+<h2>Completed and proposed items of the paper</h2>
+<p class="sub">Every claim in Sections II&#8211;IV and Appendix D of the paper, with its status in the record</p>
+<div class="tw"><table><thead><tr><th>Item in the paper</th><th>Status</th><th>Record</th></tr></thead><tbody>
 <tr><td>15-DoF platform, firmware, bus, homing (II-A, II-B)</td><td><span class="chip kept">built</span></td><td class="small">251 archived bench runs over 11 morphologies; bus, homing and overload protection measured</td></tr>
 <tr><td>CEM grasp + open-loop geometric plan (II-C a)</td><td><span class="chip kept">completed</span></td><td class="small">the deployed controller on every bench run; on the population the grasp is the closed-form fit, CEM only on the anchors and the earlier 108-hand search</td></tr>
 <tr><td>Sobol sampling and the funnel (II-C b)</td><td><span class="chip kept">completed</span></td><td class="small"><a href="#funnel">&#167;2</a>; counts reproduce from disk to the unit</td></tr>
@@ -498,24 +498,24 @@ sim-to-real term on record.</p>
 <tr><td>Local and global sim-to-real agreement (App. D i)</td><td><span class="chip open">partial</span></td><td class="small">global: the n = 8 study. Local: within-family clip repeats (g12 at four clips, u0060 at two, u0100 at two) were exported and are on the station; the within-family bench contrast in the protocol&#8217;s &#167;7.3 was not run</td></tr>
 <tr><td>Task-conditioned specialisation persisting on hardware (App. D iv)</td><td><span class="chip proposed">proposed</span></td><td class="small">one task, one object on hardware; the basketball study (2026-09-16) is simulation only</td></tr>
 <tr><td>Morphologies trading nominal performance for robustness (App. D v)</td><td><span class="chip open">simulation only</span></td><td class="small">rv04_mid: best nominal (0.997) and worst under placement error (0.46); the robustness re-ranking was never taken to the bench as a comparison</td></tr>
-<tr><td>Additional motorised parameters: phalange length, contact geometry, compliance (Disc. 5, App. D)</td><td><span class="chip proposed">proposed</span></td><td class="small">simulation evidence in <a href="#future">&#167;10</a>; no hardware</td></tr>
+<tr><td>Additional motorised parameters: phalange length, contact geometry, compliance (Disc. 5, App. D)</td><td><span class="chip proposed">proposed</span></td><td class="small">simulation results in <a href="#future">&#167;10</a>; no hardware</td></tr>
 <tr><td>Automated reset (Disc. 1)</td><td><span class="chip proposed">proposed</span></td><td class="small">every trial re-staged by hand</td></tr>
 <tr><td>Actuator sysid (Disc. 3)</td><td><span class="chip kept">completed</span></td><td class="small">2026-09-02: one spring constant for the hand, the overload cliff, kp 0.5 in the simulator; the correction reproduces one hand&#8217;s level and not the ordering</td></tr>
 <tr><td>Sensorised fingertips, palms (Disc. 4)</td><td><span class="chip proposed">proposed</span></td><td class="small">the only object sensing is the external tag; the servo has no current register</td></tr>
 </tbody></table></div>
-<p>The line to hold in the talk: everything on hardware is one task, one object, eight morphologies, one open-loop
-controller, one session per morphology. Everything about closing a loop, conditioning a controller on the design, or
-searching with hardware in it is a plan with simulation evidence behind it.</p>
+<p>The hardware results cover one task, one object, eight morphologies, one open-loop controller and one session per
+morphology. Closing a loop, conditioning a controller on the design and searching with hardware in the loop are plans
+with simulation results behind them.</p>
 </div></section>
 
 <section id="learned"><div class="col">
-<h2>The learned controllers, and why the paper deploys a derived one</h2>
-<p class="sub">what was trained, what it established, the reasons it is not on the bench, and where it stands on 2026-09-20 &#183;
-the pipeline as it runs today, with a decision register, is on the robust-tranche page
+<h2>Learned controllers and the derived controller the paper deploys</h2>
+<p class="sub">What was trained, what it established, why it is not on the bench, and its state on 2026-09-20 &#183; the
+pipeline with a decision register is on the robust-tranche page
 (<a href="../20260920-robust_tranche/20260920-robust_reorient_policies.html">local</a> &#183;
 <a href="https://claude.ai/artifact/NZLr9wdDAWjZC1HM6ed6ed">published</a>)</p>
 
-<h3>What was trained</h3>
+<h3>Training setup</h3>
 <p>The task is the paper&#8217;s: a 25 mm &#215; 100 mm cylinder lying on the floor is closed on, lifted 100 mm, and turned to
 vertical by the nine finger joints alone. The policy is a residual: at 50 Hz it emits nine numbers, each scaled by 0.5 rad
 and added to a scripted finger set-point that eases from the open keyframe to the fitted grip over the first 80 physics
@@ -525,15 +525,16 @@ lift, which is the property that lets the same recipe run on any hand with a fit
 the finger joints (9) and tool pose (7) of a reference rollout of the same grip at this step, the previous action (9), and
 1 &#8722; cos between the shaft and vertical. PPO (rsl_rl) on 3,072 copies of the frozen scene in MuJoCo-Warp through mjlab,
 24 steps per iteration, 20 M steps in about 36 min on the workstation&#8217;s RTX 4070 Ti SUPER; the GPU is saturated at
-about 10,000 steps/s and the environment count buys nothing.</p>
+about 10,000 steps/s, and more environments do not raise it.</p>
 <p>The reward that converged, in order of weight: a progress term (300 &#215; the per-step change in cosine), an alignment
 term (100 &#215; exp(&#8722;4(1 &#8722; cos)&#178;)), a lift term during the lift, contact terms (all three pads on the tool, mean
 pad contact), tracking terms against the reference rollout, and penalties on lateral drift, finger drift from the grip,
 action rate, joint limits and pad force above 6 N. Both reorientation terms switch on at policy step 58, half a second
 after the lift ramp ends, together with the tip-lost termination (fewer than three pads for 15 consecutive steps). The
 episode is 5 s. The recipe is <code>configs/recipes/b_liveA.yaml</code> plus the run&#8217;s own flags.</p>
-<p>The architecture came from a seam. A single lift-and-turn policy could not be trained: a warm start from a lift policy
-carried a hold-still prior that PPO never overrode, and from scratch the rewards fought. The fix was two policies, A for the
+<p>The two-policy architecture came from the hand-off between lift and turn. A single lift-and-turn policy could not be
+trained: a warm start from a lift policy kept a hold-still prior that PPO never overrode, and from scratch the rewards
+conflicted. The fix was two policies, A for the
 lift and B for the turn, which created a new problem at the hand-off: a B trained from a teleported pre-lifted spawn drops
 A&#8217;s organic delivery (post-handoff minimum height 0.002&#8211;0.012 m across every injection and co-adaptation variant
 tried, June 2&#8211;9). The <em>live-A reset</em> closed it on 2026-06-10: a frozen A drives the first 40 steps of every B
@@ -541,31 +542,30 @@ episode in real physics and those steps are masked from the PPO update, so B see
 hand the lift is scripted (the fitter&#8217;s grip plus the palm ramp), so there is no A, and the &#8220;live-A&#8221; recipe runs
 with the script in A&#8217;s place.</p>
 
-<h3>What the policies established</h3>
+<h3>Results of the learned policies</h3>
 <ul>
 <li>The turn is achievable in-hand on the earlier m05 hand: <code>b33</code> holds the continuous hand-off at cos 0.891 (peak
 0.99) on three loaded pads; a warm-started reorient draw has a seed sd of 0.032 across 16 draws.</li>
 <li>Their terminal poses and the shape of the finger motion are what the geometric plan reproduces. The
 <code>hold_target_ctrl</code> anchor lerp that became the deployed controller was written for the opposed-pair hand as the
 policy&#8217;s set-point schedule; the &#177;0.5 rad clip that every screen inherited was the policy&#8217;s action budget.</li>
-<li>They defined the evaluation discipline the bench work then used: score the deterministic held cosine, never the reward;
-look at the rollout before explaining its numbers; a held peak is not a hold; evaluate as a distribution.</li>
+<li>They set the evaluation rules the bench work then used: score the deterministic held cosine and never the reward,
+look at the rollout before explaining its numbers, count a hold only after the hold window, and evaluate as a
+distribution.</li>
 </ul>
 
-<h3>Why the paper deploys the derived controller</h3>
-<p>Each reason is a measurement, and together they order the work that followed.</p>
+<h3>Reasons for deploying the derived controller</h3>
 <ol>
 <li><strong>A trained controller&#8217;s quality varied with the draw more than with the hand.</strong> From-scratch reorient
 training on one design spans held cos &#8722;0.29 to 0.78 across seeds (m05, n = 5, sd 0.38); a local design&#8217;s apparent lead
-of 0.07 sat inside pooled noise of 0.41. Seventy GPU-hours of probes (July 10&#8211;13) showed pick-up failures were draw noise
-5/5, that single draws are not measurements, and that no property of the delivered grasp predicted the turn (n = 50).
+of 0.07 sat inside pooled noise of 0.41. Seventy GPU-hours of probes (July 10&#8211;13) traced pick-up failures to draw noise in 5 of 5 cases, and no
+property of the delivered grasp predicted the turn (n = 50).
 Comparing hands needs a controller whose quality does not depend on the hand; a derived plan applies the identical
 computation to every morphology.</li>
 <li><strong>The reference policy ignored its observations.</strong> Replaying another environment&#8217;s values over the whole
 66-dimensional input leaves <code>b33</code>&#8217;s held cosine at 0.900 against 0.895 (2026-08-30; reproduced on the real_v1
-geometry by an independent implementation). It is a learned open-loop residual indexed by step, so a closed-loop deployment
-would carry no closed-loop content, and its 5 mm / 5&#176; spawn sensitivity (hold 0.97 &#8594; 0.41) is what an open-loop plan
-has anyway.</li>
+geometry by an independent implementation). It is a learned open-loop residual indexed by step, so deploying it closed loop
+would add no feedback, and its 5 mm / 5&#176; spawn sensitivity (hold 0.97 &#8594; 0.41) is that of an open-loop plan.</li>
 <li><strong>Most of the learned turn was floor work.</strong> Re-expressed in the object frame, 69 % of <code>b33</code>&#8217;s
 alignment gain and 46 % of the opposed hand&#8217;s occurs while the shaft still touches the floor, and the wrist contributes
 0 %. The first floor-free turn in the program was the raised-axis geometric plan of 2026-08-27.</li>
@@ -573,12 +573,12 @@ alignment gain and 46 % of the opposed hand&#8217;s occurs while the shaft still
 0.985/0.999) leaves the grasp intact and collapses the turn (alignment 13 against 48); pad friction &#215;0.5 drops the hold
 to 0.09, a 15 % thinner shaft to 0.03, a stiffer contact the reorient to 0.09. Compliance domain randomisation relocated the
 policy to the middle of its band instead of broadening it (July 8&#8211;10, and again August 18 with friction and compliance
-arms). The behaviour was a narrow-band contact behaviour.</li>
+arms). The turn worked only inside a narrow band of contact parameters.</li>
 <li><strong>The topology changed.</strong> Every policy through August 26 was trained on m05, a 117 mm finger with
 coincident yaw and MCP axes and a proximal-length slide. The CAD hand of 2026-08-27 has 33/33/37 mm links, a 32 mm yaw
 link and no length joint; <code>b33</code> reaches peak cos 0.019 on it. Four fresh real_v1 A&#8594;B pipelines held the hand-off
 and turned the shaft 0.9&#8211;4.0&#176;, because the fitted grasp was a rotational lock (the turn was paid for in finger
-extension, of which 1&#8211;7 mm remained). The lock was found and the axis raised in the open-loop probe, not by training.</li>
+extension, of which 1&#8211;7 mm remained). The open-loop probe found the lock and raised the axis; training did not.</li>
 <li><strong>The hardware could not supply the observation.</strong> On 2026-08-29 the platform&#8217;s feedback was nine joint
 positions at 6.95 Hz (the FTDI latency timer), no object pose, no contact and no current register; the policy needed 66
 inputs at 50 Hz including the tool pose. The bus was brought to 111 Hz and the AprilTag pair added on 08-30/31, after the
@@ -587,19 +587,19 @@ plans were exported; the deployed stream is still write-only.</li>
 calibrates to about 0.5. At kp 30 a commanded angle is an achieved angle and the finger-driven 90&#176; turn exists; at
 the calibrated gain the fingers move the tool 0&#8211;10&#176; through the same plan and the bench&#8217;s 20&#8211;50&#176;
 tip is what the calibrated plant reproduces (cos 0.64 against 0.59 on rv05). Every policy before 2026-09-16 trained on the
-stiff plant, and every one before 2026-09-20 on an object with MuJoCo&#8217;s default contact parameters and mjlab&#8217;s
-default floor rather than the scene&#8217;s.</li>
-<li><strong>Unbounded residuals were unphysical.</strong> The D6 finetunes of September 17 emit |a| &gt; 1 on 73 % of steps
-and command joints up to 384&#176; beyond their range; a real servo would sit on its overload cliff. Bounding the residual
-at &#177;1 rad (September 19) is what made a policy that a plan could carry.</li>
+stiff plant, and every one before 2026-09-20 on an object with MuJoCo&#8217;s default contact parameters and on mjlab&#8217;s
+default floor instead of the scene&#8217;s.</li>
+<li><strong>Unclipped residuals were unphysical.</strong> The D6 finetunes of September 17 emit |a| &gt; 1 on 73 % of
+steps and command joints up to 384&#176; beyond their range, where a real servo would sit on its overload cliff. Clipping
+the residual at &#177;1 rad (September 19) gave policies whose commands a plan can contain.</li>
 </ol>
 
-<h3>Where it stands on 2026-09-20</h3>
+<h3>State on 2026-09-20</h3>
 <p>Policies are now trained on the calibrated plant (kp 0.5, kv 0.02, 0.35 N&#183;m, elliptic cone, the built +25 mm palm
 plate, the screw-tip tool, the scene&#8217;s floor and contact class) with the object pose observed. D6 from scratch at 60 M
 steps holds 64/64 at cos 0.933 with the tool rolling across the pads from step 68; a 20 M grip finetune reaches 0.969 at
 10.8 N (<a href="../20260917-d6_cal_60M/20260917-d6_reorient_policy_60M.html">page</a>). Warm-started from it, sixteen jobs
-across D1&#8211;D7 with the residual bounded at &#177;1 rad hold 64/64 at the trained pose on every hand but one draw (D6
+across D1&#8211;D7 with the residual clipped at &#177;1 rad hold 64/64 at the trained pose on every hand but one draw (D6
 seed 0, 56/64), while the separation term kills the turn on D4 and D7; evaluated with the tool spawned 3 mm and 10&#176;
 off, D7 holds 0/64 and D5 26/64, because training had spawned the tool at one pose
 (<a href="../20260919-hands_tranche/20260919-reorient_policies_across_hands.html">page</a>). Continued with spawn jitter,
