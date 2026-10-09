@@ -392,6 +392,31 @@ def rl_replay_text(ctx):
         + f". Films of the four policies and the replays in Drake and Newton: <code>{P.HT3_PATH}</code>, Section&#160;6.")
 
 
+POLICY_PAGE = "docs/experiments/20261008-contact_model_policies/20261008-fingertip_contact_model_policies.html"
+
+
+def policy_text(ctx):
+    """One or two sentences and the link: D6 policies trained on four fingertip contact models, their open-loop replays
+    in CPU MuJoCo, Drake and Newton (2026-10-09 revision; numbers from the policy page's own summary)."""
+    import contact_model_policies_page as CMP
+    X = CMP.Data()
+    S = CMP.summary(X)
+    if not all(S[a]["n_fin"] for a in CMP.ARMS):
+        return ""
+    comp, point = ("tpu27pads1", "tpu27skin"), ("box", "tpu27mesh")
+    rep = lambda arms: [sum(S[a]["rep"][e][k] for a in arms for e in CMP.ENGINES) for k in (0, 1)]  # noqa: E731
+    rc, rp = rep(comp), rep(point)
+    n_c = sum(S[a]["n_fin"] for a in comp)
+    n_p = sum(S[a]["n_fin"] for a in point)
+    pm, pp, ps = (CMP.probe_spit(a) for a in ("tpu27mesh", "tpu27pads1", "tpu27skin"))
+    cost = (f", at {pp / pm:.1f}&#215; and {ps / pm:.1f}&#215; the TPU mesh&#8217;s training time per iteration"
+            if pm and pp and ps else "")
+    return (f" Trained for 40&#8202;M steps on four fingertip contact models, the D6 reorientation policies on the 1&#8202;mm "
+            f"pads and on the pads mounted on a sprung skin ({n_c} policies) keep the tool in {rc[0]} of {rc[1]} open-loop "
+            f"replays of their finger targets in CPU MuJoCo, Drake and Newton{cost}; the {n_p} policies trained with "
+            f"point contact on the box tip or the TPU block keep it in {rp[0]} of {rp[1]}: <code>{POLICY_PAGE}</code>.")
+
+
 SCALE_PAGE = "docs/experiments/20261008-hand_object_scale/20261008-finger_spacing_object_size.html"
 
 
@@ -470,6 +495,6 @@ def blocks(ctx):
         "OPEN_LIST": open_list(ctx),
         "MEFF_TEXT": meff_text(ctx),
         "AGREE_SIM_TEXT": agree_sim_text(ctx),
-        "RL_REPLAY_TEXT": rl_replay_text(ctx) + scale_text(ctx),
+        "RL_REPLAY_TEXT": rl_replay_text(ctx) + policy_text(ctx) + scale_text(ctx),
         "LIT": lit(ctx),
     }
