@@ -77,32 +77,32 @@ def funnel():
 
 def funnel_table(f):
     rows = [
-        ("sampled", f["sampled"],
+        ("Sampled", f["sampled"],
          f"8,192 scrambled Sobol points ({f['src']['sobol_uniform']:,} uniform, {f['src']['sobol_wide_bias']:,} in the outward-biased stratum) plus {f['src']['known_anchor']} anchor hands",
          "<code>grasp_screen_manifest.json</code>"),
-        ("inside the rails", f["reachable"],
+        ("Inside the rails", f["reachable"],
          f"every mount inside the gantry travel as believed on 2026-08-30; {f['rejected']:,} rejected, all on the x axes, by 3.8&#8211;5.9 mm",
          "<code>hardware_manifest.json</code>, <code>reachable.txt</code>"),
-        ("admit a grasp", f["graspable"],
+        ("Admit a grasp", f["graspable"],
          f"the closed-form fitter finds a three-pad ring in at least one of four grasp cells ({f['graspable']/f['reachable']*100:.1f} %); {f['cells']:,} (design, cell) rows go forward",
          "<code>retention/grasp_summary.json</code>"),
-        ("retention screen", f["sel"]["designs_passing_at_some_clip"],
+        ("Retention screen", f["sel"]["designs_passing_at_some_clip"],
          f"{f['sel']['cells_evaluated']:,} single-trial rollouts = {f['cells']:,} rows &#215; 5 clips; a design passes if any (cell, clip) keeps the tool through the proof lift and the 5 s hold at cos &#8805; 0.7; {f['sel']['designs_passing_at_0.5']} pass at 0.5 rad and {f['sel']['designs_invisible_at_0.5']} only at another clip",
          "<code>band_s*.json</code>, <code>selected/summary.json</code>"),
-        ("confirmed", f["con"]["designs_passing_at_some_clip"],
+        ("Confirmed", f["con"]["designs_passing_at_some_clip"],
          "five nominal and four half-error draws at the design&#8217;s own clip; at least three of five nominal draws keep the tool and the mean held cosine stays at or above 0.7",
          "<code>confirm_b*.json</code>, <code>selected/confirmed/summary.json</code>"),
-        ("full-error draws", f["n_full"],
-         "twenty draws per confirmed design with placement, mass, radius, friction, contact, servo and mount all perturbed at once; this stage ranks, it does not filter",
+        ("Full-error draws", f["n_full"],
+         "twenty draws per confirmed design with placement, mass, radius, friction, contact, servo and mount all perturbed at once; this stage ranks the designs and removes none",
          "<code>full_error_b*.json</code>"),
-        ("exported and gated", 19,
+        ("Exported and gated", 19,
          "plans on the station across all passes: servo range, gantry travel, finger clearance &#8805; 5 mm along both the chord and the 50 Hz path, plan validity; then a bench-schedule band scan",
          "<code>deploy/promotion.json</code>, <code>deploy_clearance.txt</code>, <code>deploy_plan_bands_all.json</code>"),
-        ("on the bench", 8,
+        ("On the bench", 8,
          "the top eight distinct morphologies among the sixteen exported, clearance-safe plans, ordered by the bench-schedule replay; six Sobol members, one anchor, one manual hand",
          "<code>docs/experiments/20260831-real_v1-transfer-protocol/README.md</code> &#167;3"),
     ]
-    out = ["<div class='tw'><table><thead><tr><th>stage</th><th class='num'>count</th><th>rule</th><th>file</th></tr></thead><tbody>"]
+    out = ["<div class='tw'><table><thead><tr><th>Stage</th><th class='num'>Count</th><th>Rule</th><th>File</th></tr></thead><tbody>"]
     for name, n, rule, file in rows:
         out.append(f"<tr><td><strong>{name}</strong></td><td class='num'>{n:,}</td><td>{rule}</td><td class='mono small'>{file}</td></tr>")
     out.append("</tbody></table></div>")
@@ -154,10 +154,10 @@ def full_error_kept():
 def eight_table(rows):
     by = {x["did"]: x for x in rows}
     fe = full_error_kept()
-    out = ["<div class='tw'><table><thead><tr><th>hand</th><th>design</th><th>came from</th><th class='num'>clip (rad)</th>"
-           "<th class='num'>sim c (4 reps)</th><th class='num'>sim kept</th><th class='num'>retention-screen c</th><th class='num'>full-error kept</th>"
-           "<th class='num'>bench held</th><th class='num'>n<sub>c</sub></th><th class='num'>bench c</th><th class='num'>bench peak</th>"
-           "<th class='num'>turn held / drop (&#176;)</th><th class='num'>slip held / drop (mm)</th></tr></thead><tbody>"]
+    out = ["<div class='tw'><table><thead><tr><th>Hand</th><th>Design</th><th>Came from</th><th class='num'>Clip (rad)</th>"
+           "<th class='num'>Sim c (4 reps)</th><th class='num'>Sim kept</th><th class='num'>Retention-screen c</th><th class='num'>Full-error kept</th>"
+           "<th class='num'>Bench held</th><th class='num'>n<sub>c</sub></th><th class='num'>Bench c</th><th class='num'>Bench peak</th>"
+           "<th class='num'>Turn held / drop (&#176;)</th><th class='num'>Slip held / drop (mm)</th></tr></thead><tbody>"]
     for did, design, src, plan, clip in EIGHT:
         x = by[did]
         f = fe.get(design)
@@ -212,7 +212,7 @@ def rho_block(rows):
         r_sim_hold=spearman(sim, hold)[0], r_force_hold=spearman(force, hold)[0],
         r_hold_peak=spearman(hold, peak)[0],
     )
-    table = ["<div class='tw'><table><thead><tr><th>pair</th><th class='num'>&#961;<sub>s</sub></th><th>reading</th></tr></thead><tbody>"]
+    table = ["<div class='tw'><table><thead><tr><th>Pair</th><th class='num'>&#961;<sub>s</sub></th><th>Reading</th></tr></thead><tbody>"]
     rowsx = [
         ("simulated c vs bench c, eight hands, held trials only (the paper&#8217;s number)", stats["r_all"], f"p = {stats['p_all']:.2f}; bootstrap 95 % interval over hands [{num(lo, 2)}, {num(hi, 2)}]"),
         ("the same without D4 (n = 7)", stats["r_no4"], f"p = {stats['p_no4']:.2f}; removing the substituted hand moves the coefficient by {num(stats['r_no4']-stats['r_all'], 2)}"),

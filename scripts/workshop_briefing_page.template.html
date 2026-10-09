@@ -169,10 +169,10 @@ servos, so a residual policy on the current path would see the AprilTag pose and
 <p class="sub">Quantity, file and computation; folders are under <code>docs/experiments/</code> unless another root is
 given</p>
 <div class="tw"><table><thead><tr><th>In the paper</th><th>Value</th><th>Source</th><th>Computation</th></tr></thead><tbody>
-<tr><td>sampled configurations</td><td class="num">{{N_SAMPLED}}</td><td class="mono">20260831-real_v1-sobol8192/grasp_screen_manifest.json</td><td class="small">8,192 scrambled Sobol points (<code>sobol_designs</code>, seed 20260830) plus six anchor hands</td></tr>
-<tr><td>hardware-feasible samples</td><td class="num">{{N_REACH}}</td><td class="mono">&#8230;/hardware_manifest.json, reachable.txt</td><td class="small"><code>real_v1_filter_reachable.py</code>: <code>mount_violations</code> against the travel envelope of 2026-08-30</td></tr>
-<tr><td>retention-screened</td><td class="num">{{N_SEL}}</td><td class="mono">&#8230;/selected/summary.json</td><td class="small"><code>real_v1_select_budget.py</code> over <code>band_s*.json</code>: pass at any clip</td></tr>
-<tr><td>candidates</td><td class="num">{{N_CON}}</td><td class="mono">&#8230;/selected/confirmed/summary.json</td><td class="small">the same selector over <code>confirm_b*.json</code> with <code>--min-kept-frac 0.6</code></td></tr>
+<tr><td>Sampled configurations</td><td class="num">{{N_SAMPLED}}</td><td class="mono">20260831-real_v1-sobol8192/grasp_screen_manifest.json</td><td class="small">8,192 scrambled Sobol points (<code>sobol_designs</code>, seed 20260830) plus six anchor hands</td></tr>
+<tr><td>Hardware-feasible samples</td><td class="num">{{N_REACH}}</td><td class="mono">&#8230;/hardware_manifest.json, reachable.txt</td><td class="small"><code>real_v1_filter_reachable.py</code>: <code>mount_violations</code> against the travel envelope of 2026-08-30</td></tr>
+<tr><td>Retention-screened</td><td class="num">{{N_SEL}}</td><td class="mono">&#8230;/selected/summary.json</td><td class="small"><code>real_v1_select_budget.py</code> over <code>band_s*.json</code>: pass at any clip</td></tr>
+<tr><td>Candidates</td><td class="num">{{N_CON}}</td><td class="mono">&#8230;/selected/confirmed/summary.json</td><td class="small">the same selector over <code>confirm_b*.json</code> with <code>--min-kept-frac 0.6</code></td></tr>
 <tr><td>Fig. 5 (span &#215; opening)</td><td>&#8212;</td><td class="mono">paper/figures_diversity/numbers.txt</td><td class="small"><code>scripts/paper_morphology_diversity.py</code> over the manifest and the deployed plans</td></tr>
 <tr><td>Table IV, Sim c</td><td>0.827 &#8230; 0.501</td><td class="mono">&#8230;/deploy_plan_bands_all.json</td><td class="small">mean held cosine of four replicates of the exported plan on the bench schedule at its shipped clip (a released replicate scores 0)</td></tr>
 <tr><td>Table IV, Held, n<sub>c</sub>, Bench c, Turn, Slip</td><td>&#8212;</td><td class="mono">paper/figures/ranking.json</td><td class="small"><code>scripts/real_v1_transfer_figures.py</code> over <code>logs/tracker/*_SUMMARY.json</code> (the AprilTag traces) and <code>manual_scores.json</code> (the operator verdicts pulled from the CB1)</td></tr>
@@ -309,12 +309,12 @@ does not distinguish the bench&#8217;s 2/10 from its 10/10.</p>
 <h2>Retention, alignment and reorientation success</h2>
 <p class="sub">What a trial measures in the simulator and on the bench, with thresholds and durations</p>
 <div class="tw"><table><thead><tr><th>Quantity</th><th>Simulator (retention screen and bench-schedule replay)</th><th>Bench</th></tr></thead><tbody>
-<tr><td><strong>retention</strong></td><td class="small"><code>ok</code>: &#8805; 1 hand contact at the end, minimum height within 20 mm of the lifted height, no post contact, proof-lift rise &#8805; 48 mm, slip &#8804; 10 mm through the 5.0 s hold. The bench-schedule replay uses the same rule with a 9.6 s hold and no proof lift.</td><td class="small">the operator&#8217;s verdict at the end of the trial (the trajectory is 3.98 s; the camera runs 2.5 s past it; Fig. 3&#8217;s final frame is 1 s after the trajectory ends). The instrument&#8217;s fallback, used only when no verdict exists: a fall &#8805; 25 mm sustained &#8805; 0.4 s. A trial with neither is <em>unresolved</em>.</td></tr>
-<tr><td><strong>alignment c</strong></td><td class="small">the signed cosine between the shaft axis and world vertical at the last step of the hold; a released rollout contributes 0 to the mean</td><td class="small"><code>cos_up</code> from the vane tag against the static reference tag, averaged over the last 1.0 s of the recording (<code>HOLD_WINDOW_S</code>); reported over held trials only; void when the tag is not seen in that window (D4&#8217;s case)</td></tr>
-<tr><td><strong>net turn</strong></td><td class="small">&#8212;</td><td class="small">tag angle at the last reading minus the first, degrees; on a dropped trial it includes rotation during the fall</td></tr>
-<tr><td><strong>slip</strong></td><td class="small">vertical slip during the hold (mm)</td><td class="small">horizontal travel of the cylinder centre (mm), computed from the tag with the 77 mm axial offset removed</td></tr>
-<tr><td><strong>reorientation success</strong></td><td class="small"><code>win</code>: retained <em>and</em> c &#8805; 0.7, i.e. within 45.6&#176; of vertical after the hold</td><td class="small">none in the paper; hold rate and alignment are reported separately</td></tr>
-<tr><td><strong>holding duration</strong></td><td class="small">5.0 s after a 1.4 s proof lift (screen); 9.6 s (replay)</td><td class="small">~1 s at the end of the trajectory plus the 2.5 s post-roll; the servos hold their last command</td></tr>
+<tr><td><strong>Retention</strong></td><td class="small"><code>ok</code>: &#8805; 1 hand contact at the end, minimum height within 20 mm of the lifted height, no post contact, proof-lift rise &#8805; 48 mm, slip &#8804; 10 mm through the 5.0 s hold. The bench-schedule replay uses the same rule with a 9.6 s hold and no proof lift.</td><td class="small">the operator&#8217;s verdict at the end of the trial (the trajectory is 3.98 s; the camera runs 2.5 s past it; Fig. 3&#8217;s final frame is 1 s after the trajectory ends). The instrument&#8217;s fallback, used only when no verdict exists: a fall &#8805; 25 mm sustained &#8805; 0.4 s. A trial with neither is <em>unresolved</em>.</td></tr>
+<tr><td><strong>Alignment c</strong></td><td class="small">the signed cosine between the shaft axis and world vertical at the last step of the hold; a released rollout contributes 0 to the mean</td><td class="small"><code>cos_up</code> from the vane tag against the static reference tag, averaged over the last 1.0 s of the recording (<code>HOLD_WINDOW_S</code>); reported over held trials only; void when the tag is not seen in that window (D4&#8217;s case)</td></tr>
+<tr><td><strong>Net turn</strong></td><td class="small">&#8212;</td><td class="small">tag angle at the last reading minus the first, degrees; on a dropped trial it includes rotation during the fall</td></tr>
+<tr><td><strong>Slip</strong></td><td class="small">vertical slip during the hold (mm)</td><td class="small">horizontal travel of the cylinder centre (mm), computed from the tag with the 77 mm axial offset removed</td></tr>
+<tr><td><strong>Reorientation success</strong></td><td class="small"><code>win</code>: retained <em>and</em> c &#8805; 0.7, i.e. within 45.6&#176; of vertical after the hold</td><td class="small">none in the paper; hold rate and alignment are reported separately</td></tr>
+<tr><td><strong>Holding duration</strong></td><td class="small">5.0 s after a 1.4 s proof lift (screen); 9.6 s (replay)</td><td class="small">~1 s at the end of the trajectory plus the 2.5 s post-roll; the servos hold their last command</td></tr>
 </tbody></table></div>
 <p>The simulator and the bench differ in one convention. The simulator&#8217;s held cosine counts a release as zero, a
 retention-weighted alignment; the bench cosine averages the trials that held. The pre-registered protocol asked for parity
@@ -1167,195 +1167,79 @@ ceiling); <code>--seed</code> found to be a dead flag.</p>
 </div></section>
 
 <section id="future"><div class="col">
-<h2>Future work, expounded</h2>
-<p class="sub">the six items of the Discussion and the five of Appendix D, each with what it means on this platform, what
-the record already says about it, the first measurement, and how it sits against Yang et al. (RA-L 2024; TEVC 2026)
-&#183; everything here is a proposal</p>
+<h2>Future work</h2>
+<p class="sub">The six items of the paper&#8217;s Discussion and the five of its Appendix D, each with its first
+measurement</p>
 
-<p>Yang et al. built a reconfigurable hand with 37 hardware parameters set by hand, pre-trained a grasping policy with
-those parameters randomised, then optimised the parameters along &#8220;hardware gradients&#8221; of a force-closure fitness
-over 20 YCB objects, and in the TEVC paper ran population evolution with morphology-aware learning across three-, four- and
-five-fingered hands, transferring evolved designs to hardware. Two things distinguish what this program can add: the
-morphology is motor-driven, so a design is a 95 s gantry move and dense physical traversal is cheap; and the object of
-study is the sim-to-real error &#916;(m) as a function over the design space, which their work does not measure. The
-proposals below follow from that.</p>
+<p>Yang et al. (RA-L 2024; TEVC 2026) optimised the 37 hand-set parameters of a reconfigurable hand along hardware
+gradients of a force-closure fitness, and evolved three- to five-fingered designs with morphology-aware learning before
+building them. This platform differs in two ways: its morphology is motor-driven, so a design change is a 95 s gantry
+move, and its object of study is the sim-to-real error &#916;(m) as a function over the design space.</p>
 
-<h3>1. Automating environment and evaluation reset</h3>
-<p>Every one of the 251 archived trials was staged by hand: open the hand, remove the tool, re-seat it on the post, centre
-it by eye. Stage 1 showed re-staging is the variance (sd 0.011 within a session, &#177;5&#176; between sessions), and the
-deployment envelope says the tight axis is 2&#8211;6 mm along the tool. An automated reset is a fixture that returns the
-cylinder to a repeatable pose (a V-block on the post with a stop at the shaft end), plus the UR5e doing the re-stage, which
-the chain work already runs in simulation. The measurement that says it worked: stage 1 again with the fixture, and the
-between-session drift with it. The number to beat is sd 0.011 and &#177;5&#176;. This item gates everything with
-&#8220;many trials&#8221; in it.</p>
-
-<h3>2. Slop, state estimation, stiffness and actuator torque</h3>
-<p>The servo is the largest sim-to-real term on record: a 0.018&#176; per load-unit spring, a protection cliff at 80 % of
-stall torque that fires on 42 % of middle-yaw runs, and no current register. The consequence in the simulator is that the
-finger-driven 90&#176; turn exists only above a gain of about 2 and the calibrated hand tips the tool 20&#8211;50&#176;. The
-options in order of cost: raise <code>protective_torque</code> (a writable register, with the independent 70 &#176;C thermal
-cutoff kept); a stiffer servo in the yaw position only, since that joint carries the turn; a host-side integral term on
-achieved angle, which the 2026-09-20 measurement showed cannot help while the servo sits on its ceiling. The measurement:
-the free-air and loaded arrival tables (<code>real_v1_bench_arrival.py</code>) before and after, on one hand. A larger payload
-and &#8220;all degrees of freedom for control&#8221; both need the torque first; the gantries at 3 mm/s cannot contribute to a
-turn, so using them in control means using them between trials.</p>
-
-<h3>3. Actuator system identification, and residual RL to stabilise the open-loop plan</h3>
-<p>The sysid is done for the plant&#8217;s stiffness and cliff and not for its speed: <code>kv</code> was never measured
-(the calibration&#8217;s deficit halves between kv 0.6 and 0.02) and the fitted gain is known to a factor of two (0.25&#8211;0.5).
-A free-air 20&#176; step per joint at 111 Hz gives the time constant and the no-load speed in an afternoon. The residual is
-the other half: the six bench drops all turn the shaft to a mean peak of +0.61 and then let go, which is the failure a
-residual is for, since it needs to notice the shaft escaping rather than discover the turn. The record says what the
-residual must be: bounded (&#177;1 rad), trained on the calibrated plant with spawn jitter, sighted through the tag pose,
-warm-started from a checkpoint that already turns, and gated at deployment on its commanded envelope rather than on a
-fixed path. What is missing is the station loop that feeds it. The first hardware test is one hand (D5 or D6), the
-policy&#8217;s own grasp, ten trials, against the same hand&#8217;s open-loop plan in the same sitting.</p>
-
-<h3>4. Sensorised, co-designed fingertips and palms</h3>
-<p>The fingertip result is quantitative in two directions that disagree: the rolling turn wants a compact convex point
-contact of 5&#8211;6 mm radius with 1&#8211;3 mm of deflection at load, and the gait wants a 13 mm radius because the pad ring is a
-gear. The flat built pad&#8217;s line contact is more tolerant to placement than the round model (8 mm axial bands against
-1&#8211;2). A quick-release tip is already on the hand, so the experiment is a set of printed tips (r 5, 8, 13 mm; two
-durometers) run through the same ten-trial protocol on two hands. Sensing on the tip closes the loop the servo cannot
-(no current register): a force-sensitive resistor or a barometric pad per tip supplies the contact signal the transfer
-sessions lacked, and it is what turns the 20&#8211;60&#176; band from a post-hoc separator into a stopping condition. The palm is
-a separate question: every trained policy held the object 7&#8211;8 cm below the palm with zero palm force, and the basketball
-study found the +25 mm plate blocks seating; a palm that the object can rest against changes the grasp class before it
-changes the sensing.</p>
-
-<h3>5. A motorised proximal-phalange length</h3>
-<p>The simulation evidence is mixed and honest about why. The nine-parameter sweeps found the length axis contributes
-mostly downside variance (freezing it raised the floor from &#8722;0.39 to &#8722;0.11 and the peak from 0.48 to 0.75 without
-touching the draw noise); the sp25 hand gripped better than m05 and its turn was unresolved at n = 1; the link-length gate
-found that with the 32 mm yaw link all candidate lengths clear the geometric ceiling, so only a controller can rank them;
-and the reorientation primitive found kinematic feasibility does not discriminate designs. On the hardware, a telescoping
-proximal adds one stepper per finger to a board that has room for two more. The measurement before building it is in
-simulation and cheap: the Sobol funnel with a seventh design coordinate (length, 25&#8211;45 mm), run through the same
-retention screen, to see whether the retained sheet moves along it. If the 535 do not separate on length under the
-open-loop plan, the DoF is not worth a motor for this task.</p>
-
-<h3>6. Fast, universal, morphology-adaptive control representations</h3>
-<p>The concrete form this takes here is a design-conditioned policy: one actor and critic trained across per-environment
-randomised mounts with the six-vector in the observation. The feasibility spike found MuJoCo-Warp already indexes model
-fields per world and mjlab expands them, so it is plumbing rather than engine work. It pays four ways: per-design
-evaluation becomes a rollout (the July program spent about 3 h of GPU per design draw and could not resolve differences
-under 0.25); the multi-hand residual for item 3 falls out; the frozen critic is a differentiable design surrogate in the
-manner of Bohlinger and Peters&#8217; value-gradient search, with no differentiable simulator; and the critic&#8217;s gradient can
-be checked against the thumb-moment-arm predictor found by search. The one ablation that gates all of it is whether the
-behaviour changes when only the design vector changes, since b33 ignored its inputs entirely. Conditioning is not
-ranking: a policy that controls many hands never has to say which hand is better, so it is not blocked by the ranking
-result, and it is the item that makes Yang et al.&#8217;s &#8220;meta policy&#8221; comparable on this platform.</p>
-
-<h3>Appendix D (i): local and global sim-to-real agreement</h3>
-<p>The global test is the n = 8 study. The local test was designed and never run: the station holds g12 at four clips,
-u0060 at two and u0100 at two, so within a family the hand is identical and only the controller moves. If the bench does
-not reproduce a within-family ordering, a cross-family ordering means nothing, and the protocol says to answer that first.
-Twenty trials, one sitting. The geometric analogue is two hands one gantry move apart (D4&#8211;D8 are 14.4 mm apart), which
-asks whether &#916;(m) is smooth at the scale the search would step.</p>
-
-<h3>Appendix D (ii): sparse hardware queries correcting a large simulated ranking</h3>
-<p>This is the bi-level plan&#8217;s Eq. 3, and the record contains one attempt at the inner step: correct the plant from
-bench data and re-rank. It reproduced one hand&#8217;s level and not the ordering, and the reason is that the missing physics
-is contact, which the servo sysid does not touch. A correction fitted to eight numbers cannot be validated on the same
-eight. The honest version of this item is sequential: choose the next hands to test where the simulator&#8217;s two scores
-(retention-screen and bench-schedule) disagree most, since those are the points that discriminate between candidate
-corrections, and keep the eight as the held-out set. The first three such hands are in
-<code>docs/experiments/20260904-real_v1_ranked/</code> (the settle&#8217;s sign flips between w5120 and u5860).</p>
-
-<h3>Appendix D (iii): warm-started controllers as morphology changes</h3>
-<p>In simulation the effect is measured: a from-scratch reorient draw has sd 0.3&#8211;0.5 in held cosine, a warm-started one
-0.032, and the September tranches warm-started every hand from one D6 checkpoint and reached 0.90&#8211;0.96 on six of seven.
-What is not measured is whether a warm-started controller ranks hands the same way an independently optimised one does,
-and the record has a warning: the shared warm start carries its source hand&#8217;s grip into every design (b33 is m05&#8217;s own),
-so the design-neutral object-frame imitation prior was needed to make the comparison fair. On hardware this item is the
-cheapest of the appendix: the gantries move between trials, the policy stays loaded, and the question is how many trials
-on the new hand it takes before the held rate matches the per-hand policy.</p>
-
-<h3>Appendix D (iv): task-conditioned specialisation on hardware</h3>
-<p>One task and one object have been run on hardware. The funnel selects compact tripods for the cylinder; the basketball
-study selects the widest layout the gantries offer (every axis at its travel end) and finds the eight bench hands cannot
-reach a size-7 ball at all. That is a specialisation the platform can show directly, since the two designs are one
-morphology change apart. The proposed measurement is two objects (the cylinder and a 90&#8211;120 mm ball) on the two
-layouts, ten trials each, with retention as the outcome; the simulation prediction is on the basketball page and the pad
-friction on a real ball is the unmeasured number.</p>
-
-<h3>Appendix D (v): morphologies that trade nominal performance for robustness</h3>
-<p>The simulator produces this trade in every pass: rv04_mid is the best nominal design and the worst deployable one;
-the retention screen&#8217;s leaders lose to plainer hands under full error; sv1_u0100&#8217;s promotion was an artifact of the
-clip handicap. The bench has never tested the trade as a comparison. It is a two-hand sitting: the nominal leader and the
-robustness leader of one pass, ten trials each under deliberately perturbed staging (&#177;3 mm along the tool, &#177;8&#176;
-of yaw, the ensemble&#8217;s own distribution), scored on retention. If the robustness ranking predicts the bench and the
-nominal ranking does not, the search objective changes from nominal cosine to ensemble win, which is a one-line change
-in <code>real_v1_select_budget.py</code>.</p>
-
-<h3>The bi-level plan (Section III-B)</h3>
-<p>Kept as a plan. J<sub>sim</sub>(m) exists for one task and one controller and is the funnel&#8217;s score; J<sub>real</sub>(m)
-exists for eight hands; &#916;(m) is the eight signed differences in Table IV. The plan&#8217;s claim that a common optimisation
-budget keeps control quality from deciding the ranking is the lesson of July stated as a rule, and the derived controller
-satisfies it trivially. The two open decisions are which inner solver runs on the population (the derived plan is the only
-one that has run at population scale; RL has run on nine designs of this family) and which outer loop reads &#916;(m),
-which is item (ii). Nothing in the plan has been executed beyond one iteration of its first step.</p>
+<ol>
+<li><strong>Automated reset.</strong> All 251 archived trials were staged by hand, and re-staging is the main variance (sd
+0.011 within a session, &#177;5&#176; between sessions). Fit a fixture that returns the cylinder to a repeatable pose (a
+V-block on the post with a stop at the shaft end), let the UR5e re-stage, and repeat stage 1 of the protocol; the fixture
+works if the between-session drift falls below &#177;5&#176;.</li>
+<li><strong>Servo torque and stiffness.</strong> The servo is the largest sim-to-real term on record: a 0.018&#176; per
+load-unit spring and a protective-torque cutoff that trips on 42 % of middle-yaw runs. Raise
+<code>protective_torque</code> (a writable register; the 70 &#176;C thermal cutoff stays), or fit a stiffer servo in the yaw
+positions only, and measure the free-air and loaded arrival tables (<code>real_v1_bench_arrival.py</code>) on one hand
+before and after.</li>
+<li><strong>Servo speed and a residual policy on the bench.</strong> A free-air 20&#176; step per joint read at 111 Hz gives
+the servo&#8217;s time constant, which was never measured. The six bench drops turn the shaft to a mean peak of +0.61 and
+then let go, which a residual policy that sees the tag pose could catch. Build the station loop that streams a residual
+clipped at &#177;1 rad with the tag pose as input, and compare one hand (D5 or D6) with its open-loop plan, ten trials each
+in one sitting.</li>
+<li><strong>Fingertips and palm.</strong> The rolling turn favours a convex tip of 5&#8211;6 mm radius with 1&#8211;3 mm of
+deflection at load, and the gait a 13 mm radius, because the pad ring acts as a gear. Print tips of radius 5, 8 and 13 mm
+in two durometers and run the ten-trial protocol on two hands; a force-sensitive resistor or a barometric pad per tip
+gives the contact signal the transfer sessions lacked.</li>
+<li><strong>Motorised proximal-phalange length.</strong> Add a seventh design coordinate (length 25&#8211;45 mm) to the Sobol
+funnel and run the same retention screen. If the retained designs do not separate on length, the joint is not worth a
+motor for this task.</li>
+<li><strong>Design-conditioned policy.</strong> Train one actor and critic across per-environment randomised mounts with
+the six mount coordinates observed; MuJoCo-Warp already indexes model fields per world. Test first whether the behaviour
+changes when only the design vector changes, since <code>b33</code> ignored its inputs.</li>
+<li><strong>Local agreement (Appendix D i).</strong> Bench the within-family contrast already on the station (g12 at four
+clips, u0060 and u0100 at two), twenty trials in one sitting. If the bench does not reproduce an ordering within one
+family, an ordering across families means little.</li>
+<li><strong>Sparse hardware queries (Appendix D ii).</strong> Choose the next hands to test where the retention screen and
+the bench-schedule replay disagree most, and keep the eight built hands as the held-out set. The one plant correction
+tried so far reproduced one hand&#8217;s level and left the ordering unchanged, because the missing physics is
+contact.</li>
+<li><strong>Warm-started controllers (Appendix D iii).</strong> Move the gantries between trials with one policy loaded and
+count the trials on the new hand until its held rate matches a per-hand policy. In simulation a shared warm start cut the
+draw sd from 0.3&#8211;0.5 to 0.032 and transferred its source hand&#8217;s grip into every design.</li>
+<li><strong>Task specialisation (Appendix D iv).</strong> Run the cylinder and a 90&#8211;120 mm ball on the compact layout and
+on the widest one, ten trials each, scored on retention; the basketball page gives the simulated prediction, and the pad
+friction on a real ball is unmeasured.</li>
+<li><strong>Robustness against nominal performance (Appendix D v).</strong> Run the nominal leader and the robustness leader
+of one pass, ten trials each under perturbed staging (&#177;3 mm along the tool, &#177;8&#176; of yaw), scored on retention.
+If the robustness ranking predicts the bench and the nominal ranking does not, select on ensemble win in
+<code>real_v1_select_budget.py</code>.</li>
+</ol>
+<p>Of the bi-level plan (Section III-B), J<sub>sim</sub>(m) exists for one task and one controller, J<sub>real</sub>(m) for
+eight hands, and &#916;(m) is the eight signed differences of Table IV; one iteration of its first step has run.</p>
 </div></section>
 
 <section id="docs"><div class="col">
-<h2>One documentation system</h2>
-<p class="sub">what exists, what each layer was for, where they went stale, and a proposal that keeps the parts that
-worked</p>
-
-<h3>What exists today</h3>
-<div class="tw"><table><thead><tr><th>layer</th><th>where</th><th>role it played</th><th>state</th></tr></thead><tbody>
-<tr><td>mkdocs site</td><td class="mono">docs/index.md, mkdocs.yml, docs/architecture/, docs/simulators/, docs/*.md</td><td class="small">April&#8211;May method docs for the grasp stack</td><td class="small">accurate for that stack, frozen since May, bannered as not current</td></tr>
-<tr><td>engineering logs</td><td class="mono">docs/rl/reorientation.md (4,885 lines), perp_topology.md (1,503), morph_sweep_STATUS.md (1,874), phases.md</td><td class="small">append-only chronological record of the RL era; the RL source of truth</td><td class="small">complete to 2026-09-05; unnavigable by length; three parallel logs</td></tr>
-<tr><td>handoff / state docs</td><td class="mono">docs/RESEARCH_STATE.md, docs/rl/SESSION_20260830_HANDOFF.md, docs/experiments/*/QUEUE.md</td><td class="small">&#8220;where we are&#8221; for a fresh session</td><td class="small">stale the day after they are written; RESEARCH_STATE carries a banner saying so</td></tr>
-<tr><td>webpaper (Typst &#8594; HTML)</td><td class="mono">webpaper/src/{index,morphology,rl,hardware,control}.typ</td><td class="small">the canonical readable synthesis, three pillars, collapsible detail</td><td class="small">morphology and RL chapters end in July; hardware.typ is 104 lines of pre-hardware hypotheses; control.typ is current to 2026-08-30</td></tr>
-<tr><td>dated result pages</td><td class="mono">docs/experiments/YYYYMMDD-topic/YYYYMMDD-name.html + INDEX.md</td><td class="small">one page per experiment, builder + template, data-driven, published as an artifact at the same URL</td><td class="small">the unit that worked; {{N_PAGES}} pages since 2026-08-18; the July results are loose .txt/.md summaries in the same folder</td></tr>
-<tr><td>loose summaries</td><td class="mono">docs/experiments/*.txt, *.md, *.json (July), docs/notes/</td><td class="small">machine-written result dumps and notes</td><td class="small">unindexed</td></tr>
-<tr><td>papers</td><td class="mono">paper/ (gitignored), paper/speculative/, hand_paper/</td><td class="small">the manuscripts and the two in-depth &#8220;speculative&#8221; papers (the April&#8211;July record in IEEE form)</td><td class="small">local-only by design; the transfer corrections and review notes live only here</td></tr>
-<tr><td>session memory</td><td class="mono">~/.claude/projects/&#8230;/memory/*.md (111 files)</td><td class="small">one fact per file with why and how-to-apply; the densest record of decisions and retractions</td><td class="small">outside the repo, invisible to collaborators, not versioned with the code</td></tr>
-<tr><td>standing guidance</td><td class="mono">CLAUDE.md, scripts/README.md, results/rl/REGISTRY.md</td><td class="small">conventions, gotchas, the policy registry</td><td class="small">current</td></tr>
-</tbody></table></div>
-<p>Three of these were built as the same thing at different times: the mkdocs site (April), the webpaper (June) and the
-engineering logs (June) each claimed to be the canonical readable account, and each stopped being maintained when the work
-moved. The one that survived every move is the dated result page, because it is written once, regenerates from its own
-data, and is never expected to stay current: a page from 2026-09-06 says what was known on 2026-09-06, and a retraction is
-an edit to that page plus a mark on its index row.</p>
-
-<h3>Proposal: three roles, one tree, one index</h3>
-<ol>
-<li><strong>Record (immutable, dated).</strong> <code>docs/experiments/YYYYMMDD-topic/</code> stays the unit of record for every
-experiment, positive, negative and retracted, with the builder + template pattern and a row in <code>INDEX.md</code>. A
-folder may also hold a <code>README.md</code> that says how to re-run, never what was found. The July loose summaries get
-folded into dated pages (one page per sweep, built from the JSON that still exists) and the engineering logs are frozen
-under <code>docs/archive/</code> with no new appends; new findings go to a page, and a page can be one table long.</li>
-<li><strong>State (mutable, small).</strong> One <code>docs/STATE.md</code> per track (design search, control, hardware),
-at most one screen each, rewritten rather than appended: what is running, what is blocked on what, the three next
-measurements, and dated pointers into the record. This replaces RESEARCH_STATE.md, the session handoffs, the queue files
-and the STATUS logs. A state file older than the newest record page in its track is stale by definition, and the INDEX
-builder can print that.</li>
-<li><strong>Reference (mutable, slow).</strong> <code>docs/reference/</code> for what does not change with each experiment: the
-task definition, the plant and its calibration, the funnel, the bench protocol, the training pipeline, the registry of
-hands and policies, the gotcha list. These are the webpaper&#8217;s chapters and this page&#8217;s &#167;2&#8211;&#167;7, rebuilt as HTML from
-the same template so they publish like everything else. The Typst layer and the mkdocs layer retire into the archive;
-their durable content moves here once.</li>
-</ol>
-<p>Four rules that make the three roles hold. Every published artifact is a file in the repo first and its URL sits on its
-INDEX row (already the rule). The session memory is mirrored into the repo as <code>docs/reference/lessons/</code>, one file
-per lesson with the same front matter, so the retractions and the &#8220;why&#8221; travel with the code and a collaborator can
-read them. The <code>paper/</code> tex sources are tracked (a private branch or a submodule if the PDF must stay out), since the
-corrections that change the paper&#8217;s numbers currently exist only on one disk. And the INDEX becomes the single entry
-point for the repo: <code>docs/INDEX.md</code> lists the three reference pages, the three state files, and every record page
-newest first, with a linter that fails on a page without a local file, a URL that appears twice, or an undated folder.
-This page is the first reference page, and the funnel, definitions and pipeline sections of it are the ones that should
-be maintained rather than re-derived.</p>
+<h2>Documentation</h2>
+<p>This section proposed one documentation system on 2026-09-21. Since 2026-10-09 the documentation starts at the home page
+<a href="../../index.html">docs/index.html</a>, which links six topic overviews in <code>docs/overviews/</code>; the dated
+result pages under <code>docs/experiments/</code>, listed in <code>INDEX.md</code>, remain the record, and the Typst site
+(<code>webpaper/</code>) and the mkdocs pages are retired to <code>docs/archive/</code>.</p>
 </div></section>
 
 <footer>
-builder <code>scripts/workshop_briefing_page.py</code> + <code>scripts/workshop_briefing_page.template.html</code> &#183; local file
+Builder <code>scripts/workshop_briefing_page.py</code> + <code>scripts/workshop_briefing_page.template.html</code> &#183; local file
 <code>docs/experiments/20260921-workshop_briefing/20260921-sr2_hand_program_record.html</code> &#183; data read at build time:
-<code>docs/experiments/20260831-real_v1-sobol8192/</code> (manifests, summaries, confirm and full-error draws),
-<code>paper/figures/ranking.json</code>, <code>docs/experiments/INDEX.md</code>, the git log &#183; markdown sources quoted by path where
-a number has no JSON &#183; the workshop paper: <a href="https://sr2-hand.github.io/paper_iros26_rmr.pdf">sr2-hand.github.io/paper_iros26_rmr.pdf</a>
+<code>docs/experiments/20260831-real_v1-sobol8192/</code> (manifests, summaries, confirm and full-error draws) and
+<code>paper/figures/ranking.json</code>; the commit, folder and page counts of 2026-09-21 are fixed in the builder &#183; markdown
+sources quoted by path where a number has no JSON &#183; the workshop paper:
+<a href="https://sr2-hand.github.io/paper_iros26_rmr.pdf">sr2-hand.github.io/paper_iros26_rmr.pdf</a>
 </footer>
+
 </div>
 </body>
 </html>
