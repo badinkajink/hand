@@ -59,6 +59,7 @@ EXTRA_CSS = """
 :root[data-theme="dark"]{--a-box:#A8B4BD;--a-mesh:#3987e5;--a-pads:#d95926;--a-skin:#199e70;--hm0:#1f262c;--hm1:#104281;
 --hm2:#184f95;--hm3:#1c5cab;--hm4:#2a78d6;--hm5:#5598e7;--hm6:#86b6ef}
 figure.films{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+figure.films .cell p.filmlab{font-size:13px;margin:4px 0 0 0;line-height:1.35}
 figure.films video,figure.films img{width:100%;border-radius:8px}
 figure.films figcaption{grid-column:1/-1}
 figure.sheet img{width:100%;border-radius:6px}
@@ -335,8 +336,11 @@ def svg_transfer(X: Data):
         out.append(f'<text x="{cx + cw / 2:.1f}" y="{y0 - 10}" text-anchor="middle" style="fill:var(--ink2)">{lab}</text>')
     out.append(f'<text x="{x0 + 2.5 * cw:.1f}" y="{y0 - 34}" text-anchor="middle" style="fill:var(--ink)">'
                f'MuJoCo-Warp, closed loop, 64 rollouts per seed</text>')
+    nw = sorted({len([r for r in X.rep if r["dir"] == d and r["engine"] == e]) for d in {r["dir"] for r in X.rep}
+                 for e in ENGINES} - {0})
+    wl = f"{nw[0]}" if len(nw) == 1 else (f"{nw[0]}&#8211;{nw[-1]}" if nw else "&#8211;")
     out.append(f'<text x="{x0 + 5 * cw + 24 + 1.5 * cw:.1f}" y="{y0 - 34}" text-anchor="middle" style="fill:var(--ink)">'
-               f'open-loop replay, 6 worlds per seed</text>')
+               f'open-loop replay, {wl} worlds per seed</text>')
     for i, arm in enumerate(ARMS):
         cy = y0 + i * ch
         out.append(f'<text x="{x0 - 12}" y="{cy + ch / 2 + 4:.1f}" text-anchor="end" style="fill:var(--ink2)">'
@@ -567,28 +571,51 @@ def img(rel):
     return f'<img src="{P.R.data_uri(p, "image/jpeg")}" alt="{os.path.basename(rel)}">' if os.path.exists(p) else ""
 
 
+def median_seed(X: Data, arm):
+    """The final-evaluation row of an arm's median finished seed (held fraction, then held cosine), or None."""
+    rs = sorted(X.finals(arm), key=lambda r: (r["held_frac"], r["held_cos_mean"] if r["held_cos_mean"] is not None else -2))
+    return rs[(len(rs) - 1) // 2] if rs else None
+
+
+def final_film(X: Data, arm):
+    """(film, strip) paths relative to D for an arm's median seed: post_train.sh's close-up render when it exists, else
+    the checkpoint watch's film of the final checkpoint."""
+    r = median_seed(X, arm)
+    if r is None:
+        return None, None, None
+    for role in ("median", "best"):
+        f = next((f for f in X.films if f["arm"] == arm and f["role"] == role and f["tag"] == r["tag"]), None)
+        if f and os.path.exists(os.path.join(D, f"media/{f['tag']}_{role}.mp4")):
+            return r, f"media/{f['tag']}_{role}.mp4", f"media/{f['tag']}_{role}_strip.jpg"
+    rel = f"watch/{r['tag']}/it{r['iteration']:04d}_median.mp4"
+    if os.path.exists(os.path.join(D, rel)):
+        return r, rel, f"watch/{r['tag']}/it{r['iteration']:04d}_strip.jpg"
+    return r, None, None
+
+
 def films(X: Data):
-    if not X.films:
+    cells = []
+    for arm in ARMS:
+        r, film, strip = final_film(X, arm)
+        if film is None:
+            continue
+        hc = f", held cos {r['held_cos_mean']:.2f}" if r.get("held_cos_mean") is not None else ""
+        cells.append(f'<div class="cell">{video(film)}<p class="filmlab">{swatch(arm)}<b>{LBL[arm]}</b>, seed {r["seed"]}: '
+                     f'held {r["n_held"]}/64{hc}. {FILM_NOTES.get(arm, "")} <code>{film}</code></p></div>')
+    if not cells:
         return P.pending("Films not rendered yet (post_train.sh: close-up renders of the best and median seed per arm "
                          "and three-engine replay films).")
-    out = []
+    FIG[0] += 1
+    out = [f'<figure class="films">{"".join(cells)}<figcaption>Figure&#160;{FIG[0]}. The final policy of each contact '
+           f'model&#8217;s median seed, rollout with the median final cosine of 64, from the scripted grasp and lift '
+           f'(0&#8211;1.16&#8202;s) through the policy&#8217;s turn and hold to 5&#8202;s; camera 0.24&#8202;m from the '
+           f'hand, the turn in the image plane (thumb in front, index left, middle right). Paths relative to '
+           f'<code>docs/experiments/20261008-contact_model_policies/</code>.</figcaption></figure>']
     for arm in ARMS:
-        fs = [f for f in X.films if f["arm"] == arm]
-        clips = [(f, f"media/{f['tag']}_{f['role']}.mp4") for f in fs]
-        clips = [(f, c) for f, c in clips if os.path.exists(os.path.join(D, c))]
-        if not clips:
+        r = median_seed(X, arm)
+        if r is None:
             continue
-        FIG[0] += 1
-        body = "".join(video(c) for _, c in clips) + "".join(img(c[:-4] + "_strip.jpg") for _, c in clips)
-        names = "; ".join(f"{f['role']} seed s{f['tag'][-1]} (<code>docs/experiments/20261008-contact_model_policies/{c}</code>)"
-                          for f, c in clips)
-        out.append(f'<figure class="films">{body}<figcaption>Figure&#160;{FIG[0]}. {LBL[arm]}: {names}. '
-                   f'{film_caption(X, arm, fs)}</figcaption></figure>')
-    for arm in ARMS:
-        f = next((f for f in X.films if f["arm"] == arm and f["role"] == "median"), None)
-        if f is None:
-            continue
-        rel = f"media/{f['tag']}_replay_three.mp4"
+        rel = f"media/{r['tag']}_replay_three.mp4"
         if not os.path.exists(os.path.join(D, rel)):
             continue
         FIG[0] += 1
@@ -596,7 +623,7 @@ def films(X: Data):
                    f'MuJoCo-Warp rollout it trained on (left), and its finger targets from the onset replayed open loop in '
                    f'Drake (centre) and Newton (right) with the TPU block as a hydroelastic tip. '
                    f'<code>docs/experiments/20261008-contact_model_policies/{rel}</code></figcaption></figure>')
-    return "".join(out) or P.pending("Films listed in films.json but not rendered yet.")
+    return "".join(out)
 
 
 FILM_NOTES = {}      # arm -> sentence written after watching the films (filled in the next revision)
@@ -765,13 +792,70 @@ def robust_section(X: Data):
     return figure(svg_robust(X), cap, legend())
 
 
+def summary(X: Data):
+    """Per arm: finished and stopped seeds, pooled held counts and held cosines of the final policies, open-loop replay
+    counts per engine, the tool's angular jerk in the hold at the last watched checkpoint, and the median s/it."""
+    out = {}
+    for arm in ARMS:
+        fins = X.finals(arm)
+        rep = {e: X.replays(arm, e) for e in ENGINES}
+        last = {}
+        for r in X.watch:
+            if r["arm"] == arm and (r["tag"] not in last or r["iteration"] > last[r["tag"]]["iteration"]):
+                last[r["tag"]] = r
+        fin_tags = {r["tag"] for r in fins}
+        jerk_fin = [r.get("ang_jerk_hold_median") for t, r in last.items() if t in fin_tags and r.get("ang_jerk_hold_median")]
+        cs = [c for t, c in X.cost.items() if tag_arm(t) == arm and c.get("s_per_it_median")]
+        out[arm] = dict(
+            n_fin=len(fins), stopped=sorted(t for t in X.stops if tag_arm(t) == arm),
+            held=sum(r["n_held"] for r in fins), n=sum(r["n"] for r in fins),
+            hcos=[r["held_cos_mean"] for r in fins if r.get("held_cos_mean") is not None],
+            rep={e: (sum(1 for r in v if r.get("held_end")), len(v)) for e, v in rep.items()},
+            jerk=jerk_fin, spit=float(np.median([c["s_per_it_median"] for c in cs])) if cs else None,
+            grip=[r["grip_N"] for r in fins if r.get("grip_N") is not None],
+            creep=[r["creep_mm_s_median"] for r in fins if r.get("creep_mm_s_median") is not None])
+    return out
+
+
+def _rng(v, nd=2):
+    if not v:
+        return "&#8211;"
+    lo, hi = min(v), max(v)
+    return f"{lo:.{nd}f}" if f"{lo:.{nd}f}" == f"{hi:.{nd}f}" else f"{lo:.{nd}f}&#8211;{hi:.{nd}f}"
+
+
 def lede(X: Data):
-    n = len(X.fin)
-    if n < 12:
-        done = ", ".join(f"{SHORT[a]} {len(X.finals(a))}/3" for a in ARMS)
-        return (f"Training in progress: final policies evaluated so far {done}. The findings are written when all twelve "
-                f"runs, the transfer matrix, the perturbations and the films are in.")
-    return ""
+    S = summary(X)
+    if not all(S[a]["n_fin"] for a in ARMS):
+        done = ", ".join(f"{SHORT[a]} {S[a]['n_fin']}" for a in ARMS)
+        return f"Training in progress: finished seeds per contact model {done}."
+    comp = [a for a in ("tpu27pads1", "tpu27skin")]
+    point = [a for a in ("box", "tpu27mesh")]
+    rep = lambda arms: [sum(S[a]["rep"][e][k] for a in arms for e in ENGINES) for k in (0, 1)]  # noqa: E731
+    rc, rp = rep(comp), rep(point)
+    parts = [f"Replayed open loop in CPU MuJoCo, Drake and Newton, the finger targets of the policies trained on the "
+             f"1&#8202;mm sphere pads and on the pads mounted on a sprung skin kept the screwdriver in "
+             f"{rc[0]} of {rc[1]} replays, and those trained with MuJoCo point contact on the box tip or the TPU block "
+             f"mesh in {rp[0]} of {rp[1]}; the films show the point-contact replays throwing the tool out of the fingers "
+             f"within half a second."]
+    jp = [j for a in point for j in S[a]["jerk"]]
+    jc = [j for a in comp for j in S[a]["jerk"]]
+    stopped = [t for a in point for t in S[a]["stopped"]]
+    if jp and jc:
+        parts.append(f"In their own simulator the point-contact policies shake the tool: its angular jerk over the hold is "
+                     f"{_rng(jp, 0)}&#8202;1/s&#178; at 40&#8202;M steps against {_rng(jc, 0)}&#8202;1/s&#178; for "
+                     f"the pads and the skin" + (f", and the checkpoint watch stopped {len(stopped)} of their later "
+                     f"seeds at 16&#8202;M steps for jitter." if stopped else "."))
+    hb, hm, hp, hs = (S[a]["hcos"] for a in ARMS)
+    parts.append(f"They turn further where they hold: final held cosine {_rng(hb)} for the box tip "
+                 f"({S['box']['held']}/{S['box']['n']} rollouts held) and {_rng(hm)} for the TPU mesh, against "
+                 f"{_rng(hp)} for the pads and {_rng(hs)} for the skin, all of whose rollouts held "
+                 f"({S['tpu27pads1']['held'] + S['tpu27skin']['held']}/{S['tpu27pads1']['n'] + S['tpu27skin']['n']}).")
+    if S["tpu27skin"]["spit"] and S["tpu27mesh"]["spit"]:
+        parts.append(f"A training iteration costs {S['tpu27pads1']['spit'] / S['tpu27mesh']['spit']:.1f}&#215; the "
+                     f"TPU mesh&#8217;s GPU time with the pads and {S['tpu27skin']['spit'] / S['tpu27mesh']['spit']:.1f}"
+                     f"&#215; with the skin.")
+    return " ".join(parts)
 
 
 def open_items(X: Data):
