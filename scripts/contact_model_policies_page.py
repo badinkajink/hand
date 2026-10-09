@@ -1001,8 +1001,35 @@ def transfer_section(X: Data):
            "(the condim-4 TPU mesh was not trained). Right: open-loop replay of the recorded finger targets from the onset "
            "of the turn in CPU MuJoCo (each arm&#8217;s own tips), Drake and Newton (the TPU block as a hydroelastic tip; "
            "Newton with \\(k_h\\) divided by the tip-tool effective mass and its friction rows at the pads&#8217; "
-           "10&#8202;ms). Drake is one more discretization of the pressure law, not a ground truth.")
-    return figure(svg_transfer(X), cap)
+           "10&#8202;ms). Drake discretizes the same pressure law as the pads.")
+    return figure(svg_transfer(X), cap) + transfer_text(X)
+
+
+def transfer_text(X: Data):
+    """Sentences on the transfer matrix (MuJoCo-Warp, other contact models) and the replays, from the rows."""
+    out = []
+    if X.tr:
+        def pooled(arms, own):
+            rs = [r for r in X.tr if r["arm"] in arms and ((r["scene"] == r["arm"]) == own)]
+            n = sum(r["n"] for r in rs)
+            return (sum(r["n_held"] for r in rs), n) if n else None
+        c_own, c_oth = pooled(("tpu27pads1", "tpu27skin"), True), pooled(("tpu27pads1", "tpu27skin"), False)
+        p_own, p_oth = pooled(("box", "tpu27mesh"), True), pooled(("box", "tpu27mesh"), False)
+        if c_oth and p_oth:
+            out.append(f"Under the other contact models in MuJoCo-Warp the compliant-tip policies held "
+                       f"{c_oth[0]}/{c_oth[1]} rollouts ({100 * c_oth[0] / c_oth[1]:.0f}&#8202;%; "
+                       f"{100 * c_own[0] / c_own[1]:.0f}&#8202;% under their own) and the point-contact policies "
+                       f"{p_oth[0]}/{p_oth[1]} ({100 * p_oth[0] / p_oth[1]:.0f}&#8202;%; "
+                       f"{100 * p_own[0] / p_own[1]:.0f}&#8202;% under their own).")
+    if X.rep:
+        parts = []
+        for arm in ARMS:
+            e = [f"{ENG_LBL[g].split()[0] if g != 'mujoco' else 'CPU MuJoCo'} {sum(1 for r in X.replays(arm, g) if r.get('held_end'))}"
+                 f"/{len(X.replays(arm, g))}" for g in ENGINES if X.replays(arm, g)]
+            if e:
+                parts.append(f"{SHORT[arm]}: {', '.join(e)}")
+        out.append("Open-loop replays held, per contact model the policy trained on: " + "; ".join(parts) + ".")
+    return f"<p>{' '.join(out)}</p>" if out else ""
 
 
 def robust_section(X: Data):
