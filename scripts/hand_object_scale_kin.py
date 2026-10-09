@@ -147,6 +147,8 @@ def fk(finger: str, q: np.ndarray) -> dict[str, np.ndarray]:
         "dist_a": _yaw(pip_x, pip_z, psi),
         "dist_b": _yaw(pip_x - s * CAP_DIST * np.sin(a12), pip_z - CAP_DIST * np.cos(a12), psi),
         "pad": _yaw(pip_x - s * P * np.sin(a12), pip_z - P * np.cos(a12), psi),
+        # palmar face normal of the distal link: the direction the pad moves under flexion
+        "palmar": _yaw(-s * np.cos(a12), np.sin(a12), psi),
     }
 
 
@@ -186,17 +188,21 @@ def pick_branch(q: np.ndarray, ok: np.ndarray, lim: np.ndarray, margin: float):
     return qq, good.any(-1), mm.min(-1), mm
 
 
-def jac_cond(finger: str, q: np.ndarray, eps: float = 1e-6) -> np.ndarray:
-    """Condition number of the 3x3 pad-position Jacobian (all columns m/rad)."""
+def jac_pad(finger: str, q: np.ndarray, eps: float = 1e-6) -> np.ndarray:
+    """3x3 pad-position Jacobian (columns yaw, mcp, pip; m/rad), finite differences of fk."""
     base = fk(finger, q)["pad"]
     cols = []
     for j in range(3):
         dq = np.zeros(3)
         dq[j] = eps
         cols.append((fk(finger, q + dq)["pad"] - base) / eps)
-    Jm = np.stack(cols, -1)
-    sv = np.linalg.svd(Jm, compute_uv=False)
-    return sv[..., 0] / np.maximum(sv[..., -1], 1e-12)
+    return np.stack(cols, -1)
+
+
+def jac_cond(finger: str, q: np.ndarray, eps: float = 1e-6):
+    """Condition number and smallest singular value (m/rad) of the pad Jacobian."""
+    sv = np.linalg.svd(jac_pad(finger, q, eps), compute_uv=False)
+    return sv[..., 0] / np.maximum(sv[..., -1], 1e-12), sv[..., -1]
 
 
 # --- distances ---------------------------------------------------------------------------------
@@ -300,7 +306,7 @@ def grasp_scan(x_sep, y_sep, shape, d, lim, spreads=(None,), h_grid=None, length
         centre = np.stack([np.full_like(H, c_xy[0]), np.full_like(H, c_xy[1]), -H], -1)
         obj = object_spec(shape, d, length, centre=centre)
         q, feas, mmin, pts = {}, np.ones_like(H, bool), np.full_like(H, np.inf), {}
-        ext, cond = {}, {}
+        ext, cond, smin, angle = {}, {}, {}, {}
         for f in FINGERS:
             T = centre + rel[f] - M[f]
             qq, okk = ik(f, T)
@@ -311,15 +317,23 @@ def grasp_scan(x_sep, y_sep, shape, d, lim, spreads=(None,), h_grid=None, length
             # finger is straight -- the reach margin
             mcp = pts[f]["mid_a"]
             ext[f] = CHAIN - np.linalg.norm(pts[f]["pad"] - mcp, axis=-1)
-            cond[f] = jac_cond(f, qf)
+            cond[f], smin[f] = jac_cond(f, qf)
+            # angle between the fingertip's palmar normal and the object's inward surface normal at the
+            # contact: 0 = the pad face-on, 90 = the contact at the edge of the pad region (front half)
+            n_in = centre - (pts[f]["pad"] + M[f])
+            if shape == "cylinder":
+                n_in[..., 1] = 0.0
+            n_in = n_in / np.linalg.norm(n_in, axis=-1, keepdims=True)
+            angle[f] = np.degrees(np.arccos(np.clip(np.einsum("ij,ij->i", n_in, pts[f]["palmar"]), -1, 1)))
         # every geom in the palm frame for the clearance checks
-        world = {f: {k: v + M[f] for k, v in pts[f].items()} for f in FINGERS}
+        world = {f: {k: v + M[f] for k, v in pts[f].items() if k != "palmar"} for f in FINGERS}
         ff_clear = finger_clearance(world)
         ob_clear = np.min([object_clearance(world[f], obj) for f in FINGERS], axis=0)
         plate = PLATE_BOTTOM + H - r
-        ok = feas & (ff_clear >= CLEAR_GATE) & (ob_clear >= OBJ_CLEAR) & (plate >= OBJ_CLEAR)
-        rows.append(dict(spread=sp, h=H, ok=ok, reach=feas, ff_clear=ff_clear, ob_clear=ob_clear,
-                         plate=plate, mmin=mmin, q=q, ext=ext, cond=cond))
+        face = np.max([angle[f] for f in FINGERS], axis=0) <= 90.0
+        ok = feas & face & (ff_clear >= CLEAR_GATE) & (ob_clear >= OBJ_CLEAR) & (plate >= OBJ_CLEAR)
+        rows.append(dict(spread=sp, h=H, ok=ok, reach=feas, face=face, ff_clear=ff_clear, ob_clear=ob_clear,
+                         plate=plate, mmin=mmin, q=q, ext=ext, cond=cond, smin=smin, angle=angle))
     return rows
 
 
@@ -328,7 +342,7 @@ def summarise(rows, x_sep, y_sep, shape, d) -> dict:
     (largest smallest joint margin), and the deepest palm (fit_real_v1_pose's choice)."""
     out = {"x_sep_mm": round(x_sep * 1000, 2), "y_sep_mm": round(y_sep * 1000, 2), "shape": shape,
            "d_mm": round(d * 1000, 2), "feasible": False}
-    best, deep, n_ok, n_reach = None, None, 0, 0
+    best, deep, dex, n_ok, n_reach = None, None, None, 0, 0
     bands = []
     for row in rows:
         idx = np.flatnonzero(row["ok"])
@@ -344,6 +358,10 @@ def summarise(rows, x_sep, y_sep, shape, d) -> dict:
             k2 = idx[np.argmax(row["h"][idx])]
             if deep is None or row["h"][k2] > deep[0]["h"][deep[1]] + 1e-9:
                 deep = (row, k2)
+            sm = np.min([row["smin"][f] for f in FINGERS], axis=0)
+            k3 = idx[np.argmax(sm[idx])]
+            if dex is None or sm[k3] > dex[2]:
+                dex = (row, k3, sm[k3])
     out["n_feasible"] = n_ok
     out["n_reach_only"] = n_reach
     out["bands"] = bands
@@ -353,6 +371,8 @@ def summarise(rows, x_sep, y_sep, shape, d) -> dict:
         for row in rows:
             if not row["reach"].any():
                 why.append("reach")
+            elif not (row["reach"] & row["face"]).any():
+                why.append("contact_angle")
             elif not (row["reach"] & (row["ff_clear"] >= CLEAR_GATE)).any():
                 why.append("finger_clearance")
             elif not (row["reach"] & (row["ff_clear"] >= CLEAR_GATE) & (row["ob_clear"] >= OBJ_CLEAR)).any():
@@ -370,12 +390,173 @@ def summarise(rows, x_sep, y_sep, shape, d) -> dict:
                 "min_margin_deg": round(float(np.degrees(row["mmin"][k])), 2),
                 "ext_mm": {f: round(float(row["ext"][f][k]) * 1000, 2) for f in FINGERS},
                 "cond": {f: round(float(row["cond"][f][k]), 2) for f in FINGERS},
+                "sigma_min_mm": {f: round(float(row["smin"][f][k]) * 1000, 2) for f in FINGERS},
+                "contact_angle_deg": {f: round(float(row["angle"][f][k]), 1) for f in FINGERS},
                 "ff_clear_mm": round(float(row["ff_clear"][k]) * 1000, 2),
                 "ob_clear_mm": round(float(row["ob_clear"][k]) * 1000, 2),
                 "plate_clear_mm": round(float(row["plate"][k]) * 1000, 2)}
     out["centred"] = pose(*best)
     out["deepest"] = pose(*deep)
+    out["dexterous"] = pose(*dex[:2])
     return out
+
+
+# --- fixed-contact precision-manipulation workspace ------------------------------------------------
+def rotvec_grid(step_deg: float = 15.0, max_deg: float = 45.0) -> np.ndarray:
+    """Rotation vectors on a cubic grid of `step_deg`, inside a ball of `max_deg` (123 at 15/45)."""
+    k = int(round(max_deg / step_deg))
+    ijk = np.array([(i, j, l) for i in range(-k, k + 1) for j in range(-k, k + 1) for l in range(-k, k + 1)], float)
+    v = ijk * step_deg
+    return np.radians(v[np.linalg.norm(v, axis=1) <= max_deg + 1e-9])
+
+
+def rotmat(rv) -> np.ndarray:
+    th = float(np.linalg.norm(rv))
+    if th < 1e-12:
+        return np.eye(3)
+    k = np.asarray(rv, float) / th
+    K = np.array([[0, -k[2], k[1]], [k[2], 0, -k[0]], [-k[1], k[0], 0]])
+    return np.eye(3) + math.sin(th) * K + (1 - math.cos(th)) * K @ K
+
+
+POS_STEP = 0.003
+POS_GRID = np.stack(np.meshgrid(np.arange(-0.090, 0.0901, POS_STEP), np.arange(-0.090, 0.0901, POS_STEP),
+                                np.arange(-0.150, 0.0201, POS_STEP), indexing="ij"), -1).reshape(-1, 3)
+
+
+def feasible_poses(x_sep, y_sep, shape, d, rel, Rm, lim, centres=POS_GRID, length=0.100):
+    """Mask over object centres (palm frame) at orientation Rm: with each pad centre fixed in the object frame at
+    rel[f] (a spherical joint at the pad centre, Borras and Dollar's point contact), every finger reaches it within
+    its joint limits, the object's surface normal at the contact lies in the front half of the fingertip (within
+    90 deg of the palmar normal), no two fingers interpenetrate, no finger link enters the object, and the object
+    stays below the palm plate."""
+    M = mounts(x_sep, y_sep)
+    r = d / 2.0
+    T = {f: centres + Rm @ rel[f] - M[f] for f in FINGERS}
+    ok = np.ones(len(centres), bool)
+    for f in FINGERS:                                   # a pad farther than the straight chain is out of reach
+        ok &= np.einsum("ij,ij->i", T[f], T[f]) <= (2 * J + P) ** 2 + 1e-12
+    idx = np.flatnonzero(ok)
+    if idx.size == 0:
+        return ok
+    q = {}
+    good = np.ones(idx.size, bool)
+    for f in FINGERS:
+        qq, okk = ik(f, T[f][idx])
+        q[f], ff, _, _ = pick_branch(qq, okk, lim[f], 0.0)
+        good &= ff
+    idx, q = idx[good], {f: v[good] for f, v in q.items()}
+    if idx.size == 0:
+        ok[:] = False
+        return ok
+    c = centres[idx]
+    axis = Rm @ np.array([0.0, 1.0, 0.0])
+    pts = {f: fk(f, q[f]) for f in FINGERS}
+    good = np.ones(idx.size, bool)
+    for f in FINGERS:                                   # contact normal in the front half of the tip
+        pad = pts[f]["pad"] + M[f]
+        n_in = c - pad
+        if shape == "cylinder":
+            n_in = n_in - (n_in @ axis)[:, None] * axis
+        n_in /= np.linalg.norm(n_in, axis=1, keepdims=True)
+        good &= np.einsum("ij,ij->i", n_in, pts[f]["palmar"]) >= 0.0
+    world = {f: {k: v + M[f] for k, v in pts[f].items() if k != "palmar"} for f in FINGERS}
+    good &= finger_clearance(world) >= 0.0
+    obj = object_spec(shape, d, length, centre=c)
+    if shape == "cylinder":
+        obj["axis"] = axis
+        top = c[:, 2] + obj["hl"] * abs(axis[2]) + r * math.sqrt(max(0.0, 1 - axis[2] ** 2))
+    else:
+        top = c[:, 2] + r
+    good &= np.min([object_clearance(world[f], obj) for f in FINGERS], axis=0) >= 0.0
+    good &= PLATE_BOTTOM - top >= 0.0
+    ok[:] = False
+    ok[idx[good]] = True
+    return ok
+
+
+def axis_range(x_sep, y_sep, shape, d, rel, lim, axis: int, step_deg: float = 5.0, max_deg: float = 90.0):
+    """Largest |angle| reachable by rotating the object about palm axis `axis` (0 x, 1 y, 2 z) with its centre
+    free on the position grid, contiguous from 0, both signs; and the reachable volume (cm^3) per angle."""
+    vols = {}
+    reach = {}
+    for sgn in (1, -1):
+        best = 0.0
+        for a in np.arange(0.0, max_deg + 1e-9, step_deg):
+            rv = np.zeros(3)
+            rv[axis] = sgn * math.radians(a)
+            n = int(feasible_poses(x_sep, y_sep, shape, d, rel, rotmat(rv), lim).sum())
+            vols[round(sgn * a, 1)] = round(n * POS_STEP ** 3 * 1e6, 3)
+            if n == 0:
+                break
+            best = a
+        reach[sgn] = best
+    return reach[1], reach[-1], dict(sorted(vols.items()))
+
+
+def workspace_cell(x_sep, y_sep, shape, d, lim, spread=None, rv=None):
+    rel, _ = contact_targets(shape, x_sep, y_sep, d / 2.0, spread or 0.0)
+    rv = rotvec_grid() if rv is None else rv
+    counts = np.array([int(feasible_poses(x_sep, y_sep, shape, d, rel, rotmat(v), lim).sum()) for v in rv])
+    out = {"poses": int(counts.sum()), "n_orient_reached": int((counts > 0).sum()), "n_orient": len(rv),
+           "vol_identity_cm3": round(counts[0 if np.linalg.norm(rv[0]) < 1e-12 else
+                                            int(np.argmin(np.linalg.norm(rv, axis=1)))] * POS_STEP ** 3 * 1e6, 3)}
+    for ax, name in ((0, "x"), (1, "y"), (2, "z")):
+        p, m, vols = axis_range(x_sep, y_sep, shape, d, rel, lim, ax)
+        out[f"rot_{name}_deg"] = [p, m]
+        if ax == 0:
+            out["vol_by_rot_x"] = vols
+    return out
+
+
+def cmd_workspace(args) -> int:
+    """Step 3(i): the fixed-contact workspace per (layout, object) cell of the chosen families, rows appended
+    (fsynced) to workspace.jsonl; resumable; --shard i/n splits the cell list."""
+    lim = limits(False)
+    R_ = json.loads(Path(args.reach).read_text())
+    cells = {(c["tag"], c["shape"], c["d_mm"]): c for c in R_["cells"]}
+    out = Path(args.out)
+    done = set()
+    if out.exists():
+        for line in out.read_text().splitlines():
+            r = json.loads(line)
+            done.add((r["tag"], r["shape"], r["d_mm"], r["spread_mm"]))
+    todo = []
+    seen = set()
+    for kind in args.families.split(","):
+        for lay in R_["families"][kind]:
+            for shape, ds in OBJECT_SET.items():
+                for dmm in ds:
+                    c = cells.get((lay["tag"], shape, float(dmm)))
+                    if not c or not c["feasible"]:
+                        continue
+                    sps = [None] if shape == "sphere" else [b["spread_mm"] for b in c["bands"]
+                                                            if b["spread_mm"] in args.spreads]
+                    for sp in sps:
+                        key = (lay["tag"], shape, float(dmm), sp)
+                        if key in seen:
+                            continue
+                        seen.add(key)
+                        todo.append((lay, shape, dmm, sp))
+    k, n = (int(v) for v in args.shard.split("/"))
+    todo = [t for i, t in enumerate(todo) if i % n == k]
+    print(f"{len(todo)} cells in shard {args.shard}, {sum(1 for t in todo if (t[0]['tag'], t[1], float(t[2]), t[3]) in done)} done")
+    for lay, shape, dmm, sp in todo:
+        if (lay["tag"], shape, float(dmm), sp) in done:
+            continue
+        t0 = time.time()
+        w = workspace_cell(lay["x_sep"] / 1000, lay["y_sep"] / 1000, shape, dmm / 1000, lim,
+                           None if sp is None else sp / 1000)
+        row = {"tag": lay["tag"], "x_sep_mm": lay["x_sep"], "y_sep_mm": lay["y_sep"],
+               "palm_radius_mm": lay["palm_radius"], "shape": shape, "d_mm": float(dmm), "spread_mm": sp,
+               **w, "seconds": round(time.time() - t0, 1)}
+        with open(out, "a") as fh:
+            fh.write(json.dumps(row) + "\n")
+            fh.flush()
+            os.fsync(fh.fileno())
+        print(f"{lay['tag']} {shape:8} d {dmm:5.1f} sp {sp}: poses {w['poses']:7d} vol0 {w['vol_identity_cm3']:7.2f} "
+              f"rot x {w['rot_x_deg']} y {w['rot_y_deg']} z {w['rot_z_deg']}  {row['seconds']} s", flush=True)
+    return 0
 
 
 # --- commands ------------------------------------------------------------------------------------
@@ -738,8 +919,16 @@ def main() -> int:
     r.add_argument("--out", default=str(OUT_DIR / "reach.json"))
     o = sub.add_parser("objects")
     o.add_argument("--reach", default=str(OUT_DIR / "reach.json"))
+    w = sub.add_parser("workspace")
+    w.add_argument("--reach", default=str(OUT_DIR / "reach.json"))
+    w.add_argument("--families", default="diag")
+    w.add_argument("--spreads", type=lambda s: [float(v) for v in s.split(",")], default=[22.5, 32.5, 42.5],
+                   help="cylinder straddles (mm) to evaluate, among those with a feasible grasp")
+    w.add_argument("--shard", default="0/1")
+    w.add_argument("--out", default=str(OUT_DIR / "workspace.jsonl"))
     a = ap.parse_args()
-    return {"check": cmd_check, "reach": cmd_reach, "objects": cmd_objects, "verify": cmd_verify}[a.cmd](a)
+    return {"check": cmd_check, "reach": cmd_reach, "objects": cmd_objects, "verify": cmd_verify,
+            "workspace": cmd_workspace}[a.cmd](a)
 
 
 if __name__ == "__main__":
