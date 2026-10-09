@@ -669,7 +669,7 @@ def films(X: Data):
             continue
         hc = f", held cos {r['held_cos_mean']:.2f}" if r.get("held_cos_mean") is not None else ""
         cells.append(f'<div class="cell">{video(film)}<p class="filmlab">{swatch(arm)}<b>{LBL[arm]}</b>, seed {r["seed"]}: '
-                     f'held {r["n_held"]}/64{hc}. {FILM_NOTES.get(arm, "")} <code>{film}</code></p></div>')
+                     f'held {r["n_held"]}/64{hc}. {FILM_NOTES.get(r["tag"], "")} <code>{film}</code></p></div>')
     if not cells:
         return P.pending("Films not rendered yet (post_train.sh: close-up renders of the best and median seed per arm "
                          "and three-engine replay films).")
@@ -677,7 +677,9 @@ def films(X: Data):
     out = [f'<figure class="films">{"".join(cells)}<figcaption>Figure&#160;{FIG[0]}. The final policy of each contact '
            f'model&#8217;s median seed, rollout with the median final cosine of 64, from the scripted grasp and lift '
            f'(0&#8211;1.16&#8202;s) through the policy&#8217;s turn and hold to 5&#8202;s; camera 0.24&#8202;m from the '
-           f'hand, the turn in the image plane (thumb in front, index left, middle right). Paths relative to '
+           f'hand, the turn in the image plane (thumb in front, index left, middle right). Force ranges are the '
+           f'10th&#8211;90th percentiles of the summed fingertip force over the held steps of the hold (steps '
+           f'150&#8211;250) of all 64 rollouts. Paths relative to '
            f'<code>docs/experiments/20261008-contact_model_policies/</code>.</figcaption></figure>']
     for arm in ARMS:
         r = median_seed(X, arm)
@@ -694,7 +696,16 @@ def films(X: Data):
     return "".join(out)
 
 
-FILM_NOTES = {}      # arm -> sentence written after watching the films (filled in the next revision)
+FILM_NOTES = {       # run tag -> what its final film shows, written after watching it (numbers from final_traces)
+    "20261008-d6_work_box_40M_s0": "The tool flips to vertical within a quarter second of the onset between the thumb and "
+    "the index finger, the middle finger mostly off it; in the hold the summed tip force ranges over 41&#8211;148&#8202;N.",
+    "20261008-d6_work_tpu27mesh_40M_s0": "Three pads flip the tool to 0.75 within a quarter second, and it creeps on to "
+    "0.86; the summed tip force ranges over 38&#8211;62&#8202;N.",
+    "20261008-d6_work_tpu27pads1_40M_s0": "Three pads flip the tool to 0.63 within a quarter second, and it creeps on to "
+    "0.70; the summed tip force stays at 42&#8211;44&#8202;N.",
+    "20261008-d6_work_tpu27skin_40M_s0": "Three pads turn the tool to 0.67 within a quarter second and to 0.79 by 0.7&#8202;s, "
+    "then hold it at 46&#8211;52&#8202;N.",
+}
 
 
 def film_caption(X, arm, fs):
@@ -939,6 +950,49 @@ def pinned_desc(tag, it):
     return out
 
 
+def grip_range(tag):
+    """10th and 90th percentile of the summed fingertip force over the held steps of the hold (steps 150-249), N."""
+    p = os.path.join(D, "final_traces", f"{tag}.npz")
+    if not os.path.exists(p):
+        return None
+    tr = np.load(p)
+    fo, z = tr["force"].astype(float), tr["z"].astype(float)
+    held = (z > 0.06) & ((fo >= 0.24).sum(-1) >= 2)
+    g = fo.sum(-1)[150:][held[150:]]
+    return (float(np.percentile(g, 10)), float(np.percentile(g, 90))) if g.size else None
+
+
+def turn_time(tag, onset=58):
+    """Seconds after the onset at which the median cos of the rollouts held at 5 s first reaches 90 % of its final value."""
+    p = os.path.join(D, "final_traces", f"{tag}.npz")
+    if not os.path.exists(p):
+        return None
+    tr = np.load(p)
+    cos, z, fo = tr["cos"].astype(float), tr["z"].astype(float), tr["force"].astype(float)
+    held = ((z > 0.06) & ((fo >= 0.24).sum(-1) >= 2))[-1]
+    if not held.any():
+        return None
+    m = np.median(cos[:, held], axis=1)
+    k = int(np.argmax(m[onset:] >= 0.9 * m[-1]))
+    return (k + 1) * 0.02
+
+
+def final_text(X: Data):
+    tt = [t for t in (turn_time(r["tag"]) for a in ARMS for r in X.finals(a)) if t is not None]
+    parts = []
+    for arm in ARMS:
+        rr = [grip_range(r["tag"]) for r in X.finals(arm)]
+        rr = [x for x in rr if x]
+        if rr:
+            parts.append(f"{SHORT[arm]} " + ", ".join(f"{lo:.0f}&#8211;{hi:.0f}" for lo, hi in rr))
+    if not parts:
+        return ""
+    return (f"<p>Every final policy brings the tool to 90&#8202;% of its final cosine within {max(tt):.2f}&#8202;s of the "
+            "onset and then holds it (Figure " + str(FIG[0]) + "). The grip in that hold separates the contact models: the "
+            "summed fingertip force "
+            "spans (10th&#8211;90th percentile over the held steps, per seed) " + "; ".join(parts) + "&#8202;N.</p>")
+
+
 def grip_chatter(tag):
     """Median |change of the summed fingertip force| between consecutive policy steps over the hold (steps 150-249),
     over the held steps of all rollouts of the final evaluation, N."""
@@ -964,6 +1018,7 @@ def final_section(X: Data):
                   "cosine with vertical (top) and the summed fingertip force on it (bottom, clipped at 150&#8202;N) against "
                   "time; rollouts that held the tool at 5&#8202;s in the arm&#8217;s colour, the others in red. Dashed: the residual "
                   "policy&#8217;s onset after the scripted grasp and lift (step 58).")
+    out += final_text(X)
     h1 = ["contact model", "held", "held cos, median seed", "seed spread", "rollout spread", "reach 0.9 held",
           "step at 0.9"]
     h2 = ["contact model", "grip (N)", "grip change per step (N)", "peak force (N)", "penetration (mm)", "creep (mm/s)",
