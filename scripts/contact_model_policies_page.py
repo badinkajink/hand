@@ -60,11 +60,15 @@ EXTRA_CSS = """
 :root[data-theme="dark"]{--a-box:#A8B4BD;--a-mesh:#3987e5;--a-pads:#d95926;--a-skin:#199e70;--hm0:#1f262c;--hm1:#104281;
 --hm2:#184f95;--hm3:#1c5cab;--hm4:#2a78d6;--hm5:#5598e7;--hm6:#86b6ef}
 figure.films{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+figure.films.three{grid-template-columns:1fr 1fr 1fr}
+figure.replays .cell{margin-bottom:14px}
+figure.replays video{width:100%;border-radius:8px}
+figure.replays .cell p.filmlab{font-size:13px;margin:4px 0 0 0;line-height:1.35}
 figure.films .cell p.filmlab{font-size:13px;margin:4px 0 0 0;line-height:1.35}
 figure.films video,figure.films img{width:100%;border-radius:8px}
 figure.films figcaption{grid-column:1/-1}
 figure.sheet img{width:100%;border-radius:6px}
-@media (max-width:640px){figure.films{grid-template-columns:1fr}}
+@media (max-width:640px){figure.films,figure.films.three{grid-template-columns:1fr}}
 details.sheets{margin:24px 0;border:1px solid var(--rule);border-radius:10px;padding:10px 16px;background:var(--card)}
 details.sheets summary{cursor:pointer;font-family:var(--f-display);font-size:14.5px;color:var(--ink2)}
 """
@@ -263,30 +267,78 @@ def _draw_seeds(out, X: Data, fx, fy, lines, arm, clamp=None):
                 P._marker(out, fx(x) + 9, fy(y), COL[arm], shape="cross", r=4.5, title=f"{SHORT[arm]} s{seed} stopped")
 
 
+def _arm_median(X: Data, arm, key, xkind):
+    """Per evaluated iteration of an arm: (x, median, min, max, seeds) of `key` (n_held | held_cos) over the seeds
+    evaluated there; x in M steps or training hours (the seeds' median)."""
+    by_it = {}
+    for seed, pts in X.curve(arm).items():
+        for it, steps, nh, hc, cm, tag in pts:
+            x = steps / 1e6 if xkind == "steps" else X.hours(tag, it)
+            by_it.setdefault(it, []).append((x, nh if key == "n_held" else hc))
+    out = []
+    for it in sorted(by_it):
+        xs = [x for x, _ in by_it[it] if x is not None]
+        vs = [v for _, v in by_it[it] if v is not None]
+        if xs:
+            out.append((float(np.median(xs)), float(np.median(vs)) if vs else None, min(vs) if vs else None,
+                        max(vs) if vs else None, len(by_it[it])))
+    return out
+
+
 def svg_curves(X: Data):
+    """Top: one panel per contact model, the held cosine of each seed's checkpoints against env steps (marker filled when
+    at least 60 of 64 rollouts held, hollow when fewer, a tick on the floor when none). Bottom: the median over seeds and
+    the seeds' range of every contact model against training wall-clock time."""
     if not X.ck:
         return P.pending("Checkpoint evaluations not written yet (ckpt_eval.jsonl).")
-    W, H = 990, 600
-    out = P._svg_open(W, H, "Held rollouts and held cosine of the deterministic policy at its checkpoints, one line per "
-                            "seed and contact model, against environment steps and against training wall-clock time")
+    W, H = 990, 640
+    out = P._svg_open(W, H, "Held cosine of each seed's checkpoints per contact model against environment steps, and the "
+                            "median over seeds of the held cosine and the held rollouts against training wall-clock time")
+    pw = 185
+    for k, arm in enumerate(ARMS):
+        x0 = 62 + k * 236
+        fx, fy = P._panel(out, x0, 40, pw, 200, (0, 41), (-0.2, 1.0), (0, 10, 20, 30, 40), (0.0, 0.25, 0.5, 0.75, 1.0),
+                          "env steps (M)", LBL[arm], yfmt="{:.2f}" if k == 0 else (lambda v: ""))
+        out.append(f'<line x1="{x0}" x2="{x0 + pw}" y1="{fy(0.9):.1f}" y2="{fy(0.9):.1f}" '
+                   f'style="stroke:var(--ink3);stroke-dasharray:2 4"/>')
+        for seed, pts in sorted(X.curve(arm).items()):
+            tag = pts[0][5]
+            xs = [s / 1e6 for _, s, _, _, _, _ in pts]
+            ys = [hc if nh > 0 else None for _, _, nh, hc, _, _ in pts]
+            _gap_path(out, fx, fy, xs, ys, COL[arm], dashed=(arm == "box"), width=1.5)
+            for (it, s, nh, hc, cm, _), x in zip(pts, xs):
+                tip = f"{SHORT[arm]} s{seed} at {x:.1f} M: {nh}/64 held" + (f", held cos {hc:.3f}" if nh else "")
+                if nh == 0:
+                    out.append(f'<line x1="{fx(x):.1f}" x2="{fx(x):.1f}" y1="{fy(-0.2) - 9:.1f}" y2="{fy(-0.2) - 1:.1f}" '
+                               f'style="stroke:{COL[arm]};stroke-width:2"><title>{tip}</title></line>')
+                else:
+                    P._marker(out, fx(x), fy(hc), COL[arm], shape=SEED_SHAPE.get(seed, "circle"), hollow=nh < 60,
+                              r=3.0, title=tip)
+            if tag in X.stops:
+                yl = next((v for v in reversed(ys) if v is not None), None)
+                P._marker(out, fx(xs[-1]) + 8, fy(yl if yl is not None else -0.2) - (5 if yl is None else 0), COL[arm],
+                          shape="cross", r=4.2, title=f"{SHORT[arm]} s{seed} stopped at {xs[-1]:.1f} M")
     hmax = max([X.hours(r["tag"], r["iteration"]) or 0 for r in X.ck] + [0.5])
     hx = [0, 1, 2, 3] if hmax <= 3.2 else [0, 1, 2, 3, 4]
-    panels = [(70, 40, "steps", "n_held"), (570, 40, "hours", "n_held"), (70, 330, "steps", "held_cos"),
-              (570, 330, "hours", "held_cos")]
-    for x0, y0, xk, key in panels:
-        xs_rng = (0, 41) if xk == "steps" else (0, max(hx))
-        xt = (0, 10, 20, 30, 40) if xk == "steps" else hx
-        ys, yt, ylab = ((0, 64), (0, 16, 32, 48, 64), "rollouts held at 5 s (of 64)") if key == "n_held" else \
-            ((-0.2, 1.0), (0.0, 0.25, 0.5, 0.75, 1.0), "held cosine (mean over held rollouts)")
-        xlab = "environment steps (millions)" if xk == "steps" else "training wall-clock time (h)"
-        fx, fy = P._panel(out, x0, y0, 360, 200, xs_rng, ys, xt, yt, xlab, ylab,
-                          yfmt=("{:g}" if key == "n_held" else "{:.2f}"))
-        if key == "held_cos":
-            out.append(f'<line x1="{x0}" x2="{x0 + 360}" y1="{fy(0.9):.1f}" y2="{fy(0.9):.1f}" '
-                       f'style="stroke:var(--ink3);stroke-dasharray:2 4"/><text x="{x0 + 362}" y="{fy(0.9) + 4:.1f}" '
-                       f'style="fill:var(--ink3)">0.9</text>')
+    for j, xk in enumerate(("steps", "hours")):
+        x0 = 62 + j * 492
+        xr, xt, xlab = ((0, 41), (0, 10, 20, 30, 40), "environment steps (millions)") if xk == "steps" else \
+            ((0, max(hx)), hx, "training wall-clock time (h)")
+        fx, fy = P._panel(out, x0, 360, 410, 200, xr, (-0.2, 1.0), xt, (0.0, 0.25, 0.5, 0.75, 1.0), xlab,
+                          "held cosine, median of seeds and their range", yfmt="{:.2f}")
+        out.append(f'<line x1="{x0}" x2="{x0 + 410}" y1="{fy(0.9):.1f}" y2="{fy(0.9):.1f}" '
+                   f'style="stroke:var(--ink3);stroke-dasharray:2 4"/><text x="{x0 + 412}" y="{fy(0.9) + 4:.1f}" '
+                   f'style="fill:var(--ink3)">0.9</text>')
         for arm in ARMS:
-            _draw_seeds(out, X, fx, fy, _seed_lines(X, arm, key, xk), arm)
+            ser = _arm_median(X, arm, "held_cos", xk)
+            xs = [s[0] for s in ser]
+            _band(out, fx, fy, xs, [s[2] for s in ser], [s[3] for s in ser], COL[arm])
+            _gap_path(out, fx, fy, xs, [s[1] for s in ser], COL[arm], dashed=(arm == "box"), width=2.2)
+            for x, m, lo, hi, n in ser:
+                if m is not None:
+                    P._marker(out, fx(x), fy(m), COL[arm], r=2.6,
+                              title=f"{SHORT[arm]} at {x:.2f} {'M steps' if xk == 'steps' else 'h'}: {m:.3g} "
+                                    f"(median of the {n} seed{'s' if n > 1 else ''} evaluated, range {lo:.3g}-{hi:.3g})")
     out.append("</svg>")
     return "".join(out)
 
@@ -323,48 +375,53 @@ def svg_ckpt_dist(X: Data):
 
 
 def svg_final(X: Data):
-    """Final cosine of every rollout of every final policy, per arm and seed; held rollouts filled."""
+    """Final cosine of the held rollouts of every final policy, per arm and seed, on the held range of the axis; the
+    rollouts that dropped the tool are counted under each seed."""
     if not X.fin:
         return P.pending("Final-policy evaluations not written yet (final_eval.jsonl).")
     W, H = 990, 330
-    out = P._svg_open(W, H, "Final cosine of the tool axis with vertical in each of 64 rollouts per seed, per contact "
-                            "model; filled dots held the tool at 5 s, hollow dots had dropped it")
-    x0, y0, w, h = 70, 30, 880, 230
-    fy = lambda v: y0 + h - (v + 1.0) / 2.0 * h  # noqa: E731
-    for v in (-1.0, -0.5, 0.0, 0.5, 0.9, 1.0):
-        lab = (f'<text x="{x0 + w + 4}" y="{fy(v) + 4:.1f}" style="fill:var(--ink3)">0.9</text>' if v == 0.9 else
-               f'<text x="{x0 - 8}" y="{fy(v) + 4:.1f}" text-anchor="end" style="fill:var(--ink3)">{v:+.1f}</text>')
+    out = P._svg_open(W, H, "Final cosine of the tool axis with vertical in each held rollout of 64 per seed, per contact "
+                            "model, and the number of rollouts that dropped the tool")
+    x0, y0, w, h = 70, 30, 880, 220
+    lo, hi = 0.5, 1.0
+    fy = lambda v: y0 + h - (v - lo) / (hi - lo) * h  # noqa: E731
+    for v in (0.5, 0.6, 0.7, 0.8, 0.9, 1.0):
         out.append(f'<line x1="{x0}" x2="{x0 + w}" y1="{fy(v):.1f}" y2="{fy(v):.1f}" style="stroke:var(--rule2)'
-                   f'{";stroke-dasharray:2 4" if v == 0.9 else ""}"/>{lab}')
-    out.append(f'<text x="{x0}" y="{y0 - 12}" style="fill:var(--ink2)">final cosine of the tool axis with vertical (+1 tip down)</text>')
+                   f'{";stroke-dasharray:2 4" if v == 0.9 else ""}"/><text x="{x0 - 8}" y="{fy(v) + 4:.1f}" '
+                   f'text-anchor="end" style="fill:var(--ink3)">{v:.1f}</text>')
+    out.append(f'<text x="{x0}" y="{y0 - 12}" style="fill:var(--ink2)">final cosine of the tool axis with vertical in '
+               f'the held rollouts (+1 tip down)</text>')
+    out.append(f'<text x="{x0 - 8}" y="{y0 + h + 38}" text-anchor="end" style="fill:var(--ink3);font-size:11px">dropped</text>')
     gw = w / len(ARMS)
     rng = np.random.default_rng(7)
     for i, arm in enumerate(ARMS):
         gx = x0 + i * gw
-        out.append(f'<text x="{gx + gw / 2:.1f}" y="{y0 + h + 22}" text-anchor="middle" style="fill:var(--ink2)">'
-                   f'{SHORT[arm]}</text>')
+        out.append(f'<text x="{gx + gw / 2:.1f}" y="{y0 + h + 58}" text-anchor="middle" style="fill:var(--ink2)">'
+                   f'{LBL[arm]}</text>')
         fins = X.finals(arm)
         for j, seed in enumerate((0, 1, 2)):
             r = next((r for r in fins if r["seed"] == seed), None)
             cx = gx + gw * (j + 1) / 4
-            out.append(f'<text x="{cx:.1f}" y="{y0 + h + 38}" text-anchor="middle" style="fill:var(--ink3);font-size:11px">'
+            out.append(f'<text x="{cx:.1f}" y="{y0 + h + 18}" text-anchor="middle" style="fill:var(--ink3);font-size:11px">'
                        f's{seed}</text>')
             if r is None:
+                why = "stopped" if any(t.endswith(f"_{arm}_40M_s{seed}") for t in X.degen) else "&#8211;"
+                out.append(f'<text x="{cx:.1f}" y="{y0 + h + 38}" text-anchor="middle" style="fill:var(--ink3);'
+                           f'font-size:11px">{why}</text>')
                 continue
             cs, hs = r["final_cos"], r["held_final"]
-            jit = rng.uniform(-gw / 10, gw / 10, len(cs))
-            for c, hd, dx in zip(cs, hs, jit):
-                if hd:
-                    out.append(f'<circle cx="{cx + dx:.1f}" cy="{fy(c):.1f}" r="2.6" style="fill:{COL[arm]};'
-                               f'fill-opacity:.75;stroke:var(--card);stroke-width:.6"/>')
-                else:
-                    out.append(f'<circle cx="{cx + dx:.1f}" cy="{fy(c):.1f}" r="2.4" style="fill:none;'
-                               f'stroke:{COL[arm]};stroke-width:1;stroke-opacity:.7"/>')
+            held = [c for c, hd in zip(cs, hs) if hd]
+            jit = rng.uniform(-gw / 11, gw / 11, len(held))
+            for c, dx in zip(held, jit):
+                out.append(f'<circle cx="{cx + dx:.1f}" cy="{fy(min(max(c, lo), hi)):.1f}" r="2.5" style="fill:{COL[arm]};'
+                           f'fill-opacity:.7;stroke:var(--card);stroke-width:.5"/>')
+            out.append(f'<text x="{cx:.1f}" y="{y0 + h + 38}" text-anchor="middle" style="fill:'
+                       f'{"var(--bad)" if len(held) < len(cs) else "var(--ink3)"};font-size:11px">{len(cs) - len(held)}</text>')
             if r.get("held_cos_mean") is not None:
                 yv = fy(r["held_cos_mean"])
-                out.append(f'<line x1="{cx - gw / 7:.1f}" x2="{cx + gw / 7:.1f}" y1="{yv:.1f}" y2="{yv:.1f}" '
+                out.append(f'<line x1="{cx - gw / 8:.1f}" x2="{cx + gw / 8:.1f}" y1="{yv:.1f}" y2="{yv:.1f}" '
                            f'style="stroke:var(--ink);stroke-width:2"><title>{SHORT[arm]} s{seed}: held '
-                           f'{r["n_held"]}/64, held cos {r["held_cos_mean"]:.3f}</title></line>')
+                           f'{r["n_held"]}/64, held cos {r["held_cos_mean"]:.3f}, sd {r["held_cos_sd"]:.3f}</title></line>')
     out.append("</svg>")
     return "".join(out)
 
@@ -760,54 +817,82 @@ def median_seed(X: Data, arm):
     return rs[(len(rs) - 1) // 2] if rs else None
 
 
-def final_film(X: Data, arm):
-    """(film, strip) paths relative to D for an arm's median seed: post_train.sh's close-up render when it exists, else
-    the checkpoint watch's film of the final checkpoint."""
-    r = median_seed(X, arm)
-    if r is None:
-        return None, None, None
+def best_seed(X: Data, arm):
+    """The final-evaluation row of an arm's best finished seed (held fraction, then held cosine), or None."""
+    rs = sorted(X.finals(arm), key=lambda r: (r["held_frac"], r["held_cos_mean"] if r["held_cos_mean"] is not None else -2))
+    return rs[-1] if rs else None
+
+
+def seed_film(X: Data, r):
+    """(film, strip) paths relative to D for a final policy: post_train.sh's close-up render when it exists, else the
+    checkpoint watch's film of its final checkpoint (the rollout with the median final cosine of 64)."""
     for role in ("median", "best"):
-        f = next((f for f in X.films if f["arm"] == arm and f["role"] == role and f["tag"] == r["tag"]), None)
+        f = next((f for f in X.films if f["role"] == role and f["tag"] == r["tag"]), None)
         if f and os.path.exists(os.path.join(D, f"media/{f['tag']}_{role}.mp4")):
-            return r, f"media/{f['tag']}_{role}.mp4", f"media/{f['tag']}_{role}_strip.jpg"
+            return f"media/{f['tag']}_{role}.mp4", f"media/{f['tag']}_{role}_strip.jpg"
     rel = f"watch/{r['tag']}/it{r['iteration']:04d}_median.mp4"
     if os.path.exists(os.path.join(D, rel)):
-        return r, rel, f"watch/{r['tag']}/it{r['iteration']:04d}_strip.jpg"
-    return r, None, None
+        return rel, f"watch/{r['tag']}/it{r['iteration']:04d}_strip.jpg"
+    return None, None
+
+
+def _film_cell(X: Data, arm, r, role):
+    film, _ = seed_film(X, r)
+    if film is None:
+        return ""
+    hc = f", held cos {r['held_cos_mean']:.2f}" if r.get("held_cos_mean") is not None else ""
+    return (f'<div class="cell">{video(film)}<p class="filmlab">{swatch(arm)}<b>{LBL[arm]}</b>, seed {r["seed"]} '
+            f'({role}): held {r["n_held"]}/64{hc}. {FILM_NOTES.get(r["tag"], "")} <code>{film}</code></p></div>')
 
 
 def films(X: Data):
     cells = []
     for arm in ARMS:
-        r, film, strip = final_film(X, arm)
-        if film is None:
-            continue
-        hc = f", held cos {r['held_cos_mean']:.2f}" if r.get("held_cos_mean") is not None else ""
-        cells.append(f'<div class="cell">{video(film)}<p class="filmlab">{swatch(arm)}<b>{LBL[arm]}</b>, seed {r["seed"]}: '
-                     f'held {r["n_held"]}/64{hc}. {FILM_NOTES.get(r["tag"], "")} <code>{film}</code></p></div>')
+        r = median_seed(X, arm)
+        if r is not None:
+            only = len(X.finals(arm)) == 1
+            cells.append(_film_cell(X, arm, r, "the only finished seed" if only else "median seed"))
+    cells = [c for c in cells if c]
     if not cells:
         return P.pending("Films not rendered yet (post_train.sh: close-up renders of the best and median seed per arm "
                          "and three-engine replay films).")
+    src = [seed_film(X, r)[0] for r in (median_seed(X, a) for a in ARMS) if r is not None]
+    how = ("one deterministic rollout rendered close up by <code>scripts/rl_render_reorient.py</code> at "
+           "960&#215;720" if all(f and f.startswith("media/") for f in src) else
+           "the rollout with the median final cosine of 64")
     FIG[0] += 1
     out = [f'<figure class="films">{"".join(cells)}<figcaption>Figure&#160;{FIG[0]}. The final policy of each contact '
-           f'model&#8217;s median seed, rollout with the median final cosine of 64, from the scripted grasp and lift '
-           f'(0&#8211;1.16&#8202;s) through the policy&#8217;s turn and hold to 5&#8202;s; camera 0.24&#8202;m from the '
-           f'hand, the turn in the image plane (thumb in front, index left, middle right). Force ranges are the '
+           f'model&#8217;s median seed (seeds ranked by held rollouts, then held cosine), {how}: the scripted grasp and '
+           f'lift (0&#8211;1.16&#8202;s), then the policy&#8217;s turn and hold to 5&#8202;s; camera 0.24&#8202;m from '
+           f'the hand, the turn in the image plane (thumb in front, index left, middle right). Force ranges are the '
            f'10th&#8211;90th percentiles of the summed fingertip force over the held steps of the hold (steps '
-           f'150&#8211;250) of all 64 rollouts. Paths relative to '
+           f'150&#8211;250) of the 64 rollouts of the final evaluation. Paths relative to '
            f'<code>docs/experiments/20261008-contact_model_policies/</code>.</figcaption></figure>']
+    best = []
+    for arm in ARMS:
+        b, m = best_seed(X, arm), median_seed(X, arm)
+        if b is not None and m is not None and b["tag"] != m["tag"]:
+            best.append(_film_cell(X, arm, b, "best seed"))
+    best = [c for c in best if c]
+    if best:
+        FIG[0] += 1
+        out.append(f'<figure class="films three">{"".join(best)}<figcaption>Figure&#160;{FIG[0]}. The best seed of the '
+                   f'contact models with more than one finished seed, rendered as in Figure&#160;{FIG[0] - 1}.'
+                   f'</figcaption></figure>')
+    rep = []
     for arm in ARMS:
         r = median_seed(X, arm)
-        if r is None:
-            continue
-        rel = f"media/{r['tag']}_replay_three.mp4"
-        if not os.path.exists(os.path.join(D, rel)):
-            continue
+        rel = f"media/{r['tag']}_replay_three.mp4" if r else None
+        if rel and os.path.exists(os.path.join(D, rel)):
+            rep.append(f'<div class="cell">{video(rel)}<p class="filmlab">{swatch(arm)}<b>{LBL[arm]}</b>, seed '
+                       f'{r["seed"]}, world 0. {FILM_NOTES.get(r["tag"] + ":replay", "")} <code>{rel}</code></p></div>')
+    if rep:
         FIG[0] += 1
-        out.append(f'<figure>{video(rel)}<figcaption>Figure&#160;{FIG[0]}. {LBL[arm]}, median seed, world 0: the '
-                   f'MuJoCo-Warp rollout it trained on (left), and its finger targets from the onset replayed open loop in '
-                   f'Drake (centre) and Newton (right) with the TPU block as a hydroelastic tip. '
-                   f'<code>docs/experiments/20261008-contact_model_policies/{rel}</code></figcaption></figure>')
+        out.append(f'<figure class="replays">{"".join(rep)}<figcaption>Figure&#160;{FIG[0]}. The median seed of each '
+                   f'contact model, world 0: the MuJoCo-Warp rollout it trained on (left), and its finger targets from the '
+                   f'onset of the turn replayed open loop in Drake (centre) and Newton (right) with the TPU block as a '
+                   f'hydroelastic tip and the palm welded at its lifted pose. Paths relative to '
+                   f'<code>docs/experiments/20261008-contact_model_policies/</code>.</figcaption></figure>')
     return "".join(out)
 
 
@@ -829,10 +914,6 @@ FILM_NOTES = {       # run tag -> what its final film shows, written after watch
     "to 23&#8202;N during the flip in this rollout, and it creeps on to 0.63 by 5&#8202;s; the summed tip force stays at "
     "46&#8211;49&#8202;N.",
 }
-
-
-def film_caption(X, arm, fs):
-    return FILM_NOTES.get(arm, "")
 
 
 # ------------------------------------------------------------------------------------------ sections
@@ -937,7 +1018,10 @@ def arms_section(X: Data):
         spi = [c["s_per_it_median"] for c in cs if c.get("s_per_it_median")]
         h40 = [run_hours(X, c["tag"]) for c in cs if c.get("finished")]
         spent = [run_hours(X, c["tag"]) for c in cs]
-        gpu = [c.get("gpu_mem_proc_mb") or c.get("gpu_mem_peak_mb") for c in cs if c.get("gpu_mem_proc_mb") or c.get("gpu_mem_peak_mb")]
+        # the training process's own GPU memory (sampled per process from 2026-10-08 15:19); the whole GPU's peak only
+        # for an arm none of whose runs was sampled
+        gpu = [c["gpu_mem_proc_mb"] for c in cs if c.get("gpu_mem_proc_mb")] or \
+            [c["gpu_mem_peak_mb"] for c in cs if c.get("gpu_mem_peak_mb")]
         fl = sum(c.get("failed_attempts", 0) for c in cs if not c.get("stopped_at"))
         trained = a in ARMS
         body.append([f"{swatch(a) if trained else ''}{LBL[a]}", contact[a], f1(probe_spit(a), 2),
@@ -971,11 +1055,12 @@ def arms_section(X: Data):
 def curves_section(X: Data):
     svg = svg_curves(X)
     cap = ("Deterministic evaluation of every second saved checkpoint (82 iterations, 4.0&#8202;M env steps) and the final "
-           "one: rollouts held at 5&#8202;s (top) and their mean final cosine (bottom), against env steps (left) and "
-           "training wall-clock time (right). One line per seed (marker: circle s0, square s1, diamond s2); a cross "
-           "ends a run stopped by the checkpoint watch. A gap in the bottom row is an evaluation in which no rollout held. "
-           "At iteration 0 the residual is near zero and the scripted grasp holds the tool about level (cos &#8722;0.10 to "
-           "&#8722;0.02) in every rollout.")
+           "one. Top: the held cosine of each seed against env steps, one panel per contact model (marker: circle s0, "
+           "square s1, diamond s2; filled when at least 60 of the 64 rollouts held, hollow when fewer, a tick on the "
+           "floor when none held); a cross ends a run stopped by the checkpoint watch. Bottom: the median over seeds "
+           "(line) and the seeds&#8217; range (band) of the held cosine against env steps and against training "
+           "wall-clock time with the watch&#8217;s pauses removed. At iteration 0 the residual is near zero and the "
+           "scripted grasp holds the tool about level (cos &#8722;0.10 to &#8722;0.02) in every rollout.")
     out = figure(svg, cap, legend()) + curves_text(X)
     out += figure(svg_ckpt_dist(X), "Final cosine of the held rollouts of each checkpoint evaluation (64 rollouts): the "
                   "bar spans the 10th to 90th percentile and the marker is the median; seeds side by side (circle s0, "
@@ -1163,9 +1248,12 @@ def grip_chatter(tag):
 
 def final_section(X: Data):
     svg = svg_final(X)
-    cap = ("Final cosine of each rollout of the final policies (64 per seed), held (filled) and dropped (hollow); bar: "
-           "the seed&#8217;s held cosine.")
-    out = figure(svg, cap, legend())
+    stopped = ", ".join(f"{SHORT[tag_arm(t)]} s{t[-1]} at {(r['iteration'] + 1) * STEPS_PER_IT / 1e6:.0f}&#8202;M"
+                        for t, r in sorted(X.degen.items(), key=lambda kv: (ARMS.index(tag_arm(kv[0])), kv[0])))
+    cap = ("Final cosine of the held rollouts of the final policies (64 rollouts per seed; the axis starts at 0.5, below "
+           "every held rollout) and, under each seed, the number of rollouts that dropped the tool; bar: the seed&#8217;s "
+           "held cosine. The runs the watch stopped as degenerate have no final policy: " + stopped + " steps.")
+    out = figure(svg, cap)
     out += figure(svg_traces(X), "The 64 rollouts of each contact model&#8217;s median-seed final policy: the tool&#8217;s "
                   "cosine with vertical (top) and the summed fingertip force on it (bottom, clipped at 150&#8202;N) against "
                   "time; rollouts that held the tool at 5&#8202;s in the arm&#8217;s colour, the others in red. Dashed: the residual "
@@ -1409,44 +1497,30 @@ def lede(X: Data):
                      f"TPU-mesh policies {pct(*T['tpu27mesh'][:2])} ({' and '.join(pct(*v) for v in ms)} for its two "
                      f"seeds).")
     n_transfer = len(parts)          # the first paragraph: transfer; the second: training and the final policies
-    WORD = {0: "no", 1: "one", 2: "two", 3: "three"}
-    NAME = {"box": "box-tip", "tpu27mesh": "TPU-mesh", "tpu27pads1": "pad", "tpu27skin": "skin"}
+    WORD = {0: "none", 1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six"}
     VERB = {"every rollout dropped": "dropping every rollout", "the tool shaken": "shaking the tool",
-            "the tool rocking every policy step": "rocking the tool at every policy step",
+            "the tool rocking every policy step": "rocking the tool at the policy rate",
             "servo targets pinned": "pinning servo targets", "the tool on the palm": "resting the tool on the palm"}
-    hind = 0
 
-    def group(arms):
-        """('all three box-tip seeds and two of three TPU-mesh seeds at 16 M steps for ...', ['no skin seed'])."""
-        nonlocal hind
-        cnt, ms, kinds, miss = [], set(), [], []
-        for arm in arms:
-            ds = degenerate_stops(X, arm)
-            n = len({r["tag"] for r in X.watch if r["arm"] == arm})
-            hind += sum(1 for d in ds if not d[3])
-            ms |= {round(d[1]) for d in ds}
-            for d in ds:
-                kinds += [VERB[k] for k in d[2] if k in VERB and VERB[k] not in kinds]
-            if not ds:
-                miss.append(f"no {NAME[arm]} seed")
-            else:
-                cnt.append(f"all {WORD.get(n, n)} {NAME[arm]} seeds" if len(ds) == n and n > 1 else
-                           f"{WORD.get(len(ds), len(ds))} of {WORD.get(n, n)} {NAME[arm]} seeds")
-        if not cnt:
-            return "", miss
-        k = ", ".join(kinds[:-1]) + (" or " if len(kinds) > 1 else "") + kinds[-1] if kinds else ""
-        return (" and ".join(cnt) + f" at {' and '.join(str(m) for m in sorted(ms))}&#8202;M steps"
-                + (f" for {k}" if k else "")), miss
+    def fired(arms):
+        """(runs watched, runs on which the degenerate rule fires, M steps at which it fires, kinds as verbs)."""
+        n = sum(len({r["tag"] for r in X.watch if r["arm"] == a}) for a in arms)
+        ds = [d for a in arms for d in degenerate_stops(X, a)]
+        kinds = []
+        for d in ds:
+            kinds += [VERB[k] for k in d[2] if k in VERB and VERB[k] not in kinds]
+        return n, len(ds), sorted({round(d[1]) for d in ds}), kinds
 
-    gp, mp = group(point)
-    gc, mc = group(comp)
-    miss = mp + mc
-    hit = [g for g in (gp, gc) if g]
-    parts.append("The stopping rule of the checkpoint watch (every watched checkpoint degenerate for 10&#8202;M steps) stops "
-                 + (", and ".join(hit) if hit else "no run")
-                 + ("; " + " and ".join(miss) + (" meets it" if len(miss) == 1 else " meet it") if miss else "")
-                 + (f" ({WORD.get(hind, hind)} of these runs in hindsight: they were watched after training to "
-                    "40&#8202;M steps, and their final policies are kept)." if hind else "."))
+    def says(arms, fam):
+        n, k, ms, kinds = fired(arms)
+        if not k:
+            return f"on none of the {WORD.get(n, n)} {fam} runs"
+        kk = ", ".join(kinds[:-1]) + (" or " if len(kinds) > 1 else "") + kinds[-1] if kinds else ""
+        at = " and ".join(str(m) for m in ms)
+        return (f"on {WORD.get(k, k)} of the {WORD.get(n, n)} {fam} runs by {at}&#8202;M steps" if len(ms) == 1 else
+                f"on {WORD.get(k, k)} of the {WORD.get(n, n)} {fam} runs, at {at}&#8202;M steps,") + (f" for {kk}" if kk else "")
+    parts.append("The stopping rule of the checkpoint watch (every checkpoint degenerate over 10&#8202;M steps) fires "
+                 + says(point, "point-contact") + ", and " + says(comp, "pad and skin") + ".")
     jp = [j for a in point for j in S[a]["jerk"]]
     jc = [j for a in comp for j in S[a]["jerk"]]
     if jp and jc:
@@ -1462,6 +1536,18 @@ def lede(X: Data):
     if pm and pp and ps:
         parts.append(f"On an idle GPU a training iteration costs {pp / pm:.1f}&#215; the TPU mesh&#8217;s time with the "
                      f"pads and {ps / pm:.1f}&#215; with the skin.")
+    rb = {(r["tag"], r["perturb"]): r for r in X.rb}
+    fin = sorted({r["tag"] for r in X.fin}, key=lambda t: (ARMS.index(tag_arm(t)), t))
+    if fin and all((t, "kp=10") in rb for t in fin):
+        k10 = [t for t in fin if rb[(t, "kp=10")]["n_held"] > 0.25 * rb[(t, "kp=10")]["n"]]
+        rest = max([rb[(t, "kp=10")]["n_held"] for t in fin if t not in k10] or [0])
+        n10 = rb[(fin[0], "kp=10")]["n"]
+        keep = " and ".join(f"{SHORT[tag_arm(t)]} seed {t[-1]} holds {rb[(t, 'kp=10')]['n_held']} of "
+                            f"{rb[(t, 'kp=10')]['n']} rollouts" for t in k10)
+        parts.append(f"With the finger servo gain raised from the training plant&#8217;s 4 to 10&#8202;N&#8202;m/rad, "
+                     f"the top of the bench readback range, " + (f"{keep} and every other final policy at most {rest}."
+                                                                if k10 else f"no final policy holds more than {rest} of "
+                                                                f"{n10} rollouts."))
     return " ".join(parts[:n_transfer]) + '</p><p class="lede">' + " ".join(parts[n_transfer:])
 
 
