@@ -613,6 +613,15 @@ RECIPES = {
     "g20_along": dict(core="homog", rho=0.2, E_s=30.0, nu=0.45, build="z"),
     "g10_across": dict(core="homog", rho=0.1, E_s=30.0, nu=0.45, build="x"),
     "g10_along": dict(core="homog", rho=0.1, E_s=30.0, nu=0.45, build="z"),
+    # softer TPU (NinjaFlex 85A, tensile modulus 12 MPa, ASTM D638), solid taken as isotropic
+    "s85_30_across": dict(core="homog", rho=0.3, E_s=12.0, nu=0.45, build="x"),
+    "s85_30_along": dict(core="homog", rho=0.3, E_s=12.0, nu=0.45, build="z"),
+    "s85_50_across": dict(core="homog", rho=0.5, E_s=12.0, nu=0.45, build="x"),
+    "s85_50_along": dict(core="homog", rho=0.5, E_s=12.0, nu=0.45, build="z"),
+    "s85_100": dict(core="solid", E_s=12.0, nu=0.45, build="x"),
+    # 95A at denser infill, for the ranking
+    "g30_across": dict(core="homog", rho=0.3, E_s=30.0, nu=0.45, build="x"),
+    "g40_across": dict(core="homog", rho=0.4, E_s=30.0, nu=0.45, build="x"),
 }
 
 
