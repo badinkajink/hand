@@ -51,6 +51,8 @@ figure.films video,figure.films img,figure.pics img{width:100%;height:auto}
 figure.films figcaption{grid-column:1/-1}
 @media (max-width:640px){figure.films{grid-template-columns:minmax(0,1fr)}}
 """
+LEG_TIPS = [("95A solid", COL["ref"], False, None), ("95A 20&#8202;% across", COL["x"], False, None),
+            ("95A 20&#8202;% along", COL["z"], False, None), ("95A 10&#8202;% across", COL["sheet"], False, None)]
 RECIPE_LBL = {
     "solid95": "95A, solid", "g20_across": "95A, gyroid 20&#8202;%, layers across", "g20_along": "95A, gyroid 20&#8202;%, layers along",
     "g10_across": "95A, gyroid 10&#8202;%, layers across", "g10_along": "95A, gyroid 10&#8202;%, layers along",
@@ -117,16 +119,20 @@ def media(name):
     return os.path.join(D, "media", name)
 
 
+def _ok(x):
+    return x is not None and not (isinstance(x, float) and (math.isnan(x) or math.isinf(x)))
+
+
 def f0(x):
-    return fmt(x, 0)
+    return fmt(x, 0) if _ok(x) else "&#8211;"
 
 
 def f1(x):
-    return fmt(x, 1)
+    return fmt(x, 1) if _ok(x) else "&#8211;"
 
 
 def f2(x):
-    return fmt(x, 2)
+    return fmt(x, 2) if _ok(x) else "&#8211;"
 
 
 # ------------------------------------------------------------------------------------------ terms
@@ -222,10 +228,11 @@ def svg_arm(X: Data):
                       "normal force per pad (N)", "Twist arm (mm)", logx=True)
     for name, col in (("solid95", COL["ref"]), ("g20_across", COL["x"]), ("g20_along", COL["z"]), ("g10_across", COL["sheet"])):
         rr = sorted([r for r in X.tip if r["recipe"] == name and r["indenter"] == "cyl"], key=lambda r: r["F_target"])
-        P._path(out, fx, fy, [(r["F"], r["arm"]) for r in rr], col)
+        P._path(out, fx, fy, [(r["F"], r["arm"]) for r in rr if 0.45 <= r["F"] <= 4.2], col)
     for tag, col in (("g20x_s0", COL["x"]), ("g20z_s0", COL["z"])):
         for r in [r for r in X.gpu if r["tag"] == tag and r["indenter"] == "cyl"]:
-            P._marker(out, fx(r["F"]), fy(r["arm"]), col, hollow=True)
+            if 0.4 <= r["F"] <= 4.2:
+                P._marker(out, fx(r["F"]), fy(r["arm"]), col, hollow=True)
     for E in sorted(X.B):
         pts = [(N, X.pads_arm(E, N)) for N in (1.0, 3.0) if X.pads_arm(E, N)]
         P._path(out, fx, fy, pts, COL["pads"], dashed=True, width=1.4)
@@ -272,7 +279,10 @@ def cells_section(X: Data):
                 "Homogenized moduli of the printed gyroid (<code>cells.jsonl</code>); the finest voxel size run for each density.")
     fig = figure("".join(svg_cells(X)), "Moduli of printed gyroid infill against solid fraction: in the layer plane (blue), along the build "
                  "direction (orange), the ideal sheet gyroid (green), eFlesh cut cells (diamonds), and the Gibson&#8211;Ashby limits "
-                 "\\(\\rho^2\\) and \\(\\rho/3\\) (dashed).")
+                 "\\(\\rho^2\\) and \\(\\rho/3\\) (dashed).",
+                 legend=[("Printed, layer plane", COL["x"], False, "circle"), ("Printed, build direction", COL["z"], False, "circle"),
+                         ("Ideal sheet", COL["sheet"], False, "circle"), ("eFlesh cut cell", COL["ref"], False, "diamond"),
+                         ("Gibson&#8211;Ashby", COL["ref"], True, None)])
     return txt + fig + tab
 
 
@@ -319,12 +329,13 @@ def law_section(X: Data):
         txt += (f"<p>Resolving every bead at 0.1&#8202;mm on the GPU gives {f1(r.get(1.0))}&#8202;&#181;m at 1&#8202;N against "
                 f"{f1(g['delta_um'][1.0])}&#8202;&#181;m for the homogenized core, so at 20&#8202;% the homogenized model represents the "
                 f"stiffness even though the gyroid period (5.2&#8202;mm) exceeds the contact width.</p>")
+    leg = LEG_TIPS + [("Resolved", COL["ref"], False, "circle"), ("Pressure law at the 20&#8202;% tip&#8217;s best modulus", COL["x"], True, None)]
     fig = figure("".join(svg_force(X)), "Force against approach under the cylinder: homogenized cores (lines), resolved gyroid "
                  "(hollow markers: 20&#8202;% across circles, along squares, 10&#8202;% green, 5&#8202;% diamonds, eFlesh crosses), and the "
-                 "pressure law at the best single modulus of the 20&#8202;% tip (dashed).")
+                 "pressure law at the best single modulus of the 20&#8202;% tip (dashed).", legend=leg)
     body = []
     for name, r in T.items():
-        body.append([RECIPE_LBL.get(name, name), f"{r['E_s']:.0f}", f1(r["delta_um"][1.0]), f"{r['force_exponent']:.2f}", f1(r["k_1N"]),
+        body.append([RECIPE_LBL.get(name, name), f"{r['E_s']:.0f}", f1(r["delta_um"][1.0]), f2(r['force_exponent']), f1(r["k_1N"]),
                      f0(r.get("k_plate")), f1(r["E_fit_cyl"][0.5]), f1(r["E_fit_cyl"][3.0]), f1(r.get("E_fit_plate")),
                      f1(r.get("E_best")), f0(r.get("E_best_max_err_pct"))])
     tab = table(["Print", "\\(E_s\\) (MPa)", "\\(\\delta\\) at 1&#8202;N (&#181;m)", "Force exponent", "\\(k\\) at 1&#8202;N (N/mm)",
@@ -350,7 +361,8 @@ def arm_section(X: Data):
            f"native skin of the <a href=\"../20261007-native_compliance/20261007-native_presliding_compliance.html\">compliance page</a> "
            f"is the model that does.</p>")
     fig = figure("".join(svg_arm(X)), "Twist arm against normal force: printed tips (lines, homogenized; hollow circles, resolved) and the "
-                 "1&#8202;mm pads on the tpu2.7 block at 7.5&#8211;20&#8202;MPa (purple squares, bed T2).")
+                 "1&#8202;mm pads on the tpu2.7 block at 7.5&#8211;20&#8202;MPa (purple squares, bed T2).",
+                 legend=LEG_TIPS + [("Pads, 7.5&#8211;20&#8202;MPa", COL["pads"], True, "square")])
     return txt + fig
 
 
@@ -363,7 +375,7 @@ def recipes_section(X: Data):
         pad_arm = X.pads_arm(14.0, 1.0)
         arm_err = (pad_arm / r["arm"][1.0] - 1) * 100 if pad_arm else None
         body.append([RECIPE_LBL.get(name, name), f1(r["k_1N"]), f1(r.get("E_best")), f0(r.get("E_best_max_err_pct")),
-                     f0(arm_err), f"{r.get('b_exponent', float('nan')):.2f}", f1(r.get("coupling_length_mm")),
+                     f0(arm_err), f2(r.get('b_exponent')), f1(r.get("coupling_length_mm")),
                      f1(r["presliding_um"][1.0])])
     tab = table(["Print", "\\(k\\) at 1&#8202;N (N/mm)", "\\(E^*\\) (MPa)", "Approach error (%)", "Pads&#8217; arm error (%)",
                  "Width exponent", "\\(\\ell\\) (mm)", "Presliding (&#181;m)"], body,
