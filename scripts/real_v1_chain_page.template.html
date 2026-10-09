@@ -125,11 +125,12 @@ footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",mo
 <header>
   <div class="eyebrow">MorphoHand &middot; real_v1 &middot; 2026-09-03</div>
   <h1>Carry-to-gait seam and countersink seating of the screwdriver</h1>
-  <p class="lede">Two open-loop results in this program had never met: the reorientation that
-  stands a shaft up in the hand, and the gait that spins one already standing on the floor.
-  Joining them turns out to be a race against a grasp that leaks. Then the floating palm is
-  replaced by a UR5e, and the floor by a countersink.</p>
-  <div class="byline">{{NCELLS}} rollouts &middot; rv05_manual_stored &middot; MuJoCo 3.6 &middot; CPU</div>
+  <p class="lede">In simulation one hand, <code>rv05_manual_stored</code>, completes the chain open loop
+  (grasp, lift, stand upright, set down, release, re-index and gait) in 6 of 6 seeds on a floating palm and on a UR5e. The
+  set-down is a race against a leaking grasp: the shaft creeps through the pads at about 1.5 mm/s, so each extra correction
+  of the height costs grip (6 of 6 seeds for one move, 1 of 6 for eight). On the arm the palm must droop less than about
+  1 mm. A 45&#176; countersink cuts the tool&#8217;s walk sixteen-fold and costs a sixth of the turn.</p>
+  <div class="byline">{{NCELLS}} rollouts &middot; rv05_manual_stored &middot; shipped servo model (kp 30) &middot; MuJoCo 3.6 &middot; CPU</div>
   <div class="stats">{{STATS}}</div>
 </header>
 

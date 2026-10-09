@@ -215,12 +215,12 @@ def main() -> int:
     sw_flat = [r for r in arm(SW, "seat") if not r.get("place_xy") and r["press_mm"] == 2.0]
     stats = "".join(
         f'<div class="stat"><b>{v}</b><span>{s}</span></div>' for v, s in [
-            (f"{k_lead}/{n_lead}", "chain complete, flat floor"),
-            (f"{mean(endur, 'turns'):.2f}", "turns in 40 cycles"),
-            (f"{rate(ur)[0]}/{rate(ur)[1]}", "chain complete, on a UR5e"),
-            ("0.97 mm", "palm droop the arm must beat"),
-            (f"{rate(sw_seat)[0]}/{rate(sw_seat)[1]}", "screw seated and turned"),
-            ("6 mm", "insertion capture radius"),
+            (f"{k_lead}/{n_lead}", "Chains completed, flat floor"),
+            (f"{mean(endur, 'turns'):.2f}", "Turns in 40 cycles"),
+            (f"{rate(ur)[0]}/{rate(ur)[1]}", "Chains completed on a UR5e"),
+            ("0.97 mm", "Largest palm droop that completes"),
+            (f"{rate(sw_seat)[0]}/{rate(sw_seat)[1]}", "Tool seated and turned"),
+            ("6 mm", "Insertion capture radius"),
         ])
 
     # ---------------------------------------------------------------- grip decay
@@ -379,30 +379,45 @@ def main() -> int:
 
 
 BODY = r"""
+<section class="col" id="terms">
+  <h2>Terms and metrics</h2>
+  <dl class="terms">
+    <dt><b>Carry</b></dt><dd>The open-loop turn that stands the shaft upright in the hand, about a pivot raised above the
+    contacts.</dd>
+    <dt><b>Set-down, release, re-index</b></dt><dd>Lowering the standing tool to the floor or seat, opening the hand, and
+    moving the palm over the gait&#8217;s ring grasp.</dd>
+    <dt><b>Gait</b></dt><dd>Four-phase cycles of grasp, twist, release and return that turn the standing tool about its own
+    axis.</dd>
+    <dt><b>Chains</b></dt><dd>Seeds, of six spawn-jittered rollouts, that pass all four gates of the chain.</dd>
+    <dt><b>Carry exit tilt</b></dt><dd>Angle of the tool from vertical when the carry hands over to the set-down, in
+    degrees.</dd>
+    <dt><b>Palm droop</b></dt><dd>Distance of the palm below its commanded pose at the top of the lift, in mm.</dd>
+    <dt><b>Stroke</b></dt><dd>Azimuth the pads twist the tool per gait cycle, in degrees.</dd>
+    <dt><b>Capture radius</b></dt><dd>Largest lateral error of the insertion target at which the tool still seats, in
+    mm.</dd>
+  </dl>
+</section>
+
 <section class="col">
-  <h2>What was already true</h2>
-  <p class="sub">two open-loop results, neither with any claim on the other</p>
+  <h2>Carry and gait before this study</h2>
   <p><code>probe_real_v1_carry.py</code> takes the shaft off the table and stands it vertical in
   the hand: a fixed grasp, a rotation about a pivot raised above the contacts, cos 0.996, no
   policy anywhere. <code>probe_real_v1_gait.py</code> spins a shaft that is <em>already</em>
   standing on the floor through five revolutions in forty four-phase cycles, again from a
   precomputed set-point table. The first ends with the tool in the air at 113&nbsp;mm; the
   second begins with it planted at 50&nbsp;mm, put there by a line of code.</p>
-  <p>Everything below is about the 63&nbsp;mm in between, and then about replacing the two
-  conveniences that made both results possible: a palm that can be commanded to any pose, and a
-  floor that is a flat plane.</p>
+  <p>This page joins the two across the 63&nbsp;mm in between, then replaces the floating palm
+  with a UR5e and the flat floor with a countersink.</p>
 </section>
 
 <section>
   <div class="col">
-    <h2>The chain</h2>
+    <h2>Chain from grasp to gait</h2>
     <p class="sub">grasp &rarr; lift &rarr; reorient &rarr; set down &rarr; release &rarr; re-index &rarr; gait</p>
-    <p>One rollout, one <code>MjData</code>, no state passed through a file. The re-pose is
-    written as a rigid transfer &mdash; if the tool rides in the palm frame then asking for an
-    object pose fully determines the palm pose, <code class="mono">T_palm = T_obj_des &middot;
-    T_obj<sup>-1</sup> &middot; T_palm</code> &mdash; because that is the form an arm can be
-    handed later. Every phase below carries the time since the grasp closed, the pad force at
-    that moment, and the tool's tilt from vertical.</p>
+    <p>One rollout runs in one <code>MjData</code>, with no state passed through a file. The re-pose
+    is a rigid transfer: with the tool fixed in the palm frame, a desired object pose determines the
+    palm pose, a form an arm can execute. Each phase below lists the time since the grasp closed,
+    the pad force and the tool's tilt from vertical.</p>
   </div>
   <div class="phases">{phases}</div>
   <figure>
@@ -413,116 +428,97 @@ BODY = r"""
   </figure>
   <figure>
     <img src="{film_flat}" alt="Seventeen frames of the chain: grasp, lift, reorient, set down, release, re-index, then eight gait cycles.">
-    <figcaption>The same run at its seams. Frame five is the moment that has no precedent in
-    this program &mdash; the hand is fully open and the tool is standing by itself.</figcaption>
+    <figcaption>The same run, one frame per checkpoint. In frame five the hand is fully open and
+    the tool stands by itself.</figcaption>
   </figure>
   <div class="col">
-    <p>Success is the conjunction of four gates, not the cosine: the carry held, the tool stood
-    within 10&nbsp;mm of its resting height with support contact and under 14&deg; of tilt, the
-    gait grasp took on at least two pads, and all requested cycles ran without the tool being
-    lost. A run that reoriented beautifully and then dropped the shaft on the way down reads
-    <span class="no">false</span>.</p>
+    <p>A chain completes when four gates pass: the carry held, the tool stood within 10&nbsp;mm of
+    its resting height with support contact and under 14&deg; of tilt, the gait grasp took on at
+    least two pads, and all requested cycles ran without losing the tool. A run that turns the tool
+    and drops it on the way down fails.</p>
     <div class="tw"><table><thead><tr>
-      <th>design</th><th class="num">carry exit tilt &deg;</th><th class="num">chains</th>
-      <th class="num">turns / 8 cycles</th></tr></thead><tbody>{des_rows}</tbody></table></div>
-    <p>Only <code>rv05_manual_stored</code> &mdash; the hand the bench was built from &mdash;
-    completes. The other nine fail at the carry, and they fail under rv05's published carry
-    settings applied unchanged: axis height, turn duration and residual budget were never
-    re-tuned per design. That is a statement about this experiment, not about those hands.</p>
+      <th>Design</th><th class="num">Carry exit tilt (&deg;)</th><th class="num">Chains</th>
+      <th class="num">Turns / 8 cycles</th></tr></thead><tbody>{des_rows}</tbody></table></div>
+    <p>Only <code>rv05_manual_stored</code>, the hand the bench was built from, completes. The other
+    nine fail at the carry with rv05's carry settings (axis height, turn duration and residual
+    budget), which were not re-tuned per design.</p>
   </div>
 </section>
 
 <section>
   <div class="col">
-    <h2>The seam is a race</h2>
-    <p class="sub">what the carry hands over, and how long it lasts</p>
-    <p>The carry does not end in a grip. At the top of a raised-pivot turn the tool is commonly
-    cradled against the middle phalanges with the pads barely on it &mdash; about half a
-    millimetre of commanded interference &mdash; and that hold leaks. The shaft creeps down
-    through the pads at roughly 1.5&nbsp;mm/s and the pad force decays to nothing in under two
-    seconds, which <code>probe_real_v1_carry</code> already measured from the other direction
+    <h2>Grip decay during the set-down</h2>
+    <p>At the top of a raised-pivot turn the tool is often cradled against the middle phalanges with
+    the pads barely on it (about 0.5&nbsp;mm of commanded interference), and the hold leaks: the
+    shaft creeps down through the pads at about 1.5&nbsp;mm/s and the pad force decays to nothing in
+    under two seconds, as <code>probe_real_v1_carry</code> measured from the other direction
     (16.1&nbsp;N to zero, tool on the table by 1.6&nbsp;s).</p>
   </div>
   <figure>{grip_chart}
-    <figcaption>Pad force at each seam of a single rollout, ending at the last held phase. The
-    shipped chain gets 12.0&nbsp;N at the top of the turn and has 0.4&nbsp;N left by the press
-    &mdash; the hand does nothing in between but move the tool. A single 0.3&nbsp;mm radial
-    re-squeeze, measured from the <em>commanded</em> pad position rather than the achieved one,
-    holds the same quantity between 7.7 and 9.0&nbsp;N across a longer sequence. Neither curve
-    is a rate measurement; the rate comes from the sweeps below.</figcaption>
+    <figcaption>Pad force at each checkpoint of one rollout, to the last held phase. The shipped
+    chain has 12.0&nbsp;N at the top of the turn and 0.4&nbsp;N by the press; a single 0.3&nbsp;mm
+    radial re-squeeze, measured from the <em>commanded</em> pad position, keeps 7.7&ndash;9.0&nbsp;N
+    over a longer sequence.</figcaption>
   </figure>
   <div class="col">
-    <p>Two consequences follow, and the second is the one worth keeping.</p>
-    <p><strong>Feedback on the height is harmful.</strong> The set-down is driven by re-measuring
-    the tool and recomputing the palm pose. Doing that once, as a single continuous move, stands
-    the tool on 6 of 6 spawn-jittered seeds. Doing it eight times stands it on 1. Nothing about
-    the trajectory changes &mdash; the extra corrections only add dwells, and every dwell is
-    paid in grip. The height error being corrected <em>is</em> the slip, and lowering the palm
-    further does not put it back.</p>
-    <p><strong>Feedback on the tilt is not.</strong> The same loop applied to orientation is
-    harmless at any number of corrections, because a rotation about the tool's own foot does not
-    trade against the grip in the same way.</p>
+    
+    <p><strong>Height feedback.</strong> The set-down re-measures the tool and recomputes the palm
+    pose. Done once, as a single continuous move, it stands the tool on 6 of 6 spawn-jittered seeds;
+    done eight times, on 1. The extra corrections add dwells, each of which costs grip, and the
+    height error they correct is the slip itself.</p>
+    <p><strong>Tilt feedback.</strong> The same loop applied to orientation completes at any number of
+    corrections, since a rotation about the tool's own foot costs no grip.</p>
   </div>
   <div class="pair">
     <figure>{desc_chart}<figcaption>Corrections during the set-down.</figcaption></figure>
     <figure>{repose_chart}<figcaption>Corrections bringing it upright.</figcaption></figure>
   </div>
   <div class="col">
-    <h3>The controls</h3>
-    <div class="tw"><table><thead><tr><th>condition</th><th class="num">chains</th>
-      <th class="num">turns</th><th>note</th></tr></thead><tbody>{ctrls}</tbody></table></div>
-    <p>The mid-air re-grasp is the one that changed how I think about the floor. The gait's
-    tripod ring solves to 1.1&nbsp;mm at the carry's own palm pose &mdash; it is reachable, and
-    the fingers can hold it &mdash; but a linear joint-space move from one grasp to the other
-    passes through a configuration that holds neither, and in mid-air there is nothing under the
-    tool. Set it on the floor first and the identical transition works every time. The floor's
-    contribution is not only that a released tool stays put; it is that the hand becomes free to
-    change its mind about how to hold it.</p>
-    <h3>What the seam will absorb</h3>
-    <p>The carry's exit tilt depends almost entirely on how long the hold after the turn is
-    allowed to run &mdash; cos 0.837 at the last commanded step, 0.946 after 0.6&nbsp;s,
-    0.996 after 1.0. Handing the seam anything from 6&deg; to 25&deg; makes no difference to
-    whether the chain completes.</p>
-    <div class="tw"><table><thead><tr><th class="num">hold after the turn  s</th>
-      <th class="num">carry exit tilt &deg;</th><th class="num">chains</th>
-      <th class="num">turns</th></tr></thead><tbody>{hold_rows}</tbody></table></div>
-    <p>The gait itself keeps the ceiling it had on a bare floor: 30&deg; of azimuth per cycle is
-    safe, 45&deg; roughly doubles throughput at a real cost in reliability, and 60&deg; walks
-    the tool over.</p>
-    <div class="tw"><table><thead><tr><th class="num">stroke &deg;</th><th class="num">chains</th>
-      <th class="num">turns / 8 cycles</th><th class="num">&deg; per cycle</th>
-      <th class="num">final tilt &deg;</th></tr></thead><tbody>{stroke_rows}</tbody></table></div>
-    <p>Read the 45&deg; row carefully. The pad ring is a gear &mdash; the pads ride at
-    21.05&nbsp;mm about a 12.5&nbsp;mm shaft, so slip-free transmission is 1.684 &mdash; and
-    1.684 &times; 45&deg; is 75.8&deg;. The measured {st45_deg:.0f}&deg; per cycle is
-    {st45_over:.2f} times that ceiling, which means the tool is being flicked and left to coast
-    rather than driven. That is throughput of a kind, but it is not the same primitive, and the
-    reliability drop is where it shows.</p>
+    <h3>Control conditions</h3>
+    <div class="tw"><table><thead><tr><th>Condition</th><th class="num">Chains</th>
+      <th class="num">Turns</th><th>Note</th></tr></thead><tbody>{ctrls}</tbody></table></div>
+    <p>The mid-air re-grasp fails although the gait's tripod ring solves to 1.1&nbsp;mm at the carry's
+    own palm pose: a linear joint-space move from one grasp to the other passes through a
+    configuration that holds neither, and in mid-air nothing supports the tool. With the tool set
+    on the floor first the same transition works on every seed, so the floor lets the hand change
+    its grasp.</p>
+    <h3>Tolerance of the set-down to the carry's exit tilt</h3>
+    <p>The carry's exit tilt depends mostly on the length of the hold after the turn (cos 0.837 at
+    the last commanded step, 0.946 after 0.6&nbsp;s, 0.996 after 1.0&nbsp;s), and any exit tilt
+    from 6&deg; to 25&deg; completes the chain.</p>
+    <div class="tw"><table><thead><tr><th class="num">Hold after the turn (s)</th>
+      <th class="num">Carry exit tilt (&deg;)</th><th class="num">Chains</th>
+      <th class="num">Turns</th></tr></thead><tbody>{hold_rows}</tbody></table></div>
+    <p>The gait keeps the limits it had on a bare floor: a 30&deg; stroke per cycle is reliable,
+    45&deg; roughly doubles the turn rate and loses seeds, and 60&deg; walks the tool over.</p>
+    <div class="tw"><table><thead><tr><th class="num">Stroke (&deg;)</th><th class="num">Chains</th>
+      <th class="num">Turns / 8 cycles</th><th class="num">&deg; per cycle</th>
+      <th class="num">Final tilt (&deg;)</th></tr></thead><tbody>{stroke_rows}</tbody></table></div>
+    <p>The pad ring acts as a gear: the pads ride at 21.05&nbsp;mm about a 12.5&nbsp;mm shaft, so
+    slip-free transmission is 1.684 and a 45&deg; stroke drives at most 75.8&deg;. The measured
+    {st45_deg:.0f}&deg; per cycle is {st45_over:.2f} times that, so at 45&deg; the tool is flicked
+    and coasts, which is where the seeds are lost.</p>
   </div>
 </section>
 
 <section>
   <div class="col">
-    <h2>On an arm</h2>
-    <p class="sub">the six palm DOF, paid for by a UR5e</p>
-    <p>Every number this program has produced was made by a floating, gravity-compensated palm
-    carrying six position-actuated joints. <code>build_real_v1_arm_scene.py</code> deletes them
-    and bolts the hand to a UR5e flange; <code>palm_driver.py</code> puts the gantry and the arm
-    behind one <code>read / write / solve / cmd_pose</code> interface, so the chain probe
-    contains no branch on which wrist it is using and a difference between the two runs belongs
-    to the wrist. Differential IK is mink, pinned to 1.1 &mdash; 1.2 resolves MuJoCo to 3.12,
-    and every physics result in this repository was measured on 3.6. The solver runs on a
-    separate arm-only model, because mink integrates over every degree of freedom a model has
-    and the task scene's include nine finger joints and the tool's free joint.</p>
-    <div class="tw"><table><thead><tr><th>wrist</th><th class="num">chains</th>
-      <th class="num">turns / 8 cy</th><th class="num">&deg; per cycle</th>
-      <th class="num">carry tilt &deg;</th><th class="num">drift mm</th>
-      <th class="num">40 cycles</th><th class="num">worst IK mm</th>
+    <h2>Chain on a UR5e</h2>
+    <p>Every earlier result used a floating, gravity-compensated palm with six position-actuated
+    joints. <code>build_real_v1_arm_scene.py</code> replaces them with a UR5e flange, and
+    <code>palm_driver.py</code> puts the gantry and the arm behind one
+    <code>read / write / solve / cmd_pose</code> interface, so the chain probe is the same for both
+    wrists. Differential IK is mink 1.1 (1.2 requires MuJoCo 3.12; every result here used 3.6),
+    solved on a separate arm-only model because mink integrates over every degree of freedom of a
+    model.</p>
+    <div class="tw"><table><thead><tr><th>Wrist</th><th class="num">Chains</th>
+      <th class="num">Turns / 8 cycles</th><th class="num">&deg; per cycle</th>
+      <th class="num">Carry tilt (&deg;)</th><th class="num">Drift (mm)</th>
+      <th class="num">Turns / 40 cycles</th><th class="num">Worst IK (mm)</th>
       </tr></thead><tbody>{wrist_rows}</tbody></table></div>
-    <p>The arm is not worse. Worst IK residual over a whole rollout is a thousandth of a
-    millimetre and no commanded pose was unreachable, so the palm trajectory the seam needs is
-    not exotic &mdash; a 6R arm makes all of it, including the rigid re-pose transfer and the
-    lateral re-index under a standing tool.</p>
+    <p>The arm completes 6 of 6 with a worst IK residual of 0.001&nbsp;mm and no unreachable pose, so
+    a 6R arm makes every palm move of the chain, including the rigid re-pose and the lateral
+    re-index over a standing tool.</p>
   </div>
   <figure>
     <video src="{vid_arm}" controls muted loop playsinline preload="metadata"></video>
@@ -530,44 +526,38 @@ BODY = r"""
     floating palm.</figcaption>
   </figure>
   <div class="col">
-    <p>What the arm costs is stiffness, and it is a cliff rather than a slope. The menagerie
-    UR5e has no gravity feedforward: its shoulder sits 21&nbsp;mrad below its set-point under
-    the arm's own twelve kilograms, and the palm droops 12.7&nbsp;mm at the top of the lift.
-    That alone turns a 5&deg; carry exit into 29&deg; and breaks the seam. Compensating the
-    <em>arm's</em> links &mdash; not the hand, which is real payload the controller does not
-    know about &mdash; sweeps that droop continuously from 12.7&nbsp;mm down to
-    0.35&nbsp;mm on an otherwise identical robot.</p>
+    <p>The arm's cost is stiffness, with a sharp threshold. The menagerie UR5e has no gravity
+    feedforward: its shoulder sits 21&nbsp;mrad below its set-point under the arm's own 12&nbsp;kg
+    and the palm droops 12.7&nbsp;mm at the top of the lift, which turns a 5&deg; carry exit into
+    29&deg; and breaks the set-down. Compensating the <em>arm's</em> links (the hand stays an
+    undeclared payload) reduces the droop from 12.7&nbsp;mm to 0.35&nbsp;mm on the same robot.</p>
   </div>
   <figure>{droop_chart}
-    <figcaption>Chains completed against palm droop under load. Nothing between 1.6 and
-    12.7&nbsp;mm works; 0.97&nbsp;mm works every time.</figcaption>
+    <figcaption>Chains completed against palm droop under load: every seed completes at
+    0.97&nbsp;mm and none from 1.6 to 12.7&nbsp;mm.</figcaption>
   </figure>
   <div class="callout col">
-    <span class="tag">the spec</span>
-    <p>A wrist for this task has to hold the commanded palm pose to about one millimetre under
-    the hand's own weight plus a 25&nbsp;g tool. That is a number an arm can be checked against
-    before it is bought, and it is the first hardware requirement this program has stated in
-    units that are not the hand's own.</p>
+    <span class="tag">Wrist specification</span>
+    <p>A wrist for this task must hold the commanded palm pose to about 1&nbsp;mm under the hand's
+    weight plus a 25&nbsp;g tool, a requirement an arm can be checked against before
+    purchase.</p>
   </div>
   <figure>
     <img src="{film_arm}" alt="Seventeen frames of the arm-mounted chain, from grasp to gait.">
-    <figcaption>The arm run at its seams. The wrist rotation through the reorient is the move
-    the floating palm used to get for free.</figcaption>
+    <figcaption>The arm run, one frame per checkpoint; the wrist rotates through the
+    turn.</figcaption>
   </figure>
 </section>
 
 <section>
   <div class="col">
-    <h2>Into a screw</h2>
-    <p class="sub">a 45&deg; frustum tip, and a countersink to put it in</p>
-    <p>A flat-ended rod on a flat plane makes the ground a pure friction brake and leaves the
-    tool free to walk, which is why <code>drift_mm</code> had to be reported at all. A screw sits
-    in a seat, and a seat centres, wedges and constrains. The tool gains a 45&deg; frustum tip
-    &mdash; a mesh, so the cone is exact rather than stepped, and a frustum is convex so MuJoCo's
-    hull is the shape itself &mdash; and the floor gains a matching countersink. A conical
-    <em>hole</em> is not convex, so the seat is built the way a real recess is: a ring of
-    thirty-two facets for the wall, a disc for the relieved bottom, and a flat annulus for the
-    table around the mouth.</p>
+    <h2>Countersink seating</h2>
+    <p class="sub">A 45&deg; frustum tip and a matching countersink</p>
+    <p>On a flat plane the ground acts only as a friction brake and the tool walks
+    (<code>drift_mm</code>). The tool now has a 45&deg; frustum tip, a convex mesh that MuJoCo&#8217;s
+    hull represents exactly, and the floor a matching countersink; since a conical hole is not
+    convex, the seat is built from 32 facets for the wall, a disc for the relieved bottom and a flat
+    annulus around the mouth.</p>
     <p>The tool is picked up lying on the table, 40&nbsp;mm from the seat, so the chain has to
     transport it as well as insert it.</p>
   </div>
@@ -580,46 +570,45 @@ BODY = r"""
     <figure>{seat_drift}<figcaption>Lateral walk over eight cycles.</figcaption></figure>
   </div>
   <div class="col">
-    <p>The seat costs <strong>{flat_deg:.1f} &rarr; {seat_deg:.1f} degrees per cycle</strong>,
-    about a sixth of the turn, and returns <strong>{flat_drift_mm:.2f} &rarr;
-    {seat_drift_mm:.2f}&nbsp;mm</strong> of walk, a factor of sixteen. The loss is the wedge:
-    normal force on a cone flank is the axial load over sin&nbsp;&alpha;, so the same press buys
-    more resisting torque than it does on a plane. Over forty cycles the seated tool turns
-    {seat_endur:.2f} revolutions against {flat_endur:.2f} on the plane, and stays seated.</p>
-    <p>The cone angle trades those two against each other directly, and the ratio is the wedge
-    factor read off the data: 2.00, 1.41, 1.15 for half-angles of 30, 45 and 60 degrees.</p>
+    <p>The seat lowers the turn from <strong>{flat_deg:.1f} to {seat_deg:.1f} degrees per
+    cycle</strong>, about a sixth, and the walk from <strong>{flat_drift_mm:.2f} to
+    {seat_drift_mm:.2f}&nbsp;mm</strong>, sixteen-fold. The wedge explains the loss: the normal
+    force on a cone flank is the axial load divided by sin&nbsp;&alpha;, so the same press gives
+    more resisting torque than on a plane. Over forty cycles the seated tool turns
+    {seat_endur:.2f} revolutions against {flat_endur:.2f} on the plane and stays seated.</p>
+    <p>The cone angle trades insertion against turn by the wedge factor read off the data: 2.00,
+    1.41 and 1.15 for half-angles of 30, 45 and 60&deg;.</p>
   </div>
   <div class="pair">
     <figure>{ang_ok}<figcaption>A shallower cone inserts more reliably.</figcaption></figure>
     <figure>{ang_turn}<figcaption>&hellip;and turns less, by the wedge factor.</figcaption></figure>
   </div>
   <div class="col">
-    <h3>Insertion is a press, not a placement</h3>
-    <p>Below about 8&nbsp;mm of commanded press the tip stops proud of its seat and the gait has
-    nothing to push against; from 10 to 18&nbsp;mm there is no further change. And the capture
-    radius is 6&nbsp;mm against 10.5&nbsp;mm of geometric clearance, because the tool arrives
-    with two to five degrees of tilt and a tilted cone binds in a matched cone &mdash; an 8&deg;
-    entry stops three millimetres into a ten-millimetre seat.</p>
+    <h3>Press depth and capture radius</h3>
+    <p>Below about 8&nbsp;mm of commanded press the tip stops above its seat and the gait has
+    nothing to push against; from 10 to 18&nbsp;mm the press makes no further difference. The
+    capture radius is 6&nbsp;mm against 10.5&nbsp;mm of geometric clearance, because the tool
+    arrives with 2&ndash;5&deg; of tilt and a tilted cone binds in a cone of the same angle: an
+    8&deg; entry stops 3&nbsp;mm into a 10&nbsp;mm seat.</p>
   </div>
   <div class="pair">
     <figure>{press_chart}<figcaption>Press through the grip.</figcaption></figure>
     <figure>{cap_chart}<figcaption>Deliberate lateral error in the insertion target.</figcaption></figure>
   </div>
   <div class="col">
-    <p>The re-grip that pays for the insertion has a narrow window of its own. Too little and
-    the grasp is gone before the tip is home; too much and the pads, which sit at different
-    stations along the shaft, torque it out of line and the cone binds on the way in.</p>
+    <p>The re-grip before insertion has a narrow window: too little and the grasp is gone before
+    the tip is home, too much and the pads, at different stations along the shaft, torque it out of
+    line so that the cone binds.</p>
   </div>
   <figure>{regrip_chart}
     <figcaption>Extra radial interference commanded once after the turn. 0.3&nbsp;mm is the
     working value; 1&nbsp;mm never seats.</figcaption>
   </figure>
   <div class="col">
-    <p>Transport distance, by contrast, does not matter. Standing the tool up and carrying it
-    across are expressed as one pose command and therefore one ramp, so 30&nbsp;mm and 90&nbsp;mm
-    cost the same.</p>
-    <div class="tw"><table><thead><tr><th class="num">transport mm</th><th class="num">seated</th>
-      <th class="num">&deg; per cycle</th><th class="num">final offset from seat mm</th>
+    <p>Transport distance makes no difference: standing the tool up and carrying it across are one
+    pose command and one ramp, so 30&nbsp;mm and 90&nbsp;mm cost the same.</p>
+    <div class="tw"><table><thead><tr><th class="num">Transport (mm)</th><th class="num">Seated</th>
+      <th class="num">&deg; per cycle</th><th class="num">Final offset from the seat (mm)</th>
       </tr></thead><tbody>{dist_rows}</tbody></table></div>
   </div>
   <figure>
@@ -630,37 +619,30 @@ BODY = r"""
 </section>
 
 <section class="col">
-  <h2>What this does and does not show</h2>
-  <p>It is simulation, on one hand, with one tool. The upright starting pose is produced by the
-  carry rather than granted, which was the point, but the carry itself is rv05's published
-  configuration and the other nine designs never reach the seam under it. Nothing here has been
-  through the trajectory-clearance or servo-limit gates, so none of it is a deployment claim.
-  A 45&deg; countersink at 0.0072&nbsp;N&middot;m of resisting torque is a seat, not a
-  fastener &mdash; there is no thread, no pitch, and the tool does not have to descend as it
-  turns.</p>
-  <p>Three measurement errors on the way each read as physics before a control caught them, and
-  they are recorded because two of them are the same error in different clothes. A re-grip
-  measured from the pad's <em>achieved</em> position hands back exactly the deflection that was
-  carrying the load, and bled a &ldquo;constant&rdquo; grip from 18.4&nbsp;N to 0.25&nbsp;N over
-  seven reissues with the tool doing nothing; the bench work met this one as
-  <code>achieved_fraction</code>. A proportional tilt correction tracking a <em>scheduled</em>
-  reference changes sign whenever the plant runs behind, and on a 20&nbsp;N grip with 150 steps
-  of lag it always does &mdash; the palm oscillated to &minus;0.49&nbsp;rad and threw the tool
-  from a state that had already reached 3&deg;. And <code>probe_real_v1_gait._ground</code> asks
-  for contacts with the body named <code>world</code>, which reports zero support for a tool
-  sitting firmly in a seat that is its own body.</p>
-  <h3>Next</h3>
+  <h2>Limitations and measurement errors</h2>
+  <p>All results are simulation on the shipped servo model (kp 30), with one hand and one tool; the carry is rv05&#8217;s
+  published configuration, under which the other nine designs fail. Nothing here has passed the trajectory-clearance or
+  servo-limit gates. The countersink resists with 0.0072&nbsp;N&middot;m and has no thread, so the tool does not descend as
+  it turns.</p>
+  <p>Three measurement errors read as physics before a control caught them. A re-grip measured from the pad&#8217;s
+  <em>achieved</em> position returns the deflection that held the load, and bled a constant grip from 18.4&nbsp;N to
+  0.25&nbsp;N over seven reissues with the tool still. A proportional tilt correction tracking a <em>scheduled</em> reference
+  changes sign whenever the plant lags, and with a 20&nbsp;N grip and 150 steps of lag the palm oscillated to
+  &minus;0.49&nbsp;rad and threw a tool that had reached 3&deg;. <code>probe_real_v1_gait._ground</code> counted only contacts
+  with the body named <code>world</code>, so it reported no support for a tool seated in a countersink, which is its own
+  body.</p>
+</section>
+
+<section class="col">
+  <h2>Future work</h2>
   <ul>
-    <li>Put the seat on a load cell in sim: sweep resisting torque until the gait stalls, and
-    report the stall torque rather than the turn rate. That number is what decides whether this
-    is a fastener primitive.</li>
-    <li>Close the gait loop. Gaiting is the first task in this program whose controlled variable
-    &mdash; rotation about the tool's own axis &mdash; the bench's AprilTag rig measures
-    directly, at 0.017&deg; rms.</li>
-    <li>Run the export and clearance gates on the chained trajectory. The gait's ring grasp and
-    the re-index move have never been checked against finger&ndash;finger clearance or the
-    servo travel limits, and three of four plans on the control station once failed exactly
-    that check.</li>
+    <li>Load the seat in simulation: sweep the resisting torque until the gait stalls and report the stall torque, which
+    decides whether the gait can drive a fastener.</li>
+    <li>Close the gait loop on the tool&#8217;s rotation about its own axis, which the bench&#8217;s AprilTag rig measures at
+    0.017&deg; rms.</li>
+    <li>Run the export and clearance gates on the chained trajectory: the gait&#8217;s ring grasp and the re-index move have
+    not been checked for finger&ndash;finger clearance or servo travel, and three of four plans on the control station once
+    failed that check.</li>
   </ul>
 </section>
 
@@ -677,8 +659,8 @@ uv run --extra rl python scripts/real_v1_screw_study.py \
     --out docs/experiments/20260903-real_v1_screw --reps 6 --cycles 8
 
 uv run --extra rl python scripts/real_v1_chain_page.py</code></pre>
-  <p>Each study is well under a minute of CPU on six workers; the arm study is serial because
-  mink holds a model per process.</p>
+  <p>Each study takes under a minute of CPU on six workers; the arm study is serial because mink
+  holds a model per process.</p>
 </section>
 """
 
