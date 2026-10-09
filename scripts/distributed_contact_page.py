@@ -1248,7 +1248,7 @@ Rᵢ = [(1−d₀)/d₀] Λᵢ
         body += save_figure(
             fig,
             "controlled_slip_traces",
-            "Matched force commands produce sliding and braking. Native coefficient agreement alone does not establish local force fidelity; gray bands show the force decrease.",
+            "The same force commands produce sliding and braking in every model; gray bands show the force decrease, which coefficient agreement alone does not predict.",
         )
         convergence = []
         for geometry in ("plane", "cylinder"):
@@ -1284,7 +1284,7 @@ Rᵢ = [(1−d₀)/d₀] Λᵢ
         )
         body += """<p>These transfer checks measure the visited trajectory and local normal law. They do not establish
         continuum convergence of the entire pressure field. Fine stepping and the Python parameter adapter carry
-        a substantial computational cost; this is mechanical validation, not a real-time or GPU throughput result.</p>"""
+        a substantial computational cost, so these runs validate the mechanics and say nothing about real-time or GPU throughput.</p>"""
         lower_ratio = choose(fine, group="fine_friction_ratio")
         if lower_ratio:
             body += f"<p>The fine-step control with impratio=100, while retaining the same physical tangential damping, has {lower_ratio[0]['normal_law_L1_error'] * 100:.3g}% force L1 error. Fine stepping alone is insufficient: the cone regularizer ratio materially affects normal-force fidelity.</p>"
@@ -1294,7 +1294,7 @@ Rᵢ = [(1−d₀)/d₀] Λᵢ
         if core:
             normal = [r for r in core if r["scenario"] == "normal_pulse"]
             sliding = [r for r in core if r["scenario"] == "controlled_slip"]
-            body += f"<p><strong>Measured conclusion:</strong> the fine-step native variant has normal-load-pulse L1 error up to {max(r['normal_law_L1_error'] for r in normal) * 100:.4g}% and controlled-slip interval error up to {max(r['normal_law_L1_error'] for r in sliding) * 100:.4g}%. Maximum sliding-frame median error is {max(r['sliding_normal_law_L1_median'] for r in sliding) * 100:.3g}%. These are measured bounds for this fixture, not an exact independent-spring theorem.</p>"
+            body += f"<p><strong>Measured conclusion:</strong> the fine-step native variant has normal-load-pulse L1 error up to {max(r['normal_law_L1_error'] for r in normal) * 100:.4g}% and controlled-slip interval error up to {max(r['normal_law_L1_error'] for r in sliding) * 100:.4g}%. Maximum sliding-frame median error is {max(r['sliding_normal_law_L1_median'] for r in sliding) * 100:.3g}%. These bounds are measured on this fixture.</p>"
     # Keep full normal coupling matrices local, but export their compact diagnostics.
     coupling = []
     for phase, runs in [("slip", complete_dynamic), ("slip_fine", completed_fine)]:
@@ -1325,15 +1325,15 @@ Rᵢ = [(1−d₀)/d₀] Λᵢ
     body += """<p>Five snapshots per dynamic run store the full normal block of J M⁻¹ Jᵀ, the selected diagonal,
     R and sample IDs. <a href="data/contact_coupling.json">Portable coupling diagnostics</a> expose its rank and
     normalized off-diagonal entries. Dense sampling retains rigid-body coupling; row count is not rank.</p>
-    <p><strong>Scope:</strong> this advances the native MuJoCo normal/axial-slip discriminator. The
+    <p>These runs extend the native MuJoCo test of normal load and axial slip. The
     <a href="20261004-contact_videos.html#slip_fine">native isolated
     fixture videos</a> now show normal pulses and controlled sliding, with force-colored sample spheres.
-    This does not complete the specification's full D4 torsion/brake comparison against Drake, point and condim-4 models,
-    or hardware validation. The separate <a href="20261004-articulated_contact_transfer.html">articulated
+    The specification&#8217;s full D4 torsion and brake comparison against Drake, point and condim-4 models,
+    and hardware validation remain open. The separate <a href="20261004-articulated_contact_transfer.html">articulated
     follow-up</a> now measures holding ramps, torsional transfer, Drake, mjlab GPU batches and Newton
     pressure/reduction controls. The 6 mm fillet under dynamic slip remains untested.
-    This is an empirical oracle on the visited states, not a
-    separately integrated frictional-contact solver. Timestep and density checks qualify numerical transfer.</p>"""
+    The checks evaluate the force law on the states the solver visited, without a separate frictional-contact
+    integrator; timestep and density checks bound the numerical error.</p>"""
     return section("Runtime inverse inertia and controlled slip", body, "dynamic")
 
 
@@ -1583,8 +1583,8 @@ def report(results):
             for r, s in zip(redundant, free)
         ],
     )
-    body += """<p>This artificial duplicate-contact test is a solver diagnostic, not an admissible quadrature of
-    a physical fingertip. Each copy deliberately keeps its full stiffness. It distinguishes rank redundancy,
+    body += """<p>This artificial duplicate-contact test checks the solver; as a quadrature of a physical fingertip it would
+    be inadmissible. Each copy deliberately keeps its full stiffness. It distinguishes rank redundancy,
     which is expected for forces acting on one rigid body, from deletion or reduction of contact rows.</p>
     <p>For identical normal rows under free acceleration, <code>F = n a_ref / (R + n A)</code>.
     A supported equilibrium instead gives <code>F = n a_ref / R</code>. Joint solving can therefore look like
@@ -1643,7 +1643,7 @@ def report(results):
     body = save_figure(
         fig,
         "static_sweeps",
-        "Spherical caps against a plane and the nominal 12.5 mm cylinder. Phase-zero curves; full phase extrema appear below. The arm is a pressure-weighted geometric proxy, not measured sliding torque.",
+        "Spherical caps against a plane and the nominal 12.5 mm cylinder, phase-zero curves; the full phase extrema follow below. The arm is a pressure-weighted geometric proxy for the sliding torque.",
     )
     errors = []
     for spacing in [2.0, 1.0, 0.5]:
@@ -1702,14 +1702,14 @@ def report(results):
     body += save_figure(
         fig,
         "constitutive_contact_field",
-        "Every point is an actual MuJoCo contact force. Pressure is force divided by nominal quadrature area, not a native pressure field.",
+        "Every point is a MuJoCo contact force; pressure is that force divided by the nominal quadrature area.",
     )
     body += """<p>The earlier <code>hom_chain_figures.py:pad</code> static visualization computes
-    <code>f = K × overlap</code> directly. Its resolution agreement is geometric evidence, not a measurement of
+    <code>f = K × overlap</code>, so its agreement across resolutions is geometric; this report measures the
     native solver forces. This report logs <code>mj_contactForce</code>, actual mixed contact parameters,
     constraint addresses, approximate and exact normal inverse inertia, and the regularizer.</p>
     <p>Displacement sweeps use static inverse dynamics to obtain a supporting wrench and then verify the same
-    state with a native forward solve. These are equilibrium reactions, not a dynamical validation by themselves.
+    state with a native forward solve. These are equilibrium reactions; the load sweeps below test the dynamics.
     Separate load sweeps integrate forward from near first touch, with no normal position spring. Five-axis pose
     servos provide the fixture; their finite lateral/rotational errors are recorded in the summaries.</p>"""
     parts.append(section("Measured contact fields and resolution", body, "static"))
@@ -1761,8 +1761,8 @@ def report(results):
         "solver_sensitivity",
         "Native forward load equilibria over 0.25–2 ms and 10/200/1000 solver iterations. A separate run uses tolerance 10⁻³.",
     )
-    body += """<p>Iteration counts are maximum budgets, not forced iteration counts. Their agreement shows the tested
-    equilibrium result is not repaired by spending more iterations. The inertia-only sweep changes rotational inertia
+    body += """<p>Iteration counts are maximum budgets. Their agreement shows that more iterations do not change the tested
+    equilibrium. The inertia-only sweep changes rotational inertia
     while preserving mass. Negative/direct-format <code>solref</code> offers independent stiffness and damping
     settings but still enters the same regularized equations; merely changing its format does not remove mass scaling.
     <a href="https://mujoco.readthedocs.io/en/3.6.0/modeling.html#reference">MuJoCo parameter formats</a>.</p>"""
@@ -1871,12 +1871,12 @@ def report(results):
     A fine-step native variant approaches the independent normal spring-damper law on the tested states.
     Static agreement or exact coefficients alone do not establish transient contact fidelity.</p>
     <p>No torsional capacity is inferred from a resting friction wrench. The pressure-weighted arm is only a proxy.
-    The continuum reference is independent numerical integration of the stated Winkler law, not a fresh Drake
-    hydroelastic solve. Drake is reproduced in the full-task regression; static Drake, wider curvature sweeps,
+    The continuum reference integrates the stated Winkler law numerically, independently of Drake&#8217;s
+    hydroelastic solver. Drake is reproduced in the full-task regression; static Drake, wider curvature sweeps,
     and the full brake/hardware task remain open. The <a href="20261004-articulated_contact_transfer.html">
     articulated transfer report</a> adds torque/weight comparisons across resolution, actual hydroelastic
     and GPU trials, and measured mapping costs.</p>"""
-    body += f"<p>{len(unsettled)} load runs did not meet the equilibrium criterion within their declared duration. They remain in all tables and raw outputs; these are convergence limits, not discarded trials.</p>"
+    body += f"<p>{len(unsettled)} load runs did not meet the equilibrium criterion within their declared duration. They remain in all tables and raw outputs as convergence limits.</p>"
     if unsettled:
         body += table(
             ["Run", "Geometry", "Spacing", "Load", "Phase", "Force balance error", "Final speed"],
