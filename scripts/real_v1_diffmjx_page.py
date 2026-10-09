@@ -63,7 +63,7 @@ def svg_gap(datasets):
     x = lambda v: left + (math.log10(max(v, 0.01)) - xlo) / (xhi - xlo) * (width - left - right)
     parts = [f'<svg viewBox="0 0 {width} {height}" role="img" aria-label="Absolute CPU versus MJX fingertip gap error">',
              f'<text x="{left}" y="29" class="label" style="font-weight:700">Absolute fingertip gap difference at the held state</text>',
-             f'<text x="{left}" y="50" class="small">micrometres; log scale</text>']
+             f'<text x="{left}" y="50" class="small">Micrometres, log scale</text>']
     for tick in (0.01, 0.1, 1, 10, 100, 1000):
         xx = x(tick)
         parts.append(f'<line x1="{xx:.1f}" y1="{top-16}" x2="{xx:.1f}" y2="{height-48}" stroke="var(--rule2)"/>')
@@ -97,7 +97,7 @@ def svg_search(search, plain_jac, cfd_jac):
     plot_h = height - top - bottom
     parts = [f'<svg viewBox="0 0 {width} {height}" role="img" aria-label="Distribution of 128 sampled control changes and the finite-difference direction">',
              f'<text x="{left}" y="28" class="label" style="font-weight:700">Local yaw-target search on the 1 mm packed surface</text>',
-             f'<text x="{left}" y="48" class="small">change in tool vertical cosine after 20 ms, in units of 0.0001</text>']
+             f'<text x="{left}" y="48" class="small">Change in tool vertical cosine after 20 ms, in units of 0.0001</text>']
     for tick in range(math.ceil(xmin), math.floor(xmax)+1):
         xx = x(tick)
         parts.append(f'<line x1="{xx:.1f}" y1="{top}" x2="{xx:.1f}" y2="{height-bottom}" stroke="var(--rule2)"/>')
@@ -112,7 +112,10 @@ def svg_search(search, plain_jac, cfd_jac):
                                  (best, 'var(--good)', 'Best of 128 samples', top+78)):
         xx = x(val)
         parts.append(f'<line x1="{xx:.1f}" y1="{top}" x2="{xx:.1f}" y2="{height-bottom}" stroke="{color}" stroke-width="3"/>')
-        parts.append(f'<text x="{min(xx+8,width-210):.1f}" y="{y}" class="small" fill="{color}">{label}: {val:.3f}</text>')
+        txt = f"{label}: {val:.3f}"
+        right_side = xx + 8 + 9.4 * len(txt) < width            # 15.5-unit mono text; else end the label at the line
+        parts.append(f'<text x="{xx + 8 if right_side else xx - 8:.1f}" y="{y}" class="small" fill="{color}" '
+                     f'text-anchor="{"start" if right_side else "end"}">{txt}</text>')
     parts.append(f'<text x="{left}" y="{height-8}" class="small">128 sampled directions at 0.1 rad radius</text></svg>')
     return '<div class="viz">' + ''.join(parts) + '</div>'
 
@@ -127,7 +130,7 @@ def svg_fd_sweep(sweep, jac):
     cpu = [(eps, sweep['cpu_fd_sweep'][f'{eps:g}'][0]/ad) for eps,_ in vals]
     parts = [f'<svg viewBox="0 0 {width} {height}" role="img" aria-label="Finite-difference orientation derivative versus perturbation size">',
              f'<text x="{left}" y="28" class="label" style="font-weight:700">Index-yaw derivative over 20 ms</text>',
-             f'<text x="{left}" y="48" class="small">finite difference / plain fork automatic derivative</text>']
+             f'<text x="{left}" y="48" class="small">Finite difference over plain-fork automatic derivative</text>']
     for ratio in (0.9, 1.0, 1.1, 1.2):
         yy=y(ratio)
         parts.append(f'<line x1="{left}" y1="{yy:.1f}" x2="{width-right}" y2="{yy:.1f}" stroke="var(--rule2)"/>')
@@ -143,7 +146,7 @@ def svg_fd_sweep(sweep, jac):
             parts.append(f'<circle cx="{x(eps):.1f}" cy="{y(value):.1f}" r="5" fill="{color}"><title>{label}: {value:.4f} at {eps:g} rad</title></circle>')
     parts.append(f'<text x="{width-right}" y="{top+8}" text-anchor="end" class="small" style="fill:var(--s1)">● fork FD</text>')
     parts.append(f'<text x="{width-right}" y="{top+29}" text-anchor="end" class="small" style="fill:var(--s2)">● CPU FD</text>')
-    parts.append(f'<text x="{width-right}" y="{height-9}" text-anchor="end" class="small">yaw target perturbation, rad</text></svg>')
+    parts.append(f'<text x="{width-right}" y="{height-9}" text-anchor="end" class="small">Yaw target perturbation, rad</text></svg>')
     return '<div class="viz">'+''.join(parts)+'</div>'
 
 
@@ -165,7 +168,7 @@ def svg_gradient(data, title):
     x = lambda v: left + (v - xlo) / (xhi - xlo) * (width-left-right)
     parts = [f'<svg viewBox="0 0 {width} {height}" role="img" aria-label="Automatic and finite-difference derivatives relative to CPU finite differences">',
              f'<text x="{left}" y="27" class="label" style="font-weight:700">{html.escape(title)}: {control} derivative</text>',
-             f'<text x="{left}" y="47" class="small">ratio to CPU central finite difference; 1 means agreement</text>']
+             f'<text x="{left}" y="47" class="small">Ratio to the CPU central finite difference (1 is agreement)</text>']
     tick_step = 0.25 if xhi-xlo < 1.2 else 0.5
     tick0 = math.ceil(xlo / tick_step) * tick_step
     ticks = [tick0 + tick_step*i for i in range(int((xhi-tick0)/tick_step)+1)]
@@ -220,8 +223,8 @@ def main():
     style_path = ROOT / 'scripts/hom_chain_page.template.html'
     style = re.search(r'<style>(.*?)</style>', style_path.read_text(), re.S).group(1)
     style += '''\n.viz{background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:12px;box-shadow:var(--shadow)}
-.viz svg{display:block;width:100%;height:auto}.viz .label{fill:var(--ink);font:600 15px var(--f-display)}
-.viz .small{fill:var(--ink2);font:400 12px var(--f-mono)}.decision td:first-child{font-weight:600}
+.viz svg{display:block;width:100%;height:auto}.viz .label{fill:var(--ink);font:600 15.5px var(--f-display)}
+.viz .small{fill:var(--ink2);font:400 15.5px var(--f-mono)}.decision td:first-child{font-weight:600}
 @media print{.col>.tw{width:100%}table{font-size:11px;table-layout:fixed}th{font-size:9px;white-space:normal;padding:7px 6px}td{padding:7px 6px;overflow-wrap:anywhere}.tw{overflow:visible}}
 '''
 

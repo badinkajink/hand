@@ -48,7 +48,7 @@ def search_figure(data):
     plot_h=h-top-bottom
     y=lambda v: top+plot_h*(1-v/ymax)
     parts=[f'<text x="{left}" y="27" class="label">Orientation gain after 400 ms</text>',
-           f'<text x="{left}" y="45" class="small">vertical cosine; seed 1; 256 evaluations per search</text>']
+           f'<text x="{left}" y="45" class="small">Vertical cosine; seed 1; 256 evaluations per search</text>']
     for tick in (0,.05,.10,.15):
         yy=y(tick)
         parts += [f'<line x1="{left}" y1="{yy:.1f}" x2="{w-right}" y2="{yy:.1f}" stroke="var(--rule2)"/>',
@@ -76,7 +76,7 @@ def trace_figure(pads, mesh):
     curves=[("Packed CEM",pads["candidates"]["cem"]["contact_trace"],"#3c79a4"),
             ("Packed hybrid",pads["candidates"]["hybrid"]["contact_trace"],"#247e72"),
             ("Mesh CEM",mesh["candidates"]["cem"]["contact_trace"],"#b75f48")]
-    w,h,left,right=920,560,84,35
+    w,h,left,right=920,590,84,35
     x=lambda t:left+t/400*(w-left-right)
     panels=[("Index normal force", "N",0,3.2,lambda r:r["finger_normal_force_N"]["index"]),
             ("Tool height", "m",.045,.102,lambda r:r["tool_z_m"]),
@@ -84,7 +84,7 @@ def trace_figure(pads, mesh):
     parts=[f'<text x="{left}" y="27" class="label">Opening, recontact and tool motion</text>',
            f'<text x="{left}" y="45" class="small">0–400 ms; shaded command interval 0–180 ms</text>']
     for k,(title,unit,lo,hi,getter) in enumerate(panels):
-        top=66+k*155
+        top=84+k*158
         ph=105
         y=lambda v:top+ph*(1-(v-lo)/(hi-lo))
         parts.append(f'<rect x="{left}" y="{top}" width="{x(180)-left:.1f}" height="{ph}" fill="#d9e9e5" opacity=".45"/>')
@@ -92,7 +92,7 @@ def trace_figure(pads, mesh):
             yy=y(tick)
             parts += [f'<line x1="{left}" y1="{yy:.1f}" x2="{w-right}" y2="{yy:.1f}" stroke="var(--rule2)"/>',
                       f'<text x="{left-9}" y="{yy+4:.1f}" text-anchor="end" class="small">{tick:.3g}</text>']
-        parts.append(f'<text x="{left}" y="{top-8}" class="label">{title} {unit}</text>')
+        parts.append(f'<text x="{left}" y="{top-8}" class="label">{title}{", " + unit if unit else ""}</text>')
         if k==0:
             parts.append(f'<line x1="{left}" y1="{y(.05):.1f}" x2="{w-right}" y2="{y(.05):.1f}" stroke="#af4b42" stroke-dasharray="5 4" opacity=".7"/>')
         if k==1:
@@ -102,7 +102,7 @@ def trace_figure(pads, mesh):
             parts.append(f'<polyline points="{coords}" fill="none" stroke="{color}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><title>{label}</title></polyline>')
         for tick in (0,100,200,300,400):
             parts.append(f'<text x="{x(tick):.1f}" y="{top+ph+18}" text-anchor="middle" class="small">{tick}</text>')
-    parts.append(f'<text x="{(left+w-right)/2:.1f}" y="{h-31}" text-anchor="middle" class="small">time after supported grasp (ms)</text>')
+    parts.append(f'<text x="{(left+w-right)/2:.1f}" y="{h-31}" text-anchor="middle" class="small">Time after the supported grasp (ms)</text>')
     for i,(label,_,color) in enumerate(curves):
         xx=left+i*230
         parts += [f'<line x1="{xx}" y1="{h-12}" x2="{xx+18}" y2="{h-12}" stroke="{color}" stroke-width="3"/>',
@@ -132,10 +132,10 @@ def transfer_figure(cpu,warp_free,warp_release,warp_free_seed,warp_release_seed)
            ("Release hybrid","tpu6_padsT_release_hybrid","hybrid",True)]
     colors=["#247e72","#3c79a4","#b75f48"]
     w,h,left,top=920,424,165,65
-    width=w-left-35
+    width=w-left-110
     x=lambda held:left+held/8*width
     parts=[f'<text x="{left}" y="28" class="label">Held continuations across eight grip starts</text>',
-           f'<text x="{left}" y="47" class="small">packed CPU / packed Warp / convex-mesh CPU</text>']
+           f'<text x="{left}" y="47" class="small">Bars: pads in CPU MuJoCo, pads in MuJoCo-Warp, mesh in CPU</text>']
     for tick in (0,2,4,6,8):
         xx=x(tick)
         parts += [f'<line x1="{xx:.1f}" y1="{top-12}" x2="{xx:.1f}" y2="{h-46}" stroke="var(--rule2)"/>',
@@ -150,7 +150,8 @@ def transfer_figure(cpu,warp_free,warp_release,warp_free_seed,warp_release_seed)
         for j,(held,_,_) in enumerate(sets):
             y=yy+j*9
             parts.append(f'<rect x="{left}" y="{y}" width="{max(1,x(held)-left):.1f}" height="7" fill="{colors[j]}"><title>{label}: {held}/8 held</title></rect>')
-            parts.append(f'<text x="{x(held)+5:.1f}" y="{y+7}" class="small">{held}</text>')
+        parts.append(f'<text x="{x(max(s[0] for s in sets))+8:.1f}" y="{yy+19}" class="small">'
+                     f'{", ".join(str(s[0]) for s in sets)}</text>')
     return fig_svg(parts,w,h,"Held rollouts in CPU MuJoCo, MuJoCo-Warp, and mesh transfer")
 
 
@@ -183,8 +184,8 @@ def main():
             "pads2_f32":read("20261007-native-mjx-gpu-padsT2-f32-20-warm.json")}
     style=re.search(r"<style>(.*?)</style>",(ROOT/"scripts/hom_chain_page.template.html").read_text(),re.S).group(1)
     style+='''\n.viz{background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:12px;box-shadow:var(--shadow)}
-.viz svg{display:block;width:100%;height:auto}.viz .label{fill:var(--ink);font:600 14px var(--f-display)}
-.viz .small{fill:var(--ink2);font:400 11px var(--f-mono)}
+.viz svg{display:block;width:100%;height:auto}.viz .label{fill:var(--ink);font:600 15.5px var(--f-display)}
+.viz .small{fill:var(--ink2);font:400 15.5px var(--f-mono)}
 @media print{.col>.tw{width:100%}table{font-size:11px;table-layout:fixed}th{font-size:9px;white-space:normal;padding:7px 6px}td{padding:7px 6px;overflow-wrap:anywhere}.tw{overflow:visible}}
 '''
     search_rows=[]

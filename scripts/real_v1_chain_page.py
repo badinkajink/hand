@@ -44,10 +44,11 @@ def _axes(w, h, pad, xlab, ylab, xt, yt, x2p, y2p, xfmt="{:g}", yfmt="{:g}"):
         x = x2p(t)
         o.append(f'<text class="tick" x="{x:.1f}" y="{h-pad[2]+18}" text-anchor="middle">'
                  f'{xfmt.format(t)}</text>')
+    cap = lambda t: t[0].upper() + t[1:] if t and t[0].islower() and t.split(" ")[0].isalpha() else t  # noqa: E731
     o.append(f'<text class="axlab" x="{(w-pad[1]+pad[3])/2:.0f}" y="{h-4}" '
-             f'text-anchor="middle">{xlab}</text>')
-    o.append(f'<text class="axlab" transform="translate(14,{(h-pad[2]+pad[0])/2:.0f}) rotate(-90)" '
-             f'text-anchor="middle">{ylab}</text>')
+             f'text-anchor="middle">{cap(xlab)}</text>')
+    # the y title sits above the plot, horizontal: a rotated title longer than the plot height was clipped
+    o.append(f'<text class="axlab" x="{pad[3]-8}" y="15" text-anchor="start">{cap(ylab)}</text>')
     o.append("</g>")
     return "".join(o)
 
@@ -55,7 +56,7 @@ def _axes(w, h, pad, xlab, ylab, xt, yt, x2p, y2p, xfmt="{:g}", yfmt="{:g}"):
 def bars(rows, xlab, ylab, ymax=None, colour=A, note=None, w=560, h=250, fmt="{:g}",
          labfmt="{:.0f}", xfmt="{:g}"):
     """One series of labelled bars: (x label, value). Direct labels, no legend needed."""
-    pad = (18, 16, 40, 46)
+    pad = (58, 16, 40, 46)
     ymax = ymax or max(v for _, v in rows) * 1.18
     n = len(rows)
     span = w - pad[1] - pad[3]
@@ -76,7 +77,7 @@ def bars(rows, xlab, ylab, ymax=None, colour=A, note=None, w=560, h=250, fmt="{:
         o.append(f'<text class="tick" x="{xc(i):.1f}" y="{h-pad[2]+18}" text-anchor="middle">'
                  f'{xfmt.format(lab) if not isinstance(lab, str) else lab}</text>')
     if note:
-        o.append(f'<text class="note" x="{w-pad[1]}" y="{pad[0]+6}" text-anchor="end">{note}</text>')
+        o.append(f'<text class="note" x="{w-pad[1]}" y="15" text-anchor="end">{note[0].upper() + note[1:]}</text>')
     o.append("</svg>")
     return "".join(o)
 
@@ -101,7 +102,7 @@ def lines(series, xlab, ylab, xmax, ymax, w=620, h=300, marks=None):
     Labels sit at a chosen point with a vertical offset rather than at the last point: these two
     curves converge at the right-hand end, and terminal labels printed on top of each other.
     """
-    pad = (34, 24, 40, 50)
+    pad = (62, 24, 40, 50)
     def x2p(v):
         return pad[3] + (v / xmax) * (w - pad[1] - pad[3])
     def y2p(v):
@@ -239,18 +240,18 @@ def main() -> int:
     # ---------------------------------------------------------------- descend corrections
     dsc = group(arm(CH, "descend"), ["descend_iters"])
     desc_chart = bars([(f"{k[0]}", rate(v)[0]) for k, v in sorted(dsc.items())],
-                      "measured corrections during the set-down", "chains complete  of 6",
+                      "measured corrections during the set-down", "chains complete, of 6",
                       ymax=6.6, colour=A, fmt="{:g}", w=360, h=230)
     rps = group(arm(CH, "repose"), ["repose_iters"])
     repose_chart = bars([(f"{k[0]}", rate(v)[0]) for k, v in sorted(rps.items())],
-                        "corrections bringing it upright", "chains complete  of 6",
+                        "corrections bringing it upright", "chains complete, of 6",
                         ymax=6.6, colour=B, fmt="{:g}", w=360, h=230)
 
     # ---------------------------------------------------------------- droop cliff
     stf = group(arm(AR, "stiffness"), ["droop_mm"])
     droop_rows = sorted(((k[0], rate(v)[0]) for k, v in stf.items()), reverse=True)
     droop_chart = bars([(f"{d:.2g}" if d < 10 else f"{d:.3g}", k) for d, k in droop_rows],
-                       "palm droop under load  mm", "chains complete  of 6",
+                       "palm droop under load (mm)", "chains complete, of 6",
                        ymax=6.6, colour=B)
 
     # ---------------------------------------------------------------- seat vs plane
@@ -259,28 +260,28 @@ def main() -> int:
                      "", "degrees of shaft per cycle", ymax=58, colour=A, labfmt="{:.1f}", w=330, h=250)
     seat_drift = bars([("flat plane", mean(sw_flat, "drift_mm")),
                        ("45&#176; seat", mean(sw_seat, "drift_mm"))],
-                      "", "lateral walk over 8 cycles  mm", ymax=1.6, colour=B,
+                      "", "lateral walk over 8 cycles (mm)", ymax=1.6, colour=B,
                       labfmt="{:.2f}", fmt="{:g}", w=330, h=250)
 
     # ---------------------------------------------------------------- insertion window
     pr = group(arm(SW, "press"), ["press_mm"])
     press_chart = bars([(f"{k[0]:g}", rate(v)[0]) for k, v in sorted(pr.items())],
-                       "press through the grip  mm", "seated and turned  of 6",
+                       "press through the grip (mm)", "seated and turned, of 6",
                        ymax=6.6, colour=A, w=330, h=250)
     cap = group(arm(SW, "capture"), ["place_err_mm"])
     cap_chart = bars([(f"{k[0][0]:g}", rate(v)[0]) for k, v in sorted(cap.items())],
-                     "lateral error in the target  mm", "seated and turned  of 6",
+                     "Lateral error in the target (mm)", "Seated and turned, of 6",
                      ymax=6.6, colour=B, w=330, h=250)
     rg = group(arm(SW, "regrip"), ["carry_squeeze_mm"])
     regrip_chart = bars([(f"{k[0]:g}", rate(v)[0]) for k, v in sorted(rg.items())],
-                        "re-grip after the turn  mm of extra interference",
-                        "seated and turned  of 6", ymax=6.6, colour=A, w=330, h=250)
+                        "Re-grip interference (mm)",
+                        "Seated and turned, of 6", ymax=6.6, colour=A, w=330, h=250)
     ang = group(arm(SW, "angle"), ["tip_len_mm"])
     ang_lab = {5.77: "60&#176;", 10.0: "45&#176;", 17.32: "30&#176;"}
     ang_rows = sorted(((ang_lab[k[0]], rate(v)[0], mean(v, "gain_mean_deg")) for k, v in ang.items()),
                       key=lambda r: -float(r[0].split("&")[0]))
     ang_ok = bars([(a, k) for a, k, _ in ang_rows], "countersink half-angle",
-                  "seated and turned  of 6", ymax=6.6, colour=B, w=330, h=250)
+                  "seated and turned, of 6", ymax=6.6, colour=B, w=330, h=250)
     ang_turn = bars([(a, t) for a, _, t in ang_rows], "countersink half-angle",
                     "degrees of shaft per cycle", ymax=48, colour=A, labfmt="{:.1f}", w=330, h=250)
 

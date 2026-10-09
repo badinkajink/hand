@@ -127,7 +127,7 @@ def main() -> int:
     c_grip = lines([("turn", [(q, grip[q]["deg"]) for q in sorted(grip)], A, None, 1, -14),
                     ("tilt", [(q, grip[q]["tilt"]) for q in sorted(grip)], B, "5 4", 0, -14)],
                    "commanded interference at the handover grip (mm)",
-                   "deg / cycle  &middot;  final tilt (deg)", 3.2, 34,
+                   "deg / cycle, final tilt (deg)", 3.2, 34,
                    marks=[(0.5, "LOSES IT"), (2.5, "STALLS")])
     lo = sorted({t for _, t in load})
     c_load = lines([("relay", [(t, load[("relay", t)]["k"] / 6 * 100) for t in lo], A, None,

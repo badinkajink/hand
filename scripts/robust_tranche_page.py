@@ -125,16 +125,16 @@ def pipeline_blocks(run_dir, common_flags=()):
     svg = [f'<svg viewBox="0 0 {W} {H}" width="100%" role="img" aria-label="episode timeline" style="max-width:{W}px;font-family:inherit;color:inherit">']
     for a, b, lab, op in phases:
         svg.append(f'<rect x="{x(a):.1f}" y="40" width="{x(b) - x(a):.1f}" height="34" fill="currentColor" fill-opacity="{op}" stroke="currentColor" stroke-opacity=".5" stroke-width="0.6"/>')
-        svg.append(f'<text x="{(x(a) + x(b)) / 2:.1f}" y="61" font-size="11" text-anchor="middle" fill="currentColor">{lab}</text>')
-    svg.append(f'<text x="{x(onset_sim):.1f}" y="30" font-size="10" text-anchor="middle" fill="currentColor">scale changes here</text>')
+        svg.append(f'<text x="{(x(a) + x(b)) / 2:.1f}" y="61" font-size="13" text-anchor="middle" fill="currentColor">{lab}</text>')
+    svg.append(f'<text x="{x(onset_sim):.1f}" y="30" font-size="13" text-anchor="middle" fill="currentColor">scale changes here</text>')
     svg.append(f'<path d="M{x(onset_sim) - 4:.1f},74 l4,8 l4,-8" fill="none" stroke="currentColor" stroke-width="0.8"/>')
     for sim in (0, close, settle, settle + ramp, onset_sim, total_sim):
         svg.append(f'<line x1="{x(sim):.1f}" y1="74" x2="{x(sim):.1f}" y2="82" stroke="currentColor" stroke-opacity=".6" stroke-width="0.8"/>')
-        svg.append(f'<text x="{x(sim):.1f}" y="96" font-size="10" text-anchor="middle" fill="currentColor" fill-opacity=".8">{sim}</text>')
-        svg.append(f'<text x="{x(sim):.1f}" y="112" font-size="10" text-anchor="middle" fill="currentColor" fill-opacity=".8">{sim // dec}</text>')
-        svg.append(f'<text x="{x(sim):.1f}" y="128" font-size="10" text-anchor="middle" fill="currentColor" fill-opacity=".8">{sim * float(env["sim_timestep"]):.2f} s</text>')
+        svg.append(f'<text x="{x(sim):.1f}" y="96" font-size="13" text-anchor="middle" fill="currentColor" fill-opacity=".8">{sim}</text>')
+        svg.append(f'<text x="{x(sim):.1f}" y="112" font-size="13" text-anchor="middle" fill="currentColor" fill-opacity=".8">{sim // dec}</text>')
+        svg.append(f'<text x="{x(sim):.1f}" y="128" font-size="13" text-anchor="middle" fill="currentColor" fill-opacity=".8">{sim * float(env["sim_timestep"]):.2f} s</text>')
     for yy, lab in ((96, "sim step"), (112, "policy step"), (128, "time")):
-        svg.append(f'<text x="{L - 18}" y="{yy}" font-size="10" text-anchor="end" fill="currentColor" fill-opacity=".8">{lab}</text>')
+        svg.append(f'<text x="{L - 18}" y="{yy}" font-size="13" text-anchor="end" fill="currentColor" fill-opacity=".8">{lab}</text>')
     svg.append("</svg>")
     timeline = "".join(svg)
 
