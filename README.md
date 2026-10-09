@@ -9,8 +9,7 @@ m = [x_T, y_T, x_I, y_I, x_M, y_M], driven by stepper gantries. The thumb base s
 the index and middle bases 60 × 60 mm. Nine are manipulation: MCP yaw, MCP pitch and PIP pitch per
 finger, on SCS0009 servos.
 
-The simulator's older generator also treats phalange length as a morphology parameter. The platform
-does not. Hardware morphology is the six gantry coordinates.
+The simulator's older generator also treats phalange length as a morphology parameter. Currently, hardware morphology is limited to six gantry coordinates.
 
 The paper can be found at [`sr2-hand.github.io`](https://sr2-hand.github.io).
 
