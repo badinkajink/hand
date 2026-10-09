@@ -207,7 +207,7 @@ def research_asides():
     body += section(
         "DeliGrasp: physical priors, then analytic translation",
         """
-    <p><strong>Status: speculative backlog note, not an implemented controller or measured result.</strong>
+    <p><strong>Status:</strong> backlog note; nothing here is implemented or measured.
     The proposed connection is to use language/vision for rough physical priors, then use mechanics to obtain
     simulator parameters. The user's assessment was “seems too far fetched but worth cataloguing.”</p>
     <p><a href="https://arxiv.org/abs/2403.07832">DeliGrasp: Inferring Object Properties with LLMs for Adaptive
@@ -221,18 +221,17 @@ def research_asides():
   → estimated COM and full inertia tensor
   → current constraint-space inverse inertia from the simulator
   → analytic contact-parameter translation</pre>
-    <p>The language/vision model would predict physical priors with uncertainty, rather than numerical
+    <p>The language/vision model would predict physical priors with uncertainty, in place of numerical
     <code>solref/solimp</code>. Object mass and inertia belong to the object model; fingertip modulus belongs to
-    the pad model, and friction belongs to the material pair. A semantic object spring constant is not directly
-    a fingertip Young's modulus. Geometry, material distribution and hollow construction all matter to inertia.</p>
+    the pad model, and friction belongs to the material pair. A semantic object spring constant and a fingertip Young's modulus
+    are different quantities. Geometry, material distribution and hollow construction all matter to inertia.</p>
     <p>A possible refinement is <em>semantic prior → grasp/lift probe → mass estimate → small rotational
-    excitation → COM/inertia refinement</em>. The suggested 1–2 s interaction budget is a hypothesis, not an
-    established identification result. Mass, COM and all inertia components may not be observable from one
+    excitation → COM/inertia refinement</em>. The suggested 1–2 s interaction budget is an untested hypothesis. Mass, COM and all inertia components may not be observable from one
     grasp and one rotation; appropriate excitation and sensing would have to be demonstrated.</p>
     <p><a href="https://arxiv.org/abs/2310.09893">Adaptive Contact-Implicit Model Predictive Control with Online
     Residual Learning</a> (Huang, Aydinoglu, Jin and Posa) provides a related prior-plus-online-adaptation
-    pattern: it learns a residual of a hybrid contact model while controlling unknown objects. This is
-    supporting context, not evidence that the proposed semantic-to-inertia pipeline will work.</p>
+    pattern: it learns a residual of a hybrid contact model while controlling unknown objects. It supports the idea
+    without testing the proposed semantic-to-inertia pipeline.</p>
     <p>The measured contact audit supplies the qualification: knowing inertia and restoring coefficients at
     rest does not guarantee independent spring forces during motion. A possible engineering target is an
     <em>inertia-conditioned MuJoCo surrogate</em> with control equivalence over a declared range of masses,
@@ -249,7 +248,7 @@ def research_asides():
     Louis Montaut, Yann de Mont-Marin and Justin Carpentier. It computes products with the Delassus operator
     and its regularized inverse using articulated dynamics, avoiding explicit matrix construction.</p>
     <p>The mathematical connection is direct: the operator is the same J M⁻¹ Jᵀ that the contact audit logs.
-    The proposed benefit is efficient computation and diagnosis of dense-contact coupling, not a different
+    The proposed benefit is efficient computation and inspection of dense-contact coupling under the same
     constitutive law. Efficiently applying an operator does not remove physical off-diagonal coupling or
     make MuJoCo's frictional contact objective equivalent to independent Winkler springs.</p>
     """
@@ -285,7 +284,7 @@ def research_asides():
     scaling benchmark before replacing native MuJoCo routines. The paper's damped-inverse computational
     advantage does not, by itself, solve unilateral contact, Coulomb friction or quadrature fidelity.</p>
     <p>Related earlier work: <a href="https://arxiv.org/abs/2310.03676">PV-OSIMr: A Lowest Order Complexity
-    Algorithm for Computing the Delassus Matrix</a> (Sathya, Decré and Swevers), which explicitly constructs
+    Algorithm for Computing the Delassus Matrix</a> (Sathya, Decré and Swevers), which constructs
     the matrix efficiently for kinematic trees. It is a separate result from the matrix-free paper.</p>
     """,
         "delassus",
@@ -304,7 +303,7 @@ def research_asides():
     Revisit the matrix-free implementation if articulated dense-contact operator construction dominates
     runtime or memory. Neither aside changes the current fingertip material parameters or controller.</p>
     <p><a href="20261004-distributed_contact.html#dynamic">Measured runtime-inertia and controlled-slip results</a>
-    are the prerequisite evidence. The <a href="20261004-articulated_contact_transfer.html">articulated
+    come first. The <a href="20261004-articulated_contact_transfer.html">articulated
     torsion, holding and CPU/GPU follow-up</a> now separates physical stiffness mapping, exact diagonals,
     finite tangential creep and backend cost. Its CPU profile does not construct a dense Delassus matrix
     in the timed loop; matrix-free work is not yet demonstrated as the dominant bottleneck.
@@ -316,9 +315,9 @@ def research_asides():
     (DOC / "20261004-contact_research_asides.html").write_text(
         retro_style.apply(frame(
             "Notes on grasp-force priors, Delassus coupling, TPU skin and a timestep benchmark",
-            "DeliGrasp, the Delassus operator, printed TPU mechanics and a task-level timestep benchmark.",
+            "Research notes kept as a backlog: grasp-force priors predicted by a language and vision model (DeliGrasp), the Delassus operator as a tool for dense-contact coupling, a reduced model of the printed TPU skin, and a task-level timestep benchmark, which has since run (controller timestep page). The 2026-10-06 assessment of differentiable sphere pads is tabled at the end.",
             body,
-            "Backlog · hypotheses, not experimental conclusions · user-provided discussion",
+            "Backlog of hypotheses from a discussion with the owner · no experimental conclusions",
         ))
     )
 
@@ -335,7 +334,7 @@ def differentiable_pads_aside():
     while the set of touching pads does not change, and the pad stiffness enters through solimp d0 = 1 &#8722;
     1/(t<sub>c</sub><sup>2</sup> K (w<sub>tip</sub> + w<sub>tool</sub>)), so the contact force has derivatives with
     respect to the pad positions, the modulus and the relaxation time.</p>
-    <p>Uses, in order of how directly they follow: fitting the pad and plant parameters (E, h, relaxation, &#956;,
+    <p>Uses, from the most immediate: fitting the pad and plant parameters (E, h, relaxation, &#956;,
     servo gain) to bench readbacks or to Drake by gradient descent; optimising the grasp and the tip shape (pad
     centres as a function of fillet radius and block size); and analytic policy gradients for the reorientation.</p>
     <p>Reasons to wait. The plant fit has four parameters and a grid of 504 coarse and 144 fine plants already covers
@@ -365,7 +364,7 @@ def differentiable_pads_aside():
     smooth collision through SoftJax, a scan-based solver loop; updated 2026-07-27), <code>martius-lab/mjx_diffrax</code>
     (Diffrax adaptive integrators for MJX) and <code>a-paulus/softjax</code>. Its README states that sphere&#8211;plane
     and sphere&#8211;sphere collisions are already smooth in MJX, that plane&#8211;cylinder and box collisions are
-    softened, that mesh&#8211;mesh collisions are not supported, and that compiling MJX gradient functions is slow and
+    softened, that mesh&#8211;mesh collisions are unsupported, and that compiling MJX gradient functions is slow and
     slower with adaptive integration.</p>
     <p><strong>First measurement if revisited.</strong> Port the 2026-10-05 contact bed&#8217;s static pinch and twist
     (<code>scripts/contact_bed_newton.py</code> geometry) to the DiffMJX fork with 2&#8202;mm pads (290 per tip),
@@ -397,23 +396,23 @@ def reduced_skin_asides():
     <a href="https://arxiv.org/html/2608.00263v1">Compliant Sphere Lattice Contact (CSLC)</a> already solves
     a quasistatic equilibrium using warm-started damped Jacobi iterations. It has three-dimensional
     displacement, anchor springs and lateral springs. Its presliding friction saturates smoothly;
-    the authors explicitly describe it as tangentially stateless and exclude kinetic sliding dynamics.
-    Thus CSLC is relevant prior art, but does not establish the proposed rolling shear-history model.
-    An explicitly integrated stiff lattice is a possible implementation, not an inherent CSLC requirement.</p>
+    the authors describe it as tangentially stateless and exclude kinetic sliding dynamics.
+    CSLC is relevant prior art; the proposed rolling shear-history model goes beyond it.
+    A stiff lattice integrated explicitly is one possible implementation.</p>
     <p><a href="https://drake.mit.edu/doxygen_cxx/group__hydroelastic__user__guide.html">Drake's hydroelastic
-    guide</a> explicitly excludes true deformation and tangential compliance. Its pressure patch remains
+    guide</a> excludes true deformation and tangential compliance. Its pressure patch remains
     a useful task comparator. Our tested Newton hydroelastic path also needs qualification: contact
     reduction affected the torsional envelope, and its dynamic readiness gate remains unresolved; see
     the <a href="20261004-articulated_contact_transfer.html">articulated report</a> and
-    <a href="20261004-contact_videos.html">native-state videos</a>. This is not a claim about every Newton
-    solver, nor evidence that any simulator is hardware ground truth.</p>
+    <a href="20261004-contact_videos.html">native-state videos</a>. These results concern the Newton path tested here, and no simulator here
+    stands for the hardware.</p>
     """,
         "coupled-skin",
     )
     body += section(
         "A reduced surface law and the solve it still needs",
         """
-    <p><strong>Constitutive sketch, not runnable equations:</strong> a Winkler/Pasternak-like extension
+    <p><strong>Constitutive sketch</strong> (no runnable equations yet): a Winkler/Pasternak-like extension
     adds a surface coupling operator, while a brush-like shear state stores preslip displacement.
     In a locally planar basis, one candidate elastic energy and trial resistance are:</p>
     <pre>Hₙ = Kₙ + αₙ Lₙ                  Hₜ = Kₜ + αₜ Lₜ
@@ -433,17 +432,17 @@ fₙ ≥ 0                            ‖fₜ,ᵢ‖ ≤ μᵢ fₙ,ᵢ</pre>
     approximation is a separate modeling choice to validate for creep and energy dissipation.</p>
     <p>The <a href="https://arxiv.org/abs/2601.06811">rolling-contact brush-model literature</a> motivates
     carrying distributed shear through a moving patch. Applying that idea to a printed fingertip is
-    a research extension, not a demonstrated equivalence to a tire or to calibrated TPU mechanics.</p>
+    a research extension, untested against a tire or calibrated TPU mechanics.</p>
     <p><strong>Proposed computational route:</strong> eliminate fast elastic inertia by an implicit or
     quasistatic skin solve, while retaining object dynamics, patch migration and the shear/viscoelastic
     history that affects control. The supplied 5–50 kHz cell-mode range is an unverified illustration,
     not a measured property of our print. Fixed topology can permit reuse of the linear elastic
     operator; changing active contacts and friction still require a state-dependent solve. Sparse GPU
-    iterations and a modal basis δ ≈ Φz with 10–30 modes are candidates, not established speedups.</p>
-    <p>Implicit stability does not establish accuracy at 10–20 ms. A skin solve followed by a lagged force
+    iterations and a modal basis δ ≈ Φz with 10–30 modes are candidate speedups, unmeasured.</p>
+    <p>Implicit stability at 10–20 ms leaves the accuracy open. A skin solve followed by a lagged force
     applied to rigid-body dynamics can itself be unstable; joint solving, coupling iterations or another
-    justified interface treatment must be evaluated. Subcycling only the skin is not sufficient evidence
-    of stable hand–object coupling. Benchmark convergence, energy behavior and wall time together.</p>
+    justified interface treatment must be evaluated. Subcycling only the skin does not by itself
+    show stable hand–object coupling. Benchmark convergence, energy behavior and wall time together.</p>
     """,
         "skin-solve",
     )
@@ -459,7 +458,7 @@ fₙ ≥ 0                            ‖fₜ,ᵢ‖ ≤ μᵢ fₙ,ᵢ</pre>
     rate dependence and hysteresis. Calibrated cell-scale FEM can supplement hardware measurements.
     Extract normal/tangential stiffness, spatial coupling and damping/friction laws, with uncertainty,
     and reserve different loads, speeds and contact paths for validation.</p>
-    <p>The suggested decay u(r) ∼ exp(−r/ℓ) is a fitting hypothesis, not a universal elastic Green's
+    <p>The suggested decay u(r) ∼ exp(−r/ℓ) is a fitting hypothesis, narrower than an elastic Green's
     function. Likewise ℓ/r<sub>patch</sub> is a useful heuristic: short influence lengths motivate local
     foundations, patch-sized influence motivates coupled surfaces, and broad influence motivates global
     modes. Neither proves a particular reduction adequate. Compare measured influence and task errors
@@ -478,19 +477,19 @@ fₙ ≥ 0                            ‖fₜ,ᵢ‖ ≤ μᵢ fₙ,ᵢ</pre>
     <p><strong>Status: nominal sweep launched after this note was catalogued.</strong>
     The <a href="20261004-controller_timestep.html">live report</a> tracks 42 cases, videos and failures;
     broader perturbations and high-rate wrench convergence remain future work. Use the existing Sunyu Wang-inspired rolling task
-    with a fixed 20 ms controller (50 Hz), and sweep the internal step as requested. This is our existing
-    task adaptation, not a claim to reproduce the paper's exact apparatus or controller.</p>
+    with a fixed 20 ms controller (50 Hz), and sweep the internal step as requested. This is our own
+    task adaptation of the paper's protocol, with a different apparatus and controller.</p>
     """
         + table(
             ["Physics step", "Physics advances per 20 ms controller interval"],
             [["50 µs", 400], ["0.5 ms", 40], ["1 ms", 20], ["2 ms", 10], ["5 ms", 4], ["10 ms", 2]],
         )
         + """
-    <p><strong>Existing evidence changes the starting point:</strong> the
+    <p><strong>Starting point from earlier results:</strong> the
     <a href="20261004-task_contact_benchmark.html">task report</a> already tests 100/500 Hz control,
     with legacy 1 mm MuJoCo spheres working at a 1 ms physics step on the nominal task. At 500 Hz,
     tool-axis rolling gain was 0.601 for legacy MuJoCo versus 0.571 for Drake, with sliding-speed RMS
-    0.047 versus 0.046 mm/s. These are nominal runs, not robustness or hardware validation.
+    0.047 versus 0.046 mm/s. These are nominal runs without perturbation or hardware.
     The physical stiffness mapping is a separate variant with poorer task results. The
     <a href="data/task_chain_results.json">existing task record</a> and
     <a href="data/task_diagexact_results.json">MuJoCo 3.14 diagexact ablation</a> do not contain the
@@ -508,15 +507,15 @@ fₙ ≥ 0                            ‖fₜ,ᵢ‖ ≤ μᵢ fₙ,ᵢ</pre>
         )
         + """
     <p>The supplied hierarchy is preserved in the source archive. Its optimistic reduced-skin timing
-    and pessimistic native-sphere timing are predictions, not measured rankings. The requested sweep
+    and pessimistic native-sphere timing are predictions to be measured. The requested sweep
     stops at 10 ms physics; a direct 20 ms step would be a separately declared extension.</p>
     <ol>
     <li><strong>Hold the task fixed.</strong> Use the same geometry, mass/inertia, initial state, command
     trajectory, friction target, grip strategy and actuator limits. Hold control between 20 ms updates;
     do not retune gains per timestep in the primary comparison. Keep sphere resolution fixed in this
-    sweep; later resolution trials preserve area, pad stiffness and normal load rather than adding
-    unnormalized friction capacity. Retain the full pickup/rolling trial; any common-preload-state
-    diagnostic must be separately labeled.</li>
+    sweep; later resolution trials preserve area, pad stiffness and normal load, so that no unnormalized friction
+    capacity is added. Retain the full pickup/rolling trial; any check started from a common
+    preload state is labelled separately.</li>
     <li><strong>Separate model choices.</strong> Compare legacy spheres, fixed physical mapping and runtime
     mapping as distinct variants, with diagexact off/on under the same current MuJoCo version where
     supported. Compare Drake hydroelastic at the same controller period and steps. Record engine version,
@@ -533,7 +532,7 @@ fₙ ≥ 0                            ‖fₜ,ᵢ‖ ≤ μᵢ fₙ,ᵢ</pre>
     success. Aggregate wrench consistently over controller intervals. Compare each backend with its own
     converged finer-step reference, then compare backends; Drake agreement alone is not physical truth.
     Declare task-error tolerances and success criteria before running, then perturb preload, mass,
-    command speed and contact phase to test robustness. Local force-law error stays diagnostic.</li>
+    command speed and contact phase to test robustness. Local force-law error is reported beside the task outcome.</li>
     <li><strong>Measure cost and show motion.</strong> Report physics wall time per simulated second,
     median/p95 controller-interval cost and MPC rollout throughput; separate initialization, compilation
     and rendering. Report GPU batch size and steady-state throughput separately. Save synchronized
@@ -623,7 +622,7 @@ def hardware_tip_asides():
     <p><strong>Our numbers.</strong> The hydroelastic law that the 1 mm pads reproduce gives a torsion arm
     per pad r̄ = {RIG_ARM_MM:.3f} mm (N / 1 N)<sup>1/4</sup> on the real_v1 fingertip
     (<a href="../20261001-hom_contact_patch/20261001-hom_pinch_contact_models.html">pinch-torque rig</a>,
-    E = 10 MPa, Drake's default rather than a measured TPU modulus). The pressure is paraboloidal, so the
+    E = 10 MPa, Drake's default in place of a measured TPU modulus). The pressure is paraboloidal, so the
     contact radius is a = (15/8) r̄. The rig recorded 9–22 spheres in contact per pad.</p>
     """
         + table(
@@ -633,7 +632,7 @@ def hardware_tip_asides():
         + f"""
     <p><strong>Where the sphere pads sit.</strong> Each pad sphere is a Winkler element. At rest its MuJoCo
     contact is an independent spring, K = 1 / (t<sub>c</sub>²(1 − d<sub>0</sub>) diagApprox), and the
-    per-sphere friction cones give distributed Coulomb slip, so the patch carries the torsion that a point
+    per-sphere friction cones give distributed Coulomb slip, so the patch transmits the torsion that a point
     contact lacks (point contact gives zero torque in both simulators on the rig). Indenting one sphere
     does not load its neighbours, so the pads have no lateral coupling; the coupling the audit measures in
     motion runs through the Delassus operator, which is rigid-body inertia and not material. The pads also
@@ -668,7 +667,7 @@ def hardware_tip_asides():
     <a href="data/flexcomp_skin_probe.json">JSON</a>) pressed an ellipsoid skin of the fingertip's
     10.55 mm radius onto a box at {probe["meta"]["press_N"]:g} N with a {probe["meta"]["timestep_s"] * 1e3:g} ms
     step, slider stiffness E/R times each vertex's area share, and wall time taken over
-    {probe["meta"]["timed_steps"]} steps after a {probe["meta"]["settle_steps"]}-step settle on one core.</p>
+    {probe["meta"]["timed_steps"]} steps after a {probe["meta"]["settle_steps"]}-step rest on one core.</p>
     """
         + table(["Case", "Integrator", "Vertices", "nv", "µs / step", "End state or compile error"], probe_rows)
         + f"""
@@ -696,15 +695,15 @@ def hardware_tip_asides():
     radial DOFs on the jointed tip body or on a jointless mount body. The remaining native option is a
     passive-force callback (<code>mjcb_passive</code>) that applies K<sub>ℓ</sub>L to the slider
     coordinates; its stability at 1 ms would need its own test. A skin at the pads' 1 mm spacing also
-    needs a cap mesh over the 35° pad, about {cap_sites:.0f} vertices, rather than the whole sphere, which
+    needs a cap mesh over the 35° pad, about {cap_sites:.0f} vertices, instead of the whole sphere, which
     the two ellipsoids above sample at about {pitch("radial")} and {pitch("radial, 11-grid")} mm.</p>
     <p><strong>Measurements that decide it on the printed tip.</strong> Indent one site with a probe much
     smaller than a (0.5 mm tip) at 0.5, 1 and 3 N and record the displacement u(r) of the surrounding
     surface, by DIC on a speckled tip or by a second probe stepped outward. Fit u(r) ∼ exp(−r/ℓ) and
     compare ℓ with a = {a_lo:.1f}–{a_hi:.1f} mm. Repeat at two indentation rates for hysteresis, and once
     over a lattice wall and once over a void: a gyroid period comparable to the {2 * a_lo:.1f}–{2 * a_hi:.1f} mm
-    patch diameter would make the law depend on where the patch lands, and no homogenized surface model
-    would hold. A torsion sweep on the pinch rig over 0.5–3 N measures the task quantity directly. The arm
+    patch diameter would make the law depend on where the patch falls, and no homogenized surface model
+    would hold. A torsion sweep on the pinch rig over 0.5–3 N measures the task quantity. The arm
     r̄ grows by 6<sup>1/4</sup> = {6 ** 0.25:.2f} over that range under a Winkler-type law and by
     6<sup>1/3</sup> = {6 ** (1 / 3):.2f} under a Hertzian half-space, where the whole surface is coupled.
     A shear test at fixed normal load gives k<sub>t</sub> and the pre-slip displacement before gross slip.</p>
