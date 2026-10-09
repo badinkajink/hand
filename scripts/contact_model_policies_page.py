@@ -61,6 +61,7 @@ EXTRA_CSS = """
 figure.films{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 figure.films video,figure.films img{width:100%;border-radius:8px}
 figure.films figcaption{grid-column:1/-1}
+figure.sheet img{width:100%;border-radius:6px}
 @media (max-width:640px){figure.films{grid-template-columns:1fr}}
 """
 
@@ -104,6 +105,9 @@ class Data:
             self.wall.setdefault(r["tag"], {})[r["iteration"]] = r.get("wall_time")
         p = os.path.join(D, "films.json")
         self.films = json.load(open(p)) if os.path.exists(p) else []
+        self.watch = last_by(rows("watch.jsonl"), ("tag", "iteration"))
+        self.verdict = {(r["tag"], r["iteration"]): r for r in last_by(rows("watch_verdicts.jsonl"), ("tag", "iteration"))}
+        self.stops = {r["tag"]: r for r in rows("stops.jsonl")}
 
     def finals(self, arm):
         return sorted((r for r in self.fin if r["arm"] == arm), key=lambda r: r["seed"])
@@ -362,6 +366,142 @@ def svg_transfer(X: Data):
     return "".join(out)
 
 
+WATCH_SIG = [("ang_jerk_hold_median", "tool angular jerk in the hold (1/s&#178;)", (1, 1000), (1, 10, 100, 1000), True, 1.0),
+             ("dact_held", "|&#916;a| per policy step (action units)", (0, 0.8), (0, 0.2, 0.4, 0.6, 0.8), False, 1.0),
+             ("ctrl_sat_frac", "servo targets at a range limit (%)", (0, 30), (0, 10, 20, 30), False, 100.0),
+             ("share_min", "smallest finger share of the grip (%)", (0, 34), (0, 10, 20, 30), False, 100.0)]
+
+
+def _watch_series(X: Data, arm, key, scale):
+    by_it = {}
+    for r in X.watch:
+        if r["arm"] != arm or r.get(key) is None:
+            continue
+        by_it.setdefault(r["iteration"], []).append(r[key] * scale)
+    xs = [(it + 1) * STEPS_PER_IT / 1e6 for it in sorted(by_it)]
+    vals = [by_it[it] for it in sorted(by_it)]
+    return xs, [float(np.median(v)) for v in vals], [min(v) for v in vals], [max(v) for v in vals], [len(v) for v in vals]
+
+
+def svg_watch(X: Data):
+    if not X.watch:
+        return P.pending("Checkpoint watch rows not written yet (watch.jsonl).")
+    W, H = 990, 600
+    out = P._svg_open(W, H, "Checkpoint watch signals per contact model against environment steps: the tool's angular "
+                            "jerk in the hold, the action change per policy step, the servo targets at a range limit and "
+                            "the smallest finger's share of the grip force")
+    for k, (key, lab, ys, yt, logy, scale) in enumerate(WATCH_SIG):
+        x0, y0 = (70, 570)[k % 2], (40, 330)[k // 2]
+        if logy:
+            fx, fy = P._panel(out, x0, y0, 360, 200, (0, 41), ys, (0, 10, 20, 30, 40), yt,
+                              "environment steps (millions)", lab, logy=True, yfmt="{:g}")
+            out.append(f'<line x1="{x0}" x2="{x0 + 360}" y1="{fy(40):.1f}" y2="{fy(40):.1f}" style="stroke:var(--ink3);'
+                       f'stroke-dasharray:2 4"/><text x="{x0 + 362}" y="{fy(40) + 4:.1f}" style="fill:var(--ink3)">40</text>')
+        else:
+            fx, fy = P._panel(out, x0, y0, 360, 200, (0, 41), ys, (0, 10, 20, 30, 40), yt,
+                              "environment steps (millions)", lab, yfmt="{:g}")
+        clamp = (lambda v: min(max(v, ys[0]), ys[1])) if not logy else (lambda v: min(max(v, ys[0]), ys[1]))
+        for arm in ARMS:
+            xs, med, lo, hi, n = _watch_series(X, arm, key, scale)
+            if not xs:
+                continue
+            med, lo, hi = [clamp(v) for v in med], [clamp(v) for v in lo], [clamp(v) for v in hi]
+            _band(out, fx, fy, xs, lo, hi, COL[arm])
+            _gap_path(out, fx, fy, xs, med, COL[arm], dashed=(arm == "box"))
+            for x, m, c in zip(xs, med, n):
+                P._marker(out, fx(x), fy(m), COL[arm], r=3.0,
+                          title=f"{SHORT[arm]}: {m:.3g} (median of {c} seed{'s' if c > 1 else ''})")
+    out.append("</svg>")
+    return "".join(out)
+
+
+def stop_outcome(X: Data, tag):
+    """(iteration, reason) of the first watched checkpoint at which the stop rule fired, or None."""
+    rs = sorted((r for r in X.watch if r["tag"] == tag), key=lambda r: r["iteration"])
+    for r in rs:
+        if r.get("stop_rule"):
+            return r["iteration"], r.get("stop_reason", "")
+    return None
+
+
+def stops_table(X: Data):
+    if not X.watch:
+        return ""
+    head = ["run", "evaluated to", "held at the last watch", "stop rule fired at", "reason", "outcome"]
+    body = []
+    tags = sorted({r["tag"] for r in X.watch}, key=lambda t: (t[-1], ARMS.index(tag_arm(t)) if tag_arm(t) else 9))
+    for tag in tags:
+        rs = sorted((r for r in X.watch if r["tag"] == tag), key=lambda r: r["iteration"])
+        last = rs[-1]
+        so = stop_outcome(X, tag)
+        st = X.stops.get(tag)
+        if st:
+            outcome = f"stopped at {(st['iteration'] + 1) * STEPS_PER_IT / 1e6:.1f}&#8202;M"
+        elif last["iteration"] >= 812:
+            outcome = "trained to 40&#8202;M" + (" (watched after the run)" if tag.endswith("_s0") else "")
+        else:
+            outcome = "training"
+        body.append([f"{swatch(tag_arm(tag))}{SHORT[tag_arm(tag)]} s{tag[-1]}",
+                     f"{(last['iteration'] + 1) * STEPS_PER_IT / 1e6:.1f}&#8202;M",
+                     f"{last['n_held']}/64" + (f", cos {last['held_cos_mean']:.2f}" if last.get("held_cos_mean") is not None else ""),
+                     f"{(so[0] + 1) * STEPS_PER_IT / 1e6:.1f}&#8202;M" if so else "&#8211;",
+                     so[1].replace("1/s^2", "1/s&#178;").replace("->", "&#8594;") if so else "&#8211;", outcome])
+    cap = ("The owner&#8217;s stopping rule applied at every watched checkpoint (4.0&#8202;M steps apart): stop when every "
+           "checkpoint of the last 10&#8202;M steps is degenerate, or when the held cosine gained under 0.02 (and the held "
+           "count under 8 of 64) over 10&#8202;M steps; the films decide. The seed-0 runs finished before the watch existed "
+           "and were watched afterwards.")
+    return table(head, body, cap, text_cols=(0, 4, 5))
+
+
+SHEET_ITS = (82, 164, 328, 574, 812)
+
+
+def watch_sheet(tag, its=SHEET_ITS):
+    """The median rollout's strip at the checkpoints `its`, halved and stacked, as a JPEG data URI."""
+    from io import BytesIO
+    import base64
+    from PIL import Image
+    ims = []
+    for it in its:
+        p = os.path.join(D, "watch", tag, f"it{it:04d}_strip.jpg")
+        if not os.path.exists(p):
+            continue
+        im = Image.open(p)
+        w, h = im.size
+        ims.append(im.crop((0, 0, w, h // 2)).resize((w // 2, h // 4)))
+    if not ims:
+        return ""
+    sheet = Image.new("RGB", (ims[0].size[0], sum(i.size[1] for i in ims)), "white")
+    y = 0
+    for im in ims:
+        sheet.paste(im, (0, y))
+        y += im.size[1]
+    buf = BytesIO()
+    sheet.save(buf, "JPEG", quality=84)
+    return (f'<img src="data:image/jpeg;base64,{base64.b64encode(buf.getvalue()).decode()}" '
+            f'alt="checkpoint strips of {tag}">')
+
+
+def watch_sheets(X: Data):
+    out = []
+    for arm in ARMS:
+        tags = sorted({r["tag"] for r in X.watch if r["arm"] == arm})
+        if not tags:
+            continue
+        tag = tags[0]
+        im = watch_sheet(tag)
+        if not im:
+            continue
+        FIG[0] += 1
+        notes = [X.verdict.get((tag, it)) for it in SHEET_ITS]
+        seen = " ".join(f"{(it + 1) * STEPS_PER_IT / 1e6:.0f}&#8202;M: {v['seen']}." for it, v in zip(SHEET_ITS, notes) if v)
+        out.append(f'<figure class="sheet">{im}<figcaption>Figure&#160;{FIG[0]}. {LBL[arm]}, seed {tag[-1]}: the median '
+                   f'rollout of the 64 at the checkpoints of 4, 8, 16, 28 and 40&#8202;M steps (rows), at policy steps 21, '
+                   f'58, 91, 131, 181 and 250 (columns). {seen} Every watched checkpoint&#8217;s strip and film: '
+                   f'<code>docs/experiments/20261008-contact_model_policies/watch/{tag}/</code>.</figcaption></figure>')
+    return "".join(out)
+
+
 PERT = [("friction", "sliding friction, x nominal", (0.7, 1.0, 1.3)), ("mass", "tool mass, x nominal", (0.8, 1.0, 1.2)),
         ("kp", "finger servo kp (N m/rad)", (2.0, 4.0, 6.0, 10.0)), ("dt", "physics step (ms)", (1.0, 2.0)),
         ("noise", "grasp-pose noise (mm, deg)", (0.0, 1.0))]
@@ -561,7 +701,14 @@ def curves_section(X: Data):
            "one: rollouts held at 5&#8202;s (top) and their mean final cosine (bottom), against env steps (left) and "
            "training wall-clock time (right). Line: median of the seeds; band: their range. A gap in the bottom row is an "
            "evaluation in which no rollout held.")
-    return figure(svg, cap, legend()) + curves_text(X)
+    out = figure(svg, cap, legend()) + curves_text(X)
+    wcap = ("Signals of the checkpoint watch at the same checkpoints: the tool&#8217;s angular jerk over the hold after the "
+            "turn (policy steps 150&#8211;250; dashed line: trajectory_health&#8217;s jitter limit), the mean action change "
+            "per policy step over the held steps, the share of finger servo targets at their actuator&#8217;s range limit, "
+            "and the smallest of the three fingers&#8217; shares of the grip force. Medians over held rollouts; line and "
+            "band as above.")
+    out += figure(svg_watch(X), wcap, legend()) + stops_table(X) + watch_sheets(X)
+    return out
 
 
 def curves_text(X: Data):

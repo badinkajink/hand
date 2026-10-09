@@ -318,9 +318,11 @@ class Evaluator:
         m = self.mjm
         m.vis.global_.offwidth, m.vis.global_.offheight = max(width, 640), max(height, 480)
         d = mujoco.MjData(m)
-        if not hasattr(self, "_renderer") or self._renderer[0] != (width, height):
-            self._renderer = ((width, height), mujoco.Renderer(m, height, width))
-        rr = self._renderer[1]
+        if not hasattr(self, "_renderers"):
+            self._renderers = {}
+        if (width, height) not in self._renderers:          # one renderer (GL context) per frame size
+            self._renderers[(width, height)] = mujoco.Renderer(m, height, width)
+        rr = self._renderers[(width, height)]
         cam = mujoco.MjvCamera()
         cam.type = mujoco.mjtCamera.mjCAMERA_FREE
         cam.distance, cam.elevation, cam.azimuth = 0.24, -6.0, 0.0
@@ -449,11 +451,18 @@ def watch_metrics(r: dict, ev: "Evaluator") -> dict:
     idle = ((touch < 0.5) | (fmean < 1.0)) & hr[:, None]                      # (N, 3)
     dw = np.abs(np.diff(r["angv"][a0:], axis=0)) * 50.0
     jerk = np.array([dw[act[1:, e], e].mean() if act[1:, e].sum() > 2 else np.nan for e in range(act.shape[1])])
+    h0 = max(150 - a0, 1)                       # the hold after the turn: steps 150-249 (2 s), where the tool should rest
+    jerk_h = np.array([dw[h0:][act[h0 + 1:, e], e].mean() if act[h0 + 1:, e].sum() > 2 else np.nan
+                       for e in range(act.shape[1])])
+    spin_h = np.array([np.median(r["angv"][150:, e][held_t[150:, e]]) if held_t[150:, e].sum() > 2 else np.nan
+                       for e in range(act.shape[1])])
     pinned = sat.mean(0)                                                      # (N, 9) fraction of steps at a limit
     return dict(
         idle_rollouts={f: int(idle[:, k].sum()) for k, f in enumerate(FINGERS)},
         touch_frac_median=[float(np.median(touch[hr, k])) if hr.any() else None for k in range(3)],
         ang_jerk_median=float(np.nanmedian(jerk)) if np.isfinite(jerk).any() else None,
+        ang_jerk_hold_median=float(np.nanmedian(jerk_h)) if np.isfinite(jerk_h).any() else None,
+        ang_speed_hold_median=float(np.nanmedian(spin_h)) if np.isfinite(spin_h).any() else None,
         joints_pinned90=[n for n, v in zip(jn, (pinned > 0.9).mean(0)) if v > 0.5],
         resid_over_frac=float((absa >= 1.0).mean()),
         resid_over_frac_held=float((absa >= 1.0)[act].mean()) if act.any() else None,
@@ -475,7 +484,8 @@ def degenerate_flags(row: dict) -> list[str]:
     """The owner's degeneracy list (2026-10-08 21:50) as thresholds on one checkpoint's row; the films decide. Drops
     every rollout: no rollout held at 5 s. Idle finger: trajectory_health's test (touching under half the held steps or
     under 1 N mean) in more than half the held rollouts, or a finger with under 5 % of the grip force. Jitter:
-    trajectory_health's FAIL, the tool's angular jerk above 40 1/s^2 (median over held rollouts). Saturated: three or
+    trajectory_health's FAIL, the tool's angular jerk above 40 1/s^2 over the hold after the turn (steps 150-249; median
+    over held rollouts; the turn itself accelerates the tool and is excluded). Saturated: three or
     more of the nine servo targets at their range limit for 90 % of the active steps in most rollouts, i.e. the policy
     commands a third of the hand bang-bang. Palm: the tool on the palm plate in more than half the held steps."""
     out = []
@@ -487,8 +497,9 @@ def degenerate_flags(row: dict) -> list[str]:
         idle.append(FINGERS[[row["share_thumb"], row["share_index"], row["share_middle"]].index(row["share_min"])])
     if idle:
         out.append(f"idle finger ({', '.join(sorted(set(idle)))})")
-    if row.get("ang_jerk_median") is not None and row["ang_jerk_median"] > 40.0:
-        out.append(f"jitter (tool jerk {row['ang_jerk_median']:.0f} 1/s^2)")
+    jh = row.get("ang_jerk_hold_median", row.get("ang_jerk_median"))
+    if jh is not None and jh > 40.0:
+        out.append(f"jitter (tool jerk {jh:.0f} 1/s^2 in the hold)")
     if len(row.get("joints_pinned90") or []) >= 3:
         out.append(f"saturated ({', '.join(row['joints_pinned90'])})")
     if row.get("palm_contact_frac") is not None and row["palm_contact_frac"] > 0.5:
@@ -585,6 +596,11 @@ def cmd_watch(args):
             append(OUT8 / "ckpt_eval.jsonl", dict(row, wall_s=round(time.perf_counter() - t0, 1),
                                                   when=time.strftime("%Y-%m-%d %H:%M")))
         row.update(watch_metrics(r, ev))
+        tdir = ROOT / "logs/20261008-contact_model_policies/watch_traces"
+        tdir.mkdir(parents=True, exist_ok=True)
+        np.savez_compressed(tdir / f"{tag}_it{it:04d}.npz", **{k: r[k].astype(np.float16) for k in
+                            ("cos", "z", "force", "found", "acts", "ctrl", "angv")}, palm=r["palm"],
+                            ctrl_lo=ev.ctrl_lo, ctrl_hi=ev.ctrl_hi, residual_from=ev.residual_from)
         fc = r["cos"][-1]
         held = np.array(row["held_final"])
         if held.any():
@@ -604,8 +620,14 @@ def cmd_watch(args):
         for w, name in ((med, "median"), (worst, "worst")):
             fr = ev.render_world(r, w, WATCH_STEPS, 320, 240, lines(w, name))
             rows_img.append(np.concatenate(fr, axis=1))
+        # consecutive policy steps of the hold (20 ms apart) of both rollouts: frame-to-frame wobble is jitter
+        for w, name in ((med, "median"), (worst, "worst")):
+            fr = ev.render_world(r, w, range(190, 198), 240, 180,
+                                 lambda k, w=w, name=name: [f"{name} {w} step {k + 1}", f"cos {r['cos'][k, w]:+.3f}"])
+            rows_img.append(np.concatenate(fr, axis=1))
         strip = mdir / f"it{it:04d}_strip.jpg"
-        Image.fromarray(np.concatenate(rows_img, axis=0)).save(strip, quality=88)
+        Image.fromarray(np.concatenate(rows_img[:2], axis=0)).save(strip, quality=88)
+        Image.fromarray(np.concatenate(rows_img[2:], axis=0)).save(mdir / f"it{it:04d}_hold.jpg", quality=88)
         film = mdir / f"it{it:04d}_median.mp4"
         frames = ev.render_world(r, med, range(0, args.steps, 2), 480, 360, lines(med, "median"))
         wr = imageio.get_writer(str(film), fps=25, codec="libx264", quality=None, pixelformat="yuv420p",
