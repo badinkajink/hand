@@ -2,6 +2,9 @@
 
 Standing guidance for this repo is `CLAUDE.md`; read it first (hardware, compute safety, result pages, naming).
 
+Large files: media, data rows and detailed result pages under `docs/` are Git LFS files (`.gitattributes`); overview
+pages marked `!filter` there stay ordinary files. History before 2026-10-09 is in `badinkajink/hand-archive`.
+
 ## Writing
 
 The canonical rules are the **Writing** section of `~/.claude/CLAUDE.md`; this is a condensed copy, and the global

@@ -15,3 +15,5 @@ docs/**/*.json filter=lfs diff=lfs merge=lfs -text
 docs/experiments/**/*.html filter=lfs diff=lfs merge=lfs -text
 docs/experiments/20260906-turn_elev/ur5 filter=lfs diff=lfs merge=lfs -text
 docs/experiments/20261009-contact_overview/20261009-sphere_pad_contact_model.html !text -filter -merge -diff
+# overview pages stay ordinary git files (owner, 2026-10-09)
+docs/experiments/20261009-contact_overview/20261009-sphere_pad_contact_model.html !filter !diff !merge !text

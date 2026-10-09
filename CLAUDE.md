@@ -24,6 +24,12 @@ and **RL manipulation** (lift → in-hand reorient of a flat screwdriver to vert
   **resumable** (per-item checkpoint), and watch for completion with a `run_in_background` waiter
   that matches the worker via `pgrep -f "[p]ython3 …"` (bracket-trick avoids self-match; don't rely
   on a captured PID — the launcher forks transient PIDs).
+- **Git LFS (2026-10-09).** Media, data rows (json, jsonl, csv, npz) and detailed result pages under `docs/` are
+  LFS files by the patterns in `.gitattributes`; commit them as usual and git-lfs stores them. Overview pages listed
+  with `!filter` in `.gitattributes` stay ordinary files. `.lfsconfig` makes fresh clones skip LFS content; this
+  workstation's clone has `lfs.fetchexclude` cleared in `.git/config`. History before the 2026-10-09 rewrite (commit
+  hashes cited in older pages and notes, the tracked `results/` runs, retired branches) is in
+  `badinkajink/hand-archive` and `~/backups/hand-20261009-full.bundle`.
 
 ## Hardware — two hosts, and which one owns what
 
@@ -34,7 +40,8 @@ and **RL manipulation** (lift → in-hand reorient of a flat screwdriver to vert
 | repo | `/home/humanoid/Programs/hand`, current | `/home/irlab/hand`, **stale HEAD + uncommitted driver edits** |
 
 **Never rsync the repo onto the CB1** — its working copy is ahead of its own HEAD and those
-edits are the running driver. Ship individual files.
+edits are the running driver. Ship individual files. Its history also predates the 2026-10-09 rewrite of
+`main`: never pull or fetch there.
 
 **SSH is `irlab@10.99.99.2`** (not `humanoid`). A key is installed as of 2026-09-02; the
 password fallback is `MANTA_IRLAB_PW` in the gitignored `.dotenv`, which the user wants used.

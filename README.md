@@ -14,6 +14,28 @@ does not. Hardware morphology is the six gantry coordinates.
 
 The paper can be found at [`sr2-hand.github.io`](https://sr2-hand.github.io).
 
+## Cloning and large files
+
+Code, models, paper sources and the overview pages are ordinary git files. Result pages, figures, videos and
+data rows under `docs/` are stored with Git LFS, and a plain clone (about 30 MB) leaves them as small pointer
+files:
+
+```bash
+git clone git@github.com:badinkajink/hand.git
+```
+
+Fetch them with Git LFS, one result folder or all of them (about 1.3 GB):
+
+```bash
+git lfs install
+git -c lfs.fetchexclude= lfs pull --include="docs/experiments/20261008-hand_object_scale/**"
+git -c lfs.fetchexclude= lfs pull
+```
+
+`git config lfs.fetchexclude ""` makes every later pull fetch them. History before 2026-10-09, including the
+tracked `results/` runs and the retired experiment branches, is in the private repository
+`badinkajink/hand-archive`.
+
 ---
 
 ## Controllers
@@ -241,7 +263,7 @@ src/morphohand/
                         only place the servo-travel gate is enforced
 tests/                  pytest suite
 webpaper/               Typst -> HTML project site
-results/                run outputs (gitignored except REGISTRY.md and summaries)
+results/                run outputs (gitignored; runs tracked before 2026-10-09 are in hand-archive)
 logs/                   run logs, sentinels, pids (gitignored)
 ```
 
