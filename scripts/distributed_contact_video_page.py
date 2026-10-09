@@ -211,12 +211,12 @@ def summary_section():
     if not path.exists():
         return ""
     rows = json.loads(path.read_text())
-    body = '<p>Watch synchronized overview comparisons and the full contact close-ups in the <a href="20261004-contact_videos.html">video gallery</a>. The gallery includes retained grasps, slip, release, preload failures and explicitly static snapshots.</p>'
+    body = '<p>Watch synchronized overview comparisons and the full contact close-ups in the <a href="20261004-contact_videos.html">video gallery</a>. The gallery shows retained grasps, slip, release, preload failures and the static snapshots.</p>'
     for key in ("compare-resolution", "compare-payload", "compare-creep"):
         cell = next(r for r in rows if r["video_id"] == key)
         body += movie(cell)
-    body += """<p><strong>Video rerun finding:</strong> the previously completed Newton unreduced translated case now fails during preload, both with and without the optional recorder. Its earlier completed summary remains historical evidence, but its successful dynamic transfer is not reproduced. The gallery shows the observed failure; the static Newton pressure tests remain a separate result.</p>"""
-    return section("Watch the actual trajectories", body, "videos")
+    body += """<p>Rerun for the films, the Newton unreduced translated case, which had completed before, fails during preload with and without the recorder, so its earlier dynamic transfer is not reproduced. The gallery shows the observed failure; the static Newton pressure tests remain a separate result.</p>"""
+    return section("Films of the trajectories", body, "videos")
 
 
 def main():

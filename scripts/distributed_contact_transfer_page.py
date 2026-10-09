@@ -127,15 +127,15 @@ def main():
     167.529 kN/m per cap. Each kᵢ decreases with sample count. The surface is sampled more finely without
     assigning each extra bump another full-strength spring. Only active samples carry force.</p>
     <p>Sliding friction is µ = 1, condim = 3, with no point torsional or rolling friction.
-    Nominal servo targets request 2 N per pad and settle at about 1.9465 N each. The targets are shared
+    Nominal servo targets request 2 N per pad and reach about 1.9465 N each. The targets are shared
     across backends. Geometry, pressure distribution and measured normal load are compared alongside torque.</p>
     <p>The torsion runs have zero gravity and a shared weak translational guide (20 N/m, 0.05 N·s/m)
-    and rotational damper (0.00002 N·m·s/rad). Their mass sweep measures inertial effects, rather than
-    a maximum lifted payload. A separate object-weight test below removes the translational spring.</p>
+    and rotational damper (0.00002 N·m·s/rad). Their mass sweep measures inertial effects; the maximum lifted
+    payload is a separate test. A separate object-weight test below removes the translational spring.</p>
     <p>Open-loop torque pulses begin after 0.3 s settling: +τ sin² over 150 ms, then the matching negative pulse
     over 150 ms, followed by decay to 0.8 s. Peaks are 3, 12 and 48 mN·m.
     Holding tests instead ramp torque, and record angular-speed thresholds sustained for 20 ms.
-    An object leaving under a strong pulse is a grasp outcome; release alone is not evidence of a broken solver.</p>
+    An object leaving under a strong pulse is a grasp outcome; release alone does not indicate a solver failure.</p>
     """,
             "protocol",
         )
@@ -223,15 +223,15 @@ def main():
     )
     body += """<p>The envelope is Σ µFₙᵢ ‖(I − nᵢnᵢᵀ)[u × (xᵢ − P)]‖.
     It predicts the maximum tangential contact moment for pure rotation about the pinch axis under the
-    measured normal pressure field. It is not a measured static breakaway torque and ignores simultaneous
-    translation demands. Raising commanded pad load from 2 to 4 N raises measured total normal load to
+    measured normal pressure field. It omits simultaneous translation demands and differs from a measured
+    static breakaway torque. Raising commanded pad load from 2 to 4 N raises measured total normal load to
     7.884 N and the 0.5 mm envelope to 10.538 mN·m, because the contact patch grows as well as carrying more force.</p>
     <p>At nominal mass, 1 and 0.5 mm reach 0.1 rad/s at 1.188 and 1.176 mN·m on the same ramp,
     and reach 1 rad/s at 4.452 and 4.440 mN·m. Four-times mass delays these thresholds through inertia
     without materially changing the settled pressure envelope. Increasing sample count is not producing
     an unrestricted increase in friction.</p>
     <p>The quarter-mass 1 and 0.5 mm cases at 25 µs alternate load between fingers and are excluded from
-    the converged capacity comparison. At 12.5 µs both fingers settle at about 1.9465 N; halving again to
+    the converged capacity comparison. At 12.5 µs both fingers reach about 1.9465 N; halving again to
     6.25 µs changes the envelope by less than 0.0001%. The two 25 µs records remain in the exported data.</p>
     <p>Drake’s pressure shape, rescaled per patch to its actual SAP normal resultant, predicts about
     4.426 mN·m at 3.8885 N, versus 4.337 mN·m at 3.8933 N for the 0.5 mm samples. The Drake geometric
@@ -245,7 +245,7 @@ def main():
     body = """<p>To separate payload support from the torsion inertia sweep, eight additional cases ramp an
     object-only downward acceleration from 0 to 9.81 m/s² during 0.3–0.4 s and run to 0.7 s.
     No translational spring supports the object; the common 0.05 N·s/m damper remains.
-    Joint targets and µ remain fixed. This is a short finite-duration support test, not a certified maximum mass.</p>"""
+    Joint targets and µ remain fixed. The test covers a short, finite duration.</p>"""
     body += table(
         ["Spacing mm", "Mass g", "Weight N", "Outcome", "Peak displacement mm", "Normal L1 %"],
         [
@@ -260,7 +260,7 @@ def main():
             for r in rows
         ],
     )
-    body += "<p>Both resolutions remain within the grasp bound for the 24.5 g and 196.3 g cases over the declared horizon; both release in the 392.7 g and 785.4 g cases. The 196.3 g objects move about 4.76 mm, so this is finite-horizon retention with creep, not static payload support. It brackets this protocol’s retention similarly across resolutions without establishing an exact mass threshold or indefinite holding.</p>"
+    body += "<p>Both resolutions remain within the grasp bound for the 24.5 g and 196.3 g cases over the declared horizon; both release in the 392.7 g and 785.4 g cases. The 196.3 g objects move about 4.76 mm, so this is retention with creep over a finite horizon; both resolutions bracket the retention limit of this protocol alike.</p>"
     parts.append(section("Payload support across resolutions", body, "payload"))
 
     fig, axes = plt.subplots(1, 2, figsize=(10, 3.8))
@@ -301,13 +301,13 @@ def main():
     seconds per simulated second in the original scalar adapter. Stronger friction damping can improve
     holding behavior, while exposing another timestep and cost tradeoff.</p>
     <p>In friction rows the position residual is zero. Finite soft tangential parameters permit velocity-dependent
-    creep inside the Coulomb bound; matching kᵢ for the normal spring does not establish a zero-creep dry
-    stiction law. The Cₜ/Cᵢ = 100 ramp reaches 0.1 rad/s at 4.032 mN·m, versus Drake’s 4.656 on the same
+    creep inside the Coulomb bound; with kᵢ set to the normal spring the
+    contact still creeps, unlike a dry stiction law. The Cₜ/Cᵢ = 100 ramp reaches 0.1 rad/s at 4.032 mN·m, versus Drake’s 4.656 on the same
     8 mN·m/s ramp. This improves the comparison but does not make the friction laws equivalent.</p>
     <p>The 48 mN·m pulses release the distributed grasp at all refined resolutions, with peak speeds around
     130–131 rad/s before reaching the 25 mm escape bound. Their pre-escape normal errors are about 1.1–1.3%.
     Release is reported as a physical outcome separately from the 500 µs fine-impedance cases that violate
-    robustness bounds during preload, before any torque. The successful timestep window is bounded.</p>"""
+    robustness bounds during preload, before any torque. Only a limited range of timesteps succeeds.</p>"""
     parts.append(section("Dynamic transfer and the friction discriminator", body, "transfer"))
 
     profile = json.loads((RESULTS / "mapping_profile/summary.json").read_text())
@@ -319,13 +319,13 @@ solreffrictionᵢ = (0, solrefᵢ[1] × (Cₜ/Cᵢ) / impratio)</pre>
     <p>With constant solimp this recovers physical kᵢ and cᵢ in the normal force-reference coefficient.
     It keeps d₀ fixed. It does not implement the pasted ChatGPT proposal to rewrite d every step.
     <code>diagexact</code> changes Λₛ to current Aᵢᵢ; it does not cancel Λₛ by itself.
-    The correction is therefore complementary to the flag, rather than a replacement API feature.</p>
+    The correction therefore complements the flag.</p>
     <p>The fine variant uses d₀ = 0.0001, impratio = 10000 and Cₜ/Cᵢ = 10 unless declared otherwise.
     The signed interior normal identity remains fᵢ = kᵢδᵢ − cᵢvₙᵢ − (Jq̈)ᵢ/Rᵢ + cone correction.
     Coefficient recovery is exact; finite-acceleration constitutive fidelity is measured separately.</p>
     <p>For current exact diagonals, CPU code reads the native diagonal and vectorizes the scalar translation
     over active contacts. It rebuilds constraint stages after the contact update. No dense A matrix is
-    constructed in the timed physics loop. Matrix inversions belong only to the diagnostic records.</p>"""
+    constructed in the timed physics loop. Matrix inversions appear only in the logged checks.</p>"""
     body += table(
         [
             "Spacing mm",
@@ -353,8 +353,8 @@ solreffrictionᵢ = (0, solrefᵢ[1] × (Cₜ/Cᵢ) / impratio)</pre>
     )
     body += """<p>These are 1000-step means after 0.3 s settling, on this CPU and hand. Vectorized translation costs
     roughly 12–16 µs for 32–129 active contacts. The earlier scalar loop cost roughly 101–273 µs.
-    The duplicate refresh costs about 5–20 µs. This is linear scalar work plus the native solve, not a
-    guarantee about thousands of active contacts or arbitrary robots. Timing is a single warmed measurement,
+    The duplicate refresh costs about 5–20 µs. This is linear scalar work plus the native solve, measured
+    on this hand; thousands of active contacts or other robots are untested. Timing is a single warmed measurement,
     not a confidence interval or controlled multicore benchmark.</p>
     <p>If Λₛ is the frozen approximation, per-pair physical coefficients can be precomputed from the selected
     body weights. CPU <code>compiled_fine</code> and GPU fine cases do this and need no runtime callback.
@@ -414,7 +414,7 @@ solreffrictionᵢ = (0, solrefᵢ[1] × (Cₜ/Cᵢ) / impratio)</pre>
     body = save_figure(
         fig,
         "articulated_cost_fidelity",
-        "CPU cost versus local normal-law fidelity. Cₜ=1000 uses the weak pulse; the other points use the medium pulse. The x-axis omits diagnostic logging. The Drake marker supplies a cost reference, without assigning it an artificial zero error against a different law.",
+        "CPU cost versus local normal-law fidelity. Cₜ=1000 uses the weak pulse; the other points use the medium pulse. The x-axis excludes the cost of logging. The Drake marker supplies a cost reference, without assigning it an artificial zero error against a different law.",
     )
     comparison = (
         data["transfer_optimized"]
@@ -445,7 +445,7 @@ solreffrictionᵢ = (0, solrefᵢ[1] × (Cₜ/Cᵢ) / impratio)</pre>
     cost 3.28 and 9.14 s/sim-s; afterward 1.42 and 3.86. Precomputing the frozen mapping gives 0.90 and 2.94.
     Drake here costs 3.33 at 500 µs, 1.71 at 1 ms, and 8.05 with its finer mesh.
     Hardware, software wrappers, integration schemes and mechanical criteria differ; these are observed
-    operating points, not a universal engine ranking.</p>
+    operating points of each engine.</p>
     <p><a href="data/chatgpt_speed_fidelity_guidance.txt">Archived ChatGPT speed/fidelity guidance</a> correctly
     asks for this Pareto comparison. The stronger-R control already exists: reducing d suppresses the normal
     acceleration residual, but forces a smaller timestep. The articulated and batched results supersede
@@ -498,7 +498,7 @@ solreffrictionᵢ = (0, solrefᵢ[1] × (Cₜ/Cᵢ) / impratio)</pre>
     body += """<p>The pinned stack is mjlab 1.2.0, MuJoCo Warp 3.6.0, Warp 1.12.1 and torch 2.11.0+cu128.
     Fine 128-world runs sustain about 181756 steps/s at 1 mm and 90738 at 0.5 mm,
     or 9.09 and 4.54 aggregate sim-s/wall-s. All worlds receive the same open-loop experiment;
-    this is simulator throughput, not a measured RL training rate.</p>
+    this is simulator throughput; an RL training rate would be lower.</p>
     <p>Each synchronized graph includes the applied wrench and every native physics step.
     Allocation, compilation, host transfers and force logging are outside physics timing; startup cost is
     exported separately. State guards cover every batch world. Normal error is audited at 100 Hz in world 0,
@@ -588,26 +588,26 @@ solreffrictionᵢ = (0, solrefᵢ[1] × (Cₜ/Cᵢ) / impratio)</pre>
                 fmt(r.get("peak_angular_speed")),
                 r.get("error")
                 or r.get("failure")
-                or "settled normal load ≈2.04 N, not the shared ≈3.89 N",
+                or "Normal load ≈2.04 N against the shared ≈3.89 N",
             ]
             for r in data["newton_transfer"]
         ],
     )
     body += """<p>The stock reduced dynamic port and reduced translated variants fail during preload, before the
-    torque pulse. A 25 µs reduced trial encounters a CUDA graph capture error in the reduction diagnostic.
+    torque pulse. A 25 µs reduced trial stops on a CUDA graph capture error in the reduction check.
     In the historical record, the unreduced translated trial completed with 0.304% sampled normal error,
-    settled at only 2.04 N total normal load and reached 35.75 rad/s. That was not a matched-preload
-    torsion reference, and its completion is not reproduced in the video rerun below.</p>
+    settled at only 2.04 N total normal load and reached 35.75 rad/s. Its preload differed from the
+    other cases, and the video rerun below did not reproduce its completion.</p>
     <p><strong>Video replay update:</strong> that previously completed unreduced trial now fails during preload
     when rerun for state capture. A separate control without recording also fails. Its historical summary is
     preserved, but successful dynamic transfer is not reproduced. See the
     <a href="20261004-contact_videos.html#newton-replay">actual video rerun and limitation</a>.
     Static pressure-generation results are evaluated independently.</p>
-    <p>The translated trial is an explicit experimental adapter, rather than stock Newton: it converts
+    <p>The translated trial uses an experimental adapter on top of stock Newton: it converts
     generated face stiffness into native direct parameters before constraint construction, with the same
     fixed-d normal mapping. No solved force is overwritten. The failures and unmatched preload may reflect
-    import, reduction, parameter or integration issues in this port; they do not establish a general Newton
-    limitation or justify ranking its cost against the successful matched cases.</p>"""
+    import, reduction, parameter or integration issues in this port; its cost is therefore not ranked against
+    the successful cases.</p>"""
     parts.append(
         section("Newton hydroelastic: pressure, reduction and port limits", body, "newton")
     )
@@ -629,7 +629,7 @@ solreffrictionᵢ = (0, solrefᵢ[1] × (Cₜ/Cᵢ) / impratio)</pre>
     body += """<p>Every declared case in these manifests has a record. A status of failed can mean a deliberate
     physical escape guard, a preload instability, or a backend exception; the per-case record distinguishes
     them. A completed case can still have poor constitutive fidelity. No failed or inaccurate result is
-    silently promoted into the fidelity comparison. Pressure-only cases are geometry evaluations, not trajectories.</p>
+    silently promoted into the fidelity comparison. Pressure-only cases evaluate geometry without dynamics.</p>
     <p>CPU normal L1 is Σ|Fₙᵢ − max(0,kᵢδᵢ − cᵢvₙᵢ)| / Σmax(0,kᵢδᵢ − cᵢvₙᵢ), over every
     physics step from 0.3 s. GPU audits sample 100 Hz in one world; Newton audits sample 200 Hz.
     The denominator includes all unilateral targets and the numerator includes contacts with zero target.
@@ -644,10 +644,10 @@ solreffrictionᵢ = (0, solrefᵢ[1] × (Cₜ/Cᵢ) / impratio)</pre>
     <a href="data/articulated/environment-newton.json">Newton</a> stacks; per-phase snapshots preserve
     the code hashes at the start of each original run. CPU measurements use the Intel Core Ultra 7 265KF.
     <a href="README.md">The runbook</a> gives interpreter paths and reproduction commands.
-    These are spherical-tip fixed-palm transfer tests, not the full moving-palm brake task or hardware
-    validation. The hardware rectangular tip’s 6 mm fillet remains a separate static study; its dynamic
+    These are spherical-tip, fixed-palm transfer tests; the moving-palm brake task and hardware are
+    untested. The hardware rectangular tip’s 6 mm fillet remains a separate static study; its dynamic
     geometry co-design behavior is still untested.</p>"""
-    parts.append(section("Records, checks and remaining scope", body, "records"))
+    parts.append(section("Records, checks and open items", body, "records"))
     flat = []
     for phase, rows in data.items():
         for r in rows:
@@ -690,7 +690,7 @@ solreffrictionᵢ = (0, solrefᵢ[1] × (Cₜ/Cᵢ) / impratio)</pre>
     )
     page = frame(
         "Articulated contact: holding, torsion and computational cost",
-        "Fixed-area quadrature, matched hand actuation, real CPU/GPU measurements, and an explicit audit of friction and hydroelastic reduction.",
+        "With the same hand actuation in every backend, 1 and 0.5 mm sphere pads hold the screwdriver under 3 mN·m torque pulses and release it under 48 mN·m pulses, and keep 24.5 g and 196.3 g payloads and release 392.7 g. They creep inside the Coulomb bound, and a Cₜ/Cᵢ = 100 ramp starts sliding at 4.03 mN·m against Drake&#8217;s 4.66 on the same ramp. Newton&#8217;s hydroelastic port fails during preload. The page gives the measured CPU and GPU cost of each operating point.",
         toc + "".join(parts),
         "Measured follow-up · spherical fingertips · all failed cases retained",
     )
