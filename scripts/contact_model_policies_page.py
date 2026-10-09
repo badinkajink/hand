@@ -586,7 +586,9 @@ def stops_table(X: Data):
 TB_SIG = [("Train/mean_reward", "mean episode return", (0, 500), (0, 100, 200, 300, 400, 500)),
           ("Train/mean_episode_length", "mean episode length (policy steps, of 250)", (0, 260), (0, 50, 100, 150, 200, 250)),
           ("Episode_Termination/tip_lost", "tip-lost terminations per iteration (of 2,048 envs)", (0, 50), (0, 10, 20, 30, 40, 50)),
-          ("Episode_Reward/target_axis_alignment", "alignment reward per episode", (0, 70), (0, 10, 20, 30, 40, 50, 60, 70))]
+          ("Episode_Reward/target_axis_alignment", "alignment reward per episode", (0, 70), (0, 10, 20, 30, 40, 50, 60, 70)),
+          ("Policy/mean_std", "action noise of the policy (std, action units)", (0, 0.45), (0, 0.1, 0.2, 0.3, 0.4)),
+          ("Episode_Reward/grip_force_excess", "grip-force term per episode", (0, 8), (0, 2, 4, 6, 8))]
 
 
 def _tb_lines(X: Data, arm, key, every=8, win=9):
@@ -607,11 +609,12 @@ def _tb_lines(X: Data, arm, key, every=8, win=9):
 def svg_tb(X: Data):
     if not X.tb:
         return P.pending("Training curves not extracted yet (tb_dynamics.jsonl).")
-    W, H = 990, 600
+    W, H = 990, 890
     out = P._svg_open(W, H, "Training curves per contact model against environment steps: episode return, episode "
-                            "length, tip-lost terminations and the alignment reward")
+                            "length, tip-lost terminations, the alignment reward, the policy's action noise and the "
+                            "grip-force term")
     for k, (key, lab, ys, yt) in enumerate(TB_SIG):
-        x0, y0 = (70, 570)[k % 2], (40, 330)[k // 2]
+        x0, y0 = (70, 570)[k % 2], (40, 330, 620)[k // 2]
         fx, fy = P._panel(out, x0, y0, 360, 200, (0, 41), ys, (0, 10, 20, 30, 40), yt, "environment steps (millions)",
                           lab, yfmt="{:g}")
         clamp = lambda v: min(max(v, ys[0]), ys[1])  # noqa: E731
@@ -986,11 +989,29 @@ def curves_section(X: Data):
             "smallest of the three fingers&#8217; shares of the grip force. Medians over held rollouts; one line per seed "
             "as above.")
     tcap = ("Training curves from the event files, smoothed over nine iterations: the stochastic policy&#8217;s mean "
-            "episode return and length, tip-lost terminations (a fingertip off the tool for 15 steps ends the episode) and "
-            "the alignment term of the return. One line per seed; a cross ends a stopped run.")
-    out += figure(svg_tb(X), tcap, legend())
+            "episode return and length, tip-lost terminations (a fingertip off the tool for 15 steps ends the episode), "
+            "the alignment term of the return, the standard deviation of the policy&#8217;s Gaussian action noise "
+            "(0.30 at the start) and the grip-force term (weight +0.25 on the tip force above 4&#8202;N per pad). One "
+            "line per seed; a cross ends a stopped run. Against wall-clock time: Figure " + str(FIG[0] - 1) + " and "
+            "Table 1.")
+    out += figure(svg_tb(X), tcap, legend()) + tb_text(X)
     out += figure(svg_watch(X), wcap, legend()) + stops_table(X) + watch_sheets(X)
     return out
+
+
+def tb_text(X: Data):
+    """The action noise each arm's finished runs end with, from the event files."""
+    end = {}
+    for r in X.tb:
+        if r.get("Policy/mean_std") is not None and (r["tag"] not in end or r["iteration"] > end[r["tag"]]["iteration"]):
+            end[r["tag"]] = r
+    fin = {r["tag"] for r in X.fin}
+    v = {a: [end[t]["Policy/mean_std"] for t in fin if tag_arm(t) == a and t in end] for a in ARMS}
+    if not all(v.values()):
+        return ""
+    return (f"<p>The policies trained on the pads and the skin end training with an action noise of "
+            f"{_rng(v['tpu27pads1'] + v['tpu27skin'])}, the TPU-mesh policies with {_rng(v['tpu27mesh'])} and the "
+            f"box-tip policy with {_rng(v['box'])}; every run starts at 0.30.</p>")
 
 
 def first_hold(X: Data, tag, n=60):
