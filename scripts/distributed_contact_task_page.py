@@ -168,8 +168,8 @@ def main():
                     ("legacy", "legacy_exact", "physical", "physical_exact",
                      "physical_runtime_approx", "physical_runtime_exact")]
     parts = []
-    parts.append(section("What these runs say", """
-    <p><strong>Task behavior does not improve monotonically with a more literal local spring.</strong>
+    parts.append(section("Outcome", """
+    <p>Task performance does not improve steadily as the local spring becomes more literal.
     The precomputed physical-stiffness mapping recovered the desired per-sample static
     coefficient in the earlier fixture, but its 1 mm articulated hand tilts during pickup
     and has weak screwdriver-axis rolling. The legacy MuJoCo spheres and Drake hydroelastic
@@ -177,8 +177,8 @@ def main():
     response at greater CPU cost. These are native trajectories, with guards and failures retained.</p>
     <p>The <a href="https://arxiv.org/html/2609.25619v2">Wang–Oh–Pollard rolling-pinch
     experiment</a> motivates the second task. We adapt its cylinder-as-effector step-body-twist
-    protocol to the existing SR2 scene. It is a matched <em>within-repository</em> comparison,
-    not a reproduction of the paper's hardware scores or exact model. Control is 500 Hz in the
+    protocol to the existing SR2 scene. It compares models inside this repository; the paper's hardware scores and exact model are
+    not reproduced. Control is 500 Hz in the
     headline rolling table; physics is 1 kHz for Drake and legacy MuJoCo, 20 kHz for mapped MuJoCo.
     Earlier 100 Hz variants are retained in the machine-readable data.</p>
     <p>The legacy sphere model is itself calibrated at the initial pose using the
@@ -186,7 +186,7 @@ def main():
     coefficients for the target sample stiffness and damping, constant impedance
     d₀ = 0.0001, <code>impratio</code> = 10000 and a declared tangential damping ratio.
     A legacy-versus-mapped task difference therefore bundles the normal law and contact
-    regularization. The within-family diagonal and tangential controls below isolate
+    regularization. The diagonal and tangential controls below separate
     parts of that bundle.</p>
     <p><a href="20261004-contact_videos.html">Earlier contact video gallery</a> ·
     <a href="20261004-articulated_contact_transfer.html">Holding and torsion</a> ·
@@ -227,12 +227,12 @@ def main():
         f'<figure><video controls preload="metadata" playsinline src="{h(row["src"])}"></video>'
         f'<figcaption>{h(row["title"])} · <a href="{h(row["src"])}">MP4</a></figcaption></figure>'
         for row in geometry_films) + "</div>"
-    parts.append(section("Watch the native trajectories", video_body, "films"))
+    parts.append(section("Native trajectories", video_body, "films"))
     parts.append(section("The complete hand chain", """
     <p>One fixed-palm SR2 picks up a 24.54 g screwdriver, lifts it, brakes it toward 90°,
     holds, transports, aims and inserts. The same controller, tool and friction are used
     across cases. A pass requires all stages; a run that merely completes is not a pass.
-    The two seeds are separate deterministic perturbations, not a statistical success rate.</p>
+    The two seeds are two deterministic perturbations.</p>
     """ + task_rows(chain_ids), "chain"))
     parts.append(section("Rolling-pinch transfer at 500 Hz", """
     <p>After pickup, the controller requests positive and negative 20 mm/s translations
@@ -244,7 +244,7 @@ def main():
     ablation_ids += ["v314_chain_physical_runtime_ct100_exact_s1_50us",
                      "v314_roll_physical_runtime_ct100_exact_s1_50us",
                      "v314_roll_physical_runtime_ct1000_exact_s1_50us"]
-    parts.append(section("What diagexact changes", """
+    parts.append(section("Effect of the diagexact flag", """
     <p>MuJoCo 3.14 ablates the diagonal flag on the same 1 mm hand at 50 µs. The legacy
     pair compares flag off/on without altering its contact parameters. The physical pairs
     compare compiled fixed coefficients and per-step retranslation against the diagonal
@@ -259,8 +259,8 @@ def main():
     Cₜ/Cᵢ = 100/1000 rows change tangential damping while holding normal mapping fixed.
     Raising that ratio from 10 to 100 raises tool-axis twist gain from 0.19 to 0.78,
     but slide RMS rises from 4.1 to 16.2 mm/s and angular RMSE from 32.7 to
-    56.2°/s. At 1000 the slide reaches 24.8 mm/s. A higher twist gain here is
-    more motion through the contact, not recovered rolling.</p>
+    56.2°/s. At 1000 the slide reaches 24.8 mm/s. The higher twist gain here is
+    motion through the contact.</p>
     """ + task_rows(ablation_ids[:6] + ablation_ids[12:13])
     + task_rows(ablation_ids[6:12] + ablation_ids[13:], rolling=True), "diagexact"))
     force_table, force = geometry_rows("sliding_geometry")
@@ -270,8 +270,8 @@ def main():
     6.25/12.5/25/50 mm and spheres of radius 12.5/25 mm. Cylinder <code>x</code> is axial;
     <code>y</code> crosses its curvature. Samples use 1 mm spacing, with selected 0.5 mm and
     30°/60° phase controls. The same 1 N normal load, 1.2 N tangential ramp, braking
-    schedule and 50 µs step are used in each run. A fixture exit is a real loss of
-    controlled contact, not an unreported solver result. The table's exit time is the
+    schedule and 50 µs step are used in each run. A fixture exit is a loss of
+    controlled contact. The table's exit time is the
     last saved physics step when a run fails. In this setup, 6.25 and 12.5 mm cylinders
     complete axial travel but cross-curvature motion leaves the local patch around
     0.76–0.78 s. Increasing sample resolution or rotating its phase does not prevent
@@ -286,9 +286,9 @@ def main():
     about 2.40 mm with about 9.8 mm/s peak local slip, while maximum active samples
     rise from 11 to 43. The 30°/60° phase controls are similar. The 50 mm cases
     remain below the 1 mm/s local-slip threshold, so their travel is a sticking
-    control rather than a sliding comparison.</p>
+    control.</p>
     """ + guided_table, "geometry"))
-    parts.append(section("Reproduce and limits", """
+    parts.append(section("Reproduction and open items", """
     <p>Raw per-run configurations, MJCF, aggregate traces, contact logs and solver-coupling
     snapshots live in <code>results/20261004-distributed-contact/</code>. Portable summaries
     and video manifests are in <a href="data/task_chain_results.json">task data</a>,
@@ -302,8 +302,8 @@ MUJOCO_GL=egl logs/20261004-contact-current/venv/bin/python scripts/distributed_
 logs/20261004-contact-current/venv/bin/python scripts/distributed_contact_dynamics.py slip --config docs/experiments/20261004-codex/configs/sliding_geometry.json --out results/20261004-distributed-contact/sliding_geometry
 logs/20261004-contact-current/venv/bin/python scripts/distributed_contact_dynamics.py slip --config docs/experiments/20261004-codex/configs/sliding_geometry_guided.json --out results/20261004-distributed-contact/sliding_geometry_guided
 MUJOCO_GL=egl logs/20261001-hom_contact/venv/bin/python scripts/distributed_contact_task_page.py</pre>
-    <p>Newton's earlier native pressure/reduction transfer runs are a readiness gate, not a
-    matched pickup or rolling score. The articulated task has not been ported to Newton;
+    <p>Newton's earlier native pressure and reduction transfer runs test readiness and give no
+    pickup or rolling score. The articulated task has not been ported to Newton;
     the <a href="20261004-articulated_contact_transfer.html">backend report</a> records
     the pressure/contact instability and the transfer limitations. The 6 mm hardware
     fillet has a static audit but no dynamic sliding task here. The spherical fingertips
@@ -314,13 +314,17 @@ MUJOCO_GL=egl logs/20261001-hom_contact/venv/bin/python scripts/distributed_cont
     task-level controller can be scored. <a href="media/newton_transfer-native_h05.mp4">MP4</a> ·
     <a href="20261004-contact_videos.html#newton-replay">Replay audit</a>.</figcaption></figure>
     """, "reproduce"))
-    toc = ('<nav class="toc"><a href="#outcome">Finding</a><a href="#films">Videos</a>'
+    toc = ('<nav class="toc"><a href="#outcome">Outcome</a><a href="#films">Videos</a>'
            '<a href="#chain">Chain</a><a href="#rolling">Rolling</a>'
            '<a href="#diagexact">diagexact</a><a href="#geometry">Geometry</a>'
            '<a href="#reproduce">Reproduce</a></nav>')
     page = frame("Contact models on robot tasks and sliding geometry",
-                 "Native SR2 pickup, braking, insertion and rolling-pinch videos, with a direct "
-                 "MuJoCo diagonal ablation and curvature-sensitive sliding fixtures.",
+                 "On the SR2 pickup-to-insertion chain and a rolling-pinch task at 500 Hz control, the legacy MuJoCo sphere "
+                 "pads and Drake hydroelastic contact complete the chain, while 1 mm sphere pads with the physical-stiffness "
+                 "mapping tilt the tool during pickup and roll it weakly; 0.5 mm mapped spheres recover much of the rolling at "
+                 "higher CPU cost. Raising the tangential damping ratio from 10 to 100 raises the twist gain from 0.19 to "
+                 "0.78 while slide rises from 4.1 to 16.2 mm/s. In sliding fixtures, 6.25 and 12.5 mm cylinders "
+                 "leave the contact patch across their curvature at about 0.77 s.",
                  toc + "".join(parts),
                  "Native simulations · fixed controller and declared contact variants")
     page = page.replace("</style>", """
