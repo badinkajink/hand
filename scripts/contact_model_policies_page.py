@@ -781,6 +781,9 @@ FILM_NOTES = {       # run tag -> what its final film shows, written after watch
     "0.7&#8202;s; the summed tip force ranges over 44&#8211;67&#8202;N.",
     "20261008-d6_work_tpu27pads1_40M_s0": "Three pads flip the tool to 0.63 within a quarter second, and it creeps on to "
     "0.70; the summed tip force stays at 42&#8211;44&#8202;N.",
+    "20261008-d6_work_tpu27pads1_40M_s2": "Three pads flip the tool to 0.56 within a tenth of a second, lifting it 19&#8202;mm "
+    "in the grip, and hold it at 0.61 from 0.3&#8202;s with a summed tip force of 52&#8211;57&#8202;N. Stopped at "
+    "36&#8202;M steps on the plateau test.",
     "20261008-d6_work_tpu27skin_40M_s0": "Three pads turn the tool to 0.67 within a quarter second and to 0.79 by 0.7&#8202;s, "
     "then hold it at 46&#8211;52&#8202;N.",
     "20261008-d6_work_tpu27skin_40M_s1": "Three pads flip the tool to 0.55 within 0.14&#8202;s, the summed tip force dipping "
