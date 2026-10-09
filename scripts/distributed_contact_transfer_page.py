@@ -81,7 +81,7 @@ def fmt(value, places=3):
 
 def main():
     data = load()
-    plt.rcParams.update({"font.size": 10, "axes.spines.top": False, "axes.spines.right": False})
+    plt.rcParams.update({"font.size": 12.5, "axes.spines.top": False, "axes.spines.right": False})  # 13 px as shown
     parts = []
     parts.append(
         section(
@@ -172,7 +172,7 @@ def main():
         label="nominal, all spacings",
     )
     ax[0].set(xlabel="Sample spacing (mm)", ylabel="Friction envelope (mN·m)", ylim=(4.25, 4.45))
-    ax[0].legend(fontsize=8)
+    ax[0].legend(fontsize=12)
     for phase, rid, label in [
         ("holding", "hold_s1.0_m1.0", "1 mm, Cₜ/Cᵢ=10"),
         ("holding", "hold_s0.5_m1.0", "0.5 mm, Cₜ/Cᵢ=10"),
@@ -196,7 +196,7 @@ def main():
         ylim=(0, 1.5),
         xlim=(0, 6),
     )
-    ax[1].legend(fontsize=8)
+    ax[1].legend(fontsize=12)
     body = save_figure(
         fig,
         "articulated_holding",
@@ -273,7 +273,7 @@ def main():
         rows = trace(find(data, phase, rid))
         axes[0].plot([r["time"] for r in rows], [r["angular_velocity"] for r in rows], label=label)
     axes[0].set(xlabel="Time (s)", ylabel="Angular velocity (rad/s)")
-    axes[0].legend(fontsize=8)
+    axes[0].legend(fontsize=12)
     for phase, rid, label in [
         ("transfer", "fine_s0.5_tau0.003", "Cₜ/Cᵢ=10, 50 µs"),
         ("friction_transfer", "creep_ct100.0", "100, 50 µs"),
@@ -284,7 +284,7 @@ def main():
         rows = trace(find(data, phase, rid))
         axes[1].plot([r["time"] for r in rows], [r["angular_velocity"] for r in rows], label=label)
     axes[1].set(xlabel="Time (s)", ylabel="Angular velocity (rad/s)")
-    axes[1].legend(fontsize=8)
+    axes[1].legend(fontsize=12)
     body = save_figure(
         fig,
         "articulated_torsion",
@@ -399,7 +399,7 @@ solreffrictionᵢ = (0, solrefᵢ[1] × (Cₜ/Cᵢ) / impratio)</pre>
             (cost(row), err(row)),
             xytext=(4, 5),
             textcoords="offset points",
-            fontsize=7,
+            fontsize=11.5,
         )
     drake_cost = cost(find(data, "drake_transfer", "drake_tau0.012"))
     ax.axvline(drake_cost, ls="--", color="gray", label="Drake 500 µs cost (different normal law)")
@@ -410,7 +410,7 @@ solreffrictionᵢ = (0, solrefᵢ[1] × (Cₜ/Cᵢ) / impratio)</pre>
         ylabel="Local normal-law L1 error (%)",
         ylim=(0.002, 100),
     )
-    ax.legend(fontsize=8, loc="upper center", bbox_to_anchor=(0.5, -0.25), ncol=2)
+    ax.legend(fontsize=12, loc="upper center", bbox_to_anchor=(0.5, -0.25), ncol=2)
     body = save_figure(
         fig,
         "articulated_cost_fidelity",
@@ -476,7 +476,7 @@ solreffrictionᵢ = (0, solrefᵢ[1] × (Cₜ/Cᵢ) / impratio)</pre>
         xlabel="Parallel worlds",
         ylabel="Aggregate sim seconds / wall second",
     )
-    ax.legend(fontsize=8)
+    ax.legend(fontsize=12)
     body = save_figure(
         fig,
         "articulated_gpu_throughput",
@@ -543,7 +543,7 @@ solreffrictionᵢ = (0, solrefᵢ[1] × (Cₜ/Cᵢ) / impratio)</pre>
     for ax in axes:
         ax.axhline(1.0, color="gray", ls=":")
         ax.set(xlabel="SDF voxel spacing (mm)", ylabel="Ratio to Winkler continuum")
-        ax.legend(fontsize=8)
+        ax.legend(fontsize=12)
     axes[0].set_title("Normal load, 0.2 mm indentation")
     axes[1].set_title("Torsional friction envelope")
     body = save_figure(

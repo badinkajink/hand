@@ -27,6 +27,9 @@ from contact_surface.scaling import physical_coefficients
 from distributed_contact import DOC, summarize
 import retro_style
 
+# 12.5 pt: the 10-11 in figures show at 0.78-0.86 of size in the 828 px column, so labels display at 13 px or more
+plt.rcParams.update({"font.size": 12.5})
+
 COLORS = {2.0: "#BE7514", 1.0: "#4A7FC4", 0.5: "#25875A"}
 SOURCE = DOC / "SR2_distributed_fingertip_contact_experiment_spec.docx"
 NS = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
@@ -791,7 +794,7 @@ def lambda_section(results, sensitivity, compensation):
         ylabel=r"Measured $F_{n,i}/\delta_i$ (N/m)",
         title="Frozen mapping: original static sweep",
     )
-    ax[0].legend(fontsize=8)
+    ax[0].legend(fontsize=12)
     for geometry, marker in [("plane", "o"), ("cylinder", "x")]:
         rows = [r for r in dynamic_frozen if r["geometry"] == geometry]
         ax[1].scatter(
@@ -808,7 +811,7 @@ def lambda_section(results, sensitivity, compensation):
         ylabel="Measured deviation (%)",
         title="Independent forward load equilibria",
     )
-    ax[1].legend(fontsize=8)
+    ax[1].legend(fontsize=12)
     body = save_figure(
         fig,
         "stiffness_prediction",
@@ -868,7 +871,7 @@ def lambda_section(results, sensitivity, compensation):
         ylabel="Per-contact stiffness (N/m)",
         title="Fixed indentation: 0.2 mm",
     )
-    ax[0].legend(fontsize=7)
+    ax[0].legend(fontsize=11.5)
     ax[1].set(
         xlabel="Object mass / nominal",
         ylabel="Indentation at 1 N (mm)",
@@ -978,7 +981,7 @@ A = J @ numpy.linalg.solve(M, J.T)</pre>
         )
         ax.set_xticklabels(["0.25", "0.5", "1", "2", "4"])
         ax.xaxis.set_minor_locator(NullLocator())
-    axes[0].legend(fontsize=7)
+    axes[0].legend(fontsize=11.5)
     body += save_figure(
         fig,
         "diagexact_mass_sweep",
@@ -1049,7 +1052,7 @@ Rᵢ = [(1−d₀)/d₀] Λᵢ
             ylabel=r"$F_{n,i} - (K_i\delta_i-C_iv_{n,i})$ (N)",
             title="Exact coefficients: force differences remain during sliding",
         )
-        ax.legend(fontsize=8)
+        ax.legend(fontsize=12)
         body += save_figure(
             fig,
             "dynamic_force_decomposition",
@@ -1130,7 +1133,7 @@ Rᵢ = [(1−d₀)/d₀] Λᵢ
                 )
                 ax.set_xticks([0.25, 1, 4], labels=["0.25", "1", "4"])
                 ax.xaxis.set_minor_locator(NullLocator())
-        axes[0, 0].legend(fontsize=7)
+        axes[0, 0].legend(fontsize=11.5)
         body += save_figure(
             fig,
             "dynamic_fidelity",
@@ -1240,7 +1243,7 @@ Rᵢ = [(1−d₀)/d₀] Λᵢ
                 )
                 axes[i, j].axvspan(0.7, 0.9, color="#ddd", alpha=0.3)
             axes[i, 2].set(yscale="log", ylim=(1e-5, 1e4))
-        axes[0, 0].legend(fontsize=7)
+        axes[0, 0].legend(fontsize=11.5)
         write_json(DOC / "data/controlled_slip_traces.json", trace_export)
         body += save_figure(
             fig,
@@ -1630,7 +1633,7 @@ def report(results):
         label="Winkler continuum",
     )
     ax[0].set(xlabel="Indentation (mm)", ylabel="Force (N)", title="Plane compression")
-    ax[0].legend(fontsize=8)
+    ax[0].legend(fontsize=12)
     ax[1].set(xlabel="Commanded load (N)", ylabel="Active contacts", title="Cylinder patch growth")
     ax[2].set(
         xlabel="Commanded load (N)",
@@ -1678,7 +1681,7 @@ def report(results):
         )
     ax[0].plot([0, 0.17], [0, 0.17], "k--", linewidth=1, label="Intended law")
     ax[0].set(xlabel="kᵢ δᵢ (N)", ylabel="Measured fₙ,ᵢ (N)", title="Per-contact constitutive law")
-    ax[0].legend(fontsize=7)
+    ax[0].legend(fontsize=11.5)
     nominal = next(r for r in mass if r["mass_scale"] == 1.0)
     contacts = list(
         csv.DictReader(
@@ -1783,7 +1786,7 @@ def report(results):
             ylabel="Normal force at 0.2 mm (N)",
             title="Across edge" if az == 0 else "Across corner",
         )
-        axis.legend(fontsize=8)
+        axis.legend(fontsize=12)
     body = save_figure(
         fig,
         "filleted_tip",
