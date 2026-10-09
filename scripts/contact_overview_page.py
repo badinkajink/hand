@@ -10,7 +10,9 @@ The 2026-10-07 revision adds the agreement of the pads with Drake across MuJoCo,
 hydroelastic contact lacked, the cost on one RL state and the replay of learned policies across implementations
 (docs/experiments/20261006-hom_turn3/, 20261006-rl_contact/, 20261006-simulator_agreement/). The 2026-10-08 revision updates
 the pre-slip open item with the native-compliance candidates (docs/experiments/20261007-native_compliance/) and links that
-page and the Newton hydroelastic tests (docs/experiments/20261007-newton_hydro_tests/); the 2026-10-07 file stays.
+page and the Newton hydroelastic tests (docs/experiments/20261007-newton_hydro_tests/); the 2026-10-07 file stays. Later on
+2026-10-08 the same revision gained one sentence and a link to the hand-object scale page
+(docs/experiments/20261008-hand_object_scale/).
 
 The overview page of the fingertip contact work of 1-7 October 2026: the components of a fingertip contact model,
 the contact mechanics (patch torque, Winkler/hydroelastic and Hertz arms, lateral coupling), the sphere-packed pad in
@@ -1120,6 +1122,8 @@ def related():
     items = [
         ("Servo plant refit, hand-object control of the three-finger turn, contact-model agreement, effective-mass scaling "
          "and the cost of sphere-pad fingertips in RL training", HT3_PATH, _url(os.path.join(HT3, "artifact_url.txt"))),
+        ("Finger-base spacing against object size on the SR2 hand (simulated landscape on the 1&#8202;mm pads, bench protocol, "
+         "paper plan)", "docs/experiments/20261008-hand_object_scale/20261008-finger_spacing_object_size.html", None),
         ("Presliding compliance, hysteresis and Hertz load exponents with native MuJoCo elements (skin, rolling bristles, softening "
          "impedance, lattice, flex)", "docs/experiments/20261007-native_compliance/20261007-native_presliding_compliance.html", None),
         ("Friction-row time constant, contact reduction and edge contact in Newton&#8217;s hydroelastic fingertip model",

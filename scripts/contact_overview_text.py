@@ -392,6 +392,20 @@ def rl_replay_text(ctx):
         + f". Films of the four policies and the replays in Drake and Newton: <code>{P.HT3_PATH}</code>, Section&#160;6.")
 
 
+SCALE_PAGE = "docs/experiments/20261008-hand_object_scale/20261008-finger_spacing_object_size.html"
+
+
+def scale_text(ctx):
+    """One sentence and the link: the hand-object scale landscape runs on the 1 mm pads (2026-10-08)."""
+    import json
+    rows = P.os.path.join(P.ROOT, "docs/experiments/20261008-hand_object_scale/landscape.json")
+    if not P.os.path.exists(rows):
+        return ""
+    return (" The same 1&#8202;mm pads carry the hand&#8211;object scale landscape of the SR2 hand (17 finger-base layouts "
+            "&#215; 18 cylinders and spheres, grasp robustness and the three-finger turn), where point contact on the TPU "
+            f"block ranks the layouts nearly as the pads do: <code>{SCALE_PAGE}</code>.")
+
+
 def _state_cost():
     """us per world-step on the held D6 RL state (the last row per engine, version, fingertip and batch, as on the
     hom_turn3 page): MuJoCo-Warp 3.6 pads and mesh, Newton mass-corrected hydroelastic."""
@@ -456,6 +470,6 @@ def blocks(ctx):
         "OPEN_LIST": open_list(ctx),
         "MEFF_TEXT": meff_text(ctx),
         "AGREE_SIM_TEXT": agree_sim_text(ctx),
-        "RL_REPLAY_TEXT": rl_replay_text(ctx),
+        "RL_REPLAY_TEXT": rl_replay_text(ctx) + scale_text(ctx),
         "LIT": lit(ctx),
     }

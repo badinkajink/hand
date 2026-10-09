@@ -220,8 +220,9 @@ def main() -> int:
                             c = spearman([p[1] for p in pts], [p[2] for p in pts])
                             if c is not None:
                                 cors.append(c)
-                            sgn = -1.0 if v == "angle_max_deg" else 1.0
-                            rv = ridge([p[0] for p in pts], [sgn * p[2] for p in pts])
+                            # the contact angle's ridge is its minimum (the most face-on contacts)
+                            vals = [180.0 - p[2] for p in pts] if v == "angle_max_deg" else [p[2] for p in pts]
+                            rv = ridge([p[0] for p in pts], vals)
                             rt = ridge([p[0] for p in pts], [p[1] for p in pts])
                             if rv and rt:
                                 dist.append(abs(rv[0] - rt[0]))

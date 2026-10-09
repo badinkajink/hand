@@ -452,12 +452,20 @@ class Mirror(H.Mirror):
         return {"dist": float(dist), "p_f": p_f, "p_o": p_o, "n": n, "E": np.column_stack([n, y, z])}
 
 
-def turn_rollout(plant, mirror, meta, seed, prm) -> dict:
-    """hom_turn3.rollout with the cell's grip in place of a deploy plan's, and the load test of this study."""
+def turn_rollout(plant, mirror, meta, seed, prm, frame_cb=None) -> dict:
+    """hom_turn3.rollout with the cell's grip in place of a deploy plan's, and the load test of this study.
+    `frame_cb(plant, t, info)` is called every control tick (and every 10 ms of the grip) when given."""
     grip = np.array([meta["grip"][f][k] for f in FINGERS for k in range(3)])
     plant.reset(seed)
     plant.set_targets(grip)
-    plant.advance(prm["t_grip"])
+    if frame_cb is None:
+        plant.advance(prm["t_grip"])
+    else:
+        tg = 0.0
+        while tg < prm["t_grip"] - 1e-9:
+            tg = min(prm["t_grip"], tg + prm["dt_c"])
+            plant.advance(tg)
+            frame_cb(plant, tg, {"phase": "grip", "th_deg": 0.0})
     s0 = plant.state()
     ctl = H.Turn3(mirror, s0, prm, grip)
     goal = math.radians(prm["goal_deg"]) - ctl.tilt0
@@ -502,6 +510,9 @@ def turn_rollout(plant, mirror, meta, seed, prm) -> dict:
         plant.set_targets(q_cmd)
         t += prm["dt_c"]
         plant.advance(t)
+        if frame_cb is not None:
+            frame_cb(plant, t, {"phase": "squeeze" if t < t_sq_end else ("hold" if frozen is not None or th_ref >= goal
+                                                                          else "turn"), "th_deg": math.degrees(th)})
         if s["p"][2] < z0 - 0.03 or not np.all(np.isfinite(s["p"])):
             break
     se = plant.state()
