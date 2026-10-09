@@ -99,7 +99,9 @@ class Data:
         self.rb = last_by(rows("robust.jsonl"), ("tag", "perturb"))
         self.tb = rows("tb_dynamics.jsonl")
         self.cost = {r["tag"]: r for r in rows("run_costs.jsonl")}
-        self.rep = [r for r in rows("policy_replay.jsonl") if r.get("engine") and r.get("kind") != "record"]
+        # one row per run, engine and world (the newest; a run's directory was written relative once)
+        self.rep = last_by([dict(r, dir=os.path.basename(r["dir"])) for r in rows("policy_replay.jsonl")
+                            if r.get("engine") and r.get("kind") != "record"], ("dir", "engine", "world", "hold_test_s"))
         self.rec = [r for r in rows("policy_replay.jsonl") if r.get("kind") == "record"]
         self.wall = {}
         for r in self.tb:
@@ -144,7 +146,7 @@ class Data:
     def replays(self, arm, engine, stopped=False):
         """Replay rows of an arm's finished runs (or, with `stopped`, of its runs stopped early)."""
         return [r for r in self.rep if r["engine"] == engine and f"_{arm}_40M_" in r["dir"]
-                and ((os.path.basename(r["dir"]) in self.stops) == stopped)]
+                and ((r["dir"] in self.stops) == stopped) and r.get("hold_test_s") is None]
 
 
 def tag_arm(tag):
@@ -348,10 +350,13 @@ def svg_transfer(X: Data):
         cx = x0 + j * cw + (24 if kind == "rep" else 0)
         lab = SHORT[s] if kind == "mjw" else ENG_LBL[s].split()[0] + (" MuJoCo" if s == "mujoco" else "")
         out.append(f'<text x="{cx + cw / 2:.1f}" y="{y0 - 10}" text-anchor="middle" style="fill:var(--ink2)">{lab}</text>')
+    nr = sorted({r["n"] for r in X.tr})
+    rl = f"{nr[0]}" if len(nr) == 1 else (f"{nr[0]}&#8211;{nr[-1]}" if nr else "&#8211;")
     out.append(f'<text x="{x0 + 2.5 * cw:.1f}" y="{y0 - 34}" text-anchor="middle" style="fill:var(--ink)">'
-               f'MuJoCo-Warp, closed loop, 64 rollouts per seed</text>')
-    nw = sorted({len([r for r in X.rep if r["dir"] == d and r["engine"] == e]) for d in {r["dir"] for r in X.rep}
-                 for e in ENGINES} - {0})
+               f'MuJoCo-Warp, closed loop, {rl} rollouts per seed</text>')
+    fin = {r["tag"] for r in X.fin}
+    nw = sorted({len([r for r in X.rep if r["dir"] == d and r["engine"] == e and r.get("hold_test_s") is None])
+                 for d in fin for e in ENGINES} - {0})
     wl = f"{nw[0]}" if len(nw) == 1 else (f"{nw[0]}&#8211;{nw[-1]}" if nw else "&#8211;")
     out.append(f'<text x="{x0 + 5 * cw + 24 + 1.5 * cw:.1f}" y="{y0 - 34}" text-anchor="middle" style="fill:var(--ink)">'
                f'open-loop replay, {wl} worlds per seed</text>')
@@ -1101,7 +1106,9 @@ def transfer_text(X: Data):
 
 
 def robust_section(X: Data):
-    cap = ("Held fraction of each arm&#8217;s final policies (pooled over seeds, 64 rollouts each) under one perturbation "
+    nr = sorted({r["n"] for r in X.rb})
+    cap = (f"Held fraction of each arm&#8217;s final policies (pooled over seeds, {'&#8211;'.join(map(str, nr[::max(1, len(nr) - 1)])) or 64} "
+           "rollouts each) under one perturbation "
            "at a time: every geom&#8217;s sliding friction scaled, the tool&#8217;s mass and inertia scaled, the finger "
            "servos&#8217; position gain over the 2&#8211;10&#8202;N&#8202;m/rad range of the 2026-10-06 bench readbacks, "
            "a 1&#8202;ms physics step (the training step is 2&#8202;ms; the policy stays at 50&#8202;Hz), and the tool "
