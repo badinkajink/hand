@@ -112,18 +112,23 @@ def curves(runs, keys):
 
 
 def plot_curves(cv, path):
+    """Training curves, 2 x 3 panels and the legend in the last cell. Drawn 1656 px wide for the 828 px column, so a
+    font size of f pt shows at 1.39 f px: 9.5 pt and up keeps every label at 13 px or more (owner 2026-10-09)."""
     import matplotlib; matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    keys = [("Episode_Reward/target_axis_alignment", "alignment reward per episode"),
-            ("Episode_Reward/grip_force_excess", "grip-excess term per episode"),
-            ("Episode_Reward/finger_separation", "separation term per episode"),
-            ("Episode_Termination/tip_lost", "tip-lost terminations per reset batch"),
-            ("Metrics/lift_height/object_height", "mean object height (m)")]
-    fig, axes = plt.subplots(1, len(keys), figsize=(3.4 * len(keys), 3.4), dpi=150)
+    keys = [("Episode_Reward/target_axis_alignment", "Alignment reward per episode"),
+            ("Episode_Reward/grip_force_excess", "Grip-excess term per episode"),
+            ("Episode_Reward/finger_separation", "Separation term per episode"),
+            ("Episode_Termination/tip_lost", "Tip-lost terminations per reset batch"),
+            ("Metrics/lift_height/object_height", "Mean object height (m)")]
+    fig, grid = plt.subplots(2, 3, figsize=(8.28, 6.4), dpi=200)
+    axes = list(grid.flat)[:len(keys)]
     cmap = plt.get_cmap("tab20")
     for i, (rid, series) in enumerate(sorted(cv.items())):
         col = cmap(i % 20)
         for ax, (k, lab) in zip(axes, keys):
+            ax.set_title(lab, fontsize=10.5); ax.set_xlabel("PPO iteration", fontsize=10); ax.grid(alpha=0.25)
+            ax.tick_params(labelsize=9.5)
             if k not in series or len(series[k]) < 2:
                 continue
             s, v = zip(*series[k])
@@ -134,10 +139,11 @@ def plot_curves(cv, path):
             else:
                 v2, s2 = v, s
             ax.plot(s2, v2, color=col, lw=1.3, label=rid)
-            ax.set_title(lab, fontsize=9); ax.set_xlabel("PPO iteration", fontsize=8); ax.grid(alpha=0.25)
-            ax.tick_params(labelsize=7)
     axes[3].set_ylim(0, 8)
-    axes[0].legend(fontsize=6, frameon=False, ncol=2)
+    leg = grid.flat[-1]
+    leg.axis("off")
+    hs, ls = axes[0].get_legend_handles_labels()
+    leg.legend(hs, ls, fontsize=9.5, frameon=False, ncol=2, loc="center")
     fig.tight_layout(); fig.savefig(path)
 
 
