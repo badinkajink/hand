@@ -106,47 +106,59 @@ footer a{color:var(--s2)}
   <span class="mono">scripts/real_v1_basketball_grasp.py</span></div>
 </header>
 
+<section id="terms" class="col">
+  <h2>Terms and metrics</h2>
+  <dl class="terms">
+    <dt><b>Layout</b></dt><dd>Gantry positions of the finger mounts: wide (each gantry at its travel end), nominal (CAD centre), g12 (bench hand D4).</dd>
+    <dt><b>Ball size</b></dt><dd>Sizes 7, 6, 5 and 3: radius 120, 116, 110 and 89 mm; mass 620, 540, 480 and 300 g.</dd>
+    <dt><b>Mount ring</b></dt><dd>Mean distance of the three mounts from the ball&#8217;s vertical axis, palm centred, in mm.</dd>
+    <dt><b>Ring needed</b></dt><dd>Smallest mount ring at which the yaw links clear a ball pressed against the palm plate, in mm.</dd>
+    <dt><b>Wrap angle &#952;</b></dt><dd>Polar angle of the pad contacts from the ball&#8217;s top pole, in degrees; 90&#176; is the equator.</dd>
+    <dt><b>Plate gap</b></dt><dd>Distance from the ball&#8217;s top to the palm plate in the fitted grasp, in mm; 0 is seated.</dd>
+    <dt><b>Mount plane</b></dt><dd>Height of the mount plane above the floor in the fitted grasp, in mm.</dd>
+    <dt><b>Pair azimuth</b></dt><dd>Azimuth of the index and middle contacts about the ball&#8217;s axis, from the side opposite the thumb.</dd>
+    <dt><b>Thumb yaw / MCP / PIP</b></dt><dd>Thumb joint angles of the fitted grasp, in degrees.</dd>
+    <dt><b>&#956;</b></dt><dd>Pad&#8211;ball friction coefficient: 0.6, 0.8, 1.0, 1.5 or 2.4.</dd>
+    <dt><b>Shipped servo</b></dt><dd>Finger actuator of every real_v1 scene: kp 30 N&#8239;m/rad, 10 N&#8239;m torque limit.</dd>
+    <dt><b>Measured servo</b></dt><dd>The 2026-09-02 fit: kp 0.5 N&#8239;m/rad, 0.35 N&#8239;m limit; the <a href="../20261006-hom_turn3/20261006-servo_refit_hom_turn_pad_cost.html">2026-10-06 refit</a> gives kp 4 N&#8239;m/rad and 1 N&#8239;m.</dd>
+    <dt><b>10 mm and saturating command</b></dt><dd>Finger targets 10 mm inside the ball&#8217;s surface (0.15 N&#8239;m on the measured servo), or eight times deeper, at the torque limit.</dd>
+    <dt><b>Held</b></dt><dd>Ball within 20 mm of the lifted height after a 2 s close, a 0.10 m lift in 1.5 s and a 2 s hold.</dd>
+    <dt><b>Min &#956;, at &#952;</b></dt><dd>Lowest &#956; at which some reachable &#952; holds, and that &#952;.</dd>
+    <dt><b>Pad N</b></dt><dd>Pad normal force at the end of the hold or after the close, in N: the mean of three pads, or thumb / index / middle.</dd>
+    <dt><b>Contact setting</b></dt><dd>Default: pyramidal friction cone, impratio 1, in every repository scene; grasp: elliptic cone, impratio 10, MuJoCo&#8217;s setting for grasping.</dd>
+    <dt><b>Rise</b></dt><dd>Height the ball gained in the 100 mm lift, in mm.</dd>
+  </dl>
+</section>
+
 <section class="col">
-  <h2>The palm plate moved 25 mm up, and what that buys</h2>
+  <h2>Palm plate height and the mount ring of a seated ball</h2>
   <p class="sub">assets/mjcf/real_v1 &#183; PALM_PLATE_Z in build_real_v1_scenes.py</p>
-  <p>The flat palm of the physical hand sits 25 mm above the plane the three yaw servos are
-  mounted on; until today the simulated plate was drawn on the mounting plane itself, 25 mm
-  too close to the fingertips. The plate geom and the workspace sites now sit at +25 mm in
-  the palm frame. Nothing else moved: mounts, link lengths, ROM and the 21 contact excludes
-  are the CAD numbers, and the fitted <code>open_ik</code> keys of the screwdriver scene were
-  carried through the rebuild (<code>--keep-keyframes</code>). Scenes generated before
-  2026-09-16 still carry the old plate.</p>
-  <p>For a ball the plate matters because a ball pressed against it cannot sag. A ball
-  seated on the plate's underside puts its centre {{SEATED_DEPTH_7}} mm below the mounting
-  plane for size 7, and its cross-section at the foot of the yaw links is then wider than the
-  ring the three mounts sit on: the links need a ring of at least {{RING_REQ_7}} mm for size 7,
-  {{RING_REQ_6}} mm for size 6, {{RING_REQ_5}} mm for size 5 and {{RING_REQ_3}} mm for size 3.
-  The widest legal layout, every gantry at the end of its travel, rings the ball at
-  {{RING_WIDE}} mm. The nominal layout rings it at {{RING_NOMINAL}} mm and the bench's
-  best-retaining deployed hand, g12, at {{RING_G12}} mm.</p>
+  <p>The palm plate of the physical hand sits 25 mm above the plane of the yaw servos, and
+  since 2026-09-16 the simulated plate does too; scenes generated before that date have the
+  plate on the servo plane, 25 mm too close to the fingertips.</p>
+  <p>A ball pressed against the plate cannot sag. Seated, a size-7 ball has its centre
+  {{SEATED_DEPTH_7}} mm below the mounting plane, where its cross-section is wider than the
+  mount ring of every layout; the table gives the ring each size needs.</p>
   {{TABLE_SEATING}}
 </section>
 
 <section class="col">
-  <h2>What the fingers can reach on the ball</h2>
+  <h2>Reachable wrap angle per layout and ball size</h2>
   <p class="sub">forward-kinematic reach map on a 69 &#215; 55 &#215; 38 joint grid per finger, links clear of the ball</p>
-  <p>A pad on the upper cap at polar angle &#952; from the top pole pushes the ball down by
-  N&#8239;cos&#952; and its friction lifts by at most &#956;N&#8239;sin&#952;, so a pad carries
-  weight only once tan&#952; &gt; 1/&#956;: 45&#176; at &#956; 1.0, 59&#176; at &#956; 0.6.
-  The finger reaches outboard of its own mount by at most the 15&#176; of MCP extension, and
-  the contact ring at &#952; sits outboard of the mounts once (R + 10.55 mm)&#8239;sin&#952;
-  exceeds the mount ring, which on the wide layout is &#952; = {{THETA_OUTBOARD_7}}&#176; for
-  size 7. Past that the palm has to climb until the fingers are near full extension, and the
-  plate gap grows. The table gives, per layout and size, the largest wrap angle at which all
-  three pads land with the thumb on its meridian and the pair mirrored near &#177;60&#176;,
-  and the palm height that puts the ball nearest the plate at that angle.</p>
+  <p>A pad at wrap angle &#952; pushes the ball down by \(N\cos\theta\) and lifts it by at most
+  \(\mu N\sin\theta\), so it supports weight only when \(\tan\theta > 1/\mu\): beyond 45&#176;
+  at &#956; 1.0 and beyond 59&#176; at &#956; 0.6. A finger reaches outboard of its mount by at
+  most its 15&#176; of MCP extension. On the wide layout the contacts on a size-7 ball pass
+  outboard of the mounts at &#952; = {{THETA_OUTBOARD_7}}&#176;, and beyond that the palm climbs
+  and the plate gap grows. The table gives the reachable &#952; with the thumb on its meridian
+  and the pair near &#177;60&#176;, and the fitted grasp at the largest &#952;.</p>
   {{TABLE_REACH}}
   {{FIG_POSE}}
 </section>
 
 <section class="col">
   <h2>Held lift under the shipped and the measured servo</h2>
-  <p class="sub">close 2 s &#183; lift 0.10 m over 1.5 s (smoothstep) &#183; hold 2 s &#183; held = ball within 20 mm of the lift, slip &lt; 20 mm</p>
+  <p class="sub">close 2 s &#183; lift 0.10 m over 1.5 s (smoothstep) &#183; hold 2 s</p>
   <p>{{HOLD_PARA}}</p>
   {{MAPS_MEASURED}}
   <p>{{HOLD_PARA_2}}</p>
@@ -155,42 +167,35 @@ footer a{color:var(--s2)}
 </section>
 
 <section class="col">
-  <h2>The friction constraint decides the outcome at the repo's default contact settings</h2>
+  <h2>Contact-setting sensitivity of the cap grasp</h2>
   <p class="sub">cone and impratio in &lt;option&gt;</p>
   <p>{{CONTACT_PARA}}</p>
   {{TABLE_CONTACT}}
-  <p>Every real_v1 scene in this repo runs the default. The pinch grasps it was tuned on do
-  not care, because their normals oppose each other and friction carries only the weight. A
-  cap grasp carries the normals&#8217; downward component on friction as well, so the
-  frictional impedance sets whether the pads keep their 0.5&#8211;1 mm of penetration through
-  the first millimetre of lift. The rows above are the grasp setting; the default is reported
-  here as the sensitivity, and the bench decides which one the pads follow.</p>
+  <p>Every real_v1 scene runs the default. The screwdriver pinch is insensitive to it, because
+  its normals oppose each other; in a cap grasp friction must also cancel the normals&#8217;
+  downward component, and at the default the pads lose their 0.5&#8211;1 mm of penetration in
+  the first millimetre of lift. The hold results above use the grasp setting.</p>
 </section>
 
 <section class="col">
-  <h2>What this does not settle</h2>
-  <ul>
-    <li><strong>The pad&#8211;ball friction coefficient.</strong> The hold on a size-7 ball
-    needs &#956; &#8805; {{MU_MIN_7}} at the measured servo torque; rubber on the TPU pad is
-    probably 0.8&#8211;1.5 and has never been measured. Drag a pad across an inflated ball
-    under a known normal load with the bench scale; one number moves this from feasible to
-    infeasible.</li>
-    <li><strong>The servo&#8217;s force at the pad.</strong> The measured plant delivers
-    {{N_PAD_MEASURED}} N per pad here, from kp 0.5 and the 0.35 N&#8239;m cliff fitted on the
-    screwdriver deficits. Press a pad on the scale at a saturating command (any joint error
-    over 0.7 rad) and read it directly.</li>
-    <li><strong>The approach.</strong> Every rollout starts with the pads 8 mm off the ball at
-    the fitted pose. Descending onto the ball from above lands the thumb on the cap before the
-    pair are round it; that sequence needs the arm and is not simulated.</li>
-    <li><strong>Pad and ball compliance.</strong> Rigid pads on a rigid sphere with MuJoCo&#8217;s
-    soft constraints. A TPU pad flattening on an inflated ball adds contact area and torsional
-    resistance the model does not have; both help a cap grasp.</li>
-    <li><strong>Seating a size-7 ball.</strong> Needs a mount ring of {{RING_REQ_7}} mm against
-    the {{RING_WIDE}} mm the gantries reach, 5 mm short on each finger. Size 5 clears the links
-    by 0.2 mm on paper and no fitted grasp seated it; size 3 seats at &#952; 90&#176;. The next
-    measurement is the gantry travel itself: 6 mm more on each axis would seat a size-7 ball,
-    and the CAD workspace boxes are the only record of the limit.</li>
-  </ul>
+  <h2>Future work</h2>
+  <ol>
+    <li><strong>Pad&#8211;ball friction.</strong> Drag a pad across an inflated ball under a known
+    normal load on the bench scale. A size-7 hold needs &#956; &#8805; {{MU_MIN_7}} on the
+    measured servo; a lower value rules the grasp out on this hand.</li>
+    <li><strong>Pad force.</strong> Press a pad on the scale at a saturating command (joint error
+    over 0.7 rad). The model gives {{N_PAD_MEASURED}} N; a larger force lowers the friction a hold
+    needs.</li>
+    <li><strong>Gantry travel.</strong> Measure the travel of each gantry axis; 6 mm more on each
+    would give the {{RING_REQ_7}} mm ring that seats a size-7 ball.</li>
+    <li><strong>Approach from above.</strong> Lower the palm onto the ball from 50 mm in the UR5e
+    scene of <code>scripts/build_real_v1_arm_scene.py</code> (these rollouts start with the pads
+    8 mm off the ball); if the thumb reaches the cap before the pair closes, the fitted grasp is
+    unreachable.</li>
+    <li><strong>Compliant pads.</strong> Repeat <code>real_v1_basketball_grasp.py sweep</code> with
+    the 1 mm sphere-pad fingertips; a hold at lower &#956; would show that pad compliance helps the
+    cap grasp.</li>
+  </ol>
 </section>
 
 <footer>
