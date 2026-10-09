@@ -22,7 +22,7 @@ RETRO_CSS = r"""
   --paper:#fff !important; --card:#fff !important; --sunk:#f2f2f2 !important; --shadow:none !important;
   --ink:#000 !important; --ink2:#000 !important; --ink3:#444 !important;
   --rule:#000 !important; --rule2:#999 !important;
-  --s1:#0000ee !important; --s2:#0000ee !important; --s3:#551a8b !important;
+  --s1:#BE7514 !important; --s2:#4A7FC4 !important; --s3:#5E8F5A !important;  /* chart series: amber, blue, green */
   --good:#008800 !important; --bad:#cc0000 !important; --ref:#666 !important;
   --f-body:"Times New Roman",Times,serif !important; --f-display:"Times New Roman",Times,serif !important;
   --f-mono:"Courier New",Courier,monospace !important;
