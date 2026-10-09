@@ -160,7 +160,7 @@ def table_models():
         ["Drake point", "one point pair per pad, SAP", "point stiffness 10<sup>4</sup>&#8202;N/m"],
         ["MuJoCo point", "one contact per pad, condim&#160;3", "solref 0.006&#8202;1, solimp 0.97&#8202;0.995 (the real_v1 fingertip default)"],
         ["MuJoCo condim&#160;4", "one contact per pad, condim&#160;4",
-         f"&#956;<sub>t</sub> constant at Drake&#8217;s arm at 1&#8202;N ({C1 * 1e3:.3f}&#8202;mm), or rescheduled every step as "
+         f"Torsional &#956;<sub>t</sub> constant at Drake&#8217;s arm at 1&#8202;N ({C1 * 1e3:.3f}&#8202;mm), or rescheduled every step as "
          f"&#956;&#183;{CF * 1e3:.3f}&#8202;mm&#183;(N&#8202;/&#8202;1&#8202;N)<sup>{PF:.3f}</sup> from the previous step&#8217;s normal force"],
         ["MuJoCo sphere pads", "35&#176; cap of 0.75&#8202;mm spheres, condim&#160;3 each",
          "envelope = the fingertip sphere; spacing 2, 1, 0.5&#8202;mm (31, 126, 506 spheres per pad); per-sphere "
@@ -189,7 +189,7 @@ def table_torsion():
         vals = [rb(k, N) for N in Ns]
         if k == "dref":
             cells = [f2(v, 3) for v in vals]
-            worst = "reference"
+            worst = "Reference"
         elif k in ("dpt", "mp3"):
             cells = [("0", "cell c0") for _ in vals]
             worst = "&#8722;100&#8202;%"
@@ -235,7 +235,7 @@ def brake_cells(r, d):
         cells.append(("at release", "cell c0") if point else closeness(v, qs[a], nd=2))
     mx = r["phi_max"]
     cells.append((f"{mx:.0f}&#176;", "cell c0" if mx > 100 else "cell c4"))
-    cells.append("dropped" if dropped else ("swinging" if point else f"{r['phi_end']:.1f}&#176;"))
+    cells.append("Dropped" if dropped else ("Swinging" if point else f"{r['phi_end']:.1f}&#176;"))
     cells.append("&#8211;" if dropped else f"{abs(r['slip_end_mm']):.2f}")
     cells.append(f"{r['peak_rate_dps']:.0f}")
     cells.append(f"{r['wall_s']:.1f}")
@@ -248,7 +248,7 @@ def table_brake():
     keys = ("dref", "d02", "ddef", "dpt", "mp3", "p4", "p4ir10", "p4s", "s2", "s1", "s05", "s05tr01", "s05ir10")
     body = []
     for d, T in ((15.0, 4.0), (30.0, 4.0), (15.0, 12.0)):
-        body.append(f"d&#8202;=&#8202;{d:g}&#8202;mm, {T:g}&#8202;s ramp")
+        body.append(f"Pinch offset {d:g}&#8202;mm, {T:g}&#8202;s ramp")
         q = [f2(n_qs(a, d * 1e-3)) for a in (10, 45, 80)]
         body.append(["quasi-static law, Drake reference r&#772;(N)"] + q + ["", "90&#176;", "", "", ""])
         for k in keys:
@@ -264,7 +264,7 @@ def table_brake():
 
 
 def table_cop():
-    head = ["model", "contacts", "max error mm", "rms mm", "largest jump per 0.25&#176; mm"]
+    head = ["Model", "Contacts", "Max error (mm)", "RMS (mm)", "Largest jump per 0.25&#176; (mm)"]
     order = [("dref", "Drake hydroelastic, 1&#8202;mm tetrahedra"), (None, "Drake hydroelastic, 0.5&#8202;mm tetrahedra"),
              ("mp3", LABEL["mp3"]), ("s2", LABEL["s2"]), ("s1", LABEL["s1"]), ("s05", LABEL["s05"])]
     body = []
@@ -402,7 +402,7 @@ def data_uri(path, mime):
 def main():
     t = open(TPL).read()
     v = {}
-    v["BUILT"] = time.strftime("%Y-%m-%d %H:%M")
+    v["BUILT"] = "2026-10-01 17:08"  # build of the record, pinned 2026-10-09
     v["DRAKE_V"], v["MUJOCO_V"] = DRAKE_V, MUJOCO_V
     v["C_FIT"], v["P_FIT"] = f"{CF * 1e3:.2f}", f"{PF:.2f}"
     Ns = (0.25, 0.5, 1.0, 2.0, 4.0)

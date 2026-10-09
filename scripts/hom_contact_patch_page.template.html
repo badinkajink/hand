@@ -116,18 +116,13 @@ a:focus-visible{outline:2px solid var(--s2);outline-offset:2px;border-radius:2px
 <header>
   <div class="eyebrow">MorphoHand &#183; contact models for the pinch hinge &#183; real_v1 fingertip and screwdriver &#183; 1 October 2026 &#183; built {{BUILT}}</div>
   <h1>Pinch friction torque in Drake hydroelastic and MuJoCo contact models</h1>
-  <p class="lede">Wang, Oh and Pollard load a screwdriver by loosening a two-finger pinch until gravity turns the
-  tool about the pinch axis, and they used Drake&#8217;s hydroelastic contact because a point contact has no friction
-  torque about that axis. On a two-pad rig with the real_v1 fingertip and screwdriver, Drake&#8217;s hydroelastic
-  pad at E&#8202;=&#8202;10&#8202;MPa resists that rotation with &#956;N&#183;r&#772; per pad, r&#772;&#8202;=&#8202;{{C_FIT}}&#8202;mm&#183;(N&#8202;/&#8202;1&#8202;N)<sup>{{P_FIT}}</sup>.
-  MuJoCo reproduces the torque two ways: condim&#160;4 with the torsional coefficient rescheduled every step from the
-  pad&#8217;s normal force, within {{ERR_P4S}}&#8202;%, and fingertip pads packed with 0.75&#8202;mm spheres at
-  0.5&#8211;1&#8202;mm spacing, within {{ERR_SP}}&#8202;%, with stiffness set from E and nothing fitted to Drake. With a
-  short contact relaxation time, lowering the pinch from 6&#8202;N to 0.2&#8202;N lowers the tool to vertical along the
-  quasi-static brake law in both simulators: 45&#176; is passed at {{N45_REF}}&#8202;N in Drake and {{N45_SP}}&#8202;N with
-  the sphere pads, against {{N45_QS}}&#8202;N predicted. At Drake&#8217;s default relaxation of 0.1&#8202;s the brake gives way
-  as the tool speeds up and the tool swings past vertical, to {{MAX_DEF}}&#176;. With point contact in either simulator
-  the tool swings over the top as soon as its weight comes on.</p>
+  <p class="lede">On a two-pad rig with real_v1 fingertips and the screwdriver, Drake&#8217;s hydroelastic pad
+  (E&#8202;=&#8202;10&#8202;MPa) resists rotation about the pinch axis with &#956;N&#183;r&#772; per pad,
+  r&#772;&#8202;=&#8202;{{C_FIT}}&#8202;mm&#183;(N&#8202;/&#8202;1&#8202;N)<sup>{{P_FIT}}</sup>. MuJoCo matches this torque within
+  {{ERR_P4S}}&#8202;% with condim&#160;4 and a torsional coefficient rescheduled from the normal force, and within
+  {{ERR_SP}}&#8202;% with pads of 0.75&#8202;mm spheres. Lowering the pinch from 6&#8202;N to 0.2&#8202;N lowers the tool along
+  the quasi-static brake law in both simulators (45&#176; at {{N45_REF}}&#8202;N in Drake, {{N45_SP}}&#8202;N with sphere pads,
+  {{N45_QS}}&#8202;N predicted); point contact lets the tool swing over.</p>
   <div class="byline">rig: two 10.55&#8202;mm sphere pads on force-controlled rails (20&#8202;g, 5&#8202;N&#183;s/m), free
   24.5&#8202;g cylinder of radius 12.5&#8202;mm and length 100&#8202;mm, &#956;&#8202;1.0, 1&#8202;ms step &#183; Drake {{DRAKE_V}}, SAP, compliant
   hydroelastic pads (E&#8202;10&#8202;MPa, 1&#8202;mm tetrahedra), rigid hydroelastic tool (0.5&#8202;mm) &#183; MuJoCo {{MUJOCO_V}},
@@ -245,21 +240,21 @@ pads: 0.75&#8202;mm spheres at 1&#8202;mm spacing, 126 per 35&#176; cap and 9&#8
 run takes {{WALL_S1}}&#8202;s of CPU for 5.5&#8202;s simulated, against {{WALL_P4S}}&#8202;s for condim&#160;4 and {{WALL_DRAKE}}&#8202;s
 for Drake.</li>
 <li>The calibrated real_v1 plant runs impratio&#160;10, at which both MuJoCo pinches creep; a brake needs 100.</li>
-<li>A Drake reproduction of the paper should set the hydroelastic relaxation time explicitly: 0.02&#8202;s already turns
+<li>A Drake reproduction of the paper should set the hydroelastic relaxation time: 0.02&#8202;s already turns
 the lower half of the swing into a fall.</li>
 </ul>
 </div></section>
 
 <section><div class="col">
-<h2>What this does not settle</h2>
+<h2>Future work</h2>
 <ol>
-<li><strong>The pad modulus.</strong> E&#8202;=&#8202;10&#8202;MPa is Drake&#8217;s default, not a measurement of the real_v1 pads; at a
+<li><strong>The pad modulus.</strong> E&#8202;=&#8202;10&#8202;MPa is Drake&#8217;s default, unmeasured on the real_v1 pads; at a
 given force the torque scales as E<sup>&#8722;1/4</sup>, so 1&#8202;MPa gives 1.78&#215; of it. The bench measurement open since
 2026-09-16 fixes it: pinch with thumb and index, middle open, step the pinch load down and read the tag angle at each
 step. The law is falsified if the held cos&#8202;&#966; does not scale as N<sup>5/4</sup>.</li>
 <li><strong>The hand.</strong> The rails here are force-controlled. The same brake on SR2 (D8 gantry, calibrated
 position servos, pad force commanded through J<sup>T</sup>) is on its own page,
-<a href="https://claude.ai/artifact/DJLxG63vLZXs2Ey6hiCBuc">SR2 pinch-brake loading</a>
+<a href="../20261001-hom_hand_brake/20261001-hom_hand_brake.html">SR2 pinch-brake loading</a>
 (<code>docs/experiments/20261001-hom_hand_brake/20261001-hom_hand_brake.html</code>): Drake hydroelastic and MuJoCo
 rescheduled condim&#160;4 agree within 3&#8202;% at the 45&#176; and 80&#176; crossings. Still open there: the grasp picked
 off the table inside the chain, where the tool already hangs on two pads when the lift ends.</li>
