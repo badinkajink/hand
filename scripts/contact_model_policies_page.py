@@ -291,6 +291,37 @@ def svg_curves(X: Data):
     return "".join(out)
 
 
+def svg_ckpt_dist(X: Data):
+    """Per contact model, the final cosine of the held rollouts at each evaluated checkpoint: 10th-90th percentile bar
+    and median marker per seed (seeds side by side)."""
+    if not X.ck:
+        return P.pending("Checkpoint evaluations not written yet (ckpt_eval.jsonl).")
+    W, H = 990, 600
+    out = P._svg_open(W, H, "Distribution of the held rollouts' final cosine at every evaluated checkpoint, per contact "
+                            "model and seed: 10th to 90th percentile bar and median marker")
+    off = {0: -0.75, 1: 0.0, 2: 0.75}
+    for k, arm in enumerate(ARMS):
+        x0, y0 = (70, 570)[k % 2], (40, 330)[k // 2]
+        fx, fy = P._panel(out, x0, y0, 360, 200, (-1, 42), (-0.2, 1.0), (0, 10, 20, 30, 40),
+                          (0.0, 0.25, 0.5, 0.75, 1.0), "environment steps (millions)",
+                          f"{LBL[arm]}: final cosine of the held rollouts", yfmt="{:.2f}")
+        out.append(f'<line x1="{x0}" x2="{x0 + 360}" y1="{fy(0.9):.1f}" y2="{fy(0.9):.1f}" '
+                   f'style="stroke:var(--ink3);stroke-dasharray:2 4"/>')
+        for r in sorted((r for r in X.ck if r["arm"] == arm), key=lambda r: (r["seed"], r["iteration"])):
+            held = [c for c, h in zip(r.get("final_cos") or [], r.get("held_final") or []) if h]
+            if not held or r["iteration"] == 0:
+                continue
+            q10, q50, q90 = np.percentile(held, [10, 50, 90])
+            x = fx(r["env_steps"] / 1e6 + off.get(r["seed"], 0.0))
+            tip = (f"{SHORT[arm]} s{r['seed']} at {r['env_steps'] / 1e6:.1f} M: {len(held)}/{r['n']} held, median "
+                   f"{q50:.3f}, 10th-90th {q10:.3f}-{q90:.3f}")
+            out.append(f'<line x1="{x:.1f}" x2="{x:.1f}" y1="{fy(q10):.1f}" y2="{fy(q90):.1f}" style="stroke:{COL[arm]};'
+                       f'stroke-width:2.4;stroke-opacity:{0.35 + 0.65 * len(held) / r["n"]:.2f}"><title>{tip}</title></line>')
+            P._marker(out, x, fy(q50), COL[arm], shape=SEED_SHAPE.get(r["seed"], "circle"), r=2.6, title=tip)
+    out.append("</svg>")
+    return "".join(out)
+
+
 def svg_final(X: Data):
     """Final cosine of every rollout of every final policy, per arm and seed; held rollouts filled."""
     if not X.fin:
@@ -935,6 +966,10 @@ def curves_section(X: Data):
            "At iteration 0 the residual is near zero and the scripted grasp holds the tool about level (cos &#8722;0.10 to "
            "&#8722;0.02) in every rollout.")
     out = figure(svg, cap, legend()) + curves_text(X)
+    out += figure(svg_ckpt_dist(X), "Final cosine of the held rollouts of each checkpoint evaluation (64 rollouts): the "
+                  "bar spans the 10th to 90th percentile and the marker is the median; seeds side by side (circle s0, "
+                  "square s1, diamond s2) and the bar fainter when fewer rollouts held. Checkpoints at which no "
+                  "rollout held are left out. The dotted line is cos 0.9.")
     wcap = ("Signals of the checkpoint watch at the same checkpoints, over the hold after the turn (policy steps "
             "150&#8211;250): the tool&#8217;s shaking (dashed: trajectory_health&#8217;s jitter limit) and rocking, the "
             "median change of its cosine between policy steps (dashed: 0.005); the mean action change per policy step; the "
