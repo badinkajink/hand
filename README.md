@@ -4,14 +4,14 @@ SR² Hand is a self-reconfigurable three-finger hand for sim-to-real verificatio
 morphologies. We search morphology and control together in simulation, configure the selected hands on
 hardware, and measure simulation fidelity.
 
-The platform has 15 DoF. Six are morphology: the planar finger-base coordinates
-m = [x_T, y_T, x_I, y_I, x_M, y_M], driven by stepper gantries. The thumb base spans 110 × 60 mm,
-the index and middle bases 60 × 60 mm. Nine are manipulation: MCP yaw, MCP pitch and PIP pitch per
+The platform has 15 DoF. Six are "morphology" DoFs: the planar finger-base coordinates
+m = [x_T, y_T, x_I, y_I, x_M, y_M] which are driven by stepper gantries. The thumb base spans 110 × 60 mm, and the
+the index and middle bases span 60 × 60 mm. Nine DoFs are "control": MCP yaw, MCP pitch and PIP pitch per
 finger, on SCS0009 servos.
 
 The simulator's older generator also treats phalange length as a morphology parameter. Currently, hardware morphology is limited to six gantry coordinates.
 
-The paper can be found at [`sr2-hand.github.io`](https://sr2-hand.github.io).
+The paper and CAD can be found at [`sr2-hand.github.io`](https://sr2-hand.github.io).
 
 ## Cloning and large files
 
