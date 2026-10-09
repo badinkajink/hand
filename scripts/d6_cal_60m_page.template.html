@@ -88,19 +88,11 @@ footer a{color:var(--s2)}
   <div class="eyebrow">MorphoHand &#183; real_v1 &#183; 17 September 2026</div>
   <h1>D6 reorientation policy on the calibrated plant at 60 M steps</h1>
   <p class="lede">A finger-only policy on the calibrated plant turns the screwdriver from flat to
-  <strong>cos {{COS60}} &#177; {{SD60}}</strong> ({{DEG60}}&#176; from vertical) and holds it there on three
-  pads in 64 of 64 deterministic rollouts. The tool rolls across the pads between steps 80 and 200
-  with no finger leaving the shaft. The same recipe at 20 M steps reads cos {{COS20}}: the plateau
-  reported on 2026-09-16 was an under-trained snapshot, not a workspace ceiling. A second 60 M run of the
-  same recipe and seed, differing only in a grip term that contributed 0.3 % of the return, stops at cos
-  {{COS60M}} ({{DEG60M}}&#176;), also held 64 of 64: the recipe&#8217;s run-to-run band on this hand is at
-  least 0.29 wide. Both 60 M policies clamp at 17&#8211;18 N over the turn; a 20 M finetune of the better one with the
-  grip term sized to the reward manager&#8217;s dt (weight &#8722;5 above 4 N per pad) takes the grip to
-  {{FT_TOT}} N and the turn to <strong>cos {{COSFT}} &#177; {{SDFT}}</strong>, held 64 of 64, crossing 0.9 forty steps
-  sooner. Two defects found on the way are recorded here: the evaluator applied the policy&#8217;s residual from step 0 while training masked it
-  until step 58, which turned a held tool into a dropped one standing on its end; and the grip-force term
-  was sized without the reward manager&#8217;s dt scaling, so at &#177;0.25 it did nothing in either
-  direction.</p>
+  <strong>cos {{COS60}} &#177; {{SD60}}</strong> ({{DEG60}}&#176; from vertical) and holds it on three pads in 64 of 64
+  deterministic rollouts. At 20 M steps the same recipe reads
+  cos {{COS20}}, and a second 60 M run stops at cos {{COS60M}}, a run-to-run band of at least 0.29. Both 60 M policies clamp at 17&#8211;18 N; a 20 M grip
+  finetune takes the grip to {{FT_TOT}} N and the turn to <strong>cos {{COSFT}} &#177; {{SDFT}}</strong>, held 64 of
+  64.</p>
   <div class="byline">D6 = sv1_u0308_b050, chain fitter grasp at 10 mm squeeze as <code>open_ik</code> &#183;
   plant <code>cal</code>: kp 0.5, kv 0.02, elliptic cone, impratio 10, pad &#956; 1.0, plate at +25 mm &#183;
   <code>b_liveA</code> recipe without a live Policy A, residual &#177;0.5 rad from step 58 over the scripted
@@ -116,7 +108,7 @@ footer a{color:var(--s2)}
 <p>The lift ends at step 40 with the tool at 109 mm, flat. From step 58 the residual is active; the roll
 starts at step 68 and the tool passes cos 0.5 at step 100, 0.77 at 140, 0.87 at 160 and crosses 0.9 at
 step {{TAL60}} &#177; 3, then holds the last {{HOLD60}} steps at 0.93 with the centre at {{Z60}} mm. The thumb
-carries the roll: its pad force rises from 3 N flat to 6 N as the roll starts and 10&#8211;12 N at the end,
+bears the roll: its pad force rises from 3 N flat to 6 N as the roll starts and 10&#8211;12 N at the end,
 against 5&#8211;7 N on the index and 2&#8211;5 N on the middle (mean over the rollout {{F60}} N, {{FT60}} N
 total). The 10&#8211;90 % band of the final cos is 0.006 wide.</p>
 <figure><img src="{{I_STRIP}}" alt="D6 cal policy, model 812, eight frames">
@@ -167,7 +159,7 @@ runs train that way. <code>make_env_cfg</code>, which <code>policy_eval_suite.py
 <code>rl_render_rollout.py</code> and four other scripts build their environment from, did not take that
 parameter and left it at 0. Under that evaluator the model-812 policy acts on the tool from the first step,
 during a lift it never controlled. Its residual pushes the grip before the tool is off the post, and in
-{{R0_LOST}} of 64 rollouts the tool leaves the hand at step {{R0_DROP}} and lands on the floor, often standing on
+{{R0_LOST}} of 64 rollouts the tool leaves the hand at step {{R0_DROP}} and falls to the floor, often standing on
 its end (z = 50 mm, the half-length), where the alignment score reads 0.99 with no pad touching it. The evaluator reported
 {{R0_ALIGNED}} of 64 aligned and {{R0_HELD}} of 64 held; with sampled actions {{R0S_ALIGNED}} aligned and
 {{R0S_HELD}} held. Training logged episode lengths of 249.9 of 250 and a mean object height of 131 mm at
@@ -193,7 +185,7 @@ reads them (with <code>finger_residual_scale</code> and <code>finger_close_easin
 they applied. <code>policy_healthcheck.py</code>, <code>probe_obs_ablation.py</code>,
 <code>probe_joint_envelope.py</code> and <code>rl_demo_handoff_continuous.py</code> still call the builder with
 the default and need the same change before they are used on a <code>b_liveA</code>-style checkpoint. Every
-evaluation of a residual-from-58 policy made before this date with these tools carries the same defect; the
+evaluation of a residual-from-58 policy made before this date with these tools has the same defect; the
 only such evaluations are the two D6 runs on this page.</p>
 </div></section>
 
@@ -227,7 +219,7 @@ servos trip their overload protection well below 11 N on one pad. A weight that 
 the manager applies is &#8722;5: an 11 N thumb then costs 0.10 per step, a third of the alignment term&#8217;s
 0.28, and a 6 N thumb 0.008. That run is a finetune of the cos-{{COS60}} checkpoint (actor and critic
 warm-started, terminations unchanged, 20 M steps, <code>results/rl/20260917-1844-d6_cal_reorient_ft_gpm5_20M_s0</code>)
-rather than a fresh draw, so that the band above does not swallow the effect.</p>
+so that the run-to-run band above does not hide the effect of the grip term.</p>
 </div></section>
 
 <section><div class="col">
@@ -253,7 +245,7 @@ earlier than the parent, and the tool is held vertical through step 249.</figcap
 </div></section>
 
 <section><div class="col">
-<h2>What this does not settle</h2>
+<h2>Future work</h2>
 <ul>
 <li><strong>The grip.</strong> {{FT_TOT}} N total with a {{FT_THUMB_MAX}} N thumb peak, against the 5&#8211;6 N
 per pad the bench servos held at &#956; 1.0 on the cap grasp: whether the thumb peak trips the overload
@@ -270,7 +262,7 @@ arm or a finetune from a shared checkpoint;
 the other seven hands need a <code>cal</code> morphology run each at the squeeze the chain&#8217;s arm lift
 held (D8 at 12 mm; D1 and D2 pop the tool out at 10 mm on <code>cal</code>) and the evaluator&#8217;s lift as the
 gate.</li>
-<li><strong>What the policy reads.</strong> The observation carries the tool pose. The input-replay test
+<li><strong>What the policy reads.</strong> The observation includes the tool pose. The input-replay test
 (<code>probe_obs_ablation.py</code>, replay mode, after it takes the run&#8217;s timing) says whether the turn
 depends on it; if it does, the next run blinds the actor to those terms (<code>actor_blind_terms</code>).</li>
 <li><strong>A stopping rule.</strong> Held-cos at checkpoints 300&#8211;800 under the corrected evaluator, then
