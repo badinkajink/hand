@@ -138,13 +138,29 @@ def jobs(path: Path = JOBS8, include_stopped: bool = False):
     return out
 
 
+def plateau_stops() -> dict[str, int]:
+    """{tag: iteration} of the runs the checkpoint watch stopped on the plateau test (stops.jsonl reason 'plateau...'):
+    a converged run, whose last checkpoint is its final policy. Runs stopped as degenerate have none."""
+    p = OUT8 / "stops.jsonl"
+    out = {}
+    if p.exists():
+        for line in open(p):
+            r = json.loads(line)
+            if r.get("reason", "").startswith("plateau"):
+                out[r["tag"]] = int(r["iteration"])
+    return out
+
+
 def final_ckpt(tag: str, steps: int) -> Path:
-    return RL / tag / "tensorboard" / f"model_{steps // STEPS_PER_IT - 1}.pt"
+    it = plateau_stops().get(tag)
+    return RL / tag / "tensorboard" / f"model_{steps // STEPS_PER_IT - 1 if it is None else it}.pt"
 
 
 def finished(tags=None):
-    """Jobs whose final checkpoint exists (optionally restricted to `tags`)."""
-    return [j for j in jobs() if final_ckpt(j[0], j[3]).exists() and (not tags or j[0] in tags)]
+    """Jobs whose final checkpoint exists, the plateau-stopped runs included (optionally restricted to `tags`)."""
+    active, pl = {j[0] for j in jobs()}, plateau_stops()
+    return [j for j in jobs(include_stopped=True) if (j[0] in active or j[0] in pl)
+            and final_ckpt(j[0], j[3]).exists() and (not tags or j[0] in tags)]
 
 
 def pick(args):
@@ -768,7 +784,8 @@ def cmd_tb(args):
         for line in open(out):
             r = json.loads(line)
             rows.setdefault(r["tag"], []).append(r)
-    stopped = [j for j in jobs(include_stopped=True) if j not in jobs() and (RL / j[0] / "tensorboard").exists()]
+    stopped = [j for j in jobs(include_stopped=True) if j not in jobs() and j not in finished()
+               and (RL / j[0] / "tensorboard").exists()]
     for tag, arm, seed, steps in ((finished() + stopped) if args.all else
                                   [j for j in jobs(include_stopped=True) if j[0] in args.tags]):
         ea = EventAccumulator(str(RL / tag / "tensorboard"), size_guidance={"scalars": 0})

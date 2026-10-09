@@ -114,6 +114,8 @@ class Data:
         self.watch = last_by(rows("watch.jsonl"), ("tag", "iteration"))
         self.verdict = {(r["tag"], r["iteration"]): r for r in last_by(rows("watch_verdicts.jsonl"), ("tag", "iteration"))}
         self.stops = {r["tag"]: r for r in rows("stops.jsonl")}
+        # stopped as degenerate (no final policy); a plateau stop's last checkpoint is the run's final policy
+        self.degen = {t: r for t, r in self.stops.items() if not r.get("reason", "").startswith("plateau")}
         self.pauses = []        # (t0, t1) epoch s: the training run was paused (checkpoint watch, short GPU jobs)
         self.live = set()       # runs watched while they trained (the others were watched after their run)
         pp = os.path.join(ROOT, "logs/20261008-contact_model_policies/watch_pauses.tsv")
@@ -152,7 +154,7 @@ class Data:
     def replays(self, arm, engine, stopped=False):
         """Replay rows of an arm's finished runs (or, with `stopped`, of its runs stopped early)."""
         return [r for r in self.rep if r["engine"] == engine and f"_{arm}_40M_" in r["dir"]
-                and ((r["dir"] in self.stops) == stopped) and r.get("hold_test_s") is None]
+                and ((r["dir"] in self.degen) == stopped) and r.get("hold_test_s") is None]
 
 
 def tag_arm(tag):
@@ -477,7 +479,7 @@ def degenerate_stops(X: Data, arm):
     out = []
     for tag in sorted({r["tag"] for r in X.watch if r["arm"] == arm}):
         so = stop_outcome(X, tag)
-        st = X.stops.get(tag)
+        st = X.degen.get(tag)
         if not st and not (so and so[0] < 812 and so[1].startswith("degenerate")):
             continue
         it = st["iteration"] if st else so[0]
@@ -526,7 +528,8 @@ def stops_table(X: Data):
         so = stop_outcome(X, tag)
         st = X.stops.get(tag)
         if st:
-            outcome = f"stopped at {(st['iteration'] + 1) * STEPS_PER_IT / 1e6:.1f}&#8202;M"
+            outcome = f"stopped at {(st['iteration'] + 1) * STEPS_PER_IT / 1e6:.1f}&#8202;M" + \
+                ("; its last checkpoint is the final policy" if tag not in X.degen else "")
         elif last["iteration"] >= 812:
             outcome = "trained to 40&#8202;M" + (" (watched after the run)" if tag not in X.live else "")
         else:
@@ -1168,14 +1171,14 @@ def transfer_text(X: Data):
             if e:
                 parts.append(f"{SHORT[arm]}: {', '.join(e)}")
         out.append("Open-loop replays held, per contact model the policy trained on: " + "; ".join(parts) + ".")
-        for tag in sorted(X.stops):
+        for tag in sorted(X.degen):
             arm = tag_arm(tag)
             e = [f"{'CPU MuJoCo' if g == 'mujoco' else ENG_LBL[g].split()[0]} "
                  f"{sum(1 for r in X.replays(arm, g, True) if r.get('held_end') and r['dir'].endswith(tag))}/"
                  f"{sum(1 for r in X.replays(arm, g, True) if r['dir'].endswith(tag))}" for g in ENGINES]
             if any(not x.endswith("/0") for x in e):
                 out.append(f"The last checkpoint of {SHORT[arm]} s{tag[-1]}, stopped at "
-                           f"{(X.stops[tag]['iteration'] + 1) * STEPS_PER_IT / 1e6:.0f}&#8202;M steps, held "
+                           f"{(X.degen[tag]['iteration'] + 1) * STEPS_PER_IT / 1e6:.0f}&#8202;M steps, held "
                            f"{', '.join(e)}.")
     return f"<p>{' '.join(out)}</p>" if out else ""
 
@@ -1206,7 +1209,7 @@ def summary(X: Data):
         jerk_fin = [r.get("ang_jerk_hold_median") for t, r in last.items() if t in fin_tags and r.get("ang_jerk_hold_median")]
         cs = [c for t, c in X.cost.items() if tag_arm(t) == arm and c.get("s_per_it_median")]
         out[arm] = dict(
-            n_fin=len(fins), stopped=sorted(t for t in X.stops if tag_arm(t) == arm),
+            n_fin=len(fins), stopped=sorted(t for t in X.degen if tag_arm(t) == arm),
             held=sum(r["n_held"] for r in fins), n=sum(r["n"] for r in fins),
             hcos=[r["held_cos_mean"] for r in fins if r.get("held_cos_mean") is not None],
             rep={e: (sum(1 for r in v if r.get("held_end")), len(v)) for e, v in rep.items()},
