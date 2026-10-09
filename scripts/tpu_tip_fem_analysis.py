@@ -151,3 +151,36 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+def stiffness_map_law(name, forces=FORCES):
+    """Pads with a per-node Winkler stiffness taken from the finite-element plate solve at 1 N (k_i = p_i / (A_i delta),
+    N/mm^3): approach and twist arm under the cylinder against the finite-element ones."""
+    path = DIR / "data" / f"{name}.npz"
+    if not path.exists():
+        return None
+    D = np.load(path)
+    if "plate_1__p" not in D.files:
+        return None
+    Xp, pp, Ap, dp = D["plate_1__X"], D["plate_1__p"], D["plate_1__A"], float(D["plate_1__delta"])
+    kmap = {(round(x[1], 6), round(x[2], 6)): p / (a * dp) for x, p, a in zip(Xp, pp, Ap)}
+    R = {r["F_target"]: r for r in rows("tip_runs.jsonl") if r["recipe"] == name and r["indenter"] == "cyl"}
+    out = {}
+    for F in forces:
+        X, A_, g0 = D[f"cyl_{F:g}__X"], D[f"cyl_{F:g}__A"], D[f"cyl_{F:g}__g0"]
+        k = np.array([kmap.get((round(x[1], 6), round(x[2], 6)), np.nan) for x in X])
+        k = np.where(np.isfinite(k), k, np.nanmedian(k))
+        lo, hi = 0.0, 2.0
+        for _ in range(80):
+            mid = 0.5 * (lo + hi)
+            if (k * A_ * np.clip(mid - g0, 0, None)).sum() < F:
+                lo = mid
+            else:
+                hi = mid
+        d = 0.5 * (lo + hi)
+        p = k * A_ * np.clip(d - g0, 0, None)
+        c = (p[:, None] * X[:, 1:]).sum(0) / p.sum()
+        arm = float((p * np.linalg.norm(X[:, 1:] - c, axis=1)).sum() / p.sum())
+        out[F] = dict(delta_um=d * 1e3, arm=arm, delta_err_pct=(d / R[F]["delta_mm"] - 1) * 100,
+                      arm_err_pct=(arm / R[F]["arm"] - 1) * 100)
+    return out
