@@ -822,8 +822,31 @@ def curves_section(X: Data):
     return out
 
 
+def first_hold(X: Data, tag, n=60):
+    """Env steps (M) of the first evaluated checkpoint after the initial one at which at least `n` of 64 rollouts held,
+    or None."""
+    rs = sorted((r for r in X.ck if r["tag"] == tag and r["iteration"] > 0), key=lambda r: r["iteration"])
+    return next(((r["env_steps"] / 1e6) for r in rs if r["n_held"] >= n), None)
+
+
 def curves_text(X: Data):
-    return ""
+    parts = []
+    for arm in ARMS:
+        tags = sorted({r["tag"] for r in X.ck if r["arm"] == arm})
+        if not tags:
+            continue
+        fh = []
+        for t in tags:
+            v = first_hold(X, t)
+            fh.append(f"s{t[-1]} {v:.0f}&#8202;M" if v is not None else
+                      f"s{t[-1]} not by {max(r['env_steps'] for r in X.ck if r['tag'] == t) / 1e6:.0f}&#8202;M")
+        parts.append(f"{SHORT[arm]} {', '.join(fh)}")
+    if not parts:
+        return ""
+    return ("<p>The checkpoint at which a run first held at least 60 of 64 rollouts: " + "; ".join(parts) + ". An "
+            "episode ends 15 steps after a fingertip leaves the tool, so a policy that drops the tool collects the return "
+            "of about 75 steps (Figure " + str(FIG[0] + 1) + "); the box tip&#8217;s seed 0 stayed there for 28&#8202;M "
+            "steps.</p>")
 
 
 def svg_traces(X: Data):
