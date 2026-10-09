@@ -123,7 +123,7 @@ def chart_trace(d):
     trk = d["bench_trace_kv"]
     series = [("shipped", tr["shipped"], "var(--ref)"), ("corrected", tr["corrected"], "var(--s1)"),
               ("kv0.01", trk["kv0.01"], "var(--s2)")]
-    h = 470
+    h = 478
     x0, x1 = PAD_L, W - PAD_R
     tmax = max(s["t"] for _, ss, _ in series for s in ss)
     out = [f'<svg class="chart" viewBox="0 0 {W} {h}" role="img" aria-label="Bench replay trace">']
@@ -154,18 +154,18 @@ def chart_trace(d):
         out.append(f'<text class="note" x="{x + 4:.1f}" y="{t0 + 12}">{lab}</text>')
     for v in range(0, int(tmax) + 1):
         x = x0 + v / tmax * (x1 - x0)
-        out.append(f'<text class="tick" x="{x:.1f}" y="{b1 + 16}" text-anchor="middle">{v} s</text>')
+        out.append(f'<text class="tick" x="{x:.1f}" y="{b1 + 24}" text-anchor="middle">{v} s</text>')
     for name, ss, col in series:
         pts = " ".join(f"{x0 + s['t'] / tmax * (x1 - x0):.1f},{b0 - (s['cos'] + 0.3) / 1.35 * (b0 - t0):.1f}" for s in ss)
         out.append(f'<polyline points="{pts}" fill="none" stroke="{col}" stroke-width="2.2" stroke-linejoin="round"/>')
         pts = " ".join(f"{x0 + s['t'] / tmax * (x1 - x0):.1f},{b1 - min(s['f_pad'], fmax) / fmax * (b1 - t1):.1f}" for s in ss)
         out.append(f'<polyline points="{pts}" fill="none" stroke="{col}" stroke-width="2.2" stroke-linejoin="round"/>')
     lx = x0
-    for lab, col in (("shipped, kp 30", "var(--ref)"), ("calibrated, kp 0.5 / kv 0.6", "var(--s1)"),
-                     ("calibrated, kp 0.5 / kv 0.01", "var(--s2)")):
+    for lab, col in (("Shipped, kp 30", "var(--ref)"), ("Calibrated, kp 0.5, kv 0.6", "var(--s1)"),
+                     ("Calibrated, kp 0.5, kv 0.01", "var(--s2)")):
         out.append(f'<rect x="{lx}" y="{h - 14}" width="14" height="3" fill="{col}"/>')
         out.append(f'<text class="note" x="{lx + 20}" y="{h - 9}">{lab}</text>')
-        lx += 34 + len(lab) * 6.9
+        lx += 40 + len(lab) * 7.6
     return "\n".join(out) + "</svg>"
 
 
@@ -292,8 +292,8 @@ def table_kpfit(d):
 def chart_bench(d):
     bp = d["bench_plants"]
     hw = d["hw"]
-    h = 360
-    x0, x1, t, b = PAD_L + 20, W - PAD_R - 20, 40, h - 76
+    h = 372
+    x0, x1, t, b = PAD_L + 20, W - PAD_R - 20, 40, h - 84
     lo, hi = -35, 75
     out = [f'<svg class="chart" viewBox="0 0 {W} {h}" role="img" aria-label="Bench turn per hand per plant">']
     out.append(f'<text class="axlab" x="{x0}" y="18">Net turn of the bench maneuver, deg: bench held trials against each plant&#8217;s 4-seed mean &#177; sd</text>')
@@ -307,8 +307,8 @@ def chart_bench(d):
     n = len(HANDS)
     for i, hd in enumerate(HANDS):
         xc = x0 + (i + 0.5) / n * (x1 - x0)
-        out.append(f'<text class="ser" x="{xc:.1f}" y="{b + 18}" text-anchor="middle" fill="var(--ink)">{hd}</text>')
-        out.append(f'<text class="note" x="{xc:.1f}" y="{b + 32}" text-anchor="middle">{hw[hd][0]}</text>')
+        out.append(f'<text class="ser" x="{xc:.1f}" y="{b + 20}" text-anchor="middle" fill="var(--ink)">{hd}</text>')
+        out.append(f'<text class="note" x="{xc:.1f}" y="{b + 40}" text-anchor="middle">{hw[hd][0]}</text>')
         yh = b - (hw[hd][1] - lo) / (hi - lo) * (b - t)
         out.append(f'<line x1="{xc - 26:.1f}" y1="{yh:.1f}" x2="{xc + 26:.1f}" y2="{yh:.1f}" stroke="var(--ink)" stroke-width="2.5"/>')
         for j, p in enumerate(("shipped", "corrected", "fast")):
@@ -321,12 +321,12 @@ def chart_bench(d):
             out.append(f'<circle cx="{x:.1f}" cy="{ym:.1f}" r="4.5" fill="{cols[p]}" stroke="var(--card)" stroke-width="1.5"/>')
     lx = x0
     out.append(f'<line x1="{lx}" y1="{h - 10}" x2="{lx + 14}" y2="{h - 10}" stroke="var(--ink)" stroke-width="2.5"/>')
-    out.append(f'<text class="note" x="{lx + 20}" y="{h - 6}">bench, net turn on held trials</text>')
-    lx += 240
-    for lab, p in (("shipped", "shipped"), ("calibrated kv 0.6", "corrected"), ("calibrated kv 0.02", "fast")):
+    out.append(f'<text class="note" x="{lx + 20}" y="{h - 6}">Bench, net turn on held trials</text>')
+    lx += 260
+    for lab, p in (("Shipped", "shipped"), ("Calibrated, kv 0.6", "corrected"), ("Calibrated, kv 0.02", "fast")):
         out.append(f'<circle cx="{lx + 5}" cy="{h - 10}" r="4.5" fill="{cols[p]}"/>')
         out.append(f'<text class="note" x="{lx + 16}" y="{h - 6}">{lab}</text>')
-        lx += 30 + len(lab) * 6.9
+        lx += 36 + len(lab) * 7.6
     return "\n".join(out) + "</svg>"
 
 

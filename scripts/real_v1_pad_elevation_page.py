@@ -72,7 +72,7 @@ def seam_mean(g, phase, field):
 
 def fig_closure(clo: dict) -> str:
     """z_rel per hand on a shaft cross-section axis, with the equator marked."""
-    W, H, L, R = 1020, 300, 168, 46
+    W, H, L, R = 1020, 300, 228, 112
     x0, x1 = L, W - R
     lo, hi = -0.60, 0.30
     sx = lambda z: x0 + (z - lo) / (hi - lo) * (x1 - x0)
@@ -107,8 +107,8 @@ def fig_closure(clo: dict) -> str:
 
 def fig_elev(grid: dict) -> str:
     """Full chain completions out of six, per hand per pad-ring elevation."""
-    W, H, L, T = 1020, 300, 168, 54
-    cw, ch = 132, 34
+    W, H, L, T = 1020, 300, 228, 54
+    cw, ch = 150, 34
     p = [f'<svg class="chart" viewBox="0 0 {W} {H}" role="img" '
          f'aria-label="chain completions by pad elevation">']
     for j, el in enumerate(ELEVS):
@@ -135,7 +135,7 @@ def fig_elev(grid: dict) -> str:
                      f'stroke-width="1.6"/>')
             p.append(f'<text class="val" x="{x+(cw-6)/2:.0f}" y="{yy+21}" text-anchor="middle" '
                      f'fill="{"var(--ink)" if f > 0.45 else "var(--ink2)"}">'
-                     f'{g["ok"]}/6 &#183; {g["stood_ok"]} stood</text>')
+                     f'{g["ok"]}/6, {g["stood_ok"]} stood</text>')
     p.append(f'<text class="axlab" x="{L+2.5*cw:.0f}" y="{H-8}" text-anchor="middle">'
              f'Pad-ring elevation about the shaft</text>')
     p.append("</svg>")

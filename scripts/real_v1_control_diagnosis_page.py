@@ -19,13 +19,13 @@ DID = {"sv1_w6689_b060": "D1", "sv1_w2360_b075": "D2", "sv1_u1364_b080": "D3",
 ORDER = list(DID)
 CHAIN_MM = 68.11
 # scripts/.../ext.py, closed grip, mount-to-pad distance per finger.
-EXT = {"CEM (the reference)": (62.6, 63.7, 65.4),
-       "fitter, squeeze 2 mm": (67.1, 67.7, 66.3),
-       "fitter, squeeze 4 mm": (66.9, 67.6, 66.1),
-       "fitter, squeeze 6 mm": (66.8, 67.4, 65.9),
-       "fitter, squeeze 8 mm": (66.6, 67.3, 65.6),
-       "fitter, squeeze 10 mm": (66.3, 67.1, 65.4),
-       "fitter, squeeze 12 mm": (66.0, 66.8, 65.1)}
+EXT = {"CEM grasp (reference)": (62.6, 63.7, 65.4),
+       "Fitter, squeeze 2 mm": (67.1, 67.7, 66.3),
+       "Fitter, squeeze 4 mm": (66.9, 67.6, 66.1),
+       "Fitter, squeeze 6 mm": (66.8, 67.4, 65.9),
+       "Fitter, squeeze 8 mm": (66.6, 67.3, 65.6),
+       "Fitter, squeeze 10 mm": (66.3, 67.1, 65.4),
+       "Fitter, squeeze 12 mm": (66.0, 66.8, 65.1)}
 
 
 def table(head, rows, nums, hi=frozenset()):
@@ -57,7 +57,7 @@ def seam(g, phase, field):
 
 def fig_ext() -> str:
     """Finger extension at the closed grip against the 68.11 mm chain."""
-    W, H, L, R = 1020, 268, 210, 120
+    W, H, L, R = 1020, 272, 290, 160
     x0, x1 = L, W - R
     lo, hi = 60.0, 68.11
     sx = lambda v: x0 + (v - lo) / (hi - lo) * (x1 - x0)
@@ -70,7 +70,7 @@ def fig_ext() -> str:
     p.append(f'<line x1="{sx(CHAIN_MM):.1f}" y1="28" x2="{sx(CHAIN_MM):.1f}" y2="{H-40}" '
              f'stroke="var(--bad)" stroke-width="1.5"/>')
     p.append(f'<text class="mark" x="{sx(CHAIN_MM):.1f}" y="20" text-anchor="middle" '
-             f'fill="var(--bad)">REACH SHELL 68.11</text>')
+             f'fill="var(--bad)">Reach shell, 68.11 mm</text>')
     y = 46
     for name, ext in EXT.items():
         ref = name.startswith("CEM")

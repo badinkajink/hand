@@ -31,6 +31,11 @@ def esc(s) -> str:
     return str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
+def figure(svg: str, caption: str) -> str:
+    """A chart and its note as a figure with a caption (the notes used to be SVG text under the plot)."""
+    return f'<figure class="chartfig">{svg}<figcaption>{caption}</figcaption></figure>'
+
+
 # ---------------------------------------------------------------- charts
 
 def chart_attrition(d) -> str:
@@ -38,8 +43,8 @@ def chart_attrition(d) -> str:
     rows = d["attrition"]
     tot = sum(r["n"] for r in rows)
     bh, gap = 22, 9
-    h = 44 + len(rows) * (bh + gap) + 30
-    x0, x1 = PAD_L, W - PAD_R - 58
+    h = 44 + len(rows) * (bh + gap) + 4
+    x0, x1 = 196, W - PAD_R - 150
     mx = max(r["n"] for r in rows)
     out = [f'<svg class="chart" viewBox="0 0 {W} {h}" role="img" '
            f'aria-label="Where the tool is lost across {tot} air-mode rollouts">']
@@ -50,16 +55,16 @@ def chart_attrition(d) -> str:
         wpx = (r["n"] / mx) * (x1 - x0)
         fill = "var(--good)" if r["phase"] == "carried" else (
             "var(--s1)" if r["phase"] in ("turned", "reoriented") else "var(--s2)")
-        out.append(f'<text class="tick" x="{PAD_L - 10}" y="{y + bh * 0.72}" '
+        out.append(f'<text class="tick" x="{x0 - 10}" y="{y + bh * 0.72}" '
                    f'text-anchor="end">{esc(r["phase"])}</text>')
         out.append(f'<rect x="{x0}" y="{y}" width="{max(wpx, 2):.1f}" height="{bh}" '
                    f'rx="4" fill="{fill}"/>')
         out.append(f'<text class="val" x="{x0 + wpx + 9:.1f}" y="{y + bh * 0.74}">'
                    f'{r["n"]}  <tspan fill="var(--ink3)">{100 * r["n"] / tot:.1f}%</tspan></text>')
-    out.append(f'<text class="note" x="{PAD_L}" y="{h - 8}">The turn and the settle that '
-               f'follows it account for {sum(r["n"] for r in rows if r["phase"] in ("turned", "reoriented")) / tot:.0%} '
-               f'of all losses. Amber = during the reorientation.</text>')
-    return "\n".join(out) + "</svg>"
+    return figure("\n".join(out) + "</svg>",
+                  f'The turn and the settle after it account for '
+                  f'{sum(r["n"] for r in rows if r["phase"] in ("turned", "reoriented")) / tot:.0%} of all losses. '
+                  f'Amber: losses during the reorientation.')
 
 
 def chart_hands(d) -> str:
@@ -68,7 +73,7 @@ def chart_hands(d) -> str:
     bh, sub, gap = 10, 3, 16
     grp = bh * 3 + sub * 2
     h = 56 + len(rows) * (grp + gap) + 52
-    x0, x1 = PAD_L, W - PAD_R - 96
+    x0, x1 = 222, W - PAD_R - 196
     out = [f'<svg class="chart" viewBox="0 0 {W} {h}" role="img" '
            f'aria-label="Per-hand outcome fractions">']
     out.append(f'<text class="axlab" x="{PAD_L}" y="18">Fraction of the hand\'s air-mode rollouts</text>')
@@ -82,10 +87,12 @@ def chart_hands(d) -> str:
             ("chain", "chain completed", "var(--good)")]
     for i, r in enumerate(rows):
         y = 38 + i * (grp + gap)
-        out.append(f'<text class="ser" x="{PAD_L - 10}" y="{y + grp / 2 + 4}" '
+        out.append(f'<text class="ser" x="{x0 - 10}" y="{y + grp / 2 + 5}" '
                    f'text-anchor="end" fill="var(--ink)">{r["id"]}</text>')
-        out.append(f'<text class="tick" x="{PAD_L - 34}" y="{y + grp / 2 + 4}" '
+        out.append(f'<text class="tick" x="{x0 - 46}" y="{y + grp / 2 + 5}" '
                    f'text-anchor="end">{esc(r["tag"])}</text>')
+        out.append(f'<text class="val" x="{x1 + 8}" y="{y + grp / 2 + 5}">'
+                   f'{r["survive"]}, {r["held_turn"]}, {r["chain"]} of {r["n"]}</text>')
         for j, (k, _lab, col) in enumerate(keys):
             frac = r[k] / r["n"]
             yy = y + j * (bh + sub)
@@ -93,29 +100,27 @@ def chart_hands(d) -> str:
                        f'fill="var(--sunk)"/>')
             out.append(f'<rect x="{x0}" y="{yy}" width="{max(frac * (x1 - x0), 1.5):.1f}" '
                        f'height="{bh}" rx="3" fill="{col}"/>')
-            out.append(f'<text class="val" x="{x1 + 8}" y="{yy + bh - 1}">'
-                       f'{r[k]}/{r["n"]}</text>')
-    lx = PAD_L
+    lx = x0
     for k, lab, col in keys:
-        out.append(f'<rect x="{lx}" y="{h - 14}" width="9" height="9" rx="2" fill="{col}"/>')
-        out.append(f'<text class="note" x="{lx + 14}" y="{h - 6}">{lab}</text>')
-        lx += 26 + len(lab) * 6.9
+        out.append(f'<rect x="{lx}" y="{h - 17}" width="12" height="12" rx="2" fill="{col}"/>')
+        out.append(f'<text class="note" x="{lx + 18}" y="{h - 6}">{lab[0].upper() + lab[1:]}</text>')
+        lx += 40 + len(lab) * 8.2
     return "\n".join(out) + "</svg>"
 
 
 def chart_pivot(d) -> str:
     """Best signed cosine at the turn, per hand per pivot height. Diverging about 0."""
     ks, rows = d["pivot"]["axis_k"], d["pivot"]["rows"]
-    cw, ch, gap = 96, 34, 6
-    h = 84 + len(rows) * (ch + gap) + 44
-    x0 = PAD_L
+    cw, ch, gap = 112, 34, 6
+    h = 64 + len(rows) * (ch + gap) + 4
+    x0 = 80
     out = [f'<svg class="chart" viewBox="0 0 {W} {h}" role="img" '
            f'aria-label="Best signed cosine at the turn, by hand and pivot height">']
     out.append(f'<text class="axlab" x="{x0}" y="18">Best signed cosine at the turn, open loop '
                f'(+1 tip down, &#8722;1 handle down)</text>')
     for j, k in enumerate(ks):
         out.append(f'<text class="tick" x="{x0 + j * (cw + gap) + cw / 2:.0f}" y="46" '
-                   f'text-anchor="middle">axis_k {k:.2f}</text>')
+                   f'text-anchor="middle">{k:.2f}</text>')
     for i, r in enumerate(rows):
         y = 56 + i * (ch + gap)
         out.append(f'<text class="ser" x="{x0 - 10}" y="{y + ch * 0.68:.0f}" '
@@ -135,12 +140,10 @@ def chart_pivot(d) -> str:
             ink = "#FFFFFF" if a > 0.62 else "var(--ink)"
             out.append(f'<text class="val" x="{x + cw / 2:.0f}" y="{y + ch * 0.68:.0f}" '
                        f'text-anchor="middle" fill="{ink}">{v:+.3f}</text>')
-    out.append(f'<text class="note" x="{x0}" y="{h - 24}">Best of every open-loop rollout in '
-               f'that cell. A hand&#8217;s good pivot is not the neighbouring hand&#8217;s: D7 '
-               f'peaks at 0.05, D6 and D5 at 0.15, D1 at 0.35.</text>')
-    out.append(f'<text class="note" x="{x0}" y="{h - 8}">D8 never turns the tool at any pivot '
-               f'height tried. Dots are cells that were never run.</text>')
-    return "\n".join(out) + "</svg>"
+    return figure("\n".join(out) + "</svg>",
+                  'Columns: the pivot height axis_k. Each cell is the best of every open-loop rollout in it. A '
+                  'hand&#8217;s best pivot differs from its neighbour&#8217;s: D7 peaks at 0.05, D6 and D5 at 0.15, D1 at '
+                  '0.35. D8 does not turn the tool at any pivot height tried. Dots: cells not run.')
 
 
 def chart_ledger(d) -> str:
@@ -179,10 +182,10 @@ def chart_ledger(d) -> str:
                          ("held tip-down turn", "var(--s1)", "1"),
                          ("a chain completed", "var(--good)", "1"),
                          ("in table mode: a stand", "var(--ref)", "1")):
-        out.append(f'<rect x="{lx}" y="{h - 14}" width="9" height="9" rx="2" fill="{col}" '
+        out.append(f'<rect x="{lx}" y="{h - 17}" width="12" height="12" rx="2" fill="{col}" '
                    f'opacity="{op}"/>')
-        out.append(f'<text class="note" x="{lx + 14}" y="{h - 6}">{lab}</text>')
-        lx += 28 + len(lab) * 6.9
+        out.append(f'<text class="note" x="{lx + 18}" y="{h - 6}">{lab[0].upper() + lab[1:]}</text>')
+        lx += 34 + len(lab) * 7.6
     return "\n".join(out) + "</svg>"
 
 
@@ -190,10 +193,10 @@ def chart_d6(d) -> str:
     """The completed chain, seam by seam: orientation above, pad force below."""
     sm = d["d6"]["seams"]
     n = len(sm)
-    h = 348
-    x0, x1 = PAD_L, W - PAD_R - 20
-    t, b = 40, 150          # cos panel
-    t2, b2 = 190, 258       # force panel
+    h = 484
+    x0, x1 = 200, W - PAD_R - 30
+    t, b = 50, 160          # cos panel
+    t2, b2 = 200, 268       # force panel
     xs = [x0 + i * (x1 - x0) / (n - 1) for i in range(n)]
 
     def ycos(v):
@@ -217,7 +220,7 @@ def chart_d6(d) -> str:
                    f'stroke="var(--card)" stroke-width="2"/>')
     for i in (0, 1, 4, 12):
         out.append(f'<text class="val" x="{xs[i]:.1f}" y="{ycos(sm[i]["cos"]) - 12:.1f}" '
-                   f'text-anchor="middle">{sm[i]["cos"]:+.3f}</text>')
+                   f'text-anchor="{"end" if i == 12 else "start" if i == 0 else "middle"}">{sm[i]["cos"]:+.3f}</text>')
     out.append(f'<text class="tick" x="{x0 - 10}" y="{b2 + 4}" text-anchor="end">0 N</text>')
     out.append(f'<line class="grid" x1="{x0}" y1="{b2}" x2="{x1}" y2="{b2}"/>')
     bw = (x1 - x0) / n * 0.5
@@ -225,16 +228,15 @@ def chart_d6(d) -> str:
         yy = yf(s["pad_force_N"])
         out.append(f'<rect x="{x - bw / 2:.1f}" y="{yy:.1f}" width="{bw:.1f}" '
                    f'height="{max(b2 - yy, 1.5):.1f}" rx="3" fill="var(--s1)"/>')
-        out.append(f'<text class="mark" x="{x:.1f}" y="{b2 + 14}" text-anchor="middle">'
+        out.append(f'<text class="mark" x="{x:.1f}" y="{b2 + 26}" text-anchor="middle">'
                    f'{s["pad_contacts"]}</text>')
-    out.append(f'<text class="note" x="{x0 - 10}" y="{b2 + 14}" text-anchor="end">pads</text>')
+    out.append(f'<text class="mark" x="{x0 - 10}" y="{b2 + 26}" text-anchor="end">Pads in contact</text>')
     for x, s in zip(xs, sm):
-        out.append(f'<text class="tick" x="{x:.1f}" y="{b2 + 30}" text-anchor="end" '
-                   f'transform="rotate(-38 {x:.1f} {b2 + 30})">{esc(s["phase"])}</text>')
-    out.append(f'<text class="note" x="{x0}" y="{h - 8}">Three pads carry the tool at every one '
-               f'of the thirteen seams; the load-test floor is the tool&#8217;s own 0.240 N. The '
-               f'rise between regripped and staged is the arm, not the fingers.</text>')
-    return "\n".join(out) + "</svg>"
+        out.append(f'<text class="tick" x="{x + 5:.1f}" y="{b2 + 40}" text-anchor="end" '
+                   f'transform="rotate(-90 {x + 5:.1f} {b2 + 40})">{esc(s["phase"])}</text>')
+    return figure("\n".join(out) + "</svg>",
+                  'Three pads hold the tool at all thirteen seams; the load-test floor is the tool&#8217;s weight, '
+                  '0.240 N. The arm, not the fingers, raises the cosine between regripped and staged.')
 
 
 # ---------------------------------------------------------------- tables

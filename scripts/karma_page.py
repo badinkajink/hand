@@ -42,6 +42,15 @@ def esc(s) -> str:
     return str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
+def figure(svg: str, caption: str) -> str:
+    """A chart and its note as a figure with a caption (the notes used to be SVG text under the plot)."""
+    return f'<figure class="chartfig">{svg}<figcaption>{caption}</figcaption></figure>'
+
+
+NAMES = {"leap": "LEAP", "allegro": "Allegro", "inspire": "Inspire", "ability_hand_right": "Ability",
+         "dclaw": "D&#8217;Claw", "shadowhand": "Shadow"}
+
+
 # ------------------------------------------------------------------------- charts
 
 def chart_spread(tab, pub) -> str:
@@ -58,7 +67,7 @@ def chart_spread(tab, pub) -> str:
     def X(v):
         return x0 + (math.log10(v) - lo) / (hi - lo) * (x1 - x0)
 
-    h = 250
+    h = 236
     o = [f'<svg class="chart" viewBox="0 0 {W} {h}" role="img" aria-label="KaRMA-T for '
          f'{len(ours)} real_v1 designs against the sixteen published hands">']
     o.append(f'<text class="axlab" x="{x0}" y="18">KaRMA-T, dimensionless reachable object-centre volume (log scale)</text>')
@@ -66,37 +75,33 @@ def chart_spread(tab, pub) -> str:
         v = 10.0 ** e
         if not (lo <= math.log10(v) <= hi):
             continue
-        o.append(f'<line class="grid" x1="{X(v):.1f}" y1="34" x2="{X(v):.1f}" y2="{h-56}"/>')
-        o.append(f'<text class="tick" x="{X(v):.1f}" y="{h-40}" text-anchor="middle">'
+        o.append(f'<line class="grid" x1="{X(v):.1f}" y1="34" x2="{X(v):.1f}" y2="{h-30}"/>')
+        o.append(f'<text class="tick" x="{X(v):.1f}" y="{h-8}" text-anchor="middle">'
                  f'1e{e}</text>')
     o.append(f'<text class="ser" x="{x0-10}" y="66" text-anchor="end" fill="var(--ink)">'
              f'real_v1</text>')
-    o.append(f'<text class="tick" x="{x0-10}" y="82" text-anchor="end">n={len(ours)}</text>')
+    o.append(f'<text class="tick" x="{x0-10}" y="86" text-anchor="end">n = {len(ours)}</text>')
     for n, v in enumerate(ours):
         # Deterministic jitter: Python salts str hashes per process, so hash() here would
         # make the page fail to regenerate identically.
         o.append(f'<circle cx="{X(v):.1f}" cy="{62 + (n * 7) % 26 - 13}" r="2.6" '
                  f'fill="{A}" fill-opacity="0.5"/>')
-    o.append(f'<text class="ser" x="{x0-10}" y="146" text-anchor="end" fill="var(--ink)">'
-             f'published</text>')
-    o.append(f'<text class="tick" x="{x0-10}" y="162" text-anchor="end">n=16</text>')
+    o.append(f'<text class="ser" x="{x0-10}" y="150" text-anchor="end" fill="var(--ink)">'
+             f'Published</text>')
+    o.append(f'<text class="tick" x="{x0-10}" y="170" text-anchor="end">n = 16</text>')
     for i, (v, name) in enumerate(theirs):
-        y = 132 + (i % 3) * 13
+        y = 130 + (i % 3) * 30
         o.append(f'<circle cx="{X(v):.1f}" cy="{y}" r="3.4" fill="{B}"/>')
-        if name in ("leap", "allegro", "inspire", "ability_hand_right", "dclaw", "shadowhand"):
-            o.append(f'<text class="mark" x="{X(v):.1f}" y="{y-7}" text-anchor="middle">'
-                     f'{esc(name[:9])}</text>')
+        if name in NAMES:
+            o.append(f'<text class="mark" x="{X(v) + 7:.1f}" y="{y + 6}">{NAMES[name]}</text>')
     med_o, med_p = st.median(ours), st.median([t[0] for t in theirs])
     for v, lab, col in ((med_o, "real_v1 median", A), (med_p, "published median", B)):
-        o.append(f'<line x1="{X(v):.1f}" y1="34" x2="{X(v):.1f}" y2="{h-58}" stroke="{col}" '
+        o.append(f'<line x1="{X(v):.1f}" y1="34" x2="{X(v):.1f}" y2="{h-30}" stroke="{col}" '
                  f'stroke-width="1.4" stroke-dasharray="4 3"/>')
-    o.append(f'<text class="note" x="{x0}" y="{h-20}">One topology, one set of finger links, '
-             f'six mount coordinates: {ours[-1]/ours[0]:.0f}&#215; between the best and worst '
-             f'of them, against {theirs[-1][0]/theirs[0][0]:.0f}&#215; across sixteen '
-             f'different commercial hands.</text>')
-    o.append(f'<text class="note" x="{x0}" y="{h-4}">Dashed lines are the two medians. '
-             f'Vertical jitter on the real_v1 points is cosmetic.</text>')
-    return "\n".join(o) + "</svg>"
+    return figure("\n".join(o) + "</svg>",
+                  f'One topology, one set of finger links, six mount coordinates: {ours[-1]/ours[0]:.0f}&#215; between '
+                  f'the best and worst of them, against {theirs[-1][0]/theirs[0][0]:.0f}&#215; across sixteen commercial '
+                  f'hands. Dashed lines: the two medians. The vertical jitter of the real_v1 points carries no data.')
 
 
 def chart_auc(an, arm_key: str) -> str:
@@ -105,23 +110,22 @@ def chart_auc(an, arm_key: str) -> str:
     a = arm["auc_retained"]
     rows = []
     for k, lab, col in (
-            ("karma_r", "KaRMA-R  rotational coverage", A),
-            ("karma_t", "KaRMA-T  translational volume", A),
-            ("n_voxels", "voxels reached", A),
-            ("karma_s", "KaRMA-S  seed sensitivity", A),
-            ("karma_trs_logistic_cv", "KaRMA T+R+S, logistic (5-fold CV)", A),
-            ("seed_depth_mm", "depth of the pinch KaRMA chose", REF),
-            ("ruler_closeness_of_the_scored_pair",
-             "ruler: how close the two scored mounts are", B),
-            ("ruler_small_x_sep", "ruler: thumb-to-pair span, small is high", B),
-            ("ruler_small_y_sep", "ruler: pair opening, small is high", B),
-            ("six_mounts_logistic_cv", "the six mount coordinates, logistic (5-fold CV)", B),
-            ("mounts_plus_karma_logistic_cv", "six mounts + KaRMA T/R/S, logistic (CV)", B)):
+            ("karma_r", "KaRMA-R, rotational coverage", A),
+            ("karma_t", "KaRMA-T, translational volume", A),
+            ("n_voxels", "Voxels reached", A),
+            ("karma_s", "KaRMA-S, seed sensitivity", A),
+            ("karma_trs_logistic_cv", "KaRMA T+R+S, logistic (CV)", A),
+            ("seed_depth_mm", "Depth of KaRMA&#8217;s pinch", REF),
+            ("ruler_closeness_of_the_scored_pair", "Ruler: scored-mount closeness", B),
+            ("ruler_small_x_sep", "Ruler: thumb-to-pair span", B),
+            ("ruler_small_y_sep", "Ruler: pair opening", B),
+            ("six_mounts_logistic_cv", "Six mounts, logistic (CV)", B),
+            ("mounts_plus_karma_logistic_cv", "Six mounts + KaRMA, logistic", B)):
         if k in a:
             rows.append((lab, a[k]["auc"], a[k].get("ci"), col))
     bh, gap = 24, 11
-    h = 62 + len(rows) * (bh + gap) + 54
-    x0, x1 = PAD_L + 186, W - PAD_R - 66
+    h = 42 + len(rows) * (bh + gap) + 34
+    x0, x1 = 20 + 300, W - PAD_R - 66
 
     def X(v):
         return x0 + (v - 0.5) / 0.45 * (x1 - x0)
@@ -131,28 +135,29 @@ def chart_auc(an, arm_key: str) -> str:
     o.append(f'<text class="axlab" x="{PAD_L}" y="18">AUC for predicting which designs pass the retention screen '
              f'(n = {arm["n"]}, {arm["n_retained"]} retained)</text>')
     for t in (0.5, 0.6, 0.7, 0.8, 0.9):
-        o.append(f'<line class="grid" x1="{X(t):.1f}" y1="34" x2="{X(t):.1f}" y2="{h-52}"/>')
-        o.append(f'<text class="tick" x="{X(t):.1f}" y="{h-36}" text-anchor="middle">'
+        o.append(f'<line class="grid" x1="{X(t):.1f}" y1="34" x2="{X(t):.1f}" y2="{h-30}"/>')
+        o.append(f'<text class="tick" x="{X(t):.1f}" y="{h-10}" text-anchor="middle">'
                  f'{t:.1f}</text>')
     for i, (lab, v, ci, col) in enumerate(rows):
         y = 42 + i * (bh + gap)
-        o.append(f'<text class="tick" x="{PAD_L}" y="{y+bh*0.72:.0f}">{esc(lab)}</text>')
+        o.append(f'<text class="tick" x="{x0 - 12}" y="{y+bh*0.72:.0f}" text-anchor="end">{lab}</text>')
         w = max(X(v) - X(0.5), 1.5)
         o.append(f'<rect x="{X(0.5):.1f}" y="{y}" width="{w:.1f}" height="{bh}" rx="4" '
                  f'fill="{col}"/>')
-        if ci:
-            o.append(f'<line x1="{X(ci[0]):.1f}" y1="{y+bh/2}" x2="{X(ci[1]):.1f}" '
+        if ci and ci[1] > 0.5:                           # the axis starts at 0.5: clip the interval there
+            lo_ci = max(ci[0], 0.5)
+            o.append(f'<line x1="{X(lo_ci):.1f}" y1="{y+bh/2}" x2="{X(ci[1]):.1f}" '
                      f'y2="{y+bh/2}" stroke="var(--ink2)" stroke-width="1.3"/>')
-            for e in ci:
+            for e in (lo_ci, ci[1]) if ci[0] >= 0.5 else (ci[1],):
                 o.append(f'<line x1="{X(e):.1f}" y1="{y+4}" x2="{X(e):.1f}" y2="{y+bh-4}" '
                          f'stroke="var(--ink2)" stroke-width="1.3"/>')
         o.append(f'<text class="val" x="{x1+9}" y="{y+bh*0.74:.0f}">{v:.3f}</text>')
-    o.append(f'<line x1="{X(0.5):.1f}" y1="34" x2="{X(0.5):.1f}" y2="{h-52}" '
+    o.append(f'<line x1="{X(0.5):.1f}" y1="34" x2="{X(0.5):.1f}" y2="{h-30}" '
              f'stroke="var(--ink2)" stroke-width="1.4"/>')
-    o.append(f'<text class="note" x="{PAD_L}" y="{h-16}">0.5 is a coin flip. Bars are the '
-             f'AUC, whiskers a 2,000-sample bootstrap 95% interval. Amber = KaRMA, blue = '
-             f'this programme&#8217;s own predictor on the same designs.</text>')
-    return "\n".join(o) + "</svg>"
+    return figure("\n".join(o) + "</svg>",
+                  'An AUC of 0.5 is a coin flip. Bars: the AUC; whiskers: a 2,000-sample bootstrap 95% interval. Amber: '
+                  'KaRMA&#8217;s scores; grey: the depth of its pinch; blue: this programme&#8217;s own predictors on the '
+                  'same designs.')
 
 
 def chart_depth(tab, ops) -> str:
@@ -166,7 +171,7 @@ def chart_depth(tab, ops) -> str:
     def X(v):
         return x0 + v / hi * (x1 - x0)
 
-    h = 226
+    h = 186
     nb = 34
     bins = [0] * nb
     for v in d:
@@ -177,29 +182,26 @@ def chart_depth(tab, ops) -> str:
     o.append(f'<text class="axlab" x="{x0}" y="18">Depth below the mounting plane, mm</text>')
     o.append(f'<rect x="{X(grips[0]):.1f}" y="32" width="{X(grips[-1])-X(grips[0]):.1f}" '
              f'height="{h-92}" fill="{B}" fill-opacity="0.13"/>')
-    o.append(f'<text class="mark" x="{X(grips[0])+7:.1f}" y="46">Grip depth of the eight '
-             f'deployed plans, {grips[0]:.1f}&#8211;{grips[-1]:.1f} mm</text>')
+    o.append(f'<text class="mark" x="{x1:.1f}" y="48" text-anchor="end">Deployed grips, '
+             f'{grips[0]:.1f}&#8211;{grips[-1]:.1f} mm</text>')
     for i, c in enumerate(bins):
         if not c:
             continue
         bw = (x1 - x0) / nb
-        bhh = (c / mx) * (h - 108)
-        o.append(f'<rect x="{x0+i*bw+0.7:.1f}" y="{h-72-bhh:.1f}" width="{bw-1.4:.1f}" '
+        bhh = (c / mx) * (h - 98)
+        o.append(f'<rect x="{x0+i*bw+0.7:.1f}" y="{h-32-bhh:.1f}" width="{bw-1.4:.1f}" '
                  f'height="{bhh:.1f}" rx="2" fill="{A}"/>')
     for t in range(0, int(hi) + 1, 10):
-        o.append(f'<text class="tick" x="{X(t):.1f}" y="{h-54}" text-anchor="middle">'
+        o.append(f'<text class="tick" x="{X(t):.1f}" y="{h-10}" text-anchor="middle">'
                  f'{t}</text>')
     med = st.median(d)
-    o.append(f'<line x1="{X(med):.1f}" y1="32" x2="{X(med):.1f}" y2="{h-72}" stroke="{A}" '
+    o.append(f'<line x1="{X(med):.1f}" y1="32" x2="{X(med):.1f}" y2="{h-32}" stroke="{A}" '
              f'stroke-width="1.6" stroke-dasharray="4 3"/>')
-    o.append(f'<text class="note" x="{x0}" y="{h-30}">KaRMA picks its own pinch. Over '
-             f'{len(d)} designs it chose a median depth of {med:.1f} mm &#8212; dashed '
-             f'line &#8212; where the deployed grasps sit at '
-             f'{grips[0]:.1f}&#8211;{grips[-1]:.1f} mm.</text>')
-    o.append(f'<text class="note" x="{x0}" y="{h-13}">'
-             f'{100*sum(1 for v in d if v < grips[0])/len(d):.0f}% of the pinches it scored '
-             f'are shallower than every grasp this hand has been deployed with.</text>')
-    return "\n".join(o) + "</svg>"
+    return figure("\n".join(o) + "</svg>",
+                  f'KaRMA picks its own pinch. Over {len(d)} designs it chose a median depth of {med:.1f} mm (dashed '
+                  f'line); the deployed grasps sit at {grips[0]:.1f}&#8211;{grips[-1]:.1f} mm (shaded). '
+                  f'{100*sum(1 for v in d if v < grips[0])/len(d):.0f}% of the pinches it scored are shallower than every '
+                  f'grasp this hand has been deployed with.')
 
 
 def chart_clip(tab, an) -> str:
@@ -210,8 +212,8 @@ def chart_clip(tab, an) -> str:
         return ""
     clips = sorted({r["max_clip_rad"] for r in sub})
     cw, gap = 150, 18
-    h = 300
-    y0, y1 = 44, h - 74
+    h = 290
+    y0, y1 = 44, h - 64
     vals = [r["karma_t"] for r in sub]
     import math
     lo, hi = math.log10(min(vals)), math.log10(max(vals))
@@ -226,9 +228,9 @@ def chart_clip(tab, an) -> str:
     for i, c in enumerate(clips):
         x = PAD_L + i * (cw + gap)
         grp = [r["karma_t"] for r in sub if r["max_clip_rad"] == c]
-        o.append(f'<text class="tick" x="{x + cw / 2:.0f}" y="{h - 52}" '
+        o.append(f'<text class="tick" x="{x + cw / 2:.0f}" y="{h - 34}" '
                  f'text-anchor="middle">{c:.2f} rad</text>')
-        o.append(f'<text class="mark" x="{x + cw / 2:.0f}" y="{h - 36}" '
+        o.append(f'<text class="mark" x="{x + cw / 2:.0f}" y="{h - 12}" '
                  f'text-anchor="middle">n = {len(grp)}</text>')
         for n, v in enumerate(grp):
             o.append(f'<circle cx="{x + 14 + (n * 11) % (cw - 28):.1f}" cy="{Y(v):.1f}" '
@@ -239,10 +241,9 @@ def chart_clip(tab, an) -> str:
         o.append(f'<text class="val" x="{x + cw + 4:.0f}" y="{Y(med) + 4:.1f}">'
                  f'{med:.4f}</text>')
     rho = an["arms"]["scaled|thumb-index"]["rho_max_clip"]["karma_t"]
-    o.append(f'<text class="note" x="{PAD_L}" y="{h - 14}">A bigger clip is a HARDER test '
-             f'under this gate, not an easier one. Spearman {rho["rho"]:+.3f} '
-             f'(p = {rho["p"]:.1e}); heavy rules are group medians.</text>')
-    return "\n".join(o) + "</svg>"
+    return figure("\n".join(o) + "</svg>",
+                  f'A larger clip is a harder test under this gate. Spearman {rho["rho"]:+.3f} '
+                  f'(p = {rho["p"]:.1e}); the heavy rules are group medians.')
 
 
 def chart_pairs(tab) -> str:
@@ -288,11 +289,8 @@ def chart_pairs(tab) -> str:
         col = B if meta["retained"] else REF
         o.append(f'<circle cx="{X(xv):.1f}" cy="{Y(yv):.1f}" r="3" fill="{col}" '
                  f'fill-opacity="{0.85 if meta["retained"] else 0.4}"/>')
-    o.append(f'<text class="note" x="{PAD_L+S+34}" y="70">The dashed line is agreement.</text>')
-    o.append(f'<text class="note" x="{PAD_L+S+34}" y="88">Blue = retained by this '
-             f'programme&#8217;s screen,</text>')
-    o.append(f'<text class="note" x="{PAD_L+S+34}" y="104">grey = not retained.</text>')
-    return "\n".join(o) + "</svg>"
+    return figure("\n".join(o) + "</svg>",
+                  'Dashed line: agreement. Blue: retained by this programme&#8217;s screen; grey: not retained.')
 
 
 def table_deployed(an) -> str:
