@@ -184,3 +184,33 @@ def stiffness_map_law(name, forces=FORCES):
         out[F] = dict(delta_um=d * 1e3, arm=arm, delta_err_pct=(d / R[F]["delta_mm"] - 1) * 100,
                       arm_err_pct=(arm / R[F]["arm"] - 1) * 100)
     return out
+
+
+EDGE_Y = 3.5      # mm: the outer 1.2 mm of the 9.4 mm flat palmar face, and the fillets beyond it
+
+
+def edge_share(name, F=1.0):
+    """Share of the cylinder's force on face nodes with |y| > EDGE_Y (the face edges over the fillet corners), for the
+    finite-element tip and for the pressure law on the same nodes at the same force (uniform modulus)."""
+    path = DIR / "data" / f"{name}.npz"
+    if not path.exists():
+        return None
+    D = np.load(path)
+    p, X, A_, g0 = D[f"cyl_{F:g}__p"], D[f"cyl_{F:g}__X"], D[f"cyl_{F:g}__A"], D[f"cyl_{F:g}__g0"]
+    fe = float(p[np.abs(X[:, 1]) > EDGE_Y].sum() / p.sum())
+    d = law_delta(A_, g0, F, 10.0)
+    pl = A_ * np.clip(d - g0, 0, None)
+    law = float(pl[np.abs(X[:, 1]) > EDGE_Y].sum() / pl.sum())
+    return dict(fe=fe, law=law)
+
+
+def edge_share_gpu(tag, delta=0.04):
+    path = DIR / "data" / f"gpu_{tag}_cyl.npz"
+    if not path.exists():
+        return None
+    D = np.load(path)
+    key = f"p_{delta:g}"
+    if key not in D.files:
+        return None
+    p, X = D[key], D["X_face"]
+    return float(p[np.abs(X[:, 1]) > EDGE_Y].sum() / p.sum())

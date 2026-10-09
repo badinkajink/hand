@@ -351,48 +351,89 @@ def arm_section(X: Data):
     g = T["g20_across"]
     pads = {E: X.pads_arm(E, 1.0) for E in sorted(X.B)}
     pv = [v for v in pads.values() if v]
-    txt = (f"<p>The walls carry the face like two rails: under the cylinder the pressure peaks where the flat face meets the fillets, "
-           f"so the twist arm of the 20&#8202;% tip is {f2(g['arm'][1.0])}&#8202;mm at 1&#8202;N. The pads on the same block give "
-           f"{min(pv):.2f}&#8211;{max(pv):.2f}&#8202;mm for moduli of {min(pads):g}&#8211;{max(pads):g}&#8202;MPa (bed task T2), so no modulus "
-           f"brings the pads&#8217; arm to the printed tip&#8217;s (Figure&#160;{FIG[0] + 1}). The contact widens as "
-           f"\\(F^{{{g.get('b_exponent', float('nan')):.2f}}}\\) against the law&#8217;s \\(F^{{1/3}}\\). The face sinks with a coupling length "
-           f"of {f1(g.get('coupling_length_mm'))}&#8202;mm away from the contact line. Below the slip force the tool moves "
-           f"{f1(g['presliding_um'][1.0])}&#8202;&#181;m at half the slip force at 1&#8202;N; the pads store no such displacement, and the "
-           f"native skin of the <a href=\"../20261007-native_compliance/20261007-native_presliding_compliance.html\">compliance page</a> "
-           f"is the model that does.</p>")
+    es = {n: A.edge_share(n) for n in ("solid95", "g20_across", "g10_across")}
+    sm = A.stiffness_map_law("g20_across")
+    txt = (f"<p>The walls carry the face like two rails: under the cylinder, {f0(100 * es['g20_across']['fe'])}&#8202;% of the 20&#8202;% "
+           f"tip&#8217;s force lies within 1.2&#8202;mm of the flat face&#8217;s edges and on the fillets, against "
+           f"{f0(100 * es['g20_across']['law'])}&#8202;% for the pressure law on the same nodes ({f0(100 * es['g10_across']['fe'])}&#8202;% at "
+           f"10&#8202;% infill, {f0(100 * es['solid95']['fe'])}&#8202;% for the solid print). The twist arm of the 20&#8202;% tip is therefore "
+           f"{f2(g['arm'][1.0])}&#8202;mm at 1&#8202;N; the pads on the same block give {min(pv):.2f}&#8211;{max(pv):.2f}&#8202;mm for moduli "
+           f"of {min(pads):g}&#8211;{max(pads):g}&#8202;MPa (bed task T2), so no modulus brings the pads&#8217; arm to the printed "
+           f"tip&#8217;s (Figure&#160;{FIG[0] + 1}).</p>")
+    if sm:
+        txt += (f"<p>A local law cannot carry this coupling. Pads given a per-node stiffness from the finite-element plate solve "
+                f"(pressure over approach at each face node) reproduce the plate by construction but miss the cylinder&#8217;s approach "
+                f"by {f0(sm[3.0]['delta_err_pct'])}&#8211;{f0(sm[0.5]['delta_err_pct'])}&#8202;% and its arm by "
+                f"{f0(min(v['arm_err_pct'] for v in sm.values()))}&#8211;{f0(max(v['arm_err_pct'] for v in sm.values()))}&#8202;%.</p>")
+    txt += (f"<p>The contact widens as \\(F^{{{g.get('b_exponent', float('nan')):.2f}}}\\) against the law&#8217;s \\(F^{{1/3}}\\), and the face "
+            f"sinks around the contact line with a coupling length of {f1(g.get('coupling_length_mm'))}&#8202;mm. Below the slip force "
+            f"the tool moves {f1(g['presliding_um'][1.0])}&#8202;&#181;m at half the slip force at 1&#8202;N; the pads store no such "
+            f"displacement, and the native skin of the <a href=\"../20261007-native_compliance/20261007-native_presliding_compliance.html\">"
+            f"compliance page</a> is the model that does.</p>")
     fig = figure("".join(svg_arm(X)), "Twist arm against normal force: printed tips (lines, homogenized; hollow circles, resolved) and the "
                  "1&#8202;mm pads on the tpu2.7 block at 7.5&#8211;20&#8202;MPa (purple squares, bed T2).",
                  legend=LEG_TIPS + [("Pads, 7.5&#8211;20&#8202;MPa", COL["pads"], True, "square")])
     return txt + fig
 
-
 def recipes_section(X: Data):
     T, G = X.T, X.G
-    if len(T) < 3:
+    if len(T) < 6:
         return P.pending("Recipe rows not written yet.")
+    pad14 = X.pads_arm(14.0, 1.0)
+    order = sorted(T.items(), key=lambda kv: kv[1].get("E_best_max_err_pct", 1e9))
     body = []
-    for name, r in sorted(T.items(), key=lambda kv: kv[1].get("E_best_max_err_pct", 1e9)):
-        pad_arm = X.pads_arm(14.0, 1.0)
-        arm_err = (pad_arm / r["arm"][1.0] - 1) * 100 if pad_arm else None
-        body.append([RECIPE_LBL.get(name, name), f1(r["k_1N"]), f1(r.get("E_best")), f0(r.get("E_best_max_err_pct")),
-                     f0(arm_err), f2(r.get('b_exponent')), f1(r.get("coupling_length_mm")),
+    for name, r in order:
+        es = A.edge_share(name)
+        arm_err = (pad14 / r["arm"][1.0] - 1) * 100 if pad14 else None
+        body.append([RECIPE_LBL.get(name, name), f1(r["k_1N"]), f1(r.get("E_best")), f0(r.get("E_best_max_err_pct")), f0(arm_err),
+                     f0(100 * es["fe"]) if es else "&#8211;", f2(r.get("b_exponent")), f1(r.get("coupling_length_mm")),
                      f1(r["presliding_um"][1.0])])
     tab = table(["Print", "\\(k\\) at 1&#8202;N (N/mm)", "\\(E^*\\) (MPa)", "Approach error (%)", "Pads&#8217; arm error (%)",
-                 "Width exponent", "\\(\\ell\\) (mm)", "Presliding (&#181;m)"], body,
-                "Print recipes ordered by the error of the best single modulus; the pads&#8217; arm error is at 14&#8202;MPa and 1&#8202;N.")
-    spread = ""
+                 "Edge load (%)", "Width exponent", "\\(\\ell\\) (mm)", "Presliding (&#181;m)"], body,
+                "Prints ordered by the error of the best single modulus (homogenized cores). Pads&#8217; arm error: the pads at "
+                "14&#8202;MPa against the print at 1&#8202;N; edge load: the share of the cylinder&#8217;s force within 1.2&#8202;mm of "
+                "the face edges (law: 29&#8202;%).")
+    e = {n: T[n].get("E_best_max_err_pct") for n in T}
+    k = {n: T[n]["k_1N"] for n in T}
+    txt = (f"<p>Ordered by the error of the best single modulus, 85A at 30&#8202;% ({f0(min(e['s85_30_across'], e['s85_30_along']))}&#8211;"
+           f"{f0(max(e['s85_30_across'], e['s85_30_along']))}&#8202;%) and 95A at 20&#8202;% ({f0(min(e['g20_across'], e['g20_along']))}&#8211;"
+           f"{f0(max(e['g20_across'], e['g20_along']))}&#8202;%) come first, 95A at 10&#8202;% next ({f0(e['g10_across'])}&#8202;%), then 85A at "
+           f"50&#8202;% ({f0(min(e['s85_50_across'], e['s85_50_along']))}&#8211;{f0(max(e['s85_50_across'], e['s85_50_along']))}&#8202;%) and the "
+           f"solid prints ({f0(e['s85_100'])}&#8211;{f0(e['solid95'])}&#8202;%), whose cylinder contact is local while the plate loads the "
+           f"whole block. At equal stiffness, 95A at 20&#8202;% ({f1(k['g20_across'])}&#8202;N/mm at 1&#8202;N) beats 85A at 50&#8202;% "
+           f"({f1(k['s85_50_across'])}&#8202;N/mm), and 85A at 30&#8202;% ({f1(k['s85_30_across'])}) beats 95A at 10&#8202;% "
+           f"({f1(k['g10_across'])}): soft TPU at moderately high infill is represented worse than at 30&#8202;%. The twist arm trades "
+           f"against this ranking: the denser the print, the closer its arm to the pads&#8217;.</p>")
     sh = [G[t] for t in ("g20x_s0", "g20x_s26", "g20x_s0_26", "g20x_s13") if t in G]
     if len(sh) >= 2:
-        F40 = [g["F_at"].get(40.0) for g in sh if g["F_at"].get(40.0)]
-        spread = (f"<p>Moving the gyroid under the contact by up to half a period changes the force at 40&#8202;&#181;m by "
-                  f"{100 * (max(F40) - min(F40)) / np.mean(F40):.1f}&#8202;% ({len(F40)} phases, 20&#8202;% across).</p>")
-    if "g20x_s0" in G and "g20z_s0" in G:
-        a, b = G["g20x_s0"]["delta_um"].get(1.0), G["g20z_s0"]["delta_um"].get(1.0)
-        if a and b:
-            spread += (f"<p>Turning the print from layers across to layers along the load changes the approach at 1&#8202;N from "
-                       f"{f1(a)} to {f1(b)}&#8202;&#181;m ({100 * (b / a - 1):+.0f}&#8202;%).</p>")
-    return tab + spread
-
+        d1 = [g["delta_um"].get(1.0) for g in sh if g["delta_um"].get(1.0)]
+        txt += (f"<p>The position of the contact on the infill changes little at 20&#8202;%: shifting the gyroid by up to half a period "
+                f"in either direction changes the approach at 1&#8202;N by {100 * (max(d1) - min(d1)) / np.mean(d1):.1f}&#8202;% "
+                f"({len(d1)} phases, resolved), because the four skin layers and the 9.4&#8202;mm contact line average over the beads.")
+        s5 = [G[t] for t in ("g05x_s0", "g05x_s0_52", "g05x_s0_105") if t in G]
+        d5 = [g["delta_um"].get(1.0) for g in s5 if g["delta_um"].get(1.0)]
+        if len(d5) >= 2:
+            txt += (f" At 5&#8202;% (21&#8202;mm period) the same shifts change it by "
+                    f"{100 * (max(d5) - min(d5)) / np.mean(d5):.0f}&#8202;%.")
+        txt += "</p>"
+    if "g20x_s0" in G and "g20z_s0" in G and "g10x_s0" in G and "g10z_s0" in G:
+        a = {t: G[t]["delta_um"].get(1.0) for t in ("g20x_s0", "g20z_s0", "g10x_s0", "g10z_s0")}
+        txt += (f"<p>Printing the layers along the load instead of across it softens the resolved tip by "
+                f"{100 * (a['g20z_s0'] / a['g20x_s0'] - 1):.0f}&#8202;% at 20&#8202;% and {100 * (a['g10z_s0'] / a['g10x_s0'] - 1):.0f}&#8202;% "
+                f"at 10&#8202;%. The homogenized core is within {100 * abs(a['g20x_s0'] / T['g20_across']['delta_um'][1.0] - 1):.0f}&#8211;"
+                f"{100 * abs(a['g20z_s0'] / T['g20_along']['delta_um'][1.0] - 1):.0f}&#8202;% of the resolved approach at 20&#8202;% and "
+                f"{100 * abs(a['g10x_s0'] / T['g10_across']['delta_um'][1.0] - 1):.0f}&#8211;{100 * abs(a['g10z_s0'] / T['g10_along']['delta_um'][1.0] - 1):.0f}&#8202;% "
+                f"at 10&#8202;%, where the 10.4&#8202;mm period is three times the contact width.</p>")
+    extra = [(t, G[t]) for t in ("g05x_s0", "g05z_s0", "eflesh_c8") if t in G]
+    if extra:
+        body2 = [[GPU_LBL[t], f1(g["delta_um"].get(0.5)), f1(g["delta_um"].get(1.0)), f1(g["delta_um"].get(3.0)), f2(g["force_exponent"])]
+                 for t, g in extra]
+        txt += table(["Print (resolved only)", "\\(\\delta\\) at 0.5&#8202;N (&#181;m)", "\\(\\delta\\) at 1&#8202;N (&#181;m)",
+                      "\\(\\delta\\) at 3&#8202;N (&#181;m)", "Force exponent"], body2,
+                     "Prints whose cells are as large as the tip, resolved on the GPU only (linear elasticity).")
+    txt += ("<p>For the bench: 95A gyroid at 20&#8202;% (either orientation) and, as the softer print with the same single-modulus "
+            "error, 85A gyroid at 30&#8202;% printed hot. Both should be measured under the plate and the screwdriver before choosing.</p>")
+    return txt + tab
 
 def cost_section(X: Data):
     rows = [
@@ -413,14 +454,15 @@ def lede(X: Data):
         return "Runs in progress."
     g20, g10 = T["g20_across"], T["g10_across"]
     pads = [X.pads_arm(E, 1.0) for E in sorted(X.B) if X.pads_arm(E, 1.0)]
-    return (f"A finite-element model of the printed fingertip (TPU 95A at 30&#8202;MPa, two walls, gyroid infill) puts the pads&#8217; "
-            f"modulus at {f1(g10.get('E_best'))}&#8202;MPa for 10&#8202;% infill and {f1(g20.get('E_best'))}&#8202;MPa for 20&#8202;%, near the "
-            f"10&#8202;MPa every contact model has used. One modulus misses the approach under the screwdriver by up to "
-            f"{f0(g20.get('E_best_max_err_pct'))}&#8211;{f0(g10.get('E_best_max_err_pct'))}&#8202;% over 0.5&#8211;3&#8202;N, because the tip "
-            f"stiffens as \\(\\delta^{{{g20['force_exponent']:.2f}}}\\) and the law as \\(\\delta^{{1.5}}\\). The walls load the ends of the "
-            f"contact line, so the printed tip&#8217;s twist arm is {f1(g20['arm'][1.0])}&#8202;mm against {min(pads):.1f}&#8211;"
-            f"{max(pads):.1f}&#8202;mm for the pads at any modulus. Resolved and homogenized infill agree within 3&#8202;%.")
-
+    es = A.edge_share("g20_across")
+    return (f"A finite-element model of the printed fingertip (TPU 95A, two walls, gyroid infill) puts the pads&#8217; modulus at "
+            f"{f1(g10.get('E_best'))}&#8202;MPa for 10&#8202;% infill and {f1(g20.get('E_best'))}&#8202;MPa for 20&#8202;%, near the 10&#8202;MPa "
+            f"used so far. One modulus misses the approach under the screwdriver by up to "
+            f"{f0(g20.get('E_best_max_err_pct'))}&#8211;{f0(g10.get('E_best_max_err_pct'))}&#8202;% over 0.5&#8211;3&#8202;N: the tip "
+            f"stiffens as \\(\\delta^{{{g20['force_exponent']:.2f}}}\\), the law as \\(\\delta^{{1.5}}\\). The walls carry "
+            f"{f0(100 * es['fe'])}&#8202;% of the load at the face edges, so the printed tip&#8217;s twist arm is {f1(g20['arm'][1.0])}&#8202;mm "
+            f"against {min(pads):.1f}&#8211;{max(pads):.1f}&#8202;mm for the pads at any modulus. Resolved beads change the 20&#8202;% "
+            f"result by 2&#8211;3&#8202;% (5&#8202;minutes per curve on the GPU).")
 
 def open_items(X: Data):
     g = X.T.get("g20_across", {})
