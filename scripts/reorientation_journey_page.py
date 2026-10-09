@@ -62,7 +62,7 @@ def chart_attrition(d) -> str:
         out.append(f'<text class="val" x="{x0 + wpx + 9:.1f}" y="{y + bh * 0.74}">'
                    f'{r["n"]}  <tspan fill="var(--ink3)">{100 * r["n"] / tot:.1f}%</tspan></text>')
     return figure("\n".join(out) + "</svg>",
-                  f'The turn and the settle after it account for '
+                  f'The turn and the hold after it account for '
                   f'{sum(r["n"] for r in rows if r["phase"] in ("turned", "reoriented")) / tot:.0%} of all losses. '
                   f'Amber: losses during the reorientation.')
 
@@ -235,8 +235,8 @@ def chart_d6(d) -> str:
         out.append(f'<text class="tick" x="{x + 5:.1f}" y="{b2 + 40}" text-anchor="end" '
                    f'transform="rotate(-90 {x + 5:.1f} {b2 + 40})">{esc(s["phase"])}</text>')
     return figure("\n".join(out) + "</svg>",
-                  'Three pads hold the tool at all thirteen seams; the load-test floor is the tool&#8217;s weight, '
-                  '0.240 N. The arm, not the fingers, raises the cosine between regripped and staged.')
+                  'Three pads hold the tool at all thirteen checkpoints; the load-test floor is the tool&#8217;s weight, '
+                  '0.240 N. Between the regripped and staged checkpoints the arm raises the cosine; the fingers do not move.')
 
 
 # ---------------------------------------------------------------- tables
@@ -253,7 +253,7 @@ def table_ledger(d) -> str:
     r = []
     for i, x in enumerate(d["ledger"], 1):
         r.append(f'<tr><td class="num">{i}</td>'
-                 f'<td class="mono">{esc(x["sweep"])}</td><td>{esc(x["mode"])}</td>'
+                 f'<td class="mono">{esc(x["sweep"])}</td><td>{esc(x["mode"]).capitalize()}</td>'
                  f'<td class="num">{x["n"]}</td><td class="num">{x["survive_turn"]}</td>'
                  f'<td class="num">{x["held_turn"]}</td>'
                  f'<td class="num">{_chain_cell(x)}</td></tr>')
@@ -286,14 +286,14 @@ def table_completed(d) -> str:
 
 
 ABL_WHAT = {
-    "baseline": "the reference, unchanged",
-    "tips=box": "spherical pads &#8594; the chain&#8217;s flat pads",
-    "grasp=fit": "stored CEM grasp &#8594; the deployment fitter",
-    "axis_k=0.05": "pivot 0.25 &#8594; the deployed plans&#8217; 0.05",
-    "angle=-60": "turn angle &#8722;90&#176; &#8594; &#8722;60&#176;",
-    "clip=0.85": "finger travel budget 0.50 &#8594; 0.85 rad",
-    "turn=plan": "the plan&#8217;s own pivot and angle together",
-    "all=deployed": "every deployed setting at once",
+    "baseline": "The reference, unchanged",
+    "tips=box": "Spherical pads &#8594; the chain&#8217;s flat pads",
+    "grasp=fit": "Stored CEM grasp &#8594; the deployment fitter",
+    "axis_k=0.05": "Pivot 0.25 &#8594; the deployed plans&#8217; 0.05",
+    "angle=-60": "Turn angle &#8722;90&#176; &#8594; &#8722;60&#176;",
+    "clip=0.85": "Finger travel budget 0.50 &#8594; 0.85 rad",
+    "turn=plan": "The plan&#8217;s own pivot and angle together",
+    "all=deployed": "Every deployed setting at once",
 }
 
 
