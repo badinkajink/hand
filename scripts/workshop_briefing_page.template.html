@@ -358,54 +358,44 @@ includes three later holds &#183; * D4 reports peak alignment</p>
 {{RHO_TABLE}}
 
 <h3>Effect of scoring on held trials</h3>
-<p>The alignment column is conditioned on survival, and the survival fraction runs from 0.2 to 1.0 across the eight. D5&#8217;s
-0.938 is the mean of the three trials that held; its seven drops turned to 73&#176; on average and left. D6&#8217;s 0.614
-rests on two trials. The simulator&#8217;s convention scores a release as zero, which produces a retention-weighted alignment:
-D1 0.715, D2 0.797, D3 0.275, D4 0.737, D5 0.281, D6 0.123, D7 0.553, D8 0.309. Against the simulated column that gives
-&#961;<sub>s</sub> = {{RHO_RW}} (p = {{P_RW}}) instead of {{RHO_ALL}}, and D5 moves from first to sixth. Held-only alignment measures how far a hand turns the tool when it keeps it, the
-quantity the geometric plan predicts; retention-weighted alignment measures how often a trial ends with a turned, held
-tool, the quantity a downstream task needs. The paper reports the first; it should say so and report the second beside
-it.</p>
-<p>The conditioning also explains the near-zero correlation between hold rate and alignment (&#961;<sub>s</sub> =
-{{RHO_HOLD_BENCH}}): the hands that turn furthest when they hold are the ones that most often do not hold (D5, D8), and the
-hand that always holds turns least (D7). Retention and alignment are two outcomes of one open-loop plan, and the plan trades
-them: in the simulated chain, past about 59&#176; of turn no cell holds the tool and every cell that turns 44&#176; or
-less holds it 4/4 (<code>docs/experiments/20260906-screened_turn/</code>). The mechanism is in the simulator&#8217;s own per-finger trace: through
-the turn the index pad leaves at about half of it and the total pad force falls from 28 N to 0.3 N by 70 %, so in the last
-third of the rotation the tool falls toward vertical in a hand that barely holds it.</p>
+<p>The bench alignment is averaged over held trials, and the survival fraction runs from 0.2 to 1.0 across the eight:
+D5&#8217;s 0.938 is the mean of its three holds, and D6&#8217;s 0.614 rests on two. Scoring a release as zero, as the simulator
+does, gives D1 0.715, D2 0.797, D3 0.275, D4 0.737, D5 0.281, D6 0.123, D7 0.553 and D8 0.309, and &#961;<sub>s</sub> =
+{{RHO_RW}} (p = {{P_RW}}) against the simulated column instead of {{RHO_ALL}}, with D5 moving from first to sixth. Held-only
+alignment measures how far a hand turns the tool when it keeps it, which the geometric plan predicts; retention-weighted
+alignment measures how often a trial ends with a turned, held tool, which a downstream task needs. The paper should name
+its convention and report the other beside it.</p>
+<p>Hold rate and alignment are nearly uncorrelated (&#961;<sub>s</sub> = {{RHO_HOLD_BENCH}}): the hands that turn furthest when
+they hold drop most often (D5, D8), and the hand that always holds turns least (D7). One open-loop plan trades the two: in
+the simulated chain no cell holds the tool past about 59&#176; of turn and every cell that turns 44&#176; or less holds it 4/4
+(<code>docs/experiments/20260906-screened_turn/</code>), because the index pad leaves at about half the turn and the total pad
+force falls from 28 N to 0.3 N by 70 % of it.</p>
 
 <h3>The D4 peak substitution</h3>
-<p>On every one of D4&#8217;s nine held trials the vane leaves the decodable image near vertical, so its hold-window cosine is
-void and its peak stands in. Peak and hold alignment agree in rank (&#961;<sub>s</sub> = {{RHO_PEAK_BENCH}} over the eight;
-r = 0.82 and &#961;<sub>s</sub> = 0.86 over the 52 complete traces) and the peak is always the larger number, with a residual
-sd of 0.103 between them. The substituted 0.819 is therefore an upper bound on D4&#8217;s true value. Two sensitivity
-checks: removing D4 gives &#961;<sub>s</sub> = {{RHO_NO4}} on seven hands; replacing its value with any number from 0 to 1
-gives &#961;<sub>s</sub> between {{SENS_LO}} and {{SENS_HI}}, so the substitution can move the headline coefficient by at
-most 0.14 and the reported value sits at the top of that range. The fix is instrumental: a vane with the tag 50 mm from
-the centre instead of 77 mm cuts the swept arc by a third and keeps the 40 mm tag&#8217;s decode margin.</p>
+<p>On all nine of D4&#8217;s held trials the vane leaves the decodable image near vertical, so its hold-window cosine is void
+and its peak stands in. Peak and hold alignment agree in rank (&#961;<sub>s</sub> = {{RHO_PEAK_BENCH}} over the eight, 0.86
+over the 52 complete traces), and the peak is always the larger, by a residual sd of 0.103, so the substituted 0.819 is an
+upper bound. Removing D4 gives &#961;<sub>s</sub> = {{RHO_NO4}} on seven hands, and any value from 0 to 1 gives
+&#961;<sub>s</sub> between {{SENS_LO}} and {{SENS_HI}}; the reported value sits at the top of that range. A vane with the tag
+50 mm from the centre instead of 77 mm cuts the swept arc by a third and keeps the tag decodable.</p>
 
 <h3>Eight hands</h3>
 <p>The eight-point coefficient {{RHO_ALL}} has p = {{P_ALL}} and a bootstrap 95 % interval over hands of
-[{{BOOT_LO}}, {{BOOT_HI}}]; the two-sided 5 % critical value at n = 8 is 0.74. The pre-registered protocol (n = 16 plans)
-stated the critical value of 0.50 for its design and called itself powered for a strong correlation and underpowered for a
-weak one; the study ran eight morphologies at ten trials each instead. The secondary correlations are descriptive at this n:
-contact force {{RHO_FORCE}} (p = 0.09), contact count {{RHO_CONT}}, and nothing simulated orders hold rate (&#8722;0.29
-&#8804; &#961;<sub>s</sub> &#8804; 0.27). Two further limits apply to them:</p>
+[{{BOOT_LO}}, {{BOOT_HI}}]; the two-sided 5 % critical value at n = 8 is 0.74. The pre-registered protocol planned sixteen
+plans at four trials (critical value 0.50); the study ran eight morphologies at ten trials. The secondary correlations are
+descriptive at this n: contact force {{RHO_FORCE}} (p = 0.09), contact count {{RHO_CONT}}, and nothing simulated orders hold
+rate (&#8722;0.29 &#8804; &#961;<sub>s</sub> &#8804; 0.27). Two further limits apply:</p>
 <ul>
 <li><strong>Within-eight correlations inherit the selection.</strong> The eight were chosen in simulated-alignment order, so
-any variable correlated with the selection correlates with alignment inside the set. The depth of the grasp fit reads
-&#961;<sub>s</sub> = &#8722;0.90 (p = 0.002) against simulated cosine over the eight and +0.076 over the 535 retained designs.
-Check any within-eight coefficient against the population before believing it.</li>
-<li><strong>The set is narrow.</strong> Median pairwise mount separation 43.6 mm (minimum 14.4 mm, D4&#8211;D8), below the
-first percentile of random eights from the population and the third percentile from the 535; the six Sobol members alone
-are at the 0.1st percentile. The coefficient describes one corner of the box.</li>
+any variable correlated with the selection correlates with alignment inside the set: the depth of the grasp fit reads
+&#961;<sub>s</sub> = &#8722;0.90 (p = 0.002) over the eight and +0.076 over the 535 retained designs.</li>
+<li><strong>The set is narrow.</strong> The median pairwise mount separation of 43.6 mm (minimum 14.4 mm, D4&#8211;D8) is below
+the first percentile of random eights from the population.</li>
 </ul>
-<p>The plant correction of 2026-09-02 (finger gain 30 &#8594; 0.5, the calibrated servo) reproduces one hand&#8217;s level
-(rv05: retention 0.94 against the bench&#8217;s 0.92, cosine 0.638 against 0.593) and does not repair the ordering: replaying
-the exported trajectories on the corrected plant moves &#961;<sub>s</sub> from &#8722;0.54 to +0.11 over seven hands in that
-harness. Both of its largest misses are grip cases in opposite directions (D3 slips on the bench and never in the sim; D8
-drops in the sim on every trial and on the bench on some). What the simulator lacks is contact, and identifying contact
-needs the bench.</p>
+<p>The plant correction of 2026-09-02 (finger gain 30 &#8594; 0.5) reproduces rv05&#8217;s level (retention 0.94 against the
+bench&#8217;s 0.92, cosine 0.638 against 0.593) and moves &#961;<sub>s</sub> over seven hands only from &#8722;0.54 to +0.11 in
+that harness. Its two largest misses are grip cases in opposite directions (D3 slips on the bench and never in simulation;
+D8 drops in every simulated trial and in some bench trials), so the missing physics is contact.</p>
 </div></section>
 
 <section id="repeat"><div class="col">
