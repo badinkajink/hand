@@ -85,10 +85,34 @@ def main():
     parts = []
     parts.append(
         section(
-            "What the comparison establishes",
+            "Terms and metrics",
             """
-    <p><strong>Refining the sphere quadrature does not automatically increase friction.</strong>
-    Total sample area and stiffness are held fixed. At about 3.89 N total normal load,
+    <dl class="terms">
+    <dt>Sphere resolution</dt><dd>Spacing of the pad spheres (1, 0.5 or 0.25 mm), with total sample area and stiffness held
+    fixed.</dd>
+    <dt>Legacy, physical, runtime</dt><dd>The frozen sphere-pad parameters; coefficients compensated so the normal
+    stiffness is the physical value whatever the mass; the same compensation computed at run time from the solver&#8217;s
+    inverse inertia.</dd>
+    <dt>diagexact</dt><dd>MuJoCo&#8217;s exact diagonal inverse inertia (MuJoCo 3.9 and later).</dd>
+    <dt>Torsional friction envelope</dt><dd>The largest friction torque the pad transmits about the pinch axis,
+    &#956;&#8747;p&#8202;&#961;&#8202;dA, in mN&#183;m.</dd>
+    <dt>Normal L1 error</dt><dd>Summed absolute difference between each sphere&#8217;s normal force and its spring-damper
+    target, over the summed targets, in % (defined in Records and checks).</dd>
+    <dt>Creep</dt><dd>Steady sliding of the tool while the load stays below the slip force.</dd>
+    <dt>Wall seconds per simulated second</dt><dd>Run time over simulated time on one CPU core; for GPU batches, aggregate
+    simulated seconds per wall second.</dd>
+    <dt>mjlab</dt><dd>The batched MuJoCo-Warp environment used for RL.</dd>
+    </dl>
+    """,
+            "terms",
+        )
+    )
+    parts.append(
+        section(
+            "Summary of the comparison",
+            """
+    <p>Refining the sphere quadrature leaves the friction unchanged when the total sample area and stiffness are held
+    fixed. At about 3.89 N total normal load,
     the pressure-based torsional friction envelope is 4.34–4.36 mN·m across the tested resolutions.
     The normal force law survives the articulated medium-torque transfer with about 0.17% local L1 error.
     Holding behavior also depends on tangential creep, timestep, and the friction model.</p>
@@ -99,8 +123,7 @@ def main():
     <p>Vectorizing the CPU adapter preserves its trajectories and forces while removing most Python mapping
     overhead. The optimized 1 mm case takes about 1.42 wall seconds per simulated second; the precomputed
     variant takes about 0.90. Fine 128-world mjlab batches achieve about 9.09 (1 mm) and 4.54 (0.5 mm)
-    aggregate simulated seconds per wall second. These are normal-law and throughput results; they do not
-    establish matching dry stiction or a complete brake controller.</p>
+    aggregate simulated seconds per wall second.</p>
     <p><a href="20261004-task_contact_benchmark.html">SR2 task and sliding-geometry benchmark</a> ·
     <a href="20261004-distributed_contact.html">Earlier static and controlled-slip audit</a> ·
     <a href="20261004-distributed_contact_spec.html">Original specification</a> ·
@@ -644,10 +667,17 @@ solreffrictionᵢ = (0, solrefᵢ[1] × (Cₜ/Cᵢ) / impratio)</pre>
     <a href="data/articulated/environment-newton.json">Newton</a> stacks; per-phase snapshots preserve
     the code hashes at the start of each original run. CPU measurements use the Intel Core Ultra 7 265KF.
     <a href="README.md">The runbook</a> gives interpreter paths and reproduction commands.
-    These are spherical-tip, fixed-palm transfer tests; the moving-palm brake task and hardware are
-    untested. The hardware rectangular tip’s 6 mm fillet remains a separate static study; its dynamic
-    geometry co-design behavior is still untested.</p>"""
-    parts.append(section("Records, checks and open items", body, "records"))
+</p>"""
+    parts.append(section("Records and checks", body, "records"))
+    parts.append(section("Future work", """
+    <ol>
+    <li><strong>Moving-palm brake.</strong> Run the pinch-brake load step with the palm moving, as in the HOM chain, on the
+    1 and 0.5 mm pads against Drake; these transfer tests hold the palm fixed.</li>
+    <li><strong>Dry stiction.</strong> Compare the holding curves against a ramp to slip on the printed fingertip; the
+    sphere pads creep inside the Coulomb bound, and a matching static friction is untested.</li>
+    <li><strong>Hardware fillet.</strong> Extend the static study of the 6 mm fillet of the rectangular hardware tip to the
+    dynamic transfer cases.</li>
+    </ol>""", "future"))
     flat = []
     for phase, rows in data.items():
         for r in rows:
