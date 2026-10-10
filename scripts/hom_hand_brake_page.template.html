@@ -129,6 +129,26 @@ a:focus-visible{outline:2px solid var(--s2);outline-offset:2px;border-radius:2px
   models are characterized on the two-pad rig, <a href="{{RIG_URL}}">page</a> (<code>{{RIG_PATH}}</code>)</div>
 </header>
 
+<section id="terms"><div class="col">
+<h2>Terms and metrics</h2>
+<dl class="terms">
+<dt><b>Pinch brake</b></dt><dd>The load step of Wang, Oh and Pollard: two fingers relax their pinch so that the tool
+turns about the pinch axis under gravity.</dd>
+<dt><b>Pad force</b></dt><dd>Mean normal force of thumb and index on the tool, in N.</dd>
+<dt><b>&#966;, N at an angle</b></dt><dd>Swing angle of the tool from horizontal about the pinch axis, in degrees; the
+pad force when the tool first passes that angle.</dd>
+<dt><b>d</b></dt><dd>Distance of the tool&#8217;s centre of mass from the pinch line, in mm.</dd>
+<dt><b>Relaxation time</b></dt><dd>The contact model&#8217;s time constant of tangential relaxation, in s
+(hydroelastic dissipation in Drake, solref in MuJoCo).</dd>
+<dt><b>Quasi-static law</b></dt><dd>The swing angle at which gravity torque equals the torsional friction of two pads,
+with the rig&#8217;s Drake torsion arm r&#772; = 1.00&#8202;mm&#183;(N/1&#8202;N)<sup>1/4</sup>.</dd>
+<dt><b>condim 4, &#956;<sub>t</sub> rescheduled</b></dt><dd>MuJoCo contact with torsional friction, its coefficient
+set from the pad force at each step.</dd>
+<dt><b>Slip, max tilt</b></dt><dd>Tool sliding along the pinch, in mm; largest angle of the tool axis out of the plane
+normal to the pinch axis.</dd>
+</dl>
+</div></section>
+
 <section><div class="col">
 <h2>Setup</h2>
 <p class="sub">one grasp, one force schedule, eight contact models, two centre-of-mass offsets</p>
