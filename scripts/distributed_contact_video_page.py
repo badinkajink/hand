@@ -223,7 +223,23 @@ def main():
     films = json.loads((DOC / "data/video_manifest.json").read_text())
     grids = comparisons(films)
     body = section(
-        "Start with synchronized comparisons",
+        "Terms and metrics",
+        """<dl class="terms">
+    <dt>Playback speed</dt><dd>Film time over simulated time; most dynamic clips play at 0.2&#215;, and the simulated time is
+    printed in every frame.</dd>
+    <dt>Sample-sphere colour</dt><dd>Recorded normal force of a pad sphere divided by its share of the pad area, on one
+    0&#8211;250 kPa scale; Drake close-ups show face-centroid pressure, Newton glyphs force on a 0&#8211;0.1 N scale.</dd>
+    <dt>Red badge</dt><dd>A stopped solve or an escape guard; the last recorded pose is held after it.</dd>
+    <dt>Guard</dt><dd>The check that ends a run whose tool leaves the fixture.</dd>
+    <dt>GPU world 0</dt><dd>The first of the batched MuJoCo-Warp worlds, replayed from its recorded joint positions.</dd>
+    <dt>Static snapshot</dt><dd>A prescribed pose with no integrated dynamics (Newton pressure and the 6 mm fillet).</dd>
+    </dl>
+    <p>The films are files in <code>media/</code>, too large to inline in the page. In a fresh clone they are Git LFS
+    pointers until fetched with <code>git -c lfs.fetchexclude= lfs pull --include="docs/experiments/20261004-codex/**"</code>.</p>""",
+        "terms",
+    )
+    body += section(
+        "Synchronized comparisons",
         f"""<p>{len(films)} individual clips and {len(grids)} synchronized comparisons cover resolution, mass, preload, payload, friction, timestep, CPU/GPU/Drake, isolated slip, Newton pressure and the 6 mm fillet.</p>
     <p>Watch recorded native motion at 0.2× speed, with contact close-ups in the individual clips below. Failures, frozen end states and static snapshots are labeled in the footage.</p>
     <details><summary>Recording, playback and contact-color details</summary>
@@ -236,7 +252,7 @@ def main():
         "comparisons",
     )
     body += section(
-        "Newton dynamic replay did not reproduce its earlier completion",
+        "Newton dynamic replay",
         """<p>The first historical unreduced translated Newton run completed, with unmatched preload. During video capture, the same case now violates the robustness guard during its first 5 ms block. A separate control run without recording also fails. The successful historical trajectory has no saved full-body pose trace, so it cannot be honestly reconstructed as a successful movie. The earlier record is preserved and this discrepancy is explicit.</p><p>The stock reduced native case reproduces its preload failure near 80 ms. Videos below show the states actually observed. Static pressure-generation clips demonstrate that separate component; they do not establish successful Newton dynamics.</p>""",
         "newton-replay",
     )
@@ -274,6 +290,18 @@ def main():
         "Existing full-task demonstration",
         """<p>This original 2 October closed-loop sphere-hand chain video predates the corrected contact-law benchmark. It shows the existing pickup/transfer task with the frozen contact mapping. The <a href="20261004-task_contact_benchmark.html">new SR2 task and geometry benchmark</a> now films the corrected 1/0.5 mm contact variants beside legacy MuJoCo and Drake, then tests <code>diagexact</code> on the same tasks.</p><figure><video controls muted loop playsinline preload="none" style="width:100%"><source src="../20261002-hom_chain/media/20261002-chain_s1_closed.mp4" type="video/mp4"></video><figcaption>Original 1 mm sphere chain, closed loop. <a href="../20261002-hom_chain/media/20261002-chain_s1_closed.mp4">MP4</a> · <a href="../20261002-hom_chain/20261002-hom_screwdriver_chain.html">Original report</a></figcaption></figure>""",
         "task-reference",
+    )
+    body += section(
+        "Future work",
+        """<ol>
+    <li><strong>Newton replay.</strong> Re-run the translated unreduced Newton case at the commit of its historical
+    completion and at the current one, recording the first 5 ms block, to find what changed between them; until then the
+    earlier completion stands unreproduced.</li>
+    <li><strong>Films on the corrected benchmark.</strong> Render the closed-loop chain with the contact laws of the
+    <a href="20261004-task_contact_benchmark.html">task benchmark</a> to replace the 2 October film of the frozen
+    mapping.</li>
+    </ol>""",
+        "future",
     )
     body += section(
         "Reproduction",
