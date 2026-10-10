@@ -389,7 +389,7 @@ def main():
              f'and {gib_from_kib(completed["released fork with CFD and scan-loop, 1 mm packed tip, 20 ms three-control gradient"]["max_resident_kB"])} GiB.')
 
     replacements={
-        'STYLE':'<style>'+style+'</style>', 'BUILT':datetime.now().strftime('%Y-%m-%d %H:%M'),
+        'STYLE':'<style>'+style+'</style>', 'BUILT':'2026-10-07 17:40',  # pinned: rebuilds of the text change no data (docs text pass, 2026-10-09)
         'LEDE':html.escape(lede), 'SCENE_TEXT':html.escape(scene_text), 'GAP_FIG':gap_fig,
         'FORWARD_TABLE':forward_table, 'GRADIENT_TEXT':html.escape(grad_text),
         'GRADIENT_FIG':gradient_fig, 'GRADIENT_TABLE':gradient_table,
