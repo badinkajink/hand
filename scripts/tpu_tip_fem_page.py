@@ -63,7 +63,7 @@ RECIPE_LBL = {
 GPU_LBL = {"g20x_s0": "95A 20&#8202;% across", "g20z_s0": "95A 20&#8202;% along", "g20x_s26": "95A 20&#8202;% across, shifted 2.6&#8202;mm in y",
            "g20x_s0_26": "95A 20&#8202;% across, shifted 2.6&#8202;mm in z", "g20x_s13": "95A 20&#8202;% across, shifted 1.3&#8202;mm in y and z",
            "g10x_s0": "95A 10&#8202;% across", "g10z_s0": "95A 10&#8202;% along", "g05x_s0": "95A 5&#8202;% across",
-           "g05z_s0": "95A 5&#8202;% along", "eflesh_c8": "eFlesh lattice, 8&#8202;mm cells"}
+           "g05z_s0": "95A 5&#8202;% along", "eflesh_c8": "Lattice of eFlesh cut cells, 8&#8202;mm"}
 
 
 # ------------------------------------------------------------------------------------------ data
@@ -149,6 +149,22 @@ def f1(x):
     return fmt(x, 1) if _ok(x) else "&#8211;"
 
 
+def sgn(x, nd=1, unit=True):
+    """Signed percentage for the checks table: explicit plus, typographic minus."""
+    t = f"{x:+.{nd}f}".replace("-", "&#8722;")
+    return t + ("&#8202;%" if unit else "")
+
+
+def pct(x, nd=0):
+    """Signed percentage with a typographic minus; '0' when it rounds to zero."""
+    if not _ok(x):
+        return "&#8211;"
+    t = f"{x:.{nd}f}"
+    if float(t) == 0:
+        return "0"
+    return t.replace("-", "&#8722;")
+
+
 def f2(x):
     return fmt(x, 2) if _ok(x) else "&#8211;"
 
@@ -162,7 +178,7 @@ GLOSSARY = [
      "and Poisson&#8217;s ratio 0.45, which no TPU sheet lists. In the linear models every stiffness scales with \\(E_s\\)."),
     ("Infill fraction \\(\\rho\\)", "Requested gyroid density in the slicer; the printed cell&#8217;s solid fraction is 4&#8211;12&#8202;% higher (Table&#160;1)."),
     ("Gyroid period \\(L\\)", "\\(L = 2\\pi s / (2.44\\,\\rho)\\) with line spacing \\(s = 0.407\\)&#8202;mm (0.45&#8202;mm lines, 0.2&#8202;mm layers): "
-     "21, 10.5, 5.2, 3.5 and 2.1&#8202;mm at 5, 10, 20, 30 and 50&#8202;%."),
+     "21, 10.4, 5.2, 3.4 and 2.0&#8202;mm at 5, 10, 20, 30 and 50&#8202;% (Table&#160;1)."),
     ("\\(E_x\\), \\(E_z\\)", "Homogenized Young&#8217;s moduli of the printed infill in the layer plane and along the build direction, per unit \\(E_s\\)."),
     ("Layers across, along", "Layers across the load: the palmar face is printed as a top skin, the part lying on its back face. Layers along the "
      "load: the face is a perimeter wall, the part standing on its mount face."),
@@ -223,6 +239,8 @@ def svg_cells(X: Data):
     return out
 
 
+RES_LBL = {"g05x_s0": "95A, gyroid 5&#8202;%, layers across", "g05z_s0": "95A, gyroid 5&#8202;%, layers along",
+           "eflesh_c8": "Lattice of eFlesh cut cells, 8&#8202;mm"}
 PAIRS = [("g20_across", COL["x"]), ("s85_50_across", COL["sheet"]), ("g10_across", COL["z"]), ("s85_30_across", COL["res"])]
 
 
@@ -347,9 +365,9 @@ def tip_section(X: Data):
                      f'first touch: the section through the contact line, displacement magnified 15, 5 and 2 times, and the pressure on the palmar '
                      f'face. On the 20&#8202;% tip the contact is a line across the face whose ends, over the side walls, reach {f1(g["p_end"])}&#8202;MPa '
                      f'against {f1(g["p_mid"])}&#8202;MPa mid-line at {f1(g["F"])}&#8202;N. On the 5&#8202;% tip the 0.8&#8202;mm skin bends between '
-                     f'the walls across a 21&#8202;mm cell, and the walls and one strut carry the cylinder ({f1(f5["p_end"])} and {f1(f5["p_mid"])}&#8202;MPa '
+                     f'the walls across a 21&#8202;mm cell, and the walls and one strut support the cylinder ({f1(f5["p_end"])} and {f1(f5["p_mid"])}&#8202;MPa '
                      f'at {f1(f5["F"])}&#8202;N). The eFlesh lattice, clipped to the insert without a skin, touches the cylinder only where struts reach '
-                     f'the face and carries {f2(ef["F"])}&#8202;N at {f0(ef["delta_um"])}&#8202;&#181;m.</figcaption></figure>')
+                     f'the face; at an approach of {f0(ef["delta_um"])}&#8202;&#181;m the force is {f2(ef["F"])}&#8202;N.</figcaption></figure>')
     else:
         parts.append(P.pending("Films not rendered yet."))
     return "".join(parts)
@@ -377,7 +395,7 @@ def law_section(X: Data):
     if "g20x_s0" in R and "g10x_s0" in R:
         txt += (f"<p>The resolved tips give \\(E^*\\) = {f1(R['g20x_s0']['E_best'])}&#8202;MPa at 20&#8202;% and {f1(R['g10x_s0']['E_best'])}&#8202;MPa "
                 f"at 10&#8202;%, against {f1(g['E_best'])} and {f1(T['g10_across']['E_best'])}&#8202;MPa for the homogenized core, although the "
-                f"gyroid period (5.2 and 10.5&#8202;mm) exceeds the contact width. The 5&#8202;% tip, resolved only, gives "
+                f"gyroid period (5.2 and 10.4&#8202;mm) exceeds the contact width. The 5&#8202;% tip, resolved only, gives "
                 f"{f1(R['g05x_s0']['E_best'])}&#8202;MPa.</p>")
     leg = [("95A solid", COL["ref"], False, None), ("95A 20&#8202;% across", COL["x"], False, None), ("85A 50&#8202;% across", COL["sheet"], False, None),
            ("95A 10&#8202;% across", COL["z"], False, None), ("85A 30&#8202;% across", COL["res"], False, None),
@@ -391,8 +409,8 @@ def law_section(X: Data):
         r = T[name]
         body.append([RECIPE_LBL.get(name, name), f"{r['E_s']:.0f}", f1(r["delta_um"][1.0]), f2(r["force_exponent"]), f1(r["k_1N"]),
                      f1(r["E_fit_cyl"][0.5]), f1(r["E_fit_cyl"][3.0]), f1(r["E_best"]), f0(r["E_best_max_err_pct"]), f2(r.get("b_exponent"))])
-    tab = table(["Print", "\\(E_s\\) (MPa)", "\\(\\delta\\) at 1&#8202;N (&#181;m)", "Force exponent", "\\(k\\) at 1&#8202;N (N/mm)",
-                 "\\(E\\) at 0.5&#8202;N (MPa)", "\\(E\\) at 3&#8202;N (MPa)", "\\(E^*\\) (MPa)", "Approach error (%)", "Width exponent"], body,
+    tab = table(["Print", "\\(E_s\\) (MPa)", "Approach at 1&#8202;N (&#181;m)", "Force exponent", "Stiffness at 1&#8202;N (N/mm)",
+                 "Law modulus at 0.5&#8202;N (MPa)", "Law modulus at 3&#8202;N (MPa)", "\\(E^*\\) (MPa)", "Approach error (%)", "Width exponent"], body,
                 "Approach, stiffness and the pressure-law modulus per print under the cylinder (homogenized core, <code>tip_runs_surf.jsonl</code>).")
     return txt + fig + tab
 
@@ -410,9 +428,8 @@ def arm_section(X: Data):
            f"20&#8202;% tip&#8217;s force lies on the outer 0.9&#8202;mm of the flat face and on the fillets, against {f0(100 * es['g20_across']['law'])}&#8202;% "
            f"for the pressure law on the same nodes ({f0(100 * es['g10_across']['fe'])}&#8202;% at 10&#8202;% infill, {f0(100 * es['solid95']['fe'])}&#8202;% "
            f"for the solid print). Load at the ends of the contact line lengthens the twist arm: at 3&#8202;N it is {f2(g['arm'][3.0])}&#8202;mm on the "
-           f"20&#8202;% tip against {f2(X.pads_arm(g['E_best']))}&#8202;mm for the pads at \\(E^*\\) (Figure&#160;{FIG[0] + 1}), and no modulus closes "
-           f"the gap, since the pads&#8217; arm at 3&#8202;N spans only {f2(min(X.pads_arm(E) for E in X.B if X.pads_arm(E)))}&#8211;"
-           f"{f2(max(X.pads_arm(E) for E in X.B if X.pads_arm(E)))}&#8202;mm over {min(X.B):g}&#8211;{max(X.B):g}&#8202;MPa.</p>"
+           f"20&#8202;% tip against {f2(X.pads_arm(g['E_best']))}&#8202;mm for the pads at \\(E^*\\) (Figure&#160;{FIG[0] + 1}). The pads approach that "
+           f"arm only at {min(X.B):g}&#8202;MPa ({f2(X.pads_arm(min(X.B)))}&#8202;mm), a fifth of the modulus that reproduces the approach.</p>"
            f"<p>A softer TPU at higher infill reaches the same contact stiffness with stiffer infill relative to its walls. 85A gyroid at 50&#8202;% "
            f"({f1(s['k_1N'])}&#8202;N/mm at 1&#8202;N against {f1(g['k_1N'])} for 95A at 20&#8202;%) puts {f0(100 * es['s85_50_across']['fe'])}&#8202;% "
            f"of the load on the edges, and its arm at 3&#8202;N, {f2(s['arm'][3.0])}&#8202;mm, is {f1(abs(X.arm_err(s['E_best'], s['arm'][3.0])))}&#8202;% "
@@ -439,7 +456,7 @@ def recipes_section(X: Data):
         o = pair.get(name)
         across = name if name.endswith("across") else o
         spread = (T[pair[across]]["delta_um"][1.0] / T[across]["delta_um"][1.0] - 1) * 100 if o and across in T and pair[across] in T else None
-        rows.append(dict(lbl=RECIPE_LBL.get(name, name), model="homogenized", k=r["k_1N"], E=r["E_best"], err=r["E_best_max_err_pct"],
+        rows.append(dict(lbl=RECIPE_LBL.get(name, name), model="Homogenized", full=True, k=r["k_1N"], E=r["E_best"], err=r["E_best_max_err_pct"],
                          arm=a, pads=X.pads_arm(r["E_best"]), aerr=X.arm_err(r["E_best"], a), edge=A.edge_share(name)["fe"], spread=spread))
     for base in ("g05x_s0", "g05z_s0", "eflesh_c8"):
         if base not in R:
@@ -449,13 +466,13 @@ def recipes_section(X: Data):
         spread = None
         if base.startswith("g05") and "g05x_s0" in R and "g05z_s0" in R:
             spread = (R["g05z_s0"]["delta_um"][1.0] / R["g05x_s0"]["delta_um"][1.0] - 1) * 100
-        rows.append(dict(lbl=GPU_LBL[base], model="resolved", k=r["k_1N"], E=r["E_best"], err=r["E_best_max_err_pct"], arm=a,
+        rows.append(dict(lbl=RES_LBL[base], model="Resolved", full=len(r["cases"]) == 3, k=r["k_1N"], E=r["E_best"], err=r["E_best_max_err_pct"], arm=a,
                          pads=X.pads_arm(r["E_best"]) if a else None, aerr=X.arm_err(r["E_best"], a) if a else None,
                          edge=r.get("edge_share_1N"), spread=spread))
     rows.sort(key=lambda r: (r["aerr"] is None, abs(r["aerr"]) if r["aerr"] is not None else 0))
     body = [[r["lbl"], r["model"], f1(r["k"]), f1(r["E"]) if r["E"] >= 1 else f2(r["E"]), f0(r["err"]), f2(r["arm"]), f2(r["pads"]),
-             f1(r["aerr"]), f0(100 * r["edge"]) if _ok(r["edge"]) else "&#8211;", f0(r["spread"])] for r in rows]
-    tab = table(["Print", "Model", "\\(k\\) at 1&#8202;N (N/mm)", "\\(E^*\\) (MPa)", "Approach error (%)", "Arm, tip (mm)", "Arm, pads (mm)",
+             pct(r["aerr"], 1), f0(100 * r["edge"]) if _ok(r["edge"]) else "&#8211;", pct(r["spread"], 0)] for r in rows]
+    tab = table(["Print", "Model", "Stiffness at 1&#8202;N (N/mm)", "\\(E^*\\) (MPa)", "Approach error (%)", "Arm, tip (mm)", "Arm, pads (mm)",
                  "Arm error (%)", "Edge load (%)", "Orientation spread (%)"], body,
                 "Prints ranked by how closely the pads at their best single modulus reproduce the twist arm at 3&#8202;N. A dash: the pads&#8217; "
                 "bed covers 2.5&#8211;77&#8202;MPa, and the eFlesh rows stop at 1&#8202;N.", text_cols=(0, 1))
@@ -464,16 +481,17 @@ def recipes_section(X: Data):
     sh20 = [R[t]["delta_um"][1.0] for t in ("g20x_s0", "g20x_s26", "g20x_s0_26", "g20x_s13") if t in R and R[t]["delta_um"].get(1.0)]
     sh5 = [R[t]["delta_um"][1.0] for t in ("g05x_s0", "g05x_s0_52", "g05x_s0_105") if t in R and R[t]["delta_um"].get(1.0)]
     arm5 = [R[t]["arm"][1.0] for t in ("g05x_s0", "g05x_s0_52", "g05x_s0_105") if t in R and R[t]["arm"].get(1.0)]
-    txt = (f"<p>The approach error of the best single modulus is {f0(min(r['err'] for r in rows))}&#8211;{f0(max(r['err'] for r in rows))}&#8202;% for "
-           f"every print, so Table&#160;{TAB[0] + 1} ranks the prints by the twist arm. At equal contact stiffness the softer TPU at higher infill "
+    full = [r["err"] for r in rows if r["full"]]
+    txt = (f"<p>The approach error of the best single modulus is {f0(min(full))}&#8211;{f0(max(full))}&#8202;% for "
+           f"every print loaded to 3&#8202;N, so Table&#160;{TAB[0]} ranks the prints by the twist arm. At equal contact stiffness the softer TPU at higher infill "
            f"wins both pairs: 85A at 50&#8202;% against 95A at 20&#8202;% ({f1(k['s85_50_across'])} and {f1(k['g20_across'])}&#8202;N/mm; arm error "
-           f"{f1(ae['s85_50_across'])} against {f1(ae['g20_across'])}&#8202;%), and 85A at 30&#8202;% against 95A at 10&#8202;% "
-           f"({f1(k['s85_30_across'])} and {f1(k['g10_across'])}&#8202;N/mm; {f1(ae['s85_30_across'])} against {f1(ae['g10_across'])}&#8202;%). "
+           f"{pct(ae['s85_50_across'], 1)} against {pct(ae['g20_across'], 1)}&#8202;%), and 85A at 30&#8202;% against 95A at 10&#8202;% "
+           f"({f1(k['s85_30_across'])} and {f1(k['g10_across'])}&#8202;N/mm; {pct(ae['s85_30_across'], 1)} against {pct(ae['g10_across'], 1)}&#8202;%). "
            f"Printing the layers along the load softens the 20&#8202;% tip by {f0((R['g20z_s0']['delta_um'][1.0] / R['g20x_s0']['delta_um'][1.0] - 1) * 100)}&#8202;% "
-           f"(resolved) and lengthens its arm further ({f1(ae['g20_along'])}&#8202;%); at 50&#8202;% the orientation changes the approach by "
+           f"(resolved) and lengthens its arm further ({pct(ae['g20_along'], 1)}&#8202;%); at 50&#8202;% the orientation changes the approach by "
            f"{f0((T['s85_50_along']['delta_um'][1.0] / T['s85_50_across']['delta_um'][1.0] - 1) * 100)}&#8202;%.</p>")
     if len(sh20) >= 2 and len(sh5) >= 2:
-        txt += (f"<p>Where the contact lands on the infill matters at sparse infill only: shifting the resolved gyroid under the cylinder changes "
+        txt += (f"<p>The position of the contact on the infill matters at sparse infill only: shifting the resolved gyroid under the cylinder changes "
                 f"the approach at 1&#8202;N by {100 * (max(sh20) - min(sh20)) / np.mean(sh20):.1f}&#8202;% at 20&#8202;% ({len(sh20)} positions) and "
                 f"{100 * (max(sh5) - min(sh5)) / np.mean(sh5):.0f}&#8202;% at 5&#8202;% ({len(sh5)} positions), and the 5&#8202;% tip&#8217;s arm from "
                 f"{min(arm5):.2f} to {max(arm5):.2f}&#8202;mm. The 5&#8202;% tip ({f1(R['g05x_s0']['E_best'])}&#8202;MPa, {f1(R['g05x_s0']['k_1N'])}&#8202;N/mm) "
@@ -492,18 +510,18 @@ def checks_section(X: Data):
     if v1:
         v = v1[-1]
         rows.append(["Solid insert under a 40&#8202;mm sphere, approach at 1&#8202;N", f"{v['delta_mm'] * 1e3:.2f}&#8202;&#181;m (graded hex grid)",
-                     f"Hertz {v['delta_hertz_mm'] * 1e3:.2f}&#8202;&#181;m", f"{(v['delta_mm'] / v['delta_hertz_mm'] - 1) * 100:+.1f}&#8202;%"])
+                     f"Hertz {v['delta_hertz_mm'] * 1e3:.2f}&#8202;&#181;m", sgn((v['delta_mm'] / v['delta_hertz_mm'] - 1) * 100, 1)])
     T, R = X.T, X.R
     if "g20x_s0" in R:
         rows.append(["95A 20&#8202;% across, approach at 1&#8202;N", f"{f1(R['g20x_s0']['delta_um'][1.0])}&#8202;&#181;m (resolved)",
                      f"{f1(T['g20_across']['delta_um'][1.0])}&#8202;&#181;m (homogenized)",
-                     f"{(R['g20x_s0']['delta_um'][1.0] / T['g20_across']['delta_um'][1.0] - 1) * 100:+.1f}&#8202;%"])
+                     sgn((R['g20x_s0']['delta_um'][1.0] / T['g20_across']['delta_um'][1.0] - 1) * 100, 1)])
     for t in X.tol:
         if t["indenter"] == "cyl":
             b = [g for g in X.gpu_all if g["tag"] == t["tag"].replace("_tol1e-8", "") and g["indenter"] == "cyl" and abs(g["delta_mm"] - t["delta_mm"]) < 1e-9]
             if b:
                 rows.append([f"CG tolerance 10<sup>&#8722;5</sup> against 10<sup>&#8722;8</sup>, 20&#8202;% tip at {t['delta_mm'] * 1e3:.0f}&#8202;&#181;m",
-                             f"{b[0]['F']:.4f}&#8202;N", f"{t['F']:.4f}&#8202;N", f"{(b[0]['F'] / t['F'] - 1) * 100:+.2f}&#8202;%"])
+                             f"{b[0]['F']:.4f}&#8202;N", f"{t['F']:.4f}&#8202;N", sgn((b[0]['F'] / t['F'] - 1) * 100, 2)])
     pc = sorted(X.pc, key=lambda r: r["n_dof"])
     sp = [r for r in X.gpu_all if r["tag"] == "solid_x" + A.SUFFIX and r["indenter"] == "plate"]
     sh = [r for r in X.tip if r["recipe"] == "solid95" and r["indenter"] == "plate" and abs(r["F_target"] - 1.0) < 1e-9]
@@ -511,39 +529,40 @@ def checks_section(X: Data):
         ref = pc[-1]["k_N_per_mm"]
         rows.append(["Solid insert under a flat plate, stiffness", f"{1 / sh[0]['delta_mm']:.0f} (graded hex) and {sp[0]['F'] / sp[0]['delta_mm']:.0f}&#8202;N/mm "
                      f"(voxels)", f"{ref:.0f}&#8202;N/mm (quadratic tetrahedra, {pc[-1]['n_dof'] / 1e3:.0f}k DOF; {pc[0]['k_N_per_mm']:.0f} at "
-                     f"{pc[0]['n_dof'] / 1e3:.0f}k)", f"{(1 / sh[0]['delta_mm'] / ref - 1) * 100:+.0f} and {(sp[0]['F'] / sp[0]['delta_mm'] / ref - 1) * 100:+.0f}&#8202;%"])
+                     f"{pc[0]['n_dof'] / 1e3:.0f}k)", sgn((1 / sh[0]['delta_mm'] / ref - 1) * 100, 0, unit=False) + " and " + sgn((sp[0]['F'] / sp[0]['delta_mm'] / ref - 1) * 100, 0)])
     gb = {(r["material"], round(r["delta_mm"], 3)): r for r in X.nl if r.get("case") == "block"}
     pf = {r["tag"]: r for r in X.pf}
     if ("neohookean", 1.002) in gb and "plate_h0.5_d1.0_NH" in pf:
         g_ratio = gb[("neohookean", 1.002)]["F"] / gb[("linear", 1.002)]["F"]
         p_ratio = pf["plate_h0.5_d1.0_NH"]["F_contact"] / pf["plate_h0.5_d1.0_LE"]["F_contact"]
         rows.append(["Block 10&#8202;&#215;&#8202;10&#8202;&#215;&#8202;5&#8202;mm at 20&#8202;% strain, Neo-Hookean over linear force",
-                     f"{g_ratio:.3f} (GPU solver)", f"{p_ratio:.3f} (PolyFEM)", f"{(g_ratio / p_ratio - 1) * 100:+.1f}&#8202;%"])
+                     f"{g_ratio:.3f} (GPU solver)", f"{p_ratio:.3f} (PolyFEM)", sgn((g_ratio / p_ratio - 1) * 100, 1)])
     s = pf.get("sphere_20x20x10_h0.08_sub6")
     if s:
         rows.append(["Sphere R&#8202;10&#8202;mm, 0.1&#8202;mm into a bonded 20&#8202;&#215;&#8202;20&#8202;&#215;&#8202;10&#8202;mm block",
                      f"{s['F_contact']:.3f}&#8202;N (PolyFEM, IPC contact)", f"{s['F_bonded_layer']:.3f}&#8202;N (bonded layer; Hertz {s['F_hertz']:.3f})",
-                     f"{(s['F_contact'] / s['F_bonded_layer'] - 1) * 100:+.0f}&#8202;%"])
+                     sgn((s['F_contact'] / s['F_bonded_layer'] - 1) * 100, 0)])
     nl = []
     for d in (0.2, 0.35):
         a, b = X.nl_row("g05x_s0" + A.SUFFIX, "neohookean", d), X.nl_row("g05x_s0" + A.SUFFIX, "linear", d)
         if a and b:
             nl.append((d, a, b))
             rows.append([f"95A 5&#8202;% tip at {d * 1e3:.0f}&#8202;&#181;m, force", f"{a['F']:.2f}&#8202;N (Neo-Hookean)", f"{b['F']:.2f}&#8202;N (linear)",
-                         f"{(a['F'] / b['F'] - 1) * 100:+.0f}&#8202;%"])
+                         sgn((a['F'] / b['F'] - 1) * 100, 0)])
     txt = ""
     if nl:
         d, a, b = nl[-1]
-        txt += (f"<p>Large deformation changes the sparsest print little: with a compressible Neo-Hookean solid the resolved 5&#8202;% tip carries "
-                f"{(a['F'] / b['F'] - 1) * 100:+.0f}&#8202;% of the linear force at {d * 1e3:.0f}&#8202;&#181;m ({a['F']:.2f} against {b['F']:.2f}&#8202;N), "
-                f"its twist arm moves from {b['arm']:.2f} to {a['arm']:.2f}&#8202;mm, and no element loses more than "
-                f"{(1 - a['J_min']) * 100:.0f}&#8202;% of its volume. The GPU solver for this check reproduces PolyFEM&#8217;s Neo-Hookean block "
-                f"(Table&#160;{TAB[0] + 1}).</p>")
+        d0, a0, b0 = nl[0]
+        txt += (f"<p>With a compressible Neo-Hookean solid the force on the resolved 5&#8202;% tip is {(1 - a0['F'] / b0['F']) * 100:.0f}&#8202;% "
+                f"below the linear model&#8217;s at {d0 * 1e3:.0f}&#8202;&#181;m and {(1 - a['F'] / b['F']) * 100:.0f}&#8202;% below at {d * 1e3:.0f}&#8202;&#181;m "
+                f"({a['F']:.2f} against {b['F']:.2f}&#8202;N); its twist arm moves from {b['arm']:.2f} to {a['arm']:.2f}&#8202;mm, and no element loses "
+                f"more than {(1 - a['J_min']) * 100:.0f}&#8202;% of its volume. The GPU solver for this check reproduces PolyFEM&#8217;s Neo-Hookean "
+                f"block within 0.3&#8202;% (Table&#160;{TAB[0] + 1}).</p>")
         enl = [(X.nl_row("eflesh_c8" + A.SUFFIX, "neohookean", dd), X.nl_row("eflesh_c8" + A.SUFFIX, "linear", dd)) for dd in (0.4, 0.7, 1.0)]
         enl = [(dd, a_, b_) for dd, (a_, b_) in zip((0.4, 0.7, 1.0), enl) if a_ and b_]
         if enl:
             dd, a_, b_ = enl[-1]
-            txt = txt.replace("</p>", f" On the eFlesh lattice at {dd * 1e3:.0f}&#8202;&#181;m the change is {(a_['F'] / b_['F'] - 1) * 100:+.0f}&#8202;%.</p>", 1)
+            txt = txt.replace("</p>", f" On the eFlesh lattice at {dd * 1e3:.0f}&#8202;&#181;m the change is {sgn((a_['F'] / b_['F'] - 1) * 100, 0)}.</p>", 1)
     if pc and sp and sh:
         txt += (f"<p>The plate stiffness depends on the discretization: for the solid insert the two hexahedral models give "
                 f"{1 / sh[0]['delta_mm']:.0f} and {sp[0]['F'] / sp[0]['delta_mm']:.0f}&#8202;N/mm and quadratic tetrahedra "
@@ -579,8 +598,8 @@ def limitations():
             "<li>The tip models are linear and small-strain; only the 5&#8202;% tip was solved with large deformation.</li>"
             "<li>\\(E_s\\) comes from datasheets (26&#8211;67&#8202;MPa for 95A) and \\(\\nu\\) = 0.45 is assumed; every stiffness and \\(E^*\\) scales "
             "with \\(E_s\\).</li>"
-            "<li>The printed geometry (0.45&#8202;mm beads, 0.2&#8202;mm layers, two walls, four skin layers, fused beads) is a model of the slicer, not "
-            "its toolpaths; the print settings of the current tips are not recorded.</li>"
+            "<li>The printed geometry (0.45&#8202;mm beads, 0.2&#8202;mm layers, two walls, four skin layers, fused beads) is modelled from the slicer&#8217;s "
+            "settings without its toolpaths, and the print settings of the current tips are not recorded.</li>"
             "<li>Contact is frictionless in the normal solves, and no printed tip has been measured.</li></ul>")
 
 
@@ -593,14 +612,13 @@ def lede(X: Data):
     er = [T[n]["E_best_max_err_pct"] for n in T]
     over = (g["arm"][3.0] / X.pads_arm(g["E_best"]) - 1) * 100
     over_s = (s["arm"][3.0] / X.pads_arm(s["E_best"]) - 1) * 100
-    return (f"The printed SR2 fingertip (TPU 95A, two walls, gyroid infill) was modelled bead by bead on the workstation GPU (2.2&#8202;M voxels, "
-            f"1&#8211;2&#8202;min per load) and with a homogenized core, which agrees within "
-            f"{f0(abs(R['g20x_s0']['E_best'] / g['E_best'] - 1) * 100)}&#8202;%. The pads&#8217; best single modulus is {f1(g['E_best'])}&#8202;MPa at 20&#8202;% "
-            f"infill, {f1(T['g10_across']['E_best'])}&#8202;MPa at 10&#8202;% and {f1(R['g05x_s0']['E_best'])}&#8202;MPa at 5&#8202;%. For every print "
-            f"one modulus misses the approach under the screwdriver by {f0(min(er))}&#8211;{f0(max(er))}&#8202;% over 0.5&#8211;3&#8202;N: the tip "
-            f"stiffens as \\(\\delta^{{{g['force_exponent']:.2f}}}\\), the law as \\(\\delta^{{1.5}}\\). The walls load the face edges, so at 3&#8202;N "
-            f"the twist arm exceeds the pads&#8217; by {f0(over)}&#8202;% at 20&#8202;% infill; an 85A print at 50&#8202;% with the same contact "
-            f"stiffness brings this to {f0(over_s)}&#8202;%.")
+    return (f"A finite-element model of the printed SR2 fingertip (TPU 95A, two walls, gyroid infill), resolved bead by bead on the "
+            f"workstation GPU in 1&#8211;2&#8202;min per load, sets the pads&#8217; modulus at {f1(g['E_best'])}&#8202;MPa for 20&#8202;% infill, "
+            f"{f1(T['g10_across']['E_best'])}&#8202;MPa for 10&#8202;% and {f1(R['g05x_s0']['E_best'])}&#8202;MPa for 5&#8202;%. For every print one "
+            f"modulus misses the approach under the screwdriver by {f0(min(er))}&#8211;{f0(max(er))}&#8202;% over 0.5&#8211;3&#8202;N: the tip "
+            f"stiffens as \\(\\delta^{{{g['force_exponent']:.2f}}}\\), the law as \\(\\delta^{{1.5}}\\). The walls load the face edges, so at "
+            f"3&#8202;N the tip&#8217;s twist arm exceeds the pads&#8217; by {f0(over)}&#8202;% at 20&#8202;% infill; an 85A print at 50&#8202;% infill of "
+            f"the same stiffness reduces this to {f0(over_s)}&#8202;%.")
 
 
 def open_items(X: Data):
