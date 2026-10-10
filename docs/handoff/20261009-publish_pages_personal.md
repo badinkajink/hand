@@ -2,6 +2,7 @@ Status: done
 Task (owner, 2026-10-09 12:35): "is it possible to republish the artifacts via the autopilot on my personal?" The artifacts belong to the personal (Pro) login. The owner's windows and the other jobs now run on the Team Max seat, which cannot write them. This job publishes finished local pages from the personal login and edits no page or builder.
 Read first: docs/experiments/INDEX.md (each row's local file and artifact column); the Artifact tool's rules: read an existing artifact with action "read" before republishing to it, and read every page's content before publishing it.
 State (2026-10-09): all pages published; step 5 republished the plain-style overview as v8 to 4w96Kt4J3tunu1xuz4XbdN.
+State step 6 (2026-10-10): done. Home page + 5 overviews published (URLs in docs/overviews/artifact_urls.txt, INDEX.md updated), contact overview republished (v9), and 35 of the 39 result pages republished from their local files, each after a read of the live artifact; publishing returns a claude.ai/artifact/ alias of the same artifact, INDEX keeps the old URL. Not republished: 20261001-hom_contact_patch (Rvfw1yQfgfWV8PdTvv7jsc), 20261001-hom_hand_brake (DJLxG63vLZXs2Ey6hiCBuc) and 20261002-hom_chain (Lya2Bf6HnW81bEPRPjsjYf), whose reads returned 'artifact not found' on the personal login; 20260902-servo_sysid, whose INDEX URL (865c4572) is the budget_rescreen artifact. compute_budget is link-shared with a pinned version.
 <!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
 Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap step add <job> "text"` adds one):
 - [x] 1. Review each page of steps 2 and 3 before publishing it: extract its visible text with a short script in your … Done 10-09 12:58: five pages reviewed: titles, numeric ledes, no placeholders/pending, all media have sources
@@ -9,7 +10,8 @@ Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap s
 - [x] 3. Publish as new artifacts, each with a one-word generic icon and a one-sentence description: docs/experiments/… Done 10-09 12:58: 3 new artifacts published
 - [x] 4. Record every URL in the page's INDEX.md row (artifact column) and in artifact_url.txt beside each page; commi… Done 10-09 12:58: URLs in INDEX.md and artifact_url.txt, committed
 - [x] 5. Republish docs/experiments/20261009-contact_overview/20261009-sphere_pad_contact_model.html to https://claude… Done 10-09 14:14: overview republished as v8 to same URL from the plain-style local file
+- [x] 6. Docs reorganization (job hand-20261009-docs_reorganization, finished 2026-10-10): publish from the personal l… Done 10-10 03:43: Done 10-10: home + 5 overviews new, contact overview v9, 35 of 39 result pages republished; 3 HOM pages unreadable (not found), servo_sysid shares budget_rescreen URL; both under Waiting on owner
 <!-- /ap:steps -->
 Claimed: docs/experiments/INDEX.md (the artifact column of these rows), docs/experiments/*/artifact_url.txt of these pages.
-Waiting on owner:
+Waiting on owner: (1) the three HOM pages above: the artifacts are not visible to the personal login (deleted, or owned by the Max seat); publish them from the owning login or give the right URLs. (2) 20260902-servo_sysid: INDEX gives it the URL of budget_rescreen (865c4572); say whether it gets its own artifact.
 Do not: edit pages, builders or templates (other jobs claim them); publish pages not listed here (the 10-07 contact-gait and DiffMJX pages are local studies by choice); delete any artifact; push.
