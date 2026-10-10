@@ -122,9 +122,26 @@ footer a{color:var(--s2)}
   at 0.240 N</div>
 </header>
 
+<section id="terms">
+<div class="col">
+<h2>Terms and metrics</h2>
+<dl class="terms">
+<dt><b>Plant</b></dt><dd>The simulated finger actuators: shipped (kp 30, kv 0.5), calibrated (kp 0.5, kv 0.6),
+calibrated with the servo&#8217;s speed (kp 0.5, kv 0.02) and settled re-fit (kp 0.25, kv 0.02); kp in N&#183;m/rad.</dd>
+<dt><b>Bench maneuver</b></dt><dd>The plan the hardware runs: fixed palm, tool resting on a post, scripted turn, hold.</dd>
+<dt><b>Chain</b></dt><dd>Grasp from the table, lift, turn, set-down in the countersink, hand-over and gait, with the
+arm moving the palm.</dd>
+<dt><b>Cradle tip</b></dt><dd>A tilt of a tool resting on the pads under its own weight, without a closing grip.</dd>
+<dt><b>Cos</b></dt><dd>Signed cosine of the tool&#8217;s axis with vertical; +1 is tip down.</dd>
+<dt><b>Held</b></dt><dd>Pads on the tool with force above its 0.240&#8202;N weight.</dd>
+<dt><b>Time constant</b></dt><dd>Time for a finger joint to reach 63&#8202;% of a step command, in s.</dd>
+</dl>
+</div>
+</section>
+
 <section>
 <div class="col">
-<h2>What each plant does on each maneuver</h2>
+<h2>Maneuvers on each plant</h2>
 <p class="sub">the same hands, the same plans; only the actuator model changes</p>
 <p>Three maneuvers have been called &#8220;reorientation&#8221; in this program. The bench
 maneuver is the deployed plan replayed on a fixed palm: grip, the plan&#8217;s own per-step
@@ -147,7 +164,7 @@ one through the arm&#8217;s rotation at 1.3&#8211;3.5 N, where the rigid plant a
 
 <section>
 <div class="col">
-<h2>The bench maneuver is a cradle tip</h2>
+<h2>Bench maneuver as a cradle tip</h2>
 <p class="sub">rv05_manual_b85, deployed plan, tool on the 100 mm post, palm fixed</p>
 <p>The per-step trace of the plan replay on the shipped and calibrated plants. Pad force is the
 sum over the three pads; the tool weighs 0.240 N.</p>
@@ -194,7 +211,7 @@ enough for the tool to move in it, as the simulator does on both plants.</p>
 
 <section>
 <div class="col">
-<h2>The chain on the shipped plant jams the tool and tosses it</h2>
+<h2>Chain on the shipped plant</h2>
 <p class="sub">D3, D5, D6, D7 &#183; 10 mm squeeze &#183; pivot 0.15 and 0.25 &#183; two seeds each</p>
 <p>The chain&#8217;s grasp commands the pads 10 mm inside the shaft (the plans&#8217; own value).
 At kp 30 the fingers reach that command: the shaft is wedged upward until it escapes over the
@@ -230,7 +247,7 @@ mechanism is a property of kp 30.</p>
 
 <section>
 <div class="col">
-<h2>The chain on the calibrated plant holds the tool through the arm&#8217;s turn</h2>
+<h2>Chain on the calibrated plant</h2>
 <p class="sub">same cells; the fingers turn 1&#8211;8&#176;; the arm does the 90&#176;</p>
 <p>At kp 0.5 the 10 mm squeeze acts as a spring preload: the pads stop at the
 shaft and push with 3&#8211;4 N on three or four pads, the tool does not ride up, and it lifts
@@ -272,7 +289,7 @@ countersink held, the tripod never forms, and the gait turns 0.0&#8211;0.2 rev.<
 
 <section>
 <div class="col">
-<h2>The calibrated plant&#8217;s speed was never measured</h2>
+<h2>Speed of the calibrated plant</h2>
 <p class="sub">apply_measured_plant.py --kv defaults to 0.6; at kp 0.5 that is a 1.2 s time constant</p>
 <p><code>apply_measured_plant.py</code> documents where kp, forcerange, frictionloss and the masses
 come from. It does not mention kv, which defaults to 0.6. A position actuator with kp 0.5 and
@@ -311,7 +328,7 @@ factor of two, and the chain&#8217;s outcome sits inside that factor.</p>
 
 <section>
 <div class="col">
-<h2>The bench maneuver per hand, against the bench</h2>
+<h2>Bench maneuver per hand against the bench</h2>
 <p class="sub">8 deployed plans &#183; 4 jittered replays each (4 mm, 0.09 rad, the gate&#8217;s own) &#183; 3 plants</p>
 <p>The plant calibration was cross-validated on one hand. Replayed on all eight with the
 gate&#8217;s spawn jitter, the simulated turn has a seed spread of 4&#8211;58&#176; and none of the
@@ -328,11 +345,11 @@ the coefficients is conclusive, and the correction does not improve them.</p>
 
 <section>
 <div class="col">
-<h2>What this settles, and the next measurements</h2>
+<h2>Future work</h2>
+<p>The finger-driven 90&#176; turn leaves the chain: it exists only at kp &#8805; 2, as the compliance band of
+2026-09-02 also shows from the bench side, and no relief, budget, pivot, angle or damping recovers it at kp 0.5 or
+0.25.</p>
 <ul>
-<li><strong>The finger-driven 90&#176; turn is retired as a chain element.</strong> It exists only at
-kp &#8805; 2 (the compliance band of 2026-09-02 says the same from the bench side). No relief,
-budget, pivot, angle or damping recovers it at kp 0.5 or 0.25.</li>
 <li><strong>The arm&#8217;s reorientation on the calibrated plant is the carry to test on
 hardware.</strong> D7 and D4 (the bench&#8217;s 10/10 and 9/10) and D3, D5, D6 hold it at kp 0.5;
 D2 holds it with the finger turn set to 0&#176;. The bench measurement is a UR5e (or the gantry
@@ -343,14 +360,13 @@ predicts and the kp 0.5 plant does not, and would fix the stiffness at the same 
 <li><strong>Measure kv.</strong> One free-air step response per joint at 111 Hz (the bus rate the
 2026-09-02 latency fix allows), 20&#176; step, read position until settled; fit the time constant
 and the no-load speed. Then re-fit kp with that kv via <code>calibrate_plant_kp.py --kv</code>.
-Until then the chain runs at kp 0.5 and kp 0.25 both, and a result that differs between them is
-not a result.</li>
+Until then the chain runs at both kp 0.5 and kp 0.25, and only results that agree between them count.</li>
 <li><strong>The handover and gait</strong> stay position sequences composed on the rigid plant.
 The achieved-angle loop named on the 2026-09-16 chain page is still the next control test, now
 with a specific regime: the tool stands in the countersink under its own weight, so the loads are
 below the grip&#8217;s and the ceiling is not the constraint it is during the turn. Run it on D6
 at kp 0.5 and 0.25; accept if the tripod forms on 3 pads and the gait turns &#8805; 0.5 rev.</li>
-<li><strong>Per-hand ranking on the bench maneuver is not a plant test.</strong> The seed spread
+<li><strong>Per-hand ranking on the bench maneuver.</strong> The seed spread
 under 4 mm of spawn jitter exceeds the between-hand spread on every plant. A ranking claim needs
 either the screened maneuver&#8217;s load regulator in the replay or a jitter equal to the
 bench&#8217;s placement repeatability (0.03 mm rms on the tag), and 20+ seeds.</li>
