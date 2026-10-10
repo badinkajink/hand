@@ -467,12 +467,20 @@ def hertz_sphere(F, R, E, nu):
     return a, a * a / R
 
 
-def validate(grid_name="medium", R=40.0, E=30.0, nu=0.45):
-    """Solid tip under a sphere: force-controlled approach and contact radius against Hertz."""
+def validate(grid_name="medium", R=40.0, E=30.0, nu=0.45, out=None):
+    """Solid tip under a sphere: force-controlled approach and contact radius against Hertz; rows appended to out."""
     model, _ = build(dict(core="solid", E_s=E, nu=nu), grid_name)
     rows, aux = run_indentation(model, f"sphere{R:g}", forces=(0.5, 1.0, 3.0), zwin=3.5)
     for r in rows:
         a, d = hertz_sphere(r["F"], R, E, nu)
+        if out:
+            row = dict(case="hertz_sphere", grid=grid_name, R=R, E=E, nu=nu, F=r["F"], delta_mm=r["delta_mm"],
+                       delta_hertz_mm=d, r_rms=r["r_rms"], r_rms_hertz=math.sqrt(0.4) * a, arm=r["arm"],
+                       arm_hertz=3 * math.pi * a / 16, n_contact=r["n_contact"], script="scripts/tpu_tip_fem_tip.py validate")
+            with open(out, "a") as f:
+                f.write(json.dumps(row, default=float) + "\n")
+                f.flush()
+                os.fsync(f.fileno())
         # contact radius from the RMS radius of a Hertz pressure (r_rms = sqrt(2/5) a)
         print(f"  sphere R {R:g} mm, F {r['F']:.2f} N: approach {r['delta_mm'] * 1e3:.2f} um (Hertz {d * 1e3:.2f}), "
               f"RMS radius {r['r_rms']:.3f} mm (Hertz {math.sqrt(0.4) * a:.3f}), arm {r['arm']:.3f} mm "
@@ -714,7 +722,7 @@ if __name__ == "__main__":
     a = ap.parse_args()
     TRUE_SURFACE = a.surface
     if a.cmd == "validate":
-        validate(a.grid)
+        validate(a.grid, out=ROOT / "docs/experiments/20261009-tpu_tip_fem/validate.jsonl")
     elif a.cmd == "size":
         g = Grid.named(a.grid)
         print("cells", g.nc, int(np.prod(g.nc)), "nodes", int(np.prod(g.nn)))
