@@ -288,43 +288,18 @@ footer a{color:var(--s2)}
   <h2>Value of the remaining {{BALANCE}} SU</h2>
   <p class="sub">balance {{BALANCE}} of {{DEPOSITED}} deposited hours, 2026-08-20</p>
 
-  <p>The one study actually run gives the honest wall-clock arithmetic. Sixteen draws of 20M
-  timesteps is {{SEQ_LOCAL_H}} hours of exclusive GPU on the workstation, run end to end. On
-  DeltaAI at 16-way concurrency and zero queue wait it is {{IDEAL_GH_H}} hours, a
-  {{IDEAL_SPEEDUP}}&#215; improvement; at 8-way it is {{EIGHT_WAY_H}} hours and
-  {{EIGHT_WAY_SPEEDUP}}&#215;. The write-up records the actual elapsed time as &#8220;a few
-  hours&#8221;, so queue wait set the delivered result; it was not measured.</p>
+  <p>Sixteen draws of 20M timesteps take {{SEQ_LOCAL_H}} hours of exclusive GPU on the workstation. On
+  DeltaAI they take {{IDEAL_GH_H}} hours at 16-way concurrency with no queue wait ({{IDEAL_SPEEDUP}}&#215;)
+  and {{EIGHT_WAY_H}} hours at 8-way ({{EIGHT_WAY_SPEEDUP}}&#215;); the seed band&rsquo;s recorded elapsed
+  time, &#8220;a few hours&#8221;, was set by the unmeasured queue wait. It used {{SB_GPUH}} GPU-hours and was
+  billed {{SB_SU}} SU ({{SB_BILL_OVER}}&#215; for reservation rounding). The {{SPAN_DAYS}}-day local history
+  would take {{HISTORY_GH_H}} GH200-hours, more than the {{BALANCE}} SU left.</p>
 
-  <p>Against that the accounting is straightforward. The study consumed {{SB_GPUH}} GPU-hours of
-  work and was billed {{SB_SU}} SU, an overhead of {{SB_BILL_OVER}}&#215; from reservation
-  rounding. The entire {{SPAN_DAYS}}-day local training history &#8212; {{N_GSTEPS}} G env-steps,
-  {{HISTORY_LOC_H}} hours here &#8212; would take {{HISTORY_GH_H}} GH200-hours, which does not
-  fit in the {{BALANCE}} SU on the account.</p>
-
-  <div class="kpi">
-    <div><div class="n">{{RATIO_MED}}&#215;</div><div class="k">GH200 per-run throughput</div></div>
-    <div><div class="n">{{IDEAL_SPEEDUP}}&#215;</div><div class="k">best case at 16-way breadth</div></div>
-    <div><div class="n">{{SB_BILL_OVER}}&#215;</div><div class="k">billed over work done</div></div>
-    <div><div class="n">{{DUTY}}%</div><div class="k">local GPU occupancy</div></div>
-  </div>
-
-  <h3>Where the allocation still pays</h3>
-  <p>Work that is genuinely wide and that nobody is waiting on: seed bands, hyperparameter or
-  reward-shaping sweeps, ablations across many hands, and any question of the form &#8220;is
-  this effect larger than the draw-to-draw noise&#8221;. The seed band is the model case. It was
-  9.4 hours of exclusive local GPU on a machine with one card, which is why it went unasked for
-  two months, and it settled a question the whole sim-to-real spec depended on for 15 SU.</p>
-
-  <h3>Where it does not</h3>
-  <p>Anything with a person at the end of it. Per-run latency is worse, so a single run being
-  watched belongs here. The A&#8594;B pipeline stays sequential per design because B warmstarts
-  from A's checkpoint, so parallelism is across designs and seeds only, and chaining wants
-  <code>--dependency=afterok</code> in place of running
-  <code>morph_pipeline_sweep.py</code> on a compute node. Rendering is worse than not
-  cluster-shaped: EGL on the node image is untested and video encoding is billed GPU time, so
-  filmstrips and eval videos come back to the workstation. And bulk training raises the risk the
-  program is already most exposed to, since 48 seeds produce 48 reward curves and no pictures,
-  while every conclusion in this repo has needed someone to look at a rollout.</p>
+  <p>The allocation suits wide work that nobody waits on: seed bands, reward and hyperparameter sweeps,
+  ablations across hands, and any test of an effect against the draw-to-draw noise. It suits nothing with a
+  person waiting at the end: per-run latency is worse, the A&#8594;B pipeline is sequential per design
+  (chain with <code>--dependency=afterok</code>), rendering on the nodes is untested and billed, and 48 seeds
+  give 48 reward curves and no rollout to look at.</p>
 </section>
 
 <section class="col">
