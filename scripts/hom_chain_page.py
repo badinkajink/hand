@@ -756,7 +756,8 @@ def render_tex(t):
 def main():
     t = open(TPL).read()
     v = dict(LINKS)
-    v.update(BUILT=time.strftime("%Y-%m-%d %H:%M"), DRAKE_V=R.DRAKE_V, MUJOCO_V=R.MUJOCO_V)
+    v.update(BUILT="2026-10-09 15:38",  # pinned: rebuilds of the text change no data (docs text pass, 2026-10-09)
+              DRAKE_V=R.DRAKE_V, MUJOCO_V=R.MUJOCO_V)
     for key, tag in (("dhy_closed", "DHY"), ("s05_closed", "S05"), ("s1_closed", "S1"), ("s2_closed", "S2"),
                      ("p4s_closed", "P4S")):
         v[f"PHI_{tag}"] = f"{FL[key]['phi_end']:.1f}"

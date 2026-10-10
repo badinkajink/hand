@@ -149,6 +149,27 @@ a:focus-visible{outline:2px solid var(--s2);outline-offset:2px;border-radius:2px
   <a href="{{BRAKE_URL}}">artifact</a>)</div>
 </header>
 
+<section id="terms"><div class="col">
+<h2>Terms and metrics</h2>
+<dl class="terms">
+<dt><b>Relative contact-velocity control</b></dt><dd>The controller of Wang, Oh and Pollard: it commands the
+velocities of generalized contact frames relative to the tool and converts them to joint and arm motions every
+10&#8202;ms.</dd>
+<dt><b>Pinch brake</b></dt><dd>The load step: the thumb&#8211;index pinch relaxes so that the tool swings to hanging under
+gravity, with the pad force set from the swing&#8217;s torque demand.</dd>
+<dt><b>Friction arm r&#772;</b></dt><dd>The radius at which &#956; times the normal force gives the patch&#8217;s friction
+torque about its normal, in mm.</dd>
+<dt><b>Contact models</b></dt><dd>Drake compliant hydroelastic pads (E 10&#8202;MPa); MuJoCo with 0.5, 1 or 2&#8202;mm sphere
+pads; MuJoCo condim 4 with the torsional coefficient recomputed from the normal force each step; point contact.</dd>
+<dt><b>Final swing angle</b></dt><dd>Angle of the tool from horizontal about the pinch axis at the end of the brake,
+in degrees; 90&#176; is hanging.</dd>
+<dt><b>Insertion depth</b></dt><dd>How far the tool&#8217;s tip enters the peg hole, in mm.</dd>
+<dt><b>Perturbed seeds</b></dt><dd>Trials with the tool&#8217;s spawn pose and the contact parameters jittered.</dd>
+<dt><b>Cost per simulated second</b></dt><dd>Wall time of the physics for one second of simulation on one CPU core, in
+ms.</dd>
+</dl>
+</div></section>
+
 <section id="problem"><div class="col">
 <h2>Problem and hypothesis</h2>
 <p class="sub">A pinch brake needs a contact area, and MuJoCo resolves contact at points</p>
