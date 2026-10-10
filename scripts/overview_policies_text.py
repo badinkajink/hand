@@ -39,14 +39,27 @@ SECTIONS = [
     ("structure", "Policy structure and training",
      """<p>A policy outputs nine finger corrections every 20&#8202;ms on top of a scripted episode: the fingers ease from the
 open keyframe to the grip, the palm lifts the tool, and the policy acts from step 58 for the turn and the hold. The
-reward grows with the tool axis&#8217;s alignment with vertical, its progress toward it and pad contact, and falls with
-lateral drift and grip force above a threshold
-([policies continued on the chain plant](exp:20260920-robust_tranche/20260920-robust_reorient_policies.html)).
+policy reads 66 numbers: positions and velocities of the 15 hand joints, the tool&#8217;s position and pose in the palm frame,
+the finger joints and tool pose of the open-loop reference rollout at the same step, the previous action and
+\\(1-c\\), where \\(c\\) is the cosine. Actor and critic are separate 512-256-128 ELU networks; a warm start copies
+both, because actor-only warm starts pushed converged policies off their optimum. From step 58 the reward pays
+\\(100\exp(-4(1-c)^2)\\) for alignment and \\(300\,\Delta c\\) per step for progress, with tracking and contact terms
+throughout, a lift term during the lift, and penalties on drift, action rate and pad force above a threshold. An
+episode ends when the tool falls 20&#8202;mm below its spawn height or fewer than three pads touch it for 15 consecutive
+steps ([policies continued on the chain plant](exp:20260920-robust_tranche/20260920-robust_reorient_policies.html)).
 PPO trains 2,048&#8211;3,072 hands in parallel at about 9,400 environment steps per second on the workstation&#8217;s
 GPU, independent of the batch width; a DeltaAI GH200 runs at 0.74 of that speed, and 40&#8202;M steps cost
 1.2&#8211;3.4 GPU-hours ([training throughput](exp:20260908-compute_budget/20260908-compute_budget.html),
 [contact-model policies](exp:20261008-contact_model_policies/20261008-fingertip_contact_model_policies.html)).</p>
-{{FIG timeline}}"""),
+{{FIG timeline}}
+<p>The scripted lift replaced a learned one. On m05, the earlier simulation-only hand, a lift policy
+(A) and a turn policy (B) were trained separately because the two rewards conflicted, and every B trained
+from a teleported, pre-lifted tool dropped it at the hand-off. The live-A reset
+(<code>src/morphohand/rl/live_a_runner.py</code>) lets a frozen A drive the first 40 steps of each B episode and zeroes
+those steps&#8217; advantages; B then held the tool at 0.110&#8202;m, and the reference turn policy b33
+reached a cosine of 0.891. Recipes in <code>configs/recipes/</code> fix the residual scale, easing and contact gate for
+training and evaluation alike; on real_v1 a script performs the lift, and the recipe keeps the name b_liveA
+([program record](exp:20260921-workshop_briefing/20260921-sr2_hand_program_record.html)).</p>"""),
     ("plants", "Servo plants",
      """<p>Three servo plants have been used, and only the last is fitted to bench readings. Policies up to 2026-09-16
 trained on the shipped plant. The D6 and D1&#8211;D7 policies of 2026-09-17 to 09-20 trained on the calibrated plant,
@@ -63,6 +76,12 @@ two from-scratch D6 runs of 60&#8202;M steps ended at 0.933 and 0.640
 ([training throughput](exp:20260908-compute_budget/20260908-compute_budget.html),
 [D6 at 60&#8202;M steps](exp:20260917-d6_cal_60M/20260917-d6_reorient_policy_60M.html)). A design comparison therefore
 needs several seeds or a shared warm start.</p>
+<p>The trajectory-health scorecard (<code>src/morphohand/rl/trajectory_health.py</code>) grades a rollout on six checks
+(late finger, idle finger, drop, jitter, de-centring, over-clamp) and reports the worst. The checkpoint watch of the
+2026-10-08 runs evaluates a run every 4&#8202;M steps and stops it after 10&#8202;M steps of degenerate checkpoints (every
+rollout dropped, an idle finger, shaking above 40&#8202;rad/s&#178; with rocking, pinned servo targets) or when its held
+cosine gains less than 0.02 over 10&#8202;M steps
+([contact-model policies](exp:20261008-contact_model_policies/20261008-fingertip_contact_model_policies.html)).</p>
 <p>A policy is judged on jittered rollouts with a load test, under its own run&#8217;s timing. Evaluated with the residual
 switched on too early, the D6 policy held 12 of 64 rollouts instead of 64. Trained at one pose, D7 held 64 of 64 at
 that pose and 0 of 64 jittered; continuing training under jitter raised D5 from 23 to 57 and D7 from 1 to 35 of 64.

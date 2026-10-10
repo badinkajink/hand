@@ -89,7 +89,10 @@ MuJoCo, 24 of 24 in Drake) but stops at 6&#8211;42&#176;: the proximal-interphal
 10.55&#8202;mm pad ([ground-supported gaiting](exp:20260902-real_v1_gait/20260902-real_v1_gaiting.html)). Releasing the
 middle finger lets gravity swing the tool about the thumb&#8211;index pinch to a cosine of +0.92&#8211;0.98 on D8 (6 of 6);
 torsional friction of 0.003 halves the swing and 0.01 stops it. The swing is ballistic and was set aside
-([pinch and swing](exp:20260916-swing_reorient/20260916-swing_reorient.html)).</p>
+([pinch and swing](exp:20260916-swing_reorient/20260916-swing_reorient.html)). The learned turns of the m05 era used the
+floor as well: in the first runs (2026-05-29 to 06-01) one policy braced the cylinder on the floor and its successor, with
+the floor forbidden, held without turning, and in b33 69&#8202;% of the alignment gain occurs with the shaft on the floor
+([program record](exp:20260921-workshop_briefing/20260921-sr2_hand_program_record.html)).</p>
 {{FIG gait}}"""),
 ]
 

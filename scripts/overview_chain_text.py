@@ -33,7 +33,7 @@ TERMS = [
 
 SECTIONS = [
     ("bench", "Transfer of the open-loop turn",
-     """<p>The bench study ran the CEM grasp and the open-loop turn on eight hands, D1&#8211;D8, chosen from the 227 layouts
+     """<p>The bench study ran the geometric fitter&#8217;s grasp and the open-loop turn on eight hands, D1&#8211;D8, chosen from the 227 layouts
 that passed the simulated screens. Of 77 scored trials, 48 held the tool, 28 dropped it and one is unresolved; the
 README and the paper count 80 and 51 because they include three later D1 trials. The simulated and measured alignment
 rank the hands at \\(\\rho_s = 0.50\\) (\\(p = 0.21\\), bootstrap interval &#8722;0.29 to 1.00). Hold rate is a separate outcome

@@ -39,6 +39,12 @@ simulated and measured alignment rank them at \\(\\rho_s = 0.50\\) (\\(p = 0.21\
 ([program record](exp:20260921-workshop_briefing/20260921-sr2_hand_program_record.html)). The eight are concentrated:
 their median pairwise separation is 43.6&#8202;mm against 66.9&#8202;mm for eight layouts drawn at random, and seven of
 them sit in the compact quadrant.</p>
+<p>A design is evaluated in a frozen scene (<code>freeze_scene_for_eval</code>): its mounts become fixed body transforms
+and the morphology joints, which drift under contact, are removed. The funnel and the deployed plans take their grasp from
+a geometric fitter (<code>fit_real_v1_pose.py</code>) that solves for a palm height and nine finger angles with three pads
+at or below the shaft&#8217;s equator. The older CEM search (<code>phase1_optimize_grasp.py</code>) optimises the hold, which on
+real_v1 trades against the turn: rv04_mid with the thumb offset turned the tool to +0.997 from its fitted grasp and to
++0.625 after CEM ([design search](exp:20260828-real_v1_search/20260828-real_v1_design_search.html)).</p>
 {{FIG funnel}}"""),
     ("predictors", "What predicts a turning hand",
      """<p>Among 108 designs searched with a fixed-contact turn, 49 reorient the tool, all by a two-pad pinch-roll that
@@ -49,9 +55,7 @@ mount coordinates stop ordering the designs (\\(\\rho\\) &#8722;0.015 and &#8722
 ([design search](exp:20260828-real_v1_search/20260828-real_v1_design_search.html)).</p>
 <p>Kinematic scores predict which designs keep the tool and barely which turn it. KaRMA-T separates retained from
 discarded designs at AUC 0.802 but correlates with the screened turn at only \\(\\rho = +0.105\\)
-([kinematic rolling-pinch metric](exp:20260910-karma_metric/20260910-karma_metric_evaluation.html)); the depth of the
-grasp below the mounting plane behaves the same way, and an earlier dexterity score ranked the grip and missed the
-turn.</p>
+([kinematic rolling-pinch metric](exp:20260910-karma_metric/20260910-karma_metric_evaluation.html)), and an earlier dexterity score ranked the grip and missed the turn.</p>
 {{FIG predictors}}"""),
     ("scale", "Finger spacing against object size",
      """<p>On a family of symmetric tripods with the bench servo model and 1&#8202;mm pad fingertips, the layout with the
@@ -65,13 +69,15 @@ basketball needs the widest layout, friction of at least 1.0 and MuJoCo&#8217;s 
 ([basketball grasp](exp:20260916-basketball/20260916-basketball_grasp.html)).</p>
 {{FIG scale}}"""),
     ("earlier", "Earlier design studies in simulation",
-     """<p>Before the hand was built, designs were compared in simulation with learned policies on hands with nine
-parameters, finger length included. The policy draw dominated: held cosine varied by 0.3&#8211;0.5 between training
-seeds of one design, more than between designs, and one design win (H06_04) replicated. Of two finger arrangements, the
+     """<p>Before the hand was built, designs had nine parameters: the x and y of each finger base and its proximal length.
+<code>morph_pipeline_sweep.py</code> scored a design by baking it into fixed geometry, retargeting the grasp keyframe by
+inverse kinematics, searching the grasp by CEM, training a lift policy from
+scratch and a turn policy on the lift&#8217;s deliveries, and grading the hand-off with the trajectory-health scorecard. The
+policy draw dominated: the held cosine of one design varied with a standard deviation of 0.38 between from-scratch seeds;
+a fixed lift policy, a shared warm start and fingertip imitation in the object frame cut it to
+0.02, and one design win (H06_04, 0.748 over four draws) replicated ([program record](exp:20260921-workshop_briefing/20260921-sr2_hand_program_record.html)). Of two finger arrangements, the
 opposed pair turned the tool to 0.995 and dropped it in every rollout, while the inline pair held at 0.884
-([two finger arrangements](exp:20260818-perp_review_page/20260818-perp_reorientation.html)). A Drake model of the hand
-supports joint optimisation of layout and posture with collision-constrained inverse kinematics
-([SR&#178; hand in Drake](exp:20261001-drake-port/20261001-drake_sr2_planning.html)).</p>"""),
+([two finger arrangements](exp:20260818-perp_review_page/20260818-perp_reorientation.html)).</p>"""),
 ]
 
 FIGURES = {
@@ -98,6 +104,8 @@ FUTURE = [
     "means little.",
     "Choose the next hands to build where the retention screen and the bench-schedule replay disagree most, and keep the "
     "eight built hands as the held-out set.",
+    "Train one policy over randomised mounts that observes the six mount coordinates, and test first whether its "
+    "behaviour changes with the design vector alone; if it does not, the policy ignores the design and cannot rank it.",
     "Run the 47-cell bench protocol of the object-size study (17.3&#8202;h; core set of 8 objects in 7.1&#8202;h) after "
     "printing the objects and exporting the plans with <code>hand_object_scale_export.py</code>.",
 ]

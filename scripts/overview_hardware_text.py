@@ -31,14 +31,28 @@ TERMS = [
 SECTIONS = [
     ("hand", "The hand",
      """<p>Each finger base rides on an XY gantry driven by stepper motors: the thumb&#8217;s spans 110 by 60&#8202;mm and the
-index and middle bases 60 by 60&#8202;mm, all at full travel since 2026-09-01. Each finger has three servo joints, a yaw at
-its base and two flexion joints. The links are printed; the printed TPU fingertip is a 17 by 14.8 by 22&#8202;mm block
+index and middle bases 60 by 60&#8202;mm, all at full travel since 2026-09-01. Each axis is a T5&#8202;&#215;&#8202;1 lead screw at
+3,216 steps/mm on a TMC5160 driver; a change of layout takes about 95&#8202;s, and sensorless homing (StallGuard2 against a
+hard stop) about 2&#8202;min. Each finger has three servo joints, a yaw at its base and two flexion
+joints, spanning &#177;85&#176; in yaw (commands capped at &#177;70&#176;), &#8722;15 to 92&#176; at the MCP and &#8722;18 to 92&#176; at the PIP.
+Seven tracked, re-staged trials of D1&#8217;s plan gave a cosine of +0.881 with a standard deviation of 0.011; the plan
+drifts by &#177;5&#176; between sessions ([program record](exp:20260921-workshop_briefing/20260921-sr2_hand_program_record.html)). The links are printed; the printed TPU fingertip is a 17 by 14.8 by 22&#8202;mm block
 with 2.7&#8202;mm fillets. The model differs from the built hand in three measured ways: its link masses are about a
 quarter of the real ones, the palm plate sits 25&#8202;mm higher on the hand than it did in the model before 2026-09-16,
 and the yaw servos under the palm have no collision geometry
 ([servo identification](exp:20260902-servo-sysid/20260902-servo_sysid.html),
 [bench partial reorientation](exp:20260916-tip_gait/20260916-bench_partial_reorientation.html)).</p>
 {{FIG photo}}"""),
+    ("station", "Control station and the path of a plan",
+     """<p>The CB1 board runs the control station (<code>manta_hand.web</code>, port 8765), the only owner of both serial
+links: the Manta M8P board that steps the six gantry axes over USB, and the half-duplex bus of the nine servos at
+1&#8202;Mbaud. <code>real_v1_export_plan.py</code> writes a plan as three set-points, a 50&#8202;Hz per-joint
+trajectory, a build sheet and a pose sheet; a plan that passes the gates (servo range with the &#177;70&#176; yaw cap, gantry
+travel, 5&#8202;mm of index&#8211;middle clearance along both the set-point chord and the trajectory) is copied to the CB1.
+During a policy stream the station writes the servos without reading them, and the tracker sends the tool pose over the
+network. <code>python -m manta_hand.web --fake</code> runs the station against simulated hardware; the operator&#8217;s guide
+is <a href="../hardware_control_station.md">docs/hardware_control_station.md</a>
+([program record](exp:20260921-workshop_briefing/20260921-sr2_hand_program_record.html), [residual gates](exp:20260903-sim2real-gates/20260903-sim2real_gates.html)).</p>"""),
     ("servo", "The servo: a spring and a cutoff",
      """<p>Over 236 logged bench runs on 11 hands, the deflection at a settled hold is 0.0186&#176; per unit of load, one
 constant for every loaded joint (0.0177&#8211;0.0198, \\(R^2\\) 0.94&#8211;0.99), with no stiction offset. A separate regime
@@ -65,7 +79,8 @@ its post
 0.017&#176; and 0.030&#8202;mm rms noise; the bench height equals the simulated height plus 44.0&#8202;mm
 ([object pose from two tags](exp:20260831-real_v1-object-tracking/20260831-real_v1_object_tracking.html)). The servo bus
 reads the nine positions at 111&#8202;Hz once the USB adapter&#8217;s latency timer is set to 1&#8202;ms (7&#8202;Hz at its
-16&#8202;ms default) and writes and reads at 75&#8202;Hz through the driver.</p>
+16&#8202;ms default) and writes and reads at 75&#8202;Hz through the driver. The station reads the servos one at a time,
+because SYNC READ times out on every register; the servo has no current register.</p>
 <p>On a UR5e the hand must be declared as the arm&#8217;s payload. Declared, wrist stacks of 0&#8211;150&#8202;mm complete 8 of 8
 chains and the palm error at the top of the lift falls from 0.97 to 0.01&#8202;mm; undeclared, a 150&#8202;mm stack completes
 0 of 8, and 23&#176; of the turn credited to the fingers was the wrist sagging

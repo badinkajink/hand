@@ -44,6 +44,10 @@ compliance and friction are unmeasured. The model is therefore judged by agreeme
 analytic limits on task-level metrics, by consistency across step size and resolution, and by cost. A receding-horizon
 controller corrects a consistent model error from measured state, provided the model contains the friction torque and slip
 the task uses.</p>
+<p>The task scenes with point-contact pads use MuJoCo&#8217;s elliptic friction cone, impratio 10 and a soft contact on pads,
+tool and floor (solref 0.006, solimp 0.97&#8211;0.995). On m05, the earlier simulation-only hand, a policy retrained with
+harder contact (solimp 0.985&#8211;0.999) kept the grasp and lost the turn, at an alignment reward of 13 against 48
+(<a href="../experiments/20260818-perp_review_page/20260818-perp_reorientation.html">two finger arrangements</a>).</p>
 <div class="tw">{{CAP_TABLE}}</div>
 <p class="tnote">Table&#160;1. Contact quantities each model represents. Cost: wall time of one physics step at 1&#8202;ms, on
 one CPU core for the two-pad pinch rig (bed task&#160;1), and for GPU models on the SR2 holding fixture of Figure&#160;10, for one
