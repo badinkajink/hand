@@ -1,4 +1,4 @@
-<title>The KaRMA kinematic metric on the real_v1 design family</title>
+<title>KaRMA rolling-pinch metric on the real_v1 design family</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -105,21 +105,44 @@ footer a{color:var(--s2)}
 <div class="wrap">
 <header>
   <div class="eyebrow">MorphoHand &#183; real_v1 &#183; 10 September 2026</div>
-  <h1>The KaRMA kinematic metric on the real_v1 design family</h1>
-  <p class="lede">Over {{N_DESIGNS}} real_v1 designs carrying this programme&#8217;s own
-  retention labels, KaRMA predicts which hands keep the screwdriver at AUC {{AUC_T}} and beats
-  the best distance measurable off the mount plate by {{DELTA}}. It says almost nothing about
-  how far those hands turn the tool: &#961; {{RHO_T}} against the screened turn, and AUC
-  {{AUC_CONF_T}} for separating confirmed designs from merely retained ones. That split is the
-  result, and it matches the scope its authors claim.</p>
+  <h1>KaRMA rolling-pinch metric on the real_v1 design family</h1>
+  <p class="lede">KaRMA, a published kinematic score of thumb&#8211;index rolling-pinch dexterity, was
+  computed for {{N_DESIGNS}} real_v1 designs labelled by this program&#8217;s retention screen. It predicts
+  which hands keep the screwdriver at AUC {{AUC_T}}, {{DELTA}} above the best distance measurable off the
+  mount plate, and ranks the residual clip a hand absorbs at &#961; {{RHO_CLIP_T}}. It says almost nothing
+  about how far the hands turn the tool: &#961; {{RHO_T}} against the screened turn, and AUC {{AUC_CONF_T}}
+  for confirmed against retained designs. Within this one topology the score spans
+  {{SPREAD_RATIO}}&#215;, and it changes with the choice of finger pair.</p>
   <div class="byline">{{N_RUNS}} metric runs, upstream&#8217;s <span class="mono">run_metric.py</span>
   unmodified &#183; labels from the Sobol-8192 funnel, 8,198 sampled &#8594; 6,629 reachable
   &#8594; 535 retained &#8594; 227 confirmed &#183; every number here is read back out of the
   sweep&#8217;s own JSON by the builder named in the footer</div>
 </header>
 
+<section class="col" id="terms">
+  <h2>Terms and metrics</h2>
+  <dl class="terms">
+    <dt><b>KaRMA-T, KaRMA-R, KaRMA-S</b></dt><dd>Reachable object-centre volume of the rolling pinch; share of
+    228 twist-invariant orientation bins reached; dependence of the result on the initial pinch. All three are
+    dimensionless.</dd>
+    <dt><b>L_ref</b></dt><dd>The characteristic hand size by which KaRMA scales every length, in mm.</dd>
+    <dt><b>Retained, confirmed</b></dt><dd>Designs that pass the retention screen (60&nbsp;mm proof lift, then
+    5&nbsp;s of free hold) at some residual clip; retained designs that pass its repeat and full-error
+    stages.</dd>
+    <dt><b>Residual clip</b></dt><dd>Largest joint offset of a plan from its grasp anchor, in rad; under the
+    retention screen a larger clip is the harder test.</dd>
+    <dt><b>AUC</b></dt><dd>Area under the ROC curve for separating two groups by a score; 0.5 is chance, 1 is
+    perfect.</dd>
+    <dt><b>&#961;</b></dt><dd>Spearman rank correlation.</dd>
+    <dt><b>Screened turn</b></dt><dd>Signed cosine of the tool&rsquo;s axis with vertical after the screened
+    plan&rsquo;s turn; +1 is upright.</dd>
+    <dt><b>Mount distance</b></dt><dd>Straight-line distance between the two scored finger mounts, in mm.</dd>
+    <dt><b>D1 to D8</b></dt><dd>The eight hands deployed to the bench.</dd>
+  </dl>
+</section>
+
 <section class="col">
-  <h2>What KaRMA measures, and why this family can test it</h2>
+  <h2>KaRMA and the real_v1 family</h2>
   <p>KaRMA (<span class="mono">arXiv:2605.15548</span>, Peticco and Agrawal, IROS 2026) puts a
   hand in a thumb&#8211;index precision pinch on a sphere and searches, by breadth-first
   expansion over translation and rotation primitives, for every object pose the pinch can roll
@@ -131,13 +154,11 @@ footer a{color:var(--s2)}
   Every length is scaled by a characteristic hand size <span class="mono">L_ref</span>, so the
   scores are exactly invariant to rescaling a hand uniformly.</p>
 
-  <p>The authors are explicit that it is &#8220;a standardized lower bound on thumb&#8211;index
-  rolling-pinch dexterity, not a universal dexterity score, and not a predictor of task
-  success&#8221;, and that it is meant for procurement and design iteration. Design iteration is
-  exactly what this programme does, so the useful test is not whether KaRMA is a good metric in
-  general but whether it ranks <em>our</em> candidate hands usefully.</p>
+  <p>The authors describe it as a standardized lower bound on thumb&#8211;index rolling-pinch dexterity
+  for procurement and design iteration, and exclude task success from its claims. The test here is whether
+  it ranks this program&#8217;s candidate hands usefully.</p>
 
-  <p>real_v1 makes that test unusually clean. Every hand in the family has identical fingers
+  <p>real_v1 makes that test clean. Every hand in the family has identical fingers
   &#8212; three links of 33.45 / 33.45 / 37.16 mm, three revolute joints, the same limits
   &#8212; and the design space is six numbers, the palm-frame x and y of each finger&#8217;s
   mount. KaRMA is therefore a three-number function of those six, and cannot carry information
@@ -150,20 +171,20 @@ footer a{color:var(--s2)}
 </section>
 
 <section class="col">
-  <h2>Porting the hand, and the checks that it ported correctly</h2>
-  <p>KaRMA reads a URDF; real_v1 lives in MJCF. <span class="mono">scripts/karma_export_urdf.py</span>
+  <h2>Export of the hand to KaRMA and its checks</h2>
+  <p>KaRMA reads a URDF, and real_v1 is written in MJCF. <span class="mono">scripts/karma_export_urdf.py</span>
   reads a real_v1 MJCF and writes the URDF plus the per-hand YAML. Two details set what the
   score means.</p>
   <p><span class="mono">tip_length_m</span> is the distance from the terminal joint origin to
   the <em>outer surface</em> of the fingertip, because KaRMA subtracts its own capsule radius
   from that value to get the medial axis. For real_v1 that is 37.16 mm, the CAD
-  <span class="mono">LINK_DISTAL</span>, and the resulting capsule end lands on the same
-  fingertip surface as the MJCF pad sphere to the micron. Palm height is dropped: KaRMA
+  <span class="mono">LINK_DISTAL</span>, and the capsule end then meets the fingertip surface of the
+  MJCF pad sphere to the micron. Palm height is dropped: KaRMA
   canonicalizes the base link to the world origin, so a rigid translation cannot change the
-  score, and each real_v1 design carries its own palm height from
+  score, and each real_v1 design has its own palm height from
   <span class="mono">fit_real_v1_pose.py</span>.</p>
   <div class="keep">
-    <span class="tag">What was verified before any number was believed</span>
+    <span class="tag">Checks of the export</span>
     <ul>
       <li>The install reproduces the paper. Inspire returns 4 voxels, KaRMA-T 0.000417,
         KaRMA-R 0.004386, KaRMA-S 0.2500, <span class="mono">L_ref</span> 155.4 mm &#8212; the
@@ -181,7 +202,7 @@ footer a{color:var(--s2)}
 </section>
 
 <section class="col">
-  <h2>It separates hands inside one topology</h2>
+  <h2>Spread of the score within one topology</h2>
   <p>Across {{N_DESIGNS}} designs that differ only in where three fingers are bolted to a
   plate, KaRMA-T spans <strong>{{SPREAD_RATIO}}&#215;</strong> between the best and the worst.
   The sixteen commercial hands in the paper&#8217;s own table span {{PUB_RATIO}}&#215;. The
@@ -190,13 +211,12 @@ footer a{color:var(--s2)}
   {{FIG_REACH}}
   <p>The two ends of that range, drawn on the hands that produce them: each cube is one
   reachable object-centre voxel, coloured red to green by how much of the orientation space
-  is reachable there, and the pale sphere is the seed pinch. on a single-topology family: moving a mount by a few centimetres changes its answer as much
-  as changing hands does. Whether that separation is the <em>useful</em> one is the next
-  section.</p>
+  is reachable there, and the pale sphere is the seed pinch. On this family, moving a mount by a few centimetres changes the score
+  as much as changing hands does.</p>
 </section>
 
 <section class="col">
-  <h2>It predicts which hands keep the tool, better than the geometry it is computed from</h2>
+  <h2>Prediction of retention</h2>
   <p class="sub">retention over {{N_DESIGNS}} designs, {{N_RETAINED}} retained</p>
   {{CHART_AUC}}
   <p>KaRMA-T separates retained from discarded designs at <strong>AUC {{AUC_T}}</strong>
@@ -204,16 +224,15 @@ footer a{color:var(--s2)}
   mount plate, how close the two scored mounts are, reads {{AUC_RULER}}; a paired bootstrap over
   the same designs puts KaRMA-T ahead of it by <strong>{{DELTA}}</strong> ({{DELTA_CI}},
   p&nbsp;&lt;&nbsp;0.001). Logistic regression on all six mount coordinates reads {{AUC_MOUNTS}}
-  here, and adding KaRMA&#8217;s three scores takes it to {{AUC_BOTH}}. The search buys roughly
-  0.07 to 0.09 of AUC over the geometry it is computed from, at about 220 core-seconds per
-  hand.</p>
+  here, and adding KaRMA&#8217;s three scores takes it to {{AUC_BOTH}}. The search adds
+  0.07 to 0.09 of AUC to the geometry it is computed from, at about 220 core-seconds per hand.</p>
   <p>KaRMA-S is inverted. At AUC {{AUC_S}} a design whose score depends heavily on which pinch
-  you start from is <em>less</em> likely to be retained, so the sensitivity score carries sign
-  as well as magnitude on this family.</p>
+  you start from is <em>less</em> likely to be retained, so on this family the sign of the
+  sensitivity score matters as well as its size.</p>
   <h3>How much residual clip a hand absorbs</h3>
   <p>Binary retention is the coarsest form of the label. The screen also records the highest
   residual clip at which each design still passes, and under this gate a bigger clip is the
-  harder test, not the easier one: 305 designs pass at 0.50 rad and 33 at 1.30, because a
+  harder test: 305 designs pass at 0.50 rad and 33 at 1.30, because a
   larger turn excursion costs grip before the proof lift. Against that ordinal, KaRMA-T reads
   <strong>&#961; {{RHO_CLIP_T}}</strong> (p&nbsp;=&nbsp;{{RHO_CLIP_T_P}}, n&nbsp;=&nbsp;{{N_CLIP}})
   and KaRMA-R {{RHO_CLIP_R}} (p&nbsp;=&nbsp;{{RHO_CLIP_R_P}}). So the metric ranks how much
@@ -225,13 +244,13 @@ footer a{color:var(--s2)}
   turn&#8217;s signed cosine at <strong>&#961; {{RHO_T}}</strong> (p&nbsp;{{RHO_T_P}}) and
   KaRMA-R at {{RHO_R}} (p&nbsp;{{RHO_R_P}}). Among the retained designs, separating the
   {{N_CONF}} that went on to be confirmed runs at AUC {{AUC_CONF_T}} for KaRMA-T and
-  {{AUC_CONF_R}} for KaRMA-R. The metric ranks which hands hold the tool, and says almost
-  nothing about how far they turn it, which is the quantity this programme is optimizing and
-  which the authors place outside the metric&#8217;s scope.</p>
+  {{AUC_CONF_R}} for KaRMA-R. The metric ranks which hands hold the tool and says almost
+  nothing about how far they turn it, the quantity this program optimizes and the authors exclude from
+  the metric&#8217;s claims.</p>
 </section>
 
 <section class="col">
-  <h2>Which two fingers you pick changes the answer</h2>
+  <h2>Choice of the finger pair</h2>
   <p>KaRMA takes a thumb and an index. real_v1 has three fingers, and this programme&#8217;s
   own result is that the third loaded finger is what keeps the tool: the opposed pair peaks at
   0.995 and drops the tool in every rollout with the thumb at 0 N, while inline-plus-thumb
@@ -240,13 +259,12 @@ footer a{color:var(--s2)}
   {{PAIR_RHO}} between the two rankings, and a median absolute disagreement of
   {{PAIR_RATIO}} in log&#8322; KaRMA-T.</p>
   {{CHART_PAIRS}}
-  <p>Matched on the {{PAIR_N}} designs scored both ways, thumb&#8211;index predicts retention
+  <p>On the {{PAIR_N}} designs scored both ways, thumb&#8211;index predicts retention
   at AUC {{PM_TI}} and thumb&#8211;middle at {{PM_TM}}; the paired difference is
   {{PM_DELTA}}, so at this sample size neither pair is demonstrably the better one to hand
-  the metric. Taking the better of the two scores per design reads {{PM_BEST}} and buys
-  nothing. What is established is that <strong>a three-finger hand has no single KaRMA
-  score</strong>: the number depends on a choice the metric does not make for you.</p>
-  <h3>What it is measuring on this family</h3>
+  the metric. Taking the better of the two scores per design reads {{PM_BEST}}, no better. A three-finger
+  hand therefore has no single KaRMA score: the number depends on the choice of pair.</p>
+  <h3>Relation to mount distance</h3>
   <p>KaRMA-T is Spearman <strong>{{RHO_GEOM}}</strong> with the straight-line distance between
   the two scored mounts, over {{N_DESIGNS}} designs, and {{RHO_LREF}} with
   <span class="mono">L_ref</span> itself. Its ranking is close to
@@ -257,7 +275,7 @@ footer a{color:var(--s2)}
 </section>
 
 <section class="col">
-  <h2>Its scale invariance costs nothing here</h2>
+  <h2>Scale invariance</h2>
   <p>KaRMA scales every length by <span class="mono">L_ref</span>, so a hand is posed a problem
   proportional to its own size and the score cannot see absolute scale. For comparing hands of
   different sizes that is the point; for a design search against a fixed 25 mm screwdriver
@@ -268,25 +286,23 @@ footer a{color:var(--s2)}
   KaRMA-T ranking almost unchanged at Spearman <strong>{{SC_RHO}}</strong>, and moves retention
   AUC by {{SC_DELTA}}. Correlation with the screened turn does not improve either
   ({{SC_TURN}}).</p>
-  <p>The invariance was the leading candidate explanation for the flat turn correlation, and
-  this rules it out. Recovering the turn would take a change to what the search does rather
-  than to the units it is measured in.</p>
+  <p>The invariance therefore does not explain the flat turn correlation; recovering the turn would take a
+  change to the search itself.</p>
 </section>
 
 <section class="col">
-  <h2>The pinch it scores is not the grasp this hand uses</h2>
+  <h2>KaRMA&#8217;s pinch against the hand&#8217;s grasp</h2>
   <p>KaRMA chooses its own pinch, ranking every feasible seed by a trial search. Over
   {{N_DESIGNS}} designs it chose a median depth of <strong>{{DEPTH_MED}} mm</strong> below the
   mounting plane. The eight deployed plans grasp at 50.5&#8211;66.5 mm.</p>
   {{CHART_DEPTH}}
   <p>The contact model differs too. KaRMA models every finger link as a capsule of one radius
-  &#8212; 11.8 mm nominal, 11.37 mm after scaling on this hand &#8212; and lets contact land
-  anywhere along it. real_v1&#8217;s links are 10.55 mm capsules with a pad sphere at the tip,
+  (11.8 mm nominal, 11.37 mm after scaling on this hand) and allows contact anywhere along it. real_v1&#8217;s links are 10.55 mm capsules with a pad sphere at the tip,
   and the pad is the only surface carrying the high-friction contact parameters. Rebuilding
   each hand in MuJoCo at KaRMA&#8217;s own seed angles, with a sphere of KaRMA&#8217;s own
   radius at KaRMA&#8217;s own seed centre, the contact fingers sit a median
   <strong>{{GAP_MED}} mm</strong> from the object on the hardware geometry, and
-  {{PAD_PCT}}% of those contacts are nearest at the pad rather than partway up a link.</p>
+  {{PAD_PCT}}% of those contacts are nearest at the pad; the rest lie partway up a link.</p>
   {{FIG_REPLAY}}
   <p>Driving KaRMA&#8217;s own joint trajectory through MuJoCo, on KaRMA&#8217;s own capsule
   geometry with its own sphere at its own seed pose, does not carry the object. The pinch has
@@ -294,12 +310,10 @@ footer a{color:var(--s2)}
   <span class="mono">eps_g</span> and no further &#8212; so nothing presses, and adding 5&#176;
   of commanded squeeze on the two contact fingers does not fix it: the sphere is never held at
   two contacts and normal force stays at zero, while it travels {{REPLAY_RATIO}}&#215; the
-  predicted distance because it is being pushed rather than rolled.</p>
-  <p>This is a statement about what the metric&#8217;s output is, not a refutation of it.
-  KaRMA claims a kinematically feasible rolling path and delivers one; the path is not a
-  controller, and a hand executing it open-loop under position control drops the object. Any
-  use of KaRMA&#8217;s trajectories as motion primitives would have to add the grip regulation
-  the metric leaves out.</p>
+  predicted distance because it is pushed and does not roll.</p>
+  <p>KaRMA delivers the kinematically feasible rolling path it claims. Executed open loop under
+  position control the path drops the object, so using it as a motion primitive needs added grip
+  regulation.</p>
 </section>
 
 <section class="col">
@@ -307,52 +321,49 @@ footer a{color:var(--s2)}
   <p>Reported apart from the population and never pooled with it. The eight were selected in
   sim-cos rank order, so any variable correlated with the selection correlates with the outcome
   inside the set: <span class="mono">depth_fit</span> against sim cos reads &#8722;0.90 over
-  these eight and +0.076 over the 535 retained. A within-eight correlation is evidence about
-  the selection, not about the predictor.</p>
+  these eight and +0.076 over the 535 retained. A within-eight correlation therefore measures
+  the selection.</p>
   {{TABLE_DEPLOYED}}
   <p>KaRMA spreads the eight over {{DEP_RANGE}}&#215; in KaRMA-T. Against their screened turn
   it reads &#961; {{DEP_RHO}} (p&nbsp;{{DEP_P}}, n&nbsp;=&nbsp;{{DEP_N}}), which is what the
   paragraph above says to disregard. The one thing worth recording is positional:
   <span class="mono">D7</span>, the reference configuration and the only one that has run the
   whole chain end to end, is the highest-scoring of the eight, and <span class="mono">D6</span>,
-  the hand that completes the chain at pivot 0.15, sits mid-pack. Six hands and two orderings
-  is not a test of anything; the population arm above is.</p>
+  the hand that completes the chain at pivot 0.15, sits mid-pack.</p>
 </section>
 
 <section class="col">
-  <h2>What this does not settle</h2>
+  <h2>Future work</h2>
   <ol>
-    <li><strong>Tip length is a modelling choice whose effect is untested.</strong>
+    <li><strong>Tip length.</strong>
       <span class="mono">karma_export_urdf.py --tip-mode centre</span> ends the capsule at the
       pad centre instead of its outer surface, 10.55 mm shorter. Re-running the 128-design
       subset both ways says whether the {{DELTA}} margin over the ruler survives the choice.
       About 8 core-hours.</li>
-    <li><strong>Whether KaRMA adds anything over the mounts is a point estimate.</strong>
+    <li><strong>Gain over the mounts.</strong>
       {{AUC_BOTH}} for six mounts plus KaRMA against {{AUC_MOUNTS}} for the mounts alone are
       single 5-fold CV numbers with no interval. A paired bootstrap over refits, 200 resamples
       at n&nbsp;=&nbsp;{{N_DESIGNS}}, would say whether that gap is real. No new metric runs.</li>
-    <li><strong>The disagreements have never been tested, and they are the only place KaRMA
-      could aid discovery rather than agree with what the screen already found.</strong> The
+    <li><strong>Designs where KaRMA and the screen disagree.</strong> Only there can KaRMA find hands
+      the screen missed. The
       designs KaRMA ranks highest among the <em>not</em>-retained are enumerable from
       <span class="mono">karma_table.json</span>. Testing ten of them against ten
-      KaRMA-low controls matched on mount compactness needs a CEM grasp per design, which
+      KaRMA-low controls of equal mount compactness needs a CEM grasp per design, which
       the screen&#8217;s closed-form fit does not provide:
       <span class="mono">fit_real_v1_pose.py</span> then
       <span class="mono">probe_real_v1_carry.py --repeats 8 --jitter 0.0005
       --linear-anchor</span>.</li>
-    <li><strong>The two other topologies would be decisive and are not covered.</strong> m05
+    <li><strong>The other two topologies.</strong> m05
       (inline) and perp (opposed) are historical controls with a verdict already in hand: the
       opposed pair peaks at 0.995 and drops the tool in every rollout with the thumb at 0 N,
       while inline-plus-thumb settles at 0.884 and keeps it on three loaded fingers. A
       two-finger metric has an obvious reason to prefer the opposed arrangement. Deciding it
       needs <span class="mono">karma_export_urdf.py</span> extended to the nine-parameter
       MJCF, which currently assumes real_v1&#8217;s fixed links.</li>
-    <li><strong>Agreeing with the screen is not evidence about hardware.</strong> This
-      programme&#8217;s own retention ranking is documented not to transfer to the bench
-      maneuver: of the sixteen best hands from the budget re-screen, eleven keep the tool at
-      <em>no</em> clip between 0.40 and 2.00 rad on the fixed-palm bench schedule. Nothing on
-      this page has been run on hardware, and no KaRMA score should pick a hand to build until
-      the screen it agrees with has itself been validated against the bench.</li>
+    <li><strong>Hardware validation of the screen.</strong> The retention ranking fails to transfer to the
+      bench maneuver: of the sixteen best hands from the budget re-screen, eleven keep the tool at
+      <em>no</em> clip between 0.40 and 2.00 rad on the fixed-palm bench schedule. No KaRMA score
+      should pick a hand to build before the screen it agrees with is validated against the bench.</li>
   </ol>
 </section>
 

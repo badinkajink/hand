@@ -101,7 +101,7 @@ def chart_spread(tab, pub) -> str:
     return figure("\n".join(o) + "</svg>",
                   f'One topology, one set of finger links, six mount coordinates: {ours[-1]/ours[0]:.0f}&#215; between '
                   f'the best and worst of them, against {theirs[-1][0]/theirs[0][0]:.0f}&#215; across sixteen commercial '
-                  f'hands. Dashed lines: the two medians. The vertical jitter of the real_v1 points carries no data.')
+                  f'hands. Dashed lines: the two medians. The vertical jitter of the real_v1 points is for legibility only.')
 
 
 def chart_auc(an, arm_key: str) -> str:
@@ -323,7 +323,7 @@ def fig_replay() -> str:
             f'</video><figcaption>KaRMA&#8217;s own rolling path for the highest-scoring hand '
             f'in the sweep, driven joint for joint through MuJoCo contact physics on '
             f'KaRMA&#8217;s own capsule geometry, gravity off, with {r["squeeze_deg"]:.0f}'
-            f'&#176; of commanded squeeze added because the metric&#8217;s pinch carries no '
+            f'&#176; of commanded squeeze added because the metric&#8217;s pinch has no '
             f'preload. The sphere travels {r["actual_travel_mm"]:.0f} mm against the '
             f'{r["predicted_travel_mm"]:.0f} mm predicted, ends {r["final_error_mm"]:.0f} mm '
             f'from the predicted pose, and is never held at two contacts.</figcaption>'
