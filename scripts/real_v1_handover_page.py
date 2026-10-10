@@ -275,7 +275,7 @@ loaded at every instant. The gait can then release, return and regrasp one finge
 <p>The two relays work only together. A relay hand-over followed by the synchronous gait completes
 {gait[("relay", False)]["k"]} of 6, because the gait releases all three pads of the preserved grasp. Together they
 complete every seed with <b>{K["FREE_RELAY"]}&nbsp;% of the task uncontacted</b>, against {K["FREE_FULL"]}&nbsp;%, and
-0.03&nbsp;mm of lateral drift.</p>
+{gait[("relay", True)]["drift"]:.2f}&nbsp;mm of lateral drift.</p>
 
 <div class="pair"><figure>{c_free}<figcaption>Share of the task with no pad on the tool, for the four cells of the
 table.</figcaption></figure><figure>{c_deg}<figcaption>Shaft rotation per cycle for the same cells.</figcaption></figure></div>
