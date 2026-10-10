@@ -1105,7 +1105,7 @@ def lede(L, R, prot):
 def main():
     L, R, O, lit, prot, films = data()
     load_feas(R)
-    v = {"STYLE": P.style_block().replace("</style>", EXTRA_CSS + "</style>"), "BUILT": time.strftime("%Y-%m-%d %H:%M")}
+    v = {"STYLE": P.style_block().replace("</style>", EXTRA_CSS + "</style>"), "BUILT": "2026-10-09 15:39"}  # pinned: rebuilds of the text change no data (docs text pass, 2026-10-09)
     v["GLOSSARY"] = glossary()
     v["LIT"] = lit_section(lit)
     v["FAMILY"] = family_section(L, R, O)
