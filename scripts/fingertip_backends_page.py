@@ -932,11 +932,11 @@ def lede():
             f"{sig(h1['creep_mm_s'] * 1e3)}&#8202;&#181;m/s at impratio 10&#8202;000 against {sig(b1['creep_mm_s'] * 1e3)}&#8202;&#181;m/s at 100 "
             f"and {sig(dp['creep_mm_s'] * 1e3)}&#8202;&#181;m/s in Drake, while slip onset, twist onset and the brake change by at most "
             f"{f(100 * abs(h2['rbar_onset_mm'] / b2['rbar_onset_mm'] - 1), 0)}&#8202;% and {f(abs(h5['phi_end_deg'] - b5['phi_end_deg']), 0)}&#176;. "
-            f"Packed with 1&#8202;mm spheres, the printed SR2 fingertip, a 14.8&#8202;mm TPU block with 2.7&#8211;6&#8202;mm fillets, matches "
-            f"Drake&#8217;s hydroelastic torsion onset within {f(100 * max(errs), 0) if errs else '&#8211;'}&#8202;%. On the eight deployed "
-            f"hands&#8217; three-finger turn the pads and Drake give the same outcome on {f(100 * s6 / n6, 0) if n6 else '&#8211;'}&#8202;% "
-            f"(6&#8202;mm block) and {f(100 * s27 / n27, 0) if n27 else '&#8211;'}&#8202;% (2.7&#8202;mm) of paired seeds, against "
-            f"{f(100 * sm_ / nm, 0) if nm else '&#8211;'}&#8202;% for single-mesh point contact.")
+            f"The printed TPU fingertip of the SR2 hand packed with 1&#8202;mm spheres matches "
+            f"Drake&#8217;s torsion onset within {f(100 * max(errs), 0) if errs else '&#8211;'}&#8202;%. In the eight deployed hands&#8217; "
+            f"three-finger turn, pads and Drake agree on {f(100 * s6 / n6, 0) if n6 else '&#8211;'}&#8202;% and "
+            f"{f(100 * s27 / n27, 0) if n27 else '&#8211;'}&#8202;% of paired seeds (6 and 2.7&#8202;mm fillets), single-mesh point "
+            f"contact on {f(100 * sm_ / nm, 0) if nm else '&#8211;'}&#8202;%.")
 
 
 def main():
