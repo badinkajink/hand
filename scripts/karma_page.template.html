@@ -158,16 +158,11 @@ footer a{color:var(--s2)}
   for procurement and design iteration, and exclude task success from its claims. The test here is whether
   it ranks this program&#8217;s candidate hands usefully.</p>
 
-  <p>real_v1 makes that test clean. Every hand in the family has identical fingers
-  &#8212; three links of 33.45 / 33.45 / 37.16 mm, three revolute joints, the same limits
-  &#8212; and the design space is six numbers, the palm-frame x and y of each finger&#8217;s
-  mount. KaRMA is therefore a three-number function of those six, and cannot carry information
-  the six do not. The question is whether its compression is a useful one. There are published
-  incumbents to compare against on the same label: logistic regression on the six raw mount
-  coordinates predicts retention at AUC 0.839 and the grasp fit&#8217;s
-  <span class="mono">depth_fit</span> at 0.803, while the one purely kinematic geometric
-  predictor this programme has tried &#8212; the extension ceiling
-  <span class="mono">asin(extend/straddle)</span> &#8212; reached AUC 0.617 at n = 80.</p>
+  <p>real_v1 makes that test clean: every hand has the same fingers (links of 33.45, 33.45 and 37.16 mm, the
+  same joint limits), and a design is six numbers, the x and y of each finger&#8217;s mount, so KaRMA is a
+  three-number function of those six. On the same label, logistic regression on the six mount coordinates
+  predicts retention at AUC 0.839, the grasp fit&#8217;s <span class="mono">depth_fit</span> at 0.803, and the
+  extension ceiling of the rotational-lock page at 0.617 (n = 80).</p>
 </section>
 
 <section class="col">
@@ -183,22 +178,11 @@ footer a{color:var(--s2)}
   canonicalizes the base link to the world origin, so a rigid translation cannot change the
   score, and each real_v1 design has its own palm height from
   <span class="mono">fit_real_v1_pose.py</span>.</p>
-  <div class="keep">
-    <span class="tag">Checks of the export</span>
-    <ul>
-      <li>The install reproduces the paper. Inspire returns 4 voxels, KaRMA-T 0.000417,
-        KaRMA-R 0.004386, KaRMA-S 0.2500, <span class="mono">L_ref</span> 155.4 mm &#8212; the
-        published row exactly.</li>
-      <li>The two export routes agree. Reading a generated design&#8217;s own MJCF and
-        re-mounting the base hand at that design&#8217;s six coordinates give
-        <strong>byte-identical URDFs on 20 of 20</strong> sampled designs.</li>
-      <li>Running one metric process instead of ten changes nothing.
-        <span class="mono">karma.seed_selection</span> sizes its own process pool from the core
-        count, independently of <span class="mono">rotation_workers</span>, which made 18
-        concurrent runs thrash; pinning it to one process returns 46 voxels, KaRMA-T 0.005667,
-        KaRMA-R 0.1652, KaRMA-S 0.4348 on the base hand, bit-identical to the shipped path.</li>
-    </ul>
-  </div>
+  <p>The export was checked three ways: the install reproduces the paper&#8217;s Inspire row exactly (4 voxels,
+  KaRMA-T 0.000417, KaRMA-R 0.004386, KaRMA-S 0.2500, <span class="mono">L_ref</span> 155.4 mm); exporting a
+  design from its own MJCF and re-mounting the base hand at its six coordinates give byte-identical URDFs on 20
+  of 20 designs; and pinning <span class="mono">karma.seed_selection</span> to one process, which stops 18
+  concurrent runs from thrashing, returns bit-identical scores on the base hand.</p>
 </section>
 
 <section class="col">
@@ -276,16 +260,11 @@ footer a{color:var(--s2)}
 
 <section class="col">
   <h2>Scale invariance</h2>
-  <p>KaRMA scales every length by <span class="mono">L_ref</span>, so a hand is posed a problem
-  proportional to its own size and the score cannot see absolute scale. For comparing hands of
-  different sizes that is the point; for a design search against a fixed 25 mm screwdriver
-  shaft it is the wrong invariance in principle. Re-running {{SC_N}} designs with the scaling
-  defeated &#8212; <span class="mono">l_ref_nominal_m</span> set to each hand&#8217;s own
-  <span class="mono">L_ref</span>, so the factor is exactly 1, with the sphere pinned to the
-  shaft&#8217;s 12.5 mm radius and the capsule to the real 10.55 mm pad &#8212; leaves the
-  KaRMA-T ranking almost unchanged at Spearman <strong>{{SC_RHO}}</strong>, and moves retention
-  AUC by {{SC_DELTA}}. Correlation with the screened turn does not improve either
-  ({{SC_TURN}}).</p>
+  <p>KaRMA scales every length by <span class="mono">L_ref</span>, which suits comparing hands of different
+  sizes but ignores the fixed 25 mm shaft. Re-running {{SC_N}} designs with the factor set to 1, the sphere at the
+  shaft&#8217;s 12.5 mm radius and the capsule at the real 10.55 mm pad leaves the KaRMA-T ranking at Spearman
+  <strong>{{SC_RHO}}</strong>, moves retention AUC by {{SC_DELTA}}, and leaves the turn correlation at
+  {{SC_TURN}}.</p>
   <p>The invariance therefore does not explain the flat turn correlation; recovering the turn would take a
   change to the search itself.</p>
 </section>
@@ -318,11 +297,10 @@ footer a{color:var(--s2)}
 
 <section class="col">
   <h2>The eight deployed hands</h2>
-  <p>Reported apart from the population and never pooled with it. The eight were selected in
-  sim-cos rank order, so any variable correlated with the selection correlates with the outcome
-  inside the set: <span class="mono">depth_fit</span> against sim cos reads &#8722;0.90 over
-  these eight and +0.076 over the 535 retained. A within-eight correlation therefore measures
-  the selection.</p>
+  <p>The eight were selected in simulated-cosine rank order, so any variable correlated with the selection
+  correlates with the outcome inside the set (<span class="mono">depth_fit</span> against simulated cosine reads
+  &#8722;0.90 over these eight and +0.076 over the 535 retained); they are reported apart from the
+  population.</p>
   {{TABLE_DEPLOYED}}
   <p>KaRMA spreads the eight over {{DEP_RANGE}}&#215; in KaRMA-T. Against their screened turn
   it reads &#961; {{DEP_RHO}} (p&nbsp;{{DEP_P}}, n&nbsp;=&nbsp;{{DEP_N}}), which is what the
@@ -335,35 +313,22 @@ footer a{color:var(--s2)}
 <section class="col">
   <h2>Future work</h2>
   <ol>
-    <li><strong>Tip length.</strong>
-      <span class="mono">karma_export_urdf.py --tip-mode centre</span> ends the capsule at the
-      pad centre instead of its outer surface, 10.55 mm shorter. Re-running the 128-design
-      subset both ways says whether the {{DELTA}} margin over the ruler survives the choice.
-      About 8 core-hours.</li>
-    <li><strong>Gain over the mounts.</strong>
-      {{AUC_BOTH}} for six mounts plus KaRMA against {{AUC_MOUNTS}} for the mounts alone are
-      single 5-fold CV numbers with no interval. A paired bootstrap over refits, 200 resamples
-      at n&nbsp;=&nbsp;{{N_DESIGNS}}, would say whether that gap is real. No new metric runs.</li>
-    <li><strong>Designs where KaRMA and the screen disagree.</strong> Only there can KaRMA find hands
-      the screen missed. The
-      designs KaRMA ranks highest among the <em>not</em>-retained are enumerable from
-      <span class="mono">karma_table.json</span>. Testing ten of them against ten
-      KaRMA-low controls of equal mount compactness needs a CEM grasp per design, which
-      the screen&#8217;s closed-form fit does not provide:
-      <span class="mono">fit_real_v1_pose.py</span> then
-      <span class="mono">probe_real_v1_carry.py --repeats 8 --jitter 0.0005
-      --linear-anchor</span>.</li>
-    <li><strong>The other two topologies.</strong> m05
-      (inline) and perp (opposed) are historical controls with a verdict already in hand: the
-      opposed pair peaks at 0.995 and drops the tool in every rollout with the thumb at 0 N,
-      while inline-plus-thumb settles at 0.884 and keeps it on three loaded fingers. A
-      two-finger metric has an obvious reason to prefer the opposed arrangement. Deciding it
-      needs <span class="mono">karma_export_urdf.py</span> extended to the nine-parameter
-      MJCF, which currently assumes real_v1&#8217;s fixed links.</li>
-    <li><strong>Hardware validation of the screen.</strong> The retention ranking fails to transfer to the
-      bench maneuver: of the sixteen best hands from the budget re-screen, eleven keep the tool at
-      <em>no</em> clip between 0.40 and 2.00 rad on the fixed-palm bench schedule. No KaRMA score
-      should pick a hand to build before the screen it agrees with is validated against the bench.</li>
+    <li><strong>Tip length.</strong> Re-run the 128-design subset with
+      <span class="mono">karma_export_urdf.py --tip-mode centre</span> (capsule ending at the pad centre,
+      10.55 mm shorter, about 8 core-hours); the margin of {{DELTA}} over the mount distance should survive.</li>
+    <li><strong>Gain over the mounts.</strong> Bootstrap the 5-fold fits (200 resamples, n = {{N_DESIGNS}}) to
+      give {{AUC_BOTH}} for mounts and KaRMA against {{AUC_MOUNTS}} for the mounts alone an interval.</li>
+    <li><strong>Designs where KaRMA and the screen disagree.</strong> Fit CEM grasps for the ten
+      highest-scoring designs the screen rejected and ten low-scoring controls of equal mount compactness
+      (<span class="mono">fit_real_v1_pose.py</span>, then <span class="mono">probe_real_v1_carry.py --repeats 8
+      --jitter 0.0005 --linear-anchor</span>); KaRMA finds hands the screen missed only if the first group
+      holds more often.</li>
+    <li><strong>The other two topologies.</strong> Extend <span class="mono">karma_export_urdf.py</span> to the
+      nine-parameter MJCF and score the inline (m05) and opposed (perp) hands; a two-finger metric that prefers
+      the opposed pair, which drops the tool in every rollout, would mislead a topology choice.</li>
+    <li><strong>Hardware validation of the screen.</strong> Eleven of the sixteen best hands of the clip
+      rescreen keep the tool at no clip on the bench schedule, so validate the screen on the bench before a
+      KaRMA score picks a hand to build.</li>
   </ol>
 </section>
 
