@@ -51,7 +51,7 @@ def gauss_dN(h):
 
 
 class NLVoxels:
-    def __init__(self, occ, origin, h, E=30.0, nu=0.45, dev="cuda", chunk=40_000):
+    def __init__(self, occ, origin, h, E=30.0, nu=0.45, dev="cuda", chunk=40_000, tangent=torch.float32):
         t0 = time.time()
         self.dev, self.chunk = dev, chunk
         idx = np.argwhere(occ)
@@ -69,7 +69,7 @@ class NLVoxels:
         self.mu = E / (2 * (1 + nu))
         self.w = h ** 3 / 8
         self.dN = torch.tensor(gauss_dN(h), dtype=torch.float64, device=dev)          # (8 g, 8 a, 3)
-        self.Ke = torch.empty((self.n_el, 24, 24), dtype=torch.float32, device=dev)
+        self.Ke = torch.empty((self.n_el, 24, 24), dtype=tangent, device=dev)
         self.diag = torch.zeros(self.ndof, dtype=torch.float64, device=dev)
         self.t_setup = time.time() - t0
 
@@ -109,10 +109,10 @@ class NLVoxels:
             if J is not None:
                 Jmin = min(Jmin, float(J.min()))
             fe = self.w * torch.einsum("mgij,gaj->mai", P, dN).reshape(-1, 24)
-            # K_(ai)(bk) = w sum_g dN_ga,j A_ijkl dN_gb,l (in float32: the tangent only steers Newton)
-            dN32 = dN.float()
-            T = torch.einsum("gaj,mgijkl->mgaikl", dN32, A.float())
-            Ke = self.w * torch.einsum("mgaikl,gbl->maibk", T, dN32).reshape(-1, 24, 24)
+            # K_(ai)(bk) = w sum_g dN_ga,j A_ijkl dN_gb,l (float32 by default: the tangent only steers Newton)
+            dNt = dN.to(self.Ke.dtype)
+            T = torch.einsum("gaj,mgijkl->mgaikl", dNt, A.to(self.Ke.dtype))
+            Ke = self.w * torch.einsum("mgaikl,gbl->maibk", T, dNt).reshape(-1, 24, 24)
             del T
             self.Ke[s:s + self.chunk] = Ke
             f.index_add_(0, dof.reshape(-1), fe.reshape(-1))
@@ -121,11 +121,11 @@ class NLVoxels:
         return f, Jmin
 
     def matvec(self, v, chunk=500_000):
-        out = torch.zeros(self.ndof, dtype=torch.float32, device=self.dev)
-        v32 = v.float()
+        out = torch.zeros(self.ndof, dtype=self.Ke.dtype, device=self.dev)
+        vt = v.to(self.Ke.dtype)
         for s in range(0, self.n_el, chunk):
             dof = self.dof[s:s + chunk]
-            fe = torch.bmm(self.Ke[s:s + chunk], v32[dof].unsqueeze(-1)).squeeze(-1)
+            fe = torch.bmm(self.Ke[s:s + chunk], vt[dof].unsqueeze(-1)).squeeze(-1)
             out.index_add_(0, dof.reshape(-1), fe.reshape(-1))
         return out.double()
 
@@ -272,13 +272,15 @@ def main():
     ap.add_argument("--cg-tol", type=float, default=1e-5)
     ap.add_argument("--tol", type=float, default=1e-6,
                     help="Newton: |R| / |f_presc| at convergence; the float32 tangent sets a floor near 3e-6 on the eFlesh lattice")
+    ap.add_argument("--f64", action="store_true", help="store the element tangents and run the matvec in float64")
     ap.add_argument("--tag", default="")
     ap.add_argument("--out", default=str(ROOT / "docs/experiments/20261009-tpu_tip_fem/gpu_nl_runs.jsonl"))
     a = ap.parse_args()
+    tdt = torch.float64 if a.f64 else torch.float32
     if a.case == "block":
         E = a.E or 1.0
         n = (int(round(10 / a.h)), int(round(10 / a.h)), int(round(5 / a.h)))
-        m = NLVoxels(np.ones(n, bool), np.zeros(3), a.h, E, a.nu)
+        m = NLVoxels(np.ones(n, bool), np.zeros(3), a.h, E, a.nu, tangent=tdt)
         X = m.X
         bot, top = X[:, 2] < 1e-9, X[:, 2] > 5 - 1e-9
         presc = np.zeros(m.ndof, bool)
@@ -297,7 +299,7 @@ def main():
                 x, f, info = m.newton(presc_t, val, x0=x, linear=(mat == "linear"), tol=a.tol)
                 F = float(-f[top_z].sum())
                 row = dict(case="block", tag=a.tag, material=mat, h_mm=a.h, E=E, nu=a.nu, delta_mm=dl, F=F,
-                           F_EAdH=E * 100 * dl / 5, n_el=m.n_el, t_s=time.time() - ts, newton_tol=a.tol,
+                           F_EAdH=E * 100 * dl / 5, n_el=m.n_el, t_s=time.time() - ts, newton_tol=a.tol, tangent=str(tdt)[6:],
                            script="scripts/tpu_tip_fem_gpu_nl.py", **info)
                 print(f"  {mat} delta {dl}: F {F:.5f} N (E A d/H {E * 100 * dl / 5:.4f}), {info}", flush=True)
                 write_row(a.out, row)
@@ -305,7 +307,7 @@ def main():
     E = a.E or 30.0
     D = np.load(a.voxels, allow_pickle=True)
     occ, origin, h = D["occ"], D["origin"], float(D["h"])
-    m = NLVoxels(occ, origin, h, E, a.nu)
+    m = NLVoxels(occ, origin, h, E, a.nu, tangent=tdt)
     fixed = (m.X[:, 0] <= m.X[:, 0].min() + 1e-6) | (m.X[:, 2] <= m.X[:, 2].min() + 1e-6)
     fixed_dof = np.repeat(fixed, 3)
     nodes = G.face_nodes(m.X, fixed)
@@ -328,6 +330,7 @@ def main():
             met = G.metrics(m.X, nodes, p, g0, dl)
             row = dict(case="tip", voxels=a.voxels, tag=a.tag, material=mat, indenter=a.indenter, delta_mm=dl, E_s=E, nu=a.nu,
                        h_mm=h, n_el=m.n_el, surface=a.surface, t_s=time.time() - ts, newton_tol=a.tol, cg_tol=a.cg_tol,
+                       tangent=str(tdt)[6:],
                        gpu_mem_GB=torch.cuda.max_memory_allocated() / 1e9, script="scripts/tpu_tip_fem_gpu_nl.py", **info, **met)
             print(f"  {mat} delta {dl * 1e3:.0f} um: F {met['F']:.4f} N, arm {met['arm']:.3f} mm, {info}, "
                   f"{row['t_s']:.0f}s", flush=True)
