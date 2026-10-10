@@ -580,14 +580,27 @@ def checks_section(X: Data):
     return txt + tab
 
 
+def _span(vals, fmt, unit):
+    """'a&#8211;b unit' over vals, or 'a unit' when the ends print alike."""
+    lo, hi = fmt.format(min(vals)), fmt.format(max(vals))
+    return (lo if lo == hi else f"{lo}&#8211;{hi}") + unit
+
+
 def cost_section(X: Data):
     pc = sorted(X.pc, key=lambda r: r["n_dof"])
+    dof = {r["tag"]: r["n_dof"] for r in X.gpu_all if "n_dof" in r}
+    nh = [r for r in X.nl if r.get("case") == "tip" and r["material"] == "neohookean" and r["tag"] in dof]
+    nh_row = (["Tip, resolved, Neo-Hookean with contact", _span([dof[r["tag"]] / 1e6 for r in nh], "{:.1f}", "&#8202;M"),
+               _span([r["t_s"] / 60 for r in nh], "{:.0f}", "&#8202;min per approach"),
+               f"{max(r['gpu_mem_GB'] for r in nh):.0f}&#8202;GB GPU", "1 GPU"] if nh else
+              ["Tip, resolved, Neo-Hookean with contact", "&#8211;", "&#8211;", "&#8211;", "1 GPU"])
+    f64 = any(r.get("tangent") == "float64" for r in nh)
     rows = [
         ["Periodic cell, voxel hex8, AMG-CG", "18k&#8211;873k", "1.5&#8211;148&#8202;s", "~1&#8202;GB per 200k DOF", "4 cores"],
         ["Tip, homogenized core, CHOLMOD face compliance", "217k", "~10&#8202;min per print (15 loads, 3 cycles)", "3.7&#8211;4.4&#8202;GB", "4 cores"],
         ["Tip, resolved at 0.1&#8202;mm, matrix-free CG", "5&#8211;8&#8202;M", "60&#8211;140&#8202;s per approach", "2&#8211;3&#8202;GB GPU, 1.1&#8202;GB host",
          "1 GPU"],
-        ["Tip, resolved, Neo-Hookean with contact", "5&#8202;M", "35&#8211;40&#8202;min per approach", "6&#8202;GB GPU", "1 GPU"],
+        nh_row,
         ["Solid insert, quadratic tetrahedra, plate", f"{pc[0]['n_dof'] / 1e3:.0f}k&#8211;{pc[-1]['n_dof'] / 1e3:.0f}k" if pc else "&#8211;",
          f"{pc[0]['t_solve_s']:.0f}&#8211;{pc[-1]['t_solve_s']:.0f}&#8202;s" if pc else "&#8211;",
          f"{pc[0]['rss_GB']:.1f}&#8211;{pc[-1]['rss_GB']:.1f}&#8202;GB" if pc else "&#8211;", "2 cores"],
@@ -595,7 +608,9 @@ def cost_section(X: Data):
     ]
     return table(["Level", "DOF", "Wall time", "Memory", "Cores"], rows,
                  "Cost of each level on the workstation (RTX 4070 Ti SUPER, 20 cores). A resolved tip at 0.05&#8202;mm (~18&#8202;M elements, "
-                 "~25&#8202;GB) would need a larger GPU such as DeltaAI&#8217;s GH200.", text_cols=(0, 2, 3, 4))
+                 "~25&#8202;GB) would need a larger GPU such as DeltaAI&#8217;s GH200."
+                 + (" The eFlesh lattice&#8217;s Neo-Hookean solve stores the element tangents in float64: with float32 tangents Newton "
+                    "diverges on its struts." if f64 else ""), text_cols=(0, 2, 3, 4))
 
 
 def limitations(X: Data):
