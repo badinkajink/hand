@@ -23,6 +23,10 @@ FORCES = (0.5, 1.0, 3.0)
 # contact gaps from the STL surface (tpu_tip_fem_tip.py run --surface, tpu_tip_fem_gpu.py --surface): the rows the page
 # uses; the voxel-top and grid-node gaps of the first runs stay in tip_runs.jsonl, data/ and the GPU tags without _surf
 TIP_ROWS, TIP_DATA, SUFFIX = "tip_runs_surf.jsonl", DIR / "data/surf", "_surf"
+# the best single modulus is fitted on the cylinder at 0.5, 1 and 3 N only: the plate stiffness of the solid insert is
+# 561-574 N/mm with quadratic tetrahedra (tpu_tip_fem_plate_check.py) against 680 on the graded hex grid and 845 on the
+# 0.1 mm voxels, while the cylinder agrees within 3 % between the hex models
+PLATE_IN_FIT = False
 
 
 def rows(name):
@@ -79,7 +83,7 @@ def recipe_table(rows_file=None, data_dir=None):
             rec["b_rms_mm"] = b
             rec["b_exponent"] = float(np.polyfit(np.log(FORCES), np.log([b[F] for F in FORCES]), 1)[0])
             # best single E over the cylinder at 0.5/1/3 N and the plate at 1 N: RMS of log approach error
-            cases = [("cyl", F) for F in FORCES] + ([("plate", 1.0)] if pla else [])
+            cases = [("cyl", F) for F in FORCES] + ([("plate", 1.0)] if pla and PLATE_IN_FIT else [])
             Es = np.geomspace(0.5, 500, 400)
             err = []
             for E in Es:
@@ -210,7 +214,7 @@ def resolved_table(suffix=None):
             continue
         c = rec["cyl"]
         cases = [("cyl", f, c["delta_at"][f]) for f in FORCES if c["delta_at"][f]]
-        if "plate" in rec and rec["plate"]["delta_at"][1.0]:
+        if "plate" in rec and rec["plate"]["delta_at"][1.0] and PLATE_IN_FIT:
             cases.append(("plate", 1.0, rec["plate"]["delta_at"][1.0]))
         Es = np.geomspace(0.05, 500, 600)
         err = np.array([[math.log(np.exp(np.interp(math.log(f / E), np.log(law[ind][0][law[ind][0] > 0]),

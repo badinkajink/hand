@@ -34,9 +34,15 @@ def main():
     ap.add_argument("--out", required=True)
     ap.add_argument("--data")
     ap.add_argument("--surface", action="store_true", help="contact gaps from the STL surface instead of the voxel tops")
+    ap.add_argument("--from-data", action="store_true", help="render the frames saved in --data without solving again")
     a = ap.parse_args()
     D = np.load(a.voxels, allow_pickle=True)
     occ, origin, h = D["occ"], D["origin"], float(D["h"])
+    if a.from_data:
+        S = np.load(a.data)
+        frames = [dict(delta=float(d), F=float(f), p=p, u_sec=u) for d, f, p, u in zip(S["deltas"], S["F"], S["p"], S["u_sec"])]
+        render(a, frames, S["X_corners"], S["X_face"], origin, occ.shape, h)
+        return
     tip = G.GpuTip(occ, origin, h, a.E)
     nodes = G.face_nodes(tip.X, tip.fixed_dof[0::3])
     Xg = tip.X[nodes].copy()
@@ -68,16 +74,19 @@ def main():
         np.savez_compressed(a.data, deltas=deltas, F=np.array([f["F"] for f in frames]), X_face=tip.X[nodes],
                             p=np.array([f["p"] for f in frames]), sec=sec, X_corners=tip.X[corners],
                             u_sec=np.array([f["u_sec"] for f in frames]))
+    render(a, frames, tip.X[corners], tip.X[nodes], origin, occ.shape, h)
+
+
+def render(a, frames, X_corners, Xf, origin, shape, h):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     from matplotlib.collections import PolyCollection
-    Xc = tip.X[corners][:, :, [2, 0]]                       # (n, 4, [z, x])
-    Xf = tip.X[nodes]
+    Xc = X_corners[:, :, [2, 0]]                            # (n, 4, [z, x])
     pmax = max(f["p"].max() for f in frames)
     umax = max(np.abs(f["u_sec"]).max() for f in frames)
     with tempfile.TemporaryDirectory() as td:
-        for n, f in enumerate([dict(delta=0.0, F=0.0, p=np.zeros(len(nodes)), u_sec=np.zeros_like(frames[0]["u_sec"]))] + frames):
+        for n, f in enumerate([dict(delta=0.0, F=0.0, p=np.zeros(len(Xf)), u_sec=np.zeros_like(frames[0]["u_sec"]))] + frames):
             fig, (a1, a2) = plt.subplots(1, 2, figsize=(10.4, 5.0), gridspec_kw=dict(width_ratios=[1.25, 1]))
             disp = Xc + a.mag * f["u_sec"][:, :, [2, 0]]
             mag = np.linalg.norm(f["u_sec"], axis=2).mean(1)
@@ -87,7 +96,7 @@ def main():
             xs = G.X_FACE - a.mag * f["delta"] + (G.R_TOOL - np.sqrt(G.R_TOOL ** 2 - (zz - G.Z_C) ** 2))
             a1.fill_between(zz, xs, xs + 4, color="0.8", alpha=0.3, lw=0)
             a1.plot(zz, xs, color="0.3", lw=1.2)
-            a1.set_xlim(origin[2] - 0.5, origin[2] + occ.shape[2] * h + 0.5)
+            a1.set_xlim(origin[2] - 0.5, origin[2] + shape[2] * h + 0.5)
             a1.set_ylim(origin[0] - 0.5, G.X_FACE + 4.5)
             a1.set_aspect("equal")
             a1.set_xlabel("Along the finger z (mm)", fontsize=15)
