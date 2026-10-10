@@ -126,18 +126,41 @@ footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",mo
 <div class="wrap">
 <header>
   <div class="eyebrow">MorphoHand &middot; real_v1 &middot; 2026-09-06</div>
-  <h1>Screened plans in the chained task</h1>
-  <p class="lede">Eight morphologies were exported to hardware trajectories and evaluated on the
-  bench, then the same eight plans were run inside the chained task. The screen and the chain
-  disagree, and the disagreement is not one effect: the grasp specification does not survive the
-  change of support, one hand releases the tool after a successful lift, and half the runs that
-  stand the tool upright lose it at the handover.</p>
+  <h1>Screened plans in the chained task: pickup, turn and handover</h1>
+  <p class="lede">The eight bench plans were rerun in simulation, alone and inside the chained
+  task. Alone, the deploy screen reproduces the bench on the three best hands (held cosine 0.827,
+  0.726 and 0.568 against 0.834, 0.797 and 0.553). In the chain, six of eight hands lift the tool and
+  hold the turn in 16 of 16 rollouts, and the losses come at two places: the plans&rsquo; 10&nbsp;mm
+  squeeze ejects a tool lying on a table, and only 43 of the 91 runs that stand the tool upright reach
+  a gait grasp. On the bench, alignment does not predict retention.</p>
   <div class="byline">{{NTRIAL}} bench trials &middot; {{NCHAIN}} chain rollouts &middot; MuJoCo 3.6</div>
   <div class="stats">{{STATS}}</div>
 </header>
 
+<section class="col" id="terms">
+  <h2>Terms and metrics</h2>
+  <dl class="terms">
+    <dt><b>D1 to D8</b></dt><dd>The eight deployed hands, each with its exported plan (for example D1 is
+    <code>sv1_w6689_b060</code>).</dd>
+    <dt><b>Deploy screen</b></dt><dd>The plan replayed in simulation in the scene it names: tool standing on a
+    100&nbsp;mm post, palm fixed, 4 repeats at the plan&rsquo;s clip.</dd>
+    <dt><b>Retention</b></dt><dd>The operator&rsquo;s verdict that the tool is still in the hand at the end of a
+    bench trial.</dd>
+    <dt><b>Net turn</b></dt><dd>Net rotation of the tool about the pinch axis from the AprilTag vane, in degrees
+    (<code>object_track.deg_turned</code>).</dd>
+    <dt><b>Alignment, cos</b></dt><dd>Signed cosine of the tool&rsquo;s axis with vertical over the final hold
+    (<code>object_track.cos_hold</code>); +1 is upright.</dd>
+    <dt><b>Chain seams</b></dt><dd>Lifted, carried, held turn (fingers on the tool after the turn), stood
+    (tool upright on the table), gait grip (gait grasp reached) and complete.</dd>
+    <dt><b>Squeeze</b></dt><dd>Depth of the commanded pad centres inside the contact radius, in mm
+    (<code>squeeze_mm</code>).</dd>
+    <dt><b>Rise</b></dt><dd>Rise of the tool during closure with the palm held still, in mm
+    (<code>close_dz_mm</code>).</dd>
+  </dl>
+</section>
+
 <section class="col">
-  <h2>The deploy screen reproduces, and it agrees with the bench</h2>
+  <h2>Deploy screen against the bench</h2>
   <p class="sub">scripts/real_v1_plan_band.py &middot; each plan at its own shipped clip &middot; 4 repeats</p>
   <p>The screen rebuilds each plan's trajectory from its own metadata and runs it in the scene
   the plan names &mdash; the cylinder standing on a 100&nbsp;mm post, the palm fixed. Re-run today
@@ -148,7 +171,7 @@ footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",mo
 </section>
 
 <section class="col">
-  <h2>Axis alignment is the wrong acceptance test</h2>
+  <h2>Alignment and retention on the bench</h2>
   <p class="sub">docs/experiments/20260902-cb1-log-archive &middot; {{NTRIAL}} trials carrying both a tag angle and an operator verdict</p>
   <p>Retention is the operator's verdict that the cylinder is still in the hand at trial end.
   Net turn angle is <code>object_track.deg_turned</code>, the cylinder's net rotation about the
@@ -158,26 +181,26 @@ footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",mo
   {{T_BENCH}}
   <div class="callout"><span class="tag">The gate that would fail</span>
   <p><b>No hand reaches mean <code>cos_hold</code> 0.95</b>, so a 0.95 gate admits nothing, and
-  the single hand above 0.90 has the second-worst retention at 0.30. Alignment carries no
-  information about retention in either direction: on the pre-registered analysis
+  the single hand above 0.90 has the second-worst retention at 0.30. Alignment predicts
+  nothing about retention: on the pre-registered analysis
   (<code>paper/figures/ranking.json</code>, dropped trials scored 0 for parity with the
   simulator) per-hand retention rate ranks against mean alignment at Spearman
   <b>{{RHO_PAPER}}</b> and against peak alignment at <b>{{RHO_PEAK}}</b>; on the per-trial table
   here, taking the median alignment over retained trials only, it is <b>{{RHO_TRIAL}}</b>. Both
-  are within noise of zero at n&nbsp;=&nbsp;8, and they do not agree on sign. Retention has to
-  be measured, not inferred from how far the tool turned.</p></div>
+  are within noise of zero at n&nbsp;=&nbsp;8, and they disagree in sign. Retention therefore has
+  to be measured on its own.</p></div>
   <p>Pooled over all eight hands, {{BANDH}} of {{NHELD}} retained trials and {{BANDD}} of
-  {{NDROP}} non-retained trials have a net turn angle between 20&deg; and 60&deg;. That is a
-  descriptive interval over the pooled sample, not a per-hand threshold: three hands have no
-  non-retained trials at all, and on two the non-retained trials turned <em>less</em> than the
-  retained median, not more. There is no single angle above which the tool is lost.</p>
+  {{NDROP}} non-retained trials have a net turn angle between 20&deg; and 60&deg;. The interval
+  describes the pooled sample and sets no per-hand threshold: three hands have no non-retained trials,
+  and on two the non-retained trials turned <em>less</em> than the retained median. No single angle
+  separates kept from lost.</p>
   <p>The consequence for the chain is fixed by the same table. Skills 3 and 4 inherit the
   residual angle, 90&deg; minus the median retained turn, and it runs from 24.5&deg; to
   56.5&deg;.</p>
 </section>
 
 <section class="col">
-  <h2>Where the chained task loses the tool</h2>
+  <h2>Losses along the chained task</h2>
   <p class="sub">docs/experiments/20260904-real_v1_held/squeeze_sweep &middot; set A, {{NCHAIN}} rollouts &middot; table mode</p>
   {{T_FUNNEL}}
   <p>Six of the eight hands lift and hold the turn in 16 of 16 rollouts. The attrition is
@@ -192,9 +215,9 @@ footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",mo
 </section>
 
 <section class="col">
-  <h2>Loss one: the plan's squeeze ejects a tool that is lying on a table</h2>
+  <h2>Squeeze of the plans on a tool lying on a table</h2>
   <p class="sub">scripts/real_v1_grasp_refit.py &middot; closure with the palm stationary</p>
-  <p>Every deployed plan carries <code>squeeze_mm</code> 10.0. That drives the pad centres to
+  <p>Every deployed plan sets <code>squeeze_mm</code> 10.0. That drives the pad centres to
   <code>r_obj + r_pad + gap &minus; squeeze</code> = 14.05&nbsp;mm from the shaft axis when
   contact needs 23.05&nbsp;mm &mdash; 9&nbsp;mm inside the surface. On the screen's post the post
   takes the reaction. On a table nothing is behind the shaft, so the pinch drives it out.
@@ -213,7 +236,7 @@ footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",mo
 </section>
 
 <section class="col">
-  <h2>Loss two: one hand lifts the tool and releases it at the next seam</h2>
+  <h2>Release after the lift on <code>sv1_w6689</code></h2>
   <p class="sub">sv1_w6689_b060 &middot; 24/24 retained on hardware, 0/16 carried in the chain</p>
   <p><code>sv1_w6689_b060</code> is the best hand on the bench and the worst in the chain. It is
   not failing at the grasp: it closes on the tool with 3 pads at 28.20&nbsp;N and lifts it to
@@ -235,17 +258,17 @@ footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",mo
 </section>
 
 <section class="col">
-  <h2>What this does not settle</h2>
+  <h2>Future work</h2>
   <ul>
     <li><b>Which of the three differences releases the tool on <code>sv1_w6689</code>.</b> The
     test is a 2&times;2 on that hand alone: straddle {32, 40} &times; depth {52.5, 58.5},
     n&nbsp;&ge;&nbsp;6, scored on pad count and pad force at the <code>turned</code> seam.</li>
-    <li><b><code>sv1_w0099_b100</code> at 6/16</b> has not been examined.</li>
+    <li><b><code>sv1_w0099_b100</code> at 6/16.</b> Trace its seams as for <code>sv1_w6689</code>.</li>
     <li><b>Whether the chain's turn is the screened turn.</b> The chain runs in table mode with
     <code>angle_deg</code> 0, so the fingers never turn the tool. The screened maneuver's turn
     has not been run inside the chain on any hand.</li>
-    <li><b>The handover, {{NGRIP}}/{{NSTOOD}}.</b> This is skills 3 and 4 and it is the largest
-    single loss in the funnel. Nothing here measures it.</li>
+    <li><b>The hand-over, {{NGRIP}}/{{NSTOOD}}.</b> The largest single loss in the funnel (skills 3 and
+    4); instrument the re-index with pad count and force per seam.</li>
   </ul>
 </section>
 

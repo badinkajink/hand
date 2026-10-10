@@ -81,7 +81,7 @@ def main() -> int:
                         cos=f(R, "cos"), turn=f(R, "deg"), dturn=f(N, "deg"), nd=len(N))
     order = sorted(per, key=lambda d: -per[d]["hold"])
     t_bench = table(
-        ["hand", "retained", "median turn, retained", "median turn, not retained",
+        ["hand", "retained", "median turn, retained", "median turn, dropped",
          "mean alignment", "residual to vertical"],
         [[d, f"{per[d]['n'] - per[d]['nd']}/{per[d]['n']}", f"{per[d]['turn']:.1f}&deg;",
           "&mdash;" if per[d]["nd"] == 0 else f"{per[d]['dturn']:.1f}&deg;",
