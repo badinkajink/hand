@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SR² Hand planning and morphology optimization in Drake</title>
+<title>Inverse kinematics and morphology–posture optimization of the SR² Hand in Drake</title>
 <style>
 :root{
   --paper:#EEF1F4; --card:#FFFFFF; --sunk:#E4E9EE;
@@ -91,64 +91,66 @@ svg{width:100%;height:auto;background:var(--card);border-radius:10px} details{ma
 </style></head>
 <body><main class="wrap">
 <header><div class="eyebrow">SR² Hand · planning study · 1 October 2026</div>
-<h1>Hand planning and morphology optimization in Drake</h1>
-<p class="lede">A Drake planning port is feasible. The existing real_v1 geometry supports fixed-hand IK and joint morphology/posture optimization after a small, explicit MJCF adaptation.</p>
+<h1>Inverse kinematics and morphology&#8211;posture optimization of the SR² Hand in Drake</h1>
+<p class="lede">A Drake model built from the real_v1 MJCF matches MuJoCo&#8217;s fingertip poses and Jacobians to {{FK_ERROR}} m over {{SAMPLES}} configurations, and solves {{IK_COUNT}} of {{IK_COUNT}} inverse-kinematics problems (three mount layouts, frozen and with locked gantries, and one joint morphology&#8211;posture solve) within the joint limits, with at least {{MIN_CLEARANCE}} mm between enabled collision pairs, in about 1 ms each. A raw MJCF import differs in actuator limits, derivative gains and contact, so an adapter rebuilds the actuators; unlocking a gantry during a live simulation fails in Drake 1.57. Drake fits as a planning component beside the MuJoCo evaluation pipeline.</p>
 <p class="byline">Tested locally: Drake {{DRAKE}}, MuJoCo {{MUJOCO}}, Python {{PYTHON}} · fixed palm · CPU · no hardware commands</p></header>
-<section><h2>What was demonstrated</h2>
-<div class="cards"><div class="card"><strong>{{SAMPLES}} configurations</strong>MuJoCo ↔ Drake pose and Jacobian comparison</div><div class="card"><strong>{{IK_COUNT}} / {{IK_COUNT}} IK solves</strong>Joint limits and a 1 mm minimum enabled-pair clearance</div><div class="card"><strong>{{FK_ERROR}} m</strong>Largest fingertip coordinate discrepancy</div></div>
-<p>The three fixed morphologies were tested as both a nine-position frozen model and a fifteen-position model with six locked gantry coordinates. A seventh solve chose morphology and posture together; freezing its resulting morphology reproduced its fingertip targets. These are reachable, nearby synthetic targets, with warm starts. They establish integration, not manipulation success or a global morphology optimum.</p>
+<section id="terms"><h2>Terms and metrics</h2>
+<dl class="terms">
+<dt><b>Gantry offsets, morphology</b></dt><dd>The six XY positions of the three finger mounts relative to their nominal origins, in mm; the only hardware morphology variables.</dd>
+<dt><b>Frozen and locked model</b></dt><dd>The nine finger joints with the mounts baked into the body transforms; the fifteen-coordinate model with the six gantry joints locked at a design.</dd>
+<dt><b>IK problem</b></dt><dd>Joint angles that place the three fingertip centres in a &#177;1 &#956;m box around world targets, within the source joint limits, with 1 mm requested clearance between enabled collision pairs.</dd>
+<dt><b>Tip error, clearance</b></dt><dd>Largest fingertip distance from its target, in &#956;m; smallest distance between enabled collision pairs, in mm.</dd>
+<dt><b>Discrepancy</b></dt><dd>Largest absolute difference between Drake and MuJoCo in a fingertip coordinate, rotation entry, Jacobian entry or mass-matrix entry.</dd>
+<dt><b>SNOPT, SAP</b></dt><dd>The nonlinear solver used for IK; Drake&#8217;s contact solver, whose assertion stops the live unlock.</dd>
+</dl></section>
+<section><h2>Agreement with MuJoCo and inverse kinematics</h2>
+<div class="cards"><div class="card"><strong>{{SAMPLES}} configurations</strong>MuJoCo and Drake pose and Jacobian comparison</div><div class="card"><strong>{{IK_COUNT}} / {{IK_COUNT}} IK solves</strong>Joint limits and 1 mm minimum clearance</div><div class="card"><strong>{{FK_ERROR}} m</strong>Largest fingertip coordinate discrepancy</div></div>
+<p>Three fixed layouts were solved as a nine-coordinate frozen model and as a fifteen-coordinate model with six locked gantry coordinates. A seventh solve chose the mounts and the finger angles together, and freezing its mounts reproduced its fingertip targets. The targets are reachable and near the start, with warm starts, so these solves test the integration of the model; manipulation and a global morphology optimum are untested.</p>
 {{CHECK_TABLE}}
-<p class="note">The mass-matrix audit compares the 15 physical coordinates, including reflected actuator inertia. Removing the three zero-travel length shims does not add a hardware degree of freedom. No contact-force, retention, or real-hardware equivalence is claimed.</p>
+<p class="note">The mass-matrix comparison covers the 15 physical coordinates, including reflected actuator inertia; the three zero-travel length shims of the generator add no hardware degree of freedom.</p>
 </section>
-<section><h2>Recommended architecture</h2>
-<p>Keep the measured geometry and existing morphology records as the source of truth. Add Drake as a planning and design-optimization component alongside the current MuJoCo evaluation pipeline. The prototype reads the existing MJCF and resolves actuator defaults with MuJoCo; it does not duplicate the CAD dimensions.</p>
+<section><h2>Planning architecture</h2>
+<p>The measured geometry and the existing morphology records stay the source of truth, and Drake joins the MuJoCo evaluation pipeline as a planning and design-optimization component. The prototype reads the existing MJCF and resolves actuator defaults with MuJoCo, without duplicating the CAD dimensions.</p>
 <div class="tw"><table><thead><tr><th>Use</th><th>Representation</th><th>Behavior</th></tr></thead><tbody>
-<tr><td>Evaluate a chosen design</td><td>Frozen model: 9 positions</td><td>Bake the six mount offsets into body transforms. Rebuild for a new morphology. This is the simplest first production target.</td></tr>
-<tr><td>Many fixed-design IK problems</td><td>One 15-position plant; a context per candidate</td><td>Set six prismatic coordinates, lock them, then construct IK with that context. The tested IK preserves all six coordinates exactly.</td></tr>
-<tr><td>Joint morphology and posture search</td><td>15-position model, gantries free in the optimization</td><td>Use the six gantry positions as decision variables. Bounds and fingertip Jacobians are available directly.</td></tr>
-<tr><td>Moving gantries during manipulation</td><td>15-position dynamics with trajectory commands</td><td>Separate future work: motor/rail identification, collision geometry and transition handling. A live unlock currently fails in the tested Drake build.</td></tr>
+<tr><td>Evaluate a chosen design</td><td>Frozen model: 9 positions</td><td>Bake the six mount offsets into body transforms and rebuild for each design; the first production target.</td></tr>
+<tr><td>Many fixed-design IK problems</td><td>One 15-position plant; a context per candidate</td><td>Set and lock the six prismatic coordinates, then build IK with that context; the tested IK keeps all six exactly.</td></tr>
+<tr><td>Joint morphology and posture search</td><td>15-position model, gantries free</td><td>The six gantry positions become decision variables, with their bounds and fingertip Jacobians.</td></tr>
+<tr><td>Moving gantries during manipulation</td><td>15-position dynamics with trajectory commands</td><td>Needs motor and rail identification, collision geometry and transition handling; live unlocking fails in the tested build.</td></tr>
 </tbody></table></div>
-<p>For a trajectory or several task poses, share <strong>one six-coordinate morphology</strong> across all knots/tasks and optimize the nine finger angles at each knot. Otherwise an optimizer can improve its objective by changing the hand during a task intended to use a fixed morphology. Generic mathematical programs do not automatically inherit the IK constructor’s locked-coordinate constraints.</p>
-<pre>m = [x_T, y_T, x_I, y_I, x_M, y_M]             # mount-relative meters
-q_k = [yaw_T, mcp_T, pip_T, ...]                # radians, at task knot k
-minimize  Σ_k task_cost(FK(m, q_k)) + motion_cost(q) + design_cost(m)
-subject to workspace bounds, hardware ROM, collision clearance,
-           task/contact conditions, and the same m at every knot</pre>
-<p>A practical next stage is fixed-morphology <a href="https://drake.mit.edu/doxygen_cxx/classdrake_1_1planning_1_1trajectory__optimization_1_1_kinematic_trajectory_optimization.html">kinematic trajectory optimization</a>, followed by dense path-clearance checks and MuJoCo rollouts. That class is documented by Drake; trajectory optimization itself was not implemented in this study. Grasp-force feasibility needs additional contact and force constraints. A fingertip-position solution alone does not certify a grasp.</p>
+<p>For a trajectory or several task poses, one six-coordinate mount vector is shared by all knots and the nine finger angles are optimized at each knot; otherwise the optimizer can change the hand during a task meant for one morphology. The problem minimizes the task cost of the fingertip positions at each knot plus motion and design costs, subject to the workspace bounds, the joint ranges, collision clearance and the task&#8217;s contact conditions. Generic mathematical programs do not inherit the IK constructor&#8217;s locked-coordinate constraints.</p>
 </section>
 <section><h2>Reconfiguration in the palm plane</h2>
-<p>Only the six XY gantry offsets are hardware morphology. The old length variables are zero-range generator shims. The rectangles below are the source MJCF travel bounds. Slider values are offsets from each mount’s nominal origin; the plot uses absolute palm coordinates in millimeters.</p>
-<div class="duo"><div><svg id="mount-plot" viewBox="0 0 520 500" role="img" aria-label="Top view of three gantry workspaces and configurable mount positions"></svg></div><div class="controls"><label for="design">Example</label><select id="design"></select><div id="sliders"></div><p class="note">This is a workspace illustration, not a collision or reachability solver. Moving a slider does not rerun IK. Rails and carriages are absent from the source hand’s collision geometry.</p></div></div>
+<p>The rectangles below are the MJCF travel bounds of the three gantries. Slider values are offsets from each mount&#8217;s nominal origin; the plot uses absolute palm coordinates in millimetres.</p>
+<div class="duo"><div><svg id="mount-plot" viewBox="0 0 520 500" role="img" aria-label="Top view of three gantry workspaces and configurable mount positions"></svg></div><div class="controls"><label for="design">Example</label><select id="design"></select><div id="sliders"></div><p class="note">The plot shows the workspace only: moving a slider reruns neither IK nor collision checks, and the rails and carriages have no collision geometry.</p></div></div>
 {{MORPH_TABLE}}
 </section>
 <section><h2>Planning results</h2>
 {{IK_TABLE}}
-<p>Each IK problem constrains three fingertip centers in world coordinates to a ±1 μm box, respects source joint limits, and requests 1 mm clearance between enabled collision pairs. Numerical solver tolerance explains the small excess beyond 1 μm. The smallest resulting clearance is {{MIN_CLEARANCE}} mm. The named compact and asymmetric examples are synthetic study designs, not the deployed D1–D8 hands.</p>
-<p class="note">Solver: {{SOLVERS}}. Solve times are single local measurements for small, easy instances, excluding model construction and problem setup; they are not a throughput benchmark. Full configurations and target positions are stored in the study data.</p>
+<p>The smallest clearance is {{MIN_CLEARANCE}} mm, and the tip errors slightly above 1 &#956;m are solver tolerance. The compact and asymmetric layouts are synthetic study designs; the deployed D1&#8211;D8 hands were not solved.</p>
+<p class="note">Solver: {{SOLVERS}}. Solve times are single measurements of small instances, excluding model construction and problem setup. Configurations and targets are in the study data.</p>
 </section>
-<section><h2>Why a raw MJCF import is insufficient</h2>
+<section><h2>Differences of a raw MJCF import</h2>
 {{IMPORT_TABLE}}
-<p>All three original files parse, but parsing is not behavioral equivalence. The source contains six optional palm-pose coordinates, a free object and three length shims; that explains why scene counts exceed the hand’s 15 physical coordinates.</p>
-<div class="tw"><table><thead><tr><th>Issue</th><th>Observed behavior / consequence</th><th>Prototype treatment</th></tr></thead><tbody>
-<tr><td>Position control range vs effort</td><td>Raw thumb yaw effort limit is {{RAW_YAW}} rather than 10 N·m. Raw thumb X effort limit is {{RAW_X}} rather than 10 N.</td><td>Recreate native actuators from compiled source gains and force limits; bound position targets separately.</td></tr>
-<tr><td>Derivative gain</td><td>Raw finger derivative gain is {{RAW_KD}} rather than 0.5. The tested parser reads kd; the MJCF uses kv.</td><td>Read MuJoCo’s resolved bias parameters and configure native PD gains.</td></tr>
-<tr><td>Contact semantics</td><td>solref/solimp do not transfer. The importer warns that torsional/rolling friction terms are unsupported.</td><td>Explicit point-contact approximation with sliding friction only; no contact-parity claim.</td></tr>
-<tr><td>Keyframes and display</td><td>Keyframes, sites, textures and other display settings are skipped.</td><td>Initialize named joints explicitly; retain body transforms, primitives, inertials, colors and exclusions.</td></tr>
-<tr><td>Gantry locks in live simulation</td><td>{{UNLOCK_STATUS}}</td><td>Fixed-design planning and independently initialized locked/unlocked rollouts work. Treat live lock-mode switching as unresolved.</td></tr>
+<p>All three source files parse. The scenes have more coordinates than the hand&#8217;s 15 because of six optional palm-pose coordinates, a free object and three length shims.</p>
+<div class="tw"><table><thead><tr><th>Issue</th><th>Observed behavior</th><th>Prototype treatment</th></tr></thead><tbody>
+<tr><td>Position control range and effort</td><td>Imported thumb-yaw effort limit {{RAW_YAW}} in place of 10 N·m; thumb-X limit {{RAW_X}} in place of 10 N.</td><td>Recreate native actuators from the compiled gains and force limits; bound position targets separately.</td></tr>
+<tr><td>Derivative gain</td><td>Imported finger derivative gain {{RAW_KD}} in place of 0.5: the parser reads kd and the MJCF uses kv.</td><td>Read MuJoCo&#8217;s resolved bias parameters and set native PD gains.</td></tr>
+<tr><td>Contact</td><td>solref and solimp do not transfer; torsional and rolling friction are unsupported.</td><td>Point contact with sliding friction only.</td></tr>
+<tr><td>Keyframes and display</td><td>Keyframes, sites, textures and display settings are skipped.</td><td>Set named joints at initialization; keep body transforms, primitives, inertials, colours and exclusions.</td></tr>
+<tr><td>Gantry locks in live simulation</td><td>{{UNLOCK_STATUS}}</td><td>Fixed-design planning and separately initialized locked and unlocked rollouts work; live lock switching is unresolved.</td></tr>
 </tbody></table></div>
-<p>The <a href="https://raw.githubusercontent.com/RobotLocomotion/drake/v1.57.0/multibody/parsing/detail_mujoco_parser.cc">Drake 1.57 parser source</a> explains the actuator mismatch. The adapter removes imported actuators and adds native ones, rather than relying on version-specific XML workarounds. The adapted model passes strict parsing. Drake documents its broader <a href="https://drake.mit.edu/doxygen_cxx/group__multibody__parsing.html">MJCF limitations</a> and <a href="https://drake.mit.edu/doxygen_cxx/classdrake_1_1multibody_1_1_inverse_kinematics.html">context-dependent joint locks for IK</a>.</p>
+<p>The <a href="https://raw.githubusercontent.com/RobotLocomotion/drake/v1.57.0/multibody/parsing/detail_mujoco_parser.cc">Drake 1.57 parser source</a> explains the actuator mismatch, so the adapter replaces the imported actuators with native ones, and the adapted model passes strict parsing. Drake documents its <a href="https://drake.mit.edu/doxygen_cxx/group__multibody__parsing.html">MJCF limitations</a> and <a href="https://drake.mit.edu/doxygen_cxx/classdrake_1_1multibody_1_1_inverse_kinematics.html">context-dependent joint locks for IK</a>.</p>
 <details><summary>Raw parser warnings and live-unlock reproduction</summary>{{WARNINGS}}<pre>{{UNLOCK_LOG}}</pre></details>
 </section>
-<section><h2>What must be added before using planned motions</h2>
-<ol><li><strong>Use the bench limits and current plant calibration.</strong> The tested source has nominal ±85° yaw and up to 92° flexion, while the driver caps yaw at ±70° and some flexion joints are tighter. For example, index MCP ends at 64.75°. Preserve the sign/unit conversion in <code>manta_hand/plan.py</code> and measured ranges in <code>servos.py</code>.</li>
-<li><strong>Port the intended geometry variant and collision policy.</strong> This spike uses the capsule/sphere source, not deployed flat-pad variants, rail/carriage geometry, an object, the table, or a UR5e. Its 21 source exclusion declarations intentionally omit some self-contact. A “collision-free” result refers only to enabled pairs in this simplified hand. Preserve the source gate’s physical intent when adding missing shapes.</li>
-<li><strong>Connect fixed-morphology planning to the existing evaluator.</strong> Import chosen design records, solve task targets with hardware limits, optimize a motion path, export the named-joint trajectory, then use existing MuJoCo clearance/retention/perturbation checks and plan export. Compare D1–D8 only after matching pad shape, source plant and initialization.</li>
-<li><strong>Introduce contact optimization separately.</strong> Drake’s <a href="https://drake.mit.edu/doxygen_cxx/group__hydroelastic__user__guide.html">hydroelastic contact</a> is worth testing for distributed pad contact. It requires physical calibration and does not reproduce MuJoCo rolling/torsional coefficients merely by selecting a solver. At least one compliant hydroelastic participant is needed for a hydroelastic contact pair.</li>
-<li><strong>Keep dynamics claims calibrated.</strong> The prototype preserves shipped finger kp=30, kv=0.5 and a 10 N·m cap for conversion checks. The repository’s later calibrated chain uses kp=0.5, kv=0.02 and a 0.35 N·m cap. Gantry damping=2000 with kp=30 is also a simulation placeholder, not measured stepper behavior. In a separate 0.2 s unlocked rollout, maximum travel was only {{GANTRY_MOVE}} mm.</li></ol>
-<p>The current backend factory and RL stack are MuJoCo/Warp-oriented. This study does not make Drake a drop-in backend, preserve MJX/GPU batch throughput, or validate contact derivatives. The useful first deliverable is a planning interface that accepts a morphology, task targets and limits, and returns named-joint trajectories plus feasibility diagnostics.</p>
+<section><h2>Future work</h2>
+<ol><li><strong>Bench limits and plant.</strong> Replace the source ranges (&#177;85&#176; yaw, up to 92&#176; flexion) with the driver&#8217;s (&#177;70&#176; yaw; index MCP to 64.75&#176;), keeping the sign and unit conversion of <code>manta_hand/plan.py</code> and the ranges of <code>servos.py</code>, and the template gains (kp 30) with the calibrated ones (kp 0.5, kv 0.02, 0.35 N·m); the gantry damping of 2000 is a placeholder, and a 0.2 s unlocked rollout moved {{GANTRY_MOVE}} mm.</li>
+<li><strong>Deployed geometry.</strong> Port the flat pads, rails and carriages, the tool, the table and the UR5e, and restore the self-contact pairs that the 21 source exclusions omit; until then, collision-free means only the enabled pairs of this simplified hand.</li>
+<li><strong>Connection to the evaluator.</strong> Import a design record, solve task targets within the hardware limits, optimize the path with Drake&#8217;s <a href="https://drake.mit.edu/doxygen_cxx/classdrake_1_1planning_1_1trajectory__optimization_1_1_kinematic_trajectory_optimization.html">kinematic trajectory optimization</a>, export the named-joint trajectory, and run the MuJoCo clearance, retention and perturbation checks; compare D1&#8211;D8 after matching pad shape, plant and initialization.</li>
+<li><strong>Contact.</strong> Test Drake&#8217;s <a href="https://drake.mit.edu/doxygen_cxx/group__hydroelastic__user__guide.html">hydroelastic contact</a> for the pads with at least one compliant participant per pair, calibrated against the contact bed; a grasp needs force constraints beyond fingertip positions.</li></ol>
+<p>The backend factory and the RL stack target MuJoCo and Warp; the first deliverable is a planning interface that takes a morphology, task targets and limits and returns named-joint trajectories with feasibility checks.</p>
 </section>
 <section><h2>Reproduce and inspect</h2>
-<p>The project environment and lockfile are unchanged. Drake was installed into a separate ignored environment under <code>logs/20261001-drake-port/venv</code>. It ran on this Ubuntu 22.04 host; that local success does not establish official support. Check the <a href="https://drake.mit.edu/installation.html">current supported configurations</a> before choosing a deployment host.</p>
+<p>Drake runs in a separate ignored environment under <code>logs/20261001-drake-port/venv</code>; the project environment and lockfile are unchanged. It ran on this Ubuntu 22.04 host; check the <a href="https://drake.mit.edu/installation.html">current supported configurations</a> before choosing a deployment host.</p>
 <pre>uv venv --python .venv/bin/python logs/20261001-drake-port/venv
 uv pip install --python logs/20261001-drake-port/venv/bin/python \
   -r docs/experiments/20261001-drake-port/requirements.txt
