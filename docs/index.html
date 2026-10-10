@@ -94,13 +94,17 @@ footer, footer p { border-top:0 !important; font:16px/1.4 "Times New Roman",Time
 footer { border-top:1px solid #000 !important; margin-top:32px !important; padding-top:6px !important; }
 footer code { font-family:"Courier New",Courier,monospace !important; font-size:14px !important; }
 .chip, .pill, .badge { background:none !important; border:0 !important; padding:0 !important; border-radius:0 !important;
-                       font:inherit !important; color:#000 !important; }
+                       font:inherit !important; color:#000 !important; text-transform:none !important;
+                       letter-spacing:normal !important; }
+.stats { background:none !important; border:0 !important; border-radius:0 !important; box-shadow:none !important; }
+.stat { background:none !important; color:#000 !important; border:0 !important; box-shadow:none !important; }
+.stat .num, .stat b, .stat small, .stat .sub, .stat span { color:#000 !important; }
 button.theme, .theme-toggle, [data-theme-toggle] { display:none !important; }</style>
 </head>
 <body>
 <div class="wrap">
 <header>
-<div class="eyebrow">MorphoHand &#183; updated 2026-10-09</div>
+<div class="eyebrow">MorphoHand &#183; updated 2026-10-10</div>
 <h1>Documentation of the SR&#178; Hand</h1>
 <p class="lede">SR&#178; Hand is a three-finger robot hand whose finger bases ride on XY gantries: six gantry
 coordinates set the finger layout (the morphology) and nine servos move the fingers. We search layouts and controllers
@@ -122,7 +126,7 @@ one task: turning a 24.5&#8202;g screwdriver from flat to vertical and then driv
 <div class="topic"><h3><a href="overviews/contact_model.html">Fingertip contact model</a></h3><p>Covering each fingertip with 1&#8202;mm MuJoCo contact spheres reproduces the friction torque of a soft fingertip: on a two-pad pinch the pads slip within 0.1&#8202;% of the force of Drake's hydroelastic model and spin 6&#8202;% under its torque, at 15&#8202;&#181;s per step against Drake's 1,298&#8202;&#181;s.</p><p class="pages">Pages: <a href="experiments/20261008-contact_model_policies/20261008-fingertip_contact_model_policies.html">policies on four contact models</a> &#183; <a href="experiments/20261005-contact_bed/20261005-contact_model_bed.html">comparison bed</a>.</p></div>
 
 <h2>Reading the pages</h2>
-<p>The overviews in <code>docs/overviews/</code> open from a clone in any browser. The 55 dated result pages
+<p>The overviews in <code>docs/overviews/</code> open from a clone in any browser. The 56 dated result pages
 in <code>docs/experiments/</code> are Git LFS files, which open as a short pointer text until fetched
 (about 120&#8202;MB):</p>
 <pre>git lfs install

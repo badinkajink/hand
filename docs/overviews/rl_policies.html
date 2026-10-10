@@ -97,13 +97,17 @@ footer, footer p { border-top:0 !important; font:16px/1.4 "Times New Roman",Time
 footer { border-top:1px solid #000 !important; margin-top:32px !important; padding-top:6px !important; }
 footer code { font-family:"Courier New",Courier,monospace !important; font-size:14px !important; }
 .chip, .pill, .badge { background:none !important; border:0 !important; padding:0 !important; border-radius:0 !important;
-                       font:inherit !important; color:#000 !important; }
+                       font:inherit !important; color:#000 !important; text-transform:none !important;
+                       letter-spacing:normal !important; }
+.stats { background:none !important; border:0 !important; border-radius:0 !important; box-shadow:none !important; }
+.stat { background:none !important; color:#000 !important; border:0 !important; box-shadow:none !important; }
+.stat .num, .stat b, .stat small, .stat .sub, .stat span { color:#000 !important; }
 button.theme, .theme-toggle, [data-theme-toggle] { display:none !important; }</style>
 </head>
 <body>
 <div class="wrap">
 <header>
-<div class="eyebrow"><a href="../index.html">SR&#178; Hand documentation</a> &#183; topic overview: reinforcement-learning policies &#183; updated 2026-10-09</div>
+<div class="eyebrow"><a href="../index.html">SR&#178; Hand documentation</a> &#183; topic overview: reinforcement-learning policies &#183; updated 2026-10-10</div>
 <h1>Reinforcement-learning policies for the screwdriver turn</h1>
 <p class="lede">No learned policy has run on the hand; the bench results use the open-loop plan. A policy adds a learned correction to a scripted lift and turn and is trained with PPO in MuJoCo-Warp at about 9,400 environment steps per second. On the servo model fitted to the bench, D6 policies trained with compliant sphere-pad fingertips keep the tool in 216 of 220 open-loop replays in CPU MuJoCo, Drake and Newton, and policies trained with point contact in 3 of 132. Earlier policies, trained on fingers that lagged by 1&#8202;s, drop the tool at bench finger speed.</p>
 </header>
