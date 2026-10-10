@@ -107,20 +107,40 @@ footer a{color:var(--s2)}
 <header>
   <div class="eyebrow">MorphoHand &#183; real_v1 &#183; 16 September 2026</div>
   <h1>Chain on the bench-calibrated plant</h1>
-  <p class="lede">Every chain rollout before today ran on the template&#8217;s actuator model,
-  which the bench calibrated on 2026-09-02 as about 60&#215; too stiff. Re-run on the calibrated
-  plant, the chain&#8217;s grasp lifts at a fifth of the tool&#8217;s weight, the fingers turn the
-  tool 0&#8211;10&#176; at any travel budget, and five of eight hands still carry it to the
-  countersink because the arm does the reorientation. The loss is now the handover and the
-  gait, and it has the same cause as the turn.</p>
+  <p class="lede">On the plant fitted to the bench on 2026-09-02 (finger gain kp 0.5, about 60&#215; softer than
+  the template&rsquo;s), the chain&rsquo;s 2&nbsp;mm squeeze leaves 0&ndash;1.43&nbsp;N of grip at the lift, and the
+  plans&rsquo; own 10&nbsp;mm lifts every hand at 2.5&ndash;4.5&nbsp;N. The fingers then turn the tool only
+  0&ndash;10&#176; at any travel budget, lagging their commands by 25&ndash;36&#176;, and the arm stands it up: five
+  hands set it into the countersink in 17&ndash;20 of 20 rollouts. The hand-over loses 2&ndash;8 of 20 and the gait
+  turns the tool at most 0.02 revolutions, from the same lag.</p>
   <div class="byline">{{N_TOTAL}} rollouts in four sweeps plus two instrumented runs &#183;
   calibrated plant kp 0.5, force ceiling 0.35 N&#183;m, frictionloss 0.0035, measured masses
   (docs/experiments/20260902-servo-sysid) &#183; scored on the signed cosine with a load test
   at 0.240 N &#183; simulation only</div>
 </header>
 
+<section class="col" id="terms">
+  <h2>Terms and metrics</h2>
+  <dl class="terms">
+    <dt><b>Shipped and calibrated plant</b></dt><dd>The template&rsquo;s finger actuators (kp 30, force range
+    &plusmn;10, no friction) and the bench fit (kp 0.5, force ceiling 0.35&nbsp;N&middot;m, friction loss 0.0035,
+    measured masses).</dd>
+    <dt><b>Squeeze</b></dt><dd>Depth of the commanded pad positions inside the tool&rsquo;s surface, in mm.</dd>
+    <dt><b>Lift force</b></dt><dd>Total pad normal force at the lift, in N, with the pad count (3p = three pads);
+    the tool weighs 0.240&nbsp;N.</dd>
+    <dt><b>Turn</b></dt><dd>Rotation of the tool toward tip-down at the <code>turned</code> seam, in degrees,
+    median of 4.</dd>
+    <dt><b>Budget</b></dt><dd>The residual clip of the turn, in rad.</dd>
+    <dt><b>q err, on ceiling</b></dt><dd>Largest commanded-minus-achieved joint angle per finger, in degrees; the
+    number of that finger&rsquo;s actuators at the force ceiling.</dd>
+    <dt><b>Seams</b></dt><dd>Chain phases from <code>lifted</code> to <code>gaited</code>; a seam is reached
+    if the tool is held there.</dd>
+    <dt><b>Bench hold</b></dt><dd>Bench trials with the tool retained, from the 2026-09-02 archive.</dd>
+  </dl>
+</section>
+
 <section class="col">
-  <h2>The plant every chain result was measured on</h2>
+  <h2>Grip at the lift on both plants</h2>
   <p class="sub">scripts/real_v1_chain_hands.py --plant shipped,corrected</p>
 
   <p>The chain scenes are generated from the base template and inherit its finger actuators:
@@ -152,7 +172,7 @@ footer a{color:var(--s2)}
 </section>
 
 <section class="col">
-  <h2>Element 1: the grasp, at the plans&#8217; own squeeze</h2>
+  <h2>Grasp at the plans&#8217; squeeze</h2>
   <p class="sub">--squeeze-mm 4,6,8,10 --plant corrected &#183; 127 rollouts</p>
 
   {{CHART_SQUEEZE}}
@@ -164,7 +184,7 @@ footer a{color:var(--s2)}
 </section>
 
 <section class="col">
-  <h2>Element 2: the fingers do not turn the tool on the calibrated plant</h2>
+  <h2>Finger turn on the calibrated plant</h2>
   <p class="sub">turn angle at the `turned` seam, degrees toward tip-down, median of 4</p>
 
   <p>With the grasp fixed, every hand holds the turn &#8212; two to four pads above the
@@ -189,7 +209,7 @@ footer a{color:var(--s2)}
   <p>D8 is the exception in both tables: it turns 50&#8211;60&#176; to the wrong pole and slides
   25&#8211;29 mm doing it.</p>
 
-  <h3>What the servos are doing</h3>
+  <h3>Joint lag through the chain</h3>
   <p>Two new seam fields: the largest commanded-minus-achieved angle per finger, and the number
   of that finger&#8217;s actuators on the force ceiling. D6, 10 mm squeeze, pivot 0.15, budget
   0.8, calibrated plant:</p>
@@ -204,7 +224,7 @@ footer a{color:var(--s2)}
   <p>Through the turn the fingers sit 25&#8211;36&#176; behind their commands and no actuator is
   on its ceiling. They are not tripping the torque limit; at kp 0.5 they do not develop the
   torque to roll the tool against the thumb. The bench recorded the same state on
-  2026-08-29 &#8212; &#8220;yaws stall; index yaw does not move at all&#8221; &#8212; and
+  2026-08-29 (&#8220;yaws stall; index yaw does not move at all&#8221;) and
   +11.7&#176; of middle-yaw deficit at a static hold. The shipped plant reads 0.0&#176; on every
   finger at every seam, which is why it never showed this.</p>
 
@@ -213,7 +233,7 @@ footer a{color:var(--s2)}
 </section>
 
 <section class="col">
-  <h2>Elements 3 and 4: five hands carry the tool to the countersink</h2>
+  <h2>Arm reorientation, countersink, hand-over and gait</h2>
   <p class="sub">160 rollouts at 10 mm squeeze, budgets 0.5&#8211;1.3 rad, pivots 0.15 and 0.25</p>
 
   {{CHART_FUNNEL}}
@@ -265,36 +285,22 @@ footer a{color:var(--s2)}
 </section>
 
 <section class="col">
-  <h2>What this settles, and the next measurement</h2>
-
-  <ul>
-    <li><strong>Element 1 is set.</strong> 10 mm squeeze on the calibrated plant, which is the
-      squeeze the hardware plans already carry. Every hand lifts.</li>
-    <li><strong>Element 2 is an arm reorientation.</strong> On the calibrated plant the fingers
-      contribute 0&#8211;10&#176; and the UR5e&#8217;s iterated rigid transfer contributes the
-      rest, on a grip that holds. Five hands reach the countersink. This is the deployable
-      maneuver; a finger-only reorientation is not on this plant at this gain.</li>
-    <li><strong>Elements 4 and 5 are the open loss</strong>, and the deficit that causes it is
-      the one quantity the hardware measures directly: every servo reports its own position at
-      111 Hz on the bus, and the calibrated plant shows 14&#8211;42&#176; of commanded-minus-achieved
-      through the handover and gait.</li>
-  </ul>
-
-  <p>The next measurement, named: close a loop on <em>achieved joint angle</em> &#8212; command
-  = target + k(target &#8722; achieved), the integral term the SCS0009 lacks
-  (<code>i_coefficient 0</code>) added on the host &#8212; and re-run the handover and gait on
-  the calibrated plant. Accept if <code>q_err_deg</code> through <code>handover_*</code> drops
-  under 10&#176; on D6 and the gait turns &#8805; 0.5 revolutions in 8 cycles. Falsify if the
-  loop drives the fingers into the torque ceiling (<code>sat</code> &gt; 0) before the error
-  closes. This loop reads no object pose and no contact force; it is the same signal the
-  bench regrip of 2026-08-29 used.</p>
-
-  <p>Two things this page does not settle. D2 holds 10/10 on hardware and loses the tool at
-  the arm transfer here on every seed; the regrip that precedes it is a 0.3 mm re-squeeze from
-  the commanded pose, and on the calibrated plant that is the phase to instrument next for
-  that hand. And the calibrated plant has been validated on the bench maneuver, not on the
-  chain: its 0.35 N&#183;m ceiling is the protective-torque plateau, which the real servo only
-  reaches after sustained overload.</p>
+  <h2>Future work</h2>
+  <p>The grasp is set at the plans&rsquo; 10&nbsp;mm squeeze, and on this plant the turn is an arm reorientation;
+  the open loss is the hand-over and the gait, caused by 14&ndash;42&#176; of commanded-minus-achieved joint
+  angle, which the servos report at 111&nbsp;Hz. Later pages corrected this plant: the fingers have a 1.04&nbsp;s
+  time constant (2026-09-23), and the 2026-10-06 refit gives kp 4.</p>
+  <ol>
+    <li><strong>Joint-angle loop.</strong> Command target + k(target &minus; achieved) on the host, the integral
+      term the SCS0009 lacks, and re-run the hand-over and gait; accept if <code>q_err_deg</code> through
+      <code>handover_*</code> falls under 10&#176; on D6 and the gait turns at least 0.5 revolutions in 8 cycles,
+      reject if the loop saturates the actuators (<code>sat</code> &gt; 0) first.</li>
+    <li><strong>D2&rsquo;s regrip.</strong> D2 holds 10 of 10 on hardware and loses the tool at the arm transfer
+      here on every seed; instrument its 0.3&nbsp;mm re-squeeze from the commanded pose.</li>
+    <li><strong>Plant validated on the chain.</strong> The plant was fitted on the bench maneuver; its
+      0.35&nbsp;N&middot;m ceiling is the protective-torque plateau, which the servo reaches only after sustained
+      overload.</li>
+  </ol>
 </section>
 
 <footer>
