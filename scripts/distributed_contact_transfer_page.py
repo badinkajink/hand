@@ -103,6 +103,8 @@ def main():
     simulated seconds per wall second.</dd>
     <dt>mjlab</dt><dd>The batched MuJoCo-Warp environment used for RL.</dd>
     </dl>
+    <p>The films are files in <code>media/</code>, too large to inline in the page. In a fresh clone they are Git LFS
+    pointers until fetched with <code>git -c lfs.fetchexclude= lfs pull --include="docs/experiments/20261004-codex/**"</code>.</p>
     """,
             "terms",
         )

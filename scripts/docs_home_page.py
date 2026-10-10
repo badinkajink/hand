@@ -140,7 +140,9 @@ in <code>docs/experiments/</code> are Git LFS files, which open as a short point
 (about 120&#8202;MB):</p>
 <pre>git lfs install
 git -c lfs.fetchexclude= lfs pull --include="docs/experiments/**/*.html"</pre>
-<p><a href="{rel("docs/experiments/INDEX.md")}">INDEX.md</a> lists them by date, and each page names the script
+<p>Figures and films are inlined in the pages, except the 138 films of the four Codex contact pages (29&#8202;MB), which
+stay files beside them: <code>git -c lfs.fetchexclude= lfs pull --include="docs/experiments/20261004-codex/**"</code>.
+<a href="{rel("docs/experiments/INDEX.md")}">INDEX.md</a> lists the pages by date, and each page names the script
 that rebuilds it.</p>
 
 <h2>Code</h2>

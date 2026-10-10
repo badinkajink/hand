@@ -187,6 +187,8 @@ def main():
     <dt>Tangential damping ratio</dt><dd>Ratio of the tangential to the normal contact damping of the mapped spheres.</dd>
     <dt>Active samples</dt><dd>Sphere samples in contact at one time.</dd>
     </dl>
+    <p>The films are files in <code>media/</code>, too large to inline in the page. In a fresh clone they are Git LFS
+    pointers until fetched with <code>git -c lfs.fetchexclude= lfs pull --include="docs/experiments/20261004-codex/**"</code>.</p>
     """, "terms"))
     parts.append(section("Contact variants and the two tasks", """
     <p>Task performance does not improve steadily as the local spring becomes more literal.
