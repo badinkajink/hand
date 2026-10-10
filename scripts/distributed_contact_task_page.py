@@ -168,7 +168,27 @@ def main():
                     ("legacy", "legacy_exact", "physical", "physical_exact",
                      "physical_runtime_approx", "physical_runtime_exact")]
     parts = []
-    parts.append(section("Outcome", """
+    parts.append(section("Terms and metrics", """
+    <dl class="terms">
+    <dt>Legacy</dt><dd>The frozen sphere-pad parameters, whose normal stiffness scales with the effective mass of the
+    contact.</dd>
+    <dt>Physical (mapped)</dt><dd>Sphere-pad coefficients set in direct form for a target per-sample stiffness and damping,
+    with d&#8320; = 0.0001 and <code>impratio</code> 10000.</dd>
+    <dt>s1, s05</dt><dd>Sphere pads of 1 mm and 0.5 mm spacing.</dd>
+    <dt>Drake hydroelastic</dt><dd>Drake&#8217;s pressure-field contact, the reference model.</dd>
+    <dt>diagexact</dt><dd>MuJoCo&#8217;s exact diagonal inverse inertia (MuJoCo 3.9 and later) in place of the approximate
+    one.</dd>
+    <dt>Chain</dt><dd>The SR2 pickup-to-insertion sequence with a fixed controller.</dd>
+    <dt>Rolling pinch</dt><dd>The step-body-twist protocol of Wang, Oh and Pollard on the SR2 scene: the pinched cylinder is
+    twisted about its axis.</dd>
+    <dt>Twist gain</dt><dd>Achieved over commanded tool roll; 1 is perfect tracking.</dd>
+    <dt>Slide, local slip</dt><dd>Sliding speed of the contact frames on the tool, in mm/s; below 1 mm/s a contact counts
+    as sticking.</dd>
+    <dt>Tangential damping ratio</dt><dd>Ratio of the tangential to the normal contact damping of the mapped spheres.</dd>
+    <dt>Active samples</dt><dd>Sphere samples in contact at one time.</dd>
+    </dl>
+    """, "terms"))
+    parts.append(section("Contact variants and the two tasks", """
     <p>Task performance does not improve steadily as the local spring becomes more literal.
     The precomputed physical-stiffness mapping recovered the desired per-sample static
     coefficient in the earlier fixture, but its 1 mm articulated hand tilts during pickup
@@ -288,7 +308,7 @@ def main():
     remain below the 1 mm/s local-slip threshold, so their travel is a sticking
     control.</p>
     """ + guided_table, "geometry"))
-    parts.append(section("Reproduction and open items", """
+    parts.append(section("Reproduction", """
     <p>Raw per-run configurations, MJCF, aggregate traces, contact logs and solver-coupling
     snapshots live in <code>results/20261004-distributed-contact/</code>. Portable summaries
     and video manifests are in <a href="data/task_chain_results.json">task data</a>,
@@ -302,22 +322,26 @@ MUJOCO_GL=egl logs/20261004-contact-current/venv/bin/python scripts/distributed_
 logs/20261004-contact-current/venv/bin/python scripts/distributed_contact_dynamics.py slip --config docs/experiments/20261004-codex/configs/sliding_geometry.json --out results/20261004-distributed-contact/sliding_geometry
 logs/20261004-contact-current/venv/bin/python scripts/distributed_contact_dynamics.py slip --config docs/experiments/20261004-codex/configs/sliding_geometry_guided.json --out results/20261004-distributed-contact/sliding_geometry_guided
 MUJOCO_GL=egl logs/20261001-hom_contact/venv/bin/python scripts/distributed_contact_task_page.py</pre>
-    <p>Newton's earlier native pressure and reduction transfer runs test readiness and give no
-    pickup or rolling score. The articulated task has not been ported to Newton;
-    the <a href="20261004-articulated_contact_transfer.html">backend report</a> records
-    the pressure/contact instability and the transfer limitations. The 6 mm hardware
-    fillet has a static audit but no dynamic sliding task here. The spherical fingertips
-    remain the task baseline.</p>
+    <p>The spherical fingertips remain the task baseline.</p>
     <figure><video controls preload="metadata" playsinline
     src="media/newton_transfer-native_h05.mp4"></video>
     <figcaption>Newton native hydroelastic preload gate: stopped at 0.075 s before a
     task-level controller can be scored. <a href="media/newton_transfer-native_h05.mp4">MP4</a> ·
     <a href="20261004-contact_videos.html#newton-replay">Replay audit</a>.</figcaption></figure>
     """, "reproduce"))
-    toc = ('<nav class="toc"><a href="#outcome">Outcome</a><a href="#films">Videos</a>'
+    parts.append(section("Future work", """
+    <ol>
+    <li><strong>Newton.</strong> Port the articulated chain to Newton once its native pressure contact passes the preload
+    gate (it stops at 0.075 s; see the <a href="20261004-articulated_contact_transfer.html">backend report</a>), and
+    score pickup and twist gain against Drake.</li>
+    <li><strong>Hardware fillet.</strong> Run the force-ramp sliding fixture on the 6 mm fillet tip, which has only a
+    static audit, and compare travel and peak local slip with the spherical tips.</li>
+    </ol>
+    """, "future"))
+    toc = ('<nav class="toc"><a href="#terms">Terms</a><a href="#outcome">Contact variants</a><a href="#films">Videos</a>'
            '<a href="#chain">Chain</a><a href="#rolling">Rolling</a>'
            '<a href="#diagexact">diagexact</a><a href="#geometry">Geometry</a>'
-           '<a href="#reproduce">Reproduce</a></nav>')
+           '<a href="#reproduce">Reproduce</a><a href="#future">Future work</a></nav>')
     page = frame("Contact models on robot tasks and sliding geometry",
                  "On the SR2 pickup-to-insertion chain and a rolling-pinch task at 500 Hz control, the legacy MuJoCo sphere "
                  "pads and Drake hydroelastic contact complete the chain, while 1 mm sphere pads with the physical-stiffness "
