@@ -21,6 +21,18 @@ import time
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "scripts"))
 from hands_tranche_page import table  # noqa: E402
+
+
+def film_uri(path):
+    """A film inlined as a data URI, so the page opens from the file system (owner, 2026-10-09); re-encoded at CRF 32,
+    which keeps the six films near 5 MB of page instead of 11."""
+    import base64, tempfile
+    with tempfile.TemporaryDirectory() as td:
+        out = os.path.join(td, "film.mp4")
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", path, "-vf", "scale=640:480", "-c:v", "libx264", "-crf", "32",
+                        "-preset", "medium", "-pix_fmt", "yuv420p", "-movflags", "+faststart", "-an", out],
+                       stdin=subprocess.DEVNULL, check=True)
+        return "data:video/mp4;base64," + base64.b64encode(open(out, "rb").read()).decode()
 import retro_style  # noqa: E402
 
 D = os.path.join(ROOT, "docs/experiments/20260923-chain_handover_gait")
@@ -169,7 +181,7 @@ def films(final):
         what = (f"completes: {cs.get('cycles_run')} gait cycles, {cs.get('turns', 0):+.2f} rev, final tilt {cs.get('final_tilt_deg', 0):.1f}&#176;"
                 if l is None else f"loses the tool at the {STAGE.get(l, l)}")
         out.append(f'<figure><video controls muted loop playsinline preload="metadata" width="640" height="480" '
-                   f'src="web/{pid}_chain.mp4"></video><figcaption>{POL[pid][0]}, {POL[pid][1]}, nominal spawn, played at '
+                   f'src="{film_uri(src if os.path.exists(src) else web)}"></video><figcaption>{POL[pid][0]}, {POL[pid][1]}, nominal spawn, played at '
                    f'twice real time: grasp, lift, learned turn, arm staging, set-down, seat, press, release, re-pose, '
                    f'ring close, gait. The run {what}.</figcaption></figure>')
     return "\n".join(out)

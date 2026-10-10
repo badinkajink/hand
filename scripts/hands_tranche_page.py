@@ -317,11 +317,11 @@ def main():
         if not os.path.exists(sp):
             continue
         e = evals[j["id"]]
-        # the rollout video sits beside the page as web/<id>.mp4 (640x480, published with the page as a
-        # supporting file); the 960x720 original is in videos/ (gitignored)
+        # the rollout video web/<id>.mp4 (640x480; the 960x720 original is in videos/, gitignored) is inlined, so the
+        # page opens from the file system (owner, 2026-10-09)
         vp = os.path.join(R, "web", f"{j['id']}.mp4")
-        video = (f'<video controls muted loop playsinline preload="metadata" width="640" height="480" src="web/{j["id"]}.mp4">'
-                 f'web/{j["id"]}.mp4</video>') if os.path.exists(vp) else ""
+        video = (f'<video controls muted loop playsinline preload="metadata" width="640" height="480" src="{uri(vp)}">'
+                 f'</video>') if os.path.exists(vp) else ""
         strips.append(f'<figure><img src="{uri_jpeg(sp)}" alt="{j["id"]} filmstrip">{video}<figcaption>{j["hand"]}, {ARM_LABEL.get(j["arm"], j["arm"])}: '
                       f'held {int(round(e["hold_rate"] * e["n"]))}/{e["n"]}, final cos {e["final_cos_mean"]:+.3f}.</figcaption></figure>')
     strips_html = "\n".join(strips) if strips else "<p>No filmstrip yet.</p>"

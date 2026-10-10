@@ -331,7 +331,7 @@ def main():
             if os.path.exists(web_v):
                 cp = os.path.join(R, f"{j['id']}_chain_pl{pl}.json"); c = json.load(open(cp)) if os.path.exists(cp) else {}
                 cs = c.get("chain_scalars", {})
-                chain_videos.append(f'<figure><video controls muted loop playsinline preload="metadata" width="640" height="480" src="web/{j["id"]}_chain_pl{pl}.mp4"></video>'
+                chain_videos.append(f'<figure><video controls muted loop playsinline preload="metadata" width="640" height="480" src="{uri(web_v)}"></video>'
                                     f'<figcaption>{j["hand"]}, {ARM_LABEL.get(j["arm"], j["arm"])}, plate {pl} mm: grasp on the post, arm lift, the policy&#8217;s turn (5 s), '
                                     f'arm re-pose, set-down, relay handover, gait. {"Plate at the chain scenes&#8217; original height; the built hand&#8217;s is 25 mm. " if pl == 0 else ""}'
                                     f'Outcome: {"stood and held" if c.get("ok") else "lost after the turn"}; '
@@ -350,7 +350,7 @@ def main():
             subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", src_v, "-vf", "scale=640:480", "-c:v", "libx264", "-crf", "28",
                             "-preset", "medium", "-pix_fmt", "yuv420p", "-movflags", "+faststart", "-an", web_v], stdin=subprocess.DEVNULL)
         r = res[j["id"]]; cj = jit(R, j["id"])
-        video = (f'<video controls muted loop playsinline preload="metadata" width="640" height="480" src="web/{j["id"]}.mp4"></video>'
+        video = (f'<video controls muted loop playsinline preload="metadata" width="640" height="480" src="{uri(web_v)}"></video>'
                  if os.path.exists(web_v) else "")
         strips.append(f'<figure><img src="{uri_jpeg(sp)}" alt="{j["id"]} filmstrip">{video}<figcaption>{j["hand"]}, '
                       f'{ARM_LABEL.get(j["arm"], j["arm"])}: nominal held {int(round(r["hold_rate"] * 64))}/64 at cos {r["final_cos_mean"]:+.3f}'
