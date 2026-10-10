@@ -118,7 +118,7 @@ footer a{color:var(--s2)}
   here was withdrawn on 2026-10-06; the <a href="../../overviews/hand_plant_bench.html">hardware overview</a> gives the
   current one</div>
   <nav class="toc">
-    <a href="#reconcile">Discrepancies with the PDF</a> &#183; <a href="#provenance">Sources of the numbers</a> &#183;
+    <a href="#terms">Terms</a> &#183; <a href="#reconcile">Discrepancies with the PDF</a> &#183; <a href="#provenance">Sources of the numbers</a> &#183;
     <a href="#funnel">Funnel</a> &#183; <a href="#definitions">Retention, alignment, success</a> &#183;
     <a href="#ranking">Held-trial scoring and the ranking</a> &#183; <a href="#repeat">Repeatability and placement</a> &#183;
     <a href="#status">Completed and proposed</a> &#183; <a href="#learned">Learned controllers</a> &#183;
@@ -126,6 +126,24 @@ footer a{color:var(--s2)}
     <a href="#docs">Documentation</a>
   </nav>
 </header>
+
+<section id="terms"><div class="col">
+<h2>Terms and metrics</h2>
+<dl class="terms">
+<dt><b>Layout, D1&#8211;D8</b></dt><dd>A finger layout is one placement of the three mounts on the gantries; D1&#8211;D8 are the
+eight layouts built and run on the bench.</dd>
+<dt><b>Retention screen, confirmation</b></dt><dd>The simulated test of a layout: a 60&#8202;mm proof lift and 5&#8202;s of free
+hold at some residual clip; its repeat and full-error stages.</dd>
+<dt><b>Plan</b></dt><dd>A layout&#8217;s exported joint trajectory, as served to the hand by the control station.</dd>
+<dt><b>Retention (bench)</b></dt><dd>The operator&#8217;s verdict that the tool is still in the hand at the end of a trial.</dd>
+<dt><b>Alignment</b></dt><dd>Signed cosine of the tool&#8217;s axis with vertical over the final hold, from the AprilTag vane
+(<code>cos_hold</code>); +1 is upright.</dd>
+<dt><b>Scored trial</b></dt><dd>A bench trial with both a tag angle and a retention verdict.</dd>
+<dt><b>&#961;<sub>s</sub></b></dt><dd>Spearman rank correlation between simulated and measured alignment over the eight
+layouts.</dd>
+</dl>
+<p>The section on retention, alignment and reorientation success gives the full definitions.</p>
+</div></section>
 
 <section id="reconcile"><div class="col">
 <h2>Discrepancies between the PDF and the record</h2>
