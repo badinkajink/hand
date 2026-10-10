@@ -282,15 +282,15 @@ def table_machines(d) -> str:
     rows = [
         ("GPU", d["local"]["gpu"], d["deltaai"]["gpu"]),
         ("SM clock under load", f'{d["local"]["sm_clock_mhz_under_load"]:,} MHz (measured)',
-         f'{d["deltaai"]["sm_clock_mhz_spec"]:,} MHz (spec, not measured on the node)'),
+         f'{d["deltaai"]["sm_clock_mhz_spec"]:,} MHz (specified; unmeasured on the node)'),
         ("Steps/s at 3072 envs", f'{med:,.0f} median of {loc["3072"]["n"]} runs',
          f'{g3["sps"]:,.0f} single job'),
         ("Collection per env-step", f'{loc["3072"]["us_per_env_step"]:.1f} &#181;s',
          f'{g3["us"]:.1f} &#181;s'),
         ("Best batch width found", "3072 (nothing above helps)",
          "3072 (nothing above helps, to 95 GiB)"),
-        ("Concurrent runs", "1", "as many as the balance and the queue allow"),
-        ("Charged", "electricity",
+        ("Concurrent runs", "1", "As many as the balance and the queue allow"),
+        ("Charged", "Electricity",
          f'1 SU per reserved GPU-hour, rounded up &#183; '
          f'{d["deltaai"]["credits_per_gpu_hour"]} ACCESS credits per hour'),
     ]

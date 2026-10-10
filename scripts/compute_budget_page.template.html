@@ -100,18 +100,37 @@ footer a{color:var(--s2)}
   <div class="eyebrow">MorphoHand &#183; compute budget &#183; 8 September 2026</div>
   <h1>Training throughput on the workstation and a DeltaAI GH200</h1>
   <p class="lede">A GH200 compute node runs the MuJoCo-Warp training loop at {{RATIO_MED}}&#215;
-  the workstation&#8217;s rate, measured against the workstation&#8217;s whole logged
-  population rather than its best hour. Over the {{SPAN_DAYS}} days that population covers,
-  the workstation&#8217;s GPU was busy {{DUTY}}% of the time, which places the binding
-  constraint somewhere other than throughput.</p>
+  the workstation&#8217;s median rate over its whole logged population ({{GH_SPS3}} against {{MED3}}
+  environment steps per second at 3,072 environments). Collection takes 98.7&nbsp;% of each iteration
+  and its cost per step is flat in batch width, so speed follows the GPU clock. Over {{SPAN_DAYS}}
+  days the workstation&#8217;s GPU trained {{DUTY}}% of the time. Warm-started seeds differ by
+  sd {{SB_SD_CORE}}, so a 20-design comparison costs about 16 GH200-hours, and stopping runs at
+  convergence saves about ten times more than any hardware.</p>
   <div class="byline">{{N_LOGS}} trainer logs &#183; {{N_ITERS}} PPO iterations &#183;
   {{N_GSTEPS}} G env-steps &#183; {{TRAIN_H}} GPU-hours &#183; {{FIRST_DAY}} to
   {{LAST_DAY}}. GH200 figures are transcribed from jobs 2989123 and 2989164 and are not
   reproducible from this machine.</div>
 </header>
 
+<section class="col" id="terms">
+  <h2>Terms and metrics</h2>
+  <dl class="terms">
+    <dt><b>Env-steps/s</b></dt><dd>Simulated environment steps per second of wall clock during training, the median
+    over a run&rsquo;s steady-state PPO iterations.</dd>
+    <dt><b>Collection, learning</b></dt><dd>The parts of a PPO iteration spent simulating the 24 steps of every
+    environment and updating the networks, in seconds or as shares.</dd>
+    <dt><b>Cost per env-step</b></dt><dd>Collection time divided by environments &#215; 24, in &micro;s; free of batch
+    width.</dd>
+    <dt><b>Duty cycle</b></dt><dd>Logged RL training hours over calendar hours.</dd>
+    <dt><b>Between-draw sd</b></dt><dd>Standard deviation of the mean held cosine across independently trained
+    policies of one design; held cosine is the signed cosine of the tool&rsquo;s axis with vertical at the end of
+    the hold.</dd>
+    <dt><b>SU</b></dt><dd>Service unit of the DeltaAI allocation: one reserved GPU-hour, rounded up.</dd>
+  </dl>
+</section>
+
 <section class="col">
-  <h2>What each machine delivers per GPU</h2>
+  <h2>Throughput per GPU</h2>
   <p class="sub">logs/*.log, steady-state iterations &#183; docs/notes/20260820-deltaai_bulk_training_runbook.md</p>
 
   <p>Every trainer log in <code>logs/</code> that got past five PPO iterations reports its own
@@ -129,15 +148,15 @@ footer a{color:var(--s2)}
     reference of {{PUB_REF}} steps/s taken from one run on 2026-08-19. That number does not
     appear anywhere in the population: the fastest of the {{N3}} logged runs at 3072 envs
     reached {{MAX3}}, and the median is {{MED3}}. Against the median the GH200 is
-    <strong>{{RATIO_MED}}&#215;</strong>, not {{RATIO_PUB}}&#215;. The direction of the finding
-    is unchanged and the sizing tables built on it are conservative by about 11%.</p>
+    <strong>{{RATIO_MED}}&#215;</strong> in place of {{RATIO_PUB}}&#215;; the sizing tables built on the old
+    figure overstate the GH200&rsquo;s cost by about 11%.</p>
   </div>
 
   {{TABLE_MACHINES}}
 </section>
 
 <section class="col">
-  <h2>Where the wall clock goes</h2>
+  <h2>Time per training iteration</h2>
   <p class="sub">median over {{N_LOGS}} logs, iteration 0 excluded</p>
 
   <p>Collection takes <strong>{{COLLECT_PCT}}%</strong> of an iteration and the PPO update
@@ -167,45 +186,44 @@ footer a{color:var(--s2)}
 </section>
 
 <section class="col">
-  <h2>Why the GH200 loses on a workload it should win</h2>
+  <h2>Clock speed and the GH200 deficit</h2>
   <p class="sub">clock ratio {{CLK_RATIO}}&#215; against measured cost ratio {{COST_RATIO}}&#215;</p>
 
   <p>A latency-bound workload spends its time waiting on a chain of dependent operations, so its
-  wall clock scales with clock period rather than with FLOPs or bandwidth. That predicts the
-  deficit directly. The workstation's SM clock reads <strong>{{CLK_LOC}} MHz</strong> under load
+  wall clock scales with the clock period, whatever the FLOPs or bandwidth. That predicts the
+  deficit. The workstation's SM clock reads <strong>{{CLK_LOC}} MHz</strong> under load
   (<code>nvidia-smi --query-gpu=clocks.sm</code>, 2026-09-08, ceiling 3,120); the GH200's Hopper
   die boosts to a specified {{CLK_GH}} MHz. The ratio is {{CLK_RATIO}}&#215;. The measured
   per-env-step cost ratio is {{COST_RATIO}}&#215;. Those agree to {{CLK_GAP}}%.</p>
 
-  <p>Read that way the result stops being a surprise. The GH200 brings roughly twice the SMs and
-  six times the memory, and this workload uses neither: it needs one narrow kernel to finish so
-  the next can start. The estimate that predicted 1&#8211;2.5&#215; faster was reading the
-  specification sheet in the units of a dense-matmul workload.</p>
+  <p>The GH200 brings roughly twice the SMs and six times the memory, and this workload uses
+  neither: it needs one narrow kernel to finish before the next starts. The estimate of
+  1&#8211;2.5&#215; faster came from a dense-matmul reading of the specification sheet.</p>
 
   <div class="keep">
     <span class="tag">Sizing rule for this stack</span>
-    <p>Rank candidate GPUs for mjwarp training by clock, not by FLOPs, memory or SM count, and
+    <p>Rank candidate GPUs for mjwarp training by clock, ahead of FLOPs, memory or SM count, and
     confirm with a smoke job on a real scene before committing an allocation. A consumer part
     with a high boost clock will beat a datacenter part at the same generation on this workload,
     and the gap does not close at any batch size either machine can hold.</p>
   </div>
 
-  <p>The clock figure for the GH200 is a specification, not a measurement &#8212; nobody has read
-  <code>clocks.sm</code> on the compute node under load. That measurement is listed at the end.</p>
+  <p>The GH200 clock is the specified value; <code>clocks.sm</code> has not been read on the compute node
+  under load (Future work).</p>
 </section>
 
 <section class="col">
-  <h2>The workstation GPU is idle nine days in ten</h2>
+  <h2>Occupancy of the workstation GPU</h2>
   <p class="sub">{{TRAIN_H}} GPU-hours over {{SPAN_DAYS}} calendar days</p>
 
   <p>The {{N_LOGS}} logs sum to {{TRAIN_H}} hours of training spread across {{SPAN_DAYS}} days,
   a duty cycle of <strong>{{DUTY}}%</strong>. {{ACTIVE_DAYS}} days carried a run and
   {{IDLE_DAYS}} did not. On the days it ran at all the GPU averaged {{H_PER_ACTIVE}} hours, so
-  when work exists the machine is used hard; the gaps are between studies, not inside them.</p>
+  when work exists the machine is used hard, and the gaps fall between studies.</p>
 
   {{CHART_DUTY}}
 
-  <p>This reframes what extra compute can buy. Adding a second GPU-equivalent to a machine
+  <p>Adding a second GPU-equivalent to a machine
   running at {{DUTY}}% occupancy shortens nothing that was waiting on a GPU, because almost
   nothing was. The {{IDLE_DAYS}} idle days went to rendering filmstrips, reading trajectory
   health scorecards, bench sessions on the CB1, and deciding what the last result meant. Those
@@ -214,12 +232,11 @@ footer a{color:var(--s2)}
   <p>Two caveats on the number. It counts only runs that logged five or more iterations, so
   crashed launches and short probes are missing, and it counts only RL training &#8212; CEM
   grasp synthesis, evaluation sweeps and rendering also use the card and are not in
-  <code>logs/*.log</code>. The true occupancy is higher than {{DUTY}}%; it is not close to
-  100%.</p>
+  <code>logs/*.log</code>. The true occupancy is higher than {{DUTY}}% and far below 100%.</p>
 </section>
 
 <section class="col">
-  <h2>The first cluster study removed the reason for the cluster</h2>
+  <h2>Seed band and the cost of a design comparison</h2>
   <p class="sub">docs/experiments/B33_SEED_BAND.txt &#183; {{SB_N}} draws, {{SB_GPUH}} GPU-hours, {{SB_SU}} SU</p>
 
   <p>The allocation was sized around one quantity: the standard deviation between independent
@@ -241,8 +258,7 @@ footer a{color:var(--s2)}
   GH200-hours, or under twelve hours on the workstation. The study answered its own question and
   priced its own successor out of needing a cluster. It also cost {{SB_SU}} SU and produced the
   second result the program needed: b33 sits at {{SB_REF}} with {{SB_RANK}} draws, so the
-  sim-to-real hardware spec downstream of it rests on a representative policy rather than a
-  lucky one.</p>
+  sim-to-real hardware specification downstream of it rests on a typical draw.</p>
 
   <p>One limit on how far that generalises. The seed band shared a single Policy A warmstart
   across all 16 draws. Whether sd {{SB_SD_CORE}} survives per-design from-scratch A training is
@@ -251,7 +267,7 @@ footer a{color:var(--s2)}
 </section>
 
 <section class="col">
-  <h2>The timestep budget is a larger lever than the hardware</h2>
+  <h2>Timestep budget and convergence</h2>
   <p class="sub">b33's 20M-timestep run, docs/rl/reorientation.md</p>
 
   <p>Two budgets dominate the logged population: {{BUDGET_30M}} runs at 30M timesteps and
@@ -263,14 +279,13 @@ footer a{color:var(--s2)}
   <p>Cutting a converged run to its convergence point is worth about 10&#215;. The best
   available hardware move, running on a GH200 instead, is {{RATIO_MED}}&#215; in the wrong
   direction. Any plan that adds compute before trimming the budget is buying the smaller lever
-  at the higher price. The trimming is not free of risk &#8212; a shorter budget on a
-  from-scratch run is a different proposition than on a warmstarted finetune, and gotcha 13
-  applies, since the recipes carry reward shaping but not the timestep budget, so cutting it
-  means editing every launcher that passes <code>--total-timesteps</code> explicitly.</p>
+  at the higher price. A shorter budget is riskier for a from-scratch run than for a warm-started
+  finetune, and the recipes hold the reward shaping without the timestep budget, so cutting it
+  means editing every launcher that passes <code>--total-timesteps</code>.</p>
 </section>
 
 <section class="col">
-  <h2>What the remaining {{BALANCE}} SU are worth</h2>
+  <h2>Value of the remaining {{BALANCE}} SU</h2>
   <p class="sub">balance {{BALANCE}} of {{DEPOSITED}} deposited hours, 2026-08-20</p>
 
   <p>The one study actually run gives the honest wall-clock arithmetic. Sixteen draws of 20M
@@ -278,8 +293,7 @@ footer a{color:var(--s2)}
   DeltaAI at 16-way concurrency and zero queue wait it is {{IDEAL_GH_H}} hours, a
   {{IDEAL_SPEEDUP}}&#215; improvement; at 8-way it is {{EIGHT_WAY_H}} hours and
   {{EIGHT_WAY_SPEEDUP}}&#215;. The write-up records the actual elapsed time as &#8220;a few
-  hours&#8221;, which means queue wait, not throughput, set the delivered result. Nobody
-  measured it.</p>
+  hours&#8221;, so queue wait set the delivered result; it was not measured.</p>
 
   <p>Against that the accounting is straightforward. The study consumed {{SB_GPUH}} GPU-hours of
   work and was billed {{SB_SU}} SU, an overhead of {{SB_BILL_OVER}}&#215; from reservation
@@ -305,8 +319,8 @@ footer a{color:var(--s2)}
   <p>Anything with a person at the end of it. Per-run latency is worse, so a single run being
   watched belongs here. The A&#8594;B pipeline stays sequential per design because B warmstarts
   from A's checkpoint, so parallelism is across designs and seeds only, and chaining wants
-  <code>--dependency=afterok</code> rather than lifting
-  <code>morph_pipeline_sweep.py</code> onto a compute node. Rendering is worse than not
+  <code>--dependency=afterok</code> in place of running
+  <code>morph_pipeline_sweep.py</code> on a compute node. Rendering is worse than not
   cluster-shaped: EGL on the node image is untested and video encoding is billed GPU time, so
   filmstrips and eval videos come back to the workstation. And bulk training raises the risk the
   program is already most exposed to, since 48 seeds produce 48 reward curves and no pictures,
@@ -314,7 +328,7 @@ footer a{color:var(--s2)}
 </section>
 
 <section class="col">
-  <h2>What this does not settle</h2>
+  <h2>Future work</h2>
 
   <ol>
     <li><strong>Queue wait is unmeasured, and it decides the previous section.</strong> The
@@ -328,7 +342,7 @@ footer a{color:var(--s2)}
       --format=csv -l 10</code> to the next <code>deltaai_smoke.slurm</code>. A reading near
       {{CLK_GH}} MHz confirms the latency explanation; a reading near {{CLK_LOC}} MHz falsifies
       it and sends the deficit back to memory subsystem or kernel dispatch.</li>
-    <li><strong>Billing granularity is still unresolved.</strong> The evidence is mixed: two
+    <li><strong>Billing granularity is still unresolved.</strong> The records disagree: two
       short jobs moved the balance 92 &#8594; 91 &#8594; 91, while 13.9 hours of packed work
       drew {{SB_SU}} SU. Run one 8-hour packed block, wait a day, and re-read
       <code>accounts</code>. If charging is per reserved hour the packed queue in
@@ -341,14 +355,12 @@ footer a{color:var(--s2)}
       trimming argument much weaker than it looks here.</li>
     <li><strong>Whether the draw-to-draw sd holds without a shared warmstart.</strong>
       {{SB_SD_CORE}} was measured with all 16 draws warmstarted from the same a10 checkpoint.
-      The test is a two-stage A-then-B queue on one hand, n = 4 from-scratch A per design, and
-      it is the number that decides whether a per-design morphology search is affordable at
-      all.</li>
-    <li><strong>The duty cycle is a floor, not a measurement of the card.</strong> It counts RL
-      training logs only. Logging wall-clock GPU occupancy directly &#8212;
-      <code>nvidia-smi --query-gpu=utilization.gpu --format=csv -l 60</code> to a rotating file
-      &#8212; would show how much of the {{IDLE_DAYS}} idle days is CEM, evaluation and
-      rendering rather than genuinely idle.</li>
+      The test is a two-stage A-then-B queue on one hand, n = 4 from-scratch A per design; its
+      result decides whether a per-design morphology search is affordable at all.</li>
+    <li><strong>The duty cycle is a lower limit.</strong> It counts RL training logs only.
+      Logging GPU occupancy with <code>nvidia-smi --query-gpu=utilization.gpu --format=csv -l 60</code>
+      to a rotating file would show how much of the {{IDLE_DAYS}} idle days went to CEM, evaluation
+      and rendering.</li>
   </ol>
 </section>
 
