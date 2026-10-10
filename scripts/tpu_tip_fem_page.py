@@ -616,8 +616,13 @@ def cost_section(X: Data):
 def limitations(X: Data):
     ef = X.nl_row("eflesh_c8" + A.SUFFIX, "neohookean", 1.0)
     nl = "the 5&#8202;% tip and the eFlesh lattice were" if ef else "the 5&#8202;% tip was"
+    # the float64 attempt of 2026-10-10 wrote only its linear row; its Newton history is in logs/20261009-tpu_tip_fem/gpu_queue11.log
+    fail = ("" if ef or not X.nl_row("eflesh_c8" + A.SUFFIX, "linear", 1.0) else
+            " The Neo-Hookean solve of the eFlesh lattice at an approach of 1.0&#8202;mm did not converge: in nine Newton steps from the linear "
+            "solution the residual force stayed at 1.4&#8211;1.7 times the reaction force (vector norms), and every conjugate-gradient solve "
+            "stopped at its limit of 60,000 iterations.")
     return ("<ul class='open'>"
-            f"<li>The tip models are linear and small-strain; only {nl} solved with large deformation.</li>"
+            f"<li>The tip models are linear and small-strain; only {nl} solved with large deformation.{fail}</li>"
             "<li>\\(E_s\\) comes from datasheets (26&#8211;67&#8202;MPa for 95A) and \\(\\nu\\) = 0.45 is assumed; every stiffness and \\(E^*\\) scales "
             "with \\(E_s\\).</li>"
             "<li>The printed geometry (0.45&#8202;mm beads, 0.2&#8202;mm layers, two walls, four skin layers, fused beads) is modelled from the slicer&#8217;s "
