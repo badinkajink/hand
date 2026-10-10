@@ -147,34 +147,25 @@ effective patch radius in m.</dd>
 <div class="col">
 <h2>Contact-fixed turn on a compliant hand</h2>
 <p class="sub">D6, calibrated plant, the chain&#8217;s own turn: per-step joint, tip and contact record</p>
-<p>The chain&#8217;s turn rotates the achieved fingertips about a pivot between the driver pads
-and solves the joint angles that put the tips on those arcs with a rigid IK model. The
-per-step record on D6 shows where the command goes. The yaw joints, which carry the turn,
-move 18&#8211;40&#8201;% of what they are told: thumb 2.5&#176; of 13.7, index 5.0&#176; of 21.1,
-middle 11.4&#176; of 28.5. The error grows in proportion to the command, the actuator torque
-(0.5 N&#183;m/rad &#215; 0.3 rad &#8776; 0.15 N&#183;m, matching the recorded maximum) is balanced
-by tangential force at the pads, and the pads creep over the shaft at 6&#8211;10 mm/s. The
-tool turns 4.7&#176;.</p>
+<p>The chain&#8217;s turn rotates the fingertips about a pivot between the driver pads, with joint angles from
+a rigid IK model. On D6 the yaw joints move 18&#8211;40&#8201;% of their command (thumb 2.5&#176; of 13.7, index
+5.0&#176; of 21.1, middle 11.4&#176; of 28.5): the actuator torque, about 0.15&nbsp;N&#183;m, is balanced by friction
+at the pads, which creep over the shaft at 6&#8211;10&nbsp;mm/s, and the tool turns 4.7&#176;.</p>
 </div>
 {{CHART_TRACE}}
 <div class="col">
-<p>Two things in the record say why. The rigid IK never reached the arcs: <code>carry_ik</code>
-is 42 mm, the distance by which the fingers fall short of the tips a 90&#176; contact-fixed
-rotation needs. And under a Coulomb-like contact model (elliptic cone, impratio 10) the yaws
-move even less (thumb +2.3&#176; against &#8722;13.2 asked), the pads hold, and the tool leaves
-the hand when the index pad loses contact at u = 0.91. The commanded motion is not a rigid
-rotation the fingers can make; it is executed only by force against friction, which the kp 30
-plant had and the servo does not.</p>
+<p>The rigid IK never reached the arcs: <code>carry_ik</code> is 42&nbsp;mm short of the tips a 90&#176; rotation
+needs. Under the elliptic cone at impratio 10 the yaws move even less (thumb +2.3&#176; of &#8722;13.2), the pads
+hold, and the tool leaves the hand when the index pad loses contact. The kp 30 plant forced this motion against
+friction; the servo cannot.</p>
 </div>
 {{TABLE_PROBES}}
 <div class="col">
 <h3>Reachable rotation from the fitted grasp</h3>
-<p>Per-finger IK residual of the contact-fixed rotation from the lifted state, over angle and
-pivot height, D6. At 10&#176; the index is already 6 mm short of its arc: it sits at mcp 8&#176;,
-pip 13&#176;, nearly straight, and a tip-down rotation asks it to extend. The fitter places the
-grasp at 62.5 mm below the mounts, 95&#8201;% of the 68 mm mount-to-pad chain, and refuses every
-shallower depth at this straddle because a flexed finger&#8217;s pad would sit inside the shaft.
-The pads can move up and along the shaft from this grasp, nothing else.</p>
+<p>From the lifted state the index is 6&nbsp;mm short of its arc at 10&#176;: it sits nearly straight (MCP 8&#176;,
+PIP 13&#176;) and a tip-down rotation asks it to extend. The fitter places the grasp 62.5&nbsp;mm below the mounts,
+95&#8201;% of the 68&nbsp;mm chain, and rejects shallower depths at this straddle because a flexed pad would sit
+inside the shaft.</p>
 </div>
 {{TABLE_FEAS}}
 {{TABLE_WORKSPACE}}
@@ -184,13 +175,11 @@ The pads can move up and along the shaft from this grasp, nothing else.</p>
 <div class="col">
 <h2>Pinch and swing</h2>
 <p class="sub">release the middle, keep thumb and index, let gravity turn the tool about the pinch line</p>
-<p>A rotation about the line through two contact points needs no finger motion at all. With
-the thumb and index pinching the shaft at one station and the middle pad off the shaft, the
-tool&#8217;s centre of mass is 15&#8211;30 mm from the pinch line and gravity turns it until the
-long end hangs below. Which end drops is set by which side of the pinch the centre lies on,
-and the tool is laid on the table with its tip on that side (<code>--yaws 180</code>). On D6
-the middle is the finger with room to release (27&#176; of mcp against the index&#8217;s 8&#176;);
-pulling its command 20 mm out takes it 2&#8211;5 mm off the shaft, and that is enough.</p>
+<p>A rotation about the line through two contacts needs no finger motion. With thumb and index pinching the
+shaft and the middle pad off it, the tool&#8217;s centre of mass lies 15&#8211;30&nbsp;mm from the pinch line and
+gravity turns the long end down; the tool is laid with its tip on that side (<code>--yaws 180</code>). On D6 the
+middle finger has room to release (MCP 27&#176; against the index&#8217;s 8&#176;): pulling its command 20&nbsp;mm out
+moves it 2&#8211;5&nbsp;mm off the shaft.</p>
 </div>
 <figure><img src="{{I_D6_STRIP}}" alt="D6 swing filmstrip">
 <figcaption>D6, calibrated plant, tool laid tip toward the middle&#8217;s side. Held flat on three pads until
@@ -208,10 +197,9 @@ carry, seat, handover and eight gait cycles, ending 9&#176; off vertical.</figca
 +0.99, carried to the seat and through the handover with the palm horizontal throughout; the gait
 knocks it over in frame 15.</figcaption></figure>
 <div class="col">
-<p>The contact model decides whether any of this is visible. Under the template&#8217;s
-pyramidal cone at impratio 1 the released middle pad still reads 0.26 N and the tool does not
-move; under the elliptic cone at impratio 10 it swings. The pad friction of 2.4 the flat pads
-ship with brakes the swing at 0.3 N of residual contact; at 1.0 it goes, at 0.6 the two-pad
+<p>The contact model decides whether the swing appears: under the template&#8217;s pyramidal cone at impratio
+1 the released pad still reads 0.26&nbsp;N and the tool stays; under the elliptic cone at impratio 10 it swings.
+At the flat pads&#8217; friction of 2.4 the swing stops at 0.3&nbsp;N of residual contact; at 1.0 it goes; at 0.6 the
 pinch loses the tool on D6 and holds it on D8.</p>
 </div>
 {{TABLE_D6PINCH}}
@@ -256,34 +244,25 @@ opened, read by the vane tag, measures it.</p>
 <section>
 <div class="col">
 <h2>Future work</h2>
-<ul>
-<li><strong>Bench test, first.</strong> Grip as the plan does, then open the middle finger to
-its open pose and read the vane tag: does the tool swing, how far, and does the pinch keep it.
-Do it on D8 and D6 at the plans&#8217; 10 mm squeeze and at 12&#8211;14, then on D2, D4 and D7 with
-the thumb re-fitted to 20&#8211;30 mm (<code>real_v1_export_plan.py</code> takes
-<code>thumb_axial</code>). Acceptance: a swing past 60&#176; retained on 4 of 5 trials on any
-hand. Falsification: no swing at any squeeze, which puts the pads&#8217; torsional friction above
-0.005 and sends the design to a rounder pad. This is the same station command sequence as the
-bench regrip; no new software.</li>
-<li><strong>Measure the pad&#8217;s torsional friction and &#956;</strong> from that test: the
-squeeze at which the swing starts, against the 0.0036 N&#183;m gravity torque, gives the
-torsional coefficient; the squeeze at which the pinch drops the tool gives &#956;. Then set
-<code>cal</code> from measurements instead of the 1.0 / 0 assumed here.</li>
-<li><strong>Re-fit the grasp for the swing.</strong> <code>fit_real_v1_pose.py</code> should
-score two things it does not: radial room for the middle pad to leave the shaft, and the thumb
-at the index&#8217;s station. <code>--thumb-axials</code> in the chain driver is the manual
-version; the fitter is where it belongs.</li>
-<li><strong>The re-close is the next element.</strong> After the swing the tool hangs from two
-pads. The chain&#8217;s regrip (0.3 mm on all three, from the lying-tool command) helps on D2 and
-D7 and hurts on D6; a middle re-close targeted at the now-vertical shaft at the pinch station
-is the primitive that turns the hang into a three-pad hold before the carry.</li>
-<li><strong>An RL policy on this plant is now a well-posed problem.</strong> The plant drops the
-tool (kp 0.25, &#956; 0.6, torsional 0.01), so there is a disturbance to learn, and the physics
-says the feasible in-hand turn is release and catch, without a contact-fixed roll. A reorient
-policy trained on <code>cal</code> with the tag pose in its observation and a residual on the
-pinch-and-release sequence is the training run to make; the 2026-08 policies were trained on
-the rigid plant against a roll the servo cannot produce.</li>
-</ul>
+<ol>
+<li><strong>Bench swing test.</strong> Grip as the plan does, open the middle finger and read the vane tag, on
+D8 and D6 at 10 and 12&#8211;14&nbsp;mm of squeeze, then on D2, D4 and D7 with the thumb re-fitted to
+20&#8211;30&nbsp;mm (<code>real_v1_export_plan.py</code>, <code>thumb_axial</code>). Accept a swing past 60&#176;
+kept in 4 of 5 trials on any hand; no swing at any squeeze puts the pad&#8217;s torsional friction above 0.005 and
+calls for a rounder pad.</li>
+<li><strong>Pad torsional friction and &mu;.</strong> From that test, the squeeze at which the swing starts,
+against the 0.0036&nbsp;N&#183;m gravity torque, gives the torsional coefficient, and the squeeze at which the pinch
+drops the tool gives &mu;; set <code>cal</code> from them.</li>
+<li><strong>Grasp fitted for the swing.</strong> Score in <code>fit_real_v1_pose.py</code> the radial room for
+the middle pad to leave the shaft and the thumb at the index&#8217;s station (now set by hand with
+<code>--thumb-axials</code>).</li>
+<li><strong>Re-close after the swing.</strong> Close the middle finger on the vertical shaft at the pinch station,
+turning the two-pad hang into a three-pad hold before the carry; the chain&#8217;s 0.3&nbsp;mm regrip helps D2 and
+D7 and hurts D6.</li>
+<li><strong>Policy on this plant.</strong> Train a reorientation residual on <code>cal</code> over the
+pinch-and-release sequence with the tag pose observed; the plant drops the tool at kp 0.25, &mu; 0.6 or torsional
+friction 0.01, which gives the policy a disturbance to correct.</li>
+</ol>
 </div>
 </section>
 
