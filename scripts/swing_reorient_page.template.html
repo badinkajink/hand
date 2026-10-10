@@ -2,7 +2,7 @@
 <html lang="en">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Pinch-and-swing reorientation</title>
+<title>In-hand screwdriver reorientation on the calibrated plant by pinch and swing</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -108,13 +108,12 @@ footer a{color:var(--s2)}
 <header>
   <div class="eyebrow">MorphoHand &#183; real_v1 &#183; 16 September 2026</div>
   <h1>In-hand screwdriver reorientation on the calibrated plant by pinch and swing</h1>
-  <p class="lede">On the bench-calibrated actuator with Coulomb-like contact, the fingers stand
-  the screwdriver up tip-down without the arm: one finger releases and the tool swings about the
-  thumb&#8211;index pinch under its own weight. D8 does it 6 of 6 at a 12 mm squeeze, D6 2 of 2
-  with the thumb at the index&#8217;s station, and D2 and D4, the bench&#8217;s 10-of-10 and
-  9-of-10 hands, with the thumb at 30 mm. The contact-fixed rotation every earlier result used
-  is unreachable from the fitter&#8217;s grasp on this hand, 0&#8211;20&#176; for any grasp it
-  accepts, and the rigid plant had been executing it by force.</p>
+  <p class="lede">On the bench-calibrated plant, the contact-fixed turn of every earlier result reaches only
+  0&#8211;20&#176; from any grasp the fitter accepts. Releasing the
+  middle finger instead lets the screwdriver swing tip-down about the thumb&#8211;index pinch under its own weight,
+  ending at cos +0.92&#8211;0.98 on two pads. D8 does it 6 of 6 at a 12&nbsp;mm squeeze, D6 with the thumb at the
+  index&#8217;s station, and D2 and D4, the bench&#8217;s 10-of-10 and 9-of-10 hands, with the thumb at 30&nbsp;mm.
+  The swing fails at kp 0.25 and above a pad torsional friction of 0.003&#8211;0.01.</p>
   <div class="byline">{{N_SWING}} chain rollouts and {{N_PROBE}} instrumented runs &#183; plant
   <code>cal</code>: kp 0.5, kv 0.02, force ceiling 0.35 N&#183;m, elliptic cone, impratio 10,
   pad &#956; 1.0 (assumed; bracketed 0.6&#8211;1.5) &#183; <code>cal25</code>: the same at kp 0.25
@@ -122,8 +121,31 @@ footer a{color:var(--s2)}
 </header>
 
 <section>
+<div class="col" id="terms">
+<h2>Terms and metrics</h2>
+<dl class="terms">
+<dt><b>cal, cal25</b></dt><dd>The bench-calibrated plant (finger gain kp 0.5, damping kv 0.02, force ceiling
+0.35&nbsp;N&middot;m, elliptic friction cone, impratio 10, pad &mu; 1.0) and the same at kp 0.25.</dd>
+<dt><b>Contact-fixed turn</b></dt><dd>The chain&rsquo;s turn: the fingertips rotate about a pivot as if fixed to the
+tool, with joint angles from a rigid IK model.</dd>
+<dt><b>IK residual, carry_ik</b></dt><dd>Gap between a fingertip target of that rotation and the reachable pad
+position, in mm.</dd>
+<dt><b>Pinch and swing</b></dt><dd>One finger releases; the tool rotates under gravity about the line through the
+two remaining contacts.</dd>
+<dt><b>Squeeze, thumb station</b></dt><dd>Depth of the commanded pads inside the tool&rsquo;s surface, in mm;
+position of the thumb along the shaft, in mm from its centre.</dd>
+<dt><b>Cos</b></dt><dd>Signed cosine of the tool&rsquo;s axis with vertical; +1 is tip down.</dd>
+<dt><b>Held</b></dt><dd>Two or more pads on the tool with force above its 0.240&nbsp;N weight.</dd>
+<dt><b>Torsional friction</b></dt><dd>Resistance of a contact to spinning about its normal (condim 4), as an
+effective patch radius in m.</dd>
+<dt><b>Pad creep</b></dt><dd>Sliding speed of a pad over the shaft, in mm/s.</dd>
+</dl>
+</div>
+</section>
+
+<section>
 <div class="col">
-<h2>Why the contact-fixed turn stops on a compliant hand</h2>
+<h2>Contact-fixed turn on a compliant hand</h2>
 <p class="sub">D6, calibrated plant, the chain&#8217;s own turn: per-step joint, tip and contact record</p>
 <p>The chain&#8217;s turn rotates the achieved fingertips about a pivot between the driver pads
 and solves the joint angles that put the tips on those arcs with a rigid IK model. The
@@ -146,12 +168,12 @@ plant had and the servo does not.</p>
 </div>
 {{TABLE_PROBES}}
 <div class="col">
-<h3>The reachable rotation from the grasp is 0&#8211;20&#176;</h3>
+<h3>Reachable rotation from the fitted grasp</h3>
 <p>Per-finger IK residual of the contact-fixed rotation from the lifted state, over angle and
 pivot height, D6. At 10&#176; the index is already 6 mm short of its arc: it sits at mcp 8&#176;,
 pip 13&#176;, nearly straight, and a tip-down rotation asks it to extend. The fitter places the
 grasp at 62.5 mm below the mounts, 95&#8201;% of the 68 mm mount-to-pad chain, and refuses every
-shallower depth at this straddle because a flexed finger&#8217;s pad lands inside the shaft.
+shallower depth at this straddle because a flexed finger&#8217;s pad would sit inside the shaft.
 The pads can move up and along the shaft from this grasp, nothing else.</p>
 </div>
 {{TABLE_FEAS}}
@@ -176,7 +198,7 @@ the middle lets go at ~1.8 s; a 0.3 s swing into a tip-down hang from the thumb&
 <div class="duo">
 <figure><video controls muted playsinline preload="metadata" src="{{V_D6}}"></video>
 <figcaption>D6, <code>--pinch middle:20</code>, thumb at the plans&#8217; 10 mm. Swing to cos +0.97 on two pads
-at 1.97 N; the arm only carries it to the seat; the handover loses it.</figcaption></figure>
+at 1.97 N; the arm takes it to the seat; the hand-over loses it.</figcaption></figure>
 <figure><video controls muted playsinline preload="metadata" src="{{V_D8}}"></video>
 <figcaption>D8, 12 mm squeeze, <code>middle:20+thumb:-4+index:-4</code>. The chain never drops the tool: swing,
 carry, seat, handover and eight gait cycles, ending 9&#176; off vertical.</figcaption></figure>
@@ -197,7 +219,7 @@ pinch loses the tool on D6 and holds it on D8.</p>
 
 <section>
 <div class="col">
-<h2>Eight hands, three knobs</h2>
+<h2>Swing across the eight hands</h2>
 <p class="sub">released finger, thumb station, pinch squeeze &#183; tip-down heading &#183; kp 0.5 and 0.25</p>
 <p>The swing succeeds when the released pad actually leaves the shaft and the remaining pinch
 holds the swinging tool. Both are grasp properties the fitter never scored. With the plans&#8217;
@@ -205,7 +227,7 @@ grasp (thumb 10 mm from the shaft centre, index at 32&#8211;40, middle at &#8722
 middle releases on D3, D6, D7 and D8 and stays on the shaft on D1, D2, D4 and D5; the pinch
 holds on D6 and D8, holds D3 once squeezed 4&#8211;8 mm, and drops on D7 (1.0 N per pad). Moving
 the thumb to the index&#8217;s station makes a pinch line perpendicular to the shaft: D7 then
-holds, D2 and D4 swing, and D6 carries the tool through the whole chain.</p>
+holds, D2 and D4 swing, and D6 keeps the tool through the whole chain.</p>
 </div>
 {{TABLE_HANDS}}
 <div class="col">
@@ -216,7 +238,7 @@ of 6 at 8&#8211;10 mm and the extra pinch squeeze hurts it (the tool is pushed o
 pad, which then cannot leave); D3 swings partially. At kp 0.25, the plant the settled re-fit
 implies, no hand swings: the pinch force halves to ~1 N per pad and the tool slides out during
 the swing on every hand. The pinch force is commandable (flexion is the direction these
-fingers have room in), so this is a control margin to size on the bench, not a wall.</p>
+fingers have room in), so this margin can be sized on the bench.</p>
 </div>
 {{TABLE_SEEDS}}
 <div class="col">
@@ -225,20 +247,16 @@ fingers have room in), so this is a control margin to size on the bench, not a w
 release. Torsional friction at the contacts (condim 4, coefficient in metres of effective patch
 radius) of 0.003 halves the swing and 0.01 stops it; the simulator&#8217;s default point contact
 has none. The real pads are flat 21 mm faces on a 25 mm shaft and their torsional resistance is
-unmeasured. It is the one number that decides whether the swing transfers, and a two-finger
-pinch with the middle opened, read by the vane tag, measures it directly.</p>
+unmeasured. This number decides whether the swing transfers, and a two-finger pinch with the middle
+opened, read by the vane tag, measures it.</p>
 </div>
 {{TABLE_SENS}}
 </section>
 
 <section>
 <div class="col">
-<h2>What this settles, and the next measurements</h2>
+<h2>Future work</h2>
 <ul>
-<li><strong>The finger-only reorientation is recovered on the calibrated plant</strong>, as a
-release-and-swing about a two-pad pinch, with the tool ending vertical tip-down in the hand at
-cos +0.92&#8211;0.98 on two pads at 1.8&#8211;3.2 N. It runs on the hands the bench holds best
-once the thumb station is set per hand. It does not run at kp 0.25 at the plans&#8217; squeeze.</li>
 <li><strong>Bench test, first.</strong> Grip as the plan does, then open the middle finger to
 its open pose and read the vane tag: does the tool swing, how far, and does the pinch keep it.
 Do it on D8 and D6 at the plans&#8217; 10 mm squeeze and at 12&#8211;14, then on D2, D4 and D7 with
@@ -261,7 +279,7 @@ D7 and hurts on D6; a middle re-close targeted at the now-vertical shaft at the 
 is the primitive that turns the hang into a three-pad hold before the carry.</li>
 <li><strong>An RL policy on this plant is now a well-posed problem.</strong> The plant drops the
 tool (kp 0.25, &#956; 0.6, torsional 0.01), so there is a disturbance to learn, and the physics
-says the feasible in-hand turn is release-and-catch, not a contact-fixed roll. A reorient
+says the feasible in-hand turn is release and catch, without a contact-fixed roll. A reorient
 policy trained on <code>cal</code> with the tag pose in its observation and a residual on the
 pinch-and-release sequence is the training run to make; the 2026-08 policies were trained on
 the rigid plant against a roll the servo cannot produce.</li>
