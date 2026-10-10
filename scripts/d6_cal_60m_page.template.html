@@ -100,8 +100,25 @@ footer a{color:var(--s2)}
   <code>results/rl/20260917-1141-d6_cal_reorient_gp025_60M_s0</code>, 813 iterations, 1 h 48 min</div>
 </header>
 
+<section id="terms"><div class="col">
+<h2>Terms and metrics</h2>
+<dl class="terms">
+<dt><b>cal</b></dt><dd>The bench-calibrated plant: finger gain kp 0.5&#8202;N&#183;m/rad, damping kv 0.02, elliptic cone,
+impratio 10, pad &#956; 1.0.</dd>
+<dt><b>Cos</b></dt><dd>Signed cosine of the tool&#8217;s axis with vertical at the end of a deterministic rollout; +1 is
+upright, and the angle from vertical is its arccosine.</dd>
+<dt><b>Held</b></dt><dd>Three pads on the tool at the end of the rollout, with force above its weight.</dd>
+<dt><b>Grip force</b></dt><dd>Total pad normal force on the tool during the hold, in N.</dd>
+<dt><b>Grip-force term</b></dt><dd>A reward term on the grip force; its weight is &#177;0.25 in the 60 M runs and
+&#8722;5 in the finetune.</dd>
+<dt><b>Residual</b></dt><dd>The policy&#8217;s joint offset from the scripted schedule, limited to &#177;0.5&#8202;rad, active
+from control step 58.</dd>
+<dt><b>Run-to-run band</b></dt><dd>Difference in cos between two training runs of one recipe.</dd>
+</dl>
+</div></section>
+
 <section><div class="col">
-<h2>The turn at 60 M steps</h2>
+<h2>Turn at 60 M steps</h2>
 <p class="sub">deterministic actions &#183; 64 rollouts &#215; 250 steps &#183; held = tool above 60 mm with at least
 0.5 N on a pad at step 249 &#183; <code>policy_eval_suite.py</code> with the run&#8217;s own timing</p>
 {{TABLE_MAIN}}
@@ -150,7 +167,7 @@ is set from. That evaluation is queued behind the run in progress.</p>
 </div></section>
 
 <section><div class="col">
-<h2>The evaluator applied the residual through the lift</h2>
+<h2>Residual during the lift in the evaluator</h2>
 <p class="sub"><code>morphohand.rl.deploy.make_env_cfg</code> &#183; <code>finger_residual_active_from_step</code>
 default 0, trained value 58 &#183; fixed 2026-09-17 by reading the run&#8217;s <code>config.yaml</code></p>
 {{TABLE_EVAL}}
@@ -190,7 +207,7 @@ only such evaluations are the two D6 runs on this page.</p>
 </div></section>
 
 <section><div class="col">
-<h2>The grip-force term at &#177;0.25 did nothing, and a second run of the recipe stops at 50&#176;</h2>
+<h2>Grip-force term at &#177;0.25 and a second run of the recipe</h2>
 <p class="sub"><code>grip_force_excess</code>: quadratic in the per-pad force above 4 N, scale 4 N, mean over
 pads &#183; returns a positive magnitude, so the weight must be negative &#183; the reward manager multiplies every
 term by the step dt (0.02 s) &#183; pad forces from the deterministic render, mean over the steps named</p>
@@ -223,7 +240,7 @@ so that the run-to-run band above does not hide the effect of the grip term.</p>
 </div></section>
 
 <section><div class="col">
-<h2>The finetune at &#8722;5: cos {{COSFT}} at {{FT_TOT}} N</h2>
+<h2>Grip finetune at a weight of &#8722;5</h2>
 <p class="sub">warm start from the +0.25 run&#8217;s model 812 (actor and critic), weight &#8722;5, threshold 4 N,
 20 M steps, 271 iterations, 36 min &#183; deterministic, 64 rollouts</p>
 <p>The finetune ends at <strong>cos {{COSFT}} &#177; {{SDFT}}</strong> ({{DEGFT}}&#176; from vertical), held 64 of 64,
