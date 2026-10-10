@@ -1,7 +1,8 @@
 # scripts/ — active tooling map
 
-179 active scripts (154 Python, 25 shell; ~90 superseded ones live in `archive/` with their
-own README). Everything runs via `uv run --extra rl --extra gpu python scripts/<x>.py`
+348 scripts at the top level (321 Python, 27 shell; 100 superseded ones live in `archive/` with
+their own README). The tables below map the main tools; every result-page builder (`<topic>_page.py`
+with its template) is listed beside its page by `python3 scripts/docs_inventory.py`. Everything runs via `uv run --extra rl --extra gpu python scripts/<x>.py`
 (`MUJOCO_GL=egl` headless; every Warp process needs its own `WARP_CACHE_PATH=$(mktemp -d)` —
 the `.sh` launchers handle both).
 
@@ -13,7 +14,7 @@ the `.sh` launchers handle both).
 | `morph_selfcollision_gate.py` | is a design PHYSICALLY REAL? bake → settle → ask the contact solver. The morph ranges are mount rails and the rails run through the palm; nothing else checks. Always `--retarget` |
 | `retarget_keyframe_ik.py` | IK-retarget the grasp keyframe across morphologies (world-frame fingertips → `open_ik` keyframe). REQUIRED before CEM/RL on a new design |
 | `phase1_optimize_grasp.py` | CEM grasp synthesis on a (frozen) scene; writes `best_rollout.npz` + `frozen_scene.xml` — the "morphology run dir" every RL script consumes |
-| `generate_primitive_meshes.py`, `build_morphohand_urdf.py` | asset generators (meshes; URDF for GraspGenX) |
+| `build_morphohand_urdf.py` | asset generator (URDF for GraspGenX) |
 
 ## The `real_v1` hardware hand (2026-08-27)
 
@@ -132,6 +133,19 @@ telemetry stops while a writer owns the bus, so a careless probe reads one stale
 ## GraspGenX (zero-shot grasp baseline, branch `graspgenx-morphology-eval`)
 
 `graspgenx_make_morphohand.py` (URDF+config), `graspgenx_eval_phase1.py`, `graspgenx_view_grasps.py`.
+
+## Documentation (`docs/index.html`, the overviews and the result pages)
+
+| script | role |
+|---|---|
+| `docs_inventory.py` | one record per result page under `docs/experiments/` (date, title from `INDEX.md`, topic, builder, artifact); `--check` reports pages without a topic or an INDEX row |
+| `docs_home_page.py` | the home page `docs/index.html` (run with `.venv/bin/python`) |
+| `topic_overview_page.py` | the topic overviews `docs/overviews/<topic>.html` from `overview_<topic>_text.py`; figures are cut from the detailed pages in headless Chrome (`.venv/bin/python scripts/topic_overview_page.py --all`) |
+| `contact_overview_page.py` | the fingertip contact overview `docs/overviews/contact_model.html` |
+| `retro_style.py` | the plain page style every builder applies before writing; `python3 scripts/retro_style.py PAGE` restyles a page that has no builder |
+| `prose_lint.py` | flags the phrasings the writing rules ban; counts prose and lede words |
+| `page_figure_check.py` | measures every chart in its page layout (text size, overlaps, clipping) |
+| `texsvg.py` | LaTeX to inline SVG for the builders |
 
 ## Conventions
 
