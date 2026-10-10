@@ -157,10 +157,12 @@ class NLVoxels:
         """One load increment to x = val on the prescribed DOFs: a predictor through the tangent at x0, then Newton
         with a backtracking step that keeps every Gauss point's J > 0. Returns (x, f, info, converged)."""
         free = ~presc
+        t0 = time.time()
         f0, _ = self.assemble(x0, linear)
         dp = torch.where(presc, val - x0, torch.zeros_like(x0))
         rhs = -torch.where(free, f0 + self.matvec(dp), torch.zeros_like(f0))
         dfree, cg_total = self.cg(rhs, free, cg_tol)
+        its = cg_total
         x = x0 + dp + dfree
         f, Jmin = self.assemble(x, linear)
         hist = []
@@ -173,7 +175,8 @@ class NLVoxels:
             scale = float(torch.linalg.norm(f[presc])) + 1e-30
             hist.append(rn / scale)
             if verbose:
-                print(f"      newton {it}: |R|/|f_presc| {rn / scale:.2e}, J_min {Jmin:.4f}", flush=True)
+                print(f"      newton {it}: |R|/|f_presc| {rn / scale:.2e}, J_min {Jmin:.4f}, cg {its}, {time.time() - t0:.0f} s",
+                      flush=True)
             if rn <= tol * scale:
                 return x, f, dict(newton=it + 1, cg=cg_total, residual=hist[-1], J_min=Jmin), True
             dx, its = self.cg(-R, free, cg_tol)
