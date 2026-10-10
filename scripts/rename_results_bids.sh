@@ -31,7 +31,7 @@ MAP=(
   "20260609-1901-branchB_w4_tol15|a08"                                   # branch-B = un-freeze A
   "20260609-1857-branchB_w6_tol20|a09"
   "20260702-1256-policyA_m05_ik10|a10"                                   # native A on co-designed m05 (from-scratch, open-finger-from-keyframe, deliver@0.10) — CLEAN health-gated lift
-  # ---- Policy B registry (FIXED b01-b13, matches webpaper rl.typ) ----------
+  # ---- Policy B registry (FIXED b01-b13, matches docs/archive/webpaper/src/rl.typ) ----------
   "20260601-1033-policyB_v1|b01"
   "20260602-0024-policyB_v2_smooth10x_quick|b02"
   "20260602-1636-policyB_abl_signed|b03"                                 # signed+critic (model_405)
@@ -115,7 +115,7 @@ declare -A DESC=(
   [bx]="uncanonized exploration / superseded / failed (see dir name)"
 )
 
-REF_PATHS=(docs scripts webpaper RESEARCH_STATE.md)
+REF_PATHS=(docs scripts RESEARCH_STATE.md)
 n_ren=0; n_miss=0; n_skip=0
 for entry in "${MAP[@]}"; do
   old="${entry%%|*}"; pref="${entry#*|}"; new="${pref}_${old}"

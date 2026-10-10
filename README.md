@@ -13,6 +13,8 @@ The simulator's older generator also treats phalange length as a morphology para
 
 The paper and CAD can be found at [`sr2-hand.github.io`](https://sr2-hand.github.io).
 
+The documentation starts at [`docs/index.html`](docs/index.html): open it in a browser from a clone, with no server or build step.
+
 ## Cloning and large files
 
 Code, models, paper sources and the overview pages are ordinary git files. Result pages, figures, videos and
@@ -74,7 +76,7 @@ simulation lineage.
 
 | You want to… | Go to |
 |---|---|
-| Read the project as a document | [`webpaper/`](webpaper/), a Typst site built by `webpaper/build.sh`. Its Control Station page is the sim2real bring-up record |
+| Read the project as a document | [`docs/index.html`](docs/index.html), opened in a browser: the home page links six topic overviews in [`docs/overviews/`](docs/overviews/), and they link the dated result pages |
 | Read the submission | [`paper/`](paper/). The `transfer_*.tex` files are the hardware-transfer sections |
 | Know what any script does | [`scripts/README.md`](scripts/README.md), the map of the active scripts by role |
 | Drive the real hand | [`docs/hardware_control_station.md`](docs/hardware_control_station.md) |
@@ -261,7 +263,7 @@ src/morphohand/
                         manta_hand/plan.py converts a sim design to hardware and is the
                         only place the servo-travel gate is enforced
 tests/                  pytest suite
-webpaper/               Typst -> HTML project site
+docs/archive/webpaper/  the retired Typst project site (superseded by docs/index.html on 2026-10-09)
 results/                run outputs (gitignored; runs tracked before 2026-10-09 are in hand-archive)
 logs/                   run logs, sentinels, pids (gitignored)
 ```
