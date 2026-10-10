@@ -549,6 +549,11 @@ def checks_section(X: Data):
             nl.append((d, a, b))
             rows.append([f"95A 5&#8202;% tip at {d * 1e3:.0f}&#8202;&#181;m, force", f"{a['F']:.2f}&#8202;N (Neo-Hookean)", f"{b['F']:.2f}&#8202;N (linear)",
                          sgn((a['F'] / b['F'] - 1) * 100, 0)])
+    for d in (0.4, 0.7, 1.0):
+        a, b = X.nl_row("eflesh_c8" + A.SUFFIX, "neohookean", d), X.nl_row("eflesh_c8" + A.SUFFIX, "linear", d)
+        if a and b:
+            rows.append([f"eFlesh lattice tip at {d * 1e3:.0f}&#8202;&#181;m, force", f"{a['F']:.2f}&#8202;N (Neo-Hookean)",
+                         f"{b['F']:.2f}&#8202;N (linear)", sgn((a['F'] / b['F'] - 1) * 100, 0)])
     txt = ""
     if nl:
         d, a, b = nl[-1]
@@ -593,9 +598,11 @@ def cost_section(X: Data):
                  "~25&#8202;GB) would need a larger GPU such as DeltaAI&#8217;s GH200.", text_cols=(0, 2, 3, 4))
 
 
-def limitations():
+def limitations(X: Data):
+    ef = X.nl_row("eflesh_c8" + A.SUFFIX, "neohookean", 1.0)
+    nl = "the 5&#8202;% tip and the eFlesh lattice were" if ef else "the 5&#8202;% tip was"
     return ("<ul class='open'>"
-            "<li>The tip models are linear and small-strain; only the 5&#8202;% tip was solved with large deformation.</li>"
+            f"<li>The tip models are linear and small-strain; only {nl} solved with large deformation.</li>"
             "<li>\\(E_s\\) comes from datasheets (26&#8211;67&#8202;MPa for 95A) and \\(\\nu\\) = 0.45 is assumed; every stiffness and \\(E^*\\) scales "
             "with \\(E_s\\).</li>"
             "<li>The printed geometry (0.45&#8202;mm beads, 0.2&#8202;mm layers, two walls, four skin layers, fused beads) is modelled from the slicer&#8217;s "
@@ -670,7 +677,7 @@ def main():
     v["RECIPES"] = recipes_section(X)
     v["CHECKS"] = checks_section(X)
     v["COST"] = cost_section(X)
-    v["LIMITS"] = limitations()
+    v["LIMITS"] = limitations(X)
     v["OPEN"] = open_items(X)
     v["FOOTER"] = ("<p>Rebuild: <code>logs/20261001-hom_contact/venv/bin/python scripts/tpu_tip_fem_page.py</code>. Rows: "
                    "<code>docs/experiments/20261009-tpu_tip_fem/*.jsonl</code>; films <code>docs/experiments/20261009-tpu_tip_fem/media/</code>.</p>")

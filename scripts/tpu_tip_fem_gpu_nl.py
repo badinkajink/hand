@@ -120,11 +120,12 @@ class NLVoxels:
             del U, Hg, P, A, fe, Ke
         return f, Jmin
 
-    def matvec(self, v):
+    def matvec(self, v, chunk=500_000):
         out = torch.zeros(self.ndof, dtype=torch.float32, device=self.dev)
-        for s in range(0, self.n_el, self.chunk):
-            dof = self.dof[s:s + self.chunk]
-            fe = torch.bmm(self.Ke[s:s + self.chunk], v.float()[dof].unsqueeze(-1)).squeeze(-1)
+        v32 = v.float()
+        for s in range(0, self.n_el, chunk):
+            dof = self.dof[s:s + chunk]
+            fe = torch.bmm(self.Ke[s:s + chunk], v32[dof].unsqueeze(-1)).squeeze(-1)
             out.index_add_(0, dof.reshape(-1), fe.reshape(-1))
         return out.double()
 
@@ -269,6 +270,8 @@ def main():
     ap.add_argument("--surface", action="store_true")
     ap.add_argument("--warm", action="store_true", help="tip: start each material from the previous one's solution")
     ap.add_argument("--cg-tol", type=float, default=1e-5)
+    ap.add_argument("--tol", type=float, default=1e-6,
+                    help="Newton: |R| / |f_presc| at convergence; the float32 tangent sets a floor near 3e-6 on the eFlesh lattice")
     ap.add_argument("--tag", default="")
     ap.add_argument("--out", default=str(ROOT / "docs/experiments/20261009-tpu_tip_fem/gpu_nl_runs.jsonl"))
     a = ap.parse_args()
@@ -291,10 +294,11 @@ def main():
                 ts = time.time()
                 val = torch.zeros(m.ndof, dtype=torch.float64, device=m.dev)
                 val[top_z] = -dl
-                x, f, info = m.newton(presc_t, val, x0=x, linear=(mat == "linear"))
+                x, f, info = m.newton(presc_t, val, x0=x, linear=(mat == "linear"), tol=a.tol)
                 F = float(-f[top_z].sum())
                 row = dict(case="block", tag=a.tag, material=mat, h_mm=a.h, E=E, nu=a.nu, delta_mm=dl, F=F,
-                           F_EAdH=E * 100 * dl / 5, n_el=m.n_el, t_s=time.time() - ts, script="scripts/tpu_tip_fem_gpu_nl.py", **info)
+                           F_EAdH=E * 100 * dl / 5, n_el=m.n_el, t_s=time.time() - ts, newton_tol=a.tol,
+                           script="scripts/tpu_tip_fem_gpu_nl.py", **info)
                 print(f"  {mat} delta {dl}: F {F:.5f} N (E A d/H {E * 100 * dl / 5:.4f}), {info}", flush=True)
                 write_row(a.out, row)
         return
@@ -319,11 +323,11 @@ def main():
             if a.warm and dl in prev:
                 x, active = prev[dl]
             p, x, active, info = tip_contact(m, nodes, g0, dl, fixed_dof, x0=x, active0=active, linear=(mat == "linear"),
-                                             cg_tol=a.cg_tol)
+                                             cg_tol=a.cg_tol, tol=a.tol)
             prev[dl] = (x.clone(), active.copy())
             met = G.metrics(m.X, nodes, p, g0, dl)
             row = dict(case="tip", voxels=a.voxels, tag=a.tag, material=mat, indenter=a.indenter, delta_mm=dl, E_s=E, nu=a.nu,
-                       h_mm=h, n_el=m.n_el, surface=a.surface, t_s=time.time() - ts,
+                       h_mm=h, n_el=m.n_el, surface=a.surface, t_s=time.time() - ts, newton_tol=a.tol, cg_tol=a.cg_tol,
                        gpu_mem_GB=torch.cuda.max_memory_allocated() / 1e9, script="scripts/tpu_tip_fem_gpu_nl.py", **info, **met)
             print(f"  {mat} delta {dl * 1e3:.0f} um: F {met['F']:.4f} N, arm {met['arm']:.3f} mm, {info}, "
                   f"{row['t_s']:.0f}s", flush=True)
