@@ -127,8 +127,9 @@ def convert_spec():
                 tag = "p"
             parts.append(f"<{tag}>{rendered}</{tag}>")
     note = (
-        "Faithful conversion of the supplied DOCX; its hypotheses and baseline claims are preserved here. "
-        'The <a href="20261004-distributed_contact.html">measured follow-up</a> qualifies the static spring interpretation. '
+        "This page reproduces the supplied DOCX specification unchanged, with its hypotheses and baseline claims. "
+        'The measurements, which revise its static spring interpretation, are on the '
+        '<a href="20261004-distributed_contact.html">audit page</a>. '
         '<a href="' + SOURCE.name + '">Download original DOCX</a>.'
     )
     content = '<section><div class="col">' + "".join(parts) + "</div></section>"
