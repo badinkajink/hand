@@ -99,6 +99,28 @@ footer a{color:var(--s2)}
   run&#8217;s own timing and action clip</div>
 </header>
 
+<section id="terms"><div class="col">
+<h2>Terms and metrics</h2>
+<dl class="terms">
+<dt><b>D1&#8211;D7</b></dt><dd>The deployed hands, each with its exported grasp.</dd>
+<dt><b>cal</b></dt><dd>The bench-calibrated plant: finger gain kp 0.5&#8202;N&#183;m/rad, kv 0.02, elliptic cone, impratio 10,
+pad &#956; 1.0.</dd>
+<dt><b>Arms</b></dt><dd>Two training settings per hand: the clipped residual, and the clipped residual with a penalty on
+index&#8211;middle clearance below 30&#8202;mm.</dd>
+<dt><b>Residual clip</b></dt><dd>Raw actions clipped to &#177;2, which bounds the residual to &#177;1&#8202;rad around the grasp
+anchor.</dd>
+<dt><b>Sighted actor</b></dt><dd>A policy whose observation includes the tool pose, which the AprilTag tracker would supply
+on the bench.</dd>
+<dt><b>Cos, held</b></dt><dd>Signed cosine of the tool&#8217;s axis with vertical at the end of a deterministic rollout (+1
+upright); held means three pads on the tool above its weight, counted over 64 rollouts.</dd>
+<dt><b>Perturbed reset, perturbed plant</b></dt><dd>Evaluation with the tool&#8217;s spawn pose jittered; evaluation on
+plants with changed gain, friction or mass that the policy did not train on.</dd>
+<dt><b>Grip term</b></dt><dd>A reward penalty of &#8722;2 on pad force above 6&#8202;N per pad, the servos&#8217; measured
+holding force.</dd>
+<dt><b>Index&#8211;middle clearance</b></dt><dd>Smallest surface distance between the index and middle link chains, in mm.</dd>
+</dl>
+</div></section>
+
 <section><div class="col">
 <h2>The two arms, the observation and the residual clip</h2>
 <p>Every policy here is a <strong>sighted actor</strong>: the 66-dim observation includes the tool pose in the

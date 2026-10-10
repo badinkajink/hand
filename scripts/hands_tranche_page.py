@@ -307,8 +307,8 @@ def main():
         else:
             ch_lost.append(name)
     chain_lede = (f"In the UR5e chain at plate 25 mm, one rollout per policy, {len(ch_held)} of "
-                  f"{len(ch_held) + len(ch_lost)} policies hold the tool after the policy&#8217;s 5 s. All 64 rollouts of a hand "
-                  "started from one spawn pose; the 2026-09-20 continuation adds spawn jitter.") if (ch_held or ch_lost) else ""
+                  f"{len(ch_held) + len(ch_lost)} policies hold the tool after the policy&#8217;s 5 s. Each hand&#8217;s 64 rollouts "
+                  "start from one spawn pose; the 2026-09-20 continuation adds jitter.") if (ch_held or ch_lost) else ""
 
     # --- the two D6 reference checkpoints in the final chain configuration (chain/*_final.json)
     def d6ref(name, label):
