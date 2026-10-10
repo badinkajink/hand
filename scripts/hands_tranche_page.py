@@ -14,7 +14,6 @@ import glob
 import json
 import mimetypes
 import os
-import re
 import time
 
 import numpy as np
@@ -68,29 +67,6 @@ def deg(c):
 
 def f1(v, fmt="{:.1f}", none="&#8211;"):
     return none if v is None or (isinstance(v, float) and np.isnan(v)) else fmt.format(v)
-
-
-def gate_periods(logpath):
-    """(start, end) of stretches the driver spent waiting for the launch gate, from its log."""
-    if not os.path.exists(logpath):
-        return []
-    waits, cur = [], None
-    for ln in open(logpath):
-        m = re.match(r"(\S+ \S+) \[(\S+)\] (.*)", ln)
-        if not m:
-            continue
-        t, tag, msg = m.groups()
-        if "gate closed, waiting" in msg or "resguard refused" in msg:
-            if cur is None:
-                cur = [t, t, tag, msg.split(":")[-1].strip()[:80]]
-            else:
-                cur[1] = t
-        elif ("TRAIN" in msg or "trained in" in msg) and cur is not None:
-            cur[1] = t
-            waits.append(cur); cur = None
-    if cur is not None:
-        waits.append(cur + ["(still waiting)"])
-    return waits
 
 
 def curves(runs, keys):
@@ -306,9 +282,8 @@ def main():
             ch_held.append(f"{name} at cos {end[1]:+.2f}")
         else:
             ch_lost.append(name)
-    chain_lede = (f"In the UR5e chain at plate 25 mm, one rollout per policy, {len(ch_held)} of "
-                  f"{len(ch_held) + len(ch_lost)} policies hold the tool after the policy&#8217;s 5 s. Each hand&#8217;s 64 rollouts "
-                  "start from one spawn pose; the 2026-09-20 continuation adds jitter.") if (ch_held or ch_lost) else ""
+    chain_lede = (f"; in the UR5e chain {len(ch_held)} of "
+                  f"{len(ch_held) + len(ch_lost)} policies hold the tool after their 5&#8202;s.") if (ch_held or ch_lost) else "."
 
     # --- the two D6 reference checkpoints in the final chain configuration (chain/*_final.json)
     def d6ref(name, label):
@@ -348,9 +323,7 @@ def main():
         video = (f'<video controls muted loop playsinline preload="metadata" width="640" height="480" src="web/{j["id"]}.mp4">'
                  f'web/{j["id"]}.mp4</video>') if os.path.exists(vp) else ""
         strips.append(f'<figure><img src="{uri_jpeg(sp)}" alt="{j["id"]} filmstrip">{video}<figcaption>{j["hand"]}, {ARM_LABEL.get(j["arm"], j["arm"])}: '
-                      f'held {int(round(e["hold_rate"] * e["n"]))}/{e["n"]}, final cos {e["final_cos_mean"]:+.3f}, '
-                      f'clearance min {f1(e.get("clearance_min_mm_mean"))} mm. Steps 40, 58 (lifted, residual on), 80, 110, 140, 170, 200, 249; '
-                      f'the video is the same rollout at 25 fps (10 s).</figcaption></figure>')
+                      f'held {int(round(e["hold_rate"] * e["n"]))}/{e["n"]}, final cos {e["final_cos_mean"]:+.3f}.</figcaption></figure>')
     strips_html = "\n".join(strips) if strips else "<p>No filmstrip yet.</p>"
 
     evpngs = []
@@ -375,22 +348,22 @@ def main():
     curves_html = f'<figure><img src="{uri(curves_png)}" alt="training curves"><figcaption>Training curves of every job that has produced a run directory, 9-iteration running mean; all are 20 M-step finetunes (271 iterations) from the same checkpoint.</figcaption></figure>' if cv else ""
 
     # --- gate periods
-    gp = gate_periods("logs/20260919-hands_tranche.log")
-    gate_rows = [[g[0], g[1], g[2], g[3]] for g in gp]
-    gate_html = table(["from", "to", "job waiting", "reason"], gate_rows) if gate_rows else "<p>The launch gate was open whenever the driver asked.</p>"
-
     # --- lede numbers
     held_hands = sorted({j["hand"] for j in done if evals[j["id"]]["hold_rate"] >= 0.99})
     turned = sorted({j["hand"] for j in done if evals[j["id"]]["align_rate"] >= 0.99 and evals[j["id"]]["hold_rate"] >= 0.99})
     clipsep_done = [j for j in done if j["arm"] == "clipsep"]
     sep_ok = sorted({j["hand"] for j in clipsep_done if (evals[j["id"]].get("clearance_min_mm_mean") or 0) >= 30})
-    lede = (f"Of {n_done} finetunes with the residual clipped at &#177;1 rad, the hands that hold the tool in 64 of 64 rollouts "
-            f"at the trained pose are {', '.join(held_hands) or 'none'}, and those that also reach cos 0.9 in all "
-            f"{', '.join(turned) or 'none'}. The separation arm keeps index and middle 30 mm apart on "
-            f"{', '.join(sep_ok) or 'none'} of {len(clipsep_done)}. " + chain_lede)
+    def andjoin(xs):
+        return "none" if not xs else xs[0] if len(xs) == 1 else ", ".join(xs[:-1]) + " and " + xs[-1]
+    every = "Every hand has a policy" if len(held_hands) == len({j["hand"] for j in done}) else andjoin(held_hands) + " have policies"
+    lede = (f"{ {16: 'Sixteen'}.get(n_done, str(n_done)) } finetunes of one D6 policy train reorientation policies for the seven "
+            f"deployed hands, residual clipped at &#177;1&#8202;rad. {every} holding the tool in 64 of 64 rollouts at the trained pose; "
+            f"those of {andjoin(turned)} also turn it past cos 0.9 in every rollout. The clearance penalty keeps index and "
+            f"middle 30&#8202;mm apart on {len(sep_ok) or 'none'} of {len(clipsep_done)} hands. Three millimetres of spawn jitter "
+            f"drops the D7 policies from 64 of 64 held to 0 and 2" + chain_lede)
     sub = {"LEDE": lede, "TABLE_MAIN": table_main, "TABLE_PLAUS": table_plaus, "TABLE_TRANSFER": table_transfer, "TABLE_CHAIN": table_chain, "STRIPS": strips_html, "EVALS": ev_html,
            "D6REF": d6ref_html, "TABLE_JITTER": table_jitter,
-           "CURVES": curves_html, "GATE": gate_html, "N_JOBS": str(len(jobs)), "N_DONE": str(n_done),
+           "CURVES": curves_html, "N_JOBS": str(len(jobs)), "N_DONE": str(n_done),
            "BUILT": "2026-09-20 11:39", "INIT": q.get("init_checkpoint", "")}
     tpl = open("scripts/hands_tranche_page.template.html").read()
     for k, v in sub.items():
