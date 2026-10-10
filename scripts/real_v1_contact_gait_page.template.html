@@ -52,9 +52,12 @@
 <div class="tw">{{COARSE_TABLE}}</div><p class="tnote">Table 6. Every plan was searched on 2 mm pads in seed 1, then replayed without changing controls across eight geometry-specific grasp jitters. Orientation gain is averaged only over held rollouts.</p>
 </div></section>
 
-<section><div class="col"><h2>Implications for differentiable contact</h2>
+<section><div class="col"><h2>Local derivatives and sampling in the 400 ms search</h2>
 <p>{{DECISION_TEXT}}</p>
 <p>The released <a href="https://arxiv.org/pdf/2506.14186">DiffMJX study</a> also found gradient control effective in two in-hand tasks, while contacts from distance had little effect there because gravity supplied contact. Its appendix reports multi-hour gradient planning in a MyoHand task and a 35 min 1,024-sample baseline. The reported contact-from-distance forces can oppose grasp acquisition when several fingertips approach from different sides. Our <a href="../20261007-diffmjx/20261007-contact_gradients_real_v1.html">20 ms contact-gradient study</a> measured the fork's AD on the exact packed surface; this 400 ms search measures whether local control derivatives help select a manipulation plan.</p>
+</div></section>
+
+<section><div class="col"><h2>Future work</h2>
 <div class="tw">{{NEXT_TABLE}}</div>
 </div></section>
 

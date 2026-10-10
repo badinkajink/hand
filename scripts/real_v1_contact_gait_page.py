@@ -319,7 +319,7 @@ def main():
           f'rollout compilation remained unfinished when the run stopped at {attempt["elapsed_before_stop_s"]//60} min '
           f'{attempt["elapsed_before_stop_s"]%60} s.')
     replacements={
-        "STYLE":"<style>"+style+"</style>","BUILT":datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "STYLE":"<style>"+style+"</style>","BUILT":"2026-10-08 11:12",  # pinned: rebuilds of the text change no data (docs text pass, 2026-10-09)
         "LEDE":lede,"SEARCH_FIG":search_figure(source),
         "SEARCH_TABLE":table(["Tip","Search","Gain","Held","Index release (ms)","Search (s)"],search_rows),
         "TRACE_FIG":trace_figure(release["pads"],release["mesh"]),
