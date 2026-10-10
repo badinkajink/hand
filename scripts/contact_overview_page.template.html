@@ -207,7 +207,7 @@ equality with (14). {{STAB_NOTE}}</figcaption>
 </figure>
 
 <h3><span class="step">10</span>condim&#160;4 with a rescheduled torsional coefficient</h3>
-<p>condim&#160;4 keeps one contact per pad and adds a torsional coefficient \(\mu_t\), bounded with the tangential force in an
+<p>condim&#160;4 keeps one contact per pad and adds a torsional coefficient \(\mu_t\), limited together with the tangential force by an
 elliptic cone \((f_1^2+f_2^2)/\mu^2+\tau^2/\mu_t^2\le N^2\). Matching (3) requires \(\mu_t=\mu\bar r(N)\), which varies with load,
 so the plant rewrites it before every step from the last normal force:</p>
 <div class="eq">\[\mu_t[k]=\mu\,c\,N[k-1]^{1/4}\quad\Longrightarrow\quad \tau_\text{max}[k]\approx\mu\,c\,N^{5/4}.\]<span class="eqno">(15)</span></div>

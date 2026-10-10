@@ -149,7 +149,7 @@ def evidence_tasks(ctx):
                    f"&#8202;mm, {_dev(dev('mj_pads1', 'rbar_onset_mm'))} it. Once every sphere slides, the pad&#8217;s arm is "
                    f"{_dev(dev('mj_pads1', 'rbar_kin_mm'))} the law and Drake&#8217;s {_dev(dev('drake_hydro', 'rbar_kin_mm'))} it. The pad&#8217;s "
                    f"shortfall appears only at onset, where the tool turns {rr(rot('mj_pads1'), 1)}&#176; before it spins (Drake "
-                   f"{rr(rot('drake_hydro'), 2)}&#176;), which points to MuJoCo&#8217;s soft friction rows rather than the pressure law. "
+                   f"{rr(rot('drake_hydro'), 2)}&#176;), which points to MuJoCo&#8217;s soft friction rows as the cause. "
                    "Both arms grow by 1.52 between 0.5 and 3&#8202;N, close to the foundation ratio of 1.565; Hertz gives 1.82 (Figure&#160;2). "
                    f"condim&#160;4, whose \\(\\mu_t\\) follows the fit to Drake&#8217;s torque (step&#160;10), is {_dev(dev('mj_point4s', 'rbar_onset_mm'))} "
                    f"the law at onset and {_dev(dev('mj_point4s', 'rbar_kin_mm'))} it while sliding. Held at half the onset torque, the pad turns at "
@@ -298,7 +298,7 @@ def meff_text(ctx):
              f"swung to {old['newton_pads1']['phi_max_deg']:.0f}&#176;; with \\(t_f=t_c\\) it swings to "
              f"{br['newton_pads1']['phi_max_deg']:.1f}&#176;, as in MuJoCo." if "newton_pads1" in old and "newton_pads1" in br else "")
     return (
-        "The same factor sets the stiffness of every MuJoCo contact, not only of the pads: solref is a spring on the constraint "
+        "The same factor sets the stiffness of every MuJoCo contact: solref is a spring on the constraint "
         "acceleration, so a contact realises its solref stiffness times the effective mass \\(m_\\text{eff}=1/\\hat\\Lambda\\) as a "
         "force stiffness, and the pads&#8217; \\(d_0\\) divides that mass out. Newton&#8217;s hydroelastic contact passes each patch point "
         "to MuJoCo-Warp with a force stiffness \\(c\\) and writes it as \\(t_c=\\sqrt{1/(c(1-d))}\\) without the factor, so on the bed "
