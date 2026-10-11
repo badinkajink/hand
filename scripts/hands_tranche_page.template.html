@@ -135,7 +135,7 @@ carry servo housings and cabling the capsules omit; the D6 grip finetune runs th
 <section><div class="col">
 <h2>Hold and turn per hand and arm</h2>
 <p class="sub">Deterministic, 64 rollouts &#215; 250 steps &#183; pad force averaged over steps 58&#8211;249 &#183;
-clearance: mean over rollouts of the per-rollout minimum, and at step 249</p>
+clearance: mean over rollouts of the per-rollout minimum, and at step 249 &#183; {{REEVAL}}</p>
 {{TABLE_MAIN}}
 {{EVALS}}
 </div></section>
@@ -145,14 +145,9 @@ clearance: mean over rollouts of the per-rollout minimum, and at step 249</p>
 <p class="sub">64 rollouts with the tool spawned within &#177;3&#8202;mm in x and y and &#177;10&#176; of yaw of the trained pose,
 and the same with friction scaled by 0.55&#8211;1.15 per rollout (<code>policy_eval_suite.py --spawn-jitter-mm 3
 --spawn-yaw-deg 10 [--friction-dr]</code>) &#183; training spawned the tool at one pose, so the nominal column is 64 copies
-of one rollout that differ only through the GPU contact solve</p>
+of one rollout that differ only through the GPU contact solve &#183; {{REEVAL}}</p>
 {{TABLE_JITTER}}
-<p>Three millimetres of spawn jitter separates the policies: D7 falls from 64 of 64 to 0, the D6 clip seed 1 to 8, D5
-to 26, D1 to 20 and D4 under the separation arm to 18, while the D6 separation policy (64 and 60), the D4 clip policy
-(61, 62), the D6 clip seed 0 (58, 43) and D2 (51, 44) keep most of their hold. A policy trained at one pose holds only
-near it, which also explains the CPU disagreements and the chain drops below; the
-<a href="../20260920-robust_tranche/20260920-robust_reorient_policies.html">2026-09-20 continuation</a> trains every
-checkpoint further with this jitter and with the scene&#8217;s contact parameters on the tool.</p>
+{{JITTER_TEXT}}
 </div></section>
 
 <section><div class="col">

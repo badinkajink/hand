@@ -17,7 +17,9 @@ import os
 import time
 
 import numpy as np
+import interactive_figure as IF
 import retro_style
+from policy_eval_suite import load_traces
 
 HANDS = ["D6", "D3", "D4", "D5", "D7", "D1", "D2", "D8"]
 ARM_LABEL = {"clip": "clipped residual (&#177;1 rad)", "clipsep": "clipped residual + index&#8211;middle clearance &#8805; 30 mm",
@@ -67,6 +69,110 @@ def deg(c):
 
 def f1(v, fmt="{:.1f}", none="&#8211;"):
     return none if v is None or (isinstance(v, float) and np.isnan(v)) else fmt.format(v)
+
+
+def reeval(R, run_dir, key):
+    """Summary of the 2026-10-11 re-evaluation (scripts/policy_reeval_traces.py) of one run under one reset, or None."""
+    p = os.path.join(R, "traces", f"{os.path.basename(run_dir)}_{key}.json")
+    return json.load(open(p)) if run_dir and os.path.exists(p) else None
+
+
+HAND_ORDER = ["D1", "D2", "D3", "D4", "D5", "D6", "D7"]
+RESETS = [("nominal", "Nominal"), ("j3", "Spawn &#177;3 mm, &#177;10&#176;"), ("j3dr", "Spawn &#177;3 mm, &#177;10&#176;, friction DR")]
+DASH = {("clip", "0"): "", ("clipsep", "0"): "7 4", ("clip", "1"): "2 3", ("clip", "2"): "10 3 2 3"}
+
+
+def eval_figure(R, done, res, resets=RESETS, fid="eval-hands", caption=""):
+    """One interactive figure for every finished job under each reset (traces/<run>.npz): colour by hand, dash by arm
+    and seed, the reset as a radio choice."""
+    col = {h: IF.PALETTE[i] for i, h in enumerate(HAND_ORDER)}
+    items, ids_by = [], {}
+    for j in done:
+        run = os.path.basename(res[j["id"]]["run"])
+        T = load_traces(os.path.join(R, "traces", f"{run}.npz"))
+        seed = j["id"].rsplit("_s", 1)[-1] if "_s" in j["id"] else "0"
+        lab = f"{j['hand']}, {'clipped residual' if j['arm'] == 'clip' else 'with separation term'}" + (f", seed {seed}" if seed != "0" else "")
+        for key, _ in resets:
+            if key not in T:
+                continue
+            sid = f"{j['id']}-{key}"
+            items.append(dict(id=sid, label=lab, trace=T[key], color=col[j["hand"]], dash=DASH.get((j["arm"], seed), ""), width=1.6,
+                              facets={"reset": key, "hand": j["hand"], "arm": j["arm"], "seed": seed}))
+            for g in (j["hand"], j["arm"], f"s{seed}"):
+                ids_by.setdefault(g, []).append(sid)
+    hands = [h for h in HAND_ORDER if h in ids_by]
+    seeds = sorted({it["facets"]["seed"] for it in items})
+    legend = ([(h, col[h], "", ids_by[h]) for h in hands] +
+              [("Clipped residual", "#000", "", [i for i in ids_by.get("clip", []) if i.split("-")[0].endswith("_s0")]),
+               ("With separation term", "#000", "7 4", ids_by.get("clipsep", []))] +
+              [(f"Seed {sd}", "#000", DASH[("clip", sd)], ids_by.get(f"s{sd}", [])) for sd in seeds if sd != "0"])
+    facets = [{"key": "reset", "label": "Reset", "kind": "radio", "values": list(resets), "on": [resets[0][0]]},
+              {"key": "hand", "label": "Hand", "values": [(h, h) for h in hands]},
+              {"key": "arm", "label": "Arm", "values": [("clip", "Clipped residual"), ("clipsep", "With separation term")]},
+              {"key": "seed", "label": "Seed", "values": [(sd, sd) for sd in seeds], "on": ["0"]}]
+    return IF.eval_figure(fid, items, facets=facets, legend=legend, n_roll=0, show_band=False, caption=caption)
+
+
+def jitter_text(R, done, res):
+    """The perturbed-reset paragraph, from the 2026-10-11 re-evaluation on the policies' own plant (traces/), the published
+    2026-09-20 evaluation (robust/) and its repeat with the tool on the scene's contact class."""
+    held = lambda e: int(round(e["hold_rate"] * e["n"])) if e else None
+    rows = []
+    for j in done:
+        run = res.get(j["id"], {}).get("run")
+        seed = j["id"].rsplit("_s", 1)[-1]
+        name = j["hand"] + (" with the separation term" if j["arm"] == "clipsep" else "") + (f" (clip, seed {seed})" if seed != "0" else "")
+        own = [held(reeval(R, run, k)) for k in ("j3", "j3dr")]
+        sc = [held(reeval(R, run, k)) for k in ("j3_scene", "j3dr_scene")]
+        org = [held(json.load(open(q))) if os.path.exists(q) else None
+               for q in (os.path.join(R, "robust", f"{j['id']}_eval_{m}.json") for m in ("j3", "j3dr"))]
+        rows.append((name, own, sc, org, held(reeval(R, run, "nominal_scene"))))
+    have = [r for r in rows if r[1][0] is not None]
+    if not have:
+        return ""
+
+    def rng(v):
+        v = sorted(v)
+        return f"{v[0]}" if v[0] == v[-1] else f"{v[0]}&#8211;{v[-1]}"
+
+    def by_hand(xs, k, i):                              # "the D2 and D3 policies 44-46"
+        hands = sorted({r[0].split()[0] for r in xs})
+        return (f"the {' and '.join(hands) if len(hands) < 3 else ', '.join(hands[:-1]) + ' and ' + hands[-1]} "
+                f"polic{'y' if len(xs) == 1 else 'ies'} {rng([r[k][i] for r in xs])}")
+    def keepers(keep, allr):                            # "the D2 and D3 policies (63-64) and D1 with the separation term (52)"
+        hands = sorted({r[0].split()[0] for r in keep})
+        whole = [h for h in hands if all(r in keep for r in allr if r[0].split()[0] == h)]
+        part = [r for r in keep if r[0].split()[0] not in whole]
+        bits = ([f"the {' and '.join(whole)} polic{'y' if len(whole) == 1 else 'ies'} "
+                 f"({rng([r[4] for r in keep if r[0].split()[0] in whole])})"] if whole else [])
+        bits += [f"{r[0]} ({r[4]})" for r in part]
+        return " and ".join(bits) if len(bits) < 3 else ", ".join(bits[:-1]) + " and " + bits[-1]
+    hi = [r for r in have if r[1][0] >= 52]
+    lo = [r for r in have if r[1][0] < 52]
+    dr_lo = [r for r in have if r[1][1] is not None and r[1][1] < 45]
+    big = [r for r in have if r[3][0] is not None and r[1][0] - r[3][0] >= 16]
+    t = (f"<p>On the plant they trained on, {len(hi)} of {len(have)} policies hold 52 or more of 64 rollouts with the tool "
+         f"spawned &#177;3&#8202;mm and &#177;10&#176; off the trained pose" + (f", and {by_hand(lo, 1, 0)}" if lo else "") + ". "
+         + (f"Friction DR on top leaves {by_hand(dr_lo, 1, 1)} of 64. " if dr_lo else ""))
+    if big:
+        d7 = [r[3][0] for r in big if r[0].startswith("D7")]
+        t += (f"The evaluation published here on 2026-09-20 ran on two plants: <code>env_build</code> began to copy the "
+              "scene&#8217;s contact class onto the tool (solref 0.006, solimp 0.97&#8211;0.995, against MuJoCo&#8217;s defaults of "
+              "0.02 and 0.9&#8211;0.95 in training) while it ran, so its first four policies (D6 with seed 0 under both arms, D3 and D4 "
+              "with the clipped residual) were evaluated as trained and the other twelve on the scene&#8217;s class, where "
+              f"{len(big)} of them read {rng([r[3][0] for r in big])} of 64" + (f" (D7 {' and '.join(str(v) for v in sorted(d7))})" if d7 else "") + ".")
+        nom = [r for r in have if r[4] is not None]
+        if len(nom) == len(have):
+            lo_n = [r for r in nom if r[4] < 32]
+            keep = [r for r in nom if r[4] >= 32]
+            t += (f" Repeated on the scene&#8217;s class on 2026-10-11 at the trained pose, with no jitter, {len(lo_n)} of the "
+                  f"{len(have)} hold the tool in at most {max(r[4] for r in lo_n)} of 64 rollouts"
+                  + (f" and only {keepers(keep, nom)} keep it" if keep else "")
+                  + "; the drop in held rollouts comes from the contact class.")
+        t += (" The CPU replays and the chain below also run the tool on the scene&#8217;s contact class, and the "
+              "<a href=\"../20260920-robust_tranche/20260920-robust_reorient_policies.html\">2026-09-20 continuation</a> trains every "
+              "checkpoint further on it, with the jitter.")
+    return t + "</p>"
 
 
 def curves(runs, keys):
@@ -131,11 +237,16 @@ def main():
     q = json.load(open(os.path.join(R, "queue.json")))
     res_path = os.path.join(R, "tranche_results.json")
     res = {r["id"]: r for r in (json.load(open(res_path)) if os.path.exists(res_path) else [])}
-    evals = {}
+    # evaluation numbers: the re-evaluation of 2026-10-11 where it exists (traces/), else the queue's own
+    evals, evals_orig = {}, {}
     for j in q["jobs"]:
         p = os.path.join(R, f"{j['id']}_eval.json")
         if os.path.exists(p):
-            evals[j["id"]] = json.load(open(p))
+            evals_orig[j["id"]] = json.load(open(p))
+        e = reeval(R, res.get(j["id"], {}).get("run"), "nominal")
+        if e or j["id"] in evals_orig:
+            evals[j["id"]] = e or evals_orig[j["id"]]
+    when = sorted({e["evaluated"][:10] for e in evals.values() if e.get("evaluated")})
     jobs = q["jobs"]
     done = [j for j in jobs if j.get("status") == "done" and j["id"] in evals]
     n_done, n_fail = len(done), sum(1 for j in jobs if j.get("status") == "failed")
@@ -189,25 +300,28 @@ def main():
                       f1(e.get("joint_speed_p99_deg_s"), "{:.0f}"), f1(e.get("clearance_min_mm_worst")), verdict])
     table_plaus = table(head2, rows2) if rows2 else "<p>No job has finished yet.</p>"
 
-    # --- the same checkpoints under a perturbed reset (robust/<id>_eval_j3.json, _j3dr.json)
+    # --- the same checkpoints under a perturbed reset: the 2026-10-11 re-evaluation on the policies' own plant (traces/), the
+    # published 2026-09-20 evaluation (robust/<id>_eval_j3*.json) and its repeat with the tool on the scene's contact class
+    def held(e):
+        return f"{int(round(e['hold_rate'] * e['n']))}" if e else "&#8211;"
     jrows = []
     for j in done:
-        e0 = evals[j["id"]]
+        e0, run = evals[j["id"]], res.get(j["id"], {}).get("run")
         row = [j["hand"], ARM_LABEL.get(j["arm"], j["arm"]),
                cellc(e0["hold_rate"], f"{int(round(e0['hold_rate'] * e0['n']))}/{e0['n']} &#183; {e0['final_cos_mean']:+.2f}")]
         for mode in ("j3", "j3dr"):
-            jp = os.path.join(R, "robust", f"{j['id']}_eval_{mode}.json")
-            if not os.path.exists(jp):
-                jp = os.path.join(R, f"{j['id']}_eval_{mode}.json")
-            if os.path.exists(jp):
-                e = json.load(open(jp))
-                row.append(cellc(e["hold_rate"], f"{int(round(e['hold_rate'] * e['n']))}/{e['n']} &#183; {e['final_cos_mean']:+.2f}"))
-                row.append(f"{f1(e.get('clearance_min_mm_mean'))}")
-            else:
-                row += [("&#8211;", "cell"), "&#8211;"]
+            e = reeval(R, run, mode)
+            row.append(cellc(e["hold_rate"], f"{int(round(e['hold_rate'] * e['n']))}/{e['n']} &#183; {e['final_cos_mean']:+.2f}") if e
+                       else ("&#8211;", "cell"))
+        e = reeval(R, run, "j3dr")
+        row.append(f1(e.get("clearance_min_mm_mean")) if e else "&#8211;")
+        orig = [json.load(open(p)) if os.path.exists(p) else None for p in (os.path.join(R, "robust", f"{j['id']}_eval_{m}.json") for m in ("j3", "j3dr"))]
+        row.append(f"{held(orig[0])} / {held(orig[1])}")
+        row.append(f"{held(reeval(R, run, 'nominal_scene'))} / {held(reeval(R, run, 'j3_scene'))} / {held(reeval(R, run, 'j3dr_scene'))}")
         jrows.append(row)
-    table_jitter = table(["hand", "arm", "nominal: held &#183; cos", "spawn &#177;3 mm, &#177;10&#176;: held &#183; cos", "clearance (mm)",
-                          "+ friction DR: held &#183; cos", "clearance (mm)"], jrows) if jrows else "<p>Not run yet.</p>"
+    table_jitter = table(["hand", "arm", "nominal: held &#183; cos", "spawn &#177;3 mm, &#177;10&#176;: held &#183; cos",
+                          "+ friction DR: held &#183; cos", "#clearance, + DR (mm)", "#2026-09-20 evaluation: held, &#177;3 mm / + DR",
+                          "#tool on the scene&#8217;s contact class: held, nominal / &#177;3 mm / + DR"], jrows) if jrows else "<p>Not run yet.</p>"
 
     # --- zero-shot transfer probes
     VAR_LABEL = {"base": "as trained", "tipmesh": "screw-tip mesh on the tool", "plate0": "plate at 0", "mu0.6": "pad &#956; 0.6",
@@ -326,12 +440,12 @@ def main():
                       f'held {int(round(e["hold_rate"] * e["n"]))}/{e["n"]}, final cos {e["final_cos_mean"]:+.3f}.</figcaption></figure>')
     strips_html = "\n".join(strips) if strips else "<p>No filmstrip yet.</p>"
 
-    evpngs = []
-    for j in done:
-        p = os.path.join(R, f"{j['id']}_eval.png")
-        if os.path.exists(p):
-            evpngs.append(f'<figure><img src="{uri(p)}" alt="{j["id"]} eval"><figcaption>{j["hand"]}, {ARM_LABEL.get(j["arm"], j["arm"])}: 64 rollouts.</figcaption></figure>')
-    ev_html = '<div class="duo">' + "\n".join(evpngs) + "</div>" if evpngs else ""
+    # --- evaluation traces of every policy (interactive; 2026-10-11 re-evaluation)
+    have = [j for j in done if res.get(j["id"], {}).get("run") and os.path.exists(os.path.join(R, "traces", os.path.basename(res[j["id"]]["run"]) + ".npz"))]
+    ev_html = eval_figure(R, have, res, caption=(
+        "Medians over 64 rollouts of every policy under the nominal reset (the default view) and the two perturbed resets of the "
+        "next section: the signed cosine, the tool height, the pad force sum and the share of rollouts held. Colour: hand; "
+        "dashes: the separation arm and the D6 seeds 1 and 2, which the seed box adds.")).html() if have else ""
 
     # --- curves
     runs = {j["id"]: res[j["id"]]["run"] for j in jobs if j["id"] in res and res[j["id"]].get("run")}
@@ -356,12 +470,16 @@ def main():
     def andjoin(xs):
         return "none" if not xs else xs[0] if len(xs) == 1 else ", ".join(xs[:-1]) + " and " + xs[-1]
     every = "Every hand has a policy" if len(held_hands) == len({j["hand"] for j in done}) else andjoin(held_hands) + " have policies"
+    j3 = [int(round(e["hold_rate"] * e["n"])) for e in (reeval(R, res.get(j["id"], {}).get("run"), "j3") for j in done) if e]
     lede = (f"{ {16: 'Sixteen'}.get(n_done, str(n_done)) } finetunes of one D6 policy train reorientation policies for the seven "
             f"deployed hands, residual clipped at &#177;1&#8202;rad. {every} holding the tool in 64 of 64 rollouts at the trained pose; "
             f"those of {andjoin(turned)} also turn it past cos 0.9 in every rollout. The clearance penalty keeps index and "
-            f"middle 30&#8202;mm apart on {len(sep_ok) or 'none'} of {len(clipsep_done)} hands. Three millimetres of spawn jitter "
-            f"drops the D7 policies from 64 of 64 held to 0 and 2" + chain_lede)
-    sub = {"LEDE": lede, "TABLE_MAIN": table_main, "TABLE_PLAUS": table_plaus, "TABLE_TRANSFER": table_transfer, "TABLE_CHAIN": table_chain, "STRIPS": strips_html, "EVALS": ev_html,
+            f"middle 30&#8202;mm apart on {len(sep_ok) or 'none'} of {len(clipsep_done)} hands. " + (
+                f"Spawned &#177;3&#8202;mm and &#177;10&#176; off that pose, they hold {min(j3)}&#8211;{max(j3)} of 64 on their own plant"
+                if j3 else "") + chain_lede)
+    sub = {"LEDE": lede, "JITTER_TEXT": jitter_text(R, done, res), "REEVAL": (
+               f"evaluation numbers and figure from the re-evaluation of {', '.join(when)} on each policy&#8217;s own plant "
+               f"(<code>traces/</code>)" if when else ""), "TABLE_MAIN": table_main, "TABLE_PLAUS": table_plaus, "TABLE_TRANSFER": table_transfer, "TABLE_CHAIN": table_chain, "STRIPS": strips_html, "EVALS": ev_html,
            "D6REF": d6ref_html, "TABLE_JITTER": table_jitter,
            "CURVES": curves_html, "N_JOBS": str(len(jobs)), "N_DONE": str(n_done),
            "BUILT": "2026-09-20 11:39", "INIT": q.get("init_checkpoint", "")}
@@ -371,8 +489,9 @@ def main():
     left = [ln for ln in tpl.splitlines() if "{{" in ln]
     assert not left, left[:3]
     out = os.path.join(R, "20260919-reorient_policies_across_hands.html")
-    open(out, "w").write(retro_style.apply(tpl))  # plain page style (owner, 2026-10-09)
-    print(f"wrote {out} ({os.path.getsize(out) / 1e6:.1f} MB)")
+    page = IF.add_assets(retro_style.apply(tpl))  # plain page style (owner, 2026-10-09); interactive figures (2026-10-11)
+    open(out, "w").write(page)
+    print(f"wrote {out} ({os.path.getsize(out) / 1e6:.1f} MB, figure data {IF.data_bytes(page) / 1e3:.0f} kB)")
 
 
 if __name__ == "__main__":
