@@ -120,24 +120,21 @@ from control step 58.</dd>
 <section><div class="col">
 <h2>Turn at 60 M steps</h2>
 <p class="sub">deterministic actions &#183; 64 rollouts &#215; 250 steps &#183; held = tool above 60 mm with at least
-0.5 N on a pad at step 249 &#183; <code>policy_eval_suite.py</code> with the run&#8217;s own timing</p>
+0.5 N on a pad at step 249 &#183; <code>policy_eval_suite.py</code> with the run&#8217;s own timing &#183; {{REEVAL}}</p>
 {{TABLE_MAIN}}
 <p>The lift ends at step 40 with the tool at 109 mm, flat. From step 58 the residual is active; the roll
 starts at step 68 and the tool passes cos 0.5 at step 100, 0.77 at 140, 0.87 at 160 and crosses 0.9 at
 step {{TAL60}} &#177; 3, then holds the last {{HOLD60}} steps at 0.93 with the centre at {{Z60}} mm. The thumb
 bears the roll: its pad force rises from 3 N flat to 6 N as the roll starts and 10&#8211;12 N at the end,
 against 5&#8211;7 N on the index and 2&#8211;5 N on the middle (mean over the rollout {{F60}} N, {{FT60}} N
-total). The 10&#8211;90 % band of the final cos is 0.006 wide.</p>
+total). The 10&#8211;90 % band of the final cos is {{BAND60}} wide.</p>
 <figure><img src="{{I_STRIP}}" alt="D6 cal policy, model 812, eight frames">
 <figcaption>Model 812, one deterministic rollout at 960&#215;720. Steps 40 and 58: lifted, flat. Steps 80
 to 200: the handle end swings up past the index while the tip end drops between thumb and middle. Step
 249: held at cos +0.93.</figcaption></figure>
-<div class="duo">
 <figure><video controls muted playsinline preload="metadata" src="{{V_RL}}"></video>
 <figcaption>The same rollout.</figcaption></figure>
-<figure><img src="{{I_EVAL}}" alt="eval suite over 64 rollouts">
-<figcaption>64 rollouts: alignment cos (median and 10&#8211;90 %), height, total grip, fraction held.</figcaption></figure>
-</div>
+{{F_EVAL}}
 <p>The 2026-09-16 page read the 20 M policy&#8217;s cos 0.43 as the contact-fixed workspace ceiling of D6&#8217;s
 fitted grasp (the rigid-IK map put it at 20&#176;). The 60 M run passes through that value at iteration
 330 and continues to 0.93. The map was for a turn with fixed contacts; the policy rolls the tool on the
@@ -169,7 +166,7 @@ is set from. That evaluation is queued behind the run in progress.</p>
 <section><div class="col">
 <h2>Residual during the lift in the evaluator</h2>
 <p class="sub"><code>morphohand.rl.deploy.make_env_cfg</code> &#183; <code>finger_residual_active_from_step</code>
-default 0, trained value 58 &#183; fixed 2026-09-17 by reading the run&#8217;s <code>config.yaml</code></p>
+default 0, trained value 58 &#183; fixed 2026-09-17 by reading the run&#8217;s <code>config.yaml</code> &#183; {{REEVAL}}</p>
 {{TABLE_EVAL}}
 <p>The recipe masks the policy&#8217;s residual until step 58, after the scripted lift has finished, and the
 runs train that way. <code>make_env_cfg</code>, which <code>policy_eval_suite.py</code>,
@@ -184,17 +181,12 @@ the same iteration, which is what exposed the mismatch.</p>
 <figure><img src="{{I_STRIP_R0}}" alt="model 812 under the pre-fix evaluator, eight frames">
 <figcaption>Model 812 with the residual active from step 0. The tool is already 16&#176; off flat at step 40,
 during the lift; it leaves the hand between steps 100 and 110, stands on its end on the floor (cos 0.99, z 45 mm)
-for 30 steps and lies flat from step 150. In the 64-rollout evaluation about half the dropped tools were still
-standing at step 249, which is where the reported final cos of 0.54 &#177; 0.48 comes from. The two rollouts on
+for 30 steps and lies flat from step 150. In the 64-rollout evaluation {{R0_STAND}} of the {{R0_LOST}} dropped tools are
+still standing at step 249, which is where the final cos of {{R0_COS}} comes from. The two rollouts on
 this page differ only in that one parameter.</figcaption></figure>
-<div class="duo">
 <figure><video controls muted playsinline preload="metadata" src="{{V_R0}}"></video>
 <figcaption>The same rollout.</figcaption></figure>
-<figure><img src="{{I_EVAL20}}" alt="20 M checkpoint under the corrected evaluator">
-<figcaption>The 20 M checkpoint (model 270) under the corrected evaluator: 64 of 64 held at cos {{COS20}}.
-The pre-fix evaluator read {{COS20OLD}} for the same checkpoint; that policy&#8217;s residual was small
-enough that the lift survived it.</figcaption></figure>
-</div>
+{{F_EVAL_R0}}
 <p><code>make_env_cfg</code> now takes <code>finger_residual_active_from_step</code>,
 <code>reorient_start_step</code> and <code>lift_phase_start_step</code>; <code>run_env_overrides(checkpoint)</code>
 reads them (with <code>finger_residual_scale</code> and <code>finger_close_easing</code>) from the
@@ -210,7 +202,7 @@ only such evaluations are the two D6 runs on this page.</p>
 <h2>Grip-force term at &#177;0.25 and a second run of the recipe</h2>
 <p class="sub"><code>grip_force_excess</code>: quadratic in the per-pad force above 4 N, scale 4 N, mean over
 pads &#183; returns a positive magnitude, so the weight must be negative &#183; the reward manager multiplies every
-term by the step dt (0.02 s) &#183; pad forces from the deterministic render, mean over the steps named</p>
+term by the step dt (0.02 s) &#183; pad forces from the deterministic render, mean over the steps named &#183; {{REEVAL}}</p>
 {{TABLE_RUNS}}
 <p>The first 60 M run was launched with the weight at +0.25 (a bonus for force above 4 N per pad); the
 second with &#8722;0.25 and nothing else changed. Neither mattered: at 0.25 &#215; 0.02 = 0.005 per unit of
@@ -224,12 +216,9 @@ arm cannot rank a change to the recipe.</p>
 <figure><img src="{{I_STRIP_M}}" alt="D6 cal policy, -0.25 run, model 812, eight frames">
 <figcaption>The &#8722;0.25 run, model 812, one deterministic rollout. The same roll as above through step 110;
 from step 140 the tool rests at 50&#176; between the three pads.</figcaption></figure>
-<div class="duo">
 <figure><video controls muted playsinline preload="metadata" src="{{V_RL_M}}"></video>
 <figcaption>The same rollout.</figcaption></figure>
-<figure><img src="{{I_EVAL_M}}" alt="eval suite over 64 rollouts, -0.25 run">
-<figcaption>64 rollouts of the &#8722;0.25 run: alignment cos, height, total grip, fraction held.</figcaption></figure>
-</div>
+{{F_EVAL_M}}
 <p>Grip: the 20 M policy averages 12.5 N over the active phase; both 60 M policies 17&#8211;18 N, rising to
 20&#8211;23 N in the last 50 steps, with the thumb at 11 N. The chain runs D6 at 6.9 N total and the bench
 servos trip their overload protection well below 11 N on one pad. A weight that can move this in the units
@@ -242,10 +231,10 @@ so that the run-to-run band above does not hide the effect of the grip term.</p>
 <section><div class="col">
 <h2>Grip finetune at a weight of &#8722;5</h2>
 <p class="sub">warm start from the +0.25 run&#8217;s model 812 (actor and critic), weight &#8722;5, threshold 4 N,
-20 M steps, 271 iterations, 36 min &#183; deterministic, 64 rollouts</p>
+20 M steps, 271 iterations, 36 min &#183; deterministic, 64 rollouts &#183; {{REEVAL}}</p>
 <p>The finetune ends at <strong>cos {{COSFT}} &#177; {{SDFT}}</strong> ({{DEGFT}}&#176; from vertical), held 64 of 64,
-crossing 0.9 at step {{TALFT}} &#177; 1 (183 for its parent) and holding the last {{HOLDFT}} steps, three pads on
-99.7 % of the aligned steps. Pad force over the active phase is {{FT_TOT}} N total ({{FFT}} N on thumb / index /
+crossing 0.9 at step {{TALFT}} &#177; 1 ({{TAL60}} for its parent) and holding the last {{HOLDFT}} steps, three pads on
+{{THREEFT}} % of the aligned steps. Pad force over the active phase is {{FT_TOT}} N total ({{FFT}} N on thumb / index /
 middle over the aligned steps) against 17.0 N for the parent, {{FT_TOT_END}} N in the last 50 steps against
 20.0, and the thumb peaks at {{FT_THUMB_MAX}} N. The grip-excess term reads {{GFT10}} per episode at iteration 10
 and {{GFT270}} at 270; alignment goes from 47 to {{AFT270}}. The penalty took 6 N off the grip and the turn got
@@ -253,12 +242,9 @@ further and faster.</p>
 <figure><img src="{{I_STRIP_FT}}" alt="D6 cal finetune, model 270, eight frames">
 <figcaption>The finetune, model 270, one deterministic rollout. The roll is complete by step 140, 60 steps
 earlier than the parent, and the tool is held vertical through step 249.</figcaption></figure>
-<div class="duo">
 <figure><video controls muted playsinline preload="metadata" src="{{V_RL_FT}}"></video>
 <figcaption>The same rollout.</figcaption></figure>
-<figure><img src="{{I_EVAL_FT}}" alt="eval suite over 64 rollouts, finetune">
-<figcaption>64 rollouts of the finetune: alignment cos, height, total grip, fraction held.</figcaption></figure>
-</div>
+{{F_EVAL_FT}}
 </div></section>
 
 <section><div class="col">
@@ -290,8 +276,9 @@ stop when it has not moved by 0.02 over the last 150 iterations. Not yet measure
 <footer>
 scripts: <code>rl_train_cube.py --recipe b_liveA</code>, <code>policy_eval_suite.py</code> (<code>--stochastic</code>,
 <code>--residual-from-step</code>), <code>rl_render_rollout.py</code>, <code>policy_filmstrip.py</code>,
-<code>d6_cal_60m_page.py</code> &#183; data: <code>docs/experiments/20260917-d6_cal_60M/</code> (eval JSON and PNG for
-both checkpoints and both evaluator settings, training_curves.json, filmstrips, videos/) &#183; earlier pages:
+<code>d6_cal_60m_page.py</code> &#183; data: <code>docs/experiments/20260917-d6_cal_60M/</code> (traces/: per-step traces
+and summaries of every evaluation, re-run 2026-10-11 by <code>policy_reeval_traces.py</code>; the original eval JSON and
+PNG; training_curves.json, filmstrips, videos/) &#183; earlier pages:
 20260916-tip_gait (the 20 M run), 20260916-swing_reorient, 20260916-turn_mechanism
 </footer>
 </div>
