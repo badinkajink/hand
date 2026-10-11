@@ -34,7 +34,7 @@ OUT = os.path.join(D, "20261002-hom_screwdriver_chain.html")
 TPL = os.path.join(ROOT, "scripts/hom_chain_page.template.html")
 LINKS = {"RIG_URL": "https://claude.ai/artifact/Rvfw1yQFgfWV8PdTvv7jsc",
          "RIG_PATH": "docs/experiments/20261001-hom_contact_patch/20261001-hom_pinch_contact_models.html",
-         "BRAKE_URL": "https://claude.ai/artifact/DJLxG63vLZXs2Ey6hiCBuc",
+         "BRAKE_URL": "https://claude.ai/artifact/335iFyMojxjveNyC66MEAg",
          "BRAKE_PATH": "docs/experiments/20261001-hom_hand_brake/20261001-hom_hand_brake.html"}
 LBL = {"mj:point3": ("MuJoCo point contact, condim&#160;3", "point"),
        "mj:point4s": ("MuJoCo condim&#160;4, &#956;<sub>t</sub> rescheduled", "point"),

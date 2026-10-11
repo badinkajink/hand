@@ -58,7 +58,7 @@ TEX_CACHE = os.path.join(ROOT, "docs", "overviews", "media", "contact_texsvg_cac
 TEX_SCALE = 1.1
 
 CHAIN_PATH = "docs/experiments/20261002-hom_chain/20261002-hom_screwdriver_chain.html"
-CHAIN_URL = "https://claude.ai/artifact/Lya2Bf6HnW81bEPRPjsjYf"
+CHAIN_URL = "https://claude.ai/artifact/RN5kgsnDiKyuVSZYWrQexs"
 BED_PATH = "docs/experiments/20261005-contact_bed/20261005-contact_model_bed.html"
 BED_URL_FILE = os.path.join(BED, "artifact_url.txt")          # written after the bed page is published
 ASIDES_PATH = "docs/experiments/20261004-codex/20261004-contact_research_asides.html"
