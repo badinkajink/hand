@@ -106,7 +106,7 @@ FIGURES = {
                 source="servo refit and hand-object turn",
                 caption="D7 on the working plant: the deployed open-loop plan (left), the HOM controller with its governor "
                         "(middle) and without it (right); pads touching the tool are red."),
-    "gait": dict(page="20260902-real_v1_gait/20260902-real_v1_gaiting.html", n=1,
+    "gait": dict(page="20260902-real_v1_gait/20260902-real_v1_gaiting.html", n=1, fn="gait_endurance",
                  source="ground-supported gaiting",
                  caption="Accumulated rotation of the standing tool over 40 gait cycles, three repeats per hand, 30&#176; "
                          "stroke (shipped plant)."),

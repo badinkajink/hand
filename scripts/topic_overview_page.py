@@ -30,6 +30,8 @@ import sys
 import time
 
 import docs_inventory as D
+import interactive_figure as IF
+import overview_figures as OF
 import page_figure_check as F
 import retro_style
 import texsvg
@@ -85,6 +87,15 @@ def figure_png(key: str, name: str, spec: dict, refresh: bool) -> str:
 
 
 def figure_html(key: str, name: str, spec: dict, refresh: bool) -> tuple[str, int]:
+    if spec.get("fn"):                        # an interactive data figure drawn from the source page's rows (2026-10-11)
+        fig = getattr(OF, spec["fn"])(f"{key}-{name}")
+        cap = spec["caption"].rstrip()
+        if spec.get("page"):
+            src_path = os.path.join("docs", "experiments", spec["page"])
+            cap += (f' From <a href="{rel(src_path)}">{spec.get("source", "the source page")}</a>, '
+                    f'Figure&#160;{spec.get("source_n", spec["n"])}.')
+        fig.caption = f"Figure&#160;{{N}}. {cap}"
+        return fig.html(), len(fig.data_json())
     from PIL import Image
     im = Image.open(figure_png(key, name, spec, refresh)).convert("RGB")
     if spec.get("crop"):                                # (left, top, right, bottom) as fractions of the image
@@ -206,7 +217,7 @@ figures are rendered from the linked pages and cached in <code>docs/overviews/me
 """
     html = expand_links(html)
     html, n_tex = render_tex(html)
-    html = retro_style.apply(html)
+    html = IF.add_assets(retro_style.apply(html))
     out = os.path.join(OUTDIR, D.OVERVIEW[key])
     open(out, "w", encoding="utf-8").write(html)
     mb = os.path.getsize(out) / 1e6

@@ -93,7 +93,7 @@ FIGURES = {
                   alt="The SR2 hand on the bench holding the screwdriver, with AprilTags on palm and tool.",
                   caption="The hand on the bench holding the screwdriver, with the AprilTags of the tracker on the palm and "
                           "the tool (Fig.&#160;1 of the paper, <a href='https://sr2-hand.github.io'>sr2-hand.github.io</a>)."),
-    "wrist": dict(page="20260904-real_v1_bench/20260904-real_v1_bench_geometry.html", n=2,
+    "wrist": dict(page="20260904-real_v1_bench/20260904-real_v1_bench_geometry.html", n=2, fn="wrist_payload",
                   source="wrist geometry", alt="Bar chart of chains completed against wrist stack length, payload "
                                                "declared and not declared.",
                   caption="Chains completed against wrist-stack length on a UR5e, with the hand declared as payload and "

@@ -102,7 +102,7 @@ when the finger servo gain rises to 10&#8202;N&#183;m/rad
 ]
 
 FIGURES = {
-    "timeline": dict(page="20260920-robust_tranche/20260920-robust_reorient_policies.html", n=16,
+    "timeline": dict(page="20260920-robust_tranche/20260920-robust_reorient_policies.html", n=17,
                      alt="Timeline of one episode: grasp, lift, then the policy's turn and hold.",
                      source="policies continued on the chain plant",
                      caption="One episode: the scripted grasp and lift in simulation steps of 2&#8202;ms (above), and the "
