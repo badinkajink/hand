@@ -219,23 +219,20 @@ pinch-and-swing outcome on 2026-09-16.</li>
 <p class="sub"><code>results/rl/20260916-2142-d6_cal_reorient_s0</code> &#183; <code>b_liveA</code> recipe without a live
 Policy A, residual (&#177;0.5 rad) from step 58 over the scripted lift, 3,072 environments, 20 M steps, friction
 randomisation 0.55&#8211;1.15, object pose observed &#183; 36 min &#183; 64 deterministic rollouts of 250 steps
-(<code>policy_eval_suite.py</code>)</p>
-<p>The policy lifts the tool to 113 mm on three pads and rolls it from flat to <strong>cos 0.43 &#177; 0.01</strong>, a
-25&#176; turn, held in 64 of 64 rollouts; the total pad force rises from 8 to 13 N, more than the bench servos hold
+(<code>policy_eval_suite.py</code>) &#183; {{REEVAL}}</p>
+<p>The policy lifts the tool to 113 mm on three pads and rolls it from flat to <strong>cos {{COS_R0}}</strong>, a
+{{DEG_R0}}&#176; turn, held in {{HELD_R0}} of 64 rollouts; the total pad force rises from 8 to 13 N, more than the bench servos hold
 before their protection trips. <strong>Correction, 2026-09-17:</strong> this evaluation applied the residual from step 0
-instead of the trained step 58 (as trained, this checkpoint reads 0.463), and the same recipe at 60 M steps reaches cos
-0.933 &#177; 0.003, held 64 of 64 (<a href="../20260917-d6_cal_60M/20260917-d6_reorient_policy_60M.html">page</a>), so the
+instead of the trained step 58 (as trained, this checkpoint reads {{COS_T}}), and the same recipe at 60 M steps reaches cos
+{{COS60}}, held {{HELD60}} of 64 (<a href="../20260917-d6_cal_60M/20260917-d6_reorient_policy_60M.html">page</a>), so the
 plateau at cos 0.43 is withdrawn.</p>
 <figure><img src="{{I_RL_STRIP}}" alt="D6 cal policy, model 270, eight frames">
 <figcaption>D6, model 270, one deterministic rollout at 960&#215;720. Lift by step 30; the roll between
 steps 45 and 110 (the near end of the tool dips, the far end rises) with all three pads on the shaft; hold
 to step 249 at cos +0.45.</figcaption></figure>
-<div class="duo">
 <figure><video controls muted playsinline preload="metadata" src="{{V_RL}}"></video>
 <figcaption>The same rollout.</figcaption></figure>
-<figure><img src="{{I_RL_EVAL}}" alt="eval suite over 64 rollouts">
-<figcaption>64 rollouts: alignment cos (median and 10&#8211;90 %), height, total grip, fraction held.</figcaption></figure>
-</div>
+{{F_RL_EVAL}}
 </div></section>
 
 <section><div class="col">

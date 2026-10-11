@@ -12,13 +12,40 @@ import mimetypes
 import os
 
 import numpy as np
+import interactive_figure as IF
 import retro_style
+from policy_eval_suite import load_traces
 
 ROOT = "docs/experiments/20260916-tip_gait"
 DATA = f"{ROOT}/tip_gait_data.json"
 TPL = "scripts/tip_gait_page.template.html"
 OUT = f"{ROOT}/20260916-bench_partial_reorientation.html"
 HANDS = ["D1", "D2", "D3", "D4", "D5", "D6", "D7", "D8"]
+# re-evaluation of 2026-10-11 (scripts/policy_reeval_traces.py): this page's evaluation (residual from step 0) and the
+# same checkpoint as trained, from the D6 60 M page's traces
+RUN20, RUN60 = "20260916-2142-d6_cal_reorient_s0", "20260917-1141-d6_cal_reorient_gp025_60M_s0"
+D6_TRACES = "docs/experiments/20260917-d6_cal_60M/traces"
+
+
+def rl_eval():
+    tr = {"r0": load_traces(f"{ROOT}/traces/{RUN20}.npz")["nominal_r0"], "t": load_traces(f"{D6_TRACES}/{RUN20}.npz")["nominal"]}
+    e = {"r0": json.load(open(f"{ROOT}/traces/{RUN20}_nominal_r0.json")), "t": json.load(open(f"{D6_TRACES}/{RUN20}_nominal.json")),
+         "60": json.load(open(f"{D6_TRACES}/{RUN60}_nominal.json"))}
+    col = IF.PALETTE[1]
+    fig = IF.eval_figure("eval-20m", [dict(id="r0", label="Residual from step 0 (this section)", trace=tr["r0"], color=col, dash="7 4",
+                                           facets={"ev": "r0"}),
+                                      dict(id="t", label="Residual from step 58, as trained", trace=tr["t"], color=col, facets={"ev": "t"})],
+                         facets=[{"key": "ev", "label": "Evaluator", "values": [("r0", "Residual from step 0"), ("t", "As trained")]}],
+                         caption=(f"Model 270 over 64 deterministic rollouts: median and 10&#8211;90 % band of the signed cosine, the "
+                                  f"tool height and the pad force sum, and the share of rollouts held, with the residual from step 0 "
+                                  f"(dashed; cos {e['r0']['final_cos_mean']:.2f}) and from step 58 as trained (solid; cos "
+                                  f"{e['t']['final_cos_mean']:.2f})."))
+    when = sorted({x["evaluated"][:10] for x in e.values()})
+    return {"F_RL_EVAL": fig.html(), "COS_R0": f"{e['r0']['final_cos_mean']:.2f} &#177; {e['r0']['final_cos_sd']:.2f}",
+            "DEG_R0": f"{90 - np.degrees(np.arccos(np.clip(e['r0']['final_cos_mean'], -1, 1))):.0f}", "HELD_R0": str(int(round(e["r0"]["hold_rate"] * 64))),
+            "COS_T": f"{e['t']['final_cos_mean']:.3f}", "COS60": f"{e['60']['final_cos_mean']:.3f} &#177; {e['60']['final_cos_sd']:.3f}",
+            "HELD60": str(int(round(e["60"]["hold_rate"] * 64))),
+            "REEVAL": f"numbers and figure from the re-evaluation of {', '.join(when)} (<code>traces/</code>)"}
 
 
 def uri(path):
@@ -134,15 +161,16 @@ def main():
         "V_D7_PL25": uri("videos/rv05_manual_b85__fast_pl25__s0.mp4"),
         "V_D7_GAIT": uri("videos/D7_rv05_manual_b85__cal__s0.mp4"),
         "I_RL_STRIP": uri("d6_cal_rl_m270_strip.png"),
-        "I_RL_EVAL": uri("d6_cal_rl_eval.png"),
         "V_RL": uri("videos/d6_cal_rl_m270.mp4"),
     }
+    sub.update(rl_eval())
     for k, v in sub.items():
         tpl = tpl.replace("{{" + k + "}}", v)
     left = [ln for ln in tpl.splitlines() if "{{" in ln]
     assert not left, left[:3]
-    open(OUT, "w").write(retro_style.apply(tpl))  # plain page style (owner, 2026-10-09)
-    print(f"wrote {OUT} ({os.path.getsize(OUT) / 1e6:.1f} MB)")
+    page = IF.add_assets(retro_style.apply(tpl))  # plain page style (owner, 2026-10-09); interactive figure (2026-10-11)
+    open(OUT, "w").write(page)
+    print(f"wrote {OUT} ({os.path.getsize(OUT) / 1e6:.1f} MB, figure data {IF.data_bytes(page) / 1e3:.0f} kB)")
 
 
 if __name__ == "__main__":
