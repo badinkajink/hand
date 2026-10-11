@@ -766,6 +766,39 @@ def svg_step(rows):
     return "".join(out) + _legend_html([(v[0], v[1], v[2], v[3]) for v in series.values()])
 
 
+def ifig_step(rows):
+    """Figure 8 as an interactive figure: (a) the tool angle at the end of the twist sequence and (b) the wall time per
+    simulated second against the physics step, both on a log step axis; a run that diverged is an open marker at the
+    top of panel (a)."""
+    import interactive_figure as IF
+    series_def = {"legacy": ("1 mm sphere pad", "var(--c-sphere)", ""), "drake": ("Drake hydroelastic", "var(--c-drake)", ""),
+                  "runtime_exact": ("Per-contact mapping, runtime, exact &#923;", "var(--c-c4)", "7 4"),
+                  "physical": ("Per-contact mapping, fixed", "var(--ink3)", "7 4")}
+    series, legend = [], []
+    for key, (lab, col, dash) in series_def.items():
+        col = HEX.get(col, col)
+        rs = sorted([r for r in rows if r["case"]["label"] == key], key=lambda r: r["case"]["physics_dt"])
+        ok = [r for r in rs if r["status"] == "complete"]
+        bad = [r["case"]["physics_dt"] * 1e3 for r in rs if r["status"] != "complete"]
+        data = {"angle": {"x": [r["case"]["physics_dt"] * 1e3 for r in ok], "med": [r["pinch_angle_end_deg"] for r in ok]},
+                "wall": {"x": [r["case"]["physics_dt"] * 1e3 for r in ok],
+                         "med": [(r.get("timing") or {}).get("physics_seconds_per_sim_second") or float("nan") for r in ok]}}
+        series.append(IF.Series(key, lab, col, data, dash=dash, mode="both", width=1.6, facets={"model": key}))
+        ids = [key]
+        if bad:
+            series.append(IF.Series(key + "-div", lab + ", diverged", col, {"angle": {"x": bad, "med": [-41.5] * len(bad)}},
+                                    mode="markers", open=True, facets={"model": key},
+                                    point_labels={"angle": [f"diverged at {x:g} ms" for x in bad]}))
+            ids.append(key + "-div")
+        legend.append((lab, col, dash, ids))
+    legend.append(("Open marker at the top of (a): the run diverged", "#000", "", [s.id for s in series if s.id.endswith("-div")]))
+    panels = [IF.Panel("angle", "(a) Tool angle about the pinch axis at the end of the twist (&#176;)", (-72.0, -40.0), band=False,
+                       dec=2, height=200),
+              IF.Panel("wall", "(b) Wall time per simulated second (s)", band=False, ylog=True, height=200)]
+    return IF.Figure("contact-step", None, "Physics step (ms)", panels, series, legend=legend, x_domain=(0.04, 13.0), xlog=True,
+                     facets=[{"key": "model", "label": "Model", "values": [(k, v[0]) for k, v in series_def.items()]}])
+
+
 def step_text(rows):
     if not rows:
         return ""
@@ -1045,10 +1078,11 @@ def ifig_gpu(curves):
             continue
         pts = sorted(d.items())
         series.append(IF.Series(key, lab, HEX.get(col, col), {"gpu": {"x": [n for n, _ in pts], "med": [v for _, v in pts]}},
-                                dash=dash.get(key, "7 4" if dashed else ""), mode="both", width=1.8,
+                                dash=dash.get(key, "7 4" if dashed else ""), mode="both", width=1.8, facets={"series": key},
                                 point_labels={"gpu": [f"{n} worlds, {1e6 / v:.2f} &#181;s per world-step" for n, v in pts]}))
     panel = IF.Panel("gpu", "World-steps per second", band=False, ylog=True, height=300, x_label="Parallel worlds", xlog=True)
-    return IF.Figure("contact-gpu", None, "Parallel worlds", [panel], series)
+    return IF.Figure("contact-gpu", None, "Parallel worlds", [panel], series,
+                     facets=[{"key": "series", "label": "Series", "values": [(x.id, x.label) for x in series]}])
 
 
 def svg_gpu(curves):
@@ -1251,10 +1285,10 @@ def main():
     v["CREEP_TEXT"] = creep_text(T["pull"], T["creep"])
     v["FIG_STAB"] = svg_stab(stab)
     v["STAB_TEXT"] = stab_text(stab)
-    v["FIG_STEP"] = svg_step(step_rows)
+    v["FIG_STEP"] = ifig_step(step_rows).inner() if step_rows else svg_step(step_rows)
     v["STEP_TEXT"] = step_text(step_rows)
     v["AGREE_TABLE"] = agree_table(M)
-    v["FIG_COST"] = svg_cost(M, cost, batched)
+    v["FIG_COST"] = svg_cost(M, cost, batched)   # static: direct labels and the spread of the three pad models
     v["FIG_GPU"] = ifig_gpu(curves).inner() if curves else svg_gpu(curves)
     import simulator_agreement_figure as SAF
     v["FIG_AGREE_SIM"] = SAF.svg_agreement() + SAF.legend()
