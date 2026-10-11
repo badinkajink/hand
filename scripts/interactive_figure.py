@@ -34,7 +34,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-W, LM, RM = 828, 58, 14                      # viewBox width = column width in px; left and right margins
+W, LM, RM = 828, 58, 24                      # viewBox width = column width in px; left and right margins
 TITLE_H, GAP, XAX_H = 24, 12, 44             # panel title row, gap below a panel, x-axis band under a panel
 FS = 14                                      # chart text, px at the column width
 GRID, INK, MUTED = "#d9d9d9", "#000", "#444"
@@ -93,7 +93,7 @@ def ticks(lo: float, hi: float, n: int = 5) -> tuple[list[float], int]:
     while t <= hi + 1e-9 * st:
         out.append(round(t, 10))
         t += st
-    dec = max(0, -math.floor(math.log10(st) + 1e-9)) + (1 if round(st / 10 ** math.floor(math.log10(st)), 6) == 2.5 else 0)
+    dec = max(0, -math.floor(math.log10(st) + 1e-9) + (1 if round(st / 10 ** math.floor(math.log10(st) + 1e-9), 6) == 2.5 else 0))
     return out, dec
 
 
@@ -302,7 +302,10 @@ class Figure:
         titles = ", ".join(htmlmod.escape(htmlmod.unescape(p.title)) for p in self.panels)
         out.append(f'<svg class="ifig-svg" viewBox="0 0 {W} {self.H}" width="{W}" height="{self.H}" role="img" '
                    f'aria-label="{titles}" style="font-family:inherit;max-width:100%;height:auto" tabindex="0">')
-        out.append("<defs>" + "".join(f'<clipPath id="{f}-c{k}"><rect x="{LM}" y="{y0}" width="{W - LM - RM}" height="{y1 - y0}"/></clipPath>'
+        def clip_pad(k):                    # a marker on the domain's edge is drawn whole, not halved by the frame
+            return 6 if any(s.mode != "line" and self.panels[k].key in s.data for s in self.series) else 0
+        out.append("<defs>" + "".join(f'<clipPath id="{f}-c{k}"><rect x="{LM - clip_pad(k)}" y="{y0 - clip_pad(k)}" '
+                                      f'width="{W - LM - RM + 2 * clip_pad(k)}" height="{y1 - y0 + 2 * clip_pad(k)}"/></clipPath>'
                                       for k, (y0, y1) in enumerate(self.boxes)) + "</defs>")
         for k, p in enumerate(self.panels):
             y0, y1 = self.boxes[k]
@@ -491,7 +494,7 @@ function niceStep(span,n){var raw=Math.max(span,1e-12)/Math.max(n,1),mag=Math.po
   var ms=[1,2,2.5,5,10];for(var i=0;i<ms.length;i++)if(ms[i]*mag>=raw*(1-1e-9))return ms[i]*mag;return 10*mag;}
 function ticks(lo,hi,n){var st=niceStep(hi-lo,n),t=Math.ceil(lo/st-1e-9)*st,out=[];
   while(t<=hi+1e-9*st){out.push(Math.round(t*1e10)/1e10);t+=st;}
-  var mg=Math.pow(10,Math.floor(Math.log10(st))),dec=Math.max(0,-Math.floor(Math.log10(st)+1e-9))+(Math.abs(st/mg-2.5)<1e-6?1:0);
+  var mg=Math.pow(10,Math.floor(Math.log10(st)+1e-9)),dec=Math.max(0,-Math.floor(Math.log10(st)+1e-9)+(Math.abs(st/mg-2.5)<1e-6?1:0));
   return [out,dec];}
 function logTicks(lo,hi){var a=Math.floor(Math.log10(lo)-1e-9),b=Math.ceil(Math.log10(hi)+1e-9),o=[],e,m;
   for(e=a;e<=b;e++){m=Math.pow(10,e);if(m>=lo*(1-1e-9)&&m<=hi*(1+1e-9))o.push(m);}if(o.length>=3)return o;o=[];

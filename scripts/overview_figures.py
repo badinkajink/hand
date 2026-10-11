@@ -102,3 +102,39 @@ def scale_ridges(fid: str) -> IF.Figure:
                (f"Radius plus half the finger ({H.FINGER / 2:.1f} mm)", "#444", "7 4", ids(lambda i: i.endswith("-rule")))]
     return IF.Figure(fid, None, "Object radius (mm)", panels, series, legend=legend,
                      facets=[{"key": "task", "label": "Task", "values": [(t, H.TASK_NAME[t][0].upper() + H.TASK_NAME[t][1:]) for t in ("kin", "hold", "turn")]}])
+
+
+def _spearman_auc(x, y, lab):
+    import numpy as np
+    from scipy.stats import spearmanr
+    x, y, lab = np.asarray(x, float), np.asarray(y, float), np.asarray(lab, bool)
+    ok = np.isfinite(x) & np.isfinite(y)
+    rho = float(spearmanr(x[ok], y[ok]).correlation)
+    pos, neg = x[ok & lab], x[ok & ~lab]
+    auc = float(((pos[:, None] > neg[None, :]).sum() + 0.5 * (pos[:, None] == neg[None, :]).sum()) / (len(pos) * len(neg)))
+    return rho, auc
+
+
+def design_scores(fid: str) -> IF.Figure:
+    """Mean held cosine of each graspable design's best cell against the thumb's and the grip's torque capacity about the
+    pinch axis (table.json of the design search, 80 graspable designs of 108), split by whether the design turns and
+    holds the tool."""
+    rows = [t for t in json.load(open(os.path.join(E, "20260828-real_v1_search", "table.json"))) if t.get("graspable")]
+    y = [t["mean_cos"] for t in rows]
+    lab = [bool(t["reorients"]) for t in rows]
+    panels, series = [], []
+    for key, name in (("tau_thumb_Nmm", "Thumb torque capacity about the pinch axis (N&#183;mm)"),
+                      ("tau_cap_Nmm", "Grip torque capacity about the pinch axis (N&#183;mm)")):
+        x = [t.get(key) if t.get(key) is not None else float("nan") for t in rows]
+        rho, auc = _spearman_auc(x, y, lab)
+        panels.append(IF.Panel(key, f"Mean held cosine of the best cell (Spearman correlation {rho:+.2f}, AUC {auc:.2f})",
+                               (0.0, 1.0), band=False, dec=3, height=200, x_label=name, x_dec=1))
+        for ok, sid, label, c in ((True, "turns", "Turns and holds the tool", IF.PALETTE[0]),
+                                  (False, "fails", "Does not", IF.PALETTE[1])):
+            sel = [(xi, yi, t["design"]) for xi, yi, t, l in zip(x, y, rows, lab) if l == ok]
+            series.append(IF.Series(f"{key}-{sid}", label, c, {key: {"x": [a for a, _, _ in sel], "med": [b for _, b, _ in sel]}},
+                                    mode="markers", facets={"outcome": sid}, point_labels={key: [d for _, _, d in sel]}))
+    legend = [("Turns and holds the tool", IF.PALETTE[0], "", [s.id for s in series if s.id.endswith("turns")]),
+              ("Does not", IF.PALETTE[1], "", [s.id for s in series if s.id.endswith("fails")])]
+    return IF.Figure(fid, None, "", panels, series, legend=legend,
+                     facets=[{"key": "outcome", "label": "Designs", "values": [("turns", "Turn and hold"), ("fails", "Do not")]}])
