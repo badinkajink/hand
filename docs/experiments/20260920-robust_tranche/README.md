@@ -8,7 +8,7 @@ Driver: `nohup setsid python3 scripts/hands_tranche_queue.py --queue docs/experi
 
 | item | 2026-09-19 | here | why |
 |---|---|---|---|
-| tool spawn | one nominal pose | ±3 mm x/y, ±10° yaw | the 09-19 policies collapse under that jitter (D7 0/64, D6 clip s1 8/64, D5 26/64, D1 20/64) |
+| tool spawn | one nominal pose | ±3 mm x/y, ±10° yaw | the 09-19 policies hold 44-64/64 under that jitter on the plant they trained on; the 09-20 figures (D7 0/64, D6 clip s1 8/64, D5 26/64, D1 20/64) were measured with the tool on the scene's contact class (re-evaluated 2026-10-11, see the page) |
 | tool | 25 mm cylinder | + screw-tip mesh (+1 g) | the chain's and the real tool have it; `make_tipmesh_morphology_run.py` |
 | floor | mjlab plane (μ 1, solref 0.02) | the scene's floor (μ 1.8, solref 0.006), `--scene-floor` | the tool lies on it through closure and lift |
 | tool contact | MuJoCo defaults (solref 0.02, solimp 0.9–0.95) | the scene's (0.006, 0.97–0.995) | `env_build.make_object_spec_from_frozen` had dropped them since the first mjlab run |
