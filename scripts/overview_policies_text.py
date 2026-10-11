@@ -78,17 +78,19 @@ two from-scratch D6 runs of 60&#8202;M steps ended at 0.933 and 0.640
 needs several seeds or a shared warm start.</p>
 <p>The trajectory-health scorecard (<code>src/morphohand/rl/trajectory_health.py</code>) grades a rollout on six checks
 (late finger, idle finger, drop, jitter, de-centring, over-clamp) and reports the worst. The checkpoint watch of the
-2026-10-08 runs evaluates a run every 4&#8202;M steps and stops it after 10&#8202;M steps of degenerate checkpoints (every
-rollout dropped, an idle finger, shaking above 40&#8202;rad/s&#178; with rocking, pinned servo targets) or when its held
-cosine gains less than 0.02 over 10&#8202;M steps
+2026-10-08 runs evaluates a run every 4&#8202;M steps and stops it after 10&#8202;M steps of degenerate checkpoints or when its
+held cosine gains less than 0.02 over 10&#8202;M steps
 ([contact-model policies](exp:20261008-contact_model_policies/20261008-fingertip_contact_model_policies.html)).</p>
 <p>A policy is judged on jittered rollouts with a load test, under its own run&#8217;s timing. Evaluated with the residual
-switched on too early, the D6 policy held 12 of 64 rollouts instead of 64. Trained at one pose, D7 held 64 of 64 at
-that pose and 0 of 64 jittered; continuing training under jitter raised D5 from 23 to 57 and D7 from 1 to 35 of 64.
-Without a bound the residual commanded up to 384&#176; past a joint&#8217;s range; clipped at &#177;1&#8202;rad the policies still
+switched on too early, the D6 policy held 12 of 64 rollouts instead of 64. The policies of 2026-09-19 hold 44&#8211;64 of 64 jittered
+rollouts on the plant they trained on, and with the tool on the scene&#8217;s contact class 11 of 16 drop it even at the
+trained pose (D7 0 of 64); continued on that class with jitter, D5 holds 55 and D7 28 of 64 jittered rollouts.
+Evaluations store their per-step traces beside their pages (<code>traces/</code>). Without a bound the residual commanded up to 384&#176; past a joint&#8217;s range; clipped at &#177;1&#8202;rad the policies still
 hold 64 of 64 at the trained pose
 ([policies across the hands](exp:20260919-hands_tranche/20260919-reorient_policies_across_hands.html),
-[policies continued](exp:20260920-robust_tranche/20260920-robust_reorient_policies.html)).</p>"""),
+[policies continued](exp:20260920-robust_tranche/20260920-robust_reorient_policies.html)).</p>
+<p>The engineering log is markdown in <code>docs/rl/</code> (<a href="../rl/reorientation.md">reorientation.md</a> lists the
+runs in order); the autopilot hand-off notes are in <code>docs/handoff/</code>.</p>"""),
     ("contact", "Fingertip contact model and transfer",
      """<p>Twelve D6 runs on the working plant compared four fingertip models, three seeds each, 40&#8202;M steps under a
 checkpoint watch that stops degenerate runs. Point-contact policies turn the tool further where they hold (cosine

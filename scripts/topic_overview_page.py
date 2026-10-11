@@ -164,6 +164,9 @@ def index_table(M) -> str:
 def build(key: str, refresh: bool = False) -> str:
     M = importlib.import_module(f"overview_{key}_text")
     titles = {k: t for k, t, _ in D.TOPICS}
+    # an overview outside the six result topics (the code and methods page) names its own file and label
+    titles.setdefault(key, getattr(M, "TOPIC_TITLE", M.SHORT_TITLE))
+    out_name = getattr(M, "FILE", None) or D.OVERVIEW[key]
     fig_n, size = {}, 0
 
     def place(m):
@@ -218,7 +221,7 @@ figures are rendered from the linked pages and cached in <code>docs/overviews/me
     html = expand_links(html)
     html, n_tex = render_tex(html)
     html = IF.add_assets(retro_style.apply(html))
-    out = os.path.join(OUTDIR, D.OVERVIEW[key])
+    out = os.path.join(OUTDIR, out_name)
     open(out, "w", encoding="utf-8").write(html)
     mb = os.path.getsize(out) / 1e6
     print(f"wrote {os.path.relpath(out, ROOT)}: {mb:.2f} MB, {len(fig_n)} figures ({size / 1e3:.0f} kB), {n_tex} formulas")
