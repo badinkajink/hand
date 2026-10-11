@@ -20,8 +20,10 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from hands_tranche_page import ARM_LABEL as _ARM_LABEL_LONG, cellc, curves, f1, plot_curves, table, uri, uri_jpeg  # noqa: E402
+from hands_tranche_page import ARM_LABEL as _ARM_LABEL_LONG, HAND_ORDER, cellc, curves, f1, plot_curves, reeval, table, uri, uri_jpeg  # noqa: E402
+import interactive_figure as IF  # noqa: E402
 import retro_style  # noqa: E402
+from policy_eval_suite import load_traces  # noqa: E402
 
 ARM_LABEL = {"clip": "clip (&#177;1 rad)", "clipsep": "clip + separation"}
 
@@ -71,7 +73,8 @@ DECISIONS = [
     ("Terminations", "Drop 20 mm below spawn; fewer than 3 pads for 15 consecutive steps", "Recipe 2026-07; 15 steps 2026-08-30",
      "Only drop and tip-lost end an episode; no measurement behind the 15", "Inherited"),
     ("Domain randomisation", "Friction &#215;[0.55, 1.15]; observation noise; spawn &#177;3 mm / &#177;10&#176;", "2026-07; spawn 2026-09-20",
-     "The 2026-09-19 policies collapse at &#177;3 mm (D7 0/64)", "Spawn measured; friction and noise inherited"),
+     "With the tool on the scene&#8217;s contact class the 2026-09-19 policies dropped it at &#177;3 mm (D7 0/64); on the contact "
+     "class they trained with, D7 holds 57/64 (re-evaluated 2026-10-11)", "Spawn measured; friction and noise inherited"),
     ("Observation", "Sighted 66-dim actor; the critic sees the same terms without noise", "2026-08-30, 2026-09-19",
      "A blind warm start had not recovered in 22 iterations; the tag tracker gives the pose at 50 Hz", "Measured once"),
     ("Optimiser", "PPO (rsl_rl), settings in the table above", "2026-07",
@@ -212,6 +215,41 @@ def pipeline_blocks(run_dir, common_flags=()):
             "TABLE_EVAL": table(["number", "how it is produced", "what it means"], [list(r) for r in EVAL_ROWS])}
 
 
+def eval_figure(R, P, done, res, pres):
+    """Each continued policy against its parent under the nominal and the jittered reset (traces of 2026-10-11): colour by
+    hand, solid for the continuation, dashed for the parent."""
+    col = {h: IF.PALETTE[i] for i, h in enumerate(HAND_ORDER)}
+    resets = [("nominal", "Nominal"), ("j3dr", "Spawn &#177;3 mm, &#177;10&#176;, friction DR")]
+    items, ids = [], {}
+    for j in done:
+        for pol, root, run in (("cont", R, res[j["id"]].get("run")), ("parent", P, pres.get(j.get("warm_start", ""), {}).get("run"))):
+            path = os.path.join(root, "traces", f"{os.path.basename(run or '')}.npz")
+            if not run or not os.path.exists(path):
+                continue
+            T = load_traces(path)
+            for key, _ in resets:
+                if key not in T:
+                    continue
+                sid = f"{j['id']}-{pol}-{key}"
+                items.append(dict(id=sid, label=f"{j['hand']}, {ARM_LABEL.get(j['arm'], j['arm'])}, {'continued' if pol == 'cont' else 'parent'}",
+                                  trace=T[key], color=col[j["hand"]], dash="" if pol == "cont" else "7 4", width=1.6,
+                                  facets={"reset": key, "policy": pol, "hand": j["hand"], "arm": j["arm"]}))
+                for g in (j["hand"], pol):
+                    ids.setdefault(g, []).append(sid)
+    hands = [h for h in HAND_ORDER if h in ids]
+    legend = [(h, col[h], "", ids[h]) for h in hands] + [("Continued (solid)", "#000", "", ids.get("cont", [])),
+                                                         ("Parent, 2026-09-19 (dashed)", "#000", "7 4", ids.get("parent", []))]
+    facets = [{"key": "reset", "label": "Reset", "kind": "radio", "values": resets, "on": ["j3dr"]},
+              {"key": "policy", "label": "Policy", "values": [("cont", "Continued"), ("parent", "Parent")]},
+              {"key": "hand", "label": "Hand", "values": [(h, h) for h in hands]},
+              {"key": "arm", "label": "Arm", "values": [("clip", "Clip"), ("clipsep", "Clip + separation")], "on": ["clip"]}]
+    return IF.eval_figure("eval-robust", items, facets=facets, legend=legend, n_roll=0, show_band=False, caption=(
+        "Medians over 64 rollouts of each continued policy (solid) and its parent (dashed) under the jittered reset with "
+        "friction DR (the default view; the reset box switches to the trained pose), clip arm; the arm box adds the "
+        "separation arm. Each policy runs on its own plant: the continuation on the scene&#8217;s floor, tool contact "
+        "class and tip mesh, the parent on the 2026-09-19 environment."))
+
+
 def chain_cell(path):
     if not os.path.exists(path):
         return ("&#8211;", "cell")
@@ -235,11 +273,15 @@ def main():
     jobs = q["jobs"]
     done = [j for j in jobs if res.get(j["id"], {}).get("status") == "done"]
 
+    # evaluation numbers: the 2026-10-11 re-evaluation of every policy on its own plant (traces/ in each folder)
+    def run_of(rows, jid):
+        return rows.get(jid, {}).get("run")
+
     def jit(root, jid, sub=""):
-        for p in (os.path.join(root, sub, f"{jid}_eval_j3dr.json"), os.path.join(root, f"{jid}_eval_j3dr.json")):
-            if os.path.exists(p):
-                return json.load(open(p))
-        return None
+        return reeval(root, run_of(pres if root == P else res, jid), "j3dr")
+
+    def nom(root, jid):
+        return reeval(root, run_of(pres if root == P else res, jid), "nominal") or (pres if root == P else res).get(jid, {})
 
     def hc(e, key="hold_rate", cos="final_cos_mean"):
         if not e or e.get(key) is None:
@@ -250,7 +292,7 @@ def main():
     # --- main table: continuation against its parent
     rows, reading_bits = [], []
     for j in done:
-        r = res[j["id"]]; pr = pres.get(j.get("warm_start", ""), {})
+        r = nom(R, j["id"]); pr = nom(P, j.get("warm_start", ""))
         pj = jit(P, j.get("warm_start", ""), "robust"); cj = jit(R, j["id"])
         rows.append([j["hand"], ARM_LABEL.get(j["arm"], j["arm"]),
                      hc(pr), hc(pj), f1(pr.get("clearance_min_mm_mean")),
@@ -269,15 +311,24 @@ def main():
     up = [b for b in reading_bits if b[3] >= b[2] + 8]; down = [b for b in reading_bits if b[3] <= b[2] - 8]
     reading = ""
     if reading_bits:
-        reading = ("<p>Jittered hold, continued against parent: " +
+        sc = []
+        for j in done:
+            e = reeval(P, run_of(pres, j.get("warm_start", "")), "j3dr_scene")
+            if e:
+                sc.append(f"{j['hand']}{'' if j['arm'] == 'clip' else ' + separation'} {int(round(e['hold_rate'] * 64))}")
+        reading = ("<p>Jittered hold with friction DR, continued against parent, each on the plant it trained on (the parent with "
+                   "MuJoCo&#8217;s default tool contact and mjlab&#8217;s floor, the continuation with the scene&#8217;s contact "
+                   "class, floor and tip mesh): " +
                    "; ".join(f"{h} {ARM_LABEL.get(a_, a_)} {p}&#8594;{c} of 64 (cos {pc:+.2f}&#8594;{cc:+.2f})" for h, a_, p, c, pc, cc in reading_bits) +
                    ". " + (f"Gains of 8 or more: {', '.join(b[0] for b in up)}. " if up else "") +
-                   (f"Losses of 8 or more: {', '.join(b[0] for b in down)}. " if down else "") + "</p>")
+                   (f"Losses of 8 or more: {', '.join(b[0] for b in down)}. " if down else "") +
+                   (f"With the tool on the scene&#8217;s contact class (the 2026-09-19 scene otherwise), the parents hold "
+                    f"{', '.join(sc)} of 64 (re-evaluated 2026-10-11)." if sc else "") + "</p>")
 
     # --- plausibility
     prow = []
     for j in done:
-        r = res[j["id"]]
+        r = nom(R, j["id"])
         flags = []
         if max(r.get("pad_peak_thumb", 0), r.get("pad_peak_index", 0), r.get("pad_peak_middle", 0)) > 9: flags.append("pad peak &gt; 9 N")
         if (r.get("ctrl_gap_max_deg") or 0) > 60: flags.append("gap &gt; 60&#176;")
@@ -349,7 +400,7 @@ def main():
         if os.path.exists(src_v) and not os.path.exists(web_v):
             subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", src_v, "-vf", "scale=640:480", "-c:v", "libx264", "-crf", "28",
                             "-preset", "medium", "-pix_fmt", "yuv420p", "-movflags", "+faststart", "-an", web_v], stdin=subprocess.DEVNULL)
-        r = res[j["id"]]; cj = jit(R, j["id"])
+        r = nom(R, j["id"]); cj = jit(R, j["id"])
         video = (f'<video controls muted loop playsinline preload="metadata" width="640" height="480" src="{uri(web_v)}"></video>'
                  if os.path.exists(web_v) else "")
         strips.append(f'<figure><img src="{uri_jpeg(sp)}" alt="{j["id"]} filmstrip">{video}<figcaption>{j["hand"]}, '
@@ -378,7 +429,10 @@ def main():
                + " of 64 rollouts. " if rank else "")
             + "Every policy here trained on a plant whose finger joints carry the template&#8217;s 0.5 N&#183;m&#183;s/rad of "
               "damping, a 1&#8202;s time constant; the chain after the turn and that plant defect are on the 2026-09-23 page.")
-    sub = {"LEDE": lede, "TABLE_PLANT": table(["", "2026-09-19 tranche", "here", "why"], [list(r) for r in PLANT_ROWS]),
+    when = sorted({e["evaluated"][:10] for jj in done for e in (nom(R, jj["id"]), jit(R, jj["id"])) if e and e.get("evaluated")})
+    fig = eval_figure(R, P, done, res, pres)
+    sub = {"LEDE": lede, "F_EVAL": fig.html(), "REEVAL": f"numbers and figure from the re-evaluation of {', '.join(when)} (<code>traces/</code>)",
+           "TABLE_PLANT": table(["", "2026-09-19 tranche", "here", "why"], [list(r) for r in PLANT_ROWS]),
            "TABLE_MAIN": table_main, "READING": reading, "TABLE_PLAUS": table_plaus, "TABLE_CHAIN": table_chain,
            "STRIPS": strips_html, "TABLE_SEAMS": table_seams, "CHAIN_VIDEOS": chain_videos_html,
  "CURVES": curves_html, "N_JOBS": str(len(jobs)), "N_DONE": str(n_done),
@@ -391,8 +445,9 @@ def main():
     left = [ln for ln in tpl.splitlines() if "{{" in ln]
     assert not left, left[:3]
     out = os.path.join(R, "20260920-robust_reorient_policies.html")
-    open(out, "w").write(retro_style.apply(tpl))  # plain page style (owner, 2026-10-09)
-    print(f"wrote {out} ({os.path.getsize(out) / 1e6:.1f} MB)")
+    page = IF.add_assets(retro_style.apply(tpl))  # plain page style (owner, 2026-10-09); interactive figure (2026-10-11)
+    open(out, "w").write(page)
+    print(f"wrote {out} ({os.path.getsize(out) / 1e6:.1f} MB, figure data {IF.data_bytes(page) / 1e3:.0f} kB)")
 
 
 if __name__ == "__main__":
