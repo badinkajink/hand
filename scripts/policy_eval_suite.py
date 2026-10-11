@@ -61,7 +61,8 @@ run gets the suffix _m<N>. Arrays of key K, T control steps (0.02 s) x N rollout
 
     python3 scripts/policy_eval_suite.py --check TRACES.npz:KEY EVAL.json
 
-recomputes the summaries from the file and compares them with the JSON field by field.
+recomputes the summaries from the file and compares them with the JSON field by field, to float32 precision
+(relative 1e-6: numpy versions reduce float32 arrays in different orders).
 
 Usage:
   uv run --extra rl --extra gpu python scripts/policy_eval_suite.py \
@@ -83,6 +84,7 @@ from pathlib import Path
 import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
+REL_TOL = 1e-6        # --check: float32 precision
 TRACE_ARRAYS = ("cos", "z", "grip", "held", "pads", "clearance", "act_absmax", "act_gt1", "jvel_max", "gap_max",
                 "raw_exc")
 
@@ -214,7 +216,7 @@ def check(npz: str, json_path: str) -> int:
         key = next(iter(traces))
     got = summarize(traces[key])
     ref = json.loads(Path(json_path).read_text())
-    bad, n = [], 0
+    bad, n, worst = [], 0, 0.0
     for k, v in got.items():
         if k not in ref:
             continue
@@ -222,11 +224,17 @@ def check(npz: str, json_path: str) -> int:
         n += 1
         if v is None or r is None:
             ok = v is None and r is None
+        elif np.isnan(float(v)) or np.isnan(float(r)):
+            ok = np.isnan(float(v)) and np.isnan(float(r))
         else:
-            ok = float(v) == float(r) or (np.isnan(float(v)) and np.isnan(float(r)))
+            # float32 reductions differ in the last bits between numpy versions (summation order)
+            rel = abs(float(v) - float(r)) / max(abs(float(r)), 1e-12)
+            worst = max(worst, rel)
+            ok = rel <= REL_TOL
         if not ok:
             bad.append((k, v, r))
-    print(f"{path}:{key} against {json_path}: {n} fields compared, {len(bad)} differ")
+    print(f"{path}:{key} against {json_path}: {n} fields compared, {len(bad)} differ "
+          f"(largest relative difference {worst:.1e}, tolerance {REL_TOL:g})")
     for k, v, r in bad:
         print(f"  {k}: traces {v!r}, json {r!r}")
     return 1 if bad else 0
