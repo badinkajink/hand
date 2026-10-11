@@ -1,0 +1,14 @@
+Status: active
+Task (owner, 2026-10-11): "can we publish/update the artifacts via a personal autopilot" and, on the two pages the last pass could not publish, "seems like you should fix that url issue?". The artifacts belong to the personal login; windows and jobs on the Max seat build local pages only. This pass fixes the URLs and publishes the new bench plan page, which the owner reviews on 2026-10-12.
+Read first: docs/handoff/20261009-publish_pages_personal.md (the earlier pass: its review step, and its State on the four pages it skipped); docs/experiments/INDEX.md (each row's local file and artifact column); the Artifact tool's rules: read an artifact with action "read" before republishing to it, and read every page's content before publishing it.
+State (2026-10-11 15:50): not started. Pages committed up to a4db72c2.
+<!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
+Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap step add <job> "text"` adds one):
+- [ ] 1. Review each page of steps 2 and 3 before publishing it: extract its visible text with a short script in the scratchpad and read it in full (title, a lede with numbers, no placeholder or "Publish pending" text, every img and video with a source). Write defects into State and skip a defective page.
+- [ ] 2. URL fixes. (a) docs/experiments/20260902-servo-sysid/20260902-servo_sysid.html has no artifact of its own: its INDEX.md row gives the budget_rescreen URL (claude.ai/code/artifact/865c4572-ce31-40b9-a616-da5ca28a9f57), which stays with budget_rescreen. Publish servo_sysid as a new artifact. (b) The three HOM pages docs/experiments/20261001-hom_contact_patch/, 20261001-hom_hand_brake/ and 20261002-hom_chain/ (artifacts Rvfw1yQfgfWV8PdTvv7jsc, DJLxG63vLZXs2Ey6hiCBuc, Lya2Bf6HnW81bEPRPjsjYf): read each URL; if the read finds it as writer, republish the local file to it; if it returns not found, publish the local file as a new artifact, and write the old URL into State. Put every new URL in the page's INDEX.md row and its artifact_url.txt.
+- [ ] 3. Publish docs/experiments/20261011-bench_plan/20261011-bench_plan_finger_spacing.html as a new artifact (one-word icon, one-sentence description); URL into its INDEX.md row and docs/experiments/20261011-bench_plan/artifact_url.txt.
+- [ ] 4. Commit only INDEX.md and the artifact_url.txt files, then git push origin main (owner 2026-10-11 asked for commits to be pushed; fast-forward only). A rejected push goes into State; never force.
+<!-- /ap:steps -->
+Claimed: docs/experiments/INDEX.md (the artifact column of these five rows), the artifact_url.txt files of these five pages.
+Waiting on owner: none.
+Do not: edit pages, builders or templates (hand-20261011-docs_followup runs in the same working tree and claims many of them); publish pages not listed here; delete any artifact; git add anything but the files under Claimed; force-push.
