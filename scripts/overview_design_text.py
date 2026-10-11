@@ -89,7 +89,7 @@ FIGURES = {
                        source="design search", alt="Two scatter plots of the best held cosine against two scores.",
                        caption="Best held cosine of each design against its two best-correlated scores, the thumb&#8217;s "
                                "moment arm among them; green designs turn and hold the tool."),
-    "scale": dict(page="20261008-hand_object_scale/20261008-finger_spacing_object_size.html", n=3,
+    "scale": dict(page="20261008-hand_object_scale/20261008-finger_spacing_object_size.html", n=3, fn="scale_ridges",
                   source="finger spacing and object size", alt="Ridge location against object radius for cylinders "
                                                                  "and spheres.",
                   caption="Best mount distance against object radius for spheres and cylinders: workspace, hold and turn "

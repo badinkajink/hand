@@ -63,3 +63,42 @@ def wrist_payload(fid: str) -> IF.Figure:
     return IF.Figure(fid, None, "Hardware between the tool flange and the palm plate (mm)", [panel], ser,
                      x_domain=(0, 150), x_dec=0, facets=[{"key": "arm", "label": "Arm scene",
                                                          "values": [("declared", "Payload declared"), ("undeclared", "Payload not declared")]}])
+
+
+def scale_ridges(fid: str) -> IF.Figure:
+    """Ridge mount distance against object radius for cylinders and spheres, per task (landscape.json of the
+    finger-spacing study, diagonal family): filled where the ridge lies inside the family, open on its edge; the
+    workspace fit and the rule radius plus half a finger as lines. Colours as on the source page."""
+    import hand_object_scale_page as H
+    F = H.js("landscape.json")["families"]["diag"]
+    col = {"kin": IF.PALETTE[0], "hold": IF.PALETTE[1], "turn": IF.PALETTE[2]}
+    series, panels = [], []
+    for shape in ("cylinder", "sphere"):
+        rmax = 85 if shape == "sphere" else 42
+        lab = "palm radius" if shape == "sphere" else "half thumb-pair span"
+        panels.append(IF.Panel(shape, f"{shape.capitalize()}s: {lab} at the ridge (mm)", (20.0, 120.0 if shape == "sphere" else 80.0),
+                               band=False, dec=1, height=200, x_domain=(0.0, float(rmax)), x_label=f"{shape.capitalize()} radius (mm)", x_dec=1))
+        for t in ("kin", "hold", "turn"):
+            pts = [(d / 2, H.ridge_mm(rg, shape), rg["interior"]) for d in H.okeys(shape)
+                   for rg in [F["ridges"].get(f"{shape}:{d:g}", {}).get(t)] if rg]
+            for inner in (True, False):
+                sel = [(r, s) for r, s, i in pts if i == inner]
+                if sel:
+                    series.append(IF.Series(f"{shape}-{t}-{'in' if inner else 'edge'}", f"{H.TASK_NAME[t][0].upper()}{H.TASK_NAME[t][1:]} ridge"
+                                            + ("" if inner else ", edge of the family"), col[t],
+                                            {shape: {"x": [r for r, _ in sel], "med": [s for _, s in sel]}}, mode="markers",
+                                            open=not inner, facets={"task": t}))
+        fit = F["fits"].get(f"{shape}:kin")
+        if fit:
+            series.append(IF.Series(f"{shape}-fit", "Workspace fit, Eq. (1)", col["kin"],
+                                    {shape: {"x": [0.0, rmax], "med": [fit["beta_mm"], fit["alpha"] * rmax + fit["beta_mm"]]}},
+                                    facets={"task": "kin"}))
+        series.append(IF.Series(f"{shape}-rule", f"Radius plus half the finger ({H.FINGER / 2:.1f} mm)", "#444",
+                                {shape: {"x": [0.0, rmax], "med": [H.FINGER / 2, rmax + H.FINGER / 2]}}, dash="7 4", width=1.5))
+    ids = lambda pred: [s.id for s in series if pred(s.id)]
+    legend = [(f"{H.TASK_NAME[t][0].upper()}{H.TASK_NAME[t][1:]} ridge", col[t], "", ids(lambda i, t=t: f"-{t}-" in i)) for t in ("kin", "hold", "turn")]
+    legend += [("Open marker: ridge on the edge of the family", "#000", "", ids(lambda i: i.endswith("-edge"))),
+               ("Workspace fit, Eq. (1)", col["kin"], "", ids(lambda i: i.endswith("-fit"))),
+               (f"Radius plus half the finger ({H.FINGER / 2:.1f} mm)", "#444", "7 4", ids(lambda i: i.endswith("-rule")))]
+    return IF.Figure(fid, None, "Object radius (mm)", panels, series, legend=legend,
+                     facets=[{"key": "task", "label": "Task", "values": [(t, H.TASK_NAME[t][0].upper() + H.TASK_NAME[t][1:]) for t in ("kin", "hold", "turn")]}])
