@@ -47,7 +47,8 @@ COND = {"nominal": [], "j3": ["--spawn-jitter-mm", "3", "--spawn-yaw-deg", "10"]
         # the 2026-09-20 jittered evaluations of the 09-19 policies ran while env_build's tool contact-class change
         # (35f04bff, committed 09:24) was in the working tree; these keys repeat them on the scene's contact class
         "j3_scene": ["--spawn-jitter-mm", "3", "--spawn-yaw-deg", "10", "--object-contact", "scene"],
-        "j3dr_scene": ["--spawn-jitter-mm", "3", "--spawn-yaw-deg", "10", "--friction-dr", "--object-contact", "scene"]}
+        "j3dr_scene": ["--spawn-jitter-mm", "3", "--spawn-yaw-deg", "10", "--friction-dr", "--object-contact", "scene"],
+        "nominal_scene": ["--object-contact", "scene"]}
 E = ROOT / "docs" / "experiments"
 D6 = "results/phase1/real_v1/20260916-sv1_u0308_b050_cal"
 LOGDIR = ROOT / "logs" / "20261011-reeval"
@@ -76,7 +77,7 @@ def jobs() -> list[dict]:
     p = E / "20260916-tip_gait"
     add(p, "results/rl/20260916-2142-d6_cal_reorient_s0/tensorboard/model_270.pt", D6, "nominal_r0",
         p / "d6_cal_rl_eval.json")
-    for folder, conds in (("20260919-hands_tranche", ("nominal", "j3", "j3dr", "j3_scene", "j3dr_scene")),
+    for folder, conds in (("20260919-hands_tranche", ("nominal", "j3", "j3dr", "j3_scene", "j3dr_scene", "nominal_scene")),
                           ("20260920-robust_tranche", ("nominal", "j3dr"))):
         p = E / folder
         q = {j["id"]: j for j in json.load(open(p / "queue.json"))["jobs"]}

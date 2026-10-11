@@ -759,11 +759,11 @@ def exercise(page: str, out: str, width: int = 900) -> list[dict]:
                 R["shots"].append(await shot("2_hover", fid))
                 await mouse("mouseMoved", left - 20, top - 20)
                 # series toggle: untick the first checkbox of the first facet
-                ok = await click_sel(f"#{fid} .ifig-ctl fieldset input")
+                ok = await click_sel(f"#{fid} .ifig-ctl fieldset input[type=checkbox]")
                 paths1 = await js(f"{q}.querySelectorAll('g.d path').length")
                 R["toggle"] = {"clicked": ok, "paths_before": paths0, "paths_after": paths1}
                 R["shots"].append(await shot("3_toggle", fid))
-                await click_sel(f"#{fid} .ifig-ctl fieldset input")              # back on
+                await click_sel(f"#{fid} .ifig-ctl fieldset input[type=checkbox]")   # back on
                 # band and rollouts
                 for v in ("band", "roll"):
                     sel = f"#{fid} .ifig-ctl input[value='{v}']"
