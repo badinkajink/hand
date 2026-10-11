@@ -112,6 +112,10 @@ def fmt(v: float, dec: int) -> str:
 
 
 def fmt_log(v: float) -> str:
+    if v >= 1e6 - 1e-6:
+        return f"{v / 1e6:g}M"
+    if v >= 1e4 - 1e-6:
+        return f"{v / 1e3:g}k"
     return fmt(v, max(0, -math.floor(math.log10(v) + 1e-9)))
 
 
@@ -379,7 +383,7 @@ class Figure:
     def data_json(self) -> str:
         return json.dumps(self.data(), separators=(",", ":")).replace("</", "<\\/")
 
-    def html(self) -> str:
+    def _inner(self) -> str:
         shown = {s.id for s in self.series if self.visible(s)}
 
         def key_svg(c, d, mode="line", op=False):
@@ -399,10 +403,16 @@ class Figure:
         leg += "".join(f'<span class="ifig-key"><svg width="14" height="16" aria-hidden="true"><line x1="7" x2="7" y1="1" y2="15" '
                        f'stroke="{MUTED}" stroke-width="1.5" stroke-dasharray="4 3"/></svg>{lab}</span>' for lab in dict.fromkeys(vl))
         note = f'<p class="ifig-note">{self.note}</p>' if self.note else ""
-        return (f'<figure class="ifig" id="{self.fid}"><div class="ifig-legend">{leg}</div>{note}'
-                f'<div class="chart">{self.svg()}</div>'
-                f'<script type="application/json" class="ifig-data">{self.data_json()}</script>'
-                f'<figcaption>{self.caption}</figcaption></figure>')
+        return (f'<div class="ifig-legend">{leg}</div>{note}<div class="chart">{self.svg()}</div>'
+                f'<script type="application/json" class="ifig-data">{self.data_json()}</script>')
+
+    def html(self) -> str:
+        return f'<figure class="ifig" id="{self.fid}">{self.inner()}<figcaption>{self.caption}</figcaption></figure>'
+
+    def inner(self) -> str:
+        """Legend, chart and data without the <figure> wrapper, for a page whose template holds the figure and its
+        caption: give that <figure> the class "ifig" and this figure's id."""
+        return self._inner()
 
 
 # ----------------------------------------------------------------------------------------------
@@ -477,6 +487,7 @@ figure.ifig{text-align:left}
 .ifig-tip{position:absolute;pointer-events:none;background:#fff;border:1px solid #000;padding:4px 8px;font-size:15px;
   line-height:1.3;white-space:nowrap;z-index:5;text-align:left}
 .ifig-tip b{font-weight:bold}
+.ifig-tip svg{width:22px!important;height:10px!important;max-width:none!important;border:0!important;display:inline!important;margin:0!important}
 .ifig-tip .h{color:#444;margin-bottom:2px}
 @media print{.ifig-ctl,.ifig-tip{display:none!important}}
 """
@@ -501,7 +512,7 @@ function logTicks(lo,hi){var a=Math.floor(Math.log10(lo)-1e-9),b=Math.ceil(Math.
   for(e=a;e<=b;e++)[1,2,5].forEach(function(c){m=c*Math.pow(10,e);if(m>=lo*(1-1e-9)&&m<=hi*(1+1e-9))o.push(m);});return o;}
 function fmt(v,d){var s=Math.abs(v).toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d});
   return (v<0&&parseFloat(s.replace(/,/g,""))!==0?"−":"")+s;}
-function fmtLog(v){return fmt(v,Math.max(0,-Math.floor(Math.log10(v)+1e-9)));}
+function fmtLog(v){if(v>=1e6-1e-6)return (v/1e6)+"M";if(v>=1e4-1e-6)return (v/1e3)+"k";return fmt(v,Math.max(0,-Math.floor(Math.log10(v)+1e-9)));}
 function sig(v){if(v==null||!isFinite(v))return "–";if(v===0)return "0";var d=Math.max(0,2-Math.floor(Math.log10(Math.abs(v))));return fmt(v,Math.min(d,6));}
 function T(v,lg){return lg?Math.log10(v):v;}
 function init(fig){
@@ -641,7 +652,7 @@ def page_assets() -> str:
 
 
 def add_assets(page: str) -> str:
-    if 'id="ifig-script"' in page or "figure class=\"ifig\"" not in page:
+    if 'id="ifig-script"' in page or 'class="ifig-data"' not in page:
         return page
     i = page.lower().rfind("</body>")
     return page[:i] + page_assets() + page[i:] if i >= 0 else page + page_assets()

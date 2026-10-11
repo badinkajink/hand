@@ -1028,6 +1028,29 @@ GPU_SERIES = [   # key, label, colour, dashed, marker
 ]
 
 
+HEX = {"var(--c-sphere)": "#BE7514", "var(--c-drake)": "#4A7FC4", "var(--c-ref)": "#79858E", "var(--c-newton)": "#7A4FA6",
+       "var(--c-c4)": "#25875A", "var(--ink3)": "#444444", "var(--ink2)": "#000000"}   # the plain style's light values
+
+
+def ifig_gpu(curves):
+    """Figure 10 as an interactive figure (scripts/interactive_figure.py, 2026-10-11): the same series as svg_gpu, log
+    axes, the cost per world-step in the readout. Two series that share a colour and dash on the static chart differ there
+    by marker shape; here the Newton pad series is dotted."""
+    import interactive_figure as IF
+    dash = {"newton_pads1": "2 3"}
+    series = []
+    for key, lab, col, dashed, shape in GPU_SERIES:
+        d = curves.get(key)
+        if not d:
+            continue
+        pts = sorted(d.items())
+        series.append(IF.Series(key, lab, HEX.get(col, col), {"gpu": {"x": [n for n, _ in pts], "med": [v for _, v in pts]}},
+                                dash=dash.get(key, "7 4" if dashed else ""), mode="both", width=1.8,
+                                point_labels={"gpu": [f"{n} worlds, {1e6 / v:.2f} &#181;s per world-step" for n, v in pts]}))
+    panel = IF.Panel("gpu", "World-steps per second", band=False, ylog=True, height=300, x_label="Parallel worlds", xlog=True)
+    return IF.Figure("contact-gpu", None, "Parallel worlds", [panel], series)
+
+
 def svg_gpu(curves):
     if not curves:
         return pending("GPU rows missing.")
@@ -1232,7 +1255,7 @@ def main():
     v["STEP_TEXT"] = step_text(step_rows)
     v["AGREE_TABLE"] = agree_table(M)
     v["FIG_COST"] = svg_cost(M, cost, batched)
-    v["FIG_GPU"] = svg_gpu(curves)
+    v["FIG_GPU"] = ifig_gpu(curves).inner() if curves else svg_gpu(curves)
     import simulator_agreement_figure as SAF
     v["FIG_AGREE_SIM"] = SAF.svg_agreement() + SAF.legend()
     v["GPU_NEWTON_SCRIPT"] = ", <code>scripts/newton_scaling.py</code>" if gpu_newton else ""
@@ -1253,7 +1276,8 @@ def main():
     if left:
         raise SystemExit(f"unfilled placeholders: {left}")
     t, n_tex = render_tex(t)
-    t = retro_style.apply(t)  # plain page style (owner, 2026-10-09)
+    import interactive_figure as IF
+    t = IF.add_assets(retro_style.apply(t))  # plain page style (owner, 2026-10-09); interactive figures (2026-10-11)
     open(OUT, "w").write(t)
     print(f"formulas {n_tex}; wrote {OUT} ({os.path.getsize(OUT) / 1e6:.2f} MB)")
 
