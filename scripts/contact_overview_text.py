@@ -245,9 +245,16 @@ def open_list(ctx):
         ("The modulus.", "Every model here uses Drake&#8217;s default \\(E=10\\)&#8202;MPa. The arm scales as \\(E^{-1/4}\\), so a "
          "TPU tip at 2&#8211;5&#8202;MPa lengthens it by 19&#8211;50&#8202;%; refit \\(c\\) once the tip is measured."),
         ("Presliding of the printed tip.", "Cycle an axial force at half the slip force on the printed tip under a fixed pinch (bed "
-         "task&#160;8 on the bench) and record the displacement against the force. About 40&#8202;&#181;m that return keep the sprung "
-         "skin (step&#160;12); a loop area near Mindlin&#8217;s calls for the bristles; no measurable presliding retires both. The "
-         f"servo-plant skin policies give the answer at the task level (<code>{SKIN_NOTE}</code>)."),
+         "task&#160;8 on the bench) and record the displacement against the force. About 40&#8202;&#181;m that return call for a "
+         "contact model with presliding (step&#160;12); a loop area near Mindlin&#8217;s calls for the bristles; no measurable "
+         "presliding retires both."),
+        ("The skin at the trainer&#8217;s settings.", "The trainer&#8217;s solver (10 iterations, 2&#8202;ms step) holds a grasp on the "
+         "skin only at impratio 10, where the friction rows creep twice as far as the springs deflect (Figure&#160;14b), so no "
+         "policy has yet trained with the skin&#8217;s presliding. Rerun the scripted-grasp check of "
+         "<code>scripts/make_work_plant_runs.py</code> on the servo-plant skin scene at impratio 100, 300 and 1000 with more "
+         "solver iterations or a 1&#8202;ms step, and train the skin arm at the first setting that holds 64 of 64. If its held "
+         "cosine, open-loop replays and jittered robustness stay within the pad arm&#8217;s seed spread, retire the skin "
+         f"(the impratio-10 arm: <code>{SKIN_NOTE}</code>)."),
     ]
     return "<ul class=\"open\">" + "".join(f"<li><b>{a}</b> {b}</li>" for a, b in items) + "</ul>"
 
@@ -500,27 +507,61 @@ def t8_conv(model, N=1.0, dt=0.025):
     import json
     p = P.os.path.join(P.ROOT, T8_CONV)
     rows = [json.loads(l) for l in open(p)] if P.os.path.exists(p) else []
-    rows = [r for r in rows if r.get("model") == model and r.get("N") == N and r.get("dt_ms") == dt
-            and r.get("status") == "complete"]
+    rows = [r for r in rows if r.get("task") == "t8_step_convergence" and r.get("model") == model and r.get("N") == N
+            and r.get("dt_ms") == dt and r.get("status") == "complete"]
     return rows[-1] if rows else None
+
+
+def t8_trainer(model, armature=None, dt=2.0, N=1.0):
+    """Task 8 at the policy trainer's impratio of 10 and 2 ms step (2026-10-12, task t8_trainer_settings)."""
+    import json
+    p = P.os.path.join(P.ROOT, T8_CONV)
+    rows = [json.loads(l) for l in open(p)] if P.os.path.exists(p) else []
+    rows = [r for r in rows if r.get("task") == "t8_trainer_settings" and r.get("model") == model and r.get("N") == N
+            and r.get("dt_ms") == dt and r.get("skin_armature") == armature and r.get("status") == "complete"]
+    return rows[-1] if rows else None
+
+
+def mindlin_t8_trace(N=1.0, n=200):
+    """Mindlin's tool displacement through the task 8 cycle against time (s, N, m), as
+    scripts/contact_bed_candidates.py mindlin_t8_trace."""
+    import contact_reference_laws as L
+    import numpy as np
+    m = L.mat()
+    a = L.hertz(N)["a"]
+    Qs = 0.5 * L.MU * N
+    mono = lambda q: L.mindlin_mono(q, N, a, m["G"], m["nu"], L.MU)  # noqa: E731
+    q1 = np.linspace(0, Qs, n)
+    u1 = mono(q1)
+    q2 = np.linspace(Qs, -Qs, 2 * n)
+    u2 = u1[-1] - 2 * mono((Qs - q2) / 2)
+    q3 = np.linspace(-Qs, Qs, 2 * n)
+    u3 = -u1[-1] + 2 * mono((Qs + q3) / 2)
+    q4 = np.linspace(Qs, 0, n)
+    u4 = u3[-1] - 2 * mono((Qs - q4) / 2)
+    t = np.concatenate([np.linspace(0, 0.5, n), np.linspace(0.5, 1.5, 2 * n), np.linspace(1.5, 2.5, 2 * n),
+                        np.linspace(2.5, 3.0, n), [3.2]])
+    u = np.concatenate([u1, u2, u3, u4, [u4[-1]]])
+    return t, 2 * np.concatenate([q1, q2, q3, q4, [0.0]]), u
 
 
 def skin_lead(ctx):
     X = _skin_x(ctx)
-    s, b, ir = t8_conv("mj_pads1_skin"), X.t8r("mj_pads1_bristle20a"), X.t8r("mj_pads1_ir1000")
+    s, ir = t8_conv("mj_pads1_skin"), X.t8r("mj_pads1_ir1000")
+    p10, s10 = t8_trainer("mj_pads1_ir10"), t8_trainer("mj_pads1_skin_ir10", "hand 0.26 kg")
     gp, cp = X.gpu("mj_pads1_ir1000"), X.cpu("mj_pads1_ir1000")
-    creep = X.t1("mj_pads1_skin")["creep_mm_s"] * 1e3
-    return ("The pads and Drake hold a tool below its slip load by regularised friction, so a held load makes it creep and "
-            "nothing springs back when the load is removed; an elastic fingertip deflects 40&#8202;&#181;m at 1&#8202;N and recovers "
-            "38&#8202;&#181;m of it. Mounting each pad&#8217;s spheres on a 2&#8202;g skin with springs at the tip&#8217;s elastic stiffness "
-            f"gives {s['u_presliding_um']:.0f}&#8202;&#181;m of presliding at 1&#8202;N, of which {s['u_recovered_um']:.0f} return, "
-            f"against {ir['u_presliding_um']:.1f}&#8202;&#181;m for the bare pads at the skin&#8217;s impratio of 1000. It keeps the "
-            "pads&#8217; pull and brake results, and their twist result at 0.5 and 1&#8202;N, at "
+    return ("The sprung skin mounts each pad&#8217;s spheres on a 2&#8202;g body held by springs at the fingertip&#8217;s elastic "
+            "stiffness, so that a tangential load below slip deflects the contact and the deflection returns, as Mindlin&#8217;s "
+            "solution gives for an elastic tip (40&#8202;&#181;m at 1&#8202;N, 38 returned). On the bed, with the friction rows "
+            f"stiffened by impratio 1000, the skin gives {s['u_presliding_um']:.0f}&#8202;&#181;m of presliding at 1&#8202;N, of which "
+            f"{s['u_recovered_um']:.0f} return, against {ir['u_presliding_um']:.1f}&#8202;&#181;m for the bare pads, at "
             f"{X.cpu('mj_pads1_skin') / cp:.2f} times their CPU step and {X.gpu('mj_pads1_skin') / gp:.1f} times their GPU "
-            f"world-step. Its loop encloses {s['loop_area_uJ']:.1f}&#8202;&#181;J per cycle against Mindlin&#8217;s 6.1, and a held "
-            f"load still creeps {creep:.1f}&#8202;&#181;m/s; spring-loaded ball joints under the spheres (rolling bristles) enclose "
-            f"{b['loop_area_uJ']:.1f}&#8202;&#181;J at {X.gpu('mj_pads1_bristle20a') / gp:.0f} times the batched cost. Detail: "
-            f"<code>{NC_PAGE}</code>.")
+            "world-step. The policy trainer&#8217;s solver holds a grasp on the skin only at impratio 10, where the friction rows "
+            f"creep {p10['u_presliding_um']:.0f}&#8202;&#181;m over the first ramp, twice what the springs store, and the tool ends "
+            f"the cycle {s10['u_end_um']:.0f}&#8202;&#181;m from its start with or without the skin (Figure&#160;14b). The skin "
+            "policies&#8217; transfer gain was measured at 44&#8211;56&#8202;N grips, on a plant 4.4 times stronger than the servos. At the "
+            "servo-limited plant&#8217;s 13&#8211;18&#8202;N the pad and TPU-mesh policies already transfer, and whether the skin "
+            "changes a policy there is open until its evaluation.")
 
 
 def skin_sizing(ctx):
@@ -549,6 +590,7 @@ def skin_t8_text(ctx):
     X = _skin_x(ctx)
     p, b, ir = X.t8r("mj_pads1"), X.t8r("mj_pads1_bristle20a"), X.t8r("mj_pads1_ir1000")
     s, s1 = t8_conv("mj_pads1_skin"), X.t8r("mj_pads1_skin")
+    p10, s10 = t8_trainer("mj_pads1_ir10"), t8_trainer("mj_pads1_skin_ir10", "hand 0.26 kg")
     pct = [100 * t8_conv("mj_pads1_skin", N)["u_presliding_um"] / t8_conv("mj_pads1_skin", N)["mindlin_u_presliding_um"]
            for N in (0.5, 1.0, 3.0)]
     return (f"Task&#160;8 holds the pinch at 1&#8202;N per pad with gravity off and cycles an axial force on the tool between "
@@ -561,7 +603,11 @@ def skin_t8_text(ctx):
             f"bed&#8217;s 1&#8202;ms step it encloses {s1['loop_area_uJ']:.2f}, a step error. The springs are linear at the slope "
             f"of 1&#8202;N, so the skin gives {pct[0]:.0f}, {pct[1]:.0f} and {pct[2]:.0f}&#8202;% of Mindlin&#8217;s presliding at 0.5, 1 "
             f"and 3&#8202;N. The bristles move {b['u_presliding_um']:.1f}&#8202;&#181;m, return {b['u_recovered_um']:.1f} and enclose "
-            f"{b['loop_area_uJ']:.2f}&#8202;&#181;J.")
+            f"{b['loop_area_uJ']:.2f}&#8202;&#181;J. At the policy trainer&#8217;s impratio of 10 and 2&#8202;ms step the bare pads "
+            f"creep {p10['u_presliding_um']:.1f}&#8202;&#181;m over the first ramp and {abs(p10['u_recovered_um']):.1f}&#8202;&#181;m more "
+            f"while the force falls back to zero. The skin, with the hand&#8217;s 0.26&#8202;kg of armature, moves the tool "
+            f"{s10['u_presliding_um']:.1f}&#8202;&#181;m on the first ramp, its springs&#8217; 36&#8202;&#181;m on top of the same creep, "
+            f"and both leave the tool {s10['u_end_um']:.1f}&#8202;&#181;m from its start at the end of the cycle (Figure&#160;14b).")
 
 
 def skin_others_text(ctx):
@@ -604,7 +650,9 @@ def skin_rl_work(ctx):
             f"held cosines of {rng(hc['tpu27skin'])}, against {rng(hc['tpu27pads1'])} on the bare pads and "
             f"{rng(hc['tpu27mesh'])} on the TPU block as one mesh, gripping with {rng(gr['tpu27skin'], 0)}&#8202;N." + tr +
             " All of these policies squeeze the 24.5&#8202;g tool with 44&#8211;56&#8202;N, which pins it to the fingertips whatever the "
-            "tip model, so the transfer numbers say little about the skin itself." + cost)
+            "tip model, so the transfer numbers say little about the skin itself. Both arms trained at impratio 10, where on the "
+            "bed the friction rows creep twice as far as the skin&#8217;s springs deflect (Figure&#160;14b), so the skin policies "
+            "trained without the presliding the skin was built for." + cost)
 
 
 def skin_rl_servo(ctx):

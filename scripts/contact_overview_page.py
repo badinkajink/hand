@@ -1143,7 +1143,7 @@ def cap_table(cost, batched=None, skin=None):
         ("Condim&#160;4, \\(\\mu_t\\) rescheduled", [(Y, "One spring"), (P, "Creeps"), (P, "Fitted law, rescheduled"), (N_, "One point"), (N_, "No"), (N_, "No"), us("mj_point4s"), (P, "Needs a per-step write")]),
         ("1&#8202;mm sphere pad", [(Y, "Sampled foundation"), (P, "Creeps"), (Y, "From the sphere spread"), (Y, "Sampled"), (N_, "No"), (N_, "No"), us("mj_pads1", "mjw_pads1"), (Y, "MuJoCo-Warp, Newton")]),
         ("1&#8202;mm pads on a sprung skin", [(Y, "Sampled foundation on springs"), (P, "Presliding, then creeps"), (Y, "From the sphere spread"),
-                                          (Y, "Sampled"), (Y, "Elastic, 0.4 of Mindlin&#8217;s loop"), (N_, "No"), sk("mj_pads1_skin"), (Y, "MuJoCo-Warp")]),
+                                          (Y, "Sampled"), (P, "At impratio 1000; creep swamps it at 10"), (N_, "No"), sk("mj_pads1_skin"), (Y, "MuJoCo-Warp")]),
         ("1&#8202;mm pads on rolling bristles", [(Y, "Sampled foundation"), (P, "Partial slip, then creeps"), (Y, "From the sphere spread"),
                                              (Y, "Sampled"), (Y, "With hysteresis"), (N_, "No"), sk("mj_pads1_bristle20a"), (Y, "MuJoCo-Warp")]),
         ("Drake hydroelastic", [(Y, "Pressure field"), (Y, "Creeps 100&#215; less"), (Y, "Integrated"), (Y, "Surface mesh"), (N_, "No"), (N_, "No"), us("drake_hydro"), (N_, "CPU only")]),
@@ -1261,14 +1261,18 @@ def svg_skin():
 
 
 def svg_t8_loops(X):
-    """Figure 14: task 8 at 1 N, the tool's displacement against the applied force over the whole cycle, with Mindlin's
-    closed form (the native-compliance page's Figure 1 with this page's labels)."""
+    """Figure 14: task 8 at 1 N. (a) The tool's displacement against the applied force over the whole cycle at the bed's
+    settings, with Mindlin's closed form (the native-compliance page's Figure 1 with this page's labels). (b) The
+    displacement against time at the policy trainer's impratio of 10 and 2 ms step (2026-10-12), with Mindlin's."""
     import contact_reference_laws as L
+    import contact_overview_text as TXT
     import numpy as np
-    W, H = 860, 360
-    out = _svg_open(W, H, "Task 8 at 1 N: tool displacement against axial force over one cycle for the pads, the skin, the "
-                          "bristles and Mindlin's closed form")
-    fx, fy = _panel(out, 90, 34, 690, 260, (-1.1, 1.1), (-50, 50), [-1, -0.5, 0, 0.5, 1], [-40, -20, 0, 20, 40],
+    W, H = 860, 720
+    out = _svg_open(W, H, "Task 8 at 1 N: tool displacement against axial force at the bed's settings, and against time at "
+                          "the policy trainer's impratio of 10, for the pads, the skin, the bristles and Mindlin's closed form")
+    out.append('<text x="20" y="22" style="fill:var(--ink)">(a) Bed settings: pads at impratio 100, skin and bristles at '
+               '1000, 1 ms step</text>')
+    fx, fy = _panel(out, 90, 66, 690, 230, (-1.1, 1.1), (-50, 50), [-1, -0.5, 0, 0.5, 1], [-40, -20, 0, 20, 40],
                     "Axial force on the tool (N)", "Tool displacement (&#181;m)")
     mc = L.mindlin_cycle(1.0)
     _path(out, fx, fy, list(zip(mc["F"], mc["u"] * 1e6)), SKIN_COL["mindlin"], dashed=True, width=2.4)
@@ -1277,6 +1281,17 @@ def svg_t8_loops(X):
         if r is not None and r.get("trace"):
             tr = np.array(r["trace"])
             _path(out, fx, fy, [(F, u) for _, F, u in tr if abs(u) < 60], SKIN_COL[m], width=2.0)
+    out.append('<text x="20" y="392" style="fill:var(--ink)">(b) The policy trainer&#8217;s impratio of 10, 2 ms step: '
+               'displacement against time</text>')
+    gx, gy = _panel(out, 90, 436, 690, 230, (0, 3.2), (-60, 160), [0, 0.5, 1, 1.5, 2, 2.5, 3], [-40, 0, 40, 80, 120, 160],
+                    "Time in the cycle (s)", "Tool displacement (&#181;m)")
+    t, _, u = TXT.mindlin_t8_trace(1.0)
+    _path(out, gx, gy, list(zip(t, u * 1e6)), SKIN_COL["mindlin"], dashed=True, width=2.4)
+    for m, arm in (("mj_pads1_ir10", None), ("mj_pads1_skin_ir10", "hand 0.26 kg")):
+        r = TXT.t8_trainer(m, arm)
+        if r is not None and r.get("trace"):
+            col = SKIN_COL["mj_pads1_skin" if "skin" in m else "mj_pads1"]
+            _path(out, gx, gy, [(a, c) for a, _, c in r["trace"]], col, width=2.0)
     out.append("</svg>")
     return "".join(out) + _legend_html([("Mindlin, closed form", SKIN_COL["mindlin"], True, None),
                                         ("1 mm sphere pads", SKIN_COL["mj_pads1"], False, None),
@@ -1316,6 +1331,12 @@ def skin_table(X):
         if sc:
             body.append(["Same skin at a 0.025&#8202;ms step", fmt(sc["u_presliding_um"], 1), fmt(sc["u_recovered_um"], 1),
                          fmt(sc["loop_area_uJ"], 2)] + ["&#8211;"] * 5)
+            for tm, arm, lab in (("mj_pads1_ir10", None, "1&#8202;mm sphere pads, impratio 10, 2&#8202;ms step"),
+                                 ("mj_pads1_skin_ir10", "hand 0.26 kg", "Pads on a sprung skin, impratio 10, 2&#8202;ms step")):
+                tr = TXT.t8_trainer(tm, arm)
+                if tr:
+                    body.append([lab, fmt(tr["u_presliding_um"], 1), fmt(tr["u_recovered_um"], 1),
+                                 fmt(tr["loop_area_uJ"], 1)] + ["&#8211;"] * 5)
     d5 = X.t5("drake_hydro")
     body.append(["Drake hydroelastic", "0.05", "&#8722;0.05", "0.12", fmt((pick(X.bpu, "drake_hydro", N=1.0, dt_ms=1.0) or {}).get("mu_eff"), 3),
                  fmt((NC._t2_list(X, "drake_hydro", (1.0,)) or [[None]])[0][0], 2), fmt(d5["N_at_80_N"], 2) if d5 else "&#8211;",
