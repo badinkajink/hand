@@ -9,7 +9,7 @@ topic has an overview that summarises it and links its result pages:
 - [Reinforcement-learning policies](../overviews/rl_policies.html) ([artifact](https://claude.ai/artifact/63pWHmwZrx6BN4AgwvS4T7))
 - [Grasp-to-gait chain and sim-to-real](../overviews/grasp_to_gait_chain.html) ([artifact](https://claude.ai/artifact/JtKv4jLhK9VrDe74sDYTew))
 - [Fingertip contact model](../overviews/contact_model.html) ([artifact](https://claude.ai/artifact/4w96Kt4J3tunu1xuz4XbdN))
-- [Code and methods](../overviews/code_and_methods.html): code map, grasp synthesis, evaluation protocol, simulator backends
+- [Code and methods](../overviews/code_and_methods.html) ([artifact](https://claude.ai/artifact/HjwwvRuf4PYsEaha9RTHJR)): code map, grasp synthesis, evaluation protocol, simulator backends
 
 This file lists every result page under `docs/experiments/`, newest first, with its topic. The pages are Git LFS
 files: `git -c lfs.fetchexclude= lfs pull --include="docs/experiments/**/*.html"` fetches them (about 120 MB), and
