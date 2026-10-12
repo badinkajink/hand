@@ -265,7 +265,8 @@ def skin_future(ctx):
          "<code>scripts/make_work_plant_runs.py</code> on the servo-plant skin scene at impratio 100, 300 and 1000 with more "
          "solver iterations or a 1&#8202;ms step, and train the skin arm at the first setting that holds 64 of 64. If its held "
          "cosine, open-loop replays and jittered robustness stay within the pad arm&#8217;s seed spread, retire the skin "
-         f"(the impratio-10 arm: <code>{SKIN_NOTE}</code>)."),
+         "(the impratio-10 arm on the servo-limited plant: <code>docs/experiments/20261011-servo_plant_policies/"
+         "20261011-servo_plant_contact_model_policies.html</code>, section on the sprung skin)."),
     ]
 
 
@@ -437,7 +438,7 @@ def servo_policy_text():
         return ""
     hc = lambda s, a: [r["held_cos_mean"] for r in X.finals(s, a)]  # noqa: E731
     sp = lambda s: [X.m(r["tag"])["spin_deg"] for r in X.finals(s, "tpu27pads1") if X.m(r["tag"])]  # noqa: E731
-    grip = [r["grip_N"] for r in X.finals("11")]
+    grip = [r["grip_N"] for r in X.finals("11") if r["arm"] in ("tpu27mesh", "tpu27pads1")]   # the skin arm has its own text
     out = (f" The working plant&#8217;s 1&#8202;N&#8202;m joint torque limit is 4.4 times the servo&#8217;s stall torque; retrained "
            f"on a plant limited to 0.18&#8202;N&#8202;m, at grips of {SPP.rng(grip, 0)}&#8202;N, the pad policies turn the tool "
            f"nearly as far as the TPU-mesh ones (held cosine {SPP.rng(hc('11', 'tpu27pads1'), 2)} against "
@@ -576,9 +577,15 @@ def skin_lead(ctx):
             "world-step. The policy trainer&#8217;s solver holds a grasp on the skin only at impratio 10, where the friction rows "
             f"creep {p10['u_presliding_um']:.0f}&#8202;&#181;m over the first ramp, twice what the springs store, and the tool ends "
             f"the cycle {s10['u_end_um']:.0f}&#8202;&#181;m from its start with or without the skin ({_f8(ctx)}). The skin "
-            "policies&#8217; transfer gain was measured at 44&#8211;56&#8202;N grips, on a plant 4.4 times stronger than the servos. At the "
-            "servo-limited plant&#8217;s 13&#8211;18&#8202;N the pad and TPU-mesh policies already transfer, and whether the skin "
-            "changes a policy there is open until its evaluation.")
+            "policies&#8217; transfer gain was measured at 44&#8211;56&#8202;N grips, on a plant 4.4 times stronger than the servos. "
+            + _servo_short())
+
+
+def _servo_short():
+    import servo_plant_policies_page as SP
+    return SP.skin_answer(SP.Data()).get("short", "At the servo-limited plant&#8217;s 13&#8211;18&#8202;N the pad and TPU-mesh "
+                                         "policies already transfer, and whether the skin changes a policy there is open until "
+                                         "its evaluation.")
 
 
 def skin_summary(ctx):
@@ -597,8 +604,8 @@ def skin_summary(ctx):
     hc = {a: sorted(r["held_cos_mean"] for r in fin if r["arm"] == a) for a in ("tpu27mesh", "tpu27pads1", "tpu27skin")}
     two = lambda v: " and ".join(f"{x:.2f}" for x in v)  # noqa: E731
     if hc["tpu27skin"]:
-        servo = (f" On the servo-limited plant, at 13&#8211;18&#8202;N, the skin seeds end at held cosines of {two(hc['tpu27skin'])}, "
-                 f"the pad seeds at {two(hc['tpu27pads1'])} and the TPU-mesh seeds at {two(hc['tpu27mesh'])}.")
+        import servo_plant_policies_page as SP
+        servo = " " + SP.skin_answer(SP.Data()).get("short", "")
     else:
         servo = (" On the servo-limited plant, at 13&#8211;18&#8202;N, the pad and TPU-mesh policies already hold 2,045 of 2,048 "
                  "closed-loop rollouts under the other tip models; two skin seeds trained there are being evaluated.")
@@ -709,25 +716,43 @@ def skin_rl_work(ctx):
 
 
 def skin_rl_servo(ctx):
-    import json
-    D11 = P.os.path.join(P.ROOT, "docs/experiments/20261011-servo_plant_policies")
-    load = lambda f: [json.loads(l) for l in open(P.os.path.join(D11, f))] if P.os.path.exists(P.os.path.join(D11, f)) else []  # noqa: E731
-    fin, tr = load("final_eval.jsonl"), load("transfer.jsonl")
-    if any("skin" in r.get("tag", "") for r in fin):
-        return ""          # filled by the servo-plant skin job (docs/handoff/20261012-servo_skin_policies.md)
-    arm = {r["tag"]: r["arm"] for r in fin}
-    last = {}
-    for r in tr:
-        last[(r["tag"], r["scene"])] = r
-    other = [r for (t, sc), r in last.items() if t in arm and sc != arm[t]]
-    h, n = sum(r["n_held"] for r in other), sum(r["n"] for r in other)
-    grip = [r["grip_N"] for r in fin]
-    held = (f"hold {h:,} of {n:,} closed-loop rollouts under the other tip models" if n else "")
-    return P.pending("On the servo-limited plant (0.18&#8202;N&#8202;m) the pad and TPU-mesh policies grip with "
-                     f"{min(grip):.0f}&#8211;{max(grip):.0f}&#8202;N and {held}, so the working plant&#8217;s transfer gap has "
-                     "closed. Two skin seeds are training on that plant (40&#8202;M steps, springs sized at 5&#8202;N per fingertip, "
-                     "started 2026-10-12); their evaluation answers whether the skin changes the held cosine, robustness or "
-                     f"replay transfer by more than the seed spread (<code>{SKIN_NOTE}</code>).")
+    """The servo-plant skin result on the skin page (docs/handoff/20261012-servo_skin_policies.md): the answer in the
+    owner's order (2026-10-12), then the numbers behind it. Computed by the servo-plant page's builder from its rows."""
+    import servo_plant_policies_page as SP
+    X = SP.Data()
+    a = SP.skin_answer(X)
+    if not a:
+        return P.pending("The skin policies of the servo-limited plant are being evaluated "
+                         f"(<code>{SKIN_NOTE}</code>).")
+    n = a["n"]
+    page = "../20261011-servo_plant_policies/20261011-servo_plant_contact_model_policies.html"
+    sk = X.check_skin.get("skin", {})
+    sp = lambda arm: [c for c in (X.cost["11"].get(r["tag"], {}).get("s_per_it_median")  # noqa: E731
+                                  for r in X.finals("11", arm)) if c]
+    ratio = (sum(sp("tpu27skin")) / len(sp("tpu27skin"))) / (sum(sp("tpu27pads1")) / len(sp("tpu27pads1"))) \
+        if sp("tpu27skin") and sp("tpu27pads1") else None
+    tr = [t for t in X.tr["11"] if t["arm"] == "tpu27skin" and t["scene"] != "tpu27skin"]
+    trp = [t for t in X.tr["11"] if t["arm"] == "tpu27pads1" and t["scene"] != "tpu27pads1"]
+    worst = min(tr, key=lambda t: t["n_held"]) if tr else None
+    gr = n["grip"]
+    out = (f"<p>{a['verdict'][:-1]} (Figure&#160;6). {a['impratio']} {a['test']} The counts of every condition and the films "
+           f"of both seeds: <a href=\"{page}#skin\">servo-plant policies</a>.</p>")
+    out += (f"<p>On that plant the springs are sized at {sk.get('N_ref', 5):.0f}&#8202;N per fingertip, the mean hold force of "
+            f"its pad and TPU-mesh policies ({sk.get('kt', 0) / 1e3:.1f}&#8202;kN/m, {sk.get('kth', 0):.3f}&#8202;N&#8202;m/rad). The "
+            f"skin policies grip with {min(gr['tpu27skin']):.1f}&#8211;{max(gr['tpu27skin']):.1f}&#8202;N, against "
+            f"{min(gr['tpu27pads1'] + gr['tpu27mesh']):.0f}&#8211;{max(gr['tpu27pads1'] + gr['tpu27mesh']):.0f}&#8202;N for the "
+            "pads and the TPU mesh, and turn the tool the way the pad policies do (Figure&#160;7). In the hold their springs "
+            f"stand deflected by {min(n['sk_defl']):.0f}&#8211;{max(n['sk_defl']):.0f}&#8202;&#181;m, {100 * min(n['sk_use']):.0f}"
+            f"&#8211;{100 * max(n['sk_use']):.0f}&#8202;% of the friction limit, and the slide over the spheres moves the tool "
+            f"{min(n['sk_ratio']):.0f}&#8211;{max(n['sk_ratio']):.0f} times as far as the change of their deflection. Closed "
+            f"loop under the other tip models the skin policies hold {sum(t['n_held'] for t in tr):,} of "
+            f"{sum(t['n'] for t in tr):,} rollouts"
+            + (f" (seed {worst['seed']} drops {worst['n'] - worst['n_held']} of {worst['n']} on the "
+               f"{ {'tpu27mesh': 'TPU mesh', 'tpu27pads1': 'pads', 'box': 'box tip'}[worst['scene']]})" if worst and
+               worst["n_held"] < worst["n"] else "")
+            + f" and the pad policies {sum(t['n_held'] for t in trp):,} of {sum(t['n'] for t in trp):,}."
+            + (f" A training iteration on the skin costs {ratio:.2f} times one on the pads." if ratio else "") + "</p>")
+    return out
 
 
 def blocks(ctx):

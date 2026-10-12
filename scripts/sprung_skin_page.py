@@ -45,11 +45,52 @@ GLOSSARY = [
      "rollouts that still hold the tool; 1 is upright."),
     ("closed-loop transfer", "A final policy run in MuJoCo-Warp with a fingertip model it was not trained on, 256 rollouts per "
      "model; the share of rollouts that keep the tool."),
+    ("seed spread", "The range between the two seeds of one contact model in one evaluation condition. The skin differs from "
+     "the pads beyond it when both skin seeds lie outside the range of the two pad seeds, on the same side; Fisher&#8217;s "
+     "exact test on held counts and a bootstrap over seeds and rollouts on the held cosine are on the servo-plant page."),
 ]
 
 
 def glossary():
     return '<dl class="glossary">' + "".join(f"<dt>{a}</dt><dd>{b}</dd>" for a, b in GLOSSARY) + "</dl>"
+
+
+def servo_media():
+    """The servo-plant comparison of the skin with the pads and the TPU mesh (Figure 6, drawn by the servo-plant page's
+    builder from its rows) and its films: the pad and skin finals of seed 0 side by side (Figure 7) and the median skin
+    seed's open-loop replay in three simulators (Figure 8)."""
+    import servo_plant_policies_page as SP
+    X = SP.Data()
+    rk = SP.ranked(X, "11", "tpu27skin")
+    if not rk:
+        return "", ""
+    S = "../20261011-servo_plant_policies/20261011-servo_plant_contact_model_policies.html"
+    fig = (f'<figure class="diagram">{SP.svg_skin_compare(X)}<figcaption>Figure&#160;6. The skin against the pads and the TPU '
+           "mesh on the servo-limited plant, two seeds each, under every evaluation: nominal, grasp jitter, eleven perturbations "
+           "of friction, tool mass, servo gain, torque limit and time step, closed loop on four tip models, and open-loop "
+           "replays in three simulators. Held share (left) and held cosine (right) of each seed, seed 0 a filled dot and seed 1 "
+           "a ring, the line between them the seed spread; hover a dot for its counts. From the "
+           f'<a href="{S}">servo-plant policies</a>.</figcaption></figure>')
+    films = []
+    side = os.path.join(SP.D, "media/20261012_pads_skin_s0_side.mp4")
+    if os.path.exists(side):
+        pr = next((r for r in X.finals("11", "tpu27pads1") if r["seed"] == 0), None)
+        sr = next((r for r in X.finals("11", "tpu27skin") if r["seed"] == 0), None)
+        films.append(P.film_tag(side, side[:-4] + ".jpg",
+                                "Figure&#160;7. Seed 0 of the pad policy (left) and of the skin policy (right) on the "
+                                "servo-limited plant, one deterministic rollout each at real speed. Both lift the handle end "
+                                "with the middle finger and pivot the tool about the thumb and index within a quarter second "
+                                f"of the onset; the pads hold it at a held cosine of {pr['held_cos_mean']:.2f} with "
+                                f"{pr['grip_N']:.0f}&#8202;N and the skin at {sr['held_cos_mean']:.2f} with {sr['grip_N']:.0f}&#8202;N."))
+    if len(rk) > 1:
+        rep = os.path.join(SP.D, f"media/{rk[1]['tag']}_replay_three.mp4")
+        if os.path.exists(rep):
+            films.append(P.film_tag(rep, rep[:-4] + ".jpg",
+                                    f"Figure&#160;8. The median skin seed (seed {rk[1]['seed']}), world 0: the MuJoCo-Warp "
+                                    "rollout (left) and its finger targets replayed open loop in Drake (centre) and Newton "
+                                    "(right), where the TPU block is a hydroelastic tip without the skin. "
+                                    + SP.replay_outcome(X, rk[1]["tag"])))
+    return fig, "".join(films)
 
 
 def render_tex(t):
@@ -100,6 +141,7 @@ def main():
                                           "<a href=\"../20261008-contact_model_policies/20261008-fingertip_contact_model_policies.html\">"
                                           "contact-model policies</a>.")
     v["SKIN_RL_SERVO"] = TXT.skin_rl_servo(ctx)
+    v["FIG_SERVO"], v["SERVO_FILMS"] = servo_media()
     v["FUTURE"] = TXT.skin_future_html(ctx)
     v["FOOTER"] = ("<p>Rebuild: <code>.venv/bin/python scripts/sprung_skin_page.py</code>. Rows: "
                    "<code>docs/experiments/20261007-native_compliance/</code> (the bed; <code>t8_step_convergence.jsonl</code> "

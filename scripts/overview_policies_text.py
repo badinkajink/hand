@@ -112,7 +112,8 @@ runs degenerated. Their finger commands keep the tool in 3 of 132 replays in oth
 85 of 88, and in closed loop under the other contact models the pad policies hold 76&#8202;% of rollouts. Every final policy
 grips with 40&#8211;100&#8202;N, and all but one lose the tool when the finger servo gain rises to 10&#8202;N&#183;m/rad
 ([contact-model policies](exp:20261008-contact_model_policies/20261008-fingertip_contact_model_policies.html)). The fourth
-arm, the same pads mounted on a sprung skin, held 99&#8202;% in closed loop. It trained at the same grips and at impratio 10,
+arm, the same pads mounted on a sprung skin, held 99&#8202;% in closed loop at 44&#8211;56&#8202;N grips on the 1&#8202;N&#183;m plant. It
+trained at impratio 10,
 where the skin&#8217;s springs store half of what its friction rows creep, so its policies did not use the presliding the skin
 models; that arm is reported with the skin
 ([sprung skin](exp:20261012-sprung_skin/20261012-sprung_skin_presliding.html)).</p>
@@ -125,7 +126,13 @@ relative to the pads, against 32&#8211;52&#176; at the working plant&#8217;s gri
 44&#8202;N and stops turning the tool (held cosine 0.02) and pad seed 1 drops 28 of 64 rollouts, while the TPU-mesh
 policies turn it as before; a pad&#8217;s torsional friction grows as the 5/4 power of its force. Both kinds of finger
 commands transfer: the pad commands keep the tool in 78 of 88 open-loop replays, the TPU-mesh commands in
-74 of 88, and Newton loses the most ([servo-plant policies](exp:20261011-servo_plant_policies/20261011-servo_plant_contact_model_policies.html)).</p>
+74 of 88, and Newton loses the most ([servo-plant policies](exp:20261011-servo_plant_policies/20261011-servo_plant_contact_model_policies.html)).
+Two seeds trained on the same pads mounted on a sprung skin change no held count beyond the pads&#8217; seed spread in 20
+evaluation conditions, replays and perturbations included, and end at held cosines of 0.81 and 0.65 against the
+pads&#8217; 0.88 and 0.79, inside that spread in 18 of the 20; they trained at impratio 10 without the skin&#8217;s presliding,
+which remains to be tested with friction rows that hold
+([policies on the sprung skin](exp:20261011-servo_plant_policies/20261011-servo_plant_contact_model_policies.html#skin),
+[sprung skin](exp:20261012-sprung_skin/20261012-sprung_skin_presliding.html)).</p>
 {{FIG replays_servo}}"""),
 ]
 
@@ -211,9 +218,11 @@ FUTURE = [
     "Retrain one pad and one TPU-mesh seed with the grip penalty at &#8722;20: at &#8722;2 the term costs under 1&#8202;% of "
     "the return and the thumb presses 6&#8211;8&#8202;N with its mcp at the torque limit; a policy that turns the tool as "
     "far with the thumb under 4&#8202;N does not need the saturated thumb.",
-    "Evaluate the servo-plant policies at torque limits of 0.12 and 0.23&#8202;N&#183;m (<code>rl_contact_eval.py robust "
-    "--study 20261011 --perturb fr=0.12 fr=0.23</code>); a pad policy that stops turning at 0.23 makes the torque limit a "
-    "parameter to measure on the bench.",
+    "Measure the stall torque of a finger servo on the bench against a load cell at 6&#8202;V. In simulation the pad and skin "
+    "policies hold 112&#8211;128 of 128 rollouts at torque limits of 0.12 and 0.23&#8202;N&#183;m and the TPU-mesh policies "
+    "drop up to 20 at 0.12, while at 1&#8202;N&#183;m pad seed 0 stops turning the tool; a stall well above 0.23&#8202;N&#183;m "
+    "calls for the torque-limit swap at the measured value "
+    "(<code>rl_contact_eval.py mechanism --study 20261011 --all --perturb fr=&lt;stall&gt;</code>).",
     "Clip the residual (<code>clip_actions 1.0</code>) for one pad and one TPU-mesh seed and compare the held cosine.",
 ]
 
@@ -225,7 +234,7 @@ PAGES = [
     ("Policies", "20261008-contact_model_policies/20261008-fingertip_contact_model_policies.html",
      "Four fingertip models; transfer"),
     ("Policies", "20261011-servo_plant_policies/20261011-servo_plant_contact_model_policies.html",
-     "Servo-limited plant; the pad brake"),
+     "Servo-limited plant; the pad brake; the sprung skin"),
     ("Related pages", "20260827-real_v1/20260827-real_v1_routes_to_vertical.html", "Residual RL against the open-loop plan"),
     ("Related pages", "20260923-chain_handover_gait/20260923-chain_handover_gait.html", "The 1 s finger lag"),
     ("Related pages", "20261006-hom_turn3/20261006-servo_refit_hom_turn_pad_cost.html", "Working plant; pad cost in RL"),
