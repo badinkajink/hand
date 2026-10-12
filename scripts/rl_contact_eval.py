@@ -274,7 +274,8 @@ class Evaluator:
                            and mjm.body(i).name.startswith("robot/"))
         self.palm_b = next(i for i, b in enumerate(bname) if b == "palm_pose")
         self.nominal = {k: self._raw(k).clone() for k in ("geom_friction", "body_mass", "body_inertia",
-                                                           "actuator_gainprm", "actuator_biasprm")}
+                                                           "actuator_gainprm", "actuator_biasprm",
+                                                           "actuator_forcerange")}
         self.kp0 = float(self.nominal["actuator_gainprm"][..., self.fing_act[0], 0].flatten()[0])
         # mech: the fingertip bodies (the rigid tip; a skin's pads ride on a child body) and the nine finger joints in
         # the act9 order, with their range limits and the actuators' torque limits
@@ -283,6 +284,7 @@ class Evaluator:
         self.qadr9 = [int(mjm.jnt_qposadr[j]) for j in jid9]
         self.jnt_lo, self.jnt_hi = mjm.jnt_range[jid9, 0].copy(), mjm.jnt_range[jid9, 1].copy()
         self.force_lim = np.where(mjm.actuator_forcelimited[self.act9] > 0, mjm.actuator_forcerange[self.act9, 1], np.inf)
+        self.force_lim0 = self.force_lim.copy()
 
     def mech_consts(self) -> dict:
         """Constants of the mech record: the plant and the nine finger joints' limits (act9 order)."""
@@ -302,11 +304,13 @@ class Evaluator:
         self.actor.eval()
 
     def perturb(self, kind: str | None = None, value: float | None = None):
-        """Restore the nominal model, then scale one quantity: friction (every geom's sliding coefficient), mass (the
-        tool's mass and inertia), kp (the finger servos' position gain, N m/rad)."""
+        """Restore the nominal model, then change one quantity: friction (every geom's sliding coefficient, scaled),
+        mass (the tool's mass and inertia, scaled), kp (the finger servos' position gain, set in N m/rad), fr (the
+        finger servos' torque limit, set in N m)."""
         raw = {k: self._raw(k) for k in self.nominal}
         for k, v in self.nominal.items():
             raw[k].copy_(v)
+        self.force_lim = self.force_lim0.copy()
         if kind == "friction":
             raw["geom_friction"][..., 0] = self.nominal["geom_friction"][..., 0] * value
         elif kind == "mass":
@@ -316,6 +320,11 @@ class Evaluator:
             for a in self.fing_act:
                 raw["actuator_gainprm"][..., a, 0] = value
                 raw["actuator_biasprm"][..., a, 1] = -value
+        elif kind == "fr":
+            for a in self.fing_act:
+                raw["actuator_forcerange"][..., a, 0] = -value
+                raw["actuator_forcerange"][..., a, 1] = value
+            self.force_lim = np.full(len(self.act9), float(value))
         elif kind is not None:
             raise ValueError(kind)
 
@@ -691,16 +700,29 @@ def _rotvec(R):
     return v * k[..., None]
 
 
-def pinch_turn(r: dict) -> dict:
-    """Per policy step and rollout: the pinch axis (unit, world: from the thumb's contact centroid on the tool to the
-    midpoint of the index and middle centroids, the fingertip body origins standing in for a finger without contact),
-    and the increments of the tool's and each fingertip body's rotation about it between consecutive policy steps (rad;
-    the world-frame rotation vector of R(t) R(t-1)^T projected on the axis at t). Increment k is the step from record
-    k-1 to k (increment 0 is zero)."""
+TURN_END = 150      # the turn: the residual's onset to policy step 150; the hold: 150 to the end (as the watch's hold)
+
+
+def pinch_turn(r: dict, a0: int = 58, e: int = TURN_END) -> dict:
+    """The pinch axis per policy step and rollout (unit, world: from the thumb's contact centroid on the tool to the
+    midpoint of the index and middle centroids; a finger without contact keeps its last centroid, and before its first
+    contact its fingertip body origin stands in), turned to agree in sign with the rollout's mean axis over the turn
+    (steps a0 to e), and the increments of the tool's and each fingertip body's rotation about it between consecutive
+    policy steps (rad; the world-frame rotation vector of R(t) R(t-1)^T projected on the axis at t). Increment k is the
+    step from record k-1 to k (increment 0 is zero)."""
     con, tip = r["con_rel"].astype(np.float64), r["tip_rel"].astype(np.float64)
-    p = np.where(np.isnan(con), tip, con)                                  # (T, N, 3, 3)
+    p = tip.copy()
+    last = np.full(con.shape[1:], np.nan)                                  # (N, 3, 3) last contact centroid
+    for t in range(con.shape[0]):
+        ok = ~np.isnan(con[t, ..., 0])
+        last[ok] = con[t][ok]
+        have = ~np.isnan(last[..., 0])
+        p[t][have] = last[have]
     n = 0.5 * (p[..., 1, :] + p[..., 2, :]) - p[..., 0, :]
     n /= np.maximum(np.linalg.norm(n, axis=-1, keepdims=True), 1e-9)
+    nb = n[a0:e].sum(0)
+    nb /= np.maximum(np.linalg.norm(nb, axis=-1, keepdims=True), 1e-9)     # (N, 3) the rollout's mean axis
+    n = np.where(((n * nb).sum(-1) < 0)[..., None], -n, n)
     RT, RF = _quat_mat(r["tool_q"].astype(np.float64)), _quat_mat(r["tip_q"].astype(np.float64))
     dT = _rotvec(RT[1:] @ np.swapaxes(RT[:-1], -1, -2))                    # (T-1, N, 3)
     dF = _rotvec(RF[1:] @ np.swapaxes(RF[:-1], -1, -2))                    # (T-1, N, 3, 3)
@@ -709,16 +731,21 @@ def pinch_turn(r: dict) -> dict:
     tool[1:] = (dT * n[1:]).sum(-1)
     tips[1:] = (dF * n[1:, :, None, :]).sum(-1)
     fallback = np.isnan(con[..., 0]).any(-1)                               # (T, N): a finger without contact
-    return dict(axis=n, tool=tool, tips=tips, fallback=fallback)
-
-
-TURN_END = 150      # the turn: the residual's onset to policy step 150; the hold: 150 to the end (as the watch's hold)
+    spread = np.degrees(np.arccos(np.clip((n[a0:e] * nb).sum(-1), -1, 1)))  # (e - a0, N): step axis vs rollout axis
+    # the tool's net rotation over the turn: its angle, and the angle between its axis and the rollout's pinch axis
+    net = _rotvec(RT[e - 1] @ np.swapaxes(RT[a0 - 1], -1, -2))             # (N, 3)
+    net_ang = np.linalg.norm(net, axis=-1)
+    net_off = np.degrees(np.arccos(np.clip(np.abs((net * nb).sum(-1)) / np.maximum(net_ang, 1e-9), 0, 1)))
+    return dict(axis=n, axis_rollout=nb, tool=tool, tips=tips, fallback=fallback, axis_spread=spread,
+                net_deg=np.degrees(net_ang), net_off_deg=net_off)
 
 
 def mech_metrics(r: dict, c: dict) -> dict:
-    """The grasp mechanism over one evaluation's held rollouts. Contact spin: the tool's rotation about the pinch axis
-    minus a fingertip's (pinch_turn), summed over the turn (onset to step 150) and over the hold (150 to 250), signed so
-    that the tool's own rotation about the axis over the turn is positive, in degrees; mean over the three fingertips.
+    """The grasp mechanism over one evaluation's held rollouts. Contact spin: the tool's rotation about the rollout's
+    pinch axis minus a fingertip's (pinch_turn), summed over the turn (onset to step 150) and over the hold (150 to
+    250), signed so that the tool's own rotation about the axis over the turn is positive, in degrees; mean over the
+    three fingertips. Axis spread: median angle between the per-step and the rollout's pinch axis over the turn;
+    elevation: the rollout axis's angle above horizontal (0: rotation about it tilts the tool in a vertical plane).
     Torque limit: a finger actuator's |torque| within 2 % of its limit. Range limit: a finger joint within 1 deg of
     (or past) its range limit, extension the lower bound of mcp and pip (yaw has none), flexion the upper; the servo
     target at its actuator's range limit as in watch_metrics. Fractions over held steps from the onset; per-finger grip
@@ -729,8 +756,8 @@ def mech_metrics(r: dict, c: dict) -> dict:
     held_t = (r["z"] > FLOOR_Z) & ((f >= HELD_N).sum(-1) >= 2)
     held = held_t[-1]
     act = held_t[a0:]
-    pt = pinch_turn(r)
     e = min(TURN_END, T)
+    pt = pinch_turn(r, a0, e)
     tool_turn = pt["tool"][a0:e].sum(0)                                     # (N,)
     sgn = np.where(tool_turn < 0, -1.0, 1.0)
     spin_turn = sgn[:, None] * (pt["tool"][a0:e, :, None] - pt["tips"][a0:e]).sum(0)     # (N, 3)
@@ -771,6 +798,9 @@ def mech_metrics(r: dict, c: dict) -> dict:
         tip_turn_deg=med(deg(tip_turn.mean(-1))),
         spin_hold_deg=med(deg(spin_hold.mean(-1))),
         axis_fallback_frac=frac(pt["fallback"][a0:]),
+        axis_spread_deg=med(np.median(pt["axis_spread"], 0)), axis_spread_max_deg=med(pt["axis_spread"].max(0)),
+        axis_elevation_deg=med(deg(np.arcsin(np.clip(np.abs(pt["axis_rollout"][:, 2]), 0, 1)))),
+        tool_net_deg=med(pt["net_deg"]), tool_net_off_axis_deg=med(pt["net_off_deg"]),
         torque_limit_frac=frac(at_tau.any(-1)), torque_limit_joint_frac=frac(at_tau.mean(-1)),
         ext_limit_frac=frac(at_ext.any(-1)), flex_limit_frac=frac(at_flex.any(-1)),
         range_limit_frac=frac(at_rng.any(-1)), target_limit_frac=frac(at_tgt.any(-1)),
@@ -928,13 +958,13 @@ def cmd_final(args):
         ev.close()
 
 
-def _mech_row(tag, arm, seed, ck, ev, r, sub) -> dict:
+def _mech_row(tag, arm, seed, ck, ev, r, sub, name=None) -> dict:
     m = metrics(r, ev.residual_from, physics=True)
     keep = ("n", "n_held", "held_frac", "held_cos_mean", "held_cos_median", "held_cos_sd", "cos_mean", "grip_N",
             "grip_thumb_N", "grip_index_N", "grip_middle_N", "three_finger_share", "peak_force_N_mean",
             "pen_max_mm_mean", "creep_mm_s_median", "creep_deg_s_median")
     row = dict(tag=tag, arm=arm, seed=seed, study=STUDY, iteration=_it(ck), checkpoint=str(ck.relative_to(ROOT)),
-               scene=str(ARMS[arm].relative_to(ROOT)), traces=f"{sub}/{tag}.npz",
+               scene=str(ARMS[arm].relative_to(ROOT)), traces=f"{sub}/{name or tag}.npz",
                **{k: m.get(k) for k in keep}, **mech_metrics(r, ev.mech_consts()), status="ok",
                when=time.strftime("%Y-%m-%d %H:%M"))
     print(f"{tag} mechanism: held {row['n_held']}/{row['n']}, turn about the pinch axis {row['turn_pinch_deg']} deg, "
@@ -964,23 +994,28 @@ def cmd_mechanism(args):
         for line in open(out):
             r = json.loads(line)
             if r.get("status") == "ok":
-                newest[r["tag"]] = r
-        for tag, row in newest.items():
+                newest[(r["tag"], r.get("perturb") or "nominal")] = r
+        for (tag, _), row in newest.items():
             tr, c = load_trace(MECH_OUT / row["traces"])
             row = dict(row, **mech_metrics(tr, c), source="traces", when=time.strftime("%Y-%m-%d %H:%M"))
             append(out, row)
             print(f"{tag}: spin {row['spin_deg']:.1f} deg, turn {row['turn_pinch_deg']:.1f} deg, torque limit "
                   f"{row['torque_limit_frac']:.3f}, range limit {row['range_limit_frac']:.3f}", flush=True)
         return
-    have = set() if args.redo else done_keys(out, ("tag",))
+    perts = [_parse_perturb(p) for p in args.perturb] or [("nominal", None)]
+    have = set() if args.redo else {(t, p or "nominal") for t, p in done_keys(out, ("tag", "perturb"))}
     for tag, arm, seed, steps in pick(args):
-        if (tag,) in have:
+        need = [p for p in perts if (tag, _pname(p)) not in have]
+        if not need:
             continue
         ck = final_ckpt(tag, steps)
         ev = Evaluator(ARMS[arm], ck, n=args.n, steps=args.steps, physics=True, mech=True)
-        r = ev.rollout()
-        save_traces(tag, r, sub="mech_traces", root=MECH_OUT, consts=ev.mech_consts())
-        append(out, _mech_row(tag, arm, seed, ck, ev, r, "mech_traces"))
+        for p in need:
+            ev.perturb(p[0] if p[0] != "nominal" else None, p[1])
+            r = ev.rollout()
+            name = tag if p[0] == "nominal" else f"{tag}__{_pname(p)}"
+            save_traces(name, r, sub="mech_traces", root=MECH_OUT, consts=ev.mech_consts())
+            append(out, dict(_mech_row(tag, arm, seed, ck, ev, r, "mech_traces", name), perturb=_pname(p)))
         ev.close()
 
 
@@ -1021,7 +1056,7 @@ def cmd_robust(args):
     for j in pick(args):
         by_arm.setdefault(j[1], []).append(j)
     for arm, js in by_arm.items():
-        groups = {"runtime": [p for p in perts if p[0] in ("nominal", "friction", "mass", "kp")],
+        groups = {"runtime": [p for p in perts if p[0] in ("nominal", "friction", "mass", "kp", "fr")],
                   **{f"{k}={v}": [(k, v)] for k, v in perts if k in ("dt", "noise")}}
         for gname, plist in groups.items():
             need = [(j, p) for j in js for p in plist if (j[0], _pname(p)) not in have]
@@ -1032,7 +1067,7 @@ def cmd_robust(args):
             ev = Evaluator(ARMS[arm], final_ckpt(js[0][0], js[0][3]), n=args.n, steps=args.steps, dt=dt, noise=noise)
             for (tag, _, seed, steps), p in need:
                 ev.load(final_ckpt(tag, steps))
-                ev.perturb(p[0] if p[0] in ("friction", "mass", "kp") else None, p[1])
+                ev.perturb(p[0] if p[0] in ("friction", "mass", "kp", "fr") else None, p[1])
                 t0 = time.perf_counter()
                 row = dict(tag=tag, arm=arm, seed=seed, perturb=_pname(p), kind=p[0],
                            value=list(p[1]) if isinstance(p[1], tuple) else p[1], kp_nominal=ev.kp0,
@@ -1161,6 +1196,8 @@ def main():
         if name == "mechanism":
             s.add_argument("--from-traces", action="store_true",
                            help="recompute every mechanism row from its saved traces instead of running policies")
+            s.add_argument("--perturb", nargs="*", default=[],
+                           help="evaluate under these perturbations instead of the nominal plant (e.g. fr=1.0)")
         if name == "watch":
             s.add_argument("--iterations", type=int, nargs="+", required=True)
             s.add_argument("--redo", action="store_true", help="evaluate again checkpoints that have a watch row")
