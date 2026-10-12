@@ -483,6 +483,11 @@ class Args:
 
 def main() -> None:
     args = cli_with_recipe(Args)
+    # A positive weight turns the over-grip penalty into a quadratic bonus for squeezing: the 27 contact-model runs of
+    # 2026-10-06 and 10-08 passed +0.25 and their policies held the 26 g tool with 44-96 N.
+    if args.grip_force_penalty_weight > 0:
+        raise SystemExit(f"--grip-force-penalty-weight {args.grip_force_penalty_weight:g} pays a bonus for fingertip "
+                         "force above --grip-force-penalty-thresh; give a negative weight, or 0 to turn it off")
 
     run = Path(args.morphology_run).resolve()
     if not (run / "best_rollout.npz").exists():
