@@ -37,7 +37,8 @@ paused.
 `--study 20261011` (docs/handoff/20261011-servo_plant_policies.md): the same subcommands for the runs of
 scripts/rl_contact_train_queue_20261011.sh on the servo-limited plant (kp 0.72 N m/rad, 0.18 N m torque limit), jobs from
 logs/20261011-servo_plant_policies/jobs.txt, tags 20261011-d6_servo_<arm>_40M_s<seed>, arms tpu27mesh and tpu27pads1 on
-the 20261011-sv1_u0308_b050_servo_tip* scenes (box: the box tip on the same plant, a transfer scene); rows in
+the 20261011-sv1_u0308_b050_servo_tip* scenes (box: the box tip on the same plant, a transfer scene), and from 2026-10-12
+the skin arm, tags 20261012-d6_servo_tpu27skin_40M_s<seed> (docs/handoff/20261012-servo_skin_policies.md); rows in
 docs/experiments/20261011-servo_plant_policies/. Without the switch every path is the 2026-10-08 study's. Its `final`
 also records the grasp mechanism (below) into final_traces/<tag>.npz and a row of mechanism.jsonl.
 
@@ -49,6 +50,14 @@ mech_traces/ whatever the study (it serves the 2026-10-08 finals there):
 Contact spin is the tool's rotation about the pinch axis (thumb contact to the midpoint of the index and middle
 contacts) relative to each fingertip body, summed over policy steps from the residual's onset; mech_metrics() gives it
 with the fractions of steps at the torque limit and at the joints' range limits.
+
+The mech record also carries the slip record (2026-10-12): per policy step and fingertip, the displacement of the tool's
+material point at the contact centroid against the body that carries the contact geoms (the skin body of a skin scene,
+else the tip) and against the rigid tip (slip_record), and on a skin scene the skin's slide and hinge coordinates;
+skin_slip_metrics() splits the tool's motion against each fingertip over the turn and the hold into the skin's spring
+deflection and the slide over the spheres. `creep` evaluates a study's final policies for it (rows creep.jsonl, traces
+creep_traces/ under MECH_OUT), leaving the earlier mechanism rows in place:
+    $PY scripts/rl_contact_eval.py creep --study 20261011 --all
 """
 from __future__ import annotations
 
@@ -79,13 +88,15 @@ STUDIES = {
               "tpu27pads1": MORPH / "20261006-sv1_u0308_b050_work_tip_tpu2.7pads1",
               "tpu27meshc4": MORPH / "20261008-sv1_u0308_b050_work_tip_tpu2.7mesh_c4",
               "tpu27skin": MORPH / "20261008-sv1_u0308_b050_work_tip_tpu2.7skin"}),
+    # the skin arm (tags 20261012-d6_servo_tpu27skin_40M_s<seed>) joined the queue on 2026-10-12
     "20261011": dict(
         out=ROOT / "docs/experiments/20261011-servo_plant_policies",
         logs=ROOT / "logs/20261011-servo_plant_policies",
-        tag_re=r"20261011-d6_servo_(.+)_40M_s\d+",
+        tag_re=r"2026101[12]-d6_servo_(.+)_40M_s\d+",
         arms={"box": MORPH / "20261011-sv1_u0308_b050_servo_tip",
               "tpu27mesh": MORPH / "20261011-sv1_u0308_b050_servo_tip_tpu2.7mesh",
-              "tpu27pads1": MORPH / "20261011-sv1_u0308_b050_servo_tip_tpu2.7pads1"}),
+              "tpu27pads1": MORPH / "20261011-sv1_u0308_b050_servo_tip_tpu2.7pads1",
+              "tpu27skin": MORPH / "20261011-sv1_u0308_b050_servo_tip_tpu2.7skin"}),
 }
 MECH_OUT = STUDIES["20261011"]["out"]           # mechanism rows and traces of every study's final policies
 STUDY = "20261008"
@@ -280,6 +291,16 @@ class Evaluator:
         # mech: the fingertip bodies (the rigid tip; a skin's pads ride on a child body) and the nine finger joints in
         # the act9 order, with their range limits and the actuators' torque limits
         self.tip_b = [bname.index(f"{f}_tip") for f in FINGERS]
+        # the body that carries each fingertip's contact geoms: the skin body of a skin scene, else the tip; the skin's
+        # slide (y, z) and hinge (t) joints in thumb/index/middle x y/z/t order, with their spring constants
+        self.car_b = [bname.index(f"{f}_tipskin") if f"{f}_tipskin" in bname else t for f, t in zip(FINGERS, self.tip_b)]
+        jname = [mjm.joint(j).name.split("/")[-1] for j in range(mjm.njnt)]
+        self.skin_j = [jname.index(f"{f}_skin_{a}") for f in FINGERS for a in ("y", "z", "t")
+                       if f"{f}_skin_{a}" in jname]
+        self.skin_qadr = [int(mjm.jnt_qposadr[j]) for j in self.skin_j]
+        self.skin_k = mjm.jnt_stiffness[self.skin_j].copy() if self.skin_j else np.zeros(0)
+        cg = [g for g in range(mjm.ngeom) if self.geom_finger[g] >= 0 and mjm.geom_contype[g] | mjm.geom_conaffinity[g]]
+        self.mu = float(max(mjm.geom_friction[cg, 0].max(), mjm.geom_friction[self.tool_geom, 0].max())) if cg else 1.0
         jid9 = [int(mjm.actuator_trnid[a, 0]) for a in self.act9]
         self.qadr9 = [int(mjm.jnt_qposadr[j]) for j in jid9]
         self.jnt_lo, self.jnt_hi = mjm.jnt_range[jid9, 0].copy(), mjm.jnt_range[jid9, 1].copy()
@@ -290,7 +311,7 @@ class Evaluator:
         """Constants of the mech record: the plant and the nine finger joints' limits (act9 order)."""
         return dict(joints=[f"{f}_{j}" for f in FINGERS for j in ("yaw", "mcp", "pip")], jnt_lo=self.jnt_lo,
                     jnt_hi=self.jnt_hi, ctrl_lo=self.ctrl_lo, ctrl_hi=self.ctrl_hi, force_lim=self.force_lim,
-                    kp=self.kp0, residual_from=self.residual_from)
+                    kp=self.kp0, residual_from=self.residual_from, skin_k=self.skin_k, mu=self.mu)
 
     def _raw(self, name: str):
         """The model field's own torch view: mjlab shows a field shared by all worlds as a stride-0 expansion,
@@ -355,6 +376,11 @@ class Evaluator:
                      q9=np.zeros((T, N, 9), np.float32),              # finger joint angles, rad
                      tau9=np.zeros((T, N, 9), np.float32),            # finger actuator torques, N m
                      ctrl9=np.zeros((T, N, 9), np.float32))           # finger servo targets, rad
+            # the contact geoms' carrier bodies (skin or tip) for the slip record (slip_record), and the skin's joints
+            car_rel = np.zeros((T, N, 3, 3), np.float32)              # carrier body origin minus tool position, m
+            car_q = np.zeros((T, N, 3, 4), np.float32)                # carrier body orientation, wxyz
+            if self.skin_j:
+                M["skin_q9"] = np.zeros((T, N, len(self.skin_j)), np.float32)   # skin slides (m) and hinges (rad)
         obs_td, _ = self.wrapped.reset()
         with torch.no_grad():
             for s in range(T):
@@ -394,6 +420,10 @@ class Evaluator:
                     M["q9"][s] = wd.qpos.numpy()[:, self.qadr9]
                     M["tau9"][s] = wd.actuator_force.numpy()[:, self.act9]
                     M["ctrl9"][s] = wd.ctrl.numpy()[:, self.act9]
+                    car_rel[s] = wd.xpos.numpy()[:, self.car_b] - tpos[:, None]
+                    car_q[s] = wd.xquat.numpy()[:, self.car_b]
+                    if self.skin_j:
+                        M["skin_q9"][s] = wd.qpos.numpy()[:, self.skin_qadr]
                 if self.physics or self.mech:
                     nc = int(wd.nacon.numpy()[0])
                     if nc:
@@ -420,6 +450,9 @@ class Evaluator:
             out.update(ctrl=ctrl, palm=palm, qpos=qpos, xroot=xroot, angv=angv, angw=angw)
         if self.mech:
             out.update(M)
+            out["slip_car"] = slip_record(M["tool_q"], M["con_rel"], car_rel, car_q)
+            out["slip_tip"] = (out["slip_car"] if self.car_b == self.tip_b else
+                               slip_record(M["tool_q"], M["con_rel"], M["tip_rel"], M["tip_q"]))
         return out
 
     def render_world(self, r: dict, w: int, steps, width: int = 480, height: int = 360, lines=None):
@@ -675,6 +708,8 @@ def save_traces(tag: str, r: dict, sub: str = "final_traces", root: Path | None 
         extra = {k: r[k].astype(np.float16) for k in MECH_KEYS}
         extra["ncon"] = r["ncon"]
         extra["pen"] = r["pen"].astype(np.float16)
+        # micrometre-scale records stay float32 (float16 resolves 15 um at the tool's 30 mm offsets)
+        extra.update({k: r[k].astype(np.float32) for k in ("slip_car", "slip_tip", "skin_q9") if k in r})
         for k, v in (consts or {}).items():
             extra["c_" + k] = np.asarray(v)
     np.savez_compressed(d / f"{tag}.npz", cos=r["cos"].astype(np.float16), z=r["z"].astype(np.float16),
@@ -701,6 +736,87 @@ def _rotvec(R):
 
 
 TURN_END = 150      # the turn: the residual's onset to policy step 150; the hold: 150 to the end (as the watch's hold)
+
+
+def slip_record(tool_q, con_rel, car_rel, car_q) -> np.ndarray:
+    """Per policy step and fingertip, the displacement of the tool's material point at the fingertip's contact centroid
+    relative to a body of the finger (car_rel: its origin minus the tool position; car_q: its orientation), in that body's
+    frame, m. Increment k is the step from record k-1 to k: the point on the tool under the centroid at k-1 is carried with
+    the tool to k and compared with where it sat in the body's frame at k-1. NaN where the finger had no contact at k-1;
+    increment 0 is NaN. Relative to the skin body it is the slide over the spheres (the friction rows' creep and slip);
+    relative to the rigid tip it is the tool's whole motion against the fingertip (skin deflection plus slide)."""
+    RT = _quat_mat(tool_q.astype(np.float64))                              # (T, N, 3, 3)
+    RC = _quat_mat(car_q.astype(np.float64))                               # (T, N, 3 fingers, 3, 3)
+    con, car = con_rel.astype(np.float64), car_rel.astype(np.float64)
+    x = np.einsum("tnji,tnkj->tnki", RT[:-1], con[:-1])                    # the material point in the tool frame at k-1
+    w = np.einsum("tnij,tnkj->tnki", RT[1:], x)                            # ... relative to the tool position at k
+    y1 = np.einsum("tnkji,tnkj->tnki", RC[1:], w - car[1:])                # in the body frame at k
+    y0 = np.einsum("tnkji,tnkj->tnki", RC[:-1], con[:-1] - car[:-1])       # the centroid in the body frame at k-1
+    out = np.full(con.shape, np.nan)
+    out[1:] = y1 - y0
+    return out
+
+
+def skin_slip_metrics(r: dict, c: dict, held_t: np.ndarray, held: np.ndarray, a0: int) -> dict:
+    """The tool's motion against each fingertip over the turn (onset to step 150) and the hold (150 to the end), from the
+    slip record: the slide of the tool over the contact geoms' body (slip_car) and its motion against the rigid tip
+    (slip_tip), tangential components (the body frame's y and z; x is the palmar face's normal), in um. Net: the length
+    of the summed displacement; path: the summed length of the per-step displacements; per second over the steps with
+    contact. With a skin, also its own deflection (skin_q9): the slides' tangential displacement in um and the hinge's
+    angle in mrad, as the median over the window's held steps and the maximum over the window, per finger, and the
+    spring's tangential force k_t |q| against the friction limit mu N (N the fingertip's net force): the share of the
+    presliding range the policy uses. Medians over held rollouts; per-finger lists in thumb, index, middle order."""
+    T = r["cos"].shape[0]
+    e = min(TURN_END, T)
+    out = {}
+    act = held_t.copy()
+    act[:a0] = False
+
+    def med(v):
+        v = np.asarray(v, float)[held]
+        v = v[np.isfinite(v)]
+        return float(np.median(v)) if v.size else None
+
+    for key, name in (("slip_car", "slide"), ("slip_tip", "rel")):
+        if key not in r:
+            continue
+        s = np.asarray(r[key], float)[..., 1:3] * 1e6                        # (T, N, 3, 2) um, tangential
+        ok = np.isfinite(s[..., 0]) & act[:, :, None]                       # (T, N, 3) a held step with contact
+        s = np.where(ok[..., None], s, 0.0)
+        for wname, sl in (("turn", slice(a0 + 1, e)), ("hold", slice(e + 1, T))):
+            n = ok[sl].sum(0)                                               # (N, 3) steps counted
+            net = np.linalg.norm(s[sl].sum(0), axis=-1)                     # (N, 3) um
+            path = np.linalg.norm(s[sl], axis=-1).sum(0)
+            dur = np.maximum(n, 1) * 0.02
+            out[f"{name}_{wname}_net_um"] = [med(np.where(n[:, k] > 0, net[:, k], np.nan)) for k in range(3)]
+            out[f"{name}_{wname}_path_um"] = [med(np.where(n[:, k] > 0, path[:, k], np.nan)) for k in range(3)]
+            out[f"{name}_{wname}_net_um_s"] = [med(np.where(n[:, k] > 0, net[:, k] / dur[:, k], np.nan)) for k in range(3)]
+            out[f"{name}_{wname}_path_um_s"] = [med(np.where(n[:, k] > 0, path[:, k] / dur[:, k], np.nan)) for k in range(3)]
+    if "skin_q9" in r and np.size(c.get("skin_k", [])) == 9:
+        q = np.asarray(r["skin_q9"], float).reshape(T, -1, 3, 3)             # (T, N, finger, y/z/t)
+        kt = np.asarray(c["skin_k"], float).reshape(3, 3)[:, 0]             # (3,) slide stiffness, N/m
+        mu = float(np.asarray(c.get("mu", 1.0)))
+        d_t = np.linalg.norm(q[..., :2], axis=-1) * 1e6                     # (T, N, 3) um
+        d_h = np.abs(q[..., 2]) * 1e3                                       # mrad
+        f = np.asarray(r["force"], float)
+        use = np.where(f > HELD_N, kt[None, None, :] * d_t * 1e-6 / (mu * np.maximum(f, 1e-9)), np.nan)
+        for wname, sl in (("turn", slice(a0, e)), ("hold", slice(e, T))):
+            h = act[sl][..., None] & np.ones(3, bool)
+            for nm, v in (("skin_slide_um", d_t), ("skin_hinge_mrad", d_h), ("skin_presliding_used", use)):
+                vv = np.where(h, v[sl], np.nan)
+                out[f"{nm}_{wname}_median"] = [med(np.nanmedian(vv[:, :, k], 0)) if np.isfinite(vv[:, :, k]).any() else None
+                                               for k in range(3)]
+                out[f"{nm}_{wname}_max"] = [med(np.nanmax(np.where(np.isfinite(vv[:, :, k]), vv[:, :, k], -np.inf), 0))
+                                            for k in range(3)]
+        # the springs' share of the tool's motion against the tip over the hold: the slides' net change of deflection
+        hs = act[e:].all(0)                                                 # rollouts held through the whole hold
+        dq = np.linalg.norm(q[-1, :, :, :2] - q[e, :, :, :2], axis=-1) * 1e6  # (N, 3) um
+        out["skin_slide_hold_change_um"] = [med(np.where(hs, dq[:, k], np.nan)) for k in range(3)]
+        out["skin_hinge_hold_change_mrad"] = [med(np.where(hs, np.abs(q[-1, :, k, 2] - q[e, :, k, 2]) * 1e3, np.nan))
+                                              for k in range(3)]
+        out["skin_kt_N_m"], out["skin_kth_N_m_rad"] = float(kt[0]), float(np.asarray(c["skin_k"]).reshape(3, 3)[0, 2])
+        out["mu"] = mu
+    return out
 
 
 def pinch_turn(r: dict, a0: int = 58, e: int = TURN_END) -> dict:
@@ -818,6 +934,7 @@ def mech_metrics(r: dict, c: dict) -> dict:
         spin_per_rollout=[round(float(v), 2) for v in deg(spin_turn.mean(-1))],
         turn_per_rollout=[round(float(v), 2) for v in deg(np.abs(tool_turn))],
     )
+    out.update(skin_slip_metrics(r, c, held_t, held, a0))
     return out
 
 
@@ -1019,6 +1136,29 @@ def cmd_mechanism(args):
         ev.close()
 
 
+def cmd_creep(args):
+    """The slip record (slip_record, skin_slip_metrics) of a study's final policies on their own scenes: a mechanism
+    evaluation of the nominal plant whose rows go to creep.jsonl and traces to creep_traces/ under MECH_OUT, so that the
+    mechanism rows of the policies evaluated before the record existed stay as they are."""
+    out = MECH_OUT / "creep.jsonl"
+    have = set() if args.redo else done_keys(out, ("tag",))
+    for tag, arm, seed, steps in pick(args):
+        if (tag,) in have:
+            continue
+        ck = final_ckpt(tag, steps)
+        ev = Evaluator(ARMS[arm], ck, n=args.n, steps=args.steps, physics=True, mech=True)
+        r = ev.rollout()
+        save_traces(tag, r, sub="creep_traces", root=MECH_OUT, consts=ev.mech_consts())
+        row = _mech_row(tag, arm, seed, ck, ev, r, "creep_traces")
+        append(out, row)
+        print(f"{tag} creep: slide over the {'skin' if ev.skin_j else 'tip'} in the hold "
+              f"{row.get('slide_hold_net_um_s')} um/s (net), {row.get('slide_hold_path_um_s')} um/s (path); against the tip "
+              f"{row.get('rel_hold_net_um_s')} um/s; skin slide {row.get('skin_slide_um_hold_median')} um, hinge "
+              f"{row.get('skin_hinge_mrad_hold_median')} mrad, presliding used {row.get('skin_presliding_used_hold_median')}",
+              flush=True)
+        ev.close()
+
+
 def cmd_transfer(args):
     """Final checkpoints evaluated on scene `--scene` (every arm's own scene gives the matrix's diagonal)."""
     out = OUT8 / "transfer.jsonl"
@@ -1180,7 +1320,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd")
     sub.add_parser("legacy")
-    for name in ("ckpts", "final", "transfer", "robust", "tb", "costs", "watch", "mechanism"):
+    for name in ("ckpts", "final", "transfer", "robust", "tb", "costs", "watch", "mechanism", "creep"):
         s = sub.add_parser(name)
         s.add_argument("--study", choices=sorted(STUDIES), default="20261008",
                        help="the runs, scenes and rows of that study (default: 2026-10-08)")
@@ -1191,7 +1331,7 @@ def main():
         if name == "ckpts":
             s.add_argument("--every", type=int, default=82, help="iterations between evaluated checkpoints")
             s.add_argument("--iterations", type=int, nargs="*", default=[], help="only these checkpoints")
-        if name in ("ckpts", "robust", "mechanism"):
+        if name in ("ckpts", "robust", "mechanism", "creep"):
             s.add_argument("--redo", action="store_true", help="evaluate again rows that exist (the newest row counts)")
         if name == "mechanism":
             s.add_argument("--from-traces", action="store_true",
@@ -1210,7 +1350,7 @@ def main():
         legacy()
         return 0
     {"ckpts": cmd_ckpts, "final": cmd_final, "transfer": cmd_transfer, "robust": cmd_robust, "tb": cmd_tb,
-     "costs": cmd_costs, "watch": cmd_watch, "mechanism": cmd_mechanism}[a.cmd](a)
+     "costs": cmd_costs, "watch": cmd_watch, "mechanism": cmd_mechanism, "creep": cmd_creep}[a.cmd](a)
     return 0
 
 

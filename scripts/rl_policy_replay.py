@@ -64,6 +64,10 @@ def block_dir(d: Path) -> Path:
     for a, b in (("pads1", "mesh"), ("tpu27skin", "tpu27mesh"), ("_box_", "_tpu27mesh_")):
         n = n.replace(a, b)
     bd = d.with_name(n)
+    if bd != d and not bd.exists():     # the arms of one study can start on different dates (servo-plant skin: 2026-10-12)
+        alt = sorted(d.parent.glob("*-" + n.split("-", 1)[1]))
+        if alt:
+            bd, n = alt[0], alt[0].name
     if bd != d and "_40M_s" in n and not (ROOT / "results/rl" / n / "tensorboard" / "model_812.pt").exists():
         bd = d.with_name(re.sub(r"_s\d+$", "_s0", n))
     return bd
