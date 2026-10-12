@@ -114,6 +114,13 @@ Copy the newest builder + template as the starting point; they carry the table a
 default link colours, 1px black rules); builders call `retro_style.apply(html)` before writing. Figures are
 centred and chart text is at least 13 px as displayed.
 
+**Films (owner, asked three times; last 2026-10-12: "you should have been generating videos", "make sure to keep the
+visuals, figures really beautiful"):** every result page and every topic overview shows the behaviour it reports as film,
+not only as numbers. Topic overviews take `film=` figures (`scripts/topic_overview_page.py`: clips side by side under label
+bars, panels cropped out of multi-panel films); bed tasks film several models at once with
+`scripts/contact_bed_candidates.py film-compare`. Look at every figure and poster frame at its displayed size before
+committing it.
+
 ## Documentation — where things go (keep all three in sync for real work)
 
 - **`docs/index.html` = the readable docs** (owner, 2026-10-09): the home page links the topic
