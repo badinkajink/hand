@@ -11,7 +11,17 @@ runs use the isolated environment of `docs/experiments/20261007-diffmjx/README.m
 ## CPU checks
 
 ```bash
-uv run --no-sync python scripts/diffmjx_audit_probes.py interfinger fdstep cfd_reach frames
+uv run --no-sync python scripts/diffmjx_audit_probes.py interfinger fdstep cfd_reach frames contacts20
+```
+
+## Turn onset: forward parity and gradient cost
+
+The fork and CPU MuJoCo 3.3.1, 100 ms from the 2 mm packed-pad held state; the gradient stage runs only if parity
+holds, the search only if one gradient costs at most 100 times the CPU finite differences (3.8 GB peak, 2 min):
+
+```bash
+JAX_PLATFORM_NAME=cpu ~/.claude/bin/resguard.sh run --mem 10G --cpu 400 -- \
+  logs/20261007-diffmjx/venv/bin/python scripts/diffmjx_turn_onset.py
 ```
 
 ## Corrected 400 ms searches

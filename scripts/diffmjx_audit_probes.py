@@ -13,6 +13,8 @@ Each subcommand writes one JSON file into docs/experiments/20261011-diffmjx_audi
                10-07 probes used (cfd_solimp[2] = 0.05 m), next to the pairs in contact
   frames       compares the tool's angular velocity and constraint torque about its body x axis (what the 10-07
                scripts read from the free joint) with the same quantities about world x, 20 ms after the held state
+  contacts20   counts the pad-to-tool contacts that open and close during the 20 ms yaw-offset test of 2026-10-07,
+               without an action and with the CPU finite-difference action
   module_check compares the outputs of the refactored scripts in regression/ with the stored data of 2026-10-07,
                counts the scripts' lines before and after the shared module, and runs the module's tests
   corrections  collects the corrected 400 ms searches (searches/*.json, real_v1_contact_gait_search.py with
@@ -367,8 +369,36 @@ def module_check() -> None:
                   "returncode": run.returncode}})
 
 
+def contacts20() -> None:
+    import mujoco
+    scene, meta, model, held = d1.held_scene("tpu6", "padsT", 1)
+    search = json.loads((ROOT / "docs/experiments/20261007-diffmjx/20261007-pad_local_search_20_mj331.json").read_text())
+    yaw = np.array([model.actuator(f"a_{f}_yaw").id for f in d1.FINGERS])
+    obj = model.body(d1.OBJ).id
+
+    def active(data):
+        return {tuple(int(v) for v in data.contact[i].geom) for i in range(data.ncon)
+                if obj in (model.geom_bodyid[data.contact[i].geom[0]], model.geom_bodyid[data.contact[i].geom[1]])}
+
+    rows = {}
+    for name, delta in (("no action", np.zeros(3)), ("CPU finite-difference action",
+                                                     np.asarray(search["candidates"]["cpu_fd"]["delta_rad"]))):
+        data = d1.clone_data(model, held)
+        data.ctrl[yaw] += delta
+        start = active(data)
+        opened, closed = set(), set()
+        for _ in range(20):
+            mujoco.mj_step(model, data)
+            now = active(data)
+            opened |= start - now
+            closed |= now - start
+        rows[name] = {"at_start": len(start), "opened": len(opened), "closed": len(closed), "at_end": len(now)}
+        print(name, rows[name], flush=True)
+    write("contacts20.json", {"mujoco_version": mujoco.__version__, "steps": 20, "rows": rows})
+
+
 COMMANDS = {"interfinger": interfinger, "fdstep": fdstep, "cfd_reach": cfd_reach, "frames": frames,
-            "corrections": corrections, "module_check": module_check}
+            "corrections": corrections, "module_check": module_check, "contacts20": contacts20}
 
 
 def main() -> None:

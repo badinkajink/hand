@@ -181,6 +181,7 @@ def load():
     S["fdstep"] = js(os.path.join(A, "fdstep.json"))
     S["reach"] = js(os.path.join(A, "cfd_reach.json"))
     S["frames"] = js(os.path.join(A, "frames.json"))
+    S["contacts20"] = js(os.path.join(A, "contacts20.json"))
     S["corr"] = opt(os.path.join(A, "corrections.json"))
     S["module"] = opt(os.path.join(A, "module_check.json"))
     S["onset"] = opt(os.path.join(A, "turn_onset.json"))
@@ -320,11 +321,8 @@ def scripts_section(S):
     ]
     head = ["Script", "What it computes", "Finding"]
     body = table(head, [((r[0], "txt"), (r[1], "txt"), (r[2], "txt")) for r in rows], text=True)
-    return ("<p>No policy was ever trained with DiffMJX. The work of 7 October measured control derivatives of the "
-            "released fork at the held D1 grasp over 1, 10 and 20&#8201;ms, and searched 400&#8201;ms plans with CPU "
-            "MuJoCo, whose local search took its derivatives from finite differences. Table&#160;1 lists each script "
-            "with what it computes and what the audit found; line numbers refer to commit 10eb3f1e, before the "
-            "corrections.</p>" + body
+    return ("<p>Table&#160;1 lists each script of the two studies with what it computes and what the audit found; "
+            "line numbers refer to commit 10eb3f1e, before the corrections.</p>" + body
             + tcap("Scripts of the two studies of 7 October. Paths under <code>scripts/</code> and "
                    "<code>src/morphohand/</code>."))
 
@@ -339,12 +337,19 @@ def horizon_section(S):
     gain400 = pads["candidates"]["direct_gradient"]["cos_gain"]
     turn400 = tilt_deg(pads["initial_vertical_cos"], pads["initial_vertical_cos"] + gain400)
     base_diff = abs(jac["fork_base_metrics"][0] - jac["cpu_base_metrics"][0])
+    c20 = S["contacts20"]["rows"]
+    cpu_sw = [v[0] for v in S["sweep"]["cpu_fd_sweep"].values()]
     return (f"<p>The 20&#8201;ms test adds one constant offset to the three yaw targets, runs 20 steps from the held "
             f"state and scores the vertical cosine. The best 0.1&#8201;rad offset raises it by {g(fd, 3)}, a tilt of "
             f"{tilt_deg(c0, c0 + fd):.3f}&#176;. The 400&#8201;ms local search turned the tool by {turn400:.1f}&#176; "
-            f"and a reorientation to vertical takes {math.degrees(math.acos(c0)):.1f}&#176;. No contact starts or "
-            "ends in these 20 steps.</p>"
-            f"<p>Over 20 steps the response is linear in the three offsets, so every estimate of its gradient selects "
+            f"and a reorientation to vertical takes {math.degrees(math.acos(c0)):.1f}&#176;. In these 20 steps the "
+            f"tool settles after the post is removed: {c20['no action']['opened']} of the {c20['no action']['at_start']} "
+            f"pad contacts open and {c20['no action']['closed']} closes without an action, "
+            f"{c20['CPU finite-difference action']['opened']} and {c20['CPU finite-difference action']['closed']} with the "
+            "best offset (<code>contacts20.json</code>).</p>"
+            f"<p>The response to the offsets is linear over these 20 steps (the CPU derivative changes by "
+            f"{pct(max(cpu_sw) / min(cpu_sw) - 1, 1)} between steps of 10<sup>&#8722;4</sup> and "
+            f"10<sup>&#8722;2</sup>&#8201;rad), so every estimate of its gradient selects "
             f"the same action: the CPU finite-difference direction gained {g(fd, 4)}, the fork&#8217;s AD gradient "
             f"{g(ad, 4)} and the best of 128 random directions {g(best, 4)} ({pct(best / fd)} of the CPU direction). "
             "The test measures whether the fork reproduces CPU MuJoCo&#8217;s local response, and every method "
@@ -460,12 +465,11 @@ def fd_section(S):
     msrc, mrel = S["mesh"], S["mesh_rel"]
     step = F["tips"]["1 mm packed"]["probe_step_per_coordinate"][0]
     ccd = F["tips"]["convex mesh"]["ccd_tolerance"]
-    text = (f"<p>The 20&#8201;ms CPU differences use 0.01&#8201;rad, and the CPU derivative of the vertical cosine "
-            f"changes by {pct(max(cpu) / min(cpu) - 1, 1)} between steps of 10<sup>&#8722;4</sup> and "
-            f"10<sup>&#8722;2</sup>&#8201;rad. The fork&#8217;s changes by {pct(max(fork) / min(fork) - 1, 0)} over "
-            f"the same range and its contact-torque derivative by a factor of {max(tf) / min(tf):.1f}: the "
-            "fork&#8217;s response bends between 10<sup>&#8722;3</sup> and 3&#215;10<sup>&#8722;3</sup>&#8201;rad "
-            "and CPU MuJoCo&#8217;s does not.</p>")
+    text = (f"<p>The 20&#8201;ms differences use 0.01&#8201;rad. Between steps of 10<sup>&#8722;4</sup> and "
+            f"10<sup>&#8722;2</sup>&#8201;rad the fork&#8217;s derivative of the vertical cosine changes by "
+            f"{pct(max(fork) / min(fork) - 1, 0)}, against {pct(max(cpu) / min(cpu) - 1, 1)} in CPU MuJoCo, and its "
+            f"torque derivative by a factor of {max(tf) / min(tf):.1f}: the fork&#8217;s response bends between "
+            "10<sup>&#8722;3</sup> and 3&#215;10<sup>&#8722;3</sup>&#8201;rad.</p>")
     text += (f"<p>The 400&#8201;ms search takes L-BFGS-B&#8217;s gradient from SciPy&#8217;s two-point differences at "
              f"the default step, {g(step, 3)} in plan units ({g(step * 0.35, 2)}&#8201;rad of yaw target). On the "
              f"packed pads this step gives the gradient of the larger steps: cosine "
@@ -593,8 +597,9 @@ def uses_section(S):
             "tool while CEM found recontact. CFD supplies a derivative toward contact, which concerns first touch "
             "and regrasp, the state that was not measured.</p>"
             "<p>Finite differences cost one rollout per parameter, so a reverse-mode gradient pays when a plan has "
-            "hundreds of values, such as per-step controls or a fingertip shape. That needs the scan loop and its "
-            "memory, and the forward model of the previous section.</p>")
+            "hundreds of values, such as per-step controls or a fingertip shape. Reverse mode through the fork needs "
+            "the scan loop, which under these numerics evaluates up to 5,000 line-search steps per simulation "
+            "step.</p>")
 
 
 def bugs_section(S):
@@ -771,8 +776,9 @@ def onset_section(S):
     force = lambda r: r["finger_normal_force_N"]  # noqa: E731
     fmax = max(abs(force(a)[f] - force(b)[f]) for a, b in zip(t["fork"], t["cpu"]) for f in force(a))
     text = (f"<p>The fork and CPU MuJoCo {on['mujoco_version']} ran {on['horizon_ms']}&#8201;ms from the held state of the "
-            f"2&#8201;mm packed pads ({sum(on['n_pads'].values())} spheres) under the first-phase controls of the "
-            f"2&#8201;mm free hybrid plan of 7 October, the turn onset, and of the hold plan. The criterion was fixed "
+            f"2&#8201;mm packed pads ({sum(on['n_pads'].values())} spheres) under the controls that the 2&#8201;mm free "
+            f"hybrid plan of 7 October applies in its first 120&#8201;ms, the turn onset, and under the hold plan. The "
+            f"criterion was fixed "
             f"before the run: the fork&#8217;s orientation gain at {on['horizon_ms']}&#8201;ms within "
             f"{pct(crit['gain_rel'], 0)} of CPU MuJoCo&#8217;s and its tool position within "
             f"{crit['position_m'] * 1e3:.1f}&#8201;mm. The turn plan gains {g(par['gain_cpu'], 3)} in CPU MuJoCo and "
@@ -809,28 +815,29 @@ def onset_section(S):
 
 
 def lede(S):
-    jac, ls = S["jac"], S["ls"]
-    jac_ratio = (jac["gradient_compile_s"] + jac["gradient_warm_s"] * 2 / 3) / ls["cpu_fd_6_evals_s"]
-    ratio = [a / b for a, b in zip(jac["fork_base_metrics"], jac["cpu_base_metrics"])]
-    on = S["onset"]
+    on, corr = S["onset"], S["corr"]
+    mesh = {r["label"]: r for r in corr["rerun"]}["convex mesh, free"] if corr else None
     if on is None or "decision" not in on:
-        tail = "<i>[turn-onset result, step 4]</i>"
+        onset = "<i>[turn-onset result, step 4]</i> "
     elif not on["parity"]["holds"]:
-        tail = (f"At the turn onset on 2&#8201;mm pads the fork&#8217;s 100&#8201;ms orientation gain differs from CPU "
-                f"MuJoCo&#8217;s by {pct(on['parity']['gain_rel_error'], 1)}, so forward parity fails and no gradient "
-                "search was run.")
+        onset = (f"At the turn onset on 2&#8201;mm pads the fork&#8217;s 100&#8201;ms orientation gain differs from CPU "
+                 f"MuJoCo&#8217;s by {pct(on['parity']['gain_rel_error'], 1)}, so forward parity fails and no gradient "
+                 "search was run. ")
     else:
-        tail = (f"At the turn onset the forward parity holds, and one 100&#8201;ms gradient costs "
-                f"{grp(on['gradient']['ratio_first'])} times its CPU finite differences"
-                + (", so the gradient search was stopped." if on["decision"] == "stop" else "."))
-    return ("No policy was trained with DiffMJX. On 7 October the released fork&#8217;s control derivatives were "
-            "measured at the held D1 grasp over 1&#8211;20&#8201;ms, and 400&#8201;ms plans were searched in CPU "
-            "MuJoCo. The fork&#8217;s automatic derivatives match its own finite differences, but its sphere-to-"
-            "cylinder contact is an iterative approximation: after 20&#8201;ms the tool&#8217;s angular speed is "
-            f"{ratio[2]:.2f} times CPU MuJoCo&#8217;s. A three-control 20&#8201;ms gradient cost "
-            f"{grp(jac_ratio)} times its CPU finite differences, compilation included. Contact from distance was "
-            "tested only where the ordinary derivative exists. On the convex mesh the plan search&#8217;s "
-            "finite-difference step measured collision noise. " + tail)
+        gr = on["gradient"]
+        onset = (f"The fork&#8217;s derivatives are correct for its own model, and at the turn onset on 2&#8201;mm pads its "
+                 f"100&#8201;ms trajectory stays within {pct(on['parity']['gain_rel_error'], 1)} of CPU MuJoCo&#8217;s, but "
+                 f"one gradient costs {grp(gr['ratio_first'])} times the CPU finite differences "
+                 f"({grp(gr['ratio_warm'])} times warm)"
+                 + (", so the stop rule ended the comparison before any gradient search. " if on["decision"] == "stop"
+                    else ". "))
+    tail = (f"On the convex mesh the plan search&#8217;s finite-difference step measured collision noise; corrected, the "
+            f"mesh local search gains {mesh['after']['direct']:.3f} instead of {mesh['before']['direct']:.3f}."
+            if mesh else "")
+    return ("No policy was ever trained with DiffMJX; on 7 October the released fork&#8217;s derivatives were measured "
+            "at the held D1 grasp over 1&#8211;20&#8201;ms, and 400&#8201;ms plans were searched in CPU MuJoCo. "
+            + onset + "Contact from distance, meant for bodies that do not yet touch, was never tested in that state. "
+            + tail)
 
 
 def limits_section(S):
@@ -852,14 +859,18 @@ def next_section(S):
          f"{code('mjd_transitionFD')} along the 400&#8201;ms continuation and run iLQR from the hold plan, scored "
          f"like the search; new script {code('scripts/d1_ilqr.py')} on {code('real_v1_d1_continuation.py')}. "
          "Keep it if it beats CEM&#8217;s gain of 0.114 within the 10&#8201;s that CEM takes."),
+        ("Fork cost at the fork&#8217;s own solver settings", "Rerun the gradient stage of "
+         f"{code('scripts/diffmjx_turn_onset.py')} with the Newton solver at 4 iterations and 10 line-search steps (the "
+         "fork&#8217;s examples) and in 32-bit arithmetic, after checking forward parity at those settings. The stop "
+         "decision stands if one gradient still costs more than 100 times the CPU finite differences at the same "
+         "settings."),
     ]
     return "<ol>" + "".join(f"<li><b>{t}.</b> {d}</li>" for t, d in items) + "</ol>"
 
 
 def footer(S):
-    return ("<p>Rebuild: <code>.venv/bin/python scripts/diffmjx_audit_page.py</code>. Checks: "
-            "<code>uv run --no-sync python scripts/diffmjx_audit_probes.py interfinger fdstep cfd_reach frames</code>"
-            " and the corrections and turn-onset commands in the sections above. Data: "
+    return ("<p>Rebuild: <code>.venv/bin/python scripts/diffmjx_audit_page.py</code>. The commands of every check, "
+            f"search and regression run are in the runbook <code>{REL}/README.md</code>. Data: "
             f"<code>{REL}/</code>, <code>docs/experiments/20261007-diffmjx/</code>, "
             "<code>docs/experiments/20261007-contact-gait/</code>. The fork&#8217;s source is the pinned clone under "
             "<code>logs/20261007-diffmjx/mujoco/</code> (git-ignored; commits in the runbook of 7 October).</p>")
