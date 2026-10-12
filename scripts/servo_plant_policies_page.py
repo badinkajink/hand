@@ -112,6 +112,9 @@ class Data:
                                ("dir", "engine", "world"))
                     for s, d in (("11", D), ("08", D8))}
         self.rec = {s: [r for r in rows(d, "policy_replay.jsonl") if r.get("kind") == "record"] for s, d in (("11", D), ("08", D8))}
+        # a second pass of the Newton replays, same worlds, targets and state (logs/20261011-servo_plant_policies/newton_repeat.sh)
+        self.rep2 = last_by([dict(r, dir=os.path.basename(r["dir"])) for r in rows(D, "policy_replay_newton_repeat.jsonl")
+                             if r.get("engine") == "newton"], ("dir", "world"))
         self.tr = {"11": last_by(rows(D, "transfer.jsonl"), ("tag", "scene")), "08": last_by(rows(D8, "transfer.jsonl"), ("tag", "scene"))}
         self.tb = {"11": rows(D, "tb_dynamics.jsonl"), "08": rows(D8, "tb_dynamics.jsonl")}
         self.cost = {"11": {r["tag"]: r for r in rows(D, "run_costs.jsonl")}, "08": {r["tag"]: r for r in rows(D8, "run_costs.jsonl")}}
@@ -376,7 +379,7 @@ def plant_section(X: Data):
     tot = sum(X.cost["11"][r["tag"]].get("wall_h") or 0 for r in X.finals("11") if r["tag"] in X.cost["11"])
     if all(sp.values()) and all(sp8.values()):
         out += (f"<p>The four runs took {tot:.1f}&#8202;GPU-h on the RTX 4070 Ti SUPER, one at a time (Table&#160;2). A pad "
-                f"iteration cost {np.median(sp['tpu27pads1']) / np.median(sp['tpu27mesh']):.2f}&#215; a mesh iteration "
+                f"iteration cost {np.median(sp['tpu27pads1']) / np.median(sp['tpu27mesh']):.2f}&#215; a TPU-mesh iteration "
                 f"({np.median(sp['tpu27pads1']):.2f} against {np.median(sp['tpu27mesh']):.2f}&#8202;s); in the 2026-10-08 runs, "
                 f"which shared the workstation with other jobs, it cost {np.median(sp8['tpu27pads1']) / np.median(sp8['tpu27mesh']):.2f}&#215; "
                 f"({np.median(sp8['tpu27pads1']):.2f} against {np.median(sp8['tpu27mesh']):.2f}&#8202;s).</p>")
@@ -819,8 +822,28 @@ def transfer_text(X: Data):
                 f"{min(falls):.1f}&#8211;{max(falls):.1f}&#8202;s after the onset, in {early} of {len(falls)} worlds within the "
                 "first second, after the turn has ended"
                 + (f"; one held pad replay ends turned to the wrong pole (cos &#8722;0.80)" if flips == 1 else
-                   (f"; {flips} held replays end turned to the wrong pole" if flips else "")) + ".</p>")
+                   (f"; {flips} held replays end turned to the wrong pole" if flips else "")) + ".")
+        out += newton_repeat_text(X) + "</p>"
     return out
+
+
+def newton_repeat_text(X: Data):
+    """The second Newton pass against the first, world by world."""
+    if not X.rep2:
+        return ""
+    first = {(r["dir"], r["world"]): r for r in X.rep["11"] if r["engine"] == "newton"}
+    pairs = [(first[(r["dir"], r["world"])], r) for r in X.rep2 if (r["dir"], r["world"]) in first]
+    if not pairs:
+        return ""
+    same = sum(1 for a, b in pairs if bool(a.get("held_end")) == bool(b.get("held_end")))
+    h2 = {a: (sum(1 for _, b in pairs if arm_of(b["dir"]) == a and b.get("held_end")),
+              sum(1 for _, b in pairs if arm_of(b["dir"]) == a)) for a in ("tpu27pads1", "tpu27mesh")}
+    head = (f" A second Newton pass over the same worlds, targets and onset states kept the tool in {h2['tpu27pads1'][0]} of "
+            f"{h2['tpu27pads1'][1]} pad and {h2['tpu27mesh'][0]} of {h2['tpu27mesh'][1]} TPU-mesh replays")
+    if same == len(pairs):
+        return head + f", and all {len(pairs)} worlds ended the same way in both passes."
+    return (head + f"; {same} of {len(pairs)} worlds ended the same way in both passes, so Newton&#8217;s GPU contact solve "
+            "does not repeat a replay of this grip exactly.")
 
 
 def replay_totals_engine(X: Data, study, arm, engine):
@@ -838,14 +861,17 @@ def replay_outcome(X: Data, tag, world=0):
     rec = next((q for q in X.rec["11"] if q["tag"] == tag), None)
     parts = [f"MuJoCo-Warp ends at cos {rec['mjw_cos_end'][world]:.2f}"] if rec else []
     for e in ("drake", "newton"):
-        x = next((q for q in X.replays("11", tag, e) if q.get("world") == world), None)
+        p = os.path.join(D, f"media/{tag}_replay_{e}.json")       # the filmed run's own end state
+        x = json.load(open(p)) if os.path.exists(p) else None
         if x is None:
             continue
-        if x.get("held_end"):
-            parts.append(f"{ENG_LBL[e]} holds it at cos {x['cos_end']:.2f}")
-        else:
-            t = next((tt for tt, c, z in (x.get("trace") or []) if z < E.FLOOR_Z), None)
-            parts.append(f"in {ENG_LBL[e]} it falls {t:.1f}&#8202;s after the onset" if t is not None else f"{ENG_LBL[e]} drops it")
+        parts.append(f"{ENG_LBL[e]} holds it at cos {x['cos_end']:.2f}" if x.get("held_end") else
+                     f"{ENG_LBL[e]} drops it (tool at {x['z_end_mm']:.0f}&#8202;mm at the end)")
+    rows_ = [q for q in X.replays("11", tag, "newton") if q.get("world") == world] + \
+            [q for q in X.rep2 if q["dir"] == tag and q.get("world") == world]
+    if rows_:
+        parts.append(("the two Newton replay passes of this world " if len(rows_) == 2 else "the Newton replay of this world ")
+                     + " and then ".join("held" if q.get("held_end") else "dropped" for q in rows_) + " it")
     return ("; ".join(parts) + ".") if parts else ""
 
 
