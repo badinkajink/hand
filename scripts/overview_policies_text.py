@@ -161,13 +161,15 @@ FIGURES = {
                            "it to 0.88."),
     "seeds": dict(film=[[("docs/experiments/20260917-d6_cal_60M/videos/d6_cal_60M_m812.mp4", "Run 1: held cosine 0.93"),
                          ("docs/experiments/20260917-d6_cal_60M/videos/d6_cal_60M_gpm025_m812.mp4",
-                          "Run 2: held cosine 0.64")]],
+                          "Run 2: held cosine 0.64, no fingertip force")]],
                   page="20260917-d6_cal_60M/20260917-d6_reorient_policy_60M.html", source="D6 at 60&#8202;M steps",
-                  caption="Two from-scratch D6 runs of 60&#8202;M steps on the calibrated plant, final checkpoints, one "
-                          "deterministic rollout each at half speed. Their recipes differ only in the sign of a grip term "
-                          "worth 0.3&#8202;% of the return. Both roll the tool the same way through step 110; from step 140 "
-                          "the second leaves it resting at 50&#176; between the pads (held cosine 0.93 against 0.64 over 64 "
-                          "rollouts each)."),
+                  caption="Two from-scratch D6 runs of 60&#8202;M steps on the real_v1 model with its box fingertips "
+                          "(scene <code>20260916-sv1_u0308_b050_cal</code>; calibrated plant, kp 0.5&#8202;N&#183;m/rad, "
+                          "torque limit 0.35&#8202;N&#183;m), final checkpoints, one deterministic rollout each at half speed. "
+                          "Their recipes differ only in the sign of a grip term worth 0.3&#8202;% of the return. Both roll the "
+                          "tool the same way through step 110; from step 140 the second leaves it resting at 50&#176; on the "
+                          "fingers with zero force at all three fingertips in each of its 64 evaluation rollouts (held cosine "
+                          "0.93 for the first run, 0.64 for the second)."),
     "replays_working": dict(film=_replay_rows(_WORK + "20261008-d6_work_tpu27", [("mesh_40M_s1", "Point contact"),
                                                                                  ("pads1_40M_s2", "Pads")]),
                             page=_PAGE_WORK[0], source=_PAGE_WORK[1],
