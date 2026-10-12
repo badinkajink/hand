@@ -23,6 +23,7 @@
 <li><a href="#pads">Sphere-packed pads in MuJoCo</a></li>
 <li><a href="#references">Reference models</a></li>
 <li><a href="#evidence">Comparison with the reference models</a></li>
+<li><a href="#skin">Presliding compliance with a sprung skin</a></li>
 <li><a href="#open">Future work</a></li>
 <li><a href="#index">Index of linked pages</a></li>
 </ol>
@@ -286,13 +287,78 @@ insertion.</figcaption>
 </figure>
 </div></section>
 
+<section id="skin"><div class="col derive">
+<h2>Presliding compliance with a sprung skin</h2>
+<p>{{SKIN_LEAD}}</p>
+
+<h3><span class="step">11</span>Presliding displacement of an elastic tip</h3>
+<p>An elastic fingertip deflects before it slips. Under a tangential force \(Q\) below \(\mu N\), the Cattaneo&#8211;Mindlin
+solution for a sphere on a flat keeps a central disc of the patch stuck and lets an annulus at its edge slip, and the contact
+moves by</p>
+<div class="eq">\[\delta(Q)=\frac{3\mu N(2-\nu)}{16\,G a}\Bigl[1-\Bigl(1-\frac{Q}{\mu N}\Bigr)^{2/3}\Bigr],\qquad k_t=\frac{8Ga}{2-\nu},\qquad k_\theta=\frac{16Ga^3}{3},\]<span class="eqno">(16)</span></div>
+<p>where \(G\) is the shear modulus, \(\nu\) Poisson&#8217;s ratio and \(a\) the contact radius; \(k_t\) is the initial
+tangential stiffness, the slope of \(\delta(Q)\) at \(Q=0\), and \(k_\theta\) Lubkin&#8217;s initial torsional stiffness. A
+reversed load retraces the curve at twice its scale from the turning point (the Masing rule), so a load cycle below slip
+closes a hysteresis loop whose area is the energy dissipated by the partial slip. At 1&#8202;N per pad on the bed (\(E\)&#8202;=&#8202;10&#8202;MPa,
+\(\nu\)&#8202;=&#8202;0.45, Hertz radius 0.775&#8202;mm) the tool moves 40.3&#8202;&#181;m at half the slip force and recovers 38.0&#8202;&#181;m
+when the force returns to zero.</p>
+<p>The sphere pads and Drake store no tangential displacement. A sphere&#8217;s friction rows hold the tool through the
+regulariser of (12), so under a held load the tool creeps at a constant speed, keeps creeping while the force is positive
+and recovers nothing when the force is removed (Figure&#160;14).</p>
+
+<h3><span class="step">12</span>Pad spheres on a sprung skin</h3>
+<p>The skin moves each fingertip&#8217;s pad spheres onto a child body, joined to the fingertip by two slides tangent to the
+pad and a hinge about its normal (Figure&#160;13). Each joint has the elastic contact&#8217;s initial stiffness at a reference
+force \(N_\text{ref}\) and critical damping:</p>
+<div class="eq">\[a=\sqrt{A(N_\text{ref})/\pi},\qquad k_t=\frac{8Ga}{2-\nu},\qquad k_\theta=\frac{16Ga^3}{3},\qquad c=2\sqrt{k\,(m+m_a)},\]<span class="eqno">(17)</span></div>
+<p>with \(A\) the contact area at \(N_\text{ref}\), \(m\) the skin&#8217;s mass and \(m_a\) the armature on its joint.
+{{SKIN_SIZING}}</p>
+<p>Two settings make the skin work in MuJoCo. A contact&#8217;s friction rows are softened in proportion to its inverse weight
+\(\hat\Lambda\) (step&#160;6), and a 2&#8202;g body has a large one: on the bare skin the tool slid 49&#8202;&#181;m over the spheres
+during each force ramp. Armature on the skin&#8217;s own joints lowers \(\hat\Lambda\) and leaves the static compliance, and
+the 2&#8202;g that the tool moves while it sticks, unchanged. The damping must be near critical: at the pads&#8217; 20&#8202;ms
+relaxation, eight times critical, the tool led and trailed the skin with the force rate and the loop ran backwards.</p>
+<figure class="diagram">
+{{FIG_SKIN}}
+<figcaption>Figure&#160;13. The sprung skin. (a) Section through one pad: the pad spheres sit on a 2&#8202;g plate joined to the
+rigid fingertip by a spring and a damper along each of two tangential slides; under a tangential load the plate and the tool
+move together until the spheres slip. (b) The pad seen along its normal: the two slides and the hinge about the normal, each
+with the spring and damper of (17).</figcaption>
+</figure>
+
+<h3>Presliding on the bed</h3>
+<p>{{SKIN_T8_TEXT}}</p>
+<figure class="diagram">
+{{FIG_T8}}
+<figcaption>Figure&#160;14. Task&#160;8 at 1&#8202;N, 1&#8202;ms step: the tool&#8217;s axial displacement against the axial force over one cycle
+(0, +1, &#8722;1, +1, 0&#8202;N: half the slip force each way), with Mindlin&#8217;s closed form dashed. The pads creep while the force
+is positive and keep the displacement; the skin goes out and back along Mindlin&#8217;s initial slope; the bristles trace a loop close
+to Mindlin&#8217;s.</figcaption>
+</figure>
+{{T8_FILM}}
+<div class="tw">{{SKIN_TABLE}}</div>
+<p class="tnote">Table&#160;3. Presliding candidates on the bed at 1&#8202;N per pad, 1&#8202;ms step. Presliding: the tool&#8217;s displacement
+at the first peak of the task&#160;8 cycle; recovered: the part that returns when the force first comes back to zero (negative: the
+tool kept sliding); loop: energy dissipated per cycle. Effective \(\mu\): pull force at slip onset over \(2N\) (task&#160;1).
+Twist arm / law: friction arm at spin onset over the pressure law&#8217;s (task&#160;2). 80&#176; force: pinch force when the braked tool
+passes 80&#176; (task&#160;5). CPU: &#181;s per 1&#8202;ms step on one core (task&#160;8); GPU: &#181;s per world-step at 4,096 worlds over the
+pads&#8217;. Rows: <code>docs/experiments/20261007-native_compliance/</code>.</p>
+<p>{{SKIN_OTHERS_TEXT}}</p>
+
+<h3>Policies trained on the skin</h3>
+<p>{{SKIN_RL_WORK}}</p>
+{{SKIN_FILM}}
+{{SKIN_RL_SERVO}}
+</div></section>
+
 <section id="open"><div class="col">
 <h2>Future work</h2>
 {{OPEN_LIST}}
-<p>Drake and the spheres integrate the same pressure law, which is local and has no state. Neither represents shear
-compliance before slip, hysteresis or the lateral spread of load in an elastic tip, and both give a contact radius growing as
-\(N^{1/4}\); measured soft fingertips give exponents from 0 to 1/3, depending on the material (Xydas and Kao). The spheres
-add the creep of MuJoCo&#8217;s soft friction rows and miss surface features finer than their 1&#8202;mm spacing.</p>
+<p>Drake and the spheres integrate the same pressure law, which is local and has no state. The sprung skin adds the shear
+compliance before slip, and the rolling bristles its hysteresis at {{BRISTLE_X}} times the batched cost. Neither model represents the
+lateral spread of load in an elastic tip, and both give a contact radius growing as \(N^{1/4}\); measured soft fingertips give
+exponents from 0 to 1/3, depending on the material (Xydas and Kao). The spheres add the creep of MuJoCo&#8217;s soft friction
+rows and miss surface features finer than their 1&#8202;mm spacing.</p>
 </div></section>
 
 <footer><div class="col">

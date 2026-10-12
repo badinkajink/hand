@@ -152,6 +152,10 @@ GLOSSARY = [
     ("swing end", "Final tool angle as the pinch force falls from 6 to 0.2&#8202;N (task&#160;5); 90&#176; is hanging."),
     ("tool turn", "Rotation of the tool axis toward vertical in a replayed three-finger turn; <i>within 3&#176;</i> counts replays "
             "that end within 3&#176; of Drake&#8217;s."),
+    ("presliding", "Displacement of the tool under a tangential load below the slip force that returns when the load is "
+            "removed; task&#160;8 reads it at half the slip force, in &#181;m (Mindlin at 1&#8202;N: 40.3)."),
+    ("loop area", "Energy dissipated per cycle of a tangential load below slip, in &#181;J; a spring gives none and partial "
+            "slip a closed loop (Mindlin at 1&#8202;N: 6.13)."),
     ("&#181;s per step", "Wall time of one 1&#8202;ms physics step on one CPU core; per world-step on the GPU."),
     ("\\(t_c\\), \\(d_0\\), \\(\\hat\\Lambda\\), \\(m_\\text{eff}\\)", "MuJoCo&#8217;s <code>solref</code> time constant, "
             "<code>solimp</code> impedance and contact inverse inertia, with \\(m_\\text{eff} = 1/\\hat\\Lambda\\); together they set "
@@ -1112,8 +1116,14 @@ def svg_gpu(curves):
 
 # ------------------------------------------------------------------------------------------ tables and text
 
-def cap_table(cost, batched=None):
+def cap_table(cost, batched=None, skin=None):
+    """skin: {model: (CPU us per step in task 8, GPU multiple of the pads)} for the presliding rows (step 12)."""
     batched = batched or {}
+    skin = skin or {}
+
+    def sk(m):
+        c, g = skin.get(m, (None, None))
+        return (f"{num(c, ',.0f')} CPU core, task&#160;8<br>{g:.1f}&#215; the pads batched" if c and g else "&#8211;")
 
     def us(k, gpu=None):
         """Cost cell: one CPU core, or one GPU world and the batched cost per world-step (gpu = the GPU model key)."""
@@ -1132,6 +1142,10 @@ def cap_table(cost, batched=None):
         ("Point contact, condim&#160;3", [(Y, "One spring"), (P, "Creeps"), (N_, "None"), (N_, "One point"), (N_, "No"), (N_, "No"), us("mj_point3"), (Y, "MuJoCo-Warp")]),
         ("Condim&#160;4, \\(\\mu_t\\) rescheduled", [(Y, "One spring"), (P, "Creeps"), (P, "Fitted law, rescheduled"), (N_, "One point"), (N_, "No"), (N_, "No"), us("mj_point4s"), (P, "Needs a per-step write")]),
         ("1&#8202;mm sphere pad", [(Y, "Sampled foundation"), (P, "Creeps"), (Y, "From the sphere spread"), (Y, "Sampled"), (N_, "No"), (N_, "No"), us("mj_pads1", "mjw_pads1"), (Y, "MuJoCo-Warp, Newton")]),
+        ("1&#8202;mm pads on a sprung skin", [(Y, "Sampled foundation on springs"), (P, "Presliding, then creeps"), (Y, "From the sphere spread"),
+                                          (Y, "Sampled"), (Y, "Elastic, no hysteresis"), (N_, "No"), sk("mj_pads1_skin"), (Y, "MuJoCo-Warp")]),
+        ("1&#8202;mm pads on rolling bristles", [(Y, "Sampled foundation"), (P, "Partial slip, then creeps"), (Y, "From the sphere spread"),
+                                             (Y, "Sampled"), (Y, "With hysteresis"), (N_, "No"), sk("mj_pads1_bristle20a"), (Y, "MuJoCo-Warp")]),
         ("Drake hydroelastic", [(Y, "Pressure field"), (Y, "Creeps 100&#215; less"), (Y, "Integrated"), (Y, "Surface mesh"), (N_, "No"), (N_, "No"), us("drake_hydro"), (N_, "CPU only")]),
         ("Newton hydroelastic, \\(k_h/m_\\text{eff}\\)", [(Y, "Pressure field"), (P, "MuJoCo-Warp rows"), (P, "0.76&#8211;0.88 of Drake"), (Y, "Voxel surface"), (N_, "No"), (N_, "No"),
                                  us("newton_hydro_mc"), (Y, "Warp")]),
@@ -1150,6 +1164,165 @@ def cap_table(cost, batched=None):
         out.append(f"<tr><td>{name}</td>{''.join(tds)}</tr>")
     out.append("</tbody></table>")
     return "".join(out)
+
+
+# ------------------------------------------------------------------------------------------ presliding: the sprung skin
+# (2026-10-12, owner: "can we add that documentation to the main ... overview"; rows of the native-compliance study,
+# docs/experiments/20261007-native_compliance/, read through scripts/native_compliance_page.py)
+
+NC_D = os.path.join(EXP, "20261007-native_compliance")
+SKIN_MODELS = ("mj_pads1", "mj_pads1_skin", "mj_pads1_bristle20a", "mj_pads1_soft", "mj_pads1_lattice1", "mj_pads1_flex20")
+SKIN_LBL = {"mj_pads1": "1&#8202;mm sphere pads", "mj_pads1_skin": "Pads on a sprung skin",
+            "mj_pads1_bristle20a": "Pads on rolling bristles", "mj_pads1_soft": "Softening impedance",
+            "mj_pads1_lattice1": "Lattice, 1&#8202;mm coupling", "mj_pads1_flex20": "MuJoCo flex (CPU)"}
+SKIN_COL = {"mj_pads1": "var(--c-sphere)", "mj_pads1_skin": "var(--c-c4)", "mj_pads1_bristle20a": "var(--c-newton)",
+            "mindlin": "var(--c-ref)"}
+
+
+def svg_skin():
+    """Figure 13: the sprung skin. (a) Section through one pad: rigid fingertip, the skin plate on its tangential spring and
+    damper, the pad spheres, the tool. (b) The pad seen along its normal: two slides and the hinge."""
+    import math as _m
+    W, H = 1040, 320
+    out = _svg_open(W, H, "The sprung skin: the pad spheres sit on a 2 g plate joined to the rigid fingertip by two tangential "
+                          "slides and a hinge about the pad normal, each with a spring and a damper")
+    ink, ink2, ink3, grn, amb = "var(--ink)", "var(--ink2)", "var(--ink3)", "var(--c-c4)", "var(--c-sphere)"
+    out.append(f'<defs><marker id="skin-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">'
+               f'<path d="M0,0 L10,5 L0,10 z" style="fill:{ink}"/></marker></defs>')
+    out.append(f'<text x="14" y="22" style="fill:{ink2}">(a) Section through one pad</text>'
+               f'<text x="700" y="22" style="fill:{ink2}">(b) The pad seen along its normal</text>')
+    cx, R0, a = 335, 700, 0.30
+    cyc = 140 - R0                                   # common centre of the arcs, far above the drawing
+
+    def arc(r, a0, a1, n=48):
+        return [(cx + r * _m.sin(t), cyc + r * _m.cos(t)) for t in [a0 + (a1 - a0) * i / n for i in range(n + 1)]]
+
+    def y_at(r, x):
+        return cyc + _m.sqrt(r * r - (x - cx) ** 2)
+    core = arc(R0, -a, a)
+    out.append("<path d=\"M" + " L".join(f"{x:.1f},{y:.1f}" for x, y in core) +
+               f' L{core[-1][0]:.1f},44 L{core[0][0]:.1f},44 Z" style="fill:var(--sunk);stroke:{ink3};stroke-width:1.4"/>')
+    out.append(f'<text x="{cx}" y="92" text-anchor="middle" style="fill:{ink2}">Fingertip, rigid</text>')
+    Rp = R0 + 48                                      # skin plate, 10 px thick
+    band = arc(Rp, -a + 0.02, a - 0.02) + arc(Rp + 10, a - 0.02, -a + 0.02)
+    out.append("<path d=\"M" + " L".join(f"{x:.1f},{y:.1f}" for x, y in band) +
+               f' Z" style="fill:{grn};fill-opacity:0.22;stroke:{grn};stroke-width:1.6"/>')
+    Rs, n = Rp + 17, 25                              # pad spheres on the plate's outer face
+    for i in range(n):
+        t = (-a + 0.04) + (2 * a - 0.08) * i / (n - 1)
+        out.append(f'<circle cx="{cx + Rs * _m.sin(t):.1f}" cy="{cyc + Rs * _m.cos(t):.1f}" r="7" '
+                   f'style="fill:{amb};fill-opacity:0.6;stroke:{amb};stroke-width:1"/>')
+    ty = cyc + Rs + 7                                 # the tool touches the central spheres
+    out.append(f'<rect x="120" y="{ty:.1f}" width="430" height="{H - 14 - ty:.1f}" style="fill:var(--rule2);stroke:{ink3};stroke-width:1.2"/>')
+    out.append(f'<text x="{cx}" y="{H - 24}" text-anchor="middle" style="fill:{ink2}">Tool</text>')
+    ay = ty + 30
+    out.append(f'<line x1="{cx - 60}" y1="{ay:.1f}" x2="{cx + 40}" y2="{ay:.1f}" style="stroke:{ink};stroke-width:2" marker-end="url(#skin-ah)"/>'
+               f'<text x="{cx + 52}" y="{ay + 5:.1f}" style="fill:{ink}">Tangential load</text>')
+    # spring and damper between a tab on the fingertip (left) and a tab on the skin (right)
+    xl, xr = cx - 72, cx + 72
+    yc_l, yp_r = y_at(R0, xl), y_at(Rp, xr)
+    ys, yd = yc_l + 14, yc_l + 32
+    out.append(f'<line x1="{xl}" y1="{yc_l:.1f}" x2="{xl}" y2="{yd + 8:.1f}" style="stroke:{ink3};stroke-width:3"/>'
+               f'<line x1="{xr}" y1="{yp_r:.1f}" x2="{xr}" y2="{ys - 8:.1f}" style="stroke:{grn};stroke-width:3"/>')
+    out.append(_zigzag(xl, ys, xr, ys, ink, amp=4.5, n=8))
+    xm = (xl + xr) / 2
+    out.append(f'<line x1="{xl}" y1="{yd:.1f}" x2="{xm - 4}" y2="{yd:.1f}" style="stroke:{ink};stroke-width:1.6"/>'
+               f'<path d="M{xm - 12},{yd - 6:.1f} L{xm + 26},{yd - 6:.1f} M{xm - 12},{yd + 6:.1f} L{xm + 26},{yd + 6:.1f} '
+               f'M{xm - 12},{yd - 6:.1f} L{xm - 12},{yd + 6:.1f}" style="fill:none;stroke:{ink};stroke-width:1.6"/>'
+               f'<line x1="{xm + 6}" y1="{yd - 4:.1f}" x2="{xm + 6}" y2="{yd + 4:.1f}" style="stroke:{ink};stroke-width:2.4"/>'
+               f'<line x1="{xm + 6}" y1="{yd:.1f}" x2="{xr}" y2="{yd:.1f}" style="stroke:{ink};stroke-width:1.6"/>')
+    # labels with leader lines
+    lead = lambda x1, y1, x2, y2: f'<line x1="{x1:.1f}" y1="{y1:.1f}" x2="{x2:.1f}" y2="{y2:.1f}" style="stroke:{ink3};stroke-width:1"/>'  # noqa: E731
+    xs = cx - 175
+    out.append(lead(xs, y_at(Rp + 5, xs), 112, 150) + f'<text x="106" y="155" text-anchor="end" style="fill:{grn}">Skin, 2&#8202;g</text>')
+    xs2 = cx - 190
+    out.append(lead(xs2, y_at(Rs, xs2) + 7, 112, 222) + f'<text x="106" y="227" text-anchor="end" style="fill:{amb}">Pad spheres</text>')
+    out.append(lead(xr + 6, ys, 556, 150) + f'<text x="562" y="146" style="fill:{ink}">Spring and damper</text>'
+               f'<text x="562" y="164" style="fill:{ink}">on each slide</text>')
+    # (b) plan view: plate disc, sphere array, slide arrows, hinge
+    px, py, pr = 875, 170, 100
+    out.append(f'<circle cx="{px}" cy="{py}" r="{pr}" style="fill:{grn};fill-opacity:0.16;stroke:{grn};stroke-width:1.6"/>')
+    sp = 15.0
+    for i in range(-7, 8):
+        for j in range(-7, 8):
+            x, y = px + sp * (i + 0.5 * (j % 2)), py + sp * 0.866 * j
+            if (x - px) ** 2 + (y - py) ** 2 < (pr - 9) ** 2:
+                out.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="6.4" style="fill:{amb};fill-opacity:0.5;stroke:{amb};stroke-width:0.9"/>')
+    out.append(f'<line x1="{px}" y1="{py}" x2="{px + pr + 36}" y2="{py}" style="stroke:{ink};stroke-width:2.2" marker-end="url(#skin-ah)"/>'
+               f'<line x1="{px}" y1="{py}" x2="{px}" y2="{py - pr - 30}" style="stroke:{ink};stroke-width:2.2" marker-end="url(#skin-ah)"/>')
+    out.append(f'<text x="{px + pr - 6}" y="{py + 24}" style="fill:{ink}">Slide 1</text>'
+               f'<text x="{px + 10}" y="{py - pr - 18}" style="fill:{ink}">Slide 2</text>')
+    hr = 30
+    out.append(f'<path d="M{px + hr},{py} A{hr},{hr} 0 1 1 {px:.1f},{py - hr:.1f}" style="fill:none;stroke:{ink};stroke-width:2.2" '
+               f'marker-end="url(#skin-ah)"/><circle cx="{px}" cy="{py}" r="4" style="fill:{ink}"/>')
+    out.append(f'<text x="{px}" y="{py + pr + 30}" text-anchor="middle" style="fill:{ink}">Hinge about the pad normal</text>')
+    out.append("</svg>")
+    return "".join(out)
+
+
+def svg_t8_loops(X):
+    """Figure 14: task 8 at 1 N, the tool's displacement against the applied force over the whole cycle, with Mindlin's
+    closed form (the native-compliance page's Figure 1 with this page's labels)."""
+    import contact_reference_laws as L
+    import numpy as np
+    W, H = 860, 360
+    out = _svg_open(W, H, "Task 8 at 1 N: tool displacement against axial force over one cycle for the pads, the skin, the "
+                          "bristles and Mindlin's closed form")
+    fx, fy = _panel(out, 90, 34, 690, 260, (-1.1, 1.1), (-50, 50), [-1, -0.5, 0, 0.5, 1], [-40, -20, 0, 20, 40],
+                    "Axial force on the tool (N)", "Tool displacement (&#181;m)")
+    mc = L.mindlin_cycle(1.0)
+    _path(out, fx, fy, list(zip(mc["F"], mc["u"] * 1e6)), SKIN_COL["mindlin"], dashed=True, width=2.4)
+    for m in ("mj_pads1", "mj_pads1_bristle20a", "mj_pads1_skin"):
+        r = X.t8r(m)
+        if r is not None and r.get("trace"):
+            tr = np.array(r["trace"])
+            _path(out, fx, fy, [(F, u) for _, F, u in tr if abs(u) < 60], SKIN_COL[m], width=2.0)
+    out.append("</svg>")
+    return "".join(out) + _legend_html([("Mindlin, closed form", SKIN_COL["mindlin"], True, None),
+                                        ("1 mm sphere pads", SKIN_COL["mj_pads1"], False, None),
+                                        ("Pads on a sprung skin", SKIN_COL["mj_pads1_skin"], False, None),
+                                        ("Pads on rolling bristles", SKIN_COL["mj_pads1_bristle20a"], False, None)])
+
+
+def skin_data():
+    import native_compliance_page as NC
+    return NC.Data()
+
+
+def skin_table(X):
+    """Table 3: what each presliding candidate adds (task 8 at 1 N) and keeps (tasks 1, 2, 5), and its cost."""
+    import native_compliance_page as NC
+    gp, cp = X.gpu("mj_pads1_ir1000"), X.cpu("mj_pads1_ir1000")
+    head = ["Model", "Presliding (&#181;m)", "Recovered (&#181;m)", "Loop (&#181;J)", "Effective &#956;", "Twist arm / law",
+            "80&#176; force (N)", f"CPU ({US})", "GPU, &#215; pads"]
+    body = []
+    for m in SKIN_MODELS:
+        r8, t1, t5 = X.t8r(m), X.t1(m), X.t5(m)
+        t2 = NC._t2_list(X, m, (1.0,))
+        c = cp if m == "mj_pads1" else X.cpu(m)
+        g = gp if m == "mj_pads1" else X.gpu(m)
+        ok = lambda r: r is not None and r.get("status", "complete") == "complete"  # noqa: E731
+        body.append([SKIN_LBL[m], fmt(r8["u_presliding_um"], 1) if ok(r8) else "&#8211;",
+                     fmt(r8["u_recovered_um"], 1) if ok(r8) else "&#8211;", fmt(r8["loop_area_uJ"], 2) if ok(r8) else "&#8211;",
+                     fmt(t1.get("mu_eff"), 3) if t1 else "&#8211;", fmt(t2[0][0], 2) if t2 else "&#8211;",
+                     fmt(t5["N_at_80_N"], 2) if ok(t5) else "&#8211;", num(c, ",.0f") if c else "&#8211;",
+                     ("1.0" if m in ("mj_pads1", "mj_pads1_soft") else (f"{g / gp:.1f}" if g else "CPU only"))])
+    d5 = X.t5("drake_hydro")
+    body.append(["Drake hydroelastic", "0.05", "&#8722;0.05", "0.12", fmt((pick(X.bpu, "drake_hydro", N=1.0, dt_ms=1.0) or {}).get("mu_eff"), 3),
+                 fmt((NC._t2_list(X, "drake_hydro", (1.0,)) or [[None]])[0][0], 2), fmt(d5["N_at_80_N"], 2) if d5 else "&#8211;",
+                 num(X.cpu("drake_hydro"), ",.0f"), "&#8211;"])
+    body.append(["Mindlin and Hertz, 10&#8202;MPa", "40.3", "38.0", "6.13", "1", "&#8211;", "&#8211;", "&#8211;", "&#8211;"])
+    out = ["<table class='cap'><thead><tr>" + "".join(f"<th>{h}</th>" for h in head) + "</tr></thead><tbody>"]
+    for row in body:
+        cls = " class='ref'" if row[0].startswith("Mindlin") else ""
+        out.append(f"<tr{cls}><td>{row[0]}</td>" + "".join(f"<td class='num'>{c}</td>" for c in row[1:]) + "</tr>")
+    out.append("</tbody></table>")
+    return "".join(out)
+
+
+def film_tag(path, poster, caption):
+    return (f'<figure><video src="{R.data_uri(path, "video/mp4")}" poster="{R.data_uri(poster, "image/jpeg")}" controls muted '
+            f'loop playsinline preload="metadata"></video><figcaption>{caption}</figcaption></figure>')
 
 
 def _url(path):
@@ -1277,7 +1450,29 @@ def main():
     v["FIG_SECTION"] = G.svg_section(hi)
     v["FIG_PATCH"] = G.svg_patch(hi, lo)
     v["FIG_MODELS"] = svg_models()
-    v["CAP_TABLE"] = cap_table(cost, batched)
+    SX = skin_data()
+    gp = SX.gpu("mj_pads1_ir1000")
+    v["CAP_TABLE"] = cap_table(cost, batched, {m: (SX.cpu(m), SX.gpu(m) / gp) for m in ("mj_pads1_skin", "mj_pads1_bristle20a")})
+    v["FIG_SKIN"] = svg_skin()
+    v["BRISTLE_X"] = f"{SX.gpu('mj_pads1_bristle20a') / gp:.0f}"
+    v["FIG_T8"] = svg_t8_loops(SX)
+    v["SKIN_TABLE"] = skin_table(SX)
+    v["T8_FILM"] = film_tag(os.path.join(NC_D, "media/t8_compare.mp4"), os.path.join(NC_D, "media/t8_compare.jpg"),
+                            "Figure&#160;15. The same cycle on the three models at half speed: each pad seen through the "
+                            "translucent tool with its spheres coloured by contact force (dark to light), the applied force, and the "
+                            "tool&#8217;s displacement against time, Mindlin&#8217;s closed form dashed. Rendered by "
+                            "<code>scripts/contact_bed_candidates.py film-compare</code>.")
+    import topic_overview_page as TOP
+    W8 = "docs/experiments/20261008-contact_model_policies/media/"
+    spec = dict(film=[[(W8 + "20261008-d6_work_tpu27pads1_40M_s0_best.mp4", "1 mm pads: held cosine 0.69, 42\u201344 N"),
+                       (W8 + "20261008-d6_work_tpu27skin_40M_s0_best.mp4", "Sprung skin: held cosine 0.79, 46\u201352 N")]],
+                width=COLUMN_PX)
+    mp4, jpg = TOP.film_files("contact", "skin_policies", spec, False)
+    v["SKIN_FILM"] = film_tag(mp4, jpg, "Figure&#160;16. D6 policies on the working plant, best seed of each arm, real speed: 1&#8202;mm "
+                                        "pads (left) and pads on the sprung skin (right). Both turn the tool within a quarter "
+                                        "second and hold it; the skin policy stops it closer to vertical. Films from the "
+                                        "<a href=\"../experiments/20261008-contact_model_policies/20261008-fingertip_contact_model_policies.html\">"
+                                        "contact-model policies</a>.")
     fig, have_onset = svg_scaling(T["twist"], tor)
     v["FIG_SCALING"] = fig
     v["FIG_MASS"] = svg_mass(cal)
@@ -1302,7 +1497,7 @@ def main():
     v["RELATED"] = related()
     v["GLOSSARY"] = glossary_html()
     ctx = dict(T=T, M=M, cost=cost, cal=cal, stab=stab, step_rows=step_rows, gpu_pads=gpu_pads, gpu_newton=gpu_newton,
-               tor=tor, have_onset=have_onset, curves=curves, batched=batched, deviations=deviations(M), bed_url=u)
+               tor=tor, have_onset=have_onset, curves=curves, batched=batched, deviations=deviations(M), bed_url=u, skin_X=SX)
     v.update(OT.blocks(ctx))
     for k, val in v.items():
         t = t.replace("{{" + k + "}}", val)

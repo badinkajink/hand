@@ -244,11 +244,10 @@ def open_list(ctx):
          "the fall (2026-10-07 Newton page, open items)."),
         ("The modulus.", "Every model here uses Drake&#8217;s default \\(E=10\\)&#8202;MPa. The arm scales as \\(E^{-1/4}\\), so a "
          "TPU tip at 2&#8211;5&#8202;MPa lengthens it by 19&#8211;50&#8202;%; refit \\(c\\) once the tip is measured."),
-        ("Pre-slip shear.", "The pads and Drake store no elastic tangential displacement. Mounting the spheres on a child body with "
-         "spring-loaded tangential slides and a normal hinge gives Mindlin&#8217;s presliding at 1.3&#215; the pads&#8217; GPU cost and keeps "
-         "the bed&#8217;s pull and brake results and the twist onset to 1&#8202;N; ball joints under the spheres add Mindlin&#8217;s hysteresis at 27&#215; "
-         "(<code>docs/experiments/20261007-native_compliance/</code>). A slow tangential load cycle on the printed tip (hysteresis loop "
-         "below the slip force) measures whether the tip needs either."),
+        ("Presliding of the printed tip.", "Cycle an axial force at half the slip force on the printed tip under a fixed pinch (bed "
+         "task&#160;8 on the bench) and record the displacement against the force. About 40&#8202;&#181;m that return keep the sprung "
+         "skin (step&#160;12); a loop area near Mindlin&#8217;s calls for the bristles; no measurable presliding retires both. The "
+         f"servo-plant skin policies give the answer at the task level (<code>{SKIN_NOTE}</code>)."),
     ]
     return "<ul class=\"open\">" + "".join(f"<li><b>{a}</b> {b}</li>" for a, b in items) + "</ul>"
 
@@ -481,6 +480,128 @@ def state_cost_text(ctx):
             f"{min(hyd):.1f}&#8211;{max(hyd):.1f}&#8202;&#181;s{env}.")
 
 
+# ------------------------------------------------------------------------------- 2026-10-12: presliding, the sprung skin
+
+SKIN_NOTE = "docs/handoff/20261012-servo_skin_policies.md"
+NC_PAGE = "docs/experiments/20261007-native_compliance/20261007-native_presliding_compliance.html"
+
+
+def _skin_x(ctx):
+    if "skin_X" not in ctx:
+        ctx["skin_X"] = P.skin_data()
+    return ctx["skin_X"]
+
+
+def skin_lead(ctx):
+    X = _skin_x(ctx)
+    s, b = X.t8r("mj_pads1_skin"), X.t8r("mj_pads1_bristle20a")
+    gp, cp = X.gpu("mj_pads1_ir1000"), X.cpu("mj_pads1_ir1000")
+    return ("The pads and Drake hold a tool below its slip load by regularised friction, so a held load makes it creep and "
+            "nothing springs back when the load is removed; an elastic fingertip deflects about 40&#8202;&#181;m at 1&#8202;N and "
+            "recovers it. Mounting each pad&#8217;s spheres on a 2&#8202;g skin with springs at the tip&#8217;s elastic stiffness "
+            f"gives {s['u_presliding_um']:.0f}&#8202;&#181;m of presliding at 1&#8202;N, of which {s['u_recovered_um']:.0f} return, "
+            "and keeps the pads&#8217; pull, twist and brake results, at "
+            f"{X.cpu('mj_pads1_skin') / cp:.2f} times their CPU step and {X.gpu('mj_pads1_skin') / gp:.1f} times their GPU "
+            "world-step. The skin is a spring and dissipates almost nothing per cycle; spring-loaded ball joints under the spheres "
+            f"(rolling bristles) add the hysteresis of partial slip ({b['loop_area_uJ']:.1f} against Mindlin&#8217;s 6.1&#8202;&#181;J) "
+            f"at {X.gpu('mj_pads1_bristle20a') / gp:.0f} times the batched cost. Detail: <code>{NC_PAGE}</code>.")
+
+
+def skin_sizing(ctx):
+    import json
+    import make_work_plant_runs as MW
+    bed = (13.8, 8.55)                      # 1 N per pad from Hertz's radius, the native-compliance bed
+    work = MW.skin_sizing(12.0)
+    sp = P.os.path.join(P.ROOT, "docs/experiments/20261011-servo_plant_policies/plant_check_skin.json")
+    servo = json.load(open(sp))["skin"] if P.os.path.exists(sp) else None
+    out = (f"On the bed the springs are sized at 1&#8202;N per pad on Hertz&#8217;s radius: {bed[0]}&#8202;kN/m and "
+           f"{bed[1]}&#8202;mN&#8202;m/rad, with 18&#8202;g of armature on the slides. On the hand they are sized on the pads&#8217; own "
+           f"contact area at the policies&#8217; grip: {work['kt'] / 1e3:.1f}&#8202;kN/m and {work['kth']:.2f}&#8202;N&#8202;m/rad at "
+           f"{work['N_ref']:.0f}&#8202;N per fingertip on the working plant")
+    if servo:
+        out += (f", {servo['kt'] / 1e3:.1f}&#8202;kN/m and {servo['kth']:.3f}&#8202;N&#8202;m/rad at {servo['N_ref']:.0f}&#8202;N on the "
+                "servo-limited plant")
+    return out + (", with 0.26&#8202;kg of armature on each slide so that each spring&#8217;s period stays long against the "
+                  "trainer&#8217;s 2&#8202;ms step.")
+
+
+def skin_t8_text(ctx):
+    X = _skin_x(ctx)
+    p, s, b = X.t8r("mj_pads1"), X.t8r("mj_pads1_skin"), X.t8r("mj_pads1_bristle20a")
+    return (f"Task&#160;8 holds the pinch at 1&#8202;N per pad with gravity off and cycles an axial force on the tool between "
+            f"&#177;1&#8202;N, half the slip force. The pads&#8217; tool creeps {p['u_presliding_um']:.1f}&#8202;&#181;m during the first "
+            f"ramp and {abs(p['u_recovered_um']):.1f}&#8202;&#181;m further while the force falls back to zero. On the skin it moves "
+            f"{s['u_presliding_um']:.1f}&#8202;&#181;m and {s['u_recovered_um']:.1f} return, against Mindlin&#8217;s 40.3 and 38.0, and its "
+            f"loop encloses {s['loop_area_uJ']:.2f}&#8202;&#181;J against Mindlin&#8217;s 6.13: the skin stores the displacement but "
+            f"dissipates nothing. The bristles move {b['u_presliding_um']:.1f}&#8202;&#181;m, return {b['u_recovered_um']:.1f} and "
+            f"enclose {b['loop_area_uJ']:.2f}&#8202;&#181;J.")
+
+
+def skin_others_text(ctx):
+    import native_compliance_page as NC
+    X = _skin_x(ctx)
+    sl = NC.slopes("mj_pads1_soft")
+    t5s, t5p = X.t5("mj_pads1_soft"), X.t5("mj_pads1")
+    gp = X.gpu("mj_pads1_ir1000")
+    la = X.t1("mj_pads1_lattice1")
+    return ("Three other native elements were tried. A <code>solimp</code> impedance that softens with depth gives Hertz&#8217;s "
+            f"load exponents ({sl.get('delta_exp', float('nan')):.2f} and {sl.get('r_rms_exp', float('nan')):.2f} against 0.67 "
+            "and 0.33) at no cost, but it stores no presliding and lets the braked tool pass 80&#176; at "
+            f"{t5s['N_at_80_N']:.2f}&#8202;N against the pads&#8217; {t5p['N_at_80_N']:.2f}. A lattice of 1&#8202;g nodes coupled by "
+            f"tendons spreads load like a shear layer but softens friction to an effective \\(\\mu\\) of {la['mu_eff']:.2f} at "
+            f"{X.gpu('mj_pads1_lattice1') / gp:.0f} times the batched cost. A MuJoCo flex tip runs only on the CPU under the discrete "
+            f"integrator, at {X.cpu('mj_pads1_flex20') / X.cpu('mj_pads1_ir1000'):.0f} times the pads&#8217; step, and its light "
+            "vertices let the tool creep.")
+
+
+def skin_rl_work(ctx):
+    import json
+    import contact_model_policies_page as CMP
+    X = CMP.Data()
+    fin = {a: X.finals(a) for a in ("tpu27mesh", "tpu27pads1", "tpu27skin")}
+    if not all(fin.values()):
+        return ""
+    rng = lambda v, nd=2: (f"{min(v):.{nd}f}" if f"{min(v):.{nd}f}" == f"{max(v):.{nd}f}"  # noqa: E731
+                           else f"{min(v):.{nd}f}&#8211;{max(v):.{nd}f}")
+    hc = {a: [r["held_cos_mean"] for r in rs] for a, rs in fin.items()}
+    gr = {a: [r["grip_N"] for r in rs] for a, rs in fin.items()}
+    T = {a: CMP.tpu_transfer(X, a) for a in fin}
+    pct = lambda t: f"{100 * t[0] / t[1]:.0f}&#8202;%"  # noqa: E731
+    pm, pp, ps = (CMP.probe_spit(a) for a in fin)
+    cost = (f" A training iteration on the skin costs {ps / pm:.1f} times the TPU mesh&#8217;s and {ps / pp:.2f} times the "
+            "pads&#8217;." if pm and pp and ps else "")
+    tr = (f" Run closed loop under the other TPU tip models, the skin policies keep the tool in {pct(T['tpu27skin'])} of "
+          f"the rollouts, the pad policies in {pct(T['tpu27pads1'])} and the TPU-mesh policies in {pct(T['tpu27mesh'])}."
+          if all(T.values()) else "")
+    return ("On the working plant (1&#8202;N&#8202;m joint torque limit, a bonus on fingertip force) three skin seeds trained to "
+            f"held cosines of {rng(hc['tpu27skin'])}, against {rng(hc['tpu27pads1'])} on the bare pads and "
+            f"{rng(hc['tpu27mesh'])} on the TPU block as one mesh, gripping with {rng(gr['tpu27skin'], 0)}&#8202;N." + tr +
+            " All of these policies squeeze the 24.5&#8202;g tool with 44&#8211;56&#8202;N, which pins it to the fingertips whatever the "
+            "tip model, so the transfer numbers say little about the skin itself." + cost)
+
+
+def skin_rl_servo(ctx):
+    import json
+    D11 = P.os.path.join(P.ROOT, "docs/experiments/20261011-servo_plant_policies")
+    load = lambda f: [json.loads(l) for l in open(P.os.path.join(D11, f))] if P.os.path.exists(P.os.path.join(D11, f)) else []  # noqa: E731
+    fin, tr = load("final_eval.jsonl"), load("transfer.jsonl")
+    if any("skin" in r.get("tag", "") for r in fin):
+        return ""          # filled by the servo-plant skin job (docs/handoff/20261012-servo_skin_policies.md)
+    arm = {r["tag"]: r["arm"] for r in fin}
+    last = {}
+    for r in tr:
+        last[(r["tag"], r["scene"])] = r
+    other = [r for (t, sc), r in last.items() if t in arm and sc != arm[t]]
+    h, n = sum(r["n_held"] for r in other), sum(r["n"] for r in other)
+    grip = [r["grip_N"] for r in fin]
+    held = (f"hold {h:,} of {n:,} closed-loop rollouts under the other tip models" if n else "")
+    return P.pending("On the servo-limited plant (0.18&#8202;N&#8202;m) the pad and TPU-mesh policies grip with "
+                     f"{min(grip):.0f}&#8211;{max(grip):.0f}&#8202;N and {held}, so the working plant&#8217;s transfer gap has "
+                     "closed. Two skin seeds are training on that plant (40&#8202;M steps, springs sized at 5&#8202;N per fingertip, "
+                     "started 2026-10-12); their evaluation answers whether the skin changes the held cosine, robustness or "
+                     f"replay transfer by more than the seed spread (<code>{SKIN_NOTE}</code>).")
+
+
 def blocks(ctx):
     have = ctx["have_onset"]
     return {
@@ -514,4 +635,10 @@ def blocks(ctx):
         "AGREE_SIM_TEXT": agree_sim_text(ctx),
         "RL_REPLAY_TEXT": rl_replay_text(ctx) + policy_text(ctx) + scale_text(ctx),
         "LIT": lit(ctx),
+        "SKIN_LEAD": skin_lead(ctx),
+        "SKIN_SIZING": skin_sizing(ctx),
+        "SKIN_T8_TEXT": skin_t8_text(ctx),
+        "SKIN_OTHERS_TEXT": skin_others_text(ctx),
+        "SKIN_RL_WORK": skin_rl_work(ctx),
+        "SKIN_RL_SERVO": skin_rl_servo(ctx),
     }

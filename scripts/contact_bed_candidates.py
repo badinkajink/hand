@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import math
+import os
 import re
 import sys
 import time
@@ -608,16 +609,213 @@ def film_t8(model="mj_pads1_bristle20a", N=1.0, out=None, every=0.02, w=640, h=4
     return out, len(frames)
 
 
+def mindlin_t8_trace(N=1.0, n=200):
+    """Mindlin's tool displacement through the whole T8 cycle against time (s, N, m): loading, the Mindlin-Deresiewicz
+    unloading and reloading branches, and the final unloading to zero force, on the force triangle of f_cycle."""
+    import contact_reference_laws as L
+    m = L.mat()
+    a = L.hertz(N)["a"]
+    Qs = 0.5 * H.MU * N                                   # per pad; the tool force is 2 Q
+    mono = lambda q: L.mindlin_mono(q, N, a, m["G"], m["nu"], H.MU)  # noqa: E731
+    q1 = np.linspace(0, Qs, n)
+    u1 = mono(q1)
+    q2 = np.linspace(Qs, -Qs, 2 * n)
+    u2 = u1[-1] - 2 * mono((Qs - q2) / 2)
+    q3 = np.linspace(-Qs, Qs, 2 * n)
+    u3 = -u1[-1] + 2 * mono((Qs + q3) / 2)
+    q4 = np.linspace(Qs, 0, n)
+    u4 = u3[-1] - 2 * mono((Qs - q4) / 2)
+    t = np.concatenate([np.linspace(0, 0.5, n), np.linspace(0.5, 1.5, 2 * n), np.linspace(1.5, 2.5, 2 * n),
+                        np.linspace(2.5, 3.0, n), [3.2]])
+    u = np.concatenate([u1, u2, u3, u4, [u4[-1]]])
+    F = 2 * np.concatenate([q1, q2, q3, q4, [0.0]])
+    return t, F, u
+
+
+FILM_MODELS = {   # model -> (label, colour): the native-compliance page's colours (light theme)
+    "mj_pads1": ("1 mm sphere pads", "#BE7514"),
+    "mj_pads1_ir1000": ("1 mm sphere pads, impratio 1000", "#BE7514"),
+    "mj_pads1_skin": ("Pads on a sprung skin", "#25875A"),
+    "mj_pads1_bristle20a": ("Pads on rolling bristles", "#7A4FA6"),
+}
+
+
+def film_t8_compare(models=("mj_pads1", "mj_pads1_skin", "mj_pads1_bristle20a"), N=1.0, out=None, every=0.02,
+                    width=828, scale=2):
+    """Task 8 on several candidates in one film (2026-10-12, owner: films for the skin, "really beautiful"): above, each
+    model's -x pad seen through the tool with its spheres coloured by contact force; below, the tool's axial displacement
+    of every model against time, Mindlin's closed form dashed, the applied force as a grey band and a cursor at the
+    current time. Rendered at `scale` x the display width; H.264 at 25 fps, 0.5x real time."""
+    import mujoco
+    import subprocess
+    import contact_bed_compliance as CC
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib import font_manager
+    install()
+    serif = next((p for p in ("/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf",
+                              "/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf") if os.path.exists(p)), None)
+    if serif:
+        font_manager.fontManager.addfont(serif)
+        plt.rcParams["font.family"] = font_manager.FontProperties(fname=serif).get_name()
+    dt, T = 1e-3, 3.2
+    Fs = H.MU * N
+    stride = int(round(every / dt))
+    nm = len(models)
+    W = width * scale
+    gap, margin = 12 * scale, 10 * scale
+    tw = (W - 2 * margin - gap * (nm - 1)) // nm
+    th = int(tw * 0.72)
+    views, hists = [], []
+    for model in models:
+        rig = CC.new_rig(model, dt)
+        rig.set_pad_force(N)
+        rig.set_tool_wrench(np.zeros(3), np.zeros(3))
+        rig.step(0.4)
+        st0 = rig.tool_state()
+        p0, a0 = st0["pos"].copy(), st0["axis"].copy()
+        m, d = rig.m, rig.d
+        r = mujoco.Renderer(m, th, tw)
+        cam = mujoco.MjvCamera()
+        cam.lookat[:] = [-H.R_TOOL, 0.0, 0.0]
+        cam.distance, cam.azimuth, cam.elevation = 0.0205, 180.0, -8.0
+        side = [g for g, s_ in rig.geom_side.items() if s_ == "L"]
+        rgba0 = m.geom_rgba.copy()
+        f6 = np.zeros(6)
+        frames, hist, fmax = [], [], None
+        for k in range(int(round(T / dt))):
+            t = (k + 1) * dt
+            F = CC.f_cycle(t - dt / 2, Fs)
+            rig.set_tool_wrench(F * a0, np.zeros(3))
+            rig.step(dt)
+            hist.append((t, F, float((rig.tool_state()["pos"] - p0) @ a0)))
+            if k % stride:
+                continue
+            force = {}
+            for i in range(d.ncon):
+                c = d.contact[i]
+                for g in (int(c.geom[0]), int(c.geom[1])):
+                    if g in side:
+                        mujoco.mj_contactForce(m, d, i, f6)
+                        force[g] = float(f6[0])
+            fmax = fmax or max(max(force.values(), default=0.05), 0.05)
+            m.geom_rgba[:] = rgba0
+            for g in range(m.ngeom):
+                if rig.geom_side.get(g) == "R" or (m.geom(g).name or "").startswith("padR"):
+                    m.geom_rgba[g, 3] = 0.0
+                elif m.geom_bodyid[g] == rig.tool:
+                    m.geom_rgba[g, 3] = 0.16
+            for g in side:
+                m.geom_rgba[g] = B.heat(min(force.get(g, 0.0) / fmax, 1.0)) if g in force else [0.80, 0.68, 0.58, 0.55]
+            r.update_scene(d, cam)
+            frames.append(r.render().copy())
+        r.close()
+        m.geom_rgba[:] = rgba0
+        views.append(frames)
+        hists.append(np.array(hist))
+    tm, Fm, um = mindlin_t8_trace(N)
+    nfr = min(len(v) for v in views)
+    # figure: image row above, displacement plot below (inches at 100 dpi x scale)
+    title_h, strip_h, plot_h, pad_b = 34 * scale, 64 * scale, 270 * scale, 8 * scale
+    Hh = title_h + th + 22 * scale + strip_h + plot_h + pad_b
+    Hh += Hh % 2
+    dpi = 100
+    fig = plt.figure(figsize=(W / dpi, Hh / dpi), dpi=dpi, facecolor="white")
+    ims = []
+    for j, model in enumerate(models):
+        x0 = (margin + j * (tw + gap)) / W
+        ax = fig.add_axes([x0, 1 - (title_h + th) / Hh, tw / W, th / Hh])
+        ax.set_axis_off()
+        ims.append(ax.imshow(views[j][0], interpolation="lanczos"))
+        lab, col = FILM_MODELS.get(model, (model, "#1A2127"))
+        fig.text(x0, 1 - title_h * 0.82 / Hh, lab, fontsize=15 * scale * 0.72, color=col, ha="left", va="baseline")
+    lx, rw = 100 * scale / W, (W - 100 * scale - 60 * scale) / W
+    pl = fig.add_axes([lx, (pad_b + 46 * scale) / Hh, rw, (plot_h - 56 * scale) / Hh])
+    fs_ax = fig.add_axes([lx, (pad_b + plot_h + 6 * scale) / Hh, rw, (strip_h - 18 * scale) / Hh], sharex=pl)
+    umax = 1e6 * max(np.abs(um).max(), max(np.abs(h[:, 2]).max() for h in hists))
+    ylim = 10 * math.ceil(umax * 1.15 / 10)
+    tf = np.linspace(0, T, 321)
+    ff = np.array([CC.f_cycle(x, Fs) for x in tf])
+    fs_ax.fill_between(tf, 0, ff, color="#E2E8ED", lw=0)
+    fs_ax.plot(tf, ff, color="#77848D", lw=1.2 * scale * 0.6)
+    fs_ax.set_ylim(-1.25 * Fs, 1.25 * Fs)
+    fs_ax.set_yticks([-Fs, 0, Fs])
+    fs_ax.set_yticklabels([f"{-Fs:g}", "0", f"{Fs:g}"])
+    fs_ax.set_ylabel("Force (N)", fontsize=12 * scale * 0.72, color="#48545D", rotation=0, ha="right", va="center")
+    fs_ax.yaxis.set_label_coords(-0.035, 0.5)
+    fs_ax.tick_params(labelsize=11 * scale * 0.72, colors="#77848D", length=0, labelbottom=False)
+    for s_ in ("top", "right", "bottom", "left"):
+        fs_ax.spines[s_].set_visible(False)
+    fcur = fs_ax.axvline(0, color="#48545D", lw=0.8 * scale * 0.6)
+    pl.plot(tm, um * 1e6, color="#79858E", lw=1.6 * scale * 0.6, ls=(0, (5, 4)), zorder=2)
+    pl.text(2.6, um.max() * 1e6, "Mindlin, elastic", color="#5F6B74", fontsize=12 * scale * 0.72, ha="left", va="center")
+    full, live = [], []
+    for j, model in enumerate(models):
+        lab, col = FILM_MODELS.get(model, (model, "#1A2127"))
+        h = hists[j]
+        full.append(pl.plot(h[:, 0], h[:, 2] * 1e6, color=col, lw=1.0 * scale * 0.6, alpha=0.18, zorder=3)[0])
+        live.append(pl.plot([], [], color=col, lw=2.4 * scale * 0.6, zorder=4)[0])
+    cursor = pl.axvline(0, color="#48545D", lw=0.8 * scale * 0.6, zorder=5)
+    pl.set_xlim(0, T)
+    pl.set_ylim(-ylim, ylim)
+    pl.set_xlabel("Time (s)", fontsize=13 * scale * 0.72, color="#48545D")
+    pl.set_ylabel("Tool displacement (µm)", fontsize=13 * scale * 0.72, color="#48545D")
+    pl.tick_params(labelsize=12 * scale * 0.72, colors="#48545D", length=3 * scale * 0.6, width=0.8 * scale * 0.6)
+    for s_ in ("top", "right"):
+        pl.spines[s_].set_visible(False)
+    for s_ in ("left", "bottom"):
+        pl.spines[s_].set_color("#77848D")
+        pl.spines[s_].set_linewidth(0.8 * scale * 0.6)
+    pl.axhline(0, color="#D2DAE1", lw=0.8 * scale * 0.6, zorder=1)
+    out = Path(out or OUT / "media" / "t8_compare.mp4")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    fig.canvas.draw()
+    w_px, h_px = fig.canvas.get_width_height()
+    cmd = ["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{w_px}x{h_px}", "-r", "25",
+           "-i", "-", "-vf", f"scale={width}:-2:flags=lanczos", "-c:v", "libx264", "-preset", "slow", "-crf", "24",
+           "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(out)]
+    pr = subprocess.Popen(cmd, stdin=subprocess.PIPE)
+    poster = None
+    for i in range(nfr):
+        t = (i * stride + 1) * dt
+        for j in range(nm):
+            ims[j].set_data(views[j][i])
+            h = hists[j]
+            k = h[:, 0] <= t + 1e-9
+            live[j].set_data(h[k, 0], h[k, 2] * 1e6)
+        cursor.set_xdata([t, t])
+        fcur.set_xdata([t, t])
+        fig.canvas.draw()
+        frame = np.asarray(fig.canvas.buffer_rgba())[:, :, :3]
+        pr.stdin.write(np.ascontiguousarray(frame).tobytes())
+        if i == int(nfr * 0.47):
+            poster = frame.copy()
+    pr.stdin.close()
+    pr.wait()
+    plt.close(fig)
+    from PIL import Image
+    Image.fromarray(poster).resize((width, round(poster.shape[0] * width / poster.shape[1])), Image.LANCZOS).save(
+        out.with_suffix(".jpg"), quality=90)
+    summary = {mdl: dict(u_max_um=float(np.abs(h[:, 2]).max() * 1e6), u_end_um=float(h[-1, 2] * 1e6))
+               for mdl, h in zip(models, hists)}
+    return out, nfr, summary
+
+
 def main():
     import contact_bed_compliance as CC
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("task", choices=["t1", "t2", "t5", "t8", "t9", "cost", "film"])
+    ap.add_argument("task", choices=["t1", "t2", "t5", "t8", "t9", "cost", "film", "film-compare"])
     ap.add_argument("--models", nargs="+", default=list(CANDIDATES))
     ap.add_argument("--N", nargs="+", type=float)
     ap.add_argument("--dt", nargs="+", type=float, default=[1.0])
     a = ap.parse_args()
     install()
     OUT.mkdir(parents=True, exist_ok=True)
+    if a.task == "film-compare":
+        print(film_t8_compare(tuple(a.models) if a.models != list(CANDIDATES) else
+                              ("mj_pads1", "mj_pads1_skin", "mj_pads1_bristle20a"), (a.N or [1.0])[0]))
+        return
     if a.task == "film":
         for model in a.models:
             print(film_t8(model, (a.N or [1.0])[0]))
