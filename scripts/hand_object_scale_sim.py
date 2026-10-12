@@ -20,7 +20,9 @@ with 4 N at rest. The open pose sits 8 mm off the surface.
   hold   close over 0.5 s, settle 0.5 s, drop the post, hold 1.2 s; held = the object within 5 mm of its start and
          at least two fingers each pressing with at least its weight. From the held state, twelve ramps of an
          external force (+-x +-y +-z, 4 N/s to 20 N) and torque (+-x +-y +-z, the same ramp as a couple at the
-         object radius) on the object until it moves 3 mm or turns 5 deg: the threshold of each, or the cap.
+         object radius) on the object: 'disturb' holds the load at which it moves 3 mm or turns 5 deg, 'lost' the
+         load at which it leaves the grasp (moves 15 mm, or fewer than two fingers press with its weight; checked
+         every 5 ms), the quantity the bench's hanging-mass test measures along gravity; None at the cap.
   turn   the relative contact-velocity controller of hom_turn3.py (Wang, Oh and Pollard, arXiv 2609.25619) at its
          default parameters, about the pinch axis toward 90 deg; held turn = the angle at the end of the hold with
          at least two fingers each pressing with at least the object's weight.
@@ -65,6 +67,7 @@ FINGERS, JOINTS = RB.FINGERS, RB.JOINTS
 NAMES = [f"{f}_{j}" for f in FINGERS for j in JOINTS]
 F_RATE, F_CAP = 4.0, 20.0        # N/s, N
 SLIP_MM, SLIP_DEG = 3.0, 5.0
+LOST_MM, LOST_EVERY = 15.0, 5    # the object has left the grasp: moved 15 mm, or < 2 fingers loaded (every 5 steps)
 T_CLOSE, T_SETTLE, T_HOLD = 0.5, 0.5, 1.2
 
 
@@ -320,6 +323,22 @@ def _contacts(m, d, tool_geoms, finger_of):
     return F, n
 
 
+def _fingers_loaded(d, tool_mask, finger_idx, weight) -> int:
+    """Fingers whose normal contact forces on the object sum to at least `weight`: _contacts' count, vectorised.
+    With the elliptic cone a contact's first constraint row is its normal force (what mj_contactForce returns)."""
+    n = d.ncon
+    if n == 0:
+        return 0
+    g = d.contact.geom[:n]
+    adr = d.contact.efc_address[:n]
+    t1, t2 = tool_mask[g[:, 0]], tool_mask[g[:, 1]]
+    fing = finger_idx[np.where(t1, g[:, 1], g[:, 0])]
+    keep = (t1 != t2) & (fing >= 0) & (adr >= 0)
+    fn = d.efc_force[adr[keep]]
+    F = np.bincount(fing[keep], weights=np.where(fn > 1e-6, fn, 0.0), minlength=len(FINGERS))
+    return int(np.count_nonzero(F >= weight))
+
+
 def _angle(Ra, Rb) -> float:
     c = (np.trace(Ra.T @ Rb) - 1.0) / 2.0
     return math.degrees(math.acos(max(-1.0, min(1.0, c))))
@@ -380,7 +399,12 @@ def hold_rollout(path: Path, meta: dict, seed: int, disturb: bool = True) -> dic
         state = np.empty(mujoco.mj_stateSize(m, mujoco.mjtState.mjSTATE_INTEGRATION))
         mujoco.mj_getState(m, d, state, mujoco.mjtState.mjSTATE_INTEGRATION)
         r_eff = max(meta["d_mm"] / 2000.0, 0.010)
-        res = {}
+        tool_mask = np.zeros(m.ngeom, bool)
+        tool_mask[list(tool_geoms)] = True
+        finger_idx = np.full(m.ngeom, -1)
+        for g, f in finger_of.items():
+            finger_idx[g] = FINGERS.index(f)
+        res, lost = {}, {}
         for kind in ("F", "T"):
             for ax, an in enumerate("xyz"):
                 for sgn in (1, -1):
@@ -389,7 +413,8 @@ def hold_rollout(path: Path, meta: dict, seed: int, disturb: bool = True) -> dic
                     t0 = d.time
                     cap = F_CAP if kind == "F" else F_CAP * r_eff
                     rate = F_RATE if kind == "F" else F_RATE * r_eff
-                    val = None
+                    val = gone = None
+                    k = 0
                     while True:
                         mag = rate * (d.time - t0)
                         if mag > cap:
@@ -397,13 +422,21 @@ def hold_rollout(path: Path, meta: dict, seed: int, disturb: bool = True) -> dic
                         d.xfrc_applied[tb, :] = 0.0
                         d.xfrc_applied[tb, (0 if kind == "F" else 3) + ax] = sgn * mag
                         mujoco.mj_step(m, d)
-                        if (np.linalg.norm(d.xpos[tb] - p1) > SLIP_MM / 1000
-                                or _angle(R1, d.xmat[tb].reshape(3, 3)) > SLIP_DEG):
+                        k += 1
+                        moved = np.linalg.norm(d.xpos[tb] - p1)
+                        if val is None and (moved > SLIP_MM / 1000 or _angle(R1, d.xmat[tb].reshape(3, 3)) > SLIP_DEG):
                             val = mag
+                        if gone is None and (moved > LOST_MM / 1000 or (
+                                k % LOST_EVERY == 0 and _fingers_loaded(d, tool_mask, finger_idx, weight) < 2)):
+                            gone = mag
+                        if val is not None and gone is not None:
                             break
                     d.xfrc_applied[tb, :] = 0.0
-                    res[f"{kind}{'+' if sgn > 0 else '-'}{an}"] = None if val is None else round(val, 4)
+                    key = f"{kind}{'+' if sgn > 0 else '-'}{an}"
+                    res[key] = None if val is None else round(val, 4)
+                    lost[key] = None if gone is None else round(gone, 4)
         row["disturb"] = res
+        row["lost"] = lost
         row["r_eff_m"] = r_eff
     row["wall_s"] = round(time.perf_counter() - w0, 2)
     return row
