@@ -37,7 +37,7 @@ FORK = "martius-lab/mujoco@ced2cff"          # the fork's pinned commit (docs/ex
 
 EXTRA_CSS = """
 table.gloss th{text-align:left;vertical-align:top;white-space:nowrap;padding-right:12px}
-table.gloss td, td.wrap{white-space:normal;text-align:left}
+table.gloss td, td.txt{white-space:normal;text-align:left}
 figure.diagram svg{max-width:100%;height:auto}
 """ + texsvg.BLOCK_CSS + "\n"
 
@@ -104,9 +104,10 @@ def grp(x):
     return f"{x:,.0f}"
 
 
-def table(head, rows, cls=""):
+def table(head, rows, cls="", text=False):
     out = [f"<div class='tw'><table{' class=' + repr(cls) if cls else ''}><thead><tr>"
-           + "".join(f"<th{' class=num' if i else ''}>{h}</th>" for i, h in enumerate(head)) + "</tr></thead><tbody>"]
+           + "".join(f"<th{' class=num' if i and not text else ''}>{h}</th>" for i, h in enumerate(head))
+           + "</tr></thead><tbody>"]
     for r in rows:
         if isinstance(r, str):
             out.append(f"<tr class='grp'><td colspan='{len(head)}'>{r}</td></tr>")
@@ -214,10 +215,10 @@ def glossary():
          "forward-mode directional derivative; a gradient over " + im("n") + " controls takes " + im("n") + " JVPs."),
         ("FD", "finite difference. Central: " + im(r"\big(f(u+h e_i)-f(u-h e_i)\big)/2h") + "; two-point: "
          + im(r"\big(f(u+h e_i)-f(u)\big)/h") + ", with step " + im("h") + " in the control&#8217;s units."),
-        ("Vertical cosine " + im("c"), im(r"c = 1-2(q_x^2+q_y^2)") + " for the tool&#8217;s orientation quaternion "
-         + im(r"(q_w,q_x,q_y,q_z)") + ": the cosine between the shaft (the tool&#8217;s body " + im("z") + " axis) "
-         "and world vertical. 1 is upright; the held state has 0.112, 83.6&#176; from vertical. Orientation gain "
-         + im(r"\Delta c") + " is the final minus the held value."),
+        ("Vertical cosine " + im("c"), "The cosine between the shaft (the tool&#8217;s body " + im("z") + " axis) and "
+         "world vertical, " + im(r"c = 1-2(q_x^2+q_y^2)") + " for the orientation quaternion "
+         + im(r"(q_w,q_x,q_y,q_z)") + ". 1 is upright; the held state has 0.112, 83.6&#176; from vertical. Orientation "
+         "gain " + im(r"\Delta c") + " is the final minus the held value."),
         ("Body-x angular speed, body-x torque", "the components about the tool&#8217;s body " + im("x") + " axis of "
          "the free joint&#8217;s angular velocity (rad/s) and of its constraint force (N&#8201;m). MuJoCo expresses "
          "a free joint&#8217;s rotational coordinates in the body frame; the pages of 7 October call these "
@@ -313,17 +314,17 @@ def scripts_section(S):
          "April&#8217;s gradient ascent through native MJX on a sigmoid distance reward for a cube grasp",
          "Neither the authors&#8217; DiffMJX nor part of the 7 October work; the contact-gradients page says so."),
         (code("backends/factory.py") + " (" + code("diffmjx") + ")",
-         "returns " + code("DiffMJXLiteBackend") + ", the native MJX backend with two metadata flags",
+         "Returns " + code("DiffMJXLiteBackend") + ", the native MJX backend with two metadata flags",
          "The CFD and smooth-collision flags do nothing (" + code("backends/diffmjx.py") + " lines 11&#8211;19); "
          "selecting &#8220;diffmjx&#8221; runs native MJX."),
     ]
     head = ["Script", "What it computes", "Finding"]
-    body = table(head, [((r[0], "wrap"), (r[1], "wrap"), (r[2], "wrap")) for r in rows])
+    body = table(head, [((r[0], "txt"), (r[1], "txt"), (r[2], "txt")) for r in rows], text=True)
     return ("<p>No policy was ever trained with DiffMJX. The work of 7 October measured control derivatives of the "
             "released fork at the held D1 grasp over 1, 10 and 20&#8201;ms, and searched 400&#8201;ms plans with CPU "
             "MuJoCo, whose local search took its derivatives from finite differences. Table&#160;1 lists each script "
-            "with what it computes and what the audit found; line numbers refer to the files as committed on "
-            "11 October before the corrections.</p>" + body
+            "with what it computes and what the audit found; line numbers refer to commit 10eb3f1e, before the "
+            "corrections.</p>" + body
             + tcap("Scripts of the two studies of 7 October. Paths under <code>scripts/</code> and "
                    "<code>src/morphohand/</code>."))
 
@@ -406,7 +407,7 @@ def fd_figure(S):
     w, h, left, right, top, bottom = 760, 380, 78, 150, 30, 58
     xs = [math.log10(s) for s in steps]
     x0, x1 = -8.3, -1.7
-    y0, y1 = -1.0, 1.5        # log10 of the gradient norm
+    y0, y1 = -1.25, 1.5       # log10 of the gradient norm
     X = lambda v: left + (math.log10(v) - x0) / (x1 - x0) * (w - left - right)  # noqa: E731
     Y = lambda v: top + (1 - (math.log10(v) - y0) / (y1 - y0)) * (h - top - bottom)  # noqa: E731
     p = [f'<svg viewBox="0 0 {w} {h}" width="{w}" role="img" aria-label="Finite-difference gradient norm against step">']
@@ -418,6 +419,7 @@ def fd_figure(S):
         yy = Y(v)
         p.append(f'<line x1="{left}" y1="{yy:.1f}" x2="{w - right}" y2="{yy:.1f}" stroke="var(--rule2)" stroke-width="1"/>')
         p.append(f'<text x="{left - 8}" y="{yy + 5:.1f}" text-anchor="end" font-size="15">{v:g}</text>')
+    ends = []
     xd = X(1.49e-8)
     p.append(f'<line x1="{xd:.1f}" y1="{top}" x2="{xd:.1f}" y2="{h - bottom}" stroke="#000" stroke-width="1" stroke-dasharray="4 3"/>')
     p.append(f'<text x="{xd + 6:.1f}" y="{top + 14}" font-size="14">SciPy default step</text>')
@@ -436,8 +438,12 @@ def fd_figure(S):
                 mark = (f'<polygon points="{a:.1f},{b - 6:.1f} {a + 6:.1f},{b + 5:.1f} {a - 6:.1f},{b + 5:.1f}" '
                         f'fill="{col}" stroke="#fff" stroke-width="2"/>')
             p.append(f'<g><title>{esc(tip)}</title>{mark}</g>')
-        a, b = pts[-1]
+        ends.append((pts[-1][1], pts[-1][0], name))
+    last = -1e9
+    for b, a, name in sorted(ends):               # end labels at least 18 px apart
+        b = max(b, last + 18)
         p.append(f'<text x="{a + 12:.1f}" y="{b + 5:.1f}" font-size="15">{esc(name)}</text>')
+        last = b
     p.append(f'<text x="{(left + w - right) / 2:.1f}" y="{h - 12}" text-anchor="middle" font-size="15">Step in plan units</text>')
     p.append(f'<text x="18" y="{(top + h - bottom) / 2:.1f}" text-anchor="middle" font-size="15" '
              f'transform="rotate(-90 18 {(top + h - bottom) / 2:.1f})">Gradient norm of the score</text>')
@@ -604,59 +610,46 @@ def bugs_section(S):
     fk_cpu = [rel(a, b) for a, b in zip(f1["fork_fd_directional_derivative"], f1["cpu_fd_directional_derivative"])]
     ad_cpu = [rel(a, b) for a, b in zip(j1["ad_directional_derivative"], f1["cpu_fd_directional_derivative"])]
     first = jac["gradient_compile_s"] + jac["gradient_warm_s"] * 2 / 3
-    rows = [
-        ("Angular speed and torque labelled about world " + im("x"),
-         f"{code('diffmjx_audit_probes.py frames')}: 20&#8201;ms after the held state the tool&#8217;s body " + im("x")
-         + f" axis is {fr['angle_between_tool_x_and_world_x_deg']:.1f}&#176; from world " + im("x") + "; angular speed "
-         f"{g(fr['omega_body_rad_s'][0], 2)} about body " + im("x") + f" and {g(fr['omega_world_rad_s'][0], 2)}&#8201;rad/s "
-         "about world " + im("x") + f", torque {g(fr['torque_body_Nm'][0], 2)} and {g(fr['torque_world_Nm'][0], 2)}"
-         "&#8201;N&#8201;m",
-         "&#8220;around world x&#8221; in the terms, table notes and row labels of both pages",
-         "&#8220;about the tool&#8217;s body x axis&#8221;; values unchanged"),
-        ("Column &#8220;AD error&#8221; measures the fork against CPU MuJoCo",
-         "1&#8201;ms index-yaw derivatives in <code>20261007-official_padsT1_cylinder_jvp_1.json</code> and "
-         "<code>_fd_1.json</code>",
-         f"AD error {pct(min(ad_cpu), 1)}&#8211;{pct(max(ad_cpu), 1)}",
-         f"AD &#8722; fork FD {pct(min(ad_fd), 3)}&#8211;{pct(max(ad_fd), 3)}; fork FD &#8722; CPU FD "
-         f"{pct(min(fk_cpu), 1)}&#8211;{pct(max(fk_cpu), 1)}"),
-        ("Lede leaves compilation out of the gradient cost",
-         f"{code('gradient_compile_s')} = {jac['gradient_compile_s']:.1f}&#8201;s in "
-         "<code>20261007-official_padsT1_cylinder_jacobian_20.json</code>",
-         f"35.7&#8201;s warm against 23.5&#8201;ms ({grp(jac['gradient_warm_s'] / ls['cpu_fd_6_evals_s'])} times)",
-         f"{jac['gradient_compile_s']:.1f}&#8201;s with the first JVP plus 35.7&#8201;s warm; a first gradient "
-         f"{first:.1f}&#8201;s ({grp(first / ls['cpu_fd_6_evals_s'])} times); Table 4 of the page gains a column"),
-        ("Recontact plan mislabelled",
-         "<code>plans</code> and <code>pad_spacing_mm</code> in <code>20261007-fork-padsT2-recontact-jvp.json</code>: "
-         "the 1&#8201;mm release search, 2&#8201;mm pads",
-         "&#8220;The sampled 2&#8201;mm pad plan&#8221;",
-         "&#8220;The 1&#8201;mm packed-pad CEM release plan, replayed on 2&#8201;mm pads&#8221;"),
-        ("Sign change of the 2&#8201;mm angular-speed derivative unreported",
-         "<code>20261007-official_padsT2_cylinder_jvp_1.json</code>: "
-         f"{g(j2['ad_directional_derivative'][2], 3)} against {g(j2['cpu_fd_directional_derivative'][2], 3)}&#8201;rad/s per rad",
-         "the torque&#8217;s sign change only", "both sign changes"),
-        (f"CPU timing key {code('cpu_fd_3_evals_s')} holds 12 evaluations",
-         f"{1e3 * jac['cpu_fd_3_evals_s']:.1f}&#8201;ms in <code>_jacobian_20.json</code> against "
-         f"{1e3 * ls['cpu_fd_6_evals_s']:.1f}&#8201;ms for six evaluations in <code>pad_local_search_20_mj331.json"
-         "</code>",
-         "base, sweep, Jacobian and local search under one key",
-         f"{code('cpu_fd_s')} with {code('cpu_fd_evals')}, and {code('cpu_jacobian_6_evals_s')}"),
-        ("Two-point step at SciPy&#8217;s default on the convex mesh",
-         f"{code('diffmjx_audit_probes.py fdstep')}: gradient norm {mcem[0]:.1f} at the default step against "
-         f"{mcem[-1]:.2f} at 10<sup>&#8722;2</sup>; {code('--fd-step scipy')} reproduces the mesh search of 7 October "
-         "exactly",
-         f"mesh local {mesh['before']['direct']:+.3f}, mesh hybrid {mesh['before']['hybrid']:+.3f} (its CEM128 start)",
-         f"default step 10<sup>&#8722;2</sup>: mesh local {mesh['after']['direct']:+.3f}, mesh hybrid "
-         f"{mesh['after']['hybrid']:+.3f}; packed-pad hybrid {pads['before']['hybrid']:+.3f} to "
-         f"{pads['after']['hybrid']:+.3f} (Table&#160;4)"),
+    items = [
+        "Angular speed and torque were labelled about world " + im("x") + ". They are the free joint&#8217;s components "
+        "about the tool&#8217;s body " + im("x") + " axis, which 20&#8201;ms after the held state lies "
+        f"{fr['angle_between_tool_x_and_world_x_deg']:.1f}&#176; from world " + im("x") + ": the angular speed is "
+        f"{g(fr['omega_body_rad_s'][0], 2)}&#8201;rad/s about body " + im("x") + f" and {g(fr['omega_world_rad_s'][0], 2)}"
+        "&#8201;rad/s about world " + im("x") + f", the torque {g(fr['torque_body_Nm'][0], 2)} and "
+        f"{g(fr['torque_world_Nm'][0], 2)}&#8201;N&#8201;m ({code('diffmjx_audit_probes.py frames')}). Both pages now "
+        "say &#8220;about the tool&#8217;s body x axis&#8221;; the values are unchanged.",
+        f"The column &#8220;AD error&#8221; measured the fork against CPU MuJoCo. In the 1&#8201;ms index-yaw "
+        f"derivatives it read {pct(min(ad_cpu), 1)}&#8211;{pct(max(ad_cpu), 1)}; the fork&#8217;s AD differs from its "
+        f"own finite differences by {pct(min(ad_fd), 3)}&#8211;{pct(max(ad_fd), 3)} and the fork&#8217;s finite "
+        f"differences from CPU MuJoCo&#8217;s by {pct(min(fk_cpu), 1)}&#8211;{pct(max(fk_cpu), 1)}, the two columns "
+        "that replace it.",
+        f"The lede left compilation out of the gradient cost: {jac['gradient_warm_s']:.1f}&#8201;s warm against "
+        f"{1e3 * ls['cpu_fd_6_evals_s']:.1f}&#8201;ms, {grp(jac['gradient_warm_s'] / ls['cpu_fd_6_evals_s'])} times. "
+        f"With the {jac['gradient_compile_s']:.1f}&#8201;s first call a first gradient takes {first:.1f}&#8201;s, "
+        f"{grp(first / ls['cpu_fd_6_evals_s'])} times; Table&#160;4 of the page gains that column.",
+        "The recontact derivative&#8217;s plan was called the sampled 2&#8201;mm pad plan. Its JSON names the "
+        "1&#8201;mm release search and 2&#8201;mm pads; the page now says the 1&#8201;mm packed-pad CEM release plan "
+        "replayed on 2&#8201;mm pads.",
+        "Of the two sign changes at 1&#8201;ms on the 2&#8201;mm pads the page reported the torque&#8217;s. The "
+        f"angular-speed derivative changes sign too ({g(j2['ad_directional_derivative'][2], 3)} against "
+        f"{g(j2['cpu_fd_directional_derivative'][2], 3)}&#8201;rad/s per rad), and both are now stated.",
+        f"The CPU timing key {code('cpu_fd_3_evals_s')} of {code('real_v1_diffmjx_pad_jvp.py')} held 12 evaluations "
+        f"with {code('--all-directions')} ({1e3 * jac['cpu_fd_3_evals_s']:.1f}&#8201;ms, against "
+        f"{1e3 * ls['cpu_fd_6_evals_s']:.1f}&#8201;ms for six evaluations of the local search). The script now records "
+        f"{code('cpu_fd_s')} with {code('cpu_fd_evals')} and the Jacobian&#8217;s time apart; no page used the two "
+        "affected values.",
+        "The 400&#8201;ms search took its two-point derivatives at SciPy&#8217;s default step, which measures "
+        f"collision noise on the convex mesh (Figure&#160;1); {code('--fd-step scipy')} reproduces the stored mesh "
+        "search exactly. With a 10<sup>&#8722;2</sup> step, now the default, the mesh local search gains "
+        f"{mesh['after']['direct']:+.3f} instead of {mesh['before']['direct']:+.3f} and the mesh hybrid "
+        f"{mesh['after']['hybrid']:+.3f} instead of {mesh['before']['hybrid']:+.3f}; the packed-pad hybrid gains "
+        f"{pads['after']['hybrid']:+.3f} instead of {pads['before']['hybrid']:+.3f} (Table&#160;3).",
     ]
-    text = ("<p>Each defect was reproduced from the stored data or by the command in its row before the fix. The text "
-            "corrections are in the two pages of 7 October, rebuilt from their builders with a dated note that links "
-            "this page; their measured numbers are unchanged. The corrected searches are new runs with the same "
-            "plans, budget, grasp and CEM seed, written to <code>searches/</code> and summarized in "
-            "<code>corrections.json</code>.</p>")
-    text += table(["Defect", "Reproduction", "Before", "After"],
-                  [tuple((c, "wrap") for c in r) for r in rows])
-    text += tcap("Defects found by the audit, with the numbers before and after the correction.")
+    text = ("<p>Each defect was reproduced from the stored data or by the command named in its item before the fix. "
+            "The text corrections are in the two pages of 7 October, rebuilt from their builders with a dated note "
+            "that links this page; their measured numbers are unchanged. The corrected searches are new runs with the "
+            "same plans, budget, grasp and CEM seed, in <code>searches/</code> and <code>corrections.json</code>.</p>")
+    text += "<ol>" + "".join(f"<li>{x}</li>" for x in items) + "</ol>"
     text += rerun_table(corr)
     t = corr["transfer"]
     hy, ml = t["tpu6_padsT_hybrid"], t["tpu6_pt_direct_gradient"]
@@ -677,12 +670,12 @@ def rerun_table(corr):
         sg = lambda x: f"{x:+.3f}".replace("-", "&#8722;")  # noqa: E731
         rows.append([r["label"], sg(b["direct"]), sg(a["direct"]), sg(b["cem"]), sg(b["hybrid"]), sg(a["hybrid"]),
                      a["held"]])
-    t = table(["Fingertip, plan", "Local, default step", "Local, 10<sup>&#8722;2</sup>", "CEM",
-               "Hybrid, default step", "Hybrid, 10<sup>&#8722;2</sup>", "Held, local/hybrid"], rows)
+    t = table(["Fingertip, plan", "Local, SciPy step", "Local, 10<sup>&#8722;2</sup>", "CEM",
+               "Hybrid, SciPy step", "Hybrid, 10<sup>&#8722;2</sup>", "Held after"], rows, text=True)
     return t + tcap("Orientation gain " + im(r"\Delta c") + " of the 400&#8201;ms searches from the seed-1 grasp with "
                     "SciPy&#8217;s default step (the runs of 7 October) and with a 10<sup>&#8722;2</sup> step; 256 "
                     "evaluations per method, CEM seed 20261007, so the CEM column is common to both. The last column "
-                    "gives the corrected local and hybrid plans&#8217; held status.")
+                    "gives the corrected local and hybrid plans&#8217; held status (yes/no).")
 
 
 def module_section(S):
@@ -703,26 +696,116 @@ def module_section(S):
             f"module has {mod['module_lines']} lines. {code(t['file'])} pins the plan schedule, the score, the release "
             f"statistics, the finite differences and the scene&#8217;s collision masks; its {t['passed']} tests pass in "
             f"{t['wall_s']:.1f}&#8201;s.</p>")
-    text += (f"<p>Each refactored script reran a case of 7 October (Table&#160;5). {len(exact)} of the "
+    text += (f"<p>Each refactored script reran a case of 7 October (Table&#160;4). {len(exact)} of the "
              f"{len(mod['checks'])} outputs equal the stored data exactly"
              + (", and the MuJoCo-Warp replay, in 32-bit arithmetic on the GPU, agrees to "
                 f"{g(other[0]['max_abs_diff'], 2)}" if other else "") + ". Both pages of 7 October rebuild from their "
              "builders. Before the corrections the rebuild reproduced the committed files byte for byte; the numbers "
-             "that differ now are the corrections of Table&#160;3, and no measured value changed.</p>")
-    rows = [((c["name"], "wrap"), (c["interpreter"], "wrap"), (code(c["compared_with"].split("/")[-1]), "wrap"),
+             "that differ now are those of the corrections above, and no measured value changed.</p>")
+    rows = [((c["name"], "txt"), (c["interpreter"], "txt"), (code(c["compared_with"].split("/")[-1]), "txt"),
              "0" if c["max_abs_diff"] == 0 else g(c["max_abs_diff"], 2)) for c in mod["checks"]]
-    text += table(["Check", "Interpreter", "Compared with", "Largest difference"], rows)
+    text += table(["Check", "Interpreter", "Compared with", "Largest difference"], rows, text=True)
     text += tcap("Outputs of the refactored scripts against the stored data of 7 October, compared field by field "
                  "(scores, plans, traces, derivatives, poses, contact summaries; wall times excluded). Outputs in "
                  "<code>regression/</code>; JSON: <code>module_check.json</code>.")
     return text
 
 
+def onset_figure(on):
+    c0 = on["initial_vertical_cos"]
+    series = [("turn", "cpu", "var(--s1)", "", "CPU MuJoCo, turn plan"), ("turn", "fork", "var(--s2)", "", "fork, turn plan"),
+              ("hold", "cpu", "var(--s1)", "6 4", "CPU MuJoCo, hold plan"), ("hold", "fork", "var(--s2)", "6 4",
+                                                                           "fork, hold plan")]
+    vals = [r["vertical_cos"] - c0 for p_ in ("turn", "hold") for b in ("cpu", "fork") for r in on["plans"][p_][b]]
+    lo, hi = min(vals + [0.0]), max(vals)
+    pad = 0.08 * (hi - lo)
+    lo, hi = lo - pad, hi + pad
+    w, h, left, right, top, bottom = 760, 360, 92, 190, 24, 56
+    X = lambda t: left + t / on["horizon_ms"] * (w - left - right)  # noqa: E731
+    Y = lambda v: top + (1 - (v - lo) / (hi - lo)) * (h - top - bottom)  # noqa: E731
+    out = [f'<svg viewBox="0 0 {w} {h}" width="{w}" role="img" aria-label="Orientation gain in the fork and CPU MuJoCo">']
+    span = hi - lo
+    step = 10 ** math.floor(math.log10(span / 4))
+    for m in (1, 2, 5):
+        if span / (step * m) <= 6:
+            step *= m
+            break
+    v = math.ceil(lo / step) * step
+    while v <= hi:
+        yy = Y(v)
+        out.append(f'<line x1="{left}" y1="{yy:.1f}" x2="{w - right}" y2="{yy:.1f}" stroke="var(--rule2)" stroke-width="1"/>')
+        out.append(f'<text x="{left - 8}" y="{yy + 5:.1f}" text-anchor="end" font-size="15">{g(v, 2) if v else "0"}</text>')
+        v += step
+    for t in range(0, on["horizon_ms"] + 1, 20):
+        xx = X(t)
+        out.append(f'<text x="{xx:.1f}" y="{h - bottom + 20}" text-anchor="middle" font-size="15">{t}</text>')
+    labels = []
+    for plan, backend, col, dash, name in series:
+        rows = on["plans"][plan][backend]
+        pts = [(X(0), Y(0.0))] + [(X(r["t_ms"]), Y(r["vertical_cos"] - c0)) for r in rows]
+        out.append(f'<polyline fill="none" stroke="{col}" stroke-width="2"' + (f' stroke-dasharray="{dash}"' if dash else "")
+                   + ' points="' + " ".join(f"{a:.1f},{b:.1f}" for a, b in pts) + '"/>')
+        for r, (a, b) in zip(rows, pts[1:]):
+            out.append(f'<g><title>{esc(name)}: {r["t_ms"]} ms, gain {r["vertical_cos"] - c0:.5f}</title>'
+                       f'<circle cx="{a:.1f}" cy="{b:.1f}" r="4" fill="{col}" stroke="#fff" stroke-width="2"/></g>')
+        labels.append((pts[-1][1], name))
+    labels.sort()
+    last = -1e9
+    for yy, name in labels:                       # spread end labels at least 17 px apart
+        yy = max(yy, last + 17)
+        out.append(f'<text x="{w - right + 10}" y="{yy + 5:.1f}" font-size="14">{esc(name)}</text>')
+        last = yy
+    out.append(f'<text x="{(left + w - right) / 2:.1f}" y="{h - 12}" text-anchor="middle" font-size="15">'
+               'Time after the held state (ms)</text>')
+    out.append(f'<text x="20" y="{(top + h - bottom) / 2:.1f}" text-anchor="middle" font-size="15" '
+               f'transform="rotate(-90 20 {(top + h - bottom) / 2:.1f})">Orientation gain</text></svg>')
+    return "".join(out)
+
+
 def onset_section(S):
     on = S["onset"]
-    if on is None:
+    if on is None or "decision" not in on:
         return pending(4)
-    return on["html"]
+    par, crit = on["parity"], on["criterion"]
+    t, hd = on["plans"]["turn"], on["plans"]["hold"]
+    force = lambda r: r["finger_normal_force_N"]  # noqa: E731
+    fmax = max(abs(force(a)[f] - force(b)[f]) for a, b in zip(t["fork"], t["cpu"]) for f in force(a))
+    text = (f"<p>The fork and CPU MuJoCo {on['mujoco_version']} ran {on['horizon_ms']}&#8201;ms from the held state of the "
+            f"2&#8201;mm packed pads ({sum(on['n_pads'].values())} spheres) under the first-phase controls of the "
+            f"2&#8201;mm free hybrid plan of 7 October, the turn onset, and of the hold plan. The criterion was fixed "
+            f"before the run: the fork&#8217;s orientation gain at {on['horizon_ms']}&#8201;ms within "
+            f"{pct(crit['gain_rel'], 0)} of CPU MuJoCo&#8217;s and its tool position within "
+            f"{crit['position_m'] * 1e3:.1f}&#8201;mm. The turn plan gains {g(par['gain_cpu'], 3)} in CPU MuJoCo and "
+            f"{g(par['gain_fork'], 3)} in the fork, a difference of {pct(par['gain_rel_error'], 1)}; the tool positions "
+            f"differ by {par['tool_position_error_m'] * 1e3:.3f}&#8201;mm and the fingers&#8217; normal forces by up to "
+            f"{fmax:.2f}&#8201;N (Figure&#160;2). ")
+    if not par["holds"]:
+        text += ("Forward parity fails, so by the stop rule no gradient or search was run.</p>")
+    else:
+        gr = on["gradient"]
+        text += "Forward parity holds.</p>"
+        text += (f"<p>One forward-mode gradient of the {on['horizon_ms']}&#8201;ms vertical cosine with respect to the five "
+                 f"plan values that act before 120&#8201;ms cost {g(gr['first_call_s'], 3)}&#8201;s with compilation and "
+                 f"{g(gr['warm_s'], 3)}&#8201;s warm. Central differences in CPU MuJoCo at a "
+                 f"{gr['fd_step']:g} step cost {g(1e3 * gr['cpu_fd_s'], 3)}&#8201;ms for {gr['cpu_fd_evals']} rollouts, so "
+                 f"the gradient costs {grp(gr['ratio_first'])} times the finite differences with compilation and "
+                 f"{grp(gr['ratio_warm'])} times warm. The two directions agree (cosine {gr['cosine']:.3f}); a step of "
+                 f"{gr['probe_step']:g} along each raises the CPU vertical cosine by {g(gr['cpu_gain_along_ad'], 3)} "
+                 f"(AD) and {g(gr['cpu_gain_along_fd'], 3)} (finite differences). ")
+        if on["decision"] == "stop":
+            text += (f"The gradient costs more than {crit['stop_ratio']:.0f} times the CPU baseline, so by the stop rule "
+                     "the action search was not run.</p>")
+        else:
+            text += "The action search follows.</p>"
+    text += figure(onset_figure(on),
+                   f"Orientation gain over the first {on['horizon_ms']}&#8201;ms of the 2&#8201;mm packed-pad continuation "
+                   "in the fork and in CPU MuJoCo, under the turn plan (solid) and the hold plan (dashed), sampled every "
+                   f"{on['sample_ms']}&#8201;ms. JSON: <code>turn_onset.json</code>.")
+    text += (f"<p>The fork&#8217;s forward pass costs {g(on['fork_warm_100ms_s'], 3)}&#8201;s warm for "
+             f"{on['horizon_ms']}&#8201;ms against {g(1e3 * hd['cpu_rollout_s'], 3)}&#8201;ms in CPU MuJoCo with contact "
+             f"summaries every 10&#8201;ms; its first 10&#8201;ms chunk, with compilation, took "
+             f"{g(on['fork_first_chunk_s'], 3)}&#8201;s.</p>")
+    return text
 
 
 def lede(S):
@@ -730,7 +813,16 @@ def lede(S):
     jac_ratio = (jac["gradient_compile_s"] + jac["gradient_warm_s"] * 2 / 3) / ls["cpu_fd_6_evals_s"]
     ratio = [a / b for a, b in zip(jac["fork_base_metrics"], jac["cpu_base_metrics"])]
     on = S["onset"]
-    tail = on["lede"] if on else "<i>[turn-onset result, step 4]</i>"
+    if on is None or "decision" not in on:
+        tail = "<i>[turn-onset result, step 4]</i>"
+    elif not on["parity"]["holds"]:
+        tail = (f"At the turn onset on 2&#8201;mm pads the fork&#8217;s 100&#8201;ms orientation gain differs from CPU "
+                f"MuJoCo&#8217;s by {pct(on['parity']['gain_rel_error'], 1)}, so forward parity fails and no gradient "
+                "search was run.")
+    else:
+        tail = (f"At the turn onset the forward parity holds, and one 100&#8201;ms gradient costs "
+                f"{grp(on['gradient']['ratio_first'])} times its CPU finite differences"
+                + (", so the gradient search was stopped." if on["decision"] == "stop" else "."))
     return ("No policy was trained with DiffMJX. On 7 October the released fork&#8217;s control derivatives were "
             "measured at the held D1 grasp over 1&#8211;20&#8201;ms, and 400&#8201;ms plans were searched in CPU "
             "MuJoCo. The fork&#8217;s automatic derivatives match its own finite differences, but its sphere-to-"
