@@ -16,6 +16,9 @@ file wins where they differ. They apply to every page, report, commit message an
 
 - Write as a researcher: plain declarative sentences, the technical noun as subject, numbers with units, the finding
   before the story. The style reference is `paper/hand_iros26-4.pdf`.
+- Chat replies are plain paragraphs to a colleague (owner, 2026-10-11): no markdown headers, numbered section titles,
+  bold lead-in labels or nested bullets; the answer first, then its numbers, then what happens next; a list only for
+  paths, links or commands.
 - Open with an executive summary: the outcome and the two or three findings, before any outline. Then answer each point
   in one or two sentences and say where the detail is.
 - Use editorial judgement. Leave things out; do not re-summarize, answer every possible objection, or qualify every
