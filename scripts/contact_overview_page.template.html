@@ -287,72 +287,13 @@ insertion.</figcaption>
 </figure>
 </div></section>
 
-<section id="skin"><div class="col derive">
+<section id="skin"><div class="col">
 <h2>Presliding compliance with a sprung skin</h2>
-<p>{{SKIN_LEAD}}</p>
-
-<h3><span class="step">11</span>Presliding displacement of an elastic tip</h3>
-<p>An elastic fingertip deflects before it slips. Under a tangential force \(Q\) below \(\mu N\), the Cattaneo&#8211;Mindlin
-solution for a sphere on a flat keeps a central disc of the patch stuck and lets an annulus at its edge slip, and the contact
-moves by</p>
-<div class="eq">\[\delta(Q)=\frac{3\mu N(2-\nu)}{16\,G a}\Bigl[1-\Bigl(1-\frac{Q}{\mu N}\Bigr)^{2/3}\Bigr],\qquad k_t=\frac{8Ga}{2-\nu},\qquad k_\theta=\frac{16Ga^3}{3},\]<span class="eqno">(16)</span></div>
-<p>where \(G\) is the shear modulus, \(\nu\) Poisson&#8217;s ratio and \(a\) the contact radius; \(k_t\) is the initial
-tangential stiffness, the slope of \(\delta(Q)\) at \(Q=0\), and \(k_\theta\) Lubkin&#8217;s initial torsional stiffness. A
-reversed load retraces the curve at twice its scale from the turning point (the Masing rule), so a load cycle below slip
-closes a hysteresis loop whose area is the energy dissipated by the partial slip. At 1&#8202;N per pad on the bed (\(E\)&#8202;=&#8202;10&#8202;MPa,
-\(\nu\)&#8202;=&#8202;0.45, Hertz radius 0.775&#8202;mm) the tool moves 40.3&#8202;&#181;m at half the slip force and recovers 38.0&#8202;&#181;m
-when the force returns to zero.</p>
-<p>The sphere pads and Drake store no tangential displacement. A sphere&#8217;s friction rows hold the tool through the
-regulariser of (12), so under a held load the tool creeps at a constant speed, keeps creeping while the force is positive
-and recovers nothing when the force is removed (Figure&#160;14).</p>
-
-<h3><span class="step">12</span>Pad spheres on a sprung skin</h3>
-<p>The skin moves each fingertip&#8217;s pad spheres onto a child body, joined to the fingertip by two slides tangent to the
-pad and a hinge about its normal (Figure&#160;13). Each joint has the elastic contact&#8217;s initial stiffness at a reference
-force \(N_\text{ref}\) and critical damping:</p>
-<div class="eq">\[a=\sqrt{A(N_\text{ref})/\pi},\qquad k_t=\frac{8Ga}{2-\nu},\qquad k_\theta=\frac{16Ga^3}{3},\qquad c=2\sqrt{k\,(m+m_a)},\]<span class="eqno">(17)</span></div>
-<p>with \(A\) the contact area at \(N_\text{ref}\), \(m\) the skin&#8217;s mass and \(m_a\) the armature on its joint.
-{{SKIN_SIZING}}</p>
-<p>Armature makes the skin work in MuJoCo. A contact&#8217;s friction rows are softened in proportion to its inverse weight
-\(\hat\Lambda\) (step&#160;6), and a 2&#8202;g body has a large one: on the bare skin the tool slid 49&#8202;&#181;m over the spheres
-during each force ramp. Armature on the skin&#8217;s joints lowers \(\hat\Lambda\) and leaves the static compliance unchanged,
-and a tool that sticks to a skin moves that armature whenever it moves relative to the fingertip. Held between the two bed
-skins, the 24.5&#8202;g tool moves 64.5&#8202;g along its axis, a 104&#8202;Hz mode (169&#8202;Hz on Mindlin&#8217;s springs alone) with a
-damping ratio of 0.8; on the hand each slide carries 0.26&#8202;kg, 11 times the tool. The dampers are
-critical for the skin&#8217;s own inertia, which is 40 times smaller than the tool&#8217;s about the pinch axis, so the held tool&#8217;s
-twist on the two hinges is a 4&#8202;Hz mode with a damping ratio of 0.2. At the bed&#8217;s 1&#8202;ms step the skin&#8217;s loop is a step
-error at any damping: 0.29 against 2.58&#8202;&#181;J at 0.025&#8202;ms with critical dampers, and &#8722;9.2 against
-+7.1&#8202;&#181;J at eight times critical.</p>
-<figure class="diagram">
-{{FIG_SKIN}}
-<figcaption>Figure&#160;13. The sprung skin. (a) Section through one pad: the pad spheres sit on a 2&#8202;g plate joined to the
-rigid fingertip by a spring and a damper along each of two tangential slides; under a tangential load the plate and the tool
-move together until the spheres slip. (b) The pad seen along its normal: the two slides and the hinge about the normal, each
-with the spring and damper of (17).</figcaption>
-</figure>
-
-<h3>Presliding on the bed</h3>
-<p>{{SKIN_T8_TEXT}}</p>
+<p>{{SKIN_SUMMARY}}</p>
 <figure class="diagram">
 {{FIG_T8}}
-<figcaption>Figure&#160;14. Task&#160;8 at 1&#8202;N per pad: an axial force on the tool of 0, +1, &#8722;1, +1, 0&#8202;N, half the slip force each way, with Mindlin&#8217;s closed form dashed. (a) The tool&#8217;s axial displacement against the force at the bed&#8217;s settings and a 1&#8202;ms step. The pads creep while the force is positive and keep the displacement; the skin goes out and back along Mindlin&#8217;s initial slope, with the thin loop of the 1&#8202;ms step (2.58&#8202;&#181;J at 0.025&#8202;ms); the bristles trace a loop close to Mindlin&#8217;s. (b) The displacement against time at the policy trainer&#8217;s impratio of 10 and 2&#8202;ms step, the skin with the hand&#8217;s 0.26&#8202;kg of armature. The pads and the skin creep through the whole cycle and end it 143&#8202;&#181;m out; the skin&#8217;s springs add their 36&#8202;&#181;m on top.</figcaption>
+<figcaption>Figure&#160;13. Task&#160;8 at 1&#8202;N per pad: an axial force on the tool of 0, +1, &#8722;1, +1, 0&#8202;N, half the slip force each way, with Mindlin&#8217;s closed form dashed. (a) The tool&#8217;s axial displacement against the force at the bed&#8217;s settings and a 1&#8202;ms step. The pads creep while the force is positive and keep the displacement; the skin goes out and back along Mindlin&#8217;s initial slope, with the thin loop of the 1&#8202;ms step (2.58&#8202;&#181;J at 0.025&#8202;ms); the bristles trace a loop close to Mindlin&#8217;s. (b) The displacement against time at the policy trainer&#8217;s impratio of 10 and 2&#8202;ms step, the skin with the hand&#8217;s 0.26&#8202;kg of armature. The pads and the skin creep through the whole cycle and end it 143&#8202;&#181;m out; the skin&#8217;s springs add their 36&#8202;&#181;m on top.</figcaption>
 </figure>
-{{T8_FILM}}
-<div class="tw">{{SKIN_TABLE}}</div>
-<p class="tnote">Table&#160;3. Presliding candidates on the bed at 1&#8202;N per pad, 1&#8202;ms step. Presliding: the tool&#8217;s displacement
-at the first peak of the task&#160;8 cycle; recovered: the part that returns when the force first comes back to zero (negative: the
-tool kept sliding); loop: energy dissipated per cycle. Effective \(\mu\): pull force at slip onset over \(2N\) (task&#160;1).
-Twist arm / law: friction arm at spin onset over the pressure law&#8217;s (task&#160;2). 80&#176; force: pinch force when the braked tool
-passes 80&#176; (task&#160;5). CPU: &#181;s per 1&#8202;ms step on one core (task&#160;8); GPU: &#181;s per world-step at 4,096 worlds over the
-pads&#8217;. MuJoCo rows without an impratio run at 100. At 3&#8202;N the skin&#8217;s twist reads 0.07 of the law&#8217;s arm: the held tool&#8217;s
-4&#8202;Hz twist on the hinges passes the test&#8217;s 30&#176;/s threshold before the patch slips. Rows:
-<code>docs/experiments/20261007-native_compliance/</code> (finer steps: <code>t8_step_convergence.jsonl</code>).</p>
-<p>{{SKIN_OTHERS_TEXT}}</p>
-
-<h3>Policies trained on the skin</h3>
-<p>{{SKIN_RL_WORK}}</p>
-{{SKIN_FILM}}
-{{SKIN_RL_SERVO}}
 </div></section>
 
 <section id="open"><div class="col">

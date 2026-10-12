@@ -107,12 +107,15 @@ runs in order); the autopilot hand-off notes are in <code>docs/handoff/</code>.<
     ("contact", "Fingertip contact model and transfer",
      """<p>Twelve D6 runs on the working plant compared four fingertip models, three seeds each, 40&#8202;M steps under a
 checkpoint watch that stops degenerate runs. Point-contact policies turn the tool further where they hold (cosine
-0.84&#8211;0.94 against 0.61&#8211;0.79 for pads and skin) but shake it at 302 and 126&#8202;rad/s&#178; against 18 and 19, and
-five of their six runs degenerated. Their finger commands keep the tool in 3 of 132 replays in other simulators; the
-pad and skin commands keep it in 216 of 220, and in closed loop under the other contact models the skin policies hold
-99&#8202;% of rollouts and the pad policies 76&#8202;%. Every final policy grips with 40&#8211;100&#8202;N, and all but one lose the tool
-when the finger servo gain rises to 10&#8202;N&#183;m/rad
-([contact-model policies](exp:20261008-contact_model_policies/20261008-fingertip_contact_model_policies.html)).</p>
+0.84&#8211;0.94 against 0.61&#8211;0.69 for the pads) but shake it at 302 and 126&#8202;rad/s&#178; against 18, and five of their six
+runs degenerated. Their finger commands keep the tool in 3 of 132 replays in other simulators and the pad commands in
+85 of 88, and in closed loop under the other contact models the pad policies hold 76&#8202;% of rollouts. Every final policy
+grips with 40&#8211;100&#8202;N, and all but one lose the tool when the finger servo gain rises to 10&#8202;N&#183;m/rad
+([contact-model policies](exp:20261008-contact_model_policies/20261008-fingertip_contact_model_policies.html)). The fourth
+arm, the same pads mounted on a sprung skin, held 99&#8202;% in closed loop. It trained at the same grips and at impratio 10,
+where the skin&#8217;s springs store half of what its friction rows creep, so its policies did not use the presliding the skin
+models; that arm is reported with the skin
+([sprung skin](exp:20261012-sprung_skin/20261012-sprung_skin_presliding.html)).</p>
 {{FIG replays_working}}
 {{FIG transfer}}
 <p>On the servo-limited plant, with a penalty in place of the bonus on fingertip force above 4&#8202;N, two pad and two
@@ -166,15 +169,14 @@ FIGURES = {
                           "the second leaves it resting at 50&#176; between the pads (held cosine 0.93 against 0.64 over 64 "
                           "rollouts each)."),
     "replays_working": dict(film=_replay_rows(_WORK + "20261008-d6_work_tpu27", [("mesh_40M_s1", "Point contact"),
-                                                                                 ("pads1_40M_s2", "Pads"),
-                                                                                 ("skin_40M_s1", "Skin")]),
+                                                                                 ("pads1_40M_s2", "Pads")]),
                             page=_PAGE_WORK[0], source=_PAGE_WORK[1],
-                            caption="Open-loop replays on the working plant, the median seed of three fingertip models, "
+                            caption="Open-loop replays on the working plant, the median seed of two fingertip models, "
                                     "world 0, at real speed: the MuJoCo-Warp rollout the policy trained on (left) and its "
                                     "finger targets from the onset of the turn played into Drake (centre) and Newton (right). "
                                     "The point-contact targets lose the tool in Drake at 3.4&#8202;s and in Newton within a "
-                                    "second; the targets of the policies on pads and on pads mounted on a sprung skin keep it "
-                                    "at the same angle in all three simulators (cosine 0.58&#8211;0.61 and 0.55&#8211;0.63)."),
+                                    "second; the pad targets keep it at the same angle in all three simulators (cosine "
+                                    "0.58&#8211;0.61)."),
     "replays_servo": dict(film=_replay_rows(_SERVO + "20261011-d6_servo_tpu27", [("mesh_40M_s1", "Point contact"),
                                                                                 ("pads1_40M_s1", "Pads")]),
                           page=_PAGE_SERVO[0], source=_PAGE_SERVO[1],
@@ -189,11 +191,14 @@ FIGURES = {
                      caption="One episode: the scripted grasp and lift in simulation steps of 2&#8202;ms (above), and the "
                              "policy steps of 20&#8202;ms in which the residual acts (below)."),
     "transfer": dict(page="20261008-contact_model_policies/20261008-fingertip_contact_model_policies.html", n=4,
+                     crop=(0, 0, 1, 0.668),          # the box, TPU-mesh and pad rows; the skin rows are on the skin page
                      alt="Grid of held shares and cosines per contact model and seed under each simulator.",
                      source="contact-model policies",
-                     caption="Transfer of the final D6 policies, one row per contact model and seed: held share and "
-                             "cosine in closed loop under each fingertip model in MuJoCo-Warp (left), and open-loop "
-                             "replays of the finger commands in CPU MuJoCo, Drake and Newton (right)."),
+                     caption="Transfer of the final D6 point-contact and pad policies on the working plant, one row per "
+                             "contact model and seed: held share and cosine in closed loop under each fingertip model in "
+                             "MuJoCo-Warp (left; the skin column runs each policy on the pads mounted on a sprung skin), "
+                             "and open-loop replays of the finger commands in CPU MuJoCo, Drake and Newton (right). The "
+                             "rows of the policies trained on the skin are on the sprung-skin page."),
 }
 
 FUTURE = [

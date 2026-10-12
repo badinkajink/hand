@@ -1360,6 +1360,10 @@ def _url(path):
 
 
 RELATED = [  # (group, date, title, path relative to the repository, contents)
+    ("Results on other pages", "2026-10-12", "Presliding compliance from a sprung skin under the sphere pads",
+     "docs/experiments/20261012-sprung_skin/20261012-sprung_skin_presliding.html",
+     "Mindlin presliding, the skin&#8217;s construction and sizing, task 8 at the bed&#8217;s and the trainer&#8217;s settings, policies "
+     "trained on the skin"),
     ("Results on other pages", "2026-10-05", "Contact comparison bed", "BED",
      "Five tasks on the two-pad rig for every model, with films and the numbers of Table 2"),
     ("Results on other pages", "2026-10-06", "Servo plant refit and the three-finger turn", "HT3",
@@ -1483,26 +1487,8 @@ def main():
     SX = skin_data()
     gp = SX.gpu("mj_pads1_ir1000")
     v["CAP_TABLE"] = cap_table(cost, batched, {m: (SX.cpu(m), SX.gpu(m) / gp) for m in ("mj_pads1_skin", "mj_pads1_bristle20a")})
-    v["FIG_SKIN"] = svg_skin()
     v["BRISTLE_X"] = f"{SX.gpu('mj_pads1_bristle20a') / gp:.0f}"
     v["FIG_T8"] = svg_t8_loops(SX)
-    v["SKIN_TABLE"] = skin_table(SX)
-    v["T8_FILM"] = film_tag(os.path.join(NC_D, "media/t8_compare.mp4"), os.path.join(NC_D, "media/t8_compare.jpg"),
-                            "Figure&#160;15. The same cycle on the three models at half speed: each pad seen through the "
-                            "translucent tool with its spheres coloured by contact force (dark to light), the applied force, and the "
-                            "tool&#8217;s displacement against time, Mindlin&#8217;s closed form dashed. Rendered by "
-                            "<code>scripts/contact_bed_candidates.py film-compare</code>.")
-    import topic_overview_page as TOP
-    W8 = "docs/experiments/20261008-contact_model_policies/media/"
-    spec = dict(film=[[(W8 + "20261008-d6_work_tpu27pads1_40M_s0_best.mp4", "1 mm pads: held cosine 0.69, 42\u201344 N"),
-                       (W8 + "20261008-d6_work_tpu27skin_40M_s0_best.mp4", "Sprung skin: held cosine 0.79, 46\u201352 N")]],
-                width=COLUMN_PX)
-    mp4, jpg = TOP.film_files("contact", "skin_policies", spec, False)
-    v["SKIN_FILM"] = film_tag(mp4, jpg, "Figure&#160;16. D6 policies on the working plant, best seed of each arm, real speed: 1&#8202;mm "
-                                        "pads (left) and pads on the sprung skin (right). Both turn the tool within a quarter "
-                                        "second and hold it; the skin policy stops it closer to vertical. Films from the "
-                                        "<a href=\"../experiments/20261008-contact_model_policies/20261008-fingertip_contact_model_policies.html\">"
-                                        "contact-model policies</a>.")
     fig, have_onset = svg_scaling(T["twist"], tor)
     v["FIG_SCALING"] = fig
     v["FIG_MASS"] = svg_mass(cal)
