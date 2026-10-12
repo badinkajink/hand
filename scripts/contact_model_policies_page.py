@@ -1490,6 +1490,29 @@ def lede(X: Data):
     return " ".join(p1) + '</p><p class="lede">' + " ".join(p2)
 
 
+SERVO_DIR = os.path.join(P.EXP, "20261011-servo_plant_policies")
+SERVO_PAGE = "../20261011-servo_plant_policies/20261011-servo_plant_contact_model_policies.html"
+
+
+def correction(X: Data):
+    """Dated correction under the lede (2026-10-12, docs/handoff/20261011-servo_plant_policies.md step 7): the plant's
+    torque limit and the grip term's sign, with the servo-plant study's held cosines from its final_eval.jsonl."""
+    g = [r["grip_N"] for r in X.fin if r.get("grip_N") is not None]
+    p = os.path.join(SERVO_DIR, "final_eval.jsonl")
+    s = [json.loads(line) for line in open(p)] if os.path.exists(p) else []
+    hc = lambda arm: [r["held_cos_mean"] for r in s if r["arm"] == arm and r.get("held_cos_mean") is not None]  # noqa: E731
+    txt = ("Correction, 2026-10-12: the working plant&#8217;s joint torque limit of 1&#8202;N&#8202;m is 4.4 times the "
+           "SCS0009 servo&#8217;s stall torque (0.23&#8202;N&#8202;m at 6&#8202;V), and these runs gave the grip term a weight of "
+           "+0.25, a bonus for fingertip force above 4&#8202;N, so every final policy gripped the tool with "
+           f"{min(g):.0f}&#8211;{max(g):.0f}&#8202;N.")
+    if hc("tpu27pads1") and hc("tpu27mesh"):
+        txt += (f" Retrained on a plant limited to 0.18&#8202;N&#8202;m with a penalty on that force, the pad policies turn "
+                f"the tool nearly as far as the TPU-mesh ones, held cosine {_rng(hc('tpu27pads1'))} against "
+                f"{_rng(hc('tpu27mesh'))} (<a href=\"{SERVO_PAGE}\"><code>docs/experiments/20261011-servo_plant_policies/"
+                "20261011-servo_plant_contact_model_policies.html</code></a>).")
+    return txt
+
+
 def open_items(X: Data):
     W = {1: "one", 2: "two", 3: "three"}
     NM = {"box": "box-tip", "tpu27mesh": "TPU-mesh", "tpu27pads1": "pad", "tpu27skin": "skin"}
@@ -1549,7 +1572,7 @@ def main():
     X = Data()
     v = {"STYLE": P.style_block().replace("</style>", EXTRA_CSS + "</style>"), "BUILT": time.strftime("%Y-%m-%d %H:%M"),
          "BYLINE": byline()}
-    v["LEDE"] = lede(X)
+    v["LEDE"] = lede(X) + '</p><p class="lede">' + correction(X)
     v["GLOSSARY"] = glossary()
     v["ARMS"] = arms_section(X)
     v["FILMS"] = films(X)

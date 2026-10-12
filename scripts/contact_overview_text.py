@@ -404,7 +404,34 @@ def policy_text(ctx):
             f"pads and on the pads mounted on a sprung skin ({n_c} policies) keep the tool in {rc[0]} of {rc[1]} open-loop "
             f"replays of their finger targets in CPU MuJoCo, Drake and Newton, and the {n_p} policies trained with "
             f"point contact on the box tip or the TPU block in {rp[0]} of {rp[1]}.{closed}{cost}: "
-            f"<code>{POLICY_PAGE}</code>.")
+            f"<code>{POLICY_PAGE}</code>." + servo_policy_text())
+
+
+SERVO_PAGE = "docs/experiments/20261011-servo_plant_policies/20261011-servo_plant_contact_model_policies.html"
+
+
+def servo_policy_text():
+    """One sentence and the link (2026-10-12): the same comparison retrained on the servo-limited plant, where the pads
+    turn the tool nearly as far as the TPU mesh, and the torque-limit swap (numbers from that page's rows)."""
+    import servo_plant_policies_page as SPP
+    X = SPP.Data()
+    if len(X.finals("11")) < 4:
+        return ""
+    hc = lambda s, a: [r["held_cos_mean"] for r in X.finals(s, a)]  # noqa: E731
+    sp = lambda s: [X.m(r["tag"])["spin_deg"] for r in X.finals(s, "tpu27pads1") if X.m(r["tag"])]  # noqa: E731
+    grip = [r["grip_N"] for r in X.finals("11")]
+    out = (f" The working plant&#8217;s 1&#8202;N&#8202;m joint torque limit is 4.4 times the servo&#8217;s stall torque; retrained "
+           f"on a plant limited to 0.18&#8202;N&#8202;m, at grips of {SPP.rng(grip, 0)}&#8202;N, the pad policies turn the tool "
+           f"nearly as far as the TPU-mesh ones (held cosine {SPP.rng(hc('11', 'tpu27pads1'), 2)} against "
+           f"{SPP.rng(hc('11', 'tpu27mesh'), 2)}) and the tool spins {SPP.rng(sp('11'), 0)}&#176; relative to the pads during "
+           f"the turn, against {SPP.rng(sp('08'), 0)}&#176; at the old grip")
+    sw = [(r, X.m(r["tag"]), X.m(r["tag"], "fr=1")) for r in X.finals("11", "tpu27pads1")]
+    stop = [(r, m1) for r, m0, m1 in sw if m0 and m1 and m1["n_held"] == m1["n"] and m1["held_cos_mean"] < 0.5]
+    if stop:
+        r, m1 = stop[0]
+        out += (f"; given 1&#8202;N&#8202;m, pad seed {r['seed']} grips with {sum(m1['grip_by_finger_N']):.0f}&#8202;N and stops "
+                "turning the tool")
+    return out + f": <code>{SERVO_PAGE}</code>."
 
 
 SCALE_PAGE = "docs/experiments/20261008-hand_object_scale/20261008-finger_spacing_object_size.html"

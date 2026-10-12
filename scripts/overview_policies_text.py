@@ -14,9 +14,14 @@ TITLE = "Reinforcement-learning policies for the screwdriver turn"
 LEDE = (
     "No learned policy has run on the hand; the bench results use the open-loop plan. A policy adds a learned "
     "correction to a scripted lift and turn and is trained with PPO in MuJoCo-Warp at about 9,400 environment steps per "
-    "second. On the servo model fitted to the bench, D6 policies trained with compliant sphere-pad fingertips keep the "
-    "tool in 216 of 220 open-loop replays in CPU MuJoCo, Drake and Newton, and policies trained with point contact in 3 "
-    "of 132. Earlier policies, trained on fingers that lagged by 1&#8202;s, drop the tool at bench finger speed.")
+    "second. On a servo plant limited to the SCS0009&#8217;s torque (0.18&#8202;N&#183;m), D6 policies grip the tool with "
+    "13&#8211;18&#8202;N, and those trained with compliant sphere-pad fingertips turn it nearly as far as those trained "
+    "with point contact (held cosine 0.79&#8211;0.88 against 0.85&#8211;0.90); in open-loop replays in CPU MuJoCo, "
+    "Drake and Newton the pad commands keep the tool in 78 of 88 and the point-contact commands in 74 "
+    "of 88. On the earlier working plant, "
+    "whose 1&#8202;N&#183;m torque limit is 4.4 times the servo&#8217;s stall torque, the pad policies gripped with "
+    "44&#8211;55&#8202;N and turned the tool less (0.61&#8211;0.69). Policies trained on fingers that lagged by 1&#8202;s drop "
+    "the tool at bench finger speed.")
 
 TERMS = [
     ("Cosine", "Cosine of the tool axis with vertical: +1 tip down (the goal), 0 horizontal; held cosine is its mean over "
@@ -26,7 +31,8 @@ TERMS = [
     ("Residual", "The policy&#8217;s nine finger actions, 0.5&#8202;rad per unit, added to set-points that ease from the open "
      "keyframe to the grip; the palm motion is scripted."),
     ("Plant", "The simulated servo model: shipped (gain 30&#8202;N&#183;m/rad), calibrated (0.5, 1.04&#8202;s finger lag), "
-     "working (4&#8202;N&#183;m/rad, 0.02&#8202;s lag, fitted to 177 bench runs)."),
+     "working (4&#8202;N&#183;m/rad, 0.02&#8202;s lag, fitted to 177 bench runs, torque limit 1&#8202;N&#183;m), servo-limited "
+     "(0.72&#8202;N&#183;m/rad, 0.02&#8202;s, torque limit 0.18&#8202;N&#183;m, 80&#8202;% of the SCS0009&#8217;s stall torque)."),
     ("Jittered", "The same 64 evaluation rollouts with the tool placed &#177;3&#8202;mm and &#177;10&#176; off the trained pose and "
      "the friction randomised."),
     ("Open-loop replay", "The finger targets recorded from a MuJoCo-Warp rollout, played at 50&#8202;Hz into another "
@@ -61,13 +67,17 @@ reached a cosine of 0.891. Recipes in <code>configs/recipes/</code> fix the resi
 training and evaluation alike; on real_v1 a script performs the lift, and the recipe keeps the name b_liveA
 ([program record](exp:20260921-workshop_briefing/20260921-sr2_hand_program_record.html)).</p>"""),
     ("plants", "Servo plants",
-     """<p>Three servo plants have been used, and only the last is fitted to bench readings. Policies up to 2026-09-16
+     """<p>Four servo plants have been used. Policies up to 2026-09-16
 trained on the shipped plant. The D6 and D1&#8211;D7 policies of 2026-09-17 to 09-20 trained on the calibrated plant,
 whose fingers lagged by 1.04&#8202;s because a template joint damping stayed in the model: D6 reached a cosine of 0.969 in
 64 of 64 rollouts at a grip of 10.8&#8202;N ([D6 at 60&#8202;M steps](exp:20260917-d6_cal_60M/20260917-d6_reorient_policy_60M.html)),
 but at bench finger speed none of ten policies holds the tool through its turn
 ([chain with the learned turn](exp:20260923-chain_handover_gait/20260923-chain_handover_gait.html)). The policies of
-2026-10-08 train on the working plant (4&#8202;N&#183;m/rad, 0.02&#8202;s).</p>"""),
+2026-10-08 train on the working plant (4&#8202;N&#183;m/rad, 0.02&#8202;s), fitted to the finger angles of bench runs; its
+torque limit of 1&#8202;N&#183;m is 4.4 times the SCS0009&#8217;s stall torque of 0.23&#8202;N&#183;m, and its policies grip the
+24.5&#8202;g tool with 44&#8211;96&#8202;N. The policies of 2026-10-11 train on the servo-limited plant: 0.18&#8202;N&#183;m, where
+the servo&#8217;s overload protection trips, and 0.72&#8202;N&#183;m/rad, the gain at which its drive saturates at 18&#176; of
+error ([servo-plant policies](exp:20261011-servo_plant_policies/20261011-servo_plant_contact_model_policies.html)).</p>"""),
     ("seeds", "Seeds and evaluation",
      """<p>Policy quality depends on the training draw more than on the recipe. Five from-scratch draws on m05, the earlier
 simulation-only hand, spread their held cosine with a standard deviation of 0.38; sixteen draws there warm-started from
@@ -100,7 +110,15 @@ pad and skin commands keep it in 216 of 220, and in closed loop under the other 
 99&#8202;% of rollouts and the pad policies 76&#8202;%. Every final policy grips with 40&#8211;100&#8202;N, and all but one lose the tool
 when the finger servo gain rises to 10&#8202;N&#183;m/rad
 ([contact-model policies](exp:20261008-contact_model_policies/20261008-fingertip_contact_model_policies.html)).</p>
-{{FIG transfer}}"""),
+{{FIG transfer}}
+<p>On the servo-limited plant, with a penalty in place of the bonus on fingertip force above 4&#8202;N, two pad and two
+TPU-mesh seeds hold the tool in 256 of 256 rollouts at a grip of 13&#8211;18&#8202;N. The pad policies turn it nearly as far as
+the TPU-mesh ones (held cosine 0.79&#8211;0.88 against 0.85&#8211;0.90), and during the turn the tool spins 97&#8211;98&#176;
+relative to the pads, against 32&#8211;52&#176; at the working plant&#8217;s grip. Given 1&#8202;N&#183;m, pad seed 0 grips with
+44&#8202;N and stops turning the tool (held cosine 0.02) and pad seed 1 drops 28 of 64 rollouts, while the TPU-mesh
+policies turn it as before; a pad&#8217;s torsional friction grows as the 5/4 power of its force. Both kinds of finger
+commands transfer: the pad commands keep the tool in 78 of 88 open-loop replays, the TPU-mesh commands in
+74 of 88, and Newton loses the most ([servo-plant policies](exp:20261011-servo_plant_policies/20261011-servo_plant_contact_model_policies.html)).</p>"""),
 ]
 
 FIGURES = {
@@ -118,15 +136,17 @@ FIGURES = {
 }
 
 FUTURE = [
-    "Replay the finger commands of the pad, skin and TPU-mesh final policies on the bench at 50&#8202;Hz from the lifted "
-    "grasp, ten tracked trials each (<code>logs/20261008-contact_model_policies/replay/</code>). The claim fails if the "
-    "TPU-mesh commands hold the tool as often as the pad or skin commands.",
-    "Finetune the pad and skin policies with the grip penalty at &#8722;5 (the 2026-09-17 setting) and replay again; the "
-    "replays should still hold at a grip near 10&#8202;N.",
-    "Randomise the finger servo gain between 2 and 10&#8202;N&#183;m/rad per episode in <code>env_build.py</code>, then evaluate "
-    "at 2, 6 and 10 with <code>rl_contact_eval.py robust</code>. A finetuned policy that still drops the tool at 10 "
-    "depends on the soft servo for its turn.",
-    "Clip the residual (<code>clip_actions 1.0</code>) for one pad and one skin seed and compare the held cosine.",
+    "Replay the finger commands of the servo-plant pad and TPU-mesh final policies on the bench at 50&#8202;Hz from the "
+    "lifted grasp, after the trajectory-clearance gate, ten tracked trials each "
+    "(<code>logs/20261011-servo_plant_policies/replay/</code>). Commands that drop the tool on the hand in most trials, "
+    "where the three simulators keep it, put the gap in the plant or the fingertip model.",
+    "Retrain one pad and one TPU-mesh seed with the grip penalty at &#8722;20: at &#8722;2 the term costs under 1&#8202;% of "
+    "the return and the thumb presses 6&#8211;8&#8202;N with its mcp at the torque limit; a policy that turns the tool as "
+    "far with the thumb under 4&#8202;N does not need the saturated thumb.",
+    "Evaluate the servo-plant policies at torque limits of 0.12 and 0.23&#8202;N&#183;m (<code>rl_contact_eval.py robust "
+    "--study 20261011 --perturb fr=0.12 fr=0.23</code>); a pad policy that stops turning at 0.23 makes the torque limit a "
+    "parameter to measure on the bench.",
+    "Clip the residual (<code>clip_actions 1.0</code>) for one pad and one TPU-mesh seed and compare the held cosine.",
 ]
 
 PAGES = [
@@ -136,6 +156,8 @@ PAGES = [
     ("Policies", "20260920-robust_tranche/20260920-robust_reorient_policies.html", "Jittered continuation"),
     ("Policies", "20261008-contact_model_policies/20261008-fingertip_contact_model_policies.html",
      "Four fingertip models; transfer"),
+    ("Policies", "20261011-servo_plant_policies/20261011-servo_plant_contact_model_policies.html",
+     "Servo-limited plant; the pad brake"),
     ("Related pages", "20260827-real_v1/20260827-real_v1_routes_to_vertical.html", "Residual RL against the open-loop plan"),
     ("Related pages", "20260923-chain_handover_gait/20260923-chain_handover_gait.html", "The 1 s finger lag"),
     ("Related pages", "20261006-hom_turn3/20261006-servo_refit_hom_turn_pad_cost.html", "Working plant; pad cost in RL"),

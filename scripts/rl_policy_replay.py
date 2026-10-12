@@ -529,9 +529,11 @@ def film(d: Path, engine: str, out: Path, fps: int = 25, w: int = 640, h: int = 
             R9 = np.zeros(9)
             fr.mj.mju_quat2Mat(R9, q[fr.qa + 3:fr.qa + 7])
             frames.append(fr.draw(None, None, None, head + [f"t {(k + 1) * DT_POLICY:4.2f} s  cos {R9[8]:+.2f}"], qfull=q))
-    elif engine == "newton":
-        replay_newton(d, meta, rec["finger_targets"][world], newton_dir=NEWTON_DIR[0], film_cb=(fr, frames, every, head))
-    else:
+    end = None                  # the filmed run's end state, written beside the clip (a GPU engine's run can differ from
+    if engine == "newton":      # the replay row of the same world)
+        res = replay_newton(d, meta, rec["finger_targets"][world], newton_dir=NEWTON_DIR[0], film_cb=(fr, frames, every, head))
+        end = {k: res.get(k) for k in ("cos_end", "z_end_mm", "fingers_end", "held_end")}
+    elif engine != "mjw":
         plant = make_plant(engine, d, meta)
         plant.reset(0)
         t = 0.0
@@ -542,7 +544,13 @@ def film(d: Path, engine: str, out: Path, fps: int = 25, w: int = 640, h: int = 
             if k % every == 0:
                 s = plant.state()
                 frames.append(fr.draw(s["q"], s["p"], s["quat"], head + [f"t {t:4.2f} s  cos {s['R'][2, 2]:+.2f}"]))
+        s = plant.state()
+        nf = sum(1 for f in FINGERS if s["n"][f] > 0)
+        end = {"cos_end": float(s["R"][2, 2]), "z_end_mm": 1e3 * float(s["p"][2]), "fingers_end": nf,
+               "held_end": bool(s["p"][2] > 0.06 and nf >= 2)}
     out.parent.mkdir(parents=True, exist_ok=True)
+    if end is not None:
+        out.with_suffix(".json").write_text(json.dumps(dict(end, engine=engine, world=world), default=float))
     wr = imageio.get_writer(str(out), fps=fps, codec="libx264", quality=None, pixelformat="yuv420p", macro_block_size=8,
                             ffmpeg_params=["-crf", "26", "-preset", "medium"], ffmpeg_log_level="error")
     for f_ in frames:
