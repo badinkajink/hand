@@ -22,7 +22,8 @@ divided by the tip-tool effective mass, as newton_turn.py --mass-correct).
     PY=logs/20261001-hom_contact/venv/bin/python; $PY scripts/rl_policy_replay.py bench --dir <replay dir>
     $PY scripts/rl_policy_replay.py replay --dir <dir> --engine mujoco|drake [--hold 1.0]
     logs/20261004-contact-transfer/venv/bin/python scripts/rl_policy_replay.py replay --dir <dir> --engine newton
-Rows: docs/experiments/20261006-rl_contact/policy_replay.jsonl.
+Rows: docs/experiments/20261006-rl_contact/policy_replay.jsonl; with --study 20261008 or 20261011 that study's
+policy_replay.jsonl and replay dirs (STUDIES), and for 20261011 the servo-limited plant as bench's default --plant.
 """
 from __future__ import annotations
 
@@ -43,9 +44,15 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 OUT = ROOT / "docs/experiments/20261006-rl_contact/policy_replay.jsonl"
 REPLAY = ROOT / "logs/20261006-rl_contact/replay"
-# --study 20261008: the contact-model policy study (scripts/rl_contact_train_queue_20261008.sh)
+# --study 20261008: the contact-model policy study (scripts/rl_contact_train_queue_20261008.sh); --study 20261011: the
+# same study on the servo-limited plant (scripts/rl_contact_train_queue_20261011.sh)
 STUDIES = {"20261008": (ROOT / "docs/experiments/20261008-contact_model_policies/policy_replay.jsonl",
-                        ROOT / "logs/20261008-contact_model_policies/replay")}
+                        ROOT / "logs/20261008-contact_model_policies/replay"),
+           "20261011": (ROOT / "docs/experiments/20261011-servo_plant_policies/policy_replay.jsonl",
+                        ROOT / "logs/20261011-servo_plant_policies/replay")}
+# the plant a study's runs trained on, the default of `bench --plant` (Drake's servos; CPU MuJoCo and Newton step the
+# exported scene's own actuators): the SCS0009's 0.23 N m stall torque, 80 % of it as the overload limit
+STUDY_PLANT = {"20261011": "kp0.72_kv0_fr0.18_fl0_dp0.0144"}
 
 
 def block_dir(d: Path) -> Path:
@@ -584,7 +591,7 @@ def main():
     b = sub.add_parser("bench")
     b.add_argument("--dir", type=Path, required=True)
     b.add_argument("--world", type=int, default=0)
-    b.add_argument("--plant", default="kp4_kv0_fr1_fl0_dp0.08")
+    b.add_argument("--plant", default=None, help="default: the study's plant (STUDY_PLANT), else kp4_kv0_fr1_fl0_dp0.08")
     r = sub.add_parser("replay")
     r.add_argument("--dir", type=Path, required=True)
     r.add_argument("--engine", required=True, choices=["mujoco", "drake", "newton"])
@@ -621,7 +628,7 @@ def main():
             os.fsync(fh.fileno())
         return 0
     if a.cmd == "bench":
-        bench(a.dir, a.world, a.plant)
+        bench(a.dir, a.world, a.plant or STUDY_PLANT.get(a.study, "kp4_kv0_fr1_fl0_dp0.08"))
         return 0
     if a.cmd == "film":
         os.environ.setdefault("MUJOCO_GL", "egl")

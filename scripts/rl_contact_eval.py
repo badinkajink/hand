@@ -33,6 +33,22 @@ watch}.jsonl. `watch` adds to the checkpoint evaluation the fraction of residual
 force, the tool resting on the palm plate, and a strip and a film of the median and the worst rollout (watch/<tag>/);
 logs/20261008-contact_model_policies/watch_daemon.sh runs it at every 82nd iteration of the training run with the trainer
 paused.
+
+`--study 20261011` (docs/handoff/20261011-servo_plant_policies.md): the same subcommands for the runs of
+scripts/rl_contact_train_queue_20261011.sh on the servo-limited plant (kp 0.72 N m/rad, 0.18 N m torque limit), jobs from
+logs/20261011-servo_plant_policies/jobs.txt, tags 20261011-d6_servo_<arm>_40M_s<seed>, arms tpu27mesh and tpu27pads1 on
+the 20261011-sv1_u0308_b050_servo_tip* scenes (box: the box tip on the same plant, a transfer scene); rows in
+docs/experiments/20261011-servo_plant_policies/. Without the switch every path is the 2026-10-08 study's. Its `final`
+also records the grasp mechanism (below) into final_traces/<tag>.npz and a row of mechanism.jsonl.
+
+`mechanism` evaluates a study's final policies as `final` does and records per policy step the tool's and the three
+fingertip bodies' orientations, each fingertip's contact centroid on the tool, the nine finger joint angles, actuator
+forces and servo targets; rows go to docs/experiments/20261011-servo_plant_policies/mechanism.jsonl and traces to its
+mech_traces/ whatever the study (it serves the 2026-10-08 finals there):
+    $PY scripts/rl_contact_eval.py mechanism --study 20261008 --all
+Contact spin is the tool's rotation about the pinch axis (thumb contact to the midpoint of the index and middle
+contacts) relative to each fingertip body, summed over policy steps from the residual's onset; mech_metrics() gives it
+with the fractions of steps at the torque limit and at the joints' range limits.
 """
 from __future__ import annotations
 
@@ -50,18 +66,43 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 MORPH = ROOT / "results/phase1/real_v1"
 RL = ROOT / "results/rl"
-OUT8 = ROOT / "docs/experiments/20261008-contact_model_policies"
-JOBS8 = ROOT / "logs/20261008-contact_model_policies/jobs.txt"
 STEPS_PER_IT = 2048 * 24
 FINGERS = ("thumb", "index", "middle")
-ARMS = {
-    "box": MORPH / "20261006-sv1_u0308_b050_work_tip",
-    "tpu27mesh": MORPH / "20261006-sv1_u0308_b050_work_tip_tpu2.7mesh",
-    "tpu27pads1": MORPH / "20261006-sv1_u0308_b050_work_tip_tpu2.7pads1",
-    "tpu27meshc4": MORPH / "20261008-sv1_u0308_b050_work_tip_tpu2.7mesh_c4",
-    "tpu27skin": MORPH / "20261008-sv1_u0308_b050_work_tip_tpu2.7skin",
+# per study: rows folder, logs folder (jobs.txt, trainer logs, gpu_mem.tsv), run tag pattern (group 1 = arm), arm scenes
+STUDIES = {
+    "20261008": dict(
+        out=ROOT / "docs/experiments/20261008-contact_model_policies",
+        logs=ROOT / "logs/20261008-contact_model_policies",
+        tag_re=r"20261008-d6_work_(.+)_40M_s\d+",
+        arms={"box": MORPH / "20261006-sv1_u0308_b050_work_tip",
+              "tpu27mesh": MORPH / "20261006-sv1_u0308_b050_work_tip_tpu2.7mesh",
+              "tpu27pads1": MORPH / "20261006-sv1_u0308_b050_work_tip_tpu2.7pads1",
+              "tpu27meshc4": MORPH / "20261008-sv1_u0308_b050_work_tip_tpu2.7mesh_c4",
+              "tpu27skin": MORPH / "20261008-sv1_u0308_b050_work_tip_tpu2.7skin"}),
+    "20261011": dict(
+        out=ROOT / "docs/experiments/20261011-servo_plant_policies",
+        logs=ROOT / "logs/20261011-servo_plant_policies",
+        tag_re=r"20261011-d6_servo_(.+)_40M_s\d+",
+        arms={"box": MORPH / "20261011-sv1_u0308_b050_servo_tip",
+              "tpu27mesh": MORPH / "20261011-sv1_u0308_b050_servo_tip_tpu2.7mesh",
+              "tpu27pads1": MORPH / "20261011-sv1_u0308_b050_servo_tip_tpu2.7pads1"}),
 }
+MECH_OUT = STUDIES["20261011"]["out"]           # mechanism rows and traces of every study's final policies
+STUDY = "20261008"
+OUT8 = STUDIES[STUDY]["out"]
+LOGS8 = STUDIES[STUDY]["logs"]
+JOBS8 = LOGS8 / "jobs.txt"
+TAG_RE = STUDIES[STUDY]["tag_re"]
+ARMS = dict(STUDIES[STUDY]["arms"])
 HELD_N, FLOOR_Z, ALIGN = 0.24, 0.06, 0.9
+
+
+def use_study(name: str):
+    """Point the module's paths, tag pattern and arm scenes at study `name` (the defaults are 2026-10-08's)."""
+    global STUDY, OUT8, LOGS8, JOBS8, TAG_RE, ARMS
+    s = STUDIES[name]
+    STUDY, OUT8, LOGS8, TAG_RE, ARMS = name, s["out"], s["logs"], s["tag_re"], dict(s["arms"])
+    JOBS8 = LOGS8 / "jobs.txt"
 
 
 # ---------------------------------------------------------------------------------- legacy (2026-10-06)
@@ -126,17 +167,17 @@ def done_keys(path: Path, keys: tuple[str, ...]) -> set:
     return out
 
 
-def jobs(path: Path = JOBS8, include_stopped: bool = False):
-    """(tag, arm, seed, timesteps) of the 2026-10-08 queue, in queue order. A run stopped early by the checkpoint
+def jobs(path: Path | None = None, include_stopped: bool = False):
+    """(tag, arm, seed, timesteps) of the study's queue, in queue order. A run stopped early by the checkpoint
     watch keeps its line behind '#stopped# ' (the queue skips it); `include_stopped` lists it too."""
     out = []
-    for line in open(path):
+    for line in open(path or JOBS8):
         if include_stopped and line.startswith("#stopped# "):
             line = line[len("#stopped# "):]
         line = line.split("#")[0].split()
         if len(line) == 4:
             tag = line[0]
-            out.append((tag, re.match(r"20261008-d6_work_(.+)_40M_s\d+", tag).group(1), int(line[2]), int(line[3])))
+            out.append((tag, re.match(TAG_RE, tag).group(1), int(line[2]), int(line[3])))
     return out
 
 
@@ -178,11 +219,12 @@ class Evaluator:
     place (the captured CUDA graphs read the same arrays), `rollout` runs the 64 deterministic rollouts."""
 
     def __init__(self, scene_dir: Path, ckpt: Path, n: int = 64, steps: int = 250, dt: float | None = None,
-                 noise: tuple[float, float] | None = None, physics: bool = False, watch: bool = False):
+                 noise: tuple[float, float] | None = None, physics: bool = False, watch: bool = False,
+                 mech: bool = False):
         import torch
         from morphohand.rl.deploy import build_actor, finger_ctrl_from_keyframe, make_env_cfg, run_env_overrides
         from morphohand.tools.video_paths import tmp_dir
-        self.torch, self.n, self.steps, self.physics, self.watch = torch, n, steps, physics, watch
+        self.torch, self.n, self.steps, self.physics, self.watch, self.mech = torch, n, steps, physics, watch, mech
         trained = run_env_overrides(ckpt)
         self.residual_from = int(trained.get("finger_residual_active_from_step", 58))
         frozen = scene_dir / "frozen_scene.xml"
@@ -234,6 +276,19 @@ class Evaluator:
         self.nominal = {k: self._raw(k).clone() for k in ("geom_friction", "body_mass", "body_inertia",
                                                            "actuator_gainprm", "actuator_biasprm")}
         self.kp0 = float(self.nominal["actuator_gainprm"][..., self.fing_act[0], 0].flatten()[0])
+        # mech: the fingertip bodies (the rigid tip; a skin's pads ride on a child body) and the nine finger joints in
+        # the act9 order, with their range limits and the actuators' torque limits
+        self.tip_b = [bname.index(f"{f}_tip") for f in FINGERS]
+        jid9 = [int(mjm.actuator_trnid[a, 0]) for a in self.act9]
+        self.qadr9 = [int(mjm.jnt_qposadr[j]) for j in jid9]
+        self.jnt_lo, self.jnt_hi = mjm.jnt_range[jid9, 0].copy(), mjm.jnt_range[jid9, 1].copy()
+        self.force_lim = np.where(mjm.actuator_forcelimited[self.act9] > 0, mjm.actuator_forcerange[self.act9, 1], np.inf)
+
+    def mech_consts(self) -> dict:
+        """Constants of the mech record: the plant and the nine finger joints' limits (act9 order)."""
+        return dict(joints=[f"{f}_{j}" for f in FINGERS for j in ("yaw", "mcp", "pip")], jnt_lo=self.jnt_lo,
+                    jnt_hi=self.jnt_hi, ctrl_lo=self.ctrl_lo, ctrl_hi=self.ctrl_hi, force_lim=self.force_lim,
+                    kp=self.kp0, residual_from=self.residual_from)
 
     def _raw(self, name: str):
         """The model field's own torch view: mjlab shows a field shared by all worlds as a stride-0 expansion,
@@ -282,6 +337,15 @@ class Evaluator:
             qpos = np.zeros((T, N, self.mjm.nq), np.float32)
             angv = np.zeros((T, N), np.float32)      # tool angular speed, rad/s
             angw = np.zeros((T, N, 3), np.float32)   # tool angular velocity in world, rad/s
+        if self.mech:                                # the grasp mechanism (mech_metrics)
+            M = dict(tool_q=np.zeros((T, N, 4), np.float32),          # tool orientation, wxyz
+                     tip_q=np.zeros((T, N, 3, 4), np.float32),        # fingertip bodies' orientations, wxyz
+                     tip_rel=np.zeros((T, N, 3, 3), np.float32),      # fingertip body origin minus tool position, m
+                     con_rel=np.full((T, N, 3, 3), np.nan, np.float32),  # contact centroid minus tool position, m
+                     ncon=np.zeros((T, N, 3), np.uint8),              # tip-tool contacts per finger
+                     q9=np.zeros((T, N, 9), np.float32),              # finger joint angles, rad
+                     tau9=np.zeros((T, N, 9), np.float32),            # finger actuator torques, N m
+                     ctrl9=np.zeros((T, N, 9), np.float32))           # finger servo targets, rad
         obs_td, _ = self.wrapped.reset()
         with torch.no_grad():
             for s in range(T):
@@ -313,7 +377,15 @@ class Evaluator:
                 found[s] = d.found.reshape(N, -1)[:, :3].float().cpu().numpy()
                 acts[s] = a.cpu().numpy()
                 fvel[s] = self.robot.data.joint_vel[:, self.finger_j].abs().amax(-1).cpu().numpy()
-                if self.physics:
+                if self.mech:
+                    tpos = pose[:, :3].cpu().numpy()
+                    M["tool_q"][s] = pose[:, 3:7].cpu().numpy()
+                    M["tip_q"][s] = wd.xquat.numpy()[:, self.tip_b]
+                    M["tip_rel"][s] = wd.xpos.numpy()[:, self.tip_b] - tpos[:, None]
+                    M["q9"][s] = wd.qpos.numpy()[:, self.qadr9]
+                    M["tau9"][s] = wd.actuator_force.numpy()[:, self.act9]
+                    M["ctrl9"][s] = wd.ctrl.numpy()[:, self.act9]
+                if self.physics or self.mech:
                     nc = int(wd.nacon.numpy()[0])
                     if nc:
                         g = wd.contact.geom.numpy()[:nc]
@@ -325,9 +397,20 @@ class Evaluator:
                             p = np.zeros(N, np.float32)
                             np.maximum.at(p, wid[tip], np.maximum(-dist[tip], 0.0))
                             pen[s] = p
+                            if self.mech:            # each fingertip's contact centroid on the tool
+                                fk = np.maximum(self.geom_finger[g[tip, 0]], self.geom_finger[g[tip, 1]])
+                                cs = np.zeros((N, 3, 3))
+                                cn = np.zeros((N, 3))
+                                np.add.at(cs, (wid[tip], fk), wd.contact.pos.numpy()[:nc][tip])
+                                np.add.at(cn, (wid[tip], fk), 1.0)
+                                has = cn > 0
+                                M["con_rel"][s][has] = (cs[has] / cn[has][:, None] - tpos[np.nonzero(has)[0]])
+                                M["ncon"][s] = np.minimum(cn, 255)
         out = dict(cos=cos, z=z, force=force, found=found, acts=acts, rel=rel, axis=axis, fvel=fvel, pen=pen)
         if self.watch:
             out.update(ctrl=ctrl, palm=palm, qpos=qpos, xroot=xroot, angv=angv, angw=angw)
+        if self.mech:
+            out.update(M)
         return out
 
     def render_world(self, r: dict, w: int, steps, width: int = 480, height: int = 360, lines=None):
@@ -570,12 +653,142 @@ def stop_rule(rows: list[dict], window: int = 10_000_000) -> tuple[bool, str]:
     return False, ""
 
 
-def save_traces(tag: str, r: dict, sub: str = "final_traces"):
-    """Compact per-step traces of one evaluation for the page's figures (float16)."""
-    d = OUT8 / sub
+MECH_KEYS = ("tool_q", "tip_q", "tip_rel", "con_rel", "q9", "tau9", "ctrl9")
+
+
+def save_traces(tag: str, r: dict, sub: str = "final_traces", root: Path | None = None, consts: dict | None = None):
+    """Compact per-step traces of one evaluation for the page's figures (float16); with a mech record also its
+    arrays (orientations as float16 quaternions, about 0.06 deg) and the record's constants."""
+    d = (root or OUT8) / sub
     d.mkdir(parents=True, exist_ok=True)
+    extra = {}
+    if "tool_q" in r:
+        extra = {k: r[k].astype(np.float16) for k in MECH_KEYS}
+        extra["ncon"] = r["ncon"]
+        extra["pen"] = r["pen"].astype(np.float16)
+        for k, v in (consts or {}).items():
+            extra["c_" + k] = np.asarray(v)
     np.savez_compressed(d / f"{tag}.npz", cos=r["cos"].astype(np.float16), z=r["z"].astype(np.float16),
-                        force=r["force"].astype(np.float16), found=r["found"].astype(np.uint8))
+                        force=r["force"].astype(np.float16), found=r["found"].astype(np.uint8), **extra)
+
+
+def _quat_mat(q):
+    """(..., 4) wxyz -> (..., 3, 3)."""
+    q = q / np.linalg.norm(q, axis=-1, keepdims=True)
+    w, x, y, z = np.moveaxis(q, -1, 0)
+    return np.stack([np.stack([1 - 2 * (y * y + z * z), 2 * (x * y - w * z), 2 * (x * z + w * y)], -1),
+                     np.stack([2 * (x * y + w * z), 1 - 2 * (x * x + z * z), 2 * (y * z - w * x)], -1),
+                     np.stack([2 * (x * z - w * y), 2 * (y * z + w * x), 1 - 2 * (x * x + y * y)], -1)], -2)
+
+
+def _rotvec(R):
+    """(..., 3, 3) rotation -> (..., 3) axis times angle (rad); the increments here are a few degrees."""
+    c = np.clip((np.trace(R, axis1=-2, axis2=-1) - 1.0) / 2.0, -1.0, 1.0)
+    th = np.arccos(c)
+    v = np.stack([R[..., 2, 1] - R[..., 1, 2], R[..., 0, 2] - R[..., 2, 0], R[..., 1, 0] - R[..., 0, 1]], -1)
+    s = np.sin(th)
+    k = np.where(s > 1e-9, th / np.maximum(2 * s, 1e-12), 0.5)
+    return v * k[..., None]
+
+
+def pinch_turn(r: dict) -> dict:
+    """Per policy step and rollout: the pinch axis (unit, world: from the thumb's contact centroid on the tool to the
+    midpoint of the index and middle centroids, the fingertip body origins standing in for a finger without contact),
+    and the increments of the tool's and each fingertip body's rotation about it between consecutive policy steps (rad;
+    the world-frame rotation vector of R(t) R(t-1)^T projected on the axis at t). Increment k is the step from record
+    k-1 to k (increment 0 is zero)."""
+    con, tip = r["con_rel"].astype(np.float64), r["tip_rel"].astype(np.float64)
+    p = np.where(np.isnan(con), tip, con)                                  # (T, N, 3, 3)
+    n = 0.5 * (p[..., 1, :] + p[..., 2, :]) - p[..., 0, :]
+    n /= np.maximum(np.linalg.norm(n, axis=-1, keepdims=True), 1e-9)
+    RT, RF = _quat_mat(r["tool_q"].astype(np.float64)), _quat_mat(r["tip_q"].astype(np.float64))
+    dT = _rotvec(RT[1:] @ np.swapaxes(RT[:-1], -1, -2))                    # (T-1, N, 3)
+    dF = _rotvec(RF[1:] @ np.swapaxes(RF[:-1], -1, -2))                    # (T-1, N, 3, 3)
+    tool = np.zeros(n.shape[:2])
+    tips = np.zeros(n.shape[:2] + (3,))
+    tool[1:] = (dT * n[1:]).sum(-1)
+    tips[1:] = (dF * n[1:, :, None, :]).sum(-1)
+    fallback = np.isnan(con[..., 0]).any(-1)                               # (T, N): a finger without contact
+    return dict(axis=n, tool=tool, tips=tips, fallback=fallback)
+
+
+TURN_END = 150      # the turn: the residual's onset to policy step 150; the hold: 150 to the end (as the watch's hold)
+
+
+def mech_metrics(r: dict, c: dict) -> dict:
+    """The grasp mechanism over one evaluation's held rollouts. Contact spin: the tool's rotation about the pinch axis
+    minus a fingertip's (pinch_turn), summed over the turn (onset to step 150) and over the hold (150 to 250), signed so
+    that the tool's own rotation about the axis over the turn is positive, in degrees; mean over the three fingertips.
+    Torque limit: a finger actuator's |torque| within 2 % of its limit. Range limit: a finger joint within 1 deg of
+    (or past) its range limit, extension the lower bound of mcp and pip (yaw has none), flexion the upper; the servo
+    target at its actuator's range limit as in watch_metrics. Fractions over held steps from the onset; per-finger grip
+    the mean force over the held steps."""
+    a0 = max(1, int(c["residual_from"]))
+    T, N = r["cos"].shape
+    f = r["force"].astype(np.float64)
+    held_t = (r["z"] > FLOOR_Z) & ((f >= HELD_N).sum(-1) >= 2)
+    held = held_t[-1]
+    act = held_t[a0:]
+    pt = pinch_turn(r)
+    e = min(TURN_END, T)
+    tool_turn = pt["tool"][a0:e].sum(0)                                     # (N,)
+    sgn = np.where(tool_turn < 0, -1.0, 1.0)
+    spin_turn = sgn[:, None] * (pt["tool"][a0:e, :, None] - pt["tips"][a0:e]).sum(0)     # (N, 3)
+    tip_turn = sgn[:, None] * pt["tips"][a0:e].sum(0)
+    spin_hold = sgn[:, None] * (pt["tool"][e:, :, None] - pt["tips"][e:]).sum(0)
+    tilt = np.degrees(np.arccos(np.clip(r["cos"].astype(np.float64), -1, 1)))
+    tau = np.abs(r["tau9"][a0:].astype(np.float64))
+    at_tau = tau >= 0.98 * np.asarray(c["force_lim"])                      # (T - a0, N, 9)
+    q = r["q9"][a0:].astype(np.float64)
+    lo, hi = np.asarray(c["jnt_lo"]), np.asarray(c["jnt_hi"])
+    tol = np.radians(1.0)
+    flexing = np.array([j.split("_")[1] in ("mcp", "pip") for j in c["joints"]])
+    at_ext = (q <= lo + tol) & flexing
+    at_flex = (q >= hi - tol) & flexing
+    at_rng = (q <= lo + tol) | (q >= hi - tol)                             # either bound, the yaw joints included
+    ctrl = r["ctrl9"][a0:].astype(np.float64)
+    at_tgt = (ctrl <= np.asarray(c["ctrl_lo"]) + 1e-4) | (ctrl >= np.asarray(c["ctrl_hi"]) - 1e-4)
+    deg = np.degrees
+
+    def med(x):
+        x = np.asarray(x)[held]
+        return float(np.median(x)) if x.size else None
+
+    def frac(m):                       # share of held steps of held rollouts
+        mm = m[:, held] if m.ndim == 2 else m[:, held, :]
+        h = act[:, held]
+        if not h.any():
+            return None
+        return float(mm[h].mean())
+
+    out = dict(
+        turn_pinch_deg=med(deg(np.abs(tool_turn))),
+        tilt_turn_deg=med(tilt[a0 - 1] - tilt[e - 1]), tilt_final_deg=med(tilt[-1]),
+        spin_deg=med(deg(spin_turn.mean(-1))),
+        spin_thumb_deg=med(deg(spin_turn[:, 0])), spin_index_deg=med(deg(spin_turn[:, 1])),
+        spin_middle_deg=med(deg(spin_turn[:, 2])),
+        spin_abs_deg=med(deg(np.abs(spin_turn).mean(-1))),
+        tip_turn_deg=med(deg(tip_turn.mean(-1))),
+        spin_hold_deg=med(deg(spin_hold.mean(-1))),
+        axis_fallback_frac=frac(pt["fallback"][a0:]),
+        torque_limit_frac=frac(at_tau.any(-1)), torque_limit_joint_frac=frac(at_tau.mean(-1)),
+        ext_limit_frac=frac(at_ext.any(-1)), flex_limit_frac=frac(at_flex.any(-1)),
+        range_limit_frac=frac(at_rng.any(-1)), target_limit_frac=frac(at_tgt.any(-1)),
+        range_limit_by_joint={j: frac(at_rng[..., k]) for k, j in enumerate(c["joints"])},
+        torque_limit_by_joint={j: frac(at_tau[..., k]) for k, j in enumerate(c["joints"])},
+        ext_limit_by_joint={j: frac(at_ext[..., k]) for k, j in enumerate(c["joints"]) if flexing[k]},
+        flex_limit_by_joint={j: frac(at_flex[..., k]) for k, j in enumerate(c["joints"]) if flexing[k]},
+        target_limit_by_joint={j: frac(at_tgt[..., k]) for k, j in enumerate(c["joints"])},
+        tau_abs_median_by_joint={j: (float(np.median(tau[..., k][act[:, :] & held[None, :]]))
+                                     if (act & held[None, :]).any() else None) for k, j in enumerate(c["joints"])},
+        grip_by_finger_N=[float(f[a0:, :, k][act].mean()) if act.any() else None for k in range(3)],
+        grip_by_finger_q10_N=[float(np.percentile(f[a0:, :, k][act], 10)) if act.any() else None for k in range(3)],
+        grip_by_finger_q90_N=[float(np.percentile(f[a0:, :, k][act], 90)) if act.any() else None for k in range(3)],
+        force_lim_Nm=float(np.min(c["force_lim"])), kp=float(c["kp"]),
+        spin_per_rollout=[round(float(v), 2) for v in deg(spin_turn.mean(-1))],
+        turn_per_rollout=[round(float(v), 2) for v in deg(np.abs(tool_turn))],
+    )
+    return out
 
 
 # ---------------------------------------------------------------------------------- subcommands
@@ -635,7 +848,7 @@ def cmd_watch(args):
             append(OUT8 / "ckpt_eval.jsonl", dict(row, wall_s=round(time.perf_counter() - t0, 1),
                                                   when=time.strftime("%Y-%m-%d %H:%M")))
         row.update(watch_metrics(r, ev))
-        tdir = ROOT / "logs/20261008-contact_model_policies/watch_traces"
+        tdir = LOGS8 / "watch_traces"
         tdir.mkdir(parents=True, exist_ok=True)
         np.savez_compressed(tdir / f"{tag}_it{it:04d}.npz", **{k: r[k].astype(np.float16) for k in
                             ("cos", "z", "force", "found", "acts", "ctrl", "angv", "angw", "axis")}, palm=r["palm"],
@@ -695,20 +908,79 @@ def cmd_watch(args):
 def cmd_final(args):
     out = OUT8 / "final_eval.jsonl"
     have = done_keys(out, ("tag",))
+    mech = STUDY != "20261008"          # the 2026-10-08 finals were evaluated before the mech record existed
     for tag, arm, seed, steps in pick(args):
         if (tag,) in have:
             continue
         ck = final_ckpt(tag, steps)
-        ev = Evaluator(ARMS[arm], ck, n=args.n, steps=args.steps, physics=True)
+        ev = Evaluator(ARMS[arm], ck, n=args.n, steps=args.steps, physics=True, mech=mech)
         t0 = time.perf_counter()
         r = ev.rollout()
         row = dict(tag=tag, arm=arm, seed=seed, iteration=_it(ck), checkpoint=str(ck.relative_to(ROOT)), scene=arm,
                    **metrics(r, ev.residual_from, physics=True), status="ok", wall_s=round(time.perf_counter() - t0, 1),
                    when=time.strftime("%Y-%m-%d %H:%M"))
-        save_traces(tag, r)
+        save_traces(tag, r, consts=ev.mech_consts() if mech else None)
         append(out, row)
+        if mech:
+            append(MECH_OUT / "mechanism.jsonl", _mech_row(tag, arm, seed, ck, ev, r, "final_traces"))
         print(f"{tag} final: held {row['n_held']}/64, held cos {row['held_cos_mean']}, pen {row['pen_max_mm_mean']} mm, "
               f"creep {row['creep_mm_s_median']} mm/s", flush=True)
+        ev.close()
+
+
+def _mech_row(tag, arm, seed, ck, ev, r, sub) -> dict:
+    m = metrics(r, ev.residual_from, physics=True)
+    keep = ("n", "n_held", "held_frac", "held_cos_mean", "held_cos_median", "held_cos_sd", "cos_mean", "grip_N",
+            "grip_thumb_N", "grip_index_N", "grip_middle_N", "three_finger_share", "peak_force_N_mean",
+            "pen_max_mm_mean", "creep_mm_s_median", "creep_deg_s_median")
+    row = dict(tag=tag, arm=arm, seed=seed, study=STUDY, iteration=_it(ck), checkpoint=str(ck.relative_to(ROOT)),
+               scene=str(ARMS[arm].relative_to(ROOT)), traces=f"{sub}/{tag}.npz",
+               **{k: m.get(k) for k in keep}, **mech_metrics(r, ev.mech_consts()), status="ok",
+               when=time.strftime("%Y-%m-%d %H:%M"))
+    print(f"{tag} mechanism: held {row['n_held']}/{row['n']}, turn about the pinch axis {row['turn_pinch_deg']} deg, "
+          f"contact spin {row['spin_deg']} deg (thumb {row['spin_thumb_deg']}, index {row['spin_index_deg']}, middle "
+          f"{row['spin_middle_deg']}), torque limit {row['torque_limit_frac']}, extension limit {row['ext_limit_frac']}, "
+          f"grip by finger {row['grip_by_finger_N']}", flush=True)
+    return row
+
+
+def load_trace(path: Path) -> tuple[dict, dict]:
+    """A saved trace (save_traces with a mech record) as float64 arrays, and its record constants."""
+    z = np.load(path)
+    r = {k: (z[k].astype(np.float64) if z[k].dtype == np.float16 else z[k]) for k in z.files if not k.startswith("c_")}
+    c = {k[2:]: (z[k].tolist() if z[k].dtype.kind in "US" else z[k]) for k in z.files if k.startswith("c_")}
+    c["residual_from"] = int(c["residual_from"])
+    c["kp"] = float(c["kp"])
+    return r, c
+
+
+def cmd_mechanism(args):
+    """The study's final policies with the mech record; rows and traces under MECH_OUT whatever the study. Rows of
+    the 2026-10-11 study come from `final`; this serves the others (2026-10-08). With --from-traces, every row of
+    mechanism.jsonl is computed again from its saved traces (float16; no GPU) and appended with source 'traces'."""
+    out = MECH_OUT / "mechanism.jsonl"
+    if args.from_traces:
+        newest = {}
+        for line in open(out):
+            r = json.loads(line)
+            if r.get("status") == "ok":
+                newest[r["tag"]] = r
+        for tag, row in newest.items():
+            tr, c = load_trace(MECH_OUT / row["traces"])
+            row = dict(row, **mech_metrics(tr, c), source="traces", when=time.strftime("%Y-%m-%d %H:%M"))
+            append(out, row)
+            print(f"{tag}: spin {row['spin_deg']:.1f} deg, turn {row['turn_pinch_deg']:.1f} deg, torque limit "
+                  f"{row['torque_limit_frac']:.3f}, range limit {row['range_limit_frac']:.3f}", flush=True)
+        return
+    have = set() if args.redo else done_keys(out, ("tag",))
+    for tag, arm, seed, steps in pick(args):
+        if (tag,) in have:
+            continue
+        ck = final_ckpt(tag, steps)
+        ev = Evaluator(ARMS[arm], ck, n=args.n, steps=args.steps, physics=True, mech=True)
+        r = ev.rollout()
+        save_traces(tag, r, sub="mech_traces", root=MECH_OUT, consts=ev.mech_consts())
+        append(out, _mech_row(tag, arm, seed, ck, ev, r, "mech_traces"))
         ev.close()
 
 
@@ -817,7 +1089,7 @@ def cmd_costs(args):
     """Per run: median seconds per iteration and wall time (its trainer log), peak GPU memory (the queue's 30 s
     samples of the whole card, and the run's own process where gpu_proc_sampler.sh sampled it), peak host RSS
     (/usr/bin/time), and the failed attempts before it (the queue log)."""
-    logs = ROOT / "logs/20261008-contact_model_policies"
+    logs = LOGS8
     gpu = {}
     if (logs / "gpu_mem.tsv").exists():
         for line in open(logs / "gpu_mem.tsv"):
@@ -867,20 +1139,28 @@ def cmd_costs(args):
 
 
 def main():
+    pre = argparse.ArgumentParser(add_help=False)
+    pre.add_argument("--study", choices=sorted(STUDIES), default="20261008")
+    use_study(pre.parse_known_args()[0].study)
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd")
     sub.add_parser("legacy")
-    for name in ("ckpts", "final", "transfer", "robust", "tb", "costs", "watch"):
+    for name in ("ckpts", "final", "transfer", "robust", "tb", "costs", "watch", "mechanism"):
         s = sub.add_parser(name)
+        s.add_argument("--study", choices=sorted(STUDIES), default="20261008",
+                       help="the runs, scenes and rows of that study (default: 2026-10-08)")
         s.add_argument("--tags", nargs="*", default=[])
-        s.add_argument("--all", action="store_true", help="every finished run of the 2026-10-08 queue")
+        s.add_argument("--all", action="store_true", help="every finished run of the study's queue")
         s.add_argument("--n", type=int, default=64)
         s.add_argument("--steps", type=int, default=250)
         if name == "ckpts":
             s.add_argument("--every", type=int, default=82, help="iterations between evaluated checkpoints")
             s.add_argument("--iterations", type=int, nargs="*", default=[], help="only these checkpoints")
-        if name in ("ckpts", "robust"):
+        if name in ("ckpts", "robust", "mechanism"):
             s.add_argument("--redo", action="store_true", help="evaluate again rows that exist (the newest row counts)")
+        if name == "mechanism":
+            s.add_argument("--from-traces", action="store_true",
+                           help="recompute every mechanism row from its saved traces instead of running policies")
         if name == "watch":
             s.add_argument("--iterations", type=int, nargs="+", required=True)
             s.add_argument("--redo", action="store_true", help="evaluate again checkpoints that have a watch row")
@@ -893,7 +1173,7 @@ def main():
         legacy()
         return 0
     {"ckpts": cmd_ckpts, "final": cmd_final, "transfer": cmd_transfer, "robust": cmd_robust, "tb": cmd_tb,
-     "costs": cmd_costs, "watch": cmd_watch}[a.cmd](a)
+     "costs": cmd_costs, "watch": cmd_watch, "mechanism": cmd_mechanism}[a.cmd](a)
     return 0
 
 
