@@ -2,8 +2,9 @@
 """Search short release-and-recontact plans on the deployed D1 hand.
 
 Each plan has three yaw targets in three time bins, followed by two finger
-opening amplitudes and two closing biases. CPU finite differences test whether
-local trajectory gradients help after a contact sequence has been sampled.
+opening amplitudes and two closing biases (real_v1_d1_continuation.py: scene,
+held state, plan and score). L-BFGS-B with two-point finite differences, CEM and
+their hybrid search the plan within a budget of simulator evaluations.
 """
 from __future__ import annotations
 
@@ -18,121 +19,12 @@ from scipy.optimize import minimize
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
-import real_v1_diffmjx_gate as gate  # noqa: E402
+import real_v1_d1_continuation as d1  # noqa: E402
+from real_v1_d1_continuation import (CLOSE_SCALE_RAD, FINGERS, HORIZON_MS, N_PARAM,  # noqa: E402,F401
+                                     OPEN_UNTIL_MS, PHASE_EDGES_MS, YAW_SCALE_RAD, Scene, hold_vector)
 
-DT_MS = 1
-HORIZON_MS = 400
-PHASE_EDGES_MS = (120, 240, 400)
-OPEN_UNTIL_MS = 180
-N_PARAM = 13
-FINGERS = gate.rb.FINGERS
-YAW_SCALE_RAD = 0.35
-CLOSE_SCALE_RAD = 0.30
 FD_STEP = 1e-2          # two-point step of the local search, plan units (2026-10-11; 10-07 used SciPy's 1.49e-8)
 CEM_SEED = 20261007
-
-
-class Scene:
-    def __init__(self, tip: str, contact_model: str, seed: int = 1,
-                 forced_release: bool = False, pad_spacing_mm: float = 1.0):
-        import mujoco
-
-        self.mujoco = mujoco
-        self.scene, self.meta = gate.make_scene("D1", "bed", 100.0, no_post=True,
-                                               tip=tip, contact_model=contact_model,
-                                               pad_spacing_m=pad_spacing_mm*0.001)
-        supported, _ = gate.make_scene("D1", "bed", 100.0,
-                                       tip=tip, contact_model=contact_model,
-                                       pad_spacing_m=pad_spacing_mm*0.001)
-        self.model = mujoco.MjModel.from_xml_path(str(self.scene))
-        self.held = gate.clone_data(self.model, gate.grip_state(
-            mujoco.MjModel.from_xml_path(str(supported)), self.meta, "D1", seed))
-        body = self.model.body(gate.rb.OBJ).id
-        self.qadr = int(self.model.jnt_qposadr[self.model.body_jntadr[body]])
-        self.yaw_ids = np.array([self.model.actuator(f"a_{finger}_yaw").id
-                                 for finger in FINGERS])
-        self.flex_ids = {finger: np.array([self.model.actuator(f"a_{finger}_{joint}").id
-                                           for joint in ("mcp", "pip")])
-                         for finger in ("index", "middle")}
-        self.ctrl0 = self.held.ctrl.copy()
-        self.z0 = float(self.held.qpos[self.qadr + 2])
-        self.cos0 = self.vertical_cos(self.held)
-        self.low = self.model.actuator_ctrlrange[:, 0].copy()
-        self.high = self.model.actuator_ctrlrange[:, 1].copy()
-        self.calls = 0
-        self.forced_release = forced_release
-        self.pad_spacing_mm = pad_spacing_mm
-
-    def vertical_cos(self, data):
-        quat = data.qpos[self.qadr + 3:self.qadr + 7]
-        return float(1 - 2 * (quat[1] ** 2 + quat[2] ** 2))
-
-    def evaluate(self, x, trace: bool = False):
-        x = np.asarray(x, float)
-        assert x.shape == (N_PARAM,)
-        if self.forced_release:
-            x = x.copy()
-            x[9] = 1.0
-        self.calls += 1
-        data = gate.clone_data(self.model, self.held)
-        phase = -1
-        min_z = self.z0
-        contact_trace = []
-        for k in range(HORIZON_MS):
-            phase_next = int(k >= PHASE_EDGES_MS[0]) + int(k >= PHASE_EDGES_MS[1])
-            if phase_next != phase or k == OPEN_UNTIL_MS:
-                phase = phase_next
-                data.ctrl[:] = self.ctrl0
-                data.ctrl[self.yaw_ids] = np.clip(
-                    self.ctrl0[self.yaw_ids] + YAW_SCALE_RAD * x[3*phase:3*phase+3],
-                    self.low[self.yaw_ids], self.high[self.yaw_ids])
-                for i, finger in enumerate(("index", "middle")):
-                    ids = self.flex_ids[finger]
-                    if k < OPEN_UNTIL_MS:
-                        amplitude = 0.5 * (x[9+i] + 1.0)
-                        data.ctrl[ids] = self.ctrl0[ids] + amplitude * (self.low[ids] - self.ctrl0[ids])
-                    else:
-                        data.ctrl[ids] = np.clip(self.ctrl0[ids] + CLOSE_SCALE_RAD*x[11+i],
-                                                 self.low[ids], self.high[ids])
-            self.mujoco.mj_step(self.model, data)
-            min_z = min(min_z, float(data.qpos[self.qadr + 2]))
-            if trace and (k+1) % 10 == 0:
-                contact = gate.contact_summary(self.model, data)
-                contact_trace.append({"t_s": round((k+1)*0.001, 3),
-                                      "vertical_cos": self.vertical_cos(data),
-                                      "tool_z_m": float(data.qpos[self.qadr+2]),
-                                      "finger_normal_force_N": contact["finger_normal_force_N"]})
-        contact = gate.contact_summary(self.model, data)
-        forces = contact["finger_normal_force_N"]
-        final_cos = self.vertical_cos(data)
-        height_deficit = max(0.0, self.z0 - min_z - 0.003)
-        force_deficit = sum(max(0.0, 0.5 - forces[finger]) for finger in FINGERS)
-        score = final_cos - self.cos0 - 70.0*height_deficit - 0.7*force_deficit
-        row = {"score": float(score), "vertical_cos": final_cos,
-               "cos_gain": float(final_cos-self.cos0),
-               "tool_z_m": float(data.qpos[self.qadr+2]), "min_tool_z_m": min_z,
-               "finger_normal_force_N": forces,
-               "held_final": bool(min_z >= self.z0-0.008 and min(forces.values()) >= 0.5),
-               "x": x.tolist()}
-        if trace:
-            row["contact_trace"] = contact_trace
-            row["index_release_ms"] = int(sum(item["finger_normal_force_N"]["index"] < 0.05
-                                              for item in contact_trace)*10)
-            row["middle_release_ms"] = int(sum(item["finger_normal_force_N"]["middle"] < 0.05
-                                               for item in contact_trace)*10)
-            row["index_recontact"] = bool(row["index_release_ms"] >= 20 and
-                                          forces["index"] >= 0.5)
-            row["middle_recontact"] = bool(row["middle_release_ms"] >= 20 and
-                                           forces["middle"] >= 0.5)
-        return row
-
-
-def hold_vector(forced_release: bool = False):
-    x = np.zeros(N_PARAM)
-    x[9:11] = -1.0
-    if forced_release:
-        x[9] = 1.0
-    return x
 
 
 def optimize_gradient(scene: Scene, start, budget: int, fd_step: float | None = FD_STEP):
@@ -240,7 +132,7 @@ def main():
               "pad_spacing_mm":args.pad_spacing_mm,
               "fd_step": "scipy" if fd_step is None else fd_step, "cem_seed": args.cem_seed,
               "initial_vertical_cos": scene.cos0, "initial_tool_z_m": scene.z0,
-              "initial_force_N": gate.contact_summary(scene.model,scene.held)["finger_normal_force_N"],
+              "initial_force_N": d1.contact_summary(scene.model,scene.held)["finger_normal_force_N"],
               "score": "cos_gain - 70 max(0,z0-min_z-0.003 m) - 0.7 sum_f max(0,0.5 N-F_f)",
               "methods": {"direct_gradient": direct, "cem": sampled,
                           "hybrid_cem": half, "hybrid_gradient": refined},

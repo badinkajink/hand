@@ -7,11 +7,13 @@ import json
 import time
 from pathlib import Path
 
+import sys
+
 import numpy as np
-import real_v1_diffmjx_gate as gate
-from real_v1_contact_gait_search import (CLOSE_SCALE_RAD, FINGERS, HORIZON_MS,
-                                         OPEN_UNTIL_MS, PHASE_EDGES_MS, Scene,
-                                         YAW_SCALE_RAD, hold_vector)
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import real_v1_d1_continuation as d1  # noqa: E402
+from real_v1_d1_continuation import FINGERS, HORIZON_MS, Scene, hold_vector  # noqa: E402
 
 
 def main():
@@ -61,15 +63,10 @@ def main():
             mjw.step(wm, wd)
     graph = cap.graph
     reset()
-    obj = model.body(gate.rb.OBJ).id
-    qa = int(model.jnt_qposadr[model.body_jntadr[obj]])
+    obj = model.body(d1.OBJ).id
+    qa, _ = d1.tool_addresses(model)
     is_tool = np.array([model.geom_bodyid[i] == obj for i in range(model.ngeom)])
-    finger_of = np.full(model.ngeom, -1)
-    for i in range(model.ngeom):
-        body_name = model.body(model.geom_bodyid[i]).name
-        for j, finger in enumerate(FINGERS):
-            if body_name.startswith(finger + "_"):
-                finger_of[i] = j
+    finger_of = d1.finger_of_geom(model)
     traces = [[] for _ in jobs]
     wall_step = []
 
@@ -98,25 +95,12 @@ def main():
                                                         for j, f in enumerate(FINGERS)}})
 
     def set_controls(k):
-        phase = int(k >= PHASE_EDGES_MS[0]) + int(k >= PHASE_EDGES_MS[1])
-        ctrl = ctrl0.copy()
-        for w, (_, name) in enumerate(jobs):
-            x = np.asarray(plans[name], float)
-            ids = scene.yaw_ids
-            ctrl[w, ids] = np.clip(ctrl0[w, ids] + YAW_SCALE_RAD*x[3*phase:3*phase+3],
-                                   scene.low[ids], scene.high[ids])
-            for i, finger in enumerate(("index", "middle")):
-                ids = scene.flex_ids[finger]
-                if k < OPEN_UNTIL_MS:
-                    amplitude = 0.5*(x[9+i] + 1)
-                    ctrl[w, ids] = ctrl0[w, ids] + amplitude*(scene.low[ids] - ctrl0[w, ids])
-                else:
-                    ctrl[w, ids] = np.clip(ctrl0[w, ids] + CLOSE_SCALE_RAD*x[11+i],
-                                           scene.low[ids], scene.high[ids])
-        wd.ctrl.assign(ctrl)
+        ctrl = np.stack([d1.plan_ctrl(np.asarray(plans[name], float), k, ctrl0[w], scene.low, scene.high,
+                                      scene.yaw_ids, scene.flex_ids) for w, (_, name) in enumerate(jobs)])
+        wd.ctrl.assign(ctrl.astype(np.float32))
 
     for k in range(0, HORIZON_MS, 10):
-        if k in (0, 120, 180, 240):
+        if k in d1.CONTROL_CHANGE_MS:
             set_controls(k)
         t0 = time.perf_counter()
         wp.capture_launch(graph)
@@ -129,19 +113,13 @@ def main():
         trace = traces[w]
         initial = scenes[seed]
         final = trace[-1]
-        min_z = min(initial.z0, *(item["tool_z_m"] for item in trace))
+        min_z = min(initial.z0, *(item["tool_z_m"] for item in trace))   # sampled every 10 ms here
         force = final["finger_normal_force_N"]
-        gain = final["vertical_cos"] - initial.cos0
-        deficit = max(0.0, initial.z0 - min_z - 0.003)
-        fdef = sum(max(0.0, 0.5 - force[f]) for f in FINGERS)
-        release_ms = sum(item["finger_normal_force_N"]["index"] < 0.05 for item in trace)*10
-        rows.append({"seed": seed, "plan": name, "initial_cos": initial.cos0,
-                     "initial_z_m": initial.z0, "score": float(gain - 70*deficit - 0.7*fdef),
-                     "cos_gain": float(gain), "min_tool_z_m": min_z,
-                     "held_final": bool(min_z >= initial.z0 - 0.008 and min(force.values()) >= 0.5),
-                     "index_release_ms": release_ms,
-                     "index_recontact": bool(release_ms >= 20 and force["index"] >= 0.5),
-                     "contact_trace": trace})
+        release = d1.release_stats(trace, force)
+        rows.append({"seed": seed, "plan": name, "initial_cos": initial.cos0, "initial_z_m": initial.z0,
+                     **d1.score_and_held(initial.cos0, initial.z0, final["vertical_cos"], min_z, force),
+                     "min_tool_z_m": min_z, "index_release_ms": release["index_release_ms"],
+                     "index_recontact": release["index_recontact"], "contact_trace": trace})
     output = {"backend": "MuJoCo-Warp", "mujoco_version": scene.mujoco.__version__,
               "source_file": str(args.plans), "scene": str(scene.scene), "tip": args.tip,
               "contact_model": args.contact_model, "worlds": nw, "seeds": args.seeds,

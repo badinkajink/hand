@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Compare local yaw-control search on the real_v1 1 mm sphere-pad D1 grasp."""
+"""Compare local yaw-control search on the real_v1 1 mm sphere-pad D1 grasp.
+
+Over 20 ms from the held state (real_v1_d1_continuation.py), the CPU central-difference direction, 128 random
+directions and, with --gradient-actions, the fork's AD directions are each applied as a 0.1 rad offset of the three
+yaw targets and scored by the tool's vertical cosine in CPU MuJoCo.
+"""
 from __future__ import annotations
 
 import argparse
@@ -13,7 +18,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 D = ROOT / "docs/experiments/20261007-diffmjx"
 sys.path.insert(0, str(ROOT / "scripts"))
-import real_v1_diffmjx_gate as gate  # noqa: E402
+import real_v1_d1_continuation as d1  # noqa: E402
 
 
 def main() -> None:
@@ -23,36 +28,25 @@ def main() -> None:
     args = parser.parse_args()
     import mujoco
 
-    scene, meta = gate.make_scene("D1", "bed", 100.0, no_post=True,
-                                  tip="tpu6", contact_model="padsT")
-    model = mujoco.MjModel.from_xml_path(str(scene))
-    supported, _ = gate.make_scene("D1", "bed", 100.0,
-                                    tip="tpu6", contact_model="padsT")
-    held = gate.clone_data(model, gate.grip_state(mujoco.MjModel.from_xml_path(str(supported)),
-                                                  meta, "D1", 1))
-    obj = model.body(gate.rb.OBJ).id
-    qadr = int(model.jnt_qposadr[model.body_jntadr[obj]])
-    yaw_ids = np.array([model.actuator(f"a_{finger}_yaw").id for finger in gate.rb.FINGERS])
+    scene, meta, model, held = d1.held_scene("tpu6", "padsT", 1)
+    qadr, _ = d1.tool_addresses(model)
+    yaw_ids = np.array([model.actuator(f"a_{finger}_yaw").id for finger in d1.FINGERS])
 
     def evaluate(delta):
-        state = gate.clone_data(model, held)
+        state = d1.clone_data(model, held)
         state.ctrl[yaw_ids] += delta
         for _ in range(20):
             mujoco.mj_step(model, state)
-        quat = state.qpos[qadr + 3:qadr + 7]
-        summary = gate.contact_summary(model, state)
         return {
-            "vertical_cos": float(1 - 2 * (quat[1] ** 2 + quat[2] ** 2)),
+            "vertical_cos": float(d1.vertical_cos(state.qpos[qadr + 3:qadr + 7])),
             "tool_z_m": float(state.qpos[qadr + 2]),
-            "finger_normal_force_N": summary["finger_normal_force_N"],
+            "finger_normal_force_N": d1.contact_summary(model, state)["finger_normal_force_N"],
         }
 
     radius = 0.1  # Euclidean radius across three yaw targets, radians.
     eps = 0.01
-    basis = np.eye(3)
     t0 = time.perf_counter()
-    fd = np.array([(evaluate(eps * b)["vertical_cos"] -
-                    evaluate(-eps * b)["vertical_cos"]) / (2 * eps) for b in basis])
+    fd = d1.central_difference(lambda u: [evaluate(u)["vertical_cos"]], np.zeros(3), np.eye(3), eps)[0]
     fd_s = time.perf_counter() - t0
     fd_direction = radius * fd / np.linalg.norm(fd)
     candidates = {
@@ -91,9 +85,8 @@ def main() -> None:
         "random_median_vertical_cos": float(np.median(random_scores)),
         "random_128_evals_s": random_s,
     }
-    path = args.out
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(out, indent=2, allow_nan=False) + "\n")
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    args.out.write_text(json.dumps(out, indent=2, allow_nan=False) + "\n")
     print(json.dumps(out, indent=2), flush=True)
 
 

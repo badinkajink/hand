@@ -13,6 +13,8 @@ Each subcommand writes one JSON file into docs/experiments/20261011-diffmjx_audi
                10-07 probes used (cfd_solimp[2] = 0.05 m), next to the pairs in contact
   frames       compares the tool's angular velocity and constraint torque about its body x axis (what the 10-07
                scripts read from the free joint) with the same quantities about world x, 20 ms after the held state
+  module_check compares the outputs of the refactored scripts in regression/ with the stored data of 2026-10-07,
+               counts the scripts' lines before and after the shared module, and runs the module's tests
   corrections  collects the corrected 400 ms searches (searches/*.json, real_v1_contact_gait_search.py with
                --fd-step 1e-2 and five CEM seeds) and their eight-jitter replay (transfer-fd1e-2-mj360.json) next to the
                2026-10-07 runs, and times the CPU finite differences of the recontact derivative
@@ -273,8 +275,100 @@ def corrections() -> None:
         "recontact_index_force_at_280ms_N": d1.contact_summary(scene.model, state)["finger_normal_force_N"]["index"]})
 
 
+REFACTORED = ("real_v1_diffmjx_gate", "real_v1_diffmjx_official_gate", "real_v1_diffmjx_local_search",
+              "real_v1_diffmjx_pad_cpu", "real_v1_diffmjx_pad_jvp", "real_v1_diffmjx_recontact_jvp",
+              "real_v1_contact_gait_search", "real_v1_contact_gait_transfer", "real_v1_contact_gait_warp")
+BEFORE_COMMIT = "10eb3f1e"     # the scripts as Codex left them (with the audit's first commit on top)
+
+
+def _diff(a, b) -> float:
+    """Largest absolute difference between two equally shaped nested numeric structures."""
+    if isinstance(a, dict):
+        return max([_diff(a[k], b[k]) for k in a if k in b] or [0.0])
+    if isinstance(a, (list, tuple)):
+        return max([_diff(x, y) for x, y in zip(a, b)] or [0.0])
+    if isinstance(a, (int, float)) and not isinstance(a, bool):
+        return abs(float(a) - float(b))
+    return 0.0 if a == b else float("inf")
+
+
+def module_check() -> None:
+    import re
+    import subprocess
+    reg = OUT / "regression"
+    d07 = ROOT / "docs/experiments/20261007-diffmjx"
+    load = lambda p: json.loads(Path(p).read_text())  # noqa: E731
+    checks = []
+
+    def add(name, interpreter, new, old, keys):
+        a, b = load(reg / new), load(old)
+        diff = max(_diff(a[k], b[k]) for k in keys)
+        checks.append({"name": name, "interpreter": interpreter, "output": f"regression/{new}",
+                       "compared_with": str(Path(old).relative_to(ROOT)), "keys": list(keys), "max_abs_diff": diff})
+
+    add("400 ms search, convex mesh, --fd-step scipy", "uv (MuJoCo 3.6)", "mesh-seed1-256.json",
+        GAIT / "20261007-mesh-seed1-256.json", ["candidates"])
+    add("400 ms search, 1 mm packed pads, --fd-step scipy", "uv (MuJoCo 3.6)", "padsT-seed1-256.json",
+        GAIT / "20261007-padsT-seed1-256.json", ["candidates"])
+    a, b = load(reg / "transfer-mj360-seeds12.json"), load(GAIT / "20261007-transfer-mj360.json")
+    old = {(r["destination"], r["seed"], r["plan"]): r for r in b["rows"]}
+    pairs = [(r, old[(r["destination"], r["seed"], r["plan"])]) for r in a["rows"]
+             if (r["destination"], r["seed"], r["plan"]) in old]
+    checks.append({"name": "eight-jitter replay, jitters 1-2", "interpreter": "uv (MuJoCo 3.6)",
+                   "output": "regression/transfer-mj360-seeds12.json",
+                   "compared_with": "docs/experiments/20261007-contact-gait/20261007-transfer-mj360.json",
+                   "keys": ["rows"], "rows": len(pairs), "max_abs_diff": max(_diff(x, y) for x, y in pairs)})
+    a, b = load(reg / "pad_mask_cpu.json"), load(d07 / "20261007-pad_mask_cpu.json")
+    keys = ("initial_contact", "final_contact", "final_tool_qpos")          # the rows also hold wall times
+    checks.append({"name": "pad mask, 20 ms", "interpreter": "uv (MuJoCo 3.6)", "output": "regression/pad_mask_cpu.json",
+                   "compared_with": "docs/experiments/20261007-diffmjx/20261007-pad_mask_cpu.json",
+                   "keys": [f"rows.{m}.{k}" for m in ("pads", "padsT") for k in keys],
+                   "max_abs_diff": max(_diff(a["rows"][m][k], b["rows"][m][k]) for m in ("pads", "padsT")
+                                       for k in keys)})
+    add("20 ms local search", "fork venv (MuJoCo 3.3.1)", "pad_local_search_20_mj331.json",
+        d07 / "20261007-pad_local_search_20_mj331.json",
+        ["candidates", "random_vertical_cos", "cpu_fd_gradient_per_rad"])
+    add("fork JVP, 2 mm pads, 1 ms", "fork venv (JAX 0.11.2, CPU)", "official_padsT2_cylinder_jvp_1.json",
+        d07 / "20261007-official_padsT2_cylinder_jvp_1.json",
+        ["ad_directional_derivative", "fork_fd_directional_derivative", "cpu_fd_directional_derivative",
+         "fork_tool_qpos", "fork_initial_finger_dist_m", "cpu_initial_contact"])
+    add("native MJX 3.6, single sphere, 20 ms", "uv (JAX 0.4.38, CPU)", "native_sphere_20_cpu.json",
+        GAIT / "20261007-native-mjx-gpu-sphere-20-warm.json",
+        ["initial_contact", "cpu_contact", "cpu_tool_qpos", "mjx_tool_qpos", "max_qvel_abs_error"])
+    a, b = load(reg / "warp-padsT-free-seeds12.json"), load(GAIT / "20261007-warp-padsT-free-8.json")
+    old = {(r["seed"], r["plan"]): r for r in b["rows"]}
+    checks.append({"name": "MuJoCo-Warp replay, jitters 1-2, hold and CEM plans", "interpreter": "uv (MuJoCo-Warp, GPU)",
+                   "output": "regression/warp-padsT-free-seeds12.json",
+                   "compared_with": "docs/experiments/20261007-contact-gait/20261007-warp-padsT-free-8.json",
+                   "keys": ["cos_gain", "held_final", "index_release_ms"],
+                   "max_abs_diff": max(max(abs(r["cos_gain"] - old[(r["seed"], r["plan"])]["cos_gain"]),
+                                           float(r["held_final"] != old[(r["seed"], r["plan"])]["held_final"]),
+                                           float(r["index_release_ms"] != old[(r["seed"], r["plan"])]["index_release_ms"]))
+                                       for r in a["rows"])})
+    jv = load(reg / "padjvp_padsT2_1_all.json")
+    lines = []
+    for name in REFACTORED:
+        before = subprocess.run(["git", "show", f"{BEFORE_COMMIT}:scripts/{name}.py"], capture_output=True, text=True,
+                                cwd=ROOT, check=True).stdout
+        lines.append({"script": f"scripts/{name}.py", "before": before.count("\n"),
+                      "after": (ROOT / f"scripts/{name}.py").read_text().count("\n")})
+    env = {**__import__("os").environ, "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1"}
+    run = subprocess.run([sys.executable, "-m", "pytest", "tests/test_real_v1_d1_continuation.py", "-q"],
+                         capture_output=True, text=True, cwd=ROOT, env=env)
+    m = re.search(r"(\d+) passed(?:, (\d+) failed)? in ([0-9.]+)s", run.stdout)
+    write("module_check.json", {
+        "module": "scripts/real_v1_d1_continuation.py",
+        "module_lines": (ROOT / "scripts/real_v1_d1_continuation.py").read_text().count("\n"),
+        "before_commit": BEFORE_COMMIT, "scripts": lines, "checks": checks,
+        "pad_jvp_timing_keys": {k: jv[k] for k in ("cpu_fd_evals", "cpu_fd_s", "cpu_fd_3_evals_s",
+                                                   "cpu_jacobian_6_evals_s")},
+        "tests": {"file": "tests/test_real_v1_d1_continuation.py", "passed": int(m.group(1)) if m else 0,
+                  "failed": int(m.group(2) or 0) if m else None, "wall_s": float(m.group(3)) if m else None,
+                  "returncode": run.returncode}})
+
+
 COMMANDS = {"interfinger": interfinger, "fdstep": fdstep, "cfd_reach": cfd_reach, "frames": frames,
-            "corrections": corrections}
+            "corrections": corrections, "module_check": module_check}
 
 
 def main() -> None:

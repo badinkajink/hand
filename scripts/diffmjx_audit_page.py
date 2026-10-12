@@ -689,7 +689,33 @@ def module_section(S):
     mod = S["module"]
     if mod is None:
         return pending(3)
-    return mod["html"]
+    before = sum(x["before"] for x in mod["scripts"])
+    after = sum(x["after"] for x in mod["scripts"])
+    t = mod["tests"]
+    exact = [c for c in mod["checks"] if c["max_abs_diff"] == 0]
+    other = [c for c in mod["checks"] if c["max_abs_diff"] != 0]
+    text = (f"<p>The nine scripts of 7 October import {code(mod['module'])} for the scene and held state "
+            f"({code('make_scene')}, {code('held_scene')}), the 13-value plan ({code('plan_ctrl')}), the score and the "
+            f"held criterion ({code('score_and_held')}, {code('release_stats')}), the four tool outputs "
+            f"({code('metric_values')}, {code('cpu_metrics')}, {code('central_difference')}) and the MJX set-up that "
+            f"native MJX and the fork share ({code('mjx_setup')}, {code('mjx_rollout')}, {code('mjx_finger_gaps')}). "
+            f"The scripts shrink from {before:,} to {after:,} lines and keep their command lines and output keys; the "
+            f"module has {mod['module_lines']} lines. {code(t['file'])} pins the plan schedule, the score, the release "
+            f"statistics, the finite differences and the scene&#8217;s collision masks; its {t['passed']} tests pass in "
+            f"{t['wall_s']:.1f}&#8201;s.</p>")
+    text += (f"<p>Each refactored script reran a case of 7 October (Table&#160;5). {len(exact)} of the "
+             f"{len(mod['checks'])} outputs equal the stored data exactly"
+             + (", and the MuJoCo-Warp replay, in 32-bit arithmetic on the GPU, agrees to "
+                f"{g(other[0]['max_abs_diff'], 2)}" if other else "") + ". Both pages of 7 October rebuild from their "
+             "builders. Before the corrections the rebuild reproduced the committed files byte for byte; the numbers "
+             "that differ now are the corrections of Table&#160;3, and no measured value changed.</p>")
+    rows = [((c["name"], "wrap"), (c["interpreter"], "wrap"), (code(c["compared_with"].split("/")[-1]), "wrap"),
+             "0" if c["max_abs_diff"] == 0 else g(c["max_abs_diff"], 2)) for c in mod["checks"]]
+    text += table(["Check", "Interpreter", "Compared with", "Largest difference"], rows)
+    text += tcap("Outputs of the refactored scripts against the stored data of 7 October, compared field by field "
+                 "(scores, plans, traces, derivatives, poses, contact summaries; wall times excluded). Outputs in "
+                 "<code>regression/</code>; JSON: <code>module_check.json</code>.")
+    return text
 
 
 def onset_section(S):

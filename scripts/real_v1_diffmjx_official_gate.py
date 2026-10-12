@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Probe the released DiffMJX fork on a real_v1 held screwdriver state.
 
-Run this with the isolated environment documented in the result page. The
-baseline, CFD, scan-loop and soft-collision switches belong to the authors'
-fork; the CPU MuJoCo reference uses the same XML and initial state.
+Run this with the isolated environment of docs/experiments/20261007-diffmjx/README.md. The CFD, scan-loop and
+smooth-collision switches belong to the authors' fork (real_v1_d1_continuation.mjx_setup sets them); the CPU MuJoCo
+reference uses the same XML and initial state. The four outputs are real_v1_d1_continuation.METRIC_NAMES, the last two
+about the tool's body x axis.
 """
 from __future__ import annotations
 
@@ -17,7 +18,7 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
-import real_v1_diffmjx_gate as gate  # noqa: E402
+import real_v1_d1_continuation as d1  # noqa: E402
 
 
 def main() -> None:
@@ -46,109 +47,51 @@ def main() -> None:
 
     if args.contact_model in ("pads", "padsT") and args.tip != "tpu6":
         parser.error("sphere pads require --tip tpu6")
-    scene, meta = gate.make_scene("D1", "bed", 100.0, no_post=True,
-                                  tool_capsule=args.tool_capsule, tip=args.tip,
-                                  contact_model=args.contact_model,
-                                  pad_spacing_m=args.pad_spacing_mm * 0.001)
-    model = mujoco.MjModel.from_xml_path(str(scene))
-    supported_scene, _ = gate.make_scene("D1", "bed", 100.0,
-                                         tip=args.tip, contact_model=args.contact_model,
-                                         pad_spacing_m=args.pad_spacing_mm * 0.001)
-    supported_model = mujoco.MjModel.from_xml_path(str(supported_scene))
-    held = gate.clone_data(model, gate.grip_state(supported_model, meta, "D1", 1))
-    obj = model.body(gate.rb.OBJ).id
-    qadr = int(model.jnt_qposadr[model.body_jntadr[obj]])
-    vadr = int(model.jnt_dofadr[model.body_jntadr[obj]])
-    yaw_ids = np.array([model.actuator(f"a_{finger}_yaw").id for finger in gate.rb.FINGERS])
-    cpu = gate.clone_data(model, held)
+    scene, meta, model, held = d1.held_scene(args.tip, args.contact_model, 1, args.pad_spacing_mm,
+                                             tool_capsule=args.tool_capsule)
+    qadr, vadr = d1.tool_addresses(model)
+    yaw_ids = np.array([model.actuator(f"a_{finger}_yaw").id for finger in d1.FINGERS])
+    cpu = d1.clone_data(model, held)
     t0 = time.perf_counter()
     for _ in range(args.steps):
         mujoco.mj_step(model, cpu)
     cpu_rollout_s = time.perf_counter() - t0
 
-    t0 = time.perf_counter()
-    mx = mjx.put_model(model)
-    put_model_s = time.perf_counter() - t0
+    mx, md, put_model_s = d1.mjx_setup(model, held, cfd=args.cfd, scan_loop=args.scan_loop,
+                                       soft_collision=args.soft_collision)
     print(f"put_model {put_model_s:.3f} s", flush=True)
-    opt = mx.opt.replace(
-        cfd_enable=args.cfd,
-        cfd_solimp=jnp.array([0.0, 0.01, 0.05, 1.0, 2.0]),
-        scan_loop=args.scan_loop,
-        col_soft_enable=args.soft_collision,
-        softjax_mode="smooth",
-        col_softness=0.01,
-    )
-    mx = mx.replace(opt=opt)
-    md = mjx.put_data(model, held)
-    print("put_data complete", flush=True)
-    if not args.float32:
-        md = md.replace(contact=md.contact.replace(
-            geom1=md.contact.geom1.astype(jnp.int64),
-            geom2=md.contact.geom2.astype(jnp.int64),
-            geom=md.contact.geom.astype(jnp.int64),
-        ))
+    steps = d1.mjx_rollout(mx, args.steps)
 
     @jax.jit
     def rollout(delta):
-        state = md.replace(ctrl=md.ctrl.at[yaw_ids].add(delta))
-        def step(carry, _):
-            return mjx.step(mx, carry), None
-        return jax.lax.scan(step, state, None, length=args.steps)[0]
+        return steps(md.replace(ctrl=md.ctrl.at[yaw_ids].add(delta)))
 
     @jax.jit
     def metrics(delta):
         final = rollout(delta)
-        quat = final.qpos[qadr + 3:qadr + 7]
-        vertical_cos = 1.0 - 2.0 * (quat[1] ** 2 + quat[2] ** 2)
-        return jnp.array([vertical_cos, final.qpos[qadr + 2],
-                          final.qvel[vadr + 3], final.qfrc_constraint[vadr + 3]])
+        return jnp.array(d1.metric_values(final.qpos, final.qvel, final.qfrc_constraint, qadr, vadr))
+
+    def cpu_metrics(delta):
+        return d1.cpu_metrics(model, held, args.steps, yaw_ids, delta)
 
     zero = jnp.zeros(3)
-    forward_fn = jax.jit(lambda state: mjx.forward(mx, state))
-    t0 = time.perf_counter()
-    initial = forward_fn(md)
-    initial.qpos.block_until_ready()
-    initial_s = time.perf_counter() - t0
+    initial, initial_s = d1.timed(jax.jit(lambda state: mjx.forward(mx, state)), md)
     print(f"mjx.forward {initial_s:.3f} s", flush=True)
-    t0 = time.perf_counter()
-    final = rollout(zero)
-    final.qpos.block_until_ready()
-    first_s = time.perf_counter() - t0
-    warm_times = []
-    for _ in range(args.warm_repeats):
-        t0 = time.perf_counter()
-        rollout(zero).qpos.block_until_ready()
-        warm_times.append(time.perf_counter() - t0)
+    final, first_s = d1.timed(rollout, zero)
+    warm_times = [d1.timed(rollout, zero)[1] for _ in range(args.warm_repeats)]
     grad_fields = {}
     if not args.skip_gradient:
         eps = 0.01
         basis = np.eye(3)
-        def cpu_metrics(delta):
-            state = gate.clone_data(model, held)
-            state.ctrl[yaw_ids] += delta
-            for _ in range(args.steps):
-                mujoco.mj_step(model, state)
-            quat = state.qpos[qadr + 3:qadr + 7]
-            return np.array([1.0 - 2.0 * (quat[1] ** 2 + quat[2] ** 2),
-                             state.qpos[qadr + 2], state.qvel[vadr + 3],
-                             state.qfrc_constraint[vadr + 3]])
         if args.one_direction_gradient:
             vector = jnp.asarray(basis[args.direction_index])
-            @jax.jit
-            def directional(delta):
-                return jax.jvp(metrics, (delta,), (vector,))[1]
+            directional = jax.jit(lambda delta: jax.jvp(metrics, (delta,), (vector,))[1])
+            ad, gradient_compile_s = d1.timed(directional, zero)
+            gradient_warm_s = d1.timed(directional, zero)[1]
+            fork_fd = d1.central_difference(lambda u: np.asarray(metrics(jnp.asarray(u))), np.zeros(3),
+                                            basis[[args.direction_index]], eps)[:, 0]
             t0 = time.perf_counter()
-            ad = directional(zero)
-            ad.block_until_ready()
-            gradient_compile_s = time.perf_counter() - t0
-            t0 = time.perf_counter()
-            directional(zero).block_until_ready()
-            gradient_warm_s = time.perf_counter() - t0
-            fork_fd = (np.asarray(metrics(eps * vector)) -
-                       np.asarray(metrics(-eps * vector))) / (2 * eps)
-            t0 = time.perf_counter()
-            cpu_fd = (cpu_metrics(eps * basis[args.direction_index]) -
-                      cpu_metrics(-eps * basis[args.direction_index])) / (2 * eps)
+            cpu_fd = d1.central_difference(cpu_metrics, np.zeros(3), basis[[args.direction_index]], eps)[:, 0]
             cpu_fd_s = time.perf_counter() - t0
             ad_np = np.asarray(ad)
             grad_fields = {
@@ -163,21 +106,11 @@ def main() -> None:
             }
         else:
             jacobian_fn = jax.jit(jax.jacfwd(metrics))
+            jacobian, jacobian_s = d1.timed(jacobian_fn, zero)
+            jacobian_warm_s = d1.timed(jacobian_fn, zero)[1]
+            fd = d1.central_difference(lambda u: np.asarray(metrics(jnp.asarray(u))), np.zeros(3), basis, eps)
             t0 = time.perf_counter()
-            jacobian = jacobian_fn(zero)
-            jacobian.block_until_ready()
-            jacobian_s = time.perf_counter() - t0
-            t0 = time.perf_counter()
-            jacobian_fn(zero).block_until_ready()
-            jacobian_warm_s = time.perf_counter() - t0
-            fd = np.column_stack([
-                (np.asarray(metrics(jnp.asarray(eps * b))) -
-                 np.asarray(metrics(jnp.asarray(-eps * b)))) / (2 * eps)
-                for b in basis
-            ])
-            t0 = time.perf_counter()
-            cpu_fd = np.column_stack([(cpu_metrics(eps * b) - cpu_metrics(-eps * b)) / (2 * eps)
-                                      for b in basis])
+            cpu_fd = d1.central_difference(cpu_metrics, np.zeros(3), basis, eps)
             cpu_fd_s = time.perf_counter() - t0
             j = np.asarray(jacobian)
             grad_fields = {
@@ -189,20 +122,8 @@ def main() -> None:
                 "jacobian_compile_s": jacobian_s,
                 "jacobian_warm_s": jacobian_warm_s,
             }
-    c = gate.contact_summary(model, held)
-    contact = initial.contact
-    tool_geoms = {i for i in range(model.ngeom) if model.geom_bodyid[i] == obj}
-    finger_gap = {finger: None for finger in gate.rb.FINGERS}
-    for (g0, g1), distance in zip(np.asarray(contact.geom), np.asarray(contact.dist)):
-        g0, g1 = int(g0), int(g1)
-        if g0 not in tool_geoms and g1 not in tool_geoms:
-            continue
-        other = g1 if g0 in tool_geoms else g0
-        name = model.body(model.geom_bodyid[other]).name
-        for finger in gate.rb.FINGERS:
-            if name.startswith(finger + "_"):
-                prior = finger_gap[finger]
-                finger_gap[finger] = float(distance) if prior is None else min(prior, float(distance))
+    contact, _ = d1.mjx_contact(initial)
+    fq = np.asarray(final.qpos)
     result = {
         "scene": str(scene.relative_to(ROOT)),
         "base_scene": meta["base_scene"],
@@ -219,20 +140,17 @@ def main() -> None:
         "cfd_enable": args.cfd,
         "scan_loop": args.scan_loop,
         "col_soft_enable": args.soft_collision,
-        "cpu_initial_contact": c,
-        "fork_initial_finger_dist_m": finger_gap,
+        "cpu_initial_contact": d1.contact_summary(model, held),
+        "fork_initial_finger_dist_m": d1.mjx_finger_gaps(model, initial),
         "fork_initial_contact_dist_m": np.asarray(contact.dist).tolist(),
         "fork_initial_contact_geom": np.asarray(contact.geom).tolist(),
         "cpu_tool_qpos": cpu.qpos[qadr:qadr + 7].tolist(),
-        "fork_tool_qpos": np.asarray(final.qpos[qadr:qadr + 7]).tolist(),
-        "max_qpos_abs_error": float(np.max(np.abs(cpu.qpos - np.asarray(final.qpos)))),
+        "fork_tool_qpos": fq[qadr:qadr + 7].tolist(),
+        "max_qpos_abs_error": float(np.max(np.abs(cpu.qpos - fq))),
         "max_qvel_abs_error": float(np.max(np.abs(cpu.qvel - np.asarray(final.qvel)))),
-        "fork_metrics": [float(1 - 2 * (np.asarray(final.qpos)[qadr + 4] ** 2 +
-                                       np.asarray(final.qpos)[qadr + 5] ** 2)),
-                         float(final.qpos[qadr + 2]), float(final.qvel[vadr + 3]),
-                         float(final.qfrc_constraint[vadr + 3])],
-        "metric_names": ["tool_vertical_cos", "tool_z_m", "tool_omega_x_rad_s",
-                         "tool_contact_torque_x_Nm"],
+        "fork_metrics": [float(v) for v in d1.metric_values(fq, np.asarray(final.qvel),
+                                                            np.asarray(final.qfrc_constraint), qadr, vadr)],
+        "metric_names": list(d1.METRIC_NAMES),
         "initial_compile_s": initial_s,
         "put_model_s": put_model_s,
         "rollout_compile_s": first_s,

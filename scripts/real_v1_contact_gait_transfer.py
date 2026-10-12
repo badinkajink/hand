@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
-from real_v1_contact_gait_search import Scene, hold_vector
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from real_v1_d1_continuation import Scene, hold_vector  # noqa: E402
 
 
 def main():
