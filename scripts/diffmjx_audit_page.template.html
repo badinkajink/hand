@@ -1,0 +1,101 @@
+<title>DiffMJX probe audit</title>
+{{STYLE}}
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">MorphoHand &#183; real_v1 / D1 &#183; DiffMJX and contact-gait studies of 7 October 2026 &#183; 11 October 2026 &#183; built {{BUILT}}</div>
+  <h1>Audit of the DiffMJX contact-gradient probes on the real_v1 D1 grasp</h1>
+  <p class="lede">{{LEDE}}</p>
+  <div class="byline">Audited pages: <a href="../20261007-diffmjx/20261007-contact_gradients_real_v1.html"><code>20261007-contact_gradients_real_v1.html</code></a>
+  and <a href="../20261007-contact-gait/20261007-contact_release_real_v1.html"><code>20261007-contact_release_real_v1.html</code></a> &#183;
+  builder <code>scripts/diffmjx_audit_page.py</code> &#183; checks <code>scripts/diffmjx_audit_probes.py</code>,
+  <code>scripts/diffmjx_turn_onset.py</code> &#183; shared module <code>scripts/real_v1_d1_continuation.py</code></div>
+</header>
+
+<nav class="toc"><div class="col">
+<ol>
+<li><a href="#terms">Terms and metrics</a></li>
+<li><a href="#scripts">Scripts of 7 October and the claims they support</a></li>
+<li><a href="#horizon">Horizon and action of the 20 ms test</a></li>
+<li><a href="#cost">Cost of one gradient</a></li>
+<li><a href="#fd">Finite-difference steps, score and seeds</a></li>
+<li><a href="#cfd">Contact from distance</a></li>
+<li><a href="#parity">Contact computation in the fork and in CPU MuJoCo</a></li>
+<li><a href="#uses">Uses of a differentiable simulator in this project</a></li>
+<li><a href="#bugs">Corrections</a></li>
+<li><a href="#module">Shared module and tests</a></li>
+<li><a href="#onset">Forward parity and gradient cost at the turn onset</a></li>
+<li><a href="#limits">Limitations</a></li>
+<li><a href="#next">Future work</a></li>
+</ol>
+</div></nav>
+
+<section id="terms"><div class="col">
+<h2>Terms and metrics</h2>
+{{GLOSSARY}}
+</div></section>
+
+<section id="scripts"><div class="col">
+<h2>Scripts of 7 October and the claims they support</h2>
+{{SCRIPTS}}
+</div></section>
+
+<section id="horizon"><div class="col">
+<h2>Horizon and action of the 20 ms test</h2>
+{{HORIZON}}
+</div></section>
+
+<section id="cost"><div class="col">
+<h2>Cost of one gradient</h2>
+{{COST}}
+</div></section>
+
+<section id="fd"><div class="col">
+<h2>Finite-difference steps, score and seeds</h2>
+{{FD}}
+</div></section>
+
+<section id="cfd"><div class="col">
+<h2>Contact from distance</h2>
+{{CFD}}
+</div></section>
+
+<section id="parity"><div class="col">
+<h2>Contact computation in the fork and in CPU MuJoCo</h2>
+{{PARITY}}
+</div></section>
+
+<section id="uses"><div class="col">
+<h2>Uses of a differentiable simulator in this project</h2>
+{{USES}}
+</div></section>
+
+<section id="bugs"><div class="col">
+<h2>Corrections</h2>
+{{BUGS}}
+</div></section>
+
+<section id="module"><div class="col">
+<h2>Shared module and tests</h2>
+{{MODULE}}
+</div></section>
+
+<section id="onset"><div class="col">
+<h2>Forward parity and gradient cost at the turn onset</h2>
+{{ONSET}}
+</div></section>
+
+<section id="limits"><div class="col">
+<h2>Limitations</h2>
+{{LIMITS}}
+</div></section>
+
+<section id="next"><div class="col">
+<h2>Future work</h2>
+{{NEXT}}
+</div></section>
+
+<footer><div class="col">
+{{FOOTER}}
+</div></footer>
+</div>
