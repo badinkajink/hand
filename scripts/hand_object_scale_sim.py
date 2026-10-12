@@ -55,6 +55,7 @@ GEN = ROOT / "assets/mjcf/experimental/20261008-hand_object_scale"
 BASE_HAND = ROOT / "assets/mjcf/real_v1/real_hand.xml"
 OBJ = RB.OBJ                     # the object body keeps the screwdriver's name so the shared tooling finds it
 PLANT = "kp4_kv0_fr1_fl0_dp0.08"
+DEFAULT_PLANT = PLANT                # cell scenes of another plant (run --plant) carry its spec in the file name
 MU, IMPRATIO = 1.0, 100.0
 MASS = 0.025
 Z_OBJ = 0.120                    # object centre above the table, m
@@ -234,7 +235,7 @@ def cell_scenes(cell: dict, shape: str, d_mm: float, models=("pads", "pt")) -> d
     out = {}
     for mdl in models:
         out_dir = SCENES / obj_tag(shape, d_mm)
-        path = out_dir / f"{cell['tag']}_{mdl}.xml"
+        path = out_dir / (f"{cell['tag']}_{mdl}.xml" if PLANT == DEFAULT_PLANT else f"{cell['tag']}_{mdl}__{PLANT}.xml")
         meta_path = path.with_suffix(".json")
         if path.exists() and meta_path.exists():
             out[mdl] = (path, json.loads(meta_path.read_text()))
@@ -580,10 +581,22 @@ def cmd_run(a) -> int:
     """Every candidate grasp of every cell: the hold test (seed 0, with the disturbance ramps) and the HOM turn
     (each seed). Rows carry the candidate's kinematic variables; resumable per (cell, candidate, seed)."""
     import mujoco
+    global PLANT
+    if a.plant:
+        PLANT = a.plant
     whats = a.what.split(",")
-    outs = {w: OUT_DIR / f"{w}.jsonl" for w in whats}
+    out_dir = Path(a.out_dir) if a.out_dir else OUT_DIR
+    out_dir.mkdir(parents=True, exist_ok=True)
+    outs = {w: out_dir / f"{w}.jsonl" for w in whats}
     done = {w: _done(p) for w, p in outs.items()}
     todo = cell_list(a.cells)
+    if a.only:   # shape:d_mm[:t,t,...], e.g. cylinder:10:0.125,0.25
+        keep = []
+        for spec in a.only:
+            f = spec.split(":")
+            ts = {float(x) for x in f[2].split(",")} if len(f) > 2 else None
+            keep += [c for c in todo if c[1] == f[0] and c[2] == float(f[1]) and (ts is None or c[0].get("t") in ts)]
+        todo = keep
     k0, n0 = (int(v) for v in a.shard.split("/"))
     todo = [c for i, c in enumerate(todo) if i % n0 == k0]
     prm = dict(H.DEFAULTS)
@@ -668,6 +681,9 @@ def main() -> int:
     r.add_argument("--seeds", nargs="+", type=int, default=[0, 1, 2], help="HOM turn seeds (object jitter)")
     r.add_argument("--set", nargs="*", default=[], help="HOM controller parameters k=v (hom_turn3.DEFAULTS)")
     r.add_argument("--shard", default="0/1")
+    r.add_argument("--plant", default=None, help=f"plant spec (reorient_backends.plant_args); default {PLANT}")
+    r.add_argument("--out-dir", default=None, help="directory of the hold/turn rows; default the study's folder")
+    r.add_argument("--only", nargs="*", default=[], help="cells shape:d_mm[:t,t,...] of the --cells set")
     r.add_argument("--traces", action="store_true")
     a = ap.parse_args()
     return {"run": cmd_run}[a.cmd](a)

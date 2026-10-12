@@ -13,6 +13,13 @@ steps 60 and 150, the tool height, the worlds whose tool is held by at least two
 
     uv run --extra rl --extra gpu python scripts/make_work_plant_runs.py --check
 Out: results/phase1/real_v1/20261006-sv1_u0308_b050_work_tip{,_tpu2.7mesh,_tpu2.7pads1}/
+
+`--plant SPEC --out DIR` writes the same three runs for another plant (2026-10-11: the servo-limited plant
+kp0.72_kv0_fr0.18_fl0_dp0.0144; the SCS0009 stalls at 0.23 N m, and the 1 N m limit above was never identified):
+
+    uv run --extra rl --extra gpu python scripts/make_work_plant_runs.py --check \
+        --plant kp0.72_kv0_fr0.18_fl0_dp0.0144 --out results/phase1/real_v1/20261011-sv1_u0308_b050_servo_tip \
+        --check-out docs/experiments/20261011-servo_plant_policies/plant_check.json
 """
 from __future__ import annotations
 
@@ -31,6 +38,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "results/phase1/real_v1/20260920-sv1_u0308_b050_cal_tip"
 OUT = ROOT / "results/phase1/real_v1/20261006-sv1_u0308_b050_work_tip"
 PLANT = dict(kp=4.0, kv=0.0, forcerange=1.0, damping=0.08, frictionloss=0.0)
+PLANT_SPEC = "kp4_kv0_fr1_fl0_dp0.08"
 FINGERS = ("thumb", "index", "middle")
 
 # 2026-10-08 arms of the contact-model policy comparison (docs/handoff/20261007-contact_model_policy_training.md).
@@ -92,7 +100,7 @@ def write_base():
     tree.write(OUT / "frozen_scene.xml")
     s = json.load(open(OUT / "summary.json"))
     s["frozen_scene_xml"] = str(OUT / "frozen_scene.xml")
-    s["plant"] = dict(s.get("plant", {}), **PLANT, spec="kp4_kv0_fr1_fl0_dp0.08")
+    s["plant"] = dict(s.get("plant", {}), **PLANT, spec=PLANT_SPEC)
     s["derived_from"] = str(SRC)
     json.dump(s, open(OUT / "summary.json", "w"), indent=1)
     import mujoco
@@ -308,7 +316,21 @@ def main():
     ap.add_argument("--check", action="store_true")
     ap.add_argument("--check-only", action="store_true")
     ap.add_argument("--arms-20261008", action="store_true", help="write only the 2026-10-08 arms (d) and (e)")
+    ap.add_argument("--plant", default=None, help="plant spec kp_kv_fr_fl_dp (reorient_backends.plant_args); "
+                    "default the 2026-10-06 working plant")
+    ap.add_argument("--out", default=None, help="base run directory for --plant; the tip variants go beside it")
+    ap.add_argument("--check-out", default="docs/experiments/20261006-rl_contact/work_plant_runs.json")
     a = ap.parse_args()
+    global OUT, PLANT, PLANT_SPEC
+    if a.plant:
+        if not a.out:
+            raise SystemExit("--plant needs --out")
+        sys.path.insert(0, str(ROOT / "scripts"))
+        import reorient_backends as RB
+        P = RB.plant_args(a.plant)
+        PLANT = {k: P[k] for k in ("kp", "kv", "forcerange", "damping", "frictionloss")}
+        PLANT_SPEC = a.plant
+        OUT = (ROOT / a.out).resolve()
     if a.arms_20261008:
         condim4_variant()
         skin_variant()
@@ -323,8 +345,9 @@ def main():
     if a.check or a.check_only:
         runs = [OUT, OUT.with_name(OUT.name + "_tpu2.7mesh"), OUT.with_name(OUT.name + "_tpu2.7pads1")]
         rows = check(runs)
-        out = ROOT / "docs/experiments/20261006-rl_contact/work_plant_runs.json"
-        out.write_text(json.dumps({"plant": PLANT, "checks": rows}, indent=1))
+        out = ROOT / a.check_out
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(json.dumps({"plant": PLANT, "spec": PLANT_SPEC, "checks": rows}, indent=1))
     return 0
 
 
