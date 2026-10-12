@@ -507,6 +507,28 @@ def render_tex(t):
     return P.TEX_RE.sub(lambda m: next(svgs), t), len(items)
 
 
+def correction():
+    """Correction of 2026-10-12 (deck 23 math pass; rows t8_step_convergence.jsonl): the skin's 1 ms loop is a step error,
+    its 3 N twist reading comes from the held tool's twist on the hinges, and the policy trainer runs it at impratio 10."""
+    rows = [json.loads(l) for l in open(os.path.join(D, "t8_step_convergence.jsonl"))]
+    pick = lambda task, model, dt, arm=None: next(r for r in reversed(rows) if r.get("task") == task and r["model"] == model  # noqa: E731
+                                                and r["N"] == 1.0 and r["dt_ms"] == dt and r.get("skin_armature") == arm)
+    c = pick("t8_step_convergence", "mj_pads1_skin", 0.025)
+    p10 = pick("t8_trainer_settings", "mj_pads1_ir10", 2.0)
+    s10 = pick("t8_trainer_settings", "mj_pads1_skin_ir10", 2.0, "hand 0.26 kg")
+    return ("Correction, 2026-10-12. The skin&#8217;s loop at the 1&#8202;ms step is a step error: at 0.025&#8202;ms the skin gives "
+            f"{c['u_presliding_um']:.1f}&#8202;&#181;m of presliding at 1&#8202;N, {c['u_recovered_um']:.1f} recovered and a loop of "
+            f"{c['loop_area_uJ']:.2f}&#8202;&#181;J against Mindlin&#8217;s 6.13. Its twist result holds at 0.5 and 1&#8202;N; at 3&#8202;N "
+            "the held tool&#8217;s 4&#8202;Hz twist on the hinges, damped at a ratio of 0.2, trips the test at 0.07 of the law. The "
+            "contact-model policies run the skin at impratio 10; at 100, 300 and 1000 the trainer&#8217;s solver threw the tool out of the "
+            "grasp. "
+            f"At impratio 10 the bare pads creep {p10['u_presliding_um']:.0f}&#8202;&#181;m over the first ramp of task&#160;8, the skin moves "
+            f"the tool {s10['u_presliding_um']:.0f}&#8202;&#181;m, its springs&#8217; 36 on top of the same creep, and both end the "
+            f"cycle {s10['u_end_um']:.0f}&#8202;&#181;m out, so those policies trained without the skin&#8217;s presliding. Rows: "
+            "<code>docs/experiments/20261007-native_compliance/t8_step_convergence.jsonl</code>; detail in the overview&#8217;s "
+            "section on the sprung skin.")
+
+
 def main():
     X = Data()
     v = {"STYLE": P.style_block(), "BUILT": "2026-10-08 11:35", "BED_PATH": BED_PATH,  # stamp pinned 2026-10-09
@@ -514,6 +536,7 @@ def main():
     u = P.bed_url()
     v["BED_LINK"] = f", <a href=\"{u}\">artifact</a>" if u else ""
     v["LEDE"] = lede(X)
+    v["CORRECTION"] = correction()
     v["GLOSSARY"] = glossary()
     v["REFS"] = refs()
     v["BASE"] = base(X)
