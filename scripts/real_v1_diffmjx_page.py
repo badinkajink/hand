@@ -15,7 +15,7 @@ D = ROOT / "docs/experiments/20261007-diffmjx"
 TEMPLATE = ROOT / "scripts/real_v1_diffmjx_page.template.html"
 OUT = D / "20261007-contact_gradients_real_v1.html"
 FINGERS = ("thumb", "index", "middle")
-METRICS = ("Vertical cosine", "Tool height", "Tool angular speed x", "Contact torque x")
+METRICS = ("Vertical cosine", "Tool height", "Tool angular speed, body x", "Constraint torque, body x")
 UNITS = ("per rad", "m/rad", "rad/s per rad", "N m/rad")
 
 
@@ -239,7 +239,8 @@ def main():
             f'Over 20 ms, the fork gradient selected a 0.1 rad control action that scored '
             f'{plain_jac["local_search"]["cpu_score_ad_direction"]:.6f} in CPU MuJoCo; '
             f'CPU finite differences scored {fd:.6f} and the best of 128 samples scored {random_best:.6f}. '
-            f'The warm three-control gradient took {num(plain_jac["gradient_warm_s"],3)} s versus '
+            f'The three-control gradient took {num(plain_jac["gradient_compile_s"],3)} s to compile with its first '
+            f'directional derivative and {num(plain_jac["gradient_warm_s"],3)} s warm, against '
             f'{num(1e3*search["cpu_fd_6_evals_s"],3)} ms for six CPU finite-difference evaluations. '
             f'Contact-from-distance with the scan-loop solver scored '
             f'{cfd_jac["local_search"]["cpu_score_ad_direction"]:.6f} at {num(cfd_jac["gradient_warm_s"],3)} s.')
@@ -280,10 +281,11 @@ def main():
                      f'{num(1e3*pad_grad["cpu_fd_3_evals_s"],3)} ms. '
                      'The native MJX 3.6 pad derivative was not measured.')
         if pad2_grad and pad_grad['pad_spacing_m'] == 0.001:
-            grad_text += (f' At 2 mm pad spacing, the fork contact-torque derivative was '
+            grad_text += (f' At 2 mm pad spacing, the fork constraint-torque derivative was '
                           f'{num(pad2_grad["ad_directional_derivative"][3],3)} N m/rad and the CPU '
-                          f'derivative was {num(pad2_grad["cpu_fd_directional_derivative"][3],3)} N m/rad; '
-                          'their signs differ.')
+                          f'derivative was {num(pad2_grad["cpu_fd_directional_derivative"][3],3)} N m/rad, and the '
+                          f'angular-speed derivatives were {num(pad2_grad["ad_directional_derivative"][2],3)} and '
+                          f'{num(pad2_grad["cpu_fd_directional_derivative"][2],3)} rad/s per rad; both pairs differ in sign.')
         gdata=pad_grad
     else:
         grad_title = 'single-sphere capsule reference'
@@ -304,8 +306,9 @@ def main():
     grad_rows=[]
     for name,unit,a,f,c in zip(METRICS,UNITS,ad,mjxfd,cpufd):
         grad_rows.append([html.escape(name),html.escape(unit),num(c,4),num(f,4),num(a,4),
-                          num(100*abs(a-c)/abs(c),3)+'%' if abs(c)>1e-14 else '—'])
-    gradient_table=table(['Output','Derivative unit','CPU FD','Fork FD','Fork AD','AD error'],grad_rows)
+                          num(100*abs(a-f)/abs(f),2)+'%' if f is not None and abs(f)>1e-14 else '—',
+                          num(100*abs(f-c)/abs(c),3)+'%' if f is not None and abs(c)>1e-14 else '—'])
+    gradient_table=table(['Output','Derivative unit','CPU FD','Fork FD','Fork AD','AD − fork FD','Fork FD − CPU FD'],grad_rows)
     plain_index = sphere_plain['ad_jacobian'][0][1]
     cfd_index = sphere_cfd['ad_jacobian'][0][1]
     cfd_text = (f'On the 1 mm packed surface, contact-from-distance and the scan-loop solver changed the 20 ms '
@@ -359,14 +362,17 @@ def main():
                           ('CPU finite-difference direction',search['candidates']['cpu_fd'],1e3*search['cpu_fd_6_evals_s']),
                           ('Best of 128 sampled directions',search['random_best'],1e3*search['random_128_evals_s'])]:
         search_rows.append([html.escape(name),f'{row["vertical_cos"]:.6f}',num(1e4*(row['vertical_cos']-base),3),
-                            num(min(row['finger_normal_force_N'].values()),3),cost_ms(cost)])
+                            num(min(row['finger_normal_force_N'].values()),3),cost_ms(cost),cost_ms(cost)])
     for name,key,jac in [('Plain fork gradient','plain_ad',plain_jac),
                          ('Contact-from-distance gradient','cfd_ad',cfd_jac)]:
         score=search['candidates'][key]['vertical_cos']
+        # the first call compiled and ran one of the three directional derivatives (corrected 2026-10-11)
+        first=jac['gradient_compile_s']+jac['gradient_warm_s']*2/3
         search_rows.append([name,f'{score:.6f}',num(1e4*(score-base),4),
                             num(min(search['candidates'][key]['finger_normal_force_N'].values()),3),
-                            cost_ms(1e3*jac['gradient_warm_s'])])
-    search_table=table(['Direction','Cosine','Gain ×0.0001','Min finger force N','Search time ms'],search_rows)
+                            cost_ms(1e3*jac['gradient_warm_s']),cost_ms(1e3*first)])
+    search_table=table(['Direction','Cosine','Gain ×0.0001','Min finger force N','Warm search time ms',
+                        'Search time with compilation ms'],search_rows)
 
     decision_table=table(['Use','Result and next test'],[
         ['Initial grasp synthesis','Test contact-from-distance during first touch on the D1–D8 packed tips. Score retained grasps and wall time against the current cross-entropy method search.'],

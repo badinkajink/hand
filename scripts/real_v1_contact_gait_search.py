@@ -28,6 +28,8 @@ N_PARAM = 13
 FINGERS = gate.rb.FINGERS
 YAW_SCALE_RAD = 0.35
 CLOSE_SCALE_RAD = 0.30
+FD_STEP = 1e-2          # two-point step of the local search, plan units (2026-10-11; 10-07 used SciPy's 1.49e-8)
+CEM_SEED = 20261007
 
 
 class Scene:
@@ -133,7 +135,10 @@ def hold_vector(forced_release: bool = False):
     return x
 
 
-def optimize_gradient(scene: Scene, start, budget: int):
+def optimize_gradient(scene: Scene, start, budget: int, fd_step: float | None = FD_STEP):
+    """L-BFGS-B from start with two-point derivatives. fd_step is the step in plan units; None keeps SciPy's
+    default, 1.49e-8, which the 2026-10-07 searches used and which measures collision noise on the convex mesh
+    (docs/experiments/20261011-diffmjx_audit/fdstep.json)."""
     t0 = time.perf_counter()
     n0 = scene.calls
     history = []
@@ -155,10 +160,11 @@ def optimize_gradient(scene: Scene, start, budget: int):
         bounds = [(-1.0, 1.0)]*N_PARAM
         if scene.forced_release:
             bounds[9] = (1.0, 1.0)
+        options = {"maxfun": budget, "maxiter": budget, "ftol": 1e-9}
+        if fd_step is not None:
+            options["finite_diff_rel_step"] = fd_step     # |x| <= 1, so the absolute step is fd_step
         result = minimize(loss, np.asarray(start, float), method="L-BFGS-B",
-                          jac="2-point", bounds=bounds,
-                          options={"maxfun": budget, "maxiter": budget,
-                                   "ftol": 1e-9})
+                          jac="2-point", bounds=bounds, options=options)
         message = str(result.message)
     except BudgetReached:
         message = "evaluation budget reached"
@@ -205,16 +211,20 @@ def main():
     parser.add_argument("--budget", type=int, default=256)
     parser.add_argument("--forced-release", action="store_true")
     parser.add_argument("--pad-spacing-mm", type=float, default=1.0)
+    parser.add_argument("--fd-step", default=str(FD_STEP),
+                        help="two-point step of L-BFGS-B in plan units; 'scipy' keeps SciPy's default (the 10-07 runs)")
+    parser.add_argument("--cem-seed", type=int, default=CEM_SEED)
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()
+    fd_step = None if args.fd_step == "scipy" else float(args.fd_step)
     scene = Scene(args.tip, args.contact_model, args.seed, args.forced_release,
                   args.pad_spacing_mm)
     hold = hold_vector(args.forced_release)
     hold_row = scene.evaluate(hold, trace=True)
-    direct = optimize_gradient(scene, hold, args.budget)
-    sampled = optimize_cem(scene, args.budget, 20261007)
-    half = optimize_cem(scene, args.budget//2, 20261007)
-    refined = optimize_gradient(scene, half["x"], args.budget//2)
+    direct = optimize_gradient(scene, hold, args.budget, fd_step)
+    sampled = optimize_cem(scene, args.budget, args.cem_seed)
+    half = optimize_cem(scene, args.budget//2, args.cem_seed)
+    refined = optimize_gradient(scene, half["x"], args.budget//2, fd_step)
     candidate_rows = {"hold": hold_row,
                       "direct_gradient": scene.evaluate(direct["x"], trace=True),
                       "cem": scene.evaluate(sampled["x"], trace=True),
@@ -228,6 +238,7 @@ def main():
               "parameter_count": N_PARAM, "search_budget_evals": args.budget,
               "forced_release":args.forced_release,
               "pad_spacing_mm":args.pad_spacing_mm,
+              "fd_step": "scipy" if fd_step is None else fd_step, "cem_seed": args.cem_seed,
               "initial_vertical_cos": scene.cos0, "initial_tool_z_m": scene.z0,
               "initial_force_N": gate.contact_summary(scene.model,scene.held)["finger_normal_force_N"],
               "score": "cos_gain - 70 max(0,z0-min_z-0.003 m) - 0.7 sum_f max(0,0.5 N-F_f)",

@@ -497,14 +497,17 @@ def fd_section(S):
 
 def corr_seed_paragraph(corr):
     rows = corr["cem_seeds"]
-    out = []
-    for tip, r in rows.items():
-        cem = [x["cem_gain"] for x in r]
-        hyb = [x["hybrid_gain"] for x in r]
-        out.append(f"{tip}: CEM {min(cem):.3f}&#8211;{max(cem):.3f}, hybrid {min(hyb):.3f}&#8211;{max(hyb):.3f}")
-    n = len(next(iter(rows.values())))
-    return (f"<p>Over {n} CEM seeds with the corrected step, the seed-1 orientation gains span " + "; ".join(out)
-            + " (<code>corrections.json</code>).</p>")
+    span = lambda r, k: f"{min(x[k] for x in r):.3f}&#8211;{max(x[k] for x in r):.3f}"  # noqa: E731
+    wins = {tip: sum(x["hybrid_gain"] > x["cem_gain"] for x in r) for tip, r in rows.items()}
+    P_, M_, S_ = rows["1 mm packed"], rows["convex mesh"], rows["single sphere"]
+    n = len(P_)
+    return (f"<p>Over {['', 'one', 'two', 'three', 'four', 'five', 'six'][n]} CEM seeds with the corrected step, the "
+            f"gains from the seed-1 grasp span {span(P_, 'cem_gain')} for CEM and {span(P_, 'hybrid_gain')} for the "
+            f"hybrid on the packed pads, {span(M_, 'cem_gain')} and {span(M_, 'hybrid_gain')} on the convex mesh, and "
+            f"{span(S_, 'cem_gain')} and {span(S_, 'hybrid_gain')} on the single sphere. The hybrid beats CEM for "
+            f"{wins['1 mm packed']}, {wins['convex mesh']} and {wins['single sphere']} of the {n} seeds. The local "
+            f"search from the hold plan draws no sample and gains {P_[0]['direct_gain']:.3f}, {M_[0]['direct_gain']:.3f} "
+            f"and {S_[0]['direct_gain']:.3f} (<code>corrections.json</code>).</p>")
 
 
 def cfd_section(S):
@@ -592,36 +595,94 @@ def bugs_section(S):
     corr = S["corr"]
     if corr is None:
         return pending(2)
-    return corr_table(S, corr)
-
-
-def corr_table(S, corr):
-    rows = []
-    for b in corr["bugs"]:
-        rows.append(((b["defect"], "wrap"), (b["reproduce"], "wrap"), (b["before"], "wrap"), (b["after"], "wrap")))
-    text = ("<p>Each defect was reproduced by the command in its row before the fix. Text corrections are in the "
-            "two pages of 7 October, rebuilt from their builders; their measured numbers are unchanged. The "
-            "corrected searches are new runs with the same plans, budget and grasp, written to "
+    fr, jac, ls = S["frames"], S["jac"], S["ls"]
+    j1, f1, j2, F = S["jvp1"], S["fd1"], S["jvp2"], S["fdstep"]
+    rr = {r["label"]: r for r in corr["rerun"]}
+    mesh, pads = rr["convex mesh, free"], rr["1 mm packed, free"]
+    mcem = F["tips"]["convex mesh"]["plans"]["cem128"]["norm"]
+    ad_fd = [rel(a, b) for a, b in zip(j1["ad_directional_derivative"], f1["fork_fd_directional_derivative"])]
+    fk_cpu = [rel(a, b) for a, b in zip(f1["fork_fd_directional_derivative"], f1["cpu_fd_directional_derivative"])]
+    ad_cpu = [rel(a, b) for a, b in zip(j1["ad_directional_derivative"], f1["cpu_fd_directional_derivative"])]
+    first = jac["gradient_compile_s"] + jac["gradient_warm_s"] * 2 / 3
+    rows = [
+        ("Angular speed and torque labelled about world " + im("x"),
+         f"{code('diffmjx_audit_probes.py frames')}: 20&#8201;ms after the held state the tool&#8217;s body " + im("x")
+         + f" axis is {fr['angle_between_tool_x_and_world_x_deg']:.1f}&#176; from world " + im("x") + "; angular speed "
+         f"{g(fr['omega_body_rad_s'][0], 2)} about body " + im("x") + f" and {g(fr['omega_world_rad_s'][0], 2)}&#8201;rad/s "
+         "about world " + im("x") + f", torque {g(fr['torque_body_Nm'][0], 2)} and {g(fr['torque_world_Nm'][0], 2)}"
+         "&#8201;N&#8201;m",
+         "&#8220;around world x&#8221; in the terms, table notes and row labels of both pages",
+         "&#8220;about the tool&#8217;s body x axis&#8221;; values unchanged"),
+        ("Column &#8220;AD error&#8221; measures the fork against CPU MuJoCo",
+         "1&#8201;ms index-yaw derivatives in <code>20261007-official_padsT1_cylinder_jvp_1.json</code> and "
+         "<code>_fd_1.json</code>",
+         f"AD error {pct(min(ad_cpu), 1)}&#8211;{pct(max(ad_cpu), 1)}",
+         f"AD &#8722; fork FD {pct(min(ad_fd), 3)}&#8211;{pct(max(ad_fd), 3)}; fork FD &#8722; CPU FD "
+         f"{pct(min(fk_cpu), 1)}&#8211;{pct(max(fk_cpu), 1)}"),
+        ("Lede leaves compilation out of the gradient cost",
+         f"{code('gradient_compile_s')} = {jac['gradient_compile_s']:.1f}&#8201;s in "
+         "<code>20261007-official_padsT1_cylinder_jacobian_20.json</code>",
+         f"35.7&#8201;s warm against 23.5&#8201;ms ({grp(jac['gradient_warm_s'] / ls['cpu_fd_6_evals_s'])} times)",
+         f"{jac['gradient_compile_s']:.1f}&#8201;s with the first JVP plus 35.7&#8201;s warm; a first gradient "
+         f"{first:.1f}&#8201;s ({grp(first / ls['cpu_fd_6_evals_s'])} times); Table 4 of the page gains a column"),
+        ("Recontact plan mislabelled",
+         "<code>plans</code> and <code>pad_spacing_mm</code> in <code>20261007-fork-padsT2-recontact-jvp.json</code>: "
+         "the 1&#8201;mm release search, 2&#8201;mm pads",
+         "&#8220;The sampled 2&#8201;mm pad plan&#8221;",
+         "&#8220;The 1&#8201;mm packed-pad CEM release plan, replayed on 2&#8201;mm pads&#8221;"),
+        ("Sign change of the 2&#8201;mm angular-speed derivative unreported",
+         "<code>20261007-official_padsT2_cylinder_jvp_1.json</code>: "
+         f"{g(j2['ad_directional_derivative'][2], 3)} against {g(j2['cpu_fd_directional_derivative'][2], 3)}&#8201;rad/s per rad",
+         "the torque&#8217;s sign change only", "both sign changes"),
+        (f"CPU timing key {code('cpu_fd_3_evals_s')} holds 12 evaluations",
+         f"{1e3 * jac['cpu_fd_3_evals_s']:.1f}&#8201;ms in <code>_jacobian_20.json</code> against "
+         f"{1e3 * ls['cpu_fd_6_evals_s']:.1f}&#8201;ms for six evaluations in <code>pad_local_search_20_mj331.json"
+         "</code>",
+         "base, sweep, Jacobian and local search under one key",
+         f"{code('cpu_fd_s')} with {code('cpu_fd_evals')}, and {code('cpu_jacobian_6_evals_s')}"),
+        ("Two-point step at SciPy&#8217;s default on the convex mesh",
+         f"{code('diffmjx_audit_probes.py fdstep')}: gradient norm {mcem[0]:.1f} at the default step against "
+         f"{mcem[-1]:.2f} at 10<sup>&#8722;2</sup>; {code('--fd-step scipy')} reproduces the mesh search of 7 October "
+         "exactly",
+         f"mesh local {mesh['before']['direct']:+.3f}, mesh hybrid {mesh['before']['hybrid']:+.3f} (its CEM128 start)",
+         f"default step 10<sup>&#8722;2</sup>: mesh local {mesh['after']['direct']:+.3f}, mesh hybrid "
+         f"{mesh['after']['hybrid']:+.3f}; packed-pad hybrid {pads['before']['hybrid']:+.3f} to "
+         f"{pads['after']['hybrid']:+.3f} (Table&#160;4)"),
+    ]
+    text = ("<p>Each defect was reproduced from the stored data or by the command in its row before the fix. The text "
+            "corrections are in the two pages of 7 October, rebuilt from their builders with a dated note that links "
+            "this page; their measured numbers are unchanged. The corrected searches are new runs with the same "
+            "plans, budget, grasp and CEM seed, written to <code>searches/</code> and summarized in "
             "<code>corrections.json</code>.</p>")
-    text += table(["Defect", "Reproduction", "Before", "After"], rows)
+    text += table(["Defect", "Reproduction", "Before", "After"],
+                  [tuple((c, "wrap") for c in r) for r in rows])
     text += tcap("Defects found by the audit, with the numbers before and after the correction.")
-    if "rerun" in corr:
-        text += rerun_table(corr)
+    text += rerun_table(corr)
+    t = corr["transfer"]
+    hy, ml = t["tpu6_padsT_hybrid"], t["tpu6_pt_direct_gradient"]
+    text += (f"<p>Over the eight grip jitters the corrected packed-pad hybrid holds {hy['tpu6_padsT']['after']['held']} of 8 "
+             f"on the packed pads at a gain of {hy['tpu6_padsT']['after']['gain_if_held']:+.3f} "
+             f"({hy['tpu6_padsT']['before']['held']} of 8 at {hy['tpu6_padsT']['before']['gain_if_held']:+.3f} before) and "
+             f"{hy['tpu6_pt']['after']['held']} of 8 on the convex mesh ({hy['tpu6_pt']['before']['held']} of 8 before); "
+             f"the corrected mesh local plan holds {ml['tpu6_pt']['after']['held']} of 8 on the mesh at "
+             f"{ml['tpu6_pt']['after']['gain_if_held']:+.3f} ({ml['tpu6_pt']['before']['held']} of 8 at "
+             f"{ml['tpu6_pt']['before']['gain_if_held']:+.3f} before). JSON: <code>transfer-fd1e-2-mj360.json</code>.</p>")
     return text
 
 
 def rerun_table(corr):
     rows = []
     for r in corr["rerun"]:
-        rows.append([r["label"], f"{r['before']['direct']:+.3f}", f"{r['after']['direct']:+.3f}",
-                     f"{r['before']['cem']:+.3f}", f"{r['before']['hybrid']:+.3f}", f"{r['after']['hybrid']:+.3f}",
-                     f"{r['after']['held']}"])
+        b, a = r["before"], r["after"]
+        sg = lambda x: f"{x:+.3f}".replace("-", "&#8722;")  # noqa: E731
+        rows.append([r["label"], sg(b["direct"]), sg(a["direct"]), sg(b["cem"]), sg(b["hybrid"]), sg(a["hybrid"]),
+                     a["held"]])
     t = table(["Fingertip, plan", "Local, default step", "Local, 10<sup>&#8722;2</sup>", "CEM",
-               "Hybrid, default step", "Hybrid, 10<sup>&#8722;2</sup>", "Held after"], rows)
-    return t + tcap("Orientation gain " + im(r"\Delta c") + " of the 400&#8201;ms searches from the seed-1 grasp "
-                    "with SciPy&#8217;s default step and with a 10<sup>&#8722;2</sup> step; 256 evaluations per "
-                    "method, CEM seed 20261007. &#8220;Held after&#8221; lists the corrected local and hybrid "
-                    "plans&#8217; held status.")
+               "Hybrid, default step", "Hybrid, 10<sup>&#8722;2</sup>", "Held, local/hybrid"], rows)
+    return t + tcap("Orientation gain " + im(r"\Delta c") + " of the 400&#8201;ms searches from the seed-1 grasp with "
+                    "SciPy&#8217;s default step (the runs of 7 October) and with a 10<sup>&#8722;2</sup> step; 256 "
+                    "evaluations per method, CEM seed 20261007, so the CEM column is common to both. The last column "
+                    "gives the corrected local and hybrid plans&#8217; held status.")
 
 
 def module_section(S):
@@ -673,9 +734,6 @@ def next_section(S):
          f"{code('mjd_transitionFD')} along the 400&#8201;ms continuation and run iLQR from the hold plan, scored "
          f"like the search; new script {code('scripts/d1_ilqr.py')} on {code('real_v1_d1_continuation.py')}. "
          "Keep it if it beats CEM&#8217;s gain of 0.114 within the 10&#8201;s that CEM takes."),
-        ("Replays of the corrected plans", "Rerun the eight-jitter transfer of the contact-release page with the "
-         f"10<sup>&#8722;2</sup>-step plans ({code('scripts/real_v1_contact_gait_transfer.py')}); the mesh rows of "
-         "its Tables 1 and 4 change if the corrected local plans hold more grasps."),
     ]
     return "<ol>" + "".join(f"<li><b>{t}.</b> {d}</li>" for t, d in items) + "</ol>"
 

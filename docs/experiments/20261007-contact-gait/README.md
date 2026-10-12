@@ -45,10 +45,14 @@ were produced with `RESGUARD_MAX_SWAP_GB=16` while swap used 15.6 GB but memory
 pressure was zero; each CPU process stayed below the 1 GB cap. The default
 guard threshold subsequently reopened as swap fell to 12 GB.
 
+Since 2026-10-11 the search takes its two-point derivatives at a step of 0.01 in plan units by default; the runs
+listed here used SciPy's default step of 1.49e-8, which `--fd-step scipy` restores. On the convex mesh that step
+measures collision noise; the corrected searches and the audit are in `docs/experiments/20261011-diffmjx_audit/`.
+
 ```bash
 RESGUARD_MAX_SWAP_GB=16 ~/.claude/bin/resguard.sh run --mem 1G --cpu 300 -- \
   uv run --no-sync python scripts/real_v1_contact_gait_search.py \
-  --tip tpu6 --contact-model padsT --seed 1 --budget 256 \
+  --tip tpu6 --contact-model padsT --seed 1 --budget 256 --fd-step scipy \
   --out docs/experiments/20261007-contact-gait/20261007-padsT-seed1-256.json
 
 # Repeat for --seed 2 and 3; repeat seed 1 with --contact-model pt, and with

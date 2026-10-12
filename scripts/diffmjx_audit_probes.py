@@ -13,6 +13,9 @@ Each subcommand writes one JSON file into docs/experiments/20261011-diffmjx_audi
                10-07 probes used (cfd_solimp[2] = 0.05 m), next to the pairs in contact
   frames       compares the tool's angular velocity and constraint torque about its body x axis (what the 10-07
                scripts read from the free joint) with the same quantities about world x, 20 ms after the held state
+  corrections  collects the corrected 400 ms searches (searches/*.json, real_v1_contact_gait_search.py with
+               --fd-step 1e-2 and five CEM seeds) and their eight-jitter replay (transfer-fd1e-2-mj360.json) next to the
+               2026-10-07 runs, and times the CPU finite differences of the recontact derivative
 
     uv run --no-sync python scripts/diffmjx_audit_probes.py interfinger fdstep cfd_reach frames
 """
@@ -203,7 +206,75 @@ def frames() -> None:
         "torque_body_Nm": torque_body.tolist(), "torque_world_Nm": (rot @ torque_body).tolist()})
 
 
-COMMANDS = {"interfinger": interfinger, "fdstep": fdstep, "cfd_reach": cfd_reach, "frames": frames}
+def _transfer(rows, dest, plan):
+    sub = [r for r in rows if r["destination"] == dest and r["plan"] == plan]
+    held = [r for r in sub if r["held_final"]]
+    return {"held": len(held), "n": len(sub),
+            "gain_if_held": float(np.mean([r["cos_gain"] for r in held])) if held else None}
+
+
+def corrections() -> None:
+    import mujoco
+    searches = OUT / "searches"
+    pairs = [("1 mm packed, free", "20261007-padsT-seed1-256.json", "pads-seed1-256-fd1e-2-cem20261007.json"),
+             ("1 mm packed, forced release", "20261007-padsT-release-seed1-256.json",
+              "pads-release-seed1-256-fd1e-2-cem20261007.json"),
+             ("convex mesh, free", "20261007-mesh-seed1-256.json", "mesh-seed1-256-fd1e-2-cem20261007.json"),
+             ("convex mesh, forced release", "20261007-mesh-release-seed1-256.json",
+              "mesh-release-seed1-256-fd1e-2-cem20261007.json"),
+             ("single sphere, free", "20261007-sphere-seed1-256.json", "sphere-seed1-256-fd1e-2-cem20261007.json"),
+             ("single sphere, forced release", "20261007-sphere-release-seed1-256.json",
+              "sphere-release-seed1-256-fd1e-2-cem20261007.json")]
+    rerun = []
+    for label, before, after in pairs:
+        b = json.loads((GAIT / before).read_text())
+        a = json.loads((searches / after).read_text())
+        assert float(a["fd_step"]) == 1e-2 and a["cem_seed"] == 20261007
+        pick = lambda d: {"direct": d["candidates"]["direct_gradient"]["cos_gain"],  # noqa: E731
+                          "cem": d["candidates"]["cem"]["cos_gain"], "hybrid": d["candidates"]["hybrid"]["cos_gain"],
+                          "hybrid_seed": d["candidates"]["hybrid_seed"]["cos_gain"],
+                          "held": "/".join("yes" if d["candidates"][k]["held_final"] else "no"
+                                           for k in ("direct_gradient", "hybrid")),
+                          "wall_s": {k: v["wall_s"] for k, v in d["methods"].items()}}
+        rerun.append({"label": label, "before": pick(b), "after": pick(a), "before_file": before, "after_file": after})
+    seeds = {}
+    for tip, name in (("1 mm packed", "pads"), ("convex mesh", "mesh"), ("single sphere", "sphere")):
+        seeds[tip] = []
+        for cem in (20261007, 1, 2, 3, 4):
+            d = json.loads((searches / f"{name}-seed1-256-fd1e-2-cem{cem}.json").read_text())
+            seeds[tip].append({"cem_seed": cem, "cem_gain": d["candidates"]["cem"]["cos_gain"],
+                               "cem_held": d["candidates"]["cem"]["held_final"],
+                               "hybrid_gain": d["candidates"]["hybrid"]["cos_gain"],
+                               "hybrid_held": d["candidates"]["hybrid"]["held_final"],
+                               "cem128_gain": d["candidates"]["hybrid_seed"]["cos_gain"],
+                               "direct_gain": d["candidates"]["direct_gradient"]["cos_gain"]})
+    old = json.loads((GAIT / "20261007-transfer-mj360.json").read_text())["rows"]
+    new = json.loads((OUT / "transfer-fd1e-2-mj360.json").read_text())["rows"]
+    transfer = {}
+    for plan in ("tpu6_padsT_direct_gradient", "tpu6_padsT_hybrid_seed", "tpu6_padsT_hybrid",
+                 "tpu6_padsT_release_hybrid", "tpu6_pt_direct_gradient", "tpu6_pt_hybrid"):
+        transfer[plan] = {dest: {"before": _transfer(old, dest, plan), "after": _transfer(new, dest, plan)}
+                          for dest in ("tpu6_padsT", "tpu6_pt", "sphere_pt")}
+    # CPU finite differences of the 2026-10-07 recontact derivative: the 1 mm CEM release plan replayed to 280 ms
+    # on 2 mm pads, then the index MCP target moved by +-0.01 rad for 10 steps (MuJoCo 3.6; the 10-07 replay ran 3.3.1)
+    plan = json.loads((GAIT / "20261007-padsT-release-seed1-256.json").read_text())["candidates"]["cem"]["x"]
+    scene = d1.Scene("tpu6", "padsT", seed=1, pad_spacing_mm=2.0)
+    state = scene.state_at(plan, 280)
+    index = scene.model.actuator("a_index_mcp").id
+    times = []
+    for _ in range(20):
+        t0 = time.perf_counter()
+        d1.cpu_metrics(scene.model, state, 10, index, 0.01)
+        d1.cpu_metrics(scene.model, state, 10, index, -0.01)
+        times.append(time.perf_counter() - t0)
+    write("corrections.json", {
+        "mujoco_version": mujoco.__version__, "fd_step": 1e-2, "rerun": rerun, "cem_seeds": seeds,
+        "transfer": transfer, "recontact_cpu_fd_s": float(np.median(times)),
+        "recontact_index_force_at_280ms_N": d1.contact_summary(scene.model, state)["finger_normal_force_N"]["index"]})
+
+
+COMMANDS = {"interfinger": interfinger, "fdstep": fdstep, "cfd_reach": cfd_reach, "frames": frames,
+            "corrections": corrections}
 
 
 def main() -> None:

@@ -135,14 +135,19 @@ def main() -> None:
     cpu_fd_sweep = {f"{step_size:g}": ((cpu_metrics(step_size * vector) -
                                        cpu_metrics(-step_size * vector)) /
                                       (2 * step_size)).tolist() for step_size in eps_list}
+    cpu_fd_s = time.perf_counter() - t0     # the base and the directional sweep only (corrected 2026-10-11)
+    cpu_fd_evals = 1 + 2 * len(eps_list)
     cpu_fd = np.asarray(cpu_fd_sweep[f"{eps:g}"])
     cpu_fd_jacobian = None
+    cpu_jacobian_s = None
     local_search = None
     if args.all_directions:
+        t0 = time.perf_counter()
         cpu_fd_jacobian = np.column_stack([
             (cpu_metrics(eps * direction) - cpu_metrics(-eps * direction)) / (2 * eps)
             for direction in np.eye(3)
         ])
+        cpu_jacobian_s = time.perf_counter() - t0
         radius = 0.1
         ad_direction = radius * ad_jacobian[0] / np.linalg.norm(ad_jacobian[0])
         cpu_direction = radius * cpu_fd_jacobian[0] / np.linalg.norm(cpu_fd_jacobian[0])
@@ -155,7 +160,6 @@ def main() -> None:
             "cpu_score_ad_direction": float(cpu_metrics(ad_direction)[0]),
             "cpu_score_fd_direction": float(cpu_metrics(cpu_direction)[0]),
         }
-    cpu_fd_s = time.perf_counter() - t0
     out = {
         "scene": str(scene.relative_to(ROOT)),
         "base_scene": meta["base_scene"],
@@ -182,7 +186,10 @@ def main() -> None:
         "cpu_fd_sweep": cpu_fd_sweep,
         "put_model_s": put_model_s,
         "gradient_compile_s": first_s, "gradient_warm_s": warm_s,
-        "cpu_fd_3_evals_s": cpu_fd_s,
+        # until 2026-10-11 cpu_fd_3_evals_s also timed the Jacobian and the local search (12 evaluations)
+        "cpu_fd_evals": cpu_fd_evals, "cpu_fd_s": cpu_fd_s,
+        "cpu_fd_3_evals_s": cpu_fd_s if cpu_fd_evals == 3 else None,
+        "cpu_jacobian_6_evals_s": cpu_jacobian_s,
     }
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(out, indent=2, allow_nan=False) + "\n")

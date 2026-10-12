@@ -155,6 +155,28 @@ def transfer_figure(cpu,warp_free,warp_release,warp_free_seed,warp_release_seed)
     return fig_svg(parts,w,h,"Held rollouts in CPU MuJoCo, MuJoCo-Warp, and mesh transfer")
 
 
+def correction_note():
+    """Dated note on the corrections of 2026-10-11, its numbers from the audit's corrections.json."""
+    c=json.loads((ROOT/"docs/experiments/20261011-diffmjx_audit/corrections.json").read_text())
+    r={x["label"]:x for x in c["rerun"]}
+    mesh,pads=r["convex mesh, free"],r["1 mm packed, free"]
+    seeds=c["cem_seeds"]["1 mm packed"]
+    t=c["transfer"]["tpu6_padsT_hybrid"]["tpu6_pt"]
+    lo=lambda k:min(x[k] for x in seeds)
+    hi=lambda k:max(x[k] for x in seeds)
+    return ('<p class="note">Corrected on 11 October 2026. The recontact derivative used the 1&#8202;mm CEM release plan '
+            'replayed on 2&#8202;mm pads, and its angular speed and torque are about the tool&#8217;s body x axis. The '
+            'local searches took two-point derivatives at SciPy&#8217;s default step, 1.49&#215;10<sup>&#8722;8</sup>, '
+            'which measures collision noise on the convex mesh. With a 10<sup>&#8722;2</sup> step the mesh local search '
+            f'reaches {mesh["after"]["direct"]:+.3f} ({mesh["before"]["direct"]:+.3f} in Table 1) and its hybrid '
+            f'{mesh["after"]["hybrid"]:+.3f} ({mesh["before"]["hybrid"]:+.3f}); the packed-pad hybrid reaches '
+            f'{pads["after"]["hybrid"]:+.3f} ({pads["before"]["hybrid"]:+.3f}) and holds {t["after"]["held"]} of 8 mesh '
+            f'replays ({t["before"]["held"]} of 8 in Table 4). Over five CEM seeds the packed-pad hybrid spans '
+            f'{lo("hybrid_gain"):.3f}&#8211;{hi("hybrid_gain"):.3f} and CEM {lo("cem_gain"):.3f}&#8211;{hi("cem_gain"):.3f}. '
+            'The audit is <a href="../20261011-diffmjx_audit/20261011-diffmjx_gradient_probe_audit.html"><code>'
+            'docs/experiments/20261011-diffmjx_audit/20261011-diffmjx_gradient_probe_audit.html</code></a>.</p>')
+
+
 def main():
     source={"pads":read("20261007-padsT-seed1-256.json"),
             "mesh":read("20261007-mesh-seed1-256.json"),
@@ -208,8 +230,8 @@ def main():
     jvp_rows=[]
     for i,(label,unit) in enumerate((("Vertical cosine","per rad"),
                                      ("Tool height","m/rad"),
-                                     ("Tool angular speed x","rad/s per rad"),
-                                     ("Contact torque x","N m/rad"))):
+                                     ("Tool angular speed, body x","rad/s per rad"),
+                                     ("Constraint torque, body x","N m/rad"))):
         cpu_der=jvp["cpu_fd"]["0.01"]["derivative"][i]
         fork_fd=jvp["fork_fd_0.01"][i]
         ad=jvp["fork_ad"][i]
@@ -319,6 +341,7 @@ def main():
           f'rollout compilation remained unfinished when the run stopped at {attempt["elapsed_before_stop_s"]//60} min '
           f'{attempt["elapsed_before_stop_s"]%60} s.')
     replacements={
+        "CORRECTION":correction_note(),
         "STYLE":"<style>"+style+"</style>","BUILT":"2026-10-08 11:12",  # pinned: rebuilds of the text change no data (docs text pass, 2026-10-09)
         "LEDE":lede,"SEARCH_FIG":search_figure(source),
         "SEARCH_TABLE":table(["Tip","Search","Gain","Held","Index release (ms)","Search (s)"],search_rows),
@@ -329,7 +352,7 @@ def main():
                         f'{release["pads"]["candidates"]["cem"]["cos_gain"]:.3f} vertical cosine in seed 1. '
                         'The corresponding mesh and single-sphere searches did not restore a held grasp.'),
         "RELEASE_TABLE":table(["Tip","Search","Gain","Minimum height (m)","Held","Release (ms)","Recontact"],release_rows),
-        "JVP_TEXT":(f'The sampled 2 mm pad plan reached a positive index gap of '
+        "JVP_TEXT":(f'The 1 mm packed-pad CEM release plan, replayed on 2 mm pads, reached a positive index gap of '
                     f'{jvp["initial_fork_index_min_gap_m"]*1e6:.1f} µm at 280 ms. CPU index normal force '
                     f'rose from {jvp["initial_cpu_index_force_N"]:.3f} to '
                     f'{jvp["final_cpu_index_force_N"]:.3f} N during the next 10 ms. '
