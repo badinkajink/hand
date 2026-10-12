@@ -395,14 +395,14 @@ def differentiable_pads_aside():
     discontinuity. When masses become fit parameters, d0 has to be recomputed from the model&#8217;s inverse weights
     inside the differentiated graph, as Newton&#8217;s hydroelastic stiffness has to be (Section&#160;4 of
     <code>docs/experiments/20261006-hom_turn3/20261006-servo_refit_hom_turn_pad_cost.html</code>).</p>
-    <p><strong>Earlier MJX work in this repository.</strong> <code>docs/simulators/backends.md</code> assigns MJX the
+    <p><strong>Earlier MJX work in this repository.</strong> <code>docs/simulators/backends.md</code> (removed 2026-10-11; <code>git show 879aeaa5:docs/simulators/backends.md</code>) assigned MJX the
     autodiff lane of the morphology optimiser and lists a planned &#8220;diffmjx-lite&#8221; variant;
     <code>docs/notes/simulator_backends.md</code> compares MJX (JAX autodiff) with MuJoCo-Warp and ComFree Warp (no
     gradients) and notes that MJX gives primal but not contact-force sensitivities;
     <code>scripts/archive/setup_gpu_mjx_env.sh</code> builds a GPU JAX environment (<code>.venv-gpu</code>) and checks
     the CUDA device and the <code>mujoco.mjx</code> import. <code>docs/notes/diffmjx.md</code> is a guide written from
     the DiffMJX paper before its code was public: smooth collision branches, contacts from distance (CFD) with a
-    straight-through estimator, and adaptive integration; <code>docs/simulators/diffmjx_plan.md</code> orders the first
+    straight-through estimator, and adaptive integration; <code>docs/simulators/diffmjx_plan.md</code> (removed with it) ordered the first
     two before the third and validates against finite differences. None of it was run with the pads.</p>
     <p><strong>DiffMJX release</strong> (<a href="https://github.com/martius-lab/diffmjx">github.com/martius-lab/diffmjx</a>,
     checked 2026-10-06; not evaluated). Apache-2.0, created 2026-02-09, last push 2026-07-27 (commit b5453ea), for

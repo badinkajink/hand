@@ -14,7 +14,7 @@ uv sync --extra gpu
 # adds mjlab + RSL-RL + torch (cu128 wheels) + gymnasium for RL training
 uv sync --extra gpu --extra rl
 
-# add dev tools (pytest, ruff, mypy, mkdocs)
+# add dev tools (pytest, ruff, mypy)
 uv sync --extra dev
 ```
 

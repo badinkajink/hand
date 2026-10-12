@@ -154,7 +154,7 @@ uv run --extra rl --extra gpu python scripts/phase1_optimize_grasp.py \
 Steps 1 through 3 are not optional preprocessing. An unfrozen scene lets the morphology joints
 drift during the rollout. A keyframe transferred in joint space instead of IK-retargeted lands the
 fingertips in the wrong place. Both produce wrong verdicts. See
-[`docs/frozen_scene_protocol.md`](docs/frozen_scene_protocol.md).
+the evaluation protocol in [`docs/overviews/code_and_methods.html`](docs/overviews/code_and_methods.html#eval).
 
 The `real_v1` hardware hand has its own chain in `scripts/real_v1_pipeline.py` and the `real_v1_*`
 scripts, running from Sobol sampling (`real_v1_sobol8192.sh`) through the open-loop screen, the

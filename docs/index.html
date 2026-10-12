@@ -104,7 +104,7 @@ button.theme, .theme-toggle, [data-theme-toggle] { display:none !important; }</s
 <body>
 <div class="wrap">
 <header>
-<div class="eyebrow">MorphoHand &#183; updated 2026-10-10</div>
+<div class="eyebrow">MorphoHand &#183; updated 2026-10-11</div>
 <h1>Documentation of the SR&#178; Hand</h1>
 <p class="lede">SR&#178; Hand is a three-finger robot hand whose finger bases ride on XY gantries: six gantry
 coordinates set the finger layout (the morphology) and nine servos move the fingers. We search layouts and controllers
@@ -126,7 +126,7 @@ one task: turning a 24.5&#8202;g screwdriver from flat to vertical and then driv
 <div class="topic"><h3><a href="overviews/contact_model.html">Fingertip contact model</a></h3><p>Covering each fingertip with 1&#8202;mm MuJoCo contact spheres reproduces the friction torque of a soft fingertip: on a two-pad pinch the pads slip within 0.1&#8202;% of the force of Drake's hydroelastic model and spin 6&#8202;% under its torque, at 15&#8202;&#181;s per step against Drake's 1,298&#8202;&#181;s.</p><p class="pages">Pages: <a href="experiments/20261008-contact_model_policies/20261008-fingertip_contact_model_policies.html">policies on four contact models</a> &#183; <a href="experiments/20261005-contact_bed/20261005-contact_model_bed.html">comparison bed</a>.</p></div>
 
 <h2>Reading the pages</h2>
-<p>The overviews in <code>docs/overviews/</code> open from a clone in any browser. The 56 dated result pages
+<p>The overviews in <code>docs/overviews/</code> open from a clone in any browser. The 58 dated result pages
 in <code>docs/experiments/</code> are Git LFS files, which open as a short pointer text until fetched
 (about 120&#8202;MB):</p>
 <pre>git lfs install
@@ -139,7 +139,9 @@ that rebuilds it.</p>
 <h2>Code</h2>
 <p><code>src/morphohand/</code> holds the simulation, RL, sampling and bench-replay code, <code>scripts/</code> the
 experiment and page scripts (mapped in <a href="../scripts/README.md">scripts/README.md</a>), and
-<code>assets/mjcf/real_v1/real_hand.xml</code> the hand model. <a href="../README.md">README.md</a> describes the
+<code>assets/mjcf/real_v1/real_hand.xml</code> the hand model. <a href="overviews/code_and_methods.html">Code
+and methods</a> follows one hand from a sample to a bench plan and describes the grasp synthesis, the evaluation protocol and
+the simulator backends. <a href="../README.md">README.md</a> describes the
 environment and the names of hands and policies.</p>
 
 <footer>

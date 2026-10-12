@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Code and methods</title>
+<style>
+nav.toc ol{columns:2;column-gap:40px;margin:4px 0 0;padding-left:22px}
+@media (max-width:640px){nav.toc ol{columns:1}}
+dl.glossary{display:grid;grid-template-columns:minmax(8em,12em) 1fr;gap:6px 18px;margin:8px 0 0}
+dl.glossary dt{font-weight:bold}
+dl.glossary dd{margin:0}
+@media (max-width:640px){dl.glossary{grid-template-columns:1fr}dl.glossary dd{margin-bottom:6px}}
+figure img{max-width:100%;height:auto}
+.tw{overflow-x:auto}
+table.index{width:100%}
+table.index td:first-child{white-space:nowrap}
+.tex-d{display:block;margin:.6em auto;max-width:100%;height:auto}
+</style>
+<style id="retro">/* retro_style.py: plain page style (owner, 2026-10-09) */
+:root, :root[data-theme], html {
+  color-scheme: light !important;
+  --paper:#fff !important; --card:#fff !important; --sunk:#f2f2f2 !important; --shadow:none !important;
+  --ink:#000 !important; --ink2:#000 !important; --ink3:#444 !important;
+  --rule:#000 !important; --rule2:#999 !important;
+  --s1:#BE7514 !important; --s2:#4A7FC4 !important; --s3:#5E8F5A !important;  /* chart series: amber, blue, green */
+  --good:#008800 !important; --bad:#cc0000 !important; --ref:#666 !important;
+  --f-body:"Times New Roman",Times,serif !important; --f-display:"Times New Roman",Times,serif !important;
+  --f-mono:"Courier New",Courier,monospace !important;
+}
+html, body { background:#fff !important; color:#000 !important; }
+body { font:18px/1.4 "Times New Roman",Times,serif !important; margin:0 !important; }
+.wrap, main, body > .col { max-width:860px !important; margin:0 auto !important; padding:24px 16px 48px !important; }
+.col { max-width:none !important; margin:0 !important; padding:0 !important; }
+header, footer, section, nav, figure, .numbers, .keep, .handoff, .step, .derive, .card, .panel, .box {
+  background:none !important; box-shadow:none !important; border-radius:0 !important;
+}
+header { border:0 !important; padding:0 0 6px !important; margin:0 !important; }
+section { border:0 !important; padding:0 !important; margin:0 0 8px !important; }
+h1, h2, h3, h4, .tag, th, .eyebrow, .lede, .byline, nav, figcaption, .note, .sub, .chart h4 {
+  font-family:"Times New Roman",Times,serif !important; letter-spacing:normal !important; text-transform:none !important;
+}
+h1 { font-size:27px !important; line-height:1.2 !important; font-weight:bold !important; margin:12px 0 8px !important; max-width:none !important; }
+h2 { font-size:21px !important; font-weight:bold !important; border-bottom:1px solid #000 !important;
+     margin:30px 0 10px !important; padding:0 0 2px !important; }
+h3 { font-size:18px !important; font-weight:bold !important; margin:18px 0 6px !important; }
+h2 + .sub, .sub { font-size:16px !important; color:#444 !important; }
+.eyebrow { font-size:15px !important; font-weight:normal !important; color:#444 !important; margin:0 !important; }
+.lede { font-size:18px !important; line-height:1.4 !important; font-weight:normal !important; color:#000 !important; }
+.byline { font-size:15px !important; color:#444 !important; border:0 !important; }
+p, li { font-size:18px !important; line-height:1.4 !important; color:#000 !important; max-width:none !important; }
+strong, b { font-weight:bold !important; }
+a, .col a, footer a, nav a, nav.toc a { color:#0000ee !important; text-decoration:underline !important; }
+a:visited, .col a:visited { color:#551a8b !important; }
+nav.toc { border-bottom:1px solid #000 !important; padding:6px 0 10px !important; }
+nav.toc ol { font:16px/1.5 "Times New Roman",Times,serif !important; }
+hr { border:0 !important; border-top:1px solid #000 !important; }
+code, pre, kbd, .mono, td.num, th.num {
+  font-family:"Courier New",Courier,monospace !important;
+}
+code, .m, kbd, samp { font-size:0.9em !important; background:none !important; padding:0 !important;
+  color:#000 !important; font-family:"Courier New",Courier,monospace !important; }
+pre { background:#f2f2f2 !important; border:0 !important; border-radius:0 !important; padding:10px 14px !important;
+      font-size:15px !important; }
+.note, .keep, .callout, .warn {
+  background:#ffffcc !important; border:1px solid #000 !important; padding:8px 12px !important; color:#000 !important;
+}
+.numbers, .handoff { border:1px solid #000 !important; padding:8px 12px !important; }
+.derive, .step { border:0 !important; padding:0 !important; overflow:visible !important; }
+table { border-collapse:collapse !important; max-width:100% !important; font:16px/1.3 "Times New Roman",Times,serif !important; }
+th, td { border:1px solid #000 !important; padding:3px 7px !important; background:#fff !important; color:#000 !important; }
+th { background:#f2f2f2 !important; font-weight:bold !important; font-size:16px !important; }
+td.num, th.num { font-size:16px !important; }
+table.index td, table.index th { font-size:16px !important; vertical-align:top !important; }
+tr.grp td, table.index tr.grp td { background:#f2f2f2 !important; font:bold 16px/1.3 "Times New Roman",Times,serif !important; }
+td.cell { background:#fff !important; }
+td.c4 { background:#b8eeb8 !important; } td.c3 { background:#e2f7e2 !important; }
+td.c2 { background:#ffe2a8 !important; } td.c1, td.c0 { background:#ffc4c4 !important; }
+.tw { overflow-x:auto !important; border:0 !important; max-width:100% !important; }
+.tw table { max-width:none !important; }
+.tnote { font:15px/1.35 "Times New Roman",Times,serif !important; color:#000 !important; }
+figure { margin:16px 0 !important; padding:0 !important; border:0 !important; text-align:center !important; }
+figure > img, figure > video, figure > svg, figure > .chart, figure > .duo, .chart > svg, .diagram > svg {
+  display:block !important; margin-left:auto !important; margin-right:auto !important; }
+.chart .legendrow, .chart .legend { justify-content:center !important; }
+/* two-up chart grids stack: a chart drawn for the full column shows its text at half size side by side */
+.duo, .pair, .two, .grid2, .fig-row { grid-template-columns:1fr !important; }
+figure img, figure video, figure svg { border:1px solid #000 !important; border-radius:0 !important; max-width:100% !important; }
+.eq svg, .tex-d svg, .tex-i svg, svg.tex, .chart svg, .diagram svg { border:0 !important; }
+figcaption { text-align:left !important; font-size:16px !important; line-height:1.35 !important; color:#000 !important; margin-top:4px !important; }
+.chart, .duo, .diagram { background:#fff !important; border:0 !important; padding:0 !important; max-width:100% !important; overflow-x:auto !important; }
+.chart svg, .diagram > svg { max-width:100% !important; height:auto !important; }
+.chart .tip { background:#ffffcc !important; color:#000 !important; border:1px solid #000 !important; border-radius:0 !important;
+              box-shadow:none !important; font-family:"Times New Roman",Times,serif !important; }
+.key { border-radius:0 !important; }
+footer, footer p { border-top:0 !important; font:16px/1.4 "Times New Roman",Times,serif !important; color:#000 !important; }
+footer { border-top:1px solid #000 !important; margin-top:32px !important; padding-top:6px !important; }
+footer code { font-family:"Courier New",Courier,monospace !important; font-size:14px !important; }
+.chip, .pill, .badge { background:none !important; border:0 !important; padding:0 !important; border-radius:0 !important;
+                       font:inherit !important; color:#000 !important; text-transform:none !important;
+                       letter-spacing:normal !important; }
+.stats { background:none !important; border:0 !important; border-radius:0 !important; box-shadow:none !important; }
+.stat { background:none !important; color:#000 !important; border:0 !important; box-shadow:none !important; }
+.stat .num, .stat b, .stat small, .stat .sub, .stat span { color:#000 !important; }
+button.theme, .theme-toggle, [data-theme-toggle] { display:none !important; }</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<div class="eyebrow"><a href="../index.html">SR&#178; Hand documentation</a> &#183; topic overview: code and methods &#183; updated 2026-10-11</div>
+<h1>Code map, grasp synthesis, evaluation protocol and simulator backends</h1>
+<p class="lede">The package <code>src/morphohand/</code> holds the simulation, grasp, learning and bench code, and <code>scripts/</code> the studies and page builders that call it. A real_v1 hand goes from a Sobol sample of six gantry coordinates to a frozen MuJoCo scene, a grasp from the geometric fitter, a residual PPO policy trained in MuJoCo-Warp through mjlab, an evaluation over 64 rollouts that stores its per-step traces, and a bench plan that passes a 5&#8202;mm clearance gate. MuJoCo on the CPU runs grasps, chains and plans; Newton and Drake run the contact comparisons in separate environments.</p>
+</header>
+<nav class="toc"><ol><li><a href='#terms'>Terms</a></li><li><a href='#map'>Code map</a></li><li><a href='#path'>Path of one hand from a sample to a bench plan</a></li><li><a href='#grasp'>Grasp synthesis</a></li><li><a href='#eval'>Evaluation protocol</a></li><li><a href='#backends'>Simulator backends</a></li><li><a href='#future'>Future work</a></li><li><a href='#index'>Index of linked pages</a></li></ol></nav>
+<section id="terms"><h2>Terms</h2><dl class="glossary"><dt>Morphology run</dt><dd>A directory under <code>results/phase1/</code> with <code>frozen_scene.xml</code>, <code>summary.json</code> and <code>best_rollout.npz</code>; trainers and evaluators read a hand from it.</dd><dt>Frozen scene</dt><dd>A scene with the hand&#8217;s layout baked into fixed geometry, without the nine morphology joints.</dd><dt><code>open_ik</code></dt><dd>The keyframe of the open fingers before the grasp: the CEM seed and the RL reset pose.</dd><dt>Grasp fitter</dt><dd><code>fit_real_v1_pose.fit</code>: the palm pose and finger angles that put the pads on the tool.</dd><dt>CEM</dt><dd>Cross-entropy method over the nine finger controls (<code>phase1_optimize_grasp.py</code>).</dd><dt>Held lift</dt><dd>Tool height after the hold minus its height before the lift, in m.</dd><dt>Residual policy</dt><dd>A PPO actor whose output, scaled by 0.5&#8202;rad and clipped, is added to the scripted finger set-points from control step 58.</dd><dt>Recipe</dt><dd><code>configs/recipes/*.yaml</code>: the trainer defaults of one policy type; command-line flags override it.</dd><dt>Held, signed cosine</dt><dd>Held: more than 0.5&#8202;N of pad force with the tool centre above 0.06&#8202;m at the last step. Signed cosine: of the tool axis with world +z, +1 upright.</dd><dt>Traces</dt><dd>Per-step arrays of one evaluation, stored in <code>traces/&lt;run&gt;.npz</code> beside the page that plots them.</dd></dl></section>
+<section id='map'><h2>Code map</h2>
+<p><code>src/morphohand/sampling/</code> holds the morphology dataclasses, <code>REAL_V1_WORKSPACE</code> and
+<code>freeze_scene_for_eval</code>; <code>tools/</code> the scene generator and keyframe IK; <code>optimization/</code> the
+grasp evaluator and CEM; <code>rl/</code> the mjlab environment terms, the recipes, the deploy helpers and the trajectory-health
+scorecard; <code>bench/</code>, <code>geometry/</code> and <code>driver/</code> the bench replay, geometry and servo firmware
+with the <code>manta_hand</code> host. <a href="../../scripts/README.md">scripts/README.md</a> maps the active scripts, and
+superseded ones are in <code>scripts/archive/</code>. <code>assets/mjcf/real_v1/real_hand.xml</code> is the hardware model;
+<code>assets/mjcf/</code> has one folder per hand topology plus <code>generated/</code> and dated <code>experimental/</code>
+folders. Runs go to <code>results/</code>, which git ignores; pages go to <code>docs/</code>.</p>
+</section>
+<section id='path'><h2>Path of one hand from a sample to a bench plan</h2>
+<ol>
+<li>Sample: <code>real_v1_design_search.sobol_designs</code> draws a prefix-stable Sobol population over the six gantry
+slides (thumb x &#177;30&#8202;mm and y &#177;55&#8202;mm, index and middle &#177;30&#8202;mm, link lengths fixed);
+<code>real_v1_sobol8192.sh</code> runs 8,192 layouts.</li>
+<li>Scene: <code>generate_morphology_xml.py --base-hand-xml assets/mjcf/real_v1/real_hand.xml</code> writes a rigid scene
+without the morphology joints.</li>
+<li>Grasp: the grasp fitter, called through <code>probe_real_v1_carry._grip_from_fit</code>, plus a commanded squeeze.</li>
+<li>Screen: <code>real_v1_design_search.py</code> scores the open-loop carry, and <code>real_v1_promote_designs.py</code>
+checks export, servo range, gantry travel and clearance.</li>
+<li>Policy: <code>make_cal_morphology_run.py --hand &lt;tag&gt; --squeeze &lt;mm&gt;</code> writes a morphology run on the
+calibrated plant; <code>rl_train_cube.py --recipe b_liveA --morphology-run &lt;dir&gt;</code> trains it through
+<code>resguard.sh run</code> (<code>hands_tranche_queue.py</code> runs a queue of such jobs).</li>
+<li>Evaluation: <code>policy_eval_suite.py</code>, then <code>rl_render_rollout.py</code> and <code>policy_filmstrip.py</code>
+for a film and its frames.</li>
+<li>Bench plan: <code>real_v1_export_plan.py --design &lt;id&gt;</code> writes <code>&lt;id&gt;_plan.json</code>,
+<code>_traj.csv</code> (50&#8202;Hz, degrees), <code>_build.txt</code> and <code>_poses.txt</code>;
+<code>real_v1_trajectory_clearance.py --plan &lt;id&gt;</code> checks the chord and the CSV against 5&#8202;mm. Plans are
+copied to the bench computer by hand.</li>
+</ol>
+</section>
+<section id='grasp'><h2>Grasp synthesis</h2>
+<p>The eight deployed hands hold the tool with the fitter&#8217;s pose plus a 10&#8202;mm squeeze
+(<code>real_v1_export_plan.py --squeeze-mm</code>), without CEM. <code>fit_real_v1_pose.py</code> places the pad targets on the
+shaft&#8217;s equator at the shaft radius plus the 10.55&#8202;mm pad and a 1&#8202;mm gap, takes the deepest palm height from
+&#8722;30 to +60&#8202;mm in 2.5&#8202;mm steps at which every tip comes within 4&#8202;mm with the joints 0.05&#8202;rad inside
+their limits, and keeps the pose if a hold probe leaves the tool at least 20&#8202;mm up. It writes <code>open_ik</code> and,
+with <code>--also-open</code>, an open pose 8&#8202;mm back.</p>
+<p>The CEM lane, <code>real_v1_pipeline.py --stages grasp</code>, runs <code>phase1_optimize_grasp.py --keyframe open_ik</code>:
+24 iterations of 40 candidates over the yaw, MCP and PIP controls of the three fingers, each candidate closing for 240 steps,
+lifting the palm 50&#8202;mm and holding for 140 steps. The score&#8217;s lift term rewards the peak height, which a lift
+followed by a drop also reaches, so the pipeline passes a design on a held lift of 0.03&#8202;m or more. Contact-target
+patches, a force-closure energy and synergy (eigengrasp) CEM remain in the code with zero weight, and no current pipeline
+enables them. <code>retarget_keyframe_ik.py</code> retargets the keyframes of the earlier nine-parameter hands, which are
+kept as historical controls.</p>
+</section>
+<section id='eval'><h2>Evaluation protocol</h2>
+<p>Every grasp and policy evaluation runs on a frozen scene: <code>freeze_scene_for_eval</code> bakes the keyframe&#8217;s
+layout into fixed geometry, because the morphology joints drift during a rollout (it takes the real_v1 base scene from 31 to
+22 position coordinates). <code>policy_eval_suite.py</code> steps 64 rollouts in parallel under the run&#8217;s own timing and
+tool contact class, both read from the run&#8217;s <code>config.yaml</code>, and reports the align rate (signed cosine of at
+least 0.9) and the hold rate. A single deterministic rollout on the GPU does not repeat, since contact solves reduce in a
+varying order, so every claim rests on the 64. Each evaluation stores its traces, <code>--check</code> recomputes the summary
+from them, and <code>policy_reeval_traces.py</code> re-runs a set of evaluations and compares them with the originals.</p>
+<p>The trajectory-health scorecard (<code>trajectory_health.characterize_trajectory</code>) grades late and idle fingers, a
+drop, jitter, de-centring and over-clamp; <code>policy_filmstrip.py</code> tiles phase-aligned frames of a rollout, which are
+looked at before its numbers are explained.</p>
+</section>
+<section id='backends'><h2>Simulator backends</h2>
+<p>MuJoCo 3.6.0 on the CPU, pinned in <code>pyproject.toml</code>, runs the CEM evaluator, the grasp fitter, the
+open-loop carry, the UR5e chain, the plan export and the clearance gate. MuJoCo-Warp through mjlab 1.2.0
+(<code>uv run --extra rl --extra gpu</code>) runs PPO training, policy evaluation and the batched contact benchmarks. Newton,
+with hydroelastic contact under its MuJoCo solver, and Drake, with SAP hydroelastic contact on the CPU, run in their own
+environments for the comparisons of the <a href="contact_model.html">fingertip contact overview</a>; Drake also runs the SR&#178;
+planning prototype (<code>drake_sr2_hand.py</code>). MJX runs on the CPU in the project environment and is used by two
+non-default CEM optimizers and the DiffMJX scripts of 2026-10-07, whose runbook is the README of
+<code>docs/experiments/20261007-diffmjx/</code>.</p>
+</section>
+<section id="future"><h2>Future work</h2><ol><li>Give <code>rl_render_rollout.py</code> and <code>policy_transfer_probe.py</code> the run&#8217;s tool contact class, as <code>policy_eval_suite.py --object-contact run</code> has it: today they render and probe a policy trained before 2026-09-20 on the scene&#8217;s class, where 11 of 16 such policies drop the tool at the trained pose. A render of D7 that holds the tool through step 249 shows the change.</li><li>Store traces from the UR5e chain probe (<code>real_v1_chain_policy.py</code>) and the CPU transfer probe in the format of <code>traces/&lt;run&gt;.npz</code>, so their figures can be redrawn without a rerun.</li><li>Run each unused grasp objective (contact targets, force closure, synergy CEM) and <code>morphohand.backends</code> once in a test on the real_v1 base scene; an objective that fails it moves to <code>scripts/archive/</code> with its code.</li></ol></section>
+<footer>
+<h2 id="index">Index of linked pages</h2>
+<div class="tw"><table class='index'><thead><tr><th>Date</th><th>Page</th><th>Contents</th><th>Artifact</th></tr></thead><tbody><tr class='grp'><td colspan='4'>Design and grasp</td></tr><tr><td class='num'>2026-08-28</td><td><a href='../experiments/20260828-real_v1_search/20260828-real_v1_design_search.html'>Reorientation across 108 real_v1 hand designs and the scores that predict it</a></td><td>Design search and the carry screen</td><td><a href='https://claude.ai/code/artifact/e8a389ed-d80f-40d1-8c85-6301be4c8f35'>Link</a></td></tr><tr class='grp'><td colspan='4'>Policies and evaluation</td></tr><tr><td class='num'>2026-09-17</td><td><a href='../experiments/20260917-d6_cal_60M/20260917-d6_reorient_policy_60M.html'>D6 reorientation policy on the calibrated plant at 60 M steps, with a grip-force finetune</a></td><td>The run&#8217;s timing in the evaluator</td><td><a href='https://claude.ai/artifact/NgDVqffN5h1ZBhS2rt7Mb1'>Link</a></td></tr><tr><td class='num'>2026-09-19</td><td><a href='../experiments/20260919-hands_tranche/20260919-reorient_policies_across_hands.html'>Reorientation policies across the deployed hands on the calibrated plant</a></td><td>Evaluation on the training plant, traces</td><td><a href='https://claude.ai/artifact/JfKA6nQBPuf13hGKjnU22n'>Link</a></td></tr><tr><td class='num'>2026-09-20</td><td><a href='../experiments/20260920-robust_tranche/20260920-robust_reorient_policies.html'>Reorientation policies continued on the plant the chain and the bench use</a></td><td>Training pipeline tables</td><td><a href='https://claude.ai/artifact/NZLr9wdDAWjZC1HM6ed6ed'>Link</a></td></tr><tr><td class='num'>2026-09-08</td><td><a href='../experiments/20260908-compute_budget/20260908-compute_budget.html'>Training throughput on the workstation and a DeltaAI GH200</a></td><td>Training throughput</td><td><a href='https://claude.ai/code/artifact/10e05a17-0472-4c4f-8e85-b85065c28f4a'>Link</a></td></tr><tr class='grp'><td colspan='4'>Simulators</td></tr><tr><td class='num'>2026-10-05</td><td><a href='../experiments/20261005-contact_bed/20261005-contact_model_bed.html'>Agreement and cost of five fingertip contact models on pinch, twist, roll, shake and brake tasks</a></td><td>Contact comparison bed</td><td><a href='https://claude.ai/artifact/5MUdW6D2Xje2yKHpp1YUVt'>Link</a></td></tr><tr><td class='num'>2026-10-01</td><td><a href='../experiments/20261001-drake-port/20261001-drake_sr2_planning.html'>Inverse kinematics and morphology–posture optimization of the SR² Hand in Drake</a></td><td>Drake planning prototype</td><td></td></tr><tr><td class='num'>2026-10-07</td><td><a href='../experiments/20261007-diffmjx/20261007-contact_gradients_real_v1.html'>Contact gradients for the real_v1 1 mm sphere-packed fingertip in native MJX and the released DiffMJX fork</a></td><td>DiffMJX contact gradients</td><td></td></tr></tbody></table></div>
+<p>Built by <code>python3 scripts/topic_overview_page.py code</code> from <code>scripts/overview_code_text.py</code>;
+figures are rendered from the linked pages and cached in <code>docs/overviews/media/</code>.</p>
+</footer>
+</div>
+</body>
+</html>

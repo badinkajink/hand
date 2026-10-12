@@ -148,7 +148,9 @@ that rebuilds it.</p>
 <h2>Code</h2>
 <p><code>src/morphohand/</code> holds the simulation, RL, sampling and bench-replay code, <code>scripts/</code> the
 experiment and page scripts (mapped in <a href="{rel("scripts/README.md")}">scripts/README.md</a>), and
-<code>assets/mjcf/real_v1/real_hand.xml</code> the hand model. <a href="{rel("README.md")}">README.md</a> describes the
+<code>assets/mjcf/real_v1/real_hand.xml</code> the hand model. <a href="{rel("docs/overviews/code_and_methods.html")}">Code
+and methods</a> follows one hand from a sample to a bench plan and describes the grasp synthesis, the evaluation protocol and
+the simulator backends. <a href="{rel("README.md")}">README.md</a> describes the
 environment and the names of hands and policies.</p>
 
 <footer>
