@@ -71,8 +71,9 @@ SKIN_NREF, SKIN_AREA_PER_N = 12.0, 3.5e-6
 # step; CPU MuJoCo holds the scripted grasp there, MuJoCo-Warp (float32) throws the tool in the first 0.1 s in every
 # world (logs/20261008-contact_model_policies/skin_mjw_variants.py; 10x armature or 10x softer springs both hold). The
 # armature is set to omega dt = 1 on each spring (k dt^2: 0.26 kg on the slides, 3.6e-6 kg m^2 on the hinge), damping
-# critical on it. Armature acts on the skin's own coordinates only, i.e. on its micrometre motion relative to the tip,
-# so the static compliance is unchanged and the inertia the tool sees while it sticks is the skin's 2 g.
+# critical on it. Armature acts on the skin's own coordinates, its motion relative to the tip, so the static compliance
+# is unchanged; a tool that sticks to the skin moves the armature whenever it moves relative to that tip (0.26 kg per
+# slide, 11 times the 24.5 g tool; corrected 2026-10-12 after the deck 23 math pass, finding 3).
 SKIN = dict(m=0.002, I=5e-8, arm=0.26, arm_t=3.6e-6, zeta=1.0, range_t=0.0015, range_th=0.5)
 
 

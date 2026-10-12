@@ -1143,7 +1143,7 @@ def cap_table(cost, batched=None, skin=None):
         ("Condim&#160;4, \\(\\mu_t\\) rescheduled", [(Y, "One spring"), (P, "Creeps"), (P, "Fitted law, rescheduled"), (N_, "One point"), (N_, "No"), (N_, "No"), us("mj_point4s"), (P, "Needs a per-step write")]),
         ("1&#8202;mm sphere pad", [(Y, "Sampled foundation"), (P, "Creeps"), (Y, "From the sphere spread"), (Y, "Sampled"), (N_, "No"), (N_, "No"), us("mj_pads1", "mjw_pads1"), (Y, "MuJoCo-Warp, Newton")]),
         ("1&#8202;mm pads on a sprung skin", [(Y, "Sampled foundation on springs"), (P, "Presliding, then creeps"), (Y, "From the sphere spread"),
-                                          (Y, "Sampled"), (Y, "Elastic, no hysteresis"), (N_, "No"), sk("mj_pads1_skin"), (Y, "MuJoCo-Warp")]),
+                                          (Y, "Sampled"), (Y, "Elastic, 0.4 of Mindlin&#8217;s loop"), (N_, "No"), sk("mj_pads1_skin"), (Y, "MuJoCo-Warp")]),
         ("1&#8202;mm pads on rolling bristles", [(Y, "Sampled foundation"), (P, "Partial slip, then creeps"), (Y, "From the sphere spread"),
                                              (Y, "Sampled"), (Y, "With hysteresis"), (N_, "No"), sk("mj_pads1_bristle20a"), (Y, "MuJoCo-Warp")]),
         ("Drake hydroelastic", [(Y, "Pressure field"), (Y, "Creeps 100&#215; less"), (Y, "Integrated"), (Y, "Surface mesh"), (N_, "No"), (N_, "No"), us("drake_hydro"), (N_, "CPU only")]),
@@ -1295,18 +1295,27 @@ def skin_table(X):
     gp, cp = X.gpu("mj_pads1_ir1000"), X.cpu("mj_pads1_ir1000")
     head = ["Model", "Presliding (&#181;m)", "Recovered (&#181;m)", "Loop (&#181;J)", "Effective &#956;", "Twist arm / law",
             "80&#176; force (N)", f"CPU ({US})", "GPU, &#215; pads"]
+    import contact_overview_text as TXT
+    lbl = dict(SKIN_LBL, mj_pads1_ir1000="1&#8202;mm sphere pads, impratio 1000",
+               mj_pads1_skin="Pads on a sprung skin, impratio 1000", mj_pads1_bristle20a="Pads on rolling bristles, impratio 1000")
+    models = list(SKIN_MODELS)
+    models.insert(1, "mj_pads1_ir1000")
     body = []
-    for m in SKIN_MODELS:
+    for m in models:
         r8, t1, t5 = X.t8r(m), X.t1(m), X.t5(m)
         t2 = NC._t2_list(X, m, (1.0,))
-        c = cp if m == "mj_pads1" else X.cpu(m)
-        g = gp if m == "mj_pads1" else X.gpu(m)
+        c = cp if m in ("mj_pads1", "mj_pads1_ir1000") else X.cpu(m)
+        g = gp if m in ("mj_pads1", "mj_pads1_ir1000") else X.gpu(m)
         ok = lambda r: r is not None and r.get("status", "complete") == "complete"  # noqa: E731
-        body.append([SKIN_LBL[m], fmt(r8["u_presliding_um"], 1) if ok(r8) else "&#8211;",
+        body.append([lbl[m], fmt(r8["u_presliding_um"], 1) if ok(r8) else "&#8211;",
                      fmt(r8["u_recovered_um"], 1) if ok(r8) else "&#8211;", fmt(r8["loop_area_uJ"], 2) if ok(r8) else "&#8211;",
                      fmt(t1.get("mu_eff"), 3) if t1 else "&#8211;", fmt(t2[0][0], 2) if t2 else "&#8211;",
                      fmt(t5["N_at_80_N"], 2) if ok(t5) else "&#8211;", num(c, ",.0f") if c else "&#8211;",
-                     ("1.0" if m in ("mj_pads1", "mj_pads1_soft") else (f"{g / gp:.1f}" if g else "CPU only"))])
+                     ("1.0" if m in ("mj_pads1", "mj_pads1_ir1000", "mj_pads1_soft") else (f"{g / gp:.1f}" if g else "CPU only"))])
+        sc = TXT.t8_conv(m) if m == "mj_pads1_skin" else None
+        if sc:
+            body.append(["Same skin at a 0.025&#8202;ms step", fmt(sc["u_presliding_um"], 1), fmt(sc["u_recovered_um"], 1),
+                         fmt(sc["loop_area_uJ"], 2)] + ["&#8211;"] * 5)
     d5 = X.t5("drake_hydro")
     body.append(["Drake hydroelastic", "0.05", "&#8722;0.05", "0.12", fmt((pick(X.bpu, "drake_hydro", N=1.0, dt_ms=1.0) or {}).get("mu_eff"), 3),
                  fmt((NC._t2_list(X, "drake_hydro", (1.0,)) or [[None]])[0][0], 2), fmt(d5["N_at_80_N"], 2) if d5 else "&#8211;",
