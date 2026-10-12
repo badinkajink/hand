@@ -58,6 +58,7 @@ GPU, independent of the batch width; a DeltaAI GH200 runs at 0.74 of that speed,
 1.2&#8211;3.4 GPU-hours ([training throughput](exp:20260908-compute_budget/20260908-compute_budget.html),
 [contact-model policies](exp:20261008-contact_model_policies/20261008-fingertip_contact_model_policies.html)).</p>
 {{FIG timeline}}
+{{FIG episode}}
 <p>The scripted lift replaced a learned one. On m05, the earlier simulation-only hand, a lift policy
 (A) and a turn policy (B) were trained separately because the two rewards conflicted, and every B trained
 from a teleported, pre-lifted tool dropped it at the hand-off. The live-A reset
@@ -77,7 +78,8 @@ but at bench finger speed none of ten policies holds the tool through its turn
 torque limit of 1&#8202;N&#183;m is 4.4 times the SCS0009&#8217;s stall torque of 0.23&#8202;N&#183;m, and its policies grip the
 24.5&#8202;g tool with 44&#8211;96&#8202;N. The policies of 2026-10-11 train on the servo-limited plant: 0.18&#8202;N&#183;m, where
 the servo&#8217;s overload protection trips, and 0.72&#8202;N&#183;m/rad, the gain at which its drive saturates at 18&#176; of
-error ([servo-plant policies](exp:20261011-servo_plant_policies/20261011-servo_plant_contact_model_policies.html)).</p>"""),
+error ([servo-plant policies](exp:20261011-servo_plant_policies/20261011-servo_plant_contact_model_policies.html)).</p>
+{{FIG plants}}"""),
     ("seeds", "Seeds and evaluation",
      """<p>Policy quality depends on the training draw more than on the recipe. Five from-scratch draws on m05, the earlier
 simulation-only hand, spread their held cosine with a standard deviation of 0.38; sixteen draws there warm-started from
@@ -86,6 +88,7 @@ two from-scratch D6 runs of 60&#8202;M steps ended at 0.933 and 0.640
 ([training throughput](exp:20260908-compute_budget/20260908-compute_budget.html),
 [D6 at 60&#8202;M steps](exp:20260917-d6_cal_60M/20260917-d6_reorient_policy_60M.html)). A design comparison therefore
 needs several seeds or a shared warm start.</p>
+{{FIG seeds}}
 <p>The trajectory-health scorecard (<code>src/morphohand/rl/trajectory_health.py</code>) grades a rollout on six checks
 (late finger, idle finger, drop, jitter, de-centring, over-clamp) and reports the worst. The checkpoint watch of the
 2026-10-08 runs evaluates a run every 4&#8202;M steps and stops it after 10&#8202;M steps of degenerate checkpoints or when its
@@ -110,6 +113,7 @@ pad and skin commands keep it in 216 of 220, and in closed loop under the other 
 99&#8202;% of rollouts and the pad policies 76&#8202;%. Every final policy grips with 40&#8211;100&#8202;N, and all but one lose the tool
 when the finger servo gain rises to 10&#8202;N&#183;m/rad
 ([contact-model policies](exp:20261008-contact_model_policies/20261008-fingertip_contact_model_policies.html)).</p>
+{{FIG replays_working}}
 {{FIG transfer}}
 <p>On the servo-limited plant, with a penalty in place of the bonus on fingertip force above 4&#8202;N, two pad and two
 TPU-mesh seeds hold the tool in 256 of 256 rollouts at a grip of 13&#8211;18&#8202;N. The pad policies turn it nearly as far as
@@ -118,10 +122,67 @@ relative to the pads, against 32&#8211;52&#176; at the working plant&#8217;s gri
 44&#8202;N and stops turning the tool (held cosine 0.02) and pad seed 1 drops 28 of 64 rollouts, while the TPU-mesh
 policies turn it as before; a pad&#8217;s torsional friction grows as the 5/4 power of its force. Both kinds of finger
 commands transfer: the pad commands keep the tool in 78 of 88 open-loop replays, the TPU-mesh commands in
-74 of 88, and Newton loses the most ([servo-plant policies](exp:20261011-servo_plant_policies/20261011-servo_plant_contact_model_policies.html)).</p>"""),
+74 of 88, and Newton loses the most ([servo-plant policies](exp:20261011-servo_plant_policies/20261011-servo_plant_contact_model_policies.html)).</p>
+{{FIG replays_servo}}"""),
 ]
 
+_SERVO = "docs/experiments/20261011-servo_plant_policies/media/"
+_WORK = "docs/experiments/20261008-contact_model_policies/media/"
+_PAGE_SERVO = ("20261011-servo_plant_policies/20261011-servo_plant_contact_model_policies.html", "servo-plant policies")
+_PAGE_WORK = ("20261008-contact_model_policies/20261008-fingertip_contact_model_policies.html", "contact-model policies")
+# the three-simulator replay films are 1920 x 480: MuJoCo-Warp, Drake and Newton panels of 640 px under a 56 px text overlay
+_PANELS = (("MuJoCo-Warp", 0), ("Drake", 640), ("Newton", 1280))
+
+
+def _replay_rows(prefix, runs):
+    return [[(prefix + f"{run}_replay_three.mp4", f"{tip}, {sim}", f"640:420:{x}:56") for sim, x in _PANELS]
+            for run, tip in runs]
+
+
 FIGURES = {
+    "episode": dict(film=[[(_SERVO + "20261011-d6_servo_tpu27pads1_40M_s0_best.mp4", None)]], width=640,
+                    page=_PAGE_SERVO[0], source=_PAGE_SERVO[1],
+                    caption="One evaluation rollout of the D6 policy with 1&#8202;mm pad fingertips on the servo-limited "
+                            "plant (seed 0, its best of 64 rollouts), at real speed. The fingers close and the palm lifts "
+                            "the tool on the script; from step 58 the policy&#8217;s corrections turn it: the middle finger "
+                            "lifts the handle end and the tool pivots about the thumb and index contacts to a held cosine "
+                            "of 0.88, pressed with 18&#8211;20&#8202;N summed over the fingertips."),
+    "plants": dict(film=[[(_WORK + "20261008-d6_work_tpu27pads1_40M_s0_best.mp4", "Working plant: 1 N·m, 42–44 N grip"),
+                          (_SERVO + "20261011-d6_servo_tpu27pads1_40M_s0_best.mp4",
+                           "Servo-limited plant: 0.18 N·m, 18–20 N grip")]],
+                   pages=[_PAGE_WORK, _PAGE_SERVO],
+                   caption="The same D6 recipe with 1&#8202;mm pad fingertips on two servo plants, best seed of each, at "
+                           "real speed. With a 1&#8202;N&#183;m torque limit and a bonus on fingertip force (left) the fingers "
+                           "squeeze the tool with 42&#8211;44&#8202;N and it stops at a held cosine of 0.69; at "
+                           "0.18&#8202;N&#183;m with a penalty above 4&#8202;N (right) they hold it with 18&#8211;20&#8202;N and turn "
+                           "it to 0.88."),
+    "seeds": dict(film=[[("docs/experiments/20260917-d6_cal_60M/videos/d6_cal_60M_m812.mp4", "Run 1: held cosine 0.93"),
+                         ("docs/experiments/20260917-d6_cal_60M/videos/d6_cal_60M_gpm025_m812.mp4",
+                          "Run 2: held cosine 0.64")]],
+                  page="20260917-d6_cal_60M/20260917-d6_reorient_policy_60M.html", source="D6 at 60&#8202;M steps",
+                  caption="Two from-scratch D6 runs of 60&#8202;M steps on the calibrated plant, final checkpoints, one "
+                          "deterministic rollout each at half speed. Their recipes differ only in the sign of a grip term "
+                          "worth 0.3&#8202;% of the return. Both roll the tool the same way through step 110; from step 140 "
+                          "the second leaves it resting at 50&#176; between the pads (held cosine 0.93 against 0.64 over 64 "
+                          "rollouts each)."),
+    "replays_working": dict(film=_replay_rows(_WORK + "20261008-d6_work_tpu27", [("mesh_40M_s1", "Point contact"),
+                                                                                 ("pads1_40M_s2", "Pads"),
+                                                                                 ("skin_40M_s1", "Skin")]),
+                            page=_PAGE_WORK[0], source=_PAGE_WORK[1],
+                            caption="Open-loop replays on the working plant, the median seed of three fingertip models, "
+                                    "world 0, at real speed: the MuJoCo-Warp rollout the policy trained on (left) and its "
+                                    "finger targets from the onset of the turn played into Drake (centre) and Newton (right). "
+                                    "The point-contact targets lose the tool in Drake at 3.4&#8202;s and in Newton within a "
+                                    "second; the targets of the policies on pads and on pads mounted on a sprung skin keep it "
+                                    "at the same angle in all three simulators (cosine 0.58&#8211;0.61 and 0.55&#8211;0.63)."),
+    "replays_servo": dict(film=_replay_rows(_SERVO + "20261011-d6_servo_tpu27", [("mesh_40M_s1", "Point contact"),
+                                                                                ("pads1_40M_s1", "Pads")]),
+                          page=_PAGE_SERVO[0], source=_PAGE_SERVO[1],
+                          caption="The same replays for the median seeds trained on the servo-limited plant. Drake keeps "
+                                  "the tool near the MuJoCo-Warp angle for both kinds of targets (cosine 0.79 and 0.77 "
+                                  "against 0.83 and 0.80), and in this world Newton loses it for both; a Newton world can "
+                                  "hold in one pass and drop in the next, while its totals repeat. Over all replays the pad "
+                                  "targets keep the tool in 78 of 88 and the point-contact targets in 74 of 88."),
     "timeline": dict(page="20260920-robust_tranche/20260920-robust_reorient_policies.html", n=17,
                      alt="Timeline of one episode: grasp, lift, then the policy's turn and hold.",
                      source="policies continued on the chain plant",

@@ -11,6 +11,11 @@ FUTURE and PAGES (see overview_mechanisms_text.py). In its HTML, [text](exp:FOLD
 page under docs/experiments/, {{FIG name}} places a figure, and \( \) is inline LaTeX, rendered to SVG by
 scripts/texsvg.py and cached in docs/overviews/media/texsvg_cache.json.
 
+Films (owner, 2026-10-12: "missing videos"): a FIGURES entry with film=[[(path, label[, crop]), ...], ...] sets the
+clips of each row side by side and the rows one above the other, each clip under a white label bar, at 25 fps; shorter
+clips hold their last frame; crop "w:h:x:y" (source pixels) cuts one panel out of a multi-panel film. The composite is encoded with x264 (crf 28 unless the entry sets crf), cached as
+docs/overviews/media/<topic>_<name>.mp4 with a poster frame, and inlined like the images.
+
 Figures are taken from the detailed pages: scripts/page_figure_check.render_figure lays the figure out alone with its
 page's styles in headless Chrome (caption hidden) at twice the display resolution; the PNG is cached in
 docs/overviews/media/ and inlined, quantized, as a data URI, so the overview opens from the file system (owner,
@@ -24,9 +29,12 @@ import base64
 import glob
 import importlib
 import io
+import json
 import os
 import re
+import subprocess
 import sys
+import tempfile
 import time
 
 import docs_inventory as D
@@ -44,6 +52,9 @@ TEX_RE = re.compile(r"\\\[(.+?)\\\]|\\\((.+?)\\\)", re.S)
 LINK_RE = re.compile(r"\[([^\]]+)\]\(exp:([^)#\s]+)(#[^)\s]*)?\)")
 FIG_RE = re.compile(r"\{\{FIG ([\w-]+)\}\}")
 DISPLAY_W = 828                       # px, the plain style's text column
+FILM_FONT = next((p for p in ("/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf",
+                              "/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf") if os.path.exists(p)), None)
+FILM_LABEL_H, FILM_GAP = 30, 4        # px: label bar above each clip, white gap between clips and rows
 
 CSS = """
 nav.toc ol{columns:2;column-gap:40px;margin:4px 0 0;padding-left:22px}
@@ -53,6 +64,7 @@ dl.glossary dt{font-weight:bold}
 dl.glossary dd{margin:0}
 @media (max-width:640px){dl.glossary{grid-template-columns:1fr}dl.glossary dd{margin-bottom:6px}}
 figure img{max-width:100%;height:auto}
+figure video{display:block;margin:0 auto;max-width:100%;height:auto;background:#fff}
 .tw{overflow-x:auto}
 table.index{width:100%}
 table.index td:first-child{white-space:nowrap}
@@ -86,7 +98,101 @@ def figure_png(key: str, name: str, spec: dict, refresh: bool) -> str:
     return cache
 
 
+def _probe(path: str) -> tuple[int, int, float]:
+    j = json.loads(subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries",
+                                   "stream=width,height:format=duration", "-of", "json", path],
+                                  capture_output=True, text=True, check=True).stdout)
+    return int(j["streams"][0]["width"]), int(j["streams"][0]["height"]), float(j["format"]["duration"])
+
+
+def film_files(key: str, name: str, spec: dict, refresh: bool) -> tuple[str, str]:
+    """The composite film of a film= entry and its poster, cached in docs/overviews/media/ (see the module docstring)."""
+    rows = spec["film"]
+    srcs = [os.path.join(ROOT, c[0]) for row in rows for c in row]
+    base = os.path.join(MEDIA, f"{key}_{name}")
+    mp4, jpg, sig_path = base + ".mp4", base + ".jpg", base + ".json"
+    sig = json.dumps({k: spec.get(k) for k in ("film", "width", "crf", "poster_t")}, sort_keys=True)
+    fresh = (all(os.path.exists(x) for x in (mp4, jpg, sig_path)) and open(sig_path).read() == sig
+             and all(os.path.getmtime(x) <= os.path.getmtime(mp4) for x in srcs))
+    if fresh and not refresh:
+        return mp4, jpg
+    os.makedirs(MEDIA, exist_ok=True)
+    W = spec.get("width", DISPLAY_W) // 2 * 2
+    labelled = any(c[1] for row in rows for c in row)
+    probes = {x: _probe(x) for x in srcs}
+    D = max(d for _, _, d in probes.values())
+    tmp = tempfile.mkdtemp(prefix="film_")
+    chains, row_tags, k = [], [], 0
+    for ri, row in enumerate(rows):
+        n = len(row)
+        tw = (W - FILM_GAP * (n - 1)) // n // 2 * 2
+        tags = []
+        for ci, (p, lab, *crop) in enumerate(row):
+            w0, h0, d0 = probes[os.path.join(ROOT, p)]
+            if crop:
+                w0, h0 = (int(v) for v in crop[0].split(":")[:2])
+            th = round(h0 * tw / w0) // 2 * 2
+            f = f"[{k}:v]" + (f"crop={crop[0]}," if crop else "") + f"fps=25,scale={tw}:{th}:flags=lanczos,setsar=1"
+            if D - d0 > 0.04:
+                f += f",tpad=stop_mode=clone:stop_duration={D - d0:.3f}"
+            if labelled:
+                f += f",pad={tw}:{th + FILM_LABEL_H}:0:{FILM_LABEL_H}:white"
+                if lab:
+                    tf = os.path.join(tmp, f"label{k}.txt")
+                    open(tf, "w", encoding="utf-8").write(lab)
+                    f += (f",drawtext=fontfile={FILM_FONT}:textfile={tf}:x=4:y=({FILM_LABEL_H}-th)/2:fontsize=19"
+                          f":fontcolor=black")
+            if ci < n - 1:
+                f += f",pad=iw+{FILM_GAP}:ih:0:0:white"
+            chains.append(f + f"[t{k}]")
+            tags.append(f"[t{k}]")
+            k += 1
+        row_out = f"[r{ri}]"
+        if n > 1:
+            chains.append("".join(tags) + f"hstack=inputs={n}[h{ri}]")
+            src_tag = f"[h{ri}]"
+        else:
+            src_tag = tags[0]
+        pad_b = FILM_GAP if ri < len(rows) - 1 else 0
+        chains.append(f"{src_tag}pad={W}:ih+{pad_b}:(ow-iw)/2:0:white{row_out}")
+        row_tags.append(row_out)
+    if len(rows) > 1:
+        chains.append("".join(row_tags) + f"vstack=inputs={len(rows)}[out]")
+    else:
+        chains.append(f"{row_tags[0]}null[out]")
+    cmd = ["ffmpeg", "-y", "-v", "error"]
+    for x in srcs:
+        cmd += ["-i", x]
+    cmd += ["-filter_complex", ";".join(chains), "-map", "[out]", "-an", "-c:v", "libx264", "-preset", "slow",
+            "-crf", str(spec.get("crf", 28)), "-pix_fmt", "yuv420p", "-movflags", "+faststart", mp4]
+    subprocess.run(cmd, check=True)
+    t = spec.get("poster_t", 0.75) * D
+    subprocess.run(["ffmpeg", "-y", "-v", "error", "-ss", f"{t:.2f}", "-i", mp4, "-frames:v", "1", "-q:v", "3", jpg],
+                   check=True)
+    open(sig_path, "w").write(sig)
+    return mp4, jpg
+
+
+def film_html(key: str, name: str, spec: dict, refresh: bool) -> tuple[str, int]:
+    mp4, jpg = film_files(key, name, spec, refresh)
+    w, h, _ = _probe(mp4)
+    disp = min(DISPLAY_W, w)
+    data, poster = open(mp4, "rb").read(), open(jpg, "rb").read()
+    cap = spec["caption"].rstrip()
+    pages = spec.get("pages") or ([(spec["page"], spec.get("source", "the source page"))] if spec.get("page") else [])
+    if pages:
+        links = [f'<a href="{rel(os.path.join("docs", "experiments", pg))}">{lab}</a>' for pg, lab in pages]
+        cap += f' {"Film" if len(links) == 1 and len(spec["film"]) == 1 and len(spec["film"][0]) == 1 else "Films"} from ' \
+               + (links[0] if len(links) == 1 else ", ".join(links[:-1]) + " and " + links[-1]) + "."
+    return (f'<figure><video src="data:video/mp4;base64,{base64.b64encode(data).decode()}" '
+            f'poster="data:image/jpeg;base64,{base64.b64encode(poster).decode()}" width="{disp}" '
+            f'height="{round(h * disp / w)}" controls muted loop playsinline preload="metadata"></video>'
+            f'<figcaption>Figure&#160;{{N}}. {cap}</figcaption></figure>'), len(data) + len(poster)
+
+
 def figure_html(key: str, name: str, spec: dict, refresh: bool) -> tuple[str, int]:
+    if spec.get("film"):                      # a film or a side-by-side of films from the result pages (2026-10-12)
+        return film_html(key, name, spec, refresh)
     if spec.get("fn"):                        # an interactive data figure drawn from the source page's rows (2026-10-11)
         fig = getattr(OF, spec["fn"])(f"{key}-{name}")
         cap = spec["caption"].rstrip()

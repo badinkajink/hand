@@ -154,11 +154,13 @@ def condim4_variant(spin: float = C4_SPIN):
     print(f"{C4_DIR.name}: thumb_tipgeom condim {g.condim[0]}, friction {g.friction}, priority {g.priority[0]}")
 
 
-def skin_sizing(N_ref: float = SKIN_NREF):
+def skin_sizing(N_ref: float = SKIN_NREF, area: float | None = None):
+    """Spring constants of the skin from the pads' contact area at N_ref per fingertip (m^2; default the working plant's
+    3.5 mm^2/N measured at its ~12 N grips)."""
     sys.path.insert(0, str(ROOT / "scripts"))
     import contact_reference_laws as L
     mat = L.mat()
-    a = math.sqrt(SKIN_AREA_PER_N * N_ref / math.pi)
+    a = math.sqrt((area if area is not None else SKIN_AREA_PER_N * N_ref) / math.pi)
     kt = 8 * mat["G"] * a / (2 - mat["nu"])
     kth = 16 * mat["G"] * a ** 3 / 3
     ct = 2 * SKIN["zeta"] * math.sqrt(kt * (SKIN["m"] + SKIN["arm"]))
@@ -207,14 +209,14 @@ def _extend_keyframes(root, src_xml: Path, qcols, vcols):
                 key.set(attr, " ".join(f"{v:.9g}" for v in _remap(old, cols)))
 
 
-def skin_variant(N_ref: float = SKIN_NREF):
+def skin_variant(N_ref: float = SKIN_NREF, area: float | None = None):
     """Arm (e): the 1 mm pad run with each tip's pad spheres moved onto a spring-mounted skin body."""
     import mujoco
     sys.path.insert(0, str(ROOT / "scripts"))
     import fingertip_geometry as G
     src = OUT.with_name(OUT.name + "_tpu2.7pads1")
     _copy_run(src, SKIN_DIR)
-    sz = skin_sizing(N_ref)
+    sz = skin_sizing(N_ref, area)
     tree = ET.parse(src / "frozen_scene.xml")
     root = tree.getroot()
     for f in FINGERS:
@@ -320,8 +322,12 @@ def main():
                     "default the 2026-10-06 working plant")
     ap.add_argument("--out", default=None, help="base run directory for --plant; the tip variants go beside it")
     ap.add_argument("--check-out", default="docs/experiments/20261006-rl_contact/work_plant_runs.json")
+    ap.add_argument("--skin", action="store_true", help="with --plant: also write the skin run <out>_tpu2.7skin and check "
+                    "only it")
+    ap.add_argument("--skin-nref", type=float, default=SKIN_NREF, help="fingertip force the skin springs are sized at, N")
+    ap.add_argument("--skin-area-mm2", type=float, default=None, help="pad contact area at --skin-nref, mm^2")
     a = ap.parse_args()
-    global OUT, PLANT, PLANT_SPEC
+    global OUT, PLANT, PLANT_SPEC, SKIN_DIR
     if a.plant:
         if not a.out:
             raise SystemExit("--plant needs --out")
@@ -331,6 +337,18 @@ def main():
         PLANT = {k: P[k] for k in ("kp", "kv", "forcerange", "damping", "frictionloss")}
         PLANT_SPEC = a.plant
         OUT = (ROOT / a.out).resolve()
+        SKIN_DIR = OUT.with_name(OUT.name + "_tpu2.7skin")
+    if a.skin:
+        if not a.plant:
+            raise SystemExit("--skin needs --plant and --out")
+        skin_variant(a.skin_nref, None if a.skin_area_mm2 is None else a.skin_area_mm2 * 1e-6)
+        if a.check or a.check_only:
+            out = ROOT / a.check_out
+            out.parent.mkdir(parents=True, exist_ok=True)
+            out.write_text(json.dumps({"plant": PLANT, "spec": PLANT_SPEC, "skin": skin_sizing(
+                a.skin_nref, None if a.skin_area_mm2 is None else a.skin_area_mm2 * 1e-6), "checks": check([SKIN_DIR])},
+                indent=1))
+        return 0
     if a.arms_20261008:
         condim4_variant()
         skin_variant()
