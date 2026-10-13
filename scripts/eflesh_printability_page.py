@@ -346,7 +346,7 @@ def fem_section(X: Data):
                 "box. The last two rows are the earlier models of the <a href=\"" + TIP_PAGE + "\">printed fingertip page</a>.", key="fem")
     sec = figure(f'<img src="{data_uri(os.path.join(D, "media", "20261013-tip_sections.png"), "image/png")}" alt="Sections of three printed tips">',
                  "Sections of the printed tips through the contact point, palmar face up, as the solver sees them: TPU black, the bonded "
-                 "magnet red. The two skins on the right are additions to eFlesh&#8217;s design.", key="sections", cls="pics")
+                 "magnet red. The three skinned tips are additions to eFlesh&#8217;s design.", key="sections", cls="pics")
     txt = fem_text(X)
     return txt + tab + sec
 
@@ -365,12 +365,12 @@ def fem_text(X: Data):
             f"{d(g):.0f}&#8202;&#181;m ({g['E_best_MPa']:.1f}&#8202;MPa) and {tr(g):.0f}&#8202;&#181;m/N for the 20&#8202;% gyroid tip solved "
             f"the same way. The normal-force noise of one 100&#8202;Hz sample at a chip 1&#8202;mm behind the back face is {nz(o):.3f}&#8202;N "
             f"against {nz(g):.3f}&#8202;N (Table&#160;[[tab:fem]]).</p>"
-            f"<p>Three skins, none of which eFlesh prints, close the surface for contact and show where the compliance comes from. A "
-            f"0.9&#8202;mm skin on the palmar face only gives {d(t):.0f}&#8202;&#181;m and {nz(t):.3f}&#8202;N. Walls that rise from the base "
-            f"and stop 1.5&#8202;mm below that skin close the sides too and give {d(w):.0f}&#8202;&#181;m and {nz(w):.3f}&#8202;N. The same skin "
-            f"on every face makes the walls carry the contact to the base: {d(a):.0f}&#8202;&#181;m and {nz(a):.3f}&#8202;N, no better than the "
-            f"gyroid tip. Walls cost little as long as they stop short of the palmar skin, and the palmar skin costs "
-            f"{100 * (1 - tr(t) / tr(o)):.0f}&#8202;% of the open lattice&#8217;s magnet travel.</p>"
+            f"<p>Three skins, none of which eFlesh prints, close the surface for contact, and each costs magnet travel. A 0.9&#8202;mm skin on "
+            f"the palmar face only gives {d(t):.0f}&#8202;&#181;m and {nz(t):.3f}&#8202;N and keeps {100 * tr(t) / tr(o):.0f}&#8202;% of the open "
+            f"lattice&#8217;s travel. Walls that rise from the base and stop 1.5&#8202;mm below that skin still stiffen the tip through the "
+            f"struts joined to them: {d(w):.0f}&#8202;&#181;m, {nz(w):.3f}&#8202;N and {100 * tr(w) / tr(o):.0f}&#8202;% of the travel. The same "
+            f"skin on every face carries the contact to the base: {d(a):.0f}&#8202;&#181;m, {nz(a):.3f}&#8202;N and "
+            f"{100 * tr(a) / tr(o):.0f}&#8202;% of the travel, no better than the gyroid tip.</p>"
             f"<p>The as-printed gyroid is softer than the earlier models of the same tip, {d(g):.0f} against {ref['per_force']['1']['delta_um']:.0f}"
             f"&#8202;&#181;m at 1&#8202;N and {tr(g):.0f} against {-ref['per_force']['1']['magnet_t_um'][0]:.0f}&#8202;&#181;m/N, because each layer "
             f"of beads rests on part of the one below and the magnet is TPU here. The open eFlesh tip lies below the pads&#8217; failure of the "
@@ -402,13 +402,14 @@ def build_section(X: Data):
         if not r:
             continue
         s = r["slice"]
-        rows.append([lab, f"{r['part_faces'] / 1e3:.0f}k", f"{r['project_MB']:.1f}", pc(r["solid_fraction"]),
+        rows.append([lab, f"{r['project_MB']:.1f}", pc(r["solid_fraction"]),
                      f"{r['pause_print_z']:.1f} / {s['pause_found_before_layer_z']:.1f}", f"{s['islands_median']:.0f}", pc(s["supported_area"]),
                      pc(s["islands_under_half_supported"], 1), fmt_time(s["time"])])
-    tab = table(["SR2 tip, lattice \\(E\\) 0.0035, 8" + HS + "mm cells", "Triangles", "Project<br>(MB)", "Solid", "Pause planned<br>/ in G-code (mm)",
+    tab = table(["SR2 tip, lattice \\(E\\) 0.0035, 8" + HS + "mm cells", "Project<br>(MB)", "Solid", "Pause planned<br>/ in G-code (mm)",
                  "Islands<br>per layer", "Supported<br>area", "Islands under<br>half supported", "Print<br>time"], rows,
                 "The SR2 tips built with one 4.76 &#215; 1.59&#8202;mm magnet 5&#8202;mm under the contact point. Pause: the print height of "
-                "the layer PrusaSlicer holds back for the magnet. The v17 project was 22.5&#8202;MB.", key="builds")
+                "the layer PrusaSlicer holds back for the magnet. The parts have 0.27&#8211;0.36&#8202;M triangles; the v17 project was "
+                "22.5&#8202;MB.", key="builds")
     cmd = ("<pre>~/miniconda3/envs/femtip/bin/python \\\n  scripts/eflesh_build.py --shape sr2tip \\\n  --cell 8 --E 0.0035 "
            "--magnet 4.76,1.59,c,c,5 \\\n  --base 1.6 --name sr2tip_c8_E0035_open</pre>")
     files = ("<p>Projects: <code>docs/experiments/20261013-eflesh_printability/build/20261013-sr2tip_c8_E0035_open.3mf</code>, "
@@ -498,6 +499,9 @@ def open_items():
         ("Continuous-path soft structures.", "Slice the SR2 tip with IceSL&#8217;s phasor infill and with OrcaSlicer&#8217;s TPMS-D at "
          "10&#8202;% and audit them with <code>scripts/eflesh_printability.py</code>; a structure qualifies with at most 5 islands per layer "
          "and a pad modulus under 2&#8202;MPa in <code>scripts/eflesh_tip_fem.py</code>."),
+        ("A wall clear of the lattice.", "Build the SR2 tip with walls joined to the base only, 0.5&#8202;mm clear of every strut "
+         "(<code>scripts/eflesh_build.py</code> with the walls subtracted from the lattice&#8217;s offset), and solve it with "
+         "<code>scripts/eflesh_tip_fem.py</code>; closed sides are free if it keeps the palmar-skin tip&#8217;s magnet travel within 10&#8202;%."),
         ("Shear in the as-printed model.", "Add a tangential load to <code>scripts/eflesh_tip_fem.py</code> and report the noise across and "
          "along the finger, which the open sides of the lattice should lower most."),
         ("eFlesh&#8217;s cut-cell tool.", "Rebuild <code>cut_cells_cli</code> against one OpenVDB and oneTBB; it works if it returns the SR2 tip "
