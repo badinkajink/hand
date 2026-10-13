@@ -488,8 +488,15 @@ class Mirror(H.Mirror):
 
 def turn_rollout(plant, mirror, meta, seed, prm, frame_cb=None) -> dict:
     """hom_turn3.rollout with the cell's grip in place of a deploy plan's, and the load test of this study.
-    `frame_cb(plant, t, info)` is called every control tick (and every 10 ms of the grip) when given."""
+    `frame_cb(plant, t, info)` is called every control tick (and every 10 ms of the grip) when given.
+    prm['post_off'] > 0 removes the support post's collisions when the squeeze ends (2026-10-13: with the post in
+    place, the 40 mm cylinder touched it again at 15 deg of turn and the governor stopped the turn at 17 deg)."""
     grip = np.array([meta["grip"][f][k] for f in FINGERS for k in range(3)])
+    post = plant.m.geom("post").id
+    if not hasattr(plant, "post0"):
+        plant.post0 = (int(plant.m.geom_contype[post]), int(plant.m.geom_conaffinity[post]))
+    plant.m.geom_contype[post], plant.m.geom_conaffinity[post] = plant.post0
+    post_off = prm.get("post_off", 0.0) > 0
     plant.reset(seed)
     plant.set_targets(grip)
     if frame_cb is None:
@@ -524,6 +531,8 @@ def turn_rollout(plant, mirror, meta, seed, prm, frame_cb=None) -> dict:
             th2_max = max(th2_max, th_now)
             if nf == 3:
                 th3_max = max(th3_max, th_now)
+        if post_off and t >= t_sq_end - 1e-9 and plant.m.geom_contype[post]:
+            plant.m.geom_contype[post] = plant.m.geom_conaffinity[post] = 0
         if t < t_sq_end:
             th_ref, dth = 0.0, 0.0
         elif frozen is not None:
