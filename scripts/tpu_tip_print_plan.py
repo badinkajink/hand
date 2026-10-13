@@ -32,6 +32,7 @@ GAPS = (1.0, 4.0)                    # back face to the chip's sensing point, mm
 NOISE_UT = dict(xy=2.3, z=3.5)       # MLX90393 RMS noise per axis at ~3 ms per axis (100 Hz for XYZ), GAIN_SEL 7
 RATE_HZ = 100.0
 B_RANGE_MT = 4.8                     # full scale at GAIN_SEL 7 (datasheet: at least +-4.8 mT at the highest gain)
+PLAN_MAG, PLAN_DEPTH = "d4.76x1.59", 5.0   # chosen 2026-10-12 from the depth runs: least change of E* and least force noise
 RECIPE_LBL = {"w95_20": "95A, gyroid 20&#8202;%", "w95_10": "95A, gyroid 10&#8202;%", "w85_50": "85A, gyroid 50&#8202;%",
               "w85_30": "85A, gyroid 30&#8202;%"}
 RECIPE_TXT = {"w95_20": "95A, gyroid 20 %", "w95_10": "95A, gyroid 10 %", "w85_50": "85A, gyroid 50 %", "w85_30": "85A, gyroid 30 %"}
@@ -79,10 +80,10 @@ def plan_rows(R=None):
     """The plan: one magnet tip per print at the depth chosen below, and the no-magnet control of the reference."""
     R = R if R is not None else rows()
     plan = []
-    for rec, mag, dep, role in (("w95_20", "d4.76x1.59", 3.0, "Reference, easy to print"),
-                                ("w85_50", "d4.76x1.59", 3.0, "Closest to the pads' twist arm"),
-                                ("w85_30", "d4.76x1.59", 3.0, "Softer, larger magnet signal"),
-                                ("w95_10", "d4.76x1.59", 3.0, "Softer in 95A"),
+    for rec, mag, dep, role in (("w95_20", PLAN_MAG, PLAN_DEPTH, "Reference, easy to print"),
+                                ("w85_50", PLAN_MAG, PLAN_DEPTH, "Closest to the pads' twist arm"),
+                                ("w85_30", PLAN_MAG, PLAN_DEPTH, "Softer, larger magnet signal"),
+                                ("w95_10", PLAN_MAG, PLAN_DEPTH, "Softer in 95A"),
                                 ("w95_20", "none", None, "Control without magnet")):
         r = R.get((rec, mag, dep))
         plan.append(dict(recipe=rec, magnet=mag, depth=dep, role=role, row=r))
@@ -133,7 +134,7 @@ def write_prints(plan=None):
 
 
 def write_readme(plan):
-    sh = TD.print_sheet("d4.76x1.59", 3.0)
+    sh = TD.print_sheet(PLAN_MAG, PLAN_DEPTH)
     lines = ["# SR2 fingertips to print (2026-10-12)", "",
              "Written by `scripts/tpu_tip_print_plan.py stl`; the page that explains them is",
              "`docs/experiments/20261009-tpu_tip_fem/20261009-printed_tpu_fingertip_finite_elements.html`.", "",
@@ -151,7 +152,7 @@ def write_readme(plan):
               f"palmar face, its top {sh['magnet_top_depth_mm']:g} mm under the contact point. Pocket {sh['pocket_diameter_mm']:.2f} mm "
               f"across and {sh['pocket_height_mm']:.2f} mm deep. Pause before the layer at {sh['pause_before_layer_at_mm']:g} mm "
               f"(layer {sh['pause_layer_number']} at 0.2 mm layers), press the magnet in, fix it with a drop of cyanoacrylate, resume.",
-              "", "Other pocket depths (1.5 and 5 mm) and a 3.18 x 1.59 mm magnet are in the other STLs; their pause heights come from",
+              "", "Other pocket depths (1.5 and 3 mm) and a 3.18 x 1.59 mm magnet are in the other STLs; their pause heights come from",
               "`scripts/tpu_tip_design.py sheet --magnet <name> --depth <mm>`.", "",
               "After printing: `scripts/tpu_tip_calibrate.py fit` turns an indentation and a pull test into E_s, E* and the friction",
               "coefficient, and prints the command that writes the pad scene at those values."]
@@ -192,7 +193,7 @@ def chip_positions():
     return np.linspace(-6.0, 6.0, 49)
 
 
-def svg_section(depth=3.0, magnet="d4.76x1.59", gap=1.0):
+def svg_section(depth=PLAN_DEPTH, magnet=PLAN_MAG, gap=1.0):
     """Section of the whole tip at y = 0 in the print's orientation (palmar face up), with the magnet, its pocket's
     walls and skins, the gyroid core, the screwdriver and the magnetometer."""
     P = _P()
@@ -305,7 +306,7 @@ def svg_results(R):
     out = P._svg_open(W, H, "Magnet displacement under 1 N against the magnet's depth for four prints, and the normal-force noise "
                             "of the magnetometer against its distance behind the back face")
     # (a) displacement under 1 N normal load against depth
-    fx, fy = P._panel(out, 80, 54, 300, 250, (1.0, 5.5), (0, 40), [1.5, 3, 5], [0, 10, 20, 30, 40],
+    fx, fy = P._panel(out, 80, 54, 300, 250, (1.0, 5.5), (0, 50), [1.5, 3, 5], [0, 10, 20, 30, 40, 50],
                       "Magnet depth below the face (mm)", "Magnet travel under 1 N (&#181;m)")
     out.append('<text x="20" y="22" style="fill:var(--ink)">(a) Normal load at the contact</text>')
     for rec, col in PRINT_COL.items():
@@ -320,13 +321,14 @@ def svg_results(R):
     # (b) force noise against the chip's distance behind the back face, 4.76 mm magnet at 3 mm
     gx, gy = P._panel(out, 520, 54, 300, 250, (-6, 6), (0.03, 3), [-6, -3, 0, 3, 6], [0.03, 0.1, 0.3, 1, 3],
                       "Chip behind the back face (mm)", "Normal-force noise, 1&#963; (N)", logy=True)
-    out.append('<text x="460" y="22" style="fill:var(--ink)">(b) Magnetometer at 100 Hz, magnet 3 mm deep</text>')
+    out.append(f'<text x="460" y="22" style="fill:var(--ink)">(b) Magnetometer at 100 Hz, magnet {PLAN_DEPTH:g} mm deep</text>')
     sat = None
     for rec, col in PRINT_COL.items():
-        r = R.get((rec, "d4.76x1.59", 3.0))
+        r = R.get((rec, PLAN_MAG, PLAN_DEPTH))
         if not r:
             continue
         cur = chip_curve(r)
+        cur = [c for c in cur if 0.03 <= c[1] <= 3.0]
         ok = [(g, sf) for g, sf, _, b in cur if b <= B_RANGE_MT]
         bad = [(g, sf) for g, sf, _, b in cur if b > B_RANGE_MT]
         P._path(out, gx, gy, ok, col, width=2.2)
@@ -336,7 +338,7 @@ def svg_results(R):
     if sat is not None:
         out.append(f'<line x1="{gx(sat):.1f}" x2="{gx(sat):.1f}" y1="{gy(3):.1f}" y2="{gy(0.03):.1f}" '
                    f'style="stroke:var(--ink3);stroke-dasharray:3 4"/>'
-                   f'<text x="{gx(sat) + 6:.1f}" y="{gy(0.042):.1f}" style="fill:var(--ink3)">Over 4.8 mT to the left</text>')
+                   f'<text x="{gx(sat) - 6:.1f}" y="{gy(1.6):.1f}" text-anchor="end" style="fill:var(--ink3)">Over 4.8 mT</text>')
     out.append("</svg>")
     legend = [(RECIPE_LBL[k], c, False, "circle") for k, c in PRINT_COL.items()] + \
              [("3.18 mm magnet", "var(--ink2)", False, None)]
@@ -367,11 +369,12 @@ def plan_section(H, X):
         f = field(r, GAPS[0]) if mag != "none" else None
         body.append([tip, H.f1(r["E_best_MPa"]), H.f1(r["per_force"]["1"]["delta_um"]), f"{H.f2(a)} / {H.f2(pa)}",
                      H.f2(f["sigF_normal_N"]) if f else "&#8211;", files])
-    sh = TD.print_sheet("d4.76x1.59", 3.0)
+    sh = TD.print_sheet(PLAN_MAG, PLAN_DEPTH)
     return H.table(["Tip", "\\(E^*\\)<br>(MPa)", "Approach<br>at 1&#8202;N (&#181;m)", "Twist arm at 3&#8202;N,<br>tip / pads (mm)",
                     "Force<br>noise (N)", "Files"], body,
                    caption="Tips to print. Whole blocks printed palmar face up with two 0.45&#8202;mm walls, four 0.2&#8202;mm top and bottom "
-                           "layers and gyroid infill; an N52 magnet 4.76 &#215; 1.59&#8202;mm, north toward the face, its top 3&#8202;mm under the "
+                           "layers and gyroid infill; an N52 magnet 4.76 &#215; 1.59&#8202;mm, north toward the face, its top "
+                           f"{PLAN_DEPTH:g}&#8202;mm under the "
                            f"contact point, pressed in at a pause before the layer at {sh['pause_before_layer_at_mm']:g}&#8202;mm "
                            "(<code>magnet_runs.jsonl</code>; files in <code>print/</code>).",
                    note="\\(E^*\\): the pads&#8217; modulus that best reproduces the tip&#8217;s approach under the screwdriver at 0.5, 1 and "
@@ -382,23 +385,23 @@ def plan_section(H, X):
 
 def plan_text(H, X):
     R = rows()
-    g0, g3 = R.get(("w95_20", "none", None)), R.get(("w95_20", "d4.76x1.59", 3.0))
-    s3 = R.get(("w85_30", "d4.76x1.59", 3.0))
-    if not (g0 and g3):
+    g0, gp = R.get(("w95_20", "none", None)), R.get(("w95_20", PLAN_MAG, PLAN_DEPTH))
+    sp = R.get(("w85_30", PLAN_MAG, PLAN_DEPTH))
+    if not (g0 and gp):
         return "<p>Runs in progress.</p>"
-    f3 = field(g3, GAPS[0])
+    fp = field(gp, GAPS[0])
     txt = ("<p>Five tips cover the choice (Table&#160;[[tab:plan]]): 95A at 20&#8202;% gyroid, the reference, which prints most "
            "easily; 85A at 50&#8202;%, as stiff, whose twist arm the pads reproduce best; 85A at 30&#8202;% and 95A at 10&#8202;%, softer, for a "
            "larger magnet signal; and the reference without a magnet, which separates the magnet&#8217;s effect on the contact. "
-           f"Without its mount slot the whole 95A tip at 20&#8202;% infill has a pad "
-           f"modulus of {H.f1(g0['E_best_MPa'])}&#8202;MPa, the insert&#8217;s 13.0 within 3&#8202;%. A 4.76 &#215; 1.59&#8202;mm magnet 3&#8202;mm under "
-           f"the face raises it to {H.f1(g3['E_best_MPa'])}&#8202;MPa, so a scene of a magnet tip takes the magnet tip&#8217;s modulus. The "
-           f"magnet moves {H.f1(-g3['per_force']['1']['magnet_t_um'][0])}&#8202;&#181;m under 1&#8202;N, which an MLX90393 1&#8202;mm behind the back "
-           f"face reads as {H.f1(f3['S_normal_norm'])}&#8202;&#181;T/N, a force noise of {H.f2(f3['sigF_normal_N'])}&#8202;N per 100&#8202;Hz "
-           "sample.")
-    if s3:
-        fs = field(s3, GAPS[0])
-        txt += (f" The softer 85A print at 30&#8202;% halves the modulus to {H.f1(s3['E_best_MPa'])}&#8202;MPa and lowers the noise to "
+           f"Without its mount slot the whole 95A tip at 20&#8202;% infill has a pad modulus of {H.f1(g0['E_best_MPa'])}&#8202;MPa, the "
+           f"insert&#8217;s 13.0 within 3&#8202;%. The magnet&#8217;s top lies {PLAN_DEPTH:g}&#8202;mm under the face, the depth that changes the "
+           f"contact least and gives the least force noise of the three tried: it raises the reference&#8217;s modulus to "
+           f"{H.f1(gp['E_best_MPa'])}&#8202;MPa, so a scene of a magnet tip takes the magnet tip&#8217;s modulus, and an MLX90393 1&#8202;mm "
+           f"behind the back face reads the magnet with {H.f1(fp['S_normal_norm'])}&#8202;&#181;T/N, a force noise of "
+           f"{H.f2(fp['sigF_normal_N'])}&#8202;N per 100&#8202;Hz sample.")
+    if sp:
+        fs = field(sp, GAPS[0])
+        txt += (f" The softer 85A print at 30&#8202;% has a modulus of {H.f1(sp['E_best_MPa'])}&#8202;MPa and a noise of "
                 f"{H.f2(fs['sigF_normal_N'])}&#8202;N.")
     return txt + "</p>"
 
@@ -427,51 +430,60 @@ def magnet_table(H, X, R):
 
 def magnet_section(H, X):
     R = rows()
-    have = [k for k in R if k[1] != "none"]
-    g3 = R.get(("w95_20", "d4.76x1.59", 3.0))
+    gp = R.get(("w95_20", PLAN_MAG, PLAN_DEPTH))
+    g0 = R.get(("w95_20", "none", None))
     out = [H.figure(svg_section(), "Section through the whole tip at its centre plane, as printed: back face on the bed, palmar "
                                    "face up. Two perimeter walls and four solid layers enclose the gyroid core and the magnet&#8217;s pocket; "
                                    "the print pauses at the dashed line for the magnet, north toward the face; the magnetometer sits "
                                    "1&#8202;mm behind the back face under the contact point. True scale; the gyroid&#8217;s beads are drawn at "
                                    "the 20&#8202;% period of 5.2&#8202;mm.", key="magsec")]
-    if not g3:
+    if not (gp and g0):
         return "".join(out) + "<p>Runs in progress.</p>"
-    f3, f34 = field(g3, GAPS[0]), field(g3, GAPS[1])
-    sc = [R[(k, "d4.76x1.59", 3.0)] for k in PRINT_COL if (k, "d4.76x1.59", 3.0) in R]
+    sc = [R[(k, PLAN_MAG, PLAN_DEPTH)] for k in PRINT_COL if (k, PLAN_MAG, PLAN_DEPTH) in R]
     trav = [-r["per_force"]["1"]["magnet_t_um"][0] for r in sc]
-    sig = [field(r, GAPS[0])["sigF_normal_N"] for r in sc]
+    fp, fp4 = field(gp, GAPS[0]), field(gp, GAPS[1])
+    dep = []
+    for d in DEPTHS:
+        r = R.get(("w95_20", PLAN_MAG, d))
+        if r:
+            dep.append((d, (r["E_best_MPa"] / g0["E_best_MPa"] - 1) * 100, field(r, GAPS[0])["sigF_normal_N"]))
+    rng = lambda v, f: f(min(v)) if f(min(v)) == f(max(v)) else f"{f(min(v))}&#8211;{f(max(v))}"  # noqa: E731
+    deps = (f"with the magnet at {', '.join(f'{d:g}' for d, _, _ in dep[:-1])} and {dep[-1][0]:g}&#8202;mm the pad modulus rises by "
+            f"{', '.join(H.f0(e) for _, e, _ in dep[:-1])} and {H.f0(dep[-1][1])}&#8202;% and the force noise is "
+            f"{', '.join(H.f2(n) for _, _, n in dep[:-1])} and {H.f2(dep[-1][2])}&#8202;N")
     txt = ("<p>eFlesh embeds N52 disc magnets in a printed microstructure through lip-sealed pockets, closed after a print pause, "
            "and reads them with the MLX90393 boards of ReSkin and AnySkin; its fingertip magnets are 3/16 &#215; 1/16&#8202;in "
            "(4.76 &#215; 1.59&#8202;mm), and its cut cells are 0.001&#8211;0.002 times the filament&#8217;s modulus. The gyroid core of the tips "
-           "here is 0.03&#8211;0.23 times it (Table&#160;[[tab:cells]]), so the same magnet moves tens of micrometres per newton, not hundreds. "
-           f"Under 1&#8202;N the magnet 3&#8202;mm under the face moves {H.f1(min(trav))}&#8211;{H.f1(max(trav))}&#8202;&#181;m toward the back "
-           f"face across the four prints, and an MLX90393 1&#8202;mm behind the tip reads the 95A 20&#8202;% tip with a noise of "
-           f"{H.f2(f3['sigF_normal_N'])}&#8202;N per 100&#8202;Hz sample, {H.f2(f34['sigF_normal_N'])}&#8202;N with the chip behind a 3&#8202;mm "
-           f"plate (Figure&#160;[[fig:magres]], Table&#160;[[tab:magnet]]); averaging ten samples divides the noise by 3.2. "
+           "here is 0.03&#8211;0.23 times it (Table&#160;[[tab:cells]]), so the same magnet moves tens of micrometres per newton, not "
+           f"hundreds. With its top {PLAN_DEPTH:g}&#8202;mm under the face it moves {rng(trav, H.f1)}&#8202;&#181;m toward "
+           "the back face under 1&#8202;N across the four prints, and an MLX90393 1&#8202;mm behind the 95A 20&#8202;% tip reads it with a noise "
+           f"of {H.f2(fp['sigF_normal_N'])}&#8202;N per 100&#8202;Hz sample, {H.f2(fp4['sigF_normal_N'])}&#8202;N with the chip behind a "
+           "3&#8202;mm plate (Figure&#160;[[fig:magres]], Table&#160;[[tab:magnet]]); averaging ten samples divides the noise by 3.2. "
            "Shear along the finger moves the magnet a third as far as shear across it, because the mount face holds the block at "
            "one end.</p>"
-           "<p>The magnet stiffens the face above it. 3&#8202;mm under the face it raises \\(E^*\\) by "
-           f"{H.f0((g3['E_best_MPa'] / R[('w95_20', 'none', None)]['E_best_MPa'] - 1) * 100) if ('w95_20', 'none', None) in R else '&#8211;'}"
-           "&#8202;% on the 95A 20&#8202;% tip, so a scene of a magnet tip takes that tip&#8217;s modulus from Table&#160;"
-           "[[tab:magnet]]. A deeper magnet disturbs the contact less and sits closer to the chip; a chip set into the back of "
-           "the tip raises the signal until the static field passes the 4.8&#8202;mT that the MLX90393 reads at its highest gain "
+           "<p>The magnet stiffens the face above it, and a deeper magnet sits closer to the chip, so depth helps both: on the "
+           f"95A 20&#8202;% tip, {deps}. A chip set into the back of the tip raises "
+           "the signal further until the static field passes the 4.8&#8202;mT that the MLX90393 reads at its highest gain "
            "(Figure&#160;[[fig:magres]]b).</p>")
     out.append(txt)
     svg, leg = svg_results(R)
     out.append(H.figure(svg, "(a) Travel of a 4.76 &#215; 1.59&#8202;mm magnet toward the back face under 1&#8202;N on the face, against the "
                              "depth of its top below the face (filled), and of a 3.18 &#215; 1.59&#8202;mm magnet at 3&#8202;mm (hollow). "
                              "(b) Normal-force noise of one 100&#8202;Hz MLX90393 sample against the chip&#8217;s distance behind the back "
-                             "face (negative: set into the tip), magnet 3&#8202;mm deep; dashed where the static field exceeds 4.8&#8202;mT.",
-                        legend=leg, key="magres"))
+                             f"face (negative: set into the tip), magnet {PLAN_DEPTH:g}&#8202;mm deep; dashed where the static field "
+                             "exceeds 4.8&#8202;mT.", legend=leg, key="magres"))
     out.append(magnet_table(H, X, R))
     return "".join(out)
 
 
 def gap_section(H, X):
     R = rows()
-    g0, g3 = R.get(("w95_20", "none", None)), R.get(("w95_20", "d4.76x1.59", 3.0))
+    g0, g3 = R.get(("w95_20", "none", None)), R.get(("w95_20", PLAN_MAG, PLAN_DEPTH))
     T = X.T
     errs = [T[n]["E_best_max_err_pct"] for n in T]
+    ae = [arm_err(H, X, p["row"])[0] for p in plan_rows(R) if p["row"]]
+    ae = [-v for v in ae if v is not None]
+    arm_txt = (f"{H.f0(min(ae))}&#8211;{H.f0(max(ae))}" if ae else "4&#8211;19")
     face_z = g3["shear_z_face_um_per_N"] if g3 else None
     face_y = g3["shear_y_face_um_per_N"] if g3 else None
     dE = (g3["E_best_MPa"] / g0["E_best_MPa"] - 1) * 100 if g0 and g3 else None
@@ -484,9 +496,10 @@ def gap_section(H, X):
         ["One modulus for a line contact", "Approach over 0.5&#8211;3&#8202;N",
          f"{H.f0(min(errs))}&#8211;{H.f0(max(errs))}&#8202;%: the tip&#8217;s force grows as \\(\\delta^{{1.07}}\\), the pads&#8217; as "
          "\\(\\delta^{1.5}\\)", "None within the pads"],
-        ["Load on the walls", "Twist arm at 3&#8202;N", "Pads 4&#8211;19&#8202;% shorter than the tip (insert prints, Table&#160;[[tab:recipes]])",
+        ["Load on the walls", "Twist arm at 3&#8202;N", f"Pads {arm_txt}&#8202;% shorter than the tip on the plan&#8217;s tips "
+         "(inserts: Table&#160;[[tab:recipes]])",
          "Spin onset at 1 and 3&#8202;N"],
-        ["Magnet", "Pad modulus over the magnet", f"+{H.f0(dE)}&#8202;% at 3&#8202;mm on 95A 20&#8202;%" if dE is not None else "&#8211;",
+        ["Magnet", "Pad modulus over the magnet", f"+{H.f0(dE)}&#8202;% at {PLAN_DEPTH:g}&#8202;mm on 95A 20&#8202;%" if dE is not None else "&#8211;",
          "The magnet tip&#8217;s own \\(E^*\\)"],
         ["Tangential compliance", "Tool travel before slip",
          (f"The tip deflects {H.f0(face_z)}&#8202;&#181;m/N along the finger and {H.f0(face_y)}&#8202;&#181;m/N across it at the contact; "
@@ -502,10 +515,11 @@ def gap_section(H, X):
     tab = H.table(["Source", "What it changes", "Size", "Measurement that closes it"], body,
                   caption="Differences between a printed tip and its simulation, largest first.", text_cols=(0, 1, 2, 3), key="gap")
     txt = ("<p>Before any measurement, the stiffness of a printed tip is known within the factor of 2.6 that separates the 95A "
-           "datasheets, and its friction coefficient not at all; the simulation assumes 30&#8202;MPa and 1.0. One indentation and one pull "
+           "datasheets, and its friction coefficient not at all; the model takes \\(E_s\\) = 30&#8202;MPa for 95A and the scenes "
+           "\\(\\mu\\) = 1.0. One indentation and one pull "
            "test on the first print fix both (next section). The model error that remains is the single modulus&#8217;s "
            f"{H.f0(min(errs))}&#8211;{H.f0(max(errs))}&#8202;% in approach over 0.5&#8211;3&#8202;N, the twist arm, which the pads give "
-           "4&#8211;19&#8202;% short because the walls carry the face&#8217;s edges, and the tip&#8217;s own tangential compliance, which no "
+           f"{arm_txt}&#8202;% short because the walls carry the face&#8217;s edges, and the tip&#8217;s own tangential compliance, which no "
            "pad model in the trainer represents (Table&#160;[[tab:gap]]).</p>")
     return txt + tab
 
@@ -528,7 +542,7 @@ def calib_section(H, X):
             "\\(E_s\\) (Table&#160;[[tab:law]] for the inserts, Table&#160;[[tab:plan]] for the whole tips). Nothing else is calibrated: \\(E_s\\), the "
             "friction coefficient and the rate dependence come from no measurement of a print. Four bench measurements on each "
             "printed tip close that:</p>" + lst +
-            "<p><code>scripts/tpu_tip_calibrate.py fit --tip w95_20 --magnet d4.76x1.59@3 --indent 0.5:&#8230; 1:&#8230; 3:&#8230; "
+            "<p><code>scripts/tpu_tip_calibrate.py fit --tip w95_20 --magnet d4.76x1.59@5 --indent 0.5:&#8230; 1:&#8230; 3:&#8230; "
             "--pull N:F</code> returns \\(E_s\\), \\(E^*\\) and \\(\\mu\\) and the command that writes the pad scene at those values "
             "(<code>scripts/make_pad_morphology_run.py --E --mu</code>); <code>--save</code> keeps the result beside the print "
             "files.</p>")

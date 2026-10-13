@@ -107,16 +107,23 @@ class Data:
 
 # ------------------------------------------------------------------------------------------ html helpers
 
-def figure(svg, caption, legend=None):
+REFS = {}
+
+
+def figure(svg, caption, legend=None, key=None):
     FIG[0] += 1
+    if key:
+        REFS[f"fig:{key}"] = FIG[0]
     lg = P._legend_html(legend) if legend else ""
     return f'<figure class="diagram">{svg}{lg}<figcaption>Figure&#160;{FIG[0]}. {caption}</figcaption></figure>'
 
 
-def table(head, body, caption=None, note=None, text_cols=(0,)):
+def table(head, body, caption=None, note=None, text_cols=(0,), key=None):
     out = []
     if caption:
         TAB[0] += 1
+        if key:
+            REFS[f"tab:{key}"] = TAB[0]
         out.append(f"<p class='tcap'><b>Table&#160;{TAB[0]}.</b> {caption}</p>")
     cls = lambda i: "" if i in text_cols else " class=num"  # noqa: E731
     out.append("<div class='tw'><table><thead><tr>" + "".join(f"<th{cls(i)}>{h}</th>" for i, h in enumerate(head))
@@ -176,9 +183,9 @@ GLOSSARY = [
      "33.6&#8202;MPa (Polymaker PolyFlex TPU95, ISO 37), 67&#8202;MPa (UltiMaker TPU 95A, ASTM D3039); Overture&#8217;s sheet gives only "
      "the stress at 100&#8202;% strain, 9.7&#8202;MPa. This page uses 30&#8202;MPa for 95A and 12&#8202;MPa for 85A (NinjaFlex, ASTM D638), "
      "and Poisson&#8217;s ratio 0.45, which no TPU sheet lists. In the linear models every stiffness scales with \\(E_s\\)."),
-    ("Infill fraction \\(\\rho\\)", "Requested gyroid density in the slicer; the printed cell&#8217;s solid fraction is 4&#8211;12&#8202;% higher (Table&#160;1)."),
+    ("Infill fraction \\(\\rho\\)", "Requested gyroid density in the slicer; the printed cell&#8217;s solid fraction is 4&#8211;12&#8202;% higher (Table&#160;[[tab:cells]])."),
     ("Gyroid period \\(L\\)", "\\(L = 2\\pi s / (2.44\\,\\rho)\\) with line spacing \\(s = 0.407\\)&#8202;mm (0.45&#8202;mm lines, 0.2&#8202;mm layers): "
-     "21, 10.4, 5.2, 3.4 and 2.0&#8202;mm at 5, 10, 20, 30 and 50&#8202;% (Table&#160;1)."),
+     "21, 10.4, 5.2, 3.4 and 2.0&#8202;mm at 5, 10, 20, 30 and 50&#8202;% (Table&#160;[[tab:cells]])."),
     ("\\(E_x\\), \\(E_z\\)", "Homogenized Young&#8217;s moduli of the printed infill in the layer plane and along the build direction, per unit \\(E_s\\)."),
     ("Layers across, along", "Layers across the load: the palmar face is printed as a top skin, the part lying on its back face. Layers along the "
      "load: the face is a perimeter wall, the part standing on its mount face."),
@@ -204,6 +211,15 @@ GLOSSARY = [
      "bead voxelized at 0.1&#8202;mm (1.7&#8211;2.2&#8202;M elements) and solved on the GPU."),
     ("Neo-Hookean", "Compressible Neo-Hookean solid with the same small-strain \\(E_s\\) and \\(\\nu\\): the large-deformation check of the "
      "5&#8202;% tip."),
+    ("Magnet depth", "Distance from the palmar face to the magnet&#8217;s top face, in mm; the magnet lies under the contact point "
+     "with its axis normal to the face."),
+    ("Magnet travel", "Displacement of the magnet&#8217;s centre toward the back face under 1&#8202;N on the face, in &#181;m; along and "
+     "across the finger, under 1&#8202;N of shear on a 1&#8202;N contact, in &#181;m/N."),
+    ("Signal, force noise", "Signal: change of the field at the magnetometer per newton of load, in &#181;T/N, from a point dipole of the "
+     "magnet&#8217;s moment. Force noise: the load whose signal equals one standard deviation of one 100&#8202;Hz MLX90393 sample "
+     "(2.3&#8202;&#181;T on the chip&#8217;s in-plane axes, 3.5&#8202;&#181;T normal to it), in N."),
+    ("Chip distance", "Distance of the MLX90393&#8217;s sensing point behind the tip&#8217;s back face, in mm; negative when the chip is "
+     "set into the tip."),
 ]
 
 
@@ -303,7 +319,7 @@ def cells_section(X: Data):
            f"has \\(E_x = {c20['Ex']:.3f}\\,E_s\\) in the layer plane and \\(E_z = {c20['Ez']:.3f}\\,E_s\\) along the build direction; the ideal "
            f"sheet gyroid of the same solid fraction is isotropic at \\({s20['Ex']:.3f}\\,E_s\\). Over 11&#8211;42&#8202;% solid the printed infill "
            f"follows \\(E_x/E_s = {fit[('slicer', 'Ex')][0]:.2f}\\,\\rho^{{{fit[('slicer', 'Ex')][1]:.2f}}}\\) and "
-           f"\\(E_z/E_s = {fit[('slicer', 'Ez')][0]:.2f}\\,\\rho^{{{fit[('slicer', 'Ez')][1]:.2f}}}\\) (Figure&#160;1), between Gibson and Ashby&#8217;s "
+           f"\\(E_z/E_s = {fit[('slicer', 'Ez')][0]:.2f}\\,\\rho^{{{fit[('slicer', 'Ez')][1]:.2f}}}\\) (Figure&#160;[[fig:cells]]), between Gibson and Ashby&#8217;s "
            f"bending-dominated \\(\\rho^2\\) and stretching-dominated \\(\\rho/3\\). At \\(E_s\\) = 30&#8202;MPa, 20&#8202;% infill is "
            f"{f1(30 * c20['Ex'])}&#8202;MPa in-plane and {f1(30 * c20['Ez'])}&#8202;MPa along the build direction.</p>")
     ef = {round(r["E_rel_target"], 4): r for r in X.cells if r["kind"] == "eflesh" and abs(r["nu_s"] - 0.3) < 1e-9}
@@ -320,13 +336,13 @@ def cells_section(X: Data):
                          f"{r['Gxz']:.4f}", f"{r['nu_xy']:.2f}", f"{s['Ex']:.4f}" if s else "&#8211;", f"{r['h_mm']:.2f}"])
     tab = table(["Infill (%)", "Solid (%)", "Period (mm)", "\\(E_x/E_s\\)", "\\(E_z/E_s\\)", "\\(G_{xz}/E_s\\)", "\\(\\nu_{xy}\\)",
                  "Ideal sheet \\(E/E_s\\)", "Voxel (mm)"], body,
-                "Homogenized moduli of the printed gyroid (<code>cells.jsonl</code>); the finest voxel size run for each density.")
+                "Homogenized moduli of the printed gyroid (<code>cells.jsonl</code>); the finest voxel size run for each density.", key="cells")
     fig = figure("".join(svg_cells(X)), "Moduli of printed gyroid infill against solid fraction: in the layer plane (blue), along the build "
                  "direction (orange), the ideal sheet gyroid (green), eFlesh cut cells (diamonds), and the Gibson&#8211;Ashby limits "
                  "\\(\\rho^2\\) and \\(\\rho/3\\) (dashed).",
                  legend=[("Printed, layer plane", COL["x"], False, "circle"), ("Printed, build direction", COL["z"], False, "circle"),
                          ("Ideal sheet", COL["sheet"], False, "circle"), ("eFlesh cut cell", COL["ref"], False, "diamond"),
-                         ("Gibson&#8211;Ashby", COL["ref"], True, None)])
+                         ("Gibson&#8211;Ashby", COL["ref"], True, None)], key="cells")
     return txt + fig + tab
 
 
@@ -360,6 +376,7 @@ def tip_section(X: Data):
                         f'poster="{data_uri(p.replace(".mp4", ".png"), "image/png")}" src="{data_uri(p, "video/mp4")}"></video>'
                         f'<p class="filmlab">{GPU_LBL[t]}</p></div>' for t, p in films)
         FIG[0] += 1
+        REFS["fig:films"] = FIG[0]
         g, f5, ef = st["g20x_s0"], st["g05x_s0"], st["eflesh_c8"]
         parts.append(f'<figure class="films">{cells}<figcaption>Figure&#160;{FIG[0]}. The resolved tips under the cylinder over 13 approaches from '
                      f'first touch: the section through the contact line, displacement magnified 15, 5 and 2 times, and the pressure on the palmar '
@@ -411,7 +428,8 @@ def law_section(X: Data):
                      f1(r["E_fit_cyl"][0.5]), f1(r["E_fit_cyl"][3.0]), f1(r["E_best"]), f0(r["E_best_max_err_pct"]), f2(r.get("b_exponent"))])
     tab = table(["Print", "\\(E_s\\) (MPa)", "Approach at 1&#8202;N (&#181;m)", "Force exponent", "Stiffness at 1&#8202;N (N/mm)",
                  "Law modulus at 0.5&#8202;N (MPa)", "Law modulus at 3&#8202;N (MPa)", "\\(E^*\\) (MPa)", "Approach error (%)", "Width exponent"], body,
-                "Approach, stiffness and the pressure-law modulus per print under the cylinder (homogenized core, <code>tip_runs_surf.jsonl</code>).")
+                "Approach, stiffness and the pressure-law modulus per print under the cylinder (homogenized core, <code>tip_runs_surf.jsonl</code>).",
+                key="law")
     return txt + fig + tab
 
 
@@ -423,8 +441,8 @@ def arm_section(X: Data):
     g, s = T["g20_across"], T["s85_50_across"]
     c20, c50 = X.cell("slicer", 0.2), X.cell("slicer", 0.5)
     con = (f" The contrast between the solid walls and the core in the layer plane, \\(E_s/E_x\\), is {1 / c20['Ex']:.0f} at 20&#8202;% infill and "
-           f"{1 / c50['Ex']:.0f} at 50&#8202;% (Table&#160;1).") if c20 and c50 else ""
-    txt = (f"<p>The walls carry the edges of the face like rails (Figure&#160;3): under the cylinder {f0(100 * es['g20_across']['fe'])}&#8202;% of the "
+           f"{1 / c50['Ex']:.0f} at 50&#8202;% (Table&#160;[[tab:cells]]).") if c20 and c50 else ""
+    txt = (f"<p>The walls carry the edges of the face like rails (Figure&#160;[[fig:films]]): under the cylinder {f0(100 * es['g20_across']['fe'])}&#8202;% of the "
            f"20&#8202;% tip&#8217;s force lies on the outer 0.9&#8202;mm of the flat face and on the fillets, against {f0(100 * es['g20_across']['law'])}&#8202;% "
            f"for the pressure law on the same nodes ({f0(100 * es['g10_across']['fe'])}&#8202;% at 10&#8202;% infill, {f0(100 * es['solid95']['fe'])}&#8202;% "
            f"for the solid print). Load at the ends of the contact line lengthens the twist arm: at 3&#8202;N it is {f2(g['arm'][3.0])}&#8202;mm on the "
@@ -475,7 +493,7 @@ def recipes_section(X: Data):
     tab = table(["Print", "Model", "Stiffness at 1&#8202;N (N/mm)", "\\(E^*\\) (MPa)", "Approach error (%)", "Arm, tip (mm)", "Arm, pads (mm)",
                  "Arm error (%)", "Edge load (%)", "Orientation spread (%)"], body,
                 "Prints ranked by how closely the pads at their best single modulus reproduce the twist arm at 3&#8202;N. A dash: the pads&#8217; "
-                "bed covers 2.5&#8211;77&#8202;MPa, and the eFlesh rows stop at 1&#8202;N.", text_cols=(0, 1))
+                "bed covers 2.5&#8211;77&#8202;MPa, and the eFlesh rows stop at 1&#8202;N.", text_cols=(0, 1), key="recipes")
     k = {n: T[n]["k_1N"] for n in T}
     ae = {n: X.arm_err(T[n]["E_best"], T[n]["arm"][3.0]) for n in T}
     sh20 = [R[t]["delta_um"][1.0] for t in ("g20x_s0", "g20x_s26", "g20x_s0_26", "g20x_s13") if t in R and R[t]["delta_um"].get(1.0)]
@@ -627,46 +645,64 @@ def limitations(X: Data):
             "with \\(E_s\\).</li>"
             "<li>The printed geometry (0.45&#8202;mm beads, 0.2&#8202;mm layers, two walls, four skin layers, fused beads) is modelled from the slicer&#8217;s "
             "settings without its toolpaths, and the print settings of the current tips are not recorded.</li>"
-            "<li>Contact is frictionless in the normal solves, and no printed tip has been measured.</li></ul>")
+            "<li>Contact is frictionless in the normal solves, and no printed tip has been measured.</li>"
+            "<li>The magnet is modelled as bonded to its pocket and as a point dipole of remanence 1.45&#8202;T; the dipole is within a "
+            "few percent at the 12&#8211;17&#8202;mm from magnet to chip. The noise is the datasheet&#8217;s; the chip&#8217;s alignment, the "
+            "earth&#8217;s field and the other fingers&#8217; magnets are left out.</li>"
+            "<li>The whole tips are held on their back and mount faces, as on the current mount; another attachment changes the "
+            "shear travel along the finger most.</li></ul>")
 
 
 def lede(X: Data):
-    T, R = X.T, X.R
-    need = ("g20_across", "g10_across", "s85_50_across")
-    if not all(n in T for n in need) or "g05x_s0" not in R or "g20x_s0" not in R:
+    import tpu_tip_print_plan as PP
+    T = X.T
+    M = PP.rows()
+    g0, g3 = M.get(("w95_20", "none", None)), M.get(("w95_20", PP.PLAN_MAG, PP.PLAN_DEPTH))
+    sc = [M[(k, PP.PLAN_MAG, PP.PLAN_DEPTH)] for k in PP.PRINT_COL if (k, PP.PLAN_MAG, PP.PLAN_DEPTH) in M]
+    if not (g0 and g3 and len(sc) == len(PP.PRINT_COL)) or "g20_across" not in T:
         return "Runs in progress."
-    g, s = T["g20_across"], T["s85_50_across"]
     er = [T[n]["E_best_max_err_pct"] for n in T]
-    over = (g["arm"][3.0] / X.pads_arm(g["E_best"]) - 1) * 100
-    over_s = (s["arm"][3.0] / X.pads_arm(s["E_best"]) - 1) * 100
-    return (f"A finite-element model of the printed SR2 fingertip (TPU 95A, two walls, gyroid infill), resolved bead by bead on the "
-            f"workstation GPU in 1&#8211;2&#8202;min per load, sets the pads&#8217; modulus at {f1(g['E_best'])}&#8202;MPa for 20&#8202;% infill, "
-            f"{f1(T['g10_across']['E_best'])}&#8202;MPa for 10&#8202;% and {f1(R['g05x_s0']['E_best'])}&#8202;MPa for 5&#8202;%. For every print one "
-            f"modulus misses the approach under the screwdriver by {f0(min(er))}&#8211;{f0(max(er))}&#8202;% over 0.5&#8211;3&#8202;N: the tip "
-            f"stiffens as \\(\\delta^{{{g['force_exponent']:.2f}}}\\), the law as \\(\\delta^{{1.5}}\\). The walls load the face edges, so at "
-            f"3&#8202;N the tip&#8217;s twist arm exceeds the pads&#8217; by {f0(over)}&#8202;% at 20&#8202;% infill; an 85A print at 50&#8202;% infill of "
-            f"the same stiffness reduces this to {f0(over_s)}&#8202;%.")
+    trav = [-r["per_force"]["1"]["magnet_t_um"][0] for r in sc]
+    sig = [PP.field(r, PP.GAPS[0])["sigF_normal_N"] for r in sc]
+    Es = sorted(r["E_best_MPa"] for r in sc)
+    ae = [-X.arm_err(r["E_best_MPa"], r["per_force"]["3"]["arm_mm"]) for r in sc + [g0]
+          if X.arm_err(r["E_best_MPa"], r["per_force"]["3"]["arm_mm"]) is not None]
+    return ("Five whole tips are ready to print (Table&#160;[[tab:plan]]): 95A at 20&#8202;% gyroid as the reference, 85A at 50&#8202;%, the "
+            "print whose twist arm the pads match best, the softer 85A at 30&#8202;% and 95A at 10&#8202;%, each with a 4.76 &#215; 1.59&#8202;mm "
+            f"N52 magnet {PP.PLAN_DEPTH:g}&#8202;mm under the contact point, and the reference without a magnet. Each maps to one modulus of the sphere "
+            f"pads, {f1(Es[0])}&#8211;{f1(Es[-1])}&#8202;MPa for the magnet tips; the magnet stiffens the face above it, from "
+            f"{f1(g0['E_best_MPa'])} to {f1(g3['E_best_MPa'])}&#8202;MPa on the reference. Before measurement a tip&#8217;s stiffness is "
+            "known within the factor of 2.6 between 95A datasheets and its friction not at all; an indentation and a pull test fix "
+            f"both and leave three model errors: {f0(min(er))}&#8211;{f0(max(er))}&#8202;% in approach over 0.5&#8211;3&#8202;N, a pad twist arm "
+            f"{f0(min(ae))}&#8211;{f0(max(ae))}&#8202;% shorter than the tip&#8217;s, and the tip&#8217;s tangential compliance, which no pad model "
+            "represents. Under "
+            f"1&#8202;N the magnet moves {f0(min(trav))}&#8211;{f0(max(trav))}&#8202;&#181;m, which an MLX90393 1&#8202;mm behind the tip reads "
+            f"with {f2(min(sig))}&#8211;{f2(max(sig))}&#8202;N of noise per 100&#8202;Hz sample.")
 
 
 def open_items(X: Data):
-    g, s = X.T.get("g20_across", {}), X.T.get("s85_50_across", {})
+    import tpu_tip_print_plan as PP
+    M = PP.rows()
+    g = M.get(("w95_20", PP.PLAN_MAG, PP.PLAN_DEPTH)) or {}
+    pf = g.get("per_force", {})
+    f = PP.field(g, PP.GAPS[0]) if g else {}
+    pa = X.pads_arm(g["E_best_MPa"]) if g else None
     items = [
-        ("Bench indentation under the screwdriver.", f"Press the screwdriver shaft on the palmar face of the current tip to 0.5, 1 and 3&#8202;N and "
-         f"record force against approach. At \\(E_s\\) = 30&#8202;MPa the model predicts {f1(g.get('delta_um', {}).get(0.5))}, "
-         f"{f1(g.get('delta_um', {}).get(1.0))} and {f1(g.get('delta_um', {}).get(3.0))}&#8202;&#181;m for 95A at 20&#8202;% with the layers across "
-         f"the load; the measured over the predicted approach gives \\(30/E_s\\). A force exponent near 1.5 instead of "
-         f"{g.get('force_exponent', float('nan')):.2f} would falsify the line-contact result."),
-        ("Spin onset against load.", f"Twist the screwdriver in a fixed pinch at 1 and 3&#8202;N. An arm near {f1(g.get('arm', {}).get(3.0))}&#8202;mm at "
-         f"3&#8202;N confirms the load on the walls; near {f1(X.pads_arm(g['E_best']) if g else None)}&#8202;mm, the pads."),
-        ("85A gyroid at 50&#8202;% with two walls.", f"Print it hot and repeat both measurements: the model predicts "
-         f"{f1(s.get('delta_um', {}).get(1.0))}&#8202;&#181;m at 1&#8202;N and an arm of {f2(s.get('arm', {}).get(3.0))}&#8202;mm at 3&#8202;N at "
-         f"\\(E_s\\) = 12&#8202;MPa."),
+        ("Indentation of each print.", "Press the screwdriver shaft on the palmar face at the contact point to 0.5, 1 and 3&#8202;N and "
+         "record force against approach. For the 95A 20&#8202;% magnet tip at \\(E_s\\) = 30&#8202;MPa the model predicts "
+         f"{f1(pf.get('0.5', {}).get('delta_um'))}, {f1(pf.get('1', {}).get('delta_um'))} and {f1(pf.get('3', {}).get('delta_um'))}&#8202;&#181;m; "
+         "<code>scripts/tpu_tip_calibrate.py fit</code> turns the measured approaches into \\(E_s\\) and \\(E^*\\). A force exponent near "
+         "1.5 instead of 1.07 would falsify the line-contact result."),
+        ("Pull and twist between two printed tips.", f"The pull gives \\(\\mu\\); an onset arm near {f2(pf.get('3', {}).get('arm_mm'))}&#8202;mm "
+         f"at 3&#8202;N confirms the load on the walls, near {f2(pa)}&#8202;mm the pads."),
+        ("Magnet signal under weights.", f"Load the face with 0.5&#8211;3&#8202;N at the contact point and record the field: the model "
+         f"predicts {f1(f.get('S_normal_norm'))}&#8202;&#181;T/N at a chip 1&#8202;mm behind the 95A 20&#8202;% tip. Less than half of it "
+         "means the magnet sits loose in its pocket; the model takes it as bonded."),
+        ("Chip set into the back of the tip.", "Seat the MLX90393 in a pocket of the tip&#8217;s back face and repeat the weights: the "
+         "noise should fall as Figure&#160;[[fig:magres]]b predicts until the static field reaches 4.8&#8202;mT."),
         ("Plate stiffness.", "Rerun the solid insert under the plate on voxels of 0.2, 0.1 and 0.05&#8202;mm "
-         "(<code>scripts/tpu_tip_fem_gpu.py</code>; 0.05&#8202;mm on DeltaAI) and on quadratic tetrahedra with the clamp on the faces that touch "
-         "<code>fingertip_mount (2).stl</code> (<code>scripts/tpu_tip_fem_plate_check.py</code>); the plate result is usable once the three agree "
-         "within 5&#8202;%."),
-        ("Print settings of the current tips.", "Infill density, orientation and temperature are not recorded; the predictions above assume 95A "
-         "at 20&#8202;% with the layers across the load."),
+         "(<code>scripts/tpu_tip_fem_gpu.py</code>; 0.05&#8202;mm on DeltaAI) and on quadratic tetrahedra "
+         "(<code>scripts/tpu_tip_fem_plate_check.py</code>); the plate result is usable once the three agree within 5&#8202;%."),
     ]
     return "<ul class='open'>" + "".join(f"<li><b>{a}</b> {b}</li>" for a, b in items) + "</ul>"
 
@@ -675,7 +711,10 @@ def byline():
     return ("Rows <code>docs/experiments/20261009-tpu_tip_fem/</code> &#183; cells <code>scripts/tpu_tip_fem_cells.py</code>, tip "
             "<code>scripts/tpu_tip_fem_tip.py</code>, GPU <code>scripts/tpu_tip_fem_gpu.py</code>, films <code>scripts/tpu_tip_fem_film.py</code>, "
             "pads <code>scripts/tpu_tip_fem_bed.py</code>, tables <code>scripts/tpu_tip_fem_analysis.py</code> &#183; builder "
-            "<code>scripts/tpu_tip_fem_page.py</code> &#183; hand-off <code>" + NOTE + "</code>")
+            "<code>scripts/tpu_tip_fem_page.py</code> &#183; print plan and magnet (2026-10-12) <code>scripts/tpu_tip_design.py</code>, "
+            "<code>scripts/tpu_tip_magnet.py</code>, <code>scripts/tpu_tip_print_plan.py</code>, calibration "
+            "<code>scripts/tpu_tip_calibrate.py</code>, print files <code>docs/experiments/20261009-tpu_tip_fem/print/</code> &#183; "
+            "hand-off <code>" + NOTE + "</code>")
 
 
 def render_tex(t):
@@ -689,7 +728,13 @@ def main():
     X = Data()
     v = {"STYLE": P.style_block().replace("</style>", EXTRA_CSS + "</style>"), "BUILT": time.strftime("%Y-%m-%d %H:%M"),
          "BYLINE": byline(), "GLOSSARY": glossary()}
+    import tpu_tip_print_plan as PP
+    H = sys.modules[__name__]
     v["LEDE"] = lede(X)
+    v["PLAN"] = PP.plan_text(H, X) + PP.plan_section(H, X)
+    v["MAGNET"] = PP.magnet_section(H, X)
+    v["GAP"] = PP.gap_section(H, X)
+    v["CALIB"] = PP.calib_section(H, X)
     v["CELLS"] = cells_section(X)
     v["TIP"] = tip_section(X)
     v["LAW"] = law_section(X)
@@ -699,7 +744,7 @@ def main():
     v["COST"] = cost_section(X)
     v["LIMITS"] = limitations(X)
     v["OPEN"] = open_items(X)
-    v["FOOTER"] = ("<p>Rebuild: <code>logs/20261001-hom_contact/venv/bin/python scripts/tpu_tip_fem_page.py</code>. Rows: "
+    v["FOOTER"] = ("<p>Rebuild: <code>.venv/bin/python scripts/tpu_tip_fem_page.py</code>. Rows: "
                    "<code>docs/experiments/20261009-tpu_tip_fem/*.jsonl</code>; films <code>docs/experiments/20261009-tpu_tip_fem/media/</code>.</p>")
     t = open(TPL).read()
     for k, val in v.items():
@@ -707,6 +752,11 @@ def main():
     left = sorted(set(x.split("}}")[0] for x in t.split("{{")[1:]))
     if left:
         raise SystemExit(f"unfilled placeholders: {left}")
+    import re
+    miss = sorted(set(re.findall(r"\[\[((?:fig|tab):[a-z_]+)\]\]", t)) - set(REFS))
+    if miss:
+        raise SystemExit(f"unresolved references: {miss}")
+    t = re.sub(r"\[\[((?:fig|tab):[a-z_]+)\]\]", lambda m: str(REFS[m.group(1)]), t)
     t, n = render_tex(t)
     t = retro_style.apply(t)
     open(OUT, "w").write(t)

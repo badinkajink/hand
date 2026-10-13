@@ -16,8 +16,8 @@ Measurements, each optional:
   --pull N:F         pinch force per pad (N) and the axial pull (N) at which the tool slips out of a two-pad pinch
   --twist N:T        pinch force per pad (N) and the torque (N mm) at which the tool spins in a two-pad pinch
 
-    .venv/bin/python scripts/tpu_tip_calibrate.py predict --tip w95_20 --magnet d4.76x1.59@3
-    .venv/bin/python scripts/tpu_tip_calibrate.py fit --tip w95_20 --magnet d4.76x1.59@3 --indent 0.5:22 1:41 3:118 --pull 2:3.1
+    .venv/bin/python scripts/tpu_tip_calibrate.py predict --tip w95_20 --magnet d4.76x1.59@5
+    .venv/bin/python scripts/tpu_tip_calibrate.py fit --tip w95_20 --magnet d4.76x1.59@5 --indent 0.5:22 1:41 3:118 --pull 2:3.1
 """
 from __future__ import annotations
 
@@ -109,7 +109,7 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("cmd", choices=["predict", "fit"])
     ap.add_argument("--tip", required=True, choices=list(TM.RECIPES))
-    ap.add_argument("--magnet", default="d4.76x1.59@3", help="none, or <magnet>@<depth mm> as in scripts/tpu_tip_magnet.py")
+    ap.add_argument("--magnet", default="d4.76x1.59@5", help="none, or <magnet>@<depth mm> as in scripts/tpu_tip_magnet.py")
     ap.add_argument("--gap", type=float, default=PP.GAPS[0], help="chip's distance behind the back face, mm")
     ap.add_argument("--indent", nargs="*")
     ap.add_argument("--field", nargs="*")
