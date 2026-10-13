@@ -316,7 +316,7 @@ def svg_post_trace(X: Data, d=16.0, t=0.625, seed=0):
 
 def svg_film_traces(X: Data):
     """Turn angle against time for each controller on the filmed cells."""
-    cells = sorted(X.film_traces.values(), key=lambda c: (c["d_mm"], c["t"]))
+    cells = sorted(X.film_traces.values(), key=lambda c: (c["t"] < 0, c["d_mm"], c["t"]))   # the films' order
     if not cells:
         return None, None
     n = len(cells)
@@ -503,10 +503,15 @@ def landscape_section(X: Data):
     if k3:
         c60 = sum(1 for x in mpc3 if x >= 60)
         better = sum(1 for a, b in zip(hom3, mpc3) if b > a + 10)
-        s += (f"<p>With the three-pad and turn-rate terms, MPC holds the cylinder on three pads in {st_3['h60_3'] + sum(1 for r in X.r_mpc3 if r['held'] and r['fingers_loaded_end'] == 3 and r['held_turn_deg'] < 60)} "
+        n3 = sum(1 for r in X.r_mpc3 if r["held"] and r["fingers_loaded_end"] == 3)
+        s += (f"<p>With the three-pad and turn-rate terms, MPC holds the cylinder on three pads in {n3} "
               f"of {st_3['n']} runs at placement 0, at a median peak rate of {st_3['rate']:.0f}&#176;/s, and turns it to a median "
               f"{deg(med(mpc3))} over {len(k3)} cells, against {deg(med(hom3))} for HOM on the same cells. It reaches 60&#176; in {c60} "
-              f"cells and exceeds HOM by more than 10&#176; in {better}.</p>")
+              f"cells and exceeds HOM by more than 10&#176; in {better}. The 60&#176; cells are "
+              + ", ".join(f"the {k[1]:g}{HS}mm cylinder at {xs_of(k[2]):g}{HS}mm ({X.mpc3[k]['score']:.0f}&#176;)"
+                          for k in sorted((k for k in k3 if X.mpc3[k]["score"] >= 60), key=lambda k: (k[1], -k[2])))
+              + "; every other cell stays between "
+              + f"{min(x for x in mpc3 if x < 60):.0f} and {max(x for x in mpc3 if x < 60):.0f}&#176;.</p>")
     svg, leg = svg_landscape(X)
     s += figure(svg, "Cell score against thumb-pair separation on the servo plant, one panel per cylinder diameter; compact layouts on "
                 "the left. Grey columns: the bench plan&#8217;s band cells. Dotted line: 60&#176;. Hover a point for its placements and "
@@ -657,20 +662,19 @@ def lede(X: Data):
     ks = X.cells
     mpc = [X.mpc[k]["score"] for k in ks]
     big, sw = X.swing(X.r_post)
-    difv = [abs(X.nopost[k]["score"] - X.post[k]["score"]) for k in X.post if k in X.nopost]
     st_m = X.stats(X.r_mpc)
     s = (f"On the servo plant, HOM&#8217;s turn scores in the hand-object scale study record its governor and the support post more "
-         f"than the hand: in {len(sw)} of its {len(big)} runs held at 60&#176; or more the cylinder swung on past the governor&#8217;s "
-         f"stop and came to rest on the post, and removing the post moves cell scores by up to {max(difv):.0f}&#176;. Sampling MPC "
-         f"on the same cells holds the cylinder at 60&#176; or more in {sum(1 for x in mpc if x >= 60)} of {len(ks)} cells (HOM "
-         f"{sum(1 for k in ks if X.nopost[k]['score'] >= 60)}), by pinch-and-swing: {st_m['two']} of its {st_m['held']} held runs end "
-         f"on two fingers, at a median peak rate of {st_m['rate']:.0f}&#176;/s.")
+         f"than the hand: in {len(sw)} of its {len(big)} runs held at 60&#176; or more, the cylinder swung on past the governor&#8217;s "
+         f"stop and came to rest on the post. Sampling MPC on the same cells holds the cylinder at 60&#176; or more in "
+         f"{sum(1 for x in mpc if x >= 60)} of {len(ks)} cells (HOM {sum(1 for k in ks if X.nopost[k]['score'] >= 60)}), by "
+         f"pinch-and-swing: {st_m['two']} of its {st_m['held']} held runs end on two fingers, at a median peak rate of "
+         f"{st_m['rate']:.0f}&#176;/s.")
     k3 = [k for k in ks if k in X.mpc3]
     if k3:
         m3 = [X.mpc3[k]["score"] for k in k3]
-        s += (f" Required to keep three pads on the cylinder and turn below 60&#176;/s, MPC turns it to a median {deg(med(m3))} "
-              f"(HOM {deg(med([X.nopost[k]['score'] for k in k3]))}) and reaches 60&#176; in {sum(1 for x in m3 if x >= 60)} of "
-              f"{len(k3)} cells.")
+        s += (f" Required to keep three pads on and turn below 60&#176;/s, MPC turns the cylinder to a median {deg(med(m3))} "
+              f"(HOM {deg(med([X.nopost[k]['score'] for k in k3]))}) and reaches 60&#176; in {sum(1 for x in m3 if x >= 60)} "
+              f"cells.")
     return s
 
 

@@ -150,7 +150,7 @@ def film_drake(hand, seed, tip, title, plant="fast", mu="scene"):
     return frames
 
 
-def tile_stream(clips, out_mp4, out_jpg, cols=3, poster_at=0.62, fps=25):
+def tile_stream(clips, out_mp4, out_jpg, cols=3, poster_at=0.62, fps=25, crf=27):
     """Tile equal-size clips into a grid one frame at a time (nine 480x360 clips held in memory need ~1.7 GB);
     shorter clips hold their last frame."""
     import imageio.v2 as imageio
@@ -160,7 +160,7 @@ def tile_stream(clips, out_mp4, out_jpg, cols=3, poster_at=0.62, fps=25):
     n = max(counts)
     rows = int(math.ceil(len(clips) / cols))
     w = imageio.get_writer(str(out_mp4), fps=fps, codec="libx264", quality=None, pixelformat="yuv420p", macro_block_size=8,
-                           ffmpeg_params=["-crf", "27", "-preset", "medium"], ffmpeg_log_level="error")
+                           ffmpeg_params=["-crf", str(crf), "-preset", "medium"], ffmpeg_log_level="error")
     last = [None] * len(clips)
     its = [iter(r) for r in readers]
     k_poster = int(round(poster_at * (n - 1)))

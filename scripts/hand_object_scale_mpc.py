@@ -342,6 +342,24 @@ def cmd_run(a) -> int:
     return 0
 
 
+FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+
+
+def big_label(frame, lines, size=30):
+    """Label lines in a 30 px font, so that a 640 px panel shown a third of an 828 px column wide keeps 13 px text."""
+    from PIL import Image, ImageDraw, ImageFont
+    im = Image.fromarray(frame)
+    dr = ImageDraw.Draw(im)
+    font = ImageFont.truetype(FONT, size)
+    y = 6
+    for ln in lines:
+        x0, y0, x1, y1 = dr.textbbox((10, y), ln, font=font)
+        dr.rectangle([4, y - 2, x1 + 6, y1 + 4], fill=(255, 255, 255))
+        dr.text((10, y), ln, fill=(15, 15, 15), font=font)
+        y = y1 + 8
+    return np.asarray(im)
+
+
 def film_pair(cell, shape, dd, ci, seed, prm, hom_prm, nthread, controllers=("HOM", "MPC"), prm3=None):
     """The HOM turn and the MPC turn of one cell's candidate grasp, rendered at 25 frames per simulated second with
     the pads touching the object drawn red (hand_object_scale_films' camera and labels)."""
@@ -360,11 +378,10 @@ def film_pair(cell, shape, dd, ci, seed, prm, hom_prm, nthread, controllers=("HO
         for i in pads:
             m.geom_rgba[i] = (0.75, 0.4, 0.25, 0.0)
         rend, cam = F.renderer_for(m, np.asarray(meta["tool7"], float)[:3])
-        cam.distance = 0.24 + 1.4 * dd / 1000.0
+        cam.distance = 0.8 * (0.24 + 1.4 * dd / 1000.0)
         frames, k = [], [0]
         every = 4 if ctrl == "HOM" else max(1, int(round(0.04 / prm["dt_plan"])))
-        name = {"HOM": "HOM", "MPC": "MPC", "MPC3": "MPC, three pads, 60 deg/s"}[ctrl]
-        title = f"{name}: cylinder {dd:g} mm, thumb-pair {cell['x_sep_mm']:g} mm"
+        title = {"HOM": "HOM", "MPC": "MPC", "MPC3": "MPC, three pads"}[ctrl]
 
         post_id = m.geom("post").id
 
@@ -380,8 +397,7 @@ def film_pair(cell, shape, dd, ci, seed, prm, hom_prm, nthread, controllers=("HO
                     if o in pl.tool_geoms and m.geom_bodyid[g] != pl.tb and "_pad" in (m.geom(g).name or ""):
                         m.geom_rgba[g] = (0.9, 0.1, 0.1, 1.0)
             rend.update_scene(d, cam)
-            frames.append(F.label(rend.render().copy(), [title, f"t {t:4.2f} s  turn {info.get('th_deg', 0):+5.1f} deg  "
-                                                                f"{info.get('phase', '')}"]))
+            frames.append(big_label(rend.render().copy(), [title, f"{t:4.2f} s   {info.get('th_deg', 0):+5.1f}\u00b0"]))
 
         if ctrl == "HOM":
             mirror = S.Mirror(Path(sc["pt"][0]))
@@ -403,6 +419,7 @@ def cmd_film(a) -> int:
     import reorient_backends_films as F
     if a.plant:
         S.PLANT = a.plant
+    F.W, F.H = (int(v) for v in a.size.split("x"))   # frame size of every panel (the shared helpers read these)
     prm = dict(DEFAULTS)
     for kv in a.set:
         k, v = kv.split("=")
@@ -445,7 +462,7 @@ def cmd_film(a) -> int:
             with open(media / "films.jsonl", "a") as fh:
                 fh.write(json.dumps(row) + "\n")
             print(json.dumps(row), flush=True)
-        n = F.tile_stream(clips, media / f"{stem}.mp4", media / f"{stem}.jpg", cols=len(clips))
+        n = F.tile_stream(clips, media / f"{stem}.mp4", media / f"{stem}.jpg", cols=len(clips), crf=a.crf)
         print(f"tiled {n} frames -> {stem}.mp4", flush=True)
     return 0
 
@@ -474,6 +491,8 @@ def main() -> int:
     f.add_argument("--hom-rows", default=str(HOM_ROWS))
     f.add_argument("--controllers", default="HOM,MPC,MPC3", help="panels: HOM, MPC (swing allowed), MPC3 (controlled)")
     f.add_argument("--set3", nargs="*", default=[], help="parameters of the controlled variant beyond CONTROLLED")
+    f.add_argument("--size", default="640x480", help="panel width x height in pixels")
+    f.add_argument("--crf", type=int, default=22, help="x264 quality of the tiled film (lower is better)")
     f.add_argument("--out-dir", default=None)
     a = ap.parse_args()
     return {"run": cmd_run, "film": cmd_film}[a.cmd](a)
