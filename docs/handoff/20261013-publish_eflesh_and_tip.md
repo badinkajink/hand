@@ -1,4 +1,4 @@
-Status: active
+Status: done
 Task (owner, 2026-10-13): publish the new eFlesh page and republish the printed TPU fingertip page with its calculator ("is it possible to create a dynamic viewer / browser-receiving input so that i can play with it in the docpage html? probably not possible for the artifact, but i don't care about the artifact as much"; "is it possible to improve the eflesh generation process?"). This job edits no page or builder.
 Read first: docs/experiments/20261013-eflesh_printability/20261013-eflesh_lattice_printability.html (new, no artifact yet); docs/experiments/20261009-tpu_tip_fem/20261009-printed_tpu_fingertip_finite_elements.html and its artifact_url.txt (https://claude.ai/artifact/MSLurN7jPTaFfXUdsxJMZv); the Artifact tool's rules: read an artifact with action "read" before republishing to it, and read every page's content before publishing it.
 State (2026-10-13): both pages built, committed and pushed by the window (1741a976, f3ea0f5c; builders scripts/eflesh_printability_page.py and scripts/tpu_tip_fem_page.py with scripts/tpu_tip_widget.py). The fingertip page's calculator is plain inline script; check in the published copy that its controls redraw the section and that the STL button works or fails quietly.
@@ -11,8 +11,8 @@ Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap s
 - [x] 1. Review both pages: no "Runs in progress" or "running" cell, every figure and film renders, the calculator red… Done 10-13 12:51: Both pages reviewed: no running/pending text; figure check 0 flagged (eFlesh 5 figures, tip 10); films decode and animate; tc-depth 5->3 redraws (pause layer 61->71, E* 14.6->16.7 MPa); STL 45,308 triangles, watertight; sandboxed iframe: controls redraw, downloads do nothing, no exception
 - [x] 2. Publish docs/experiments/20261013-eflesh_printability/20261013-eflesh_lattice_printability.html as a new arti… Done 10-13 12:52: eFlesh page published at https://claude.ai/artifact/DP2CipXE3jcA28JsLnxkZq (version 1, icon chart); URL in docs/experiments/20261013-eflesh_printability/artifact_url.txt and the INDEX.md row
 - [x] 3. Republish the fingertip page to https://claude.ai/artifact/MSLurN7jPTaFfXUdsxJMZv (action "read" first). Done 10-13 12:53: Fingertip page republished to https://claude.ai/artifact/MSLurN7jPTaFfXUdsxJMZv as version 3 (1791917595-2fc5) after reading it (live copy was the 06315f4e build, nothing to merge); published file equals the local one; in a sandboxed iframe the published copy redraws on tc-depth 3, its download buttons do nothing and throw nothing
-- [ ] 4. Commit the URL changes and push to origin main.
+- [x] 4. Commit the URL changes and push to origin main. Done 10-13 12:54: URL changes committed in 97ef22c3, notes in 02a7a665 and 59917692; pushed ded2581a..59917692 to origin main (includes the owner's fa652572)
 <!-- /ap:steps -->
 Claimed: docs/experiments/INDEX.md (artifact column), docs/experiments/20261013-eflesh_printability/artifact_url.txt, docs/experiments/20261009-tpu_tip_fem/artifact_url.txt.
-Waiting on owner: none.
+Waiting on owner: none for this job; the review notes and the downloads capability above are the owner's to decide.
 Do not: edit pages, builders or templates; publish other pages; delete any artifact; force-push.
