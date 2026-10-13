@@ -4883,3 +4883,16 @@ exceed the tool's own 0.24 N weight. **Held reorientation: 2 of 256.** The table
 tool. Also, `tip_len_mm = 0` on every run (either end down scores tilt 0), `place_xy = None`
 (no countersink), and `reindex = "full"` releases rather than relaying. Path aborted.
 `chain()` now returns `held_reorient` and `reorient_ok` depends on it.
+
+## 2026-10-13 -- feedback and contact parameters on the servo-limited plant
+
+The six servo-plant finals (TPU mesh, pads, skin; two seeds) were run closed loop and as an open-loop
+replay of their own recorded actions (`scripts/contact_feedback_replay.py`, 64 rollouts per cell). Swapping
+the tip model (TPU mesh, 1 mm pads, sprung skin, box) costs neither mode: 1,531 and 1,527 of 1,536 held,
+held cosines within 0.054. Physical changes do: friction x0.5 holds 376 closed loop against 292 replayed
+of 384, servo gain 0.36 N m/rad 352 against 198, torque limit 0.12 N m 369 against 220. Pad seed 1 and
+skin seed 0 hold open loop under all eight changes; both TPU-mesh seeds and skin seed 1 need the feedback.
+The servo makes each fingertip a 250 N/m spring at the grasp, 79-278 times softer than the pad contact, so
+the grip force follows the commanded squeeze whatever the tip model. Pad contact laws are pinned by
+`tests/test_pad_contact_laws.py` (rig `scripts/pad_contact_rig.py`). Page:
+`docs/experiments/20261013-contact_feedback/20261013-contact_parameter_sensitivity.html` (local).

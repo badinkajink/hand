@@ -1,0 +1,81 @@
+<title>Contact parameter sensitivity</title>
+{{STYLE}}
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">MorphoHand &#183; fingertip contact model &#183; servo-limited plant &#183; 13 October 2026 &#183; built {{BUILT}}</div>
+  <h1>Sensitivity of the reorientation policies to fingertip contact parameters, with analytical checks of the sphere pads</h1>
+  <p class="lede">{{LEDE}}</p>
+  <div class="byline">policies: the six finals of the servo-plant study (D6 hand, TPU mesh, 1&#8202;mm pads and sprung skin, two seeds each) in
+  MuJoCo-Warp, 64 deterministic rollouts per condition &#183; pad rig: the tracked real_v1 screwdriver scene (r&#8202;12.5&#8202;mm, 24.5&#8202;g)
+  with the production pads, MuJoCo {{MUJOCO}} &#183; rows <code>docs/experiments/20261013-contact_feedback/</code> &#183; builder
+  <code>scripts/contact_feedback_page.py</code></div>
+</header>
+
+<nav class="toc"><div class="col">
+<ol>
+<li><a href="#terms">Terms and metrics</a></li>
+<li><a href="#feedback">Closed-loop and open-loop transfer</a></li>
+<li><a href="#laws">Contact laws of the sphere pads</a></li>
+<li><a href="#params">Physical parameters of the outcome</a></li>
+<li><a href="#open">Future work</a></li>
+</ol>
+</div></nav>
+
+<section id="terms"><div class="col">
+<h2>Terms and metrics</h2>
+{{GLOSSARY}}
+</div></section>
+
+<section id="feedback"><div class="col">
+<h2>Closed-loop and open-loop transfer</h2>
+<p>{{FB_METHOD}}</p>
+<p>{{FB_TIP}}</p>
+<p>{{FB_PHYS}}</p>
+<figure class="diagram">
+{{FIG_FEEDBACK}}
+<figcaption>Figure&#160;1. Held share (left) and held cosine (right) of the six final policies, closed loop (filled dot) and the
+open-loop replay of each policy&#8217;s own actions (ring), 64 rollouts each; the line joins the two. Each row has one lane per
+policy, TPU mesh, pads and skin from the top, seed 0 above seed 1. Top: the nominal plant with each of the four tip models.
+Bottom: each policy on its own tip under one physical change. A held cosine below 0.4 is drawn at the axis&#8217;s edge with its
+value; a policy that drops the tool in all 64 rollouts has no held cosine. Hover a mark for its counts.</figcaption>
+</figure>
+{{FILM}}
+<p>{{FB_WHY}}</p>
+</div></section>
+
+<section id="laws"><div class="col derive">
+<h2>Contact laws of the sphere pads</h2>
+<p>{{LAW_MODEL}}</p>
+<div class="eq">\[K_s=\frac{E\,a_s}{h},\qquad K=\frac{1}{(1-d)\,t_c^2\,\hat{A}},\qquad \hat{A}=w_\text{tip}+w_\text{tool},\qquad d=1-\frac{1}{t_c^2\,K_s\,\hat{A}}\]<span class="eqno">(1)</span></div>
+<p>{{LAW_RIG}}</p>
+<div class="tw">{{TABLE_STATIC}}</div>
+<p class="tnote">{{TABLE_STATIC_NOTE}}</p>
+<p>{{LAW_FRICTION}}</p>
+<div class="eq">\[v=\frac{F_t}{b\sum_i 1/R_{t,i}},\qquad b=\frac{2}{d\,t_c},\qquad R_t=\frac{(1-d)\,\hat{A}}{d\;\mathrm{impratio}}\qquad\Longrightarrow\qquad v=\frac{F_t}{2\,n\;\mathrm{impratio}\;t_c\,K}\]<span class="eqno">(2)</span></div>
+<div class="tw">{{TABLE_FRICTION}}</div>
+<p class="tnote">{{TABLE_FRICTION_NOTE}}</p>
+<p>{{LAW_MASS}}</p>
+<div class="tw">{{TABLE_MASS}}</div>
+<p class="tnote">{{TABLE_MASS_NOTE}}</p>
+<p>{{LAW_HAND}}</p>
+</div></section>
+
+<section id="params"><div class="col derive">
+<h2>Physical parameters of the outcome</h2>
+<p>{{PARAM_SERVO}}</p>
+<div class="eq">\[k_\text{tip}=\bigl(\mathbf{n}^\top J\,K_q^{-1}J^\top\mathbf{n}\bigr)^{-1},\qquad \tau_\text{max}=\mu\sum_i f_i\,\rho_i\]<span class="eqno">(3)</span></div>
+<div class="tw">{{TABLE_MODULUS}}</div>
+<p class="tnote">{{TABLE_MODULUS_NOTE}}</p>
+<p>{{PARAM_MU}}</p>
+</div></section>
+
+<section id="open"><div class="col">
+<h2>Future work</h2>
+{{FUTURE}}
+</div></section>
+
+<footer><div class="col">
+{{FOOTER}}
+</div></footer>
+</div>
