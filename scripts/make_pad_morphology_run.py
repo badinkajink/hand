@@ -45,7 +45,7 @@ def front_region(sign):
 
 
 def build(src_xml: Path, out_xml: Path, tip: str, model: str, spacing: float, rs: float, region: str,
-          mu: float | None = None, tool_only: bool = True) -> dict:
+          mu: float | None = None, tool_only: bool = True, E: float = RB.E_TPU) -> dict:
     root = ET.parse(src_xml).getroot()
     if mu is None:                   # the friction of the tip geoms being replaced
         g = root.find(".//body[@name='thumb_tip']/geom")
@@ -66,10 +66,10 @@ def build(src_xml: Path, out_xml: Path, tip: str, model: str, spacing: float, rs
                 b.remove(old_in)
             b.insert(0, ET.Element("inertial", inertials[bn]))
     meshes, meta = RB.replace_tips(root, tip, model, mu, out_xml.parent / "assets", tool=RB.OBJ, s=spacing, rs=rs,
-                                   region=reg, tool_only=tool_only)
+                                   region=reg, tool_only=tool_only, E=E)
     out_xml.parent.mkdir(parents=True, exist_ok=True)
     ET.ElementTree(root).write(out_xml)
-    meta.update(tip=tip, model=model, spacing=spacing, pad_radius=rs, region=region, mu=mu, tool_only=tool_only)
+    meta.update(tip=tip, model=model, spacing=spacing, pad_radius=rs, region=region, mu=mu, tool_only=tool_only, E_Pa=E)
     return meta
 
 
@@ -82,6 +82,9 @@ def main() -> int:
     ap.add_argument("--spacing", type=float, default=RB.PAD_S)
     ap.add_argument("--radius", type=float, default=None, help="pad radius (default 0.75 x spacing)")
     ap.add_argument("--region", default="all", choices=["all", "front"])
+    ap.add_argument("--E", type=float, default=RB.E_TPU,
+                    help="pad modulus, Pa (a printed tip's calibrated modulus, scripts/tpu_tip_calibrate.py; default 10 MPa)")
+    ap.add_argument("--mu", type=float, default=None, help="tip friction (default: the source scene's tip friction)")
     a = ap.parse_args()
     src, out = a.src.resolve(), a.out.resolve()
     out.mkdir(parents=True, exist_ok=True)
@@ -89,7 +92,7 @@ def main() -> int:
         if f.is_file() and not f.name.startswith("frozen_scene"):
             shutil.copy(f, out / f.name)
     rs = a.radius if a.radius else 0.75 * a.spacing
-    meta = build(src / "frozen_scene.xml", out / "frozen_scene.xml", a.tip, a.model, a.spacing, rs, a.region)
+    meta = build(src / "frozen_scene.xml", out / "frozen_scene.xml", a.tip, a.model, a.spacing, rs, a.region, mu=a.mu, E=a.E)
     s = json.load(open(out / "summary.json"))
     s["frozen_scene_xml"] = str(out / "frozen_scene.xml")
     s["fingertip"] = {k: (v if not isinstance(v, dict) else {kk: float(vv) for kk, vv in v.items()})
