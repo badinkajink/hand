@@ -15,6 +15,13 @@ and **RL manipulation** (lift → in-hand reorient of a flat screwdriver to vert
 
 - Python via **`uv`**: `uv run --extra rl --extra gpu python <script>`. `MUJOCO_GL=egl` for
   headless render.
+- **Default fingertip (owner, 2026-10-13): the printed TPU tip as 1 mm sphere pads** —
+  `reorient_backends.replace_tips(root, "tpu2.7", "pads", ...)` in CPU scenes; for RL,
+  `scripts/make_pad_morphology_run.py --model pads` on a box-tip run (servo plant:
+  `results/phase1/real_v1/20261011-sv1_u0308_b050_servo_tip_tpu2.7pads1`). Point contact on the TPU block
+  (`pt`, `tpu2.7mesh`) is the comparison arm; the legacy box tip only reproduces old runs. Pads reproduce the pinch
+  friction torque that point contact lacks and agree across MuJoCo, MuJoCo-Warp, Newton and Drake
+  (`docs/overviews/contact_model.html`); they cost 1.7x the mesh per RL iteration.
 - **GPU is single (16 GB).** Train sequentially. **Every Warp process needs its own kernel cache:**
   `WARP_CACHE_PATH=$(mktemp -d)` — a shared cache races and NaNs. After killing a Warp run, wait for
   GPU memory to drop to ~1 GB before relaunching.

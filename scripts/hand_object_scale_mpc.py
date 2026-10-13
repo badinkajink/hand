@@ -2,10 +2,12 @@
 """Sampling model-predictive control of the in-hand turn on the cells of the hand-object scale study, a second
 controller beside the HOM turn of hand_object_scale_sim.py.
 
-Scene, grasp candidate, plant, grip phase, post removal and held test are those of hand_object_scale_sim.turn_rollout
-with post_off: the grip command for 0.8 s, the post's collisions removed at 1.3 s (when HOM's squeeze ends), the run
-ending at 6.3 s (HOM's longest run: squeeze, a 90 deg turn at 30 deg/s and the 2 s hold), held = the object less than
-20 mm below its post-grip height with at least two fingers each pressing with at least its weight.
+Scene, grasp candidate, plant, grip phase and held test are those of hand_object_scale_sim.turn_rollout with post_off:
+the grip command for 0.8 s, the run ending at 6.3 s (HOM's longest run: squeeze, a 90 deg turn at 30 deg/s and the
+2 s hold), held = the object less than 20 mm below its post-grip height with at least two fingers each pressing with at
+least its weight. The post's collisions end at `t_post_off`, by default 0.8 s, when MPC takes over (HOM loses the post
+at 1.3 s, when its turn begins; 2026-10-13: with the post kept to 1.3 s, MPC turned the cylinder 20-58 deg before
+1.3 s, some runs with under 1 N of finger force, so the post could carry the early turn).
 
 From 0.8 s the controller replans every `dt_plan` by predictive sampling (Howell et al. 2022, the planner of MuJoCo
 MPC). The nominal plan is a piecewise-linear spline of the nine joint targets with `knots` knots over `horizon`;
@@ -46,7 +48,14 @@ import hom_turn3 as H  # noqa: E402
 OUT = ROOT / "docs/experiments/20261013-scale_turn_controllers"
 HOM_ROWS = OUT / "hom_postoff/turn.jsonl"
 DEFAULTS = dict(nsample=32, horizon=0.3, knots=3, dt_plan=0.02, sigma=0.08, w_tilt=1.0, w_pos=1.0, w_drop=10.0,
-                w_term=10.0, w_du=1.0, lift_mm=5.0, t_grip=0.8, t_squeeze=0.5, t_end=6.3, cost_every=10)
+                w_term=10.0, w_du=1.0, lift_mm=5.0, t_grip=0.8, t_squeeze=0.5, t_end=6.3, cost_every=10, t_post_off=0.8,
+                w_contact=0.0, f_min=0.5, w_rate=0.0, rate_max_deg=60.0)
+# The controlled variant (owner 2026-09-16: a reorientation must be controlled and end held on three pads; the first
+# MPC grid swung the cylinder about a two-finger pinch at a median peak of 308 deg/s and ended 67 of 95 held runs on
+# two fingers): --set w_contact=1 w_rate=1 adds, per 10 ms sample, w_contact * sum_f clip((f_min - F_f) / f_min, 0, 1)
+# with F_f each finger's net contact force on the cylinder (a MuJoCo contact sensor per tip body in the planner's model)
+# and w_rate * relu(|omega| - rate_max)^2 / rate_max^2 on the cylinder's angular speed.
+CONTROLLED = dict(w_contact=1.0, w_rate=1.0)
 SIGMA_POS = 0.010
 
 
@@ -64,6 +73,31 @@ def hom_best(path: Path = HOM_ROWS) -> dict:
     return out
 
 
+def sensor_model(plant):
+    """The plant's model compiled again from its XML with one contact sensor per finger (net force between the tip body,
+    which carries the pads, and the cylinder), the palm placed as on the plant."""
+    import xml.etree.ElementTree as ET
+    mj = plant.mj
+    path = Path(plant.xml_path)
+    root = ET.parse(path).getroot()
+    sens = root.find("sensor")
+    if sens is None:
+        sens = ET.SubElement(root, "sensor")
+    for f in S.FINGERS:
+        ET.SubElement(sens, "contact", name=f"mpc_{f}", body1=f"{f}_tip", body2=S.OBJ, data="force", reduce="netforce",
+                      num="1")
+    tmp = path.with_name(f"{path.stem}.mpcsens.{os.getpid()}.xml")
+    ET.ElementTree(root).write(tmp)
+    try:
+        m = mj.MjModel.from_xml_path(str(tmp))
+    finally:
+        tmp.unlink()
+    m.body_pos[m.body("palm_pose").id] = plant.m.body_pos[plant.m.body("palm_pose").id]
+    if m.nq != plant.m.nq or m.nv != plant.m.nv:
+        raise RuntimeError("sensor model changed the state size")
+    return m
+
+
 class Planner:
     """Predictive sampling over a piecewise-linear spline of joint targets, rolled out on the plant's model."""
 
@@ -74,7 +108,10 @@ class Planner:
         self.mj, self.plant, self.prm, self.rng = mj, plant, prm, rng
         # the planner's model has no post, so no plan leans on it (2026-10-13: with the post in its model the first
         # test pivoted the tool 48 deg on the post in 0.25 s and dropped it when the post went away at 1.3 s)
-        self.m = m = copy.deepcopy(plant.m)
+        if prm.get("w_contact", 0.0) > 0:
+            self.m = m = sensor_model(plant)
+        else:
+            self.m = m = copy.deepcopy(plant.m)
         post = m.geom("post").id
         m.geom_contype[post] = m.geom_conaffinity[post] = 0
         self.pool = rollout.Rollout(nthread=nthread)
@@ -88,6 +125,7 @@ class Planner:
         self.W = np.stack([np.interp(tk, self.knot_t, np.eye(len(self.knot_t))[k]) for k in range(len(self.knot_t))], 1)
         self.lo, self.hi = m.actuator_ctrlrange[plant.act, 0], m.actuator_ctrlrange[plant.act, 1]
         self.qa = 1 + int(plant.qa)            # FULLPHYSICS = [time, qpos, qvel, act, ...]
+        self.wa = 1 + m.nq + int(plant.va) + 3   # the free joint's angular velocity in the state vector
         self.nominal = None
         self.t_nom = None
         self.ctrl_full = np.zeros((int(prm["nsample"]), self.nh, m.nu))
@@ -100,13 +138,21 @@ class Planner:
         self.nominal = np.stack([np.interp(new_t, old_t, self.nominal[:, j]) for j in range(self.nominal.shape[1])], 1)
         self.t_nom = t
 
-    def cost(self, states, samples, p_ref, z0):
+    def cost(self, states, samples, p_ref, z0, sens=None):
         prm = self.prm
         q = states[:, prm["cost_every"] - 1::prm["cost_every"], self.qa:self.qa + 7]
         p, x, y = q[..., :3], q[..., 4], q[..., 5]
         uz = 1.0 - 2.0 * (x * x + y * y)
         run = prm["w_tilt"] * (1.0 - uz) + prm["w_pos"] * np.sum((p - p_ref) ** 2, -1) / SIGMA_POS ** 2 \
             + prm["w_drop"] * (p[..., 2] < z0 - 0.015)
+        if prm.get("w_rate", 0.0) > 0:
+            om = np.linalg.norm(states[:, prm["cost_every"] - 1::prm["cost_every"], self.wa:self.wa + 3], axis=-1)
+            wm = math.radians(prm["rate_max_deg"])
+            run = run + prm["w_rate"] * np.maximum(0.0, om - wm) ** 2 / wm ** 2
+        if prm.get("w_contact", 0.0) > 0 and sens is not None:
+            F = np.linalg.norm(sens[:, prm["cost_every"] - 1::prm["cost_every"], :].reshape(
+                sens.shape[0], -1, len(S.FINGERS), 3), axis=-1)
+            run = run + prm["w_contact"] * np.clip((prm["f_min"] - F) / prm["f_min"], 0.0, 1.0).sum(-1)
         c = run[:, :-1].sum(1) + prm["w_term"] * run[:, -1]
         return c + prm["w_du"] * np.sum(np.diff(samples, axis=1) ** 2, (1, 2))
 
@@ -124,8 +170,8 @@ class Planner:
         self.mj.mj_getState(self.plant.m, d, self.x0, self.spec)
         ctrl = np.einsum("hk,nkj->nhj", self.W, samples)
         self.ctrl_full[:, :, self.plant.act] = ctrl
-        states, _ = self.pool.rollout(m, self.datas, self.x0[None], self.ctrl_full, nstep=self.nh)
-        c = self.cost(states, samples, p_ref, z0)
+        states, sens = self.pool.rollout(m, self.datas, self.x0[None], self.ctrl_full, nstep=self.nh)
+        c = self.cost(states, samples, p_ref, z0, sens if m.nsensordata else None)
         b = int(np.argmin(c))
         self.nominal = samples[b]
         return ctrl[b], float(c[b]), float(c[0])
@@ -161,6 +207,7 @@ def mpc_turn(plant, meta, seed, prm, nthread=8, frame_cb=None) -> dict:
     rng = np.random.default_rng([int(seed), 20261013])
     pl = Planner(plant, prm, nthread, rng)
     t_sq_end = prm["t_grip"] + prm["t_squeeze"]
+    t_post = prm.get("t_post_off", t_sq_end)
     n_exec = int(round(prm["dt_plan"] / pl.dt))
     th_max = th2_max = th3_max = -10.0
     first_loss = None
@@ -168,7 +215,7 @@ def mpc_turn(plant, meta, seed, prm, nthread=8, frame_cb=None) -> dict:
     w0 = time.perf_counter()
     t_plan = 0.0
     while d.time < prm["t_end"] - 1e-9:
-        if d.time >= t_sq_end - 1e-9 and m.geom_contype[post]:
+        if d.time >= t_post - 1e-9 and m.geom_contype[post]:
             m.geom_contype[post] = m.geom_conaffinity[post] = 0
         s = plant.state()
         th = theta(s["R"])
@@ -221,6 +268,7 @@ def setup(cell, shape, dd, ci):
     path, meta0 = sc["pads"]
     meta = S.candidate_meta(meta0, gg, gp)
     plant = H.MjPlant(path, meta)
+    plant.xml_path = str(path)
     S.set_palm(plant.m, gg["palm"])
     geo = {"cand": ci, "h_mm": round(cand["h"] * 1000, 2), "spread_mm": round(cand["spread"] * 1000, 2)}
     return plant, meta, geo, sc, gg
@@ -294,16 +342,18 @@ def cmd_run(a) -> int:
     return 0
 
 
-def film_pair(cell, shape, dd, ci, seed, prm, hom_prm, nthread):
+def film_pair(cell, shape, dd, ci, seed, prm, hom_prm, nthread, controllers=("HOM", "MPC"), prm3=None):
     """The HOM turn and the MPC turn of one cell's candidate grasp, rendered at 25 frames per simulated second with
     the pads touching the object drawn red (hand_object_scale_films' camera and labels)."""
     import mujoco
     import hand_object_scale_films as FL
     import reorient_backends_films as F
     out = {}
-    for ctrl in ("HOM", "MPC"):
+    for ctrl in controllers:
         plant, meta, geo, sc, gg = setup(cell, shape, dd, ci)
-        plant = H.MjPlant(FL.film_scene(sc["pads"][0], dd / 2000.0), meta)
+        fpath = FL.film_scene(sc["pads"][0], dd / 2000.0)
+        plant = H.MjPlant(fpath, meta)
+        plant.xml_path = str(fpath)
         S.set_palm(plant.m, gg["palm"])
         m, d = plant.m, plant.d
         pads = [i for i in range(m.ngeom) if "_pad" in (m.geom(i).name or "")]
@@ -313,12 +363,16 @@ def film_pair(cell, shape, dd, ci, seed, prm, hom_prm, nthread):
         cam.distance = 0.24 + 1.4 * dd / 1000.0
         frames, k = [], [0]
         every = 4 if ctrl == "HOM" else max(1, int(round(0.04 / prm["dt_plan"])))
-        title = f"{ctrl}: cylinder {dd:g} mm, thumb-pair {cell['x_sep_mm']:g} mm, pair {cell['y_sep_mm']:g} mm"
+        name = {"HOM": "HOM", "MPC": "MPC", "MPC3": "MPC, three pads, 60 deg/s"}[ctrl]
+        title = f"{name}: cylinder {dd:g} mm, thumb-pair {cell['x_sep_mm']:g} mm"
+
+        post_id = m.geom("post").id
 
         def cb(pl, t, info):
             k[0] += 1
             if k[0] % (4 if info.get("phase") == "grip" else every):
                 return
+            m.geom_rgba[post_id, 3] = 1.0 if m.geom_contype[post_id] else 0.0   # drawn only while it collides
             m.geom_rgba[pads, 3] = 0.0
             for i in range(d.ncon):
                 g1, g2 = int(d.contact[i].geom[0]), int(d.contact[i].geom[1])
@@ -333,9 +387,11 @@ def film_pair(cell, shape, dd, ci, seed, prm, hom_prm, nthread):
             mirror = S.Mirror(Path(sc["pt"][0]))
             S.set_palm(mirror.m, gg["palm"])
             res = S.turn_rollout(plant, mirror, meta, seed, hom_prm, frame_cb=cb)
-        else:
+        elif ctrl == "MPC":
             res = mpc_turn(plant, meta, seed, prm, nthread=nthread, frame_cb=cb)
-        while len(frames) < int(25 * prm["t_end"]):
+        else:
+            res = mpc_turn(plant, meta, seed, prm3, nthread=nthread, frame_cb=cb)
+        while len(frames) < int(25 * max(prm["t_end"], (prm3 or prm)["t_end"])):
             frames.append(frames[-1])
         rend.close()
         out[ctrl] = (frames, res, geo)
@@ -354,6 +410,12 @@ def cmd_film(a) -> int:
     for k in ("nsample", "knots", "cost_every"):
         prm[k] = int(prm[k])
     hom_prm = dict(H.DEFAULTS, post_off=1.0, kp_model=S.RB.plant_args(S.PLANT)["kp"])
+    prm3 = dict(prm, **CONTROLLED)
+    for kv in a.set3:
+        k, v = kv.split("=")
+        prm3[k] = float(v)
+    for k in ("nsample", "knots", "cost_every"):
+        prm3[k] = int(prm3[k])
     best = hom_best(Path(a.hom_rows))
     media = Path(a.out_dir) if a.out_dir else OUT / "media"
     media.mkdir(parents=True, exist_ok=True)
@@ -362,9 +424,9 @@ def cmd_film(a) -> int:
         dd, t = float(dd), float(t)
         cell, _, _ = next(c for c in S.cell_list("diag") if c[1] == shape and c[2] == dd and c[0].get("t") == t)
         ci = best[(cell["tag"], shape, dd)]["cand"]
-        pair = film_pair(cell, shape, dd, ci, a.seed, prm, hom_prm, a.nthread)
+        pair = film_pair(cell, shape, dd, ci, a.seed, prm, hom_prm, a.nthread, tuple(a.controllers.split(",")), prm3)
         clips = []
-        stem = f"hom_mpc_{S.obj_tag(shape, dd)}_{cell['tag']}_s{a.seed}"
+        stem = f"{'_'.join(c.lower() for c in pair)}_{S.obj_tag(shape, dd)}_{cell['tag']}_s{a.seed}"
         tpath = media / "films_traces.json"
         traces = json.loads(tpath.read_text()) if tpath.exists() else {}
         traces[stem] = {"shape": shape, "d_mm": dd, "t": t, "tag": cell["tag"], "x_sep_mm": cell["x_sep_mm"],
@@ -383,7 +445,7 @@ def cmd_film(a) -> int:
             with open(media / "films.jsonl", "a") as fh:
                 fh.write(json.dumps(row) + "\n")
             print(json.dumps(row), flush=True)
-        n = F.tile_stream(clips, media / f"{stem}.mp4", media / f"{stem}.jpg", cols=2)
+        n = F.tile_stream(clips, media / f"{stem}.mp4", media / f"{stem}.jpg", cols=len(clips))
         print(f"tiled {n} frames -> {stem}.mp4", flush=True)
     return 0
 
@@ -410,6 +472,8 @@ def main() -> int:
     f.add_argument("--set", nargs="*", default=[])
     f.add_argument("--nthread", type=int, default=6)
     f.add_argument("--hom-rows", default=str(HOM_ROWS))
+    f.add_argument("--controllers", default="HOM,MPC,MPC3", help="panels: HOM, MPC (swing allowed), MPC3 (controlled)")
+    f.add_argument("--set3", nargs="*", default=[], help="parameters of the controlled variant beyond CONTROLLED")
     f.add_argument("--out-dir", default=None)
     a = ap.parse_args()
     return {"run": cmd_run, "film": cmd_film}[a.cmd](a)
