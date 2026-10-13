@@ -54,9 +54,12 @@ def fe_curve(r):
 
 
 def approach_at(r, F):
-    """FE approach (um) at force F, interpolated in log-log between the rows' forces."""
+    """FE approach (um) at force F: log-log between the rows' forces, extended along the end segments outside them (the
+    page's calculator, scripts/tpu_tip_widget.py, does the same)."""
     Fs, d = fe_curve(r)
-    return float(np.exp(np.interp(math.log(F), np.log(Fs), np.log(d))))
+    x, xs, ys = math.log(F), np.log(Fs), np.log(d)
+    i = int(np.clip(np.searchsorted(xs, x) - 1, 0, len(xs) - 2))
+    return float(np.exp(ys[i] + (ys[i + 1] - ys[i]) * (x - xs[i]) / (xs[i + 1] - xs[i])))
 
 
 def predict(r, gap=PP.GAPS[0]):

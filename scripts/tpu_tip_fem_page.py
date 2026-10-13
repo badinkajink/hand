@@ -45,6 +45,7 @@ COL = {"x": "var(--s-x)", "z": "var(--s-z)", "sheet": "var(--s-sh)", "ref": "var
 EXTRA_CSS = """
 :root{--s-x:#2a78d6;--s-z:#eb6834;--s-sh:#1baf7a;--s-ref:#48545D;--s-pads:#8a4fbf;--s-res:#c2185b}
 .col > figure,.col > .tw{width:auto !important;max-width:100% !important}
+.tw th{white-space:normal !important;vertical-align:bottom}
 figure.films{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 figure.films .cell{min-width:0}
 figure.films video,figure.films img,figure.pics img{width:100%;height:auto}
@@ -713,7 +714,7 @@ def byline():
             "pads <code>scripts/tpu_tip_fem_bed.py</code>, tables <code>scripts/tpu_tip_fem_analysis.py</code> &#183; builder "
             "<code>scripts/tpu_tip_fem_page.py</code> &#183; print plan and magnet (2026-10-12) <code>scripts/tpu_tip_design.py</code>, "
             "<code>scripts/tpu_tip_magnet.py</code>, <code>scripts/tpu_tip_print_plan.py</code>, calibration "
-            "<code>scripts/tpu_tip_calibrate.py</code>, print files <code>docs/experiments/20261009-tpu_tip_fem/print/</code> &#183; "
+            "<code>scripts/tpu_tip_calibrate.py</code>, calculator <code>scripts/tpu_tip_widget.py</code>, print files <code>docs/experiments/20261009-tpu_tip_fem/print/</code> &#183; "
             "hand-off <code>" + NOTE + "</code>")
 
 
@@ -735,6 +736,8 @@ def main():
     v["MAGNET"] = PP.magnet_section(H, X)
     v["GAP"] = PP.gap_section(H, X)
     v["CALIB"] = PP.calib_section(H, X)
+    import tpu_tip_widget as W
+    v["CALC"] = W.section(H, X)
     v["CELLS"] = cells_section(X)
     v["TIP"] = tip_section(X)
     v["LAW"] = law_section(X)

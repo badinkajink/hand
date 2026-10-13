@@ -9,6 +9,7 @@ docs/**/*.pdf filter=lfs diff=lfs merge=lfs -text
 docs/**/*.npz filter=lfs diff=lfs merge=lfs -text
 docs/**/*.npy filter=lfs diff=lfs merge=lfs -text
 docs/**/*.zip filter=lfs diff=lfs merge=lfs -text
+docs/**/*.3mf filter=lfs diff=lfs merge=lfs -text
 docs/**/*.jsonl filter=lfs diff=lfs merge=lfs -text
 docs/**/*.csv filter=lfs diff=lfs merge=lfs -text
 docs/**/*.json filter=lfs diff=lfs merge=lfs -text
