@@ -133,16 +133,29 @@ def sentence_case_headers(html: str) -> str:
     return TD_RE.sub(lambda m: fix(m, True), html)
 
 
+BODY_END_RE = re.compile(r'</body\s*>', re.I)
+
+
+def close_body(html: str) -> str:
+    """End a page that has no </body> with </body></html> (2026-10-14). VS Code's Live Server injects its reload script
+    before </body>, and failing that before every </svg>, while it announces the length of one injection, so a page with
+    inline SVG and no </body> reaches the browser cut short: the readout page ended mid-sentence and the fingertip page
+    lost its calculator's script. A page without the tag still opens from the file system and on claude.ai."""
+    if BODY_END_RE.search(html):
+        return html
+    return html.rstrip() + '\n</body>\n</html>\n'
+
+
 def apply(html: str) -> str:
-    """Restyle a built page: drop web-font links, add the plain sheet after every other style block, and set the table
-    headers in sentence case."""
+    """Restyle a built page: drop web-font links, add the plain sheet after every other style block, set the table
+    headers in sentence case, and close the body (close_body)."""
     html = sentence_case_headers(FONT_LINK_RE.sub('', OLD_RE.sub('', html)))
     tag = '<style id="retro">' + RETRO_CSS.strip() + '</style>\n'
     i = html.lower().rfind('</head>')
     if i < 0:  # artifact-style fragment without <head>: the sheet goes after the last style block
         j = html.lower().rfind('</style>')
         i = j + len('</style>') if j >= 0 else 0
-    return html[:i] + tag + html[i:]
+    return close_body(html[:i] + tag + html[i:])
 
 
 def main():
