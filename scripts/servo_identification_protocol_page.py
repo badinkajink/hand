@@ -255,8 +255,7 @@ def owner_section():
         ["Which servo first", "Identify the SCS0009 now, since every bench result used it, and repeat on the STS3032 when it is "
          "ordered; or wait for the STS3032 (ST-3032-C001: 0.44&#8202;N&#8202;m stall at 6&#8202;V against the SCS0009&#8217;s "
          "0.23, 1:205 gears, 0.088&#8202;degree per encoder count against 0.29, 1&#8202;Mbps, protection at 80&#8202;% for 2&#8202;s) "
-         "and identify 
-         "only it."],
+         "and identify only it."],
         ["Load cell", "Bar load cell with an HX711 (logged with the bus) or a kitchen scale read by camera (no wiring, slower)."],
         ["Spare servos", "Pendulum work on a spare of each type, so the hand&#8217;s nine stay mounted."],
         ["Supply", "The hand&#8217;s supply voltage during runs, and whether the bench supply can hold it at stall current."],
