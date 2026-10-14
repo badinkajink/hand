@@ -46,7 +46,16 @@ def font(size):
     return ImageFont.load_default()
 
 
-def label_bar(img: Image.Image, text: str, h=34, size=20) -> Image.Image:
+COLUMN_PX = 828  # width of the page's text column (retro_style), where every figure is shown
+
+
+def label_px(total_width: int) -> int:
+    """Font size in image pixels that displays at 14 px once an image total_width wide is fitted to the column."""
+    return int(np.ceil(14 * total_width / COLUMN_PX))
+
+
+def label_bar(img: Image.Image, text: str, size=20, h=None) -> Image.Image:
+    h = h or int(1.6 * size)
     out = Image.new("RGB", (img.width, img.height + h), "white")
     out.paste(img, (0, h))
     ImageDraw.Draw(out).text((10, (h - size) // 2), text, fill=(0, 0, 0), font=font(size))
@@ -88,8 +97,7 @@ def parts_figure():
     A = B.derive()
     cyl_col = {"bearing": "0.9 0.1 0.1 1", "slot": "0.1 0.3 0.95 1", "spline": "0.1 0.7 0.2 1"}
     panels = []
-    for name, title in [("carriage", "Carriage (yaw bearing, yaw servo seat)"), ("yaw_link", "Yaw link (MCP bearing, MCP servo seat)"),
-                        ("mcp_link", "MCP link (PIP bearing, PIP servo seat)"), ("dip_link", "DIP link"),
+    for name, title in [("carriage", "Carriage"), ("yaw_link", "Yaw link"), ("mcp_link", "MCP link"), ("dip_link", "DIP link"),
                         ("tip", "TPU tip"), ("servo", "SCS0009 servo")]:
         m = A["meshes"][name]
         feats = []
@@ -115,7 +123,7 @@ def parts_figure():
         r = renderer(mm, 520, 520)
         c = cam(m.bounds.mean(0) / 1000, 2.2 * span / 1000, 135, -28)
         r.update_scene(d, c)
-        panels.append(label_bar(Image.fromarray(r.render()), title))
+        panels.append(label_bar(Image.fromarray(r.render()), title, size=label_px(3 * 520)))
         r.close()
         tmp.unlink()
     tile(panels, 3).save(MEDIA / "parts.png")
@@ -130,16 +138,18 @@ def assembly_figure():
     m.vis.global_.fovy = 8
     r = renderer(m, 560, 900)
     out = []
-    for az, title in [(270, "Model, seen from +y"), (90, "Model, seen from -y")]:
+    diag = Image.open(REPO / "assets/cad_v1/diagram.png").convert("RGB")
+    mid = diag.crop((835, 10, 1215, 1087))    # without the diagram's black border rows
+    right = diag.crop((1215, 0, 1812, 1046))
+    mid, right = (im.resize((int(im.width * 900 / im.height), 900)) for im in (mid, right))
+    fs = label_px(mid.width + right.width + 2 * 560)
+    for az, title in [(270, "Model, +y"), (90, "Model, \u2212y")]:
         c = cam([0.012, 0, 0.108], 1.42, az, 0)
         r.update_scene(d, c, opt_groups({2}))
-        out.append(label_bar(Image.fromarray(r.render()), title))
+        out.append(label_bar(Image.fromarray(r.render()), title, size=fs))
     r.close()
-    diag = Image.open(REPO / "assets/cad_v1/diagram.png").convert("RGB")
-    mid = diag.crop((835, 0, 1215, 1090))
-    right = diag.crop((1215, 0, 1812, 1090))
-    mid = label_bar(mid.resize((int(mid.width * 900 / mid.height), 900)), "Owner's CAD, +y side")
-    right = label_bar(right.resize((int(right.width * 900 / right.height), 900)), "Owner's CAD, -y side, flexed")
+    mid = label_bar(mid, "CAD, +y", size=fs)
+    right = label_bar(right, "CAD, \u2212y, flexed", size=fs)
     tile_w = [mid, out[0], right, out[1]]
     W = Image.new("RGB", (sum(i.width for i in tile_w), max(i.height for i in tile_w)), "white")
     x = 0
@@ -190,12 +200,11 @@ def compare_figure():
     m.vis.global_.fovy = 10
     r = renderer(m, 620, 820)
     out = []
-    for q, title in [((0, 0, 0), "Straight (all joints 0)"), ((0, 0.55, 0.55), "real_v1 'open' (MCP and PIP 0.55 rad)"),
-                     ((0, 1.4, 1.4), "Curled (MCP and PIP 1.4 rad)")]:
+    for q, title in [((0, 0, 0), "Straight"), ((0, 0.55, 0.55), "MCP and PIP 32\u00b0"), ((0, 1.4, 1.4), "MCP and PIP 80\u00b0")]:
         set_q(m, d, *q)
         c = cam([-0.006, 0, 0.098], 1.02, 270, -4)
         r.update_scene(d, c, opt_groups({2, 5}))
-        out.append(label_bar(Image.fromarray(r.render()), title))
+        out.append(label_bar(Image.fromarray(r.render()), title, size=label_px(3 * 620)))
     r.close()
     tile(out, 3).save(MEDIA / "compare.png")
 
@@ -206,14 +215,17 @@ def spheres_figure():
     set_q(m, d, 0, 0.55, 0.55)
     m.vis.global_.fovy = 10
     r = renderer(m, 620, 820)
-    out = []
-    for groups, az, title in [({2}, 225, "CAD meshes"), ({3, 4}, 225, "Collision spheres and tip pads"),
-                              ({2, 3, 4}, 225, "Both"), ({3, 4}, 45, "Collision spheres and pads, dorsal side")]:
+    shots = []
+    for groups, az, title in [({2}, 225, "CAD meshes"), ({3, 4}, 225, "Spheres and tip pads"),
+                              ({2, 3, 4}, 225, "Both"), ({3, 4}, 45, "Spheres and pads, dorsal side")]:
         c = cam([-0.006, 0, 0.098], 1.02, az, -15)
         r.update_scene(d, c, opt_groups(groups))
-        out.append(label_bar(Image.fromarray(r.render()), title))
+        shots.append((r.render().copy(), title))
     r.close()
-    tile(out, 4).save(MEDIA / "spheres.png")
+    rows = np.flatnonzero(np.any([(im < 245).any(axis=(1, 2)) for im, _ in shots], axis=0))  # rows with content
+    r0, r1 = max(0, rows[0] - 16), rows[-1] + 17
+    out = [label_bar(Image.fromarray(im[r0:r1]), title, size=label_px(2 * 620)) for im, title in shots]
+    tile(out, 2).save(MEDIA / "spheres.png")
 
 
 def sweep_film(fps=25):
@@ -240,7 +252,8 @@ def sweep_film(fps=25):
     w = imageio.get_writer(str(out_mp4), fps=fps, codec="libx264", quality=None, pixelformat="yuv420p", macro_block_size=8,
                            ffmpeg_params=["-crf", "24", "-preset", "medium"], ffmpeg_log_level="error")
     poster_k = int(0.2 * len(path))
-    f = font(18)
+    fs = label_px(3 * W)
+    f = font(fs)
     for k, q in enumerate(path):
         set_q(m, d, *q)
         panels = []
@@ -249,11 +262,11 @@ def sweep_film(fps=25):
             r.update_scene(d, c, opt_groups(groups))
             panels.append(np.asarray(r.render()))
         frame = Image.fromarray(np.concatenate(panels, axis=1))
-        frame = label_bar(frame, "", h=30)
+        frame = label_bar(frame, "", size=fs, h=40)  # 640 + 40 rows, a multiple of 8: the poster has the film's size
         dr = ImageDraw.Draw(frame)
         for i, (_, title) in enumerate(views):
-            dr.text((i * W + 10, 5), title, fill=(0, 0, 0), font=f)
-        dr.text((10, frame.height - 26), f"yaw {np.degrees(q[0]):+5.0f} deg   MCP {np.degrees(q[1]):+5.0f} deg   PIP {np.degrees(q[2]):+5.0f} deg",
+            dr.text((i * W + 10, (40 - fs) // 2), title, fill=(0, 0, 0), font=f)
+        dr.text((10, frame.height - fs - 8), f"Yaw {np.degrees(q[0]):+4.0f}\u00b0   MCP {np.degrees(q[1]):+4.0f}\u00b0   PIP {np.degrees(q[2]):+4.0f}\u00b0",
                 fill=(0, 0, 0), font=f)
         w.append_data(np.asarray(frame))
         if k == poster_k:
@@ -269,11 +282,10 @@ def hand_figure():
     mujoco.mj_forward(m, d)
     r = renderer(m, 760, 560)
     out = []
-    for az, el, groups, title in [(150, -28, {0, 2}, "Three fingers at the real_v1 'open' key, meshes"),
-                                  (150, -28, {0, 3, 4}, "Collision spheres and pads")]:
-        c = cam([0, 0, 0.055], 0.40, az, el)
+    for az, el, groups, title in [(150, -28, {0, 2}, "CAD meshes"), (150, -28, {0, 3, 4}, "Spheres and pads")]:
+        c = cam([0, 0, 0.065], 0.40, az, el)
         r.update_scene(d, c, opt_groups(groups))
-        out.append(label_bar(Image.fromarray(r.render()), title))
+        out.append(label_bar(Image.fromarray(r.render()), title, size=label_px(2 * 760)))
     r.close()
     tile(out, 2).save(MEDIA / "hand.png")
 

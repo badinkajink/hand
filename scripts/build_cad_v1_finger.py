@@ -11,8 +11,9 @@ arm is screwed to the servo horn. The assembly is read from the parts:
   axial position  the inner face of the child's slotted arm lies flush on the outer face of the
                   parent's bearing wall (the bearing is flush in that 4 mm wall);
   servo seat      the servo's output is coaxial with the bearing, its base rests on the inner
-                  face of the bearing wall, its tab holes lie on the parent's two 1.8 mm pilot
-                  holes;
+                  face of the bearing wall, its tab holes are turned toward the midpoint of the
+                  parent's two 1.8 mm pilot holes (the tab-hole residuals then test the 5.70 mm
+                  spline offset and the 28.50 mm pitch);
   zero angle      the finger is straight: the child's long direction continues the parent's
                   (yaw link: yaw axis to MCP axis; MCP link: MCP axis to PIP axis; DIP link:
                   parallel to the pad face, away from the PIP axis); the carriage hangs from the
@@ -341,6 +342,12 @@ def derive() -> dict:
         report["joints"][jn]["servo_boss_top_axial_mm"] = round(boss_top, 3)
         if firsts:
             report["joints"][jn]["boss_to_horn_side_mm"] = round(float(np.min(firsts)) - boss_top, 3)
+        # material of the horn-side arm along the axis, the median over the rays that see the most common pattern
+        beyond = [[iv for iv in ivs if iv[0] > P["wall"][1] + 1.0] for _, ivs in rows]
+        lens = [len(b) for b in beyond if b]  # rays through the horn's own hole see no material
+        k = max(set(lens), key=lens.count) if lens else 0
+        same = np.array([b for b in beyond if len(b) == k], float)
+        report["joints"][jn]["horn_side_material_axial_mm"] = np.round(np.median(same, axis=0), 3).tolist() if k else []
 
     # chain into the carriage frame
     T_c = {"carriage": np.eye(4)}
@@ -522,7 +529,8 @@ def finger_xml(f: str, A, inert, collision, mirror: bool, ind: str, morph: bool,
     L += [pad * 3 + g for g in geoms("mcp_frame")]
     L.append(pad * 3 + f'<body name="{f}_len_frame">')
     L.append(pad * 4 + '<inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6"/>')
-    L.append(pad * 4 + f'<joint class="morph" name="{f}_len" axis="1 0 0" range="0 0"/>')
+    if morph:  # real_v1's len slide (range 0 0 compiles unlimited, along the pad normal); kept for its qpos layout
+        L.append(pad * 4 + f'<joint class="morph" name="{f}_len" axis="1 0 0" range="0 0"/>')
     L.append(pad * 4 + f'<body name="{f}_pip_frame" pos="{fmt(d_pip)}">')
     L.append(pad * 5 + inertial_xml("pip_frame"))
     L.append(pad * 5 + f'<joint class="ctrl" name="{f}_pip" axis="{flex}" range="{ROM["pip"][0]:.6f} {ROM["pip"][1]:.6f}"/>')
@@ -618,6 +626,13 @@ def cad_tip_geometry(A):
     return G
 
 
+def palm_raise_m(A) -> float:
+    """real_v1's keyframes were fitted to a finger 10.05 mm shorter (yaw centre to tip end 78.66 mm); the CAD hand's
+    palm is raised by the difference so the fingertips start near real_v1's."""
+    km = A["report"]["kinematics_mm"]
+    return (km["yaw_to_mcp"] + km["mcp_to_pip"] + km["pip_to_tip_end"] - REAL_V1_REACH_MM) / 1000.0
+
+
 def write_scene(A, collision: dict, out_dir: Path, inert: dict) -> dict:
     """scene_screwdriver_medium.xml for the CAD hand: real_v1's scene with the finger bodies replaced,
     then the tips replaced by 1 mm TPU pads with reorient_backends.replace_tips (21.41 mm block)."""
@@ -647,10 +662,8 @@ def write_scene(A, collision: dict, out_dir: Path, inert: dict) -> dict:
         for a, b in FINGER_EXCLUDES:
             if (f"{f}_{a}", f"{f}_{b}") not in have:
                 ET.SubElement(contact, "exclude", body1=f"{f}_{a}", body2=f"{f}_{b}")
-    # real_v1's keyframes were fitted to a finger 10.05 mm shorter (yaw centre to tip end 78.66 mm);
-    # raise the palm by the difference so the tips start where real_v1's did. open_ik needs a refit.
-    km = A["report"]["kinematics_mm"]
-    dz = (km["yaw_to_mcp"] + km["mcp_to_pip"] + km["pip_to_tip_end"] - REAL_V1_REACH_MM) / 1000.0
+    # the palm is raised by palm_raise_m; open_ik needs a refit
+    dz = palm_raise_m(A)
     kf = root.find("keyframe")
     for key in list(kf):
         if key.get("name") == "open_ik":  # a grasp fitted to real_v1's fingers; on these it presses the pads into the tool
@@ -664,6 +677,17 @@ def write_scene(A, collision: dict, out_dir: Path, inert: dict) -> dict:
         key.set("ctrl", " ".join(f"{x:.6g}" for x in ctrl))
     _, meta = RB.replace_tips(root, "tpu2.7", "pads", PAD_MU, out_dir, tool=RB.OBJ)
     meta["palm_raised_mm"] = round(dz * 1000, 3)
+    # pads in geom group 4 as in finger.xml and hand.xml, so the viewers toggle them with the same key
+    for g in root.iter("geom"):
+        if any(g.get("name", "").startswith(f"{f}_pad") for f in ("thumb", "index", "middle")):
+            g.set("group", "4")
+    # replace_tips compiles with absolute paths; the written scene resolves its meshes relative to itself
+    comp.set("meshdir", "meshes")
+    mdir = (out_dir / "meshes").resolve()
+    for mesh in asset.findall("mesh"):
+        f = Path(mesh.get("file"))
+        if f.is_absolute():
+            mesh.set("file", str(f.resolve().relative_to(mdir)))
     ET.indent(root, "  ")
     (out_dir / "scene_screwdriver_medium.xml").write_text(ET.tostring(root, encoding="unicode") + "\n")
     pads = {}
@@ -705,10 +729,10 @@ def write_model(A, collision: dict, out_dir: Path, with_pads: bool = True) -> di
     <position class="ctrl" name="a_index_pip" joint="index_pip" ctrlrange="{ROM['pip'][0]:.6f} {ROM['pip'][1]:.6f}"/>
   </actuator>
   <keyframe>
-    <key name="straight" qpos="0 0 0 0" ctrl="0 0 0"/>
-    <key name="open" qpos="0 0.55 0 0.55" ctrl="0 0.55 0.55"/>
-    <key name="curled" qpos="0 1.4 0 1.4" ctrl="0 1.4 1.4"/>
-    <key name="yawed" qpos="0.8 0.55 0 0.55" ctrl="0.8 0.55 0.55"/>
+    <key name="straight" qpos="0 0 0" ctrl="0 0 0"/>
+    <key name="open" qpos="0 0.55 0.55" ctrl="0 0.55 0.55"/>
+    <key name="curled" qpos="0 1.4 1.4" ctrl="0 1.4 1.4"/>
+    <key name="yawed" qpos="0.8 0.55 0.55" ctrl="0.8 0.55 0.55"/>
   </keyframe>
 </mujoco>
 """
@@ -731,7 +755,7 @@ def write_model(A, collision: dict, out_dir: Path, with_pads: bool = True) -> di
     hand = head.replace("{model}", "cad_v1_hand") + f"""  <worldbody>
     <light pos="0 0 1.5" dir="0 0 -1" directional="true" diffuse=".6 .6 .6" specular=".2 .2 .2"/>
     <geom name="floor" type="plane" size="1.5 1.5 0.1" material="table_mat" contype="0" conaffinity="0"/>
-    <body gravcomp="1" name="palm_pose" pos="0 0 {PALM_Z_MM / 1000:.6f}">
+    <body gravcomp="1" name="palm_pose" pos="0 0 {PALM_Z_MM / 1000 + palm_raise_m(A):.6f}">
       <geom name="palm_plate" type="box" pos="0 0 {PALM_PLATE_Z_MM / 1000:.4f}" size="0.0850 0.0900 0.0015" material="palm_mat"/>
       <site name="workspace_thumb" type="box" pos="-0.050 0 0.0280" size="0.030 0.055 0.0005" rgba="0.85 0.30 0.30 0.14"/>
       <site name="workspace_index" type="box" pos="0.050 0.055 0.0280" size="0.030 0.030 0.0005" rgba="0.30 0.55 0.85 0.14"/>

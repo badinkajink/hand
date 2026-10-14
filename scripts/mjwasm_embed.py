@@ -1138,6 +1138,7 @@ _VIEWER_JS = r"""/* mjwasm viewer runtime (scripts/mjwasm_embed.py in the Morpho
         if (type !== HINGE && type !== SLIDE) continue;
         const hinge = type === HINGE, k = hinge ? DEG : 1000;
         let lo = m.jnt_range[2 * j], hi = m.jnt_range[2 * j + 1];
+        if (!hinge && !(hi > lo) && !(servo[j] || []).length) continue;   // unlimited, unactuated slide: a fixed shim
         if (!(hi > lo)) { lo = hinge ? -Math.PI : -span; hi = hinge ? Math.PI : span; }   // range "0 0": unlimited
         const name = this.nameOf("joint", j) || "joint " + j, acts = servo[j] || [];
         const row = h("div", { class: "mjw-joint" }, wrap);
@@ -1252,9 +1253,10 @@ _VIEWER_JS = r"""/* mjwasm viewer runtime (scripts/mjwasm_embed.py in the Morpho
     frame(now) {
       this.raf = 0;
       if (this.playing && this.visible) {
-        const dt = this.last === null ? 0 : Math.min((now - this.last) / 1000, 0.2);   // >= 5 frames/s keeps real time
+        const wall = this.last === null ? 0 : (now - this.last) / 1000;
+        const dt = Math.min(wall, 0.2);                                       // >= 5 frames/s keeps real time
         this.last = now;
-        if (dt > 0) this.advance(dt);
+        if (dt > 0) this.advance(dt, wall);
         this.raf = requestAnimationFrame(this.frameFn);
       } else this.last = null;
       try { this.render(); } catch (e) {
@@ -1266,7 +1268,7 @@ _VIEWER_JS = r"""/* mjwasm viewer runtime (scripts/mjwasm_embed.py in the Morpho
       if (!this.playing) this.status();                                      // paused frames come from user input
       else if (now - (this.uiAt || 0) > 100) { this.uiAt = now; this.readouts(); this.status(); }
     }
-    advance(dt) {
+    advance(dt, wall) {
       const hstep = this.timestep, mod = this.mod, m = this.m, d = this.d, t0 = performance.now(), sim0 = d.time;
       this.acc += dt * this.speed;
       let n = 0;
@@ -1278,7 +1280,7 @@ _VIEWER_JS = r"""/* mjwasm viewer runtime (scripts/mjwasm_embed.py in the Morpho
       }
       this.steps += n;
       this.wallPlayed = (this.wallPlayed || 0) + dt;
-      const r = (d.time - sim0) / dt;
+      const r = (d.time - sim0) / (wall || dt);                             // against the uncapped frame interval
       if (isFinite(r) && r >= 0) this.rtf = 0.9 * this.rtf + 0.1 * r;
     }
     render() {

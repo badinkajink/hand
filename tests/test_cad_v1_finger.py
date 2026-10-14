@@ -78,3 +78,19 @@ def test_pads_face_the_opposing_finger():
         tip = d.xpos[m.body(f"{f}_tip").id]
         xs = [d.geom_xpos[g][0] - tip[0] for g in range(m.ngeom) if m.geom(g).name.startswith(f"{f}_pad")]
         assert sign * max(xs, key=lambda x: sign * x) > 0.0098  # palmar pads 9.8 mm out from the tip axis
+
+
+def test_dip_spheres_stay_behind_the_pads():
+    """The DIP link's spheres reach no farther than the pads on the tip's palmar, end and side faces (clip_to_pads)."""
+    m, d = load("finger.xml")
+    mujoco.mj_forward(m, d)
+    pads = [g for g in range(m.ngeom) if m.geom(g).name.startswith("index_pad")]
+    P, rp = np.array([d.geom_xpos[g] for g in pads]), m.geom_size[pads[0]][0]
+    lo, hi = (P - rp).min(0), (P + rp).max(0)
+    for g in range(m.ngeom):
+        if not m.geom(g).name.startswith("index_pip_frame_s"):
+            continue
+        c, r = d.geom_xpos[g], m.geom_size[g][0]
+        assert c[0] - r >= lo[0] - 1e-9 and c[2] - r >= lo[2] - 1e-9, m.geom(g).name  # palmar (-x) and end (-z) faces
+        if c[2] < hi[2]:
+            assert lo[1] - 1e-9 <= c[1] - r and c[1] + r <= hi[1] + 1e-9, m.geom(g).name  # side faces

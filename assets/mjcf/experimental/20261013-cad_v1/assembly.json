@@ -41,7 +41,13 @@
     ],
     "horn_side_inner_face_axial_mm": 32.2,
     "servo_boss_top_axial_mm": 27.0,
-    "boss_to_horn_side_mm": 5.2
+    "boss_to_horn_side_mm": 5.2,
+    "horn_side_material_axial_mm": [
+     [
+      32.2,
+      35.2
+     ]
+    ]
    },
    "mcp": {
     "parent": "yaw_link",
@@ -66,7 +72,13 @@
     ],
     "horn_side_inner_face_axial_mm": 32.2,
     "servo_boss_top_axial_mm": 27.0,
-    "boss_to_horn_side_mm": 5.2
+    "boss_to_horn_side_mm": 5.2,
+    "horn_side_material_axial_mm": [
+     [
+      32.2,
+      35.2
+     ]
+    ]
    },
    "pip": {
     "parent": "mcp_link",
@@ -91,7 +103,17 @@
     ],
     "horn_side_inner_face_axial_mm": 28.2,
     "servo_boss_top_axial_mm": 27.0,
-    "boss_to_horn_side_mm": 1.2
+    "boss_to_horn_side_mm": 1.2,
+    "horn_side_material_axial_mm": [
+     [
+      28.2,
+      30.4
+     ],
+     [
+      32.4,
+      34.4
+     ]
+    ]
    }
   },
   "servos": {

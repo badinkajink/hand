@@ -4,37 +4,95 @@
    "model": "real_v1 capsules and pads",
    "ngeom": 3192,
    "ngeom_colliding": 3189,
-   "us_per_step": 30.691780149936676,
-   "steps_per_s": 32582.01365690622,
-   "ncon_mean": 2.0,
-   "ncon_max": 2
+   "open": {
+    "us_per_step": 30.389125924557447,
+    "steps_per_s": 32906.50749490298,
+    "ncon_mean": 2.0,
+    "ncon_max": 2,
+    "tip_force_share": null,
+    "first_tool_contact_s": {}
+   },
+   "close": {
+    "us_per_step": 34.45377200841904,
+    "steps_per_s": 29024.398250375678,
+    "ncon_mean": 2.0,
+    "ncon_max": 2,
+    "tip_force_share": null,
+    "first_tool_contact_s": {}
+   }
   },
   {
    "model": "CAD finger, pads only",
    "ngeom": 3075,
    "ngeom_colliding": 3051,
-   "us_per_step": 30.566087923943996,
-   "steps_per_s": 32715.995664484373,
-   "ncon_mean": 2.0,
-   "ncon_max": 2
+   "open": {
+    "us_per_step": 30.485115945339203,
+    "steps_per_s": 32802.89311653045,
+    "ncon_mean": 2.0,
+    "ncon_max": 2,
+    "tip_force_share": null,
+    "first_tool_contact_s": {}
+   },
+   "close": {
+    "us_per_step": 34.54590169712901,
+    "steps_per_s": 28946.993735094966,
+    "ncon_mean": 2.02,
+    "ncon_max": 8,
+    "tip_force_share": 1.0,
+    "first_tool_contact_s": {
+     "tip": 0.214
+    }
+   }
   },
   {
    "model": "CAD finger, balanced spheres and pads",
    "ngeom": 3528,
    "ngeom_colliding": 3504,
-   "us_per_step": 47.37250367179513,
-   "steps_per_s": 21109.291730244455,
-   "ncon_mean": 2.0,
-   "ncon_max": 2
+   "open": {
+    "us_per_step": 46.610851772129536,
+    "steps_per_s": 21454.23140707202,
+    "ncon_mean": 2.0,
+    "ncon_max": 2,
+    "tip_force_share": null,
+    "first_tool_contact_s": {}
+   },
+   "close": {
+    "us_per_step": 56.18039099499583,
+    "steps_per_s": 17799.80491928355,
+    "ncon_mean": 3.876,
+    "ncon_max": 38,
+    "tip_force_share": 0.022951449555244214,
+    "first_tool_contact_s": {
+     "tip": 0.214,
+     "pip_frame": 0.268,
+     "mcp_frame": 0.836
+    }
+   }
   },
   {
    "model": "CAD finger, tight spheres and pads",
-   "ngeom": 4896,
-   "ngeom_colliding": 4872,
-   "us_per_step": 55.79971708357334,
-   "steps_per_s": 17921.23781742947,
-   "ncon_mean": 2.0,
-   "ncon_max": 2
+   "ngeom": 4887,
+   "ngeom_colliding": 4863,
+   "open": {
+    "us_per_step": 54.871567990630865,
+    "steps_per_s": 18224.37441865606,
+    "ncon_mean": 2.0,
+    "ncon_max": 2,
+    "tip_force_share": null,
+    "first_tool_contact_s": {}
+   },
+   "close": {
+    "us_per_step": 62.330062966793776,
+    "steps_per_s": 16043.622489724552,
+    "ncon_mean": 3.403,
+    "ncon_max": 31,
+    "tip_force_share": 0.0028460446969530546,
+    "first_tool_contact_s": {
+     "tip": 0.214,
+     "pip_frame": 0.266,
+     "mcp_frame": 0.682
+    }
+   }
   }
  ],
  "steps": 1000,

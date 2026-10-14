@@ -28,10 +28,12 @@ for j, (lo, hi) in {"yaw": (-85, 85), "mcp": (-15, 92), "pip": (-18, 92)}.items(
         for b, n in contacts({j: v}).items(): hits[" / ".join(b)].append(v)
     res[j] = {k: [min(v), max(v), len(v)] for k, v in hits.items()}
     print(j, res[j])
-grid = collections.Counter(); n = 0
-for a in range(-15, 93, 3):
-    for b in range(-18, 93, 3):
+grid = collections.Counter(); cells = collections.defaultdict(list); n = 0
+for a in range(-15, 94, 3):  # the grid of scripts/cad_v1_interference.py: MCP -15..93, PIP -18..93 deg
+    for b in range(-18, 94, 3):
         n += 1
-        for k in contacts({"mcp": a, "pip": b}): grid[" / ".join(k)] += 1
+        for k in contacts({"mcp": a, "pip": b}):
+            grid[" / ".join(k)] += 1
+            cells[" / ".join(k)].append([a, b])
 print("grid", n, dict(grid))
-json.dump({"sweeps": res, "grid": {"n": n, "pairs": dict(grid)}}, open("assets/mjcf/experimental/20261013-cad_v1/sphere_contacts.json", "w"))
+json.dump({"sweeps": res, "grid": {"n": n, "mcp_deg": [-15, 93, 3], "pip_deg": [-18, 93, 3], "pairs": dict(grid), "cells": dict(cells)}}, open("assets/mjcf/experimental/20261013-cad_v1/sphere_contacts.json", "w"))

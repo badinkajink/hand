@@ -196,30 +196,29 @@
           <geom name="index_mcp_frame_s51" class="cad_collision" pos="-0.001205 0.004913 -0.030783" size="0.007064"/>
           <body name="index_len_frame">
             <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6"/>
-            <joint class="morph" name="index_len" axis="1 0 0" range="0 0"/>
             <body name="index_pip_frame" pos="-0 -0 -0.0308">
               <inertial pos="0.001646 -0.000883 -0.014255" mass="0.006434" fullinertia="0.00000132 0.000000602 0.000001125 -0.000000017 0.000000107 -0.000000047"/>
               <joint class="ctrl" name="index_pip" axis="0 1 0" range="-0.314159 1.605703"/>
               <geom name="index_dip_link_visual" class="cad_visual" mesh="cad_dip_link" material="cad_link"/>
-              <geom name="index_pip_frame_s0" class="cad_collision" pos="0.008128 -0.004792 -0.030022" size="0.007280"/>
-              <geom name="index_pip_frame_s1" class="cad_collision" pos="-0.003717 0.013909 -0.012217" size="0.006373"/>
-              <geom name="index_pip_frame_s2" class="cad_collision" pos="0.00701 -0.003578 -0.0159" size="0.006873"/>
-              <geom name="index_pip_frame_s3" class="cad_collision" pos="-0.005153 -0.00247 -0.014196" size="0.006401"/>
+              <geom name="index_pip_frame_s0" class="cad_collision" pos="0.008128 -0.002367 -0.029701" size="0.004533"/>
+              <geom name="index_pip_frame_s1" class="cad_collision" pos="-0.003697 0.013909 -0.012217" size="0.006353"/>
+              <geom name="index_pip_frame_s2" class="cad_collision" pos="0.00701 -0.001803 -0.0159" size="0.005097"/>
+              <geom name="index_pip_frame_s3" class="cad_collision" pos="-0.004401 -0.00247 -0.014196" size="0.005649"/>
               <geom name="index_pip_frame_s4" class="cad_collision" pos="0.005117 0.004622 -0.013805" size="0.006349"/>
               <geom name="index_pip_frame_s5" class="cad_collision" pos="0.000578 -0.021793 -0.005938" size="0.005848"/>
-              <geom name="index_pip_frame_s6" class="cad_collision" pos="-0.006441 0.004641 -0.014562" size="0.005772"/>
-              <geom name="index_pip_frame_s7" class="cad_collision" pos="0.00723 0.003022 -0.034361" size="0.004851"/>
+              <geom name="index_pip_frame_s6" class="cad_collision" pos="-0.005359 0.004641 -0.014562" size="0.004691"/>
+              <geom name="index_pip_frame_s7" class="cad_collision" pos="0.00723 0.003022 -0.033085" size="0.003575"/>
               <geom name="index_pip_frame_s8" class="cad_collision" pos="0.006566 0.013657 -0.012677" size="0.005306"/>
-              <geom name="index_pip_frame_s9" class="cad_collision" pos="0.006831 0.003792 -0.022615" size="0.005180"/>
+              <geom name="index_pip_frame_s9" class="cad_collision" pos="0.006831 0.002756 -0.022615" size="0.004144"/>
               <geom name="index_pip_frame_s10" class="cad_collision" pos="0.007269 -0.012751 -0.012066" size="0.004787"/>
               <geom name="index_pip_frame_s11" class="cad_collision" pos="0.004158 0.014965 -0.006297" size="0.004787"/>
-              <geom name="index_pip_frame_s12" class="cad_collision" pos="-0.008532 -0.011648 -0.011657" size="0.004764"/>
+              <geom name="index_pip_frame_s12" class="cad_collision" pos="-0.006909 -0.011648 -0.011657" size="0.003141"/>
               <geom name="index_pip_frame_s13" class="cad_collision" pos="0.002087 0.016275 0.001612" size="0.004415"/>
               <geom name="index_pip_frame_s14" class="cad_collision" pos="-0.002873 0.015747 -0.004158" size="0.003674"/>
               <geom name="index_pip_frame_s15" class="cad_collision" pos="-0.00251 0.015888 0.001337" size="0.003954"/>
               <geom name="index_pip_frame_s16" class="cad_collision" pos="-0.000441 -0.009776 -0.013149" size="0.004216"/>
               <geom name="index_pip_frame_s17" class="cad_collision" pos="-0.000008 -0.018721 -0.013442" size="0.007030"/>
-              <geom name="index_pip_frame_s18" class="cad_collision" pos="0.006457 0.004327 -0.029219" size="0.004663"/>
+              <geom name="index_pip_frame_s18" class="cad_collision" pos="0.006457 0.003282 -0.029219" size="0.003618"/>
               <body name="index_tip" pos="0 0 -0.02661">
                 <inertial pos="-0.002046 0 0.000102" mass="0.005835" fullinertia="0.000000308 0.000000334 0.000000237 0 -0.000000006 0"/>
                 <geom name="index_tip_visual" class="cad_visual" mesh="cad_tip" material="cad_tip"/>
@@ -1261,9 +1260,9 @@
     <position class="ctrl" name="a_index_pip" joint="index_pip" ctrlrange="-0.314159 1.605703"/>
   </actuator>
   <keyframe>
-    <key name="straight" qpos="0 0 0 0" ctrl="0 0 0"/>
-    <key name="open" qpos="0 0.55 0 0.55" ctrl="0 0.55 0.55"/>
-    <key name="curled" qpos="0 1.4 0 1.4" ctrl="0 1.4 1.4"/>
-    <key name="yawed" qpos="0.8 0.55 0 0.55" ctrl="0.8 0.55 0.55"/>
+    <key name="straight" qpos="0 0 0" ctrl="0 0 0"/>
+    <key name="open" qpos="0 0.55 0.55" ctrl="0 0.55 0.55"/>
+    <key name="curled" qpos="0 1.4 1.4" ctrl="0 1.4 1.4"/>
+    <key name="yawed" qpos="0.8 0.55 0.55" ctrl="0.8 0.55 0.55"/>
   </keyframe>
 </mujoco>
