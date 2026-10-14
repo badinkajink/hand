@@ -287,9 +287,10 @@ def svg_layouts(R):
     Y = lambda y: cy - sx * y  # noqa: E731
     boxes = [("thumb", (-80, -20, -55, 55)), ("index", (20, 80, 25, 85)), ("middle", (20, 80, -85, -25))]
     for name, (x0, x1, y0, y1) in boxes:
+        ly = Y(y0) - 6 if name == "middle" else Y(y1) + 14     # the middle box's top corner holds the t +1 mount
         out.append(f'<rect x="{X(x0):.1f}" y="{Y(y1):.1f}" width="{sx * (x1 - x0):.1f}" height="{sx * (y1 - y0):.1f}" '
                    f'rx="4" style="fill:var(--sunk);stroke:var(--rule)"/>'
-                   f'<text x="{X(x0) + 4:.1f}" y="{Y(y1) + 14:.1f}" style="fill:var(--ink3)">{name}</text>')
+                   f'<text x="{X(x0) + 4:.1f}" y="{ly:.1f}" style="fill:var(--ink3)">{name}</text>')
     ts = [-1.0, -0.5, 0.0, 0.5, 1.0]
     for i, t in enumerate(ts):
         xs, ys = 100 - 60 * t, 110 - 60 * t
@@ -300,7 +301,8 @@ def svg_layouts(R):
         for a, b in pts:
             out.append(f'<circle cx="{X(a):.1f}" cy="{Y(b):.1f}" r="5" style="fill:{shade};stroke:var(--card);stroke-width:2">'
                        f'<title>t = {t:+.1f}: x_s {xs:g} mm, y_s {ys:g} mm</title></circle>')
-        out.append(f'<text x="{X(xs / 2) + 9:.1f}" y="{Y(ys / 2) + 4:.1f}" style="fill:var(--ink2)">t {t:+.1f}</text>')
+        # in a column right of the index box, level with the mount (inline labels crossed the box and the other layouts)
+        out.append(f'<text x="{X(80) + 14:.1f}" y="{Y(ys / 2) + 5:.1f}" style="fill:var(--ink2)">t {t:+.1f}</text>')
     out.append(f'<line x1="{X(-90)}" x2="{X(95)}" y1="{Y(0)}" y2="{Y(0)}" style="stroke:var(--rule);stroke-dasharray:3 4"/>'
                f'<text x="{X(95) + 4}" y="{Y(0) + 4}" style="fill:var(--ink3)">x (pinch)</text>'
                f'<line x1="{X(0)}" x2="{X(0)}" y1="{Y(-95)}" y2="{Y(100)}" style="stroke:var(--rule);stroke-dasharray:3 4"/>'
@@ -412,9 +414,11 @@ def svg_heat(L, task, title, fam="diag", vfmt="{:.0f}", norm="row", unit=""):
     pw = nx * cw
     W = left + 2 * pw + gap + 20
     shapes = ("cylinder", "sphere")
-    H = top + max(len(okeys(s)) for s in shapes) * ch + 70
+    H = top + max(len(okeys(s)) for s in shapes) * ch + 80
     out = P._svg_open(W, H, f"{title}: heatmaps of the score over layout (x) and object diameter (y) for cylinders and "
                             "spheres, with the ridge of each object marked.")
+    fs = float(out[0].split('font-size="')[1].split('"')[0])     # the size _svg_open chose for the 13 px rule
+    tw = lambda s: 0.6 * fs * len(s)                             # Courier New advances 0.6 em per character  # noqa: E731
     for k, shape in enumerate(shapes):
         x0 = left + k * (pw + gap)
         objs = okeys(shape)
@@ -460,17 +464,21 @@ def svg_heat(L, task, title, fam="diag", vfmt="{:.0f}", norm="row", unit=""):
         out.append(f'<text x="{x0 + pw / 2:.1f}" y="{yb + 33}" text-anchor="middle" style="fill:var(--ink2)">'
                    f'thumb&#8211;pair span, mm (pair opening 10 mm more)</text>')
         out.append(f'<text x="{x0 - 50}" y="{top - 12}" style="fill:var(--ink2)">diameter, mm</text>')
-    # shade key
+    # shade key, laid out from the text widths (2026-10-14: fixed offsets overlapped once the text grew to 13 px)
     kx, ky = left, H - 16
-    out.append(f'<text x="{kx}" y="{ky}" style="fill:var(--ink3)">'
-               f'{"share of the row maximum" if norm == "row" else "share of the panel maximum"}: 0</text>')
+    lab = f'{"share of the row maximum" if norm == "row" else "share of the panel maximum"}: 0'
+    out.append(f'<text x="{kx}" y="{ky}" style="fill:var(--ink3)">{lab}</text>')
+    x = kx + tw(lab) + 8
     for s in range(8):
-        out.append(f'<rect x="{kx + 210 + s * 16}" y="{ky - 11}" width="15" height="12" style="fill:var(--q{s})"/>')
-    out.append(f'<text x="{kx + 210 + 8 * 16 + 6}" y="{ky}" style="fill:var(--ink3)">1</text>'
-               f'<rect x="{kx + 380}" y="{ky - 11}" width="15" height="12" style="fill:var(--qna)"/>'
-               f'<text x="{kx + 400}" y="{ky}" style="fill:var(--ink3)">no feasible grasp</text>'
-               f'<circle cx="{kx + 548}" cy="{ky - 5}" r="4.5" style="fill:var(--ink)"/>'
-               f'<text x="{kx + 558}" y="{ky}" style="fill:var(--ink3)">ridge</text>')
+        out.append(f'<rect x="{x + s * 16:.1f}" y="{ky - 11}" width="15" height="12" style="fill:var(--q{s})"/>')
+    x += 8 * 16 + 4
+    out.append(f'<text x="{x:.1f}" y="{ky}" style="fill:var(--ink3)">1</text>')
+    x += tw("1") + 28
+    out.append(f'<rect x="{x:.1f}" y="{ky - 11}" width="15" height="12" style="fill:var(--qna)"/>'
+               f'<text x="{x + 21:.1f}" y="{ky}" style="fill:var(--ink3)">no feasible grasp</text>')
+    x += 21 + tw("no feasible grasp") + 28
+    out.append(f'<circle cx="{x + 5:.1f}" cy="{ky - 5}" r="4.5" style="fill:var(--ink)"/>'
+               f'<text x="{x + 15:.1f}" y="{ky}" style="fill:var(--ink3)">ridge</text>')
     out.append("</svg>")
     return "".join(out)
 
