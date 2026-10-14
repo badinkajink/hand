@@ -6,11 +6,12 @@ State (2026-10-12): all pages published; sprung skin page at https://claude.ai/a
 Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap step add <job> "text"` adds one):
 - [x] 1. List the pages that job changed (git log of its commits); review each: no placeholders or pending notes left,… Done 10-12 18:08: 5 pages scanned: no placeholders/pending text, every video has an inline poster and data source
 - [x] 2. Republish to the URLs of record: the servo-plant page https://claude.ai/artifact/KUbENqD5kWU7yhZnbymXTH, the … Done 10-12 18:09: republished servo-plant page, native compliance page, contact and RL overviews; new sprung-skin page published
-- [ ] 3. Record any new URL in INDEX.md, docs/overviews/artifact_urls.txt and the page's artifact_url.txt; commit; git push origin main (fast-forward only).
+- [x] 3. Record any new URL in INDEX.md, docs/overviews/artifact_urls.txt and the page's artifact_url.txt; commit; git… Done 10-12 18:09: URL recorded in INDEX.md and artifact_url.txt; pushed 6e275c2d
 Standing directions (for every step):
 - The contact overview also carries commit e9ef7730 (skin section corrected against the deck 23 math pass: converged loop 2.58 uJ, armature, impratio, 3 N twist); republish it even if the skin job leaves that page unchanged, and check its skin section and Table 3 when reviewing.
 - Also republish docs/experiments/20261007-native_compliance/20261007-native_presliding_compliance.html to https://claude.ai/artifact/D38s9bTzL9szVLNnuYk698 (correction note of 2026-10-12, commit a0f2c738), and the contact overview for 81e20730 (skin at the trainer's impratio of 10, Figure 14b), even if the skin job leaves them unchanged; read each artifact first.
 - Publish the new page docs/experiments/20261012-sprung_skin/20261012-sprung_skin_presliding.html as a new artifact (icon 'chart', one-sentence description), record its URL in docs/experiments/INDEX.md and docs/experiments/20261012-sprung_skin/artifact_url.txt, and republish both overviews.
+- Also republish docs/experiments/20261009-tpu_tip_fem/20261009-printed_tpu_fingertip_finite_elements.html to its URL in that folder's artifact_url.txt (https://claude.ai/artifact/MSLurN7jPTaFfXUdsxJMZv): revised 2026-10-12 with the print plan, the embedded magnet, the sim-to-real budget and the calibration section; read the artifact first and check that every figure renders and no 'Runs in progress' or 'running' cell remains.
 <!-- /ap:steps -->
 Claimed: docs/experiments/INDEX.md (artifact column), docs/overviews/artifact_urls.txt, artifact_url.txt files.
 Waiting on owner: none.

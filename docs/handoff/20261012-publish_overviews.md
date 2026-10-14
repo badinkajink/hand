@@ -6,7 +6,7 @@ State (2026-10-12): both overviews republished to their URLs (rl_policies v4, co
 Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap step add <job> "text"` adds one):
 - [x] 1. Review docs/overviews/rl_policies.html (Figures 2-5 and 7 are films with posters) and docs/overviews/contact_… Done 10-12 11:26: both overviews: no placeholders, 5 films with posters in rl_policies, 4 in contact_model, figures 1-7 and 1-16 captioned
 - [x] 2. Republish docs/overviews/rl_policies.html to https://claude.ai/artifact/63pWHmwZrx6BN4AgwvS4T7 and docs/overv… Done 10-12 11:26: rl_policies v4 and contact_model v12 republished to the same URLs
-- [ ] 3. Record any change in docs/overviews/artifact_urls.txt; commit; git push origin main (fast-forward only).
+- [x] 3. Record any change in docs/overviews/artifact_urls.txt; commit; git push origin main (fast-forward only). Done 10-12 11:26: URLs unchanged so artifact_urls.txt needs no edit; committed afa1e5d3 and pushed (fast-forward)
 <!-- /ap:steps -->
 Claimed: docs/overviews/artifact_urls.txt.
 Waiting on owner: none.
