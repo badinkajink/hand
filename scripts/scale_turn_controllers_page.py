@@ -715,6 +715,19 @@ def landscape_section(X: Data):
     return s
 
 
+def _hom_jitter_text(X: Data, hm):
+    rows = [r for r in X.pl.get("hom", []) if r.get("omega_jitter") is not None]
+    big = [r["omega_jitter"] for r in rows if r["d_mm"] == 25.0]
+    small = [r for r in rows if r["d_mm"] < 25.0]
+    if not big or not small:
+        return ""
+    js = [r["omega_jitter"] for r in small]
+    lost = sum(1 for r in small if not r["held"])
+    return (f"HOM&#8217;s angular-velocity jitter, {hm['jit']:.1f}&#8202;&#176;/s, is the largest here: "
+            f"{min(big):.1f}&#8211;{max(big):.1f}&#8202;&#176;/s on the 25&#8202;mm cylinder and {min(js):.0f}&#8211;{max(js):.0f}"
+            f"&#8202;&#176;/s on the 16 and 10&#8202;mm cylinders, where {lost} of its {len(small)} runs end not held.")
+
+
 def planners_section(X: Data):
     if not X.pl_cfgs:
         return "<p>The planner rows are not yet in <code>planners/turn.jsonl</code>.</p>"
@@ -773,9 +786,8 @@ def planners_section(X: Data):
               f"targets at {min(rates):.2f}&#8211;{max(rates):.2f}&#8202;rad/s, at or below HOM&#8217;s {hm['rate']:.2f}. Pinning "
               f"shrinks the command steps but not their number: the pinned planners still reverse each servo target "
               f"{min(revs):.1f}&#8211;{max(revs):.1f} times per second, HOM {hm['rev']:.1f} times (Figure&#160;[[fig:plcommand]]). "
-              f"HOM&#8217;s angular-velocity jitter, {hm['jit']:.1f}&#8202;&#176;/s, is the largest of all controllers here; it "
-              "comes from the small cylinders, where HOM&#8217;s pad corrections move the cylinder in jerks.</p>")
-    best = max((c for c in X.pl_cfgs if c != "hom"), key=lambda c: (st[c]["turn"], -st[c]["rate"]))
+              + _hom_jitter_text(X, hm) + "</p>")
+    best = max((c for c in X.pl_cfgs if c not in ("hom", "anneal_gpu")), key=lambda c: (st[c]["turn"], -st[c]["rate"]))
     b = st[best]
     mpc = [c for c in X.pl_cfgs if c != "hom"]
     n_three = sum(st[c]["three_end"] for c in mpc)
@@ -784,9 +796,9 @@ def planners_section(X: Data):
     s += (f"<p>{PL_LAB[best]} turns furthest: a median held turn of {deg(b['turn'])} over its {b['n']} runs, {b['h60']} of them "
           f"at 60&#176; or more on three pads, against {deg(hm['turn'])} for HOM ({hm['h60']} of {hm['n']}). "
           f"The MPC runs end held on three pads in {n_three} of {n_mpc} and break a finger&#8217;s contact {br_mpc} times in all; "
-          f"HOM holds {hm['held']} of its {hm['n']} runs and breaks contact {hm['breaks']} times. MPPI moves least: its weighted "
-          f"average of 64 samples steps the plan by a fraction of the noise and turns the cylinder a median "
-          f"{deg(st['mppi_pin']['turn']) if 'mppi_pin' in st else '&#8211;'}.</p>")
+          f"HOM holds {hm['held']} of its {hm['n']} runs and breaks contact {hm['breaks']} times. "
+          + (f"Pinned MPPI turns least, a median {deg(st['mppi_pin']['turn'])}, at the lowest command rate, "
+             f"{st['mppi_pin']['rate']:.2f}&#8202;rad/s." if "mppi_pin" in st else "") + "</p>")
     if "anneal_gpu" in st:
         g, a_ = st["anneal_gpu"], st.get("anneal_pin")
         s += (f"<p>On the GPU, annealed sampling draws 1,024 rollouts per replanning, 16 times the CPU budget, in four stages of 256 "
@@ -1024,12 +1036,13 @@ def lede(X: Data):
               f"cells.")
     if X.pl_cfgs and all(c in X.pl_cfgs for c in ("hom", "ps", "ps_pin")):
         st = {c: X.pl_stats(c) for c in X.pl_cfgs}
-        best = max((c for c in X.pl_cfgs if c != "hom"), key=lambda c: (st[c]["turn"], -st[c]["rate"]))
+        best = max((c for c in X.pl_cfgs if c not in ("hom", "anneal_gpu")), key=lambda c: (st[c]["turn"], -st[c]["rate"]))
+        n_lost = st["hom"]["n"] - st["hom"]["held"]
         s += (f" On four cells and two placements, pinning the plan&#8217;s first knot to the command in force cuts the RMS "
               f"command rate of predictive sampling from {st['ps']['rate']:.2f} to {st['ps_pin']['rate']:.2f}&#8202;rad/s (HOM "
-              f"{st['hom']['rate']:.2f}), and {PL_LAB[best].lower()} turns furthest at the "
-              f"same budget, a median {deg(st[best]['turn'])} (HOM {deg(st['hom']['turn'])}), with {st[best]['three_end']} of "
-              f"{st[best]['n']} runs held on three pads.")
+              f"{st['hom']['rate']:.2f}), and {PL_LAB[best][0].lower() + PL_LAB[best][1:]} turns furthest at the "
+              f"same budget, a median {deg(st[best]['turn'])} (HOM {deg(st['hom']['turn'])}, {n_lost} of {st['hom']['n']} runs not "
+              f"held), with {st[best]['three_end']} of {st[best]['n']} runs held on three pads.")
     return s
 
 
