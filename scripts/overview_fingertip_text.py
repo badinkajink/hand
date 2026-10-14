@@ -125,7 +125,8 @@ FIGURES = {
                   alt="Normal-force noise and three disturbances for four tips on the five-chip board.",
                   caption="Normal-force noise of one 141&#8202;Hz sample and three force-equivalent disturbances (Earth&#8217;s "
                           "field, 10&#8202;&#176;C of drift, the facing magnet) for four tips on the five-chip board."),
-    "film_g20": dict(film=[[(FILM_G20, "95A TPU, gyroid 20 %, whole tip")]], page="20261009-tpu_tip_fem/"
+    # film labels go to ffmpeg drawtext, which reads a bare % as an expansion and then draws no label: escape it as \%
+    "film_g20": dict(film=[[(FILM_G20, "95A TPU, gyroid 20 \\%, whole tip")]], page="20261009-tpu_tip_fem/"
                      "20261009-printed_tpu_fingertip_finite_elements.html", source="finite elements of the printed tip",
                      caption="The whole tip with 20&#8202;% gyroid infill under the 12.5&#8202;mm shaft: the section through the "
                              "contact point, displacement magnified 15 times and coloured by its size, beside the pressure on "
