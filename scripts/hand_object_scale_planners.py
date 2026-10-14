@@ -45,6 +45,9 @@ CONFIGS = {
 }
 CONFIGS["ilqr"] = dict(method="ilqr", pad_filter=1.0)    # hand_object_scale_ilqr.py: 25 intervals of 20 ms
 STRING_KEYS = ("method", "device")
+TITLES = {"hom": "HOM", "ps": "Predictive sampling", "ps_pin": "Predictive sampling, pinned", "mppi_pin": "MPPI, pinned",
+          "cem_pin": "CEM, pinned", "icem_pin": "iCEM, pinned", "anneal_pin": "Annealed sampling, pinned",
+          "anneal_gpu": "Annealed sampling, GPU", "ilqr": "iLQR"}
 
 
 def prm_of(name, extra=()):
@@ -67,9 +70,66 @@ def done_keys(path):
     return out
 
 
+def cmd_film(a) -> int:
+    """Films of the configurations on each cell, one panel per configuration in a grid of `--cols` columns, from fresh
+    runs with the rows' seeds; each panel's run is a row of media/films.jsonl beside its clip."""
+    import imageio
+    import reorient_backends_films as F
+    S.PLANT = SERVO
+    F.W, F.H = (int(v) for v in a.size.split("x"))
+    hom_prm = dict(H.DEFAULTS, post_off=1.0, kp_model=S.RB.plant_args(SERVO)["kp"])
+    planners = {c: (TITLES[c], prm_of(c, a.set)) for c in a.configs if c != "hom"}
+    names = ["HOM" if c == "hom" else c for c in a.configs]
+    base = prm_of("ps", a.set)
+    best = M.hom_best(Path(a.hom_rows))
+    media = Path(a.out_dir)
+    media.mkdir(parents=True, exist_ok=True)
+    cells = {(c[1], c[2], c[0].get("t")): c[0] for c in S.cell_list("diag")}
+    for spec in a.cells:
+        shape, dd, t = spec.split(":")
+        dd, t = float(dd), float(t)
+        cell = cells[(shape, dd, t)]
+        ci = best[(cell["tag"], shape, dd)]["cand"]
+        out = M.film_pair(cell, shape, dd, ci, a.seed, base, hom_prm, a.nthread, tuple(names), None, planners)
+        obj = f"{S.obj_tag(shape, dd)}_{cell['tag']}_s{a.seed}"
+        clips = []
+        for name, cfg in zip(names, a.configs):
+            frames, res, geo = out[name]
+            clip = media / f"{cfg}_{obj}.mp4"
+            imageio.mimwrite(str(clip), frames, fps=25, codec="libx264", quality=8, macro_block_size=8)
+            clips.append(clip)
+            row = {"clip": clip.name, "config": cfg, "plant": SERVO, "tag": cell["tag"], "t": t, "shape": shape,
+                   "d_mm": dd, "seed": a.seed, **geo, "set": a.set, "frames": len(frames),
+                   **{k: res.get(k) for k in ("held", "turn_end_deg", "held_turn_deg", "fingers_loaded_end", "F_end",
+                                              "three_frac", "contact_breaks", "cmd_rate_rms", "omega_jitter",
+                                              "peak_rate")},
+                   "trace": res.get("trace", []), "when": time.strftime("%Y-%m-%d %H:%M")}
+            with open(media / "films.jsonl", "a") as fh:
+                fh.write(json.dumps(row) + "\n")
+                fh.flush()
+                os.fsync(fh.fileno())
+            print(f"{cfg:11s} {obj}: held {row['held']} turn {row['turn_end_deg']} frames {len(frames)}", flush=True)
+        stem = f"{a.stem}_{obj}"
+        n = F.tile_stream(clips, media / f"{stem}.mp4", media / f"{stem}.jpg", cols=a.cols, crf=a.crf)
+        print(f"tiled {n} frames -> {stem}.mp4", flush=True)
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
+    f = sub.add_parser("film")
+    f.add_argument("--configs", nargs="+", default=["hom", "ps", "ps_pin", "icem_pin"])
+    f.add_argument("--cells", nargs="+", required=True, help="shape:d_mm:t")
+    f.add_argument("--seed", type=int, default=0)
+    f.add_argument("--set", nargs="*", default=[])
+    f.add_argument("--nthread", type=int, default=6)
+    f.add_argument("--cols", type=int, default=2)
+    f.add_argument("--size", default="640x480", help="panel width x height in pixels")
+    f.add_argument("--crf", type=int, default=20)
+    f.add_argument("--stem", default="planners")
+    f.add_argument("--out-dir", default=str(OUT / "media"))
+    f.add_argument("--hom-rows", default=str(M.OUT / "hom_postoff_servo/turn.jsonl"))
     r = sub.add_parser("run")
     r.add_argument("--configs", nargs="+", default=["hom"] + list(CONFIGS))
     r.add_argument("--cells", nargs="+", required=True, help="shape:d_mm:t")
@@ -82,6 +142,8 @@ def main() -> int:
     r.add_argument("--out", default=str(OUT / "turn.jsonl"))
     r.add_argument("--hom-rows", default=str(M.OUT / "hom_postoff_servo/turn.jsonl"))
     a = ap.parse_args()
+    if a.cmd == "film":
+        return cmd_film(a)
     S.PLANT = SERVO
     out = Path(a.out)
     out.parent.mkdir(parents=True, exist_ok=True)

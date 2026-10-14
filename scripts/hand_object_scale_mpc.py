@@ -560,9 +560,11 @@ def big_label(frame, lines, size=30):
     return np.asarray(im)
 
 
-def film_pair(cell, shape, dd, ci, seed, prm, hom_prm, nthread, controllers=("HOM", "MPC"), prm3=None):
-    """The HOM turn and the MPC turn of one cell's candidate grasp, rendered at 25 frames per simulated second with
-    the pads touching the object drawn red (hand_object_scale_films' camera and labels)."""
+def film_pair(cell, shape, dd, ci, seed, prm, hom_prm, nthread, controllers=("HOM", "MPC"), prm3=None, planners=None):
+    """The HOM turn and the MPC turns of one cell's candidate grasp, rendered at 25 frames per simulated second with
+    the pads touching the object drawn red (hand_object_scale_films' camera and labels). `planners` maps further
+    controller names to (panel title, parameters) for mpc_turn (hand_object_scale_planners.py film)."""
+    planners = planners or {}
     import mujoco
     import hand_object_scale_films as FL
     import reorient_backends_films as F
@@ -581,7 +583,7 @@ def film_pair(cell, shape, dd, ci, seed, prm, hom_prm, nthread, controllers=("HO
         cam.distance = 0.8 * (0.24 + 1.4 * dd / 1000.0)
         frames, k = [], [0]
         every = 4 if ctrl == "HOM" else max(1, int(round(0.04 / prm["dt_plan"])))
-        title = {"HOM": "HOM", "MPC": "MPC", "MPC3": "MPC, three pads"}[ctrl]
+        title = {"HOM": "HOM", "MPC": "MPC", "MPC3": "MPC, three pads"}.get(ctrl) or planners[ctrl][0]
 
         post_id = m.geom("post").id
 
@@ -603,6 +605,8 @@ def film_pair(cell, shape, dd, ci, seed, prm, hom_prm, nthread, controllers=("HO
             mirror = S.Mirror(Path(sc["pt"][0]))
             S.set_palm(mirror.m, gg["palm"])
             res = S.turn_rollout(plant, mirror, meta, seed, hom_prm, frame_cb=cb)
+        elif ctrl in planners:
+            res = mpc_turn(plant, meta, seed, planners[ctrl][1], nthread=nthread, frame_cb=cb)
         elif ctrl == "MPC":
             res = mpc_turn(plant, meta, seed, prm, nthread=nthread, frame_cb=cb)
         else:
