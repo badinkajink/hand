@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
-"""Build docs/index.html, the home page of the documentation: the hand in two sentences, the six topics with their
-state and links, how to fetch the result pages, and where the code is.
+"""Build docs/index.html, the home page of the documentation: the hand in two sentences, the topics with their
+state and links, how to fetch the result pages, and where the code is; and docs/pages.html, the index of every result
+page by topic and by date (owner, 2026-10-13: "is the home view index exhaustive ... organize so that a non-LFS and LFS
+user can view the index"), with each page's local file, size, builder, copy on claude.ai and the command that fetches it.
 
     python3 scripts/docs_home_page.py
 
-The page is an ordinary git file that opens from a clone in a browser with no server (owner, 2026-10-09): relative
+Both pages are ordinary git files that open from a clone in a browser with no server (owner, 2026-10-09): relative
 links, the one photo inlined as a data URI. Each topic heading links its overview (docs/overviews/, file names in
-docs_inventory.OVERVIEW) once that file exists; the key result pages are linked under it.
+docs_inventory.OVERVIEW) once that file exists; the key result pages are linked under it. The page index lists every
+page of docs_inventory.records(), so a page with a topic is never missing from it.
 """
 from __future__ import annotations
 
@@ -21,6 +24,7 @@ import texsvg
 
 ROOT = D.ROOT
 OUT = os.path.join(ROOT, "docs", "index.html")
+PAGES_OUT = os.path.join(ROOT, "docs", "pages.html")
 PHOTO = os.path.join(ROOT, "docs", "overviews", "media", "sr2_hand_bench.jpg")   # paper Fig. 1, 720 px
 TEX_CACHE = os.path.join(ROOT, "docs", "overviews", "media", "texsvg_cache.json")   # shared with the overviews
 TEX_RE = re.compile(r"\\\((.+?)\\\)", re.S)
@@ -42,6 +46,8 @@ TOPICS = [
      "reproduces 177 tracked bench runs within 2.89&#176;, and two AprilTags give the tool's pose to 0.017&#176;.",
      [("servo identification", E + "20260902-servo-sysid/20260902-servo_sysid.html"),
       ("servo model refit", E + "20261006-hom_turn3/20261006-servo_refit_hom_turn_pad_cost.html"),
+      ("identification protocol, draft", E + "20261013-servo_identification/20261013-servo_identification_protocol.html"),
+      ("finger model from the CAD", E + "20261013-cad_v1_finger/20261013-cad_v1_finger_model.html"),
       ("tool tracker", E + "20260831-real_v1-object-tracking/20260831-real_v1_object_tracking.html")]),
     ("mechanisms",
      "Rotating the three contacts as one rigid body about an axis above them stands the screwdriver up open loop, "
@@ -70,6 +76,15 @@ TOPICS = [
      "spin 6&#8202;% under its torque, at 15&#8202;&#181;s per step against Drake's 1,298&#8202;&#181;s.",
      [("policies on four contact models", E + "20261008-contact_model_policies/20261008-fingertip_contact_model_policies.html"),
       ("comparison bed", E + "20261005-contact_bed/20261005-contact_model_bed.html")]),
+    ("fingertip",
+     "Finite elements on its own G-code put the approach of a 95A TPU tip with 20&#8202;% gyroid infill at "
+     "63&#8202;&#181;m under 1&#8202;N, and that of an eFlesh lattice of 8&#8202;mm cells at 381&#8211;613&#8202;&#181;m. "
+     "On the five-chip MLX90393 board, one 4.76&#8202;&#215;&#8202;1.59&#8202;mm magnet 5&#8202;mm under the face gives "
+     "0.044&#8202;N of force noise per sample at a known contact point; with the contact point unknown, four magnets hold "
+     "0.14&#8211;0.16&#8202;N over the whole face, where one magnet ranges from 0.08 to 1.48&#8202;N.",
+     [("finite elements of the printed tip", E + "20261009-tpu_tip_fem/20261009-printed_tpu_fingertip_finite_elements.html"),
+      ("eFlesh printability", E + "20261013-eflesh_printability/20261013-eflesh_lattice_printability.html"),
+      ("magnetometer readout", E + "20261013-magnet_layouts/20261013-mlx90393_fingertip_readout.html")]),
 ]
 
 CSS = """
@@ -81,6 +96,12 @@ figure img{max-width:100%;height:auto}
 .pages{font-size:16px}
 pre{overflow-x:auto}
 td,th{text-align:left}
+.tw{overflow-x:auto}
+table.pix{width:100%;font-size:16px}
+table.pix td.num{white-space:nowrap}
+table.pix td.mb{text-align:right;white-space:nowrap}
+details{margin:4px 0 8px}
+details pre{margin:4px 0}
 """
 
 
@@ -97,9 +118,95 @@ def topic_html(key, text, pages, titles):
     head = titles[key]
     if os.path.exists(ov):
         head = f'<a href="{rel(os.path.relpath(ov, ROOT))}">{head}</a>'
+    else:                                  # no overview yet: the topic's rows in the page index
+        head = f'<a href="pages.html#{key}">{head}</a>'
     links = " &#183; ".join(f'<a href="{rel(p)}">{lab}</a>' for lab, p in pages)
     return (f'<div class="topic"><h3>{head}</h3><p>{text}</p>'
             f'<p class="pages">Pages: {links}.</p></div>')
+
+
+def lfs_cmd(patterns):
+    return 'git -c lfs.fetchexclude= lfs pull --include="' + ",".join(patterns) + '"'
+
+
+def pages_html(recs, titles):
+    """docs/pages.html: every result page, grouped by topic (newest first) and then all of them by date."""
+    order = [k for k, *_ in TOPICS] + [k for k, *_ in D.TOPICS if k not in {t[0] for t in TOPICS}]
+    scope = {k: sc for k, _, sc in D.TOPICS}
+    here = os.path.dirname(PAGES_OUT)
+    total = sum(r["mb"] for r in recs)
+
+    def link(r):
+        title = r["title"] + (f" ({r['status']})" if r["status"] != "current" else "")
+        return f'<a href="{os.path.relpath(os.path.join(ROOT, r["file"]), here)}">{title}</a>'
+
+    def copy(r):
+        return f'<a href="{r["artifact"]}">claude.ai</a>' if r["artifact"] else ""
+
+    toc, secs = [], []
+    for key in order:
+        rs = sorted((r for r in recs if r["topic"] == key), key=lambda r: (r["date"], r["file"]), reverse=True)
+        if not rs:
+            continue
+        ov = os.path.join(ROOT, "docs", "overviews", D.OVERVIEW.get(key, "-"))
+        head = titles[key]
+        if os.path.exists(ov):
+            head = f'<a href="{os.path.relpath(ov, here)}">{head}</a>'
+        mb = sum(r["mb"] for r in rs)
+        size = {r["file"]: os.path.getsize(os.path.join(ROOT, r["file"])) / 1e6 for r in rs}
+        folders = sorted({r["folder"] for r in rs})
+        body = "".join(f'<tr><td class="num">{r["date"]}</td><td>{link(r)}</td>'
+                       f'<td>{"<code>" + os.path.basename(r["builder"]) + "</code>" if r["builder"] else ""}</td>'
+                       f'<td class="mb">{size[r["file"]]:.2f}</td><td>{copy(r)}</td></tr>' for r in rs)
+        toc.append(f'<li><a href="#{key}">{titles[key]}</a> ({len(rs)})</li>')
+        secs.append(f'<h2 id="{key}">{head}</h2>\n<p>{scope[key]}</p>\n'
+                    f'<details><summary>Command that fetches the {len(rs)} pages of this topic ({mb:.0f}&#8202;MB)</summary>'
+                    f'<pre>{lfs_cmd(f"docs/experiments/{f}/*.html" for f in folders)}</pre></details>\n'
+                    '<div class="tw"><table class="pix"><thead><tr><th>Date</th><th>Page</th><th>Builder</th><th>MB</th>'
+                    f'<th>Copy</th></tr></thead><tbody>{body}</tbody></table></div>')
+    short = {k: t for k, t, _ in D.TOPICS}
+    by_date = "".join(f'<tr><td class="num">{r["date"]}</td><td>{link(r)}</td><td><a href="#{r["topic"]}">{short[r["topic"]]}</a></td>'
+                      f'<td class="mb">{os.path.getsize(os.path.join(ROOT, r["file"])) / 1e6:.2f}</td><td>{copy(r)}</td></tr>'
+                      for r in sorted(recs, key=lambda r: (r["date"], r["file"]), reverse=True))
+    toc.append('<li><a href="#bydate">All pages by date</a></li>')
+    return f"""<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Index of result pages</title>
+<style>{CSS}</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<div class="eyebrow"><a href="index.html">SR&#178; Hand documentation</a> &#183; updated {time.strftime("%Y-%m-%d")}</div>
+<h1>Result pages of the SR&#178; Hand documentation by topic and date</h1>
+<p class="lede">The {len(recs)} dated result pages ({total:.0f}&#8202;MB) under <code>docs/experiments/</code>, in
+{len(toc) - 1} topics. Each title opens the local file. The result pages are Git LFS files, which open as a short pointer
+text until fetched; the home page, the topic overviews and this index are ordinary files and open from any clone. The
+Copy column links the published copy of a page on claude.ai where one exists, and the Builder column names the script in
+<code>scripts/</code> that rebuilds the page from its data.</p>
+</header>
+<nav class="toc"><ol>{"".join(toc)}</ol></nav>
+<h2 id="fetch">Fetching the pages</h2>
+<p>Every page (about {total:.0f}&#8202;MB):</p>
+<pre>git lfs install
+{lfs_cmd(["docs/experiments/**/*.html"])}</pre>
+<p>One page: <code>{lfs_cmd(["docs/experiments/FOLDER/FILE.html"])}</code>. Under each topic, a command fetches that
+topic&#8217;s pages.</p>
+{chr(10).join(secs)}
+<h2 id="bydate">All pages by date</h2>
+<div class="tw"><table class="pix"><thead><tr><th>Date</th><th>Page</th><th>Topic</th><th>MB</th><th>Copy</th></tr></thead>
+<tbody>{by_date}</tbody></table></div>
+<footer>
+<p>Built by <code>python3 scripts/docs_home_page.py</code> from <code>scripts/docs_inventory.py</code>, which reads the
+result folders and the rows of <code>docs/experiments/INDEX.md</code>.</p>
+</footer>
+</div>
+</body>
+</html>
+"""
 
 
 def main():
@@ -132,6 +239,8 @@ one task: turning a 24.5&#8202;g screwdriver from flat to vertical and then driv
 </figure>
 
 <h2>Topics</h2>
+<p>Each topic links its overview and two or three of its result pages. The <a href="pages.html">index of result pages</a>
+lists all {n_pages}, by topic and by date.</p>
 {topics}
 
 <h2>Reading the pages</h2>
@@ -142,8 +251,9 @@ in <code>docs/experiments/</code> are Git LFS files, which open as a short point
 git -c lfs.fetchexclude= lfs pull --include="docs/experiments/**/*.html"</pre>
 <p>Figures and films are inlined in the pages, except the 138 films of the four Codex contact pages (29&#8202;MB), which
 stay files beside them: <code>git -c lfs.fetchexclude= lfs pull --include="docs/experiments/20261004-codex/**"</code>.
-<a href="{rel("docs/experiments/INDEX.md")}">INDEX.md</a> lists the pages by date, and each page names the script
-that rebuilds it.</p>
+The <a href="pages.html">index of result pages</a> gives each page&#8217;s size, the script that rebuilds it, its copy on
+claude.ai where one exists, and the command that fetches one topic; <a href="{rel("docs/experiments/INDEX.md")}">INDEX.md</a>
+lists the same pages by date with a sentence on each.</p>
 
 <h2>Code</h2>
 <p><code>src/morphohand/</code> holds the simulation, RL, sampling and bench-replay code, <code>scripts/</code> the
@@ -167,6 +277,8 @@ environment and the names of hands and policies.</p>
     html = retro_style.apply(html)
     open(OUT, "w", encoding="utf-8").write(html)
     print(f"wrote {OUT} ({os.path.getsize(OUT) / 1e3:.0f} kB)")
+    open(PAGES_OUT, "w", encoding="utf-8").write(retro_style.apply(pages_html(recs, titles)))
+    print(f"wrote {PAGES_OUT} ({os.path.getsize(PAGES_OUT) / 1e3:.0f} kB, {n_pages} pages)")
 
 
 if __name__ == "__main__":

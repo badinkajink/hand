@@ -4,6 +4,13 @@ voxels displaced (magnified) and coloured by displacement, beside the pressure o
 0 to the given maximum (GPU solver of tpu_tip_fem_gpu.py, warm-started from frame to frame).
 
     .venv/bin/python scripts/tpu_tip_fem_film.py VOXELS.npz --dmax 0.13 --frames 13 --out media/film.mp4
+    .venv/bin/python scripts/tpu_tip_fem_film.py --printed gyroid20 --dmax 0.17 --out media/film.mp4
+
+--printed NAME (2026-10-14; owner: the films without the insert's mounting slots) solves the whole tip of the print plan
+as PrusaSlicer printed it, a tip of scripts/eflesh_tip_fem.py: voxels from its G-code, the magnet's pocket filled and
+bonded, gaps from the analytic palmar face, approach counted from first touch, and the magnet outlined in red. --whole
+takes the gaps from the same analytic face for a voxel file of the whole tip (tpu_tip_fem_tip.py voxels --stl
+print/20261012-sr2_tip_whole.stl).
 """
 from __future__ import annotations
 
@@ -25,7 +32,10 @@ import tpu_tip_fem_gpu as G  # noqa: E402
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("voxels")
+    ap.add_argument("voxels", nargs="?")
+    ap.add_argument("--printed", help="a tip of eflesh_tip_fem.TIPS, solved from its G-code in place of VOXELS")
+    ap.add_argument("--fmax", type=float, help="stop after the first frame whose force exceeds this, N")
+    ap.add_argument("--whole", action="store_true", help="gaps from the whole tip's analytic palmar face (tpu_tip_design)")
     ap.add_argument("--dmax", type=float, default=0.13)
     ap.add_argument("--frames", type=int, default=13)
     ap.add_argument("--E", type=float, default=30.0)
@@ -36,19 +46,42 @@ def main():
     ap.add_argument("--surface", action="store_true", help="contact gaps from the STL surface instead of the voxel tops")
     ap.add_argument("--from-data", action="store_true", help="render the frames saved in --data without solving again")
     a = ap.parse_args()
-    D = np.load(a.voxels, allow_pickle=True)
-    occ, origin, h = D["occ"], D["origin"], float(D["h"])
     if a.from_data:
         S = np.load(a.data)
         frames = [dict(delta=float(d), F=float(f), p=p, u_sec=u) for d, f, p, u in zip(S["deltas"], S["F"], S["p"], S["u_sec"])]
-        render(a, frames, S["X_corners"], S["X_face"], origin, occ.shape, h)
+        if "u_mag" in S and S["u_mag"].size:
+            for f, um in zip(frames, S["u_mag"]):
+                f["u_mag"] = um
+        extra = dict(g_min=float(S["g_min"]) if "g_min" in S else 0.0,
+                     mag_corners=S["mag_corners"] if "mag_corners" in S and S["mag_corners"].size else None)
+        if "origin" in S:
+            origin, shape, h = S["origin"], tuple(S["shape"]), float(S["h"])
+        else:
+            D = np.load(a.voxels, allow_pickle=True)
+            origin, shape, h = D["origin"], D["occ"].shape, float(D["h"])
+        render(a, frames, S["X_corners"], S["X_face"], origin, shape, h, **extra)
         return
+    magm = None
+    if a.printed:
+        import eflesh_tip_fem as EF
+        occ, magm, origin, _ = EF.voxels(EF.TIPS[a.printed][0])
+        h = EF.H
+    else:
+        D = np.load(a.voxels, allow_pickle=True)
+        occ, origin, h = D["occ"], D["origin"], float(D["h"])
     tip = G.GpuTip(occ, origin, h, a.E)
     nodes = G.face_nodes(tip.X, tip.fixed_dof[0::3])
-    Xg = tip.X[nodes].copy()
-    if a.surface:
-        Xg[:, 0], _ = G.true_surface_x(Xg)
-    g0 = G.gap0(Xg, "cyl")
+    g_min = 0.0
+    if a.printed or a.whole:                               # the palmar face, not strut tops inside a lattice
+        import eflesh_tip_fem as EF
+        nodes = nodes[tip.X[nodes, 0] >= G.X_FACE - 1.0]
+        g0 = EF.surface_gaps(tip.X[nodes])
+        g_min = float(g0.min())                            # first touch: an open lattice meets the shaft at a strut end
+    else:
+        Xg = tip.X[nodes].copy()
+        if a.surface:
+            Xg[:, 0], _ = G.true_surface_x(Xg)
+        g0 = G.gap0(Xg, "cyl")
     # section voxels: the layer of voxels whose lower y face is at y = 0
     j0 = int(round((0.0 - origin[1]) / h))
     sec = np.argwhere(occ[:, j0, :])                       # (i, k)
@@ -60,24 +93,41 @@ def main():
     gk = np.round((tip.X[:, 2] - origin[2]) / h).astype(int)
     key = (gi * ny1 + gj) * nz1 + gk
     lut = dict(zip(key.tolist(), range(len(key))))
-    corners = np.array([[lut[((i + di) * ny1 + j0) * nz1 + (k + dk)] for di, dk in ((0, 0), (1, 0), (1, 1), (0, 1))]
-                        for i, k in sec])
-    deltas = np.linspace(0, a.dmax, a.frames + 1)[1:]
+    def corner_ids(cells):
+        return np.array([[lut[((i + di) * ny1 + j0) * nz1 + (k + dk)] for di, dk in ((0, 0), (1, 0), (1, 1), (0, 1))]
+                         for i, k in cells], dtype=np.int64).reshape(-1, 4)
+    corners = corner_ids(sec)
+    mcorners = corner_ids(np.argwhere(magm[:, j0, :])) if magm is not None else np.zeros((0, 4), np.int64)
+    deltas = g_min + np.linspace(0, a.dmax, a.frames + 1)[1:]
     frames = []
     x, active = None, None
     for dl in deltas:
         p, x, active, info = G.contact(tip, nodes, g0, dl, x0=x, active0=active)
         u = x.view(-1, 3).cpu().numpy()
-        frames.append(dict(delta=dl, F=float(p.sum()), p=p.copy(), u_sec=u[corners].astype(np.float32)))
-        print(f"  delta {dl * 1e3:.1f} um: F {p.sum():.3f} N", flush=True)
+        frames.append(dict(delta=dl - g_min, F=float(p.sum()), p=p.copy(), u_sec=u[corners].astype(np.float32),
+                           u_mag=u[mcorners].astype(np.float32)))
+        print(f"  approach {(dl - g_min) * 1e3:.1f} um: F {p.sum():.3f} N, CG {info['cg_iterations']}", flush=True)
+        if a.fmax and p.sum() > a.fmax:
+            break
+    mag_corners = tip.X[mcorners] if len(mcorners) else None
     if a.data:
-        np.savez_compressed(a.data, deltas=deltas, F=np.array([f["F"] for f in frames]), X_face=tip.X[nodes],
-                            p=np.array([f["p"] for f in frames]), sec=sec, X_corners=tip.X[corners],
-                            u_sec=np.array([f["u_sec"] for f in frames]))
-    render(a, frames, tip.X[corners], tip.X[nodes], origin, occ.shape, h)
+        np.savez_compressed(a.data, deltas=np.array([f["delta"] for f in frames]), F=np.array([f["F"] for f in frames]),
+                            X_face=tip.X[nodes], p=np.array([f["p"] for f in frames]), sec=sec, X_corners=tip.X[corners],
+                            u_sec=np.array([f["u_sec"] for f in frames]), g_min=g_min, origin=origin, shape=np.array(occ.shape),
+                            h=h, mag_corners=tip.X[mcorners] if len(mcorners) else np.zeros((0, 4, 3)),
+                            u_mag=np.array([f["u_mag"] for f in frames]), printed=a.printed or "")
+    render(a, frames, tip.X[corners], tip.X[nodes], origin, occ.shape, h, g_min=g_min, mag_corners=mag_corners)
 
 
-def render(a, frames, X_corners, Xf, origin, shape, h):
+def outline(pts):
+    """Convex outline of a set of (z, x) points, closed, for the magnet's section."""
+    from scipy.spatial import ConvexHull
+    hull = ConvexHull(pts)
+    v = pts[hull.vertices]
+    return np.vstack([v, v[:1]])
+
+
+def render(a, frames, X_corners, Xf, origin, shape, h, g_min=0.0, mag_corners=None):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -86,14 +136,22 @@ def render(a, frames, X_corners, Xf, origin, shape, h):
     pmax = max(f["p"].max() for f in frames)
     umax = max(np.abs(f["u_sec"]).max() for f in frames)
     with tempfile.TemporaryDirectory() as td:
-        for n, f in enumerate([dict(delta=0.0, F=0.0, p=np.zeros(len(Xf)), u_sec=np.zeros_like(frames[0]["u_sec"]))] + frames):
+        f0 = dict(delta=0.0, F=0.0, p=np.zeros(len(Xf)), u_sec=np.zeros_like(frames[0]["u_sec"]))
+        if "u_mag" in frames[0]:
+            f0["u_mag"] = np.zeros_like(frames[0]["u_mag"])
+        for n, f in enumerate([f0] + frames):
             fig, (a1, a2) = plt.subplots(1, 2, figsize=(10.4, 5.0), gridspec_kw=dict(width_ratios=[1.25, 1]))
             disp = Xc + a.mag * f["u_sec"][:, :, [2, 0]]
             mag = np.linalg.norm(f["u_sec"], axis=2).mean(1)
             pc = PolyCollection(disp, array=mag * 1e3, cmap="viridis", edgecolors="none", clim=(0, umax * 1e3))
             a1.add_collection(pc)
+            if mag_corners is not None and "u_mag" in f:
+                mz = (mag_corners + a.mag * f["u_mag"])[:, :, [2, 0]].reshape(-1, 2)
+                ol = outline(mz)
+                a1.plot(ol[:, 0], ol[:, 1], color="#d00000", lw=1.6)
             zz = np.linspace(G.Z_C - 6, G.Z_C + 6, 200)
-            xs = G.X_FACE - a.mag * f["delta"] + (G.R_TOOL - np.sqrt(G.R_TOOL ** 2 - (zz - G.Z_C) ** 2))
+            # the shaft at first touch plus the approach, magnified like the voxels
+            xs = G.X_FACE - g_min - a.mag * f["delta"] + (G.R_TOOL - np.sqrt(G.R_TOOL ** 2 - (zz - G.Z_C) ** 2))
             a1.fill_between(zz, xs, xs + 4, color="0.8", alpha=0.3, lw=0)
             a1.plot(zz, xs, color="0.3", lw=1.2)
             a1.set_xlim(origin[2] - 0.5, origin[2] + shape[2] * h + 0.5)

@@ -12,6 +12,7 @@ dl.glossary dt{font-weight:bold}
 dl.glossary dd{margin:0}
 @media (max-width:640px){dl.glossary{grid-template-columns:1fr}dl.glossary dd{margin-bottom:6px}}
 figure img{max-width:100%;height:auto}
+figure video{display:block;margin:0 auto;max-width:100%;height:auto;background:#fff}
 .tw{overflow-x:auto}
 table.index{width:100%}
 table.index td:first-child{white-space:nowrap}
@@ -107,7 +108,7 @@ button.theme, .theme-toggle, [data-theme-toggle] { display:none !important; }</s
 <body>
 <div class="wrap">
 <header>
-<div class="eyebrow"><a href="../index.html">SR&#178; Hand documentation</a> &#183; topic overview: code and methods &#183; updated 2026-10-11</div>
+<div class="eyebrow"><a href="../index.html">SR&#178; Hand documentation</a> &#183; <a href="../pages.html">index of result pages</a> &#183; topic overview: code and methods &#183; updated 2026-10-14</div>
 <h1>Code map, grasp synthesis, evaluation protocol and simulator backends</h1>
 <p class="lede">The package <code>src/morphohand/</code> holds the simulation, grasp, learning and bench code, and <code>scripts/</code> the studies and page builders that call it. A real_v1 hand goes from a Sobol sample of six gantry coordinates to a frozen MuJoCo scene, a grasp from the geometric fitter, a residual PPO policy trained in MuJoCo-Warp through mjlab, an evaluation over 64 rollouts that stores its per-step traces, and a bench plan that passes a 5&#8202;mm clearance gate. MuJoCo on the CPU runs grasps, chains and plans; Newton and Drake run the contact comparisons in separate environments.</p>
 </header>

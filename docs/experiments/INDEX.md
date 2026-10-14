@@ -1,7 +1,8 @@
 # Result pages
 
-The documentation starts at the home page [docs/index.html](../index.html), opened in a browser from a clone. Each
-topic has an overview that summarises it and links its result pages:
+The documentation starts at the home page [docs/index.html](../index.html), opened in a browser from a clone;
+[docs/pages.html](../pages.html) lists every result page by topic and by date, with its size, builder and copy on
+claude.ai. Each topic has an overview that summarises it and links its result pages:
 
 - [Morphology and design search](../overviews/morphology_design.html) ([artifact](https://claude.ai/artifact/R1naai7XJbGoXmbSeVTog7))
 - [Hand, plant and bench](../overviews/hand_plant_bench.html) ([artifact](https://claude.ai/artifact/RUNFR51Rbyy53u14AFDX32))
@@ -9,6 +10,7 @@ topic has an overview that summarises it and links its result pages:
 - [Reinforcement-learning policies](../overviews/rl_policies.html) ([artifact](https://claude.ai/artifact/63pWHmwZrx6BN4AgwvS4T7))
 - [Grasp-to-gait chain and sim-to-real](../overviews/grasp_to_gait_chain.html) ([artifact](https://claude.ai/artifact/JtKv4jLhK9VrDe74sDYTew))
 - [Fingertip contact model](../overviews/contact_model.html) ([artifact](https://claude.ai/artifact/4w96Kt4J3tunu1xuz4XbdN))
+- [Printed fingertips and force sensing](../overviews/printed_fingertips.html) (2026-10-14; artifact pending)
 - [Code and methods](../overviews/code_and_methods.html) ([artifact](https://claude.ai/artifact/HjwwvRuf4PYsEaha9RTHJR)): code map, grasp synthesis, evaluation protocol, simulator backends
 
 This file lists every result page under `docs/experiments/`, newest first, with its topic. The pages are Git LFS

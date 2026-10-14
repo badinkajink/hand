@@ -292,9 +292,11 @@ def build(key: str, refresh: bool = False) -> str:
     body_html = FIG_RE.sub(place, "\n".join(body))
     # "Figure name" references in the prose become numbers
     body_html = re.sub(r"\{\{FIGREF ([\w-]+)\}\}", lambda m: f"Figure&#160;{fig_n[m.group(1)]}", body_html)
+    body_html = re.sub(r"\{\{FIGN ([\w-]+)\}\}", lambda m: str(fig_n[m.group(1)]), body_html)   # the number alone
     terms = "".join(f"<dt>{t}</dt><dd>{d}</dd>" for t, d in M.TERMS)
     future = "".join(f"<li>{x}</li>" for x in M.FUTURE)
     home = os.path.relpath(os.path.join(ROOT, "docs", "index.html"), OUTDIR)
+    pages = os.path.relpath(os.path.join(ROOT, "docs", "pages.html"), OUTDIR)
     html = f"""<!doctype html>
 <html lang="en">
 <head>
@@ -306,7 +308,7 @@ def build(key: str, refresh: bool = False) -> str:
 <body>
 <div class="wrap">
 <header>
-<div class="eyebrow"><a href="{home}">SR&#178; Hand documentation</a> &#183; topic overview: {titles[key].lower()} &#183; updated {time.strftime("%Y-%m-%d")}</div>
+<div class="eyebrow"><a href="{home}">SR&#178; Hand documentation</a> &#183; <a href="{pages}">index of result pages</a> &#183; topic overview: {titles[key].lower()} &#183; updated {time.strftime("%Y-%m-%d")}</div>
 <h1>{M.TITLE}</h1>
 <p class="lede">{M.LEDE}</p>
 </header>

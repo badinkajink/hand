@@ -81,8 +81,9 @@ def voxels(gcode):
     for l in L:
         k1 = int(round(l["z"] / H)); k0 = int(round((l["z"] - (l["h"] or 0.2)) / H))
         occ[:, :, k0:k1] |= raster(l["seg"], lo, ni, nj)[:, :, None]
-    # magnet cavity filled (bonded magnet); x' = Z_END - z, y' = y + Y_HALF, z' = x - X_BACK
-    pk, mg = TD.pocket(MAG[0], MAG[1])
+    # magnet cavity filled (bonded magnet); x' = Z_END - z, y' = y + Y_HALF, z' = x - X_BACK. The G-code was sliced on
+    # 2026-10-13 from tips with the clearance pocket (TD.FE_CLEAR), before the press-fit pockets of bacc7750.
+    pk, mg = TD.pocket(MAG[0], MAG[1], *TD.FE_CLEAR)
     xi = (np.arange(ni) + 0.5) * H; yj = (np.arange(nj) + 0.5) * H; zk = (np.arange(nk) + 0.5) * H
     X, Y, Z = np.meshgrid(xi, yj, zk, indexing="ij")
     rr = (X - (TD.Z_END - TD.Z_C)) ** 2 + (Y - TD.Y_HALF) ** 2

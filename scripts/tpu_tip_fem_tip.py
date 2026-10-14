@@ -654,13 +654,18 @@ RECIPES = {
 
 # ------------------------------------------------------------------------------------------ resolved print voxels
 
-def resolved_voxels(recipe, h=0.1, shift=(0.0, 0.0), out=None):
+def resolved_voxels(recipe, h=0.1, shift=(0.0, 0.0), out=None, stl=None):
     """Uniform voxels (side h) of the printed insert: walls and skins solid, the core filled with the slicer's gyroid
     beads layer by layer in the print frame (build axis recipe['build']), the gyroid phase shifted in-plane by `shift`
-    (mm, along the two in-plane tip axes in increasing order). Returns (solid bool array, origin)."""
+    (mm, along the two in-plane tip axes in increasing order). Returns (solid bool array, origin). stl: another closed
+    mesh in the insert's frame in place of the insert (2026-10-14: the whole tip of the print plan, with no mounting
+    slots), its classes cached under its own name."""
     import tpu_tip_fem_cells as CE
     build_dir = recipe.get("build", "x")
-    cls, o, ha = classify(build_dir, cache=AUX_CACHE / f"classes_build{build_dir}_h0.05.npz")
+    if stl is None:
+        cls, o, ha = classify(build_dir, cache=AUX_CACHE / f"classes_build{build_dir}_h0.05.npz")
+    else:
+        cls, o, ha = classify(build_dir, stl=stl, cache=Path(out).parent / f"classes_{Path(stl).stem}_build{build_dir}_h0.05.npz")
     step = int(round(h / ha))
     c = cls[step // 2::step, step // 2::step, step // 2::step]
     origin = np.asarray(o, float).copy()                     # coarse voxel k covers auxiliary voxels step k .. step k + step - 1
@@ -719,6 +724,8 @@ if __name__ == "__main__":
     ap.add_argument("--h", type=float, default=0.1, help="voxels: voxel side, mm")
     ap.add_argument("--shift", type=float, nargs=2, default=[0.0, 0.0], help="voxels: in-plane gyroid phase shift, mm")
     ap.add_argument("--surface", action="store_true", help="run: contact gaps from the STL surface")
+    ap.add_argument("--stl", help="voxels: closed mesh in place of the insert (e.g. print/20261012-sr2_tip_whole.stl)")
+    ap.add_argument("--outdir", help="voxels: output folder in place of assets/fem/20261009-tpu_tip/voxels")
     a = ap.parse_args()
     TRUE_SURFACE = a.surface
     if a.cmd == "validate":
@@ -728,8 +735,9 @@ if __name__ == "__main__":
         print("cells", g.nc, int(np.prod(g.nc)), "nodes", int(np.prod(g.nn)))
     elif a.cmd == "voxels":
         rec = dict(core="homog", rho=a.rho, build=a.build) if a.rho else dict(core="solid", build=a.build)
-        out = AUX_CACHE / "voxels" / f"{a.name}.npz"
-        occ, o = resolved_voxels(rec, h=a.h, shift=tuple(a.shift), out=out)
+        out = (Path(a.outdir) if a.outdir else AUX_CACHE / "voxels") / f"{a.name}.npz"
+        out.parent.mkdir(parents=True, exist_ok=True)
+        occ, o = resolved_voxels(rec, h=a.h, shift=tuple(a.shift), out=out, stl=a.stl)
         print(f"{out}: {occ.shape}, solid {occ.mean():.4f}, {int(occ.sum())} voxels")
     else:
         for name in a.recipes:
