@@ -45,9 +45,9 @@ CONFIGS = {
 }
 CONFIGS["ilqr"] = dict(method="ilqr", pad_filter=1.0)    # hand_object_scale_ilqr.py: 25 intervals of 20 ms
 STRING_KEYS = ("method", "device")
-TITLES = {"hom": "HOM", "ps": "Predictive sampling", "ps_pin": "Predictive sampling, pinned", "mppi_pin": "MPPI, pinned",
-          "cem_pin": "CEM, pinned", "icem_pin": "iCEM, pinned", "anneal_pin": "Annealed sampling, pinned",
-          "anneal_gpu": "Annealed sampling, GPU", "ilqr": "iLQR"}
+TITLES = {"hom": "HOM", "ps": "Predictive sampling", "ps_pin": "Pinned predictive sampling", "mppi_pin": "Pinned MPPI",
+          "cem_pin": "Pinned CEM", "icem_pin": "Pinned iCEM", "anneal_pin": "Pinned annealed sampling",
+          "anneal_gpu": "Pinned annealed sampling, GPU", "ilqr": "iLQR"}
 
 
 def prm_of(name, extra=()):
