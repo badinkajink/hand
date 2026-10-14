@@ -1,6 +1,7 @@
 Status: active
 Task (owner, 2026-10-13): republish the readout page after the five-chip board update and the fingertip page after the press-fit pockets ("we are using the 5-magnetometer board from anyskin/visuoskin, reused in eflesh ... this should improve your simulation. ill use the aplysiatech magnets, sure"). This job edits no page or builder.
 Read first: docs/experiments/20261013-magnet_layouts/20261013-mlx90393_fingertip_readout.html (artifact https://claude.ai/artifact/PVo1dkM6DGqAM7UxWA3A7L); docs/experiments/20261009-tpu_tip_fem/20261009-printed_tpu_fingertip_finite_elements.html (artifact https://claude.ai/artifact/MSLurN7jPTaFfXUdsxJMZv); docs/experiments/20261009-tpu_tip_fem/print/README.md; the Artifact tool's rules (read an artifact before republishing it; read every page before publishing).
+State (2026-10-13 23:05): the protocol page was revised with the research brief (a9a5c489, acffefe9); step 7 publishes the current local file, not 55159d88's.
 State (2026-10-13 22:58): the servo identification protocol page (55159d88) is new; step 7 publishes it, which overrides the Do-not line for that page only.
 State (2026-10-13 22:52): pockets recessed one layer below the pocket's top (bacc7750): readout, fingertip and eFlesh pages rebuilt; the print sheets keep their names. Launch moved to 00:05 so the job publishes after this commit.
 State (2026-10-13 21:58): the readout page was rebuilt again with the four-magnet runs and pushed in 49ec00a9; publish that local file. The new print/20261013-sr2_tip_*four* files stay in the repository only.
