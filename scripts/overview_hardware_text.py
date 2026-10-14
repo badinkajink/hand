@@ -118,6 +118,7 @@ PAGES = [
     ("Hand, plant and bench", "20260831-real_v1-object-tracking/20260831-real_v1_object_tracking.html", "AprilTag tracker"),
     ("Hand, plant and bench", "20260902-servo-sysid/20260902-servo_sysid.html", "Spring constant and cutoff"),
     ("Hand, plant and bench", "20260904-real_v1_bench/20260904-real_v1_bench_geometry.html", "UR5e payload and wrist"),
+    ("Hand, plant and bench", "20261013-cad_v1_finger/20261013-cad_v1_finger_model.html", "Finger model from the CAD parts"),
     ("Related pages", "20261006-hom_turn3/20261006-servo_refit_hom_turn_pad_cost.html", "Working plant from 177 runs"),
     ("Related pages", "20260916-turn_mechanism/20260916-turn_mechanism.html", "The turn on three plants"),
     ("Related pages", "20260916-tip_gait/20260916-bench_partial_reorientation.html", "Palm plate height"),
