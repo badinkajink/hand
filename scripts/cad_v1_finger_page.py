@@ -144,7 +144,7 @@ class Data:
         self.mj = mujoco
         j = lambda f: json.load(open(os.path.join(MODEL, f)))  # noqa: E731
         self.asm, self.itf, self.sph, self.sph_tight = j("assembly.json"), j("interference.json"), j("spheres_metrics.json"), j("spheres_tight_metrics.json")
-        self.bench, self.sc = j("collision_bench.json"), j("sphere_contacts.json")
+        self.bench, self.sc, self.pm = j("collision_bench.json"), j("sphere_contacts.json"), j("print_mass.json")
         self.A = B.derive()
         self.rep = self.asm["report"]
         self.km = self.rep["kinematics_mm"]
@@ -234,8 +234,11 @@ GLOSSARY = [
      "parent&#8217;s servo horn (the horn-side arm)."),
     ("Pilot holes, tab face", "The two 1.8&#8202;mm holes in the parent for the screws through the servo&#8217;s mounting tabs; the "
      "pilot-hole pitch is the distance between their axes. The tab face is the face of the tabs nearest the servo&#8217;s base."),
-    ("Horn stack", "Axial distance from the top of the servo&#8217;s round boss to the inner face of the child&#8217;s horn-side arm, in mm: "
-     "the room for the horn, which is not among the STLs."),
+    ("Horn seat, horn stack", "The horn&#8217;s plate lies on the inner face of the child&#8217;s horn-side arm at the yaw and MCP joints and in "
+     "a slot inside that arm at the PIP joint; that face or the slot&#8217;s far face is the horn seat. The horn stack is the axial distance "
+     "from the top of the servo&#8217;s round boss to the horn seat, in mm. The horn is not among the STLs; it is 1.6&#8202;mm thick (owner)."),
+    ("Printed mass", "PrusaSlicer&#8217;s filament mass for a PLA part sliced with the owner&#8217;s presets at 15&#8202;% infill, in g "
+     "(<code>scripts/cad_v1_print_mass.py</code>); the model spreads it uniformly over the part."),
     ("Yaw centre", "The point on the yaw axis nearest the MCP axis: the mount position of real_v1 and the origin of each finger in the "
      "model. The finger frame has x along the yaw axis toward the dorsal side and z up."),
     ("Registration residual", "Largest distance between corresponding vertices after a part is registered by ICP (iterative closest "
@@ -322,6 +325,14 @@ def compare_section(X: Data):
     cad_link = sum(1 for i in range(mc.ngeom) if mc.geom_group[i] == 3 and mc.geom(i).name.startswith("index_"))
     rows.append(["Link collision geoms per finger", f"{rv1_link} capsules", f"{cad_link} spheres"])
     rows.append(["Tip pads per finger", str(X.rv1_pads_per_tip()), str(X.asm["pads"]["n_pads"]["index"])])
+    pm = X.pm["parts"]
+    st = X.pm["settings"]
+    names = {"carriage": "Carriage", "yaw_link": "Yaw link", "mcp_link": "MCP link", "dip_link": "DIP link"}
+    prow = [[names[k], f"{r['volume_mm3'] / 1000:.2f}", f"{r['solid_pla_grams']:.2f}", f"{r['grams']:.2f}", f"{r['density_kg_m3']:.0f}"]
+            for k, r in pm.items()]
+    prow.append(["Four PLA parts", f"{sum(r['volume_mm3'] for r in pm.values()) / 1000:.2f}", f"{sum(r['solid_pla_grams'] for r in pm.values()):.2f}",
+                 f"{sum(r['grams'] for r in pm.values()):.2f}", ""])
+    finger_g = sum(1000 * mc.body_mass[mc.body(f"index_{b}").id] for b in ("mount", "yaw_frame", "mcp_frame", "pip_frame", "tip"))
     servo_x = max(v for p, v in X.dorsal.items() if p.startswith("servo"))
     link_p = max((p for p in X.dorsal if not p.startswith("servo")), key=lambda p: X.dorsal[p])
     return (img("assembly.png", "The model at zero joint angles beside the owner&#8217;s CAD views of the same finger "
@@ -337,10 +348,21 @@ def compare_section(X: Data):
                   "the same mount at three joint configurations, seen along the flexion axes.", "compare")
             + table(["Quantity", "real_v1", "CAD model"], rows,
                     "Lengths, masses and collision geometry of the index finger. Real_v1&#8217;s masses come from its capsules and tip "
-                    "sphere at 1000&#8202;kg/m&#179;, and its mount has a 1&#8202;g placeholder mass. The model&#8217;s come from the CAD "
-                    "volumes at solid PLA (1240&#8202;kg/m&#179;) and TPU (1210&#8202;kg/m&#179;) density and 13.1&#8202;g per servo. The "
-                    "pads are those that <code>reorient_backends.replace_tips</code> builds on each model&#8217;s tip block.",
-                    key="compare"))
+                    "sphere at 1000&#8202;kg/m&#179;, and its mount has a 1&#8202;g placeholder mass. The model&#8217;s PLA parts have their "
+                    "printed masses (Table&#160;[[tab:print]]), the tip is solid TPU (1210&#8202;kg/m&#179;) and each servo weighs "
+                    "13.1&#8202;g. The pads are those that <code>reorient_backends.replace_tips</code> builds on each model&#8217;s tip block.",
+                    key="compare")
+            + f"<p>The owner prints the links and the carriage in PLA at 15&#8202;% infill. {X.pm['slicer'].split(' based')[0].replace('-', ' ').split('+')[0]} "
+            f"slices each part in its STL orientation with the owner&#8217;s presets ({X.pm['presets']['printer']}, {X.pm['presets']['print']}: "
+            f"{st['perimeters']} perimeters of {st['perimeter_extrusion_width']}&#8202;mm, {st['top_solid_layers']} top and "
+            f"{st['bottom_solid_layers']} bottom layers of {st['layer_height']}&#8202;mm, {st['fill_pattern']} infill, no supports), without "
+            f"skirt or brim. The four parts weigh {sum(r['grams'] for r in pm.values()):.1f}&#8202;g printed against "
+            f"{sum(r['solid_pla_grams'] for r in pm.values()):.1f}&#8202;g solid (Table&#160;[[tab:print]]), and the model&#8217;s finger "
+            f"{finger_g:.1f}&#8202;g with its three servos and the tip. The owner puts an assembled finger at about 120&#8202;g; the screws, "
+            "bearings, shafts, horns and cables are not in the model.</p>"
+            + table(["Part", "CAD volume (cm&#179;)", "Solid PLA (g)", "Printed at 15&#8202;% infill (g)", "Density in the model (kg/m&#179;)"],
+                    prow, "Printed masses of the PLA parts (<code>print_mass.json</code>, <code>scripts/cad_v1_print_mass.py</code>). "
+                    "Solid PLA is 1240&#8202;kg/m&#179;.", key="print"))
 
 
 def rom_chart(X: Data):
@@ -621,16 +643,22 @@ def checks_section(X: Data):
         ["Servo tab holes to pilot-hole axes, largest of six", mm(resid, 3), "0"],
         ["Servo tab face, axial position", mm(sv["mcp"]["tab_face_axial_mm"]),
          f"Far end of the pilot holes, {mm(sv['mcp']['pilot_hole_far_ends_axial_mm'][0])}"],
-        ["Horn stack at the yaw, MCP and PIP joints", f"{num(j['yaw']['boss_to_horn_side_mm'], 1)}, {num(j['mcp']['boss_to_horn_side_mm'], 1)} "
-         f"and {mm(j['pip']['boss_to_horn_side_mm'], 1)}", "Equal at the yaw and MCP joints"],
+        ["Horn stack at the yaw, MCP and PIP joints", f"{num(j['yaw']['boss_to_horn_seat_mm'], 1)}, {num(j['mcp']['boss_to_horn_seat_mm'], 1)} "
+         f"and {mm(j['pip']['boss_to_horn_seat_mm'], 1)}", "Room for the horn&#8217;s hub and plate"],
+        ["Horn slot in the DIP link, width and clearance", f"{mm(j['pip']['horn_slot_axial_mm'][1] - j['pip']['horn_slot_axial_mm'][0], 1)} and "
+         f"{mm(j['pip']['horn_clearance_mm'], 1)}", f"Horn {num(B.HORN_MM, 1)}&#8202;mm thick (owner)"],
         ["Registration residual of the DIP link and the tip on the fused STL", f"{num(reg['dip'], 3)} and {mm(reg['tip'], 5)}", "0"],
         ["Penetration volume at zero joint angles, largest of 28 part pairs", f"{num(rest_max, 3)}{HS}mm&#179;", "0"],
     ]
     return ("<p>The rules fix only the direction of the pilot-hole midpoint, so the distance from all six tab holes to the pilot-hole axes "
             f"tests the {mm(rep['servo']['spline_offset_from_tab_centre'])} spline offset and the {mm(rep['servo']['tab_pitch'])} pitch "
             f"(Table&#160;[[tab:checks]]). With its base on the bearing wall, each servo&#8217;s tab face lies at "
-            f"{mm(sv['mcp']['tab_face_axial_mm'])}, the far end of both pilot holes. The yaw and MCP joints, built on different parts, give "
-            "the same horn stack.</p>"
+            f"{mm(sv['mcp']['tab_face_axial_mm'])}, the far end of both pilot holes. At the yaw and MCP joints the horn&#8217;s plate lies under "
+            f"the child&#8217;s horn-side arm, {mm(j['yaw']['boss_to_horn_seat_mm'], 1)} above the boss on both parts. At the PIP joint the "
+            "DIP link&#8217;s horn-side arm holds the horn&#8217;s arm in a horn-shaped slot between the two layers that carry its four "
+            f"screw holes, {num(j['pip']['horn_slot_axial_mm'][0] - j['pip']['servo_boss_top_axial_mm'], 1)} to "
+            f"{mm(j['pip']['boss_to_horn_seat_mm'], 1)} above the boss; the owner&#8217;s {mm(B.HORN_MM, 1)} horn leaves "
+            f"{mm(j['pip']['horn_clearance_mm'], 1)} of clearance there, so the flush seat holds at all three joints.</p>"
             + table(["Quantity", "Model", "Reference"], rows, "Assembly checks.", key="checks", text_cols=(0, 2)))
 
 
@@ -638,11 +666,9 @@ def limitations(X: Data):
     j = X.rep["joints"]
     y = X.sc["sweeps"]["yaw"]["index_mcp_frame / index_mount"]
     items = [
-        "Masses come from the CAD volumes at solid PLA and TPU density and the SCS0009&#8217;s listed 13.1&#8202;g; printed parts with "
-        "infill weigh less. The parts have not been weighed.",
-        "The servo horns, shafts, bearings, screws and cables are not in the STLs and not in the model. At the PIP joint the DIP "
-        f"link&#8217;s horn-side arm lies {mm(j['pip']['boss_to_horn_side_mm'], 1)} above the servo&#8217;s boss, so a horn thicker than that "
-        "would push the DIP link out along the PIP axis.",
+        "The PLA masses are PrusaSlicer&#8217;s estimates for the owner&#8217;s presets, spread uniformly over each part; the tip is solid TPU. "
+        "The parts have not been weighed.",
+        "The servo horns, shafts, bearings, screws and cables are not in the STLs and not in the model.",
         "The model squares the carriage to the yaw axis, removing the STL&#8217;s rotation about x; how the carriage meets the gantry is not "
         "modelled.",
         "The thumb is the index finger&#8217;s parts turned 180&#176; about the vertical; mirrored parts would need their own STLs.",
@@ -661,18 +687,12 @@ def limitations(X: Data):
 
 def open_items(X: Data):
     inert = X.asm["inertia"]
-    servo_g = 1000 * B.SERVO_MASS_KG
-    pred = [1000 * inert["mount"]["mass_kg"] - servo_g, 1000 * inert["yaw_frame"]["mass_kg"] - servo_g,
-            1000 * inert["mcp_frame"]["mass_kg"] - servo_g, 1000 * inert["pip_frame"]["mass_kg"], 1000 * inert["tip"]["mass_kg"]]
-    pip_room = X.rep["joints"]["pip"]["boss_to_horn_side_mm"]
+    finger_g = sum(1000 * v["mass_kg"] for b, v in inert.items())
     items = [
-        ("Masses of the printed parts.", "Weigh the carriage, the three links, the tip and one servo. At solid density the build predicts "
-         f"{', '.join(f'{g:.2f}' for g in pred[:4])} and {pred[4]:.2f}&#8202;g and {servo_g:.1f}&#8202;g per servo. If the five parts weigh "
-         "in one ratio to their predictions, one infill factor on <code>DENSITY</code> in <code>scripts/build_cad_v1_finger.py</code> fits "
-         "them; ratios that differ by more than 10&#8202;% need a density per part, which the builder does not have yet."),
-        ("Thickness of the PIP horn.", f"Measure the PIP servo&#8217;s horn where it crosses the boss. The DIP link&#8217;s horn-side arm lies "
-         f"{mm(pip_room, 1)} above the boss; a thicker horn moves the DIP link out along the PIP axis by the excess, and the flush-seat rule "
-         "for that joint then needs the offset."),
+        ("Mass of an assembled finger.", "Weigh one assembled finger, and its screws, bearings, shafts, horns and cables on their own. The "
+         f"model gives {finger_g:.1f}&#8202;g for the printed parts, the tip and the servos, and the owner estimates about 120&#8202;g. If the "
+         "hardware makes up the difference, add each item&#8217;s mass to the body that holds it in "
+         "<code>scripts/build_cad_v1_finger.py</code>; a larger gap means the sliced masses are off, and the parts are weighed one by one."),
         ("Grasp key for the longer finger.", f"Run <code>scripts/fit_real_v1_pose.py --scene {REL_MODEL}/scene_screwdriver_medium.xml "
          "--write</code> to write <code>open_ik</code>, the key the reorientation runs start from. The fit fails if no pose holds the "
          "screwdriver on the three tips&#8217; pads at the real_v1 mounts."),

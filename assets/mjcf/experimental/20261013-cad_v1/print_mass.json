@@ -1,0 +1,46 @@
+{
+ "slicer": "PrusaSlicer-2.9.2+flathub.org based on Slic3r (with GUI support)",
+ "presets": {
+  "printer": "Original Prusa XL - 5T Input Shaper 0.4 nozzle",
+  "print": "0.20mm STRUCTURAL @XLIS 0.4",
+  "material": "Generic PLA @XLIS"
+ },
+ "settings": {
+  "bottom_solid_layers": "4",
+  "filament_density": "1.24",
+  "fill_density": "15%",
+  "fill_pattern": "grid",
+  "layer_height": "0.2",
+  "perimeter_extrusion_width": "0.45",
+  "perimeters": "2",
+  "support_material": "0",
+  "top_solid_layers": "5"
+ },
+ "parts": {
+  "carriage": {
+   "grams": 14.15,
+   "volume_mm3": 23911.8,
+   "density_kg_m3": 591.8,
+   "solid_pla_grams": 29.651
+  },
+  "yaw_link": {
+   "grams": 8.1,
+   "volume_mm3": 10684.2,
+   "density_kg_m3": 758.1,
+   "solid_pla_grams": 13.248
+  },
+  "mcp_link": {
+   "grams": 11.93,
+   "volume_mm3": 21294.3,
+   "density_kg_m3": 560.2,
+   "solid_pla_grams": 26.405
+  },
+  "dip_link": {
+   "grams": 4.92,
+   "volume_mm3": 5188.9,
+   "density_kg_m3": 948.2,
+   "solid_pla_grams": 6.434
+  }
+ },
+ "note": "owner 2026-10-13: printed at 15 % infill PLA; servos 13 g; tip TPU not sliced"
+}

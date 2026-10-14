@@ -347,7 +347,16 @@ def derive() -> dict:
         lens = [len(b) for b in beyond if b]  # rays through the horn's own hole see no material
         k = max(set(lens), key=lens.count) if lens else 0
         same = np.array([b for b in beyond if len(b) == k], float)
-        report["joints"][jn]["horn_side_material_axial_mm"] = np.round(np.median(same, axis=0), 3).tolist() if k else []
+        report["joints"][jn]["horn_side_material_axial_mm"] = mat = np.round(np.median(same, axis=0), 3).tolist() if k else []
+        # horn seat: the horn's plate lies on the arm's inner face, or in a slot between the arm's first two layers
+        if len(mat) >= 2:
+            report["joints"][jn]["horn_slot_axial_mm"] = [mat[0][1], mat[1][0]]
+            report["joints"][jn]["horn_seat_outer_axial_mm"] = mat[1][0]
+            report["joints"][jn]["horn_clearance_mm"] = round(mat[1][0] - mat[0][1] - HORN_MM, 3)
+        elif mat:
+            report["joints"][jn]["horn_seat_outer_axial_mm"] = mat[0][0]
+        if mat:
+            report["joints"][jn]["boss_to_horn_seat_mm"] = round(report["joints"][jn]["horn_seat_outer_axial_mm"] - boss_top, 3)
 
     # chain into the carriage frame
     T_c = {"carriage": np.eye(4)}
@@ -413,9 +422,22 @@ ROM = {"yaw": (-1.483530, 1.483530), "mcp": (-0.261799, 1.605703), "pip": (-0.31
 PALM_Z_MM, PALM_PLATE_Z_MM = 62.5, 25.0
 TIP_BODY_MM = 26.61  # real_v1 places <f>_tip on the finger axis this far below the PIP axis
 REAL_V1_REACH_MM = 20.75 + 20.75 + 37.16  # real_v1 yaw centre to fingertip end, straight finger
-# masses: SCS0009 13.1 +- 1 g (Switch Science 8042); printed parts at solid-material density
+# masses: SCS0009 13.1 +- 1 g (Switch Science 8042; owner, 2026-10-13: 13 g). PLA parts as printed at 15 % infill
+# (owner, 2026-10-13): their PrusaSlicer filament mass from scripts/cad_v1_print_mass.py, spread uniformly over the part;
+# solid PLA where print_mass.json lacks a part. The TPU tip is solid.
 SERVO_MASS_KG = 0.0131
-DENSITY = {"link": 1240.0, "tip": 1210.0}  # PLA and TPU, kg/m^3, solid; infill makes the parts lighter
+DENSITY = {"link": 1240.0, "tip": 1210.0}  # PLA and TPU, kg/m^3, solid
+PRINT_MASS = OUT / "print_mass.json"
+HORN_MM = 1.6  # thickness of the servo horn (owner, 2026-10-13)
+
+
+def link_density(part: str) -> float:
+    """kg/m^3 of a PLA part: its sliced mass over its CAD volume when print_mass.json has it, else solid PLA."""
+    if PRINT_MASS.exists():
+        rows = json.loads(PRINT_MASS.read_text())["parts"]
+        if part in rows:
+            return float(rows[part]["density_kg_m3"])
+    return DENSITY["link"]
 BODY_PARTS = {"mount": ["carriage", "servo_yaw"], "yaw_frame": ["yaw_link", "servo_mcp"],
               "mcp_frame": ["mcp_link", "servo_pip"], "pip_frame": ["dip_link"], "tip": ["tip"]}
 PART_SOURCE = {"servo_yaw": "servo", "servo_mcp": "servo", "servo_pip": "servo"}
@@ -457,7 +479,7 @@ def inertial(meshes_in_body: list[tuple[str, trimesh.Trimesh]]) -> dict:
         if k == "servo":
             mk, rho = SERVO_MASS_KG, SERVO_MASS_KG / vol
         else:
-            rho = DENSITY[k]
+            rho = link_density(p) if k == "link" else DENSITY[k]
             mk = rho * vol
         mp = m.copy()
         mp.density = rho
@@ -799,7 +821,9 @@ def main():
                T_part_design_from_stl={k: np.round(v, 9).tolist() for k, v in A["T_design"].items()},
                inertia={b: dict(mass_kg=round(I["mass"], 6), com_m=np.round(I["pos"], 6).tolist(),
                                 fullinertia=[float(f"{x:.4e}") for x in I["fullinertia"]]) for b, I in inert.items()},
-               masses_note="SCS0009 13.1 g (Switch Science 8042); links PLA 1240 kg/m^3 and tip TPU 1210 kg/m^3, solid",
+               masses_note=("SCS0009 13.1 g (Switch Science 8042; owner 13 g); PLA parts as sliced at 15 % infill "
+                            "(print_mass.json, scripts/cad_v1_print_mass.py) where present, else 1240 kg/m^3; tip TPU 1210 kg/m^3, solid"),
+               link_density_kg_m3={p: link_density(p) for p in ("carriage", "yaw_link", "mcp_link", "dip_link")},
                pads=pad_meta, spheres_file=str(args.spheres) if args.spheres else None)
     (args.out / "assembly.json").write_text(json.dumps(asm, indent=1))
     print(f"wrote {args.out}/finger.xml, hand.xml, scene_screwdriver_medium.xml, assembly.json, meshes/")
