@@ -41,12 +41,19 @@ sys.path.insert(0, str(ROOT / "src/morphohand/driver/manta/host"))
 
 OUT_DIR = ROOT / "docs/experiments/20261008-hand_object_scale"
 BASE_SCENE = ROOT / "assets/mjcf/real_v1/scenes/scene_screwdriver_medium.xml"
+# SCALE_HAND=cad_v1 selects the CAD-faithful finger of scripts/build_cad_v1_finger.py (2026-10-14): its MCP link spaces
+# the MCP and PIP axes 30.80 mm apart against real_v1's 20.75 mm; the yaw-to-MCP spacing, the PIP-to-pad-centre distance
+# and the mounts are real_v1's (assets/mjcf/experimental/20261013-cad_v1/assembly.json, report.kinematics_mm).
+HAND = os.environ.get("SCALE_HAND", "real_v1")
+if HAND not in ("real_v1", "cad_v1"):
+    raise SystemExit(f"SCALE_HAND={HAND}: expected real_v1 or cad_v1")
 
 # --- CAD geometry (build_real_v1_scenes.py), metres -----------------------------------------
-J = 0.020750                  # yaw axis -> MCP axis and MCP axis -> PIP axis
+J = 0.020750                  # yaw axis -> MCP axis (and, on real_v1, MCP axis -> PIP axis)
+J2 = 0.030800 if HAND == "cad_v1" else J    # MCP axis -> PIP axis
 P = 0.026610                  # PIP axis -> pad centre
 R = 0.010550                  # phalange radius = pad sphere radius
-CAP_YAW, CAP_MID, CAP_DIST = 0.022900, 0.022900, 0.016060   # capsule medial-axis lengths
+CAP_YAW, CAP_MID, CAP_DIST = 0.022900, 0.022900 + (J2 - J), 0.016060   # capsule medial-axis lengths
 PLATE_BOTTOM = 0.025 - 0.0015  # palm plate underside above the mounting plane
 GAP = 0.001                   # pad surface to object surface at the fitted pose (fit_real_v1_pose default)
 LIMIT_MARGIN = 0.05           # rad; a joint closer than this to its stop is parked (fit_real_v1_pose)
@@ -55,7 +62,10 @@ OBJ_CLEAR = 0.001             # non-pad finger geometry must stay this far off t
 FINGERS = ("thumb", "index", "middle")
 FLEX = {"thumb": -1.0, "index": 1.0, "middle": 1.0}          # sign of the flexion axis' y component
 SIM_ROM = np.radians([[-85.0, 85.0], [-15.0, 92.0], [-18.0, 92.0]])
-CHAIN = J + P                 # MCP -> pad centre, fully extended
+CHAIN = J2 + P                # MCP -> pad centre, fully extended
+if HAND == "cad_v1":
+    BASE_SCENE = ROOT / "assets/mjcf/experimental/20261013-cad_v1/scene_screwdriver_medium.xml"
+    OUT_DIR = ROOT / "docs/experiments/20261014-scale_turn_cad_v1/kin"     # reach.json etc. of the CAD hand
 
 
 def limits(sim_rom_only: bool = False) -> dict[str, np.ndarray]:
@@ -138,7 +148,7 @@ def fk(finger: str, q: np.ndarray) -> dict[str, np.ndarray]:
     s = FLEX[finger]
     psi, t1, t2 = q[..., 0], q[..., 1], q[..., 2]
     z0 = np.zeros_like(psi)
-    pip_x, pip_z = -s * J * np.sin(t1), -J - J * np.cos(t1)
+    pip_x, pip_z = -s * J2 * np.sin(t1), -J - J2 * np.cos(t1)
     a12 = t1 + t2
     return {
         "yaw_a": _yaw(z0, z0, psi), "yaw_b": _yaw(z0, z0 - CAP_YAW, psi),
@@ -156,20 +166,20 @@ def ik(finger: str, T: np.ndarray):
     """Both elbow branches for pad-centre targets T (..., 3) relative to the mount.
 
     Returns q (..., 2, 3) and the reach mask (...). The yaw puts the flexion plane through the target;
-    MCP and PIP then solve a planar two-link problem with links J and P from the MCP axis."""
+    MCP and PIP then solve a planar two-link problem with links J2 and P from the MCP axis."""
     s = FLEX[finger]
     X, Y, Z = T[..., 0], T[..., 1], T[..., 2]
     rho = np.hypot(Y, Z)
     psi = np.arctan2(Y, -Z)
     u, v = -s * X, rho - J
-    c2 = (u * u + v * v - J * J - P * P) / (2.0 * J * P)
+    c2 = (u * u + v * v - J2 * J2 - P * P) / (2.0 * J2 * P)
     ok = np.abs(c2) <= 1.0
     t2 = np.arccos(np.clip(c2, -1.0, 1.0))
     q = np.empty(T.shape[:-1] + (2, 3))
     for k, sg in enumerate((1.0, -1.0)):
         tt2 = sg * t2
         q[..., k, 0] = psi
-        q[..., k, 1] = np.arctan2(u, v) - np.arctan2(P * np.sin(tt2), J + P * np.cos(tt2))
+        q[..., k, 1] = np.arctan2(u, v) - np.arctan2(P * np.sin(tt2), J2 + P * np.cos(tt2))
         q[..., k, 2] = tt2
     return q, ok
 
@@ -435,7 +445,7 @@ def feasible_poses(x_sep, y_sep, shape, d, rel, Rm, lim, centres=POS_GRID, lengt
     T = {f: centres + Rm @ rel[f] - M[f] for f in FINGERS}
     ok = np.ones(len(centres), bool)
     for f in FINGERS:                                   # a pad farther than the straight chain is out of reach
-        ok &= np.einsum("ij,ij->i", T[f], T[f]) <= (2 * J + P) ** 2 + 1e-12
+        ok &= np.einsum("ij,ij->i", T[f], T[f]) <= (J + J2 + P) ** 2 + 1e-12
     idx = np.flatnonzero(ok)
     if idx.size == 0:
         return ok

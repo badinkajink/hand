@@ -96,9 +96,68 @@ def base_scene(shape: str, d_mm: float) -> Path:
         xml = B.build_scene(actuated=False, obj=OBJ)
     finally:
         B.OBJECTS[OBJ] = saved
+    if HAND == "cad_v1":
+        root = ET.fromstring(xml)
+        cad_fingers(root)
+        xml = ET.tostring(root, encoding="unicode")
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(xml)
     return out
+
+
+def cad_fingers(root) -> None:
+    """Swap the real_v1 finger bodies of a parsed scale-study scene for the CAD hand's (scripts/build_cad_v1_finger.py,
+    assets/mjcf/experimental/20261013-cad_v1/scene_screwdriver_medium.xml): link meshes, printed-part masses and
+    inertias, 151 collision spheres per finger, and the same-finger contact excludes. Palm, object, floor, keyframes
+    and the rest of the scene stay real_v1's. The tip's pads and its TPU-block visual are dropped here; cell_scenes
+    builds them for each cell with reorient_backends.replace_tips on the CAD block (cad_tip_block)."""
+    import copy
+    src = ET.parse(CAD_DIR / "scene_screwdriver_medium.xml").getroot()
+    mdir = (CAD_DIR / "meshes").resolve()
+    dflt = root.find("default")
+    have = {d.get("class") for d in dflt.iter("default")}
+    for d in src.find("default").findall("default"):
+        if (d.get("class") or "").startswith("cad_") and d.get("class") not in have:
+            dflt.append(copy.deepcopy(d))
+    asset = root.find("asset")
+    names = {a.get("name") for a in asset}
+    for a in src.find("asset"):
+        n = a.get("name") or ""
+        if n in names or not n.startswith("cad_"):
+            continue
+        a = copy.deepcopy(a)
+        if a.tag == "mesh":
+            a.set("file", str(mdir / a.get("file")))
+        asset.append(a)
+    palm, spalm = root.find(".//body[@name='palm_pose']"), src.find(".//body[@name='palm_pose']")
+    for f in FINGERS:
+        palm.remove(palm.find(f"body[@name='{f}_mount']"))
+        fb = copy.deepcopy(spalm.find(f"body[@name='{f}_mount']"))
+        tipb = fb.find(f".//body[@name='{f}_tip']")
+        for g in list(tipb.findall("geom")):
+            if (g.get("mesh") or "").startswith("tpu_") or (g.get("name") or "").startswith(f"{f}_pad"):
+                tipb.remove(g)
+        palm.append(fb)
+    contact = root.find("contact")
+    have = {(e.get("body1"), e.get("body2")) for e in contact.findall("exclude")}
+    for e in src.find("contact").findall("exclude"):
+        if (e.get("body1"), e.get("body2")) not in have:
+            contact.append(copy.deepcopy(e))
+    bodies = {b.get("name") for b in root.iter("body")}
+    for e in list(contact.findall("exclude")):
+        if e.get("body1") not in bodies or e.get("body2") not in bodies:
+            contact.remove(e)
+
+
+def cad_tip_block() -> None:
+    """fingertip_geometry's TPU block set to the CAD insert (17.0 x 14.8 x 21.41 mm against 22.0 mm long), as
+    build_cad_v1_finger.cad_tip_geometry does, so replace_tips builds the CAD hand's pads (1016 per tip)."""
+    G = RB.G
+    A = json.loads((CAD_DIR / "assembly.json").read_text())
+    G.DEPTH, G.WIDTH, G.LENGTH = (v / 1000.0 for v in A["pads"]["block_mm"])
+    G.CENTRE = np.array([G.REACH - G.DEPTH / 2, 0.0, -G.END + G.LENGTH / 2])
+    G.HALF = np.array([G.DEPTH / 2, G.WIDTH / 2, G.LENGTH / 2])
+    G.FOUNDATION = G.DEPTH / 2
 
 
 def design_scene(x_sep_mm: float, y_sep_mm: float, shape: str, d_mm: float) -> Path:
@@ -130,6 +189,15 @@ def plant_scene(design: Path) -> Path:
 SPREADS = (0.0425, 0.0325, 0.0225)     # straddles tried on the 100 mm cylinder, m
 N_H = 3                                # palm heights tried per straddle (spheres: 5)
 SCENES = ROOT / "logs/20261008-hand_object_scale/scenes"    # cell scenes are 0.7 MB each: kept out of git
+# SCALE_HAND=cad_v1 (hand_object_scale_kin.HAND): the CAD-faithful fingers (cad_fingers, cad_tip_block) in their own
+# generated scenes, cell scenes and kinematics outputs; nothing of the real_v1 study is read or written but reach.json's
+# layout families.
+CAD_DIR = ROOT / "assets/mjcf/experimental/20261013-cad_v1"
+HAND = K.HAND
+if HAND == "cad_v1":
+    GEN = ROOT / "assets/mjcf/experimental/20261014-hand_object_scale_cad_v1"
+    SCENES = ROOT / "logs/20261014-hand_object_scale_cad_v1/scenes"
+    cad_tip_block()
 
 
 def candidates(cell: dict, shape: str, d_mm: float) -> list[dict]:
@@ -284,7 +352,8 @@ def cell_scenes(cell: dict, shape: str, d_mm: float, models=("pads", "pt")) -> d
         tmp = path.with_name(path.name + f".{os.getpid()}.tmp")
         ET.ElementTree(root).write(tmp)
         os.replace(tmp, path)
-        meta = {"hand": cell["tag"], "tag": cell["tag"], "shape": shape, "d_mm": d_mm, "model": mdl, "plant": PLANT,
+        meta = {"hand": cell["tag"], "hand_model": HAND, "tag": cell["tag"], "shape": shape, "d_mm": d_mm, "model": mdl,
+                "plant": PLANT,
                 "mu": MU, "impratio": IMPRATIO, "tool7": tool7, "mass_kg": MASS, "f_grip_N": F_GRIP,
                 "design_scene": str(design_scene(xs, ys, shape, d_mm).relative_to(ROOT)),
                 **{k: v for k, v in pads_meta.items() if k != "meshes"}}
@@ -648,7 +717,8 @@ def cmd_run(a) -> int:
     kp = RB.plant_args(PLANT)["kp"]
     print(f"{len(todo)} cells in shard {a.shard}", flush=True)
     for cell, shape, dd in todo:
-        base = {"tag": cell["tag"], "t": cell.get("t"), "x_sep_mm": cell["x_sep_mm"], "y_sep_mm": cell["y_sep_mm"],
+        base = {"hand_model": HAND, "tag": cell["tag"], "t": cell.get("t"), "x_sep_mm": cell["x_sep_mm"],
+                "y_sep_mm": cell["y_sep_mm"],
                 "palm_radius_mm": cell["palm_radius_mm"], "shape": shape, "d_mm": dd, "model": a.model}
         if not cell["feasible"]:
             for w in whats:

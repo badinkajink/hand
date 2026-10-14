@@ -46,6 +46,8 @@ import hand_object_scale_sim as S  # noqa: E402
 import hom_turn3 as H  # noqa: E402
 
 OUT = ROOT / "docs/experiments/20261013-scale_turn_controllers"
+if S.HAND == "cad_v1":       # SCALE_HAND=cad_v1: every default output and HOM-row input of the CAD-hand rerun
+    OUT = ROOT / "docs/experiments/20261014-scale_turn_cad_v1"
 HOM_ROWS = OUT / "hom_postoff/turn.jsonl"
 DEFAULTS = dict(nsample=32, horizon=0.3, knots=3, dt_plan=0.02, sigma=0.08, w_tilt=1.0, w_pos=1.0, w_drop=10.0,
                 w_term=10.0, w_du=1.0, lift_mm=5.0, t_grip=0.8, t_squeeze=0.5, t_end=6.3, cost_every=10, t_post_off=0.8,
@@ -513,7 +515,7 @@ def cmd_run(a) -> int:
         seeds = [s_ for s_ in a.seeds if (cell["tag"], shape, dd, ci, s_) not in done]
         if not seeds:
             continue
-        base = {"tag": cell["tag"], "t": cell.get("t"), "x_sep_mm": cell["x_sep_mm"], "y_sep_mm": cell["y_sep_mm"],
+        base = {"hand_model": S.HAND, "tag": cell["tag"], "t": cell.get("t"), "x_sep_mm": cell["x_sep_mm"], "y_sep_mm": cell["y_sep_mm"],
                 "shape": shape, "d_mm": dd, "model": "pads", "plant": S.PLANT, "controller": "mpc",
                 "hom_med_deg": best[key]["hom_med"],
                 "hom_seeds_deg": best[key]["hom_seeds"], **{f"prm_{k}": v for k, v in prm.items()}}
@@ -659,7 +661,7 @@ def cmd_film(a) -> int:
             clip = media / f"{ctrl.lower()}_{S.obj_tag(shape, dd)}_{cell['tag']}_s{a.seed}.mp4"
             imageio.mimwrite(str(clip), frames, fps=25, codec="libx264", quality=6, macro_block_size=8)
             clips.append(clip)
-            row = {"clip": clip.name, "controller": ctrl, "plant": S.PLANT, "tag": cell["tag"], "t": t, "shape": shape,
+            row = {"clip": clip.name, "controller": ctrl, "hand_model": S.HAND, "plant": S.PLANT, "tag": cell["tag"], "t": t, "shape": shape,
                    "d_mm": dd, "seed": a.seed, **geo, "held": res["held"], "turn_end_deg": res["turn_end_deg"],
                    "held_turn_deg": res["held_turn_deg"], "fingers_loaded_end": res["fingers_loaded_end"],
                    "F_end": res["F_end"], "frames": len(frames)}

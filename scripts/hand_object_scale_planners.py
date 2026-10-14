@@ -42,12 +42,15 @@ CONFIGS = {
     # MuJoCo-Warp: 4 stages of 256 plans (16 times the CPU budget); pads meet only the cylinder in the planner's model
     # and the GPU solver stops at tolerance 1e-6 or 20 iterations (hand_object_scale_mpc_gpu.py)
     "anneal_gpu": dict(method="anneal", iters=4, nsample=1024, pin0=1.0, pad_filter=1.0, device="gpu"),
+    # iCEM at the GPU budget (owner 2026-10-14: "mjwarp mpc is promising, except annealed sampling works worse than
+    # icem"): 2 iterations of 512 plans, the kept elites and AR(1) noise of icem_pin
+    "icem_gpu": dict(method="icem", iters=2, nsample=1024, pin0=1.0, pad_filter=1.0, device="gpu"),
 }
 CONFIGS["ilqr"] = dict(method="ilqr", pad_filter=1.0)    # hand_object_scale_ilqr.py: 25 intervals of 20 ms
 STRING_KEYS = ("method", "device")
 TITLES = {"hom": "HOM", "ps": "Predictive sampling", "ps_pin": "Pinned predictive sampling", "mppi_pin": "Pinned MPPI",
           "cem_pin": "Pinned CEM", "icem_pin": "Pinned iCEM", "anneal_pin": "Pinned annealed sampling",
-          "anneal_gpu": "Pinned annealed sampling, GPU", "ilqr": "iLQR"}
+          "anneal_gpu": "Pinned annealed sampling, GPU", "icem_gpu": "Pinned iCEM, GPU", "ilqr": "iLQR"}
 
 
 def prm_of(name, extra=()):
@@ -168,7 +171,7 @@ def main() -> int:
             k, v = kv.split("=")
             if k == "mu":      # sliding friction of every geom of the plant (the planner keeps the model's)
                 plant.m.geom_friction[:, 0] = float(v)
-        row = {"config": cfg, "variant": a.variant, "plant_set": a.plant_set, "tag": cell["tag"], "t": t,
+        row = {"config": cfg, "hand_model": S.HAND, "variant": a.variant, "plant_set": a.plant_set, "tag": cell["tag"], "t": t,
                "x_sep_mm": cell["x_sep_mm"], "shape": shape, "d_mm": dd, "plant": SERVO, "seed": seed, **geo,
                "when": time.strftime("%Y-%m-%d %H:%M")}
         try:
