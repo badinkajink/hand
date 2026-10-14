@@ -50,7 +50,7 @@ EXTRA_CSS = """
 .col > figure,.col > .tw{width:auto !important;max-width:100% !important}
 """
 MAIN = "high_gain_141Hz"
-ONE, FOUR = "one_d4.76x1.59_d5", "four_d3.18x1.59_d5"
+ONE, FOUR, FOUR4 = "one_d4.76x1.59_d5", "four_d3.18x1.59_d5", "four_d4.76x1.59_d5"
 
 
 def figure(body, caption, legend=None, key=None):
@@ -443,6 +443,18 @@ LAY_LBL = {ONE: "One 4.76 &#215; 1.59&#8202;mm magnet", FOUR: "Four 3.18 &#215; 
            "four_d4.76x1.59_d5": "Four 4.76 &#215; 1.59&#8202;mm magnets"}
 
 
+APL = (("four_d3x2_d5", "four 3 &#215; 2&#8202;mm magnets"), ("four_d3x1_d5", "four 3 &#215; 1&#8202;mm magnets"),
+       ("four_d4.76x1.59_d5", "four 4.76 &#215; 1.59&#8202;mm magnets"))
+
+
+FOUR_STL = "../20261009-tpu_tip_fem/print/20261013-sr2_tip_four_d4p76x1p59_depth5.stl"
+
+
+def gain_for(B_mT):
+    """Highest GAIN_SEL whose range, the datasheet's 4.8 mT at GAIN_SEL 7 scaled by the count size, holds B_mT."""
+    return max(g for g in range(8) if SEN.B_RANGE_MT * MLX.SENS[g][0][0] / MLX.SENS[7][0][0] >= B_mT)
+
+
 def layouts_section(X: Data):
     R = X.fem
     none = R.get("none")
@@ -469,6 +481,22 @@ def layouts_section(X: Data):
            "grows quickly away from the contact point. Read as if the contact were at the contact point, they over-read contacts near a "
            f"magnet by up to {100 * (four['bias_range'][1] - 1):.0f}&#8202;%. Their four fields add to {four['B0_max_mT']:.2f}&#8202;mT at "
            "the chips, at the edge of the highest gain&#8217;s range.</p>")
+    A = {n: X.lay(n) for n, _ in APL if X.lay(n)}
+    if len(A) == len(APL):
+        r1, r2, r4 = A["four_d3x1_d5"], A["four_d3x2_d5"], A["four_d4.76x1.59_d5"]
+        c = lambda r: fn(r["centre"]["sigF_n_unk_bg"])  # noqa: E731
+        m = lambda r: fn(r["median"]["sigF_n_unk_bg"])  # noqa: E731
+        E1, E4 = X.fem[ONE]["E_best_MPa"], X.fem["four_d4.76x1.59_d5"]["E_best_MPa"]
+        txt += ("<p>With AplysiaTech&#8217;s sizes in the same grid, and both unknown, four 3 &#215; 1&#8202;mm magnets read the contact point "
+                f"to {c(r1)}&#8202;N and the face to a median of {m(r1)}&#8202;N, four 3 &#215; 2&#8202;mm magnets to {c(r2)} and "
+                f"{m(r2)}&#8202;N, and four 4.76 &#215; 1.59&#8202;mm magnets, the one-magnet design&#8217;s size, to {c(r4)} and "
+                f"{m(r4)}&#8202;N, with every load point between {r4['both_range'][0]:.2f} and {r4['both_range'][1]:.2f}&#8202;N against "
+                f"{one['both_range'][0]:.2f}&#8211;{one['both_range'][1]:.2f}&#8202;N for one magnet. The two larger sets put {r2['B0_max_mT']:.1f} and "
+                f"{r4['B0_max_mT']:.1f}&#8202;mT on the chips, over the {SEN.B_RANGE_MT:g}&#8202;mT guaranteed at the highest gain: they need "
+                f"GAIN_SEL {gain_for(r2['B0_max_mT'])} and {gain_for(r4['B0_max_mT'])}, for which the datasheet gives no noise, so their "
+                f"bounds are lower bounds. Four 4.76&#8202;mm magnets raise the pad modulus to {E4:.1f}&#8202;MPa, {100 * (E4 / E1 - 1):.0f}&#8202;% "
+                "above one magnet&#8217;s (Table&#160;[[tab:stiff]]), and leave 1.7&#8202;mm of TPU between the press-fit pockets across the "
+                f"finger; they are in the print files as <a href=\"{FOUR_STL}\">20261013-sr2_tip_four_d4p76x1p59_depth5.stl</a>.</p>")
     txt += table(["Layout and chips", "Force noise,<br>position known (N)", "Earth&#8217;s field<br>unknown (N)",
                  "Position and Earth&#8217;s<br>field unknown (N)", "Contact along<br>finger (mm)", "Across<br>(mm)",
                  "Median over 15<br>points, both unknown (N)", "Bias over<br>the face"], rows,
@@ -480,13 +508,9 @@ def layouts_section(X: Data):
                 key="layouts")
     if none:
         E0 = none["E_best_MPa"]
-        txt += (f"<p>The magnets stiffen the tip about equally: the pad modulus at the contact point is {E0:.1f}&#8202;MPa without a magnet, "
-                f"{R[ONE]['E_best_MPa']:.1f} with one and {R[FOUR]['E_best_MPa']:.1f} with four (this coarser grid gives "
-                f"{100 * (R[ONE]['E_best_MPa'] / X.tip_ref_E - 1):.0f}&#8202;% more than the fingertip page&#8217;s for the same tip). Four "
-                "magnets spread the stiffening over the face instead of concentrating it under the contact point "
-                "(Table&#160;[[tab:stiff]]).</p>")
-        srows = []
-        for name, lbl in ((ONE, "One 4.76&#8202;mm magnet"), (FOUR, "Four 3.18&#8202;mm magnets")):
+        srows, sl = [], []
+        for name, lbl in ((ONE, "One 4.76&#8202;mm magnet"), (FOUR, "Four 3.18&#8202;mm magnets"), ("four_d3x2_d5", "Four 3 &#215; 2&#8202;mm magnets"),
+                          ("four_d3x1_d5", "Four 3 &#215; 1&#8202;mm magnets"), ("four_d4.76x1.59_d5", "Four 4.76&#8202;mm magnets")):
             if name not in R:
                 continue
             ratio_c = [p["normal_face_um_per_N"] / q["normal_face_um_per_N"] for p, q in zip(R[name]["patches"], none["patches"])]
@@ -494,6 +518,15 @@ def layouts_section(X: Data):
                       if p["y"] == 0.0 and abs(p["z"] - TD.Z_C) < 1e-6][0]
             srows.append([lbl, f"{R[name]['E_best_MPa']:.1f}", f"{100 * (1 - centre):.0f}", f"{100 * (1 - max(ratio_c)):.0f}&#8211;"
                           f"{100 * (1 - min(ratio_c)):.0f}"])
+            sl.append((name, 100 * (1 - centre), 100 * (1 - max(ratio_c)), 100 * (1 - min(ratio_c))))
+        lost = {name: (c0, lo, hi) for name, c0, lo, hi in sl}
+        txt += (f"<p>Without a magnet the pad modulus at the contact point is {E0:.1f}&#8202;MPa (this coarser grid gives "
+                f"{100 * (R[ONE]['E_best_MPa'] / X.tip_ref_E - 1):.0f}&#8202;% more than the fingertip page&#8217;s for the same tip). One "
+                f"4.76&#8202;mm magnet raises it to {R[ONE]['E_best_MPa']:.1f}&#8202;MPa and takes {lost[ONE][0]:.0f}&#8202;% of the face&#8217;s "
+                "compliance at the contact point; four 3.18 or 3 &#215; 2&#8202;mm magnets take "
+                f"{min(lost[FOUR][1], lost.get('four_d3x2_d5', lost[FOUR])[1]):.0f}&#8211;{max(lost[FOUR][2], lost.get('four_d3x2_d5', lost[FOUR])[2]):.0f}"
+                "&#8202;% over the whole grid" + (f", and four 4.76&#8202;mm magnets {lost[FOUR4][1]:.0f}&#8211;{lost[FOUR4][2]:.0f}&#8202;%"
+                                                 if FOUR4 in lost else "") + " (Table&#160;[[tab:stiff]]).</p>")
         txt += table(["Layout", "Pad modulus<br>(MPa)", "Face compliance lost<br>at the contact point (%)",
                       "Lost over the 15<br>load points (%)"], srows,
                      "Stiffening by the magnets: the face&#8217;s own compliance under a 1&#8202;N patch (Gaussian, &#963; 0.6&#8202;mm) against "
@@ -565,9 +598,12 @@ def limitations():
         f"{100 * (dip / disc - 1):.0f}&#8202;% above a uniformly magnetized disc&#8217;s ({dip:.2f} against {disc:.2f}&#8202;mT).",
         "The four-magnet runs use the homogenized gyroid core on a coarser grid, 13&#8202;% stiffer than the fingertip page&#8217;s, with the "
         "contact as a Gaussian patch; the bounds hold for small loads, where the response is linear.",
-        "Three four-magnet layouts have not run: 3 &#215; 2 and 3 &#215; 1&#8202;mm magnets (AplysiaTech sizes) and four 4.76&#8202;mm "
-        "magnets. A single magnet deeper than 5&#8202;mm needs the layout grid refined below x&#8202;=&#8202;1&#8202;mm.",
+        "A single magnet deeper than 5&#8202;mm needs the layout grid refined below x&#8202;=&#8202;1&#8202;mm; the bounds here stop at "
+        "5&#8202;mm.",
     ]
+    missing = [w for n, w in APL if n not in SEN.rows()]
+    if missing:
+        items.append("Not run: " + ", ".join(missing) + ".")
     return "<ul>" + "".join(f"<li>{x}</li>" for x in items) + "</ul>"
 
 
@@ -584,10 +620,11 @@ def open_items(X: Data):
          "eFlesh&#8217;s setting for its large magnets."),
         ("A plate with the recess toward the tip.", "Draw the SR2 tip&#8217;s mount with the board&#8217;s recess opening toward the "
          "tip&#8217;s back face, so the chips touch it; the v17 plate&#8217;s 2.5&#8202;mm of TPU doubles every force on this page."),
-        ("The AplysiaTech four-magnet layouts.", "<code>~/miniconda3/envs/femtip/bin/python scripts/tpu_tip_magnet_layouts.py run --layout L"
-         "</code> for <code>four_d3x2_d5</code>, <code>four_d3x1_d5</code> and <code>four_d4.76x1.59_d5</code> (2&#8202;min and "
-         "5.5&#8202;GB each), then this page. Four magnets are worth their stiffening if the median over the face with both unknown stays "
-         f"under the one-magnet {fn(one['median']['sigF_n_unk_bg'])}&#8202;N while the contact point stays under 0.2&#8202;N."),
+        ("A four-magnet tip on the bench.", f"Print <a href=\"{FOUR_STL}\">20261013-sr2_tip_four_d4p76x1p59_depth5.stl</a> with four "
+         "AplysiaTech 3/16 &#215; 1/16&#8202;in magnets, read the board against its back face at GAIN_SEL 3, RES 0, and press 1&#8202;N at the 15 "
+         "load points. The bounds hold if the spread of the force estimated at each point is within 50&#8202;% of "
+         f"{fn(X.lay('four_d4.76x1.59_d5')['median']['sigF_n_unk_bg']) if X.lay('four_d4.76x1.59_d5') else '0.15'}&#8202;N; the unloaded "
+         "noise at GAIN_SEL 3 measures what the datasheet leaves out."),
         ("A deeper magnet.", "Refine <code>GRID['x']</code> in <code>scripts/tpu_tip_magnet_layouts.py</code> to 0.3&#8202;mm from "
          "x&#8202;=&#8202;&#8722;2 to 7&#8202;mm, rerun <code>none</code> and <code>one_d4.76x1.59_d5</code>, and add magnets 6.5 and "
          "8&#8202;mm deep read at GAIN_SEL 5. Deeper is better if the five-chip noise at the contact point, with both unknown, falls under "
@@ -600,16 +637,17 @@ def open_items(X: Data):
 
 def lede(X: Data):
     g, gv, o = X.tip("gyroid20"), X.tip("gyroid20", gap="v17"), X.tip("eflesh_open")
-    one, four = X.lay(ONE), X.lay(FOUR)
+    one, four = X.lay(ONE), X.lay(FOUR4)
+    rng = lambda r: f"{r['both_range'][0]:.2f}&#8211;{r['both_range'][1]:.2f}"  # noqa: E731
     return (f"eFlesh&#8217;s five-chip board reads one 141&#8202;Hz sample of the printed 20&#8202;% gyroid tip to "
-            f"{fn(g['sigF_board_bg_N'])}&#8202;N of normal force with the Earth&#8217;s field estimated and removed, against "
-            f"{fn(g['sigF_N'])}&#8202;N from the chip under the magnet alone and {fn(o['sigF_board_bg_N'])}&#8202;N on open eFlesh. Its chips "
-            "must sit against the tip&#8217;s back face: under the 2.5&#8202;mm of TPU of the v17 finger&#8217;s plate the noise doubles to "
-            f"{fn(gv['sigF_board_bg_N'])}&#8202;N. Offset drift ({fn(g['drift10C_board_N'])}&#8202;N per 10&#8202;&#176;C) and a facing "
-            f"fingertip&#8217;s magnet ({fn(g['neighbour_board_N'])}&#8202;N) remain on the gyroid and need temperature correction and "
-            "subtraction from the joint angles. One 4.76&#8202;mm magnet reads the contact point to "
-            f"{fn(one['centre']['sigF_n_unk_bg'])}&#8202;N with its position and the Earth&#8217;s field unknown; four 3.18&#8202;mm magnets "
-            f"read it to {fn(four['centre']['sigF_n_unk_bg'])}&#8202;N and the rest of the face better.")
+            f"{fn(g['sigF_board_bg_N'])}&#8202;N with the Earth&#8217;s field removed, against {fn(g['sigF_N'])}&#8202;N from the chip under "
+            f"the magnet and {fn(o['sigF_board_bg_N'])}&#8202;N on open eFlesh; the v17 finger&#8217;s 2.5&#8202;mm plate over the chips "
+            f"doubles it to {fn(gv['sigF_board_bg_N'])}&#8202;N. Offset drift ({fn(g['drift10C_board_N'])}&#8202;N per 10&#8202;&#176;C) and "
+            f"a facing fingertip&#8217;s magnet ({fn(g['neighbour_board_N'])}&#8202;N) remain on the gyroid. With the contact&#8217;s position "
+            f"and the Earth&#8217;s field unknown, one 4.76&#8202;mm magnet reads the 15 load points to {rng(one)}&#8202;N; four of the same "
+            f"AplysiaTech magnets read every one to {rng(four)}&#8202;N, for "
+            f"{100 * (X.fem[FOUR4]['E_best_MPa'] / X.fem[ONE]['E_best_MPa'] - 1):.0f}&#8202;% more pad modulus and GAIN_SEL "
+            f"{gain_for(four['B0_max_mT'])}.")
 
 
 def byline():

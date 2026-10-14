@@ -148,7 +148,7 @@ def table():
     R = rows()
     out = []
     cases = [(name, mode, gname) for name in LAYOUTS for mode, gname in (("centre", "touch"), ("board", "touch"), ("board", "v17"))
-             if name.startswith("one") or mode == "board"]
+             if (mode == "board" or name.startswith("one")) and (gname == "touch" or name in LAYOUTS[:2])]
     for name, mode, gname in cases:
         if name not in R:
             continue
@@ -161,6 +161,7 @@ def table():
                         centre=c, median=dict((k, med(k)) for k in ("sigF_n", "sigF_y", "sigF_z", "sigF_n_unk", "sig_y_mm",
                                                                      "sig_z_mm", "signal_n_uT", "sigF_n_bg", "sigF_n_unk_bg")),
                         bias_range=[min(bias), max(bias)], E_best_MPa=R[name]["E_best_MPa"],
+                        both_range=[float(min(p["sigF_n_unk_bg"] for p in pts)), float(max(p["sigF_n_unk_bg"] for p in pts))],
                         approach_um=R[name]["per_force"]["1"]["delta_um"]))
     return out
 

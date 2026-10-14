@@ -17,6 +17,8 @@ printed with its back face on the bed and the palmar face up: 2 walls of 0.45 mm
 
 Magnet: N52 disc 4.76 x 1.59 mm, axially magnetized, north toward the palmar face, its top 5 mm under the contact point (AplysiaTech 3/16 x 1/16 in, amazon.com/dp/B0DSWGZ921). Pocket: the owner's press fit, 4.28 mm across (90 % of the diameter) and 1.51 mm deep (95 % of the thickness), which 0.2 mm layers print as 8 layers, 1.6 mm, from 10.4 to 12 mm; the magnet's top lies flush with it and the diameter holds it. Pause before the layer at 12.2 mm (layer 61), press the magnet in, add a drop of cyanoacrylate if it turns, resume.
 
+Four magnets: 20261013-sr2_tip_four_d4p76x1p59_depth5.stl has four of these pockets on a grid 6 mm across and 7 mm along the finger, centred on the contact point, with the same pause (20261013-sr2_tip_w95_20_four_d4p76x1p59_depth5.json; the bounds are on the readout page, docs/experiments/20261013-magnet_layouts/20261013-mlx90393_fingertip_readout.html).
+
 Other pocket depths (1.5 and 3 mm) and a 3.18 x 1.59 mm magnet are in the other STLs; their pause heights come from
 `scripts/tpu_tip_design.py sheet --magnet <name> --depth <mm>`.
 

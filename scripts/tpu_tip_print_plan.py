@@ -138,8 +138,39 @@ def write_prints(plan=None):
                                 twist_arm_mm={k: round(v["arm_mm"], 3) for k, v in r["per_force"].items()},
                                 source="docs/experiments/20261009-tpu_tip_fem/magnet_runs.jsonl")
         json.dump(rec, open(PRINT_DIR / f"{sheet_name(p['recipe'], p['magnet'], p['depth'])}.json", "w"), indent=1)
+    write_four()
     write_readme(plan or plan_rows())
     return out
+
+
+FOUR = ("d4.76x1.59", 5.0)        # four of the one-magnet design's magnets in the grid of tpu_tip_magnet_layouts.py
+
+
+def four_name(kind):
+    mag, dep = FOUR
+    return f"{POCKET_DATE}-sr2_tip_" + ("" if kind == "stl" else "w95_20_") + f"four_{mag}_depth{dep:g}".replace(".", "p")
+
+
+def write_four():
+    """The four-magnet tip: STL and a print sheet with the finite-element row of docs/experiments/20261013-magnet_layouts."""
+    mag, dep = FOUR
+    m = TD.mesh(mag, dep, centres=TD.grid4())
+    m.export(PRINT_DIR / f"{four_name('stl')}.stl")
+    rec = dict(stl=f"{four_name('stl')}.stl", material=TPU["w95_20"], role="four magnets, grid 6 mm across and 7 mm along the finger",
+               slicer=dict(walls=2, line_width_mm=0.45, layer_mm=TD.LAYER, first_layer_mm=TD.FIRST_LAYER, top_layers=4, bottom_layers=4,
+                           infill="gyroid", infill_percent=INFILL["w95_20"],
+                           orientation="back face on the bed, palmar face up (layers across the load)", supports="none"))
+    rec.update(TD.print_sheet(mag, dep))
+    rec["magnet_count"] = 4
+    rec["pocket_centres_yz_mm"] = [[round(y, 3), round(z, 3)] for y, z in TD.grid4()]
+    lay = ROOT / "docs/experiments/20261013-magnet_layouts/fem.jsonl"
+    rows = {r["layout"]: r for r in (json.loads(l) for l in open(lay))} if lay.exists() else {}
+    r = rows.get("four_d4.76x1.59_d5")
+    if r:
+        rec["model"] = dict(pad_modulus_E_star_MPa=round(r["E_best_MPa"], 2), source="docs/experiments/20261013-magnet_layouts/fem.jsonl "
+                            "(coarser grid than magnet_runs.jsonl, 13 % stiffer for the same tip)")
+    json.dump(rec, open(PRINT_DIR / f"{four_name('sheet')}.json", "w"), indent=1)
+    return len(m.faces), round(float(m.volume), 1), bool(m.is_watertight)
 
 
 def write_readme(plan):
@@ -165,6 +196,9 @@ def write_readme(plan):
               f"{sh['printed_pocket_print_heights_mm'][1]:g} mm; the magnet's top lies flush with it and the diameter holds it. "
               f"Pause before the layer at {sh['pause_before_layer_at_mm']:g} mm (layer {sh['pause_layer_number']}), press the magnet "
               "in, add a drop of cyanoacrylate if it turns, resume.",
+              "", f"Four magnets: {four_name('stl')}.stl has four of these pockets on a grid 6 mm across and 7 mm along the finger, "
+              f"centred on the contact point, with the same pause ({four_name('sheet')}.json; the bounds are on the readout page, "
+              "docs/experiments/20261013-magnet_layouts/20261013-mlx90393_fingertip_readout.html).",
               "", "Other pocket depths (1.5 and 3 mm) and a 3.18 x 1.59 mm magnet are in the other STLs; their pause heights come from",
               "`scripts/tpu_tip_design.py sheet --magnet <name> --depth <mm>`.", "",
               "After printing: `scripts/tpu_tip_calibrate.py fit` turns an indentation and a pull test into E_s, E* and the friction",

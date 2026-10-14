@@ -72,6 +72,11 @@ def pocket(magnet, depth, clear_r=None, clear_t=None):
     return dict(r=D / 2 + clear_r, x_lo=m_lo - clear_t / 2, x_hi=m_hi + clear_t / 2), mg
 
 
+def grid4(pitch_y=6.0, pitch_z=7.0):
+    """Pocket centres (y, z) of the four-magnet grid of scripts/tpu_tip_magnet_layouts.py, centred on the contact point."""
+    return [(sy * pitch_y / 2, Z_C + sz * pitch_z / 2) for sy in (-1, 1) for sz in (-1, 1)]
+
+
 def in_cyl(x, y, z, c):
     return (np.asarray(x) >= c["x_lo"]) & (np.asarray(x) <= c["x_hi"]) & ((np.asarray(y) ** 2 + (np.asarray(z) - Z_C) ** 2)
                                                                          <= c["r"] ** 2)
@@ -117,9 +122,9 @@ def print_sheet(magnet, depth, clear_r=None, clear_t=None, layer=LAYER):
                       "resume."))
 
 
-def mesh(magnet=None, depth=None, h=0.12, sections=96, clear_r=None, clear_t=None):
-    """Watertight STL mesh: the convex hull of the block's surface samples, and the pocket as an inner shell with its
-    faces reversed (a slicer prints it as an internal void)."""
+def mesh(magnet=None, depth=None, h=0.12, sections=96, clear_r=None, clear_t=None, centres=None):
+    """Watertight STL mesh: the convex hull of the block's surface samples, and each pocket as an inner shell with its
+    faces reversed (a slicer prints it as an internal void). centres: pocket centres (y, z), default the contact point."""
     import trimesh
     ys = np.unique(np.r_[np.arange(-Y_HALF, Y_HALF, h), Y_HALF])
     zs = np.unique(np.r_[np.arange(0.0, Z_END, h), Z_END])
@@ -133,9 +138,11 @@ def mesh(magnet=None, depth=None, h=0.12, sections=96, clear_r=None, clear_t=Non
         cyl = trimesh.creation.cylinder(radius=pk["r"], height=pk["x_hi"] - pk["x_lo"], sections=sections)
         R = trimesh.transformations.rotation_matrix(math.pi / 2, [0, 1, 0])        # axis z -> x
         cyl.apply_transform(R)
-        cyl.apply_translation([0.5 * (pk["x_lo"] + pk["x_hi"]), 0.0, Z_C])
-        cyl.invert()
-        parts.append(cyl)
+        for y, z in centres or [(0.0, Z_C)]:
+            c = cyl.copy()
+            c.apply_translation([0.5 * (pk["x_lo"] + pk["x_hi"]), y, z])
+            c.invert()
+            parts.append(c)
     m = trimesh.util.concatenate(parts)
     return m
 
