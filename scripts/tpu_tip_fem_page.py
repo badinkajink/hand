@@ -34,6 +34,7 @@ OUT = os.path.join(D, "20261009-printed_tpu_fingertip_finite_elements.html")
 TPL = os.path.join(ROOT, "scripts/tpu_tip_fem_page.template.html")
 TEX_CACHE = os.path.join(D, "texsvg_cache.json")
 NOTE = "docs/handoff/20261007-tpu_tip_finite_elements.md"
+READOUT_PAGE = "../20261013-magnet_layouts/20261013-mlx90393_fingertip_readout.html"
 OVERVIEW = "docs/experiments/20261009-contact_overview/20261009-sphere_pad_contact_model.html"
 BACKENDS = "docs/experiments/20261006-fingertip_backends/20261006-fingertip_contact_backends.html"
 COMPLIANCE = "docs/experiments/20261007-native_compliance/20261007-native_presliding_compliance.html"
@@ -217,8 +218,10 @@ GLOSSARY = [
     ("Magnet travel", "Displacement of the magnet&#8217;s centre toward the back face under 1&#8202;N on the face, in &#181;m; along and "
      "across the finger, under 1&#8202;N of shear on a 1&#8202;N contact, in &#181;m/N."),
     ("Signal, force noise", "Signal: change of the field at the magnetometer per newton of load, in &#181;T/N, from a point dipole of the "
-     "magnet&#8217;s moment. Force noise: the load whose signal equals one standard deviation of one 100&#8202;Hz MLX90393 sample "
-     "(2.3&#8202;&#181;T on the chip&#8217;s in-plane axes, 3.5&#8202;&#181;T normal to it), in N."),
+     "magnet&#8217;s moment. Force noise: the load whose signal equals one standard deviation of one MLX90393 sample at "
+     "141&#8202;Hz (GAIN_SEL 7, RES 0, OSR 0, DIG_FILT 5: 1.15&#8202;&#181;T on the chip&#8217;s in-plane axes, 1.75&#8202;&#181;T normal "
+     "to it, from the datasheet&#8217;s Figures 2 and 3), in N. It combines the finite-element travel, the dipole field and the "
+     "datasheet noise; drift, the Earth&#8217;s field and other magnets are on the <a href=\"" + READOUT_PAGE + "\">readout page</a>."),
     ("Chip distance", "Distance of the MLX90393&#8217;s sensing point behind the tip&#8217;s back face, in mm; negative when the chip is "
      "set into the tip."),
 ]
@@ -678,7 +681,7 @@ def lede(X: Data):
             f"{f0(min(ae))}&#8211;{f0(max(ae))}&#8202;% shorter than the tip&#8217;s, and the tip&#8217;s tangential compliance, which no pad model "
             "represents. Under "
             f"1&#8202;N the magnet moves {f0(min(trav))}&#8211;{f0(max(trav))}&#8202;&#181;m, which an MLX90393 1&#8202;mm behind the tip reads "
-            f"with {f2(min(sig))}&#8211;{f2(max(sig))}&#8202;N of noise per 100&#8202;Hz sample.")
+            f"with {f2(min(sig))}&#8211;{f2(max(sig))}&#8202;N of noise per 141&#8202;Hz sample.")
 
 
 def open_items(X: Data):

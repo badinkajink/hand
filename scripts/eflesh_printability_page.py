@@ -121,6 +121,13 @@ class Data:
                 r = json.load(open(os.path.join(D, "build", f)))
                 self.builds[r["name"]] = r
         self.fem = {r["tip"]: r for r in jl(os.path.join(D, "fem.jsonl"))}
+        import tpu_tip_print_plan as PP          # force noise with the current MLX90393 model, from the stored magnet motions
+        for r in self.fem.values():
+            if "1" in r["per_force"]:
+                fr = dict(magnet=r["magnet"], depth_mm=r["depth_mm"], per_force={"1": r["per_force"]["1"]},
+                          **{f"shear_{a}_magnet_{q}_per_N": [0, 0, 0] for a in "zy" for q in ("t_um", "w_mrad")})
+                r["field"] = {f"{g:g}": {k: v for k, v in PP.field(fr, g).items() if k in ("B0_mT", "S_normal_norm", "sigF_normal_N")}
+                              for g in (1.0, 4.0)}
         s = json.load(open(os.path.join(TIP, "summary.json")))
         self.ef_design = s["resolved"]["eflesh_c8"]
         self.ef_gpu = s["gpu"]["eflesh_c8_surf"]
@@ -198,8 +205,8 @@ GLOSSARY = [
      f"shaft (radius 12.5&#8202;mm) at 0.5, 1 and 3&#8202;N, as on the <a href=\"{TIP_PAGE}\">printed fingertip page</a>; the contact models "
      "use 10&#8202;MPa."),
     ("Magnet travel, force noise", "Travel: displacement of the magnet toward the back face per newton on the face, in &#181;m/N. Force noise: "
-     "the load whose field change at an MLX90393 1&#8202;mm behind the back face equals one 100&#8202;Hz sample&#8217;s noise, in N (point "
-     "dipole of a 4.76 &#215; 1.59&#8202;mm N52 disc whose top is 5&#8202;mm under the face)."),
+     "the load whose field change at an MLX90393 1&#8202;mm behind the back face equals one 141&#8202;Hz sample&#8217;s noise, in N (point "
+     "dipole of a 4.76 &#215; 1.59&#8202;mm N52 disc whose top is 5&#8202;mm under the face)." + " It combines the finite-element travel, a dipole field and the MLX90393 datasheet noise (GAIN_SEL 7, RES 0, OSR 0, DIG_FILT 5); drift and stray fields are on the <a href=\"../20261013-magnet_layouts/20261013-mlx90393_fingertip_readout.html\">readout page</a>."),
     ("Open lattice, skin", "Open: the lattice&#8217;s struts end at the part&#8217;s faces, as eFlesh prints its sensors; the v17 finger is "
      "open except for its solid back. Skin: a closed 0.9&#8202;mm layer (two beads) over the faces, which eFlesh does not have; "
      "<code>scripts/eflesh_build.py</code> adds one only with <code>--skin</code>."),
@@ -363,7 +370,7 @@ def fem_text(X: Data):
     return (f"<p>Printed as eFlesh prints it, open on every face on a solid base, the lattice tip approaches {d(o):.0f}&#8202;&#181;m at "
             f"1&#8202;N (pad modulus {o['E_best_MPa']:.2f}&#8202;MPa) and its magnet travels {tr(o):.0f}&#8202;&#181;m/N, against "
             f"{d(g):.0f}&#8202;&#181;m ({g['E_best_MPa']:.1f}&#8202;MPa) and {tr(g):.0f}&#8202;&#181;m/N for the 20&#8202;% gyroid tip solved "
-            f"the same way. The normal-force noise of one 100&#8202;Hz sample at a chip 1&#8202;mm behind the back face is {nz(o):.3f}&#8202;N "
+            f"the same way. The normal-force noise of one 141&#8202;Hz sample at a chip 1&#8202;mm behind the back face is {nz(o):.3f}&#8202;N "
             f"against {nz(g):.3f}&#8202;N (Table&#160;[[tab:fem]]).</p>"
             f"<p>Three skins, none of which eFlesh prints, close the surface for contact, and each costs magnet travel. A 0.9&#8202;mm skin on "
             f"the palmar face only gives {d(t):.0f}&#8202;&#181;m and {nz(t):.3f}&#8202;N and keeps {100 * tr(t) / tr(o):.0f}&#8202;% of the open "

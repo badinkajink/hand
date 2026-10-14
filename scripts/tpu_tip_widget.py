@@ -140,7 +140,7 @@ function pauseAt(pk, layer) {
 
 // Field at the chip (sensing point at x = X_BACK - gap under the contact point), its change per newton for the three
 // loads, and the force whose signal equals one sample's noise. k: solid modulus over the run's; rate: output rate (Hz),
-// the per-axis noise scaling as the square root of the rate (averaged 100 Hz samples).
+// the per-axis noise scaling as the square root of the rate (averaged 141 Hz bursts).
 function field(r, dm, t, depth, gap, br, k, rate) {
   var g = pocket(dm, t, depth, 0.1, 0.1).mg;
   var pm = [0.5 * (g.lo + g.hi) * 1e-3, 0, G.Z_C * 1e-3], ps = [(G.X_BACK - gap) * 1e-3, 0, G.Z_C * 1e-3];
@@ -524,7 +524,7 @@ def section(H, X, number_figs=True):
 <label><span class="tc-l">Chip distance behind the back face</span><input type="range" id="tc-gap" min="-4" max="6" step="0.1" value="1"><output id="tc-gap-o"></output></label>
 <label><span class="tc-l">Solid modulus of the TPU, times the model&#8217;s</span><input type="range" id="tc-es" min="0.5" max="2.5" step="0.05" value="1"><output id="tc-es-o"></output></label>
 <label><span class="tc-l">Magnet grade</span><select id="tc-br"><option value="1.45">N52, remanence 1.45&#8202;T</option><option value="1.32">N42, remanence 1.32&#8202;T</option></select></label>
-<label><span class="tc-l">Magnetometer output rate (averaged 100&#8202;Hz samples)</span><select id="tc-rate"><option value="100">100&#8202;Hz</option><option value="50">50&#8202;Hz</option><option value="25">25&#8202;Hz</option><option value="10">10&#8202;Hz</option></select></label>
+<label><span class="tc-l">Magnetometer output rate (141&#8202;Hz MLX90393 bursts at GAIN_SEL 7, RES 0, OSR 0, DIG_FILT 5, averaged)</span><select id="tc-rate"><option value="141">141&#8202;Hz</option><option value="70.5">70&#8202;Hz</option><option value="35.25">35&#8202;Hz</option><option value="14.1">14&#8202;Hz</option></select></label>
 <label><span class="tc-l">Layer height</span><select id="tc-layer"><option value="0.12">0.12&#8202;mm</option><option value="0.16">0.16&#8202;mm</option><option value="0.2" selected>0.20&#8202;mm</option><option value="0.24">0.24&#8202;mm</option><option value="0.28">0.28&#8202;mm</option></select></label>
 </div>"""
     f_sec = H.figure('<div class="tc-svg" id="tc-sec"></div>',

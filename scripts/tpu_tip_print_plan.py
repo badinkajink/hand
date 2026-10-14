@@ -6,7 +6,8 @@ Inputs: docs/experiments/20261009-tpu_tip_fem/magnet_runs.jsonl (scripts/tpu_tip
 without a magnet), the page's own rows for the insert (Data in scripts/tpu_tip_fem_page.py) and the bed's pad rows.
 Magnet field: point dipole of an axially magnetized N52 disc (scripts/tpu_tip_design.py), read by an MLX90393 lying
 flat behind the back face (chip z along the tip's x). Noise: the MLX90393 datasheet's Figures 2-3 (GAIN_SEL 7) at about
-3 ms per axis, the conversion time that reads all three axes at 100 Hz.
+the setting of scripts/mlx90393_model.py (GAIN_SEL 7, RES 0, OSR 0, DIG_FILT 5: a T+XYZ burst every 7.1 ms, 141 Hz). Until
+2026-10-13 the noise was 2.3 and 3.5 uT, the datasheet's value for a 2.7 ms XYZ conversion read as a per-axis time.
 
     .venv/bin/python scripts/tpu_tip_print_plan.py stl      # print files and sheets for the plan's tips
     .venv/bin/python scripts/tpu_tip_print_plan.py table    # the plan as text
@@ -29,10 +30,13 @@ D = ROOT / "docs/experiments/20261009-tpu_tip_fem"
 ROWS = D / "magnet_runs.jsonl"
 PRINT_DIR = D / "print"
 GAPS = (1.0, 4.0)                    # back face to the chip's sensing point, mm: in a pocket of the mount, behind a 3 mm plate
-NOISE_UT = dict(xy=2.3, z=3.5)       # MLX90393 RMS noise per axis at ~3 ms per axis (100 Hz for XYZ), GAIN_SEL 7
-RATE_HZ = 100.0
+import mlx90393_model as MLX  # noqa: E402
+_MLX = MLX.setting("high_gain_141Hz")
+NOISE_UT = dict(xy=round(_MLX["noise_xy_uT"], 2), z=round(_MLX["noise_z_uT"], 2))   # MLX90393 RMS noise per sample, uT
+RATE_HZ = round(_MLX["rate_Hz"])                                                   # 141 Hz T+XYZ bursts
 B_RANGE_MT = 4.8                     # full scale at GAIN_SEL 7 (datasheet: at least +-4.8 mT at the highest gain)
 PLAN_MAG, PLAN_DEPTH = "d4.76x1.59", 5.0   # chosen 2026-10-12 from the depth runs: least change of E* and least force noise
+READOUT_PAGE = "../20261013-magnet_layouts/20261013-mlx90393_fingertip_readout.html"
 RECIPE_LBL = {"w95_20": "95A, gyroid 20&#8202;%", "w95_10": "95A, gyroid 10&#8202;%", "w85_50": "85A, gyroid 50&#8202;%",
               "w85_30": "85A, gyroid 30&#8202;%"}
 RECIPE_TXT = {"w95_20": "95A, gyroid 20 %", "w95_10": "95A, gyroid 10 %", "w85_50": "85A, gyroid 50 %", "w85_30": "85A, gyroid 30 %"}
@@ -321,7 +325,7 @@ def svg_results(R):
     # (b) force noise against the chip's distance behind the back face, 4.76 mm magnet at 3 mm
     gx, gy = P._panel(out, 520, 54, 300, 250, (-6, 6), (0.03, 3), [-6, -3, 0, 3, 6], [0.03, 0.1, 0.3, 1, 3],
                       "Chip behind the back face (mm)", "Normal-force noise, 1&#963; (N)", logy=True)
-    out.append(f'<text x="460" y="22" style="fill:var(--ink)">(b) Magnetometer at 100 Hz, magnet {PLAN_DEPTH:g} mm deep</text>')
+    out.append(f'<text x="460" y="22" style="fill:var(--ink)">(b) Magnetometer at {RATE_HZ} Hz, magnet {PLAN_DEPTH:g} mm deep</text>')
     sat = None
     for rec, col in PRINT_COL.items():
         r = R.get((rec, PLAN_MAG, PLAN_DEPTH))
@@ -380,7 +384,7 @@ def plan_section(H, X):
                    note="\\(E^*\\): the pads&#8217; modulus that best reproduces the tip&#8217;s approach under the screwdriver at 0.5, 1 and "
                         "3&#8202;N, at \\(E_s\\) = 30&#8202;MPa for 95A and 12&#8202;MPa for 85A. Twist arm: the tip&#8217;s full-slip arm against the "
                         "pads&#8217; at \\(E^*\\) (bed task T2). Force noise: one standard deviation of the normal force read from one "
-                        "100&#8202;Hz sample of an MLX90393 1&#8202;mm behind the back face.", text_cols=(0, 5), key="plan")
+                        "141&#8202;Hz sample of an MLX90393 1&#8202;mm behind the back face.", text_cols=(0, 5), key="plan")
 
 
 def plan_text(H, X):
@@ -398,7 +402,7 @@ def plan_text(H, X):
            f"contact least and gives the least force noise of the three tried: it raises the reference&#8217;s modulus to "
            f"{H.f1(gp['E_best_MPa'])}&#8202;MPa, so a scene of a magnet tip takes the magnet tip&#8217;s modulus, and an MLX90393 1&#8202;mm "
            f"behind the back face reads the magnet with {H.f1(fp['S_normal_norm'])}&#8202;&#181;T/N, a force noise of "
-           f"{H.f2(fp['sigF_normal_N'])}&#8202;N per 100&#8202;Hz sample.")
+           f"{H.f2(fp['sigF_normal_N'])}&#8202;N per 141&#8202;Hz sample.")
     if sp:
         fs = field(sp, GAPS[0])
         txt += (f" The softer 85A print at 30&#8202;% has a modulus of {H.f1(sp['E_best_MPa'])}&#8202;MPa and a noise of "
@@ -424,8 +428,8 @@ def magnet_table(H, X, R):
                            "<code>scripts/tpu_tip_magnet.py</code>).",
                    note="Travel: of the magnet&#8217;s centre toward the back face under 1&#8202;N on the face; shear travel: under 1&#8202;N of shear "
                         "on a 1&#8202;N contact that sticks, along the finger and across it. Signal and force noise: an MLX90393 1&#8202;mm behind "
-                        "the back face under the contact point, one 100&#8202;Hz sample (2.3&#8202;&#181;T RMS on its in-plane axes, "
-                        "3.5&#8202;&#181;T on its normal axis).", key="magnet")
+                        "the back face under the contact point, one 141&#8202;Hz sample (1.15&#8202;&#181;T RMS on its in-plane axes, "
+                        "1.75&#8202;&#181;T on its normal axis; GAIN_SEL 7, RES 0, OSR 0, DIG_FILT 5).", key="magnet")
 
 
 def magnet_section(H, X):
@@ -457,7 +461,7 @@ def magnet_section(H, X):
            "here is 0.03&#8211;0.23 times it (Table&#160;[[tab:cells]]), so the same magnet moves tens of micrometres per newton, not "
            f"hundreds. With its top {PLAN_DEPTH:g}&#8202;mm under the face it moves {rng(trav, H.f1)}&#8202;&#181;m toward "
            "the back face under 1&#8202;N across the four prints, and an MLX90393 1&#8202;mm behind the 95A 20&#8202;% tip reads it with a noise "
-           f"of {H.f2(fp['sigF_normal_N'])}&#8202;N per 100&#8202;Hz sample, {H.f2(fp4['sigF_normal_N'])}&#8202;N with the chip behind a "
+           f"of {H.f2(fp['sigF_normal_N'])}&#8202;N per 141&#8202;Hz sample, {H.f2(fp4['sigF_normal_N'])}&#8202;N with the chip behind a "
            "3&#8202;mm plate (Figure&#160;[[fig:magres]], Table&#160;[[tab:magnet]]); averaging ten samples divides the noise by 3.2. "
            "Shear along the finger moves the magnet a third as far as shear across it, because the mount face holds the block at "
            "one end.</p>"
@@ -469,10 +473,19 @@ def magnet_section(H, X):
     svg, leg = svg_results(R)
     out.append(H.figure(svg, "(a) Travel of a 4.76 &#215; 1.59&#8202;mm magnet toward the back face under 1&#8202;N on the face, against the "
                              "depth of its top below the face (filled), and of a 3.18 &#215; 1.59&#8202;mm magnet at 3&#8202;mm (hollow). "
-                             "(b) Normal-force noise of one 100&#8202;Hz MLX90393 sample against the chip&#8217;s distance behind the back "
+                             "(b) Normal-force noise of one 141&#8202;Hz MLX90393 sample against the chip&#8217;s distance behind the back "
                              f"face (negative: set into the tip), magnet {PLAN_DEPTH:g}&#8202;mm deep; dashed where the static field "
                              "exceeds 4.8&#8202;mT.", legend=leg, key="magres"))
     out.append(magnet_table(H, X, R))
+    out.append("<p>The force noise on this page is a computation from three models, with no measurement in it. The finite elements give "
+               "the magnet&#8217;s travel and rotation per newton (the material and the structure); a point dipole of the magnet&#8217;s "
+               "moment turns that motion into a change of field at the chip; and the MLX90393 datasheet gives the chip&#8217;s noise per "
+               f"sample, {NOISE_UT['xy']:.2f}&#8202;&#181;T on its in-plane axes and {NOISE_UT['z']:.2f}&#8202;&#181;T normal to it at "
+               f"GAIN_SEL 7, RES 0, OSR 0 and DIG_FILT 5, a burst every {1000 / RATE_HZ:.1f}&#8202;ms ({RATE_HZ}&#8202;Hz). The force noise "
+               "is the load whose field change equals that noise. Offset drift, the Earth&#8217;s field, the other fingers&#8217; magnets and "
+               "the firmware&#8217;s own settings are left out here and quantified on the <a href=\"" + READOUT_PAGE + "\">readout page</a>; "
+               "they, not the noise, limit the stiff tips. Until 2026-10-13 this page took 2.3 and 3.5&#8202;&#181;T, the datasheet&#8217;s "
+               "noise for a 2.7&#8202;ms conversion of all three axes read as a time per axis, which doubled every force noise.</p>")
     return "".join(out)
 
 
