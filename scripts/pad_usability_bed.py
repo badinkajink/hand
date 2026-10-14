@@ -72,7 +72,7 @@ def main():
     ap.add_argument("--dt", nargs="+", type=float, default=[1.0, 2.0])
     ap.add_argument("--ref-dt", nargs="*", type=float, default=[1.0, 2.0],
                     help="steps at which mj_tpu2p7_pads1 (impratio 100) also runs: 1 ms reproduces the 10-06 rows, "
-                         "2 ms is the step-matched reference")
+                         "2 ms is the reference at the trainer's step")
     ap.add_argument("--out-dir", type=Path, default=OUT_DIR)
     a = ap.parse_args()
     register()
