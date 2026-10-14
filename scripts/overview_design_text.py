@@ -121,5 +121,9 @@ PAGES = [
     ("Morphology and design search", "20261001-drake-port/20261001-drake_sr2_planning.html", "Drake model and planning"),
     ("Morphology and design search", "20261008-hand_object_scale/20261008-finger_spacing_object_size.html",
      "Spacing against object size"),
+    ("Morphology and design search", "20261011-bench_plan/20261011-bench_plan_finger_spacing.html",
+     "Bench plan for the spacing study"),
+    ("Morphology and design search", "20261013-scale_turn_controllers/20261013-scale_turn_hom_mpc.html",
+     "Cylinder turns under HOM and sampling MPC"),
     ("Related pages", "20260921-workshop_briefing/20260921-sr2_hand_program_record.html", "Funnel, bench counts"),
 ]

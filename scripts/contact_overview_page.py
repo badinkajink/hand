@@ -1360,6 +1360,12 @@ def _url(path):
 
 
 RELATED = [  # (group, date, title, path relative to the repository, contents)
+    ("Results on other pages", "2026-10-13", "Sensitivity of the reorientation policies to fingertip contact parameters",
+     "docs/experiments/20261013-contact_feedback/20261013-contact_parameter_sensitivity.html",
+     "Closed loop against open-loop replay, analytical checks of the sphere pads"),
+    ("Results on other pages", "2026-10-11", "Audit of the DiffMJX contact-gradient probes",
+     "docs/experiments/20261011-diffmjx_audit/20261011-diffmjx_gradient_probe_audit.html",
+     "The DiffMJX and contact-release studies script by script"),
     ("Results on other pages", "2026-10-12", "Presliding compliance from a sprung skin under the sphere pads",
      "docs/experiments/20261012-sprung_skin/20261012-sprung_skin_presliding.html",
      "Mindlin presliding, the skin&#8217;s construction and sizing, task 8 at the bed&#8217;s and the trainer&#8217;s settings, policies "
@@ -1386,6 +1392,18 @@ RELATED = [  # (group, date, title, path relative to the repository, contents)
      "docs/experiments/20261001-hom_contact_patch/20261001-hom_pinch_contact_models.html", "First two-pad rig"),
     ("Results on other pages", "2026-10-01", "Pinch-brake loading on the SR2 hand",
      "docs/experiments/20261001-hom_hand_brake/20261001-hom_hand_brake.html", "Brake in Drake and MuJoCo on the hand"),
+    ("Printed fingertips (topic overview: printed_fingertips.html)", "2026-10-09",
+     "Stiffness, sphere-pad calibration and embedded magnet of the printed TPU fingertip",
+     "docs/experiments/20261009-tpu_tip_fem/20261009-printed_tpu_fingertip_finite_elements.html",
+     "Finite elements of the gyroid tip, the pads&#8217; modulus, magnet depth, print plan and calculator"),
+    ("Printed fingertips (topic overview: printed_fingertips.html)", "2026-10-13",
+     "Printability, stiffness and a one-command build of eFlesh lattice fingertips",
+     "docs/experiments/20261013-eflesh_printability/20261013-eflesh_lattice_printability.html",
+     "eFlesh audit, as-printed stiffness from the G-code"),
+    ("Printed fingertips (topic overview: printed_fingertips.html)", "2026-10-13",
+     "MLX90393 readout of printed fingertips on the five-chip board",
+     "docs/experiments/20261013-magnet_layouts/20261013-mlx90393_fingertip_readout.html",
+     "Force noise, disturbances, one or four magnets"),
     ("Codex audit, 2026-10-04", "2026-10-04", "Distributed fingertip contact audit",
      "docs/experiments/20261004-codex/20261004-distributed_contact.html", "Static stiffness, regression and the newer-MuJoCo check"),
     ("Codex audit, 2026-10-04", "2026-10-04", "Articulated holding, torsion, GPU and Newton",
