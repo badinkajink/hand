@@ -10,6 +10,7 @@ site/
 *.egg-info/
 external/
 results/
+relevant_papers/
 
 # platformio lib, drivers, vscode
 src/morphohand/driver/hand/.pio
@@ -73,3 +74,15 @@ docs/experiments/20260902-cb1-log-archive/logs/
 assets/mjcf/experimental/20260904-chain_bothsets/
 assets/mjcf/experimental/20260904-chain_hands/
 assets/mjcf/experimental/20260904-ranked_slip/
+
+# Scene and finite-element caches that their scripts rewrite on every call (2026-10-14):
+# reorient_backends.py, tpu_tip_rig.py (fingertip_geometry.mesh_paths), hand_object_scale_sim.py,
+# real_v1_d1_continuation.py, real_v1_chain_ablate.py, real_v1_cem_filmstrip.py; tpu_tip_fem.py and eflesh_tip_fem.py
+assets/mjcf/experimental/20260906-ablate/
+assets/mjcf/experimental/20260920-cem_filmstrip/
+assets/mjcf/experimental/20261006-reorient_backends/
+assets/mjcf/experimental/20261006-tpu_tip/
+assets/mjcf/experimental/20261007-diffmjx/
+assets/mjcf/experimental/20261008-hand_object_scale/
+assets/mjcf/experimental/20261014-hand_object_scale_cad_v1/
+assets/fem/
