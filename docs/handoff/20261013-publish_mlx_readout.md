@@ -4,13 +4,15 @@ Read first: docs/experiments/20261013-magnet_layouts/20261013-mlx90393_fingertip
 State (2026-10-13 20:50): three pages rebuilt and committed by the window; builders scripts/mlx90393_readout_page.py, scripts/tpu_tip_fem_page.py (+ tpu_tip_print_plan.py, tpu_tip_widget.py), scripts/eflesh_printability_page.py; chip model scripts/mlx90393_model.py.
 State (2026-10-13 20:57, autopilot): step 1 done; pages unchanged since c294b52f. For the owner, cosmetic, left as built: the readout page's last Limitations bullet says three layout runs "are queued" (none is queued or running); the eFlesh page's figures appear in the order 1, 4, 2, 3, 5; the readout Fig. 1 label "Pages until now" crosses the eFlesh-firmware line.
 State (2026-10-13 20:58, autopilot): step 2 done; readout page at https://claude.ai/artifact/PVo1dkM6DGqAM7UxWA3A7L (local docs/experiments/20261013-magnet_layouts/20261013-mlx90393_fingertip_readout.html), URL in artifact_url.txt and INDEX.md.
+State (2026-10-13 21:00, autopilot): step 3 done; fingertip page version 4, eFlesh page version 2, both from the c294b52f builds. Step 5 (calculator downloads on the artifact) waits on the owner.
 <!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
 Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap step add <job> "text"` adds one):
 - [x] 1. Review the three pages: no "Runs in progress" or "running" text, every figure renders, the calculator redraws… Done 10-13 20:56: Three pages checked in headless Chrome: no in-progress text, all 17 figures render (3 images, 5 videos, posters), no console errors; tc-rate 141->14.1 Hz rewrites the noise row 0.162->0.051 N and redraws Fig. 4 (change and input events)
 - [x] 2. Publish the readout page as a new artifact (icon: chart); write its URL to docs/experiments/20261013-magnet_l… Done 10-13 20:56: Readout page published at https://claude.ai/artifact/PVo1dkM6DGqAM7UxWA3A7L (version 1); URL in docs/experiments/20261013-magnet_layouts/artifact_url.txt and its INDEX.md row
-- [ ] 3. Republish the fingertip page to https://claude.ai/artifact/MSLurN7jPTaFfXUdsxJMZv and the eFlesh page to https://claude.ai/artifact/DP2CipXE3jcA28JsLnxkZq (action "read" first).
+- [x] 3. Republish the fingertip page to https://claude.ai/artifact/MSLurN7jPTaFfXUdsxJMZv and the eFlesh page to http… Done 10-13 20:59: Fingertip page republished as version 4 of MSLurN7jPTaFfXUdsxJMZv and eFlesh page as version 2 of DP2CipXE3jcA28JsLnxkZq; the live versions were the committed builds of 1741a976 and f3ea0f5c, the five print sheets kept
 - [ ] 4. Commit the URL changes and push to origin main.
+- [?] 5. Calculator downloads on the fingertip artifact: its Download STL and Download print sheet buttons save throug… Waiting on owner: This job may not edit builders. Make the calculator's two download buttons work on the claude.ai artifact (a scripts/tpu_tip_widget.py edit, then a rebuild and republish), or keep them local-only?
 <!-- /ap:steps -->
 Claimed: docs/experiments/INDEX.md (artifact column), docs/experiments/20261013-magnet_layouts/artifact_url.txt.
-Waiting on owner: none.
+Waiting on owner: step 5, the calculator's download buttons on the artifact.
 Do not: edit pages, builders or templates; publish other pages; delete any artifact; force-push.
