@@ -57,16 +57,19 @@ PLANNERS = [  # configuration of scripts/hand_object_scale_planners.py, label, c
     ("ps_pin", "Pinned predictive sampling", "#6B3E0A", "circle"),
     ("mppi_pin", "Pinned MPPI", "#8A8A8A", "cross"),
     ("cem_pin", "Pinned CEM", "#8E44AD", "diamond"),
-    ("icem_pin", "Pinned iCEM", "#2E7D32", "diamond"),
+    ("icem_pin", "Pinned iCEM", "#111111", "diamond"),
     ("anneal_pin", "Pinned annealed sampling", "#C0392B", "square"),
     ("anneal_gpu", "Pinned annealed sampling on the GPU", "#E0789A", "square"),
-    ("icem_gpu", "Pinned iCEM on the GPU", "#7FB77E", "diamond"),
-    ("ilqr", "iLQR", "#111111", "cross"),
+    ("icem_gpu", "Pinned iCEM on the GPU", "#1C9CB0", "diamond"),
+    ("ilqr", "iLQR", "#555555", "cross"),
 ]
 PL_LAB = {c: lab for c, lab, _, _ in PLANNERS}
 PL_COL = {c: col for c, _, col, _ in PLANNERS}
 PL_SHP = {c: shp for c, _, _, shp in PLANNERS}
 FILMED = ("hom", "ps", "ps_pin", "icem_pin")
+# the icem_gpu rows of 05:20 overflowed MuJoCo-Warp's 64 contact matches per sensor; the page uses the rerun at 256
+PL_VARIANT = {"icem_gpu": "mm256"}
+C_ICEM = "#111111"           # pinned iCEM in every figure; black, since var(--s3) green is three-pad MPC
 JOINTS = [f"{f} {j}" for f in ("Thumb", "Index-finger", "Middle-finger") for j in ("yaw", "MCP", "PIP")]
 EXTRA_CSS = """
 .tw th{white-space:normal !important;vertical-align:bottom;text-transform:none}
@@ -141,6 +144,17 @@ def render_tex(t):
     return re.sub("\x00ALG\x00", lambda m: next(ib), t), len(maths), len(blocks)
 
 
+def lc(label):
+    """A label inside a sentence: first letter lower case, the rest kept (iCEM, MPPI)."""
+    return label[0].lower() + label[1:]
+
+
+def signed0(x):
+    """Whole degrees with a typographic minus and no negative zero."""
+    v = round(x)
+    return f"&#8722;{-v}" if v < 0 else f"{v}"
+
+
 def deg(x, nd=0):
     return f"{x:.{nd}f}&#176;"
 
@@ -197,7 +211,14 @@ class Data:
         self.films = jl(os.path.join(D, "media/films.jsonl"))
         tr = os.path.join(D, "media/films_traces.json")
         self.film_traces = json.load(open(tr)) if os.path.exists(tr) else {}
-        self.r_pl = [r for r in jl(os.path.join(PL, "turn.jsonl")) if r.get("status") == "ok" and not r.get("variant")]
+        pl_all = jl(os.path.join(PL, "turn.jsonl"))
+        self.r_pl = [r for r in pl_all if r.get("status") == "ok" and (r.get("variant") or "") == PL_VARIANT.get(r["config"], "")]
+        self.n_overflow = sum(1 for r in pl_all if r["config"] in PL_VARIANT and not r.get("variant"))
+        # pinned iCEM at placement 0 on every reachable cell (planners/landscape_icem_pin.jsonl)
+        self.r_land = [r for r in jl(os.path.join(PL, "landscape_icem_pin.jsonl")) if r.get("status") == "ok"]
+        self.land = {("cylinder", float(r["d_mm"]), float(r["t"])): {"cand": r["cand"], "score": r["held_turn_deg"],
+                                                                       "seeds": [r["held_turn_deg"]], "rows": [r]}
+                     for r in self.r_land}
         self.pl = defaultdict(list)
         for r in self.r_pl:
             self.pl[r["config"]].append(r)
@@ -231,7 +252,8 @@ class Data:
 
     def stats(self, rows):
         held = [r for r in rows if r["held"]]
-        pr = [x for x in (self.peak_rate(r) for r in rows) if x is not None]
+        pr = [x for x in (r["peak_rate"] if r.get("peak_rate") is not None else self.peak_rate(r) for r in rows)
+              if x is not None]
         return {"n": len(rows), "held": len(held), "h60": sum(1 for r in held if r["held_turn_deg"] >= 60),
                 "h60_3": sum(1 for r in held if r["held_turn_deg"] >= 60 and r["fingers_loaded_end"] == 3),
                 "two": sum(1 for r in held if r["fingers_loaded_end"] == 2),
@@ -261,14 +283,15 @@ class Data:
 # ------------------------------------------------------------------------------------------ figures
 
 def svg_landscape(X: Data):
-    """Cell score against thumb-pair separation, one panel per diameter, three series."""
+    """Cell score against thumb-pair separation, one panel per diameter, five series."""
     W, H = 900, 380
-    out = P._svg_open(W, H, "Held turn against thumb-pair separation for three cylinder diameters and three controllers")
+    out = P._svg_open(W, H, "Held turn against thumb-pair separation for three cylinder diameters and five controllers")
     pw, ph, x0, y0, gap = 238, 230, 70, 70, 46
     band = defaultdict(set)
     for c in X.plan["cells"]:
         if c.get("in_band"):
             band[float(c["d_mm"])].add(float(c["t"]))
+    labs = {C_POST: "HOM, post", C_HOM: "HOM, no post", C_MPC: "MPC", C_MPC3: "MPC, three pads", C_ICEM: "Pinned iCEM"}
     for i, d in enumerate(DIAMS):
         px = x0 + i * (pw + gap)
         fx, fy = P._panel(out, px, y0, pw, ph, (35, 165), (0, 120), [40, 80, 120, 160], [0, 30, 60, 90, 120],
@@ -282,31 +305,35 @@ def svg_landscape(X: Data):
         out.append(f'<line x1="{px}" x2="{px + pw}" y1="{fy(60):.1f}" y2="{fy(60):.1f}" '
                    f'style="stroke:var(--ink3);stroke-dasharray:2 4"/>')
         for src, col, dash, shape in ((X.post, C_POST, True, "cross"), (X.nopost, C_HOM, False, "square"),
-                                      (X.mpc3, C_MPC3, False, "diamond"), (X.mpc, C_MPC, False, "circle")):
+                                      (X.mpc3, C_MPC3, False, "diamond"), (X.mpc, C_MPC, False, "circle"),
+                                      (X.land, C_ICEM, False, "diamond")):
             ks = sorted((k for k in src if k[0] == "cylinder" and k[1] == d), key=lambda k: xs_of(k[2]))
             pts = [(xs_of(k[2]), src[k]["score"]) for k in ks]
             P._path(out, fx, fy, pts, col, dashed=dash, width=2.4 if col != C_POST else 1.8)
             for k in ks:
                 v = src[k]
-                lab = {C_POST: "HOM, post", C_HOM: "HOM, no post", C_MPC: "MPC", C_MPC3: "MPC, three pads"}[col]
                 P._marker(out, fx(xs_of(k[2])), fy(v["score"]), col, shape=shape, r=4.4,
-                          title=f"{lab}: {d:g} mm, t {k[2]:+.3f}, x_s {xs_of(k[2]):.1f} mm, score {v['score']:.1f} deg, "
+                          title=f"{labs[col]}: {d:g} mm, t {k[2]:+.3f}, x_s {xs_of(k[2]):.1f} mm, score {v['score']:.1f} deg, "
                                 f"seeds {', '.join(f'{s:.0f}' for s in v['seeds'])}, grasp {v['cand']}")
     out.append("</svg>")
     leg = [("MPC", C_MPC, False, "circle"), ("MPC, three pads, 60&#176;/s (placement 0)", C_MPC3, False, "diamond"),
+           ("Pinned iCEM, three pads (placement 0)", C_ICEM, False, "diamond"),
            ("HOM, post removed", C_HOM, False, "square"), ("HOM, post present (bench plan)", C_POST, True, "cross")]
     return "".join(out), leg
 
 
 def svg_pairs(X: Data):
-    """MPC (two variants) against HOM without the post, one point per cell, shape by diameter."""
-    W, H = 900, 420
-    out = P._svg_open(W, H, "MPC cell scores against HOM cell scores on the servo plant")
-    panels = (("MPC, swing allowed", X.mpc, C_MPC, 90), ("MPC, three pads, 60&#176;/s, placement 0", X.mpc3, C_MPC3, 530))
-    for title, src, col, px in panels:
-        fx, fy = P._panel(out, px, 50, 300, 300, (0, 120), (0, 120), [0, 30, 60, 90, 120], [0, 30, 60, 90, 120],
-                          "HOM held turn, post removed (deg)", "MPC held turn (deg)")
-        out.append(f'<text x="{px + 150}" y="22" text-anchor="middle" style="fill:var(--ink);font-weight:bold">{title}</text>')
+    """MPC (two variants) and pinned iCEM against HOM without the post, one point per cell, shape by diameter."""
+    W, H = 900, 380
+    out = P._svg_open(W, H, "MPC and pinned-iCEM cell scores against HOM cell scores on the servo plant")
+    panels = (("MPC, swing allowed", X.mpc, C_MPC), ("MPC, three pads, placement 0", X.mpc3, C_MPC3),
+              ("Pinned iCEM, placement 0", X.land, C_ICEM))
+    pw, gap = 236, 52
+    for i, (title, src, col) in enumerate(panels):
+        px = 66 + i * (pw + gap)                      # the last panel's 120 tick ends inside the 900 px box
+        fx, fy = P._panel(out, px, 50, pw, 236, (0, 120), (0, 120), [0, 30, 60, 90, 120], [0, 30, 60, 90, 120],
+                          "HOM held turn, post removed (deg)" if i == 1 else "", "Held turn (deg)" if i == 0 else "")
+        out.append(f'<text x="{px + pw / 2:.1f}" y="22" text-anchor="middle" style="fill:var(--ink);font-weight:bold">{title}</text>')
         out.append(f'<path d="M{fx(0):.1f},{fy(0):.1f} L{fx(120):.1f},{fy(120):.1f}" style="stroke:var(--ink3);stroke-dasharray:5 4"/>')
         out.append(f'<rect x="{fx(0):.1f}" y="{fy(120):.1f}" width="{fx(60) - fx(0):.1f}" height="{fy(60) - fy(120):.1f}" '
                    f'style="fill:rgba(0,0,0,0.05)"/>')
@@ -314,8 +341,8 @@ def svg_pairs(X: Data):
             if k not in src:
                 continue
             a_, b_ = X.nopost[k]["score"], src[k]["score"]
-            P._marker(out, fx(a_), fy(b_), col, shape=SHAPE[k[1]], r=5.0,
-                      title=f"{k[1]:g} mm, t {k[2]:+.3f} (x_s {xs_of(k[2]):.1f} mm): HOM {a_:.1f} deg, MPC {b_:.1f} deg")
+            P._marker(out, fx(a_), fy(b_), col, shape=SHAPE[k[1]], r=4.6,
+                      title=f"{k[1]:g} mm, t {k[2]:+.3f} (x_s {xs_of(k[2]):.1f} mm): HOM {a_:.1f} deg, {title.split(',')[0]} {b_:.1f} deg")
     out.append("</svg>")
     leg = [(f"{d:g}{HS}mm cylinder", "var(--ink2)", False, SHAPE[d]) for d in DIAMS]
     return "".join(out), leg
@@ -366,8 +393,9 @@ def svg_post_trace(X: Data, d=16.0, t=0.625, seed=0):
                f'<text x="{fx(1.3) + 6:.1f}" y="{fy(105) + 17:.1f}" style="fill:var(--ink3)">in the no-post run</text>')
     out.append("</svg>")
     r0, r1 = ent[0.0]["result"], ent[1.0]["result"]
-    leg = [(f"Post present: held {r0['held']}, end {r0['turn_end_deg']:.0f}&#176;", C_POST, True, None),
-           (f"Post removed: held {r1['held']}, end {r1['turn_end_deg']:.0f}&#176;", C_HOM, False, None),
+    hd = lambda r: "held" if r["held"] else "not held"  # noqa: E731
+    leg = [(f"Post present: {hd(r0)} at {r0['turn_end_deg']:.0f}&#176;", C_POST, True, None),
+           (f"Post removed: {hd(r1)} at {r1['turn_end_deg']:.0f}&#176;", C_HOM, False, None),
            ("Governor freeze", "var(--ink2)", False, "square")]
     return "".join(out), leg
 
@@ -522,7 +550,8 @@ GLOSSARY = [
      "through the two remaining pads, braked by the pads&#8217; friction torque about that axis."),
     ("Peak turn rate", "The largest change of \\(\\theta\\) between the 50&#8202;ms samples of a run&#8217;s trace, in &#176;/s."),
     ("Cell score", "The median held turn over three placements (the cylinder shifted and yawed by seeds 0, 1 and 2) at the grasp whose "
-     "median is largest; the rule of the scale study&#8217;s landscape. MPC runs on the grasp that this rule picks for HOM without the post."),
+     "median is largest; the rule of the scale study&#8217;s landscape. MPC and pinned iCEM run on the grasp that this rule picks for HOM "
+     "without the post."),
     ("CAD hand, real_v1", "real_v1: the SR2 hand model of <code>assets/mjcf/real_v1/real_hand.xml</code>, links as capsules, "
      "MCP and PIP axes 20.75&#8202;mm apart. CAD hand: the same hand assembled from the STLs of its printed parts "
      "(<code>assets/mjcf/experimental/20261013-cad_v1/</code>), MCP and PIP axes 30.80&#8202;mm apart, 151 collision spheres "
@@ -542,7 +571,8 @@ GLOSSARY = [
      "60&#176; in two of three placements on the servo plant with the post present."),
     ("Wall time per run", "Seconds of wall clock for one run from the grip to the end, on one core for HOM and with six rollout threads "
      "for MPC; the run simulates 6.3&#8202;s at most."),
-    ("Placement 0", "The controlled MPC ran one placement per cell (seed 0); its cell score is that run&#8217;s held turn."),
+    ("Placement 0", "The three-pad MPC and pinned iCEM ran one placement per cell of the landscape (seed 0); their cell score is that "
+     "run&#8217;s held turn."),
     ("Pinned plan", "A plan whose first knot is fixed to the servo command in force at each replanning, so the command changes only "
      "through the later knots. Unpinned, the cheapest sample&#8217;s first knot can move every servo target by about the noise "
      "scale, 0.08&#8202;rad, every 20&#8202;ms."),
@@ -584,7 +614,8 @@ def question(X: Data):
             "model finds a palm height and straddle at which every pad reaches the cylinder). Each run grips for 0.8&#8202;s with the cell&#8217;s grip command, then "
             "hands control to the controller until 6.3&#8202;s or until HOM&#8217;s hold ends; the support post under the "
             "cylinder is removed when the controller starts turning, at 1.3&#8202;s for HOM and 0.8&#8202;s for MPC, as on the "
-            "real_v1 page.</p>")
+            "real_v1 page. Beyond the real_v1 page, pinned iCEM, the planner that turns furthest in the planner comparison, runs on "
+            "every cell at placement 0.</p>")
 
 
 def controllers(X: Data):
@@ -651,6 +682,52 @@ def post_section(X: Data):
     return s
 
 
+NUM = {1: "one", 2: "two", 3: "three"}
+
+
+def cell_list(src, ks):
+    """'the 16 mm cylinder at 92.5 and 100 mm (73° and 66°) and the 25 mm cylinder at ...' for single-placement scores."""
+    by = defaultdict(list)
+    for k in sorted(ks, key=lambda k: (k[1], -k[2])):
+        by[k[1]].append(k)
+
+    def val(k):
+        n = src[k]["rows"][0]["fingers_loaded_end"]
+        return f"{src[k]['score']:.0f}&#176;" + ("" if n == 3 else f" on {NUM.get(n, n)} fingers")
+
+    def join(xs):
+        return xs[0] if len(xs) == 1 else ", ".join(xs[:-1]) + " and " + xs[-1]
+    return join([f"the {d:g}{HS}mm cylinder at {join([f'{xs_of(k[2]):g}' for k in kk])}{HS}mm ({join([val(k) for k in kk])})"
+                 for d, kk in by.items()])
+
+
+def land_text(X: Data):
+    """Pinned iCEM at placement 0 on every cell against the three-pad MPC and HOM on the same cells."""
+    ks = sorted(X.land)
+    sc = [X.land[k]["score"] for k in ks]
+    rows = [X.land[k]["rows"][0] for k in ks]
+    three = sum(1 for r in rows if r["held"] and r["fingers_loaded_end"] == 3)
+    d3 = [X.land[k]["score"] - X.mpc3[k]["score"] for k in ks if k in X.mpc3]
+    dh = [X.land[k]["score"] - X.nopost[k]["score"] for k in ks if k in X.nopost]
+    hi = sorted((k for k in ks if X.land[k]["score"] >= 60), key=lambda k: (k[1], -k[2]))
+    f = lambda rr, key: med([r[key] for r in rr if r.get(key) is not None])  # noqa: E731
+    m3 = [r for r in X.r_mpc3 if ("cylinder", float(r["d_mm"]), float(r["t"])) in X.land]
+    nh = sum(1 for r in rows if r["held"])
+    return (f"<p>Pinned iCEM, the planner that turns furthest in the next section, holds the cylinder in "
+            + (f"all {len(ks)}" if nh == len(ks) else f"{nh} of the {len(ks)}")
+            + f" cells at placement 0 with the same cost and rollout budget as "
+            f"the three-pad MPC, on three pads in {three}, and turns it to a median {deg(med(sc))}. Per cell it turns "
+            f"{med(d3):.0f}&#176; further than the three-pad MPC and {med(dh):.0f}&#176; further than HOM without the post "
+            f"(medians of the differences); it exceeds HOM by more than 10&#176; in {sum(1 for x in dh if x > 10)} cells and falls "
+            f"more than 10&#176; below it in {sum(1 for x in dh if x < -10)}. It reaches 60&#176; in {len(hi)} cells: "
+            + cell_list(X.land, hi) + ". "
+            f"Over these {len(rows)} runs it moves the servo targets at a median {f(rows, 'cmd_rate_rms'):.2f}&#8202;rad/s with "
+            f"{f(rows, 'cmd_reversals'):.1f} reversals per joint per second, and the cylinder&#8217;s angular-velocity jitter is "
+            f"{f(rows, 'omega_jitter'):.1f}&#8202;&#176;/s; the three-pad MPC&#8217;s runs on the same cells give "
+            f"{f(m3, 'cmd_rate_rms'):.2f}&#8202;rad/s, {f(m3, 'cmd_reversals'):.1f} reversals and "
+            f"{f(m3, 'omega_jitter'):.1f}&#8202;&#176;/s.</p>")
+
+
 def landscape_section(X: Data):
     if not X.cells or not X.mpc3:
         return "<p>PENDING: the MPC grids on the CAD hand have not finished (<code>mpc_servo/</code>, <code>mpc3_servo/</code>).</p>"
@@ -667,10 +744,12 @@ def landscape_section(X: Data):
     s = (f"<p>Over the {n} servo-plant cells, MPC&#8217;s median cell score is {deg(med(mpc))} against {deg(med(hom))} for HOM without "
          f"the post and {deg(med(post))} with it, and MPC scores at least 60&#176; in {m60} cells, HOM in {h60} without the post and "
          f"{p60} with it (Figures&#160;[[fig:landscape]] and [[fig:pairs]]). MPC gets there by pinch-and-swing: it lets one finger "
-         f"leave the cylinder, which swings about the remaining pinch at a median peak of {st_m['rate']:.0f}&#176;/s and is held near "
-         f"upright; {st_m['two']} of its {st_m['held']} held runs end on two fingers, and {st_m['h60_3']} of its {st_m['n']} runs end "
-         f"held at 60&#176; or more on three pads (Table&#160;[[tab:runs]], films in the next section). The hand can swing and hold "
-         f"the cylinder at nearly every layout; the narrow bands of the bench plan come from HOM.</p>")
+         f"leave the cylinder, which swings about the remaining pinch at a median peak of {st_m['rate']:.0f}&#176;/s; "
+         f"{st_m['two']} of its {st_m['held']} held runs end on two fingers, and {st_m['h60_3']} of its {st_m['n']} runs end "
+         f"held at 60&#176; or more on three pads (Table&#160;[[tab:runs]]"
+         + (", Figure&#160;[[fig:film16625]]" if X.films else "") + "). "
+         + (f"HOM with the post, the protocol from which the real_v1 bench plan picked its band cells, reaches 60&#176; in "
+            + ("no cell" if p60 == 0 else f"{p60} cells") + " on the CAD hand.</p>"))
     if k3:
         c60 = sum(1 for x in mpc3 if x >= 60)
         better = sum(1 for a, b in zip(hom3, mpc3) if b > a + 10)
@@ -679,22 +758,24 @@ def landscape_section(X: Data):
               f"of {st_3['n']} runs at placement 0, at a median peak rate of {st_3['rate']:.0f}&#176;/s, and turns it to a median "
               f"{deg(med(mpc3))} over {len(k3)} cells, against {deg(med(hom3))} for HOM on the same cells. It reaches 60&#176; in {c60} "
               f"cells and exceeds HOM by more than 10&#176; in {better}. The 60&#176; cells are "
-              + ", ".join(f"the {k[1]:g}{HS}mm cylinder at {xs_of(k[2]):g}{HS}mm ({X.mpc3[k]['score']:.0f}&#176;)"
-                          for k in sorted((k for k in k3 if X.mpc3[k]["score"] >= 60), key=lambda k: (k[1], -k[2])))
+              + cell_list(X.mpc3, [k for k in k3 if X.mpc3[k]["score"] >= 60])
               + "; every other cell stays between "
               + f"{min(x for x in mpc3 if x < 60):.0f} and {max(x for x in mpc3 if x < 60):.0f}&#176;.</p>")
+    if X.land:
+        s += land_text(X)
     svg, leg = svg_landscape(X)
     s += figure(svg, "Cell score against thumb-pair separation on the servo plant, one panel per cylinder diameter; compact layouts on "
                 "the left. Grey columns: the bench plan&#8217;s band cells. Dotted line: 60&#176;. Hover a point for its placements and "
                 "grasp.", leg, key="landscape")
     svg, leg = svg_pairs(X)
-    s += figure(svg, "MPC cell scores against HOM&#8217;s (post removed), one point per cell; shape by diameter. Left: MPC whose cost "
-                "asks only for an upright, held cylinder. Right: MPC that also keeps three pads on the cylinder and the turn below "
-                "60&#176;/s, at placement 0. Points above the dashed line turn further under MPC; the grey square marks MPC at 60&#176; "
-                "or more where HOM stays below.", leg, key="pairs")
+    s += figure(svg, "Cell scores of MPC and pinned iCEM against HOM&#8217;s (post removed), one point per cell; shape by "
+                "diameter. Left: MPC whose cost asks only for an upright, held cylinder. Middle: MPC that also keeps three pads on the "
+                "cylinder and the turn below 60&#176;/s, at placement 0. Right: pinned iCEM with the same cost and budget, at placement "
+                "0. Points above the dashed line turn further than under HOM; the grey square holds scores of 60&#176; or more where "
+                "HOM stays below 60&#176;.", leg, key="pairs")
     rows = []
     for lab, st_ in (("HOM, post present (bench plan)", st_p), ("HOM, post removed", st_h), ("MPC", st_m),
-                     ("MPC, three pads, 60&#176;/s", st_3)):
+                     ("MPC, three pads, 60&#176;/s", st_3), ("Pinned iCEM, three pads", X.stats(X.r_land))):
         if not st_["n"]:
             continue
         rows.append([lab, str(st_["n"]), str(st_["held"]), str(st_["h60"]), str(st_["h60_3"]), str(st_["two"]),
@@ -702,8 +783,9 @@ def landscape_section(X: Data):
     s += table(["Controller", "Runs", "Held", "Held at 60&#176; or more", "Of these on three pads", "Held runs ending on two fingers",
                 "Median peak turn rate, &#176;/s"], rows,
                "Runs of each controller on the servo plant: all grasps for HOM (three placements each), the scoring grasp for MPC "
-               "(three placements; the three-pad variant one).", note="HOM&#8217;s rows store no trace, so their turn rate is not "
-               "available; its reference advances at 30&#176;/s.", key="runs")
+               "and pinned iCEM (three placements for MPC, placement 0 for the three-pad MPC and pinned iCEM).",
+               note="HOM&#8217;s rows store no trace, so their turn rate is not available; its reference advances at 30&#176;/s.",
+               key="runs")
     both = [k for k in X.mpc13 if k in X.mpc and len(X.mpc13[k]["seeds"]) == 3]
     if both:
         dd = sorted(X.mpc13[k]["score"] - X.mpc[k]["score"] for k in both)
@@ -720,23 +802,21 @@ def landscape_section(X: Data):
         swn = 0
         if k in X.post:
             swn = sum(1 for r in X.post[k]["rows"] if r.get("frozen_deg") is not None and r["turn_end_deg"] - r["frozen_deg"] > 15)
-        three = "&#8211;"
-        if k in X.mpc3:
-            r = X.mpc3[k]["rows"][0]
-            three = f"{r['held_turn_deg']:.0f} ({r['fingers_loaded_end']})"
+        three = lambda src: ("&#8211;" if k not in src else  # noqa: E731
+                             f"{src[k]['rows'][0]['held_turn_deg']:.0f} ({src[k]['rows'][0]['fingers_loaded_end']})")
         body.append([f"{c['d_mm']:g}{HS}mm", f"{c['t']:+.3f}", f"{xs_of(c['t']):.1f}", "yes" if c.get("in_band") else "",
-                     f(X.post), str(swn), f(X.nopost), f(X.mpc), three])
+                     f(X.post), str(swn), f(X.nopost), f(X.mpc), three(X.mpc3), three(X.land)])
     s += table(["Cylinder", "Layout \\(t\\)", "\\(x_s\\), mm", "Band cell", "HOM, post, deg", "Placements past the freeze",
-                "HOM, no post, deg", "MPC, deg", "MPC three pads, deg (fingers)"], body,
+                "HOM, no post, deg", "MPC, deg", "MPC three pads, deg (fingers)", "Pinned iCEM, deg (fingers)"], body,
                "The bench plan&#8217;s 15 cells: cell scores under each controller and protocol on the servo plant.",
                note="Placements past the freeze: of the three HOM runs with the post at the scoring grasp, those whose cylinder turned more "
-                    "than 15&#176; past the governor&#8217;s freeze. Each HOM column picks its own grasp by the cell-score rule; both MPC "
-                    "columns run on the grasp of the no-post HOM column; the three-pad column is placement 0, with the fingers loaded "
-                    "at the end.", text_cols=(0, 3), key="bench")
+                    "than 15&#176; past the governor&#8217;s freeze. Each HOM column picks its own grasp by the cell-score rule; the MPC "
+                    "and pinned-iCEM columns run on the grasp of the no-post HOM column; the last two columns are placement 0, with the "
+                    "fingers loaded at the end.", text_cols=(0, 3), key="bench")
     return s
 
 
-def _hom_jitter_text(X: Data, hm):
+def _hom_jitter_text(X: Data, hm, top):
     rows = [r for r in X.pl.get("hom", []) if r.get("omega_jitter") is not None]
     big = [r["omega_jitter"] for r in rows if r["d_mm"] == 25.0]
     small = [r for r in rows if r["d_mm"] < 25.0]
@@ -744,9 +824,10 @@ def _hom_jitter_text(X: Data, hm):
         return ""
     js = [r["omega_jitter"] for r in small]
     lost = sum(1 for r in small if not r["held"])
-    return (f"HOM&#8217;s angular-velocity jitter, {hm['jit']:.1f}&#8202;&#176;/s, is the largest here: "
-            f"{min(big):.1f}&#8211;{max(big):.1f}&#8202;&#176;/s on the 25&#8202;mm cylinder and {min(js):.0f}&#8211;{max(js):.0f}"
-            f"&#8202;&#176;/s on the 16 and 10&#8202;mm cylinders, where {lost} of its {len(small)} runs end not held.")
+    return (f"HOM&#8217;s median angular-velocity jitter, {hm['jit']:.1f}&#8202;&#176;/s, is the "
+            + ("largest of the controllers" if top else "HOM median") + f"; it ranges from {min(big):.1f} to {max(big):.1f}&#8202;"
+            f"&#176;/s on the 25&#8202;mm cylinder and from {min(js):.0f} to {max(js):.0f}&#8202;&#176;/s on the 16 and "
+            f"10&#8202;mm cylinders, where {lost} of its {len(small)} runs end not held.")
 
 
 def planners_section(X: Data):
@@ -758,8 +839,8 @@ def planners_section(X: Data):
     band = {(float(c["d_mm"]), float(c["t"])) for c in X.plan["cells"] if c.get("in_band")}
     cell_txt = "; ".join(f"the {d:g}{HS}mm cylinder at \\(t = {t:+.3f}\\) (\\(x_s\\) = {xs_of(t):g}{HS}mm"
                          + (", a bench-plan band cell)" if (d, t) in band else ")") for d, t in cells)
-    s = ("<p>The three-pad MPC of the previous section keeps the cylinder on three pads, but its servo targets jump at every "
-         "replanning and the fingers dither, where HOM moves them in one sweep (films in the next section). This section compares "
+    s = ("<p>The three-pad MPC of the previous section is unpinned predictive sampling: it keeps the cylinder on three pads, but "
+         "its servo targets jump at every replanning. This section compares "
          f"sampling planners at the same budget on {len(cells)} cells and {len(seeds)} placements each: {cell_txt}. Every CPU planner "
          "uses the three-pad cost of Eq.&#160;(3) and spends 64 rollouts of 0.5&#8202;s per 20&#8202;ms replanning on a plan of "
          "three knots with noise 0.08&#8202;rad; HOM runs on the same grasps and placements "
@@ -801,13 +882,15 @@ def planners_section(X: Data):
     if ps and pp and hm:
         rates = [st[c]["rate"] for c in pinned]
         revs = [st[c]["rev"] for c in pinned]
-        s += (f"<p>Pinning cuts predictive sampling&#8217;s command rate from {ps['rate']:.2f} to {pp['rate']:.2f}&#8202;rad/s and the "
-              f"cylinder&#8217;s angular-velocity jitter from {ps['jit']:.1f} to {pp['jit']:.1f}&#8202;&#176;/s (medians over "
-              f"{pp['n']} runs; Table&#160;[[tab:plsmooth]], Figure&#160;[[fig:plscatter]]). Every pinned planner moves its servo "
-              f"targets at {min(rates):.2f}&#8211;{max(rates):.2f}&#8202;rad/s, at or below HOM&#8217;s {hm['rate']:.2f}. Pinning "
-              f"shrinks the command steps but not their number: the pinned planners still reverse each servo target "
-              f"{min(revs):.1f}&#8211;{max(revs):.1f} times per second, HOM {hm['rev']:.1f} times (Figure&#160;[[fig:plcommand]]). "
-              + _hom_jitter_text(X, hm) + "</p>")
+        lo_c, hi_c = min(pinned, key=lambda c: st[c]["rev"]), max(pinned, key=lambda c: st[c]["rev"])
+        top = max(st, key=lambda c: st[c]["jit"]) == "hom"
+        s += (f"<p>Pinning cuts predictive sampling&#8217;s command rate from {ps['rate']:.2f} to {pp['rate']:.2f}&#8202;rad/s, its "
+              f"command reversals from {ps['rev']:.1f} to {pp['rev']:.1f} per joint per second and the cylinder&#8217;s "
+              f"angular-velocity jitter from {ps['jit']:.1f} to {pp['jit']:.1f}&#8202;&#176;/s (medians over {pp['n']} runs; "
+              f"Table&#160;[[tab:plsmooth]], Figure&#160;[[fig:plscatter]]). Every pinned planner moves its servo targets at "
+              f"{min(rates):.2f}&#8211;{max(rates):.2f}&#8202;rad/s, at or below HOM&#8217;s {hm['rate']:.2f}, and reverses them "
+              f"{min(revs):.1f} ({lc(PL_LAB[lo_c])}) to {max(revs):.1f} ({lc(PL_LAB[hi_c])}) times per joint per second, against "
+              f"{hm['rev']:.1f} for HOM (Figure&#160;[[fig:plcommand]]). " + _hom_jitter_text(X, hm, top) + "</p>")
     cpu = [c for c in X.pl_cfgs if c not in ("hom", "anneal_gpu", "icem_gpu")]
     if not cpu or "hom" not in st:
         return s + "<p>PENDING: the planner runs on the CAD hand have not finished (<code>planners/turn.jsonl</code>).</p>"
@@ -819,36 +902,39 @@ def planners_section(X: Data):
     br_mpc = sum(st[c]["breaks"] for c in mpc)
     s += (f"<p>{PL_LAB[best]} turns furthest: a median held turn of {deg(b['turn'])} over its {b['n']} runs, {b['h60']} of them "
           f"at 60&#176; or more on three pads, against {deg(hm['turn'])} for HOM ({hm['h60']} of {hm['n']}). "
-          f"The MPC runs end held on three pads in {n_three} of {n_mpc} and break a finger&#8217;s contact {br_mpc} times in all; "
-          f"HOM holds {hm['held']} of its {hm['n']} runs and breaks contact {hm['breaks']} times. "
-          + (f"Pinned MPPI turns least, a median {deg(st['mppi_pin']['turn'])}, at the lowest command rate, "
-             f"{st['mppi_pin']['rate']:.2f}&#8202;rad/s." if "mppi_pin" in st else "") + "</p>")
+          + (f"All {n_mpc} MPC runs end held on three pads" if n_three == n_mpc else
+             f"The MPC runs end held on three pads in {n_three} of {n_mpc}")
+          + (", and none breaks a finger&#8217;s contact; " if br_mpc == 0 else f" and break a finger&#8217;s contact {br_mpc} times in all; ")
+          + f"HOM holds {hm['held']} of its {hm['n']} runs and breaks contact {hm['breaks']} times. "
+          + (f"Of the pinned planners, MPPI turns least, a median {deg(st['mppi_pin']['turn'])}, at the lowest command rate, "
+             f"{st['mppi_pin']['rate']:.2f}&#8202;rad/s." if "mppi_pin" in st and
+             min((c for c in pinned if c in st), key=lambda c: st[c]["turn"]) == "mppi_pin" else "") + "</p>")
     if "anneal_gpu" in st:
         g, a_ = st["anneal_gpu"], st.get("anneal_pin")
         s += (f"<p>On the GPU, annealed sampling draws 1,024 rollouts per replanning, 16 times the CPU budget, in four stages of 256 "
-              f"(next section for the port). Over {g['n']} runs it turns the cylinder a median {deg(g['turn'])}"
+              f"(the port is in the cost section). Over {g['n']} runs it turns the cylinder a median {deg(g['turn'])}"
               + (f", against {deg(a_['turn'])} for the CPU version with 64 rollouts" if a_ else "")
               + f", at a command rate of {g['rate']:.2f}&#8202;rad/s and {g['rev']:.1f} reversals per joint per second, and "
-              f"costs {g['wall']:.0f}&#8202;s per run.</p>")
+              f"costs {g['wall']:,.0f}&#8202;s per run.</p>")
     if "icem_gpu" in st:
         g, a_ = st["icem_gpu"], st.get("icem_pin")
         s += (f"<p>iCEM on the GPU draws the same 1,024 rollouts in two iterations of 512, with the noise and kept elites of the "
               f"CPU version. Over {g['n']} runs it turns the cylinder a median {deg(g['turn'])}"
               + (f", against {deg(a_['turn'])} for iCEM with 64 rollouts" if a_ else "")
               + f", with {g['three_end']} of {g['n']} runs held on three pads, at a command rate of {g['rate']:.2f}&#8202;rad/s, "
-              f"and costs {g['wall']:.0f}&#8202;s per run.</p>")
+              f"and costs {g['wall']:,.0f}&#8202;s per run.</p>")
     rows, rows2 = [], []
     for c in X.pl_cfgs:
         v = st[c]
         rows.append([PL_LAB[c], str(v["n"]), str(v["held"]), str(v["three_end"]), f"{v['three_frac']:.3f}", str(v["breaks"]),
                      f"{v['turn']:.0f}", str(v["h60"])])
         rows2.append([PL_LAB[c], f"{v['rate']:.2f}", f"{v['rev']:.1f}", f"{v['jit']:.1f}", f"{v['peak']:.0f}",
-                      f"{v['wall']:.1f}" if v["wall"] < 10 else f"{v['wall']:.0f}"])
+                      f"{v['wall']:.1f}" if v["wall"] < 10 else f"{v['wall']:,.0f}"])
     s += table(["Controller", "Runs", "Held", "Held on three pads at the end", "Three-pad fraction, mean", "Contact breaks, total",
                 "Held turn, median, deg", "Held at 60&#176; or more on three pads"], rows,
                f"Holding and turning on the {len(cells)} planner cells at placements {', '.join(str(x) for x in seeds)}, servo "
-               "plant. Every MPC planner spends 64 rollouts of 0.5&#8202;s per replanning on six CPU threads, except the GPU "
-               "planner (1,024).", note="The held turn of a run that is not held is 0.", key="planners")
+               "plant. Every MPC planner spends 64 rollouts of 0.5&#8202;s per replanning on six CPU threads, except the two GPU "
+               "planners (1,024 on the GPU).", note="The held turn of a run that is not held is 0.", key="planners")
     s += table(["Controller", "Command rate, rad/s", "Command reversals per joint per s", "Angular-velocity jitter, &#176;/s",
                 "Peak turn rate, &#176;/s", "Wall time per run, s"], rows2,
                "Smoothness and cost of the same runs, medians over runs.", key="plsmooth")
@@ -868,7 +954,7 @@ def planners_section(X: Data):
             elif not r["held"]:
                 line.append("dropped" if r["dropped"] else "not held")
             else:
-                txt = f"{r['held_turn_deg']:.0f}" + ("" if r["fingers_loaded_end"] == 3 else f" ({r['fingers_loaded_end']})")
+                txt = signed0(r["held_turn_deg"]) + ("" if r["fingers_loaded_end"] == 3 else f" ({r['fingers_loaded_end']})")
                 line.append(f"<b>{txt}</b>" if r["held_turn_deg"] == tops[k] else txt)
         body.append(line)
     s += table(head, body, "Held turn in degrees of every planner run; columns by cylinder diameter, thumb-pair separation "
@@ -896,9 +982,9 @@ def svg_compare(X: Data):
     out = P._svg_open(W, H, "Cell scores on the CAD hand against real_v1 for HOM, MPC and three-pad MPC")
     panels = (("HOM, post removed", X.v1_nopost, X.nopost, C_HOM), ("MPC", X.v1_mpc, X.mpc, C_MPC),
               ("MPC, three pads (placement 0)", X.v1_mpc3, X.mpc3, C_MPC3))
-    pw, gap = 236, 56
+    pw, gap = 236, 52
     for i, (title, a, b, col) in enumerate(panels):
-        px = 76 + i * (pw + gap)
+        px = 66 + i * (pw + gap)                      # the last panel's 120 tick ends inside the 900 px box
         fx, fy = P._panel(out, px, 50, pw, 236, (0, 120), (0, 120), [0, 30, 60, 90, 120], [0, 30, 60, 90, 120],
                           "real_v1 cell score (deg)" if i == 1 else "", "CAD-hand cell score (deg)" if i == 0 else "")
         out.append(f'<text x="{px + pw / 2:.1f}" y="22" text-anchor="middle" style="fill:var(--ink);font-weight:bold">{title}</text>')
@@ -929,9 +1015,22 @@ def compare_section(X: Data):
         rows.append([lab, str(len(ka)), str(len(kb)), f"{med(va):.0f}", f"{med(vb):.0f}",
                      str(sum(1 for v in va if v >= 60)), str(sum(1 for v in vb if v >= 60)),
                      f"{med(da):+.0f}".replace("-", "&#8722;") if da else "&#8211;"])
+    dif = {}
+    for lab, a, b in (("hom", X.v1_nopost, X.nopost), ("mpc", X.v1_mpc, X.mpc), ("mpc3", X.v1_mpc3, X.mpc3)):
+        both = [k for k in b if k in a and k[0] == "cylinder"]
+        dif[lab] = med([b[k]["score"] - a[k]["score"] for k in both]) if both else None
+    sg = lambda x: f"{x:+.0f}".replace("-", "&#8722;")  # noqa: E731
     s = ("<p>Table&#160;[[tab:compare]] and Figure&#160;[[fig:compare]] set each controller&#8217;s cell scores on the CAD "
          "hand against real_v1&#8217;s; the cells that only the CAD hand reaches enter the CAD columns of the table but not "
-         "the figure.</p>")
+         "the figure. On the cells both hands reach, the median per-cell difference, CAD minus real_v1, is "
+         f"{sg(dif['hom'])}&#176; for HOM without the post, {sg(dif['mpc'])}&#176; for MPC and {sg(dif['mpc3'])}&#176; for the "
+         "three-pad MPC.")
+    if X.pl_cfgs and X.v1_pl:
+        hm1 = med([r["held_turn_deg"] for r in X.v1_pl.get("hom", [])])
+        ic1 = med([r["held_turn_deg"] for r in X.v1_pl.get("icem_pin", [])])
+        s += (f" On the four planner cells HOM turns a median {deg(X.pl_stats('hom')['turn'])} against {deg(hm1)} on real_v1, "
+              f"and pinned iCEM {deg(X.pl_stats('icem_pin')['turn'])} against {deg(ic1)} (Table&#160;[[tab:plcompare]]).")
+    s += "</p>"
     s += table(["Controller", "Cells, real_v1", "Cells, CAD", "Median cell score, real_v1, deg", "Median cell score, CAD, deg",
                 "Cells at 60&#176; or more, real_v1", "Cells at 60&#176; or more, CAD",
                 "CAD minus real_v1 on shared cells, median, deg"], rows,
@@ -967,8 +1066,8 @@ def films_section(X: Data):
     keys = [k for k in sorted(groups, key=lambda k: (k[1] < 0, -k[0], k[1])) if all(c in groups[k] for c in FILMED)]
     if keys:
         out += ("<p>Each film shows four controllers on the same grasp and placement at real speed: HOM top left (post removed at "
-                "1.3&#8202;s), predictive sampling top right, pinned predictive sampling bottom left and pinned iCEM bottom "
-                "right, all with the three-pad cost. Pads touching the cylinder are drawn red, the orange rod marks the "
+                "1.3&#8202;s), unpinned predictive sampling top right, whose servo targets jump at every replanning, pinned "
+                "predictive sampling bottom left and pinned iCEM bottom right, all three planners with the three-pad cost. Pads touching the cylinder are drawn red, the orange rod marks the "
                 "cylinder&#8217;s axis, and the post is drawn only while it collides. The label gives the time and the turn angle. "
                 "Each panel is a fresh run with the row&#8217;s seed; its result is in the caption.</p>")
     for (d, t, seed, tag) in keys:
@@ -991,8 +1090,8 @@ def films_section(X: Data):
         parts = [f"{names[c]}: {'held' if pair[c]['held'] else 'not held'} at {pair[c]['turn_end_deg']:.0f}&#176; on "
                  f"{pair[c]['fingers_loaded_end']} fingers" for c in ctrls]
         out += ("<p>The film below shows the three controllers of the landscape on the 16&#8202;mm cylinder at "
-                "\\(x_s\\) = 62.5&#8202;mm: HOM, MPC whose cost asks only for an upright, held cylinder, and the unpinned "
-                "three-pad MPC.</p>")
+                "\\(x_s\\) = 62.5&#8202;mm: HOM, MPC whose cost asks only for an upright, held cylinder, and the three-pad MPC; "
+                "both MPC panels are unpinned predictive sampling.</p>")
         out += film(stem, f"{d:g}{HS}mm cylinder at \\(t = {t:+.3f}\\) (\\(x_s\\) = {xs_of(t):.1f}&#8202;mm), grasp "
                     f"{pair[ctrls[0]]['cand']}, placement {seed}, panels left to right. " + "; ".join(parts) + ".",
                     key="film16625")
@@ -1045,9 +1144,9 @@ def cost_section(X: Data):
         if X.v1_timing:
             q1 = X.v1_timing["models"]["pads"]
             s += (f"<p>On real_v1 the same grip costs {q1['grip']['step_us']:.0f}&#8202;&#181;s per step with "
-                  f"{q1['grip']['ncon_mean']:.0f} contacts, and one replanning {ro(q1, 12):.2f}&#8202;s on 12 threads; the CAD "
-                  f"hand&#8217;s link spheres and its {pm['ngeom']:,} geoms against {q1['ngeom']:,} make its step "
-                  f"{pm['grip']['step_us'] / q1['grip']['step_us']:.2f} times as expensive (16&#8202;mm cylinder at \\(x_s\\) = "
+                  f"{q1['grip']['ncon_mean']:.0f} contacts and {q1['ngeom']:,} geoms, and one replanning {ro(q1, 12):.2f}&#8202;s on "
+                  f"12 threads, against {pm['grip']['step_us']:.0f}&#8202;&#181;s, {pm['grip']['ncon_mean']:.0f} contacts, "
+                  f"{pm['ngeom']:,} geoms and {ro(pm, 12):.2f}&#8202;s on the CAD hand (16&#8202;mm cylinder at \\(x_s\\) = "
                   "62.5&#8202;mm on both hands).</p>")
     if X.gpu_check:
         g = [r for r in X.gpu_check if r.get("pad_filter")]
@@ -1058,12 +1157,13 @@ def cost_section(X: Data):
                   "worlds on the GPU from the plant&#8217;s state, one CUDA graph per 10&#8202;ms of simulated time. "
                   + (f"With the planner&#8217;s model as compiled, {raw['nworld']:,} plans of 0.5&#8202;s took {raw['gpu_s']:.1f}&#8202;s "
                      f"against {raw['cpu_s_12threads']:.1f}&#8202;s on 12 CPU threads. " if raw else "")
-                  + f"Letting the pads collide only with the cylinder and stopping the GPU solver at tolerance "
-                  f"10<sup>&#8722;6</sup> or 20 iterations brings this to {big['gpu_s']:.2f}&#8202;s, "
+                  + f"With the pads colliding only with the cylinder and the GPU solver stopped at tolerance "
+                  f"10<sup>&#8722;6</sup> or 20 iterations, {big['nworld']:,} plans of 0.5&#8202;s take {big['gpu_s']:.2f}&#8202;s, "
                   f"{1e6 * big['gpu_s'] / (big['nworld'] * 500):.1f}&#8202;&#181;s per world-step and "
                   f"{big['cpu_s_12threads'] / big['gpu_s']:.1f} times the throughput of 12 CPU threads, and the GPU&#8217;s rollout "
-                  f"costs agree with the CPU&#8217;s at a Pearson correlation of {big['cost_pearson']:.3f} and a rank correlation of "
-                  f"{big['cost_spearman']:.4f} (Table&#160;[[tab:gpu]]).</p>")
+                  f"costs agree with the CPU&#8217;s at a Pearson correlation of {big['cost_pearson']:.4f} and a rank correlation of "
+                  f"{big['cost_spearman']:.4f} (Table&#160;[[tab:gpu]]). The contact sensors of Eq.&#160;(3) match at most 64 "
+                  "contacts each by default in MuJoCo-Warp; the CAD hand&#8217;s link spheres exceed that, and the port sets 256.</p>")
         body = [[f"{r['nworld']:,}", "the cylinder" if r.get("pad_filter") else "every geom", f"{r['cpu_s_12threads']:.2f}",
                  f"{r['gpu_s']:.2f}", f"{r['cost_pearson']:.4f}", f"{r['cost_spearman']:.4f}", "yes" if r["best_same"] else "no"]
                 for r in X.gpu_check]
@@ -1075,7 +1175,7 @@ def cost_section(X: Data):
     return s
 
 
-def limitations(X: Data):
+def limitations(X: Data):  # noqa: C901
     items = [
         "MPC plans on the plant&#8217;s own model, so its scores are what the hand reaches with an exact model of itself.",
         "Only the servo plant and the 10, 16 and 25&#8202;mm cylinders are rerun on the CAD hand; the real_v1 page&#8217;s "
@@ -1083,10 +1183,13 @@ def limitations(X: Data):
         "The CAD hand&#8217;s link spheres stand up to 6.7&#8202;mm off the printed parts (MorphIt fit, CAD finger page), so "
         "link contacts with the cylinder start early; the grasp candidates come from the scale study&#8217;s capsule "
         "clearance model with the CAD link lengths.",
-        "MPC runs on one grasp per cell, the one HOM scores best without the post, and the three-pad variant on one placement "
-        "per cell; three placements per cell for the rest.",
+        "MPC and pinned iCEM run on one grasp per cell, the one HOM scores best without the post; the three-pad MPC and "
+        "pinned iCEM on one placement per cell, the rest on three.",
         "The planner comparison covers four cells at two placements; its medians are over eight runs per controller.",
-        "The GPU planners shared the GPU with another job during their runs, which raises their wall times.",
+        f"The first GPU iCEM runs overflowed MuJoCo-Warp&#8217;s 64 contact matches per sensor 51,458 times, which corrupted "
+        f"the per-finger forces of the cost, and crashed on the eighth run; their {X.n_overflow} rows are left out and the "
+        "planner tables give the rerun at 256 matches. GPU annealed sampling overflowed 40 times, all in its two runs on the 16&#8202;mm "
+        "cylinder at \\(x_s\\) = 122.5&#8202;mm; those rows are kept.",
     ]
     return "<ul>" + "".join(f"<li>{x}</li>" for x in items) + "</ul>"
 
@@ -1094,12 +1197,13 @@ def limitations(X: Data):
 def open_items():
     items = [
         ("Bench cells from the CAD hand.", "The bench plan of 11 October picks its cells from real_v1&#8217;s HOM scores with the "
-         "post. Rebuild it from this page&#8217;s three-pad MPC scores (<code>mpc3_servo/turn.jsonl</code>) and export the "
-         "servo targets of the chosen runs as open-loop plans for <code>scripts/real_v1_trajectory_clearance.py</code>; a cell "
-         "is worth bench time if the open-loop replay keeps at least 60&#176; on three pads in two of three placements."),
+         "post, which reach 60&#176; in no cell on the CAD hand. Rebuild it from this page&#8217;s pinned-iCEM landscape "
+         "(<code>planners/landscape_icem_pin.jsonl</code>) and export the servo targets of the chosen runs as open-loop plans for "
+         "<code>scripts/real_v1_trajectory_clearance.py</code>; a cell is worth bench time if the open-loop replay keeps at least "
+         "60&#176; on three pads in two of three placements."),
         ("Pinned iCEM at every placement.", "Run <code>SCALE_HAND=cad_v1 scripts/hand_object_scale_planners.py run --configs "
-         "icem_pin</code> at the three placements of every reachable cell (about 6&#8202;h on two six-thread shards); the "
-         "controlled landscape holds if each cell&#8217;s median stays within 15&#176; of the three-pad placement-0 score."),
+         "icem_pin --seeds 1 2</code> on the 39 cells (about 3&#8202;h on two six-thread shards; placement 0 took 1.4&#8202;h); "
+         "the landscape holds if each cell&#8217;s median over three placements stays within 15&#176; of its placement-0 score."),
         ("Gradient-based MPC.", "Test <code>scripts/hand_object_scale_ilqr.py</code> with <code>hand_object_scale_planners.py run "
          "--configs ilqr --cells cylinder:25:0.125 --seeds 0 --set t_end=1.3</code>, then on the four planner cells; it is "
          "worth keeping if it holds three pads with no contact break at a command rate at or below the pinned samplers&#8217; "
@@ -1120,30 +1224,26 @@ def lede(X: Data):
     n_v1 = len({k for k in X.v1_nopost if k[0] == "cylinder"})
     s = (f"The CAD-model hand, whose fingers reach 10.05&#8202;mm further than real_v1&#8217;s and collide through their "
          f"printed links, has a feasible grasp in {n_cad} cells of the scale study&#8217;s diagonal layouts with 10, 16 "
-         f"and 25&#8202;mm cylinders against real_v1&#8217;s {n_v1}.")
+         f"and 25&#8202;mm cylinders, against real_v1&#8217;s {n_v1}.")
     hom = [X.nopost[k]["score"] for k in X.nopost if k[0] == "cylinder"]
     hom1 = [X.v1_nopost[k]["score"] for k in X.v1_nopost if k[0] == "cylinder"]
+    post = [X.post[k]["score"] for k in X.post if k[0] == "cylinder"]
     if hom:
-        s += (f" HOM without the post scores a median {deg(med(hom))} per cell (real_v1 {deg(med(hom1))}) and reaches "
-              f"60&#176; in {sum(1 for v in hom if v >= 60)} cells (real_v1 {sum(1 for v in hom1 if v >= 60)}).")
-    m3 = [X.mpc3[k]["score"] for k in X.mpc3 if k[0] == "cylinder"]
-    m31 = [X.v1_mpc3[k]["score"] for k in X.v1_mpc3 if k[0] == "cylinder"]
-    if m3:
-        s += (f" MPC that keeps three pads on and turns below 60&#176;/s scores a median {deg(med(m3))} (real_v1 "
-              f"{deg(med(m31))}) and reaches 60&#176; in {sum(1 for v in m3 if v >= 60)} of {len(m3)} cells.")
-    if X.pl_cfgs and "hom" in X.pl_cfgs:
-        st = {c: X.pl_stats(c) for c in X.pl_cfgs}
-        cpu = [c for c in X.pl_cfgs if c not in ("hom", "anneal_gpu", "icem_gpu")]
-        if cpu:
-            best = max(cpu, key=lambda c: (st[c]["turn"], -st[c]["rate"]))
-            r1 = X.v1_pl.get(best, [])
-            s += (f" On the four planner cells, {PL_LAB[best][0].lower() + PL_LAB[best][1:]} turns furthest at 64 rollouts, "
-                  f"a median {deg(st[best]['turn'])} with {st[best]['three_end']} of {st[best]['n']} runs held on three pads"
-                  + (f" (real_v1 {deg(med([r['held_turn_deg'] for r in r1]))})" if r1 else "")
-                  + f", against {deg(st['hom']['turn'])} for HOM.")
-        for g in ("icem_gpu", "anneal_gpu"):
-            if g in st:
-                s += f" {PL_LAB[g]} with 1,024 rollouts turns a median {deg(st[g]['turn'])}."
+        p60 = sum(1 for v in post if v >= 60)
+        s += (f" HOM without the post turns the cylinder a median {deg(med(hom))} per cell (real_v1 {deg(med(hom1))}); with the "
+              f"post, the protocol of the bench plan, it reaches 60&#176; in {'no cell' if p60 == 0 else f'{p60} cells'}.")
+    if X.land and X.r_mpc3:
+        rows = [X.land[k]["rows"][0] for k in X.land]
+        three = sum(1 for r in rows if r["held"] and r["fingers_loaded_end"] == 3)
+        m3 = [r for r in X.r_mpc3 if ("cylinder", float(r["d_mm"]), float(r["t"])) in X.land]
+        s += (f" Pinned iCEM holds the cylinder on three pads in {three} of the {len(rows)} cells and turns it a median "
+              f"{deg(med([r['held_turn_deg'] for r in rows]))}, against {deg(med([r['held_turn_deg'] for r in m3]))} for "
+              f"unpinned three-pad MPC at the same budget, at a command rate of "
+              f"{med([r['cmd_rate_rms'] for r in rows]):.2f}&#8202;rad/s against {med([r['cmd_rate_rms'] for r in m3]):.2f}.")
+    if X.pl_cfgs and "icem_pin" in X.pl_cfgs and X.v1_pl.get("icem_pin"):
+        s += (f" On the four planner cells it turns {deg(X.pl_stats('icem_pin')['turn'])} against "
+              f"{deg(med([r['held_turn_deg'] for r in X.v1_pl['icem_pin']]))} on real_v1, and 1,024 rollouts on the GPU give "
+              f"{deg(X.pl_stats('icem_gpu')['turn'])}." if "icem_gpu" in X.pl_cfgs else ".")
     return s
 
 
@@ -1174,9 +1274,12 @@ def main():
                    "<code>hom_post_servo/</code>, <code>hom_postoff_servo/</code>, <code>mpc_servo/</code>, <code>mpc3_servo/</code> "
                    "(<code>turn.jsonl</code>, one line per run), <code>planners/turn.jsonl</code> (one line per run with its "
                    "20&#8202;ms log), <code>planners/timing.json</code>, <code>planners/gpu_check.jsonl</code>, "
-                   "<code>planners/media/films.jsonl</code>, <code>media/films.jsonl</code> and <code>post_traces.json</code>. "
-                   "Queue: <code>logs/20261014-scale_turn_cad_v1/queue_cpu.sh</code>, <code>queue_gpu.sh</code>. The real_v1 "
-                   "rows of the comparison are in <code>docs/experiments/20261013-scale_turn_controllers/</code>.</p>")
+                   "<code>planners/media/films.jsonl</code>, <code>media/films.jsonl</code> and <code>post_traces.json</code>; "
+                   "<code>planners/landscape_icem_pin.jsonl</code> holds the pinned-iCEM landscape. Run recipe in "
+                   "<code>run/</code>: <code>hom_grids.sh</code>, then <code>queue_cpu.sh</code> and <code>queue_gpu.sh</code> "
+                   "side by side, then <code>reruns.sh</code> (GPU iCEM at 256 contact matches, pinned-iCEM landscape); logs in "
+                   "<code>logs/20261014-scale_turn_cad_v1/</code>. The real_v1 rows of the comparison are in "
+                   "<code>docs/experiments/20261013-scale_turn_controllers/</code>.</p>")
     t = open(TPL).read()
     for k, val in v.items():
         t = t.replace("{{" + k + "}}", val)

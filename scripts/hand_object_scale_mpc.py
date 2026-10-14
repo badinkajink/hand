@@ -583,6 +583,8 @@ def film_pair(cell, shape, dd, ci, seed, prm, hom_prm, nthread, controllers=("HO
             m.geom_rgba[i] = (0.75, 0.4, 0.25, 0.0)
         rend, cam = F.renderer_for(m, np.asarray(meta["tool7"], float)[:3])
         cam.distance = 0.8 * (0.24 + 1.4 * dd / 1000.0)
+        if S.HAND == "cad_v1":   # the printed links hide the cylinder from real_v1's camera; look up from 10 deg below the grasp
+            cam.elevation = 10.0
         frames, k = [], [0]
         every = 4 if ctrl == "HOM" else max(1, int(round(0.04 / prm["dt_plan"])))
         title = {"HOM": "HOM", "MPC": "MPC", "MPC3": "MPC, three pads"}.get(ctrl) or planners[ctrl][0]
