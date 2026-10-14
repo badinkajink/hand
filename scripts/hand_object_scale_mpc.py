@@ -57,6 +57,21 @@ DEFAULTS = dict(nsample=32, horizon=0.3, knots=3, dt_plan=0.02, sigma=0.08, w_ti
 # and w_rate * relu(|omega| - rate_max)^2 / rate_max^2 on the cylinder's angular speed.
 CONTROLLED = dict(w_contact=1.0, w_rate=1.0)
 SIGMA_POS = 0.010
+# Planner variants (2026-10-13, owner: "can we see if we can improve this smoothness/jitteriness ... compare predictive
+# sampling to CEM, iCEM, and ... annealed sampling"). Every variant spends `nsample` rollouts per replanning; a method
+# with `iters` inner iterations draws nsample // iters per iteration.
+#   ps      predictive sampling: the cheapest of the shifted nominal and its noisy copies (Howell et al. 2022)
+#   mppi    one MPPI step: the exp(-(J - J_min) / lam) weighted average, lam = lam_rel * std(J) (0.03: at 0.1 and 0.5 the
+#           average barely moved, 0.6-1.1 deg in 0.5 s on the 25 mm cell, against 11.8 deg at 0.03)
+#   cem     cross-entropy: per iteration the elite_frac cheapest set the mean and the standard deviation (momentum
+#           `momentum`, floor sigma_min); the mean is executed
+#   icem    CEM with knot-correlated noise (AR(1), ar_alpha), the `keep` best elites of the last replanning shifted into
+#           the first population, and the best sample executed (Pinneri et al. 2020; mjpc_icra2026 planners/icem)
+#   anneal  DIAL-MPC annealed sampling as in mujoco_mpc (branch sampling) planners/annealed_sampling: iters stages,
+#           knot noise sigma * exp(-i / (beta1 iters) - (K - 1 - h) / (beta2 K)), an MPPI update after each stage
+# pin0=1 fixes the first knot to the command applied now, so a replanning cannot make the command jump.
+PLANNER_DEFAULTS = dict(method="ps", iters=1, lam_rel=0.03, elite_frac=0.15, momentum=0.1, ar_alpha=0.7, keep=2,
+                        beta1=0.5, beta2=0.5, sigma_min=0.005, pin0=0.0, log_every=10)
 
 
 def hom_best(path: Path = HOM_ROWS) -> dict:
@@ -114,6 +129,13 @@ class Planner:
             self.m = m = copy.deepcopy(plant.m)
         post = m.geom("post").id
         m.geom_contype[post] = m.geom_conaffinity[post] = 0
+        if prm.get("pad_filter", 0.0) > 0:
+            # pads collide with the cylinder only (the RL scenes' rule): the scale-study scenes let every pad meet every
+            # geom, 3.4 million allowed pairs, which the planner's model need not check
+            pads = np.array([g for g in range(m.ngeom) if "_pad" in (m.geom(g).name or "")])
+            tool = np.array([g for g in range(m.ngeom) if m.geom_bodyid[g] == plant.tb])
+            m.geom_contype[pads], m.geom_conaffinity[pads] = 2, 0
+            m.geom_conaffinity[tool] = m.geom_conaffinity[tool] | 2
         self.pool = rollout.Rollout(nthread=nthread)
         self.datas = [mj.MjData(m) for _ in range(nthread)]
         self.spec = mj.mjtState.mjSTATE_FULLPHYSICS
@@ -156,25 +178,104 @@ class Planner:
         c = run[:, :-1].sum(1) + prm["w_term"] * run[:, -1]
         return c + prm["w_du"] * np.sum(np.diff(samples, axis=1) ** 2, (1, 2))
 
-    def plan(self, t, p_ref, z0):
-        prm, m, d = self.prm, self.m, self.plant.d
-        if self.nominal is None:
-            self.nominal = np.tile(d.ctrl[self.plant.act], (len(self.knot_t), 1))
-            self.t_nom = t
-        else:
-            self.shift(t)
-        ns = int(prm["nsample"])
-        samples = self.nominal[None] + self.rng.normal(0.0, prm["sigma"], (ns,) + self.nominal.shape)
-        samples[0] = self.nominal
-        samples = np.clip(samples, self.lo, self.hi)
-        self.mj.mj_getState(self.plant.m, d, self.x0, self.spec)
+    def evaluate(self, samples, p_ref, z0):
+        """Roll out knot sets (n, K, 9) from the stored state; their costs and controls."""
+        m = self.m
         ctrl = np.einsum("hk,nkj->nhj", self.W, samples)
-        self.ctrl_full[:, :, self.plant.act] = ctrl
-        states, sens = self.pool.rollout(m, self.datas, self.x0[None], self.ctrl_full, nstep=self.nh)
+        full = np.repeat(self.ctrl_full[:1], len(samples), axis=0)
+        full[:, :, self.plant.act] = ctrl
+        states, sens = self.pool.rollout(m, self.datas, self.x0[None], full, nstep=self.nh)
         c = self.cost(states, samples, p_ref, z0, sens if m.nsensordata else None)
-        b = int(np.argmin(c))
-        self.nominal = samples[b]
-        return ctrl[b], float(c[b]), float(c[0])
+        return c, ctrl
+
+    def noise(self, n, scale):
+        """Gaussian knot noise (n, K, 9) times `scale` (K, 1) or scalar; knot-correlated AR(1) for iCEM."""
+        K = len(self.knot_t)
+        e = self.rng.normal(0.0, 1.0, (n, K, self.nominal.shape[1]))
+        if self.prm.get("method") == "icem" and self.prm["ar_alpha"] > 0:
+            a = self.prm["ar_alpha"]
+            for h in range(1, K):
+                e[:, h] = a * e[:, h - 1] + math.sqrt(1.0 - a * a) * e[:, h]
+        return e * scale
+
+    def constrain(self, samples, u_now):
+        samples = np.clip(samples, self.lo, self.hi)
+        if self.prm.get("pin0", 0.0) > 0:
+            samples[:, 0] = u_now
+        return samples
+
+    def mppi_update(self, samples, c):
+        lam = self.prm["lam_rel"] * (float(np.std(c)) + 1e-9)
+        w = np.exp(-(c - c.min()) / lam)
+        w /= w.sum()
+        return np.einsum("n,nkj->kj", w, samples)
+
+    def plan(self, t, p_ref, z0):
+        prm, d = self.prm, self.plant.d
+        u_now = d.ctrl[self.plant.act].copy()
+        if self.nominal is None:
+            self.nominal = np.tile(u_now, (len(self.knot_t), 1))
+            self.t_nom = t
+            self.elites = None
+        else:
+            if getattr(self, "elites", None) is not None:      # iCEM: shift the kept elites with the nominal
+                old_t, new_t = self.t_nom + self.knot_t, t + self.knot_t
+                self.elites = np.stack([np.stack([np.interp(new_t, old_t, e[:, j]) for j in range(e.shape[1])], 1)
+                                        for e in self.elites])
+            self.shift(t)
+        self.mj.mj_getState(self.plant.m, d, self.x0, self.spec)
+        meth = prm.get("method", "ps")
+        B, I = int(prm["nsample"]), max(1, int(prm.get("iters", 1)))
+        K = len(self.knot_t)
+        sig = prm["sigma"]
+        if meth == "ps":
+            samples = self.constrain(self.nominal[None] + self.noise(B, sig), u_now)
+            samples[0] = self.constrain(self.nominal[None], u_now)[0]
+            c, ctrl = self.evaluate(samples, p_ref, z0)
+            b = int(np.argmin(c))
+            self.nominal = samples[b]
+            return ctrl[b], float(c[b]), float(c[0])
+        n = max(2, B // I)
+        if meth in ("mppi", "anneal"):
+            h = np.arange(K)[:, None]
+            best = (np.inf, None)
+            for i in range(I):
+                scale = sig if meth == "mppi" else sig * np.exp(-i / (prm["beta1"] * I) - (K - 1 - h) / (prm["beta2"] * K))
+                samples = self.constrain(self.nominal[None] + self.noise(n, scale), u_now)
+                samples[0] = self.constrain(self.nominal[None], u_now)[0]
+                c, ctrl = self.evaluate(samples, p_ref, z0)
+                if c.min() < best[0]:
+                    best = (float(c.min()), None)
+                self.nominal = self.constrain(self.mppi_update(samples, c)[None], u_now)[0]
+            ctrl_exec = np.einsum("hk,kj->hj", self.W, self.nominal)
+            return ctrl_exec, best[0], float(c[0])
+        if meth in ("cem", "icem"):
+            mean = self.nominal.copy()
+            std = np.full_like(mean, sig)
+            ne = max(2, int(round(prm["elite_frac"] * n)))
+            best = (np.inf, None, None)
+            for i in range(I):
+                samples = self.constrain(mean[None] + self.noise(n, std), u_now)
+                samples[0] = self.constrain(mean[None], u_now)[0]
+                if meth == "icem" and i == 0 and getattr(self, "elites", None) is not None:
+                    kk = min(len(self.elites), n - 1)
+                    samples[n - kk:] = self.constrain(self.elites[:kk], u_now)
+                c, ctrl = self.evaluate(samples, p_ref, z0)
+                idx = np.argsort(c)
+                if c[idx[0]] < best[0]:
+                    best = (float(c[idx[0]]), samples[idx[0]].copy(), ctrl[idx[0]].copy())
+                el = samples[idx[:ne]]
+                mom = prm["momentum"]
+                mean = (1 - mom) * el.mean(0) + mom * mean
+                std = np.clip((1 - mom) * el.std(0) + mom * std, prm["sigma_min"], sig)
+                if meth == "icem":
+                    self.elites = samples[idx[:int(prm["keep"])]].copy()
+            if meth == "icem":
+                self.nominal = best[1]
+                return best[2], best[0], float(c[0])
+            self.nominal = self.constrain(mean[None], u_now)[0]
+            return np.einsum("hk,kj->hj", self.W, self.nominal), best[0], float(c[0])
+        raise ValueError(f"unknown method {meth}")
 
 
 def mpc_turn(plant, meta, seed, prm, nthread=8, frame_cb=None) -> dict:
@@ -205,13 +306,21 @@ def mpc_turn(plant, meta, seed, prm, nthread=8, frame_cb=None) -> dict:
     p_ref = s0["p"] + [0.0, 0.0, prm["lift_mm"] * 1e-3]
     weight = meta["mass_kg"] * 9.81
     rng = np.random.default_rng([int(seed), 20261013])
-    pl = Planner(plant, prm, nthread, rng)
+    if prm.get("method") == "ilqr":
+        from hand_object_scale_ilqr import ILQRPlanner
+        pl = ILQRPlanner(plant, prm, nthread, rng)
+    elif prm.get("device", "cpu") == "gpu":
+        from hand_object_scale_mpc_gpu import GPUPlanner
+        pl = GPUPlanner(plant, prm, nthread, rng, nworld=max(2, int(prm["nsample"]) // max(1, int(prm.get("iters", 1)))))
+    else:
+        pl = Planner(plant, prm, nthread, rng)
     t_sq_end = prm["t_grip"] + prm["t_squeeze"]
     t_post = prm.get("t_post_off", t_sq_end)
     n_exec = int(round(prm["dt_plan"] / pl.dt))
     th_max = th2_max = th3_max = -10.0
     first_loss = None
     trace = []
+    log, n_step, log_every = [], 0, int(prm.get("log_every", 10))
     w0 = time.perf_counter()
     t_plan = 0.0
     while d.time < prm["t_end"] - 1e-9:
@@ -236,6 +345,9 @@ def mpc_turn(plant, meta, seed, prm, nthread=8, frame_cb=None) -> dict:
         for k in range(n_exec):
             d.ctrl[plant.act] = u[k]
             mj.mj_step(m, d)
+            n_step += 1
+            if n_step % log_every == 0:
+                log.append(log_sample(plant))
         if frame_cb is not None:
             frame_cb(plant, float(d.time), {"phase": "squeeze" if d.time < t_sq_end else "turn",
                                             "th_deg": math.degrees(theta(d.xmat[plant.tb].reshape(3, 3)))})
@@ -253,7 +365,95 @@ def mpc_turn(plant, meta, seed, prm, nthread=8, frame_cb=None) -> dict:
             "tilt_end_deg": round(math.degrees(math.asin(max(-1.0, min(1.0, float(se["R"][2, 2]))))), 2),
             "F_end": {f: round(se["F"][f], 3) for f in S.FINGERS}, "z_drop_mm": round(1e3 * float(z0 - se["p"][2]), 2),
             "t_sim_end": round(float(d.time), 3), "wall_s": round(time.perf_counter() - w0, 2),
-            "plan_s": round(t_plan, 2), "trace": trace}
+            "plan_s": round(t_plan, 2), "trace": trace, **smooth_metrics(log, weight, theta),
+            "log": compact_log(log, theta)}
+
+
+def log_sample(plant):
+    """One 10 ms sample for the smoothness metrics: time, servo command, cylinder rotation and angular velocity, and
+    each finger's normal force on the cylinder."""
+    d = plant.d
+    s = plant.state()
+    return (float(d.time), d.ctrl[plant.act].copy(), d.qvel[plant.va + 3:plant.va + 6].copy(), s["R"],
+            np.array([s["F"][f] for f in S.FINGERS]))
+
+
+def smooth_metrics(log, weight, theta, t_from=0.8):
+    """Smoothness and contact continuity of one run from its 10 ms samples after `t_from`:
+      cmd_rate_rms     RMS over joints and samples of the servo-command rate, rad/s
+      cmd_reversals    sign reversals of the command rate per joint per second (changes under 1e-4 rad ignored)
+      omega_jitter     RMS of the cylinder's angular velocity minus its 100 ms running mean, deg/s
+      peak_rate        largest |d theta / dt| over 50 ms, deg/s
+      three_frac       share of samples with all three fingers pressing with at least the cylinder's weight
+      contact_breaks   times a finger's force fell below the weight for at least 20 ms after holding it"""
+    L = [x for x in log if x[0] >= t_from - 1e-9]
+    if len(L) < 12:
+        return {}
+    t = np.array([x[0] for x in L])
+    u = np.array([x[1] for x in L])
+    w = np.array([x[2] for x in L])
+    F = np.array([x[4] for x in L])
+    dt = float(np.median(np.diff(t)))
+    du = np.diff(u, axis=0)
+    rate = du / dt
+    sig = np.where(np.abs(du) > 1e-4, np.sign(du), 0.0)
+    rev = 0
+    for j in range(u.shape[1]):
+        s_ = sig[:, j][sig[:, j] != 0]
+        rev += int(np.count_nonzero(s_[1:] != s_[:-1]))
+    span = t[-1] - t[0]
+    k = max(1, int(round(0.1 / dt)))
+    kern = np.ones(k) / k
+    w_hp = np.stack([w[:, i] - np.convolve(w[:, i], kern, mode="same") for i in range(3)], 1)
+    th = np.degrees([theta(x[3]) for x in L])
+    m5 = max(1, int(round(0.05 / dt)))
+    peak = float(np.max(np.abs(th[m5:] - th[:-m5]))) / (m5 * dt) if len(th) > m5 else 0.0
+    on = F >= weight
+    breaks = 0
+    for i in range(F.shape[1]):
+        held_ = False
+        low = 0
+        for v in on[:, i]:
+            if v:
+                held_, low = True, 0
+            elif held_:
+                low += 1
+                if low == 2:
+                    breaks += 1
+                    held_ = False
+    return {"cmd_rate_rms": round(float(np.sqrt(np.mean(rate ** 2))), 4),
+            "cmd_reversals": round(rev / (u.shape[1] * span), 3),
+            "omega_jitter": round(float(np.degrees(np.sqrt(np.mean(w_hp[k:-k] ** 2)))), 3) if len(w) > 2 * k else None,
+            "peak_rate": round(peak, 1), "three_frac": round(float(np.mean(on.all(1))), 4), "contact_breaks": breaks}
+
+
+def compact_log(log, theta, every=2):
+    """The 10 ms samples thinned to 20 ms for the rows: t, turn (deg), finger forces (N), |omega| (deg/s), command."""
+    return [{"t": round(x[0], 3), "th": round(math.degrees(theta(x[3])), 2), "F": [round(float(v), 2) for v in x[4]],
+             "w": round(float(np.degrees(np.linalg.norm(x[2]))), 1), "u": [round(float(v), 4) for v in x[1]]}
+            for x in log[::every]]
+
+
+def hom_turn_logged(plant, mirror, meta, seed, hom_prm, frame_cb=None):
+    """hand_object_scale_sim.turn_rollout with the 10 ms log and the smoothness metrics of an MPC run."""
+    log = []
+
+    def cb(pl, t, info):
+        log.append(log_sample(pl))
+        if frame_cb is not None:
+            frame_cb(pl, t, info)
+
+    res = S.turn_rollout(plant, mirror, meta, seed, hom_prm, frame_cb=cb)
+    s0_R = next(x[3] for x in log if x[0] >= hom_prm["t_grip"] - 1e-9)
+    u0 = s0_R[:, 2] / np.linalg.norm(s0_R[:, 2])
+    a0 = np.cross(u0, [0.0, 0.0, 1.0])
+    a0 /= np.linalg.norm(a0)
+    h0 = np.cross(a0, u0)
+    theta = lambda R: math.atan2(R[:, 2] @ h0, R[:, 2] @ u0)  # noqa: E731
+    weight = meta["mass_kg"] * 9.81
+    res.update(smooth_metrics(log, weight, theta))
+    res["log"] = compact_log(log, theta)
+    return res
 
 
 def setup(cell, shape, dd, ci):
