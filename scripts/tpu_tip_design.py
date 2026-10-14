@@ -14,12 +14,13 @@ stay square. The solid is the intersection of the box with two cylinder half-spa
 
 The magnet is an axially magnetized N52 disc (eFlesh's fingertip magnet: 3/16 in diameter, 1/16 in thick), lying in the
 layer plane under the contact point with its axis along x; `depth` is the distance from the palmar face to the magnet's
-top face. The pocket is the owner's press fit (2026-10-13: "we have to undersize the holes a little bit ... roughly 90% of
-diameter and maybe 95% of height"): 90 % of the magnet's diameter and 95 % of its thickness, its floor at the magnet's bottom
-face. Printed face up (the part on its back face, layers across the load), the slicer walls the pocket with perimeters and
-closes it with solid layers; the print pauses at the layer that first covers the pocket, the magnet is pressed in, and the
-print resumes. The slicer prints the pocket as whole layers, those whose mid-height lies inside it, so its printed height is
-a multiple of the layer height; the print sheet gives it.
+top face. The pocket's diameter is the owner's press fit, 90 % of the magnet's (2026-10-13: "we have to undersize the holes a
+little bit"). Its floor and top lie on layer boundaries: the floor at or below the magnet's bottom face, the top the first
+boundary at least GAP_MIN above the magnet resting on that floor. The first layer after the pause then bridges air over the
+magnet; owner, 2026-10-13: eFlesh's pouches "printed a tiny lip over the magnet in the layer immediately following the press
+insert ... the nozzle would pull the magnet out, requiring glue". Printed face up (the part on its back face, layers across
+the load), the slicer walls the pocket with perimeters and closes it with solid layers; the print pauses before the first
+layer above the pocket, the magnet is pressed in, and the print resumes.
 
     .venv/bin/python scripts/tpu_tip_design.py stl --magnet 4.76 1.59 --depth 3.0 --out /tmp/tip.stl
 """
@@ -38,7 +39,8 @@ R_SIDE, R_END = 2.7, 3.0
 LAYER, FIRST_LAYER = 0.2, 0.2
 MAGNETS = {"d4.76x1.59": (4.76, 1.59), "d3.18x1.59": (3.18, 1.59)}   # eFlesh fingertip size; 1/8 x 1/16 in
 BR_N52 = 1.45                    # remanence of N52, T (1.42-1.48 on supplier sheets)
-FIT_D, FIT_T = 0.90, 0.95        # press-fit pocket over the magnet's diameter and thickness (owner, 2026-10-13)
+FIT_D = 0.90                     # press-fit pocket diameter over the magnet's (owner, 2026-10-13)
+GAP_MIN = 0.10                   # least air between the magnet's top and the pocket's top, mm (the first layer bridges it)
 FE_CLEAR = (0.10, 0.10)          # radial and axial clearance of the pocket the finite elements fill with magnet
 
 
@@ -58,17 +60,30 @@ def inside_body(x, y, z):
     return box & (x <= surface_x(y, z))
 
 
-def pocket(magnet, depth, clear_r=None, clear_t=None):
-    """Pocket cylinder (radius, x_lo, x_hi) and magnet cylinder (radius, x_lo, x_hi), axis along x through (y=0, z_c).
-    Default: the press fit, FIT_D of the diameter and FIT_T of the thickness with its floor at the magnet's bottom face, so the
-    magnet stands (1 - FIT_T) of its thickness above it. With clear_r and clear_t: a clearance pocket centred on the magnet,
-    which the finite elements take as magnet (FE_CLEAR; the print files until 2026-10-12 had this pocket too)."""
+def recess(bottom, t, layer=LAYER, first=FIRST_LAYER, gap=GAP_MIN):
+    """Floor and top of a pocket, as print heights on the layer grid (boundaries 0, first, first + k layer): the floor the
+    highest boundary at or below the magnet's bottom face, the top the lowest boundary at least `gap` above the magnet once it
+    rests on that floor. The slicer voids exactly the layers between them."""
+    def down(z):
+        return 0.0 if z < first else first + math.floor((z - first) / layer + 1e-9) * layer
+
+    def up(z):
+        return first if z <= first else first + math.ceil((z - first) / layer - 1e-9) * layer
+    fl = down(bottom)
+    return fl, up(fl + t + gap)
+
+
+def pocket(magnet, depth, clear_r=None, clear_t=None, layer=LAYER):
+    """Pocket cylinder (radius, x_lo, x_hi) and magnet cylinder at its design depth (radius, x_lo, x_hi), axis along x through
+    (y=0, z_c). Default: FIT_D of the diameter, floor and top on the layer grid (recess). With clear_r and clear_t: a clearance
+    pocket centred on the magnet, which the finite elements take as magnet (FE_CLEAR)."""
     D, t = MAGNETS[magnet] if isinstance(magnet, str) else magnet
     m_hi = X_FACE - depth
     m_lo = m_hi - t
     mg = dict(r=D / 2, x_lo=m_lo, x_hi=m_hi)
     if clear_r is None:
-        return dict(r=FIT_D * D / 2, x_lo=m_lo, x_hi=m_lo + FIT_T * t), mg
+        fl, top = recess(m_lo - X_BACK, t, layer, layer)       # a uniform grid, as print_sheet counts it
+        return dict(r=FIT_D * D / 2, x_lo=X_BACK + fl, x_hi=X_BACK + top), mg
     return dict(r=D / 2 + clear_r, x_lo=m_lo - clear_t / 2, x_hi=m_hi + clear_t / 2), mg
 
 
@@ -99,30 +114,31 @@ def occupancy(h, magnet=None, depth=None, pad=2):
 
 def print_sheet(magnet, depth, clear_r=None, clear_t=None, layer=LAYER):
     """Pause height for the face-up print (part on its back face): print height h = x - X_BACK. The slicer voids the layers
-    whose mid-height lies inside the pocket, so the printed pocket is a whole number of layers."""
-    pk, mg = pocket(magnet, depth, clear_r, clear_t)
+    whose mid-height lies inside the pocket; the magnet rests on the pocket's floor."""
+    pk, mg = pocket(magnet, depth, clear_r, clear_t, layer)
     top = pk["x_hi"] - X_BACK
     bottom = pk["x_lo"] - X_BACK
     n_top = int(math.ceil(top / layer + 0.5 - 1e-9))     # first layer whose mid-height lies above the pocket's top
     n_bot = int(math.ceil(bottom / layer + 0.5 - 1e-9))  # first layer whose mid-height lies inside it
     D, t = MAGNETS[magnet] if isinstance(magnet, str) else magnet
-    printed = (n_top - n_bot) * layer
+    floor_h, top_h = (n_bot - 1) * layer, (n_top - 1) * layer
     return dict(magnet=magnet, magnet_diameter_mm=D, magnet_thickness_mm=t, grade="N52, axially magnetized",
                 magnet_top_depth_mm=depth, magnet_centre_x_mm=0.5 * (mg["x_lo"] + mg["x_hi"]),
-                pocket_fit=(f"press fit, {FIT_D:.0%} of the diameter and {FIT_T:.0%} of the thickness" if clear_r is None
-                            else f"clearance {clear_r} mm radial, {clear_t} mm axial"),
+                pocket_fit=(f"press fit, {FIT_D:.0%} of the diameter; floor and top on the {layer:g} mm layer grid, the top at least "
+                            f"{GAP_MIN:g} mm above the magnet" if clear_r is None else f"clearance {clear_r} mm radial, {clear_t} mm axial"),
                 pocket_diameter_mm=round(2 * pk["r"], 3), pocket_height_mm=round(pk["x_hi"] - pk["x_lo"], 3),
                 pocket_bottom_print_height_mm=round(bottom, 3), pocket_top_print_height_mm=round(top, 3),
-                pocket_layers=n_top - n_bot, printed_pocket_height_mm=round(printed, 3),
-                printed_pocket_print_heights_mm=[round((n_bot - 1) * layer, 3), round((n_top - 1) * layer, 3)],
+                pocket_layers=n_top - n_bot, printed_pocket_height_mm=round(top_h - floor_h, 3),
+                printed_pocket_print_heights_mm=[round(floor_h, 3), round(top_h, 3)],
+                air_above_magnet_mm=round(top_h - floor_h - t, 3), magnet_top_depth_as_printed_mm=round(X_FACE - (X_BACK + floor_h + t), 3),
                 pause_before_layer_at_mm=round(n_top * layer, 3), pause_layer_number=n_top,
                 note=("Print face up, the part on its back face. The slicer walls the pocket and closes it with solid layers; "
-                      "pause before the first layer printed above the pocket's top, press the magnet in with its north pole "
-                      "toward the palmar face, fix it with a drop of cyanoacrylate (the model takes the magnet as bonded), and "
-                      "resume."))
+                      "pause before the first layer printed above the pocket's top, press the magnet in to the floor with its north "
+                      "pole toward the palmar face, and resume: the next layer bridges the air above the magnet, and the press fit "
+                      "holds it without glue."))
 
 
-def mesh(magnet=None, depth=None, h=0.12, sections=96, clear_r=None, clear_t=None, centres=None):
+def mesh(magnet=None, depth=None, h=0.12, sections=96, clear_r=None, clear_t=None, centres=None, layer=LAYER):
     """Watertight STL mesh: the convex hull of the block's surface samples, and each pocket as an inner shell with its
     faces reversed (a slicer prints it as an internal void). centres: pocket centres (y, z), default the contact point."""
     import trimesh
@@ -134,7 +150,7 @@ def mesh(magnet=None, depth=None, h=0.12, sections=96, clear_r=None, clear_t=Non
     body = trimesh.convex.convex_hull(np.vstack([front, back]))
     parts = [body]
     if magnet is not None:
-        pk, _ = pocket(magnet, depth, clear_r, clear_t)
+        pk, _ = pocket(magnet, depth, clear_r, clear_t, layer)
         cyl = trimesh.creation.cylinder(radius=pk["r"], height=pk["x_hi"] - pk["x_lo"], sections=sections)
         R = trimesh.transformations.rotation_matrix(math.pi / 2, [0, 1, 0])        # axis z -> x
         cyl.apply_transform(R)

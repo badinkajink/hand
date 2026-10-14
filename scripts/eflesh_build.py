@@ -112,15 +112,19 @@ def lattice(lo, hi, cell, E, nu, origin, work):
                                   faces_raw=int(len(lat.faces)))
 
 
-def pouch(d, t, x, y, top, wall=1.0, floor=1.0, lip=1.0, fit=(0.90, 0.95), clear_r=0.15, clear_t=0.10, hole=0.8, seg=96):
-    """eFlesh's pouch around an axially magnetized disc whose top face is at height `top`. Cavity: the owner's press fit
-    (2026-10-13), `fit` of the magnet's diameter and thickness with its floor at the magnet's bottom face; fit=None gives the
-    cavity of the builds of 2026-10-13 on the eFlesh page, centred on the magnet with clear_r and clear_t of clearance."""
+def pouch(d, t, x, y, top, wall=1.0, floor=1.0, lip=1.0, fit=0.90, layer=0.2, first=0.2, clear_r=0.15, clear_t=0.10, hole=0.8,
+          seg=96):
+    """eFlesh's pouch around an axially magnetized disc whose top face is at height `top`. Cavity: `fit` of the magnet's
+    diameter (owner's press fit, 2026-10-13), its floor and top on the layer grid with at least 0.1 mm of air above the magnet
+    (tpu_tip_design.recess), so the lip and cap print over air: owner, 2026-10-13, the lip printed onto the magnet let "the
+    nozzle ... pull the magnet out, requiring glue". fit=None gives the cavity of the builds of 2026-10-13 on the eFlesh page,
+    centred on the magnet with clear_r and clear_t of clearance."""
     if fit:
-        rc, lo = fit[0] * d / 2, top - t
-        hi = lo + fit[1] * t
+        rc = fit * d / 2
+        lo, hi = TD.recess(top - t, t, layer, first)
     else:
         rc, lo, hi = d / 2 + clear_r, top - t - clear_t / 2, top + clear_t / 2
+
     def cyl(r, z0, z1):
         return M.Manifold.cylinder(z1 - z0, r, r, seg).translate((x, y, z0))
     outer = cyl(rc + wall, lo - floor, hi + lip)
@@ -218,8 +222,9 @@ def main():
                          "--wall-gap mm below the top skin, so that they close the sides without carrying the contact to the base")
     ap.add_argument("--wall-gap", type=float, default=1.5, help="height of the open band between the walls and the top skin, mm")
     ap.add_argument("--base", type=float, default=1.6, help="solid base on the bed, mm")
-    ap.add_argument("--pouch-fit", type=float, nargs=2, default=[0.90, 0.95], metavar=("D", "T"),
-                    help="cavity over the magnet's diameter and thickness (owner's press fit); 0 0 for the 0.15/0.10 mm clearance")
+    ap.add_argument("--pouch-fit", type=float, default=0.90, metavar="D",
+                    help="cavity diameter over the magnet's (owner's press fit), the cavity one layer above the magnet; 0 for the "
+                         "0.15/0.10 mm clearance cavity centred on it")
     ap.add_argument("--template", default=str(TEMPLATE), help="PrusaSlicer 3MF whose settings the project takes")
     ap.add_argument("--extruder", type=int, default=2, help="tool of the part (the v17 project used tool 2, FLEX)")
     ap.add_argument("--name", required=True)
@@ -258,12 +263,15 @@ def main():
         core = core - slab
     shell = (S - inner) if a.skin > 0 else None
 
+    _, _, kv = template_config(a.template)
+    layer, first = float(kv["layer_height"]), float(kv["first_layer_height"])
     pouches, info_p = [], []
     for spec in a.magnet:
         d, t, x, y, depth = spec.split(",")
         x = contact[0] if x == "c" else float(x)
         y = contact[1] if y == "c" else float(y)
-        cup, hull, info = pouch(float(d), float(t), x, y, hi[2] - float(depth), fit=tuple(a.pouch_fit) if a.pouch_fit[0] > 0 else None)
+        cup, hull, info = pouch(float(d), float(t), x, y, hi[2] - float(depth), fit=a.pouch_fit if a.pouch_fit > 0 else None,
+                                layer=layer, first=first)
         core = core - hull
         pouches.append(cup)
         info_p.append(info)
@@ -273,8 +281,6 @@ def main():
             part = part + extra
     part = part ^ S                                         # nothing outside the shape
     pm = to_trimesh(part)
-    _, _, kv = template_config(a.template)
-    layer, first = float(kv["layer_height"]), float(kv["first_layer_height"])
     pause = pause_layer(max(p["cavity"][1] for p in info_p), layer, first) if info_p else (None, None)
     settings = dict(perimeters=2, fill_density="0%", top_solid_layers=max(3, int(math.ceil(a.skin / layer))) if a.skin > 0 else 5,
                     bottom_solid_layers=max(3, int(math.ceil(a.base / layer))))

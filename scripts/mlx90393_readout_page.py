@@ -553,33 +553,31 @@ def buy_section(X: Data):
     for brand, size, d, t, tol, pack, url in AMAZON:
         V = math.pi * (d / 2) ** 2 * t
         rows.append([f"{brand}, {size}", tol, pack, f"{V / (math.pi * 2.38 ** 2 * 1.59):.2f}",
-                     f"{TD.FIT_D * d:.2f} &#215; {TD.FIT_T * t:.2f}", f"<a href=\"{url}\">{url.split('/dp/')[1]}</a>"])
+                     f"{TD.FIT_D * d:.2f}", f"<a href=\"{url}\">{url.split('/dp/')[1]}</a>"])
     tab = table(["Amazon listing (N52, axial, Ni-Cu-Ni)", "Tolerance", "Pack, price", "Moment over<br>4.76 &#215; 1.59",
-                 "Pocket at 90&#8202;/&#8202;95&#8202;%<br>(mm)", "ASIN"], rows,
+                 "Pocket diameter<br>at 90&#8202;% (mm)", "ASIN"], rows,
                 "N52 disc magnets on amazon.com, pages read 2026-10-13 (logged out; prices as shown). AplysiaTech states the grade, axial "
-                "magnetization, coating and tolerance for every size. Pocket: 90&#8202;% of the diameter and 95&#8202;% of the height, the "
-                "owner&#8217;s press fit.", key="buy")
+                "magnetization, coating and tolerance for every size. Pocket diameter: 90&#8202;% of the magnet&#8217;s, the owner&#8217;s "
+                "press fit; the pocket&#8217;s height leaves one layer of air above the magnet.", key="buy")
     kj = ", ".join(f"{p} ({s})" for p, s, d, t in KJ)
     m32 = (3.0 ** 2 * 2.0) / (3.175 ** 2 * 1.588)
     m31 = (3.0 ** 2 * 1.0) / (3.175 ** 2 * 1.588)
-    s2, s1 = TD.print_sheet("d4.76x1.59", 5.0), TD.print_sheet("d4.76x1.59", 5.0, layer=0.1)
-    proud = (s1["printed_pocket_print_heights_mm"][0] + 1.59) - s1["printed_pocket_print_heights_mm"][1]
-    clear = s1["pause_before_layer_at_mm"] - (s1["printed_pocket_print_heights_mm"][0] + 1.59)
+    s2 = TD.print_sheet("d4.76x1.59", 5.0)
     txt = ("<p>The owner chose AplysiaTech (2026-10-13), which states the grade, magnetization, coating and tolerance for every size "
            "(Table&#160;[[tab:buy]]). The one-magnet tip uses its 3/16 &#215; 1/16&#8202;in disc, B0DSWGZ921. No Amazon listing offers "
            "1/8 &#215; 1/16&#8202;in in N52, the size of the four-magnet runs; AplysiaTech&#8217;s 3 &#215; 2&#8202;mm disc has "
            f"{m32:.2f} times its moment and the 3 &#215; 1&#8202;mm disc {m31:.2f} times, and K&amp;J Magnetics sells the size as "
            f"D21B-N52 (K&amp;J references: {kj}, all &#177;0.004&#8202;in).</p>"
-           f"<p>The print files of the <a href=\"{TIP_PAGE}#plan\">fingertip page</a> now have the owner&#8217;s press fit: a pocket "
-           f"{s2['pocket_diameter_mm']:.2f}&#8202;mm across (90&#8202;% of the diameter) and {s2['pocket_height_mm']:.2f}&#8202;mm deep "
-           "(95&#8202;% of the thickness), its floor at the magnet&#8217;s bottom face. The slicer voids whole layers, those whose "
-           f"mid-height lies inside the pocket, so at 0.2&#8202;mm layers the pocket prints as {s2['pocket_layers']} layers, "
-           f"{s2['printed_pocket_height_mm']:.1f}&#8202;mm deep, the magnet&#8217;s top lies flush with it, and the 90&#8202;% diameter "
-           f"holds the magnet. At 0.1&#8202;mm layers it prints as {s1['pocket_layers']} layers, {s1['printed_pocket_height_mm']:.1f}&#8202;mm, "
-           f"and the magnet stands {proud:.2f}&#8202;mm proud, {clear:.2f}&#8202;mm under the next layer&#8217;s nozzle height. The owner&#8217;s "
-           "eFlesh trials in <code>create_pouch.py</code> (2025-10-26) converged on a cavity of 7.56 &#215; 2.65&#8202;mm, since eFlesh&#8217;s "
-           "pouch scales the listed diameter by 1.05 and the thickness by 0.945; <code>scripts/eflesh_build.py</code> now cuts its pouches "
-           "to the 90&#8202;/&#8202;95&#8202;% fit as well.</p>")
+           "<p>The owner&#8217;s eFlesh prints lost magnets to the nozzle: eFlesh&#8217;s pouch prints a lip onto the magnet in the "
+           "first layer after the pause, and the nozzle pulled the magnet out unless it was glued. The print files of the "
+           f"<a href=\"{TIP_PAGE}#plan\">fingertip page</a> keep plastic off the magnet. The pocket is {s2['pocket_diameter_mm']:.2f}&#8202;mm "
+           "across, 90&#8202;% of the magnet&#8217;s diameter, which holds it by press fit. Its floor and top lie on the layer grid, the "
+           "floor at or below the magnet&#8217;s bottom face and the top the first layer boundary at least "
+           f"{TD.GAP_MIN:g}&#8202;mm above the magnet resting on that floor: at 0.2&#8202;mm layers {s2['pocket_layers']} layers from "
+           f"{s2['printed_pocket_print_heights_mm'][0]:g} to {s2['printed_pocket_print_heights_mm'][1]:g}&#8202;mm, with "
+           f"{s2['air_above_magnet_mm']:.2f}&#8202;mm of air above the magnet. The print pauses before layer {s2['pause_layer_number']}, "
+           "and that layer bridges the air. <code>scripts/eflesh_build.py</code> cuts its pouches the same way, so their lip prints "
+           "over air.</p>")
     return txt + tab
 
 

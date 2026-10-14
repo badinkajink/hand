@@ -54,7 +54,7 @@ def data(X=None):
     geom = dict(X_FACE=TD.X_FACE, X_BACK=TD.X_BACK, Y_HALF=TD.Y_HALF, Z_END=TD.Z_END, Z_C=TD.Z_C, R_SIDE=TD.R_SIDE,
                 R_END=TD.R_END)
     return dict(geom=geom, magnets={k: list(v) for k, v in TD.MAGNETS.items()}, br=TD.BR_N52, noise=PP.NOISE_UT,
-                rate=PP.RATE_HZ, range_mT=PP.B_RANGE_MT, layer=TD.LAYER, fit=[TD.FIT_D, TD.FIT_T], rows=rows, pads=pads,
+                rate=PP.RATE_HZ, range_mT=PP.B_RANGE_MT, layer=TD.LAYER, fit=TD.FIT_D, gap=TD.GAP_MIN, rows=rows, pads=pads,
                 recipes=[list(r) for r in RECIPES], base_scene=BASE_SCENE,
                 material={"w95_20": "TPU 95A", "w95_10": "TPU 95A", "w85_50": "TPU 85A", "w85_30": "TPU 85A"},
                 infill={"w95_20": 20, "w95_10": 10, "w85_50": 50, "w85_30": 30})
@@ -129,11 +129,19 @@ function dipole(ps, pm, m) {
 function cross(a, b) { return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]; }
 function norm(v) { return Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]); }
 function moment(dm, t, br) { return br * Math.PI * Math.pow(dm / 2e3, 2) * (t / 1e3) / (4e-7 * Math.PI); }
-// pocket: the owner's press fit (D.fit of the diameter and thickness, floor at the magnet's bottom face); cr and ct give
-// the clearance pocket centred on the magnet that the finite elements fill with magnet
-function pocket(dm, t, depth, cr, ct) {
+// pocket: the owner's press fit, D.fit of the diameter, its floor and top on the layer grid with at least D.gap of air above
+// the magnet, so the first layer after the pause bridges air (tpu_tip_design.recess); cr and ct give the clearance pocket
+// centred on the magnet that the finite elements fill with magnet
+function recess(bot, t, layer) {
+  var fl = Math.floor(bot / layer + 1e-9) * layer;
+  return [fl, Math.ceil((fl + t + D.gap) / layer - 1e-9) * layer];
+}
+function pocket(dm, t, depth, cr, ct, layer) {
   var hi = G.X_FACE - depth, lo = hi - t, mg = { r: dm / 2, lo: lo, hi: hi };
-  if (cr === undefined) return { pk: { r: D.fit[0] * dm / 2, lo: lo, hi: lo + D.fit[1] * t }, mg: mg };
+  if (cr === undefined) {
+    var b = recess(lo - G.X_BACK, t, layer || D.layer);
+    return { pk: { r: D.fit * dm / 2, lo: G.X_BACK + b[0], hi: G.X_BACK + b[1] }, mg: mg };
+  }
   return { pk: { r: dm / 2 + cr, lo: lo - ct / 2, hi: hi + ct / 2 }, mg: mg };
 }
 // the slicer voids the layers whose mid-height lies inside the pocket
@@ -423,7 +431,7 @@ function state() {
             k: +el("tc-es").value, br: +el("tc-br").value, rate: +el("tc-rate").value, layer: +el("tc-layer").value };
   if (dmt) {
     s.dm = dmt[0]; s.t = dmt[1];
-    var p = pocket(s.dm, s.t, depth); s.pk = p.pk; s.mg = p.mg; s.pause = pauseAt(p.pk, s.layer);
+    var p = pocket(s.dm, s.t, depth, undefined, undefined, s.layer); s.pk = p.pk; s.mg = p.mg; s.pause = pauseAt(p.pk, s.layer);
     s.f = field(s.r, s.dm, s.t, depth, s.gap, s.br, s.k, s.rate);
   }
   return s;
@@ -446,7 +454,7 @@ function update() {
     rows.push(["Field at the chip at rest", '<span class="' + (over ? "tc-warn" : "") + '">' + fmt(f.B0, 2) + HS + "mT" + (over ? ", over the " + D.range_mT + HS + "mT range of the highest gain" : " (range " + D.range_mT + HS + "mT)") + "</span>"]);
     rows.push(["Signal per newton: normal, across, along", f3(f.normal.S) + ", " + f3(f.across.S) + ", " + f3(f.along.S) + HS + "&#181;T/N"]);
     rows.push(["Force noise per sample at " + s.rate + HS + "Hz: normal, across, along", f3(f.normal.sigF) + ", " + f3(f.across.sigF) + ", " + f3(f.along.sigF) + HS + "N"]);
-    rows.push(["Pocket, press fit " + Math.round(100 * D.fit[0]) + "&#8202;% / " + Math.round(100 * D.fit[1]) + "&#8202;%", fmt(2 * s.pk.r, 2) + HS + "mm across, " + fmt(s.pk.hi - s.pk.lo, 2) + HS + "mm high, print heights " + fmt(s.pause.bot, 2) + "&#8211;" + fmt(s.pause.top, 2) + HS + "mm; printed as " + s.pause.layers + " layers, " + fmt(s.pause.printed, 2) + HS + "mm"]);
+    rows.push(["Pocket: " + Math.round(100 * D.fit) + "&#8202;% of the diameter, air above the magnet", fmt(2 * s.pk.r, 2) + HS + "mm across, " + s.pause.layers + " layers (" + fmt(s.pause.printed, 2) + HS + "mm) from " + fmt(s.pause.bot, 2) + " to " + fmt(s.pause.top, 2) + HS + "mm print height; " + fmt(s.pause.printed - s.t, 2) + HS + "mm of air above the magnet"]);
     rows.push(["Pause", "Before layer " + s.pause.n + ", which ends at " + fmt(s.pause.z, 2) + HS + "mm; the print stops at " + fmt((s.pause.n - 1) * s.layer, 2) + HS + "mm"]);
   }
   el("tc-out").innerHTML = rows.map(function (r) { return "<tr><td>" + r[0] + "</td><td>" + r[1] + "</td></tr>"; }).join("");
@@ -496,11 +504,11 @@ function init() {
     if (s.pk) {
       rec.magnet = s.mag; rec.magnet_diameter_mm = s.dm; rec.magnet_thickness_mm = s.t; rec.magnet_top_depth_mm = s.depth;
       rec.pocket_diameter_mm = +(2 * s.pk.r).toFixed(3); rec.pocket_height_mm = +(s.pk.hi - s.pk.lo).toFixed(3);
-      rec.pocket_fit = "press fit, " + Math.round(100 * D.fit[0]) + "% of the diameter and " + Math.round(100 * D.fit[1]) + "% of the thickness";
+      rec.pocket_fit = "press fit, " + Math.round(100 * D.fit) + "% of the diameter; floor and top on the layer grid, at least " + D.gap + " mm of air above the magnet";
       rec.pocket_bottom_print_height_mm = +s.pause.bot.toFixed(3); rec.pocket_top_print_height_mm = +s.pause.top.toFixed(3);
-      rec.pocket_layers = s.pause.layers; rec.printed_pocket_height_mm = +s.pause.printed.toFixed(3);
+      rec.pocket_layers = s.pause.layers; rec.printed_pocket_height_mm = +s.pause.printed.toFixed(3); rec.air_above_magnet_mm = +(s.pause.printed - s.t).toFixed(3);
       rec.pause_before_layer_at_mm = +s.pause.z.toFixed(3); rec.pause_layer_number = s.pause.n;
-      rec.note = "Print face up, the part on its back face. Pause before the first layer printed above the pocket's top, press the magnet in with its north pole toward the palmar face, fix it with a drop of cyanoacrylate, and resume.";
+      rec.note = "Print face up, the part on its back face. Pause before the first layer printed above the pocket's top, press the magnet in to the floor with its north pole toward the palmar face, and resume: the next layer bridges the air above the magnet, and the press fit holds it without glue.";
     }
     rec.model = { E_s_MPa: s.r.E_s * s.k, pad_modulus_E_star_MPa: +(s.r.E_best * s.k).toFixed(2), source: "docs/experiments/20261009-tpu_tip_fem/magnet_runs.jsonl", depth_kind: s.kind };
     if (s.f) rec.model.field = { chip_distance_mm: s.gap, B0_mT: +s.f.B0.toFixed(3), force_noise_N: { normal: +s.f.normal.sigF.toFixed(3), across: +s.f.across.sigF.toFixed(3), along: +s.f.along.sigF.toFixed(3), rate_Hz: s.rate } };

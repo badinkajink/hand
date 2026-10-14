@@ -175,7 +175,7 @@ def write_four():
 
 def write_readme(plan):
     sh = TD.print_sheet(PLAN_MAG, PLAN_DEPTH)
-    lines = ["# SR2 fingertips to print (2026-10-12; press-fit pockets 2026-10-13)", "",
+    lines = ["# SR2 fingertips to print (2026-10-12; press-fit pockets with air above the magnet 2026-10-13)", "",
              "Written by `scripts/tpu_tip_print_plan.py stl`; the page that explains them is",
              "`docs/experiments/20261009-tpu_tip_fem/20261009-printed_tpu_fingertip_finite_elements.html`.", "",
              "Every tip is the whole block (17 x 14.8 x 21.4 mm, palmar edges rounded r 2.7 mm, end edge r 3.0 mm, back square),",
@@ -190,12 +190,12 @@ def write_readme(plan):
                      f"{geom_name(mag, p['depth'])}.stl | {sheet_name(p['recipe'], p['magnet'], p['depth'])}.json | {e} |")
     lines += ["", f"Magnet: N52 disc {sh['magnet_diameter_mm']} x {sh['magnet_thickness_mm']} mm, axially magnetized, north toward the "
               f"palmar face, its top {sh['magnet_top_depth_mm']:g} mm under the contact point (AplysiaTech 3/16 x 1/16 in, "
-              f"amazon.com/dp/B0DSWGZ921). Pocket: the owner's press fit, {sh['pocket_diameter_mm']:.2f} mm across (90 % of the "
-              f"diameter) and {sh['pocket_height_mm']:.2f} mm deep (95 % of the thickness), which 0.2 mm layers print as "
-              f"{sh['pocket_layers']} layers, {sh['printed_pocket_height_mm']:.1f} mm, from {sh['printed_pocket_print_heights_mm'][0]:g} to "
-              f"{sh['printed_pocket_print_heights_mm'][1]:g} mm; the magnet's top lies flush with it and the diameter holds it. "
-              f"Pause before the layer at {sh['pause_before_layer_at_mm']:g} mm (layer {sh['pause_layer_number']}), press the magnet "
-              "in, add a drop of cyanoacrylate if it turns, resume.",
+              f"amazon.com/dp/B0DSWGZ921). Pocket: {sh['pocket_diameter_mm']:.2f} mm across (90 % of the diameter, the owner's press "
+              f"fit) and {sh['pocket_layers']} layers deep, {sh['printed_pocket_print_heights_mm'][0]:g} to "
+              f"{sh['printed_pocket_print_heights_mm'][1]:g} mm print height: the magnet rests on the floor with "
+              f"{sh['air_above_magnet_mm']:.2f} mm of air above it, so the first layer after the pause bridges air and the nozzle never "
+              f"lays plastic on the magnet. Pause before the layer at {sh['pause_before_layer_at_mm']:g} mm (layer "
+              f"{sh['pause_layer_number']}), press the magnet in to the floor, resume; the press fit holds it without glue.",
               "", f"Four magnets: {four_name('stl')}.stl has four of these pockets on a grid 6 mm across and 7 mm along the finger, "
               f"centred on the contact point, with the same pause ({four_name('sheet')}.json; the bounds are on the readout page, "
               "docs/experiments/20261013-magnet_layouts/20261013-mlx90393_fingertip_readout.html).",
