@@ -1,18 +1,21 @@
 #!/usr/bin/env python3
-"""What one or four magnets let an MLX90393 array measure (2026-10-13): Cramer-Rao bounds on contact force and position
+"""What one or four magnets let the five-chip board measure (2026-10-13): Cramer-Rao bounds on contact force and position
 from the finite-element rows of scripts/tpu_tip_magnet_layouts.py.
 
 Field: each magnet a point dipole (Br 1.45 T for N52, axis normal to the face, north toward it), moved by the rigid
-motion the finite elements give per newton (translation and small rotation). Chips: MLX90393 sensing points `gap` mm
-behind the back face; noise per 100 Hz sample 2.3 uT on the chip's in-plane axes and 3.5 uT normal to it
-(scripts/tpu_tip_print_plan.py). Every chip sees every magnet.
+motion the finite elements give per newton (translation and small rotation). Chips: the MLX90393s of ReSkin's 5X board (the
+board of AnySkin and eFlesh; scripts/mlx90393_model.py BOARD_CHIPS), U1 under the contact point and U2-U5 7 mm from it along and
+across the finger, their sensing points `gap` mm behind the back face (0.42 mm with the chips against it, 2.92 mm under the
+v17 finger's 2.5 mm of solid TPU). Noise per sample at the 141 Hz setting: 1.15 uT on the chip's in-plane axes and 1.75 uT
+normal to it. Every chip sees every magnet.
 
 Estimates at a load state of 1 N normal at a patch position (y, z), no shear:
   known position   force only: normal, shear across (y) and along (z) the finger;
   unknown position the same three forces and the position (y, z), from the change of the field with position
                    (central differences over the patch grid);
+  background       a uniform field (the Earth's) estimated alongside, with the position known or unknown;
   bias             a one-position estimator (it assumes the contact at the contact point) reads F_hat/F = S(y,z).S0/|S0|^2.
-The bound is the inverse Fisher information J^T Sigma^-1 J; a near-singular J (one magnet, position unknown) gives a large
+The bound is the inverse Fisher information J^T Sigma^-1 J; a near-singular J (one chip, position unknown) gives an infinite
 bound, which is the result and not a numerical failure.
 
     .venv/bin/python scripts/tpu_tip_magnet_sensing.py
@@ -61,14 +64,9 @@ def mag_state(row, br=BR):
 
 
 def chips(row, mode, gap):
-    xs = TD.X_BACK - gap
-    if mode == "under":
-        pts = [(xs, y, z) for _, _, y, z in row["magnets"]]
-    elif mode == "grid4":
-        pts = [(xs, sy * 3.0, TD.Z_C + sz * 3.5) for sy in (-1, 1) for sz in (-1, 1)]
-    else:
-        pts = [(xs, 0.0, TD.Z_C)]
-    return [np.array(p) * 1e-3 for p in pts]
+    """Sensing points (m): the board's five chips, or U1 alone."""
+    pts = MLX.board_points(gap)
+    return [p * 1e-3 for p in (pts if mode == "board" else pts[:1])]
 
 
 def B0(row, ch, br=BR):
@@ -115,7 +113,7 @@ def crb(J, sig):
     return np.sqrt(np.diag(np.linalg.inv(Jw.T @ Jw)))
 
 
-def analyse(row, mode="under", gap=1.0, br=BR):
+def analyse(row, mode="board", gap=MLX.GAPS["touch"], br=BR):
     ch = chips(row, mode, gap)
     sig = np.tile(NOISE, len(ch))
     U = np.tile(np.eye(3), (len(ch), 1))                  # a uniform background field (Earth's), the same at every chip
@@ -133,39 +131,45 @@ def analyse(row, mode="under", gap=1.0, br=BR):
             known = crb(np.stack([Sn, Sy, Sz], 1), sig)
             unknown = crb(np.stack([Sn, Sy, Sz, dy, dz], 1), sig)
             backg = crb(np.concatenate([np.stack([Sn, Sy, Sz], 1), U], 1), sig)
+            both = crb(np.concatenate([np.stack([Sn, Sy, Sz, dy, dz], 1), U], 1), sig)
             res.append(dict(y=y, z=z, sigF_n=known[0], sigF_y=known[1], sigF_z=known[2], sigF_n_unk=unknown[0],
                             sigF_y_unk=unknown[1], sigF_z_unk=unknown[2], sig_y_mm=unknown[3], sig_z_mm=unknown[4],
-                            sigF_n_bg=backg[0],
+                            sigF_n_bg=backg[0], sigF_n_unk_bg=both[0], sig_y_mm_bg=both[3], sig_z_mm_bg=both[4],
                             bias=float(Sn @ S0 / (S0 @ S0)), signal_n_uT=float(np.linalg.norm(Sn))))
-    return dict(layout=row["layout"], chips=mode, n_chips=len(ch), gap_mm=gap, B0_max_mT=float(b0.max()),
+    return dict(layout=row["layout"], chips=mode, n_chips=len(ch), gap_mm=gap, B0_max_mT=float(np.abs(B0(row, ch, br)).max() * 1e3),
                 saturated=bool(b0.max() > B_RANGE_MT), points=res,
                 centre=[r for r in res if r["y"] == 0.0 and abs(r["z"] - TD.Z_C) < 1e-6][0])
+
+
+LAYOUTS = ("one_d4.76x1.59_d5", "four_d3.18x1.59_d5", "four_d3x2_d5", "four_d3x1_d5", "four_d4.76x1.59_d5")
 
 
 def table():
     R = rows()
     out = []
-    for name in ("one_d4.76x1.59_d5", "four_d3.18x1.59_d5", "four_d3x1_d5", "four_d3.18x1.59_d3", "four_d4.76x1.59_d5"):
+    cases = [(name, mode, gname) for name in LAYOUTS for mode, gname in (("centre", "touch"), ("board", "touch"), ("board", "v17"))
+             if name.startswith("one") or mode == "board"]
+    for name, mode, gname in cases:
         if name not in R:
             continue
-        for mode in (("under", "grid4") if name.startswith("one") else ("under",)):
-            a = analyse(R[name], mode)
-            pts = a["points"]
-            med = lambda k: float(np.median([p[k] for p in pts]))  # noqa: E731
-            c = a["centre"]
-            bias = [p["bias"] for p in pts]
-            out.append(dict(layout=name, chips=mode, n_chips=a["n_chips"], B0_max_mT=a["B0_max_mT"], saturated=a["saturated"],
-                            centre=c, median=dict((k, med(k)) for k in ("sigF_n", "sigF_y", "sigF_z", "sigF_n_unk", "sig_y_mm",
-                                                                         "sig_z_mm", "signal_n_uT", "sigF_n_bg")),
-                            bias_range=[min(bias), max(bias)], E_best_MPa=R[name]["E_best_MPa"],
-                            approach_um=R[name]["per_force"]["1"]["delta_um"]))
+        a = analyse(R[name], mode, MLX.GAPS[gname])
+        pts = a["points"]
+        med = lambda k: float(np.median([p[k] for p in pts]))  # noqa: E731
+        c = a["centre"]
+        bias = [p["bias"] for p in pts]
+        out.append(dict(layout=name, chips=mode, gap=gname, n_chips=a["n_chips"], B0_max_mT=a["B0_max_mT"], saturated=a["saturated"],
+                        centre=c, median=dict((k, med(k)) for k in ("sigF_n", "sigF_y", "sigF_z", "sigF_n_unk", "sig_y_mm",
+                                                                     "sig_z_mm", "signal_n_uT", "sigF_n_bg", "sigF_n_unk_bg")),
+                        bias_range=[min(bias), max(bias)], E_best_MPa=R[name]["E_best_MPa"],
+                        approach_um=R[name]["per_force"]["1"]["delta_um"]))
     return out
 
 
 if __name__ == "__main__":
     for r in table():
         c, m = r["centre"], r["median"]
-        print(f"{r['layout']:22s} chips {r['chips']:5s} x{r['n_chips']}  B0max {r['B0_max_mT']:.2f} mT{' SAT' if r['saturated'] else ''}  "
-              f"E* {r['E_best_MPa']:.2f}  | centre: sigFn {c['sigF_n']:.3f} sigFy {c['sigF_y']:.3f} sigFz {c['sigF_z']:.3f} N; "
-              f"unknown pos: sigFn {c['sigF_n_unk']:.3f} N sig_y {c['sig_y_mm']:.2f} sig_z {c['sig_z_mm']:.2f} mm | "
-              f"median sigFn {m['sigF_n']:.3f} unk {m['sigF_n_unk']:.3f}, sig_z {m['sig_z_mm']:.2f} | bg {c['sigF_n_bg']:.3f} | bias {r['bias_range'][0]:.2f}-{r['bias_range'][1]:.2f}")
+        print(f"{r['layout']:20s} {r['chips']:6s} {r['gap']:5s} B0max {r['B0_max_mT']:.2f} mT{' SAT' if r['saturated'] else ''}  "
+              f"E* {r['E_best_MPa']:.2f} | centre: Fn {c['sigF_n']:.3f} Fy {c['sigF_y']:.3f} Fz {c['sigF_z']:.3f} N; "
+              f"pos unk: Fn {c['sigF_n_unk']:.3f} y {c['sig_y_mm']:.2f} z {c['sig_z_mm']:.2f} mm; bg {c['sigF_n_bg']:.3f}; "
+              f"both {c['sigF_n_unk_bg']:.3f} (y {c['sig_y_mm_bg']:.2f} z {c['sig_z_mm_bg']:.2f}) | median Fn {m['sigF_n']:.3f} "
+              f"unk {m['sigF_n_unk']:.3f} both {m['sigF_n_unk_bg']:.3f} | bias {r['bias_range'][0]:.2f}-{r['bias_range'][1]:.2f}")

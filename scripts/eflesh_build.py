@@ -112,9 +112,15 @@ def lattice(lo, hi, cell, E, nu, origin, work):
                                   faces_raw=int(len(lat.faces)))
 
 
-def pouch(d, t, x, y, top, wall=1.0, floor=1.0, lip=1.0, clear_r=0.15, clear_t=0.10, hole=0.8, seg=96):
-    """eFlesh's pouch around an axially magnetized disc whose top face is at height `top`."""
-    rc, lo, hi = d / 2 + clear_r, top - t - clear_t / 2, top + clear_t / 2
+def pouch(d, t, x, y, top, wall=1.0, floor=1.0, lip=1.0, fit=(0.90, 0.95), clear_r=0.15, clear_t=0.10, hole=0.8, seg=96):
+    """eFlesh's pouch around an axially magnetized disc whose top face is at height `top`. Cavity: the owner's press fit
+    (2026-10-13), `fit` of the magnet's diameter and thickness with its floor at the magnet's bottom face; fit=None gives the
+    cavity of the builds of 2026-10-13 on the eFlesh page, centred on the magnet with clear_r and clear_t of clearance."""
+    if fit:
+        rc, lo = fit[0] * d / 2, top - t
+        hi = lo + fit[1] * t
+    else:
+        rc, lo, hi = d / 2 + clear_r, top - t - clear_t / 2, top + clear_t / 2
     def cyl(r, z0, z1):
         return M.Manifold.cylinder(z1 - z0, r, r, seg).translate((x, y, z0))
     outer = cyl(rc + wall, lo - floor, hi + lip)
@@ -212,6 +218,8 @@ def main():
                          "--wall-gap mm below the top skin, so that they close the sides without carrying the contact to the base")
     ap.add_argument("--wall-gap", type=float, default=1.5, help="height of the open band between the walls and the top skin, mm")
     ap.add_argument("--base", type=float, default=1.6, help="solid base on the bed, mm")
+    ap.add_argument("--pouch-fit", type=float, nargs=2, default=[0.90, 0.95], metavar=("D", "T"),
+                    help="cavity over the magnet's diameter and thickness (owner's press fit); 0 0 for the 0.15/0.10 mm clearance")
     ap.add_argument("--template", default=str(TEMPLATE), help="PrusaSlicer 3MF whose settings the project takes")
     ap.add_argument("--extruder", type=int, default=2, help="tool of the part (the v17 project used tool 2, FLEX)")
     ap.add_argument("--name", required=True)
@@ -255,7 +263,7 @@ def main():
         d, t, x, y, depth = spec.split(",")
         x = contact[0] if x == "c" else float(x)
         y = contact[1] if y == "c" else float(y)
-        cup, hull, info = pouch(float(d), float(t), x, y, hi[2] - float(depth))
+        cup, hull, info = pouch(float(d), float(t), x, y, hi[2] - float(depth), fit=tuple(a.pouch_fit) if a.pouch_fit[0] > 0 else None)
         core = core - hull
         pouches.append(cup)
         info_p.append(info)

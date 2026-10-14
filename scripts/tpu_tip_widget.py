@@ -54,7 +54,7 @@ def data(X=None):
     geom = dict(X_FACE=TD.X_FACE, X_BACK=TD.X_BACK, Y_HALF=TD.Y_HALF, Z_END=TD.Z_END, Z_C=TD.Z_C, R_SIDE=TD.R_SIDE,
                 R_END=TD.R_END)
     return dict(geom=geom, magnets={k: list(v) for k, v in TD.MAGNETS.items()}, br=TD.BR_N52, noise=PP.NOISE_UT,
-                rate=PP.RATE_HZ, range_mT=PP.B_RANGE_MT, layer=TD.LAYER, rows=rows, pads=pads,
+                rate=PP.RATE_HZ, range_mT=PP.B_RANGE_MT, layer=TD.LAYER, fit=[TD.FIT_D, TD.FIT_T], rows=rows, pads=pads,
                 recipes=[list(r) for r in RECIPES], base_scene=BASE_SCENE,
                 material={"w95_20": "TPU 95A", "w95_10": "TPU 95A", "w85_50": "TPU 85A", "w85_30": "TPU 85A"},
                 infill={"w95_20": 20, "w95_10": 10, "w85_50": 50, "w85_30": 30})
@@ -129,20 +129,24 @@ function dipole(ps, pm, m) {
 function cross(a, b) { return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]; }
 function norm(v) { return Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]); }
 function moment(dm, t, br) { return br * Math.PI * Math.pow(dm / 2e3, 2) * (t / 1e3) / (4e-7 * Math.PI); }
+// pocket: the owner's press fit (D.fit of the diameter and thickness, floor at the magnet's bottom face); cr and ct give
+// the clearance pocket centred on the magnet that the finite elements fill with magnet
 function pocket(dm, t, depth, cr, ct) {
-  var hi = G.X_FACE - depth, lo = hi - t;
-  return { pk: { r: dm / 2 + cr, lo: lo - ct / 2, hi: hi + ct / 2 }, mg: { r: dm / 2, lo: lo, hi: hi } };
+  var hi = G.X_FACE - depth, lo = hi - t, mg = { r: dm / 2, lo: lo, hi: hi };
+  if (cr === undefined) return { pk: { r: D.fit[0] * dm / 2, lo: lo, hi: lo + D.fit[1] * t }, mg: mg };
+  return { pk: { r: dm / 2 + cr, lo: lo - ct / 2, hi: hi + ct / 2 }, mg: mg };
 }
+// the slicer voids the layers whose mid-height lies inside the pocket
 function pauseAt(pk, layer) {
-  var top = pk.hi - G.X_BACK, bot = pk.lo - G.X_BACK, n = Math.ceil(top / layer + 0.5 - 1e-9);
-  return { n: n, z: n * layer, top: top, bot: bot };
+  var top = pk.hi - G.X_BACK, bot = pk.lo - G.X_BACK, n = Math.ceil(top / layer + 0.5 - 1e-9), n0 = Math.ceil(bot / layer + 0.5 - 1e-9);
+  return { n: n, z: n * layer, top: top, bot: bot, layers: n - n0, printed: (n - n0) * layer };
 }
 
 // Field at the chip (sensing point at x = X_BACK - gap under the contact point), its change per newton for the three
 // loads, and the force whose signal equals one sample's noise. k: solid modulus over the run's; rate: output rate (Hz),
 // the per-axis noise scaling as the square root of the rate (averaged 141 Hz bursts).
 function field(r, dm, t, depth, gap, br, k, rate) {
-  var g = pocket(dm, t, depth, 0.1, 0.1).mg;
+  var g = pocket(dm, t, depth).mg;
   var pm = [0.5 * (g.lo + g.hi) * 1e-3, 0, G.Z_C * 1e-3], ps = [(G.X_BACK - gap) * 1e-3, 0, G.Z_C * 1e-3];
   var m0 = [moment(dm, t, br), 0, 0], B0 = dipole(ps, pm, m0), f = Math.sqrt(rate / D.rate);
   var sig = [D.noise.z * f, D.noise.xy * f, D.noise.xy * f];
@@ -419,7 +423,7 @@ function state() {
             k: +el("tc-es").value, br: +el("tc-br").value, rate: +el("tc-rate").value, layer: +el("tc-layer").value };
   if (dmt) {
     s.dm = dmt[0]; s.t = dmt[1];
-    var p = pocket(s.dm, s.t, depth, 0.1, 0.1); s.pk = p.pk; s.mg = p.mg; s.pause = pauseAt(p.pk, s.layer);
+    var p = pocket(s.dm, s.t, depth); s.pk = p.pk; s.mg = p.mg; s.pause = pauseAt(p.pk, s.layer);
     s.f = field(s.r, s.dm, s.t, depth, s.gap, s.br, s.k, s.rate);
   }
   return s;
@@ -442,7 +446,7 @@ function update() {
     rows.push(["Field at the chip at rest", '<span class="' + (over ? "tc-warn" : "") + '">' + fmt(f.B0, 2) + HS + "mT" + (over ? ", over the " + D.range_mT + HS + "mT range of the highest gain" : " (range " + D.range_mT + HS + "mT)") + "</span>"]);
     rows.push(["Signal per newton: normal, across, along", f3(f.normal.S) + ", " + f3(f.across.S) + ", " + f3(f.along.S) + HS + "&#181;T/N"]);
     rows.push(["Force noise per sample at " + s.rate + HS + "Hz: normal, across, along", f3(f.normal.sigF) + ", " + f3(f.across.sigF) + ", " + f3(f.along.sigF) + HS + "N"]);
-    rows.push(["Pocket", fmt(2 * s.pk.r, 2) + HS + "mm across, " + fmt(s.pk.hi - s.pk.lo, 2) + HS + "mm high, print heights " + fmt(s.pause.bot, 2) + "&#8211;" + fmt(s.pause.top, 2) + HS + "mm"]);
+    rows.push(["Pocket, press fit " + Math.round(100 * D.fit[0]) + "&#8202;% / " + Math.round(100 * D.fit[1]) + "&#8202;%", fmt(2 * s.pk.r, 2) + HS + "mm across, " + fmt(s.pk.hi - s.pk.lo, 2) + HS + "mm high, print heights " + fmt(s.pause.bot, 2) + "&#8211;" + fmt(s.pause.top, 2) + HS + "mm; printed as " + s.pause.layers + " layers, " + fmt(s.pause.printed, 2) + HS + "mm"]);
     rows.push(["Pause", "Before layer " + s.pause.n + ", which ends at " + fmt(s.pause.z, 2) + HS + "mm; the print stops at " + fmt((s.pause.n - 1) * s.layer, 2) + HS + "mm"]);
   }
   el("tc-out").innerHTML = rows.map(function (r) { return "<tr><td>" + r[0] + "</td><td>" + r[1] + "</td></tr>"; }).join("");
@@ -492,7 +496,9 @@ function init() {
     if (s.pk) {
       rec.magnet = s.mag; rec.magnet_diameter_mm = s.dm; rec.magnet_thickness_mm = s.t; rec.magnet_top_depth_mm = s.depth;
       rec.pocket_diameter_mm = +(2 * s.pk.r).toFixed(3); rec.pocket_height_mm = +(s.pk.hi - s.pk.lo).toFixed(3);
+      rec.pocket_fit = "press fit, " + Math.round(100 * D.fit[0]) + "% of the diameter and " + Math.round(100 * D.fit[1]) + "% of the thickness";
       rec.pocket_bottom_print_height_mm = +s.pause.bot.toFixed(3); rec.pocket_top_print_height_mm = +s.pause.top.toFixed(3);
+      rec.pocket_layers = s.pause.layers; rec.printed_pocket_height_mm = +s.pause.printed.toFixed(3);
       rec.pause_before_layer_at_mm = +s.pause.z.toFixed(3); rec.pause_layer_number = s.pause.n;
       rec.note = "Print face up, the part on its back face. Pause before the first layer printed above the pocket's top, press the magnet in with its north pole toward the palmar face, fix it with a drop of cyanoacrylate, and resume.";
     }
@@ -573,13 +579,13 @@ var cases = [["w95_20","d4.76x1.59",5],["w85_50","d4.76x1.59",5],["w85_30","d4.7
 cases.forEach(function (c) {
   var r = C.rowAt(c[0], c[1], c[2]).r, m = C.D.magnets[c[1]];
   var f1 = C.field(r, m[0], m[1], c[2], 1.0, C.D.br, 1, C.D.rate), f4 = C.field(r, m[0], m[1], c[2], 4.0, C.D.br, 1, C.D.rate);
-  var p = C.pocket(m[0], m[1], c[2], 0.1, 0.1), pz = C.pauseAt(p.pk, 0.2);
+  var p = C.pocket(m[0], m[1], c[2]), pz = C.pauseAt(p.pk, 0.2);
   var fit = C.fitBench(r, true, m[0], m[1], c[2], 1.0, C.D.br, [[0.5,22],[1,41],[3,118]], [[1,9]], [2,3.1], [2,10]);
   out.push({ key: c, B0: f1.B0, sN1: f1.normal.sigF, sA1: f1.across.sigF, sL1: f1.along.sigF, SN1: f1.normal.S, sN4: f4.normal.sigF,
-             pause_n: pz.n, pause_z: pz.z, E_s: fit.E_s, E_star: fit.E_star, mu: fit.mu, cmd: C.sceneCommand(fit.E_star, fit.mu),
+             pause_n: pz.n, pause_z: pz.z, layers: pz.layers, pk_d: 2 * p.pk.r, E_s: fit.E_s, E_star: fit.E_star, mu: fit.mu, cmd: C.sceneCommand(fit.E_star, fit.mu),
              padsArm: C.padsArm(r.E_best) });
 });
-var T = C.tipTriangles(C.pocket(4.76, 1.59, 5, 0.1, 0.1).pk), vol = 0;
+var T = C.tipTriangles(C.pocket(4.76, 1.59, 5).pk), vol = 0;
 T.forEach(function (t) { var a = t[1], b = t[2], c = t[3];
   vol += (a[0] * (b[1] * c[2] - b[2] * c[1]) - a[1] * (b[0] * c[2] - b[2] * c[0]) + a[2] * (b[0] * c[1] - b[1] * c[0])) / 6; });
 document.body.textContent = JSON.stringify({ cases: out, mesh: { triangles: T.length, volume: vol } });
@@ -615,7 +621,8 @@ def check():
                  (c["padsArm"], X.pads_arm(r["E_best_MPa"], 3.0))]
         err = max(abs(a / b - 1) for a, b in pairs if b)
         worst = max(worst, err)
-        same_pause = (c["pause_n"], round(c["pause_z"], 3)) == (sh["pause_layer_number"], sh["pause_before_layer_at_mm"])
+        same_pause = ((c["pause_n"], round(c["pause_z"], 3), c["layers"]) == (sh["pause_layer_number"], sh["pause_before_layer_at_mm"],
+                                                                                sh["pocket_layers"]) and abs(c["pk_d"] - sh["pocket_diameter_mm"]) < 1e-3)
         same_cmd = c["cmd"].split("--model")[1] == fit["scene_command"].split("--model")[1]
         print(f"{rec} {mag} {dep}: max rel diff {err:.2e}; pause {c['pause_n']} {c['pause_z']:.2f} "
               f"{'=' if same_pause else '!='} {sh['pause_layer_number']} {sh['pause_before_layer_at_mm']}; command {'same' if same_cmd else 'DIFFERENT'}")

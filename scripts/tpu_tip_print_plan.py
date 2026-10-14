@@ -99,14 +99,19 @@ TPU = {"w95_20": "TPU 95A", "w95_10": "TPU 95A", "w85_50": "TPU 85A", "w85_30": 
 GEOMS = [(None, None), ("d4.76x1.59", 3.0), ("d4.76x1.59", 1.5), ("d4.76x1.59", 5.0), ("d3.18x1.59", 3.0)]
 
 
+POCKET_DATE = "20261013"          # press-fit pockets; the 20261012 files had a 0.1 mm clearance (git history)
+
+
 def geom_name(magnet, depth):
     if magnet in (None, "none"):
         return "20261012-sr2_tip_whole"
-    return f"20261012-sr2_tip_{magnet}_depth{depth:g}".replace(".", "p")
+    return f"{POCKET_DATE}-sr2_tip_{magnet}_depth{depth:g}".replace(".", "p")
 
 
 def sheet_name(recipe, magnet, depth):
-    return f"20261012-sr2_tip_{recipe}_" + ("nomagnet" if magnet in (None, "none") else f"{magnet}_depth{depth:g}".replace(".", "p"))
+    if magnet in (None, "none"):
+        return f"20261012-sr2_tip_{recipe}_nomagnet"
+    return f"{POCKET_DATE}-sr2_tip_{recipe}_" + f"{magnet}_depth{depth:g}".replace(".", "p")
 
 
 def write_prints(plan=None):
@@ -139,7 +144,7 @@ def write_prints(plan=None):
 
 def write_readme(plan):
     sh = TD.print_sheet(PLAN_MAG, PLAN_DEPTH)
-    lines = ["# SR2 fingertips to print (2026-10-12)", "",
+    lines = ["# SR2 fingertips to print (2026-10-12; press-fit pockets 2026-10-13)", "",
              "Written by `scripts/tpu_tip_print_plan.py stl`; the page that explains them is",
              "`docs/experiments/20261009-tpu_tip_fem/20261009-printed_tpu_fingertip_finite_elements.html`.", "",
              "Every tip is the whole block (17 x 14.8 x 21.4 mm, palmar edges rounded r 2.7 mm, end edge r 3.0 mm, back square),",
@@ -153,9 +158,13 @@ def write_readme(plan):
         lines.append(f"| {RECIPE_TXT[p['recipe']]}{'' if mag else ', no magnet'} | {TPU[p['recipe']]} | {INFILL[p['recipe']]} % | "
                      f"{geom_name(mag, p['depth'])}.stl | {sheet_name(p['recipe'], p['magnet'], p['depth'])}.json | {e} |")
     lines += ["", f"Magnet: N52 disc {sh['magnet_diameter_mm']} x {sh['magnet_thickness_mm']} mm, axially magnetized, north toward the "
-              f"palmar face, its top {sh['magnet_top_depth_mm']:g} mm under the contact point. Pocket {sh['pocket_diameter_mm']:.2f} mm "
-              f"across and {sh['pocket_height_mm']:.2f} mm deep. Pause before the layer at {sh['pause_before_layer_at_mm']:g} mm "
-              f"(layer {sh['pause_layer_number']} at 0.2 mm layers), press the magnet in, fix it with a drop of cyanoacrylate, resume.",
+              f"palmar face, its top {sh['magnet_top_depth_mm']:g} mm under the contact point (AplysiaTech 3/16 x 1/16 in, "
+              f"amazon.com/dp/B0DSWGZ921). Pocket: the owner's press fit, {sh['pocket_diameter_mm']:.2f} mm across (90 % of the "
+              f"diameter) and {sh['pocket_height_mm']:.2f} mm deep (95 % of the thickness), which 0.2 mm layers print as "
+              f"{sh['pocket_layers']} layers, {sh['printed_pocket_height_mm']:.1f} mm, from {sh['printed_pocket_print_heights_mm'][0]:g} to "
+              f"{sh['printed_pocket_print_heights_mm'][1]:g} mm; the magnet's top lies flush with it and the diameter holds it. "
+              f"Pause before the layer at {sh['pause_before_layer_at_mm']:g} mm (layer {sh['pause_layer_number']}), press the magnet "
+              "in, add a drop of cyanoacrylate if it turns, resume.",
               "", "Other pocket depths (1.5 and 3 mm) and a 3.18 x 1.59 mm magnet are in the other STLs; their pause heights come from",
               "`scripts/tpu_tip_design.py sheet --magnet <name> --depth <mm>`.", "",
               "After printing: `scripts/tpu_tip_calibrate.py fit` turns an indentation and a pull test into E_s, E* and the friction",

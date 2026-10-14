@@ -52,6 +52,7 @@ LAYOUTS = {   # magnets (diameter, thickness, y, z) with their top faces `depth`
     "one_d4.76x1.59_d5": dict(depth=5.0, mags=[(4.76, 1.59, 0.0, TD.Z_C)]),
     "four_d3.18x1.59_d5": dict(depth=5.0, mags=grid4(3.18, 1.59)),
     "four_d3x1_d5": dict(depth=5.0, mags=grid4(3.0, 1.0)),
+    "four_d3x2_d5": dict(depth=5.0, mags=grid4(3.0, 2.0)),         # AplysiaTech 3 x 2 mm (owner chose AplysiaTech, 2026-10-13)
     "four_d3.18x1.59_d3": dict(depth=3.0, mags=grid4(3.18, 1.59)),
     "four_d4.76x1.59_d5": dict(depth=5.0, mags=grid4(4.76, 1.59)),
 }

@@ -20,7 +20,15 @@ quantization LSB/sqrt(12), which makes it a lower bound there.
 
 eFlesh's firmware (~/wxie_workspace/eFlesh/arduino/5X_eflesh_stream/5X_eflesh_stream.ino with the bundled
 arduino-MLX90393 library): HALLCONF 0xC, GAIN_SEL 1, RES 2 on all axes, OSR 0, DIG_FILT 4, temperature compensation off,
-burst T+XYZ, five chips read in turn at 400 kHz I2C.
+burst T+XYZ, five chips at 0x0C-0x10 read in turn at 400 kHz I2C, each chip in its own burst.
+
+The board (owner, 2026-10-13: "we are using the 5-magnetometer board from anyskin/visuoskin, reused in eflesh"): ReSkin's
+5X board, which eFlesh's README names; its Gerbers are raunaqbhirangi/reskin_sensor circuits/5X_ReSkin.Zip. The pick-and-place
+file places five MLX90393ELW-ABA-011 in a plus, U1 at the centre of a 20 x 20 mm square and U2-U5 7.00 mm from it on the two
+axes, with a 10 x 9 mm tab carrying the four-pin connector (board 20 x 29 mm, rigid FR-4 0.6 mm). Datasheet Figure 26 puts
+each chip's sensitive spot at the package centre, 0.42 +- 0.10 mm under its top face. The owner's printed v17 eFlesh finger
+(~/wxie_workspace/fingers/merged_finger_v17.3mf) held the board in a 2 mm recess on the bed side of finger_back_v5_2.stl, under
+2.5 mm of solid TPU.
 
     .venv/bin/python scripts/mlx90393_model.py
 """
@@ -148,30 +156,169 @@ def field_terms(t_um, w_mrad, gap=1.0, depth=5.0, d=4.76, t=1.59, br=1.45):
     return B0 * 1e6, S
 
 
+def disc_axis_mT(z_mm, d=4.76, t=1.59, br=1.45):
+    """On-axis field of a uniformly magnetized disc at z_mm from its centre, for the dipole's error at U1."""
+    R, h = d / 2, t / 2
+    return 1e3 * br / 2 * ((z_mm + h) / math.hypot(R, z_mm + h) - (z_mm - h) / math.hypot(R, z_mm - h))
+
+
 def neighbour_field_uT(dist_mm, d=4.76, t=1.59, br=1.45):
     """On-axis field of the same magnet at dist_mm (a facing fingertip's magnet seen by this tip's chip)."""
     m = br * math.pi * (d / 2e3) ** 2 * (t / 1e3) / (4e-7 * math.pi)
     return 2e-7 * m / (dist_mm * 1e-3) ** 3 * 1e6
 
 
-def table(gap=1.0):
+# --------------------------------------------------------------------------------- the five-chip board
+
+BOARD_CHIPS = {"U1": (0.0, 0.0), "U2": (0.0, 7.0), "U3": (7.0, 0.0), "U4": (0.0, -7.0), "U5": (-7.0, 0.05)}   # mm from U1
+BOARD_OUTLINE = dict(u=(-10.0, 10.0), v=(-10.10, 10.05), tab_u=(-5.0, 5.0), tab_v=(-19.10, -10.10))   # PCB.Outline, mm from U1
+BOARD_HOLE = (-8.0, 8.05, 1.2)   # mounting hole: centre (u, v) and radius, mm
+BOARD_T_MM, PKG_H_MM, SPOT_MM = 0.6, 0.9, 0.42
+V17_COVER_MM = 2.5
+GAPS = {"touch": SPOT_MM, "v17": V17_COVER_MM + SPOT_MM}   # sensing plane behind the tip's back face, mm
+GAP_LBL = {"touch": "chips against the back face", "v17": "under 2.5&#8202;mm of solid TPU, as in v17"}
+DRIFT_LSB_PER_10C = 10 * OFFSET_DRIFT_LSB / T_RANGE_C
+
+
+def board_points(gap, z0=None):
+    """Sensing points (mm, tip frame) of the five chips, U1 first: board u along the tip's width y, v along its length z with U2
+    toward the tip end and the connector tab toward the mount, U1 under the contact point, `gap` mm behind the back face."""
+    import tpu_tip_design as TD
+    z0 = TD.Z_C if z0 is None else z0
+    return [np.array([TD.X_BACK - gap, u, z0 + v]) for u, v in BOARD_CHIPS.values()]
+
+
+def board_terms(t_um, w_mrad, gap, depth=5.0, d=4.76, t=1.59, br=1.45):
+    """Static field (uT) and its change per newton (uT/N) at the five chips, rows in BOARD_CHIPS order, columns tip x, y, z
+    (chip Z, X, Y)."""
+    import tpu_tip_design as TD
+    pm = np.array([TD.X_FACE - depth - t / 2, 0.0, TD.Z_C]) * 1e-3
+    m = np.array([br * math.pi * (d / 2e3) ** 2 * (t / 1e3) / (4e-7 * math.pi), 0.0, 0.0])
+    tt, ww = np.array(t_um) * 1e-6, np.array(w_mrad) * 1e-3
+    B0, S = [], []
+    for p in board_points(gap):
+        ps = p * 1e-3
+        b = dipole(ps, pm, m)
+        B0.append(b * 1e6)
+        S.append((dipole(ps, pm + tt, m + np.cross(ww, m)) - b) * 1e6)
+    return np.array(B0), np.array(S)
+
+
+def noise_vec(st, n):
+    return np.tile([st["noise_z_uT"], st["noise_xy_uT"], st["noise_xy_uT"]], n)
+
+
+def background_basis(points_mm, kind="uniform"):
+    """Columns of a uniform field (3) at n chips and, for "gradient", of a field gradient that is free of curl and divergence
+    (5) about U1."""
+    n = len(points_mm)
+    cols = [np.tile(np.eye(3)[k], n) for k in range(3)]
+    if kind == "gradient":
+        c = points_mm[0]
+        Gs = []
+        for i, j in ((0, 1), (0, 2), (1, 2)):
+            G = np.zeros((3, 3))
+            G[i, j] = G[j, i] = 1.0
+            Gs.append(G)
+        for i, j in ((0, 1), (1, 2)):
+            G = np.zeros((3, 3))
+            G[i, i], G[j, j] = 1.0, -1.0
+            Gs.append(G)
+        cols += [np.concatenate([G @ (p - c) for p in points_mm]) for G in Gs]
+    return np.array(cols).T
+
+
+def readout(S, st, background=None, points_mm=None):
+    """Weighted least-squares force from the stacked readings of n chips, S (n, 3) in uT/N. Returns the force noise (N) and the
+    weights g with F_hat = g . readings. With background "uniform" a uniform field (the Earth's) is estimated alongside and drops
+    out of F_hat; "gradient" adds its gradient about U1. Too few readings for the unknowns: infinite noise."""
+    n = len(S)
+    A = S.reshape(-1, 1)
+    if background:
+        Bk = background_basis(points_mm if points_mm is not None else [np.zeros(3)] * n, background)
+        if A.shape[0] < 1 + Bk.shape[1]:
+            return math.inf, None
+        A = np.concatenate([A, Bk], 1)
+    W = 1.0 / noise_vec(st, n) ** 2
+    C = np.linalg.inv(A.T @ (A * W[:, None]))
+    return math.sqrt(C[0, 0]), (C @ (A * W[:, None]).T)[0]
+
+
+def facing_change_uT(points_mm, x_from=25.0, x_to=30.0, d=4.76, t=1.59, br=1.45):
+    """Field change at each sensing point when an identical magnet facing this tip (on the normal through U1, moment toward the
+    board) moves from x_from to x_to mm in front of the sensing plane."""
+    m = np.array([-br * math.pi * (d / 2e3) ** 2 * (t / 1e3) / (4e-7 * math.pi), 0.0, 0.0])
+    c = points_mm[0]
+    out = []
+    for p in points_mm:
+        a = dipole(p * 1e-3, (c + [x_from, 0, 0]) * 1e-3, m)
+        b = dipole(p * 1e-3, (c + [x_to, 0, 0]) * 1e-3, m)
+        out.append((b - a) * 1e6)
+    return np.array(out)
+
+
+def disturbances(g, n, pts, st):
+    """Force read from 50 uT of uniform field (worst direction), from offset drift over 10 degC (independent on every axis of every
+    chip, RMS) and from a facing magnet moving 25 -> 30 mm, through the weights g."""
+    U = np.tile(np.eye(3), (n, 1))
+    drift = DRIFT_LSB_PER_10C * np.tile([SENS[7][0][1], SENS[7][0][0], SENS[7][0][0]], n)
+    return dict(earth_N=50.0 * float(np.linalg.norm(g @ U)), drift10C_N=float(np.sqrt(((g * drift) ** 2).sum())),
+                neighbour_N=abs(float(g @ facing_change_uT(pts).ravel())))
+
+
+def table(gaps=("touch", "v17")):
     rows = []
     for tp in tips():
-        B0, S = field_terms(tp["t_um"], tp["w_mrad"], gap)
-        for name in SETTINGS:
-            st = setting(name)
-            sig = np.array([st["noise_z_uT"], st["noise_xy_uT"], st["noise_xy_uT"]])     # chip z along the tip's x
-            sigF = 1.0 / math.sqrt(float(((S / sig) ** 2).sum()))
-            n50 = max(1, int(st["rate_Hz"] // 50))
-            rows.append(dict(tip=tp["tip"], tip_label=tp["label"], setting=name, rate_Hz=st["rate_Hz"], S_uT_per_N=S.tolist(),
-                             S_norm=float(np.linalg.norm(S)), B0_uT=float(np.linalg.norm(B0)), sigF_N=sigF,
-                             sigF_50Hz_N=sigF / math.sqrt(n50), lsb_force_N=st["lsb_z_uT"] / abs(S[0]),
-                             saturated=bool(abs(B0[0]) > 1e3 * st["range_z_mT"]),
-                             earth_N=50.0 / float(np.linalg.norm(S)),
-                             drift10C_N=st["offset_drift_z_uT_per_10C"] / abs(S[0]),
-                             neighbour_N=(neighbour_field_uT(25.0) - neighbour_field_uT(30.0)) / float(np.linalg.norm(S)),
-                             approach_um=tp["approach_um"], E_star=tp["E_star"], travel_um=-tp["t_um"][0]))
+        for gname in gaps:
+            gap = GAPS[gname]
+            B0, S = board_terms(tp["t_um"], tp["w_mrad"], gap)
+            pts = board_points(gap)
+            for name in SETTINGS:
+                st = setting(name)
+                n50 = max(1, int(st["rate_Hz"] // 50))
+                s1, g1 = readout(S[:1], st)
+                s5, g5 = readout(S, st)
+                s5b, g5b = readout(S, st, "uniform")
+                s5g, g5g = readout(S, st, "gradient", pts)
+                d1 = disturbances(g1, 1, pts[:1], st)
+                d5b = disturbances(g5b, 5, pts, st)
+                d5g = disturbances(g5g, 5, pts, st)
+                rows.append(dict(tip=tp["tip"], tip_label=tp["label"], setting=name, gap=gname, gap_mm=gap, rate_Hz=st["rate_Hz"],
+                                 S_uT_per_N=S.tolist(), S_norm=float(np.linalg.norm(S[0])), S_norm_board=float(np.linalg.norm(S)),
+                                 B0_uT=float(np.linalg.norm(B0[0])), B0_max_uT=float(np.abs(B0).max()),
+                                 sigF_N=s1, sigF_board_N=s5, sigF_board_bg_N=s5b, sigF_50Hz_N=s1 / math.sqrt(n50),
+                                 sigF_board_bg_50Hz_N=s5b / math.sqrt(n50), lsb_force_N=st["lsb_z_uT"] / abs(S[0, 0]),
+                                 saturated=bool(np.abs(B0).max() > 1e3 * min(st["range_z_mT"], st["range_xy_mT"])),
+                                 earth_N=d1["earth_N"], drift10C_N=d1["drift10C_N"], neighbour_N=d1["neighbour_N"],
+                                 earth_board_N=d5b["earth_N"], drift10C_board_N=d5b["drift10C_N"],
+                                 neighbour_board_N=d5b["neighbour_N"], sigF_board_grad_N=s5g,
+                                 drift10C_board_grad_N=d5g["drift10C_N"], neighbour_board_grad_N=d5g["neighbour_N"],
+                                 approach_um=tp["approach_um"], E_star=tp["E_star"], travel_um=-tp["t_um"][0]))
     return rows
+
+
+def mount_table(st_name="high_gain_141Hz"):
+    """The board's readout of the 20 % gyroid tip against the sensing gap and the magnet's depth: the as-printed tip at 5 mm, and
+    the earlier homogenized model's runs at 1.5, 3 and 5 mm (docs/experiments/20261009-tpu_tip_fem/magnet_runs.jsonl)."""
+    st = setting(st_name)
+    M = [json.loads(l) for l in open(ROOT / "docs/experiments/20261009-tpu_tip_fem/magnet_runs.jsonl")]
+    T = {t["tip"]: t for t in tips()}
+    cases = [("gyroid20", 5.0, "touch"), ("gyroid20", 5.0, "v17"), ("w95_20", 1.5, "touch"), ("w95_20", 3.0, "touch"),
+             ("w95_20", 5.0, "touch"), ("w95_20", 5.0, "v17")]
+    out = []
+    for tip, depth, gname in cases:
+        if tip in T and tip == "gyroid20":
+            t_um, w, E = T[tip]["t_um"], T[tip]["w_mrad"], T[tip]["E_star"]
+        else:
+            r = next(x for x in M if x["recipe"] == tip and x["magnet"] == "d4.76x1.59" and x["depth_mm"] == depth)
+            t_um, w, E = r["per_force"]["1"]["magnet_t_um"], r["per_force"]["1"]["magnet_w_mrad"], r["E_best_MPa"]
+        B0, S = board_terms(t_um, w, GAPS[gname], depth=depth)
+        s1, _ = readout(S[:1], st)
+        s5, _ = readout(S, st, "uniform")
+        out.append(dict(tip=tip, depth=depth, gap=gname, gap_mm=GAPS[gname], travel_um=-t_um[0], S_U1=float(np.linalg.norm(S[0])),
+                        B0_U1_mT=float(np.linalg.norm(B0[0])) / 1e3, sigF_U1=s1, sigF_board_bg=s5, E_star=E,
+                        S_chips=S.tolist()))
+    return out
 
 
 if __name__ == "__main__":
@@ -181,7 +328,10 @@ if __name__ == "__main__":
               f"LSB xy {s['lsb_xy_uT']:.3f} z {s['lsb_z_uT']:.3f} uT  range z {s['range_z_mT']:.1f} mT")
     print()
     for r in table():
-        print(f"{r['tip']:14s} {r['setting']:16s} travel {r['travel_um']:6.1f} um/N  S {r['S_norm']:6.1f} uT/N  "
-              f"sigF {r['sigF_N']:.3f} N @ {r['rate_Hz']:.0f} Hz, {r['sigF_50Hz_N']:.3f} N @50 Hz  LSB {r['lsb_force_N']:.3f} N  "
-              f"earth {r['earth_N']:.2f} N  drift/10C {r['drift10C_N']:.2f} N  neighbour 25->30mm {r['neighbour_N']:.1f} N"
+        if r["setting"] not in ("high_gain_141Hz",):
+            continue
+        print(f"{r['tip']:14s} {r['gap']:5s} travel {r['travel_um']:6.1f} um/N  S(U1) {r['S_norm']:6.1f} uT/N  B0max {r['B0_max_uT'] / 1e3:.2f} mT  "
+              f"sigF U1 {r['sigF_N']:.3f} board {r['sigF_board_N']:.3f} board+bg {r['sigF_board_bg_N']:.3f} N  "
+              f"| U1: earth {r['earth_N']:.2f} drift {r['drift10C_N']:.2f} facing {r['neighbour_N']:.2f}  "
+              f"| board+bg: earth {r['earth_board_N']:.2g} drift {r['drift10C_board_N']:.2f} facing {r['neighbour_board_N']:.2f} N"
               f"{'  SAT' if r['saturated'] else ''}")
