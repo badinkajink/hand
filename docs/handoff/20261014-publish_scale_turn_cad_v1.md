@@ -1,0 +1,11 @@
+Status: new
+Task (owner, 2026-10-14 01:08): "can you now try to rerun this work, but with the newest CAD-faithful hand ... don't delete anything, if anything just replicate the page but with the updated CAD results". The window that built the page publishes nothing (max seat); this job publishes it as a NEW artifact beside the real_v1 page's (https://claude.ai/artifact/JdCgjBHdcqu99dPgRwv1Vo, which stays as it is). It edits no page or builder.
+Read first: docs/experiments/20261014-scale_turn_cad_v1/20261014-scale_turn_cad_v1.html (built by scripts/scale_turn_cad_v1_page.py, commit named in State); docs/experiments/INDEX.md (its 2026-10-14 CAD-hand row, artifact "pending (personal publish job)"); the Artifact tool's rules: read every page's content before publishing it.
+State (2026-10-14 15:20): page built from the finished CAD runs, about 7.4 MB with media inline: Tables 1-10, Figures 1-13 (four 2x2 planner films, one three-panel film), Algorithms 1-2. The films are being re-rendered from 10 deg below the grasp (docs/experiments/20261014-scale_turn_cad_v1/run/films_cad_camera.sh); the window rebuilds, commits and arms this job when they are in.
+Next:
+1. Review the page: no "PENDING" or "pending" text; every figure renders; the five films decode and play, and the cylinder is in view in each panel (ffmpeg -ss 3 and 6 s on two films); labels readable at 900 px.
+2. Publish docs/experiments/20261014-scale_turn_cad_v1/20261014-scale_turn_cad_v1.html as a new artifact (title "Scale-study turn on the CAD hand", icon "chart"), and write its URL into docs/experiments/20261014-scale_turn_cad_v1/artifact_url.txt.
+3. Replace "pending (personal publish job)" in the 2026-10-14 CAD-hand row of docs/experiments/INDEX.md with the URL; commit the row and artifact_url.txt and push to origin main.
+Claimed: docs/experiments/INDEX.md (artifact column of the 2026-10-14 CAD-hand row), docs/experiments/20261014-scale_turn_cad_v1/artifact_url.txt.
+Waiting on owner: none for this job. Owner decisions named on the page: pinned iCEM at placements 1 and 2 (about 3 h), bench cells from the pinned-iCEM landscape, the iLQR test, the plant-mismatch rerun.
+Do not: edit pages, builders or templates; publish other pages; republish the real_v1 page; delete any artifact; force-push.
