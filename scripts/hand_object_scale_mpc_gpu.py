@@ -79,6 +79,9 @@ class GPUPlanner(M.Planner):
             raise ValueError("the horizon must be a whole number of cost samples")
         self.nrec = self.nh // self.block
         self.wm = mjw.put_model(m)
+        # the CAD hand's link spheres overflowed the default 64 contact matches per sensor (2026-10-14: wrong per-finger
+        # forces in the cost, then a segfault in an icem_gpu run)
+        self.wm.opt.contact_sensor_maxmatch = max(int(self.wm.opt.contact_sensor_maxmatch), int(prm.get("maxmatch", 256)))
         self.wd = mjw.make_data(m, nworld=nworld, nconmax=NCONMAX, njmax=NJMAX)
         self.set_ctrl, self.bump, self.record = _kernels()
         self.U = wp.zeros((self.nh, nworld, len(plant.act)), dtype=float)
