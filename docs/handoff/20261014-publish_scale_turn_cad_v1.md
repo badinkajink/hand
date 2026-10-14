@@ -6,7 +6,7 @@ State (published 2026-10-14, https://claude.ai/artifact/SCYTm4jhguMbtJLSu29jr8; 
 Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap step add <job> "text"` adds one):
 - [x] 1. Review the page: no "PENDING" or "pending" text; every figure renders; the five films decode and play, and th… Done 10-14 15:49: no pending text (only a CSS class), 5 films decode, cylinder in view at 3 and 6 s in two films, figures are inline SVG
 - [x] 2. Publish docs/experiments/20261014-scale_turn_cad_v1/20261014-scale_turn_cad_v1.html as a new artifact (title … Done 10-14 15:49: published https://claude.ai/artifact/SCYTm4jhguMbtJLSu29jr8
-- [ ] 3. Replace "pending (personal publish job)" in the 2026-10-14 CAD-hand row of docs/experiments/INDEX.md with the URL; commit the row and artifact_url.txt and push to origin main.
+- [x] 3. Replace "pending (personal publish job)" in the 2026-10-14 CAD-hand row of docs/experiments/INDEX.md with the… Done 10-14 15:49: INDEX row and artifact_url.txt committed (26323b33), pushed to origin main
 <!-- /ap:steps -->
 Claimed: docs/experiments/INDEX.md (artifact column of the 2026-10-14 CAD-hand row), docs/experiments/20261014-scale_turn_cad_v1/artifact_url.txt.
 Waiting on owner: none for this job. Owner decisions named on the page: pinned iCEM at placements 1 and 2 (about 3 h), bench cells from the pinned-iCEM landscape, the iLQR test, the plant-mismatch rerun.
