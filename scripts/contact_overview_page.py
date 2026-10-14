@@ -1543,7 +1543,48 @@ def main():
     t = IF.add_assets(retro_style.apply(t))  # plain page style (owner, 2026-10-09); interactive figures (2026-10-11)
     open(OUT, "w").write(t)
     print(f"formulas {n_tex}; wrote {OUT} ({os.path.getsize(OUT) / 1e6:.2f} MB)")
+    deck_reminder()
+
+
+# Deck 23 of the owner's contact tutorial explains this overview step by step (owner, 2026-10-14: "i also don't want the
+# slides to get stale, so put a reminder somewhere here, whenever we edit the contact model docs in a significant
+# fashion"). The deck's data files record the hand commit their numbers come from; DECK_CHECKED is the hand commit up to
+# which someone last compared the deck with this overview and found nothing to change. Update it after such a check.
+DECK = "/home/humanoid/wxie_workspace/contact/tutorial/slides/23_soft_fingertip_contact.html"
+DECK_ROWS = ("/home/humanoid/wxie_workspace/contact/tutorial/data/hand_contact_bed_rows.json",
+             "/home/humanoid/wxie_workspace/contact/tutorial/data/hand_skin_rows.json")
+DECK_CHECKED = "45d657139142294209c6aca088026a1a7abb662d"
+DECK_SOURCES = ("scripts/contact_overview_text.py", "scripts/contact_overview_page.py",
+                "scripts/contact_overview_page.template.html", "docs/experiments/20261005-contact_bed",
+                "docs/experiments/20261007-native_compliance", "docs/experiments/20261012-sprung_skin",
+                "docs/experiments/20261008-contact_model_policies", "docs/experiments/20261011-servo_plant_policies")
+
+
+def deck_reminder():
+    """Print the hand commits since deck 23 last took its numbers that changed this overview or the rows it quotes."""
+    import subprocess
+    git = lambda *a: subprocess.run(["git", "-C", ROOT, *a], capture_output=True, text=True).stdout.strip()  # noqa: E731
+    base = [DECK_CHECKED]
+    for f in DECK_ROWS:
+        if os.path.exists(f):
+            d = json.load(open(f))
+            base += [d.get("commit")] + [c[0] for c in (d.get("commits") or {}).values()]
+    known = [c for c in base if c and git("cat-file", "-t", c) == "commit"]
+    if not known:
+        print(f"deck 23: no source commit of {DECK} found in this repository; compare the deck with the overview by hand")
+        return
+    newest = max(known, key=lambda c: int(git("log", "-1", "--format=%ct", c) or 0))
+    log = git("log", "--oneline", f"{newest}..HEAD", "--", *DECK_SOURCES)
+    if log:
+        print(f"deck 23 may be stale: {len(log.splitlines())} commits since {newest[:8]} changed the overview or its rows."
+              f"\n  Compare {DECK} with the changed sections; update the deck in its own repository (AGENTS.md there), or"
+              f" set DECK_CHECKED in scripts/contact_overview_page.py to HEAD if nothing in the deck changes.")
+        for line in log.splitlines()[:12]:
+            print("   ", line)
 
 
 if __name__ == "__main__":
-    main()
+    if sys.argv[1:] == ["--deck-check"]:
+        deck_reminder()
+    else:
+        main()

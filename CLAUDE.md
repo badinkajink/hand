@@ -144,6 +144,12 @@ committing it.
 - **`docs/rl/*.md`** = the working engineering log (chronological, append-only; `reorientation.md`
   is the RL source of truth). `docs/rl/morph_sweep_STATUS.md` = live runbook for the morphology
   sweep.
+- **Contact tutorial deck 23** (`/home/humanoid/wxie_workspace/contact/tutorial/slides/23_soft_fingertip_contact.html`,
+  its own repository) explains the contact overview step by step. When an edit to the contact model docs changes a
+  derivation, a number the deck quotes, the default fingertip or a section of `docs/overviews/contact_model.html`, check
+  the deck (owner, 2026-10-14: "i also don't want the slides to get stale"). `python3 scripts/contact_overview_page.py`
+  prints the commits since the deck last took its numbers (`--deck-check` prints only that); update the deck under that
+  repository's AGENTS.md, or set `DECK_CHECKED` in the builder when nothing in the deck changes.
 - **Commit experiment code promptly** (it has been lost to `git` before). `results/` is gitignored.
 
 ## Critical lessons (the load-bearing ones — violating these has cost days)
