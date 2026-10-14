@@ -6,7 +6,9 @@
 
 The home page (scripts/docs_home_page.py) and the topic overviews import records() and TOPICS. Titles come from the
 page's row in docs/experiments/INDEX.md (the descriptive subject), else from its <title>. The topic of each result
-folder is set by hand in FOLDER_TOPIC (owner, 2026-10-09: six topics), with per-page exceptions in FILE_TOPIC.
+folder is set by hand in FOLDER_TOPIC (owner, 2026-10-09: six topics; 2026-10-13: a seventh, printed fingertips), with
+per-page exceptions in FILE_TOPIC; a folder missing from both takes the topic of its INDEX.md row, so a new page is
+never left out of the home page and the page index.
 """
 from __future__ import annotations
 
@@ -32,6 +34,9 @@ TOPICS = [  # key, title, scope
      "The servos and their model, the gantries, the UR5e mount and the tool tracker."),
     ("design", "Morphology and design search",
      "Which finger layouts turn the shaft, kinematic metrics, and finger spacing against object size."),
+    ("fingertip", "Printed fingertips and force sensing",
+     "The printed TPU fingertip as hardware: infill and finite-element stiffness, eFlesh lattices, embedded magnets and "
+     "the MLX90393 readout (owner, 2026-10-13: the material analysis gets its own topic)."),
     ("program", "Program record", "Records that span every topic."),
 ]
 
@@ -43,6 +48,7 @@ OVERVIEW = {
     "chain": "grasp_to_gait_chain.html",
     "hardware": "hand_plant_bench.html",
     "design": "morphology_design.html",
+    "fingertip": "printed_fingertips.html",
 }
 
 FOLDER_TOPIC = {
@@ -92,7 +98,17 @@ FOLDER_TOPIC = {
     "20261008-contact_overview": "contact",
     "20261008-hand_object_scale": "design",
     "20261009-contact_overview": "contact",
-    "20261009-tpu_tip_fem": "contact",
+    "20261009-tpu_tip_fem": "fingertip",
+    "20261011-bench_plan": "design",
+    "20261011-diffmjx_audit": "contact",
+    "20261011-servo_plant_policies": "policies",
+    "20261012-sprung_skin": "contact",
+    "20261013-cad_v1_finger": "hardware",
+    "20261013-contact_feedback": "contact",
+    "20261013-eflesh_printability": "fingertip",
+    "20261013-magnet_layouts": "fingertip",
+    "20261013-scale_turn_controllers": "design",
+    "20261013-servo_identification": "hardware",
 }
 
 # pages whose topic differs from their folder's
@@ -160,6 +176,9 @@ def _title(path):
     return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", m.group(1))).strip() if m else ""
 
 
+TOPIC_KEY = {t: k for k, t, _ in TOPICS}     # INDEX.md's topic title -> key
+
+
 def records():
     idx, builders = index_rows(), _builders()
     out = []
@@ -167,7 +186,7 @@ def records():
         name, folder = os.path.basename(path), os.path.basename(os.path.dirname(path))
         if name.endswith(".src.html"):
             continue
-        subject, url, retracted, _ = idx.get(name, (None, None, False, ""))
+        subject, url, retracted, itopic = idx.get(name, (None, None, False, ""))
         art = os.path.join(os.path.dirname(path), "artifact_url.txt")
         if not url and os.path.exists(art):
             url = open(art).read().strip() or None
@@ -177,7 +196,7 @@ def records():
             "folder": folder,
             "title": subject or _title(path),
             "page_title": _title(path),
-            "topic": FILE_TOPIC.get(name) or FOLDER_TOPIC.get(folder),
+            "topic": FILE_TOPIC.get(name) or FOLDER_TOPIC.get(folder) or TOPIC_KEY.get(itopic),
             "builder": builders.get(name),
             "artifact": url,
             "status": "superseded" if folder in SUPERSEDED else "retracted" if retracted else "current",
