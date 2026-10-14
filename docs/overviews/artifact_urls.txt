@@ -1,4 +1,5 @@
 docs/index.html https://claude.ai/artifact/Xi8ePi8KuaAYXaXstvr3jA
+docs/pages.html https://claude.ai/artifact/66jFC7By17nng6Xmmwc6Kh
 docs/overviews/reorientation.html https://claude.ai/artifact/3FPZG8M6AgfzUBhMvtJ7vN
 docs/overviews/rl_policies.html https://claude.ai/artifact/63pWHmwZrx6BN4AgwvS4T7
 docs/overviews/grasp_to_gait_chain.html https://claude.ai/artifact/JtKv4jLhK9VrDe74sDYTew
