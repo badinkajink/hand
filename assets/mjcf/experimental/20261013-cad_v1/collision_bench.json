@@ -1,0 +1,44 @@
+{
+ "rows": [
+  {
+   "model": "real_v1 capsules and pads",
+   "ngeom": 3192,
+   "ngeom_colliding": 3189,
+   "us_per_step": 30.691780149936676,
+   "steps_per_s": 32582.01365690622,
+   "ncon_mean": 2.0,
+   "ncon_max": 2
+  },
+  {
+   "model": "CAD finger, pads only",
+   "ngeom": 3075,
+   "ngeom_colliding": 3051,
+   "us_per_step": 30.566087923943996,
+   "steps_per_s": 32715.995664484373,
+   "ncon_mean": 2.0,
+   "ncon_max": 2
+  },
+  {
+   "model": "CAD finger, balanced spheres and pads",
+   "ngeom": 3528,
+   "ngeom_colliding": 3504,
+   "us_per_step": 47.37250367179513,
+   "steps_per_s": 21109.291730244455,
+   "ncon_mean": 2.0,
+   "ncon_max": 2
+  },
+  {
+   "model": "CAD finger, tight spheres and pads",
+   "ngeom": 4896,
+   "ngeom_colliding": 4872,
+   "us_per_step": 55.79971708357334,
+   "steps_per_s": 17921.23781742947,
+   "ncon_mean": 2.0,
+   "ncon_max": 2
+  }
+ ],
+ "steps": 1000,
+ "dt": 0.002,
+ "threads": 1,
+ "mujoco": "3.6.0"
+}

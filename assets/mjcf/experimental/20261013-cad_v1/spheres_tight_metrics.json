@@ -1,0 +1,140 @@
+{
+ "variant": "MorphIt-S",
+ "iterations": 1000,
+ "seed": 0,
+ "budgets": {
+  "carriage": 128,
+  "servo_yaw": 32,
+  "yaw_link": 128,
+  "servo_mcp": 32,
+  "mcp_link": 160,
+  "servo_pip": 32,
+  "dip_link": 96
+ },
+ "scale_budget": 1.0,
+ "overrides": [],
+ "parts": {
+  "carriage": {
+   "body": "mount",
+   "spheres": 127,
+   "coverage": 0.76545,
+   "protrusion_p95_mm": 0.8734225653808038,
+   "protrusion_max_mm": 1.4885680930402097,
+   "fit_1mm": 0.81665,
+   "fit_0p5mm": 0.5247,
+   "seconds": 5.7,
+   "volume_mm3": 23911.7944190751,
+   "area_mm2": 10346.082628341268
+  },
+  "servo_yaw": {
+   "body": "mount",
+   "spheres": 32,
+   "coverage": 0.79265,
+   "protrusion_p95_mm": 0.5773536097236083,
+   "protrusion_max_mm": 1.614625687003132,
+   "fit_1mm": 0.75555,
+   "fit_0p5mm": 0.4663,
+   "seconds": 4.8,
+   "volume_mm3": 6673.051136328679,
+   "area_mm2": 2505.514710991605
+  },
+  "yaw_link": {
+   "body": "yaw_frame",
+   "spheres": 128,
+   "coverage": 0.65175,
+   "protrusion_p95_mm": 0.748759714093692,
+   "protrusion_max_mm": 1.488248593468967,
+   "fit_1mm": 0.8794,
+   "fit_0p5mm": 0.58165,
+   "seconds": 6.3,
+   "volume_mm3": 10684.230946276593,
+   "area_mm2": 6824.8849047676185
+  },
+  "servo_mcp": {
+   "body": "yaw_frame",
+   "spheres": 32,
+   "coverage": 0.8084,
+   "protrusion_p95_mm": 0.7387822291147428,
+   "protrusion_max_mm": 1.3275443155220175,
+   "fit_1mm": 0.77635,
+   "fit_0p5mm": 0.4876,
+   "seconds": 4.8,
+   "volume_mm3": 6673.051330310379,
+   "area_mm2": 2505.514759968305
+  },
+  "mcp_link": {
+   "body": "mcp_frame",
+   "spheres": 160,
+   "coverage": 0.80475,
+   "protrusion_p95_mm": 0.7523499391123548,
+   "protrusion_max_mm": 1.5177531823743067,
+   "fit_1mm": 0.90205,
+   "fit_0p5mm": 0.6178,
+   "seconds": 6.8,
+   "volume_mm3": 21294.25226669344,
+   "area_mm2": 8714.460508106145
+  },
+  "servo_pip": {
+   "body": "mcp_frame",
+   "spheres": 32,
+   "coverage": 0.80005,
+   "protrusion_p95_mm": 0.5062313732148754,
+   "protrusion_max_mm": 0.9255032262764957,
+   "fit_1mm": 0.7689,
+   "fit_0p5mm": 0.4976,
+   "seconds": 4.7,
+   "volume_mm3": 6673.050996516097,
+   "area_mm2": 2505.514701292561
+  },
+  "dip_link": {
+   "body": "pip_frame",
+   "spheres": 96,
+   "coverage": 0.6206,
+   "protrusion_p95_mm": 0.7921293560298696,
+   "protrusion_max_mm": 1.7094825003263852,
+   "fit_1mm": 0.9228,
+   "fit_0p5mm": 0.6351,
+   "seconds": 6.2,
+   "volume_mm3": 5188.91966714815,
+   "area_mm2": 4224.662661594499
+  }
+ },
+ "bodies": {
+  "mcp_frame": {
+   "spheres": 192,
+   "coverage": 0.8036285711876309,
+   "protrusion_p95_mm": 0.7523499391123548,
+   "protrusion_max_mm": 1.5177531823743067,
+   "fit_1mm": 0.8723164866676667,
+   "fit_0p5mm": 0.59095833043525,
+   "seconds": 11.5
+  },
+  "mount": {
+   "spheres": 159,
+   "coverage": 0.7713845400511944,
+   "protrusion_p95_mm": 0.8734225653808038,
+   "protrusion_max_mm": 1.614625687003132,
+   "fit_1mm": 0.8047380994946006,
+   "fit_0p5mm": 0.5133144846233172,
+   "seconds": 10.5
+  },
+  "pip_frame": {
+   "spheres": 96,
+   "coverage": 0.6206,
+   "protrusion_p95_mm": 0.7921293560298696,
+   "protrusion_max_mm": 1.7094825003263852,
+   "fit_1mm": 0.9228,
+   "fit_0p5mm": 0.6351,
+   "seconds": 6.2
+  },
+  "yaw_frame": {
+   "spheres": 160,
+   "coverage": 0.7119744910370075,
+   "protrusion_p95_mm": 0.748759714093692,
+   "protrusion_max_mm": 1.488248593468967,
+   "fit_1mm": 0.8517277345781262,
+   "fit_0p5mm": 0.5563945263180279,
+   "seconds": 11.1
+  }
+ }
+}
