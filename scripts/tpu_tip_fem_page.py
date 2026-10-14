@@ -47,7 +47,7 @@ EXTRA_CSS = """
 :root{--s-x:#2a78d6;--s-z:#eb6834;--s-sh:#1baf7a;--s-ref:#48545D;--s-pads:#8a4fbf;--s-res:#c2185b}
 .col > figure,.col > .tw{width:auto !important;max-width:100% !important}
 .tw th{white-space:normal !important;vertical-align:bottom}
-figure.films{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+figure.films{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
 figure.films .cell{min-width:0}
 figure.films video,figure.films img,figure.pics img{width:100%;height:auto}
 figure.films figcaption{grid-column:1/-1}
@@ -360,6 +360,32 @@ def film_stats(name):
     return dict(F=float(S["F"][-1]), delta_um=float(S["deltas"][-1]) * 1e3, p_end=float(p[end].max()), p_mid=float(p[mid].max()))
 
 
+FILM_LBL = {"whole_g20x": "95A gyroid 20&#8202;%, whole tip", "whole_g05x": "95A gyroid 5&#8202;%, whole tip",
+            "whole_eflesh_open": "eFlesh lattice, 8&#8202;mm cells, as printed"}
+
+
+def film_rails(name, F_share=1.0, F_arm=3.0):
+    """From a whole-tip film (tpu_tip_fem_film.py --whole/--printed): the share of the force on the face edges and fillets
+    (|y| > A.EDGE_Y) and the twist arm, interpolated between frames at F_share and F_arm; the share of the pressure law on
+    the same nodes (gaps from the analytic face, 0.1 mm voxel columns of equal area, 10 MPa as in A.edge_share)."""
+    path = os.path.join(D, "data", f"film_{name}.npz")
+    if not os.path.exists(path):
+        return None
+    import eflesh_tip_fem as EF
+    S = np.load(path)
+    X, F = S["X_face"], S["F"]
+    edge = np.abs(X[:, 1]) > A.EDGE_Y
+
+    def arm(p):
+        c = (p[:, None] * X[:, 1:]).sum(0) / p.sum()
+        return float((p * np.linalg.norm(X[:, 1:] - c, axis=1)).sum() / p.sum())
+    fe = float(np.interp(F_share, F, [p[edge].sum() / p.sum() for p in S["p"]]))
+    a = float(np.interp(F_arm, F, [arm(p) for p in S["p"]])) if F[-1] >= F_arm else None
+    g0, Ar = EF.surface_gaps(X), np.full(len(X), float(S["h"]) ** 2)
+    pl = Ar * np.clip(A.law_delta(Ar, g0, F_share, 10.0) - g0, 0, None)
+    return dict(fe=fe, law=float(pl[edge].sum() / pl.sum()), arm=a)
+
+
 def tip_section(X: Data):
     parts = ["<p>The insert of <code>fingertip (3).stl</code> (17.0 &#215; 14.8 &#215; 21.4&#8202;mm, a flat palmar face 8.8&#8202;mm wide between "
              "3&#8202;mm fillets, a slot and two sockets for the mount) is printed with two 0.45&#8202;mm perimeters and four 0.2&#8202;mm top and "
@@ -372,23 +398,24 @@ def tip_section(X: Data):
         FIG[0] += 1
         parts.append(f'<figure class="pics">{cells}<figcaption>Figure&#160;{FIG[0]}. Slices of the printed insert: walls, skins and '
                      f'core for both print orientations, and the resolved 20&#8202;% gyroid with the layers across the load.</figcaption></figure>')
-    films = [(t, media(f"20261009-film_{t}.mp4")) for t in ("g20x_s0", "g05x_s0", "eflesh_c8")]
+    films = [(t, media(f"20261014-film_{t}.mp4")) for t in ("whole_g20x", "whole_g05x", "whole_eflesh_open")]
     films = [(t, p) for t, p in films if os.path.exists(p)]
     st = {t: film_stats(t) for t, _ in films}
     if films and all(st.values()):
         cells = "".join(f'<div class="cell"><video controls muted loop playsinline preload="metadata" '
                         f'poster="{data_uri(p.replace(".mp4", ".png"), "image/png")}" src="{data_uri(p, "video/mp4")}"></video>'
-                        f'<p class="filmlab">{GPU_LBL[t]}</p></div>' for t, p in films)
+                        f'<p class="filmlab">{FILM_LBL[t]}</p></div>' for t, p in films)
         FIG[0] += 1
         REFS["fig:films"] = FIG[0]
-        g, f5, ef = st["g20x_s0"], st["g05x_s0"], st["eflesh_c8"]
-        parts.append(f'<figure class="films">{cells}<figcaption>Figure&#160;{FIG[0]}. The resolved tips under the cylinder over 13 approaches from '
-                     f'first touch: the section through the contact line, displacement magnified 15, 5 and 2 times, and the pressure on the palmar '
-                     f'face. On the 20&#8202;% tip the contact is a line across the face whose ends, over the side walls, reach {f1(g["p_end"])}&#8202;MPa '
-                     f'against {f1(g["p_mid"])}&#8202;MPa mid-line at {f1(g["F"])}&#8202;N. On the 5&#8202;% tip the 0.8&#8202;mm skin bends between '
-                     f'the walls across a 21&#8202;mm cell, and the walls and one strut support the cylinder ({f1(f5["p_end"])} and {f1(f5["p_mid"])}&#8202;MPa '
-                     f'at {f1(f5["F"])}&#8202;N). The eFlesh lattice, clipped to the insert without a skin, touches the cylinder only where struts reach '
-                     f'the face; at an approach of {f0(ef["delta_um"])}&#8202;&#181;m the force is {f2(ef["F"])}&#8202;N.</figcaption></figure>')
+        g, f5, ef = st["whole_g20x"], st["whole_g05x"], st["whole_eflesh_open"]
+        parts.append(f'<figure class="films">{cells}<figcaption>Figure&#160;{FIG[0]}. The whole tip of the print plan, at 20 and 5&#8202;% gyroid '
+                     f'infill, and the eFlesh tip solved from its G-code, under the cylinder from first touch: the section through the contact line, '
+                     f'displacement magnified 15, 5 and 2 times, and the pressure on the palmar face; the eFlesh tip&#8217;s magnet is outlined in red. '
+                     f'On the 20&#8202;% tip the contact is a line across the face whose ends, over the side walls, reach {f1(g["p_end"])}&#8202;MPa '
+                     f'against {f1(g["p_mid"])}&#8202;MPa mid-line at {f1(g["F"])}&#8202;N. On the 5&#8202;% tip the skin bends between the walls '
+                     f'across a 21&#8202;mm cell, and the walls and one strut support the cylinder ({f1(f5["p_end"])} and {f1(f5["p_mid"])}&#8202;MPa '
+                     f'at {f1(f5["F"])}&#8202;N). The open eFlesh lattice has no skin and touches the cylinder only where struts reach the face; at an '
+                     f'approach of {f0(ef["delta_um"])}&#8202;&#181;m the force is {f2(ef["F"])}&#8202;N.</figcaption></figure>')
     else:
         parts.append(P.pending("Films not rendered yet."))
     return "".join(parts)
@@ -446,13 +473,25 @@ def arm_section(X: Data):
     c20, c50 = X.cell("slicer", 0.2), X.cell("slicer", 0.5)
     con = (f" The contrast between the solid walls and the core in the layer plane, \\(E_s/E_x\\), is {1 / c20['Ex']:.0f} at 20&#8202;% infill and "
            f"{1 / c50['Ex']:.0f} at 50&#8202;% (Table&#160;[[tab:cells]]).") if c20 and c50 else ""
-    txt = (f"<p>The walls carry the edges of the face like rails (Figure&#160;[[fig:films]]): under the cylinder {f0(100 * es['g20_across']['fe'])}&#8202;% of the "
-           f"20&#8202;% tip&#8217;s force lies on the outer 0.9&#8202;mm of the flat face and on the fillets, against {f0(100 * es['g20_across']['law'])}&#8202;% "
-           f"for the pressure law on the same nodes ({f0(100 * es['g10_across']['fe'])}&#8202;% at 10&#8202;% infill, {f0(100 * es['solid95']['fe'])}&#8202;% "
-           f"for the solid print). Load at the ends of the contact line lengthens the twist arm: at 3&#8202;N it is {f2(g['arm'][3.0])}&#8202;mm on the "
-           f"20&#8202;% tip against {f2(X.pads_arm(g['E_best']))}&#8202;mm for the pads at \\(E^*\\) (Figure&#160;{FIG[0] + 1}). The pads approach that "
-           f"arm only at {min(X.B):g}&#8202;MPa ({f2(X.pads_arm(min(X.B)))}&#8202;mm), a fifth of the modulus that reproduces the approach.</p>"
-           f"<p>A softer TPU at higher infill reaches the same contact stiffness with stiffer infill relative to its walls. 85A gyroid at 50&#8202;% "
+    w20, w05, wef = (film_rails(n) for n in ("whole_g20x", "whole_g05x", "whole_eflesh_open"))
+    if w20 and w05 and wef and w20["arm"]:                 # the whole tip of the print plan, from its films (owner, 2026-10-13)
+        txt = (f"<p>The walls carry the edges of the face like rails (Figure&#160;[[fig:films]]): at 1&#8202;N, {f0(100 * w20['fe'])}&#8202;% of "
+               f"the force on the whole 20&#8202;% tip lies on the outer 1.2&#8202;mm of its 9.4&#8202;mm flat face and on the fillets, and "
+               f"{f0(100 * w05['fe'])}&#8202;% on the 5&#8202;% tip, against {f0(100 * w20['law'])}&#8202;% for the pressure law on the same nodes; "
+               f"the eFlesh lattice puts {f0(100 * wef['fe'])}&#8202;% there. Load at the ends of the contact line lengthens the twist arm: at "
+               f"3&#8202;N it is {f2(w20['arm'])}&#8202;mm on the whole 20&#8202;% tip and {f2(g['arm'][3.0])}&#8202;mm on the insert&#8217;s "
+               f"homogenized core (Figure&#160;{FIG[0] + 1}), against {f2(X.pads_arm(g['E_best']))}&#8202;mm for the pads at the insert&#8217;s "
+               f"\\(E^*\\). The pads approach the insert&#8217;s arm only at {min(X.B):g}&#8202;MPa ({f2(X.pads_arm(min(X.B)))}&#8202;mm), a fifth "
+               f"of the modulus that reproduces the approach.</p>")
+    else:
+        txt = (f"<p>The walls carry the edges of the face like rails: under the cylinder {f0(100 * es['g20_across']['fe'])}&#8202;% of the "
+               f"20&#8202;% insert&#8217;s force lies on the outer 0.9&#8202;mm of the flat face and on the fillets, against "
+               f"{f0(100 * es['g20_across']['law'])}&#8202;% for the pressure law on the same nodes ({f0(100 * es['g10_across']['fe'])}&#8202;% at "
+               f"10&#8202;% infill, {f0(100 * es['solid95']['fe'])}&#8202;% for the solid print). Load at the ends of the contact line lengthens the "
+               f"twist arm: at 3&#8202;N it is {f2(g['arm'][3.0])}&#8202;mm on the 20&#8202;% tip against {f2(X.pads_arm(g['E_best']))}&#8202;mm for "
+               f"the pads at \\(E^*\\) (Figure&#160;{FIG[0] + 1}). The pads approach that arm only at {min(X.B):g}&#8202;MPa "
+               f"({f2(X.pads_arm(min(X.B)))}&#8202;mm), a fifth of the modulus that reproduces the approach.</p>")
+    txt += (f"<p>A softer TPU at higher infill reaches the same contact stiffness with stiffer infill relative to its walls. 85A gyroid at 50&#8202;% "
            f"({f1(s['k_1N'])}&#8202;N/mm at 1&#8202;N against {f1(g['k_1N'])} for 95A at 20&#8202;%) puts {f0(100 * es['s85_50_across']['fe'])}&#8202;% "
            f"of the load on the edges, and its arm at 3&#8202;N, {f2(s['arm'][3.0])}&#8202;mm, is {f1(abs(X.arm_err(s['E_best'], s['arm'][3.0])))}&#8202;% "
            f"from the pads&#8217; at its \\(E^*\\) of {f1(s['E_best'])}&#8202;MPa.{con} In these linear models the TPU grade scales every stiffness "
