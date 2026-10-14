@@ -1,0 +1,12 @@
+Status: active
+Task (owner, 2026-10-13): republish the readout page after the five-chip board update and the fingertip page after the press-fit pockets ("we are using the 5-magnetometer board from anyskin/visuoskin, reused in eflesh ... this should improve your simulation. ill use the aplysiatech magnets, sure"). This job edits no page or builder.
+Read first: docs/experiments/20261013-magnet_layouts/20261013-mlx90393_fingertip_readout.html (artifact https://claude.ai/artifact/PVo1dkM6DGqAM7UxWA3A7L); docs/experiments/20261009-tpu_tip_fem/20261009-printed_tpu_fingertip_finite_elements.html (artifact https://claude.ai/artifact/MSLurN7jPTaFfXUdsxJMZv); docs/experiments/20261009-tpu_tip_fem/print/README.md; the Artifact tool's rules (read an artifact before republishing it; read every page before publishing).
+State (2026-10-13 21:50): both pages rebuilt, committed and pushed by the window in 5e2489ef (builders scripts/mlx90393_readout_page.py, scripts/tpu_tip_fem_page.py with scripts/tpu_tip_widget.py and scripts/tpu_tip_print_plan.py). The print sheets of the magnet tips were renamed 20261012-* -> 20261013-* (press-fit pockets); 20261012-sr2_tip_w95_20_nomagnet.json is unchanged.
+Next:
+1. Review both pages in headless Chrome: every figure renders (readout Figures 1-3, the board figure in two panels), no console error; on the fingertip page the calculator's row "Pocket, press fit 90 % / 95 %" reads 4.28 mm across, 1.51 mm high, printed as 8 layers, 1.60 mm, and changing tc-depth 5 -> 3 moves the pause from layer 61 to 71.
+2. Republish the readout page to https://claude.ai/artifact/PVo1dkM6DGqAM7UxWA3A7L (read it first, publish the local file unchanged).
+3. Republish the fingertip page to https://claude.ai/artifact/MSLurN7jPTaFfXUdsxJMZv with its print sheets: add print/20261013-sr2_tip_w95_20_d4p76x1p59_depth5.json, ..._w95_10_..., ..._w85_50_..., ..._w85_30_... from docs/experiments/20261009-tpu_tip_fem/print/, remove the four print/20261012-sr2_tip_*_d4p76x1p59_depth5.json (null), keep print/20261012-sr2_tip_w95_20_nomagnet.json.
+4. Commit any URL change (none expected) and push to origin main; set Status: done and disarm.
+Claimed: docs/experiments/INDEX.md (artifact column), docs/experiments/20261013-magnet_layouts/artifact_url.txt, docs/experiments/20261009-tpu_tip_fem/artifact_url.txt.
+Waiting on owner: the calculator's download buttons on the artifact (step 5 of hand-20261013-publish_mlx_readout).
+Do not: edit pages, builders or templates; publish other pages; delete any artifact; force-push.
