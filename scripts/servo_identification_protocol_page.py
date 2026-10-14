@@ -30,6 +30,7 @@ OUT = os.path.join(D, "20261013-servo_identification_protocol.html")
 TPL = os.path.join(ROOT, "scripts/servo_identification_protocol_page.template.html")
 TEX_CACHE = os.path.join(D, "texsvg_cache.json")
 BAM = "https://arxiv.org/abs/2410.08650v1"
+BAM_CODE = "https://github.com/Rhoban/bam"
 DEFORM = "../20261009-tpu_tip_fem/20261009-printed_tpu_fingertip_finite_elements.html"
 FIG, TAB, REFS = [0], [0], {}
 EXTRA_CSS = """
@@ -147,7 +148,12 @@ def why_section():
             f"{FACTS['plant_kp']}&#8202;N&#8202;m/rad and a torque limit of {FACTS['plant_tau']}&#8202;N&#8202;m. The gain comes from "
             "the load register&#8217;s slope, 0.018&#8202;degree per load unit, read as full duty at 18&#8202;degrees of error and "
             f"scaled by the seller&#8217;s {FACTS['scs_stall']}&#8202;N&#8202;m stall torque; no measurement fixed the strength, and the "
-            "replay fits of 2026-10-06 scored the same joint error for every gain from 0.25 to 8. These numbers decide what the "
+            "replay fits of 2026-10-06 (177 tracked runs, 648 plants) scored 2.53&#8211;2.75&#8202;degrees of joint error for every gain "
+            "from 0.25 to 30 and every torque limit from 0.2 to 1&#8202;N&#8202;m, so they constrained only a time constant under "
+            "0.2&#8202;s and the friction coefficient. The 2026-09-02 runs measured the hold&#8217;s slope (0.0186&#8202;degree per load "
+            "unit over 236 grasps, R&#178; 0.94&#8211;0.99), a 0.70&#8211;1.50&#8202;degree friction loop on a free finger and a "
+            "12.26&#8202;degree loop on middle yaw under a grasp, where the overload protection pinned the load register on 42&#8202;% "
+            "of runs. These numbers decide what the "
             f"simulator must represent. Through the finger, the plant&#8217;s gain makes the fingertip yield {lo}&#8211;{hi}&#8202;mm/N "
             f"toward the tool, against {FACTS['gyroid_mm_per_N']}&#8202;mm/N for the printed gyroid tip and {elo}&#8211;{ehi}&#8202;mm/N "
             f"for eFlesh (<a href=\"{DEFORM}\">fingertip page</a>): if the gain is right, the servo dominates the finger&#8217;s "
@@ -158,47 +164,56 @@ def why_section():
 
 
 def model_section():
-    return ("<p>The model follows Duclusaud, Passault, Padois and Ly, <i>Extended friction models for the physics simulation of "
-            f"servo actuators</i> (<a href=\"{BAM}\">arXiv 2410.08650</a>, 2024), who identify servo models from pendulum "
-            "trajectories on four servo actuators and check them on 2R arms, with friction models beyond Coulomb and viscous: the "
-            "firmware&#8217;s duty, an electrical motor with back-EMF, and friction that depends on speed and on the load the gears "
-            "carry. For a joint at angle \\(\\theta\\) commanded to \\(\\theta^*\\), the terms this protocol fits are:</p>"
-            "\\[u = \\mathrm{clip}\\left(K_p(\\theta^* - \\theta),\\, -1,\\, 1\\right)\\]"
-            "\\[\\tau_m = \\frac{k_t}{R}\\left(u\\,V - k_e\\,\\dot\\theta\\right)\\]"
-            "\\[\\tau_f = \\left(\\tau_c + \\mu_L|\\tau_m| + (\\tau_s - \\tau_c)\\,e^{-(\\dot\\theta/\\omega_s)^2}\\right)\\mathrm{sign}(\\dot\\theta) "
-            "+ b\\,\\dot\\theta\\]"
-            "\\[(J_a + J_\\ell)\\,\\ddot\\theta = \\tau_m - \\tau_f + \\tau_{ext}\\]"
-            "<p>Here \\(u\\) is the duty, \\(K_p\\) the firmware&#8217;s gain in duty per radian, \\(V\\) the supply voltage, \\(k_t/R\\) "
-            "and \\(k_e\\) the motor&#8217;s torque per volt and back-EMF constant at the output shaft, \\(\\tau_c\\), \\(\\tau_s\\), "
-            "\\(\\omega_s\\), \\(\\mu_L\\) and \\(b\\) the friction terms, \\(J_\\ell\\) the load&#8217;s inertia and \\(\\tau_{ext}\\) "
-            "gravity and contact. Below saturation the loop is a spring of stiffness \\(k_\\theta = K_p V k_t/R\\); at full duty the "
-            "torque is \\(\\tau_{max} = V k_t/R\\). The fit also returns the latency and any dead band around the goal.</p>")
+    return ("<p>The model is the one of Duclusaud, Passault, Padois and Ly, <i>Extended friction models for the physics simulation "
+            f"of servo actuators</i> (<a href=\"{BAM}\">arXiv 2410.08650</a>, ICRA 2025), whose code is Rhoban&#8217;s BAM "
+            f"(<a href=\"{BAM_CODE}\">github.com/Rhoban/bam</a>, Apache-2.0). They identified Dynamixel MX-64 and MX-106 and two "
+            "eRob80 drives on a pendulum and checked them on 2R arms in MuJoCo; the best friction model cut the held-out error of "
+            "Coulomb and viscous friction alone by a factor of 1.5&#8211;2.9. The firmware turns the position error into a voltage "
+            "\\(U\\), the motor into a torque, and friction is a budget that can at most stop the joint:</p>"
+            "\\[U = \\mathrm{clip}\\left(V\\,g\\,K_p(\\theta^* - \\theta),\\; \\pm U_{max}\\right), \\qquad "
+            "\\tau_m = \\frac{k_t}{R}\\,U - \\frac{k_t^2}{R}\\,\\dot\\theta\\]"
+            "\\[\\tau_f^{max} = K_c + K_v|\\dot\\theta| + K_{cs}\\,e^{-|\\dot\\theta/\\dot\\theta_s|^{\\alpha}} + "
+            "K_l\\,|\\tau_m - \\tau_e|, \\qquad \\tau_f = \\mathrm{clip}\\left(\\tau_f^{stop},\\; \\pm\\tau_f^{max}\\right)\\]"
+            "\\[(J_a + J_\\ell)\\,\\ddot\\theta = \\tau_m + \\tau_e + \\tau_f\\]"
+            "<p>Here \\(K_p\\) is the firmware&#8217;s P register, \\(g\\) its duty per radian per unit of P (BAM measured "
+            "0.166 on the STS3215 with an oscilloscope, duty capped at 0.97), \\(V\\) the supply, \\(k_t\\) and \\(R\\) the "
+            "motor&#8217;s torque constant and resistance at the output, \\(\\tau_e\\) the external torque (gravity, contact), "
+            "\\(\\tau_f^{stop}\\) the friction that would stop the joint and \\(J_a\\) the armature. Their models: M1 Coulomb "
+            "and viscous (\\(K_c, K_v\\)); M2 adds Stribeck (\\(K_{cs}, \\dot\\theta_s, \\alpha\\)); M3 load-dependent "
+            "(\\(K_l\\)); M4 both, seven parameters; M5 and M6 add directional efficiency and quadratic load terms. BAM also fits a "
+            "command delay. Below saturation the loop is a spring of stiffness \\(k_\\theta = V g K_p k_t/R\\): with the "
+            "STS3215&#8217;s \\(g\\), the SCS0009&#8217;s P of 15 reaches full duty at 23&#8202;degrees of error, near the "
+            "18.6&#8202;degrees the 2026-09-02 load slope implies. BAM&#8217;s STS3215 fit at 7.4&#8202;V (M4): \\(k_t\\) "
+            "1.27&#8202;N&#8202;m/A, \\(R\\) 2.47&#8202;&#937;, \\(K_c\\) 0.052&#8202;N&#8202;m, \\(K_v\\) 0.034&#8202;N&#8202;m&#8202;s/rad, "
+            "\\(K_l\\) 0.21, delay 4.9&#8202;ms. No Feetech servo is in the paper; BAM and MuJoCo Menagerie&#8217;s SO-101 model the STS3215, and no "
+            "model of the STS3032 was found."
+            "</p>")
 
 
 STEPS = [
-    ("Registers and limits", "15 min", "Bus free (control station stopped). Dump every control-table register of each servo: "
-     "firmware position gains, torque limit, dead band, protection thresholds (overload torque and time, temperature, voltage), "
-     "return delay and baud rate. Repeat after power cycling. Output: one JSON per servo; the gains enter \\(K_p\\)."),
-    ("Bus timing", "15 min", "Read position, speed, load, voltage and temperature from one servo, then from all nine in turn, for "
-     "60&#8202;s each; send step goals at 2&#8202;Hz and timestamp the first reading that moves. Output: sample period, its jitter, "
-     "and the goal-to-motion latency."),
-    ("Static stiffness and strength, pendulum", "45 min", "Servo clamped, arm horizontal. For masses giving 10, 25, 50, 75 and "
-     "100&#8202;% of the seller&#8217;s stall torque at the arm length, command the horizontal angle and hold 5&#8202;s; log the "
-     "steady angle error and the load register; repeat approaching from above and below. Output: \\(k_\\theta\\), the dead band, "
-     "the hysteresis between the two approaches and \\(\\tau_{max}\\) at the supply voltage; repeat at a second voltage."),
-    ("Free swings, torque off", "20 min", "Torque disabled, arm released from 30, 60 and 90&#8202;degrees with two masses and two "
-     "lengths, logged until it stops. Output: the gearbox&#8217;s friction and the armature without the firmware in the loop."),
-    ("Driven trajectories, pendulum", "60 min", "Torque on. Steps of 10&#8211;90&#8202;degrees, sine sweeps 0.2&#8211;5&#8202;Hz, "
-     "and random goal sequences at the bus rate, for three loads (no mass, middle, heavy) and two arm lengths; every run twice. "
-     "Two thirds fit the model, one third is held out."),
-    ("Each servo of the hand", "30 min", "Steps 3 and 5 shortened (two masses, one sine sweep) on the nine servos, mounted or as "
-     "spares of the same batch: the spread between units sets the randomization range."),
+    ("Registers and limits", "15 min", "Bus free (control station stopped). Dump each servo&#8217;s control table, power cycle and "
+     "dump again. SCS0009: P 15, I 0, D 15, overload 80&#8202;%, protective torque 20&#8202;%, protection time 1&#8202;s; no current "
+     "register, load is duty in steps of 15 per 1000; big-endian table, no SYNC READ. STS3032: P, D, I at addresses 21&#8211;23, mode "
+     "33 (0 position, 2 open-loop PWM), current at 69 in 6.5&#8202;mA units, which the datasheet does not list: test it under a "
+     "known load before trusting it."),
+    ("Bus timing", "15 min", "FTDI latency timer at 1&#8202;ms (a replug restores 16&#8202;ms and 7&#8202;Hz). Read the nine positions "
+     "(111&#8202;Hz measured), then position and load (55.6&#8202;Hz), for 60&#8202;s each; send step goals at 2&#8202;Hz and timestamp "
+     "the first reading that moves. Output: sample period, jitter and command delay."),
+    ("Static stiffness and strength, pendulum", "45 min", "Arm horizontal, masses for 10&#8211;100&#8202;% of the seller&#8217;s stall "
+     "torque at the arm length (the SCS0009 has no current sensing, so the lever and the mass give the torque). Hold each for "
+     "0.8&#8202;s, under the 1&#8202;s protection time, approaching from above and below. Output: \\(k_\\theta\\), dead band, "
+     "hysteresis and the stall torque at two supply voltages."),
+    ("Pendulum trajectories, the paper&#8217;s recipe", "90 min", "Three masses at three lengths, firmware P of 4, 8, 16 and 32, and "
+     "four 6&#8202;s trajectories each: a chirped oscillation \\(\\sin t^2\\), a slow oscillation with fast ripple, a slow raise "
+     "and lower, and a lift then drop with torque released (no back-EMF). About 100 logs per servo type, resampled to 5&#8202;ms."),
+    ("Each servo of the hand", "30 min", "Steps 3 and 4 shortened (two masses, P 15, two trajectories) on the nine servos, mounted "
+     "or as spares of the same batch: the spread between units sets the randomization range."),
     ("Finger presses, in the hand", "60 min", "Finger pressing a load cell fixed in the palm frame (Figure&#160;[[fig:rig]]b), "
      "first with a rigid tip, then the printed tip. Command a press 0&#8211;20&#8202;degrees past first touch in 1&#8202;degree "
-     "steps, hold 3&#8202;s each, and log force, joint angles and load. Output: force against commanded penetration, the "
+     "steps, 0.8&#8202;s each, and log force, joint angles and load. Output: force against commanded penetration, the "
      "fingertip compliance with and without the tip, and the force at which the torque limit or the protection trips."),
-    ("Thermal check", "20 min", "Hold 75&#8202;% of the stall torque for 2&#8202;min, then repeat one sine sweep; log temperature. "
-     "Output: how far stiffness and friction move with temperature, and the protection trip time."),
+    ("Thermal check", "20 min", "Hold 75&#8202;% of the stall torque in 0.8&#8202;s bursts for 2&#8202;min, then repeat one "
+     "trajectory; log temperature. Output: how far stiffness and friction move with temperature."),
 ]
 
 
@@ -224,21 +239,24 @@ def rig_section():
 
 
 def fit_section():
-    return ("<p>The fit minimizes the trajectory error of simulated against logged angles over the training runs, all parameters "
-            "of the model at once, for each servo type; the per-unit runs then refit only \\(k_t/R\\), \\(\\tau_c\\) and \\(K_p\\). "
-            "The model is accepted if its trajectory error on the held-out runs is under half of the present plant&#8217;s on the "
-            "same runs, and if the finger press predicts the measured force against penetration within 20&#8202;% over the "
-            "unsaturated range.</p>"
-            "<p>MuJoCo takes the model as a general actuator whose force the duty, the back-EMF and the saturation set, with the "
-            "joint&#8217;s armature and damping and a friction loss for the Coulomb term; the load-dependent and Stribeck terms need a "
-            "user-written actuator in MuJoCo-Warp, so the first version keeps them out and the held-out error measures what that "
-            "costs.</p>")
+    return ("<p>The fit follows the paper: CMA-ES on the mean absolute joint-angle error of simulated against logged trajectories, "
+            "a quarter of the logs held out, three restarts, models M1 to M4 compared on the held-out error; BAM&#8217;s code does it "
+            "in minutes. The per-unit runs then refit only \\(k_t/R\\), \\(K_c\\) and the delay. The model is accepted if its "
+            "held-out error is under half of the present plant&#8217;s on the same logs, and if it predicts the finger press&#8217;s "
+            "force against penetration within 20&#8202;% below saturation.</p>"
+            "<p>In MuJoCo, BAM drives the joint with a motor actuator, not a position actuator, and rewrites the joint&#8217;s friction "
+            "loss and damping every step from the previous external torque. Our RL runs in MuJoCo-Warp, whose friction loss is one "
+            "value per joint for all worlds; the first version keeps M1&#8217;s terms in the model file, and the held-out error of M1 "
+            "against M4 measures what the load-dependent term costs before anyone writes a per-world update.</p>")
 
 
 def owner_section():
     rows = [
         ["Which servo first", "Identify the SCS0009 now, since every bench result used it, and repeat on the STS3032 when it is "
-         "ordered; or wait for the STS3032 and identify only it."],
+         "ordered; or wait for the STS3032 (ST-3032-C001: 0.44&#8202;N&#8202;m stall at 6&#8202;V against the SCS0009&#8217;s "
+         "0.23, 1:205 gears, 0.088&#8202;degree per encoder count against 0.29, 1&#8202;Mbps, protection at 80&#8202;% for 2&#8202;s) "
+         "and identify 
+         "only it."],
         ["Load cell", "Bar load cell with an HX711 (logged with the bus) or a kitchen scale read by camera (no wiring, slower)."],
         ["Spare servos", "Pendulum work on a spare of each type, so the hand&#8217;s nine stay mounted."],
         ["Supply", "The hand&#8217;s supply voltage during runs, and whether the bench supply can hold it at stall current."],
