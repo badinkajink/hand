@@ -10,7 +10,7 @@ claude.ai. Each topic has an overview that summarises it and links its result pa
 - [Reinforcement-learning policies](../overviews/rl_policies.html) ([artifact](https://claude.ai/artifact/63pWHmwZrx6BN4AgwvS4T7))
 - [Grasp-to-gait chain and sim-to-real](../overviews/grasp_to_gait_chain.html) ([artifact](https://claude.ai/artifact/JtKv4jLhK9VrDe74sDYTew))
 - [Fingertip contact model](../overviews/contact_model.html) ([artifact](https://claude.ai/artifact/4w96Kt4J3tunu1xuz4XbdN))
-- [Printed fingertips and force sensing](../overviews/printed_fingertips.html) (2026-10-14; artifact pending)
+- [Printed fingertips and force sensing](../overviews/printed_fingertips.html) (2026-10-14; [artifact](https://claude.ai/artifact/XMCDZm1LyCpdrZuLufM37T))
 - [Code and methods](../overviews/code_and_methods.html) ([artifact](https://claude.ai/artifact/HjwwvRuf4PYsEaha9RTHJR)): code map, grasp synthesis, evaluation protocol, simulator backends
 
 This file lists every result page under `docs/experiments/`, newest first, with its topic. The pages are Git LFS

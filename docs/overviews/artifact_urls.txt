@@ -7,3 +7,4 @@ docs/overviews/hand_plant_bench.html https://claude.ai/artifact/RUNFR51Rbyy53u14
 docs/overviews/morphology_design.html https://claude.ai/artifact/R1naai7XJbGoXmbSeVTog7
 docs/overviews/contact_model.html https://claude.ai/artifact/4w96Kt4J3tunu1xuz4XbdN
 docs/overviews/code_and_methods.html https://claude.ai/artifact/HjwwvRuf4PYsEaha9RTHJR
+docs/overviews/printed_fingertips.html https://claude.ai/artifact/XMCDZm1LyCpdrZuLufM37T
