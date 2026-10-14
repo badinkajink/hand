@@ -24,6 +24,8 @@ import subprocess
 import sys
 import threading
 import time
+import urllib.error
+import urllib.request
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -72,12 +74,52 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import real_v1_tag_tracker as tagtool  # noqa: E402
 
 
+def probe_station_token(station_url: str, token: str,
+                        timeout: float = 4.0) -> tuple[str, str]:
+    """Ask the station whether this token would be accepted, without side effects.
+
+    The station authorises every POST *before* it dispatches the path, so a POST to a path
+    that does not exist separates the two failures cleanly: 401 means the token is wrong,
+    404 means the token was accepted and only the path was unknown. Nothing is written or
+    commanded either way, so this is safe to run on every arm.
+
+    This exists because the failure it catches is otherwise invisible until the worst
+    moment. The tracker pushes each sample as `X-Manta-Token`; a token the station does not
+    share makes every push 401, the station never sees a sample, and the run fails closed on
+    `automatic-required` twenty seconds in -- with the cylinder already grasped, and with a
+    tracker service that reports itself perfectly healthy. That is the 2026-09-09 loss.
+
+    Returns (verdict, detail) with verdict in {"ok", "unauthorized", "unreachable"}.
+    """
+    req = urllib.request.Request(
+        station_url.rstrip("/") + "/__token_check", data=b"{}", method="POST",
+        headers={"Content-Type": "application/json", "X-Manta-Token": token})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return "ok", f"station answered {resp.status}"
+    except urllib.error.HTTPError as exc:
+        if exc.code == int(HTTPStatus.UNAUTHORIZED):
+            return "unauthorized", "station answered 401 to an authorised POST"
+        return "ok", f"station answered {exc.code}"
+    except (urllib.error.URLError, OSError, TimeoutError) as exc:
+        return "unreachable", f"{type(exc).__name__}: {exc}"
+
+
+def _token_advice(station_url: str, token: str) -> str:
+    have = f"a {len(token)}-character token" if token else "NO token (MANTA_TOKEN was unset or not exported)"
+    return (f"the station at {station_url} rejects this service's token; it has {have}. "
+            "Every pushed sample would 401 and the run would fail closed with the object "
+            "already grasped. Relaunch with --station-token set to the CB1's --token value "
+            "(see ~/run_control_station.sh), or export MANTA_TOKEN before launching. "
+            "Note that MANTA_TOKEN=\"$MANTA_TOKEN\" is a no-op, not an export.")
+
+
 class TrackerProcess:
     """Own at most one camera subprocess and expose its latch/finalization boundary."""
 
     def __init__(self, *, station_url: str, station_token: str, logs_dir: Path,
                  seconds: float, arm_timeout: float, extra: list[str],
-                 post_roll: float = 0.0):
+                 post_roll: float = 0.0, verify_station: bool = True):
         self.station_url = station_url.rstrip("/")
         self.station_token = station_token
         self.logs_dir = logs_dir
@@ -85,6 +127,7 @@ class TrackerProcess:
         self.arm_timeout = arm_timeout
         self.extra = extra
         self.post_roll = float(post_roll)
+        self.verify_station = bool(verify_station)
         self.lock = threading.RLock()
         self.proc: subprocess.Popen | None = None
         self.run_id = ""
@@ -135,6 +178,12 @@ class TrackerProcess:
     def start(self, run_id: str) -> dict:
         if not run_id or "/" in run_id or "\\" in run_id:
             raise ValueError("run_id must be a non-empty filename-safe station run id")
+        # Check the push credential BEFORE the camera spins up. Without this the operator
+        # learns about a bad token from a 20 s arm timeout, mid-trial, once per trial.
+        if self.verify_station:
+            verdict, _ = probe_station_token(self.station_url, self.station_token)
+            if verdict == "unauthorized":
+                raise RuntimeError(_token_advice(self.station_url, self.station_token))
         with self.lock:
             self._reap_if_done()
             if self.proc is not None:
@@ -155,8 +204,7 @@ class TrackerProcess:
             cmd = [exe, str(ROOT / "scripts/real_v1_tag_tracker.py"),
                    "--seconds", str(self.seconds), "--out", str(self.csv), "--quiet",
                    "--push", "--push-url", self.station_url, "--run-id", run_id]
-            if self.station_token:
-                cmd += ["--push-token", self.station_token]
+            cmd += ["--push-token", self.station_token]
             cmd += BENCH_DEFAULTS + self.extra          # --tracker-arg still wins, it comes last
             self.proc = subprocess.Popen(cmd, cwd=ROOT, stdout=subprocess.PIPE,
                                          stderr=subprocess.STDOUT, text=True, bufsize=1)
@@ -186,8 +234,17 @@ class TrackerProcess:
                     self.armed = True
                     return self.status()
         self.stop(run_id)
-        missing = "id6/cylinder sample" if not recording else "station sample delivery"
-        raise TimeoutError(f"tracker did not confirm {missing} within {self.arm_timeout:.0f}s")
+        if recording:
+            # The camera is seeing the tag, so this is the push leg. Say so: the two halves
+            # of this timeout have completely different fixes and used to share one message.
+            raise TimeoutError(
+                f"the camera is tracking, but the station accepted no sample within "
+                f"{self.arm_timeout:.0f}s. The push is rejected or unreachable -- check the "
+                f"station's log for 401s on /api/v1/tracker/sample. "
+                + _token_advice(self.station_url, self.station_token))
+        raise TimeoutError(
+            f"tracker did not confirm an id6/cylinder sample within {self.arm_timeout:.0f}s; "
+            f"the camera never saw the tag (occluded, out of frame, or exposure)")
 
     def stop(self, run_id: str = "") -> dict:
         """End the recording -- after a dwell, so the trace contains a pose being HELD.
@@ -303,11 +360,26 @@ def main() -> int:
                          "on the last instant of the motion (0 restores the old behaviour)")
     ap.add_argument("--tracker-arg", action="append", default=[],
                     help="repeatable argument passed to real_v1_tag_tracker.py")
+    ap.add_argument("--no-verify-station", action="store_true",
+                    help="skip the startup and per-arm station token check (not advised; the "
+                         "check is what stops a bad token from surfacing as a failed trial)")
     args = ap.parse_args()
+    if not args.no_verify_station:
+        verdict, detail = probe_station_token(args.station_url, args.station_token)
+        if verdict == "unauthorized":
+            ap.error(_token_advice(args.station_url, args.station_token))
+        if verdict == "unreachable":
+            print(f"WARNING: cannot reach the station to check the push token ({detail}). "
+                  f"Serving anyway; the token is re-checked when the CB1 arms a run.",
+                  flush=True)
+        else:
+            print(f"station push token accepted by {args.station_url} ({detail})", flush=True)
+
     tracker = TrackerProcess(station_url=args.station_url, station_token=args.station_token,
                              logs_dir=args.logs_dir, seconds=args.seconds,
                              arm_timeout=args.arm_timeout, extra=args.tracker_arg,
-                             post_roll=args.post_roll)
+                             post_roll=args.post_roll,
+                             verify_station=not args.no_verify_station)
     server = TrackerServer((args.host, args.port), tracker, args.token)
     print(f"AprilTag tracker service: http://{args.host}:{args.port} -> {args.station_url}",
           flush=True)
