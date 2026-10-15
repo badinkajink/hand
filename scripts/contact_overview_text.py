@@ -58,13 +58,14 @@ def rl_ratio(rl):
 
 def lede(ctx):
     """Opening paragraph, about 100 words (owner 2026-10-14: the pads' selling point is CPU and GPU usability, one
-    fingertip contact that runs unmodified in CPU MuJoCo for planners and in MuJoCo-Warp for RL): the outcome, the
-    agreement with Drake on the bed and on the hand, and the cost on one CPU core, per GPU world-step and per training
-    iteration, from the hand-level rows where they exist."""
+    fingertip contact that runs unmodified in CPU MuJoCo for planners and in MuJoCo-Warp for RL; no comparison of cost
+    with Newton hydroelastic): the outcome, the agreement with Drake on the bed and on the hand, and the cost on one CPU
+    core, per GPU world-step in the trainer's MuJoCo-Warp build and per training iteration, from the hand-level rows."""
     M = ctx["M"]
     parts = ["Small MuJoCo contact spheres covering a fingertip make one contact model that reproduces the hydroelastic "
-             "pressure law and runs unmodified in CPU MuJoCo for planners, in MuJoCo-Warp for reinforcement learning (RL) "
-             "and in Newton."]
+             "pressure law and runs unmodified in CPU MuJoCo for planners and in MuJoCo-Warp for reinforcement learning (RL); "
+             "Newton runs it once the pads&#8217; impedance and the friction gain are recomputed from Newton&#8217;s own inverse "
+             "weights (step&#160;7)."]
     a5_p, a5_d = _get(M, "arm at spin onset, 0.5", "mj_pads1"), _get(M, "arm at spin onset, 0.5", "drake_hydro")
     a3_p, a3_d = _get(M, "arm at spin onset, 3", "mj_pads1"), _get(M, "arm at spin onset, 3", "drake_hydro")
     s = []
@@ -84,12 +85,10 @@ def lede(ctx):
     if all(hc.get(k) for k in ("mj_pads1", "mj_point3", "drake_hydro")):
         c = (f"A step of the hand costs {hc['mj_pads1']:.0f}&#8202;&#181;s on one CPU core with the pads, "
              f"{hc['mj_point3']:.0f}&#8202;&#181;s with point contact and {P.num(hc['drake_hydro'], ',.0f')}&#8202;&#181;s in Drake")
-        pads, hyd = us.get(("mjw", "3.14", "pads1")), us.get(("nt_hydro", "3.14", "mesh"))
-        mesh = us.get(("mjw", "3.14", "mesh"))
-        if pads and hyd:
-            c += (f"; a GPU world-step costs {_r1(pads.values())}&#8202;&#181;s with the pads, "
-                  + (f"{_r1(mesh.values())}&#8202;&#181;s with point contact and " if mesh else "")
-                  + f"{_r1(hyd.values())}&#8202;&#181;s with Newton hydroelastic")
+        pads, mesh = us.get(("mjw", "3.6", "pads1")), us.get(("mjw", "3.6", "mesh"))
+        if pads and mesh:
+            c += (f"; a GPU world-step of a held reorientation state costs {_r1(pads.values())}&#8202;&#181;s with the pads and "
+                  f"{_r1(mesh.values())}&#8202;&#181;s with point contact in the trainer&#8217;s MuJoCo-Warp&#160;3.6")
         r = rl_ratio(rl)
         if r:
             c += f", and an RL training iteration {_r1(r, 2)} times one with point contact"
@@ -154,7 +153,11 @@ tool at hanging where 3.9&#8202;ms swings it to 130&#176; (<code>docs/experiment
 
 
 def related_models(ctx):
-    """Prior work on sampled-point and torsional contact (assessment of 2026-10-14, prior-work list) and what this work adds."""
+    """Prior work on sampled-point and torsional contact (assessment of 2026-10-14, prior-work list) and what this work adds,
+    with the two step bounds of step 9 and the count of bed task 7's pad settings that the friction rows' bound brackets."""
+    st = P.stab_stats(ctx.get("stab") or [])
+    fric = (f", which brackets the largest stable step of {len(st['f_in'])} of the {st['n']} pad settings of bed task&#160;7"
+            if st and st["f_in"] else "")
     return ("Several models spread one contact over sampled points with a foundation stiffness. Simbody&#8217;s and OpenSim&#8217;s "
             "<code>ElasticFoundationForce</code> puts a spring of the layer&#8217;s stiffness times the face area at the centre of every triangle of "
             "a mesh, each with its own friction, which drifts below stiction (Sherman, Seth and Delp, 2011). Drake&#8217;s discrete "
@@ -163,11 +166,13 @@ def related_models(ctx):
             "its signed-distance-field triangles to MuJoCo-Warp the same way (R&#246;stel et al., 2026). Gonthier&#8217;s volumetric "
             "contact model derives the spinning friction of a Winkler pressure distribution in closed form for a flat contact "
             "surface. Gazebo&#8217;s torsional friction scales one contact&#8217;s torque with its load, \\(T=(3\\pi/16)\\,a\\mu N\\) with "
-            "\\(a=\\sqrt{Rd}\\) from the penetration \\(d\\). MuJoCo&#8217;s documentation states that its soft friction slips slowly "
-            "under a persistent tangential load, and that impratio and noslip iterations reduce the slip. This work adds "
+            "\\(a=\\sqrt{R\\delta}\\) from the penetration \\(\\delta\\). MuJoCo&#8217;s documentation states that its soft friction slips "
+            "slowly under a persistent tangential load, and that impratio and noslip iterations reduce the slip. This work adds "
             "the load-time calibration of \\(d_0\\) from the compiled inverse inertia (step&#160;7), the creep law with cone "
-            "saturation (step&#160;8), the step bound (14) and one pad model in CPU MuJoCo, MuJoCo-Warp and Newton, and it found the "
-            "effective-mass factor missing from Newton&#8217;s hydroelastic stiffness (step&#160;7).")
+            "saturation (step&#160;8) and two step bounds (step&#160;9): (14) for a pad&#8217;s normal rows, which equals MuJoCo&#8217;s "
+            f"threshold for a pad sliding on a plate, and about \\(d_0t_c\\) for its friction rows{fric}. One pad model runs "
+            "unmodified in CPU MuJoCo and MuJoCo-Warp and, with \\(d_0\\) and the friction gain recomputed, in Newton, where this "
+            "work also found the effective-mass factor missing from the hydroelastic stiffness (step&#160;7).")
 
 
 def cslc_text(ctx):
@@ -205,9 +210,9 @@ def evidence_tasks(ctx):
                    f"&#8202;mm at 0.5, 1 and 3&#8202;N, {_dev(dev('drake_hydro', 'rbar_onset_mm'))} the integrated law (3); the 1&#8202;mm pad gives "
                    + ", ".join(f"{g('mj_pads1', N)['rbar_onset_mm']:.3f}" for N in Ns) +
                    f"&#8202;mm, {_dev(dev('mj_pads1', 'rbar_onset_mm'))} it. Spinning at 1&#8202;rad/s, the pad&#8217;s arm is "
-                   f"{_dev(dev('mj_pads1', 'rbar_kin_mm'))} the law and Drake&#8217;s {_dev(dev('drake_hydro', 'rbar_kin_mm'))} it; the pad&#8217;s "
-                   "arm grows with the spin rate through the friction dampers of step&#160;8, and deck&#160;23 measures 0.888&#8202;mm at "
-                   "0.1&#8202;rad/s and 0.973&#8202;mm at 3&#8202;rad/s at 1&#8202;N. The pad&#8217;s "
+                   f"{_dev(dev('mj_pads1', 'rbar_kin_mm'))} the law and Drake&#8217;s {_dev(dev('drake_hydro', 'rbar_kin_mm'))} it. The pad&#8217;s "
+                   "spinning arm depends on the spin rate through the friction dampers of step&#160;8: at 1&#8202;N deck&#160;23 (row "
+                   "<code>d23_twist_run</code>) gives 0.888&#8202;mm at 0.1&#8202;rad/s and 0.973&#8202;mm at 3&#8202;rad/s. The pad&#8217;s "
                    f"shortfall appears only at onset, where the tool turns {rr(rot('mj_pads1'), 1)}&#176; before it spins (Drake "
                    f"{rr(rot('drake_hydro'), 2)}&#176;), which points to MuJoCo&#8217;s soft friction rows as the cause. "
                    f"Drake&#8217;s onset arm grows {ratio('drake_hydro', 'rbar_onset_mm'):.2f} times between 0.5 and 3&#8202;N and the pad&#8217;s "
@@ -355,7 +360,8 @@ def open_list(ctx):
          "pinch line and lower the commanded squeeze by 0.5&#176; per second while the tag is tracked at 30&#8202;Hz, ten repeats, after "
          "<code>scripts/real_v1_trajectory_clearance.py</code> passes the brake plan (chord and <code>_traj.csv</code> separately); "
          "compute the prediction rows with <code>scripts/hom_hand_brake.py</code> on the servo plant before the session." + brake
-         + " This maneuver separates the contact models by more than the bench&#8217;s scatter."),
+         + " A tool that passes 45&#176; at the squeeze the pad rows predict supports the pads, one that passes it at Drake&#8217;s "
+         "supports Drake, and a release at the ramp&#8217;s start supports point contact."),
         ("Bench bookkeeping.", "Weigh the vaned tool, record the palm plate height (25&#8202;mm above the mounting plane in the built "
          "hand) and the servo bank&#8217;s envelope, start the tracker before the grip, log <code>servo_load</code> on every run and "
          "present-position reads between the 50&#8202;Hz commands, and copy the CB1 run logs to a dated archive after each session. "
@@ -462,15 +468,17 @@ def meff_text(ctx):
         "The same factor sets the stiffness of every MuJoCo contact: solref is a spring on the constraint "
         "acceleration, so a contact realises its solref stiffness times the effective mass \\(m_\\text{eff}=1/\\hat\\Lambda\\) as a "
         "force stiffness, and the pads&#8217; \\(d_0\\) divides that mass out. Newton&#8217;s hydroelastic contact passes each patch point "
-        "to MuJoCo-Warp with a force stiffness \\(c\\) and writes it as \\(t_c=\\sqrt{1/(c(1-d))}\\) without the factor, so on the bed "
-        f"(\\(m_\\text{{eff}}\\)&#8202;=&#8202;17.4&#8202;g) it sank {_ratio_rng(raw, 1)} times as deep as Drake. Multiplying its \\(k_h\\) "
-        "by the inverse-weight sum of the solver&#8217;s own MuJoCo model, \\(k_h\\,(w_1+w_2)\\), gives "
+        "to MuJoCo-Warp with a force stiffness \\(k_N\\), in N/m, and writes it as \\(t_c=\\sqrt{1/(k_N(1-d))}\\) without the factor, "
+        f"so on the bed (\\(m_\\text{{eff}}\\)&#8202;=&#8202;17.4&#8202;g) it sank {_ratio_rng(raw, 1)} times as deep as Drake. Multiplying "
+        "its \\(k_h\\) by the inverse-weight sum of the solver&#8217;s own MuJoCo model, \\(k_h\\,(w_1+w_2)\\), gives "
         f"{_ratio_rng(mc)} times Drake&#8217;s sink with no parameter fitted (<code>{P.HT3_PATH}</code>, Section&#160;4). The pads "
-        "run in Newton&#8217;s point-contact pipeline with two settings: \\(d_0\\) recomputed from the inverse weights of "
-        f"Newton&#8217;s MuJoCo model, which gives the bed&#8217;s railed pads {w.get('padL', 16.7):.1f}&#8202;1/kg against the MJCF "
-        f"compile&#8217;s 50 (\\(d_0\\) {d0.get('mjcf', 0):.3f} &#8594; {d0.get('solver', 0):.3f}), and a friction gain \\(k_f\\) for "
-        "which SolverMuJoCo&#8217;s friction-row time constant \\(t_f=2/(k_f\\,\\hat\\Lambda\\,((1-d_0)/\\kappa+d_0))\\) equals the "
-        f"pads&#8217; \\(t_c\\) ({d0.get('kf', 0):.1f} on the bed).{swing}")
+        "run in Newton&#8217;s point-contact pipeline with two settings. \\(d_0\\) is recomputed from the inverse weights of "
+        f"Newton&#8217;s MuJoCo model, which gives each of the bed&#8217;s railed pads {w.get('padL', 16.7):.1f}&#8202;kg\\(^{{-1}}\\) against "
+        f"the MJCF compile&#8217;s {d0.get('w_mjcf', 90.74) - w.get('tool', 40.74):.1f}, so \\(\\hat\\Lambda\\)&#8202;=&#8202;"
+        f"{w.get('padL', 16.7):.1f}&#8202;+&#8202;{w.get('tool', 40.74):.2f}&#8202;=&#8202;{d0.get('w_solver', 57.4):.1f}&#8202;kg\\(^{{-1}}\\) "
+        f"and \\(d_0\\) falls from {d0.get('mjcf', 0):.3f} to {d0.get('solver', 0):.3f}. The friction gain \\(k_f\\), in N&#8202;s/m, "
+        "is set so that SolverMuJoCo&#8217;s friction-row time constant \\(t_f=2/(k_f\\,\\hat\\Lambda\\,((1-d_0)/\\kappa+d_0))\\) "
+        f"equals the pads&#8217; \\(t_c\\), which takes \\(k_f\\)&#8202;=&#8202;{d0.get('kf', 0):.1f} on the bed.{swing}")
 
 
 def agree_sim_text(ctx):
@@ -488,7 +496,7 @@ def agree_sim_text(ctx):
     nt_end = (P.pick([r for r in ctx["T"]["brake"] if r.get("role", "bed") == "bed"], "newton_hydro_mc", dt_ms=1.0) or {}).get("phi_end_deg")
     return (
         "The pads are the same contact model in CPU MuJoCo, MuJoCo-Warp and Newton&#8217;s point-contact pipeline once Newton gets "
-        "the solver&#8217;s inverse weights (step&#160;7). MuJoCo-Warp ports MuJoCo&#8217;s constraint solver to the GPU and Newton&#8217;s "
+        "\\(d_0\\) from the solver&#8217;s inverse weights and a friction gain set from \\(t_c\\) (step&#160;7). MuJoCo-Warp ports MuJoCo&#8217;s constraint solver to the GPU and Newton&#8217;s "
         "SolverMuJoCo runs MuJoCo-Warp, so the three are one solver in three implementations; Newton&#8217;s hydroelastic contact and "
         "Drake are the independent comparisons. Figure&#160;7 compares the three, Newton&#8217;s mass-corrected hydroelastic "
         "contact and MuJoCo point contact with Drake on the bed&#8217;s twist and brake with the 10.55&#8202;mm sphere, and on the "
@@ -612,11 +620,13 @@ def block_text(ctx):
 
 
 def cost_text(ctx):
-    """The cost paragraph above Table 4: the CPU ratios on the bed, the block and the hand, the GPU world-step on the
-    fixture and on one held RL state in one MuJoCo-Warp build, and the RL cost, the zero-action throughput named as such."""
+    """The cost paragraphs above Table 4: the CPU ratios on the bed, the block and the hand; the GPU world-step on the
+    fixture and on one held RL state in the trainer's MuJoCo-Warp 3.6, then in 3.14 beside Newton's pipeline with the same
+    pads (owner 2026-10-14: no framing of the pads as cheaper than Newton hydroelastic); the RL cost, the zero-action
+    throughput against the TPU mesh like the PPO ratio, and what each 4,096-env pad attempt recorded."""
     cost, bat = ctx["cost"], ctx.get("batched") or {}
     hc, rl = ctx.get("hand") or {}, ctx.get("rl") or {}
-    us, mem = ctx.get("state") or ({}, {})
+    us, _mem = ctx.get("state") or ({}, {})
     B = ctx.get("B") or {}
     out = ["Table&#160;4 lists the cost of one physics step on the bed, on the hand and in training."]
     if cost.get("mj_pads1") and cost.get("mj_point3") and hc.get("mj_pads1") and hc.get("mj_point3"):
@@ -632,22 +642,34 @@ def cost_text(ctx):
     if cost.get("drake_hydro") and hc.get("drake_hydro") and all(blk):
         out.append(f"Drake costs {cost['drake_hydro'] / cost['mj_pads1']:.0f} times the pads on the bed&#8217;s sphere, "
                    f"{blk[1] / blk[0]:.1f} times on the printed block and {hc['drake_hydro'] / hc['mj_pads1']:.0f} times on the hand.")
+    out.append("Figure&#160;9 plots the bed&#8217;s costs against each model&#8217;s deviation from Drake over the metrics of Table&#160;2.")
     out.append("</p><p>")
     gpu = [k for k in P.GPU_MODELS if k in cost]
+    curves = ctx.get("curves") or {}
+    allf = curves.get("newton_hydro_unreduced_mc", {}).get(1)
     if gpu:
         out.append(f"One world alone on the GPU, on the SR2 holding fixture of Figure&#160;10 with each 10-step block captured as a CUDA "
-                   f"graph, costs {min(cost[k] for k in gpu):.0f}&#8211;{max(cost[k] for k in gpu):.0f}&#8202;&#181;s per step in each GPU "
-                   "model, bound by kernel launches"
+                   f"graph, costs {min(cost[k] for k in gpu):.0f}&#8211;{max(cost[k] for k in gpu):.0f}&#8202;&#181;s per step for the pads "
+                   "in MuJoCo-Warp and Newton and for Newton&#8217;s reduced hydroelastic contact"
+                   + (f", and {1e6 / allf:.0f}&#8202;&#181;s for its hydroelastic contact with all faces" if allf else "")
+                   + ", bound by kernel launches"
                    + (f"; in a batch the pads cost {bat['mjw_pads1'][0]:.2f}&#8202;&#181;s per world-step at "
                       f"{P.num(bat['mjw_pads1'][1], ',d')} worlds." if "mjw_pads1" in bat else "."))
-    pads, hyd = us.get(("mjw", "3.14", "pads1")), us.get(("nt_hydro", "3.14", "mesh"))
-    if pads and hyd:
-        mp, mh = mem.get(("mjw", "3.14", "pads1")), mem.get(("nt_hydro", "3.14", "mesh"))
-        mesh = us.get(("mjw", "3.14", "mesh"))
-        out.append(f"On one held state of the D6 RL env, in one MuJoCo-Warp&#160;3.14 build, the pads cost {_r1(pads.values())}&#8202;&#181;s "
-                   f"per world-step against " + (f"{_r1(mesh.values())}&#8202;&#181;s for point contact on the TPU mesh and " if mesh else "")
-                   + f"{_r1(hyd.values())}&#8202;&#181;s for Newton hydroelastic"
-                   + (f", with {mp / mh:.1f} times its GPU memory" if mp and mh else "") + ".")
+    # one held RL state (same_state_timing.jsonl): the trainer's MuJoCo-Warp 3.6 first, then MuJoCo-Warp 3.14 against
+    # Newton's pipeline on the same build, with the pads in both, so the Newton numbers compare pipelines
+    p36, m36 = us.get(("mjw", "3.6", "pads1")), us.get(("mjw", "3.6", "mesh"))
+    p314, m314 = us.get(("mjw", "3.14", "pads1")), us.get(("mjw", "3.14", "mesh"))
+    npad, hyd = us.get(("nt_pt", "3.14", "pads1")), us.get(("nt_hydro", "3.14", "mesh"))
+    if p36 and m36:
+        s = (f"On one held state of the D6 RL env, at 1,024 and 2,048 worlds in the trainer&#8217;s MuJoCo-Warp&#160;3.6, a world-step "
+             f"costs {_r1(p36.values())}&#8202;&#181;s with the pads and {_r1(m36.values())}&#8202;&#181;s with point contact on the TPU mesh.")
+        if p314 and m314 and npad and hyd:
+            s += (f" In MuJoCo-Warp&#160;3.14 the pads cost {_r1(p314.values())}&#8202;&#181;s and point contact {_r1(m314.values())}&#8202;&#181;s; "
+                  f"Newton&#8217;s pipeline on that build costs {_r1(npad.values())}&#8202;&#181;s with the same pads and "
+                  f"{_r1(hyd.values())}&#8202;&#181;s with its hydroelastic contact, so the pipeline accounts for most of the difference "
+                  "between Newton hydroelastic and the pads in MuJoCo-Warp.")
+        out.append(s)
+    out.append("</p><p>")
     T = {}
     for r in P.load(P.os.path.join(P.RLD, "throughput.jsonl")):
         if r.get("sensor_reduce") != "netforce":
@@ -656,18 +678,28 @@ def cost_text(ctx):
     r = rl_ratio(rl)
     m, p = [rl.get((pl, a)) for pl in ("work", "servo") for a in ("tpu27mesh",)], \
         [rl.get((pl, a)) for pl in ("work", "servo") for a in ("tpu27pads1",)]
-    if ok(("pads1", 2048)) and ok(("legacy", 2048)) and r:
-        s = (f"In training, a zero-action benchmark of the env with the pads runs "
-             f"{100 * (1 - ok(('pads1', 2048))[-1]['env_steps_per_s'] / ok(('legacy', 2048))[-1]['env_steps_per_s']):.0f}&#8202;% fewer "
-             f"env steps per second than with the box tip at 2,048 envs, but a PPO iteration costs {_r1(r, 2)} times one on the TPU mesh")
+    if ok(("pads1", 2048)) and ok(("mesh", 2048)) and r:
+        zp, zm = ok(("pads1", 2048))[-1]["env_steps_per_s"], ok(("mesh", 2048))[-1]["env_steps_per_s"]
+        s = (f"In training, a zero-action benchmark of the env with the pads runs {100 * (1 - zp / zm):.0f}&#8202;% fewer env steps per "
+             f"second than with the TPU mesh at 2,048 envs ({P.num(zp, ',.0f')} against {P.num(zm, ',.0f')}), but a PPO iteration "
+             f"costs {_r1(r, 2)} times one on the TPU mesh")
         mm = [x[1] for x in m if x and x[1]]
         pp = [x[1] for x in p if x and x[1]]
         if mm and pp:
             s += f", with {_r1(pp)}&#8202;GB of GPU memory against {_r1(mm)}&#8202;GB"
-        if not ok(("pads1", 4096)) and T.get(("pads1", 4096)):
-            s += "; the 1&#8202;mm pad env did not fit on the 16&#8202;GB GPU at 4,096 envs"
+        # a 4,096-env pad run: say what each attempt recorded, never infer from a missing ok row
+        p4 = T.get(("pads1", 4096), [])
+        if p4 and not ok(("pads1", 4096)):
+            why = []
+            e = next((x for x in p4 if x.get("status") == "error" and "allocate" in str(x.get("error"))), None)
+            if e:
+                why.append("the first attempt ran out of GPU memory"
+                           + (f" with {e['gpu_used_before_mb'] / 1e3:.1f}&#8202;GB already in use" if e.get("gpu_used_before_mb") else ""))
+            n = next((x for x in p4 if x.get("status") == "not_run" and x.get("limit")), None)
+            if n:
+                why.append(f"the retry {n['limit'].replace(' GB', '&#8202;GB')}")
+            s += "; a 4,096-env run of the pad env has not completed" + (f" ({', and '.join(why)})" if why else "")
         out.append(s + ".")
-    out.append("Figure&#160;9 plots the bed&#8217;s costs against each model&#8217;s deviation from Drake over the metrics of Table&#160;2.")
     return " ".join(out).replace(" </p><p> ", "</p><p>")
 
 
@@ -966,7 +998,9 @@ def blocks(ctx):
                       "time per world-step on the same fixture at the batch of highest throughput. "
                       "Models closer in deviation than a label&#8217;s height (the 1&#8202;mm pad in three simulators and condim&#160;4, "
                       "5.7&#8211;6.2&#8202;%) are drawn apart vertically in their order. condim&#160;4&#8217;s torsional coefficient follows a fit to "
-                      "Drake&#8217;s torque (step&#160;10). Drake sits at zero deviation by construction."),
+                      "Drake&#8217;s torque (step&#160;10). Newton hydroelastic runs at the settings of the reference models: \\(k_f\\)&#8202;=&#8202;10, "
+                      "which gives friction rows of 3.9&#8202;ms on the bed, contact reduction without moment matching and 0.5&#8202;mm voxels. "
+                      "Drake sits at zero deviation by construction."),
         "GPU_NOTE": gpu_note(ctx),
         "OPEN_LIST": open_list(ctx),
         "MEFF_TEXT": meff_text(ctx),

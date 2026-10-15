@@ -174,7 +174,8 @@ GLOSSARY = [
     ("\\(t_c\\), \\(d_0\\), \\(\\hat\\Lambda\\), \\(m_\\text{eff}\\)", "MuJoCo&#8217;s <code>solref</code> time constant, "
             "<code>solimp</code> impedance and contact inverse inertia, with \\(m_\\text{eff} = 1/\\hat\\Lambda\\); together they set "
             "the sphere stiffness, (10)."),
-    ("\\(k_h\\), \\(k_f\\)", "Newton&#8217;s hydroelastic stiffness \\(E/h\\), in N/m&#179;, and its friction gain."),
+    ("\\(k_h\\), \\(k_f\\)", "Newton&#8217;s hydroelastic stiffness \\(E/h\\), in N/m&#179;, and its friction gain, a damping "
+            "coefficient in N&#8202;s/m."),
     ("impratio, condim", "MuJoCo&#8217;s friction-to-normal stiffness ratio; condim&#160;4 adds torsional friction to condim&#160;3."),
     ("\\(d'\\), \\(q\\)", "Impedance of \\(n\\) contact rows of one pad moving together, (13), and \\(q=d_0/d'\\), which sets the "
             "step bound (14)."),
@@ -648,7 +649,7 @@ def creep_text(pull, creep, tip_pull=None):
     same = all(_same4(a, b) for a, b in zip(meas, cone))
     out.append(f"For the bed&#8217;s 1&#8202;mm pad (\\(d_0\\)&#8202;=&#8202;{d0:.3f}, \\(\\hat\\Lambda\\)&#8202;=&#8202;{lam:.2f}&#8202;kg\\(^{{-1}}\\), "
                f"\\(t_c\\)&#8202;=&#8202;{tc * 1e3:g}&#8202;ms, \\(\\kappa\\)&#8202;=&#8202;{kap:g}) each touching sphere is a damper of "
-               f"\\(c\\)&#8202;=&#8202;{num(c, ',.1f')}&#8202;N&#8202;s/m. Held at half its slip force in bed task&#160;1, with "
+               f"\\(c_t\\)&#8202;=&#8202;{num(c, ',.1f')}&#8202;N&#8202;s/m. Held at half its slip force in bed task&#160;1, with "
                f"{lst([r['pred_n_contacts'] for r in base], 0)} spheres touching at {_lst([r['N'] for r in base], '&#8202;N')}, equal "
                f"shares give {lst([r['pred_v_formula_mm_s'] * 1e3 for r in base], 1)}&#8202;&#181;m/s; with "
                f"{lst([r['pred_n_saturated'] for r in base], 0)} spheres at their cones the sum gives {lst(cone, 1)}&#8202;&#181;m/s, "
@@ -664,7 +665,8 @@ def creep_text(pull, creep, tip_pull=None):
                    f"impratio {lst([k for k in kaps], 0).replace('10000', '10,000')} (bed task&#160;6)"
                    + (f", and {lst([at1(m, 100.0) for m, _ in tcs], 2)}&#8202;&#181;m/s at \\(t_c\\)&#8202;=&#8202;"
                       f"{_lst([t * 1e3 for _, t in tcs], '&#8202;ms')} and impratio 100" if tcs else "")
-                   + f", so the policy trainer&#8217;s impratio of 10 gives about {at1('mj_pads1', 100.0) * 10 * 1e-3:.2f}&#8202;mm/s.")
+                   + f", so at the policy trainer&#8217;s impratio of 10 the bed pad would creep about "
+                     f"{at1('mj_pads1', 100.0) * 10 * 1e-3:.2f}&#8202;mm/s.")
     ns = [at1x for at1x in (next((r["creep_mm_s"] * 1e3 for r in sel("mj_pads1", 100.0, n) if _eq(r["N"], 1.0)), None)
                             for n in (3, 10)) if at1x is not None]
     if ns and max(ns) < 0:
@@ -800,6 +802,8 @@ def _lst(v, unit=""):
 
 
 def stab_text(rows, fig=6, tail=False):
+    """Two paragraphs, joined by '</p><p>' for a caller that wraps the text in one <p>: bed task 7 against (14), then the
+    friction rows' bound, point contact and MuJoCo's clamp (review of 2026-10-14: one paragraph per bound)."""
     st = stab_stats(rows)
     if not st:
         return ""
@@ -819,6 +823,7 @@ def stab_text(rows, fig=6, tail=False):
                   f"{_lst(sorted({r['dt_first_fail_ms'] for r in below}), '&#8202;ms')}, below bounds of "
                   f"{min(stab_bound(r) for r in below):.1f}&#8211;{max(stab_bound(r) for r in below):.1f}&#8202;ms")
         out.append(s + ".")
+    first, out = out, []
     if st["f_in"]:
         pt = st["point"]
         s = ("In the pinch the tool&#8217;s weight rests on friction rows, which have no spring. Their damper alone gives "
@@ -838,7 +843,7 @@ def stab_text(rows, fig=6, tail=False):
                    f"{max(r['dt_first_fail_ms'] for r in st['soft']):g}&#8202;ms.")
     if tail:
         out.append("Which rows set the largest stable step on the hand is open (Future work).")
-    return " ".join(out)
+    return " ".join(first) + ("</p><p>" + " ".join(out) if out else "")
 
 
 # ------------------------------------------------------------------------------------------ Figure 7: step sweep
@@ -1342,18 +1347,23 @@ def block_table(B):
 
 def hand_cost():
     """CPU us per 1 ms step on the real_v1 hand: the open-loop turn replay of D1-D8 on the working plant (TPU block as 1 mm
-    pads, as one convex mesh with point contact, or Drake hydroelastic; median over the placements) and the scale-study
-    planner's three-finger grip of a 16 mm cylinder on the servo plant (real_v1 and the CAD hand)."""
+    pads, as one convex mesh with point contact, or Drake hydroelastic; median over the placements Drake also ran, paired
+    by hand and seed, so the three medians cover one set) and the scale-study planner's three-finger grip of a 16 mm
+    cylinder on the servo plant (real_v1 and the CAD hand)."""
     out = {}
-    for key, path in (("mj_pads1", os.path.join(HT3, "plans_mujoco.jsonl")), ("mj_point3", os.path.join(SAD, "plans_mujoco_pt.jsonl")),
-                      ("drake_hydro", os.path.join(HT3, "plans_drake.jsonl"))):
-        rows = load(path)
-        v = [r["us_per_step_median"] for r in rows if r.get("us_per_step_median")]
+    rows = {key: load(path) for key, path in (("mj_pads1", os.path.join(HT3, "plans_mujoco.jsonl")),
+                                              ("mj_point3", os.path.join(SAD, "plans_mujoco_pt.jsonl")),
+                                              ("drake_hydro", os.path.join(HT3, "plans_drake.jsonl")))}
+    place = lambda r: (r.get("hand"), r.get("seed"))  # noqa: E731
+    paired = {place(r) for r in rows["drake_hydro"] if r.get("us_per_step_median")}
+    for key, rs in rows.items():
+        v = [r["us_per_step_median"] for r in rs if r.get("us_per_step_median") and (not paired or place(r) in paired)]
         if v:
             out[key] = statistics.median(v)
             if key == "mj_pads1":
-                out["n_pads"] = sum((rows[0].get("n_pads") or {}).values())
-                out["d0"] = sorted({round(x, 3) for r in rows for x in (r.get("pad_d0") or {}).values()})
+                out["n_pads"] = sum((rs[0].get("n_pads") or {}).values())
+                out["d0"] = sorted({round(x, 3) for r in rs for x in (r.get("pad_d0") or {}).values()})
+    out["n_paired"] = len(paired)
     for name, d in (("real_v1", "20261013-scale_turn_controllers"), ("cad", "20261014-scale_turn_cad_v1")):
         p = os.path.join(EXP, d, "planners/timing.json")
         if os.path.exists(p):
@@ -1417,21 +1427,23 @@ def cost_table(cost, batched, hand, rl, state, B):
         ("Bed, 10.55&#8202;mm sphere, task&#160;1, median over 0.5, 1 and 3&#8202;N",
          f(cost.get("mj_point3")), f(cost.get("mj_pads1")), f(cost.get("drake_hydro"), ",.0f"), "&#8211;"),
         ("Bed, printed TPU block, task&#160;1 at 1&#8202;N", "&#8211;", f(blk[BLOCK[0]]), f(blk[BLOCK[1]], ",.0f"), "&#8211;"),
-        ("real_v1 hand, open-loop turn replay D1&#8211;D8, median over placements", f(hand.get("mj_point3")),
-         f(hand.get("mj_pads1")), f(hand.get("drake_hydro"), ",.0f"), "&#8211;"),
+        (f"real_v1 hand, open-loop turn replay D1&#8211;D8, median over the {hand.get('n_paired', 0)} placements that Drake also ran",
+         f(hand.get("mj_point3")), f(hand.get("mj_pads1")), f(hand.get("drake_hydro"), ",.0f"), "&#8211;"),
         ("real_v1 hand, three-finger grip in the planner", f(rv.get("pt")), f(rv.get("pads")), "&#8211;", "&#8211;"),
         ("CAD hand, the same grip", f(cad.get("pt")), f(cad.get("pads")), "&#8211;", "&#8211;"),
         ("SR2 holding fixture, best batch, MuJoCo-Warp (GPU)", "&#8211;", f(b0("mjw_pads1"), ".2f"), "&#8211;", "&#8211;"),
         ("The same fixture in Newton; hydroelastic reduced / all faces (GPU)", "&#8211;", f(b0("newton_pads1"), ".2f"), "&#8211;",
          two(b0("newton_hydro_mc"), b0("newton_hydro_unreduced_mc"), ".2f")),
-        ("D6 RL held state, 1,024 and 2,048 worlds, MuJoCo-Warp 3.14 (GPU)", pair(us.get(("mjw", "3.14", "mesh"))),
-         pair(us.get(("mjw", "3.14", "pads1"))), "&#8211;", pair(us.get(("nt_hydro", "3.14", "mesh")))),
-        ("The same state, MuJoCo-Warp 3.6, the trainer&#8217;s build (GPU)", pair(us.get(("mjw", "3.6", "mesh"))),
-         pair(us.get(("mjw", "3.6", "pads1"))), "&#8211;", "&#8211;"),
-        ("GPU memory of that state at 1,024 worlds, MuJoCo-Warp 3.6 / 3.14 (GB)",
-         two(mem.get(("mjw", "3.6", "mesh")), mem.get(("mjw", "3.14", "mesh")), ".1f"),
-         two(mem.get(("mjw", "3.6", "pads1")), mem.get(("mjw", "3.14", "pads1")), ".1f"), "&#8211;",
-         f(mem.get(("nt_hydro", "3.14", "mesh")))),
+        ("D6 RL held state, 1,024 and 2,048 worlds, MuJoCo-Warp 3.6, the trainer&#8217;s build (GPU)",
+         pair(us.get(("mjw", "3.6", "mesh"))), pair(us.get(("mjw", "3.6", "pads1"))), "&#8211;", "&#8211;"),
+        ("The same state, MuJoCo-Warp 3.14 (GPU)", pair(us.get(("mjw", "3.14", "mesh"))),
+         pair(us.get(("mjw", "3.14", "pads1"))), "&#8211;", "&#8211;"),
+        ("The same state in Newton&#8217;s pipeline on MuJoCo-Warp 3.14 (GPU)", pair(us.get(("nt_pt", "3.14", "mesh"))),
+         pair(us.get(("nt_pt", "3.14", "pads1"))), "&#8211;", pair(us.get(("nt_hydro", "3.14", "mesh")))),
+        ("GPU memory of that state at 1,024 worlds, MuJoCo-Warp 3.6 / 3.14 / Newton (GB)",
+         " / ".join(f(mem.get(k), ".1f") for k in (("mjw", "3.6", "mesh"), ("mjw", "3.14", "mesh"), ("nt_pt", "3.14", "mesh"))),
+         " / ".join(f(mem.get(k), ".1f") for k in (("mjw", "3.6", "pads1"), ("mjw", "3.14", "pads1"), ("nt_pt", "3.14", "pads1"))),
+         "&#8211;", f(mem.get(("nt_hydro", "3.14", "mesh")))),
         ("PPO iteration, servo-limited plant (s)", f(sv("tpu27mesh", 0), ".2f"), f(sv("tpu27pads1", 0), ".2f"), "&#8211;", "&#8211;"),
         ("PPO iteration, working plant, idle GPU / during the runs (s)", two(pr.get("tpu27mesh"), wk("tpu27mesh", 0), ".2f"),
          two(pr.get("tpu27pads1"), wk("tpu27pads1", 0), ".2f"), "&#8211;", "&#8211;"),
@@ -1497,8 +1509,9 @@ def _pct_span(v):
     return f"from {q(lo)}&#8202;% below to {q(hi)}&#8202;% above"
 
 
-def deck_values(T, creep, cal, hand=None):
-    """Placeholders of derivation steps 1-9 (deck 23 of the contact tutorial) computed from the constants and rows."""
+def deck_values(T, creep, cal, hand=None, lo=None):
+    """Placeholders of derivation steps 1-9 (deck 23 of the contact tutorial) computed from the constants and rows.
+    lo: hom_chain_figures.compute(0.5), the chain's thumb pads of Figure 4 at 0.5 N."""
     v = {}
     kw = E_FIELD / G.R
     # step 1: the hinge balance on the bed's brake (task 5)
@@ -1546,6 +1559,10 @@ def deck_values(T, creep, cal, hand=None):
     v.update(P2_ONSET=f"{p2.get('rbar_onset_mm', float('nan')):.3f}", P2_KIN=f"{p2.get('rbar_kin_mm', float('nan')):.3f}",
              P2_ONSET_DEV=f"{(1 - p2.get('rbar_onset_mm', 0) / law05) * 100:.0f}",
              P2_KIN_DEV=f"{(1 - p2.get('rbar_kin_mm', 0) / law05) * 100:.0f}")
+    # the chain's 2 mm thumb pad of Figure 4 at rest on the tool at 0.5 N, against the field's arm
+    lo = lo or G.compute(0.5)
+    dv = (lo[0.002]["arm"] / lo["field"]["arm"] - 1) * 100
+    v["P2_FIG4"] = f"{abs(dv):.0f}&#8202;% {'above' if dv > 0 else 'below'}"
     # step 6: the released sphere and the arm against t_c (task 6 part T2 at 1 N, impratio 100)
     x = 4.0
     for _ in range(40):
@@ -1558,12 +1575,14 @@ def deck_values(T, creep, cal, hand=None):
     t2 = sorted(((_tc_of(r.get("rig_spec")), r) for r in creep if r.get("part") == "T2" and _eq(r.get("dt_ms"), 1.0)
                  and _eq(r.get("N"), 1.0) and _eq(r.get("impratio"), 100.0) and r.get("noslip_iterations", 0) == 0
                  and r.get("status") == "complete" and r.get("rbar_onset_mm")), key=lambda x: x[0])
-    mus = {round(r["mu_eff"], 3) for r in creep if r.get("part") == "T1" and _eq(r.get("N"), 1.0) and _eq(r.get("dt_ms"), 1.0)
-           and r.get("mu_eff")}
+    # slip at the three t_c of part T1, impratio 100 without noslip iterations (the noslip rows read 1.004)
+    mus = sorted({round(r["mu_eff"], 3) for r in creep if r.get("part") == "T1" and _eq(r.get("N"), 1.0)
+                  and _eq(r.get("dt_ms"), 1.0) and _eq(r.get("impratio"), 100.0) and r.get("noslip_iterations", 0) == 0
+                  and r.get("status") == "complete" and r.get("mu_eff")})
     v.update(ONSET_TC=", ".join(f"{r['rbar_onset_mm']:.3f}" for _, r in t2[:-1]) + f" and {t2[-1][1]['rbar_onset_mm']:.3f}" if t2 else "",
              ONSET_TCS=_lst([t * 1e3 for t, _ in t2], "&#8202;ms") if t2 else "",
              KIN_TC=_rng([r["rbar_kin_mm"] for _, r in t2]) if t2 else "",
-             MU_TC=_rng(sorted(mus)) if mus else "")
+             MU_TC=(f"{mus[0]:.3f} at each" if len(mus) == 1 else _rng(mus)) if mus else "")
     # step 7: the bed's railed pads and the chain's thumb
     lam_b, d0_b = r0["pred_Lambda"], r0["pred_d0"]
     ks_b = 1.0 / ((1 - d0_b) * lam_b * tc ** 2)
@@ -1956,7 +1975,8 @@ def main():
                                hand={k: hc.get(k) for k in ("mj_point3", "mj_pads1", "drake_hydro")}, creep_x=creep_x)
     v["BLOCK_TABLE"] = block_table(B)
     v["COST_TABLE"] = cost_table(cost, batched, hc, rc, sc, B)
-    v.update(deck_values(T, T["creep"], cal, hc))
+    v["HAND_N"] = str(hc.get("n_paired", ""))
+    v.update(deck_values(T, T["creep"], cal, hc, lo))
     v["BRISTLE_X"] = f"{SX.gpu('mj_pads1_bristle20a') / gp:.0f}"
     v["FIG_T8"] = svg_t8_loops(SX)
     fig, have_onset = svg_scaling(T["twist"], tor)
