@@ -114,6 +114,12 @@ def render_tex(t):
     return P.TEX_RE.sub(lambda m: next(it), t), len(maths)
 
 
+def sci(p):
+    """A p-value as m&#215;10^e."""
+    m, e = f"{p:.1e}".split("e")
+    return f"{m}&#215;10<sup>{'&#8722;' if int(e) < 0 else ''}{abs(int(e))}</sup>"
+
+
 def us(x):
     return f"{x}&#8202;&#181;s"
 
@@ -344,7 +350,7 @@ def planner_section():
         lo, hi = r["paired_change_ci95"] or (float("nan"), float("nan"))
         return f"{r['paired_change_median']:+.1f} [{lo:+.1f}, {hi:+.1f}]"
     body = [[lab[c], f"{R[c]['held_turn_median']:.1f}", ci(R[c]),
-             "&#8211;" if R[c].get("wilcoxon_p") is None else f"{R[c]['wilcoxon_p']:.4f}",
+             "&#8211;" if R[c].get("wilcoxon_p") is None else sci(R[c]["wilcoxon_p"]),
              f"{R[c]['three_finger']} of {R[c]['n_pairs']}", f"{R[c]['contact_breaks_median']:.0f}",
              f"{R[c]['cmd_rate_rms_median']:.3f}", f"{R[c]['omega_jitter_median']:.2f}",
              "&#8211;" if R[c].get("replan_s_3threads") is None else f"{R[c]['replan_s_3threads']:.2f}"]
@@ -357,7 +363,7 @@ def planner_section():
     fr = ""
     var = S.get("friction") or []
     if var:
-        fr = ("<p>" + " ".join(v["sentence"] for v in var) + "</p>")
+        fr = ("<p>" + " ".join(re.sub(r"-(?=\d)", "&#8722;", v["sentence"]) for v in var) + "</p>")
     return (f"<p>Pinned iCEM (64 rollouts of 0.5&#8202;s every 20&#8202;ms in two iterations, the first knot pinned to the command "
             f"in force, the three-pad cost of 13 October) turns the cylinder on the 1&#8202;mm pad plant by a median "
             f"{pads['held_turn_median']:.1f}&#176; over {pads['n_pairs']} pairs of four cells and four seeds, at "
@@ -365,13 +371,12 @@ def planner_section():
             f"reproduces the 13 October row ({S['reproduction']['new']:.2f}&#176;). Rolling out condim&#160;4 on the TPU block "
             f"instead cuts the replanning to {c4['replan_s_3threads']:.2f}&#8202;s and the held turn by a median "
             f"{-c4['paired_change_median']:.1f}&#176; (95&#8202;% interval {-c4['paired_change_ci95'][1]:.1f}&#8211;"
-            f"{-c4['paired_change_ci95'][0]:.1f}&#176;, Wilcoxon p {c4['wilcoxon_p']:.4f}); point contact cuts the replanning to "
+            f"{-c4['paired_change_ci95'][0]:.1f}&#176;, Wilcoxon p {sci(c4['wilcoxon_p'])}); point contact cuts the replanning to "
             f"{pt['replan_s_3threads']:.2f}&#8202;s and the held turn by {-pt['paired_change_median']:.1f}&#176;. The pads planner "
             f"ends {pads['three_finger']} of {pads['n_pairs']} runs with three fingertips loaded, the condim-4 and point-contact "
             f"planners {c4['three_finger']} and {pt['three_finger']} (Table&#160;[[tab:planner]], Figure&#160;[[fig:planner]]). "
             "Neither cheaper model passes the plan&#8217;s test (a median loss under 10&#176; and at least 15 of 16 three-finger "
-            "endings), so the CPU planner keeps the pads as its rollout model, and the one-third replanning budget is not "
-            "available on the CPU.</p>"
+            "endings), so the CPU planner keeps the pads as its rollout model.</p>"
             + fr + t1
             + img("docs/experiments/20261014-pad_usability/planner/20261014-u4_planner_models.png", f["figures"][0]["caption"],
                   "planner")

@@ -222,7 +222,9 @@ def findings(S):
                          "seeds 0 and 1 are the 13 October rows at six threads, so its replanning time is taken from this study's "
                          "3-thread runs. (2) The configurations fs, fs5, pt5 and pads2 did not run: the GPU solver settings reset "
                          "CPU rollouts and 2 mm pads missed the one-third replanning gate (U1), and no model kept 36 of 40 placements "
-                         "at 4-5 ms (U3). (3) The friction arm ran with the pads planner, since no cheaper planner passed."),
+                         "at 4-5 ms (U3). (3) The friction arm ran with the pads planner, since no cheaper planner passed. (4) The resguard "
+                         "watchdog killed the friction-0.7 process at 19:51:51, when another job's process had taken the memory, "
+                         "after 6 of its 8 runs; the last two ran at 20:05-20:07 as two resumed shards."),
              issues=("Four cells and four seeds; cell effects (34-91 deg for the pads planner) exceed seed effects, and the bootstrap "
                      "resamples cells. The planners differ only in the model they roll out; the cost weights were tuned with the "
                      "pads planner on 13 October."),
