@@ -122,13 +122,13 @@ def film_bed(member, N=1.0, omega=1.0):
     m, d = rig.m, rig.d
     K = float(rig.info["K_sphere"])
     padL = {i for i in range(m.ngeom) if (m.geom(i).name or "").startswith("padL_s")}
-    bR, tb = m.body("padR").id, m.body("tool").id
+    bR, bL, tb = m.body("padR").id, m.body("padL").id, m.body("tool").id
     base = {i: np.array([0.50, 0.52, 0.56, 1.0]) for i in padL}   # untouched pads grey, so the white-red scale
     for i, c in base.items():                                     # belongs to the touching pads only
         m.geom_rgba[i] = c
     for i in range(m.ngeom):
-        if m.geom_bodyid[i] == bR:
-            m.geom_rgba[i, 3] = 0.0
+        if m.geom_bodyid[i] == bR or (m.geom_bodyid[i] == bL and i not in padL):   # the right rail and the left
+            m.geom_rgba[i, 3] = 0.0                                                   # block's tinted visual mesh
         elif m.geom_bodyid[i] == tb:
             m.geom_rgba[i, 3] = 0.22
     pts = [d.contact[i].pos.copy() for i in range(d.ncon) if int(d.contact[i].geom[0]) in padL or int(d.contact[i].geom[1]) in padL]

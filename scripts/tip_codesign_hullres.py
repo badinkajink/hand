@@ -4,7 +4,7 @@ the hand-off note): Drake's 1 rad/s spin arm on tcd_rs3_re3 is 1.15 times the Dr
 on the flat family and 1.02 on the printed hull, and its contact surface has 39 quadrature points (64 on the printed
 hull). This runs the bed's Drake spin at 1 N and 1 rad/s and the static case at 1 N with the tip mesh built from
 surface points thinned to 0.5 mm (the study's meshes) and 0.25 mm, and the law's spin arm (psi 23/46/69 deg) at 1 N on
-the same two hulls. Rows: deterioration/hullres.jsonl.
+the same two hulls. Rows: deterioration/hullres.jsonl (bed) and hullres_law.jsonl (law).
 
     PY=logs/20261001-hom_contact/venv/bin/python
     $PY scripts/tip_codesign_hullres.py --key tcd_rs3_re3 --res 0.0005 0.00025
@@ -26,6 +26,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import tip_codesign_bed as B  # noqa: E402
 
 OUT = ROOT / "docs/experiments/20261014-tip_codesign/deterioration/hullres.jsonl"
+OUT_LAW = OUT.with_name("hullres_law.jsonl")
 
 
 def main():
@@ -50,7 +51,7 @@ def main():
                "n_hull_facets": int(len(F)), "law_spin_arm_1N_mm": arm, "law_delta_1N_um": d0[0] * 1e6,
                "law_onset_arm_1N_mm": d0[1] * 1e3, "wall_s": time.time() - t0, "script": "scripts/tip_codesign_hullres.py",
                "when": time.strftime("%Y-%m-%d %H:%M")}
-        with open(OUT, "a") as fh:
+        with open(OUT_LAW, "a") as fh:
             fh.write(json.dumps(row) + "\n")
             fh.flush()
             os.fsync(fh.fileno())
