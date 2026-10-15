@@ -55,6 +55,9 @@ def _fib(n):
     return np.column_stack([r * np.cos(th), r * np.sin(th), z])
 
 
+DEGENERATE = 1e-14       # m^2, |(b - a) x (c - a)| below which a hull facet is degenerate (see TipShape._planes)
+
+
 def _hull(P):
     from scipy.spatial import ConvexHull
     h = ConvexHull(P)
@@ -164,9 +167,14 @@ class TipShape:
 
     @staticmethod
     def _planes(V, F):
+        """Outward unit normals and offsets of the hull's facets. qhull's triangulation of the terraces leaves
+        degenerate facets (|cross| about 1e-19 m^2, collinear outline points) whose normalised normals point anywhere;
+        they are dropped (|cross| < 1e-14 m^2; real facets have 5e-12 or more), which leaves the hull's region as is."""
         a, b, c = V[F[:, 0]], V[F[:, 1]], V[F[:, 2]]
         n = np.cross(b - a, c - a)
-        n /= np.linalg.norm(n, axis=1, keepdims=True)
+        ln = np.linalg.norm(n, axis=1)
+        k = ln > DEGENERATE
+        n, a = n[k] / ln[k, None], a[k]
         return n, np.einsum("ij,ij->i", n, a)
 
     def _bisect(self, D, inside, t_max=0.03, it=42):

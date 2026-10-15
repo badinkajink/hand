@@ -103,7 +103,9 @@ class DrakeField:
         V, F = shape.hull()
         tri = V[F]
         n = np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0])
-        n /= np.linalg.norm(n, axis=1, keepdims=True)
+        ln = np.linalg.norm(n, axis=1)
+        ok = ln > 1e-14                      # degenerate facets of the terraced hulls (tip_codesign_geometry._planes)
+        tri, n = tri[ok], n[ok] / ln[ok, None]
         self.c, self.E, self.reach = shape.centroid(), E, shape.reach
         keep = n[:, 0] > -0.2
         self.n = n[keep]
