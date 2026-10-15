@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import re
 import sys
 from pathlib import Path
 
@@ -168,6 +169,90 @@ def fig_screen():
     axs[0].set_ylabel("Side fillet r_side (mm)")
     fig.tight_layout(w_pad=0.8)
     out = MEDIA / "fig_screen.png"
+    fig.savefig(out)
+    print("wrote", out.relative_to(ROOT))
+
+
+COND_LABEL = {"mu1.0_kp0.72_kv0_fr0.18_fl0_dp0.0144": "\u03bc 1.0", "mu0.7_kp0.72_kv0_fr0.18_fl0_dp0.0144": "\u03bc 0.7",
+              "mu0.5_kp0.72_kv0_fr0.18_fl0_dp0.0144": "\u03bc 0.5", "mu0.7_kp0.5_kv0_fr0.18_fl0_dp0.0144": "\u03bc 0.7, kp 0.5",
+              "mu0.7_kp0.72_kv0_fr0.12_fl0_dp0.0144": "\u03bc 0.7, 0.12 N m"}
+COND_MARK = {"\u03bc 1.0": "o", "\u03bc 0.7": "s", "\u03bc 0.5": "v", "\u03bc 0.7, kp 0.5": "D", "\u03bc 0.7, 0.12 N m": "^"}
+
+
+def tip_label(k):
+    if k == "tpu2.7":
+        return "block r 2.7 (sim default)"
+    if k == "tcd_rs3_re3_p0.2":
+        return "as-built (3, 3)"
+    m = re.match(r"tcd_rs([0-9.]+)_re([0-9.]+)", k)
+    return f"({m[1]}, {m[2]})"
+
+
+def fig_stage2():
+    """Per stage-2 tip: the stage score in each condition (markers), J2 = their minimum (bar), and the replays within
+    3 deg of Drake (right panel) against the gate."""
+    plt = setup()
+    S = json.loads((D / "screen/summary_stage2.json").read_text())
+    C = S["candidates"]
+    order = sorted(C, key=lambda k: C[k]["J2"] if C[k]["J2"] is not None else -1)
+    fig, (ax, ax2) = plt.subplots(1, 2, figsize=(7.2, 0.36 * len(order) + 1.2), dpi=150, sharey=True,
+                                  gridspec_kw={"width_ratios": [3, 1.35]})
+    y = np.arange(len(order))
+    for i, k in enumerate(order):
+        v = C[k]
+        if v["J2"] is not None:
+            ax.barh(i, v["J2"], color="#cfcfcf", height=0.62, zorder=1)
+        for c, x in v["J"].items():
+            lab = COND_LABEL.get(c, c)
+            ax.plot(x, i, COND_MARK.get(lab, "o"), color=INK, ms=4.2, mfc="white" if lab != "\u03bc 0.7" else INK,
+                    label=lab if i == 0 else None, zorder=3)
+    ax.set_yticks(y)
+    ax.set_yticklabels([tip_label(k) for k in order])
+    ax.set_xlabel("Stage score (bar: J2, the minimum)")
+    ax.set_ylabel("Tip (r_side, r_end), mm")
+    fig.legend(*ax.get_legend_handles_labels(), loc="lower center", ncol=5, fontsize=8.6, bbox_to_anchor=(0.5, -0.02))
+    base = C["tcd_rs3_re3_p0.2"]["agree_drake_3deg"]
+    ax2.barh(y, [C[k]["agree_drake_3deg"] for k in order],
+             color=["#4d4d4d" if C[k]["gate_pass"] else "#bdbdbd" for k in order], height=0.62)
+    ax2.axvline(base - 2, color=PADS, lw=1.0, ls="--")
+    ax2.set_xlim(0, 24)
+    ax2.set_xlabel("Within 3\u00b0 of Drake")
+    for i, k in enumerate(order):
+        ax2.text(C[k]["agree_drake_3deg"] + 0.4, i, str(C[k]["agree_drake_3deg"]), va="center", fontsize=8.6)
+    ax.set_xlim(0, max(max(v["J"].values()) for v in C.values() if v["J"]) * 1.08)
+    fig.tight_layout(w_pad=0.6, rect=(0, 0.07, 1, 1))
+    out = MEDIA / "fig_stage2.png"
+    fig.savefig(out)
+    print("wrote", out.relative_to(ROOT))
+
+
+def fig_stage3():
+    """J3 of each finalist and the baseline, and each finalist's paired difference with its 90 % interval."""
+    plt = setup()
+    S = json.loads((D / "final/summary_stage3.json").read_text())
+    C = S["candidates"]
+    fin = [k for k in S["finalists"]]
+    fig, (ax, ax2) = plt.subplots(1, 2, figsize=(7.2, 0.5 * len(fin) + 1.2), dpi=150, sharey=True)
+    y = np.arange(len(fin))
+    for i, k in enumerate(fin):
+        for c, x in C[k]["J"].items():
+            lab = COND_LABEL.get(c, c)
+            ax.plot(x, i, COND_MARK.get(lab, "o"), color=INK, ms=4.2, mfc="white" if lab != "\u03bc 0.7" else INK,
+                    label=lab if i == 0 else None, zorder=3)
+        ax.barh(i, C[k]["J3"], color="#cfcfcf", height=0.6, zorder=1)
+        if "dJ3_ci90" in C[k]:
+            lo, hi = C[k]["dJ3_ci90"]
+            ax2.errorbar(C[k]["dJ3_vs_base"], i, xerr=[[C[k]["dJ3_vs_base"] - lo], [hi - C[k]["dJ3_vs_base"]]], fmt="o",
+                         color=PADS if C[k].get("beats_base") else INK, ms=4.5, capsize=3, lw=1.2)
+    ax2.axvline(0, color=INK2, lw=0.9, ls=":")
+    ax.set_yticks(y)
+    ax.set_yticklabels([tip_label(k) for k in fin])
+    ax.set_xlabel("Stage score on fresh seeds (bar: J3)")
+    ax2.set_xlabel("J3 \u2212 as-built J3 (90 % interval)")
+    ax.set_ylabel("Tip (r_side, r_end), mm")
+    fig.legend(*ax.get_legend_handles_labels(), loc="lower center", ncol=4, fontsize=8.6, bbox_to_anchor=(0.5, -0.02))
+    fig.tight_layout(w_pad=0.6, rect=(0, 0.12, 1, 1))
+    out = MEDIA / "fig_stage3.png"
     fig.savefig(out)
     print("wrote", out.relative_to(ROOT))
 
