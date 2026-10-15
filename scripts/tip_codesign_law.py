@@ -193,7 +193,9 @@ def solve(model, psi, N, tol=1e-4):
         f2 = model.forces(psi, d2)[0]
         if abs(f2 / N - 1) < tol:
             break
-    _, arm, rho90, n, area = model.forces(psi, d2)
+    F, arm, rho90, n, area = model.forces(psi, d2)
+    if not (F > 0 and abs(F / N - 1) < 1e-2):         # no converged contact (e.g. the line misses the surface)
+        return float("nan"), float("nan"), float("nan"), 0, float("nan")
     return d2, arm, rho90, n, area
 
 
@@ -202,6 +204,8 @@ def brake(model, phi_deg, N0=0.5, it=8):
     N = N0
     for _ in range(it):
         _, arm, *_ = solve(model, math.radians(phi_deg), N)
+        if not arm > 0:
+            return float("nan"), float("nan")
         N = M_TOOL * GRAV * D_CG * math.cos(math.radians(phi_deg)) / (2 * MU * arm)
     return N, arm
 

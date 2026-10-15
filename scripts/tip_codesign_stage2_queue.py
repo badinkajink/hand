@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Write the stage-2 job queue (logs/20261014-tip_codesign/stage2/queue.txt) from the stage-1 ranking
-(docs/experiments/20261014-tip_codesign/screen/summary_stage1.json): the 8 highest J1 and the as-built tip
-(tcd_rs3_re3_p0.2), each at the five conditions of plan step 8.
+(docs/experiments/20261014-tip_codesign/screen/summary_stage1.json): the 8 highest J1, the as-built tip as printed
+(tcd_rs3_re3_p0.2) and the simulation default (tpu2.7, the comparison baseline), each at the five conditions of plan
+step 8.
 
     python3 scripts/tip_codesign_stage2_queue.py [--n 8]
 """
@@ -23,8 +24,9 @@ def main():
     S = json.loads((ROOT / "docs/experiments/20261014-tip_codesign/screen/summary_stage1.json").read_text())
     rank = sorted(((v["J1"] or -1, k) for k, v in S["candidates"].items()), reverse=True)
     keys = [k for _, k in rank[:a.n]]
-    if BASE not in keys:
-        keys.append(BASE)
+    for ref in (BASE, "tpu2.7"):
+        if ref not in keys:
+            keys.append(ref)
     jobs = []
     for k in keys:                                   # the slow jobs first
         jobs.append(f"drake {k}")
