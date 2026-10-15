@@ -176,9 +176,13 @@ def deterioration():
         "N45_over_drake": "brake N at 45 deg, pads at 1 ms over Drake at 0.5 ms",
         "slip_number_1": "zeta t_r mu omega rho90 / delta at 1 rad/s and 1 N: the phantom penetration of a pad at the "
                          "patch's 90th-percentile radius over the approach (t_r 0.02 s, zeta 1, mu 1; law pads, psi 45)"}}
-    for r_mm in ("0", "0.5", "1", "1.5", "2", "2.7", "3", "4", "6", "7.4", "sphere"):
+    tcd = ("tcd_rs3_re3", "tcd_rs3_re3_p0.2", "tcd_rs5_re1", "tcd_rs3_re3_cr15", "tcd_rs3_re3_cr10.55")
+    for r_mm in ("0", "0.5", "1", "1.5", "2", "2.7", "3", "4", "6", "7.4", "sphere") + tcd:
         n = r_mm.replace(".", "p")
-        if r_mm == "sphere":
+        if r_mm.startswith("tcd_"):
+            names = {"base": f"mj_{r_mm}_pads1", "fix": None, "drake": f"drake_{r_mm}"}
+            L = law.get((r_mm, "drake"))
+        elif r_mm == "sphere":
             names = {"base": "mj_pads1", "fix": "mj_pads1_fix", "drake": "drake_hydro"}
             L = None
         else:
@@ -188,7 +192,7 @@ def deterioration():
         lawsp = L["spin_arm_mm"]["1"] if L else V[names["drake"]].get(("w", 0.3))
         law0 = L["table"]["1|0"]["arm_mm"] if L else V[names["drake"]].get(("on", 1.0))
         for v, nm in names.items():
-            d = V.get(nm, {})
+            d = V.get(nm, {}) if nm else {}
             m[v] = {"approach_1N_um": d.get(("app", 1.0)), "onset_1N_mm": d.get(("on", 1.0)),
                     "onset_over_law": (d.get(("on", 1.0)) or float("nan")) / law0 if law0 else None,
                     "creep_1N_deg_s": d.get(("creep", 1.0)),
@@ -200,25 +204,58 @@ def deterioration():
                     "phi_end_1ms": d.get(("phi", 1.0)), "phi_end_05ms": d.get(("phi", 0.5))}
         dr = m["drake"]
         for v in ("base", "fix"):
+            if not names.get(v):
+                continue
             m[v]["approach_over_drake"] = (m[v]["approach_1N_um"] / dr["approach_1N_um"]
                                            if m[v]["approach_1N_um"] and dr["approach_1N_um"] else None)
             ref = dr["N45_05ms"] or dr["N45_1ms"]
             m[v]["N45_over_drake"] = m[v]["N45_1ms"] / ref if m[v]["N45_1ms"] and ref else None
         if L:
-            P = law[(f"tpu{r_mm}", "pads")]["table"]["1|45"]
+            tk = r_mm if r_mm.startswith("tcd_") else f"tpu{r_mm}"
+            P = law[(tk, "pads")]["table"]["1|45"]
             m["slip_number_1"] = 0.02 * 1.0 * P["rho90_mm"] / (P["delta_um"] * 1e-3)
-            m["r_over_rs"] = float(r_mm) / 0.75
+            if not r_mm.startswith("tcd_"):
+                m["r_over_rs"] = float(r_mm) / 0.75
             m["law"] = {"onset_1N_mm": law0, "spin_1N_mm": lawsp, "N45": L["brake_N"]["N45"],
-                        "pads_quasistatic_spin_1N_mm": law[(f"tpu{r_mm}", "pads")]["spin_arm_mm"]["1"],
-                        "pads_quasistatic_onset_1N_mm": law[(f"tpu{r_mm}", "pads")]["table"]["1|0"]["arm_mm"]}
+                        "pads_quasistatic_spin_1N_mm": law[(tk, "pads")]["spin_arm_mm"]["1"],
+                        "pads_quasistatic_onset_1N_mm": law[(tk, "pads")]["table"]["1|0"]["arm_mm"]}
         out["members"][r_mm] = m
     (D / "deterioration/summary.json").write_text(json.dumps(out, indent=1))
+    # builder tests (plan step 5): per member and variant the static errors; n* from the spacing variants
+    B = rows(D / "deterioration/builders.jsonl")
+    tau = json.loads((D / "tolerance/summary.json").read_text())["tau_rel_friction"]
+    pts = []
+    out["builders"] = {}
+    for r in B:
+        v = r["variants"]
+        out["builders"][r["tip"]] = {k: {"arm0_over_law_1N": x["1"]["arm0_over_law"], "arm45_over_law_1N": x["1"]["arm45_over_law"],
+                                         "delta_over_law_1N": x["1"]["delta_over_law"], "spin_over_law": x["spin_over_law"],
+                                         "n_patch_1N": x["1"]["n_patch"], "n_pads": x["n_pads"]} for k, x in v.items()}
+        out["builders"][r["tip"]]["ripple_1mm"] = r["ripple_1mm"]
+        for k in ("pads_s0.5", "pads_s0.75", "pads_s1", "pads_s1.5"):
+            for N in ("0.5", "1", "3"):
+                pts.append((v[k][N]["n_patch"], abs(v[k][N]["arm0_over_law"] - 1), r["tip"], k, N))
+    def n_star(P):
+        P = sorted(P)
+        for i, (n, e, *_rest) in enumerate(P):
+            if all(q[1] < tau for q in P[i:]):
+                return n
+        return None
+    smooth = [q for q in pts if q[2] not in ("tpu0", "tpu0.5", "tpu1") and not q[2].endswith("_p0.2")]
+    nstar = n_star(pts)
+    out["n_star"], out["n_star_smooth"] = nstar, n_star(smooth)
+    out["n_star_smooth_members"] = "fillets of 1.5 mm or more, design surfaces (no r <= 1 mm, no as-printed)"
+    out["n_star_rule"] = (f"the smallest loaded-pad count per side above which every spacing variant's 0.5-3 N psi-0 "
+                          f"arm is within tau ({tau:.4f}) of the Drake-field law")
+    (D / "deterioration/summary.json").write_text(json.dumps(out, indent=1))
+    nan = float("nan")
     for k, m in out["members"].items():
-        b, f, d = m["base"], m["fix"], m["drake"]
-        print(f"r {k:6s} onset/law {b['onset_over_law']:.3f} (Drake {d['onset_over_law']:.3f}); spin/law at 1 rad/s "
-              f"{b['spin_over_law'].get('1', float('nan')):.2f} fix {f['spin_over_law'].get('1', float('nan')):.2f} "
-              f"Drake {d['spin_over_law'].get('1', float('nan')):.2f}; N45/Drake {b['N45_over_drake']:.2f} fix "
-              f"{f['N45_over_drake']:.2f}; Pi {m.get('slip_number_1', float('nan')):.1f}")
+        b, f, d = m["base"], m.get("fix") or {}, m["drake"]
+        print(f"{k:20s} onset/law {b.get('onset_over_law') or nan:.3f} (Drake {d.get('onset_over_law') or nan:.3f}); "
+              f"spin/law 1 rad/s {b.get('spin_over_law', {}).get('1', nan):.2f} fix {f.get('spin_over_law', {}).get('1', nan):.2f} "
+              f"Drake {d.get('spin_over_law', {}).get('1', nan):.2f}; N45/Drake {b.get('N45_over_drake') or nan:.2f}; "
+              f"Pi {m.get('slip_number_1', nan):.1f}")
+    print("n* =", nstar, "; n* over smooth members =", out["n_star_smooth"], ";", out["n_star_rule"])
     return out
 
 
@@ -310,11 +347,43 @@ def screen():
     return out
 
 
+def handv2():
+    """Plan step 5's hand check on the as-built tip as printed (tcd_rs3_re3_p0.2): builder v1 (h 8.5 mm, median K)
+    against v2 (local h, per-pad K): replays D1-D8 seeds 0-4 and HOM seeds 0-2 at mu 1.0; each against Drake's replays
+    of the same tip at seeds 0-2 (within 3 deg and the same held outcome). Writes deterioration/handv2_summary.json."""
+    R = [r for r in rows(D / "deterioration/handv2_replay.jsonl") if r.get("status") == "complete"]
+    Hm = [r for r in rows(D / "deterioration/handv2_hom.jsonl") if r.get("status") == "ok"]
+    drk = {(r["hand"], int(r["seed"])): outcome_replay(r) for r in R if r["sim"] == "drake"}
+    out = {}
+    for tag in sorted({r["tag"] for r in R if r["sim"] == "mujoco"}):
+        rep = {(r["hand"], int(r["seed"])): outcome_replay(r) for r in R if r["sim"] == "mujoco" and r["tag"] == tag}
+        hom = {(r["hand"], int(r["seed"])): outcome_hom(r) for r in Hm if r["tag"] == tag}
+        ks = [k for k in rep if k in drk]
+        agree = [k for k in ks if bool(rep[k]["held"]) == bool(drk[k]["held"]) and abs(rep[k]["turn"] - drk[k]["turn"]) <= 3]
+        out[tag] = {"n_replay": len(rep), "held_replay": sum(bool(v["held"]) for v in rep.values()),
+                    "n_vs_drake": len(ks), "within3_of_drake": len(agree),
+                    "hom_held": sum(bool(v["held"]) for v in hom.values()), "n_hom": len(hom),
+                    "hom_mean_held_turn_deg": float(np.mean([v["turn"] if v["held"] else 0 for v in hom.values()])) if hom else None,
+                    "replay_turns": {f"{k[0]} s{k[1]}": round(v["turn"], 2) for k, v in rep.items()}}
+    tags = list(out)
+    if len(tags) == 2:
+        a, b = (out[t]["replay_turns"] for t in tags)
+        out["v1_vs_v2_changed_replays"] = sum(abs(a[k] - b[k]) > 3 for k in a if k in b)
+    (D / "deterioration/handv2_summary.json").write_text(json.dumps(out, indent=1))
+    for t in tags:
+        v = out[t]
+        print(f"{t:28s} replays held {v['held_replay']}/{v['n_replay']}, within 3 deg of Drake {v['within3_of_drake']}/{v['n_vs_drake']};"
+              f" HOM held {v['hom_held']}/{v['n_hom']}, mean held turn {v['hom_mean_held_turn_deg']}")
+    print("v1 vs v2 replays differing by > 3 deg:", out.get("v1_vs_v2_changed_replays"))
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("cmd", choices=["tolerance", "handfix", "deterioration", "screen"])
+    ap.add_argument("cmd", choices=["tolerance", "handfix", "deterioration", "screen", "handv2"])
     a = ap.parse_args()
-    {"tolerance": tolerance, "handfix": handfix, "deterioration": deterioration, "screen": screen}[a.cmd]()
+    {"tolerance": tolerance, "handfix": handfix, "deterioration": deterioration, "screen": screen,
+     "handv2": handv2}[a.cmd]()
 
 
 if __name__ == "__main__":
