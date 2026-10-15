@@ -302,6 +302,67 @@ def cmd_scale(a):
     return S.cmd_run(ns)
 
 
+ASSETS = ROOT / "assets/mjcf/experimental/20261014-tip_codesign"
+
+
+def _portable(xml_path, out_xml):
+    """Copy a scene with its absolute-path meshes into out_xml's folder (meshes/<file>), mesh paths made relative."""
+    import shutil
+    root = ET.parse(xml_path).getroot()
+    (out_xml.parent / "meshes").mkdir(parents=True, exist_ok=True)
+    for m in root.iter("mesh"):
+        f = m.get("file")
+        if f and Path(f).is_absolute():
+            dst = out_xml.parent / "meshes" / Path(f).name
+            shutil.copyfile(f, dst)
+            m.set("file", f"meshes/{dst.name}")
+    ET.indent(root, "  ")
+    out_xml.write_text(ET.tostring(root, encoding="unicode") + "\n")
+
+
+def cmd_assets(a):
+    """Ledger step 21: pad scenes of each tip under assets/mjcf/experimental/20261014-tip_codesign/<tip>/: the D6 bench
+    replay scene on the servo-limited plant at mu 1.0 (D6_<tip>_pads_servo.xml) and the CAD hand
+    (build_cad_v1_finger.py --out <tip>/cad_v1 with the tips forced to <tip>: finger.xml, hand.xml,
+    scene_screwdriver_medium.xml). Run in .venv."""
+    import build_cad_v1_finger as BC
+    for tip in a.tips:
+        out = ASSETS / tip
+        out.mkdir(parents=True, exist_ok=True)
+        ns = argparse.Namespace(E=a.E, pf=None, tr=a.tr, tag=None, h=a.h, K=a.K)
+        install(ns)
+        PUB.SCN = SCN.parent / "assets_build" / tag_of(ns)
+        path, meta = PUB.build("D6", tip, "pads", SERVO, "bed", 100.0, "1.0")
+        _portable(Path(path), out / f"D6_{tip}_pads_servo.xml")
+        install(ns, force_tip=tip)
+        argv = sys.argv
+        sys.argv = ["build_cad_v1_finger.py", "--out", str(out / "cad_v1")]
+        try:
+            BC.main()
+        finally:
+            sys.argv = argv
+        (out / "README.json").write_text(json.dumps({
+            "tip": tip, "E_Pa": a.E, "pad_builder": {"h": a.h, "K": a.K}, "pad_spacing_m": RB.PAD_S, "pad_radius_m": RB.PAD_RS,
+            "D6_scene": f"D6_{tip}_pads_servo.xml", "plant": SERVO, "mu": 1.0, "cad_scene": "cad_v1/scene_screwdriver_medium.xml",
+            "n_pads": meta.get("n_pads"), "pad_d0": meta.get("pad_d0"),
+            "rl": f"PY scripts/tip_codesign_rig.py rlscene --tip {tip} --src <run dir with frozen_scene.xml> --out-dir <new run dir>",
+            "script": SCRIPT, "when": time.strftime("%Y-%m-%d %H:%M")}, indent=1))
+        print(f"{tip}: {out.relative_to(ROOT)} (D6 scene, cad_v1/)", flush=True)
+
+
+def cmd_rlscene(a):
+    """make_pad_morphology_run.py with the dispatcher installed, so --tip may be a tcd key: the source run's
+    frozen_scene.xml with the tip's 1 mm pads, written into a new run directory for the RL queue."""
+    import make_pad_morphology_run as MPR
+    install(argparse.Namespace(E=a.E, pf=None, tr=a.tr, tag=None, h=a.h, K=a.K))
+    argv = sys.argv
+    sys.argv = ["make_pad_morphology_run.py", "--src", str(a.src), "--out", str(a.out_dir), "--tip", a.tip, "--E", str(a.E)]
+    try:
+        return MPR.main()
+    finally:
+        sys.argv = argv
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -354,8 +415,19 @@ def main():
     h.add_argument("--mu", default="1.0")
     h.add_argument("--set", nargs="*", default=[])
     h.add_argument("--ir", type=float, default=100.0, help="impratio of the pads scene")
+    for name in ("assets", "rlscene"):
+        q = sub.add_parser(name)
+        q.add_argument("--E", type=float, default=RB.E_TPU)
+        q.add_argument("--tr", type=float, default=RB.PAD_TR)
+        q.add_argument("--h", default="fixed", choices=["fixed", "local"])
+        q.add_argument("--K", default="median", choices=["median", "each"])
+    sub.choices["assets"].add_argument("--tips", nargs="+", required=True)
+    rl = sub.choices["rlscene"]
+    rl.add_argument("--tip", required=True)
+    rl.add_argument("--src", type=Path, required=True, help="run directory with frozen_scene.xml")
+    rl.add_argument("--out-dir", type=Path, required=True)
     a = ap.parse_args()
-    {"replay": cmd_replay, "hom": cmd_hom, "scale": cmd_scale}[a.cmd](a)
+    {"replay": cmd_replay, "hom": cmd_hom, "scale": cmd_scale, "assets": cmd_assets, "rlscene": cmd_rlscene}[a.cmd](a)
 
 
 if __name__ == "__main__":
