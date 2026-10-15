@@ -253,6 +253,9 @@ def agree_section():
                 "CPU per step (&#181;s)"], [r for r in keep], t["title"] + ". Servo-limited plant: rows of this study; working "
                "plant: the 1&#8202;mm pads, point contact and Drake rows of 6 October. McNemar: discordant placements (pads "
                "within, model not : the reverse) and the exact two-sided p.", key="agree")
+    # figures numbered in the order they appear: the two charts, then the two films
+    figs = (img(f["figures"][0]["path"], f["figures"][0]["caption"], "agree")
+            + img(f["figures"][1]["path"], f["figures"][1]["caption"]))
     films = "".join(film(x["path"], x["poster"], x["caption"]) for x in f["films"][:1] + f["films"][2:3])
     return ("<p>On the servo-limited plant the 1&#8202;mm pads end the eight deployed open-loop plans within 3&#176; of Drake "
             "hydroelastic, keeping the tool, on 16 of 24 placements, against 23 of 24 on the working plant "
@@ -268,8 +271,7 @@ def agree_section():
             "On the two-pad block bed impratio 10 lengthens the pads&#8217; twist-onset arm by 7.1&#8202;% at 1&#8202;N and "
             "4.5&#8202;% at 3&#8202;N and raises creep 9.9-fold, to 107&#8202;&#181;m/s at 1&#8202;N.</p>"
             + t1
-            + img(f["figures"][0]["path"], f["figures"][0]["caption"], "agree")
-            + img(f["figures"][1]["path"], f["figures"][1]["caption"])
+            + figs
             + films)
 
 

@@ -763,7 +763,7 @@ def mindlin_t8_trace(N=1.0, n=200):
 
 def _f8(ctx):
     """The impratio-10 panel: Figure 14b in the overview, Figure 2b on the skin page (ctx["t8_fig"])."""
-    return f"Figure&#160;{ctx.get('t8_fig', '13')}b"
+    return f"Figure&#160;{ctx.get('t8_fig', '14')}b"
 
 
 def skin_lead(ctx):
