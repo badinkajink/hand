@@ -137,27 +137,27 @@ def tip_name(k):
 
 GLOSSARY = [
     ("1&#8202;mm pads", "The fingertip&#8217;s palmar region as spheres of radius 0.75&#8202;mm on a 1&#8202;mm lattice (1,160 on the "
-     "as-built tip as printed), each a MuJoCo soft contact of stiffness $K_i = E a_i / h$ with $E$ = 10&#8202;MPa, $a_i$ the pad&#8217;s "
-     "share of the surface and $h$ = 8.5&#8202;mm; relaxation time 0.02&#8202;s, impratio 100, elliptic friction cone, 1&#8202;ms "
-     "step. Builder v1 gives every finger its median $K_i$; builder v2 uses each pad&#8217;s own $K_i$ with $h_i$ the pad&#8217;s "
+     "as-built tip as printed), each a MuJoCo soft contact of stiffness \\(K_i = E a_i / h\\) with \\(E\\) = 10&#8202;MPa, \\(a_i\\) the pad&#8217;s "
+     "share of the surface and \\(h\\) = 8.5&#8202;mm; relaxation time 0.02&#8202;s, impratio 100, elliptic friction cone, 1&#8202;ms "
+     "step. Builder v1 gives every finger its median \\(K_i\\); builder v2 uses each pad&#8217;s own \\(K_i\\) with \\(h_i\\) the pad&#8217;s "
      "normal distance to the volume centroid. The pads on the printed TPU block are the hand&#8217;s default fingertip."),
     ("Drake hydroelastic", "Drake 1.57&#8217;s compliant convex hull of the tip, modulus 10&#8202;MPa, dissipation time scale "
      "0.01&#8202;s, SAP solver: the dynamic reference."),
-    ("Law", "The quasi-static integral of Drake&#8217;s pressure field $p = E\\,(1 - g(\\mathbf{x}))$, $g$ the gauge of the tip&#8217;s "
-     "convex hull about its volume centroid, against the bed&#8217;s tool cylinder at angle $\\psi$ to the pinch line "
+    ("Law", "The quasi-static integral of Drake&#8217;s pressure field \\(p = E\\,(1 - g(\\mathbf{x}))\\), \\(g\\) the gauge of the tip&#8217;s "
+     "convex hull about its volume centroid, against the bed&#8217;s tool cylinder at angle \\(\\psi\\) to the pinch line "
      "(<code>scripts/tip_codesign_law.py</code>). It gives the approach, the twist-onset arm, the all-slip spin arm and the brake force "
      "with no time stepping."),
     ("Bed", "Two force-controlled rails squeeze a 25&#8202;mm diameter, 24.5&#8202;g screwdriver between two fingertips at 1&#8202;N "
-     "per pad, friction coefficient $\\mu$ = 1, 1&#8202;ms step (the contact bed of <code>docs/overviews/contact_model.html</code>)."),
+     "per pad, friction coefficient \\(\\mu\\) = 1, 1&#8202;ms step (the contact bed of <code>docs/overviews/contact_model.html</code>)."),
     ("Approach", "Rail travel at 1&#8202;N per pad from first touch, in &#181;m."),
-    ("Twist-onset arm", "Bed case T2: the torque at which the tool starts to turn under a slow torque ramp, over $2\\mu N$, in mm; "
-     "the law&#8217;s value is its all-slip arm with the tool along the pinch line ($\\psi$ = 0)."),
-    ("Spin arm", "The mean torque that drives the tool about the pinch axis at rate $\\omega$ over the turn 0.4&#8211;1.2&#8202;rad, "
-     "over $2\\mu N$, in mm; the law&#8217;s value is the quasi-static all-slip arm averaged over $\\psi$ = 23, 46 and 69&#176;."),
+    ("Twist-onset arm", "Bed case T2: the torque at which the tool starts to turn under a slow torque ramp, over \\(2\\mu N\\), in mm; "
+     "the law&#8217;s value is its all-slip arm with the tool along the pinch line (\\(\\psi\\) = 0)."),
+    ("Spin arm", "The mean torque that drives the tool about the pinch axis at rate \\(\\omega\\) over the turn 0.4&#8211;1.2&#8202;rad, "
+     "over \\(2\\mu N\\), in mm; the law&#8217;s value is the quasi-static all-slip arm averaged over \\(\\psi\\) = 23, 46 and 69&#176;."),
     ("Brake force", "Bed case T5: the pinch force per pad at which the tool, released with its centre of mass 15&#8202;mm from the "
      "pinch, stops swinging at 45&#176;, in N."),
     ("Flat family", "<code>tpu&lt;r&gt;</code>: the 17.0&#8202;&#215;&#8202;14.8&#8202;&#215;&#8202;22.0&#8202;mm block with every "
-     "edge rounded at fillet radius $r$ = 0&#8211;7.4&#8202;mm; the printed tip in simulation is $r$ = 2.7&#8202;mm."),
+     "edge rounded at fillet radius \\(r\\) = 0&#8211;7.4&#8202;mm; the printed tip in simulation is \\(r\\) = 2.7&#8202;mm."),
     ("Candidate tip (r<sub>side</sub>, r<sub>end</sub>)", "The CAD tip envelope, 17.0&#8202;&#215;&#8202;14.8&#8202;&#215;&#8202;"
      "21.41&#8202;mm, with the side edges rounded at r<sub>side</sub> and the distal end at r<sub>end</sub> (mm), as printed face up "
      "in 0.2&#8202;mm layers, so the curved faces are terraces (keys <code>tcd_rs&lt;r_side&gt;_re&lt;r_end&gt;_p0.2</code>). "
@@ -172,15 +172,15 @@ GLOSSARY = [
     ("Held turn", "The HOM turn at the end of a rollout when the tool is held, otherwise 0, in degrees."),
     ("Stage score", "The mean of five parts, each a held turn over 90&#176;: for each cell, the mean held turn of the grasp chosen by "
      "its held turn on seed 0, over the scoring seeds; and the mean held turn of HOM on D1&#8211;D8."),
-    ("J1, J2, J3", "J1: the stage score at $\\mu$ = 0.7 on the servo-limited plant, scoring seeds 1&#8211;2 (stage 1). J2: the "
-     "minimum stage score over five conditions, $\\mu$ = 1.0, 0.7 and 0.5 on the servo-limited plant, gain 0.5 and torque limit "
-     "0.12&#8202;N&#8202;m at $\\mu$ = 0.7 (stage 2, HOM seeds 0&#8211;4). J3: the minimum over the four conditions other than "
-     "$\\mu$ = 1.0 on fresh placements only, cell seeds 3&#8211;5 and HOM seeds 5&#8211;9 (stage 3)."),
-    ("Agreement with Drake", "Plan replays of the eight deployed hands (seeds 0&#8211;2, $\\mu$ = 1.0, 24 runs) whose held outcome "
+    ("J1, J2, J3", "J1: the stage score at \\(\\mu\\) = 0.7 on the servo-limited plant, scoring seeds 1&#8211;2 (stage 1). J2: the "
+     "minimum stage score over five conditions, \\(\\mu\\) = 1.0, 0.7 and 0.5 on the servo-limited plant, gain 0.5 and torque limit "
+     "0.12&#8202;N&#8202;m at \\(\\mu\\) = 0.7 (stage 2, HOM seeds 0&#8211;4). J3: the minimum over the four conditions other than "
+     "\\(\\mu\\) = 1.0 on fresh placements only, cell seeds 3&#8211;5 and HOM seeds 5&#8211;9 (stage 3)."),
+    ("Agreement with Drake", "Plan replays of the eight deployed hands (seeds 0&#8211;2, \\(\\mu\\) = 1.0, 24 runs) whose held outcome "
      "matches Drake&#8217;s and whose turn lies within 3&#176; of Drake&#8217;s. The gate admits a tip with at most two agreements "
      "fewer than the as-built tip."),
     ("Three-finger hold", "Grasps of the four cells (33) that keep the tool through the hold test&#8217;s force and torque ramps at "
-     "$\\mu$ = 0.5 with all three fingers loaded."),
+     "\\(\\mu\\) = 0.5 with all three fingers loaded."),
     ("Hand tolerance &#964;", "The relative friction change at which the share of hand runs whose outcome changes (held flips or "
      "the turn moves more than 3&#176;) exceeds the chaotic floor by 5 points; 3.65&#8202;% (<code>tolerance/summary.json</code>)."),
     ("E*", "A print recipe&#8217;s effective modulus from the whole-tip finite-element model with a 4.76&#8202;mm magnet 5&#8202;mm "
@@ -196,9 +196,9 @@ def question():
     return ("<p>The 1&#8202;mm pads model the printed TPU fingertip in every simulator the hand uses. This study measures how far "
             "they depart from the law and from Drake as the fingertip&#8217;s shape changes, and then uses the pads to choose a "
             "printable fingertip, its print recipe and its pad model for the hand&#8217;s tasks. The deterioration sweep runs the "
-            "bed on the flat family ($r$ = 0&#8211;7.4&#8202;mm), the 10.55&#8202;mm sphere tip and five CAD-tip members. The "
+            "bed on the flat family (\\(r\\) = 0&#8211;7.4&#8202;mm), the 10.55&#8202;mm sphere tip and five CAD-tip members. The "
             "co-design screens 24 printable candidates of the CAD envelope, the as-built design surface and the simulation "
-            "default in three stages: J1 at $\\mu$ = 0.7 (26 tips), J2 over five friction and servo conditions with an agreement "
+            "default in three stages: J1 at \\(\\mu\\) = 0.7 (26 tips), J2 over five friction and servo conditions with an agreement "
             "gate against Drake (the eight highest J1, the as-built tip and the default), and J3 on fresh placements for the "
             "finalists against the as-built tip. Finite elements and the slicer then fix the finalists&#8217; print recipe and "
             "files. The plan, its critic&#8217;s revisions and the falsifiers are in "
@@ -239,14 +239,14 @@ def accuracy_section():
          f"7&#8211;14&#8202;% above it on sharper blocks (Figure&#160;[[fig:det]], Table&#160;[[tab:det]]). Their sliding torque "
          f"is too large wherever the patch is long: at 1&#8202;rad/s the spin arm is {S['0']['base']['spin_over_law']['1']:.2f} "
          f"times the law on the sharp block, {S['2.7']['base']['spin_over_law']['1']:.2f} times on the printed tip&#8217;s "
-         f"$r$ = 2.7&#8202;mm, {S['7.4']['base']['spin_over_law']['1']:.2f} times on the fully rounded block and "
+         f"\\(r\\) = 2.7&#8202;mm, {S['7.4']['base']['spin_over_law']['1']:.2f} times on the fully rounded block and "
          f"{sp['base']['spin_over_law']['1']:.2f} times on the sphere, while Drake stays within "
          f"{min(S[k]['drake']['spin_over_law']['1'] for _, k in fam):.2f}&#8211;"
          f"{max(S[k]['drake']['spin_over_law']['1'] for _, k in fam):.2f}. The braked swing needs only "
          f"{min(S[k]['base']['N45_over_drake'] for r, k in fam if r <= 3):.2f}&#8211;"
-         f"{max(S[k]['base']['N45_over_drake'] for r, k in fam if r <= 3):.2f} of Drake&#8217;s pinch force for $r$ &#8804; "
-         "3&#8202;mm and the same force for $r$ &#8805; 6&#8202;mm: the larger sliding torque brakes the swing earlier. The "
-         "as-built design surface and its printed terraces behave like the $r$ = 3&#8202;mm block.</p>")
+         f"{max(S[k]['base']['N45_over_drake'] for r, k in fam if r <= 3):.2f} of Drake&#8217;s pinch force for \\(r\\) &#8804; "
+         "3&#8202;mm and the same force for \\(r\\) &#8805; 6&#8202;mm: the larger sliding torque brakes the swing earlier. The "
+         "as-built design surface and its printed terraces behave like the \\(r\\) = 3&#8202;mm block.</p>")
     t += img("media/fig_deterioration.png", "Pads (1&#8202;mm spheres) and Drake against the law over the flat family&#8217;s fillet "
              "radius and on the 10.55&#8202;mm sphere tip, at 1&#8202;N per pad: twist-onset arm, spin arm at 1&#8202;rad/s, and the "
              "pads&#8217; brake force at 45&#176; over Drake&#8217;s (Drake at 0.5&#8202;ms). Rows: "
@@ -259,7 +259,7 @@ def accuracy_section():
     t += hull
     t += film("media/bed_spin_tile.mp4", "media/bed_spin_tile_poster.jpg",
               "Driven spin at 1&#8202;N and 1&#8202;rad/s, four tips, one frame per 0.01&#8202;rad (4&#215; slow motion), seen from the "
-              "tool through the tool. Pads touching the tool are coloured by normal force over $K$ times penetration: white at 1, "
+              "tool through the tool. Pads touching the tool are coloured by normal force over \\(K\\) times penetration: white at 1, "
               "red at 10 or more. The pads at the ends of the contact line carry 10 or more times their spring force. Labels: the "
               "running spin arm from 0.4&#8202;rad and the law&#8217;s. <code>scripts/tip_codesign_film.py bed</code>.",
               key="bedfilm")
@@ -270,17 +270,17 @@ def rate_section():
     S = J("deterioration/summary.json")["members"]["2.7"]
     hf = J("deterioration/handfix_summary.json")
     fixk = "E1e+07_pf0.1_ir1000"
-    eq = ("$$f_n = \\frac{D_0}{1+\\mu_r^2}\\left(\\mu\\,\\lVert \\mathbf{a}_t + B\\,\\mathbf{v}_t \\rVert - j_n\\right)$$")
-    t = (f"<p>The pads&#8217; sliding torque grows with spin rate (Figure&#160;[[fig:rate]]). On the $r$ = 2.7&#8202;mm block the "
+    eq = ("\\[f_n = \\frac{D_0}{1+\\mu_r^2}\\left(\\mu\\,\\lVert \\mathbf{a}_t + B\\,\\mathbf{v}_t \\rVert - j_n\\right)\\]")
+    t = (f"<p>The pads&#8217; sliding torque grows with spin rate (Figure&#160;[[fig:rate]]). On the \\(r\\) = 2.7&#8202;mm block the "
          f"spin arm is {S['base']['spin_mm']['0.03']:.2f}{MM} at 0.03&#8202;rad/s, {S['base']['spin_mm']['1']:.2f}{MM} at "
          f"1&#8202;rad/s and {S['base']['spin_mm']['3']:.2f}{MM} at 3&#8202;rad/s, against the law&#8217;s "
          f"{S['law']['spin_1N_mm']:.2f}{MM}; Drake gives {S['drake']['spin_mm']['1']:.2f}{MM} at 1&#8202;rad/s. MuJoCo&#8217;s "
          "elliptic cone sets the normal force of a sliding contact as</p>"
          f"<div class='eq'>{eq}</div>"
-         "<p>with $D_0$ the contact&#8217;s regularisation, $\\mu_r$ its regularised friction, $\\mathbf{a}_t$ and $\\mathbf{v}_t$ "
-         "the tangential acceleration and velocity of the contact, $B$ the reference damping and $j_n$ the normal reference "
-         "acceleration (<code>engine_core_constraint.c</code>). The slip term $\\mu\\lVert B\\mathbf{v}_t\\rVert$ acts as a phantom "
-         "penetration $\\zeta t_r \\mu v_\\mathrm{slip}$, about 120&#8202;&#181;m at 6&#8202;mm from the axis at 1&#8202;rad/s, and "
+         "<p>with \\(D_0\\) the contact&#8217;s regularisation, \\(\\mu_r\\) its regularised friction, \\(\\mathbf{a}_t\\) and \\(\\mathbf{v}_t\\) "
+         "the tangential acceleration and velocity of the contact, \\(B\\) the reference damping and \\(j_n\\) the normal reference "
+         "acceleration (<code>engine_core_constraint.c</code>). The slip term \\(\\mu\\lVert B\\mathbf{v}_t\\rVert\\) acts as a phantom "
+         "penetration \\(\\zeta t_r \\mu v_\\mathrm{slip}\\), about 120&#8202;&#181;m at 6&#8202;mm from the axis at 1&#8202;rad/s, and "
          f"carries {100 * S['base']['slip_share_1']:.0f}&#8202;% of the sliding pads&#8217; normal force at 1&#8202;rad/s. It does "
          "not depend on impratio. The slip number in Table&#160;[[tab:det]] compares that phantom penetration with the real one; "
          "it falls from 6.2 on the sharp block to 0.3 on the round one, which is why rounder tips deteriorate less.</p>"
@@ -291,7 +291,7 @@ def rate_section():
          "same damping that keeps a stuck pad stuck, so no builder setting removes one without the other, and the pads stay as "
          "built. A planner that relies on torsion should expect 1.9 times the quasi-static sliding arm from the pads at "
          "5&#8202;rad/s (pinch-and-swing peaks reach 306&#176;/s), against 1.6 times from Drake.</p>")
-    t += img("media/fig_rate.png", "Spin arm at 1&#8202;N against spin rate on the $r$ = 2.7&#8202;mm block: pads as built, pads with "
+    t += img("media/fig_rate.png", "Spin arm at 1&#8202;N against spin rate on the \\(r\\) = 2.7&#8202;mm block: pads as built, pads with "
              "explicit pairs (friction-row damping 0.1&#8202;s, impratio 1000), Drake, the law and the quasi-static pads. Rows: "
              "<code>deterioration/spin.jsonl</code>, <code>fixgrid.jsonl</code>.", key="rate", cls="half")
     return t
@@ -314,7 +314,7 @@ def builder_section():
          "changes the arm by the ripple in the last column.</p>")
     t += table(["Tip", "0.5&#8202;mm pads", "1&#8202;mm pads", "1.5&#8202;mm pads", "1&#8202;mm, local h", "1&#8202;mm, per-pad K",
                 "Ripple, %"], body,
-               "Quasi-static pads&#8217; twist-onset arm over the law at 1&#8202;N ($\\psi$ = 0) by builder variant, and the ripple of "
+               "Quasi-static pads&#8217; twist-onset arm over the law at 1&#8202;N (\\(\\psi\\) = 0) by builder variant, and the ripple of "
                "the 1&#8202;mm pads&#8217; arm as the tool line moves 0&#8211;1&#8202;mm along the finger (max minus min over the "
                "mean). <code>deterioration/builders.jsonl</code>.", key="builder")
     t += (f"<p>On the hand the local foundation depth with per-pad stiffness (builder v2) agrees with Drake on "
@@ -339,7 +339,7 @@ def builders_finalists(fb):
         return ""
     return table(["Tip", "Agree with Drake, v1", "Agree with Drake, v2", "HOM held, v1", "HOM held, v2", "Replays differing &gt;3&#176;"],
                  body, "Builder v1 against v2 on the finalists: replays D1&#8211;D8 seeds 0&#8211;4 (40), of which seeds 0&#8211;2 "
-                 "against Drake (24), and HOM seeds 0&#8211;2 at $\\mu$ = 1.0. <code>final/summary_builders.json</code>.",
+                 "against Drake (24), and HOM seeds 0&#8211;2 at \\(\\mu\\) = 1.0. <code>final/summary_builders.json</code>.",
                  key="buildfin")
 
 
@@ -361,7 +361,7 @@ def screen_section():
          f"{tip_name(max(sp)[1])}: the rate effect of the flat family grows on the rounder printed tips, whose short patches make "
          "the law&#8217;s arm small.</p>")
     t += img("media/fig_screen.png", "Stage 1 over the printed grid (rows r<sub>side</sub>, columns r<sub>end</sub>): J1 at "
-             "$\\mu$ = 0.7, and the 1&#8202;mm pads against the law: spin arm at 1&#8202;rad/s and brake force at 45&#176;. Rows: "
+             "\\(\\mu\\) = 0.7, and the 1&#8202;mm pads against the law: spin arm at 1&#8202;rad/s and brake force at 45&#176;. Rows: "
              "<code>screen/scale/</code>, <code>screen/hom.jsonl</code>, <code>screen/fidelity/</code>.", key="screen")
     return t
 
@@ -396,7 +396,34 @@ def confirm_section():
     S3 = J("final/summary_stage3.json")
     if not S3:
         return "<p><i>[stage 3 pending]</i></p>"
-    return "<p><i>[stage 3 text after the run]</i></p>" + img("media/fig_stage3.png", "Stage 3.", key="stage3")
+    C = S3["candidates"]
+    base = C["tcd_rs3_re3_p0.2"]
+    fin = [k for k in S3["finalists"] if k != "tcd_rs3_re3_p0.2"]
+    best = max(fin, key=lambda k: C[k]["J3"])
+    win = [k for k in fin if C[k].get("beats_base")]
+    body = [[tip_name(k), f2(C[k]["J3"], 3)] + [f2(C[k]["J"].get(c), 3) for c in S3["conditions"]]
+            + [f2(C[k].get("dJ3_vs_base"), 3), ("[" + f2(C[k]["dJ3_ci90"][0], 3) + ", " + f2(C[k]["dJ3_ci90"][1], 3) + "]")
+               if "dJ3_ci90" in C[k] else "&#8211;", f"{C[k]['hold3_mu0.5']}/{C[k]['n_hold_mu0.5']}"] for k in S3["finalists"]]
+    t = (f"<p>On fresh placements the as-built tip scores J3 = {base['J3']:.3f}. "
+         + (f"{len(win)} finalist{'s' if len(win) > 1 else ''} beat{'' if len(win) > 1 else 's'} it" if win else
+            f"No finalist beats it: the best, {tip_name(best)}, scores {C[best]['J3']:.3f}, a paired difference of "
+            f"{C[best]['dJ3_vs_base']:+.3f} whose 90&#8202;% interval [{C[best]['dJ3_ci90'][0]:+.3f}, {C[best]['dJ3_ci90'][1]:+.3f}] "
+            "includes zero")
+         + ", and the two others score lower with intervals below zero (Figure&#160;[[fig:stage3]], Table&#160;[[tab:stage3]]). "
+         "Each interval comes from 10,000 resamples that redraw the three seeds within each cell and the five seeds within each "
+         "hand, the same draw for both tips, so the difference is paired by placement. Every finalist keeps three-finger holds "
+         "at \\(\\mu\\) = 0.5 within two grasps of the as-built tip. The flat-family geometries tested here do not improve on the "
+         "as-built fingertip for these tasks; (3,&#160;6), the same side fillet with a rounder end, is the one candidate whose "
+         "interval reaches above +0.05.</p>")
+    t += img("media/fig_stage3.png", "Stage 3 on fresh placements: the stage score per condition and J3, the minimum (left); the "
+             "paired difference from the as-built tip with its 90&#8202;% bootstrap interval (right). <code>final/</code>.",
+             key="stage3")
+    cond = {"mu0.7_" + SERVO: "&#956; 0.7", "mu0.5_" + SERVO: "&#956; 0.5", "mu0.7_kp0.5_kv0_fr0.18_fl0_dp0.0144": "kp 0.5",
+            "mu0.7_kp0.72_kv0_fr0.12_fl0_dp0.0144": "0.12&#8202;N&#8202;m"}
+    t += table(["Tip", "J3"] + [cond.get(c, c) for c in S3["conditions"]] + ["J3 &#8722; as-built", "90&#8202;% interval",
+                                                                          "Three-finger hold, &#956; 0.5"], body,
+               "Stage-3 scores on fresh placements (<code>final/summary_stage3.json</code>).", key="stage3")
+    return t
 
 
 def material_section():
@@ -408,7 +435,19 @@ def print_section():
 
 
 def lede():
-    return "[lede after the stage-3 results]"
+    S = J("deterioration/summary.json")["members"]
+    S3 = J("final/summary_stage3.json")["candidates"]
+    b = S3["tcd_rs3_re3_p0.2"]
+    best = max((k for k in S3 if k != "tcd_rs3_re3_p0.2"), key=lambda k: S3[k]["J3"])
+    lo, hi = S3[best]["dJ3_ci90"]
+    return (f"The 1&#8202;mm sphere pads reproduce the law&#8217;s twist-onset torque within 2&#8202;% on fillets of 1.5&#8202;mm or more "
+            f"and 7&#8211;14&#8202;% high on sharper edges, but their sliding torque grows with spin rate: at 1&#8202;rad/s the spin arm "
+            f"is {S['2.7']['base']['spin_over_law']['1']:.2f} times the law on the printed tip&#8217;s 2.7&#8202;mm fillet and "
+            f"{S['0']['base']['spin_over_law']['1']:.2f} times on a sharp block, while Drake stays within 0.97&#8211;1.12. The excess "
+            "comes from MuJoCo&#8217;s elliptic friction cone, and removing it breaks the hand&#8217;s closed-loop turns. Of 24 "
+            "printable fingertip shapes screened on the SR2 hand&#8217;s tasks, none beats the as-built tip on fresh placements: the "
+            f"best, {tip_name(best)}, scores J3 = {S3[best]['J3']:.3f} against {b['J3']:.3f}, with a 90&#8202;% interval of "
+            f"{lo:+.3f} to {hi:+.3f}. Per-pad stiffness raises the pads&#8217; agreement with Drake on three of the four finalists.")
 
 
 def limitations():
@@ -426,7 +465,14 @@ def open_items():
          "1&#8202;rad/s; a sliding arm near the law (3.7&#8202;mm on the as-built tip) at both rates confirms the pads&#8217; "
          "rate effect as a model artefact, an arm that grows with rate like the pads&#8217; refutes it."),
         ("Friction of the printed tip", "pull test of two printed tips at 0.5, 1 and 2&#8202;N per tip with "
-         "<code>scripts/tpu_tip_calibrate.py fit --pull</code>; every task here varies $\\mu$ over 0.5&#8211;1.0."),
+         "<code>scripts/tpu_tip_calibrate.py fit --pull</code>; every task here varies \\(\\mu\\) over 0.5&#8211;1.0."),
+        ("A longer stage 3 for (3,&#160;6)", "rerun <code>scripts/tip_codesign_stage3_queue.py</code> jobs for "
+         "<code>tcd_rs3_re6_p0.2</code> and the as-built tip with cell seeds 3&#8211;12 and HOM seeds 5&#8211;19; a 90&#8202;% "
+         "interval above zero makes the 6&#8202;mm end fillet the printed default, an interval that still includes zero keeps "
+         "the as-built tip."),
+        ("Per-pad stiffness as the default builder", "replay D1&#8211;D8 seeds 0&#8211;7 on the as-built tip with "
+         "<code>scripts/tip_codesign_rig.py replay --h local --K each</code> next to Drake; fewer agreements than builder v1 "
+         "refute the step-27 result."),
         ("Zero-shot policies on the finalist", "evaluate the six servo-plant policies on the best finalist with "
          "<code>contact_feedback_replay.py</code> and the scene from <code>scripts/tip_codesign_rig.py rlscene</code>."),
     ]
