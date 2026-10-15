@@ -378,12 +378,97 @@ def handv2():
     return out
 
 
+SERVO = "kp0.72_kv0_fr0.18_fl0_dp0.0144"
+COND2 = (("1.0", SERVO), ("0.7", SERVO), ("0.5", SERVO), ("0.7", "kp0.5_kv0_fr0.18_fl0_dp0.0144"),
+         ("0.7", "kp0.72_kv0_fr0.12_fl0_dp0.0144"))
+BASE = "tcd_rs3_re3_p0.2"
+
+
+def _radii(key):
+    import re
+    m = re.match(r"tcd_rs([0-9.]+)_re([0-9.]+)", key)
+    return (float(m[1]), float(m[2])) if m else (2.7, 2.7)
+
+
+def stage2():
+    """Plan step 8: J2 = the minimum over the five conditions (mu 1.0/0.7/0.5 on the servo plant; kp 0.5 and torque
+    limit 0.12 N m at mu 0.7) of the stage score (four CAD-hand cells and HOM on D1-D8 seeds 0-4); the agreement gate
+    (D1-D8 replays seeds 0-2 at mu 1.0 within 3 deg of Drake and with its held outcome, at most two placements fewer than
+    the as-built tip); finalists (1) highest J2 passing the gate, (2) highest J2 at no more than 0.8 of the as-built
+    tip's us per replay step, (3) highest three-finger share at mu 0.5, (4) the as-built tip; a finalist that repeats an
+    earlier one is replaced by the next candidate at least 1 mm away in r_side or r_end."""
+    S = D / "screen"
+    cands = json.loads((S / "stage2_candidates.json").read_text())["candidates"]
+    hom = [r for r in rows(S / "stage2/hom.jsonl") if r.get("status") == "ok"]
+    rep = [r for r in rows(S / "stage2/replay.jsonl") if r.get("status") == "complete"]
+    out = {"candidates": {}, "conditions": [f"mu{m}_{p}" for m, p in COND2]}
+    for k in cands:
+        Js, det = {}, {}
+        for mu, pl in COND2:
+            if (mu, pl) == ("0.7", SERVO):
+                turn = rows(S / f"scale/{k}/turn.jsonl")
+            else:
+                turn = rows(S / f"stage2/scale/{k}_mu{mu}_{pl}/turn.jsonl")
+            hk = [r for r in hom if r.get("tip") == k and str(r.get("mu")) == mu and r.get("plant") == pl]
+            J, dd = stage_score(turn, hk)
+            Js[f"mu{mu}_{pl}"], det[f"mu{mu}_{pl}"] = J, dd
+            if mu == "0.5":
+                ok = [r for r in turn if r.get("status") == "ok"]
+                det["three_finger_frac_mu0.5_cells"] = float(np.mean([r.get("fingers_loaded_end") == 3 for r in ok])) if ok else None
+                det["three_finger_frac_mu0.5_hom"] = float(np.mean([r.get("fingers_end") == 3 for r in hk])) if hk else None
+                hold = [r for r in rows(S / f"stage2/scale/{k}_mu{mu}_{pl}/hold.jsonl") if r.get("status") == "ok"]
+                det["hold_held_frac_mu0.5"] = float(np.mean([r["held"] for r in hold])) if hold else None
+        vals = [v for v in Js.values() if v is not None]
+        mj = {(r["hand"], int(r["seed"])): r for r in rep if r.get("sim") == "mujoco" and r["tips" if "tips" in r else "tip"] == k}
+        dr = {(r["hand"], int(r["seed"])): r for r in rep if r.get("sim") == "drake" and r["tip"] == k}
+        ks = [x for x in mj if x in dr]
+        agree = sum(bool(mj[x]["held_end"]) == bool(dr[x]["held_end"]) and abs(mj[x]["turn_end_deg"] - dr[x]["turn_end_deg"]) <= 3
+                    for x in ks)
+        us = [r["us_per_step_median"] for r in mj.values() if r.get("us_per_step_median")]
+        out["candidates"][k] = {"J": Js, "J2": min(vals) if len(vals) == len(COND2) else None, "n_conditions": len(vals),
+                                "agree_drake_3deg": agree, "n_vs_drake": len(ks),
+                                "us_per_step_median": float(np.median(us)) if us else None, **det}
+    C = out["candidates"]
+    base = C.get(BASE, {})
+    for k, v in C.items():
+        v["gate_pass"] = (v["n_vs_drake"] >= 20 and base.get("n_vs_drake") and
+                          v["agree_drake_3deg"] >= base["agree_drake_3deg"] - 2)
+        v["cost_ratio"] = v["us_per_step_median"] / base["us_per_step_median"] if v.get("us_per_step_median") and base.get("us_per_step_median") else None
+    order = lambda f, key: sorted((k for k in C if f(C[k]) and C[k].get(key) is not None), key=lambda k: -C[k][key])
+    fin, why = [], {}
+
+    def pick(lst, label):
+        for k in lst:
+            if k in fin or k == BASE:
+                continue
+            if any(max(abs(a - b) for a, b in zip(_radii(k), _radii(f))) < 1.0 for f in fin):
+                continue
+            fin.append(k)
+            why[k] = label
+            return k
+    pick(order(lambda v: v["gate_pass"], "J2"), "(1) highest J2 passing the agreement gate")
+    pick(order(lambda v: v["gate_pass"] and (v["cost_ratio"] or 9) <= 0.8, "J2"), "(2) highest J2 at <= 0.8 of the as-built cost")
+    pick(order(lambda v: True, "three_finger_frac_mu0.5_cells"), "(3) highest three-finger share at mu 0.5")
+    fin.append(BASE)
+    why[BASE] = "(4) the as-built tip as printed, baseline"
+    out["finalists"], out["finalist_rule"] = fin, why
+    (S / "summary_stage2.json").write_text(json.dumps(out, indent=1))
+    for k, v in sorted(C.items(), key=lambda kv: -(kv[1]["J2"] or -1)):
+        print(f"{k:22s} J2 {v['J2'] if v['J2'] is None else round(v['J2'], 3)}  " + " ".join(
+            f"{c.split('_')[0]}{'' if SERVO in c else ('/kp0.5' if 'kp0.5_' in c else '/fr0.12')}:{(x if x is None else round(x, 3))}"
+            for c, x in v["J"].items())
+            + f"  Drake {v['agree_drake_3deg']}/{v['n_vs_drake']} gate {v['gate_pass']} cost {v['cost_ratio'] and round(v['cost_ratio'], 2)}"
+            + f"  3f@0.5 {v.get('three_finger_frac_mu0.5_cells')}")
+    print("finalists:", why)
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("cmd", choices=["tolerance", "handfix", "deterioration", "screen", "handv2"])
+    ap.add_argument("cmd", choices=["tolerance", "handfix", "deterioration", "screen", "handv2", "stage2"])
     a = ap.parse_args()
     {"tolerance": tolerance, "handfix": handfix, "deterioration": deterioration, "screen": screen,
-     "handv2": handv2}[a.cmd]()
+     "handv2": handv2, "stage2": stage2}[a.cmd]()
 
 
 if __name__ == "__main__":
