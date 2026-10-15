@@ -88,6 +88,8 @@ def parse_spec(spec: str) -> dict:
             x["pf"] = float(p[2:])
         elif p.startswith("tcd="):
             x["tcd"] = p[4:]
+        elif p.startswith("meps"):                    # a tcd mesh with terraces simplified to e m (Drake)
+            x["meps"] = float(p[4:])
         elif p in ("hloc", "Keach"):
             x[p] = True
         else:
@@ -179,7 +181,7 @@ def _tcd_init(cls):
             K_by_side["L" if sign > 0 else "R"] = K
             return C, Nn, A, (K if "Keach" in x else np.full(len(K), float(np.median(K))))
         G.pad_spheres = pad_spheres
-        G.mesh_paths = lambda out_dir, r: sh.mesh_paths(Path(out_dir) / sh.key)
+        G.mesh_paths = lambda out_dir, r: sh.mesh_paths(Path(out_dir) / sh.key, eps=x.get("meps"))
         _PAD_K.clear()
         if "Keach" in x and cls is T.TpuMjRig:
             import mujoco
@@ -222,7 +224,7 @@ def tcd_model(key: str, extra: str = "", drake: bool = False):
     ex = (":" + extra) if extra else ""
     t = f"tpu{r_mm:g}:tcd={key}"
     if drake:
-        return f"drake_{key}", (f"drake:hydro:E1e7:r1:rt0.01:{t}", f"drake:hydro:rt0.01:{t}")
+        return f"drake_{key}", (f"drake:hydro:E1e7:r1:rt0.01:{t}{ex}", f"drake:hydro:rt0.01:{t}{ex}")
     return (f"mj_{key}_pads1" + extra.replace(":", "_").replace(".", "p"),
             (f"mj:spheres:s1:rs0.75:ir100:tr0.02{ex}:{t}", f"mj:spheres:s1:rs0.75:tr0.02{ex}:{t}"))
 

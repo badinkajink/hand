@@ -30,6 +30,7 @@ import tip_codesign_bed as B  # noqa: E402
 
 D = ROOT / "docs/experiments/20261014-tip_codesign/deterioration"
 FIX = "pf0.1:ir1000"
+DRAKE_EXTRA = {"tcd_rs6_re6_p0.2": "meps1e-06"}   # Drake rejected a degenerate facet of the full hull
 SPHERE = {"base": ("mj_pads1", ("mj:spheres:s1:rs0.75:ir100:tr0.02", "mj:spheres:s1:rs0.75:tr0.02")),
           "fix": ("mj_pads1_fix", (f"mj:spheres:s1:rs0.75:ir1000:tr0.02:pf0.1", "mj:spheres:s1:rs0.75:tr0.02:pf0.1")),
           "drake": ("drake_hydro", ("drake:hydro:E1e7:r1:rt0.01", "drake:hydro:rt0.01"))}
@@ -50,7 +51,8 @@ def model_of(member, variant):
     if member == "sphere":
         name, v = SPHERE[variant]
     elif member.startswith("tcd_"):
-        name, v = B.tcd_model(member, FIX if variant == "fix" else "", drake=variant == "drake")
+        extra = FIX if variant == "fix" else (DRAKE_EXTRA.get(member, "") if variant == "drake" else "")
+        name, v = B.tcd_model(member, extra, drake=variant == "drake")
     else:
         r_mm = float(member[3:])
         if variant == "drake":
