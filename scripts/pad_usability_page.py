@@ -341,7 +341,36 @@ def rl_section():
     if f is None:
         return pending(5, "the four servo-plant finals on the TPU-mesh, 1&#8202;mm pad, 2&#8202;mm pad and condim-4 plants under "
                           "four conditions, and their own-scene evaluation at impratio 100 and a 4&#8202;ms step")
-    return f.get("page_html", "")
+    S = json.load(open(os.path.join(D, "rl/summary_U5.json")))
+    C = {(c["final"], c["scene"], c["mode"], c["condition"]): c for c in S["cells"]}
+    fin = ["Mesh s0", "Mesh s1", "Pads s0", "Pads s1"]
+    scn = [("tpu27mesh", "TPU mesh"), ("tpu27pads1", "1 mm pads"), ("tpu27pads2", "2 mm pads"), ("tpu27meshc4", "Condim 4")]
+    cond = [("nominal", "Nominal"), ("kp=0.36", "Servo gain 0.36 N&#183;m/rad"), ("fr=0.12", "Torque limit 0.12 N&#183;m"),
+            ("friction=0.5", "Friction &#215;0.5")]
+    body = []
+    for mode, mname in (("closed", "Closed loop (of 128)"), ("open", "Replay (of 64)")):
+        for c, cn in cond:
+            body.append([mname if c == "nominal" else "", cn] + [" / ".join(str(C[(x, sc, mode, c)]["n_held"]) for x in fin)
+                                                                for sc, _ in scn])
+    t1 = table(["Evaluation", "Condition"] + [f"{n} plant" for _, n in scn], body,
+               "Held rollouts of the four servo-plant finals on each plant, in the order TPU-mesh policy seed 0, seed 1, "
+               "1&#8202;mm pad policy seed 0, seed 1. Closed loop: 128 rollouts with grasp-pose noise of 2&#8202;mm and "
+               "5&#176;; replay: the 64 action sequences each policy produced on its own plant, played open loop.",
+               text_cols=(0, 1), key="rlcross")
+    num = ""
+    if S.get("numerics"):
+        rows = [[x["tag"].replace("20261011-d6_servo_", "").replace("_40M_", " "), x["numerics"], str(x["n_held"]),
+                 f"{x['d_held']:+d}", "&#8211;" if x["d_cos"] is None else f"{x['d_cos']:+.3f}",
+                 "&#8211;" if x["slide_ratio"] is None else f"{x['slide_ratio']:.2f}"]
+                for x in S["numerics"] if x["numerics"] != "nominal"]
+        num = table(["Final", "Numerics", "Held (of 128)", "Change", "Held-cosine change", "Hold slide over nominal"], rows,
+                    "Each final on its own plant, closed loop, at impratio 100 (written into the model in place) and at a "
+                    "4&#8202;ms step, against the trainer&#8217;s 2&#8202;ms and impratio 10. Hold slide: the tool&#8217;s "
+                    "sliding over the fingertip&#8217;s contact geoms during the hold, median path speed.", key="rlnum")
+    return (f.get("page_lead", "") + t1
+            + img("docs/experiments/20261014-pad_usability/rl/20261014-u5_cross.png", f["figures"][0]["caption"], "rlcross")
+            + f.get("page_numerics", "") + num
+            + "".join(film(x["path"], x["poster"], x["caption"]) for x in f.get("films", [])))
 
 
 def lede():
