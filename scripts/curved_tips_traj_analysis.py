@@ -46,19 +46,22 @@ def arrays(r):
 def compare(ra, rb):
     ta, pa, qa, Na, Ta = arrays(ra)
     tb, pb, qb, Nb, Tb = arrays(rb)
-    n = min(len(ta), len(tb))
-    if n < 5 or np.abs(ta[:n] - tb[:n]).max() > 1e-3:
+    # samples on the 20 ms grid by index (a 2 ms run's samples can lie up to one step after a 1 ms run's)
+    _, ia, ib = np.intersect1d(np.round(ta / 0.02).astype(int), np.round(tb / 0.02).astype(int), return_indices=True)
+    n = len(ia)
+    if n < 5:
         return None
-    dp = np.linalg.norm(pa[:n] - pb[:n], axis=1)
-    c = np.clip(np.abs(np.sum(qa[:n] * qb[:n], axis=1)) / (np.linalg.norm(qa[:n], axis=1) * np.linalg.norm(qb[:n], axis=1)),
-                0, 1)
+    ta, pa, qa, Na, Ta = ta[ia], pa[ia], qa[ia], Na[ia], Ta[ia]
+    tb, pb, qb, Nb, Tb = tb[ib], pb[ib], qb[ib], Nb[ib], Tb[ib]
+    dp = np.linalg.norm(pa - pb, axis=1)
+    c = np.clip(np.abs(np.sum(qa * qb, axis=1)) / (np.linalg.norm(qa, axis=1) * np.linalg.norm(qb, axis=1)), 0, 1)
     ang = np.degrees(2 * np.arccos(c))
-    dN, dT = Na[:n] - Nb[:n], np.linalg.norm(Ta[:n] - Tb[:n], axis=2)
+    dN, dT = Na - Nb, np.linalg.norm(Ta - Tb, axis=2)
     rms = lambda x: float(np.sqrt(np.mean(np.square(x))))  # noqa: E731
-    return {"n": int(n), "t_end": float(ta[n - 1]),
+    return {"n": int(n), "t_end": float(ta[-1]),
             "rms_dpos_mm": rms(dp), "final_dpos_mm": float(dp[-1]), "rms_dang_deg": rms(ang), "final_dang_deg": float(ang[-1]),
-            "rms_dN_N": rms(dN), "rms_dT_N": rms(dT), "mean_N_B": float(Nb[:n].mean()),
-            "mean_T_B": float(np.linalg.norm(Tb[:n], axis=2).mean()),
+            "rms_dN_N": rms(dN), "rms_dT_N": rms(dT), "mean_N_B": float(Nb.mean()),
+            "mean_T_B": float(np.linalg.norm(Tb, axis=2).mean()),
             "held_agree": bool(ra.get("held_end") == rb.get("held_end")),
             "turn_within_3": bool(abs(float(ra.get("turn_end_deg", np.nan)) - float(rb.get("turn_end_deg", np.nan))) <= 3.0
                                   and ra.get("held_end") == rb.get("held_end"))}

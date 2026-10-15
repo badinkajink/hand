@@ -32,6 +32,12 @@ reaches them:
                        along the finger, apex at the palmar reach over the contact point (y, z) = (0, 0); distal of the
                        apex the semi-axis is az, proximal of it azp (default az); behind its equator the section runs
                        straight back to the back face
+  tcd_qell<ay>x<ax>x<az>[x<azp>]
+                       quarter-ellipsoid (owner, 2026-10-15): the same palmar half-ellipsoid cut flat at its equator, so
+                       the tip is ax deep with a flat dorsal back for the magnetometer board, closed distally by the
+                       ellipsoid and cut proximally at the mount face; builder v2's local depth h_i of a pad is the TPU
+                       between its surface point and the back plane along its normal (the board is rigid)
+  tcd_qellc...         the same shape with builder v2's usual depth, the normal distance to the volume centroid
   tcd_sph<R>           the whole sphere of radius R mm through the apex, no envelope: tcd_sph10.55 is the real_v1 sphere
                        tip, the limit against which the curved-tip machinery is tested
   ..._u<h>             as printed upright (mount face on the bed, layers of h mm across the finger): the convex hull of
@@ -437,8 +443,9 @@ class TipShape:
 
 
 CURVED_RE = re.compile(
-    r"^tcd_(?:cap(?P<r>[0-9.]+)|ell(?P<ay>[0-9.]+)x(?P<ax>[0-9.]+)x(?P<az>[0-9.]+)(?:x(?P<azp>[0-9.]+))?|sph(?P<R>[0-9.]+))"
-    r"(?:_u(?P<u>[0-9.]+)|_p(?P<p>[0-9.]+))?$")
+    r"^tcd_(?:cap(?P<r>[0-9.]+)|(?P<q>qellc?|ell)(?P<ay>[0-9.]+)x(?P<ax>[0-9.]+)x(?P<az>[0-9.]+)(?:x(?P<azp>[0-9.]+))?"
+    r"|sph(?P<R>[0-9.]+))(?:_u(?P<u>[0-9.]+)|_p(?P<p>[0-9.]+))?$")
+QELL_H_MIN, QELL_NX_MIN = 0.001, 0.2     # m; a qell pad's depth to the back plane is (p_x - x_c) / max(n_x, 0.2), >= 1 mm
 
 
 class CurvedTip(TipShape):
@@ -463,7 +470,8 @@ class CurvedTip(TipShape):
             self.azp = math.inf
             self.zc = Z_END + self.az
         else:
-            self.family = "ell"
+            self.family = "qell" if m["q"].startswith("qell") else "ell"
+            self.depth_to_back = m["q"] == "qell"            # qellc: builder v2's centroid depth
             self.ay, self.ax, self.az = (float(m[k]) * 1e-3 for k in ("ay", "ax", "az"))
             self.azp = float(m["azp"]) * 1e-3 if m["azp"] else self.az
             self.zc = 0.0
@@ -477,6 +485,8 @@ class CurvedTip(TipShape):
         self.reach = X_FACE
         self.top_z = Z_MOUNT if self.family != "sph" else self.az
         self.a = min(self.ay, WIDTH / 2)            # the bed spec's nominal tpu<r> field (a label only)
+        # the radial bisections start inside the body: the box centre lies behind a quarter-ellipsoid's back plane
+        self.c0 = np.array([self.xc + self.ax / 3, 0.0, 0.0]) if self.family == "qell" else C0
 
     def inside_design(self, P, tol=0.0):
         x, y, z = P[:, 0], P[:, 1], P[:, 2]
@@ -487,11 +497,71 @@ class CurvedTip(TipShape):
             & (z >= Z_END - tol)
         dx = np.maximum(x - self.xc, 0) / self.ax
         dy = y / self.ay
+        if self.family == "qell":
+            ok &= x >= self.xc - tol
         if self.family == "cap":
             dz = np.maximum(self.zc - z, 0) / self.az
         else:
             dz = np.where(z < self.zc, (z - self.zc) / self.az, (z - self.zc) / self.azp)
         return ok & (dx * dx + dy * dy + dz * dz <= (1.0 + tol / min(self.ax, self.ay, self.az)) ** 2)
+
+    # ------------------------------------------------------------------ bisection origin
+    def _origin(self):
+        """Context in which TipShape's radial bisections start at this shape's interior point (the module's C0)."""
+        import contextlib
+        g = globals()
+
+        @contextlib.contextmanager
+        def ctx():
+            saved = g["C0"]
+            g["C0"] = self.c0
+            try:
+                yield
+            finally:
+                g["C0"] = saved
+        return ctx()
+
+    @cached_property
+    def dense(self):
+        with self._origin():
+            return TipShape.dense.func(self)
+
+    def pads(self, E=1e7, s=0.001, rs=0.00075, sign=1.0, h="fixed", K="each", full=False):
+        """TipShape.pads; for a qell key with h = 'local', each pad's depth is the TPU between its surface point and
+        the rigid back plane along its normal, (p_x - x_c) / max(n_x, 0.2), at least 1 mm."""
+        with self._origin():
+            if not (self.family == "qell" and self.depth_to_back and h == "local"):
+                return TipShape.pads(self, E, s, rs, sign, h, K, full)
+            C, Nn, A, _ = TipShape.pads(self, E, s, rs, 1.0, "fixed", "each", True)
+        P = C + rs * Nn                                      # the pads' surface points (the clamp moves none here)
+        hh = np.maximum((P[:, 0] - self.xc) / np.maximum(Nn[:, 0], QELL_NX_MIN), QELL_H_MIN)
+        Ks = E / hh * A
+        if K == "median":
+            Ks = np.full(len(Ks), float(np.median(Ks)))
+        flip = np.array([sign, 1.0, 1.0])
+        return (C * flip, Nn * flip, A, Ks) if full else (C * flip, Ks)
+
+    def _bisect(self, D, inside, t_max=0.03, it=42):
+        with self._origin():
+            return TipShape._bisect(self, D, inside, t_max, it)
+
+    def fe_surface_x(self, y, z):
+        """TipShape.fe_surface_x; a qell key bisects up from its back plane, not from the envelope's back face."""
+        if self.family != "qell":
+            return TipShape.fe_surface_x(self, y, z)
+        yy, zz = np.broadcast_arrays(np.asarray(y, float), np.asarray(z, float))
+        base = np.column_stack([np.full(yy.size, self.xc + 1e-5), yy.ravel() * 1e-3, Z_MOUNT - zz.ravel() * 1e-3])
+        ok = self.inside(base)
+        lo, hi = np.zeros(yy.size), np.full(yy.size, self.ax)
+        for _ in range(44):
+            mid = 0.5 * (lo + hi)
+            Q = base.copy()
+            Q[:, 0] += mid
+            ins = self.inside(Q)
+            lo, hi = np.where(ins, mid, lo), np.where(ins, hi, mid)
+        xs = (base[:, 0] + lo - (REACH - 0.0085)) * 1e3
+        xs[~ok] = np.nan
+        return xs.reshape(yy.shape)
 
     # ------------------------------------------------------------------ upright print: layers across z
     def _outline_z(self, z, n_ang=360):
@@ -514,7 +584,8 @@ class CurvedTip(TipShape):
     @cached_property
     def hull_fine(self):
         if self.axis != "z":
-            return super().hull_fine
+            with self._origin():
+                return TipShape.hull_fine.func(self)
         h = self.layer
         nl = int(math.floor(LENGTH / h + 1e-9))          # whole layers from the bed (the mount face)
         pts = []
@@ -539,7 +610,8 @@ class CurvedTip(TipShape):
         lie on the printed surface) thinned to the one farthest from the box centre in each res voxel: the layer steps
         near the contact are a few um, and the full corner set has 8-40 thousand vertices."""
         if self.axis != "z" or eps:
-            return super().hull(res, sign, eps)
+            with self._origin():
+                return TipShape.hull(self, res, sign, eps)
         V0, _ = self.hull_fine
         _, inv = np.unique(np.floor(V0 / res).astype(np.int64), axis=0, return_inverse=True)
         inv = inv.ravel()

@@ -30,10 +30,23 @@ Q = C.LOGS / "screen" / "queue.txt"
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("what", choices=["screen", "stage3"])
+    ap.add_argument("what", choices=["screen", "stage3", "qell"])
     a = ap.parse_args()
     S = C.D / "screen"
     jobs = []
+    if a.what == "qell":                             # step 13: the quarter-ellipsoids' stages 1 and 2, appended
+        for mu, pl in CONDS:
+            for k in C.CURVED_Q:
+                what = "hold,turn" if (mu, pl) in (("0.7", SERVO), ("0.5", SERVO)) else "turn"
+                jobs.append(f"scale {k} {mu} {pl} {what} 0,1,2 {S}/scale/{k}_mu{mu}_{pl}")
+                jobs.append(f"hom {k} {mu} {pl} 0,1,2,3,4 {S}/hom.jsonl")
+        import fcntl
+        with open(Q.parent / "queue.lock", "w") as lk:
+            fcntl.flock(lk, fcntl.LOCK_EX)
+            with open(Q, "a") as fh:
+                fh.write("\n".join(jobs) + "\n")
+        print(len(jobs), "jobs appended ->", Q)
+        return
     if a.what == "screen":
         for mu, pl in CONDS:                         # condition by condition: J1's (the first) completes first
             for k in TIPS:

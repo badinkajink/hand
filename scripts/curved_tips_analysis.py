@@ -15,6 +15,8 @@ docs/experiments/20261015-curved_tips/ and writes one JSON summary next to them.
            curved tips; the as-built block and the block finalist (3, 6) as references (screen/summary.json)
   stage3   step 5, stage 3: J3 on fresh placements and the paired bootstrap against the as-built block
            (tip_codesign_analysis.stage3's rules; final/summary.json)
+  cost     step 3: CPU step at the three-finger grip and 64-plan replanning (U1's protocol), GPU world-step at the held
+           RL state (cost/summary.json)
 
     python3 scripts/curved_tips_analysis.py bed
 """
@@ -45,8 +47,8 @@ def rows(path):
 
 
 def _pick(rs, **kw):
-    """The last complete row matching every key=value."""
-    out = [r for r in rs if r.get("status", "complete") == "complete" and all(r.get(k) == v for k, v in kw.items())]
+    """The last complete (or 'ok') row matching every key=value."""
+    out = [r for r in rs if r.get("status", "complete") in ("complete", "ok") and all(r.get(k) == v for k, v in kw.items())]
     return out[-1] if out else None
 
 
@@ -295,11 +297,69 @@ def stage3(n_boot=10000, rng_seed=0):
     return out
 
 
+def cost():
+    """Step 3: per tip the CPU step at the servo plant's three-finger grip (pad_usability_timing, U1's protocol; cells
+    16 and 25 mm, state 'grip', pads and point contact), its contacts and constraint rows, the 64-plan replanning time on
+    1 and 3 threads and the plans reset; the GPU world-step at the held RL state (2048 worlds) with its contacts, rows,
+    broadphase candidates and GPU memory (cost/summary.json)."""
+    Cd = D / "cost"
+    out = {"tips": {}}
+    gx = {r["variant"]: r for r in rows(Cd / "gpu_export.jsonl") if r.get("status") == "ok"}
+    gt = [r for r in rows(Cd / "gpu_timing.jsonl") if r.get("status") == "ok" and r.get("nworld") == 2048]
+    for f in sorted(Cd.glob("cpu_*.jsonl")):
+        tip = f.stem[4:]
+        rs = [r for r in rows(f) if r.get("status") == "ok"]
+        t = {"cpu": {}, "gpu": {}}
+        for cell in ("cylinder:16:0.625", "cylinder:25:0.125"):
+            for mdl in ("pads", "pt"):
+                st = _pick(rs, cell=cell, model=mdl, state="grip", kind="step") or {}
+                hl = _pick(rs, cell=cell, model=mdl, state="grip", kind="held") or {}
+                ro = {n: (_pick(rs, cell=cell, model=mdl, state="grip", kind="rollout", nthread=n) or {}) for n in (1, 3)}
+                t["cpu"][f"{cell}|{mdl}"] = {
+                    "step_us": (st.get("step_us") or {}).get("median"), "solve_us": (st.get("constraint_us") or {}).get("median"),
+                    "ncon": st.get("ncon_mean"), "nefc": st.get("nefc_mean"), "held": hl.get("held"),
+                    "solver_niter": hl.get("solver_niter_mean"), "obj_disp_mm": hl.get("obj_disp_mm"),
+                    "F_fingers_N": st.get("F_fingers_N"),
+                    "replan_1thread_s": (ro[1].get("wall_s") or {}).get("median"),
+                    "replan_3thread_s": (ro[3].get("wall_s") or {}).get("median"), "plans_reset": ro[3].get("plans_reset"),
+                    "n_pad_geoms": st.get("n_pad_geoms")}
+        g = [r for r in gt if r["variant"] == tip]
+        if g:
+            t["gpu"] = {"us_per_world_step": float(np.median([r["us_per_world_step"] for r in g])),
+                        "contacts_per_world": g[0].get("contacts_per_world"), "nefc_world": g[0].get("nefc_world_mean"),
+                        "candidates_per_world": g[0].get("candidates_per_world"), "gpu_peak_mb": g[0].get("gpu_proc_peak_mb"),
+                        "held_frac": g[0].get("held_frac"), "n_reps": len(g),
+                        "export_held_worlds": (gx.get(tip) or {}).get("held_worlds"),
+                        "export_ngeom": (gx.get(tip) or {}).get("ngeom")}
+        out["tips"][tip] = t
+    base = out["tips"].get(ASBUILT)
+    for tip, t in out["tips"].items():
+        if base:
+            t["ratios"] = {k: _ratio(t["cpu"][k]["step_us"], base["cpu"][k]["step_us"]) for k in t["cpu"]}
+            t["ratios"]["replan_3thread_16"] = _ratio(t["cpu"]["cylinder:16:0.625|pads"]["replan_3thread_s"],
+                                                      base["cpu"]["cylinder:16:0.625|pads"]["replan_3thread_s"])
+            t["ratios"]["replan_3thread_25"] = _ratio(t["cpu"]["cylinder:25:0.125|pads"]["replan_3thread_s"],
+                                                      base["cpu"]["cylinder:25:0.125|pads"]["replan_3thread_s"])
+            t["ratios"]["gpu"] = _ratio(t["gpu"].get("us_per_world_step"), base["gpu"].get("us_per_world_step"))
+    (Cd / "summary.json").write_text(json.dumps(out, indent=1))
+    f = lambda x, n=1: "-" if x is None else f"{x:.{n}f}"  # noqa: E731
+    print(f"{'tip':28s} {'16mm us':>8s} {'ncon':>5s} {'nefc':>5s} {'niter':>5s} {'disp':>5s} {'replan3':>7s} | {'25mm us':>8s} "
+          f"{'ncon':>5s} {'replan3':>7s} | {'pt16 us':>7s} | {'gpu us':>6s} {'con':>5s} {'cand':>5s} {'MB':>6s}")
+    for tip, t in out["tips"].items():
+        a, b, c = t["cpu"]["cylinder:16:0.625|pads"], t["cpu"]["cylinder:25:0.125|pads"], t["cpu"]["cylinder:16:0.625|pt"]
+        g = t["gpu"]
+        print(f"{tip:28s} {f(a['step_us']):>8s} {f(a['ncon'], 0):>5s} {f(a['nefc'], 0):>5s} {f(a['solver_niter'], 2):>5s} "
+              f"{f(a['obj_disp_mm'], 2):>5s} {f(a['replan_3thread_s'], 2):>7s} | {f(b['step_us']):>8s} {f(b['ncon'], 0):>5s} "
+              f"{f(b['replan_3thread_s'], 2):>7s} | {f(c['step_us']):>7s} | {f(g.get('us_per_world_step'), 2):>6s} "
+              f"{f(g.get('contacts_per_world'), 0):>5s} {f(g.get('candidates_per_world'), 0):>5s} {f(g.get('gpu_peak_mb'), 0):>6s}")
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("what", choices=["bed", "screen", "stage3"])
+    ap.add_argument("what", choices=["bed", "screen", "stage3", "cost"])
     a = ap.parse_args()
-    {"bed": bed, "screen": screen, "stage3": stage3}[a.what]()
+    {"bed": bed, "screen": screen, "stage3": stage3, "cost": cost}[a.what]()
 
 
 if __name__ == "__main__":

@@ -24,7 +24,10 @@ DATE = "20261015"
 PRINT = "_u0.1"
 CAPSULES = ["tcd_cap6", "tcd_cap7.4", "tcd_cap8.5"]
 ELLIPSOIDS = ["tcd_ell7.4x8.5x11x22", "tcd_ell7.4x5x11x22", "tcd_ell7.4x8.5x16x32"]
+QUARTERS = ["tcd_qell7.4x8.5x11x22", "tcd_qell7.4x5x11x22", "tcd_qell7.4x8.5x16x32"]   # owner, 2026-10-15 15:00
+QUARTER_C = "tcd_qellc7.4x8.5x11x22"                          # the same shape, builder v2's centroid depth
 CURVED = [k + PRINT for k in CAPSULES + ELLIPSOIDS]           # the printed candidates
+CURVED_Q = [k + PRINT for k in QUARTERS]
 LITERAL = "tcd_ell7.4x8.5x11"                                 # the symmetric half-ellipsoid (no flat mount face)
 SPHERE, SPHERE_ENV = "tcd_sph10.55", "tcd_ell10.55x10.55x10.55"
 ASBUILT, FINALIST = "tcd_rs3_re3_p0.2", "tcd_rs3_re6_p0.2"   # the printed block and the 2026-10-14 best finalist
@@ -39,9 +42,10 @@ def label(key: str) -> str:
     m = re.match(r"tcd_cap([0-9.]+)", key)
     if m:
         return f"capsule r {m[1]} mm" + (", design surface" if PRINT not in key else "")
-    m = re.match(r"tcd_ell([0-9.]+)x([0-9.]+)x([0-9.]+)(?:x([0-9.]+))?", key)
+    m = re.match(r"tcd_(qellc?|ell)([0-9.]+)x([0-9.]+)x([0-9.]+)(?:x([0-9.]+))?", key)
     if m:
-        s = f"half-ellipsoid {m[1]} x {m[2]} x {m[3]}" + (f"/{m[4]}" if m[4] else "") + " mm"
+        fam = {"ell": "half-ellipsoid", "qell": "quarter-ellipsoid", "qellc": "quarter-ellipsoid (centroid depth)"}[m[1]]
+        s = f"{fam} {m[2]} x {m[3]} x {m[4]}" + (f"/{m[5]}" if m[5] else "") + " mm"
         return s + (", design surface" if PRINT not in key else "")
     m = re.match(r"tcd_sph([0-9.]+)", key)
     if m:

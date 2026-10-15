@@ -50,6 +50,9 @@ def short(k):
         if m[1] == m[2] == m[3]:
             return f"Hemisphere\nR {m[1]}"
         return f"Ellipsoid\n{m[2]} · {m[3]}" + (f"/{m[4]}" if m[4] else "")
+    m = re.match(r"tcd_qell(c?)([0-9.]+)x([0-9.]+)x([0-9.]+)(?:x([0-9.]+))?", k)
+    if m:
+        return f"Quarter{' (c)' if m[1] else ''}\n{m[3]} · {m[4]}" + (f"/{m[5]}" if m[5] else "")
     m = re.match(r"tcd_sph([0-9.]+)", k)
     if m:
         return f"Whole sphere\nR {m[1]}"
@@ -186,6 +189,50 @@ def fig_bed():
         a.axvline(len(BED_ORDER) - 3.5, color=GRID, lw=1.2)
     fig.tight_layout(h_pad=0.6)
     out = MEDIA / "fig_bed.png"
+    fig.savefig(out)
+    print("wrote", out.relative_to(ROOT))
+
+
+TRAJ_ORDER = [C.ASBUILT, C.FINALIST] + [k + C.PRINT for k in C.CAPSULES + C.ELLIPSOIDS + C.QUARTERS]
+
+
+def fig_traj():
+    """Per tip, the median over the 24 placements (bar: 25-75 %) of the RMS tool-angle difference and of the RMS
+    friction-force difference between the pads at the planner's numerics and Drake, between the RL trainer's numerics and
+    the planner's, and of the spread between placements (Drake's rollouts of one hand at two seeds)."""
+    plt = setup()
+    S = json.loads((D / "traj/summary.json").read_text())["tips"]
+    tips = [k for k in TRAJ_ORDER if k in S]
+    x = np.arange(len(tips))
+    fig, axs = plt.subplots(2, 1, figsize=(7.2, 5.0), dpi=150, sharex=True)
+    series = (("plan-drake", "Pads at the planner's numerics against Drake", PADS, "o", -0.18),
+              ("rl-plan", "RL trainer's numerics against the planner's", THIRD, "^", 0.0),
+              ("spread", "Spread between placements (Drake, two seeds)", DRAKE, "s", 0.18))
+    for ax, key, ylab in ((axs[0], "rms_dang_deg", "RMS tool-angle\ndifference (deg)"),
+                          (axs[1], "rms_dT_N", "RMS friction-force\ndifference (N)")):
+        for pair, lab, col, mk, dx in series:
+            med, lo, hi = [], [], []
+            for k in tips:
+                v = (S[k]["spread"].get("drake") if pair == "spread" else S[k]["pairs"].get(pair)) or {}
+                q = v.get(key) or {}
+                med.append(q.get("median", np.nan)), lo.append(q.get("q25", np.nan)), hi.append(q.get("q75", np.nan))
+            med, lo, hi = map(np.array, (med, lo, hi))
+            ax.errorbar(x + dx, med, yerr=[med - lo, hi - med], fmt=mk, color=col, ms=4.5, lw=1.0, capsize=2,
+                        label=lab)
+        ax.set_ylabel(ylab)
+        ax.set_yscale("log")
+    axs[0].set_ylim(0.5, 120)
+    h, lab = axs[0].get_legend_handles_labels()
+    fig.legend(h, lab, fontsize=8.3, loc="upper center", ncol=2, bbox_to_anchor=(0.5, 1.0))
+    axs[1].set_ylim(0.05, 1.0)
+    axs[1].set_xticks(x)
+    axs[1].set_xticklabels([short(k).replace("\n", " ") for k in tips], fontsize=8.5, rotation=32, ha="right",
+                           rotation_mode="anchor")
+    for a in axs:
+        a.axvline(1.5, color=GRID, lw=1.2)
+        a.axvline(7.5, color=GRID, lw=1.2)
+    fig.tight_layout(h_pad=0.6, rect=(0, 0, 1, 0.92))
+    out = MEDIA / "fig_traj.png"
     fig.savefig(out)
     print("wrote", out.relative_to(ROOT))
 
