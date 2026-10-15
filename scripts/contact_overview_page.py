@@ -1810,6 +1810,10 @@ def _url(path):
 
 
 RELATED = [  # (group, date, title, path relative to the repository, contents)
+    ("Results on other pages", "2026-10-14", "Sphere-pad accuracy across fingertip geometry and fingertip co-design on the SR2 hand",
+     "docs/experiments/20261014-tip_codesign/20261014-sphere_pad_accuracy_and_fingertip_codesign.html",
+     "The pads against the law and Drake over fillet radius and spin rate; 24 printable tip shapes screened on the hand's "
+     "tasks, print recipes and files"),
     ("Results on other pages", "2026-10-14", "Cost and control outcomes of the sphere-pad fingertip on the real_v1 hand",
      USE_PAGE, "CPU, MuJoCo-Warp and PPO cost of the pads and cheaper fingertip models; agreement with Drake on the "
      "servo-limited plant; usable physics step; planner rollout model; RL training and scoring scene (U1-U5)"),
@@ -1996,6 +2000,15 @@ def usability_section():
                       "seed 0 on its own plant and on the 1&#8202;mm pad plant (top), and the 1&#8202;mm pad policy seed 0 on its "
                       "own plant and on the TPU-mesh plant (bottom), the median world of 128 each; the pad policy drops the tool on "
                       "the mesh plant (U5 of the usability page).")
+    cd = "docs/experiments/20261014-tip_codesign/20261014-sphere_pad_accuracy_and_fingertip_codesign.html"
+    if os.path.exists(os.path.join(ROOT, cd)):
+        link2 = os.path.relpath(os.path.join(ROOT, cd), os.path.dirname(OUT))
+        url2 = _url(os.path.join(ROOT, "docs/experiments/20261014-tip_codesign/artifact_url.txt"))
+        s += ("<p>Across fingertip shapes the pads keep the twist-onset torque within 2&#8202;% of the quasi-static law on fillets "
+              "of 1.5&#8202;mm or more, but their sliding torque grows with spin rate, 1.25 times the law at 1&#8202;rad/s on the "
+              "printed 2.7&#8202;mm fillet, because MuJoCo&#8217;s elliptic cone adds a slip term to a sliding pad&#8217;s normal "
+              "force; the friction-row change that removes it breaks the hand&#8217;s closed-loop turns (<a href=\"" + link2
+              + "\">fingertip co-design page</a>" + (f", <a href=\"{url2}\">artifact</a>" if url2 else "") + ").</p>")
     return s
 
 

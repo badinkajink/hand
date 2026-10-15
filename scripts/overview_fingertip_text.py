@@ -55,6 +55,10 @@ voxels of 0.1&#8202;mm, pressed by the 12.5&#8202;mm shaft. On those models the 
 pads&#8217; to the power 1.5; the walls carry the edges of the face, and the pads&#8217; twist arm falls 7&#8211;23&#8202;% short
 of the finite elements&#8217; at 3&#8202;N, depending on the print
 ([finite elements of the printed tip](exp:20261009-tpu_tip_fem/20261009-printed_tpu_fingertip_finite_elements.html)).</p>
+<p>The tip&#8217;s shape was screened on the hand&#8217;s tasks: of 24 printable side and end fillets, the three finalists turn the
+tool no further than the as-built tip on fresh placements, and the best, a 6&#8202;mm end fillet, gives 11.7&#8202;&#181;m/N of
+magnet travel at 95A and 20&#8202;% gyroid, short of the 12&#8202;&#181;m/N the sensor needs. On every shape the pads&#8217; sliding torque grows with spin rate, 1.25 times the
+law at 1&#8202;rad/s on the printed 2.7&#8202;mm fillet ([fingertip co-design](exp:20261014-tip_codesign/20261014-sphere_pad_accuracy_and_fingertip_codesign.html)).</p>
 <p>Solved from its own G-code, the 20&#8202;% tip with its magnet is softer than these models: 63&#8202;&#181;m at 1&#8202;N
 against 41&#8202;&#181;m, a contact modulus of 7.3&#8202;MPa against 14.6&#8202;MPa, because the stacked beads overlap only
 partly ([eFlesh printability](exp:20261013-eflesh_printability/20261013-eflesh_lattice_printability.html)). A magnet
@@ -158,6 +162,8 @@ FUTURE = [
 PAGES = [
     ("Printed fingertips and force sensing", "20261009-tpu_tip_fem/20261009-printed_tpu_fingertip_finite_elements.html",
      "Finite elements, the pads&#8217; modulus, magnet depth, print plan, calculator"),
+    ("Printed fingertips and force sensing", "20261014-tip_codesign/20261014-sphere_pad_accuracy_and_fingertip_codesign.html",
+     "Sphere-pad accuracy across tip shapes; fillet shapes and print recipes screened on the hand&#8217;s tasks"),
     ("Printed fingertips and force sensing", "20261013-eflesh_printability/20261013-eflesh_lattice_printability.html",
      "Audit and build of eFlesh lattices, as-printed stiffness"),
     ("Printed fingertips and force sensing", "20261013-magnet_layouts/20261013-mlx90393_fingertip_readout.html",

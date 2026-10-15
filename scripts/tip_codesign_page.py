@@ -349,17 +349,18 @@ def screen_section():
         return "<p><i>[stage 1 pending]</i></p>"
     C = S1["candidates"]
     rank = sorted(((v["J1"] or -1, k) for k, v in C.items()), reverse=True)
-    top = ", ".join(f"{tip_name(k)} {J_:.3f}" for J_, k in rank[:8])
+    top = ", ".join(f"{tip_name(k)} at {J_:.3f}" for J_, k in rank[:8])
     law = {r["tip"]: r for r in rows("screen/fidelity/law.jsonl") if r["field"] == "drake"}
     sp = [(C[k]["fidelity"]["pads_spin_1N_1_mm"] / law[k]["spin_arm_mm"]["1"], k) for k in C if k in law and C[k]["fidelity"].get("pads_spin_1N_1_mm")]
     on = [C[k]["fidelity"]["pads_onset_1N_mm"] / law[k]["table"]["1|0"]["arm_mm"] for k in C if k in law and C[k]["fidelity"].get("pads_onset_1N_mm")]
     t = (f"<p>The grid crosses six side fillets (1, 2, 3, 4.5, 6 and 7.4&#8202;mm) with four end fillets (1, 3, 6 and "
          f"10.5&#8202;mm), all printed face up at 0.2&#8202;mm; with the as-built design surface and the simulation default it "
-         f"has 26 tips. Their J1 ranks {top} first (Figure&#160;[[fig:screen]]); the simulation default scores "
+         f"has 26 tips. The eight highest J1 are {top} (Figure&#160;[[fig:screen]]); the simulation default scores "
          f"{C['tpu2.7']['J1']:.3f}. Across the 24 printed candidates the pads&#8217; twist-onset arm stays within "
-         f"{min(on):.2f}&#8211;{max(on):.2f} of the law, while the 1&#8202;rad/s spin arm reaches {max(sp)[0]:.2f} times the law on "
-         f"{tip_name(max(sp)[1])}: the rate effect of the flat family grows on the rounder printed tips, whose short patches make "
-         "the law&#8217;s arm small.</p>")
+         f"{min(on):.2f}&#8211;{max(on):.2f} of the law. The 1&#8202;rad/s spin arm runs from {min(sp)[0]:.2f} times the law on "
+         f"{tip_name(min(sp)[1])} to {max(sp)[0]:.2f} times on {tip_name(max(sp)[1])}: side fillets of 2&#8202;mm or less raise it "
+         "as on the flat family, and the 10.5&#8202;mm end fillet with side fillets of 4.5&#8202;mm or less brings it below the "
+         "law.</p>")
     t += img("media/fig_screen.png", "Stage 1 over the printed grid (rows r<sub>side</sub>, columns r<sub>end</sub>): J1 at "
              "\\(\\mu\\) = 0.7, and the 1&#8202;mm pads against the law: spin arm at 1&#8202;rad/s and brake force at 45&#176;. Rows: "
              "<code>screen/scale/</code>, <code>screen/hom.jsonl</code>, <code>screen/fidelity/</code>.", key="screen")
@@ -380,7 +381,8 @@ def robust_section():
     t = (f"<p>Stage 2 runs the eight highest J1, the as-built tip and the simulation default in five conditions and keeps each "
          f"tip&#8217;s worst condition as J2 (Figure&#160;[[fig:stage2]], Table&#160;[[tab:stage2]]). The as-built tip agrees with "
          f"Drake on {base['agree_drake_3deg']} of 24 plan replays, so the gate needs {base['agree_drake_3deg'] - 2}. The finalists "
-         "by the plan&#8217;s rules are " + "; ".join(f"{tip_name(k)}, {why[k][4:] if why[k].startswith('(') else why[k]}" for k in fin)
+         "by the plan&#8217;s rules are " + "; ".join(f"{tip_name(k)}, {(why[k][4:] if why[k].startswith('(') else why[k]).replace('<=', '&#8804;').replace('mu ', '&#956; ')}"
+                                                   for k in fin)
          + ", and the as-built tip as the baseline.</p>")
     t += img("media/fig_stage2.png", "Stage 2: the stage score in each condition (markers) and J2, the minimum (bar), per tip; right, "
              "plan replays within 3&#176; of Drake with its held outcome, of 24 (dark: passes the gate; dashed: the gate). Rows: "
@@ -536,6 +538,11 @@ def print_section():
                     "for every tip.", key="print", text_cols=(0, 1, 2, 7, 8)))
 
 
+def rs_re(k):
+    m = re.match(r"tcd_rs([0-9.]+)_re([0-9.]+)", k)
+    return m[1], m[2]
+
+
 def lede():
     S = J("deterioration/summary.json")["members"]
     S3 = J("final/summary_stage3.json")["candidates"]
@@ -547,9 +554,10 @@ def lede():
             f"is {S['2.7']['base']['spin_over_law']['1']:.2f} times the law on the printed tip&#8217;s 2.7&#8202;mm fillet and "
             f"{S['0']['base']['spin_over_law']['1']:.2f} times on a sharp block, while Drake stays within 0.97&#8211;1.12. The excess "
             "comes from MuJoCo&#8217;s elliptic friction cone, and removing it breaks the hand&#8217;s closed-loop turns. Of 24 "
-            "printable fingertip shapes screened on the SR2 hand&#8217;s tasks, none beats the as-built tip on fresh placements: the "
-            f"best, {tip_name(best)}, scores J3 = {S3[best]['J3']:.3f} against {b['J3']:.3f}, with a 90&#8202;% interval of "
-            f"{lo:+.3f} to {hi:+.3f}. Per-pad stiffness raises the pads&#8217; agreement with Drake on three of the four finalists.")
+            "printable fingertip shapes screened on the SR2 hand&#8217;s tasks, none of the three finalists beats the as-built tip "
+            f"on fresh placements: the best, with a {rs_re(best)[0]}&#8202;mm side and a {rs_re(best)[1]}&#8202;mm end fillet, scores "
+            f"J3 = {S3[best]['J3']:.3f} against {b['J3']:.3f}, a difference whose 90&#8202;% interval runs from {lo:+.3f} to "
+            f"{hi:+.3f}. Per-pad stiffness raises the pads&#8217; agreement with Drake on three of the four tips of stage 3.")
 
 
 def limitations():
@@ -568,7 +576,7 @@ def open_items():
          "rate effect as a model artefact, an arm that grows with rate like the pads&#8217; refutes it."),
         ("Friction of the printed tip", "pull test of two printed tips at 0.5, 1 and 2&#8202;N per tip with "
          "<code>scripts/tpu_tip_calibrate.py fit --pull</code>; every task here varies \\(\\mu\\) over 0.5&#8211;1.0."),
-        ("Finite elements of (2,&#160;1) and (3,&#160;6) at 95A 10&#8202;%", "<code>scripts/tip_codesign_fe.py --tips tcd_rs2_re1_p0.2 "
+        ("Finite elements of the two remaining tip recipes", "<code>scripts/tip_codesign_fe.py --tips tcd_rs2_re1_p0.2 "
          "--recipes w95_20</code> and <code>--tips tcd_rs3_re6_p0.2 --recipes w95_10</code>, one tip per process; these as-printed "
          "models need more than this study&#8217;s 6&#8202;GB (the runs paged and were stopped). A travel below 12&#8202;&#181;m/N "
          "at 95A 10&#8202;% on (3,&#160;6) refutes the scaled estimate."),
@@ -578,7 +586,7 @@ def open_items():
          "the as-built tip."),
         ("Per-pad stiffness as the default builder", "replay D1&#8211;D8 seeds 0&#8211;7 on the as-built tip with "
          "<code>scripts/tip_codesign_rig.py replay --h local --K each</code> next to Drake; fewer agreements than builder v1 "
-         "refute the step-27 result."),
+         "refute the builder comparison of Table&#160;[[tab:buildfin]]."),
         ("Zero-shot policies on the finalist", "evaluate the six servo-plant policies on the best finalist with "
          "<code>contact_feedback_replay.py</code> and the scene from <code>scripts/tip_codesign_rig.py rlscene</code>."),
     ]
