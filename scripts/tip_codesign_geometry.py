@@ -1,0 +1,405 @@
+#!/usr/bin/env python3
+"""Parametric convex fingertips of the co-design study (docs/notes/20261014-tip_codesign_plan.md, step 4): shape,
+hull meshes, surface samples for the contact laws, sphere pads, and the as-printed surface. numpy and scipy only;
+trimesh is imported inside the STL and comparison functions.
+
+Frame: the tip body of fingertip_geometry (palmar normal +x for palmar sign +1, y along the PIP axis, z toward the PIP,
+the finger running along -z). The envelope is the CAD insert's (assets/cad_v1/fingertip.stl): 17.0 mm deep (x),
+14.8 mm wide (y), 21.41 mm long (z); palmar face at x = 10.55 mm (the reach), back face at x = -6.45 mm, end face at
+z = -10.55 mm, mount face at z = 10.86 mm. The bench grasp's contact point is the tip origin's (y, z) = (0, 0).
+
+Keys:
+  tcd_rs<a>_re<b>      flat palmar face; the palmar long edges rounded by r_side = a mm, the palmar end edge and the
+                       side-end edges by r_end = b mm; back and mount edges square. With a = b the palmar corners are
+                       spherical (the as-built insert is tcd_rs3_re3). With a != b the body is the box rounded by
+                       min(a, b) with the larger fillet cut into it, which leaves a crease at each palmar corner.
+  ..._cr<R>            the same intersected with a ball of radius R mm whose surface passes through the apex
+                       (10.55, 0, 0) mm: a spherical crown (R 10.55 is the real_v1 sphere tip's surface)
+  ..._p<h>             as printed palmar face up at layer height h mm: the convex hull of the per-layer outlines,
+                       each slice taken at mid-layer and placed at the layer's top (PrusaSlicer's slicing)
+  tpu<r>               fingertip_geometry's block (every edge r); callers route these keys to that module
+
+The shape is the intersection of convex primitives (inside()). Surface points are exact (radial bisection from the
+box centre); the hull meshes are convex hulls of those points; pads are 0.75 mm spheres on a 1 mm voxel grid of the
+surface, each with its own area share, normal, inset centre (clamped into the body shrunk by rs) and K = E a / h, with
+h = 8.5 mm (fixed, as fingertip_geometry) or n . (p - c_V) (local, Drake's field to first order).
+
+    .venv/bin/python scripts/tip_codesign_geometry.py tcd_rs3_re3 tcd_rs3_re3_p0.2 --info
+"""
+from __future__ import annotations
+
+import argparse
+import math
+import os
+import re
+from functools import cached_property
+from pathlib import Path
+
+import numpy as np
+
+REACH, END = 0.01055, 0.01055
+DEPTH, WIDTH, LENGTH = 0.0170, 0.0148, 0.02141
+FOUNDATION = DEPTH / 2
+X_FACE, X_BACK = REACH, REACH - DEPTH
+Z_END, Z_MOUNT = -END, -END + LENGTH
+C0 = np.array([X_FACE - DEPTH / 2, 0.0, Z_END + LENGTH / 2])     # box centre, the bisection origin
+KEY_RE = re.compile(r"^tcd_rs(?P<a>[0-9.]+)_re(?P<b>[0-9.]+)(?:_cr(?P<R>[0-9.]+))?(?:_p(?P<h>[0-9.]+))?$")
+
+
+def _fib(n):
+    i = np.arange(n) + 0.5
+    z = 1 - 2 * i / n
+    r = np.sqrt(1 - z * z)
+    th = math.pi * (3 - math.sqrt(5)) * i
+    return np.column_stack([r * np.cos(th), r * np.sin(th), z])
+
+
+def _hull(P):
+    from scipy.spatial import ConvexHull
+    h = ConvexHull(P)
+    V = h.points[h.vertices]
+    remap = np.full(len(P), -1)
+    remap[h.vertices] = np.arange(len(h.vertices))
+    F = remap[h.simplices]
+    cen = V.mean(0)
+    a, b, c = V[F[:, 0]], V[F[:, 1]], V[F[:, 2]]
+    flip = np.einsum("ij,ij->i", np.cross(b - a, c - a), a - cen) < 0
+    F[flip] = F[flip][:, [0, 2, 1]]
+    return V, F
+
+
+def _subsample(V, F, a_target=1e-8):
+    """Centroids, normals and areas of a uniform subdivision of every triangle into n^2 parts, n = ceil(sqrt(A /
+    a_target)): flat faces of a convex hull are a few large triangles, which this spreads into ~a_target pieces."""
+    a, b, c = V[F[:, 0]], V[F[:, 1]], V[F[:, 2]]
+    cr = np.cross(b - a, c - a)
+    A = 0.5 * np.linalg.norm(cr, axis=1)
+    N = cr / np.maximum(2 * A[:, None], 1e-30)
+    nsub = np.maximum(1, np.ceil(np.sqrt(A / a_target))).astype(int)
+    P_, N_, A_ = [], [], []
+    for n in np.unique(nsub):
+        k = nsub == n
+        ii, jj = np.meshgrid(np.arange(n), np.arange(n), indexing="ij")
+        up = ii + jj <= n - 1
+        dn = ii + jj <= n - 2
+        U = np.concatenate([(ii[up] + 1 / 3) / n, (ii[dn] + 2 / 3) / n])
+        W = np.concatenate([(jj[up] + 1 / 3) / n, (jj[dn] + 2 / 3) / n])
+        ak, bk, ck = a[k], b[k], c[k]
+        Q = ak[:, None, :] + U[None, :, None] * (bk - ak)[:, None, :] + W[None, :, None] * (ck - ak)[:, None, :]
+        P_.append(Q.reshape(-1, 3))
+        N_.append(np.repeat(N[k], len(U), axis=0))
+        A_.append(np.repeat(A[k] / (n * n), len(U)))
+    return np.concatenate(P_), np.concatenate(N_), np.concatenate(A_)
+
+
+def _voxel_pick(P, w, cell):
+    """One representative per occupied voxel: the w-weighted mean of its points. Returns (indices of the groups,
+    representative points)."""
+    q = np.floor(P / cell).astype(np.int64)
+    _, inv = np.unique(q, axis=0, return_inverse=True)
+    inv = inv.ravel()
+    n = inv.max() + 1
+    W = np.bincount(inv, w, n)
+    M = np.column_stack([np.bincount(inv, w * P[:, k], n) for k in range(3)]) / W[:, None]
+    return inv, M
+
+
+class TipShape:
+    def __init__(self, key: str):
+        m = KEY_RE.match(key)
+        if not m:
+            raise ValueError(f"not a tcd key: {key!r}")
+        self.key = key
+        self.a = float(m["a"]) * 1e-3
+        self.b = float(m["b"]) * 1e-3
+        self.R = float(m["R"]) * 1e-3 if m["R"] else None
+        self.layer = float(m["h"]) * 1e-3 if m["h"] else None
+        if max(self.a, self.b) > WIDTH / 2 + 1e-12 or self.b > DEPTH:
+            raise ValueError(f"{key}: fillet larger than the envelope")
+        self.reach = X_FACE
+        self.top_z = Z_MOUNT
+        self.design = TipShape(key.rsplit("_p", 1)[0]) if self.layer else None
+
+    # ------------------------------------------------------------------ the body
+    def inside_design(self, P, tol=0.0):
+        """Points (n, 3) inside the design surface (before printing)."""
+        x, y, z = P[:, 0], np.abs(P[:, 1]), P[:, 2]
+        a, b = self.a, self.b
+        r0 = min(a, b)
+        ok = (x >= X_BACK - tol) & (z <= Z_MOUNT + tol) & (x <= X_FACE + tol) & (y <= WIDTH / 2 + tol) & (z >= Z_END - tol)
+        dx = np.maximum(x - (X_FACE - r0), 0)
+        dy = np.maximum(y - (WIDTH / 2 - r0), 0)
+        dz = np.maximum((Z_END + r0) - z, 0)
+        ok &= np.sqrt(dx * dx + dy * dy + dz * dz) <= r0 + tol
+        if a > r0:
+            dx1, dy1 = np.maximum(x - (X_FACE - a), 0), np.maximum(y - (WIDTH / 2 - a), 0)
+            ok &= np.hypot(dx1, dy1) <= a + tol
+        if b > r0:
+            dx2, dz2 = np.maximum(x - (X_FACE - b), 0), np.maximum((Z_END + b) - z, 0)
+            dy3 = np.maximum(y - (WIDTH / 2 - b), 0)
+            ok &= (np.hypot(dx2, dz2) <= b + tol) & (np.hypot(dy3, dz2) <= b + tol)
+        if self.R:
+            c = np.array([X_FACE - self.R, 0.0, 0.0])
+            ok &= np.linalg.norm(P - c, axis=1) <= self.R + tol
+        return ok
+
+    def inside(self, P, tol=0.0):
+        if not self.layer:
+            return self.inside_design(P, tol)
+        V, F = self.hull_fine
+        n, d = self._planes(V, F)
+        return np.all(P @ n.T - d[None, :] <= tol, axis=1)
+
+    @staticmethod
+    def _planes(V, F):
+        a, b, c = V[F[:, 0]], V[F[:, 1]], V[F[:, 2]]
+        n = np.cross(b - a, c - a)
+        n /= np.linalg.norm(n, axis=1, keepdims=True)
+        return n, np.einsum("ij,ij->i", n, a)
+
+    def _bisect(self, D, inside, t_max=0.03, it=42):
+        lo, hi = np.zeros(len(D)), np.full(len(D), t_max)
+        for _ in range(it):
+            mid = 0.5 * (lo + hi)
+            ins = inside(C0 + mid[:, None] * D)
+            lo, hi = np.where(ins, mid, lo), np.where(ins, hi, mid)
+        return C0 + lo[:, None] * D
+
+    # ------------------------------------------------------------------ printed surface
+    def _outline(self, x, n_ang=1440):
+        """The design shape's cross-section outline at height x (points in y-z), by radial bisection."""
+        th = (np.arange(n_ang) + 0.5) / n_ang * 2 * math.pi
+        D2 = np.column_stack([np.zeros(n_ang), np.cos(th), np.sin(th)])
+        o = np.array([x, 0.0, C0[2]])
+        lo, hi = np.zeros(n_ang), np.full(n_ang, 0.03)
+        if not self.design.inside_design(o[None])[0]:
+            o = np.array([x, 0.0, 0.0])
+            if not self.design.inside_design(o[None])[0]:
+                return np.zeros((0, 3))
+        for _ in range(40):
+            mid = 0.5 * (lo + hi)
+            ins = self.design.inside_design(o + mid[:, None] * D2)
+            lo, hi = np.where(ins, mid, lo), np.where(ins, hi, mid)
+        return o + lo[:, None] * D2
+
+    @cached_property
+    def hull_fine(self):
+        """(V, F) of a fine hull: the design surface from 300k rays, or for an as-printed key the hull of the layers'
+        top outlines (and their bottom outlines, which only the lowest layer contributes)."""
+        if not self.layer:
+            P = self._bisect(_fib(300_000), self.inside_design)
+            return _hull(P)
+        h = self.layer
+        nl = int(round(DEPTH / h))
+        pts = []
+        for k in range(nl):
+            xm = X_BACK + (k + 0.5) * h
+            O = self._outline(xm)
+            if not len(O):
+                continue
+            for xs in (X_BACK + (k + 1) * h, X_BACK + k * h):
+                Q = O.copy()
+                Q[:, 0] = xs
+                pts.append(Q)
+        return _hull(np.concatenate(pts))
+
+    # ------------------------------------------------------------------ outputs
+    @cached_property
+    def dense(self):
+        """Exact surface points with normals and area shares: the fine hull's triangles cut into pieces of about
+        0.01 mm2, each centroid pushed onto the surface along the ray from the box centre."""
+        V, F = self.hull_fine
+        M, N, A = _subsample(V, F, 1e-8)
+        if not self.layer:
+            D = M - C0
+            D /= np.linalg.norm(D, axis=1, keepdims=True)
+            M = self._bisect(D, self.inside_design)
+        keep = A > 0
+        return M[keep], N[keep], A[keep]
+
+    def surface(self, s=None):
+        """Points, normals and areas of the palmar region (n_x > 0.05, no mount-side region), for the law."""
+        P, N, A = self.dense
+        k = (N[:, 0] > 0.05) & (N[:, 2] < 0.5)
+        return P[k], N[k], A[k]
+
+    def hull(self, res=0.0005, sign=1.0):
+        """Convex hull of the surface points thinned to one per res voxel (the 0.5 mm resolution of
+        fingertip_geometry.hull_mesh); x mirrored for sign -1."""
+        P, _, A = self.dense
+        _, M = _voxel_pick(P, A, res)
+        if self.layer:                                   # keep the terraces' corners
+            V0, _ = self.hull_fine
+            M = np.concatenate([M, V0])
+        else:
+            D = M - C0
+            D /= np.linalg.norm(D, axis=1, keepdims=True)
+            M = self._bisect(D, self.inside_design)
+        V, F = _hull(M * np.array([sign, 1.0, 1.0]))
+        if sign < 0:
+            F = F[:, [0, 2, 1]]
+            V2, F2 = _hull(V)
+            return V2, F2
+        return V, F
+
+    @cached_property
+    def volume_centroid(self):
+        V, F = self.hull_fine
+        a, b, c = V[F[:, 0]] - C0, V[F[:, 1]] - C0, V[F[:, 2]] - C0
+        vol = np.einsum("ij,ij->i", a, np.cross(b, c)) / 6.0
+        cen = (a + b + c) / 4.0
+        return C0 + (vol[:, None] * cen).sum(0) / vol.sum(), float(vol.sum())
+
+    def centroid(self):
+        return self.volume_centroid[0].copy()
+
+    def pads(self, E=1e7, s=0.001, rs=0.00075, sign=1.0, h="fixed", K="each", full=False):
+        """Pad sphere centres, normals, areas and stiffness (sign -1 mirrors x). With full=False returns (C, K) for the
+        law module; K='median' gives every pad the median K, as reorient_backends sets one d0 per finger."""
+        P, N, A = self.dense
+        m = (N[:, 0] > -0.5) & (N[:, 2] < 0.5)               # fingertip_geometry.pad_mask: no back or mount pads
+        P, N, A = P[m], N[m], A[m]
+        inv, _ = _voxel_pick(P, A, s)
+        n = inv.max() + 1
+        Aw = np.bincount(inv, A, n)
+        Pm = np.column_stack([np.bincount(inv, A * P[:, k], n) for k in range(3)]) / Aw[:, None]
+        Nm = np.column_stack([np.bincount(inv, A * N[:, k], n) for k in range(3)])
+        Nm /= np.linalg.norm(Nm, axis=1, keepdims=True)
+        # drop slivers (voxels that clip the surface): their points join the nearest kept pad
+        keep = Aw >= 0.3 * s * s
+        from scipy.spatial import cKDTree
+        idx = np.flatnonzero(keep)
+        _, near = cKDTree(Pm[idx]).query(P)
+        Aw = np.bincount(near, A, len(idx))
+        Pm = np.column_stack([np.bincount(near, A * P[:, k], len(idx)) for k in range(3)]) / Aw[:, None]
+        Nm = np.column_stack([np.bincount(near, A * N[:, k], len(idx)) for k in range(3)])
+        Nm /= np.linalg.norm(Nm, axis=1, keepdims=True)
+        if not self.layer:                                   # the area-weighted mean lies inside: back onto the surface
+            D = Pm - C0
+            D /= np.linalg.norm(D, axis=1, keepdims=True)
+            Pm = self._bisect(D, self.inside_design)
+        C = self._clamp(Pm - rs * Nm, rs)
+        cV = self.centroid()
+        hh = np.full(len(C), FOUNDATION) if h == "fixed" else np.maximum(np.einsum("ij,ij->i", Nm, Pm - cV), 1e-3)
+        Ks = E / hh * Aw
+        if K == "median":
+            Ks = np.full(len(Ks), float(np.median(Ks)))
+        flip = np.array([sign, 1.0, 1.0])
+        if full:
+            return C * flip, Nm * flip, Aw, Ks
+        return C * flip, Ks
+
+    def _clamp(self, C, rs, it=12):
+        """Push centres into the body shrunk by rs (half-spaces of the 0.5 mm hull), so no sphere stands proud of an
+        adjacent face next to an edge sharper than rs."""
+        V, F = self.hull(0.0005)
+        n, d = self._planes(V, F)
+        C = C.copy()
+        for _ in range(it):
+            viol = C @ n.T - (d - rs)[None, :]
+            k = np.argmax(viol, axis=1)
+            v = viol[np.arange(len(C)), k]
+            bad = v > 1e-9
+            if not bad.any():
+                break
+            C[bad] -= v[bad, None] * n[k[bad]]
+        return C
+
+    def mesh_paths(self, out_dir):
+        """One OBJ per palmar sign, named by the key, written through a temporary file."""
+        out = {}
+        for name, sign in (("pos", 1.0), ("neg", -1.0)):
+            V, F = self.hull(0.0005, sign)
+            p = Path(out_dir) / f"{self.key}_{name}.obj"
+            p.parent.mkdir(parents=True, exist_ok=True)
+            if not p.exists():
+                tmp = p.with_name(p.name + f".{os.getpid()}.tmp")
+                with open(tmp, "w") as fh:
+                    fh.write(f"# {self.key} (scripts/tip_codesign_geometry.py)\n")
+                    fh.writelines(f"v {v[0]:.7f} {v[1]:.7f} {v[2]:.7f}\n" for v in V)
+                    fh.writelines(f"f {f[0] + 1} {f[1] + 1} {f[2] + 1}\n" for f in F)
+                os.replace(tmp, p)
+            out[sign] = p
+        return out
+
+    # ------------------------------------------------------------------ FE frame and STL
+    def fe_inside(self, x, y, z):
+        """tpu_tip_design's insert frame (palmar +x at 8.5 mm, mount face z = 0, end face z = 21.41 mm), in mm."""
+        P = np.column_stack([np.ravel(x) * 1e-3 + (REACH - 0.0085), np.ravel(y) * 1e-3, Z_MOUNT - np.ravel(z) * 1e-3])
+        return self.inside(P).reshape(np.shape(x))
+
+    def fe_surface_x(self, y, z):
+        """Height of the palmar surface (mm, insert frame) above each (y, z) in mm; nan outside."""
+        yy, zz = np.broadcast_arrays(np.asarray(y, float), np.asarray(z, float))
+        P0 = np.column_stack([np.full(yy.size, REACH - 0.009), yy.ravel() * 1e-3, Z_MOUNT - zz.ravel() * 1e-3])
+        if not self.inside(P0).all():
+            pass
+        lo, hi = np.zeros(yy.size), np.full(yy.size, 0.0006)
+        base = P0.copy()
+        ok = self.inside(base)
+        for _ in range(40):
+            mid = 0.5 * (lo + hi)
+            Q = base.copy()
+            Q[:, 0] += mid + 0.0
+            ins = self.inside(Q)
+            lo, hi = np.where(ins, mid, lo), np.where(ins, hi, mid)
+        xs = (base[:, 0] + lo - (REACH - 0.0085)) * 1e3
+        xs[~ok] = np.nan
+        return xs.reshape(yy.shape)
+
+    def stl_insert_frame(self, path, res=0.00025):
+        """The design (or printed) body as an STL in the insert frame (mm)."""
+        import trimesh
+        V, F = self.hull(res)
+        W = np.column_stack([(V[:, 0] - (REACH - 0.0085)) * 1e3, V[:, 1] * 1e3, (Z_MOUNT - V[:, 2]) * 1e3])
+        m = trimesh.Trimesh(W, F[:, [0, 2, 1]], process=True)
+        trimesh.repair.fix_normals(m)
+        m.export(path)
+        return m
+
+
+def shape(key: str) -> TipShape:
+    return TipShape(key)
+
+
+def compare_cad(key="tcd_rs3_re3", stl=None):
+    """Symmetric Hausdorff distance (mm) and volume ratio of a shape against the CAD insert STL (insert frame)."""
+    import trimesh
+    stl = stl or Path(__file__).resolve().parents[1] / "assets/cad_v1/fingertip.stl"
+    cad = trimesh.load(stl)
+    sh = shape(key)
+    V, F = sh.hull_fine
+    W = np.column_stack([(V[:, 0] - (REACH - 0.0085)) * 1e3, V[:, 1] * 1e3, (Z_MOUNT - V[:, 2]) * 1e3])
+    mine = trimesh.Trimesh(W, F, process=True)
+    a = trimesh.sample.sample_surface(mine, 60000, seed=0)[0]
+    b = trimesh.sample.sample_surface(cad, 60000, seed=0)[0]
+    d_ab = np.abs(trimesh.proximity.signed_distance(cad, a))
+    d_ba = np.abs(trimesh.proximity.signed_distance(mine, b))
+    return {"hausdorff_mm": float(max(d_ab.max(), d_ba.max())), "mean_mm": float(0.5 * (d_ab.mean() + d_ba.mean())),
+            "volume_mm3": float(mine.volume), "cad_volume_mm3": float(cad.volume),
+            "volume_ratio": float(mine.volume / cad.volume), "cad_bounds": cad.bounds.tolist(),
+            "bounds": mine.bounds.tolist()}
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("keys", nargs="+")
+    ap.add_argument("--info", action="store_true")
+    ap.add_argument("--cad", action="store_true", help="compare with assets/cad_v1/fingertip.stl")
+    a = ap.parse_args()
+    import time
+    for k in a.keys:
+        t0 = time.time()
+        sh = shape(k)
+        V, F = sh.hull(0.0005)
+        C, Nn, A, K = sh.pads(full=True)
+        cV, vol = sh.volume_centroid
+        print(f"{k}: hull {len(V)} vertices; volume {vol * 1e9:.1f} mm3; c_V {np.round(cV * 1e3, 3)} mm; pads {len(C)} "
+              f"(area {A.sum() * 1e6:.0f} mm2, a {A.min() * 1e6:.2f}-{A.max() * 1e6:.2f} mm2, K median {np.median(K):.0f} N/m); "
+              f"{time.time() - t0:.1f} s")
+        if a.cad:
+            print(compare_cad(k))
+
+
+if __name__ == "__main__":
+    main()

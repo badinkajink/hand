@@ -86,6 +86,10 @@ def parse_spec(spec: str) -> dict:
             x["plate"] = True
         elif p.startswith("pf"):
             x["pf"] = float(p[2:])
+        elif p.startswith("tcd="):
+            x["tcd"] = p[4:]
+        elif p in ("hloc", "Keach"):
+            x[p] = True
         else:
             keep.append(p)
     sp = _parse_spec(":".join(keep))
@@ -104,6 +108,19 @@ def xopt(xml: str, sp: dict, pad_stiff) -> str:
     tc, d0 = pad_stiff
     if "cpyr" in x:
         xml = xml.replace('cone="elliptic"', 'cone="pyramidal"')
+    if "Keach" in x and _PAD_K.get("K") is not None:
+        diag = _PAD_K["diag"]
+        root = ET.fromstring(xml)
+        for side in "LR":
+            Ks = _PAD_K["K"][side]
+            for i, Ki in enumerate(Ks):
+                g = root.find(f".//geom[@name='pad{side}_s{i}']")
+                d0i = 1.0 - 1.0 / (tc ** 2 * Ki * diag)
+                if d0i < 0.05:
+                    raise ValueError(f"pad {side}{i}: d0 {d0i:.3f} below 0.05")
+                g.set("solimp", f"{d0i:.6g} {d0i:.6g} 0.001 0.5 2")
+                g.set("priority", "1")              # the pad's own solimp, not its mix with the tool's
+        xml = ET.tostring(root, encoding="unicode")
     if "zt" in x:
         z = x["zt"]
         xml = xml.replace(f'solref="{tc:.6g} 1"', f'solref="{tc / z:.6g} {z:g}"')
@@ -139,6 +156,48 @@ def tpu_xml(sp, d_cg, gravity, kinematic, pad_stiff=None):
 
 T.tpu_xml = tpu_xml
 _mj_xml = H.mj_xml
+_PAD_K = {}
+
+
+def _tcd_init(cls):
+    """Wrap a tpu_tip_rig rig's constructor: for a tcd=<key> spec, fingertip_geometry's pad sampler and mesh writer
+    are replaced by the shape's while the rig is built."""
+    init = cls.__init__
+
+    def __init__(self, sp, d_cg, gravity, kinematic=False):
+        x = sp.get("x") or {}
+        if "tcd" not in x:
+            return init(self, sp, d_cg, gravity, kinematic)
+        import fingertip_geometry as G
+        import tip_codesign_geometry as TG
+        sh = TG.shape(x["tcd"])
+        saved = G.pad_spheres, G.mesh_paths
+        K_by_side = {}
+
+        def pad_spheres(r, s_, rs, sign=1.0, E=1e7):
+            C, Nn, A, K = sh.pads(E, s_, rs, sign, h="local" if "hloc" in x else "fixed", K="each", full=True)
+            K_by_side["L" if sign > 0 else "R"] = K
+            return C, Nn, A, (K if "Keach" in x else np.full(len(K), float(np.median(K))))
+        G.pad_spheres = pad_spheres
+        G.mesh_paths = lambda out_dir, r: sh.mesh_paths(Path(out_dir) / sh.key)
+        _PAD_K.clear()
+        if "Keach" in x and cls is T.TpuMjRig:
+            import mujoco
+            xml0, _ = _tpu_xml(dict(sp, x={}), d_cg, gravity, kinematic, None)
+            m0 = mujoco.MjModel.from_xml_string(xml0)
+            _PAD_K.update(K=K_by_side, diag=m0.body_invweight0[m0.body("padL").id, 0]
+                          + m0.body_invweight0[m0.body("tool").id, 0])
+        try:
+            init(self, sp, d_cg, gravity, kinematic)
+            self.info = dict(getattr(self, "info", {}) or {}, tcd=sh.key)
+        finally:
+            G.pad_spheres, G.mesh_paths = saved
+            _PAD_K.clear()
+    cls.__init__ = __init__
+
+
+_tcd_init(T.TpuMjRig)
+_tcd_init(T.TpuDrakeRig)
 
 
 def mj_xml(sp, d_cg, gravity, kinematic=False, pad_stiff=None, **kw):
@@ -154,6 +213,18 @@ def register(models: dict):
     for k, v in models.items():
         CB.MODELS[k] = v
         P.MODELS[v[1]] = v[0]
+
+
+def tcd_model(key: str, extra: str = "", drake: bool = False):
+    """(name, (rig spec, chain spec)) of a tip_codesign_geometry shape on the bed (its nominal tpu field r_side)."""
+    import tip_codesign_geometry as TG
+    r_mm = TG.shape(key).a * 1e3
+    ex = (":" + extra) if extra else ""
+    t = f"tpu{r_mm:g}:tcd={key}"
+    if drake:
+        return f"drake_{key}", (f"drake:hydro:E1e7:r1:rt0.01:{t}", f"drake:hydro:rt0.01:{t}")
+    return (f"mj_{key}_pads1" + extra.replace(":", "_").replace(".", "p"),
+            (f"mj:spheres:s1:rs0.75:ir100:tr0.02{ex}:{t}", f"mj:spheres:s1:rs0.75:tr0.02{ex}:{t}"))
 
 
 def tpu_model(r_mm: float, extra: str = "", name: str | None = None, drake: bool = False):
@@ -375,7 +446,10 @@ def main():
         if s in CB.MODELS:
             names.append(s)
             continue
-        if s.startswith("drake"):
+        if s.startswith("tcd_") or s.startswith("drake_tcd_"):
+            key, _, extra = s.removeprefix("drake_").partition(":")
+            n, v = tcd_model(key, extra, drake=s.startswith("drake_"))
+        elif s.startswith("drake"):
             n, v = tpu_model(float(s[5:]), drake=True)
         else:
             r_mm, _, extra = s[1:].partition(":")

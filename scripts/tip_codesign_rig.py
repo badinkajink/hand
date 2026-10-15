@@ -70,11 +70,94 @@ def add_pairs(root, tool: str, pf: float, MU: float):
     return n
 
 
+def replace_tips_tcd(root, tip, model, MU, out_dir, tool=RB.OBJ, s=RB.PAD_S, rs=RB.PAD_RS, tr=RB.PAD_TR,
+                     E=RB.E_TPU, region=None, tool_only=False, h="fixed", K="median"):
+    """RB.replace_tips for a tip_codesign_geometry key: the shape's convex mesh ('pt') or its sphere pads ('pads',
+    'padsT') on each fingertip, the distal capsule trimmed to the shape's mount face. Pad stiffness K_i = E a_i / h_i
+    through solimp d0_i = 1 - 1/(tc^2 K_i diag) per pad (K='each') or the finger's median K (K='median', as RB)."""
+    import mujoco
+    import fingertip_geometry as G
+    import numpy as np
+    import tip_codesign_geometry as TG
+    sh = TG.shape(tip)
+    meshes = sh.mesh_paths(Path(out_dir) / "meshes" / sh.key)
+    asset = root.find("asset")
+    for sgn, p in meshes.items():
+        ET.SubElement(asset, "mesh", name=f"tpu_{'pos' if sgn > 0 else 'neg'}", file=str(p))
+    pads = {}
+    for f in RB.FINGERS:
+        sgn = G.FACE_SIGN[f]
+        tipb = root.find(f".//body[@name='{f}_tip']")
+        pipb = root.find(f".//body[@name='{f}_pip_frame']")
+        for g in tipb.findall("geom"):
+            tipb.remove(g)
+        for g in pipb.findall("geom"):
+            if g.get("type") == "capsule":
+                z_end = -(G.PIP_TO_TIP - sh.top_z) + G.CAPSULE_R
+                g.set("fromto", f"0 0 0 0 0 {min(z_end, -1e-4):.6f}")
+                g.set("name", f"{f}_distal")
+        mesh = f"tpu_{'pos' if sgn > 0 else 'neg'}"
+        if model == "pt":
+            ET.SubElement(tipb, "geom", name=f"{f}_tipgeom", type="mesh", mesh=mesh, material="finger_mat",
+                          friction=f"{MU:g} 0.005 0.0001")
+            continue
+        vis = ET.SubElement(tipb, "geom", name=f"{f}_tipvis", type="mesh", mesh=mesh, contype="0", conaffinity="0",
+                            group="1", rgba="0.85 0.55 0.35 0.35")
+        if tool_only:
+            vis.set("contype", "4")
+            vis.set("conaffinity", "1")
+            vis.set("friction", f"{MU:g} 0.005 0.0001")
+        C, Nn, A, Ks = sh.pads(E, s, rs, sgn, h=h, K=K, full=True)
+        if region is not None:
+            keep = region(C, Nn, sgn)
+            C, Ks = C[keep], Ks[keep]
+        pads[f] = (C, Ks)
+        for i, c in enumerate(C):
+            g = ET.SubElement(tipb, "geom", name=f"{f}_pad{i}", type="sphere", size=f"{rs}",
+                              pos=f"{c[0]:.7f} {c[1]:.7f} {c[2]:.7f}", condim="3", priority="1",
+                              friction=f"{MU:g} 0 0", rgba="0.75 0.4 0.25 1", mass="0")
+            if tool_only:
+                g.set("contype", "2")
+                g.set("conaffinity", "0")
+    meta = {"tip_key": sh.key}
+    if pads and tool_only:
+        for g in root.find(f".//body[@name='{tool}']").iter("geom"):
+            if g.get("contype", "1") != "0" or g.get("conaffinity", "1") != "0":
+                g.set("contype", "2")
+                g.set("conaffinity", "3")
+    if pads:
+        m0 = mujoco.MjModel.from_xml_string(ET.tostring(root, encoding="unicode"))
+        tc = tr / 2.0
+        d0s = {}
+        for f, (C, Ks) in pads.items():
+            diag = m0.body_invweight0[m0.body(f"{f}_tip").id, 0] + m0.body_invweight0[m0.body(tool).id, 0]
+            d0 = 1.0 - 1.0 / (tc ** 2 * Ks * diag)
+            if d0.min() < 0.05:
+                raise ValueError(f"{f}: pad d0 {d0.min():.3f} below 0.05 at relaxation {tr} s")
+            d0s[f] = [float(d0.min()), float(d0.max())]
+            tipb = root.find(f".//body[@name='{f}_tip']")
+            for g in tipb.findall("geom"):
+                nm = g.get("name", "")
+                if nm.startswith(f"{f}_pad"):
+                    di = d0[int(nm[len(f) + 4:])]
+                    g.set("solref", f"{tc:.6g} 1")
+                    g.set("solimp", f"{di:.6g} {di:.6g} 0.001 0.5 2")
+        meta.update(pad_d0=d0s, pad_K=float(np.median(np.concatenate([k for _, k in pads.values()]))),
+                    n_pads={f: len(c) for f, (c, _) in pads.items()})
+    return meshes, meta
+
+
 def replace_tips(root, tip, model, MU, out_dir, tool=RB.OBJ, s=RB.PAD_S, rs=RB.PAD_RS, tr=RB.PAD_TR, E=RB.E_TPU,
-                 region=None, tool_only=False, pf=None):
-    """RB.replace_tips, then the explicit pairs of --pf on pad models."""
-    meshes, meta = _REPLACE(root, tip, model, MU, out_dir, tool=tool, s=s, rs=rs, tr=tr, E=E, region=region,
-                            tool_only=tool_only)
+                 region=None, tool_only=False, pf=None, force_tip=None, h="fixed", K="median"):
+    """RB.replace_tips (or replace_tips_tcd for a tcd key), then the explicit pairs of --pf on pad models.
+    force_tip replaces the caller's tip (the scale study's cell scenes always ask for tpu2.7)."""
+    tip = force_tip or tip
+    if tip.startswith("tcd_"):
+        meshes, meta = replace_tips_tcd(root, tip, model, MU, out_dir, tool=tool, s=s, rs=rs, tr=tr, E=E,
+                                        region=region, tool_only=tool_only, h=h, K=K)
+    else:
+        meshes, meta = _REPLACE(root, tip, model, MU, out_dir, tool=tool, s=s, rs=rs, tr=tr, E=E, region=region,
+                                tool_only=tool_only)
     if pf and model in ("pads", "padsT"):
         meta["n_pairs"] = add_pairs(root, tool, pf, MU)
         meta["pad_pf_s"] = pf
@@ -83,12 +166,15 @@ def replace_tips(root, tip, model, MU, out_dir, tool=RB.OBJ, s=RB.PAD_S, rs=RB.P
 
 
 def tag_of(a):
-    return a.tag or (f"E{a.E:g}" + (f"_tr{a.tr:g}" if a.tr != RB.PAD_TR else "") + (f"_pf{a.pf:g}" if a.pf else ""))
+    return a.tag or (f"E{a.E:g}" + (f"_tr{a.tr:g}" if a.tr != RB.PAD_TR else "") + (f"_pf{a.pf:g}" if a.pf else "")
+                     + (f"_h{a.h}" if getattr(a, "h", "fixed") != "fixed" else "")
+                     + (f"_K{a.K}" if getattr(a, "K", "median") != "median" else ""))
 
 
-def install(a):
+def install(a, force_tip=None):
     """Bind RB.replace_tips to the tip options and point the scene folders at this study's."""
-    RB.replace_tips = functools.partial(replace_tips, E=a.E, pf=a.pf, tr=a.tr)
+    RB.replace_tips = functools.partial(replace_tips, E=a.E, pf=a.pf, tr=a.tr, force_tip=force_tip,
+                                        h=getattr(a, "h", "fixed"), K=getattr(a, "K", "median"))
     PUB.SCN = SCN / tag_of(a)
 
 
@@ -129,11 +215,11 @@ def cmd_hom(a):
     """PUB.cmd_hom's loop; the resume key carries mu and the tag, so conditions can share an output file."""
     import hom_turn3 as HT
     install(a)
-    HT.SCENES = PUB.SCN / f"hom_ir{a.ir:g}"
+    HT.SCENES = PUB.SCN / f"hom_{a.tip}_ir{a.ir:g}"
 
-    def scenes(hand, plant, mu_):                    # HT.scenes with the pads' impratio from --ir
-        p_pads, meta_ = RB.build_scene(hand, "tpu2.7", "pads", plant, "bed", a.ir, mu_, out_dir=HT.SCENES)
-        p_mesh, meta_mesh_ = RB.build_scene(hand, "tpu2.7", "pt", plant, "bed", 100.0, mu_, out_dir=HT.SCENES)
+    def scenes(hand, plant, mu_):                    # HT.scenes with the tip and the pads' impratio from --ir
+        p_pads, meta_ = RB.build_scene(hand, a.tip, "pads", plant, "bed", a.ir, mu_, out_dir=HT.SCENES)
+        p_mesh, meta_mesh_ = RB.build_scene(hand, a.tip, "pt", plant, "bed", 100.0, mu_, out_dir=HT.SCENES)
         return p_pads, p_mesh, meta_, meta_mesh_
     HT.scenes = scenes
     prm = dict(HT.DEFAULTS)
@@ -149,7 +235,8 @@ def cmd_hom(a):
         for line in open(a.out):
             try:
                 r = json.loads(line)
-                have.add((r["hand"], r["sim"], r["plant"], str(r["mu"]), r.get("tag"), int(r["seed"])))
+                if r.get("tip", "tpu2.7") == a.tip:
+                    have.add((r["hand"], r["sim"], r["plant"], str(r["mu"]), r.get("tag"), int(r["seed"])))
             except Exception:
                 pass
     a.out.parent.mkdir(parents=True, exist_ok=True)
@@ -164,8 +251,8 @@ def cmd_hom(a):
                 continue
             plant = HT.MjPlant(p_pads, meta) if sim == "mujoco" else HT.DrakePlant(p_mesh, meta_mesh)
             for seed in todo[sim]:
-                row = {"case_id": f"hom|{hand}|{sim}|{a.plant}|{a.mu}|{tag}|{seed}", "hand": hand, "sim": sim,
-                       "seed": seed, "plant": a.plant, "mu": a.mu, "tip": "tpu2.7", "controller": "hom_turn3",
+                row = {"case_id": f"hom|{hand}|{sim}|{a.tip}|{a.plant}|{a.mu}|{tag}|{seed}", "hand": hand, "sim": sim,
+                       "seed": seed, "plant": a.plant, "mu": a.mu, "tip": a.tip, "controller": "hom_turn3",
                        **_row_extra(a), "tag": tag, "impratio": a.ir, **{f"prm_{k}": v for k, v in prm.items()},
                        "when": time.strftime("%Y-%m-%d %H:%M")}
                 t0 = time.time()
@@ -187,6 +274,30 @@ def cmd_hom(a):
             gc.collect()
 
 
+def cmd_scale(a):
+    """hand_object_scale_sim's run on the CAD hand (SCALE_HAND=cad_v1 must be set before the call) with the tip,
+    modulus and friction of the options: cell scenes under logs/20261014-tip_codesign/scale/<tip>_<tag>_mu<mu>/,
+    rows in --out-dir/{hold,turn}.jsonl with the tip and tag added."""
+    import os
+    if os.environ.get("SCALE_HAND") != "cad_v1":
+        raise SystemExit("set SCALE_HAND=cad_v1")
+    import hand_object_scale_sim as S
+    install(a, force_tip=a.tip)
+    tag = tag_of(a)
+    S.SCENES = SCN.parent / "scale" / f"{a.tip}_{tag}_mu{a.mu:g}"
+    S.MU = a.mu
+    orig_append = S._append
+    extra = {"tip": a.tip, "tag": tag, "mu": a.mu, "E_Pa": a.E, "pf_s": a.pf, "study": "20261014-tip_codesign"}
+
+    def append(path, row):
+        row.update(extra)
+        orig_append(path, row)
+    S._append = append
+    ns = argparse.Namespace(cells=a.cells, what=a.what, model="pads", seeds=a.seeds, set=a.set, shard="0/1",
+                            plant=a.plant, out_dir=str(a.out_dir), only=a.only, traces=False)
+    return S.cmd_run(ns)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -198,7 +309,25 @@ def main():
         p.add_argument("--pf", type=float, default=None)
         p.add_argument("--tr", type=float, default=RB.PAD_TR, help="pad relaxation time 2 tc, s")
         p.add_argument("--tag", default=None, help="scene folder and row tag (default from E and pf)")
+        p.add_argument("--h", default="fixed", choices=["fixed", "local"], help="tcd pads' foundation depth")
+        p.add_argument("--K", default="median", choices=["median", "each"], help="tcd pads' stiffness")
         p.add_argument("--out", type=Path, required=True)
+    sc = sub.add_parser("scale", help="the scale study's hold and HOM turn on CAD-hand cells with the chosen tip")
+    sc.add_argument("--tip", required=True)
+    sc.add_argument("--E", type=float, default=RB.E_TPU)
+    sc.add_argument("--pf", type=float, default=None)
+    sc.add_argument("--tr", type=float, default=RB.PAD_TR)
+    sc.add_argument("--h", default="fixed", choices=["fixed", "local"])
+    sc.add_argument("--K", default="median", choices=["median", "each"])
+    sc.add_argument("--tag", default=None)
+    sc.add_argument("--mu", type=float, default=1.0)
+    sc.add_argument("--cells", default="diag")
+    sc.add_argument("--only", nargs="*", default=[])
+    sc.add_argument("--what", default="hold,turn")
+    sc.add_argument("--seeds", nargs="+", type=int, default=[0, 1, 2])
+    sc.add_argument("--set", nargs="*", default=[])
+    sc.add_argument("--plant", default=SERVO)
+    sc.add_argument("--out-dir", type=Path, required=True)
     r = sub.choices["replay"]
     r.add_argument("--sim", default="mujoco", choices=["mujoco", "drake"])
     r.add_argument("--tips", nargs="+", default=["tpu2.7"])
@@ -212,13 +341,14 @@ def main():
     r.add_argument("--jitter", default="j2", choices=["j2", "j0916"])
     r.add_argument("--traces", action="store_true")
     h = sub.choices["hom"]
+    h.add_argument("--tip", default="tpu2.7")
     h.add_argument("--sims", nargs="+", default=["mujoco"])
     h.add_argument("--plant", default=SERVO)
     h.add_argument("--mu", default="1.0")
     h.add_argument("--set", nargs="*", default=[])
     h.add_argument("--ir", type=float, default=100.0, help="impratio of the pads scene")
     a = ap.parse_args()
-    {"replay": cmd_replay, "hom": cmd_hom}[a.cmd](a)
+    {"replay": cmd_replay, "hom": cmd_hom, "scale": cmd_scale}[a.cmd](a)
 
 
 if __name__ == "__main__":
