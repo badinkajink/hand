@@ -10,7 +10,8 @@ z = -10.55 mm, mount face at z = 10.86 mm. The bench grasp's contact point is th
 
 Keys:
   tcd_rs<a>_re<b>      flat palmar face; the palmar long edges rounded by r_side = a mm, the palmar end edge and the
-                       side-end edges by r_end = b mm; back and mount edges square. With a = b the palmar corners are
+                       side-end edges by r_end = b mm (the side-end edges by at most the 7.4 mm half-width); back and
+                       mount edges square. With a = b the palmar corners are
                        spherical (the as-built insert is tcd_rs3_re3). With a != b the body is the box rounded by
                        min(a, b) with the larger fillet cut into it, which leaves a crease at each palmar corner.
   ..._cr<R>            the same intersected with a ball of radius R mm whose surface passes through the apex
@@ -114,7 +115,7 @@ class TipShape:
         self.b = float(m["b"]) * 1e-3
         self.R = float(m["R"]) * 1e-3 if m["R"] else None
         self.layer = float(m["h"]) * 1e-3 if m["h"] else None
-        if max(self.a, self.b) > WIDTH / 2 + 1e-12 or self.b > DEPTH:
+        if self.a > WIDTH / 2 + 1e-12 or self.b > min(DEPTH, LENGTH / 2):
             raise ValueError(f"{key}: fillet larger than the envelope")
         self.reach = X_FACE
         self.top_z = Z_MOUNT
@@ -136,8 +137,11 @@ class TipShape:
             ok &= np.hypot(dx1, dy1) <= a + tol
         if b > r0:
             dx2, dz2 = np.maximum(x - (X_FACE - b), 0), np.maximum((Z_END + b) - z, 0)
-            dy3 = np.maximum(y - (WIDTH / 2 - b), 0)
-            ok &= (np.hypot(dx2, dz2) <= b + tol) & (np.hypot(dy3, dz2) <= b + tol)
+            ok &= np.hypot(dx2, dz2) <= b + tol
+            b3 = min(b, WIDTH / 2)                        # the side-end edges: at most the half-width
+            if b3 > r0:
+                dy3, dz3 = np.maximum(y - (WIDTH / 2 - b3), 0), np.maximum((Z_END + b3) - z, 0)
+                ok &= np.hypot(dy3, dz3) <= b3 + tol
         if self.R:
             c = np.array([X_FACE - self.R, 0.0, 0.0])
             ok &= np.linalg.norm(P - c, axis=1) <= self.R + tol
@@ -146,9 +150,16 @@ class TipShape:
     def inside(self, P, tol=0.0):
         if not self.layer:
             return self.inside_design(P, tol)
+        n, d = self._hull_planes
+        out = np.empty(len(P), bool)
+        for i in range(0, len(P), 4096):                  # 4096 points x ~6k facets at a time (190 MB)
+            out[i:i + 4096] = np.all(P[i:i + 4096] @ n.T - d[None, :] <= tol, axis=1)
+        return out
+
+    @cached_property
+    def _hull_planes(self):
         V, F = self.hull_fine
-        n, d = self._planes(V, F)
-        return np.all(P @ n.T - d[None, :] <= tol, axis=1)
+        return self._planes(V, F)
 
     @staticmethod
     def _planes(V, F):
@@ -325,22 +336,26 @@ class TipShape:
     # ------------------------------------------------------------------ FE frame and STL
     def fe_inside(self, x, y, z):
         """tpu_tip_design's insert frame (palmar +x at 8.5 mm, mount face z = 0, end face z = 21.41 mm), in mm."""
-        P = np.column_stack([np.ravel(x) * 1e-3 + (REACH - 0.0085), np.ravel(y) * 1e-3, Z_MOUNT - np.ravel(z) * 1e-3])
-        return self.inside(P).reshape(np.shape(x))
+        xb, yb, zb = np.broadcast_arrays(np.asarray(x, float), np.asarray(y, float), np.asarray(z, float))
+        xf, yf, zf = xb.ravel(), yb.ravel(), zb.ravel()
+        out = np.empty(xf.size, bool)
+        for i in range(0, xf.size, 1 << 21):              # 2M points at a time: the FE grids reach 43M points
+            sl = slice(i, i + (1 << 21))
+            P = np.column_stack([xf[sl] * 1e-3 + (REACH - 0.0085), yf[sl] * 1e-3, Z_MOUNT - zf[sl] * 1e-3])
+            out[sl] = self.inside(P)
+        return out.reshape(xb.shape)
 
     def fe_surface_x(self, y, z):
-        """Height of the palmar surface (mm, insert frame) above each (y, z) in mm; nan outside."""
+        """Height of the palmar surface (mm, insert frame) above each (y, z) in mm, by bisection along +x from the
+        back face; nan outside the footprint."""
         yy, zz = np.broadcast_arrays(np.asarray(y, float), np.asarray(z, float))
-        P0 = np.column_stack([np.full(yy.size, REACH - 0.009), yy.ravel() * 1e-3, Z_MOUNT - zz.ravel() * 1e-3])
-        if not self.inside(P0).all():
-            pass
-        lo, hi = np.zeros(yy.size), np.full(yy.size, 0.0006)
-        base = P0.copy()
+        base = np.column_stack([np.full(yy.size, X_BACK + 1e-5), yy.ravel() * 1e-3, Z_MOUNT - zz.ravel() * 1e-3])
         ok = self.inside(base)
-        for _ in range(40):
+        lo, hi = np.zeros(yy.size), np.full(yy.size, DEPTH)
+        for _ in range(44):
             mid = 0.5 * (lo + hi)
             Q = base.copy()
-            Q[:, 0] += mid + 0.0
+            Q[:, 0] += mid
             ins = self.inside(Q)
             lo, hi = np.where(ins, mid, lo), np.where(ins, hi, mid)
         xs = (base[:, 0] + lo - (REACH - 0.0085)) * 1e3
