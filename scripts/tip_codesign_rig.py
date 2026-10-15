@@ -277,7 +277,7 @@ def cmd_hom(a):
 def cmd_scale(a):
     """hand_object_scale_sim's run on the CAD hand (SCALE_HAND=cad_v1 must be set before the call) with the tip,
     modulus and friction of the options: cell scenes under logs/20261014-tip_codesign/scale/<tip>_<tag>_mu<mu>/,
-    rows in --out-dir/{hold,turn}.jsonl with the tip and tag added."""
+    rows in --out-dir/{hold,turn}.jsonl with tip and tip_tag added (the rows' own 'tag' is the cell's)."""
     import os
     if os.environ.get("SCALE_HAND") != "cad_v1":
         raise SystemExit("set SCALE_HAND=cad_v1")
@@ -287,7 +287,7 @@ def cmd_scale(a):
     S.SCENES = SCN.parent / "scale" / f"{a.tip}_{tag}_mu{a.mu:g}"
     S.MU = a.mu
     orig_append = S._append
-    extra = {"tip": a.tip, "tag": tag, "mu": a.mu, "E_Pa": a.E, "pf_s": a.pf, "study": "20261014-tip_codesign"}
+    extra = {"tip": a.tip, "tip_tag": tag, "mu": a.mu, "E_Pa": a.E, "pf_s": a.pf, "study": "20261014-tip_codesign"}
 
     def append(path, row):
         row.update(extra)

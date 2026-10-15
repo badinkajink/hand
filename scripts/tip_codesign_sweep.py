@@ -61,10 +61,17 @@ def model_of(member, variant):
     return name
 
 
-def run_member(member, variant, fine_drake=False):
+def run_member(member, variant, fine_drake=False, screen=False):
     name = model_of(member, variant)
     laws = {(name, N): a for N, a in law_arms(member).items()}
     dr = variant == "drake"
+    if screen:                                       # stage 1's fidelity set: 1 N, 1 rad/s, 1 ms
+        B.run([name], ["static"], [1.0], [None], [1.0], D / "static.jsonl")
+        B.run([name], ["T2"], [1.0], [None], [1.0], D / "T2.jsonl", laws=laws)
+        if not dr:
+            B.run([name], ["spin"], [1.0], [1.0], [1.0], D / "spin.jsonl")
+            B.run([name], ["T5"], [None], [None], [1.0], D / "T5.jsonl")
+        return
     B.run([name], ["static"], [0.5, 1.0, 3.0] if not dr else [1.0], [None], [1.0], D / "static.jsonl")
     B.run([name], ["T2"], [1.0, 3.0] if not dr else [1.0], [None], [1.0], D / "T2.jsonl", laws=laws)
     B.run([name], ["spin"], [1.0], [0.3, 1.0, 3.0] if dr else [0.03, 0.3, 1.0, 3.0, 5.0], [1.0], D / "spin.jsonl")
@@ -78,7 +85,13 @@ def main():
     ap.add_argument("--variants", nargs="+", default=["base", "fix", "drake"])
     ap.add_argument("--fine-drake", action="store_true", help="also Drake T5 at 0.25 ms")
     ap.add_argument("--law", action="store_true", help="first the law rows of members that lack them")
+    ap.add_argument("--screen", action="store_true", help="stage 1's fidelity set only (rows under --out-dir)")
+    ap.add_argument("--out-dir", type=Path, default=None)
     a = ap.parse_args()
+    global D
+    if a.out_dir:
+        D = a.out_dir
+        D.mkdir(parents=True, exist_ok=True)
     if a.law:
         import tip_codesign_law as L
         have = {r["tip"] for r in map(json.loads, open(D / "law.jsonl"))} if (D / "law.jsonl").exists() else set()
@@ -92,7 +105,7 @@ def main():
                         os.fsync(fh.fileno())
     for m in a.members:
         for v in a.variants:
-            run_member(m, v, a.fine_drake)
+            run_member(m, v, a.fine_drake, a.screen)
 
 
 if __name__ == "__main__":
