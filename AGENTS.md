@@ -36,7 +36,8 @@ file wins where they differ. They apply to every page, report, commit message an
   - "X, not Y" and "we do not claim X; we Y";
   - scope bookkeeping ("should not be read as", "this does not establish", "a reference, not the truth");
   - inflated qualifiers ("matched", "isolate", "diagnostic", "bounded", "conservative", "explicitly", "directly");
-  - vague metaphorical verbs ("carries", "lives in", "buys", "holds" for "contains"; the grasp sense stays);
+  - vague metaphorical verbs ("lives in", "buys", "holds" for "contains"; the grasp sense stays); "carries" in any sense;
+  - "that is not there" and its variants ("a torque that is not there"): state what the model has;
   - personified mechanisms;
   - triads;
   - portentous closing sentences;
