@@ -350,6 +350,30 @@ def cmd_assets(a):
         print(f"{tip}: {out.relative_to(ROOT)} (D6 scene, cad_v1/)", flush=True)
 
 
+def cmd_icem(a):
+    """Ledger step 22: hand_object_scale_planners.py run (default config icem_pin, pinned iCEM) on the CAD hand with the tip
+    forced to --tip: cell scenes of the stage runs (logs/20261014-tip_codesign/scale/<tip>_<tag>_mu<mu>), each cell's grasp the
+    one with the best median held HOM turn in --hom-rows (the tip's own rows); rows carry variant = the tip. Run in .venv with
+    SCALE_HAND=cad_v1."""
+    import os
+    if os.environ.get("SCALE_HAND") != "cad_v1":
+        raise SystemExit("set SCALE_HAND=cad_v1")
+    import hand_object_scale_planners as HP
+    import hand_object_scale_sim as S
+    ns = argparse.Namespace(E=a.E, pf=None, tr=a.tr, tag=None, h=a.h, K=a.K)
+    install(ns, force_tip=a.tip)
+    S.SCENES = SCN.parent / "scale" / f"{a.tip}_{tag_of(ns)}_mu{a.mu:g}"
+    S.MU = a.mu
+    argv = sys.argv
+    sys.argv = (["hand_object_scale_planners.py", "run", "--configs", *a.configs, "--cells", *a.cells, "--seeds",
+                 *map(str, a.seeds), "--nthread", str(a.nthread), "--out", str(a.out), "--hom-rows", str(a.hom_rows),
+                 "--variant", a.tip])
+    try:
+        return HP.main()
+    finally:
+        sys.argv = argv
+
+
 def cmd_rlscene(a):
     """make_pad_morphology_run.py with the dispatcher installed, so --tip may be a tcd key: the source run's
     frozen_scene.xml with the tip's 1 mm pads, written into a new run directory for the RL queue."""
@@ -415,6 +439,18 @@ def main():
     h.add_argument("--mu", default="1.0")
     h.add_argument("--set", nargs="*", default=[])
     h.add_argument("--ir", type=float, default=100.0, help="impratio of the pads scene")
+    ic = sub.add_parser("icem")
+    ic.add_argument("--tip", required=True)
+    ic.add_argument("--configs", nargs="+", default=["icem_pin"])
+    ic.add_argument("--cells", nargs="+", default=["cylinder:16:0.625", "cylinder:25:0.125"])
+    ic.add_argument("--seeds", nargs="+", type=int, default=[0])
+    ic.add_argument("--mu", type=float, default=1.0)
+    ic.add_argument("--nthread", type=int, default=6)
+    ic.add_argument("--hom-rows", type=Path, required=True)
+    ic.add_argument("--out", type=Path, required=True)
+    for opt, kw in (("--E", dict(type=float, default=RB.E_TPU)), ("--tr", dict(type=float, default=RB.PAD_TR)),
+                    ("--h", dict(default="fixed")), ("--K", dict(default="median"))):
+        ic.add_argument(opt, **kw)
     for name in ("assets", "rlscene"):
         q = sub.add_parser(name)
         q.add_argument("--E", type=float, default=RB.E_TPU)
@@ -427,7 +463,8 @@ def main():
     rl.add_argument("--src", type=Path, required=True, help="run directory with frozen_scene.xml")
     rl.add_argument("--out-dir", type=Path, required=True)
     a = ap.parse_args()
-    {"replay": cmd_replay, "hom": cmd_hom, "scale": cmd_scale, "assets": cmd_assets, "rlscene": cmd_rlscene}[a.cmd](a)
+    {"replay": cmd_replay, "hom": cmd_hom, "scale": cmd_scale, "assets": cmd_assets, "rlscene": cmd_rlscene,
+     "icem": cmd_icem}[a.cmd](a)
 
 
 if __name__ == "__main__":
