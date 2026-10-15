@@ -139,8 +139,9 @@ GLOSSARY = [
     ("1&#8202;mm pads", "The fingertip&#8217;s palmar region as spheres of radius 0.75&#8202;mm on a 1&#8202;mm lattice (1,160 on the "
      "as-built tip as printed), each a MuJoCo soft contact of stiffness \\(K_i = E a_i / h\\) with \\(E\\) = 10&#8202;MPa, \\(a_i\\) the pad&#8217;s "
      "share of the surface and \\(h\\) = 8.5&#8202;mm; relaxation time 0.02&#8202;s, impratio 100, elliptic friction cone, 1&#8202;ms "
-     "step. Builder v1 gives every finger its median \\(K_i\\); builder v2 uses each pad&#8217;s own \\(K_i\\) with \\(h_i\\) the pad&#8217;s "
-     "normal distance to the volume centroid. The pads on the printed TPU block are the hand&#8217;s default fingertip."),
+     "step. Builder v1, used for the stage screens, gives every finger its median \\(K_i\\); builder v2, the default since "
+     "15 October, uses each pad&#8217;s own \\(K_i\\) with \\(h_i\\) the pad&#8217;s normal distance to the volume centroid. The pads "
+     "on the printed TPU block are the hand&#8217;s default fingertip."),
     ("Drake hydroelastic", "Drake 1.57&#8217;s compliant convex hull of the tip, modulus 10&#8202;MPa, dissipation time scale "
      "0.01&#8202;s, SAP solver: the dynamic reference."),
     ("Law", "The quasi-static integral of Drake&#8217;s pressure field \\(p = E\\,(1 - g(\\mathbf{x}))\\), \\(g\\) the gauge of the tip&#8217;s "
@@ -190,7 +191,7 @@ GLOSSARY = [
      "summed normal force (N, three fingers pooled) and of the length of the difference of each finger&#8217;s friction force on the "
      "tool (N); <code>scripts/pad_builder_check.py</code>."),
     ("Spread between placements", "The same RMS difference between two rollouts of one hand under one contact model at two seeds "
-     "(tool placements 2&#8202;mm and 2&#176; apart in standard deviation), median over the hand&#8217;s seed pairs and the eight "
+     "(tool placements drawn with standard deviations of 2&#8202;mm and 2&#176;), median over the hand&#8217;s seed pairs and the eight "
      "hands; the scale below which two contact models cannot be told apart by these placements."),
 ]
 
