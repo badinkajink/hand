@@ -607,9 +607,8 @@ def block_text(ctx):
     hr = _pad_depths()
     pads = (f" ({npads // 3:,} per tip over every face but the back and the mount side, each a spring of "
             f"\\((E/h_s)\\,A_s\\) with \\(A_s\\) its share of the surface and \\(h_s\\) its depth below the tip&#8217;s volume "
-            f"centroid, {hr[0]:.1f}&#8211;{hr[1]:.1f}&#8202;mm on the block and {L['h_m'] * 1e3:g}&#8202;mm on the palmar face, where a pad "
-            f"is {L['pad_K']:,.0f}&#8202;N/m; until 15 October every pad of a finger took the median stiffness at "
-            f"\\(h\\)&#8202;=&#8202;{L['h_m'] * 1e3:g}&#8202;mm)"
+            f"centroid: {L['h_m'] * 1e3:g}&#8202;mm on the palmar face, where a pad is {L['pad_K']:,.0f}&#8202;N/m, and "
+            f"{hr[0]:.1f}&#8211;{hr[1]:.1f}&#8202;mm over the block)"
             if npads and L.get("pad_K") and L.get("h_m") else "")
     return (f"Since 13 October the scenes model the printed TPU fingertip as 1&#8202;mm pads{pads}; the 10.55&#8202;mm sphere of "
             "Table&#160;2 stays as the analytic check of steps 1&#8211;10. On the block the screwdriver presses a line across the flat "
