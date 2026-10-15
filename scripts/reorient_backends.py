@@ -11,7 +11,8 @@ more grip, a 1.1 s turn of all three fingers, 1.6 s hold), then 1.5 s of hold (t
              `tpu<r>`  the printed TPU block (fingertip_geometry.py) with fillet r mm on its front edges
   model      MuJoCo point contact on the single geom (`pt`); MuJoCo 1 mm sphere pads on the block (`pads`; `padsT`: pads
              that touch only the tool, the block's mesh taking every other contact,
-             stiffness E/h A_s with the inverse weight taken once at load, per finger); Drake hydroelastic
+             stiffness E/h A_s with the inverse weight taken once at load: per pad with h its local depth, builder
+             v2, the default since 2026-10-15; per finger with h 8.5 mm, builder v1); Drake hydroelastic
              with the tip as a compliant shape (E 10 MPa, relaxation 0.01 s, SAP)
   impratio   100 (the bed's) or 10000 (Drake's creep on the bed, 2026-10-06)
   plant      `rigid` kp 30 kv 0.5 forcerange 10 N m (shipped); `compliant` kp 0.5 kv 0.02 forcerange 0.35
@@ -73,6 +74,12 @@ MU_SCENE = 2.4             # the deploy scenes' finger and tool friction; MuJoCo
 DT = 0.001
 E_TPU = 1e7
 PAD_S, PAD_RS, PAD_TR = 0.001, 0.00075, 0.02
+# Pad stiffness builder (owner, 2026-10-15). 'v2': each pad its own K_i = E a_i / h_i, h_i = n_i . (p_i - c_V) the local
+# depth of its surface point below the tip's volume centroid (Drake's pressure field to first order). 'v1': one K per
+# finger, the median of E a_i / h with h = 8.5 mm, as every run before 2026-10-15; pass builder='v1' (or set
+# PAD_BUILDER = 'v1') to reproduce those runs.
+PAD_BUILDER = "v2"
+PAD_BUILDERS = ("v1", "v2")
 JIT_XY, JIT_YAW = 0.002, math.radians(2.0)
 T_GRIP, T_HOLD, T_EXTRA = 0.8, 1.5, 4.0
 TRACE_DT = 0.02
@@ -88,6 +95,38 @@ def load_plan(hand):
 
 def tip_r(tip):
     return float(tip[3:]) * 1e-3 if tip.startswith("tpu") else None
+
+
+def tip_shape(tip):
+    """The tip_codesign_geometry shape of a CAD-envelope key (tcd_rs<a>_re<b>[_cr<R>][_p<h>] and the keys that module
+    adds), or None for 'legacy', 'sphere' and 'tpu<r>'."""
+    if tip in ("legacy", "sphere") or tip.startswith("tpu"):
+        return None
+    import tip_codesign_geometry as TG
+    return TG.shape(tip)
+
+
+def pad_set(tip, s, rs, sign, E, builder=None):
+    """Pad centres, normals, area shares and per-pad stiffness E a_i / h_i of one fingertip (tip frame, palmar sign
+    `sign`). Builder v1: h_i = 8.5 mm (fingertip_geometry.FOUNDATION), and replace_tips gives every pad of a finger the
+    median; v2: h_i = n_i . (p_i - c_V), with p_i the pad's surface point and c_V the volume centroid (the box centre of
+    the 'tpu<r>' block), each pad keeping its own."""
+    builder = builder or PAD_BUILDER
+    if builder not in PAD_BUILDERS:
+        raise ValueError(f"pad builder {builder!r}: one of {PAD_BUILDERS}")
+    sh = tip_shape(tip)
+    if sh is not None:
+        return sh.pads(E, s, rs, sign, h="fixed" if builder == "v1" else "local", K="each", full=True)
+    r = tip_r(tip)
+    C, N, A, K = G.pad_spheres(r, s, rs, sign, E)
+    if builder == "v1":
+        return C, N, A, K
+    p, n, _ = G.surface_samples(r, s, sign)
+    keep = G.pad_mask(n, sign)
+    p, n = p[keep], n[keep]
+    assert np.allclose(n, N)                       # pad_spheres keeps the same samples in the same order
+    h = np.einsum("ij,ij->i", N, p - G.CENTRE * np.array([sign, 1.0, 1.0]))
+    return C, N, A, E * A / h
 
 
 # ---------------------------------------------------------------------------------- scene building
@@ -141,12 +180,12 @@ def plant_scene(hand: str, plant: str, out_dir: Path = SCENES) -> Path:
 
 
 def build_scene(hand: str, tip: str, model: str, plant: str, numerics: str, ir: float, mu,
-                out_dir: Path = SCENES, pad_s: float = PAD_S):
+                out_dir: Path = SCENES, pad_s: float = PAD_S, builder: str | None = None):
     """MJCF of the bench scene and its metadata. The palm is welded at the plan's pose, the finger servos carry
     the plant (apply_measured_plant.py), `numerics` 'scene' keeps the deploy scene's solver options and 'bed'
     sets a 1 ms step, the elliptic cone and impratio `ir`; `mu` 'scene' keeps the scene's friction (2.4 on the
     tool and fingers) or sets every geom's sliding friction; the tip is replaced per `tip` / `model` ('pads' =
-    sphere pads on the TPU block, 'pt' = the single geom)."""
+    sphere pads on the TPU block, 'pt' = the single geom); `builder` is the pads' stiffness builder (replace_tips)."""
     import mujoco
     plan, _ = load_plan(hand)
     base = plant_scene(hand, plant, out_dir)
@@ -196,14 +235,17 @@ def build_scene(hand: str, tip: str, model: str, plant: str, numerics: str, ir: 
     meta = {"hand": hand, "tag": HANDS[hand][0], "tip": tip, "model": model, "plant": plant, "impratio": ir,
             "numerics": numerics, "mu": MU, "post_top_z": post_top, "base_scene": str(base), "q0": q0, "tool7": tool7.tolist(), "palm_pos": palm_p.tolist(),
             "palm_quat": palm_q.tolist()}
+    kw = {} if builder is None else {"builder": builder}      # a bound replace_tips may carry its own builder
     meshes, pads_meta = replace_tips(root, tip, model, MU, out_dir, tool=OBJ,
-                                     s=pad_s, tool_only=(model == "padsT"))
+                                     s=pad_s, tool_only=(model == "padsT"), **kw)
     meta.update(pads_meta)
     if model in ("pads", "padsT"):
         meta["pad_spacing_m"] = pad_s
     meta["meshes"] = {str(k): str(v) for k, v in meshes.items()}
     out_dir.mkdir(parents=True, exist_ok=True)
     spacing_tag = f"_s{pad_s * 1000:g}" if model in ("pads", "padsT") and pad_s != PAD_S else ""
+    if pads_meta.get("pad_builder", "v1") != "v1":
+        spacing_tag += f"_b{pads_meta['pad_builder']}"
     name = f"{hand}_{tip}_{model}_{plant}_{numerics}_ir{ir:g}_mu{MU:g}{spacing_tag}.xml"
     path = out_dir / name
     tmp = path.with_name(path.name + f".{os.getpid()}.tmp")
@@ -213,19 +255,31 @@ def build_scene(hand: str, tip: str, model: str, plant: str, numerics: str, ir: 
 
 
 def replace_tips(root, tip: str, model: str, MU: float, out_dir: Path, tool: str = OBJ, s: float = PAD_S,
-                 rs: float = PAD_RS, tr: float = PAD_TR, E: float = E_TPU, region=None, tool_only: bool = False):
-    """Replace each fingertip of a parsed real_v1 scene by `tip` ('legacy' keeps the geoms, 'sphere', 'tpu<r>') as
-    `model` ('pt' one geom, 'pads' sphere pads at spacing `s`, radius `rs`, relaxation `tr`). `region(C, N, sign)`
-    optionally masks the pads (C centres, N normals in the tip frame, sign = the palmar face's x direction). Pad stiffness K_s = E/h A_s is reached at
-    load through solimp d0 = 1 - 1/(tc^2 K diag), diag = inverse weights of the tip body and `tool`.
+                 rs: float = PAD_RS, tr: float = PAD_TR, E: float = E_TPU, region=None, tool_only: bool = False,
+                 builder: str | None = None):
+    """Replace each fingertip of a parsed real_v1 scene by `tip` ('legacy' keeps the geoms, 'sphere', 'tpu<r>', or a
+    CAD-envelope key of tip_codesign_geometry such as 'tcd_rs3_re3_p0.2') as `model` ('pt' one geom, 'pads' sphere pads
+    at spacing `s`, radius `rs`, relaxation `tr`). `region(C, N, sign)` optionally masks the pads (C centres, N normals
+    in the tip frame, sign = the palmar face's x direction). Pad stiffness K_i = E a_i / h_i (pad_set; `builder` 'v2' by
+    default, 'v1' for runs before 2026-10-15) is reached at load through solimp d0_i = 1 - 1/(tc^2 K_i diag), diag =
+    inverse weights of the tip body and `tool`; v1 gives a finger's pads one d0.
     `tool_only`: the pads collide with the tool alone (contype 2, conaffinity 0; tool geoms contype 2, conaffinity 3)
     and the block's convex mesh takes every other contact (floor, other fingers: contype 4, conaffinity 1).
-    Returns (meshes, meta)."""
+    Returns (meshes, meta); meta's pad_d0 is each finger's d0 (v2: the median of its pads', pad_d0_range the extremes)."""
     import mujoco
+    builder = builder or PAD_BUILDER
+    if builder not in PAD_BUILDERS:
+        raise ValueError(f"pad builder {builder!r}: one of {PAD_BUILDERS}")
     r = tip_r(tip)
+    sh = tip_shape(tip)
     meshes = {}
-    if r is not None:
+    if sh is not None:
+        meshes = sh.mesh_paths(out_dir / "meshes" / sh.key)
+        top_z = sh.top_z                                  # the shape's mount face
+    elif r is not None:
         meshes = G.mesh_paths(out_dir / "meshes", r)
+        top_z = G.CENTRE[2] + G.HALF[2]
+    if meshes:
         asset = root.find("asset")
         for sgn, p in meshes.items():
             ET.SubElement(asset, "mesh", name=f"tpu_{'pos' if sgn > 0 else 'neg'}", file=str(p))
@@ -248,7 +302,7 @@ def replace_tips(root, tip: str, model: str, MU: float, out_dir: Path, tool: str
         # TPU block: shorten the distal capsule so its cap ends at the block's top face
         for g in pipb.findall("geom"):
             if g.get("type") == "capsule":
-                z_end = -(G.PIP_TO_TIP - (G.CENTRE[2] + G.HALF[2])) + G.CAPSULE_R
+                z_end = -(G.PIP_TO_TIP - top_z) + G.CAPSULE_R
                 g.set("fromto", f"0 0 0 0 0 {min(z_end, -1e-4):.6f}")
                 g.set("name", f"{f}_distal")
         mesh = f"tpu_{'pos' if sgn > 0 else 'neg'}"
@@ -262,11 +316,13 @@ def replace_tips(root, tip: str, model: str, MU: float, out_dir: Path, tool: str
                 vis.set("contype", "4")
                 vis.set("conaffinity", "1")
                 vis.set("friction", f"{MU:g} 0.005 0.0001")
-            C, Nn, A, K = G.pad_spheres(r, s, rs, sgn, E)
+            C, Nn, A, K = pad_set(tip, s, rs, sgn, E, builder)
             if region is not None:
                 keep = region(C, Nn, sgn)
                 C, Nn, A, K = C[keep], Nn[keep], A[keep], K[keep]
-            pads[f] = (C, float(np.median(K)))
+            if builder == "v1":
+                K = np.full(len(K), float(np.median(K)))
+            pads[f] = (C, K)
             for i, c in enumerate(C):
                 g = ET.SubElement(tipb, "geom", name=f"{f}_pad{i}", type="sphere", size=f"{rs}",
                                   pos=f"{c[0]:.7f} {c[1]:.7f} {c[2]:.7f}", condim="3", priority="1",
@@ -274,7 +330,7 @@ def replace_tips(root, tip: str, model: str, MU: float, out_dir: Path, tool: str
                 if tool_only:
                     g.set("contype", "2")
                     g.set("conaffinity", "0")
-    meta = {}
+    meta = {"tip_key": sh.key} if sh is not None else {}
     if pads and tool_only:
         for g in root.find(f".//body[@name='{tool}']").iter("geom"):
             if g.get("contype", "1") != "0" or g.get("conaffinity", "1") != "0":
@@ -283,20 +339,26 @@ def replace_tips(root, tip: str, model: str, MU: float, out_dir: Path, tool: str
     if pads:
         m0 = mujoco.MjModel.from_xml_string(ET.tostring(root, encoding="unicode"))
         tc = tr / 2.0
-        d0s = {}
+        d0s, d0r = {}, {}
         for f, (C, K) in pads.items():
             diag = m0.body_invweight0[m0.body(f"{f}_tip").id, 0] + m0.body_invweight0[m0.body(tool).id, 0]
             d0 = 1.0 - 1.0 / (tc ** 2 * K * diag)
-            if d0 < 0.05:
-                raise ValueError(f"{f}: pad d0 {d0:.3f} below 0.05 at relaxation {tr} s")
-            d0s[f] = d0
+            if d0.min() < 0.05:
+                raise ValueError(f"{f}: pad d0 {d0.min():.3f} below 0.05 at relaxation {tr} s")
+            d0s[f] = float(np.median(d0))
+            d0r[f] = [float(d0.min()), float(d0.max())]
             tipb = root.find(f".//body[@name='{f}_tip']")
             for g in tipb.findall("geom"):
-                if g.get("name", "").startswith(f"{f}_pad"):
+                nm = g.get("name", "")
+                if nm.startswith(f"{f}_pad"):
+                    di = d0[int(nm[len(f) + 4:])]
                     g.set("solref", f"{tc:.6g} 1")
-                    g.set("solimp", f"{d0:.6g} {d0:.6g} 0.001 0.5 2")
-        meta = dict(pad_d0=d0s, pad_K=float(np.median([k for _, k in pads.values()])),
-                    n_pads={f: len(c) for f, (c, _) in pads.items()})
+                    g.set("solimp", f"{di:.6g} {di:.6g} 0.001 0.5 2")
+        Ks = np.concatenate([k for _, k in pads.values()])
+        meta.update(pad_d0=d0s, pad_K=float(np.median(Ks)), n_pads={f: len(c) for f, (c, _) in pads.items()},
+                    pad_builder=builder)
+        if builder != "v1":
+            meta.update(pad_d0_range=d0r, pad_K_range=[float(Ks.min()), float(Ks.max())])
     return meshes, meta
 
 

@@ -185,6 +185,13 @@ GLOSSARY = [
      "the turn moves more than 3&#176;) exceeds the chaotic floor by 5 points; 3.65&#8202;% (<code>tolerance/summary.json</code>)."),
     ("E*", "A print recipe&#8217;s effective modulus from the whole-tip finite-element model with a 4.76&#8202;mm magnet 5&#8202;mm "
      "deep."),
+    ("RMS difference of two rollouts", "Two rollouts of one placement under two contact models, sampled every 20&#8202;ms: the root "
+     "mean square over the samples of the angle between the two tool orientations (&#176;), of the difference of each finger&#8217;s "
+     "summed normal force (N, three fingers pooled) and of the length of the difference of each finger&#8217;s friction force on the "
+     "tool (N); <code>scripts/pad_builder_check.py</code>."),
+    ("Spread between placements", "The same RMS difference between two rollouts of one hand under one contact model at two seeds "
+     "(tool placements 2&#8202;mm and 2&#176; apart in standard deviation), median over the hand&#8217;s seed pairs and the eight "
+     "hands; the scale below which two contact models cannot be told apart by these placements."),
 ]
 
 
@@ -323,6 +330,62 @@ def builder_section():
           "than 3&#176; between the two, the same share as any 0.1&#8202;% friction change.</p>")
     if fb:
         t += builders_finalists(fb)
+    return t + builder_default()
+
+
+def builder_default():
+    """The trajectory-level check of builder v2 as the default (builder_default/summary.json, 2026-10-15)."""
+    S = J("builder_default/summary.json")
+    if not S or "replay" not in S:
+        return ""
+    groups = [(w, tip) for tip in ("tpu2.7", "tcd_rs3_re3_p0.2") for w in ("replay", "hom") if tip in S.get(w, {})]
+    tname = {"tpu2.7": "Default block", "tcd_rs3_re3_p0.2": "As-built, printed"}
+    wname = {"replay": "Replays, D1&#8211;D8 seeds 0&#8211;4", "hom": "HOM, D1&#8211;D8 seeds 0&#8211;2"}
+    med = lambda res, pair, k: res["pairs"][pair][k]["median"]  # noqa: E731
+    body = []
+    for w, tip in groups:
+        res = S[w][tip]
+        iq = lambda pair: (f"{med(res, pair, 'ang_rms_deg'):.2f} [{res['pairs'][pair]['ang_rms_deg']['q25']:.2f}&#8211;"  # noqa: E731
+                           f"{res['pairs'][pair]['ang_rms_deg']['q75']:.2f}]")
+        ta = res["tally"]
+        body.append([tname[tip], wname[w], iq("v1-drake"), iq("v2-drake"),
+                     f"{res['seed_spread']['drake']['ang_rms_deg']['median']:.2f}",
+                     f"{med(res, 'v1-drake', 'F_rms_N'):.3f}", f"{med(res, 'v2-drake', 'F_rms_N'):.3f}",
+                     f"{med(res, 'v1-drake', 'T_rms_N'):.3f}", f"{med(res, 'v2-drake', 'T_rms_N'):.3f}",
+                     f"{ta['v1']['within_of_drake']}/{ta['v1']['n_vs_drake']}", f"{ta['v2']['within_of_drake']}/{ta['v2']['n_vs_drake']}"])
+    r0 = S["replay"]["tpu2.7"]
+    closer = [(w, tip) for w, tip in groups if med(S[w][tip], "v2-drake", "ang_rms_deg") < med(S[w][tip], "v1-drake", "ang_rms_deg")]
+    not_closer = [g for g in groups if g not in closer]
+    t = ("<p>Builder v2 is the default of <code>reorient_backends.replace_tips</code> since 15 October for the default block and "
+         "the CAD-envelope tips; <code>builder=\"v1\"</code> reproduces every earlier run. Held counts cannot show that two contact "
+         "models give the same dynamics (owner, 2026-10-15), so the check before the change compares whole rollouts: the plan "
+         "replays and the HOM turn of D1&#8211;D8 on the servo-limited plant under builders v1 and v2 and Drake, with the tool pose and "
+         "each finger&#8217;s normal and friction force on the tool every 20&#8202;ms (<code>scripts/pad_builder_check.py</code>). "
+         f"On the default block&#8217;s replays the tool orientation differs from Drake&#8217;s by a median RMS of "
+         f"{med(r0, 'v2-drake', 'ang_rms_deg'):.2f}&#176; with builder v2 and {med(r0, 'v1-drake', 'ang_rms_deg'):.2f}&#176; with "
+         f"v1, against {r0['seed_spread']['drake']['ang_rms_deg']['median']:.2f}&#176; between two placements in Drake; the normal "
+         f"force by {med(r0, 'v2-drake', 'F_rms_N'):.3f} and {med(r0, 'v1-drake', 'F_rms_N'):.3f}&#8202;N and the friction force by "
+         f"{med(r0, 'v2-drake', 'T_rms_N'):.3f} and {med(r0, 'v1-drake', 'T_rms_N'):.3f}&#8202;N (Table&#160;[[tab:bdefault]], "
+         "Figure&#160;[[fig:bdefault]]). Builder v2 is the closer to Drake in tool orientation in "
+         f"{len(closer)} of the {len(groups)} tip-and-task groups")
+    if not_closer:
+        t += " (not in " + ", ".join(f"{tname[tip].lower()} {('replays' if w == 'replay' else 'HOM')}" for w, tip in not_closer) + ")"
+    t += ".</p>"
+    t += table(["Tip", "Task", "Orientation, v1 (&#176;)", "Orientation, v2 (&#176;)", "Drake between placements (&#176;)",
+                "Normal force, v1 (N)", "Normal force, v2 (N)", "Friction force, v1 (N)", "Friction force, v2 (N)",
+                "Agree with Drake, v1", "Agree with Drake, v2"], body,
+               "RMS difference of each rollout from Drake&#8217;s rollout of the same placement, median [interquartile range] over the "
+               "placements, servo-limited plant, \(\mu\) = 1.0. Agree: end turn within 3&#176; (replays) or 5&#176; (HOM) of "
+               "Drake&#8217;s with the same held outcome. <code>builder_default/summary.json</code>.", key="bdefault", text_cols=(0, 1))
+    pp = r0["per_placement"]
+    ex = max((k for k, v in pp.items() if "v1-drake" in v and "v2-drake" in v),
+             key=lambda k: pp[k]["v1-drake"]["ang_rms_deg"] - pp[k]["v2-drake"]["ang_rms_deg"])
+    t += img("media/fig_builder_default.png",
+             "Builder v1, builder v2 and Drake on the servo-limited plant. Top: the default block&#8217;s replay on which v2 gains "
+             f"most on v1 ({ex.replace(' s', ', seed ')}): tool rotation from its pose at the end of the grip, and the normal and friction "
+             "forces of the three fingers on the tool. Bottom: every placement&#8217;s RMS difference from Drake (dots; bars the "
+             "medians) and Drake&#8217;s own spread between placements (dashed). <code>scripts/pad_builder_check.py figure</code>.",
+             "bdefault")
     return t
 
 
@@ -587,9 +650,6 @@ def open_items():
          "<code>tcd_rs3_re6_p0.2</code> and the as-built tip with cell seeds 3&#8211;12 and HOM seeds 5&#8211;19; a 90&#8202;% "
          "interval above zero makes the 6&#8202;mm end fillet the printed default, an interval that still includes zero keeps "
          "the as-built tip."),
-        ("Per-pad stiffness as the default builder", "replay D1&#8211;D8 seeds 0&#8211;7 on the as-built tip with "
-         "<code>scripts/tip_codesign_rig.py replay --h local --K each</code> next to Drake; fewer agreements than builder v1 "
-         "refute the builder comparison of Table&#160;[[tab:buildfin]]."),
         ("Zero-shot policies on the finalist", "evaluate the six servo-plant policies on the best finalist with "
          "<code>contact_feedback_replay.py</code> and the scene from <code>scripts/tip_codesign_rig.py rlscene</code>."),
     ]

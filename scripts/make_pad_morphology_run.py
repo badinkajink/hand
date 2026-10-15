@@ -5,7 +5,8 @@ The calibrated RL runs (`make_cal_morphology_run.py`, `make_tipmesh_morphology_r
 15 mm box tips of the deploy scenes: MuJoCo point contact, one to four contacts per tip. This copies a run directory
 and rewrites its frozen_scene.xml with each tip replaced by the TPU block of `fingertip_geometry.py` (2.7 mm fillets
 by default), either as sphere pads (`--model pads`: spacing `--spacing`, pad stiffness E/h A_s reached through solimp
-d0, as in `reorient_backends.replace_tips`) or as one convex mesh (`--model pt`). Everything else in the scene (plant,
+d0, as in `reorient_backends.replace_tips`; `--builder` v2, the default, gives each pad its local depth h, v1 one
+stiffness per finger) or as one convex mesh (`--model pt`). Everything else in the scene (plant,
 tool, floor, solver options) is unchanged, so a trainer pointed at the copy differs from the source only in the tip.
 The pads collide with the tool only; the block's convex mesh takes the floor and finger-finger contacts (without that,
 a 2 mm pad tip resting on the floor makes up to 738 contacts per world).
@@ -45,7 +46,7 @@ def front_region(sign):
 
 
 def build(src_xml: Path, out_xml: Path, tip: str, model: str, spacing: float, rs: float, region: str,
-          mu: float | None = None, tool_only: bool = True, E: float = RB.E_TPU) -> dict:
+          mu: float | None = None, tool_only: bool = True, E: float = RB.E_TPU, builder: str | None = None) -> dict:
     root = ET.parse(src_xml).getroot()
     if mu is None:                   # the friction of the tip geoms being replaced
         g = root.find(".//body[@name='thumb_tip']/geom")
@@ -66,7 +67,7 @@ def build(src_xml: Path, out_xml: Path, tip: str, model: str, spacing: float, rs
                 b.remove(old_in)
             b.insert(0, ET.Element("inertial", inertials[bn]))
     meshes, meta = RB.replace_tips(root, tip, model, mu, out_xml.parent / "assets", tool=RB.OBJ, s=spacing, rs=rs,
-                                   region=reg, tool_only=tool_only, E=E)
+                                   region=reg, tool_only=tool_only, E=E, **({"builder": builder} if builder else {}))
     out_xml.parent.mkdir(parents=True, exist_ok=True)
     ET.ElementTree(root).write(out_xml)
     meta.update(tip=tip, model=model, spacing=spacing, pad_radius=rs, region=region, mu=mu, tool_only=tool_only, E_Pa=E)
@@ -85,6 +86,9 @@ def main() -> int:
     ap.add_argument("--E", type=float, default=RB.E_TPU,
                     help="pad modulus, Pa (a printed tip's calibrated modulus, scripts/tpu_tip_calibrate.py; default 10 MPa)")
     ap.add_argument("--mu", type=float, default=None, help="tip friction (default: the source scene's tip friction)")
+    ap.add_argument("--builder", default=None, choices=list(RB.PAD_BUILDERS),
+                    help="pad stiffness builder (reorient_backends.replace_tips): v2 per-pad E a/h with the local depth "
+                         "(default, RB.PAD_BUILDER), v1 one stiffness per finger as in runs before 2026-10-15")
     a = ap.parse_args()
     src, out = a.src.resolve(), a.out.resolve()
     out.mkdir(parents=True, exist_ok=True)
@@ -92,10 +96,12 @@ def main() -> int:
         if f.is_file() and not f.name.startswith("frozen_scene"):
             shutil.copy(f, out / f.name)
     rs = a.radius if a.radius else 0.75 * a.spacing
-    meta = build(src / "frozen_scene.xml", out / "frozen_scene.xml", a.tip, a.model, a.spacing, rs, a.region, mu=a.mu, E=a.E)
+    meta = build(src / "frozen_scene.xml", out / "frozen_scene.xml", a.tip, a.model, a.spacing, rs, a.region, mu=a.mu, E=a.E,
+                 builder=a.builder)
     s = json.load(open(out / "summary.json"))
     s["frozen_scene_xml"] = str(out / "frozen_scene.xml")
-    s["fingertip"] = {k: (v if not isinstance(v, dict) else {kk: float(vv) for kk, vv in v.items()})
+    s["fingertip"] = {k: (v if not isinstance(v, dict) else {kk: (vv if isinstance(vv, list) else float(vv))
+                                                             for kk, vv in v.items()})
                       for k, v in meta.items()}
     s["derived_from"] = str(src)
     json.dump(s, open(out / "summary.json", "w"), indent=1)

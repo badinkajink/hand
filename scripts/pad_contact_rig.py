@@ -53,10 +53,11 @@ def realised_stiffness(m, finger: str) -> float:
 
 class Rig:
     """The thumb's pads against the tool. `mass_scale` scales the tool before the pads are built; `stale_scale`
-    scales it after, so the pads keep the d0 solved for the unscaled tool."""
+    scales it after, so the pads keep the d0 solved for the unscaled tool. `builder` is the pads' stiffness builder:
+    'v1' (one K per finger, the laws below and the 2026-10-13 page) or 'v2' (per-pad K with the local depth)."""
 
     def __init__(self, out: Path, mass_scale: float = 1.0, impratio: float = 10.0, stale_scale: float = 1.0,
-                 E: float = RB.E_TPU):
+                 E: float = RB.E_TPU, builder: str = "v1"):
         self.E = E
         root = ET.parse(SRC).getroot()
         geom = root.find(f".//body[@name='{TOOL}']/geom")
@@ -64,7 +65,7 @@ class Rig:
         opt = root.find("option")
         opt.set("cone", "elliptic")
         opt.set("impratio", f"{impratio:g}")
-        _, self.meta = RB.replace_tips(root, "tpu2.7", "pads", MU, out, tool=TOOL, tool_only=True, E=E)
+        _, self.meta = RB.replace_tips(root, "tpu2.7", "pads", MU, out, tool=TOOL, tool_only=True, E=E, builder=builder)
         geom.set("density", f"{DENSITY * mass_scale * stale_scale:g}")
         self.jointed = mujoco.MjModel.from_xml_string(ET.tostring(root, encoding="unicode"))
         for b in root.iter("body"):

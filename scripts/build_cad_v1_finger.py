@@ -516,8 +516,9 @@ def finger_xml(f: str, A, inert, collision, mirror: bool, ind: str, morph: bool,
             out.append(f'<geom name="{f}_{body}_s{i}" class="cad_collision" pos="{fmt(cc)}" size="{r:.6f}"/>')
         if body == "tip" and pads:
             at = " ".join(f'{k}="{v}"' for k, v in pads["attrs"].items())
-            for i, c in enumerate(pads["centres"]):
-                out.append(f'<geom name="{f}_pad{i}" class="cad_pad" pos="{fmt(c, 7)}" size="{pads["rs"]}" {at}/>')
+            for i, c in enumerate(pads["centres"]):         # solimp per pad: builder v2 gives each pad its own d0
+                out.append(f'<geom name="{f}_pad{i}" class="cad_pad" pos="{fmt(c, 7)}" size="{pads["rs"]}" {at} '
+                           f'solimp="{pads["solimp"][i]}"/>')
         return out
 
     def inertial_xml(body):
@@ -655,9 +656,10 @@ def palm_raise_m(A) -> float:
     return (km["yaw_to_mcp"] + km["mcp_to_pip"] + km["pip_to_tip_end"] - REAL_V1_REACH_MM) / 1000.0
 
 
-def write_scene(A, collision: dict, out_dir: Path, inert: dict) -> dict:
+def write_scene(A, collision: dict, out_dir: Path, inert: dict, builder: str | None = None) -> dict:
     """scene_screwdriver_medium.xml for the CAD hand: real_v1's scene with the finger bodies replaced,
-    then the tips replaced by 1 mm TPU pads with reorient_backends.replace_tips (21.41 mm block)."""
+    then the tips replaced by 1 mm TPU pads with reorient_backends.replace_tips (21.41 mm block; `builder` the pads'
+    stiffness builder, reorient_backends.PAD_BUILDER when None)."""
     import xml.etree.ElementTree as ET
     G = cad_tip_geometry(A)
     import reorient_backends as RB
@@ -697,7 +699,8 @@ def write_scene(A, collision: dict, out_dir: Path, inert: dict) -> dict:
         ctrl[2] += dz  # a_palm_px, a_palm_py, a_palm_pz
         key.set("qpos", " ".join(f"{x:.6g}" for x in qpos))
         key.set("ctrl", " ".join(f"{x:.6g}" for x in ctrl))
-    _, meta = RB.replace_tips(root, "tpu2.7", "pads", PAD_MU, out_dir, tool=RB.OBJ)
+    _, meta = RB.replace_tips(root, "tpu2.7", "pads", PAD_MU, out_dir, tool=RB.OBJ,
+                              **({"builder": builder} if builder else {}))
     meta["palm_raised_mm"] = round(dz * 1000, 3)
     # pads in geom group 4 as in finger.xml and hand.xml, so the viewers toggle them with the same key
     for g in root.iter("geom"):
@@ -717,19 +720,20 @@ def write_scene(A, collision: dict, out_dir: Path, inert: dict) -> dict:
         tipb = root.find(f".//body[@name='{f}_tip']")
         gs = [g for g in tipb.findall("geom") if g.get("name", "").startswith(f"{f}_pad")]
         pads[f] = dict(centres=[np.array([float(x) for x in g.get("pos").split()]) for g in gs], rs=gs[0].get("size"),
-                       attrs={k: gs[0].get(k) for k in ("condim", "priority", "friction", "solref", "solimp")})
+                       attrs={k: gs[0].get(k) for k in ("condim", "priority", "friction", "solref")},
+                       solimp=[g.get("solimp") for g in gs])
     meta["block_mm"] = [G.DEPTH * 1000, G.WIDTH * 1000, G.LENGTH * 1000]
     return dict(pads=pads, meta=meta)
 
 
-def write_model(A, collision: dict, out_dir: Path, with_pads: bool = True) -> dict:
+def write_model(A, collision: dict, out_dir: Path, with_pads: bool = True, builder: str | None = None) -> dict:
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "meshes").mkdir(exist_ok=True)
     bm = body_meshes(A)
     for p, (body, m) in bm.items():
         m.export(out_dir / "meshes" / f"{p}.stl")
     inert = {b: inertial([(p, m) for p, (bb, m) in bm.items() if bb == b]) for b in BODY_PARTS}
-    scene = write_scene(A, collision, out_dir, inert) if with_pads else dict(pads={}, meta={})
+    scene = write_scene(A, collision, out_dir, inert, builder) if with_pads else dict(pads={}, meta={})
     pads = scene["pads"]
     mesh_xml = "\n".join(f'    <mesh name="cad_{p}" file="{p}.stl"/>' for p in bm)
     head = HEADER.format(model="{model}", link=RGBA["link"], servo=RGBA["servo"], tip=RGBA["tip"], meshes=mesh_xml)
@@ -806,6 +810,9 @@ def main():
     ap.add_argument("--spheres", type=Path, default=None,
                     help="JSON of collision spheres per body, {body: [[x, y, z, r], ...]} in metres, body frames")
     ap.add_argument("--out", type=Path, default=OUT)
+    ap.add_argument("--builder", default=None, choices=["v1", "v2"],
+                    help="pad stiffness builder (reorient_backends.replace_tips): v2 per-pad E a/h with the local depth "
+                         "(default, reorient_backends.PAD_BUILDER), v1 one stiffness per finger as before 2026-10-15")
     args = ap.parse_args()
     A = derive()
     print(json.dumps(A["report"], indent=1))
@@ -815,7 +822,7 @@ def main():
     if args.spheres:
         raw = json.loads(args.spheres.read_text())
         collision = {b: [(s[:3], s[3]) for s in v] for b, v in raw.items()}
-    inert, pad_meta = write_model(A, collision, args.out)
+    inert, pad_meta = write_model(A, collision, args.out, builder=args.builder)
     asm = dict(report=A["report"], body_origins_mm={k: v.round(4).tolist() for k, v in body_origins_mm(A).items()},
                T_F_from_part_design_mm={k: np.round(v, 6).tolist() for k, v in A["T_F"].items()},
                T_part_design_from_stl={k: np.round(v, 9).tolist() for k, v in A["T_design"].items()},

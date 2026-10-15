@@ -21,7 +21,14 @@ and **RL manipulation** (lift → in-hand reorient of a flat screwdriver to vert
   `results/phase1/real_v1/20261011-sv1_u0308_b050_servo_tip_tpu2.7pads1`). Point contact on the TPU block
   (`pt`, `tpu2.7mesh`) is the comparison arm; the legacy box tip only reproduces old runs. Pads reproduce the pinch
   friction torque that point contact lacks and agree across MuJoCo, MuJoCo-Warp, Newton and Drake
-  (`docs/overviews/contact_model.html`); they cost 1.7x the mesh per RL iteration.
+  (`docs/overviews/contact_model.html`); they cost 1.7x the mesh per RL iteration. **Pad builder v2 is the default
+  (owner, 2026-10-15):** each pad's stiffness is E a_i / h_i with h_i its depth below the tip's volume centroid
+  (`reorient_backends.PAD_BUILDER`; `--builder` on `make_pad_morphology_run.py`, `build_cad_v1_finger.py`,
+  `hand_object_scale_sim.py`). `builder="v1"` (one stiffness per finger, h 8.5 mm) reproduces runs before 2026-10-15,
+  whose frozen scenes keep v1 pads (the servo-plant run above among them). `replace_tips` also builds the CAD-envelope
+  tips of `tip_codesign_geometry` (`tcd_*` keys). Training, planning and evaluation use the same pads, the same builder
+  and, where the trainer holds the grasp, the same contact numerics; compare contact models on trajectories (tool pose,
+  fingertip normal and friction forces) with seed spread, never on "held" alone (owner, 2026-10-15).
 - **GPU is single (16 GB).** Train sequentially. **Every Warp process needs its own kernel cache:**
   `WARP_CACHE_PATH=$(mktemp -d)` — a shared cache races and NaNs. After killing a Warp run, wait for
   GPU memory to drop to ~1 GB before relaunching.

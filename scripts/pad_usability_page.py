@@ -418,17 +418,20 @@ def rl_section():
             "(Table&#160;[[tab:rlcross]], Figure&#160;[[fig:rlcross]]). On the TPU-mesh plant the same conditions separate the "
             "policies: the mesh finals keep 96 and 117 of 128 at half gain, the pad finals 48 and 32, and every final&#8217;s replays "
             "keep 0&#8211;9 of 64.</p>"
-            "<p>Training on the pads therefore gives no margin on the pad plant and costs 30&#8211;90 of 128 rollouts on the mesh "
-            "plant under each of the three perturbations (all four seed pairs; Fisher p below 10<sup>&#8722;33</sup>). The RL "
-            "trainer can train on the TPU mesh, at 1.47 times less time per PPO iteration and 2.0 against 11.2&#8202;GB of GPU "
-            "memory, and score its policies on the 1&#8202;mm pads. The 2&#8202;mm pad plant reproduces the 1&#8202;mm pad plant "
+            "<p>The pad-trained policies lose 30&#8211;90 of 128 rollouts on the mesh plant under each of the three perturbations "
+            "(all four seed pairs; Fisher p below 10<sup>&#8722;33</sup>), so a policy depends on the contact model it trained on. "
+            "Held counts do not show that two contact models give a policy the same dynamics (owner, 2026-10-15), so training, "
+            "planning and evaluation use the same 1&#8202;mm pads, built by the same builder, and the same contact numerics "
+            "wherever the trainer still holds the grasp under them. The pads cost the trainer 1.47 times the TPU mesh&#8217;s time "
+            "per PPO iteration and 11.2 against 2.0&#8202;GB of GPU memory. The 2&#8202;mm pad plant reproduces the 1&#8202;mm pad plant "
             "within 5 of 128 held rollouts and 0.03 of held cosine on 12 of 16 final-condition pairs; condim&#160;4 on the block "
             "drops the tool (8&#8211;99 of 128 held at nominal) and matches on none. Which plant the hardware follows is the "
             "question of the torque-limited bench replays in Future work.</p>"
             "<p>On their own plants a 4&#8202;ms physics step changes three finals by 1&#8211;3 of 128 held rollouts and costs the "
             "TPU-mesh seed 1 22; impratio 100, written into the model in place, changes held counts by &#8722;1 to +4 and held "
-            "cosine by &#8722;0.006 to &#8722;0.027 (Table&#160;[[tab:rlnum]]), so the trainer keeps its 2&#8202;ms step and its "
-            "impratio of 10.</p>"
+            "cosine by &#8722;0.006 to &#8722;0.027 (Table&#160;[[tab:rlnum]]), so the trainer&#8217;s grasp holds at the "
+            "planner&#8217;s impratio of 100 and new training runs use it. The trainer&#8217;s 2&#8202;ms step is the pads&#8217; "
+            "usable step on the servo-limited plant (U3).</p>"
             + t1
             + img("docs/experiments/20261014-pad_usability/rl/20261014-u5_cross.png", f["figures"][0]["caption"], "rlcross")
             + t2
@@ -440,8 +443,9 @@ def lede():
             "contact on the TPU block), 2.37&#8202;&#181;s per MuJoCo-Warp world-step and 1.47 times the TPU mesh per PPO iteration. "
             "On the servo-limited plant they agree with Drake on 16 of 24 plan replays, against 1 for point contact, and their "
             "usable step is 2&#8202;ms. The CPU planner keeps them as its rollout model: condim&#160;4 and point contact replan 6 and "
-            "9 times faster but lose a median 19 and 28&#176; of held turn. RL can train on the mesh and score on the pads: "
-            "mesh-trained policies keep 123&#8211;125 of 128 rollouts on the pad plant at half servo gain.")
+            "9 times faster but lose a median 19 and 28&#176; of held turn. Mesh-trained RL policies keep 123&#8211;125 of 128 rollouts "
+            "on the pad plant at half servo gain, but held counts do not show equal dynamics, so training uses the same pads as "
+            "planning and evaluation.")
 
 
 def limitations():
@@ -449,7 +453,9 @@ def limitations():
             "modulus; no fingertip has been measured on the bench. CPU times are E-core times on one workstation; the 2026-10-13 "
             "planner timing ran unpinned and gives 105.5&#8202;&#181;s for the same pad step. The PPO probes are 12 iterations "
             "from scratch, so their buffer requests are a lower bound for a full run. The plan replays are open loop and the "
-            "spectral thresholds are rest states; a turning tool or an exploring policy loads other contact rows.</p>")
+            "spectral thresholds are rest states; a turning tool or an exploring policy loads other contact rows. Every pad row "
+            "uses builder v1, one stiffness per finger, the default until 15 October; builder v2, each pad with its own depth, "
+            "is compared with it at trajectory level on the fingertip co-design page.</p>")
 
 
 def open_items():
@@ -476,6 +482,11 @@ def open_items():
         ("Turn stalls of the pads on D3 and D8", "<code>scripts/pad_usability_backends.py run --dt 0.25 0.5</code> on D3, D5 and D8 "
          "for the pads and Drake, and the pads at impratio 1000; a stall that persists at impratio 1000 rules out creep as its "
          "cause."),
+        ("Trainer and planner numerics on the pads", "replay D1&#8211;D8 seeds 0&#8211;4 on the 1&#8202;mm pads at the "
+         "trainer&#8217;s numerics (2&#8202;ms, impratio 100, 10 solver iterations) and at the planner&#8217;s (1&#8202;ms, impratio "
+         "100, 100 Newton iterations to a tolerance of 10<sup>&#8722;10</sup>), recording the tool pose and each fingertip&#8217;s normal and friction force every 20&#8202;ms as "
+         "<code>scripts/pad_builder_check.py</code> does; a median RMS tool-orientation difference above the planner&#8217;s own "
+         "spread between placements calls for training at 1&#8202;ms."),
     ]
     return "<ol>" + "".join(f"<li><b>{a}.</b> {b}</li>" for a, b in items) + "</ol>"
 

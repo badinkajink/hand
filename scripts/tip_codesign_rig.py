@@ -148,17 +148,26 @@ def replace_tips_tcd(root, tip, model, MU, out_dir, tool=RB.OBJ, s=RB.PAD_S, rs=
     return meshes, meta
 
 
+BUILDER_HK = {"v1": ("fixed", "median"), "v2": ("local", "each")}   # RB.replace_tips's builders as (h, K)
+
+
 def replace_tips(root, tip, model, MU, out_dir, tool=RB.OBJ, s=RB.PAD_S, rs=RB.PAD_RS, tr=RB.PAD_TR, E=RB.E_TPU,
-                 region=None, tool_only=False, pf=None, force_tip=None, h="fixed", K="median"):
+                 region=None, tool_only=False, pf=None, force_tip=None, h="fixed", K="median", builder=None):
     """RB.replace_tips (or replace_tips_tcd for a tcd key), then the explicit pairs of --pf on pad models.
-    force_tip replaces the caller's tip (the scale study's cell scenes always ask for tpu2.7)."""
+    force_tip replaces the caller's tip (the scale study's cell scenes always ask for tpu2.7). A caller's `builder`
+    replaces (h, K); RB's builder for other keys is the one (h, K) name (fixed, median: v1; local, each: v2)."""
     tip = force_tip or tip
+    if builder:
+        h, K = BUILDER_HK[builder]
     if tip.startswith("tcd_"):
         meshes, meta = replace_tips_tcd(root, tip, model, MU, out_dir, tool=tool, s=s, rs=rs, tr=tr, E=E,
                                         region=region, tool_only=tool_only, h=h, K=K)
     else:
+        bld = {hk: b for b, hk in BUILDER_HK.items()}.get((h, K))
+        if bld is None:
+            raise ValueError(f"{tip}: pads with h={h}, K={K} exist only for tcd keys; RB builds v1 and v2")
         meshes, meta = _REPLACE(root, tip, model, MU, out_dir, tool=tool, s=s, rs=rs, tr=tr, E=E, region=region,
-                                tool_only=tool_only)
+                                tool_only=tool_only, builder=bld)
     if pf and model in ("pads", "padsT"):
         meta["n_pairs"] = add_pairs(root, tool, pf, MU)
         meta["pad_pf_s"] = pf
@@ -176,8 +185,9 @@ def install(a, force_tip=None):
     """Bind RB.replace_tips to the tip options and point the scene folders at this study's."""
     global MESH_EPS
     MESH_EPS = getattr(a, "mesh_eps", None)
-    RB.replace_tips = functools.partial(replace_tips, E=a.E, pf=a.pf, tr=a.tr, force_tip=force_tip,
-                                        h=getattr(a, "h", "fixed"), K=getattr(a, "K", "median"))
+    hk = (getattr(a, "h", "fixed"), getattr(a, "K", "median"))
+    RB.replace_tips = functools.partial(replace_tips, E=a.E, pf=a.pf, tr=a.tr, force_tip=force_tip, h=hk[0], K=hk[1])
+    RB.PAD_BUILDER = {v: b for b, v in BUILDER_HK.items()}.get(hk, RB.PAD_BUILDER)   # names of cached cell scenes
     PUB.SCN = SCN / tag_of(a)
 
 

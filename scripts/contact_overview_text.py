@@ -604,9 +604,12 @@ def block_text(ctx):
     L = json.load(open(lp)) if P.os.path.exists(lp) else {}
     hand = ctx.get("hand") or {}
     npads = hand.get("n_pads")
+    hr = _pad_depths()
     pads = (f" ({npads // 3:,} per tip over every face but the back and the mount side, each a spring of "
-            f"\\((E/h)\\,A_s\\)&#8202;=&#8202;{L['pad_K']:,.0f}&#8202;N/m with \\(A_s\\) its share of the surface and the foundation "
-            f"depth \\(h\\)&#8202;=&#8202;{L['h_m'] * 1e3:g}&#8202;mm)"
+            f"\\((E/h_s)\\,A_s\\) with \\(A_s\\) its share of the surface and \\(h_s\\) its depth below the tip&#8217;s volume "
+            f"centroid, {hr[0]:.1f}&#8211;{hr[1]:.1f}&#8202;mm on the block and {L['h_m'] * 1e3:g}&#8202;mm on the palmar face, where a pad "
+            f"is {L['pad_K']:,.0f}&#8202;N/m; until 15 October every pad of a finger took the median stiffness at "
+            f"\\(h\\)&#8202;=&#8202;{L['h_m'] * 1e3:g}&#8202;mm)"
             if npads and L.get("pad_K") and L.get("h_m") else "")
     return (f"Since 13 October the scenes model the printed TPU fingertip as 1&#8202;mm pads{pads}; the 10.55&#8202;mm sphere of "
             "Table&#160;2 stays as the analytic check of steps 1&#8211;10. On the block the screwdriver presses a line across the flat "
@@ -759,6 +762,14 @@ def mindlin_t8_trace(N=1.0, n=200):
                         np.linspace(2.5, 3.0, n), [3.2]])
     u = np.concatenate([u1, u2, u3, u4, [u4[-1]]])
     return t, 2 * np.concatenate([q1, q2, q3, q4, [0.0]]), u
+
+
+def _pad_depths():
+    """Smallest and largest pad depth h_s (mm) of the default block under builder v2 (reorient_backends.pad_set)."""
+    import reorient_backends as RB
+    _, _, A, K = RB.pad_set("tpu2.7", RB.PAD_S, RB.PAD_RS, 1.0, RB.E_TPU, "v2")
+    h = RB.E_TPU * A / K * 1e3
+    return float(h.min()), float(h.max())
 
 
 def _f8(ctx):

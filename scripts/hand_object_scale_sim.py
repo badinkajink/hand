@@ -57,6 +57,7 @@ GEN = ROOT / "assets/mjcf/experimental/20261008-hand_object_scale"
 BASE_HAND = ROOT / "assets/mjcf/real_v1/real_hand.xml"
 OBJ = RB.OBJ                     # the object body keeps the screwdriver's name so the shared tooling finds it
 PLANT = "kp4_kv0_fr1_fl0_dp0.08"
+BUILDER = None      # pad stiffness builder of the cell scenes (--builder); None: reorient_backends.PAD_BUILDER (v2)
 DEFAULT_PLANT = PLANT                # cell scenes of another plant (run --plant) carry its spec in the file name
 MU, IMPRATIO = 1.0, 100.0
 MASS = 0.025
@@ -306,7 +307,9 @@ def cell_scenes(cell: dict, shape: str, d_mm: float, models=("pads", "pt")) -> d
     out = {}
     for mdl in models:
         out_dir = SCENES / obj_tag(shape, d_mm)
-        path = out_dir / (f"{cell['tag']}_{mdl}.xml" if PLANT == DEFAULT_PLANT else f"{cell['tag']}_{mdl}__{PLANT}.xml")
+        bld = BUILDER or RB.PAD_BUILDER
+        mtag = f"{mdl}_b{bld}" if mdl != "pt" and bld != "v1" else mdl     # v1 scenes keep their names
+        path = out_dir / (f"{cell['tag']}_{mtag}.xml" if PLANT == DEFAULT_PLANT else f"{cell['tag']}_{mtag}__{PLANT}.xml")
         meta_path = path.with_suffix(".json")
         if path.exists() and meta_path.exists():
             out[mdl] = (path, json.loads(meta_path.read_text()))
@@ -347,7 +350,8 @@ def cell_scenes(cell: dict, shape: str, d_mm: float, models=("pads", "pt")) -> d
         post = ET.SubElement(root.find("worldbody"), "body", name="post", pos=f"0 0 {hh:.6f}")
         ET.SubElement(post, "geom", name="post", type="cylinder", size=f"{min(POST_R, 0.4 * r):.6f} {hh:.6f}",
                       rgba="0.4 0.4 0.45 1", friction=f"{MU:g} 0.005 0.0001")
-        _, pads_meta = RB.replace_tips(root, "tpu2.7", mdl, MU, out_dir, tool=OBJ, s=RB.PAD_S)
+        _, pads_meta = RB.replace_tips(root, "tpu2.7", mdl, MU, out_dir, tool=OBJ, s=RB.PAD_S,
+                                       **({"builder": BUILDER} if BUILDER else {}))
         out_dir.mkdir(parents=True, exist_ok=True)
         tmp = path.with_name(path.name + f".{os.getpid()}.tmp")
         ET.ElementTree(root).write(tmp)
@@ -692,9 +696,11 @@ def cmd_run(a) -> int:
     """Every candidate grasp of every cell: the hold test (seed 0, with the disturbance ramps) and the HOM turn
     (each seed). Rows carry the candidate's kinematic variables; resumable per (cell, candidate, seed)."""
     import mujoco
-    global PLANT
+    global PLANT, BUILDER
     if a.plant:
         PLANT = a.plant
+    if getattr(a, "builder", None):
+        BUILDER = a.builder
     whats = a.what.split(",")
     out_dir = Path(a.out_dir) if a.out_dir else OUT_DIR
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -797,6 +803,9 @@ def main() -> int:
     r.add_argument("--out-dir", default=None, help="directory of the hold/turn rows; default the study's folder")
     r.add_argument("--only", nargs="*", default=[], help="cells shape:d_mm[:t,t,...] of the --cells set")
     r.add_argument("--traces", action="store_true")
+    r.add_argument("--builder", default=None, choices=list(RB.PAD_BUILDERS),
+                   help="pad stiffness builder (reorient_backends.replace_tips): v2 per-pad E a/h with the local depth "
+                        "(default, RB.PAD_BUILDER), v1 one stiffness per finger, the cell scenes before 2026-10-15")
     a = ap.parse_args()
     return {"run": cmd_run}[a.cmd](a)
 

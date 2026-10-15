@@ -1991,8 +1991,10 @@ def usability_section():
         s += "."
     s += (" RL policies trained on the TPU mesh keep the tool on the 1&#8202;mm pad plant as well as pad-trained ones, "
           f"{kp('tpu27pads1', ('Mesh s0', 'Mesh s1'))} against {kp('tpu27pads1', ('Pads s0', 'Pads s1'))} of 128 at half servo "
-          f"gain, while the pad-trained policies fall to {kp('tpu27mesh', ('Pads s0', 'Pads s1'))} on the mesh plant (U5), so "
-          "training can use the cheaper mesh and score on the pads.</p>")
+          f"gain, while the pad-trained policies fall to {kp('tpu27mesh', ('Pads s0', 'Pads s1'))} on the mesh plant (U5). "
+          "Held counts do not show that two contact models give the same dynamics, so training, planning and evaluation use the "
+          "same 1&#8202;mm pads with the same builder, and the same contact numerics wherever the trainer still holds the grasp "
+          "under them (owner, 2026-10-15).</p>")
     film = os.path.join(USE_DIR, "rl/media/20261014-rl_cross_kp036.mp4")
     poster = os.path.join(USE_DIR, "rl/media/20261014-rl_cross_kp036.jpg")
     if os.path.exists(film) and os.path.exists(poster):
@@ -2008,8 +2010,25 @@ def usability_section():
               "of 1.5&#8202;mm or more, but their sliding torque grows with spin rate, 1.25 times the law at 1&#8202;rad/s on the "
               "printed 2.7&#8202;mm fillet, because MuJoCo&#8217;s elliptic cone adds a slip term to a sliding pad&#8217;s normal "
               "force; the friction-row change that removes it breaks the hand&#8217;s closed-loop turns (<a href=\"" + link2
-              + "\">fingertip co-design page</a>" + (f", <a href=\"{url2}\">artifact</a>" if url2 else "") + ").</p>")
+              + "\">fingertip co-design page</a>" + (f", <a href=\"{url2}\">artifact</a>" if url2 else "") + ")."
+              + _builder_sentence() + "</p>")
     return s
+
+
+def _builder_sentence():
+    """Builder v2 (per-pad depth) as the default, with the trajectory-level check against Drake (tip study,
+    builder_default/summary.json)."""
+    p = os.path.join(ROOT, "docs/experiments/20261014-tip_codesign/builder_default/summary.json")
+    if not os.path.exists(p):
+        return ""
+    r = json.load(open(p)).get("replay", {}).get("tpu2.7")
+    if not r:
+        return ""
+    m = lambda pair: r["pairs"][pair]["ang_rms_deg"]["median"]  # noqa: E731
+    return (" Since 15 October each pad takes its own depth below the tip&#8217;s volume centroid (builder v2): over the "
+            "servo-limited plant&#8217;s plan replays the tool&#8217;s orientation then differs from Drake&#8217;s by a median RMS of "
+            f"{m('v2-drake'):.1f}&#176;, against {m('v1-drake'):.1f}&#176; with one stiffness per finger and "
+            f"{r['seed_spread']['drake']['ang_rms_deg']['median']:.1f}&#176; between two tool placements in Drake.")
 
 
 def main():
