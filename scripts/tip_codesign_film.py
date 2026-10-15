@@ -110,7 +110,10 @@ def film_bed(member, N=1.0, omega=1.0):
     import tip_codesign_sweep as SW
     import tpu_tip_rig as T
     name = SW.model_of(member, "base")
-    law = SW.law_arms(member, (N,))[N] * 1e3 if member != "sphere" else None
+    law = None                                       # the Drake-field law's spin arm (psi 23/46/69 deg) at N, mm
+    for r in map(json.loads, open(SW.D / "law.jsonl")):
+        if r["tip"] == member and r["field"] == "drake":
+            law = r["spin_arm_mm"][f"{N:g}"]
     spec = CB.MODELS[name][0]
     with T.tpu_rigs():
         H.DT = 1e-3
@@ -120,7 +123,9 @@ def film_bed(member, N=1.0, omega=1.0):
     K = float(rig.info["K_sphere"])
     padL = {i for i in range(m.ngeom) if (m.geom(i).name or "").startswith("padL_s")}
     bR, tb = m.body("padR").id, m.body("tool").id
-    base = {i: m.geom_rgba[i].copy() for i in padL}
+    base = {i: np.array([0.50, 0.52, 0.56, 1.0]) for i in padL}   # untouched pads grey, so the white-red scale
+    for i, c in base.items():                                     # belongs to the touching pads only
+        m.geom_rgba[i] = c
     for i in range(m.ngeom):
         if m.geom_bodyid[i] == bR:
             m.geom_rgba[i, 3] = 0.0
@@ -164,7 +169,8 @@ def film_bed(member, N=1.0, omega=1.0):
                 continue
             mujoco.mj_contactForce(m, d, j, f6)
             r = f6[0] / (K * -c.dist)
-            mx = max(mx, r)
+            if -c.dist >= 1e-6:                      # the maximum over pads at least 1 um deep
+                mx = max(mx, r)
             m.geom_rgba[pad[0]] = (*_ratio_rgb(r), 1.0)
         mx_all = max(mx_all, mx)
         arm = np.mean(taus) / (2 * H.MU * N) * 1e3 if taus else None
@@ -175,7 +181,7 @@ def film_bed(member, N=1.0, omega=1.0):
     rend.close()
     arm = float(np.mean(taus) / (2 * H.MU * N) * 1e3)
     return frames, {"member": member, "model": name, "N": N, "omega": omega, "arm_mm": arm, "law_mm": law,
-                    "arm_over_law": arm / law if law else None, "max_ratio": mx_all, "K_sphere": K}
+                    "arm_over_law": arm / law if law else None, "max_ratio_1um": mx_all, "K_sphere": K}
 
 
 def cmd_bed(a):
@@ -187,7 +193,7 @@ def cmd_bed(a):
         fr, info = film_bed(mem, a.N, a.omega)
         CB.write_h264(fr, out, crf=20)
         _log({"film": "bed", "clip": out.name, **info, "frames": len(fr), "when": time.strftime("%Y-%m-%d %H:%M")})
-        print(f"{out.name}: arm {info['arm_mm']:.2f} mm, law {info['law_mm']}, max f/(K d) {info['max_ratio']:.1f}, "
+        print(f"{out.name}: arm {info['arm_mm']:.2f} mm, law {info['law_mm']}, max f/(K d) {info['max_ratio_1um']:.1f}, "
               f"{len(fr)} frames, {time.time() - t0:.0f} s", flush=True)
         clips.append(out)
     if len(clips) > 1:
