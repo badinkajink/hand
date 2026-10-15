@@ -92,9 +92,14 @@ def fig_rate():
     plt = setup()
     m = json.loads((D / "deterioration/summary.json").read_text())["members"]["2.7"]
     fig, ax = plt.subplots(figsize=(4.6, 2.9), dpi=150)
+    drk = {}                                            # Drake's 1 N spins at every rate, sweep A and the fix grid
+    for f in ("spin", "fixgrid"):
+        for r in map(json.loads, open(D / f"deterioration/{f}.jsonl")):
+            if r.get("case", "spin") == "spin" and r.get("model") == "drake_tpu2p7" and r.get("N") == 1.0 and r.get("status") == "complete":
+                drk[f"{r['omega']:g}"] = r["rbar_spin_mm"]
     for key, lab, c, mk, ls in (("base", "1 mm pads as built", PADS, "o", "-"), ("fix", "pads, friction rows fixed", FIX, "^", "-"),
                                 ("drake", "Drake hydroelastic", DRAKE, "s", "--")):
-        sp = m[key]["spin_mm"]
+        sp = drk if key == "drake" else m[key]["spin_mm"]
         w = sorted(float(x) for x in sp)
         ax.plot(w, [sp[f"{x:g}"] for x in w], mk + ls, color=c, ms=3.6, lw=1.3, label=lab)
     ax.axhline(m["law"]["spin_1N_mm"], color=INK, lw=1.0, ls=":", label="law (quasi-static)")
