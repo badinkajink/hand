@@ -385,6 +385,10 @@ def robust_section():
     t += img("media/fig_stage2.png", "Stage 2: the stage score in each condition (markers) and J2, the minimum (bar), per tip; right, "
              "plan replays within 3&#176; of Drake with its held outcome, of 24 (dark: passes the gate; dashed: the gate). Rows: "
              "<code>screen/stage2/</code>.", key="stage2")
+    t += film("media/replay_D7_s0_tile.mp4", "media/replay_D7_s0_tile_poster.jpg",
+              "Plan replay of the deployed hand D7, seed 0, on the servo-limited plant at \\(\\mu\\) = 1.0 with the four stage-3 tips; "
+              "pads touching the tool drawn red; label: hand, time and the tool axis&#8217;s tilt above the horizontal. "
+              "<code>scripts/tip_codesign_film.py replay</code>.", key="replayfilm")
     t += table(["Tip", "J2", "Agree with Drake", "Gate", "Cost / as-built", "Three-finger share, &#956; 0.5"], body,
                "Stage-2 summary (<code>screen/summary_stage2.json</code>): cost is the median MuJoCo time per replay step over the "
                "as-built tip&#8217;s; three-finger share is the share of cell turn runs ending with all three fingers loaded.",
@@ -418,6 +422,21 @@ def confirm_section():
     t += img("media/fig_stage3.png", "Stage 3 on fresh placements: the stage score per condition and J3, the minimum (left); the "
              "paired difference from the as-built tip with its 90&#8202;% bootstrap interval (right). <code>final/</code>.",
              key="stage3")
+    ic = [r for r in rows("final/icem/turn.jsonl") if r.get("status") == "ok"]
+    if ic:
+        by = {(r["variant"], r["d_mm"]): r for r in ic}
+        b16, b25 = by.get(("tcd_rs3_re3_p0.2", 16.0)), by.get(("tcd_rs3_re3_p0.2", 25.0))
+        f16, f25 = by.get((best, 16.0)), by.get((best, 25.0))
+        if b16 and b25 and f16 and f25:
+            t += (f"<p>Pinned iCEM, the sampling planner that keeps three pads on the cylinder, gives the same order on two cells "
+                  f"at seed 0 and \\(\\mu\\) = 1.0: the as-built tip turns the 16&#8202;mm cylinder {b16['turn_end_deg']:.1f}&#176; and "
+                  f"the 25&#8202;mm one {b25['turn_end_deg']:.1f}&#176;, {tip_name(best)} {f16['turn_end_deg']:.1f}&#176; and "
+                  f"{f25['turn_end_deg']:.1f}&#176;, every run held with all three fingers loaded at the end "
+                  "(<code>final/icem/turn.jsonl</code>, <code>scripts/tip_codesign_rig.py icem</code>).</p>")
+    t += film("media/hom_cylinder_16_0.625_s3_tile.mp4", "media/hom_cylinder_16_0.625_s3_tile_poster.jpg",
+              "HOM on the CAD hand&#8217;s 16&#8202;mm cylinder cell (pair separations 62.5/72.5&#8202;mm), seed 3, \\(\\mu\\) = 0.7, the "
+              "grasp each tip chose on seed 0; pads touching the cylinder drawn red. <code>scripts/tip_codesign_film.py hom</code>.",
+              key="homfilm")
     cond = {"mu0.7_" + SERVO: "&#956; 0.7", "mu0.5_" + SERVO: "&#956; 0.5", "mu0.7_kp0.5_kv0_fr0.18_fl0_dp0.0144": "kp 0.5",
             "mu0.7_kp0.72_kv0_fr0.12_fl0_dp0.0144": "0.12&#8202;N&#8202;m"}
     t += table(["Tip", "J3"] + [cond.get(c, c) for c in S3["conditions"]] + ["J3 &#8722; as-built", "90&#8202;% interval",
@@ -455,9 +474,13 @@ def recipe_choice():
             cand, src = {rc: ref[rc] for rc in ref}, "FE of the CAD insert (2026-10-09)"
         tr = {rc: _travel(r) for rc, r in cand.items()}
         ok = [rc for rc in ("w95_20", "w85_50", "w95_10", "w85_30") if rc in tr and tr[rc] >= 12.0]
+        est = {}
+        if "w95_20" in tr and not ok and "w95_10" not in tr:     # the next recipe by the CAD insert's ratio
+            est["w95_10"] = tr["w95_20"] * _travel(ref["w95_10"]) / _travel(ref["w95_20"])
         out[k] = {"travel": tr, "E": {rc: r["E_best_MPa"] for rc, r in cand.items()},
-                  "approach": {rc: r["per_force"]["1"]["delta_um"] for rc, r in cand.items()},
-                  "choice": ("w95_20" if "w95_20" in ok else (ok[0] if ok else None)), "src": src}
+                  "approach": {rc: r["per_force"]["1"]["delta_um"] for rc, r in cand.items()}, "estimate": est,
+                  "choice": ("w95_20" if "w95_20" in ok else (ok[0] if ok else (next(iter(est)) if est else None))),
+                  "src": src}
     return out
 
 
@@ -470,6 +493,11 @@ def material_section():
         for rc in sorted(v["travel"], key=lambda x: -RECIPES[x][1]):
             body.append([tip_name(k), RECIPES[rc][0], f2(v["E"][rc], 1), f2(v["approach"][rc], 1), f2(v["travel"][rc], 1),
                          "chosen" if rc == v["choice"] else "", v["src"]])
+        for rc, x in v["estimate"].items():
+            body.append([tip_name(k), RECIPES[rc][0], "&#8211;", "&#8211;", f2(x, 1), "chosen" if rc == v["choice"] else "",
+                         "estimate: this tip&#8217;s 95A 20&#8202;% travel times the CAD insert&#8217;s 10&#8202;%/20&#8202;% ratio"])
+        if not v["travel"]:
+            body.append([tip_name(k), "&#8211;", "&#8211;", "&#8211;", "&#8211;", "", "no FE row (Future work)"])
     t = ("<p>The print recipe sets the tip&#8217;s stiffness, and the stiffness sets how far the embedded magnet moves per "
          "newton, which is what the MLX90393 sensor reads. The sensor resolves about 1.2&#8202;&#181;m of magnet motion, so a "
          "force resolution of 0.1&#8202;N needs at least 12&#8202;&#181;m/N of travel (sensing rule). Each finalist&#8217;s "
@@ -540,6 +568,10 @@ def open_items():
          "rate effect as a model artefact, an arm that grows with rate like the pads&#8217; refutes it."),
         ("Friction of the printed tip", "pull test of two printed tips at 0.5, 1 and 2&#8202;N per tip with "
          "<code>scripts/tpu_tip_calibrate.py fit --pull</code>; every task here varies \\(\\mu\\) over 0.5&#8211;1.0."),
+        ("Finite elements of (2,&#160;1) and (3,&#160;6) at 95A 10&#8202;%", "<code>scripts/tip_codesign_fe.py --tips tcd_rs2_re1_p0.2 "
+         "--recipes w95_20</code> and <code>--tips tcd_rs3_re6_p0.2 --recipes w95_10</code>, one tip per process; these as-printed "
+         "models need more than this study&#8217;s 6&#8202;GB (the runs paged and were stopped). A travel below 12&#8202;&#181;m/N "
+         "at 95A 10&#8202;% on (3,&#160;6) refutes the scaled estimate."),
         ("A longer stage 3 for (3,&#160;6)", "rerun <code>scripts/tip_codesign_stage3_queue.py</code> jobs for "
          "<code>tcd_rs3_re6_p0.2</code> and the as-built tip with cell seeds 3&#8211;12 and HOM seeds 5&#8211;19; a 90&#8202;% "
          "interval above zero makes the 6&#8202;mm end fillet the printed default, an interval that still includes zero keeps "
