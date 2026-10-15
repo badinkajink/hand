@@ -10,6 +10,8 @@ writes one JSON summary next to them.
               the plan's tau (5 % of runs) is kept as tau_rel_friction_plan. Also the bistable replays per condition.
   deterioration  plan step 3: per flat-family member and the sphere tip, pads (current and with the friction-pair fix)
               and Drake against the law: onset, approach, sliding arm by spin rate, brake, slip number.
+  screen      plan step 7: J1 per candidate (stage 1, mu 0.7) from screen/scale/<key>/turn.jsonl, screen/hom.jsonl,
+              with three-finger shares, the hold test and the fidelity rows; screen/summary_stage1.json.
   handfix     the pad friction fix on the hand: replays and HOM turns D1-D8 seeds 0-2 per variant against Drake
               (U2 rows): placements within 3 deg of Drake's turn and with Drake's held outcome.
 
@@ -20,6 +22,8 @@ from __future__ import annotations
 import argparse
 import json
 import math
+
+import numpy as np
 from collections import defaultdict
 from pathlib import Path
 
@@ -218,11 +222,99 @@ def deterioration():
     return out
 
 
+CELLS = (("cylinder", 25.0, 0.125), ("cylinder", 16.0, 0.625), ("cylinder", 10.0, 0.75), ("cylinder", 16.0, -0.375))
+
+
+def held_turn(r):
+    return float(r["turn_end_deg"]) if r.get("held") else 0.0
+
+
+def stage_score(turn_rows, hom_rows, sel_seed=0, score_seeds=(1, 2)):
+    """J of one candidate and condition: per cell the grasp with the best held turn on sel_seed, scored by its mean
+    held turn on score_seeds; J = the mean of the four cell scores and the mean held turn of the D1-D8 HOM runs, each
+    over 90 deg. Returns (J, details)."""
+    cells = {}
+    for c in CELLS:
+        rs = [r for r in turn_rows if (r["shape"], float(r["d_mm"]), r.get("t")) == c and r.get("status") == "ok"]
+        by = defaultdict(dict)
+        for r in rs:
+            by[int(r["cand"])][int(r["seed"])] = r
+        sel = [(held_turn(v[sel_seed]), k) for k, v in by.items() if sel_seed in v]
+        if not sel:
+            cells[f"{c[1]:g}:{c[2]:g}"] = None
+            continue
+        best = max(sel)[1]
+        sc = [held_turn(by[best][s]) for s in score_seeds if s in by[best]]
+        cells[f"{c[1]:g}:{c[2]:g}"] = {"cand": best, "sel_turn": max(sel)[0], "score_deg": float(np.mean(sc)) if sc else None,
+                                      "n_grasps": len(by)}
+    hom = [held_turn(r) for r in hom_rows if r.get("status") == "ok"]
+    parts = [v["score_deg"] / 90 for v in cells.values() if v and v["score_deg"] is not None]
+    if hom:
+        parts.append(float(np.mean(hom)) / 90)
+    J = float(np.mean(parts)) if parts else None
+    return J, {"cells": cells, "hom_mean_held_turn_deg": float(np.mean(hom)) if hom else None, "n_hom": len(hom),
+               "n_parts": len(parts)}
+
+
+def screen():
+    """Plan step 7: J1 per candidate at mu 0.7 (stage 1), with the three-finger shares, the hold test and fidelity."""
+    S = D / "screen"
+    hom = rows(S / "hom.jsonl")
+    fid = {c: rows(S / f"fidelity/{c}.jsonl") for c in ("static", "T2", "spin", "T5")}
+    out = {"candidates": {}, "terms": {
+        "J1": "mean over the four CAD-hand cells (the seed-0 best grasp's mean held turn on seeds 1-2) and the D1-D8 "
+              "HOM mean held turn (24 runs), each over 90 deg; mu 0.7, servo plant, kp_model 0.72",
+        "three_finger_frac": "share of turn runs ending with all three fingers loaded (scale cells; D1-D8 HOM)"}}
+    import numpy as _np  # noqa: F401
+    for kdir in sorted((S / "scale").glob("*")):
+        key = kdir.name
+        turn = [r for r in rows(kdir / "turn.jsonl")]
+        hold = [r for r in rows(kdir / "hold.jsonl") if r.get("status") == "ok"]
+        hk = [r for r in hom if r.get("tip") == key and str(r.get("mu")) in ("0.7",)]
+        J, det = stage_score(turn, hk)
+        ok = [r for r in turn if r.get("status") == "ok"]
+        tf = float(np.mean([r.get("fingers_loaded_end") == 3 for r in ok])) if ok else None
+        tfh = float(np.mean([r.get("fingers_end") == 3 for r in hk if r.get("status") == "ok"])) if hk else None
+        dist = [np.median([v for k_, v in r["disturb"].items() if k_.startswith("F")]) for r in hold if r.get("disturb")]
+        fd = {}
+        for c, rr in fid.items():
+            for r in rr:
+                m = r["model"]
+                if key not in m or r.get("status") != "complete":
+                    continue
+                src = "drake" if m.startswith("drake") else "pads"
+                if c == "static":
+                    fd[f"{src}_approach_1N_um"] = r["approach_um"]
+                    if src == "pads":
+                        fd["n_pads_side"] = (r.get("info") or {}).get("n_spheres")
+                elif c == "T2":
+                    fd[f"{src}_onset_1N_mm"] = r.get("rbar_onset_mm")
+                    fd[f"{src}_kin_1N_mm"] = r.get("rbar_kin_mm")
+                elif c == "spin":
+                    fd["pads_spin_1N_1_mm"] = r["rbar_spin_mm"]
+                    fd["pads_us_per_step_spin"] = r["us_per_step_median"]
+                elif c == "T5":
+                    fd["pads_N45_N"] = r.get("N_at_45_N")
+        out["candidates"][key] = {"J1": J, **det, "n_turn_rows": len(ok), "three_finger_frac_cells": tf,
+                                  "three_finger_frac_hom": tfh, "hold_held_frac": float(np.mean([r["held"] for r in hold])) if hold else None,
+                                  "hold_median_force_disturbance_N": float(np.median(dist)) if dist else None,
+                                  "fidelity": fd}
+    (S / "summary_stage1.json").write_text(json.dumps(out, indent=1))
+    rank = sorted(((v["J1"] or -1, k) for k, v in out["candidates"].items()), reverse=True)
+    for J, k in rank:
+        v = out["candidates"][k]
+        print(f"{k:22s} J1 {J:6.3f}  cells " + " ".join(
+            f"{c}:{(x or {}).get('score_deg') if x else None}" for c, x in v["cells"].items())
+            + f"  HOM {v['hom_mean_held_turn_deg']} (n {v['n_hom']})  3f {v['three_finger_frac_cells']}"
+            + f"  hold {v['hold_held_frac']}  F {v['hold_median_force_disturbance_N']}")
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("cmd", choices=["tolerance", "handfix", "deterioration"])
+    ap.add_argument("cmd", choices=["tolerance", "handfix", "deterioration", "screen"])
     a = ap.parse_args()
-    {"tolerance": tolerance, "handfix": handfix, "deterioration": deterioration}[a.cmd]()
+    {"tolerance": tolerance, "handfix": handfix, "deterioration": deterioration, "screen": screen}[a.cmd]()
 
 
 if __name__ == "__main__":
