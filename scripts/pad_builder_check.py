@@ -274,8 +274,17 @@ def divergence(a, b):
     dF = Fa[ia] - Fb[ib]
     dT = np.linalg.norm(Ta[ia] - Tb[ib], axis=2)
     rms = lambda x: float(np.sqrt(np.mean(np.square(x))))  # noqa: E731
+    za, zb = _zaxis(qa_), _zaxis(qb_)                      # the tool's axis (body z), whose tilt the end turn measures
+    ax = np.degrees(np.arccos(np.clip(np.sum(za * zb, axis=1), -1, 1)))
     return {"ang_rms_deg": rms(ang), "ang_end_deg": float(ang[-1]), "pos_rms_mm": rms(dp), "pos_end_mm": float(dp[-1]),
-            "F_rms_N": rms(dF), "T_rms_N": rms(dT), "t_common_s": float(common[-1] * TRACE_DT)}
+            "F_rms_N": rms(dF), "T_rms_N": rms(dT), "axis_rms_deg": rms(ax), "axis_end_deg": float(ax[-1]),
+            "t_common_s": float(common[-1] * TRACE_DT)}
+
+
+def _zaxis(q):
+    """Body z axis in the world of unit quaternions (w, x, y, z), one per row."""
+    w, x, y, z = q.T
+    return np.column_stack([2 * (x * z + y * w), 2 * (y * z - x * w), 1 - 2 * (x * x + y * y)])
 
 
 def _q(v):
@@ -310,7 +319,8 @@ def cmd_report(a):
                             res["per_placement"].setdefault(f"{hand} s{seed}", {})[f"{c1}-{c2}"] = {
                                 k: round(v, 4) for k, v in dv.items() if isinstance(v, float)}
                 res["pairs"][f"{c1}-{c2}"] = {k: _q([d[k] for d in divs]) for k in
-                                              ("ang_rms_deg", "ang_end_deg", "pos_rms_mm", "F_rms_N", "T_rms_N")}
+                                              ("ang_rms_deg", "ang_end_deg", "pos_rms_mm", "F_rms_N", "T_rms_N",
+                                               "axis_rms_deg", "axis_end_deg")}
             # seed spread: the same model's rollouts of one hand at two placements (every pair of seeds)
             for cond in ("drake", "v1", "v2"):
                 sp = []
@@ -343,6 +353,21 @@ def cmd_report(a):
                 tal[c]["within_of_drake"] = w
                 tal[c]["n_vs_drake"] = m_
             res["tally"] = tal
+            # end states that agree in turn (the tilt of the tool's axis) while the axis points elsewhere
+            tol = 3.0 if what == "replay" else 5.0
+            hid = {}
+            for c in ("v1", "v2"):
+                lst = []
+                for (hand, seed), cs in sorted(plc.items()):
+                    k = f"{hand} s{seed}"
+                    dv = res["per_placement"].get(k, {}).get(f"{c}-drake")
+                    if not dv or c not in cs or "drake" not in cs:
+                        continue
+                    a1, a2 = cs[c].get("turn_end_deg"), cs["drake"].get("turn_end_deg")
+                    if a1 is not None and a2 is not None and abs(a1 - a2) <= tol and dv["axis_end_deg"] > 10.0:
+                        lst.append([k, round(dv["axis_end_deg"], 1)])
+                hid[c] = lst
+            res["turn_agrees_axis_differs"] = hid
             out.setdefault(what, {})[tip] = res
     out.update(script=SCRIPT, when=time.strftime("%Y-%m-%d %H:%M"), trace_dt_s=TRACE_DT, plant=SERVO, prm=PRM,
                note="within_of_drake: end turn within 3 deg (replay) or 5 deg (HOM) of Drake with the same held outcome")
@@ -361,11 +386,12 @@ def cmd_report(a):
                     print(f"  seeds {cond:5s} angle RMS {v['ang_rms_deg']['median']:.2f} deg, normal {v['F_rms_N']['median']:.3f} N, "
                           f"friction {v['T_rms_N']['median']:.3f} N")
             print("  tally", {c: (t["held"], t["n"], t.get("within_of_drake"), t.get("n_vs_drake")) for c, t in res["tally"].items()})
+            print("  turn agrees, axis > 10 deg off", res["turn_agrees_axis_differs"])
 
 
 COL = {"v1": "#e08214", "v2": "#b2182b", "drake": "#2166ac"}
 LAB = {"v1": "Pads, builder v1", "v2": "Pads, builder v2", "drake": "Drake hydroelastic"}
-TIPS = {"tpu2.7": "Default block", "tcd_rs3_re3_p0.2": "As-built, printed"}
+TIPS = {"tpu2.7": "Default block (tpu2.7)", "tcd_rs3_re3_p0.2": "As-built tip, printed"}
 
 
 def _rot_from(tr, t0):
@@ -377,10 +403,12 @@ def _rot_from(tr, t0):
 
 def cmd_figure(a):
     """media/fig_builder_default.png of the tip study: one replay's traces under the three models, then every
-    placement's RMS divergence from Drake (builder v1 and v2) against Drake's own spread over placements."""
+    placement's RMS difference from Drake (builder v1 and v2) against Drake's own spread between placements."""
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
+    from matplotlib.lines import Line2D
+    from matplotlib.ticker import FormatStrFormatter
     plt.rcParams.update({"font.size": 9.5, "font.family": "DejaVu Sans", "axes.edgecolor": "#888888", "axes.grid": True,
                          "grid.color": "#d9d9d9", "grid.linewidth": 0.6, "axes.axisbelow": True, "legend.frameon": False,
                          "savefig.bbox": "tight", "savefig.pad_inches": 0.04})
@@ -396,8 +424,8 @@ def cmd_figure(a):
             if "v1-drake" in v and "v2-drake" in v}
     pick = a.placement or max(gain, key=gain.get)
     hand, seed = pick.split()[0], int(pick.split()[1][1:])
-    fig = plt.figure(figsize=(7.2, 5.6), dpi=150)
-    gs = fig.add_gridspec(2, 3, height_ratios=[1, 1.15], hspace=0.55, wspace=0.42)
+    fig = plt.figure(figsize=(7.2, 5.9), dpi=150)
+    gs = fig.add_gridspec(2, 3, height_ratios=[1, 1.1], hspace=0.55, wspace=0.45)
     ax = [fig.add_subplot(gs[0, i]) for i in range(3)]
     for cond in ("v1", "v2", "drake"):
         r = rows.get(("replay", a.tip, cond, hand, seed))
@@ -407,12 +435,11 @@ def cmd_figure(a):
         F = np.asarray(r["trace"]["F"]).sum(1)
         T = np.linalg.norm(np.asarray(r["trace"]["T"]), axis=2).sum(1)
         for x, y in zip(ax, (rot, F, T)):
-            x.plot(t, y, color=COL[cond], lw=1.2, label=LAB[cond])
-    for x, yl in zip(ax, ("Tool rotation from 0.8 s (°)", "Normal force, three fingers (N)", "Friction force, three fingers (N)")):
+            x.plot(t, y, color=COL[cond], lw=1.3)
+    for x, yl in zip(ax, ("Tool rotation from 0.8 s (°)", "Normal force, 3 fingers (N)", "Friction force, 3 fingers (N)")):
         x.set_xlabel("Time (s)")
         x.set_ylabel(yl)
-    ax[0].set_title(f"{TIPS[a.tip]}, {hand} seed {seed}", fontsize=9.5, loc="left")
-    ax[0].legend(loc="upper left", fontsize=8.5, handlelength=1.4)
+    ax[1].set_title(f"{TIPS[a.tip]}, plan replay {hand}, seed {seed}", fontsize=9.5)
     groups = [(w, tip) for tip in ("tpu2.7", "tcd_rs3_re3_p0.2") for w in ("replay", "hom") if tip in S.get(w, {})]
     bx = [fig.add_subplot(gs[1, i]) for i in range(3)]
     rng = np.random.default_rng(0)
@@ -422,21 +449,27 @@ def cmd_figure(a):
             res = S[w][tip]
             for ci, cond in enumerate(("v1", "v2")):
                 v = [d[f"{cond}-drake"][key] for d in res["per_placement"].values() if f"{cond}-drake" in d]
-                xc = gi + (ci - 0.5) * 0.34
-                x.scatter(xc + rng.uniform(-0.07, 0.07, len(v)), v, s=7, color=COL[cond], alpha=0.75, lw=0,
-                          label=LAB[cond] if gi == 0 else None)
+                xc = gi + (ci - 0.5) * 0.36
+                x.scatter(xc + rng.uniform(-0.08, 0.08, len(v)), v, s=7, color=COL[cond], alpha=0.75, lw=0)
                 if v:
-                    x.plot([xc - 0.12, xc + 0.12], [np.median(v)] * 2, color="#111111", lw=1.3)
+                    x.plot([xc - 0.13, xc + 0.13], [np.median(v)] * 2, color="#111111", lw=1.6)
             sp = res["seed_spread"]["drake"][key]
             if sp:
-                x.plot([gi - 0.42, gi + 0.42], [sp["median"]] * 2, color=COL["drake"], lw=1.0, ls="--",
-                       label="Drake between placements" if gi == 0 else None)
+                x.plot([gi - 0.42, gi + 0.42], [sp["median"]] * 2, color=COL["drake"], lw=1.2, ls="--")
+        x.set_yscale("log")
+        x.yaxis.set_major_formatter(FormatStrFormatter("%g"))
         x.set_xticks(range(len(groups)))
-        x.set_xticklabels([f"{'Default' if tip == 'tpu2.7' else 'As-built'}\n{'replay' if w == 'replay' else 'HOM'}"
-                           for w, tip in groups], fontsize=8.5)
+        x.set_xticklabels([f"{'Block' if tip == 'tpu2.7' else 'Printed'} {'replay' if w == 'replay' else 'HOM'}"
+                           for w, tip in groups], fontsize=8.5, rotation=35, ha="right", rotation_mode="anchor")
+        x.set_xlim(-0.6, len(groups) - 0.4)
         x.set_ylabel(yl)
-        x.set_ylim(bottom=0)
-    bx[0].legend(loc="upper left", fontsize=8, handlelength=1.2, markerscale=1.6)
+    hdl = [Line2D([], [], color=COL["v1"], lw=1.6, marker="o", ms=4, label=LAB["v1"]),
+           Line2D([], [], color=COL["v2"], lw=1.6, marker="o", ms=4, label=LAB["v2"]),
+           Line2D([], [], color=COL["drake"], lw=1.6, label=LAB["drake"]),
+           Line2D([], [], color=COL["drake"], lw=1.2, ls="--", label="Drake between placements"),
+           Line2D([], [], color="#111111", lw=1.6, label="Median")]
+    fig.legend(handles=hdl, loc="upper center", ncol=5, bbox_to_anchor=(0.5, 1.03), fontsize=8.5, handlelength=1.6,
+               columnspacing=1.0)
     out = ROOT / "docs/experiments/20261014-tip_codesign/media/fig_builder_default.png"
     fig.savefig(out)
     print(f"wrote {out} (example {pick})")

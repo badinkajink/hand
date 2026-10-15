@@ -353,24 +353,49 @@ def builder_default():
                      f"{med(res, 'v1-drake', 'F_rms_N'):.3f}", f"{med(res, 'v2-drake', 'F_rms_N'):.3f}",
                      f"{med(res, 'v1-drake', 'T_rms_N'):.3f}", f"{med(res, 'v2-drake', 'T_rms_N'):.3f}",
                      f"{ta['v1']['within_of_drake']}/{ta['v1']['n_vs_drake']}", f"{ta['v2']['within_of_drake']}/{ta['v2']['n_vs_drake']}"])
-    r0 = S["replay"]["tpu2.7"]
-    closer = [(w, tip) for w, tip in groups if med(S[w][tip], "v2-drake", "ang_rms_deg") < med(S[w][tip], "v1-drake", "ang_rms_deg")]
-    not_closer = [g for g in groups if g not in closer]
+    r0, h0 = S["replay"]["tpu2.7"], S["hom"]["tpu2.7"]
+    q = lambda res, pair, k, w="median": res["pairs"][pair][k][w]  # noqa: E731
+    closer_ang = sum(q(S[w][tip], "v2-drake", "ang_rms_deg") < q(S[w][tip], "v1-drake", "ang_rms_deg") for w, tip in groups)
+    closer_T = sum(q(S[w][tip], "v2-drake", "T_rms_N") < q(S[w][tip], "v1-drake", "T_rms_N") for w, tip in groups)
+    word = {1: "one", 2: "two", 3: "three", 4: "all four"}
+    hid = {c: [x for w, tip in groups for x in S[w][tip].get("turn_agrees_axis_differs", {}).get(c, [])] for c in ("v1", "v2")}
+    ax = [a for _, a in hid["v1"]]
+    tu = r0["tally"]
+    stall = sorted(k for k in tu["drake"]["turn_end_deg"] if tu["drake"]["turn_end_deg"][k] > 30
+                   and all(abs(tu[c]["turn_end_deg"][k]) < 10 for c in ("v1", "v2")))
+    fixed = sorted(k for k in tu["drake"]["turn_end_deg"] if tu["drake"]["turn_end_deg"][k] > 30
+                   and abs(tu["v1"]["turn_end_deg"][k]) < 10 and abs(tu["v2"]["turn_end_deg"][k] - tu["drake"]["turn_end_deg"][k]) <= 3)
+
+    def names(ks):
+        by = {}
+        for k in ks:
+            hnd, sd = k.split()
+            by.setdefault(hnd, []).append(sd[1:])
+        return " and ".join(f"{hnd} seed{'s' if len(v) > 1 else ''} {', '.join(v)}" for hnd, v in sorted(by.items()))
+    dk = [tu["drake"]["turn_end_deg"][k] for k in stall]
     t = ("<p>Builder v2 is the default of <code>reorient_backends.replace_tips</code> since 15 October for the default block and "
-         "the CAD-envelope tips; <code>builder=\"v1\"</code> reproduces every earlier run. Held counts cannot show that two contact "
-         "models give the same dynamics (owner, 2026-10-15), so the check before the change compares whole rollouts: the plan "
-         "replays and the HOM turn of D1&#8211;D8 on the servo-limited plant under builders v1 and v2 and Drake, with the tool pose and "
-         "each finger&#8217;s normal and friction force on the tool every 20&#8202;ms (<code>scripts/pad_builder_check.py</code>). "
+         "the CAD-envelope tips; <code>builder=\"v1\"</code> reproduces every earlier run. The comparison behind the change uses whole "
+         "rollouts, since held counts cannot show that two contact models give the same dynamics (owner, 2026-10-15): the plan "
+         "replays and the HOM turns of D1&#8211;D8 on the servo-limited plant under builders v1 and v2 and in Drake, with the tool "
+         "pose and each finger&#8217;s normal and friction force on the tool every 20&#8202;ms (<code>scripts/pad_builder_check.py</code>). "
          f"On the default block&#8217;s replays the tool orientation differs from Drake&#8217;s by a median RMS of "
-         f"{med(r0, 'v2-drake', 'ang_rms_deg'):.2f}&#176; with builder v2 and {med(r0, 'v1-drake', 'ang_rms_deg'):.2f}&#176; with "
-         f"v1, against {r0['seed_spread']['drake']['ang_rms_deg']['median']:.2f}&#176; between two placements in Drake; the normal "
-         f"force by {med(r0, 'v2-drake', 'F_rms_N'):.3f} and {med(r0, 'v1-drake', 'F_rms_N'):.3f}&#8202;N and the friction force by "
-         f"{med(r0, 'v2-drake', 'T_rms_N'):.3f} and {med(r0, 'v1-drake', 'T_rms_N'):.3f}&#8202;N (Table&#160;[[tab:bdefault]], "
-         "Figure&#160;[[fig:bdefault]]). Builder v2 is the closer to Drake in tool orientation in "
-         f"{len(closer)} of the {len(groups)} tip-and-task groups")
-    if not_closer:
-        t += " (not in " + ", ".join(f"{tname[tip].lower()} {('replays' if w == 'replay' else 'HOM')}" for w, tip in not_closer) + ")"
-    t += ".</p>"
+         f"{q(r0, 'v2-drake', 'ang_rms_deg'):.2f}&#176; with v2 and {q(r0, 'v1-drake', 'ang_rms_deg'):.2f}&#176; with v1 (upper "
+         f"quartiles {q(r0, 'v2-drake', 'ang_rms_deg', 'q75'):.1f} and {q(r0, 'v1-drake', 'ang_rms_deg', 'q75'):.1f}&#176;), against "
+         f"{r0['seed_spread']['drake']['ang_rms_deg']['median']:.2f}&#176; between two placements in Drake; the normal force by "
+         f"{q(r0, 'v2-drake', 'F_rms_N'):.3f} and {q(r0, 'v1-drake', 'F_rms_N'):.3f}&#8202;N and the friction force by "
+         f"{q(r0, 'v2-drake', 'T_rms_N'):.3f} and {q(r0, 'v1-drake', 'T_rms_N'):.3f}&#8202;N (Table&#160;[[tab:bdefault]], "
+         f"Figure&#160;[[fig:bdefault]]). Builder v2 is closer to Drake in tool orientation in {word[closer_ang]} tip-and-task "
+         f"groups and in friction force in {word[closer_T]}; on the default block&#8217;s HOM turns both builders&#8217; forces differ "
+         f"from Drake&#8217;s by the same amount (normal {q(h0, 'v2-drake', 'F_rms_N'):.2f} and {q(h0, 'v1-drake', 'F_rms_N'):.2f}&#8202;N, "
+         f"friction {q(h0, 'v2-drake', 'T_rms_N'):.2f} and {q(h0, 'v1-drake', 'T_rms_N'):.2f}&#8202;N).</p>"
+         f"<p>The end state does not separate the builders: with the held outcome and a turn within 3&#176; of Drake&#8217;s, "
+         f"{tu['v2']['within_of_drake']} and {tu['v1']['within_of_drake']} of {tu['v1']['n_vs_drake']} default-block replays agree "
+         f"with v2 and v1, and within 5&#176;, {h0['tally']['v2']['within_of_drake']} and {h0['tally']['v1']['within_of_drake']} of "
+         f"{h0['tally']['v1']['n_vs_drake']} HOM turns. The turn measures only the tilt of the tool&#8217;s axis: on {len(hid['v1'])} "
+         f"placements v1 ends within that tolerance with the axis {min(ax):.0f}&#8211;{max(ax):.0f}&#176; from Drake&#8217;s (the top row "
+         f"of Figure&#160;[[fig:bdefault]]), and v2 on {len(hid['v2'])}. Both builders leave the tool unturned on the default "
+         f"block&#8217;s {names(stall)}, where Drake turns it {min(dk):.0f}&#8211;{max(dk):.0f}&#176;"
+         + (f"; v2 turns {names(fixed)} as Drake does, which v1 leaves unturned" if fixed else "") + ".</p>")
     t += table(["Tip", "Task", "Orientation, v1 (&#176;)", "Orientation, v2 (&#176;)", "Drake between placements (&#176;)",
                 "Normal force, v1 (N)", "Normal force, v2 (N)", "Friction force, v1 (N)", "Friction force, v2 (N)",
                 "Agree with Drake, v1", "Agree with Drake, v2"], body,
