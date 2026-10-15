@@ -509,6 +509,13 @@ def material_section():
          "(Table&#160;[[tab:fe]]).</p>")
     t += table(["Tip", "Recipe", "E*, MPa", "Approach at 1&#8202;N, &#181;m", "Magnet travel, &#181;m/N", "Choice", "Source"], body,
                "Finite-element stiffness and magnet travel per recipe (<code>final/fe.jsonl</code>).", key="fe", text_cols=(0, 1, 5, 6))
+    soft = [(k, v) for k, v in ch.items() if v["choice"] == "w95_10" and "w95_20" in v["travel"] and "w95_10" in v["travel"]]
+    if soft:
+        names = " and ".join(tip_name(k) for k, _ in soft)
+        t += (f"<p>At 95A 20&#8202;% the {names} tips move the magnet "
+              + " and ".join(f"{v['travel']['w95_20']:.1f}" for _, v in soft) + "&#8202;&#181;m/N, below the rule, and at 95A "
+              "10&#8202;% " + " and ".join(f"{v['travel']['w95_10']:.1f}" for _, v in soft) + "&#8202;&#181;m/N, so they print "
+              "at 10&#8202;% infill.</p>")
     return t
 
 
@@ -576,10 +583,6 @@ def open_items():
          "rate effect as a model artefact, an arm that grows with rate like the pads&#8217; refutes it."),
         ("Friction of the printed tip", "pull test of two printed tips at 0.5, 1 and 2&#8202;N per tip with "
          "<code>scripts/tpu_tip_calibrate.py fit --pull</code>; every task here varies \\(\\mu\\) over 0.5&#8211;1.0."),
-        ("Finite elements of the two remaining tip recipes", "<code>scripts/tip_codesign_fe.py --tips tcd_rs2_re1_p0.2 "
-         "--recipes w95_20</code> and <code>--tips tcd_rs3_re6_p0.2 --recipes w95_10</code>, one tip per process; these as-printed "
-         "models need more than this study&#8217;s 6&#8202;GB (the runs paged and were stopped). A travel below 12&#8202;&#181;m/N "
-         "at 95A 10&#8202;% on (3,&#160;6) refutes the scaled estimate."),
         ("A longer stage 3 for (3,&#160;6)", "rerun <code>scripts/tip_codesign_stage3_queue.py</code> jobs for "
          "<code>tcd_rs3_re6_p0.2</code> and the as-built tip with cell seeds 3&#8211;12 and HOM seeds 5&#8211;19; a 90&#8202;% "
          "interval above zero makes the 6&#8202;mm end fillet the printed default, an interval that still includes zero keeps "

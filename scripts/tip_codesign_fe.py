@@ -3,9 +3,10 @@
 magnet (scripts/tpu_tip_magnet.py, 358k DOF, CHOLMOD) with tpu_tip_design's geometry hooks (inside_body, surface_x)
 replaced by a tip_codesign_geometry shape's insert-frame functions. The apex stays at x 8.5 mm and the contact point at
 z 10.86 mm (tpu_tip_design.X_FACE, Z_C), so tpu_tip_magnet's gaps and pocket apply unchanged; the tool line lies across
-the tip (psi 0). One model per process (two reached 11 GB); run alone on four cores:
+the tip (psi 0). One model per process (two reached 11 GB); a model of 334,000-367,000 DOF peaks at 7.9-8.6 GB in CHOLMOD
+(2026-10-15; at a 6 GB cap the runs paged and the watchdog stopped them); run alone on four cores:
 
-    ~/.claude/bin/resguard.sh run --mem 6G --cpu 400 -- taskset -c 4-7 ~/miniconda3/envs/femtip/bin/python \\
+    ~/.claude/bin/resguard.sh run --mem 11.5G --cpu 400 -- taskset -c 4-7 ~/miniconda3/envs/femtip/bin/python \\
         scripts/tip_codesign_fe.py --tips tcd_rs3_re3_p0.2 --recipes w95_20 --magnet d4.76x1.59@5
 
 Rows: docs/experiments/20261014-tip_codesign/final/fe.jsonl (tpu_tip_magnet's row with the tip key added).
