@@ -64,9 +64,13 @@ class TpuShape:
     def centroid(self):
         return G.CENTRE.copy()
 
-    def pads(self, E):
-        C, Nn, A, K = G.pad_spheres(self.r, S, RS, 1.0, E)
-        return C, K
+    def pads(self, E=E0, s=S, rs=RS, sign=1.0, h="fixed", K="each", full=False):
+        C, Nn, A, Ks = G.pad_spheres(self.r, s, rs, 1.0, E)
+        if h == "local":                              # n . (p - c_V) from the sample point p = centre + rs n
+            Ks = E * A / np.maximum(np.einsum("ij,ij->i", Nn, C + rs * Nn - G.CENTRE), 1e-3)
+        if K == "median":
+            Ks = np.full(len(Ks), float(np.median(Ks)))
+        return (C, Nn, A, Ks) if full else (C, Ks)
 
 
 def shape_of(key: str):
@@ -76,8 +80,8 @@ def shape_of(key: str):
     return TG.shape(key)
 
 
-def _axis(reach, psi, delta):
-    return np.array([reach + RC - delta, 0.0, 0.0]), np.array([0.0, math.cos(psi), math.sin(psi)])
+def _axis(reach, psi, delta, z_off=0.0):
+    return np.array([reach + RC - delta, 0.0, z_off]), np.array([0.0, math.cos(psi), math.sin(psi)])
 
 
 def _arm(Xc, f, d):
@@ -154,22 +158,24 @@ class Winkler:
 
 
 class Pads:
-    def __init__(self, shape, E=E0, each=False):
-        C, K = shape.pads(E)
+    def __init__(self, shape, E=E0, each=False, s=S, rs=RS, h="fixed"):
+        C, K = shape.pads(E, s=s, rs=rs, h=h, K="each")
         self.C, self.K = C, (K if each else np.full(len(C), float(np.median(K))))
-        self.reach = shape.reach
+        self.reach, self.rs, self.s, self.z_off = shape.reach, rs, s, 0.0
 
     def forces(self, psi, delta):
-        a0, t = _axis(self.reach, psi, delta)
+        RS_ = self.rs
+        a0, t = _axis(self.reach, psi, delta, self.z_off)
         w = self.C - a0
         perp = w - np.outer(w @ t, t)
         dist = np.linalg.norm(perp, axis=1)
-        ov = RS - (dist - RC)
+        ov = RS_ - (dist - RC)
         m = ov > 0
         f = self.K[m] * ov[m]
         d = perp[m] / dist[m, None]
         Xc = a0 + np.outer(w[m] @ t, t) + d * RC
-        return _arm(Xc, f, -d) + (float(m.sum()) * S * S,)
+        # the arm about the pinch axis through the line's centre (y, z) = (0, z_off)
+        return _arm(Xc - np.array([0, 0, self.z_off]), f, -d) + (float(m.sum()) * self.s * self.s,)
 
 
 def solve(model, psi, N, tol=1e-4):
@@ -205,6 +211,54 @@ def fields(shape, E=E0):
             "pads": Pads(shape, E), "pads_each": Pads(shape, E, each=True)}
 
 
+BUILDERS = {"pads_s0.5": dict(s=0.0005, rs=0.000375), "pads_s0.75": dict(s=0.00075, rs=0.0005625),
+            "pads_s1": dict(s=0.001, rs=0.00075), "pads_s1.5": dict(s=0.0015, rs=0.001125),
+            "pads_hloc": dict(h="local"), "pads_Keach": dict(each=True), "pads_hloc_Keach": dict(h="local", each=True)}
+
+
+def builder_rows(key, E=E0, Ns=(0.5, 1.0, 3.0, 4.3)):
+    """Plan step 5's quasi-static builder tests on one member: per pad variant (spacing s with rs = 0.75 s, local h,
+    per-pad K) the approach and the arm at psi 0 and 45 deg and the spin mean (psi 23/46/69) against the Drake-field
+    law; and for the 1 mm pads the ripple of approach and psi-0 arm as the tool's line moves 0-1 mm along the finger
+    (M4, 11 offsets), max minus min over the mean."""
+    shape = shape_of(key)
+    ref = DrakeField(shape, E)
+    out = {"tip": key, "E_Pa": E, "script": SCRIPT, "when": time.strftime("%Y-%m-%d %H:%M"), "variants": {}}
+    t0 = time.time()
+    law = {f"{N:g}": [solve(ref, math.radians(ps), N) for ps in (0, 45)] for N in Ns}
+    law_spin = float(np.mean([solve(ref, math.radians(ps), 1.0)[1] for ps in (23, 46, 69)]))
+    out["law"] = {k: {"delta_um": v[0][0] * 1e6, "arm0_mm": v[0][1] * 1e3, "arm45_mm": v[1][1] * 1e3}
+                  for k, v in law.items()}
+    out["law"]["spin_1N_mm"] = law_spin * 1e3
+    for name, kw in BUILDERS.items():
+        mdl = Pads(shape, E, **kw)
+        res = {}
+        for N in Ns:
+            d0, a0, r90, n0, _ = solve(mdl, 0.0, N)
+            _, a45, *_ = solve(mdl, math.radians(45), N)
+            L0 = law[f"{N:g}"]
+            res[f"{N:g}"] = {"delta_um": d0 * 1e6, "arm0_mm": a0 * 1e3, "arm45_mm": a45 * 1e3, "n_patch": n0,
+                             "delta_over_law": d0 / L0[0][0], "arm0_over_law": a0 / L0[0][1],
+                             "arm45_over_law": a45 / L0[1][1]}
+        sp = float(np.mean([solve(mdl, math.radians(ps), 1.0)[1] for ps in (23, 46, 69)]))
+        res["spin_1N_mm"], res["spin_over_law"] = sp * 1e3, sp / law_spin
+        res["n_pads"] = int(len(mdl.C))
+        out["variants"][name] = res
+    mdl = Pads(shape, E)
+    rip = {}
+    for N in Ns:
+        D, A = [], []
+        for z in np.linspace(0, 0.001, 11):
+            mdl.z_off = z
+            d, a, *_ = solve(mdl, 0.0, N)
+            D.append(d), A.append(a)
+        mdl.z_off = 0.0
+        rip[f"{N:g}"] = {"approach_ripple": float(np.ptp(D) / np.mean(D)), "arm0_ripple": float(np.ptp(A) / np.mean(A))}
+    out["ripple_1mm"] = rip
+    out["wall_s"] = time.time() - t0
+    return out
+
+
 def law_rows(key, E=E0, psis=PSI_DEG, Ns=N_LIST, brake_phi=(10, 45, 80)):
     shape = shape_of(key)
     out = []
@@ -236,7 +290,21 @@ def main():
     ap.add_argument("--E", type=float, default=E0)
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--check", action="store_true", help="the scratch probes' values on tpu2.7")
+    ap.add_argument("--builders", action="store_true", help="plan step 5's builder tests (rows to --out)")
     a = ap.parse_args()
+    if a.builders:
+        have = {r["tip"] for r in map(json.loads, open(a.out))} if a.out.exists() else set()
+        for key in a.tips:
+            if key in have:
+                continue
+            r = builder_rows(key, a.E)
+            with open(a.out, "a") as fh:
+                fh.write(json.dumps(r) + "\n")
+            v = r["variants"]
+            print(f"{key:22s} 1 N arm0/law: " + " ".join(f"{k[5:]} {v[k]['1']['arm0_over_law']:.3f}" for k in v)
+                  + f" | approach/law s1 {v['pads_s1']['1']['delta_over_law']:.3f} | spin/law s1 {v['pads_s1']['spin_over_law']:.3f}"
+                  + f" | ripple 1 N arm {r['ripple_1mm']['1']['arm0_ripple']:.3f} ({r['wall_s']:.0f} s)", flush=True)
+        return
     if a.check:
         F = fields(shape_of("tpu2.7"))
         print("drake arm psi 0, 1 N:", round(solve(F["drake"], 0.0, 1.0)[1] * 1e3, 3), "mm (2.554)")

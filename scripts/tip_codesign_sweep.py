@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Deterioration sweep of the sphere pads over fingertip geometry (fingertip co-design study, plan steps 3 and 5).
 
-Per member (a tip key of tip_codesign_law, e.g. tpu2.7, or 'sphere' for the 10.55 mm real_v1 sphere tip) and variant:
+Per member (a tip key of tip_codesign_law: tpu<r>, a tip_codesign_geometry tcd key, or 'sphere' for the 10.55 mm real_v1
+sphere tip) and variant:
 
   base     1 mm pads as built today (relaxation 0.02 s, impratio 100)
   fix      the same pads with explicit pad-tool pairs, solreffriction (0.1 s, 1), impratio 1000 (tip_codesign_bed.py)
@@ -19,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -47,6 +49,8 @@ def law_arms(member, Ns=(1.0, 3.0)):
 def model_of(member, variant):
     if member == "sphere":
         name, v = SPHERE[variant]
+    elif member.startswith("tcd_"):
+        name, v = B.tcd_model(member, FIX if variant == "fix" else "", drake=variant == "drake")
     else:
         r_mm = float(member[3:])
         if variant == "drake":
@@ -73,7 +77,19 @@ def main():
     ap.add_argument("--members", nargs="+", required=True)
     ap.add_argument("--variants", nargs="+", default=["base", "fix", "drake"])
     ap.add_argument("--fine-drake", action="store_true", help="also Drake T5 at 0.25 ms")
+    ap.add_argument("--law", action="store_true", help="first the law rows of members that lack them")
     a = ap.parse_args()
+    if a.law:
+        import tip_codesign_law as L
+        have = {r["tip"] for r in map(json.loads, open(D / "law.jsonl"))} if (D / "law.jsonl").exists() else set()
+        for m in a.members:
+            if m not in have and m != "sphere":
+                rows = L.law_rows(m)
+                with open(D / "law.jsonl", "a") as fh:
+                    for r in rows:
+                        fh.write(json.dumps(r) + "\n")
+                        fh.flush()
+                        os.fsync(fh.fileno())
     for m in a.members:
         for v in a.variants:
             run_member(m, v, a.fine_drake)
