@@ -243,14 +243,14 @@ def fig(S, path):
             v = rep.get("replan_s_3threads") if cfg != "icem_pin" else S.get("pads_replan_s_3threads")
             if v:
                 b.bar(j, v, color=col, width=0.6)
-                b.text(j, v * 1.02, f"{v:.2f}", ha="center", va="bottom", fontsize=13)
+                b.text(j, v * 1.02, f"{v:.2f}", ha="center", va="bottom", fontsize=15)
     a.set_xticks(range(len(CELLS)))
-    a.set_xticklabels([f"{c[1]:g} mm, t {c[2]:g}" for c in CELLS], fontsize=13)
+    a.set_xticklabels([f"{c[1]:g} mm, t {c[2]:g}" for c in CELLS], fontsize=15)
     a.set_ylabel("Held turn (°)")
     a.set_ylim(0, 100)
-    a.legend(loc="lower left", frameon=False, fontsize=13)
+    a.legend(loc="lower left", frameon=False, fontsize=15)
     b.set_xticks(range(len(CONFIGS)))
-    b.set_xticklabels(["Pads", "Condim 4", "Point\ncontact"], fontsize=13)
+    b.set_xticklabels(["Pads", "Condim 4", "Point\ncontact"], fontsize=15)
     b.set_ylabel("Replanning time, 3 threads (s)")
     for ax in (a, b):
         ax.grid(axis="y", color="#ddd", lw=0.8)

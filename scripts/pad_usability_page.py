@@ -429,11 +429,12 @@ def rl_section():
 
 
 def lede():
-    return ("On the real_v1 hand the 1&#8202;mm sphere pads cost 147&#8202;&#181;s per grip step on one CPU core, 9.1 times point "
-            "contact, 2.37&#8202;&#181;s per world-step in MuJoCo-Warp (3.7 times the block mesh) and 2.3&#8202;s more per PPO "
-            "iteration (1.47 times). They are the only model that keeps the tool on all 40 servo-plant plan replays and agrees "
-            "with Drake on 16 of 24; 2&#8202;mm pads agree on 12, point contact and condim&#160;4 on 1. Their usable physics step "
-            "is 2&#8202;ms on the servo plant and 4&#8202;ms on the working plant, where point contact has none and 2&#8202;ms.")
+    return ("On the real_v1 hand the 1&#8202;mm sphere pads cost 147&#8202;&#181;s per grip step on one CPU core (9.1 times point "
+            "contact on the TPU block), 2.37&#8202;&#181;s per MuJoCo-Warp world-step and 1.47 times the TPU mesh per PPO iteration. "
+            "On the servo-limited plant they agree with Drake on 16 of 24 plan replays, against 1 for point contact, and their "
+            "usable step is 2&#8202;ms. The CPU planner keeps them as its rollout model: condim&#160;4 and point contact replan 6 and "
+            "9 times faster but lose a median 19 and 28&#176; of held turn. RL can train on the mesh and score on the pads: "
+            "mesh-trained policies keep 123&#8211;125 of 128 rollouts on the pad plant at half servo gain.")
 
 
 def limitations():
@@ -461,6 +462,10 @@ def open_items():
         ("Contact buffers of a full run", "log the largest contacts, rows and matches per world over a 40&#8202;M-step 2&#8202;mm pad "
          "run with <code>scripts/rl_train_cube.py</code>; per-scene buffers 1.3 times those peaks would cut its GPU memory from "
          "10.9&#8202;GB toward the probe&#8217;s 4.7&#8202;GB, and an overflow line falsifies the sizing."),
+        ("Planner friction", "planning with friction 1 on a plant at 0.5 drops the cylinder in 8 of 8 runs (U4). Give "
+         "<code>pad_usability_planner_model.ModelPlanner</code> a rollout friction (sampled from 0.4&#8211;1.0 per rollout) and "
+         "rerun <code>run --configs icem_pin --variant mu0.5 --plant-set mu=0.5</code>; at least 7 of 8 three-finger endings at "
+         "plant friction 0.5 and 0.7 make it the bench configuration, fewer keep the measured coefficient as a precondition."),
         ("Turn stalls of the pads on D3 and D8", "<code>scripts/pad_usability_backends.py run --dt 0.25 0.5</code> on D3, D5 and D8 "
          "for the pads and Drake, and the pads at impratio 1000; a stall that persists at impratio 1000 rules out creep as its "
          "cause."),

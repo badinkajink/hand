@@ -151,9 +151,9 @@ def fig(S, path):
                     ax.plot([p[0] + off for p in pts], [100 * p[1] for p in pts], mk[lab], color=cols[lab], ms=7,
                             markeredgecolor="white", markeredgewidth=0.8, label=lab, linestyle="none")
             ax.set_xticks(range(len(SCENES)))
-            ax.set_xticklabels(["Mesh", "1 mm\npads", "2 mm\npads", "Condim\n4"], fontsize=13)
+            ax.set_xticklabels(["Mesh", "1 mm\npads", "2 mm\npads", "Condim\n4"], fontsize=15)
             ax.set_ylim(-4, 104)
-            ax.set_title(cname, fontsize=14)
+            ax.set_title(cname, fontsize=15)
             ax.grid(axis="y", color="#ddd", lw=0.8)
             ax.set_axisbelow(True)
             for s in ("top", "right"):
@@ -161,7 +161,7 @@ def fig(S, path):
         axs[i, 0].set_ylabel(("Closed loop" if mode == "closed" else "Open-loop replay") + "\nheld (%)")
     h, l = axs[0, 0].get_legend_handles_labels()
     fig_.legend(h, [x.replace("Mesh", "TPU-mesh policy,").replace("Pads", "1 mm pad policy,") for x in l], loc="lower center",
-                ncol=4, frameon=False, bbox_to_anchor=(0.5, -0.01), fontsize=13)
+                ncol=4, frameon=False, bbox_to_anchor=(0.5, -0.01), fontsize=15)
     fig_.subplots_adjust(left=0.08, right=0.99, top=0.94, bottom=0.17)
     fig_.savefig(path)
     plt.close(fig_)
