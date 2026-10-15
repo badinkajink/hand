@@ -4,9 +4,10 @@ writes one JSON summary next to them.
 
   tolerance   plan step 2: per condition (friction mu, pad modulus E) the runs whose outcome changes against mu 1.0,
               E 10 MPa (held flip, or |turn change| > 3 deg), over the 84 non-bistable runs (64 replays D1-D8
-              seeds 0-7 and 24 HOM turns D1-D8 seeds 0-2, less the replays D3 seeds 0-2 and D8 seed 1); tau, the
-              relative friction change at which 5 % of them change (linear interpolation of the changed fraction
-              against |mu - 1|, the worse of the two directions); the bistable replays at every condition.
+              seeds 0-7 and 24 HOM turns D1-D8 seeds 0-2, less the replays D3 seeds 0-2 and D8 seed 1). The floor is
+              the changed fraction at |mu - 1| <= 0.5 %; tau is the relative friction change at which the changed
+              fraction exceeds the floor by 5 points (linear interpolation against |mu - 1|, the worse direction);
+              the plan's tau (5 % of runs) is kept as tau_rel_friction_plan. Also the bistable replays per condition.
   handfix     the pad friction fix on the hand: replays and HOM turns D1-D8 seeds 0-2 per variant against Drake
               (U2 rows): placements within 3 deg of Drake's turn and with Drake's held outcome.
 
@@ -68,27 +69,37 @@ def tolerance():
             "n_held_flip": sum(bool(runs[k]["held"]) != bool(ref[k]["held"]) for k in nb),
             "median_abs_dturn_deg": float(sorted(abs(runs[k]["turn"] - ref[k]["turn"]) for k in nb)[len(nb) // 2]) if nb else None,
             "bistable": bis}
-    # tau: the worse direction, changed fraction against |mu - 1| (0 at mu 1)
-    pts = defaultdict(list)
+    # tau of the plan: the worse direction's changed fraction against |mu - 1| reaches 5 %
+    pts, med = defaultdict(list), defaultdict(list)
     for v in out["conditions"].values():
         if v["E_Pa"] == 1e7:
             pts[round(abs(v["mu"] - 1.0), 4)].append(v["frac_changed"])
+            med[round(abs(v["mu"] - 1.0), 4)].append(v["median_abs_dturn_deg"])
     xs = sorted(pts)
     ys = [max(pts[x]) for x in xs]
-    tau = None
-    px, py = 0.0, 0.0
-    for x, y in zip(xs, ys):
-        if y >= 0.05:
-            tau = px + (0.05 - py) * (x - px) / (y - py) if y > py else x
-            break
-        px, py = x, y
-    out["tau_rel_friction"] = tau
+
+    def crossing(level):
+        px, py = 0.0, 0.0
+        for x, y in zip(xs, ys):
+            if y >= level:
+                return px + (level - py) * (x - px) / (y - py) if y > py else x
+            px, py = x, y
+        return None
+    out["tau_rel_friction_plan"] = crossing(0.05)
+    # the floor: the mean changed fraction at |mu - 1| <= 0.5 % (outcome flips that any perturbation causes);
+    # tau = the friction change at which the changed fraction exceeds the floor by 5 points
+    fl = [y for x in xs if x <= 0.005 for y in pts[x]]
+    out["floor_frac_changed"] = sum(fl) / len(fl) if fl else None
+    out["tau_rel_friction"] = crossing(out["floor_frac_changed"] + 0.05) if fl else None
     out["frac_by_dmu"] = {f"{x:g}": y for x, y in zip(xs, ys)}
+    out["median_abs_dturn_by_dmu"] = {f"{x:g}": max(med[x]) for x in xs}
+    tau = out["tau_rel_friction"]
     eE = {k: v["n_changed"] for k, v in out["conditions"].items() if v["mu"] == 1.0}
     out["E_changes"] = eE
     out["E_screening_variable"] = any(n > 4 for n in eE.values())
     (D / "tolerance/summary.json").write_text(json.dumps(out, indent=1))
-    print(f"reference runs {out['n_ref']}; tau (relative friction) {tau}")
+    print(f"reference runs {out['n_ref']}; floor {out['floor_frac_changed']}; tau (floor + 5 points) {tau}; "
+          f"plan's tau (5 %) {out['tau_rel_friction_plan']}; median |dturn| by |dmu| {out['median_abs_dturn_by_dmu']}")
     for k, v in out["conditions"].items():
         print(f"{k:16s} changed {v['n_changed']:2d}/{v['n_nonbistable']} ({v['frac_changed']:.3f}), held flips "
               f"{v['n_held_flip']}, median |dturn| {v['median_abs_dturn_deg']:.2f} deg; bistable "
