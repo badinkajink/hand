@@ -193,13 +193,20 @@ def findings(S):
                source=rel + "turn.jsonl", how="variant rows; the planner's model compiles from the XML at friction 1")
           for v in fr.values()]
     films = []
-    meta = PL / "media/films.jsonl"
-    for mp in sorted((PL / "media").glob("planner_models_*.mp4")) if (PL / "media").exists() else []:
-        poster = mp.with_suffix(".jpg")
-        films.append(dict(path=rel + "media/" + mp.name, poster=rel + "media/" + poster.name,
-                          caption=("Pinned iCEM on the 1 mm pad plant with three rollout models, left to right: the pads, condim 4 "
-                                   "and point contact on the TPU block; seed 0, " + mp.stem.replace("planner_models_", "") +
-                                   "; panels from fresh runs with the rows' seeds.")))
+    meta = AG.jl(PL / "media/films.jsonl")
+    lab = {"icem_pin": "pads", "icem_pin_pt4": "condim 4", "icem_pin_pt": "point contact"}
+    for mp in sorted((PL / "media").glob("planner_models_*.mp4"), reverse=True) if (PL / "media").exists() else []:
+        obj = mp.stem.replace("planner_models_", "")
+        rows_ = {r["config"]: r for r in meta if r["clip"].endswith(obj + ".mp4")}
+        if not rows_:
+            continue
+        r0 = next(iter(rows_.values()))
+        outc = "; ".join(f"{lab[c]} {'keeps' if rows_[c]['held'] else 'drops'} it at {rows_[c]['turn_end_deg']:.1f} deg"
+                         for c in ("icem_pin", "icem_pin_pt4", "icem_pin_pt") if c in rows_)
+        films.append(dict(path=rel + "media/" + mp.name, poster=rel + "media/" + mp.with_suffix(".jpg").name,
+                          caption=(f"Pinned iCEM on the 1 mm pad plant, {r0['d_mm']:g} mm cylinder at layout t {r0['t']:g}, seed 0, "
+                                   "with three rollout models, left to right: the pads, condim 4 and point contact on the TPU block; "
+                                   f"labels give the time and the turn. The runs repeat the rows: {outc}.")))
     F = dict(id="U4", status="complete" if not pend else "partial", summary=summ,
              hypothesis_verdict="falsified" if not passing else "supported",
              verdict_reason=("The condim-4 planner falls below both thresholds of the hypothesis (a median change of at least -10 "
