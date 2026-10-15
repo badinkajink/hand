@@ -14,6 +14,11 @@ writes one JSON summary next to them.
               with three-finger shares, the hold test and the fidelity rows; screen/summary_stage1.json.
   handfix     the pad friction fix on the hand: replays and HOM turns D1-D8 seeds 0-2 per variant against Drake
               (U2 rows): placements within 3 deg of Drake's turn and with Drake's held outcome.
+  handv2      builder v1 against v2 on the as-built tip as printed (deterioration/handv2_summary.json).
+  stage2      plan step 8: J2, the agreement gate and the finalists (screen/summary_stage2.json).
+  stage3      plan step 9: J3 on fresh placements, the paired bootstrap interval against the as-built tip and the
+              mu 0.5 three-finger hold (final/summary_stage3.json).
+  builders    ledger step 27: builder v1 against v2 on the finalists (final/summary_builders.json).
 
     python3 scripts/tip_codesign_analysis.py tolerance
 """
@@ -463,12 +468,147 @@ def stage2():
     return out
 
 
+COND3 = COND2[1:]
+SEEDS3_CELL, SEEDS3_HOM = (3, 4, 5), (5, 6, 7, 8, 9)
+HANDS = tuple(f"D{i}" for i in range(1, 9))
+
+
+def _sel_dir(k, mu, pl):
+    """Stage 1/2 scale rows of one condition: the seed-0 runs there choose each cell's grasp."""
+    S = D / "screen"
+    return S / f"scale/{k}" if (mu, pl) == ("0.7", SERVO) else S / f"stage2/scale/{k}_mu{mu}_{pl}"
+
+
+def _stage3_arrays(k, mu, pl, hom3):
+    """Held turns (deg, 0 when dropped) of the stage-3 placements of one tip and condition: cells (4 x 3, the grasp
+    chosen on seed 0 of stage 1/2 at seeds 3-5) and HOM (8 x 5, D1-D8 at seeds 5-9); NaN where a row is missing."""
+    sel = [r for r in rows(_sel_dir(k, mu, pl) / "turn.jsonl") if r.get("status") == "ok" and int(r["seed"]) == 0]
+    new = [r for r in rows(D / f"final/scale/{k}_mu{mu}_{pl}/turn.jsonl") if r.get("status") == "ok"]
+    C = np.full((len(CELLS), len(SEEDS3_CELL)), np.nan)
+    chosen = {}
+    for i, c in enumerate(CELLS):
+        cand = [(held_turn(r), int(r["cand"])) for r in sel if (r["shape"], float(r["d_mm"]), r.get("t")) == c]
+        if not cand:
+            continue
+        best = max(cand)[1]
+        chosen[f"{c[1]:g}:{c[2]:g}"] = best
+        for r in new:
+            if (r["shape"], float(r["d_mm"]), r.get("t")) == c and int(r["cand"]) == best and int(r["seed"]) in SEEDS3_CELL:
+                C[i, SEEDS3_CELL.index(int(r["seed"]))] = held_turn(r)
+    H = np.full((len(HANDS), len(SEEDS3_HOM)), np.nan)
+    for r in hom3:
+        if r.get("tip") == k and str(r.get("mu")) == mu and r.get("plant") == pl and int(r["seed"]) in SEEDS3_HOM:
+            H[HANDS.index(r["hand"]), SEEDS3_HOM.index(int(r["seed"]))] = held_turn(r)
+    return C, H, chosen
+
+
+def _score3(C, H):
+    """The stage score over arrays with a leading resample axis: the mean of the four cell means and the HOM mean,
+    each over 90 deg (cells without a grasp drop out, as in stage_score)."""
+    parts = np.concatenate([np.nanmean(C, axis=-1), np.nanmean(H.reshape(H.shape[0], -1), axis=-1)[:, None]], axis=1)
+    return np.nanmean(parts / 90.0, axis=1)
+
+
+def stage3(n_boot=10000, rng_seed=0):
+    """Plan step 9: J3 per finalist = the minimum over the four stage-3 conditions (mu 0.7 and 0.5 on the servo plant,
+    kp 0.5 and torque limit 0.12 N m at mu 0.7) of the stage score on fresh placements only (each cell's seed-0 grasp
+    of stage 1/2 at seeds 3-5; HOM D1-D8 seeds 5-9). The paired difference against the as-built tip has a bootstrap
+    interval: each resample draws, per cell, three of the seeds 3-5 and, per hand, five of the seeds 5-9 with
+    replacement, the same draw for every tip and condition; 10,000 resamples, the 5th and 95th percentiles. A finalist
+    beats the baseline when the interval lies above zero and its three-finger hold at mu 0.5 (stage-2 hold test, seed 0:
+    held with all three fingers loaded) is at most two grasps below the baseline's. Writes final/summary_stage3.json."""
+    F = D / "final"
+    fin = json.loads((F / "stage3_tips.json").read_text())["finalists"]
+    hom3 = [r for r in rows(F / "hom.jsonl") if r.get("status") == "ok"]
+    rng = np.random.default_rng(rng_seed)
+    ic = rng.integers(0, len(SEEDS3_CELL), size=(n_boot, len(CELLS), len(SEEDS3_CELL)))
+    ih = rng.integers(0, len(SEEDS3_HOM), size=(n_boot, len(HANDS), len(SEEDS3_HOM)))
+    rc, rh = np.arange(len(CELLS))[None, :, None], np.arange(len(HANDS))[None, :, None]
+    out = {"finalists": fin, "conditions": [f"mu{m}_{p}" for m, p in COND3], "n_boot": n_boot, "candidates": {}}
+    point, boot = {}, {}
+    for k in fin:
+        Jc, Jb, det = {}, [], {}
+        for mu, pl in COND3:
+            C, H, chosen = _stage3_arrays(k, mu, pl, hom3)
+            name = f"mu{mu}_{pl}"
+            Jc[name] = float(_score3(C[None], H[None])[0])
+            Jb.append(_score3(C[rc, ic], H[rh, ih]))
+            det[name] = {"cells_deg": {f"{c[1]:g}:{c[2]:g}": [None if np.isnan(x) else round(float(x), 2) for x in C[i]]
+                                       for i, c in enumerate(CELLS)},
+                         "chosen_grasp": chosen, "n_cell_rows": int(np.isfinite(C).sum()), "n_hom_rows": int(np.isfinite(H).sum()),
+                         "hom_mean_held_turn_deg": float(np.nanmean(H)) if np.isfinite(H).any() else None,
+                         "hom_held": int(np.nansum(H > 0))}
+        point[k], boot[k] = min(Jc.values()), np.min(np.stack(Jb), axis=0)
+        hold = [r for r in rows(_sel_dir(k, "0.5", SERVO) / "hold.jsonl") if r.get("status") == "ok"]
+        out["candidates"][k] = {"J3": point[k], "J": Jc, **det, "hold3_mu0.5": sum(bool(r["held"]) and r.get("fingers_loaded") == 3
+                                                                               for r in hold), "n_hold_mu0.5": len(hold)}
+    base = out["candidates"].get(BASE)
+    for k in fin:
+        if k == BASE or base is None:
+            continue
+        d = boot[k] - boot[BASE]
+        lo, hi = np.percentile(d, [5, 95])
+        v = out["candidates"][k]
+        v["dJ3_vs_base"] = point[k] - point[BASE]
+        v["dJ3_ci90"] = [float(lo), float(hi)]
+        v["hold_ok"] = v["hold3_mu0.5"] >= base["hold3_mu0.5"] - 2
+        v["beats_base"] = bool(lo > 0 and v["hold_ok"])
+    (F / "summary_stage3.json").write_text(json.dumps(out, indent=1))
+    for k in fin:
+        v = out["candidates"][k]
+        print(f"{k:22s} J3 {v['J3']:.3f} " + " ".join(f"{c.split('_')[0]}{'' if SERVO in c else ('/kp0.5' if 'kp0.5_' in c else '/fr0.12')}"
+                                                     f":{x:.3f}" for c, x in v["J"].items())
+              + f"  hold3@0.5 {v['hold3_mu0.5']}/{v['n_hold_mu0.5']}"
+              + (f"  dJ3 {v['dJ3_vs_base']:+.3f} [{v['dJ3_ci90'][0]:+.3f}, {v['dJ3_ci90'][1]:+.3f}] beats {v['beats_base']}"
+                 if "dJ3_ci90" in v else "  (baseline)"))
+    return out
+
+
+def builders():
+    """Ledger step 27: builder v1 (h 8.5 mm, median K) against v2 (local h, per-pad K) on each finalist: replays D1-D8
+    seeds 0-4 and HOM seeds 0-2 at mu 1.0; replays at seeds 0-2 against Drake's stage-2 replays of the same tip (within
+    3 deg and the same held outcome). Writes final/summary_builders.json."""
+    F = D / "final"
+    R = [r for r in rows(F / "builder_replay.jsonl") if r.get("status") == "complete"]
+    Hm = [r for r in rows(F / "builder_hom.jsonl") if r.get("status") == "ok"]
+    DR = [r for r in rows(D / "screen/stage2/replay.jsonl") if r.get("status") == "complete" and r.get("sim") == "drake"]
+    out = {}
+    for k in sorted({r["tip"] for r in R}):
+        drk = {(r["hand"], int(r["seed"])): outcome_replay(r) for r in DR if r["tip"] == k}
+        res = {}
+        for tag in sorted({r["tag"] for r in R if r["tip"] == k}):
+            rep = {(r["hand"], int(r["seed"])): outcome_replay(r) for r in R if r["tip"] == k and r["tag"] == tag}
+            hom = {(r["hand"], int(r["seed"])): outcome_hom(r) for r in Hm if r["tip"] == k and r["tag"] == tag}
+            ks = [x for x in rep if x in drk]
+            agree = [x for x in ks if bool(rep[x]["held"]) == bool(drk[x]["held"]) and abs(rep[x]["turn"] - drk[x]["turn"]) <= DTURN]
+            res[tag] = {"n_replay": len(rep), "held_replay": sum(bool(v["held"]) for v in rep.values()),
+                        "n_vs_drake": len(ks), "within3_of_drake": len(agree), "n_hom": len(hom),
+                        "hom_held": sum(bool(v["held"]) for v in hom.values()),
+                        "hom_mean_held_turn_deg": float(np.mean([v["turn"] if v["held"] else 0 for v in hom.values()])) if hom else None,
+                        "replay_turns": {f"{x[0]} s{x[1]}": round(v["turn"], 2) for x, v in rep.items()}}
+        tags = list(res)
+        if len(tags) == 2:
+            a, b = (res[t]["replay_turns"] for t in tags)
+            res["v1_vs_v2_changed_replays"] = sum(abs(a[x] - b[x]) > DTURN for x in a if x in b)
+        out[k] = res
+    (F / "summary_builders.json").write_text(json.dumps(out, indent=1))
+    for k, res in out.items():
+        for t, v in res.items():
+            if isinstance(v, dict):
+                print(f"{k:22s} {t:22s} replays held {v['held_replay']}/{v['n_replay']}, within 3 deg of Drake "
+                      f"{v['within3_of_drake']}/{v['n_vs_drake']}; HOM held {v['hom_held']}/{v['n_hom']}, "
+                      f"mean held turn {v['hom_mean_held_turn_deg']}")
+        print(f"{k:22s} v1 vs v2 replays differing by > 3 deg: {res.get('v1_vs_v2_changed_replays')}")
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("cmd", choices=["tolerance", "handfix", "deterioration", "screen", "handv2", "stage2"])
+    ap.add_argument("cmd", choices=["tolerance", "handfix", "deterioration", "screen", "handv2", "stage2", "stage3",
+                                    "builders"])
     a = ap.parse_args()
     {"tolerance": tolerance, "handfix": handfix, "deterioration": deterioration, "screen": screen,
-     "handv2": handv2, "stage2": stage2}[a.cmd]()
+     "handv2": handv2, "stage2": stage2, "stage3": stage3, "builders": builders}[a.cmd]()
 
 
 if __name__ == "__main__":

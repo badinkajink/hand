@@ -152,8 +152,9 @@ class TipShape:
             return self.inside_design(P, tol)
         n, d = self._hull_planes
         out = np.empty(len(P), bool)
-        for i in range(0, len(P), 4096):                  # 4096 points x ~6k facets at a time (190 MB)
-            out[i:i + 4096] = np.all(P[i:i + 4096] @ n.T - d[None, :] <= tol, axis=1)
+        ch = max(64, int(4e6 // len(n)))                  # points x facets per chunk <= 4e6 (32 MB a temporary)
+        for i in range(0, len(P), ch):
+            out[i:i + ch] = np.all(P[i:i + ch] @ n.T - d[None, :] <= tol, axis=1)
         return out
 
     @cached_property

@@ -111,10 +111,11 @@ class DrakeField:
 
     def p(self, X):
         out = np.empty(len(X))
-        for s in range(0, len(X), 4000):
-            Y = X[s:s + 4000] - self.c
+        ch = max(64, int(4e6 // len(self.n)))          # points x facets per chunk <= 4e6 (32 MB a temporary)
+        for s in range(0, len(X), ch):
+            Y = X[s:s + ch] - self.c
             g = np.max(Y @ self.n.T / self.dk[None, :], axis=1)
-            out[s:s + 4000] = self.E * np.clip(1 - g, 0, None)
+            out[s:s + ch] = self.E * np.clip(1 - g, 0, None)
         return out
 
     def forces(self, psi, delta, nu=240, nphi=48):
