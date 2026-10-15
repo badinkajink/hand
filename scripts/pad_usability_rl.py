@@ -481,10 +481,48 @@ def cmd_film(a) -> int:
     return 0
 
 
+def cmd_irtest(a) -> int:
+    """Check that set_impratio reaches the constraint rows: after a closed-loop rollout on the 1 mm pad plant, one env step
+    at impratio 10 and one at 100; per contact the friction rows' constraint mass D (1/R) over its normal row's. With
+    elliptic cones MuJoCo-Warp scales the friction rows' diagonal by 1/impratio, so the ratio rises tenfold."""
+    E = eval_module()
+    tag = FINALS[3]
+    j = next(x for x in E.finished() if x[0] == tag)
+    ck = E.final_ckpt(tag, j[3])
+    ev = E.Evaluator(E.ARMS["tpu27pads1"], ck, n=16)
+    ev.load(ck)
+    ev.rollout()
+    import torch
+    zero = torch.zeros((16, 9), device=ev.u.device)
+    out = {}
+    for ir in (10.0, 100.0, 10.0):
+        read = set_impratio(ev, ir)
+        ev.wrapped.step(zero)
+        wd = ev.u.sim.wp_data
+        nc = int(wd.nacon.numpy()[0])
+        adr = wd.contact.efc_address.numpy()[:nc]
+        dim = wd.contact.dim.numpy()[:nc]
+        wid = wd.contact.worldid.numpy()[:nc]
+        D = wd.efc.D.numpy()
+        rat = [float(D[w, ad[1]] / D[w, ad[0]]) for w, ad, dm in zip(wid, adr, dim) if dm >= 3 and ad[0] >= 0 and ad[1] >= 0
+               and D[w, ad[0]] > 0]
+        out.setdefault("steps", []).append(dict(impratio_set=ir, impratio_read=read, contacts=len(rat),
+                                                ratio_median=float(np.median(rat)) if rat else None))
+        print(f"[irtest] impratio {read:g}: {len(rat)} contacts, friction D over normal D median "
+              f"{out['steps'][-1]['ratio_median']}", flush=True)
+    s = out["steps"]
+    out.update(tag=tag, scene="tpu27pads1", rise=(s[1]["ratio_median"] / s[0]["ratio_median"]) if s[0]["ratio_median"] else None,
+               when=time.strftime("%Y-%m-%d %H:%M"))
+    (RLX / "impratio_check.json").write_text(json.dumps(out, indent=1) + "\n")
+    ev.close()
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("film", help="U5: the kp 0.36 cross-plant film (FILM_ROWS)")
+    sub.add_parser("irtest", help="U5: does the in-place impratio write reach the friction rows?")
     c = sub.add_parser("cross", help="U5: finals x plant scenes x conditions, closed loop and replays")
     c.add_argument("--tags", nargs="*", default=[])
     c.add_argument("--scenes", nargs="+", default=list(PLANT_SCENES), choices=PLANT_SCENES)
@@ -514,7 +552,7 @@ def main() -> int:
     if a.cmd == "train":
         return cmd_train(a, rest)
     return {"scenes": cmd_scenes, "probe": cmd_probe, "queue": cmd_queue, "cross": cmd_cross,
-            "numerics": cmd_numerics, "film": cmd_film}[a.cmd](a)
+            "numerics": cmd_numerics, "film": cmd_film, "irtest": cmd_irtest}[a.cmd](a)
 
 
 if __name__ == "__main__":
