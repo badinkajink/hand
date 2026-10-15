@@ -75,6 +75,22 @@ def log_iter_times(path):
     return np.array([float(x) for x in re.findall(r"Iteration time:\s*([0-9.]+)s", txt)])
 
 
+def asked(r) -> dict:
+    """Largest per-world buffer sizes the trainer asked for in a probe log's overflow messages."""
+    log = ROOT / "logs/20261014-pad_usability/rl_probes" / f"train_{r['variant']}_buf{r['buffers'].replace(',', '-')}_r{r['rep']}.log"
+    if not log.exists():
+        return {}
+    out = {}
+    for ln in log.read_text(errors="replace").splitlines():
+        m = re.match(r"^nefc overflow - please increase njmax to (\d+)$", ln)
+        if m:
+            out["njmax"] = max(out.get("njmax", 0), int(m.group(1)))
+        m = re.match(r"^contact match overflow: please increase Option.contact_sensor_maxmatch to (\d+)$", ln)
+        if m:
+            out["maxmatch"] = max(out.get("maxmatch", 0), int(m.group(1)))
+    return out
+
+
 def main() -> int:
     import matplotlib
     matplotlib.use("Agg")
@@ -250,7 +266,9 @@ def main() -> int:
                         "Constraint rows", "Solver iterations", "GPU memory (MiB)", "Data memory (MiB)"], "rows": ev})
 
     # ------------------------------------------------------------------ PPO probes
-    P = rows("ppo_probes.jsonl")
+    P_all = rows("ppo_probes.jsonl")
+    P = [r for r in P_all if r.get("buffers", "env_build default") == "env_build default"]   # timing: default buffers
+    PB = [r for r in P_all if r.get("buffers", "env_build default") != "env_build default"]  # exact-buffer probes
     ref = {}
     for arm, v in (("tpu27mesh", "servo_mesh"), ("tpu27pads1", "servo_pads1")):
         its = [log_iter_times(f) for f in sorted(LOG40.glob(f"train_20261011-d6_servo_{arm}_40M_s[01].log"))]
@@ -275,6 +293,17 @@ def main() -> int:
             "columns": ["Variant", "Repeat", "Status", "Iteration time, it. 3-12, median (s)", "Interquartile range (s)",
                         "Collection time (s)", "Learning time (s)", "Peak GPU memory, whole GPU (MB)",
                         "Peak GPU memory, probe process (MB)", "Host peak RSS (GB)", "Overflow lines"], "rows": ptab})
+        if PB:
+            rep["tables"].append({
+                "title": "12-iteration PPO probes with exact per-world contact buffers (nconmax, njmax, sensor maxmatch)",
+                "columns": ["Variant", "Buffers", "Status", "Iterations logged", "Iteration time, it. 3-12, median (s)",
+                            "Peak GPU memory, probe process (MB)", "Overflow lines", "Largest njmax asked",
+                            "Largest maxmatch asked"],
+                "rows": [[dict((g[0], g[1]) for g in GPU_VARIANTS)[r["variant"]], r["buffers"], r["status"],
+                          str(r.get("iterations_logged")),
+                          f"{(r.get('iteration_s') or {}).get('median', float('nan')):.2f}", f"{r.get('gpu_proc_peak_mb')}",
+                          str(r.get("overflow_lines")), str(asked(r).get("njmax", "-")), str(asked(r).get("maxmatch", "-"))]
+                         for r in PB]})
         if "servo_mesh" in pmed:
             mesh = float(np.mean(pmed["servo_mesh"]))
             for v, label, _ in GPU_VARIANTS:
@@ -335,16 +364,23 @@ def main() -> int:
         ax.set_title("12-iteration probes", fontsize=9.5)
         ax = axs[2]
         for i, (v, label, col) in enumerate(GPU_VARIANTS):
-            pk = [x["gpu_peak_mb"] / 1000 for x in P if x["variant"] == v and x["status"] == "ok" and x.get("gpu_peak_mb")]
+            pk = [x["gpu_proc_peak_mb"] / 1000 for x in P if x["variant"] == v and x["status"] == "ok"
+                  and x.get("gpu_proc_peak_mb")]
+            ex = [x["gpu_proc_peak_mb"] / 1000 for x in PB if x["variant"] == v and x["status"] == "ok"
+                  and x.get("gpu_proc_peak_mb")]
+            w = 0.38 if ex else 0.55
             if pk:
-                ax.bar(i, max(pk), width=0.55, color=col)
-                ax.text(i, max(pk) + 0.2, f"{max(pk):.1f}", ha="center", va="bottom", fontsize=8.6, color=INK)
+                x0 = i - 0.2 if ex else i
+                ax.bar(x0, max(pk), width=w, color=col)
+                ax.text(x0, max(pk) + 0.2, f"{max(pk):.1f}", ha="center", va="bottom", fontsize=8.6, color=INK)
+            if ex:
+                ax.bar(i + 0.2, max(ex), width=w, color="white", edgecolor=col, hatch="////", linewidth=1.2)
+                ax.text(i + 0.2, max(ex) + 0.2, f"{max(ex):.1f}", ha="center", va="bottom", fontsize=8.6, color=INK)
         ax.set_xticks(range(len(GPU_VARIANTS)))
         ax.set_xticklabels(["1 mm\npads", "2 mm\npads", "Mesh", "Mesh,\ncondim 4"], fontsize=8.6)
-        ax.set_ylabel("Peak GPU memory in PPO (GB)")
-        ax.set_ylim(0, 16.4)
-        ax.axhline(16.376, color=INK2, lw=0.8)
-        ax.set_title("Whole GPU, 16 GB card", fontsize=9.5)
+        ax.set_ylabel("Peak GPU memory of the probe (GB)")
+        ax.set_ylim(0, 13.5)
+        ax.set_title("Probe process, 16 GB card", fontsize=9.5)
         for ax in axs:
             ax.grid(axis="y", color=GRID, linewidth=0.8)
             ax.set_axisbelow(True)

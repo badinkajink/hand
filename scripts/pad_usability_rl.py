@@ -278,9 +278,130 @@ def cmd_train(a, rest) -> int:
     return 0
 
 
+# ---------------------------------------------------------------------------------- U5: fingertip model in evaluation
+
+RLX = ROOT / "docs/experiments/20261014-pad_usability/rl"
+ACTS = ROOT / "docs/experiments/20261013-contact_feedback/acts"     # own-scene action sequences, 64 x 250 steps
+FINALS = ("20261011-d6_servo_tpu27mesh_40M_s0", "20261011-d6_servo_tpu27mesh_40M_s1",
+          "20261011-d6_servo_tpu27pads1_40M_s0", "20261011-d6_servo_tpu27pads1_40M_s1")
+PLANT_SCENES = ("tpu27mesh", "tpu27pads1", "tpu27pads2", "tpu27meshc4")
+CONDITIONS = {"nominal": (None, None), "kp=0.36": ("kp", 0.36), "fr=0.12": ("fr", 0.12),
+              "friction=0.5": ("friction", 0.5)}
+NOISE = (2.0, 5.0)              # closed-loop grasp-pose noise: uniform tool offset (mm) and yaw (deg)
+NUMERICS = ("nominal", "impratio100", "dt4ms")
+
+
+def eval_module():
+    """rl_contact_eval with the 2026-10-11 study selected and the 2 mm pad and condim-4 scenes added as its arms."""
+    import rl_contact_eval as E
+    E.STUDIES["20261011"]["arms"].update(tpu27pads2=ROOT / RUNS["servo_pads2"], tpu27meshc4=ROOT / RUNS["servo_meshc4"])
+    E.use_study("20261011")
+    return E
+
+
+def done_rows(path: Path, keys: tuple) -> set:
+    if not path.exists():
+        return set()
+    return {tuple(r.get(k) for k in keys) for r in (json.loads(x) for x in path.read_text().splitlines() if x.strip())
+            if r.get("status") == "ok"}
+
+
+def cmd_cross(a) -> int:
+    """Each final on each plant scene under each condition: closed loop (128 rollouts with grasp-pose noise) and the
+    open-loop replay of its 64 own-scene action sequences (contact_feedback_replay.replay). One row per (tag, scene,
+    mode, condition) in rl/cross.jsonl."""
+    E = eval_module()
+    import contact_feedback_replay as R
+    out = RLX / "cross.jsonl"
+    have = done_rows(out, ("tag", "scene", "mode", "condition"))
+    pol = [j for j in E.finished() if j[0] in (a.tags or FINALS)]
+    for scene in a.scenes:
+        for mode in a.modes:
+            todo = [(j, c) for j in pol for c in a.conditions if (j[0], scene, mode, c) not in have]
+            if not todo:
+                continue
+            t_b = time.perf_counter()
+            ev = E.Evaluator(E.ARMS[scene], E.final_ckpt(todo[0][0][0], todo[0][0][3]),
+                             n=128 if mode == "closed" else 64, noise=NOISE if mode == "closed" else None)
+            build_s = round(time.perf_counter() - t_b, 1)
+            for (tag, arm, seed, steps), cond in todo:
+                ck = E.final_ckpt(tag, steps)
+                ev.load(ck)
+                ev.perturb(*CONDITIONS[cond])
+                print(f"[u5] {tag} on {scene}, {mode}, {cond}", flush=True)
+                t0 = time.perf_counter()
+                r = ev.rollout() if mode == "closed" else R.replay(ev, np.load(ACTS / f"{tag}.npz")["acts"])
+                row = dict(tag=tag, arm=arm, seed=seed, iteration=E._it(ck), scene=scene, mode=mode, condition=cond,
+                           noise_mm_deg=list(NOISE) if mode == "closed" else None, **E.metrics(r, ev.residual_from),
+                           status="ok", build_s=build_s, wall_s=round(time.perf_counter() - t0, 1),
+                           when=time.strftime("%Y-%m-%d %H:%M"))
+                append(out, row)
+                ev.perturb(None)
+                print(f"[u5] {tag} on {scene}, {mode}, {cond}: held {row['n_held']}/{row['n']}, held cos "
+                      f"{row['held_cos_mean']}", flush=True)
+            ev.close()
+    return 0
+
+
+def set_impratio(ev, ir: float) -> float:
+    """Write impratio into the MuJoCo-Warp model in place (opt.impratio_invsqrt, a per-world array that the captured
+    CUDA graphs read at every step); returns the value read back."""
+    arr = ev.u.sim.wp_model.opt.impratio_invsqrt
+    arr.fill_(float(ir) ** -0.5)
+    return float(np.asarray(arr.numpy()).ravel()[0]) ** -2
+
+
+def cmd_numerics(a) -> int:
+    """Each final on its own scene, closed loop (128 rollouts, grasp-pose noise, mech record for the hold-phase slide):
+    the trainer's numerics (2 ms, impratio 10), impratio 100 written in place, and a 4 ms step (Evaluator(dt=0.004):
+    decimation 5, same seconds of scripted grasp and lift). One row per (tag, numerics) in rl/numerics.jsonl."""
+    E = eval_module()
+    out = RLX / "numerics.jsonl"
+    have = done_rows(out, ("tag", "numerics"))
+    pol = [j for j in E.finished() if j[0] in (a.tags or FINALS)]
+    for scene in ("tpu27mesh", "tpu27pads1"):
+        mine = [j for j in pol if j[1] == scene]
+        for dt, names in ((None, ("nominal", "impratio100")), (0.004, ("dt4ms",))):
+            todo = [(j, nm) for j in mine for nm in names if nm in a.numerics and (j[0], nm) not in have]
+            if not todo:
+                continue
+            t_b = time.perf_counter()
+            ev = E.Evaluator(E.ARMS[scene], E.final_ckpt(todo[0][0][0], todo[0][0][3]), n=128, noise=NOISE, dt=dt,
+                             mech=True)
+            build_s = round(time.perf_counter() - t_b, 1)
+            ir0 = set_impratio(ev, 10.0)
+            for (tag, arm, seed, steps), nm in todo:
+                ck = E.final_ckpt(tag, steps)
+                ev.load(ck)
+                ir = set_impratio(ev, 100.0 if nm == "impratio100" else 10.0)
+                print(f"[u5] {tag} on {scene}, {nm} (impratio read back {ir:.4g})", flush=True)
+                t0 = time.perf_counter()
+                r = ev.rollout()
+                set_impratio(ev, 10.0)
+                mm = E.mech_metrics(r, ev.mech_consts())
+                row = dict(tag=tag, arm=arm, seed=seed, iteration=E._it(ck), scene=scene, numerics=nm,
+                           dt_s=dt or 0.002, impratio_set=100.0 if nm == "impratio100" else 10.0, impratio_read=ir,
+                           impratio_build=ir0, noise_mm_deg=list(NOISE), **E.metrics(r, ev.residual_from, physics=True),
+                           **{f"mech_{k}": v for k, v in mm.items()}, status="ok", build_s=build_s,
+                           wall_s=round(time.perf_counter() - t0, 1), when=time.strftime("%Y-%m-%d %H:%M"))
+                append(out, row)
+                print(f"[u5] {tag} {nm}: held {row['n_held']}/128, held cos {row['held_cos_mean']}, hold slide "
+                      f"{mm.get('slide_hold_path_um_s')} um/s", flush=True)
+            ev.close()
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
+    c = sub.add_parser("cross", help="U5: finals x plant scenes x conditions, closed loop and replays")
+    c.add_argument("--tags", nargs="*", default=[])
+    c.add_argument("--scenes", nargs="+", default=list(PLANT_SCENES), choices=PLANT_SCENES)
+    c.add_argument("--modes", nargs="+", default=["closed", "open"], choices=["closed", "open"])
+    c.add_argument("--conditions", nargs="+", default=list(CONDITIONS), choices=list(CONDITIONS))
+    nm = sub.add_parser("numerics", help="U5: impratio 100 and a 4 ms step on each final's own scene")
+    nm.add_argument("--tags", nargs="*", default=[])
+    nm.add_argument("--numerics", nargs="+", default=list(NUMERICS), choices=NUMERICS)
     s = sub.add_parser("scenes")
     s.add_argument("--variants", nargs="+", default=["servo_meshc4", "servo_pads2", "servo_mesh", "servo_pads1"])
     p = sub.add_parser("probe")
@@ -301,7 +422,8 @@ def main() -> int:
     os.environ.setdefault("MUJOCO_GL", "egl")
     if a.cmd == "train":
         return cmd_train(a, rest)
-    return {"scenes": cmd_scenes, "probe": cmd_probe, "queue": cmd_queue}[a.cmd](a)
+    return {"scenes": cmd_scenes, "probe": cmd_probe, "queue": cmd_queue, "cross": cmd_cross,
+            "numerics": cmd_numerics}[a.cmd](a)
 
 
 if __name__ == "__main__":

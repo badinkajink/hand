@@ -12,6 +12,13 @@ kind step), the simulated time and the fingertip contacts on the cylinder.
 
     MUJOCO_GL=egl taskset -c 17-19 .venv/bin/python scripts/pad_usability_film.py
 Out: docs/experiments/20261014-pad_usability/cost/media/{grip_<model>.mp4, grip_models_cyl016.mp4, grip_models_cyl016.png}
+
+--rl films the state the GPU timing starts from instead: world 0 of each exported held RL state
+(logs/20261014-pad_usability/state_<variant>/scene_key.xml: the servo-plant D6 env after its scripted grasp and lift)
+stepped from rest on CPU MuJoCo at the trainer's 2 ms step for the GPU run's 2.2 s, four variants in a 2 x 2 grid at
+real time, pads touching the screwdriver red, labelled with the variant's MuJoCo-Warp time per world-step at 2,048
+worlds (cost/gpu_timing.jsonl, buffers 1.5 times the exported maxima) and its live contact count.
+Out: media/rl_held_<variant>.mp4, media/rl_held_variants.mp4 and .png
 """
 from __future__ import annotations
 
@@ -107,13 +114,106 @@ def film(mdl, title, cell, shape, dd, ci, paths, meta, gg, cost, t_grip=0.8, t_h
     return frames, {f: round(float(s["F"][f]), 2) for f in S.FINGERS}
 
 
+RL_PANELS = [("servo_pads1", "1 mm pads"), ("servo_pads2", "2 mm pads"), ("servo_mesh", "Block mesh"),
+             ("servo_meshc4", "Block mesh, condim 4")]
+
+
+def gpu_cost() -> dict:
+    out = {}
+    path = COST / "gpu_timing.jsonl"
+    if path.exists():
+        for ln in path.read_text().splitlines():
+            r = json.loads(ln)
+            if r.get("nworld") == 2048 and r.get("status") == "ok" and r.get("buffers", "exact") == "exact":
+                out.setdefault(r["variant"], []).append(r["us_per_world_step"])
+    return {k: float(np.mean(v)) for k, v in out.items()}
+
+
+def film_rl(v, title, us, t_end=2.2, every=0.04):
+    import mujoco
+    sdir = ROOT / "logs/20261014-pad_usability" / f"state_{v}"
+    m = mujoco.MjModel.from_xml_path(str(sdir / "scene_key.xml"))
+    d = mujoco.MjData(m)
+    mujoco.mj_resetDataKeyframe(m, d, 0)
+    mujoco.mj_forward(m, d)
+    tb = next(i for i in range(m.nbody) if m.body(i).name.endswith("cube"))
+    tool = {g for g in range(m.ngeom) if m.geom_bodyid[g] == tb}
+    tips = {g for g in range(m.ngeom) if m.body(m.geom_bodyid[g]).name.endswith("_tip")}
+    pads = [g for g in range(m.ngeom) if "_pad" in (m.geom(g).name or "")]
+    m.geom_rgba[pads] = (0.9, 0.1, 0.1, 0.0)
+    for g in range(m.ngeom):
+        nm = m.geom(g).name or ""
+        if nm.endswith(("_tipvis", "_tipgeom")):
+            m.geom_matid[g] = -1
+            m.geom_rgba[g] = BLOCK_RGBA
+    r = mujoco.Renderer(m, F.H, F.W)
+    cam = mujoco.MjvCamera()
+    cam.type = mujoco.mjtCamera.mjCAMERA_FREE
+    cam.lookat[:] = d.xpos[tb]
+    cam.distance, cam.azimuth, cam.elevation = 0.17, 120.0, -20.0
+    k_every = int(round(every / m.opt.timestep))
+    frames, step = [], 0
+    while True:
+        if step % k_every == 0:
+            m.geom_rgba[pads, 3] = 0.0
+            dots, n_tip = [], 0
+            for i in range(d.ncon):
+                g1, g2 = int(d.contact[i].geom[0]), int(d.contact[i].geom[1])
+                for g, o in ((g1, g2), (g2, g1)):
+                    if o in tool and g in tips:
+                        n_tip += 1
+                        if g in pads:
+                            m.geom_rgba[g, 3] = 1.0
+                        else:
+                            dots.append(d.contact[i].pos.copy())
+            r.update_scene(d, cam)
+            scn = r.scene
+            for pos in dots:
+                if scn.ngeom < scn.maxgeom:
+                    mujoco.mjv_initGeom(scn.geoms[scn.ngeom], mujoco.mjtGeom.mjGEOM_SPHERE, np.array([0.0011, 0, 0]),
+                                        pos, np.eye(3).reshape(-1), np.array([0.9, 0.1, 0.1, 1.0], np.float32))
+                    scn.ngeom += 1
+            lines = [f"{title}: {us:.2f} \u00b5s per world-step" if us else title,
+                     f"{d.time:4.2f} s, {n_tip} fingertip contacts"]
+            frames.append(M.big_label(r.render().copy(), lines, size=32))
+        if d.time >= t_end - 1e-9:
+            break
+        mujoco.mj_step(m, d)
+        step += 1
+    r.close()
+    return frames
+
+
+def main_rl() -> int:
+    MEDIA.mkdir(parents=True, exist_ok=True)
+    cost = gpu_cost()
+    clips = []
+    for v, title in RL_PANELS:
+        frames = film_rl(v, title, cost.get(v))
+        frames += [frames[-1]] * 12
+        out = MEDIA / f"rl_held_{v}.mp4"
+        CB.write_h264(frames, out, crf=20)
+        clips.append(out)
+        print(f"{v}: {len(frames)} frames -> {out.relative_to(ROOT)}", flush=True)
+    stem = MEDIA / "rl_held_variants"
+    n = F.tile_stream(clips, stem.with_suffix(".mp4"), stem.with_suffix(".jpg"), cols=2, poster_at=0.5, crf=20)
+    from PIL import Image
+    Image.open(stem.with_suffix(".jpg")).save(stem.with_suffix(".png"))
+    stem.with_suffix(".jpg").unlink()
+    print(f"tiled {n} frames -> {stem.with_suffix('.mp4').relative_to(ROOT)}", flush=True)
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--plant", default="kp0.72_kv0_fr0.18_fl0_dp0.0144")
     ap.add_argument("--cell", default="cylinder:16:0.625")
     ap.add_argument("--size", default="640x480")
+    ap.add_argument("--rl", action="store_true", help="film the exported held RL states (see above)")
     a = ap.parse_args()
     F.W, F.H = (int(v) for v in a.size.split("x"))
+    if a.rl:
+        return main_rl()
     S.PLANT = a.plant
     shape, dd, t = a.cell.split(":")
     dd, t = float(dd), float(t)
