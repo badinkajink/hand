@@ -243,14 +243,47 @@ class TipShape:
         k = (N[:, 0] > 0.05) & (N[:, 2] < 0.5)
         return P[k], N[k], A[k]
 
-    def hull(self, res=0.0005, sign=1.0):
+    def _terrace_corners(self, eps=None):
+        """The fine hull's vertices (the layers' outline corners of an as-printed key); with eps (m), each layer's
+        outline simplified by Douglas-Peucker so no kept point lies within eps of the polyline through its neighbours:
+        collinear runs of outline points are what give qhull, and Drake's own hull of a mesh, degenerate facets."""
+        V0, _ = self.hull_fine
+        if not eps:
+            return V0
+        out = []
+        for x in np.unique(np.round(V0[:, 0], 9)):
+            Q = V0[np.abs(V0[:, 0] - x) < 5e-10]
+            if len(Q) < 4:
+                out.append(Q)
+                continue
+            c = Q.mean(0)
+            Q = Q[np.argsort(np.arctan2(Q[:, 2] - c[2], Q[:, 1] - c[1]))]
+            i0 = int(np.argmax(np.linalg.norm(Q - Q[0], axis=1)))
+            keep = np.zeros(len(Q), bool)
+            keep[[0, i0]] = True
+            stack = [(0, i0), (i0, len(Q))]                     # index len(Q) closes the loop at point 0
+            while stack:
+                a, b = stack.pop()
+                if b - a < 2:
+                    continue
+                A, B = Q[a, 1:], Q[b % len(Q), 1:]
+                P = Q[a + 1:b, 1:]
+                t = B - A
+                dist = np.abs(t[0] * (P[:, 1] - A[1]) - t[1] * (P[:, 0] - A[0])) / max(np.linalg.norm(t), 1e-15)
+                j = int(np.argmax(dist))
+                if dist[j] > eps:
+                    keep[a + 1 + j] = True
+                    stack += [(a, a + 1 + j), (a + 1 + j, b)]
+            out.append(Q[keep])
+        return np.concatenate(out)
+
+    def hull(self, res=0.0005, sign=1.0, eps=None):
         """Convex hull of the surface points thinned to one per res voxel (the 0.5 mm resolution of
         fingertip_geometry.hull_mesh); x mirrored for sign -1."""
         P, _, A = self.dense
         _, M = _voxel_pick(P, A, res)
         if self.layer:                                   # keep the terraces' corners
-            V0, _ = self.hull_fine
-            M = np.concatenate([M, V0])
+            M = np.concatenate([M, self._terrace_corners(eps)])
         else:
             D = M - C0
             D /= np.linalg.norm(D, axis=1, keepdims=True)
@@ -325,12 +358,13 @@ class TipShape:
             C[bad] -= v[bad, None] * n[k[bad]]
         return C
 
-    def mesh_paths(self, out_dir):
-        """One OBJ per palmar sign, named by the key, written through a temporary file."""
+    def mesh_paths(self, out_dir, eps=None):
+        """One OBJ per palmar sign, named by the key, written through a temporary file; with eps (m) the terrace
+        outlines are simplified first (_terrace_corners) and the files are named <key>_dp<eps in um>_<sign>.obj."""
         out = {}
         for name, sign in (("pos", 1.0), ("neg", -1.0)):
-            V, F = self.hull(0.0005, sign)
-            p = Path(out_dir) / f"{self.key}_{name}.obj"
+            V, F = self.hull(0.0005, sign, eps=eps)
+            p = Path(out_dir) / (f"{self.key}_{name}.obj" if not eps else f"{self.key}_dp{eps * 1e6:g}_{name}.obj")
             p.parent.mkdir(parents=True, exist_ok=True)
             if not p.exists():
                 tmp = p.with_name(p.name + f".{os.getpid()}.tmp")

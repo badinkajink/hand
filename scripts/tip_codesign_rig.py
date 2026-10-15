@@ -41,6 +41,7 @@ SCRIPT = "scripts/tip_codesign_rig.py"
 SCN = ROOT / "logs/20261014-tip_codesign/scenes"
 SERVO = PUB.SERVO
 _REPLACE = RB.replace_tips
+MESH_EPS = None          # --mesh-eps: terrace outlines simplified to this deviation (m) in the tip meshes
 
 
 def add_pairs(root, tool: str, pf: float, MU: float):
@@ -80,7 +81,7 @@ def replace_tips_tcd(root, tip, model, MU, out_dir, tool=RB.OBJ, s=RB.PAD_S, rs=
     import numpy as np
     import tip_codesign_geometry as TG
     sh = TG.shape(tip)
-    meshes = sh.mesh_paths(Path(out_dir) / "meshes" / sh.key)
+    meshes = sh.mesh_paths(Path(out_dir) / "meshes" / sh.key, eps=MESH_EPS)
     asset = root.find("asset")
     for sgn, p in meshes.items():
         ET.SubElement(asset, "mesh", name=f"tpu_{'pos' if sgn > 0 else 'neg'}", file=str(p))
@@ -173,13 +174,16 @@ def tag_of(a):
 
 def install(a, force_tip=None):
     """Bind RB.replace_tips to the tip options and point the scene folders at this study's."""
+    global MESH_EPS
+    MESH_EPS = getattr(a, "mesh_eps", None)
     RB.replace_tips = functools.partial(replace_tips, E=a.E, pf=a.pf, tr=a.tr, force_tip=force_tip,
                                         h=getattr(a, "h", "fixed"), K=getattr(a, "K", "median"))
     PUB.SCN = SCN / tag_of(a)
 
 
 def _row_extra(a):
-    return {"E_Pa": a.E, "pf_s": a.pf, "tr_s": a.tr, "tag": tag_of(a), "study": "20261014-tip_codesign"}
+    return {"E_Pa": a.E, "pf_s": a.pf, "tr_s": a.tr, "tag": tag_of(a), "study": "20261014-tip_codesign",
+            "mesh_eps_m": getattr(a, "mesh_eps", None)}
 
 
 def cmd_replay(a):
@@ -311,6 +315,9 @@ def main():
         p.add_argument("--tag", default=None, help="scene folder and row tag (default from E and pf)")
         p.add_argument("--h", default="fixed", choices=["fixed", "local"], help="tcd pads' foundation depth")
         p.add_argument("--K", default="median", choices=["median", "each"], help="tcd pads' stiffness")
+        p.add_argument("--mesh-eps", type=float, default=None,
+                       help="tcd meshes with each terrace outline simplified (Douglas-Peucker) to this deviation, m: "
+                            "Drake rejects the near-zero facets of collinear outline points")
         p.add_argument("--out", type=Path, required=True)
     sc = sub.add_parser("scale", help="the scale study's hold and HOM turn on CAD-hand cells with the chosen tip")
     sc.add_argument("--tip", required=True)
