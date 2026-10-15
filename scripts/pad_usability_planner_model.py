@@ -45,12 +45,16 @@ HP.CONFIGS["icem_pin_pt4"] = dict(HP.CONFIGS["icem_pin"], plan_tip="pt4")
 HP.TITLES.update(icem_pin="Pads planner", icem_pin_pt="Point-contact planner", icem_pin_pt4="Condim-4 planner")
 
 _setup = M.setup
+_LAST_SCENES = {}
 
 
 def setup(cell, shape, dd, ci):
-    """hand_object_scale_mpc.setup, with the cell's scene paths kept on the plant for the planner's model."""
+    """hand_object_scale_mpc.setup, with the cell's scene paths kept on the plant for the planner's model (and as the last
+    setup's, for film_pair, which rebuilds the plant from a film copy of the pad scene right after calling setup)."""
     plant, meta, geo, sc, gg = _setup(cell, shape, dd, ci)
     plant.scene_paths = {k: str(v[0]) for k, v in sc.items()}
+    _LAST_SCENES.clear()
+    _LAST_SCENES.update(plant.scene_paths)
     return plant, meta, geo, sc, gg
 
 
@@ -65,7 +69,7 @@ class ModelPlanner(M.Planner):
         if prm.get("w_contact", 0.0) <= 0 or prm.get("pad_filter", 0.0) > 0:
             raise ValueError("plan_tip needs the contact-sensor cost and no pad filter")
         xml0 = plant.xml_path
-        plant.xml_path = plant.scene_paths["pt"]          # sensor_model compiles plant.xml_path
+        plant.xml_path = getattr(plant, "scene_paths", _LAST_SCENES)["pt"]    # sensor_model compiles plant.xml_path
         try:
             super().__init__(plant, prm, nthread, rng)
         finally:
