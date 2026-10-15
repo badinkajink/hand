@@ -50,6 +50,8 @@ import retro_style  # noqa: E402
 EXP = os.path.join(ROOT, "docs/experiments")
 D = os.path.join(EXP, "20261009-contact_overview")                 # last dated snapshot; its artifact_url.txt
 OUT = os.path.join(ROOT, "docs", "overviews", "contact_model.html")
+USE_DIR = os.path.join(ROOT, "docs/experiments/20261014-pad_usability")   # the 2026-10-14 usability study (U1-U5)
+USE_PAGE = "docs/experiments/20261014-pad_usability/20261014-sphere_pad_cost_and_control.html"
 TPL = os.path.join(ROOT, "scripts/contact_overview_page.template.html")
 CHAIN_TPL = os.path.join(ROOT, "scripts/hom_chain_page.template.html")
 BED = os.path.join(EXP, "20261005-contact_bed")
@@ -695,7 +697,7 @@ def creep_text(pull, creep, tip_pull=None):
             if tb and td:
                 s += f"; on the printed TPU block at 1&#8202;N and 1&#8202;ms the factor is {tb['creep_mm_s'] / td['creep_mm_s']:.0f} (Table&#160;3)"
         out.append(s + ". A damper moves the tool by the time integral of its load, so a held tool does not come back when "
-                       "the load does (task&#160;8, Figure&#160;13).")
+                       "the load does (task&#160;8, Figure&#160;14).")
     return " ".join(out)
 
 
@@ -1808,6 +1810,9 @@ def _url(path):
 
 
 RELATED = [  # (group, date, title, path relative to the repository, contents)
+    ("Results on other pages", "2026-10-14", "Cost and control outcomes of the sphere-pad fingertip on the real_v1 hand",
+     USE_PAGE, "CPU, MuJoCo-Warp and PPO cost of the pads and cheaper fingertip models; agreement with Drake on the "
+     "servo-limited plant; usable physics step; planner rollout model; RL training and scoring scene (U1-U5)"),
     ("Results on other pages", "2026-10-14", "Scale-study turn on the CAD hand",
      "docs/experiments/20261014-scale_turn_cad_v1/20261014-scale_turn_cad_v1.html",
      "HOM control (arXiv 2609.25619) and sampling model-predictive control on the CAD-model hand; pad cost in the CPU and "
@@ -1937,6 +1942,63 @@ def render_tex(t):
     return TEX_RE.sub(lambda m: next(svgs), t), len(items)
 
 
+def usability_section():
+    """The paragraph and film of the 2026-10-14 usability study (U1-U5) on the real_v1 hand, from its summaries."""
+    def js(rel):
+        p = os.path.join(USE_DIR, rel)
+        return json.load(open(p)) if os.path.exists(p) else None
+    f1, f2, s3, s4, s5 = (js("cost/findings_U1.json"), js("agree/findings_U2.json"), js("step/summary_U3.json"),
+                          js("planner/summary_U4.json"), js("rl/summary_U5.json"))
+    if not (f1 and f2 and s3 and s5):
+        return ""
+    link = os.path.relpath(os.path.join(ROOT, USE_PAGE), os.path.dirname(OUT))
+    url = _url(os.path.join(USE_DIR, "artifact_url.txt"))
+    cpu = next(t for t in f1["tables"] if t["title"].startswith("CPU cost"))["rows"]
+    grip = {r[1]: float(r[3].split()[0]) for r in cpu if r[0] == "16 mm cylinder"}
+    gpu = next(t for t in f1["tables"] if t["title"].startswith("MuJoCo-Warp physics"))["rows"]
+    g = {r[0]: float(r[2].split(" / ")[0]) for r in gpu if r[1] == "2048" and not r[2].startswith("skipped")}
+    agree = {(r[0], r[1], r[2]): r[3] for r in f2["tables"][0]["rows"]}
+    a = lambda m: agree[(m, "Servo", "1 ms, impratio 100")]  # noqa: E731
+    sw = {(x["model"], x["plant"][:4], x["dt_ms"]): x for x in s3["sweep"]}
+    C = {(c["final"], c["scene"], c["mode"], c["condition"]): c["n_held"] for c in s5["cells"]}
+    kp = lambda sc, fs: " and ".join(str(C[(f, sc, "closed", "kp=0.36")]) for f in fs)  # noqa: E731
+    s = ("<h3>Cost and control outcomes on the real_v1 hand</h3>"
+         f"<p>On the real_v1 hand the 1&#8202;mm pads cost {grip['1 mm pads']:.0f}&#8202;&#181;s per grip step on one CPU core, "
+         f"{grip['1 mm pads'] / grip['Block mesh, point contact']:.1f} times point contact on the TPU block, "
+         f"{g['1 mm pads']:.2f}&#8202;&#181;s per MuJoCo-Warp world-step ({g['1 mm pads'] / g['Block mesh']:.1f} times the block "
+         "mesh) and 1.47 times the mesh per PPO iteration (U1 of the "
+         f"<a href=\"{link}\">usability page</a>" + (f", <a href=\"{url}\">artifact</a>" if url else "") + "). On the "
+         f"servo-limited plant they end the eight deployed plans within 3&#176; of Drake on {a('1 mm pads')} of 24 placements, "
+         f"against {a('2 mm pads')} for 2&#8202;mm pads and {a('Point contact')} for point contact (U2), and keep "
+         f"{sw[('pads', 'kp0.', 2.0)]['within3_1ms']} of 40 within 3&#176; of their own 1&#8202;ms turn at a 2&#8202;ms step, where "
+         f"point contact keeps the tool on {sw[('pt', 'kp0.', 1.0)]['held']} of 40 even at 1&#8202;ms (U3).")
+    if s4:
+        R4 = {r["config"]: r for r in s4["configs"]}
+        p4, c4, pt = R4["icem_pin"], R4["icem_pin_pt4"], R4["icem_pin_pt"]
+        s += (f" Pinned iCEM that rolls out condim&#160;4 or point contact in place of the pads replans "
+              f"{p4['replan_s_3threads'] / c4['replan_s_3threads']:.0f} and {p4['replan_s_3threads'] / pt['replan_s_3threads']:.0f} "
+              f"times faster and loses a median {-c4['paired_change_median']:.0f}&#176; and {-pt['paired_change_median']:.0f}&#176; "
+              "of held turn on the pad plant (U4)")
+        fr = {v["variant"]: v for v in s4.get("friction", [])}
+        if "mu0.5" in fr:
+            v = fr["mu0.5"]
+            s += (f"; the pads planner itself, planning with friction 1 on a plant at 0.5, ends {v['three_finger']} of {v['n']} "
+                  "runs with three fingertips loaded")
+        s += "."
+    s += (" RL policies trained on the TPU mesh keep the tool on the 1&#8202;mm pad plant as well as pad-trained ones, "
+          f"{kp('tpu27pads1', ('Mesh s0', 'Mesh s1'))} against {kp('tpu27pads1', ('Pads s0', 'Pads s1'))} of 128 at half servo "
+          f"gain, while the pad-trained policies fall to {kp('tpu27mesh', ('Pads s0', 'Pads s1'))} on the mesh plant (U5), so "
+          "training can use the cheaper mesh and score on the pads.</p>")
+    film = os.path.join(USE_DIR, "rl/media/20261014-rl_cross_kp036.mp4")
+    poster = os.path.join(USE_DIR, "rl/media/20261014-rl_cross_kp036.jpg")
+    if os.path.exists(film) and os.path.exists(poster):
+        s += film_tag(film, poster, "Figure&#160;13. Half servo gain (0.36&#8202;N&#183;m/rad), closed loop: the TPU-mesh policy "
+                      "seed 0 on its own plant and on the 1&#8202;mm pad plant (top), and the 1&#8202;mm pad policy seed 0 on its "
+                      "own plant and on the TPU-mesh plant (bottom), the median world of 128 each; the pad policy drops the tool on "
+                      "the mesh plant (U5 of the usability page).")
+    return s
+
+
 def main():
     import contact_overview_text as OT  # prose blocks that depend on the literature notes and the bed findings
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
@@ -2001,6 +2063,7 @@ def main():
     v["CHAIN_FILM"] = R.data_uri(os.path.join(CHAIN_D, "media/20261002-chain_six_models.mp4"), "video/mp4")
     v["CHAIN_POSTER"] = R.data_uri(os.path.join(CHAIN_D, "media/20261002-chain_six_models_poster.png"), "image/png")
     v["RELATED"] = related()
+    v["USABILITY"] = usability_section()
     v["GLOSSARY"] = glossary_html(extra=GLOSSARY_RL)
     ctx = dict(T=T, M=M, cost=cost, cal=cal, stab=stab, step_rows=step_rows, gpu_pads=gpu_pads, gpu_newton=gpu_newton,
                tor=tor, have_onset=have_onset, curves=curves, batched=batched, deviations=deviations(M), bed_url=u, skin_X=SX,

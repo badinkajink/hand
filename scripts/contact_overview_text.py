@@ -762,7 +762,7 @@ def mindlin_t8_trace(N=1.0, n=200):
 
 
 def _f8(ctx):
-    """The impratio-10 panel: Figure 13b in the overview, Figure 2b on the skin page (ctx["t8_fig"])."""
+    """The impratio-10 panel: Figure 14b in the overview, Figure 2b on the skin page (ctx["t8_fig"])."""
     return f"Figure&#160;{ctx.get('t8_fig', '13')}b"
 
 
@@ -816,11 +816,11 @@ def skin_summary(ctx):
             "Mindlin&#8217;s solution 40&#8202;&#181;m at 1&#8202;N per pad on the bed, 38 returned. The sphere pads and Drake hold the tool "
             "through regularised friction instead and creep. Mounting each pad&#8217;s spheres on a 2&#8202;g body held by springs at the "
             f"tip&#8217;s elastic stiffness gives {s['u_presliding_um']:.0f}&#8202;&#181;m of presliding at 1&#8202;N, of which "
-            f"{s['u_recovered_um']:.0f} return, with the friction rows stiffened by impratio 1000 (Figure&#160;13a), at "
+            f"{s['u_recovered_um']:.0f} return, with the friction rows stiffened by impratio 1000 (Figure&#160;14a), at "
             f"{X.cpu('mj_pads1_skin') / cp:.2f} times the pads&#8217; CPU step and {X.gpu('mj_pads1_skin') / gp:.1f} times their GPU "
             "world-step. The policy trainer&#8217;s solver holds a grasp on the skin only at impratio 10, where the friction rows "
             f"creep {p10['u_presliding_um']:.0f}&#8202;&#181;m over the first ramp, twice what the springs store, and the tool ends "
-            f"the cycle {s10['u_end_um']:.0f}&#8202;&#181;m out with or without the skin (Figure&#160;13b). Policies trained on the skin "
+            f"the cycle {s10['u_end_um']:.0f}&#8202;&#181;m out with or without the skin (Figure&#160;14b). Policies trained on the skin "
             f"on the 1&#8202;N&#8202;m working plant kept the tool in {pct(T['tpu27skin'])} of closed-loop rollouts under the other TPU "
             f"tip models, against {pct(T['tpu27pads1'])} for the pads, at 44&#8211;56&#8202;N grips on a plant 4.4 times stronger than the "
             "servos and without the skin&#8217;s presliding, so that number is not evidence for the skin." + servo +

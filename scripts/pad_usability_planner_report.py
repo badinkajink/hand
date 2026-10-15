@@ -105,6 +105,25 @@ def main() -> int:
             rep["paired_change_by_cell"] = {f"{c[1]:g} mm, t {c[2]:g}": [round(float(x), 2) for x in v] for c, v in dc.items()}
         out["configs"].append(rep)
     out["pads_replan_s_3threads"] = next(r["replan_s_3threads"] for r in out["configs"] if r["config"] == "icem_pin")
+    # the plant's sliding friction lowered while the planner's model keeps 1 (variants mu0.5, mu0.7; seeds 0 and 1)
+    var = [r for r in AG.jl(PL / "turn.jsonl") if r.get("status") == "ok" and r.get("variant")]
+    out["friction"] = []
+    for vname in sorted({r["variant"] for r in var}):
+        vv = {(r["shape"], r["d_mm"], r["t"], r["seed"]): r for r in var if r["variant"] == vname and r["config"] == "icem_pin"}
+        pairs = [(k, vv[k], pads.get((k[:3], k[3]))) for k in vv if pads.get((k[:3], k[3]))]
+        if not pairs:
+            continue
+        three = sum(r["three_frac"] >= 0.99 for _, r, _ in pairs)
+        med_v = float(np.median([r["held_turn_deg"] for _, r, _ in pairs]))
+        med_n = float(np.median([b["held_turn_deg"] for _, _, b in pairs]))
+        d = float(np.median([r["held_turn_deg"] - b["held_turn_deg"] for _, r, b in pairs]))
+        mu = vname.replace("mu", "")
+        out["friction"].append(dict(variant=vname, n=len(pairs), three_finger=int(three), held=sum(bool(r["held"]) for _, r, _ in pairs),
+                                    held_turn_median=med_v, nominal_median=med_n, paired_change_median=d,
+                                    sentence=(f"With the plant&#8217;s sliding friction at {mu} while the planner&#8217;s model keeps "
+                                              f"1, the pads planner ends {three} of {len(pairs)} runs with three fingertips loaded and "
+                                              f"turns a median {med_v:.1f}&#176; against {med_n:.1f}&#176; on the same pairs at "
+                                              f"nominal friction (median change {d:+.1f}&#176;).")))
     (PL / "summary_U4.json").write_text(json.dumps(out, indent=1) + "\n")
     fig(out, PL / "20261014-u4_planner_models.png")
     print("reproduction", repro)

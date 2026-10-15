@@ -333,7 +333,49 @@ def planner_section():
     if f is None:
         return pending(4, "pinned iCEM rolling out point contact and condim&#160;4 on the 1&#8202;mm pad plant, four cells and four "
                           "seeds, against the pads planner")
-    return f.get("page_html", "")
+    S = json.load(open(os.path.join(D, "planner/summary_U4.json")))
+    R = {r["config"]: r for r in S["configs"]}
+    pads, c4, pt = R["icem_pin"], R["icem_pin_pt4"], R["icem_pin_pt"]
+    lab = {"icem_pin": "Pads planner", "icem_pin_pt4": "Condim-4 planner", "icem_pin_pt": "Point-contact planner"}
+
+    def ci(r):
+        if r.get("paired_change_median") is None:
+            return "&#8211;"
+        lo, hi = r["paired_change_ci95"] or (float("nan"), float("nan"))
+        return f"{r['paired_change_median']:+.1f} [{lo:+.1f}, {hi:+.1f}]"
+    body = [[lab[c], f"{R[c]['held_turn_median']:.1f}", ci(R[c]),
+             "&#8211;" if R[c].get("wilcoxon_p") is None else f"{R[c]['wilcoxon_p']:.4f}",
+             f"{R[c]['three_finger']} of {R[c]['n_pairs']}", f"{R[c]['contact_breaks_median']:.0f}",
+             f"{R[c]['cmd_rate_rms_median']:.3f}", f"{R[c]['omega_jitter_median']:.2f}",
+             "&#8211;" if R[c].get("replan_s_3threads") is None else f"{R[c]['replan_s_3threads']:.2f}"]
+            for c in ("icem_pin", "icem_pin_pt4", "icem_pin_pt")]
+    t1 = table(["Planner", "Held turn, median (&#176;)", "Change against the pads planner, median [95&#8202;% interval] (&#176;)",
+                "Wilcoxon p", "Three-finger endings", "Contact breaks, median", "Command rate, RMS (rad/s)",
+                "Turn-rate jitter (rad/s)", "Replanning, 3 threads (s)"], body,
+               "Pinned iCEM on the 1&#8202;mm pad plant with three rollout models, four cells of the scale study &#215; seeds "
+               "0&#8211;3. Interval: cell-cluster bootstrap; Wilcoxon: exact signed-rank test of the paired changes.", key="planner")
+    fr = ""
+    var = S.get("friction") or []
+    if var:
+        fr = ("<p>" + " ".join(v["sentence"] for v in var) + "</p>")
+    return (f"<p>Pinned iCEM (64 rollouts of 0.5&#8202;s every 20&#8202;ms in two iterations, the first knot pinned to the command "
+            f"in force, the three-pad cost of 13 October) turns the cylinder on the 1&#8202;mm pad plant by a median "
+            f"{pads['held_turn_median']:.1f}&#176; over {pads['n_pairs']} pairs of four cells and four seeds, at "
+            f"{pads['replan_s_3threads']:.2f}&#8202;s per replanning on three threads; its seed-0 run on the 25&#8202;mm cell "
+            f"reproduces the 13 October row ({S['reproduction']['new']:.2f}&#176;). Rolling out condim&#160;4 on the TPU block "
+            f"instead cuts the replanning to {c4['replan_s_3threads']:.2f}&#8202;s and the held turn by a median "
+            f"{-c4['paired_change_median']:.1f}&#176; (95&#8202;% interval {-c4['paired_change_ci95'][1]:.1f}&#8211;"
+            f"{-c4['paired_change_ci95'][0]:.1f}&#176;, Wilcoxon p {c4['wilcoxon_p']:.4f}); point contact cuts the replanning to "
+            f"{pt['replan_s_3threads']:.2f}&#8202;s and the held turn by {-pt['paired_change_median']:.1f}&#176;. The pads planner "
+            f"ends {pads['three_finger']} of {pads['n_pairs']} runs with three fingertips loaded, the condim-4 and point-contact "
+            f"planners {c4['three_finger']} and {pt['three_finger']} (Table&#160;[[tab:planner]], Figure&#160;[[fig:planner]]). "
+            "Neither cheaper model passes the plan&#8217;s test (a median loss under 10&#176; and at least 15 of 16 three-finger "
+            "endings), so the CPU planner keeps the pads as its rollout model, and the one-third replanning budget is not "
+            "available on the CPU.</p>"
+            + fr + t1
+            + img("docs/experiments/20261014-pad_usability/planner/20261014-u4_planner_models.png", f["figures"][0]["caption"],
+                  "planner")
+            + "".join(film(x["path"], x["poster"], x["caption"]) for x in f.get("films", [])))
 
 
 def rl_section():
@@ -344,7 +386,7 @@ def rl_section():
     S = json.load(open(os.path.join(D, "rl/summary_U5.json")))
     C = {(c["final"], c["scene"], c["mode"], c["condition"]): c for c in S["cells"]}
     fin = ["Mesh s0", "Mesh s1", "Pads s0", "Pads s1"]
-    scn = [("tpu27mesh", "TPU mesh"), ("tpu27pads1", "1 mm pads"), ("tpu27pads2", "2 mm pads"), ("tpu27meshc4", "Condim 4")]
+    scn = [("tpu27mesh", "TPU-mesh"), ("tpu27pads1", "1 mm pad"), ("tpu27pads2", "2 mm pad"), ("tpu27meshc4", "Condim-4")]
     cond = [("nominal", "Nominal"), ("kp=0.36", "Servo gain 0.36 N&#183;m/rad"), ("fr=0.12", "Torque limit 0.12 N&#183;m"),
             ("friction=0.5", "Friction &#215;0.5")]
     body = []
@@ -357,19 +399,32 @@ def rl_section():
                "1&#8202;mm pad policy seed 0, seed 1. Closed loop: 128 rollouts with grasp-pose noise of 2&#8202;mm and "
                "5&#176;; replay: the 64 action sequences each policy produced on its own plant, played open loop.",
                text_cols=(0, 1), key="rlcross")
-    num = ""
-    if S.get("numerics"):
-        rows = [[x["tag"].replace("20261011-d6_servo_", "").replace("_40M_", " "), x["numerics"], str(x["n_held"]),
-                 f"{x['d_held']:+d}", "&#8211;" if x["d_cos"] is None else f"{x['d_cos']:+.3f}",
-                 "&#8211;" if x["slide_ratio"] is None else f"{x['slide_ratio']:.2f}"]
-                for x in S["numerics"] if x["numerics"] != "nominal"]
-        num = table(["Final", "Numerics", "Held (of 128)", "Change", "Held-cosine change", "Hold slide over nominal"], rows,
-                    "Each final on its own plant, closed loop, at impratio 100 (written into the model in place) and at a "
-                    "4&#8202;ms step, against the trainer&#8217;s 2&#8202;ms and impratio 10. Hold slide: the tool&#8217;s "
-                    "sliding over the fingertip&#8217;s contact geoms during the hold, median path speed.", key="rlnum")
-    return (f.get("page_lead", "") + t1
+    rows = [[x["tag"].replace("20261011-d6_servo_", "").replace("tpu27", "").replace("_40M_", " ").replace("pads1", "1 mm pads")
+             .replace("mesh", "TPU mesh"), {"impratio100": "Impratio 100", "dt4ms": "4 ms step"}[x["numerics"]], str(x["n_held"]),
+             f"{x['d_held']:+d}", f"{x['d_cos']:+.3f}"] for x in S["numerics"] if x["numerics"] != "nominal"]
+    t2 = table(["Final", "Numerics", "Held (of 128)", "Change", "Held-cosine change"], rows,
+               "Each final on its own plant, closed loop with grasp-pose noise, at impratio 100 (written into the model in place) "
+               "and at a 4&#8202;ms step, against the trainer&#8217;s 2&#8202;ms and impratio 10.", key="rlnum")
+    return ("<p>On the 1&#8202;mm pad plant every servo-plant final keeps the tool, whichever fingertip it trained on: at half servo "
+            "gain (0.36&#8202;N&#183;m/rad) the TPU-mesh finals keep 125 and 123 of 128 closed-loop rollouts and the pad finals 119 "
+            "and 126, and replays of their own actions at a 0.12&#8202;N&#183;m torque limit keep 61&#8211;64 of 64 "
+            "(Table&#160;[[tab:rlcross]], Figure&#160;[[fig:rlcross]]). On the TPU-mesh plant the same conditions separate the "
+            "policies: the mesh finals keep 96 and 117 of 128 at half gain, the pad finals 48 and 32, and every final&#8217;s replays "
+            "keep 0&#8211;9 of 64.</p>"
+            "<p>Training on the pads therefore gives no margin on the pad plant and costs 30&#8211;90 of 128 rollouts on the mesh "
+            "plant under each of the three perturbations (all four seed pairs; Fisher p below 10<sup>&#8722;33</sup>). The RL "
+            "trainer can train on the TPU mesh, at 1.47 times less time per PPO iteration and 2.0 against 11.2&#8202;GB of GPU "
+            "memory, and score its policies on the 1&#8202;mm pads. The 2&#8202;mm pad plant reproduces the 1&#8202;mm pad plant "
+            "within 5 of 128 held rollouts and 0.03 of held cosine on 12 of 16 final-condition pairs; condim&#160;4 on the block "
+            "drops the tool (8&#8211;99 of 128 held at nominal) and matches on none. Which plant the hardware follows is the "
+            "question of the torque-limited bench replays in Future work.</p>"
+            "<p>On their own plants a 4&#8202;ms physics step changes three finals by 1&#8211;3 of 128 held rollouts and costs the "
+            "TPU-mesh seed 1 22; impratio 100, written into the model in place, changes held counts by &#8722;1 to +4 and held "
+            "cosine by &#8722;0.006 to &#8722;0.027 (Table&#160;[[tab:rlnum]]), so the trainer keeps its 2&#8202;ms step and its "
+            "impratio of 10.</p>"
+            + t1
             + img("docs/experiments/20261014-pad_usability/rl/20261014-u5_cross.png", f["figures"][0]["caption"], "rlcross")
-            + f.get("page_numerics", "") + num
+            + t2
             + "".join(film(x["path"], x["poster"], x["caption"]) for x in f.get("films", [])))
 
 
