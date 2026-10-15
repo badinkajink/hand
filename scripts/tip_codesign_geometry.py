@@ -528,6 +528,12 @@ class CurvedTip(TipShape):
                 pts.append(Q)
         return _hull(np.concatenate(pts))
 
+    def mesh_paths(self, out_dir, eps=None, res=0.00025):
+        """TipShape.mesh_paths at 0.25 mm: a curved tip's contact patch at 1 N spans 2-3 mm, and Drake's field on the
+        0.5 mm mesh of the whole 10.55 mm sphere gives a 1.5 % larger approach than the analytic sphere (0.4 % at
+        0.25 mm; curved_tips_law.py)."""
+        return super().mesh_paths(out_dir, eps=eps, res=res)
+
     def hull(self, res=0.0005, sign=1.0, eps=None):
         """TipShape.hull; for an upright print without eps, the fine hull's vertices (the layers' outline corners, which
         lie on the printed surface) thinned to the one farthest from the box centre in each res voxel: the layer steps

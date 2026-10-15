@@ -7,6 +7,7 @@ Models per tip:
   pads    the 1 mm pads of builder v2 (each pad's K = E a_i / h_i, h_i its normal distance to the volume centroid),
           relaxation 0.02 s, impratio 100, elliptic cone; spec fields hloc:Keach
   drake   Drake 1.57's compliant convex of the tip's 0.25 mm mesh, E 10 MPa, relaxation 0.01 s, SAP
+  drake05 the same on the 0.5 mm mesh (the hull-resolution check)
 
 Cases (one fsynced row each in docs/experiments/20261015-curved_tips/bed/<case>.jsonl, resumable by key):
   static N    approach (rail travel from first touch, mean over the last 0.2 s of 0.8 s) at pinch N per pad; the
@@ -54,10 +55,13 @@ N_STATIC, N_T2, N_T1 = (0.5, 1.0, 2.0, 3.0), (1.0, 3.0), (1.0,)
 OMEGA = (0.1, 0.3, 1.0, 3.0)
 
 
+KINDS = {"pads": PADS_X, "drake": DRAKE_X, "drake05": "mres0.0005"}   # drake05: Drake on the 0.5 mm mesh (hull check)
+
+
 def model(key: str, kind: str) -> str:
-    """Register and return the bed model name of a tip: kind 'pads' (builder v2) or 'drake'."""
-    name, v = B.tcd_model(key, PADS_X if kind == "pads" else DRAKE_X, drake=kind == "drake")
-    name = f"{'drake' if kind == 'drake' else 'pads'}_{key}"
+    """Register and return the bed model name of a tip: kind 'pads' (builder v2), 'drake' or 'drake05'."""
+    _, v = B.tcd_model(key, KINDS[kind], drake=kind != "pads")
+    name = f"{kind}_{key}"
     B.register({name: v})
     return name
 
@@ -153,7 +157,7 @@ def run(tips, kinds, cases, dts=(1.0,), drake_omega=None):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--tips", nargs="+", required=True)
-    ap.add_argument("--models", nargs="+", default=["pads", "drake"], choices=["pads", "drake"])
+    ap.add_argument("--models", nargs="+", default=["pads", "drake"], choices=list(KINDS))
     ap.add_argument("--cases", nargs="+", default=["static", "T2", "spin", "T5", "T1"])
     ap.add_argument("--drake-omega", nargs="+", type=float, default=None)
     a = ap.parse_args()
