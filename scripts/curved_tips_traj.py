@@ -4,9 +4,10 @@ too coarse to show that two contact models give the same dynamics).
 
 Each run replays one deployed hand's bench plan (D1-D8, servo-limited plant kp0.72_kv0_fr0.18_fl0_dp0.0144, the
 tool placed with reorient_backends.jitter(seed)) open loop, so every arm receives the same servo commands, and records
-every 20 ms the tool's position and orientation and, per finger, the normal and friction force it applies to the tool:
-the finger's contact forces on the tool summed as one vector F_f, its normal part N_f = |F_f . n_f| along n_f, the
-normal-force-weighted mean contact normal, and its friction part T_f = |F_f - (F_f . n_f) n_f|.
+every 20 ms the tool's position and orientation and, per finger, the normal and friction force it applies to the tool,
+as scripts/pad_builder_check.py defines them: N_f the summed normal force of the finger's contacts with the tool, and T_f
+the vector sum of their friction forces (each contact's force on the tool less its part along the contact normal; for a
+Drake contact surface, the area-weighted mean normal of its faces).
 
 Arms:
   drake   Drake 1.57 hydroelastic: the tip's compliant convex mesh (E 10 MPa, relaxation 0.01 s), SAP, 1 ms (the reference)
@@ -50,24 +51,12 @@ ARMS = {"drake": dict(sim="drake", mu="1.0"), "dfloor": dict(sim="drake", mu="1.
         "floor": dict(sim="mujoco", numerics="bed", ir=100.0, mu="1.001")}
 
 
-def finger_forces(acc):
-    """{finger: (F vector, normal-force vector, contacts)} -> {finger: (N, T, n)}."""
-    out = {}
-    for f, (Fv, Nw, n) in acc.items():
-        ln = np.linalg.norm(Nw)
-        if n == 0 or ln < 1e-9:
-            out[f] = (0.0, 0.0, n)
-            continue
-        nb = Nw / ln
-        fn = float(Fv @ nb)
-        out[f] = (abs(fn), float(np.linalg.norm(Fv - fn * nb)), n)
-    return out
-
-
-def sample(t, p, q, ff):
+def sample(t, p, q, acc):
+    """acc: {finger: [N (summed normal force), T (summed friction-force vector), contacts]}; p in mm."""
     return {"t": round(float(t), 4), "p": [round(float(v) * 1e3, 4) for v in p], "q": [round(float(v), 6) for v in q],
-            "N": {f: round(ff[f][0], 4) for f in RB.FINGERS}, "T": {f: round(ff[f][1], 4) for f in RB.FINGERS},
-            "n": {f: ff[f][2] for f in RB.FINGERS}}
+            "N": {f: round(float(acc[f][0]), 4) for f in RB.FINGERS},
+            "T": {f: [round(float(x), 4) for x in acc[f][1]] for f in RB.FINGERS},
+            "n": {f: int(acc[f][2]) for f in RB.FINGERS}}
 
 
 def run_mujoco(scene, meta, plan, traj, seed):
@@ -99,7 +88,7 @@ def run_mujoco(scene, meta, plan, traj, seed):
     trace, ext, W = [], [], []
 
     def snap():
-        acc = {f: [np.zeros(3), np.zeros(3), 0] for f in RB.FINGERS}
+        acc = {f: [0.0, np.zeros(3), 0] for f in RB.FINGERS}
         F = {f: 0.0 for f in RB.FINGERS}
         cnt = {f: 0 for f in RB.FINGERS}
         for i in range(d.ncon):
@@ -113,10 +102,10 @@ def run_mujoco(scene, meta, plan, traj, seed):
             mujoco.mj_contactForce(m, d, i, f6)
             if f6[0] <= 1e-6:
                 continue
-            fr = c.frame.reshape(3, 3)
-            s = 1.0 if g2 in tool_geoms else -1.0
-            acc[f][0] += s * (fr.T @ f6[:3])
-            acc[f][1] += s * f6[0] * fr[0]
+            fr = c.frame.reshape(3, 3)                      # rows: normal (geom1 to geom2), tangents; world frame
+            on_tool = (fr.T @ f6[:3]) * (1.0 if g2 in tool_geoms else -1.0)
+            acc[f][0] += float(f6[0])
+            acc[f][1] += on_tool - (on_tool @ fr[0]) * fr[0]
             acc[f][2] += 1
             F[f] += float(f6[0])
             cnt[f] += 1
@@ -125,7 +114,7 @@ def run_mujoco(scene, meta, plan, traj, seed):
         p = d.qpos[qa:qa + 3]
         trace.append({"t": round(float(d.time), 4), "cos": float(R9[8]), "x": float(p[0]), "y": float(p[1]),
                       "z": float(p[2]), "F": {k: round(v, 4) for k, v in F.items()}, "n": cnt})
-        ext.append(sample(d.time, p, d.qpos[qa + 3:qa + 7], finger_forces(acc)))
+        ext.append(sample(d.time, p, d.qpos[qa + 3:qa + 7], acc))
 
     segs = RB.schedule(plan, traj)
     dt = m.opt.timestep
@@ -157,9 +146,8 @@ class Bench(RB.DrakeBench):
     def snap_ext(self):
         p = self.plant
         X = p.EvalBodyPoseInWorld(self.pc, self.tool)
-        acc = {f: [np.zeros(3), np.zeros(3), 0] for f in RB.FINGERS}
+        acc = {f: [0.0, np.zeros(3), 0] for f in RB.FINGERS}
         cr = p.get_contact_results_output_port().Eval(self.pc)
-        tool_bodies = {self.tool.index()}
         for i in range(cr.num_hydroelastic_contacts()):
             info = cr.hydroelastic_contact_info(i)
             srf = info.contact_surface()
@@ -179,11 +167,9 @@ class Bench(RB.DrakeBench):
             if ln < 1e-12 or np.linalg.norm(Fv) < 1e-6:
                 continue
             nb /= ln
-            fn = float(Fv @ nb)
-            if fn < 0:
-                nb, fn = -nb, -fn
-            acc[f][0] += Fv
-            acc[f][1] += fn * nb
+            fn = abs(float(Fv @ nb))
+            acc[f][0] += fn
+            acc[f][1] += Fv - (Fv @ nb) * nb
             acc[f][2] += 1
         for i in range(cr.num_point_pair_contacts()):
             info = cr.point_pair_contact_info(i)
@@ -194,19 +180,16 @@ class Bench(RB.DrakeBench):
             if f is None:
                 continue
             Fv = np.array(info.contact_force())                  # on body B
-            nb = np.array(pp.nhat_BA_W)
-            if pp.id_B not in self.tool_gids:
+            if info.bodyB_index() != self.tool.index():
                 Fv = -Fv
-            fn = float(Fv @ nb)
-            if fn < 0:
-                nb, fn = -nb, -fn
+            nb = np.asarray(pp.nhat_BA_W)
+            fn = abs(float(Fv @ nb))
             if fn > 1e-6:
-                acc[f][0] += Fv
-                acc[f][1] += fn * nb
+                acc[f][0] += fn
+                acc[f][1] += Fv - (Fv @ nb) * nb
                 acc[f][2] += 1
-        del tool_bodies
         q = X.rotation().ToQuaternion()
-        return sample(self.ctx.get_time(), X.translation(), [q.w(), q.x(), q.y(), q.z()], finger_forces(acc))
+        return sample(self.ctx.get_time(), X.translation(), [q.w(), q.x(), q.y(), q.z()], acc)
 
 
 def run_drake(db, meta, plan, traj, seed):

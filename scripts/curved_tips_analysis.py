@@ -5,6 +5,16 @@ docs/experiments/20261015-curved_tips/ and writes one JSON summary next to them.
   bed      step 2: per tip the law (Drake's field on the 0.25 mm mesh), the builder-v2 pads and Drake on the bed:
            approach at 0.5-3 N, twist-onset arm, spin arm at 0.1-3 rad/s, brake force at 45 deg, rotational and
            translational creep, touching pads, constraint rows and wall time per step (bed/summary.json)
+  screen   step 5, stages 1 and 2 (the 2026-10-14 rules, tip_codesign_analysis.stage_score): per tip and condition the
+           stage score; J1 at mu 0.7 on the servo plant (cells scored on seeds 1-2, HOM seeds 0-2), J2 the minimum over
+           the five conditions (HOM seeds 0-4); the Drake agreement of the D1-D8 replays (traj/traces.jsonl: the pads
+           at the planner's numerics within 3 deg of Drake's end turn with its held outcome, of 24) and its gate (at most
+           two below the as-built block); the cost (median us per replay step over the as-built block's); the
+           three-finger share at mu 0.5; finalists (1) highest J2 passing the gate, (2) highest J2 at <= 0.8 of the
+           as-built cost, (3) highest three-finger share at mu 0.5, then the next highest J2 passing the gate up to four
+           curved tips; the as-built block and the block finalist (3, 6) as references (screen/summary.json)
+  stage3   step 5, stage 3: J3 on fresh placements and the paired bootstrap against the as-built block
+           (tip_codesign_analysis.stage3's rules; final/summary.json)
 
     python3 scripts/curved_tips_analysis.py bed
 """
@@ -13,11 +23,13 @@ from __future__ import annotations
 import argparse
 import glob
 import json
+import sys
 from pathlib import Path
 
 import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
 D = ROOT / "docs/experiments/20261015-curved_tips"
 
 
@@ -44,7 +56,7 @@ def _ratio(a, b):
 
 def bed():
     B = D / "bed"
-    law = rows(B / "law*.jsonl")
+    law = rows(B / "law.p*.jsonl")              # law.jsonl is their concatenation (the film's law lookup)
     case = {c: rows(B / f"{c}.jsonl") for c in ("static", "T2", "spin", "T5", "T1")}
     tips = sorted({r["tip"] for r in law})
     out = {"tips": {}, "terms": {
@@ -119,11 +131,175 @@ def bed():
     return out
 
 
+SERVO = "kp0.72_kv0_fr0.18_fl0_dp0.0144"
+CONDS = [("0.7", SERVO), ("1.0", SERVO), ("0.5", SERVO), ("0.7", "kp0.5_kv0_fr0.18_fl0_dp0.0144"),
+         ("0.7", "kp0.72_kv0_fr0.12_fl0_dp0.0144")]
+COND3 = [c for c in CONDS if c != ("1.0", SERVO)]
+ASBUILT, FINALIST = "tcd_rs3_re3_p0.2", "tcd_rs3_re6_p0.2"
+HANDS = tuple(f"D{i}" for i in range(1, 9))
+SEEDS3_CELL, SEEDS3_HOM = (3, 4, 5), (5, 6, 7, 8, 9)
+
+
+def cname(mu, pl):
+    return f"{mu}|{pl}"
+
+
+def agreement():
+    """Per tip, from traj/traces.jsonl: the D1-D8 replays (seeds 0-2) whose pads run at the planner's numerics ends
+    within 3 deg of Drake's turn with Drake's held outcome, and the median us per replay step of those pads runs."""
+    by = {}
+    for r in rows(D / "traj" / "traces.jsonl"):
+        if r.get("status") in ("complete", "ejected") and r["arm"] in ("plan", "drake") and int(r["seed"]) in (0, 1, 2):
+            by.setdefault(r["tip"], {}).setdefault((r["hand"], int(r["seed"])), {})[r["arm"]] = r
+    out = {}
+    for tip, d in by.items():
+        ks = [k for k, v in d.items() if "plan" in v and "drake" in v]
+        ag = sum(bool(d[k]["plan"].get("held_end")) == bool(d[k]["drake"].get("held_end"))
+                 and abs(float(d[k]["plan"].get("turn_end_deg", np.nan)) - float(d[k]["drake"].get("turn_end_deg", np.nan))) <= 3
+                 for k in ks)
+        us = [v["plan"]["us_per_step_median"] for v in d.values() if "plan" in v and v["plan"].get("us_per_step_median")]
+        out[tip] = {"agree_drake_3deg": int(ag), "n_vs_drake": len(ks), "us_per_step_median": float(np.median(us)) if us else None}
+    return out
+
+
+def screen():
+    import tip_codesign_analysis as AN
+    S = D / "screen"
+    hom = [r for r in rows(S / "hom.jsonl") if r.get("status") == "ok"]
+    ag = agreement()
+    tips = sorted({p.name.split("_mu")[0] for p in (S / "scale").glob("*")})
+    out = {"tips": {}, "conditions": [cname(*c) for c in CONDS]}
+    for k in tips:
+        T = {"conditions": {}}
+        for mu, pl in CONDS:
+            turn = rows(S / f"scale/{k}_mu{mu}_{pl}/turn.jsonl")
+            hk = [r for r in hom if r.get("tip") == k and str(r.get("mu")) == mu and r.get("plant") == pl]
+            J, det = AN.stage_score(turn, hk)
+            det["J"] = J
+            det["n_turn_rows"] = sum(r.get("status") == "ok" for r in turn)
+            if (mu, pl) == ("0.7", SERVO):
+                J1, _ = AN.stage_score(turn, [r for r in hk if int(r["seed"]) in (0, 1, 2)])
+                T["J1"] = J1
+            if (mu, pl) in (("0.5", SERVO), ("0.7", SERVO)):
+                ok = [r for r in turn if r.get("status") == "ok"]
+                det["three_finger_frac_cells"] = float(np.mean([r.get("fingers_loaded_end") == 3 for r in ok])) if ok else None
+                hold = [r for r in rows(S / f"scale/{k}_mu{mu}_{pl}/hold.jsonl") if r.get("status") == "ok"]
+                det["hold_held"] = int(sum(bool(r["held"]) for r in hold))
+                det["hold3"] = int(sum(bool(r["held"]) and r.get("fingers_loaded") == 3 for r in hold))
+                det["n_hold"] = len(hold)
+            T["conditions"][cname(mu, pl)] = det
+        vals = [v["J"] for v in T["conditions"].values() if v["J"] is not None]
+        T["J2"] = min(vals) if len(vals) == len(CONDS) else None
+        T["n_conditions"] = len(vals)
+        T.update(ag.get(k, {"agree_drake_3deg": None, "n_vs_drake": 0, "us_per_step_median": None}))
+        T["three_finger_frac_mu0.5"] = T["conditions"][cname("0.5", SERVO)].get("three_finger_frac_cells")
+        out["tips"][k] = T
+    Cn = out["tips"]
+    base = Cn.get(ASBUILT, {})
+    for k, v in Cn.items():
+        v["gate_pass"] = bool(v["n_vs_drake"] >= 20 and base.get("n_vs_drake") and
+                              v["agree_drake_3deg"] >= base["agree_drake_3deg"] - 2)
+        v["cost_ratio"] = (v["us_per_step_median"] / base["us_per_step_median"]
+                           if v.get("us_per_step_median") and base.get("us_per_step_median") else None)
+    curved = [k for k in Cn if k not in (ASBUILT, FINALIST)]
+    order = lambda f, key: sorted((k for k in curved if f(Cn[k]) and Cn[k].get(key) is not None), key=lambda k: -Cn[k][key])  # noqa: E731
+    fin, why = [], {}
+
+    def pick(lst, label):
+        for k in lst:
+            if k not in fin:
+                fin.append(k)
+                why[k] = label
+                return k
+    pick(order(lambda v: v["gate_pass"], "J2"), "(1) highest J2 passing the agreement gate")
+    pick(order(lambda v: v["gate_pass"] and (v["cost_ratio"] or 9) <= 0.8, "J2"), "(2) highest J2 at <= 0.8 of the as-built cost")
+    pick(order(lambda v: True, "three_finger_frac_mu0.5"), "(3) highest three-finger share at mu 0.5")
+    while len(fin) < 4 and pick(order(lambda v: v["gate_pass"], "J2"), "(4) next highest J2 passing the gate"):
+        pass
+    out["finalists"], out["finalist_rule"] = fin, why
+    out["stage3_tips"] = fin + [ASBUILT, FINALIST]
+    (S / "summary.json").write_text(json.dumps(out, indent=1))
+    for k, v in sorted(Cn.items(), key=lambda kv: -(kv[1]["J2"] or kv[1].get("J1") or -1)):
+        r3 = lambda x: None if x is None else round(x, 3)  # noqa: E731
+        print(f"{k:28s} J1 {r3(v.get('J1'))} J2 {r3(v['J2'])} ({v['n_conditions']}/5) "
+              + " ".join(f"{c.split('|')[0]}{'' if SERVO in c else ('/kp0.5' if 'kp0.5_' in c else '/fr0.12')}:{r3(x['J'])}"
+                         for c, x in v["conditions"].items())
+              + f"  Drake {v['agree_drake_3deg']}/{v['n_vs_drake']} gate {v['gate_pass']} cost {r3(v['cost_ratio'])}"
+              + f"  3f@0.5 {r3(v['three_finger_frac_mu0.5'])}")
+    print("finalists:", why)
+    return out
+
+
+def stage3(n_boot=10000, rng_seed=0):
+    import tip_codesign_analysis as AN
+    S, F = D / "screen", D / "final"
+    fin = json.loads((S / "summary.json").read_text())["stage3_tips"]
+    hom3 = [r for r in rows(F / "hom.jsonl") if r.get("status") == "ok"]
+    rng = np.random.default_rng(rng_seed)
+    ic = rng.integers(0, len(SEEDS3_CELL), size=(n_boot, len(AN.CELLS), len(SEEDS3_CELL)))
+    ih = rng.integers(0, len(SEEDS3_HOM), size=(n_boot, len(HANDS), len(SEEDS3_HOM)))
+    rc, rh = np.arange(len(AN.CELLS))[None, :, None], np.arange(len(HANDS))[None, :, None]
+    out = {"tips": fin, "conditions": [cname(*c) for c in COND3], "n_boot": n_boot, "candidates": {}}
+    point, boot = {}, {}
+    for k in fin:
+        Jc, Jb, det = {}, [], {}
+        for mu, pl in COND3:
+            sel = [r for r in rows(S / f"scale/{k}_mu{mu}_{pl}/turn.jsonl") if r.get("status") == "ok" and int(r["seed"]) == 0]
+            new = [r for r in rows(F / f"scale/{k}_mu{mu}_{pl}/turn.jsonl") if r.get("status") == "ok"]
+            Cm = np.full((len(AN.CELLS), len(SEEDS3_CELL)), np.nan)
+            chosen = {}
+            for i, c in enumerate(AN.CELLS):
+                cand = [(AN.held_turn(r), int(r["cand"])) for r in sel if (r["shape"], float(r["d_mm"]), r.get("t")) == c]
+                if not cand:
+                    continue
+                best = max(cand)[1]
+                chosen[f"{c[1]:g}:{c[2]:g}"] = best
+                for r in new:
+                    if (r["shape"], float(r["d_mm"]), r.get("t")) == c and int(r["cand"]) == best and int(r["seed"]) in SEEDS3_CELL:
+                        Cm[i, SEEDS3_CELL.index(int(r["seed"]))] = AN.held_turn(r)
+            Hm = np.full((len(HANDS), len(SEEDS3_HOM)), np.nan)
+            for r in hom3:
+                if r.get("tip") == k and str(r.get("mu")) == mu and r.get("plant") == pl and int(r["seed"]) in SEEDS3_HOM:
+                    Hm[HANDS.index(r["hand"]), SEEDS3_HOM.index(int(r["seed"]))] = AN.held_turn(r)
+            name = cname(mu, pl)
+            Jc[name] = float(AN._score3(Cm[None], Hm[None])[0])
+            Jb.append(AN._score3(Cm[rc, ic], Hm[rh, ih]))
+            det[name] = {"chosen_grasp": chosen, "n_cell_rows": int(np.isfinite(Cm).sum()), "n_hom_rows": int(np.isfinite(Hm).sum()),
+                         "hom_mean_held_turn_deg": float(np.nanmean(Hm)) if np.isfinite(Hm).any() else None,
+                         "cells_mean_held_turn_deg": float(np.nanmean(Cm)) if np.isfinite(Cm).any() else None}
+        point[k], boot[k] = min(Jc.values()), np.min(np.stack(Jb), axis=0)
+        hold = [r for r in rows(S / f"scale/{k}_mu0.5_{SERVO}/hold.jsonl") if r.get("status") == "ok"]
+        out["candidates"][k] = {"J3": point[k], "J": Jc, **det,
+                                "hold3_mu0.5": sum(bool(r["held"]) and r.get("fingers_loaded") == 3 for r in hold),
+                                "n_hold_mu0.5": len(hold)}
+    base = out["candidates"].get(ASBUILT)
+    for k in fin:
+        if k == ASBUILT or base is None:
+            continue
+        d = boot[k] - boot[ASBUILT]
+        lo, hi = np.percentile(d, [5, 95])
+        v = out["candidates"][k]
+        v["dJ3_vs_base"] = point[k] - point[ASBUILT]
+        v["dJ3_ci90"] = [float(lo), float(hi)]
+        v["hold_ok"] = v["hold3_mu0.5"] >= base["hold3_mu0.5"] - 2
+        v["beats_base"] = bool(lo > 0 and v["hold_ok"])
+    F.mkdir(parents=True, exist_ok=True)
+    (F / "summary.json").write_text(json.dumps(out, indent=1))
+    for k in fin:
+        v = out["candidates"][k]
+        print(f"{k:28s} J3 {v['J3']:.3f} " + " ".join(f"{c.split('|')[0]}{'' if SERVO in c else ('/kp0.5' if 'kp0.5_' in c else '/fr0.12')}"
+                                                     f":{x:.3f}" for c, x in v["J"].items())
+              + f"  hold3@0.5 {v['hold3_mu0.5']}/{v['n_hold_mu0.5']}"
+              + (f"  dJ3 {v['dJ3_vs_base']:+.3f} [{v['dJ3_ci90'][0]:+.3f}, {v['dJ3_ci90'][1]:+.3f}] beats {v['beats_base']}"
+                 if "dJ3_ci90" in v else "  (baseline)"))
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("what", choices=["bed"])
+    ap.add_argument("what", choices=["bed", "screen", "stage3"])
     a = ap.parse_args()
-    {"bed": bed}[a.what]()
+    {"bed": bed, "screen": screen, "stage3": stage3}[a.what]()
 
 
 if __name__ == "__main__":

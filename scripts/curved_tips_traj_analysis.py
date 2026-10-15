@@ -2,12 +2,15 @@
 """Trajectory divergence between contact models (docs/handoff/20261015-curved_tips.md, step 4), from the traces of
 scripts/curved_tips_traj.py (traj/traces.jsonl).
 
-For each tip, hand and seed, two arms' traces are compared on their common 20 ms samples up to the end of the shorter:
+For each tip, hand and seed, two arms' traces are compared on their common 20 ms samples up to the end of the shorter,
+with scripts/pad_builder_check.py's measures:
   dpos       |p_A - p_B|, the distance between the tool's positions, mm
   dang       the angle of the rotation between the tool's orientations, deg
-  dN, dT     per finger the difference of the normal force N_f and of the friction force T_f on the tool, N
+  dN         per finger the difference of the summed normal force on the tool, N
+  dT         per finger the length of the difference of the summed friction-force vectors on the tool, N
 RMS over time (dN and dT over time and the three fingers), the final values (the last common sample), and the held
-outcome and the end turn of each arm. Pairs: plan-drake (the pads at the planner's numerics against the reference),
+outcome and the end turn of each arm. The spread between placements of one arm is the same measure between two seeds of
+one hand (every pair of seeds 0-2), the scale below which two models cannot be told apart by these placements. Pairs: plan-drake (the pads at the planner's numerics against the reference),
 rl-plan (the RL trainer's numerics against the planner's under the same commands), rl-drake, floor-plan (friction
 1.001 against 1.0: the divergence of a 0.1 % parameter change, the floor any model comparison is read against) and
 dfloor-drake (the same in Drake). Per tip and pair: the median and the 25-75 % range over the placements (D1-D8, seeds
@@ -36,7 +39,7 @@ def arrays(r):
     p = np.array([s["p"] for s in tr])
     q = np.array([s["q"] for s in tr])
     N = np.array([[s["N"][f] for f in FINGERS] for s in tr])
-    T = np.array([[s["T"][f] for f in FINGERS] for s in tr])
+    T = np.array([[s["T"][f] for f in FINGERS] for s in tr])            # (samples, fingers, 3)
     return t, p, q, N, T
 
 
@@ -50,11 +53,12 @@ def compare(ra, rb):
     c = np.clip(np.abs(np.sum(qa[:n] * qb[:n], axis=1)) / (np.linalg.norm(qa[:n], axis=1) * np.linalg.norm(qb[:n], axis=1)),
                 0, 1)
     ang = np.degrees(2 * np.arccos(c))
-    dN, dT = Na[:n] - Nb[:n], Ta[:n] - Tb[:n]
+    dN, dT = Na[:n] - Nb[:n], np.linalg.norm(Ta[:n] - Tb[:n], axis=2)
     rms = lambda x: float(np.sqrt(np.mean(np.square(x))))  # noqa: E731
     return {"n": int(n), "t_end": float(ta[n - 1]),
             "rms_dpos_mm": rms(dp), "final_dpos_mm": float(dp[-1]), "rms_dang_deg": rms(ang), "final_dang_deg": float(ang[-1]),
-            "rms_dN_N": rms(dN), "rms_dT_N": rms(dT), "mean_N_B": float(Nb[:n].mean()), "mean_T_B": float(Tb[:n].mean()),
+            "rms_dN_N": rms(dN), "rms_dT_N": rms(dT), "mean_N_B": float(Nb[:n].mean()),
+            "mean_T_B": float(np.linalg.norm(Tb[:n], axis=2).mean()),
             "held_agree": bool(ra.get("held_end") == rb.get("held_end")),
             "turn_within_3": bool(abs(float(ra.get("turn_end_deg", np.nan)) - float(rb.get("turn_end_deg", np.nan))) <= 3.0
                                   and ra.get("held_end") == rb.get("held_end"))}
@@ -91,6 +95,21 @@ def main():
             summ["mean_N_ref"] = float(np.mean([x["mean_N_B"] for x in per]))
             summ["per_placement"] = per
             T["pairs"][f"{a}-{b}"] = summ
+        T["spread"] = {}
+        for arm in ("drake", "plan", "rl"):
+            per = []
+            for hand in sorted({k[1] for k in rows if k[0] == tip}):
+                tr = [rows[k][arm] for k in sorted(rows) if k[0] == tip and k[1] == hand and arm in rows[k]]
+                for i in range(len(tr)):
+                    for j in range(i + 1, len(tr)):
+                        c = compare(tr[i], tr[j])
+                        if c:
+                            per.append(c)
+            if per:
+                T["spread"][arm] = {"n_pairs": len(per), **{k: {"median": float(np.median([x[k] for x in per])),
+                                                                 "q25": float(np.percentile([x[k] for x in per], 25)),
+                                                                 "q75": float(np.percentile([x[k] for x in per], 75))}
+                                                             for k in keys}}
         us = defaultdict(list)
         for (tp, _, _), arms in rows.items():
             if tp == tip:
@@ -106,6 +125,10 @@ def main():
             f = lambda k: f"{s[k]['median']:.2f} [{s[k]['q25']:.2f},{s[k]['q75']:.2f}]"  # noqa: E731
             print(f"{tip:30s} {pr:12s} {s['n_placements']:3d} {f('rms_dpos_mm'):>16s} {f('final_dpos_mm'):>16s} "
                   f"{f('rms_dang_deg'):>16s} {f('rms_dN_N'):>16s} {f('rms_dT_N'):>16s} {s['turn_within_3']:>3d}/{s['n_placements']}")
+        for arm, s in T["spread"].items():
+            f = lambda k: f"{s[k]['median']:.2f} [{s[k]['q25']:.2f},{s[k]['q75']:.2f}]"  # noqa: E731
+            print(f"{tip:30s} {'seeds ' + arm:12s} {s['n_pairs']:3d} {f('rms_dpos_mm'):>16s} {f('final_dpos_mm'):>16s} "
+                  f"{f('rms_dang_deg'):>16s} {f('rms_dN_N'):>16s} {f('rms_dT_N'):>16s}")
 
 
 if __name__ == "__main__":
