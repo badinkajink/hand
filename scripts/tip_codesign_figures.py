@@ -114,6 +114,64 @@ def fig_rate():
     print("wrote", out.relative_to(ROOT))
 
 
+RS = (1.0, 2.0, 3.0, 4.5, 6.0, 7.4)
+RE = (1.0, 3.0, 6.0, 10.5)
+
+
+def _grid_key(rs, re_):
+    return f"tcd_rs{rs:g}_re{re_:g}_p0.2"
+
+
+def fig_screen():
+    """Three maps over the as-printed grid (rows r_side, columns r_end): J1, and the 1 mm pads against the law: the
+    sliding arm of the 1 rad/s spin and the braking normal force at 45 deg."""
+    plt = setup()
+    S = json.loads((D / "screen/summary_stage1.json").read_text())["candidates"]
+    law = {r["tip"]: r for r in map(json.loads, open(D / "screen/fidelity/law.jsonl")) if r["field"] == "drake"}
+    maps = {"J1": np.full((len(RS), len(RE)), np.nan), "spin": np.full((len(RS), len(RE)), np.nan),
+            "N45": np.full((len(RS), len(RE)), np.nan)}
+    for i, rs in enumerate(RS):
+        for j, re_ in enumerate(RE):
+            k = _grid_key(rs, re_)
+            if k not in S:
+                continue
+            v, L = S[k], law.get(k)
+            maps["J1"][i, j] = v["J1"] if v["J1"] is not None else np.nan
+            f = v["fidelity"]
+            if L and f.get("pads_spin_1N_1_mm"):
+                maps["spin"][i, j] = f["pads_spin_1N_1_mm"] / L["spin_arm_mm"]["1"]
+            if L and f.get("pads_N45_N") and L["brake_N"].get("N45"):
+                maps["N45"][i, j] = f["pads_N45_N"] / L["brake_N"]["N45"]
+    fig, axs = plt.subplots(1, 3, figsize=(7.2, 3.0), dpi=150)
+    spec = [("J1 at \u03bc 0.7 (stage 1)", "J1", "Greys", None, None, "{:.2f}"),
+            ("Pads spin arm / law, 1 rad/s", "spin", "RdBu_r", 0.0, 2.0, "{:.2f}"),
+            ("Pads brake force / law, 45\u00b0", "N45", "RdBu_r", 0.0, 2.0, "{:.2f}")]
+    for ax, (title, k, cmap, lo, hi, fmt) in zip(axs, spec):
+        A = maps[k]
+        if lo is None:
+            lo, hi = np.nanmin(A), np.nanmax(A)
+        ax.imshow(A, cmap=cmap, vmin=lo, vmax=hi, aspect="auto")
+        for i in range(len(RS)):
+            for j in range(len(RE)):
+                if np.isfinite(A[i, j]):
+                    t = (A[i, j] - lo) / (hi - lo) if hi > lo else 0.5
+                    dark = (t > 0.6) if cmap == "Greys" else (t < 0.12 or t > 0.88)
+                    ax.text(j, i, fmt.format(A[i, j]), ha="center", va="center", fontsize=8.6,
+                            color="white" if dark else INK)
+        ax.set_xticks(range(len(RE)))
+        ax.set_xticklabels([f"{x:g}" for x in RE])
+        ax.set_yticks(range(len(RS)))
+        ax.set_yticklabels([f"{x:g}" for x in RS])
+        ax.set_xlabel("End fillet r_end (mm)")
+        ax.grid(False)
+        ax.set_title(title, fontsize=9.3)
+    axs[0].set_ylabel("Side fillet r_side (mm)")
+    fig.tight_layout(w_pad=0.8)
+    out = MEDIA / "fig_screen.png"
+    fig.savefig(out)
+    print("wrote", out.relative_to(ROOT))
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("figs", nargs="+", choices=["deterioration", "rate", "screen", "stage2", "stage3"])
