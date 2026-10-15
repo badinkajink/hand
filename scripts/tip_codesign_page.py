@@ -426,12 +426,86 @@ def confirm_section():
     return t
 
 
+RECIPES = {"w95_20": ("95A, 20&#8202;% gyroid", 14.6), "w95_10": ("95A, 10&#8202;% gyroid", 7.2),
+           "w85_30": ("85A, 30&#8202;% gyroid", 6.9), "w85_50": ("85A, 50&#8202;% gyroid", 16.5)}
+
+
+def _travel(r, N="1"):
+    """Magnet travel along the pinch normal per newton at force N (um/N) of a tpu_tip_magnet row."""
+    return -r["per_force"][N]["magnet_t_um"][0] / float(N)
+
+
+def recipe_choice():
+    """Per finalist: the FE rows, the sensing rule (magnet travel >= 12 um/N at 1 N) and the chosen recipe; the
+    as-built tip's check uses the 2026-10-09 FE of the CAD insert (docs/experiments/20261009-tpu_tip_fem/magnet_runs.jsonl)."""
+    S3 = J("final/stage3_tips.json") or {"finalists": []}
+    fe = {}
+    for r in rows("final/fe.jsonl"):
+        fe[(r.get("tip"), r["recipe"])] = r
+    ref = {}
+    for l in open(os.path.join(ROOT, "docs/experiments/20261009-tpu_tip_fem/magnet_runs.jsonl")):
+        r = json.loads(l)
+        if str(r.get("magnet", "")).startswith("d4.76") and abs(float(r.get("depth_mm") or 0) - 5) < 1e-6:
+            ref[r["recipe"]] = r
+    out = {}
+    for k in S3["finalists"]:
+        cand = {rc: fe[(k, rc)] for rc in RECIPES if (k, rc) in fe}
+        src = "FE of this tip"
+        if not cand and k == "tcd_rs3_re3_p0.2":
+            cand, src = {rc: ref[rc] for rc in ref}, "FE of the CAD insert (2026-10-09)"
+        tr = {rc: _travel(r) for rc, r in cand.items()}
+        ok = [rc for rc in ("w95_20", "w85_50", "w95_10", "w85_30") if rc in tr and tr[rc] >= 12.0]
+        out[k] = {"travel": tr, "E": {rc: r["E_best_MPa"] for rc, r in cand.items()},
+                  "approach": {rc: r["per_force"]["1"]["delta_um"] for rc, r in cand.items()},
+                  "choice": ("w95_20" if "w95_20" in ok else (ok[0] if ok else None)), "src": src}
+    return out
+
+
 def material_section():
-    return "<p><i>[FE pending]</i></p>"
+    ch = recipe_choice()
+    if not ch:
+        return "<p><i>[FE pending]</i></p>"
+    body = []
+    for k, v in ch.items():
+        for rc in sorted(v["travel"], key=lambda x: -RECIPES[x][1]):
+            body.append([tip_name(k), RECIPES[rc][0], f2(v["E"][rc], 1), f2(v["approach"][rc], 1), f2(v["travel"][rc], 1),
+                         "chosen" if rc == v["choice"] else "", v["src"]])
+    t = ("<p>The print recipe sets the tip&#8217;s stiffness, and the stiffness sets how far the embedded magnet moves per "
+         "newton, which is what the MLX90393 sensor reads. The sensor resolves about 1.2&#8202;&#181;m of magnet motion, so a "
+         "force resolution of 0.1&#8202;N needs at least 12&#8202;&#181;m/N of travel (sensing rule). Each finalist&#8217;s "
+         "as-printed body is meshed with the 4.76&#8202;mm magnet 5&#8202;mm under the palmar face and loaded at 0.5, 1 and "
+         "3&#8202;N on the pinch line in the whole-tip finite-element model of <code>scripts/tpu_tip_magnet.py</code> "
+         "(<code>scripts/tip_codesign_fe.py</code>). The stiffest recipe that meets the rule is chosen "
+         "(Table&#160;[[tab:fe]]).</p>")
+    t += table(["Tip", "Recipe", "E*, MPa", "Approach at 1&#8202;N, &#181;m", "Magnet travel, &#181;m/N", "Choice", "Source"], body,
+               "Finite-element stiffness and magnet travel per recipe (<code>final/fe.jsonl</code>).", key="fe", text_cols=(0, 1, 5, 6))
+    return t
 
 
 def print_section():
-    return "<p><i>[print files pending]</i></p>"
+    import glob
+    body = []
+    for f in sorted(glob.glob(os.path.join(D, "print/*/2026101*_w*.json"))):
+        r = json.load(open(f))
+        sl = r.get("slice", {})
+        body.append([tip_name(r["tip"]) if r["tip"] in ("tcd_rs3_re3", "tcd_rs3_re3_p0.2") else tip_name(r["tip"] + "_p0.2" if "_p" not in r["tip"] else r["tip"]),
+                     RECIPES.get(r["recipe"], (r["recipe"],))[0], "yes" if r.get("watertight") else "no", f2(r.get("part_volume_mm3"), 0),
+                     f2(sl.get("pause_found_before_layer_z"), 1), str(sl.get("islands_max")), f2(100 * sl.get("supported_area", 0), 0),
+                     sl.get("time", "&#8211;"), f"<code>{os.path.relpath(f, D)[:-5]}.3mf</code>"])
+    if not body:
+        return "<p><i>[print files pending]</i></p>"
+    return ("<p>Each finalist is written face up with its magnet pocket as an inner void, as a PrusaSlicer project on the "
+            "owner&#8217;s v17 template (TPU on extruder 2, two perimeters, gyroid infill at the recipe&#8217;s density, four top "
+            "and four bottom layers) with an M601 pause before the first layer above the pocket, and sliced to check it "
+            "(Table&#160;[[tab:print]]). Pad scenes of each finalist for the D6 bench replay and the CAD hand are in "
+            "<code>assets/mjcf/experimental/20261014-tip_codesign/&lt;tip&gt;/</code>, and "
+            "<code>scripts/tip_codesign_rig.py rlscene --tip &lt;tip&gt; --src &lt;run&gt; --out-dir &lt;new run&gt;</code> writes a "
+            "run&#8217;s frozen RL scene with the finalist&#8217;s pads.</p>"
+            + table(["Tip", "Recipe", "Watertight", "Part volume, mm&#179;", "Pause at, mm", "Islands per layer, max",
+                     "Supported area, %", "Print time", "Project"], body,
+                    "Print files and slice audit (<code>print/&lt;design&gt;/</code>; G-code in "
+                    "<code>logs/20261014-tip_codesign/print/</code>). Bounds 21.41&#8202;&#215;&#8202;14.8&#8202;&#215;&#8202;17.0&#8202;mm "
+                    "for every tip.", key="print", text_cols=(0, 1, 2, 7, 8)))
 
 
 def lede():

@@ -1,0 +1,36 @@
+{
+ "tip": "tcd_rs3_re6_p0.2",
+ "E_Pa": 10000000.0,
+ "pad_builder": {
+  "h": "fixed",
+  "K": "median"
+ },
+ "pad_spacing_m": 0.001,
+ "pad_radius_m": 0.00075,
+ "D6_scene": "D6_tcd_rs3_re6_p0.2_pads_servo.xml",
+ "plant": "kp0.72_kv0_fr0.18_fl0_dp0.0144",
+ "mu": 1.0,
+ "cad_scene": "cad_v1/scene_screwdriver_medium.xml",
+ "n_pads": {
+  "thumb": 1157,
+  "index": 1157,
+  "middle": 1157
+ },
+ "pad_d0": {
+  "thumb": [
+   0.7991783717573342,
+   0.7991783717573342
+  ],
+  "index": [
+   0.7991783717573342,
+   0.7991783717573342
+  ],
+  "middle": [
+   0.7991783717573342,
+   0.7991783717573342
+  ]
+ },
+ "rl": "PY scripts/tip_codesign_rig.py rlscene --tip tcd_rs3_re6_p0.2 --src <run dir with frozen_scene.xml> --out-dir <new run dir>",
+ "script": "scripts/tip_codesign_rig.py",
+ "when": "2026-10-15 01:29"
+}
