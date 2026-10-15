@@ -358,13 +358,15 @@ class TipShape:
             C[bad] -= v[bad, None] * n[k[bad]]
         return C
 
-    def mesh_paths(self, out_dir, eps=None):
+    def mesh_paths(self, out_dir, eps=None, res=0.0005):
         """One OBJ per palmar sign, named by the key, written through a temporary file; with eps (m) the terrace
-        outlines are simplified first (_terrace_corners) and the files are named <key>_dp<eps in um>_<sign>.obj."""
+        outlines are simplified first (_terrace_corners), with res (m) the surface points are thinned to that voxel
+        in place of 0.5 mm; the files are then named <key>[_dp<eps in um>][_r<res in mm>]_<sign>.obj."""
         out = {}
+        tag = (f"_dp{eps * 1e6:g}" if eps else "") + (f"_r{res * 1e3:g}" if res != 0.0005 else "")
         for name, sign in (("pos", 1.0), ("neg", -1.0)):
-            V, F = self.hull(0.0005, sign, eps=eps)
-            p = Path(out_dir) / (f"{self.key}_{name}.obj" if not eps else f"{self.key}_dp{eps * 1e6:g}_{name}.obj")
+            V, F = self.hull(res, sign, eps=eps)
+            p = Path(out_dir) / f"{self.key}{tag}_{name}.obj"
             p.parent.mkdir(parents=True, exist_ok=True)
             if not p.exists():
                 tmp = p.with_name(p.name + f".{os.getpid()}.tmp")

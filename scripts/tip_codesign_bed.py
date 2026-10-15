@@ -90,6 +90,8 @@ def parse_spec(spec: str) -> dict:
             x["tcd"] = p[4:]
         elif p.startswith("meps"):                    # a tcd mesh with terraces simplified to e m (Drake)
             x["meps"] = float(p[4:])
+        elif p.startswith("mres"):                    # a tcd mesh from surface points thinned to an r m voxel
+            x["mres"] = float(p[4:])
         elif p in ("hloc", "Keach"):
             x[p] = True
         else:
@@ -181,7 +183,7 @@ def _tcd_init(cls):
             K_by_side["L" if sign > 0 else "R"] = K
             return C, Nn, A, (K if "Keach" in x else np.full(len(K), float(np.median(K))))
         G.pad_spheres = pad_spheres
-        G.mesh_paths = lambda out_dir, r: sh.mesh_paths(Path(out_dir) / sh.key, eps=x.get("meps"))
+        G.mesh_paths = lambda out_dir, r: sh.mesh_paths(Path(out_dir) / sh.key, eps=x.get("meps"), res=x.get("mres", 0.0005))
         _PAD_K.clear()
         if "Keach" in x and cls is T.TpuMjRig:
             import mujoco

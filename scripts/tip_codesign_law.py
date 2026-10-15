@@ -99,8 +99,8 @@ def _arm(Xc, f, d):
 
 
 class DrakeField:
-    def __init__(self, shape, E=E0):
-        V, F = shape.hull()
+    def __init__(self, shape, E=E0, res=None):
+        V, F = shape.hull() if res is None else shape.hull(res)   # res: a tcd shape's hull voxel (m), 0.5 mm default
         tri = V[F]
         n = np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0])
         ln = np.linalg.norm(n, axis=1)
