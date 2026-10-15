@@ -2,11 +2,13 @@ Status: active
 Task (from the colorado job hand-20261014-contact_model_assessment, 2026-10-14): publish the pad-usability result page as a new artifact and the revised contact overview to its existing artifact, from the personal login, which owns the overview's artifact (that job's hand-off note: "Publishing needs the personal login ... on colorado, rebuild and commit, then write 'Publish pending'"). Both pages are built and committed; this job reviews, publishes, records the URLs and commits.
 Read first: docs/experiments/20261014-pad_usability/20261014-sphere_pad_cost_and_control.html (builder scripts/pad_usability_page.py, findings in its cost/, agree/, step/, planner/, rl/ folders); docs/overviews/contact_model.html (builder scripts/contact_overview_page.py; its "Cost and control outcomes on the real_v1 hand" paragraph links the result page and reads docs/experiments/20261014-pad_usability/artifact_url.txt for the artifact link); docs/experiments/INDEX.md (the 2026-10-14 "Fingertip contact model" row, artifact "publish pending (personal login)"); the Artifact tool's rules: read every page before publishing it, read an existing artifact before republishing to its URL.
 State (2026-10-14 20:10): pages built by the contact_model_assessment job; result page about 5.8 MB with media inline (Tables 1-8, Figures 1-15 with five films), overview about 5.0 MB; commit named by `git log -1 -- docs/experiments/20261014-pad_usability/20261014-sphere_pad_cost_and_control.html`.
-Next:
-1. Review the result page (title "Cost and control outcomes of the sphere-pad fingertip on the real_v1 hand"): no "pending" or "were still being written" text, every figure renders, the films decode and play.
-2. Publish docs/experiments/20261014-pad_usability/20261014-sphere_pad_cost_and_control.html as a new artifact (icon chart); write its URL to docs/experiments/20261014-pad_usability/artifact_url.txt; put it in the INDEX.md row's artifact column.
-3. Rebuild the overview (.venv/bin/python scripts/contact_overview_page.py) so its usability paragraph carries the artifact link; read https://claude.ai/artifact/4w96Kt4J3tunu1xuz4XbdN, then publish docs/overviews/contact_model.html to that URL.
-4. Commit artifact_url.txt, INDEX.md and the rebuilt overview, push to origin main.
+<!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
+Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap step add <job> "text"` adds one):
+- [ ] 1. Review the result page (title "Cost and control outcomes of the sphere-pad fingertip on the real_v1 hand"): no "pending" or "were still being written" text, every figure renders, the films decode and play.
+- [ ] 2. Publish docs/experiments/20261014-pad_usability/20261014-sphere_pad_cost_and_control.html as a new artifact (icon chart); write its URL to docs/experiments/20261014-pad_usability/artifact_url.txt; put it in the INDEX.md row's artifact column.
+- [ ] 3. Rebuild the overview (.venv/bin/python scripts/contact_overview_page.py) so its usability paragraph carries the artifact link; read https://claude.ai/artifact/4w96Kt4J3tunu1xuz4XbdN, then publish docs/overviews/contact_model.html to that URL.
+- [ ] 4. Commit artifact_url.txt, INDEX.md and the rebuilt overview, push to origin main.
+<!-- /ap:steps -->
 Claimed: docs/experiments/20261014-pad_usability/artifact_url.txt, docs/experiments/INDEX.md (artifact column of the 2026-10-14 Fingertip contact model row), docs/overviews/contact_model.html (rebuild only).
 Waiting on owner: none.
 Do not: change page content beyond the rebuild; publish from a login other than personal.
