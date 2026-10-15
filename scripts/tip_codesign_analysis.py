@@ -8,6 +8,8 @@ writes one JSON summary next to them.
               the changed fraction at |mu - 1| <= 0.5 %; tau is the relative friction change at which the changed
               fraction exceeds the floor by 5 points (linear interpolation against |mu - 1|, the worse direction);
               the plan's tau (5 % of runs) is kept as tau_rel_friction_plan. Also the bistable replays per condition.
+  deterioration  plan step 3: per flat-family member and the sphere tip, pads (current and with the friction-pair fix)
+              and Drake against the law: onset, approach, sliding arm by spin rate, brake, slip number.
   handfix     the pad friction fix on the hand: replays and HOM turns D1-D8 seeds 0-2 per variant against Drake
               (U2 rows): placements within 3 deg of Drake's turn and with Drake's held outcome.
 
@@ -143,11 +145,84 @@ def handfix():
     return out
 
 
+def deterioration():
+    """Plan step 3: per member the pads' and Drake's static, onset, sliding and brake numbers against the law, the
+    slip number at 1 rad/s and the fix's effect. Writes deterioration/summary.json."""
+    law = {(r["tip"], r["field"]): r for r in rows(D / "deterioration/law.jsonl")}
+    V = defaultdict(dict)
+    for c in ("static", "T2", "spin", "T5"):
+        for r in rows(D / f"deterioration/{c}.jsonl"):
+            if r.get("status") != "complete":
+                continue
+            m = r["model"]
+            if c == "static":
+                V[m][("app", r["N"])] = r["approach_um"]
+            elif c == "T2":
+                V[m][("on", r["N"])] = r.get("rbar_onset_mm")
+                V[m][("creep", r["N"])] = r.get("creep_deg_s")
+            elif c == "spin":
+                V[m][("w", r["omega"])] = r["rbar_spin_mm"]
+                V[m][("slip", r["omega"])] = (r.get("share") or {}).get("slip")
+            else:
+                V[m][("N45", r["dt_ms"])] = r.get("N_at_45_N")
+                V[m][("phi", r["dt_ms"])] = r.get("phi_end_deg")
+    out = {"members": {}, "terms": {
+        "onset_over_law": "pads' T2 onset arm at 1 N over the Drake-field law's arm at psi 0",
+        "spin_over_law": "driven-spin arm at 1 N (line at 23-69 deg) over the law's quasi-static mean over psi 23/46/69",
+        "N45_over_drake": "brake N at 45 deg, pads at 1 ms over Drake at 0.5 ms",
+        "slip_number_1": "zeta t_r mu omega rho90 / delta at 1 rad/s and 1 N: the phantom penetration of a pad at the "
+                         "patch's 90th-percentile radius over the approach (t_r 0.02 s, zeta 1, mu 1; law pads, psi 45)"}}
+    for r_mm in ("0", "0.5", "1", "1.5", "2", "2.7", "3", "4", "6", "7.4", "sphere"):
+        n = r_mm.replace(".", "p")
+        if r_mm == "sphere":
+            names = {"base": "mj_pads1", "fix": "mj_pads1_fix", "drake": "drake_hydro"}
+            L = None
+        else:
+            names = {"base": f"mj_tpu{n}_pads1", "fix": f"mj_tpu{n}_pads1pf0p1_ir1000", "drake": f"drake_tpu{n}"}
+            L = law.get((f"tpu{r_mm}", "drake"))
+        m = {}
+        lawsp = L["spin_arm_mm"]["1"] if L else V[names["drake"]].get(("w", 0.3))
+        law0 = L["table"]["1|0"]["arm_mm"] if L else V[names["drake"]].get(("on", 1.0))
+        for v, nm in names.items():
+            d = V.get(nm, {})
+            m[v] = {"approach_1N_um": d.get(("app", 1.0)), "onset_1N_mm": d.get(("on", 1.0)),
+                    "onset_over_law": (d.get(("on", 1.0)) or float("nan")) / law0 if law0 else None,
+                    "creep_1N_deg_s": d.get(("creep", 1.0)),
+                    "spin_mm": {f"{w:g}": d.get(("w", w)) for w in (0.03, 0.3, 1.0, 3.0, 5.0) if d.get(("w", w))},
+                    "spin_over_law": {f"{w:g}": d[("w", w)] / lawsp for w in (0.03, 0.3, 1.0, 3.0, 5.0)
+                                      if d.get(("w", w)) and lawsp},
+                    "slip_share_1": d.get(("slip", 1.0)),
+                    "N45_1ms": d.get(("N45", 1.0)), "N45_05ms": d.get(("N45", 0.5)), "N45_025ms": d.get(("N45", 0.25)),
+                    "phi_end_1ms": d.get(("phi", 1.0)), "phi_end_05ms": d.get(("phi", 0.5))}
+        dr = m["drake"]
+        for v in ("base", "fix"):
+            m[v]["approach_over_drake"] = (m[v]["approach_1N_um"] / dr["approach_1N_um"]
+                                           if m[v]["approach_1N_um"] and dr["approach_1N_um"] else None)
+            ref = dr["N45_05ms"] or dr["N45_1ms"]
+            m[v]["N45_over_drake"] = m[v]["N45_1ms"] / ref if m[v]["N45_1ms"] and ref else None
+        if L:
+            P = law[(f"tpu{r_mm}", "pads")]["table"]["1|45"]
+            m["slip_number_1"] = 0.02 * 1.0 * P["rho90_mm"] / (P["delta_um"] * 1e-3)
+            m["r_over_rs"] = float(r_mm) / 0.75
+            m["law"] = {"onset_1N_mm": law0, "spin_1N_mm": lawsp, "N45": L["brake_N"]["N45"],
+                        "pads_quasistatic_spin_1N_mm": law[(f"tpu{r_mm}", "pads")]["spin_arm_mm"]["1"],
+                        "pads_quasistatic_onset_1N_mm": law[(f"tpu{r_mm}", "pads")]["table"]["1|0"]["arm_mm"]}
+        out["members"][r_mm] = m
+    (D / "deterioration/summary.json").write_text(json.dumps(out, indent=1))
+    for k, m in out["members"].items():
+        b, f, d = m["base"], m["fix"], m["drake"]
+        print(f"r {k:6s} onset/law {b['onset_over_law']:.3f} (Drake {d['onset_over_law']:.3f}); spin/law at 1 rad/s "
+              f"{b['spin_over_law'].get('1', float('nan')):.2f} fix {f['spin_over_law'].get('1', float('nan')):.2f} "
+              f"Drake {d['spin_over_law'].get('1', float('nan')):.2f}; N45/Drake {b['N45_over_drake']:.2f} fix "
+              f"{f['N45_over_drake']:.2f}; Pi {m.get('slip_number_1', float('nan')):.1f}")
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("cmd", choices=["tolerance", "handfix"])
+    ap.add_argument("cmd", choices=["tolerance", "handfix", "deterioration"])
     a = ap.parse_args()
-    {"tolerance": tolerance, "handfix": handfix}[a.cmd]()
+    {"tolerance": tolerance, "handfix": handfix, "deterioration": deterioration}[a.cmd]()
 
 
 if __name__ == "__main__":

@@ -35,4 +35,5 @@ Standing directions (for every step):
 <!-- /ap:steps -->
 Claimed: scripts/tip_codesign_*.py, tests/test_tip_codesign.py, docs/experiments/20261014-tip_codesign/, logs/20261014-tip_codesign/, assets/mjcf/experimental/20261014-tip_codesign/, docs/notes/20261014-tip_codesign_plan.md.
 Waiting on owner: none.
+Incident (19:51:51): my unguarded femtip trimesh contains() on 670k points exhausted memory; the watchdog killed hand-20261014-contact_model_assessment's icem_pin run (cores 15,16,19). Logged as a step in that job's ledger. Rule for this job: every femtip/trimesh call that tests containment or proximity runs through resguard.sh run --mem 3G, on at most 50k points.
 Do not: edit files claimed by hand-20261014-contact_model_assessment (the contact overview builder and page, docs/experiments/20261014-pad_usability/, scripts/pad_usability_*.py) or shared harnesses (wrap and import them); run a grid longer than 3 h without the owner; touch the bench; force-push.
