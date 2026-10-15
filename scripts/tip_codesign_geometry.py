@@ -20,6 +20,24 @@ Keys:
                        each slice taken at mid-layer and placed at the layer's top (PrusaSlicer's slicing)
   tpu<r>               fingertip_geometry's block (every edge r); callers route these keys to that module
 
+Curved tips (CurvedTip, the 2026-10-15 curved-tip study), each the envelope box intersected with one convex solid, so the
+back face (on the DIP link's back plate) and the mount face (z = 10.86 mm, on the DIP link) stay flat where the solid
+reaches them:
+  tcd_cap<r>           capsule: a cylinder of radius r mm along the finger, its axis r below the palmar reach, capped by
+                       a hemisphere at the distal end; behind the axis the sides run straight back to the back face, so
+                       the section across the finger is a D of width 2 r (r > 7.4 mm: an arc of radius r across the
+                       14.8 mm width, cut by the side faces)
+  tcd_ell<ay>x<ax>x<az>[x<azp>]
+                       half-ellipsoid: the palmar half of an ellipsoid with semi-axes ay across the width, ax deep and az
+                       along the finger, apex at the palmar reach over the contact point (y, z) = (0, 0); distal of the
+                       apex the semi-axis is az, proximal of it azp (default az); behind its equator the section runs
+                       straight back to the back face
+  tcd_sph<R>           the whole sphere of radius R mm through the apex, no envelope: tcd_sph10.55 is the real_v1 sphere
+                       tip, the limit against which the curved-tip machinery is tested
+  ..._u<h>             as printed upright (mount face on the bed, layers of h mm across the finger): the convex hull of
+                       the per-layer outlines, each slice taken at mid-layer and placed at the layer's top and bottom
+  ..._p<h>             as printed palmar face up, as for the block family
+
 The shape is the intersection of convex primitives (inside()). Surface points are exact (radial bisection from the
 box centre); the hull meshes are convex hulls of those points; pads are 0.75 mm spheres on a 1 mm voxel grid of the
 surface, each with its own area share, normal, inset centre (clamped into the body shrunk by rs) and K = E a / h, with
@@ -418,8 +436,148 @@ class TipShape:
         return m
 
 
+CURVED_RE = re.compile(
+    r"^tcd_(?:cap(?P<r>[0-9.]+)|ell(?P<ay>[0-9.]+)x(?P<ax>[0-9.]+)x(?P<az>[0-9.]+)(?:x(?P<azp>[0-9.]+))?|sph(?P<R>[0-9.]+))"
+    r"(?:_u(?P<u>[0-9.]+)|_p(?P<p>[0-9.]+))?$")
+
+
+class CurvedTip(TipShape):
+    """The capsule, half-ellipsoid and sphere keys (module docstring). The body is the envelope box intersected with
+    q(p) <= 1, q = ((x - x_c)+ / a_x)^2 + (y / a_y)^2 + (d_z)^2 with x_c = X_FACE - a_x: d_z = (z_c - z)+ / r for the
+    capsule (z_c = Z_END + r, the start of the cap) and (z - z_c) / a_z distally, (z - z_c) / a_zp proximally for the
+    half-ellipsoid (z_c = 0). The positive part (x - x_c)+ continues the section straight back to the back face. An
+    as-printed key's surface is the convex hull of its layers, like the block family's (upright: layers across z)."""
+
+    def __init__(self, key: str):
+        m = CURVED_RE.match(key)
+        if not m:
+            raise ValueError(f"not a curved tcd key: {key!r}")
+        self.key, self.R, self.b = key, None, None
+        if m["R"]:
+            self.family = "sph"
+            self.ax = self.ay = self.az = self.azp = float(m["R"]) * 1e-3
+            self.zc = 0.0
+        elif m["r"]:
+            self.family = "cap"
+            self.ax = self.ay = self.az = float(m["r"]) * 1e-3
+            self.azp = math.inf
+            self.zc = Z_END + self.az
+        else:
+            self.family = "ell"
+            self.ay, self.ax, self.az = (float(m[k]) * 1e-3 for k in ("ay", "ax", "az"))
+            self.azp = float(m["azp"]) * 1e-3 if m["azp"] else self.az
+            self.zc = 0.0
+        if self.family != "sph" and (self.ax > DEPTH + 1e-12 or self.az > LENGTH + 1e-12 or self.zc > Z_MOUNT):
+            raise ValueError(f"{key}: semi-axis larger than the envelope")
+        self.xc = X_FACE - self.ax
+        h = m["u"] or m["p"]
+        self.layer = float(h) * 1e-3 if h else None
+        self.axis = "z" if m["u"] else ("x" if m["p"] else None)
+        self.design = CurvedTip(key.rsplit("_", 1)[0]) if self.layer else None
+        self.reach = X_FACE
+        self.top_z = Z_MOUNT if self.family != "sph" else self.az
+        self.a = min(self.ay, WIDTH / 2)            # the bed spec's nominal tpu<r> field (a label only)
+
+    def inside_design(self, P, tol=0.0):
+        x, y, z = P[:, 0], P[:, 1], P[:, 2]
+        if self.family == "sph":
+            c = np.array([self.xc, 0.0, self.zc])
+            return np.linalg.norm(P - c, axis=1) <= self.ax + tol
+        ok = (x >= X_BACK - tol) & (z <= Z_MOUNT + tol) & (x <= X_FACE + tol) & (np.abs(y) <= WIDTH / 2 + tol) \
+            & (z >= Z_END - tol)
+        dx = np.maximum(x - self.xc, 0) / self.ax
+        dy = y / self.ay
+        if self.family == "cap":
+            dz = np.maximum(self.zc - z, 0) / self.az
+        else:
+            dz = np.where(z < self.zc, (z - self.zc) / self.az, (z - self.zc) / self.azp)
+        return ok & (dx * dx + dy * dy + dz * dz <= (1.0 + tol / min(self.ax, self.ay, self.az)) ** 2)
+
+    # ------------------------------------------------------------------ upright print: layers across z
+    def _outline_z(self, z, n_ang=360):
+        """The design's cross-section outline at height z (points in x-y), by radial bisection from an interior point
+        on y = 0 (the sections are convex)."""
+        xs = np.linspace(X_BACK, X_FACE, 341)
+        ins = self.design.inside_design(np.column_stack([xs, np.zeros_like(xs), np.full_like(xs, z)]))
+        if not ins.any():
+            return np.zeros((0, 3))
+        o = np.array([xs[ins].mean(), 0.0, z])
+        th = (np.arange(n_ang) + 0.5) / n_ang * 2 * math.pi
+        D2 = np.column_stack([np.cos(th), np.sin(th), np.zeros(n_ang)])
+        lo, hi = np.zeros(n_ang), np.full(n_ang, 0.03)
+        for _ in range(40):
+            mid = 0.5 * (lo + hi)
+            ins = self.design.inside_design(o + mid[:, None] * D2)
+            lo, hi = np.where(ins, mid, lo), np.where(ins, hi, mid)
+        return o + lo[:, None] * D2
+
+    @cached_property
+    def hull_fine(self):
+        if self.axis != "z":
+            return super().hull_fine
+        h = self.layer
+        nl = int(math.floor(LENGTH / h + 1e-9))          # whole layers from the bed (the mount face)
+        pts = []
+        for k in range(nl):
+            O = self._outline_z(Z_MOUNT - (k + 0.5) * h)
+            if not len(O):
+                continue
+            for zs in (Z_MOUNT - k * h, Z_MOUNT - (k + 1) * h):
+                Q = O.copy()
+                Q[:, 2] = zs
+                pts.append(Q)
+        return _hull(np.concatenate(pts))
+
+    def hull(self, res=0.0005, sign=1.0, eps=None):
+        """TipShape.hull; for an upright print without eps, the fine hull's vertices (the layers' outline corners, which
+        lie on the printed surface) thinned to the one farthest from the box centre in each res voxel: the layer steps
+        near the contact are a few um, and the full corner set has 8-40 thousand vertices."""
+        if self.axis != "z" or eps:
+            return super().hull(res, sign, eps)
+        V0, _ = self.hull_fine
+        _, inv = np.unique(np.floor(V0 / res).astype(np.int64), axis=0, return_inverse=True)
+        inv = inv.ravel()
+        order = np.lexsort((-np.linalg.norm(V0 - C0, axis=1), inv))
+        first = order[np.r_[True, inv[order][1:] != inv[order][:-1]]]
+        V, F = _hull(V0[first] * np.array([sign, 1.0, 1.0]))
+        if sign < 0:
+            return _hull(V)
+        return V, F
+
+    def _terrace_corners(self, eps=None):
+        if self.axis != "z" or not eps:
+            return super()._terrace_corners(eps)
+        V0, _ = self.hull_fine                           # TipShape._terrace_corners with the layers across z
+        out = []
+        for zl in np.unique(np.round(V0[:, 2], 9)):
+            Q = V0[np.abs(V0[:, 2] - zl) < 5e-10]
+            if len(Q) < 4:
+                out.append(Q)
+                continue
+            c = Q.mean(0)
+            Q = Q[np.argsort(np.arctan2(Q[:, 1] - c[1], Q[:, 0] - c[0]))]
+            i0 = int(np.argmax(np.linalg.norm(Q - Q[0], axis=1)))
+            keep = np.zeros(len(Q), bool)
+            keep[[0, i0]] = True
+            stack = [(0, i0), (i0, len(Q))]
+            while stack:
+                a, b = stack.pop()
+                if b - a < 2:
+                    continue
+                A, B = Q[a, :2], Q[b % len(Q), :2]
+                P = Q[a + 1:b, :2]
+                t = B - A
+                dist = np.abs(t[0] * (P[:, 1] - A[1]) - t[1] * (P[:, 0] - A[0])) / max(np.linalg.norm(t), 1e-15)
+                j = int(np.argmax(dist))
+                if dist[j] > eps:
+                    keep[a + 1 + j] = True
+                    stack += [(a, a + 1 + j), (a + 1 + j, b)]
+            out.append(Q[keep])
+        return np.concatenate(out)
+
+
 def shape(key: str) -> TipShape:
-    return TipShape(key)
+    return CurvedTip(key) if CURVED_RE.match(key) else TipShape(key)
 
 
 def compare_cad(key="tcd_rs3_re3", stl=None):
