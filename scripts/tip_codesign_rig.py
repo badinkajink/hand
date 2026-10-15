@@ -10,6 +10,7 @@ pad_usability_backends (PUB), reorient_backends (RB) and hom_turn3 (HT) without 
 
 Tip options:
   --E <Pa>     pad modulus (stiffness E/h A_s per pad, h 8.5 mm); default 10 MPa
+  --tr <s>     pad relaxation time (solref tc = tr / 2, d0 recomputed); default 0.02 s
   --pf <s>     the pad-tool contacts as explicit <pair> elements with solreffriction (<s>, 1): the friction rows'
                damping 2 / (dmax s) in place of the normal rows' 2 / (dmax tc), which removes the normal force that
                MuJoCo's elliptic cone adds to a sliding pad (tip_codesign_bed.py); body excludes keep the
@@ -82,17 +83,17 @@ def replace_tips(root, tip, model, MU, out_dir, tool=RB.OBJ, s=RB.PAD_S, rs=RB.P
 
 
 def tag_of(a):
-    return a.tag or (f"E{a.E:g}" + (f"_pf{a.pf:g}" if a.pf else ""))
+    return a.tag or (f"E{a.E:g}" + (f"_tr{a.tr:g}" if a.tr != RB.PAD_TR else "") + (f"_pf{a.pf:g}" if a.pf else ""))
 
 
 def install(a):
     """Bind RB.replace_tips to the tip options and point the scene folders at this study's."""
-    RB.replace_tips = functools.partial(replace_tips, E=a.E, pf=a.pf)
+    RB.replace_tips = functools.partial(replace_tips, E=a.E, pf=a.pf, tr=a.tr)
     PUB.SCN = SCN / tag_of(a)
 
 
 def _row_extra(a):
-    return {"E_Pa": a.E, "pf_s": a.pf, "tag": tag_of(a), "study": "20261014-tip_codesign"}
+    return {"E_Pa": a.E, "pf_s": a.pf, "tr_s": a.tr, "tag": tag_of(a), "study": "20261014-tip_codesign"}
 
 
 def cmd_replay(a):
@@ -128,7 +129,13 @@ def cmd_hom(a):
     """PUB.cmd_hom's loop; the resume key carries mu and the tag, so conditions can share an output file."""
     import hom_turn3 as HT
     install(a)
-    HT.SCENES = PUB.SCN / "hom"
+    HT.SCENES = PUB.SCN / f"hom_ir{a.ir:g}"
+
+    def scenes(hand, plant, mu_):                    # HT.scenes with the pads' impratio from --ir
+        p_pads, meta_ = RB.build_scene(hand, "tpu2.7", "pads", plant, "bed", a.ir, mu_, out_dir=HT.SCENES)
+        p_mesh, meta_mesh_ = RB.build_scene(hand, "tpu2.7", "pt", plant, "bed", 100.0, mu_, out_dir=HT.SCENES)
+        return p_pads, p_mesh, meta_, meta_mesh_
+    HT.scenes = scenes
     prm = dict(HT.DEFAULTS)
     for kv in a.set:
         k, v = kv.split("=")
@@ -136,7 +143,7 @@ def cmd_hom(a):
             raise SystemExit(f"unknown controller parameter {k}")
         prm[k] = float(v)
     mu = a.mu if a.mu == "scene" else float(a.mu)
-    tag = tag_of(a)
+    tag = tag_of(a) + (f"_ir{a.ir:g}" if a.ir != 100.0 else "")
     have = set()
     if a.out.exists():
         for line in open(a.out):
@@ -159,7 +166,7 @@ def cmd_hom(a):
             for seed in todo[sim]:
                 row = {"case_id": f"hom|{hand}|{sim}|{a.plant}|{a.mu}|{tag}|{seed}", "hand": hand, "sim": sim,
                        "seed": seed, "plant": a.plant, "mu": a.mu, "tip": "tpu2.7", "controller": "hom_turn3",
-                       **_row_extra(a), **{f"prm_{k}": v for k, v in prm.items()},
+                       **_row_extra(a), "tag": tag, "impratio": a.ir, **{f"prm_{k}": v for k, v in prm.items()},
                        "when": time.strftime("%Y-%m-%d %H:%M")}
                 t0 = time.time()
                 try:
@@ -189,6 +196,7 @@ def main():
         p.add_argument("--seeds", nargs="+", type=int, default=[0])
         p.add_argument("--E", type=float, default=RB.E_TPU)
         p.add_argument("--pf", type=float, default=None)
+        p.add_argument("--tr", type=float, default=RB.PAD_TR, help="pad relaxation time 2 tc, s")
         p.add_argument("--tag", default=None, help="scene folder and row tag (default from E and pf)")
         p.add_argument("--out", type=Path, required=True)
     r = sub.choices["replay"]
@@ -208,6 +216,7 @@ def main():
     h.add_argument("--plant", default=SERVO)
     h.add_argument("--mu", default="1.0")
     h.add_argument("--set", nargs="*", default=[])
+    h.add_argument("--ir", type=float, default=100.0, help="impratio of the pads scene")
     a = ap.parse_args()
     {"replay": cmd_replay, "hom": cmd_hom}[a.cmd](a)
 
