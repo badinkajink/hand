@@ -24,6 +24,13 @@
         uv run --extra rl --extra gpu python scripts/pad_usability_rl.py probe --variant servo_mesh --rep 0
   queue   runs probes one at a time (default: mesh, condim 4, 2 mm pads, mesh again, 1 mm pads twice), each in a fresh
           process with its own WARP_CACHE_PATH.
+  cross     U5: each servo-plant final (TPU mesh and 1 mm pads, seeds 0 and 1) on the TPU-mesh, 1 mm pad, 2 mm pad and
+            condim-4 plant scenes, nominal and at kp 0.36 N m/rad, a 0.12 N m torque limit and friction x0.5: closed loop
+            (128 rollouts, grasp-pose noise 2 mm and 5 deg) and the open-loop replay of its 64 own-scene action sequences
+            (docs/experiments/20261013-contact_feedback/acts/). Rows: docs/experiments/20261014-pad_usability/rl/cross.jsonl.
+  numerics  U5: each final on its own scene at impratio 100 (written in place into the MuJoCo-Warp model) and at a 4 ms
+            step (decimation 5), against the trainer's 2 ms and impratio 10. Rows: rl/numerics.jsonl.
+  film      U5: the kp 0.36 cross-plant film, rl/media/20261014-rl_cross_kp036.mp4.
   probe --buffers N,J,M runs the same trainer with env_build._contact_buffers replaced (in the probe's own process,
   env_build.py unchanged) by nconmax N, njmax J and sensor maxmatch M per world, in place of the rule that gives every
   scene with more than 500 geoms 640 / 3,072 / 768.
@@ -391,9 +398,93 @@ def cmd_numerics(a) -> int:
     return 0
 
 
+SCENE_NAMES = {"tpu27mesh": "TPU-mesh plant", "tpu27pads1": "1 mm pad plant", "tpu27pads2": "2 mm pad plant",
+               "tpu27meshc4": "condim-4 plant"}
+# film rows: (title, [(tag, scene, condition, dt), (tag, scene, condition, dt)])
+FILM_ROWS = [("TPU-mesh policy, seed 0, servo gain halved (kp 0.36 N m/rad)",
+              [("20261011-d6_servo_tpu27mesh_40M_s0", "tpu27mesh", "kp=0.36", None),
+               ("20261011-d6_servo_tpu27mesh_40M_s0", "tpu27pads1", "kp=0.36", None)]),
+             ("1 mm pad policy, seed 0, servo gain halved (kp 0.36 N m/rad)",
+              [("20261011-d6_servo_tpu27pads1_40M_s0", "tpu27pads1", "kp=0.36", None),
+               ("20261011-d6_servo_tpu27pads1_40M_s0", "tpu27mesh", "kp=0.36", None)])]
+
+
+def cmd_film(a) -> int:
+    """FILM_ROWS as one tiled film: per row a title bar and two panels, each the closed-loop world (of 128, grasp-pose
+    noise) whose final cosine is the median, drawn by Evaluator.render_world at 480 x 360 with a label bar (plant and
+    counts over the 128 rollouts) and a strip (time, cosine, height). Out: rl/media/20261014-rl_cross_kp036.mp4, .png
+    poster at 75 % and a .json of the worlds shown."""
+    import imageio.v2 as imageio
+    from PIL import Image, ImageDraw, ImageFont
+    E = eval_module()
+    jobs = {j[0]: j for j in E.finished()}
+    W_, H_ = 480, 360
+    f_title = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 22)
+    f_lab = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 19)
+    TITLE_H, LAB_H, STRIP_H = 38, 32, 30
+    rows, meta = [], []
+    for title, panels in FILM_ROWS:
+        out_panels = []
+        for tag, scene, cond, dt in panels:
+            _, arm, seed, steps = jobs[tag]
+            ck = E.final_ckpt(tag, steps)
+            ev = E.Evaluator(E.ARMS[scene], ck, n=128, noise=NOISE, dt=dt, watch=True)
+            ev.load(ck)
+            ev.perturb(*CONDITIONS[cond])
+            r = ev.rollout()
+            m = E.metrics(r, ev.residual_from)
+            fc = r["cos"][-1]
+            w = int(np.argsort(fc)[len(fc) // 2])
+            held_t = (r["z"] > E.FLOOR_Z) & ((r["force"] >= E.HELD_N).sum(-1) >= 2)
+            head = f"{SCENE_NAMES[scene]}: held {m['n_held']}/128" + (
+                f", held cos {m['held_cos_mean']:.2f}" if m["held_cos_mean"] is not None else "")
+            ks = list(range(0, 250, 2))
+            frames = []
+            for k, fr in zip(ks, ev.render_world(r, w, ks, W_, H_)):
+                im = Image.new("RGB", (W_, LAB_H + H_), "white")
+                im.paste(Image.fromarray(fr[:, :, :3]), (0, LAB_H))
+                dr = ImageDraw.Draw(im, "RGBA")
+                dr.text((10, 5), head, font=f_lab, fill=(0, 0, 0))
+                dr.line([(0, LAB_H - 1), (W_, LAB_H - 1)], fill=(0, 0, 0), width=1)
+                dropped = k >= ev.residual_from and not held_t[k, w]
+                txt = (f"t {0.02 * (k + 1):.2f} s   cos {r['cos'][k, w]:+.2f}   z {1e3 * r['z'][k, w]:.0f} mm"
+                       + ("   dropped" if dropped else ""))
+                dr.rectangle([0, LAB_H + H_ - STRIP_H, W_, LAB_H + H_], fill=(255, 255, 255, 215))
+                dr.text((10, LAB_H + H_ - STRIP_H + 4), txt, font=f_lab, fill=(150, 0, 0) if dropped else (0, 0, 0))
+                frames.append(np.asarray(im))
+            out_panels.append(frames)
+            meta.append(dict(row=title, tag=tag, scene=scene, condition=cond, dt=dt, world=w, n_held=m["n_held"],
+                             held_cos=m["held_cos_mean"], final_cos=float(fc[w]), held_end=bool(held_t[-1, w])))
+            ev.close()
+            print(f"[film] {tag} on {scene} {cond}: world {w}, held {m['n_held']}/128", flush=True)
+        bar = Image.new("RGB", (2 * W_, TITLE_H), "white")
+        ImageDraw.Draw(bar).text((10, 7), title, font=f_title, fill=(0, 0, 0))
+        bar = np.asarray(bar)
+        sep = np.zeros((LAB_H + H_, 2, 3), np.uint8)
+        rows.append([np.concatenate([bar, np.concatenate([x[:, :-1], sep, y[:, 1:]], axis=1)], axis=0)
+                     for x, y in zip(*out_panels)])
+    frames = [np.concatenate(fr, axis=0) for fr in zip(*rows)]
+    pad = (-frames[0].shape[0]) % 8
+    if pad:
+        frames = [np.concatenate([f, np.full((pad, f.shape[1], 3), 255, np.uint8)], axis=0) for f in frames]
+    media = RLX / "media"
+    media.mkdir(parents=True, exist_ok=True)
+    out = media / "20261014-rl_cross_kp036.mp4"
+    wr = imageio.get_writer(str(out), fps=25, codec="libx264", quality=None, pixelformat="yuv420p", macro_block_size=8,
+                            ffmpeg_params=["-crf", "23", "-preset", "medium"], ffmpeg_log_level="error")
+    for f in frames:
+        wr.append_data(np.asarray(f, np.uint8))
+    wr.close()
+    Image.fromarray(frames[int(0.75 * (len(frames) - 1))]).save(out.with_suffix(".png"))
+    out.with_suffix(".json").write_text(json.dumps(dict(panels=meta, when=time.strftime("%Y-%m-%d %H:%M")), indent=1))
+    print(f"wrote {out.relative_to(ROOT)} ({len(frames)} frames, {frames[0].shape[1]}x{frames[0].shape[0]})", flush=True)
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
+    sub.add_parser("film", help="U5: the kp 0.36 cross-plant film (FILM_ROWS)")
     c = sub.add_parser("cross", help="U5: finals x plant scenes x conditions, closed loop and replays")
     c.add_argument("--tags", nargs="*", default=[])
     c.add_argument("--scenes", nargs="+", default=list(PLANT_SCENES), choices=PLANT_SCENES)
@@ -423,7 +514,7 @@ def main() -> int:
     if a.cmd == "train":
         return cmd_train(a, rest)
     return {"scenes": cmd_scenes, "probe": cmd_probe, "queue": cmd_queue, "cross": cmd_cross,
-            "numerics": cmd_numerics}[a.cmd](a)
+            "numerics": cmd_numerics, "film": cmd_film}[a.cmd](a)
 
 
 if __name__ == "__main__":
