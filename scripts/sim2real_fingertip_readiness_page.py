@@ -532,6 +532,39 @@ def assembly_section():
                       for v, c in films if c is not None))
 
 
+def replays_section():
+    R = S.get("replays", {})
+    body = []
+    for v in VARIANTS:
+        r = R.get(v)
+        if not r:
+            continue
+        pd, rp = r.get("plan-drake") or {}, r.get("rl-plan") or {}
+        body.append([plain(v), r["held"].get("plan", "&#8211;"), r["held"].get("rl", "&#8211;"), r["held"].get("drake", "&#8211;"),
+                     f((r.get("turn_end_median_deg") or {}).get("plan"), 1),
+                     f"{f(pd.get('rms_dang_deg'), 1)} ({pd.get('turn_within_3')}/{pd.get('n')})" if pd else "&#8211;",
+                     f(rp.get("rms_dang_deg"), 1), f(r.get("plan_seed_spread_deg"), 1)])
+    blocks = [R[v] for v in R if v.startswith("block") and v != "block_e10"]
+    pdb = [b["plan-drake"]["rms_dang_deg"] for b in blocks if b.get("plan-drake")]
+    rpb = [b["rl-plan"]["rms_dang_deg"] for b in blocks if b.get("rl-plan")]
+    spr = [b["plan_seed_spread_deg"] for b in blocks]
+    return ("<p>The eight deployed bench plans D1&#8211;D8 replay open loop on their own real_v1 hands, on the servo plant, with "
+            "each variant&#8217;s tip in place of the TPU block, three placements each (24 replays per variant and arm). Every "
+            "85A block keeps the tool in all 24 replays at the planner&#8217;s numerics and turns it a median 36&#176;; on the "
+            f"placements also run in Drake its tool orientation stays within {min(pdb):.1f}&#8211;{max(pdb):.1f}&#176; RMS of "
+            f"Drake&#8217;s, and at the trainer&#8217;s numerics within {min(rpb):.1f}&#8211;{max(rpb):.1f}&#176; of the planner&#8217;s, "
+            f"inside the {min(spr):.1f}&#8211;{max(spr):.1f}&#176; that two placements of one hand differ by "
+            "(Table&#160;[[tab:replays]]). Magnet count, pocket walls and infill do not change these replays. The plans, made for "
+            "the block, drop the tool from the curved tips: the capsule keeps it in 14 of 24 replays at 30&#8202;% and 4 at "
+            "50&#8202;%, the 11/22&#8202;mm half-ellipsoid in 6 and 3, the 16/32&#8202;mm half-ellipsoid in 24 and 15. A stiffer "
+            "print shortens the curved tips&#8217; contact patch further and loses more.</p>"
+            + table(["Variant", "Held, planner", "Held, trainer", "Held, Drake (seed 0)", "Turn, median (&#176;)",
+                     "RMS angle to Drake, &#176; (within 3&#176;)", "Trainer to planner, RMS (&#176;)",
+                     "Spread between placements (&#176;)"], body,
+                    "D1&#8211;D8 bench-plan replays on each fingertip: replays that end with the tool held, and the RMS "
+                    "tool-angle differences between arms on the same placement (medians; replays/traces.jsonl).", key="replays"))
+
+
 def main():
     v = {"STYLE": P.style_block().replace("</style>", EXTRA_CSS + "</style>"), "BUILT": time.strftime("%Y-%m-%d %H:%M"),
          "GLOSSARY": glossary()}
