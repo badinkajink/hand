@@ -690,55 +690,87 @@ def cells_section():
             + held_prose() + icem_prose())
 
 
-BENCH_PLAN = "20261016-s2r_block4_g30_cyl25_t0p125_c7"
+BENCH_PLAN = "20261016-s2r_block4_g30_cyl16_t0p625_c6_cap0p15"
+SECOND_PLAN = "20261016-s2r_block4_g30_cyl25_t0p125_c7_cap0p15"
+RAW_PLAN = "20261016-s2r_block4_g30_cyl25_t0p125_c7"
 
 
 def bench_section():
-    plan = J(f"bench/{BENCH_PLAN}_plan.json")
-    ver = J(f"bench/{BENCH_PLAN}_verify.json")
-    if not plan or not ver:
-        raise SystemExit(f"bench package {BENCH_PLAN} missing")
+    plan, ver, ab = J(f"bench/{BENCH_PLAN}_plan.json"), J(f"bench/{BENCH_PLAN}_verify.json"), J(f"bench/{BENCH_PLAN}_abort.json")
+    v2, raw = J(f"bench/{SECOND_PLAN}_verify.json"), J(f"bench/{RAW_PLAN}_verify.json")
+    if not (plan and ver and ab and v2 and raw):
+        raise SystemExit("bench packages missing")
     m = plan["meta"]
-    sm = ver["summary"]
-    rows = ver["rows"]
-    lim = max(r["longest_at_limit_s"] for r in rows)
+    sm, sm2, smr = ver["summary"], v2["summary"], raw["summary"]
+    R = ver["rows"]
+    nom = [r for r in R if r["kp"] == 0.72 and r["tau"] == 0.18 and r["mu"] == 1.0]
+    held_mu = {mu: (sum(r["held_before_release"] for r in R if r["mu"] == mu), sum(1 for r in R if r["mu"] == mu))
+               for mu in (0.5, 0.7, 1.0)}
+    lim_nom = max(r["longest_at_limit_s"] for r in nom)
+    lim_raw = max(r["longest_at_limit_s"] for r in raw["rows"])
+    lim_hi = max(r["longest_at_limit_s"] for r in R if r["kp"] == 1.08)
+    nom2 = [r for r in v2["rows"] if r["kp"] == 0.72 and r["tau"] == 0.18 and r["mu"] == 1.0]
     spd = ver["peak_joint_speed_deg_s"]
-    clr = ver["finger_clearance_cad"]
-    nom = [r for r in rows if r["post"] == "removed" and r["kp"] == 0.72 and r["tau"] == 0.18 and r["mu"] == 1.0]
+    sig = ver["expected_U1_field_change_uT"]
+    t_turn = 1.8
+    t_end = t_turn + 0.02 * (len(plan["poses"]) - 4)
+    win = [F for t, F in sig["trace_every_0p1s"] if t_turn <= t <= t_end]
+    u_th = [F[0] for F in win]
+    u_pr = [x for F in win for x in F[1:]]
+    mesh = [r["clearance_achieved"].get("cad_mesh_at_that_instant", {}).get("min_mm") for r in ab["rows"]]
+    mesh = [x for x in mesh if x is not None]
     mounts = plan["mounts_palm_mm"]
     dec = [
         ["Fingertip", "Block, four 3&#8202;&#215;&#8202;2&#8202;mm magnets, 85A 30&#8202;% gyroid "
          "(<code>print/20261016-siraya85a_block_four_d3x2_depth5_seat2p7_g30.3mf</code>)",
-         "Keeps the D1&#8211;D8 plans and all four policies as on the TPU block; the 30&#8202;% print gives the readout its "
-         "12&#8202;&#181;m/N; curved tips drop the tool under the block&#8217;s plans and pad policies"],
+         "Keeps the D1&#8211;D8 plans and all four policies as on the TPU block; 13&#8202;&#181;m/N of magnet travel; curved tips "
+         "drop the tool under the block&#8217;s plans and the pad policies"],
         ["Seat", "2.7&#8202;mm, or the coupon&#8217;s choice", "Pending: the 85A seat coupon"],
-        ["Board", "On the dorsal face of the DIP plate, chips toward the plate, cable soldered to the board or a tab of "
+        ["Board", "On the dorsal face of the DIP plate, chips toward the plate, a cable soldered to the board or a tab of "
          "3&#8202;mm at most", "The 9&#8202;mm tab collides with the DIP link and the PIP servo"],
-        ["Mounts (palm frame, mm)", ", ".join(f"{k} ({v[0]:.1f}, {v[1]:.1f})" for k, v in mounts.items()),
-         "The 25&#8202;mm cell&#8217;s layout; inside the measured gantry envelope (station check)"],
-        ["Object", f"Cylinder {m['object_d_mm']:g}&#8202;mm &#215; 100&#8202;mm, {m['object_mass_g']:.0f}&#8202;g, axis along palm y, "
-         f"centre at palm ({m['object_centre_palm_mm'][0]:.1f}, {m['object_centre_palm_mm'][1]:.1f}, "
-         f"{m['object_centre_palm_mm'][2]:.1f})&#8202;mm", "The cell&#8217;s grasp at palm height "
-         f"{m['palm_height_mm']:.1f}&#8202;mm, straddle {m['straddle_mm']:.1f}&#8202;mm"],
-        ["Plan", f"<code>bench/{BENCH_PLAN}_plan.json</code>: open, grip, {len(plan['poses']) - 4} set-points at 50&#8202;Hz "
-         "from pinned iCEM&#8217;s executed commands, hold, release", "Schema and envelope pass the station&#8217;s own checks: "
-         + ("none" if not ver["station"]["violations"] else "; ".join(ver["station"]["violations"]))],
-        ["Limits", f"Servo speed setting 80; peak commanded joint speed {max(spd.values()):.0f}&#176;/s; torque limit "
-         f"0.18&#8202;N&#8202;m in the model; longest stretch at the limit {lim:.2f}&#8202;s (overload protection after 1&#8202;s)",
-         "The SCS0009 has no current register"],
+        ["Mounts (palm frame, mm)", ", ".join(f"{k} ({v[0]:.2f}, {v[1]:.2f})" for k, v in mounts.items()),
+         "The 16&#8202;mm cell&#8217;s layout (t 0.625); inside the measured gantry envelope by the station&#8217;s check"],
+        ["Object", f"Cylinder {m['object_d_mm']:g}&#8202;mm &#215; 100&#8202;mm, {m['object_mass_g']:.0f}&#8202;g, on a 3&#8202;mm post, "
+         f"axis along palm y, centre {abs(m['object_centre_palm_mm'][2]):.1f}&#8202;mm below the palm under the pinch midpoint",
+         f"The cell&#8217;s grasp {m['grasp']}, straddle {m['straddle_mm']:.1f}&#8202;mm"],
+        ["Plan", f"<code>bench/{BENCH_PLAN}_plan.json</code> (and <code>_traj.csv</code>): open 1&#8202;s, grip, "
+         f"{len(plan['poses']) - 4} set-points at 50&#8202;Hz, hold 1&#8202;s, release", "Pinned iCEM&#8217;s executed commands, each "
+         "kept within 0.15&#8202;N&#8202;m over the servo gain of the nominal replay&#8217;s joint angles; station schema and envelope "
+         "checks pass"],
+        ["Limits", f"Servo speed setting 80; peak commanded joint speed {max(spd.values()):.0f}&#176;/s; no stretch at the "
+         f"0.18&#8202;N&#8202;m limit at the modelled gain", f"At gain 1.08 the cap is exceeded for up to "
+         f"{lim_hi:.1f}&#8202;s: the servo identification has to bound the real gain first"],
+        ["Abort", "Stop motion, then the open pose over 0.5&#8202;s", "Cylinder back on the post; CAD parts of the pair "
+         f"{min(mesh):.1f}&#8211;{max(mesh):.1f}&#8202;mm apart at the closest instant"],
+        ["Second run", f"<code>bench/{SECOND_PLAN}_plan.json</code>: 25&#8202;mm cylinder, layout t 0.125", "Turns further; holds "
+         "less often (below)"],
     ]
-    return ("<p>The first bench run should replay one open-loop plan whose every parameter the simulation has checked. The "
-            f"source is pinned iCEM on the 30&#8202;% block variant on the 25&#8202;mm cell, which in closed loop turns the cylinder "
-            f"{m['source_row']['held_turn_deg']:.0f}&#176; and ends on three pads. Exported as the control station&#8217;s plan and "
-            f"replayed open loop, it keeps the cylinder in {sm['removed']['held']} of the plant conditions with the post removed "
-            f"(servo gain 0.36&#8211;1.08&#8202;N&#8202;m/rad, torque limit 0.12&#8211;0.23&#8202;N&#8202;m, friction 0.5&#8211;1.0, "
-            f"three placements) at a median turn of {sm['removed']['turn_median_deg']:.0f}&#176;, and in {sm['present']['held']} "
-            f"with the post left in place at {sm['present']['turn_median_deg']:.0f}&#176;. The commanded joint angles alone would "
-            f"bring the index and middle fingers {abs(clr['commanded']['min_mm']):.0f}&#8202;mm into each other; with the cylinder "
-            f"in the grasp the closest approach of their collision spheres is {clr['achieved_nominal']['min_mm']:.1f}&#8202;mm. "
-            "If the cylinder is lost mid-turn, the operator stops the plan and commands <i>open</i> (Stop motion, then the open "
-            "pose; Disable motors if a finger stalls).</p>"
-            + table(["Item", "First-bench choice", "Why"], dec, "First-bench configuration.", text_cols=(0, 1, 2), key="bench"))
+    return ("<p>The first bench run replays one open-loop plan that the simulation has checked in every parameter it can. "
+            "Pinned iCEM on the 30&#8202;% block variant ran the 16&#8202;mm cell closed loop, its executed servo commands became "
+            "the control station&#8217;s plan, and each command was then kept within 0.15&#8202;N&#8202;m over the servo gain of the "
+            "joint angle the fingers reach, below the SCS0009&#8217;s overload guard (it cuts out after about 1&#8202;s above 80&#8202;% "
+            f"of stall, 0.18&#8202;N&#8202;m); uncapped, these plans hold a servo at that limit for up to {lim_raw:.1f}&#8202;s. Replayed "
+            f"open loop over servo gains of 0.36&#8211;1.08&#8202;N&#8202;m/rad, torque limits of 0.12&#8211;0.23&#8202;N&#8202;m, friction "
+            f"0.5&#8211;1.0 and three placements, the capped plan ends with the cylinder held on three pads in {sm['present']['three_pads']} "
+            f"conditions with the post in place and {sm['removed']['three_pads']} with it removed, at a median turn of "
+            f"{sm['present']['turn_median_deg']:.0f}&#176;; at the nominal plant it holds all {len(nom)} runs on three pads at "
+            f"{min(r['turn_deg'] for r in nom):.0f}&#8211;{max(r['turn_deg'] for r in nom):.0f}&#176;. Friction is what decides the "
+            f"rest: {held_mu[1.0][0]} of {held_mu[1.0][1]} held at &#956; 1.0, {held_mu[0.5][0]} of {held_mu[0.5][1]} at 0.5. The "
+            f"25&#8202;mm plan turns the cylinder {min(r['turn_deg'] for r in nom2 if r['held_before_release']):.0f}&#8211;"
+            f"{max(r['turn_deg'] for r in nom2 if r['held_before_release']):.0f}&#176; where it holds, but holds "
+            f"{sm2['present']['held']} conditions with the post and {sm2['removed']['held']} without it; it is the second run.</p>"
+            f"<p>The commanded angles alone would bring the index and middle fingers {abs(ver['finger_clearance_cad']['commanded']['min_mm']):.0f}"
+            "&#8202;mm into each other: the cylinder keeps the pair apart. If the cylinder is lost, the operator stops the plan and "
+            "commands the open pose; replayed with that abort 1, 3 and 5&#8202;s into the turn, the fingers open without touching "
+            "and the cylinder drops back onto the post. During the turn each board should see the field at U1 change by its "
+            f"finger&#8217;s normal force times {sig['per_N']:.1f}&#8202;&#181;T/N (four magnets behind the DIP plate): "
+            f"{min(u_th):.0f}&#8211;{max(u_th):.0f}&#8202;&#181;T on the thumb and {min(u_pr):.0f}&#8211;{max(u_pr):.0f}&#8202;&#181;T on "
+            "the index and middle fingers, against a per-sample noise of 1.75&#8202;&#181;T.</p>"
+            + table(["Item", "First-bench choice", "Why"], dec, "First-bench configuration.", text_cols=(0, 1, 2), key="bench")
+            + film(f"media/bench_{BENCH_PLAN.split('s2r_')[1]}_postpresent_s0.mp4",
+                   f"media/bench_{BENCH_PLAN.split('s2r_')[1]}_postpresent_s0_hold.png",
+                   "The first-bench plan replayed open loop on the nominal plant, placement 0, the post in place: open, grip, "
+                   "turn, hold and release; pads touching the cylinder red, the boards green.", key="benchfilm"))
 
 
 def lede():
@@ -748,7 +780,7 @@ def lede():
     f4 = next(r for r in sens if r["layout"] == "four_d3x2_d5" and r["recipe"] == "w85_30" and r["plane"] == "plate")
     f5 = next(r for r in sens if r["layout"] == "five_d3x2_d5" and r["recipe"] == "w85_30" and r["plane"] == "plate")
     ver = J(f"bench/{BENCH_PLAN}_verify.json") or {}
-    held = (ver.get("summary", {}).get("present") or {}).get("held", "&#8211;")
+    held = (ver.get("summary", {}).get("present") or {}).get("three_pads", "&#8211;")
     return ("Printed in Siraya Tech 85A at 30&#8202;% gyroid, the four-magnet fingertip block behaves on the hand&#8217;s tasks "
             "as the modelled TPU block did: the eight deployed bench plans keep the tool in 24 of 24 replays, within "
             f"{max(pdb):.1f}&#176; RMS of Drake, and the four D6 reorientation policies hold 64 of 64 rollouts. Capsule and "
@@ -756,8 +788,8 @@ def lede():
             "finger the magnetometer board must sit behind the DIP link&#8217;s 3&#8202;mm plate, which doubles the force bound to "
             f"{f4['centre_force_N']:.2f}&#8202;N with four magnets ({f5['centre_force_N']:.2f}&#8202;N with five), and its "
             "connector tab must be cut to 3&#8202;mm. Fourteen 85A print projects are sliced and checked. The first bench run "
-            f"replays a pinned-iCEM plan on the 25&#8202;mm cylinder, which in simulation keeps the cylinder in {held} plant "
-            "conditions with the support post in place.")
+            "replays a pinned-iCEM plan on the 16&#8202;mm cylinder whose commands stay under the servo&#8217;s overload guard; "
+            f"in simulation it ends with the cylinder on three pads in {held.replace('/', ' of ')} plant conditions.")
 
 
 def limitations():

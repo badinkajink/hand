@@ -394,6 +394,173 @@ def cmd_export(a):
           f"{summ['present']['turn_median_deg']} deg; finger clearance {clr}", flush=True)
 
 
+def mesh_clearance(m_path, q, palm, n_per_mm2=4.0):
+    """Least distance between the CAD meshes (visual geoms: links, servos, DIP link) and boards of different fingers at
+    one configuration, from area-weighted surface samples and k-d trees; mm, with the closest pair of parts."""
+    import mujoco
+    from scipy.spatial import cKDTree
+    import sim2real_fingertip_scenes as SC
+    m = mujoco.MjModel.from_xml_path(str(m_path))
+    m.body_pos[m.body("palm_pose").id] = palm
+    d = mujoco.MjData(m)
+    d.qpos[[m.jnt_qposadr[m.joint(n).id] for n in NAMES]] = q
+    mujoco.mj_kinematics(m, d)
+    pts = {}
+    for g in range(m.ngeom):
+        nm = m.geom(g).name or ""
+        f = next((x for x in ("thumb", "index", "middle") if nm.startswith(x + "_")), None)
+        if f is None:
+            continue
+        if m.geom_type[g] == mujoco.mjtGeom.mjGEOM_MESH and nm.endswith("_visual"):
+            P = SC.sample_mesh_points(m, g, n_per_mm2=n_per_mm2)
+        elif "board" in nm:
+            h = m.geom_size[g]
+            u = np.stack(np.meshgrid(*[np.linspace(-1, 1, 9)] * 3, indexing="ij"), -1).reshape(-1, 3)
+            P = u * h
+        else:
+            continue
+        W = P @ d.geom_xmat[g].reshape(3, 3).T + d.geom_xpos[g]
+        pts.setdefault(f, []).append((nm, W))
+    best = (1.0, None)
+    fs = list(pts)
+    for i in range(len(fs)):
+        for j in range(i + 1, len(fs)):
+            for na, A in pts[fs[i]]:
+                tree = cKDTree(A)
+                for nb, B in pts[fs[j]]:
+                    dist = float(tree.query(B, k=1)[0].min())
+                    if dist < best[0]:
+                        best = (dist, (na, nb))
+    return dict(min_mm=round(best[0] * 1e3, 2), pair=best[1])
+
+
+def cmd_abort(a):
+    """The abort path of an exported plan: the plan replayed to a time inside the turn, then every servo ramped to the
+    'open' pose over 0.5 s (the operator's Stop motion and open pose); per abort time the least finger-to-finger clearance
+    on the achieved joint angles, the largest actuator force and where the cylinder ends."""
+    import os
+    os.environ["SCALE_HAND"] = "cad_v1"
+    import hom_turn3 as H
+    import mujoco
+    import sim2real_fingertip_cells as CE
+    plan = json.loads((OUT / f"{a.plan}_plan.json").read_text())
+    m = plan["meta"]
+    S, spec = CE.setup(m["variant"], "v2", 1.0)
+    cell, shape, dd = CE.cell_of(S, m["cell"])
+    cand = S.candidates(cell, shape, dd)[m["grasp"]]
+    kp = S.RB.plant_args(CE.SERVO)["kp"]
+    sc = S.cell_scenes(cell, shape, dd, models=("pads", "pt"))
+    m_pt = mujoco.MjModel.from_xml_path(str(sc["pt"][0]))
+    gg = S.grasp_geometry(cell, shape, dd, cand["h"], cand["spread"])
+    gp = S.grip_poses(m_pt, gg, kp)
+    meta = S.candidate_meta(sc["pads"][1], gg, gp)
+    plant = H.MjPlant(sc["pads"][0], meta)
+    S.set_palm(plant.m, gg["palm"])
+    poses = plan["poses"]
+    t_turn = T_OPEN + T_GRIP_RAMP + T_GRIP_HOLD
+    rows = []
+    for dt_abort in a.at:
+        t_ab = t_turn + dt_abort
+        cut, t = [], 0.0
+        for pz in poses:
+            if pz["name"] in ("hold", "release"):
+                break
+            t += pz["ramp_s"] + pz["hold_s"]
+            cut.append(pz)
+            if t >= t_ab:
+                break
+        cut.append(dict(name="abort_open", ramp_s=0.5, hold_s=1.0, joints=poses[0]["joints"]))
+        sched = schedule(cut)
+        for post in ("present", "removed"):
+            tr, lim, qa = replay(plant, meta, sched, 0, t_turn if post == "removed" else None, dict(kp=kp, tau=0.18, mu=1.0))
+            clr = clearance(sc["pads"][0], qa, gg["palm"])
+            if clr["at_s"] is not None:
+                k = int(np.argmin([abs(t - clr["at_s"]) for t, _ in qa]))
+                clr["cad_mesh_at_that_instant"] = mesh_clearance(sc["pads"][0], qa[k][1], gg["palm"])
+            rows.append(dict(abort_after_s=dt_abort, post=post, clearance_achieved=clr, peak_tau_Nm=max(x[3] for x in tr),
+                             longest_at_limit_s=round(float(lim.max()), 2), z_end_mm=tr[-1][5], z_grip_mm=tr[int(t_turn / 0.02)][5],
+                             fingers_loaded_end=tr[-1][4]))
+            print(f"abort after {dt_abort} s, post {post}: clearance {clr}, peak {rows[-1]['peak_tau_Nm']} N m, cylinder "
+                  f"{tr[-1][5]:.1f} mm (grip {rows[-1]['z_grip_mm']:.1f})", flush=True)
+    (OUT / f"{a.plan}_abort.json").write_text(json.dumps(dict(plan=a.plan, rows=rows, open_ramp_s=0.5,
+                                                              script="scripts/sim2real_fingertip_bench.py abort",
+                                                              when=time.strftime("%Y-%m-%d %H:%M")), indent=1, default=float))
+
+
+def cmd_film(a):
+    """The plan's open-loop replay rendered (960 x 720, pads touching the cylinder red, the board green), nominal plant,
+    one placement, the post present or removed; stills at the end of the grip, mid-turn, the hold and after the release."""
+    import os
+    os.environ["SCALE_HAND"] = "cad_v1"
+    os.environ.setdefault("MUJOCO_GL", "egl")
+    import hom_turn3 as H
+    import mujoco
+    import contact_bed_common as CB
+    import hand_object_scale_films as SF
+    import reorient_backends_films as RBF
+    import sim2real_fingertip_cells as CE
+    import tip_codesign_film as TF
+    from PIL import Image
+    plan = json.loads((OUT / f"{a.plan}_plan.json").read_text())
+    m_ = plan["meta"]
+    S, spec = CE.setup(m_["variant"], "v2", 1.0)
+    cell, shape, dd = CE.cell_of(S, m_["cell"])
+    cand = S.candidates(cell, shape, dd)[m_["grasp"]]
+    kp = S.RB.plant_args(CE.SERVO)["kp"]
+    sc = S.cell_scenes(cell, shape, dd, models=("pads", "pt"))
+    m_pt = mujoco.MjModel.from_xml_path(str(sc["pt"][0]))
+    gg = S.grasp_geometry(cell, shape, dd, cand["h"], cand["spread"])
+    gp = S.grip_poses(m_pt, gg, kp)
+    meta = S.candidate_meta(sc["pads"][1], gg, gp)
+    plant = H.MjPlant(SF.film_scene(Path(sc["pads"][0]), dd / 2000.0), meta)
+    S.set_palm(plant.m, gg["palm"])
+    m, d = plant.m, plant.d
+    pads = [i for i in range(m.ngeom) if "_pad" in (m.geom(i).name or "")]
+    boards = [i for i in range(m.ngeom) if "board" in (m.geom(i).name or "")]
+    m.vis.global_.offwidth, m.vis.global_.offheight = 960, 720
+    RBF.W, RBF.H = 960, 720
+    rend, cam = RBF.renderer_for(m, np.asarray(meta["tool7"], float)[:3])
+    cam.distance = 0.24 + 1.4 * dd / 1000.0
+    cam.elevation += 10.0
+    sched = schedule(plan["poses"])
+    t_turn = T_OPEN + T_GRIP_RAMP + T_GRIP_HOLD
+    t_hold = t_turn + 0.02 * (len(plan["poses"]) - 4)
+    post = m.geom("post").id
+    plant.reset(a.seed)
+    frames, stills = [], {}
+    title = f"Open-loop bench plan, {CE.plain(m_['variant'])}; {dd:g} mm cylinder, post {a.post}"
+    for k, (t, q) in enumerate(sched):
+        if a.post == "removed" and t >= t_turn - 1e-9:
+            m.geom_contype[post] = m.geom_conaffinity[post] = 0
+        plant.set_targets(q)
+        plant.advance(t + 0.02)
+        if k % 2:
+            continue
+        for i in pads:
+            m.geom_rgba[i] = (0.75, 0.4, 0.25, 0.0)
+        for i in range(d.ncon):
+            g1, g2 = int(d.contact[i].geom[0]), int(d.contact[i].geom[1])
+            for g, o in ((g1, g2), (g2, g1)):
+                if o in plant.tool_geoms and g in pads:
+                    m.geom_rgba[g] = (0.9, 0.1, 0.1, 1.0)
+        rend.update_scene(d, cam)
+        phase = ("open" if t < T_OPEN else "grip" if t < t_turn else "turn" if t < t_hold else
+                 "hold" if t < t_hold + T_HOLD else "release")
+        fr = TF.label_bar(rend.render().copy(), [title, f"t {t:4.2f} s   {phase}"])
+        frames.append(fr)
+        for nm, tw in (("grip", t_turn - 0.1), ("turn", t_turn + 0.5 * (t_hold - t_turn)), ("hold", t_hold + 0.5),
+                       ("release", t_hold + T_HOLD + T_RELEASE + 0.4)):
+            if nm not in stills and t >= tw:
+                stills[nm] = fr
+    rend.close()
+    media = D / "media"
+    stem = f"bench_{a.plan.split('s2r_')[1]}_post{a.post}_s{a.seed}"
+    CB.write_h264(frames, media / f"{stem}.mp4", crf=20)
+    for nm, fr in stills.items():
+        Image.fromarray(fr).save(media / f"{stem}_{nm}.png")
+    print(media / f"{stem}.mp4", len(frames), sorted(stills), flush=True)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -405,8 +572,15 @@ def main():
     e.add_argument("--seeds", nargs="+", type=int, default=[0, 1, 2], help="placements of the verification replays")
     e.add_argument("--tau-cap", type=float, default=None,
                    help="cap every commanded offset at this torque over the gain, N m (the servo's overload guard)")
+    b = sub.add_parser("abort")
+    b.add_argument("--plan", required=True, help="plan name under bench/ (without _plan.json)")
+    b.add_argument("--at", nargs="+", type=float, default=[1.0, 3.0, 5.0], help="abort times after the grip, s")
+    fm = sub.add_parser("film")
+    fm.add_argument("--plan", required=True)
+    fm.add_argument("--post", default="present", choices=["present", "removed"])
+    fm.add_argument("--seed", type=int, default=0)
     a = ap.parse_args()
-    {"procedure": cmd_procedure, "export": cmd_export}[a.cmd](a)
+    {"procedure": cmd_procedure, "export": cmd_export, "abort": cmd_abort, "film": cmd_film}[a.cmd](a)
 
 
 if __name__ == "__main__":
