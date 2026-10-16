@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import base64
 import io
+import numpy as np
 import json
 import os
 import re
@@ -638,6 +639,38 @@ def icem_table():
                  "median HOM turn, placement 0 (cells/icem.jsonl).", key="icem")
 
 
+def held_prose():
+    C = S.get("cells", {})
+    tot = lambda tag, v: (sum(C[k]["held_all"] for k in C if k.startswith(f"{tag}|{v}|")),  # noqa: E731
+                          sum(C[k]["runs"] for k in C if k.startswith(f"{tag}|{v}|")))
+    on = {v: tot("hom", v) for v in VARIANTS if v != "block_e10" and tot("hom", v)[1]}
+    off = {v: tot("hom_noboard", v) for v in VARIANTS if tot("hom_noboard", v)[1]}
+    base = tot("hom", "block_e10")
+    sc = [C[k]["cell_score_deg"] for k in C if k.startswith("hom|") and not k.endswith("cylinder:25:0.125")]
+    s25 = [C[k]["cell_score_deg"] for k in C if k.startswith("hom|") and k.endswith("cylinder:25:0.125")]
+    return (f"<p>No fingertip changes HOM&#8217;s cell scores beyond what the grasp and the placement change: on the 10 and "
+            f"16&#8202;mm cells every variant scores {np.percentile(sc, 10):.0f}&#8211;{np.percentile(sc, 90):.0f}&#176; "
+            f"(10th to 90th percentile), and on the 25&#8202;mm cell {min(s25):.0f}&#8211;{max(s25):.0f}&#176; "
+            "(Table&#160;[[tab:cells]]). The board changes the task: with its collisions on, HOM ends with the cylinder held in "
+            f"{min(a for a, _ in on.values())}&#8211;{max(a for a, _ in on.values())} of {next(iter(on.values()))[1]} runs per "
+            f"variant (every grasp and placement of the four cells), with them off in "
+            f"{min(a for a, _ in off.values())}&#8211;{max(a for a, _ in off.values())}, and the bare baseline in {base[0]}: "
+            "the board&#8217;s edge props the cylinder where the pads let it go.</p>" + cells_table())
+
+
+def icem_prose():
+    C = S.get("cells", {})
+    rows = [v for k, v in C.items() if k.startswith("icem|")]
+    if not rows:
+        return ""
+    three = sum(1 for r in rows if r["held"] and r["fingers_loaded_end"] == 3)
+    best = max(rows, key=lambda r: r["held_turn_deg"] if r["held"] and r["fingers_loaded_end"] == 3 else -1)
+    rate = [r["cmd_rate_rms"] for r in rows if r.get("cmd_rate_rms") is not None]
+    return (f"<p>Pinned iCEM ends {three} of its {len(rows)} runs held on three pads at a command rate of "
+            f"{min(rate):.2f}&#8211;{max(rate):.2f}&#8202;rad/s (Table&#160;[[tab:icem]]); its best, {plain(best['variant'])} on the "
+            f"{CELL_NAME[best['cell']]} cell, turns the cylinder {best['held_turn_deg']:.0f}&#176;.</p>" + icem_table())
+
+
 def cells_section():
     C = S.get("cells", {})
     hom = [v for k, v in C.items() if k.startswith("hom|")]
@@ -647,9 +680,8 @@ def cells_section():
             "cylinder in the scale study, run on the scale study&#8217;s four planner cells with each variant&#8217;s fingers: "
             "every candidate grasp, placements 0&#8211;2, the servo plant (0.18&#8202;N&#8202;m), friction 1.0 and the support post "
             f"removed after the squeeze. Every HOM run drives a servo to the {max(tau):.2f}&#8202;N&#8202;m torque limit and "
-            f"moves its servo targets at a median {min(rate):.2f}&#8211;{max(rate):.2f}&#8202;rad/s. Table&#160;[[tab:cells]] gives the cell scores with and without "
-            "the board&#8217;s collisions, and Table&#160;[[tab:icem]] the pinned-iCEM runs.</p>"
-            + cells_table() + icem_table())
+            f"moves its servo targets at a median {min(rate):.2f}&#8211;{max(rate):.2f}&#8202;rad/s.</p>"
+            + held_prose() + icem_prose())
 
 
 BENCH_PLAN = "20261016-s2r_block4_g30_cyl25_t0p125_c7"
