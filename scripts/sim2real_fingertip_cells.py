@@ -67,6 +67,17 @@ def setup(variant, builder="v2", mu=1.0):
     return S, spec
 
 
+def plain(variant):
+    """Sentence-case name of a variant for labels and tables."""
+    shape = {"block": "Block", "cap": "Capsule r 8.5 mm", "ell16": "Half-ellipsoid 16/32 mm", "ell11": "Half-ellipsoid 11/22 mm"}
+    if variant == "block_e10":
+        return "Block, model default (10 MPa, solid, no board)"
+    base, inf = variant.rsplit("_g", 1)
+    mags = {"block4": ", four magnets", "block5": ", five magnets", "block4w1": ", four magnets, one wall"}.get(base, "")
+    sh = shape["block"] if base.startswith("block") else shape[base]
+    return f"{sh}{mags}, 85A {inf} %"
+
+
 def cell_of(S, spec_str):
     shape, dd, t = spec_str.split(":")
     dd, t = float(dd), float(t)
@@ -307,7 +318,7 @@ def cmd_film(a):
     cam.elevation += a.elev
     cam.azimuth += a.azim
     frames, k, stills, hits = [], [0], {}, {"board": 0}
-    title = f"{a.variant}: {spec['key']}, E {spec['pad_E_Pa'] / 1e6:.2f} MPa, {a.cell}, grasp {ci}, seed {a.seed}"
+    title = f"{plain(a.variant)}; {dd:g} mm cylinder, grasp {ci}, seed {a.seed}"
     prm = dict(H.DEFAULTS, kp_model=kp, post_off=1.0)
     t_sq = prm["t_grip"] + prm["t_squeeze"]
 
