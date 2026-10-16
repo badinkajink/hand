@@ -597,6 +597,57 @@ def builders_section():
                     "friction 0.7, servo plant; Drake&#8217;s tip a compliant hull at the same modulus (cell10/).", key="builders"))
 
 
+CELLS = ["cylinder:10:0.75", "cylinder:16:0.625", "cylinder:16:-0.125", "cylinder:25:0.125"]
+CELL_NAME = {"cylinder:10:0.75": "10&#8202;mm, t 0.75", "cylinder:16:0.625": "16&#8202;mm, t 0.625",
+             "cylinder:16:-0.125": "16&#8202;mm, t &#8722;0.125", "cylinder:25:0.125": "25&#8202;mm, t 0.125"}
+
+
+def cells_table():
+    C = S.get("cells", {})
+    body = []
+    for v in VARIANTS:
+        row = [plain(v)]
+        for c in CELLS:
+            a, b = C.get(f"hom|{v}|{c}"), C.get(f"hom_noboard|{v}|{c}")
+            txt = "&#8211;" if a is None else f"{a['cell_score_deg']:.0f} ({a['three_pads_end']}/3)"
+            if b is not None:
+                txt += f"; {b['cell_score_deg']:.0f} ({b['three_pads_end']}/3)"
+            row.append(txt)
+        body.append(row)
+    return table(["Variant"] + [CELL_NAME[c] for c in CELLS], body,
+                 "HOM cell scores on the CAD hand, degrees, with the runs ending on three pads of the three placements at the "
+                 "scoring grasp in brackets; after the semicolon the same with the board&#8217;s collisions off (its mass kept). "
+                 "Servo plant, friction 1.0, the post removed after the squeeze (cells/hom.jsonl, cells/hom_noboard.jsonl).",
+                 key="cells")
+
+
+def icem_table():
+    C = S.get("cells", {})
+    rows = sorted((v for k, v in C.items() if k.startswith("icem|")), key=lambda r: (VARIANTS.index(r["variant"]), r["cell"]))
+    body = [[plain(r["variant"]), CELL_NAME.get(r["cell"], r["cell"]), str(r["grasp"]), "yes" if r["held"] else "no",
+             f(r["turn_end_deg"], 1), str(r["fingers_loaded_end"]), f(r.get("three_frac"), 2), f(r.get("cmd_rate_rms"), 2),
+             str(r["board_ticks"])] for r in rows]
+    return table(["Variant", "Cell", "Grasp", "Held", "Turn (&#176;)", "Fingers loaded at the end", "Three-pad fraction",
+                  "Command rate (rad/s)", "Board contact (10 ms ticks)"], body,
+                 "Pinned iCEM (64 rollouts of 0.5&#8202;s per 20&#8202;ms replanning, the three-pad cost) on the grasp with the best "
+                 "median HOM turn, placement 0 (cells/icem.jsonl).", key="icem")
+
+
+def cells_section():
+    C = S.get("cells", {})
+    hom = [v for k, v in C.items() if k.startswith("hom|")]
+    tau = [v["peak_tau_Nm"] for v in hom]
+    rate = [v["cmd_rate_rms"] for v in hom if v["cmd_rate_rms"] is not None]
+    return ("<p>HOM, the closed-loop turn controller, and pinned iCEM, the sampling planner that kept three pads on the "
+            "cylinder in the scale study, run on the scale study&#8217;s four planner cells with each variant&#8217;s fingers: "
+            "every candidate grasp, placements 0&#8211;2, the servo plant (0.18&#8202;N&#8202;m), friction 1.0 and the support post "
+            "removed after the squeeze. Every HOM run reaches the 0.18&#8202;N&#8202;m torque limit "
+            f"(peak {min(tau):.2f}&#8211;{max(tau):.2f}&#8202;N&#8202;m) and moves its servo targets at a median "
+            f"{min(rate):.2f}&#8211;{max(rate):.2f}&#8202;rad/s. Table&#160;[[tab:cells]] gives the cell scores with and without "
+            "the board&#8217;s collisions, and Table&#160;[[tab:icem]] the pinned-iCEM runs.</p>"
+            + cells_table() + icem_table())
+
+
 def main():
     v = {"STYLE": P.style_block().replace("</style>", EXTRA_CSS + "</style>"), "BUILT": time.strftime("%Y-%m-%d %H:%M"),
          "GLOSSARY": glossary()}
