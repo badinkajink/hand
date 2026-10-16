@@ -2138,7 +2138,7 @@ def main():
 DECK = "/home/humanoid/wxie_workspace/contact/tutorial/slides/23_soft_fingertip_contact.html"
 DECK_ROWS = ("/home/humanoid/wxie_workspace/contact/tutorial/data/hand_contact_bed_rows.json",
              "/home/humanoid/wxie_workspace/contact/tutorial/data/hand_skin_rows.json")
-DECK_CHECKED = "195cba3a19f7f928a8ff5e633c94214fade69dad"
+DECK_CHECKED = "1349aff41e284493ca37d4562a11cf22c390e2ec"
 DECK_SOURCES = ("scripts/contact_overview_text.py", "scripts/contact_overview_page.py",
                 "scripts/contact_overview_page.template.html", "docs/experiments/20261005-contact_bed",
                 "docs/experiments/20261007-native_compliance", "docs/experiments/20261012-sprung_skin",
