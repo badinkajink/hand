@@ -1810,6 +1810,10 @@ def _url(path):
 
 
 RELATED = [  # (group, date, title, path relative to the repository, contents)
+    ("Results on other pages", "2026-10-15", "Capsule and ellipsoid fingertips against the printed block on the SR2 hand",
+     "docs/experiments/20261015-curved_tips/20261015-capsule_and_ellipsoid_fingertips.html",
+     "Nine curved tips through the bed, cost, trajectory and task protocol; probe maps of the printed tips against finite "
+     "elements, Drake's field and the pad builders; the 10&#8202;mm cylinder under Drake and both builders"),
     ("Results on other pages", "2026-10-14", "Sphere-pad accuracy across fingertip geometry and fingertip co-design on the SR2 hand",
      "docs/experiments/20261014-tip_codesign/20261014-sphere_pad_accuracy_and_fingertip_codesign.html",
      "The pads against the law and Drake over fillet radius and spin rate; 24 printable tip shapes screened on the hand's "
@@ -2011,8 +2015,21 @@ def usability_section():
               "printed 2.7&#8202;mm fillet, because MuJoCo&#8217;s elliptic cone adds a slip term to a sliding pad&#8217;s normal "
               "force; the friction-row change that removes it breaks the hand&#8217;s closed-loop turns (<a href=\"" + link2
               + "\">fingertip co-design page</a>" + (f", <a href=\"{url2}\">artifact</a>" if url2 else "") + ")."
-              + _builder_sentence() + "</p>")
+              + _builder_sentence() + _curved_sentence() + "</p>")
     return s
+
+
+def _curved_sentence():
+    """The curved-tip study (2026-10-15): spin arm on curved tips and the printed tips' stiffness against the models."""
+    cp = "docs/experiments/20261015-curved_tips/20261015-capsule_and_ellipsoid_fingertips.html"
+    if not os.path.exists(os.path.join(ROOT, cp)):
+        return ""
+    link = os.path.relpath(os.path.join(ROOT, cp), os.path.dirname(OUT))
+    url = _url(os.path.join(ROOT, "docs/experiments/20261015-curved_tips/artifact_url.txt"))
+    return (" Capsule and half-ellipsoid tips in the same envelope turn the tool on a third of the block&#8217;s friction arm, "
+            "and their pads stay within 6&#8202;% of the law&#8217;s spin arm at 1&#8202;rad/s; finite elements of the printed tips "
+            "show a nearly uniform surface stiffness that neither Drake&#8217;s field nor any pad builder reproduces (<a href=\""
+            + link + "\">curved fingertips page</a>" + (f", <a href=\"{url}\">artifact</a>" if url else "") + ").")
 
 
 def _builder_sentence():

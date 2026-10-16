@@ -34,7 +34,7 @@ import curved_tips_common as C  # noqa: E402
 import tip_codesign_film as TF  # noqa: E402
 
 TF.MEDIA = C.D / "media"
-TF.tip_name = C.label
+TF.tip_name = lambda k: C.label(k)[:1].upper() + C.label(k)[1:]       # label bars in sentence case
 
 
 def cmd_bed(a):
@@ -93,7 +93,7 @@ def film_hom(tip, cell_spec, seed, cand_index, mu=0.7):
     rend, cam = RBF.renderer_for(m, np.asarray(meta["tool7"], float)[:3])
     cam.distance = 0.24 + 1.4 * dd / 1000.0
     frames, k = [], [0]
-    title = C.label(tip)
+    title = TF.tip_name(tip)
 
     def cb(pl, tt, info):
         k[0] += 1
