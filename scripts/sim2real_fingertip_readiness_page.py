@@ -358,6 +358,71 @@ def procedure_section():
                     "Bench measurements before and after the first actuation.", text_cols=(0, 1, 2, 3), key="procedure"))
 
 
+def bed_table():
+    B = S.get("bed", {})
+    fe = {(r["layout"], r["recipe"]): r for r in S.get("fe", [])}
+    fe_of = {"block4_g30": ("four_d3x2_d5", "w85_30"), "block4_g50": ("four_d3x2_d5", "w85_50"),
+             "block5_g30": ("five_d3x2_d5", "w85_30"), "block5_g50": ("five_d3x2_d5", "w85_50"),
+             "block4w1_g30": ("four_d3x2_d5_w1", "w85_30"), "block4w1_g50": ("four_d3x2_d5_w1", "w85_50")}
+    rows = []
+    for v in VARIANTS:
+        for arm, lab in (("v2", "Pads v2"), ("v1", "Pads v1"), ("drake", "Drake")):
+            b = B.get(f"{v}|{arm}")
+            if not b:
+                continue
+            a = b.get("approach_um", {})
+            fe_a = fe.get(fe_of.get(v, ("", "")), {}).get("approach_um", {}) if arm == "v2" else {}
+            rows.append([plain(v) if arm == "v2" else "", lab, f(b["E_MPa"], 2),
+                         f(a.get("1"), 0) + (f" ({fe_a['1']:.0f})" if fe_a else ""),
+                         f(a.get("3"), 0) + (f" ({fe_a['3']:.0f})" if fe_a else ""),
+                         f((b.get("onset_arm_mm") or {}).get("1"), 2), f(b.get("spin_arm_mm"), 2),
+                         f((b.get("twist_creep_deg_s") or {}).get("1"), 3), f(b.get("pull_mu_eff"), 3),
+                         f(b.get("pull_creep_mm_s"), 4)])
+    return table(["Variant", "Model", "E (MPa)", "Approach at 1 N, &#181;m (FE)", "At 3 N (FE)", "Twist-onset arm (mm)",
+                  "Spin arm at 1 rad/s (mm)", "Twist creep (&#176;/s)", "Pull onset over 2N", "Pull creep (mm/s)"], rows,
+                 "Contact on the bed at 1&#8202;N per tip unless stated, friction 1.0, planner numerics; in brackets the finite "
+                 "elements&#8217; approach of the printed block (bed/*.jsonl, fe/fem.jsonl).", text_cols=(0, 1), key="bed")
+
+
+def stiffness_section():
+    B = S.get("bed", {})
+    fe = {(r["layout"], r["recipe"]): r for r in S.get("fe", [])}
+    e30 = [fe[(l, "w85_30")]["E_star_MPa"] for l in ("four_d3x2_d5", "five_d3x2_d5", "four_d3x2_d5_w1") if (l, "w85_30") in fe]
+    e50 = [fe[(l, "w85_50")]["E_star_MPa"] for l in ("four_d3x2_d5", "five_d3x2_d5", "four_d3x2_d5_w1") if (l, "w85_50") in fe]
+    g = lambda v, arm, k, n="1": ((B.get(f"{v}|{arm}") or {}).get(k) or {}).get(n)  # noqa: E731
+    half = (B.get("block4_g30|E0.5x") or {}).get("approach_um", {})
+    dbl = (B.get("block4_g30|E2x") or {}).get("approach_um", {})
+    rl = B.get("block4_g30|rl") or {}
+    creep_ratio = [g(v, "v2", "twist_creep_deg_s") / g(v, "drake", "twist_creep_deg_s") for v in VARIANTS
+                   if g(v, "v2", "twist_creep_deg_s") and g(v, "drake", "twist_creep_deg_s")]
+    txt = (f"<p>At a solid modulus of 12&#8202;MPa the 85A blocks take a pad modulus of {min(e30):.2f}&#8211;{max(e30):.2f}&#8202;MPa "
+           f"at 30&#8202;% gyroid and {min(e50):.2f}&#8211;{max(e50):.2f}&#8202;MPa at 50&#8202;% (Table&#160;[[tab:fe]]); the fifth "
+           "magnet stiffens the face by 6&#8202;% and one wall at the pockets softens it by 1&#8202;%. 30&#8202;% gyroid in 85A is "
+           "about half as stiff as the 95A, 20&#8202;% prints of 13 October (16.7&#8202;MPa), and 50&#8202;% about as stiff. Every "
+           "displacement scales as 12&#8202;MPa over the solid modulus, so Siraya&#8217;s value moves all of these numbers in "
+           "proportion.</p>"
+           + fe_table()
+           + f"<p>On the contact bed, with each variant&#8217;s pads at its finite-element modulus, builders v1 and v2 and Drake "
+           f"agree on the approach within a few percent (block, 30&#8202;%: {f(g('block4_g30', 'v2', 'approach_um'), 0)}, "
+           f"{f(g('block4_g30', 'v1', 'approach_um'), 0)} and {f(g('block4_g30', 'drake', 'approach_um'), 0)}&#8202;&#181;m at "
+           "1&#8202;N, against 61&#8202;&#181;m in the finite elements) and on the twist-onset arm (2.5&#8211;2.6&#8202;mm on the "
+           "blocks, 0.7&#8211;0.9&#8202;mm on the curved tips), and the pull onset equals the friction coefficient in every model "
+           "(Table&#160;[[tab:bed]]). They separate on sliding: the pads&#8217; twist creep is "
+           f"{min(creep_ratio):.0f}&#8211;{max(creep_ratio):.0f} times Drake&#8217;s, and their spin arm on the blocks 1.2&#8211;1.5 "
+           "times, the rate effect of MuJoCo&#8217;s elliptic cone (14 October). At the RL trainer&#8217;s numerics (2&#8202;ms, "
+           f"impratio 10) the block&#8217;s pads give the same approach and onset arm but {f((rl.get('twist_creep_deg_s') or {}).get('1'), 2)}"
+           f"&#8202;&#176;/s of twist creep and {f(rl.get('pull_creep_mm_s'), 3)}&#8202;mm/s of pull creep, ten times the "
+           "planner&#8217;s: impratio and step size change the sliding, not the stiffness.</p>"
+           + bed_table()
+           + "<p>The approach is the measurement that sets the modulus. Halving the pad modulus of the 30&#8202;% block raises "
+           f"the approach at 1&#8202;N from {f(g('block4_g30', 'v2', 'approach_um'), 0)} to {f(half.get('1'), 0)}&#8202;&#181;m"
+           + (f" and doubling it lowers it to {f(dbl.get('1'), 0)}&#8202;&#181;m" if dbl else "")
+           + ", while the onset arm changes by a few percent and the pull onset not at all. A rod indentation at 0.5, 1 and "
+           "3&#8202;N on a printed block therefore fixes Siraya&#8217;s solid modulus, a two-tip pull fixes the friction "
+           "coefficient, and the twist onset checks the patch model (Section&#160;[[sec:procedure]]).</p>")
+    return txt
+
+
 def main():
     v = {"STYLE": P.style_block().replace("</style>", EXTRA_CSS + "</style>"), "BUILT": time.strftime("%Y-%m-%d %H:%M"),
          "GLOSSARY": glossary()}
