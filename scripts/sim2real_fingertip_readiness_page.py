@@ -352,7 +352,7 @@ def procedure_section():
             "below, in order, replace the proxies; each comes with the value the models predict "
             "(<code>bench/procedure.json</code>). The indentation sets Siraya&#8217;s solid modulus: in linear elastic contact "
             "the response at force \\(F\\) and modulus \\(E_s\\) equals the 12&#8202;MPa response at \\(F \\cdot 12\\,\\mathrm{MPa}/E_s\\), "
-            "so a measured approach \\(d\\) at force \\(F\\) gives \\(E_s = 12\\,\\mathrm{MPa}\; F / F_{12}(d)\\). The pull sets the "
+            "so a measured approach \\(d\\) at force \\(F\\) gives \\(E_s = 12\\,\\mathrm{MPa}\\; F / F_{12}(d)\\). The pull sets the "
             "friction coefficient independently of the modulus, and the twist onset then tests the contact patch.</p>"
             + table(["Check", "Procedure", "Model prediction", "Status"], body,
                     "Bench measurements before and after the first actuation.", text_cols=(0, 1, 2, 3), key="procedure"))
@@ -734,7 +734,7 @@ def open_items():
          "twin and press a magnet into each seat; if 2.8 or 2.9&#8202;mm keeps the magnet and 2.7 splits the wall, run "
          "<code>scripts/sim2real_fingertip_prints.py build --seat 2.8</code> before printing tips."),
         ("Siraya&#8217;s modulus", "Indent the 30&#8202;% four-magnet block with the 25&#8202;mm rod at 0.5, 1 and 3&#8202;N and set "
-         "\\(E_s = 12\\,\\mathrm{MPa}\; F / F_{12}(d)\\) (<code>scripts/sim2real_fingertip_bench.py</code>, "
+         "\\(E_s = 12\\,\\mathrm{MPa}\\; F / F_{12}(d)\\) (<code>scripts/sim2real_fingertip_bench.py</code>, "
          "<code>modulus_from</code>); an approach at 1&#8202;N outside 40&#8211;120&#8202;&#181;m puts \\(E_s\\) outside "
          "6&#8211;19&#8202;MPa, beyond the range this page tested, and the variant scenes and bed rows are rebuilt at the new "
          "modulus."),
