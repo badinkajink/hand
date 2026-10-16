@@ -423,6 +423,63 @@ def stiffness_section():
     return txt
 
 
+POL_NAME = {"20261011-d6_servo_tpu27mesh_40M_s0": "Point contact, seed 0", "20261011-d6_servo_tpu27mesh_40M_s1": "Point contact, seed 1",
+            "20261011-d6_servo_tpu27pads1_40M_s0": "Pads, seed 0", "20261011-d6_servo_tpu27pads1_40M_s1": "Pads, seed 1"}
+SCENE_NAME = {"tpu27pads1": "Trained scene, pads", "tpu27mesh": "Trained scene, point contact", "s2r_block4_g30": "Block, 30&#8202;%",
+              "s2r_block4_g50": "Block, 50&#8202;%", "s2r_cap_g30": "Capsule, 30&#8202;%", "s2r_ell16_g30": "Half-ellipsoid 16/32, 30&#8202;%",
+              "s2r_ell11_g30": "Half-ellipsoid 11/22, 30&#8202;%"}
+
+
+def policies_section():
+    P_ = S.get("policies", {})
+    scenes = [k for k in SCENE_NAME if any(v["scene"] == k for v in P_.values())]
+    body = []
+    for sc in scenes:
+        row = [SCENE_NAME[sc]]
+        for tag in POL_NAME:
+            r = P_.get(f"{sc}|{tag}")
+            row.append("&#8211;" if r is None else (f"{r['n_held']}/64, {r['held_cos_mean']:.2f}" if r["n_held"]
+                                                     else "0/64"))
+        body.append(row)
+    H = {}
+    for l in open(os.path.join(D, "policies/health.jsonl")):
+        r = json.loads(l)
+        H[(r["scene"], r["tag"])] = r
+    blk = [H[k] for k in H if k[0] == "s2r_block4_g30"]
+    ref = [H[k] for k in H if k[0] == "tpu27pads1"]
+    ext = [r["mech"]["ext_limit_frac"] for r in blk if r["mech"].get("ext_limit_frac") is not None]
+    spin = [r["mech"]["spin_deg"] for r in blk if r["mech"].get("spin_deg") is not None]
+    grip_b = [P_[k]["grip_N"] for k in P_ if P_[k]["scene"].startswith("s2r_block") and P_[k]["n_held"]]
+    grip_c = [P_[k]["grip_N"] for k in P_ if P_[k]["scene"] in ("s2r_cap_g30", "s2r_ell11_g30") and "pads1" in P_[k]["tag"]]
+    return ("<p>The four TPU-block policies of 11 October (point contact and pads, two seeds each, trained on hand D6 of "
+            "real_v1 on the servo plant) run unchanged on that hand with only the fingertip replaced: the variant&#8217;s shape and "
+            "its 1&#8202;mm pads at its 85A modulus, builder v2. Their observation and action schema, timing and the tool&#8217;s "
+            "contact class are the runs&#8217; own. On the 85A blocks at 30 and 50&#8202;% gyroid every policy holds the "
+            "screwdriver in 64 of 64 rollouts at a held cosine within 0.03 of its trained scene (Table&#160;[[tab:policies]]); the "
+            f"thumb MCP sits at its torque limit in every held step and a finger at its extension limit in "
+            f"{100 * min(ext):.1f}&#8211;{100 * max(ext):.1f}&#8202;% of them, as in training, the tool spins "
+            f"{min(spin):.0f}&#8211;{max(spin):.0f}&#176; against the fingertips during the turn, and the trajectory-health scorecard "
+            "flags nothing it did not flag on the trained scene.</p>"
+            "<p>The point-contact policies also hold every rollout on the curved tips. The pad policies do not: on the capsule "
+            "and the 11/22&#8202;mm half-ellipsoid they lose the screwdriver in every rollout one step after their residual "
+            f"starts (step 59), with a grip of {min(grip_c):.1f}&#8211;{max(grip_c):.1f}&#8202;N while it is still held against "
+            f"{min(grip_b):.0f}&#8211;{max(grip_b):.0f}&#8202;N on the blocks; the film strip shows the tool never leaving the "
+            "floor (Figure&#160;[[fig:policy_strip]]). They were trained on the block&#8217;s wide pad patch, and their first "
+            "action does not lift the tool on a tip whose patch is a third as long.</p>"
+            + table(["Scene"] + list(POL_NAME.values()), body,
+                    "Held rollouts of 64 and held cosine of the D6 servo-plant policies with each fingertip "
+                    "(policies/transfer.jsonl; 5&#8202;s, deterministic actions).", key="policies")
+            + img("media/policy_tpu27pads1_s0_cap_g30.png", "The pad policy, seed 0, on the capsule tip at 30&#8202;% "
+                  "gyroid: one deterministic rollout at phase-aligned steps. The tool stays on the floor after the onset at step "
+                  "58.", key="policy_strip", width=1600)
+            + "<p>These policies cannot run on the CAD hand as built. Its MCP link spaces the MCP and PIP axes 30.80&#8202;mm "
+            "apart against the 20.75&#8202;mm they trained on, its links collide through 151 spheres per finger instead of three "
+            "capsules, each finger weighs 85&#8202;g against 43&#8202;g, its scene has no fitted grasp key "
+            "(<code>open_ik</code>), and <code>scripts/make_pad_morphology_run.py</code> fails on its scene with a repeated "
+            "<code>tpu_pos</code> mesh. A policy for the bench hand needs a run on a frozen CAD-hand scene; until then the "
+            "bench path is the open-loop plan of Section&#160;[[sec:bench]].</p>")
+
+
 def main():
     v = {"STYLE": P.style_block().replace("</style>", EXTRA_CSS + "</style>"), "BUILT": time.strftime("%Y-%m-%d %H:%M"),
          "GLOSSARY": glossary()}
