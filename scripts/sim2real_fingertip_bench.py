@@ -79,9 +79,8 @@ def cmd_procedure(a):
                              "2.9 mm round seat and slot; keep the narrowest seat that takes the magnet to its floor without "
                              "splitting the wall and holds it when the coupon is turned over and tapped",
              predicts="no model; sets the production seat (2.7 mm in every print file now)", status="pending"),
-        dict(id="retention", what="Magnet retention: after the print, a 3 x 2 mm steel-free pull on each magnet through the bridge "
-                                  "is not possible; instead read the board's zero-load field (step 'board') before and after 50 "
-                                  "presses at 3 N; a moved magnet shifts the field at its nearest chip",
+        dict(id="retention", what="Magnet retention: read the board's zero-load field (step 'board') before and after 50 presses "
+                                  "of the contact point at 3 N; a magnet that moved in its seat shifts the field at its nearest chip",
              predicts="field change under 2 % between the two zero-load readings", status="pending"),
         dict(id="mass", what="Weigh each printed tip with its magnets, and one assembled finger",
              predicts={v: var[v]["tip_g"] for v in var if v != "block_e10"} | {"finger_model_g": 85.2, "owner_estimate_g": 120},

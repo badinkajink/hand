@@ -190,7 +190,9 @@ def print_table():
         if r["tip"] is None:
             lab = "Seat coupon" + (", one wall" if r["walls"] == 1 else "")
         else:
-            lab = r["name"].split("siraya85a_")[1]
+            base = {"block": "Block", "tcd_cap8.5": "Capsule r 8.5&#8202;mm", "tcd_ell7.4x8.5x16x32": "Half-ellipsoid 16/32&#8202;mm",
+                    "tcd_ell7.4x8.5x11x22": "Half-ellipsoid 11/22&#8202;mm"}[r["tip"]]
+            lab = base + {"five": ", five magnets"}.get(r["layout"], ", four magnets") + (", one wall" if r["walls"] == 1 else "")
         rows.append([lab, f"{r['infill']}&#8202;%" if r["infill"] else "30&#8202;%", r["magnets"] or "&#8211;",
                      f(r["depth_mm"], 1) if r["depth_mm"] else "&#8211;", f(r["wall_min_mm"], 2) if r["wall_min_mm"] else "&#8211;",
                      ", ".join(f"{z:g}" for z in r["pauses"]) or "&#8211;", r["print_time"], f(r["flow_max"], 1)])
@@ -389,6 +391,8 @@ def stiffness_section():
     fe = {(r["layout"], r["recipe"]): r for r in S.get("fe", [])}
     e30 = [fe[(l, "w85_30")]["E_star_MPa"] for l in ("four_d3x2_d5", "five_d3x2_d5", "four_d3x2_d5_w1") if (l, "w85_30") in fe]
     e50 = [fe[(l, "w85_50")]["E_star_MPa"] for l in ("four_d3x2_d5", "five_d3x2_d5", "four_d3x2_d5_w1") if (l, "w85_50") in fe]
+    d5 = [100 * (fe[("five_d3x2_d5", r)]["E_star_MPa"] / fe[("four_d3x2_d5", r)]["E_star_MPa"] - 1) for r in ("w85_30", "w85_50")]
+    d1 = [100 * (1 - fe[("four_d3x2_d5_w1", r)]["E_star_MPa"] / fe[("four_d3x2_d5", r)]["E_star_MPa"]) for r in ("w85_30", "w85_50")]
     g = lambda v, arm, k, n="1": ((B.get(f"{v}|{arm}") or {}).get(k) or {}).get(n)  # noqa: E731
     half = (B.get("block4_g30|E0.5x") or {}).get("approach_um", {})
     dbl = (B.get("block4_g30|E2x") or {}).get("approach_um", {})
@@ -397,7 +401,8 @@ def stiffness_section():
                    if g(v, "v2", "twist_creep_deg_s") and g(v, "drake", "twist_creep_deg_s")]
     txt = (f"<p>At a solid modulus of 12&#8202;MPa the 85A blocks take a pad modulus of {min(e30):.2f}&#8211;{max(e30):.2f}&#8202;MPa "
            f"at 30&#8202;% gyroid and {min(e50):.2f}&#8211;{max(e50):.2f}&#8202;MPa at 50&#8202;% (Table&#160;[[tab:fe]]); the fifth "
-           "magnet stiffens the face by 6&#8202;% and one wall at the pockets softens it by 1&#8202;%. 30&#8202;% gyroid in 85A is "
+           f"magnet stiffens the face by {min(d5):.1f}&#8211;{max(d5):.1f}&#8202;% and one wall at the pockets softens it by "
+           f"{min(d1):.1f}&#8211;{max(d1):.1f}&#8202;%. 30&#8202;% gyroid in 85A is "
            "about half as stiff as the 95A, 20&#8202;% prints of 13 October (16.7&#8202;MPa), and 50&#8202;% about as stiff. Every "
            "displacement scales as 12&#8202;MPa over the solid modulus, so Siraya&#8217;s value moves all of these numbers in "
            "proportion.</p>"
@@ -641,9 +646,8 @@ def cells_section():
     return ("<p>HOM, the closed-loop turn controller, and pinned iCEM, the sampling planner that kept three pads on the "
             "cylinder in the scale study, run on the scale study&#8217;s four planner cells with each variant&#8217;s fingers: "
             "every candidate grasp, placements 0&#8211;2, the servo plant (0.18&#8202;N&#8202;m), friction 1.0 and the support post "
-            "removed after the squeeze. Every HOM run reaches the 0.18&#8202;N&#8202;m torque limit "
-            f"(peak {min(tau):.2f}&#8211;{max(tau):.2f}&#8202;N&#8202;m) and moves its servo targets at a median "
-            f"{min(rate):.2f}&#8211;{max(rate):.2f}&#8202;rad/s. Table&#160;[[tab:cells]] gives the cell scores with and without "
+            f"removed after the squeeze. Every HOM run drives a servo to the {max(tau):.2f}&#8202;N&#8202;m torque limit and "
+            f"moves its servo targets at a median {min(rate):.2f}&#8211;{max(rate):.2f}&#8202;rad/s. Table&#160;[[tab:cells]] gives the cell scores with and without "
             "the board&#8217;s collisions, and Table&#160;[[tab:icem]] the pinned-iCEM runs.</p>"
             + cells_table() + icem_table())
 
