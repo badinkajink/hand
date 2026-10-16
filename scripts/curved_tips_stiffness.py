@@ -165,12 +165,12 @@ def cmd_fe(a):
     model, _ = M.build(recipe, "d4.76x1.59", depth)
     nfix_back = int(((np.abs(model.X[:, 0] - xb) < 1e-6) & model.fixed_nodes).sum())
     nodes = model.face_nodes(zlim=(3.5, 21.41))
+    # gaps from the analytic surface above each face node's (y, z) column: the grid's staircase puts a column's top node
+    # up to half a cell plus the slope times half a cell width off the surface (0.25 mm on a 38 deg slope)
     X = model.X[nodes].copy()
     xt = surface_ins(sh, X[:, 1], X[:, 2])
-    xs = model.g.xs
-    k = np.clip(np.searchsorted(xs, X[:, 0] - 1e-9), 1, len(xs) - 1)
-    use = np.isfinite(xt) & (np.abs(xt - X[:, 0]) <= 0.5 * (xs[k] - xs[k - 1]) + 1e-6)
-    X[:, 0] = np.where(use, xt, X[:, 0])
+    stair = np.where(np.isfinite(xt), X[:, 0] - xt, np.nan)
+    X[:, 0] = np.where(np.isfinite(xt), xt, X[:, 0])
     tc = time.time()
     W = model.compliance(nodes)
     tc = time.time() - tc
@@ -178,13 +178,14 @@ def cmd_fe(a):
     print(f"{key}: build {recipe['build']}, back x {xb:.2f} mm ({nfix_back} fixed back nodes), magnet depth {depth} mm, "
           f"{len(nodes)} face nodes, compliance {tc:.0f} s", flush=True)
     base = dict(tip=key, recipe=a.recipe, build=recipe["build"], magnet="d4.76x1.59", depth_mm=depth, back_x_mm=xb,
+                staircase_mm=[float(np.nanpercentile(stair, q)) for q in (5, 50, 95)],
                 n_fixed_back_nodes=nfix_back, n_dof=len(model.free), n_el=model.n_el, n_face_nodes=len(nodes),
                 t_factor_s=model.t_factor, t_compliance_s=tc, grid=M.GRID, script=SCRIPT)
     for name, kind, y_t, z_t in probes():
         z_ins = TG.Z_MOUNT * 1e3 - z_t
         xc = first_touch(sh, kind, y_t, z_ins)
         surf = probe_surface_ins(kind, xc, y_t, z_ins, X[:, 1], X[:, 2])
-        g0 = surf - X[:, 0]
+        g0 = np.maximum(surf - X[:, 0], 0.0)              # first touch is the analytic surface's: no initial overlap
         cand = np.where(g0 < 1.5)[0]
         Wc, gc = W[np.ix_(cand, cand)], g0[cand]
         res = {}
@@ -194,7 +195,8 @@ def cmd_fe(a):
                 d, p, _ = T.force_controlled(Wc, gc, f)
                 out[f] = (d, p)
             d, p = out[F]
-            kk = 0.1 * F / (out[1.05 * F][0] - out[0.95 * F][0])
+            dd = out[1.05 * F][0] - out[0.95 * F][0]
+            kk = 0.1 * F / dd if dd > 1e-9 else float("nan")
             act = p > 1e-12 * F
             c = (p[act, None] * X[cand][act, 1:]).sum(0) / p[act].sum()
             res[f"{F:g}"] = dict(approach_um=1e3 * d, k_N_per_mm=kk, n_contact=int(act.sum()),
@@ -369,13 +371,19 @@ def cmd_models(a):
                                    "matches the apex sphere probe's approach at 1 N")
         else:
             fit_info = {"error": "pad set differs from the patch file's"}
+    have = {(r["model"], r["probe"]) for r in rows(OUT / "models.jsonl") if r["tip"] == key}
     for name, kind, y_t, z_t in probes():
+        todo = [m for m in models if (m, name) not in have]
+        if not todo:
+            continue
         pr = Probe(sh, kind, y_t, z_t)
         nsel = field.restrict(kind, pr.c0 - np.array([R_SPH * 1e-3 if kind == "sphere" else R_CYL * 1e-3, 0, 0]),
                               0.006 if kind == "sphere" else 0.008)
         pdeep = field.p(pr.X0 - np.array([DGRID[-1], 0.0, 0.0]))
         idx = np.where(pdeep > 0)[0]
         for mname, (mk, obj) in models.items():
+            if mname not in todo:
+                continue
             if mk == "field":
                 Fg = np.array([pr.field_force(field, d, idx) for d in DGRID])
             else:
@@ -435,19 +443,46 @@ def cmd_summary(a):
                     pts.setdefault(p, {})[f"{F:g}"] = {"err_abs": e_abs, "err_shape": e_sh, "k_err_shape": k_err}
                     ea.append(e_abs)
                     es.append(e_sh)
-            t["models"][m] = {"approach_um": {p: {F: v["approach_um"] for F, v in r["per_force"].items()} for p, r in pr.items()},
+            c_cyl = None
+            if "cyl0" in curve and "cyl0" in F_:
+                dgc, Fgc = curve["cyl0"]
+                d_fc = F_["cyl0"]["per_force"]["1"]["approach_um"] * 1e-6
+                c_cyl = 1.0 / float(np.exp(np.interp(math.log(d_fc), np.log(dgc), np.log(np.maximum(Fgc, 1e-30)))))
+            sph = [pts[p][f"{F:g}"]["err_shape"] for p in pts if F_[p]["kind"] == "sphere" for F in FORCES]
+            cyl = [pts[p][f"{F:g}"]["err_shape"] for p in pts if F_[p]["kind"] == "cyl" for F in FORCES]
+
+            def expo(rr, p):                                    # approach ~ F^n between 0.5 and 3 N
+                a5, a3 = rr[p]["per_force"]["0.5"]["approach_um"], rr[p]["per_force"]["3"]["approach_um"]
+                return math.log(a3 / a5) / math.log(6.0)
+            t["models"][m] = {"modulus_scale_cyl0": c_cyl,
+                              "rms_err_shape_sphere": float(np.sqrt(np.mean(np.square(sph)))) if sph else None,
+                              "rms_err_shape_cyl": float(np.sqrt(np.mean(np.square(cyl)))) if cyl else None,
+                              "exponent_apex_sphere": expo(pr, "apex"), "exponent_cyl0": expo(pr, "cyl0") if "cyl0" in pr else None,
+                              "cyl_over_sphere_1N": (pr["cyl0"]["per_force"]["1"]["approach_um"] / pr["apex"]["per_force"]["1"]["approach_um"]
+                                                     if "cyl0" in pr else None),
+                              "approach_um": {p: {F: v["approach_um"] for F, v in r["per_force"].items()} for p, r in pr.items()},
                               "k_N_per_mm": {p: {F: v["k_N_per_mm"] for F, v in r["per_force"].items()} for p, r in pr.items()},
                               "points": pts, "modulus_scale_to_fe": c,
                               "rms_err_abs": float(np.sqrt(np.mean(np.square(ea)))),
                               "rms_err_shape": float(np.sqrt(np.mean(np.square(es)))),
                               "max_err_shape": float(np.max(np.abs(es))), "fit": pr["apex"].get("fit")}
+        t["fe_exponent_apex_sphere"] = math.log(F_["apex"]["per_force"]["3"]["approach_um"] / F_["apex"]["per_force"]["0.5"]["approach_um"]) / math.log(6.0)
+        t["fe_exponent_cyl0"] = (math.log(F_["cyl0"]["per_force"]["3"]["approach_um"] / F_["cyl0"]["per_force"]["0.5"]["approach_um"])
+                                 / math.log(6.0)) if "cyl0" in F_ else None
+        t["fe_cyl_over_sphere_1N"] = (F_["cyl0"]["per_force"]["1"]["approach_um"] / F_["apex"]["per_force"]["1"]["approach_um"]
+                                      if "cyl0" in F_ else None)
+        sp = [F_[p]["per_force"]["1"]["approach_um"] for p in F_ if F_[p]["kind"] == "sphere"]
+        t["fe_sphere_1N_range_um"] = [min(sp), max(sp)]
         out["tips"][tip] = t
     (OUT / "summary.json").write_text(json.dumps(out, indent=1))
     for tip, t in out["tips"].items():
         print(tip)
+        print(f"  fe    exponent sphere {t['fe_exponent_apex_sphere']:.2f} cyl {t['fe_exponent_cyl0']:.2f}  cyl/sphere at 1 N "
+              f"{t['fe_cyl_over_sphere_1N']:.2f}  sphere range {t['fe_sphere_1N_range_um'][0]:.0f}-{t['fe_sphere_1N_range_um'][1]:.0f} um")
         for m, v in t["models"].items():
-            print(f"  {m:5s} rms abs {v['rms_err_abs']:.3f}  rms shape {v['rms_err_shape']:.3f}  max shape "
-                  f"{v['max_err_shape']:.3f}  modulus scale {v['modulus_scale_to_fe']:.3f}")
+            print(f"  {m:5s} rms abs {v['rms_err_abs']:.3f}  rms shape {v['rms_err_shape']:.3f} (sphere {v['rms_err_shape_sphere']:.3f}, "
+                  f"cyl {v['rms_err_shape_cyl']:.3f})  max shape {v['max_err_shape']:.3f}  modulus scale {v['modulus_scale_to_fe']:.2f}  "
+                  f"exponent sphere {v['exponent_apex_sphere']:.2f} cyl {v['exponent_cyl0']:.2f}  cyl/sphere {v['cyl_over_sphere_1N']:.2f}")
 
 
 def main():

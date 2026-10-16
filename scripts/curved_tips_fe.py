@@ -48,9 +48,14 @@ def install(sh):
     import tpu_tip_fem_tip as T
     TD.inside_body, TD.surface_x = sh.fe_inside, sh.fe_surface_x
     if getattr(sh, "family", "") == "qell":
-        xb = (sh.xc - (TG.REACH - 0.0085)) * 1e3
+        import tpu_tip_magnet as M
+        xb = round((sh.xc - (TG.REACH - 0.0085)) * 1e3, 6)
         TD.X_BACK = xb
         T.X_BACK = xb
+        # the grid's x zones start at the back plane, so its nodes are a node plane and are fixed (until 2026-10-15
+        # 19:00 the default zones had no node at x = 0, which left the 8.5 mm quarter-ellipsoids' backs free)
+        fine = [(7.0, 8.5, 0.2)]
+        M.GRID = dict(M.GRID, x=([(xb, 1.0, 0.5), (1.0, 7.0, 0.25)] if xb < 1.0 else [(xb, 7.0, 0.25)]) + fine)
     return TD.X_BACK
 
 
@@ -91,6 +96,14 @@ def main():
         xb = install(sh)
         depth = depth_of(sh)
         import tpu_tip_magnet as M
+        if not getattr(M, "_captures", False):                 # keep the built model to count the fixed back nodes
+            _build = M.build
+
+            def build_capture(recipe, magnet, depth_):
+                model, cc = _build(recipe, magnet, depth_)
+                M.LAST_MODEL = model
+                return model, cc
+            M.build, M._captures = build_capture, True
         if a.count:
             import tpu_tip_design as TD
             occ, _ = TD.occupancy(M.H_AUX, MAG[0], depth)
@@ -104,7 +117,9 @@ def main():
                 tmp = Path(td) / "row.jsonl"
                 M.run(rec, M.RECIPES[rec], MAG[0], depth, tuple(a.forces), out=tmp)
                 row = json.loads(tmp.read_text().splitlines()[-1])
-            row.update(tip=key, back_plane_x_mm=xb, study="20261015-curved_tips", script_wrapper="scripts/curved_tips_fe.py")
+            row.update(tip=key, back_plane_x_mm=xb, study="20261015-curved_tips", script_wrapper="scripts/curved_tips_fe.py",
+                       n_fixed_back_nodes=int(((np.abs(M.LAST_MODEL.X[:, 0] - xb) < 1e-6) & M.LAST_MODEL.fixed_nodes).sum())
+                       if getattr(M, "LAST_MODEL", None) is not None else None)
             row.update(noise(row, depth))
             with open(a.out, "a") as fh:
                 fh.write(json.dumps(row) + "\n")

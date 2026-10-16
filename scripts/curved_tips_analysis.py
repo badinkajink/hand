@@ -25,6 +25,7 @@ from __future__ import annotations
 import argparse
 import glob
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -359,11 +360,117 @@ def cost():
     return out
 
 
+def qell():
+    """Step 13: the quarter-ellipsoids' footprints (mount face, back face and its width where the board's chips sit),
+    the apex terrace of a face-up print, the fingernail contacts, the sensing rows and the five-chip board's outline
+    (qell/summary.json)."""
+    import tip_codesign_geometry as TG
+    import mlx90393_model as MLX
+    keys = ["tcd_qell7.4x8.5x11x22", "tcd_qell7.4x5x11x22", "tcd_qell7.4x8.5x16x32", "tcd_rs3_re3"]
+    out = {"tips": {}, "board": {"chips_mm": MLX.BOARD_CHIPS, "outline_mm": MLX.BOARD_OUTLINE,
+                                 "width_mm": MLX.BOARD_OUTLINE["u"][1] - MLX.BOARD_OUTLINE["u"][0],
+                                 "length_mm": MLX.BOARD_OUTLINE["v"][1] - MLX.BOARD_OUTLINE["v"][0],
+                                 "thick_mm": MLX.BOARD_T_MM, "spot_mm": MLX.SPOT_MM}}
+    xs = np.linspace(TG.X_BACK, TG.X_FACE, 241)
+    ys = np.linspace(-TG.WIDTH / 2, TG.WIDTH / 2, 211)
+    zs = np.linspace(TG.Z_END, TG.Z_MOUNT, 215)
+    for key in keys:
+        sh = TG.shape(key)
+        X, Y = np.meshgrid(xs, ys, indexing="ij")
+        P = np.column_stack([X.ravel(), Y.ravel(), np.full(X.size, TG.Z_MOUNT - 1e-6)])
+        a_mount = float(sh.inside_design(P).sum() * (xs[1] - xs[0]) * (ys[1] - ys[0]) * 1e6)
+        qq = getattr(sh, "family", "") == "qell"
+        xb = sh.xc + 1e-6 if qq else TG.X_BACK + 1e-6
+        Y2, Z2 = np.meshgrid(ys, zs, indexing="ij")
+        ins = sh.inside_design(np.column_stack([np.full(Y2.size, xb), Y2.ravel(), Z2.ravel()])).reshape(Y2.shape)
+
+        def width(z):
+            c = ys[ins[:, int(np.argmin(abs(zs - z)))]]
+            return float((c.max() - c.min()) * 1e3) if len(c) else 0.0
+        t = {"mount_face_mm2": a_mount, "back_face_mm2": float(ins.sum() * (ys[1] - ys[0]) * (zs[1] - zs[0]) * 1e6),
+             "back_width_mm": {"0": width(0.0), "-7": width(-0.007), "+7": width(0.007)},
+             "pulp_mm": float((TG.X_FACE - xb) * 1e3)}
+        if qq:
+            ay, ax, az, azp = sh.ay * 1e3, sh.ax * 1e3, sh.az * 1e3, sh.azp * 1e3
+            t["terrace_face_up_mm"] = {f"{h:g}": {"across": 2 * ay * math.sqrt(h / ax), "along": (az + azp) * math.sqrt(h / ax)}
+                                       for h in (0.1, 0.2)}
+            t["terrace_upright_um"] = 1e3 * ax / 2 * (0.1 / az) ** 2      # the drop of one 0.1 mm layer at the apex
+        out["tips"][key] = t
+    nail = rows(D / "nail/nail.jsonl")
+    out["nail"] = {}
+    for tip in sorted({r["tip"] for r in nail}):
+        v = [r for r in nail if r["tip"] == tip]
+        sh_ = [r["nail_tool_steps"] / r["steps"] for r in v]
+        mx = [r["nail_tool_max_N"] for r in v]
+        out["nail"][tip] = {"runs": len(v), "touched": sum(r["nail_tool_steps"] > 0 for r in v),
+                            "step_share_median": float(np.median(sh_)), "step_share_max": float(np.max(sh_)),
+                            "max_N_median": float(np.median(mx)), "max_N": float(np.max(mx)),
+                            "env_runs": sum(r["nail_env_steps"] > 0 for r in v), "finger_runs": sum(r["nail_finger_steps"] > 0 for r in v),
+                            "over_mm": v[0]["over_mm"], "thick_mm": v[0]["thick_mm"]}
+    out["sensing"] = {}
+    for f, tag in ((D / "fe/fe.jsonl", "current"), (D / "fe/superseded_free_back.jsonl", "free_back")):
+        for r in rows(f):
+            pf = r["per_force"]["1"]
+            out["sensing"].setdefault(r["tip"], {})[tag] = {
+                "depth_mm": r["depth_mm"], "back_plane_x_mm": r.get("back_plane_x_mm"), "approach_1N_um": pf["delta_um"],
+                "travel_um_per_N": abs(pf["magnet_t_um"][0]), "shear_y_um_per_N": abs(r["shear_y_magnet_t_um_per_N"][1]),
+                "shear_z_um_per_N": abs(r["shear_z_magnet_t_um_per_N"][2]), "noise_N": r["noise_N_known"],
+                "noise_earth_N": r["noise_N_known_earth"], "B0_max_mT": r["B0_max_mT"], "saturated": r["saturated"],
+                "E_best_MPa": r["E_best_MPa"], "n_fixed_back_nodes": r.get("n_fixed_back_nodes")}
+    (D / "qell").mkdir(exist_ok=True)
+    (D / "qell/summary.json").write_text(json.dumps(out, indent=1))
+    print(json.dumps(out, indent=1)[:3000])
+    return out
+
+
+def cell10():
+    """Step 17: the 10 mm cylinder cell under Drake, builder v1 and builder v2 (cell10/turn.jsonl): held seeds per
+    candidate, the stage score's selection and score, and the RMS turn-angle difference to Drake over each run's common
+    trace (cell10/summary.json)."""
+    import tip_codesign_analysis as AN
+    R = [r for r in rows(D / "cell10/turn.jsonl") if r.get("status") == "ok"]
+    by = {(r["arm"], int(r["cand"]), int(r["seed"])): r for r in R}
+    arms = ("v1", "v2", "drake")
+    cands = sorted({c for _, c, _ in by})
+    seeds = sorted({s for _, _, s in by})
+    out = {"arms": {}, "cands": cands, "seeds": seeds, "cell": "cylinder:10:0.75", "tip": "tcd_rs3_re3_p0.2",
+           "terms": {"stage_score_deg": "the candidate with the best held turn on seed 0, scored by its mean held turn on "
+                                        "seeds 1-2 (the 2026-10-14 stage rule)"}}
+    for a in arms:
+        held = {c: sum(bool(by[(a, c, s)]["held"]) for s in seeds if (a, c, s) in by) for c in cands}
+        sel = max((AN.held_turn(by[(a, c, 0)]), c) for c in cands if (a, c, 0) in by)
+        score = float(np.mean([AN.held_turn(by[(a, sel[1], s)]) for s in (1, 2)]))
+        out["arms"][a] = {"held": held, "held_total": int(sum(held.values())), "n_runs": len([k for k in by if k[0] == a]),
+                          "selected": sel[1], "selected_seed0_turn_deg": sel[0], "stage_score_deg": score if sel[0] > 0 else 0.0,
+                          "held_seed0": int(sum(bool(by[(a, c, 0)]["held"]) for c in cands if (a, c, 0) in by)),
+                          "turn_end_c6": [by[(a, 6, s)]["turn_end_deg"] for s in seeds if (a, 6, s) in by],
+                          "held_c6": [bool(by[(a, 6, s)]["held"]) for s in seeds if (a, 6, s) in by]}
+        if a != "drake":
+            rms = {}
+            for c in cands:
+                v = []
+                for s in seeds:
+                    A_, B_ = by.get((a, c, s)), by.get(("drake", c, s))
+                    if not A_ or not B_:
+                        continue
+                    ta = {round(x["t"], 3): x["th"] for x in A_["trace"]}
+                    tb = {round(x["t"], 3): x["th"] for x in B_["trace"]}
+                    ts = sorted(set(ta) & set(tb))
+                    v.append(float(np.sqrt(np.mean([(ta[t] - tb[t]) ** 2 for t in ts]))))
+                rms[c] = float(np.median(v)) if v else None
+            out["arms"][a]["rms_turn_vs_drake_deg"] = rms
+    (D / "cell10/summary.json").write_text(json.dumps(out, indent=1))
+    for a, v in out["arms"].items():
+        print(a, "held", v["held_total"], "of", v["n_runs"], "| c6", v["held_c6"], "| selected", v["selected"], "score",
+              round(v["stage_score_deg"], 1), "| rms vs drake", v.get("rms_turn_vs_drake_deg"))
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("what", choices=["bed", "screen", "stage3", "cost"])
+    ap.add_argument("what", choices=["bed", "screen", "stage3", "cost", "qell", "cell10"])
     a = ap.parse_args()
-    {"bed": bed, "screen": screen, "stage3": stage3, "cost": cost}[a.what]()
+    {"bed": bed, "screen": screen, "stage3": stage3, "cost": cost, "qell": qell, "cell10": cell10}[a.what]()
 
 
 if __name__ == "__main__":

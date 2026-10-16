@@ -11,7 +11,8 @@ is shown 828 px wide; pads red, Drake blue, the law black).
            placements (traj/summary.json)
   screen   media/fig_screen.png: the stage score per condition, J2 and the Drake agreement per tip (screen/summary.json)
   stage3   media/fig_stage3.png: J3 and the paired difference against the as-built block (final/summary.json)
-  cost     media/fig_cost.png: CPU step at the three-finger grip and GPU world-step per tip (cost/)
+  stiffness media/fig_stiffness.png: the probe maps of four tips under the finite elements and the models
+           (stiffness/summary.json)
 
     ~/.claude/bin/resguard.sh run --mem 2G -- .venv/bin/python scripts/curved_tips_figures.py shapes bed
 """
@@ -72,6 +73,9 @@ def title2(k):
     m = re.match(r"tcd_ell([0-9.]+)x([0-9.]+)x([0-9.]+)(?:x([0-9.]+))?", k)
     if m:
         return f"Half-ellipsoid\n{m[1]} × {m[2]} × {m[3]}" + (f"/{m[4]}" if m[4] else "") + " mm"
+    m = re.match(r"tcd_qell([0-9.]+)x([0-9.]+)x([0-9.]+)(?:x([0-9.]+))?", k)
+    if m:
+        return f"Quarter-ellipsoid\n{m[1]} × {m[2]} × {m[3]}" + (f"/{m[4]}" if m[4] else "") + " mm"
     return k
 
 
@@ -92,11 +96,12 @@ def _outline(sh, plane, n=720):
     finger) or 'xy' (z = 0, the section across it), by radial bisection from an interior point (mm)."""
     import tip_codesign_geometry as TG
     th = np.linspace(0, 2 * np.pi, n, endpoint=False)
+    c = getattr(sh, "c0", TG.C0)                        # an interior point (a quarter-ellipsoid's lies above its back)
     if plane == "xz":
-        o = np.array([TG.C0[0], 0.0, TG.C0[2]])
+        o = np.array([c[0], 0.0, 0.0 if getattr(sh, "family", "") == "qell" else TG.C0[2]])
         D2 = np.column_stack([np.cos(th), np.zeros(n), np.sin(th)])
     else:
-        o = np.array([TG.C0[0], 0.0, 0.0])
+        o = np.array([c[0], 0.0, 0.0])
         D2 = np.column_stack([np.cos(th), np.sin(th), np.zeros(n)])
     lo, hi = np.zeros(n), np.full(n, 0.03)
     for _ in range(40):
@@ -112,8 +117,8 @@ def fig_shapes():
     across the finger at the contact point (y horizontal), drawn side by side on one x axis."""
     plt = setup()
     import tip_codesign_geometry as TG
-    tips = [C.ASBUILT.rsplit("_p", 1)[0], C.FINALIST.rsplit("_p", 1)[0]] + C.CAPSULES + C.ELLIPSOIDS
-    fig, axs = plt.subplots(2, 4, figsize=(7.2, 3.0), dpi=150)
+    tips = [C.ASBUILT.rsplit("_p", 1)[0], C.FINALIST.rsplit("_p", 1)[0]] + C.CAPSULES + C.ELLIPSOIDS + C.QUARTERS
+    fig, axs = plt.subplots(3, 4, figsize=(7.2, 4.5), dpi=150)
     gap = 4.0
     walls = {}
     if (D / "print/walls.jsonl").exists():
@@ -130,7 +135,9 @@ def fig_shapes():
         ax.fill(Py[:, 1] + yoff, Py[:, 0], color="#e6c7a8", ec=INK, lw=0.8)
         # the magnet slot of the print files (curved tips) or the face-up pocket (blocks): the disc 5 mm under the
         # palmar reach at the contact point, 4.76 x 1.59 mm
-        xm = (TG.X_FACE * 1e3 - 5.0 - 1.59, TG.X_FACE * 1e3 - 5.0)
+        import curved_tips_fe as CF
+        dep = CF.depth_of(sh)
+        xm = (TG.X_FACE * 1e3 - dep - 1.59, TG.X_FACE * 1e3 - dep)
         ax.add_patch(plt.Rectangle((zoff - 2.38, xm[0]), 4.76, 1.59, color="#555555", lw=0))
         ax.add_patch(plt.Rectangle((yoff - 2.38, xm[0]), 4.76, 1.59, color="#555555", lw=0))
         ax.plot([zoff], [TG.X_FACE * 1e3], "v", color=PADS, ms=4)
@@ -143,13 +150,16 @@ def fig_shapes():
         for s in ax.spines.values():
             s.set_visible(False)
         ax.set_title(title2(k), fontsize=9.0)
+    for ax in axs.ravel()[len(tips):]:
+        ax.axis("off")
     fig.tight_layout(h_pad=0.5, w_pad=0.3)
     out = MEDIA / "fig_shapes.png"
     fig.savefig(out)
     print("wrote", out.relative_to(ROOT))
 
 
-BED_ORDER = [C.ASBUILT, C.FINALIST] + [k + C.PRINT for k in C.CAPSULES + C.ELLIPSOIDS] + [C.LITERAL, C.SPHERE_ENV, C.SPHERE]
+BED_ORDER = ([C.ASBUILT, C.FINALIST] + [k + C.PRINT for k in C.CAPSULES + C.ELLIPSOIDS + C.QUARTERS]
+             + [C.QUARTER_C + C.PRINT, C.LITERAL, C.SPHERE_ENV, C.SPHERE])
 
 
 def fig_bed():
@@ -186,7 +196,8 @@ def fig_bed():
                        rotation_mode="anchor")
     for a in axs:
         a.axvline(1.5, color=GRID, lw=1.2)
-        a.axvline(len(BED_ORDER) - 3.5, color=GRID, lw=1.2)
+        a.axvline(7.5, color=GRID, lw=1.2)
+        a.axvline(len(tips) - 3.5, color=GRID, lw=1.2)
     fig.tight_layout(h_pad=0.6)
     out = MEDIA / "fig_bed.png"
     fig.savefig(out)
@@ -237,6 +248,143 @@ def fig_traj():
     print("wrote", out.relative_to(ROOT))
 
 
+SCREEN_ORDER = [C.ASBUILT, C.FINALIST] + [k + C.PRINT for k in C.CAPSULES + C.ELLIPSOIDS + C.QUARTERS]
+COND_LABEL = {"0.7|kp0.72_kv0_fr0.18_fl0_dp0.0144": ("Friction 0.7", "o"), "1.0|kp0.72_kv0_fr0.18_fl0_dp0.0144": ("Friction 1.0", "^"),
+              "0.5|kp0.72_kv0_fr0.18_fl0_dp0.0144": ("Friction 0.5", "v"),
+              "0.7|kp0.5_kv0_fr0.18_fl0_dp0.0144": ("Friction 0.7, servo gain 0.5", "D"),
+              "0.7|kp0.72_kv0_fr0.12_fl0_dp0.0144": ("Friction 0.7, servo torque 0.12 N m", "s")}
+
+
+def fig_screen():
+    """(a) The stage score J per tip at each of the five conditions, J2 (their minimum) as a bar; (b) the D1-D8 replays
+    whose pads end within 3 deg of Drake with its held outcome, of 24, and the agreement gate."""
+    plt = setup()
+    S = json.loads((D / "screen/summary.json").read_text())["tips"]
+    tips = [k for k in SCREEN_ORDER if k in S]
+    x = np.arange(len(tips))
+    fig, axs = plt.subplots(2, 1, figsize=(7.2, 5.2), dpi=150, sharex=True, gridspec_kw=dict(height_ratios=[1.6, 1]))
+    ax = axs[0]
+    ax.bar(x, [S[k]["J2"] or 0 for k in tips], width=0.62, color="#e6e6e6", ec="#9a9a9a", lw=0.6, label="J2 (minimum over the conditions)")
+    cols = ["#111111", "#2166ac", "#b2182b", "#e08214", "#1b7837"]
+    for (c, (lab, mk)), col in zip(COND_LABEL.items(), cols):
+        ax.plot(x, [S[k]["conditions"].get(c, {}).get("J") for k in tips], mk, color=col, ms=4.2, label=lab, mfc="none" if mk in "Ds" else col)
+    ax.set_ylabel("Stage score J")
+    ax.set_ylim(0, 0.5)
+    ax.legend(fontsize=8.0, ncol=3, loc="lower center", bbox_to_anchor=(0.5, 1.0), handletextpad=0.3, columnspacing=1.0)
+    ax = axs[1]
+    base = S[C.ASBUILT]["agree_drake_3deg"]
+    ax.bar(x, [S[k]["agree_drake_3deg"] or 0 for k in tips], width=0.62,
+           color=[DRAKE if S[k]["gate_pass"] else "#c9c9c9" for k in tips])
+    ax.axhline(base - 2, color=INK2, lw=0.9, ls="--")
+    ax.text(len(tips) - 0.6, base - 2 + 0.6, f"Gate: {base - 2} of 24", fontsize=8.3, ha="right", color=INK2)
+    ax.set_ylabel("D1-D8 replays within\n3 deg of Drake (of 24)")
+    ax.set_ylim(0, 24)
+    ax.set_xticks(x)
+    ax.set_xticklabels([short(k).replace("\n", " ") for k in tips], fontsize=8.5, rotation=32, ha="right", rotation_mode="anchor")
+    for a in axs:
+        a.axvline(1.5, color=GRID, lw=1.2)
+        a.axvline(7.5, color=GRID, lw=1.2)
+    fig.tight_layout(h_pad=0.6)
+    out = MEDIA / "fig_screen.png"
+    fig.savefig(out)
+    print("wrote", out.relative_to(ROOT))
+
+
+def fig_stage3():
+    """J3 per stage-3 tip at its four conditions and their minimum, and the paired difference against the as-built
+    block with its 90 % bootstrap interval."""
+    plt = setup()
+    S = json.loads((D / "final/summary.json").read_text())["candidates"]
+    tips = [C.ASBUILT, C.FINALIST] + [k for k in S if k not in (C.ASBUILT, C.FINALIST)]
+    fig, axs = plt.subplots(1, 2, figsize=(7.2, 3.2), dpi=150, gridspec_kw=dict(width_ratios=[1.25, 1]))
+    y = np.arange(len(tips))[::-1]
+    ax = axs[0]
+    cols = ["#111111", "#b2182b", "#e08214", "#1b7837"]
+    conds = [c for c in COND_LABEL if c != "1.0|kp0.72_kv0_fr0.18_fl0_dp0.0144"]
+    for c, col in zip(conds, cols):
+        lab, mk = COND_LABEL[c]
+        ax.plot([S[k]["J"].get(c) for k in tips], y, mk, color=col, ms=4.2, label=lab, mfc="none" if mk in "Ds" else col)
+    ax.plot([S[k]["J3"] for k in tips], y, "|", color=INK, ms=14, mew=2.0, label="J3 (minimum)")
+    ax.set_yticks(y)
+    ax.set_yticklabels([short(k).replace("\n", " ") for k in tips], fontsize=8.5)
+    ax.set_xlabel("Stage score on fresh placements")
+    ax.set_xlim(0, 0.45)
+    h, lab = ax.get_legend_handles_labels()
+    fig.legend(h, lab, fontsize=8.0, ncol=3, loc="upper center", bbox_to_anchor=(0.5, 1.0), handletextpad=0.3)
+    ax = axs[1]
+    ax.axvline(0, color=INK2, lw=0.9)
+    for yy, k in zip(y, tips):
+        v = S[k]
+        if "dJ3_ci90" not in v:
+            continue
+        lo, hi = v["dJ3_ci90"]
+        ax.plot([lo, hi], [yy, yy], color=PADS, lw=1.6)
+        ax.plot([v["dJ3_vs_base"]], [yy], "o", color=PADS, ms=4.5)
+    ax.set_yticks(y)
+    ax.set_yticklabels([])
+    ax.set_xlabel("J3 minus the as-built block's\n(90 % bootstrap interval)")
+    fig.tight_layout(w_pad=0.8, rect=(0, 0, 1, 0.84))
+    out = MEDIA / "fig_stage3.png"
+    fig.savefig(out)
+    print("wrote", out.relative_to(ROOT))
+
+
+STIFF_TIPS = ["tcd_rs3_re3", "tcd_cap8.5", "tcd_ell7.4x8.5x16x32", "tcd_qell7.4x8.5x11x22"]
+STIFF_PROBES = ["apex", "y2.6", "y4.1", "y5.2", "z+4", "z-4", "z-7", "cyl0", "cyl+4", "cyl-4"]
+PROBE_LABEL = {"apex": "Apex", "y2.6": "y 2.6", "y4.1": "y 4.1", "y5.2": "y 5.2", "z+4": "z +4", "z-4": "z -4",
+               "z-7": "z -7", "cyl0": "Cyl. 0", "cyl+4": "Cyl. +4", "cyl-4": "Cyl. -4"}
+STIFF_MODELS = [("fe", "Finite elements (reference)", INK, "s"), ("drake", "Drake's field", DRAKE, "o"),
+                ("v1", "Pads v1", "#8c6bb1", "v"), ("v2", "Pads v2", PADS, "^"), ("v2c", "Pads v2, centroid depth", THIRD, "<"),
+                ("fit", "Pads fitted to the finite elements", "#1b7837", "D")]
+
+
+def fig_stiffness():
+    """Per tip, the approach at 1 N at each probe position under each model (top), and the same divided by the model's
+    apex sphere approach (bottom: the map's variation alone)."""
+    plt = setup()
+    S = json.loads((D / "stiffness/summary.json").read_text())["tips"]
+    tips = [k for k in STIFF_TIPS if k in S]
+    fig, axs = plt.subplots(2, len(tips), figsize=(7.2, 4.6), dpi=150, sharex=True, sharey="row")
+    x = np.arange(len(STIFF_PROBES))
+    for j, k in enumerate(tips):
+        T = S[k]
+        for key, lab, col, mk in STIFF_MODELS:
+            if key == "fe":
+                vals = [(T["fe"].get(p) or {}).get("1") for p in STIFF_PROBES]
+            elif key in T["models"]:
+                vals = [(T["models"][key]["approach_um"].get(p) or {}).get("1") for p in STIFF_PROBES]
+            else:
+                continue
+            v = np.array([np.nan if a is None else a for a in vals], float)
+            for row, yy in ((0, v), (1, v / v[0])):
+                axs[row, j].plot(x, yy, mk + "-", color=col, ms=3.6, lw=0.9, label=lab if row == 0 else None,
+                                 mfc="none" if key == "fit" else col)
+        axs[0, j].set_title(title2(k).replace("Half-ellipsoid", "Half-ellipsoid").replace("\n", "\n"), fontsize=8.6)
+        axs[0, j].set_yscale("log")
+        axs[1, j].set_xticks(x)
+        axs[1, j].set_xticklabels([PROBE_LABEL[p] for p in STIFF_PROBES], rotation=90, fontsize=8.6)
+        for r in (0, 1):
+            axs[r, j].axvline(6.5, color=GRID, lw=1.2)
+    axs[0, 0].set_ylabel("Approach at 1 N (um)".replace("um", "\u00b5m"))
+    axs[1, 0].set_ylabel("Over the apex\nsphere approach")
+    axs[0, 0].set_ylim(15, 900)
+    from matplotlib.ticker import FixedLocator, NullLocator
+    axs[0, 0].yaxis.set_major_locator(FixedLocator([20, 50, 100, 200, 500]))
+    axs[0, 0].yaxis.set_minor_locator(NullLocator())
+    axs[0, 0].set_yticklabels(["20", "50", "100", "200", "500"])
+    axs[1, 0].set_ylim(0.0, 1.65)
+    seen = {}
+    for a in axs[0]:
+        for h_, l_ in zip(*a.get_legend_handles_labels()):
+            seen.setdefault(l_, h_)
+    order = [lab for _, lab, _, _ in STIFF_MODELS if lab in seen]
+    fig.legend([seen[k] for k in order], order, fontsize=8.6, loc="upper center", ncol=3, bbox_to_anchor=(0.5, 1.02))
+    fig.tight_layout(h_pad=0.4, w_pad=0.3, rect=(0, 0, 1, 0.9))
+    out = MEDIA / "fig_stiffness.png"
+    fig.savefig(out)
+    print("wrote", out.relative_to(ROOT))
+
+
 def _get(d, *path):
     for p in path:
         if d is None:
@@ -247,7 +395,7 @@ def _get(d, *path):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("figs", nargs="+", choices=["shapes", "bed", "traj", "screen", "stage3", "cost"])
+    ap.add_argument("figs", nargs="+", choices=["shapes", "bed", "traj", "screen", "stage3", "stiffness"])
     a = ap.parse_args()
     for f in a.figs:
         globals()[f"fig_{f}"]()
