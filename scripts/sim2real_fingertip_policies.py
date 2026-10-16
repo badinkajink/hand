@@ -137,20 +137,23 @@ def cmd_health(a):
                                              r["angv"][:, i], grasp_end=ev.residual_from, hold_start=150)
                 cards.append(sc)
             verdicts = {k: sum(1 for c in cards if c.verdict == k) for k in ("PASS", "WARN", "FAIL")}
-            fails = {}
+            fails, warns = {}, {}
             for c in cards:
-                for nm in c.failed:
-                    fails[nm] = fails.get(nm, 0) + 1
+                for ck in c.checks:
+                    if ck.status == "FAIL":
+                        fails[ck.name] = fails.get(ck.name, 0) + 1
+                    elif ck.status == "WARN":
+                        warns[ck.name] = warns.get(ck.name, 0) + 1
             row = dict(scene=f"s2r_{v}" if v not in ("tpu27pads1", "tpu27mesh") else v, tag=tag, n=N,
                        **{k: m.get(k) for k in ("n_held", "held_cos_mean", "grip_N", "pen_max_mm", "peak_force_N",
                                                 "drift_mm_s", "three_finger_share") if k in m},
                        mech={k: mm.get(k) for k in mm if not isinstance(mm.get(k), (list, dict))},
-                       health=dict(verdicts=verdicts, failed_checks=fails), wall_s=round(_t.perf_counter() - t0, 1),
+                       health=dict(verdicts=verdicts, failed_checks=fails, warned_checks=warns), wall_s=round(_t.perf_counter() - t0, 1),
                        when=_t.strftime("%Y-%m-%d %H:%M"))
             out.parent.mkdir(parents=True, exist_ok=True)
             with open(out, "a") as fh:
                 fh.write(json.dumps(row, default=float) + "\n")
-            print(row["scene"], tag, row.get("n_held"), verdicts, fails, flush=True)
+            print(row["scene"], tag, row.get("n_held"), verdicts, fails, warns, flush=True)
         ev.close()
 
 

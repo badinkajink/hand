@@ -212,6 +212,83 @@ def fe_table():
                  "Finite elements of the 85A magnet blocks at solid modulus 12&#8202;MPa (fe/fem.jsonl).", key="fe")
 
 
+# ------------------------------------------------------------------------------------------ sections
+
+def print_section():
+    tc = J("print/template_changes.json") or {}
+    ch = {c["key"]: c for c in tc.get("changed", [])}
+    pr = [r for r in S.get("prints", []) if r["tip"] is not None]
+    cp = [r for r in S.get("prints", []) if r["tip"] is None]
+    t_block = [r["print_time"] for r in pr if r["tip"] == "block"]
+    t_cur = [r["print_time"] for r in pr if r["tip"] != "block"]
+    fl = [r["flow_max"] for r in S.get("prints", [])]
+    return (f"<p>Fourteen PrusaSlicer projects print the 2026-10-16 magnet geometry in Siraya Tech Flex TPU 85A on extruder 2 of "
+            f"the owner&#8217;s Prusa XL 5T: a seat coupon with two walls and one with one wall at each seat, and twelve tips, "
+            f"the four-magnet, five-magnet and one-wall blocks and the three curved four-magnet tips, each at 30 and 50&#8202;% "
+            f"gyroid (Table&#160;[[tab:prints]]). The template is the owner&#8217;s v17 project with Siraya&#8217;s Prusa XL "
+            f"0.4&#8202;mm profile in filament slot 2: nozzle {ch.get('temperature', {}).get('siraya', '240')}&#8202;&#176;C, "
+            f"bed {ch.get('bed_temperature', {}).get('siraya', '35')}&#8202;&#176;C, extrusion multiplier "
+            f"{ch.get('extrusion_multiplier', {}).get('siraya', '0.96')}, at most "
+            f"{ch.get('filament_max_volumetric_speed', {}).get('siraya', '12')}&#8202;mm<sup>3</sup>/s, 0.6&#8202;mm retraction, "
+            f"and Siraya&#8217;s print speeds (perimeters {ch.get('perimeter_speed', {}).get('siraya', '60')}&#8202;mm/s, external "
+            f"perimeters {ch.get('external_perimeter_speed', {}).get('siraya', '40')}&#8202;mm/s, bridges "
+            f"{ch.get('bridge_speed', {}).get('siraya', '25')}&#8202;mm/s). The projects keep the template&#8217;s two perimeters "
+            "and four top and four bottom layers, the recipe of every finite-element model and of the 1.8&#8202;mm pocket-wall "
+            "rule, and its thin bridges: Siraya&#8217;s thick bridges lay a 0.4&#8202;mm strand whose underside hangs 0.2&#8202;mm "
+            "below a 0.2&#8202;mm layer, onto a magnet that sits 0.1&#8211;0.2&#8202;mm under the bridge. "
+            "<code>print/template_changes.json</code> lists every key taken over and every key kept.</p>"
+            f"<p>PrusaSlicer 2.9.2 sliced every project. In each G-code the only tool selected is T1 (extruder 2), the part "
+            f"prints at 240&#8202;&#176;C on a 35&#8202;&#176;C bed, the largest volumetric flow of any move on a part is "
+            f"{max(fl):.1f}&#8202;mm<sup>3</sup>/s, every pocket is empty on every layer it spans, the layer under it covers "
+            "its whole footprint, and the first layer over it is bridge infill printed right after its pause (M601). Each "
+            "pocket has two perimeter loops in the two-wall prints and one in the one-wall prints. The blocks print in "
+            f"{min(t_block)}&#8211;{max(t_block)} and the curved tips in {min(t_cur)}&#8211;{max(t_cur)} with two pauses each. "
+            "The seats are 2.7&#8202;mm, 90&#8202;% of the magnet&#8217;s diameter: a provisional value until the coupon shows "
+            "which of 2.7, 2.8 and 2.9&#8202;mm takes and keeps a magnet in 85A, and "
+            "<code>scripts/sim2real_fingertip_prints.py build --seat 2.8</code> rewrites the tips.</p>" + print_table())
+
+
+def readout_section():
+    sens = (J("sensing/sensing.json") or {}).get("rows", [])
+
+    def row(lay, rec, plane):
+        return next(r for r in sens if r["layout"] == lay and r["recipe"] == rec and r["plane"] == plane)
+    body = []
+    for lay, lab in (("four_d3x2_d5", "Four"), ("five_d3x2_d5", "Five"), ("four_d3x2_d5_w1", "Four, one wall")):
+        for rec in ("w85_30", "w85_50"):
+            for plane, pl in (("touch", "Against the tip"), ("plate", "Behind the DIP plate")):
+                r = row(lay, rec, plane)
+                body.append([lab, rec[-2:] + "&#8202;%", pl, f(r["B_max_component_mT"], 2), str(r["gain_sel"]),
+                             f(r["centre_force_N"], 3), f(r["median_force_N"], 3), f(sum(r["magnet_travel_1N_um"]) /
+                                                                                  len(r["magnet_travel_1N_um"]), 1)])
+    f5, f4 = row("five_d3x2_d5", "w85_30", "plate"), row("four_d3x2_d5", "w85_30", "plate")
+    t5, t4 = row("five_d3x2_d5", "w85_30", "touch"), row("four_d3x2_d5", "w85_30", "touch")
+    g5 = row("five_d3x2_d5", "w85_50", "plate")
+    flip = [x for r in (f4, f5) for k in r["polarity_flip_dB_uT"] for x in k]
+    return (f"<p>On the CAD finger the five-chip board cannot lie against the tip: the DIP link&#8217;s 3.0&#8202;mm dorsal plate "
+            "fills the space behind the tip&#8217;s back face over its whole length and width (finger frame "
+            "\\(x\\) = 6.45&#8211;9.45&#8202;mm). On the plate&#8217;s dorsal face, chips toward the plate, the chips&#8217; sensing "
+            "points lie 3.42&#8202;mm behind the back face instead of 0.42&#8202;mm. There the force bound at the contact point "
+            f"doubles: {f(f4['centre_force_N'], 2)}&#8202;N with four magnets and {f(f5['centre_force_N'], 2)}&#8202;N with five at "
+            f"30&#8202;% gyroid, against {f(t4['centre_force_N'], 2)} and {f(t5['centre_force_N'], 2)}&#8202;N with the chips "
+            f"against the tip (Table&#160;[[tab:readout]]). The fifth magnet, under the contact point and over U1, lowers the bound "
+            f"{f4['centre_force_N'] / f5['centre_force_N']:.1f} times. At 50&#8202;% gyroid the tip is about twice as stiff and "
+            f"the bound rises to {f(g5['centre_force_N'], 2)}&#8202;N with five magnets; only the 30&#8202;% prints move the "
+            f"magnets 12&#8202;&#181;m/N or more, the travel the readout needs for 0.1&#8202;N per sample. Behind the plate "
+            f"the static field is {f(f4['B_max_component_mT'], 1)}&#8202;mT (four) and {f(f5['B_max_component_mT'], 1)}&#8202;mT "
+            "(five) on the largest axis, inside GAIN_SEL 7&#8217;s 4.8&#8202;mT range, so the bound uses the datasheet&#8217;s noise "
+            "at the gain the board would run. A magnet mounted the wrong way round changes the field at a chip by "
+            f"{min(flip) / 1e3:.1f}&#8211;{max(flip) / 1e3:.1f}&#8202;mT, a thousand times the noise, so the zero-load reading "
+            "identifies it (procedure, Section&#160;[[sec:procedure]]).</p>"
+            + table(["Magnets", "Gyroid", "Chips", "Largest field component (mT)", "GAIN_SEL", "Force bound at the contact "
+                     "point (N)", "Median over 15 points (N)", "Magnet travel at 1 N (&#181;m/N)"], body,
+                    "Readout of the 85A magnet blocks: point-dipole fields of the 3&#8202;&#215;&#8202;2&#8202;mm N52 magnets at "
+                    "the five chips and the Cram&#233;r&#8211;Rao bound from one 141&#8202;Hz sample, the finite elements&#8217; "
+                    "magnet motions at solid modulus 12&#8202;MPa (sensing/sensing.json). A softer Siraya print moves the "
+                    "magnets further and lowers the bound in proportion: travel and bound scale as 12&#8202;MPa over the "
+                    "solid modulus.", key="readout"))
+
+
 def main():
     v = {"STYLE": P.style_block().replace("</style>", EXTRA_CSS + "</style>"), "BUILT": time.strftime("%Y-%m-%d %H:%M"),
          "GLOSSARY": glossary()}
