@@ -1,0 +1,78 @@
+{
+ "variant": "ell11_g50",
+ "shape": "ell11",
+ "key": "tcd_ell7.4x8.5x11x22_u0.1",
+ "E_MPa": 30.904096648141383,
+ "E_src": "block four w85_50 x 1.884 (mean of the capsule and the 16/32 half-ellipsoid (no finite elements))",
+ "sheet": "20261016-siraya85a_tcd_ell7p4x8p5x11x22_four_d3x2_depth7_seat2p7_g50",
+ "layout": "four",
+ "walls": 2,
+ "infill": 50,
+ "board": true,
+ "magnets": 4,
+ "pad_builder": "v2",
+ "pad_E_Pa": 30904096.648141384,
+ "tip_mass": {
+  "tpu_g": 3.331,
+  "magnets_g": 0.424,
+  "total_g": 3.755,
+  "volume_mm3": 4101.6,
+  "com_m": [
+   -0.001152,
+   -0.0,
+   0.000884
+  ],
+  "fullinertia": [
+   1.6298e-07,
+   1.7811e-07,
+   1.1662e-07,
+   3.6343e-15,
+   3.2416e-09,
+   -8.1494e-15
+  ]
+ },
+ "magnet_centres_index_tip_m": [
+  [
+   -0.00255,
+   -0.003,
+   0.0035
+  ],
+  [
+   -0.00255,
+   0.003,
+   0.0035
+  ],
+  [
+   -0.00255,
+   -0.003,
+   -0.0035
+  ],
+  [
+   -0.00255,
+   0.003,
+   -0.0035
+  ]
+ ],
+ "board_geometry": {
+  "t_mm": 1.6,
+  "half_mm": 10.0,
+  "tab_w_mm": 10.0,
+  "tab_l_mm": 9.0,
+  "fr4_t_mm": 0.6,
+  "chip_mm": [
+   3.0,
+   3.0,
+   1.0
+  ],
+  "pitch_mm": 7.0,
+  "mass_g": 0.64,
+  "placement": "dorsal face of the DIP plate, chips toward the plate, U1 over the contact point, tab toward the PIP joint"
+ },
+ "files": [
+  "cad_v1/hand.xml",
+  "cad_v1/finger.xml",
+  "cad_v1/scene_screwdriver_medium.xml"
+ ],
+ "script": "scripts/sim2real_fingertip_scenes.py build",
+ "when": "2026-10-16 14:59"
+}

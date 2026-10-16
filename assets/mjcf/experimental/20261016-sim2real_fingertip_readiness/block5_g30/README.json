@@ -1,0 +1,83 @@
+{
+ "variant": "block5_g30",
+ "shape": "block",
+ "key": "tcd_rs3_re3_p0.2",
+ "E_MPa": 8.017011119246842,
+ "E_src": "finite elements five_d3x2_d5 w85_30 (solid 12 MPa)",
+ "sheet": "20261016-siraya85a_block_five_d3x2_depth5_seat2p7_g30",
+ "layout": "five",
+ "walls": 2,
+ "infill": 30,
+ "board": true,
+ "magnets": 5,
+ "pad_builder": "v2",
+ "pad_E_Pa": 8017011.119246841,
+ "tip_mass": {
+  "tpu_g": 3.347,
+  "magnets_g": 0.53,
+  "total_g": 3.877,
+  "volume_mm3": 5230.9,
+  "com_m": [
+   -0.002275,
+   0.0,
+   0.000272
+  ],
+  "fullinertia": [
+   1.9284e-07,
+   2.1169e-07,
+   1.4462e-07,
+   -4.4461e-24,
+   5.7132e-10,
+   -4.7563e-24
+  ]
+ },
+ "magnet_centres_index_tip_m": [
+  [
+   -0.00455,
+   -0.003,
+   0.0035
+  ],
+  [
+   -0.00455,
+   0.003,
+   0.0035
+  ],
+  [
+   -0.00455,
+   0.0,
+   0.0
+  ],
+  [
+   -0.00455,
+   -0.003,
+   -0.0035
+  ],
+  [
+   -0.00455,
+   0.003,
+   -0.0035
+  ]
+ ],
+ "board_geometry": {
+  "t_mm": 1.6,
+  "half_mm": 10.0,
+  "tab_w_mm": 10.0,
+  "tab_l_mm": 9.0,
+  "fr4_t_mm": 0.6,
+  "chip_mm": [
+   3.0,
+   3.0,
+   1.0
+  ],
+  "pitch_mm": 7.0,
+  "mass_g": 0.64,
+  "placement": "dorsal face of the DIP plate, chips toward the plate, U1 over the contact point, tab toward the PIP joint"
+ },
+ "files": [
+  "cad_v1/hand.xml",
+  "cad_v1/finger.xml",
+  "cad_v1/scene_screwdriver_medium.xml"
+ ],
+ "script": "scripts/sim2real_fingertip_scenes.py build",
+ "when": "2026-10-16 14:54"
+}

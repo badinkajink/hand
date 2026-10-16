@@ -400,6 +400,53 @@ def cmd_sweep(a):
     out.write_text(json.dumps(old, indent=1))
 
 
+def cmd_render(a):
+    """Close-up stills of one finger (finger.xml) of each variant: side view along the flexion axis and the dorsal view,
+    CAD meshes, the tip translucent with its magnets, the board green."""
+    import mujoco
+    from PIL import Image, ImageDraw, ImageFont
+    out = D / "media"
+    out.mkdir(parents=True, exist_ok=True)
+    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 22)
+    for name in a.variants:
+        m = mujoco.MjModel.from_xml_path(str(ASSETS / name / "cad_v1" / "finger.xml"))
+        m.vis.global_.offwidth, m.vis.global_.offheight = a.width, a.height
+        d = mujoco.MjData(m)
+        d.qpos[:] = [0.0, math.radians(a.mcp), math.radians(a.pip)]
+        mujoco.mj_forward(m, d)
+        for g in range(m.ngeom):
+            nm = m.geom(g).name or ""
+            if nm.endswith("tipvis") or "_pad" in nm:
+                m.geom_rgba[g] = (0.85, 0.55, 0.35, 0.35) if nm.endswith("tipvis") else (0.75, 0.4, 0.25, 0.0)
+        opt = mujoco.MjvOption()
+        for gi in range(6):
+            opt.geomgroup[gi] = 1 if gi in (0, 1, 2, 3) else 0
+        sph = [g for g in range(m.ngeom) if m.geom_group[g] == 3 and "magnet" not in (m.geom(g).name or "")]
+        for g in sph:
+            m.geom_rgba[g, 3] = 0.0
+        r = mujoco.Renderer(m, a.height, a.width)
+        tip = d.xpos[m.body("index_tip").id]
+        panels = []
+        for view, az, el in (("side", 90.0, 0.0), ("dorsal", 180.0, 0.0), ("oblique", 140.0, -25.0)):
+            cam = mujoco.MjvCamera()
+            cam.type = mujoco.mjtCamera.mjCAMERA_FREE
+            cam.lookat[:] = tip + [0.0, 0.0, 0.012]
+            cam.distance, cam.azimuth, cam.elevation = a.dist, az, el
+            r.update_scene(d, cam, opt)
+            im = Image.fromarray(r.render().copy())
+            ImageDraw.Draw(im).text((12, 10), f"{name}: {view}", fill=(0, 0, 0), font=font)
+            panels.append(im)
+        r.close()
+        W = sum(p.width for p in panels)
+        strip = Image.new("RGB", (W, panels[0].height), "white")
+        x = 0
+        for p in panels:
+            strip.paste(p, (x, 0))
+            x += p.width
+        strip.save(out / f"finger_{name}.png")
+        print(out / f"finger_{name}.png", flush=True)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -413,8 +460,15 @@ def main():
     s.add_argument("--step", type=float, default=4.0)
     s.add_argument("--tab-lengths", nargs="+", type=float, default=[9.0, 6.0, 3.0, 0.0],
                    help="connector tab length toward the PIP joint, mm (0: no tab, a cable soldered to the board)")
+    r = sub.add_parser("render")
+    r.add_argument("--variants", nargs="+", default=["block4_g30", "cap_g30", "ell16_g30", "ell11_g30"])
+    r.add_argument("--mcp", type=float, default=30.0)
+    r.add_argument("--pip", type=float, default=30.0)
+    r.add_argument("--width", type=int, default=640)
+    r.add_argument("--height", type=int, default=640)
+    r.add_argument("--dist", type=float, default=0.11)
     a = ap.parse_args()
-    {"build": cmd_build, "table": cmd_table, "sweep": cmd_sweep}[a.cmd](a)
+    {"build": cmd_build, "table": cmd_table, "sweep": cmd_sweep, "render": cmd_render}[a.cmd](a)
 
 
 if __name__ == "__main__":

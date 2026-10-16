@@ -1,0 +1,43 @@
+{
+ "variant": "block_e10",
+ "shape": "block",
+ "key": "tcd_rs3_re3_p0.2",
+ "E_MPa": 10.0,
+ "E_src": "the modelling default (10 MPa)",
+ "sheet": null,
+ "layout": null,
+ "walls": 2,
+ "infill": null,
+ "board": false,
+ "magnets": 0,
+ "pad_builder": "v2",
+ "pad_E_Pa": 10000000.0,
+ "tip_mass": {
+  "tpu_g": 6.329,
+  "magnets_g": 0.0,
+  "total_g": 6.329,
+  "volume_mm3": 5230.9,
+  "com_m": [
+   -0.001915,
+   0.0,
+   0.000315
+  ],
+  "fullinertia": [
+   3.4643e-07,
+   3.8351e-07,
+   2.5937e-07,
+   -8.3407e-24,
+   1.7982e-09,
+   -9.1878e-24
+  ]
+ },
+ "magnet_centres_index_tip_m": [],
+ "board_geometry": null,
+ "files": [
+  "cad_v1/hand.xml",
+  "cad_v1/finger.xml",
+  "cad_v1/scene_screwdriver_medium.xml"
+ ],
+ "script": "scripts/sim2real_fingertip_scenes.py build",
+ "when": "2026-10-16 14:54"
+}

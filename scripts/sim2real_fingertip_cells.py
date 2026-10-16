@@ -262,6 +262,93 @@ def cmd_icem(a):
                     if row["status"] == "ok" else row["error"]), flush=True)
 
 
+def cmd_film(a):
+    """One HOM run of a variant on a cell, rendered: pads touching the cylinder red, the board green and drawn red while it
+    touches the cylinder; stills at the end of the grip, mid-turn and the end beside the clip."""
+    import mujoco
+    import contact_bed_common as CB
+    import hand_object_scale_films as SF
+    import hom_turn3 as H
+    import reorient_backends_films as RBF
+    import tip_codesign_film as TF
+    from PIL import Image
+    S, spec = setup(a.variant, a.builder, a.mu)
+    cell, shape, dd = cell_of(S, a.cell)
+    cands = S.candidates(cell, shape, dd)
+    ci = a.cand
+    if ci is None:
+        best = hom_best(OUT / "hom.jsonl", a.variant, a.builder, a.mu)
+        ci = best[(cell["tag"], shape, dd)]
+    cand = cands[ci]
+    kp = S.RB.plant_args(SERVO)["kp"]
+    sc = S.cell_scenes(cell, shape, dd, models=("pads", "pt"))
+    m_pt = mujoco.MjModel.from_xml_path(str(sc["pt"][0]))
+    gg = S.grasp_geometry(cell, shape, dd, cand["h"], cand["spread"])
+    gp = S.grip_poses(m_pt, gg, kp)
+    meta = S.candidate_meta(sc["pads"][1], gg, gp)
+    plant = H.MjPlant(SF.film_scene(Path(sc["pads"][0]), dd / 2000.0), meta)
+    S.set_palm(plant.m, gg["palm"])
+    mirror = S.Mirror(Path(sc["pt"][0]))
+    S.set_palm(mirror.m, gg["palm"])
+    m, dat = plant.m, plant.d
+    pads = [i for i in range(m.ngeom) if "_pad" in (m.geom(i).name or "")]
+    boards = [i for i in range(m.ngeom) if "board" in (m.geom(i).name or "")]
+    for i in pads:
+        m.geom_rgba[i] = (0.75, 0.4, 0.25, 0.0)
+    RBF.W, RBF.H = a.width, a.height
+    m.vis.global_.offwidth, m.vis.global_.offheight = max(a.width, 640), max(a.height, 480)
+    rend, cam = RBF.renderer_for(m, np.asarray(meta["tool7"], float)[:3])
+    cam.distance = 0.24 + 1.4 * dd / 1000.0
+    cam.elevation += a.elev
+    cam.azimuth += a.azim
+    frames, k, stills, hits = [], [0], {}, {"board": 0}
+    title = f"{a.variant}: {spec['key']}, E {spec['pad_E_Pa'] / 1e6:.2f} MPa, {a.cell}, grasp {ci}, seed {a.seed}"
+    prm = dict(H.DEFAULTS, kp_model=kp, post_off=1.0)
+    t_sq = prm["t_grip"] + prm["t_squeeze"]
+
+    def cb(pl, tt, info):
+        k[0] += 1
+        if k[0] % a.every:
+            return
+        for i in pads:
+            m.geom_rgba[i, 3] = 0.0
+        for i in boards:
+            m.geom_rgba[i] = (0.1, 0.45, 0.2, 1.0)
+        for i in range(dat.ncon):
+            g1, g2 = int(dat.contact[i].geom[0]), int(dat.contact[i].geom[1])
+            for g, o in ((g1, g2), (g2, g1)):
+                if o in pl.tool_geoms and m.geom_bodyid[g] != pl.tb:
+                    if g in pads:
+                        m.geom_rgba[g] = (0.9, 0.1, 0.1, 1.0)
+                    elif g in boards:
+                        m.geom_rgba[g] = (0.95, 0.1, 0.1, 1.0)
+                        hits["board"] += 1
+        rend.update_scene(dat, cam)
+        fr = TF.label_bar(rend.render().copy(), [title, f"t {tt:4.2f} s   turn {info.get('th_deg', 0):+5.1f} deg   "
+                                                        f"{info.get('phase', '')}"])
+        frames.append(fr)
+        for name, tw in (("grip", prm["t_grip"]), ("squeeze", t_sq), ("mid", t_sq + 1.0), ("late", t_sq + 2.5)):
+            if name not in stills and tt >= tw - 1e-9:
+                stills[name] = fr
+    res = S.turn_rollout(plant, mirror, meta, a.seed, prm, frame_cb=cb)
+    stills.setdefault("end", frames[-1])
+    stills["end"] = frames[-1]
+    frames += [frames[-1]] * 25
+    rend.close()
+    media = D / "media"
+    media.mkdir(parents=True, exist_ok=True)
+    stem = f"hom_{a.cell.replace(':', '_')}_c{ci}_s{a.seed}_{a.variant}"
+    CB.write_h264(frames, media / f"{stem}.mp4", crf=20)
+    for name, fr in stills.items():
+        Image.fromarray(fr).save(media / f"{stem}_{name}.png")
+    row = {"film": "hom", "clip": f"{stem}.mp4", "variant": a.variant, "cell": a.cell, "cand": ci, "seed": a.seed,
+           "held": res["held"], "turn_end_deg": res["turn_end_deg"], "fingers_loaded_end": res["fingers_loaded_end"],
+           "board_contact_frames": hits["board"], "frames": len(frames), "stills": sorted(stills),
+           "when": time.strftime("%Y-%m-%d %H:%M")}
+    _append(media / "films.jsonl", row)
+    print(json.dumps(row), flush=True)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -282,8 +369,20 @@ def main():
     i.add_argument("--nthread", type=int, default=6)
     i.add_argument("--hom-tag", default="hom")
     i.add_argument("--tag", default="icem")
+    f = sub.add_parser("film")
+    f.add_argument("--variant", required=True)
+    f.add_argument("--cell", default="cylinder:16:0.625")
+    f.add_argument("--cand", type=int, default=None)
+    f.add_argument("--seed", type=int, default=0)
+    f.add_argument("--builder", default="v2", choices=list(BUILDER_HK))
+    f.add_argument("--mu", type=float, default=1.0)
+    f.add_argument("--width", type=int, default=960)
+    f.add_argument("--height", type=int, default=720)
+    f.add_argument("--every", type=int, default=4)
+    f.add_argument("--elev", type=float, default=10.0)
+    f.add_argument("--azim", type=float, default=0.0)
     a = ap.parse_args()
-    {"hom": cmd_hom, "icem": cmd_icem}[a.cmd](a)
+    {"hom": cmd_hom, "icem": cmd_icem, "film": cmd_film}[a.cmd](a)
 
 
 if __name__ == "__main__":
