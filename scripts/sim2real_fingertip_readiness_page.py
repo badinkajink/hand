@@ -289,6 +289,75 @@ def readout_section():
                     "solid modulus.", key="readout"))
 
 
+def hand_section():
+    sec = MAN.get("sections", {})
+    fd, ms = sec.get("finger_dimensions", {}), sec.get("masses", {})
+    var = S.get("variants", {})
+    tips = [var[v]["tip_g"] for v in var if v != "block_e10"]
+    prov = MAN.get("provenance_labels", {})
+    n_cited = len(MAN.get("cited_files", {}))
+    rows = []
+    for v in VARIANTS:
+        if v not in var:
+            continue
+        r = var[v]
+        rows.append([plain(v), f(r["E_MPa"], 2), f(r["tpu_g"], 2), f(r["magnets_g"], 2), f(r["tip_g"], 2),
+                     "yes" if r["board"] else "no"])
+    return (f"<p>The bench hand is the SR2 hand built from its printed parts, whose MCP link spaces the MCP and PIP axes "
+            f"{fd.get('mcp_axis_to_pip_axis', {}).get('value', 30.8)}&#8202;mm apart, 10.05&#8202;mm more than real_v1&#8217;s "
+            "capsule model; every simulation on this page that names the CAD hand uses that assembly, the real_v1 mounts and "
+            "workspace, and the servo plant. The D1&#8211;D8 bench plans and the D6 policies were made on real_v1&#8217;s "
+            "shorter fingers, so their sections test the new tips on those hands. "
+            f"<code>manifest.json</code> lists the parts, models, plans, policies, recipes and numerics this page rests on: "
+            f"{n_cited} cited files, each with its size, SHA-256 and last commit, and every value labelled with its source as "
+            + ", ".join(f"<i>{k}</i>" for k in prov) + ". The assembled finger is 85.2&#8202;g in the model against the "
+            "owner&#8217;s estimate of 120&#8202;g; no part has been weighed.</p>"
+            f"<p>Each variant (Table&#160;[[tab:variants]]) sets the tip&#8217;s mass from its 85A G-code (the filament extruded on "
+            f"the part) plus 0.106&#8202;g per magnet, {min(tips):.2f}&#8211;{max(tips):.2f}&#8202;g against the 5.84&#8202;g of the "
+            "model&#8217;s solid TPU tip, and adds the five-chip board to each DIP link as a collision box with its 0.64&#8202;g. "
+            "The production real_v1 files are unchanged; the variant scenes are new files under "
+            "<code>assets/mjcf/experimental/20261016-sim2real_fingertip_readiness/</code>.</p>"
+            + table(["Variant", "Pad modulus E (MPa)", "Printed TPU (g)", "Magnets (g)", "Tip (g)", "Board"], rows,
+                    "The CAD-hand variants (README.json in each variant&#8217;s folder).", key="variants"))
+
+
+def procedure_section():
+    pr = (J("bench/procedure.json") or {}).get("steps", [])
+    body = []
+    for st in pr:
+        pred = st["predicts"]
+        if st["id"] == "indentation":
+            b = pred["block, four magnets, 30 % gyroid"]
+            p_txt = (f"Four-magnet block, 30&#8202;%: {b['1 N']['E_s 12 MPa']:.0f}&#8202;&#181;m at 1&#8202;N for "
+                     f"\\(E_s\\) = 12&#8202;MPa, {b['1 N']['E_s 6 MPa']:.0f} for 6, {b['1 N']['E_s 24 MPa']:.0f} for 24")
+        elif st["id"] == "twist":
+            p_txt = (f"Arm at 1&#8202;N: block {pred['block4_g30']['1']:.2f}&#8202;mm, capsule {pred['cap_g30']['1']:.2f}, "
+                     f"half-ellipsoids {pred['ell16_g30']['1']:.2f} and {pred['ell11_g30']['1']:.2f}")
+        elif st["id"] == "board":
+            p_txt = (f"U1 {pred['five_magnets_plate_mT'][0][0]:.2f}&#8202;mT (five magnets), "
+                     f"{pred['four_magnets_plate_mT'][0][0]:.2f} (four); one reversed magnet shifts a chip by 0.9&#8211;2.2&#8202;mT")
+        elif st["id"] == "servo_step":
+            p_txt = "Time constant 0.02&#8202;s; gain 0.72&#8202;N&#8202;m/rad; stall above 0.18&#8202;N&#8202;m"
+        elif st["id"] == "pull":
+            p_txt = "Onset over twice the pinch force equals the friction coefficient; the models use 1.0"
+        elif st["id"] == "mass":
+            p_txt = "Tips 3.2&#8211;3.7&#8202;g with magnets; finger 85.2&#8202;g in the model"
+        elif st["id"] == "calibration":
+            p_txt = (f"Magnet travel {pred['travel_um_per_N']['five'][0]:.1f}&#8202;&#181;m/N at the centre magnet; U1 "
+                     f"{pred['signal_U1_uT_per_N']['five']:.0f}&#8202;&#181;T/N (five magnets, 30&#8202;%)")
+        else:
+            p_txt = pred if isinstance(pred, str) else ""
+        body.append([st["id"].replace("_", " ").capitalize(), st["what"], p_txt, st["status"]])
+    return ("<p>Every quantity that sets a model on this page is still unmeasured on the printed 85A tips. The measurements "
+            "below, in order, replace the proxies; each comes with the value the models predict "
+            "(<code>bench/procedure.json</code>). The indentation sets Siraya&#8217;s solid modulus: in linear elastic contact "
+            "the response at force \\(F\\) and modulus \\(E_s\\) equals the 12&#8202;MPa response at \\(F \\cdot 12\\,\\mathrm{MPa}/E_s\\), "
+            "so a measured approach \\(d\\) at force \\(F\\) gives \\(E_s = 12\\,\\mathrm{MPa}\; F / F_{12}(d)\\). The pull sets the "
+            "friction coefficient independently of the modulus, and the twist onset then tests the contact patch.</p>"
+            + table(["Check", "Procedure", "Model prediction", "Status"], body,
+                    "Bench measurements before and after the first actuation.", text_cols=(0, 1, 2, 3), key="procedure"))
+
+
 def main():
     v = {"STYLE": P.style_block().replace("</style>", EXTRA_CSS + "</style>"), "BUILT": time.strftime("%Y-%m-%d %H:%M"),
          "GLOSSARY": glossary()}
