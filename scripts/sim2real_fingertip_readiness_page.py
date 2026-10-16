@@ -648,6 +648,57 @@ def cells_section():
             + cells_table() + icem_table())
 
 
+BENCH_PLAN = "20261016-s2r_block4_g30_cyl25_t0p125_c7"
+
+
+def bench_section():
+    plan = J(f"bench/{BENCH_PLAN}_plan.json")
+    ver = J(f"bench/{BENCH_PLAN}_verify.json")
+    if not plan or not ver:
+        raise SystemExit(f"bench package {BENCH_PLAN} missing")
+    m = plan["meta"]
+    sm = ver["summary"]
+    rows = ver["rows"]
+    lim = max(r["longest_at_limit_s"] for r in rows)
+    spd = ver["peak_joint_speed_deg_s"]
+    clr = ver["finger_clearance_cad"]
+    nom = [r for r in rows if r["post"] == "removed" and r["kp"] == 0.72 and r["tau"] == 0.18 and r["mu"] == 1.0]
+    mounts = plan["mounts_palm_mm"]
+    dec = [
+        ["Fingertip", "Block, four 3&#8202;&#215;&#8202;2&#8202;mm magnets, 85A 30&#8202;% gyroid "
+         "(<code>print/20261016-siraya85a_block_four_d3x2_depth5_seat2p7_g30.3mf</code>)",
+         "Keeps the D1&#8211;D8 plans and all four policies as on the TPU block; the 30&#8202;% print gives the readout its "
+         "12&#8202;&#181;m/N; curved tips drop the tool under the block&#8217;s plans and pad policies"],
+        ["Seat", "2.7&#8202;mm, or the coupon&#8217;s choice", "Pending: the 85A seat coupon"],
+        ["Board", "On the dorsal face of the DIP plate, chips toward the plate, cable soldered to the board or a tab of "
+         "3&#8202;mm at most", "The 9&#8202;mm tab collides with the DIP link and the PIP servo"],
+        ["Mounts (palm frame, mm)", ", ".join(f"{k} ({v[0]:.1f}, {v[1]:.1f})" for k, v in mounts.items()),
+         "The 25&#8202;mm cell&#8217;s layout; inside the measured gantry envelope (station check)"],
+        ["Object", f"Cylinder {m['object_d_mm']:g}&#8202;mm &#215; 100&#8202;mm, {m['object_mass_g']:.0f}&#8202;g, axis along palm y, "
+         f"centre at palm ({m['object_centre_palm_mm'][0]:.1f}, {m['object_centre_palm_mm'][1]:.1f}, "
+         f"{m['object_centre_palm_mm'][2]:.1f})&#8202;mm", "The cell&#8217;s grasp at palm height "
+         f"{m['palm_height_mm']:.1f}&#8202;mm, straddle {m['straddle_mm']:.1f}&#8202;mm"],
+        ["Plan", f"<code>bench/{BENCH_PLAN}_plan.json</code>: open, grip, {len(plan['poses']) - 4} set-points at 50&#8202;Hz "
+         "from pinned iCEM&#8217;s executed commands, hold, release", "Schema and envelope pass the station&#8217;s own checks: "
+         + ("none" if not ver["station"]["violations"] else "; ".join(ver["station"]["violations"]))],
+        ["Limits", f"Servo speed setting 80; peak commanded joint speed {max(spd.values()):.0f}&#176;/s; torque limit "
+         f"0.18&#8202;N&#8202;m in the model; longest stretch at the limit {lim:.2f}&#8202;s (overload protection after 1&#8202;s)",
+         "The SCS0009 has no current register"],
+    ]
+    return ("<p>The first bench run should replay one open-loop plan whose every parameter the simulation has checked. The "
+            f"source is pinned iCEM on the 30&#8202;% block variant on the 25&#8202;mm cell, which in closed loop turns the cylinder "
+            f"{m['source_row']['held_turn_deg']:.0f}&#176; and ends on three pads. Exported as the control station&#8217;s plan and "
+            f"replayed open loop, it keeps the cylinder in {sm['removed']['held']} of the plant conditions with the post removed "
+            f"(servo gain 0.36&#8211;1.08&#8202;N&#8202;m/rad, torque limit 0.12&#8211;0.23&#8202;N&#8202;m, friction 0.5&#8211;1.0, "
+            f"three placements) at a median turn of {sm['removed']['turn_median_deg']:.0f}&#176;, and in {sm['present']['held']} "
+            f"with the post left in place at {sm['present']['turn_median_deg']:.0f}&#176;. The commanded joint angles alone would "
+            f"bring the index and middle fingers {abs(clr['commanded']['min_mm']):.0f}&#8202;mm into each other; with the cylinder "
+            f"in the grasp the closest approach of their collision spheres is {clr['achieved_nominal']['min_mm']:.1f}&#8202;mm. "
+            "If the cylinder is lost mid-turn, the operator stops the plan and commands <i>open</i> (Stop motion, then the open "
+            "pose; Disable motors if a finger stalls).</p>"
+            + table(["Item", "First-bench choice", "Why"], dec, "First-bench configuration.", text_cols=(0, 1, 2), key="bench"))
+
+
 def main():
     v = {"STYLE": P.style_block().replace("</style>", EXTRA_CSS + "</style>"), "BUILT": time.strftime("%Y-%m-%d %H:%M"),
          "GLOSSARY": glossary()}
