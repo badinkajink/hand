@@ -575,8 +575,8 @@ def cmd_build(a):
             print(f"{tip} depth {depth:g} mm: wall {search[-1]['wall_min_mm']} mm, gap {search[-1]['gap_min_mm']} mm", flush=True)
             if search[-1]["passes"]:
                 break
-        name = name_of(tip, a.layout, a.seat, depth)
-        stl = out_dir / f"{name}.stl"
+        name = name_of(tip, a.layout, a.seat, depth, a.pocket_walls if a.pocket_walls != 2 else None)
+        stl = out_dir / f"{name_of(tip, a.layout, a.seat, depth)}.stl"            # one part for both wall counts
         part.export(stl)
         upright = tip != "block"
         layer = 0.1 if upright else 0.2
@@ -584,7 +584,17 @@ def cmd_build(a):
         settings = dict(perimeters=RECIPE["perimeters"], fill_density=RECIPE["fill_density"], fill_pattern="gyroid",
                         top_solid_layers=RECIPE["top_solid_layers"], bottom_solid_layers=RECIPE["bottom_solid_layers"])
         proj = out_dir / f"{name}_w95_20.3mf"
-        write_project(proj, part, f"{name}_w95_20", settings, layer, prow)
+        mods, mod_info = [], None
+        if a.pocket_walls == 1:
+            mod, mod_layers = onewall_modifier(body, pockets, upright)
+            mods = [(mod, dict(perimeters=1))]
+            mod_stl = out_dir / f"{name}_modifier.stl"
+            mod.export(mod_stl)
+            mod_info = dict(stl=_rel(mod_stl), perimeters=1, inset_mm=round(inset(upright), 4), layers=len(mod_layers),
+                            z_mm=[mod_layers[0][0], mod_layers[-1][1]], volume_mm3=round(float(mod.volume), 1),
+                            what=("ParameterModifier: on every layer that crosses a pocket, the body's section offset inward by the "
+                                  "perimeter spacing; the band outside it keeps two perimeters and has room for one bead"))
+        write_project(proj, part, f"{name}_w95_20", settings, layer, prow, mods)
         rep = dict(name=name, tip=tip, tip_label=LABEL[tip], layout=a.layout, stl=_rel(stl), project=_rel(proj),
                    recipe=dict(RECIPE, layer_height_mm=layer, first_layer_mm=0.2),
                    orientation=("upright, mount face on the bed" if upright else "back face on the bed, palmar face up"),
@@ -594,11 +604,15 @@ def cmd_build(a):
                    pockets=pockets, pocket_gaps=gaps, wall_min_mm=min(p["wall_min_mm"] for p in pockets),
                    wall_rule_mm=WALL_MIN, walls_ok=walls_pass(pockets, gaps), depth_search=search,
                    chip_field=chip_field(centres, depth), pauses=prow, mesh=mesh, part_settings=settings,
+                   pocket_walls=(a.pocket_walls if a.pocket_walls != 2 else None), modifier=mod_info,
                    script="scripts/metric_magnet_prints.py", when=time.strftime("%Y-%m-%d %H:%M"))
         if not a.no_slice:
             work = WORK / name
             gc = slice_project(proj, work)
             rep["slice"] = dict(audit(proj, gc), check=check_gcode(gc, pockets))
+            zl = sorted({round(0.5 * (p["floor_mm"] + p["top_mm"]) if p["kind"] == "pocket" else p["centre_print_mm"][1] + 0.5, 1)
+                         for p in pockets})
+            rep["slice"]["loops"] = count_loops(gc, pockets, zl)
             rep["gcode"] = _rel(gc)
         rep["seconds"] = round(time.time() - t0, 1)
         (out_dir / f"{name}_w95_20.json").write_text(json.dumps(rep, indent=1, default=float))
@@ -634,6 +648,7 @@ def coupon_part():
     body = M.Manifold.cube([c["length"], c["width"], H])
     s = c["chamfer"] * math.sqrt(2)
     body = body - M.Manifold.cube([s, s, H + 2], center=True).rotate([0, 0, 45]).translate([0, 0, H / 2])
+    slab = body
     pockets = []
     for x, seat in zip(c["x"], c["seats"]):
         r = seat / 2
@@ -649,35 +664,47 @@ def coupon_part():
         pockets.append(dict(kind="slot", seat_diameter_mm=seat, centre_print_mm=[c["y_slot"], zc],
                             slot_x_mm=[round(x - w / 2, 3), round(x + w / 2, 3)], seat_bottom_mm=round(zc - r, 3), slot_top_mm=H + 1,
                             magnet_top_below_surface_mm=round(H - (zc + Dm - r), 3)))
-    return EB.to_trimesh(body), pockets
+    return EB.to_trimesh(body), pockets, EB.to_trimesh(slab)
 
 
 def cmd_coupon(a):
     OUT.mkdir(parents=True, exist_ok=True)
     t0 = time.time()
-    part, pockets = coupon_part()
-    name = f"{DATE}-pocket_fit_coupon_d3x2_seats2p7_2p8_2p9"
-    stl = OUT / f"{name}.stl"
+    part, pockets, slab = coupon_part()
+    base = f"{DATE}-pocket_fit_coupon_d3x2_seats2p7_2p8_2p9"
+    name = base + ("_pocketwalls1" if a.pocket_walls == 1 else "")
+    stl = OUT / f"{base}.stl"
     part.export(stl)
     settings = dict(perimeters=RECIPE["perimeters"], fill_density=RECIPE["fill_density"], fill_pattern="gyroid",
                     top_solid_layers=RECIPE["top_solid_layers"], bottom_solid_layers=RECIPE["bottom_solid_layers"])
     proj = OUT / f"{name}_w95_20.3mf"
-    write_project(proj, part, f"{name}_w95_20", settings, 0.2, [])
+    mods, mod_info = [], None
+    if a.pocket_walls == 1:
+        mod, mod_layers = onewall_modifier(slab, pockets, False)
+        mods = [(mod, dict(perimeters=1))]
+        mod_stl = OUT / f"{name}_modifier.stl"
+        mod.export(mod_stl)
+        mod_info = dict(stl=_rel(mod_stl), perimeters=1, inset_mm=round(inset(False), 4), layers=len(mod_layers),
+                        z_mm=[mod_layers[0][0], mod_layers[-1][1]], volume_mm3=round(float(mod.volume), 1))
+    write_project(proj, part, f"{name}_w95_20", settings, 0.2, [], mods)
     rep = dict(name=name, stl=_rel(stl), project=_rel(proj), recipe=dict(RECIPE, layer_height_mm=0.2, first_layer_mm=0.2),
                orientation="flat, 22 x 16 mm on the bed", size_mm=[COUPON["length"], COUPON["width"], COUPON["height"]],
                magnet=dict(source=MAGNET_SRC, diameter_mm=MAGNET[0], thickness_mm=MAGNET[1]), pockets=pockets,
                mesh=dict(watertight=bool(part.is_watertight), volume_mm3=round(float(part.volume), 1)),
+               pocket_walls=(1 if a.pocket_walls == 1 else None), modifier=mod_info,
                use=("Press a magnet into each seat with a flat, non-magnetic tool. The seat to use is the narrowest that takes the "
                     "magnet to its floor without splitting the wall; it should hold the magnet when the coupon is turned over and "
                     "tapped. Round pockets: the block's seat. Slots: the curved tips' seat, the magnet on its edge."),
                script="scripts/metric_magnet_prints.py", when=time.strftime("%Y-%m-%d %H:%M"))
     if not a.no_slice:
         gc = slice_project(proj, WORK / name)
-        rep["slice"] = dict(audit(proj, gc), check=check_gcode(gc, pockets))
+        rep["slice"] = dict(audit(proj, gc), check=check_gcode(gc, pockets),
+                            loops=count_loops(gc, pockets, [COUPON["height"] - 1.0]))
         rep["gcode"] = _rel(gc)
     rep["seconds"] = round(time.time() - t0, 1)
     (OUT / f"{name}_w95_20.json").write_text(json.dumps(rep, indent=1, default=float))
     ck = rep.get("slice", {}).get("check", {})
+    print("loops", rep.get("slice", {}).get("loops"))
     print(f"coupon: watertight {rep['mesh']['watertight']}, time {ck.get('print_time')}, pockets "
           + "; ".join(f"{p['kind']} {p['seat_diameter_mm']}: void {q.get('void_layers')} in {q.get('beads_in_void_max')}, floor "
                       f"{(q.get('floor') or {}).get('covered')}" for p, q in zip(pockets, ck.get("pockets", []))), flush=True)
@@ -800,9 +827,204 @@ def cmd_readme(a):
     print((OUT / "README.md").read_text())
 
 
+def _count_word(v):
+    words = {0: "no loop", 1: "one loop", 2: "two loops", 3: "three loops"}
+    return words.get(v[0], f"{v[0]} loops") if len(set(v)) == 1 else ", ".join(str(x) for x in v) + " loops"
+
+
 def readme_extra():
     """Sections for the five-magnet and one-wall variants, when their sheets exist."""
-    return []
+    L = []
+    sense = {r["layout"]: r for r in json.loads(SENSE.read_text())["rows"]} if SENSE.exists() else {}
+    four, five, w1 = sense.get("four_d3x2_d5"), sense.get("five_d3x2_d5"), sense.get("four_d3x2_d5_w1")
+    f5 = sheets("five")
+    if f5:
+        r = f5[0]
+        gaps = sorted({g["gap_mm"] for g in r["pocket_gaps"]})
+        xy = "; ".join(f"({p['y_mm']:g}, {p['z_mm']:.2f})" for p in r["pockets"]).replace("(-0,", "(0,")
+        L += ["", "## Five magnets", "",
+              f"{Path(r['project']).name} ({Path(r['stl']).name}, sheet {Path(r['project']).stem}.json) is the block with a fifth "
+              "magnet at the contact point. Magnet centres (y across the finger, z from the mount face, mm): "
+              f"{xy}, every top {r['magnet']['top_depth_mm']:g} mm under the palmar face. The board's chips lie under U1 = "
+              "(0, 10.86) and 7 mm from it on both axes; magnets 7 mm across would reach past the 7.4 mm half-width, so only the "
+              f"centre magnet sits over a chip. The pockets keep {gaps[0]:.2f} mm between the centre and the corner pockets "
+              f"(the 1.8 mm rule) and {r['wall_min_mm']:.2f} mm to the surface; all five go in at the one pause at "
+              f"{r['pauses'][0]['print_z']:g} mm, and the print takes {r['slice']['check']['print_time']}. The five magnets put "
+              f"{r['chip_field']['B_max_component_mT']:.1f} mT on a chip, which needs GAIN_SEL {r['chip_field']['gain_sel']}."]
+        if four and five:
+            L += ["", "Finite elements of the block (`scripts/metric_magnet_prints.py fe`, the model and grid of the 2026-10-13 "
+                  "layout study, whose four-magnet row they reproduce: 16.70 MPa) and the board's Cramer-Rao bound "
+                  "(`sense`; five chips against the back face, one 141 Hz sample at the noise of GAIN_SEL 7, contact position "
+                  "and the Earth's field unknown) compare the two:", "",
+                  "| Magnets | Pad modulus E* (MPa) | Face compliance lost at the contact point (%) | Force noise at the contact "
+                  "point (N) | Force noise over 15 points, median and range (N) | Field on a chip (mT) |",
+                  "|---|---|---|---|---|---|"]
+            for k, r_ in (("Four", four), ("Five", five)):
+                L.append(f"| {k} | {r_['E_star_MPa']:.1f} | {100 * r_['face_compliance_lost_centre']:.0f} | "
+                         f"{r_['centre_both_unknown_N']:.3f} | {r_['median_both_unknown_N']:.2f} "
+                         f"({r_['range_both_unknown_N'][0]:.2f}-{r_['range_both_unknown_N'][1]:.2f}) | {r_['B_max_component_mT']:.1f} |")
+            L += ["", "E*: the sphere pads' modulus that reproduces the tip's approach under the screwdriver at 0.5, 1 and 3 N; "
+                  "face compliance lost: the drop in the palmar face's deflection under a 1 N patch (Gaussian, sigma 0.6 mm) "
+                  "against the tip without magnets. The bound at the contact point is "
+                  f"{four['centre_both_unknown_N'] / five['centre_both_unknown_N']:.1f} times lower with five magnets: the four "
+                  "corner magnets lie 4.6 mm from the contact point, the fifth under it. Below GAIN_SEL 7 the datasheet gives no "
+                  "noise, so the five-magnet bound, taken at GAIN_SEL 7's noise for a field that needs GAIN_SEL 5, is a lower "
+                  "bound.",
+                  ]
+            ck = sorted((D / "checks").glob(f"{DATE}-tcd_*_five_*.json"))
+            if ck:
+                c = json.loads(ck[0].read_text())
+                n = {2: "two", 3: "three", 4: "four"}.get(len(c["pauses"]), str(len(c["pauses"])))
+                L += ["", f"On the upright curved tips the same layout fails the rule: on the {LABEL[c['tip']]} each slot, open "
+                      f"upward to its own pause, comes within {c['gap_min_mm']:.2f} mm of the next seat up, and the five magnets "
+                      f"need {n} pauses (checks/{ck[0].name}). No curved five-magnet print is written."]
+    w = sheets("four", walls=1)
+    if w:
+        r = w[0]
+        lp = r["slice"]["loops"][0]
+        L += ["", "## One wall at the pockets", "",
+              f"{Path(r['project']).name} (sheet {Path(r['project']).stem}.json; part {Path(r['stl']).name}, modifier "
+              f"{Path(r['modifier']['stl']).name}) is the four-magnet block with one perimeter around each pocket and the two of "
+              "the recipe at the outer surface. PrusaSlicer has no setting for the walls of a hole alone, so the project adds a "
+              "modifier volume with one perimeter: on each of the "
+              f"{r['modifier']['layers']} layers that cross the pockets ({r['modifier']['z_mm'][0]:g}-{r['modifier']['z_mm'][1]:g} "
+              f"mm), the block's section inset by {r['modifier']['inset_mm']:.3f} mm, the centre-to-centre spacing of the "
+              "recipe's 0.45 mm perimeters at 0.2 mm layers. "
+              "The band outside the modifier keeps the recipe's two perimeters and has room for one bead; the modifier adds its "
+              "own outer loop beside it. In the G-code at "
+              f"{lp['z']:g} mm every pocket has {_count_word(lp['loops_around_pockets'])} and the outer surface has "
+              f"{lp['loops_at_outer_surface']} loops, their centrelines 0.20 and 0.63 mm in from the surface against the "
+              "two-wall print's 0.23 and 0.63 mm. The pause, the bridges and the floors check as in the two-wall print; the "
+              f"one-wall print takes {r['slice']['check']['print_time']} against 22m 35s."]
+        if four and w1:
+            L += ["", f"In the finite elements one 0.45 mm wall at the pocket lowers the pad modulus from {four['E_star_MPa']:.2f} "
+                  f"to {w1['E_star_MPa']:.2f} MPa ({100 * (w1['E_star_MPa'] / four['E_star_MPa'] - 1):+.1f} %), the face compliance "
+                  f"lost at the contact point from {100 * four['face_compliance_lost_centre']:.1f} to "
+                  f"{100 * w1['face_compliance_lost_centre']:.1f} %, and the force noise at the contact point from "
+                  f"{four['centre_both_unknown_N']:.3f} to {w1['centre_both_unknown_N']:.3f} N, as each magnet moves "
+                  f"{100 * (np.mean(w1['magnet_travel_1N_um']) / np.mean(four['magnet_travel_1N_um']) - 1):.0f} % farther under "
+                  "1 N. The press fit then rests on one bead backed by 20 % gyroid instead of two; the bridge 0.2 mm over the "
+                  "magnet closes the pocket after the pause, so the fit has to keep the magnet in place only until that layer."]
+        cw = OUT / f"{DATE}-pocket_fit_coupon_d3x2_seats2p7_2p8_2p9_pocketwalls1_w95_20.json"
+        if cw.exists():
+            c = json.loads(cw.read_text())
+            lp = c["slice"]["loops"][0]
+            L += ["", f"{Path(c['project']).name} (sheet {cw.name}, modifier {Path(c['modifier']['stl']).name}) is the seat "
+                  f"coupon with the same modifier, {_minutes(c['slice']['check']['print_time']):.0f} min: at {lp['z']:g} mm every "
+                  f"seat has {_count_word(lp['loops_around_pockets'])} and the outer surface {lp['loops_at_outer_surface']}. "
+                  "Pressing magnets into it next to the two-wall coupon shows whether one wall keeps them in."]
+    return L
+
+
+def cmd_check(a):
+    """Geometry only (no files to print): walls, pocket gaps and pauses of a layout on a tip, into checks/<name>.json."""
+    out = D / "checks"
+    out.mkdir(parents=True, exist_ok=True)
+    for tip in a.tips:
+        centres = layout(a.layout)
+        _, _, pockets, gaps, mesh = build(tip, centres, a.seat, a.depth)
+        rep = dict(tip=tip, layout=a.layout, depth_mm=a.depth, seat_mm=a.seat, pockets=pockets, pocket_gaps=gaps,
+                   wall_min_mm=min(p["wall_min_mm"] for p in pockets), gap_min_mm=min(g["gap_mm"] for g in gaps),
+                   walls_ok=walls_pass(pockets, gaps), pauses=pauses(pockets, tip), mesh=mesh,
+                   script="scripts/metric_magnet_prints.py check", when=time.strftime("%Y-%m-%d %H:%M"))
+        f = out / f"{name_of(tip, a.layout, a.seat, a.depth)}.json"
+        f.write_text(json.dumps(rep, indent=1, default=float))
+        print(f"{tip} {a.layout}: wall {rep['wall_min_mm']} mm, gap {rep['gap_min_mm']} mm, pauses "
+              f"{[p['print_z'] for p in rep['pauses']]} -> {_rel(f)}", flush=True)
+
+
+# ------------------------------------------------------------------------------------------------------ one wall at the pockets
+
+def inset(upright):
+    """Perimeter spacing of 0.45 mm beads at the layer height (PrusaSlicer: width - h (1 - pi/4)), the distance between the
+    centrelines of the reference's two outer perimeters: the band at the outer surface that keeps the object's perimeters."""
+    return RECIPE["line_width_mm"] - (0.1 if upright else 0.2) * (1 - math.pi / 4)
+
+
+def layer_grid(upright, top):
+    """Layer boundaries (bottom, top) up to `top` mm: 0.2 mm first layer, then 0.1 (upright) or 0.2 mm."""
+    h = 0.1 if upright else 0.2
+    out, z = [(0.0, 0.2)], 0.2
+    while z < top - 1e-9:
+        out.append((round(z, 4), round(z + h, 4)))
+        z += h
+    return out
+
+
+def onewall_modifier(body, pockets, upright):
+    """A ParameterModifier volume (perimeters 1) on every layer whose slice plane crosses a pocket: that layer's section of the
+    body without pockets, offset inward by the perimeter spacing (inset()), extruded over the layer. PrusaSlicer perimeters each region on its own
+    slices, so in those layers the band at the outer surface (perimeters 2, room for one bead) and the modifier's
+    own outer loop give the outer surface its two perimeters, and each pocket gets the modifier's single loop."""
+    import eflesh_build as EB
+    import manifold3d as M
+    B = EB.to_manifold(body)
+    spans = []
+    for p in pockets:
+        lo = p["floor_mm"] if p["kind"] == "pocket" else p["seat_bottom_mm"]
+        hi = p["top_mm"] if p["kind"] == "pocket" else p["slot_top_mm"]
+        spans.append((lo, hi))
+    prisms = []
+    layers = []
+    for zb, zt in layer_grid(upright, max(h for _, h in spans) + 0.2):
+        zm = 0.5 * (zb + zt)
+        if not any(lo < zm < hi for lo, hi in spans):
+            continue
+        cs = B.slice(zm).offset(-inset(upright), M.JoinType.Round)
+        if cs.is_empty():
+            continue
+        prisms.append(cs.extrude(zt - zb).translate([0.0, 0.0, zb]))
+        layers.append((zb, zt))
+    mod = M.Manifold.batch_boolean(prisms, M.OpType.Add)
+    return EB.to_trimesh(mod), layers
+
+
+def count_loops(gc, pockets, z_list):
+    """Closed perimeter loops on the given layers: around each pocket (every point of the path within 1.3 mm outside the
+    pocket's edge, spanning at least 300 degrees around it) and at the outer surface (the path's extent at least 90 % of the
+    layer's in x and y)."""
+    L, T = parse_arcs(gc, 0)
+    per_types = {k for k, v in T.items() if v in ("External perimeter", "Perimeter", "Overhang perimeter")}
+    out = []
+    for z in z_list:
+        Lr = min(L, key=lambda l: abs(l["z"] - z))
+        s = Lr["seg"]
+        ext = np.array([s[:, [0, 2]].max() - s[:, [0, 2]].min(), s[:, [1, 3]].max() - s[:, [1, 3]].min()])
+        paths = {}
+        for row in s:
+            if int(row[5]) in per_types:
+                paths.setdefault(int(row[6]), []).append(row)
+        outer, around = 0, []
+        for p in pockets:
+            if p["kind"] == "pocket":
+                c = np.array([BED_XY[0] + p["centre_print_mm"][0], BED_XY[1] + p["centre_print_mm"][1]])
+            else:
+                c = np.array([BED_XY[0] + 0.5 * sum(p["slot_x_mm"]), BED_XY[1] + p["centre_print_mm"][0]])
+            n = 0
+            for rows in paths.values():
+                q = np.array(rows)
+                k = np.maximum(1, np.ceil(np.hypot(q[:, 2] - q[:, 0], q[:, 3] - q[:, 1]) / 0.1)).astype(int)
+                P = np.vstack([q[i, 0:2] + np.linspace(0, 1, k[i] + 1)[:, None] * (q[i, 2:4] - q[i, 0:2]) for i in range(len(q))])
+                if p["kind"] == "pocket":
+                    d = np.linalg.norm(P - c, axis=1) - p["seat_diameter_mm"] / 2
+                else:
+                    hx, hy = 0.5 * (p["slot_x_mm"][1] - p["slot_x_mm"][0]), p["seat_diameter_mm"] / 2
+                    d = np.maximum(np.abs(P[:, 0] - c[0]) - hx, np.abs(P[:, 1] - c[1]) - hy)
+                if d.min() < -0.05 or d.max() > 1.3:
+                    continue
+                ang = np.sort(np.arctan2(P[:, 1] - c[1], P[:, 0] - c[0]))
+                gap = np.max(np.diff(np.r_[ang, ang[0] + 2 * np.pi]))
+                if 2 * np.pi - gap >= np.radians(300):
+                    n += 1
+            around.append(n)
+        for rows in paths.values():
+            q = np.array(rows)
+            e = np.array([q[:, [0, 2]].max() - q[:, [0, 2]].min(), q[:, [1, 3]].max() - q[:, [1, 3]].min()])
+            if np.all(e >= 0.9 * ext):
+                outer += 1
+        out.append(dict(z=Lr["z"], loops_around_pockets=around, loops_at_outer_surface=outer,
+                        types={T[int(t)]: int((s[:, 5] == t).sum()) for t in np.unique(s[:, 5])}))
+    return out
 
 
 # ------------------------------------------------------------------------------------------------------ finite elements
@@ -876,14 +1098,63 @@ def cmd_fe(a):
             TL.classes = real
 
 
+SENSE = D / "sensing.json"
+REF_ROWS = ROOT / "docs/experiments/20261013-magnet_layouts/fem.jsonl"     # the layout study's rows, same grid and model
+
+
+def sense_row(row, none=None):
+    """Cramer-Rao bounds of tpu_tip_magnet_sensing at the five chips against the back face (141 Hz setting), the pad modulus,
+    and the face compliance each layout keeps relative to the tip without magnets."""
+    import mlx90393_model as MLX
+    import tpu_tip_magnet_sensing as MS
+    a = MS.analyse(row, "board", MLX.GAPS["touch"])
+    pts = a["points"]
+    both = [p["sigF_n_unk_bg"] for p in pts]
+    out = dict(layout=row["layout"], magnets=len(row["magnets"]), E_star_MPa=round(row["E_best_MPa"], 2),
+               approach_1N_um=round(row["per_force"]["1"]["delta_um"], 1), B_max_component_mT=round(a["B0_max_mT"], 2),
+               centre_known_N=round(a["centre"]["sigF_n"], 3), centre_both_unknown_N=round(a["centre"]["sigF_n_unk_bg"], 3),
+               centre_sig_z_mm=round(a["centre"]["sig_z_mm_bg"], 2), centre_sig_y_mm=round(a["centre"]["sig_y_mm_bg"], 2),
+               median_both_unknown_N=round(float(np.median(both)), 3), range_both_unknown_N=[round(min(both), 3), round(max(both), 3)],
+               bias_range=[round(min(p["bias"] for p in pts), 2), round(max(p["bias"] for p in pts), 2)],
+               magnet_travel_1N_um=[round(-m[0][0], 2) for m in row["per_force"]["1"].get("magnets", [])])
+    if none:
+        ref = {(p["y"], round(p["z"], 6)): p["normal_face_um_per_N"] for p in none["patches"]}
+        lost = [1 - p["normal_face_um_per_N"] / ref[(p["y"], round(p["z"], 6))] for p in row["patches"]]
+        cen = [1 - p["normal_face_um_per_N"] / ref[(p["y"], round(p["z"], 6))] for p in row["patches"]
+               if p["y"] == 0.0 and abs(p["z"] - TD.Z_C) < 1e-6]
+        out.update(face_compliance_lost_centre=round(cen[0], 3), face_compliance_lost_range=[round(min(lost), 3), round(max(lost), 3)])
+    return out
+
+
+def cmd_sense(a):
+    rows = [json.loads(l) for l in open(FE_ROWS)]
+    ref = {r["layout"]: r for r in (json.loads(l) for l in open(REF_ROWS))}
+    none = ref.get("none")
+    out = [sense_row(r, none) for r in rows]
+    if "four_d3x2_d5" in ref:
+        out.append(dict(sense_row(ref["four_d3x2_d5"], none), layout="four_d3x2_d5 (2026-10-13 row)"))
+    SENSE.write_text(json.dumps(dict(rows=out, none_E_star_MPa=round(none["E_best_MPa"], 2) if none else None,
+                                     setting="GAIN_SEL 7, RES 0, OSR 0, DIG_FILT 5 noise (1.15/1.75 uT, 141 Hz); chips against the back face",
+                                     script="scripts/metric_magnet_prints.py sense", when=time.strftime("%Y-%m-%d %H:%M")), indent=1))
+    for r in out:
+        print(json.dumps(r))
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("readme")
+    sub.add_parser("sense")
+    k = sub.add_parser("check")
+    k.add_argument("--tips", nargs="+", default=["tcd_cap8.5"], choices=TIPS)
+    k.add_argument("--layout", default="five")
+    k.add_argument("--seat", type=float, default=round(TD.FIT_D * MAGNET[0], 3))
+    k.add_argument("--depth", type=float, default=DEPTH)
     f = sub.add_parser("fe")
     f.add_argument("--layouts", nargs="+", required=True)
     c = sub.add_parser("coupon")
     c.add_argument("--no-slice", action="store_true")
+    c.add_argument("--pocket-walls", type=int, default=2, choices=[1, 2])
     b = sub.add_parser("build")
     b.add_argument("--tips", nargs="+", default=TIPS, choices=TIPS)
     b.add_argument("--layout", default="four")
@@ -891,10 +1162,12 @@ def main():
     b.add_argument("--depth", type=float, default=None,
                    help="palmar reach to the magnets' top faces, mm; default: the shallowest of 5, 5.5, ... 8 mm at which every "
                         "complete pocket keeps WALL_MIN of TPU to the surface and to the next pocket")
+    b.add_argument("--pocket-walls", type=int, default=2, choices=[1, 2],
+                   help="perimeters along each pocket (1: a modifier volume; the outer surface keeps two)")
     b.add_argument("--no-slice", action="store_true")
     b.add_argument("--out", default=None, help="directory for the files (default the print directory)")
     a = ap.parse_args()
-    {"build": cmd_build, "coupon": cmd_coupon, "readme": cmd_readme, "fe": cmd_fe}[a.cmd](a)
+    {"build": cmd_build, "coupon": cmd_coupon, "readme": cmd_readme, "fe": cmd_fe, "sense": cmd_sense, "check": cmd_check}[a.cmd](a)
 
 
 if __name__ == "__main__":
