@@ -187,6 +187,10 @@ def cmd_hom(a):
                 meta = S.candidate_meta(meta0, gg, gp)
                 plant = H.MjPlant(path, meta)
                 S.set_palm(plant.m, gg["palm"])
+                if a.board == "off":                       # the board keeps its mass; only its collisions go
+                    for g in range(plant.m.ngeom):
+                        if "board" in (plant.m.geom(g).name or ""):
+                            plant.m.geom_contype[g] = plant.m.geom_conaffinity[g] = 0
                 mirror = S.Mirror(Path(sc["pt"][0]))
                 S.set_palm(mirror.m, gg["palm"])
                 for s in seeds:
@@ -194,7 +198,8 @@ def cmd_hom(a):
                            "mu": a.mu, "plant": SERVO, "hand_model": "cad_v1", "tag": cell["tag"], "t": cell.get("t"),
                            "shape": shape, "d_mm": dd, "model": "pads", "cand": ci, "n_cand": len(cands),
                            "h_mm": round(cand["h"] * 1000, 2), "spread_mm": round(cand["spread"] * 1000, 2), "seed": s,
-                           "controller": "hom_turn3", **{f"prm_{k}": v for k, v in prm.items()},
+                           "controller": "hom_turn3", "board_collides": a.board == "on",
+                           **{f"prm_{k}": v for k, v in prm.items()},
                            "when": time.strftime("%Y-%m-%d %H:%M")}
                     probe = Probe(plant, meta["mass_kg"], prm["t_grip"] + prm["t_squeeze"])
                     try:
@@ -363,6 +368,8 @@ def main():
     h.add_argument("--seeds", nargs="+", type=int, default=[0, 1, 2])
     h.add_argument("--cands", nargs="*", type=int, default=[])
     h.add_argument("--tag", default="hom")
+    h.add_argument("--board", default="on", choices=["on", "off"],
+                   help="off: the board's collisions disabled (its mass stays), rows to --tag (e.g. hom_noboard)")
     i = sub.choices["icem"]
     i.add_argument("--seeds", nargs="+", type=int, default=[0])
     i.add_argument("--config", default="icem_pin")
