@@ -207,7 +207,7 @@ def replay(plant, meta, sched, seed, post_off_at, cond):
     m.geom_contype[post], m.geom_conaffinity[post] = plant.post0
     plant.reset(seed)
     s0 = None
-    out, i_turn = [], None
+    out, i_turn, qs = [], None, []
     at_lim = np.zeros(9)
     run_lim = np.zeros(9)
     weight = meta["mass_kg"] * 9.81
@@ -231,7 +231,8 @@ def replay(plant, meta, sched, seed, post_off_at, cond):
         nf = sum(1 for f in ("thumb", "index", "middle") if s["F"][f] >= weight)
         out.append((round(t, 3), round(th, 2), [round(s["F"][f], 3) for f in ("thumb", "index", "middle")],
                     round(float(tau.max()), 4), nf, round(float(s["p"][2]) * 1e3, 2)))
-    return out, at_lim
+        qs.append((t, s["q"].copy()))
+    return out, at_lim, qs
 
 
 def clearance(m_path, sched_q, palm):
@@ -323,7 +324,7 @@ def cmd_export(a):
     for post in ("removed", "present"):
         for c in conds:
             for seed in a.seeds:
-                tr, lim = replay(plant, meta, sched, seed, t_post if post == "removed" else None, c)
+                tr, lim, qa = replay(plant, meta, sched, seed, t_post if post == "removed" else None, c)
                 i_hold = int(round((t_post + 0.02 * len(src["log"]) + T_HOLD) / 0.02)) - 1
                 th_h, F_h, z_h = tr[i_hold][1], tr[i_hold][2], tr[i_hold][5]
                 held = sum(1 for x in F_h if x >= S.MASS * 9.81) >= 2 and z_h > tr[int(t_post / 0.02)][5] - 20
@@ -332,7 +333,7 @@ def cmd_export(a):
                            peak_tau_Nm=max(x[3] for x in tr), longest_at_limit_s=round(float(lim.max()), 2))
                 rows.append(row)
                 if post == "removed" and c == dict(kp=0.72, tau=0.18, mu=1.0) and seed == 0:
-                    nominal = tr
+                    nominal, q_nominal = tr, qa
     by = lambda f: [r for r in rows if f(r)]  # noqa: E731
     summ = {}
     for post in ("removed", "present"):
@@ -341,7 +342,8 @@ def cmd_export(a):
                           three_pads=f"{sum(r['three_pads'] for r in R)}/{len(R)}",
                           turn_median_deg=round(float(np.median([r["turn_deg"] for r in R if r["held_before_release"]] or [0])), 1),
                           nominal=[r for r in R if r["kp"] == 0.72 and r["tau"] == 0.18 and r["mu"] == 1.0])
-    clr = clearance(sc["pads"][0], sched, gg["palm"])
+    clr = dict(commanded=clearance(sc["pads"][0], sched, gg["palm"]),
+               achieved_nominal=clearance(sc["pads"][0], q_nominal, gg["palm"]))
     # expected chip signals: U1's field change per newton of the variant's readout row times the finger's normal force
     sens = json.loads((D / "sensing/sensing.json").read_text())["rows"]
     lay = "five_d3x2_d5" if "block5" in a.variant else ("four_d3x2_d5_w1" if "w1" in a.variant else "four_d3x2_d5")
