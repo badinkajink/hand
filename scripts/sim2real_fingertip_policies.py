@@ -105,6 +105,55 @@ def cmd_render(a):
             print(out.relative_to(ROOT), flush=True)
 
 
+def cmd_health(a):
+    """Physics, mechanism and trajectory-health records of policies on scenes (rl_contact_eval's Evaluator with physics,
+    watch and mech records): torque-limit and range-limit shares over held steps (mech_metrics), and per rollout the
+    trajectory-health scorecard of src/morphohand/rl/trajectory_health.py (grasp window to the onset, hold from step 150);
+    rows in policies/health.jsonl."""
+    import time as _t
+    import numpy as np
+    import rl_contact_eval as E
+    from morphohand.rl.trajectory_health import characterize_trajectory
+    E.use_study("20261011")
+    out = D / "policies" / "health.jsonl"
+    for v in a.variants:
+        scene = run_dir(v) if v not in ("tpu27pads1", "tpu27mesh") else E.ARMS[v]
+        ev = None
+        for tag in a.policies:
+            ck = ROOT / "results/rl" / tag / "tensorboard" / "model_812.pt"
+            if ev is None:
+                ev = E.Evaluator(scene, ck, n=a.n, steps=250, physics=True, watch=True, mech=True)
+            else:
+                ev.load(ck)
+            t0 = _t.perf_counter()
+            r = ev.rollout()
+            m = E.metrics(r, ev.residual_from, physics=True)
+            mm = E.mech_metrics(r, ev.mech_consts())
+            cards = []
+            T, N = r["cos"].shape
+            xy = r["rel"][..., :2]
+            for i in range(N):
+                sc = characterize_trajectory(r["found"][:, i], r["force"][:, i], r["z"][:, i], r["cos"][:, i], xy[:, i],
+                                             r["angv"][:, i], grasp_end=ev.residual_from, hold_start=150)
+                cards.append(sc)
+            verdicts = {k: sum(1 for c in cards if c.verdict == k) for k in ("PASS", "WARN", "FAIL")}
+            fails = {}
+            for c in cards:
+                for nm in c.failed:
+                    fails[nm] = fails.get(nm, 0) + 1
+            row = dict(scene=f"s2r_{v}" if v not in ("tpu27pads1", "tpu27mesh") else v, tag=tag, n=N,
+                       **{k: m.get(k) for k in ("n_held", "held_cos_mean", "grip_N", "pen_max_mm", "peak_force_N",
+                                                "drift_mm_s", "three_finger_share") if k in m},
+                       mech={k: mm.get(k) for k in mm if not isinstance(mm.get(k), (list, dict))},
+                       health=dict(verdicts=verdicts, failed_checks=fails), wall_s=round(_t.perf_counter() - t0, 1),
+                       when=_t.strftime("%Y-%m-%d %H:%M"))
+            out.parent.mkdir(parents=True, exist_ok=True)
+            with open(out, "a") as fh:
+                fh.write(json.dumps(row, default=float) + "\n")
+            print(row["scene"], tag, row.get("n_held"), verdicts, fails, flush=True)
+        ev.close()
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -119,8 +168,12 @@ def main():
     r = sub.add_parser("render")
     r.add_argument("--variants", nargs="+", required=True)
     r.add_argument("--policies", nargs="+", default=["20261011-d6_servo_tpu27pads1_40M_s0"])
+    h = sub.add_parser("health")
+    h.add_argument("--variants", nargs="+", required=True)
+    h.add_argument("--policies", nargs="+", default=POLICIES)
+    h.add_argument("--n", type=int, default=64)
     a = ap.parse_args()
-    {"scenes": cmd_scenes, "eval": cmd_eval, "render": cmd_render}[a.cmd](a)
+    {"scenes": cmd_scenes, "eval": cmd_eval, "render": cmd_render, "health": cmd_health}[a.cmd](a)
 
 
 if __name__ == "__main__":
