@@ -203,7 +203,10 @@ def screen():
                               v["agree_drake_3deg"] >= base["agree_drake_3deg"] - 2)
         v["cost_ratio"] = (v["us_per_step_median"] / base["us_per_step_median"]
                            if v.get("us_per_step_median") and base.get("us_per_step_median") else None)
-    curved = [k for k in Cn if k not in (ASBUILT, FINALIST)]
+    # The finalist rules pick among the six printed capsules and half-ellipsoids. The quarter-ellipsoids (ledger step 13,
+    # screened after the finalists were chosen) go to stage 3 only if they pass the agreement gate.
+    curved = [k for k in Cn if k not in (ASBUILT, FINALIST) and not k.startswith("tcd_qell")]
+    quarters = [k for k in Cn if k.startswith("tcd_qell")]
     order = lambda f, key: sorted((k for k in curved if f(Cn[k]) and Cn[k].get(key) is not None), key=lambda k: -Cn[k][key])  # noqa: E731
     fin, why = [], {}
 
@@ -219,7 +222,8 @@ def screen():
     while len(fin) < 4 and pick(order(lambda v: v["gate_pass"], "J2"), "(4) next highest J2 passing the gate"):
         pass
     out["finalists"], out["finalist_rule"] = fin, why
-    out["stage3_tips"] = fin + [ASBUILT, FINALIST]
+    out["quarters_gate_pass"] = {k: Cn[k]["gate_pass"] for k in quarters}
+    out["stage3_tips"] = fin + [k for k in quarters if Cn[k]["gate_pass"]] + [ASBUILT, FINALIST]
     (S / "summary.json").write_text(json.dumps(out, indent=1))
     for k, v in sorted(Cn.items(), key=lambda kv: -(kv[1]["J2"] or kv[1].get("J1") or -1)):
         r3 = lambda x: None if x is None else round(x, 3)  # noqa: E731
