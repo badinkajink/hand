@@ -565,6 +565,38 @@ def replays_section():
                     "tool-angle differences between arms on the same placement (medians; replays/traces.jsonl).", key="replays"))
 
 
+def builders_section():
+    C10 = S.get("cell10", {})
+    body = []
+    for v in ("block_e10", "block4_g30", "block4_g50"):
+        r = C10.get(v)
+        if not r:
+            continue
+        row = [plain(v)]
+        for arm in ("v1", "v2", "drake"):
+            a = r["arms"].get(arm)
+            row.append("&#8211;" if a is None else f"{a['held_total']}/{a['runs']}")
+        for arm in ("v1", "v2"):
+            row.append(f(r["rms_turn_vs_drake_deg"].get(arm), 1))
+        body.append(row)
+    held67 = []
+    for v, r in C10.items():
+        for arm, a in r["arms"].items():
+            held67.append(a["held_by_cand"].get("6", 0) + a["held_by_cand"].get("7", 0))
+    rv1 = [r["rms_turn_vs_drake_deg"]["v1"] for r in C10.values()]
+    rv2 = [r["rms_turn_vs_drake_deg"]["v2"] for r in C10.values()]
+    return ("<p>On 15 October builder v2 dropped the CAD hand&#8217;s 10&#8202;mm cylinder cell that Drake and builder v1 held "
+            "(9 of 54 runs against 14 and 16). Rerun with the variant fingers (printed tip mass, magnets, the board on the DIP "
+            "link) at each variant&#8217;s modulus, the same nine grasps, six placements, friction 0.7 and HOM, the two builders "
+            "hold the same number of runs and Drake about as many (Table&#160;[[tab:builders]]); in every plant the same two grasps "
+            f"(6 and 7) carry nearly all the held runs, and before a drop v2 follows Drake&#8217;s turn {min(rv2):.1f}&#8211;"
+            f"{max(rv2):.1f}&#176; RMS against {min(rv1):.1f}&#8211;{max(rv1):.1f}&#176; for v1. The 15 October gap does not "
+            "recur, and v2 stays the default.</p>"
+            + table(["Variant", "Held, v1", "Held, v2", "Held, Drake", "Turn to Drake before a drop, v1 (&#176; RMS)", "v2"],
+                    body, "HOM on the CAD hand&#8217;s 10&#8202;mm cylinder (layout t 0.75), nine grasps &#215; six placements, "
+                    "friction 0.7, servo plant; Drake&#8217;s tip a compliant hull at the same modulus (cell10/).", key="builders"))
+
+
 def main():
     v = {"STYLE": P.style_block().replace("</style>", EXTRA_CSS + "</style>"), "BUILT": time.strftime("%Y-%m-%d %H:%M"),
          "GLOSSARY": glossary()}
