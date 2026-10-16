@@ -845,9 +845,9 @@ def readme_extra():
         L += ["", "## Five magnets", "",
               f"{Path(r['project']).name} ({Path(r['stl']).name}, sheet {Path(r['project']).stem}.json) is the block with a fifth "
               "magnet at the contact point. Magnet centres (y across the finger, z from the mount face, mm): "
-              f"{xy}, every top {r['magnet']['top_depth_mm']:g} mm under the palmar face. The board's chips lie under U1 = "
-              "(0, 10.86) and 7 mm from it on both axes; magnets 7 mm across would reach past the 7.4 mm half-width, so only the "
-              f"centre magnet sits over a chip. The pockets keep {gaps[0]:.2f} mm between the centre and the corner pockets "
+              f"{xy}, every top {r['magnet']['top_depth_mm']:g} mm under the palmar face. The board's chips sit at U1 = "
+              "(0, 10.86) and 7 mm from it along both axes; magnets 7 mm across would reach past the 7.4 mm half-width, so only "
+              f"the centre magnet sits over a chip. The pockets keep {gaps[0]:.2f} mm between the centre and the corner pockets "
               f"(the 1.8 mm rule) and {r['wall_min_mm']:.2f} mm to the surface; all five go in at the one pause at "
               f"{r['pauses'][0]['print_z']:g} mm, and the print takes {r['slice']['check']['print_time']}. The five magnets put "
               f"{r['chip_field']['B_max_component_mT']:.1f} mT on a chip, which needs GAIN_SEL {r['chip_field']['gain_sel']}."]
@@ -893,7 +893,7 @@ def readme_extra():
               "The band outside the modifier keeps the recipe's two perimeters and has room for one bead; the modifier adds its "
               "own outer loop beside it. In the G-code at "
               f"{lp['z']:g} mm every pocket has {_count_word(lp['loops_around_pockets'])} and the outer surface has "
-              f"{lp['loops_at_outer_surface']} loops, their centrelines 0.20 and 0.63 mm in from the surface against the "
+              f"{_count_word([lp['loops_at_outer_surface']])}, their centrelines 0.20 and 0.63 mm in from the surface against the "
               "two-wall print's 0.23 and 0.63 mm. The pause, the bridges and the floors check as in the two-wall print; the "
               f"one-wall print takes {r['slice']['check']['print_time']} against 22m 35s."]
         if four and w1:
@@ -911,7 +911,8 @@ def readme_extra():
             lp = c["slice"]["loops"][0]
             L += ["", f"{Path(c['project']).name} (sheet {cw.name}, modifier {Path(c['modifier']['stl']).name}) is the seat "
                   f"coupon with the same modifier, {_minutes(c['slice']['check']['print_time']):.0f} min: at {lp['z']:g} mm every "
-                  f"seat has {_count_word(lp['loops_around_pockets'])} and the outer surface {lp['loops_at_outer_surface']}. "
+                  f"seat has {_count_word(lp['loops_around_pockets'])} and the outer surface "
+                  f"{_count_word([lp['loops_at_outer_surface']])}. "
                   "Pressing magnets into it next to the two-wall coupon shows whether one wall keeps them in."]
     return L
 
