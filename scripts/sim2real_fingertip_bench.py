@@ -265,6 +265,35 @@ def clearance(m_path, sched_q, palm):
     return dict(min_mm=round(best[0] * 1e3, 2), at_s=best[1], pair=best[2])
 
 
+def capped(poses, meta, sc, gg, tau_cap, kp):
+    """Poses whose commands ask each servo for at most tau_cap: every set-point after 'open' moved to within tau_cap / kp
+    of the joint angle the nominal replay of the uncapped plan reaches at that time (post present, placement 0, the
+    nominal plant), so the position servo's demand kp (q_cmd - q) stays at or below tau_cap where the fingers follow."""
+    import hom_turn3 as H
+    import sim2real_fingertip_cells as CE
+    import hand_object_scale_sim as S
+    plant = H.MjPlant(sc["pads"][0], meta)
+    S.set_palm(plant.m, gg["palm"])
+    sched = schedule(poses)
+    _, _, qa = replay(plant, meta, sched, 0, None, dict(kp=kp, tau=0.18, mu=1.0))
+    tq = np.array([t for t, _ in qa])
+    Q = np.array([q for _, q in qa])
+    out, t = [dict(poses[0])], poses[0]["hold_s"]
+    names = [(f, j) for f in ("thumb", "index", "middle") for j in ("yaw", "mcp", "pip")]
+    for pz in poses[1:]:
+        t += pz["ramp_s"]
+        k = int(np.clip(np.searchsorted(tq, t), 0, len(tq) - 1))
+        q_now = Q[k]
+        nj = {f: dict(v) for f, v in pz["joints"].items()}
+        for i, (f, j) in enumerate(names):
+            c = math.radians(nj[f][j])
+            lo, hi = q_now[i] - tau_cap / kp, q_now[i] + tau_cap / kp
+            nj[f][j] = round(math.degrees(min(max(c, lo), hi)), 3) if pz["name"] != "release" else nj[f][j]
+        out.append(dict(pz, joints=nj))
+        t += pz["hold_s"]
+    return out
+
+
 def cmd_export(a):
     """The first-bench package of one variant on one cell, from its pinned-iCEM run (module docstring)."""
     import os
@@ -286,6 +315,9 @@ def cmd_export(a):
     meta = S.candidate_meta(sc["pads"][1], gg, gp)
     name = f"{DATE_TAG}-s2r_{a.variant}_{shape[:3]}{dd:g}_t{cell['t']:g}_c{src['cand']}".replace(".", "p").replace("-0p", "-m0p")
     poses = poses_of(meta, src["log"])
+    if a.tau_cap:
+        name += f"_cap{a.tau_cap:g}".replace(".", "p")
+        poses = capped(poses, meta, sc, gg, a.tau_cap, kp)
     mounts = {f: [round(float(v) * 1e3, 2) for v in gg["mounts"][f][:2]] for f in ("thumb", "index", "middle")}
     obj_palm = (np.array([0.0, 0.0, S.Z_OBJ]) - gg["palm"]) * 1e3
     plan = dict(design=name, mounts_palm_mm=mounts, poses=poses, meta=dict(
@@ -372,6 +404,8 @@ def main():
     e.add_argument("--cell", required=True)
     e.add_argument("--seed", type=int, default=None, help="the iCEM row's seed (default: the best row of the cell)")
     e.add_argument("--seeds", nargs="+", type=int, default=[0, 1, 2], help="placements of the verification replays")
+    e.add_argument("--tau-cap", type=float, default=None,
+                   help="cap every commanded offset at this torque over the gain, N m (the servo's overload guard)")
     a = ap.parse_args()
     {"procedure": cmd_procedure, "export": cmd_export}[a.cmd](a)
 
