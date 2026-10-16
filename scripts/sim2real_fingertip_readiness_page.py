@@ -23,6 +23,7 @@ import time
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "scripts"))
 import contact_overview_page as P  # noqa: E402
+import interactive_figure as IF  # noqa: E402
 import retro_style  # noqa: E402
 import texsvg  # noqa: E402
 
@@ -361,6 +362,100 @@ def procedure_section():
                     "Bench measurements before and after the first actuation.", text_cols=(0, 1, 2, 3), key="procedure"))
 
 
+def ifig(fig, caption, key=None):
+    FIG[0] += 1
+    if key:
+        REFS[f"fig:{key}"] = FIG[0]
+    fig.caption = f"Figure&#160;{FIG[0]}. {caption}"
+    return fig.html()
+
+
+def approach_figure():
+    fe = {(r["layout"], r["recipe"]): r for r in S.get("fe", [])}
+    B = S.get("bed", {})
+    F = [0.5, 1.0, 3.0]
+    series, legend = [], []
+    for col, model, lab in ((IF.PALETTE[0], "fe", "Finite elements"), (IF.PALETTE[1], "v2", "Pads, builder v2"),
+                            (IF.PALETTE[2], "drake", "Drake hydroelastic")):
+        ids = []
+        for inf, dash in ((30, ""), (50, "6 4")):
+            if model == "fe":
+                a = fe[("four_d3x2_d5", f"w85_{inf}")]["approach_um"]
+            else:
+                a = (B.get(f"block4_g{inf}|{model}") or {}).get("approach_um")
+            if not a:
+                continue
+            y = [a["0.5"], a["1"], a["3"]]
+            sid = f"ap-{model}-{inf}"
+            series.append(IF.Series(sid, f"{lab}, {inf}&#8202;%", col, {"ap": {"x": F, "med": y}}, dash=dash, mode="both",
+                                    point_labels={"ap": [f"{lab}, block {inf}&#8202;%: {v:.0f}&#8202;&#181;m at {f_:g}&#8202;N"
+                                                         for v, f_ in zip(y, F)]}))
+            ids.append(sid)
+        legend.append((lab, col, "", ids))
+    legend += [("30&#8202;% gyroid", "#444", "", []), ("50&#8202;% gyroid", "#444", "6 4", [])]
+    panels = [IF.Panel("ap", "Approach under the 25&#8202;mm rod (&#181;m), log scale", (15.0, 200.0), band=False, dec=1,
+                       height=240, ylog=True)]
+    fig = IF.Figure("approach", None, "Force per tip (N), log scale", panels, series, legend=legend, x_domain=(0.45, 3.3),
+                    xlog=True)
+    sl = {}
+    for sr in series:
+        y = sr.data["ap"]["med"]
+        sl[sr.id] = float(np.log(y[2] / y[0]) / np.log(6.0))
+    fe_sl = [v for k, v in sl.items() if k.startswith("ap-fe")]
+    md_sl = [v for k, v in sl.items() if not k.startswith("ap-fe")]
+    return ifig(fig, "Approach of the four-magnet 85A block under the bench rod against the force: the finite elements of the "
+                     "printed tip, the 1&#8202;mm pads (builder v2) and Drake at the finite elements&#8217; pad modulus, 30&#8202;% "
+                     f"gyroid solid and 50&#8202;% dashed. On these log axes the printed tip&#8217;s approach grows with slope "
+                     f"{min(fe_sl):.2f}&#8211;{max(fe_sl):.2f} and both contact models&#8217; with {min(md_sl):.2f}&#8211;"
+                     f"{max(md_sl):.2f}, the slope of a contact on a local foundation, so the models fitted across 0.5&#8211;3&#8202;N "
+                     "are stiffer than the print at 3&#8202;N and softer at 0.5&#8202;N. Hover a marker for its value.", key="approach")
+
+
+def cells_figure():
+    C = S.get("cells", {})
+    var = S.get("variants", {})
+    panels, series, legend = [], [], []
+    groups = {("block", "hom"): ("Block, board collisions on", IF.PALETTE[0], False),
+              ("block", "hom_noboard"): ("Block, board collisions off", IF.PALETTE[0], True),
+              ("curved", "hom"): ("Curved tips, board collisions on", IF.PALETTE[1], False),
+              ("curved", "hom_noboard"): ("Curved tips, board collisions off", IF.PALETTE[1], True),
+              ("base", "hom"): ("Block, model default, no board", IF.PALETTE[2], False)}
+    data = {g: {c: {"x": [], "med": [], "lab": []} for c in CELLS} for g in groups}
+    for k, r in C.items():
+        tag = k.split("|")[0]
+        if tag not in ("hom", "hom_noboard") or r["cell"] not in CELLS:
+            continue
+        v = r["variant"]
+        fam = "base" if v == "block_e10" else ("block" if v.startswith("block") else "curved")
+        g = (fam, tag)
+        if g not in groups:
+            continue
+        d = data[g][r["cell"]]
+        d["x"].append(var[v]["E_MPa"])
+        d["med"].append(r["cell_score_deg"])
+        d["lab"].append(f"{plain(v)}, {groups[g][0].split(', ', 1)[1]}: {r['cell_score_deg']:.0f}&#176;")
+    for c in CELLS:
+        panels.append(IF.Panel(c.replace(":", "_").replace(".", "p").replace("-", "m"), f"{CELL_NAME[c]} cylinder: cell score "
+                               "(&#176;)", (0.0, 90.0), band=False, dec=1, height=130))
+    for g, (lab, col, hollow) in groups.items():
+        dd = {}
+        pl = {}
+        for c in CELLS:
+            pk = c.replace(":", "_").replace(".", "p").replace("-", "m")
+            if data[g][c]["x"]:
+                o = np.argsort(data[g][c]["x"])
+                dd[pk] = {"x": [data[g][c]["x"][i] for i in o], "med": [data[g][c]["med"][i] for i in o]}
+                pl[pk] = [data[g][c]["lab"][i] for i in o]
+        sid = f"c-{g[0]}-{g[1]}"
+        series.append(IF.Series(sid, lab, col, dd, mode="markers", open=hollow, point_labels=pl))
+        legend.append((lab, col, "", [sid]))
+    fig = IF.Figure("cells", None, "Pad modulus of the variant (MPa), log scale", panels, series, legend=legend,
+                    x_domain=(6.0, 40.0), xlog=True)
+    return ifig(fig, "HOM cell scores on the CAD hand against each variant&#8217;s pad modulus, one panel per cell: the blocks "
+                     "and the curved tips with the board&#8217;s collisions on (filled) and off (hollow), and the model-default "
+                     "block without a board. Hover a marker for the variant.", key="cellsfig")
+
+
 def bed_table():
     B = S.get("bed", {})
     fe = {(r["layout"], r["recipe"]): r for r in S.get("fe", [])}
@@ -419,7 +514,7 @@ def stiffness_section():
            f"impratio 10) the block&#8217;s pads give the same approach and onset arm but {f((rl.get('twist_creep_deg_s') or {}).get('1'), 2)}"
            f"&#8202;&#176;/s of twist creep and {f(rl.get('pull_creep_mm_s'), 3)}&#8202;mm/s of pull creep, ten times the "
            "planner&#8217;s: impratio and step size change the sliding, not the stiffness.</p>"
-           + bed_table()
+           + bed_table() + approach_figure()
            + "<p>The approach is the measurement that sets the modulus. Halving the pad modulus of the 30&#8202;% block raises "
            f"the approach at 1&#8202;N from {f(g('block4_g30', 'v2', 'approach_um'), 0)} to {f(half.get('1'), 0)}&#8202;&#181;m"
            + (f" and doubling it lowers it to {f(dbl.get('1'), 0)}&#8202;&#181;m" if dbl else "")
@@ -523,9 +618,10 @@ def assembly_section():
                      "Tab into the DIP link (mm)", "Closest part and pose"], body,
                     "Least clearance of the board on the index finger over the joint ranges; negative values overlap "
                     "(scenes/interference.json; the thumb and middle finger give the same numbers).", key="sweep")
-            + img("media/finger_block4_g30.png", "The index finger of the 30&#8202;% block variant at MCP and PIP 30&#176;: the "
-                  "tip (tan), the DIP link and its dorsal plate (purple) and the board on the plate (green).", key="finger",
-                  width=1600)
+            + img("media/finger_block4_g30.png", "The index finger of the 30&#8202;% block variant at MCP and PIP 20&#176;, "
+                  "from the side (left) and facing the tip&#8217;s palmar face (right): the tip (tan), the DIP link and its "
+                  "dorsal plate (purple) and the board on the plate (green), 2.6&#8202;mm wider than the finger on each side.",
+                  key="finger", width=1280)
             + f"<p>In the hand the board also meets the object. Over the HOM runs of Section&#160;[[sec:cells]] the board touches "
             f"the cylinder in {sum(a for a, _ in br)} of {sum(b for _, b in br)} runs, and in "
             f"{100 * min(wide):.0f}&#8211;{100 * max(wide):.0f}&#8202;% of the runs on the wide 16&#8202;mm layout, where the "
@@ -661,7 +757,7 @@ def held_prose():
             f"{min(a for a, _ in on.values())}&#8211;{max(a for a, _ in on.values())} of {next(iter(on.values()))[1]} runs per "
             f"variant (every grasp and placement of the four cells), with them off in "
             f"{min(a for a, _ in off.values())}&#8211;{max(a for a, _ in off.values())}, and the bare baseline in {base[0]}: "
-            "the board&#8217;s edge props the cylinder where the pads let it go.</p>" + cells_table())
+            "the board&#8217;s edge props the cylinder where the pads let it go.</p>" + cells_figure() + cells_table())
 
 
 def icem_prose():
@@ -868,7 +964,7 @@ def main():
         raise SystemExit(f"unresolved references: {miss}")
     t = re.sub(r"\[\[((?:fig|tab|sec):[a-z0-9_]+)\]\]", lambda m: str(REFS[m.group(1)]), t)
     t, n = render_tex(t)
-    t = retro_style.apply(t)
+    t = IF.add_assets(retro_style.apply(t))
     open(OUT, "w").write(t)
     print(f"formulas {n}; figures {FIG[0]}; tables {TAB[0]}; wrote {OUT} ({os.path.getsize(OUT) / 1e6:.2f} MB)")
 

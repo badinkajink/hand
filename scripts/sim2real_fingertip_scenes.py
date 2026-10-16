@@ -427,14 +427,15 @@ def cmd_render(a):
         r = mujoco.Renderer(m, a.height, a.width)
         tip = d.xpos[m.body("index_tip").id]
         panels = []
-        for view, az, el in (("side", 90.0, 0.0), ("dorsal", 180.0, 0.0), ("oblique", 140.0, -25.0)):
+        for view, az, el in a.views:
             cam = mujoco.MjvCamera()
             cam.type = mujoco.mjtCamera.mjCAMERA_FREE
-            cam.lookat[:] = tip + [0.0, 0.0, 0.012]
+            cam.lookat[:] = tip
             cam.distance, cam.azimuth, cam.elevation = a.dist, az, el
             r.update_scene(d, cam, opt)
             im = Image.fromarray(r.render().copy())
-            ImageDraw.Draw(im).text((12, 10), f"{name}: {view}", fill=(0, 0, 0), font=font)
+            if a.labels:
+                ImageDraw.Draw(im).text((12, 10), f"{name}: {view}", fill=(0, 0, 0), font=font)
             panels.append(im)
         r.close()
         W = sum(p.width for p in panels)
@@ -467,7 +468,13 @@ def main():
     r.add_argument("--width", type=int, default=640)
     r.add_argument("--height", type=int, default=640)
     r.add_argument("--dist", type=float, default=0.11)
+    r.add_argument("--labels", action="store_true")
+    r.add_argument("--view", dest="views", nargs=3, action="append", metavar=("NAME", "AZ", "EL"),
+                   type=lambda x: float(x) if x.replace(".", "").replace("-", "").isdigit() else x,
+                   default=None, help="camera views (name azimuth elevation); default side, from behind, from below")
     a = ap.parse_args()
+    if a.cmd == "render" and not a.views:
+        a.views = [("side", 90.0, 0.0), ("behind", 0.0, 15.0), ("below", 90.0, -60.0)]
     {"build": cmd_build, "table": cmd_table, "sweep": cmd_sweep, "render": cmd_render}[a.cmd](a)
 
 
