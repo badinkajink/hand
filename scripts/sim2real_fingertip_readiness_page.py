@@ -699,10 +699,104 @@ def bench_section():
             + table(["Item", "First-bench choice", "Why"], dec, "First-bench configuration.", text_cols=(0, 1, 2), key="bench"))
 
 
+def lede():
+    R = S.get("replays", {})
+    pdb = [R[v]["plan-drake"]["rms_dang_deg"] for v in R if v.startswith("block") and v != "block_e10" and R[v].get("plan-drake")]
+    sens = (J("sensing/sensing.json") or {}).get("rows", [])
+    f4 = next(r for r in sens if r["layout"] == "four_d3x2_d5" and r["recipe"] == "w85_30" and r["plane"] == "plate")
+    f5 = next(r for r in sens if r["layout"] == "five_d3x2_d5" and r["recipe"] == "w85_30" and r["plane"] == "plate")
+    ver = J(f"bench/{BENCH_PLAN}_verify.json") or {}
+    held = (ver.get("summary", {}).get("present") or {}).get("held", "&#8211;")
+    return ("Printed in Siraya Tech 85A at 30&#8202;% gyroid, the four-magnet fingertip block behaves on the hand&#8217;s tasks "
+            "as the modelled TPU block did: the eight deployed bench plans keep the tool in 24 of 24 replays, within "
+            f"{max(pdb):.1f}&#176; RMS of Drake, and the four D6 reorientation policies hold 64 of 64 rollouts. Capsule and "
+            "half-ellipsoid tips drop the tool under the block&#8217;s plans and under the pad-trained policies. On the CAD "
+            "finger the magnetometer board must sit behind the DIP link&#8217;s 3&#8202;mm plate, which doubles the force bound to "
+            f"{f4['centre_force_N']:.2f}&#8202;N with four magnets ({f5['centre_force_N']:.2f}&#8202;N with five), and its "
+            "connector tab must be cut to 3&#8202;mm. Fourteen 85A print projects are sliced and checked. The first bench run "
+            f"replays a pinned-iCEM plan on the 25&#8202;mm cylinder, which in simulation keeps the cylinder in {held} plant "
+            "conditions with the support post in place.")
+
+
+def limitations():
+    return ("<p>No printed 85A tip has been measured. The finite elements take Siraya&#8217;s solid modulus as NinjaFlex "
+            "85A&#8217;s 12&#8202;MPa and the gyroid as a homogenized solid, every model uses a friction coefficient of 1.0, and the "
+            "curved tips&#8217; pad modulus is the block&#8217;s scaled by a ratio fitted on 95A prints. The D1&#8211;D8 replays and "
+            "the policies run on real_v1&#8217;s hand D6 and its siblings, whose fingers are 10.05&#8202;mm shorter than the bench "
+            "hand&#8217;s; only the cells and the bench plan use the CAD hand. The board is a box with its mass; its cable is not "
+            "modelled. HOM and pinned iCEM plan on the plant&#8217;s own model, and the bench plan is verified in the same "
+            "simulator it came from, over the plant range that the servo identification has not yet measured.</p>")
+
+
+def open_items():
+    items = [
+        ("Seat coupon", "Print <code>print/20261016-siraya85a_seat_coupon_d3x2_seats2p7_2p8_2p9_g30.3mf</code> and its one-wall "
+         "twin and press a magnet into each seat; if 2.8 or 2.9&#8202;mm keeps the magnet and 2.7 splits the wall, run "
+         "<code>scripts/sim2real_fingertip_prints.py build --seat 2.8</code> before printing tips."),
+        ("Siraya&#8217;s modulus", "Indent the 30&#8202;% four-magnet block with the 25&#8202;mm rod at 0.5, 1 and 3&#8202;N and set "
+         "\\(E_s = 12\\,\\mathrm{MPa}\; F / F_{12}(d)\\) (<code>scripts/sim2real_fingertip_bench.py</code>, "
+         "<code>modulus_from</code>); an approach at 1&#8202;N outside 40&#8211;120&#8202;&#181;m puts \\(E_s\\) outside "
+         "6&#8211;19&#8202;MPa, beyond the range this page tested, and the variant scenes and bed rows are rebuilt at the new "
+         "modulus."),
+        ("Friction and twist", "Pull two printed tips along the rod at 0.5, 1 and 2&#8202;N per tip "
+         "(<code>scripts/tpu_tip_calibrate.py fit --pull</code>) and twist the pinched rod; a measured onset arm far from the "
+         "models&#8217; 2.5&#8211;2.6&#8202;mm at 1&#8202;N, with the measured friction coefficient, refutes the pad patch model "
+         "for the printed block."),
+        ("Board mount", "Cut a window for the five chips into the DIP link&#8217;s plate (the chips against the tip, gap "
+         "0.42&#8202;mm) and rerun <code>scripts/sim2real_fingertip_sensing.py</code> and the interference sweep; the force bound "
+         "halves if the plate&#8217;s remaining frame clears the board."),
+        ("A policy for the CAD hand", "Fit <code>open_ik</code> on the CAD scene (<code>scripts/fit_real_v1_pose.py --scene "
+         "assets/mjcf/experimental/20261016-sim2real_fingertip_readiness/block4_g30/cad_v1/scene_screwdriver_medium.xml "
+         "--write</code>), fix the repeated-mesh error of <code>scripts/make_pad_morphology_run.py</code> on that scene, and "
+         "train the servo-plant D6 recipe on it; a held cosine within the 11 October seed spread (0.79&#8211;0.91) shows the "
+         "longer finger does not change the task."),
+        ("First bench run", f"Load <code>bench/{BENCH_PLAN}_plan.json</code> on the station after the checks of "
+         "Section&#160;[[sec:procedure]] and run it 12 times with the AprilTag tracker; the plan transfers if the cylinder ends "
+         "held on three pads in at least 8 of 12 trials at a turn within 20&#176; of the simulated median."),
+    ]
+    return "<ol>" + "".join(f"<li><b>{a}.</b> {b}</li>" for a, b in items) + "</ol>"
+
+
+def byline():
+    return ("Scripts <code>scripts/sim2real_fingertip_{manifest,prints,fe,scenes,cells,cell10,bed,replays,policies,sensing,bench,"
+            "analysis}.py</code> &#183; builder <code>scripts/sim2real_fingertip_readiness_page.py</code> &#183; rows "
+            "<code>docs/experiments/20261016-sim2real_fingertip_readiness/</code> &#183; scenes "
+            "<code>assets/mjcf/experimental/20261016-sim2real_fingertip_readiness/</code>")
+
+
 def main():
+    REFS.update({"sec:procedure": 12, "sec:bench": 11, "sec:cells": 7})
     v = {"STYLE": P.style_block().replace("</style>", EXTRA_CSS + "</style>"), "BUILT": time.strftime("%Y-%m-%d %H:%M"),
-         "GLOSSARY": glossary()}
-    raise SystemExit("draft: sections still to be written (see the hand-off note)")
+         "BYLINE": byline(), "GLOSSARY": glossary(), "HAND": hand_section(), "PRINT": print_section(),
+         "STIFFNESS": stiffness_section(), "ASSEMBLY": assembly_section(), "REPLAYS": replays_section(),
+         "CELLS": cells_section(), "BUILDERS": builders_section(), "POLICIES": policies_section(),
+         "READOUT": readout_section(), "BENCH": bench_section(), "PROCEDURE": procedure_section(),
+         "LIMITS": limitations(), "OPEN": open_items(), "LEDE": lede()}
+    v["FOOTER"] = ("<p>Rebuild: <code>.venv/bin/python scripts/sim2real_fingertip_analysis.py</code>, then "
+                   "<code>.venv/bin/python scripts/sim2real_fingertip_readiness_page.py</code>. Rows in "
+                   "<code>docs/experiments/20261016-sim2real_fingertip_readiness/</code>: <code>manifest.json</code>, "
+                   "<code>print/</code>, <code>fe/</code>, <code>bed/</code>, <code>cell10/</code>, <code>replays/</code>, "
+                   "<code>cells/</code>, <code>policies/</code>, <code>sensing/</code>, <code>scenes/</code>, <code>bench/</code>, "
+                   "<code>media/</code>; hand-off <code>docs/handoff/20261016-sim2real_fingertip_readiness.md</code>. Related pages: "
+                   "<a href=\"../20261015-curved_tips/20261015-capsule_and_ellipsoid_fingertips.html\">capsule and ellipsoid "
+                   "fingertips</a>, <a href=\"../20261014-scale_turn_cad_v1/20261014-scale_turn_cad_v1.html\">scale-study turn on "
+                   "the CAD hand</a>, <a href=\"../20261013-cad_v1_finger/20261013-cad_v1_finger_model.html\">the CAD finger "
+                   "model</a>, <a href=\"../20261011-servo_plant_policies/20261011-servo_plant_contact_model_policies.html\">the "
+                   "servo-plant policies</a>.</p>")
+    t = open(TPL).read()
+    for k, val in v.items():
+        t = t.replace("{{" + k + "}}", val)
+    left = sorted(set(x.split("}}")[0] for x in t.split("{{")[1:]))
+    if left:
+        raise SystemExit(f"unfilled placeholders: {left}")
+    miss = sorted(set(re.findall(r"\[\[((?:fig|tab|sec):[a-z0-9_]+)\]\]", t)) - set(REFS))
+    if miss:
+        raise SystemExit(f"unresolved references: {miss}")
+    t = re.sub(r"\[\[((?:fig|tab|sec):[a-z0-9_]+)\]\]", lambda m: str(REFS[m.group(1)]), t)
+    t, n = render_tex(t)
+    t = retro_style.apply(t)
+    open(OUT, "w").write(t)
+    print(f"formulas {n}; figures {FIG[0]}; tables {TAB[0]}; wrote {OUT} ({os.path.getsize(OUT) / 1e6:.2f} MB)")
 
 
 if __name__ == "__main__":
