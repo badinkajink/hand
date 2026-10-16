@@ -76,6 +76,35 @@ def cmd_eval(a):
         E.cmd_transfer(ns)
 
 
+def cmd_render(a):
+    """One deterministic rollout of a policy on a finalist scene, rendered by scripts/rl_render_reorient.py at 960 x 720 from a
+    copy of the run's config with the scene paths pointed at the finalist (the checkpoints linked, nothing retrained), then a
+    phase-aligned filmstrip by scripts/policy_filmstrip.py (the policy-eyes procedure)."""
+    import subprocess
+    import yaml
+    media = D / "media"
+    media.mkdir(parents=True, exist_ok=True)
+    for tag in a.policies:
+        for v in a.variants:
+            scene = run_dir(v) if v not in ("tpu27pads1", "tpu27mesh") else MORPH / (
+                "20261011-sv1_u0308_b050_servo_tip_tpu2.7pads1" if v == "tpu27pads1" else "20261011-sv1_u0308_b050_servo_tip_tpu2.7mesh")
+            tmp = ROOT / "logs/20261016-sim2real_fingertip_readiness/render_runs" / f"{tag}__{v}"
+            tmp.mkdir(parents=True, exist_ok=True)
+            cfg = yaml.safe_load((ROOT / "results/rl" / tag / "config.yaml").read_text())
+            cfg["env"]["frozen_scene_xml"] = str(scene / "frozen_scene.xml")
+            cfg["env"]["foundational_run_dir"] = str(scene)
+            (tmp / "config.yaml").write_text(yaml.safe_dump(cfg, sort_keys=False))
+            if not (tmp / "tensorboard").exists():
+                (tmp / "tensorboard").symlink_to(ROOT / "results/rl" / tag / "tensorboard")
+            out = media / f"policy_{tag.split('_servo_')[1].replace('_40M', '')}_{v}.mp4"
+            subprocess.run([sys.executable, str(ROOT / "scripts/rl_render_reorient.py"), "--run", str(tmp), "--checkpoint",
+                            "model_812.pt", "--output", str(out), "--steps", "250", "--width", "960", "--height", "720",
+                            "--distance", "0.24"], check=True)
+            subprocess.run([sys.executable, str(ROOT / "scripts/policy_filmstrip.py"), "--run", str(tmp), "--video", str(out),
+                            "--out", str(out.with_suffix(".png"))], check=True)
+            print(out.relative_to(ROOT), flush=True)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -87,8 +116,11 @@ def main():
     e.add_argument("--policies", nargs="+", default=POLICIES)
     e.add_argument("--n", type=int, default=64)
     e.add_argument("--reference", action="store_true", help="also the trained scenes (tpu27pads1, tpu27mesh)")
+    r = sub.add_parser("render")
+    r.add_argument("--variants", nargs="+", required=True)
+    r.add_argument("--policies", nargs="+", default=["20261011-d6_servo_tpu27pads1_40M_s0"])
     a = ap.parse_args()
-    {"scenes": cmd_scenes, "eval": cmd_eval}[a.cmd](a)
+    {"scenes": cmd_scenes, "eval": cmd_eval, "render": cmd_render}[a.cmd](a)
 
 
 if __name__ == "__main__":
