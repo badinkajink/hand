@@ -480,6 +480,58 @@ def policies_section():
             "bench path is the open-loop plan of Section&#160;[[sec:bench]].</p>")
 
 
+PART = {"carriage": "Carriage", "yaw_link": "Yaw link", "servo_yaw": "Yaw servo", "mcp_link": "MCP link",
+        "servo_mcp": "MCP servo", "servo_pip": "PIP servo", "tip": "Fingertip"}
+
+
+def assembly_section():
+    I = S.get("scenes", {})
+    body = []
+    for tab in (9, 6, 3, 0):
+        r = (I.get(f"block4_g30|tab{tab}") or {}).get("index")
+        if not r:
+            continue
+        mc = r["min_clearance_mm"]
+        board = min(v for k, v in mc.items() if k.startswith("board|") and not k.endswith("|tip"))
+        tabc = min((v for k, v in mc.items() if k.startswith("board_tab|")), default=None)
+        worst = min(mc, key=mc.get) if tab else None
+        body.append([f"{tab}&#8202;mm" if tab else "None (cable soldered to the board)", f(board, 2), f(tabc, 2) if tab else "&#8211;",
+                     f(r["board_to_dip_link_mm"].get("board_tab"), 2) if tab else "&#8211;",
+                     (PART.get(worst.split("|")[1], worst) + (f" at yaw, MCP, PIP {r['at_deg_yaw_mcp_pip'][worst]}&#176;" if worst
+                                                             else "")) if tab else "&#8211;"])
+    C = S.get("cells", {})
+    br = [(v["board_runs"], v["runs"]) for k, v in C.items() if k.startswith("hom|") and v["variant"] != "block_e10"]
+    wide = [v["board_runs"] / v["runs"] for k, v in C.items() if k.startswith("hom|") and v["cell"] == "cylinder:16:-0.125"
+            and v["variant"] != "block_e10"]
+    films = [("block4_g30", 6), ("cap_g30", 7), ("ell16_g30", 6), ("ell11_g30", 6)]
+    return ("<p>On the CAD finger the tip sits on the DIP link, whose 3.0&#8202;mm plate covers the tip&#8217;s back; the "
+            "variant scenes place the five-chip board on the plate&#8217;s dorsal face, chips toward the plate and U1 over the "
+            "contact point, and add its connector tab toward the PIP joint (Figure&#160;[[fig:finger]]). A sweep of every joint "
+            "of each finger over its range (yaw in seven steps, MCP and PIP every 4&#176;, 5,292 configurations) measures the "
+            "least distance from the board and its tab to the sampled surface of every other CAD part of the same finger "
+            "(Table&#160;[[tab:sweep]]). The board itself stays 3.0&#8202;mm from the tip, the plate between them, and 6.3&#8202;mm or "
+            "more from every other part. The ReSkin board&#8217;s 9&#8202;mm tab does not fit: it overlaps the DIP link&#8217;s own "
+            "material by 0.79&#8202;mm in every pose and reaches the PIP servo at full PIP extension. A tab of 3&#8202;mm or a "
+            "cable soldered to the board clears everything.</p>"
+            + table(["Connector tab toward the PIP joint", "Board to the nearest part (mm)", "Tab to the nearest part (mm)",
+                     "Tab into the DIP link (mm)", "Closest part and pose"], body,
+                    "Least clearance of the board on the index finger over the joint ranges; negative values overlap "
+                    "(scenes/interference.json; the thumb and middle finger give the same numbers).", key="sweep")
+            + img("media/finger_block4_g30.png", "The index finger of the 30&#8202;% block variant at MCP and PIP 30&#176;: the "
+                  "tip (tan), the DIP link and its dorsal plate (purple) and the board on the plate (green).", key="finger",
+                  width=1600)
+            + f"<p>In the hand the board also meets the object. Over the HOM runs of Section&#160;[[sec:cells]] the board touches "
+            f"the cylinder in {sum(a for a, _ in br)} of {sum(b for _, b in br)} runs, and in "
+            f"{100 * min(wide):.0f}&#8211;{100 * max(wide):.0f}&#8202;% of the runs on the wide 16&#8202;mm layout, where the "
+            "fingers wrap the cylinder past the tips&#8217; ends; the board&#8217;s 2.6&#8202;mm overhang on each side of the "
+            "14.8&#8202;mm finger is what touches. Figure&#160;[[fig:films]] shows one HOM turn per tip shape on the 16&#8202;mm "
+            "cylinder.</p>"
+            + "".join(film(f"media/hom_cylinder_16_0.625_c{c}_s0_{v}.mp4", f"media/hom_cylinder_16_0.625_c{c}_s0_{v}_mid.png",
+                           f"HOM on the CAD hand, {plain(v)}: 16&#8202;mm cylinder, seed 0; pads touching the cylinder red, the "
+                           "board green.", key="films" if v == "block4_g30" else None)
+                      for v, c in films if c is not None))
+
+
 def main():
     v = {"STYLE": P.style_block().replace("</style>", EXTRA_CSS + "</style>"), "BUILT": time.strftime("%Y-%m-%d %H:%M"),
          "GLOSSARY": glossary()}
