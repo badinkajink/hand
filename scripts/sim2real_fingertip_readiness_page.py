@@ -532,10 +532,16 @@ def assembly_section():
             "fingers wrap the cylinder past the tips&#8217; ends; the board&#8217;s 2.6&#8202;mm overhang on each side of the "
             "14.8&#8202;mm finger is what touches. Figure&#160;[[fig:films]] shows one HOM turn per tip shape on the 16&#8202;mm "
             "cylinder.</p>"
-            + "".join(film(f"media/hom_cylinder_16_0.625_c{c}_s0_{v}.mp4", f"media/hom_cylinder_16_0.625_c{c}_s0_{v}_mid.png",
-                           f"HOM on the CAD hand, {plain(v)}: 16&#8202;mm cylinder, seed 0; pads touching the cylinder red, the "
-                           "board green.", key="films" if v == "block4_g30" else None)
-                      for v, c in films if c is not None))
+            + (film("media/hom_cylinder_16_tile.mp4", "media/hom_cylinder_16_tile.jpg",
+                    "HOM on the CAD hand, 16&#8202;mm cylinder (layout t 0.625), placement 0, each tip at 30&#8202;% gyroid with "
+                    "the grasp its own rows score best: the four-magnet block (top left), the capsule (top right), the 16/32 "
+                    "(bottom left) and the 11/22&#8202;mm half-ellipsoid (bottom right). Pads touching the cylinder are red, the "
+                    "board green; real speed.", key="films")
+               if os.path.exists(os.path.join(D, "media/hom_cylinder_16_tile.mp4")) else
+               "".join(film(f"media/hom_cylinder_16_0.625_c{c}_s0_{v}.mp4", f"media/hom_cylinder_16_0.625_c{c}_s0_{v}_mid.png",
+                            f"HOM on the CAD hand, {plain(v)}: 16&#8202;mm cylinder, seed 0; pads touching the cylinder red, the "
+                            "board green.", key="films" if v == "block4_g30" else None)
+                       for v, c in films if c is not None)))
 
 
 def replays_section():
