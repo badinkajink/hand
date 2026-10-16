@@ -29,6 +29,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 D = ROOT / "docs/experiments/20261016-sim2real_fingertip_readiness"
 OUT = D / "bench"
 E0 = 12.0
+DATE_TAG = "20261016"
 
 
 def fe_rows():
@@ -131,12 +132,246 @@ def cmd_procedure(a):
         print(f"block four 30 %: approach {d} um at 1 N -> E_s {modulus_from(r, 1.0, d):.1f} MPa")
 
 
+# ------------------------------------------------------------------------------------------------- the first-bench package
+
+HOST = ROOT / "src/morphohand/driver/manta/host"
+NAMES = [f"{f}_{j}" for f in ("thumb", "index", "middle") for j in ("yaw", "mcp", "pip")]
+T_OPEN, T_GRIP_RAMP, T_GRIP_HOLD, T_HOLD, T_RELEASE, T_AFTER = 1.0, 0.1, 0.7, 1.0, 0.5, 0.5
+
+
+def pick_source(variant, cell, seed):
+    """The pinned-iCEM row of the variant on the cell (cells/icem.jsonl)."""
+    best = None
+    for l in open(D / "cells/icem.jsonl"):
+        r = json.loads(l)
+        if r.get("status") != "ok" or r["variant"] != variant:
+            continue
+        if f"{r['shape']}:{r['d_mm']:g}:{r['t']:g}" != cell or (seed is not None and r["seed"] != seed):
+            continue
+        key = (r["held"] and r["fingers_loaded_end"] == 3, r["held_turn_deg"])
+        if best is None or key > best[0]:
+            best = (key, r)
+    if best is None:
+        raise SystemExit(f"no pinned-iCEM row for {variant} on {cell}")
+    return best[1]
+
+
+def poses_of(meta, log):
+    """The station's set-points (sim degrees): open, grip, one per 20 ms command of the run, hold, release."""
+    deg = lambda q: {f: {j: round(math.degrees(q[3 * i + k]), 3) for k, j in enumerate(("yaw", "mcp", "pip"))}  # noqa: E731
+                     for i, f in enumerate(("thumb", "index", "middle"))}
+    q_open = [meta["q0"][n] for n in NAMES]
+    q_grip = [meta["grip"][f][k] for f in ("thumb", "index", "middle") for k in range(3)]
+    P = [dict(name="open", ramp_s=0.0, hold_s=T_OPEN, joints=deg(q_open)),
+         dict(name="grip", ramp_s=T_GRIP_RAMP, hold_s=T_GRIP_HOLD, joints=deg(q_grip))]
+    for k, smp in enumerate(log):
+        P.append(dict(name=f"turn_{k:03d}", ramp_s=0.02, hold_s=0.0, joints=deg(smp["u"])))
+    P.append(dict(name="hold", ramp_s=0.0, hold_s=T_HOLD, joints=dict(P[-1]["joints"])))
+    P.append(dict(name="release", ramp_s=T_RELEASE, hold_s=T_AFTER, joints=deg(q_open)))
+    return P
+
+
+def schedule(poses, rate=50.0):
+    """(t, q rad) at rate Hz, as HandPlan.run_trajectory interpolates: the first pose held, then each ramp linear."""
+    out, t = [], 0.0
+    q = np.array([math.radians(poses[0]["joints"][f][j]) for f, j in (n.split("_") for n in NAMES)])
+    n_hold = int(round(poses[0]["hold_s"] * rate))
+    for _ in range(max(1, n_hold)):
+        out.append((t, q.copy()))
+        t += 1.0 / rate
+    for p in poses[1:]:
+        qn = np.array([math.radians(p["joints"][f][j]) for f, j in (n.split("_") for n in NAMES)])
+        n = max(1, int(round(p["ramp_s"] * rate)))
+        for i in range(1, n + 1):
+            out.append((t, q + (qn - q) * i / n))
+            t += 1.0 / rate
+        for _ in range(int(round(p["hold_s"] * rate))):
+            out.append((t, qn.copy()))
+            t += 1.0 / rate
+        q = qn
+    return out
+
+
+def replay(plant, meta, sched, seed, post_off_at, cond):
+    """Open-loop replay of the schedule on the cell's plant with one condition {kp, tau, mu}; per 20 ms the turn, the
+    fingers' normal forces, actuator forces; the post's collisions end at post_off_at (None: never)."""
+    m, d = plant.m, plant.d
+    a = plant.act
+    m.actuator_gainprm[a, 0] = cond["kp"]
+    m.actuator_biasprm[a, 1] = -cond["kp"]
+    m.actuator_forcerange[a] = np.array([-cond["tau"], cond["tau"]])
+    m.geom_friction[:, 0] = cond["mu"]
+    post = m.geom("post").id
+    if not hasattr(plant, "post0"):
+        plant.post0 = (int(m.geom_contype[post]), int(m.geom_conaffinity[post]))
+    m.geom_contype[post], m.geom_conaffinity[post] = plant.post0
+    plant.reset(seed)
+    s0 = None
+    out, i_turn = [], None
+    at_lim = np.zeros(9)
+    run_lim = np.zeros(9)
+    weight = meta["mass_kg"] * 9.81
+    for k, (t, q) in enumerate(sched):
+        if post_off_at is not None and t >= post_off_at - 1e-9:
+            m.geom_contype[post] = m.geom_conaffinity[post] = 0
+        plant.set_targets(q)
+        plant.advance(t + 0.02)
+        s = plant.state()
+        if s0 is None and t >= T_OPEN + T_GRIP_RAMP + T_GRIP_HOLD - 1e-9:
+            s0 = s
+            u0 = s0["R"][:, 2] / np.linalg.norm(s0["R"][:, 2])
+            a0 = np.cross(u0, [0.0, 0.0, 1.0])
+            a0 /= max(1e-9, np.linalg.norm(a0))
+            h0 = np.cross(a0, u0)
+        tau = np.abs(d.actuator_force[a])
+        lim = tau >= 0.98 * cond["tau"]
+        run_lim = np.where(lim, run_lim + 0.02, 0.0)
+        at_lim = np.maximum(at_lim, run_lim)
+        th = math.degrees(math.atan2(s["R"][:, 2] @ h0, s["R"][:, 2] @ u0)) if s0 is not None else 0.0
+        nf = sum(1 for f in ("thumb", "index", "middle") if s["F"][f] >= weight)
+        out.append((round(t, 3), round(th, 2), [round(s["F"][f], 3) for f in ("thumb", "index", "middle")],
+                    round(float(tau.max()), 4), nf, round(float(s["p"][2]) * 1e3, 2)))
+    return out, at_lim
+
+
+def clearance(m_path, sched_q, palm):
+    """Least distance between geoms of different fingers along the schedule (joint angles set kinematically), from
+    MuJoCo's collision pass with a 10 mm margin on every finger geom; the pads excluded."""
+    import mujoco
+    m = mujoco.MjModel.from_xml_path(str(m_path))
+    m.body_pos[m.body("palm_pose").id] = palm
+    d = mujoco.MjData(m)
+    fing = np.full(m.ngeom, -1)
+    for g in range(m.ngeom):
+        bn = m.body(m.geom_bodyid[g]).name
+        for k, f in enumerate(("thumb", "index", "middle")):
+            if bn.startswith(f + "_"):
+                fing[g] = k
+        if "_pad" in (m.geom(g).name or ""):
+            m.geom_contype[g] = m.geom_conaffinity[g] = 0
+    m.geom_margin[fing >= 0] = 0.010
+    qadr = [m.jnt_qposadr[m.joint(n).id] for n in NAMES]
+    best = (1.0, None, None)
+    for t, q in sched_q:
+        d.qpos[qadr] = q
+        mujoco.mj_forward(m, d)
+        for i in range(d.ncon):
+            c = d.contact[i]
+            g1, g2 = int(c.geom[0]), int(c.geom[1])
+            if fing[g1] >= 0 and fing[g2] >= 0 and fing[g1] != fing[g2] and c.dist < best[0]:
+                best = (float(c.dist), round(t, 2), (m.geom(g1).name or m.body(m.geom_bodyid[g1]).name,
+                                                     m.geom(g2).name or m.body(m.geom_bodyid[g2]).name))
+    return dict(min_mm=round(best[0] * 1e3, 2), at_s=best[1], pair=best[2])
+
+
+def cmd_export(a):
+    """The first-bench package of one variant on one cell, from its pinned-iCEM run (module docstring)."""
+    import os
+    os.environ["SCALE_HAND"] = "cad_v1"
+    sys.path.insert(0, str(HOST))
+    import hom_turn3 as H
+    import mujoco
+    import sim2real_fingertip_cells as CE
+    from manta_hand.plan import HandPlan
+    src = pick_source(a.variant, a.cell, a.seed)
+    S, spec = CE.setup(a.variant, "v2", src["mu"])
+    cell, shape, dd = CE.cell_of(S, a.cell)
+    cand = S.candidates(cell, shape, dd)[src["cand"]]
+    kp = S.RB.plant_args(CE.SERVO)["kp"]
+    sc = S.cell_scenes(cell, shape, dd, models=("pads", "pt"))
+    m_pt = mujoco.MjModel.from_xml_path(str(sc["pt"][0]))
+    gg = S.grasp_geometry(cell, shape, dd, cand["h"], cand["spread"])
+    gp = S.grip_poses(m_pt, gg, kp)
+    meta = S.candidate_meta(sc["pads"][1], gg, gp)
+    name = f"{DATE_TAG}-s2r_{a.variant}_{shape[:3]}{dd:g}_t{cell['t']:g}_c{src['cand']}".replace(".", "p").replace("-0p", "-m0p")
+    poses = poses_of(meta, src["log"])
+    mounts = {f: [round(float(v) * 1e3, 2) for v in gg["mounts"][f][:2]] for f in ("thumb", "index", "middle")}
+    obj_palm = (np.array([0.0, 0.0, S.Z_OBJ]) - gg["palm"]) * 1e3
+    plan = dict(design=name, mounts_palm_mm=mounts, poses=poses, meta=dict(
+        variant=a.variant, tip=spec["key"], pad_E_MPa=round(spec["pad_E_Pa"] / 1e6, 3), cad_model="assets/cad_v1 "
+        "(MCP link pip_mount_MCP_link.stl, MCP-PIP 30.80 mm)", scene=f"assets/mjcf/experimental/20261016-sim2real_fingertip_readiness/"
+        f"{a.variant}/cad_v1/hand.xml", cell=a.cell, cell_tag=cell["tag"], x_sep_mm=cell["x_sep_mm"], y_sep_mm=cell["y_sep_mm"],
+        grasp=src["cand"], palm_height_mm=round(cand["h"] * 1e3, 2), straddle_mm=round(cand["spread"] * 1e3, 2),
+        object="cylinder", object_d_mm=dd, object_mass_g=S.MASS * 1e3, object_centre_palm_mm=np.round(obj_palm, 2).tolist(),
+        object_axis="palm y (along the index-middle pair)", source_row=dict(file="cells/icem.jsonl", variant=src["variant"],
+        cell=a.cell, cand=src["cand"], seed=src["seed"], held=src["held"], held_turn_deg=src["held_turn_deg"],
+        fingers_loaded_end=src["fingers_loaded_end"], cmd_rate_rms=src.get("cmd_rate_rms")),
+        controller="pinned iCEM (hand_object_scale_planners icem_pin) on the servo plant, its executed servo targets replayed "
+                   "open loop", plant=CE.SERVO, rate_hz=50, timing_s=dict(open=T_OPEN, grip_ramp=T_GRIP_RAMP,
+                   grip_hold=T_GRIP_HOLD, turn=round(0.02 * len(src["log"]), 2), hold=T_HOLD, release=T_RELEASE, after=T_AFTER),
+        source="scripts/sim2real_fingertip_bench.py export"))
+    OUT.mkdir(parents=True, exist_ok=True)
+    pj = OUT / f"{name}_plan.json"
+    pj.write_text(json.dumps(plan, indent=1))
+    hp = HandPlan.from_json(pj)
+    sched = schedule(poses)
+    with open(OUT / f"{name}_traj.csv", "w") as fh:
+        fh.write("t_s," + ",".join(f"{n}_deg" for n in NAMES) + "\n")
+        for t, q in sched:
+            fh.write(f"{t:.2f}," + ",".join(f"{math.degrees(v):.3f}" for v in q) + "\n")
+    qs = np.array([q for _, q in sched])
+    speed = np.degrees(np.abs(np.diff(qs, axis=0)).max(axis=0)) * 50.0
+    station = dict(schema_errors=hp.schema_errors(), violations=[str(v) for v in hp.validate()],
+                   describe=hp.describe().splitlines())
+    # simulation of the plan: nominal and the plant, friction and post conditions
+    t_post = T_OPEN + T_GRIP_RAMP + T_GRIP_HOLD
+    conds = [dict(kp=kp_, tau=tau, mu=mu) for kp_ in (0.36, 0.72, 1.08) for tau in (0.12, 0.18, 0.23) for mu in (0.5, 0.7, 1.0)]
+    rows = []
+    plant = H.MjPlant(sc["pads"][0], meta)
+    S.set_palm(plant.m, gg["palm"])
+    nominal = None
+    for post in ("removed", "present"):
+        for c in conds:
+            for seed in a.seeds:
+                tr, lim = replay(plant, meta, sched, seed, t_post if post == "removed" else None, c)
+                i_hold = int(round((t_post + 0.02 * len(src["log"]) + T_HOLD) / 0.02)) - 1
+                th_h, F_h, z_h = tr[i_hold][1], tr[i_hold][2], tr[i_hold][5]
+                held = sum(1 for x in F_h if x >= S.MASS * 9.81) >= 2 and z_h > tr[int(t_post / 0.02)][5] - 20
+                row = dict(post=post, **c, seed=seed, held_before_release=bool(held), turn_deg=th_h,
+                           three_pads=sum(1 for x in F_h if x >= S.MASS * 9.81) == 3, F_hold=F_h,
+                           peak_tau_Nm=max(x[3] for x in tr), longest_at_limit_s=round(float(lim.max()), 2))
+                rows.append(row)
+                if post == "removed" and c == dict(kp=0.72, tau=0.18, mu=1.0) and seed == 0:
+                    nominal = tr
+    by = lambda f: [r for r in rows if f(r)]  # noqa: E731
+    summ = {}
+    for post in ("removed", "present"):
+        R = by(lambda r: r["post"] == post)
+        summ[post] = dict(held=f"{sum(r['held_before_release'] for r in R)}/{len(R)}",
+                          three_pads=f"{sum(r['three_pads'] for r in R)}/{len(R)}",
+                          turn_median_deg=round(float(np.median([r["turn_deg"] for r in R if r["held_before_release"]] or [0])), 1),
+                          nominal=[r for r in R if r["kp"] == 0.72 and r["tau"] == 0.18 and r["mu"] == 1.0])
+    clr = clearance(sc["pads"][0], sched, gg["palm"])
+    # expected chip signals: U1's field change per newton of the variant's readout row times the finger's normal force
+    sens = json.loads((D / "sensing/sensing.json").read_text())["rows"]
+    lay = "five_d3x2_d5" if "block5" in a.variant else ("four_d3x2_d5_w1" if "w1" in a.variant else "four_d3x2_d5")
+    rec = f"w85_{a.variant.rsplit('_g', 1)[1]}" if "_g" in a.variant else "w85_30"
+    srow = next(r for r in sens if r["layout"] == lay and r["recipe"] == rec and r["plane"] == "plate")
+    sig = [(t, [round(f * srow["signal_U1_uT_per_N"], 1) for f in F]) for t, _, F, _, _, _ in (nominal or [])][::5]
+    ver = dict(plan=pj.name, station=station, peak_joint_speed_deg_s=dict(zip(NAMES, np.round(speed, 1).tolist())),
+               servo_speed_setting=80, conditions=len(conds) * len(a.seeds), summary=summ, rows=rows,
+               finger_clearance_cad=clr, expected_U1_field_change_uT=dict(per_N=srow["signal_U1_uT_per_N"],
+               readout_row=f"{lay} {rec} plate", trace_every_0p1s=sig),
+               nominal_trace=nominal, script="scripts/sim2real_fingertip_bench.py export",
+               when=time.strftime("%Y-%m-%d %H:%M"))
+    (OUT / f"{name}_verify.json").write_text(json.dumps(ver, indent=1, default=float))
+    print(f"{pj.relative_to(ROOT)}: {len(poses)} poses; station errors {station['schema_errors']} violations "
+          f"{station['violations']}; post removed {summ['removed']['held']} held, {summ['removed']['three_pads']} three pads, "
+          f"median {summ['removed']['turn_median_deg']} deg; post present {summ['present']['held']} held, median "
+          f"{summ['present']['turn_median_deg']} deg; finger clearance {clr}", flush=True)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("procedure")
+    e = sub.add_parser("export")
+    e.add_argument("--variant", required=True)
+    e.add_argument("--cell", required=True)
+    e.add_argument("--seed", type=int, default=None, help="the iCEM row's seed (default: the best row of the cell)")
+    e.add_argument("--seeds", nargs="+", type=int, default=[0, 1, 2], help="placements of the verification replays")
     a = ap.parse_args()
-    {"procedure": cmd_procedure}[a.cmd](a)
+    {"procedure": cmd_procedure, "export": cmd_export}[a.cmd](a)
 
 
 if __name__ == "__main__":
