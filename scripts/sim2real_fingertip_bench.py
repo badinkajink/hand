@@ -155,8 +155,9 @@ def pick_source(variant, cell, seed):
     return best[1]
 
 
-def poses_of(meta, log):
-    """The station's set-points (sim degrees): open, grip, one per 20 ms command of the run, hold, release."""
+def poses_of(meta, log, release_pip_open=0.0):
+    """The station's set-points (sim degrees): open, grip, one per 20 ms command of the run, hold, release (the open pose
+    with every PIP release_pip_open degrees more open, clipped at -15 deg; the operator's Release is also the abort)."""
     deg = lambda q: {f: {j: round(math.degrees(q[3 * i + k]), 3) for k, j in enumerate(("yaw", "mcp", "pip"))}  # noqa: E731
                      for i, f in enumerate(("thumb", "index", "middle"))}
     q_open = [meta["q0"][n] for n in NAMES]
@@ -166,7 +167,8 @@ def poses_of(meta, log):
     for k, smp in enumerate(log):
         P.append(dict(name=f"turn_{k:03d}", ramp_s=0.02, hold_s=0.0, joints=deg(smp["u"])))
     P.append(dict(name="hold", ramp_s=0.0, hold_s=T_HOLD, joints=dict(P[-1]["joints"])))
-    P.append(dict(name="release", ramp_s=T_RELEASE, hold_s=T_AFTER, joints=deg(q_open)))
+    rel = {f: dict(j, pip=round(max(j["pip"] - release_pip_open, -15.0), 3)) for f, j in deg(q_open).items()}
+    P.append(dict(name="release", ramp_s=T_RELEASE, hold_s=T_AFTER, joints=rel))
     return P
 
 
@@ -313,10 +315,12 @@ def cmd_export(a):
     gp = S.grip_poses(m_pt, gg, kp)
     meta = S.candidate_meta(sc["pads"][1], gg, gp)
     name = f"{DATE_TAG}-s2r_{a.variant}_{shape[:3]}{dd:g}_t{cell['t']:g}_c{src['cand']}".replace(".", "p").replace("-0p", "-m0p")
-    poses = poses_of(meta, src["log"])
+    poses = poses_of(meta, src["log"], a.release_pip_open)
     if a.tau_cap:
         name += f"_cap{a.tau_cap:g}".replace(".", "p")
         poses = capped(poses, meta, sc, gg, a.tau_cap, kp)
+    if a.release_pip_open:
+        name += f"_rel{a.release_pip_open:g}"
     mounts = {f: [round(float(v) * 1e3, 2) for v in gg["mounts"][f][:2]] for f in ("thumb", "index", "middle")}
     obj_palm = (np.array([0.0, 0.0, S.Z_OBJ]) - gg["palm"]) * 1e3
     plan = dict(design=name, mounts_palm_mm=mounts, poses=poses, meta=dict(
@@ -331,7 +335,7 @@ def cmd_export(a):
         controller="pinned iCEM (hand_object_scale_planners icem_pin) on the servo plant, its executed servo targets replayed "
                    "open loop", plant=CE.SERVO, rate_hz=50, timing_s=dict(open=T_OPEN, grip_ramp=T_GRIP_RAMP,
                    grip_hold=T_GRIP_HOLD, turn=round(0.02 * len(src["log"]), 2), hold=T_HOLD, release=T_RELEASE, after=T_AFTER),
-        source="scripts/sim2real_fingertip_bench.py export"))
+        release_pip_open_deg=a.release_pip_open, source="scripts/sim2real_fingertip_bench.py export"))
     OUT.mkdir(parents=True, exist_ok=True)
     pj = OUT / f"{name}_plan.json"
     pj.write_text(json.dumps(plan, indent=1))
@@ -375,6 +379,9 @@ def cmd_export(a):
                           nominal=[r for r in R if r["kp"] == 0.72 and r["tau"] == 0.18 and r["mu"] == 1.0])
     clr = dict(commanded=clearance(sc["pads"][0], sched, gg["palm"]),
                achieved_nominal=clearance(sc["pads"][0], q_nominal, gg["palm"]))
+    if clr["achieved_nominal"]["at_s"] is not None:
+        k = int(np.argmin([abs(t - clr["achieved_nominal"]["at_s"]) for t, _ in q_nominal]))
+        clr["achieved_nominal"]["cad_mesh_at_that_instant"] = mesh_clearance(sc["pads"][0], q_nominal[k][1], gg["palm"])
     # expected chip signals: U1's field change per newton of the variant's readout row times the finger's normal force
     sens = json.loads((D / "sensing/sensing.json").read_text())["rows"]
     lay = "five_d3x2_d5" if "block5" in a.variant else ("four_d3x2_d5_w1" if "w1" in a.variant else "four_d3x2_d5")
@@ -436,8 +443,9 @@ def mesh_clearance(m_path, q, palm, n_per_mm2=4.0):
 
 def cmd_abort(a):
     """The abort path of an exported plan: the plan replayed to a time inside the turn, then every servo ramped to the
-    'open' pose over 0.5 s (the operator's Stop motion and open pose); per abort time the least finger-to-finger clearance
-    on the achieved joint angles, the largest actuator force and where the cylinder ends."""
+    plan's 'release' pose over 0.5 s (the operator's Stop motion and Release; --pip-open opens every PIP further); per abort
+    time the least finger-to-finger clearance on the achieved joint angles, the largest actuator force, the time until no
+    pad presses the cylinder and where the cylinder ends."""
     import os
     os.environ["SCALE_HAND"] = "cad_v1"
     import hom_turn3 as H
@@ -469,7 +477,9 @@ def cmd_abort(a):
             cut.append(pz)
             if t >= t_ab:
                 break
-        cut.append(dict(name="abort_open", ramp_s=0.5, hold_s=1.0, joints=poses[0]["joints"]))
+        rel = next(p for p in poses if p["name"] == "release")["joints"]
+        ab_pose = {f: dict(j, pip=max(j["pip"] - a.pip_open, -15.0)) for f, j in rel.items()}
+        cut.append(dict(name="abort_open", ramp_s=0.5, hold_s=1.0, joints=ab_pose))
         sched = schedule(cut)
         for post in ("present", "removed"):
             tr, lim, qa = replay(plant, meta, sched, 0, t_turn if post == "removed" else None, dict(kp=kp, tau=0.18, mu=1.0))
@@ -477,12 +487,15 @@ def cmd_abort(a):
             if clr["at_s"] is not None:
                 k = int(np.argmin([abs(t - clr["at_s"]) for t, _ in qa]))
                 clr["cad_mesh_at_that_instant"] = mesh_clearance(sc["pads"][0], qa[k][1], gg["palm"])
+            free = [x[0] for x in tr if x[0] >= t_ab and max(x[2]) < 0.05]
             rows.append(dict(abort_after_s=dt_abort, post=post, clearance_achieved=clr, peak_tau_Nm=max(x[3] for x in tr),
                              longest_at_limit_s=round(float(lim.max()), 2), z_end_mm=tr[-1][5], z_grip_mm=tr[int(t_turn / 0.02)][5],
-                             fingers_loaded_end=tr[-1][4]))
+                             fingers_loaded_end=tr[-1][4], F_end_N=tr[-1][2],
+                             released_after_s=round(free[0] - t_ab, 2) if free else None, abort_pose=ab_pose))
             print(f"abort after {dt_abort} s, post {post}: clearance {clr}, peak {rows[-1]['peak_tau_Nm']} N m, cylinder "
                   f"{tr[-1][5]:.1f} mm (grip {rows[-1]['z_grip_mm']:.1f})", flush=True)
-    (OUT / f"{a.plan}_abort.json").write_text(json.dumps(dict(plan=a.plan, rows=rows, open_ramp_s=0.5,
+    tag = "" if not a.pip_open else f"_pip{a.pip_open:g}"
+    (OUT / f"{a.plan}_abort{tag}.json").write_text(json.dumps(dict(plan=a.plan, rows=rows, open_ramp_s=0.5, pip_open_deg=a.pip_open,
                                                               script="scripts/sim2real_fingertip_bench.py abort",
                                                               when=time.strftime("%Y-%m-%d %H:%M")), indent=1, default=float))
 
@@ -528,7 +541,8 @@ def cmd_film(a):
     post = m.geom("post").id
     plant.reset(a.seed)
     frames, stills = [], {}
-    title = f"Open-loop bench plan, {CE.plain(m_['variant'])}; {dd:g} mm cylinder, post {a.post}"
+    title = f"Open-loop bench plan, {dd:g} mm cylinder, post {a.post}"  # one line of the 960 px bar
+    tip = CE.plain(m_["variant"])
     for k, (t, q) in enumerate(sched):
         if a.post == "removed" and t >= t_turn - 1e-9:
             m.geom_contype[post] = m.geom_conaffinity[post] = 0
@@ -546,7 +560,7 @@ def cmd_film(a):
         rend.update_scene(d, cam)
         phase = ("open" if t < T_OPEN else "grip" if t < t_turn else "turn" if t < t_hold else
                  "hold" if t < t_hold + T_HOLD else "release")
-        fr = TF.label_bar(rend.render().copy(), [title, f"t {t:4.2f} s   {phase}"])
+        fr = TF.label_bar(rend.render().copy(), [title, f"{tip}   t {t:4.2f} s   {phase}"])
         frames.append(fr)
         for nm, tw in (("grip", t_turn - 0.1), ("turn", t_turn + 0.5 * (t_hold - t_turn)), ("hold", t_hold + 0.5),
                        ("release", t_hold + T_HOLD + T_RELEASE + 0.4)):
@@ -572,9 +586,14 @@ def main():
     e.add_argument("--seeds", nargs="+", type=int, default=[0, 1, 2], help="placements of the verification replays")
     e.add_argument("--tau-cap", type=float, default=None,
                    help="cap every commanded offset at this torque over the gain, N m (the servo's overload guard)")
+    e.add_argument("--release-pip-open", type=float, default=0.0,
+                   help="the release pose (the station's Release, also the abort target) this many degrees more open at "
+                        "every PIP than the open pose, clipped at -15 deg; the plan name gains _rel<deg>")
     b = sub.add_parser("abort")
     b.add_argument("--plan", required=True, help="plan name under bench/ (without _plan.json)")
     b.add_argument("--at", nargs="+", type=float, default=[1.0, 3.0, 5.0], help="abort times after the grip, s")
+    b.add_argument("--pip-open", type=float, default=0.0, help="the abort pose's PIP angles this many degrees more open "
+                   "than the plan's release pose (clipped at -15 deg); rows in <plan>_abort_pip<deg>.json")
     fm = sub.add_parser("film")
     fm.add_argument("--plan", required=True)
     fm.add_argument("--post", default="present", choices=["present", "removed"])
