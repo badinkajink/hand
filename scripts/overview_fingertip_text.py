@@ -97,6 +97,11 @@ hand&#8217;s kinematics give that magnet&#8217;s position, so its field can be s
 the same size, 6&#8202;mm apart across the face and 7&#8202;mm along it, give 0.14&#8211;0.16&#8202;N everywhere, stiffen the face
 by 12&#8202;% and raise the field at the chips to 10.6&#8202;mT, which needs GAIN_SEL&#8202;3
 ([magnetometer readout](exp:20261013-magnet_layouts/20261013-mlx90393_fingertip_readout.html#layouts)).</p>
+<p>On the SR&#178; finger as built from its CAD parts the DIP link&#8217;s 3.0&#8202;mm plate covers the tip&#8217;s back, so the
+board sits on the plate&#8217;s far side, its chips 3.42&#8202;mm from the tip. A tip printed in Siraya Tech 85A at 30&#8202;% gyroid
+with four 3 by 2&#8202;mm magnets then resolves 0.35&#8202;N per sample at the contact point, with the contact position and a
+uniform background field unknown, and 0.14&#8202;N with a fifth magnet over U1
+([deployment readiness](exp:20261016-sim2real_fingertip_readiness/20261016-cad_hand_fingertip_deployment_readiness.html#readout)).</p>
 {{FIG board}}
 {{FIG noise}}"""),
     ("print", "Print plan and magnet pockets",
@@ -106,7 +111,10 @@ nozzle never prints onto it. At 0.2&#8202;mm layers the 4.76&#8202;mm magnet 5&#
 10.40 to 12.20&#8202;mm of print height under 0.21&#8202;mm of air, and the print pauses before layer 62. The tip page holds
 the STL and pause sheet of each print and a calculator for magnet depth, chip distance, TPU modulus, magnet grade and
 output rate
-([finite elements of the printed tip](exp:20261009-tpu_tip_fem/20261009-printed_tpu_fingertip_finite_elements.html)).</p>"""),
+([finite elements of the printed tip](exp:20261009-tpu_tip_fem/20261009-printed_tpu_fingertip_finite_elements.html)).
+Fourteen PrusaSlicer projects print the 3 by 2&#8202;mm magnet tips and two seat coupons in Siraya Tech 85A on the Prusa
+XL&#8217;s second extruder, at 30 and 50&#8202;% gyroid, with seats of 2.7&#8202;mm until a coupon shows which seat keeps a magnet
+([deployment readiness](exp:20261016-sim2real_fingertip_readiness/20261016-cad_hand_fingertip_deployment_readiness.html#print)).</p>"""),
     ("budget", "Compliance of the tip and of the servo",
      """<p>At 1&#8202;N the gyroid tip sinks 63&#8202;&#181;m and the eFlesh tips 0.38&#8211;0.61&#8202;mm. The servo plant used in
 training (gain 0.72&#8202;N&#183;m/rad, inferred from the load register and never measured) lets the fingertip yield
@@ -171,6 +179,9 @@ PAGES = [
      "Sphere-pad accuracy across tip shapes; fillet shapes and print recipes screened on the hand&#8217;s tasks"),
     ("Printed fingertips and force sensing", "20261015-curved_tips/20261015-capsule_and_ellipsoid_fingertips.html",
      "Capsule and ellipsoid tips on the hand&#8217;s tasks, stiffness maps against finite elements, quarter-ellipsoid sensing"),
+    ("Printed fingertips and force sensing", "20261016-sim2real_fingertip_readiness/20261016-cad_hand_fingertip_deployment_readiness.html",
+     "Printed 85A magnet tips on the CAD hand: print files, bench-plan replays, policies, readout behind the DIP plate, "
+     "first-bench plan"),
     ("Printed fingertips and force sensing", "20261013-eflesh_printability/20261013-eflesh_lattice_printability.html",
      "Audit and build of eFlesh lattices, as-printed stiffness"),
     ("Printed fingertips and force sensing", "20261013-magnet_layouts/20261013-mlx90393_fingertip_readout.html",

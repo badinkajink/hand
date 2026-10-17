@@ -1810,6 +1810,11 @@ def _url(path):
 
 
 RELATED = [  # (group, date, title, path relative to the repository, contents)
+    ("Results on other pages", "2026-10-16", "Deployment readiness of the CAD hand with printed 85A magnet fingertips",
+     "docs/experiments/20261016-sim2real_fingertip_readiness/20261016-cad_hand_fingertip_deployment_readiness.html",
+     "Pads v1, v2 and Drake on printed 85A blocks and curved tips at their finite-element modulus; the CAD hand&#8217;s "
+     "10&#8202;mm cylinder rerun with the printed fingers, where both builders hold the same runs; D1&#8211;D8 replays and the "
+     "D6 policies on the new tips"),
     ("Results on other pages", "2026-10-15", "Capsule and ellipsoid fingertips against the printed block on the SR2 hand",
      "docs/experiments/20261015-curved_tips/20261015-capsule_and_ellipsoid_fingertips.html",
      "Nine curved tips through the bed, cost, trajectory and task protocol; probe maps of the printed tips against finite "

@@ -41,6 +41,8 @@ figure.img img{width:100%;height:auto}
 .eq{margin:.8em 0;text-align:center}
 """ + texsvg.BLOCK_CSS + "\n"
 MM, UM, NN, DEG, MPA = "&#8202;mm", "&#8202;&#181;m", "&#8202;N", "&#176;", "&#8202;MPa"
+import mlx90393_model  # noqa: E402
+NOISE_UT = round(mlx90393_model.noise_uT(7, 0, 0, 5)[1], 2)  # one sample's z-axis noise at the board's setting, uT
 VARIANTS = ["block_e10", "block4_g30", "block5_g30", "block4w1_g30", "cap_g30", "ell16_g30", "ell11_g30",
             "block4_g50", "block5_g50", "block4w1_g50", "cap_g50", "ell16_g50", "ell11_g50"]
 
@@ -131,6 +133,16 @@ def plain(v):
     return f"{sh}{mags}, {inf}&#8202;%"
 
 
+def phrase(v):
+    """A variant's name inside a sentence: 'the four-magnet block at 30 % gyroid'."""
+    if v == "block_e10":
+        return "the model-default block"
+    base, inf = v.rsplit("_g", 1)
+    sh = {"block4": "four-magnet block", "block5": "five-magnet block", "block4w1": "one-wall four-magnet block",
+          "cap": "capsule", "ell16": "16/32&#8202;mm half-ellipsoid", "ell11": "11/22&#8202;mm half-ellipsoid"}[base]
+    return f"the {sh} at {inf}&#8202;% gyroid"
+
+
 S = J("summary.json") or {}
 MAN = J("manifest.json") or {}
 
@@ -166,11 +178,25 @@ GLOSSARY = [
     ("Held, held turn, three pads", "Held: at the end the cylinder is less than 20&#8202;mm below its height after the grip and at "
      "least two fingers each press on it with its weight. Held turn: the turn of the cylinder&#8217;s axis at the end when held, "
      "else 0. Three pads: all three fingers&#8217; pads press with at least the cylinder&#8217;s weight."),
-    ("Cell, cell score", "Cell: one finger layout and cylinder of the scale study on the CAD hand (diameters 10, 16, 25&#8202;mm). "
-     "Cell score: the median held HOM turn over placements 0&#8211;2 at the candidate grasp whose median is largest."),
+    ("HOM, pinned iCEM", "HOM: the relative contact-velocity turn controller of arXiv 2609.25619 (Wang, Oh, Pollard) at "
+     "100&#8202;Hz, which turns the cylinder toward a reference angle while it regulates each pad&#8217;s normal force. Pinned "
+     "iCEM: the scale study&#8217;s sampling planner (improved cross-entropy method, 64 rollouts of 0.5&#8202;s replanned every "
+     "20&#8202;ms, a cost that keeps three pads loaded), whose first knot is fixed to the servo command in force."),
+    ("Layout \\(t\\), cell, cell score", "Layout: the scale study&#8217;s symmetric tripods, the thumb opposite the "
+     "index&#8211;middle pair at separation \\(100 - 60\\,t\\)&#8202;mm and the pair&#8217;s fingers \\(110 - 60\\,t\\)&#8202;mm apart, "
+     "\\(t\\) from &#8722;1 (wide) to 1 (compact). Cell: one layout and one cylinder (10, 16 or 25&#8202;mm in diameter, "
+     "100&#8202;mm long, 25&#8202;g, on a 3&#8202;mm post) on the CAD hand. Cell score: the median held HOM turn over placements "
+     "0&#8211;2 at the candidate grasp whose median is largest."),
+    ("Command rate, three-pad fraction", "Command rate: the RMS over the nine servo targets and the 10&#8202;ms samples after "
+     "the grip of each target&#8217;s rate of change (rad/s). Three-pad fraction: the share of those samples in which all three "
+     "fingers press on the cylinder with at least its weight."),
+    ("D1&#8211;D8", "The eight real_v1 hands built and run on the bench in September 2026, each with its deployed open-loop "
+     "plan for the 25&#8202;mm screwdriver; the reorientation policies of 11 October were trained on hand D6."),
     ("Board", "The ReSkin 5X magnetometer board: FR-4 20&#8202;&#215;&#8202;20&#8202;&#215;&#8202;0.6&#8202;mm, five MLX90393 chips "
      "(U1 at the centre, U2&#8211;U5 7&#8202;mm from it), a 10&#8202;&#215;&#8202;9&#8202;mm connector tab; in the scenes on the dorsal "
      "face of the DIP link&#8217;s 3.0&#8202;mm plate behind the tip, U1 over the contact point."),
+    ("GAIN_SEL", "The MLX90393&#8217;s gain register; at 7, the most sensitive setting, the guaranteed range is 4.8&#8202;mT, and "
+     "the datasheet gives the noise only at that gain."),
     ("Force bound", "The Cram&#233;r&#8211;Rao bound of the normal force at the contact point from one 141&#8202;Hz sample of the five "
      "chips (GAIN_SEL 7, RES 0, OSR 0, DIG_FILT 5), the contact position and a uniform background field unknown (N)."),
     ("RMS tool-angle difference", "Two rollouts of one placement under two settings, sampled every 20&#8202;ms: the root mean "
@@ -277,20 +303,23 @@ def readout_section():
             f"30&#8202;% gyroid, against {f(t4['centre_force_N'], 2)} and {f(t5['centre_force_N'], 2)}&#8202;N with the chips "
             f"against the tip (Table&#160;[[tab:readout]]). The fifth magnet, under the contact point and over U1, lowers the bound "
             f"{f4['centre_force_N'] / f5['centre_force_N']:.1f} times. At 50&#8202;% gyroid the tip is about twice as stiff and "
-            f"the bound rises to {f(g5['centre_force_N'], 2)}&#8202;N with five magnets; only the 30&#8202;% prints move the "
-            f"magnets 12&#8202;&#181;m/N or more, the travel the readout needs for 0.1&#8202;N per sample. Behind the plate "
+            f"the bound rises to {f(g5['centre_force_N'], 2)}&#8202;N with five magnets; only the 30&#8202;% prints meet the "
+            "14 October sensing rule of at least 12&#8202;&#181;m/N of magnet travel. Behind the plate "
             f"the static field is {f(f4['B_max_component_mT'], 1)}&#8202;mT (four) and {f(f5['B_max_component_mT'], 1)}&#8202;mT "
             "(five) on the largest axis, inside GAIN_SEL 7&#8217;s 4.8&#8202;mT range, so the bound uses the datasheet&#8217;s noise "
             "at the gain the board would run. A magnet mounted the wrong way round changes the field at a chip by "
-            f"{min(flip) / 1e3:.1f}&#8211;{max(flip) / 1e3:.1f}&#8202;mT, a thousand times the noise, so the zero-load reading "
-            "identifies it (procedure, Section&#160;[[sec:procedure]]).</p>"
+            f"{min(flip) / 1e3:.1f}&#8211;{max(flip) / 1e3:.1f}&#8202;mT, {round(min(flip) / NOISE_UT, -2):.0f}&#8211;"
+            f"{round(max(flip) / NOISE_UT, -2):,.0f} times the {NOISE_UT}&#8202;&#181;T noise of one sample on the z axis, so the "
+            "zero-load "
+            "reading identifies it (procedure, Section&#160;[[sec:procedure]]).</p>"
             + table(["Magnets", "Gyroid", "Chips", "Largest field component (mT)", "GAIN_SEL", "Force bound at the contact "
                      "point (N)", "Median over 15 points (N)", "Magnet travel at 1 N (&#181;m/N)"], body,
                     "Readout of the 85A magnet blocks: point-dipole fields of the 3&#8202;&#215;&#8202;2&#8202;mm N52 magnets at "
                     "the five chips and the Cram&#233;r&#8211;Rao bound from one 141&#8202;Hz sample, the finite elements&#8217; "
-                    "magnet motions at solid modulus 12&#8202;MPa (sensing/sensing.json). A softer Siraya print moves the "
-                    "magnets further and lowers the bound in proportion: travel and bound scale as 12&#8202;MPa over the "
-                    "solid modulus.", key="readout"))
+                    "magnet motions at solid modulus 12&#8202;MPa (sensing/sensing.json). Against the tip the field exceeds "
+                    "GAIN_SEL 7&#8217;s range, and the bound, computed with GAIN_SEL 7&#8217;s noise, is a lower bound. A softer "
+                    "Siraya print moves the magnets further and lowers the bound in proportion: travel and bound scale as "
+                    "12&#8202;MPa over the solid modulus.", key="readout"))
 
 
 def hand_section():
@@ -317,12 +346,14 @@ def hand_section():
             + ", ".join(f"<i>{k}</i>" for k in prov) + ". The assembled finger is 85.2&#8202;g in the model against the "
             "owner&#8217;s estimate of 120&#8202;g; no part has been weighed.</p>"
             f"<p>Each variant (Table&#160;[[tab:variants]]) sets the tip&#8217;s mass from its 85A G-code (the filament extruded on "
-            f"the part) plus 0.106&#8202;g per magnet, {min(tips):.2f}&#8211;{max(tips):.2f}&#8202;g against the 5.84&#8202;g of the "
-            "model&#8217;s solid TPU tip, and adds the five-chip board to each DIP link as a collision box with its 0.64&#8202;g. "
+            f"the part) plus 0.106&#8202;g per magnet, {min(tips):.2f}&#8211;{max(tips):.2f}&#8202;g against "
+            f"{var['block_e10']['tip_g']:.2f}&#8202;g for the same block in solid TPU, the baseline, and adds the five-chip board "
+            "to each DIP link as a collision box with its 0.64&#8202;g. "
             "The production real_v1 files are unchanged; the variant scenes are new files under "
             "<code>assets/mjcf/experimental/20261016-sim2real_fingertip_readiness/</code>.</p>"
-            + table(["Variant", "Pad modulus E (MPa)", "Printed TPU (g)", "Magnets (g)", "Tip (g)", "Board"], rows,
-                    "The CAD-hand variants (README.json in each variant&#8217;s folder).", key="variants"))
+            + table(["Variant", "Pad modulus E (MPa)", "TPU (g)", "Magnets (g)", "Tip (g)", "Board"], rows,
+                    "The CAD-hand variants: TPU extruded by each print&#8217;s G-code, the baseline&#8217;s as a solid "
+                    "(README.json in each variant&#8217;s folder).", key="variants"))
 
 
 def procedure_section():
@@ -476,7 +507,8 @@ def bed_table():
                          f((b.get("onset_arm_mm") or {}).get("1"), 2), f(b.get("spin_arm_mm"), 2),
                          f((b.get("twist_creep_deg_s") or {}).get("1"), 3), f(b.get("pull_mu_eff"), 3),
                          f(b.get("pull_creep_mm_s"), 4)])
-    return table(["Variant", "Model", "E (MPa)", "Approach at 1 N, &#181;m (FE)", "At 3 N (FE)", "Twist-onset arm (mm)",
+    return table(["Variant", "Model", "E (MPa)", "Approach at 1 N, &#181;m (finite elements)", "At 3 N (finite elements)",
+                  "Twist-onset arm (mm)",
                   "Spin arm at 1 rad/s (mm)", "Twist creep (&#176;/s)", "Pull onset over 2N", "Pull creep (mm/s)"], rows,
                  "Contact on the bed at 1&#8202;N per tip unless stated, friction 1.0, planner numerics; in brackets the finite "
                  "elements&#8217; approach of the printed block (bed/*.jsonl, fe/fem.jsonl).", text_cols=(0, 1), key="bed")
@@ -493,6 +525,16 @@ def stiffness_section():
     half = (B.get("block4_g30|E0.5x") or {}).get("approach_um", {})
     dbl = (B.get("block4_g30|E2x") or {}).get("approach_um", {})
     rl = B.get("block4_g30|rl") or {}
+    B30 = ["block4_g30", "block5_g30", "block4w1_g30"]
+
+    def spread(vs):
+        """Largest (max - min) / mean of the 1 N approach over v1, v2 and Drake among the variants vs, in percent."""
+        out = []
+        for v in vs:
+            a = [g(v, arm, "approach_um") for arm in ("v1", "v2", "drake")]
+            if all(x is not None for x in a):
+                out.append(100 * (max(a) - min(a)) / (sum(a) / 3))
+        return max(out)
     creep_ratio = [g(v, "v2", "twist_creep_deg_s") / g(v, "drake", "twist_creep_deg_s") for v in VARIANTS
                    if g(v, "v2", "twist_creep_deg_s") and g(v, "drake", "twist_creep_deg_s")]
     txt = (f"<p>At a solid modulus of 12&#8202;MPa the 85A blocks take a pad modulus of {min(e30):.2f}&#8211;{max(e30):.2f}&#8202;MPa "
@@ -504,7 +546,8 @@ def stiffness_section():
            "proportion.</p>"
            + fe_table()
            + f"<p>On the contact bed, with each variant&#8217;s pads at its finite-element modulus, builders v1 and v2 and Drake "
-           f"agree on the approach within a few percent (block, 30&#8202;%: {f(g('block4_g30', 'v2', 'approach_um'), 0)}, "
+           f"agree on the approach at 1&#8202;N within {spread(B30):.0f}&#8202;% on the 30&#8202;% blocks and within "
+           f"{spread(VARIANTS):.0f}&#8202;% on every variant (block, 30&#8202;%: {f(g('block4_g30', 'v2', 'approach_um'), 0)}, "
            f"{f(g('block4_g30', 'v1', 'approach_um'), 0)} and {f(g('block4_g30', 'drake', 'approach_um'), 0)}&#8202;&#181;m at "
            "1&#8202;N, against 61&#8202;&#181;m in the finite elements) and on the twist-onset arm (2.5&#8211;2.6&#8202;mm on the "
            "blocks, 0.7&#8211;0.9&#8202;mm on the curved tips), and the pull onset equals the friction coefficient in every model "
@@ -625,8 +668,8 @@ def assembly_section():
             + f"<p>In the hand the board also meets the object. Over the HOM runs of Section&#160;[[sec:cells]] the board touches "
             f"the cylinder in {sum(a for a, _ in br)} of {sum(b for _, b in br)} runs, and in "
             f"{100 * min(wide):.0f}&#8211;{100 * max(wide):.0f}&#8202;% of the runs on the wide 16&#8202;mm layout, where the "
-            "fingers wrap the cylinder past the tips&#8217; ends; the board&#8217;s 2.6&#8202;mm overhang on each side of the "
-            "14.8&#8202;mm finger is what touches. Figure&#160;[[fig:films]] shows one HOM turn per tip shape on the 16&#8202;mm "
+            "fingers wrap the cylinder past the tips&#8217; ends; the contact is at the board&#8217;s 2.6&#8202;mm overhang on "
+            "each side of the 14.8&#8202;mm finger. Figure&#160;[[fig:films]] shows one HOM turn per tip shape on the 16&#8202;mm "
             "cylinder.</p>"
             + (film("media/hom_cylinder_16_tile.mp4", "media/hom_cylinder_16_tile.jpg",
                     "HOM on the CAD hand, 16&#8202;mm cylinder (layout t 0.625), placement 0, each tip at 30&#8202;% gyroid with "
@@ -697,7 +740,7 @@ def builders_section():
             "(9 of 54 runs against 14 and 16). Rerun with the variant fingers (printed tip mass, magnets, the board on the DIP "
             "link) at each variant&#8217;s modulus, the same nine grasps, six placements, friction 0.7 and HOM, the two builders "
             "hold the same number of runs and Drake about as many (Table&#160;[[tab:builders]]); in every plant the same two grasps "
-            f"(6 and 7) carry nearly all the held runs, and before a drop v2 follows Drake&#8217;s turn {min(rv2):.1f}&#8211;"
+            f"(6 and 7) account for nearly all the held runs, and before a drop v2 follows Drake&#8217;s turn {min(rv2):.1f}&#8211;"
             f"{max(rv2):.1f}&#176; RMS against {min(rv1):.1f}&#8211;{max(rv1):.1f}&#176; for v1. The 15 October gap does not "
             "recur, and v2 stays the default.</p>"
             + table(["Variant", "Held, v1", "Held, v2", "Held, Drake", "Turn to Drake before a drop, v1 (&#176; RMS)", "v2"],
@@ -769,8 +812,9 @@ def icem_prose():
     best = max(rows, key=lambda r: r["held_turn_deg"] if r["held"] and r["fingers_loaded_end"] == 3 else -1)
     rate = [r["cmd_rate_rms"] for r in rows if r.get("cmd_rate_rms") is not None]
     return (f"<p>Pinned iCEM ends {three} of its {len(rows)} runs held on three pads at a command rate of "
-            f"{min(rate):.2f}&#8211;{max(rate):.2f}&#8202;rad/s (Table&#160;[[tab:icem]]); its best, {plain(best['variant'])} on the "
-            f"{CELL_NAME[best['cell']]} cell, turns the cylinder {best['held_turn_deg']:.0f}&#176;.</p>" + icem_table())
+            f"{min(rate):.2f}&#8211;{max(rate):.2f}&#8202;rad/s (Table&#160;[[tab:icem]]); its best run, with "
+            f"{phrase(best['variant'])} on the {CELL_NAME[best['cell']]} cell, turns the cylinder "
+            f"{best['held_turn_deg']:.0f}&#176;.</p>" + icem_table())
 
 
 def cells_section():
@@ -786,16 +830,33 @@ def cells_section():
             + held_prose() + icem_prose())
 
 
-BENCH_PLAN = "20261016-s2r_block4_g30_cyl16_t0p625_c6_cap0p15"
-SECOND_PLAN = "20261016-s2r_block4_g30_cyl25_t0p125_c7_cap0p15"
+BENCH_PLAN = "20261016-s2r_block4_g30_cyl16_t0p625_c6_cap0p15_rel35"
+SECOND_PLAN = "20261016-s2r_block4_g30_cyl25_t0p125_c7_cap0p15_rel35"
 RAW_PLAN = "20261016-s2r_block4_g30_cyl25_t0p125_c7"
+OPEN_PLAN = "20261016-s2r_block4_g30_cyl16_t0p625_c6_cap0p15"  # the first export: Release = the open pose
+
+
+def abort_numbers(ab):
+    """Release time after the abort, time at the torque limit, CAD clearance of the closest pair and the cylinder's end
+    height over an abort file's rows."""
+    rel = [r["released_after_s"] for r in ab["rows"]]
+    mesh = [r["clearance_achieved"].get("cad_mesh_at_that_instant", {}).get("min_mm") for r in ab["rows"]]
+    return dict(released=rel, all_released=all(x is not None for x in rel),
+                rel_lo=min((x for x in rel if x is not None), default=None), rel_hi=max((x for x in rel if x is not None), default=None),
+                lim=max(r["longest_at_limit_s"] for r in ab["rows"]), mesh=[x for x in mesh if x is not None],
+                z_end=[r["z_end_mm"] for r in ab["rows"]])
 
 
 def bench_section():
     plan, ver, ab = J(f"bench/{BENCH_PLAN}_plan.json"), J(f"bench/{BENCH_PLAN}_verify.json"), J(f"bench/{BENCH_PLAN}_abort.json")
     v2, raw = J(f"bench/{SECOND_PLAN}_verify.json"), J(f"bench/{RAW_PLAN}_verify.json")
-    if not (plan and ver and ab and v2 and raw):
+    ab0, ab2 = J(f"bench/{OPEN_PLAN}_abort.json"), J(f"bench/{SECOND_PLAN}_abort.json")
+    if not (plan and ver and ab and v2 and raw and ab0 and ab2):
         raise SystemExit("bench packages missing")
+    A, A0, A2 = abort_numbers(ab), abort_numbers(ab0), abort_numbers(ab2)
+    stuck = [r for r in ab0["rows"] if r["released_after_s"] is None]
+    rel_deg = plan["meta"].get("release_pip_open_deg", 0)
+    rel_nom = ver["finger_clearance_cad"]["achieved_nominal"].get("cad_mesh_at_that_instant", {}).get("min_mm")
     m = plan["meta"]
     sm, sm2, smr = ver["summary"], v2["summary"], raw["summary"]
     R = ver["rows"]
@@ -813,9 +874,9 @@ def bench_section():
     win = [F for t, F in sig["trace_every_0p1s"] if t_turn <= t <= t_end]
     u_th = [F[0] for F in win]
     u_pr = [x for F in win for x in F[1:]]
-    mesh = [r["clearance_achieved"].get("cad_mesh_at_that_instant", {}).get("min_mm") for r in ab["rows"]]
-    mesh = [x for x in mesh if x is not None]
     mounts = plan["mounts_palm_mm"]
+    pc = lambda s: s.replace("/", " of ")  # noqa: E731
+    f_stuck = max(stuck[0]["F_end_N"]) if stuck else None
     dec = [
         ["Fingertip", "Block, four 3&#8202;&#215;&#8202;2&#8202;mm magnets, 85A 30&#8202;% gyroid "
          "(<code>print/20261016-siraya85a_block_four_d3x2_depth5_seat2p7_g30.3mf</code>)",
@@ -830,43 +891,66 @@ def bench_section():
          f"axis along palm y, centre {abs(m['object_centre_palm_mm'][2]):.1f}&#8202;mm below the palm under the pinch midpoint",
          f"The cell&#8217;s grasp {m['grasp']}, straddle {m['straddle_mm']:.1f}&#8202;mm"],
         ["Plan", f"<code>bench/{BENCH_PLAN}_plan.json</code> (and <code>_traj.csv</code>): open 1&#8202;s, grip, "
-         f"{len(plan['poses']) - 4} set-points at 50&#8202;Hz, hold 1&#8202;s, release", "Pinned iCEM&#8217;s executed commands, each "
-         "kept within 0.15&#8202;N&#8202;m over the servo gain of the nominal replay&#8217;s joint angles; station schema and envelope "
-         "checks pass"],
+         f"{len(plan['poses']) - 4} set-points at 50&#8202;Hz, hold 1&#8202;s, release to the open pose with every PIP "
+         f"{rel_deg:g}&#176; more open", "Pinned iCEM&#8217;s executed commands, each kept within 0.15&#8202;N&#8202;m over the servo "
+         "gain of the nominal replay&#8217;s joint angles; station schema and envelope checks pass"],
         ["Limits", f"Servo speed setting 80; peak commanded joint speed {max(spd.values()):.0f}&#176;/s; no stretch at the "
-         f"0.18&#8202;N&#8202;m limit at the modelled gain", f"At gain 1.08 the cap is exceeded for up to "
-         f"{lim_hi:.1f}&#8202;s: the servo identification has to bound the real gain first"],
-        ["Abort", "Stop motion, then the open pose over 0.5&#8202;s", "Cylinder back on the post; CAD parts of the pair "
-         f"{min(mesh):.1f}&#8211;{max(mesh):.1f}&#8202;mm apart at the closest instant"],
-        ["Second run", f"<code>bench/{SECOND_PLAN}_plan.json</code>: 25&#8202;mm cylinder, layout t 0.125", "Turns further; holds "
-         "less often (below)"],
+         f"0.18&#8202;N&#8202;m limit at the modelled gain", f"At gain 1.08&#8202;N&#8202;m/rad a servo stays at the limit for up "
+         f"to {lim_hi:.1f}&#8202;s: the servo identification has to bound the real gain first"],
+        ["Abort", "Stop motion, then the plan&#8217;s <code>release</code> pose (0.5&#8202;s ramp)", f"Frees the cylinder "
+         f"{A['rel_lo']:.2f}&#8211;{A['rel_hi']:.2f}&#8202;s after an abort 1, 3 or 5&#8202;s into the turn, post present or "
+         f"removed; CAD parts of the index&#8211;middle pair {min(A['mesh']):.1f}&#8211;{max(A['mesh']):.1f}&#8202;mm apart; the "
+         f"open pose left {f_stuck:.0f}&#8202;N on the cylinder after a 1&#8202;s abort" if f_stuck else
+         f"Frees the cylinder {A['rel_lo']:.2f}&#8211;{A['rel_hi']:.2f}&#8202;s after the abort"],
+        ["Second run", f"<code>bench/{SECOND_PLAN}_plan.json</code>: 25&#8202;mm cylinder, layout t 0.125, the same "
+         "<code>release</code> pose", "Turns further; holds less often"],
     ]
-    return ("<p>The first bench run replays one open-loop plan that the simulation has checked in every parameter it can. "
+    return ("<p>The first bench run replays one open-loop plan, checked in simulation over the servo&#8217;s gain and torque "
+            "limit, the friction coefficient and the cylinder&#8217;s placement. "
             "Pinned iCEM on the 30&#8202;% block variant ran the 16&#8202;mm cell closed loop, its executed servo commands became "
             "the control station&#8217;s plan, and each command was then kept within 0.15&#8202;N&#8202;m over the servo gain of the "
             "joint angle the fingers reach, below the SCS0009&#8217;s overload guard (it cuts out after about 1&#8202;s above 80&#8202;% "
             f"of stall, 0.18&#8202;N&#8202;m); uncapped, these plans hold a servo at that limit for up to {lim_raw:.1f}&#8202;s. Replayed "
             f"open loop over servo gains of 0.36&#8211;1.08&#8202;N&#8202;m/rad, torque limits of 0.12&#8211;0.23&#8202;N&#8202;m, friction "
-            f"0.5&#8211;1.0 and three placements, the capped plan ends with the cylinder held on three pads in {sm['present']['three_pads']} "
-            f"conditions with the post in place and {sm['removed']['three_pads']} with it removed, at a median turn of "
-            f"{sm['present']['turn_median_deg']:.0f}&#176;; at the nominal plant it holds all {len(nom)} runs on three pads at "
-            f"{min(r['turn_deg'] for r in nom):.0f}&#8211;{max(r['turn_deg'] for r in nom):.0f}&#176;. Friction is what decides the "
-            f"rest: {held_mu[1.0][0]} of {held_mu[1.0][1]} held at &#956; 1.0, {held_mu[0.5][0]} of {held_mu[0.5][1]} at 0.5. The "
-            f"25&#8202;mm plan turns the cylinder {min(r['turn_deg'] for r in nom2 if r['held_before_release']):.0f}&#8211;"
+            f"0.5&#8211;1.0 and three placements, the capped plan ends with the cylinder held on three pads in "
+            f"{pc(sm['present']['three_pads'])} conditions with the post in place and {pc(sm['removed']['three_pads'])} with it "
+            f"removed, at a median turn of {sm['present']['turn_median_deg']:.0f}&#176;; at the nominal plant it holds all {len(nom)} "
+            f"runs on three pads at {min(r['turn_deg'] for r in nom):.0f}&#8211;{max(r['turn_deg'] for r in nom):.0f}&#176;. Friction "
+            f"decides the rest: {held_mu[1.0][0]} of {held_mu[1.0][1]} held at &#956; 1.0, {held_mu[0.5][0]} of {held_mu[0.5][1]} at "
+            f"0.5. The 25&#8202;mm plan turns the cylinder {min(r['turn_deg'] for r in nom2 if r['held_before_release']):.0f}&#8211;"
             f"{max(r['turn_deg'] for r in nom2 if r['held_before_release']):.0f}&#176; where it holds, but holds "
-            f"{sm2['present']['held']} conditions with the post and {sm2['removed']['held']} without it; it is the second run.</p>"
+            f"{pc(sm2['present']['held'])} conditions with the post and {pc(sm2['removed']['held'])} without it; it is the second "
+            "run.</p>"
             f"<p>The commanded angles alone would bring the index and middle fingers {abs(ver['finger_clearance_cad']['commanded']['min_mm']):.0f}"
-            "&#8202;mm into each other: the cylinder keeps the pair apart. If the cylinder is lost, the operator stops the plan and "
-            "commands the open pose; replayed with that abort 1, 3 and 5&#8202;s into the turn, the fingers open without touching "
-            "and the cylinder drops back onto the post. During the turn each board should see the field at U1 change by its "
+            "&#8202;mm into each other: the cylinder keeps the pair apart. If the cylinder is lost, the operator presses Stop motion "
+            "and commands the plan&#8217;s <code>release</code> pose (<code>POST /api/v1/pose</code>), which the station ramps to "
+            "over 0.5&#8202;s. In the first export that pose was the open pose the plan starts from"
+            + (f"; replayed with an abort {stuck[0]['abort_after_s']:.0f}&#8202;s into the turn and the post in place, that pose still "
+               f"pressed the cylinder with {f_stuck:.1f}&#8202;N and kept a servo at its torque limit for "
+               f"{stuck[0]['longest_at_limit_s']:.2f}&#8202;s, because the turn had moved the cylinder into the open pose&#8217;s "
+               "fingertips" if stuck else "")
+            + f". The <code>release</code> pose of the bench plans opens every PIP {rel_deg:g}&#176; further: after aborts 1, 3 and 5&#8202;s into the "
+            f"turn, with the post present or removed, no pad presses the cylinder {A['rel_lo']:.2f}&#8211;{A['rel_hi']:.2f}&#8202;s "
+            f"after the abort, no servo stays at the torque limit longer than {A['lim']:.1f}&#8202;s, the CAD parts of the "
+            f"index&#8211;middle pair stay {min(A['mesh']):.1f}&#8211;{max(A['mesh']):.1f}&#8202;mm apart, and the cylinder falls to "
+            "the table. On the 25&#8202;mm plan the same pose frees a held cylinder within "
+            f"{max(x for x in A2['released'] if x):.2f}&#8202;s and brings the CAD parts of the pair within {min(A2['mesh']):.2f}"
+            "&#8202;mm of each other"
+            + (f"; a cylinder that plan had dropped before the abort, with the post removed, stays on the hand with its centre "
+               f"{min(z for z, x in zip(A2['z_end'], A2['released']) if x == 0):.0f}&#8202;mm above the table"
+               if any(x == 0 for x in A2["released"]) else "") + "."
+            + (f" At the end of a completed run the same pose keeps the pair&#8217;s CAD parts {rel_nom:.1f}&#8202;mm apart at "
+               "their closest." if rel_nom is not None else "")
+            + "</p><p>During the turn each board should see the field at U1 change by its "
             f"finger&#8217;s normal force times {sig['per_N']:.1f}&#8202;&#181;T/N (four magnets behind the DIP plate): "
             f"{min(u_th):.0f}&#8211;{max(u_th):.0f}&#8202;&#181;T on the thumb and {min(u_pr):.0f}&#8211;{max(u_pr):.0f}&#8202;&#181;T on "
-            "the index and middle fingers, against a per-sample noise of 1.75&#8202;&#181;T.</p>"
+            f"the index and middle fingers, against a per-sample noise of {NOISE_UT}&#8202;&#181;T.</p>"
             + table(["Item", "First-bench choice", "Why"], dec, "First-bench configuration.", text_cols=(0, 1, 2), key="bench")
             + film(f"media/bench_{BENCH_PLAN.split('s2r_')[1]}_postpresent_s0.mp4",
                    f"media/bench_{BENCH_PLAN.split('s2r_')[1]}_postpresent_s0_hold.png",
                    "The first-bench plan replayed open loop on the nominal plant, placement 0, the post in place: open, grip, "
-                   "turn, hold and release; pads touching the cylinder red, the boards green.", key="benchfilm"))
+                   f"turn, hold and release with every PIP {rel_deg:g}&#176; past the open pose; pads touching the cylinder red, "
+                   "the boards green.", key="benchfilm"))
 
 
 def lede():
@@ -879,13 +963,13 @@ def lede():
     held = (ver.get("summary", {}).get("present") or {}).get("three_pads", "&#8211;")
     return ("Printed in Siraya Tech 85A at 30&#8202;% gyroid, the four-magnet fingertip block behaves on the hand&#8217;s tasks "
             "as the modelled TPU block did: the eight deployed bench plans keep the tool in 24 of 24 replays, within "
-            f"{max(pdb):.1f}&#176; RMS of Drake, and the four D6 reorientation policies hold 64 of 64 rollouts. Capsule and "
-            "half-ellipsoid tips drop the tool under the block&#8217;s plans and under the pad-trained policies. On the CAD "
-            "finger the magnetometer board must sit behind the DIP link&#8217;s 3&#8202;mm plate, which doubles the force bound to "
-            f"{f4['centre_force_N']:.2f}&#8202;N with four magnets ({f5['centre_force_N']:.2f}&#8202;N with five), and its "
-            "connector tab must be cut to 3&#8202;mm. Fourteen 85A print projects are sliced and checked. The first bench run "
-            "replays a pinned-iCEM plan on the 16&#8202;mm cylinder whose commands stay under the servo&#8217;s overload guard; "
-            f"in simulation it ends with the cylinder on three pads in {held.replace('/', ' of ')} plant conditions.")
+            f"{max(pdb):.1f}&#176; RMS of Drake, and the four D6 policies hold it in 64 of 64 rollouts; capsule and "
+            "half-ellipsoid tips drop it. Behind the CAD finger&#8217;s 3&#8202;mm DIP plate the magnetometer board resolves "
+            f"{f4['centre_force_N']:.2f}&#8202;N per sample with four magnets, {f5['centre_force_N']:.2f}&#8202;N with five. The "
+            "first bench plan, pinned iCEM on the 16&#8202;mm cylinder, holds it on three pads in "
+            f"{held.replace('/', ' of ')} simulated plant conditions without reaching the servos&#8217; overload guard at the "
+            "modelled gain, and its release frees the cylinder within "
+            f"{abort_numbers(J(f'bench/{BENCH_PLAN}_abort.json'))['rel_hi']:.1f}&#8202;s of an abort.")
 
 
 def limitations():
@@ -899,15 +983,17 @@ def limitations():
 
 
 def open_items():
+    ind = next(st for st in (J("bench/procedure.json") or {}).get("steps", []) if st["id"] == "indentation")
+    b1 = ind["predicts"]["block, four magnets, 30 % gyroid"]["1 N"]
     items = [
         ("Seat coupon", "Print <code>print/20261016-siraya85a_seat_coupon_d3x2_seats2p7_2p8_2p9_g30.3mf</code> and its one-wall "
          "twin and press a magnet into each seat; if 2.8 or 2.9&#8202;mm keeps the magnet and 2.7 splits the wall, run "
          "<code>scripts/sim2real_fingertip_prints.py build --seat 2.8</code> before printing tips."),
         ("Siraya&#8217;s modulus", "Indent the 30&#8202;% four-magnet block with the 25&#8202;mm rod at 0.5, 1 and 3&#8202;N and set "
          "\\(E_s = 12\\,\\mathrm{MPa}\\; F / F_{12}(d)\\) (<code>scripts/sim2real_fingertip_bench.py</code>, "
-         "<code>modulus_from</code>); an approach at 1&#8202;N outside 40&#8211;120&#8202;&#181;m puts \\(E_s\\) outside "
-         "6&#8211;19&#8202;MPa, beyond the range this page tested, and the variant scenes and bed rows are rebuilt at the new "
-         "modulus."),
+         f"<code>modulus_from</code>); an approach at 1&#8202;N outside {b1['E_s 24 MPa']:.0f}&#8211;{b1['E_s 6 MPa']:.0f}"
+         "&#8202;&#181;m puts \\(E_s\\) outside the 6&#8211;24&#8202;MPa this page tested (pad modulus halved and doubled on the "
+         "bed), and the variant scenes and bed rows are then rebuilt at the measured modulus."),
         ("Friction and twist", "Pull two printed tips along the rod at 0.5, 1 and 2&#8202;N per tip "
          "(<code>scripts/tpu_tip_calibrate.py fit --pull</code>) and twist the pinched rod; a measured onset arm far from the "
          "models&#8217; 2.5&#8211;2.6&#8202;mm at 1&#8202;N, with the measured friction coefficient, refutes the pad patch model "
@@ -947,7 +1033,8 @@ def main():
                    "<code>docs/experiments/20261016-sim2real_fingertip_readiness/</code>: <code>manifest.json</code>, "
                    "<code>print/</code>, <code>fe/</code>, <code>bed/</code>, <code>cell10/</code>, <code>replays/</code>, "
                    "<code>cells/</code>, <code>policies/</code>, <code>sensing/</code>, <code>scenes/</code>, <code>bench/</code>, "
-                   "<code>media/</code>; hand-off <code>docs/handoff/20261016-sim2real_fingertip_readiness.md</code>. Related pages: "
+                   "<code>media/</code>; hand-off <code>docs/handoff/20261016-sim2real_fingertip_readiness.md</code>. Topic overview: "
+                   "<a href=\"../../overviews/printed_fingertips.html\">printed fingertips and force sensing</a>. Related pages: "
                    "<a href=\"../20261015-curved_tips/20261015-capsule_and_ellipsoid_fingertips.html\">capsule and ellipsoid "
                    "fingertips</a>, <a href=\"../20261014-scale_turn_cad_v1/20261014-scale_turn_cad_v1.html\">scale-study turn on "
                    "the CAD hand</a>, <a href=\"../20261013-cad_v1_finger/20261013-cad_v1_finger_model.html\">the CAD finger "
