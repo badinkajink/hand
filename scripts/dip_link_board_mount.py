@@ -749,6 +749,11 @@ def cmd_drawing(a):
     dst = MEDIA / f"{PFX}_drawing.png"
     MEDIA.mkdir(parents=True, exist_ok=True)
     fig.savefig(dst, dpi=130, bbox_inches="tight")
+    fig.canvas.draw()                                      # each panel alone, for pages that show the drawing panel by panel
+    ren = fig.canvas.get_renderer()
+    for ax, tag in ((axA, "a"), (axB, "b"), (axC, "c"), (axD, "d")):
+        bb = ax.get_tightbbox(ren).transformed(fig.dpi_scale_trans.inverted())
+        fig.savefig(MEDIA / f"{PFX}_drawing_{tag}.png", dpi=130, bbox_inches=bb.padded(0.08))
     plt.close(fig)
     print(dst.relative_to(REPO), flush=True)
 

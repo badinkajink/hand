@@ -36,7 +36,7 @@ EXTRA_CSS = """
 .tw td:first-child{min-width:9em}
 .col > figure,.col > .tw{width:auto !important;max-width:100% !important}
 figure.img img{width:100%;height:auto}
-figure.row3 .imgs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+figure.row3 .imgs{display:grid;grid-template-columns:1fr;gap:10px}
 figure.row3 img{width:100%;height:auto}
 figure.row3 .lab{text-align:center;font-size:15px}
 ol.steps li{margin:.3em 0}
@@ -78,6 +78,44 @@ def img(rel, caption, key=None, width=None, png=False):
         raise SystemExit(f"missing figure {rel}")
     src = data_uri(p) if png else jpeg_uri(p, width=width)
     return figure(f'<img alt="" src="{src}">', caption, key)
+
+
+def pil_uri(im, quality=88):
+    buf = io.BytesIO()
+    im.convert("RGB").save(buf, "JPEG", quality=quality)
+    return "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode()
+
+
+def split_panels(path, legend_rows=True):
+    """The panels of a matplotlib figure laid out in one row, cut at the white columns between them; the legend strip
+    under the panels (below the lowest all-white row band) is dropped."""
+    import numpy as np
+    from PIL import Image
+    im = Image.open(path).convert("RGB")
+    a = np.asarray(im).astype(int)
+    white = (a.min(axis=2) > 245)
+    rows_white = white.all(axis=1)
+    H = a.shape[0]
+    top = H
+    if legend_rows:                                     # the last white band above the bottom strip
+        k = H - 1
+        while k > 0 and rows_white[k]:
+            k -= 1
+        while k > 0 and not rows_white[k]:
+            k -= 1
+        top = k if k > H * 0.6 else H
+    cols_white = white[:top].all(axis=0)
+    spans, inside, x0 = [], False, 0
+    for x, w in enumerate(cols_white):
+        if not w and not inside:
+            inside, x0 = True, x
+        elif w and inside:
+            inside = False
+            if x - x0 > 40:
+                spans.append((x0, x))
+    if inside:
+        spans.append((x0, a.shape[1]))
+    return [im.crop((max(0, x0 - 8), 0, min(a.shape[1], x1 + 8), top)) for x0, x1 in spans]
 
 
 def table(head, body, caption, note=None, text_cols=(0,), key=None):
@@ -227,8 +265,12 @@ def design_section():
              "block tip (tan), the PIP servo and the clevis arm of the current link.", "iso", width=1400),
          img(f"final/media/{PFX}_exploded.png", "Exploded view. The Qwiic header and the pigtail (white, not numbered) are "
              "glued to the clamp plate and move with it.", "exploded", width=1400),
-         img(f"final/media/{PFX}_section.png", "Section through the stack: tip, window plate, board with its chips, clamp "
-             "plate.", "section", width=1400)]
+         figure("".join(f'<img alt="" src="{pil_uri(p_)}">' for p_ in split_panels(os.path.join(FIN, "media",
+                                                                                              f"{PFX}_section.png"))),
+                "Sections through the stack at y = 0 (chips U4, U1, U2), at y = 3.0&#8202;mm (magnets and a key) and at z "
+                "&#8722;78.16&#8202;mm (chips U5, U1, U3). Colours: 85A block tip tan, DIP link grey, board green, clamp "
+                "plate blue, brass screws and nuts ochre, wires orange, magnets red with their north half darker; the cross "
+                "marks the contact point.", "section")]
     return "".join(t)
 
 
@@ -252,7 +294,7 @@ def concepts_section():
     ]
     body = [["Design"] + [esc(C[k]["name"]) for k in keys]] + [[name] + [fn(C[k]) for k in keys] for name, fn in rowsdef]
     head = ["Criterion"] + [f"Concept {k}" for k in keys]
-    ims = "".join(f'<div><img alt="" src="{jpeg_uri(os.path.join(D, p), width=700)}"><div class="lab">{lab}</div></div>'
+    ims = "".join(f'<div><img alt="" src="{jpeg_uri(os.path.join(D, p), width=1400)}"><div class="lab">{lab}</div></div>'
                   for p, lab in (("concept_a/media/20261018-concept_a_iso.png", "a"),
                                  ("concept_b/media/20261018-concept_b_iso.png", "b"),
                                  ("concept_c/media/20261018-concept_c-iso.png", "c")))
@@ -270,7 +312,7 @@ def concepts_section():
         table(head, body, "The three concepts on the criteria of the judge (<code>decision.json</code>; force "
               "resolution at 30&#8202;% gyroid, four-magnet block; concept b on its coarse finite-element grid).",
               text_cols=(0, 1, 2, 3), key="concepts"),
-        figure(f'<div class="imgs">{ims}</div>', "Concepts a, b and c assembled (renders from each concept's folder).",
+        figure(f'<div class="imgs">{ims}</div>', "Concepts a, b and c assembled, from top to bottom (renders from each concept's folder).",
                "concepts", cls="row3"),
     ])
 
@@ -409,12 +451,21 @@ def sensing_section():
 
 
 def drawing_section():
-    return ("<p>The drawing gives the stack at the centre chip, the sections through the screws and the pins, the dovetail "
-            "key against its channel, and the critical fits with their tolerances (Figure&#160;[[fig:drawing]]). The "
-            "window plate's thickness and the pin diameter are set from measurements on the owner's board and from the "
-            "pin-fit coupon before the first print.</p>"
-            + img(f"final/media/{PFX}_drawing.png", "Dimensioned drawing of the final with the critical fits and "
-                  "tolerances (mm).", "drawing", png=True))
+    def pic(tag):
+        return f'<img alt="" src="{data_uri(os.path.join(FIN, "media", f"{PFX}_drawing_{tag}.png"))}">'
+    fits = [[esc(r["feature"]), esc(r["nominal"]), esc(cap(r["fit"]))] for r in EV["fits"]]
+    return ("<p>The dimensioned drawing (<code>final/media/20261018-dip_link_final_drawing.png</code>, one sheet with the "
+            "fits) gives the stack at the centre chip with the Qwiic header in its pocket, the sections through the screws "
+            "and the pins, and the dovetail key against its channel (Figures&#160;[[fig:drawab]] and [[fig:drawcd]]); "
+            "Table&#160;[[tab:fits]] lists the critical fits and their tolerances. The window plate's thickness and the "
+            "pin diameter are set from measurements on the owner's board and from the pin-fit coupon before the first "
+            "print.</p>"
+            + figure(pic("a") + pic("b"), "Drawing panels A, the stack at y = 0 through U1, and B, the section through the "
+                     "M1.6 screws and nuts (mm).", "drawab")
+            + figure(pic("c") + pic("d"), "Drawing panels C, the section through the pins and the dovetail keys, and D, a "
+                     "key (grey) against its channel in the tip (dashed, tan) (mm).", "drawcd")
+            + table(["Feature", "Nominal", "Fit and tolerance"], fits, "Critical fits and tolerances of the final (mm; "
+                    "<code>final/evaluation.json</code>, fits).", text_cols=(0, 1, 2), key="fits"))
 
 
 def print_section():
