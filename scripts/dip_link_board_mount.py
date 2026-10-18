@@ -25,6 +25,7 @@ the XL print settings, the parts list and the assembly sequence.
     $RG $E scripts/dip_link_board_mount.py drawing     # dimensioned drawing with the critical fits
     $E scripts/dip_link_board_mount.py docs            # print settings, parts list, assembly sequence
     $E scripts/dip_link_board_mount.py eval            # final/evaluation.json
+    $E scripts/dip_link_board_mount.py decision        # decision.json: the three concepts scored, Qwiic, attachment
 """
 from __future__ import annotations
 
@@ -175,9 +176,20 @@ def freecad_step():
     for key in ("block4", "block5"):
         stl = PRINT / f"{PFX}_tip_{key}_print.stl"
         m = Mesh.Mesh(str(stl))
-        sh = Part.Shape()
-        sh.makeShapeFromMesh(m.Topology, 0.01)
-        so = Part.makeSolid(Part.Shell(sh.Faces)) if not sh.Solids else sh.Solids[0]
+        solids = []                                  # the outer skin and one closed shell per magnet cavity
+        for comp in m.getSeparateComponents():
+            if comp.CountFacets < 20:                # back-to-back facet pairs left by the boolean, no volume
+                continue
+            sh = Part.Shape()
+            sh.makeShapeFromMesh(comp.Topology, 0.01)
+            sol = Part.makeSolid(Part.Shell(sh.Faces))
+            if sol.Volume < 0:
+                sol.reverse()
+            solids.append(sol)
+        solids.sort(key=lambda s_: -s_.Volume)
+        so = solids[0]
+        for cav in solids[1:]:
+            so = so.cut(cav)
         dst = WORK / f"{PFX}_tip_{key}_print.step"
         so.exportStep(str(dst))
         z = CAD / f"{PFX}_tip_{key}_print.step.zip"
@@ -588,8 +600,9 @@ def cmd_drawing(a):
     P, L = A.P, A.levels()
     parts = [("Tip, 85A block", fname("tip_block4_F"), "#e8c88a"), ("DIP link", fname("dip_link"), "#d6d6cc"),
              ("Board", fname("board"), "#1f7a3a"), ("Clamp plate", fname("clamp_plate"), "#5b8fd9"),
-             ("Brass screws, nuts", fname("fasteners"), "#c8a33c")]
+             ("Brass screws, nuts", fname("fasteners"), "#c8a33c"), ("Qwiic header and plug", fname("qwiic"), "#f2f2ea")]
     meshes = [(n, trimesh.load(p), c) for n, p, c in parts]
+    qp = {n: (np.array(lo), np.array(hi)) for n, lo, hi in qwiic_header_final()[0]}
     it = A.board_items()
     hd = sorted([(y, z) for y, z, _ in it["holes"] if z < A.Z_C])
     hp = sorted([(y, z) for y, z, _ in it["holes"] if z > A.Z_C])
@@ -613,7 +626,7 @@ def cmd_drawing(a):
     # A: section y = 0 at U1: the stack
     draw(axA, (0, 0.0, 0), (0, 1, 0), 0, 2)
     axA.set_xlim(4.0, 13.5)
-    axA.set_ylim(A.Z_C - 3.2, A.Z_C + 3.4)
+    axA.set_ylim(A.Z_C - 3.2, A.Z_C + 8.4)
     axA.set_xlabel("x (mm), dorsal to the right")
     axA.set_ylabel("z (mm)")
     axA.set_title("A. Section y = 0 through U1: the stack", fontsize=14)
@@ -627,6 +640,9 @@ def cmd_drawing(a):
     axA.annotate(f"Chip top {P['chip_proud']:.2f} mm proud\nof the window plate", xy=(L["chip_top"], A.Z_C + 0.9),
                  xytext=(4.2, A.Z_C + 3.0), fontsize=13, arrowprops=dict(arrowstyle="->", lw=0.9))
     axA.text(4.25, A.Z_C - 3.0, "Tip back face x 6.45", fontsize=13)
+    hl, hh = qp["q_header"]
+    axA.annotate("Qwiic header in a 1.00 mm\npocket, plug mated above", xy=(hh[0] - 0.4, (hl[2] + hh[2]) / 2),
+                 xytext=(4.2, A.Z_C + 6.6), fontsize=13, arrowprops=dict(arrowstyle="->", lw=0.9))
 
     # B: section z = -86.06 through the distal holes (M1.6 countersunk screws, nuts)
     draw(axB, (0, 0, hd[0][1]), (0, 0, 1), 1, 0)
@@ -870,19 +886,198 @@ def cmd_eval(a):
     print("eval ->", (FINAL / "evaluation.json").relative_to(REPO), flush=True)
 
 
+# ----------------------------------------------------------------------------------------------- decision
+def attachment():
+    """How the 85A tip attaches to the final DIP link, and the load paths of the specification's design loads (10 N
+    normal and 5 N tangential at the contact point) and of a pull-off and a twist about the normal, as rigid-body levers
+    from concept a's geometry. Retention forces of the TPU features are unmeasured and named as tests."""
+    P = A.P
+    cx = -10.55                                            # contact point x_F (the tip's palmar face)
+    lever_x = A.X_BACK - cx                                # contact point to the back face, mm
+    key_zc = A.Z_MOUNT - P["key_len"] / 2                  # keys' centre along z
+    lever_z = key_zc - A.Z_C                               # contact point to the keys' centre along z
+    far_key = A.Y_HALF + P["key_yc"]                       # pivot at the tip's far back edge to the far key
+    back_area = 2 * A.Y_HALF * (A.Z_MOUNT - A.Z_END) - 2 * (P["key_root"] - 2 * P["fit_flank"]) * (P["key_len"] + P["fit_len"])
+    mu, a_patch = 1.0, 3.0
+    twist = 2.0 / 3.0 * mu * 10.0 * a_patch
+    return dict(
+        method=(f"Two PLA dovetail keys on the window plate's face at y = +-{P['key_yc']:.1f} mm, {P['key_len']:.1f} mm long from "
+                f"the mount face, root {P['key_root']:.1f} mm, head {P['key_head']:.1f} mm, {P['key_depth']:.1f} mm deep (flanks "
+                f"{math.degrees(math.atan((P['key_head'] - P['key_root']) / 2 / P['key_depth'])):.1f} deg); the 85A tip has two "
+                f"channels {P['fit_flank']:.2f} mm narrower per flank, {P['fit_floor']:.2f} mm deeper and {P['fit_len']:.2f} mm "
+                f"longer, and slides on along +z until its mount face meets the bridge; a {P['detent_h']:.2f} mm detent on each "
+                f"key at z {P['detent_z']:.2f} drops into a {2 * P['groove_r']:.2f} mm groove of the channel floor"),
+        todays_prints=("The tips printed on 2026-10-16 to 10-18 at the 2.9 mm seat have no channels; the design's tips are "
+                       "reprints of the same sheets with the channels cut (final/print/*_tip_*_print.stl, 58.3 mm3 of TPU each)."),
+        load_paths=[
+            dict(load="10 N normal (+x, into the finger)", path="the tip's back face on the window plate and the chip tops",
+                 numbers=f"mean pressure {10.0 / back_area:.3f} MPa over {back_area:.0f} mm2; the keys carry none of it",
+                 status="by geometry"),
+            dict(load="5 N tangential toward the PIP joint (+z)", path="the tip's mount face on the bridge",
+                 numbers="bearing; the line of action passes through the mount face", status="by geometry"),
+            dict(load="5 N tangential distal (-z, off the keys)", path="the two detents and the flank friction",
+                 numbers=f"5 N along the keys; detent {P['detent_h']:.2f} mm in 85A TPU, hold force unmeasured",
+                 status="pending: tests T1 and T2"),
+            dict(load="5 N tangential lateral (+-y)", path="the key flanks in bearing; the moment opens the far channel",
+                 numbers=(f"moment {5.0 * lever_x:.0f} N mm about z ({lever_x:.1f} mm from the contact point to the back face); "
+                          f"pivoting on the tip's back edge, the far key ({far_key:.1f} mm from it) takes "
+                          f"{5.0 * lever_x / far_key:.1f} N of pull-off; the moment about x, {5.0 * abs(lever_z):.0f} N mm "
+                          f"({abs(lever_z):.2f} mm from the contact point to the keys' centre), loads the flanks along their "
+                          f"{P['key_len']:.1f} mm"),
+                 status="pull-off resistance pending: test T2"),
+            dict(load="Pull-off (-x)", path="the dovetail lips of both channels",
+                 numbers=(f"each lip overhangs the key head by {(P['key_head'] - P['key_root']) / 2:.2f} mm over "
+                          f"{P['key_depth']:.1f} mm and grips it with {P['fit_flank']:.2f} mm of interference; force unmeasured"),
+                 status="pending: tests T1 and T2"),
+            dict(load="Twist about the normal (x)", path="the key flanks and the detents",
+                 numbers=(f"torsional friction of the contact patch at most 2/3 mu F_n a = {twist:.0f} N mm (mu {mu:.1f}, "
+                          f"F_n 10 N, patch radius {a_patch:.0f} mm); the keys {2 * P['key_yc']:.1f} mm apart take it as "
+                          f"{twist / (2 * P['key_yc']):.1f} N along z (one detent, one mount face)"),
+                 status="pending: test T1 and T2"),
+        ],
+        tests=[
+            dict(id="T1", name="Attachment fit coupon (step 15)",
+                 what=("PLA key sections and 85A channel sections at 0, 0.05 and 0.10 mm per flank with the detent, printed "
+                       "beside the tips; by hand: slides on, clicks over the detent, stays on when pulled and twisted"),
+                 decides="the interference per flank for the reprinted tips"),
+            dict(id="T2", name="Hanging loads on the first reprinted tip",
+                 what=("the tip on the final DIP link, finger vertical: 0.51 kg (5 N) hung from the palmar face along -z, "
+                       "0.79 kg (7.7 N) from a lateral edge along -x, each for 60 s; a 0.2 kg mass on a 10 mm arm (20 N mm) "
+                       "about the normal; pass: no visible slip past the detent and the tip reseats by hand"),
+                 decides="whether the detents and the lips meet the design loads"),
+        ])
+
+
+def cmd_decision(a):
+    """docs/experiments/20261018-dip_link_board_mount/decision.json: the three concepts scored on the step's criteria
+    from their evaluation files, the Qwiic study, the tip attachment and the refinements in final/."""
+    ea = json.loads((STUDY / "concept_a/20261018-concept_a_evaluation.json").read_text())
+    eb = json.loads((STUDY / "concept_b/evaluation.json").read_text())
+    ec = json.loads((STUDY / "concept_c/evaluation.json").read_text())
+    qw = json.loads((FINAL / f"{PFX}_qwiic.json").read_text())
+    ev = json.loads((FINAL / "evaluation.json").read_text()) if (FINAL / "evaluation.json").exists() else None
+    fa = ea["force_resolution_N"]["at_contact_point"]
+    bd = eb["sensing"]["design_point"]
+    cs = ec["sensing"]
+    ref = dict(four_30=fa["four_w85_30"]["current_plate_centre_force_N"], five_30=fa["five_w85_30"]["current_plate_centre_force_N"])
+    rows = dict(
+        a=dict(
+            name="Window plate and dorsal clamp", files="concept_a/",
+            force_resolution_N=dict(four_30=fa["four_w85_30"]["centre_force_N"], five_30=fa["five_w85_30"]["centre_force_N"]),
+            chip_to_magnet_centre_mm=ea["chip_to_magnet_mm"]["design_min_block_four"],
+            gap_mm=ea["board_to_tip_gap_mm"]["design"],
+            board_play=dict(mechanism="screw-clamped stack: two M1.6 countersunk screws into brass nuts and two M2 screws through "
+                                      "ears that stop 0.3 mm short; pins 0.025 mm radial; no designed clearance in the stack",
+                            false_force_x_N_per_um=fa["four_w85_30"]["false_force_N_per_um"]["x"]["normal"]),
+            contact_geometry="outer surface and stiffness unchanged; two back-face channels (58.3 mm3 of TPU) need a reprint",
+            clearance_mm=dict(worst_rigid=ea["clearance"]["min_new_rigid_mm"], at=ea["clearance"]["part"],
+                              pip_deg=ea["clearance"]["pip_deg"]),
+            board_edge_exposure="board 2.6 mm and rim 3.1 mm past each side of the tip, x 6.45-10.90 mm (M2 heads to 12.20), "
+                                "17.0 mm behind the palmar face",
+            printability="DIP link upright, window plate a 0.85 mm vertical wall, supports under the clevis arms; clamp plate back "
+                         "face down without supports; tips reprinted with channels",
+            assembly="tip slides off along -z with the board clamped; board change = four screws",
+            cable="four wires from J1's pads past the clamp plate's proximal edge (not modelled in concept a)",
+            mass_g=ea["mass_g"]["total_without_tip"]),
+        b=dict(
+            name="Rigid cassette replacing the tip's dorsal 6 mm", files="concept_b/",
+            force_resolution_N=dict(four_30=bd["four"]["gain_noise"]["centre_force_N"],
+                                    five_30=bd["five"]["gain_noise"]["centre_force_N"]),
+            chip_to_magnet_centre_mm=eb["chip_to_magnet_mm"]["min_centre_four"],
+            gap_mm=eb["board_to_tip_gap_mm"]["concept_b"],
+            board_play=dict(mechanism="four M1.6 screws through the cover into nuts; datum walls fix the board in its plane; "
+                                      "friction under the preload about 120 N",
+                            false_force_x_N_per_um=bd["four"]["gain_noise"]["false_force_N_per_um"]["x (toward the magnets)"]["normal"]),
+            contact_geometry="the tip's dorsal 6.0 mm of TPU replaced by the cassette: E* +19 % (four) and +20 % (five), "
+                             "approach at 1 N -10 % and -11 %, magnet travel -47 % and -51 %; GAIN_SEL 0-1",
+            clearance_mm=dict(worst_rigid=eb["clearance"]["min_rigid_mm"], at=eb["clearance"]["min_rigid_part"],
+                              kept_arms=eb["clearance"]["rows"]["arms_kept"]["min_mm"]),
+            board_edge_exposure="the 21.0 mm band starts 10.0 mm behind the palmar face (screw heads) and 11.0 mm (cover), "
+                                "6-7 mm nearer the contact face than a",
+            printability=f"the 11/22 half-ellipsoid's groove lies {eb['r4_distances']['ell11']['groove_to_pocket_mm']:.2f} mm from a "
+                         "magnet pocket (R4 needs 2.0 mm)",
+            assembly="pad slides off the rails; board under a cover with four screws",
+            cable="wires at the exit 3.2 mm from the links (static)",
+            mass_g=eb["mass_g"]["total_without_tip_15pct"]),
+        c=dict(
+            name="Board captured at a print pause in a PLA cartridge, TPU printed over", files="concept_c/",
+            force_resolution_N=dict(four_30=cs["force_resolution_N"]["concept_c"]["four_30"],
+                                    five_30=cs["force_resolution_N"]["concept_c"]["five_30"]),
+            chip_to_magnet_centre_mm=cs["chip_to_magnet_mm"]["centre_U1_four"],
+            gap_mm=cs["gap_mm"],
+            board_play=dict(mechanism="no screw preload: the cap's first-layer squish holds the stack; crush ribs in the "
+                                      "plated holes unmeasured",
+                            false_force_x_N_per_um=cs["false_force_four_30"]["x"]["normal"]),
+            contact_geometry="block unchanged; curved tips print back face down, so their surfaces are stacked across the finger",
+            clearance_mm=dict(worst_rigid=ec["worst_rigid"]["min_mm"], at=ec["worst_rigid"]["new_part"],
+                              pip_deg=ec["worst_rigid"]["pip_deg"], cable=ec["clearance"]["cable_fixed"]["min_mm"]),
+            board_edge_exposure="board 2.6 mm and rim 3.1 mm past each side of the tip, x 6.45-11.25 mm",
+            printability="multi-material print with an M601 pause; 0.40 mm rims; nozzle strike if the spacer is thin",
+            assembly="the cartridge is the replaceable unit: a worn tip costs a board",
+            cable="cable fixed 1.22 mm from the MCP link; the joint crossing not designed",
+            mass_g=ec["mass"]["total_without_tip_g"]),
+    )
+    chosen = dict(
+        concept="a",
+        why=("Concept a keeps the tip's outer surface and stiffness, clamps the board with screws so its stack has no designed "
+             "clearance, and lets the tip and the board be replaced separately. It halves the force resolution of the current "
+             "plate. Concept b resolves 6-8 times finer forces but replaces 6 mm of the tip with the cassette, so the contact "
+             "stiffens by about 20 % and the magnets travel half as far, and its 11/22 groove misses R4. Concept c resolves "
+             "forces like a, has no preload on the board and costs a board per tip."),
+        refinements=[
+            "Tips from the 2.9 mm-seat print sheets (magnets as printed: the 11/22 half-ellipsoid's 7.5 mm under the apex, "
+            "the five-magnet block's corners 7.4 mm apart), with the channels cut",
+            "Qwiic: J1 removed, a soldered pigtail to an SM04B-SRSS-TB header in a 1.0 mm pocket on the clamp plate's back",
+            "Channels checked against the as-printed magnets (R4) and the five-magnet block's walls",
+            "Pin-fit coupon for the locating pins",
+        ],
+        concept_files_edited="none: final/ is generated from concept a's generator with its parameters")
+    qrows = [dict(orientation=("flipped, " if r["flipped"] else "") + r["orientation"],
+                  connector_clearance_mm=r["connector_clearance_mm"], tab_clearance_mm=r["tab_clearance_mm"],
+                  beyond_tip_end_mm=r["beyond_tip_end_mm"], beyond_band_mm=r["beyond_band_mm"],
+                  clears=bool(r["clears_links"] and r["inside_envelope"])) for r in qw["rows"]]
+    qwiic = dict(
+        decision="soldered pigtail to a Qwiic header on the clamp plate's back" if not any(r["clears"] for r in qrows)
+        else "J1 kept",
+        why=("No orientation of the board's own J1 both clears the links by 0.5 mm and stays inside the envelope the board "
+             "already occupies: with the tab proximal the connector overlaps the PIP servo; distal or lateral it clears the "
+             "links but stands outside the tip's end or the 21 mm band, where grasped objects meet it (the cylinder touched "
+             "the board in 9-27 of 27 runs per cell of the readiness study)."),
+        rows=qrows, header=qw["chosen"])
+    out = dict(
+        title="Choice of the DIP link design for the ReSkin 5X board",
+        date="2026-10-18", step="hand-off 20261018-calibration_and_dip_finish, step 4",
+        criteria=["force resolution against the current plate (0.354 N four magnets, 0.143 N five; 30 % gyroid)",
+                  "board play: false normal force per micrometre of board motion toward the magnets",
+                  "contact geometry kept", "clearance over PIP -18..92 deg (0.5 mm rigid, 1.0 mm cable)",
+                  "board-edge exposure to grasped objects", "printability on the XL",
+                  "assembly and replacement of tip and board", "cable routing past the PIP joint"],
+        reference_current_plate_N=ref,
+        chip_to_magnet_definition="least distance from a chip's sensing point to a magnet's centre, four-magnet block, mm",
+        concepts=rows, chosen=chosen, qwiic=qwiic, tip_attachment=attachment(),
+        final=None if ev is None else dict(
+            evaluation="final/evaluation.json", gap_mm=ev["gap_mm"], chip_to_magnet_mm=ev["chip_to_magnet_mm"],
+            force_resolution_N={k: ev["force_resolution_N"][k] for k in ("four_30", "five_z7p4_30", "four_50", "five_z7p4_50")},
+            worst_rigid_clearance=ev["clearance"]["worst_rigid"],
+            qwiic_clearance=ev["clearance"]["per_part"].get("qwiic_connector"), mass_g=ev["mass_g"]),
+        when=time.strftime("%Y-%m-%d %H:%M"))
+    (STUDY / "decision.json").write_text(json.dumps(out, indent=1, default=float))
+    print("decision ->", (STUDY / "decision.json").relative_to(REPO), flush=True)
+
+
 def main():
     if os.environ.get("DLF_CMD") == "step":
         freecad_step()
         return
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
-    for c in ("build", "qwiic", "check", "sense", "render", "drawing", "docs", "eval"):
+    for c in ("build", "qwiic", "check", "sense", "render", "drawing", "docs", "eval", "decision"):
         sp_ = sub.add_parser(c)
         if c == "check":
             sp_.add_argument("--reuse", action="store_true", help="reuse clearance rows whose part STL is unchanged")
     a = ap.parse_args()
     {"build": cmd_build, "qwiic": cmd_qwiic, "check": cmd_check, "sense": cmd_sense, "render": cmd_render,
-     "drawing": cmd_drawing, "docs": cmd_docs, "eval": cmd_eval}[a.cmd](a)
+     "drawing": cmd_drawing, "docs": cmd_docs, "eval": cmd_eval, "decision": cmd_decision}[a.cmd](a)
 
 
 if __name__ == "__main__" or os.environ.get("DLF_CMD") == "step":
