@@ -946,14 +946,15 @@ def attachment():
     mu, a_patch = 1.0, 3.0
     twist = 2.0 / 3.0 * mu * 10.0 * a_patch
     return dict(
-        method=(f"Two PLA dovetail keys on the window plate's face at y = +-{P['key_yc']:.1f} mm, {P['key_len']:.1f} mm long from "
+        method=(f"Two PLA dovetail keys on the window plate's face at y = \u00b1{P['key_yc']:.1f} mm, {P['key_len']:.1f} mm long from "
                 f"the mount face, root {P['key_root']:.1f} mm, head {P['key_head']:.1f} mm, {P['key_depth']:.1f} mm deep (flanks "
-                f"{math.degrees(math.atan((P['key_head'] - P['key_root']) / 2 / P['key_depth'])):.1f} deg); the 85A tip has two "
+                f"{math.degrees(math.atan((P['key_head'] - P['key_root']) / 2 / P['key_depth'])):.1f}\u00b0); the 85A tip has two "
                 f"channels {P['fit_flank']:.2f} mm narrower per flank, {P['fit_floor']:.2f} mm deeper and {P['fit_len']:.2f} mm "
                 f"longer, and slides on along +z until its mount face meets the bridge; a {P['detent_h']:.2f} mm detent on each "
                 f"key at z {P['detent_z']:.2f} drops into a {2 * P['groove_r']:.2f} mm groove of the channel floor"),
-        todays_prints=("The tips printed on 2026-10-16 to 10-18 at the 2.9 mm seat have no channels; the design's tips are "
-                       "reprints of the same sheets with the channels cut (final/print/*_tip_*_print.stl, 58.3 mm3 of TPU each)."),
+        todays_prints=("The tips printed with 2.9 mm seats on 2026-10-18 have no channels, so the design's tips are reprints "
+                       "of the same print sheets with the two channels cut (final/print/*_tip_*_print.stl, 58.3 mm3 of TPU "
+                       "less per tip)."),
         load_paths=[
             dict(load="10 N normal (+x, into the finger)", path="the tip's back face on the window plate and the chip tops",
                  numbers=f"mean pressure {10.0 / back_area:.3f} MPa over {back_area:.0f} mm2; the keys carry none of it",
@@ -963,7 +964,7 @@ def attachment():
             dict(load="5 N tangential distal (-z, off the keys)", path="the two detents and the flank friction",
                  numbers=f"5 N along the keys; detent {P['detent_h']:.2f} mm in 85A TPU, hold force unmeasured",
                  status="pending: tests T1 and T2"),
-            dict(load="5 N tangential lateral (+-y)", path="the key flanks in bearing; the moment opens the far channel",
+            dict(load="5 N tangential lateral (\u00b1y)", path="the key flanks in bearing; the moment opens the far channel",
                  numbers=(f"moment {5.0 * lever_x:.0f} N mm about z ({lever_x:.1f} mm from the contact point to the back face); "
                           f"pivoting on the tip's back edge, the far key ({far_key:.1f} mm from it) takes "
                           f"{5.0 * lever_x / far_key:.1f} N of pull-off; the moment about x, {5.0 * abs(lever_z):.0f} N mm "
@@ -975,10 +976,10 @@ def attachment():
                           f"{P['key_depth']:.1f} mm and grips it with {P['fit_flank']:.2f} mm of interference; force unmeasured"),
                  status="pending: tests T1 and T2"),
             dict(load="Twist about the normal (x)", path="the key flanks and the detents",
-                 numbers=(f"torsional friction of the contact patch at most 2/3 mu F_n a = {twist:.0f} N mm (mu {mu:.1f}, "
-                          f"F_n 10 N, patch radius {a_patch:.0f} mm); the keys {2 * P['key_yc']:.1f} mm apart take it as "
+                 numbers=(f"torsional friction of the contact patch at most {twist:.0f} N mm (friction coefficient {mu:.1f}, "
+                          f"10 N normal, patch radius {a_patch:.0f} mm); the keys {2 * P['key_yc']:.1f} mm apart take it as "
                           f"{twist / (2 * P['key_yc']):.1f} N along z (one detent, one mount face)"),
-                 status="pending: test T1 and T2"),
+                 status="pending: tests T1 and T2"),
         ],
         tests=[
             dict(id="T1", name="Attachment fit coupon (step 15)",
@@ -986,9 +987,10 @@ def attachment():
                        "beside the tips; by hand: slides on, clicks over the detent, stays on when pulled and twisted"),
                  decides="the interference per flank for the reprinted tips"),
             dict(id="T2", name="Hanging loads on the first reprinted tip",
-                 what=("the tip on the final DIP link, finger vertical: 0.51 kg (5 N) hung from the palmar face along -z, "
-                       "0.79 kg (7.7 N) from a lateral edge along -x, each for 60 s; a 0.2 kg mass on a 10 mm arm (20 N mm) "
-                       "about the normal; pass: no visible slip past the detent and the tip reseats by hand"),
+                 what=("the tip on the final DIP link: 0.51 kg (5 N) hung at the contact point along -z (off the keys), "
+                       "along +y and -y (the lateral load, which pulls the far key with 7.7 N) and along -x (pull-off), each "
+                       "for 60 s; a 0.2 kg mass on a 10 mm arm (20 N mm) about the normal; pass: no slip past the detent, no "
+                       "gap at the back face, and the tip reseats by hand"),
                  decides="whether the detents and the lips meet the design loads"),
         ])
 

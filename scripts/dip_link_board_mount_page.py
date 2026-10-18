@@ -195,7 +195,9 @@ def lede():
             f"against {f(EV['gap_current_plate_mm'])}{MM} on the current plate. At the tips printed with 2.9{MM} magnet "
             f"seats the nearest magnet centre lies {f(c4)}{MM} from a chip, and the predicted force resolution at the "
             f"contact point is {f(FR['four_30'], 3)}{NN} with four magnets and {f(FR['five_z7p4_30'], 3)}{NN} with five, "
-            f"against {f(REF['four_30'], 3)} and {f(REF['five_30'], 3)}{NN} now. A 0.85{MM} window plate and a 3.0{MM} "
+            f"against {f(srow('four_d3x2_d5', 'w85_30', 'plate_now')['centre_force_N'], 3)} and "
+            f"{f(srow('five_z7p4', 'w85_30', 'plate_now')['centre_force_N'], 3)}{NN} on the current plate. A 0.85{MM} "
+            f"window plate and a 3.0{MM} "
             f"dorsal clamp plate sandwich the board with four brass screws and two pins; the worst clearance over PIP "
             f"&#8722;18 to 92{DEG} is {f(WORST['min_mm'], 3)}{MM}. The board's Qwiic connector clears in no orientation, "
             f"so a soldered pigtail runs to a Qwiic header on the clamp plate's back.")
@@ -248,8 +250,8 @@ def concepts_section():
         ("Cable past the PIP joint", lambda c: esc(cap(c["cable"]))),
         ("Mass without the tip (g)", lambda c: f(c["mass_g"])),
     ]
-    body = [[name] + [fn(C[k]) for k in keys] for name, fn in rowsdef]
-    head = ["Criterion"] + [f"{k}: {esc(C[k]['name'])}" for k in keys]
+    body = [["Design"] + [esc(C[k]["name"]) for k in keys]] + [[name] + [fn(C[k]) for k in keys] for name, fn in rowsdef]
+    head = ["Criterion"] + [f"Concept {k}" for k in keys]
     ims = "".join(f'<div><img alt="" src="{jpeg_uri(os.path.join(D, p), width=700)}"><div class="lab">{lab}</div></div>'
                   for p, lab in (("concept_a/media/20261018-concept_a_iso.png", "a"),
                                  ("concept_b/media/20261018-concept_b_iso.png", "b"),
@@ -262,8 +264,9 @@ def concepts_section():
         f"11/22 half-ellipsoid's groove lies 0.85{MM} from a magnet pocket against R4's 2.0{MM}. Concept c places the "
         f"board at a print pause and prints the cap and the tip over it; it resolves "
         f"{f(C['c']['force_resolution_N']['four_30'], 3)}{NN}, has no screw preload on the board, and a worn tip costs a "
-        f"board. Table&#160;[[tab:concepts]] scores the three on the step's criteria; the force resolutions compare with "
-        f"{f(REF['four_30'], 3)}{NN} (four magnets) and {f(REF['five_30'], 3)}{NN} (five) on the current plate.</p>",
+        f"board. Table&#160;[[tab:concepts]] scores the three on the judge's criteria; the force resolutions compare with "
+        f"{f(REF['four_30'], 3)}{NN} (four magnets) and {f(REF['five_30'], 3)}{NN} (five, corner magnets 7.0{MM} apart as "
+        f"the concepts were scored) on the current plate.</p>",
         table(head, body, "The three concepts on the criteria of the judge (<code>decision.json</code>; force "
               "resolution at 30&#8202;% gyroid, four-magnet block; concept b on its coarse finite-element grid).",
               text_cols=(0, 1, 2, 3), key="concepts"),
@@ -314,16 +317,15 @@ def tip_section():
     tests = "".join(f"<li><b>{t['id']}</b> {esc(t['name'])}: {esc(t['what'])}. It decides {esc(t['decides'])}.</li>"
                     for t in TA["tests"])
     return "".join([
-        f"<p>{esc(cap(TA['method']))}. {esc(TA['todays_prints'])} The final's tip files in <code>final/print/</code> are "
-        f"the five 2.9{MM} print sheets of the readiness study with the two channels cut; the closest channel lies "
+        f"<p>{esc(cap(TA['method']))}. {esc(TA['todays_prints'])} The closest channel lies "
         f"{f(min(v['min_mm'] for v in CHK['channels_to_magnets_R4'].values()))}{MM} from a magnet (11/22 half-ellipsoid; "
         f"R4 asks 2.0{MM}).</p>",
         "<p>Table&#160;[[tab:loads]] follows the specification's design loads, 10&#8202;N normal and 5&#8202;N tangential "
         "at the contact point, and adds a pull-off and a twist about the normal. The normal load and the load toward the "
         "PIP joint bear on rigid faces. A 5&#8202;N lateral load acts 17.0&#8202;mm from the back face, so the tip pivots on "
         "its back edge and pulls the far key with 7.7&#8202;N. The twist is bounded by the torsional friction of the "
-        "contact patch, $\\tau \\le \\tfrac{2}{3}\\,\\mu F_n a$ with friction coefficient $\\mu$, normal force $F_n$ and "
-        "patch radius $a$: 20&#8202;N&#8202;mm at $\\mu = 1$, $F_n = 10$&#8202;N and $a = 3$&#8202;mm. How much the "
+        "contact patch, \\(\\tau \\le \\tfrac{2}{3}\\,\\mu F_n a\\) with friction coefficient \\(\\mu\\), normal force "
+        "\\(F_n\\) and patch radius \\(a\\): 20&#8202;N&#8202;mm at \\(\\mu = 1\\), \\(F_n = 10\\)&#8202;N and \\(a = 3\\)&#8202;mm. How much the "
         "detents and the dovetail lips hold in 85A TPU is unmeasured; tests T1 and T2 measure it.</p>",
         table(["Load", "Path", "Numbers", "Status"], rows,
               "Load paths of the tip attachment (<code>decision.json</code>, tip_attachment).", text_cols=(0, 1, 2, 3),
@@ -342,7 +344,13 @@ def clearance_section():
     T = CHK["to_pip_servo"]
     ra = CA["requirements"]
     w = CHK["walls"]
-    thin = sorted((v["min_wall_mm"], k) for k, v in w.items() if v["min_wall_mm"] < 0.9)
+    wname = {"window": "the window plate", "bridge": "the bridge behind the mount face", "clamp": "the clamp plate's rims",
+             "keys": "the walls beside the keys"}
+    thin = {}
+    for k, v in w.items():
+        if v["min_wall_mm"] < 0.9:
+            nm = wname.get(k.split("_")[0], k)
+            thin[nm] = min(thin.get(nm, 9.0), v["min_wall_mm"])
     return "".join([
         f"<p>Every new part clears the MCP link and the PIP servo over the joint range (Table&#160;[[tab:clear]]); the "
         f"least clearance is {f(WORST['min_mm'], 3)}{MM}, between the new DIP-link features and the MCP link at PIP "
@@ -357,7 +365,7 @@ def clearance_section():
         f"<p>Against the specification, R1 (gap {f(EV['gap_mm'])} against 0.52{MM}), R5 (21.0{MM} band, FR-4 edge 0.5{MM} "
         f"inside the rim), R6 (clevis arms kept), R7, R9 (tip and board replaceable with hand tools) and R12 are met in the "
         f"model; R2 and R3 wait on a print. R11's 0.9{MM} wall rule is missed by "
-        + ", ".join(f"{k.split('_')[0]} {f(v)}{MM}" for v, k in thin) +
+        + ", ".join(f"{k} ({f(v)}{MM})" for k, v in sorted(thin.items(), key=lambda kv: kv[1])) +
         f": the window plate's thickness follows the chips' height. R4 is met for the board's retention and the tip's "
         f"channels ({f(min(v['min_mm'] for v in CHK['channels_to_magnets_R4'].values()))}{MM} or more from a "
         f"magnet).</p>",
@@ -387,7 +395,7 @@ def sensing_section():
         f"{f(FR['five_z7p4_30'], 3)}{NN}. One micrometre of board motion toward the magnets reads as "
         f"{f(srow('four_d3x2_d5', 'w85_30', 'design')['false_force_N_per_um']['x']['normal'], 3)}{NN} with four "
         f"magnets, which is why the board is clamped. Chips 0.10{MM} taller or shorter than the window plate assumes "
-        f"move the gap to 0.27 or 0.47{MM} and the resolution by 3&#8202;%.</p>",
+        f"move the gap to 0.27 or 0.47{MM} and the resolution by 2&#8211;3&#8202;%.</p>",
         table(["Tip", "Chip to magnet centre (mm)", "Chip to magnet surface (mm)", "Field at U1 (mT)", "GAIN_SEL",
                "Current plate: centre (mm)", "Current plate: field at U1 (mT)", "Current plate: GAIN_SEL"], rows,
               "Static field and distances at the five tips' printed magnet positions, final and current plate "
@@ -416,11 +424,13 @@ def print_section():
             rows.append(["85A tips", esc(v["tool"]), esc(cap(v["material"])), esc(cap(v["orientation"])),
                          "As the 2.9&#8202;mm sheets", esc(cap(v["infill"])), esc(cap(v.get("pauses", "")))])
             continue
-        rows.append([esc(cap(k.replace("_", " "))), esc(cap(v["tool"])), esc(cap(v["material"])),
+        nm = {"dip_link": "DIP link", "clamp_plate": "Clamp plate", "pin_fit_coupon": "Pin-fit coupon"}.get(k, cap(k))
+        tool = "PLA tool (3, 4 or 5)" if "PLA tool" in v["tool"] else cap(v["tool"])
+        rows.append([esc(nm), esc(tool), esc(cap(v["material"])),
                      esc(cap(v["orientation"])), f"{v.get('layer_mm', '')} mm, {v.get('perimeters', '')} perimeters",
                      esc(cap(v.get("infill", ""))), esc(cap(v.get("supports", v.get("use", "")))) +
                      (f"; {esc(v['after'])}" if v.get("after") else "")])
-    pl = [[esc(cap(r["item"])), esc(r.get("material", "")), esc(str(r.get("qty", "")))] for r in PL]
+    pl = [[esc(cap(r["item"])), esc(cap(r.get("material", ""))), esc(str(r.get("qty", "")))] for r in PL]
     seq = "".join(f"<li>{esc(s)}</li>" for s in AS["sequence"])
     return "".join([
         f"<p>All rigid parts print on the Prusa XL with 0.4{MM} nozzles; the PLA parts go on a PLA tool, which is tool 3, "
@@ -447,8 +457,7 @@ def limitations():
             "tip from rigid-body levers. The window plate's thickness assumes 0.90&#8202;mm chips; the owner's board sets "
             "it. The board's flatness on a window plate printed as vertical perimeters, the screws' preload in PLA and its "
             "creep, the detents' hold in 85A TPU and the cable's route across the PIP joint are unmeasured. Concept b's "
-            "numbers come from a coarser finite-element grid than a's and c's. The tips printed on 2026-10-18 have no "
-            "channels and fit only the current plate.</p>")
+            "numbers come from a coarser finite-element grid than a's and c's.</p>")
 
 
 def open_items():
