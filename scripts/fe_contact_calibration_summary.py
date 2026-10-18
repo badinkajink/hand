@@ -91,48 +91,52 @@ def summarize(pairs):
 # ------------------------------------------------------------------------------------------ D1: iCEM command replays
 
 def d1():
+    """Pads against Drake on the logged iCEM commands, per tip, plan family (the readiness plans or the tip's own M2
+    plans) and calibration; 'pads' is rule R4's pad model and 'pads1' the 1 mm pads."""
     R = {}
     for r in rows(D / "replays" / "icem.jsonl"):
         if r.get("status") == "ok":
             R[(r["plan"], r["calib"], r["plant"], int(r["seed"]))] = r
+    tip_of = {k[0]: r["tip"] for k, r in R.items()}
     out = {}
-    plans = sorted({k[0] for k in R})
     for tip in TIPS:
         for own in (False, True):
-            tp = [p for p in plans if (p.startswith("own_") == own) and R.get(next((k for k in R if k[0] == p), None), {}).get("tip") == tip]
-            for calib in ("U", "M1", "M2", "M3"):
-                pd, sp, runs = [], [], []
-                for p in tp:
-                    for s in (0, 1, 2):
-                        A, B = R.get((p, calib, "pads", s)), R.get((p, calib, "drake", s))
-                        if A:
-                            runs.append({"plan": p, "seed": s, "plant": "pads", "held": A["held"], "turn": A["turn_end_deg"]})
-                        if B:
-                            runs.append({"plan": p, "seed": s, "plant": "drake", "held": B["held"], "turn": B["turn_end_deg"]})
-                        if A and B:
-                            x = pair(A, B)
-                            if x:
-                                x.update(plan=p, seed=s)
-                                pd.append(x)
-                    for s in (1, 2):
-                        A0, A1 = R.get((p, calib, "pads", 0)), R.get((p, calib, "pads", s))
-                        if A0 and A1:
-                            sp.append(pair(A0, A1))
-                if not runs:
-                    continue
-                key = f"{tip}|{'own' if own else 'ready'}|{calib}"
-                s_pd, s_sp = summarize(pd), summarize(sp)
-                bound = max(3.0, s_sp["median_rms_angle_same_deg"] or 0.0)
-                need = 3 if own else 5
-                ok = (s_pd["n"] > 0 and s_pd["held_agree"] >= (need if own else min(need, s_pd["n"] - 1 if s_pd["n"] < 6 else need))
-                      and (s_pd["median_rms_angle_same_deg"] is None or s_pd["median_rms_angle_same_deg"] <= bound)
-                      and (own or ((s_pd["median_rms_dN_same_N"] or 0) <= 0.25 and (s_pd["median_rms_dT_same_N"] or 0) <= 0.35)))
-                out[key] = {"tip": tip, "own": own, "calib": calib, "pads_vs_drake": s_pd, "pads_seed_spread": s_sp,
-                            "angle_bound_deg": bound, "pass": bool(ok), "pairs": pd, "runs": runs,
-                            "held_pads": sum(1 for r in runs if r["plant"] == "pads" and r["held"]),
-                            "held_drake": sum(1 for r in runs if r["plant"] == "drake" and r["held"]),
-                            "n_pads": sum(1 for r in runs if r["plant"] == "pads"),
-                            "n_drake": sum(1 for r in runs if r["plant"] == "drake")}
+            plans = sorted({p for p in tip_of if tip_of[p] == tip and p.startswith("own_") == own})
+            for calib in ("U", "M1", "M2"):
+                for padk in ("pads", "pads1"):
+                    pd, sp, runs = [], [], []
+                    for p in plans:
+                        for s in (0, 1, 2):
+                            A, B = R.get((p, calib, padk, s)), R.get((p, calib, "drake", s))
+                            for plant, X in ((padk, A), ("drake", B)):
+                                if X:
+                                    runs.append({"plan": p, "seed": s, "plant": plant, "held": X["held"],
+                                                 "turn": X["turn_end_deg"], "unstable": X.get("unstable", False)})
+                            if A and B:
+                                x = pair(A, B)
+                                if x:
+                                    x.update(plan=p, seed=s)
+                                    pd.append(x)
+                        for s in (1, 2):
+                            A0, A1 = R.get((p, calib, padk, 0)), R.get((p, calib, padk, s))
+                            if A0 and A1:
+                                sp.append(pair(A0, A1))
+                    if not pd:
+                        continue
+                    s_pd, s_sp = summarize(pd), summarize(sp)
+                    bound = max(3.0, s_sp["median_rms_angle_same_deg"] or 0.0)
+                    n = s_pd["n"]
+                    need = n if own else n - 1                  # 3 of 3 (own plans), 5 of 6 (readiness plans)
+                    ok_angle = s_pd["median_rms_angle_same_deg"] is not None and s_pd["median_rms_angle_same_deg"] <= bound
+                    ok_force = own or ((s_pd["median_rms_dN_same_N"] or 9) <= 0.25 and (s_pd["median_rms_dT_same_N"] or 9) <= 0.35)
+                    out[f"{tip}|{'own' if own else 'ready'}|{calib}|{padk}"] = {
+                        "tip": tip, "own": own, "calib": calib, "pads": padk, "pads_vs_drake": s_pd, "pads_seed_spread": s_sp,
+                        "angle_bound_deg": bound, "complete": n == (3 if own else 6),
+                        "pass": bool(s_pd["held_agree"] >= need and ok_angle and ok_force),
+                        "pass_parts": {"held": s_pd["held_agree"] >= need, "angle": ok_angle, "force": ok_force},
+                        "pairs": pd, "runs": runs,
+                        "held_pads": sum(1 for r in runs if r["plant"] == padk and r["held"]),
+                        "held_drake": sum(1 for r in runs if r["plant"] == "drake" and r["held"])}
     return out
 
 
@@ -195,6 +199,112 @@ def bed():
     return out
 
 
+def model_at(cv, tip, model, probe, E, F):
+    """(approach um, r_bar mm) of a phase-B curve at modulus E (Pa) and load F (N)."""
+    r = cv.get((tip, model, probe))
+    if r is None:
+        return None, None
+    d, Fg = np.array(r["delta_um"]) * 1e-6, np.array(r["F_N"]) * E / r["E0_Pa"]
+    ok = Fg > 0
+    lf, ld = np.log(Fg[ok]), np.log(d[ok])
+    keep = np.r_[True, np.diff(lf) > 0]
+    dd = float(np.exp(np.interp(math.log(F), lf[keep], ld[keep])))
+    rb = np.nan_to_num(np.array(r["r_bar_mm"], float))[ok][keep]
+    return dd * 1e6, float(np.interp(math.log(dd), np.log(d[ok][keep]), rb))
+
+
+def bed_checks(bed, fits, fe):
+    """Per tip and calibration: the simulators' bed static approach against the phase-B curve at the same E
+    (implementation, within 5 %), the bed onset arm against the finite elements' r_bar under the 12.5 mm rod
+    (0.70-1.15 at 1 and 3 N), and the pads at the RL numerics against the planner numerics (within 10 %)."""
+    cv = {(r["tip"], r["model"], r["probe"]): r for r in rows(D / "fit" / "curves.jsonl") if r["probe"] == "cx12.5_z0"}
+    out = {}
+    for k, e in bed.items():
+        tip, calib, arm = e["tip"], e["calib"], e["arm"]
+        t = fits.get(tip, {})
+        if arm == "drake":
+            model = "drake"
+        else:
+            model = (t.get("pad_model") or {}).get(calib, "v2")
+        E = e["E_MPa"] * 1e6
+        app = {}
+        # the bed counts the approach from the design reach; the model's own surface (the pads' envelope, the hull)
+        # first touches the tool after first_touch_shift_um more travel, which the curve leaves out
+        shift = (cv.get((tip, model, "cx12.5_z0")) or {}).get("first_touch_shift_um", 0.0)
+        for N, a in (e.get("approach_um") or {}).items():
+            c = model_at(cv, tip, model, "cx12.5_z0", E, float(N))[0]
+            app[N] = {"bed_um": a, "first_touch_shift_um": shift, "curve_um": c,
+                      "err": ((a - shift) / c - 1) if c else None}
+        arms = {}
+        for N, a in (e.get("onset_arm_mm") or {}).items():
+            fr = (fe.get(f"{tip}|base|cx12.5_z0") or {}).get("per_force", {}).get(N, {}).get("r_bar_mm")
+            cr = model_at(cv, tip, model, "cx12.5_z0", E, float(N))[1]
+            arms[N] = {"bed_mm": a, "fe_r_bar_mm": fr, "ratio": (a / fr) if (a and fr) else None, "curve_r_bar_mm": cr,
+                       "bed_over_curve": (a / cr) if (a and cr) else None}
+        errs = [abs(v["err"]) for v in app.values() if v["err"] is not None]
+        rats = [v["ratio"] for v in arms.values() if v["ratio"] is not None]
+        out[k] = {"tip": tip, "calib": calib, "arm": arm, "model": model, "E_MPa": e["E_MPa"], "approach": app,
+                  "onset": arms, "creep_deg_s": e.get("creep_deg_s"), "spin_arm_mm": e.get("spin_arm_mm"),
+                  "impl_ok": bool(errs) and max(errs) <= 0.05, "impl_max_err": max(errs) if errs else None,
+                  "arm_ok": bool(rats) and min(rats) >= 0.70 and max(rats) <= 1.15,
+                  "arm_ratio_range": [min(rats), max(rats)] if rats else None}
+    for k, v in list(out.items()):
+        if v["arm"] == "rl":
+            p = out.get(f"{v['tip']}|{v['calib']}|pads")
+            if p:
+                da = [abs(v["approach"][N]["bed_um"] / p["approach"][N]["bed_um"] - 1) for N in v["approach"] if N in p["approach"]]
+                do = [abs(v["onset"][N]["bed_mm"] / p["onset"][N]["bed_mm"] - 1) for N in v["onset"]
+                      if N in p["onset"] and v["onset"][N]["bed_mm"] and p["onset"][N]["bed_mm"]]
+                v["rl_vs_planner"] = {"approach_max": max(da) if da else None, "onset_max": max(do) if do else None,
+                                      "ok": bool(da and do and max(da) <= 0.10 and max(do) <= 0.10)}
+    return out
+
+
+def verdicts(fits, bchk, d1s, d2s):
+    """Per tip, against the plan's criteria: approach and twist arm (phase-B curves, both simulators), the bed checks,
+    consistency on the iCEM commands and the spring check."""
+    out = {}
+    for tip in TIPS:
+        t = fits.get(tip)
+        if not t:
+            continue
+        v = {"calibrations": {}}
+        for c in ("M1", "M3"):
+            cc = (t.get("calib_of") or {}).get(c, c) if c == "M1" else c
+            pm = (t.get("pad_model") or {}).get(c, "v2")
+            dr, pa = t["models"]["drake"].get(cc), t["models"].get(pm, {}).get(cc)
+            if not dr or not pa:
+                continue
+            traj = "M1" if c == "M1" else "M2"
+            bd = bchk.get(f"{tip}|{traj}|drake", {})
+            bp = bchk.get(f"{tip}|{traj}|pads", {})
+            d1 = d1s.get(f"{tip}|ready|{traj}|pads")
+            d1o = d1s.get(f"{tip}|own|M2|pads") if c == "M3" else None
+            spring = (d2s.get(f"{tip}|M2") or {}).get("pairs", {}).get("plan_vs_spring") if c == "M3" else None
+            spring_ok = None
+            if spring and spring.get("median_rms_angle_same_deg") is not None:
+                spring_ok = spring["median_rms_angle_same_deg"] <= 1.0 and (spring["median_rms_dN_same_N"] or 9) <= 0.05
+            parts = {"approach_drake": dr["pass_approach"], "approach_pads": pa["pass_approach"],
+                     "arm_drake": dr["pass_arm"], "arm_pads": pa["pass_arm"],
+                     "bed_impl_drake": bd.get("impl_ok"), "bed_impl_pads": bp.get("impl_ok"),
+                     "bed_arm_drake": bd.get("arm_ok"), "bed_arm_pads": bp.get("arm_ok"),
+                     "consistency_ready": (d1 or {}).get("pass"), "consistency_own": (d1o or {}).get("pass") if c == "M3" else None,
+                     "spring_check": spring_ok}
+            need = ["approach_drake", "approach_pads", "arm_drake", "arm_pads", "consistency_ready"]
+            if c == "M3":
+                need += ["consistency_own", "spring_check"]
+            ok = all(parts.get(k) is True for k in need)
+            v["calibrations"][c] = {"pad_model": pm, "parts": parts, "required": need, "pass": ok,
+                                    "failed": [k for k in need if parts.get(k) is not True],
+                                    "drake": {k: dr[k] for k in ("E_MPa", "k_s_N_per_mm", "approach_rms_pct", "approach_max_pct",
+                                                                 "arm_min", "arm_max")},
+                                    "pads": {k: pa[k] for k in ("E_MPa", "k_s_N_per_mm", "approach_rms_pct", "approach_max_pct",
+                                                                "arm_min", "arm_max")}}
+        v["modelled_well"] = any(x["pass"] for x in v["calibrations"].values())
+        out[tip] = v
+    return out
+
+
 def main():
     fe = [r for r in rows(D / "fe" / "fe.jsonl")]
     meta = rows(D / "fe" / "meta.jsonl")
@@ -203,6 +313,8 @@ def main():
                                                                             "z_mm", "per_force", "n_dof")} for r in fe},
            "fe_meta": meta, "fits": fits.get("tips", {}), "bed": bed(), "d1": d1(), "d2": d2(),
            "script": SCRIPT, "when": time.strftime("%Y-%m-%d %H:%M")}
+    out["bed_checks"] = bed_checks(out["bed"], out["fits"], out["fe"])
+    out["verdicts"] = verdicts(out["fits"], out["bed_checks"], out["d1"], out["d2"])
     tmp = D / "summary.json.tmp"
     with open(tmp, "w") as fh:
         json.dump(out, fh, indent=1, default=float)
@@ -216,6 +328,10 @@ def main():
               f"pass {v['pass']}")
     for k, v in out["d2"].items():
         print("D2", k, json.dumps(v["held"]), {a: (p["held_agree"], p["n"], p["median_rms_angle_same_deg"]) for a, p in v["pairs"].items()})
+    for k, v in out["bed_checks"].items():
+        print("bed", k, "impl", v["impl_ok"], v["impl_max_err"], "arm", v["arm_ok"], v["arm_ratio_range"], v.get("rl_vs_planner"))
+    for tip, v in out["verdicts"].items():
+        print("verdict", tip, v["modelled_well"], {c: (x["pass"], x["failed"]) for c, x in v["calibrations"].items()})
 
 
 if __name__ == "__main__":

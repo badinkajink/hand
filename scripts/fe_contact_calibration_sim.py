@@ -453,7 +453,10 @@ def cmd_plan(a):
         M.S = S
         cell, shape, dd = cell_of(S, cs)
         ci = ready[(tip, cs)]
-        prm = HP.prm_of("icem_pin", [])
+        prm = HP.prm_of("icem_pin", ["log_every=1"])
+        # every 1 ms command in the row (the readiness rows kept one command per 20 ms window, which a replay can only
+        # interpolate): compact_log at every sample
+        M.compact_log = lambda log, theta, every=1, _f=M.compact_log: _f(log, theta, every=1)
         plant, meta, geo, _, _ = M.setup(cell, shape, dd, ci)
         row = {"variant": tip, "tip": spec["key"], "cell": cs, "cand": ci, "calib": a.calib, "E_Pa": E,
                "pad_spacing_mm": s * 1e3, "seed": 0, "config": "icem_pin", **{f"prm_{k}": v for k, v in prm.items()},

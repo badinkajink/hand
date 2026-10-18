@@ -418,13 +418,13 @@ def fit_E(fe, cur, tip, what, ks=None, E_loc=None):
     return math.exp(r.x), float(math.sqrt(r.fun))
 
 
-def fit_ks(fe, cur, tip, E_loc):
+def fit_ks(fe, cur, tip, E_loc, probes=None):
     from scipy.optimize import minimize_scalar
 
     def loss(lnk):
         k = math.exp(lnk)
         out = []
-        for p in TASK:
+        for p in (probes or TASK):
             if (tip, p) in fe and p in cur:
                 for F in FIT_F:
                     d = at_load(cur[p], F, E_loc)[0] + F / k
@@ -473,6 +473,15 @@ def cmd_fit(a):
             res["M2"] = dict(evaluate(fe, cur, tip, E2), loss=l2)
             ks = fit_ks(fe, cur, tip, E2)
             res["M3_own"] = dict(evaluate(fe, cur, tip, E2, ks))
+            # outside the criteria: the spring fitted over the rods across the finger only (the bench tool's
+            # orientation), evaluated over every task cylinder
+            ksx = fit_ks(fe, cur, tip, E2, [p for p in TASK if p.startswith("cx")])
+            res["M3x"] = dict(evaluate(fe, cur, tip, E2, ksx))
+            ex = res["M3x"]["approach_err_pct"]
+            cxe = np.array([v for k, v in ex.items() if k.startswith("cx")]) / 100
+            cze = np.array([v for k, v in ex.items() if k.startswith("cz")]) / 100
+            res["M3x"].update(cx_rms_pct=100 * float(np.sqrt(np.mean(cxe ** 2))), cx_max_pct=100 * float(np.max(np.abs(cxe))),
+                              cz_range_pct=[100 * float(cze.min()), 100 * float(cze.max())] if len(cze) else None)
             # rule R3: r_bar change over E x0.5 to x2 about M1's modulus, under the 12.5 mm rod at 1 N
             if "cx12.5_z0" in cur:
                 rb = [at_load(cur["cx12.5_z0"], 1.0, E1 * s)[1] for s in (0.5, 2.0)]
@@ -493,10 +502,22 @@ def cmd_fit(a):
                 if m in t["models"]:
                     cur = cv[(tip, m)]
                     t["models"][m]["M3"] = evaluate(fe, cur, tip, t["models"][m]["M2"]["E_MPa"] * 1e6, ks)
-        # rule R3: M2 equals M1 where the arm cannot set E (r_bar changes by less than 5 % over E x0.5 to x2)
+        # rule R3: M2 equals M1 where the arm cannot set E (r_bar changes by less than 5 % over E x0.5 to x2); M3 then
+        # puts M1's modulus behind the spring
         r3 = [t["models"][m].get("R3_rbar_change") for m in ("drake", "v2") if m in t["models"]]
         t["R3_applies"] = bool(r3 and all(x is not None and x < 0.05 for x in r3))
         t["calib_of"] = {"M2": "M1"} if t["R3_applies"] else {}
+        if t["R3_applies"]:
+            own = {}
+            for m in ("drake", "v2", "v2h"):
+                if m in t["models"]:
+                    E1 = t["models"][m]["M1"]["E_MPa"] * 1e6
+                    own[m] = fit_ks(fe, cv[(tip, m)], tip, E1)
+            ks = float(np.mean([own[m] for m in ("drake", "v2") if m in own]))
+            t["k_s_N_per_mm"] = ks / 1e3
+            for m in own:
+                t["models"][m]["M3"] = dict(evaluate(fe, cv[(tip, m)], tip, t["models"][m]["M1"]["E_MPa"] * 1e6, ks),
+                                            E_loc_from="M1 (rule R3)")
         # rule R4: 0.5 mm pads where the 1 mm pads have fewer than 6 pads in contact at 1 N under the 8 or 12.5 mm
         # cylinder, or miss twist_arm where the 0.5 mm pads pass
         t["pad_model"] = {}
