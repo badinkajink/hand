@@ -176,9 +176,9 @@ def cmd_bed(a):
 
 # ------------------------------------------------------------------------------------------ cell plants (D1)
 
-def cell_env(tip, E, s=0.001):
-    """hand_object_scale_sim pointed at the readiness variant's CAD fingers with the tip's pads at E (spacing s), its
-    cell scenes cached per (tip, E, s) under logs/."""
+def cell_env(tip, E, s=0.001, ir=100.0):
+    """hand_object_scale_sim pointed at the readiness variant's CAD fingers with the tip's pads at E (spacing s,
+    impratio ir), its cell scenes cached per (tip, E, s, ir) under logs/."""
     import hand_object_scale_sim as S
     import reorient_backends as RB
     import tip_codesign_rig as R
@@ -192,8 +192,8 @@ def cell_env(tip, E, s=0.001):
         RB.PAD_S = 0.001
     S.CAD_DIR = ASSETS / tip / "cad_v1"
     S.GEN = ROOT / "logs/20261016-sim2real_fingertip_readiness/gen" / tip
-    S.SCENES = LOGS / "cells" / f"{tip}_E{E / 1e6:.5g}_s{s * 1e3:g}"
-    S.MU, S.PLANT, S.BUILDER = 1.0, SERVO, "v2"
+    S.SCENES = LOGS / "cells" / (f"{tip}_E{E / 1e6:.5g}_s{s * 1e3:g}" + (f"_ir{ir:g}" if ir != 100.0 else ""))
+    S.MU, S.PLANT, S.BUILDER, S.IMPRATIO = 1.0, SERVO, "v2", ir
     return S, spec
 
 
@@ -204,7 +204,7 @@ def cell_of(S, cs):
     return cell, shape, dd
 
 
-def plants(tip, cs, ci, E, model, s=0.001, mesh_eps=1e-6):
+def plants(tip, cs, ci, E, model, s=0.001, mesh_eps=1e-6, ir=100.0):
     """(plant, meta) of a cell's candidate: 'pads' (hom_turn3.MjPlant on the pads scene) or 'drake' (CellDrake, the tip
     hull's terrace outlines simplified to mesh_eps m)."""
     s = s or 0.001
@@ -212,7 +212,7 @@ def plants(tip, cs, ci, E, model, s=0.001, mesh_eps=1e-6):
     import curved_tips_cell_drake as CD
     import hom_turn3 as H
     import tip_codesign_geometry as TG
-    S, spec = cell_env(tip, E, s)
+    S, spec = cell_env(tip, E, s, ir)
     cell, shape, dd = cell_of(S, cs)
     kp = S.RB.plant_args(SERVO)["kp"]
     cand = S.candidates(cell, shape, dd)[ci]
@@ -417,11 +417,12 @@ def cmd_icem(a):
                 seeds = [s for s in a.seeds if (pid, calib, model, s) not in have]
                 if not seeds:
                     continue
-                E, s, _ = calib_E(tip, calib, model)
+                base, ir = (model.split("_ir")[0], float(model.split("_ir")[1])) if "_ir" in model else (model, 100.0)
+                E, s, _ = calib_E(tip, calib, base)
                 gc.collect()
                 t0 = time.time()
                 try:
-                    plant, meta, S = plants(tip, cs, ci, E, "drake" if model == "drake" else "pads", s)
+                    plant, meta, S = plants(tip, cs, ci, E, "drake" if base == "drake" else "pads", s, ir=ir)
                 except Exception as e:
                     print(f"{pid} {calib} {model}: build failed {e!r}", flush=True)
                     traceback.print_exc()
@@ -672,19 +673,19 @@ def cmd_film(a):
                 if o in pl.tool_geoms and "_pad" in (m.geom(g).name or ""):
                     m.geom_rgba[g] = (0.9, 0.1, 0.1, 1.0)
         r1.update_scene(d, cam1)
-        left = TF.label_bar(r1.render().copy(), [f"{names[tip]}: {s * 1e3:g} mm pads, E {E / 1e6:.4g} MPa ({a.calib})",
+        left = TF.label_bar(r1.render().copy(), [f"Pads {s * 1e3:g} mm, {E / 1e6:.0f} MPa ({a.calib})",
                                                  f"t {t:4.2f} s   turn {e['th']:+5.1f} deg"])
         de = dtr.get(round(t, 3))
         if de is not None:
             kin.d.qpos[kin.qadr] = de["qj"]
             kin.d.qpos[kin.qa:kin.qa + 3] = np.array(de["p"]) * 1e-3
             kin.d.qpos[kin.qa + 3:kin.qa + 7] = de["q"]
-            mujoco.mj_kinematics(kin.m, kin.d)
+            mujoco.mj_forward(kin.m, kin.d)
             label = f"t {t:4.2f} s   turn {de['th']:+5.1f} deg"
         else:
             label = f"t {t:4.2f} s   (Drake run ended)"
         r2.update_scene(kin.d, cam2)
-        right = TF.label_bar(r2.render().copy(), [f"{names[tip]}: Drake hydroelastic, E {Ed / 1e6:.4g} MPa ({a.calib})", label])
+        right = TF.label_bar(r2.render().copy(), [f"Drake, {Ed / 1e6:.0f} MPa ({a.calib})", label])
         frames.append(np.concatenate([left, right], 1))
 
     res, tr = replay(pl, meta, log, a.seed, frame_cb=cb)

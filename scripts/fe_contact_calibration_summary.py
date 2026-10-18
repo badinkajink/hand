@@ -115,7 +115,7 @@ def d1():
         for own in (False, True):
             plans = sorted({p for p in tip_of if tip_of[p] == tip and p.startswith("own_") == own})
             for calib in ("U", "M1", "M2"):
-                for padk in ("pads", "pads1"):
+                for padk in ("pads", "pads1", "pads_ir1000"):
                     pd, sp, runs = [], [], []
                     for p in plans:
                         for s in (0, 1, 2):
@@ -139,7 +139,9 @@ def d1():
                     bound = max(3.0, s_sp["median_rms_angle_same_deg"] or 0.0)
                     n = s_pd["n"]
                     need = n if own else n - 1                  # 3 of 3 (own plans), 5 of 6 (readiness plans)
-                    ok_angle = s_pd["median_rms_angle_same_deg"] is not None and s_pd["median_rms_angle_same_deg"] <= bound
+                    # the angle median describes the runs only when most pairs share a branch
+                    ok_angle = (s_pd["median_rms_angle_same_deg"] is not None and s_pd["median_rms_angle_same_deg"] <= bound
+                                and 2 * s_pd["same_branch"] > n)
                     ok_force = own or ((s_pd["median_rms_dN_same_N"] or 9) <= 0.25 and (s_pd["median_rms_dT_same_N"] or 9) <= 0.35)
                     out[f"{tip}|{'own' if own else 'ready'}|{calib}|{padk}"] = {
                         "tip": tip, "own": own, "calib": calib, "pads": padk, "pads_vs_drake": s_pd, "pads_seed_spread": s_sp,
