@@ -10,13 +10,27 @@ Both pages are ordinary git files that open from a clone in a browser with no se
 links, the one photo inlined as a data URI. Each topic heading links its overview (docs/overviews/, file names in
 docs_inventory.OVERVIEW) once that file exists; the key result pages are linked under it. The page index lists every
 page of docs_inventory.records(), so a page with a topic is never missing from it.
+
+The page index is a folder tree (owner, 2026-10-18: "a branching structure would be more helpful, like a typical file
+explorer set up"): docs/experiments/ opens to the topics, each topic to its dated study folders, newest first, and each
+study folder to its result pages and a collapsed folder of its other tracked files, listed to two levels with at most
+CAP files per folder (print files always). Folders without a result page and the files at the top of docs/experiments/
+follow the topics, and a second tree lists the pages by month. The tree is nested <details>, so it works without
+JavaScript; a short script adds the expand-all and collapse-all buttons and opens the folder a #fragment names.
+
+A page is rewritten only when its text apart from the "updated" date changes, so a rebuild that changes nothing leaves
+both files as they are in git.
 """
 from __future__ import annotations
 
 import base64
+import collections
+import html as htmllib
 import os
 import re
+import subprocess
 import time
+from urllib.parse import quote
 
 import docs_inventory as D
 import retro_style
@@ -129,84 +143,441 @@ def lfs_cmd(patterns):
     return 'git -c lfs.fetchexclude= lfs pull --include="' + ",".join(patterns) + '"'
 
 
+# ---- docs/pages.html: the page index as a folder tree -------------------------------------------------------------
+CAP = 12                    # files listed per folder in a study's other files, print files not counted
+SUBCAP = 24                 # subfolders listed per folder
+SKIP_FILES = re.compile(r"texsvg_cache.*\.json|\.gitignore|artifact_url\.txt")   # build caches and the copy's URL
+KINDS = [   # key, glyph, singular, plural, extensions; the order of the per-folder counts
+    ("print", "pr", "print file", "print files", {".3mf", ".stl", ".step", ".stp", ".gcode", ".bgcode"}),
+    ("data", "da", "data file", "data files", {".json", ".jsonl", ".csv", ".tsv", ".npz", ".npy", ".gz", ".b64",
+                                               ".pkl", ".h5"}),
+    ("film", "fi", "film", "films", {".mp4", ".webm", ".mov", ".gif"}),
+    ("image", "im", "image", "images", {".png", ".jpg", ".jpeg", ".svg", ".webp"}),
+    ("text", "tx", "text file", "text files", {".md", ".txt", ".pdf", ".docx", ".log", ".tex"}),
+    ("web", "pg", "HTML file", "HTML files", {".html", ".htm"}),
+    ("scene", "co", "scene file", "scene files", {".xml", ".urdf", ".obj", ".mjb"}),
+    ("code", "co", "script", "scripts", {".py", ".sh", ".yaml", ".yml", ".toml", ".ipynb", ".js", ".css"}),
+    ("other", "ot", "other file", "other files", set()),
+]
+KIND_OF = {e: k for k, _, _, _, exts in KINDS for e in exts}
+GLYPH = {k: g for k, g, *_ in KINDS}
+NOUN = {k: (s, p) for k, _, s, p, _ in KINDS}
+
+_SHEET = "<path d='M3.5 1.5h6l3 3v10h-9z' fill='#fff' stroke='#000'/><path d='M9.5 1.5v3h3' fill='none' stroke='#000'/>"
+ICONS = {   # 16 px glyphs in the manner of a 1990s file manager; the twisty boxes are 9 px
+    "fc": "<path d='M1.5 3.5h4.5l1.5 1.5h7v8.5h-13z' fill='#f2cf5b' stroke='#000'/><path d='M2 6.5h12' stroke='#a8862a'/>",
+    "fo": "<path d='M1.5 13.5v-10h4.5l1.5 1.5h6v2' fill='#d9b041' stroke='#000'/>"
+          "<path d='M1.5 13.5l2.5-6.5h11l-2.5 6.5z' fill='#f8e08e' stroke='#000' stroke-linejoin='round'/>",
+    "pg": _SHEET + "<path d='M5 7.5h6M5 9.5h6M5 11.5h4' stroke='#0000ee'/>",
+    "tx": _SHEET + "<path d='M5 7.5h6M5 9.5h6M5 11.5h4' stroke='#666'/>",
+    "da": _SHEET + "<path d='M5.5 6.5h5v6h-5z' fill='#e6e6e6' stroke='#000'/><path d='M5.5 8.5h5M5.5 10.5h5M8 6.5v6' stroke='#000'/>",
+    "fi": "<rect x='1.5' y='2.5' width='13' height='11' fill='#222' stroke='#000'/><rect x='4' y='5' width='8' height='6' fill='#8fb3e8'/>"
+          "<path d='M2.5 3.5h1M5.5 3.5h1M8.5 3.5h1M11.5 3.5h1M2.5 12.5h1M5.5 12.5h1M8.5 12.5h1M11.5 12.5h1' stroke='#fff'/>",
+    "im": "<rect x='1.5' y='2.5' width='13' height='11' fill='#fff' stroke='#000'/><circle cx='5' cy='6' r='1.5' fill='#e8a33a'/>"
+          "<path d='M2 13l4-5 3 3 2-2 3.5 4z' fill='#5e8f5a'/>",
+    "pr": "<path d='M8 1.5l6 3-6 3-6-3z' fill='#f6d7a7'/><path d='M2 4.5l6 3v7l-6-3z' fill='#be7514'/>"
+          "<path d='M14 4.5l-6 3v7l6-3z' fill='#e8a54b'/>"
+          "<path d='M8 1.5l6 3v7l-6 3-6-3v-7zM2 4.5l6 3 6-3M8 7.5v7' fill='none' stroke='#000' stroke-linejoin='round'/>",
+    "co": _SHEET + "<path d='M7 7.5l-2 2 2 2M9 7.5l2 2-2 2' fill='none' stroke='#000'/>",
+    "ot": _SHEET,
+    "te": "<rect x='1.5' y='2.5' width='13' height='11' fill='#000' stroke='#000'/><path d='M4 6l2.5 2-2.5 2M8 10.5h4' fill='none' stroke='#fff'/>",
+    "plus": "<rect x='.5' y='.5' width='8' height='8' fill='#fff' stroke='#808080'/><path d='M2 4.5h5M4.5 2v5' stroke='#000'/>",
+    "minus": "<rect x='.5' y='.5' width='8' height='8' fill='#fff' stroke='#808080'/><path d='M2 4.5h5' stroke='#000'/>",
+}
+
+
+def icon_uri(key):
+    n = 9 if key in ("plus", "minus") else 16
+    svg = (f"<svg xmlns='http://www.w3.org/2000/svg' width='{n}' height='{n}' viewBox='0 0 {n} {n}' "
+           f"shape-rendering='crispEdges'>{ICONS[key]}</svg>")
+    return "url(data:image/svg+xml;base64," + base64.b64encode(svg.encode()).decode() + ")"
+
+
+GUIDE = "1px dotted #808080"
+TREE_CSS = (CSS + """
+.tools{margin:10px 0 4px}
+.tools button{font:15px "Times New Roman",Times,serif;margin-right:6px}
+.tree,.tree ul{list-style:none;margin:0;padding:0}
+.tree{margin:6px 0 0 !important}
+.tree li{position:relative;margin:0 !important;padding:0 0 0 19px !important;font-size:16px !important;
+  line-height:22px !important;overflow-wrap:anywhere}
+.tree li.l{padding-left:52px !important}
+.tree li.p{padding-left:31px !important}
+.tree li::before{content:"";position:absolute;left:4px;top:0;bottom:0;border-left:GUIDE}
+.tree li:last-child::before{bottom:auto;height:11px}
+.tree li::after{content:"";position:absolute;left:4px;top:11px;width:14px;border-top:GUIDE}
+.tree li.l::after,.tree li.p::after{width:26px}
+.tree > li{padding-left:0 !important}
+.tree > li::before,.tree > li::after{display:none}
+.tree details{margin:0}
+.tree summary{display:block;position:relative;padding-left:33px;cursor:pointer;list-style:none}
+.tree summary::-webkit-details-marker{display:none}
+.tree summary::before{content:"";position:absolute;left:0;top:7px;width:9px;height:9px;background:PLUS no-repeat}
+.tree details[open] > summary::before{background-image:MINUS}
+.tree details[open] > summary::after{content:"";position:absolute;left:4px;top:16px;bottom:0;border-left:GUIDE}
+.tree i{position:absolute;left:12px;top:3px;width:16px;height:16px;background:no-repeat center/16px 16px}
+.tree li.l > i{left:31px}
+.tree small{color:#444;font-size:14px}
+.tree small a{white-space:nowrap}
+.tree .sj{display:block}
+.tree .f,.tree .fn{font-family:"Courier New",Courier,monospace !important;font-size:15px}
+.tree small .fn{font-size:14px}
+.tree pre{margin:2px 0 6px !important;padding:4px 8px !important;font-size:14px !important;white-space:pre-wrap;
+  overflow-wrap:anywhere}
+@media (max-width:480px){.tree li{padding-left:15px !important}.tree li.l{padding-left:48px !important}
+  .tree li.p{padding-left:27px !important}.tree li::after{width:10px}.tree li.l::after,.tree li.p::after{width:22px}
+  .tree li.l > i{left:27px}.tree .f{font-size:14px;word-break:break-all}}
+""").replace("GUIDE", GUIDE).replace("PLUS", icon_uri("plus")).replace("MINUS", icon_uri("minus")) + "".join(
+    f".tree i.{k}{{background-image:{icon_uri(k)}}}\n" for k in ICONS if k not in ("plus", "minus")) + (
+    ".tree details[open] > summary > i.fc{background-image:" + icon_uri("fo") + "}\n")
+
+TREE_JS = """
+(function () {
+  var tools = document.getElementById('tools');
+  var all = function () { return document.querySelectorAll('.tree details'); };
+  if (tools) {
+    tools.hidden = false;
+    tools.addEventListener('click', function (e) {
+      var act = e.target && e.target.getAttribute && e.target.getAttribute('data-act');
+      if (!act) return;
+      var ds = all();
+      for (var i = 0; i < ds.length; i++) ds[i].open = act === 'open' || ds[i].classList.contains('root');
+    });
+  }
+  function reveal() {
+    var id = decodeURIComponent(location.hash.slice(1));
+    var el = id && document.getElementById(id);
+    if (!el) return;
+    if (el.tagName === 'DETAILS') el.open = true;
+    for (var p = el.parentElement; p; p = p.parentElement) if (p.tagName === 'DETAILS') p.open = true;
+    el.scrollIntoView();
+  }
+  window.addEventListener('hashchange', reveal);
+  reveal();
+})();
+"""
+
+
+def esc(s):
+    return htmllib.escape(htmllib.unescape(str(s)), quote=False)
+
+
+def tracked_sizes():
+    """{path relative to the repository: bytes on disk} of the files git tracks under docs/experiments (a clone has
+    exactly these); every file on disk when git is unavailable."""
+    try:
+        out = subprocess.run(["git", "-C", ROOT, "ls-files", "-z", "--", "docs/experiments"], capture_output=True,
+                             check=True).stdout.decode("utf-8", "replace")
+        paths = [p for p in out.split("\0") if p]
+    except (OSError, subprocess.CalledProcessError):
+        paths = [os.path.relpath(os.path.join(d, f), ROOT) for d, _, fs in os.walk(D.EXP) for f in fs]
+    sizes = {}
+    for p in paths:
+        try:
+            sizes[p] = os.path.getsize(os.path.join(ROOT, p))
+        except OSError:                    # staged, then deleted from the working tree
+            pass
+    return sizes
+
+
+def kind(name):
+    return KIND_OF.get(os.path.splitext(name)[1].lower(), "other")
+
+
+def size_text(b):
+    for unit, scale in (("GB", 1e9), ("MB", 1e6), ("kB", 1e3)):
+        if b >= scale or unit == "kB":
+            x = b / scale
+            return f"{x:.0f}&#8201;{unit}" if x >= 100 or unit == "kB" and x >= 10 else f"{x:.1f}&#8201;{unit}"
+
+
+def count_text(n, noun):
+    return f"{n:,} {noun[0] if n == 1 else noun[1]}"
+
+
+def kinds_text(counter):
+    return ", ".join(count_text(counter[k], NOUN[k]) for k, *_ in KINDS if counter.get(k))
+
+
+class Dir:
+    """One folder of the tracked-file tree, with the file count, bytes and file kinds of everything below it."""
+
+    def __init__(self, path):
+        self.path, self.dirs, self.files = path, {}, {}
+        self.n, self.bytes, self.kinds, self.has_print = 0, 0, collections.Counter(), False
+
+    def add(self, rel, size):
+        node = self
+        for part in rel.split("/")[:-1]:
+            node = node.dirs.setdefault(part, Dir(node.path + "/" + part))
+        node.files[rel.rsplit("/", 1)[-1]] = size
+
+    def total(self):
+        for d in self.dirs.values():
+            d.total()
+            self.n, self.bytes, self.has_print = self.n + d.n, self.bytes + d.bytes, self.has_print or d.has_print
+            self.kinds.update(d.kinds)
+        for name, size in self.files.items():
+            self.n, self.bytes = self.n + 1, self.bytes + size
+            self.kinds[kind(name)] += 1
+            self.has_print = self.has_print or kind(name) == "print"
+        return self
+
+
+def tree_of(sizes, folder, exclude=()):
+    """Dir of docs/experiments/<folder>/ without the files in exclude and the build caches."""
+    root, pre = Dir("docs/experiments/" + folder), "docs/experiments/" + folder + "/"
+    for p, s in sizes.items():
+        if p.startswith(pre) and p not in exclude and not SKIP_FILES.fullmatch(os.path.basename(p)):
+            root.add(p[len(pre):], s)
+    return root.total()
+
+
+def leaf(glyph, body):
+    return f'<li class="l"><i class="{glyph}"></i>{body}</li>'
+
+
+def folder(glyph, body, children, is_open=False, ident=None, cls=None):
+    attrs = (" open" if is_open else "") + (f' id="{ident}"' if ident else "") + (f' class="{cls}"' if cls else "")
+    return f'<li><details{attrs}><summary><i class="{glyph}"></i>{body}</summary><ul>{"".join(children)}</ul></details></li>'
+
+
+def meta(*parts):
+    return " <small>" + " &#183; ".join(p for p in parts if p) + "</small>"
+
+
 def pages_html(recs, titles):
-    """docs/pages.html: every result page, grouped by topic (newest first) and then all of them by date."""
+    """docs/pages.html: a folder tree of docs/experiments/ by topic, then every result page by month."""
     order = [k for k, *_ in TOPICS] + [k for k, *_ in D.TOPICS if k not in {t[0] for t in TOPICS}]
-    scope = {k: sc for k, _, sc in D.TOPICS}
     here = os.path.dirname(PAGES_OUT)
     total = sum(r["mb"] for r in recs)
+    sizes = tracked_sizes()
+    for r in recs:                         # a page on disk that git does not track yet still counts in its folder
+        sizes.setdefault(r["file"], os.path.getsize(os.path.join(ROOT, r["file"])))
+    page_files = {r["file"] for r in recs}
+    overview_url = {m.group(1): m.group(2) for m in re.finditer(
+        r"\(\.\./overviews/([\w.-]+\.html)\)[^\n]*?\((https://claude\.ai/(?:code/)?artifact/[\w-]+)\)",
+        open(os.path.join(D.EXP, "INDEX.md"), encoding="utf-8").read())}
 
-    def link(r):
-        title = r["title"] + (f" ({r['status']})" if r["status"] != "current" else "")
-        return f'<a href="{os.path.relpath(os.path.join(ROOT, r["file"]), here)}">{title}</a>'
+    def href(path):
+        return htmllib.escape(quote(os.path.relpath(os.path.join(ROOT, path), here) + ("/" if path.endswith("/") else "")))
 
-    def copy(r):
-        return f'<a href="{r["artifact"]}">claude.ai</a>' if r["artifact"] else ""
+    def title(r):
+        return esc(r["title"]) + (f" ({r['status']})" if r["status"] != "current" else "")
 
-    toc, secs = [], []
-    for key in order:
-        rs = sorted((r for r in recs if r["topic"] == key), key=lambda r: (r["date"], r["file"]), reverse=True)
+    def copy(url):
+        return f'<a href="{htmllib.escape(url)}">copy on claude.ai</a>' if url else ""
+
+    def page_leaf(r, with_title):
+        mb = os.path.getsize(os.path.join(ROOT, r["file"])) / 1e6
+        builder = f'built by <span class="fn">{esc(os.path.basename(r["builder"]))}</span>' if r["builder"] else ""
+        body = (f'<a class="f" href="{href(r["file"])}">{esc(os.path.basename(r["file"]))}</a>'
+                + meta(f"{mb:.2f}&#8201;MB", builder, copy(r["artifact"])))
+        if with_title:
+            body += f'<span class="sj">{title(r)}</span>'
+        return leaf("pg", body)
+
+    def listing(node, level):
+        """<li> items of one folder's subfolders and files. Subfolders are listed to two levels below the dated
+        folder; a deeper one, or any subfolder of a folder with more than SUBCAP of them, is one line that links the
+        folder, unless it includes print files, and at most SUBCAP subfolders are shown. Of the files, every print file
+        and at most CAP others, notes and summaries first, are shown by name."""
+        items, dnames = [], sorted(node.dirs)
+        many = len(dnames) > SUBCAP
+        for name in dnames[:SUBCAP]:
+            d = node.dirs[name]
+            m = meta(count_text(d.n, ("file", "files")) + ", " + size_text(d.bytes))
+            if (level >= 2 or many) and not d.has_print:
+                items.append(leaf("fc", f'<a class="f" href="{href(d.path + "/")}">{esc(name)}/</a>' + m))
+            else:
+                items.append(folder("fc", f'<span class="f">{esc(name)}/</span>' + m, listing(d, level + 1)))
+        if many:
+            items.append(leaf("fc", f'<a href="{href(node.path + "/")}">{len(dnames) - SUBCAP} more folders in this '
+                                    f'folder</a>'))
+        names = sorted(node.files)
+        prio = lambda n: (kind(n) != "text" and "summary" not in n.lower() and "readme" not in n.lower(), n)  # noqa: E731
+        shown = {n for n in names if kind(n) == "print"}
+        shown |= set(sorted((n for n in names if n not in shown), key=prio)[:CAP])
+        for n in names:
+            if n in shown:
+                items.append(leaf(GLYPH[kind(n)], f'<a class="f" href="{href(node.path + "/" + n)}">{esc(n)}</a>'
+                                  + meta(size_text(node.files[n]))))
+        rest = [n for n in names if n not in shown]
+        if rest:
+            items.append(leaf("fc", f'<a href="{href(node.path + "/")}">{len(rest):,} more files in this folder</a>'
+                              + meta(kinds_text(collections.Counter(kind(n) for n in rest)))))
+        return items
+
+    # each study folder's other files go under the topic with most of its pages
+    by_folder = collections.defaultdict(list)
+    for r in recs:
+        by_folder[r["folder"]].append(r)
+    home = {f: max(order, key=lambda k: (sum(r["topic"] == k for r in rs), k == D.FOLDER_TOPIC.get(f)))
+            for f, rs in by_folder.items()}
+    topic_name = {**{k: t for k, t, _ in D.TOPICS}, None: "No topic yet"}
+    keys = order + ([None] if any(r["topic"] not in order for r in recs) else [])
+    for f, rs in by_folder.items():
+        if not any(r["topic"] == home[f] for r in rs):
+            home[f] = rs[0]["topic"] if rs[0]["topic"] in order else None
+
+    def node_id(key, f):
+        return f"{key or 'none'}-{f}"
+
+    topic_items = []
+    for key in keys:
+        rs = [r for r in recs if (r["topic"] if r["topic"] in order else None) == key]
         if not rs:
             continue
-        ov = os.path.join(ROOT, "docs", "overviews", D.OVERVIEW.get(key, "-"))
-        head = titles[key]
-        if os.path.exists(ov):
-            head = f'<a href="{os.path.relpath(ov, here)}">{head}</a>'
+        folders = sorted({r["folder"] for r in rs}, reverse=True)
         mb = sum(r["mb"] for r in rs)
-        size = {r["file"]: os.path.getsize(os.path.join(ROOT, r["file"])) / 1e6 for r in rs}
-        folders = sorted({r["folder"] for r in rs})
-        body = "".join(f'<tr><td class="num">{r["date"]}</td><td>{link(r)}</td>'
-                       f'<td>{"<code>" + os.path.basename(r["builder"]) + "</code>" if r["builder"] else ""}</td>'
-                       f'<td class="mb">{size[r["file"]]:.2f}</td><td>{copy(r)}</td></tr>' for r in rs)
-        toc.append(f'<li><a href="#{key}">{titles[key]}</a> ({len(rs)})</li>')
-        secs.append(f'<h2 id="{key}">{head}</h2>\n<p>{scope[key]}</p>\n'
-                    f'<details><summary>Command that fetches the {len(rs)} pages of this topic ({mb:.0f}&#8202;MB)</summary>'
-                    f'<pre>{lfs_cmd(f"docs/experiments/{f}/*.html" for f in folders)}</pre></details>\n'
-                    '<div class="tw"><table class="pix"><thead><tr><th>Date</th><th>Page</th><th>Builder</th><th>MB</th>'
-                    f'<th>Copy</th></tr></thead><tbody>{body}</tbody></table></div>')
-    short = {k: t for k, t, _ in D.TOPICS}
-    by_date = "".join(f'<tr><td class="num">{r["date"]}</td><td>{link(r)}</td><td><a href="#{r["topic"]}">{short[r["topic"]]}</a></td>'
-                      f'<td class="mb">{os.path.getsize(os.path.join(ROOT, r["file"])) / 1e6:.2f}</td><td>{copy(r)}</td></tr>'
-                      for r in sorted(recs, key=lambda r: (r["date"], r["file"]), reverse=True))
-    toc.append('<li><a href="#bydate">All pages by date</a></li>')
+        kids = []
+        ov = D.OVERVIEW.get(key or "")
+        if ov and os.path.exists(os.path.join(ROOT, "docs", "overviews", ov)):
+            kids.append(leaf("pg", f'<a href="{href("docs/overviews/" + ov)}">Topic overview</a>'
+                             + meta(f'<span class="fn">overviews/{ov}</span>', copy(overview_url.get(ov)))))
+        kids.append(folder("te", f"Command that fetches the {len(rs)} pages of this topic"
+                           + meta(size_text(mb * 1e6)),
+                           [f'<li class="p"><pre>{lfs_cmd(f"docs/experiments/{f}/*.html" for f in sorted(folders))}</pre></li>']))
+        for f in folders:
+            frs = sorted((r for r in rs if r["folder"] == f), key=lambda r: r["file"])
+            whole = tree_of(sizes, f)
+            sub = [page_leaf(r, len(frs) > 1) for r in frs]
+            if home[f] == key:
+                other = tree_of(sizes, f, exclude=page_files)
+                if other.n:
+                    sub.append(folder("fc", "Other files" + meta(count_text(other.n, ("file", "files")) + ", "
+                                                                 + size_text(other.bytes) + ": " + kinds_text(other.kinds)),
+                                      listing(other, 1)))
+            else:
+                sub.append(leaf("fc", f'Other files: in the <a href="#{node_id(home[f], f)}">same folder under '
+                                      f'{topic_name[home[f]]}</a>'))
+            subject = f'<span class="sj">{title(frs[0])}</span>' if len(frs) == 1 else ""
+            kids.append(folder("fc", f'<span class="f">{esc(f)}/</span>'
+                               + meta(count_text(len(frs), ("page", "pages")),
+                                      count_text(whole.n, ("file", "files")) + ", " + size_text(whole.bytes)) + subject,
+                               sub, ident=node_id(key, f)))
+        head = f'<b>{topic_name[key]}</b>'
+        topic_items.append(folder("fc", head + meta(f"{count_text(len(rs), ('page', 'pages'))} ({size_text(mb * 1e6)}) in "
+                                                     f"{count_text(len(folders), ('folder', 'folders'))}"),
+                                  kids, ident=key or "none"))
+
+    # dated folders without a result page, by month, and the files at the top of docs/experiments/
+    tops = sorted({p.split("/")[2] for p in sizes if p.count("/") >= 3})
+    bare = [f for f in tops if f not in by_folder]
+    months = collections.defaultdict(list)
+    for f in bare:
+        months[f[:4] + "-" + f[4:6] if re.match(r"\d{8}", f) else "undated"].append(f)
+    month_items, bare_n, bare_b = [], 0, 0
+    for m in sorted(months, key=lambda m: (m != "undated", m), reverse=True):
+        fitems = []
+        for f in sorted(months[m], reverse=True):
+            t = tree_of(sizes, f)
+            bare_n, bare_b = bare_n + t.n, bare_b + t.bytes
+            fitems.append(folder("fc", f'<span class="f">{esc(f)}/</span>'
+                                 + meta(count_text(t.n, ("file", "files")) + ", " + size_text(t.bytes) + ": "
+                                        + kinds_text(t.kinds)),
+                                 listing(t, 2), ident="bare-" + f))
+        month_items.append(folder("fc", f'<span class="f">{m}</span>'
+                                  + meta(count_text(len(months[m]), ("folder", "folders"))), fitems))
+    loose = Dir("docs/experiments")
+    for p, s in sizes.items():
+        if p.count("/") == 2 and os.path.basename(p) != "INDEX.md":
+            loose.add(os.path.basename(p), s)
+    loose.total()
+    root_items = topic_items + [
+        folder("fc", "Folders without a result page"
+               + meta(count_text(len(bare), ("folder", "folders")) + ", "
+                      + count_text(bare_n, ("file", "files")) + ", " + size_text(bare_b)), month_items, ident="bare"),
+        folder("fc", f'Files at the top of <span class="f">docs/experiments/</span>'
+               + meta(count_text(loose.n, ("file", "files")) + ", " + size_text(loose.bytes) + ": "
+                      + kinds_text(loose.kinds)), listing(loose, 1), ident="loose"),
+        leaf("tx", f'<a class="f" href="{href("docs/experiments/INDEX.md")}">INDEX.md</a>'
+             + meta("every page by date with a sentence on each, and the topic overviews")),
+    ]
+    n_folders = len(by_folder)
+    n_topics = sum(1 for k in keys if k and any(r["topic"] == k for r in recs))
+    all_n, all_b = len(sizes), sum(sizes.values())
+    tree = (f'<ul class="tree">' + folder(
+        "fc", '<span class="f">docs/experiments/</span>'
+        + meta(f"{len(recs)} result pages in {n_folders} folders and {n_topics} topics",
+               f"{len(tops)} folders, {all_n:,} files, {size_text(all_b)} in all"),
+        root_items, is_open=True, cls="root") + "</ul>")
+
+    by_month = collections.defaultdict(list)
+    for r in sorted(recs, key=lambda r: (r["date"], r["file"]), reverse=True):
+        by_month[r["date"][:7]].append(r)
+    date_items = []
+    for m in sorted(by_month, reverse=True):
+        rows = [leaf("pg", f'{r["date"]} <a href="{href(r["file"])}">{title(r)}</a>'
+                     + meta(f'<a href="#{node_id(r["topic"] if r["topic"] in order else None, r["folder"])}">'
+                            f'{topic_name[r["topic"] if r["topic"] in order else None]}</a>',
+                            f'{os.path.getsize(os.path.join(ROOT, r["file"])) / 1e6:.2f}&#8201;MB', copy(r["artifact"])))
+                for r in by_month[m]]
+        date_items.append(folder("fc", f'<span class="f">{m}</span>' + meta(count_text(len(rows), ("page", "pages"))),
+                                 rows, ident="m" + m))
+    date_tree = ('<ul class="tree">' + folder("fc", f"All {len(recs)} result pages, newest first", date_items,
+                                               is_open=True, cls="root") + "</ul>")
+
     return f"""<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Index of result pages</title>
-<style>{CSS}</style>
+<style>{TREE_CSS}</style>
 </head>
 <body>
 <div class="wrap">
 <header>
 <div class="eyebrow"><a href="index.html">SR&#178; Hand documentation</a> &#183; updated {time.strftime("%Y-%m-%d")}</div>
 <h1>Result pages of the SR&#178; Hand documentation by topic and date</h1>
-<p class="lede">The {len(recs)} dated result pages ({total:.0f}&#8202;MB) under <code>docs/experiments/</code>, in
-{len(toc) - 1} topics. Each title opens the local file. The result pages are Git LFS files, which open as a short pointer
-text until fetched; the home page, the topic overviews and this index are ordinary files and open from any clone. The
-Copy column links the published copy of a page on claude.ai where one exists, and the Builder column names the script in
-<code>scripts/</code> that rebuilds the page from its data.</p>
+<p class="lede">The {len(recs)} dated result pages ({size_text(total * 1e6)}) under <code>docs/experiments/</code>, as a
+folder tree in {n_topics} topics. A topic opens to its study folders, newest first. A study folder opens to its result
+pages, each with its size, the script in <code>scripts/</code> that rebuilds it and its copy on claude.ai where they
+exist, and to a folder of the other files beside them: data, films, images, print files and bench plans. That folder lists two levels of
+subfolders and at most {CAP} files per folder besides the print files, with a link to the folder for the rest. The result
+pages, data and media are Git LFS files; the commands that fetch them are <a href="#fetch">at the end</a>.</p>
 </header>
-<nav class="toc"><ol>{"".join(toc)}</ol></nav>
-<h2 id="fetch">Fetching the pages</h2>
-<p>Every page (about {total:.0f}&#8202;MB):</p>
+<h2 id="bytopic">Pages by topic</h2>
+<p class="tools" id="tools" hidden><button type="button" data-act="open">Expand all</button><button type="button"
+data-act="close">Collapse all</button></p>
+{tree}
+<h2 id="bydate">Pages by date</h2>
+{date_tree}
+<h2 id="fetch">Fetching the pages and their files</h2>
+<p>The result pages and the data and media files are Git LFS files, which open as a short pointer text until fetched;
+this index, the home page and the topic overviews are ordinary files and open from any clone. Every result page
+({size_text(total * 1e6)}):</p>
 <pre>git lfs install
 {lfs_cmd(["docs/experiments/**/*.html"])}</pre>
-<p>One page: <code>{lfs_cmd(["docs/experiments/FOLDER/FILE.html"])}</code>. Under each topic, a command fetches that
-topic&#8217;s pages.</p>
-{chr(10).join(secs)}
-<h2 id="bydate">All pages by date</h2>
-<div class="tw"><table class="pix"><thead><tr><th>Date</th><th>Page</th><th>Topic</th><th>MB</th><th>Copy</th></tr></thead>
-<tbody>{by_date}</tbody></table></div>
+<p>One folder with its data and media, FOLDER being its dated name:</p>
+<pre>{lfs_cmd(["docs/experiments/FOLDER/**"])}</pre>
+<p>Each topic in the tree opens to the command that fetches its pages.</p>
 <footer>
 <p>Built by <code>python3 scripts/docs_home_page.py</code> from <code>scripts/docs_inventory.py</code>, which reads the
-result folders and the rows of <code>docs/experiments/INDEX.md</code>.</p>
+result folders and the rows of <code>docs/experiments/INDEX.md</code>, and from the files git tracks under
+<code>docs/experiments/</code>.</p>
 </footer>
 </div>
+<script>{TREE_JS}</script>
 </body>
 </html>
 """
+
+
+STAMP_RE = re.compile(r"updated \d{4}-\d{2}-\d{2}")
+
+
+def write_page(path, html):
+    """Write a built page unless the file already has the same text apart from its "updated" date."""
+    try:
+        old = open(path, encoding="utf-8").read()
+    except OSError:
+        old = None
+    if old is not None and STAMP_RE.sub("", old) == STAMP_RE.sub("", html):
+        return False
+    open(path, "w", encoding="utf-8").write(html)
+    return True
 
 
 def main():
@@ -275,10 +646,10 @@ environment and the names of hands and policies.</p>
         svgs = iter(texsvg.render(items, cache_path=TEX_CACHE, scale=1.1))
         html = TEX_RE.sub(lambda m: next(svgs), html)
     html = retro_style.apply(html)
-    open(OUT, "w", encoding="utf-8").write(html)
-    print(f"wrote {OUT} ({os.path.getsize(OUT) / 1e3:.0f} kB)")
-    open(PAGES_OUT, "w", encoding="utf-8").write(retro_style.apply(pages_html(recs, titles)))
-    print(f"wrote {PAGES_OUT} ({os.path.getsize(PAGES_OUT) / 1e3:.0f} kB, {n_pages} pages)")
+    done = write_page(OUT, html)
+    print(f"{'wrote' if done else 'unchanged'} {OUT} ({os.path.getsize(OUT) / 1e3:.0f} kB)")
+    done = write_page(PAGES_OUT, retro_style.apply(pages_html(recs, titles)))
+    print(f"{'wrote' if done else 'unchanged'} {PAGES_OUT} ({os.path.getsize(PAGES_OUT) / 1e3:.0f} kB, {n_pages} pages)")
 
 
 if __name__ == "__main__":
