@@ -301,7 +301,7 @@ def facts_table(r, mass):
                  ("Least TPU around a pocket", f"{r['wall_min_mm']:.2f} mm"),
                  ("Expected tip mass", f"{mass[mass_key(r)]:.2f} g with its magnets")]
     else:
-        rows += [("Pauses", "None: the magnets go into the finished coupon")]
+        rows += [("Pauses", "No pause; the magnets go into the finished coupon")]
     body = "".join(f"<tr><th>{a}</th><td>{b}</td></tr>" for a, b in rows)
     return f'<div class="tw"><table class="facts"><tbody>{body}</tbody></table></div>'
 
@@ -396,8 +396,11 @@ def print_section(k, group, r, mass, seq):
     else:
         same = [j for j, (_, q) in enumerate(seq, start=1) if j < k and not is_coupon(q) and stem(q) == stem(r)]
         if same:
-            out.append(f"<p>Same part, magnets and pauses as print {same[0]}; "
-                       + ("only the infill differs." if walls(r) == walls(seq[same[0] - 1][1])
+            same_w = [j for j in same if walls(seq[j - 1][1]) == walls(r)]
+            same_i = [j for j in same if seq[j - 1][1]["infill_percent"] == r["infill_percent"]]
+            ref = (same_w or same_i or same)[-1]
+            out.append(f"<p>Same part, magnets and pauses as print {ref}; "
+                       + ("only the infill differs." if walls(r) == walls(seq[ref - 1][1])
                           else "the project adds a modifier with one perimeter around each pocket.") + "</p>")
         if walls(r) == 1:
             out.append("<p>Print it only if the one-wall coupon kept its magnets in the seat test.</p>")
@@ -629,15 +632,18 @@ def terms_section():
 
 
 def future_section(seats):
+    proc = {x["id"]: x for x in json.loads((READY / "bench/procedure.json").read_text())["steps"]}
+    ret = proc["retention"]
+    ind = proc["indentation"]["predicts"]["block, four magnets, 30 % gyroid"]["1 N"]["E_s 12 MPa"]
     return ('<section id="future"><h2>Future work</h2><ul>'
             f"<li>Seat: fill <code>{esc(rel(SEAT_CSV))}</code> from both coupons; a seat wider than 2.7 mm means "
             "rebuilding the tips (Section 5) before any tip is printed.</li>"
             f"<li>Masses: weigh every tip into <code>{esc(rel(PRINTS_CSV))}</code>; a tip far below its expected mass "
             "points to under-extrusion of the 85A on tool 2.</li>"
-            "<li>Bench: on the printed 30 % four-magnet block, the readiness study&#8217;s retention test (the board&#8217;s "
-            "zero-load field before and after 50 presses at 3 N, a change under 2 % expected) and indentation under the "
-            "25 mm rod at 0.5, 1 and 3 N (60.8 &#181;m at 1 N if Siraya&#8217;s solid modulus is 12 MPa), procedure in "
-            "docs/experiments/20261016-sim2real_fingertip_readiness/bench/procedure.json.</li></ul></section>")
+            f"<li>Bench, on the printed 30 % four-magnet block: {esc(ret['what'])} (expected: {esc(ret['predicts'])}); "
+            f"then the indentation under the 25 mm rod at 0.5, 1 and 3 N, {ind:g} &#181;m at 1 N if Siraya&#8217;s solid "
+            "modulus is 12 MPa (docs/experiments/20261016-sim2real_fingertip_readiness/bench/procedure.json).</li>"
+            "</ul></section>")
 
 
 # ------------------------------------------------------------------------------------------------- build
