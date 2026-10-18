@@ -591,6 +591,29 @@ def fits():
     ]
 
 
+def _table(ax, head, rows, wrap_chars, col_x, fs=12):
+    """A table drawn as text: each cell wrapped to its column's width in characters, each row as tall as its longest cell
+    (one data unit per line), rules between the rows."""
+    import textwrap
+    ax.axis("off")
+    rws = []
+    for r in [head] + rows:
+        cells = [textwrap.wrap(str(c), w) or [""] for c, w in zip(r, wrap_chars)]
+        rws.append((cells, max(len(c) for c in cells)))
+    total = sum(n + 0.7 for _, n in rws)
+    ax.set_xlim(0, 1)
+    ax.set_ylim(-total, 0.2)
+    y = 0.0
+    ax.axhline(0.0, color="k", lw=1.0)
+    for k, (cells, n) in enumerate(rws):
+        for c, x in zip(cells, col_x):
+            ax.text(x, y - 0.35, "\n".join(c), va="top", ha="left", fontsize=fs, weight="bold" if k == 0 else "normal",
+                    linespacing=1.3)
+        y -= n + 0.7
+        ax.axhline(y, color="k", lw=1.0 if k in (0, len(rws) - 1) else 0.5)
+    return total
+
+
 def cmd_drawing(a):
     import matplotlib
     matplotlib.use("Agg")
@@ -606,108 +629,108 @@ def cmd_drawing(a):
     it = A.board_items()
     hd = sorted([(y, z) for y, z, _ in it["holes"] if z < A.Z_C])
     hp = sorted([(y, z) for y, z, _ in it["holes"] if z > A.Z_C])
+    rows = fits()
+    n_lines = sum(max(len(r[0]) // 24 + 1, len(r[1]) // 44 + 1, len(r[2]) // 64 + 1) + 0.7 for r in rows) + 2
+    tab_h = 0.25 * n_lines
     plt.rcParams.update({"font.family": "serif", "font.size": 13})
-    fig = plt.figure(figsize=(13.0, 15.5))
-    gs = fig.add_gridspec(3, 2, height_ratios=[1.0, 1.0, 0.95], hspace=0.32, wspace=0.18)
+    fig = plt.figure(figsize=(15.0, 11.0 + tab_h))
+    gs = fig.add_gridspec(3, 2, height_ratios=[4.7, 4.3, tab_h], hspace=0.22, wspace=0.14, left=0.05, right=0.98,
+                          top=0.965, bottom=0.01)
     axA, axB = fig.add_subplot(gs[0, 0]), fig.add_subplot(gs[0, 1])
     axC, axD = fig.add_subplot(gs[1, 0]), fig.add_subplot(gs[1, 1])
     axT = fig.add_subplot(gs[2, :])
+    arrow = dict(arrowstyle="->", lw=0.9)
 
     def draw(ax, orig, nrm, h_ax, v_ax):
         for n, tm, c in meshes:
-            s = tm.section(plane_origin=orig, plane_normal=nrm)
-            if s is None:
+            sec = tm.section(plane_origin=orig, plane_normal=nrm)
+            if sec is None:
                 continue
-            for poly in s.discrete:
+            for poly in sec.discrete:
                 ax.add_patch(MPoly(poly[:, [h_ax, v_ax]], closed=True, fc=c, ec="k", lw=0.5))
         ax.set_aspect("equal")
         ax.grid(True, lw=0.3, alpha=0.4)
 
-    # A: section y = 0 at U1: the stack
+    # A: section y = 0 at U1: the stack, the Qwiic header in its pocket; texts in the free space dorsal of the parts
     draw(axA, (0, 0.0, 0), (0, 1, 0), 0, 2)
-    axA.set_xlim(4.0, 13.5)
-    axA.set_ylim(A.Z_C - 3.2, A.Z_C + 8.4)
+    axA.set_xlim(4.0, 21.0)
+    axA.set_ylim(A.Z_C - 3.4, A.Z_C + 8.4)
     axA.set_xlabel("x (mm), dorsal to the right")
-    axA.set_ylabel("z (mm)")
+    axA.set_ylabel("z (mm), proximal up")
     axA.set_title("A. Section y = 0 through U1: the stack", fontsize=14)
-    zA = A.Z_C + 2.2
-    _dim(axA, (A.X_BACK, zA), (L["x_cf"], zA), f"{L['t_w']:.2f}", 0.15)
-    _dim(axA, (L["x_cf"], zA), (L["x_bb"], zA), f"{P['fr4']:.2f}", 0.15)
-    _dim(axA, (L["x_bb"], zA), (L["x_c1"], zA), f"{P['clamp_t']:.2f}", 0.15)
-    axA.axvline(X_S := A.X_BACK + L["gap"], color="k", lw=1.0, ls=":")
-    axA.annotate(f"Sensing plane {L['gap']:.2f} mm\nbehind the back face", xy=(X_S, A.Z_C - 0.6), xytext=(8.6, A.Z_C - 2.6),
-                 fontsize=13, arrowprops=dict(arrowstyle="->", lw=0.9))
-    axA.annotate(f"Chip top {P['chip_proud']:.2f} mm proud\nof the window plate", xy=(L["chip_top"], A.Z_C + 0.9),
-                 xytext=(4.2, A.Z_C + 3.0), fontsize=13, arrowprops=dict(arrowstyle="->", lw=0.9))
-    axA.text(4.25, A.Z_C - 3.0, "Tip back face x 6.45", fontsize=13)
+    zA = A.Z_C - 1.4
+    _dim(axA, (A.X_BACK, zA), (L["x_cf"], zA), f"{L['t_w']:.2f}", 0.0, fs=12)
+    _dim(axA, (L["x_cf"], zA), (L["x_bb"], zA), f"{P['fr4']:.2f}", 0.0, fs=12, side=-1)
+    _dim(axA, (L["x_bb"], zA), (L["x_c1"], zA), f"{P['clamp_t']:.2f}", 0.0, fs=12)
+    X_S = A.X_BACK + L["gap"]
+    axA.axvline(X_S, color="k", lw=1.0, ls=":")
     hl, hh = qp["q_header"]
+    tx = 13.4
     axA.annotate("Qwiic header in a 1.00 mm\npocket, plug mated above", xy=(hh[0] - 0.4, (hl[2] + hh[2]) / 2),
-                 xytext=(4.2, A.Z_C + 6.6), fontsize=13, arrowprops=dict(arrowstyle="->", lw=0.9))
+                 xytext=(tx, A.Z_C + 5.6), fontsize=12, arrowprops=arrow)
+    axA.annotate(f"Chip top {P['chip_proud']:.2f} mm proud\nof the window plate", xy=(L["chip_top"], A.Z_C + 0.9),
+                 xytext=(tx, A.Z_C + 2.2), fontsize=12, arrowprops=arrow)
+    axA.annotate(f"Sensing plane {L['gap']:.2f} mm\nbehind the back face", xy=(X_S, A.Z_C - 0.5), xytext=(tx, A.Z_C - 0.6),
+                 fontsize=12, arrowprops=arrow)
+    axA.annotate(f"Tip back face x {A.X_BACK:.2f}", xy=(A.X_BACK, A.Z_C - 2.6), xytext=(tx, A.Z_C - 3.2), fontsize=12,
+                 arrowprops=arrow)
+    axA.text(tx, A.Z_C - 1.7, f"Stack: window plate {L['t_w']:.2f},\nFR-4 {P['fr4']:.2f}, clamp plate {P['clamp_t']:.2f}",
+             fontsize=12, va="center")
 
-    # B: section z = -86.06 through the distal holes (M1.6 countersunk screws, nuts)
+    # B: section z through the distal holes (M1.6 countersunk screws, nuts)
     draw(axB, (0, 0, hd[0][1]), (0, 0, 1), 1, 0)
     axB.set_xlim(-11.5, 11.5)
-    axB.set_ylim(3.0, 13.5)
+    axB.set_ylim(2.0, 15.6)
     axB.set_xlabel("y (mm)")
     axB.set_ylabel("x (mm), dorsal up")
     axB.set_title(f"B. Section z = {hd[0][1]:.2f}: M1.6 screws and nuts", fontsize=14)
-    _dim(axB, (-P["half_w"], L["x_c1"]), (P["half_w"], L["x_c1"]), "21.0 (rim)", 0.7)
-    _dim(axB, (-10.0, L["x_cf"]), (10.0, L["x_cf"]), "20.0 (board)", 3.4)
-    _dim(axB, (-A.Y_HALF, A.X_BACK), (A.Y_HALF, A.X_BACK), "14.8 (tip)", 2.4, side=-1)
-    axB.annotate(f"Nut {P['nut_s']:.1f} A/F,\n{P['nut_m']:.1f} deep", xy=(hd[1][0], L["x_c1"] - 0.6), xytext=(1.0, 12.4),
-                 fontsize=13, arrowprops=dict(arrowstyle="->", lw=0.9))
-    axB.annotate("90 deg countersink,\nhead 3.0", xy=(hd[0][0] + 0.9, A.X_BACK + 0.4), xytext=(-11.2, 4.6), fontsize=13,
-                 arrowprops=dict(arrowstyle="->", lw=0.9))
+    _dim(axB, (-P["half_w"], L["x_c1"]), (P["half_w"], L["x_c1"]), "21.0 (rim)", 0.8, fs=12)
+    _dim(axB, (-10.0, L["x_cf"]), (10.0, L["x_cf"]), "20.0 (board)", 6.2, fs=12)
+    _dim(axB, (-A.Y_HALF, A.X_BACK), (A.Y_HALF, A.X_BACK), "14.8 (tip)", 3.0, fs=12, side=-1)
+    axB.annotate(f"Nut {P['nut_s']:.1f} A/F, {P['nut_m']:.1f} deep", xy=(hd[1][0], L["x_c1"] - 0.6), xytext=(1.2, 14.7),
+                 fontsize=12, arrowprops=arrow)
+    axB.annotate("90 deg countersink,\nhead 3.0", xy=(hd[0][0] + 0.9, A.X_BACK + 0.4), xytext=(-11.2, 4.2), fontsize=12,
+                 arrowprops=arrow)
 
     # C: section z through the proximal holes (pins)
     draw(axC, (0, 0, hp[0][1]), (0, 0, 1), 1, 0)
     axC.set_xlim(-11.5, 11.5)
-    axC.set_ylim(3.0, 13.5)
+    axC.set_ylim(2.0, 16.4)
     axC.set_xlabel("y (mm)")
     axC.set_ylabel("x (mm), dorsal up")
     axC.set_title(f"C. Section z = {hp[0][1]:.2f}: pins and dovetail keys", fontsize=14)
-    axC.annotate(f"Pin {P['pin_d']:.2f} in the board's\n{P['pin_hole_d']:.2f} hole, {P['pin_into_plate']:.2f} into\nreamed {P['pin_hole_d']:.2f}",
-                 xy=(hp[0][0], L["x_cf"] - 0.2), xytext=(-11.2, 10.6), fontsize=13, arrowprops=dict(arrowstyle="->", lw=0.9))
-    axC.annotate(f"Diamond pin:\nflats +-{P['diamond_half']:.2f} in y", xy=(hp[1][0], L["x_cf"] + 0.3), xytext=(3.2, 11.6),
-                 fontsize=13, arrowprops=dict(arrowstyle="->", lw=0.9))
-    axC.annotate(f"Ear gap {P['ear_gap']:.2f}\nto the shoulder", xy=(8.5, L["x_ear0"] - P["ear_gap"] / 2), xytext=(4.0, 4.0),
-                 fontsize=13, arrowprops=dict(arrowstyle="->", lw=0.9))
+    axC.annotate(f"Pin {P['pin_d']:.2f} in the board's {P['pin_hole_d']:.2f}\nhole, {P['pin_into_plate']:.2f} into reamed "
+                 f"{P['pin_hole_d']:.2f}", xy=(hp[0][0], L["x_cf"] - 0.2), xytext=(-11.2, 14.2), fontsize=12, arrowprops=arrow)
+    axC.annotate(f"Diamond pin:\nflats +-{P['diamond_half']:.2f} in y", xy=(hp[1][0], L["x_cf"] + 0.3), xytext=(4.6, 14.2),
+                 fontsize=12, arrowprops=arrow)
+    axC.annotate(f"Ear gap {P['ear_gap']:.2f}\nto the shoulder", xy=(8.5, L["x_ear0"] - P["ear_gap"] / 2), xytext=(7.7, 2.4),
+                 fontsize=12, arrowprops=arrow)
 
     # D: the dovetail key and channel at z -70 (key and channel outlines from concept a's polygon)
     axD.set_title("D. Dovetail key and tip channel, z -70.00", fontsize=14)
     kp = np.array(A.key_poly(P, P["key_yc"]))
     cp = np.array(A.key_poly(P, P["key_yc"], flank=P["fit_flank"], floor=P["fit_floor"], x_top=A.X_BACK + 0.3))
-    axD.add_patch(MPoly(cp[:, [0, 1]][:, ::-1] if False else cp, closed=True, fc="#e8c88a", ec="k", lw=0.8, ls="--"))
+    axD.add_patch(MPoly(cp, closed=True, fc="#e8c88a", ec="k", lw=0.8, ls="--"))
     axD.add_patch(MPoly(kp, closed=True, fc="#d6d6cc", ec="k", lw=0.9))
     allp = np.vstack([kp, cp])
-    axD.set_xlim(allp[:, 0].min() - 1.6, allp[:, 0].max() + 1.6)
-    axD.set_ylim(allp[:, 1].min() - 1.2, allp[:, 1].max() + 1.2)
+    axD.set_xlim(allp[:, 0].min() - 1.4, allp[:, 0].max() + 1.4)
+    axD.set_ylim(allp[:, 1].min() - 2.6, allp[:, 1].max() + 0.8)
     axD.set_aspect("equal")
     axD.grid(True, lw=0.3, alpha=0.4)
-    axD.set_xlabel("first axis of the key polygon (mm)")
-    axD.set_ylabel("second axis (mm)")
-    axD.text(0.02, 0.04, f"Key (grey): root {P['key_root']:.1f}, head {P['key_head']:.1f}, depth {P['key_depth']:.1f}\n"
+    axD.set_xlabel("x (mm), dorsal to the right")
+    axD.set_ylabel("y (mm)")
+    axD.text(0.03, 0.03, f"Key (grey): root {P['key_root']:.1f}, head {P['key_head']:.1f}, depth {P['key_depth']:.1f}\n"
                          f"Channel (dashed): {P['fit_flank']:.2f} narrower per flank,\n{P['fit_floor']:.2f} deeper; "
                          f"detent {P['detent_h']:.2f} in a {2 * P['groove_r']:.2f} groove",
-             transform=axD.transAxes, fontsize=13, va="bottom")
+             transform=axD.transAxes, fontsize=12, va="bottom")
 
     # table of fits
-    axT.axis("off")
-    rows = fits()
-    tb = axT.table(cellText=[[a_, b_, c_] for a_, b_, c_ in rows], colLabels=["Feature", "Nominal", "Fit and tolerance"],
-                   colWidths=[0.16, 0.30, 0.54], loc="upper center", cellLoc="left")
-    tb.auto_set_font_size(False)
-    tb.set_fontsize(12)
-    tb.scale(1.0, 1.9)
-    for (r_, c_), cell in tb.get_celld().items():
-        cell.get_text().set_wrap(True)
-        if r_ == 0:
-            cell.set_text_props(weight="bold")
+    _table(axT, ["Feature", "Nominal", "Fit and tolerance"], [list(r) for r in rows], (24, 40, 60), (0.005, 0.19, 0.52))
     axT.set_title("Critical fits and tolerances (mm)", fontsize=14)
     fig.suptitle("Final DIP link: window plate, board and dorsal clamp (concept a at the 2.9 mm-seat tips)", fontsize=16, y=0.995)
     dst = MEDIA / f"{PFX}_drawing.png"
     MEDIA.mkdir(parents=True, exist_ok=True)
-    fig.savefig(dst, dpi=140, bbox_inches="tight")
+    fig.savefig(dst, dpi=130, bbox_inches="tight")
     plt.close(fig)
     print(dst.relative_to(REPO), flush=True)
 
@@ -872,7 +895,7 @@ def cmd_eval(a):
                        for k, v in sen["static_fields"].items()},
         clearance=dict(per_part={k: dict(min_mm=v.get("min_mm"), pip_deg=v.get("pip_deg"), part=v.get("part"))
                                  for k, v in clear.items()},
-                       worst_rigid=dict(part=worst[0], **{k: worst[1][k] for k in ("min_mm", "pip_deg", "part", "at_F")}),
+                       worst_rigid=dict(new_part=worst[0], **{k: worst[1][k] for k in ("min_mm", "pip_deg", "part", "at_F")}),
                        requirement="0.5 mm rigid, 1.0 mm cable (R7); exact method of the specification, PIP -18..92 deg"),
         to_pip_servo=chk["to_pip_servo"], channels_to_magnets_R4=chk["channels_to_magnets_R4"],
         walls=chk["walls"], tip_walls_near_channels=chk["tip_walls_near_channels"], mass_g=chk["mass_g"],
