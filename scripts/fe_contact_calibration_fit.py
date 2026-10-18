@@ -332,8 +332,9 @@ def cmd_curves(a):
 # ------------------------------------------------------------------------------------------ fits
 
 def curve_of(r):
-    return dict(d=np.array(r["delta_um"]) * 1e-6, F=np.array(r["F_N"]), rbar=np.array(r["r_bar_mm"]),
-                rrms=np.array(r["r_rms_mm"]), n=np.array(r["n_contact"]))
+    nz = lambda a: np.nan_to_num(np.array(a, float), nan=0.0)  # noqa: E731  (no contact: no patch)
+    return dict(d=np.array(r["delta_um"]) * 1e-6, F=np.array(r["F_N"]), rbar=nz(r["r_bar_mm"]),
+                rrms=nz(r["r_rms_mm"]), n=np.array(r["n_contact"]))
 
 
 def at_load(c, F, E):
@@ -406,10 +407,10 @@ def fit_E(fe, cur, tip, what, ks=None, E_loc=None):
             for p in ARM:
                 if (tip, p) in fe and p in cur:
                     for F in ARM_F:
-                        rb = at_load(cur[p], F, E)[1]
+                        rb = max(at_load(cur[p], F, E)[1], 1e-3)
                         out.append(math.log(rb / fe[(tip, p)]["per_force"][f"{F:g}"]["r_bar_mm"]))
         return float(np.mean(np.square(out)))
-    grid = np.linspace(math.log(0.3e6), math.log(3e9), 121)
+    grid = np.linspace(math.log(0.3e6), math.log(1e9), 121)
     vals = [loss(x) for x in grid]
     i = int(np.argmin(vals))
     lo, hi = grid[max(0, i - 1)], grid[min(len(grid) - 1, i + 1)]
