@@ -513,6 +513,24 @@ def cmd_sense(a):
         when=time.strftime("%Y-%m-%d %H:%M")), indent=1, default=float))
 
 
+_render_a = A._render
+
+
+def _render_final(meshes, cam, dst, *args, **kw):
+    """Concept a's renders with the Qwiic header, plug and pigtail added wherever the clamp plate appears (they move with
+    it in the exploded view)."""
+    ms = list(meshes)
+    if not any(m[0] == "qwiic" for m in ms):
+        for n, pth, rgba, off in meshes:
+            if n == "clamp_plate":
+                ms.append(("qwiic", str(fname("qwiic")), "0.95 0.95 0.92 1", off))
+                break
+    return _render_a(ms, cam, dst, *args, **kw)
+
+
+A._render = _render_final
+
+
 def cmd_render(a):
     A.cmd_render(a)
     C_ = A.COLORS
