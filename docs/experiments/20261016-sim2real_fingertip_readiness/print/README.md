@@ -44,6 +44,18 @@ Starting point: "Siraya Tech TPU 85A @XL 0.4mm Nozzle" and ST TPU 85A 0.20mm QUA
 | Half-ellipsoid 7.4 x 8.5 x 11/22 mm | 30 % | upright on the mount face, 0.1 mm | 4, 7 mm | 1.81 | 9.3 mm (2); 16.3 mm (2) | 32m 56s | 20261016-siraya85a_tcd_ell7p4x8p5x11x22_four_d3x2_depth7_seat2p7_g30.3mf |
 | Half-ellipsoid 7.4 x 8.5 x 11/22 mm | 50 % | upright on the mount face, 0.1 mm | 4, 7 mm | 1.81 | 9.3 mm (2); 16.3 mm (2) | 37m 33s | 20261016-siraya85a_tcd_ell7p4x8p5x11x22_four_d3x2_depth7_seat2p7_g50.3mf |
 
+## Plate of the candidate tips
+
+20261018-siraya85a_plate_block_cap8p5_ell16x32_ell11x22_seat2p9_g30.3mf prints block, capsule, ellipsoid 16/32, ellipsoid 11/22 (30 % gyroid, 2.9 mm seats) on one bed, each from its tip's STL with its tip's recipe and layer height (0.2 mm: block; 0.1 mm: capsule, ellipsoid 16/32, ellipsoid 11/22); front row, left to right: block, capsule; back row, left to right: ellipsoid 16/32, ellipsoid 11/22 (figure 20261018-siraya85a_plate_block_cap8p5_ell16x32_ell11x22_seat2p9_g30_bed.png). The recipe is written on each object and, where the tips agree, in the print config: PrusaSlicer's GUI save of the 11/22 project on 2026-10-18 dropped the per-volume recipe of the tip projects and kept the object's layer height. The plate stops 3 times for its 16 magnets, where the tips' own projects stop 7 times; the wipe tower is off, since PrusaSlicer refuses one over objects of unequal layer heights and one tool prints every tip. At each pause only the tips named in the printer's message take magnets. Print time 1h 40m 54s, filament 12.3 g. The G-code labels each tip as an object (M486), so a failed tip can be cancelled at the printer without stopping the others.
+
+| Pause | Height (mm) | Time from start (min) | Magnets | Tips |
+|---|---|---|---|---|
+| 1 | 9.2 | 45.9 | 6 | capsule 2 proximal, ellipsoid 16/32 2 proximal, ellipsoid 11/22 2 proximal |
+| 2 | 12.4 | 61.9 | 4 | block 4 |
+| 3 | 16.2 | 82.9 | 6 | capsule 2 distal, ellipsoid 16/32 2 distal, ellipsoid 11/22 2 distal |
+
+Checks of the plate's G-code: only T1 selected; 3 pauses (M601) at 9.2, 12.4, 16.2 mm; every pocket of every tip empty on the layers it spans (largest share under a bead 0.000), the layer under it covering 100 % or more of it, and bridged right after the pause assigned to it (97-100 %); each tip's extent in the G-code within 0.23 mm of its place on the bed.
+
 ## Checks of the sliced G-code
 
 PrusaSlicer 2.9.2 sliced every project (G-code in logs/20261016-sim2real_fingertip_readiness/print/, untracked). In every file the only tool selected is T1 (extruder 2), the part prints at 240 C on that tool and the bed at 35 C, and the configuration block lists Siraya's filament in slot 2 with extrusion multiplier 0.96. The largest volumetric flow of any extruding move on a part is 7.66 mm3/s against the profile's 12. Each pocket is empty on every layer it spans (largest share of a pocket's section under a bead: 0.000), the layer under it covers its whole footprint, and the first layer over it is printed right after its pause and covers 96-100 % of the footprint. Islands per layer: at most 1. At mid-pocket height every pocket has 2 perimeter loops in the two-wall prints and 1 in the one-wall prints, and the outer surface 2. Filament on the part: 2.9-4.3 g per tip (skirt included).
