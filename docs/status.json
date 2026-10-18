@@ -1,6 +1,6 @@
 {
  "title": "Status of the fingertip, contact-model and DIP-link work",
- "as_of": "2026-10-18 15:18",
+ "as_of": "2026-10-18 15:19",
  "lede": "On 2026-10-18 the owner asked for nine things in one window: push everything, keep autopilot runs off the Max seat, a print procedure, a calibration of Drake's field and the pads to the finite elements (FE), the capsule and quarter-ellipsoid prints if they can be modelled, a DIP-link redesign that clamps the magnetometer board against the printed tip, and a file-explorer layout for the page index; at the printer the owner chose the 2.9 mm magnet seat. Pushing, the autopilot default, the procedure, the 2.9 mm print set and the page tree are done. The calibration ran: no print meets every criterion. The DIP link has two complete designs; a third, the judge, the final design and its page run as a job on the personal login.",
  "sections": [
   {
@@ -25,7 +25,7 @@
      ],
      [
       "\"setting up instructions for the physical print, which we can tweak as needed\"",
-      "Done on personal at 09:52 and rebuilt for the 2.9 mm seat at 15:05 (85969c42); the republish to its artifact is step 8 of the personal job.",
+      "Done on personal at 09:52, rebuilt for the 2.9 mm seat at 15:05 (85969c42) and republished to its artifact at 15:27 (version 2, reads back equal). Two stale items on the page: Section 5's wall table still lists the 11/22 half-ellipsoid at 7 mm and the old five-magnet layout as failing at 2.9 mm, and prints 8-9 give 2.95 mm as the least TPU around a pocket where their pause text says 1.86 mm.",
       "[Print procedure](experiments/20261018-fingertip_print_procedure/20261018-siraya85a_fingertip_print_procedure.html), https://claude.ai/artifact/Y4BcrFQBhkG4tpzgDcuAw8"
      ],
      [
