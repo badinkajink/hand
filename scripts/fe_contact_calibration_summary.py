@@ -298,8 +298,13 @@ def verdicts(fits, bchk, d1s, d2s):
             spring_ok = None
             if spring and spring.get("median_rms_angle_same_deg") is not None:
                 spring_ok = spring["median_rms_angle_same_deg"] <= 1.0 and (spring["median_rms_dN_same_N"] or 9) <= 0.05
-            parts = {"approach_drake": dr["pass_approach"], "approach_pads": pa["pass_approach"],
-                     "arm_drake": dr["pass_arm"], "arm_pads": pa["pass_arm"],
+            def both(curve_ok, bed_ok):
+                return None if bed_ok is None else bool(curve_ok and bed_ok)
+            parts = {"approach_drake": both(dr["pass_approach"], bd.get("impl_ok")),
+                     "approach_pads": both(pa["pass_approach"], bp.get("impl_ok")),
+                     "arm_drake": both(dr["pass_arm"], bd.get("arm_ok")), "arm_pads": both(pa["pass_arm"], bp.get("arm_ok")),
+                     "approach_curve_drake": dr["pass_approach"], "approach_curve_pads": pa["pass_approach"],
+                     "arm_curve_drake": dr["pass_arm"], "arm_curve_pads": pa["pass_arm"],
                      "bed_impl_drake": bd.get("impl_ok"), "bed_impl_pads": bp.get("impl_ok"),
                      "bed_arm_drake": bd.get("arm_ok"), "bed_arm_pads": bp.get("arm_ok"),
                      "consistency_ready": (d1 or {}).get("pass"), "consistency_own": (d1o or {}).get("pass") if c == "M3" else None,

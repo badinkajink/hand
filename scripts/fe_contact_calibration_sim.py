@@ -542,7 +542,7 @@ def d1d8_scene(tip, key, arm, E, s, ks, hand):
     import tip_codesign_rig as R
     sp = ARMS[arm]
     R.install(argparse.Namespace(E=E, pf=None, tr=RB.PAD_TR, tag=None, h="local", K="each"))
-    ss = sp.get("s", s)
+    ss = sp.get("s", s) or 0.001
     PUB.SCN = LOGS / "replay_scenes" / f"{tip}_E{E / 1e6:.5g}_s{ss * 1e3:g}"
     if sp["sim"] == "drake":
         return PUB.drake_scene(hand, key, SERVO, sp["mu"])

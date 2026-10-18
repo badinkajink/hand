@@ -351,7 +351,8 @@ GLOSSARY = [
               "&#176;/s; rigid Coulomb friction gives 0"),
     ("Held", "the tool less than 20&#8202;mm below its start and at least two fingers each pressing with its weight at "
              "the end of the run"),
-    ("RMS angle", "RMS over a run&#8217;s 20&#8202;ms samples of the angle between two runs&#8217; tool orientations, in &#176;"),
+    ("RMS angle", "RMS over a run&#8217;s 20&#8202;ms samples of the angle between two runs&#8217; tool orientations (on the "
+                  "CAD-hand cells between the cylinder&#8217;s axes, since the cylinder is symmetric about its axis), in &#176;"),
     ("Same branch", "both runs keep the tool and end within 15&#176; of each other"),
     ("Seed spread", "the median RMS angle between one model&#8217;s runs from different start placements (seeds 1 and 2 "
                     "against seed 0), over same-branch pairs"),
@@ -463,7 +464,7 @@ def bed_table():
 
 
 def d1_table(own=False):
-    head = ["Tip", "Calibration", "Pads", "Held, pads / Drake", "Held agreement", "Same branch",
+    head = ["Tip", "Calibration", "Pads", "Runs held, pads / Drake", "Held agreement", "Same branch",
             "RMS angle, median (&#176;)", "Pads seed spread (&#176;)", "Normal / friction force difference (N)", "Consistency"]
     body = []
     D1 = S.get("d1", {})
@@ -480,7 +481,10 @@ def d1_table(own=False):
                 tm = S["fits"][tip].get("pad_model") or {}
                 if pk == "pads" and c != "U" and tm.get(c) == "v2h":
                     spacing = "0.5&#8202;mm"
-                body.append([NAME[tip], c, spacing, f"{v['held_pads']} / {v['held_drake']}", f"{s['held_agree']} of {s['n']}",
+                np_ = sum(1 for r in v["runs"] if r["plant"] != "drake")
+                nd_ = sum(1 for r in v["runs"] if r["plant"] == "drake")
+                body.append([NAME[tip], c, spacing, f"{v['held_pads']} of {np_} / {v['held_drake']} of {nd_}",
+                             f"{s['held_agree']} of {s['n']}",
                              str(s["same_branch"]), f(s["median_rms_angle_same_deg"], 2), f(sp["median_rms_angle_same_deg"], 2),
                              f"{f(s['median_rms_dN_same_N'], 3)} / {f(s['median_rms_dT_same_N'], 3)}",
                              f"<span class='{pf(v['pass'])}'>{pf(v['pass'])}</span>"])
@@ -732,8 +736,8 @@ def part_value(tip, c, part):
             return (f"held agreement {s['held_agree']} of {s['n']}, no pair on the same branch, final turns "
                     f"{min(dt):.0f}&#8211;{max(dt):.0f}&#176; apart")
         return (f"held agreement {s['held_agree']} of {s['n']}, {s['same_branch']} on the same branch, median "
-                f"{f(s['median_rms_angle_same_deg'], 1)}&#176; (bound {d['angle_bound_deg']:.1f}&#176;), forces "
-                f"{f(s['median_rms_dN_same_N'], 2)} / {f(s['median_rms_dT_same_N'], 2)}&#8202;N")
+                f"{f(s['median_rms_angle_same_deg'], 1)}&#176; against a {d['angle_bound_deg']:.1f}&#176; bound, forces "
+                f"{f(s['median_rms_dN_same_N'], 2)} and {f(s['median_rms_dT_same_N'], 2)}&#8202;N apart")
     if part == "spring_check":
         p = (S["d2"].get(f"{tip}|M2") or {}).get("pairs", {}).get("plan_vs_spring")
         if not p:
@@ -810,10 +814,12 @@ def limitations():
             "<li>The readiness iCEM rows logged one servo command per 20&#8202;ms window; the replays hold each command for "
             "10&#8202;ms at the interpolated value, in both simulators. They test the two simulators on the same commands; where "
             "a replay on the planning pads leaves the logged turn, it no longer reproduces the closed-loop run.</li>"
-            "<li>Runs cut for time: Drake took about 100&#8202;s per CAD-hand replay against the 15&#8202;s planned, so the Drake "
-            "replays cover the 11/22 tip at U and M2 and the 16/32 tip at M2 and seed 0; M1 has no Drake replays (the plan&#8217;s "
-            "first cut); the block and the capsule have pad replays only; the own-plan test covers the 11/22 tip; the D1&#8211;D8 "
-            "replays at M1 and M2 and the check arms ran at seed 0, the RL arm on the 11/22 tip.</li>"
+            "<li>Runs cut for time: Drake took 50&#8211;180&#8202;s per CAD-hand replay against the 15&#8202;s planned. Its replays "
+            "cover the 11/22 tip at U (16&#8202;mm cell) and M2 (both cells, three placements) and on its own plan, and the "
+            "16/32 tip at U (16&#8202;mm cell) and M2 (both cells) at seed 0; M1 has no Drake replays (the plan&#8217;s first "
+            "cut), the block and the capsule have pad replays only. The D1&#8211;D8 replays at M1 and M2 ran at seed 0 (the "
+            "11/22 tip at M2 at seeds 0&#8211;2), the RL arm, the spring check and the Drake arm (seed 0) on the 11/22 tip, the "
+            "impratio-1000 arm at U and seed 0; the bed of the block and the capsule has the static and twist cases only.</li>"
             "<li>The servo plant is the ad-hoc identification of 2026-10-13 (kp 0.72&#8202;N&#8202;m/rad, 0.18&#8202;N&#8202;m); its "
             "3.4&#8211;4.7&#8202;mm/N at the fingertip is what keeps normal-stiffness errors small on trajectories.</li>"
             "<li>The D1&#8211;D8 plans were designed for the block; on the curved tips they run near the tool&#8217;s slip "
@@ -844,8 +850,10 @@ def bed_section():
                 + (f"by {rng(sh1, 0)}&#8202;&#181;m (1&#8202;mm pads)" if sh1 else "")
                 + (f" and {rng(sh05, 0)}&#8202;&#181;m (0.5&#8202;mm pads)" if sh05 else "")
                 + ", travel before the first pad touches. Counted from each model&#8217;s own first touch, the static approach "
-                f"agrees with the phase-B curves within {100 * max(x[1] for x in impl):.1f}&#8239;% (worst: "
-                f"{worst[0].replace('|', ', ')}), so the simulators implement the calibrated moduli. ")
+                f"agrees with the phase-B curves within {100 * max(x[1] for x in impl):.1f}&#8239;% (worst: the "
+                f"{NAME_PLAIN[worst[0].split('|')[0]]} at {worst[0].split('|')[1]} in "
+                f"{'Drake' if worst[0].endswith('drake') else 'the pads'}), so the simulators implement the calibrated "
+                "moduli. ")
     if m1c and m2c:
         txt += (f"The bed onset arm over the finite-element r&#772; is {min(r[0] for r in m1c):.2f}&#8211;{max(r[1] for r in m1c):.2f} "
                 f"on the curved tips at M1 and {min(r[0] for r in m2c):.2f}&#8211;{max(r[1] for r in m2c):.2f} at M2, as the curves "
@@ -955,14 +963,14 @@ def ICEM_TEXT():
            "readiness study (planned on the U pads, cells of 16 and 25&#8202;mm) was replayed open loop from three start "
            "placements: reset, the candidate grasp&#8217;s grip targets for 0.8&#8202;s, then the logged commands, each held for "
            "10&#8202;ms at its value mid-interval, the post&#8217;s collisions off from 0.8&#8202;s, to 6.3&#8202;s. Drake took "
-           "about 100&#8202;s per replay against the 15&#8202;s the plan assumed, so its replays were cut to the 11/22 tip at U "
-           "and M2 and the 16/32 tip at M2 and seed 0; the block and the capsule have pad replays only. ")
+           "50&#8211;180&#8202;s per replay against the 15&#8202;s the plan assumed, so its replays were cut to the 11/22 tip at U "
+           "and M2 and the 16/32 tip at seed 0; the block and the capsule have pad replays only. ")
     if ready:
         txt += (f"On the planning pads at seed 0, {len(good)} of {len(good) + len(bad)} replays end within 1&#176; of the logged "
                 "turn")
         if bad:
-            txt += "; " + "; ".join(f"{NAME_PLAIN[v_['plan'].split('_cyl')[0]] if 'plan' in v_ else k} ends at {v['turn']:+.1f}&#176; "
-                                    f"against the logged {v['logged']:+.1f}&#176;" for k, v in bad for v_ in [{'plan': k}])
+            txt += "; " + "; ".join(f"the {NAME_PLAIN[k.split('_cyl')[0]]}&#8217;s {k.split(':')[1]}&#8202;mm plan ends at "
+                                    f"{v['turn']:+.1f}&#176; against the logged {v['logged']:+.1f}&#176;" for k, v in bad)
         txt += ". "
     for k, v in own.items():
         txt += (f"The 11/22 tip&#8217;s own plan, logged at every 1&#8202;ms command, replays to {v['turn']:+.1f}&#176; against "
@@ -1002,7 +1010,8 @@ def ICEM_TEXT():
         txt += ("The split does not come from the pads&#8217; friction regularization: at impratio 1000, ten times the "
                 f"planner&#8217;s, the pads end the six readiness replays at {min(ti):.0f}&#8211;{max(ti):.0f}&#176; against "
                 f"{min(tp):.0f}&#8211;{max(tp):.0f}&#176; at impratio 100 and Drake&#8217;s {min(td):.0f}&#8211;{max(td):.0f}&#176;, "
-                f"with {gi['pads_vs_drake']['same_branch']} of {gi['pads_vs_drake']['n']} pairs on Drake&#8217;s branch. ")
+                f"with {gi['pads_vs_drake']['same_branch'] or 'none'} of the {gi['pads_vs_drake']['n']} pairs on Drake&#8217;s "
+                "branch. ")
     return "<p>" + txt.strip() + "</p>"
 
 
@@ -1052,6 +1061,9 @@ def D1D8_TEXT():
                 + f". Drake kept the tool on {pr['cap_g30']['drake_held_seed0']} (capsule) and "
                 f"{pr['ell11_g30']['drake_held_seed0']} (11/22) of 8 in the readiness rows, so the friction regularization "
                 "does not close the gap (prediction P6). ")
+    txt += ("The 0.5&#8202;mm pads of the capsule at M2 (36&#8202;MPa) and of the tips at U (14&#8202;MPa) are softer per pad "
+            "than the soft constraint allows in the bench-hand scenes at the 0.02&#8202;s relaxation (pad d0 below 0.05), so "
+            "those arms did not run.")
     return "<p>" + txt.strip() + "</p>"
 
 
@@ -1067,10 +1079,10 @@ def VERDICT_TEXT():
     bz = bl["approach_err_pct"]
     bk = max(bz, key=lambda k: abs(bz[k]))
     darm = []
-    for p_ in ("cx8_z0", "cx12.5_z0"):
+    for p_ in ("cx5_z0", "cx8_z0", "cx12.5_z0"):
         r = S["fe"].get(f"cap_g30|fine|{p_}")
         if r:
-            darm += [abs(r["per_force"][F]["r_bar_mm"] / fe("cap_g30", p_, F, "r_bar_mm") - 1) for F in ("1", "3")]
+            darm += [abs(r["per_force"][F]["r_bar_mm"] / fe("cap_g30", p_, F, "r_bar_mm") - 1) for F in ("0.5", "1", "3")]
     names = {"block4_g30": "the block", "cap_g30": "the capsule", "ell16_g30": "the 16/32 half-ellipsoid",
              "ell11_g30": "the 11/22 half-ellipsoid"}
     txt = (f"<p>Against the plan&#8217;s criteria {len(well) if well else 'none'} of the four prints "
@@ -1083,8 +1095,8 @@ def VERDICT_TEXT():
     txt += ("; " + ("it misses " + "; ".join(miss)) if miss else ", and passes consistency and the spring check") + ". "
     txt += (f"The 16/32 half-ellipsoid at M3 meets approach ({e16['drake']['approach_rms_pct']:.1f}&#8239;% in Drake) and "
             f"misses the arm bound by {e16['drake']['arm_max'] - 1.15:.3f} in Drake and {e16['pads']['arm_max'] - 1.15:.3f} in "
-            f"the pads, less than the finite elements&#8217; own change of r&#772; on the finer grid "
-            f"({100 * max(darm or [0]):.0f}&#8239;%). The capsule misses approach at every calibration in Drake: at M3 the rods "
+            f"the pads, within the {100 * max(darm or [0]):.0f}&#8239;% by which r&#772; changes on the finer "
+            "finite-element grid. The capsule misses approach at every calibration in Drake: at M3 the rods "
             f"along its straight section sink {min(cz):.0f}&#8211;{max(cz):.0f}&#8239;% too far, because in the print they are four "
             "times stiffer than the rods across it, and one spring gives both the same compliance. The block, the control, meets both criteria "
             f"in the pads at M1 ({blp['approach_rms_pct']:.1f}&#8239;%, arm {blp['arm_min']:.2f}&#8211;{blp['arm_max']:.2f}) and "
