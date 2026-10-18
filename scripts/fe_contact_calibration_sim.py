@@ -204,8 +204,10 @@ def cell_of(S, cs):
     return cell, shape, dd
 
 
-def plants(tip, cs, ci, E, model, s=0.001):
-    """(plant, meta) of a cell's candidate: 'pads' (hom_turn3.MjPlant on the pads scene) or 'drake' (CellDrake)."""
+def plants(tip, cs, ci, E, model, s=0.001, mesh_eps=1e-6):
+    """(plant, meta) of a cell's candidate: 'pads' (hom_turn3.MjPlant on the pads scene) or 'drake' (CellDrake, the tip
+    hull's terrace outlines simplified to mesh_eps m)."""
+    s = s or 0.001
     import mujoco
     import curved_tips_cell_drake as CD
     import hom_turn3 as H
@@ -221,7 +223,7 @@ def plants(tip, cs, ci, E, model, s=0.001):
     if model == "drake":
         meta = S.candidate_meta(sc["pt"][1], gg, gp)
         sh = TG.shape(spec["key"])
-        mp = sh.mesh_paths(LOGS / "meshes_cell" / sh.key, eps=1e-6)
+        mp = sh.mesh_paths(LOGS / "meshes_cell" / sh.key, eps=mesh_eps)
         plant = CD.CellDrake(Path(sc["pt"][0]), meta, gg["palm"], E=E,
                              tip_files={"tpu_pos": str(mp[1.0]), "tpu_neg": str(mp[-1.0])})
     else:
@@ -311,7 +313,12 @@ def quat_R(q):
                      [2 * (x * z - w * y), 2 * (y * z + w * x), 1 - 2 * (x * x + y * y)]])
 
 
-def replay(plant, meta, log, seed, t_grip=0.8, t_post=0.8, t_end=6.3, drake=False, frame_cb=None):
+HOLD = 0.01        # s: the replays hold each servo command for 10 ms (the HOM controller's tick), the value of the logged
+                   # command sequence (linear between its samples) at the middle of the interval, in both simulators;
+                   # Drake's per-call overhead made 1 ms updates 10 times slower (100 s against 9 s per run)
+
+
+def replay(plant, meta, log, seed, t_grip=0.8, t_post=0.8, t_end=6.3, drake=False, frame_cb=None, hold=HOLD):
     """Open-loop replay of a logged command sequence; returns (result, 20 ms trace)."""
     snap = (lambda: drake_snap(plant)) if drake else (lambda: mj_snap(plant))
     grip = np.array([meta["grip"][f][k] for f in FINGERS for k in range(3)])
@@ -335,7 +342,8 @@ def replay(plant, meta, log, seed, t_grip=0.8, t_post=0.8, t_end=6.3, drake=Fals
     weight = meta["mass_kg"] * 9.81
     ts = np.array([t_grip] + [x["t"] - 0.001 for x in log])
     U = np.array([grip] + [x["u"] for x in log])
-    dt = 0.001
+    dt = hold
+    per_sample = int(round(0.02 / hold))
     trace = []
     t = t_grip
     k = 0
@@ -348,12 +356,12 @@ def replay(plant, meta, log, seed, t_grip=0.8, t_post=0.8, t_end=6.3, drake=Fals
             else:
                 post = plant.m.geom("post").id
                 plant.m.geom_contype[post] = plant.m.geom_conaffinity[post] = 0
-        u = np.array([np.interp(t, ts, U[:, j]) for j in range(U.shape[1])])
+        u = np.array([np.interp(t + 0.5 * dt, ts, U[:, j]) for j in range(U.shape[1])])
         plant.set_targets(u)
         t = round(t + dt, 6)
         plant.advance(t)
         k += 1
-        if k % 20 == 0:
+        if k % per_sample == 0:
             acc, p, q, qj = snap()
             trace.append({"t": round(t, 3), "p": [round(float(v) * 1e3, 4) for v in p], "q": [round(float(v), 6) for v in q],
                           "N": {f: round(float(acc[f][0]), 4) for f in FINGERS},
@@ -419,15 +427,26 @@ def cmd_icem(a):
                     traceback.print_exc()
                     continue
                 build_s = time.time() - t0
+                eps = 1e-6
                 for seed in seeds:
                     row = {"plan": pid, "tip": tip, "cell": cs, "cand": ci, "calib": calib, "plant": model, "E_Pa": E,
                            "pad_spacing_mm": s * 1e3 if model != "drake" else None, "seed": seed, "own": a.own,
-                           "logged": logged, "servo": SERVO, "build_s": round(build_s, 1)}
-                    try:
-                        res, tr = replay(plant, meta, log, seed, drake=model == "drake")
-                        row.update(res, trace=tr, status="ok")
-                    except Exception as e:
-                        row.update(status="error", error=repr(e), tb=traceback.format_exc()[-1500:])
+                           "logged": logged, "servo": SERVO, "build_s": round(build_s, 1), "hold_ms": HOLD * 1e3}
+                    for attempt in (0, 1):
+                        try:
+                            res, tr = replay(plant, meta, log, seed, drake=model == "drake")
+                            row.update(res, trace=tr, status="ok", mesh_eps_m=eps if model == "drake" else None)
+                            break
+                        except Exception as e:
+                            row.update(status="error", error=repr(e), tb=traceback.format_exc()[-1500:])
+                            if model == "drake" and "Cannot instantiate plane" in repr(e) and attempt == 0:
+                                # a degenerate contact polygon of the tip hull: rebuild with the terraces simplified
+                                # to 10 um (curved_tips_cell_drake's mesh_eps) and run the seed again
+                                eps = 1e-5
+                                del plant
+                                plant, meta, S = plants(tip, cs, ci, E, "drake", s, mesh_eps=eps)
+                                continue
+                            break
                     row.update(script=SCRIPT, when=time.strftime("%Y-%m-%d %H:%M"))
                     append(out, row)
                     print(f"{pid:32s} {calib} {model:5s} s{seed}: " + (

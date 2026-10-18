@@ -214,7 +214,7 @@ def approach_figure():
                 if c == "U":
                     E, ks = t["U_E_MPa"] * 1e6, None
                 elif c == "M3":
-                    E, ks = fit(tip, m, "M2")["E_MPa"] * 1e6, t["k_s_N_per_mm"] * 1e3
+                    E, ks = fit(tip, m, "M3")["E_MPa"] * 1e6, t["k_s_N_per_mm"] * 1e3
                 else:
                     E, ks = fit(tip, m, c)["E_MPa"] * 1e6, None
                 xs = Fx
@@ -248,7 +248,8 @@ def arm_figure():
                 ys = [fe(tip, "cx12.5_z0", f"{F:g}", "r_bar_mm") for F in xs]
             else:
                 m, c = sk.split("|")
-                E = fit(tip, m, c)["E_MPa"] * 1e6
+                cc = (S["fits"][tip].get("calib_of") or {}).get(c, c)
+                E = fit(tip, m, cc)["E_MPa"] * 1e6
                 xs = Fx
                 ys = [model_at(tip, m, "cx12.5_z0", E, F)[1] for F in xs]
             sid = f"arm-{tip}-{sk.replace('|', '-')}"
@@ -621,7 +622,7 @@ def fe_section():
         f"{fe('ell11_g30', 'cx12.5_z0') / fe('ell11_g30', 'cz12.5_y0'):.1f} (11/22). The twist arm under the rod at 1&#8202;N is "
         f"{rng([fe(t, 'cx12.5_z0', '1', 'r_bar_mm') for t in CURVED])}&#8202;mm on the curved tips and "
         f"{fe('block4_g30', 'cx12.5_z0', '1', 'r_bar_mm'):.2f}&#8202;mm on the block, whose contact line spans its flat face. "
-        "Prediction P1 holds for the curved tips (exponents 0.72&#8211;0.90, rod over sphere 0.60&#8211;0.85, arm "
+        "The curved tips meet prediction P1 (exponents 0.72&#8211;0.90, rod over sphere 0.60&#8211;0.85, arm "
         "0.35&#8211;0.70&#8202;mm predicted); the block&#8217;s arm is below the predicted 3.2&#8211;3.6&#8202;mm. The face&#8217;s "
         "tangential compliance under the rod at 1&#8202;N is "
         f"{rng([v[0] for v in sh.values()], 0)}&#8202;&#181;m/N across the finger and {rng([v[1] for v in sh.values()], 0)}&#8202;&#181;m/N "
@@ -721,19 +722,18 @@ def part_value(tip, c, part):
         m = v["drake" if part.endswith("drake") else "pads"]
         return f"ratio {m['arm_min']:.2f}&#8211;{m['arm_max']:.3f}"
     traj = "M1" if c == "M1" else "M2"
-    if part == "consistency_ready":
-        d = S["d1"].get(f"{tip}|ready|{traj}|pads")
+    if part in ("consistency_ready", "consistency_own"):
+        d = S["d1"].get(f"{tip}|ready|{traj}|pads" if part == "consistency_ready" else f"{tip}|own|M2|pads")
         if not d:
             return "not run"
         s = d["pads_vs_drake"]
-        return (f"held agreement {s['held_agree']} of {s['n']}, median {f(s['median_rms_angle_same_deg'], 1)}&#176; "
-                f"(bound {d['angle_bound_deg']:.1f}&#176;), {f(s['median_rms_dN_same_N'], 2)} / {f(s['median_rms_dT_same_N'], 2)}&#8202;N")
-    if part == "consistency_own":
-        d = S["d1"].get(f"{tip}|own|M2|pads")
-        if not d:
-            return "not run"
-        s = d["pads_vs_drake"]
-        return f"held agreement {s['held_agree']} of {s['n']}, median {f(s['median_rms_angle_same_deg'], 1)}&#176;"
+        if not s["same_branch"]:
+            dt = [abs(p_["turn_end_deg"][0] - p_["turn_end_deg"][1]) for p_ in d["pairs"]]
+            return (f"held agreement {s['held_agree']} of {s['n']}, no pair on the same branch, final turns "
+                    f"{min(dt):.0f}&#8211;{max(dt):.0f}&#176; apart")
+        return (f"held agreement {s['held_agree']} of {s['n']}, {s['same_branch']} on the same branch, median "
+                f"{f(s['median_rms_angle_same_deg'], 1)}&#176; (bound {d['angle_bound_deg']:.1f}&#176;), forces "
+                f"{f(s['median_rms_dN_same_N'], 2)} / {f(s['median_rms_dT_same_N'], 2)}&#8202;N")
     if part == "spring_check":
         p = (S["d2"].get(f"{tip}|M2") or {}).get("pairs", {}).get("plan_vs_spring")
         if not p:
@@ -752,7 +752,7 @@ def verdict_table():
             miss = [f"{PART_NAME[k]} ({part_value(tip, c, k)})" for k in v["failed"]]
             ks = v["drake"].get("k_s_N_per_mm")
             body.append([NAME[tip], c, f"{v['drake']['E_MPa']:.1f} / {v['pads']['E_MPa']:.1f}",
-                         f(ks, 1) if ks and ks < 5000 else "&#8211;", ", ".join(met) or "&#8211;", "; ".join(miss) or "none"])
+                         f(ks, 1) if ks and ks < 1000 else "&#8211;", ", ".join(met) or "&#8211;", "; ".join(miss) or "none"])
     return table(head, body, "Verdict per tip against the plan&#8217;s criteria (summary.json, model values). A tip is modelled "
                              "well when one calibration meets every criterion of its row: M1 needs approach and twist arm "
                              "in both simulators and consistency on the iCEM commands; M3 needs the same, with M2 standing in "
@@ -793,10 +793,13 @@ def limitations():
             "Every modulus and spring scales with the bench factor &#955;.</li>"
             "<li>The calibration covers the normal response and the patch. The face&#8217;s tangential compliance (48&#8211;177&#8202;"
             "&#181;m/N under the rod) is in neither simulator; friction is 1.0 everywhere and Siraya 85A&#8217;s is unmeasured.</li>"
-            "<li>The readiness iCEM rows logged one servo command per 20&#8202;ms window, and the replays interpolate them: on the "
-            "block&#8217;s 16&#8202;mm plan at seed 0 the replay on the same pads follows the logged turn within 0.6&#176; to 3&#8202;s and "
-            "ends at 10.4&#176; against 24.4&#176;, so those replays test the two simulators on the same commands, not the "
-            "closed-loop outcome. The tips&#8217; own plans log every 1&#8202;ms command.</li>"
+            "<li>The readiness iCEM rows logged one servo command per 20&#8202;ms window; the replays hold each command for "
+            "10&#8202;ms at the interpolated value, in both simulators. They test the two simulators on the same commands; where "
+            "a replay on the planning pads leaves the logged turn, it no longer reproduces the closed-loop run.</li>"
+            "<li>Runs cut for time: Drake took about 100&#8202;s per CAD-hand replay against the 15&#8202;s planned, so the Drake "
+            "replays cover the 11/22 tip at U and M2 and the 16/32 tip at M2 and seed 0; M1 has no Drake replays (the plan&#8217;s "
+            "first cut); the block and the capsule have pad replays only; the own-plan test covers the 11/22 tip; the D1&#8211;D8 "
+            "replays at M1 and M2 and the check arms ran at seed 0, the RL arm on the 11/22 tip.</li>"
             "<li>The servo plant is the ad-hoc identification of 2026-10-13 (kp 0.72&#8202;N&#8202;m/rad, 0.18&#8202;N&#8202;m); its "
             "3.4&#8211;4.7&#8202;mm/N at the fingertip is what keeps normal-stiffness errors small on trajectories.</li>"
             "<li>The D1&#8211;D8 plans were designed for the block; on the curved tips they run near the tool&#8217;s slip "
@@ -859,20 +862,207 @@ def d1d8_section():
     return D1D8_TEXT() + d2_table()
 
 
+def predictions_table():
+    F = S["fits"]
+    m1_app = {t: (fit(t, "drake", "M1")["pass_approach"], fit(t, (F[t].get("pad_model") or {}).get("M1", "v2"), "M1")["pass_approach"])
+              for t in TIPS}
+    n_both = sum(1 for t in TIPS if all(m1_app[t]))
+    m3 = {t: (fit(t, "drake", "M3")["pass_approach"], fit(t, "drake", "M3")["pass_arm"]) for t in CURVED}
+    darm, dap = [], []
+    for p_ in ("s_apex", "cx5_z0", "cx8_z0", "cx12.5_z0", "cz8_y0", "cz12.5_y0"):
+        r = S["fe"].get(f"cap_g30|fine|{p_}")
+        if r:
+            for F_ in ("0.5", "1", "3"):
+                dap.append(abs(r["per_force"][F_]["approach_um"] / fe("cap_g30", p_, F_) - 1))
+                if p_.startswith("cx"):
+                    darm.append(abs(r["per_force"][F_]["r_bar_mm"] / fe("cap_g30", p_, F_, "r_bar_mm") - 1))
+    sp = d2p("ell11_g30", "M2", "spring")
+    gu, g2 = d1g("ell11_g30", "U"), d1g("ell11_g30", "M2")
+    rows_ = [
+        ["P1", "Curved tips: exponent 0.72&#8211;0.90, rod over sphere 0.60&#8211;0.85, r&#772; 0.35&#8211;0.70&#8202;mm; block r&#772; 3.2&#8211;3.6&#8202;mm",
+         f"Curved tips met ({rng([expo(t, 'cx12.5_z0') for t in CURVED])}, "
+         f"{rng([fe(t, 'cx12.5_z0') / fe(t, 's_apex') for t in CURVED])}, {rng([fe(t, 'cx12.5_z0', '1', 'r_bar_mm') for t in CURVED])}&#8202;mm); "
+         f"block r&#772; {fe('block4_g30', 'cx12.5_z0', '1', 'r_bar_mm'):.2f}&#8202;mm"],
+        ["P2", "M1 passes approach on at least 3 of 4 tips in both simulators and fails the arm on the curved tips",
+         f"Falsified: {n_both} of 4 tips pass approach in both; the curved tips fail the arm"],
+        ["P3", "M3 passes approach and arm in Drake on the three curved tips",
+         "Falsified: " + "; ".join(f"{NAME_PLAIN[t]} {'passes' if all(m3[t]) else 'fails ' + ' and '.join(x for x, ok in (('approach', m3[t][0]), ('arm', m3[t][1])) if not ok)}"
+                                   for t in CURVED)],
+        ["P4", "The spring moves the D1&#8211;D8 trajectories by at most 1&#176; and 0.05&#8202;N",
+         (f"{'Met' if (sp['median_rms_angle_same_deg'] or 9) <= 1 and (sp['median_rms_dN_same_N'] or 9) <= 0.05 else 'Falsified'} on the 11/22 tip "
+          f"({f(sp['median_rms_angle_same_deg'], 2)}&#176;, {f(sp['median_rms_dN_same_N'], 3)}&#8202;N)") if sp else "Not run"],
+        ["P5", "The calibration changes the pads-Drake agreement by at most 1&#176; and the held agreement by under 2 runs",
+         (f"11/22 tip: U {gu['pads_vs_drake']['held_agree']} of {gu['pads_vs_drake']['n']}, "
+          f"{f(gu['pads_vs_drake']['median_rms_angle_same_deg'], 1)}&#176;; M2 {g2['pads_vs_drake']['held_agree']} of "
+          f"{g2['pads_vs_drake']['n']}, {f(g2['pads_vs_drake']['median_rms_angle_same_deg'], 1)}&#176;") if gu and g2 else "Not run"],
+        ["P6", "Impratio 1000 closes the pads&#8217; held-count gap to Drake on the capsule and the 11/22 tip; 0.5&#8202;mm pads do not",
+         p6()],
+        ["P7", "The finer contact grid changes approach by at most 5&#8239;% and r&#772; by at most 10&#8239;%",
+         f"Met: {100 * max(dap or [0]):.1f}&#8239;% and {100 * max(darm or [0]):.1f}&#8239;%"],
+    ]
+    return table(["Prediction", "Claim", "Outcome"], rows_, "The plan&#8217;s predictions against the runs.", key="pred",
+                 text_cols=(0, 1, 2))
+
+
+def p6():
+    pr = PLAN["control_relevance"]["pads_vs_drake_D1_D8_U"]
+    out, ok_ir, ok_h = [], [], []
+    for tip in ("cap_g30", "ell11_g30"):
+        h = {a: d2held(tip, "U", a) for a in ("plan", "ir1000", "pads05")}
+        if not all(h.values()):
+            return "Not run"
+        dk = pr[tip]["drake_held_seed0"]
+        ok_ir.append(abs(h["ir1000"][0] - dk) <= 1)
+        ok_h.append(abs(h["pads05"][0] - dk) > 1)
+        out.append(f"{NAME_PLAIN[tip]}: planner pads {h['plan'][0]}, impratio 1000 {h['ir1000'][0]}, 0.5&#8202;mm pads "
+                   f"{h['pads05'][0]}, Drake {dk} of 8")
+    verdict = "Met" if all(ok_ir) and all(ok_h) else "Falsified"
+    return f"{verdict} (seed 0): " + "; ".join(out)
+
+
 def verdict_section():
-    return VERDICT_TEXT() + verdict_table()
+    return VERDICT_TEXT() + verdict_table() + predictions_table()
+
+
+def d1g(tip, calib, own=False, pads="pads"):
+    return S.get("d1", {}).get(f"{tip}|{'own' if own else 'ready'}|{calib}|{pads}")
 
 
 def ICEM_TEXT():
-    return "<p></p>"
+    sm = smoke()
+    ready = {k: v for k, v in sm.items() if not v["own"]}
+    good = [k for k, v in ready.items() if v["logged"] is not None and abs(v["turn"] - v["logged"]) <= 1.0]
+    bad = [(k, v) for k, v in ready.items() if v["logged"] is not None and abs(v["turn"] - v["logged"]) > 1.0]
+    own = {k: v for k, v in sm.items() if v["own"]}
+    txt = ("<p>The consistency test gives both simulators the same servo commands and compares the tool&#8217;s axis, which "
+           "sets the turn of the symmetric cylinder; its spin about the axis differs by about 10&#176; between the "
+           "simulators already at the end of the grip and plays no part in the task. Each logged pinned-iCEM run of the "
+           "readiness study (planned on the U pads, cells of 16 and 25&#8202;mm) was replayed open loop from three start "
+           "placements: reset, the candidate grasp&#8217;s grip targets for 0.8&#8202;s, then the logged commands, each held for "
+           "10&#8202;ms at its value mid-interval, the post&#8217;s collisions off from 0.8&#8202;s, to 6.3&#8202;s. Drake took "
+           "about 100&#8202;s per replay against the 15&#8202;s the plan assumed, so its replays were cut to the 11/22 tip at U "
+           "and M2 and the 16/32 tip at M2 and seed 0; the block and the capsule have pad replays only. ")
+    if ready:
+        txt += (f"On the planning pads at seed 0, {len(good)} of {len(good) + len(bad)} replays end within 1&#176; of the logged "
+                "turn")
+        if bad:
+            txt += "; " + "; ".join(f"{NAME_PLAIN[v_['plan'].split('_cyl')[0]] if 'plan' in v_ else k} ends at {v['turn']:+.1f}&#176; "
+                                    f"against the logged {v['logged']:+.1f}&#176;" for k, v in bad for v_ in [{'plan': k}])
+        txt += ". "
+    for k, v in own.items():
+        txt += (f"The 11/22 tip&#8217;s own plan, logged at every 1&#8202;ms command, replays to {v['turn']:+.1f}&#176; against "
+                f"the planner&#8217;s {v['logged']:+.1f}&#176;. ")
+    g = d1g("ell11_g30", "M2")
+    gu = d1g("ell11_g30", "U")
+    go = d1g("ell11_g30", "M2", own=True)
+    if g:
+        s_ = g["pads_vs_drake"]
+        dturn = [abs(p_["turn_end_deg"][0] - p_["turn_end_deg"][1]) for p_ in g["pairs"]]
+        txt += (f"On the 11/22 tip at M2 the 0.5&#8202;mm pads and Drake keep the tool in the same {s_['held_agree']} of "
+                f"{s_['n']} replays, but {s_['same_branch']} of them end on the same branch: the final turns differ by "
+                f"{min(dturn):.0f}&#8211;{max(dturn):.0f}&#176; and the tool axes by a median "
+                f"{f(s_['median_rms_angle_all_deg'], 1)}&#176; RMS over a run, against the pads&#8217; own seed spread of "
+                f"{f(g['pads_seed_spread']['median_rms_angle_same_deg'], 1)}&#176;, so consistency "
+                f"{'passes' if g['pass'] else 'fails'}")
+        if gu:
+            su = gu["pads_vs_drake"]
+            txt += (f". At U, on the 16&#8202;mm plan, {su['same_branch']} of {su['n']} pairs end on the same branch, "
+                    f"{f(su['median_rms_angle_same_deg'], 1)}&#176; apart, with the fingers&#8217; normal forces "
+                    f"{f(su['median_rms_dN_same_N'], 2)}&#8202;N and friction forces {f(su['median_rms_dT_same_N'], 2)}&#8202;N "
+                    "RMS apart")
+        txt += ". "
+    if go:
+        so = go["pads_vs_drake"]
+        txt += (f"On the tip&#8217;s own plan the two agree in {so['held_agree']} of {so['n']} runs with a median "
+                f"{f(so['median_rms_angle_same_deg'], 1)}&#176; (consistency {'passes' if go['pass'] else 'fails'}). ")
+    return "<p>" + txt.strip() + "</p>"
+
+
+def d2p(tip, calib, arm):
+    v = S.get("d2", {}).get(f"{tip}|{calib}")
+    if not v:
+        return None
+    return v["pairs"].get(f"plan_vs_{arm}") if arm != "plan" else v["pairs"].get("plan_seed_spread")
+
+
+def d2held(tip, calib, arm, seed=0):
+    v = S.get("d2", {}).get(f"{tip}|{calib}")
+    h = (v or {}).get("held", {}).get(arm)
+    if not h:
+        return None
+    n = h["n"].get(str(seed), h["n"].get(seed, 0))
+    return (h.get(str(seed), h.get(seed)), n) if n else None
 
 
 def D1D8_TEXT():
-    return "<p></p>"
+    txt = ("<p>The eight deployed bench plans D1&#8211;D8 were designed for the block and are replayed open loop as in the "
+           "readiness study (20&#8202;ms samples of tool pose and finger forces). ")
+    sp = d2p("ell11_g30", "M2", "spring")
+    if sp:
+        txt += (f"Spring check on the 11/22 tip: the 0.5&#8202;mm pads at M2 behind the {S['fits']['ell11_g30']['k_s_N_per_mm']:.1f}&#8202;N/mm "
+                f"slide spring (M3) against the same pads without it agree on the held outcome in {sp['held_agree']} of "
+                f"{sp['n']} runs; the {sp['same_branch']} same-branch pairs differ by a median {f(sp['median_rms_angle_same_deg'], 2)}&#176; "
+                f"and {f(sp['median_rms_dN_same_N'], 3)}&#8202;N per finger (bound 1&#176; and 0.05&#8202;N), so M2 "
+                f"{'stands in' if (sp['median_rms_angle_same_deg'] or 9) <= 1 and (sp['median_rms_dN_same_N'] or 9) <= 0.05 else 'does not stand in'} "
+                "for M3 on trajectories. ")
+    rl = d2p("ell11_g30", "M2", "rl")
+    if rl:
+        txt += (f"At the RL trainer&#8217;s numerics the same pads agree with the planner&#8217;s on {rl['held_agree']} of {rl['n']} runs, "
+                f"median {f(rl['median_rms_angle_same_deg'], 1)}&#176; over {rl['same_branch']} same-branch pairs. ")
+    dk = d2p("ell11_g30", "M2", "drake")
+    if dk:
+        txt += (f"Drake against the pads on the 11/22 tip at M2 (seed 0): held agreement {dk['held_agree']} of {dk['n']}, "
+                f"median {f(dk['median_rms_angle_same_deg'], 1)}&#176;. ")
+    chk = []
+    for tip in ("cap_g30", "ell11_g30"):
+        h = {a: d2held(tip, "U", a) for a in ("plan", "ir1000", "pads05")}
+        if all(h.values()):
+            chk.append(f"{NAME_PLAIN[tip]}: {h['plan'][0]}, {h['ir1000'][0]} and {h['pads05'][0]} of 8")
+    if chk:
+        pr = PLAN["control_relevance"]["pads_vs_drake_D1_D8_U"]
+        txt += ("Check arms at U, seed 0 (held by the planner pads, by the pads at impratio 1000 and by the 0.5&#8202;mm pads): "
+                + "; ".join(chk) + f". Drake kept the tool on {pr['cap_g30']['drake_held_seed0']} (capsule) and "
+                f"{pr['ell11_g30']['drake_held_seed0']} (11/22) of 8 in the readiness rows. ")
+    return "<p>" + txt.strip() + "</p>"
 
 
 def VERDICT_TEXT():
-    return "<p></p>"
+    V = S.get("verdicts", {})
+    well = [t for t in TIPS if V.get(t, {}).get("modelled_well")]
+    e11 = V["ell11_g30"]["calibrations"]["M3"]
+    e16 = V["ell16_g30"]["calibrations"]["M3"]
+    cap = fit("cap_g30", "drake", "M3")["approach_err_pct"]
+    cz = [v for k, v in cap.items() if k.startswith("cz")]
+    bl = fit("block4_g30", "drake", "M1")
+    blp = fit("block4_g30", "v2", "M1")
+    bz = bl["approach_err_pct"]
+    bk = max(bz, key=lambda k: abs(bz[k]))
+    darm = []
+    for p_ in ("cx8_z0", "cx12.5_z0"):
+        r = S["fe"].get(f"cap_g30|fine|{p_}")
+        if r:
+            darm += [abs(r["per_force"][F]["r_bar_mm"] / fe("cap_g30", p_, F, "r_bar_mm") - 1) for F in ("1", "3")]
+    names = {"block4_g30": "the block", "cap_g30": "the capsule", "ell16_g30": "the 16/32 half-ellipsoid",
+             "ell11_g30": "the 11/22 half-ellipsoid"}
+    txt = (f"<p>Against the plan&#8217;s criteria {len(well) if well else 'none'} of the four prints "
+           f"{'is' if len(well) <= 1 else 'are'} modelled well{': ' + ', '.join(names[t] for t in well) if well else ''}. ")
+    txt += ("The 11/22 half-ellipsoid at M3 meets approach and twist arm in Drake "
+            f"({e11['drake']['approach_rms_pct']:.1f}&#8239;% RMS, arm {e11['drake']['arm_min']:.2f}&#8211;{e11['drake']['arm_max']:.2f}) "
+            f"and in the 0.5&#8202;mm pads ({e11['pads']['approach_rms_pct']:.1f}&#8239;%, {e11['pads']['arm_min']:.2f}&#8211;"
+            f"{e11['pads']['arm_max']:.2f})")
+    miss = [PART_NAME[k] + f" ({part_value('ell11_g30', 'M3', k)})" for k in e11["failed"]]
+    txt += ("; " + ("it misses " + "; ".join(miss)) if miss else ", and passes consistency and the spring check") + ". "
+    txt += (f"The 16/32 half-ellipsoid at M3 meets approach ({e16['drake']['approach_rms_pct']:.1f}&#8239;% in Drake) and "
+            f"misses the arm bound by {e16['drake']['arm_max'] - 1.15:.3f} in Drake and {e16['pads']['arm_max'] - 1.15:.3f} in "
+            f"the pads, less than the finite elements&#8217; own change of r&#772; on the finer grid "
+            f"({100 * max(darm or [0]):.0f}&#8239;%). The capsule misses approach at every calibration in Drake: at M3 the rods "
+            f"along its straight section sink {min(cz):.0f}&#8211;{max(cz):.0f}&#8239;% too far, because in the print they are four "
+            "times stiffer than the rods across it, and one spring gives both the same compliance. The block, the control, meets both criteria "
+            f"in the pads at M1 ({blp['approach_rms_pct']:.1f}&#8239;%, arm {blp['arm_min']:.2f}&#8211;{blp['arm_max']:.2f}) and "
+            f"misses approach in Drake by its largest error, {bz[bk]:.0f}&#8239;% under the "
+            f"{bk[2:].split('_')[0]}&#8202;mm rod {'along' if bk.startswith('cz') else 'across'} the finger at "
+            f"{bk.split('@')[1]}&#8202;N.</p>")
+    return txt
 
 
 def FILM():
@@ -896,7 +1086,31 @@ def FILM():
 
 
 def lede():
-    return "Pending."
+    m1 = [fit(t, "drake", "M1") for t in TIPS]
+    e11 = S["verdicts"]["ell11_g30"]["calibrations"]["M3"]
+    g = d1g("ell11_g30", "M2")
+    cons = ""
+    if g:
+        s_ = g["pads_vs_drake"]
+        dturn = [abs(p_["turn_end_deg"][0] - p_["turn_end_deg"][1]) for p_ in g["pairs"]]
+        if g["pass"]:
+            cons = (f" Calibrated alike, the two simulators agree on the same servo commands: {s_['held_agree']} of {s_['n']} "
+                    f"held outcomes, {f(s_['median_rms_angle_same_deg'], 1)}&#176; RMS of tool axis.")
+        else:
+            cons = (f" Calibrated alike, the two simulators still part on the same servo commands: on the 11/22 tip&#8217;s "
+                    f"iCEM replays both keep the tool in {s_['held_agree']} of {s_['n']} runs, but {s_['same_branch']} end on "
+                    f"the same branch and the final turns differ by {min(dturn):.0f}&#8211;{max(dturn):.0f}&#176;.")
+    return ("Drake&#8217;s pressure field and the 1&#8202;mm pads can be calibrated to finite elements of the printed 85A tips, "
+            "but one modulus is not enough: fitted to the approach it leaves the largest approach error at "
+            f"{min(v['approach_max_pct'] for v in m1):.0f}&#8211;{max(v['approach_max_pct'] for v in m1):.0f}&#8239;% in Drake and "
+            f"gives the curved tips {min(fit(t, 'drake', 'M1')['arm_min'] for t in CURVED):.1f}&#8211;"
+            f"{max(fit(t, 'drake', 'M1')['arm_max'] for t in CURVED):.1f} times the print&#8217;s twist arm. A stiff modulus fitted to "
+            "the arm behind a series spring reproduces the 11/22 half-ellipsoid within "
+            f"{e11['drake']['approach_rms_pct']:.1f}&#8239;% RMS approach in Drake and {e11['pads']['approach_rms_pct']:.1f}&#8239;% "
+            f"in 0.5&#8202;mm pads, arm {min(e11['drake']['arm_min'], e11['pads']['arm_min']):.2f}&#8211;"
+            f"{max(e11['drake']['arm_max'], e11['pads']['arm_max']):.2f}." + cons +
+            " The capsule cannot be calibrated this way: a rod along its straight section sinks a quarter as far as one "
+            "across it, and one spring gives both the same compliance.")
 
 
 def future():
@@ -937,9 +1151,6 @@ def build():
     main(sections)
 
 
-if __name__ == "__main__":
-    build()
-
 
 def smoke():
     """The smoke test of the readiness-plan replays and of the tips' own plans: the replay on the planning pads at seed
@@ -955,3 +1166,7 @@ def smoke():
             out[r["plan"]] = {"turn": r["turn_end_deg"], "logged": lg.get("turn_end_deg"), "held": r["held"],
                               "logged_held": lg.get("held"), "own": r["own"]}
     return out
+
+
+if __name__ == "__main__":
+    build()

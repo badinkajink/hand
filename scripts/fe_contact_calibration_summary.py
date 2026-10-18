@@ -62,13 +62,25 @@ def tr_arrays(tr):
     return t, q, N, T
 
 
-def pair(A, B, turn_key="turn_end_deg", held_key="held"):
+def axis_of(q):
+    """The body z axis (a cylinder's marked axis) of unit quaternions (n, 4), w first."""
+    q = q / np.linalg.norm(q, axis=1, keepdims=True)
+    w, x, y, z = q.T
+    return np.stack([2 * (x * z + w * y), 2 * (y * z - w * x), 1 - 2 * (x * x + y * y)], 1)
+
+
+def pair(A, B, turn_key="turn_end_deg", held_key="held", axis=False):
+    """axis: compare the tools' axes (a cylinder is symmetric about its own axis, so its spin about it is no part of the
+    turn); otherwise the full orientations (the D1-D8 screwdriver)."""
     ta, qa, Na, Ta = tr_arrays(A["trace"])
     tb, qb, Nb, Tb = tr_arrays(B["trace"])
     n = min(len(qa), len(qb))
     if n == 0:
         return None
-    ang = np.degrees(2 * np.arccos(np.clip(np.abs(np.sum(qa[:n] * qb[:n], 1)), -1, 1)))
+    if axis:
+        ang = np.degrees(np.arccos(np.clip(np.sum(axis_of(qa[:n]) * axis_of(qb[:n]), 1), -1, 1)))
+    else:
+        ang = np.degrees(2 * np.arccos(np.clip(np.abs(np.sum(qa[:n] * qb[:n], 1)), -1, 1)))
     sep = np.where(ang > 10)[0]
     ha, hb = bool(A[held_key]), bool(B[held_key])
     same = ha and hb and abs(A[turn_key] - B[turn_key]) <= 15.0
@@ -113,14 +125,14 @@ def d1():
                                     runs.append({"plan": p, "seed": s, "plant": plant, "held": X["held"],
                                                  "turn": X["turn_end_deg"], "unstable": X.get("unstable", False)})
                             if A and B:
-                                x = pair(A, B)
+                                x = pair(A, B, axis=True)
                                 if x:
                                     x.update(plan=p, seed=s)
                                     pd.append(x)
                         for s in (1, 2):
                             A0, A1 = R.get((p, calib, padk, 0)), R.get((p, calib, padk, s))
                             if A0 and A1:
-                                sp.append(pair(A0, A1))
+                                sp.append(pair(A0, A1, axis=True))
                     if not pd:
                         continue
                     s_pd, s_sp = summarize(pd), summarize(sp)
