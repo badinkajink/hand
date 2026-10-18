@@ -136,6 +136,17 @@ def cmd_build(a):
     rec = json.loads((FINAL / f"{PFX}_parts.json").read_text())
     rec["tips_source"] = {k: f"{READY.relative_to(REPO)}/print/{v}.json" for k, v in SHEETS.items()}
     rec["seat_mm"] = SEAT
+    import dip_link_geometry as G
+    qparts, _ = qwiic_header_final()
+    qm = trimesh.util.concatenate([box_mesh(lo, hi) for _, lo, hi in qparts])
+    qm.export(fname("qwiic"))
+    asm = trimesh.load(fname("assembly"))
+    trimesh.util.concatenate([asm, qm]).export(fname("assembly"))
+    rec["parts"]["qwiic"] = dict(file=str(fname("qwiic").relative_to(REPO)),
+                                 role="Qwiic connector (SM04B-SRSS-TB) in the clamp plate's pocket, its mated SHR-04V-S housing, "
+                                      "the cable's first 3 mm and the pigtail from J1's pads (model)",
+                                 bounds_F=np.round(qm.bounds, 3).tolist())
+    rec["parts"]["assembly"]["role"] += "; the Qwiic connector and the pigtail"
     man, ds = pin_coupon()
     tm = A.to_trimesh(man)
     dst = PRINT / f"{PFX}_pin_fit_coupon.stl"
@@ -180,6 +191,169 @@ def freecad_step():
     (FINAL / f"{PFX}_step.json").write_text(json.dumps(rec, indent=1))
 
 
+# ----------------------------------------------------------------------------------------------- the Qwiic connector
+# JST SH, 1.0 mm pitch (JST catalogue eSH): side-entry header SM04B-SRSS-TB 6.0 mm wide (B), 4.25 mm deep plus 0.7 mm of
+# leads, 2.9 mm tall; housing SHR-04V-S 5.0 mm wide (B, without protrusions), 2.8 mm tall; mated pair 6.25 mm long and
+# 2.96 mm tall, so the housing stands 2.0 mm out of the header's mating face. Qwiic cables: four 28 AWG wires (insulation
+# 0.4-0.8 mm in the SH range), modelled as 0.8 mm wires at the 1.0 mm pitch, straight for 3.0 mm out of the housing.
+QW = dict(hdr_w=6.0, hdr_d=4.25, lead=0.7, hdr_h=2.9, plug_w=5.0, plug_out=2.0, plug_h=2.96, wire_d=0.8, wire_run=3.0)
+ENVELOPE = dict(z_end=-88.71, half_w=10.5, x_back=6.45)   # the tip's end, the 21 mm rigid band, the tip's back plane
+
+
+def j1_parts_board():
+    """J1 as soldered on the ReSkin 5X (spec.json: body u -2.95..3.05, v -18.09..-13.14 including the leads, mating face
+    toward the tab's end), the mated SHR-04V-S housing and the first 3 mm of the Qwiic cable, as (name, lo, hi) boxes in
+    the board frame (u, v, w), w the height above the component face; and the tab's FR-4."""
+    v_mate = -18.09
+    uc = 0.05
+    out = [("tab_fr4", (-5.0, -19.10, -0.6), (5.0, -10.10, 0.0)),
+           ("j1_header", (-2.95, v_mate, 0.0), (3.05, -13.14, QW["hdr_h"])),
+           ("plug", (uc - QW["plug_w"] / 2, v_mate - QW["plug_out"], 0.0), (uc + QW["plug_w"] / 2, v_mate, QW["plug_h"]))]
+    v0 = v_mate - QW["plug_out"]
+    for k in range(4):
+        u = uc + (k - 1.5) * 1.0
+        out.append((f"wire{k}", (u - QW["wire_d"] / 2, v0 - QW["wire_run"], 1.4 - QW["wire_d"] / 2),
+                    (u + QW["wire_d"] / 2, v0, 1.4 + QW["wire_d"] / 2)))
+    return out
+
+
+def board_to_F_pts(P_b, theta_deg, flipped):
+    """Board frame (u, v, w) to F for a board rotated in its plane by theta about U1 (0: tab proximal, toward the PIP joint;
+    180: tab distal; 90: tab toward -y; 270: tab toward +y) at the touch placement of the final design (component face at
+    the window plate's dorsal face, parts toward the tip), or flipped (bare face on the tip's back face, parts dorsal)."""
+    L = A.levels()
+    th = math.radians(theta_deg)
+    u, v, w = P_b[:, 0], P_b[:, 1], P_b[:, 2]
+    if flipped:
+        u = -u
+    ur = u * math.cos(th) - v * math.sin(th)
+    vr = u * math.sin(th) + v * math.cos(th)
+    if flipped:
+        x = A.X_BACK + A.P["fr4"] + w                  # component face 0.6 mm behind the back face, parts dorsal
+    else:
+        x = L["x_cf"] - w
+    return np.column_stack([x, ur, A.Z_C - vr])
+
+
+def box_mesh(lo, hi):
+    import trimesh
+    lo, hi = np.asarray(lo, float), np.asarray(hi, float)
+    return trimesh.creation.box(extents=hi - lo, transform=trimesh.transformations.translation_matrix((lo + hi) / 2))
+
+
+def qwiic_header_final():
+    """The chosen Qwiic connection: J1 removed and the tab cut to 4.9 mm as in concept a, its four signal pads wired to a
+    side-entry SM04B-SRSS-TB (the Qwiic connector) seated 1.0 mm deep in a pocket of the clamp plate's dorsal face, mating
+    face proximal, so a standard Qwiic cable plugs in there and leaves toward the PIP joint. The pocket's steps beside the
+    leads take the plug's insertion force; the wires run in a 0.6 mm groove from the clamp plate's notch to the leads.
+    Returns the connector parts (boxes in F) and the cuts in the clamp plate."""
+    L = A.levels()
+    xb = L["x_c1"]                                 # the clamp plate's back face
+    x0 = xb - 1.0                                  # pocket floor = the header's base
+    y0, z_back = 0.0, -77.0
+    z_mate = z_back + QW["hdr_d"]
+    parts = [("q_header", (x0, y0 - QW["hdr_w"] / 2, z_back), (x0 + QW["hdr_h"], y0 + QW["hdr_w"] / 2, z_mate)),
+             ("q_leads", (x0, y0 - 1.8, z_back - QW["lead"]), (x0 + 0.3, y0 + 1.8, z_back)),
+             ("q_plug", (x0, y0 - QW["plug_w"] / 2, z_mate), (x0 + QW["plug_h"], y0 + QW["plug_w"] / 2, z_mate + QW["plug_out"]))]
+    for k in range(4):
+        y = y0 + (k - 1.5) * 1.0
+        zc = z_mate + QW["plug_out"]
+        parts.append((f"q_wire{k}", (x0 + 1.4 - 0.4, y - 0.4, zc), (x0 + 1.4 + 0.4, y + 0.4, zc + QW["wire_run"])))
+    parts.append(("q_pigtail", (xb - 0.6, 4.6, z_back - QW["lead"] - 0.5), (xb, 5.8, -64.3)))
+    parts.append(("q_pigtail_turn", (xb - 0.6, -1.8, z_back - QW["lead"] - 0.5), (xb, 5.8, z_back - QW["lead"])))
+    cuts = [("pocket_body", (x0, y0 - QW["hdr_w"] / 2 - 0.05, z_back), (xb + 0.1, y0 + QW["hdr_w"] / 2 + 0.05, z_mate + 0.05)),
+            ("pocket_leads", (x0, y0 - 1.85, z_back - QW["lead"] - 0.1), (xb + 0.1, y0 + 1.85, z_back + 0.01)),
+            ("groove_run", (xb - 0.6, 4.4, z_back - QW["lead"] - 0.6), (xb + 0.1, 6.0, -63.9)),
+            ("groove_turn", (xb - 0.6, -1.85, z_back - QW["lead"] - 0.6), (xb + 0.1, 6.0, z_back - QW["lead"] + 0.01))]
+    return parts, cuts
+
+
+_clamp_plate_a = A.clamp_plate
+
+
+def clamp_plate_final(K, p=A.P):
+    """Concept a's clamp plate with the Qwiic header's pocket and the wire groove cut into its dorsal face."""
+    C = _clamp_plate_a(K, p)
+    _, cuts = qwiic_header_final()
+    return K.sub(C, K.union([K.box(lo, hi) for _, lo, hi in cuts]))
+
+
+A.clamp_plate = clamp_plate_final
+
+
+def cmd_qwiic(a):
+    """Where the Qwiic connector can go: J1 with its mated SHR-04V-S housing and the cable's first 3 mm in eight board
+    orientations, each against the MCP link and the PIP servo over PIP -18..92 deg (the specification's exact method) and
+    against the envelope the board already occupies (the tip's end z -88.71, the 21 mm band, the tip's back plane); then
+    the chosen header on the clamp plate's back. Rows -> final/<PFX>_qwiic.json."""
+    import trimesh
+    import dip_link_geometry as G
+    t0 = time.time()
+    rows = []
+    for flipped in (False, True):
+        for theta, label in ((0, "tab proximal"), (180, "tab distal"), (90, "tab toward -y"), (270, "tab toward +y")):
+            parts = j1_parts_board()
+            meshes = {}
+            for name, lo, hi in parts:
+                bm = box_mesh(lo, hi)
+                V = board_to_F_pts(np.asarray(bm.vertices), theta, flipped)
+                tm = trimesh.Trimesh(V, np.asarray(bm.faces), process=False)
+                if tm.volume < 0:
+                    tm.invert()
+                meshes[name] = tm
+            conn = trimesh.util.concatenate([m for k, m in meshes.items() if k != "tab_fr4"])
+            Pc = G.surface_points(conn, 0.25)
+            v, i, q, part = G.points_clearance_exact(Pc, reach=3.0)
+            Pt = G.surface_points(meshes["tab_fr4"], 0.25)
+            vt, it_, qt, pt_ = G.points_clearance_exact(Pt, reach=3.0)
+            V = np.asarray(conn.vertices)
+            beyond_end = float(max(0.0, ENVELOPE["z_end"] - V[:, 2].min()))
+            beyond_side = float(max(0.0, np.abs(V[:, 1]).max() - ENVELOPE["half_w"]))
+            in_tip_zone = (V[:, 2] >= ENVELOPE["z_end"]) & (np.abs(V[:, 1]) <= A.Y_HALF)
+            palmar = float(max(0.0, ENVELOPE["x_back"] - V[in_tip_zone & (V[:, 2] <= A.Z_MOUNT), 0].min())) \
+                if np.any(in_tip_zone & (V[:, 2] <= A.Z_MOUNT)) else 0.0
+            ok_link = bool(v >= 0.5 and vt >= 0.5)
+            ok_env = beyond_end <= 0.0 and beyond_side <= 0.0 and palmar <= 0.0
+            rows.append(dict(orientation=label, theta_deg=theta, flipped=flipped,
+                             connector_clearance_mm=round(v, 3), connector_clearance_at=dict(pip_deg=q, part=part,
+                                                                                               at_F=np.round(Pc[i], 2).tolist()),
+                             tab_clearance_mm=round(vt, 3), tab_clearance_at=dict(pip_deg=qt, part=pt_),
+                             beyond_tip_end_mm=round(beyond_end, 2), beyond_band_mm=round(beyond_side, 2),
+                             into_tip_mm=round(palmar, 2), clears_links=ok_link, inside_envelope=ok_env,
+                             bounds_F=np.round(conn.bounds, 2).tolist()))
+            print(f"{'flipped' if flipped else 'touch':7s} {label:14s}: connector {v:+.2f} mm ({part}, PIP {q}), tab {vt:+.2f} mm; "
+                  f"beyond the end {beyond_end:.1f}, beyond the band {beyond_side:.1f}, into the tip {palmar:.1f} mm "
+                  f"[{time.time() - t0:.0f} s]", flush=True)
+    parts, cuts = qwiic_header_final()
+    qm = trimesh.util.concatenate([box_mesh(lo, hi) for _, lo, hi in parts])
+    Pq = G.surface_points(qm, 0.25)
+    vq, iq, qq, pq = G.points_clearance_exact(Pq, reach=3.0)
+    Vq = np.asarray(qm.vertices)
+    vr = None
+    chosen = dict(where="pocket 1.0 mm deep in the clamp plate's dorsal face, mating face proximal (toward the PIP joint)",
+                  header_box_F=[list(parts[0][1]), list(parts[0][2])],
+                  clearance_mm=round(vq, 3), clearance_at=dict(pip_deg=qq, part=pq, at_F=np.round(Pq[iq], 2).tolist()),
+                  clamp_plate_under_pocket_mm=round(A.P["clamp_t"] - 1.0, 2),
+                  height_above_clamp_plate_mm=round(float(Vq[:, 0].max() - A.levels()["x_c1"]), 2),
+                  max_abs_y_mm=round(float(np.abs(Vq[:, 1]).max()), 2), z_range_F=[round(float(Vq[:, 2].min()), 2),
+                                                                                  round(float(Vq[:, 2].max()), 2)])
+    print(f"chosen: header, plug, cable start and pigtail {vq:+.2f} mm ({pq}, PIP {qq})", flush=True)
+    sp = spec_final()
+    out = dict(model=dict(source="JST SH catalogue (eSH): SM04B-SRSS-TB side entry 6.0 x 4.25 (+0.7 leads) x 2.9 mm; SHR-04V-S "
+                                 "5.0 x 2.8 mm; mated 6.25 mm long, 2.96 mm tall (housing 2.0 mm out of the header); Qwiic "
+                                 "cable 4 x 28 AWG modelled as 0.8 mm wires for 3.0 mm",
+                          dims_mm=QW, j1_on_board="spec.json board.parts.J1 (body u -2.95..3.05, v -18.09..-13.14, mating "
+                                                  "face toward the tab's end)",
+                          envelope=ENVELOPE, need_mm=0.5),
+               rows=rows, chosen=chosen,
+               grasp_evidence="readiness study (docs/experiments/20261016-sim2real_fingertip_readiness/summary.json, cells): "
+                              "with the board on the current plate, the cylinder touched the board in 9-27 of 27 HOM runs per "
+                              "cell; parts beyond the board's envelope meet grasped objects at least as often",
+               when=time.strftime("%Y-%m-%d %H:%M"))
+    (FINAL / f"{PFX}_qwiic.json").write_text(json.dumps(out, indent=1, default=float))
+    print(f"qwiic -> {(FINAL / f'{PFX}_qwiic.json').relative_to(REPO)} [{time.time() - t0:.0f} s]", flush=True)
+
+
 # ----------------------------------------------------------------------------------------------- checks
 def disc_distance(P, centre, x0, x1, R):
     """Least distance (mm) from points P (n, 3) to a solid disc magnet with its axis along x."""
@@ -212,6 +386,13 @@ def cmd_check(a):
                        magnets_x_F=t["magnets"]["items"][0]["x_F"], top_depth_mm=t["magnets"]["top_depth_mm"])
         print(f"R4 {key}: channels {best[0]:.2f} mm from a magnet", flush=True)
     res["channels_to_magnets_R4"] = r4
+    qparts, _ = qwiic_header_final()
+    qm = trimesh.util.concatenate([box_mesh(lo, hi) for _, lo, hi in qparts])
+    Pq = G.surface_points(qm, 0.25)
+    vq, iq, qq, pq = G.points_clearance_exact(Pq, reach=3.0)
+    res["clearance"]["qwiic_connector"] = dict(min_mm=round(vq, 3), at_F=np.round(Pq[iq], 2).tolist(), pip_deg=qq, part=pq,
+                                               n_points=int(len(Pq)))
+    print(f"clearance qwiic_connector: {vq:.3f} mm ({pq}, PIP {qq})", flush=True)
     tw = {}
     cutter = A.tip_cutter(A.MeshK())
     for key in ("block5",):                                   # concept a's check covers block4, cap8.5, ell16, ell11
@@ -322,6 +503,30 @@ def cmd_sense(a):
 
 def cmd_render(a):
     A.cmd_render(a)
+    C_ = A.COLORS
+    rel = lambda s_: str(fname(s_))           # noqa: E731
+    ctx = lambda s_: str(WORK / f"{s_}.stl")  # noqa: E731
+    asm = [("dip_link", rel("dip_link"), C_["dip_link"], (0, 0, 0)),
+           ("clamp_plate", rel("clamp_plate"), C_["clamp_plate"], (0, 0, 0)),
+           ("board", rel("board"), C_["board"], (0, 0, 0)),
+           ("wires", rel("wires"), C_["wires"], (0, 0, 0)),
+           ("fasteners", rel("fasteners"), C_["fasteners"], (0, 0, 0)),
+           ("qwiic", rel("qwiic"), "0.95 0.95 0.92 1", (0, 0, 0)),
+           ("tip", rel("tip_block4_F"), C_["tip"], (0, 0, 0)),
+           ("servo", ctx("context_servo_pip"), C_["servo"], (0, 0, 0)),
+           ("mcp", ctx("context_mcp_link"), C_["mcp"], (0, 0, 0))]
+    cam = ((10.0, 0.0, -71.0), 80, 180, 35)
+    img = A._render(asm, cam, MEDIA / f"{PFX}_qwiic.png")
+    parts, _ = qwiic_header_final()
+    hb = {n: (np.array(lo), np.array(hi)) for n, lo, hi in parts}
+    lo, hi = hb["q_header"]
+    pl, ph = hb["q_plug"]
+    A._annotate(img, cam, [
+        ("Qwiic header SM04B-SRSS-TB in a 1.0 mm pocket", ((lo[0] + hi[0]) / 2 + 1.0, hi[1], (lo[2] + hi[2]) / 2), (0.97, 0.80)),
+        ("Qwiic plug SHR-04V-S; the cable leaves toward the PIP joint", (ph[0], ph[1], ph[2]), (0.97, 0.30)),
+        ("Pigtail from J1's pads in a 0.6 mm groove", (A.levels()["x_c1"], 5.2, -70.0), (0.03, 0.30)),
+        ("Clamp plate", (A.levels()["x_c1"], -7.0, -82.0), (0.03, 0.80))],
+        title="Qwiic connection on the clamp plate's back (PIP 0 deg)")
 
 
 # ----------------------------------------------------------------------------------------------- drawing
@@ -367,6 +572,9 @@ def fits():
         ("Detents", f"{P['detent_h']:.2f} mm high at z {P['detent_z']:.2f}", f"in a {2 * P['groove_r']:.2f} mm groove of each channel"),
         ("Rim and board", f"|y| <= {P['half_w']:.1f} mm (21.0 mm), board |y| <= 10.0", "the FR-4 edge 0.5 mm inside the rim (R5)"),
         ("Tab", f"cut {P['tab_len']:.1f} mm past the main square (v = -15.0 mm)", "J1 removed; four wires on its signal pads"),
+        ("Qwiic header pocket", "6.10 x 4.30 mm, 1.0 deep in the clamp plate's back; leads 3.70 x 0.80 mm",
+         "SM04B-SRSS-TB 6.0 x 4.25 mm seated on the floor, mating face proximal, CA glue; the steps beside the leads take the "
+         "plug's push; wire groove 1.6 x 0.6 mm"),
         ("PLA tolerance", "holes print 0.1-0.2 mm undersize", "ream pin holes to 2.40 mm and pilots to 1.70 mm; pins from the coupon"),
     ]
 
@@ -550,7 +758,9 @@ def parts_list():
         dict(item="M1.6 x 4 countersunk screw, DIN 963 / ISO 2009", material="brass", qty=2),
         dict(item="M1.6 hex nut, ISO 4032", material="brass", qty=2),
         dict(item="M2 x 5 cheese-head screw, DIN 84", material="brass", qty=2),
-        dict(item="Wire, AWG 32-36, four conductors to the inline connector on the MCP link side", qty=1),
+        dict(item="JST SM04B-SRSS-TB side-entry header (the Qwiic connector), glued in the clamp plate's pocket", qty=1),
+        dict(item="Qwiic cable (JST SHR-04V-S housings, 4 x 28 AWG) from the clamp plate to the controller", qty=1),
+        dict(item="Wire, AWG 32-36, four 20 mm pieces from J1's pads to the header's leads", qty=1),
         dict(item="Hot glue or Kapton tape for the wires' strain relief", qty=1),
     ]
 
@@ -564,15 +774,20 @@ def assembly():
         "Print the DIP link and the clamp plate (print_settings.json); ream the window plate's two pin holes to 2.40 mm and "
         "the shoulders' pilots to 1.70 mm.",
         "Desolder J1, cut the tab 4.9 mm from the main square (v = -15.0 mm), solder four wires (VDD, GND, SDA, SCL; AWG "
-        "32-36) to the signal pads, leading to the +y side.",
+        "32-36, about 20 mm) to the signal pads, leading to the +y side.",
+        "Glue the SM04B-SRSS-TB header into the clamp plate's pocket (CA glue on the floor), mating face toward the bridge, "
+        "its back against the steps beside the leads.",
         "Lay the board component side down on the window plate: chips in their windows, R1-R2 and the solder joints in the "
         "bridge's pocket, the wires in the channel and up through the gap beside the tab.",
         "Put on the clamp plate (pins through the board into the window plate) and drop two M1.6 nuts into its back pockets.",
         "With the tip off, drive two M1.6 x 4 countersunk screws from the palmar side through the window plate and the board's "
         "distal holes into the nuts; snug, about 0.05 N m.",
         "Drive two M2 x 5 screws through the clamp plate's ears into the shoulders; snug, the ears still clear of the shoulders.",
-        "Fix the wires in the channel with a dab of hot glue or Kapton tape so a cable pull loads the DIP link; route the cable "
-        "along the clamp plate's proximal edge to y > 17.4 mm and across the PIP joint outside the slotted arm.",
+        "Lay the four wires through the clamp plate's notch into the groove on its back and solder them to the header's leads "
+        "in the order of the Qwiic pinout (GND, VDD, SDA, SCL from pin 1); a dab of hot glue over the groove.",
+        "Plug the Qwiic cable into the header; route it along the clamp plate's back toward the PIP joint, then to y > 17.4 mm "
+        "and across the joint outside the slotted arm; fix it to the DIP link before the joint so a pull does not reach the "
+        "header.",
         "Print the tip with its channels (2.9 mm seats, magnets north pole toward the palmar face at the pauses).",
         "Slide the tip along +z onto the keys until its mount face meets the bridge and both detents engage; read the zero-load "
         "field. Tip exchange: pull along -z; the board's screws stay in.",
@@ -661,13 +876,13 @@ def main():
         return
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
-    for c in ("build", "check", "sense", "render", "drawing", "docs", "eval"):
+    for c in ("build", "qwiic", "check", "sense", "render", "drawing", "docs", "eval"):
         sp_ = sub.add_parser(c)
         if c == "check":
             sp_.add_argument("--reuse", action="store_true", help="reuse clearance rows whose part STL is unchanged")
     a = ap.parse_args()
-    {"build": cmd_build, "check": cmd_check, "sense": cmd_sense, "render": cmd_render, "drawing": cmd_drawing,
-     "docs": cmd_docs, "eval": cmd_eval}[a.cmd](a)
+    {"build": cmd_build, "qwiic": cmd_qwiic, "check": cmd_check, "sense": cmd_sense, "render": cmd_render,
+     "drawing": cmd_drawing, "docs": cmd_docs, "eval": cmd_eval}[a.cmd](a)
 
 
 if __name__ == "__main__" or os.environ.get("DLF_CMD") == "step":
