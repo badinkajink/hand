@@ -535,8 +535,8 @@ def cmd_render(a):
     pl, ph = hb["q_plug"]
     A._annotate(img, cam, [
         ("Qwiic header SM04B-SRSS-TB in a 1.0 mm pocket", ((lo[0] + hi[0]) / 2 + 1.0, hi[1], (lo[2] + hi[2]) / 2), (0.97, 0.80)),
-        ("Qwiic plug SHR-04V-S; the cable leaves toward the PIP joint", (ph[0], ph[1], ph[2]), (0.97, 0.30)),
-        ("Pigtail from J1's pads in a 0.6 mm groove", (A.levels()["x_c1"], 5.2, -70.0), (0.03, 0.30)),
+        ("Qwiic plug SHR-04V-S; the cable leaves toward the PIP joint", (ph[0], ph[1], ph[2]), (0.97, 0.22)),
+        ("Pigtail from J1's pads in a 0.6 mm groove", (A.levels()["x_c1"], 5.2, -70.0), (0.97, 0.62)),
         ("Clamp plate", (A.levels()["x_c1"], -7.0, -82.0), (0.03, 0.80))],
         title="Qwiic connection on the clamp plate's back (PIP 0 deg)")
 
