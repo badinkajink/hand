@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{TITLE}}</title>
+<style>
+/* Print procedure read at the printer on a phone: one column, large type. The retro sheet (scripts/retro_style.py) is
+   added after this block; the rules below win over it by their higher specificity. */
+:root { color-scheme: light; }
+body { background: #fff; color: #000; margin: 0; }
+body .wrap { max-width: 760px !important; margin: 0 auto !important; padding: 16px 16px 48px !important; }
+body .wrap p, body .wrap li, body .wrap dd, body .wrap dt { font-size: 20px !important; line-height: 1.45 !important; }
+body .wrap .lede { font-size: 21px !important; }
+body .wrap h1 { font-size: 28px !important; line-height: 1.2 !important; }
+body .wrap h2 { font-size: 24px !important; margin-top: 34px !important; }
+body .wrap h3 { font-size: 21px !important; }
+body .wrap table, body .wrap th, body .wrap td { font-size: 18px !important; }
+body .wrap td, body .wrap th { vertical-align: top !important; }
+body .wrap figcaption { font-size: 18px !important; }
+body .wrap code { font-size: 0.82em !important; overflow-wrap: anywhere; word-break: break-word; }
+body .wrap nav.toc ol { font-size: 19px !important; columns: 1 !important; list-style: none !important; padding-left: 0 !important; }
+body .wrap .eyebrow, body .wrap .byline { font-size: 16px !important; }
+figure img { width: 100%; height: auto; }
+.tw { overflow-x: auto; }
+table.facts { width: 100%; }
+table.facts th { width: 32%; text-align: left; }
+body .wrap .pause { border: 2px solid #000 !important; padding: 4px 14px 10px !important; margin: 18px 0 !important; }
+body .wrap .pause h3 { margin-top: 10px !important; }
+.msg { font-family: "Courier New", Courier, monospace; font-size: 0.9em; background: #f2f2f2; padding: 1px 3px; }
+.fill { display: inline-block; min-width: 9em; border-bottom: 1px solid #000; }
+td.blank { min-width: 3em; }
+dl.glossary dt { font-weight: bold; margin-top: 8px; }
+dl.glossary dd { margin: 0 0 4px 0; }
+pre.cmd { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 15px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<div class="eyebrow">{{EYEBROW}}</div>
+<h1>{{H1}}</h1>
+<p class="lede">{{LEDE}}</p>
+<div class="byline">{{BYLINE}}</div>
+</header>
+<nav class="toc"><ol>
+{{TOC}}
+</ol></nav>
+{{SECTIONS}}
+<footer><p>{{FOOTER}}</p></footer>
+</div>
+</body>
+</html>
