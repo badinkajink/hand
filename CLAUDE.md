@@ -157,12 +157,12 @@ committing it.
   the deck (owner, 2026-10-14: "i also don't want the slides to get stale"). `python3 scripts/contact_overview_page.py`
   prints the commits since the deck last took its numbers (`--deck-check` prints only that); update the deck under that
   repository's AGENTS.md, or set `DECK_CHECKED` in the builder when nothing in the deck changes.
-- **`docs/status.html` = the state of the current work** (owner, 2026-10-18: "on my local machine, this chat window doesnt
-  have this most recent chat history, so we need a good local docpage"): the owner's requests and their state, findings
-  with numbers, the autopilot jobs and logins, decisions waiting on the owner. Curated text in `docs/status.json`, live
-  blocks (jobs, usage, prints at the chosen seat, DIP renders, recent pages, commits, resguard events) read at build time
-  by `scripts/status_page.py`. A window or autopilot that finishes a step updates its row in `docs/status.json` and runs
-  `.venv/bin/python scripts/status_page.py`; a window about to be compacted brings both up to date first.
+- **Status page of the printed-fingertip work** (owner, 2026-10-18: "we need a good local docpage"; "it should be a standard
+  docpage html grouped/associated with this printing work"): `docs/experiments/20261018-printed_fingertip_status/
+  20261018-printed_fingertip_and_dip_link_status.html`, built by `scripts/printed_fingertip_status_page.py` from the folder's
+  `status.json` (curated: requests and their state, findings, decisions waiting on the owner) and live blocks (jobs and logins,
+  prints at the chosen seat, DIP renders, recent pages, commits, resguard events). A window or autopilot that finishes a step of
+  this work updates its row in `status.json` and rebuilds; a window about to be compacted brings it up to date first.
 - **Commit experiment code promptly** (it has been lost to `git` before). `results/` is gitignored.
 
 ## Critical lessons (the load-bearing ones — violating these has cost days)

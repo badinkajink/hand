@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Status page of the current work: docs/status.html.
+"""Status page of the printed-fingertip work: docs/experiments/20261018-printed_fingertip_status/
+20261018-printed_fingertip_and_dip_link_status.html.
 
-The curated part is docs/status.json (the owner's requests and their state, findings with numbers, decisions waiting on
+The curated part is status.json in the same folder (the owner's requests and their state, findings with numbers, decisions waiting on
 the owner), written by the sessions that do the work. A section with a "live" key gets a block read at build time:
 
   jobs     autopilot jobs touched in the last three days, from ~/.claude/autopilot (job records, step ledgers) and the
@@ -16,7 +17,7 @@ the owner), written by the sessions that do the work. A section with a "live" ke
 The owner reads the page after compacting a chat or from another machine, so it opens from the file system: relative
 links, images inlined, nothing fetched.
 
-    .venv/bin/python scripts/status_page.py
+    .venv/bin/python scripts/printed_fingertip_status_page.py
 """
 from __future__ import annotations
 
@@ -35,8 +36,9 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import retro_style  # noqa: E402
 
 KIT = Path.home() / ".claude/autopilot"
-CUR = ROOT / "docs/status.json"
-OUT = ROOT / "docs/status.html"
+D = ROOT / "docs/experiments/20261018-printed_fingertip_status"
+CUR = D / "status.json"
+OUT = D / "20261018-printed_fingertip_and_dip_link_status.html"
 PRINT = ROOT / "docs/experiments/20261016-sim2real_fingertip_readiness/print"
 SEAT_CSV = ROOT / "docs/experiments/20261018-fingertip_print_procedure/records/seat_coupon.csv"
 DIP = ROOT / "docs/experiments/20261018-dip_link_board_mount"
@@ -183,7 +185,7 @@ def live_pages():
             p = loc.group(1)
             href = p if p.startswith("experiments/") else re.sub(r"^(\.\./|docs/)*", "", p)
             href = href if href.startswith("experiments/") else "experiments/" + href.split("experiments/")[-1]
-        rows.append([m.group(1), esc(subj[:160]), f'<a href="{esc(href)}">{esc(Path(href).name)}</a>' if href else "",
+        rows.append([m.group(1), esc(subj[:160]), f'<a href="../{esc(href[len("experiments/"):])}">{esc(Path(href).name)}</a>' if href else "",
                      f'<a href="{art.group(0)}">{art.group(0)[26:]}</a>' if art else "pending"])
     return table(["Date", "Page", "Local file", "claude.ai"], rows, raw=True)
 
@@ -247,10 +249,10 @@ figcaption {{ font-size: 15px; }}
 .meta {{ font-size: 15px; }}
 </style></head>
 <body>
-<p class="meta"><a href="index.html">SR² Hand documentation</a> · <a href="pages.html">index of result pages</a></p>
+<p class="meta"><a href="../../index.html">SR² Hand documentation</a> · <a href="../../pages.html">index of result pages</a> · <a href="../../overviews/printed_fingertips.html">printed fingertips and force sensing</a></p>
 <h1>{esc(S['title'])}</h1>
-<p class="meta">Curated text as of {esc(S['as_of'])}; live blocks read {esc(built)} by <code>scripts/status_page.py</code>
-(rebuild: <code>.venv/bin/python scripts/status_page.py</code>; curated text in <code>docs/status.json</code>).</p>
+<p class="meta">Curated text as of {esc(S['as_of'])}; live blocks read {esc(built)} by <code>scripts/printed_fingertip_status_page.py</code>
+(rebuild: <code>.venv/bin/python scripts/printed_fingertip_status_page.py</code>; curated text in <code>{esc(CUR.relative_to(ROOT))}</code>).</p>
 <p>{inline(S['lede'])}</p>
 <ul>{toc}</ul>
 {''.join(body)}
