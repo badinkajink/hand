@@ -23,9 +23,14 @@ fit     Per tip and model (drake, v2, v2h, depth):
         with the criteria's residuals: approach (RMS and largest |model / FE - 1|), twist arm (model r_bar / FE r_bar),
         pads in contact at 1 N, and rule R3 (r_bar change over E x0.5 to x2 at the M1 modulus).
 
+        fit --bench CSV takes bench indentation rows as the target in place of the finite elements (bench_target: one
+        solid-modulus factor for the material, the bench approach where measured, the finite elements at that factor
+        elsewhere) and writes fit/fits_bench.json, or --out PATH.
+
     ~/.claude/bin/resguard.sh run --mem 2G --cpu 900 -- taskset -c 4-11 env OMP_NUM_THREADS=8 \\
         .venv/bin/python scripts/fe_contact_calibration_fit.py curves --tip cap_g30
     .venv/bin/python scripts/fe_contact_calibration_fit.py fit
+    .venv/bin/python scripts/fe_contact_calibration_fit.py fit --bench <indentation.csv> --out <new study>/fit/fits.json
 Rows: docs/experiments/20261018-fe_contact_calibration/fit/curves.jsonl, fit/fits.json (labelled model).
 """
 from __future__ import annotations
@@ -434,8 +439,102 @@ def fit_ks(fe, cur, tip, E_loc, probes=None):
     return math.exp(r.x)
 
 
+def _loglog(xs, ys, x):
+    """Linear interpolation on log-log axes, extended linearly beyond the end points."""
+    lx, ly = np.log(np.asarray(xs, float)), np.log(np.asarray(ys, float))
+    u = math.log(x)
+    if u <= lx[0]:
+        return float(np.exp(ly[0] + (ly[1] - ly[0]) / (lx[1] - lx[0]) * (u - lx[0])))
+    if u >= lx[-1]:
+        return float(np.exp(ly[-1] + (ly[-1] - ly[-2]) / (lx[-1] - lx[-2]) * (u - lx[-1])))
+    return float(np.exp(np.interp(u, lx, ly)))
+
+
+def fe_at(row, F, lam=1.0):
+    """(approach um, r_bar mm) of a finite-element row at load F for a solid modulus lam times the model's (12 MPa).
+    Linear elasticity with frictionless contact: the displacement under load F at modulus lam E equals the one under F/lam
+    at E, and the pressure scales with lam, so a(F; lam E) = a(F/lam; E) and r_bar(F; lam E) = r_bar(F/lam; E). The
+    rows' loads (0.5, 1, 3, 6 N) are interpolated on log axes (r_bar on a log load axis), extended beyond the ends."""
+    Fs = sorted(float(k) for k in row["per_force"])
+    pf = {f: row["per_force"][f"{f:g}"] for f in Fs}
+    x = F / lam
+    a = _loglog(Fs, [pf[f]["approach_um"] for f in Fs], x)
+    lF, rb = np.log(Fs), np.array([pf[f]["r_bar_mm"] for f in Fs], float)
+    u = math.log(x)
+    if u <= lF[0]:
+        r = rb[0] + (rb[1] - rb[0]) / (lF[1] - lF[0]) * (u - lF[0])
+    elif u >= lF[-1]:
+        r = rb[-1] + (rb[-1] - rb[-2]) / (lF[-1] - lF[-2]) * (u - lF[-1])
+    else:
+        r = np.interp(u, lF, rb)
+    return a, float(max(r, 1e-3))
+
+
+def bench_target(fe, path):
+    """The bench indentation rows in place of the finite elements as the fit target (plan.json, Future work).
+
+    CSV columns: tip (block4_g30, cap_g30, ell16_g30, ell11_g30), probe (cx12.5_z0: the 25 mm rod across the finger at
+    the contact point; s_apex: the 4 mm steel ball at the apex; any other probe name of fe/fe.jsonl), force_N, approach_um
+    (from first touch), and optional repeat; repeats are averaged on a log scale. One solid-modulus factor lam for the
+    material (Siraya 85A over the finite elements' 12 MPa) by log-RMS over every bench row; every tip's target is its
+    finite elements at lam (fe_at), with the bench approach in place of the finite elements' where the bench measured it.
+    Returns (target rows in the shape of fe_rows(), the target's description with lam per tip and the finite elements'
+    bench residual after lam)."""
+    import csv
+    from scipy.optimize import minimize_scalar
+    acc = {}
+    with open(path, newline="") as fh:
+        for r in csv.DictReader(fh):
+            if not (r.get("tip") or "").strip():
+                continue
+            k = (r["tip"].strip(), r["probe"].strip(), float(r["force_N"]))
+            if (k[0], k[1]) not in fe:
+                raise SystemExit(f"{path}: no finite-element row for tip {k[0]!r}, probe {k[1]!r}")
+            acc.setdefault(k, []).append(math.log(float(r["approach_um"])))
+    if not acc:
+        raise SystemExit(f"{path}: no bench rows")
+    bench = {k: math.exp(float(np.mean(v))) for k, v in acc.items()}
+
+    def lam_fit(keys):
+        def loss(ll):
+            return float(np.mean([(math.log(bench[k]) - math.log(fe_at(fe[k[:2]], k[2], math.exp(ll))[0])) ** 2
+                                  for k in keys]))
+        r = minimize_scalar(loss, bounds=(math.log(0.1), math.log(10.0)), method="bounded", options=dict(xatol=1e-6))
+        return math.exp(r.x)
+    lam = lam_fit(list(bench))
+    desc = {"kind": "bench", "csv": str(path), "lambda": lam, "n_rows": sum(len(v) for v in acc.values()),
+            "terms": {"lambda": "solid-modulus factor of Siraya 85A over the finite elements' 12 MPa, one per material, "
+                                "by log-RMS of approach over every bench row",
+                      "fe_residual_rms_pct": "RMS of (finite-element approach at lambda / bench approach - 1) over a tip's "
+                                             "bench rows",
+                      "exponent": "bench and finite-element force exponent n = ln(a(3 N) / a(0.5 N)) / ln 6 per probe"},
+            "tips": {}}
+    for tip in sorted({k[0] for k in bench}):
+        keys = [k for k in bench if k[0] == tip]
+        e = [bench[k] / fe_at(fe[k[:2]], k[2], lam)[0] - 1 for k in keys]
+        ex = {}
+        for p in sorted({k[1] for k in keys}):
+            if (tip, p, 0.5) in bench and (tip, p, 3.0) in bench:
+                ex[p] = {"bench": math.log(bench[(tip, p, 3.0)] / bench[(tip, p, 0.5)]) / math.log(6),
+                         "fe_at_lambda": math.log(fe_at(fe[(tip, p)], 3.0, lam)[0] / fe_at(fe[(tip, p)], 0.5, lam)[0])
+                         / math.log(6)}
+        desc["tips"][tip] = {"lambda_own": lam_fit(keys), "fe_residual_rms_pct": 100 * float(np.sqrt(np.mean(np.square(e)))),
+                             "exponent": ex, "rows": {f"{k[1]}@{k[2]:g}": bench[k] for k in keys}}
+    out = {}
+    for (tip, p), r in fe.items():
+        pf = {}
+        for F in sorted({*FIT_F, *ARM_F, 6.0}):
+            a, rb = fe_at(r, F, lam)
+            pf[f"{F:g}"] = {"approach_um": bench.get((tip, p, F), a), "r_bar_mm": rb}
+        out[(tip, p)] = dict(r, per_force=pf)
+    return out, desc
+
+
 def cmd_fit(a):
     fe = fe_rows()
+    target = {"kind": "finite elements", "rows": "fe/fe.jsonl (grid base)"}
+    if getattr(a, "bench", None):
+        fe, target = bench_target(fe, a.bench)
     cv = {}
     for r in rows(OUT / "curves.jsonl"):
         cv.setdefault((r["tip"], r["model"]), {})[r["probe"]] = curve_of(r)
@@ -529,13 +628,22 @@ def cmd_fit(a):
             few = any(n < 6 for n in v2["contacts_1N"].values())
             t["pad_model"][c] = "v2h" if (vh and (few or (not v2["pass_arm"] and vh["pass_arm"]))) else "v2"
     out["when"] = time.strftime("%Y-%m-%d %H:%M")
-    OUT.mkdir(parents=True, exist_ok=True)
-    tmp = OUT / "fits.json.tmp"
+    if target["kind"] != "finite elements":
+        out["target"] = target
+    dest = Path(a.out) if getattr(a, "out", None) else OUT / ("fits_bench.json" if target["kind"] == "bench" else "fits.json")
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    tmp = dest.with_name(dest.name + ".tmp")
     with open(tmp, "w") as fh:
         json.dump(out, fh, indent=1, default=float)
         fh.flush()
         os.fsync(fh.fileno())
-    os.replace(tmp, OUT / "fits.json")
+    os.replace(tmp, dest)
+    if target["kind"] == "bench":
+        print(f"bench target {target['csv']}: lambda {target['lambda']:.4f} over {target['n_rows']} rows; "
+              + "; ".join(f"{t}: own lambda {v['lambda_own']:.4f}, finite elements {v['fe_residual_rms_pct']:.1f} % RMS "
+                          f"after lambda, exponents {json.dumps({p: {k: round(x, 3) for k, x in e.items()} for p, e in v['exponent'].items()})}"
+                          for t, v in target["tips"].items()))
+    print(f"wrote {dest}")
     for tip, t in out["tips"].items():
         print(tip, "FE", {k: (round(v, 3) if isinstance(v, float) else None) for k, v in t["fe"].items()
                           if k.startswith("exp") and not isinstance(v, dict) or k == "rod_over_sphere_1N"})
@@ -602,7 +710,14 @@ def main():
     c.add_argument("--tip", required=True, choices=list(SIM_KEY))
     c.add_argument("--models", nargs="+", default=["drake", "v2", "v2h", "v1", "depth"])
     c.add_argument("--check", action="store_true", help="compare the k-nearest-facet gauge with the full maximum")
-    sub.add_parser("fit")
+    ft = sub.add_parser("fit")
+    ft.add_argument("--bench", default=None,
+                    help="CSV of bench indentation rows (tip, probe, force_N, approach_um[, repeat]) that replace the finite "
+                         "elements as the target where measured (bench_target); the other probes take the finite elements "
+                         "at the fitted solid-modulus factor")
+    ft.add_argument("--out", default=None, help="fits JSON to write (default fit/fits.json, or fit/fits_bench.json with "
+                                                "--bench); a new study folder's fit/fits.json for fe_contact_calibration_sim.py "
+                                                "--study")
     pm = sub.add_parser("patchmaps")
     pm.add_argument("--tips", nargs="+", default=list(SIM_KEY))
     a = ap.parse_args()

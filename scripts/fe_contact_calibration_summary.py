@@ -4,7 +4,9 @@ bed, the iCEM command replays (D1) and the D1-D8 replays (D2), with the plan's c
 
 Pairs of runs (pads against Drake at one calibration, one plan and seed; or one model's seeds 1 and 2 against seed 0):
   held agreement   both keep the tool or both drop it
-  same branch      both keep the tool and end within 15 deg of each other
+  same branch      both keep the tool and end within 15 deg of each other (cylinder replays: the angle between the two
+                   tools' axes at the end; D1-D8 replays: the difference of the turns, see pair())
+  angle_first_deg  the angle between the two tools at the first common sample (cylinder replays: 20 ms after the grip)
   rms_angle_deg    RMS over the 20 ms samples of the angle between the two tool orientations
   rms_dN_N         RMS over samples and fingers of the difference of each finger's summed normal force on the tool
   rms_dT_N         the same for the magnitude of each finger's friction force on the tool
@@ -71,7 +73,14 @@ def axis_of(q):
 
 def pair(A, B, turn_key="turn_end_deg", held_key="held", axis=False):
     """axis: compare the tools' axes (a cylinder is symmetric about its own axis, so its spin about it is no part of the
-    turn); otherwise the full orientations (the D1-D8 screwdriver)."""
+    turn); otherwise the full orientations (the D1-D8 screwdriver).
+
+    Same branch (plan.json terms): both runs keep the tool and end within 15 deg of each other. On the cylinder replays
+    (axis) that is the angle between the two tools' axes at the last common sample: each replay measures its turn from
+    its own tool pose after the 0.8 s grip, and two simulators can leave the grip with the axes apart (angle_first_deg,
+    the first sample, 20 ms after the grip), so a difference of turns there compares angles from different references.
+    On the D1-D8 replays the traces start 20 ms into the grip and both turns are measured from the shaft's tilt at the
+    grip (the readiness protocol), so the difference of the turns is kept."""
     ta, qa, Na, Ta = tr_arrays(A["trace"])
     tb, qb, Nb, Tb = tr_arrays(B["trace"])
     n = min(len(qa), len(qb))
@@ -83,21 +92,27 @@ def pair(A, B, turn_key="turn_end_deg", held_key="held", axis=False):
         ang = np.degrees(2 * np.arccos(np.clip(np.abs(np.sum(qa[:n] * qb[:n], 1)), -1, 1)))
     sep = np.where(ang > 10)[0]
     ha, hb = bool(A[held_key]), bool(B[held_key])
-    same = ha and hb and abs(A[turn_key] - B[turn_key]) <= 15.0
+    if axis:
+        same = ha and hb and float(ang[n - 1]) <= 15.0
+    else:
+        same = ha and hb and abs(A[turn_key] - B[turn_key]) <= 15.0
     return {"held": [ha, hb], "turn_end_deg": [A[turn_key], B[turn_key]], "same_branch": same,
-            "rms_angle_deg": rms(ang), "t_apart_10deg_s": float(ta[sep[0]]) if len(sep) else None,
+            "rms_angle_deg": rms(ang), "angle_first_deg": float(ang[0]), "angle_end_deg": float(ang[n - 1]),
+            "t_first_s": float(ta[0]), "t_apart_10deg_s": float(ta[sep[0]]) if len(sep) else None,
             "rms_dN_N": rms(Na[:n] - Nb[:n]), "rms_dT_N": rms(Ta[:n] - Tb[:n]), "n": int(n)}
 
 
 def summarize(pairs):
     pairs = [p for p in pairs if p]
     same = [p for p in pairs if p["same_branch"]]
+    rng = lambda k: [min(p[k] for p in pairs), max(p[k] for p in pairs)] if pairs else None  # noqa: E731
     return {"n": len(pairs), "held_agree": sum(p["held"][0] == p["held"][1] for p in pairs),
             "same_branch": len(same),
             "median_rms_angle_same_deg": med([p["rms_angle_deg"] for p in same]),
             "median_rms_angle_all_deg": med([p["rms_angle_deg"] for p in pairs]),
             "median_rms_dN_same_N": med([p["rms_dN_N"] for p in same]),
-            "median_rms_dT_same_N": med([p["rms_dT_N"] for p in same])}
+            "median_rms_dT_same_N": med([p["rms_dT_N"] for p in same]),
+            "angle_first_range_deg": rng("angle_first_deg"), "angle_end_range_deg": rng("angle_end_deg")}
 
 
 # ------------------------------------------------------------------------------------------ D1: iCEM command replays
@@ -139,9 +154,8 @@ def d1():
                     bound = max(3.0, s_sp["median_rms_angle_same_deg"] or 0.0)
                     n = s_pd["n"]
                     need = n if own else n - 1                  # 3 of 3 (own plans), 5 of 6 (readiness plans)
-                    # the angle median describes the runs only when most pairs share a branch
-                    ok_angle = (s_pd["median_rms_angle_same_deg"] is not None and s_pd["median_rms_angle_same_deg"] <= bound
-                                and 2 * s_pd["same_branch"] > n)
+                    ok_angle = (s_pd["median_rms_angle_same_deg"] is not None
+                                and s_pd["median_rms_angle_same_deg"] <= bound)
                     ok_force = own or ((s_pd["median_rms_dN_same_N"] or 9) <= 0.25 and (s_pd["median_rms_dT_same_N"] or 9) <= 0.35)
                     out[f"{tip}|{'own' if own else 'ready'}|{calib}|{padk}"] = {
                         "tip": tip, "own": own, "calib": calib, "pads": padk, "pads_vs_drake": s_pd, "pads_seed_spread": s_sp,

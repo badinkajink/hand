@@ -1,6 +1,6 @@
 {
  "title": "Status of the fingertip, contact-model and DIP-link work",
- "as_of": "2026-10-18 15:25",
+ "as_of": "2026-10-18 15:18",
  "lede": "On 2026-10-18 the owner asked for nine things in one window: push everything, keep autopilot runs off the Max seat, a print procedure, a calibration of Drake's field and the pads to the finite elements (FE), the capsule and quarter-ellipsoid prints if they can be modelled, a DIP-link redesign that clamps the magnetometer board against the printed tip, and a file-explorer layout for the page index; at the printer the owner chose the 2.9 mm magnet seat. Pushing, the autopilot default, the procedure, the 2.9 mm print set and the page tree are done. The calibration ran: no print meets every criterion. The DIP link has two complete designs; a third, the judge, the final design and its page run as a job on the personal login.",
  "sections": [
   {
@@ -35,7 +35,7 @@
      ],
      [
       "\"why couldn't we just calibrate drake's field to the FEM? ... as long as the model is internally consistent\"",
-      "Run done (FE of four 85A prints under 18 probes, three calibrations, replays); page written (8bdd3612) and under review (personal job, step 2).",
+      "Done: run (FE of four 85A prints under 18 probes, three calibrations, replays) and page, checked and rebuilt by the personal job (step 2); its artifact is step 7.",
       "[Calibration page](experiments/20261018-fe_contact_calibration/20261018-fe_contact_calibration.html)"
      ],
      [
@@ -73,9 +73,9 @@
    "id": "calibration",
    "heading": "Calibration of Drake's field and the pads to the finite elements",
    "paras": [
-    "Calibration to the FE works for stiffness and twist arm on the half-ellipsoids, and the two simulators still disagree on their turns; no print meets every criterion of the plan (`docs/experiments/20261018-fe_contact_calibration/plan.json`: approach within 25 % RMS, twist arm 0.70-1.15 times the FE's, pads and Drake ending their iCEM turns on the same branch as often as on the block).",
-    "Approach: the tip's travel toward the palm under a probe, from the FE of the 85A prints at 30 % gyroid with four 3 x 2 mm magnets, under rods of 5, 8 and 12.5 mm radius at 0.5, 1 and 3 N. Twist arm: the pressure-weighted patch radius that sets the torque resisting a turn. M1: one modulus fitted to the approach; M3: a series spring in front of a stiff local field. One modulus leaves 20-24 % RMS approach error in Drake because Drake's pressure depends only on the local overlap, so its approach grows with about the square root of the force, while the printed shell over gyroid spreads the load and its approach grows with the 0.75-0.81 power of the force.",
-    "Pads and Drake on the 11/22 half-ellipsoid's iCEM turns: both hold the tool in 6 of 6 runs and finish 15-51 deg apart, against the pads' own seed spread of 0.58 deg; on a plan made for that tip they finish 32.5 deg apart. The pads creep 0.86-0.96 deg/s at 1 N where Drake creeps 0.004-0.012 deg/s, and pads at impratio 1000 still finish 0 of 6 on Drake's branch, so the cause is open. Drake replays took 50-180 s each against the 15 s planned, so the block and capsule consistency runs were cut. The block remains the tip on which the two agree (1.4 deg on the D1-D8 replays of 2026-10-16)."
+    "Calibration to the FE reproduces stiffness and twist arm on the 11/22 half-ellipsoid, and the two simulators still part on its turns; none of the four prints meets every criterion of the plan (`docs/experiments/20261018-fe_contact_calibration/plan.json`: approach within 25 % RMS and 40 % at worst, twist arm 0.70-1.15 times the FE's, and pads and Drake agreeing on the same iCEM commands: 5 of 6 held outcomes, a same-branch RMS angle within 3 deg or the pads' seed spread, forces within 0.25 N normal and 0.35 N friction).",
+    "Approach: the tip's travel toward the palm under a probe, from the FE of the 85A prints at 30 % gyroid with four 3 x 2 mm magnets, under rods of 5, 8 and 12.5 mm radius at 0.5, 1 and 3 N. Twist arm: the pressure-weighted patch radius that sets the torque resisting a turn. M1: one modulus fitted to the approach; M2: one modulus fitted to the twist arm; M3: M2's modulus behind a series spring. One modulus leaves 21-24 % RMS and 41-61 % worst approach error in Drake, because Drake's pressure depends only on the local overlap: its approach grows with the 0.50-0.67 power of the force, the printed shell over gyroid's with the 0.71-0.93 power.",
+    "Pads and Drake on the 11/22 half-ellipsoid at M2 (the plan runs trajectories at M2 in place of M3): both hold the tool in 6 of 6 replays of the readiness iCEM commands. On the 16 mm cell the tool axes end 2-9 deg apart (3 pairs on the same branch, median RMS angle 6.1 deg against a 5.0 deg bound) with the normal forces 0.41 N RMS apart; on the 25 mm cell they end 27-57 deg apart. On a plan made for that tip the axes end 26 deg apart in all three pairs. On the bed the pads creep 0.29-0.97 deg/s where Drake creeps 0.004-0.024 deg/s; at impratio 1000 the pads put 4 of 6 pairs on Drake's branch (3 at impratio 100) and consistency still fails. The spring check fails (3.1 deg and 0.22 N against 1 deg and 0.05 N), so M2 cannot stand in for the spring on trajectories. Drake replays took 52-178 s each against the 15 s planned, so the block's and the capsule's consistency runs were cut; they lead the page's Future work with the pads' creep against Drake's and the bench indentation."
    ],
    "table": {
     "head": [
@@ -104,15 +104,15 @@
       "Half-ellipsoid 16/32",
       "9.1 / 9.2 (M3)",
       "0.86-1.17",
-      "1 of 2 on the same branch, 9.8 deg",
-      "Twist arm 1-2 % over the bound"
+      "1 of 2 on the same branch, 9.8 deg RMS (bound 3 deg)",
+      "Twist arm 0.4 % (Drake) and 1.7 % (pads) over the bound; fails consistency"
      ],
      [
       "Half-ellipsoid 11/22",
       "5.2 / 5.6 (M3)",
       "0.87-1.15",
-      "0 of 6 on the same branch, 15-51 deg apart",
-      "Fails consistency"
+      "3 of 6 on the same branch: axes 2-9 deg apart at the end on the 16 mm cell, 27-57 deg on the 25 mm cell; normal forces 0.41 N apart (bound 0.25 N)",
+      "Fails consistency and the spring check"
      ]
     ]
    }
@@ -216,7 +216,7 @@
      ],
      [
       "Curved-tip modelling follow-up",
-      "The pads-against-Drake divergence on the half-ellipsoids' turns has an open cause (creep differs 100 times; impratio 1000 did not close it).",
+      "The pads-against-Drake split on the half-ellipsoids' turns has an open cause: on the bed the pads creep 0.29-0.97 deg/s and Drake 0.004-0.024 deg/s, and impratio 1000 moved one of six pairs onto Drake's branch.",
       "Calibration page, Future work"
      ],
      [

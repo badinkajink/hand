@@ -24,6 +24,9 @@ d1d8    D2: the D1-D8 bench plans replayed open loop as in scripts/sim2real_fing
         (0.5 mm pads), spring (M3: pads at M2's E behind a slide joint along the palmar normal held by a joint
         equality of stiffness k_s, solref 0.01 s). Rows replays/d1d8.jsonl.
 
+--study DIR reads the calibrations from DIR/fit/fits.json and writes the rows under DIR (a bench refit of
+fe_contact_calibration_fit.py fit --bench); the default is this study.
+
     PY=logs/20261001-hom_contact/venv/bin/python
     ~/.claude/bin/resguard.sh run --mem 3G --cpu 200 -- taskset -c 4 $PY scripts/fe_contact_calibration_sim.py bed \\
         --tips block4_g30 cap_g30 ell16_g30 ell11_g30 --calib M1 M2
@@ -708,7 +711,12 @@ def cmd_film(a):
 
 
 def main():
+    global D
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--study", default=None,
+                    help="study folder whose fit/fits.json gives the calibrations and which receives the rows (bed/, replays/, "
+                         "media/); default this study. A bench refit (fe_contact_calibration_fit.py fit --bench CSV --out "
+                         "<folder>/fit/fits.json) runs here without mixing its rows into the finite-element calibration's")
     sub = ap.add_subparsers(dest="cmd", required=True)
     b = sub.add_parser("bed")
     b.add_argument("--tips", nargs="+", default=TIPS)
@@ -745,6 +753,10 @@ def main():
     f.add_argument("--elev", type=float, default=10.0)
     f.add_argument("--azim", type=float, default=0.0)
     a = ap.parse_args()
+    if a.study:
+        D = Path(a.study) if Path(a.study).is_absolute() else ROOT / a.study
+        if not (D / "fit" / "fits.json").exists():
+            raise SystemExit(f"{D / 'fit' / 'fits.json'} is missing: write it with fe_contact_calibration_fit.py fit --out")
     {"bed": cmd_bed, "icem": cmd_icem, "plan": cmd_plan, "d1d8": cmd_d1d8, "film": cmd_film}[a.cmd](a)
 
 
