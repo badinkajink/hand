@@ -1,6 +1,6 @@
 {
  "title": "Status of the fingertip, contact-model and DIP-link work",
- "as_of": "2026-10-18 15:19",
+ "as_of": "2026-10-18 15:22",
  "lede": "On 2026-10-18 the owner asked for nine things in one window: push everything, keep autopilot runs off the Max seat, a print procedure, a calibration of Drake's field and the pads to the finite elements (FE), the capsule and quarter-ellipsoid prints if they can be modelled, a DIP-link redesign that clamps the magnetometer board against the printed tip, and a file-explorer layout for the page index; at the printer the owner chose the 2.9 mm magnet seat. Pushing, the autopilot default, the procedure, the 2.9 mm print set and the page tree are done. The calibration ran: no print meets every criterion. The DIP link has two complete designs; a third, the judge, the final design and its page run as a job on the personal login.",
  "sections": [
   {
@@ -45,7 +45,7 @@
      ],
      [
       "\"redesign the DIP linkage ... the board does not wiggle at all--youll want something to fasten/sandwich it in place\"",
-      "Specification and concepts a and b done; concept c partial; judge, final design and page are steps 3-5 of the personal job.",
+      "Specification and concepts a, b and c done; the judge, final design and page are steps 4-5 of the personal job.",
       "`docs/experiments/20261018-dip_link_board_mount/`"
      ],
      [
@@ -122,7 +122,7 @@
    "heading": "DIP-link redesign for the magnetometer board",
    "live": "dip",
    "paras": [
-    "Two designs are complete and a third nearly so, each with STEP and STL files, a clearance check over PIP -18 to 92 deg and a sensing estimate. Concept a keeps the tip's outer surface: the DIP link's plate becomes a 0.85 mm window plate whose windows let the five MLX90393 chips stand 0.05 mm proud against the tip's back face, and a 3 mm dorsal clamp plate sandwiches the board with two M1.6 countersunk screws, two M2 screws and two locating pins. Concept b replaces the tip's dorsal 6 mm with a rigid cassette: four M1.6 screws and brass nuts clamp the board between a 0.9 mm PLA cover and a 3.6 mm tongue of the DIP link, and an 11 mm 85A pad snaps onto two dovetail rails; the pad keeps the palmar and side surfaces, halves the magnet travel per newton and raises the tip's modulus by 20 %, and the closer chips need GAIN_SEL 0-1. Concept c places the board at a print pause and prints a PLA cap and the TPU tip over it; its agent died after the CAD, the sensing estimate and most clearances, before the renders and the commit.",
+    "Two designs are complete and a third nearly so, each with STEP and STL files, a clearance check over PIP -18 to 92 deg and a sensing estimate. Concept a keeps the tip's outer surface: the DIP link's plate becomes a 0.85 mm window plate whose windows let the five MLX90393 chips stand 0.05 mm proud against the tip's back face, and a 3 mm dorsal clamp plate sandwiches the board with two M1.6 countersunk screws, two M2 screws and two locating pins. Concept b replaces the tip's dorsal 6 mm with a rigid cassette: four M1.6 screws and brass nuts clamp the board between a 0.9 mm PLA cover and a 3.6 mm tongue of the DIP link, and an 11 mm 85A pad snaps onto two dovetail rails; the pad keeps the palmar and side surfaces, halves the magnet travel per newton and raises the tip's modulus by 20 %, and the closer chips need GAIN_SEL 0-1. Concept c places the board at a print pause and prints a 0.2 mm PLA cap and the TPU tip over it, so the board is captured by the print with no screw preload; the cartridge (carrier, board, cap, tip) slides onto a separate PLA body and one brass M2 screw holds it. Its evaluation was regenerated from the final clearance check (worst rigid part 0.55 mm from the PIP servo at -13.5 deg) and its renders redrawn (personal job, step 3).",
     "The specification (`docs/experiments/20261018-dip_link_board_mount/spec.json`) sets two hard constraints. The board's JST SH connector clashes with the MCP link by 1.45 mm at this placement, so the tab is cut to 4.9 mm or less and the cable soldered. One micrometre of board motion toward the magnets reads as 0.16 N of normal force with the chips on the back face, so the clamp must remove play below a micrometre. Both designs leave the 20 mm board 2.6 mm past each side of the 14.8 mm tip (rigid rim 3.1 mm), where the readiness study's board edge touched the cylinder in most HOM runs; a narrower board is the remedy the designs cannot provide.",
     "Next, in the personal job: concept c's checks (step 3), the judge and the final design with a dimensioned drawing (step 4), the DIP page (step 5). The owner chooses the design after the judge's recommendation."
    ],
@@ -171,7 +171,7 @@
       "0.187 / 0.068",
       "0.55",
       "Captured: PLA cap printed onto a spacer over the board, two crush-rib pins; no screw preload",
-      "Printed with the link in one PLA + TPU print"
+      "Printed as one PLA + TPU cartridge with the board inside; tip and board are replaced together"
      ]
     ]
    }
