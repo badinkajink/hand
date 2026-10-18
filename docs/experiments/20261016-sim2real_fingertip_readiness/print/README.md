@@ -4,7 +4,7 @@ Every file here is an 85A print: PrusaSlicer projects on the owner's v17 templat
 
 ## Seat test first
 
-Print the seat coupon before any tip. The 2.7 mm seat in every tip is provisional until the coupon shows which of 2.7, 2.8 and 2.9 mm takes the magnet to its floor and keeps it when the coupon is turned over and tapped; `scripts/sim2real_fingertip_prints.py build --seat 2.8` (or 2.9) rewrites the tips with the chosen seat.
+The owner's seat test of 2026-10-18 chose 2.9 mm ('the 2.9mm holes are what we should use'): print the seat2p9 projects, listed first in the table of tips. Two tips change at that seat to keep the 1.8 mm pocket-wall rule: tcd_ell7.4x8.5x11x22, magnets 7.5 mm deep (1.76 mm to the surface at 7.0 mm); five_z7p4, corners 7.4 mm apart along the finger (1.71 mm web at 7.0 mm). The 2.7 mm projects below them are the provisional set printed before the test. `scripts/sim2real_fingertip_prints.py build --seat 2.9 --depth tcd_ell7.4x8.5x11x22=7.5 --five five_z7p4` rewrites the 2.9 mm set.
 
 | Coupon | Walls at each seat | Print time | Project |
 |---|---|---|---|
@@ -19,6 +19,18 @@ Starting point: "Siraya Tech TPU 85A @XL 0.4mm Nozzle" and ST TPU 85A 0.20mm QUA
 
 | Print | Infill | Orientation and layers | Magnets, top under the apex | Least TPU around a pocket (mm) | Pauses | Print time | Project |
 |---|---|---|---|---|---|---|---|
+| Block | 30 % | back face on the bed, 0.2 mm | 4, 5 mm | 2.95 | 12.4 mm (4) | 17m 3s | 20261016-siraya85a_block_four_d3x2_depth5_seat2p9_g30.3mf |
+| Block | 50 % | back face on the bed, 0.2 mm | 4, 5 mm | 2.95 | 12.4 mm (4) | 21m 54s | 20261016-siraya85a_block_four_d3x2_depth5_seat2p9_g50.3mf |
+| Block | 30 % | back face on the bed, 0.2 mm | 5, 5 mm | 2.95 | 12.4 mm (5) | 17m 27s | 20261016-siraya85a_block_five_z7p4_d3x2_depth5_seat2p9_g30.3mf |
+| Block | 50 % | back face on the bed, 0.2 mm | 5, 5 mm | 2.95 | 12.4 mm (5) | 22m 14s | 20261016-siraya85a_block_five_z7p4_d3x2_depth5_seat2p9_g50.3mf |
+| Block, one wall at the pockets | 30 % | back face on the bed, 0.2 mm | 4, 5 mm | 2.95 | 12.4 mm (4) | 16m 47s | 20261016-siraya85a_block_four_d3x2_depth5_seat2p9_pocketwalls1_g30.3mf |
+| Block, one wall at the pockets | 50 % | back face on the bed, 0.2 mm | 4, 5 mm | 2.95 | 12.4 mm (4) | 21m 42s | 20261016-siraya85a_block_four_d3x2_depth5_seat2p9_pocketwalls1_g50.3mf |
+| Capsule r 8.5 mm | 30 % | upright on the mount face, 0.1 mm | 4, 5 mm | 2.01 | 9.2 mm (2); 16.2 mm (2) | 33m 36s | 20261016-siraya85a_tcd_cap8p5_four_d3x2_depth5_seat2p9_g30.3mf |
+| Capsule r 8.5 mm | 50 % | upright on the mount face, 0.1 mm | 4, 5 mm | 2.01 | 9.2 mm (2); 16.2 mm (2) | 39m 37s | 20261016-siraya85a_tcd_cap8p5_four_d3x2_depth5_seat2p9_g50.3mf |
+| Half-ellipsoid 7.4 x 8.5 x 16/32 mm | 30 % | upright on the mount face, 0.1 mm | 4, 5.5 mm | 1.86 | 9.2 mm (2); 16.2 mm (2) | 33m 33s | 20261016-siraya85a_tcd_ell7p4x8p5x16x32_four_d3x2_depth5p5_seat2p9_g30.3mf |
+| Half-ellipsoid 7.4 x 8.5 x 16/32 mm | 50 % | upright on the mount face, 0.1 mm | 4, 5.5 mm | 1.86 | 9.2 mm (2); 16.2 mm (2) | 38m 41s | 20261016-siraya85a_tcd_ell7p4x8p5x16x32_four_d3x2_depth5p5_seat2p9_g50.3mf |
+| Half-ellipsoid 7.4 x 8.5 x 11/22 mm | 30 % | upright on the mount face, 0.1 mm | 4, 7.5 mm | 1.85 | 9.2 mm (2); 16.2 mm (2) | 33m 2s | 20261016-siraya85a_tcd_ell7p4x8p5x11x22_four_d3x2_depth7p5_seat2p9_g30.3mf |
+| Half-ellipsoid 7.4 x 8.5 x 11/22 mm | 50 % | upright on the mount face, 0.1 mm | 4, 7.5 mm | 1.85 | 9.2 mm (2); 16.2 mm (2) | 37m 32s | 20261016-siraya85a_tcd_ell7p4x8p5x11x22_four_d3x2_depth7p5_seat2p9_g50.3mf |
 | Block | 30 % | back face on the bed, 0.2 mm | 4, 5 mm | 3.05 | 12.4 mm (4) | 16m 58s | 20261016-siraya85a_block_four_d3x2_depth5_seat2p7_g30.3mf |
 | Block | 50 % | back face on the bed, 0.2 mm | 4, 5 mm | 3.05 | 12.4 mm (4) | 21m 53s | 20261016-siraya85a_block_four_d3x2_depth5_seat2p7_g50.3mf |
 | Block, five magnets | 30 % | back face on the bed, 0.2 mm | 5, 5 mm | 3.05 | 12.4 mm (5) | 17m 20s | 20261016-siraya85a_block_five_d3x2_depth5_seat2p7_g30.3mf |

@@ -90,7 +90,7 @@ def label(r):
     if is_coupon(r):
         return "Seat coupon, " + ("two walls" if walls(r) == 2 else "one wall") + " at each seat"
     lab = r["tip_label"][0].upper() + r["tip_label"][1:]
-    lab += ", five magnets" if r["layout"] == "five" else ", four magnets"
+    lab += ", five magnets" if r["layout"].startswith("five") else ", four magnets"
     if walls(r) == 1:
         lab += ", one wall at the pockets"
     return f"{lab}, {r['infill_percent']} % gyroid"
@@ -101,7 +101,7 @@ def short_label(r):
         return "Coupon, " + ("two walls" if walls(r) == 2 else "one wall")
     lab = {"block": "Block", "tcd_cap8.5": "Capsule r 8.5", "tcd_ell7.4x8.5x16x32": "Half-ellipsoid 16/32",
            "tcd_ell7.4x8.5x11x22": "Half-ellipsoid 11/22"}[r["tip"]]
-    lab += ", five magnets" if r["layout"] == "five" else ""
+    lab += ", five magnets" if r["layout"].startswith("five") else ""
     lab += ", one wall" if walls(r) == 1 else ""
     return f"{lab}, {r['infill_percent']} %"
 
@@ -109,7 +109,7 @@ def short_label(r):
 def mass_key(r):
     t = {"block": "block", "tcd_cap8.5": "cap", "tcd_ell7.4x8.5x16x32": "ell16", "tcd_ell7.4x8.5x11x22": "ell11"}[r["tip"]]
     if t == "block":
-        t += {"four": "4", "five": "5"}[r["layout"]] + ("w1" if walls(r) == 1 else "")
+        t += {"four": "4", "five": "5"}[r["layout"].split("_")[0]] + ("w1" if walls(r) == 1 else "")
     return f"{t}_g{r['infill_percent']}"
 
 
@@ -161,8 +161,8 @@ def order(S, seats):
         return min(cands, key=lambda r: abs(r.get("seat_mm", 2.7) - 2.7))
 
     def find(tip, lay, w, infill):
-        c = [r for r in S if not is_coupon(r) and r["tip"] == tip and r["layout"] == lay and walls(r) == w
-             and r["infill_percent"] == infill]
+        c = [r for r in S if not is_coupon(r) and r["tip"] == tip and walls(r) == w and r["infill_percent"] == infill
+             and (r["layout"] == lay or r["layout"].startswith(lay + "_z"))]     # five_z7p4: the 2.9 mm five-magnet block
         return pick(c, "round" if tip == "block" else "slot")
     coupons = sorted([r for r in S if is_coupon(r)], key=lambda r: -walls(r))
     seq = [("Seat test", c) for c in coupons]
@@ -496,6 +496,29 @@ def magnet_section(r0, seq):
             "face down onto a north pole, so its marked face shows upward at every magnet of a correct tip.</p></section>")
 
 
+def seat_lede(seats, S):
+    """The lede's seat sentence: the two-wall coupon's chosen seat and what that seat changes in the tips, read from the
+    sheets built at it; the provisional 2.7 mm before the coupon has a result."""
+    s = seats.get(("two walls", "round"))
+    if not isinstance(s, float):
+        return "Every tip has a 2.7 mm seat until the coupons show that a wider one is needed."
+    at = [r for r in S if not is_coupon(r) and abs(r.get("seat_mm", 0) - s) < 1e-6]
+    ell = next((r for r in at if r["tip"] == "tcd_ell7.4x8.5x11x22"), None)
+    five = next((r for r in at if r["layout"].startswith("five")), None)
+    extra = []
+    if ell and abs(ell["magnet"]["top_depth_mm"] - 7.0) > 1e-6:
+        extra.append(f"the 11/22 half-ellipsoid's magnets sit {num(ell['magnet']['top_depth_mm'])} mm under the apex "
+                     f"({ell['wall_min_mm']:.2f} mm of TPU to the surface)")
+    if five and five["layout"] != "five":
+        g = min(x["gap_mm"] for x in five["pocket_gaps"])
+        extra.append(f"the five-magnet block's corner pockets sit {five['layout'][6:].replace('p', '.')} mm apart along "
+                     f"the finger ({g:.2f} mm between pockets)")
+    txt = f"The two-wall seat coupon chose {s:g} mm (owner, 2026-10-18), and every tip here has {s:g} mm seats"
+    if extra:
+        txt += "; to keep 1.8 mm of TPU around every pocket at that seat, " + " and ".join(extra)
+    return txt + "."
+
+
 def seat_section(seat_rows, seats, walls_json, cmd_prefix):
     def cell(v):
         v = (v or "").strip()
@@ -675,8 +698,7 @@ def build():
             f"30 % four-magnet block of the bench package ({bt['slice']['check']['print_time']}, one pause at "
             f"{num(bt['pauses'][0]['print_z'])} mm); the capsule and the two half-ellipsoids at 30 % "
             f"({min(cvt, key=minutes)} to {max(cvt, key=minutes)}, pauses at {pz} mm); then the 50 %, five-magnet and "
-            f"one-wall variants. The first six prints take {fmt_min(t6)}. Every tip has a 2.7 mm seat until the coupons "
-            "show that a wider one is needed.")
+            f"one-wall variants. The first six prints take {fmt_min(t6)}. " + seat_lede(seats, S))
     secs = [order_section(seq, mass), terms_section(), tpu_section(tc, S), magnet_section(bt, seq),
             seat_section(seat_rows, seats, walls_json if walls_json.exists() else None, cmd_prefix), removal_section(),
             record_section(prows)]

@@ -52,6 +52,9 @@ TEMPLATE = OUT / f"{DATE}-siraya85a_template_v17_tool2.3mf"
 SLOT = 1                                      # filament slot of extruder 2 (0-based)
 INFILLS = (30, 50)
 SEAT = 2.7                                    # provisional until the owner's coupon result
+CHOSEN_SEAT = 2.9                             # owner, 2026-10-18: "the 2.9mm holes are what we should use"
+CHOSEN_FIXES = {"tcd_ell7.4x8.5x11x22": "magnets 7.5 mm deep (1.76 mm to the surface at 7.0 mm)",
+                "five_z7p4": "corners 7.4 mm apart along the finger (1.71 mm web at 7.0 mm)"}   # at 2.9 mm, the 1.8 mm rule
 DEPTHS = {"block": 5.0, "tcd_cap8.5": 5.0, "tcd_ell7.4x8.5x16x32": 5.5, "tcd_ell7.4x8.5x11x22": 7.0}   # the 95A prints'
 PRODUCTS = [("block", "four", 2), ("block", "five", 2), ("block", "four", 1),
             ("tcd_cap8.5", "four", 2), ("tcd_ell7.4x8.5x16x32", "four", 2), ("tcd_ell7.4x8.5x11x22", "four", 2)]
@@ -326,15 +329,22 @@ def write_and_check(part, pockets, gaps, mesh, name, tip, lay, depth, walls, inf
 def cmd_build(a):
     use_template()
     OUT.mkdir(parents=True, exist_ok=True)
+    over = dict(kv.split("=", 1) for kv in a.depth)          # --depth TIP=MM
     for tip, lay, walls in PRODUCTS:
         if a.tips and tip not in a.tips:
             continue
+        if lay == "five" and a.five:                          # --five five_z7p4: corners further apart along the finger
+            lay = a.five
         t0 = time.time()
-        depth = DEPTHS[tip]
+        depth = float(over.get(tip, DEPTHS[tip]))
         centres = MP.layout(lay)
         body, part, pockets, gaps, mesh = MP.build(tip, centres, a.seat, depth)
         if not MP.walls_pass(pockets, gaps):
-            raise SystemExit(f"{tip} {lay}: pocket walls fail the {MP.WALL_MIN} mm rule at depth {depth}")
+            msg = f"{tip} {lay}: pocket walls fail the {MP.WALL_MIN} mm rule at depth {depth}"
+            if a.skip_failing:
+                print(msg + "; skipped", flush=True)
+                continue
+            raise SystemExit(msg)
         stl = OUT / f"{MP.name_of(tip, lay, a.seat, depth).replace(f'{DATE}-', f'{DATE}-siraya85a_', 1)}.stl"
         part.export(stl)
         for infill in a.infill:
@@ -419,7 +429,9 @@ def cmd_readme(a):
     def g(k):
         return sl[k]["siraya"] if k in sl else "unchanged"
     order = {(t, l, w): i for i, (t, l, w) in enumerate(PRODUCTS)}
-    tips.sort(key=lambda r: (order[(r["tip"], r["layout"], r["pocket_walls"])], r["infill_percent"]))
+    tips.sort(key=lambda r: (abs(r.get("seat_mm", SEAT) - CHOSEN_SEAT) > 1e-6,
+                             order.get((r["tip"], r["layout"].split("_")[0], r["pocket_walls"]), len(order)),
+                             r["infill_percent"]))
     L = [f"# Siraya Tech TPU 85A fingertip prints for 3 x 2 mm magnets ({DATE[:4]}-{DATE[4:6]}-{DATE[6:]})", "",
          "Every file here is an 85A print: PrusaSlicer projects on the owner's v17 template (Original Prusa XL 5T Input Shaper, "
          "0.4 mm nozzles) with Siraya Tech's Prusa XL 0.4 mm TPU 85A filament profile in slot 2 and the part on extruder 2. "
@@ -427,9 +439,11 @@ def cmd_readme(a):
          "230 C and are not 85A prints. `scripts/sim2real_fingertip_prints.py` (template, build, coupon, readme) writes "
          "them; each project has a sheet (JSON) with the geometry and the G-code checks.", "",
          "## Seat test first", "",
-         "Print the seat coupon before any tip. The 2.7 mm seat in every tip is provisional until the coupon shows which of "
-         "2.7, 2.8 and 2.9 mm takes the magnet to its floor and keeps it when the coupon is turned over and tapped; "
-         "`scripts/sim2real_fingertip_prints.py build --seat 2.8` (or 2.9) rewrites the tips with the chosen seat.", "",
+         f"The owner's seat test of 2026-10-18 chose {CHOSEN_SEAT:g} mm ('the 2.9mm holes are what we should use'): print "
+         f"the seat{str(CHOSEN_SEAT).replace('.', 'p')} projects, listed first in the table of tips. Two tips change at that seat "
+         "to keep the 1.8 mm pocket-wall rule: " + "; ".join(f"{k}, {v}" for k, v in CHOSEN_FIXES.items()) + ". The 2.7 mm "
+         "projects below them are the provisional set printed before the test. `scripts/sim2real_fingertip_prints.py build "
+         "--seat 2.9 --depth tcd_ell7.4x8.5x11x22=7.5 --five five_z7p4` rewrites the 2.9 mm set.", "",
          "| Coupon | Walls at each seat | Print time | Project |", "|---|---|---|---|"]
     for r in cps:
         L.append(f"| Seats 2.7, 2.8, 2.9 mm, round and slot | {r['pocket_walls']} | {r['slice']['check']['print_time']} | "
@@ -521,6 +535,9 @@ def main():
     b.add_argument("--seat", type=float, default=SEAT)
     b.add_argument("--no-slice", action="store_true")
     b.add_argument("--force", action="store_true")
+    b.add_argument("--depth", action="append", default=[], metavar="TIP=MM", help="magnet depth of one tip")
+    b.add_argument("--five", default=None, metavar="LAYOUT", help="layout of the five-magnet block, e.g. five_z7p4")
+    b.add_argument("--skip-failing", action="store_true", help="skip a tip whose pocket walls fail instead of stopping")
     c = sub.add_parser("coupon")
     c.add_argument("--coupon-infill", type=int, default=30)
     c.add_argument("--no-slice", action="store_true")
