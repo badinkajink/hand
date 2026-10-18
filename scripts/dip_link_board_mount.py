@@ -736,6 +736,10 @@ def cmd_drawing(a):
 
 
 # ----------------------------------------------------------------------------------------------- documents
+PLA_TOOL = ("a PLA tool: 3, 4 or 5 in the owner's v17 template, whose tool 1 holds Generic FLEX (95A) and tool 2 "
+            "Siraya 85A")
+
+
 def print_settings():
     sheets = {k: json.loads((READY / "print" / f"{v}.json").read_text()) for k, v in SHEETS.items()}
     tips = {}
@@ -748,7 +752,7 @@ def print_settings():
     return dict(
         printer="Original Prusa XL 5T, 0.4 mm nozzles (PrusaSlicer profile 'Original Prusa XL - 5T Input Shaper 0.4 nozzle')",
         parts=dict(
-            dip_link=dict(file=str(fname("dip_link").relative_to(REPO)), tool="tool 1", material="PLA (the links: PLA, 15 % infill)",
+            dip_link=dict(file=str(fname("dip_link").relative_to(REPO)), tool=PLA_TOOL, material="PLA (the links: PLA, 15 % infill)",
                           orientation="upright, the tip end up: the bridge's mount face is a top surface; the window plate, keys "
                                       "and shoulders rise from it as vertical walls",
                           layer_mm=0.10, perimeters=3, infill="15 % gyroid as the links; 100 % in the shoulders (modifier "
@@ -756,12 +760,12 @@ def print_settings():
                           "toward the PIP axis (paint-on or support enforcers)", seam="aligned, on the dorsal side (away from the "
                           "window plate's palmar face)", nozzle_C=215, bed_C=60, after="ream the two pin holes to 2.40 mm and the "
                           "two M2 pilots to 1.70 mm; check the window plate's palmar face with a straightedge (0.05 mm)"),
-            clamp_plate=dict(file=str(fname("clamp_plate").relative_to(REPO)), tool="tool 1", material="PLA or PETG, solid",
+            clamp_plate=dict(file=str(fname("clamp_plate").relative_to(REPO)), tool=PLA_TOOL, material="PLA or PETG, solid",
                              orientation="back face (x 10.9) on the bed: the board face is a top surface, the pins print "
                                          "vertical, the nut pockets open on the bed side", layer_mm=0.10, perimeters=4,
                              infill="100 %", supports="none", ironing="on the board face", nozzle_C=215, bed_C=60,
                              after="press the two M1.6 nuts in (warm with a soldering iron if tight)"),
-            pin_fit_coupon=dict(file=str((PRINT / f"{PFX}_pin_fit_coupon.stl").relative_to(REPO)), tool="tool 1",
+            pin_fit_coupon=dict(file=str((PRINT / f"{PFX}_pin_fit_coupon.stl").relative_to(REPO)), tool=PLA_TOOL,
                                 material="the clamp plate's material", orientation="plate on the bed, pins up", layer_mm=0.10,
                                 perimeters=4, infill="100 %", supports="none",
                                 use="print before the clamp plate: the pin (2.25, 2.30, 2.35 or 2.40 mm, the chamfered corner at "
